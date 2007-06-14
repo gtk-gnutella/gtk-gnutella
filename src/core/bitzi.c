@@ -183,7 +183,7 @@ bitzi_destroy(bitzi_data_t *data)
  * the parsing of the document tree and processes the ticket.
  */
 static void
-bitzi_host_data_ind(gpointer unused_handle, gchar *data, gint len)
+bitzi_host_data_ind(struct http_async *unused_handle, gchar *data, gint len)
 {
 	gint result;
 
@@ -215,7 +215,7 @@ bitzi_host_data_ind(gpointer unused_handle, gchar *data, gint len)
  * HTTP request is being stopped.
  */
 static void
-bitzi_host_error_ind(gpointer handle,
+bitzi_host_error_ind(struct http_async *handle,
 	http_errtype_t unused_type, gpointer unused_v)
 {
 	(void) unused_type;

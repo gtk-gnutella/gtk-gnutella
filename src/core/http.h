@@ -121,18 +121,19 @@ http_extra_body_set(http_extra_desc_t *he, const gchar *body)
 #define HTTP_CBF_SHOW_RANGES	0x00000008	/**< Show available ranges */
 
 struct header;
+struct http_async;
 
 /**
  * Callback used from asynchronous request to indicate that we got headers.
  * Indicates whether we should continue or not, given the HTTP response code.
  */
 typedef gboolean (*http_header_cb_t)(
-	gpointer h, struct header *header, gint code, const gchar *message);
+	struct http_async *, struct header *, gint code, const gchar *message);
 
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(gpointer h, gchar *data, gint len);
+typedef void (*http_data_cb_t)(struct http_async *, gchar *data, gint len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
@@ -152,10 +153,11 @@ typedef struct {
  * The type of `val' depends on the `error'.
  */
 
-typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
+typedef void (*http_error_cb_t)(
+			struct http_async *, http_errtype_t error, gpointer val);
 
 /**
- * Callabck to free user opaque data.
+ * Callback to free user opaque data.
  */
 
 typedef void (*http_user_free_t)(gpointer data);
@@ -164,7 +166,7 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous operations that the user may redefine.
  */
 
-typedef size_t (*http_op_request_t)(gpointer handle, gchar *buf, size_t len,
+typedef size_t (*http_op_request_t)(struct http_async *, gchar *buf, size_t len,
 	const gchar *verb, const gchar *path, const gchar *host, guint16 port);
 
 /*
@@ -212,7 +214,7 @@ extern http_url_error_t http_url_errno;
  * Callback to notify about state changes in HTTP request.
  */
 
-typedef void (*http_state_change_t)(gpointer handle, http_state_t newstate);
+typedef void (*http_state_change_t)(struct http_async *, http_state_t newstate);
 
 /**
  * HTTP data buffered when it cannot be sent out immediately.
@@ -270,14 +272,14 @@ const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
 	const gchar *url, guint16 *port, const gchar **host, const gchar **path);
 
-gpointer http_async_get(
-	gchar *url,
+struct http_async *http_async_get(
+	const gchar *url,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-gpointer http_async_get_addr(
-	gchar *path,
+struct http_async *http_async_get_addr(
+	const gchar *path,
 	const host_addr_t,
 	guint16 port,
 	http_header_cb_t header_ind,
@@ -286,23 +288,26 @@ gpointer http_async_get_addr(
 
 const gchar *http_async_strerror(guint errnum);
 const gchar *http_async_info(
-	gpointer handle, const gchar **req, const gchar **path,
+	struct http_async *handle, const gchar **req, const gchar **path,
 	host_addr_t *addr, guint16 *port);
-void http_async_connected(gpointer handle);
-void http_async_close(gpointer handle);
-void http_async_cancel(gpointer handle);
-void http_async_error(gpointer handle, gint code);
-http_state_t http_async_state(gpointer handle);
+void http_async_connected(struct http_async *handle);
+void http_async_close(struct http_async *handle);
+void http_async_cancel(struct http_async *handle);
+void http_async_error(struct http_async *handle, gint code);
+http_state_t http_async_state(struct http_async *handle);
 
-void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
-gpointer http_async_get_opaque(gpointer handle);
-void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
-void http_async_log_error_dbg(
-	gpointer handle, http_errtype_t type, gpointer v, guint32 dbg_level);
+void http_async_set_opaque(struct http_async *handle,
+		gpointer data, http_user_free_t fn);
+gpointer http_async_get_opaque(struct http_async *handle);
+void http_async_log_error(struct http_async *handle,
+		http_errtype_t type, gpointer v);
+void http_async_log_error_dbg(struct http_async *handle,
+		http_errtype_t type, gpointer v, guint32 dbg_level);
 
-void http_async_on_state_change(gpointer handle, http_state_change_t fn);
-void http_async_allow_redirects(gpointer handle, gboolean allow);
-void http_async_set_op_request(gpointer handle, http_op_request_t op);
+void http_async_on_state_change(struct http_async *handle,
+		http_state_change_t fn);
+void http_async_allow_redirects(struct http_async *handle, gboolean allow);
+void http_async_set_op_request(struct http_async *handle, http_op_request_t op);
 
 void http_close(void);
 

@@ -534,15 +534,17 @@ build_push(guint8 ttl, guint8 hops, const gchar *guid,
 	ggep_stream_init(&gs, p, size);
 
 #ifdef HAS_GNUTLS
-	if (is_host_addr(addr_v4)) {
-		supports_tls |= is_my_address_and_port(addr_v4, port);
-	}
-	if (is_host_addr(addr_v6)) {
-		supports_tls |= is_my_address_and_port(addr_v6, port);
-	}
+	supports_tls = supports_tls
+		|| is_my_address_and_port(addr_v4, port)
+		|| is_my_address_and_port(addr_v6, port);
 #endif /* HAS_GNUTLS */
 	
 	if (supports_tls) {
+		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0)) {
+			g_warning("could not write GGEP \"TLS\" extension into PUSH");
+			ggep_stream_close(&gs);
+			return zero_array;
+		}
 		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0)) {
 			g_warning("could not write GGEP \"GTKG.TLS\" extension into PUSH");
 			ggep_stream_close(&gs);
@@ -973,13 +975,6 @@ pproxy_close(void)
  *** Client-side of push-proxy
  ***/
 
-/* XXX needed only because of the temporary hack below -- RAM, 05/08/2003 */
-static gboolean cproxy_http_header_ind(
-	gpointer handle, header_t *header, gint code, const gchar *message);
-static size_t cproxy_build_request(gpointer handle, gchar *buf, size_t len,
-	const gchar *verb, const gchar *path, const gchar *host, guint16 port);
-static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
-
 #define CPROXY_MAGIC	0xc8301U
 
 /**
@@ -1005,9 +1000,10 @@ cproxy_free(struct cproxy *cp)
  * HTTP async callback for error notifications.
  */
 static void
-cproxy_http_error_ind(gpointer handle, http_errtype_t type, gpointer v)
+cproxy_http_error_ind(struct http_async *handle,
+	http_errtype_t type, gpointer v)
 {
-	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+	struct cproxy *cp = http_async_get_opaque(handle);
 
 	g_assert(cp != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
@@ -1031,7 +1027,7 @@ cproxy_http_error_ind(gpointer handle, http_errtype_t type, gpointer v)
  * @returns whether processing can continue.
  */
 static gboolean
-cproxy_http_header_ind(gpointer handle, header_t *header,
+cproxy_http_header_ind(struct http_async *handle, header_t *header,
 	gint code, const gchar *message)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
@@ -1122,7 +1118,7 @@ cproxy_http_header_ind(gpointer handle, header_t *header,
  * @return length of generated request.
  */
 static size_t
-cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
+cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	const gchar *verb, const gchar *path, const gchar *unused_host,
 	guint16 unused_port)
 {
@@ -1172,7 +1168,7 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
  * Invoked when the state of the HTTP async request changes.
  */
 static void
-cproxy_http_newstate(gpointer handle, http_state_t newstate)
+cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
 
@@ -1193,12 +1189,16 @@ struct cproxy *
 cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	const gchar *guid, guint32 file_idx)
 {
+	struct http_async *handle;
 	struct cproxy *cp;
-	gpointer handle;
-	static gchar path[128];
+	gchar path[128];
 
-	(void) gm_snprintf(path, sizeof(path),
-		"/gnutella/push-proxy?ServerId=%s", guid_base32_str(guid));
+	concat_strings(path, sizeof path,
+		"/gnutella/push-proxy?ServerId=", guid_base32_str(guid),
+#ifdef HAS_GNUTLS
+		"&tls=true",
+#endif /* HAS_GNUTLS */
+		(void *) 0);
 
 	/*
 	 * Try to connect immediately: if we can't connect, no need to continue.
