@@ -37,24 +37,25 @@
 
 RCSID("$Id$")
 
-#include "sockets.h"
-#include "hosts.h"
-#include "hcache.h"
-#include "pcache.h"
-#include "nodes.h"
-#include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
-#include "routing.h"
-#include "gmsg.h"
 #include "alive.h"
-#include "inet.h"
-#include "gnet_stats.h"
-#include "hostiles.h"
-#include "settings.h"
-#include "udp.h"
-#include "uhc.h"
 #include "extensions.h"
 #include "ggep.h"
 #include "ggep_type.h"
+#include "gmsg.h"
+#include "gnet_stats.h"
+#include "hcache.h"
+#include "hostiles.h"
+#include "hosts.h"
+#include "inet.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "routing.h"
+#include "settings.h"
+#include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
+#include "sockets.h"
+#include "tls_cache.h"
+#include "udp.h"
+#include "uhc.h"
 #include "version.h"
 
 #include "if/core/hosts.h"
@@ -1930,6 +1931,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 {
 	host_addr_t ipv4_addr;
 	host_addr_t ipv6_addr;
+	gboolean supports_tls;
 	guint16 port;
 	gint i;
 
@@ -1941,6 +1943,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	port = peek_le16(&n->data[0]);
 	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 	ipv6_addr = zero_host_addr;
+	supports_tls = FALSE;
 	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
@@ -1967,6 +1970,10 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			break;
 		case EXT_T_GGEP_GTKG_IPV6:
 			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+			break;
+		case EXT_T_GGEP_TLS:
+		case EXT_T_GGEP_GTKG_TLS:
+			supports_tls = TRUE;
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
@@ -1999,6 +2006,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
         	!hcache_node_is_bad(addr)
 		) {
 			host_add(addr, port, TRUE);
+			tls_cache_insert(addr, port);
 		}
 	}
 }
