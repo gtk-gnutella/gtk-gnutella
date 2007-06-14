@@ -436,37 +436,34 @@ flush_match(void)
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		GSList *nodes = node_push_proxies();
+		const GSList *nodes = node_push_proxies();
 
 		if (nodes != NULL) {
-			guchar tls_bytes[(QHIT_MAX_PROXIES >> 3)  + 1];
-			guint tls_index = 0;
-			GSList *l;
-			gint count;
+			guchar tls_bytes[(QHIT_MAX_PROXIES + 7) / 8];
+			guint tls_index;
+			const GSList *iter;
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
 			memset(tls_bytes, 0, sizeof tls_bytes);
 			tls_index = 0;
 
-			for (
-				l = nodes, count = 0;
-				ok && l && count < QHIT_MAX_PROXIES;
-				l = g_slist_next(l), count++
-			) {
-				struct gnutella_node *n = l->data;
+			for (iter = nodes; ok && NULL != iter; iter = g_slist_next(iter)) {
+				const struct gnutella_node *n = iter->data;
+				gchar proxy[6];
 
-				if (NET_TYPE_IPV4 == host_addr_net(n->proxy_addr)) {
-					gchar proxy[6];
+				if (NET_TYPE_IPV4 != host_addr_net(n->proxy_addr))
+					continue;
 
-					poke_be32(&proxy[0], host_addr_ipv4(n->proxy_addr));
-					poke_le16(&proxy[4], n->proxy_port);
-					ok = ggep_stream_write(&gs, proxy, sizeof proxy);
-					if (NODE_F_CAN_TLS & n->flags) {
-						tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
-					}
-					tls_index++;
+				poke_be32(&proxy[0], host_addr_ipv4(n->proxy_addr));
+				poke_le16(&proxy[4], n->proxy_port);
+				ok = ggep_stream_write(&gs, proxy, sizeof proxy);
+				if (NODE_F_CAN_TLS & n->flags) {
+					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
 				}
+				tls_index++;
+				if (tls_index >= QHIT_MAX_PROXIES)
+					break;
 			}
 
 			ok = ok && ggep_stream_end(&gs);
