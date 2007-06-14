@@ -188,6 +188,10 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
 		spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
+#ifdef HAS_GNUTLS
+		spp |= 0x02;
+#endif	/* HAS_GNUTLS */
+		
 		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 		g_assert(ok);
 
