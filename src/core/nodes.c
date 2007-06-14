@@ -188,7 +188,7 @@ static int node_error_threshold = 6;	/**< This requires an average uptime of
 										     1 hour for an ultrapeer */
 static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
-static GSList *sl_proxies = NULL;	/* Our push proxies */
+static GSList *sl_proxies;	/* Our push proxies */
 
 static guint32 shutdown_nodes;
 
@@ -230,7 +230,7 @@ static time_t no_leaves_connected = 0;
 
 static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
 
-static query_hashvec_t *query_hashvec = NULL;
+static query_hashvec_t *query_hashvec;
 
 static void node_disable_read(struct gnutella_node *n);
 static gboolean node_data_ind(rxdrv_t *rx, pmsg_t *mb);
@@ -8222,15 +8222,25 @@ node_close(void)
 	G_FREE_NULL(payload_inflate_buffer);
 
 	g_slist_free(sl_nodes_without_broken_gtkg);
+	sl_nodes_without_broken_gtkg = NULL;
+
 	g_slist_free(sl_proxies);
+	sl_proxies = NULL;
+
     g_hash_table_destroy(ht_connected_nodes);
     ht_connected_nodes = NULL;
 
 	g_hash_table_destroy(nodes_by_id);
+	nodes_by_id = NULL;
+
 	qhvec_free(query_hashvec);
+	query_hashvec = NULL;
 
 	aging_destroy(tcp_crawls);
+	tcp_crawls = NULL;
+
 	aging_destroy(udp_crawls);
+	udp_crawls = NULL;
 
 	rxbuf_close();
 }
@@ -9022,7 +9032,7 @@ node_http_proxies_add(gchar *buf, size_t size,
 /**
  * @return list of our push-proxies.
  */
-GSList *
+const GSList *
 node_push_proxies(void)
 {
 	return sl_proxies;
@@ -9034,7 +9044,7 @@ node_push_proxies(void)
 const GSList *
 node_all_nodes(void)
 {
-	return (const GSList *) sl_nodes;
+	return sl_nodes;
 }
 
 /**

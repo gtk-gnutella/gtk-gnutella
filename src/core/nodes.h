@@ -578,7 +578,7 @@ void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
 size_t node_http_proxies_add(gchar *buf, size_t size,
 			gpointer arg, guint32 flags);
-GSList *node_push_proxies(void);
+const GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_but_broken_gtkg(void);
 
