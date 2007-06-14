@@ -23,17 +23,19 @@
 echo " "
 echo "Checking how we can gather information about GLib..." >&4
 d_glib="$undef"
-if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
-	glibconfig="pkg-config $glibpackage"
-	modver=--modversion
-elif glib-config --cflags >/dev/null 2>&1; then
+
+if [ "$glibversion" = 1 ] && [ glib-config --cflags >/dev/null 2>&1 ]; then
 	glibconfig='glib-config'
 	modver=--version
+elif pkg-config $glibpackage --cflags >/dev/null 2>&1; then
+	glibconfig="pkg-config $glibpackage"
+	modver=--modversion
 else
 	echo "You've got problems!  Do you have GLib installed?" >&4
 	glibconfig='false'
 	modver=''
 fi
+
 echo "(I'll use '$glibconfig' to gather that information.)"
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`

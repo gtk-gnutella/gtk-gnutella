@@ -31,12 +31,12 @@ case "$d_headless" in
 ?X: Indentation wrong on purpose
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4
-if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
-	gtkconfig="pkg-config $gtkpackage"
-	modver=--modversion
-elif gtk-config --cflags >/dev/null 2>&1; then
+if [ "$gtkversion" = 1 ] && [ gtk-config --cflags >/dev/null 2>&1 ]; then
 	gtkconfig='gtk-config'
 	modver=--version
+elif pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
+	gtkconfig="pkg-config $gtkpackage"
+	modver=--modversion
 else
 	echo "You've got problems!  Do you have GTK+ installed?" >&4
 	gtkconfig='false'

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Jun 11 19:20:14 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Thu Jun 14 22:26:09 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6974,17 +6974,19 @@ echo "Compiling for GTK $gtkversion: we'll use '$glade'." >&4
 echo " "
 echo "Checking how we can gather information about GLib..." >&4
 d_glib="$undef"
-if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
-	glibconfig="pkg-config $glibpackage"
-	modver=--modversion
-elif glib-config --cflags >/dev/null 2>&1; then
+
+if [ "$glibversion" = 1 ] && [ glib-config --cflags >/dev/null 2>&1 ]; then
 	glibconfig='glib-config'
 	modver=--version
+elif pkg-config $glibpackage --cflags >/dev/null 2>&1; then
+	glibconfig="pkg-config $glibpackage"
+	modver=--modversion
 else
 	echo "You've got problems!  Do you have GLib installed?" >&4
 	glibconfig='false'
 	modver=''
 fi
+
 echo "(I'll use '$glibconfig' to gather that information.)"
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
@@ -7048,12 +7050,12 @@ case "$d_headless" in
 *)
 echo " "
 echo "Checking how we can gather information about GTK+..." >&4
-if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
-	gtkconfig="pkg-config $gtkpackage"
-	modver=--modversion
-elif gtk-config --cflags >/dev/null 2>&1; then
+if [ "$gtkversion" = 1 ] && [ gtk-config --cflags >/dev/null 2>&1 ]; then
 	gtkconfig='gtk-config'
 	modver=--version
+elif pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
+	gtkconfig="pkg-config $gtkpackage"
+	modver=--modversion
 else
 	echo "You've got problems!  Do you have GTK+ installed?" >&4
 	gtkconfig='false'
