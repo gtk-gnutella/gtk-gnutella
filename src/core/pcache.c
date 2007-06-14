@@ -2006,7 +2006,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
         	!hcache_node_is_bad(addr)
 		) {
 			host_add(addr, port, TRUE);
-			tls_cache_insert(addr, port);
+			if (supports_tls) {
+				tls_cache_insert(addr, port);
+			}
 		}
 	}
 }
