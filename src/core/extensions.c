@@ -180,7 +180,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(SO),		/**< Secure OOB */
-	GGEP_ID(T),			/**< Textual information in qhits */
+	GGEP_ID(T),			/**< Same as ALT_TLS but for HEAD Pongs */
 	GGEP_ID(TLS),		/**< TLS support indication */
 	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */

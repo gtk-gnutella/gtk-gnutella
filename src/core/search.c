@@ -1448,7 +1448,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				extvec_t *e = &exv[i];
 				struct sha1 sha1_digest;
 				ggept_status_t ret;
-				gboolean unknown = TRUE;
 				gint paylen;
 				const gchar *payload;
 
@@ -1686,17 +1685,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						ext_dump(stderr, e, 1, "....", "\n", TRUE);
 					}
 					break;
-				case EXT_T_GGEP_T:			/* Descriptive text */
-					unknown = FALSE;		/* Disables ext_has_ascii_word() */
-					/* FALLTHROUGH */
 				case EXT_T_UNKNOWN:
-					if (unknown) {
-						has_unknown = TRUE;
-					}
-					if (
-						ext_paylen(e) &&
-						(!unknown || ext_has_ascii_word(e))
-					) {
+					has_unknown = TRUE;
+					if (ext_paylen(e) && ext_has_ascii_word(e)) {
 						if (info->len)
 							g_string_append(info, "; ");
 						g_string_append_len(info,

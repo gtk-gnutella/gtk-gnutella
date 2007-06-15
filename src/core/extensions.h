@@ -100,7 +100,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
 	EXT_T_GGEP_SO,			/**< Secure OOB */
-	EXT_T_GGEP_T,			/**< Textual information in query hits */
+	EXT_T_GGEP_T,			/**< Same as ALT_TLS but for HEAD Pongs */
 	EXT_T_GGEP_TLS,			/**< Supports TLS */
 	EXT_T_GGEP_UA,			/**< User-Agent string */
 	EXT_T_GGEP_UDPHC,		/**< UDP HostCache, in pongs (UHC) */

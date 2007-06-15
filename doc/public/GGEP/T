@@ -1,18 +1,29 @@
 The 'T' GGEP Extension
 ======================
 
-Name: T
-Where: Query Hit (per File Entry)
-Status: Experimental
-Date: Mon Jul 16 13:58:16 MEST 2003
-Format: Plain text
-COBS-Encoding: Never
-Deflate: Maybe
-Revision: $Id$
+Name:		T
+Where:		HEAD Pongs
+Status: 	Experimental
+Date:		2007-06-15
+Format: 	Bitmap
+COBS-Encoding:	No
+Deflate:	No
+Revision:	$Id$
 
-The "T" extension is used to transport text that can be displayed as-is
-by servents, along each entry in the query hit.  It is pure text, without
-any embedded NUL byte (and no trailing one), so no COBS-encoding is necessary.
+This GGEP extension is used together with GGEP 'A'. Each set bit
+indicates that the corresponding hosts listed in the GGEP 'A' block
+supports TLS.  The first byte refers to first 8 peer addresses, the
+second byte to next 8 hosts and so on. Trailing zeros may be omitted.
+The bits are mapped to the hosts from MSB to LSB. The following code
+fragment shows how to read GGEP 'T':
 
-This extension was created in order to deprecate the GEM extension mechanism
-outlined in HUGE in favor of the new GGEP model.
+  for (i = 0; i < hosts.length; i++) {
+    unsigned mask, byte;
+
+    byte = i >> 3;
+    mask = 0x80U >> (i & 7);
+    if (byte >= T.length)
+      break;
+    hosts.address[i].supports_tls = 0 != (T.payload[byte] & mask);
+  }
+
