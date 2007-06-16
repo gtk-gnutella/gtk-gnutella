@@ -1014,3 +1014,6 @@
 # WMV spam; giFT-based
 85.233.199.128/25
 
+# ASX spam; giFT-based
+204.13.55.160/28
+
