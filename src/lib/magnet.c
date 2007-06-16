@@ -558,14 +558,29 @@ gboolean
 magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
 {
 	struct sha1 sha1;
+	struct tth tth;
 
-	if (!urn_get_sha1(topic, &sha1)) {
+	if (urn_get_bitprint(topic, strlen(topic), &sha1, &tth)) {
+		if (!res->sha1) {
+			magnet_set_sha1(res, &sha1);
+		}
+		if (!res->tth) {
+			magnet_set_tth(res, &tth);
+		}
+		return TRUE;
+	} else if (urn_get_sha1(topic, &sha1)) {
+		if (!res->sha1) {
+			magnet_set_sha1(res, &sha1);
+		}
+		return TRUE;
+	} else if (urn_get_tth(topic, strlen(topic), &tth)) {
+		if (!res->tth) {
+			magnet_set_tth(res, &tth);
+		}
+		return TRUE;
+	} else {
 		return FALSE;
 	}
-	if (!res->sha1) {
-		magnet_set_sha1(res, &sha1);
-	}
-	return TRUE;
 }
 
 void
@@ -608,7 +623,6 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	gs = g_string_append(gs, key);
 	gs = g_string_append_c(gs, '=');
 
-	
 	if (escape_value) {
 		gchar *escaped;
 
@@ -695,11 +709,8 @@ magnet_to_string(struct magnet_resource *res)
 		magnet_append_item(&gs, FALSE, "xl", buf);
 	}
 	if (res->sha1) {
-		gchar buf[64];
-
-		concat_strings(buf, sizeof buf, "urn:sha1:", sha1_base32(res->sha1),
-			(void *) 0);
-		magnet_append_item(&gs, FALSE, "xt", buf);
+		magnet_append_item(&gs, FALSE, "xt",
+			bitprint_to_urn_string(res->sha1, res->tth));
 	}
 	if (res->parq_id) {
 		magnet_append_item(&gs, TRUE, "x.parq-id", res->parq_id);
