@@ -75,11 +75,14 @@ typedef enum ext_token {
 	EXT_T_OVERHEAD,			/**< Pure overhead */
 	EXT_T_GGEP_LIME_XML,	/**< LimeWire XML metadata, in query hits */
 	/* sort below */
+	EXT_T_GGEP_A,			/**< Same as GGEP ALT but used in HEAD Pongs */
 	EXT_T_GGEP_ALT,			/**< Alternate locations in query hits */
 	EXT_T_GGEP_ALT_TLS,		/**< TLS-capability bitmap for GGEP ALT */
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
+	EXT_T_GGEP_C,			/**< Result Code in HEAD Pongs */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
 	EXT_T_GGEP_DU,			/**< Daily Uptime */
+	EXT_T_GGEP_F,			/**< Flags in HEAD Pongs */
 	EXT_T_GGEP_FW,			/**< Firewalled-to-Firewalled protocol version */
 	EXT_T_GGEP_GGEP,		/**< Name of known GGEP extensions, NUL-separated */
 	EXT_T_GGEP_GTKG_IPV6,	/**< GTKG IPv6 address */
@@ -91,13 +94,16 @@ typedef enum ext_token {
 	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits */
 	EXT_T_GGEP_IP,			/**< IP:Port, in ping and pongs (F2F) */
 	EXT_T_GGEP_IPP,			/**< IP:Port, in pongs (UHC) */
+	EXT_T_GGEP_IPP_TLS,		/**< TLS-capability bitmap for GGEP IPP */
 	EXT_T_GGEP_LF,			/**< Large File, in query hits */
 	EXT_T_GGEP_LOC,			/**< Locale preferences */
 	EXT_T_GGEP_NP,			/**< do Not Proxy the query (OOB) */
+	EXT_T_GGEP_P,			/**< Push alt-locs in HEAD Pongs */
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
+	EXT_T_GGEP_Q,			/**< Queue status in HEAD Pongs */
 	EXT_T_GGEP_SCP,			/**< Support Cached Pongs, in pings (UHC) */
 	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Same as ALT_TLS but for HEAD Pongs */
@@ -105,6 +111,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_UA,			/**< User-Agent string */
 	EXT_T_GGEP_UDPHC,		/**< UDP HostCache, in pongs (UHC) */
 	EXT_T_GGEP_UP,			/**< UltraPeer information */
+	EXT_T_GGEP_V,			/**< Vendor Code in HEAD Pongs */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_VMSG,		/**< Array of vendor message codes supported */
 	EXT_T_GGEP_u,			/**< HUGE URN in ASCII */

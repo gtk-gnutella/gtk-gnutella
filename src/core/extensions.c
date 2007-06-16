@@ -156,11 +156,14 @@ static const struct rwtable ggeptable[] =
 #define GGEP_GTKG_ID(x) { "GTKG." #x, EXT_T_GGEP_GTKG_ ## x }
 
 	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
+	GGEP_ID(A),			/**< Same as GGEP ALT but used in HEAD Pongs */
 	GGEP_ID(ALT),		/**< Alt-locs in qhits */
 	GGEP_ID(ALT_TLS),	/**< TLS-capability bitmap for GGEP ALT */
 	GGEP_ID(BH),		/**< Browseable host indication */
+	GGEP_ID(C),			/**< Result Code in HEAD Pongs */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DU),		/**< Average servent uptime */
+	GGEP_ID(F),			/**< Flags in HEAD Pongs */
 	GGEP_ID(FW),		/**< Firewalled-to-Firewalled protocol version */
 	GGEP_ID(GGEP),		/**< GGEP extension names known, NUL-separated */
 	GGEP_GTKG_ID(IPV6),	/**< GTKG IPv6 address */
@@ -171,13 +174,16 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(HNAME),		/**< Hostname */
 	GGEP_ID(IP),		/**< Ip:Port in ping and pongs (F2F) */
 	GGEP_ID(IPP),		/**< IP:Port in pongs (UHC) */
+	GGEP_ID(IPP_TLS),	/**< TLS-capability bitmap for GGEP IPP */
 	GGEP_ID(LF),		/**< Large file size in qhits */
 	GGEP_ID(LOC),		/**< Locale preferences, for clustering  */
 	GGEP_ID(NP),		/**< do Not Proxy (queries; OOB) */
+	GGEP_ID(P),			/**< Push alt-locs in HEAD Pongs */
 	GGEP_ID(PATH),		/**< Shared file path, in query hits */
 	GGEP_ID(PHC),		/**< Packed host caches (UHC) in pongs */
 	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
 	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
+	GGEP_ID(Q),			/**< Queue status in HEAD Pongs */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Same as ALT_TLS but for HEAD Pongs */
@@ -185,6 +191,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */
 	GGEP_ID(UP),		/**< Ultrapeer information about free slots */
+	GGEP_ID(V),			/**< Vendor code, in HEAD Pongs */
 	GGEP_ID(VC),		/**< Vendor code, in pongs */
 	GGEP_ID(VMSG),		/**< Array of supported vendor message codes */
 	GGEP_ID(u),			/**< HUGE URN in ASCII */
