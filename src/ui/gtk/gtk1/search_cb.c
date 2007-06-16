@@ -113,14 +113,25 @@ search_set_xml_metadata(const record_t *rc)
 	gtk_text_thaw(xml);
 }
 
-static void
-search_append_detail(GtkCList *clist, const gchar *name, const gchar *value)
+static GtkCList *clist_search_details;
+
+void
+search_gui_clear_details(void)
 {
-    const gchar *titles[2];
+	g_return_if_fail(clist_search_details);
+	gtk_clist_clear(clist_search_details);
+}
+
+void
+search_gui_append_detail(const gchar *name, const gchar *value)
+{
+ 	const gchar *titles[2];
+
+	g_return_if_fail(clist_search_details);
 
 	titles[0] = name;
 	titles[1] = EMPTY_STRING(value);
-    gtk_clist_append(clist, (gchar **) titles);
+    gtk_clist_append(clist_search_details, (gchar **) titles);
 }
 	
 /**
@@ -130,89 +141,17 @@ search_append_detail(GtkCList *clist, const gchar *name, const gchar *value)
  * Set or clear (when rc == NULL) the information about the record.
  */
 static void
-search_gui_set_details(const record_t *rc)
+search_gui_refresh_details(const record_t *rc)
 {
-	GtkCList *clist;
-
-	clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
-	g_return_if_fail(clist);
-
-    gtk_clist_freeze(clist);
-	gtk_clist_clear(clist);
-
-	if (rc) {
-		const struct results_set *rs;
-		gchar *hosts;
-
-		rs = rc->results_set;
-
-		search_append_detail(clist, _("Filename"), rc->utf8_name);
-		search_append_detail(clist, _("Extension"), rc->ext);
-		search_append_detail(clist, _("SHA-1"),
-				rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
-		search_append_detail(clist, _("Size"), search_gui_nice_size(rc));
-
-		if (rc->sha1) {
-			static const gchar base_url[] = "http://bitzi.com/lookup/";
-			gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
-
-			concat_strings(buf, sizeof buf,
-					base_url, sha1_base32(rc->sha1),
-					(void *)0);
-			search_append_detail(clist, _("Bitzi URL"), buf);
-		}
-
-		search_append_detail(clist, _("Index"),
-			uint32_to_string(rc->file_index));
-		search_append_detail(clist, _("Owned"),
-			(SR_OWNED   & rc->flags)  ? _("owned") :
-			(SR_PARTIAL & rc->flags) ? _("partial") :
-			(SR_SHARED  & rc->flags)  ? _("shared") :
-			_("No"));
-
-		if (!(ST_LOCAL & rs->status)) {
-			search_append_detail(clist, _("Source"),
-				host_addr_port_to_string(rs->addr, rs->port));
-			search_append_detail(clist, _("Browsable"),
-				ST_BH & rs->status ? _("Yes") : _("No"));
-			search_append_detail(clist, _("Spam"),
-				(SR_SPAM & rc->flags) ? _("Yes") :
-				(ST_SPAM & rs->status) ? _("Maybe") :
-				_("No"));
-			search_append_detail(clist, _("Hostile"),
-				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
-			search_append_detail(clist, _("Created"),
-				rc->create_time
-					? timestamp_to_string(rc->create_time)
-					: _("Unknown"));
-			search_append_detail(clist, _("Hostname"), rs->hostname);
-			search_append_detail(clist, _("Servent ID"),
-				guid_to_string(rs->guid));
-			search_append_detail(clist, _("Vendor"), search_gui_get_vendor(rs));
-			search_append_detail(clist, _("Route"), search_gui_get_route(rs));
-
-			search_append_detail(clist, _("Protocol"),
-				ST_UDP & rs->status ? "UDP" : "TCP");
-
-			search_append_detail(clist, _("Hops"), uint32_to_string(rs->hops));
-			search_append_detail(clist, _("TTL"), uint32_to_string(rs->ttl));
-
-			search_append_detail(clist, _("Query"),
-				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-					UNI_NORM_GUI, NULL));
-			search_append_detail(clist,
-				_("Received"), timestamp_to_string(rs->stamp));
-		}
-
-		hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
-		search_append_detail(clist, _("Alt-Locs"), hosts);
-		G_FREE_NULL(hosts);
-
-		hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
-		search_append_detail(clist, _("Push-proxies"), hosts);
-		G_FREE_NULL(hosts);
+	if (NULL == clist_search_details) {
+		static const gchar name[] = "clist_search_details";
+		clist_search_details = GTK_CLIST(gui_main_window_lookup(name));
 	}
-    gtk_clist_thaw(clist);
+	g_return_if_fail(clist_search_details);
+
+    gtk_clist_freeze(clist_search_details);
+	search_gui_set_details(rc);
+    gtk_clist_thaw(clist_search_details);
 	search_set_xml_metadata(rc);
 }
 
@@ -252,7 +191,7 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 	/*
 	 * Update details about the selected search.
 	 */
-	search_gui_set_details(rc);
+	search_gui_refresh_details(rc);
 
 	/*
 	 * If the selected node is expanded, select it only.
@@ -648,7 +587,7 @@ on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
 	(void) unused_column;
 	(void) unused_udata;
 
-	search_gui_set_details(NULL);	/* Clear details about results */
+	search_gui_refresh_details(NULL);	/* Clear details about results */
     search_gui_refresh_popup();
 }
 

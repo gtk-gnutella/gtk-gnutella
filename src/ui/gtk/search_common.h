@@ -279,9 +279,13 @@ gboolean search_gui_is_passive(const search_t *search);
 void search_gui_download(record_t *rc);
 const gchar *search_gui_nice_size(const record_t *rc);
 const gchar *search_gui_get_vendor(const struct results_set *rs);
+void search_gui_set_details(const record_t *rc);
 
 /* FIXME: This does not belong here. */
 gchar *gnet_host_vec_to_string(const gnet_host_vec_t *hvec);
+
+void search_gui_clear_details(void);
+void search_gui_append_detail(const gchar *title, const gchar *value);
 
 #endif /* _gtk_search_common_h_ */
 

@@ -479,16 +479,6 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 }
 
-static void
-search_append_detail(GtkTreeModel *model,
-	const gchar *title, const gchar *value)
-{
-	GtkTreeIter iter;
-
-	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
-}
-
 gchar *
 search_details_get_text(GtkWidget *widget)
 {
@@ -536,93 +526,44 @@ search_set_xml_metadata(const record_t *rc)
 	G_FREE_NULL(xml_txt);
 }
 
-static void
-search_set_details(const record_t *rc)
+static GtkTreeView *treeview_search_details;
+
+void
+search_gui_clear_details(void)
 {
 	GtkTreeModel *model;
-	GtkTreeView *tv;
 
-	g_return_if_fail(rc);
+	g_return_if_fail(treeview_search_details);
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_details"));
-	g_return_if_fail(tv);
-
-	model = gtk_tree_view_get_model(tv);
-	g_return_if_fail(model);
-
+	model = gtk_tree_view_get_model(treeview_search_details);
 	gtk_list_store_clear(GTK_LIST_STORE(model));
+}
 
-	if (rc) {
-		const struct results_set *rs;
-		gchar *hosts;
-		rs = rc->results_set;
+void
+search_gui_append_detail(const gchar *title, const gchar *value)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
 
-		search_append_detail(model, _("Filename"), rc->utf8_name);
-		search_append_detail(model, _("Extension"), rc->ext);
-		search_append_detail(model, _("SHA-1"),
-				rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
-		search_append_detail(model, _("Size"), search_gui_nice_size(rc));
+	g_return_if_fail(treeview_search_details);
 
-		if (rc->sha1) {
-			static const gchar base_url[] = "http://bitzi.com/lookup/";
-			gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+	model = gtk_tree_view_get_model(treeview_search_details);
+	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
+}
 
-			concat_strings(buf, sizeof buf,
-					base_url, sha1_base32(rc->sha1),
-					(void *)0);
-			search_append_detail(model, _("Bitzi URL"), buf);
-		}
-
-		search_append_detail(model, _("Index"),
-			uint32_to_string(rc->file_index));
-		search_append_detail(model, _("Owned"),
-			(SR_OWNED   & rc->flags)  ? _("owned") :
-			(SR_PARTIAL & rc->flags) ? _("partial") :
-			(SR_SHARED  & rc->flags)  ? _("shared") :
-			_("No"));
-
-		if (!(ST_LOCAL & rs->status)) {
-			search_append_detail(model, _("Source"),
-				host_addr_port_to_string(rs->addr, rs->port));
-			search_append_detail(model, _("Browsable"),
-				ST_BH & rs->status ? _("Yes") : _("No"));
-			search_append_detail(model, _("Spam"),
-				(SR_SPAM & rc->flags) ? _("Yes") :
-				(ST_SPAM & rs->status) ? _("Maybe") :
-				_("No"));
-			search_append_detail(model, _("Hostile"),
-				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
-			search_append_detail(model, _("Created"),
-				rc->create_time
-				? timestamp_to_string(rc->create_time)
-				: _("Unknown"));
-			search_append_detail(model, _("Hostname"), rs->hostname);
-			search_append_detail(model, _("Servent ID"),
-				guid_to_string(rs->guid));
-			search_append_detail(model, _("Vendor"), search_gui_get_vendor(rs));
-			search_append_detail(model, _("Route"), search_gui_get_route(rs));
-
-			search_append_detail(model, _("Protocol"),
-				ST_UDP & rs->status ? "UDP" : "TCP");
-
-			search_append_detail(model, _("Hops"), uint32_to_string(rs->hops));
-			search_append_detail(model, _("TTL"), uint32_to_string(rs->ttl));
-
-			search_append_detail(model, _("Query"),
-				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-					UNI_NORM_GUI, NULL));
-			search_append_detail(model,
-				_("Received"), timestamp_to_string(rs->stamp));
-		}
-
-		hosts = rc->alt_locs ? gnet_host_vec_to_string(rc->alt_locs) : NULL;
-		search_append_detail(model, _("Alt-Locs"), hosts);
-		G_FREE_NULL(hosts);
-
-		hosts = rs->proxies ? gnet_host_vec_to_string(rs->proxies) : NULL;
-		search_append_detail(model, _("Push-proxies"), hosts);
-		G_FREE_NULL(hosts);
+static void
+search_gui_refresh_details(const record_t *rc)
+{
+	if (NULL == treeview_search_details) {
+		static const gchar name[] = "treeview_search_details";
+		treeview_search_details = GTK_TREE_VIEW(gui_main_window_lookup(name));
 	}
+	g_return_if_fail(treeview_search_details);
+
+	g_object_freeze_notify(G_OBJECT(treeview_search_details));
+	search_gui_set_details(rc);
+	g_object_thaw_notify(G_OBJECT(treeview_search_details));
 	search_set_xml_metadata(rc);
 }
 
@@ -632,9 +573,8 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	g_assert(tv);
 	g_assert(path);
 	
-	search_set_details(search_gui_get_record_at_path(tv, path));
+	search_gui_refresh_details(search_gui_get_record_at_path(tv, path));
 }
-
 
 /**
  * This function is called when the user selectes a row in the

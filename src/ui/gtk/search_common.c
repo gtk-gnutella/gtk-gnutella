@@ -2094,12 +2094,16 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 
 	if (string_to_host_or_addr(s, &endptr, &addr)) {
 		gchar hostname[MAX_HOSTLEN + 1];
-		size_t size;
 
-		size = (endptr - s) + 1;
-		size = MIN(size, sizeof hostname);
-		g_strlcpy(hostname, s, size);
+		if (is_host_addr(addr)) {
+			host_addr_to_string_buf(addr, hostname, sizeof hostname);
+		} else {
+			size_t size;
 
+			size = (endptr - s) + 1;
+			size = MIN(size, sizeof hostname);
+			g_strlcpy(hostname, s, size);
+		}
 		if (':' == endptr[0]) {
 			gint error;
 			port = parse_uint16(&endptr[1], NULL, 10, &error);
@@ -2915,5 +2919,86 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 	return gm_string_finalize(gs);
 }
 
+void
+search_gui_set_details(const record_t *rc)
+{
+	const struct results_set *rs;
+
+	search_gui_clear_details();
+
+	if (NULL == rc)
+		return;
+
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
+
+	rs = rc->results_set;
+
+	search_gui_append_detail(_("Filename"),
+		lazy_utf8_to_ui_string(rc->utf8_name));
+	search_gui_append_detail(_("Extension"), rc->ext);
+	search_gui_append_detail(_("SHA-1"),
+		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
+	search_gui_append_detail(_("Size"), search_gui_nice_size(rc));
+
+	if (rc->sha1) {
+		static const gchar base_url[] = "http://bitzi.com/lookup/";
+		gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+
+		concat_strings(buf, sizeof buf,
+			base_url, sha1_base32(rc->sha1),
+			(void *)0);
+		search_gui_append_detail(_("Bitzi URL"), buf);
+	}
+
+	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
+	search_gui_append_detail(_("Owned"),
+		(SR_OWNED   & rc->flags)  ? _("owned") :
+		(SR_PARTIAL & rc->flags) ? _("partial") :
+		(SR_SHARED  & rc->flags)  ? _("shared") :
+		_("No"));
+
+	if (!(ST_LOCAL & rs->status)) {
+		search_gui_append_detail(_("Source"),
+			host_addr_port_to_string(rs->addr, rs->port));
+		search_gui_append_detail(_("Browsable"),
+			ST_BH & rs->status ? _("Yes") : _("No"));
+		search_gui_append_detail(_("Spam"),
+			(SR_SPAM & rc->flags) ? _("Yes") :
+			(ST_SPAM & rs->status) ? _("Maybe") :
+			_("No"));
+		search_gui_append_detail(_("Hostile"),
+			ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+		search_gui_append_detail(_("Created"),
+			rc->create_time
+			? timestamp_to_string(rc->create_time)
+			: _("Unknown"));
+		search_gui_append_detail(_("Hostname"), rs->hostname);
+		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
+		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
+
+		search_gui_append_detail(_("Protocol"),
+			ST_UDP & rs->status ? "UDP" : "TCP");
+
+		search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
+		search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
+
+		search_gui_append_detail(_("Query"),
+			lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+				UNI_NORM_GUI, NULL));
+		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
+	}
+	if (rc->alt_locs) {
+		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
+		search_gui_append_detail(_("Alt-Locs"), hosts);
+		G_FREE_NULL(hosts);
+	}
+	if (rs->proxies) {
+		gchar *hosts = gnet_host_vec_to_string(rs->proxies);
+		search_gui_append_detail(_("Push-proxies"), hosts);
+		G_FREE_NULL(hosts);
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent: */
