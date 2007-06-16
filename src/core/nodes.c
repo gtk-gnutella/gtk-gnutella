@@ -2264,21 +2264,17 @@ node_remove(struct gnutella_node *n, const gchar *reason, ...)
 guint
 node_remove_by_addr(const host_addr_t addr, guint16 port)
 {
+	const GSList *sl;
 	guint n_removed = 0;
 
-    /* Look for the node structure, if it is connected. */
-    if (!port || node_ht_connected_nodes_has(addr , port)) {
-        const GSList *sl;
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		const struct gnutella_node *n = sl->data;
 
-        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-            struct gnutella_node *n = sl->data;
-
-            if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
-        		node_remove_by_id(NODE_ID(n));
-				n_removed++;
-                if (port)
-					break;
-            }
+		if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
+			node_remove_by_id(NODE_ID(n));
+			n_removed++;
+			if (port)
+				break;
         }
     }
 	return n_removed;
