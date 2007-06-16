@@ -299,15 +299,12 @@ shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		port_str = &endptr[1];
 		break;
 	case '\0':
-		port_str = NULL;
+		port_str = argv[3];
 		break;
 	default:
 		goto error;
 	}
 
-	if (argc > 3 && !port_str) {
-		port_str = argv[3];
-	}
 	/* No port is a wild card.. */
 	if (port_str) {
 		gint error;
