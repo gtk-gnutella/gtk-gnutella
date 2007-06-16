@@ -925,7 +925,11 @@ node_timer(time_t now)
 		 */
  		sl = g_slist_next(sl);
 
-		if (n->flags & NODE_F_CAN_TLS) {
+		if (
+			(n->flags & NODE_F_CAN_TLS) &&
+			n->gnet_port &&
+			is_host_addr(n->gnet_addr)
+		) {
 			tls_cache_insert(n->gnet_addr, n->gnet_port);
 		}
 
