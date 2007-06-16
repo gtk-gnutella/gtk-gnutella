@@ -330,6 +330,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 				host_addr_ipv6(&meta->ipv6_addr), 16, 0);
 		}
 
+		if (meta->flags & PONG_META_HAS_TLS) {
+			ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0);
+		}
 	}
 
 	/*
@@ -350,8 +353,10 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		hcount = hcache_fill_caught_array(HOST_ULTRA, host, PCACHE_UHC_MAX_IP);
 
 		if (hcount > 0) {
-			gint i;
+			guchar tls_bytes[(G_N_ELEMENTS(host) + 7) / 8];
+			guint tls_index;
 			gboolean ok;
+			gint i;
 
 			/*
 			 * The binary data that makes up IPP does not deflate well.
@@ -360,22 +365,41 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			 * pain and the CPU overhead.
 			 */
 
+			memset(tls_bytes, 0, sizeof tls_bytes);
+			tls_index = 0;
+
 			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
 
 			for (i = 0; ok && i < hcount; i++) {
-				/* @todo TODO: IPv6 */
-				if (NET_TYPE_IPV4 == gnet_host_get_net(&host[i])) {
-					gchar addr_buf[6];
-					guint32 ip;
+				gchar addr_buf[6];
+				host_addr_t addr;
+				guint16 port;
 
-					ip = host_addr_ipv4(gnet_host_get_addr(&host[i]));
-					poke_be32(&addr_buf[0], ip);
-					poke_le16(&addr_buf[4], gnet_host_get_port(&host[i]));
-					ok = ggep_stream_write(&gs, addr_buf, sizeof addr_buf);
+				/* @todo TODO: IPv6 */
+				if (NET_TYPE_IPV4 != gnet_host_get_net(&host[i]))
+					continue;
+				
+				addr = gnet_host_get_addr(&host[i]);
+				port = gnet_host_get_port(&host[i]);
+				poke_be32(&addr_buf[0], host_addr_ipv4(addr));
+				poke_le16(&addr_buf[4], port);
+
+				ok = ggep_stream_write(&gs, addr_buf, sizeof addr_buf);
+
+				if (tls_cache_lookup(addr, port)) {
+					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
 				}
+				tls_index++;
 			}
 
 			ok = ok && ggep_stream_end(&gs);
+			if (ok && tls_index > 0) {
+				guint length;
+
+				length = (tls_index + 7) / 8;
+				ok = ggep_stream_pack(&gs, GGEP_NAME(IPP_TLS),
+						tls_bytes, length, 0);
+			}
 		}
 	}
 
@@ -590,6 +614,10 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.ipv6_addr = listen_addr6();
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
+
+#ifdef HAS_GNUTLS
+	local_meta.flags |= PONG_META_HAS_TLS;
+#endif	/* HAS_GNUTLS */
 
 	send_pong(n, control, flags, 0,
 		MIN(gnutella_header_get_hops(&n->header) + 1U, GNET_PROPERTY(max_ttl)),
@@ -1694,6 +1722,9 @@ pong_extract_metadata(struct gnutella_node *n)
 					meta->ipv6_addr = addr;
 				}
 			}
+			break;
+		case EXT_T_GGEP_TLS:
+			ALLOCATE(TLS);
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
