@@ -2887,9 +2887,8 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	} features[] = {
 #ifdef HAS_GNUTLS
 		{ "TLS!",	1 },
-#else
-		{ "NULL",	0 },
 #endif	/* HAS_GNUTLS */
+		{ "HSEP",	1 },
 	};
 	guint32 paysize;
 	guint32 msgsize;
@@ -2903,18 +2902,15 @@ vmsg_send_features_supported(struct gnutella_node *n)
 	 */
 
 	payload = poke_le16(payload, G_N_ELEMENTS(features));
+	paysize = 2 + G_N_ELEMENTS(features) * 6;
 
 	for (i = 0; i < G_N_ELEMENTS(features); i++) {
-		if ('\0' == features[i].name[0] && 0 == features[i].version)
-			continue;
 		memcpy(payload, features[i].name, 4);
 		payload += 4;
 		payload = poke_le16(payload, features[i].version);
 	}
 
-	paysize = 2 + G_N_ELEMENTS(features) * 6;
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
-
 	gmsg_sendto_one(n, v_tmp, msgsize);
 }
 
