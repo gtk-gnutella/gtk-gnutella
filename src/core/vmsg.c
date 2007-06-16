@@ -1674,7 +1674,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 	guint32 paysize;
 	gchar *payload;
 
-	payload = vmsg_fill_type(v_tmp_data, T_LIME, 24, 1);
+	payload = vmsg_fill_type(v_tmp_data, T_LIME, 24, 2);
 	paysize = 0;
 
 	ggep_stream_init(&gs, &payload[paysize],
