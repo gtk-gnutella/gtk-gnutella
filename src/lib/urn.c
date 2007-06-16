@@ -136,6 +136,30 @@ urn_get_bitprint(const gchar *buf, size_t size,
 	return TRUE;
 }
 
+gboolean
+urn_get_tth(const gchar *buf, size_t size, struct tth *tth)
+{
+	static const char prefix[] = "urn:tree:tiger:";
+	size_t len;
+	const gchar *p;
+
+	g_assert(0 == size || NULL != buf);
+	g_assert(tth);
+
+	if (size < CONST_STRLEN(prefix) + TTH_BASE32_SIZE) {
+		return FALSE;
+	}
+	p = is_strcaseprefix(buf, prefix);
+	if (NULL == p) {
+		return FALSE;
+	}
+	len = base32_decode(tth->data, TTH_RAW_SIZE, p, TTH_BASE32_SIZE);
+	if (len != TTH_RAW_SIZE) {
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /**
  * This is the same as urn_get_sha1(), only the leading "urn:" part
  * is missing (typically a URN embedded in a GGEP "u").
