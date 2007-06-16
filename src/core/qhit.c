@@ -596,7 +596,8 @@ add_file(const struct shared_file *sf)
 
 	if (sha1_available) {
 		needed += 9 + SHA1_BASE32_SIZE;
-		hcnt = dmesh_fill_alternate(shared_file_sha1(sf), hvec, QHIT_MAX_ALT);
+		hcnt = dmesh_fill_alternate(shared_file_sha1(sf),
+					hvec, G_N_ELEMENTS(hvec));
 		needed += hcnt * 6 + 6;
 	}
 
@@ -710,7 +711,7 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (hcnt > 0) {
-		guchar tls_bytes[(QHIT_MAX_ALT + 7) / 8];
+		guchar tls_bytes[(G_N_ELEMENTS(hvec) + 7) / 8];
 		guint tls_index;
 		gint i;
 
@@ -721,23 +722,24 @@ add_file(const struct shared_file *sf)
 		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
 
 		for (i = 0; ok && i < hcnt; i++) {
-			g_assert(start == gs.outbuf);
-			if (NET_TYPE_IPV4 == gnet_host_get_net(&hvec[i])) {
-				host_addr_t addr;
-				guint16 port;
-				gchar alt[6];
-		
-				addr = gnet_host_get_addr(&hvec[i]);
-				port = gnet_host_get_port(&hvec[i]);
-				poke_be32(&alt[0], host_addr_ipv4(addr));
-				poke_le16(&alt[4], port);
-				ok = ggep_stream_write(&gs, &alt, sizeof alt);
+			host_addr_t addr;
+			guint16 port;
+			gchar alt[6];
 
-				if (tls_cache_lookup(addr, port)) {
-					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
-				}
-				tls_index++;
+			g_assert(start == gs.outbuf);
+			if (NET_TYPE_IPV4 != gnet_host_get_net(&hvec[i]))
+				continue;
+
+			addr = gnet_host_get_addr(&hvec[i]);
+			port = gnet_host_get_port(&hvec[i]);
+			poke_be32(&alt[0], host_addr_ipv4(addr));
+			poke_le16(&alt[4], port);
+			ok = ggep_stream_write(&gs, &alt, sizeof alt);
+
+			if (tls_cache_lookup(addr, port)) {
+				tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
 			}
+			tls_index++;
 		}
 
 		ok = ok && ggep_stream_end(&gs);
