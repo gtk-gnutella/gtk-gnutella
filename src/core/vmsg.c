@@ -1793,6 +1793,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 		gnutella_header_get_muid(&n->header));
 
 	vmsg_send_data(n, v_tmp, msgsize);
+	return;
 
 failure:
 	(void) ggep_stream_close(&gs);
