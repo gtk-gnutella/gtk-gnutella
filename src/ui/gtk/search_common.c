@@ -2951,6 +2951,25 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Bitzi URL"), buf);
 	}
 
+#ifdef USE_SHAREMONKEY
+	if (rc->sha1) {
+		const gchar *filename;
+		gchar *url, *escaped;
+
+		filename = filepath_basename(rc->utf8_name);
+		escaped = url_escape(filename);
+		url = g_strconcat("http://match.sharemonkey.com/?n=", escaped,
+				"&s=", filesize_to_string(rc->size),
+				"&sha1=", sha1_base32(rc->sha1),
+				(void *)0);
+		search_gui_append_detail(_("ShareMonkey URL"), url);
+		if (filename != escaped) {
+			G_FREE_NULL(escaped);
+		}
+		G_FREE_NULL(url);
+	}
+#endif	/* USE_SHAREMONKEY */
+
 	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
 	search_gui_append_detail(_("Owned"),
 		(SR_OWNED   & rc->flags)  ? _("owned") :
