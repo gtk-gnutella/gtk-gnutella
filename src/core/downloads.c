@@ -540,6 +540,12 @@ has_blank_guid(const struct download *d)
 	return TRUE;
 }
 
+gboolean
+download_has_blank_guid(const struct download *d)
+{
+	return d->server && has_blank_guid(d);
+}
+	
 /**
  * @returns whether download was faked to reparent a complete orphaned file.
  */
@@ -3574,6 +3580,9 @@ download_send_head_ping(struct download *d)
 	if (download_queue_is_frozen())
 		return;
 
+	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
+		return;
+
 	if (NULL == d->file_info->sha1 || !d->file_info->use_swarming)
 		return;
 
@@ -4681,7 +4690,8 @@ create_download(
 	const gchar *uri,
 	filesize_t size,
 	const host_addr_t addr,
-	guint16 port, const gchar *guid,
+	guint16 port,
+	const gchar *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	time_t stamp,
@@ -5230,7 +5240,11 @@ download_request_new(
 	req->hostname = hostname ? atom_str_get(hostname) : NULL;
 	req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 	req->stamp = stamp;
-	req->fi = fi;	/* XXX: Increase ref counter or what? */
+	if (fi) {
+		req->fi = fi;
+		g_assert(req->fi->refcount < INT_MAX);
+		req->fi->refcount++;
+	}
 	req->flags = flags;
 	req->proxies = proxies ? gnet_host_vec_copy(proxies) : NULL;
 	req->parq_id = parq_id ? atom_str_get(parq_id) : NULL;
@@ -5255,6 +5269,10 @@ download_request_free(struct download_request **req_ptr)
 	atom_str_free_null(&req->parq_id);
 	atom_guid_free_null(&req->guid);
 	gnet_host_vec_free(&req->proxies);
+	if (req->fi) {
+		g_assert(req->fi->refcount > 0);
+		req->fi->refcount--;
+	}
 	wfree(req, sizeof *req);
 }
 

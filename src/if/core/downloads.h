@@ -364,11 +364,14 @@ enum {
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 #define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
 
+gboolean download_has_blank_guid(const struct download *d);
+
 static inline void
 download_check(const struct download * const d)
 {
 	g_assert(d);
 	g_assert(DOWNLOAD_MAGIC == d->magic);
+	g_assert(!d->always_push || !download_has_blank_guid(d));
 }
 
 const gchar *download_pathname(const struct download *d);
