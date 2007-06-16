@@ -3235,6 +3235,14 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 
 	if (d->flags & DL_F_THEX) {
+		const struct sha1 *sha1;
+		fileinfo_t *fi;
+
+		sha1 = thex_download_get_sha1(d->thex);
+		fi = file_info_by_sha1(sha1);
+		if (fi) {
+			fi->flags |= ~FI_F_FETCH_TTH;
+		}
 		thex_download_close(d->thex);
 		d->bio = NULL;		/* Was a copy via thex_download_io_source() */
 	}
@@ -6994,6 +7002,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	if (
 		0 == (DL_F_GOT_TIGERTREE & d->flags) &&
+		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
 		0 == d->file_info->tigertree.num_leaves &&
 		tt_good_depth(download_filesize(d)) > 0
 	) {
@@ -7011,9 +7020,15 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 			cflags |= SOCK_F_PUSH;
 		}
 		uri = g_strndup(value, uri_end - value);
-		download_thex_start(uri, d->sha1, tth, download_filesize(d),
+		if (
+			download_thex_start(uri, d->sha1, tth, download_filesize(d),
 			NULL, download_addr(d), download_port(d), download_guid(d),
-			NULL, cflags);
+			NULL, cflags)
+		) {
+			/* Mark the fileinfo to avoid downloading the tigertree
+			 * data from more than one source at a time. */
+			d->file_info->flags |= FI_F_FETCH_TTH;
+		}
 		G_FREE_NULL(uri);
 	}
 }
