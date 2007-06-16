@@ -960,19 +960,19 @@ gmsg_log_dropped(gconstpointer msg, const gchar *reason, ...)
 void
 gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 {
-	printf("BAD <%s> %s ", node_vendor(n), node_addr(n));
+	g_message("BAD <%s> %s ", node_vendor(n), node_addr(n));
 
-	fputs(gmsg_infostr_full_split(&n->header, n->data), stdout);
+	fputs(gmsg_infostr_full_split(&n->header, n->data), stderr);
 
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
-		fputs(": ", stdout);
+		fputs(": ", stderr);
 		vprintf(reason, args);
 		va_end(args);
 	}
 
-	fputc('\n', stdout);
+	fputc('\n', stderr);
 }
 
 /**
