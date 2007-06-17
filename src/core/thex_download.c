@@ -327,8 +327,6 @@ thex_download_handle_xml(struct thex_download *ctx,
 		goto finish;
 	}
 
-	/* TODO: Extract record ID */
-
 	result = TRUE;
 
 finish:
@@ -641,9 +639,9 @@ void
 thex_download_close(struct thex_download *ctx)
 {
 	g_assert(ctx != NULL);
-	g_return_if_fail(ctx->rx != NULL);
-
-	rx_disable(ctx->rx);
+	if (ctx->rx) {
+		rx_disable(ctx->rx);
+	}
 }
 
 /**

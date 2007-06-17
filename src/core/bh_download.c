@@ -397,9 +397,10 @@ void
 browse_host_dl_close(struct browse_ctx *bc)
 {
 	g_assert(bc != NULL);
-	g_return_if_fail(bc->rx != NULL);
 
-	rx_disable(bc->rx);
+	if (bc->rx) {
+		rx_disable(bc->rx);
+	}
 }
 
 /**
@@ -416,8 +417,9 @@ browse_host_dl_free(struct browse_ctx **ptr)
 			rx_free(bc->rx);
 			bc->rx = NULL;
 		}
-		if (!bc->closed)
+		if (!bc->closed) {
 			search_dissociate_browse(bc->sh, bc->owner);
+		}
 		G_FREE_NULL(bc->data);
 		wfree(bc, sizeof *bc);
 		*ptr = NULL;
