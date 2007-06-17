@@ -7382,17 +7382,12 @@
 		  <name>button_search_clear</name>
 		  <sensitive>False</sensitive>
 		  <can_focus>True</can_focus>
-		  <accelerator>
-		    <modifiers>GDK_CONTROL_MASK</modifiers>
-		    <key>GDK_c</key>
-		    <signal>clicked</signal>
-		  </accelerator>
 		  <signal>
 		    <name>clicked</name>
 		    <handler>on_button_search_clear_clicked</handler>
 		    <last_modification_time>Sat, 30 Sep 2000 06:49:15 GMT</last_modification_time>
 		  </signal>
-		  <label>_Clear results</label>
+		  <label>Clear results</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -13799,7 +13794,7 @@ http://maxmind.com/</label>
 	<handler>on_button_about_close_clicked</handler>
 	<last_modification_time>Sun, 23 Jun 2002 11:00:43 GMT</last_modification_time>
       </signal>
-      <label>_Close</label>
+      <label>Close</label>
       <relief>GTK_RELIEF_NORMAL</relief>
       <child>
 	<padding>0</padding>
@@ -14019,7 +14014,7 @@ http://maxmind.com/</label>
 	    <handler>on_button_prefs_close_clicked</handler>
 	    <last_modification_time>Mon, 09 Aug 2004 02:30:44 GMT</last_modification_time>
 	  </signal>
-	  <label>_Close</label>
+	  <label>Close</label>
 	  <relief>GTK_RELIEF_NORMAL</relief>
 	  <child>
 	    <padding>0</padding>
@@ -25610,7 +25605,7 @@ allowed</label>
       <handler>on_popup_search_list_close_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>_Close this search</label>
+    <label>Close this search</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>

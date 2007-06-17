@@ -553,7 +553,6 @@ create_main_window (void)
   GtkWidget *button_search_expand_all;
   GtkWidget *button_search_collapse_all;
   GtkWidget *label650;
-  guint button_search_clear_key;
   GtkWidget *button_search_clear;
   GtkWidget *label_search;
   GtkWidget *vbox_monitor;
@@ -5338,11 +5337,7 @@ create_main_window (void)
   gtk_widget_show (label650);
   gtk_box_pack_start (GTK_BOX (hbox181), label650, TRUE, TRUE, 0);
 
-  button_search_clear = gtk_button_new_with_label ("");
-  button_search_clear_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_clear)->child),
-                                   _("_Clear results"));
-  gtk_widget_add_accelerator (button_search_clear, "clicked", accel_group,
-                              button_search_clear_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  button_search_clear = gtk_button_new_with_label (_("Clear results"));
   gtk_widget_set_name (button_search_clear, "button_search_clear");
   gtk_widget_ref (button_search_clear);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_clear", button_search_clear,
@@ -5350,9 +5345,6 @@ create_main_window (void)
   gtk_widget_show (button_search_clear);
   gtk_box_pack_start (GTK_BOX (hbox181), button_search_clear, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_search_clear, FALSE);
-  gtk_widget_add_accelerator (button_search_clear, "clicked", accel_group,
-                              GDK_c, GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
 
   label_search = gtk_label_new (_("[Search]"));
   gtk_widget_set_name (label_search, "label_search");
@@ -10234,7 +10226,6 @@ create_dlg_about (void)
   GtkWidget *vbox134;
   GtkWidget *label700;
   GtkWidget *hseparator15;
-  guint button_about_close_key;
   GtkWidget *button_about_close;
   GtkAccelGroup *accel_group;
 
@@ -10591,11 +10582,7 @@ create_dlg_about (void)
   gtk_widget_show (hseparator15);
   gtk_box_pack_start (GTK_BOX (vbox67), hseparator15, FALSE, TRUE, 0);
 
-  button_about_close = gtk_button_new_with_label ("");
-  button_about_close_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_about_close)->child),
-                                   _("_Close"));
-  gtk_widget_add_accelerator (button_about_close, "clicked", accel_group,
-                              button_about_close_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  button_about_close = gtk_button_new_with_label (_("Close"));
   gtk_widget_set_name (button_about_close, "button_about_close");
   gtk_widget_ref (button_about_close);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "button_about_close", button_about_close,
@@ -11469,7 +11456,6 @@ create_dlg_prefs (void)
   GtkWidget *label688;
   GtkWidget *dialog_action_area2;
   GtkWidget *hbox205;
-  guint button_prefs_close_key;
   GtkWidget *button_prefs_close;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -17456,11 +17442,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hbox205);
   gtk_box_pack_end (GTK_BOX (dialog_action_area2), hbox205, FALSE, TRUE, 0);
 
-  button_prefs_close = gtk_button_new_with_label ("");
-  button_prefs_close_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_prefs_close)->child),
-                                   _("_Close"));
-  gtk_widget_add_accelerator (button_prefs_close, "clicked", accel_group,
-                              button_prefs_close_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  button_prefs_close = gtk_button_new_with_label (_("Close"));
   gtk_widget_set_name (button_prefs_close, "button_prefs_close");
   gtk_widget_ref (button_prefs_close);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "button_prefs_close", button_prefs_close,
@@ -17876,11 +17858,7 @@ create_popup_search_list (void)
   gtk_widget_show (popup_search_list_duplicate);
   gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_duplicate);
 
-  popup_search_list_close = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (popup_search_list_close)->child),
-                                   _("_Close this search"));
-  gtk_widget_add_accelerator (popup_search_list_close, "activate_item", popup_search_list_accels,
-                              tmp_key, 0, 0);
+  popup_search_list_close = gtk_menu_item_new_with_label (_("Close this search"));
   gtk_widget_set_name (popup_search_list_close, "popup_search_list_close");
   gtk_widget_ref (popup_search_list_close);
   gtk_object_set_data_full (GTK_OBJECT (popup_search_list), "popup_search_list_close", popup_search_list_close,
