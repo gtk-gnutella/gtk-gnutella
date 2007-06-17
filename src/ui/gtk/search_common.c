@@ -2958,8 +2958,10 @@ search_gui_set_details(const record_t *rc)
 
 		filename = filepath_basename(rc->utf8_name);
 		escaped = url_escape(filename);
-		url = g_strconcat("http://match.sharemonkey.com/?n=", escaped,
-				"&cid=25&s=", filesize_to_string(rc->size),
+		url = g_strconcat("http://match.sharemonkey.com/",
+				"?cid=25",	/* Campaign ID of gtk-gnutella */
+				"&n=", escaped,
+				"&s=", filesize_to_string(rc->size),
 				"&sha1=", sha1_base32(rc->sha1),
 				(void *)0);
 		search_gui_append_detail(_("ShareMonkey URL"), url);
