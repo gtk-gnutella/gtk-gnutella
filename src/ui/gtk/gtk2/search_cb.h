@@ -59,4 +59,7 @@ gboolean search_gui_update_rank(GtkTreeModel *model,
 gchar *search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter);
 gchar *search_details_get_text(GtkWidget *widget);
 
+gboolean on_treeview_search_details_key_press_event(GtkWidget *widget,
+	GdkEventKey *event, gpointer unused_udata);
+
 #endif /* _gtk2_search_cb_h_ */

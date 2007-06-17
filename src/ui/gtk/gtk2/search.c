@@ -1672,8 +1672,6 @@ search_gui_init(void)
     GtkTreeView *tv;
 	search_t *current_search;
 
-	drag_detail = drag_new();
-
     tree_view_search =
 		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
     button_search_clear =
@@ -1719,8 +1717,16 @@ search_gui_init(void)
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
 
-	drag_attach(drag_detail, gui_main_window_lookup("treeview_search_details"),
-		search_details_get_text);
+	{
+		GtkWidget *widget;
+
+		widget = gui_main_window_lookup("treeview_search_details");
+		gtk_signal_connect(GTK_OBJECT(widget), "key-press-event",
+			GTK_SIGNAL_FUNC(on_treeview_search_details_key_press_event), NULL);
+		
+		drag_detail = drag_new();
+		drag_attach(drag_detail, widget, search_details_get_text);
+	}
 }
 
 void

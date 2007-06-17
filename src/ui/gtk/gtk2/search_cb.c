@@ -598,6 +598,36 @@ on_tree_view_search_results_select_row(GtkTreeView *tv, gpointer unused_udata)
 	}
 }
 
+gboolean
+on_treeview_search_details_key_press_event(GtkWidget *widget,
+	GdkEventKey *event, gpointer unused_udata)
+{
+    g_assert(event != NULL);
+
+	(void) unused_udata;
+
+	switch (event->keyval) {
+	guint modifier;
+	case GDK_c:
+		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
+		if (GDK_CONTROL_MASK == modifier) {
+			gchar *text;
+			size_t length;
+
+			text = search_details_get_text(widget);
+			length = text ? strlen(text) : 0;
+			length = length < INT_MAX ? length : 0;
+			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
+				text, length);
+			G_FREE_NULL(text);
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
+}
+
+
 void
 on_button_search_passive_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
