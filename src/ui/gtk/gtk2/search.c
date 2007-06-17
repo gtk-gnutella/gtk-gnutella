@@ -1465,14 +1465,12 @@ search_gui_download_files(void)
 	struct selection_ctx ctx;
     gboolean clear;
 
-	if (!search) {
-		g_warning("search_download_files(): no possible search!");
+	if (NULL == search)
 		return;
-	}
 
 	search_gui_start_massive_update(search);
 
-	/* XXX: This has to be GUI (not a core) property! */
+	/* FIXME: This has to be GUI (not a core) property! */
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
 
 	ctx.tv = GTK_TREE_VIEW(search->tree);
@@ -1503,10 +1501,8 @@ search_gui_discard_files(void)
 	GSList *sl = NULL;
 	struct selection_ctx ctx;
 
-	if (!search) {
-		g_warning("search_download_files(): no possible search!");
+	if (NULL == search)
 		return;
-	}
 
 	search_gui_start_massive_update(search);
 
