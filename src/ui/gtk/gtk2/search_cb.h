@@ -51,7 +51,7 @@ void on_tree_view_search_results_resize_column(GtkTreeView * tree_view, gint col
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
 
 void search_update_tooltip(GtkTreeView *tv, GtkTreePath *path);
-void search_callbacks_shutdown(void);
+void search_gui_callbacks_shutdown(void);
 
 gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
 gboolean search_gui_update_rank(GtkTreeModel *model,
@@ -61,5 +61,6 @@ gchar *search_details_get_text(GtkWidget *widget);
 
 gboolean on_treeview_search_details_key_press_event(GtkWidget *widget,
 	GdkEventKey *event, gpointer unused_udata);
+
 
 #endif /* _gtk2_search_cb_h_ */

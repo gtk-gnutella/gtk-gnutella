@@ -1733,7 +1733,7 @@ search_gui_shutdown(void)
 	guint32 pos;
 
 	search_gui_shutting_down = TRUE;
-	search_callbacks_shutdown();
+	search_gui_callbacks_shutdown();
  	search_remove_got_results_listener(search_gui_got_results);
 	search_gui_store_searches();
 

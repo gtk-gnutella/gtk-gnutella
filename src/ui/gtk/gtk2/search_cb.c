@@ -952,7 +952,7 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 
 
 void
-search_callbacks_shutdown(void)
+search_gui_callbacks_shutdown(void)
 {
 	/*
  	 *	Remove delayed callbacks
