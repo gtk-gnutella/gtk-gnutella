@@ -2076,10 +2076,19 @@ search_gui_init(void)
 			GTK_SIGNAL_FUNC(on_clist_search_details_select_row), NULL);
 		gtk_signal_connect(GTK_OBJECT(clist), "unselect-row",
 			GTK_SIGNAL_FUNC(on_clist_search_details_unselect_row), NULL);
+		gtk_signal_connect(GTK_OBJECT(clist), "key-press-event",
+			GTK_SIGNAL_FUNC(on_clist_search_details_key_press_event), NULL);
+		gtk_signal_connect(GTK_OBJECT(clist), "selection_get",
+			GTK_SIGNAL_FUNC(on_clist_search_details_selection_get), NULL);
+  		gtk_signal_connect(GTK_OBJECT(clist), "selection_clear_event",
+			GTK_SIGNAL_FUNC(on_clist_search_details_selection_clear_event),
+			NULL);
+
+		gtk_selection_add_target(GTK_WIDGET(clist),
+			GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
 
 		drag_detail = drag_new();
-		drag_attach(drag_detail, gui_main_window_lookup("clist_search_details"),
-			search_details_get_text);
+		drag_attach(drag_detail, GTK_WIDGET(clist), search_details_get_text);
 	}
 }
 

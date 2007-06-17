@@ -70,6 +70,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static gint search_details_selected_row = -1;
+static gchar *selected_text;
 
 gchar * 
 search_details_get_text(GtkWidget *widget)
@@ -310,9 +311,6 @@ on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
         (gui_main_window_lookup("button_search_clear"), FALSE);
 }
 
-
-/**
- */
 void
 on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
@@ -326,9 +324,6 @@ on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
         search_gui_close_search(search);
 }
 
-
-/**
- */
 void
 on_button_search_download_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
@@ -339,9 +334,6 @@ on_button_search_download_clicked(GtkButton *unused_button,
     search_gui_download_files();
 }
 
-
-/**
- */
 void
 on_button_search_collapse_all_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
@@ -352,9 +344,6 @@ on_button_search_collapse_all_clicked(GtkButton *unused_button,
     search_gui_collapse_all();
 }
 
-
-/**
- */
 void
 on_button_search_expand_all_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
@@ -365,8 +354,6 @@ on_button_search_expand_all_clicked(GtkButton *unused_button,
     search_gui_expand_all();
 }
 
-/**
- */
 void
 on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
@@ -376,8 +363,6 @@ on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
 	filter_open_dialog();
 }
 
-/**
- */
 gboolean
 on_clist_search_results_key_press_event(GtkWidget *unused_widget,
 	GdkEventKey *event, gpointer unused_udata)
@@ -507,6 +492,58 @@ on_clist_search_results_click_column(GtkCList *clist, gint column,
 }
 
 void
+on_clist_search_details_selection_get(GtkWidget *unused_widget,
+	GtkSelectionData *data, guint unused_info,
+	guint unused_eventtime, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_info;
+	(void) unused_udata;
+	(void) unused_eventtime;
+
+    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
+		8 /* CHAR_BIT */,
+		(guchar *) selected_text,
+		selected_text ? strlen(selected_text) : 0);
+}
+
+gboolean
+on_clist_search_details_key_press_event(GtkWidget *widget,
+	GdkEventKey *event, gpointer unused_udata)
+{
+    g_assert(event != NULL);
+
+	(void) unused_udata;
+
+	switch (event->keyval) {
+	guint modifier;
+	case GDK_c:
+		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
+		if (GDK_CONTROL_MASK == modifier) {
+			if (gtk_selection_owner_set(widget,
+					GDK_SELECTION_PRIMARY, GDK_CURRENT_TIME)
+			) {
+				G_FREE_NULL(selected_text);
+				selected_text = search_details_get_text(widget);
+			}
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
+}
+
+gint
+on_clist_search_details_selection_clear_event(GtkWidget *unused_widget,
+	GdkEventSelection *unused_event)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	G_FREE_NULL(selected_text);
+    return TRUE;
+}
+
+void
 on_clist_search_details_select_row(GtkCList *unused_clist,
 	gint row, gint unused_column, GdkEventButton *unused_event,
 	gpointer unused_udata)
@@ -575,9 +612,6 @@ on_ctree_search_results_select_row(GtkCTree *ctree,
     active = FALSE;
 }
 
-
-/**
- */
 void
 on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
 	gint unused_column, gpointer unused_udata)
@@ -591,9 +625,6 @@ on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
     search_gui_refresh_popup();
 }
 
-
-/**
- */
 void
 on_ctree_search_results_resize_column(GtkCList *unused_clist, gint column,
 	gint width, gpointer unused_udata)
