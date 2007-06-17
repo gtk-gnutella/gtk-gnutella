@@ -551,13 +551,10 @@ on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
         /*
          * if "copy url" is done repeatedly, we have to make sure the
          * memory of the previous selection is freed, because we may not
-         * recieve a "selection_clear" signal.
+         * receive a "selection_clear" signal.
          *      --BLUE, 24/04/2002
          */
-        if (selected_url != NULL) {
-            G_FREE_NULL(selected_url);
-        }
-
+		G_FREE_NULL(selected_url);
         selected_url = guc_download_build_url(d);
     }
 }
@@ -821,13 +818,10 @@ on_popup_queue_copy_url_activate(GtkMenuItem *unused_menuitem,
         /*
          * if "copy url" is done repeatedly, we have to make sure the
          * memory of the previous selection is freed, because we may not
-         * recieve a "selection_clear" signal.
+         * receive a "selection_clear" signal.
          *      --BLUE, 24/04/2002
          */
-        if (selected_url != NULL) {
-            G_FREE_NULL(selected_url);
-        }
-
+		G_FREE_NULL(selected_url);
         selected_url = guc_download_build_url(d);
     }
 }
@@ -1279,9 +1273,7 @@ on_popup_downloads_selection_clear_event(GtkWidget *unused_widget,
 {
 	(void) unused_widget;
 	(void) unused_event;
-    if (selected_url != NULL) {
-        G_FREE_NULL(selected_url);
-    }
+	G_FREE_NULL(selected_url);
     return TRUE;
 }
 
