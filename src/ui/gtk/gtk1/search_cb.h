@@ -61,5 +61,12 @@ void on_clist_search_details_select_row(GtkCList *unused_clist,
 void on_clist_search_details_unselect_row(GtkCList *unused_clist,
 	gint unused_row, gint unused_column, GdkEventButton *unused_event,
 	gpointer unused_udata);
+gboolean on_clist_search_details_key_press_event(GtkWidget *unused_widget,
+	GdkEventKey *event, gpointer unused_udata);
+void on_clist_search_details_selection_get(GtkWidget *unused_widget,
+	GtkSelectionData *data, guint unused_info,
+	guint unused_eventtime, gpointer unused_udata);
+gint on_clist_search_details_selection_clear_event(GtkWidget *unused_widget,
+	GdkEventSelection *unused_event);
 
 #endif /* _gtk1_search_cb_h_ */
