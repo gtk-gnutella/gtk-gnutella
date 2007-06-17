@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 #include "if/core/sockets.h"
 
+#include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/utf8.h"
@@ -66,7 +67,7 @@ RCSID("$Id$")
 
 /* Privat variables */
 
-static search_t *search_selected = NULL;
+static search_t *search_selected;
 
 /***
  *** Private functions
@@ -425,10 +426,9 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	GtkTreeIter iter;
 	const record_t *rc;
 
-	g_assert(tv != NULL);
-	if (!path) {
-		rc = NULL;
-	} else {
+	g_return_if_fail(tv);
+
+	if (path) {
 		model = gtk_tree_view_get_model(tv);
 		if (!gtk_tree_model_get_iter(model, &iter, path)) {
 			g_warning("gtk_tree_model_get_iter() failed");
@@ -436,6 +436,8 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		}
 
 		rc = search_gui_get_record_at_path(tv, path);
+	} else {
+		rc = NULL;
 	}
 
 	if (!rc) {
@@ -576,25 +578,56 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 	search_gui_refresh_details(search_gui_get_record_at_path(tv, path));
 }
 
+static cevent_t *row_selected_ev;
+
+#define ROW_SELECT_TIMEOUT	100 /* milliseconds */
+
+static void
+row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
+{
+	GtkTreePath *path = NULL;
+	GtkTreeView *tv;
+	search_t *search;
+
+	(void) unused_cq;
+	(void) unused_udata;
+
+	row_selected_ev = NULL;
+    search = search_gui_get_current_search();
+
+	if (search) {
+		tv = GTK_TREE_VIEW(search->tree);
+		gtk_tree_view_get_cursor(tv, &path, NULL);
+	} else {
+		tv = NULL;
+		path = NULL;
+	}
+	if (path) {
+		search_update_tooltip(tv, path);
+		search_update_details(tv, path);
+		gtk_tree_path_free(path);
+       	search_gui_refresh_popup();
+	} else {
+		search_gui_clear_details();
+	}
+}
+
 /**
  * This function is called when the user selectes a row in the
  * search results pane. Autoselection takes place here.
  */
 void
-on_tree_view_search_results_select_row(GtkTreeView *tv, gpointer unused_udata)
+on_tree_view_search_results_select_row(GtkTreeView *unused_tv,
+	gpointer unused_udata)
 {
-	GtkTreePath *path;
-
+	(void) unused_tv;
 	(void) unused_udata;
 
-	/* FIXME: Note the event but handle it only periodically not immediately. */
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (path != NULL) {
-		search_update_tooltip(tv, path);
-		search_update_details(tv, path);
-		gtk_tree_path_free(path);
-		path = NULL;
-       	search_gui_refresh_popup();
+	if (row_selected_ev) {
+		cq_resched(callout_queue, row_selected_ev, ROW_SELECT_TIMEOUT);
+	} else {
+		row_selected_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
+							row_selected_expire, NULL);
 	}
 }
 
@@ -683,7 +716,8 @@ on_popup_search_drop_name_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_name_eq);
@@ -703,7 +737,8 @@ on_popup_search_drop_sha1_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_sha1_eq);
@@ -723,7 +758,8 @@ on_popup_search_drop_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_host_eq);
@@ -743,7 +779,8 @@ on_popup_search_drop_name_global_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_name_eq);
@@ -764,7 +801,8 @@ on_popup_search_drop_sha1_global_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_sha1_eq);
@@ -785,7 +823,8 @@ on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    g_assert(search != NULL);
+	g_return_if_fail(search);
+
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
     sl = tree_selection_collect_data(selection,
 			search_gui_get_record, gui_record_host_eq);
@@ -805,7 +844,7 @@ on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
+	g_return_if_fail(search);
 
 	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
    	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
@@ -859,19 +898,18 @@ void
 search_gui_browse_selected(void)
 {
 	search_t *search;
-    GSList *sl;
-   
+
 	search = search_gui_get_current_search();
-	if (!search)
-		return;
+	if (search) {
+    	GSList *sl;
 
-    sl = tree_selection_collect_data(
-			gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree)),
-			search_gui_get_record,
-			gui_record_host_eq);
-    g_slist_foreach(sl, search_gui_browse_selected_helper, NULL);
-    g_slist_free(sl);
-
+		sl = tree_selection_collect_data(
+				gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree)),
+				search_gui_get_record,
+				gui_record_host_eq);
+		g_slist_foreach(sl, search_gui_browse_selected_helper, NULL);
+		g_slist_free(sl);
+	}
 }
 
 void
@@ -881,22 +919,19 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 	search_t *search;
 	GtkTreeView *tv;
 	GtkTreeIter iter;
-	GtkTreePath *path;
+	GtkTreePath *path = NULL;
 	GtkTreeModel *model;
 
 	(void) unused_item;
 	(void) unused_udata;
 
 	search = search_gui_get_current_search();
-	if (!search)
-		return;
+	g_return_if_fail(search);
 
 	tv = GTK_TREE_VIEW(search->tree);
 	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path) {
-		return;
-	}
-	
+	g_return_if_fail(path);
+
 	model = gtk_tree_view_get_model(tv);
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gchar *url;
@@ -922,6 +957,7 @@ search_callbacks_shutdown(void)
 	/*
  	 *	Remove delayed callbacks
  	 */
+	cq_cancel(callout_queue, &row_selected_ev);
 }
 
 /* -*- mode: cc-mode; tab-width:4; -*- */
