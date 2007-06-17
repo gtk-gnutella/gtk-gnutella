@@ -172,7 +172,7 @@ crash_handler(int signo)
 			sigsuspend(&oset);
 		}
 	}
-	abort();
+	raise(SIGABRT);
 }
 
 /**
