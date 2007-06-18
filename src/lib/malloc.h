@@ -187,22 +187,22 @@
 #if defined(TRACK_MALLOC) || defined(MALLOC_SOURCE)
 
 gpointer string_record(const gchar *s, gchar *file, gint line);
-gpointer malloc_record(gpointer o, guint32 s, gchar *file, gint line);
+gpointer malloc_record(gconstpointer o, size_t size, gchar *file, gint line);
 
-gpointer malloc_track(guint32 s, gchar *file, gint line);
-gpointer malloc0_track(guint32 s, gchar *file, gint line);
+gpointer malloc_track(size_t size, gchar *file, gint line);
+gpointer malloc0_track(size_t size, gchar *file, gint line);
 void free_track(gpointer o, gchar *file, gint line);
 void strfreev_track(gchar **v, gchar *file, gint line);
-gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line);
+gpointer realloc_track(gpointer o, size_t size, gchar *file, gint line);
 gchar *strdup_track(const gchar *s, gchar *file, gint line);
-gchar *strndup_track(const gchar *s, gint n, gchar *file, gint line);
-gpointer memdup_track(gconstpointer p, guint size, gchar *file, gint line);
+gchar *strndup_track(const gchar *s, size_t n, gchar *file, gint line);
+gpointer memdup_track(gconstpointer p, size_t size, gchar *file, gint line);
 gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line);
 gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...);
 gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 gchar **strsplit_track(
-	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
+	const gchar *s, const gchar *d, size_t m, gchar *file, gint line);
 
 GHashTable *hashtable_new_track(
 	GHashFunc h, GCompareFunc y, gchar *file, gint line);
@@ -243,7 +243,7 @@ GList *track_list_insert_after(
 GList *track_list_delete_link(GList *l, GList *lk, gchar *file, gint line);
 
 GString *string_new_track(const gchar *p, gchar *file, gint line);
-GString *string_sized_new_track(guint size, gchar *file, gint line);
+GString *string_sized_new_track(size_t size, gchar *file, gint line);
 GString *string_append_track(
 	GString *s, const gchar *p, gchar *file, gint line);
 GString *string_append_c_track(
@@ -277,7 +277,7 @@ void malloc_close(void);
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 
 gpointer leak_init(void);
-void leak_add(gpointer o, guint32 size, gchar *file, gint line);
+void leak_add(gpointer o, size_t size, gchar *file, gint line);
 void leak_dump(gpointer o);
 void leak_close(gpointer o);
 

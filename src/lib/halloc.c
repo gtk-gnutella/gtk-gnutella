@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "hashtable.h"
 #include "pagetable.h"
 #include "misc.h"
+#include "malloc.h"
 #include "walloc.h"
 
 #include "glib-missing.h"
@@ -59,9 +60,11 @@ RCSID("$Id$")
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
 
-#if defined(REMAP_ZALLOC) && !defined(USE_MALLOC)
+#if !defined(USE_MALLOC)
+#if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #define USE_MALLOC
-#endif	/* !REMAP_ZALLOC */
+#endif	/* REMAP_ZALLOC || TRACK_MALLOC */
+#endif	/* !USE_MALLOC */
 
 static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */

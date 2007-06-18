@@ -39,6 +39,12 @@
 #include "misc.h"		/* For concat_strings() */
 #include "tm.h"			/* For tm_time() */
 
+#ifdef MALLOC_STATS
+#ifndef TRACK_MALLOC
+#define TRACK_MALLOC
+#endif
+#endif
+
 /**
  * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
  */
@@ -74,6 +80,7 @@ RCSID("$Id$")
 #include "hashlist.h"
 #include "misc.h"
 #include "glib-missing.h"
+
 #define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
 #include "override.h"
 
@@ -94,13 +101,13 @@ static time_t reset_time = 0;
 struct block {
 	gchar *file;
 	gint line;
-	guint32 size;
+	size_t size;
 	GSList *realloc;
 };
 
 static GHashTable *blocks = NULL;
 
-static void free_record(gpointer o, gchar *file, gint line);
+static void free_record(gconstpointer o, gchar *file, gint line);
 
 #ifdef MALLOC_FRAMES
 
@@ -113,8 +120,8 @@ static void free_record(gpointer o, gchar *file, gint line);
 struct frame {
 	void *stack[FRAME_DEPTH];	/**< PC of callers */
 	gint len;					/**< Number of valid entries in stack */
-	gint32 count;				/**< Bytes allocated/freed since reset */
-	gint32 total_count;			/**< Grand total for this stack frame */
+	size_t count;				/**< Bytes allocated/freed since reset */
+	size_t total_count;			/**< Grand total for this stack frame */
 };
 
 /**
@@ -123,9 +130,9 @@ struct frame {
 static guint
 frame_hash(gconstpointer key)
 {
-	struct frame *f = (struct frame *) key;
+	const struct frame *f = key;
 
-	return binary_hash((gconstpointer) f->stack, f->len * sizeof(void *));
+	return binary_hash(f->stack, f->len * sizeof(void *));
 }
 
 /**
@@ -160,12 +167,12 @@ struct stats {
 	gint line;					/**< Line number */
 	gint blocks;				/**< Live blocks since last "reset" */
 	gint total_blocks;			/**< Total live blocks */
-	guint32 allocated;			/**< Total allocated since last "reset" */
-	guint32 freed;				/**< Total freed since last "reset" */
-	guint32 total_allocated;	/**< Total allocated overall */
-	guint32 total_freed;		/**< Total freed overall */
-	gint32 reallocated;			/**< Total reallocated since last "reset" */
-	gint32 total_reallocated;	/**< Total reallocated overall (algebric!) */
+	size_t allocated;			/**< Total allocated since last "reset" */
+	size_t freed;				/**< Total freed since last "reset" */
+	size_t total_allocated;		/**< Total allocated overall */
+	size_t total_freed;			/**< Total freed overall */
+	size_t reallocated;			/**< Total reallocated since last "reset" */
+	size_t total_reallocated;	/**< Total reallocated overall (algebric!) */
 #ifdef MALLOC_FRAMES
 	GHashTable *alloc_frames;	/**< The frames where allocation took place */
 	GHashTable *free_frames;	/**< The frames where free took place */
@@ -227,16 +234,16 @@ malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 {
 	struct block *b = v;
 
-	g_warning("leaked block 0x%lx (%u bytes) from \"%s:%d\"",
-		(gulong) k, b->size, b->file, b->line);
+	g_warning("leaked block 0x%lx (%lu bytes) from \"%s:%d\"",
+		(gulong) k, (gulong) b->size, b->file, b->line);
 
 	leak_add(leaksort, b->size, b->file, b->line);
 
 	if (b->realloc) {
 		struct block *r = b->realloc->data;
-		gint cnt = g_slist_length(b->realloc);
+		guint cnt = g_slist_length(b->realloc);
 
-		g_warning("   (realloc'ed %d time%s, lastly from \"%s:%d\")",
+		g_warning("   (realloc'ed %u time%s, lastly from \"%s:%d\")",
 			cnt, cnt == 1 ? "" : "s", r->file, r->line);
 	}
 }
@@ -270,7 +277,7 @@ malloc_close(void)
  * @return argument `o'.
  */
 gpointer
-malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
+malloc_record(gconstpointer o, size_t sz, gchar *file, gint line)
 {
 	struct block *b;
 	struct block *ob;
@@ -283,14 +290,14 @@ malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 #endif
 
 	if (o == NULL)			/* In case it's called externally */
-		return o;
+		return NULL;
 
 	if (blocks == NULL)
 		malloc_init();
 
 	b = calloc(1, sizeof(*b));
 	if (b == NULL)
-		g_error("unable to allocate %u bytes", sizeof(*b));
+		g_error("unable to allocate %u bytes", (unsigned) sizeof(*b));
 
 	b->file = short_filename(file);
 	b->line = line;
@@ -308,13 +315,14 @@ malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	 * not reuse it again!  Fake a free from "FAKED:0".
 	 */
 
-	if ((ob = (struct block *) g_hash_table_lookup(blocks, o))) {
+	ob = g_hash_table_lookup(blocks, o);
+	if (ob) {
 		g_warning("(%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
-			file, line, (glong) o, ob->file, ob->line);
+			file, line, (gulong) o, ob->file, ob->line);
 		free_record(o, "FAKED", 0);
 	}
 
-	g_hash_table_insert(blocks, o, b);
+	gm_hash_table_insert_const(blocks, o, b);
 
 #ifdef MALLOC_STATS
 	{
@@ -362,34 +370,34 @@ malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	}
 #endif /* MALLOC_FRAMES */
 
-	return o;
+	return deconstify_gpointer(o);
 }
 
 /**
  * Allocate `s' bytes.
  */
 gpointer
-malloc_track(guint32 s, gchar *file, gint line)
+malloc_track(size_t size, gchar *file, gint line)
 {
 	gpointer o;
 
-	o = malloc(s);
+	o = malloc(size);
 	if (o == NULL)
-		g_error("unable to allocate %u bytes", s);
+		g_error("unable to allocate %lu bytes", (gulong) size);
 
-	return malloc_record(o, s, file, line);
+	return malloc_record(o, size, file, line);
 }
 
 /**
  * Allocate `s' bytes, zero the allocated zone.
  */
 gpointer
-malloc0_track(guint32 s, gchar *file, gint line)
+malloc0_track(size_t size, gchar *file, gint line)
 {
 	gpointer o;
 
-	o = malloc_track(s, file, line);
-	memset(o, 0, s);
+	o = malloc_track(size, file, line);
+	memset(o, 0, size);
 
 	return o;
 }
@@ -398,7 +406,7 @@ malloc0_track(guint32 s, gchar *file, gint line)
  * Record freeing of allocated block.
  */
 static void
-free_record(gpointer o, gchar *file, gint line)
+free_record(gconstpointer o, gchar *file, gint line)
 {
 	struct block *b;
 	gpointer k;
@@ -513,7 +521,7 @@ strfreev_track(gchar **v, gchar *file, gint line)
  * a block of `s' bytes at `n'.
  */
 static gpointer
-realloc_record(gpointer o, gpointer n, guint32 s, gchar *file, gint line)
+realloc_record(gpointer o, gpointer n, size_t size, gchar *file, gint line)
 {
 	struct block *b;
 	struct block *r;
@@ -524,12 +532,12 @@ realloc_record(gpointer o, gpointer n, guint32 s, gchar *file, gint line)
 	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
 		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
-		return malloc_record(n, s, file, line);
+		return malloc_record(n, size, file, line);
 	}
 
 	r = calloc(sizeof(*r), 1);
 	if (r == NULL)
-		g_error("unable to allocate %u bytes", sizeof(*r));
+		g_error("unable to allocate %u bytes", (unsigned) sizeof(*r));
 
 	r->file = short_filename(file);
 	r->line = line;
@@ -537,7 +545,7 @@ realloc_record(gpointer o, gpointer n, guint32 s, gchar *file, gint line)
 	r->realloc = NULL;
 
 	b->realloc = g_slist_prepend(b->realloc, r);	/* Last realloc at head */
-	b->size = s;
+	b->size = size;
 
 	if (n != o) {
 		g_hash_table_remove(blocks, o);
@@ -591,33 +599,33 @@ realloc_record(gpointer o, gpointer n, guint32 s, gchar *file, gint line)
 }
 
 /**
- * Realloc object `o' to `s' bytes.
+ * Realloc object `o' to `size' bytes.
  */
 gpointer
-realloc_track(gpointer o, guint32 s, gchar *file, gint line)
+realloc_track(gpointer o, size_t size, gchar *file, gint line)
 {
 	gpointer n;
 
 	if (o == NULL)
-		return malloc_track(s, file, line);
+		return malloc_track(size, file, line);
 
 #ifdef TRANSPARENT
-	return realloc(o, s);
+	return realloc(o, size);
 #endif
 
-	n = realloc(o, s);
+	n = realloc(o, size);
 
 	if (n == NULL)
-		g_error("cannot realloc block into a %u-byte one", s);
+		g_error("cannot realloc block into a %lu-byte one", (gulong) size);
 
-	return realloc_record(o, n, s, file, line);
+	return realloc_record(o, n, size, file, line);
 }
 
 /**
  * Duplicate buffer `p' of length `size'.
  */
 gpointer
-memdup_track(gconstpointer p, guint size, gchar *file, gint line)
+memdup_track(gconstpointer p, size_t size, gchar *file, gint line)
 {
 	gpointer o;
 
@@ -637,7 +645,7 @@ gchar *
 strdup_track(const gchar *s, gchar *file, gint line)
 {
 	gpointer o;
-	guint32 len;
+	size_t len;
 
 	if (s == NULL)
 		return NULL;
@@ -653,22 +661,20 @@ strdup_track(const gchar *s, gchar *file, gint line)
  * Duplicate string `s', on at most `n' chars.
  */
 gchar *
-strndup_track(const gchar *s, gint n, gchar *file, gint line)
+strndup_track(const gchar *s, size_t n, gchar *file, gint line)
 {
 	gpointer o;
-	gchar *p;
 	gchar *q;
-	gchar c;
 
 	if (s == NULL)
 		return NULL;
 
 	o = malloc_track(n + 1, file, line);
-	p = (gchar *) s;
 	q = o;
-	while ((c = *p++) && n-- > 0)
-		*q++ = c;
-	*q++ = '\0';
+	while (n-- > 0 && '\0' != (*q = *s++)) {
+		q++;
+	}
+	*q = '\0';
 
 	return o;
 }
@@ -694,14 +700,14 @@ m_strconcatv(const gchar *s, va_list args)
 {
 	gchar *res;
 	gchar *add;
-	gint size;
+	size_t size;
 
 	size = strlen(s) + 1;
 	res = g_malloc(size);
 	memcpy(res, s, size);
 
 	while ((add = va_arg(args, gchar *))) {
-		gint len = strlen(add);
+		size_t len = strlen(add);
 		res = g_realloc(res, size + len);
 		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
 		size += len;
@@ -746,7 +752,7 @@ strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
  * Perform a g_strplit() operation, tracking all returned strings.
  */
 gchar **
-strsplit_track(const gchar *s, const gchar *d, gint m, gchar *file, gint line)
+strsplit_track(const gchar *s, const gchar *d, size_t m, gchar *file, gint line)
 {
 	gchar **v;
 	gchar **iv;
@@ -772,7 +778,7 @@ string_record(const gchar *s, gchar *file, gint line)
 	if (s == NULL)
 		return NULL;
 
-	return malloc_record((gpointer) s, strlen(s) + 1, file, line);
+	return malloc_record(s, strlen(s) + 1, file, line);
 }
 
 /**
@@ -1209,7 +1215,7 @@ string_new_track(const gchar *p, gchar *file, gint line)
 }
 
 GString *
-string_sized_new_track(guint size, gchar *file, gint line)
+string_sized_new_track(size_t size, gchar *file, gint line)
 {
 	GString *result = g_string_sized_new(size);
 
@@ -1345,8 +1351,8 @@ string_sprintfa_track(GString *s, gchar *file, gint line, const gchar *fmt, ...)
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 
 struct leak_record {		/* Informations about leak at some place */
-	guint32 size;			/* Total size allocated there */
-	guint32 count;			/* Amount of allocations */
+	size_t size;			/* Total size allocated there */
+	size_t count;			/* Amount of allocations */
 };
 
 struct leak_set {
@@ -1396,7 +1402,7 @@ leak_close(gpointer o)
  * Record a new leak of `size' bytes allocated at `file', line `line'.
  */
 void
-leak_add(gpointer o, guint32 size, gchar *file, gint line)
+leak_add(gpointer o, size_t size, gchar *file, gint line)
 {
 	struct leak_set *ls = o;
 	gchar key[1024];
@@ -1439,9 +1445,9 @@ static gint
 leak_size_cmp(const void *p1, const void *p2)
 {
 	const struct leak *leak1 = p1, *leak2 = p2;
-	guint32 i1 = leak1->lr->size, i2 = leak2->lr->size;
 
-	return CMP(i2, i1); /* Reverse order: largest first */
+	/* Reverse order: largest first */
+	return CMP(leak2->lr->size, leak1->lr->size);
 }
 
 struct filler {			/* Used by hash table iterator to fill leak array */
@@ -1506,8 +1512,9 @@ leak_dump(gpointer o)
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
-		g_warning("%u bytes (%u block%s) from \"%s\"", l->lr->size,
-			l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
+		g_warning("%lu bytes (%lu block%s) from \"%s\"",
+			(gulong) l->lr->size, (gulong) l->lr->count,
+			l->lr->count == 1 ? "" : "s", l->place);
 	}
 
 	free(filler.leaks);
@@ -1539,9 +1546,9 @@ static gint
 stats_allocated_cmp(const void *p1, const void *p2)
 {
 	const struct stats * const *s1 = p1, * const *s2 = p2;
-	guint32 i1 = (*s1)->allocated, i2 = (*s2)->allocated;
 
-	return CMP(i2, i1);	/* Reverse order: largest first */
+	/* Reverse order: largest first */
+	return CMP((*s2)->allocated, (*s1)->allocated);
 }
 
 /**
@@ -1552,9 +1559,9 @@ static gint
 stats_total_allocated_cmp(const void *p1, const void *p2)
 {
 	const struct stats * const *s1 = p1, * const *s2 = p2;
-	guint32 i1 = (*s1)->total_allocated, i2 = (*s2)->total_allocated;
 
-	return CMP(i2, i1);	/* Reverse order: largest first */
+	/* Reverse order: largest first */
+	return CMP((*s2)->total_allocated, (*s1)->total_allocated);
 }
 
 /**
@@ -1566,12 +1573,13 @@ stats_residual_cmp(const void *p1, const void *p2)
 {
 	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
 	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
-	gint32 i1 = s1->allocated + s1->reallocated - s1->freed;
-	gint32 i2 = s2->allocated + s2->reallocated - s2->freed;
+	size_t i1 = s1->allocated + s1->reallocated - s1->freed;
+	size_t i2 = s2->allocated + s2->reallocated - s2->freed;
+	gint ret;
 
-	return i1 == i2
-		? stats_allocated_cmp(p1, p2)
-		: CMP(i2, i1); /* Reverse order: largest first */
+	/* Reverse order: largest first */
+	ret = CMP(i2, i1);
+	return ret ? ret : stats_allocated_cmp(p1, p2);
 }
 
 /**
@@ -1583,12 +1591,13 @@ stats_total_residual_cmp(const void *p1, const void *p2)
 {
 	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
 	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
-	gint32 i1 = s1->total_allocated + s1->total_reallocated - s1->total_freed;
-	gint32 i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
+	size_t i1 = s1->total_allocated + s1->total_reallocated - s1->total_freed;
+	size_t i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
+	gint ret;
 
-	return i1 == i2
-		? stats_total_allocated_cmp(p1, p2)
-		: CMP(i2, i1); /* Reverse order: largest first */
+	/* Reverse order: largest first */
+	ret = CMP(i2, i1);
+	return ret ? ret : stats_allocated_cmp(p1, p2);
 }
 
 /**
