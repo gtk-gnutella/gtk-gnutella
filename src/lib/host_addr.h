@@ -96,11 +96,7 @@ typedef struct host_addr {
 	guint32 net;	/**< The address network type */
 	union {
 		guint8	ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
-		guint32 ipv4;		/**< @attention: Always in host byte order! */
-
-		guint8	u8[16];
-		guint16 u16[8];
-		guint32 u32[4];
+		guint32 ipv4;	/**< @attention: Always in host byte order! */
 	} addr;
 } host_addr_t;
 
@@ -259,14 +255,14 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 	if (a.net == b.net) {
 		switch (a.net) {
 		case NET_TYPE_IPV4:
-			return a.addr.ipv4 == b.addr.ipv4;
+			return host_addr_ipv4(a) == host_addr_ipv4(b);
 		case NET_TYPE_IPV6:
 			if (0 != memcmp(a.addr.ipv6, b.addr.ipv6, sizeof a.addr.ipv6)) {
 				host_addr_t a_ipv4, b_ipv4;
 
 				return host_addr_convert(a, &a_ipv4, NET_TYPE_IPV4) &&
 					host_addr_convert(b, &b_ipv4, NET_TYPE_IPV4) &&
-					a_ipv4.addr.ipv4 == b_ipv4.addr.ipv4;
+					host_addr_ipv4(a_ipv4) == host_addr_ipv4(b_ipv4);
 			}
 			return TRUE;
 
@@ -299,7 +295,7 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 
 	switch (a.net) {
 	case NET_TYPE_IPV4:
-		return CMP(a.addr.ipv4, b.addr.ipv4);
+		return CMP(host_addr_ipv4(a), host_addr_ipv4(b));
 	case NET_TYPE_IPV6:
 		{
 			guint i;
@@ -331,7 +327,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 	switch (a.net) {
 	case NET_TYPE_IPV4:
 		shift = bits < 32 ? 32 - bits : 0;
-		return (a.addr.ipv4 >> shift) == (to.addr.ipv4 >> shift);
+		return host_addr_ipv4(a) >> shift == host_addr_ipv4(to) >> shift;
 
 	case NET_TYPE_IPV6:
 		{
@@ -366,7 +362,7 @@ is_host_addr(const host_addr_t ha)
 {
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
-		return 0 != ha.addr.ipv4;
+		return 0 != host_addr_ipv4(ha);
 	case NET_TYPE_IPV6:
 		return 0 != memcmp(ha.addr.ipv6, zero_host_addr.addr.ipv6,
 						sizeof ha.addr.ipv6);
@@ -399,7 +395,7 @@ host_addr_hash(host_addr_t ha)
 		}
 		/* FALL THROUGH */
 	case NET_TYPE_IPV4:
-		return ha.net ^ ha.addr.ipv4;
+		return ha.net ^ host_addr_ipv4(ha);
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		return ha.net;
