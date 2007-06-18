@@ -4916,16 +4916,13 @@ create_download(
 			reason = _("Paused");
 		} else if (count_running_downloads() >= GNET_PROPERTY(max_downloads)) {
 			reason = _("Max. number of downloads reached");
-			download_send_head_ping(d);
 		} else if (
 			count_running_on_server(d->server)
 				>= GNET_PROPERTY(max_host_downloads)
 		) {
 			reason = _("Max. number of downloads for this host reached");
-			download_send_head_ping(d);
 		} else if (download_has_enough_active_sources(d)) {
 			reason = _("Has already enough active sources");
-			download_send_head_ping(d);		/* Keep the mesh fresh anyway */
 		} else {
 			download_start(d, FALSE);		/* Start the download immediately */
 			return d;
@@ -6455,16 +6452,17 @@ download_continue(struct download *d, gboolean trimmed)
 	 * continuing with this connection.
 	 */
 
-	if (trimmed)
+	if (trimmed) {
 		download_queue(cd, _("Requeued after trimmed data"));
-	else if (!cd->keep_alive)
+	} else if (!cd->keep_alive) {
 		download_queue(cd, _("Chunk done, connection closed"));
-	else {
-		if (download_start_prepare(cd)) {
-			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
-			gcu_download_gui_add(cd);
-			download_send_request(cd);		/* Will pick up new range */
-		}
+	} else if (DL_F_FETCH_TTH == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & cd->flags)){
+		cd->flags |= DL_F_GOT_TTH;
+		download_queue(cd, "Giving priority to THEX");
+	} else if (download_start_prepare(cd)) {
+		cd->keep_alive = TRUE;			/* Was reset by _prepare() */
+		gcu_download_gui_add(cd);
+		download_send_request(cd);		/* Will pick up new range */
 	}
 }
 
@@ -7001,7 +6999,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	}
 
 	if (
-		0 == (DL_F_GOT_TIGERTREE & d->flags) &&
+		0 == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & d->flags) &&
 		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
 		0 == d->file_info->tigertree.num_leaves &&
 		tt_good_depth(download_filesize(d)) > 0
@@ -7014,8 +7012,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		 * data.
 		 */
 
-		d->flags |= DL_F_GOT_TIGERTREE;
-
+		d->flags |= DL_F_FETCH_TTH;
 		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 			cflags |= SOCK_F_PUSH;
 		}
