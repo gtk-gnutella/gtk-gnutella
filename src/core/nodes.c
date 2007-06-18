@@ -7507,7 +7507,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->pos = 0;
 
-		if (n->size > n->allocated) {
+		if (n->size != n->allocated) {
 			/*
 			 * We need to grow the allocated data buffer
 			 * Since could change dynamically one day, so compute it.
@@ -7528,10 +7528,10 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			}
 
 			if (n->allocated)
-				n->data = g_realloc(n->data, maxsize);
+				n->data = g_realloc(n->data, n->size);
 			else
-				n->data = g_malloc(maxsize);
-			n->allocated = maxsize;
+				n->data = g_malloc(n->size);
+			n->allocated = n->size;
 		}
 
 		/* FALL THROUGH */
