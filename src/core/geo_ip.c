@@ -77,15 +77,17 @@ struct range_context {
 static void
 gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 {
-	struct range_context *ctx = (struct range_context *) udata;
+	struct range_context *ctx = udata;
 	iprange_err_t error;
 	gpointer ccode;
+	guint cc;
 
 	if (GNET_PROPERTY(dbg) > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
 			ip_to_string(ip), bits, ctx->line);
 
-	ccode = GUINT_TO_POINTER(ctx->country);
+	cc = ctx->country;
+	ccode = GUINT_TO_POINTER(cc);
 	error = iprange_add_cidr(geo_db, ip, bits, ccode);
 
 	switch (error) {
