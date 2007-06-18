@@ -415,7 +415,7 @@ iso3166_country_entry(guint16 code)
 		static const iso3166_entry_t unknown = { "??", "??" };
 		return &unknown;
 	} else {
-		static const iso3166_entry_t none = { "??", "(null)" };
+		static const iso3166_entry_t none = { "(null)", "??" };
 		g_assert(code < G_N_ELEMENTS(iso3166_countries));
 		return iso3166_countries[code] ? iso3166_countries[code] : &none;
 	}
