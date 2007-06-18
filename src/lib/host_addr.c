@@ -155,11 +155,11 @@ ipv4_addr_is_routable(guint32 ip)
 	return TRUE;
 }
 
-static inline guint32
+static inline gboolean
 host_addr_is_6to4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV6 == host_addr_net(ha) &&
-		htons(0x2002) == ha.addr.u16[0];
+		0x2002 == peek_be16(&ha.addr.ipv6[0]);
 }
 
 static inline guint32
@@ -311,8 +311,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 		switch (from.net) {
 		case NET_TYPE_IPV6:
 			if (host_addr_can_convert(from, NET_TYPE_IPV4)) {
-				to->net = NET_TYPE_IPV4;
-				to->addr.ipv4 = peek_be32(&from.addr.ipv6[12]);
+				*to = host_addr_peek_ipv4(&from.addr.ipv6[12]);
 				return TRUE;
 			}
 			break;
@@ -329,7 +328,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
 			memset(to->addr.ipv6, 0, 10);
 			to->addr.ipv6[10] = 0xff;
 			to->addr.ipv6[11] = 0xff;
-			poke_be32(&to->addr.ipv6[12], from.addr.ipv4);
+			poke_be32(&to->addr.ipv6[12], host_addr_ipv4(from));
 			return TRUE;
 		case NET_TYPE_NONE:
 			break;
