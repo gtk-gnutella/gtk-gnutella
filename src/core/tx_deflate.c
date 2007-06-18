@@ -699,15 +699,14 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
 
-	ret = targs->gzip
-		? deflateInit2(outz, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (-MAX_WBITS),
-				MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY)
-		: deflateInit(outz, Z_DEFAULT_COMPRESSION);
+	ret = deflateInit2(outz, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+			targs->gzip ? (-MAX_WBITS) : MAX_WBITS,
+			MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
 
 	if (Z_OK != ret) {
-		wfree(outz, sizeof *outz);
 		g_warning("unable to initialize compressor for peer %s: %s",
 			gnet_host_to_string(&tx->host), zlib_strerror(ret));
+		wfree(outz, sizeof *outz);
 		return NULL;
 	}
 
