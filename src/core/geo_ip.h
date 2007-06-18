@@ -39,7 +39,7 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-gint gip_country(const host_addr_t addr);
+guint16 gip_country(const host_addr_t addr);
 void gip_init(void);
 void gip_close(void);
 
