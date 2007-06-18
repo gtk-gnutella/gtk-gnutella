@@ -82,6 +82,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
+#include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/magnet.h"
 #include "lib/misc.h"
@@ -1248,7 +1249,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	rs = search_new_r_set();
 	rs->stamp = tm_time();
-	rs->country = -1;
+	rs->country = ISO3166_INVALID;
 
 	rs->ttl	= gnutella_header_get_ttl(&n->header);
 	rs->hops = gnutella_header_get_hops(&n->header);
@@ -4053,7 +4054,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 	}
 	rs->port = GNET_PROPERTY(listen_port);
 	rs->last_hop = zero_host_addr;
-	rs->country = -1;
+	rs->country = ISO3166_INVALID;
 	rs->guid = atom_guid_get(GNET_PROPERTY(servent_guid));
 	poke_be32(&rs->vcode.be32, T_GTKG);
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;

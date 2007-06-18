@@ -81,6 +81,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/idtable.h"
+#include "lib/iso3166.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -973,7 +974,7 @@ upload_clone(gnutella_upload_t *u)
 	u->socket = NULL;
 	u->buffer = NULL;
 	u->user_agent = NULL;
-	u->country = -1;
+	u->country = ISO3166_INVALID;
 	u->sha1 = NULL;
 	u->thex = NULL;
 	u->request = NULL;

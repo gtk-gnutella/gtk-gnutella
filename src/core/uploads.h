@@ -100,9 +100,9 @@ typedef struct upload {
 	host_addr_t addr;			/**< Remote IP address */
 	host_addr_t gnet_addr;		/**< Advertised remote IP address */
 	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
+	guint16 country;			/**< Country of origin, ISO3166 code */
 
 	const gchar *user_agent;	/**< Remote user agent */
-	gint country;				/**< Country of origin, ISO3166 code */
 
 	filesize_t file_size;
 	filesize_t skip;			/**< First byte to send, inclusive */

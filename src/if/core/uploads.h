@@ -70,25 +70,25 @@ typedef struct gnet_upload_status {
 typedef struct gnet_upload_info {
 	gnet_upload_t upload_handle;
 
-	const gchar  *name;		/**< Name of requested file (converted to UTF-8) */
-
 	host_addr_t addr;		/**< remote IP address */
+	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
 
 	filesize_t file_size;	/**< Size of requested file */
 	filesize_t range_start;	/**< First byte to send, inclusive */
 	filesize_t range_end;	/**< Last byte to send, inclusive */
 
+	const gchar  *name;		/**< Name of requested file (converted to UTF-8) */
+	const gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
+
 	time_t  start_date;
 	time_t  last_update;
 
-	const gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
-	gint   country;  	/**< Contry of origin */
 	gboolean push;		/**< Whether we're pushing or not */
 	gboolean partial;	/**< Whether it's a partial file */
 	gboolean encrypted; /**< Whether the connection is (TLS) encrypted */
 	
-	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
 	guint16 gnet_port;		/**< Advertised Gnutella listening port */
+	guint16 country;  		/**< Contry of origin */
 } gnet_upload_info_t;
 
 /*

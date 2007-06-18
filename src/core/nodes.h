@@ -107,6 +107,7 @@ typedef struct gnutella_node {
 
 	gchar error_str[256];		/**< To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/**< Socket of the node */
+	guint16 country;			/**< Country of origin -- encoded ISO3166 */
 	guint8 proto_major;			/**< Handshaking protocol major number */
 	guint8 proto_minor;			/**< Handshaking protocol minor number */
 
@@ -115,7 +116,6 @@ typedef struct gnutella_node {
 	guint8 uqrp_major;			/**< UP Query routing protocol major number */
 	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
 	const gchar *vendor;		/**< Vendor information (always UTF-8) */
-	gint country;				/**< Country of origin -- encoded ISO3166 */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
 

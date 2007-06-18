@@ -70,8 +70,8 @@ typedef struct results_set {
 	time_t  stamp;				/**< Reception time of the hit */
 
 	vendor_code_t vcode;		/**< Vendor code */
-	gint country;				/**< Country code -- encoded ISO3166 */
 	guint32 status;				/**< Parsed status bits from trailer */
+	guint16 country;			/**< Country code -- encoded ISO3166 */
 	guint16 port;
 	guint16 speed;
 	guint8 hops;

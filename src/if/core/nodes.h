@@ -279,21 +279,23 @@ typedef struct gnet_node_status {
 typedef struct gnet_node_info {
     node_id_t node_id;    	/**< Internal node ID */
 
+	gchar gnet_guid[GUID_RAW_SIZE];		/**< Seen on network (can be blank) */
+
     gchar *error_str;       /**< To sprintf() error strings with vars */
+	const gchar *vendor;	/**< Vendor information (always UTF-8) */
+
 	gint proto_major;		/**< Protocol major number */
 	gint proto_minor;		/**< Protocol minor number */
-	const gchar *vendor;	/**< Vendor information (always UTF-8) */
-	gint country;			/**< Country information */
 	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
-
-	host_addr_t addr;		/**< ip of the node (connected) */
-	guint16 port;			/**< port of the node (connected) */
-
 	gboolean is_pseudo;		/**< TRUE if it's the pseudo UDP node */
 
+	host_addr_t addr;		/**< ip of the node (connected) */
 	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
+
+	guint16 port;			/**< port of the node (connected) */
 	guint16 gnet_port;		/**< Advertised Gnutella listening port */
-	gchar gnet_guid[GUID_RAW_SIZE];		/**< Seen on network (can be blank) */
+	guint16 country;		/**< Country information */
+
 } gnet_node_info_t;
 
 /*

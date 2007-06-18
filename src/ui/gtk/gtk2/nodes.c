@@ -155,7 +155,7 @@ struct node_data {
 	size_t info_size;
 	guint uptime;
 	guint connected;
-	gint country;
+	guint16 country;
 	GtkTreeIter iter;
 	gchar version[24];
 	gchar flags[16 + sizeof "<tt></tt>"];

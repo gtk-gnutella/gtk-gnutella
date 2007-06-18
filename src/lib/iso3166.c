@@ -321,12 +321,12 @@ static iso3166_entry_t *iso3166_countries[NUM_CODES];
  *		   string is in a static buffer.
  */
 static const gchar *
-iso3166_decode_cc(gint code)
+iso3166_decode_cc(guint16 code)
 {
     static gchar s[3];
-    gint i;
+    guint i;
 
-    if (code < 0 || (size_t) code >= G_N_ELEMENTS(iso3166_countries))
+    if (code >= G_N_ELEMENTS(iso3166_countries))
         return NULL;
 
     if (NULL == iso3166_countries[code])
@@ -344,30 +344,30 @@ iso3166_decode_cc(gint code)
 /**
  * Encodes a valid 2-letter country code into an integer.
  *
- * @return -1 if the given string is obviously not a 2-letter country code.
+ * @return ISO3166_INVALID if the given string is obviously not
+ *         a 2-letter country code.
  */
-gint
+guint16
 iso3166_encode_cc(const gchar *cc)
 {
     g_assert(cc != NULL);
 
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
         const gchar *d;
-		guint32 v;
+		guint16 code;
 		gint error;
 
-		v = parse_uint32(cc, NULL, 36, &error);
-        g_assert(v < G_N_ELEMENTS(iso3166_countries));
+		code = parse_uint16(cc, NULL, 36, &error);
+        g_assert(code < G_N_ELEMENTS(iso3166_countries));
         g_assert(0 == error);
 
-		if (NULL != iso3166_countries[v]) {
-			gint code = v;
+		if (NULL != iso3166_countries[code]) {
         	d = iso3166_decode_cc(code);
         	g_assert(0 == ascii_strcasecmp(cc, d));
 			return code;
 		}
     }
-    return -1;
+    return ISO3166_INVALID;
 }
 
 
@@ -385,12 +385,12 @@ iso3166_init(void)
 
 		{
 			const gchar *endptr;
-			gint code, error;
+			guint16 code;
+			gint error;
 
-			code = parse_uint32(entry->cc, &endptr, 36, &error);
+			code = parse_uint16(entry->cc, &endptr, 36, &error);
 			g_assert(*endptr == '\0');
 			g_assert(!error);
-			g_assert(code >= 0);
 			g_assert((size_t) code < G_N_ELEMENTS(iso3166_countries));
 			iso3166_countries[code] = entry;
 		}
@@ -408,6 +408,19 @@ iso3166_close(void)
 	}
 }
 
+static inline const iso3166_entry_t *
+iso3166_country_entry(guint16 code)
+{
+	if (ISO3166_INVALID == code) {
+		static const iso3166_entry_t unknown = { "??", "??" };
+		return &unknown;
+	} else {
+		static const iso3166_entry_t none = { "??", "(null)" };
+		g_assert(code < G_N_ELEMENTS(iso3166_countries));
+		return iso3166_countries[code] ? iso3166_countries[code] : &none;
+	}
+}
+
 /**
  * Maps a valid encoded country code to the country name.
  *
@@ -416,16 +429,9 @@ iso3166_close(void)
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
 const gchar *
-iso3166_country_name(gint code)
+iso3166_country_name(guint16 code)
 {
-	iso3166_entry_t *e;
-
-	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
-	if (-1 == code)
-		return "??";
-
-	e = iso3166_countries[code];
-	return e ? e->country : "(null)";
+	return iso3166_country_entry(code)->country;
 }
 
 /**
@@ -436,16 +442,9 @@ iso3166_country_name(gint code)
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
 const gchar *
-iso3166_country_cc(gint code)
+iso3166_country_cc(guint16 code)
 {
-	iso3166_entry_t *e;
-
-	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
-	if (-1 == code)
-		return "??";
-
-	e = iso3166_countries[code];
-	return e ? e->cc : "(null)";
+	return iso3166_country_entry(code)->cc;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

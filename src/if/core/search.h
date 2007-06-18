@@ -160,14 +160,14 @@ typedef struct gnet_results_set {
 	GSList *records;
 
 	time_t  stamp;				/**< Reception time of the hit */
-	gint country;				/**< Country code -- encoded ISO3166 */
 	vendor_code_t vcode;		/**< Vendor code */
 	guint32 speed;
 	guint32 num_recs;
-	
 	guint32 status;				/**< Parsed status bits from trailer */
+
     flag_t  flags;
 	guint16 port;
+	guint16 country;			/**< Country code -- encoded ISO3166 */
 	guint8 hops;
 	guint8 ttl;
 } gnet_results_set_t;

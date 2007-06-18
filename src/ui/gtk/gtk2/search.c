@@ -233,7 +233,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = data->count ? uint32_to_string(1 + data->count) : NULL;
 		break;
 	case c_sr_loc:
-		if (-1 != rs->country)
+		if (ISO3166_INVALID != rs->country)
 			text = iso3166_country_cc(rs->country);
 		break;
 	case c_sr_charset:

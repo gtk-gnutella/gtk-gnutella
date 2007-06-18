@@ -99,15 +99,15 @@ struct dl_server {
 	list_t *list[DL_LIST_SZ];	/**< Download lists */
 	const gchar *vendor;		/**< Remote server vendor string (atom) */
 	const gchar *hostname;		/**< Remote hostname, if known (atom) */
-	gint country;				/**< Country of origin -- encoded ISO3166 */
-	time_t retry_after;			/**< Time at which we may retry from this host */
-	time_t dns_lookup;			/**< Last DNS lookup for hostname */
-	struct vernum parq_version; /**< Supported queueing version */
-	guint32 attrs;
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
-	time_t proxies_stamp;	/**< Time when list was last updated */
 	GHashTable *sha1_counts;
+	time_t retry_after;		/**< Time at which we may retry from this host */
+	time_t dns_lookup;		/**< Last DNS lookup for hostname */
+	time_t proxies_stamp;	/**< Time when list was last updated */
+	struct vernum parq_version; /**< Supported queueing version */
 	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
+	guint32 attrs;
+	guint16 country;			/**< Country of origin -- encoded ISO3166 */
 };
 
 static inline gboolean

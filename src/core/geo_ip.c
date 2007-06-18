@@ -62,11 +62,11 @@ static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
  * Context used during ip_range_split() calls.
  */
 struct range_context {
-	guint32 ip1;				/**< Original lower IP in global range */
-	guint32 ip2;				/**< Original upper IP in global range */
-	gint country;				/**< Country code (numerical encoded) */
 	gchar *line;				/**< The line from the input file */
 	gint linenum;				/**< Line number in input file, for errors */
+	guint32 ip1;				/**< Original lower IP in global range */
+	guint32 ip2;				/**< Original upper IP in global range */
+	guint16 country;			/**< Country code (numerical encoded) */
 };
 
 /**
@@ -112,7 +112,8 @@ gip_load(FILE *f)
 	gchar *p;
 	gint linenum = 0;
 	const gchar *end;
-	gint c, code;
+	guint16 code;
+	gint c;
 	struct range_context ctx;
 
 	geo_db = iprange_new();
@@ -202,7 +203,7 @@ gip_load(FILE *f)
 		}
 
 		code = iso3166_encode_cc(end);
-		if (-1 == code) {
+		if (ISO3166_INVALID == code) {
 			g_warning("%s, line %d: bad country code in \"%s\"",
 				gip_file, linenum, line);
 			continue;
@@ -326,9 +327,9 @@ gip_close(void)
  *
  * @param ha the host address to look up.
  * @return the country mapped to this IP address as an numerical encoded
- * country code, * or -1 when unknown.
+ *         country code, or ISO3166_INVALID when unknown.
  */
-gint
+guint16
 gip_country(const host_addr_t ha)
 {
 	host_addr_t to;
@@ -342,9 +343,9 @@ gip_country(const host_addr_t ha)
 
 		ip = host_addr_ipv4(to);
 		if (geo_db && NULL != (code = iprange_get(geo_db, ip)))
-			return (GPOINTER_TO_INT(code) >> 1) - 1;
+			return (GPOINTER_TO_UINT(code) >> 1) - 1;
 	}
-	return -1;
+	return ISO3166_INVALID;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
