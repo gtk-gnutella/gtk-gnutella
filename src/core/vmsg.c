@@ -2217,7 +2217,8 @@ handle_head_ping(struct gnutella_node *n,
 				if (GNET_PROPERTY(vmsg_debug)) {
 					g_message("Forwarding HEAD Ping to %s", node_addr(target));
 				}
-				gmsg_split_sendto_one(target, header, n->data, n->size);
+				gmsg_split_sendto_one(target, header, n->data,
+					GTA_HEADER_SIZE + n->size);
 			}
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
