@@ -37,6 +37,7 @@
 #define _walloc_h_
 
 #include "common.h"
+#include "malloc.h"
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
@@ -53,7 +54,7 @@
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
 #endif
 
-#if GLIB_CHECK_VERSION(2, 10, 0)
+#if 0 && GLIB_CHECK_VERSION(2, 10, 0)
 static inline gpointer walloc(size_t size) { return g_slice_alloc(size); }
 static inline gpointer walloc0(size_t size) { return g_slice_alloc0(size); }
 static inline void wfree(gpointer p, size_t size) { g_slice_free1(size, p); }
