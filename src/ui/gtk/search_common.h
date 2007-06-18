@@ -34,6 +34,10 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
 
 #define TAB_UPDATE_TIME	5		/**< Update search tabs after 5 seconds */
 
+typedef enum {
+	RESULTS_SET_MAGIC = 0xa44eb853U
+} results_set_magic_t;
+
 /**
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
@@ -49,8 +53,8 @@ void search_remove_got_results_listener(search_got_results_listener_t l);
  *     is purely descriptive anyway.
  */
 typedef struct results_set {
-	gint refcount;			/**< Number of "struct search" this belongs to */
-	guint32 num_recs;
+	results_set_magic_t magic;
+	gint num_recs;
 
 	const gchar *guid;			/**< Servent's GUID (atom) */
 	const gchar *version;		/**< Version information (atom) */
@@ -108,6 +112,24 @@ typedef struct record {
     flag_t  flags;              /**< same flags as in gnet_record_t */
 } record_t;
 
+static inline void
+record_check(const record_t * const rc)
+{
+	g_assert(rc);
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0);
+	g_assert(rc->refcount < INT_MAX);
+}
+
+static inline void
+results_set_check(const results_set_t * const rs)
+{
+	g_assert(rs);
+	g_assert(rs->magic == RESULTS_SET_MAGIC);
+	g_assert(rs->num_recs >= 0);
+	g_assert(rs->num_recs < INT_MAX);
+}
+
 struct query {
 	gchar *text;
 	GList *rules;
@@ -126,6 +148,7 @@ enum gui_color {
 
 	NUM_GUI_COLORS
 };
+
 
 void gui_color_init(GtkWidget *widget);
 GdkColor *gui_color_get(enum gui_color id);
@@ -147,20 +170,13 @@ void search_gui_set_current_search(search_t *sch);
 void search_gui_forget_current_search(void);
 void search_gui_current_search(search_t *sch);
 
-void search_gui_clean_r_set(results_set_t *rs);
-void search_gui_free_r_set(results_set_t *rs);
-void search_gui_dispose_results(results_set_t *rs);
 void search_gui_ref_record(record_t *rc);
 void search_gui_unref_record(record_t *rc);
-void search_gui_free_r_sets(search_t *sch);
 guint search_gui_hash_func(gconstpointer key);
 gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b);
-void search_gui_remove_r_set(search_t *sch, results_set_t *rs);
-gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
 const gchar *search_gui_get_route(const struct results_set *rs);
 search_t *search_gui_find(gnet_search_t sh);
 const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
-record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);

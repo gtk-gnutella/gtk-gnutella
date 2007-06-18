@@ -499,26 +499,13 @@ search_gui_clear_search(search_t *sch)
 	g_assert(sch);
 	g_assert(sch->dups);
 
-	/*
-	 * Before invoking search_free_r_sets(), we must iterate on the
-	 * hash table where we store records and decrement the refcount of
-	 * each record, and remove them from the hash table.
-	 *
-	 * Otherwise, we will violate the pre-condition of search_free_record(),
-	 * which is there precisely for that reason!
-	 */
-/* XXX */
-#if 0
-	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
-#endif /* 0 */
-	search_gui_free_r_sets(sch);
-
 	g_hash_table_destroy(sch->dups);
 	sch->dups = NULL;
 	g_hash_table_destroy(sch->parents);
 	sch->parents = NULL;
 
-	sch->items = sch->unseen_items = 0;
+	sch->items = 0;
+	sch->unseen_items = 0;
 	guc_search_update_items(sch->search_handle, sch->items);
 }
 

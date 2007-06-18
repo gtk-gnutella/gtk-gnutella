@@ -191,20 +191,16 @@ search_gui_reset_search(search_t *sch)
 static gboolean
 dec_records_refcount(gpointer key, gpointer unused_value, gpointer unused_x)
 {
-	struct record *rc = (struct record *) key;
-
 	(void) unused_value;
 	(void) unused_x;
-	g_assert(rc->refcount > 0);
-
-	rc->refcount--;
+	search_gui_unref_record(key);
 	return TRUE;
 }
 
 /**
  *	Removes a reference to the record stored in the given tree node
  */
-void
+static void
 search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node,
 		gpointer unused_data)
 {
@@ -238,20 +234,12 @@ search_gui_clear_search(search_t *sch)
 	g_assert(sch);
 	g_assert(sch->dups);
 
-	/*
-	 * Before invoking search_free_r_sets(), we must iterate on the
-	 * hash table where we store records and decrement the refcount of
-	 * each record, and remove them from the hash table.
-	 *
-	 * Otherwise, we will violate the pre-condition of search_free_record(),
-	 * which is there precisely for that reason!
-	 */
 	search_gui_clear_ctree(sch->tree);
 	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
 	g_hash_table_foreach_remove(sch->parents, search_gui_free_parent, NULL);
-	search_gui_free_r_sets(sch);
 
-	sch->items = sch->unseen_items = 0;
+	sch->items = 0;
+	sch->unseen_items = 0;
 	guc_search_update_items(sch->search_handle, sch->items);
 }
 
@@ -1392,7 +1380,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	}
 
 	search_gui_ref_record(rc);
-    gtk_ctree_node_set_row_data_full(ctree, node, (gpointer) gui_rc,
+    gtk_ctree_node_set_row_data_full(ctree, node, gui_rc,
 		search_gui_free_gui_record);
 
     if (sch->sort) {
@@ -1525,7 +1513,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	/* First get the record, it must be unreferenced at the end */
 	grc = gtk_ctree_node_get_row_data(ctree, node);
 	rc = grc->shared_record;
-
+	record_check(rc);
 	g_assert(rc->refcount > 1);
 
 	row = GTK_CTREE_ROW(node);
@@ -2108,8 +2096,9 @@ search_gui_shutdown(void)
 		GTK_CLIST(ctree), PROP_SEARCH_RESULTS_COL_VISIBLE);
 
     while (searches != NULL)
-        search_gui_close_search((search_t *) searches->data);
+        search_gui_close_search(searches->data);
 
+	search_gui_callbacks_shutdown();
 	search_gui_common_shutdown();
 }
 

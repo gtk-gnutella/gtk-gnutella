@@ -69,4 +69,6 @@ void on_clist_search_details_selection_get(GtkWidget *unused_widget,
 gint on_clist_search_details_selection_clear_event(GtkWidget *unused_widget,
 	GdkEventSelection *unused_event);
 
+void search_gui_callbacks_shutdown(void);
+
 #endif /* _gtk1_search_cb_h_ */

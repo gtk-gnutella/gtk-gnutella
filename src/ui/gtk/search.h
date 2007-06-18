@@ -62,8 +62,6 @@ struct search {
 	gint        tab_updating;		/**< ID for timeout func. to be cancelled */
 	guint32     unseen_items;		/**< How many items haven't been seen yet */
 
-	hash_list_t *r_sets;			/**< The results sets of this search */
-
 	GHashTable *dups;				/**< keep a record of dups. */
 
     filter_t   *filter;				/**< filter ruleset bound to this search */

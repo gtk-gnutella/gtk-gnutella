@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "if/core/sockets.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/vendors.h"
@@ -71,6 +72,8 @@ RCSID("$Id$")
 
 static gint search_details_selected_row = -1;
 static gchar *selected_text;
+
+static record_t *selected_record; 
 
 gchar * 
 search_details_get_text(GtkWidget *widget)
@@ -119,8 +122,9 @@ static GtkCList *clist_search_details;
 void
 search_gui_clear_details(void)
 {
-	g_return_if_fail(clist_search_details);
-	gtk_clist_clear(clist_search_details);
+	if (clist_search_details) {
+		gtk_clist_clear(clist_search_details);
+	}
 }
 
 void
@@ -156,20 +160,10 @@ search_gui_refresh_details(const record_t *rc)
 	search_set_xml_metadata(rc);
 }
 
-/**
- * Autoselects all searches matching given node in given tree, if the
- * unexpanded root of the tree is selected.  Otherwise, select only the
- * node on which they clicked.
- *
- * @return the amount of entries selected.
- */
-gint
-search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
+record_t *
+search_gui_get_record(GtkCTree *ctree, GtkCTreeNode *node)
 {
-	GtkCTreeNode *child;
 	gui_record_t *grc;
-	record_t *rc;
-    guint32 sel_sources = 0;
 
 	/*
      * Rows with NULL data can appear when inserting new rows
@@ -181,46 +175,58 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
      * Can this really happen???
      *      -- Richard, 18/04/2004
      */
-	grc = gtk_ctree_node_get_row_data(ctree, node);
-    if (grc == NULL) {
-        g_warning("search_cb_autoselect: row with NULL data detected");
-        return 0;
-    }
+	grc = node ? gtk_ctree_node_get_row_data(ctree, node) : NULL;
+	return grc ? grc->shared_record : NULL;
+}
 
-	rc = grc->shared_record;
+/**
+ * Autoselects all searches matching given node in given tree, if the
+ * unexpanded root of the tree is selected.  Otherwise, select only the
+ * node on which they clicked.
+ *
+ * @return the amount of entries selected.
+ */
+static gint
+search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
+{
+    guint32 sel_sources = 0;
 
-	/*
-	 * Update details about the selected search.
-	 */
-	search_gui_refresh_details(rc);
+	g_return_val_if_fail(ctree, 0);
+	g_return_val_if_fail(node, 0);
+
+	gtk_signal_handler_block_by_func(GTK_OBJECT(ctree),
+		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
 
 	/*
 	 * If the selected node is expanded, select it only.
 	 */
 
 	gtk_ctree_select(ctree, node);
-
-	if (GTK_CTREE_ROW(node)->expanded)
-		return 1;
-
-	/*
-	 * Node is not expanded.  Select all its children.
-	 */
-
 	sel_sources++;		/* We already selected the parent (folded) node */
 
-	for (
-		child = GTK_CTREE_ROW(node)->children;
-        child != NULL;
-		child = GTK_CTREE_NODE_SIBLING(child)
-	) {
-		gtk_ctree_select(ctree, child);
-		sel_sources++;
+	if (!GTK_CTREE_ROW(node)->expanded) {
+		GtkCTreeNode *child;
+
+		/*
+		 * Node is not expanded.  Select all its children.
+		 */
+
+		for (
+			child = GTK_CTREE_ROW(node)->children;
+			child != NULL;
+			child = GTK_CTREE_NODE_SIBLING(child)
+		) {
+			gtk_ctree_select(ctree, child);
+			sel_sources++;
+		}
+
+		if (sel_sources > 1)
+			statusbar_gui_message(15,
+				"auto selected %d sources by urn:sha1", sel_sources);
 	}
 
-    if (sel_sources > 1)
-        statusbar_gui_message(15,
-            "auto selected %d sources by urn:sha1", sel_sources);
+	gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
+		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
 
 	return sel_sources;
 }
@@ -239,17 +245,16 @@ void
 on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
 	gint page_num, gpointer unused_udata)
 {
-	search_t *sch;
+	search_t *search;
 
 	(void) unused_page;
 	(void) unused_udata;
 
-	sch = (search_t *) gtk_object_get_user_data(
-		GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
+	search = gtk_object_get_user_data(
+				GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
 
-	g_return_if_fail(sch);
-
-    search_gui_set_current_search(sch);
+	g_return_if_fail(search);
+    search_gui_set_current_search(search);
 }
 
 /**
@@ -568,6 +573,65 @@ on_clist_search_details_unselect_row(GtkCList *unused_clist,
 	search_details_selected_row = -1;
 }
 
+static cevent_t *row_selected_ev;
+
+#define ROW_SELECT_TIMEOUT	100 /* milliseconds */
+
+static gint
+gui_record_cmp(gconstpointer p, gconstpointer q)
+{
+	const gui_record_t *a = p, *b = q;
+	return a->shared_record != b->shared_record;
+}
+
+static void
+row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
+{
+	search_t *search;
+
+	(void) unused_cq;
+	(void) unused_udata;
+
+	row_selected_ev = NULL;
+
+    search = search_gui_get_current_search();
+	if (search) {
+    	search_gui_refresh_popup();
+		search_gui_refresh_details(selected_record);
+		if (selected_record) {
+			GtkCTreeNode *node;
+			gui_record_t grc;
+			
+			grc.shared_record = selected_record;
+        	node = gtk_ctree_find_by_row_data_custom(GTK_CTREE(search->tree),
+					gtk_ctree_node_nth(GTK_CTREE(search->tree), 0),
+					&grc, gui_record_cmp);
+			search_cb_autoselect(GTK_CTREE(search->tree), GTK_CTREE_NODE(node));
+		}
+	} else {
+		search_gui_clear_details();
+	}
+}
+
+static void
+selected_row_changed(GtkCTree *ctree, GtkCTreeNode *node)
+{
+	if (selected_record) {
+		search_gui_unref_record(selected_record);
+	}
+	selected_record = search_gui_get_record(ctree, GTK_CTREE_NODE(node));
+	if (selected_record) {
+		search_gui_ref_record(selected_record);
+	}
+
+	if (row_selected_ev) {
+		cq_resched(callout_queue, row_selected_ev, ROW_SELECT_TIMEOUT);
+	} else {
+		row_selected_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
+							row_selected_expire, NULL);
+	}
+}
+
 /**
  *	This function is called when the user selects a row in the
  *	search results pane. Autoselection takes place here.
@@ -576,53 +640,21 @@ void
 on_ctree_search_results_select_row(GtkCTree *ctree,
 	GList *node, gint unused_column, gpointer unused_udata)
 {
-    static gboolean active = FALSE;
-
 	(void) unused_column;
 	(void) unused_udata;
 
-    /*
-     * We need to avoid recursion to prevent memory corruption.
-     */
-	if (active)
-		return;
-
-	if (NULL == node)
-		return;
-
-    active = TRUE;
-
-    /* actually using the "active" guard should be enough, but
-     * I'll try to block the signal too, just to be on the save side.
-     */
-    /* FIXME: Use either guard or signal blocking. Signal blocking
-     *        should be preferred to get better performance.
-	 */
-    gtk_signal_handler_block_by_func(GTK_OBJECT(ctree),
-		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-		NULL);
-
-    search_gui_refresh_popup();
-	search_cb_autoselect(ctree, GTK_CTREE_NODE(node));
-
-    gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
-        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        NULL);
-
-    active = FALSE;
+	selected_row_changed(ctree, GTK_CTREE_NODE(node));
 }
 
 void
-on_ctree_search_results_unselect_row(GtkCTree *unused_ctree, GList *unused_node,
+on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *unused_node,
 	gint unused_column, gpointer unused_udata)
 {
-	(void) unused_ctree;
 	(void) unused_node;
 	(void) unused_column;
 	(void) unused_udata;
 
-	search_gui_refresh_details(NULL);	/* Clear details about results */
-    search_gui_refresh_popup();
+	selected_row_changed(ctree, NULL);
 }
 
 void
@@ -948,6 +980,20 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	gtk_clist_thaw(GTK_CLIST(search->tree));
 	g_slist_free(data_list);
 	g_list_free(node_list);
+}
+
+void
+search_gui_callbacks_shutdown(void)
+{
+	/*
+ 	 *	Remove delayed callbacks
+ 	 */
+	cq_cancel(callout_queue, &row_selected_ev);
+	search_gui_clear_details();
+	if (selected_record) {
+		search_gui_unref_record(selected_record);
+		selected_record = NULL;
+	}
 }
 
 /* -*- mode: cc-mode; tab-width:4; -*- */
