@@ -3241,7 +3241,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		sha1 = thex_download_get_sha1(d->thex);
 		fi = file_info_by_sha1(sha1);
 		if (fi) {
-			fi->flags |= ~FI_F_FETCH_TTH;
+			fi->flags &= ~FI_F_FETCH_TTH;
 		}
 		thex_download_close(d->thex);
 		d->bio = NULL;		/* Was a copy via thex_download_io_source() */
