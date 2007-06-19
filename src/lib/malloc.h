@@ -183,7 +183,7 @@
 
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 
-#define STRTRACK(s)		o	
+#define STRTRACK(o)		o
 #define MEMTRACK(o,s)	o
 #define GSLISTTRACK(o)	o
 
