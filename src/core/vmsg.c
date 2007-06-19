@@ -1728,12 +1728,13 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 			}
 			if (hcnt > 0) {
 				guchar tls_bytes[(G_N_ELEMENTS(hvec) + 7) / 8];
-				guint tls_index;
+				guint tls_index, tls_length;
 				guint i;
 
 				g_assert(hcnt <= G_N_ELEMENTS(hvec));
 				memset(tls_bytes, 0, sizeof tls_bytes);
 				tls_index = 0;
+				tls_length = 0;
 
 				if (!ggep_stream_begin(&gs, GGEP_NAME(A), 0))
 					goto failure;
@@ -1754,8 +1755,8 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 						goto failure;
 
 					if (tls_cache_lookup(addr, port)) {
-						guchar bit = 0x80U >> (tls_index & 7);
-						tls_bytes[tls_index >> 3] |= bit;
+						tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
+						tls_length = (tls_index >> 3) + 1;
 					}
 					tls_index++;
 				}
@@ -1765,13 +1766,10 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 					goto failure;
 				}
 
-				if (tls_index > 0) {
-					guint length;
-
-					length = (tls_index + 7) / 8;
+				if (tls_length > 0) {
 					if (
 						!ggep_stream_pack(&gs, GGEP_NAME(T),
-							tls_bytes, length, 0)
+							tls_bytes, tls_length, 0)
 					) {
 						g_warning("could not write GGEP \"T\" extension");
 						goto failure;

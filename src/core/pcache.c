@@ -354,7 +354,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		if (hcount > 0) {
 			guchar tls_bytes[(G_N_ELEMENTS(host) + 7) / 8];
-			guint tls_index;
+			guint tls_index, tls_length;
 			gboolean ok;
 			gint i;
 
@@ -367,6 +367,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 			memset(tls_bytes, 0, sizeof tls_bytes);
 			tls_index = 0;
+			tls_length = 0;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
 
@@ -388,17 +389,15 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 				if (tls_cache_lookup(addr, port)) {
 					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
+					tls_length = (tls_index >> 3) + 1;
 				}
 				tls_index++;
 			}
 
 			ok = ok && ggep_stream_end(&gs);
-			if (ok && tls_index > 0) {
-				guint length;
-
-				length = (tls_index + 7) / 8;
+			if (ok && tls_length > 0) {
 				ok = ggep_stream_pack(&gs, GGEP_NAME(IPP_TLS),
-						tls_bytes, length, 0);
+						tls_bytes, tls_length, 0);
 			}
 		}
 	}
