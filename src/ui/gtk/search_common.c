@@ -67,6 +67,7 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/zalloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static search_t *current_search; /**< The search currently displayed */
@@ -2320,6 +2321,7 @@ search_gui_duplicate_search(search_t *search)
 
 	g_return_if_fail(search);
 	g_return_if_fail(!search_gui_is_browse(search));
+	g_return_if_fail(!search_gui_is_local(search));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
@@ -2509,30 +2511,32 @@ search_gui_refresh_popup(void)
 	 */
 	static const struct {
 		const gchar *name;
+		gboolean local;
 	} menu[] = {
-		{	"popup_search_drop" },
-		{	"popup_search_drop_global" },
-		{	"popup_search_metadata" },
-		{	"popup_search_browse_host" },
+		{	"popup_search_drop",		FALSE },
+		{	"popup_search_drop_global", FALSE },
+		{	"popup_search_metadata",	TRUE },
+		{	"popup_search_browse_host",	FALSE },
 #ifdef USE_GTK2
-		{	"popup_search_download" },		/* FIXME: Add this to Gtk+ 1.2 */
-		{	"popup_search_copy_magnet" },	/* FIXME: Add this to Gtk+ 1.2 */
+		/* FIXME: Add these to Gtk+ 1.2 */
+		{	"popup_search_download",	FALSE },
+		{	"popup_search_copy_magnet", TRUE },
 #endif
 	};
 	search_t *search = search_gui_get_current_search();
-	gboolean sensitive;
+	gboolean has_selected, is_local;
 	guint i;
 
-	sensitive = search && search_gui_has_selected_item(search);
-
-	gtk_widget_set_sensitive(
-		gui_main_window_lookup("button_search_download"),
-		sensitive);
+	is_local = search && search_gui_is_local(search);
+	has_selected = search && search_gui_has_selected_item(search);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_download"),
+		has_selected && !is_local);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkWidget *w = gui_popup_search_lookup(menu[i].name);
 		if (w) {
-			gtk_widget_set_sensitive(w, sensitive);
+			gtk_widget_set_sensitive(w,
+				has_selected && (menu[i].local || !is_local));
 		}
 	}
 
@@ -2544,10 +2548,9 @@ search_gui_refresh_popup(void)
 			gui_popup_search_lookup("popup_search_resume"),
 			guc_search_is_frozen(search->search_handle)
 				&& !search_gui_is_expired(search));
-		if (search_gui_is_passive(search))
-			gtk_widget_set_sensitive(
-				gui_popup_search_lookup("popup_search_restart"),
-				FALSE);
+		gtk_widget_set_sensitive(
+			gui_popup_search_lookup("popup_search_restart"),
+			is_local || !search_gui_is_passive(search));
     } else {
 		gtk_widget_set_sensitive(
 			gui_popup_search_lookup("popup_search_stop"), FALSE);
