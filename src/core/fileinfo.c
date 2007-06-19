@@ -441,7 +441,6 @@ struct trailer {
 
 static fileinfo_t *file_info_retrieve_binary(const gchar *pathname);
 static void fi_free(fileinfo_t *fi);
-static void file_info_hash_remove(fileinfo_t *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
 static const gchar *file_info_new_outname(const gchar *dir, const gchar *name);
 static gboolean looks_like_urn(const gchar *filename);
