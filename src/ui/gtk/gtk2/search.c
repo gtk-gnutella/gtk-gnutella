@@ -68,8 +68,6 @@
 
 RCSID("$Id$")
 
-#define MAX_TAG_SHOWN	60		/**< Show only first chars of tag */
-
 static GList *searches;	/**< List of search structs */
 
 static GtkTreeView *tree_view_search;
@@ -90,8 +88,8 @@ static void gui_search_create_tree_view(GtkWidget ** sw,
 /*
  * If no search are currently allocated
  */
-static GtkTreeView *default_search_tree_view = NULL;
-GtkWidget *default_scrolled_window = NULL;
+static GtkTreeView *default_search_tree_view;
+GtkWidget *default_scrolled_window;
 
 
 /** For cyclic updates of the tooltip. */
@@ -102,7 +100,7 @@ struct result_data {
 
 	record_t *record;
 	const gchar *meta;	/**< Atom */
-	guint count;		/**< count of children */
+	guint children;		/**< count of children */
 	guint32 rank;		/**< for stable sorting */
 	enum gui_color color;
 };
@@ -112,9 +110,13 @@ get_result_data(GtkTreeModel *model, GtkTreeIter *iter)
 {
 	static const GValue zero_value;
 	GValue value = zero_value;
+	struct result_data *rd;
 
 	gtk_tree_model_get_value(model, iter, 0, &value);
-	return g_value_get_pointer(&value);
+	rd = g_value_get_pointer(&value);
+	record_check(rd->record);
+	g_assert(rd->record->refcount > 0);
+	return rd;
 }
 
 gpointer
@@ -230,7 +232,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = compact_size(data->record->size, show_metric_units());
 		break;
 	case c_sr_count:
-		text = data->count ? uint32_to_string(1 + data->count) : NULL;
+		text = data->children ? uint32_to_string(1 + data->children) : NULL;
 		break;
 	case c_sr_loc:
 		if (ISO3166_INVALID != rs->country)
@@ -364,62 +366,56 @@ add_column(
 	return column;
 }
 
-/**
- * Decrement refcount of hash table key entry.
- */
-void
-ht_unref_record(gpointer p)
-{
-	record_t *rc = p;
-
-	g_assert(rc->refcount > 0);
-	search_gui_unref_record(rc);
-}
-
-
-static inline void
-add_parent_with_sha1(GHashTable *ht,
-	const struct sha1 *sha1, struct result_data *data)
-{
-	gm_hash_table_insert_const(ht, sha1, data);
-}
-
-static inline void
-remove_parent_with_sha1(GHashTable *ht, const struct sha1 *sha1)
-{
-	g_hash_table_remove(ht, sha1);
-}
-
 struct result_data *
-find_parent_with_sha1(GHashTable *ht, gconstpointer key)
+find_parent_with_sha1(search_t *search, gconstpointer key)
 {
-	return g_hash_table_lookup(ht, key);
+	return g_hash_table_lookup(search->parents, key);
 }
 
-static gboolean
-unref_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
-	gpointer ht_ptr)
+static void
+result_data_free(search_t *search, struct result_data *rd)
 {
-	GHashTable *dups = ht_ptr;
-	struct result_data *rd;
+	record_check(rd->record);
 
-	(void) unused_path;
+	atom_str_free_null(&rd->meta);
 
-	rd = get_result_data(model, iter);
-	g_assert(rd->record->magic == RECORD_MAGIC);
-	g_assert(rd->record->refcount > 0);
-	g_assert(g_hash_table_lookup(dups, rd->record) != NULL);
+	g_assert(g_hash_table_lookup(search->dups, rd->record) != NULL);
+	g_hash_table_remove(search->dups, rd->record);
 	search_gui_unref_record(rd->record);
 
-	g_assert(rd->record->refcount > 0);
-	g_hash_table_remove(dups, rd->record);
+	search_gui_unref_record(rd->record);
 	/*
 	 * rd->record may point to freed memory now if this was the last reference
 	 */
 
-	atom_str_free_null(&rd->meta);
-	WFREE_NULL(rd, sizeof *rd);
+	wfree(rd, sizeof *rd);
+}
 
+static gboolean
+prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
+	gpointer udata)
+{
+	struct result_data *rd;
+	record_t *rc;
+	search_t *search = udata;
+
+	(void) unused_path;
+
+	rd = get_result_data(model, iter);
+	rc = rd->record;
+
+	if (rc->sha1) {
+		struct result_data *parent;
+		
+		parent = find_parent_with_sha1(search, rc->sha1);
+		if (rd == parent) {
+			g_hash_table_remove(search->parents, rc->sha1);
+		} else if (parent) {
+			parent->children--;
+			search_gui_set_data(model, parent);
+		}
+	}
+	result_data_free(search, rd);
 	return FALSE;
 }
 
@@ -431,30 +427,14 @@ search_gui_clear_queue(search_t *search)
 
 		iter = slist_iter_on_head(search->queue);
 		while (slist_iter_has_item(iter)) {
-			struct result_data *data;
+			struct result_data *rd;
 
-			data = slist_iter_current(iter);
+			rd = slist_iter_current(iter);
 			slist_iter_remove(iter);
-			g_hash_table_remove(search->dups, data->record);
+			result_data_free(search, rd);
 		}
 		slist_iter_free(&iter);
 	}
-}
-
-static void
-search_gui_clear_store(search_t *search)
-{
-	GtkTreeModel *model;
-
-	search_gui_start_massive_update(search);
-
-	model = gtk_tree_view_get_model(search->tree);
-	gtk_tree_model_foreach(model, unref_record, search->dups);
-	gtk_tree_store_clear(GTK_TREE_STORE(model));
-	search_gui_clear_queue(search);
-	g_assert(0 == g_hash_table_size(search->dups));
-
-	search_gui_end_massive_update(search);
 }
 
 /**
@@ -464,11 +444,7 @@ search_gui_clear_store(search_t *search)
 void
 search_gui_reset_search(search_t *sch)
 {
-	search_gui_clear_store(sch);
 	search_gui_clear_search(sch);
-	sch->dups = g_hash_table_new_full(search_gui_hash_func,
-					search_gui_hash_key_compare, ht_unref_record, NULL);
-	sch->parents = g_hash_table_new(sha1_hash, sha1_eq);
 }
 
 static gboolean
@@ -490,23 +466,37 @@ gui_search_update_tab_label_cb(gpointer p)
 	return gui_search_update_tab_label(sch);
 }
 
+static void
+search_gui_clear_ctree(search_t *search)
+{
+	GtkTreeModel *model;
+
+	search_gui_start_massive_update(search);
+
+	model = gtk_tree_view_get_model(search->tree);
+	gtk_tree_model_foreach(model, prepare_remove_record, search);
+	gtk_tree_store_clear(GTK_TREE_STORE(model));
+
+	search_gui_end_massive_update(search);
+}
+
 /**
  * Clear all results from search.
  */
 void
-search_gui_clear_search(search_t *sch)
+search_gui_clear_search(search_t *search)
 {
-	g_assert(sch);
-	g_assert(sch->dups);
+	g_assert(search);
+	g_assert(search->dups);
 
-	g_hash_table_destroy(sch->dups);
-	sch->dups = NULL;
-	g_hash_table_destroy(sch->parents);
-	sch->parents = NULL;
+	search_gui_clear_ctree(search);
+	search_gui_clear_queue(search);
+	g_assert(0 == g_hash_table_size(search->dups));
+	g_assert(0 == g_hash_table_size(search->parents));
 
-	sch->items = 0;
-	sch->unseen_items = 0;
-	guc_search_update_items(sch->search_handle, sch->items);
+	search->items = 0;
+	search->unseen_items = 0;
+	guc_search_update_items(search->search_handle, search->items);
 }
 
 /**
@@ -531,13 +521,17 @@ search_gui_close_search(search_t *search)
 		tree_view_motion_clear_callback(search->tree, tvm_search);
 		tvm_search = NULL;
 	}
-	search_gui_clear_store(search);
  	searches = g_list_remove(searches, search);
 	search_gui_option_menu_searches_update();
 
+	search_gui_clear_search(search);
     search_gui_remove_search(search);
 	filter_close_search(search);
-	search_gui_clear_search(search);
+
+	g_hash_table_destroy(search->dups);
+	search->dups = NULL;
+	g_hash_table_destroy(search->parents);
+	search->parents = NULL;
 
     guc_search_close(search->search_handle);
 
@@ -686,11 +680,10 @@ search_gui_new_search_full(const gchar *query_str,
 	}
  
 	sch->search_handle = sch_id;
-	sch->dups = g_hash_table_new_full(search_gui_hash_func,
-					search_gui_hash_key_compare, ht_unref_record, NULL);
-	sch->queue = slist_new();
-
+	sch->dups = g_hash_table_new(search_gui_hash_func,
+					search_gui_hash_key_compare);
 	sch->parents = g_hash_table_new(sha1_hash, sha1_eq);
+	sch->queue = slist_new();
 
 	search_gui_filter_new(sch, query->rules);
 
@@ -819,7 +812,7 @@ search_gui_cmp_count(
 
 	d1 = get_result_data(model, a);
 	d2 = get_result_data(model, b);
-	ret = CMP(d1->count, d2->count);
+	ret = CMP(d1->children, d2->children);
 	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
 }
 
@@ -1115,22 +1108,13 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	static const struct result_data zero_data;
 	struct result_data *data;
 
+	record_check(rc);
+
 	data = walloc(sizeof *data);
 	*data = zero_data;
-
-	/*
-	 * When the search is displayed in multiple search results, the refcount
-	 * can also be larger than 1.
-	 * FIXME: Check that the refcount is less then the number of search that we
-	 * have open
-	 *		-- JA, 6/11/2003
-	 */
-
-	g_assert(rc->magic == RECORD_MAGIC);
-	g_assert(rc->refcount >= 1);
-
-	data->record = rc;
 	data->color = color;
+	data->record = rc;
+	search_gui_ref_record(rc);
 
 	slist_append(sch->queue, data);
 }
@@ -1255,7 +1239,6 @@ static void
 download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 {
 	struct result_data *rd;
-	struct record *rc;
 
 	g_assert(model != NULL);
 	g_assert(iter != NULL);
@@ -1265,12 +1248,9 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 	}
 
 	rd = get_result_data(model, iter);
-	rc = rd->record;
-	g_assert(rc->refcount > 0);
+	search_gui_download(rd->record);
 
-	search_gui_download(rc);
-
-	if (SR_DOWNLOADED & rc->flags) {
+	if (SR_DOWNLOADED & rd->record->flags) {
 		rd->color = GUI_COLOR_DOWNLOADING;
 		/* Re-store the parent to refresh the display/sorting */
 		search_gui_set_data(model, rd);
@@ -1297,60 +1277,33 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 	g_assert(rc->refcount > 1);
 
 	if (gtk_tree_model_iter_nth_child(model, &child, iter, 0)) {
-		struct result_data *child_data;
+		struct result_data *child_data, tmp;
+		guint children;
+
+		child_data = get_result_data(model, &child);
 
 		/*
 		 * Copy the contents of the first child's row into the parent's row
 		 */
 
-		child_data = get_result_data(model, &child);
-		g_assert(child_data->record->refcount > 0);
-
-		atom_str_free_null(&rd->meta);
-
-		rd->record = child_data->record;
-		rd->meta = child_data->meta;
-
-		WFREE_NULL(child_data, sizeof *child_data);
+		children = rd->children;
+		tmp = *rd;
+		*rd = *child_data;
+		*child_data = tmp;
+		rd->iter = *iter;
+		rd->children = children;
 
 		/* And remove the child's row */
-		gtk_tree_store_remove(GTK_TREE_STORE(model), &child);
-		
-		rd->count--;
-		/* Re-store the parent to refresh the display/sorting */
-		search_gui_set_data(model, rd);
-
-		g_assert(rd->record->refcount > 0);
+		iter = &child;
 	} else {
-		
-		g_assert(rc->refcount > 0);
-		
 		/*
 		 * The row has no children, it's either a child or a top-level node
 		 * without children.
 		 */
-
-		if (rc->sha1) {
-			struct result_data *parent;
-			
-			parent = find_parent_with_sha1(search->parents, rc->sha1);
-			if (rd == parent) {
-				remove_parent_with_sha1(search->parents, rc->sha1);
-			} else {
-				/* Re-store the parent to refresh the display/sorting */
-				parent->count--;
-				search_gui_set_data(model, parent);
-			}
-		}
-		gtk_tree_store_remove(GTK_TREE_STORE(model), iter);
 	}
-
-	search_gui_unref_record(rc);
-	g_assert(rc->refcount > 0);
-	g_hash_table_remove(search->dups, rc);
-	/* hash table with dups unrefs the record itself */
-
-	w_tree_iter_free(iter);
+	prepare_remove_record(model, NULL, iter, search);
+	gtk_tree_store_remove(GTK_TREE_STORE(model), iter);
+	w_tree_iter_free(iter_ptr);
 }
 
 struct selection_ctx {
@@ -1821,6 +1774,8 @@ search_gui_remove_search(search_t *sch)
 
 		default_search_tree_view = sch->tree;
 		default_scrolled_window = sch->scrolled_window;
+		sch->tree = NULL;
+		sch->scrolled_window = NULL;
 
 		search_gui_forget_current_search();
 		search_gui_update_items(NULL);
@@ -2266,20 +2221,20 @@ search_gui_request_bitzi_data(void)
 
 	/* Queue up our requests */
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
-		record_t *rec;
+		record_t *rc;
 
-		rec = sl->data;
-		if (rec->sha1) {
+		rc = sl->data;
+		if (rc->sha1) {
 			struct result_data *rd;
 
-			rd = find_parent_with_sha1(search->parents, rec->sha1);
+			rd = find_parent_with_sha1(search, rc->sha1);
 			g_assert(rd);
 			
 			/* set the feedback */
 			rd->meta = atom_str_get(_("Query queued..."));
 
 			/* then send the query... */
-	    	guc_query_bitzi_by_sha1(rec->sha1);
+	    	guc_query_bitzi_by_sha1(rc->sha1);
 		}
     }
 
@@ -2305,7 +2260,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		struct result_data *rd;
 		search_t *search = iter->data;
 
-	   	rd = find_parent_with_sha1(search->parents, data->sha1);
+	   	rd = find_parent_with_sha1(search, data->sha1);
 		if (rd) {
 			rd->meta = atom_str_get(text ? text : _("Not in database"));
 			text = NULL;
@@ -2452,23 +2407,19 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 	if (rc->sha1) {
 		struct result_data *parent;
 
-		parent = find_parent_with_sha1(search->parents, rc->sha1);
-		g_assert(data->record->refcount > 0);
+		parent = find_parent_with_sha1(search, rc->sha1);
+		record_check(data->record);
 		parent_iter = parent ? &parent->iter : NULL;
 		if (parent) {
-			parent->count++;
+			parent->children++;
 			/* Re-store the parent to refresh the display/sorting */
 			search_gui_set_data(model, parent);
 		} else {
-			add_parent_with_sha1(search->parents, rc->sha1, data);
+			gm_hash_table_insert_const(search->parents, rc->sha1, data);
 		}
 	} else {
 		parent_iter = NULL;
 	}
-
-	g_assert(rc->refcount >= 1);
-	search_gui_ref_record(rc);
-	g_assert(rc->refcount >= 2);
 
 	gtk_tree_store_append(GTK_TREE_STORE(model), &data->iter, parent_iter);
 
