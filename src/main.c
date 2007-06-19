@@ -885,7 +885,7 @@ static struct {
 
 	/* These are handled by Gtk+/GDK/GLib */
 	OPTION(class,				TEXT, NULL),
-	OPTION(g_fatal_warnings,	TEXT, NULL),
+	OPTION(g_fatal_warnings,	NONE, NULL),
 	OPTION(gdk_debug,			TEXT, NULL),
 	OPTION(gdk_no_debug,		TEXT, NULL),
 	OPTION(gtk_debug,			TEXT, NULL),
