@@ -787,10 +787,11 @@ string_record(const gchar *s, gchar *file, gint line)
 GHashTable *
 hashtable_new_track(GHashFunc h, GCompareFunc y, gchar *file, gint line)
 {
+	const size_t size = 7 * sizeof(void *);	/* Estimated size */
 	GHashTable *o;
 
 	o = g_hash_table_new(h, y);
-	return malloc_record(o, 24, file, line);	/* Size not right, don't care */
+	return malloc_record(o, size, file, line);
 }
 
 /**
@@ -832,8 +833,23 @@ hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line)
  *** List trackers, to unveil hidden linkable allocation.
  ***/
 
-#define GSLIST_LINK_SIZE	8		/* Random size */
-#define GLIST_LINK_SIZE		12		/* Random size */
+#define GSLIST_LINK_SIZE	(2 * sizeof(void *))	/* Estimated size */
+#define GLIST_LINK_SIZE		(3 * sizeof(void *))	/* Estimated size */
+
+/**
+ * Record GSList `list' allocated at `file' and `line'.
+ * @return argument `list'.
+ */
+gpointer
+gslist_record(const GSList * const list, gchar *file, gint line)
+{
+	const GSList *iter;
+
+	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
+		malloc_record(iter, GSLIST_LINK_SIZE, file, line);
+	}
+	return deconstify_gpointer(list);
+}
 
 GSList *
 track_slist_alloc(gchar *file, gint line)
@@ -872,15 +888,7 @@ track_slist_prepend(GSList *l, gpointer data, gchar *file, gint line)
 GSList *
 track_slist_copy(GSList *list, gchar *file, gint line)
 {
-	GSList *new;
-	GSList *l;
-
-	new = g_slist_copy(list);
-
-	for (l = new; l; l = g_slist_next(l))
-		malloc_record(l, GSLIST_LINK_SIZE, file, line);
-
-	return new;
+	return gslist_record(g_slist_copy(list), file, line);
 }
 
 void
@@ -1183,7 +1191,7 @@ track_list_delete_link(GList *l, GList *lk, gchar *file, gint line)
  *** String trackers, to unveil hidden string buffer allocation.
  ***/
 
-#define GSTRING_OBJ_SIZE	8		/* Random size */
+#define GSTRING_OBJ_SIZE	(3 * sizeof(void *))		/* Estimated size */
 
 /**
  * string_str_track

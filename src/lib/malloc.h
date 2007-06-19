@@ -82,6 +82,9 @@
 #define g_memdup(p,s)	((p) ? memdup_track((p), (s), _WHERE_, __LINE__) : 0)
 #define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
+/* FIXME: This only correct if xmlFree() is equivalent to free(). */
+#define xmlFree(o)		free_track(o, _WHERE_, __LINE__)
+
 #undef g_new
 #undef g_new0
 #undef g_renew
@@ -101,7 +104,7 @@
 #define g_hash_table_new(x,y)	hashtable_new_track(x, y, _WHERE_, __LINE__)
 #define g_hash_table_destroy(x)	hashtable_destroy_track(x, _WHERE_, __LINE__)
 
-#define hash_list_new_(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
+#define hash_list_new(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
 #define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
 
 #define g_slist_alloc()			track_slist_alloc(_WHERE_, __LINE__)
@@ -174,13 +177,15 @@
  * Likewise, use MEMTRACK() to track some random memory buffer known to have
  * been allocated by a routine and not via any of the trapped calls.
  */
-#define STRTRACK(s)		string_record((s), _WHERE_, __LINE__)
+#define STRTRACK(o)		string_record((o), _WHERE_, __LINE__)
 #define MEMTRACK(o,s)	malloc_record((o), (s), _WHERE_, __LINE__)
+#define GSLISTTRACK(o)	gslist_record((o), _WHERE_, __LINE__)
 
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 
-#define STRTRACK(s)		s
+#define STRTRACK(s)		o	
 #define MEMTRACK(o,s)	o
+#define GSLISTTRACK(o)	o
 
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
 

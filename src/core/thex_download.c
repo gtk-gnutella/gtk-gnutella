@@ -215,7 +215,7 @@ verify_element(xmlNode *node, const char *prop, const char *expect)
 	gboolean result = FALSE;
 	char *value;
 	
-	value = xml_get_string(node, prop);
+	value = STRTRACK(xml_get_string(node, prop));
   	if (NULL == value) {
     	g_message("Couldn't find property \"%s\" of node \"%s\"",
 			prop, node->name);
@@ -291,7 +291,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (!verify_element(node, "type", THEX_TREE_TYPE))
     		goto finish;
 
-		value = xml_get_string(node, "uri");
+		value = STRTRACK(xml_get_string(node, "uri"));
 		if (NULL == value) {
 			g_message("Couldn't find property \"uri\" of node \"%s\"",
 				node->name);
@@ -300,7 +300,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		ctx->hashtree_id = g_strdup(value);
 		xml_string_free(&value);
 
-		value = xml_get_string(node, "depth");
+		value = STRTRACK(xml_get_string(node, "depth"));
 		if (NULL == value) {
 			g_message("Couldn't find property \"depth\" of node \"%s\"",
 				node->name);
