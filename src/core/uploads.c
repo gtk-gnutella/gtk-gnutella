@@ -4216,12 +4216,6 @@ upload_completed(gnutella_upload_t *u)
 	u->status = GTA_UL_COMPLETE;
 
 	socket_check(u->socket);
-	if (u->socket->wio.flush(&u->socket->wio) < 0) {
-		if (!is_temporary_error(errno)) {
-			upload_remove(u, _("Flush error: %s"), g_strerror(errno));
-		}
-		return;
-	}
 
 	gnet_prop_incr_guint32(PROP_TOTAL_UPLOADS);
 	upload_fire_upload_info_changed(u); /* gui must update last state */
@@ -4439,11 +4433,6 @@ static void
 upload_special_flushed(gpointer arg)
 {
 	gnutella_upload_t *u = arg;
-
-	if (GTA_UL_COMPLETE == u->status) {
-		upload_completed(u);
-		return;
-	}
 
 	g_assert(u->special);
 	g_assert(u->special->close);

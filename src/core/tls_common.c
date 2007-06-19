@@ -604,6 +604,13 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 
 	g_assert(socket_uses_tls(s));
 
+	if (s->wio.flush(&s->wio) < 0) {
+		if (!is_temporary_error(errno)) {
+			g_warning("tls_read: flush error: %s", g_strerror(errno));
+			return -1;
+		}
+	}
+
 	ret = gnutls_record_recv(tls_socket_get_session(s), buf, size);
 	if (ret < 0) {
 		switch (ret) {
@@ -783,6 +790,13 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 
 	g_assert(socket_uses_tls(s));
 	g_assert(iovcnt > 0);
+
+	if (s->wio.flush(&s->wio) < 0) {
+		if (!is_temporary_error(errno)) {
+			g_warning("tls_read: flush error: %s", g_strerror(errno));
+			return -1;
+		}
+	}
 
 	ret = 0;	/* Shut the compiler: iovcnt could still be 0 */
 	for (i = 0; i < iovcnt; ++i) {

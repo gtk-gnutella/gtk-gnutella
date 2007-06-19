@@ -240,6 +240,12 @@ socket_evt_set(struct gnutella_socket *s,
 
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
+	
+	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
+		if (!is_temporary_error(errno)) {
+			g_warning("socket_evt_set: flush error: %s", g_strerror(errno));
+		}
+	}
 }
 
 /**
@@ -3033,6 +3039,8 @@ socket_local_listen(const gchar *pathname)
 	s->pos = 0;
 	s->flags |= SOCK_F_LOCAL;
 
+	socket_wio_link(s);				/* Link to the I/O functions */
+
 	set_close_on_exec(fd);
 	socket_set_nonblocking(fd);
 
@@ -3079,6 +3087,8 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	s->pos = 0;
 	s->flags |= SOCK_F_TCP;
 	s->net = host_addr_net(bind_addr);
+
+	socket_wio_link(s);				/* Link to the I/O functions */
 
 	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
 
@@ -3522,6 +3532,28 @@ socket_no_writev(struct wrap_io *unused_wio,
 	return -1;
 }
 
+static ssize_t
+socket_no_read(struct wrap_io *unused_wio,
+		gpointer unused_buf, size_t unused_size)
+{
+	(void) unused_wio;
+	(void) unused_buf;
+	(void) unused_size;
+	g_error("no read() routine allowed");
+	return -1;
+}
+
+static ssize_t
+socket_no_readv(struct wrap_io *unused_wio,
+		struct iovec *unused_iov, int unused_iovcnt)
+{
+	(void) unused_wio;
+	(void) unused_iov;
+	(void) unused_iovcnt;
+	g_error("no readv() routine allowed");
+	return -1;
+}
+
 static int
 socket_no_flush(struct wrap_io *unused_wio)
 {
@@ -3537,23 +3569,29 @@ socket_wio_link(struct gnutella_socket *s)
 
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
+	s->wio.flush = socket_no_flush;
 
-	if (socket_uses_tls(s)) {
-		tls_wio_link(&s->wio);
-	} else if (s->flags & (SOCK_F_TCP | SOCK_F_LOCAL)) {
-		s->wio.write = socket_plain_write;
-		s->wio.read = socket_plain_read;
-		s->wio.writev = socket_plain_writev;
-		s->wio.readv = socket_plain_readv;
-		s->wio.sendto = socket_no_sendto;
-		s->wio.flush = socket_no_flush;
-	} else if (s->flags & SOCK_F_UDP) {
+	if (s->flags & SOCK_F_UDP) {
 		s->wio.write = socket_no_write;
 		s->wio.read = socket_plain_read;
 		s->wio.writev = socket_no_writev;
 		s->wio.readv = socket_plain_readv;
 		s->wio.sendto = socket_plain_sendto;
-		s->wio.flush = socket_no_flush;
+	} else if (SOCK_CONN_LISTENING == s->direction) {
+		s->wio.write = socket_no_write;
+		s->wio.read = socket_no_read;
+		s->wio.writev = socket_no_writev;
+		s->wio.readv = socket_no_readv;
+		s->wio.sendto = socket_no_sendto;
+	} else if (socket_uses_tls(s)) {
+		tls_wio_link(&s->wio);
+	} else {
+		g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
+		s->wio.write = socket_plain_write;
+		s->wio.read = socket_plain_read;
+		s->wio.writev = socket_plain_writev;
+		s->wio.readv = socket_plain_readv;
+		s->wio.sendto = socket_no_sendto;
 	}
 }
 
