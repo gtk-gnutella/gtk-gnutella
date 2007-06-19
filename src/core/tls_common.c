@@ -657,10 +657,12 @@ tls_flush(struct wrap_io *wio)
 
 	socket_check(s);
 
-	g_message("tls_flush: snarf=%lu", (gulong) s->tls.snarf);
 	if (0 == s->tls.snarf)
 		return 0;
 
+	if (GNET_PROPERTY(tls_debug)) {
+		g_message("tls_flush: snarf=%lu", (gulong) s->tls.snarf);
+	}
 	ret = tls_write(wio, "", 0);
 	g_assert((ssize_t)-1 == ret);
 	return (s->tls.snarf > 0 || VAL_EAGAIN != errno) ? -1 : 0;
