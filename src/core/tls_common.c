@@ -642,6 +642,23 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 	return ret;
 }
 
+static int
+tls_flush(struct wrap_io *wio)
+{
+	struct gnutella_socket *s = wio->ctx;
+	ssize_t ret;
+
+	socket_check(s);
+
+	g_message("tls_flush: snarf=%lu", (gulong) s->tls.snarf);
+	if (0 == s->tls.snarf)
+		return 0;
+
+	ret = tls_write(wio, "", 0);
+	g_assert((ssize_t)-1 == ret);
+	return (s->tls.snarf > 0 || VAL_EAGAIN != errno) ? -1 : 0;
+}
+
 static ssize_t
 tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
@@ -851,6 +868,7 @@ tls_wio_link(struct wrap_io *wio)
 	wio->writev = tls_writev;
 	wio->readv = tls_readv;
 	wio->sendto = tls_no_sendto;
+	wio->flush = tls_flush;
 }
 
 const char *

@@ -46,6 +46,7 @@ typedef struct wrap_io {
 	ssize_t (*readv)(struct wrap_io *, struct iovec *, int);
 	ssize_t (*sendto)(struct wrap_io *, const gnet_host_t *,
 						gconstpointer, size_t);
+	int (*flush)(struct wrap_io *);
 	int (*fd)(struct wrap_io *);
 } wrap_io_t;
 

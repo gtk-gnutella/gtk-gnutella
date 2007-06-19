@@ -4215,6 +4215,14 @@ upload_completed(gnutella_upload_t *u)
 	 */
 	u->status = GTA_UL_COMPLETE;
 
+	socket_check(u->socket);
+	if (u->socket->wio.flush(&u->socket->wio) < 0) {
+		if (!is_temporary_error(errno)) {
+			upload_remove(u, _("Flush error: %s"), g_strerror(errno));
+		}
+		return;
+	}
+
 	gnet_prop_incr_guint32(PROP_TOTAL_UPLOADS);
 	upload_fire_upload_info_changed(u); /* gui must update last state */
 
@@ -4271,6 +4279,11 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	if (upload_handle_exception(u, cond))
 		return;
+
+	if (GTA_UL_COMPLETE == u->status) {
+		upload_completed(u);
+		return;
+	}
 
    /*
  	* Compute the amount of bytes to send.
@@ -4392,8 +4405,6 @@ upload_writable(gpointer up, gint unused_source, inputevt_cond_t cond)
 			u->accounted = TRUE;	/* Called upload_stats_file_complete() */
 		}
 		upload_completed(u);
-
-		return;
 	}
 }
 
@@ -4428,6 +4439,11 @@ static void
 upload_special_flushed(gpointer arg)
 {
 	gnutella_upload_t *u = arg;
+
+	if (GTA_UL_COMPLETE == u->status) {
+		upload_completed(u);
+		return;
+	}
 
 	g_assert(u->special);
 	g_assert(u->special->close);

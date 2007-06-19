@@ -3522,6 +3522,13 @@ socket_no_writev(struct wrap_io *unused_wio,
 	return -1;
 }
 
+static int
+socket_no_flush(struct wrap_io *unused_wio)
+{
+	(void) unused_wio;
+	return 0;
+}
+
 static void
 socket_wio_link(struct gnutella_socket *s)
 {
@@ -3539,12 +3546,14 @@ socket_wio_link(struct gnutella_socket *s)
 		s->wio.writev = socket_plain_writev;
 		s->wio.readv = socket_plain_readv;
 		s->wio.sendto = socket_no_sendto;
+		s->wio.flush = socket_no_flush;
 	} else if (s->flags & SOCK_F_UDP) {
 		s->wio.write = socket_no_write;
 		s->wio.read = socket_plain_read;
 		s->wio.writev = socket_no_writev;
 		s->wio.readv = socket_plain_readv;
 		s->wio.sendto = socket_plain_sendto;
+		s->wio.flush = socket_no_flush;
 	}
 }
 
