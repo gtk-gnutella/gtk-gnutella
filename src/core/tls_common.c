@@ -518,7 +518,7 @@ tls_global_init(void)
 static ssize_t
 tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
-	inputevt_cond_t cond = INPUT_EVENT_WX;
+	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
 	const char *p;
 	size_t len;
@@ -584,7 +584,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		}
 	}
 
-	if (s->gdk_tag)
+	if (s->gdk_tag && cond)
 		tls_socket_evt_change(s, cond);
 
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
@@ -594,7 +594,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 static ssize_t
 tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
-	inputevt_cond_t cond = INPUT_EVENT_RX;
+	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
 
@@ -635,7 +635,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		ret = -1;
 	}
 
-	if (s->gdk_tag)
+	if (s->gdk_tag && cond)
 		tls_socket_evt_change(s, cond);
 
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
@@ -645,7 +645,7 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 static ssize_t
 tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
-	inputevt_cond_t cond = INPUT_EVENT_WX;
+	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret, written;
 	int i;
@@ -748,7 +748,7 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 	}
 
 done:
-	if (s->gdk_tag)
+	if (s->gdk_tag && cond)
 		tls_socket_evt_change(s, cond);
 
 	g_assert((ssize_t) -1 == ret || ret >= 0);
@@ -758,7 +758,7 @@ done:
 static ssize_t
 tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
-	inputevt_cond_t cond = INPUT_EVENT_RX;
+	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
 	size_t rcvd = 0;
 	ssize_t ret;
@@ -823,7 +823,7 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		ret = rcvd;
 	}
 
-	if (s->gdk_tag)
+	if (s->gdk_tag && cond)
 		tls_socket_evt_change(s, cond);
 
 	g_assert((ssize_t) -1 == ret || ret >= 0);
