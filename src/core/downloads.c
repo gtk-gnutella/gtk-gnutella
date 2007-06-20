@@ -1318,7 +1318,7 @@ hostvec_to_slist(const gnet_host_vec_t *vec)
 	gint i;
 
 	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
-		gnet_host_t *host = walloc(sizeof *host);
+		gnet_host_t *host;
 
 		host = walloc(sizeof *host);
 		*host = gnet_host_vec_get(vec, i);
