@@ -193,7 +193,7 @@
 
 gpointer string_record(const gchar *s, gchar *file, gint line);
 gpointer malloc_record(gconstpointer o, size_t size, gchar *file, gint line);
-gpointer gslist_record(GSList *, gchar *file, gint line);
+gpointer gslist_record(const GSList *, gchar *file, gint line);
 
 gpointer malloc_track(size_t size, gchar *file, gint line);
 gpointer malloc0_track(size_t size, gchar *file, gint line);
