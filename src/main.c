@@ -84,6 +84,7 @@
 #include "core/tls_common.h"
 #include "core/tsync.h"
 #include "core/tx.h"
+#include "core/udp.h"
 #include "core/uhc.h"
 #include "core/upload_stats.h"
 #include "core/verify_sha1.h"
