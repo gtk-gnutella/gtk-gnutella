@@ -59,7 +59,6 @@ RCSID("$Id$")
 #include "lib/tigertree.h"
 #include "lib/tiger.h"
 #include "lib/tm.h"
-#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last inclusion */
 
@@ -131,7 +130,7 @@ verify_tth_init(void)
 	if (!initialized) {
 		initialized = TRUE;
 
-		verify_tth.context = walloc(tt_size());
+		verify_tth.context = g_malloc(tt_size());
 		verify_tth.verify = verify_new(&verify_hash_tth);
 	}
 }
@@ -143,6 +142,7 @@ void
 verify_tth_close(void)
 {
 	verify_free(&verify_tth.verify);
+	G_FREE_NULL(verify_tth.context);
 }
 
 static gboolean 
