@@ -413,10 +413,12 @@ browse_host_read_qhits(struct special_upload *ctx,
 				if (bh->file_index > shared_files_scanned())
 					break;
 				goto skip;		/* Skip holes in indices */
-			} else if (SHARE_REBUILDING == sf)
+			}
+			
+			if (SHARE_REBUILDING == sf)
 				break;
-			else
-				files = g_slist_prepend(files, deconstify_gpointer(sf));
+			
+			files = g_slist_prepend(files, deconstify_gpointer(sf));
 		}
 
 		if (NULL == files)		/* Did not find any more file to include */
