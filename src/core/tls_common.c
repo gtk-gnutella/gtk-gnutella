@@ -345,65 +345,65 @@ tls_init(const struct gnutella_socket *s)
 
 		if (gnutls_anon_allocate_server_credentials(&ctx->server_cred)) {
 			g_warning("gnutls_anon_allocate_server_credentials() failed");
-			return NULL;
+			goto failure;
 		}
 		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
 
 		if (gnutls_init(&ctx->session, GNUTLS_SERVER)) {
 			g_warning("gnutls_init() failed");
-			return NULL;
+			goto failure;
 		}
 		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
 		if (gnutls_credentials_set(ctx->session,
 				GNUTLS_CRD_ANON, ctx->server_cred)) {
 			g_warning("gnutls_credentials_set() failed");
-			return NULL;
+			goto failure;
 		}
 
 		if (server_cert_cred) {
 			if (gnutls_credentials_set(ctx->session,
 					GNUTLS_CRD_CERTIFICATE, server_cert_cred)) {
 				g_warning("gnutls_credentials_set() failed");
-				return NULL;
+				goto failure;
 			}
 		}
 	} else {
 		if (gnutls_anon_allocate_client_credentials(&ctx->client_cred)) {
 			g_warning("gnutls_anon_allocate_client_credentials() failed");
-			return NULL;
+			goto failure;
 		}
 		if (gnutls_init(&ctx->session, GNUTLS_CLIENT)) {
 			g_warning("gnutls_init() failed");
-			return NULL;
+			goto failure;
 		}
 		if (gnutls_credentials_set(ctx->session,
 				GNUTLS_CRD_ANON, ctx->client_cred)) {
 			g_warning("gnutls_credentials_set() failed");
-			return NULL;
+			goto failure;
 		}
 	}
 
 	gnutls_set_default_priority(ctx->session);
 	if (gnutls_cipher_set_priority(ctx->session, cipher_list)) {
 		g_warning("gnutls_cipher_set_priority() failed");
-		return NULL;
+		goto failure;
 	}
 	if (gnutls_kx_set_priority(ctx->session, kx_list)) {
 		g_warning("gnutls_kx_set_priority() failed");
-		return NULL;
+		goto failure;
 	}
 	if (gnutls_mac_set_priority(ctx->session, mac_list)) {
 		g_warning("gnutls_mac_set_priority() failed");
-		return NULL;
+		goto failure;
 	}
 	if (gnutls_certificate_type_set_priority(ctx->session, cert_list)) {
 		g_warning("gnutls_certificate_type_set_priority() failed");
-		return NULL;
+		goto failure;
 	}
 	if (gnutls_compression_set_priority(ctx->session, comp_list)) {
 		g_warning("gnutls_compression_set_priority() failed");
-		return NULL;
+		goto failure;
 	}
 #ifdef XXX_CUSTOM_PUSH_PULL
 	gnutls_transport_set_ptr(ctx->session, NULL);
@@ -411,6 +411,10 @@ tls_init(const struct gnutella_socket *s)
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 #endif /* XXX_CUSTOM_PUSH_PULL */
 	return ctx;
+
+failure:
+	tls_free(&ctx);
+	return NULL;
 }
 
 void
@@ -459,7 +463,9 @@ tls_free(tls_context_t *ctx_ptr)
 	g_assert(ctx_ptr);
 	ctx = *ctx_ptr;
 	if (ctx) {
-		gnutls_deinit(ctx->session);
+		if (ctx->session) {
+			gnutls_deinit(ctx->session);
+		}
 		if (ctx->server_cred) {
 			gnutls_anon_free_server_credentials(ctx->server_cred);
 			ctx->server_cred = NULL;
@@ -468,6 +474,7 @@ tls_free(tls_context_t *ctx_ptr)
 			gnutls_anon_free_client_credentials(ctx->client_cred);
 			ctx->client_cred = NULL;
 		}
+		wfree(ctx, sizeof *ctx);
 		*ctx_ptr = NULL;
 	}
 }
