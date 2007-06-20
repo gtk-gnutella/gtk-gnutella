@@ -159,14 +159,14 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 static void
 add_available_uhc(const gchar *hc)
 {
-	const gchar *s;
+	const gchar *host;
 
 	g_assert(hc);
 
-	s = atom_str_get(hc);
+	host = atom_str_get(hc);
 	uhc_avail = random_value(100) < 50
-		? g_list_append(uhc_avail, s)
-		: g_list_prepend(uhc_avail, s);
+		? g_list_append(uhc_avail, deconstify_gchar(host))
+		: g_list_prepend(uhc_avail, deconstify_gchar(host));
 }
 
 static struct used_uhc *
