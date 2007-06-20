@@ -833,20 +833,17 @@ hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line)
  *** List trackers, to unveil hidden linkable allocation.
  ***/
 
-#define GSLIST_LINK_SIZE	(2 * sizeof(void *))	/* Estimated size */
-#define GLIST_LINK_SIZE		(3 * sizeof(void *))	/* Estimated size */
-
 /**
  * Record GSList `list' allocated at `file' and `line'.
  * @return argument `list'.
  */
-gpointer
+GSList *
 gslist_record(const GSList * const list, gchar *file, gint line)
 {
 	const GSList *iter;
 
 	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		malloc_record(iter, GSLIST_LINK_SIZE, file, line);
+		malloc_record(iter, sizeof *iter, file, line);
 	}
 	return deconstify_gpointer(list);
 }
@@ -854,7 +851,7 @@ gslist_record(const GSList * const list, gchar *file, gint line)
 GSList *
 track_slist_alloc(gchar *file, gint line)
 {
-	return malloc_record(g_slist_alloc(), GSLIST_LINK_SIZE, file, line);
+	return malloc_record(g_slist_alloc(), sizeof(GSList), file, line);
 }
 
 GSList *
@@ -1010,7 +1007,7 @@ track_slist_insert_after(GSList *l, GSList *lk, gpointer data,
 GList *
 track_list_alloc(gchar *file, gint line)
 {
-	return malloc_record(g_list_alloc(), GLIST_LINK_SIZE, file, line);
+	return malloc_record(g_list_alloc(), sizeof(GList), file, line);
 }
 
 GList *
@@ -1050,18 +1047,26 @@ track_list_prepend(GList *l, gpointer data, gchar *file, gint line)
 	return new;
 }
 
+/**
+ * Record GList `list' allocated at `file' and `line'.
+ * @return argument `list'.
+ */
+GList *
+glist_record(const GList * const list, gchar *file, gint line)
+{
+	const GList *iter;
+
+	for (iter = list; NULL != iter; iter = g_list_next(iter)) {
+		malloc_record(iter, sizeof *iter, file, line);
+	}
+	return deconstify_gpointer(list);
+}
+
+
 GList *
 track_list_copy(GList *list, gchar *file, gint line)
 {
-	GList *new;
-	GList *l;
-
-	new = g_list_copy(list);
-
-	for (l = new; l; l = g_list_next(l))
-		malloc_record(l, GLIST_LINK_SIZE, file, line);
-
-	return new;
+	return glist_record(g_list_copy(list), file, line);
 }
 
 void

@@ -672,7 +672,7 @@ gui_merge_window_as_tab(GtkWidget *toplvl,
 	 * using the window title as the new tab title.
 	 */
 	title = gtk_window_get_title(GTK_WINDOW(window));
-	children = GSLISTTRACK(gtk_container_get_children(GTK_CONTAINER(window)));
+	children = GLISTTRACK(gtk_container_get_children(GTK_CONTAINER(window)));
 
 	if (children != NULL) {
 		GtkWidget *child = GTK_WIDGET(children->data);

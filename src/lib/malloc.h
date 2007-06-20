@@ -180,12 +180,14 @@
 #define STRTRACK(o)		string_record((o), _WHERE_, __LINE__)
 #define MEMTRACK(o,s)	malloc_record((o), (s), _WHERE_, __LINE__)
 #define GSLISTTRACK(o)	gslist_record((o), _WHERE_, __LINE__)
+#define GLISTTRACK(o)	glist_record((o), _WHERE_, __LINE__)
 
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 
 #define STRTRACK(o)		o
 #define MEMTRACK(o,s)	o
 #define GSLISTTRACK(o)	o
+#define GLISTTRACK(o)	o
 
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
 
@@ -193,7 +195,8 @@
 
 gpointer string_record(const gchar *s, gchar *file, gint line);
 gpointer malloc_record(gconstpointer o, size_t size, gchar *file, gint line);
-gpointer gslist_record(const GSList *, gchar *file, gint line);
+GSList *gslist_record(const GSList *, gchar *file, gint line);
+GList *glist_record(const GList *, gchar *file, gint line);
 
 gpointer malloc_track(size_t size, gchar *file, gint line);
 gpointer malloc0_track(size_t size, gchar *file, gint line);
