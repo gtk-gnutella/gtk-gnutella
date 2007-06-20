@@ -55,6 +55,7 @@ gboolean udp_send_ping(const gchar *muid, const host_addr_t addr, guint16 port,
 	gboolean uhc_ping);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 gboolean udp_ping_is_registered(const gchar *muid);
+void udp_close(void);
 
 #endif /* _core_udp_h_ */
 

@@ -71,7 +71,7 @@ RCSID("$Id$")
  * in the pings.
  */
 static struct uhc_context {
-	const gchar *host;			/**< Last selected host */
+	const gchar *host;			/**< Last selected host (string atom) */
 	cevent_t *timeout_ev;		/**< Ping timeout */
 	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
@@ -79,11 +79,11 @@ static struct uhc_context {
 	gchar muid[GUID_RAW_SIZE];	/**< MUID of the ping */
 } uhc_ctx;
 
-static GList *uhc_avail = NULL;	/**< List of UHCs as string */
-static GList *uhc_used = NULL;	/**< List of used UHCs as ``struct used_uhc'' */
+static GList *uhc_avail;	/**< List of UHCs as string */
+static GList *uhc_used;		/**< List of used UHCs as ``struct used_uhc'' */
 
 struct used_uhc {
-	gchar 		*host;	/**< An UHC host as "<host>:<port>" */
+	const gchar	*host;	/**< An UHC host as "<host>:<port>" (string atom) */
 	time_t		stamp;	/**< Timestamp of the last request */
 };
 
@@ -159,14 +159,37 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 static void
 add_available_uhc(const gchar *hc)
 {
-	gchar *s;
+	const gchar *s;
 
 	g_assert(hc);
 
-	s = g_strdup(hc);
+	s = atom_str_get(hc);
 	uhc_avail = random_value(100) < 50
 		? g_list_append(uhc_avail, s)
 		: g_list_prepend(uhc_avail, s);
+}
+
+static struct used_uhc *
+used_uhc_new(const gchar *host)
+{
+	struct used_uhc *uu;
+
+	g_assert(host);
+	uu = g_malloc(sizeof *uu);
+	uu->host = atom_str_get(host);
+	uu->stamp = tm_time();
+	return uu;
+}
+
+static void
+used_uhc_free(struct used_uhc **ptr)
+{
+	if (*ptr) {	
+		struct used_uhc *uu = *ptr;
+		atom_str_free_null(&uu->host);
+		G_FREE_NULL(uu);
+		*ptr = NULL;
+	}
 }
 
 /**
@@ -201,10 +224,8 @@ uhc_pick(void)
 			break;
 
 		add_available_uhc(uu->host);
-
 		uhc_used = g_list_remove(uhc_used, uu);
-		G_FREE_NULL(uu->host);
-		G_FREE_NULL(uu);
+		used_uhc_free(&uu);
 	}
 
 	len = g_list_length(uhc_avail);
@@ -219,14 +240,7 @@ uhc_pick(void)
 	g_assert(hc);
 
 	uhc_avail = g_list_remove(uhc_avail, hc);
-	{
-		struct used_uhc *uu;
-
-		uu = g_malloc(sizeof *uu);
-		uu->host = hc;
-		uu->stamp = tm_time();
-		uhc_used = g_list_append(uhc_used, uu);
-	}
+	uhc_used = g_list_append(uhc_used, used_uhc_new(hc));
 
 	if (!uhc_get_host_port(hc, &uhc_ctx.host, &uhc_ctx.port)) {
 		g_warning("cannot parse UDP host cache \"%s\"", hc);
@@ -517,6 +531,16 @@ uhc_close(void)
 {
 	cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 	uhc_connecting = FALSE;
+	while (uhc_avail) {
+		const gchar *host = uhc_avail->data;
+		uhc_avail = g_list_remove(uhc_avail, uhc_avail->data);
+		atom_str_free_null(&host);
+	}
+	while (uhc_used) {
+		struct used_uhc *uu = uhc_used->data;
+		uhc_used = g_list_remove(uhc_used, uu);
+		used_uhc_free(&uu);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
