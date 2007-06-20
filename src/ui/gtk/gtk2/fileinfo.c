@@ -939,6 +939,8 @@ fi_gui_shutdown(void)
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
 	fi_updates = NULL;
+	g_hash_table_destroy(fi_downloads);
+	fi_downloads = NULL;
 
 	drag_free(&drag);
 }
