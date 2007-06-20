@@ -710,8 +710,8 @@ buffers_alloc(struct download *d)
 	struct dl_buffers *b;
 
 	download_check(d);
+	socket_check(d->socket);
 	g_assert(d->buffers == NULL);
-	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = walloc(sizeof *b);
@@ -759,8 +759,8 @@ buffers_reset_reading(struct download *d)
 	slist_iter_t *iter;
 
 	download_check(d);
+	socket_check(d->socket);
 	g_assert(d->buffers != NULL);
-	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 	g_assert(d->buffers->held == 0);
 
@@ -790,10 +790,10 @@ buffers_to_iovec(struct download *d, gint *iov_cnt)
 	size_t held;
 
 	download_check(d);
+	socket_check(d->socket);
 	g_assert(iov_cnt);
 
 	g_assert(d->buffers != NULL);
-	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = d->buffers;
@@ -886,8 +886,8 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 	pmsg_t *prev_mb;
 
 	download_check(d);
+	socket_check(d->socket);
 	g_assert(d->buffers != NULL);
-	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = d->buffers;
@@ -945,8 +945,8 @@ buffers_match(const struct download *d, const gchar *data, size_t len)
 	slist_iter_t *iter;
 
 	download_check(d);
+	socket_check(d->socket);
 	g_assert(d->buffers != NULL);
-	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_RECEIVING);
 
 	b = d->buffers;
@@ -11436,7 +11436,6 @@ download_got_eof(struct download *d)
 	fileinfo_t *fi;
 
 	download_check(d);
-	g_assert(d->file_info != NULL);
 
 	/*
 	 * If we don't know the file size, then consider EOF as an indication
@@ -11444,6 +11443,7 @@ download_got_eof(struct download *d)
 	 */
 
 	fi = d->file_info;
+	file_info_check(fi);
 
 	if (!fi->file_size_known)
 		download_rx_done(d);
@@ -11464,7 +11464,7 @@ download_rx_done(struct download *d)
 
 	download_check(d);
 	fi = d->file_info;
-	g_assert(fi != NULL);
+	file_info_check(fi);
 
 	if (!(d->flags & DL_F_TRANSIENT)){
 	   	if (!fi->file_size_known) {
@@ -11497,7 +11497,7 @@ download_data_received(struct download *d, ssize_t received)
 
 	download_check(d);
 	fi = d->file_info;
-	g_assert(fi != NULL);
+	file_info_check(fi);
 
 	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
 
@@ -11517,7 +11517,7 @@ download_maybe_finished(struct download *d)
 
 	download_check(d);
 	fi = d->file_info;
-	g_assert(fi != NULL);
+	file_info_check(fi);
 
 	if (FILE_INFO_COMPLETE(fi))
 		download_rx_done(d);
