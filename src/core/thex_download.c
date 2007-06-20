@@ -69,10 +69,10 @@ struct thex_download {
 	size_t pos;						/**< Reading position */
 	const struct sha1 *sha1;		/**< SHA1 atom; refers to described file */
 	const struct tth *tth;			/**< TTH atom; refers to described file */
+	struct tth *leaves;				/**< g_memdup()ed leave TTHs */
+	size_t num_leaves;				/**< number of leaves */
 	filesize_t filesize;			/**< filesize of the described file */
-	char *hashtree_id;				/**< DIME record ID; g_strdup() */
 	unsigned depth;					/**< depth of the hashtree (capped) */
-	thex_download_success_cb callback;
 	gboolean finished;
 };
 
@@ -107,8 +107,7 @@ string_to_xmlChar(const char *p)
  */
 struct thex_download *
 thex_download_create(gpointer owner, gnet_host_t *host,
-	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize,
-	thex_download_success_cb callback)
+	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize)
 {
 	static const struct thex_download zero_ctx;
 	struct thex_download *ctx;
@@ -124,7 +123,6 @@ thex_download_create(gpointer owner, gnet_host_t *host,
 	ctx->sha1 = atom_sha1_get(sha1);
 	ctx->tth = atom_tth_get(tth);
 	ctx->filesize = filesize;
-	ctx->callback = callback;
 
 	return ctx;
 }
@@ -212,7 +210,7 @@ find_element_by_name(xmlNode *start, const char *name)
 static gboolean
 verify_element(xmlNode *node, const char *prop, const char *expect)
 {
-	gboolean result = FALSE;
+	gboolean success = FALSE;
 	char *value;
 	
 	value = STRTRACK(xml_get_string(node, prop));
@@ -227,20 +225,21 @@ verify_element(xmlNode *node, const char *prop, const char *expect)
 			node->name, prop, expect, value);
 		goto finish;
 	}
-	result = TRUE;
+	success = TRUE;
 
 finish:
 	xml_string_free(&value);
-	return result;
+	return success;
 }
 
-static gboolean
+static char *
 thex_download_handle_xml(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	gboolean result = FALSE;
 	xmlNode *root, *hashtree, *node;
 	xmlDocPtr doc = NULL;
+	char *hashtree_id = NULL;
+	gboolean success = FALSE;
 
 	if (size <= 0) {
 		g_message("XML record has no data");
@@ -297,7 +296,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 				node->name);
 			goto finish;
 		}
-		ctx->hashtree_id = g_strdup(value);
+		hashtree_id = g_strdup(value);
 		xml_string_free(&value);
 
 		value = STRTRACK(xml_get_string(node, "depth"));
@@ -327,22 +326,26 @@ thex_download_handle_xml(struct thex_download *ctx,
 		goto finish;
 	}
 
-	result = TRUE;
+	success = TRUE;
 
 finish:
 	if (doc) {
 		xmlFreeDoc(doc);
+		doc = NULL;
 	}
-	return result;
+	if (!success) {
+		G_FREE_NULL(hashtree_id);
+	}
+	return hashtree_id;
 }
 
 static gboolean
 thex_download_handle_hashtree(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	gboolean result = FALSE;
+	gboolean success = FALSE;
 	size_t n_nodes, n_leaves, n, start;
-	const struct tth *nodes;
+	const struct tth *leaves;
 	struct tth tth;
 
 	if (size <= 0) {
@@ -380,22 +383,20 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	}
 	
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
-	nodes = (const struct tth *) &data[start * TTH_RAW_SIZE];
+	leaves = (const struct tth *) &data[start * TTH_RAW_SIZE];
 
-	tth = tt_root_hash(nodes, n_leaves);
+	tth = tt_root_hash(leaves, n_leaves);
 	if (!tth_eq(&tth, ctx->tth)) {
 		g_message("Hashtree does not match root hash %s", tth_base32(&tth));
 		goto finish;
 	}
 
-	if (ctx->callback) {
-		ctx->callback(ctx->sha1, ctx->tth, nodes, n_leaves);
-		ctx->callback = NULL;
-	}
+	ctx->leaves = g_memdup(leaves, TTH_RAW_SIZE * n_leaves);
+	ctx->num_leaves = n_leaves;
+	success = TRUE;
 
-	result = TRUE;
 finish:
-	return result;
+	return success;
 }
 
 static const struct dime_record *
@@ -439,13 +440,14 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 	return NULL;
 }
 
-void
+gboolean
 thex_download_finished(struct thex_download *ctx)
 {
 	GSList *records;
+	gboolean success = FALSE;
 
-	g_return_if_fail(ctx);
-	g_return_if_fail(!ctx->finished);
+	g_return_val_if_fail(ctx, FALSE);
+	g_return_val_if_fail(!ctx->finished, FALSE);
 
 	ctx->finished = TRUE;
 
@@ -453,6 +455,7 @@ thex_download_finished(struct thex_download *ctx)
 	if (records) {
 		const struct dime_record *record;
 		const char *data;
+		char *hashtree_id;
 		size_t size;
 		
 		record = dime_find_record(records, "text/xml", NULL);
@@ -461,10 +464,13 @@ thex_download_finished(struct thex_download *ctx)
 
 		data = dime_record_data(record);
 		size = dime_record_data_length(record);
-		if (!thex_download_handle_xml(ctx, data, size))
+		hashtree_id = thex_download_handle_xml(ctx, data, size);
+		if (NULL == hashtree_id)
 			goto finish;
 
-		record = dime_find_record(records, THEX_TREE_TYPE, ctx->hashtree_id);
+		record = dime_find_record(records, THEX_TREE_TYPE, hashtree_id);
+		G_FREE_NULL(hashtree_id);
+
 		if (NULL == record)
 			goto finish;
 
@@ -477,9 +483,12 @@ thex_download_finished(struct thex_download *ctx)
 		g_message("Could not parse DIME records");
 		goto finish;
 	}
+	success = TRUE;
 
 finish:
 	dime_list_free(&records);
+	G_FREE_NULL(ctx->data);
+	return success;
 }
 
 /***
@@ -657,8 +666,8 @@ thex_download_free(struct thex_download **ptr)
 			rx_free(ctx->rx);
 			ctx->rx = NULL;
 		}
-		G_FREE_NULL(ctx->hashtree_id);
 		G_FREE_NULL(ctx->data);
+		G_FREE_NULL(ctx->leaves);
 		atom_sha1_free_null(&ctx->sha1);
 		atom_tth_free_null(&ctx->tth);
 		wfree(ctx, sizeof *ctx);
@@ -670,7 +679,30 @@ const struct sha1 *
 thex_download_get_sha1(const struct thex_download *ctx)
 {
 	g_return_val_if_fail(ctx, NULL);
+	g_return_val_if_fail(ctx->sha1, NULL);
 	return ctx->sha1;
+}
+
+const struct tth *
+thex_download_get_tth(const struct thex_download *ctx)
+{
+	g_return_val_if_fail(ctx, NULL);
+	g_return_val_if_fail(ctx->tth, NULL);
+	return ctx->tth;
+}
+
+size_t
+thex_download_get_leaves(const struct thex_download *ctx,
+	const struct tth **leaves_ptr)
+{
+	g_return_val_if_fail(ctx, 0);
+	g_return_val_if_fail(ctx->finished, 0);
+	g_assert((0 != ctx->num_leaves) ^ (NULL == ctx->leaves));
+
+	if (leaves_ptr) {
+		*leaves_ptr = ctx->leaves;
+	}
+	return ctx->num_leaves;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -11272,31 +11272,63 @@ download_browse_start(const gchar *hostname,
 	return d;
 }
 
-void
-download_thex_success(const struct sha1 *sha1, const struct tth *tth,
-	const struct tth *leaves, size_t num_leaves)
+static void
+download_thex_done(struct download *d)
 {
+	const struct sha1 *sha1;
+	const struct tth *tth, *leaves;
+	size_t num_leaves;
 	fileinfo_t *fi;
+	gboolean cancel_all = FALSE;
 
+	download_check(d);
+	g_return_if_fail(d->thex);
+	g_return_if_fail(DL_F_THEX & d->flags);
+
+	sha1 = thex_download_get_sha1(d->thex);
 	g_return_if_fail(sha1);
-	g_return_if_fail(tth);
-	g_return_if_fail(leaves);
-	g_return_if_fail(num_leaves > 0);
+
+	/*
+	 * download_stop() causes d->thex to release the sha1 but we still need it
+	 * for download_remove_all_thex().
+	 */
+	sha1 = atom_sha1_get(sha1);
+
+	if (!thex_download_finished(d->thex)) {
+		g_message("Discarding tigertree data: No more download");
+		goto finish;
+	}
 
 	fi = file_info_by_sha1(sha1);
 	if (NULL == fi) {
 		g_message("Discarding tigertree data: No more download");
-		return;
+		cancel_all = TRUE;
+		goto finish;
 	}
+
+	tth = thex_download_get_tth(d->thex);
+	num_leaves = thex_download_get_leaves(d->thex, &leaves);
+	g_return_if_fail(tth);
+	g_return_if_fail(leaves);
+	g_return_if_fail(num_leaves > 0);
+
 	if (NULL == fi->tth) {
 		file_info_got_tth(fi, tth);
 	}
 	if (fi->tigertree.num_leaves >= num_leaves) {
 		g_message("Discarding tigertree data: Already known.");
-		return;
+		cancel_all = TRUE;
+		goto finish;
 	}
 	file_info_got_tigertree(fi, leaves, num_leaves);
-	download_remove_all_thex(sha1);
+	cancel_all = TRUE;
+
+finish:
+	download_stop(d, GTA_DL_COMPLETED, no_reason);
+	if (cancel_all) {
+		download_remove_all_thex(sha1);
+	}
+	atom_sha1_free_null(&sha1);
 }
 	
 /**
@@ -11364,8 +11396,7 @@ download_thex_start(const gchar *uri,
 
 		d->flags |= DL_F_TRANSIENT | DL_F_THEX;
 		gnet_host_set(&host, addr, port);
-		d->thex = thex_download_create(d, &host, sha1, tth, filesize,
-					download_thex_success);
+		d->thex = thex_download_create(d, &host, sha1, tth, filesize);
 		file_info_changed(fi);		/* Update status! */
 	} else {
 		file_info_remove(fi);
@@ -11374,7 +11405,7 @@ download_thex_start(const gchar *uri,
 }
 
 /**
- * Abort browse-hosst download when corresponding search is closed.
+ * Abort browse-host download when corresponding search is closed.
  */
 void
 download_abort_browse_host(struct download *d, gnet_search_t sh)
@@ -11442,9 +11473,9 @@ download_rx_done(struct download *d)
 			d->range_end = download_filesize(d);	/* New upper boundary */
 			gcu_gui_update_download_size(d);
 		}
-	} else {
-		if (d->thex)
-			thex_download_finished(d->thex);
+	}
+	if (d->thex) {
+		download_thex_done(d);
 	}
 
 	if (!DOWNLOAD_IS_STOPPED(d))

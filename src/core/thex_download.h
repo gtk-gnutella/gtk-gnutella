@@ -56,16 +56,11 @@ struct tth;
 struct thex_download;
 struct wrap_io;
 
-typedef void (*thex_download_success_cb)(
-				const struct sha1 *, const struct tth *,
-				const struct tth *leaves, size_t num_leaves);
-
 struct thex_download *thex_download_create(gpointer owner,
 							struct gnutella_host *host,
 							const struct sha1 *,
 							const struct tth *,
-							filesize_t filesize,
-							thex_download_success_cb callback);
+							filesize_t filesize);
 
 void thex_download_free(struct thex_download **ptr);
 void thex_download_write(struct thex_download *, gchar *data, size_t len);
@@ -74,8 +69,12 @@ gboolean thex_download_receive(struct thex_download *,
 			guint32 flags);
 struct bio_source *thex_download_io_source(struct thex_download *);
 void thex_download_close(struct thex_download *);
-void thex_download_finished(struct thex_download *);
+gboolean thex_download_finished(struct thex_download *ctx);
+
 const struct sha1 *thex_download_get_sha1(const struct thex_download *);
+const struct tth *thex_download_get_tth(const struct thex_download *ctx);
+size_t thex_download_get_leaves(const struct thex_download *ctx,
+	const struct tth **leaves_ptr);
 
 #endif /* _core_thex_download_h_ */
 
