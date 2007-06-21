@@ -3802,7 +3802,7 @@ file_info_has_identical(const gchar *file, filesize_t size,
 
 	fi = sha1 ? file_info_lookup(file, size, sha1) : NULL;
 	if (fi)
-		return fi->size == size ? fi : NULL;
+		return (fi->size == size || !fi->file_size_known) ? fi : NULL;
 
 	if (GNET_PROPERTY(strict_sha1_matching) || 0 == size)
 		return NULL;
