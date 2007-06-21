@@ -6021,9 +6021,6 @@ download_can_ignore(struct download *d)
 
 	download_check(d);
 
-	if (!GNET_PROPERTY(experimental_download_data_ignoring))
-		return FALSE;
-
 	g_assert(d->range_end >= d->pos);
 
 	/*

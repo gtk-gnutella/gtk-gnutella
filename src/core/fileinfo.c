@@ -4925,8 +4925,8 @@ fi_find_aggressive_candidate(
 	if (!can_be_aggressive)
 		return FALSE;
 
-	/* Start in the middle of the selected range. */
-	*from = (fc->from + fc->to) / 2;
+	/* Start in the middle of the selected range ('to' is NOT in the range). */
+	*from = (fc->from + fc->to - 1) / 2;
 	*to = fc->to;
 
 	if (GNET_PROPERTY(download_debug) > 1)
