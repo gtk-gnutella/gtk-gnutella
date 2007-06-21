@@ -405,17 +405,13 @@ browse_host_read_qhits(struct special_upload *ctx,
 		for (i = 0; i < BH_SCAN_AHEAD; i++) {
 			const shared_file_t *sf;
 
-		skip:
-			bh->file_index++;
-			sf = shared_file(bh->file_index);
+			do {
+				/* Skip holes in indices */
+				bh->file_index++;
+				sf = shared_file(bh->file_index);
+			} while (NULL == sf && bh->file_index > shared_files_scanned());
 
-			if (NULL == sf) {
-				if (bh->file_index > shared_files_scanned())
-					break;
-				goto skip;		/* Skip holes in indices */
-			}
-			
-			if (SHARE_REBUILDING == sf)
+			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
 			
 			files = g_slist_prepend(files, deconstify_gpointer(sf));
@@ -436,7 +432,9 @@ browse_host_read_qhits(struct special_upload *ctx,
 		g_assert(bh->hits != NULL);		/* At least 1 hit enqueued */
 
 		bh->hits = g_slist_reverse(bh->hits);	/* Preserve order */
- 	}
+ 		g_slist_free(files);
+		files = NULL;
+	}
 
 	/*
 	 * Read each query hit in turn.
