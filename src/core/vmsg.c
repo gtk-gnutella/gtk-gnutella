@@ -870,9 +870,11 @@ handle_oob_reply_ind(struct gnutella_node *n,
 
 	hits = peek_u8(payload);
 	if (hits == 0) {
-		g_warning("no results advertised in %s/%uv%u from %s",
-			vendor_code_str(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+		if (GNET_PROPERTY(vmsg_debug)) {
+			g_warning("no results advertised in %s/%uv%u from %s",
+				vendor_code_str(vmsg->vendor),
+				vmsg->id, vmsg->version, node_addr(n));
+		}
 		goto not_handling;
 	}
 
@@ -884,9 +886,11 @@ handle_oob_reply_ind(struct gnutella_node *n,
 	return;
 
 not_handling:
-	g_warning("not handling %s/%uv%u from %s",
-		vendor_code_str(vmsg->vendor),
-		vmsg->id, vmsg->version, node_addr(n));
+	if (GNET_PROPERTY(vmsg_debug)) {
+		g_warning("not handling %s/%uv%u from %s",
+			vendor_code_str(vmsg->vendor),
+			vmsg->id, vmsg->version, node_addr(n));
+	}
 }
 
 /**
@@ -1979,18 +1983,20 @@ head_ping_is_registered(const gchar *muid)
  * This message is used to gather information about an urn:sha1, such as
  * getting more alternate location, or the list of available ranges.
  *
- * @param n		the destination node
  * @param sha1	the SHA1 we wish to know more about
+ * @param addr	the host to send the Ping to.
+ * @param port	the port to send the Ping to
  * @param guid	(optional) the GUID of the node to which HEAD ping must be sent
  *
  * When the optional GUID is set, it means we're sending this message to a
  * push-proxy, so it can relay the message to the leaf bearing that GUID.
  */
 void
-vmsg_send_head_ping(
-	struct gnutella_node *n, const struct sha1 *sha1, const gchar *guid)
+vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
+	const gchar *guid)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
+	struct gnutella_node *n;
 	const gchar *muid;
 	guint32 msgsize;
 	guint32 paysize;
@@ -2004,7 +2010,10 @@ vmsg_send_head_ping(
 	 * We don't send VMSG_HEAD_F_ALT_PUSH: our mesh is not propagating those.
 	 */
 
-	g_assert(sha1 != NULL);
+	g_return_if_fail(sha1);
+	n = node_udp_get_addr_port(addr, port);
+	if (NULL == n)
+		return;
 
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 23, 2);
 

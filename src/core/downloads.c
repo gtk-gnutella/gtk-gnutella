@@ -3615,25 +3615,19 @@ download_send_head_ping(struct download *d)
 
 		for (sl = d->server->proxies; sl; sl = g_slist_next(sl)) {
 			gnet_host_t *host = sl->data;
-			gnutella_node_t *n = node_udp_get_addr_port(
-				gnet_host_get_addr(host), gnet_host_get_port(host));
 
-			if (n) {
-				vmsg_send_head_ping(n, d->file_info->sha1, download_guid(d));
-				d->head_ping_sent = now;
-			}
+			vmsg_send_head_ping(d->file_info->sha1,
+				gnet_host_get_addr(host), gnet_host_get_port(host),
+				download_guid(d));
+			d->head_ping_sent = now;
 		}
 	} else {
-		gnutella_node_t *n = node_udp_get_addr_port(
-			download_addr(d), download_port(d));
-
 		/*
 		 * Not firewalled, just send direct message to the server.
 		 */
-		if (n) {
-			vmsg_send_head_ping(n, d->file_info->sha1, NULL);
-			d->head_ping_sent = now;
-		}
+		vmsg_send_head_ping(d->file_info->sha1,
+			download_addr(d), download_port(d), NULL);
+		d->head_ping_sent = now;
 	}
 }
 
@@ -7178,13 +7172,41 @@ check_xhost(struct download *d, const header_t *header)
 	d->flags |= DL_F_PUSH_IGN;
 }
 
+static gboolean
+content_range_check(struct download *d, header_t *header)
+{
+	filesize_t start, end, total;
+	fileinfo_t *fi;
+	gchar *buf;
+
+	buf = header_get(header, "Content-Range");		/* Optional */
+	if (NULL == buf)
+		return TRUE;
+	
+	if (0 != http_content_range_parse(buf, &start, &end, &total))
+		return TRUE;
+
+	fi = d->file_info;
+	file_info_check(fi);
+
+	if (!fi->file_size_known)
+		return TRUE;
+
+	if (fi->size == total)
+		return TRUE;
+	
+	download_bad_source(d);
+	download_stop(d, GTA_DL_ERROR, "Filesize mismatch");
+	return FALSE;
+}
+
 /**
- * Check for X-Gnutella-Content-URN.
+ * Handle X-Gnutella-Content-URN header.
  *
  * @returns FALSE if we cannot continue with the download.
  */
 static gboolean
-check_content_urn(struct download *d, header_t *header)
+handle_content_urn(struct download *d, header_t *header)
 {
 	gboolean found_sha1 = FALSE;
 	struct sha1 sha1;
@@ -7200,6 +7222,9 @@ check_content_urn(struct download *d, header_t *header)
 	 */
 	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
 		return TRUE;
+
+	if (!content_range_check(d, header))
+		return FALSE;
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
@@ -7950,7 +7975,7 @@ http_version_nofix:
 		return;
 	}
 
-	if (!check_content_urn(d, header))
+	if (!handle_content_urn(d, header))
 		return;
 
 	download_handle_thex_uri_header(d, header);
@@ -8538,7 +8563,7 @@ http_version_nofix:
                         uint64_to_string(fi->size), uint64_to_string2(total));
                 }
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "File size mismatch");
+				download_stop(d, GTA_DL_ERROR, "Filesize mismatch");
 				return;
 			}
 			if (end > d->range_end - 1) {
