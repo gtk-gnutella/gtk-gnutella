@@ -909,9 +909,11 @@
 # media.teddycash.com/te-110-12-000073.exe
 64.246.52.90
 216.127.90.31
+216.139.219.194
 194.90.224.81
 
 # "Accelerator" spam; ZIP files; hosted at Bezeq International
+62.219.0.0/19
 192.115.190.0/24
 212.25.103.0/24
 212.179.64.0/24
