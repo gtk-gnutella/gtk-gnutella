@@ -369,7 +369,7 @@ download_chunk_rx_done(gpointer o)
 	struct download *d = o;
 
 	download_check(d);
-	download_rx_done(d);
+	download_got_eof(d);
 }
 
 static const struct rx_chunk_cb download_rx_chunk_cb = {
@@ -6020,6 +6020,10 @@ download_can_ignore(struct download *d)
 	guint speed_avg;
 
 	download_check(d);
+
+	if (!GNET_PROPERTY(experimental_download_data_ignoring))
+		return FALSE;
+
 	g_assert(d->range_end >= d->pos);
 
 	/*
@@ -11466,23 +11470,23 @@ download_rx_done(struct download *d)
 	fi = d->file_info;
 	file_info_check(fi);
 
-	if (!(d->flags & DL_F_TRANSIENT)){
-	   	if (!fi->file_size_known) {
-			file_info_size_known(d, fi->done);
-			d->size = fi->size;
-			d->range_end = download_filesize(d);	/* New upper boundary */
-			gcu_gui_update_download_size(d);
-		}
+   	if (!fi->file_size_known) {
+		file_info_size_known(d, fi->done);
+		d->size = fi->size;
+		d->range_end = download_filesize(d);	/* New upper boundary */
+		gcu_gui_update_download_size(d);
 	}
+	g_assert(FILE_INFO_COMPLETE(fi));
+
 	if (d->thex) {
 		download_thex_done(d);
 	}
-
-	if (!DOWNLOAD_IS_STOPPED(d))
+	if (!DOWNLOAD_IS_STOPPED(d)) {
 		download_stop(d, GTA_DL_COMPLETED, no_reason);
-
-	if (!(d->flags & DL_F_TRANSIENT) && fi->file_size_known)
+	}
+	if (!(d->flags & DL_F_TRANSIENT) && fi->file_size_known) {
 		download_verify_sha1(d);
+	}
 }
 
 /**
