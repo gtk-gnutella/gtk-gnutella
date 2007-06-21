@@ -3800,19 +3800,11 @@ file_info_has_identical(const gchar *file, filesize_t size,
 	fileinfo_t *fi;
 	namesize_t nsk;
 
-	if (GNET_PROPERTY(strict_sha1_matching)) {
-		if (!sha1)
-			return NULL;
-		return file_info_lookup(file, size, sha1);
-	}
+	fi = sha1 ? file_info_lookup(file, size, sha1) : NULL;
+	if (fi)
+		return fi->size == size ? fi : NULL;
 
-	if (sha1) {
-		fi = g_hash_table_lookup(fi_by_sha1, sha1);
-		if (fi)
-			return fi;
-	}
-
-	if (0 == size)
+	if (GNET_PROPERTY(strict_sha1_matching) || 0 == size)
 		return NULL;
 
 	/*
