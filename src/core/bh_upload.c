@@ -409,7 +409,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 				/* Skip holes in indices */
 				bh->file_index++;
 				sf = shared_file(bh->file_index);
-			} while (NULL == sf && bh->file_index > shared_files_scanned());
+			} while (NULL == sf && bh->file_index <= shared_files_scanned());
 
 			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
