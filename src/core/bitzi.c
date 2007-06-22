@@ -71,6 +71,7 @@ static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
 	const struct sha1 *sha1;			/**< binary SHA-1, atom */
+	filesize_t filesize;
 	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
@@ -82,9 +83,9 @@ typedef struct {
 /*
  * The request queue, the searches to the Bitzi data service are queued
  */
-static GSList *bitzi_rq = NULL;
+static GSList *bitzi_rq;
 
-static bitzi_request_t	*current_bitzi_request = NULL;
+static bitzi_request_t	*current_bitzi_request;
 static gpointer	 current_bitzi_request_handle;
 static guint bitzi_heartbeat_id;
 
@@ -159,13 +160,15 @@ bitzi_create(void)
 static void
 bitzi_destroy(bitzi_data_t *data)
 {
+	g_assert(data);
+
 	if (GNET_PROPERTY(bitzi_debug)) {
-		g_message("bitzi_destroy: %p", cast_to_gconstpointer(data));
+		g_message("bitzi_clear: %p", cast_to_gconstpointer(data));
 	}
 
 	atom_sha1_free_null(&data->sha1);
-	G_FREE_NULL(data->mime_type);
-	G_FREE_NULL(data->mime_desc);
+	atom_str_free_null(&data->mime_type);
+	atom_str_free_null(&data->mime_desc);
 
 	if (GNET_PROPERTY(bitzi_debug)) {
 		g_message("bitzi_destroy: freeing data");
@@ -262,6 +265,8 @@ struct efj_t {
 
 static const struct efj_t enum_fj_table[] = {
 	{ "Unknown",				BITZI_FJ_UNKNOWN },
+	{ "Bitzi lookup failure",	BITZI_FJ_FAILURE },
+	{ "Filesize mismatch",		BITZI_FJ_WRONG_FILESIZE },
 	{ "Dangerous/Misleading",	BITZI_FJ_DANGEROUS_MISLEADING },
 	{ "Incomplete/Damaged",		BITZI_FJ_INCOMPLETE_DAMAGED },
 	{ "Substandard",			BITZI_FJ_SUBSTANDARD },
@@ -391,32 +396,35 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			/*
 			 * copy the mime type
 			 */
-			data->mime_type = g_strdup(s);
+			atom_str_change(&data->mime_type, s);
 
 			/*
 			 * format the mime details
 			 */
 			{
 				gboolean has_res = xml_width && xml_height;
+				gchar desc[256];
+				
 				/**
 	 			 * TRANSLATORS: This describes video parameters;
 				 * The first part is used as <width>x<height> (resolution).
 				 * fps stands for "frames per second".
 				 * kbps stands for "kilobit per second" (metric kilo).
 	 			 */
-				data->mime_desc =
-					g_strdup_printf(_("%s%s%s%s%s fps, %s kbps"),
+				gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
 						has_res ? xml_width : "",
 						has_res ? Q_("times|x") : "",
 						has_res ? xml_height : "",
 						has_res ? ", " : "",
 						(xml_fps != NULL) ? xml_fps : "?",
 						(xml_bitrate != NULL) ? xml_bitrate : "?");
+
+				atom_str_change(&data->mime_desc, desc);
 			}
 		} else if (
 			xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("audio"))
 		) {
-			data->mime_type = g_strdup(s);
+			atom_str_change(&data->mime_desc, s);
 		}
 	}
 
@@ -465,15 +473,30 @@ process_bitzi_ticket(xmlNode *a_node, bitzi_data_t *data)
 	}
 }
 
+static void
+bitzi_failure(const struct sha1 *sha1, filesize_t filesize, bitzi_fj_t error)
+{
+	if (sha1) {
+		bitzi_data_t *dummy = bitzi_create();
+
+		dummy->sha1 = atom_sha1_get(sha1);
+		dummy->size = filesize;
+		dummy->judgement = error;
+		gcu_bitzi_result(dummy);
+		bitzi_destroy(dummy);
+	}
+}
+
 /**
  * Walk the parsed document tree and free up the data.
  */
 static void
 process_meta_data(bitzi_request_t *request)
 {
+	bitzi_data_t *data;
 	xmlDoc	*doc; 	/* the resulting document tree */
 	xmlNode	*root;
-	gint result;
+	gboolean wellformed;
 
 	if (GNET_PROPERTY(bitzi_debug))
 		g_message("process_meta_data: %p", cast_to_gconstpointer(request));
@@ -485,63 +508,87 @@ process_meta_data(bitzi_request_t *request)
 	 */
 
 	doc = request->ctxt->myDoc;
-	result = request->ctxt->wellFormed;
+	wellformed = 0 != request->ctxt->wellFormed;
 	xmlFreeParserCtxt(request->ctxt);
 
 	if (GNET_PROPERTY(bitzi_debug))
-		g_message("process_meta_data: doc = %p, result = %d",
-			cast_to_gconstpointer(doc), result);
+		g_message("process_meta_data: doc = %p, well-formed = %s",
+			cast_to_gconstpointer(doc), wellformed ? "yes" : "no");
+
+	if (!wellformed) {
+		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
+		goto finish;
+	}
 
 	/*
 	 * Now we can have a look at the data
 	 */
 
-	if (result) {
-		bitzi_data_t *data;
+   	data = bitzi_create();
 
-	   	data = bitzi_create();
+	/*
+	 * This just dumps the data
+	 */
 
-		/*
-		 * This just dumps the data
-		 */
+	root = xmlDocGetRootElement(doc);
+	process_bitzi_ticket(root, data);
 
-		root = xmlDocGetRootElement(doc);
-		process_bitzi_ticket(root, data);
-		if (!data->sha1) {
+	if (NULL == data->sha1) {
+		if (GNET_PROPERTY(bitzi_debug))  {
 			g_warning("process_meta_data: missing SHA-1");
-		} else {
-
-			/*
-			 * If the data has a valid date then we can cache the result
-			 * and re-echo the XML ticket to the file based cache.
-			 */
-
-			if (
-				(time_t) -1 == data->expiry ||
-				delta_time(data->expiry, tm_time()) <= 0
-			) {
-				if (GNET_PROPERTY(bitzi_debug)) 
-					g_message("process_meta_data: stale bitzi data");
-			} else if (bitzi_cache_add(data)) {
-				if (bitzi_cache_file) {
-					xmlDocDump(bitzi_cache_file, doc);
-					fputs("\n", bitzi_cache_file);
-				}
-
-				gcu_bitzi_result(data);
-			}
 		}
+		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
+		bitzi_destroy(data);
+		goto finish;
+	}
 
-		/* we are now finished with this XML doc */
-		xmlFreeDoc(doc);
+	if (request->sha1 && !sha1_eq(data->sha1, request->sha1)) {
+		if (GNET_PROPERTY(bitzi_debug))  {
+			g_warning("process_meta_data: SHA-1 mismatch");
+		}
+		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
+		bitzi_destroy(data);
+		goto finish;
 	}
 
 	/*
-	 * free used memory by the request
+	 * If the data has a valid date then we can cache the result
+	 * and re-echo the XML ticket to the file based cache.
 	 */
 
-	atom_sha1_free_null(&request->sha1);
+	if (
+		(time_t) -1 == data->expiry ||
+		delta_time(data->expiry, tm_time()) <= 0
+	) {
+		if (GNET_PROPERTY(bitzi_debug))  {
+			g_message("process_meta_data: stale bitzi data");
+		}
+		bitzi_failure(request->sha1, request->filesize, BITZI_FJ_FAILURE);
+		goto finish;
+	}
 
+	if (bitzi_cache_add(data) && bitzi_cache_file) {
+		xmlDocDump(bitzi_cache_file, doc);
+		fputs("\n", bitzi_cache_file);
+	}
+
+	if (request->filesize && request->filesize != data->size) {
+		if (GNET_PROPERTY(bitzi_debug))  {
+			g_message("process_meta_data: filesize mismatch");
+		}
+		/* We keep the ticket anyway because there's only one per SHA-1 */
+		bitzi_failure(request->sha1, request->filesize,
+			data->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
+		goto finish;
+	}
+
+	gcu_bitzi_result(data);
+
+finish:
+
+	/* we are now finished with this XML doc */
+	xmlFreeDoc(doc);
+	atom_sha1_free_null(&request->sha1);
 	wfree(request, sizeof *request);
 }
 
@@ -564,7 +611,7 @@ do_metadata_query(bitzi_request_t *req)
 	/*
 	 * check we haven't already got a response from a previous query
 	 */
-	if (NULL != bitzi_query_cache_by_sha1(req->sha1))
+	if (bitzi_has_cached_ticket(req->sha1))
 		return FALSE;
 
 	current_bitzi_request = req;
@@ -647,7 +694,7 @@ bitzi_cache_add(bitzi_data_t *data)
 }
 
 static void
-bitzi_cache_remove(bitzi_data_t * data)
+bitzi_cache_remove(bitzi_data_t *data)
 {
 	if (GNET_PROPERTY(bitzi_debug))
 		g_message("bitzi_cache_remove: %p", cast_to_gconstpointer(data));
@@ -722,20 +769,24 @@ bitzi_heartbeat(gpointer unused_data)
 	return TRUE;		/* Always requeue */
 }
 
+static bitzi_data_t *
+bitzi_query_cache_by_sha1(const struct sha1 *sha1)
+{
+	g_return_val_if_fail(NULL != sha1, FALSE);
+	return g_hash_table_lookup(bitzi_cache_ht, sha1);
+}
 
 /**************************************************************
  ** Bitzi API
  *************************************************************/
 
 /**
- * Query the bitzi cache for this given SHA-1, return NULL if
- * nothing otherwise we return the
+ * Query the bitzi cache for this given SHA-1.
  */
-bitzi_data_t *
-bitzi_query_cache_by_sha1(const struct sha1 *sha1)
+gboolean
+bitzi_has_cached_ticket(const struct sha1 *sha1)
 {
-	g_return_val_if_fail(NULL != sha1, NULL);
-	return g_hash_table_lookup(bitzi_cache_ht, sha1);
+	return NULL != bitzi_query_cache_by_sha1(sha1);
 }
 
 /**
@@ -746,8 +797,8 @@ bitzi_query_cache_by_sha1(const struct sha1 *sha1)
  * If no query succeds then the call back is never made, however we
  * should always get some sort of data back from the service.
  */
-gpointer
-bitzi_query_by_sha1(const struct sha1 *sha1)
+bitzi_data_t *
+bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 {
 	bitzi_data_t *data = NULL;
 	bitzi_request_t	*request;
@@ -755,7 +806,19 @@ bitzi_query_by_sha1(const struct sha1 *sha1)
 	g_return_val_if_fail(NULL != sha1, NULL);
 
 	data = bitzi_query_cache_by_sha1(sha1);
-	if (data == NULL) {
+	if (data) {
+		if (GNET_PROPERTY(bitzi_debug)) {
+			g_message("bitzi_query_by_sha1: result already in cache");
+		}
+
+		if (filesize && data->size != filesize) {
+			bitzi_failure(sha1, filesize,
+				data->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
+			data = NULL;
+		} else {
+			gcu_bitzi_result(data);
+		}
+	} else {
 		size_t len;
 
 		request = walloc(sizeof *request);
@@ -764,6 +827,7 @@ bitzi_query_by_sha1(const struct sha1 *sha1)
 		 * build the bitzi url
 		 */
 		request->sha1 = atom_sha1_get(sha1);
+		request->filesize = filesize;
 		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
 				bitzi_url_fmt, sha1_base32(sha1));
 		g_assert(len < sizeof request->bitzi_url);
@@ -777,10 +841,6 @@ bitzi_query_by_sha1(const struct sha1 *sha1)
 		/*
 		 * the heartbeat will pick up the request
 		 */
-	} else {
-		if (GNET_PROPERTY(bitzi_debug))
-			g_message("bitzi_query_by_sha1: result already in cache");
-				gcu_bitzi_result(data);
 	}
 
 	return data;
@@ -864,6 +924,7 @@ bitzi_load_cache(void)
 				/* new pseudo request */
 				request = walloc(sizeof *request);
 				request->sha1 = NULL;
+				request->filesize = 0;
 
 				request->ctxt = xmlCreatePushParserCtxt(
 					NULL, NULL, NULL, 0, NULL);

@@ -36,6 +36,8 @@
 
 typedef enum {
 	BITZI_FJ_UNKNOWN = 0,
+	BITZI_FJ_FAILURE,
+	BITZI_FJ_WRONG_FILESIZE,
 	BITZI_FJ_DANGEROUS_MISLEADING,
 	BITZI_FJ_INCOMPLETE_DAMAGED,
 	BITZI_FJ_SUBSTANDARD,
@@ -56,8 +58,8 @@ struct sha1;
  */
 typedef struct {
 	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
-	gchar		*mime_type;		/**< mime type */
-	gchar		*mime_desc;		/**< mime details (fps, bitrate etc) */
+	const gchar	*mime_type;		/**< mime type (string atom) */
+	const gchar	*mime_desc;		/**< mime details (fps, bitrate etc) (string atom) */
 	filesize_t	size;			/**< size of file */
 	bitzi_fj_t	judgement;
 	gfloat		goodness;
@@ -76,8 +78,8 @@ typedef struct {
  * from within the core. They do not generate notification events
  */
 
-gpointer bitzi_query_by_sha1(const struct sha1 *sha1);
-bitzi_data_t *bitzi_query_cache_by_sha1(const struct sha1 *sha1);
+gboolean bitzi_has_cached_ticket(const struct sha1 *sha1);
+bitzi_data_t *bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize);
 
 #endif /* CORE_SOURCES */
 

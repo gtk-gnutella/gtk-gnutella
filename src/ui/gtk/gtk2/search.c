@@ -119,6 +119,12 @@ get_result_data(GtkTreeModel *model, GtkTreeIter *iter)
 	return rd;
 }
 
+static gpointer
+search_gui_get_result(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	return get_result_data(model, iter);
+}
+
 gpointer
 search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter)
 {
@@ -366,10 +372,31 @@ add_column(
 	return column;
 }
 
-struct result_data *
-find_parent_with_sha1(search_t *search, gconstpointer key)
+static struct result_data *
+find_parent(search_t *search, const struct result_data *rd)
 {
-	return g_hash_table_lookup(search->parents, key);
+	struct result_data *parent;
+
+	/* NOTE: rd->record is not checked due to find_parent2() */
+	parent = g_hash_table_lookup(search->parents, rd);
+	if (parent) {
+		record_check(parent->record);
+	}
+	return parent;
+}
+
+static struct result_data *
+find_parent2(search_t *search, const struct sha1 *sha1, filesize_t filesize)
+{
+	struct result_data key;
+	record_t rc;
+
+	g_return_val_if_fail(sha1, NULL);
+
+	rc.sha1 = sha1;
+	rc.size = filesize;
+	key.record = &rc;
+  	return find_parent(search, &key);
 }
 
 static void
@@ -392,24 +419,25 @@ result_data_free(search_t *search, struct result_data *rd)
 }
 
 static gboolean
-prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path, GtkTreeIter *iter,
-	gpointer udata)
+prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer udata)
 {
 	struct result_data *rd;
 	record_t *rc;
-	search_t *search = udata;
+	search_t *search;
 
 	(void) unused_path;
 
+	search = udata;
 	rd = get_result_data(model, iter);
 	rc = rd->record;
 
 	if (rc->sha1) {
 		struct result_data *parent;
 		
-		parent = find_parent_with_sha1(search, rc->sha1);
+		parent = find_parent(search, rd);
 		if (rd == parent) {
-			g_hash_table_remove(search->parents, rc->sha1);
+			g_hash_table_remove(search->parents, rd);
 		} else if (parent) {
 			parent->children--;
 			search_gui_set_data(model, parent);
@@ -613,6 +641,28 @@ get_local_file_url(GtkWidget *widget)
 	return url;
 }
 
+guint
+search_gui_file_hash(gconstpointer key)
+{
+	const struct result_data *rd = key;
+	const record_t *rc = rd->record;
+	guint hash;
+
+	hash = rc->size;
+	hash ^= rc->size >> 31;
+	hash ^= rc->sha1 ? sha1_hash(rc->sha1) : 0;
+	return hash;
+}
+
+gint
+search_gui_file_eq(gconstpointer p, gconstpointer q)
+{
+	const struct result_data *rd_a = p, *rd_b = q;
+	const record_t *a = rd_a->record, *b = rd_b->record;
+
+	return a->sha1 == b->sha1 && a->size == b->size;
+}
+
 
 /**
  * @returns TRUE if search was sucessfully created and FALSE if an error
@@ -681,8 +731,8 @@ search_gui_new_search_full(const gchar *query_str,
  
 	sch->search_handle = sch_id;
 	sch->dups = g_hash_table_new(search_gui_hash_func,
-					search_gui_hash_key_compare);
-	sch->parents = g_hash_table_new(sha1_hash, sha1_eq);
+						search_gui_hash_key_compare);
+	sch->parents = g_hash_table_new(search_gui_file_hash, search_gui_file_eq);
 	sch->queue = slist_new();
 
 	search_gui_filter_new(sch, query->rules);
@@ -2186,10 +2236,10 @@ search_gui_end_massive_update(search_t *sch)
 void
 search_gui_request_bitzi_data(void)
 {
-	guint32 bitzi_debug;
-	search_t *search;
 	GtkTreeSelection *selection;
 	GSList *sl, *sl_records;
+	guint32 bitzi_debug;
+	search_t *search;
 
 	/* collect the list of files selected */
 
@@ -2197,7 +2247,7 @@ search_gui_request_bitzi_data(void)
 	g_assert(search != NULL);
 
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
-	sl_records = tree_selection_collect_data(selection, search_gui_get_record,
+	sl_records = tree_selection_collect_data(selection, search_gui_get_result,
 					gui_record_sha1_eq);
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
@@ -2221,20 +2271,17 @@ search_gui_request_bitzi_data(void)
 
 	/* Queue up our requests */
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
+		struct result_data *rd;
 		record_t *rc;
 
-		rc = sl->data;
+		rd = sl->data;
+		rc = rd->record;
+		record_check(rc);
 		if (rc->sha1) {
-			struct result_data *rd;
-
-			rd = find_parent_with_sha1(search, rc->sha1);
-			g_assert(rd);
-			
 			/* set the feedback */
-			rd->meta = atom_str_get(_("Query queued..."));
-
+			atom_str_change(&rd->meta, _("Query queued..."));
 			/* then send the query... */
-	    	guc_query_bitzi_by_sha1(rc->sha1);
+	    	guc_query_bitzi_by_sha1(rc->sha1, rc->size);
 		}
     }
 
@@ -2258,12 +2305,12 @@ search_gui_metadata_update(const bitzi_data_t *data)
 
 	for (iter = searches; iter != NULL; iter = g_list_next(iter)) {
 		struct result_data *rd;
-		search_t *search = iter->data;
-
-	   	rd = find_parent_with_sha1(search, data->sha1);
+		search_t *search;
+	
+		search = iter->data;
+	   	rd = find_parent2(search, data->sha1, data->size);
 		if (rd) {
-			rd->meta = atom_str_get(text ? text : _("Not in database"));
-			text = NULL;
+			atom_str_change(&rd->meta, text ? text : _("Not in database"));
 			
 			/* Re-store the parent to refresh the display/sorting */
 			search_gui_set_data(gtk_tree_view_get_model(search->tree), rd);
@@ -2397,47 +2444,41 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 
 static void
 search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
-	struct result_data *data)
+	struct result_data *rd)
 {
 	GtkTreeIter *parent_iter;
 	record_t *rc;
 
-	rc = data->record;
+	rc = rd->record;
+	record_check(rc);
 
 	if (rc->sha1) {
 		struct result_data *parent;
 
-		parent = find_parent_with_sha1(search, rc->sha1);
-		record_check(data->record);
+		parent = find_parent(search, rd);
 		parent_iter = parent ? &parent->iter : NULL;
 		if (parent) {
+			record_check(parent->record);
 			parent->children++;
 			/* Re-store the parent to refresh the display/sorting */
 			search_gui_set_data(model, parent);
 		} else {
-			gm_hash_table_insert_const(search->parents, rc->sha1, data);
+			gm_hash_table_insert_const(search->parents, rd, rd);
 		}
 	} else {
 		parent_iter = NULL;
 	}
 
-	gtk_tree_store_append(GTK_TREE_STORE(model), &data->iter, parent_iter);
+	gtk_tree_store_append(GTK_TREE_STORE(model), &rd->iter, parent_iter);
+	search_gui_set_data(model, rd);
 
 	/*
 	 * There might be some metadata about this record already in the
 	 * cache. If so lets update the GUI to reflect this.
 	 */
-	if (NULL != rc->sha1) {
-		bitzi_data_t *bd = guc_query_cache_bitzi_by_sha1(rc->sha1);
-
-		if (bd) {
-			const gchar *text = bitzi_gui_get_metadata(bd);
-			if (text) {
-				data->meta = atom_str_get(text);
-			}
-		}
+	if (NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
+		guc_query_bitzi_by_sha1(rc->sha1, rc->size);
 	}
-	search_gui_set_data(model, data);
 }
 
 static void

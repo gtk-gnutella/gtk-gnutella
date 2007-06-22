@@ -54,6 +54,8 @@ RCSID("$Id$")
 
 static const gchar * const bitzi_fj_table[] = {
 	N_("Bitzi|Unknown"),				/**< UNKNOWN */
+	N_("Bitzi|Bitzi lookup failure"),	/**< FAILURE */
+	N_("Bitzi|Filesize mismatch"),		/**< WRONG_FILESIZE */
 	N_("Bitzi|Dangerous/Misleading"),	/**< DANGEROUS_MISLEADING */
 	N_("Bitzi|Incomplete/Damaged"),		/**< INCOMPLETE_DAMAGED */
 	N_("Bitzi|Substandard"),			/**< SUBSTANDARD */
@@ -69,8 +71,8 @@ const gchar *
 bitzi_fj_to_string(bitzi_fj_t fj)
 {
 	STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(bitzi_fj_table));
-	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
-	return Q_(bitzi_fj_table[fj]);
+	g_assert(UNSIGNED(fj) < G_N_ELEMENTS(bitzi_fj_table));
+	return Q_(bitzi_fj_table[UNSIGNED(fj)]);
 }
 
 void
@@ -105,7 +107,12 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 	 * Build string
 	 */
 
-	if (data->mime_type) {
+	if (
+		data->judgement == BITZI_FJ_FAILURE ||
+		data->judgement == BITZI_FJ_WRONG_FILESIZE
+	) {
+		return g_strdup(bitzi_fj_to_string(data->judgement));
+	} else if (data->mime_type) {
 		if (data->mime_desc) {
 			return g_strdup_printf("%s (%1.1f): %s (%s)",
 					bitzi_fj_to_string(data->judgement),
@@ -118,13 +125,11 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 					data->goodness,
 					data->mime_type);
 		}
-	} else {
-		if (data->judgement != BITZI_FJ_UNKNOWN) {
-			return g_strdup_printf("%s (%1.1f): %s",
-					bitzi_fj_to_string(data->judgement),
-					data->goodness,
-					_("No other data"));
-		}
+	} else if (data->judgement != BITZI_FJ_UNKNOWN) {
+		return g_strdup_printf("%s (%1.1f): %s",
+				bitzi_fj_to_string(data->judgement),
+				data->goodness,
+				_("No other data"));
 	}
 
 	return NULL;

@@ -78,15 +78,15 @@ guc_adns_resolve(const gchar *hostname,
 /*	bitzi interface functions (UI -> Core)*/
 
 void
-guc_query_bitzi_by_sha1(const struct sha1 *sha1)
+guc_query_bitzi_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 {
-    bitzi_query_by_sha1(sha1);
+    bitzi_query_by_sha1(sha1, filesize);
 }
 
-bitzi_data_t *
-guc_query_cache_bitzi_by_sha1(const struct sha1 *sha1)
+gboolean
+guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
 {
-    return bitzi_query_cache_by_sha1(sha1);
+	return bitzi_has_cached_ticket(sha1);
 }
 
 /*	download and src interface functions (UI -> Core)*/

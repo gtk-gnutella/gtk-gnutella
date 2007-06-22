@@ -2669,7 +2669,7 @@ search_gui_queue_bitzi_by_sha1(const record_t *rec)
 	}
 
 	/* and then send the query... */
-	guc_query_bitzi_by_sha1(rec->sha1);
+	guc_query_bitzi_by_sha1(rec->sha1, rec->size);
 }
 
 GSList *
