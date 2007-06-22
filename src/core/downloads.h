@@ -116,8 +116,6 @@ void download_maybe_finished(struct download *d);
 gboolean download_handle_http(const gchar *url);
 gboolean download_is_stalled(struct download *d);
 
-const GSList *downloads_get_list(void);
-
 #endif /* _core_downloads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
