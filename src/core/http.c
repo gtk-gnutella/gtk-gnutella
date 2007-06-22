@@ -290,6 +290,22 @@ http_hostname_add(gchar *buf, size_t size, gpointer unused_arg, guint32 flags)
 	return len < size ? len : 0;
 }
 
+/**
+ * HTTP status callback.
+ *
+ * Add a Retry-After header.
+ */
+size_t
+http_retry_after_add(gchar *buf, size_t size, gpointer arg, guint32 flags)
+{
+	size_t len;
+
+	len = concat_strings(buf, size,
+			"Retry-After: ", uint32_to_string(GPOINTER_TO_UINT(arg)), "\r\n",
+			(void *) 0);
+	return len < size ? len : 0;
+}
+
 /***
  *** HTTP parsing.
  ***/

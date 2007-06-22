@@ -248,6 +248,8 @@ gboolean http_send_status(struct gnutella_socket *s,
 
 size_t http_hostname_add(
 	gchar *buf, size_t size, gpointer arg, guint32 flags);
+size_t http_retry_after_add(
+	gchar *buf, size_t size, gpointer arg, guint32 flags);
 
 gint http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, guint *major, guint *minor);
