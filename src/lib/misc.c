@@ -2037,20 +2037,44 @@ random_raw(void)
 	return (guint32) random() & RANDOM_MASK;
 }
 
+static void
+sha1_feed_ulong(SHA1Context *ctx, gulong value)
+{
+	SHA1Input(ctx, &value, sizeof value);
+}
+
+static void
+sha1_feed_double(SHA1Context *ctx, gdouble value)
+{
+	SHA1Input(ctx, &value, sizeof value);
+}
+
+static void
+sha1_feed_pointer(SHA1Context *ctx, gconstpointer p)
+{
+	SHA1Input(ctx, &p, sizeof p);
+}
+
+static void
+sha1_feed_string(SHA1Context *ctx, const gchar *s)
+{
+	if (s) {
+		SHA1Input(ctx, s, strlen(s));
+	}
+}
+
 /**
  * Initialize random number generator.
  */
 void
 random_init(void)
 {
+	static struct stat buf;	/* static so that it's initialized */
 	FILE *f = NULL;
 	SHA1Context ctx;
-	struct stat buf;
 	tm_t start, end;
 	guint32 seed;
 	struct sha1 digest;
-	guint32 sys[17];
-	gint i;
 	gboolean is_pipe = TRUE;
 
 	/*
@@ -2060,6 +2084,7 @@ random_init(void)
 	tm_now_exact(&start);
 
 	SHA1Reset(&ctx);
+	SHA1Input(&ctx, &start, sizeof start);
 
 	/*
 	 * If we have a /dev/urandom character device, use it.
@@ -2069,13 +2094,15 @@ random_init(void)
 	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 		f = fopen("/dev/urandom", "r");
 		is_pipe = FALSE;
-	}
-	else if (-1 != stat("/bin/ps", &buf))
+	} else if (-1 != stat("/bin/ps", &buf)) {
 		f = popen("/bin/ps -ef", "r");
-	else if (-1 != stat("/usr/bin/ps", &buf))
+	} else if (-1 != stat("/usr/bin/ps", &buf)) {
 		f = popen("/usr/bin/ps -ef", "r");
-	else if (-1 != stat("/usr/ucb/ps", &buf))
+	} else if (-1 != stat("/usr/ucb/ps", &buf)) {
 		f = popen("/usr/ucb/ps aux", "r");
+	}
+	
+	SHA1Input(&ctx, &buf, sizeof buf);
 
 	if (f == NULL)
 		g_warning("was unable to %s on your system",
@@ -2107,38 +2134,40 @@ random_init(void)
 	 * Add timing entropy.
 	 */
 
-	i = 0;
-	sys[i++] = start.tv_sec;
-	sys[i++] = start.tv_usec;
-
 	{
 		gdouble u, s;
 	   	
-		sys[i++] = tm_cputime(&u, &s);
-		sys[i++] = u;
-		sys[i++] = s;
+		sha1_feed_double(&ctx, tm_cputime(&u, &s));
+		sha1_feed_double(&ctx, u);
+		sha1_feed_double(&ctx, s);
+	}
+
+	/* Add some host/user dependent noise */
+	sha1_feed_ulong(&ctx, getuid());
+	sha1_feed_ulong(&ctx, getgid());
+	sha1_feed_ulong(&ctx, getpid());
+	sha1_feed_ulong(&ctx, getppid());
+
+	sha1_feed_string(&ctx, __DATE__);
+	sha1_feed_string(&ctx, __TIME__);
+	sha1_feed_string(&ctx, g_get_user_name());
+	sha1_feed_string(&ctx, g_get_real_name());
+	sha1_feed_string(&ctx, g_get_home_dir());
+	
+	sha1_feed_pointer(&ctx, &ctx);
+	sha1_feed_pointer(&ctx, &random_init);
+
+	{
+		extern char **environ;
+		size_t i;
+
+		for (i = 0; NULL != environ[i]; i++) {
+			sha1_feed_string(&ctx, environ[i]);
+		}
 	}
 
 	tm_now_exact(&end);
-	sys[i++] = end.tv_sec - start.tv_sec;
-	sys[i++] = end.tv_usec - start.tv_usec;
-	
-	/* Add some host/user dependent noise */	
-	sys[i++] = getuid();
-	sys[i++] = getgid();
-	sys[i++] = getpid();
-	sys[i++] = getppid();
-
-	sys[i++] = g_str_hash(__DATE__);
-	sys[i++] = g_str_hash(__TIME__);
-	sys[i++] = g_str_hash(g_get_user_name());
-	sys[i++] = g_str_hash(g_get_real_name());
-	sys[i++] = g_str_hash(g_get_home_dir());
-
-	sys[i++] = GPOINTER_TO_UINT(&sys);
-
-	g_assert(i == G_N_ELEMENTS(sys));	
-	SHA1Input(&ctx, (guint8 *) sys, sizeof(sys));
+	SHA1Input(&ctx, &end, sizeof end);
 
 	/*
 	 * Reduce SHA1 to a single guint32.
