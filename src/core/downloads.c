@@ -84,6 +84,7 @@
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/palloc.h"
 #include "lib/magnet.h"
