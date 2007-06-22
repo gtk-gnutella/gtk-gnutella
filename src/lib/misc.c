@@ -2069,7 +2069,7 @@ sha1_feed_string(SHA1Context *ctx, const gchar *s)
 void
 random_init(void)
 {
-	static struct stat buf;	/* static so that it's initialized */
+	struct stat buf;
 	FILE *f = NULL;
 	SHA1Context ctx;
 	tm_t start, end;
@@ -2094,15 +2094,14 @@ random_init(void)
 	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 		f = fopen("/dev/urandom", "r");
 		is_pipe = FALSE;
-	} else if (-1 != stat("/bin/ps", &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	} else if (-1 != access("/bin/ps", X_OK)) {
 		f = popen("/bin/ps -ef", "r");
-	} else if (-1 != stat("/usr/bin/ps", &buf)) {
+	} else if (-1 != access("/usr/bin/ps", X_OK)) {
 		f = popen("/usr/bin/ps -ef", "r");
-	} else if (-1 != stat("/usr/ucb/ps", &buf)) {
+	} else if (-1 != access("/usr/ucb/ps", X_OK)) {
 		f = popen("/usr/ucb/ps aux", "r");
 	}
-	
-	SHA1Input(&ctx, &buf, sizeof buf);
 
 	if (f == NULL)
 		g_warning("was unable to %s on your system",
@@ -2150,9 +2149,19 @@ random_init(void)
 
 	sha1_feed_string(&ctx, __DATE__);
 	sha1_feed_string(&ctx, __TIME__);
+	sha1_feed_string(&ctx, "$Id$");
 	sha1_feed_string(&ctx, g_get_user_name());
 	sha1_feed_string(&ctx, g_get_real_name());
-	sha1_feed_string(&ctx, g_get_home_dir());
+
+	{
+		const gchar *path;
+		
+		path = g_get_home_dir();
+		sha1_feed_string(&ctx, path);
+		if (path && -1 != stat(path, &buf)) {
+			SHA1Input(&ctx, &buf, sizeof buf);
+		}
+	}
 	
 	sha1_feed_pointer(&ctx, &ctx);
 	sha1_feed_pointer(&ctx, &random_init);
