@@ -2452,6 +2452,8 @@ handle_head_pong_v1(const struct head_ping_source *source,
 			 * over UDP. */
 			dmesh_add_alternate(source->ping.sha1,
 				source->ping.addr, source->ping.port);
+			dmesh_good_mark(source->ping.sha1,
+				source->ping.addr, source->ping.port, TRUE);
 		}
 		break;
 	}
@@ -2636,6 +2638,8 @@ handle_head_pong_v2(const struct head_ping_source *source,
 			 * over UDP. */
 			dmesh_add_alternate(source->ping.sha1,
 				source->ping.addr, source->ping.port);
+			dmesh_good_mark(source->ping.sha1,
+				source->ping.addr, source->ping.port, TRUE);
 		}
 		break;
 	}
