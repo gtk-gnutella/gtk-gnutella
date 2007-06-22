@@ -2161,6 +2161,12 @@ random_init(void)
 		if (path && -1 != stat(path, &buf)) {
 			SHA1Input(&ctx, &buf, sizeof buf);
 		}
+		if (-1 != stat(".", &buf)) {
+			SHA1Input(&ctx, &buf, sizeof buf);
+		}
+		if (-1 != stat("..", &buf)) {
+			SHA1Input(&ctx, &buf, sizeof buf);
+		}
 	}
 	
 	sha1_feed_pointer(&ctx, &ctx);
