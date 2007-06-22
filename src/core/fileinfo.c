@@ -1461,6 +1461,7 @@ file_info_shared_sha1(const struct sha1 *sha1)
 				shared_file_check(fi->sf);
 			} else {
 				shared_file_from_fileinfo(fi);
+				file_info_changed(fi);
 			}
 			return fi->sf;
 		}
