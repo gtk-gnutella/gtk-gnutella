@@ -11042,22 +11042,33 @@ download_close(void)
 			}
 			buffers_free(d);
 		}
-		if (d->push)
+		if (d->push) {
 			download_push_remove(d);
-		if (d->io_opaque)
-			io_free(d->io_opaque);
-		if (d->bio)
-			bsched_source_remove(d->bio);
-		socket_free_null(&d->socket);
-		download_set_sha1(d, NULL);
-		if (d->ranges)
-			http_range_free(d->ranges);
-		if (d->req)
-			http_buffer_free(d->req);
-		if (d->cproxy)
-			cproxy_free(d->cproxy);
+		}
 		browse_host_dl_free(&d->browse);
 		thex_download_free(&d->thex);
+		if (d->io_opaque) {
+			io_free(d->io_opaque);
+			d->io_opaque = NULL;
+		}
+		if (d->bio) {
+			bsched_source_remove(d->bio);
+			d->bio = NULL;
+		}
+		socket_free_null(&d->socket);
+		download_set_sha1(d, NULL);
+		if (d->ranges) {
+			http_range_free(d->ranges);
+			d->ranges = NULL;
+		}
+		if (d->req) {
+			http_buffer_free(d->req);
+			d->req = NULL;
+		}
+		if (d->cproxy) {
+			cproxy_free(d->cproxy);
+			d->cproxy = NULL;
+		}
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
@@ -11067,6 +11078,7 @@ download_close(void)
 		atom_str_free_null(&d->uri);
 		file_object_release(&d->out_file);	/* Close output file */
 
+		hash_list_remove(sl_downloads, d);
 		download_free(&d);
 	}
 
