@@ -475,7 +475,11 @@ ban_reclaim_fd(void)
 void
 ban_force(struct gnutella_socket *s)
 {
-	gint fd = s->file_desc;
+	gint fd;
+
+	socket_check(s);
+	fd = s->file_desc;
+	g_return_if_fail(fd >= 0);
 
 	if (GNET_PROPERTY(banned_count) >= GNET_PROPERTY(max_banned_fd)) {
 		g_assert(banned_tail);
@@ -484,6 +488,9 @@ ban_force(struct gnutella_socket *s)
 
 		reclaim_fd();
 	}
+
+	/* Ensure we're not listening to I/O events anymore. */
+	socket_evt_clear(s);
 
 	/*
 	 * Shrink socket buffers.
