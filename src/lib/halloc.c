@@ -331,17 +331,21 @@ halloc_init_vtable(void)
 void
 halloc_init(void)
 {
-	/* NOTE: This string is not read-only because it will be overwritten
-	 *		 by gm_setproctitle() as it becomes part of the environment.
-	 *	     This happens at least on some Linux systems.
-	 */
-	static char variable[] = "G_SLICE=always-malloc";
 	static int initialized;
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
 
-	putenv(variable);
+#if GLIB_CHECK_VERSION(2,0,0)
+	{
+		/* NOTE: This string is not read-only because it will be overwritten
+		 *		 by gm_setproctitle() as it becomes part of the environment.
+		 *	     This happens at least on some Linux systems.
+		 */
+		static char variable[] = "G_SLICE=always-malloc";
+		putenv(variable);
+	}
+#endif	/* GLib >= 2.0 */
 	
 	use_page_table = (size_t)-1 == (guint32)-1 && compat_pagesize() == 4096;
 	page_threshold = compat_pagesize() - sizeof(union align);
