@@ -71,9 +71,9 @@ static GHashTable *parents_gui_time;	/**< Time at which parent was updated */
 static GHashTable *parents_children;
 static GHashTable *parents_queue_children;
 
-static GtkCTree *ctree_downloads = NULL;
-static GtkCTree *ctree_downloads_queue = NULL;
-static GtkNotebook *notebook = NULL;
+static GtkCTree *ctree_downloads;
+static GtkCTree *ctree_downloads_queue;
+static GtkNotebook *notebook;
 
 static gboolean ctree_downloads_frozen = FALSE;
 static gboolean ctree_downloads_queue_frozen = FALSE;
@@ -467,7 +467,8 @@ void gui_update_download_hostcount(struct download *d)
 /**
  * Initialize local data structures.
  */
-void downloads_gui_init(void)
+void
+downloads_gui_init(void)
 {
     GtkCList *clist_queue;
     GtkCList *clist;
@@ -1502,19 +1503,25 @@ gui_update_download_abort_resume(void)
     gboolean do_queue  = FALSE;
     gboolean abort_sha1 = FALSE;
 
+	/*
+	 * settings_gui_init() triggers this function before downloads_gui_init()
+	 * has run.
+	 */
+	if (NULL == ctree_downloads)
+		return;
+
     node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads,
 		node_list, FALSE, TRUE);
 
     for (l = data_list; NULL != l; l = g_list_next(l)) {
-		d = (struct download *) l->data;
-
-        if (!d) {
-			g_warning
-				("gui_update_download_abort_resume(): row has NULL data\n");
+		d = l->data;
+        if (NULL == d) {
+			g_warning("gui_update_download_abort_resume(): row has NULL data");
 			continue;
 		}
 
+		download_check(d);
 		g_assert(d->status != GTA_DL_REMOVED);
 
 		switch (d->status) {
