@@ -10905,11 +10905,12 @@ download_resume_bg_tasks(void)
 		next = hash_list_next(sl_downloads, next);
 
 		download_check(d);
-		fi = d->file_info;
-		file_info_check(fi);
 
 		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
 			continue;
+
+		fi = d->file_info;
+		file_info_check(fi);
 
 		if (fi->flags & FI_F_MARK)		/* Already processed */
 			continue;
@@ -11008,11 +11009,11 @@ download_resume_bg_tasks(void)
 		download_check(d);
 		next = hash_list_next(sl_downloads, next);
 
-		fi = d->file_info;
-		file_info_check(fi);
-
 		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
 			continue;
+
+		fi = d->file_info;
+		file_info_check(fi);
 
 		fi->flags &= ~FI_F_MARK;
 	}
