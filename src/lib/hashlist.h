@@ -44,14 +44,13 @@ void hash_list_moveto_head(hash_list_t *hl, gconstpointer key);
 void hash_list_moveto_tail(hash_list_t *hl, gconstpointer key);
 gpointer hash_list_head(const hash_list_t *hl);
 gpointer hash_list_tail(const hash_list_t *hl);
+gpointer hash_list_next(hash_list_t *hl, gconstpointer key);
 guint hash_list_length(const hash_list_t *hl);
 
 hash_list_iter_t *hash_list_iterator(hash_list_t *hl);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *hl);
 void hash_list_iter_release(hash_list_iter_t **iter_ptr);
 gboolean hash_list_iter_has_next(const hash_list_iter_t *i);
-gboolean hash_list_iter_has_previous(const hash_list_iter_t *i);
-gboolean hash_list_iter_has_follower(const hash_list_iter_t *i);
 gpointer hash_list_iter_next(hash_list_iter_t *i);
 gpointer hash_list_iter_previous(hash_list_iter_t *i);
 gpointer hash_list_iter_follower(hash_list_iter_t *i);

@@ -647,6 +647,21 @@ hash_list_contains(hash_list_t *hl, gconstpointer key,
 }
 
 /**
+ * Get the next item after a given key.
+ */
+gpointer
+hash_list_next(hash_list_t *hl, gconstpointer key)
+{
+	struct hash_list_item *item;
+
+	hash_list_check(hl);
+
+	item = g_hash_table_lookup(hl->ht, key);
+	item = item ? g_list_nth_data(item->list, 1) : NULL;
+	return item ? deconstify_gpointer(item->orig_key) : NULL;
+}
+
+/**
  * Apply `func' to all the items in the structure.
  */
 void
