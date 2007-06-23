@@ -190,7 +190,8 @@ eval_subst(const gchar *str)
 
 		switch (c) {
 		case '~':
-			if (start == buf) {		/* Leading ~ only */
+			if (start == buf && ('\0' == buf[1] || '/' == buf[1])) {
+				/* Leading ~ only */
 				val = home;
 				g_assert(val);
 				memmove(start, &start[1], len - (start - buf));
