@@ -119,12 +119,6 @@ get_result_data(GtkTreeModel *model, GtkTreeIter *iter)
 	return rd;
 }
 
-static gpointer
-search_gui_get_result(GtkTreeModel *model, GtkTreeIter *iter)
-{
-	return get_result_data(model, iter);
-}
-
 gpointer
 search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter)
 {
@@ -1340,8 +1334,10 @@ remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
 		tmp = *rd;
 		*rd = *child_data;
 		*child_data = tmp;
+
 		rd->iter = *iter;
 		rd->children = children;
+		atom_str_change(&rd->meta, child_data->meta);
 
 		/* And remove the child's row */
 		iter = &child;
@@ -1384,7 +1380,7 @@ download_selected_all_files(GtkTreeModel *model, GtkTreePath *path,
 
 static void
 collect_all_iters(GtkTreeModel *model, GtkTreePath *path,
-		GtkTreeIter *iter, gpointer data)
+	GtkTreeIter *iter, gpointer data)
 {
 	struct selection_ctx *ctx = data;
 
@@ -2232,60 +2228,99 @@ search_gui_end_massive_update(search_t *sch)
 	g_object_thaw_notify(G_OBJECT(sch->tree));
 }
 
+static void
+collect_parents_with_sha1(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer data)
+{
+	GtkTreeIter parent_iter;
+	struct result_data *rd;
+
+	g_assert(data);
+	(void) unused_path;
+
+	if (gtk_tree_model_iter_parent(model, &parent_iter, iter)) {
+		iter = &parent_iter;
+	}
+	rd = get_result_data(model, iter);
+	if (rd->record->sha1) {
+		g_hash_table_insert(data, rd, rd);
+	}
+}
+
+static void
+search_gui_request_bitzi_data_helper(gpointer key,
+	gpointer unused_value, gpointer unused_udata)
+{
+	struct result_data *rd;
+
+	(void) unused_value;
+	(void) unused_udata;
+	
+	rd = key;
+	record_check(rd->record);
+	g_return_if_fail(rd->record->sha1);
+
+	atom_str_change(&rd->meta, _("Query queued..."));
+	guc_query_bitzi_by_sha1(rd->record->sha1, rd->record->size);
+}
+
+static void
+search_gui_make_meta_column_visible(search_t *search)
+{
+	static const int min_width = 80;
+	GtkTreeViewColumn *column;
+	gint width;
+
+	g_return_if_fail(search);
+	g_return_if_fail(search->tree);
+
+	column = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree), c_sr_meta);
+	g_return_if_fail(column);
+
+	gtk_tree_view_column_set_visible(column, TRUE);
+	width = gtk_tree_view_column_get_width(column);
+	if (width < min_width) {
+		gtk_tree_view_column_set_fixed_width(column, min_width);
+	}
+}
 
 void
 search_gui_request_bitzi_data(void)
 {
 	GtkTreeSelection *selection;
-	GSList *sl, *sl_records;
-	guint32 bitzi_debug;
+	GHashTable *results;
 	search_t *search;
 
 	/* collect the list of files selected */
 
 	search = search_gui_get_current_search();
-	g_assert(search != NULL);
+	g_return_if_fail(search);
 
+	g_object_freeze_notify(G_OBJECT(search->tree));
+
+	results = g_hash_table_new(NULL, NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
-	sl_records = tree_selection_collect_data(selection, search_gui_get_result,
-					gui_record_sha1_eq);
+	gtk_tree_selection_selected_foreach(selection,
+		collect_parents_with_sha1, results);
 
-    gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug)
-		g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
-
-	/* Make sure the column is actually visible. */
 	{
-		static const int min_width = 80;
-		GtkTreeViewColumn *col;
-		gint w;
-		
-		col = gtk_tree_view_get_column(GTK_TREE_VIEW(search->tree),
-				c_sr_meta);
-		g_assert(NULL != col);
-		gtk_tree_view_column_set_visible(col, TRUE);
-		w = gtk_tree_view_column_get_width(col);
-		if (w < min_width)
-			gtk_tree_view_column_set_fixed_width(col, min_width);
+		guint32 bitzi_debug;
+
+		gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
+		if (bitzi_debug) {
+			g_message("on_search_meta_data: %u items",
+					g_hash_table_size(results));
+		}
 	}
 
-	/* Queue up our requests */
-	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
-		struct result_data *rd;
-		record_t *rc;
+	g_hash_table_foreach(results, search_gui_request_bitzi_data_helper, NULL);
+	g_hash_table_destroy(results);
+	results = NULL;
 
-		rd = sl->data;
-		rc = rd->record;
-		record_check(rc);
-		if (rc->sha1) {
-			/* set the feedback */
-			atom_str_change(&rd->meta, _("Query queued..."));
-			/* then send the query... */
-	    	guc_query_bitzi_by_sha1(rc->sha1, rc->size);
-		}
-    }
-
-	g_slist_free(sl_records);
+	/* Make sure the column is actually visible. */
+	search_gui_make_meta_column_visible(search);
+	
+	g_object_thaw_notify(G_OBJECT(search->tree));
 }
 
 /**
