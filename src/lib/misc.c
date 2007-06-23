@@ -2172,6 +2172,16 @@ random_init(void)
 	if (-1 != stat("..", &buf)) {
 		SHA1Input(&ctx, &buf, sizeof buf);
 	}
+
+#ifdef HAS_UNAME
+	{
+		struct utsname un;
+		
+		if (-1 != uname(&un)) {
+			SHA1Input(&ctx, &un, sizeof un);
+		}
+	}
+#endif	/* HAS_UNAME */
 	
 	sha1_feed_pointer(&ctx, &ctx);
 	sha1_feed_pointer(&ctx, &random_init);
