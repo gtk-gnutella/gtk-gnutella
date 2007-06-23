@@ -387,16 +387,16 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 	s = xml_get_string(node, "format");
 	if (s) {
-		if (xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("video"))) {
+		/*
+		 * copy the mime type
+		 */
+		atom_str_change(&data->mime_type, s);
+
+		if (is_strcaseprefix(s, "video")) {
 			gchar *xml_width = xml_get_string(node, "videoWidth");
 			gchar *xml_height = xml_get_string(node, "videoHeight");
 			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
 			gchar *xml_fps = xml_get_string(node, "videoFPS");
-
-			/*
-			 * copy the mime type
-			 */
-			atom_str_change(&data->mime_type, s);
 
 			/*
 			 * format the mime details
@@ -421,10 +421,28 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 				atom_str_change(&data->mime_desc, desc);
 			}
-		} else if (
-			xmlStrstr(string_to_xmlChar(s), string_to_xmlChar("audio"))
-		) {
-			atom_str_change(&data->mime_desc, s);
+		} else if (is_strcaseprefix(s, "audio")) {
+			gchar *duration = xml_get_string(node, "duration");
+			gchar *kbps = xml_get_string(node, "audioBitrate");
+			gchar *channels = xml_get_string(node, "audioChannels");
+			gchar *samplerate = xml_get_string(node, "audioSamplerate");
+			guint32 seconds;
+			gchar desc[256];
+
+			if (duration) {
+				gint error;
+				seconds = parse_uint32(duration, NULL, 10, &error) / 1000;
+			} else {
+				seconds = 0;
+			}
+
+			gm_snprintf(desc, sizeof desc, "%s%s%s%s%s%s%s",
+				kbps ? kbps : "", kbps ? "kbps " : "",
+				samplerate ? samplerate : "", samplerate ? "Hz " : "",
+				channels ? channels : "", channels ? "ch " : "",
+				seconds ? short_time(seconds) : "");
+
+			atom_str_change(&data->mime_desc, desc);
 		}
 	}
 
