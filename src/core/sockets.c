@@ -1649,10 +1649,15 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 					short_time(ban_delay(s->addr)), msg);
             }
 
-			if (is_strprefix(first, GNUTELLA_HELLO))
-				send_node_error(s, 403, "%s", msg);
-			else
-				http_send_status(s, 403, FALSE, NULL, 0, "%s", msg);
+			if (is_strprefix(first, GNUTELLA_HELLO)) {
+				send_node_error(s, 503, "%s", msg);
+			} else {
+				http_extra_desc_t hev;
+
+				http_extra_callback_set(&hev, http_retry_after_add,
+					GUINT_TO_POINTER(ban_delay(s->addr)));
+				http_send_status(s, 503, FALSE, &hev, 1, "%s", msg);
+			}
 		}
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
@@ -1661,20 +1666,16 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 				short_time_ascii(ban_delay(s->addr)));
 		else {
 			gint delay = ban_delay(s->addr);
-			gchar msg[80];
 			http_extra_desc_t hev;
 
-			gm_snprintf(msg, sizeof(msg)-1, "Retry-After: %d\r\n", delay);
-
-			hev.he_type = HTTP_EXTRA_LINE;
-			hev.he_msg = msg;
-
-			http_send_status(s, 550, FALSE, &hev, 1, "Banned for %s",
-				short_time_ascii(delay));
+			http_extra_callback_set(&hev, http_retry_after_add,
+				GUINT_TO_POINTER(delay));
+			http_send_status(s, 550, FALSE, &hev, 1,
+				"Banned for %s", short_time_ascii(delay));
 		}
 		goto cleanup;
 	default:
-		g_assert(0);			/* Not reached */
+		g_assert_not_reached();
 	}
 
 	/*
