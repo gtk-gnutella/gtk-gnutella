@@ -5240,15 +5240,6 @@ selected:
 }
 
 /**
- * @return a dl_file_info if there's an active one with the same sha1.
- */
-static fileinfo_t *
-file_info_active(const struct sha1 *sha1)
-{
-	return g_hash_table_lookup(fi_by_sha1, sha1);
-}
-
-/**
  * Called when we add something to the dmesh.
  *
  * Add the corresponding file to the download list if we're swarming
@@ -5270,7 +5261,7 @@ file_info_try_to_swarm_with(
 	if (!can_swarm)				/* Downloads not initialized yet */
 		return;
 
-	fi = file_info_active(sha1);
+	fi = file_info_by_sha1(sha1);
 	if (!fi)
 		return;
 
