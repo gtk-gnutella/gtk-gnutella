@@ -2152,10 +2152,11 @@ random_init(void)
 	sha1_feed_string(&ctx, __TIME__);
 	sha1_feed_string(&ctx, "$Id$");
 
-#if GLIB_CHECK_VERSION(2,0,0)
+#if GLIB_CHECK_VERSION(2,6,0)
 	/*
-	 * These functions cannot be used with an unpatched GLib 1.2
-	 * on some systems as they trigger a bug in GLib causing a crash.
+	 * These functions cannot be used with an unpatched GLib 1.2 on some
+	 * systems as they trigger a bug in GLib causing a crash.  On Darwin
+	 * there's still a problem before GLib 2.6 due to a bug in Darwin though.
 	 */
 	sha1_feed_string(&ctx, g_get_user_name());
 	sha1_feed_string(&ctx, g_get_real_name());
