@@ -127,7 +127,7 @@ typedef struct search_ctrl {
 	GSList *muids;		/**< Message UIDs of this search */
 
 	sbool passive;	/**< Is this a passive search? */
-	sbool frozen;	/**< XXX: If TRUE, the query is not issued to nodes
+	sbool frozen;	/**< NOTE: If TRUE, the query is not issued to nodes
 				  		anymore and "don't update window" */
 	sbool browse;	/**< Special "browse host" search */
 	sbool local;	/**< Special "local" search */
@@ -1127,7 +1127,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					size_t paylen = ext_paylen(e);
 					gnet_record_t *rc;
 
-					/* XXX: Add the XML data to the next best record.
+					/* FIXME: Add the XML data to the next best record.
 					 *		Maybe better to all? It's just an atom.
 					 */
 					rc = rs->records ? rs->records->data : NULL; 
@@ -2389,7 +2389,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 * If we're a leaf node, broadcast to all our ultra peers.
 	 * If we're a regular node, broadcast to all peers.
 	 *
-	 * XXX Drop support for regular nodes after 0.95 --RAM, 2004-08-31.
+	 * FIXME: Drop support for regular nodes after 0.95 --RAM, 2004-08-31.
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
@@ -3174,7 +3174,6 @@ search_check_results_set(gnet_results_set_t *rs)
 		}
 
 		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
-
 		if (fi) {
 			guint32 flags = 0;
 			
@@ -3790,10 +3789,10 @@ search_oob_pending_results(
 	 * Note that we're at the mercy of the other host there, which can choose
 	 * to flood us with more than we asked for.
 	 *
-	 * XXX We currently have no protection against this, nor any way to
-	 * XXX track it, as we'll blindly accept incoming UDP hits without really
-	 * XXX knowing how much we asked for.  Tracking would allow us to identify
-	 * XXX hostile hosts for the remaining of the session.
+	 * FIXME: We currently have no protection against this, nor any way to
+	 * track it, as we'll blindly accept incoming UDP hits without really
+	 * knowing how much we asked for.  Tracking would allow us to identify
+	 * hostile hosts for the remaining of the session.
 	 */
 
 	ask = MIN(hits, 254);
@@ -3940,7 +3939,7 @@ search_dissociate_browse(gnet_search_t sh, struct download *d)
 
 	sch->download = NULL;
 
-	/* XXX notify the GUI that the browse is finished */
+	/* FIXME: notify the GUI that the browse is finished */
 }
 
 #define LOCAL_MAX_ALT	30		/* Max alt-locs we report for local searches */
