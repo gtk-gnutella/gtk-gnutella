@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "base32.h"
 #include "endian.h"
+#include "eval.h"
 #include "html_entities.h"
 #include "misc.h"
 #include "glib-missing.h"
@@ -2150,23 +2151,25 @@ random_init(void)
 	sha1_feed_string(&ctx, __DATE__);
 	sha1_feed_string(&ctx, __TIME__);
 	sha1_feed_string(&ctx, "$Id$");
+
+#if GLIB_CHECK_VERSION(2,0,0)
+	/*
+	 * These functions cannot be used with an unpatched GLib 1.2
+	 * on some systems as they trigger a bug in GLib causing a crash.
+	 */
 	sha1_feed_string(&ctx, g_get_user_name());
 	sha1_feed_string(&ctx, g_get_real_name());
+#endif	/* GLib >= 2.0 */
 
-	{
-		const gchar *path;
-		
-		path = g_get_home_dir();
-		sha1_feed_string(&ctx, path);
-		if (path && -1 != stat(path, &buf)) {
-			SHA1Input(&ctx, &buf, sizeof buf);
-		}
-		if (-1 != stat(".", &buf)) {
-			SHA1Input(&ctx, &buf, sizeof buf);
-		}
-		if (-1 != stat("..", &buf)) {
-			SHA1Input(&ctx, &buf, sizeof buf);
-		}
+	sha1_feed_string(&ctx, eval_subst("~"));
+	if (-1 != stat(eval_subst("~"), &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	}
+	if (-1 != stat(".", &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	}
+	if (-1 != stat("..", &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
 	}
 	
 	sha1_feed_pointer(&ctx, &ctx);
