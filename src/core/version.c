@@ -37,10 +37,6 @@
 
 RCSID("$Id$")
 
-#ifdef I_SYS_UTSNAME
-#include <sys/utsname.h>		/* For uname() */
-#endif
-
 #include "version.h"
 #include "token.h"
 #include "settings.h"
@@ -639,7 +635,7 @@ version_build_string(void)
 				sysname = un.sysname;
 				machine = un.machine;
 			} else {
-				g_warning("uname() failed: %s:", g_strerror(errno));
+				g_warning("uname() failed: %s", g_strerror(errno));
 			}
 		}
 #endif /* HAS_UNAME */
