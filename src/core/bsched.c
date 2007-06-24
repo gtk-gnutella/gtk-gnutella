@@ -991,7 +991,7 @@ bsched_source_add(
 void
 bsched_source_remove(bio_source_t *bio)
 {
-	g_assert(bio);
+	bio_check(bio);
 
 	if (BSCHED_BWS_INVALID != bio->bws) {
 		bsched_bio_remove(bio->bws, bio);
