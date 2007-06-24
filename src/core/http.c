@@ -1589,16 +1589,24 @@ http_async_free_recursive(struct http_async *ha)
 	atom_str_free_null(&ha->path);
 	atom_str_free_null(&ha->host);
 
-	if (ha->io_opaque)
+	if (ha->io_opaque) {
 		io_free(ha->io_opaque);
-	if (ha->bio)
+		ha->io_opaque = NULL;
+	}
+	if (ha->bio) {
 		bsched_source_remove(ha->bio);
+		ha->bio = NULL;
+	}
 	socket_free_null(&ha->socket);
-	if (ha->user_free)
+	if (ha->user_free) {
 		(*ha->user_free)(ha->user_opaque);
-	if (ha->delayed)
+		ha->user_free = NULL;
+		ha->user_opaque = NULL;
+	}
+	if (ha->delayed) {
 		http_buffer_free(ha->delayed);
-
+		ha->delayed = NULL;
+	}
 	sl_outgoing = g_slist_remove(sl_outgoing, ha);
 
 	/*
