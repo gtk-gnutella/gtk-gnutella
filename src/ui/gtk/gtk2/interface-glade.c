@@ -15360,7 +15360,6 @@ create_main_window_downloads_tab (void)
   GtkWidget *label901;
   GtkWidget *frame128;
   GtkWidget *label_fi_sha1;
-  GtkWidget *label674;
   GtkWidget *label1012;
   GtkWidget *scrolledwindow72;
   GtkWidget *treeview_fi_aliases;
@@ -15630,11 +15629,6 @@ create_main_window_downloads_tab (void)
   GTK_WIDGET_SET_FLAGS (label_fi_sha1, GTK_CAN_FOCUS);
   gtk_label_set_selectable (GTK_LABEL (label_fi_sha1), TRUE);
   gtk_misc_set_alignment (GTK_MISC (label_fi_sha1), 0, 0.5);
-
-  label674 = gtk_label_new (_("Detail information"));
-  gtk_widget_set_name (label674, "label674");
-  gtk_widget_show (label674);
-  gtk_frame_set_label_widget (GTK_FRAME (frame82), label674);
 
   label1012 = gtk_label_new (_("Detail information"));
   gtk_widget_set_name (label1012, "label1012");
@@ -16238,7 +16232,6 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label901, "label901");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame128, "frame128");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_sha1, "label_fi_sha1");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label674, "label674");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1012, "label1012");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow72, "scrolledwindow72");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_aliases, "treeview_fi_aliases");
