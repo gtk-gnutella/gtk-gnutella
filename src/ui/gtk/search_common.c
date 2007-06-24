@@ -1611,11 +1611,22 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 	query->rules = g_list_reverse(query->rules);
 }
 
+static void
+clear_error_str(const gchar ***error_str)
+{
+	if (NULL == *error_str) {
+		static const gchar *error_dummy;
+		*error_str = &error_dummy;
+	}
+	**error_str = NULL;
+}
+
 gboolean
 search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 {
 	struct magnet_resource *res;
 
+	clear_error_str(&error_str);
 	res = magnet_parse(url, error_str);
 	if (res) {
 		guint n_downloads, n_searches;
@@ -1647,48 +1658,16 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 }
 
 gboolean
-search_gui_handle_http(const gchar *url, const gchar **error_str)
+search_gui_handle_url(const gchar *url, const gchar **error_str)
 {
 	gchar *magnet_url;
 	gboolean success;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(is_strcaseprefix(url, "http://"), FALSE);
-
-	{
-		struct magnet_resource *magnet;
-		gchar *escaped_url;
-
-		/* Assume the URL was entered by a human; humans don't escape
-		 * URLs except on accident and probably incorrectly. Try to
-		 * correct the escaping but don't touch '?', '&', '=', ':'.
-		 */
-		escaped_url = url_fix_escape(url);
-
-		/* Magnet values are ALWAYS escaped. */
-		magnet = magnet_resource_new();
-		magnet_add_source_by_url(magnet, escaped_url);
-		if (escaped_url != url) {
-			G_FREE_NULL(escaped_url);
-		}
-		magnet_url = magnet_to_string(magnet);
-		magnet_resource_free(&magnet);
-	}
-	
-	success = search_gui_handle_magnet(magnet_url, error_str);
-	G_FREE_NULL(magnet_url);
-
-	return success;
-}
-
-gboolean
-search_gui_handle_push(const gchar *url, const gchar **error_str)
-{
-	gchar *magnet_url;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(is_strcaseprefix(url, "push://"), FALSE);
+	g_return_val_if_fail(
+		is_strcaseprefix(url, "http://") || is_strcaseprefix(url, "push://"),
+		FALSE);
 
 	{
 		struct magnet_resource *magnet;
@@ -1722,6 +1701,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 	gchar *magnet_url;
 	gboolean success;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(urn, FALSE);
 	g_return_val_if_fail(is_strcaseprefix(urn, "urn:"), FALSE);
 
@@ -1742,9 +1722,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 			G_FREE_NULL(escaped_urn);
 		}
 		if (!success) {
-			if (error_str) {
-				*error_str = _("The given urn type is not supported.");
-			}
+			*error_str = _("The given urn type is not supported.");
 			magnet_resource_free(&magnet);
 			return FALSE;
 		}
@@ -1764,15 +1742,11 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 	struct sha1 sha1;
 	size_t ret;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(text, FALSE);
 
 	text = is_strcaseprefix(text, "sha1:");
 	g_return_val_if_fail(text, FALSE);
-
-	if (!error_str) {
-		static const gchar *error_dummy;
-		error_str = &error_dummy;
-	}
 
 	if (
 		strlen(text) >= SHA1_BASE16_SIZE &&
@@ -1802,15 +1776,11 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 	gboolean success, rebuilding;
 	const gchar *text;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(query, FALSE);
 
 	text = is_strcaseprefix(query, "local:");
 	g_return_val_if_fail(text, FALSE);
-
-	if (!error_str) {
-		static const gchar *error_dummy;
-		error_str = &error_dummy;
-	}
 
     gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 	if (rebuilding) {
@@ -1901,17 +1871,12 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 	guint32 flags = SOCK_F_FORCE;
 	guint16 port;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(s, FALSE);
 
 	s = is_strcaseprefix(s, "browse:");
 	g_return_val_if_fail(s, FALSE);
 	
-	if (!error_str) {
-		static const gchar *dummy;
-		error_str = &dummy;
-	}
-	*error_str = NULL;
-
 	endptr = is_strprefix(s, "tls:");
 	if (endptr) {
 		s = endptr;
@@ -1988,12 +1953,8 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 {
 	gboolean parse;
 
-	g_assert(query_str != NULL);
-	if (!error_str) {
-		static const gchar *dummy;
-		error_str = &dummy;
-	}
-	*error_str = NULL;
+	clear_error_str(&error_str);
+	g_return_val_if_fail(query_str, NULL);
 
 	if (!utf8_is_valid_string(query_str)) {
 		*error_str = _("The query string is not UTF-8 encoded");
@@ -2010,10 +1971,10 @@ search_gui_handle_query(const gchar *query_str, flag_t flags,
 			gboolean (*handler)(const gchar *, const gchar **);
 		} tab[] = {
 			{ "browse:",	search_gui_handle_browse },
-			{ "http:",		search_gui_handle_http },
+			{ "http:",		search_gui_handle_url },
 			{ "local:",		search_gui_handle_local },
 			{ "magnet:",	search_gui_handle_magnet },
-			{ "push:",		search_gui_handle_push },
+			{ "push:",		search_gui_handle_url },
 			{ "sha1:",		search_gui_handle_sha1 },
 			{ "urn:",		search_gui_handle_urn },
 		};
