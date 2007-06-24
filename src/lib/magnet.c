@@ -87,6 +87,16 @@ static const struct {
  * Private functions
  */
 
+static void
+clear_error_str(const gchar ***error_str)
+{
+	if (NULL == *error_str) {
+		static const gchar *error_dummy;
+		*error_str = &error_dummy;
+	}
+	**error_str = NULL;
+}
+
 static enum magnet_key
 magnet_key_get(const gchar *s)
 {
@@ -121,6 +131,7 @@ magnet_parse_location(const gchar *uri, const gchar **error_str)
 	struct magnet_source ms;
 	const gchar *p, *endptr, *host, *host_end;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
 
 	ms = zero_ms;
@@ -194,9 +205,10 @@ magnet_parse_http_source(const gchar *uri, const gchar **error_str)
 {
 	const gchar *p;
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
 
-	p = is_strprefix(uri, "http://");
+	p = is_strcaseprefix(uri, "http://");
 	g_return_val_if_fail(p, NULL);
 
 	return magnet_parse_location(p, error_str);
@@ -209,6 +221,7 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 	const gchar *p, *endptr;
 	gchar guid[GUID_RAW_SIZE];
 
+	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
 
 	p = is_strprefix(uri, "push://");
@@ -235,16 +248,10 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 struct magnet_source *
 magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 {
-
+	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
 
-	if (!error_str) {
-		static const gchar *dummy;
-		error_str = &dummy;
-	}
-	*error_str = NULL;
-
-	/* XXX: This should be handled elsewhere e.g., downloads.c in
+	/* TODO: This should be handled elsewhere e.g., downloads.c in
 	 *		a generic way. */
 
 	if (is_strcaseprefix(uri, "http://")) {
@@ -340,6 +347,7 @@ magnet_parse(const gchar *url, const gchar **error_str)
 	const gchar *p, *next;
 
 	res = zero_resource;
+	clear_error_str(&error_str);
 
 	p = is_strcaseprefix(url, "magnet:");
 	if (!p) {
