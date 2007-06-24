@@ -183,11 +183,8 @@ upload_row_data_t *
 uploads_gui_get_row_data(gnet_upload_t uhandle)
 {
     upload_row_data_t *rd;
-	gint row;
 
-    row =  find_row(uhandle, &rd);
-
-	return row == -1 ? NULL : rd;
+	return find_row(uhandle, &rd) < 0 ? NULL : rd;
 }
 
 static void
@@ -349,21 +346,16 @@ uploads_gui_early_init(void)
 void
 uploads_gui_init(void)
 {
-    gtk_clist_set_column_justification(
-        GTK_CLIST(gui_main_window_lookup("clist_uploads")),
-        c_ul_size, GTK_JUSTIFY_RIGHT);
+	GtkCList *clist;
 
-    gtk_clist_set_column_justification(
-        GTK_CLIST(gui_main_window_lookup("clist_uploads")),
-        c_ul_progress, GTK_JUSTIFY_RIGHT);
-
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(gui_main_window_lookup("clist_uploads")));
+	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
+    gtk_clist_set_column_justification(clist, c_ul_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(clist, c_ul_progress, GTK_JUSTIFY_RIGHT);
+	gtk_clist_column_titles_passive(clist);
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
-    guc_upload_add_upload_info_changed_listener
-		(upload_info_changed);
+    guc_upload_add_upload_info_changed_listener(upload_info_changed);
 }
 
 /**
@@ -374,8 +366,7 @@ uploads_gui_shutdown(void)
 {
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
-    guc_upload_remove_upload_info_changed_listener
-		(upload_info_changed);
+    guc_upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
 /**
