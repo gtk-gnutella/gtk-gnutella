@@ -63,8 +63,6 @@ RCSID("$Id$")
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
-static struct drag_context *drag;
-
 static GtkTreeView *treeview_downloads;
 static GtkTreeView *treeview_fi_aliases;
 static GtkEntry *entry_fi_filename;
@@ -791,6 +789,26 @@ fi_gui_get_file_url(GtkWidget *widget)
 	}
 }
 
+static gchar *
+fi_gui_get_alias(GtkWidget *widget)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_return_val_if_fail(widget, NULL);
+
+	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		static const GValue zero_value;
+		GValue value;
+
+		value = zero_value;
+		gtk_tree_model_get_value(model, &iter, 0, &value);
+		return g_strdup(g_value_get_string(&value));
+	} else {
+		return NULL;
+	}
+}
+
 void
 fi_gui_update_display(time_t unused_now)
 {
@@ -859,6 +877,9 @@ fi_gui_init(void)
 			G_CALLBACK(on_treeview_downloads_column_clicked), NULL);
 	}
 
+	drag_attach(GTK_WIDGET(treeview_downloads), fi_gui_get_file_url);
+
+
 #if 0
 	/* Don't try this with a few thousands downloads */
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_fileinfo),
@@ -870,10 +891,8 @@ fi_gui_init(void)
 	store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
-	drag = drag_new();
-	drag_attach(drag, GTK_WIDGET(treeview_downloads), fi_gui_get_file_url);
-
     add_column(treeview_fi_aliases, NULL, 0, _("Aliases"), 0.0);
+	drag_attach(GTK_WIDGET(treeview_fi_aliases), fi_gui_get_alias);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
@@ -941,8 +960,6 @@ fi_gui_shutdown(void)
 	fi_updates = NULL;
 	g_hash_table_destroy(fi_downloads);
 	fi_downloads = NULL;
-
-	drag_free(&drag);
 }
 
 void
@@ -1120,6 +1137,9 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_button;
 	(void) unused_udata;
 
+	fi_gui_clear_details();
+	g_object_freeze_notify(G_OBJECT(treeview_downloads));
+
 	ctx.sl = NULL;
 	ctx.ht = g_hash_table_new(NULL, NULL);
 	selection = gtk_tree_view_get_selection(treeview_downloads);
@@ -1129,7 +1149,8 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 	ctx.ht = NULL;
 	guc_fi_purge_by_handle_list(ctx.sl);
 	g_slist_free(ctx.sl);
-	fi_gui_clear_details();
+
+	g_object_thaw_notify(G_OBJECT(treeview_downloads));
 }
 
 static void

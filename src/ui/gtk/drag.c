@@ -49,6 +49,36 @@ struct drag_context {
 	drag_get_text_cb get_text;
 };
 
+/**
+ * Allocates a new drag context, to be freed with drag_free().
+ * @return a drag context.
+ */
+static struct drag_context *
+drag_alloc(void)
+{
+	static const struct drag_context zero_ctx;
+	struct drag_context *ctx;
+
+	ctx = g_malloc(sizeof *ctx);
+	*ctx = zero_ctx;
+	return ctx;
+}
+
+/**
+ * Frees a drag context.
+ */
+static void
+drag_free(struct drag_context **ptr)
+{
+	struct drag_context *ctx = *ptr;
+
+	if (ctx) {
+		ctx->get_text = NULL;
+		G_FREE_NULL(ctx);
+		*ptr = NULL;
+	}
+}
+
 #if GTK_CHECK_VERSION(2,0,0)
 gboolean 
 drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
@@ -67,10 +97,19 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 	}
 	return ret; 
 }
+
 #define signal_connect(widget, name, func, data) \
 	g_signal_connect((widget), (name), G_CALLBACK(func), (data))
 
-#define signal_stop_emission_by_name g_signal_stop_emission_by_name
+#define signal_disconnect(widget, func, data) \
+	g_signal_handlers_disconnect_by_func((widget), G_CALLBACK(func), (data))
+
+#define signal_stop_emission_by_name \
+	g_signal_stop_emission_by_name
+
+#define object_ref(obj)		g_object_ref((obj))
+#define object_unref(obj)	g_object_unref((obj))
+
 
 static inline void
 selection_set_text(GtkSelectionData *data, const char *text)
@@ -85,13 +124,21 @@ selection_set_text(GtkSelectionData *data, const char *text)
 #else	/* Gtk < 2 */
 
 #define signal_connect(widget, name, func, data) \
-	gtk_signal_connect(GTK_OBJECT(widget), (name), (func), (data))
+	gtk_signal_connect(GTK_OBJECT(widget), (name), \
+			GTK_SIGNAL_FUNC(func), (data))
+
+#define signal_disconnect(widget, func, data) \
+	gtk_signal_disconnect_by_func(GTK_OBJECT(widget), \
+			GTK_SIGNAL_FUNC(func), (data))
 
 #define signal_stop_emission_by_name(widget, name) \
 G_STMT_START { \
 	(void) (widget); \
 	(void) (name); \
 } G_STMT_END
+
+#define object_ref(obj)		gtk_object_ref(GTK_OBJECT(obj))
+#define object_unref(obj)	gtk_object_unref(GTK_OBJECT(obj))
 
 static inline void
 selection_set_text(GtkSelectionData *data, const char *text)
@@ -155,29 +202,29 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 	g_return_if_fail(ctx->get_text);
 }
 
-/**
- * Allocates a new drag context, to be freed with drag_free().
- * @return a drag context.
- */
-struct drag_context *
-drag_new(void)
+static void
+destroy(GtkObject *widget, void *udata)
 {
-	static const struct drag_context zero_ctx;
-	struct drag_context *ctx;
+	struct drag_context *ctx = udata;
 
-	ctx = g_malloc(sizeof *ctx);
-	*ctx = zero_ctx;
-	return ctx;
+	g_return_if_fail(ctx);
+	g_return_if_fail(ctx->get_text);
+
+	signal_disconnect(widget, drag_data_get, ctx);
+	signal_disconnect(widget, drag_begin, ctx);
+	signal_disconnect(widget, drag_end, ctx);
+	signal_disconnect(widget, destroy, ctx);
+
+	drag_free(&ctx);
+	object_unref(widget);
 }
-
 
 /**
  * Attaches a drag context to a widget, so that user can drag data from
  * the widget as text. The context can be attached to multiple widgets.
  */
 void 
-drag_attach(struct drag_context *ctx,
-	GtkWidget *widget, drag_get_text_cb callback)
+drag_attach(GtkWidget *widget, drag_get_text_cb callback)
 {
     static const GtkTargetEntry targets[] = {
         { "STRING",			0, 1 },
@@ -187,11 +234,13 @@ drag_attach(struct drag_context *ctx,
         { "text/plain;charset=utf-8",	0, 4 },
 #endif	/* Gtk+ >= 2.0 */
     };
+	struct drag_context *ctx;
 
-	g_return_if_fail(ctx);
 	g_return_if_fail(widget);
 	g_return_if_fail(callback);
 
+	object_ref(widget);
+	ctx = drag_alloc();
 	ctx->get_text = callback;
 
 	/* Initialize drag support */
@@ -202,20 +251,7 @@ drag_attach(struct drag_context *ctx,
     signal_connect(widget, "drag-data-get", drag_data_get, ctx);
     signal_connect(widget, "drag-begin",	drag_begin, ctx);
     signal_connect(widget, "drag-end",	  	drag_end, ctx);
-}
-
-/**
- * Frees a drag context.
- */
-void
-drag_free(struct drag_context **ptr)
-{
-	struct drag_context *ctx = *ptr;
-
-	if (ctx) {
-		G_FREE_NULL(ctx);
-		*ptr = NULL;
-	}
+    signal_connect(widget, "destroy",		destroy, ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

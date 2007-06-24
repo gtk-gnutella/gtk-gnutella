@@ -55,7 +55,6 @@ RCSID("$Id$")
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 static GHashTable *fi_updates;
-static struct drag_context *drag_file_url;
 
 /*
  * Together visible_fi and hidden_fi are a list of all fileinfo handles
@@ -617,8 +616,7 @@ fi_gui_init(void)
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
 
-	drag_file_url = drag_new();	
-	drag_attach(drag_file_url, GTK_WIDGET(clist_fileinfo), fi_gui_get_file_url);
+	drag_attach(GTK_WIDGET(clist_fileinfo), fi_gui_get_file_url);
 }
 
 void

@@ -74,9 +74,6 @@ static GtkTreeView *tree_view_search;
 static GtkNotebook *notebook_search_results;
 static GtkButton *button_search_clear;
 
-static struct drag_context *drag_detail;
-static struct drag_context *drag_file_url;
-
 static gboolean search_gui_shutting_down = FALSE;
 
 /*
@@ -813,10 +810,7 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (search_gui_is_local(sch)) {
-		if (NULL == drag_file_url){
-			drag_file_url = drag_new();
-		}
-		drag_attach(drag_file_url, GTK_WIDGET(sch->tree), get_local_file_url);
+		drag_attach(GTK_WIDGET(sch->tree), get_local_file_url);
 	}
 	return TRUE;
 }
@@ -1700,8 +1694,7 @@ search_gui_init(void)
 		gtk_signal_connect(GTK_OBJECT(widget), "key-press-event",
 			GTK_SIGNAL_FUNC(on_treeview_search_details_key_press_event), NULL);
 		
-		drag_detail = drag_new();
-		drag_attach(drag_detail, widget, search_details_get_text);
+		drag_attach(widget, search_details_get_text);
 	}
 }
 

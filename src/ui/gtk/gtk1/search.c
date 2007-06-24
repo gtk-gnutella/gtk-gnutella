@@ -72,9 +72,6 @@ static gchar tmpstr[4096];
 
 static GList *searches;		/* List of search structs */
 
-static struct drag_context *drag_file_url;
-static struct drag_context *drag_detail;
-
 /**
  * Characteristics of data in search results columns, used for sorting.
  */
@@ -487,11 +484,7 @@ search_gui_new_search_full(const gchar *query_str,
 	}
 	search_gui_query_free(&query);
 	if (search_gui_is_local(sch)) {
-		if (NULL == drag_file_url){
-			drag_file_url = drag_new();
-		}
-		drag_attach(drag_file_url, GTK_WIDGET(sch->tree),
-			search_gui_get_file_url);
+		drag_attach(GTK_WIDGET(sch->tree), search_gui_get_file_url);
 	}
 	set_search_color(sch);
 	
@@ -2091,8 +2084,7 @@ search_gui_init(void)
 		gtk_selection_add_target(GTK_WIDGET(clist),
 			GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
 
-		drag_detail = drag_new();
-		drag_attach(drag_detail, GTK_WIDGET(clist), search_details_get_text);
+		drag_attach(GTK_WIDGET(clist), search_details_get_text);
 	}
 
 	drop_widget_init(gui_main_window_lookup("entry_search"),

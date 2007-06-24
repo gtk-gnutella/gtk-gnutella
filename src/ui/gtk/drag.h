@@ -44,11 +44,7 @@
  */
 typedef gchar *(*drag_get_text_cb)(GtkWidget *);
 
-struct drag_context;
-
-struct drag_context *drag_new(void);
-void drag_attach(struct drag_context *, GtkWidget *, drag_get_text_cb);
-void drag_free(struct drag_context **ptr);
+void drag_attach(GtkWidget *, drag_get_text_cb);
 
 #if GTK_CHECK_VERSION(2,0,0)
 gboolean drag_get_iter(GtkTreeView *, GtkTreeModel **, GtkTreeIter *);
