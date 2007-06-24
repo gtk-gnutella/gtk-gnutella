@@ -128,7 +128,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	gint x, gint y, GtkSelectionData *data, guint info, guint stamp,
 	gpointer unused_udata)
 {
-	gboolean succ = FALSE;
+	gboolean success = FALSE;
 
 	(void) unused_widget;
 	(void) unused_udata;
@@ -154,7 +154,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 
 		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++)
 			if (is_strprefix(url, proto_handlers[i].proto)) {
-				succ = proto_handlers[i].handler(url);
+				success = proto_handlers[i].handler(url);
 				break;
 			}
 
@@ -164,7 +164,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 
 cleanup:
 
-	gtk_drag_finish(dc, succ, FALSE, stamp);
+	gtk_drag_finish(dc, success, FALSE, stamp);
 }
 
 /*
@@ -172,18 +172,25 @@ cleanup:
  */
 
 void
-drop_init(void)
+drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
+	void *user_data)
 {
 	static const GtkTargetEntry targets[] = {
-		{ "STRING",		0, 23 },
-		{ "text/plain", 0, 23 },
+		{ "STRING",						0, 1 },
+		{ "text/plain", 				0, 2 },
+#if GTK_CHECK_VERSION(2,0,0)
+        { "UTF8_STRING",				0, 3 },
+        { "text/plain;charset=utf-8",	0, 4 },
+#endif	/* Gtk+ >= 2.0 */
 	};
-	GtkWidget *w = gui_main_window();
 
-	gtk_drag_dest_set(w, GTK_DEST_DEFAULT_ALL, targets,
+	g_return_if_fail(widget);
+	g_return_if_fail(callback);
+
+	gtk_drag_dest_set(widget, GTK_DEST_DEFAULT_ALL, targets,
 		G_N_ELEMENTS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);
 
-#ifdef USE_GTK2
+#if GTK_CHECK_VERSION(2,0,0)
 	{
 		static GtkClipboard *clipboard;
 	
@@ -192,21 +199,26 @@ drop_init(void)
 		g_return_if_fail(clipboard);
 	}
 	
-	g_signal_connect(G_OBJECT(w), "drag-data-received",
-		G_CALLBACK(drag_data_received), NULL);
+	g_signal_connect(G_OBJECT(widget), "drag-data-received",
+		G_CALLBACK(callback), user_data);
 
-	gtk_drag_dest_set_target_list(w, gtk_target_list_new(targets,
+	gtk_drag_dest_set_target_list(widget, gtk_target_list_new(targets,
 		G_N_ELEMENTS(targets)));
 #endif /* USE_GTK2 */
 
-#ifdef USE_GTK1
-	gtk_signal_connect(GTK_OBJECT(w), "drag-data-received",
-		drag_data_received, NULL);
+#if !GTK_CHECK_VERSION(2,0,0)
+	gtk_signal_connect(GTK_OBJECT(widget), "drag-data-received",
+		callback, user_data);
 
-	gtk_selection_add_targets(w, GDK_SELECTION_TYPE_STRING,
+	gtk_selection_add_targets(widget, GDK_SELECTION_TYPE_STRING,
 		targets, G_N_ELEMENTS(targets));
 #endif /* USE_GTK1 */
-	
+}
+
+void
+drop_init(void)
+{
+	drop_widget_init(gui_main_window(), drag_data_received, NULL);
 }
 
 void
