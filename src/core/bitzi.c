@@ -56,6 +56,7 @@
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
+#include "lib/urn.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
@@ -307,27 +308,13 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 */
 	value = STRTRACK(xml_get_string(node, "about"));
 	if (value) {
-		static const gchar urn_prefix[] = "urn:sha1:";
-		const struct sha1 *sha1;
-		const gchar *p;
+		struct sha1 sha1;
 
-		p = is_strprefix(value, urn_prefix);
-		if (p) {
-			/* Skip the "urn:sha1:" prefix and check whether an SHA1
-			 * follows. We need to ensure that buf contains at least
-			 * SHA1_BASE32_SIZE bytes because that's what base32_sha1()
-			 * assumes. We allow trailing characters. */
-
-			sha1 = strlen(p) < SHA1_BASE32_SIZE ? NULL : base32_sha1(p);
+		if (urn_get_sha1(value, &sha1)) {
+			data->sha1 = atom_sha1_get(&sha1);
 		} else {
-			sha1 = NULL;
-		}
-
-		if (!sha1) {
 			g_warning("process_rdf_description: bad 'about' string: \"%s\"",
 				value);
-		} else {
-			data->sha1 = atom_sha1_get(sha1);
 		}
 	} else {
 		g_warning("process_rdf_description: No SHA-1!");

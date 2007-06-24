@@ -1814,7 +1814,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	static gchar stmp_1[4096];
 	guint16 req_speed;
 	gchar *search;
-	size_t search_len, max_len;
+	size_t search_len;
 	gboolean decoded = FALSE;
 	gboolean skip_file_search = FALSE;
 	struct {
@@ -1843,11 +1843,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		--RAN, 21/12/2001
 	 */
 
-	search = n->data + 2;
-	max_len = n->size > 2 ? (n->size - 3) : 0; /* Payload size - Speed - NUL */
-	search_len = str_len_capped(search, max_len + 1);
-	
-	if (search_len > max_len) {
+	search = n->data + 2;	/* skip flags */
+	search_len = clamp_strlen(search, n->size - 2);
+	if (search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(share_debug))
 			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",

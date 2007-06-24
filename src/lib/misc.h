@@ -652,20 +652,20 @@ str_case_eq_func(gconstpointer a, gconstpointer b)
 
 /**
  * Determines the length of a NUL-terminated string looking only at the first
- * "src_size" bytes. If src[0..size] contains no NUL byte, (size_t) -1 is
+ * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
  * returned. Otherwise, the returned value is identical to strlen(str). Thus,
  * it is safe to pass a possibly non-terminated buffer.
  * 
- * @return (size_t) -1, if the string as long or longer than "src_size".
- *         Otherwise, the result is identical to strlen(str).
+ * @return The number of bytes in "src" before the first found NUL or src_size
+ *		   if there is no NUL.
  */
 static inline size_t
-str_len_capped(const gchar *src, size_t src_size)
+clamp_strlen(const gchar *src, size_t src_size)
 {
 	const gchar *p;
 	
 	p = memchr(src, '\0', src_size);
-	return p ? (size_t) (p - src) : (size_t) -1;
+	return (p ? p : &src[src_size]) - src;
 }
 
 static inline const gchar *

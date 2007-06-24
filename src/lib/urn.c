@@ -51,30 +51,23 @@ RCSID("$Id$")
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-urn_get_http_sha1(const gchar *buf, struct sha1 *sha1)
+parse_base32_sha1(const gchar *buf, size_t size, struct sha1 *sha1)
 {
 	struct sha1 raw;
-	gint i;
+	size_t len;
 
 	if (!sha1) {
 		sha1 = &raw;
 	}
 
-	/*
-	 * Make sure we have at least SHA1_BASE32_SIZE characters before the
-	 * end of the string.
-	 */
+	if (size < SHA1_BASE32_SIZE)
+		return FALSE;
+		
+	len = base32_decode(sha1->data, SHA1_RAW_SIZE, buf, SHA1_BASE32_SIZE);
+	if (SHA1_RAW_SIZE != len)
+		return FALSE;
 
-	for (i = 0; i < SHA1_BASE32_SIZE; i++) {
-		if ('\0' == buf[i])
-			return FALSE;
-	}
-
-	if (SHA1_RAW_SIZE == base32_decode(sha1->data, sizeof sha1->data,
-							buf, SHA1_BASE32_SIZE))
-		return TRUE;
-
-	return FALSE;
+	return TRUE;
 }
 
 /**
@@ -87,6 +80,7 @@ gboolean
 urn_get_sha1(const gchar *buf, struct sha1 *sha1)
 {
 	const gchar *p;
+	size_t len;
 
 	/*
 	 * We handle both "urn:sha1:" and "urn:bitprint:".  In the latter case,
@@ -99,7 +93,8 @@ urn_get_sha1(const gchar *buf, struct sha1 *sha1)
 	)
 		return FALSE;
 
-	return urn_get_http_sha1(p, sha1);
+	len = clamp_strlen(p, SHA1_BASE32_SIZE);
+	return parse_base32_sha1(p, len, sha1);
 }
 
 gboolean
@@ -121,8 +116,7 @@ urn_get_bitprint(const gchar *buf, size_t size,
 	if (NULL == p) {
 		return FALSE;
 	}
-	len = base32_decode(sha1->data, SHA1_RAW_SIZE, p, SHA1_BASE32_SIZE);
-	if (len != SHA1_RAW_SIZE) {
+	if (!parse_base32_sha1(p, SHA1_BASE32_SIZE, sha1)) {
 		return FALSE;
 	}
 	p += SHA1_BASE32_SIZE;
@@ -175,6 +169,7 @@ gboolean
 urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1)
 {
 	const gchar *p;
+	size_t len;
 
 	/*
 	 * We handle both "sha1:" and "bitprint:".  In the latter case,
@@ -187,7 +182,8 @@ urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1)
 	)
 		return FALSE;
 
-	return urn_get_http_sha1(p, sha1);
+	len = clamp_strlen(p, SHA1_BASE32_SIZE);
+	return parse_base32_sha1(p, len, sha1);
 }
 
 /*
