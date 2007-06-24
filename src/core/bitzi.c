@@ -124,6 +124,19 @@ xml_get_string(xmlNode *node, const gchar *id)
 	return (gchar *) xmlGetProp(node, (const xmlChar *) id);
 }
 
+/**
+ * Use this to free strings returned by xml_get_string().
+ */
+static inline void
+xml_free_null(gchar **ptr)
+{
+	g_assert(ptr);
+	if (*ptr) {
+		xmlFree(*ptr);
+		*ptr = NULL;
+	}
+}
+
 static inline const xmlChar *
 string_to_xmlChar(const gchar *s)
 {
@@ -285,20 +298,20 @@ static const struct efj_t enum_fj_table[] = {
 static void
 process_rdf_description(xmlNode *node, bitzi_data_t *data)
 {
-	gchar *s;
+	gchar *value;
 
 	/*
 	 * We extract the urn:sha1 from the ticket as we may be processing
 	 * cached tickets not associated with any actual request. The
 	 * bitprint itself will be at offset 9 into the string.
 	 */
-	s = xml_get_string(node, "about");
-	if (s) {
+	value = STRTRACK(xml_get_string(node, "about"));
+	if (value) {
 		static const gchar urn_prefix[] = "urn:sha1:";
 		const struct sha1 *sha1;
 		const gchar *p;
 
-		p = is_strprefix(s, urn_prefix);
+		p = is_strprefix(value, urn_prefix);
 		if (p) {
 			/* Skip the "urn:sha1:" prefix and check whether an SHA1
 			 * follows. We need to ensure that buf contains at least
@@ -311,13 +324,15 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		}
 
 		if (!sha1) {
-			g_warning("process_rdf_description: bad 'about' string: \"%s\"", s);
+			g_warning("process_rdf_description: bad 'about' string: \"%s\"",
+				value);
 		} else {
 			data->sha1 = atom_sha1_get(sha1);
 		}
 	} else {
 		g_warning("process_rdf_description: No SHA-1!");
 	}
+	xml_free_null(&value);
 
 
 	/*
@@ -326,39 +341,40 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 *
 	 * CHECK: date parse deals with timezone? can it fail?
 	 */
-	s = xml_get_string(node, "ticketExpires");
-	if (s) {
-		data->expiry = date2time(s, tm_time());
+	value = STRTRACK(xml_get_string(node, "ticketExpires"));
+	if (value) {
+		data->expiry = date2time(value, tm_time());
 		if ((time_t) -1 == data->expiry)
-			g_warning("process_rdf_description: Bad expiration date \"%s\"", s);
+			g_warning("process_rdf_description: Bad expiration date \"%s\"",
+				value);
 	} else {
 		g_warning("process_rdf_description: No ticketExpires!");
 	}
+	xml_free_null(&value);
 
 	/*
 	 * fileGoodness amd fileJudgement are the two most imeadiatly
 	 * useful values.
 	 */
-	s = xml_get_string(node, "fileGoodness");
-	if (s) {
-		data->goodness = g_strtod(s, NULL);
+	value = STRTRACK(xml_get_string(node, "fileGoodness"));
+	if (value) {
+		data->goodness = g_strtod(value, NULL);
 		if (GNET_PROPERTY(bitzi_debug))
-			g_message("fileGoodness is %s/%f", s, data->goodness);
+			g_message("fileGoodness is %s/%f", value, data->goodness);
 	} else {
 		data->goodness = 0;
 	}
+	xml_free_null(&value);
 
-	data->judgement = BITZI_FJ_UNKNOWN;
-
-	s = xml_get_string(node, "fileJudgement");
-	if (s) {
+	value = STRTRACK(xml_get_string(node, "fileJudgement"));
+	if (value) {
 		size_t i;
 
 		STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(enum_fj_table));
 
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
 			if (
-				xmlStrEqual(string_to_xmlChar(s),
+				xmlStrEqual(string_to_xmlChar(value),
 					string_to_xmlChar(enum_fj_table[i].string))
 			) {
 				data->judgement = enum_fj_table[i].judgement;
@@ -366,17 +382,18 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			}
 		}
 	}
-
+	xml_free_null(&value);
 
 	/*
 	 * fileLength, useful for comparing to result
 	 */
 
-	s = xml_get_string(node, "fileLength");
-	if (s) {
+	value = STRTRACK(xml_get_string(node, "fileLength"));
+	if (value) {
 		gint error;
-		data->size = parse_uint64(s, NULL, 10, &error);
+		data->size = parse_uint64(value, NULL, 10, &error);
 	}
+	xml_free_null(&value);
 
 	/*
 	 * The multimedia type, bitrate etc is all built into one
@@ -385,47 +402,50 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 	 * Currently we handle video and audio
 	 */
 
-	s = xml_get_string(node, "format");
-	if (s) {
+	value = STRTRACK(xml_get_string(node, "format"));
+	if (value) {
 		/*
 		 * copy the mime type
 		 */
-		atom_str_change(&data->mime_type, s);
+		atom_str_change(&data->mime_type, value);
 
-		if (is_strcaseprefix(s, "video")) {
-			gchar *xml_width = xml_get_string(node, "videoWidth");
-			gchar *xml_height = xml_get_string(node, "videoHeight");
-			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
-			gchar *xml_fps = xml_get_string(node, "videoFPS");
-
+		if (is_strcaseprefix(value, "video")) {
+			gchar *bitrate = STRTRACK(xml_get_string(node, "videoBitrate"));
+			gchar *fps = STRTRACK(xml_get_string(node, "videoFPS"));
+			gchar *height = STRTRACK(xml_get_string(node, "videoHeight"));
+			gchar *width = STRTRACK(xml_get_string(node, "videoWidth"));
+			gboolean has_res = width && height;
+			gchar desc[256];
+				
 			/*
 			 * format the mime details
 			 */
-			{
-				gboolean has_res = xml_width && xml_height;
-				gchar desc[256];
-				
-				/**
-	 			 * TRANSLATORS: This describes video parameters;
-				 * The first part is used as <width>x<height> (resolution).
-				 * fps stands for "frames per second".
-				 * kbps stands for "kilobit per second" (metric kilo).
-	 			 */
-				gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
-						has_res ? xml_width : "",
-						has_res ? Q_("times|x") : "",
-						has_res ? xml_height : "",
-						has_res ? ", " : "",
-						(xml_fps != NULL) ? xml_fps : "?",
-						(xml_bitrate != NULL) ? xml_bitrate : "?");
 
-				atom_str_change(&data->mime_desc, desc);
-			}
-		} else if (is_strcaseprefix(s, "audio")) {
-			gchar *duration = xml_get_string(node, "duration");
-			gchar *kbps = xml_get_string(node, "audioBitrate");
-			gchar *channels = xml_get_string(node, "audioChannels");
-			gchar *samplerate = xml_get_string(node, "audioSamplerate");
+			/**
+			 * TRANSLATORS: This describes video parameters;
+			 * The first part is used as <width>x<height> (resolution).
+			 * fps stands for "frames per second".
+			 * kbps stands for "kilobit per second" (metric kilo).
+			 */
+			gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
+					has_res ? width : "",
+					has_res ? Q_("times|x") : "",
+					has_res ? height : "",
+					has_res ? ", " : "",
+					(fps != NULL) ? fps : "?",
+					(bitrate != NULL) ? bitrate : "?");
+
+			atom_str_change(&data->mime_desc, desc);
+
+			xml_free_null(&bitrate);
+			xml_free_null(&fps);
+			xml_free_null(&height);
+			xml_free_null(&width);
+		} else if (is_strcaseprefix(value, "audio")) {
+			gchar *channels = STRTRACK(xml_get_string(node, "audioChannels"));
+			gchar *duration = STRTRACK(xml_get_string(node, "duration"));
+			gchar *kbps = STRTRACK(xml_get_string(node, "audioBitrate"));
+			gchar *srate = STRTRACK(xml_get_string(node, "audioSamplerate"));
 			guint32 seconds;
 			gchar desc[256];
 
@@ -438,13 +458,19 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 			gm_snprintf(desc, sizeof desc, "%s%s%s%s%s%s%s",
 				kbps ? kbps : "", kbps ? "kbps " : "",
-				samplerate ? samplerate : "", samplerate ? "Hz " : "",
+				srate ? srate : "", srate ? "Hz " : "",
 				channels ? channels : "", channels ? "ch " : "",
 				seconds ? short_time(seconds) : "");
 
 			atom_str_change(&data->mime_desc, desc);
+
+			xml_free_null(&channels);
+			xml_free_null(&duration);
+			xml_free_null(&kbps);
+			xml_free_null(&srate);
 		}
 	}
+	xml_free_null(&value);
 
 	/*
 	 ** For debugging/development - dump all the attributes
@@ -454,10 +480,15 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		xmlAttr *cur_attr;
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
-			const gchar *name = xmlChar_to_gchar(cur_attr->name);
+			const gchar *name;
+		   
+			name = xmlChar_to_gchar(cur_attr->name);
+			value = STRTRACK(xml_get_string(node, name));
 
 			g_message("bitzi rdf attrib: %s, type %d = %s",
-				name, cur_attr->type, xml_get_string(node, name));
+				name, cur_attr->type, value);
+
+			xml_free_null(&value);
 		}
 	}
 }
@@ -502,6 +533,18 @@ bitzi_failure(const struct sha1 *sha1, filesize_t filesize, bitzi_fj_t error)
 		dummy->judgement = error;
 		gcu_bitzi_result(dummy);
 		bitzi_destroy(dummy);
+	}
+}
+
+static void
+bitzi_request_free(bitzi_request_t **ptr)
+{
+	if (*ptr) {
+		bitzi_request_t *req = *ptr;
+
+		atom_sha1_free_null(&req->sha1);
+		wfree(req, sizeof *req);
+		*ptr = NULL;
 	}
 }
 
@@ -606,8 +649,7 @@ finish:
 
 	/* we are now finished with this XML doc */
 	xmlFreeDoc(doc);
-	atom_sha1_free_null(&request->sha1);
-	wfree(request, sizeof *request);
+	bitzi_request_free(&request);
 }
 
 /**
@@ -1016,6 +1058,17 @@ bitzi_close(void)
 		}
 		g_list_free(bitzi_cache);
 		bitzi_cache = NULL;
+	}
+
+	{
+		GSList *iter;
+		
+		for (iter = bitzi_rq; NULL != iter; iter = g_slist_next(iter)) {
+			bitzi_request_t *req = iter->data;
+			bitzi_request_free(&req);
+		}
+		g_slist_free(bitzi_rq);
+		bitzi_rq = NULL;
 	}
 	
 	g_return_if_fail(bitzi_heartbeat_id);
