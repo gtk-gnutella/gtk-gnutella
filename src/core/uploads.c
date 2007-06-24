@@ -2246,6 +2246,13 @@ upload_collect_locations(
 	gchar *buf;
 
 	huge_collect_locations(sha1, header);
+	if (host_is_valid(u->gnet_addr, u->gnet_port)) {
+		/*
+		 * The uploader is only an alt-loc if it lists itself to the
+		 * X-Alt: header. If it didn't the following has no effect.
+		 */
+		dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
+	}
 
 	buf = header_get(header, "X-Nalt");
 	if (buf)
