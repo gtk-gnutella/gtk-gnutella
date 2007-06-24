@@ -816,7 +816,7 @@ huge_collect_locations(const struct sha1 *sha1, header_t *header)
 		alt = header_get(header, "Alt-Location");
 
 	if (alt) {
-		dmesh_collect_locations(sha1, alt, TRUE);
+		dmesh_collect_locations(sha1, alt);
 		return;
 	}
 

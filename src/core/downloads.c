@@ -7389,10 +7389,10 @@ handle_content_urn(struct download *d, header_t *header)
 		 * as the mesh timestamp.
 		 */
 
-		if (!d->always_push && !d->uri)
-			dmesh_add(d->sha1,
-				download_addr(d), download_port(d), d->record_index,
-				d->file_name, 0);
+		if (!d->always_push && NULL == d->uri) {
+			dmesh_add_good_alternate(d->sha1,
+				download_addr(d), download_port(d));
+		}
 	}
 
 	/*
@@ -8011,10 +8011,8 @@ http_version_nofix:
 					download_passively_queued(d, FALSE);
 
 					/* Update mesh */
-					if (!d->always_push && d->sha1 && !d->uri) {
-						dmesh_add(d->sha1, addr, port, d->record_index,
-							d->file_name, 0);
-						dmesh_good_mark(d->sha1, addr, port, TRUE);
+					if (!d->always_push && d->sha1 && NULL == d->uri) {
+						dmesh_add_good_alternate(d->sha1, addr, port);
 					}
 					return;
 
@@ -8068,10 +8066,8 @@ http_version_nofix:
 			file_info_clear_download(d, TRUE);		/* `d' is running */
 
 			/* Update mesh -- we're about to return */
-			if (!d->always_push && d->sha1 && !d->uri) {
-				dmesh_add(d->sha1, addr, port,
-					d->record_index, d->file_name, 0);
-				dmesh_good_mark(d->sha1, addr, port, TRUE);
+			if (!d->always_push && d->sha1 && NULL == d->uri) {
+				dmesh_add_good_alternate(d->sha1, addr, port);
 			}
 
 			if (!download_start_prepare_running(d))
@@ -8195,9 +8191,8 @@ http_version_nofix:
 
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
-		if (!d->always_push && d->sha1 && !d->uri) {
-			dmesh_add(d->sha1, addr, port, d->record_index, d->file_name, 0);
-			dmesh_good_mark(d->sha1, addr, port, TRUE);
+		if (!d->always_push && d->sha1 && NULL == d->uri) {
+			dmesh_add_good_alternate(d->sha1, addr, port);
 		}
 
 		download_passively_queued(d, FALSE);
@@ -8257,8 +8252,9 @@ http_version_nofix:
 				"%sHTTP %u %s", short_read, ack_code, ack_message);
 			return;
 #else
-			if (d->sha1 && !d->uri)
+			if (d->sha1 && NULL == d->uri) {
 				dmesh_good_mark(d->sha1, addr, port, FALSE);
+			}
 			break;
 #endif
 		case 416:				/* Requested range not available */
@@ -8276,10 +8272,8 @@ http_version_nofix:
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 			/* Update mesh */
-			if (!d->always_push && d->sha1 && !d->uri) {
-				dmesh_add(d->sha1, addr, port, d->record_index,
-					d->file_name, 0);
-				dmesh_good_mark(d->sha1, addr, port, TRUE);
+			if (!d->always_push && d->sha1 && NULL == d->uri) {
+				dmesh_add_good_alternate(d->sha1, addr, port);
 			}
 
 			/*

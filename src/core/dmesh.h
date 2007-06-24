@@ -52,8 +52,8 @@
  */
 typedef struct {
 	const gchar *name;			/**< File name (atom) */
-	guint idx;					/**< File index (URN_INDEX means URN access) */
 	host_addr_t addr;			/**< Host address */
+	guint idx;					/**< File index (URN_INDEX means URN access) */
 	guint16 port;				/**< Host port */
 } dmesh_urlinfo_t;
 
@@ -93,6 +93,8 @@ gboolean dmesh_remove(
 
 void dmesh_add_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
+void dmesh_add_good_alternate(const struct sha1 *sha1,
+		host_addr_t addr, guint16 port);
 void dmesh_remove_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
 void dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *vec);
@@ -105,8 +107,7 @@ void dmesh_good_mark(const struct sha1 *sha1,
 gint dmesh_count(const struct sha1 *sha1);
 
 gboolean dmesh_collect_sha1(const gchar *value, struct sha1 *sha1);
-void dmesh_collect_locations(const struct sha1 *sha1,
-		const gchar *value, gboolean defer);
+void dmesh_collect_locations(const struct sha1 *sha1, const gchar *value);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const gchar *value);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,

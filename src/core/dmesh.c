@@ -57,7 +57,6 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/file.h"
-#include "lib/fuzzy.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
@@ -99,11 +98,6 @@ struct dmesh_entry {
 #define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
-
-/** If not at least 60% alike, dump! */
-#define FUZZY_DROP		((60 << FUZZY_SHIFT) / 100)
-/** If more than 80% alike, equal! */
-#define FUZZY_MATCH		((80 << FUZZY_SHIFT) / 100)
 
 static const gchar dmesh_file[] = "dmesh";
 
@@ -989,6 +983,14 @@ dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	(void) dmesh_raw_add(sha1, &info, tm_time());
 }
 
+void
+dmesh_add_good_alternate(const struct sha1 *sha1,
+	host_addr_t addr, guint16 port)
+{
+	dmesh_add_alternate(sha1, addr, port);
+	dmesh_good_mark(sha1, addr, port, TRUE);
+}
+
 /**
  * Add a set of alternate locations (IP + port) to the mesh.
  */
@@ -1747,281 +1749,6 @@ nomore:
 }
 
 /**
- * A simple container for the dmesh info that the deferred checking
- * code needs, although to be honest it may be worth refactoring the
- * dmesh code so it all works on dmesh_entries?
- */
-
-typedef struct {
-    dmesh_urlinfo_t *dmesh_url;	/**< The URL details */
-    time_t stamp;				/**< Timestamp */
-} dmesh_deferred_url_t;
-
-/**
- * Create a list of nonurn alternative locations for a given sha1.
- * This is used in preference to self-consitancy checking as these
- * urls are already "known" to be valid and hence we do not waste
- * potentially valid urls on a "all or nothing" approach.
- */
-static GSList *
-dmesh_get_nonurn_altlocs(const struct sha1 *sha1)
-{
-    struct dmesh *dm;
-    GSList *nonurn_altlocs = NULL;
-	list_iter_t *iter;
-
-    g_assert(sha1);
-
-    dm = g_hash_table_lookup(mesh, sha1);
-    if (dm == NULL)				/* SHA1 unknown */
-		return NULL;
-
-	iter = list_iter_before_head(dm->entries);
-
-	while (list_iter_has_next(iter)) {
-		struct dmesh_entry *dme = list_iter_next(iter);
-
-		if (dme->url.idx != URN_INDEX)
-			nonurn_altlocs = g_slist_append(nonurn_altlocs, dme);
-	}
-
-	list_iter_free(&iter);
-
-    return nonurn_altlocs;
-}
-
-/**
- * This function defers adding a proposed alternate location that has been
- * given as an old style string (i.e. not a URN). After
- * dmesh_collect_locations() has parsed all the alt locations another
- * function (dmesh_check_deferred_altlocs) will be called to make a
- * judgement on the quality of these results, and determine whether they
- * should be added to the dmesh.
- */
-static GSList *
-dmesh_defer_nonurn_altloc(GSList *list, dmesh_urlinfo_t *url, time_t stamp)
-{
-    static const dmesh_deferred_url_t zero_defer;
-    dmesh_deferred_url_t *defer;
-
-    /* Allocate a structure */
-    defer = walloc(sizeof *defer);
-	*defer = zero_defer;
-
-    /*
-	 * Copy the structure, beware of atoms.
-	 */
-
-    defer->dmesh_url = wcopy(url, sizeof *url);
-    defer->dmesh_url->name = atom_str_get(url->name);
-    defer->stamp = stamp;
-
-	if (GNET_PROPERTY(dmesh_debug))
-		g_message("defering nonurn altloc str=%px:%s",
-			defer->dmesh_url->name, defer->dmesh_url->name);
-
-    /* Add to list */
-    return g_slist_append(list, defer);
-}
-
-/**
- * Called to deallocate the dmesh_urlinfo and de-reference names
- * from the GSList. Intended to be called from a g_slist_foreach. The
- * list itself needs to be freed afterwards
- */
-static inline void
-dmesh_free_deferred_altloc(dmesh_deferred_url_t *info)
-{
-	dmesh_urlinfo_free(info->dmesh_url);
-	wfree(info, sizeof *info);
-}
-
-/**
- * This routine checks deferred dmesh entries against any existing
- * nonurn alternative locations. The two factors that control the
- * quality of hits queued are:
- *
- * a) Fuzzy factor of compares
- * b) Number of the altlocs they have to match (threshold)
- *
- * These factors are currently semi-empirical guesses and hardwired.
- *
- * @note
- * This is an O(m*n) process, when `m' is the amount of new entries
- * and `n' the amount of existing entries.
- */
-static void
-dmesh_check_deferred_against_existing(const struct sha1 *sha1,
-	GSList *existing_urls, GSList *deferred_urls)
-{
-    GSList *ex, *def;
-	GSList *adding = NULL;
-    gulong score;
-    gint matches;
-    gint threshold = g_slist_length(existing_urls);
-	time_t now = tm_time();
-
-    /* We want to match at least 2 or more entries, going for 50% */
-    threshold = (threshold < 3) ? 2 : (threshold / 2);
-
-	for (def = deferred_urls; def; def = def->next) {
-		dmesh_deferred_url_t *d = def->data;
-		matches = 0;
-
-		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("checking deferred url %p (str=%p:%s)",
-				cast_to_gconstpointer(d),
-				cast_to_gconstpointer(d->dmesh_url->name),
-				d->dmesh_url->name);
-
-		for (ex = existing_urls; ex; ex = ex->next) {
-			struct dmesh_entry *dme = ex->data;
-			score = fuzzy_compare(dme->url.name, d->dmesh_url->name);
-			if (score > FUZZY_MATCH)
-				matches++;
-		}
-
-		/*
-		 * We can't add the entry in the mesh in the middle of the
-		 * traversal: if we reach the max amount of entries in the mesh,
-		 * we'll free some of them, and since our `existing_urls' items
-		 * directly refer the dmesh_entry structures, that would be horrible!
-		 *		--RAM, 05/02/2003
-		 */
-
-		if (matches >= threshold)
-			adding = g_slist_prepend(adding, d);
-		else {
-			dmesh_urlinfo_t *url = d->dmesh_url;
-			if (GNET_PROPERTY(dmesh_debug))
-				g_warning("dumped potential dmesh entry:\n%s\n\t"
-					"(only matched %d of the others, needed %d)",
-					url->name, matches, threshold);
-		}
-	} /* for def */
-
-	for (def = adding; def; def = def->next) {
-		dmesh_deferred_url_t *d = def->data;
-		dmesh_urlinfo_t *url = d->dmesh_url;
-		gboolean ok;
-
-		ok = dmesh_raw_add(sha1, url, d->stamp);
-
-		if (GNET_PROPERTY(dmesh_debug) > 4) {
-			g_message("MESH %s: %s deferred \"%s\", stamp=%u age=%d",
-				sha1_base32(sha1),
-				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_string(url), (guint) d->stamp,
-				(gint) delta_time(now, d->stamp));
-		}
-	}
-
-	g_slist_free(adding);
-}
-
-/**
- * This routine checks deferred dmesh entries against themselves. They
- * have to be 100% consistent with what was being passed otherwise we
- * are conservative a throw them away. The main factor is the fuzzy
- * factor of the compare.
- *
- * Apologies for the returns but this function doesn't need to clean up
- * after itself yet.
- */
-static void
-dmesh_check_deferred_against_themselves(const struct sha1 *sha1,
-	GSList *deferred_urls)
-{
-    dmesh_deferred_url_t *first;
-    GSList *sl = deferred_urls;
-
-    first = sl->data;
-    sl = g_slist_next(sl);
-
-	if (NULL == sl) { /* It's probably correct, should we bin it? */
-		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("only one altloc to check, currently dumping:\n%s",
-				first->dmesh_url->name);
-		return;
-	}
-
-	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
-    	dmesh_deferred_url_t *current = sl->data;
-    	gulong score;
-
-		score = fuzzy_compare(first->dmesh_url->name, current->dmesh_url->name);
-		if (score < FUZZY_DROP) {
-			/* When anything fails, it's all over */
-			if (GNET_PROPERTY(dmesh_debug) > 4)
-				g_message("dmesh_check_deferred_against_themselves failed with:"
-					" %s\n\t"
-					"(only scoring %lu against:\n\t"
-					"%s",
-					current->dmesh_url->name, score, first->dmesh_url->name);
-			return;
-		}
-	}
-
-    /* We made it this far, they must all match, lets add them to the dmesh */
-	for (sl = deferred_urls; sl; sl = g_slist_next(sl)) {
-		dmesh_deferred_url_t *def = sl->data;
-		dmesh_urlinfo_t *url = def->dmesh_url;
-		gboolean ok;
-
-		ok = dmesh_raw_add(sha1, url, def->stamp);
-
-		if (GNET_PROPERTY(dmesh_debug) > 4) {
-			g_message("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d",
-				sha1_base32(sha1),
-				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_string(url), (guint32) def->stamp,
-				(gint) delta_time(tm_time(), def->stamp));
-		}
-	}
-
-    return;
-}
-
-/**
- * This function is called once dmesh_collect_locations is done and
- * makes it then decides how its going to vet the quality of the
- * deferred nonurn altlocs before decing if they are going to be added
- * for the given sha1.
- *
- * A couple of approaches are taken:
- *
- * a) if any non-urn urls already exist compare against them and add
- *    the ones that match
- * a) otherwise only add urls if they are all the same(ish)
- *
- * Another possible algorithm (majority wins) has been tried but
- * empirically did allow the occasional dmesh pollution. As we are
- * going for  a non-polluted dmesh we shall be conservative. Besides
- * using urn's for files is generally a better idea.
- *
- */
-static void
-dmesh_check_deferred_altlocs(const struct sha1 *sha1, GSList *deferred_urls)
-{
-    GSList *existing_urls;
-
-    if (NULL == deferred_urls)		/* Nothing to do */
-		return;
-
-    existing_urls = dmesh_get_nonurn_altlocs(sha1);
-
-    if (existing_urls) {
-		dmesh_check_deferred_against_existing(sha1,
-			existing_urls, deferred_urls);
-		g_slist_free(existing_urls);
-	} else
-		dmesh_check_deferred_against_themselves(sha1, deferred_urls);
-
-	G_SLIST_FOREACH(deferred_urls, dmesh_free_deferred_altloc);
-    g_slist_free(deferred_urls);
-}
-
-/**
  * Parse the value of the X-Gnutella-Content-URN header in `value', looking
  * for a SHA1.  When found, the SHA1 is extracted and placed into the given
  * `digest' buffer.
@@ -2161,13 +1888,11 @@ dmesh_collect_negative_locations(
  * sources for a given SHA1 key.
  */
 void
-dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
-	gboolean defer)
+dmesh_collect_locations(const struct sha1 *sha1, const gchar *value)
 {
 	const gchar *p = value;
 	guchar c;
 	time_t now = tm_time();
-    GSList *nonurn_altlocs = NULL;
 	gboolean finished = FALSE;
 
 	do {
@@ -2374,20 +2099,8 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 			 * to avoid dmesh pollution.
 			 */
 
-			ok = dmesh_raw_add(sha1, &info, stamp);
-
-		} else {
-			if (GNET_PROPERTY(fuzzy_filter_dmesh) && defer) {
-				/*
-				 * For named altlocs, defer so we can check they are ok,
-				 * all in one block.
-				 */
-				nonurn_altlocs = dmesh_defer_nonurn_altloc(nonurn_altlocs,
-									&info, stamp);
-				goto nolog;
-			} else
-				ok = dmesh_raw_add(sha1, &info, stamp);
 		}
+		ok = dmesh_raw_add(sha1, &info, stamp);
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
@@ -2397,7 +2110,6 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 				dmesh_urlinfo_to_string(&info), (guint) stamp,
 				(gint) delta_time(now, stamp));
 
-	nolog:
 		if (c == '\0')				/* Reached end of string */
 			finished = TRUE;
 		else if (c == ',')
@@ -2408,20 +2120,6 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value,
 			atom_str_free(info.name);
 
 	} while (!finished);
-
-	/*
-	 * Once everyone is done we can sort out deferred urls, if any.
-	 */
-
-	if (GNET_PROPERTY(fuzzy_filter_dmesh) && defer) {
-		/*
-		 * We only defer when collection from live headers.
-		 */
-
-		dmesh_check_deferred_altlocs(sha1, nonurn_altlocs);
-	}
-
-    return;
 }
 
 /**
@@ -2716,7 +2414,7 @@ dmesh_retrieve(void)
 		if (has_sha1) {
 			if (GNET_PROPERTY(dmesh_debug))
 				g_message("dmesh_retrieve(): parsing %s", tmp);
-			dmesh_collect_locations(&sha1, tmp, FALSE);
+			dmesh_collect_locations(&sha1, tmp);
 		} else {
 			if (
 				strlen(tmp) < SHA1_BASE32_SIZE ||
