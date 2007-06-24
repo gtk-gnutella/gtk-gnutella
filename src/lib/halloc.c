@@ -319,9 +319,15 @@ halloc_init_vtable(void)
 {
 	static GMemVTable vtable;
 
+#if GLIB_CHECK_VERSION(2,0,0)
 	vtable.malloc = gm_malloc;
 	vtable.realloc = gm_realloc;
 	vtable.free = gm_free;
+#else	/* GLib < 2.0.0 */
+	vtable.gmvt_malloc = gm_malloc;
+	vtable.gmvt_realloc = gm_realloc;
+	vtable.gmvt_free = gm_free;
+#endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
 
