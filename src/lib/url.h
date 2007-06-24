@@ -64,10 +64,12 @@ typedef enum {
 
 gchar *url_escape(const gchar *url);
 gchar *url_escape_query(const gchar *url);
+gchar *url_escape_shell(const gchar *url);
 gchar *url_fix_escape(const gchar *url);
 gint url_escape_into(const gchar *url, gchar *target, gint len);
 gchar *url_escape_cntrl(const gchar *url);
 gchar *url_unescape(gchar *url, gboolean inplace);
+gchar *url_from_absolute_path(const gchar *path);
 
 url_params_t *url_params_parse(gchar *query);
 const gchar *url_params_get(url_params_t *up, const gchar *name);

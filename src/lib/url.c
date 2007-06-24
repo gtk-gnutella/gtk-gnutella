@@ -54,21 +54,29 @@ RCSID("$Id$")
  * - Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
  * - Bit 1 encodes regular transparent set minus '+' (query string).
  * - Bit 2 encodes the set for fixing an incomplete escaping.
+ * - Bit 3 encodes the set for use in a shell.
  */
 static const guint8 is_transparent[96] = {
-/*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
-    0,7,0,0,7,0,4,0,7,7,7,0,7,7,7,7,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
-    7,7,7,7,7,7,7,7,7,7,6,0,0,4,0,4,	/* 0123456789:;<=>? -  48 -> 63  */
-    0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
-    7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,7,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
-    0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,	/* `abcdefghijklmno -  96 -> 111 */
-    7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
+/*  0   1   2   3   4   5   6   7 */	/* 01234567 -            */
+    0x0,0x0,0x0,0x0,0x7,0x0,0x4,0x0,	/*  !"#$%&' -	 32..39  */
+	0x7,0x7,0x7,0x0,0xf,0xf,0xf,0xf,	/* ()*+,-./ -	 40..47	 */
+    0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* 01234567 -	 48..55  */
+	0xf,0xf,0x6,0x0,0x0,0x4,0x0,0x4,	/* 89:;<=>? -    56..63  */
+    0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* @ABCDEFG -	 64..71	 */
+	0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* HIJKLMNO - 	 72..79  */
+    0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* PQRSTUVW -    80..87	 */
+	0xf,0xf,0xf,0x0,0x0,0x0,0x0,0xf,	/* XYZ[\]^_ -	 88..95  */
+    0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* `abcdefg	-	 96..103 */
+	0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* hijklmno -	104..111 */
+    0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,	/* pqrstuvw -   112..119 */
+	0xf,0xf,0xf,0x0,0x0,0x0,0x0,0x0,	/* xyz{|}~  -	120..127 */
 };
 
 enum escape_mask {
 	PATH_MASK	= (1 << 0),
 	QUERY_MASK	= (1 << 1),
-	FIX_MASK	= (1 << 2)
+	FIX_MASK	= (1 << 2),
+	SHELL_MASK	= (1 << 3)
 };
 
 static inline gboolean
@@ -179,6 +187,35 @@ gchar *
 url_escape_query(const gchar *url)
 {
 	return url_escape_mask(url, QUERY_MASK);
+}
+
+/**
+ * Escapes the given string for safe use in a shell or file: URL.
+ * @return argument if no escaping is necessary, or a new string otherwise.
+ */
+gchar *
+url_escape_shell(const gchar *url)
+{
+	return url_escape_mask(url, SHELL_MASK);
+}
+
+/**
+ * Creates a file: URL from the given absolute path and escapes it properly
+ * for safe use in a shell too.
+ * @return A new string or NULL on failure.
+ */
+char *
+url_from_absolute_path(const gchar *path)
+{
+	gchar *escaped, *url;
+	
+	g_return_val_if_fail(is_absolute_path(path), NULL);
+	escaped = url_escape_mask(path, SHELL_MASK);
+	url = g_strconcat("file://", escaped, (void *) 0);
+	if (escaped != path) {
+		G_FREE_NULL(escaped);
+	}
+	return url;
 }
 
 /**
