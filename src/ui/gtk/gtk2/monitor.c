@@ -38,23 +38,24 @@
 
 RCSID("$Id$")
 
+#include "gtk/drag.h"
 #include "gtk/monitor.h"
 #include "gtk/monitor_cb.h"
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/utf8.h"
 #include "lib/glib-missing.h"
+#include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
-static GtkListStore *monitor_model = NULL;
+static GtkListStore *monitor_model;
 
 enum {
    QUERY_COLUMN = 0,
    MONITOR_COLUMNS
 };
-
 
 
 /***
@@ -115,6 +116,27 @@ monitor_gui_add(query_type_t type, const gchar *item,
 	}
 }
 
+static gchar *
+monitor_gui_get_text(GtkWidget *widget)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_return_val_if_fail(widget, NULL);
+
+	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		static const GValue zero_value;
+		GValue value;
+
+		value = zero_value;
+		gtk_tree_model_get_value(model, &iter, QUERY_COLUMN, &value);
+		return g_strdup(g_value_get_string(&value));
+	} else {
+		return NULL;
+	}
+}
+
+
 /***
  *** Public functions
  ***/
@@ -152,6 +174,8 @@ monitor_gui_init(void)
 
 	g_signal_connect(G_OBJECT(tree), "button_press_event",
 		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
+
+	drag_attach(drag_new(), GTK_WIDGET(tree), monitor_gui_get_text);
 }
 
 void
