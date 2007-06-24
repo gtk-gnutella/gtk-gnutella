@@ -193,7 +193,7 @@
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_SOURCE)
 
-gpointer string_record(const gchar *s, gchar *file, gint line);
+gchar *string_record(const gchar *s, gchar *file, gint line);
 gpointer malloc_record(gconstpointer o, size_t size, gchar *file, gint line);
 GSList *gslist_record(const GSList *, gchar *file, gint line);
 GList *glist_record(const GList *, gchar *file, gint line);

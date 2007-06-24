@@ -416,6 +416,9 @@ free_record(gconstpointer o, gchar *file, gint line)
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
+	if (NULL == o)
+		return;
+
 	if (blocks == NULL || !(g_hash_table_lookup_extended(blocks, o, &k, &v))) {
 		g_warning("(%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
@@ -529,6 +532,8 @@ realloc_record(gpointer o, gpointer n, size_t size, gchar *file, gint line)
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
+	g_assert(n);
+
 	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
 		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
@@ -604,8 +609,6 @@ realloc_record(gpointer o, gpointer n, size_t size, gchar *file, gint line)
 gpointer
 realloc_track(gpointer o, size_t size, gchar *file, gint line)
 {
-	gpointer n;
-
 	if (o == NULL)
 		return malloc_track(size, file, line);
 
@@ -613,12 +616,18 @@ realloc_track(gpointer o, size_t size, gchar *file, gint line)
 	return realloc(o, size);
 #endif
 
-	n = realloc(o, size);
+	if (0 == size) {
+		free_track(o, file, line);
+		return NULL;
+	} else {
+		gpointer n;
 
-	if (n == NULL)
-		g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+		n = realloc(o, size);
+		if (n == NULL)
+			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
 
-	return realloc_record(o, n, size, file, line);
+		return realloc_record(o, n, size, file, line);
+	}
 }
 
 /**
@@ -772,7 +781,7 @@ strsplit_track(const gchar *s, const gchar *d, size_t m, gchar *file, gint line)
  * Record string `s' allocated at `file' and `line'.
  * @return argument `s'.
  */
-gpointer
+gchar *
 string_record(const gchar *s, gchar *file, gint line)
 {
 	if (s == NULL)
@@ -1207,12 +1216,19 @@ track_list_delete_link(GList *l, GList *lk, gchar *file, gint line)
 static GString *
 string_str_track(GString *s, gchar *old, gchar *file, gint line)
 {
+	size_t size;
+#if GLIB_CHECK_VERSION(2,0,0)
+	size = s->allocated_len;
+#else
+	size = s->len + 1;
+#endif 
+
 	if (s->str != old) {
 		free_record(old, file, line);
-		string_record(s->str, file, line);
-	} else
-		realloc_record(s->str, s->str, s->len + 1, file, line);
-
+		malloc_record(s->str, size, file, line);
+	} else {
+		realloc_record(s->str, s->str, size, file, line);
+	}
 	return s;
 }
 
@@ -1222,9 +1238,7 @@ string_new_track(const gchar *p, gchar *file, gint line)
 	GString *result = g_string_new(p);
 
 	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
-	string_record(result->str, file, line);
-
-	return result;
+	return string_str_track(result, NULL, file, line);
 }
 
 GString *
@@ -1233,9 +1247,7 @@ string_sized_new_track(size_t size, gchar *file, gint line)
 	GString *result = g_string_sized_new(size);
 
 	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
-	string_record(result->str, file, line);
-
-	return result;
+	return string_str_track(result, NULL, file, line);
 }
 
 GString *
