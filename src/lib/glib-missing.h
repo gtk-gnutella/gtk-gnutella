@@ -48,13 +48,13 @@
 typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
 
 typedef struct GMemVTable {
-	gpointer	(*malloc)		(gsize n_bytes);
-	gpointer	(*realloc)		(gpointer mem, gsize n_bytes);
-	void		(*free)			(gpointer mem);
+	gpointer	(*gmvt_malloc)		(gsize n_bytes);
+	gpointer	(*gmvt_realloc)		(gpointer mem, gsize n_bytes);
+	void		(*gmvt_free)		(gpointer mem);
 	/* optional */
-	gpointer	(*calloc)		(gsize n_blocks, gsize n_block_bytes);
-	gpointer	(*try_malloc)	(gsize n_bytes);
-	gpointer	(*try_realloc)	(gpointer mem, gsize n_bytes);
+	gpointer	(*gmvt_calloc)		(gsize n_blocks, gsize n_block_bytes);
+	gpointer	(*gmvt_try_malloc)	(gsize n_bytes);
+	gpointer	(*gmvt_try_realloc)	(gpointer mem, gsize n_bytes);
 } GMemVTable;
 #endif
 

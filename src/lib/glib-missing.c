@@ -50,11 +50,13 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if defined(USE_GLIB1) && !defined(USE_MALLOC)
+#if defined(USE_GLIB1) && !defined(TRACK_MALLOC) && !defined(USE_MALLOC)
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
-	(gm_vtable.method ? (gm_vtable.method params) : (method params))
+	(gm_vtable.gmvt_ ## method \
+	 ? (gm_vtable.gmvt_ ## method params) \
+	 : (method params))
 
 static inline ALWAYS_INLINE gpointer
 gm_malloc(gulong size)
@@ -80,25 +82,21 @@ gm_free(gpointer p)
 	return GM_VTABLE_METHOD(free, (p));
 }
 
+#define try_malloc malloc
 static inline ALWAYS_INLINE gpointer
 gm_try_malloc(gulong size)
 {
-	if (gm_vtable.try_malloc) {
-		return gm_vtable.try_malloc(size);
-	} else {
-		return GM_VTABLE_METHOD(malloc, (size));
-	}
+	return GM_VTABLE_METHOD(try_malloc, (size));
 }
+#undef try_malloc
 
+#define try_realloc realloc
 static inline ALWAYS_INLINE gpointer
 gm_try_realloc(gpointer p, gulong size)
 {
-	if (gm_vtable.try_realloc) {
-		return gm_vtable.try_realloc(p, size);
-	} else {
-		return GM_VTABLE_METHOD(realloc, (p, size));
-	}
+	return GM_VTABLE_METHOD(try_realloc, (p, size));
 }
+#undef try_realloc
 
 /***
  *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
@@ -109,6 +107,7 @@ gm_try_realloc(gpointer p, gulong size)
  ***       USE_MALLOC disables use of this hack.
  ***/
 
+#undef g_malloc
 gpointer
 g_malloc(gulong size)
 {
@@ -126,6 +125,7 @@ g_malloc(gulong size)
 	return NULL;
 }
 
+#undef g_malloc0
 gpointer
 g_malloc0(gulong size)
 {
@@ -145,6 +145,7 @@ g_malloc0(gulong size)
 	return NULL;
 }
 
+#undef g_realloc
 gpointer
 g_realloc(gpointer p, gulong size)
 {
@@ -164,18 +165,21 @@ g_realloc(gpointer p, gulong size)
 	return NULL;
 }
 
+#undef g_free
 void
 g_free(gpointer p)
 {
 	gm_free(p);
 }
 
+#undef g_try_malloc
 gpointer
 g_try_malloc(gulong size)
 {
 	return size > 0 ? gm_try_malloc(size) : NULL;
 }
 
+#undef g_try_realloc
 gpointer
 g_try_realloc(gpointer p, gulong size)
 {
@@ -211,15 +215,19 @@ emulate_calloc(gsize n, gsize m)
 void
 g_mem_set_vtable(GMemVTable *vtable)
 {
-	gm_vtable.malloc = vtable->malloc;
-	gm_vtable.realloc = vtable->realloc;
-	gm_vtable.free = vtable->free;
+	gm_vtable.gmvt_malloc = vtable->gmvt_malloc;
+	gm_vtable.gmvt_realloc = vtable->gmvt_realloc;
+	gm_vtable.gmvt_free = vtable->gmvt_free;
 
-	gm_vtable.calloc = vtable->calloc ? vtable->calloc : emulate_calloc;
-	gm_vtable.try_malloc = vtable->try_malloc ?
-		vtable->try_malloc : vtable->malloc;
-	gm_vtable.try_realloc = vtable->try_realloc ?
-		vtable->try_realloc : vtable->realloc;
+	gm_vtable.gmvt_calloc = vtable->gmvt_calloc
+		? vtable->gmvt_calloc
+		: emulate_calloc;
+	gm_vtable.gmvt_try_malloc = vtable->gmvt_try_malloc
+		? vtable->gmvt_try_malloc
+		: vtable->gmvt_malloc;
+	gm_vtable.gmvt_try_realloc = vtable->gmvt_try_realloc
+		? vtable->gmvt_try_realloc
+		: vtable->gmvt_realloc;
 }
 
 /**
@@ -228,12 +236,11 @@ g_mem_set_vtable(GMemVTable *vtable)
 gboolean
 g_mem_is_system_malloc(void)
 {
-	return !gm_vtable.malloc;
+	return !gm_vtable.gmvt_malloc;
 }
 #endif	/* USE_GLIB1 */
 
 #ifndef TRACK_MALLOC
-
 /**
  * Insert `item' after `lnk' in list `list'.
  * If `lnk' is NULL, insertion happens at the head.
@@ -312,16 +319,17 @@ g_slist_delete_link(GSList *sl, GSList *lnk)
 	return head;
 }
 
+#endif /* USE_GLIB1 */
+#endif	/* !TRACK_MALLOC */
+
+#ifdef USE_GLIB1
 void
 g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value)
 {
 	g_hash_table_remove(ht, key);
 	g_hash_table_insert(ht, key, value);
 }
-
-#endif /* USE_GLIB1 */
-
-#endif /* !TRACK_MALLOC */
+#endif	/* USE_GLIB1 */
 
 /**
  * Perform the vsnprintf() operation for the gm_vsnprintf() and gm_snprintf()
