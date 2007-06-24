@@ -75,15 +75,12 @@ gtk_paned_get_position(GtkPaned *paned)
  * @warning EVIL HACK
  */
 void
-gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
+gtk_clist_set_column_name(GtkCList * clist, gint col, gchar *title)
 {
-    if (col < 0 || col >= clist->columns)
-        return;
-
-    if (clist->column[col].title)
-        G_FREE_NULL(clist->column[col].title);
-
-    clist->column[col].title = g_strdup(t);
+    if (col >= 0 && col < clist->columns) {
+		G_FREE_NULL(clist->column[col].title);
+		clist->column[col].title = g_strdup(title);
+	}
 }
 #endif /* USE_GTK1 */
 
