@@ -40,6 +40,7 @@
 #include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
+#include "gtk/drop.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/gui.h"
 #include "gtk/misc.h"
@@ -2003,6 +2004,28 @@ on_search_list_row_move_event(GtkCList *clist,
 	search_gui_option_menu_searches_update();
 }
 
+static void
+drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
+	gint unused_x, gint unused_y, GtkSelectionData *selection,
+	guint unused_info, guint stamp, gpointer unused_udata)
+{
+	gboolean success = FALSE;
+
+	(void) unused_udata;
+	(void) unused_widget;
+	(void) unused_x;
+	(void) unused_y;
+	(void) unused_info;
+
+	if (selection->length > 0 && selection->format == 8) {
+		success = TRUE;
+
+		gtk_entry_set_text(GTK_ENTRY(gui_main_window_lookup("entry_search")),
+			cast_to_gchar_ptr(selection->data));
+	}
+	gtk_drag_finish(dc, success, FALSE, stamp);
+}
+
 /***
  *** Public functions
  ***/
@@ -2078,6 +2101,9 @@ search_gui_init(void)
 		drag_detail = drag_new();
 		drag_attach(drag_detail, GTK_WIDGET(clist), search_details_get_text);
 	}
+
+	drop_widget_init(gui_main_window_lookup("entry_search"),
+		drag_data_received, NULL);
 }
 
 void
