@@ -302,7 +302,6 @@ search_gui_get_file_url(GtkWidget *widget)
 	gui_record_t *grc;
 	record_t *record;
 	gint row = -1;
-	gchar *url = NULL;
 
 	if (
 		!gtk_clist_get_selection_info(GTK_CLIST(widget),
@@ -317,19 +316,13 @@ search_gui_get_file_url(GtkWidget *widget)
 	node = gtk_ctree_node_nth(GTK_CTREE(widget), row);
 	grc = gtk_ctree_node_get_row_data(GTK_CTREE(widget), node);
 	record = grc->shared_record;
-	if (ST_LOCAL & record->results_set->status) {
-		const gchar *pathname = record->tag;
-		if (pathname) {
-			gchar *escaped;
+	if (!(ST_LOCAL & record->results_set->status))
+		return NULL;
 
-			escaped = url_escape(pathname);
-			url = g_strconcat("file://", escaped, (void *) 0);
-			if (escaped != pathname) {
-				G_FREE_NULL(escaped);
-			}
-		}
-	}
-	return url;
+	if (!record->tag)
+		return NULL;
+	
+	return url_from_absolute_path(record->tag);
 }
 
 /**

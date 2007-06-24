@@ -6059,7 +6059,6 @@ file_info_build_magnet(gnet_fi_t handle)
 gchar *
 file_info_get_file_url(gnet_fi_t handle)
 {
-	gchar *url = NULL;
 	fileinfo_t *fi;
 	
 	fi = file_info_find_by_handle(handle);
@@ -6067,16 +6066,7 @@ file_info_get_file_url(gnet_fi_t handle)
 	file_info_check(fi);
 	
 	/* Allow partials but not unstarted files */
-	if (fi->done > 0) {
-		gchar *escaped;
-
-		escaped = url_escape(fi->pathname);
-		url = g_strconcat("file://", escaped, (void *) 0);
-		if (escaped != fi->pathname) {
-			G_FREE_NULL(escaped);
-		}
-	}
-	return url;
+	return fi->done > 0 ? url_from_absolute_path(fi->pathname) : NULL;
 }
 
 /**

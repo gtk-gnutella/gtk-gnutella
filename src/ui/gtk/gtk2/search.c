@@ -611,7 +611,6 @@ get_local_file_url(GtkWidget *widget)
 {
 	const struct result_data *data;
 	const gchar *pathname;
-	gchar *escaped, *url;
 	GtkTreeModel *model;
    	GtkTreeIter iter;
 
@@ -626,13 +625,8 @@ get_local_file_url(GtkWidget *widget)
 	pathname = data->record->tag;
 	if (NULL == pathname)
 		return NULL;
-	
-	escaped = url_escape(pathname);
-	url = g_strconcat("file://", escaped, (void *) 0);
-	if (escaped != pathname) {
-		G_FREE_NULL(escaped);
-	}
-	return url;
+	 
+	return url_from_absolute_path(pathname);
 }
 
 guint
