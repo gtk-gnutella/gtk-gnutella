@@ -2835,7 +2835,23 @@ search_gui_set_details(const record_t *rc)
 		(SR_SHARED  & rc->flags)  ? _("shared") :
 		_("No"));
 
-	if (!(ST_LOCAL & rs->status)) {
+	if (ST_LOCAL & rs->status) {
+		const gchar *display_path;
+		gchar *url;
+
+		display_path = lazy_filename_to_ui_string(rc->tag);
+		if (0 == strcmp(display_path, rc->tag)) {
+			/* Only show the pathname if its encoding matches the
+			 * the UI encoding. Otherwise, drag & drop would result
+			 * in different string than the actual pathname.
+			 */
+			search_gui_append_detail(_("Pathname"), display_path);
+		}
+
+		url = url_from_absolute_path(rc->tag);
+		search_gui_append_detail(_("File URL"), url);
+		G_FREE_NULL(url);
+	} else {
 		search_gui_append_detail(_("Source"),
 			host_addr_port_to_string(rs->addr, rs->port));
 		search_gui_append_detail(_("Browsable"),
