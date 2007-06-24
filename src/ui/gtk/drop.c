@@ -75,14 +75,14 @@ handle_magnet(const gchar *url)
 }
 
 static gboolean
-handle_http(const gchar *url)
+handle_url(const gchar *url)
 {
 	const gchar *error_str;
 	gboolean success;
 
 	g_return_val_if_fail(url, FALSE);
 
-	success = search_gui_handle_http(url, &error_str);
+	success = search_gui_handle_url(url, &error_str);
 	if (!success) {
 		statusbar_gui_warning(10, "%s", error_str);
 	}
@@ -113,7 +113,8 @@ static const struct {
 	gboolean (* handler)(const gchar *url);
 } proto_handlers[] = {
 	{ "ftp",	handle_not_implemented },
-	{ "http",	handle_http },
+	{ "http",	handle_url },
+	{ "push",	handle_url },
 	{ "magnet",	handle_magnet },
 	{ "urn",	handle_urn },
 };
@@ -133,37 +134,30 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	(void) unused_widget;
 	(void) unused_udata;
 
-	if (GUI_PROPERTY(gui_debug) > 0)
+	if (GUI_PROPERTY(gui_debug) > 0) {
 		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
 			x, y, info, stamp);
+	}
 	if (data->length > 0 && data->format == 8) {
-		gchar *p, *url = cast_to_gchar_ptr(data->data);
-		size_t len;
+		const gchar *text = cast_to_gchar_ptr(data->data);
 		guint i;
 
-		if (GUI_PROPERTY(gui_debug) > 0)
-			g_message("drag_data_received: url=\"%s\"", url);
-
-
-		p = strchr(url, ':');
-		len = p ? p - url : 0;
-		if (!p || (ssize_t) len < 1) {
-			statusbar_gui_warning(10, _("Cannot handle the dropped data"));
-			goto cleanup;
+		if (GUI_PROPERTY(gui_debug) > 0) {
+			g_message("drag_data_received: text=\"%s\"", text);
 		}
-
-		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++)
-			if (is_strprefix(url, proto_handlers[i].proto)) {
-				success = proto_handlers[i].handler(url);
-				break;
+		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
+			const char *endptr;
+			
+			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
+			if (endptr && ':' == endptr[0]) {
+				success = proto_handlers[i].handler(text);
+				goto cleanup;
 			}
-
-		if (i == G_N_ELEMENTS(proto_handlers))
-			statusbar_gui_warning(10, _("Protocol is not supported"));
+		}
+		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
 	}
 
 cleanup:
-
 	gtk_drag_finish(dc, success, FALSE, stamp);
 }
 
