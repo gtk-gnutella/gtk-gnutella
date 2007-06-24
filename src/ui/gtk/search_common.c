@@ -57,8 +57,8 @@ RCSID("$Id$")
 #include "lib/base16.h"
 #include "lib/base32.h"
 #include "lib/file.h"
-#include "lib/fuzzy.h"
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
@@ -2881,6 +2881,10 @@ search_gui_set_details(const record_t *rc)
 			lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
 				UNI_NORM_GUI, NULL));
 		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
+		if (ISO3166_INVALID != rs->country) {
+			search_gui_append_detail(_("Country"),
+				iso3166_country_cc(rs->country));
+		}
 	}
 	if (rc->alt_locs) {
 		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
