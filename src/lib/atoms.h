@@ -209,6 +209,9 @@ atom_ ## name ## _free_null(const type *k_ptr) \
 	} \
 }
 
+struct sha1;
+struct tth;
+
 GENERATE_ATOM_FREE_NULL(filesize, filesize_t *)
 GENERATE_ATOM_FREE_NULL(guid, gchar *)
 GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
