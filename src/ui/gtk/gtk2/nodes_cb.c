@@ -54,7 +54,7 @@ add_node(void)
     gchar *addr;
 
     editable = GTK_EDITABLE(gui_main_window_lookup("entry_host"));
-    addr = gtk_editable_get_chars(editable, 0, -1);
+    addr = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     nodes_gui_common_connect_by_name(addr);
     G_FREE_NULL(addr);
     gtk_entry_set_text(GTK_ENTRY(editable), "");
@@ -108,7 +108,7 @@ on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 	gchar *e;
 
 	(void) unused_udata;
-	e = gtk_editable_get_chars(editable, 0, -1);
+	e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	g_strstrip(e);
 	gtk_widget_set_sensitive(gui_main_window_lookup("button_nodes_add"),
         e[0] != '\0');
