@@ -4800,7 +4800,7 @@ create_download(
 	 * the push flag. --RAM, 18/08/2002.
 	 */
 
-	if ((d->server->attrs & DLS_A_PUSH_IGN) || guid_eq(guid, blank_guid)) {
+	if ((d->server->attrs & DLS_A_PUSH_IGN) || has_blank_guid(d)) {
 		cflags &= ~SOCK_F_PUSH;
 	}
 	d->cflags = cflags;
