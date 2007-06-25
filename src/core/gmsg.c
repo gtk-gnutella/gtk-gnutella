@@ -968,7 +968,7 @@ gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 		va_list args;
 		va_start(args, reason);
 		fputs(": ", stderr);
-		vprintf(reason, args);
+		vfprintf(stderr, reason, args);
 		va_end(args);
 	}
 
