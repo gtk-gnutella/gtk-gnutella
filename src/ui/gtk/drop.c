@@ -154,10 +154,13 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 				goto cleanup;
 			}
 		}
-		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
+		success = search_gui_insert_query(text);
 	}
 
 cleanup:
+	if (!success) {
+		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
+	}
 	gtk_drag_finish(dc, success, FALSE, stamp);
 }
 

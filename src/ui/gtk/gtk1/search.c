@@ -2004,10 +2004,10 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	(void) unused_info;
 
 	if (selection->length > 0 && selection->format == 8) {
-		success = TRUE;
+		const gchar *text;
 
-		gtk_entry_set_text(GTK_ENTRY(gui_main_window_lookup("entry_search")),
-			cast_to_gchar_ptr(selection->data));
+		text = cast_to_gchar_ptr(selection->data);
+		success = search_gui_insert_query(cast_to_gchar_ptr(selection->data));
 	}
 	gtk_drag_finish(dc, success, FALSE, stamp);
 }

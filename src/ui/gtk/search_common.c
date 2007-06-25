@@ -2134,6 +2134,22 @@ search_gui_history_add(const gchar *text)
 	}
 }
 
+gboolean
+search_gui_insert_query(const gchar *text)
+{
+	GtkEntry *entry;
+
+	g_return_val_if_fail(text, FALSE);
+
+#if GTK_CHECK_VERSION(2,0,0)
+	g_return_val_if_fail(utf8_is_valid_string(text), FALSE);
+#endif	/* Gtk+ >= 2.0 */
+	
+    entry = GTK_ENTRY(gui_main_window_lookup("entry_search"));
+	gtk_entry_set_text(entry, text);
+	return TRUE;
+}
+
 /**
  * Create a new search from a query entered by the user.
  */
