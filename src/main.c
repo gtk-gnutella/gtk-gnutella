@@ -150,7 +150,7 @@ RCSID("$Id$")
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 static volatile sig_atomic_t from_atexit = FALSE;
-static volatile int signal_received = 0;
+static volatile sig_atomic_t signal_received = 0;
 static volatile sig_atomic_t shutdown_requested = 0;
 static volatile sig_atomic_t sig_hup_received = 0;
 static jmp_buf atexit_env;
@@ -430,8 +430,12 @@ gtk_gnutella_exit(gint n)
 		time_t now = time(NULL);
 		time_delta_t d;
 
+		if (signal_received)
+			break;
+
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
+
 		main_gui_shutdown_tick(exit_grace - d);
 		sleep(1);
 	}
