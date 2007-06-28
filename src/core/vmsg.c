@@ -1592,6 +1592,8 @@ head_pong_queue_status(void)
 {
 	guint32 maximum, running;
 
+	maximum = GNET_PROPERTY(max_uploads);
+	running = GNET_PROPERTY(ul_running);
 	if (!upload_is_enabled()) {
 		return 0x7f; /* Busy */
 	} else if (running >= maximum) {
