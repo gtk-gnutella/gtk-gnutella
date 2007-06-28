@@ -470,7 +470,9 @@ huge_update_hashes(struct shared_file *sf,
 			shared_file_size(sf), shared_file_modification_time(sf),
 			sha1, tth);
 	}
-	request_tigertree(sf, FALSE);
+	if (NULL == tth) {
+		request_tigertree(sf, FALSE);
+	}
 	return TRUE;
 }
 
