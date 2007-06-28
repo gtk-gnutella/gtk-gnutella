@@ -1584,6 +1584,26 @@ enum {
 	VMSG_HEAD_CODE_MASK			= 0x03,
 };
 
+/**
+ * Calculates the byte value describing our queue status for a HEAD Pong.
+ */
+static guint8
+head_pong_queue_status(void)
+{
+	guint32 maximum, running;
+
+	if (!upload_is_enabled()) {
+		return 0x7f; /* Busy */
+	} else if (running >= maximum) {
+		return 0;
+	} else {
+		guint32 slots;
+		slots = maximum - running;	
+		slots = MIN(0x7eU, slots);
+		return -(guint8)slots;
+	}
+}
+
 static void
 vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 	guint8 code, guint8 flags)
@@ -1603,21 +1623,10 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
 		flags = 0;
 	} else {
-		guint32 slots;
-
 		code |= GNET_PROPERTY(is_firewalled) ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
-		slots = upload_is_enabled()
-				? GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
-				: 0;
-		slots = MIN(GNET_PROPERTY(max_uploads), slots);
-		slots = MIN(0x7eU, slots);
-		if (0 == slots) {
-			slots = 0x7f; /* Busy */
-		}
-
 		p = poke_be32(p, T_GTKG);	/* Vendor code */
-		p = poke_u8(p, slots);		/* Queue status */
+		p = poke_u8(p, head_pong_queue_status());		/* Queue status */
 
 		/* Optional ranges for partial files */
 		if (VMSG_HEAD_F_RANGES & flags) {
@@ -1688,26 +1697,15 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
 			goto failure;
 	} else {
-		guint32 slots;
 		guint8 queue;
 		guint8 caps;
 
 		code |= GNET_PROPERTY(is_firewalled) ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
-		slots = upload_is_enabled()
-				? GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
-				: 0;
-		slots = MIN(GNET_PROPERTY(max_uploads), slots);
-		slots = MIN(0x7eU, slots);
-		if (0 == slots) {
-			slots = 0x7f; /* Busy */
-		}
-
-		queue = slots;
-		
 		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
 			goto failure;
-		
+	
+		queue = head_pong_queue_status();	
 		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
 			goto failure;
 
