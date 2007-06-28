@@ -2156,23 +2156,27 @@ failure:
  * Collect alternate locations.
  */
 static void
-upload_collect_locations(
-	gnutella_upload_t *u, const struct sha1 *sha1, header_t *header)
+upload_collect_locations(gnutella_upload_t *u,
+	const struct sha1 *sha1, header_t *header)
 {
-	gchar *buf;
+	g_return_if_fail(sha1);
 
-	huge_collect_locations(sha1, header);
-	if (host_is_valid(u->gnet_addr, u->gnet_port)) {
-		/*
-		 * The uploader is only an alt-loc if it lists itself to the
-		 * X-Alt: header. If it didn't the following has no effect.
-		 */
-		dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
+	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
+		gchar *buf;
+
+		huge_collect_locations(sha1, header);
+		if (host_is_valid(u->gnet_addr, u->gnet_port)) {
+			/*
+			 * The uploader is only an alt-loc if it lists itself to the
+			 * X-Alt: header. If it didn't the following has no effect.
+			 */
+			dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
+		}
+
+		buf = header_get(header, "X-Nalt");
+		if (buf)
+			dmesh_collect_negative_locations(sha1, buf, u->addr);
 	}
-
-	buf = header_get(header, "X-Nalt");
-	if (buf)
-		dmesh_collect_negative_locations(sha1, buf, u->addr);
 }
 
 /**
