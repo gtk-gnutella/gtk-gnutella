@@ -103,7 +103,6 @@
 #include "lib/crc.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
-#include "lib/fragcheck.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
@@ -841,6 +840,7 @@ enum main_arg {
 	main_arg_help,
 	main_arg_log_stderr,
 	main_arg_log_stdout,
+	main_arg_no_halloc,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
 	main_arg_ping,
@@ -883,6 +883,7 @@ static struct {
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
 	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
@@ -1022,6 +1023,48 @@ usage(int exit_code)
 	exit(exit_code);
 }
 
+/* NOTE: This function must not allocate any memory. */
+static void
+prehandle_arguments(char **argv)
+{
+	argv++;
+
+	while (argv[0]) {
+		const gchar *s;
+		guint i;
+
+		s = is_strprefix(argv[0], "--");
+		if (NULL == s || '\0' == s[0])
+			break;
+
+		argv++;
+
+		for (i = 0; i < G_N_ELEMENTS(options); i++) {
+			if (option_match(options[i].name, s))
+				break;
+		}
+		if (G_N_ELEMENTS(options) == i)
+			return;
+
+		if (main_arg_no_halloc == i) {
+			options[i].used = TRUE;
+		}
+
+		switch (options[i].type) {
+		case ARG_TYPE_NONE:
+			break;
+		case ARG_TYPE_TEXT:
+		case ARG_TYPE_PATH:
+			if (NULL == argv[0] || '-' == argv[0][0])
+				return;
+
+			argv++;
+			break;
+		}
+	}
+}
+
+
 static void
 handle_arguments(int argc, char **argv)
 {
@@ -1029,11 +1072,8 @@ handle_arguments(int argc, char **argv)
 	guint i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
 		g_assert(options[i].id == i);
-		options[i].used = FALSE;
-		options[i].arg = NULL;
 	}
 
 	argv0 = argv[0];
@@ -1160,11 +1200,11 @@ main(int argc, char **argv)
 	 */
 	close_file_descriptors(3); /* Just in case */
 
-#ifdef FRAGCHECK
-	fragcheck_init();
-#else
-	halloc_init();
-#endif
+	prehandle_arguments(argv);
+
+	if (!options[main_arg_no_halloc].used) {
+		halloc_init();
+	}
 	
 	misc_init();
 	tm_now_exact(&start_time);
