@@ -179,6 +179,16 @@ sig_hup(int n)
 	sig_hup_received = 1;
 }
 
+static void
+sig_chld(int n)
+{
+	int saved_errno = errno;
+	(void) n;
+	while (waitpid(-1, NULL, WNOHANG) > 0)
+		continue;
+	errno = saved_errno;
+}
+
 #if defined(FRAGCHECK) || defined(MALLOC_STATS)
 static volatile sig_atomic_t signal_malloc = 0;
 
@@ -1211,6 +1221,9 @@ main(int argc, char **argv)
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGHUP, sig_hup);
+#ifdef SIGCHLD
+	set_signal(SIGCHLD, sig_chld);
+#endif
 #ifdef SIGPIPE
 	set_signal(SIGPIPE, SIG_IGN);
 #endif

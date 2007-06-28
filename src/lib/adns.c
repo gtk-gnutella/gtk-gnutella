@@ -800,10 +800,6 @@ adns_init(void)
 		goto prefork_failure;
 	}
 	
-#ifdef SIGCHLD 
-	set_signal(SIGCHLD, SIG_IGN); /* prevent a zombie */
-#endif
-
 	pid = fork();
 	if ((pid_t) -1 == pid) {
 		g_warning("adns_init: fork() failed: %s", g_strerror(errno));

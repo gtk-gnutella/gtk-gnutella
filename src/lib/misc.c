@@ -3927,10 +3927,7 @@ compat_daemonize(const char *directory)
 	}
 
 	for (i = 0; i < 2; i++) {
-		if (SIG_ERR == set_signal(SIGCHLD, SIG_IGN)) {
-			g_warning("set_signal(SIGCHLD, SIG_IGN) failed");
-			return -1;
-		}
+		/* A handler for SIGCHLD should already be installed. */
 
 		fflush(NULL);
 		pid = fork();
