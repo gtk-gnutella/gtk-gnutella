@@ -86,8 +86,7 @@ fi
 
 build_cc=${build_cc:-$CC}
 
-build_ccflags=${build_ccflags:-$CFLAGS}
-build_ccflags=${build_halloc:+"$build_ccflags $build_halloc"}
+build_ccflags=${build_ccflags:-$CFLAGS $build_halloc}
 build_ccflags=${build_ccflags:+"'$build_ccflags'"}
 
 build_ldflags=${build_ldflags:-$LDFLAGS}
