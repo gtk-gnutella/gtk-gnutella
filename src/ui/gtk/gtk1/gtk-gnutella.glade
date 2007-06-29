@@ -7210,10 +7210,14 @@
 		    <width>70</width>
 		    <can_focus>True</can_focus>
 		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_search_reissue_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:17:08 GMT</last_modification_time>
+		      <name>activate</name>
+		      <handler>on_spinbutton_search_reissue_timeout_activate</handler>
+		      <last_modification_time>Fri, 29 Jun 2007 22:35:14 GMT</last_modification_time>
+		    </signal>
+		    <signal>
+		      <name>focus_out_event</name>
+		      <handler>on_spinbutton_search_reissue_timeout_focus_out_event</handler>
+		      <last_modification_time>Fri, 29 Jun 2007 22:36:06 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>

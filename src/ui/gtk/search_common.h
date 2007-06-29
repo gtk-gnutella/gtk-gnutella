@@ -209,7 +209,15 @@ gboolean search_gui_insert_query(const gchar *text);
 
 gchar *search_xml_indent(const gchar *s);
 
-void on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata);
+void on_option_menu_search_changed(GtkOptionMenu *option_menu,
+			gpointer unused_udata);
+
+void on_spinbutton_search_reissue_timeout_activate(GtkEditable *editable,
+			gpointer user_data);
+gboolean on_spinbutton_search_reissue_timeout_focus_out_event(GtkWidget *widget,
+			GdkEventFocus *event, gpointer user_data);
+void on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
+			gpointer unused_udata);
 
 gint search_gui_cmp_sha1s(const struct sha1 *a, const struct sha1 *b);
 

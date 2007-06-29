@@ -3367,14 +3367,6 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
-        PROP_SEARCH_REISSUE_TIMEOUT,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_config_search_reissue_timeout",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
         PROP_PROXY_PORT,
         update_spinbutton,
         TRUE,

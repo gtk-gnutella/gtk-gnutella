@@ -70,42 +70,30 @@ RCSID("$Id$")
     } while (0)
 
 void
-on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
-		gpointer unused_udata)
+on_spinbutton_search_reissue_timeout_activate(GtkEditable *editable,
+	gpointer unused_udata)
 {
     static gboolean lock = FALSE;
-    search_t *current_search;
-    guint32 timeout_real;
-    guint32 timeout;
+    search_t *search;
 
 	(void) unused_udata;
 
     if (lock)		/* Prevents recursion */
         return;
-
     lock = TRUE;
 
-    current_search = search_gui_get_current_search();
-
-    if (
-		!current_search ||
-		!guc_search_is_active(current_search->search_handle)
-	) {
-        lock = FALSE;
-        return;
-    }
-
-    timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable));
-
-    guc_search_set_reissue_timeout(current_search->search_handle, timeout);
-    timeout_real = guc_search_get_reissue_timeout(
-						current_search->search_handle);
-
-    if (timeout != timeout_real)
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(editable), timeout_real);
-
+    search = search_gui_get_current_search();
+    if (search && guc_search_is_active(search->search_handle)) {
+    	guint32 timeout;
+		
+		timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable));
+		guc_search_set_reissue_timeout(search->search_handle, timeout);
+		timeout = guc_search_get_reissue_timeout(search->search_handle);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(editable), timeout);
+	}
     lock = FALSE;
 }
+FOCUS_TO_ACTIVATE(spinbutton_search_reissue_timeout)
 
 static void
 on_entry_config_proxy_hostname_activate_helper(const host_addr_t *addrs,

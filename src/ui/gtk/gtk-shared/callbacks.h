@@ -52,7 +52,6 @@
 #include "gtk/gtk2/search_cb.h"
 #endif
 
-gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data);
 void on_ctree_menu_tree_select_row (GtkCTree *clist, GList *node, gint column, gpointer user_data);
 

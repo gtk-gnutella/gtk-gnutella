@@ -3413,8 +3413,11 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
     g_assert(sch != NULL);
     g_return_if_fail(sbool_get(sch->active));
 
-    sch->reissue_timeout = timeout > 0 ? MAX(SEARCH_MIN_RETRY, timeout) : 0;
-    update_one_reissue_timeout(sch);
+	timeout = timeout > 0 ? MAX(SEARCH_MIN_RETRY, timeout) : 0;
+	if (sch->reissue_timeout != timeout) {
+		sch->reissue_timeout = timeout;
+		update_one_reissue_timeout(sch);
+	}
 }
 
 /**

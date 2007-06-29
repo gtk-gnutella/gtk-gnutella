@@ -4778,9 +4778,12 @@ create_main_window_search_tab (void)
   g_signal_connect ((gpointer) button_search_close, "clicked",
                     G_CALLBACK (on_button_search_close_clicked),
                     NULL);
-  g_signal_connect_after ((gpointer) spinbutton_search_reissue_timeout, "changed",
-                          G_CALLBACK (on_spinbutton_search_reissue_timeout_changed),
+  g_signal_connect_after ((gpointer) spinbutton_search_reissue_timeout, "activate",
+                          G_CALLBACK (on_spinbutton_search_reissue_timeout_activate),
                           NULL);
+  g_signal_connect ((gpointer) spinbutton_search_reissue_timeout, "focus_out_event",
+                    G_CALLBACK (on_spinbutton_search_reissue_timeout_focus_out_event),
+                    NULL);
   g_signal_connect ((gpointer) button_search_download, "clicked",
                     G_CALLBACK (on_button_search_download_clicked),
                     NULL);
