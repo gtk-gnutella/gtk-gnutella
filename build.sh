@@ -13,6 +13,7 @@ build_ccflags=
 build_datadir=
 build_dbus=
 build_gnutls=
+build_halloc=
 build_ipv6=
 build_ldflags=
 build_localedir=
@@ -32,6 +33,7 @@ while [ $# -gt 0 ]; do
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
 	--disable-nls)		build_nls='-U d_enablenls';;
 	--disable-socker)	build_socker='-U d_socker_get';;
+	--enable-halloc)	build_halloc='-DUSE_HALLOC';;
 	--gtk1)			build_ui='gtkversion=1';;
 	--gtk2)			build_ui='gtkversion=2';;
 	--localedir=*)		build_localedir="${1##--*=}";;
@@ -54,6 +56,7 @@ echo '  --disable-gnutls Do not use GNU TLS even if available.'
 echo '  --disable-ipv6   Do not use IPv6 even if supported.'
 echo '  --disable-nls    Disable NLS (native language support).'
 echo '  --disable-socker Disable support for Socker.'
+echo '  --enable-halloc  Enable mmap()-based malloc() replacement.'
 echo '  --unofficial     Use for test builds only.'
 echo '  --yacc=TOOL      yacc, bison or some compatible tool.'
 echo '  --bindir=PATH    Directory for installing executables. [$prefix/bin]'
@@ -84,6 +87,7 @@ fi
 build_cc=${build_cc:-$CC}
 
 build_ccflags=${build_ccflags:-$CFLAGS}
+build_ccflags=${build_halloc:+"$build_ccflags $build_halloc"}
 build_ccflags=${build_ccflags:+"'$build_ccflags'"}
 
 build_ldflags=${build_ldflags:-$LDFLAGS}

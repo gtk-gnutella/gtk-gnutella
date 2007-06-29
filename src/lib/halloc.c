@@ -35,8 +35,8 @@
  * up to (pagesize - 1) per allocation. The advantage is that the pages
  * will be unmapped on hfree().
  *
- * Define USE_MALLOC to use the default memory allocation functions used
- * by GLib instead of mapping them to halloc().
+ * Define USE_HALLOC to use this instead of the default memory allocation
+ * functions used.
  *
  * @author Christian Biere
  * @date 2006
@@ -60,16 +60,16 @@ RCSID("$Id$")
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
 
-#if !defined(USE_MALLOC)
+#if defined(USE_HALLOC)
 #if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
-#define USE_MALLOC
+#undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
-#endif	/* !USE_MALLOC */
+#endif	/* USE_HALLOC */
 
 static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */
 
-#if !defined(USE_MALLOC)
+#if defined(USE_HALLOC)
 
 static int use_page_table;
 static page_table_t *pt_pages;
@@ -364,7 +364,7 @@ halloc_init(void)
 	halloc_init_vtable();
 }
 
-#else	/* USE_MALLOC */
+#else	/* !USE_HALLOC */
 
 void
 halloc_init(void)
@@ -378,7 +378,7 @@ hdestroy(void)
 	/* NOTHING */
 }
 
-#endif	/* !USE_MALLOC */
+#endif	/* USE_HALLOC */
 
 size_t
 halloc_bytes_allocated(void)
