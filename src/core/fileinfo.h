@@ -118,8 +118,7 @@ gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 
-fileinfo_t *file_info_has_identical(const gchar *file, filesize_t size,
-				const struct sha1 *sha1);
+fileinfo_t *file_info_has_identical(const struct sha1 *sha1, filesize_t size);
 
 fileinfo_t *file_info_get_transient(const gchar *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);

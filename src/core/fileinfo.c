@@ -3778,86 +3778,18 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
  * and NULL otherwise.
  */
 fileinfo_t *
-file_info_has_identical(const gchar *file, filesize_t size,
-	const struct sha1 *sha1)
+file_info_has_identical(const struct sha1 *sha1, filesize_t size)
 {
-	GSList *p;
-	GSList *sizelist;
-	GSList *list;
 	fileinfo_t *fi;
-	namesize_t nsk;
 
-	fi = sha1 ? file_info_lookup(file, size, sha1) : NULL;
-	if (fi)
-		return (fi->size == size || !fi->file_size_known) ? fi : NULL;
-
-	if (GNET_PROPERTY(strict_sha1_matching) || 0 == size)
-		return NULL;
-
-	/*
-	 * Compute list of entries whose size matches.  If none, it is a
-	 * certainty we won't have any identical entry!
-	 */
-
-	sizelist = g_hash_table_lookup(fi_by_size, &size);
-	if (NULL == sizelist)
-		return NULL;
-	g_assert(!gm_slist_is_looping(sizelist));
-	g_assert(!g_slist_find(sizelist, NULL));
-
-	/*
-	 * Only retain entry by (name, size) if it is unique.
-	 * We're not going to try to disambiguate between conflicting entries!
-	 */
-
-	nsk.name = file;
-	nsk.size = size;
-
-	list = g_hash_table_lookup(fi_by_namesize, &nsk);
-	fi = NULL;
-	
-	g_assert(!gm_slist_is_looping(list));
-	g_assert(!g_slist_find(list, NULL));
-
-	if (NULL != list && NULL == g_slist_next(list))
-		fi = list->data;
-
-	if (fi && sha1 && fi->sha1 && sha1_eq(sha1, fi->sha1))
+	fi = sha1 ? file_info_by_sha1(sha1) : NULL;
+	if (
+		fi &&
+		(fi->size == size || !fi->file_size_known) &&
+		!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
+	) {
 		return fi;
-
-	/*
-	 * Look up by similar filenames.  We go through the list of all the
-	 * known fileinfo entries with an identical filesize.
-	 */
-
-	for (p = sizelist; p; p = p->next) {
-		fi = p->data;
-		file_info_check(fi);
-
-		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
-		 *	-- JA 2004-07-21
-		 */
-		if (fi->file_size_known)
-			g_assert(fi->size == size);
-		g_assert(fi->refcount >= 0);
-
-		/*
-		 * Note that we consider `fi' structures where fi->refcount == 0.
-		 * Since they are around, it means they were not marked as FI_F_DISCARD
-		 * and therefore those files are still of interest.
-		 */
-
-		if (sha1 && fi->sha1) {
-			if (sha1_eq(sha1, fi->sha1))
-				return fi;
-			else
-				continue;				/* SHA1 mismatch, not identical! */
-		}
-
-		if (file_info_has_filename(fi, file))
-			return fi;
 	}
-
 	return NULL;
 }
 

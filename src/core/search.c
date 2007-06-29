@@ -3173,7 +3173,7 @@ search_check_results_set(gnet_results_set_t *rs)
 			}
 		}
 
-		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
+		fi = file_info_has_identical(rc->sha1, rc->size);
 		if (fi) {
 			guint32 flags = 0;
 			
