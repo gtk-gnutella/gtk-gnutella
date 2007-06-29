@@ -63,7 +63,6 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/endian.h"
 #include "lib/file.h"
-#include "lib/fuzzy.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
@@ -1211,19 +1210,6 @@ file_info_has_filename(fileinfo_t *fi, const gchar *file)
 		if (0 == ascii_strcasecmp(sl->data, file))
 			return TRUE;
 	}
-
-	if (GNET_PROPERTY(use_fuzzy_matching)) {
-		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
-			gulong score = 100 * fuzzy_compare(sl->data, file);
-			if (score >= (GNET_PROPERTY(fuzzy_threshold) << FUZZY_SHIFT)) {
-				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
-					cast_to_gchar_ptr(sl->data), file, score / 100.0);
-				fi_alias(fi, file, TRUE);
-				return TRUE;
-			}
-		}
-	}
-
 	return FALSE;
 }
 

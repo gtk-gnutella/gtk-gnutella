@@ -103,7 +103,6 @@ LSRC = \
 	fifo.c \
 	file.c \
 	fragcheck.c \
-	fuzzy.c \
 	getdate.c \
 	getline.c \
 	getphysmemsize.c \
@@ -165,7 +164,6 @@ LOBJ = \
 	fifo.o \
 	file.o \
 	fragcheck.o \
-	fuzzy.o \
 	getdate.o \
 	getline.o \
 	getphysmemsize.o \

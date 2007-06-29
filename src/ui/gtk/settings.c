@@ -4076,14 +4076,6 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
-        PROP_FUZZY_THRESHOLD,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_config_fuzzy_threshold",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
         PROP_AUTO_DOWNLOAD_IDENTICAL,
         update_togglebutton,
         TRUE,
@@ -4096,14 +4088,6 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_config_strict_sha1_matching",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
-        PROP_USE_FUZZY_MATCHING,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_config_use_fuzzy_matching",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -4814,14 +4798,6 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_auto_feed_dmesh",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
-        PROP_FUZZY_FILTER_DMESH,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_fuzzy_filter_dmesh",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

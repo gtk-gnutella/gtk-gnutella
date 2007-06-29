@@ -1918,30 +1918,6 @@ prop = {
     };
 };
 
-prop = {
-    name = "use_fuzzy_matching";
-    desc = "Use fuzzy file name matching (recommended = NO; only rely on "
-		   "SHA1 matching to be safe).";
-    type = boolean;
-    data = {
-	    default = FALSE;
-    };
-};
-
-prop = {
-    name = "fuzzy_threshold";
-    desc = "Fuzziness threshold for filename matching (higher = stricter). "
-		   "A value of 100 means the filenames must be 100% identical.  A "
-		   "value of 0 means any two filenames will always be considered to "
-		   "be identical.  The minimum is 50%.";
-    type = guint32;
-    data = {
-	    default = 70;
-	    min = 50;
-	    max = 100;
-    };
-};
-
 /*
  * NB: we make is_firewalled a persistent property for the following reasons:
  *
@@ -2363,20 +2339,6 @@ prop = {
     };
 };
 
-
-prop = {
-    name = "fuzzy_filter_dmesh";
-    desc = "Whether to apply a fuzzy filter on download mesh entries.  The "
-			"purpose of this filtering is to remove entries whose names "
-			"are too different to be sensibly part of the same mesh. "
-			"When activated, your mesh will probably be more consistent "
-			"at the cost of extra CPU time, and at the cost of losing "
-			"some valid entries in the process.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
 
 prop = {
     name = "crawler_visit_count";

@@ -12400,14 +12400,6 @@ create_dlg_prefs_dl_tab (void)
   GtkObject *spinbutton_download_buffer_size_adj;
   GtkWidget *spinbutton_download_buffer_size;
   GtkWidget *label936;
-  GtkWidget *viewport117;
-  GtkWidget *frame103;
-  GtkWidget *table93;
-  GtkWidget *label555;
-  GtkObject *spinbutton_config_fuzzy_threshold_adj;
-  GtkWidget *spinbutton_config_fuzzy_threshold;
-  GtkWidget *checkbutton_fuzzy_filter_dmesh;
-  GtkWidget *checkbutton_config_use_fuzzy_matching;
   GtkWidget *label366;
   GtkTooltips *tooltips;
 
@@ -13059,56 +13051,6 @@ create_dlg_prefs_dl_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label936), 0, 0.5);
 
-  viewport117 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport117, "viewport117");
-  gtk_widget_show (viewport117);
-  gtk_box_pack_start (GTK_BOX (hbox282), viewport117, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (viewport117), 3);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport117), GTK_SHADOW_OUT);
-
-  frame103 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame103, "frame103");
-  gtk_widget_show (frame103);
-  gtk_container_add (GTK_CONTAINER (viewport117), frame103);
-
-  table93 = gtk_table_new (2, 2, FALSE);
-  gtk_widget_set_name (table93, "table93");
-  gtk_widget_show (table93);
-  gtk_container_add (GTK_CONTAINER (frame103), table93);
-  gtk_container_set_border_width (GTK_CONTAINER (table93), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table93), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table93), 4);
-
-  label555 = gtk_label_new (_("Fuzzy threshold"));
-  gtk_widget_set_name (label555, "label555");
-  gtk_widget_show (label555);
-  gtk_table_attach (GTK_TABLE (table93), label555, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label555), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label555), 4, 0);
-
-  spinbutton_config_fuzzy_threshold_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_fuzzy_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fuzzy_threshold_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_fuzzy_threshold, "spinbutton_config_fuzzy_threshold");
-  gtk_widget_show (spinbutton_config_fuzzy_threshold);
-  gtk_table_attach (GTK_TABLE (table93), spinbutton_config_fuzzy_threshold, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_fuzzy_filter_dmesh = gtk_check_button_new_with_mnemonic (_("_Apply fuzzy filter on download mesh entries"));
-  gtk_widget_set_name (checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
-  gtk_widget_show (checkbutton_fuzzy_filter_dmesh);
-  gtk_table_attach (GTK_TABLE (table93), checkbutton_fuzzy_filter_dmesh, 0, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 0);
-
-  checkbutton_config_use_fuzzy_matching = gtk_check_button_new_with_mnemonic (_("Use fu_zzy matching"));
-  gtk_widget_set_name (checkbutton_config_use_fuzzy_matching, "checkbutton_config_use_fuzzy_matching");
-  gtk_widget_show (checkbutton_config_use_fuzzy_matching);
-  gtk_frame_set_label_widget (GTK_FRAME (frame103), checkbutton_config_use_fuzzy_matching);
-  gtk_container_set_border_width (GTK_CONTAINER (checkbutton_config_use_fuzzy_matching), 2);
-
   label366 = gtk_label_new (_("Downloading from multiple sources (swarming)"));
   gtk_widget_set_name (label366, "label366");
   gtk_widget_show (label366);
@@ -13227,13 +13169,6 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label934, "label934");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_download_buffer_size, "spinbutton_download_buffer_size");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label936, "label936");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, viewport117, "viewport117");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame103, "frame103");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table93, "table93");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label555, "label555");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_fuzzy_threshold, "spinbutton_config_fuzzy_threshold");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_fuzzy_matching, "checkbutton_config_use_fuzzy_matching");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label366, "label366");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dl_tab, tooltips, "tooltips");
 

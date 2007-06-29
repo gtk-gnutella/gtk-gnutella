@@ -11225,13 +11225,6 @@ create_dlg_prefs (void)
   GtkWidget *table52;
   guint checkbutton_config_strict_sha1_matching_key;
   GtkWidget *checkbutton_config_strict_sha1_matching;
-  guint checkbutton_config_use_fuzzy_matching_key;
-  GtkWidget *checkbutton_config_use_fuzzy_matching;
-  GtkWidget *label285;
-  GtkObject *spinbutton_config_fuzzy_threshold_adj;
-  GtkWidget *spinbutton_config_fuzzy_threshold;
-  guint checkbutton_fuzzy_filter_dmesh_key;
-  GtkWidget *checkbutton_fuzzy_filter_dmesh;
   guint checkbutton_config_use_alternate_sources_key;
   GtkWidget *checkbutton_config_use_alternate_sources;
   guint checkbutton_auto_feed_dmesh_key;
@@ -15393,57 +15386,6 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_strict_sha1_matching);
   gtk_table_attach (GTK_TABLE (table52), checkbutton_config_strict_sha1_matching, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_use_fuzzy_matching = gtk_check_button_new_with_label ("");
-  checkbutton_config_use_fuzzy_matching_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_use_fuzzy_matching)->child),
-                                   _("Use fu_zzy matching"));
-  gtk_widget_add_accelerator (checkbutton_config_use_fuzzy_matching, "clicked", accel_group,
-                              checkbutton_config_use_fuzzy_matching_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_config_use_fuzzy_matching, "checkbutton_config_use_fuzzy_matching");
-  gtk_widget_ref (checkbutton_config_use_fuzzy_matching);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_use_fuzzy_matching", checkbutton_config_use_fuzzy_matching,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_use_fuzzy_matching);
-  gtk_table_attach (GTK_TABLE (table52), checkbutton_config_use_fuzzy_matching, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label285 = gtk_label_new (_("Fuzzy threshold"));
-  gtk_widget_set_name (label285, "label285");
-  gtk_widget_ref (label285);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label285", label285,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label285);
-  gtk_table_attach (GTK_TABLE (table52), label285, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label285), 0, 0.5);
-
-  spinbutton_config_fuzzy_threshold_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_fuzzy_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fuzzy_threshold_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_fuzzy_threshold, "spinbutton_config_fuzzy_threshold");
-  gtk_widget_ref (spinbutton_config_fuzzy_threshold);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_fuzzy_threshold", spinbutton_config_fuzzy_threshold,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_fuzzy_threshold);
-  gtk_table_attach (GTK_TABLE (table52), spinbutton_config_fuzzy_threshold, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_fuzzy_threshold), TRUE);
-
-  checkbutton_fuzzy_filter_dmesh = gtk_check_button_new_with_label ("");
-  checkbutton_fuzzy_filter_dmesh_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_fuzzy_filter_dmesh)->child),
-                                   _("_Apply fuzzy filter on download mesh entries"));
-  gtk_widget_add_accelerator (checkbutton_fuzzy_filter_dmesh, "clicked", accel_group,
-                              checkbutton_fuzzy_filter_dmesh_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
-  gtk_widget_ref (checkbutton_fuzzy_filter_dmesh);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_fuzzy_filter_dmesh", checkbutton_fuzzy_filter_dmesh,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_fuzzy_filter_dmesh);
-  gtk_table_attach (GTK_TABLE (table52), checkbutton_fuzzy_filter_dmesh, 0, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
