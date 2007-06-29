@@ -2738,20 +2738,16 @@ download_set_socket_rx_size(gint rx_size)
 static void
 download_set_sha1(struct download *d, const struct sha1 *sha1)
 {
-	const struct sha1 *old_atom;
-
 	download_check(d);
 
-	old_atom = d->sha1;
 	if (DL_LIST_INVALID != d->list_idx) {
 		g_assert(d->server);
 		server_sha1_count_dec(d->server, d);
 	}
-	d->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+	atom_sha1_change(&d->sha1, sha1);
 	if (DL_LIST_INVALID != d->list_idx) {
 		server_sha1_count_inc(d->server, d);
 	}
-	atom_sha1_free_null(&old_atom);
 }
 
 /*
@@ -4703,6 +4699,7 @@ create_download(
 	fileinfo_t *fi;
 
 	g_assert(host_addr_initialized(addr));
+	g_return_val_if_fail(NULL == sha1 || NULL == file_info || file_info->sha1 == sha1, NULL);
 
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
