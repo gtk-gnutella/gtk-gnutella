@@ -407,7 +407,7 @@ icon_init(void)
 		 * so-called "system tray" if supported by the window manager.
 		 */
 
-    	icon_pixbuf = create_pixbuf("icon.xpm");
+    	icon_pixbuf = create_pixbuf("icon.16x16.xpm");
 		status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
 		gtk_status_icon_set_tooltip(status_icon,
 			_("gtk-gnutella: Click to minimize/restore"));

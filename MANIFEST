@@ -204,6 +204,8 @@ pixmaps/firewall_udp.xpm
 pixmaps/firewall_udp_punchable.xpm
 pixmaps/freeze.xpm
 pixmaps/icon.xpm
+pixmaps/icon.16x16.xpm
+pixmaps/icon.32x32.xpm
 pixmaps/leaf.xpm
 pixmaps/legacy.xpm
 pixmaps/magnet.16x16.png
@@ -526,8 +528,6 @@ src/lib/file.c
 src/lib/file.h
 src/lib/fragcheck.c
 src/lib/fragcheck.h
-src/lib/fuzzy.c
-src/lib/fuzzy.h
 src/lib/getdate.c
 src/lib/getdate.h
 src/lib/getdate.y

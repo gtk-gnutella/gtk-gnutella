@@ -77,6 +77,8 @@ PIXMAPS = \
 	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	icon.xpm \
+	icon.16x16.xpm \
+	icon.32x32.xpm \
 	leaf.xpm \
 	legacy.xpm \
 	magnet.16x16.png \
