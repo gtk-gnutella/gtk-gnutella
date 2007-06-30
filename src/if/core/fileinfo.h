@@ -93,7 +93,6 @@ typedef struct dl_file_info {
 	const gchar *pathname;	/**< Output pathname (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
-	const filesize_t *size_atom;/**< File size (atom) */
 	const struct sha1 *sha1;/**< server SHA1 (atom) if known, NULL if not. */
 	const struct tth  *tth; /**< server TTH (atom) if known, NULL if not. */
 	const struct sha1 *cha1;/**< computed SHA1 (atom) if known, NULL if not. */

@@ -119,14 +119,12 @@ struct dl_file_chunk {
  * The `fi_by_namesize' hash table keeps track of items by (name, size).
  * The `fi_by_outname' table keeps track of the "output name" -> fi link.
  * The `fi_by_guid' hash table keeps track of the GUID -> fi association.
- * The `fi_by_size' hash table keeps track of the fi with identical file size.
  */
 
-static GHashTable *fi_by_sha1 = NULL;
-static GHashTable *fi_by_namesize = NULL;
-static GHashTable *fi_by_size = NULL;
-static GHashTable *fi_by_outname = NULL;
-static GHashTable *fi_by_guid = NULL;
+static GHashTable *fi_by_sha1;
+static GHashTable *fi_by_namesize;
+static GHashTable *fi_by_outname;
+static GHashTable *fi_by_guid;
 
 static const gchar file_info_file[] = "fileinfo";
 static const gchar file_info_what[] = "the fileinfo database";
@@ -863,20 +861,6 @@ fi_free(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(!fi->hashed);
 
-	/* Make sure "fi" isn't in any of the hashtables anymore. */
-	{
-		GSList *sl;
-	
-		if (fi->size_atom) {
-			g_assert(fi->size == *fi->size_atom);
-		}
-
-		sl = g_hash_table_lookup(fi_by_size, &fi->size);
-		g_assert(!gm_slist_is_looping(sl));
-		g_assert(!g_slist_find(sl, fi));
-		g_assert(!g_slist_find(sl, NULL));
-	}
-
 #if 0
 	/* This does not seem to be a bug; see file_info_remove_source(). */
 	if (fi->sha1) {
@@ -912,7 +896,6 @@ fi_free(fileinfo_t *fi)
 	}
 	fi_tigertree_free(fi);
 
-	atom_filesize_free_null(&fi->size_atom);
 	atom_guid_free_null(&fi->guid);
 	atom_str_free_null(&fi->pathname);
 	atom_tth_free_null(&fi->tth);
@@ -931,7 +914,6 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(fi->file_size_known);
-	g_assert(fi->size_atom);
 
 	if (FI_F_TRANSIENT & fi->flags)
 		return;
@@ -959,31 +941,6 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 			gm_hash_table_insert_const(fi_by_namesize, ns, slist);
 		}
 	}
-
-	/*
-	 * Finally, for a given size, maintain a list of fi's.
-	 *
-	 * NB: the key used here is the size_atom, as it must be shared accross
-	 * all the `fi' structs with the same size!
-	 */
-
-	g_assert(*fi->size_atom == fi->size);
-
-	sl = g_hash_table_lookup(fi_by_size, fi->size_atom);
-	g_assert(!gm_slist_is_looping(sl));
-	g_assert(!g_slist_find(sl, NULL));
-	g_assert(!g_slist_find(sl, fi));
-	
-	if (NULL != sl) {
-		sl = g_slist_append(sl, fi);
-	} else {
-		sl = g_slist_append(sl, fi);
-		g_assert(NULL != sl);
-		gm_hash_table_insert_const(fi_by_size, fi->size_atom, sl);
-	}
-	g_assert(!gm_slist_is_looping(sl));
-	g_assert(!g_slist_find(sl, NULL));
-	g_assert(g_slist_find(sl, fi));
 }
 
 /**
@@ -1009,11 +966,7 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 	 * called, `fi' is no longer "hashed", or has never been "hashed".
 	 */
 
-	g_assert(fi->size_atom);
-
-	atom_filesize_free_null(&fi->size_atom);
 	fi->size = size;
-	fi->size_atom = atom_filesize_get(&fi->size);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 }
@@ -1196,23 +1149,6 @@ file_info_has_trailer(const gchar *path)
 	return valid ? 1 : 0;
 }
 
-/**
- * @returns TRUE if a file_info struct has a matching file name or alias,
- * and FALSE if not.
- */
-static gboolean
-file_info_has_filename(fileinfo_t *fi, const gchar *file)
-{
-	const GSList *sl;
-
-	for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
-		/* XXX: UTF-8, locale, what's the proper encoding here? */
-		if (0 == ascii_strcasecmp(sl->data, file))
-			return TRUE;
-	}
-	return FALSE;
-}
-
 fileinfo_t *
 file_info_by_sha1(const struct sha1 *sha1)
 {
@@ -1232,13 +1168,13 @@ static fileinfo_t *
 file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
-	GSList *list, *sl;
+	GSList *list;
 
 	/*
 	 * If we have a SHA1, this is our unique key.
 	 */
 
-	if (NULL != sha1) {
+	if (sha1) {
 		fi = g_hash_table_lookup(fi_by_sha1, sha1);
 		if (fi) {
 			file_info_check(fi);
@@ -1255,9 +1191,9 @@ file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
 			return NULL;
 	}
 
-	if (0 == size) {
+	if (0 == size)
 		return NULL;
-	}
+
 
 	/*
 	 * Look for a matching (name, size) tuple.
@@ -1284,29 +1220,6 @@ file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
 			g_assert(fi->size == size);
 		return fi;
 	}
-
-	/*
-	 * Look for a matching name, given the size.
-	 */
-
-	list = g_hash_table_lookup(fi_by_size, &size);
-	g_assert(!gm_slist_is_looping(list));
-	g_assert(!g_slist_find(list, NULL));
-
-	for (sl = list; sl; sl = g_slist_next(sl)) {
-		fi = sl->data;
-		file_info_check(fi);
-
-		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
-		 *	-- JA 2004-07-21
-		 */
-		if (fi->file_size_known)
-			g_assert(fi->size == size);
-
-		if (file_info_has_filename(fi, name))
-			return fi;
-	}
-
 	return NULL;
 }
 
@@ -1644,7 +1557,6 @@ G_STMT_START {				\
 	fi->magic = FI_MAGIC;
 	fi->pathname = atom_str_get(pathname);
 	fi->size = trailer.filesize;
-	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->generation = trailer.generation;
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
@@ -1990,21 +1902,14 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
  * Callback for hash table iterator. Used by file_info_store().
  */
 static void
-file_info_store_list(gpointer key, gpointer val, gpointer x)
+file_info_store_list(gpointer key, gpointer value, gpointer user_data)
 {
-	const filesize_t *size_ptr;
-	const GSList *sl;
-	FILE *f = x;
+	fileinfo_t *fi;
 
-	size_ptr = key;
-	for (sl = val; sl; sl = g_slist_next(sl)) {
-		fileinfo_t *fi;
-		
-		fi = sl->data;
-		file_info_check(fi);
-		g_assert(*size_ptr == fi->size);
-		file_info_store_one(f, fi);
-	}
+	fi = value;
+	file_info_check(fi);
+	g_assert(key == fi->pathname);
+	file_info_store_one(user_data, fi);
 }
 
 /**
@@ -2050,7 +1955,7 @@ file_info_store(void)
 		f
 	);
 
-	g_hash_table_foreach(fi_by_size, file_info_store_list, f);
+	g_hash_table_foreach(fi_by_outname, file_info_store_list, f);
 
 	file_config_close(f, &fp);
 	fileinfo_dirty = FALSE;
@@ -2125,32 +2030,6 @@ file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 	g_slist_free(list);
 
 	/* fi structure in value not freed, shared with other hash tables */
-}
-
-/**
- * Callback for hash table iterator. Used by file_info_close().
- */
-static gboolean
-file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
-{
-	GSList *slist = val, *sl;
-
-	(void) unused_key;
-	(void) unused_x;
-	
-	g_assert(!gm_slist_is_looping(slist));
-	for (sl = slist; sl; sl = g_slist_next(sl)) {
-		const fileinfo_t *fi = sl->data;
-		file_info_check(fi);
-		g_assert(fi->size_atom);
-		g_assert(fi->size == *fi->size_atom);
-		g_assert(*(const filesize_t *) unused_key == fi->size);
-	}
-	
-	g_slist_free(slist);
-
-	/* fi structure in value not freed, shared with other hash tables */
-	return TRUE;
 }
 
 /**
@@ -2238,7 +2117,6 @@ file_info_close(void)
 
 	g_hash_table_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
 	g_hash_table_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
-	g_hash_table_foreach_remove(fi_by_size, file_info_free_size_kv, NULL);
 	g_hash_table_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
 	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
@@ -2256,7 +2134,6 @@ file_info_close(void)
 
 	g_hash_table_destroy(fi_by_sha1);
 	g_hash_table_destroy(fi_by_namesize);
-	g_hash_table_destroy(fi_by_size);
 	g_hash_table_destroy(fi_by_guid);
 	g_hash_table_destroy(fi_by_outname);
 
@@ -2273,7 +2150,6 @@ file_info_hash_insert(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(!fi->hashed);
-	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4)
@@ -2364,7 +2240,6 @@ file_info_hash_remove(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(fi->hashed);
-	g_assert(fi->size_atom);
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4) {
@@ -2445,32 +2320,6 @@ file_info_hash_remove(fileinfo_t *fi)
 				/* Head changed */
 			}
 		}
-
-		/*
-		 * Remove from the "by filesize" table.
-		 *
-		 * NB: the key used here is the size_atom, as it must be shared accross
-		 * all the `fi' structs with the same size (in case we free `fi' now)!
-		 */
-
-		g_assert(*(const filesize_t *) fi->size_atom == fi->size);
-
-		sl = g_hash_table_lookup(fi_by_size, &fi->size);
-		g_assert(NULL != sl);
-
-		g_assert(!gm_slist_is_looping(sl));
-		g_assert(!g_slist_find(sl, NULL));
-		g_assert(g_slist_find(sl, fi));
-	
-		head = g_slist_remove(sl, fi);
-		if (NULL == head) {
-			g_hash_table_remove(fi_by_size, fi->size_atom);
-		} else if (head != sl) {
-			gm_hash_table_insert_const(fi_by_size, fi->size_atom, head);
-		}
-		g_assert(!gm_slist_is_looping(head));
-		g_assert(!g_slist_find(head, NULL));
-		g_assert(!g_slist_find(head, fi));
 	}
 
 transient:
@@ -2949,12 +2798,6 @@ file_info_retrieve(void)
 			if (0 == fi->size) {
 				fi->file_size_known = FALSE;
 			}
-			if (!fi->size_atom) {
-				/* Happens if the filesize tag was missing for
-				 * some reason (truncation or corruption) */
-				g_assert(0 == fi->size);
-				fi->size_atom = atom_filesize_get(&fi->size);
-			}
 
 			/*
 			 * If we deserialized an older version, bring it up to date.
@@ -3253,7 +3096,6 @@ file_info_retrieve(void)
 				|| v >= ((guint64) 1UL << 63)
 				|| (!fi->file_size_known && 0 == v);
 			fi->size = v;
-			fi->size_atom = atom_filesize_get(&fi->size);
 			break;
 		case FI_TAG_FSKN:
 			v = parse_uint32(value, &ep, 10, &error);
@@ -3396,7 +3238,7 @@ file_info_retrieve(void)
 static gboolean
 file_info_name_is_uniq(const gchar *pathname)
 {
-	return !g_hash_table_lookup(fi_by_outname, pathname) &&
+	return NULL == g_hash_table_lookup(fi_by_outname, pathname) &&
 	   	file_does_not_exist(pathname);
 }
 
@@ -3497,8 +3339,6 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 		fi->dirty = TRUE;
 	}
 
-	fi->size_atom = atom_filesize_get(&fi->size); /* Set now, for fi_resize() */
-
 	if (size > fi->size)
 		fi_resize(fi, size);
 
@@ -3533,7 +3373,6 @@ file_info_get_transient(const gchar *name)
 	fi->ctime = tm_time();
 	fi->seen_on_network = NULL;
 	fi->dirty = TRUE;
-	fi->size_atom = atom_filesize_get(&fi->size); /* Set now, for fi_resize() */
 
 	fi->flags = FI_F_TRANSIENT;		/* Not persisted to disk */
 
@@ -3918,8 +3757,6 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->file_size_known = TRUE;
 	fi->use_swarming = TRUE;
 	fi->size = size;
-	atom_filesize_free_null(&fi->size_atom);
-	fi->size_atom = atom_filesize_get(&fi->size);
 	fi->dirty = TRUE;
 
 	if (0 == (FI_F_TRANSIENT & fi->flags)) {
@@ -6242,7 +6079,6 @@ file_info_init(void)
 
 	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
 	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
-	fi_by_size     = g_hash_table_new(filesize_hash, filesize_eq);
 	fi_by_guid     = g_hash_table_new(guid_hash, guid_eq);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 
