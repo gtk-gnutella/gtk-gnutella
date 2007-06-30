@@ -2830,10 +2830,8 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 
                 gtk_adjustment_changed(adj);
 
-                gtk_signal_connect_after(
-                    GTK_OBJECT (adj), "value_changed",
-                    (GtkSignalFunc) spinbutton_adjustment_value_changed,
-                    (gpointer) map);
+                gui_signal_connect_after(adj,
+					"value_changed", spinbutton_adjustment_value_changed, map);
 
 				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...adjusted lower=%f, upper=%f\n",
@@ -2843,10 +2841,8 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
             if (top && GTK_IS_TOGGLE_BUTTON(w)) {
                 g_assert(def->type == PROP_TYPE_BOOLEAN);
 
-                gtk_signal_connect(
-                    GTK_OBJECT(w), "toggled",
-                    (GtkSignalFunc) togglebutton_state_changed,
-                    map);
+                gui_signal_connect(w,
+					"toggled", togglebutton_state_changed, map);
 
 				if (GUI_PROPERTY(gui_debug) >= 9)
 					printf("\t...connected toggle signal\n");

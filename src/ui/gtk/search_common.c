@@ -234,15 +234,8 @@ search_gui_option_menu_searches_update(void)
 		gtk_widget_show(item);
 		gtk_object_set_user_data(GTK_OBJECT(item), search);
 		gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), item);
-#ifdef USE_GTK1
-		gtk_signal_connect(GTK_OBJECT(item), "activate",
+		gui_signal_connect(item, "activate",
 			on_option_menu_menu_item_activate, option_menu);
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
-		g_signal_connect(GTK_OBJECT(item), "activate",
-			G_CALLBACK(on_option_menu_menu_item_activate), option_menu);
-#endif /* USE_GTK2 */
-
 	}
 
 	gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
@@ -821,6 +814,26 @@ on_option_menu_search_changed(GtkOptionMenu *option_menu, gpointer unused_udata)
 	search_gui_set_current_search(option_menu_get_selected_data(option_menu));
 }
 
+static void
+on_spinbutton_adjustment_value_changed(GtkAdjustment *unused_adj, gpointer data)
+{
+	GtkWidget *widget;
+    search_t *search;
+
+	(void) unused_adj;
+	widget = GTK_WIDGET(data);
+    search = search_gui_get_current_search();
+    if (search && guc_search_is_active(search->search_handle)) {
+    	guint32 timeout;
+		
+		timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+		guc_search_set_reissue_timeout(search->search_handle, timeout);
+		timeout = guc_search_get_reissue_timeout(search->search_handle);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), timeout);
+	}
+}
+
+
 /**
  * Initialize common structures.
  */
@@ -838,6 +851,16 @@ search_gui_common_init(void)
 	
     gtk_combo_set_case_sensitive(
         GTK_COMBO(gui_main_window_lookup("combo_search")), TRUE);
+
+	{
+		GtkWidget *widget;
+	    GtkAdjustment *adj;
+		
+		widget = gui_main_window_lookup("spinbutton_search_reissue_timeout");
+ 		adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(widget));
+		gui_signal_connect_after(adj, "value-changed",
+			on_spinbutton_adjustment_value_changed, widget);
+	}
 }
 
 /**
@@ -2119,6 +2142,8 @@ search_gui_history_add(const gchar *text)
 
     g_return_if_fail(text);
 
+	/* FIXME: Keyboard navigation breaks if the same string is listed more
+	 *		  more than once. */
 	last = g_list_last(list_search_history);
 	if (NULL == last || 0 != strcmp(text, last->data)) {
 		if (g_list_length(list_search_history) >= 50) {
@@ -2300,7 +2325,7 @@ search_gui_duplicate_search(search_t *search)
 	g_return_if_fail(!search_gui_is_browse(search));
 	g_return_if_fail(!search_gui_is_local(search));
 
-    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
+	timeout = guc_search_get_reissue_timeout(search->search_handle);
 
     /* FIXME: should also duplicate filters! */
     /* FIXME: should call search_duplicate which has to be written. */

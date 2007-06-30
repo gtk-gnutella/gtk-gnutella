@@ -2032,8 +2032,8 @@ search_gui_init(void)
   	gtk_notebook_set_tab_label_text(notebook,
 		default_scrolled_window, _("(no search)"));
 
-	gtk_signal_connect(GTK_OBJECT(notebook), "switch-page",
-		GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
+	gui_signal_connect(notebook, "switch-page",
+		on_search_notebook_switch, NULL);
 
     /*
      * Now we restore the column visibility
@@ -2058,10 +2058,10 @@ search_gui_init(void)
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
 		gtk_clist_set_reorderable(clist, TRUE);
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gtk_signal_connect(GTK_OBJECT(clist), "button-press-event",
-			GTK_SIGNAL_FUNC(on_search_list_button_press_event), NULL);
-		gtk_signal_connect_after(GTK_OBJECT(clist), "row-move",
-			GTK_SIGNAL_FUNC(on_search_list_row_move_event), NULL);
+		gui_signal_connect(clist, "button-press-event",
+			on_search_list_button_press_event, NULL);
+		gui_signal_connect_after(clist, "row-move",
+			on_search_list_row_move_event, NULL);
 	}
 
 	{
@@ -2069,17 +2069,16 @@ search_gui_init(void)
 		
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gtk_signal_connect(GTK_OBJECT(clist), "select-row",
-			GTK_SIGNAL_FUNC(on_clist_search_details_select_row), NULL);
-		gtk_signal_connect(GTK_OBJECT(clist), "unselect-row",
-			GTK_SIGNAL_FUNC(on_clist_search_details_unselect_row), NULL);
-		gtk_signal_connect(GTK_OBJECT(clist), "key-press-event",
-			GTK_SIGNAL_FUNC(on_clist_search_details_key_press_event), NULL);
-		gtk_signal_connect(GTK_OBJECT(clist), "selection_get",
-			GTK_SIGNAL_FUNC(on_clist_search_details_selection_get), NULL);
-  		gtk_signal_connect(GTK_OBJECT(clist), "selection_clear_event",
-			GTK_SIGNAL_FUNC(on_clist_search_details_selection_clear_event),
-			NULL);
+		gui_signal_connect(clist, "select-row",
+			on_clist_search_details_select_row, NULL);
+		gui_signal_connect(clist, "unselect-row",
+			on_clist_search_details_unselect_row, NULL);
+		gui_signal_connect(clist, "key-press-event",
+			on_clist_search_details_key_press_event, NULL);
+		gui_signal_connect(clist, "selection_get",
+			on_clist_search_details_selection_get, NULL);
+  		gui_signal_connect(clist, "selection_clear_event",
+			on_clist_search_details_selection_clear_event, NULL);
 
 		gtk_selection_add_target(GTK_WIDGET(clist),
 			GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
@@ -2416,24 +2415,18 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 
 	gtk_widget_show_all(*sw);
 
-	gtk_signal_connect(GTK_OBJECT(*ctree), "tree_select_row",
-					   GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-					   NULL);
-	gtk_signal_connect(GTK_OBJECT(*ctree), "tree_unselect_row",
-					   GTK_SIGNAL_FUNC
-					   (on_ctree_search_results_unselect_row), NULL);
-	gtk_signal_connect(GTK_OBJECT(*ctree), "click_column",
-					   GTK_SIGNAL_FUNC
-					   (on_clist_search_results_click_column), NULL);
-	gtk_signal_connect(GTK_OBJECT(*ctree), "button_press_event",
-					   GTK_SIGNAL_FUNC
-					   (on_clist_search_results_button_press_event), NULL);
-	gtk_signal_connect(GTK_OBJECT(*ctree), "resize-column",
-					   GTK_SIGNAL_FUNC
-					   (on_ctree_search_results_resize_column), NULL);
-    gtk_signal_connect(GTK_OBJECT(*ctree), "key_press_event",
-                       GTK_SIGNAL_FUNC
-                       (on_clist_search_results_key_press_event), NULL);
+	gui_signal_connect(*ctree, "tree_select_row",
+		on_ctree_search_results_select_row, NULL);
+	gui_signal_connect(*ctree, "tree_unselect_row",
+		on_ctree_search_results_unselect_row, NULL);
+	gui_signal_connect(*ctree, "click_column",
+		on_clist_search_results_click_column, NULL);
+	gui_signal_connect(*ctree, "button_press_event",
+		on_clist_search_results_button_press_event, NULL);
+	gui_signal_connect(*ctree, "resize-column",
+		on_ctree_search_results_resize_column, NULL);
+    gui_signal_connect(*ctree, "key_press_event",
+		on_clist_search_results_key_press_event, NULL);
 }
 
 

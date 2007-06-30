@@ -82,6 +82,44 @@ main_gui_run(const gchar *unused_geometry_spec)
 #define gdk_drawable_get_size gdk_window_get_size
 #endif
 
+/* GUI signal functions */
+#ifdef USE_GTK1
+#define gui_signal_connect(widget, name, func, data) \
+	gtk_signal_connect(GTK_OBJECT(widget), (name), \
+		GTK_SIGNAL_FUNC(func), (data))
+
+#define gui_signal_connect_after(widget, name, func, data) \
+	gtk_signal_connect_after(GTK_OBJECT(widget), (name), \
+		GTK_SIGNAL_FUNC(func), (data))
+
+#define gui_signal_disconnect(widget, func, data) \
+	gtk_signal_disconnect_by_func(GTK_OBJECT(widget), \
+		GTK_SIGNAL_FUNC(func), (data))
+
+#define gui_signal_stop_emit_by_name(widget, name) \
+	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), (name))
+	
+#endif /* USE_GTK1 */
+
+#ifdef USE_GTK2
+#define gui_signal_connect(widget, name, func, data) \
+	g_signal_connect((widget), (name), \
+		G_CALLBACK(func), (data))
+
+#define gui_signal_connect_after(widget, name, func, data) \
+	g_signal_connect_after((widget), (name), \
+		G_CALLBACK(func), (data))
+
+#define gui_signal_disconnect(widget, func, data) \
+	g_signal_handlers_disconnect_by_func((widget), \
+		G_CALLBACK(func), (data))
+
+#define gui_signal_stop_emit_by_name(widget, name) \
+	g_signal_stop_emission_by_name((widget), (name))
+	
+#endif	/* Gtk+ 2.0 */
+
+
 /* Common padding values for GtkCellRenderer */
 #define GUI_CELL_RENDERER_XPAD ((guint) 4U)
 #define GUI_CELL_RENDERER_YPAD ((guint) 0U)

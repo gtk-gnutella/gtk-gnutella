@@ -98,15 +98,6 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 	return ret; 
 }
 
-#define signal_connect(widget, name, func, data) \
-	g_signal_connect((widget), (name), G_CALLBACK(func), (data))
-
-#define signal_disconnect(widget, func, data) \
-	g_signal_handlers_disconnect_by_func((widget), G_CALLBACK(func), (data))
-
-#define signal_stop_emission_by_name \
-	g_signal_stop_emission_by_name
-
 #define object_ref(obj)		g_object_ref((obj))
 #define object_unref(obj)	g_object_unref((obj))
 
@@ -122,20 +113,6 @@ selection_set_text(GtkSelectionData *data, const char *text)
 }
 
 #else	/* Gtk < 2 */
-
-#define signal_connect(widget, name, func, data) \
-	gtk_signal_connect(GTK_OBJECT(widget), (name), \
-			GTK_SIGNAL_FUNC(func), (data))
-
-#define signal_disconnect(widget, func, data) \
-	gtk_signal_disconnect_by_func(GTK_OBJECT(widget), \
-			GTK_SIGNAL_FUNC(func), (data))
-
-#define signal_stop_emission_by_name(widget, name) \
-G_STMT_START { \
-	(void) (widget); \
-	(void) (name); \
-} G_STMT_END
 
 #define object_ref(obj)		gtk_object_ref(GTK_OBJECT(obj))
 #define object_unref(obj)	gtk_object_unref(GTK_OBJECT(obj))
@@ -160,7 +137,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 
 	(void) unused_drag_ctx;
 
-	signal_stop_emission_by_name(widget, "drag-begin");
+	gui_signal_stop_emit_by_name(widget, "drag-begin");
 
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
@@ -179,7 +156,7 @@ drag_data_get(GtkWidget *widget, GdkDragContext *unused_drag_ctx,
 	(void) unused_info;
 	(void) unused_stamp;
 
-	signal_stop_emission_by_name(widget, "drag-data-get");
+	gui_signal_stop_emit_by_name(widget, "drag-data-get");
 
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
@@ -196,7 +173,7 @@ drag_end(GtkWidget *widget, GdkDragContext *unused_drag_ctx, void *udata)
 
 	(void) unused_drag_ctx;
 
-	signal_stop_emission_by_name(widget, "drag-end");
+	gui_signal_stop_emit_by_name(widget, "drag-end");
 
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
@@ -210,10 +187,10 @@ destroy(GtkObject *widget, void *udata)
 	g_return_if_fail(ctx);
 	g_return_if_fail(ctx->get_text);
 
-	signal_disconnect(widget, drag_data_get, ctx);
-	signal_disconnect(widget, drag_begin, ctx);
-	signal_disconnect(widget, drag_end, ctx);
-	signal_disconnect(widget, destroy, ctx);
+	gui_signal_disconnect(widget, drag_data_get, ctx);
+	gui_signal_disconnect(widget, drag_begin, ctx);
+	gui_signal_disconnect(widget, drag_end, ctx);
+	gui_signal_disconnect(widget, destroy, ctx);
 
 	drag_free(&ctx);
 	object_unref(widget);
@@ -248,10 +225,10 @@ drag_attach(GtkWidget *widget, drag_get_text_cb callback)
 		GDK_BUTTON1_MASK | GDK_BUTTON2_MASK, targets, G_N_ELEMENTS(targets),
 		GDK_ACTION_DEFAULT | GDK_ACTION_COPY | GDK_ACTION_ASK);
 
-    signal_connect(widget, "drag-data-get", drag_data_get, ctx);
-    signal_connect(widget, "drag-begin",	drag_begin, ctx);
-    signal_connect(widget, "drag-end",	  	drag_end, ctx);
-    signal_connect(widget, "destroy",		destroy, ctx);
+    gui_signal_connect(widget, "drag-data-get", drag_data_get, ctx);
+    gui_signal_connect(widget, "drag-begin",	drag_begin, ctx);
+    gui_signal_connect(widget, "drag-end",	  	drag_end, ctx);
+    gui_signal_connect(widget, "destroy",		destroy, ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

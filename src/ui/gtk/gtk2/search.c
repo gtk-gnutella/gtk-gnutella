@@ -1691,8 +1691,8 @@ search_gui_init(void)
 		GtkWidget *widget;
 
 		widget = gui_main_window_lookup("treeview_search_details");
-		gtk_signal_connect(GTK_OBJECT(widget), "key-press-event",
-			GTK_SIGNAL_FUNC(on_treeview_search_details_key_press_event), NULL);
+		gui_signal_connect(widget, "key-press-event",
+			on_treeview_search_details_key_press_event, NULL);
 		
 		drag_attach(widget, search_details_get_text);
 	}

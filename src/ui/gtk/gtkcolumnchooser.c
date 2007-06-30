@@ -32,13 +32,7 @@ RCSID("$Id$")
 #include "gtkcolumnchooser.h"
 #include "lib/override.h"				/* Must be the last header included */
 
-#if (GTK_MAJOR_VERSION >= 2)
-#define signal_connect g_signal_connect
-#else
-#define signal_connect gtk_signal_connect
-#endif
-
-static GtkWidgetClass * parent_class = NULL;
+static GtkWidgetClass *parent_class;
 
 static void gtk_column_chooser_deactivate(GtkMenuShell *menu_shell);
 static gint gtk_column_chooser_button_press(GtkWidget * widget,
@@ -186,8 +180,7 @@ gtk_column_chooser_new(GtkWidget *widget)
          * on_column_popup_toggled knows which instance it
          * has to call to get data from.
          */
-        signal_connect(GTK_OBJECT(menuitem), "toggled",
-			GTK_SIGNAL_FUNC(on_column_popup_toggled), (gpointer) cc);
+        gui_signal_connect(menuitem, "toggled", on_column_popup_toggled, cc);
 
         gtk_widget_show(menuitem);
         gtk_menu_append(menu, menuitem);
@@ -210,8 +203,7 @@ gtk_column_chooser_new(GtkWidget *widget)
      * on_column_popup_pressed knows which instance it
      * has to call to get data from.
      */
-    signal_connect(GTK_OBJECT(menuitem), "activate",
-		GTK_SIGNAL_FUNC(on_column_popup_activate), (gpointer) cc);
+    gui_signal_connect(menuitem, "activate", on_column_popup_activate, cc);
 
     gtk_widget_show(menuitem);
     gtk_menu_append(menu, menuitem);
@@ -223,8 +215,7 @@ gtk_column_chooser_new(GtkWidget *widget)
      * grab when it's displayed, the application has not much
      * to say anyway.
      */
-    signal_connect(GTK_OBJECT(cc), "hide",
-		GTK_SIGNAL_FUNC(on_popup_hide), NULL);
+    gui_signal_connect(cc, "hide", on_popup_hide, NULL);
 
     return GTK_WIDGET(cc);
 }

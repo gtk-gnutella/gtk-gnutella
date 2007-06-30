@@ -282,12 +282,9 @@ create_icon(void)
     gtk_container_add(GTK_CONTAINER(icon), canvas);
     gtk_widget_set_events(canvas, GDK_EXPOSURE_MASK);
 
-    gtk_signal_connect(GTK_OBJECT(icon), "map_event",
-                       GTK_SIGNAL_FUNC(on_icon_map_event), NULL);
-    gtk_signal_connect(GTK_OBJECT(icon), "unmap_event",
-                       GTK_SIGNAL_FUNC(on_icon_unmap_event), NULL);
-    gtk_signal_connect(GTK_OBJECT(canvas), "expose_event",
-                       GTK_SIGNAL_FUNC(on_canvas_expose_event), NULL);
+    gui_signal_connect(icon, "map_event", on_icon_map_event, NULL);
+    gui_signal_connect(icon, "unmap_event", on_icon_unmap_event, NULL);
+    gui_signal_connect(canvas, "expose_event", on_canvas_expose_event, NULL);
 }
 
 void
@@ -412,10 +409,10 @@ icon_init(void)
 		gtk_status_icon_set_tooltip(status_icon,
 			_("gtk-gnutella: Click to minimize/restore"));
 		gtk_status_icon_set_visible(status_icon, TRUE);
-    	g_signal_connect(G_OBJECT(status_icon), "activate",
-			G_CALLBACK(on_status_icon_activate), NULL);
-    	g_signal_connect(G_OBJECT(status_icon), "size-changed",
-			G_CALLBACK(on_status_icon_size_changed), NULL);
+    	gui_signal_connect(status_icon, "activate",
+			on_status_icon_activate, NULL);
+    	gui_signal_connect(status_icon, "size-changed",
+			on_status_icon_size_changed, NULL);
 	}
 #endif	/* Gtk+ >= 2.10.0 */
 }

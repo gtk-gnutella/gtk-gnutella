@@ -6414,12 +6414,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_close), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_close_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (spinbutton_search_reissue_timeout), "activate",
-                      GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (spinbutton_search_reissue_timeout), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_focus_out_event),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_download_clicked),
                       NULL);

@@ -7694,8 +7694,6 @@ http://maxmind.com/</property>
 		      <property name="snap_to_ticks">False</property>
 		      <property name="wrap">False</property>
 		      <property name="adjustment">600 0 100000 60 600 600</property>
-		      <signal name="activate" handler="on_spinbutton_search_reissue_timeout_activate" after="yes" last_modification_time="Fri, 29 Jun 2007 22:33:37 GMT"/>
-		      <signal name="focus_out_event" handler="on_spinbutton_search_reissue_timeout_focus_out_event" last_modification_time="Fri, 29 Jun 2007 22:34:13 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>

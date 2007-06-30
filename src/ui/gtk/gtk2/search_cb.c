@@ -273,8 +273,7 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
 	case 1:
         /* left click section */
 		if (event->type == GDK_2BUTTON_PRESS) {
-			gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
-				"button_press_event");
+			gui_signal_stop_emit_by_name(widget, "button_press_event");
 			return FALSE;
 		}
 		if (event->type == GDK_BUTTON_PRESS) {
@@ -283,10 +282,8 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
 				 * 2 clicks within 250 msec == doubleclick.
 				 * Surpress further events
 				 */
-				gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
-					"button_press_event");
+				gui_signal_stop_emit_by_name(widget, "button_press_event");
 				search_gui_download_files();
-
 				return TRUE;
 			} else {
 				click_time = event->time;

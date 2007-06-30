@@ -196,20 +196,18 @@ drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
 		g_return_if_fail(clipboard);
 	}
 	
-	g_signal_connect(G_OBJECT(widget), "drag-data-received",
-		G_CALLBACK(callback), user_data);
-
 	gtk_drag_dest_set_target_list(widget, gtk_target_list_new(targets,
 		G_N_ELEMENTS(targets)));
 #endif /* USE_GTK2 */
 
 #if !GTK_CHECK_VERSION(2,0,0)
-	gtk_signal_connect(GTK_OBJECT(widget), "drag-data-received",
-		callback, user_data);
 
 	gtk_selection_add_targets(widget, GDK_SELECTION_TYPE_STRING,
 		targets, G_N_ELEMENTS(targets));
 #endif /* USE_GTK1 */
+
+	gui_signal_connect(GTK_OBJECT(widget), "drag-data-received",
+		callback, user_data);
 }
 
 void

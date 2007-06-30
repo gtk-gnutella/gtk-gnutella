@@ -274,19 +274,14 @@ on_button_config_save_path_clicked(GtkButton *unused_button,
 			gtk_file_selection_new(
 				_("Please choose where to store files while downloading"));
 
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(save_path_filesel)->
-							ok_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_save_path_clicked),
-						   (gpointer) 1);
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(save_path_filesel)->
-							cancel_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_save_path_clicked),
-						   NULL);
-		gtk_signal_connect(GTK_OBJECT(save_path_filesel), "delete_event",
-						   GTK_SIGNAL_FUNC(fs_save_path_delete_event),
-						   NULL);
+		gui_signal_connect(
+			GTK_FILE_SELECTION(save_path_filesel)->ok_button,
+			"clicked", button_fs_save_path_clicked, GINT_TO_POINTER(1));
+		gui_signal_connect(
+			GTK_FILE_SELECTION(save_path_filesel)->cancel_button,
+			"clicked", button_fs_save_path_clicked, NULL);
+		gui_signal_connect(save_path_filesel,
+			"delete_event", fs_save_path_delete_event, NULL);
 
 		gtk_widget_show(save_path_filesel);
 	}
@@ -340,19 +335,14 @@ on_button_config_move_path_clicked(GtkButton *unused_button,
 		move_path_filesel = gtk_file_selection_new(
 			_("Please choose where to move files after successful download"));
 
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(move_path_filesel)->
-							ok_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_move_path_clicked),
-						   GINT_TO_POINTER(1));
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(move_path_filesel)->
-							cancel_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_move_path_clicked),
-						   NULL);
-		gtk_signal_connect(GTK_OBJECT(move_path_filesel), "delete_event",
-						   GTK_SIGNAL_FUNC(fs_save_move_delete_event),
-						   NULL);
+		gui_signal_connect(
+			GTK_FILE_SELECTION(move_path_filesel)->ok_button,
+			"clicked", button_fs_move_path_clicked, GINT_TO_POINTER(1));
+		gui_signal_connect(
+			GTK_FILE_SELECTION(move_path_filesel)->cancel_button,
+			"clicked", button_fs_move_path_clicked, NULL);
+		gui_signal_connect(move_path_filesel,
+			"delete_event", fs_save_move_delete_event, NULL);
 
 		gtk_widget_show(move_path_filesel);
 	}
@@ -407,19 +397,12 @@ on_button_config_bad_path_clicked(GtkButton *unused_button,
 			gtk_file_selection_new(
 				_("Please choose where to move corrupted files"));
 
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(bad_path_filesel)->
-							ok_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_bad_path_clicked),
-						   GINT_TO_POINTER(1));
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(bad_path_filesel)->
-							cancel_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_bad_path_clicked),
-						   NULL);
-		gtk_signal_connect(GTK_OBJECT(bad_path_filesel), "delete_event",
-						   GTK_SIGNAL_FUNC(fs_save_bad_delete_event),
-						   NULL);
+		gui_signal_connect(GTK_FILE_SELECTION(bad_path_filesel)->ok_button,
+			"clicked", button_fs_bad_path_clicked, GINT_TO_POINTER(1));
+		gui_signal_connect(GTK_FILE_SELECTION(bad_path_filesel)->cancel_button,
+			"clicked", button_fs_bad_path_clicked, NULL);
+		gui_signal_connect(bad_path_filesel,
+			"delete_event", fs_save_bad_delete_event, NULL);
 
 		gtk_widget_show(bad_path_filesel);
 	}
@@ -471,18 +454,13 @@ on_button_config_add_dir_clicked(GtkButton *unused_button,
 		add_dir_filesel =
 			gtk_file_selection_new(_("Please choose a directory to share"));
 
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(add_dir_filesel)->
-							ok_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_add_dir_clicked),
-						   GINT_TO_POINTER(1));
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(add_dir_filesel)->
-							cancel_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_add_dir_clicked),
-						   NULL);
-		gtk_signal_connect(GTK_OBJECT(add_dir_filesel), "delete_event",
-						   GTK_SIGNAL_FUNC(fs_add_dir_delete_event), NULL);
+		gui_signal_connect(
+			GTK_FILE_SELECTION(add_dir_filesel)->ok_button,
+			"clicked", button_fs_add_dir_clicked, GINT_TO_POINTER(1));
+		gui_signal_connect(GTK_FILE_SELECTION(add_dir_filesel)->cancel_button,
+			"clicked", button_fs_add_dir_clicked, NULL);
+		gui_signal_connect(add_dir_filesel,
+			"delete_event", fs_add_dir_delete_event, NULL);
 
 		gtk_widget_show(add_dir_filesel);
 	}

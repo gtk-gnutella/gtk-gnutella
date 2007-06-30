@@ -688,10 +688,9 @@ widget_init_choices(GtkWidget *widget, GtkSignalFunc func,
 
 			gtk_widget_show(list_item);
 
-			gtk_signal_connect_after(GTK_OBJECT(list_item),
-					"select", func, user_data);
+			gui_signal_connect_after(list_item, "select", func, user_data);
 
-			l = g_list_prepend(NULL, (gpointer) list_item);
+			l = g_list_prepend(NULL, list_item);
 			gtk_list_append_items(GTK_LIST(combo->list), l);
 
 			if (def->data.guint32.choices[i].value == original)
@@ -712,14 +711,6 @@ widget_init_choices(GtkWidget *widget, GtkSignalFunc func,
 			gtk_object_set_user_data(GTK_OBJECT(item),
 				GUINT_TO_POINTER(def->data.guint32.choices[i].value));
 			gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-#ifdef USE_GTK1
-			gtk_signal_connect_after(GTK_OBJECT(item), "activate",
-				func, user_data);
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
-			g_signal_connect_after(GTK_OBJECT(item), "activate",
-				G_CALLBACK(func), user_data);
-#endif /* USE_GTK2 */
 		}
 		gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
 	}

@@ -250,12 +250,12 @@ gui_init_menu(void)
 
 	g_object_unref(store);
 
-	g_signal_connect(G_OBJECT(treeview), "cursor-changed",
-		G_CALLBACK(on_main_gui_treeview_menu_cursor_changed), NULL);
-	g_signal_connect(G_OBJECT(treeview), "row-collapsed",
-		G_CALLBACK(on_main_gui_treeview_menu_row_collapsed), NULL);
-	g_signal_connect(G_OBJECT(treeview), "row-expanded",
-		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
+	gui_signal_connect(treeview, "cursor-changed",
+		on_main_gui_treeview_menu_cursor_changed, NULL);
+	gui_signal_connect(treeview, "row-collapsed",
+		on_main_gui_treeview_menu_row_collapsed, NULL);
+	gui_signal_connect(treeview, "row-expanded",
+		on_main_gui_treeview_menu_row_expanded, NULL);
 }
 
 static void
@@ -721,13 +721,8 @@ main_gui_run(const gchar *geometry_spec)
         gui_main_window_lookup("label_statusbar_uptime"),
         8, 8);
 
-#ifdef USE_GTK2
-	g_signal_connect(GTK_OBJECT(gui_main_window_lookup("notebook_main")),
-		"switch-page", G_CALLBACK(on_notebook_main_switch_page), NULL);
-#else
-	gtk_signal_connect(GTK_OBJECT(gui_main_window_lookup("notebook_main")),
-		"switch-page", on_notebook_main_switch_page, NULL);
-#endif /* USE_GTK2 */
+	gui_signal_connect(gui_main_window_lookup("notebook_main"), "switch-page",
+		on_notebook_main_switch_page, NULL);
 
 	/*
 	 * Make sure the application starts in the Gnet pane.
