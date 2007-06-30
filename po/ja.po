@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-06-30 16:23+0900\n"
-"PO-Revision-Date: 2007-06-09 15:18+0900\n"
+"PO-Revision-Date: 2007-06-30 16:37+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -94,9 +94,8 @@ msgstr "回"
 msgid "No longer connected"
 msgstr "もう接続していません"
 
-#, fuzzy
 msgid "Too many data timeouts"
-msgstr "要求回数が多すぎます (%u 回)"
+msgstr "データ転送のタイムアウトが多すぎます"
 
 # FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timed out?)
 msgid "Timeout"
@@ -314,7 +313,7 @@ msgid "Query had unnecessary overhead"
 msgstr "不要オーバーへッドがある検索クエリー"
 
 msgid "Query had bad URN"
-msgstr ""
+msgstr "不正URNがある検索クエリー"
 
 msgid "Message with malformed SHA1"
 msgstr "変なSHA1があるメッセージ"
@@ -561,7 +560,7 @@ msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
 msgid "Invalid command syntax"
-msgstr ""
+msgstr "無効なコマンド行です"
 
 msgid "Invalid IP/Port"
 msgstr "無効な IP/ポートです"
@@ -1740,27 +1739,24 @@ msgstr ""
 
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
-msgstr ""
-"gtk-gnutella のライブラリーを見えない所で再構築しているかどうかを表します。"
+msgstr "gtk-gnutella のライブラリーを再構築しているかどうかを表します。"
 
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr "共有ファイルの SHA1 を見えない所で算出しているかどうかを表します。"
+msgstr "共有ファイルの SHA1 を算出しているかどうかを表します。"
 
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
-msgstr ""
-"ダウンロードされたファイルの SHA1 を見えない所で検証しているかどうかを表しま"
-"す。"
+msgstr "ダウンロードされたファイルの SHA1 を検証しているかどうかを表します。"
 
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
 msgstr ""
-"ファイルシステムを横断するファイル移動あるいは単にコピーを見えない所で行って"
-"いるかどうかを表します。"
+"異なるファイルシステム間でのファイル移動 (あるいはコピー) を行っているかどう"
+"かを表します。"
 
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
@@ -2362,10 +2358,10 @@ msgstr ""
 "きるようになります。"
 
 msgid "Number of HTML browsing requests received in this session."
-msgstr "このセッション中に受信した HTML 参照クエストの回数です。"
+msgstr "このセッション中に受信した HTML 参照リクエストの回数です。"
 
 msgid "Number of HTML browsing requests fully served in this session."
-msgstr "このセッション中に完全に送信された HTML 参照クエストの回数です。"
+msgstr "このセッション中に完全に送信された HTML 参照リクエストの回数です。"
 
 msgid "Number of Gnutella browsing requests received in this session."
 msgstr "このセッション中に受信した Gnutella 参照リクエストの回数です。"
@@ -2485,22 +2481,19 @@ msgstr "PUSHプロキシコードのデバッグレベルです。"
 msgid "This is an interim property while Tigertree support is unfinished."
 msgstr ""
 
-#, fuzzy
 msgid "Number of THEX file requests received in this session."
-msgstr "このセッション中に受信した HTML 参照クエストの回数です。"
+msgstr "このセッション中に受信した THEX ファイルリクエストの回数です。"
 
-#, fuzzy
 msgid "Number of THEX file requests fully served in this session."
-msgstr "このセッション中に完全に送信された HTML 参照クエストの回数です。"
+msgstr "このセッション中に完全に送信された THEX 参照リクエストの回数です。"
 
 msgid "Debug level for Tigertree-related code."
 msgstr "Tigertree関連コードのデバッグレベルです。"
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
-msgstr "共有ファイルの SHA1 を見えない所で算出しているかどうかを表します。"
+msgstr "共有ファイルの TTH を算出しているかどうかを表します。"
 
 msgid "This is an interim property."
 msgstr ""
@@ -3787,10 +3780,10 @@ msgid "Bitzi|Unknown"
 msgstr "不明"
 
 msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
+msgstr "参照失敗"
 
 msgid "Bitzi|Filesize mismatch"
-msgstr ""
+msgstr "ファイルサイズの不一致"
 
 # NOTE: (from http://bitzi.com/help/judge)
 #
@@ -4358,9 +4351,8 @@ msgstr "(停滞中)"
 msgid " [%d/%d] TR: %s"
 msgstr "[%d/%d] 残り時間: %s"
 
-#, fuzzy
 msgid "ignoring"
-msgstr "内への接続"
+msgstr "無視します"
 
 msgid "Connected"
 msgstr "接続しました"
@@ -4409,9 +4401,8 @@ msgstr[0] "選択された %u/%u 件の待機ダウンロードが「%s」に一
 msgid "Downloading (%s)  TR: %s"
 msgstr "ダウンロード中 (%s)  残り時間: %s"
 
-#, fuzzy
 msgid "Seeding"
-msgstr "PUSH を送信しています"
+msgstr ""
 
 msgid "Finished"
 msgstr "終了しました"
@@ -6632,9 +6623,9 @@ msgstr " %u秒後に再実行"
 msgid "Sending request (%u%%)"
 msgstr "リクエストを送信しています (%u%%)"
 
-#, fuzzy
+# FIXME: should be revised
 msgid "Uploaded"
-msgstr "アップロード:"
+msgstr "アップロードされました"
 
 msgid "Aliases"
 msgstr "別名"
@@ -7094,7 +7085,7 @@ msgid "Bitzi URL"
 msgstr "Bitzi URL"
 
 msgid "ShareMonkey URL"
-msgstr ""
+msgstr "ShareMonkey URL"
 
 msgid "Index"
 msgstr "インデックス"
@@ -7102,13 +7093,11 @@ msgstr "インデックス"
 msgid "No"
 msgstr "いいえ"
 
-#, fuzzy
 msgid "Pathname"
-msgstr "パナマ共和国"
+msgstr "パス名"
 
-#, fuzzy
 msgid "File URL"
-msgstr "ファイル"
+msgstr "ファイルURL"
 
 msgid "Source"
 msgstr "送信元"
@@ -7132,10 +7121,10 @@ msgid "Push-proxies"
 msgstr "PUSHプロキシ"
 
 msgid "N2R URI"
-msgstr ""
+msgstr "N2R URI"
 
 msgid "Classic URL"
-msgstr ""
+msgstr "従来のURL"
 
 msgid "Never"
 msgstr "未発生"
