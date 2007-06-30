@@ -1796,9 +1796,12 @@ static void
 dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
 	dmesh_add_cb func, gpointer udata)
 {
-	const gchar *p = value;
+	const gchar *tls_hex, *p, *next;
 
-	do {
+	tls_hex = NULL;
+	next = value;
+
+	while (NULL != (p = next)) {
 		const gchar *start, *endptr;
 		host_addr_t addr;
 		guint16 port;
@@ -1808,12 +1811,14 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
 		if ('\0' == *start)
 			break;
 
-		endptr = strchr(start, ',');
-		if (!endptr) {
-			endptr = strchr(start, ';');
-			if (!endptr)
-				endptr = strchr(start, '\0');
+		next = strpbrk(start, ",;");
+		if (next) {
+			next++;
 		}
+
+		/* TODO: Handle tls=<hex> */
+		if (NULL == tls_hex && (tls_hex = is_strcaseprefix(start, "tls=")))
+			continue;
 
 		/*
 		 * There could be a GUID here if the host is not directly connectible
@@ -1834,9 +1839,7 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
 		} else if (GNET_PROPERTY(dmesh_debug)) {
 			g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 		}
-
-		p = '\0' != *endptr ? &endptr[1] : NULL;
-	} while (p);
+	}
 }
 
 static void
