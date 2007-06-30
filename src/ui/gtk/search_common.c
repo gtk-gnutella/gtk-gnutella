@@ -2130,7 +2130,7 @@ search_xml_indent(const gchar *s)
 
 /**
  * Adds a search string to the search history combo. Makes
- * sure we do not get more than 10 entries in the history.
+ * sure we do not get more than 50 entries in the history.
  * Also makes sure we don't get duplicate history entries.
  * If a string is already in history and it's added again,
  * it's moved to the beginning of the history list.
@@ -2138,25 +2138,32 @@ search_xml_indent(const gchar *s)
 static void
 search_gui_history_add(const gchar *text)
 {
-    const GList *last;
+	GList *iter;
 
     g_return_if_fail(text);
 
-	/* FIXME: Keyboard navigation breaks if the same string is listed more
-	 *		  more than once. */
-	last = g_list_last(list_search_history);
-	if (NULL == last || 0 != strcmp(text, last->data)) {
-		if (g_list_length(list_search_history) >= 50) {
-			gpointer data = list_search_history->data;
-			list_search_history = g_list_remove(list_search_history, data);
-			G_FREE_NULL(data);
+	/* Remove the text from the history because duplicate strings break
+	 * keyboard navigation.
+	 */
+	for (iter = list_search_history; NULL != iter; iter = g_list_next(iter)) {
+		if (0 == strcmp(text, iter->data)) {
+			G_FREE_NULL(iter->data);
+			list_search_history = g_list_delete_link(list_search_history, iter);
+			break;
 		}
-		list_search_history = g_list_append(list_search_history,
-								g_strdup(text));
-		gtk_combo_set_popdown_strings(
-			GTK_COMBO(gui_main_window_lookup("combo_search")),
-			list_search_history);
 	}
+
+	/* Remove the oldest item if the list length has reached the limit. */
+	if (g_list_length(list_search_history) >= 50) {
+		G_FREE_NULL(list_search_history->data);
+		list_search_history = g_list_delete_link(list_search_history,
+								list_search_history);
+	}
+
+	list_search_history = g_list_append(list_search_history, g_strdup(text));
+	gtk_combo_set_popdown_strings(
+		GTK_COMBO(gui_main_window_lookup("combo_search")),
+		list_search_history);
 }
 
 gboolean
