@@ -192,6 +192,8 @@ install_merged_table(struct routing_table *rt)
 
 /**
  * Compute standard QRP hash code on 32 bits.
+ *
+ * @param s A keyword in canonic form (UTF-8, NFC, lowercased, etc.).
  */
 static inline guint32
 qrp_hashcode(const gchar *s)
@@ -210,36 +212,23 @@ qrp_hashcode(const gchar *s)
 	 * x XOR 0==x.
 	 */
 
-
 	for (j = 0; '\0' != (uc = (guchar) *s); j = (j + 8) & 24) {
-		/* Optimize for ASCII as the most common encoding for searches */
-		if (uc < 0x80U) {
-			uc = ascii_tolower(uc);
-			s++;
-		} else {
-			guint retlen;
+		guint retlen;
 
-			uc = utf8_decode_char_fast(s, &retlen);
-			s += retlen;
+		uc = utf8_decode_char_fast(s, &retlen);
+		if (!uc)
+			break;	/* Invalid encoding */
 
-			if (uc <= 0xffffU) {
-				if (!uc)
-					break;	/* Invalid encoding */
+		if (uc > 0xffffU) {
+			/* ``uc'' will hold two surrogates */
+			uc = utf16_encode_char_compact(uc);
 
-				/* It's a BMP character */
-				uc = utf32_lowercase(uc);
-			} else {
-				/* ``uc'' will hold two surrogates */
-				uc = utf16_encode_char_compact(uc);
-
-				/* Surrogates don't need to be lowercased */
-				x ^= (uc & 0xff) << j;
-				j = (j + 8) & 24;
-				uc >>= 16;	/* move to the second surrogate */
-			}
-			uc &= 0xff;
+			x ^= (uc & 0xff) << j;
+			j = (j + 8) & 24;
+			uc >>= 16;	/* move to the second surrogate */
 		}
-		x ^= uc << j;
+		x ^= (uc & 0xff) << j;
+		s += retlen;
 	}
 
 	/*
@@ -3846,7 +3835,6 @@ qrp_init(void)
 
 	g_assert(qrp_hash("ebcklmenq", 13) == 3527);
 	g_assert(qrp_hash("ndflalem", 16) == 37658);
-	g_assert(qrp_hash("NDFLalem", 16) == 37658);
 	g_assert(qrp_hash("7777a88a8a8a8", 10) == 342);
 
 	test_hash();
@@ -4441,8 +4429,6 @@ test_hash(void)
 	CHECK(qrp_hash("zzzzzzzzzzz", 10)==944);
 
 	CHECK(qrp_hash("3nja9", 10)==581);
-	CHECK(qrp_hash("3NJA9", 10)==581);
-	CHECK(qrp_hash("3nJa9", 10)==581);
 
 	/* Non-ASCII test cases */
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {

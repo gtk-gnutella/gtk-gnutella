@@ -446,12 +446,13 @@ entry_match(const gchar *text, size_t tlen,
 void
 st_search(
 	search_table_t *table,
-	gchar *search,
+	const gchar *search_term,
 	st_search_callback callback,
 	gpointer ctx,
 	gint max_res,
 	query_hashvec_t *qhv)
 {
+	gchar *search;
 	gint key, nres;
 	guint i, len;
 	struct st_bin *best_bin = NULL;
@@ -466,6 +467,11 @@ st_search(
 	size_t minlen;
 	guint random_offset;  /* Randomizer for search returns */
 
+	search = UNICODE_CANONIZE(search_term);
+	if (GNET_PROPERTY(search_debug) && 0 != strcmp(search, search_term)) {
+		g_message(" Original search term: \"%s\"", search_term);
+		g_message("Canonical search term: \"%s\"", search);
+	}
 	len = strlen(search);
 
 	/*
@@ -473,7 +479,7 @@ st_search(
 	 */
 
 	if (len < 2)
-		return;
+		goto finish;
 
 	for (i = 0; i < len - 1; i++) {
 		struct st_bin *bin;
@@ -510,7 +516,7 @@ st_search(
 		 */
 
 		if (qhv == NULL)
-			return;
+			goto finish;
 	}
 
 	/*
@@ -533,7 +539,7 @@ st_search(
 	if (wocnt == 0 || best_bin == NULL) {
 		if (wocnt > 0)
 			word_vec_free(wovec, wocnt);
-		return;
+		goto finish;
 	}
 
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
@@ -624,6 +630,11 @@ st_search(
 
 	wfree(pattern, wocnt * sizeof *pattern);
 	word_vec_free(wovec, wocnt);
+
+finish:
+	if (search != search_term) {
+		G_FREE_NULL(search);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -87,7 +87,7 @@ typedef void (*st_search_callback)(gpointer ctx, gpointer data);
 
 void st_search(
 	search_table_t *table,
-	gchar *search,
+	const gchar *search,
 	st_search_callback callback,
 	gpointer ctx,
 	gint max_res,
