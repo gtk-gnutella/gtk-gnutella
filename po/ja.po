@@ -75,8 +75,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
-"PO-Revision-Date: 2007-04-05 20:37+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"PO-Revision-Date: 2007-06-09 15:18+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -94,6 +94,10 @@ msgstr "回"
 msgid "No longer connected"
 msgstr "もう接続していません"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "要求回数が多すぎます (%u 回)"
+
 # FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timed out?)
 msgid "Timeout"
 msgstr "タイムアウト"
@@ -109,8 +113,8 @@ msgstr "一時休止 (SHA1確認中)"
 
 # NOTE: both `s' show localized timestamp
 #, c-format
-msgid " at %s - rescheduled for %s"
-msgstr " (現在時: %s - 再予定時: %s)"
+msgid " at %s - rescheduled for %s%s"
+msgstr " (現在時: %s - 再予定時: %s%s)"
 
 msgid "Paused"
 msgstr "一時停止中"
@@ -188,14 +192,14 @@ msgstr "中断されました (出力ファイルのサイズが変更されま�
 msgid "Can't save data: %s"
 msgstr "データを保存できません: %s"
 
-msgid "Requeued by competing download"
-msgstr "キューに戻されました (ダウンロードが競合しています)"
-
 msgid "Requeued after trimmed data"
 msgstr "キューに戻されました (データ整理後)"
 
 msgid "Chunk done, connection closed"
 msgstr "チャンクの取得完了、接続を切ります"
+
+msgid "Requeued by competing download"
+msgstr "キューに戻されました (ダウンロードが競合しています)"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "変なHTTPステータス (プロトコルの同期が破損した可能性があります)"
@@ -237,7 +241,7 @@ msgstr "<ホスト %s の参照>"
 
 #, c-format
 msgid "<THEX data for %s>"
-msgstr ""
+msgstr "<%s のTHEXデータ>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
@@ -308,6 +312,9 @@ msgstr "短過ぎる検索クエリー"
 
 msgid "Query had unnecessary overhead"
 msgstr "不要オーバーへッドがある検索クエリー"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "変なSHA1があるメッセージ"
@@ -489,9 +496,6 @@ msgstr "既に接続しています"
 msgid "Write error during HELLO: %s"
 msgstr "HELLOの最中に書込エラー: %s"
 
-msgid "Out of memory"
-msgstr "メモリが足りません"
-
 msgid "Connection reset during HELLO"
 msgstr "HELLO の最中に接続がリセットされました"
 
@@ -556,6 +560,9 @@ msgstr "待ち受けポートの作成に失敗しました"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
+msgid "Invalid command syntax"
+msgstr ""
+
 msgid "Invalid IP/Port"
 msgstr "無効な IP/ポートです"
 
@@ -580,9 +587,8 @@ msgstr "不明な操作です"
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
-#, fuzzy
 msgid "Query string is not UTF-8 encoded"
-msgstr "この検索クエリーはUTF-8でエンコードされていません。"
+msgstr "検索クエリー文字列がUTF-8でエンコードされていません。"
 
 msgid "Search added"
 msgstr "検索が追加されました"
@@ -632,9 +638,6 @@ msgstr "ファイル数"
 msgid "Size"
 msgstr "大きさ"
 
-msgid "Unknown parameter"
-msgstr "不明なパラメータです"
-
 # FIXME: peer
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
@@ -655,8 +658,17 @@ msgstr "ダウンロードを作成できませんでした"
 msgid "Download added"
 msgstr "ダウンロードが追加されました"
 
+msgid "Interactive mode turned on."
+msgstr "インタラクティブモードが有効になりました。"
+
+msgid "Interactive mode turned off."
+msgstr "インタラクティブモードが無効になりました。"
+
 msgid "No matching property."
 msgstr "該当するプロパティがありません。"
+
+msgid "No help available"
+msgstr "ヘルプは利用できません"
 
 msgid "Good bye"
 msgstr "Good bye"
@@ -667,6 +679,9 @@ msgstr "一連のシャットダウン処理が始まりました。"
 
 msgid "Malformed command"
 msgstr "変なコマンドです"
+
+msgid "OK"
+msgstr "OK"
 
 msgid "Unknown command"
 msgstr "不明なコマンドエラーです"
@@ -831,9 +846,6 @@ msgstr "ウルトラピア"
 # FIXME: node -> peer
 msgid "leaf node"
 msgstr "リーフ"
-
-msgid "normal node"
-msgstr "通常のピア"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "ホストキャッシュファイルが読込めるかどうかを示します。"
@@ -1696,22 +1708,6 @@ msgstr ""
 "有効にすると、必ず SHA1 でマッチ処理を行います。無効にすると、名前と大きさで"
 "マッチ処理を行います。"
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"ファイル名の曖昧マッチ処理を行います。(非推奨; 確実にするにはSHA1マッチ処理だ"
-"けを使用してください)"
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"ファイル名マッチ処理においての曖昧さの閾値 (高い = 厳密)です。値 100 はファイ"
-"ル名が 100% 同一のものである事を意味します。値 0 はどのような二つのファイル名"
-"も常に同一のものと見做されます。最小値は 50% です。"
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr "現在、TCP に関してファイアウォール内にあるかどうかを表します。"
 
@@ -1902,19 +1898,6 @@ msgid ""
 msgstr ""
 "部分ファイル共有 (PFSP) を有効にしている場合に、このファイルサイズ以下の部分"
 "ファイルを共有させません。大きすぎる値を指定しないようお願いします。"
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"ダウンロードメッシュ項目に曖昧フィルターを適用するかどうかを選択します。この"
-"フィルターを適用すると、同メッシュの重要な部分であまりにも異なりすぎる名前を"
-"持つ項目を削除する事ができます。有効にすると、余計な CPU 時間を使用し、処理の"
-"最中にいくつかのまともな項目が損失を受けますが、それと引き替えに恐らくメッ"
-"シュがより一貫性のあるものになります。"
 
 msgid "Number of crawler visits during this session."
 msgstr "このセッション中に訪れたクロウラーの数です。"
@@ -2509,6 +2492,18 @@ msgstr "このセッション中に受信した HTML 参照クエストの回数
 #, fuzzy
 msgid "Number of THEX file requests fully served in this session."
 msgstr "このセッション中に完全に送信された HTML 参照クエストの回数です。"
+
+msgid "Debug level for Tigertree-related code."
+msgstr "Tigertree関連コードのデバッグレベルです。"
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr "共有ファイルの SHA1 を見えない所で算出しているかどうかを表します。"
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr "表示しない"
@@ -3791,6 +3786,12 @@ msgstr "これは非公式ビルドです、このフォルダのファイルに
 msgid "Bitzi|Unknown"
 msgstr "不明"
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 # NOTE: (from http://bitzi.com/help/judge)
 #
 # The file is potentially dangerous (e.g., software containing a virus)
@@ -3870,17 +3871,11 @@ msgstr "最良版"
 msgid "No other data"
 msgstr "他のデータはありません"
 
-msgid "Queue frozen"
-msgstr "キューが凍結されました"
-
 msgid "Support for this protocol is not yet implemented"
 msgstr "このプロトコルはまだ実装されていません"
 
 msgid "Cannot handle the dropped data"
 msgstr "この破棄データを扱えません"
-
-msgid "Protocol is not supported"
-msgstr "このプロトコルには対応しません"
 
 msgid "starts with"
 msgstr "これで始まる"
@@ -4363,6 +4358,10 @@ msgstr "(停滞中)"
 msgid " [%d/%d] TR: %s"
 msgstr "[%d/%d] 残り時間: %s"
 
+#, fuzzy
+msgid "ignoring"
+msgstr "内への接続"
+
 msgid "Connected"
 msgstr "接続しました"
 
@@ -4410,11 +4409,12 @@ msgstr[0] "選択された %u/%u 件の待機ダウンロードが「%s」に一
 msgid "Downloading (%s)  TR: %s"
 msgstr "ダウンロード中 (%s)  残り時間: %s"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "PUSH を送信しています"
+
 msgid "Finished"
 msgstr "終了しました"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "failed"
 msgstr "失敗しました"
@@ -6598,9 +6598,6 @@ msgstr "データベースにありません"
 msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
 
-msgid "<no SHA1 known>"
-msgstr "<未知のSHA1>"
-
 msgid "Show search list"
 msgstr "検索一覧を表示する"
 
@@ -6635,9 +6632,9 @@ msgstr " %u秒後に再実行"
 msgid "Sending request (%u%%)"
 msgstr "リクエストを送信しています (%u%%)"
 
-#, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "待機中 (%u 件が動作、%u 件が受動)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "アップロード:"
 
 msgid "Aliases"
 msgstr "別名"
@@ -6889,33 +6886,6 @@ msgstr "逆引き検索を実行中..."
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
-msgid "Index"
-msgstr "インデックス"
-
-msgid "No"
-msgstr "いいえ"
-
-msgid "Source"
-msgstr "送信元"
-
-msgid "Browsable"
-msgstr "参照可"
-
-msgid "Maybe"
-msgstr "多分"
-
-msgid "Hostname"
-msgstr "ホスト名"
-
-msgid "Servent ID"
-msgstr "サーバントID"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr "PUSHプロキシ"
-
 # FIXME: messy
 msgid "Fresh regular"
 msgstr "新規の通常ピア"
@@ -7120,6 +7090,53 @@ msgstr "ホスト %s の参照結果を検索リストに追加しました。"
 msgid "Could not launch browse host for %s"
 msgstr "ホスト %s を参照できませんでした。"
 
+msgid "Bitzi URL"
+msgstr "Bitzi URL"
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+msgid "Index"
+msgstr "インデックス"
+
+msgid "No"
+msgstr "いいえ"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "パナマ共和国"
+
+#, fuzzy
+msgid "File URL"
+msgstr "ファイル"
+
+msgid "Source"
+msgstr "送信元"
+
+msgid "Browsable"
+msgstr "参照可"
+
+msgid "Maybe"
+msgstr "多分"
+
+msgid "Hostname"
+msgstr "ホスト名"
+
+msgid "Servent ID"
+msgstr "サーバントID"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr "PUSHプロキシ"
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "未発生"
 
@@ -7208,6 +7225,9 @@ msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u 件のダウンロード"
 
+msgid "Queue frozen"
+msgstr "キューが凍結されました"
+
 msgid "Select a property to see its description."
 msgstr "説明を見るにはプロパティを選択して下さい。"
 
@@ -7221,16 +7241,12 @@ msgstr "まだ出力はありません..."
 msgid "Got push, connecting back..."
 msgstr "PUSH されました、折り返し接続中..."
 
-#, c-format
-msgid "Completed (%s) %s%s"
-msgstr "完了しました (%s) %s%s"
-
 msgid "< 1s"
 msgstr "1秒未満"
 
 #, c-format
-msgid "%s(%s) TR: %s %s"
-msgstr "%s(%s) 残り時間: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
+msgstr "%s(%s) 残り時間: %s %s #%u"
 
 msgid "stalled"
 msgstr "停滞しています"

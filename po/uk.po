@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -31,6 +31,10 @@ msgstr ""
 msgid "No longer connected"
 msgstr "Роз'єднано"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Забагато спроб (%d раз(а)(ів))"
+
 msgid "Timeout"
 msgstr "Тайм-аут"
 
@@ -44,7 +48,7 @@ msgid "Suspended (SHA1 checking)"
 msgstr "Відкладено (перевірка SHA1)"
 
 #, c-format
-msgid " at %s - rescheduled for %s"
+msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
 msgid "Paused"
@@ -124,14 +128,14 @@ msgstr "Зупинено (Змінився розмір кінцевого фа�
 msgid "Can't save data: %s"
 msgstr "Не можливо зберегти дані: %s"
 
-msgid "Requeued by competing download"
-msgstr ""
-
 msgid "Requeued after trimmed data"
 msgstr ""
 
 msgid "Chunk done, connection closed"
 msgstr "Кусок закінчено, з'єднання закрито"
+
+msgid "Requeued by competing download"
+msgstr ""
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Незвичайний статус HTTP (protocol desync?)"
@@ -242,6 +246,9 @@ msgid "Query text too short"
 msgstr ""
 
 msgid "Query had unnecessary overhead"
+msgstr ""
+
+msgid "Query had bad URN"
 msgstr ""
 
 msgid "Message with malformed SHA1"
@@ -416,9 +423,6 @@ msgstr ""
 msgid "Write error during HELLO: %s"
 msgstr ""
 
-msgid "Out of memory"
-msgstr ""
-
 msgid "Connection reset during HELLO"
 msgstr ""
 
@@ -481,6 +485,9 @@ msgid "Failed to create listening sockets"
 msgstr ""
 
 msgid "Can only run as a leaf when TCP-firewalled"
+msgstr ""
+
+msgid "Invalid command syntax"
 msgstr ""
 
 msgid "Invalid IP/Port"
@@ -557,9 +564,6 @@ msgstr "Файли"
 msgid "Size"
 msgstr "Розмір"
 
-msgid "Unknown parameter"
-msgstr "Невідомий параметр"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr ""
@@ -579,7 +583,16 @@ msgstr "Немає слоту для скачування"
 msgid "Download added"
 msgstr "Скачано"
 
+msgid "Interactive mode turned on."
+msgstr ""
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
+msgstr ""
+
+msgid "No help available"
 msgstr ""
 
 msgid "Good bye"
@@ -590,6 +603,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "Спотворена команда"
+
+msgid "OK"
+msgstr ""
 
 msgid "Unknown command"
 msgstr "НЕвідома команда"
@@ -750,9 +766,6 @@ msgstr "ультра вузол"
 
 msgid "leaf node"
 msgstr "гілка вузол"
-
-msgid "normal node"
-msgstr "звичайний вузол"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr ""
@@ -1433,17 +1446,6 @@ msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr ""
 
@@ -1593,14 +1595,6 @@ msgstr ""
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
-msgstr ""
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
 msgstr ""
 
 msgid "Number of crawler visits during this session."
@@ -2036,6 +2030,17 @@ msgid "Number of THEX file requests received in this session."
 msgstr ""
 
 msgid "Number of THEX file requests fully served in this session."
+msgstr ""
+
+msgid "Debug level for Tigertree-related code."
+msgstr ""
+
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+
+msgid "This is an interim property."
 msgstr ""
 
 msgid "disable"
@@ -3298,6 +3303,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr ""
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr ""
 
@@ -3328,17 +3339,11 @@ msgstr ""
 msgid "No other data"
 msgstr ""
 
-msgid "Queue frozen"
-msgstr "Черга затримана"
-
 msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
 msgstr ""
-
-msgid "Protocol is not supported"
-msgstr "Протокол не підтримується"
 
 msgid "starts with"
 msgstr "починається на"
@@ -3781,6 +3786,9 @@ msgstr ""
 msgid " [%d/%d] TR: %s"
 msgstr ""
 
+msgid "ignoring"
+msgstr ""
+
 msgid "Connected"
 msgstr "З'єднано"
 
@@ -3828,10 +3836,10 @@ msgstr[1] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr ""
 
-msgid "Finished"
+msgid "Seeding"
 msgstr ""
 
-msgid "OK"
+msgid "Finished"
 msgstr ""
 
 #, fuzzy
@@ -5882,9 +5890,6 @@ msgstr ""
 msgid "Query queued..."
 msgstr ""
 
-msgid "<no SHA1 known>"
-msgstr ""
-
 msgid "Show search list"
 msgstr ""
 
@@ -5920,9 +5925,9 @@ msgstr ""
 msgid "Sending request (%u%%)"
 msgstr ""
 
-#, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr ""
+#, fuzzy
+msgid "Uploaded"
+msgstr "Завантажено"
 
 msgid "Aliases"
 msgstr ""
@@ -6149,36 +6154,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-#, fuzzy
-msgid "Index"
-msgstr "вузол"
-
-msgid "No"
-msgstr ""
-
-#, fuzzy
-msgid "Source"
-msgstr "Джерела"
-
-msgid "Browsable"
-msgstr ""
-
-msgid "Maybe"
-msgstr ""
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Хост"
-
-msgid "Servent ID"
-msgstr ""
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr ""
 
@@ -6373,6 +6348,56 @@ msgstr ""
 msgid "Could not launch browse host for %s"
 msgstr ""
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "вузол"
+
+msgid "No"
+msgstr ""
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Хост"
+
+#, fuzzy
+msgid "File URL"
+msgstr "Файл"
+
+#, fuzzy
+msgid "Source"
+msgstr "Джерела"
+
+msgid "Browsable"
+msgstr ""
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Хост"
+
+msgid "Servent ID"
+msgstr ""
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr ""
 
@@ -6462,6 +6487,9 @@ msgid_plural "%u/%u downloads"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Queue frozen"
+msgstr "Черга затримана"
+
 msgid "Select a property to see its description."
 msgstr ""
 
@@ -6475,15 +6503,11 @@ msgstr ""
 msgid "Got push, connecting back..."
 msgstr ""
 
-#, c-format
-msgid "Completed (%s) %s%s"
-msgstr ""
-
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr ""
 
 msgid "stalled"
@@ -6519,6 +6543,15 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "Protocol is not supported"
+#~ msgstr "Протокол не підтримується"
+
+#~ msgid "Unknown parameter"
+#~ msgstr "Невідомий параметр"
+
+#~ msgid "normal node"
+#~ msgstr "звичайний вузол"
 
 #~ msgid "Type not supported"
 #~ msgstr "Тип не підтримується"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -31,6 +31,10 @@ msgstr "Attività"
 msgid "No longer connected"
 msgstr "Disconnesso"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Troppi tentativi (%u volte)"
+
 msgid "Timeout"
 msgstr ""
 
@@ -43,8 +47,8 @@ msgstr "Riaccodato in seguito a cambiamento delle informazioni"
 msgid "Suspended (SHA1 checking)"
 msgstr "Sospeso (verifica SHA1)"
 
-#, c-format
-msgid " at %s - rescheduled for %s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s"
 msgstr " alle %s - riprogrammato per le %s"
 
 #, fuzzy
@@ -127,14 +131,14 @@ msgstr "Fermato (dimensione del file di output cambiata)"
 msgid "Can't save data: %s"
 msgstr "Non posso salvare i dati: %s"
 
-msgid "Requeued by competing download"
-msgstr "Riaccodato per scaricamento concorrente"
-
 msgid "Requeued after trimmed data"
 msgstr "Riaccodato dopo regolazione dei dati"
 
 msgid "Chunk done, connection closed"
 msgstr "Pezzo fatto, connessione chiusa"
+
+msgid "Requeued by competing download"
+msgstr "Riaccodato per scaricamento concorrente"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Stato HTTP misterioso (de-sincronizzazione protocollo?)"
@@ -248,6 +252,9 @@ msgstr "Testo query troppo breve"
 
 msgid "Query had unnecessary overhead"
 msgstr "La query aveva una intestazione non necessaria"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "Messaggio con SHA1 malformato"
@@ -422,9 +429,6 @@ msgstr "Già connesso"
 msgid "Write error during HELLO: %s"
 msgstr "Errore di scrittura durante il SALUTO: %s"
 
-msgid "Out of memory"
-msgstr "Memoria terminata"
-
 msgid "Connection reset during HELLO"
 msgstr "Connessione azzerata durante il SALUTO"
 
@@ -494,6 +498,9 @@ msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 "È possibile il solo funzionamento come foglia quando si è dietro un firewall "
 "TCP"
+
+msgid "Invalid command syntax"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "IP/Porta invalidi"
@@ -570,9 +577,6 @@ msgstr "File"
 msgid "Size"
 msgstr "Dimensione"
 
-msgid "Unknown parameter"
-msgstr "Parametro sconosciuto"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Dimensione totale horizon (%u/%u di nodi con supporto HSEP):"
@@ -593,8 +597,19 @@ msgstr "Nessun posto di scaricamento (crea)"
 msgid "Download added"
 msgstr "Scaricati:"
 
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Sorgenti inattive"
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
 msgstr ""
+
+#, fuzzy
+msgid "No help available"
+msgstr "Non disponibile"
 
 msgid "Good bye"
 msgstr "Arrivederci"
@@ -604,6 +619,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "Comando malformato"
+
+msgid "OK"
+msgstr ""
 
 msgid "Unknown command"
 msgstr "Comando sconosciuto"
@@ -764,9 +782,6 @@ msgstr "ultra nodo"
 
 msgid "leaf node"
 msgstr "nodo foglia"
-
-msgid "normal node"
-msgstr "nodo normale"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Indica se sta per essere letto il file di cache dell'host."
@@ -1668,23 +1683,6 @@ msgstr ""
 "Se attivato l'SHA1 deve corrispondere, altrimenti sono sufficenti il nome e "
 "la dimensione."
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"Utilizza la corrispondenza incerta dei nomi dei file (raccomandato = NO; per "
-"essere sicuri affidarsi solo alla corrispondenza dell'SHA1."
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"Soglia di incertezza nella corrispondenza dei nomi (più alta = più stretta). "
-"Un valore di 100 significa che il nome dei file devono essere identici. Un "
-"valore di 0 significa che qualsiasi coppia di nomi di file viene considerata "
-"identica. Il minimo è 50%."
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr ""
 "gtk-gnutella crede che tu sia attualmente dietro a un firewall, modo-TCP"
@@ -1888,19 +1886,6 @@ msgstr ""
 "Quando è abilitata la condivisione parziale dei file (PFSP), gtk-gnutella "
 "non condividerà file parziali al di sotto di questa dimensione. Non "
 "impostarla troppo grande."
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"Se applicare un filtro di incertezza agli elementi di rete scaricati. Lo "
-"scopo di questo filtro è quello di rimuovere quegli elementi i cui nomi sono "
-"troppo differenti per far parte dello stesso gruppo. Quando attivo il "
-"raggruppamento dovrà essere più consistente al prezzo di un maggior carico "
-"di CPU e di perdita di alcuni elementi validi dal processo."
 
 msgid "Number of crawler visits during this session."
 msgstr "Numero di visite dei motori di ricerca durante questa sessione."
@@ -2519,6 +2504,21 @@ msgid "Number of THEX file requests fully served in this session."
 msgstr ""
 "Numero di richieste di consultazione HTML completamente soddisfatte in "
 "questa sessione."
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "Livello di collaudo per il codice da scartare."
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+"gtk-gnutella sta attualmente calcolando l'SHA1 dei file condivisi in "
+"background."
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr "disabilita"
@@ -3879,6 +3879,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr ""
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr ""
 
@@ -3909,16 +3915,10 @@ msgstr ""
 msgid "No other data"
 msgstr ""
 
-msgid "Queue frozen"
-msgstr ""
-
 msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
-msgstr ""
-
-msgid "Protocol is not supported"
 msgstr ""
 
 msgid "starts with"
@@ -4363,6 +4363,10 @@ msgstr "(in stallo)"
 msgid " [%d/%d] TR: %s"
 msgstr ""
 
+#, fuzzy
+msgid "ignoring"
+msgstr "in ingresso"
+
 msgid "Connected"
 msgstr "Connesso"
 
@@ -4411,11 +4415,12 @@ msgstr[1] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr "Scaricamento (%s)  TR: %s"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "Invio spinta"
+
 msgid "Finished"
 msgstr "Termina"
-
-msgid "OK"
-msgstr ""
 
 msgid "failed"
 msgstr "fallito"
@@ -6544,9 +6549,6 @@ msgstr "Non c'è nel database"
 msgid "Query queued..."
 msgstr "Query accodata..."
 
-msgid "<no SHA1 known>"
-msgstr "<SHA1 sconosciuto>"
-
 msgid "Show search list"
 msgstr "Mostra elenco ricerca"
 
@@ -6582,9 +6584,9 @@ msgstr " ritenta in %us"
 msgid "Sending request (%u%%)"
 msgstr "Invio richiesta (%u%%)"
 
-#, fuzzy, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "Accodati (%d attivi, %d passivi)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "Caricati:"
 
 msgid "Aliases"
 msgstr "Sininimi"
@@ -6823,38 +6825,6 @@ msgstr "Inversione DNS in progressione..."
 msgid "The normalized search text is too short."
 msgstr "Il testo normalizzato della ricerca è troppo breve."
 
-#, fuzzy
-msgid "Index"
-msgstr "Indice:"
-
-msgid "No"
-msgstr ""
-
-#, fuzzy
-msgid "Source"
-msgstr "Sorgenti"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "consultabile"
-
-msgid "Maybe"
-msgstr ""
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Cache host"
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "ID server:"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Fresco regolare"
 
@@ -7060,6 +7030,58 @@ msgstr "Aggiunta ricerca con i risultati della consultazione di %s"
 msgid "Could not launch browse host for %s"
 msgstr "Non posso lanciare la consultazione per l'host %s"
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "Indice:"
+
+msgid "No"
+msgstr ""
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Cache host"
+
+#, fuzzy
+msgid "File URL"
+msgstr "File"
+
+#, fuzzy
+msgid "Source"
+msgstr "Sorgenti"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "consultabile"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Cache host"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "ID server:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "Mai"
 
@@ -7149,6 +7171,9 @@ msgid_plural "%u/%u downloads"
 msgstr[0] "%u scaricamento di %u"
 msgstr[1] "%u scaricamenti di %u"
 
+msgid "Queue frozen"
+msgstr ""
+
 msgid "Select a property to see its description."
 msgstr "Seleziona una proprietà per vedere la sua descrizione."
 
@@ -7162,15 +7187,11 @@ msgstr "Non c'è ancora un output..."
 msgid "Got push, connecting back..."
 msgstr "Spinta ottenuta, riconnessione..."
 
-#, fuzzy, c-format
-msgid "Completed (%s) %s%s"
-msgstr "%sCompletato (%s) %s"
-
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr ""
 
 msgid "stalled"
@@ -7207,6 +7228,57 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid ""
+#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
+#~ "matching to be safe)."
+#~ msgstr ""
+#~ "Utilizza la corrispondenza incerta dei nomi dei file (raccomandato = NO; "
+#~ "per essere sicuri affidarsi solo alla corrispondenza dell'SHA1."
+
+#~ msgid ""
+#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
+#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
+#~ "two filenames will always be considered to be identical.  The minimum is "
+#~ "50%."
+#~ msgstr ""
+#~ "Soglia di incertezza nella corrispondenza dei nomi (più alta = più "
+#~ "stretta). Un valore di 100 significa che il nome dei file devono essere "
+#~ "identici. Un valore di 0 significa che qualsiasi coppia di nomi di file "
+#~ "viene considerata identica. Il minimo è 50%."
+
+#~ msgid ""
+#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
+#~ "this filtering is to remove entries whose names are too different to be "
+#~ "sensibly part of the same mesh. When activated, your mesh will probably "
+#~ "be more consistent at the cost of extra CPU time, and at the cost of "
+#~ "losing some valid entries in the process."
+#~ msgstr ""
+#~ "Se applicare un filtro di incertezza agli elementi di rete scaricati. Lo "
+#~ "scopo di questo filtro è quello di rimuovere quegli elementi i cui nomi "
+#~ "sono troppo differenti per far parte dello stesso gruppo. Quando attivo "
+#~ "il raggruppamento dovrà essere più consistente al prezzo di un maggior "
+#~ "carico di CPU e di perdita di alcuni elementi validi dal processo."
+
+#~ msgid "Unknown parameter"
+#~ msgstr "Parametro sconosciuto"
+
+#~ msgid "normal node"
+#~ msgstr "nodo normale"
+
+#~ msgid "<no SHA1 known>"
+#~ msgstr "<SHA1 sconosciuto>"
+
+#, fuzzy
+#~ msgid "Queued (%u active, %u passive)"
+#~ msgstr "Accodati (%d attivi, %d passivi)"
+
+#, fuzzy
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "%sCompletato (%s) %s"
+
+#~ msgid "Out of memory"
+#~ msgstr "Memoria terminata"
 
 #~ msgid "Browse Host Enabled"
 #~ msgstr "Consultazione host attiva"

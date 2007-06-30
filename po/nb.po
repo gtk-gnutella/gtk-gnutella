@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2006-05-28 23:37+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norwegian Bokmal <nb@li.org>\n"
@@ -30,6 +30,10 @@ msgstr "x"
 msgid "No longer connected"
 msgstr "Ikke lenger tilkoblet"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "For mange forsøk (%u ganger)"
+
 msgid "Timeout"
 msgstr "Tidsavbrudd"
 
@@ -42,8 +46,8 @@ msgstr "Lagt i kø på nytt grunnet endret filinformasjon"
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendert (SHA1-kontrollering)"
 
-#, c-format
-msgid " at %s - rescheduled for %s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s"
 msgstr " på %s - planlagt på nytt for %s"
 
 #, fuzzy
@@ -126,14 +130,14 @@ msgstr "Stoppet (filstørrelsen ble endret)"
 msgid "Can't save data: %s"
 msgstr "Klarte ikke lagre data: %s"
 
-msgid "Requeued by competing download"
-msgstr "Lagt i kø på nytt av konkurrerende nedlasting"
-
 msgid "Requeued after trimmed data"
 msgstr "Lagt i kø på nytt etter trimmet data"
 
 msgid "Chunk done, connection closed"
 msgstr "Biten er ferdig, forbindelse lukket"
+
+msgid "Requeued by competing download"
+msgstr "Lagt i kø på nytt av konkurrerende nedlasting"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Rar HTTP-status (desynkronisert protokoll?)"
@@ -245,6 +249,9 @@ msgstr "Spørringsteksten er for kort"
 
 msgid "Query had unnecessary overhead"
 msgstr "Spørringen hadde unødvendig overhode"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "Melding med feilformet SHA1"
@@ -419,9 +426,6 @@ msgstr "Allerede koblet til"
 msgid "Write error during HELLO: %s"
 msgstr "Feil ved skriving under «HELLO»: %s"
 
-msgid "Out of memory"
-msgstr "Ikke nok tilgjengelig minne"
-
 msgid "Connection reset during HELLO"
 msgstr "Forbindelse tilbakestilt under «HELLO»"
 
@@ -486,6 +490,9 @@ msgstr "Klarte ikke lage lyttesokler"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
+
+msgid "Invalid command syntax"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "Ugyldig IP/port"
@@ -562,9 +569,6 @@ msgstr "Filer"
 msgid "Size"
 msgstr "Størrelse"
 
-msgid "Unknown parameter"
-msgstr "Ukjent parameter"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Total horisontstørrelse (%u/%u noder støtter HSEP):"
@@ -585,8 +589,19 @@ msgstr "Ingen nedlastingsplass (lag)"
 msgid "Download added"
 msgstr "Lastet ned."
 
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Inaktive kilder"
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
 msgstr ""
+
+#, fuzzy
+msgid "No help available"
+msgstr "Utilgjengelig"
 
 msgid "Good bye"
 msgstr "Farvel"
@@ -596,6 +611,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "Feilformet kommando"
+
+msgid "OK"
+msgstr "OK"
 
 msgid "Unknown command"
 msgstr "Ukjent kommando"
@@ -756,9 +774,6 @@ msgstr "ultranode"
 
 msgid "leaf node"
 msgstr "bladnode"
-
-msgid "normal node"
-msgstr "normal node"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Viser hvorvidt vertshurtigminnefilen leses."
@@ -1628,22 +1643,6 @@ msgstr ""
 "Hvis detta brukes kreves det at SHA1-verdier må stemme. Ellers er navn og "
 "størrelse nok."
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"Bruk uklar filnavntreffing (abefales ikke; stol kun på SHA1 for å være "
-"sikker)."
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"Usikkerhetsgrense for filnavntreffing (høyere verdier er strengere). En "
-"verdi på 100 betyr at filnavnene må være 100% identiske. En verdi på 0 betyr "
-"at alle filnavn vurderes som like. Det minste er 50%."
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr "Hvorvidt gtk-gnutella tror du er bak en TCP-brannmur."
 
@@ -1838,19 +1837,6 @@ msgid ""
 msgstr ""
 "Når deling av uferdige filer (PFSP) er slått på, deler ikke gtk-gnutella "
 "uferdige filer under denne filstørrelsen. Ikke velg et for stort tall."
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"Hvorvidt et uklart filter skal brukes på oppføringene i nedlastingsmasken. "
-"Målet med dette er å fjerne oppføringer hvis navn er for forskjellige til å "
-"fornuftig være en del av samme nettet. Hvis dette slås på blir nettet ditt "
-"antakelig mer sammenhengende, men det bruker ekstra prosessorkraft, og noen "
-"gyldige oppføringer går antakelig tapt i prosessen."
 
 msgid "Number of crawler visits during this session."
 msgstr "Antall besøk av kravlere under denne økten."
@@ -2448,6 +2434,21 @@ msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
 msgid "Number of THEX file requests fully served in this session."
 msgstr ""
 "Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "Feilsøkingsnivå for Gnutella-noder."
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+"Hvorvidt gtk-gnutella holder på med å kalkulere SHA1-verdier av delte filer "
+"i bagkrunnen."
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr "slå av"
@@ -3822,6 +3823,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr "Ukjent"
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "Farlig/Villedende"
 
@@ -3852,17 +3859,11 @@ msgstr "Beste versjon"
 msgid "No other data"
 msgstr "Ikke andre data"
 
-msgid "Queue frozen"
-msgstr "Køen er frosset"
-
 msgid "Support for this protocol is not yet implemented"
 msgstr "Støtte for denne protokollen er ikke implementert ennå"
 
 msgid "Cannot handle the dropped data"
 msgstr "Klarte ikke håndtere de slupne dataene"
-
-msgid "Protocol is not supported"
-msgstr "Protokollen støttes ikke"
 
 msgid "starts with"
 msgstr "begynner med"
@@ -4309,6 +4310,10 @@ msgstr "(stanset)"
 msgid " [%d/%d] TR: %s"
 msgstr " [%d/%d] Igjen: %s"
 
+#, fuzzy
+msgid "ignoring"
+msgstr "innkommende"
+
 msgid "Connected"
 msgstr "Koblet til"
 
@@ -4356,11 +4361,12 @@ msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
 msgid "Downloading (%s)  TR: %s"
 msgstr "Laster ned (%s)  Tid igjen: %s"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "Sender dytt"
+
 msgid "Finished"
 msgstr "Ferdig"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "failed"
 msgstr "feilet"
@@ -6477,9 +6483,6 @@ msgstr "Ikke i databasen"
 msgid "Query queued..."
 msgstr "Spørring lagt i kø . . ."
 
-msgid "<no SHA1 known>"
-msgstr "<Ingen kjent SHA1>"
-
 msgid "Show search list"
 msgstr "Vis søkeliste"
 
@@ -6516,9 +6519,9 @@ msgstr " nytt forsøk om %us"
 msgid "Sending request (%u%%)"
 msgstr "Sender forespørsel (%u%%)"
 
-#, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "I kø (%u aktive, %u passive)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "Lastet opp."
 
 msgid "Aliases"
 msgstr "Aliaser"
@@ -6751,39 +6754,6 @@ msgstr "Holder på med omvendt oppslag . . ."
 msgid "The normalized search text is too short."
 msgstr "Den normaliserte søketeksten er for kort."
 
-#, fuzzy
-msgid "Index"
-msgstr "Indeks:"
-
-msgid "No"
-msgstr "Nei"
-
-#, fuzzy
-msgid "Source"
-msgstr "Kilder"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "kan leses i"
-
-#, fuzzy
-msgid "Maybe"
-msgstr "Mayotte"
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Verthurtigminne"
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "Tjenent-ID:"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Fersk vanlig"
 
@@ -6989,6 +6959,59 @@ msgstr "La til søk som viser bla-resultater for «%s»"
 msgid "Could not launch browse host for %s"
 msgstr "Klarte ikke starte bla-verten for «%s»"
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "Indeks:"
+
+msgid "No"
+msgstr "Nei"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Canada"
+
+#, fuzzy
+msgid "File URL"
+msgstr "FIl"
+
+#, fuzzy
+msgid "Source"
+msgstr "Kilder"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "kan leses i"
+
+#, fuzzy
+msgid "Maybe"
+msgstr "Mayotte"
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Verthurtigminne"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Tjenent-ID:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "Aldri"
 
@@ -7078,6 +7101,9 @@ msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u nedlasting"
 msgstr[1] "%u/%u nedlastinger"
 
+msgid "Queue frozen"
+msgstr "Køen er frosset"
+
 msgid "Select a property to see its description."
 msgstr "Velg en egenskap for å se beskrivelsen."
 
@@ -7091,15 +7117,11 @@ msgstr "Ingen utdata ennå . . ."
 msgid "Got push, connecting back..."
 msgstr "Fikk dytt, kobler tilbake . . ."
 
-#, fuzzy, c-format
-msgid "Completed (%s) %s%s"
-msgstr "%s ferdig (%s) %s"
-
 msgid "< 1s"
 msgstr "< 1s"
 
 #, fuzzy, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr "%s%s(%s) Tid igjen: %s"
 
 msgid "stalled"
@@ -7136,6 +7158,59 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid ""
+#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
+#~ "matching to be safe)."
+#~ msgstr ""
+#~ "Bruk uklar filnavntreffing (abefales ikke; stol kun på SHA1 for å være "
+#~ "sikker)."
+
+#~ msgid ""
+#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
+#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
+#~ "two filenames will always be considered to be identical.  The minimum is "
+#~ "50%."
+#~ msgstr ""
+#~ "Usikkerhetsgrense for filnavntreffing (høyere verdier er strengere). En "
+#~ "verdi på 100 betyr at filnavnene må være 100% identiske. En verdi på 0 "
+#~ "betyr at alle filnavn vurderes som like. Det minste er 50%."
+
+#~ msgid ""
+#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
+#~ "this filtering is to remove entries whose names are too different to be "
+#~ "sensibly part of the same mesh. When activated, your mesh will probably "
+#~ "be more consistent at the cost of extra CPU time, and at the cost of "
+#~ "losing some valid entries in the process."
+#~ msgstr ""
+#~ "Hvorvidt et uklart filter skal brukes på oppføringene i "
+#~ "nedlastingsmasken. Målet med dette er å fjerne oppføringer hvis navn er "
+#~ "for forskjellige til å fornuftig være en del av samme nettet. Hvis dette "
+#~ "slås på blir nettet ditt antakelig mer sammenhengende, men det bruker "
+#~ "ekstra prosessorkraft, og noen gyldige oppføringer går antakelig tapt i "
+#~ "prosessen."
+
+#~ msgid "Protocol is not supported"
+#~ msgstr "Protokollen støttes ikke"
+
+#~ msgid "Unknown parameter"
+#~ msgstr "Ukjent parameter"
+
+#~ msgid "normal node"
+#~ msgstr "normal node"
+
+#~ msgid "<no SHA1 known>"
+#~ msgstr "<Ingen kjent SHA1>"
+
+#~ msgid "Queued (%u active, %u passive)"
+#~ msgstr "I kø (%u aktive, %u passive)"
+
+#, fuzzy
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "%s ferdig (%s) %s"
+
+#~ msgid "Out of memory"
+#~ msgstr "Ikke nok tilgjengelig minne"
 
 #~ msgid "Browse Host Enabled"
 #~ msgstr "Bla i vert er slått på"

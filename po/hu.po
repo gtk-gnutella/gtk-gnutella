@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -30,6 +30,9 @@ msgstr "Futási idő"
 msgid "No longer connected"
 msgstr "Már nincs kapcsolatban"
 
+msgid "Too many data timeouts"
+msgstr ""
+
 msgid "Timeout"
 msgstr "Türelmi idő"
 
@@ -44,7 +47,7 @@ msgid "Suspended (SHA1 checking)"
 msgstr "Felfüggesztve (SHA1 ellenőrzés)"
 
 #, c-format
-msgid " at %s - rescheduled for %s"
+msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
 #, fuzzy
@@ -127,14 +130,14 @@ msgstr ""
 msgid "Can't save data: %s"
 msgstr ""
 
-msgid "Requeued by competing download"
-msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
-
 msgid "Requeued after trimmed data"
 msgstr "Adatokat igazítva újra sorbaállítva"
 
 msgid "Chunk done, connection closed"
 msgstr "Darab kész, kapcsolat lezárva"
+
+msgid "Requeued by competing download"
+msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
@@ -250,6 +253,9 @@ msgstr "Keresőszöveg túl rövid"
 
 msgid "Query had unnecessary overhead"
 msgstr "Keresőszöveg szükségtelen terheléssel"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "Üzenet hibás SHA1-gyel"
@@ -431,9 +437,6 @@ msgstr "Már nincs kapcsolatban"
 msgid "Write error during HELLO: %s"
 msgstr ""
 
-msgid "Out of memory"
-msgstr ""
-
 #, fuzzy
 msgid "Connection reset during HELLO"
 msgstr "Kapcsolat beállítása"
@@ -504,6 +507,9 @@ msgid "Failed to create listening sockets"
 msgstr "E keresés megkettőzése"
 
 msgid "Can only run as a leaf when TCP-firewalled"
+msgstr ""
+
+msgid "Invalid command syntax"
 msgstr ""
 
 msgid "Invalid IP/Port"
@@ -583,10 +589,6 @@ msgstr "Fájl"
 msgid "Size"
 msgstr "Méret"
 
-#, fuzzy
-msgid "Unknown parameter"
-msgstr "Ismeretlen hiba"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr ""
@@ -606,8 +608,19 @@ msgstr "Nics letöltő nyílás"
 msgid "Download added"
 msgstr "Letöltve"
 
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Inaktív forrás"
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
 msgstr ""
+
+#, fuzzy
+msgid "No help available"
+msgstr "Nem elérhető"
 
 msgid "Good bye"
 msgstr ""
@@ -617,6 +630,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr ""
+
+msgid "OK"
+msgstr "JÓ"
 
 #, fuzzy
 msgid "Unknown command"
@@ -790,10 +806,6 @@ msgstr "Átjátszó üzemmód"
 
 #, fuzzy
 msgid "leaf node"
-msgstr "Saját pont"
-
-#, fuzzy
-msgid "normal node"
 msgstr "Saját pont"
 
 #, fuzzy
@@ -1749,24 +1761,6 @@ msgstr ""
 "Engedélyezve SHA1-eknek meg kell egyezniük. Különben név és méret elégséges."
 
 #, fuzzy
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"Laza fájlnév illesztés (ajánlott = NEM; csak SHA1 illesztés a biztonság "
-"kedvéért)"
-
-#, fuzzy
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"Fájlnévillesztés lazasága (magasabb = szigorúbb). 100-as érték jelenti, hogy "
-"a fájlnevek 100%-ának meg kell egyeznie. 0-ás érték jelenti, bármely két "
-"fájlnév azonos. A legkisebb érték 50%."
-
-#, fuzzy
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr "gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
@@ -1974,19 +1968,6 @@ msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
 msgstr ""
-
-#, fuzzy
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"Használ-e laza szűrőt a letöltő háló elemeire. E szűrő célja a túl különböző "
-"elemek eltávolítása a letöltő hálóról. Bekapcsolva a háló talán "
-"következetesebb lesz egy kis CPU-idő árán, és néhány érvényes elem "
-"elvesztésének árán."
 
 #, fuzzy
 msgid "Number of crawler visits during this session."
@@ -2511,6 +2492,21 @@ msgstr "Csúszó látogatások az indulás óta"
 #, fuzzy
 msgid "Number of THEX file requests fully served in this session."
 msgstr "Csúszó látogatások az indulás óta"
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+"Pillanatnyilag számít-e gtk-gnutella SHA1-et a megosztott fájlokra a "
+"háttérben"
+
+msgid "This is an interim property."
+msgstr ""
 
 #, fuzzy
 msgid "disable"
@@ -3907,6 +3903,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr "Ismeretlen"
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr ""
 
@@ -3942,16 +3944,10 @@ msgstr ""
 msgid "No other data"
 msgstr ""
 
-msgid "Queue frozen"
-msgstr ""
-
 msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
-msgstr ""
-
-msgid "Protocol is not supported"
 msgstr ""
 
 msgid "starts with"
@@ -4415,6 +4411,10 @@ msgstr " (elakadva)"
 msgid " [%d/%d] TR: %s"
 msgstr ""
 
+#, fuzzy
+msgid "ignoring"
+msgstr "mellőz"
+
 msgid "Connected"
 msgstr "Összekapcsolva"
 
@@ -4460,11 +4460,12 @@ msgstr[0] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr "Letöltés (%.1f k/s)"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "Nyomás elküldése"
+
 msgid "Finished"
 msgstr "Befejezve"
-
-msgid "OK"
-msgstr "JÓ"
 
 #, fuzzy
 msgid "failed"
@@ -6715,9 +6716,6 @@ msgstr ""
 msgid "Query queued..."
 msgstr "%u sorban"
 
-msgid "<no SHA1 known>"
-msgstr ""
-
 msgid "Show search list"
 msgstr "Keresőlista"
 
@@ -6752,9 +6750,9 @@ msgstr " %d után újra"
 msgid "Sending request (%u%%)"
 msgstr "(%d%%) kérelem elküldése"
 
-#, fuzzy, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "Várósorban (%d aktív/ %d passzív)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "Feltöltve"
 
 msgid "Aliases"
 msgstr "Álnevek"
@@ -7006,38 +7004,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
-
-msgid "No"
-msgstr "Nem"
-
-#, fuzzy
-msgid "Source"
-msgstr "Forrás"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "biztos"
-
-msgid "Maybe"
-msgstr ""
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Gazdatár"
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "Kiszolgáló-azonosító:"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Friss hagyományos"
 
@@ -7240,6 +7206,58 @@ msgstr ""
 msgid "Could not launch browse host for %s"
 msgstr ""
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Nem"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Gazdatár"
+
+#, fuzzy
+msgid "File URL"
+msgstr "Fájl"
+
+#, fuzzy
+msgid "Source"
+msgstr "Forrás"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "biztos"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Gazdatár"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Kiszolgáló-azonosító:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "Soha"
 
@@ -7323,6 +7341,9 @@ msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u letöltés"
 
+msgid "Queue frozen"
+msgstr ""
+
 msgid "Select a property to see its description."
 msgstr ""
 
@@ -7336,15 +7357,11 @@ msgstr ""
 msgid "Got push, connecting back..."
 msgstr ""
 
-#, fuzzy, c-format
-msgid "Completed (%s) %s%s"
-msgstr "; Áthelyezve (%.1f k/s) %s"
-
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr ""
 
 #, fuzzy
@@ -7383,6 +7400,54 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid ""
+#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
+#~ "matching to be safe)."
+#~ msgstr ""
+#~ "Laza fájlnév illesztés (ajánlott = NEM; csak SHA1 illesztés a biztonság "
+#~ "kedvéért)"
+
+#, fuzzy
+#~ msgid ""
+#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
+#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
+#~ "two filenames will always be considered to be identical.  The minimum is "
+#~ "50%."
+#~ msgstr ""
+#~ "Fájlnévillesztés lazasága (magasabb = szigorúbb). 100-as érték jelenti, "
+#~ "hogy a fájlnevek 100%-ának meg kell egyeznie. 0-ás érték jelenti, bármely "
+#~ "két fájlnév azonos. A legkisebb érték 50%."
+
+#, fuzzy
+#~ msgid ""
+#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
+#~ "this filtering is to remove entries whose names are too different to be "
+#~ "sensibly part of the same mesh. When activated, your mesh will probably "
+#~ "be more consistent at the cost of extra CPU time, and at the cost of "
+#~ "losing some valid entries in the process."
+#~ msgstr ""
+#~ "Használ-e laza szűrőt a letöltő háló elemeire. E szűrő célja a túl "
+#~ "különböző elemek eltávolítása a letöltő hálóról. Bekapcsolva a háló talán "
+#~ "következetesebb lesz egy kis CPU-idő árán, és néhány érvényes elem "
+#~ "elvesztésének árán."
+
+#, fuzzy
+#~ msgid "Unknown parameter"
+#~ msgstr "Ismeretlen hiba"
+
+#, fuzzy
+#~ msgid "normal node"
+#~ msgstr "Saját pont"
+
+#, fuzzy
+#~ msgid "Queued (%u active, %u passive)"
+#~ msgstr "Várósorban (%d aktív/ %d passzív)"
+
+#, fuzzy
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "; Áthelyezve (%.1f k/s) %s"
 
 #, fuzzy
 #~ msgid "Display download settings."

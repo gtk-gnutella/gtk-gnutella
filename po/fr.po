@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -31,6 +31,10 @@ msgstr "x"
 msgid "No longer connected"
 msgstr "N'est plus connecté"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Trop de tentatives (%u fois)"
+
 msgid "Timeout"
 msgstr "Timeout"
 
@@ -43,8 +47,8 @@ msgstr "Remis dans la file pour changement d'info du fichier"
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendu (vérification SHA1)"
 
-#, c-format
-msgid " at %s - rescheduled for %s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s"
 msgstr " à %s - replanifié pour %s"
 
 #, fuzzy
@@ -124,14 +128,14 @@ msgstr "Stoppé (La taille du fichier de sortie a changé)"
 msgid "Can't save data: %s"
 msgstr "Impossible de sauver les données: %s"
 
-msgid "Requeued by competing download"
-msgstr "Remis dans la file à cause de téléchargements concurrents"
-
 msgid "Requeued after trimmed data"
 msgstr "Remis dans la file après épuration des données"
 
 msgid "Chunk done, connection closed"
 msgstr "Bloc fini, connexion terminée"
+
+msgid "Requeued by competing download"
+msgstr "Remis dans la file à cause de téléchargements concurrents"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Statut HTTP bizarre (protocole désynchronisé ?)"
@@ -243,6 +247,9 @@ msgstr "Texte de la demande trop court"
 
 msgid "Query had unnecessary overhead"
 msgstr "La demande avait un surplus inutile"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "Message avec SHA1 malformé"
@@ -416,9 +423,6 @@ msgstr "Déjà connecté"
 msgid "Write error during HELLO: %s"
 msgstr "Erreur d'écriture pendant HELLO: %s"
 
-msgid "Out of memory"
-msgstr "Plus de mémoire disponible"
-
 msgid "Connection reset during HELLO"
 msgstr "Connexion réinitialisée durant le HELLO"
 
@@ -482,6 +486,9 @@ msgstr "Impossible de créer des sockets d'écoute"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Ne fonctionne qu'en mode feuille si firewallé en TCP"
+
+msgid "Invalid command syntax"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "IP/Port invalide"
@@ -558,9 +565,6 @@ msgstr "Fichiers"
 msgid "Size"
 msgstr " Taille "
 
-msgid "Unknown parameter"
-msgstr "Paramètre inconnu"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP):"
@@ -578,8 +582,19 @@ msgstr "Le téléchargement ne peut pas être créé"
 msgid "Download added"
 msgstr "Téléchargement ajouté"
 
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Sources inactives"
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
 msgstr "Aucune propriété correspondant."
+
+#, fuzzy
+msgid "No help available"
+msgstr "Indisponible"
 
 msgid "Good bye"
 msgstr "Aurevoir"
@@ -589,6 +604,9 @@ msgstr "Séquence d'arrêt engagée."
 
 msgid "Malformed command"
 msgstr "commande malformée"
+
+msgid "OK"
+msgstr "OK"
 
 msgid "Unknown command"
 msgstr "Commande inconnue"
@@ -749,9 +767,6 @@ msgstr "noeud ultra"
 
 msgid "leaf node"
 msgstr "noeud feuille"
-
-msgid "normal node"
-msgstr "Noeud normal"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Indique si le fichier cache des hôtes est en cours de lecture."
@@ -1661,23 +1676,6 @@ msgstr ""
 "Quand activé, les SHA1s doivent correspondre. Sinon, le nom et la taille "
 "suffisent."
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"Utiliser la correspondance floue pour les noms de fichiers (recommandé = "
-"NON; comptez seulement sur la correspondance SHA1 pour être sur)."
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"Seuil de flou pour faire correspondre les noms de fichiers (plus grand = "
-"plus strict). Une valeur de 100 signifie que les noms de fichiers doivent "
-"être 100% identiques.  Une valeur de 0 signifie que deux fichiers seront "
-"toujours considérés comme identiques. Le minimum est 50%."
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr ""
 "Indique si gtk-gnutella pense que nous sommes derrière un pare-feu TCP."
@@ -1884,19 +1882,6 @@ msgstr ""
 "Quand le partage partiel de fichier (PFSP) est activé, gtk-gnutella ne "
 "partagera pas les fichiers en dessous de cette taille. Ne pas mettre une "
 "valeur trop grande."
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"S'il faut appliquer un filtre flou sur les entrées du maillage du "
-"téléchargement.  Le but de ce filtrage est de supprimer les entrées dont les "
-"noms sont trop différents pour faire partie du même maillage. Quand ceci est "
-"activé, votre maillage va probablement être plus solide mais demandera du "
-"temps CPU en plus, quelques entrées valides seront perdues dans le processus."
 
 msgid "Number of crawler visits during this session."
 msgstr "Nombre de visites du robot pendant cette session."
@@ -2520,6 +2505,21 @@ msgid "Number of THEX file requests fully served in this session."
 msgstr ""
 "Nombre de requêtes de parcours HTML entièrement servies pendant cette "
 "session."
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "Niveau de débugage pour les noeuds Gnutella."
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+"Indique si gtk-gnutella est actuellement en train de calculer le SHA1 des "
+"fichiers partagés en arrière plan."
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr "désactiver"
@@ -3838,6 +3838,12 @@ msgstr "Build non officiel avec accès fichiers accédés dans ce répertoire :"
 msgid "Bitzi|Unknown"
 msgstr "Inconnu"
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "Dangereux/Trompeur"
 
@@ -3868,17 +3874,11 @@ msgstr "Meilleure Version"
 msgid "No other data"
 msgstr "Pas d'autres données"
 
-msgid "Queue frozen"
-msgstr "File d'attente figée"
-
 msgid "Support for this protocol is not yet implemented"
 msgstr "Le support de ce protocole n'est pas encore implémenté"
 
 msgid "Cannot handle the dropped data"
 msgstr "Impossible de traiter les données supprimées"
-
-msgid "Protocol is not supported"
-msgstr "Le protocole n'est pas supporté"
 
 msgid "starts with"
 msgstr "commence par"
@@ -4322,6 +4322,10 @@ msgstr "(bloqué)"
 msgid " [%d/%d] TR: %s"
 msgstr " [%d/%d] TR: %s"
 
+#, fuzzy
+msgid "ignoring"
+msgstr "entrant"
+
 msgid "Connected"
 msgstr "Connecté"
 
@@ -4372,11 +4376,12 @@ msgstr[1] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr "Téléchargement (%s)  TR: %s"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "Envoi de push"
+
 msgid "Finished"
 msgstr "Terminé"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "failed"
 msgstr "échoué"
@@ -6493,9 +6498,6 @@ msgstr "Pas dans la base de données"
 msgid "Query queued..."
 msgstr "Demande dans la file..."
 
-msgid "<no SHA1 known>"
-msgstr "<pas de SHA1 connu>"
-
 msgid "Show search list"
 msgstr "Afficher la liste des recherches"
 
@@ -6531,9 +6533,9 @@ msgstr " réessayer dans %us"
 msgid "Sending request (%u%%)"
 msgstr "Envoi de la requête (%u%%)"
 
-#, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "Mis dans la file (%u actifs, %u passifs)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "Envoyé:"
 
 msgid "Aliases"
 msgstr "Alias"
@@ -6767,39 +6769,6 @@ msgstr "Recherche inverse en cours..."
 msgid "The normalized search text is too short."
 msgstr "Le texte normalisé est trop court."
 
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
-
-msgid "No"
-msgstr "Non"
-
-#, fuzzy
-msgid "Source"
-msgstr "Sources"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "parcourable"
-
-#, fuzzy
-msgid "Maybe"
-msgstr "Mayotte"
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Cache des hôtes"
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "ID servent:"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Régulier frais"
 
@@ -7003,6 +6972,59 @@ msgstr "Affichage des résultats de parcours ajouté pour %s"
 msgid "Could not launch browse host for %s"
 msgstr "Impossible de lancer le parcours d'hôte pour %s"
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Non"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Panama"
+
+#, fuzzy
+msgid "File URL"
+msgstr "Fichier"
+
+#, fuzzy
+msgid "Source"
+msgstr "Sources"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "parcourable"
+
+#, fuzzy
+msgid "Maybe"
+msgstr "Mayotte"
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Cache des hôtes"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "ID servent:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "Jamais"
 
@@ -7092,6 +7114,9 @@ msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u téléchargement"
 msgstr[1] "%u/%u téléchargements"
 
+msgid "Queue frozen"
+msgstr "File d'attente figée"
+
 msgid "Select a property to see its description."
 msgstr "Sélectionnez une propriété pour voir sa description."
 
@@ -7105,15 +7130,11 @@ msgstr "Rien en sortie actuellement..."
 msgid "Got push, connecting back..."
 msgstr "Reçu Push, se connecte..."
 
-#, c-format
-msgid "Completed (%s) %s%s"
-msgstr "Terminé (%s) %s%s"
-
 msgid "< 1s"
 msgstr "< 1s"
 
-#, c-format
-msgid "%s(%s) TR: %s %s"
+#, fuzzy, c-format
+msgid "%s(%s) TR: %s %s #%u"
 msgstr "%s(%s) TR: %s %s"
 
 msgid "stalled"
@@ -7149,6 +7170,59 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid ""
+#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
+#~ "matching to be safe)."
+#~ msgstr ""
+#~ "Utiliser la correspondance floue pour les noms de fichiers (recommandé = "
+#~ "NON; comptez seulement sur la correspondance SHA1 pour être sur)."
+
+#~ msgid ""
+#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
+#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
+#~ "two filenames will always be considered to be identical.  The minimum is "
+#~ "50%."
+#~ msgstr ""
+#~ "Seuil de flou pour faire correspondre les noms de fichiers (plus grand = "
+#~ "plus strict). Une valeur de 100 signifie que les noms de fichiers doivent "
+#~ "être 100% identiques.  Une valeur de 0 signifie que deux fichiers seront "
+#~ "toujours considérés comme identiques. Le minimum est 50%."
+
+#~ msgid ""
+#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
+#~ "this filtering is to remove entries whose names are too different to be "
+#~ "sensibly part of the same mesh. When activated, your mesh will probably "
+#~ "be more consistent at the cost of extra CPU time, and at the cost of "
+#~ "losing some valid entries in the process."
+#~ msgstr ""
+#~ "S'il faut appliquer un filtre flou sur les entrées du maillage du "
+#~ "téléchargement.  Le but de ce filtrage est de supprimer les entrées dont "
+#~ "les noms sont trop différents pour faire partie du même maillage. Quand "
+#~ "ceci est activé, votre maillage va probablement être plus solide mais "
+#~ "demandera du temps CPU en plus, quelques entrées valides seront perdues "
+#~ "dans le processus."
+
+#~ msgid "Protocol is not supported"
+#~ msgstr "Le protocole n'est pas supporté"
+
+#~ msgid "Unknown parameter"
+#~ msgstr "Paramètre inconnu"
+
+#~ msgid "normal node"
+#~ msgstr "Noeud normal"
+
+#~ msgid "<no SHA1 known>"
+#~ msgstr "<pas de SHA1 connu>"
+
+#~ msgid "Queued (%u active, %u passive)"
+#~ msgstr "Mis dans la file (%u actifs, %u passifs)"
+
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "Terminé (%s) %s%s"
+
+#~ msgid "Out of memory"
+#~ msgstr "Plus de mémoire disponible"
 
 #~ msgid "Browse Host Enabled"
 #~ msgstr "Parcours d'hôte activé"

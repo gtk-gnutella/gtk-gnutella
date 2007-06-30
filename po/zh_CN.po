@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -29,6 +29,10 @@ msgstr ""
 msgid "No longer connected"
 msgstr "已断开"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "尝试次数过多 (%d 次)"
+
 msgid "Timeout"
 msgstr "超时"
 
@@ -43,7 +47,7 @@ msgid "Suspended (SHA1 checking)"
 msgstr "已挂起 (正在核实SHA1)"
 
 #, c-format
-msgid " at %s - rescheduled for %s"
+msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
 #, fuzzy
@@ -129,16 +133,16 @@ msgid "Can't save data: %s"
 msgstr "无法保存数据：%s"
 
 #, fuzzy
-msgid "Requeued by competing download"
-msgstr "由于竞争下载重新排队"
-
-#, fuzzy
 msgid "Requeued after trimmed data"
 msgstr "一段数据后重新排队"
 
 #, fuzzy
 msgid "Chunk done, connection closed"
 msgstr "块下载完毕，连接关闭"
+
+#, fuzzy
+msgid "Requeued by competing download"
+msgstr "由于竞争下载重新排队"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "HTTP状态异常(协议不同步？)"
@@ -260,6 +264,9 @@ msgstr "查询文本太短"
 #, fuzzy
 msgid "Query had unnecessary overhead"
 msgstr "查询包括额外的花销"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "消息包括变形的SHA1"
@@ -435,9 +442,6 @@ msgstr "已经连接"
 msgid "Write error during HELLO: %s"
 msgstr "HELLO时发生写错误：%s"
 
-msgid "Out of memory"
-msgstr "内存溢出"
-
 msgid "Connection reset during HELLO"
 msgstr "HELLO时连接被重置"
 
@@ -502,6 +506,9 @@ msgstr ""
 #, fuzzy
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP防火墙时只能作为叶节点来运行"
+
+msgid "Invalid command syntax"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "非法的 IP/端口"
@@ -578,9 +585,6 @@ msgstr "文件"
 msgid "Size"
 msgstr "大小"
 
-msgid "Unknown parameter"
-msgstr "未知的参数"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "水平总大小 (%1$u/%2$u的节点支持HSEP)"
@@ -601,7 +605,16 @@ msgstr "没有下载插口"
 msgid "Download added"
 msgstr "节点已增加"
 
+msgid "Interactive mode turned on."
+msgstr ""
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
+msgstr ""
+
+msgid "No help available"
 msgstr ""
 
 msgid "Good bye"
@@ -612,6 +625,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "命令有误"
+
+msgid "OK"
+msgstr ""
 
 msgid "Unknown command"
 msgstr "未知命令"
@@ -774,9 +790,6 @@ msgstr "超级节点"
 
 msgid "leaf node"
 msgstr "叶节点"
-
-msgid "normal node"
-msgstr "正常的节点"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "标识主机缓存文件是否被读取"
@@ -1541,17 +1554,6 @@ msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr ""
 
@@ -1702,14 +1704,6 @@ msgstr ""
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will not share "
 "partial files below this filesize. Don't set it too large."
-msgstr ""
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
 msgstr ""
 
 msgid "Number of crawler visits during this session."
@@ -2155,6 +2149,18 @@ msgstr ""
 #, fuzzy
 msgid "Number of THEX file requests fully served in this session."
 msgstr "本次会话中已完成的总数"
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "用于上传的debug级别。"
+
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr ""
@@ -3415,6 +3421,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr ""
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr ""
 
@@ -3445,16 +3457,10 @@ msgstr ""
 msgid "No other data"
 msgstr ""
 
-msgid "Queue frozen"
-msgstr ""
-
 msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
-msgstr ""
-
-msgid "Protocol is not supported"
 msgstr ""
 
 msgid "starts with"
@@ -3895,6 +3901,10 @@ msgstr ""
 msgid " [%d/%d] TR: %s"
 msgstr ""
 
+#, fuzzy
+msgid "ignoring"
+msgstr "流入："
+
 msgid "Connected"
 msgstr ""
 
@@ -3939,10 +3949,10 @@ msgstr[0] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr ""
 
-msgid "Finished"
+msgid "Seeding"
 msgstr ""
 
-msgid "OK"
+msgid "Finished"
 msgstr ""
 
 msgid "failed"
@@ -6023,9 +6033,6 @@ msgstr ""
 msgid "Query queued..."
 msgstr ""
 
-msgid "<no SHA1 known>"
-msgstr ""
-
 msgid "Show search list"
 msgstr "显示搜索列表"
 
@@ -6060,9 +6067,9 @@ msgstr ""
 msgid "Sending request (%u%%)"
 msgstr ""
 
-#, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr ""
+#, fuzzy
+msgid "Uploaded"
+msgstr "已上传数据："
 
 msgid "Aliases"
 msgstr ""
@@ -6293,37 +6300,6 @@ msgstr ""
 msgid "The normalized search text is too short."
 msgstr ""
 
-msgid "Index"
-msgstr ""
-
-msgid "No"
-msgstr "否"
-
-#, fuzzy
-msgid "Source"
-msgstr "%u 个源"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "稳定"
-
-msgid "Maybe"
-msgstr ""
-
-#, fuzzy
-msgid "Hostname"
-msgstr "主机(_o)："
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "Servent关闭"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr ""
 
@@ -6516,6 +6492,57 @@ msgstr ""
 msgid "Could not launch browse host for %s"
 msgstr ""
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+msgid "Index"
+msgstr ""
+
+msgid "No"
+msgstr "否"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "主机(_o)："
+
+#, fuzzy
+msgid "File URL"
+msgstr "文件"
+
+#, fuzzy
+msgid "Source"
+msgstr "%u 个源"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "稳定"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Hostname"
+msgstr "主机(_o)："
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Servent关闭"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "从不"
 
@@ -6599,6 +6626,9 @@ msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] "下载 %1$u/%2$u"
 
+msgid "Queue frozen"
+msgstr ""
+
 msgid "Select a property to see its description."
 msgstr ""
 
@@ -6612,15 +6642,11 @@ msgstr "尚没有输出..."
 msgid "Got push, connecting back..."
 msgstr ""
 
-#, fuzzy, c-format
-msgid "Completed (%s) %s%s"
-msgstr "完成 (%1$s) %2$s"
-
 msgid "< 1s"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr ""
 
 msgid "stalled"
@@ -6657,6 +6683,19 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Unknown parameter"
+#~ msgstr "未知的参数"
+
+#~ msgid "normal node"
+#~ msgstr "正常的节点"
+
+#, fuzzy
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "完成 (%1$s) %2$s"
+
+#~ msgid "Out of memory"
+#~ msgstr "内存溢出"
 
 #~ msgid "Browse Host Enabled"
 #~ msgstr "允许浏览主机"

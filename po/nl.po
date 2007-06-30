@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-04-21 19:43+0900\n"
+"POT-Creation-Date: 2007-06-30 16:23+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -30,6 +30,10 @@ msgstr "x"
 msgid "No longer connected"
 msgstr "Niet langer verbonden"
 
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Teveel pogingen (%u keer)"
+
 msgid "Timeout"
 msgstr "Tijd verstreken"
 
@@ -43,8 +47,8 @@ msgstr ""
 msgid "Suspended (SHA1 checking)"
 msgstr "Ingeslapen (SHA1 verifieren)"
 
-#, c-format
-msgid " at %s - rescheduled for %s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s"
 msgstr " op %s - opnieuw gepland voor %s"
 
 #, fuzzy
@@ -127,14 +131,14 @@ msgstr "Gestopt (Bestandsgrootte uitvoerbestand gewijzigd)"
 msgid "Can't save data: %s"
 msgstr "Kon data niet opslaan: %s"
 
-msgid "Requeued by competing download"
-msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
-
 msgid "Requeued after trimmed data"
 msgstr "Opnieuw in de wachtrij gezet na het afkappen van data"
 
 msgid "Chunk done, connection closed"
 msgstr "Fragment klaar, connectie gesloten"
+
+msgid "Requeued by competing download"
+msgstr "Opnieuw in de wachtrij gezet door een soortgelijke download"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Afwijkende HTTP status (protocol asynchroon?)"
@@ -248,6 +252,9 @@ msgstr "Zoek text te kort"
 
 msgid "Query had unnecessary overhead"
 msgstr "Zoek opdracht had onnodige bagage"
+
+msgid "Query had bad URN"
+msgstr ""
 
 msgid "Message with malformed SHA1"
 msgstr "Bericht met ongeldige SHA1"
@@ -422,9 +429,6 @@ msgstr "Reeds verbonden"
 msgid "Write error during HELLO: %s"
 msgstr "Schrijf fout tijdens HELLO: %s"
 
-msgid "Out of memory"
-msgstr "Niet genoeg geheugen"
-
 msgid "Connection reset during HELLO"
 msgstr "Connectie werd verbroken tijdens HELLO"
 
@@ -492,6 +496,9 @@ msgstr "Aanmaken zoekopdracht mislukt"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
+
+msgid "Invalid command syntax"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "Ongeldige IP/Poort"
@@ -568,9 +575,6 @@ msgstr "Bestanden"
 msgid "Size"
 msgstr "Grootte"
 
-msgid "Unknown parameter"
-msgstr "Onbekende parameter"
-
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
 msgstr "Horizon grote (%u/%u node ondersteunen HSEP):"
@@ -591,8 +595,19 @@ msgstr "Geen download slot (aanmaken)"
 msgid "Download added"
 msgstr "Gedownload:"
 
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Inactieve bronnen"
+
+msgid "Interactive mode turned off."
+msgstr ""
+
 msgid "No matching property."
 msgstr ""
+
+#, fuzzy
+msgid "No help available"
+msgstr "Niet beschikbaar"
 
 msgid "Good bye"
 msgstr "Tot ziens"
@@ -602,6 +617,9 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "Commando ongeldig"
+
+msgid "OK"
+msgstr "OK"
 
 msgid "Unknown command"
 msgstr "Commando onbekend"
@@ -762,9 +780,6 @@ msgstr "ultra-node"
 
 msgid "leaf node"
 msgstr "leaf node"
-
-msgid "normal node"
-msgstr "Normale node"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Geeft aan of het hostcache bestand word gelezen."
@@ -1664,22 +1679,6 @@ msgstr ""
 "Als deze aan staat, dan moeten de SHA1s overeenkomen. Anders is de naam en "
 "grootte voldoende."
 
-msgid ""
-"Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
-"to be safe)."
-msgstr ""
-"Gebruik 'fuzzy' bestandsnaam vergelijking (dit wordt afgeraden; vertrouw "
-"alleen de SHA1 om zeker te zijn)."
-
-msgid ""
-"Fuzziness threshold for filename matching (higher = stricter). A value of "
-"100 means the filenames must be 100% identical.  A value of 0 means any two "
-"filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
-"Overeenkomst fuzziness drempel voor bestandsnamen. Een drempel waarde van "
-"100 betekent dat de bestandsnaam 100% gelijk moet zijn. Een drempel waarde "
-"van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is 50%."
-
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
 msgstr ""
 "Of gtk-gnutella denkt dat deze host op TCP niveau achter een firewall zit of "
@@ -1893,20 +1892,6 @@ msgstr ""
 "Als gedeeltelijke bestands deling (PFSP) geactiveerd is, dan zal gtk-"
 "gnutella geen gedeeltelijke bestanden delen die kleiner zijn dan deze "
 "bestandsgrootte. Zet dit niet te groot."
-
-msgid ""
-"Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-"this filtering is to remove entries whose names are too different to be "
-"sensibly part of the same mesh. When activated, your mesh will probably be "
-"more consistent at the cost of extra CPU time, and at the cost of losing "
-"some valid entries in the process."
-msgstr ""
-"Of een wazig filter toegepast moet worden op de items in de download mesh.. "
-"Het doel van dit filter is om items te verwijderen wiens namen te "
-"verschillend zijn om hetzelfde bestand aan te duiden. Als je deze optie "
-"activeert dan zal je mesh waarschijnlijk meer consistent zijn, hetgeen ten "
-"koste gaat van extra CPU tijd en het waarschijnlijke verlies van een aantal "
-"geldige items."
 
 msgid "Number of crawler visits during this session."
 msgstr "Aantal bezoeken van crawlers gedurende deze sessie."
@@ -2524,6 +2509,21 @@ msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
 #, fuzzy
 msgid "Number of THEX file requests fully served in this session."
 msgstr "Aantal ontvangen HTML bladeren verzoeken tijdens deze sessie."
+
+#, fuzzy
+msgid "Debug level for Tigertree-related code."
+msgstr "Debug level voor Gnutella nodes."
+
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently computing TTH of shared files in the "
+"background."
+msgstr ""
+"Of gtk-gnutella momenteel in de achtergrond bezig is met het berekenen van "
+"de SHA1 waarden van de gedeelde bestanden."
+
+msgid "This is an interim property."
+msgstr ""
 
 msgid "disable"
 msgstr "uitschakelen"
@@ -3902,6 +3902,12 @@ msgstr ""
 msgid "Bitzi|Unknown"
 msgstr "Onbekend"
 
+msgid "Bitzi|Bitzi lookup failure"
+msgstr ""
+
+msgid "Bitzi|Filesize mismatch"
+msgstr ""
+
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "Gevaarlijk/Misleidend"
 
@@ -3932,17 +3938,11 @@ msgstr "Beste versie"
 msgid "No other data"
 msgstr "Geen andere gegevens"
 
-msgid "Queue frozen"
-msgstr "Wachtrij bevroren"
-
 msgid "Support for this protocol is not yet implemented"
 msgstr "Ondersteuning voor die protocol is niet geïmplementeerd."
 
 msgid "Cannot handle the dropped data"
 msgstr "Kan de geplaatste data niet afhandelen"
-
-msgid "Protocol is not supported"
-msgstr "Protocol wordt niet ondersteund"
 
 msgid "starts with"
 msgstr "begint met"
@@ -4396,6 +4396,10 @@ msgstr " (hangt)"
 msgid " [%d/%d] TR: %s"
 msgstr " [%d/%d] Resterende tijd: %s"
 
+#, fuzzy
+msgid "ignoring"
+msgstr "inkomend"
+
 msgid "Connected"
 msgstr "Verbonden"
 
@@ -4444,11 +4448,12 @@ msgstr[1] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr "Bezig met downloaden (%s) Resterende tijd: %s"
 
+#, fuzzy
+msgid "Seeding"
+msgstr "\"push\" wordt verstuurd"
+
 msgid "Finished"
 msgstr "Afgerond"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "failed"
 msgstr "Mislukt"
@@ -6589,9 +6594,6 @@ msgstr "Niet in de database"
 msgid "Query queued..."
 msgstr "Opdracht in de wacht gezet..."
 
-msgid "<no SHA1 known>"
-msgstr "<geen SHA1 bekend>"
-
 msgid "Show search list"
 msgstr "Geef zoek lijst weer"
 
@@ -6628,9 +6630,9 @@ msgstr "opnieuw proberen over %us"
 msgid "Sending request (%u%%)"
 msgstr "Verzoek wordt verstuurd (%u%%)"
 
-#, fuzzy, c-format
-msgid "Queued (%u active, %u passive)"
-msgstr "In de wacht(%d actief, %d passief)"
+#, fuzzy
+msgid "Uploaded"
+msgstr "Geupload:"
 
 msgid "Aliases"
 msgstr "Alias"
@@ -6869,39 +6871,6 @@ msgstr "Bezig met omgekeerd opzoeken..."
 msgid "The normalized search text is too short."
 msgstr "The opgeschoonde zoek tekst is te kort."
 
-#, fuzzy
-msgid "Index"
-msgstr "Index:"
-
-msgid "No"
-msgstr "Nee"
-
-#, fuzzy
-msgid "Source"
-msgstr "Bronnen"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "bladerbaar"
-
-#, fuzzy
-msgid "Maybe"
-msgstr "Mayotte"
-
-#, fuzzy
-msgid "Hostname"
-msgstr "Hostcache"
-
-#, fuzzy
-msgid "Servent ID"
-msgstr "Verkoper ID:"
-
-msgid "Alt-Locs"
-msgstr ""
-
-msgid "Push-proxies"
-msgstr ""
-
 msgid "Fresh regular"
 msgstr "Regulier geldig"
 
@@ -7107,6 +7076,59 @@ msgstr "Zoekopdracht toegevoegd, de resultaten voor %s worden getoond"
 msgid "Could not launch browse host for %s"
 msgstr "Kon geen host bladeren initialiseren voor %s"
 
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
+msgstr ""
+
+#, fuzzy
+msgid "Index"
+msgstr "Index:"
+
+msgid "No"
+msgstr "Nee"
+
+#, fuzzy
+msgid "Pathname"
+msgstr "Canada"
+
+#, fuzzy
+msgid "File URL"
+msgstr "Bestand"
+
+#, fuzzy
+msgid "Source"
+msgstr "Bronnen"
+
+#, fuzzy
+msgid "Browsable"
+msgstr "bladerbaar"
+
+#, fuzzy
+msgid "Maybe"
+msgstr "Mayotte"
+
+#, fuzzy
+msgid "Hostname"
+msgstr "Hostcache"
+
+#, fuzzy
+msgid "Servent ID"
+msgstr "Verkoper ID:"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Push-proxies"
+msgstr ""
+
+msgid "N2R URI"
+msgstr ""
+
+msgid "Classic URL"
+msgstr ""
+
 msgid "Never"
 msgstr "Nooit"
 
@@ -7196,6 +7218,9 @@ msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u downloads"
 msgstr[1] "%u/%u downloads"
 
+msgid "Queue frozen"
+msgstr "Wachtrij bevroren"
+
 msgid "Select a property to see its description."
 msgstr "Selecteer een eigenschap om de omschrijving te bekijken."
 
@@ -7209,15 +7234,11 @@ msgstr "Nog geen uitvoer.."
 msgid "Got push, connecting back..."
 msgstr "Ontving een 'push', probeert een verbinding terug te maken..."
 
-#, fuzzy, c-format
-msgid "Completed (%s) %s%s"
-msgstr "%sAfgerond (%s) %s"
-
 msgid "< 1s"
 msgstr "< 1s"
 
 #, fuzzy, c-format
-msgid "%s(%s) TR: %s %s"
+msgid "%s(%s) TR: %s %s #%u"
 msgstr "%s%s(%s) Resterende tijd: %s"
 
 msgid "stalled"
@@ -7254,6 +7275,61 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid ""
+#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
+#~ "matching to be safe)."
+#~ msgstr ""
+#~ "Gebruik 'fuzzy' bestandsnaam vergelijking (dit wordt afgeraden; vertrouw "
+#~ "alleen de SHA1 om zeker te zijn)."
+
+#~ msgid ""
+#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
+#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
+#~ "two filenames will always be considered to be identical.  The minimum is "
+#~ "50%."
+#~ msgstr ""
+#~ "Overeenkomst fuzziness drempel voor bestandsnamen. Een drempel waarde van "
+#~ "100 betekent dat de bestandsnaam 100% gelijk moet zijn. Een drempel "
+#~ "waarde van 0 betekent dat elke bestandsnaam overeenkomt. Het minimum is "
+#~ "50%."
+
+#~ msgid ""
+#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
+#~ "this filtering is to remove entries whose names are too different to be "
+#~ "sensibly part of the same mesh. When activated, your mesh will probably "
+#~ "be more consistent at the cost of extra CPU time, and at the cost of "
+#~ "losing some valid entries in the process."
+#~ msgstr ""
+#~ "Of een wazig filter toegepast moet worden op de items in de download "
+#~ "mesh.. Het doel van dit filter is om items te verwijderen wiens namen te "
+#~ "verschillend zijn om hetzelfde bestand aan te duiden. Als je deze optie "
+#~ "activeert dan zal je mesh waarschijnlijk meer consistent zijn, hetgeen "
+#~ "ten koste gaat van extra CPU tijd en het waarschijnlijke verlies van een "
+#~ "aantal geldige items."
+
+#~ msgid "Protocol is not supported"
+#~ msgstr "Protocol wordt niet ondersteund"
+
+#~ msgid "Unknown parameter"
+#~ msgstr "Onbekende parameter"
+
+#~ msgid "normal node"
+#~ msgstr "Normale node"
+
+#~ msgid "<no SHA1 known>"
+#~ msgstr "<geen SHA1 bekend>"
+
+#, fuzzy
+#~ msgid "Queued (%u active, %u passive)"
+#~ msgstr "In de wacht(%d actief, %d passief)"
+
+#, fuzzy
+#~ msgid "Completed (%s) %s%s"
+#~ msgstr "%sAfgerond (%s) %s"
+
+#~ msgid "Out of memory"
+#~ msgstr "Niet genoeg geheugen"
 
 #~ msgid "Browse Host Enabled"
 #~ msgstr "Browse host geactiveerd"
