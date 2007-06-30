@@ -204,12 +204,12 @@ void
 drag_attach(GtkWidget *widget, drag_get_text_cb callback)
 {
     static const GtkTargetEntry targets[] = {
-        { "STRING",			0, 1 },
-        { "text/plain",		0, 2 },
 #if GTK_CHECK_VERSION(2,0,0)
-        { "UTF8_STRING",	0, 3 },
+        { "UTF8_STRING",				0, 3 },
         { "text/plain;charset=utf-8",	0, 4 },
 #endif	/* Gtk+ >= 2.0 */
+        { "STRING",						0, 1 },
+        { "text/plain",					0, 2 },
     };
 	struct drag_context *ctx;
 
