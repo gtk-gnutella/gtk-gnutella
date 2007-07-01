@@ -1510,12 +1510,12 @@ search_gui_flush(time_t now, gboolean force)
 
 /**
  * Parse the given query text and looks for negative patterns. That means
- * "blah -zadda" will be converted to "blah" and a word filter is added
+ * "blah -zadda" will be converted to "blah" and a sub-string filter is added
  * to discard results matching "zadda". A minus followed by a space or
  * another minus is always used literally. A plus character has the
  * opposite effect. In either case, the pattern will not be part of the
  * emitted search term. Single-quotes and double-quotes can be used to
- * use a whole string as pattern instead of a single-word
+ * use a whole string as pattern instead of a single word
  * (e.g., blah -'but not this') or to enforce handling of '+' and '-'
  * as literals (e.g., 'this contains -no filter pattern'). Single-quotes
  * and double-quotes are handled equally; either can be used to embed
@@ -1576,13 +1576,13 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 			if (endptr != start) {
 				filter_t *target;
 				rule_t *rule;
-				gchar *word;
+				gchar *substr;
 				gint flags;
 
-				word = g_strndup(start, endptr - start);
+				substr = g_strndup(start, endptr - start);
 				if (GUI_PROPERTY(gui_debug)) {
 					g_message("%s: \"%s\"",
-							filter < 0 ? "negative" : "positive", word);
+							filter < 0 ? "negative" : "positive", substr);
 				}
 
 				target = filter_get_drop_target();
@@ -1590,10 +1590,10 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 
 				flags = RULE_FLAG_ACTIVE;
 				flags |= filter > 0 ? RULE_FLAG_NEGATE : 0;
-				rule = filter_new_text_rule(word, RULE_TEXT_WORDS, FALSE,
+				rule = filter_new_text_rule(substr, RULE_TEXT_SUBSTR, FALSE,
 							target, flags);
 				query->rules = g_list_prepend(query->rules, rule);
-				G_FREE_NULL(word);
+				G_FREE_NULL(substr);
 			}
 		} else {
 			p = start;
