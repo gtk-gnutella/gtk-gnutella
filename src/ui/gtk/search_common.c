@@ -1514,14 +1514,17 @@ search_gui_flush(time_t now, gboolean force)
  * to discard results matching "zadda". A minus followed by a space or
  * another minus is always used literally. A plus character has the
  * opposite effect. In either case, the pattern will not be part of the
- * emitted search term.
- *
- * TODO: Add support for quoted terms like "yadda -'blah blah'".
+ * emitted search term. Single-quotes and double-quotes can be used to
+ * use a whole string as pattern instead of a single-word
+ * (e.g., blah -'but not this') or to enforce handling of '+' and '-'
+ * as literals (e.g., 'this contains -no filter pattern'). Single-quotes
+ * and double-quotes are handled equally; either can be used to embed
+ * the other.
  */
 static void
 search_gui_parse_text_query(const gchar *text, struct query *query)
 {
-	const gchar *p, *endptr;
+	const gchar *p, *start, *next;
 	gchar *dst;
 
 	g_assert(text);
@@ -1531,7 +1534,9 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 	query->text = g_strdup(text);
 	dst = query->text;
 
-	for (p = text; *p != '\0'; p = endptr) {
+	start = text;
+	for (p = text; *p != '\0'; p = next) {
+		const gchar *endptr;
 		gint filter;
 
 		/* Treat word after '-' (if preceded by a space) as negative pattern */
@@ -1547,29 +1552,51 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 			filter = 0;
 		}
 
-		endptr = skip_ascii_non_spaces(p);
-		if (filter) {
-			filter_t *target;
-			rule_t *rule;
-			gchar *word;
-			gint flags;
-
-			word = g_strndup(p, (endptr - p) + 1);
-			if (GUI_PROPERTY(gui_debug)) {
-				g_message("%s: \"%s\"",
-					filter < 0 ? "negative" : "positive", word);
+		switch (*p) {
+		case '\'':
+		case '"':
+			start = &p[1];
+			endptr = strchr(start, *p);
+			if (endptr) {
+				next = &endptr[1];
+			} else {
+				endptr = strchr(start, '\0');
+				next = endptr;
 			}
+			break;
+		default:
+			start = p;
+			endptr = skip_ascii_non_spaces(start);
+			next = endptr;
+			break;
+		}
+		next = skip_ascii_spaces(next);
 
-			target = filter_get_drop_target();
-			g_assert(target != NULL);
+		if (filter) {
+			if (endptr != start) {
+				filter_t *target;
+				rule_t *rule;
+				gchar *word;
+				gint flags;
 
-			flags = RULE_FLAG_ACTIVE;
-			flags |= filter > 0 ? RULE_FLAG_NEGATE : 0;
-			rule = filter_new_text_rule(word, RULE_TEXT_WORDS, FALSE, target,
-					flags);
-			query->rules = g_list_prepend(query->rules, rule);
-			G_FREE_NULL(word);
+				word = g_strndup(start, endptr - start);
+				if (GUI_PROPERTY(gui_debug)) {
+					g_message("%s: \"%s\"",
+							filter < 0 ? "negative" : "positive", word);
+				}
+
+				target = filter_get_drop_target();
+				g_assert(target != NULL);
+
+				flags = RULE_FLAG_ACTIVE;
+				flags |= filter > 0 ? RULE_FLAG_NEGATE : 0;
+				rule = filter_new_text_rule(word, RULE_TEXT_WORDS, FALSE,
+							target, flags);
+				query->rules = g_list_prepend(query->rules, rule);
+				G_FREE_NULL(word);
+			}
 		} else {
+			p = start;
 			if (GUI_PROPERTY(gui_debug)) {
 				g_message("literal: \"%.*s\"", (int)(guint)(endptr - p), p);
 			}
@@ -1581,7 +1608,6 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 			}
 			*dst = '\0';
 		}
-		endptr = skip_ascii_spaces(endptr);
 	}
 	query->rules = g_list_reverse(query->rules);
 }
