@@ -30,7 +30,7 @@
  * Drop support - no dragging, just dropping.
  *
  * @author Christian Biere
- * @date 2004
+ * @date 2007
  */
 
 #include "gui.h"
@@ -38,135 +38,11 @@
 RCSID("$Id$")
 
 #include "drop.h"
-#include "statusbar.h"
-#include "search.h"
 
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-/*
- * Private functions
- */
-
-static gboolean
-handle_not_implemented(const gchar *url)
-{
-	g_return_val_if_fail(url, FALSE);
-	statusbar_gui_warning(10,
-			_("Support for this protocol is not yet implemented"));
-	return FALSE;
-}
-
-static gboolean
-handle_magnet(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_magnet(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-static gboolean
-handle_url(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_url(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-static gboolean
-handle_urn(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_urn(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-/*
- * Private data
- */
-
-static const struct {
-	const char * const proto;
-	gboolean (* handler)(const gchar *url);
-} proto_handlers[] = {
-	{ "ftp",	handle_not_implemented },
-	{ "http",	handle_url },
-	{ "push",	handle_url },
-	{ "magnet",	handle_magnet },
-	{ "urn",	handle_urn },
-};
-
-
-/* FIXME: We shouldn't try to handle from ourselves without a confirmation
- *        because an URL might have been accidently while dragging it
- *		  around.
- */
-static void
-drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
-	gint x, gint y, GtkSelectionData *data, guint info, guint stamp,
-	gpointer unused_udata)
-{
-	gboolean success = FALSE;
-
-	(void) unused_widget;
-	(void) unused_udata;
-
-	if (GUI_PROPERTY(gui_debug) > 0) {
-		g_message("drag_data_received: x=%d, y=%d, info=%u, t=%u",
-			x, y, info, stamp);
-	}
-	if (data->length > 0 && data->format == 8) {
-		const gchar *text = cast_to_gchar_ptr(data->data);
-		guint i;
-
-		if (GUI_PROPERTY(gui_debug) > 0) {
-			g_message("drag_data_received: text=\"%s\"", text);
-		}
-		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
-			const char *endptr;
-			
-			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
-			if (endptr && ':' == endptr[0]) {
-				success = proto_handlers[i].handler(text);
-				goto cleanup;
-			}
-		}
-		success = search_gui_insert_query(text);
-	}
-
-cleanup:
-	if (!success) {
-		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
-	}
-	gtk_drag_finish(dc, success, FALSE, stamp);
-}
-
-/*
- * Public functions
- */
 
 void
 drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
@@ -208,18 +84,6 @@ drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
 
 	gui_signal_connect(GTK_OBJECT(widget), "drag-data-received",
 		callback, user_data);
-}
-
-void
-drop_init(void)
-{
-	drop_widget_init(gui_main_window(), drag_data_received, NULL);
-}
-
-void
-drop_close(void)
-{
-	/* Nothing ATM */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

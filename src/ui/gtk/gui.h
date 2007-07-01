@@ -41,9 +41,6 @@
 #define main_gui_shutdown_tick(remain)
 #define settings_gui_shutdown()
 
-#define drop_init()
-#define drop_close()
-
 #define search_gui_store_searches()
 
 #define icon_timer()

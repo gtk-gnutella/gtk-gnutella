@@ -122,7 +122,6 @@
 #endif
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
-#include "ui/gtk/drop.h"
 #include "ui/gtk/gui.h"
 #include "ui/gtk/icon.h"
 #include "ui/gtk/main.h"
@@ -457,7 +456,6 @@ gtk_gnutella_exit(gint n)
 	dh_close();
 	dq_close();
 	hsep_close();
-	drop_close();
 	file_info_close();
 	ext_close();
 	share_close();
@@ -1330,8 +1328,6 @@ main(int argc, char **argv)
 
 	main_gui_init();
 	node_post_init();
-
-	drop_init();
 
 	download_restore_state();
 	ntp_init();

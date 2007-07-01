@@ -33,8 +33,8 @@
  * @date 2004
  */
 
-#ifndef _drop_init_h_
-#define _drop_init_h_
+#ifndef _drop_h_
+#define _drop_h_
 
 #include "gui.h"
 
@@ -42,11 +42,9 @@ typedef void (*drag_data_received_cb)(GtkWidget *widget, GdkDragContext *dc,
 				gint x, gint y, GtkSelectionData *data,
 				guint info, guint stamp, gpointer udata);
 
-void drop_init(void);
 void drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
 		void *user_data);
-void drop_close(void);
 
-#endif /* _drop_init_h_ */
+#endif /* _drop_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

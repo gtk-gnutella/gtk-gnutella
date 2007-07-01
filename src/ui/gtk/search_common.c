@@ -37,9 +37,10 @@
 
 RCSID("$Id$")
 
+#include "drop.h"
+#include "gtk-missing.h"
 #include "search.h"
 #include "settings.h"
-#include "gtk-missing.h"
 
 #include "search_xml.h"
 #include <libxml/parser.h>
@@ -833,6 +834,114 @@ on_spinbutton_adjustment_value_changed(GtkAdjustment *unused_adj, gpointer data)
 	}
 }
 
+static gboolean
+handle_not_implemented(const gchar *url)
+{
+	g_return_val_if_fail(url, FALSE);
+	statusbar_gui_warning(10,
+			_("Support for this protocol is not yet implemented"));
+	return FALSE;
+}
+
+static gboolean
+handle_magnet(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_magnet(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static gboolean
+handle_url(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_url(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static gboolean
+handle_urn(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_urn(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static const struct {
+	const char * const proto;
+	gboolean (* handler)(const gchar *url);
+} proto_handlers[] = {
+	{ "ftp",	handle_not_implemented },
+	{ "http",	handle_url },
+	{ "push",	handle_url },
+	{ "magnet",	handle_magnet },
+	{ "urn",	handle_urn },
+};
+
+
+/* FIXME: We shouldn't try to handle from ourselves without a confirmation
+ *        because an URL might have been accidently while dragging it
+ *		  around.
+ */
+static void
+drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
+	gint unused_x, gint unused_y, GtkSelectionData *data,
+	guint unused_info, guint stamp, gpointer unused_udata)
+{
+	gboolean success = FALSE;
+
+	(void) unused_widget;
+	(void) unused_x;
+	(void) unused_y;
+	(void) unused_info;
+	(void) unused_udata;
+
+	if (data->length > 0 && data->format == 8) {
+		const gchar *text = cast_to_gchar_ptr(data->data);
+		guint i;
+
+		if (GUI_PROPERTY(gui_debug) > 0) {
+			g_message("drag_data_received: text=\"%s\"", text);
+		}
+		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
+			const char *endptr;
+			
+			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
+			if (endptr && ':' == endptr[0]) {
+				success = proto_handlers[i].handler(text);
+				goto cleanup;
+			}
+		}
+		success = search_gui_insert_query(text);
+	}
+
+cleanup:
+	if (!success) {
+		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
+	}
+	gtk_drag_finish(dc, success, FALSE, stamp);
+}
 
 /**
  * Initialize common structures.
@@ -861,6 +970,8 @@ search_gui_common_init(void)
 		gui_signal_connect_after(adj, "value-changed",
 			on_spinbutton_adjustment_value_changed, widget);
 	}
+
+	drop_widget_init(gui_main_window(), drag_data_received, NULL);
 }
 
 /**
@@ -2905,5 +3016,6 @@ search_gui_set_details(const record_t *rc)
 		}
 	}
 }
+
 
 /* vi: set ts=4 sw=4 cindent: */
