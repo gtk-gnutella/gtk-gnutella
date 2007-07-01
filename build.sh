@@ -10,6 +10,7 @@ set -e
 build_bindir=
 build_cc=
 build_ccflags=
+build_configure_only=
 build_datadir=
 build_dbus=
 build_gnutls=
@@ -28,6 +29,7 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 	--bindir=*)		build_bindir="${1##--*=}";;
 	--datadir=*)		build_datadir="${1##--*=}";;
+	--configure-only)	build_configure_only='yes';;
 	--disable-dbus)		build_dbus='-U d_dbus';;
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
@@ -63,6 +65,7 @@ echo '  --bindir=PATH    Directory for installing executables. [$prefix/bin]'
 echo '  --datadir=PATH   Directory for installing application data. [$prefix/share]'
 echo '  --localedir=PATH Directory for installing locale data. [$prefix/share/locale]'
 echo '  --mandir=PATH    Directory for installing manual pages. [$prefix/man]'
+echo '  --configure-only Do not run make after Configure.'
 echo
 echo 'The following environment variables are honored:'
 echo
@@ -135,7 +138,12 @@ rm -f config.sh
 	${build_gnutls:+"$build_gnutls"} \
 	${build_ipv6:+"$build_ipv6"} \
 	${build_socker:+"$build_socker"} \
+	${MAKE:+"-D make='$MAKE'"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
+
+if [ "X$build_configure_only" != X ]; then
+	exit
+fi
 
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
