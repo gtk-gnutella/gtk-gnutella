@@ -2826,17 +2826,21 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Hostname"), rs->hostname);
 		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
 		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
-		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
 
-		search_gui_append_detail(_("Protocol"),
-			ST_UDP & rs->status ? "UDP" : "TCP");
+		if (!(ST_BROWSE & rs->status)) {
+			search_gui_append_detail(_("Route"), search_gui_get_route(rs));
 
-		search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
-		search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
+			search_gui_append_detail(_("Protocol"),
+					ST_UDP & rs->status ? "UDP" : "TCP");
 
-		search_gui_append_detail(_("Query"),
-			lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-				UNI_NORM_GUI, NULL));
+			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
+			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
+
+			search_gui_append_detail(_("Query"),
+					lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+						UNI_NORM_GUI, NULL));
+		}
+
 		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
 		if (ISO3166_INVALID != rs->country) {
 			search_gui_append_detail(_("Country"),
