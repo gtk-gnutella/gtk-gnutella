@@ -834,165 +834,6 @@ on_spinbutton_adjustment_value_changed(GtkAdjustment *unused_adj, gpointer data)
 	}
 }
 
-static gboolean
-handle_not_implemented(const gchar *url)
-{
-	g_return_val_if_fail(url, FALSE);
-	statusbar_gui_warning(10,
-			_("Support for this protocol is not yet implemented"));
-	return FALSE;
-}
-
-static gboolean
-handle_magnet(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_magnet(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-static gboolean
-handle_url(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_url(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-static gboolean
-handle_urn(const gchar *url)
-{
-	const gchar *error_str;
-	gboolean success;
-
-	g_return_val_if_fail(url, FALSE);
-
-	success = search_gui_handle_urn(url, &error_str);
-	if (!success) {
-		statusbar_gui_warning(10, "%s", error_str);
-	}
-	return success;
-}
-
-static const struct {
-	const char * const proto;
-	gboolean (* handler)(const gchar *url);
-} proto_handlers[] = {
-	{ "ftp",	handle_not_implemented },
-	{ "http",	handle_url },
-	{ "push",	handle_url },
-	{ "magnet",	handle_magnet },
-	{ "urn",	handle_urn },
-};
-
-
-/* FIXME: We shouldn't try to handle from ourselves without a confirmation
- *        because an URL might have been accidently while dragging it
- *		  around.
- */
-static void
-drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
-	gint unused_x, gint unused_y, GtkSelectionData *data,
-	guint unused_info, guint stamp, gpointer unused_udata)
-{
-	gboolean success = FALSE;
-
-	(void) unused_widget;
-	(void) unused_x;
-	(void) unused_y;
-	(void) unused_info;
-	(void) unused_udata;
-
-	if (data->length > 0 && data->format == 8) {
-		const gchar *text = cast_to_gchar_ptr(data->data);
-		guint i;
-
-		if (GUI_PROPERTY(gui_debug) > 0) {
-			g_message("drag_data_received: text=\"%s\"", text);
-		}
-		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
-			const char *endptr;
-			
-			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
-			if (endptr && ':' == endptr[0]) {
-				success = proto_handlers[i].handler(text);
-				goto cleanup;
-			}
-		}
-		success = search_gui_insert_query(text);
-	}
-
-cleanup:
-	if (!success) {
-		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
-	}
-	gtk_drag_finish(dc, success, FALSE, stamp);
-}
-
-/**
- * Initialize common structures.
- */
-void
-search_gui_common_init(void)
-{
-	rs_zone = zget(sizeof(results_set_t), 1024);
-	rc_zone = zget(sizeof(record_t), 1024);
-	accumulated_rs = slist_new();
-
-	label_items_found = GTK_LABEL(
-		gui_main_window_lookup("label_items_found"));
-	label_search_expiry = GTK_LABEL(
-		gui_main_window_lookup("label_search_expiry"));
-	
-    gtk_combo_set_case_sensitive(
-        GTK_COMBO(gui_main_window_lookup("combo_search")), TRUE);
-
-	{
-		GtkWidget *widget;
-	    GtkAdjustment *adj;
-		
-		widget = gui_main_window_lookup("spinbutton_search_reissue_timeout");
- 		adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(widget));
-		gui_signal_connect_after(adj, "value-changed",
-			on_spinbutton_adjustment_value_changed, widget);
-	}
-
-	drop_widget_init(gui_main_window(), drag_data_received, NULL);
-}
-
-/**
- * Destroy common structures.
- */
-void
-search_gui_common_shutdown(void)
-{
-	zdestroy(rs_zone);
-	zdestroy(rc_zone);
-
-	rs_zone = rc_zone = NULL;
-
-    g_list_free(list_search_history);
-    list_search_history = NULL;
-	
-	/* Discard pending accumulated search results */
-    search_gui_flush(tm_time(), TRUE);
-	slist_free(&accumulated_rs);
-}
-
 /**
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
@@ -1755,7 +1596,7 @@ clear_error_str(const gchar ***error_str)
 	**error_str = NULL;
 }
 
-gboolean
+static gboolean
 search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 {
 	struct magnet_resource *res;
@@ -1791,7 +1632,7 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	}
 }
 
-gboolean
+static gboolean
 search_gui_handle_url(const gchar *url, const gchar **error_str)
 {
 	gchar *magnet_url;
@@ -1829,7 +1670,7 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 	return success;
 }
 
-gboolean
+static gboolean
 search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 {
 	gchar *magnet_url;
@@ -1870,7 +1711,7 @@ search_gui_handle_urn(const gchar *urn, const gchar **error_str)
 	return success;
 }
 
-gboolean
+static gboolean
 search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 {
 	struct sha1 sha1;
@@ -1904,7 +1745,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 	}
 }
 
-gboolean
+static gboolean
 search_gui_handle_local(const gchar *query, const gchar **error_str)
 {
 	gboolean success, rebuilding;
@@ -3017,5 +2858,163 @@ search_gui_set_details(const record_t *rc)
 	}
 }
 
+static gboolean
+handle_not_implemented(const gchar *url)
+{
+	g_return_val_if_fail(url, FALSE);
+	statusbar_gui_warning(10,
+			_("Support for this protocol is not yet implemented"));
+	return FALSE;
+}
+
+static gboolean
+handle_magnet(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_magnet(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static gboolean
+handle_url(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_url(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static gboolean
+handle_urn(const gchar *url)
+{
+	const gchar *error_str;
+	gboolean success;
+
+	g_return_val_if_fail(url, FALSE);
+
+	success = search_gui_handle_urn(url, &error_str);
+	if (!success) {
+		statusbar_gui_warning(10, "%s", error_str);
+	}
+	return success;
+}
+
+static const struct {
+	const char * const proto;
+	gboolean (* handler)(const gchar *url);
+} proto_handlers[] = {
+	{ "ftp",	handle_not_implemented },
+	{ "http",	handle_url },
+	{ "push",	handle_url },
+	{ "magnet",	handle_magnet },
+	{ "urn",	handle_urn },
+};
+
+
+/* FIXME: We shouldn't try to handle from ourselves without a confirmation
+ *        because an URL might have been accidently while dragging it
+ *		  around.
+ */
+static void
+drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
+	gint unused_x, gint unused_y, GtkSelectionData *data,
+	guint unused_info, guint stamp, gpointer unused_udata)
+{
+	gboolean success = FALSE;
+
+	(void) unused_widget;
+	(void) unused_x;
+	(void) unused_y;
+	(void) unused_info;
+	(void) unused_udata;
+
+	if (data->length > 0 && data->format == 8) {
+		const gchar *text = cast_to_gchar_ptr(data->data);
+		guint i;
+
+		if (GUI_PROPERTY(gui_debug) > 0) {
+			g_message("drag_data_received: text=\"%s\"", text);
+		}
+		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
+			const char *endptr;
+			
+			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
+			if (endptr && ':' == endptr[0]) {
+				success = proto_handlers[i].handler(text);
+				goto cleanup;
+			}
+		}
+		success = search_gui_insert_query(text);
+	}
+
+cleanup:
+	if (!success) {
+		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
+	}
+	gtk_drag_finish(dc, success, FALSE, stamp);
+}
+
+/**
+ * Initialize common structures.
+ */
+void
+search_gui_common_init(void)
+{
+	rs_zone = zget(sizeof(results_set_t), 1024);
+	rc_zone = zget(sizeof(record_t), 1024);
+	accumulated_rs = slist_new();
+
+	label_items_found = GTK_LABEL(
+		gui_main_window_lookup("label_items_found"));
+	label_search_expiry = GTK_LABEL(
+		gui_main_window_lookup("label_search_expiry"));
+	
+    gtk_combo_set_case_sensitive(
+        GTK_COMBO(gui_main_window_lookup("combo_search")), TRUE);
+
+	{
+		GtkWidget *widget;
+	    GtkAdjustment *adj;
+		
+		widget = gui_main_window_lookup("spinbutton_search_reissue_timeout");
+ 		adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(widget));
+		gui_signal_connect_after(adj, "value-changed",
+			on_spinbutton_adjustment_value_changed, widget);
+	}
+
+	drop_widget_init(gui_main_window(), drag_data_received, NULL);
+}
+
+/**
+ * Destroy common structures.
+ */
+void
+search_gui_common_shutdown(void)
+{
+	zdestroy(rs_zone);
+	zdestroy(rc_zone);
+
+	rs_zone = rc_zone = NULL;
+
+    g_list_free(list_search_history);
+    list_search_history = NULL;
+	
+	/* Discard pending accumulated search results */
+    search_gui_flush(tm_time(), TRUE);
+	slist_free(&accumulated_rs);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

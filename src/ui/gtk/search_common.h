@@ -202,9 +202,6 @@ void search_gui_option_menu_searches_update(void);
 void search_gui_option_menu_searches_select(const search_t *sch);
 
 void search_gui_browse_selected(void);
-gboolean search_gui_handle_magnet(const gchar *url, const gchar **error_str);
-gboolean search_gui_handle_url(const gchar *url, const gchar **error_str);
-gboolean search_gui_handle_urn(const gchar *url, const gchar **error_str);
 gboolean search_gui_insert_query(const gchar *text);
 
 gchar *search_xml_indent(const gchar *s);
