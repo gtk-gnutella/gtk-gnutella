@@ -2827,6 +2827,7 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Push-proxies"), hosts);
 		G_FREE_NULL(hosts);
 	}
+
 	if (GUI_PROPERTY(expert_mode)) {
 		if (rc->sha1) {
 			gchar *url;
@@ -2855,6 +2856,17 @@ search_gui_set_details(const record_t *rc)
 			}
 			G_FREE_NULL(url);
 		}
+	}
+
+	if (utf8_can_latinize(rc->utf8_name)) {
+		size_t size;
+		gchar *buf;
+		
+		size = 1 + utf8_latinize(NULL, 0, rc->utf8_name);
+		buf = g_malloc(size);
+		utf8_latinize(buf, size, rc->utf8_name);
+		search_gui_append_detail("Latinized", lazy_utf8_to_ui_string(buf));
+		G_FREE_NULL(buf);
 	}
 }
 

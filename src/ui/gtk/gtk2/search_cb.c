@@ -444,22 +444,13 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
 	} else {
-		gchar text[4096], extra[1024];
-		gboolean has_extra;
+		gchar text[4096];
 
-		if (rc->utf8_name && utf8_can_dejap(rc->utf8_name)) {
-			utf8_dejap(extra, sizeof extra, rc->utf8_name);
-		} else {
-			0[extra] = '\0';
-		}
-
-		has_extra = '\0' != 0[extra];
 		gm_snprintf(text, sizeof text,
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %.64s\n"
-			"%s %s"
-			"%s%s",
+			"%s %s",
 			_("Peer:"),
 			host_addr_port_to_string(rc->results_set->addr,
 				rc->results_set->port),
@@ -469,9 +460,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 			_("Vendor:"),
 			search_gui_get_vendor(rc->results_set),
 			_("Size:"),
-			short_size(rc->size, show_metric_units()),
-			has_extra ? "\nExtra: " : "",
-			has_extra ? extra : "");
+			short_size(rc->size, show_metric_units()));
 
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			text, NULL);

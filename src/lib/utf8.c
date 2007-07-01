@@ -1560,13 +1560,16 @@ locale_init(void)
 
 	unicode_compose_init();
 
+#ifndef OFFICIAL_BUILD
 	/*
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 13720 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14003 ")) {
 		utf8_regression_checks();
 	}
+#endif	/* !OFFICIAL_BUILD */
+
 	locale_init_passed = TRUE;
 	locale_init_show_results();
 }
@@ -4869,7 +4872,7 @@ unicode_compose_init(void)
 }
 
 const gchar *
-utf8_dejap_char(const guint32 uc)
+utf8_latinize_char(const guint32 uc)
 {
 #define GET_ITEM(i) (jap_tab[(i)].uc)
 #define FOUND(i) G_STMT_START { \
@@ -4891,10 +4894,11 @@ utf8_dejap_char(const guint32 uc)
  * characters.
  *
  * @param src an UTF-8 encoded NUL-terminated string.
- * @return TRUE if utf8_dejap() would convert any characters; otherwise FALSE.
+ * @return TRUE if utf8_latinize() would convert any characters;
+ *         otherwise FALSE.
  */
 gboolean
-utf8_can_dejap(const gchar *src)
+utf8_can_latinize(const gchar *src)
 {
 	guint retlen;
 	guint32 uc;
@@ -4902,7 +4906,7 @@ utf8_can_dejap(const gchar *src)
 	g_assert(NULL != src);
 
 	while (0x0000 != (uc = utf8_decode_char_fast(src, &retlen))) {
-		if (utf8_dejap_char(uc))
+		if (utf8_latinize_char(uc))
 			return TRUE;
 		src += retlen;
 	}
@@ -4912,7 +4916,8 @@ utf8_can_dejap(const gchar *src)
 
 /**
  * Converts hiragana and katakana characters to ASCII sequences,
- * strips voice marks and keeps any other characters as is.
+ * strips voice marks and keeps any other characters as is. The conversion
+ * result is not correct romaji, hence the term "latinize".
  *
  * @param dst the destination buffer.
  * @param dst_size the size of the dst buffer in bytes.
@@ -4921,7 +4926,7 @@ utf8_can_dejap(const gchar *src)
  *         dst_size was sufficient.
  */
 size_t
-utf8_dejap(gchar *dst, size_t dst_size, const gchar *src)
+utf8_latinize(gchar *dst, size_t dst_size, const gchar *src)
 {
 	gchar *d = dst;
 	const gchar *s = src;
@@ -4940,7 +4945,7 @@ utf8_dejap(gchar *dst, size_t dst_size, const gchar *src)
 			if (!uc)
 				break;
 
-			r = utf8_dejap_char(uc);
+			r = utf8_latinize_char(uc);
 			if (r) {
 				r_len = strlen(r);
 			} else {
@@ -4968,7 +4973,7 @@ utf8_dejap(gchar *dst, size_t dst_size, const gchar *src)
 			break;
 
 		s += retlen;
-		r = utf8_dejap_char(uc);
+		r = utf8_latinize_char(uc);
 		d += r ? strlen(r) : retlen;
 	}
 
