@@ -137,14 +137,11 @@ whitelist_retrieve(void)
 			start = line;
 		}
 
-		if (!string_to_host_or_addr(start, &endptr, &addr)) {
-            g_warning("whitelist_retrieve(): "
-				"Line %d: Expected hostname or IP address \"%s\"",
-				linenum, line);
-			continue;
-		}
-
-		{
+		port = 0;
+		if (string_to_host_addr_port(start, &endptr, &addr, &port)) {
+       		sl_addr = name_to_host_addr(host_addr_to_string(addr),
+							settings_dns_net());
+		} else if (string_to_host_or_addr(start, &endptr, &addr)) {
 			gchar *name;
 			guchar c = *endptr;
 
@@ -176,90 +173,95 @@ whitelist_retrieve(void)
 					linenum, line);
 			}
 			G_FREE_NULL(name);
-       		if (!sl_addr) {
+       		if (!sl_addr)
 				continue;
-			}
+		} else {
+            g_warning("whitelist_retrieve(): "
+				"Line %d: Expected hostname or IP address \"%s\"",
+				linenum, line);
+			continue;
 		}
 
        	g_assert(sl_addr);
 		g_assert(NULL != endptr);
 		bits = 0;
-		port = 0;
 		item_ok = TRUE;
 
-		/* Ignore trailing items separated by a space */
-		while ('\0' != *endptr && !is_ascii_space(*endptr)) {
-			guchar c = *endptr++;
+		if (0 == port) {
+			/* Ignore trailing items separated by a space */
+			while ('\0' != *endptr && !is_ascii_space(*endptr)) {
+				guchar c = *endptr++;
 
-			if (':' == c) {
-				gint error;
-				guint32 v;
-
-				if (0 != port) {
-					g_warning("whitelist_retrieve(): Line %d:"
-						"Multiple colons after host", linenum);
-					item_ok = FALSE;
-					break;
-				}
-
-            	v = parse_uint32(endptr, &endptr, 10, &error);
-				port = (error || v > 0xffff) ? 0 : v;
-				if (0 == port) {
-					g_warning("whitelist_retrieve(): Line %d: "
-						"Invalid port value after host", linenum);
-					item_ok = FALSE;
-					break;
-				}
-			} else if ('/' == c) {
-				const gchar *ep;
-				guint32 mask;
-
-				if (0 != bits) {
-					g_warning("whitelist_retrieve(): Line %d:"
-						"Multiple slashes after host", linenum);
-					item_ok = FALSE;
-					break;
-				}
-
-				if (string_to_ip_strict(endptr, &mask, &ep)) {
-					if (NET_TYPE_IPV4 != host_addr_net(addr)) {
-						g_warning("whitelist_retrieve(): Line %d: "
-							"IPv4 netmask after non-IPv4 address", linenum);
-						item_ok = FALSE;
-						break;
-					}
-					endptr = ep;
-
-					if (0 == (bits = netmask_to_cidr(mask))) {
-						g_warning("whitelist_retrieve(): Line %d: "
-							"IPv4 netmask after non-IPv4 address", linenum);
-						item_ok = FALSE;
-						break;
-					}
-
-				} else {
+				if (':' == c) {
 					gint error;
 					guint32 v;
 
-            		v = parse_uint32(endptr, &endptr, 10, &error);
-					if (
-						error ||
-						0 == v ||
-						(v > 32 && NET_TYPE_IPV4 == host_addr_net(addr)) ||
-						(v > 128 && NET_TYPE_IPV6 == host_addr_net(addr))
-					) {
-						g_warning("whitelist_retrieve(): Line %d: "
-							"Invalid numeric netmask after host", linenum);
+					if (0 != port) {
+						g_warning("whitelist_retrieve(): Line %d:"
+								"Multiple colons after host", linenum);
 						item_ok = FALSE;
 						break;
 					}
-					bits = v;
+
+					v = parse_uint32(endptr, &endptr, 10, &error);
+					port = (error || v > 0xffff) ? 0 : v;
+					if (0 == port) {
+						g_warning("whitelist_retrieve(): Line %d: "
+								"Invalid port value after host", linenum);
+						item_ok = FALSE;
+						break;
+					}
+				} else if ('/' == c) {
+					const gchar *ep;
+					guint32 mask;
+
+					if (0 != bits) {
+						g_warning("whitelist_retrieve(): Line %d:"
+								"Multiple slashes after host", linenum);
+						item_ok = FALSE;
+						break;
+					}
+
+					if (string_to_ip_strict(endptr, &mask, &ep)) {
+						if (NET_TYPE_IPV4 != host_addr_net(addr)) {
+							g_warning("whitelist_retrieve(): Line %d: "
+								"IPv4 netmask after non-IPv4 address", linenum);
+							item_ok = FALSE;
+							break;
+						}
+						endptr = ep;
+
+						if (0 == (bits = netmask_to_cidr(mask))) {
+							g_warning("whitelist_retrieve(): Line %d: "
+								"IPv4 netmask after non-IPv4 address", linenum);
+							item_ok = FALSE;
+							break;
+						}
+
+					} else {
+						gint error;
+						guint32 v;
+
+						v = parse_uint32(endptr, &endptr, 10, &error);
+						if (
+							error ||
+							0 == v ||
+							(v > 32 && NET_TYPE_IPV4 == host_addr_net(addr)) ||
+							(v > 128 && NET_TYPE_IPV6 == host_addr_net(addr))
+						) {
+							g_warning("whitelist_retrieve(): Line %d: "
+								"Invalid numeric netmask after host", linenum);
+							item_ok = FALSE;
+							break;
+						}
+						bits = v;
+					}
+				} else {
+					g_warning("whitelist_retrieve(): Line %d: "
+							"Unexpected character after host", linenum);
+					item_ok = FALSE;
+					break;
 				}
-			} else {
-				g_warning("whitelist_retrieve(): Line %d: "
-					"Unexpected character after host", linenum);
-				item_ok = FALSE;
-				break;
 			}
 		}
 
