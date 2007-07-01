@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14003 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14008 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -4889,6 +4889,50 @@ utf8_latinize_char(const guint32 uc)
 	return NULL;
 }
 
+const gchar *
+utf8_latinize_chars(const guint32 uc, const guint32 next, gboolean *used_next)
+{
+	if (next >= 0x3083 && next <= 0x3087) {
+		static const gchar map[] =
+			"kya\0"  "kyu\0"  "kyo\0"
+			"sha\0"  "shu\0"  "sho\0"
+			"cha\0"  "chu\0"  "cho\0"
+			"nya\0"  "nyu\0"  "nyo\0"
+			"hya\0"  "hyu\0"  "hyo\0"
+			"mya\0"  "myu\0"  "myo\0"
+			"rya\0"  "ryu\0"  "ryo\0"
+			"gya\0"  "gyu\0"  "gyo\0"
+			"ja\0\0" "ju\0\0" "jo\0\0"
+			"bya\0"  "byu\0"  "byo\0"
+			"pya\0"  "pyu\0"  "pyo\0";
+		guint row, column;
+
+		STATIC_ASSERT(sizeof map >= 11 * 4);
+		switch (uc){
+		case 0x304D: row =  0; break; /* ky */
+		case 0x3057: row =  1; break; /* sh */
+		case 0x3061: row =  2; break; /* ch */
+		case 0x306B: row =  3; break; /* ny */
+		case 0x3072: row =  4; break; /* hy */
+		case 0x307F: row =  5; break; /* my */
+		case 0x308A: row =  6; break; /* ry */
+		case 0x304E: row =  7; break; /* gy */
+		case 0x3058: row =  8; break; /* j  */
+		case 0x3073: row =  9; break; /* by */
+		case 0x3074: row = 10; break; /* py */
+		default:
+			goto finish;
+		}
+		column = (next - 0x3083) / 2;
+		*used_next = TRUE;
+		return &map[row * 3 + column];
+	}
+
+finish:
+	*used_next = FALSE;
+	return utf8_latinize_char(uc);
+}
+
 /**
  * Checks whether the given UTF-8 string contains any convertible
  * characters.
@@ -4926,57 +4970,47 @@ utf8_can_latinize(const gchar *src)
  *         dst_size was sufficient.
  */
 size_t
-utf8_latinize(gchar *dst, size_t dst_size, const gchar *src)
+utf8_latinize(gchar *dst, const size_t dst_size, const gchar *src)
 {
 	gchar *d = dst;
 	const gchar *s = src;
+	size_t left;
 
 	g_assert(0 == dst_size || NULL != dst);
 	g_assert(NULL != src);
 
-	if (dst_size-- > 0) {
-		while ('\0' != *s) {
-			guint retlen;
-			const gchar *r;
-			size_t r_len;
-			guint32 uc;
-
-			uc = utf8_decode_char_fast(s, &retlen);
-			if (!uc)
-				break;
-
-			r = utf8_latinize_char(uc);
-			if (r) {
-				r_len = strlen(r);
-			} else {
-				r = s;
-				r_len = retlen;
-			}
-			if (r_len > dst_size)
-				break;
-
-			s += retlen;
-			memmove(d, r, r_len);
-			d += r_len;
-			dst_size -= r_len;
-		}
-		*d = '\0';
-	}
-
- 	while ('\0' != *s) {
+	left = dst_size;
+	while ('\0' != *s) {
+		guint retlen, next_len;
 		const gchar *r;
-		guint retlen;
-		guint32 uc;
+		size_t r_len;
+		guint32 uc, next;
+		gboolean used_next;
 
 		uc = utf8_decode_char_fast(s, &retlen);
 		if (!uc)
 			break;
 
-		s += retlen;
-		r = utf8_latinize_char(uc);
-		d += r ? strlen(r) : retlen;
+		next = utf8_decode_char_fast(s, &next_len);
+		r = utf8_latinize_chars(uc, next, &used_next);
+		if (r) {
+			r_len = strlen(r);
+		} else {
+			r = s;
+			r_len = retlen;
+		}
+		if (r_len >= left) {
+			left = 0;
+		} else {
+			memmove(d, r, r_len);
+			left -= r_len;
+		}
+		s += retlen + (used_next ? next_len : 0);
+		d += r_len;
 	}
-
+	if (dst_size > 0) {
+		*d = '\0';
+	}
 	return d - dst;
 }
 
