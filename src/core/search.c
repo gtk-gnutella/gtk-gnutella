@@ -2196,14 +2196,16 @@ build_search_msg(search_ctrl_t *sch)
 		size_t len;
 
 		len = strlen(sch->query);
-		if (len >= sizeof msg.bytes - size) {
+		if (len + 1 >= sizeof msg.bytes - size) {
 			g_warning("dropping too large query \"%s\"", sch->query);
 			goto error;
 		}
 	
 		if (is_sha1_search) {
-			msg.bytes[size] = '\0';	/* empty query string */
-			memcpy(&msg.bytes[size + 1], sch->query, len);
+			msg.bytes[size++] = '\\';
+			msg.bytes[size++] = '\0';
+			memcpy(&msg.bytes[size], sch->query, len);
+			size += len;
 		} else {
 			size_t new_len;
 
@@ -2224,8 +2226,8 @@ build_search_msg(search_ctrl_t *sch)
 					g_message("compacted query \"%s\" into \"%s\"",
 						sch->query, &msg.bytes[size]);
 			}
+			size += len + 1;
 		}
-		size += len + 1;
 	}
 
 	if (QUERY_SPEED_OOB_REPLY & speed) {
