@@ -1409,7 +1409,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc->name = atom_str_get(filename);
 
 		/* Some spammers get this wrong */
-		if (0 == rc->file_index) {
+		if (0 == rc->file_index || (guint32)-1 == rc->file_index) {
 			set_flags(rc->flags, SR_SPAM);
 		}
 
