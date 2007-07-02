@@ -403,7 +403,10 @@ scroll through many different items. </para>
 <para>
 There are many <glossterm
 linkend="search_prefixes">prefixes</glossterm> that can be added to
-specialize a search.
+specialize a search.  <glossterm
+linkend="search_literals">Literals</glossterm> and <glossterm
+linkend="search_required">required phrases</glossterm> also have
+special notations.
 
 </para>
 
@@ -916,8 +919,8 @@ meanings,
      <para>S - Swift control mode. 
                Too much data, dropping new searches.</para></entry></row>
 <row><entry>9, Incoming flow control</entry><entry>
-     <para>h - This node will not respond to new searched.</para>
-     <para>f - Responds to limited searches.</para></entry></row>
+     <para>h - Responds to searches in a limited neighbourhood.</para>
+     <para>f - Will not respond to any new searches. </para></entry></row>
 <row><entry>10, Encryption</entry>
      <entry><para>E - for an encrypted connection.</para></entry></row>
 </tbody></tgroup></informaltable></para>
@@ -1387,6 +1390,25 @@ GnutellaNet. </para>
 
 <glossdiv><title>S</title>
 
+<glossentry id="search_literals"><glossterm>search literals</glossterm>
+
+<glossdef>
+
+<para>
+
+Double and single quotes can be used so that an entire search term
+will be matched instead of individual words.  Quoting maybe necessary
+if you wish to search for a phrase with special characters such as the
+<glossterm linkend="search_required"> plus and minus
+signs</glossterm>.
+
+</para>
+
+
+</glossdef>
+</glossentry>
+
+
 <glossentry id="search_prefixes"><glossterm>search prefixes</glossterm>
 
 <glossdef>
@@ -1431,6 +1453,27 @@ GnutellaNet. </para>
    - Similar to a sha1 search, but the hash value is specified.
      Ie, urn:sha1:<emphasis>hash value</emphasis></para></listitem>
 </itemizedlist>
+
+</glossdef>
+</glossentry>
+
+<glossentry id="search_required"><glossterm>search requireds</glossterm>
+
+<glossdef>
+
+<para>
+Mini filters are created with the '+' and '-' signs.  The plus sign
+requires that a word is part of the results.  The minus sign doesn't
+display any results with the given phrase.  The plus and minus signs
+can be used to select ambigious terms.
+</para>
+
+<para>
+Suppose you wish to find information about apples.  You might use a
+search like <emphasis role="bold">apples -computers</emphasis>.  You
+may get even more relevant results by using <emphasis
+role="bold">apples +fruit</emphasis>.
+</para>
 
 </glossdef>
 </glossentry>
