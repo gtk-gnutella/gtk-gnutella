@@ -97,7 +97,6 @@ static const struct {
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "secondary.udp-host-cache.com:9999" },
 	{ "uhc.udp-host-cache.com:9999" },
-	{ "uhc2.limewire.com:20181" },
 	{ "void.ghostwhitecrab.de:443" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
