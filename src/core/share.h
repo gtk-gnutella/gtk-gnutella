@@ -62,9 +62,11 @@ enum {
  */
 
 enum share_mime_type {
-	SHARE_M_APPLICATION_BINARY = 0,
-	SHARE_M_IMAGE_PNG,
-	SHARE_M_TEXT_PLAIN,
+#define MIME_TYPE(id, name) id,
+#include "mime_types.h"
+#undef MIME_TYPE
+
+	SHARE_M_NUM
 };
 
 #define SHARE_REBUILDING shared_file_dummy()

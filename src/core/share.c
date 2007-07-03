@@ -89,7 +89,6 @@ struct shared_file {
 	const gchar *file_path;		/**< The full path of the file (atom!) */
 	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
 	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
-	const gchar *content_type;	/**< MIME content type (static string) */
 	const gchar *relative_path;	/**< UTF-8 NFC string (atom) */
 
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
@@ -99,6 +98,8 @@ struct shared_file {
 
 	filesize_t file_size;		/**< File size in Bytes */
 	guint32 file_index;			/**< the files index within our local DB */
+
+	enum share_mime_type mime_type;	/* MIME type of the file */
 
 	gint refcnt;				/**< Reference count */
 	guint32 flags;				/**< See below for definition */
@@ -483,7 +484,7 @@ share_special_load(const struct special_file *sp)
 		shared_file_free(&sf);
 		return NULL;
 	}
-	sf->content_type = share_mime_type(sp->type);
+	sf->mime_type = sp->type;
 
 	fclose(f);
 
@@ -750,16 +751,121 @@ shared_file_by_name(const gchar *filename)
  * Returns the MIME content type string.
  */
 const gchar *
-share_mime_type(enum share_mime_type type)
+share_mime_type_to_string(enum share_mime_type type)
 {
-	switch (type) {
-	case SHARE_M_APPLICATION_BINARY:	return "application/binary";
-	case SHARE_M_IMAGE_PNG:				return "image/png";
-	case SHARE_M_TEXT_PLAIN:			return "text/plain";
-	}
+	static const gchar *names[] = {
+#define MIME_TYPE(id, name) name,
+#include "mime_types.h"
+#undef MIME_TYPE
+	};
+	size_t i;
+	
+	STATIC_ASSERT(SHARE_M_NUM == G_N_ELEMENTS(names));
+	i = (size_t) type < G_N_ELEMENTS(names) ? type : SHARE_M_APPLICATION_BINARY;
+	return names[i];
+}
 
-	g_error("unknown MIME type %d", (gint) type);
-	return NULL;
+enum share_mime_type
+share_mime_type_from_extension(const gchar *extension)
+{
+	static const struct {
+		const gchar *extension;
+		enum share_mime_type type;
+	} tab[] = {
+		/* Keep this sorted! */
+		{ "aac",		SHARE_M_AUDIO_MP4 },
+		{ "avi",		SHARE_M_VIDEO_MSVIDEO },
+		{ "bat",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "bmp",		SHARE_M_IMAGE_BMP },
+		{ "bz2",		SHARE_M_APPLICATION_BZIP2 },
+		{ "c",			SHARE_M_TEXT_C },
+		{ "c++",		SHARE_M_TEXT_CPP },
+		{ "cc",			SHARE_M_TEXT_CPP },
+		{ "com",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "cpp",		SHARE_M_TEXT_CPP },
+		{ "css",		SHARE_M_TEXT_CSS },
+		{ "cxx",		SHARE_M_TEXT_CPP },
+		{ "deb",		SHARE_M_APPLICATION_DEB },
+		{ "dll",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "dmg",		SHARE_M_APPLICATION_DMG },
+		{ "exe",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "flac",		SHARE_M_AUDIO_FLAC },
+		{ "flv",		SHARE_M_VIDEO_FLV },
+		{ "gif",		SHARE_M_IMAGE_GIF },
+		{ "gz",			SHARE_M_APPLICATION_GZIP },
+		{ "htm",		SHARE_M_TEXT_HTML },
+		{ "html",		SHARE_M_TEXT_HTML },
+		{ "java",		SHARE_M_APPLICATION_JAVA },
+		{ "java",		SHARE_M_TEXT_JAVA },
+		{ "jpeg",		SHARE_M_IMAGE_JPEG },
+		{ "jpg",		SHARE_M_IMAGE_JPEG },
+		{ "latex",		SHARE_M_TEXT_LATEX },
+		{ "ltx",		SHARE_M_TEXT_LATEX },
+		{ "m2a",		SHARE_M_AUDIO_MPEG },
+		{ "m3u",		SHARE_M_AUDIO_MPEGURL },
+		{ "m4a",		SHARE_M_AUDIO_MP4 },
+		{ "m4v",		SHARE_M_VIDEO_MP4 },
+		{ "mid",		SHARE_M_AUDIO_MIDI },
+		{ "midi",		SHARE_M_AUDIO_MIDI },
+		{ "mka",		SHARE_M_AUDIO_MATROSKA },
+		{ "mkv",		SHARE_M_VIDEO_MATROSKA },
+		{ "mov",		SHARE_M_VIDEO_QUICKTIME },
+		{ "mp2",		SHARE_M_VIDEO_MPEG },
+		{ "mp3",		SHARE_M_AUDIO_MPEG },
+		{ "mp4",		SHARE_M_VIDEO_MP4 },
+		{ "mpa",		SHARE_M_AUDIO_MPEG },
+		{ "mpeg",		SHARE_M_VIDEO_MPEG },
+		{ "mpeg2",		SHARE_M_VIDEO_MPEG },
+		{ "mpg",		SHARE_M_VIDEO_MPEG },
+		{ "ogg",		SHARE_M_APPLICATION_OGG },
+		{ "ogm",		SHARE_M_VIDEO_OGM },
+		{ "pdf",		SHARE_M_APPLICATION_PDF },
+		{ "pif",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "pl",			SHARE_M_TEXT_PERL },
+		{ "pls",		SHARE_M_AUDIO_PLAYLIST },
+		{ "png",		SHARE_M_IMAGE_PNG },
+		{ "ps",			SHARE_M_APPLICATION_POSTSCRIPT },
+		{ "psd",		SHARE_M_IMAGE_PSD },
+		{ "qt",			SHARE_M_VIDEO_QUICKTIME },
+		{ "ra",			SHARE_M_AUDIO_REALAUDIO },
+		{ "rar",		SHARE_M_APPLICATION_RAR },
+		{ "rdf",		SHARE_M_APPLICATION_RDF },
+		{ "rss",		SHARE_M_APPLICATION_RSS },
+		{ "rtf",		SHARE_M_TEXT_RTF },
+		{ "scr",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "sit",		SHARE_M_APPLICATION_SIT },
+		{ "sitx",		SHARE_M_APPLICATION_SIT },
+		{ "tar",		SHARE_M_APPLICATION_TAR },
+		{ "text",		SHARE_M_TEXT_PLAIN },
+		{ "tif",		SHARE_M_IMAGE_TIFF },
+		{ "tiff",		SHARE_M_IMAGE_TIFF },
+		{ "torrent",	SHARE_M_APPLICATION_BITTORRENT },
+		{ "txt",		SHARE_M_TEXT_PLAIN },
+		{ "wav",		SHARE_M_AUDIO_WAVE },
+		{ "xhtml",		SHARE_M_TEXT_XHTML },
+		{ "xml",		SHARE_M_TEXT_XML },
+		{ "xpm",		SHARE_M_IMAGE_XPM },
+		{ "zip",		SHARE_M_APPLICATION_ZIP },
+	};
+	
+	if (extension) {
+#define GET_KEY(i)	tab[(i)].extension
+#define FOUND(i) 	return tab[(i)].type;
+		BINARY_SEARCH(const gchar *, extension, G_N_ELEMENTS(tab),
+			ascii_strcasecmp, GET_KEY, FOUND);
+#undef GET_KEY
+	}
+	return SHARE_M_APPLICATION_BINARY;
+}
+
+enum share_mime_type
+share_mime_type_from_filename(const gchar *filename)
+{
+	const gchar *extension;
+	
+	g_return_val_if_fail(filename, SHARE_M_APPLICATION_BINARY);
+	extension = strrchr(filename, '.');
+	return share_mime_type_from_extension(extension ? &extension[1] : NULL);
 }
 
 /* ----------------------------------------- */
@@ -1113,12 +1219,13 @@ share_scan_add_file(const gchar *relative_path,
 	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
 	sf->file_size = sb->st_size;
 	sf->mtime = sb->st_mtime;
-	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
 
 	if (shared_file_set_names(sf, name)) {
 		shared_file_free(&sf);
 		return NULL;
 	}
+
+	sf->mime_type = share_mime_type_from_filename(sf->name_nfc);
 
 	if (!sha1_is_cached(sf)) {
 		gint ret;
@@ -2873,7 +2980,7 @@ const gchar *
 shared_file_content_type(const shared_file_t *sf)
 {
 	shared_file_check(sf);
-	return sf->content_type;
+	return share_mime_type_to_string(sf->mime_type);
 }
 
 void
@@ -2904,7 +3011,6 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
 	sf->mtime = fi->last_flush;
-	sf->content_type = share_mime_type(SHARE_M_APPLICATION_BINARY);
 	sf->sha1 = atom_sha1_get(fi->sha1);
 
 	/* FIXME: DOWNLOAD_SIZE:
@@ -2923,6 +3029,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 		shared_file_free(&sf);
 		return;
 	}
+	sf->mime_type = share_mime_type_from_filename(sf->name_nfc);
 
 	sf->file_path = atom_str_get(fi->pathname);
 
