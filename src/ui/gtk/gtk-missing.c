@@ -711,6 +711,7 @@ widget_init_choices(GtkWidget *widget, GtkSignalFunc func,
 			gtk_object_set_user_data(GTK_OBJECT(item),
 				GUINT_TO_POINTER(def->data.guint32.choices[i].value));
 			gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+			gui_signal_connect_after(item, "activate", func, user_data);
 		}
 		gtk_option_menu_set_menu(option_menu, GTK_WIDGET(menu));
 	}
