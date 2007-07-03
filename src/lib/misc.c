@@ -3123,7 +3123,6 @@ create_directory(const gchar *dir, mode_t mode)
 		goto failure;
 	}
 
-	g_message("mkdir(\"%s\")", dir);
 	if (compat_mkdir(dir, mode)) {
 		error = errno;
 		if (EEXIST == error) {
@@ -3134,7 +3133,6 @@ create_directory(const gchar *dir, mode_t mode)
 			if (create_directory(upper, mode)) {
 				error = errno;
 		 	} else {
-				g_message("mkdir(\"%s\")", dir);
 				if (compat_mkdir(dir, mode)) {
 					error = errno;
 				} else {
@@ -3153,7 +3151,7 @@ finish:
 	return is_directory(dir) ? 0 : -1;
 
 failure:
-	g_message("mkdir(\"%s\") failed: %s", dir, g_strerror(error));
+	g_warning("mkdir(\"%s\") failed: %s", dir, g_strerror(error));
 	errno = error;
 	return -1;
 }
