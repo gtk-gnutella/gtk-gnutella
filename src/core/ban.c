@@ -38,10 +38,10 @@
 RCSID("$Id$")
 
 #include "ban.h"
-#include "sockets.h"
-#include "version.h"		/* For version_is_too_old() */
-#include "token.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
+#include "token.h"
+#include "version.h"		/* For version_is_too_old() */
+#include "whitelist.h"
 
 #include "lib/atoms.h"
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
@@ -247,6 +247,9 @@ ban_allow(const host_addr_t addr)
 	default:
 		return BAN_OK;
 	}
+
+	if (whitelist_check(addr))
+		return BAN_OK;
 
 	ipf = g_hash_table_lookup(info, &addr);
 
