@@ -1230,19 +1230,7 @@ qrp_add_file(struct shared_file *sf)
 		size_t word_len;
 
 		g_assert(word[0] != '\0');
-
-		/*
-		 * It is unreasonable to put words of 1 and 2 letters in the QR table.
-		 * Also, all words strictly smaller than QRP_MIN_WORD_LENGTH are
-		 * skipped.
-		 */
-
-		if (word[1] == '\0' || word[2] == '\0')		/* Handles lengths 1 & 2 */
-			continue;
-
 		word_len = strlen(word);
-		if (QRP_MIN_WORD_LENGTH > 3 && word_len < QRP_MIN_WORD_LENGTH)
-			continue;
 
 		/*
 		 * Record word if we haven't seen it yet.
@@ -1346,20 +1334,27 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 		size = len + 1;
 		s = wcopy(word, size);
 
-		while (len-- >= 3) {
-			guint retlen;
+		for (;;) {
+			insert_substr(u, s);
+			
+			while (len > QRP_MIN_WORD_LENGTH) {
+				guint retlen;
 
-			if (utf8_decode_char_fast(&s[len], &retlen)) {
-				insert_substr(u, s);
-				s[len] = '\0';				/* Truncate word */
+				len--;
+				if (utf8_decode_char_fast(&s[len], &retlen)) {
+					s[len] = '\0';				/* Truncate word */
+					break;
+				}
 			}
+			if (len <= QRP_MIN_WORD_LENGTH)
+				break;
 		}
 		WFREE_NULL(s, size);
 	}
 }
 
 /**
- * Create a list of all unique substrings at least MIN_WORD_LENGTH long,
+ * Create a list of all unique substrings at least QRP_MIN_WORD_LENGTH long,
  * from words held in `ht'.
  *
  * @returns created list, and count in `retcount'.
