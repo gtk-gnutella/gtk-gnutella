@@ -2532,19 +2532,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 			}
 
-			/*
-			 * Because st_search() will apply a character map over the string,
-			 * we always need to copy the query string to avoid changing the
-			 * data inplace.
-			 *
-			 * `stmp_1' is a static buffer.  Note that we copy the trailing NUL
-			 * into the buffer, hence the "+1" below.
-			 */
-
-			search_len -= offset;
-			memcpy(stmp_1, &search[offset], search_len + 1);
-
-			st_search(search_table, stmp_1, got_match, qctx, max_replies, qhv);
+			st_search(search_table, &search[offset],
+				got_match, qctx, max_replies, qhv);
 		}
 
 finish:
