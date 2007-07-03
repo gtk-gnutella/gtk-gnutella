@@ -1699,6 +1699,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			size_t map_len, old_len;
 			off_t map_start;
 			int flags = MAP_PRIVATE;
+			void *addr;
 
 			/*
 			 * Make sure ``off'' is page-aligned for mmap(); some
@@ -1733,29 +1734,24 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			ctx->map_end = ctx->map_start + map_len;
 			g_assert(ctx->map_start < ctx->map_end);
 
-			for (;;) {
-				void *addr;
-
-				addr = mmap(ctx->map, map_len, PROT_READ, flags, in_fd,
+			addr = mmap(ctx->map, map_len, PROT_READ, flags, in_fd,
 						ctx->map_start);
-				if (addr == MAP_FAILED && ctx->map) {
+
+			if (addr == MAP_FAILED) {
+				int saved_errno = errno;
+				if (ctx->map) {
 					munmap(ctx->map, old_len);
-					ctx->map = NULL;
 					old_len = 0;
 					flags &= ~MAP_FIXED;
-				} else {
-					ctx->map = addr;
-					break;
 				}
-			}
-
-			if (MAP_FAILED == ctx->map) {
 				ctx->map = NULL;
 				ctx->map_start = 0;
 				ctx->map_end = 0;
+				errno = saved_errno;
 				return (ssize_t) -1;
 			}
-			
+
+			ctx->map = addr;
 			vmm_madvise_sequential(ctx->map, map_len);
 		}
 
