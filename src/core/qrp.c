@@ -77,6 +77,30 @@ RCSID("$Id$")
 #define MAX_UP_TABLE_SIZE	131072 /**< Max size for inter-UP QRP: 128 Kslots */
 #define EMPTY_TABLE_SIZE	8
 
+struct query_hash {
+	guint32 hashcode;
+	enum query_hsrc source;
+};
+
+struct query_hashvec {
+	struct query_hash *vec;	/**< Vector of at most `size' entries */
+	gint count;				/**< Amount of slots actually taken */
+	gint size;				/**< Amount of slots in vector */
+	gboolean has_urn;		/**< Whether an URN is present in the query */
+};
+
+gboolean
+qhvec_has_urn(const struct query_hashvec *qhv)
+{
+	return 0 != qhv->has_urn;
+}
+
+guint
+qhvec_count(const struct query_hashvec *qhv)
+{
+	return qhv->count;
+}
+
 /*
  * Period between inter-UP QRP exchanges where we propagate a new QRP to our
  * peers if the leaves changed their QRP, either through updating or through

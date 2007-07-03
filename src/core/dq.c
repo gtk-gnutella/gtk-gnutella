@@ -774,16 +774,14 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 				gnutella_header_get_hops(head),
 				MAX(gnutella_header_get_ttl(head), 2),
 				source);
-
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
-			gmsg_infostr_full(head), dq->qhv->count,
-			dq->qhv->count == 1 ? "" : "s",
-			dq->qhv->has_urn ? " + URN" : "",
+			gmsg_infostr_full(head),
+			qhvec_count(dq->qhv), qhvec_count(dq->qhv) == 1 ? "" : "s",
+			qhvec_has_urn(dq->qhv) ? " + URN" : "",
 			g_slist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
 	gmsg_mb_sendto_all(nodes, dq->mb);
-
 	g_slist_free(nodes);
 }
 
@@ -1775,10 +1773,10 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq->node_id = node_id_ref(NODE_ID(n));
 	dq->mb = gmsg_split_to_pmsg(&n->header, n->data, n->size + GTA_HEADER_SIZE);
 	dq->qhv = qhvec_clone(qhv);
-	if (qhvec_has_urn(qhv))
-		dq->max_results = DQ_LEAF_RESULTS / DQ_SHA1_DECIMATOR;
-	else
-		dq->max_results = DQ_LEAF_RESULTS;
+	dq->max_results = DQ_LEAF_RESULTS;
+	if (qhvec_has_urn(qhv)) {
+		dq->max_results /= DQ_SHA1_DECIMATOR;
+	}
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(gnutella_header_get_ttl(&n->header), DQ_MAX_TTL);
 	dq->alive = n->alive_pings;

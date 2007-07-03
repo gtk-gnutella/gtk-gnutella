@@ -46,23 +46,9 @@
  */
 
 enum query_hsrc {
-	QUERY_H_WORD = 0,		/**< Query word (AND-ed) */
-	QUERY_H_URN				/**< URN (OR-ed) */
+	QUERY_H_WORD,		/**< Query word (AND-ed) */
+	QUERY_H_URN			/**< URN (OR-ed) */
 };
-
-struct query_hash {
-	guint32 hashcode;
-	enum query_hsrc source;
-};
-
-typedef struct query_hashvec {
-	gint count;				/**< Amount of slots actually taken */
-	gint size;				/**< Amount of slots in vector */
-	gboolean has_urn;		/**< Whether an URN is present in the query */
-	struct query_hash *vec;	/**< Vector of at most `size' entries */
-} query_hashvec_t;
-
-#define qhvec_has_urn(x)	((x)->has_urn)
 
 typedef struct qrt_info {
 	gint slots;				/**< Amount of slots */
@@ -79,6 +65,9 @@ typedef struct qrt_info {
 struct gnutella_node;
 struct routing_table;
 struct shared_file;
+struct query_hashvec;
+
+typedef struct query_hashvec query_hashvec_t;
 
 void qrp_init(void);
 void qrp_close(void);
@@ -112,6 +101,8 @@ void qhvec_reset(struct query_hashvec *qhvec);
 query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
 void qhvec_add(struct query_hashvec *qhvec, const gchar *word,
 	enum query_hsrc src);
+gboolean qhvec_has_urn(const struct query_hashvec *qhv);
+guint qhvec_count(const struct query_hashvec *qhv);
 
 GSList *qrt_build_query_target(
 	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
