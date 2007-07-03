@@ -84,9 +84,9 @@ struct query_hash {
 
 struct query_hashvec {
 	struct query_hash *vec;	/**< Vector of at most `size' entries */
-	gint count;				/**< Amount of slots actually taken */
-	gint size;				/**< Amount of slots in vector */
-	gboolean has_urn;		/**< Whether an URN is present in the query */
+	guint8 count;			/**< Amount of slots actually taken */
+	guint8 size;			/**< Amount of slots in vector */
+	guint8 has_urn;			/**< Whether an URN is present in the query */
 };
 
 gboolean
@@ -4124,7 +4124,7 @@ qrp_can_route(const query_hashvec_t *qhv, const struct routing_table *rt)
 	shift = 32 - rt->bits;
 	qh = qhv->vec;
 
-	for (i = 0; i < (guint) qhv->count; i++) {
+	for (i = 0; i < qhv->count; i++) {
 		guint32 idx = qh[i].hashcode >> shift;
 
 		/* Tight loop -- g_assert(idx < (guint32) rt->slots); */
@@ -4139,9 +4139,9 @@ qrp_can_route(const query_hashvec_t *qhv, const struct routing_table *rt)
 		 */
 
 		if (RT_SLOT_READ(arena, idx)) {
-			if (qh[i].source == QUERY_H_URN)		/* URN present */
+			if (qh[i].source == QUERY_H_URN)	/* URN present */
 				return TRUE;					/* Will forward */
-			else if (has_urn)					/* We passed all the URNs */
+			if (has_urn)						/* We passed all the URNs */
 				return FALSE;					/* And none matched */
 		} else {
 			if (qh[i].source == QUERY_H_WORD) {	/* Word NOT present */
