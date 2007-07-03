@@ -39,6 +39,7 @@
 #include "common.h"
 
 #define QRP_MIN_WORD_LENGTH		3	/**< Minimal word length */
+#define QRP_HVEC_MAX	128 	/**< Max: 128 unique words / URNs! */
 
 /*
  * Query routing: structures to keep track of all the query hashes,
@@ -95,7 +96,7 @@ struct routing_table *qrt_ref(struct routing_table *);
 void qrt_unref(struct routing_table *);
 void qrt_get_info(const struct routing_table *, qrt_info_t *qi);
 
-struct query_hashvec *qhvec_alloc(gint size);
+struct query_hashvec *qhvec_alloc(guint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
 query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);

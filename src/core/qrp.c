@@ -3996,10 +3996,11 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
  * Allocate a query hash container for at most `size' entries.
  */
 query_hashvec_t *
-qhvec_alloc(gint size)
+qhvec_alloc(guint size)
 {
 	query_hashvec_t *qhvec;
 
+	size = MIN(QRP_HVEC_MAX, size);
 	qhvec = walloc(sizeof *qhvec);
 
 	qhvec->count = 0;

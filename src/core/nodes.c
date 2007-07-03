@@ -1280,7 +1280,8 @@ node_init(void)
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
 
-	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
+	/* Max: 128 unique words / URNs! */
+	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
