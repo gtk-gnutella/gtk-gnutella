@@ -2694,8 +2694,10 @@ upload_tx_add_written(gpointer o, gint amount)
 {
 	gnutella_upload_t *u = o;
 
-	u->file_size += amount;
-	u->end = u->file_size;
+	if (u->browse_host) {
+		u->file_size += amount;
+		u->end = u->file_size;
+	}
 }
 
 static const struct tx_link_cb upload_tx_link_cb = {
@@ -3990,28 +3992,28 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (u->sf) {
 		upload_request_for_shared_file(u, header);
 	} else {
-		gboolean chunked_transfer = supports_chunked(u, header);
 		gint flags = 0;
 		
 		u->file_size = 0;
-
-		if (chunked_transfer) {
-			if (!u->head_only) {
-				upload_http_extra_line_add(u, "Transfer-Encoding: chunked\r\n");
-			}
-		} else {
-			/*
-			 * If browsing our host with a client that cannot allow chunked
-			 * transmission encoding, we have no choice but to indicate the end
-			 * of the transmission with EOF since we don't want to compute the
-			 * length of the data in advance.
-			 */
-			u->keep_alive = FALSE;
-		}
-
 		if (u->browse_host) {
 			const gchar *buf;
 			gchar name[1024];
+
+			if (supports_chunked(u, header)) {
+				flags |= BH_F_CHUNKED;
+				if (!u->head_only) {
+					upload_http_extra_line_add(u,
+						"Transfer-Encoding: chunked\r\n");
+				}
+			} else {
+				/*
+				 * If browsing our host with a client that cannot allow chunked
+				 * transmission encoding, we have no choice but to indicate the
+				 * end of the transmission with EOF since we don't want to
+				 * compute the length of the data in advance.
+				 */
+				u->keep_alive = FALSE;
+			}
 
 			/*
 			 * Look at an Accept: line with "application/x-gnutella-packets".
@@ -4046,8 +4048,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 						"Content-Type: application/x-gnutella-packets\r\n");
 			}
 
-			flags |= chunked_transfer ? BH_F_CHUNKED : 0;
-
 			/*
 			 * Accept-Encoding -- see whether they want compressed output.
 			 */
@@ -4075,12 +4075,26 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		} else if (u->thex) {
 			gchar *name;
 			
-			flags |= chunked_transfer ? THEX_UPLOAD_F_CHUNKED : 0;
 		   	name = g_strdup_printf(_("<THEX data for %s>"), u->name);
 			atom_str_change(&u->name, name);
 			G_FREE_NULL(name);
 
 			upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
+
+			if (!(flags & THEX_UPLOAD_F_CHUNKED)) {
+				
+				u->file_size = thex_upload_calculate_size(u->thex);
+				if (0 == u->file_size) {
+					upload_error_remove(u, 500, "THEX failure");
+					return;
+				}
+				u->pos = 0;
+				u->skip = 0;
+				u->end = u->file_size - 1;
+				u->cb_length_arg.u = u;
+				upload_http_extra_callback_add(u,
+					upload_http_content_length_add, &u->cb_length_arg);
+			}
 		}
 
 		if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {

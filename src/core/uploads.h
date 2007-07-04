@@ -82,6 +82,7 @@ typedef struct upload {
 	struct upload_http_cb cb_sha1_arg;
 	struct upload_http_cb cb_416_arg;
 	struct upload_http_cb cb_status_arg;
+	struct upload_http_cb cb_length_arg;
 	http_extra_desc_t hev[16];
 	guint hevcnt;
 

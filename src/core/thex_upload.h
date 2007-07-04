@@ -54,6 +54,8 @@ struct gnutella_host;
 struct tx_link_cb;
 struct wrap_io;
 
+size_t thex_upload_calculate_size(const struct shared_file *sf);
+
 struct special_upload *thex_upload_open(
 	gpointer owner,
 	const struct gnutella_host *host,

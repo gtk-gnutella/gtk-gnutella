@@ -327,7 +327,12 @@ gboolean
 dime_record_set_data(struct dime_record *record, const void *data, size_t size)
 {
 	g_return_val_if_fail(record, FALSE);
+#if 0
+	/* Allow data == NULL with size > 0 so that we can create a fake record
+	 * to determine its size without copying the data.
+	 */
 	g_return_val_if_fail(NULL != data || 0 == size, FALSE);
+#endif
 	g_return_val_if_fail(size < (guint32)-1, FALSE);
 
 	record->data = data;

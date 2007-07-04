@@ -96,19 +96,13 @@ cast_to_thex_upload(struct special_upload *p)
 	return (void *) p;
 }
 
-static unsigned
-thex_upload_depth(struct thex_upload *ctx)
+static char *
+thex_upload_uuid(const struct tth *tth)
 {
-	return tt_good_depth(ctx->filesize);
-}
+	static char buf[64];
+	const char *data;
 
-static gchar *
-thex_upload_uuid(struct thex_upload *ctx)
-{
-	static gchar buf[64];
-	const gchar *data;
-
-	data = ctx->tth->data;
+	data = tth->data;
 	gm_snprintf(buf, sizeof buf,
 		"uuid:%08x-%04x-%04x-%04x-%08x%04x",
 		peek_le32(&data[0]), peek_le16(&data[4]), peek_le16(&data[6]),
@@ -116,59 +110,79 @@ thex_upload_uuid(struct thex_upload *ctx)
 	return buf;
 }
 
-static void
-thex_upload_xml(struct thex_upload *ctx)
+static size_t
+thex_upload_prepare_xml(char **data_ptr, const struct tth *tth,
+	filesize_t filesize)
 {
 	struct dime_record *dime;
-	gchar buf[512];
-	size_t len;
+	char buf[512];
+	size_t len, size;
+	unsigned depth;
 
+	depth = tt_good_depth(filesize);
 	len = concat_strings(buf, sizeof buf,
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
 		"<!DOCTYPE hashtree S"	/* NOTE: HIDE FROM METACONFIG */
 			"YSTEM \""			THEX_DOCTYPE "\">\r\n"
 		"<hashtree>\r\n"
 		"<file"
-			" size=\"",			filesize_to_string(ctx->filesize), "\""
+			" size=\"",			filesize_to_string(filesize), "\""
 			" segmentsize=\""	THEX_SEGMENT_SIZE "\"/>\r\n"
 		"<digest"
 			" algorithm=\""		THEX_HASH_ALGO "\""
 			" outputsize=\""	THEX_HASH_SIZE "\"/>\r\n"
 		"<serializedtree"
-			" depth=\"",		uint32_to_string(thex_upload_depth(ctx)), "\""
+			" depth=\"",		uint32_to_string(depth), "\""
 			" type=\""			THEX_TREE_TYPE "\""
-			" uri=\"",			thex_upload_uuid(ctx), "\"/>\r\n"
+			" uri=\"",			thex_upload_uuid(tth), "\"/>\r\n"
 		"</hashtree>\r\n",
 		(void *) 0);
 
 	dime = dime_record_alloc();
 	dime_record_set_data(dime, buf, len);
 	dime_record_set_type_mime(dime, "text/xml");
-	ctx->size = dime_create_record(dime, &ctx->data, TRUE, FALSE);
+	size = dime_create_record(dime, data_ptr, TRUE, FALSE);
 	dime_record_free(&dime);
+	return size;
 }
 
 static gboolean
-thex_upload_tree(struct thex_upload *ctx)
+thex_upload_get_xml(struct thex_upload *ctx)
+{
+	ctx->size = thex_upload_prepare_xml(&ctx->data, ctx->tth, ctx->filesize);
+	return ctx->size > 0 && NULL != ctx->data;
+}
+
+static size_t 
+thex_upload_prepare_tree(char **data_ptr, const struct tth *tth,
+	const struct tth *nodes, size_t n_nodes)
 {
 	struct dime_record *dime;
-	const struct tth *nodes;
-	size_t n_nodes;
-
-	nodes = NULL;	
-	n_nodes = tth_cache_get_tree(ctx->tth, ctx->filesize, &nodes);
-
-	g_return_val_if_fail(n_nodes > 0, FALSE);
-	g_return_val_if_fail(nodes, FALSE);
+	size_t size;
 
 	dime = dime_record_alloc();
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof nodes[0]);
 	dime_record_set_data(dime, nodes, n_nodes * TTH_RAW_SIZE);
 	dime_record_set_type_uri(dime, THEX_TREE_TYPE);
-	dime_record_set_id(dime, thex_upload_uuid(ctx));
-	ctx->size = dime_create_record(dime, &ctx->data, FALSE, TRUE);
+	dime_record_set_id(dime, thex_upload_uuid(tth));
+	size = dime_create_record(dime, data_ptr, FALSE, TRUE);
 	dime_record_free(&dime);
-	return TRUE;
+	return size;
+}
+
+static gboolean
+thex_upload_get_tree(struct thex_upload *ctx)
+{
+	const struct tth *nodes;
+	size_t n_nodes;
+
+	nodes = NULL;	
+	n_nodes = tth_cache_get_tree(ctx->tth, ctx->filesize, &nodes);
+	g_return_val_if_fail(n_nodes > 0, FALSE);
+	g_return_val_if_fail(nodes, FALSE);
+
+	ctx->size = thex_upload_prepare_tree(&ctx->data, ctx->tth, nodes, n_nodes);
+	return ctx->size > 0 && NULL != ctx->data;
 }
 
 static void 
@@ -177,6 +191,32 @@ thex_upload_free_data(struct thex_upload *ctx)
 	G_FREE_NULL(ctx->data);
 	ctx->offset = 0;
 	ctx->size = 0;
+}
+
+size_t
+thex_upload_calculate_size(const struct shared_file *sf)
+{
+	const struct tth *tth;
+	size_t n_leaves, n_nodes;
+	size_t size = 0;
+
+	g_return_val_if_fail(sf, 0);
+
+	tth = shared_file_tth(sf);
+	g_return_val_if_fail(tth, 0);
+
+	size += thex_upload_prepare_xml(NULL, tth, shared_file_size(sf));
+
+	n_nodes = 1;
+	n_leaves = tt_good_node_count(shared_file_size(sf));
+	while (n_leaves > 1) {
+		n_nodes += n_leaves;
+		n_leaves = (n_leaves + 1) / 2;
+	}
+
+	size += thex_upload_prepare_tree(NULL, tth, NULL, n_nodes);
+
+	return size;
 }
 
 /**
@@ -214,16 +254,15 @@ thex_upload_read(struct special_upload *special_upload,
 		switch (ctx->state) {
 		case THEX_STATE_INITIAL:
 			g_assert(NULL == ctx->data);
-			thex_upload_xml(ctx);
+			if (!thex_upload_get_xml(ctx))
+				goto error;
 			ctx->state++;
 			break;
 
 		case THEX_STATE_XML_SENT:
 			g_assert(NULL == ctx->data);
-			if (!thex_upload_tree(ctx)) {
-				errno = EIO;
-				return (ssize_t)-1;
-			}
+			if (!thex_upload_get_tree(ctx))
+				goto error;
 			ctx->state++;
 			break;
 
@@ -258,6 +297,10 @@ thex_upload_read(struct special_upload *special_upload,
 	}
 
 	return p - cast_to_gchar_ptr(dest);
+
+error:
+	errno = EIO;
+	return (ssize_t)-1;
 }
 
 /**
