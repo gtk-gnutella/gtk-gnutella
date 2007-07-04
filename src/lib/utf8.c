@@ -96,7 +96,7 @@ static void unicode_compose_init(void);
 static gboolean unicode_compose_init_passed;
 static gboolean locale_init_passed;
 
-static void utf8_regression_checks(void);
+void utf8_regression_checks(void);
 size_t utf8_decompose_nfd(const gchar *in, gchar *out, size_t size);
 size_t utf8_decompose_nfkd(const gchar *in, gchar *out, size_t size);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
@@ -5883,7 +5883,7 @@ G_STMT_START { \
 	printf(" PASSED\n"); \
 } G_STMT_END
 
-static void
+void
 utf8_regression_checks(void)
 {
 	/* unicode_compose_init() must be called before this */
