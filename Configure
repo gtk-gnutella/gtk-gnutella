@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Jun 14 22:26:09 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Wed Jul  4 02:53:47 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -271,10 +271,12 @@ cppstdin=''
 d_gettblsz=''
 nofile=''
 tablesize=''
+d_access=''
 d_attribut=''
 d_bcopy=''
 d_bindtxtcode=''
 d_built_popcount=''
+d_closefrom=''
 d_const=''
 d_deflate=''
 d_dev_poll=''
@@ -4113,6 +4115,70 @@ EOM
 	;;
 esac
 
+: Initialize h_fcntl
+h_fcntl=false
+
+: Initialize h_sysfile
+h_sysfile=false
+
+: see if this is a unistd.h system
+set unistd.h i_unistd
+eval $inhdr
+
+: access call always available on UNIX
+$cat >try.c <<EOC
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static int ret;
+	ret |= access("path", 1);
+	return ret ? 0 : 1;
+}
+EOC
+set d_access
+eval $trylink
+
+: locate the flags for 'access()'
+case "$d_access" in
+"$define")
+	echo " "
+	$cat >access.c <<'EOCP'
+#include <sys/types.h>
+#ifdef I_FCNTL
+#include <fcntl.h>
+#endif
+#ifdef I_SYS_FILE
+#include <sys/file.h>
+#endif
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main() {
+	exit(R_OK);
+}
+EOCP
+	: check sys/file.h first, no particular reason here
+	if $test `./findhdr sys/file.h` && \
+		$cc -o access $cppflags -DI_SYS_FILE access.c >/dev/null 2>&1 ; then
+		h_sysfile=true;
+		echo "<sys/file.h> defines the *_OK access constants." >&4
+	elif $test `./findhdr fcntl.h` && \
+		$cc -o access $cppflags -DI_FCNTL access.c >/dev/null 2>&1 ; then
+		h_fcntl=true;
+		echo "<fcntl.h> defines the *_OK access constants." >&4
+	elif $test `./findhdr unistd.h` && \
+		$cc -o access $cppflags -DI_UNISTD access.c >/dev/null 2>&1 ; then
+		echo "<unistd.h> defines the *_OK access constants." >&4
+	else
+		echo "I can't find the four *_OK access constants--I'll use mine." >&4
+	fi
+	;;
+esac
+$rm -f access*
+
 : Look for GNU-cc style attribute checking
 echo " "
 echo "Checking whether your compiler can handle __attribute__ ..." >&4
@@ -4172,6 +4238,28 @@ int main(void)
 }
 EOC
 set d_built_popcount
+eval $trylink
+
+: can we use closefrom?
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <stdlib.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+  static const int fd = 1;
+  /*
+   * On Solaris it returns nothing
+   * On NetBSD it's equivalent to fcntl(fd, F_CLOSEM)
+   */
+  closefrom(fd);	
+  return 0;
+}
+EOC
+set d_closefrom
 eval $trylink
 
 : check for const keyword
@@ -4467,10 +4555,6 @@ int main(void)
 EOC
 set d_getaddrinfo
 eval $trylink
-
-: see if this is a unistd.h system
-set unistd.h i_unistd
-eval $inhdr
 
 : can we use geteuid?
 echo " "
@@ -5748,12 +5832,6 @@ EOC
 
 set d_msghdr_msg_flags
 eval $trylink
-
-: Initialize h_fcntl
-h_fcntl=false
-
-: Initialize h_sysfile
-h_sysfile=false
 
 : Locate the flags for 'open()'
 echo " "
@@ -8746,11 +8824,13 @@ cppminus='$cppminus'
 cpprun='$cpprun'
 cppstdin='$cppstdin'
 csh='$csh'
+d_access='$d_access'
 d_attribut='$d_attribut'
 d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
 d_built_popcount='$d_built_popcount'
+d_closefrom='$d_closefrom'
 d_const='$d_const'
 d_dbus='$d_dbus'
 d_deflate='$d_deflate'

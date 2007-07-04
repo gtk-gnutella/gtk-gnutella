@@ -22,6 +22,7 @@ U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/d_bindtxtcode.U
 U/new/d_built_popcount.U
+U/new/d_closefrom.U
 U/new/d_deflate.U
 U/new/d_devpoll.U
 U/new/d_epoll.U
@@ -323,6 +324,7 @@ src/core/local_shell.c
 src/core/local_shell.h
 src/core/matching.c
 src/core/matching.h
+src/core/mime_types.h
 src/core/move.c
 src/core/move.h
 src/core/mq.c

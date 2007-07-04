@@ -4074,6 +4074,22 @@ set_close_on_exec(gint fd)
 	}
 }
 
+static inline gboolean
+try_close_from(const int first_fd)
+{
+#if defined(F_CLOSEM)
+	return -1 != fcntl(first_fd, F_CLOSEM);
+#elif defined(HAS_CLOSEFROM)
+	/* Returns nothing on Solaris; NetBSD has F_CLOSEM and closefrom()
+	 * equivalent to the above. Thus prefer F_CLOSEM due to potential
+	 * error. */
+	closefrom(first_fd);
+	return TRUE;
+#else
+	return FALSE;
+#endif	/* HAS_CLOSEFROM */
+}
+
 /**
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
@@ -4083,22 +4099,19 @@ close_file_descriptors(const int first_fd)
 	int fd;
 
 	g_return_if_fail(first_fd >= 0);
-	fd = first_fd;
 
-#if defined(F_CLOSEM)
-	if (-1 == fcntl(fd, F_CLOSEM))
-#endif
-	{
-		fd = compat_max_fd() - 1;
-		while (fd >= first_fd) {
-			if (close(fd)) {
+	if (try_close_from(first_fd))
+		return;
+
+	fd = compat_max_fd() - 1;
+	while (fd >= first_fd) {
+		if (close(fd)) {
 #if defined(F_MAXFD)
-				fd = fcntl(0, F_MAXFD);
-				continue;
+			fd = fcntl(0, F_MAXFD);
+			continue;
 #endif	/* F_MAXFD */
-			}
-			fd--;
 		}
+		fd--;
 	}
 }
 

@@ -1,0 +1,38 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_closefrom: Trylink cat i_unistd
+?MAKE:	-pick add $@ %<
+?S:d_closefrom:
+?S:	This variable conditionally defines the HAS_CLOSEFROM symbol, which
+?S:	indicates to the C program that closefrom() support is available.
+?S:.
+?C:HAS_CLOSEFROM:
+?C:	This symbol is defined when closefrom() can be used.
+?C:.
+?H:#$d_closefrom HAS_CLOSEFROM
+?H:.
+?LINT: set d_closefrom
+: can we use closefrom?
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <stdlib.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+  static const int fd = 1;
+  /*
+   * On Solaris it returns nothing
+   * On NetBSD it's equivalent to fcntl(fd, F_CLOSEM)
+   */
+  closefrom(fd);	
+  return 0;
+}
+EOC
+set d_closefrom
+eval $trylink
+
