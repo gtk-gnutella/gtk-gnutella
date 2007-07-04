@@ -4086,6 +4086,7 @@ try_close_from(const int first_fd)
 	closefrom(first_fd);
 	return TRUE;
 #else
+	(void) first_fd;
 	return FALSE;
 #endif	/* HAS_CLOSEFROM */
 }
