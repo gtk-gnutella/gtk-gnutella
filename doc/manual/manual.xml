@@ -1317,10 +1317,31 @@ ultrapeer. </para>
 <para> This table is from an <ulink
 url="http://www.jraitala.net/comp/articles/2002/pppoe/"> article
 entitled "PPPoE performance under Linux and BSDs"</ulink> by Juuso
-Raitala and others.  Please refer to this excellent article for
-details of the testing.  The important point is that kernel mode PPPoE
+Raitala and others.  The important point is that kernel mode PPPoE
 will significantly reduce CPU load when running gtk-gnutella as an
-ultrapeer.  </para> </chapter>
+ultrapeer.  </para>
+
+<para><emphasis role="bold">Disclaimer</emphasis></para>
+
+<para>
+Distribution and copying of this section is permitted in any medium
+provided this notice is preserved. An e-mail notification to any one
+of the following would be preferred if this article is redistributed.
+</para>
+
+<para>
+&copy; 2002 
+<ulink url="http://www.jraitala.net">Juuso Raitala</ulink> 
+&lt;<ulink url="mailto:jraitala -at- jraitala dot net">jraitala -at-
+jraitala dot net</ulink>&gt (the main author of the article),
+
+Olli Vainio
+&lt;<ulink url="mailto:odo -at- lyseo.edu.ouka.fi">odo -at-
+lyseo.edu.ouka.fi</ulink>&gt;,
+Juha K. Kallio 
+&lt;<ulink url="mailto:bunnyh -at- psychedelic.baana.suomi.net">bunnyh -at- psychedelic.baana.suomi.net</ulink>&gt;,
+</para>
+</chapter>
 
 </part>
 
