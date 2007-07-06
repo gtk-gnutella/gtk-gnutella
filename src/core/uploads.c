@@ -4083,7 +4083,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 			if (!(flags & THEX_UPLOAD_F_CHUNKED)) {
 				
-				u->file_size = thex_upload_calculate_size(u->thex);
+				u->file_size = thex_upload_get_content_length(u->thex);
 				if (0 == u->file_size) {
 					upload_error_remove(u, 500, "THEX failure");
 					return;

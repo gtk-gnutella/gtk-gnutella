@@ -194,7 +194,7 @@ thex_upload_free_data(struct thex_upload *ctx)
 }
 
 size_t
-thex_upload_calculate_size(const struct shared_file *sf)
+thex_upload_get_content_length(const struct shared_file *sf)
 {
 	const struct tth *tth;
 	size_t n_leaves, n_nodes;
