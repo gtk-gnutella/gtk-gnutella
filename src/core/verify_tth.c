@@ -155,7 +155,6 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	switch (status) {
 	case VERIFY_START:
 		if (shared_file_tth(sf)) {
-			gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 			if (
 				tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
 			) {
@@ -165,6 +164,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 				}
 				return FALSE;
 			}
+			gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		}
 		return TRUE;
 	case VERIFY_PROGRESS:
