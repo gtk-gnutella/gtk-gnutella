@@ -154,7 +154,18 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
-		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
+		if (shared_file_tth(sf)) {
+			gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
+			if (
+				tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
+			) {
+				if (GNET_PROPERTY(tigertree_debug) > 1) {
+					g_message("TTH for %s is already cached (%s)",
+						shared_file_path(sf), tth_base32(shared_file_tth(sf)));
+				}
+				return FALSE;
+			}
+		}
 		return TRUE;
 	case VERIFY_PROGRESS:
 		return TRUE;
@@ -182,7 +193,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 void
 request_tigertree(struct shared_file *sf, gboolean high_priority)
 {
-	const struct tth *tth;
+	int inserted;
 
 	verify_tth_init();
 
@@ -190,27 +201,12 @@ request_tigertree(struct shared_file *sf, gboolean high_priority)
 	shared_file_check(sf);
 	g_return_if_fail(!shared_file_is_partial(sf));
 
-	tth = shared_file_tth(sf);
-	if (tth) {
-		size_t ret;
-		
-		ret = tth_cache_lookup(tth, shared_file_size(sf));
-		if (ret > 0) {
-			if (GNET_PROPERTY(tigertree_debug) > 1) {
-				g_message("TTH %s is already cached", tth_base32(tth));
-			}
-		} else {
-			huge_update_hashes(sf, shared_file_sha1(sf), NULL);
-		}
-	} else {
-		int inserted;
-		
-		inserted = verify_enqueue(verify_tth.verify, high_priority,
-						shared_file_path(sf), 0, shared_file_size(sf),
-						request_tigertree_callback, shared_file_ref(sf));
-		if (!inserted) {
-			shared_file_unref(&sf);
-		}
+	sf = shared_file_ref(sf);
+	inserted = verify_enqueue(verify_tth.verify, high_priority,
+					shared_file_path(sf), 0, shared_file_size(sf),
+					request_tigertree_callback, sf);
+	if (!inserted) {
+		shared_file_unref(&sf);
 	}
 }
 
