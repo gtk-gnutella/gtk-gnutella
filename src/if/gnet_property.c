@@ -661,8 +661,6 @@ guint32  gnet_property_variable_tigertree_debug     = 0;
 static const guint32  gnet_property_variable_tigertree_debug_default = 0;
 gboolean gnet_property_variable_tth_rebuilding     = FALSE;
 static const gboolean gnet_property_variable_tth_rebuilding_default = FALSE;
-gboolean gnet_property_variable_experimental_download_data_ignoring     = FALSE;
-static const gboolean gnet_property_variable_experimental_download_data_ignoring_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -6306,23 +6304,6 @@ gnet_prop_init(void) {
     gnet_property->props[295].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[295].data.boolean.def   = (void *) &gnet_property_variable_tth_rebuilding_default;
     gnet_property->props[295].data.boolean.value = (void *) &gnet_property_variable_tth_rebuilding;
-
-
-    /*
-     * PROP_EXPERIMENTAL_DOWNLOAD_DATA_IGNORING:
-     *
-     * General data:
-     */
-    gnet_property->props[296].name = "experimental_download_data_ignoring";
-    gnet_property->props[296].desc = _("This is an interim property.");
-    gnet_property->props[296].ev_changed = event_new("experimental_download_data_ignoring_changed");
-    gnet_property->props[296].save = TRUE;
-    gnet_property->props[296].vector_size = 1;
-
-    /* Type specific data: */
-    gnet_property->props[296].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[296].data.boolean.def   = (void *) &gnet_property_variable_experimental_download_data_ignoring_default;
-    gnet_property->props[296].data.boolean.value = (void *) &gnet_property_variable_experimental_download_data_ignoring;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

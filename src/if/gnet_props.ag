@@ -3414,13 +3414,4 @@ prop = {
     };
 };
 
-prop = {
-    name = "experimental_download_data_ignoring";
-    desc = "This is an interim property.";
-	type = boolean;
-	data = {
-		default = FALSE;
-	};
-};
-
 /* vi: set ts=4: */
