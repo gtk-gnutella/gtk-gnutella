@@ -154,18 +154,17 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
-		if (shared_file_tth(sf)) {
-			if (
-				tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
-			) {
-				if (GNET_PROPERTY(tigertree_debug) > 1) {
-					g_message("TTH for %s is already cached (%s)",
-						shared_file_path(sf), tth_base32(shared_file_tth(sf)));
-				}
-				return FALSE;
+		if (
+			shared_file_tth(sf) &&
+			tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
+		) {
+			if (GNET_PROPERTY(tigertree_debug) > 1) {
+				g_message("TTH for %s is already cached (%s)",
+					shared_file_path(sf), tth_base32(shared_file_tth(sf)));
 			}
-			gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
+			return FALSE;
 		}
+		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
 		return TRUE;
