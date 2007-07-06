@@ -1,24 +1,25 @@
+# translation of nb.po to
 # $Id$
 #
 # Norwegian Bokmal translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2006 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005, 2006.
 #
+# Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005, 2006, 2007.
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: nb\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-06-30 16:23+0900\n"
-"PO-Revision-Date: 2006-05-28 23:37+0200\n"
+"PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
-"Language-Team: Norwegian Bokmal <nb@li.org>\n"
+"Language-Team:  <nb@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: KBabel 1.11.2\n"
+"X-Generator: KBabel 1.11.4\n"
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
@@ -30,9 +31,8 @@ msgstr "x"
 msgid "No longer connected"
 msgstr "Ikke lenger tilkoblet"
 
-#, fuzzy
 msgid "Too many data timeouts"
-msgstr "For mange forsøk (%u ganger)"
+msgstr "For mange tidsavbrudd for data"
 
 msgid "Timeout"
 msgstr "Tidsavbrudd"
@@ -46,13 +46,12 @@ msgstr "Lagt i kø på nytt grunnet endret filinformasjon"
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendert (SHA1-kontrollering)"
 
-#, fuzzy, c-format
+#, c-format
 msgid " at %s - rescheduled for %s%s"
-msgstr " på %s - planlagt på nytt for %s"
+msgstr " på %s - planlagt på nytt for %s%s"
 
-#, fuzzy
 msgid "Paused"
-msgstr "Passiv"
+msgstr "Pause"
 
 msgid "Waiting for a free chunk"
 msgstr "Venter på en ledig bit"
@@ -87,17 +86,14 @@ msgstr[1] "Tilkobling nektet (%u forsøk igjen)"
 msgid "Dup SHA1 during creation"
 msgstr "Duplisert SHA1 under oppretting"
 
-#, fuzzy
 msgid "Max. number of downloads reached"
-msgstr "Høyeste antall bla i vert-resultater"
+msgstr "Høyeste antall nedlastinger nådd"
 
-#, fuzzy
 msgid "Max. number of downloads for this host reached"
-msgstr "Høyeste antall bla i vert-resultater"
+msgstr "Høyeste antall nedlastinger for denne verten nådd"
 
-#, fuzzy
 msgid "Has already enough active sources"
-msgstr "Inaktive kilder"
+msgstr "Har allerede nok aktive kilder"
 
 msgid "Stopped (Index changed)"
 msgstr "Stoppet (endret indeks)"
@@ -179,7 +175,7 @@ msgstr "<Bla i verten %s>"
 
 #, c-format
 msgid "<THEX data for %s>"
-msgstr ""
+msgstr "<THEX-data for %s>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Stoppet data (slutt på fil) <download_got_eof>"
@@ -251,7 +247,7 @@ msgid "Query had unnecessary overhead"
 msgstr "Spørringen hadde unødvendig overhode"
 
 msgid "Query had bad URN"
-msgstr ""
+msgstr "Forespørselen hadde ugyldig URN"
 
 msgid "Message with malformed SHA1"
 msgstr "Melding med feilformet SHA1"
@@ -271,19 +267,17 @@ msgstr "Fiendtlig IP-adresse"
 msgid "Spam"
 msgstr "Reklame"
 
-#, fuzzy
 msgid "Evil filename"
-msgstr "Filnavn"
+msgstr "Ondt filnavn"
 
 msgid "Payload inflating error"
-msgstr ""
+msgstr "Klarte ikke øke lasten"
 
 msgid "Unknown header flags present"
-msgstr ""
+msgstr "Fikk ukjent meldingshode"
 
-#, fuzzy
 msgid "Own search results"
-msgstr "Søkeresultater"
+msgstr "Egne søkeresultater"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -377,7 +371,7 @@ msgid "Reserved slot"
 msgstr "Reservert plass"
 
 msgid "High Outdegree and Dynamic Querying Required"
-msgstr ""
+msgstr "Trenger høy utgående grad og dynamiske forespørsler"
 
 msgid "Cannot connect to a crawler"
 msgstr "Kan ikke koble til en kryper"
@@ -433,9 +427,9 @@ msgstr "Forbindelse tilbakestilt under «HELLO»"
 msgid "Kicked: %s message too big (%d bytes)"
 msgstr "Sparket %s: meldingen er for stor (%d byte)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Kicked: %s message too big (>= 64KiB limit)"
-msgstr "Sparket %s: meldingen er for stor (%d byte)"
+msgstr "Sparket %s: meldingen er for stor (>= 64 KB)"
 
 msgid "Leaf"
 msgstr "Blad"
@@ -481,9 +475,8 @@ msgstr "Klarte ikke lage IPv4 UDP-sokkel"
 msgid "Failed to create IPv6 UDP socket"
 msgstr "Klarte ikke lage IPv6 UDP-sokkel"
 
-#, fuzzy
 msgid "Failed to create local socket"
-msgstr "Klarte ikke lage lyttesokler"
+msgstr "Klarte ikke lage lokal lyttesokkel"
 
 msgid "Failed to create listening sockets"
 msgstr "Klarte ikke lage lyttesokler"
@@ -492,7 +485,7 @@ msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
 
 msgid "Invalid command syntax"
-msgstr ""
+msgstr "Ugyldig kommandoform"
 
 msgid "Invalid IP/Port"
 msgstr "Ugyldig IP/port"
@@ -500,19 +493,17 @@ msgstr "Ugyldig IP/port"
 msgid "Node added"
 msgstr "La til node"
 
-#, fuzzy
 msgid "Invalid IP"
-msgstr "Ugyldig IP/port"
+msgstr "Ugyldig IP"
 
-#, fuzzy
 msgid "Invalid port"
-msgstr "Ugyldig IP/port"
+msgstr "Ugyldig port"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "Fjernet %u nedlasting"
-msgstr[1] "Fjernet %u nedlastinger"
+msgstr[0] "Fjernet %u person"
+msgstr[1] "Fjernet %u personer"
 
 msgid "Unknown operation"
 msgstr "Ukjent operasjon"
@@ -520,7 +511,6 @@ msgstr "Ukjent operasjon"
 msgid "Query string missing"
 msgstr "Manglende spørringsstreng"
 
-#, fuzzy
 msgid "Query string is not UTF-8 encoded"
 msgstr "Spørringsstrengen er ikke kodet i UTF-8"
 
@@ -528,7 +518,7 @@ msgid "Search added"
 msgstr "La til søk"
 
 msgid "The search could not be created"
-msgstr ""
+msgstr "Klarte ikke lage søket"
 
 msgid "Property missing"
 msgstr "Manglende verdi"
@@ -552,10 +542,10 @@ msgid "Help: "
 msgstr "Hjelp: "
 
 msgid "The library is currently being rebuilt."
-msgstr ""
+msgstr "Biblioteket er i ferd med å bygges på nytt."
 
 msgid "A rescan has already been scheduled"
-msgstr ""
+msgstr "Et nytt søk er allerede planlagt"
 
 msgid "Hops"
 msgstr "Hops"
@@ -577,37 +567,32 @@ msgstr "Total horisontstørrelse (%u/%u noder støtter HSEP):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Horisontstørrelse via HSEP-node %s (%s):"
 
-#, fuzzy
 msgid "URL missing"
-msgstr "Manglende verdi"
+msgstr "Manglende URL"
 
-#, fuzzy
 msgid "The download could not be created"
-msgstr "Ingen nedlastingsplass (lag)"
+msgstr "Klarte ikke lage nedlastingen"
 
-#, fuzzy
 msgid "Download added"
-msgstr "Lastet ned."
+msgstr "La til nedlasting"
 
-#, fuzzy
 msgid "Interactive mode turned on."
-msgstr "Inaktive kilder"
+msgstr "Interaktiv modus slått på"
 
 msgid "Interactive mode turned off."
-msgstr ""
+msgstr "Interaktiv modus slått av"
 
 msgid "No matching property."
-msgstr ""
+msgstr "Ingen passende verdi."
 
-#, fuzzy
 msgid "No help available"
-msgstr "Utilgjengelig"
+msgstr "Ingen hjelp tilgjengelig"
 
 msgid "Good bye"
 msgstr "Farvel"
 
 msgid "Shutdown sequence initiated."
-msgstr ""
+msgstr "Startet avsluttingsprosedyren."
 
 msgid "Malformed command"
 msgstr "Feilformet kommando"
@@ -622,7 +607,7 @@ msgid "Read error"
 msgstr "Lesefeil"
 
 msgid "Got EOF"
-msgstr ""
+msgstr "Fikk filslutt"
 
 msgid "Connection failed"
 msgstr "Tilkobling feilet"
@@ -642,17 +627,17 @@ msgstr "Ser etter UDP-verthurtigminne %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Sendte ping til UDP-verthurtigminne %s:%u"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
-msgstr[0] "Fikk %d vert fra UPD-verthurtigminne %s:%u"
-msgstr[1] "Fikk %d verter fra UPD-verthurtigminne %s:%u"
+msgstr[0] "Fikk %d vert fra UPD-verthurtigminne %s"
+msgstr[1] "Fikk %d verter fra UPD-verthurtigminne %s"
 
 msgid "Connect back timeout"
 msgstr "Tidsavbrudd for tilbakekobling"
 
 msgid "Timeout waiting for follow-up"
-msgstr ""
+msgstr "Tidsavbrudd ved venting på oppfølging"
 
 msgid "Lifetime expired"
 msgstr "Levetiden er utløpt"
@@ -724,17 +709,17 @@ msgstr "Drept på oppdrag"
 msgid "IP denying uploads"
 msgstr "IP nekter opplastinger"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer versions available: release %s / from SVN %s"
-msgstr " - Nyere versjoner tilgjengelig: utgivelse %s / fra CVS %s"
+msgstr " - Nyere versjoner tilgjengelig: utgivelse %s / fra SVN %s"
 
 #, c-format
 msgid " - Newer version available: release %s"
 msgstr "- Nyere versjon tilgjengelig: utgivelse %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid " - Newer version available: from SVN %s"
-msgstr " - Nyere versjon tilgjengelig: fra CVS %s"
+msgstr " - Nyere versjon tilgjengelig: fra SVN %s"
 
 msgid "No proxy"
 msgstr "Ingen mellomtjener"
@@ -796,8 +781,7 @@ msgstr ""
 msgid ""
 "gtk-gnutella found a newer version on the Gnet and gives information about "
 "it here."
-msgstr ""
-"gtk-gnutella fant en nyere versjon på Gnet og viser informasjon om den her."
+msgstr "gtk-gnutella fant en nyere versjon på Gnet og viser informasjon om den her."
 
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
@@ -862,10 +846,8 @@ msgstr ""
 "Ikke tillatt mer enn dette antallet totale opplastinger. Dette bestemmer "
 "også hvor mange PARQ-køer som brukes, og bør være minst 2."
 
-msgid ""
-"Don't upload more than this number of files in parallel to a single host."
-msgstr ""
-"Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
+msgid "Don't upload more than this number of files in parallel to a single host."
+msgstr "Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
 
 msgid "Local IPv4 address last determined."
 msgstr "Den sist oppdagete lokale IPv4-adressen."
@@ -905,11 +887,9 @@ msgstr ""
 "TCP-porten 6346 til å verne mot urettverdig sensurering."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr ""
-"Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
+msgstr "Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
 
-msgid ""
-"Use this IPv6 address as source address if 'force local ip' is activated."
+msgid "Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr "Bruk denne IPv6-adressen som kildeadresse hvis «Tving lokal IP» er på."
 
 msgid ""
@@ -958,16 +938,13 @@ msgid "Number of seconds before a push request times out."
 msgstr "Antall sekunder før tidsavbrudd for en dytte-forespørsel."
 
 msgid "Number of seconds before a download times out if no data is received."
-msgstr ""
-"Antall sekunder før tidsavbrudd for en nedlasting hvis ingen data er mottatt."
+msgstr "Antall sekunder før tidsavbrudd for en nedlasting hvis ingen data er mottatt."
 
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
+msgstr "Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
 
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
+msgstr "Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
 
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
@@ -981,8 +958,7 @@ msgstr ""
 "Antall sekunder å vente før det prøves på nytt etter et tidsavbrudd for en "
 "tilkobling."
 
-msgid ""
-"Delay in seconds before retrying after getting a 'busy' response from a host."
+msgid "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
 "Forsinkelse i sekunder før det prøves på nytt etter å ha fått et "
 "opptattsignal fra en vert."
@@ -1020,10 +996,8 @@ msgstr ""
 "oppnås under et dytt. Dette er også lengste ventetid for å få hele HTTP-"
 "forespørselen."
 
-msgid ""
-"Number of seconds after which an upload times out if no data is transmitted."
-msgstr ""
-"Antall sekunder før tidsavbrudd på en opplasting hvis ingen data er overført."
+msgid "Number of seconds after which an upload times out if no data is transmitted."
+msgstr "Antall sekunder før tidsavbrudd på en opplasting hvis ingen data er overført."
 
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
@@ -1144,8 +1118,7 @@ msgid "Debug level for banning code."
 msgstr "Feilsøkingsnivå for bannlysingskode."
 
 msgid "If not zero, periodic messages show the used CPU time."
-msgstr ""
-"Periodiske meldinger viser den bruke prosessortiden hvis dette ikke er 0."
+msgstr "Periodiske meldinger viser den bruke prosessortiden hvis dette ikke er 0."
 
 msgid "Debug level for download mesh management."
 msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
@@ -1261,7 +1234,6 @@ msgstr ""
 "enn denne innstillingen i sekunder. Dette sjekkes ETTER den "
 "filstørrelsebaserte overhoppingen. Velg 0 for å ikke bruke denne funksjonen."
 
-#, fuzzy
 msgid ""
 "Ban the client if it violates the Retry-After interval too often. Set this "
 "to 0 to disable the banning. The upload will be removed from the queue in "
@@ -1269,8 +1241,8 @@ msgid ""
 "soon once."
 msgstr ""
 "Bannlys klienten hvis den ikke respekterer «Prøv igjen etter»-intervallet "
-"for ofte. Bruk 0 for å slå av bannlysingen (men opplastingen fjernes "
-"fortsatt fra køen). Standard er 1, så klienten bannlyses etter at den prøver "
+"for ofte. Bruk 0 for å slå av bannlysingen. Opplastingen fjernes "
+"fra køen uansett. Standard er 1, så klienten bannlyses etter at den prøver "
 "på nytt for tidlig én gang."
 
 msgid "For development use: track properties."
@@ -1333,15 +1305,11 @@ msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
 msgid "Enable to use [forced_local_ip6] as local ip."
 msgstr "Slå dette på for å bruke [forced_local_ip6] som lokal IP-adresse."
 
-msgid ""
-"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
-msgstr ""
-"Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip» er på."
+msgid "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgstr "Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip» er på."
 
-msgid ""
-"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
-msgstr ""
-"Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip6» er på."
+msgid "If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
+msgstr "Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip6» er på."
 
 msgid "Try to connect to local networks first."
 msgstr "Prøv å koble til lokale nettverk først."
@@ -1396,8 +1364,7 @@ msgstr ""
 "Bruk en IPv6 til IPv4-oversetter for transportrelésendinger som beskrevet i "
 "RFC 3142."
 
-msgid ""
-"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgid "The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
 msgstr ""
 "Prefikset for IPv6-adresser som brukes av IPv6 til IPv4-oversetteren for "
 "relésendinger."
@@ -1464,8 +1431,7 @@ msgstr ""
 "båndbredden tjeles fra den vanlige HTTP-trafikken hvis du kjører som "
 "ultranode og bladformeren er slått påt."
 
-msgid ""
-"Maximum size of search queries messages we forward to others  (in bytes)."
+msgid "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
 "Høyeste størrelse på søkespørringsmeldinger vi videresender til andre (i "
 "byte)."
@@ -1477,10 +1443,8 @@ msgstr ""
 "Høyeste størrelse på søkespørringsmeldinger vi tilalter, ellers lukkes "
 "forbindelsen (i byte)."
 
-msgid ""
-"Maximum size of search answers messages we forward to others (in bytes)."
-msgstr ""
-"Høyeste størrelse på søkesvarmeldinger vi videresender til andre (i byte)."
+msgid "Maximum size of search answers messages we forward to others (in bytes)."
+msgstr "Høyeste størrelse på søkesvarmeldinger vi videresender til andre (i byte)."
 
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
@@ -1493,7 +1457,7 @@ msgid ""
 "Maximum number of Query MUIDs to track. This allows mapping MUIDs of Query "
 "Hits to the original search term. In the worst case this causes about 300 "
 "bytes per Query of memory overhead."
-msgstr ""
+msgstr "Høyeste antall forespørsel-MUID'er som skal spores. Dette gjør det mulig å koble MUID'er fra søkeforespørsler til det opprinnelige søkeuttrykket. I verste tilfelle bruker dette 300 byte med minne per forespørsel."
 
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
@@ -1597,9 +1561,8 @@ msgstr "Toalt antall fullførte opplastinger i denne økten."
 msgid "Global Unique IDentifier of this node."
 msgstr "Denne nodens Globale Unike IDentifiserer."
 
-#, fuzzy
 msgid "Kademlia Unique IDentifier of this node in the DHT."
-msgstr "Denne nodens Globale Unike IDentifiserer."
+msgstr "Kadamlia Unik ID for denne noden i DHT."
 
 msgid "Whether or not to use swarming (recommended = YES)."
 msgstr "Hvorvidt sverming skal brukes (anbefales på)."
@@ -1637,8 +1600,7 @@ msgstr ""
 "spørringstreffene som flyter gjennom noden vår. Dette ser for nye "
 "oppføringer for filer vi deler eller allerede har i nettet."
 
-msgid ""
-"When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
+msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 "Hvis detta brukes kreves det at SHA1-verdier må stemme. Ellers er navn og "
 "størrelse nok."
@@ -1673,8 +1635,7 @@ msgstr ""
 "kan føre til overlappingsproblemer seinere hvis den første biten faktisk var "
 "fra en annen fil. Bruk med forsiktighet."
 
-msgid ""
-"Whether gtk-gnutella is currently rebuilding its library in the background."
+msgid "Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr "Hvorvidt gtk-gnutella bygger biblioteket sitt på nytt i bakgrunnen."
 
 msgid ""
@@ -1734,7 +1695,7 @@ msgstr ""
 "utomt identifiserende tegn."
 
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
-msgstr "Høyeste antall ultralikemenn vi bør koble til som et blad."
+msgstr "Høyeste antall ultrapersoner vi bør koble til som et blad."
 
 msgid ""
 "To connect more quickly, gtk-gnutella will allow up to this many connections "
@@ -1797,8 +1758,7 @@ msgstr "Hvor mye filinformasjon med kilder vi har."
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
-msgstr ""
-"Hvor mange nedlastinger som svarer (fjern tjenent svarer på forespørsler)."
+msgstr "Hvor mange nedlastinger som svarer (fjern tjenent svarer på forespørsler)."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "Antall byte lastet ned sålangt, untatt HTTP-hoder."
@@ -1927,8 +1887,7 @@ msgstr ""
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
-msgstr ""
-"Prosentdel av antall forbindelser vi skal reservere for gtk-gnutella-noder."
+msgstr "Prosentdel av antall forbindelser vi skal reservere for gtk-gnutella-noder."
 
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Høyeste prosentdel av plassene en selger kan bruke."
@@ -1975,8 +1934,7 @@ msgstr "Siste gang et automatisk bytte mellom ultra- og løvmodus tok plass."
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
-msgstr ""
-"Hvorvidt vi møter kravet på gjennomsnittlig oppetid for å bli en Ultra-node."
+msgstr "Hvorvidt vi møter kravet på gjennomsnittlig oppetid for å bli en Ultra-node."
 
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
@@ -2011,9 +1969,8 @@ msgstr "Hvorvidt vi møter minnekravene for å bli en Ultra-node."
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr "Hvorvidt vi møter båndbredde-kravene for å bli en Ultra-node."
 
-#, fuzzy
 msgid "Whether we meet the UDP requirements to become an Ultra node."
-msgstr "Hvorvidt vi møter minnekravene for å bli en Ultra-node."
+msgstr "Hvorvidt du møter UDP-kravene for å bli en Ultra-node."
 
 msgid ""
 "Size of the search queue holding the locally generated queries before they "
@@ -2045,7 +2002,7 @@ msgstr ""
 msgid ""
 "Amount of seconds until an idle remote shell session gets disconnected. If "
 "set to zero, no timeout occurs."
-msgstr ""
+msgstr "Antall sekunder før en ledig fjerntilkobling blir frakoblet. 0 betyr intet tidsavbrudd."
 
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
@@ -2110,9 +2067,8 @@ msgstr "Når vi startet indeksering av delte filer."
 msgid "Time spent indexing shared files."
 msgstr "Tid brukt på å indeksere delte filer."
 
-#, fuzzy
 msgid "Memory used by the QRP tables"
-msgstr "Antall plasser brukt av QRP-tabellen vår."
+msgstr "Minne brukt av QRP-tabellene"
 
 msgid "Time at which we started query routing table generation."
 msgstr "Tidspunktet vi startet lagingen av spørringdirigeringstabellen."
@@ -2139,8 +2095,7 @@ msgid "Percentage of slots filled within our QRP table."
 msgstr "Prosentdel av plasser fyllt inni QRP-tabellen vår."
 
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
-msgstr ""
-"Prosentdel av lappskauskonflikter under innsetting av data i QRP-tabellen."
+msgstr "Prosentdel av lappskauskonflikter under innsetting av data i QRP-tabellen."
 
 msgid "Amount of hashed keywords in our QRP table."
 msgstr "Antall nøkkelord det er laget lappskaus i QRP-tabellen."
@@ -2197,8 +2152,7 @@ msgstr ""
 "for nye filer."
 
 msgid "If set, all outgoing connections are tunneled over TLS."
-msgstr ""
-"Hvis dette slås på legges alle utgående forbindelser i tunnel over TLS."
+msgstr "Hvis dette slås på legges alle utgående forbindelser i tunnel over TLS."
 
 msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
@@ -2268,7 +2222,7 @@ msgstr ""
 "I så tilfelle krever gtk-gnutella treffene fra de fjerne nodene og "
 "videresender treffene til det riktige bladet. Dette er veldig nyttig for "
 "bladene, men kan sende store flommer av UPD-trafikk tilbake til deg. Hvis du "
-"slår av dette må alle ultralikemenn som er tilkoblet deg relésende treffene, "
+"slår av dette må alle ultrapersonene som er tilkoblet deg relésende treffene, "
 "og muligens slippe andre spørringsmeldinger og senke søkenettverkets "
 "effektivitet."
 
@@ -2308,8 +2262,7 @@ msgid "Number of HTML browsing requests received in this session."
 msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
 
 msgid "Number of HTML browsing requests fully served in this session."
-msgstr ""
-"Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
+msgstr "Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
 
 msgid "Number of Gnutella browsing requests received in this session."
 msgstr "Antall forespørsler om Gnutella-blaing som er mottatt i denne økten."
@@ -2319,7 +2272,6 @@ msgstr ""
 "Antall forespørsler om Gnutella-blaing som er fullstendig betjent i denne "
 "økten."
 
-#, fuzzy
 msgid ""
 "The average CPU usage indicates overloading, so gtk-gnutella is reducing the "
 "amount of non-critical processing it is performing. Note that the "
@@ -2331,9 +2283,9 @@ msgstr ""
 "Den gjennomsnittlige prosessorbruken indikerer overlast, så gtk-gnutella "
 "reduserer mengden ikke-kritisk behandling det utføerer. Merk at "
 "overlastingen kan skje fordi gtk-gnutella ikke får nok prosessortid fordi en "
-"annen prosess konkurrerer om den. Mens overlastingen pågår, oppdateres ikke "
+"annen prosess konkurrerer om den. Mens overlastingen pågår oppdateres ikke "
 "grensesnittet så ofte, og bakgrunnsoppgaver (SHA1-kalkulering og "
-"filflytting) stoppes."
+"filflytting) går saktere."
 
 msgid ""
 "Amount of data per downloading source that gtk-gnutella will buffer before "
@@ -2372,32 +2324,27 @@ msgstr ""
 "prefikser. Hvis dette er av vises noen måleenheter, for eksempel "
 "filstørrelser, med den historiske base2-konverteringen med binær-prefikser."
 
-#, fuzzy
 msgid "Debug level for Reliable UDP (RUDP) code."
-msgstr "Feilsøkingsnivå for fildelingskode."
+msgstr "Feilsøkingsnivå for pålitelig UDP (RUDP)-kode."
 
-#, fuzzy
 msgid "Debug level for the Distributed Hash Table (DHT) code."
-msgstr "Feilsøkingsnivå for fildelingskode."
+msgstr "Feilsøkingsnivå for distribuert kontrollnøkkeltabell (DHT)-koden"
 
-#, fuzzy
 msgid "Debug level for the OOB-proxying of queries."
-msgstr "Feilsøkingsnivå for dynamiske spørringer."
+msgstr "Feilsøkingsnivå for OOB-mellomtjeningen av forespørsler."
 
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
-msgstr ""
+msgstr "Hvis på lytter gtk-gnutella også til en lokal (Unix-domene) sokkel som finnes i «~/.gtk-gnutella/socket»."
 
-#, fuzzy
 msgid "Don't start more than this number of parallel downloads per file."
-msgstr ""
-"Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
+msgstr "Ikke start flere parallelle nedlastinger for samme fil enn dette."
 
 msgid ""
 "If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
 "dump."
-msgstr ""
+msgstr "Hvis på dumpes alle mottatte pakker til «$GTK_GNUTELLA_DIR/packets_rx.dump»."
 
 msgid ""
 "If enabled, queries are also matched against the directory names which are "
@@ -2406,49 +2353,41 @@ msgid ""
 "without knowing the directory names as well. However, be sure the directory "
 "names do not expose confidential information. You have to initiate a rescan "
 "of the shared files before a change becomes fully effective."
-msgstr ""
+msgstr "Hvis på sammenliknes spørringer også med mappenavn som er relative til de delte, og søkeresulteter vil vise disse. Dette er spesielt nyttig hvis de delte filnavnene er tvetydige eller meningsløse hvis man ikke vet katalognavnene også. Pass på at mappenavnene ikke inneholder personlig informasjon. Du må starte en ny gjennomgang av de delte filene for at endringen skal tre ordentlig i kraft."
 
-#, fuzzy
 msgid "Debug level for the shell."
 msgstr "Feilsøkingsnivå for grensesnittet."
 
 msgid "If larger than zero, no downloads are started."
-msgstr ""
+msgstr "Hvis dette er høyere enn 0 blir ingen nedlastinger startet."
 
-#, fuzzy
 msgid "Debug level for the search queue."
-msgstr "Feilsøkingsnivå for grensesnittet."
+msgstr "Feilsøkingsnivå for søkekøen."
 
-#, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "Feilsøkingsnivå for HTTP-kode."
+msgstr "Feilsøkingsnivå for dyttemellomtjener-koden."
 
 msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
+msgstr "Dette er en midlertidig innstilling mens Tigertree-støtten ikke er ferdig."
 
-#, fuzzy
 msgid "Number of THEX file requests received in this session."
-msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
+msgstr "Antall THEX-filforespørsler mottatt i denne økten."
 
-#, fuzzy
 msgid "Number of THEX file requests fully served in this session."
-msgstr ""
-"Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
+msgstr "Antall THEX-filforespørsler betjent i denne økten."
 
-#, fuzzy
 msgid "Debug level for Tigertree-related code."
-msgstr "Feilsøkingsnivå for Gnutella-noder."
+msgstr "Feilsøkingsnivå for Tigertree-relatert kode."
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
 msgstr ""
-"Hvorvidt gtk-gnutella holder på med å kalkulere SHA1-verdier av delte filer "
+"Hvorvidt gtk-gnutella holder på med å kalkulere TTH-verdier av delte filer "
 "i bagkrunnen."
 
 msgid "This is an interim property."
-msgstr ""
+msgstr "Dette er en midlertidig innstilling."
 
 msgid "disable"
 msgstr "slå av"
@@ -2486,9 +2425,8 @@ msgstr "QRP"
 msgid "HSEP"
 msgstr "HSEP"
 
-#, fuzzy
 msgid "RUDP"
-msgstr "UDP"
+msgstr "RUDP"
 
 msgid "Vendor spec."
 msgstr "Selger spesiell"
@@ -2661,8 +2599,7 @@ msgid "Maximum number of results to show in any search."
 msgstr "Høyeste antall resultater å vise i et søk."
 
 msgid "Maximum number of results to show in a browse_host request."
-msgstr ""
-"Høyeste antall resultater å vise i en «browse_host» (bla i vert)-forespørsel."
+msgstr "Høyeste antall resultater å vise i en «browse_host» (bla i vert)-forespørsel."
 
 msgid "Debug level for the gui."
 msgstr "Feilsøkingsnivå for grensesnittet."
@@ -2673,9 +2610,8 @@ msgstr "Størrelsen på filtertreet i filtervinduet."
 msgid "Show tabs or search list."
 msgstr "Vis faner eller søkeliste."
 
-#, fuzzy
 msgid "Display Searchbar."
-msgstr "Vis sidelinje."
+msgstr "Vis søkelinje."
 
 msgid "Display Sidebar."
 msgstr "Vis sidelinje."
@@ -2717,8 +2653,7 @@ msgid "Display outgoing Gnet leaf traffic bandwidth usage."
 msgstr "Vis båndbreddebruk for utgående Gnet-bladtrafikk."
 
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
-msgstr ""
-"Skjul bladbåndbreddevisningen automatisk når ikke i ultralikemannmodus."
+msgstr "Skjul bladbåndbreddevisningen automatisk når ikke i ultralikemannmodus."
 
 msgid "Display incoming HTTP traffic bandwidth average."
 msgstr "Vis gjennomsnittlig båndbreddebruk for innkommende HTTP-trafikk."
@@ -2748,13 +2683,13 @@ msgid "Default sort column for search results."
 msgstr "Standard sorteringskolonne for søkeresultater."
 
 msgid "Discard search results which are considered spam."
-msgstr ""
+msgstr "Ignorer søkeresultater som vurderes som falske."
 
 msgid "Discard search results which carry no hashsum."
-msgstr ""
+msgstr "Ignorer søkeresultater som ikke har en kontrollverdi."
 
 msgid "Jump to newly created searches"
-msgstr ""
+msgstr "Bytt til nylig opprettede søk"
 
 msgid "Collect statistics about searches that go through this node."
 msgstr "Samle statistikk om søk som går gjennom denne noden."
@@ -2778,8 +2713,7 @@ msgstr "Vis en hjelpsom melding når pekeren holdes over visse områder."
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing."
-msgstr ""
-"Vis mange flere innstillinger. Les hva de gjør hvis du prøver å endre dem."
+msgstr "Vis mange flere innstillinger. Les hva de gjør hvis du prøver å endre dem."
 
 msgid "Show percentages instead of absolute values in the Gnet stats."
 msgstr "Vis prosenter i stedet for absoluttverdier i Gnet-statistikken."
@@ -2799,8 +2733,7 @@ msgstr "Velg meldingstype for slippegrunner."
 msgid "Include Gnutella packet header size to the volume."
 msgstr "Ta med størrelsen på Gnutella-pakkehodet til volumet."
 
-msgid ""
-"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
+msgid "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
 msgstr ""
 "Vis prosentdeler i stedet for absoluttverdier i Gnet-statistikken "
 "(slippegrunner)."
@@ -2817,8 +2750,7 @@ msgstr "Fjern feilete opplastinger automatisk."
 msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
-msgstr ""
-"Hvorvidt nodens oppetid skal vises (ikke alle noder gir denne informasjonen)."
+msgstr "Hvorvidt nodens oppetid skal vises (ikke alle noder gir denne informasjonen)."
 
 msgid "Whether the handshaking version number should be displayed."
 msgstr "Hvorvidt håndhilsningsversjonnummeret skal vises."
@@ -2866,10 +2798,8 @@ msgstr "Hvorvidt antall mottatte spørringstreff skal vises."
 msgid "Whether count of locally generated queries should be displayed."
 msgstr "Hvorvidt antall lokalproduserte spørringer skal vises."
 
-msgid ""
-"Whether count of local queries pending transmission should be displayed."
-msgstr ""
-"Hvorvidt antall lokalproduserte spørringer som venter på sending skal vises."
+msgid "Whether count of local queries pending transmission should be displayed."
+msgstr "Hvorvidt antall lokalproduserte spørringer som venter på sending skal vises."
 
 msgid "Whether count of dropped messages on TX should be displayed."
 msgstr "Hvorvidt antall slupne meldinger på TX skal vises."
@@ -2910,14 +2840,12 @@ msgstr ""
 msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
-msgstr ""
-"Hvorvidt vi skal vise størrelsen på nodens bibliotek, når vi kjenner den."
+msgstr "Hvorvidt vi skal vise størrelsen på nodens bibliotek, når vi kjenner den."
 
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
-msgstr ""
-"Hvorvidt vi skal vise noders antall delte viler, når det er kjent for oss."
+msgstr "Hvorvidt vi skal vise noders antall delte viler, når det er kjent for oss."
 
 msgid ""
 "The amount of time in seconds that the GUI should buffer search results as "
@@ -2942,8 +2870,7 @@ msgstr "Bredde på kolonnene i Gnet-pakkestatistikktabellen (byte). [GTK2]"
 msgid "Configures the appearance of the toolbar."
 msgstr "Sett opp visningen av verktøylinjen."
 
-msgid ""
-"The lifetime of a search. If this time is exceeded, the search is stopped."
+msgid "The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr "Et søks levetid. Søket stoppes når denne tiden er utløpt."
 
 msgid "Anonymizing proxies"
@@ -2953,7 +2880,7 @@ msgid "Satellite providers"
 msgstr "Satelittleverandører"
 
 msgid "Andorra"
-msgstr ""
+msgstr "Andorra"
 
 msgid "United Arab Emirates"
 msgstr "De forente arabiske emirater"
@@ -2968,7 +2895,7 @@ msgid "Anguilla"
 msgstr "Anguilla"
 
 msgid "Albania"
-msgstr ""
+msgstr "Albania"
 
 msgid "Armenia"
 msgstr "Armenia"
@@ -2976,39 +2903,35 @@ msgstr "Armenia"
 msgid "Netherlands Antilles"
 msgstr "De nederlandske Antillene"
 
-#, fuzzy
 msgid "Angola"
-msgstr "Anguilla"
+msgstr "Angola"
 
 msgid "Asia/Pacific Region"
 msgstr "Asia-/Stillehavsregionen"
 
 msgid "Antarctica"
-msgstr ""
+msgstr "Antarktis"
 
-#, fuzzy
 msgid "Argentina"
-msgstr "Armenia"
+msgstr "Argentina"
 
 msgid "American Samoa"
 msgstr "USAs Samoa"
 
 msgid "Austria"
-msgstr ""
+msgstr "Østerrike"
 
 msgid "Australia"
-msgstr ""
+msgstr "Australia"
 
 msgid "Aruba"
 msgstr "Aruba"
 
-#, fuzzy
 msgid "Åland Islands"
-msgstr "Caymanøyene"
+msgstr "Åland"
 
-#, fuzzy
 msgid "Azerbaijan"
-msgstr "Aserbajdsjan, Republikken"
+msgstr "Aserbajdsjan"
 
 msgid "Bosnia and Herzegovina"
 msgstr "Bosnia-Hercegovina"
@@ -3017,27 +2940,25 @@ msgid "Barbados"
 msgstr "Barbados"
 
 msgid "Bangladesh"
-msgstr ""
+msgstr "Bangladesh"
 
-#, fuzzy
 msgid "Belgium"
-msgstr "Belize"
+msgstr "Belgia"
 
 msgid "Burkina Faso"
 msgstr "Burkina Faso"
 
 msgid "Bulgaria"
-msgstr ""
+msgstr "Bulgaria"
 
 msgid "Bahrain"
-msgstr ""
+msgstr "Bahrain"
 
 msgid "Burundi"
-msgstr ""
+msgstr "Burundi"
 
-#, fuzzy
 msgid "Benin"
-msgstr "Réunion"
+msgstr "Benin"
 
 msgid "Bermuda"
 msgstr "Bermuda"
@@ -3046,23 +2967,22 @@ msgid "Brunei Darussalam"
 msgstr "Brunei"
 
 msgid "Bolivia"
-msgstr ""
+msgstr "Bolivia"
 
 msgid "Brazil"
-msgstr ""
+msgstr "Brasil"
 
 msgid "Bahamas"
-msgstr ""
+msgstr "Bahamas"
 
 msgid "Bhutan"
-msgstr ""
+msgstr "Bhutan"
 
-#, fuzzy
 msgid "Bouvet Island"
 msgstr "Bouvetøya"
 
 msgid "Botswana"
-msgstr ""
+msgstr "Botswana"
 
 msgid "Belarus"
 msgstr "Hviterussland"
@@ -3076,59 +2996,53 @@ msgstr "Canada"
 msgid "Cocos (Keeling) Islands"
 msgstr "Kokosøyene"
 
-#, fuzzy
 msgid "Congo (Democratic Republic)"
-msgstr "Kongo, Den demokratiske republikken"
+msgstr "Kongo"
 
 msgid "Central African Republic"
 msgstr "Den sentralafrikanske republikk"
 
-#, fuzzy
 msgid "Congo"
-msgstr "Pong"
+msgstr "Kongo-Brazaville"
 
 msgid "Switzerland"
-msgstr ""
+msgstr "Sveits"
 
 msgid "Cote d'Ivoire"
-msgstr ""
+msgstr "Elfenbeinskysten"
 
 msgid "Cook Islands"
 msgstr "Cookøyene"
 
-#, fuzzy
 msgid "Chile"
-msgstr "fil"
+msgstr "Chile"
 
 msgid "Cameroon"
-msgstr ""
+msgstr "Kamerun"
 
 msgid "China"
-msgstr ""
+msgstr "Kina"
 
 msgid "Colombia"
-msgstr ""
+msgstr "Colombia"
 
-#, fuzzy
 msgid "Costa Rica"
-msgstr "Costa Rica, Republikken"
+msgstr "Costa Rica"
 
 msgid "Serbia and Montenegro"
 msgstr "Serbia og Montenegro"
 
-#, fuzzy
 msgid "Cuba"
-msgstr "Aruba"
+msgstr "Cuba"
 
-#, fuzzy
 msgid "Cape Verde"
-msgstr "Kapp Verde, Republikken"
+msgstr "Kapp Verde"
 
 msgid "Christmas Island"
 msgstr "Christmasøyen"
 
 msgid "Cyprus"
-msgstr ""
+msgstr "Kypros"
 
 msgid "Czech Republic"
 msgstr "Tsjekkia, Republikken"
@@ -3137,29 +3051,28 @@ msgid "Germany"
 msgstr "Tyskland"
 
 msgid "Djibouti"
-msgstr ""
+msgstr "Djibouti"
 
 msgid "Denmark"
-msgstr ""
+msgstr "Danmark"
 
-#, fuzzy
 msgid "Dominica"
-msgstr "Den dominikanske republikk"
+msgstr "Dominica"
 
 msgid "Dominican Republic"
 msgstr "Den dominikanske republikk"
 
 msgid "Algeria"
-msgstr ""
+msgstr "Algerie"
 
 msgid "Ecuador"
-msgstr ""
+msgstr "Ecuador"
 
 msgid "Estonia"
 msgstr "Estland"
 
 msgid "Egypt"
-msgstr ""
+msgstr "Egypt"
 
 msgid "Western Sahara"
 msgstr "Vest-Sahara"
@@ -3167,9 +3080,8 @@ msgstr "Vest-Sahara"
 msgid "Eritrea"
 msgstr "Eritrea"
 
-#, fuzzy
 msgid "Spain"
-msgstr "Mellomrom"
+msgstr "Spania"
 
 msgid "Ethiopia"
 msgstr "Etiopia"
@@ -3177,33 +3089,29 @@ msgstr "Etiopia"
 msgid "Europe"
 msgstr "Europa"
 
-#, fuzzy
 msgid "Finland"
-msgstr "Grønland"
+msgstr "Finland"
 
 msgid "Fiji"
-msgstr ""
+msgstr "Fiji"
 
 msgid "Falkland Islands (Malvinas)"
 msgstr "Falklandsøyene"
 
 msgid "Micronesia"
-msgstr ""
+msgstr "Mikronesia"
 
-#, fuzzy
 msgid "Faroe Islands"
 msgstr "Færøyene"
 
-#, fuzzy
 msgid "France"
-msgstr "Avbryt"
+msgstr "Frankrike"
 
 msgid "Gabon"
-msgstr ""
+msgstr "Gabon"
 
-#, fuzzy
 msgid "United Kingdom"
-msgstr "Sverige, Kongeriket"
+msgstr "Storbritannia"
 
 msgid "Grenada"
 msgstr "Grenada"
@@ -3214,12 +3122,11 @@ msgstr "Georgia"
 msgid "French Guiana"
 msgstr "Fransk Guyana"
 
-#, fuzzy
 msgid "Guernsey"
-msgstr "Tyskland"
+msgstr "Guernsey"
 
 msgid "Ghana"
-msgstr ""
+msgstr "Ghana"
 
 msgid "Gibraltar"
 msgstr "Gibraltar"
@@ -3227,176 +3134,155 @@ msgstr "Gibraltar"
 msgid "Greenland"
 msgstr "Grønland"
 
-#, fuzzy
 msgid "Gambia"
-msgstr "Namibia"
+msgstr "Gambia"
 
-#, fuzzy
 msgid "Guinea"
-msgstr "Generelt"
+msgstr "Guinea"
 
-#, fuzzy
 msgid "Guadeloupe"
 msgstr "Guadeloupe"
 
-#, fuzzy
 msgid "Equatorial Guinea"
-msgstr "Ekvatorial-Guinea, Republikken"
+msgstr "Ekvatorial-Guinea"
 
 msgid "Greece"
-msgstr ""
+msgstr "Hellas"
 
-#, fuzzy
 msgid "South Georgia and The South Sandwich Islands"
 msgstr "Sør-Georgia og de sørlige Sandwichøyene"
 
-#, fuzzy
 msgid "Guatemala"
-msgstr "Guam"
+msgstr "Guatemala"
 
 msgid "Guam"
 msgstr "Guam"
 
-#, fuzzy
 msgid "Guinea-Bissau"
-msgstr "Guinea-Bissau, Republikken"
+msgstr "Guinea-Bissau"
 
-#, fuzzy
 msgid "Guyana"
-msgstr "Myanmar"
+msgstr "Guyana"
 
 msgid "Hong Kong"
-msgstr ""
+msgstr "Hongkong"
 
-#, fuzzy
 msgid "Heard Island and McDonald Islands"
 msgstr "Heard- og McDonaldøyene"
 
 msgid "Honduras"
-msgstr ""
+msgstr "Honduras"
 
-#, fuzzy
 msgid "Croatia"
-msgstr "Latvia"
+msgstr "Kroatia"
 
-#, fuzzy
 msgid "Haiti"
-msgstr "Venter"
+msgstr "Haiti"
 
 msgid "Hungary"
-msgstr ""
+msgstr "Ungarn"
 
 msgid "Indonesia"
-msgstr ""
+msgstr "Indonesia"
 
 msgid "Ireland"
 msgstr "Irland"
 
-#, fuzzy
 msgid "Israel"
-msgstr "Irland"
+msgstr "Israel"
 
 msgid "Isle of Man"
-msgstr ""
+msgstr "Man-øyen"
 
 msgid "India"
-msgstr ""
+msgstr "India"
 
-#, fuzzy
 msgid "British Indian Ocean Territory"
 msgstr "Det britiske territorium i Det indiske hav"
 
 msgid "Iraq"
-msgstr ""
+msgstr "Irak"
 
-#, fuzzy
 msgid "Iran"
-msgstr "Irland"
+msgstr "Iran"
 
-#, fuzzy
 msgid "Iceland"
-msgstr "Irland"
+msgstr "Island"
 
 msgid "Italy"
-msgstr ""
+msgstr "Italia"
 
 msgid "Jersey"
-msgstr ""
+msgstr "Jersey"
 
 msgid "Jamaica"
 msgstr "Jamaica"
 
 msgid "Jordan"
-msgstr ""
+msgstr "Jordan"
 
 msgid "Japan"
 msgstr "Japan"
 
 msgid "Kenya"
-msgstr ""
+msgstr "Kenya"
 
 msgid "Kyrgyzstan"
-msgstr ""
+msgstr "Kirgisistan"
 
-#, fuzzy
 msgid "Cambodia"
-msgstr "Namibia"
+msgstr "Kambodsja"
 
 msgid "Kiribati"
-msgstr ""
+msgstr "Kiribati"
 
 msgid "Comoros"
-msgstr ""
+msgstr "Komorene"
 
-#, fuzzy
 msgid "Saint Kitts and Nevis"
 msgstr "St. Kitts og Nevis"
 
 msgid "North Korea"
-msgstr ""
+msgstr "Nord-Korea"
 
 msgid "South Korea"
-msgstr ""
+msgstr "Sør-Korea"
 
 msgid "Kuwait"
-msgstr ""
+msgstr "Kuwait"
 
 msgid "Cayman Islands"
 msgstr "Caymanøyene"
 
-#, fuzzy
 msgid "Kazakhstan"
-msgstr "Kasakhstan, Republikken"
+msgstr "Kasakhstan"
 
 msgid "Laos"
-msgstr ""
+msgstr "Laos"
 
-#, fuzzy
 msgid "Lebanon"
-msgstr "Årsak"
+msgstr "Libanon"
 
-#, fuzzy
 msgid "Saint lucia"
 msgstr "St. Lucia"
 
-#, fuzzy
 msgid "Liechtenstein"
-msgstr "Liechtenstein, Fyrstedømmet"
+msgstr "Liechtenstein"
 
 msgid "Sri Lanka"
-msgstr ""
+msgstr "Sri Lanka"
 
 msgid "Liberia"
-msgstr ""
+msgstr "Liberia"
 
 msgid "Lesotho"
-msgstr ""
+msgstr "Lesotho"
 
 msgid "Lithuania"
 msgstr "Litauen"
 
 msgid "Luxembourg"
-msgstr ""
+msgstr "Luxembourg"
 
 msgid "Latvia"
 msgstr "Latvia"
@@ -3405,42 +3291,37 @@ msgid "Libyan Arab Jamahiriya"
 msgstr "Libya"
 
 msgid "Morocco"
-msgstr ""
+msgstr "Marokko"
 
-#, fuzzy
 msgid "Monaco"
-msgstr "Overvåker"
+msgstr "Monaco"
 
 msgid "Moldova"
-msgstr ""
+msgstr "Moldova"
 
-#, fuzzy
 msgid "Montenegro"
-msgstr "Serbia og Montenegro"
+msgstr "Montenegro"
 
-#, fuzzy
 msgid "Madagascar"
-msgstr "Madagaskar, Republikken"
+msgstr "Madagaskar"
 
 msgid "Marshall Islands"
 msgstr "Marshalløyene"
 
-#, fuzzy
 msgid "Macedonia"
-msgstr "Ny-Caledonia"
+msgstr "Makedonia"
 
-#, fuzzy
 msgid "Mali"
-msgstr "Malaysia"
+msgstr "Mali"
 
 msgid "Myanmar"
 msgstr "Myanmar"
 
 msgid "Mongolia"
-msgstr ""
+msgstr "Mongolia"
 
 msgid "Macao"
-msgstr ""
+msgstr "Macao"
 
 msgid "Northern Mariana Islands"
 msgstr "Nord-Marianene"
@@ -3448,35 +3329,32 @@ msgstr "Nord-Marianene"
 msgid "Martinique"
 msgstr "Martinique"
 
-#, fuzzy
 msgid "Mauritania"
-msgstr "Mauritius"
+msgstr "Mauritania"
 
 msgid "Montserrat"
 msgstr "Montserrat"
 
-#, fuzzy
 msgid "Malta"
-msgstr "Malaysia"
+msgstr "Malta"
 
 msgid "Mauritius"
 msgstr "Mauritius"
 
 msgid "Maldives"
-msgstr ""
+msgstr "Maldivene"
 
-#, fuzzy
 msgid "Malawi"
-msgstr "Malaysia"
+msgstr "Malawi"
 
 msgid "Mexico"
-msgstr ""
+msgstr "Mexico"
 
 msgid "Malaysia"
 msgstr "Malaysia"
 
 msgid "Mozambique"
-msgstr ""
+msgstr "Mosambik"
 
 msgid "Namibia"
 msgstr "Namibia"
@@ -3485,46 +3363,43 @@ msgid "New Caledonia"
 msgstr "Ny-Caledonia"
 
 msgid "Niger"
-msgstr ""
+msgstr "NIger"
 
 msgid "Norfolk Island"
 msgstr "Norfolkøyen"
 
 msgid "Nigeria"
-msgstr ""
+msgstr "Nigeria"
 
 msgid "Nicaragua"
-msgstr ""
+msgstr "Nicaragua"
 
-#, fuzzy
 msgid "Netherlands"
-msgstr "De nederlandske Antillene"
+msgstr "Nederland"
 
 msgid "Norway"
-msgstr ""
+msgstr "Norge"
 
 msgid "Nepal"
-msgstr ""
+msgstr "Nepal"
 
 msgid "Nauru"
-msgstr ""
+msgstr "Nauru"
 
 msgid "Niue"
-msgstr ""
+msgstr "Niue"
 
 msgid "New Zealand"
 msgstr "Ny-Zealand"
 
 msgid "Oman"
-msgstr ""
+msgstr "Oman"
 
-#, fuzzy
 msgid "Panama"
-msgstr "Canada"
+msgstr "Panama"
 
-#, fuzzy
 msgid "Peru"
-msgstr "Likemann:"
+msgstr "Peru"
 
 msgid "French Polynesia"
 msgstr "Fransk polynesia"
@@ -3533,199 +3408,172 @@ msgid "Papua New Guinea"
 msgstr "Papua Ny-Guinea"
 
 msgid "Philippines"
-msgstr ""
+msgstr "Filippinene"
 
-#, fuzzy
 msgid "Pakistan"
-msgstr "Tadsjikistan"
+msgstr "Pakistan"
 
-#, fuzzy
 msgid "Poland"
-msgstr "Irland"
+msgstr "Poland"
 
-#, fuzzy
 msgid "Saint Pierre and Miquelon"
 msgstr "Saint-Pierre-et-Miquelon"
 
-#, fuzzy
 msgid "Pitcairn"
 msgstr "Pitcairn"
 
 msgid "Puerto Rico"
 msgstr "Puerto Rico"
 
-#, fuzzy
 msgid "Palestinian Territory"
 msgstr "Palestinske territorier"
 
-#, fuzzy
 msgid "Portugal"
-msgstr "Total"
+msgstr "Portugal"
 
 msgid "Palau"
 msgstr "Palau"
 
-#, fuzzy
 msgid "Paraguay"
-msgstr "Palau"
+msgstr "Paraguay"
 
 msgid "Qatar"
-msgstr ""
+msgstr "Qatar"
 
 msgid "Reunion"
 msgstr "Réunion"
 
 msgid "Romania"
-msgstr ""
+msgstr "Romania"
 
-#, fuzzy
 msgid "Serbia"
-msgstr "Georgia"
+msgstr "Serbia"
 
 msgid "Russian Federation"
 msgstr "Russland"
 
-#, fuzzy
 msgid "Rwanda"
-msgstr "Canada"
+msgstr "Rwanda"
 
-#, fuzzy
 msgid "Saudi Arabia"
-msgstr "Saudi-Arabia, Kongeriket"
+msgstr "Saudi-Arabia"
 
 msgid "Solomon Islands"
 msgstr "Salomonøyene"
 
-#, fuzzy
 msgid "Seychelles"
-msgstr "Søk"
+msgstr "Seychellene"
 
 msgid "Sudan"
-msgstr ""
+msgstr "Sudan"
 
 msgid "Sweden"
-msgstr ""
+msgstr "Sverige"
 
-#, fuzzy
 msgid "Singapore"
-msgstr "ignorer"
+msgstr "Singapore"
 
-#, fuzzy
 msgid "Saint Helena"
 msgstr "St. Helena"
 
 msgid "Slovenia"
 msgstr "Slovenia"
 
-#, fuzzy
 msgid "Svalbard and Jan Mayen"
 msgstr "Svalbard og Jan Mayen"
 
-#, fuzzy
 msgid "Slovakia"
-msgstr "Slovenia"
+msgstr "Slovakia"
 
-#, fuzzy
 msgid "Sierra Leone"
-msgstr "Sierra Leone, Republikken"
+msgstr "Sierra Leone"
 
-#, fuzzy
 msgid "San Marino"
-msgstr "San Marino, Republikken"
+msgstr "San Marino"
 
-#, fuzzy
 msgid "Senegal"
-msgstr "Generelt"
+msgstr "Senegal"
 
 msgid "Somalia"
-msgstr ""
+msgstr "Somalia"
 
-#, fuzzy
 msgid "Suriname"
-msgstr "navn"
+msgstr "Surinam"
 
-#, fuzzy
 msgid "Sao Tome and Principe"
-msgstr "São Tomé og Príncipe, Den demokratiske republikken"
+msgstr "São Tomé og Príncipe"
 
-#, fuzzy
 msgid "El Salvador"
-msgstr "El Salvador, Republikken"
+msgstr "El Salvador"
 
 msgid "Syrian Arab Republic"
 msgstr "Syria"
 
 msgid "Swaziland"
-msgstr ""
+msgstr "Swaziland"
 
 msgid "Turks and Caicos Islands"
 msgstr "Turks- og Caicosøyene"
 
 msgid "Chad"
-msgstr ""
+msgstr "Tsjad"
 
 msgid "French Southern Territories"
 msgstr "De franske sørterritorier"
 
 msgid "Togo"
-msgstr ""
+msgstr "Togo"
 
 msgid "Thailand"
-msgstr ""
+msgstr "Thailand"
 
 msgid "Tajikistan"
 msgstr "Tadsjikistan"
 
 msgid "Tokelau"
-msgstr ""
+msgstr "Tokelau"
 
 msgid "Timor-leste"
-msgstr ""
+msgstr "Øst-Timor"
 
 msgid "Turkmenistan"
 msgstr "Turkmenistan"
 
-#, fuzzy
 msgid "Tunisia"
-msgstr "Turkmenistan"
+msgstr "Tunisia"
 
-#, fuzzy
 msgid "Tonga"
-msgstr "Pong"
+msgstr "Tonga"
 
 msgid "Turkey"
-msgstr ""
+msgstr "Tyrkia"
 
-#, fuzzy
 msgid "Trinidad and Tobago"
-msgstr "Trinidad og Tobago, Republikken"
+msgstr "Trinidad og Tobago"
 
 msgid "Tuvalu"
 msgstr "Tuvalu"
 
-#, fuzzy
 msgid "Taiwan"
-msgstr "Tadsjikistan"
+msgstr "Taiwan"
 
 msgid "Tanzania"
-msgstr ""
+msgstr "Tanzania"
 
 msgid "Ukraine"
 msgstr "Ukraina"
 
-#, fuzzy
 msgid "Uganda"
-msgstr "Canada"
+msgstr "Uganda"
 
 msgid "United States Minor Outlying Islands"
 msgstr "USAs ytre småøyer"
 
-#, fuzzy
 msgid "United States"
 msgstr "USA"
 
 msgid "Uruguay"
-msgstr ""
+msgstr "Uruguay"
 
 msgid "Uzbekistan"
 msgstr "Usbekistan"
@@ -3733,33 +3581,29 @@ msgstr "Usbekistan"
 msgid "Holy See (Vatican City State)"
 msgstr "Vatikanstaten"
 
-#, fuzzy
 msgid "Saint Vincent and The Grenadines"
 msgstr "St. Vincent og Grenadinene"
 
 msgid "Venezuela"
-msgstr ""
+msgstr "Venezuela"
 
 msgid "British Virgin Islands"
 msgstr "Jomfruøyene (Storbritannia)"
 
-#, fuzzy
 msgid "U.S. Virgin Islands"
 msgstr "Jomfruøyene (USA)"
 
 msgid "Viet Nam"
-msgstr ""
+msgstr "Vietnam"
 
 msgid "Vanuatu"
 msgstr "Vanuatu"
 
-#, fuzzy
 msgid "Wallis and Futuna"
 msgstr "Wallis- og Futunaøyene"
 
-#, fuzzy
 msgid "Samoa"
-msgstr "Reklame"
+msgstr "Samoa"
 
 msgid "Yemen"
 msgstr "Jemen"
@@ -3767,13 +3611,11 @@ msgstr "Jemen"
 msgid "Mayotte"
 msgstr "Mayotte"
 
-#, fuzzy
 msgid "South Africa"
-msgstr "Sør-Afrika, Republikken"
+msgstr "Sør-Afrika"
 
-#, fuzzy
 msgid "Zambia"
-msgstr "Namibia"
+msgstr "Zambia"
 
 msgid "Zimbabwe"
 msgstr "Zimbabwe"
@@ -3817,17 +3659,16 @@ msgid "locale_get_language|en"
 msgstr "nb"
 
 msgid "This is an unofficial build which accesses files in this directory:"
-msgstr ""
-"Dette er en uoffisielt bygget versjon som bruker filer i denne katalogen:"
+msgstr "Dette er en uoffisielt bygget versjon som bruker filer i denne katalogen:"
 
 msgid "Bitzi|Unknown"
 msgstr "Ukjent"
 
 msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
+msgstr "Feil ved Bitzi-oppslag"
 
 msgid "Bitzi|Filesize mismatch"
-msgstr ""
+msgstr "Filstørrelsen stemmer ikke"
 
 msgid "Bitzi|Dangerous/Misleading"
 msgstr "Farlig/Villedende"
@@ -4092,12 +3933,11 @@ msgstr "Ukrevde lokallagde OOB-treff"
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Delvis krevde lokallagde OOB-treff"
 
-#, fuzzy
 msgid "Unrequested OOB hits received"
-msgstr "Spørringer som ber om OOB-treffleveranse"
+msgstr "Ikke forespurte OOB-treff mottatt"
 
 msgid "Spurious OOB hit claiming received"
-msgstr ""
+msgstr "Mottok flask OOB-treff"
 
 msgid "Compacted queries"
 msgstr "Sammenpakkede spørringer"
@@ -4174,17 +4014,14 @@ msgstr "Fremmede UDP-meldinger (ikke Gnutella)"
 msgid "Unprocessed UDP Gnutella messages"
 msgstr "Ubehandlede UDP Gnutella-meldinger"
 
-#, fuzzy
 msgid "Compressed UDP messages enqueued"
-msgstr "Ubehandlede UDP Gnutella-meldinger"
+msgstr "Komprimerte UDP-meldinger lagt i køen"
 
-#, fuzzy
 msgid "Compressed UDP messages received"
-msgstr "Ubehandlede UDP Gnutella-meldinger"
+msgstr "Komprimerte UDP-meldinger mottatt"
 
-#, fuzzy
 msgid "Uncompressed UDP messages due to no gain"
-msgstr "Ubehandlede UDP Gnutella-meldinger"
+msgstr "Ukomprimerte UDP-meldinger fordi det ikke var noe å tjene"
 
 msgid "node"
 msgid_plural "nodes"
@@ -4310,9 +4147,8 @@ msgstr "(stanset)"
 msgid " [%d/%d] TR: %s"
 msgstr " [%d/%d] Igjen: %s"
 
-#, fuzzy
 msgid "ignoring"
-msgstr "innkommende"
+msgstr "Ignorerer"
 
 msgid "Connected"
 msgstr "Koblet til"
@@ -4361,9 +4197,8 @@ msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
 msgid "Downloading (%s)  TR: %s"
 msgstr "Laster ned (%s)  Tid igjen: %s"
 
-#, fuzzy
 msgid "Seeding"
-msgstr "Sender dytt"
+msgstr "Deler"
 
 msgid "Finished"
 msgstr "Ferdig"
@@ -4566,8 +4401,7 @@ msgid "Leaf traffic"
 msgstr "Bladtrafikk"
 
 msgid "A passive search matches any search results routed through this node"
-msgstr ""
-"Et passivt søk passer alle søkeresultatene som dirigeres gjennom denne noden."
+msgstr "Et passivt søk passer alle søkeresultatene som dirigeres gjennom denne noden."
 
 msgid "_Passive"
 msgstr "_Passiv"
@@ -4618,7 +4452,7 @@ msgid "Maximum"
 msgstr "Høyst"
 
 msgid "Ultrapeers in leaf mode"
-msgstr "Ultralikemenn i bladmodus"
+msgstr "Ultrapersoner i bladmodus"
 
 msgid "Quick-connect pool size"
 msgstr "Bassengstørrelse for rask tilkobling"
@@ -4739,7 +4573,7 @@ msgid "Clear"
 msgstr "Tøm"
 
 msgid "Ultrapeers"
-msgstr "Ultralikemenn"
+msgstr "Ultrapersoner"
 
 msgid "Bad hosts"
 msgstr "Dårlige verter"
@@ -4860,7 +4694,7 @@ msgid "Alternate filenames"
 msgstr "Alternative filnavn"
 
 msgid "_Purge selected"
-msgstr "_Rens valgte"
+msgstr "_Fjern valgte"
 
 msgid " registered, "
 msgstr " registrert, "
@@ -4895,9 +4729,8 @@ msgstr "Høyeste antall nedlastinger fra én vert"
 msgid "Max. simultaneous downloads"
 msgstr "Høyeste antall samtidige nedlastinger"
 
-#, fuzzy
 msgid "Max. simultaneous downloads per file"
-msgstr "Høyeste antall samtidige nedlastinger"
+msgstr "Høyeste antall samtidige nedlastinger per fil"
 
 msgid "Auto clear stopped downloads"
 msgstr "FJern stoppede nedlastinger automatisk"
@@ -4927,7 +4760,7 @@ msgid "Clear stopped"
 msgstr "Fjern stoppede"
 
 msgid "("
-msgstr ""
+msgstr "("
 
 msgid "active"
 msgstr "aktiv"
@@ -4939,7 +4772,7 @@ msgid "queued"
 msgstr "i kø"
 
 msgid ")"
-msgstr ""
+msgstr ")"
 
 msgid "Show settings"
 msgstr "Vis innstillinger"
@@ -5002,10 +4835,10 @@ msgid "Copy browse-host results to passive searches"
 msgstr "Kopier bla i vert-resultater til passive søk"
 
 msgid "Discard spam"
-msgstr ""
+msgstr "Overse falske søkeresultater"
 
 msgid "Discard results without SHA-1 hashes"
-msgstr ""
+msgstr "Overse resultater uten SHA1-kontrollverdier"
 
 msgid "Information about selected file"
 msgstr "Informasjon om valgt fil"
@@ -5025,9 +4858,8 @@ msgstr "Selger:"
 msgid "Country:"
 msgstr "Land:"
 
-#, fuzzy
 msgid "Query:"
-msgstr "Spørring"
+msgstr "Spørring:"
 
 msgid "Speed:"
 msgstr "Fart:"
@@ -5214,8 +5046,7 @@ msgstr "Slipp resultater . . ."
 msgid ""
 "Adds \"don't display\" rules matching the selected files names to the search "
 "filter."
-msgstr ""
-"Legger til ikke vis-regler som passer de valgte filnavnene til søkefilteret."
+msgstr "Legger til ikke vis-regler som passer de valgte filnavnene til søkefilteret."
 
 msgid ""
 "Adds \"don't display\" rules matching the selected files urn:sha1 to the "
@@ -5348,9 +5179,8 @@ msgstr "Betingelse: Hvis filnavnet passer"
 msgid "case sensitive"
 msgstr "skill mellom store og små bokstaver"
 
-#, fuzzy
 msgid "Save"
-msgstr "Lagret"
+msgstr "Lagre"
 
 msgid "Remove"
 msgstr "Fjern"
@@ -5442,15 +5272,14 @@ msgstr "Avbryt"
 msgid "gtk-gnutella shutdown"
 msgstr "Avslutting av gtk-gnutella"
 
-#, fuzzy
 msgid ""
 "Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
 msgstr ""
-"gtk-gnutella avsluttes.\n"
-"Sender farvelmeldinger til likemenn.\n"
+"Gtk-Gnutella avsluttes.\n"
+"Sender farvelmeldinger.\n"
 "\n"
 "Gjenstående elegansetid:"
 
@@ -5493,10 +5322,8 @@ msgstr "Jeroen Asselman"
 msgid "Contributors:"
 msgstr "Bidragsytere:"
 
-msgid ""
-"==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr ""
-"==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
+msgid "==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr "==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Besøk «http://gtk-gnutella.sourceforge.net/»."
@@ -5562,30 +5389,26 @@ msgstr "Slå på _UDP"
 msgid "Network protocol:"
 msgstr "Nettverksprotokoll:"
 
-#, fuzzy
 msgid "(Disable: 0, Random: 1)"
-msgstr "Ikke bruk: 0, tilfeldig: 1"
+msgstr "(Ikke bruk: 0, tilfeldig: 1)"
 
-#, fuzzy
 msgid "IPv4 settings"
-msgstr "IP-innstillinger"
+msgstr "IPv¤-innstillinger"
 
 msgid "Force external IPv_4 address to"
-msgstr ""
+msgstr "Tving ekstern IPv_4 adresse til"
 
-#, fuzzy
 msgid "Bind to this address"
-msgstr "Ugyldig returadresse"
+msgstr "Bind til denne adressen"
 
-#, fuzzy
 msgid "IPv6 settings"
-msgstr "IP-innstillinger"
+msgstr "IPv6-innstillinger"
 
 msgid "Force external IPv_6 address to"
-msgstr ""
+msgstr "Tving ekstern IPv_6-adresse til"
 
 msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
+msgstr "Bruk IPv6 til IPv4 TRT-prefiks:"
 
 msgid "Proxy settings"
 msgstr "Innstillinger for mellomtjener"
@@ -5661,9 +5484,8 @@ msgstr "Klokkeforskyvning:"
 msgid "Miscellaneous"
 msgstr "Diverse"
 
-#, fuzzy
 msgid "Enable remote _shell control interface"
-msgstr "Slå på _skallkontroll-grensesnitt"
+msgstr "Slå på grensesnitt for ekstern _skallkontroll"
 
 msgid "Socket receive buffer size"
 msgstr "Størrelse på hurtigminne for sokkelmottak"
@@ -5735,7 +5557,7 @@ msgid "Enough min # of connections"
 msgstr "Nok minste antall forbindelser"
 
 msgid "Engouh UDP support"
-msgstr ""
+msgstr "Nok UDP-støtte"
 
 msgid "Searches"
 msgstr "Søk"
@@ -5967,7 +5789,7 @@ msgid "What other people see as your connection speed."
 msgstr "Hva andre folk ser som din tilkoblingshastighet."
 
 msgid "kbps to peers"
-msgstr "kbps til likemenn"
+msgstr "kbps til personer"
 
 msgid "_Compute upload connection speed"
 msgstr "_Kalkulrer tilkoblingshastighet for opplastinger"
@@ -6066,12 +5888,10 @@ msgid "Delay in seconds to wait after connection failure"
 msgstr "Antall sekunder å vente etter tilkoblingsfeil"
 
 msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+msgstr "Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
 
 msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+msgstr "Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
 
 msgid "Number of seconds before timeout for a connecting download"
 msgstr "Antall sekunder før tidsavbrudd for en tilkoblende nedlasting"
@@ -6257,8 +6077,7 @@ msgid "Expert mode"
 msgstr "Ekspertmodus"
 
 msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-"Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
+msgstr "Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
 
 msgid "GnutellaNet display"
 msgstr "GnutellaNet-visning"
@@ -6380,25 +6199,20 @@ msgstr "gtk-gnutella: Ofte stitle spørsmål"
 msgid "Frequently Asked Questions:"
 msgstr "Ofte stitle spørsmål:"
 
-#, fuzzy
 msgid "_Stop this search"
-msgstr "Stopp dette søket"
+msgstr "_Stopp dette søket"
 
-#, fuzzy
 msgid "Resu_me this search"
-msgstr "Fortsett dette søket"
+msgstr "_Fortsett dette søket"
 
-#, fuzzy
 msgid "_Restart this search"
-msgstr "Start søket på nytt"
+msgstr "Sta_rt søket på nytt"
 
-#, fuzzy
 msgid "_Duplicate this search"
-msgstr "Dupliser dette søket"
+msgstr "_Dupliser dette søket"
 
-#, fuzzy
 msgid "_Close this search"
-msgstr "Lukk dette søket"
+msgstr "_Lukk dette søket"
 
 msgid "Country"
 msgstr "Land"
@@ -6406,17 +6220,14 @@ msgstr "Land"
 msgid "Failed to create the search"
 msgstr "Klarte ikke lage søket"
 
-#, fuzzy
 msgid "owned"
-msgstr "Ferdig"
+msgstr "eid"
 
-#, fuzzy
 msgid "partial"
-msgstr "Latvia"
+msgstr "delvis"
 
-#, fuzzy
 msgid "shared"
-msgstr "stoppet"
+msgstr "delt"
 
 #, c-format
 msgid "Created %u download"
@@ -6448,34 +6259,29 @@ msgstr "#"
 msgid "Metadata"
 msgstr "Metadata"
 
-#, fuzzy
 msgid "Vendor"
-msgstr "Selger:"
+msgstr "Program"
 
 msgid "Route"
 msgstr "Rute"
 
-#, fuzzy
 msgid "Protocol"
-msgstr "Puerto Rico"
+msgstr "Protokoll"
 
 msgid "TTL"
-msgstr ""
+msgstr "TTL"
 
 msgid "Owned"
-msgstr ""
+msgstr "Eid"
 
-#, fuzzy
 msgid "Hostile"
-msgstr "Vert"
+msgstr "Fiendtlig"
 
-#, fuzzy
 msgid "SHA-1"
-msgstr "SHA1:"
+msgstr "SHA-1"
 
-#, fuzzy
 msgid "Created"
-msgstr "Fullført"
+msgstr "Opprettet"
 
 msgid "Not in database"
 msgstr "Ikke i databasen"
@@ -6503,9 +6309,8 @@ msgstr "Klarte ikke finne pikselkartfilen «%s»"
 msgid "Error loading pixmap file: %s"
 msgstr "Klarte ikke åpne pikselkartfilen «%s»"
 
-#, fuzzy
 msgid " (partial)"
-msgstr "Begge (loddrett)"
+msgstr " (delvis)"
 
 #, c-format
 msgid " (slot %u"
@@ -6519,9 +6324,8 @@ msgstr " nytt forsøk om %us"
 msgid "Sending request (%u%%)"
 msgstr "Sender forespørsel (%u%%)"
 
-#, fuzzy
 msgid "Uploaded"
-msgstr "Lastet opp."
+msgstr "Lastet opp"
 
 msgid "Aliases"
 msgstr "Aliaser"
@@ -6535,9 +6339,8 @@ msgstr[1] "Valgte %u av %u nedlastinger som passer til «%s»."
 msgid "Cache contains"
 msgstr "Hurtigminne inneholder"
 
-#, fuzzy
 msgid "Pause"
-msgstr "Dytt"
+msgstr "Pause"
 
 msgid "Copy Magnet to clipboard"
 msgstr "Kopier magnet til utklippstavlen"
@@ -6551,7 +6354,6 @@ msgstr "Kopier til utklippstavlen"
 msgid "_Remove filter"
 msgstr "Fje_rn filter"
 
-#, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -6559,7 +6361,7 @@ msgid ""
 "Grace time remaining:"
 msgstr ""
 "gtk-gnutella avsluttes.\n"
-"Sender farvelmeldinger til likemenn.\n"
+"Sender farvelmeldinger.\n"
 "\n"
 "Gjenstående elegansetid:"
 
@@ -6573,7 +6375,7 @@ msgid "Connect to"
 msgstr "Koble til"
 
 msgid "ultrapeers"
-msgstr "ultralikemenn"
+msgstr "ultrapersoner"
 
 msgid "Try to keep at least"
 msgstr "Prøv å beholde minst"
@@ -6621,9 +6423,8 @@ msgstr "[BH qtreff]"
 msgid "Current _search:"
 msgstr "Gjeldende _søk:"
 
-#, fuzzy
 msgid "XML Metadata"
-msgstr "Metadata"
+msgstr "XM-informasjon"
 
 msgid "Flow _control"
 msgstr "Flyt_kontroll"
@@ -6653,35 +6454,32 @@ msgid "Reverse DNS lookup"
 msgstr "Omvendt DNS-oppslag"
 
 msgid "Force external IPv4 address to"
-msgstr ""
+msgstr "Tving ekstern IPv4-adresse til"
 
-#, fuzzy
 msgid "_Bind to this address"
-msgstr "Ugyldig returadresse"
+msgstr "_Bind til denne adressen"
 
-#, fuzzy
 msgid "IPv_4 settings"
-msgstr "IP-innstillinger"
+msgstr "IPv_4-innstillinger"
 
 msgid "Force external IPv6 address to"
-msgstr ""
+msgstr "Tving ekstern IPv6-adresse til"
 
-#, fuzzy
 msgid "IPv_6 settings"
-msgstr "IP-innstillinger"
+msgstr "IPv_6-innstillinger"
 
 msgid ""
 "This option can give performance boosts to those on a large network with "
 "many peers by trying to locate files on the local networks first."
 msgstr ""
 "Denne innstillingen kan gi ytelsesøkning til de som er på store nettverk med "
-"mange likemenn ved å prøve å finen filer på det lokale nettverket først."
+"mange personer ved å prøve å finen filer på det lokale nettverket først."
 
 msgid "_Addresses of local network(s)"
 msgstr "_Adresser til lokale nettverk"
 
 msgid "Enough UDP support"
-msgstr ""
+msgstr "Nok UDP-støtte"
 
 msgid "seconds (0 - disable)"
 msgstr "sekunder (0 - av)"
@@ -6702,7 +6500,7 @@ msgid "_Remove directory"
 msgstr "Fje_rn katalog"
 
 msgid "E_xpose relative paths"
-msgstr ""
+msgstr "_Oppgi relative stier"
 
 msgid "Minimum chunk _size"
 msgstr "Minste bit_størrelse"
@@ -6770,7 +6568,7 @@ msgid "Unstable"
 msgstr "Ustabil"
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
+msgstr "gtk-gnutella: Klikk for å minimere/gjenopprette"
 
 msgid "Stats"
 msgstr "Statistikk"
@@ -6801,14 +6599,13 @@ msgid_plural "%d seconds"
 msgstr[0] "%d sekund"
 msgstr[1] "%d sekunder"
 
-#, fuzzy
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
 msgstr ""
-"Klarte ikke åpne dokumentet med ofte stitle spørsmål. Les det på Internett "
-"på «http://gtk-gnutella.sourceforge.net/?page=faq» i stedet."
+"<html><head><title>Ofte stilte spørsmål</title></head><body><p>Klarte ikke laste dokumentet. Les <a href=\"http://gtk-gnutella."
+"sourceforge.net/?page=faq\">spørsmålene på Internett</a> i stedet.</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6928,28 +6725,25 @@ msgid "Handled magnet link (%s, %s)."
 msgstr "Håndtert magnet-kobling (%s, %s)."
 
 msgid "Ignored unusable magnet link."
-msgstr ""
+msgstr "Overså ubrukelig magnetpeker."
 
-#, fuzzy
 msgid "The given urn type is not supported."
-msgstr "Typen støttes ikke"
+msgstr "Den oppgitte URN-typen støttes ikke."
 
-#, fuzzy
 msgid "The given SHA-1 is not correctly encoded."
-msgstr "Typen støttes ikke"
+msgstr "Den oppgitte SHA1-verdien er ikke kodet ordentlig."
 
 msgid "Missing port number"
-msgstr ""
+msgstr "Manglende portnummer"
 
-#, fuzzy
 msgid "Could not parse host address"
-msgstr "Klarte ikke starte bla-verten for «%s»"
+msgstr "Klarte ikke lese vertadresse"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "Spørringsstrengen er ikke kodet i UTF-8"
 
 msgid "Unhandled search prefix."
-msgstr ""
+msgstr "Uhåndtert søkeprefiks."
 
 #, c-format
 msgid "Added search showing browsing results for %s"
@@ -6960,57 +6754,49 @@ msgid "Could not launch browse host for %s"
 msgstr "Klarte ikke starte bla-verten for «%s»"
 
 msgid "Bitzi URL"
-msgstr ""
+msgstr "Bitzi-URL"
 
 msgid "ShareMonkey URL"
-msgstr ""
+msgstr "ShareMonkey-URL"
 
-#, fuzzy
 msgid "Index"
-msgstr "Indeks:"
+msgstr "Indeks"
 
 msgid "No"
 msgstr "Nei"
 
-#, fuzzy
 msgid "Pathname"
-msgstr "Canada"
+msgstr "Stinavn"
 
-#, fuzzy
 msgid "File URL"
-msgstr "FIl"
+msgstr "Fil-URL"
 
-#, fuzzy
 msgid "Source"
-msgstr "Kilder"
+msgstr "Kilde"
 
-#, fuzzy
 msgid "Browsable"
-msgstr "kan leses i"
+msgstr "Kan blas i"
 
-#, fuzzy
 msgid "Maybe"
-msgstr "Mayotte"
+msgstr "Kanskje"
 
-#, fuzzy
 msgid "Hostname"
-msgstr "Verthurtigminne"
+msgstr "Vertnavn"
 
-#, fuzzy
 msgid "Servent ID"
 msgstr "Tjenent-ID:"
 
 msgid "Alt-Locs"
-msgstr ""
+msgstr "Alt-låser"
 
 msgid "Push-proxies"
-msgstr ""
+msgstr "Dyttemellomtjenere"
 
 msgid "N2R URI"
-msgstr ""
+msgstr "N2R-URI"
 
 msgid "Classic URL"
-msgstr ""
+msgstr "Klassisk URL"
 
 msgid "Never"
 msgstr "Aldri"
@@ -7037,6 +6823,8 @@ msgid ""
 "gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
 "body></html>"
 msgstr ""
+"<html><head><title>Eldgammel versjon oppdaget!</title></head><body><h1>Advarsel</h1><p>Denne versjonen av gtk-gnutella er temmelig gammel. Besøk <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
+"gnutella.sourceforge.net/</a> og oppdater.</p></body></html>"
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** DETTE ER EN GAMMEL VERSJON ***"
@@ -7054,7 +6842,7 @@ msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** FÅ FILBESKRIVERE IGJEN ***"
 
 msgid "*** Please update gtk-gnutella ***"
-msgstr ""
+msgstr "*** Oppdatert gtk-gnutella ***"
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7120,9 +6908,9 @@ msgstr "Fikk dytt, kobler tilbake . . ."
 msgid "< 1s"
 msgstr "< 1s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s) TR: %s %s #%u"
-msgstr "%s%s(%s) Tid igjen: %s"
+msgstr "%s(%s) Igjen: %s %s #%u"
 
 msgid "stalled"
 msgstr "stoppet"
@@ -7133,9 +6921,8 @@ msgstr "Venter på hoder . . ."
 msgid "Waiting for further request..."
 msgstr "Venter på videre forespørsel . . ."
 
-#, fuzzy
 msgid "Reading follow-up request..."
-msgstr "Venter på videre forespørsel . . ."
+msgstr "Leser videre forespørsel . . ."
 
 msgid "Unavailable range, waiting retry..."
 msgstr "Utilgjengelig rekkevidde, venter på gjenprøving . . ."
@@ -7159,658 +6946,3 @@ msgstr "Sender KØ, kobler tilbake . . ."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
 
-#~ msgid ""
-#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
-#~ "matching to be safe)."
-#~ msgstr ""
-#~ "Bruk uklar filnavntreffing (abefales ikke; stol kun på SHA1 for å være "
-#~ "sikker)."
-
-#~ msgid ""
-#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
-#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
-#~ "two filenames will always be considered to be identical.  The minimum is "
-#~ "50%."
-#~ msgstr ""
-#~ "Usikkerhetsgrense for filnavntreffing (høyere verdier er strengere). En "
-#~ "verdi på 100 betyr at filnavnene må være 100% identiske. En verdi på 0 "
-#~ "betyr at alle filnavn vurderes som like. Det minste er 50%."
-
-#~ msgid ""
-#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-#~ "this filtering is to remove entries whose names are too different to be "
-#~ "sensibly part of the same mesh. When activated, your mesh will probably "
-#~ "be more consistent at the cost of extra CPU time, and at the cost of "
-#~ "losing some valid entries in the process."
-#~ msgstr ""
-#~ "Hvorvidt et uklart filter skal brukes på oppføringene i "
-#~ "nedlastingsmasken. Målet med dette er å fjerne oppføringer hvis navn er "
-#~ "for forskjellige til å fornuftig være en del av samme nettet. Hvis dette "
-#~ "slås på blir nettet ditt antakelig mer sammenhengende, men det bruker "
-#~ "ekstra prosessorkraft, og noen gyldige oppføringer går antakelig tapt i "
-#~ "prosessen."
-
-#~ msgid "Protocol is not supported"
-#~ msgstr "Protokollen støttes ikke"
-
-#~ msgid "Unknown parameter"
-#~ msgstr "Ukjent parameter"
-
-#~ msgid "normal node"
-#~ msgstr "normal node"
-
-#~ msgid "<no SHA1 known>"
-#~ msgstr "<Ingen kjent SHA1>"
-
-#~ msgid "Queued (%u active, %u passive)"
-#~ msgstr "I kø (%u aktive, %u passive)"
-
-#, fuzzy
-#~ msgid "Completed (%s) %s%s"
-#~ msgstr "%s ferdig (%s) %s"
-
-#~ msgid "Out of memory"
-#~ msgstr "Ikke nok tilgjengelig minne"
-
-#~ msgid "Browse Host Enabled"
-#~ msgstr "Bla i vert er slått på"
-
-#~ msgid "Display download settings."
-#~ msgstr "Vis nedlastingsinnstillinger."
-
-#~ msgid "Sho_w settings"
-#~ msgstr "_Vis innstillinger"
-
-#~ msgid "Hide settings"
-#~ msgstr "Skjul innstillinger"
-
-#~ msgid ""
-#~ "This property must be set to the current version number of gtk-gnutella "
-#~ "in order to allow it to run when it is ancient."
-#~ msgstr ""
-#~ "Denne verdien må være satt til det gjeldende versjonnummeret av gtk-"
-#~ "gnutella for å tillate det å kjøre når det er gammelt."
-
-#~ msgid "Display search settings."
-#~ msgstr "Vis søkeinnstillinger."
-
-#~ msgid "Retry in %ds"
-#~ msgstr "Prøver på nytt om %ds"
-
-#~ msgid "Displaying"
-#~ msgstr "Viser"
-
-#, fuzzy
-#~ msgid ""
-#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
-#~ "Network. RFC1918 will be ignored."
-#~ msgstr ""
-#~ "Velg dette hvis du ønsker å bruke gtk-gnutella på det lokale nettverket. "
-#~ "RFC1918 blir ignorert."
-
-#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
-#~ msgstr "*** DENNE VERSJONEN ER SNART GAMMEL ***"
-
-#~ msgid "Got %d host from %s"
-#~ msgid_plural "Got %d hosts from %s"
-#~ msgstr[0] "Fikk %d vert fra %s"
-#~ msgstr[1] "Fikk %d verter fra %s"
-
-#~ msgid "Connecting to web cache %s"
-#~ msgstr "Kobler til netthurtigminne %s"
-
-#~ msgid "Updated web cache "
-#~ msgstr "Oppdatert nedhurtigminne "
-
-#~ msgid "Type not supported"
-#~ msgstr "Typen støttes ikke"
-
-#~ msgid "leaf"
-#~ msgstr "blad"
-
-#~ msgid "ultrapeer"
-#~ msgstr "ultrabruker"
-
-#~ msgid "Verbosity of GWebCache related debug messages."
-#~ msgstr "Utdypetheten til «GWebCache»-relaterte feilsøkingsmeldinger."
-
-#~ msgid ""
-#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
-#~ "read-ahead.  This gives more room for reading large amount of data "
-#~ "without issuing too many system calls. It complements buffering nicely "
-#~ "because it prevents reading a few bytes before committing the buffered "
-#~ "data to disk: when read-ahead space is available, it will be used in "
-#~ "addition to buffering, but read-ahead data is committed to disk "
-#~ "immediately.  If you don't wish to reserve more memory per active source, "
-#~ "you can disable this feature by setting the read-ahead buffer size to 0."
-#~ msgstr ""
-#~ "Ekstra mengde data per nedlastingskilde som gtk-gnutella skal prøve å "
-#~ "lese foran. Dette gir mer plass for å lese store mangder data uten å "
-#~ "bruke for mange systemkall. Det passer godt sammen med lagring i "
-#~ "hurtigminne fordi det forhindrer lesingen av noen få byte før de "
-#~ "hurtiglagrede dataene lagres til disk: når lese foran-plass er "
-#~ "tilgjengelig brukes det i tillegg til lagring i hurtigminne, men lese "
-#~ "foran-data lagres på disken med én gang. Hvos du ikke vil reservere mer "
-#~ "minne per aktive kilde kan du slå av denne funksjonen ved å sette "
-#~ "hurtigminnet for lese foran til 0."
-
-#~ msgid "Improper hops/TTL combination"
-#~ msgstr "Feilaktig hop/TTL-kombinasjon"
-
-#~ msgid "Flow control"
-#~ msgstr "Flytkontroll"
-
-#~ msgid "gtk-gnutella"
-#~ msgstr "gtk-gnutella"
-
-#, fuzzy
-#~ msgid "[Gnet Stats]"
-#~ msgstr "Gnutella-statistikk"
-
-#, fuzzy
-#~ msgid "[Hostcache]"
-#~ msgstr "Verthurtigminne"
-
-#, fuzzy
-#~ msgid "[Uploads]"
-#~ msgstr "Opplastinger"
-
-#, fuzzy
-#~ msgid "[BH qhits served]"
-#~ msgstr "[BH qtreff]"
-
-#, fuzzy
-#~ msgid "[Upload Stats]"
-#~ msgstr "Opplastinger"
-
-#, fuzzy
-#~ msgid "[with source count]"
-#~ msgstr " med kilder"
-
-#, fuzzy
-#~ msgid "[Downloads]"
-#~ msgstr "Nedlastinger"
-
-#, fuzzy
-#~ msgid "[running]"
-#~ msgstr "Bannlysing"
-
-#, fuzzy
-#~ msgid "[Active]"
-#~ msgstr "Aktiv"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "%u nedlasting"
-
-#, fuzzy
-#~ msgid "[Queue]"
-#~ msgstr "Kø"
-
-#, fuzzy
-#~ msgid "[Search]"
-#~ msgstr "Søk"
-
-#, fuzzy
-#~ msgid "[Monitor]"
-#~ msgstr "Overvåker"
-
-#, fuzzy
-#~ msgid "[Search Stats]"
-#~ msgstr "Søkefiltre"
-
-#, fuzzy
-#~ msgid "[Add/Remove]"
-#~ msgstr "Fjern"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "Filnavn"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "IP-adresse/maske"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "Filer"
-
-#, fuzzy
-#~ msgid "[SHA1]"
-#~ msgstr "SHA1:"
-
-#, fuzzy
-#~ msgid "[Flags]"
-#~ msgstr "Flagg"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "Statistikk"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "Oppetid"
-
-#~ msgid "TCP"
-#~ msgstr "TCP"
-
-#~ msgid "Edit filters"
-#~ msgstr "Rediger filtre"
-
-#~ msgid ""
-#~ "\n"
-#~ "The FAQ document is damaged.\n"
-#~ msgstr ""
-#~ "\n"
-#~ "Dokumentet med ofte stilte spørsmål er skadet.\n"
-
-#~ msgid ", browsable"
-#~ msgstr ", kan leses i"
-
-#~ msgid "Albania, People's Socialist Republic of"
-#~ msgstr "Albania, Den sosialistiske folkerepublikken"
-
-#~ msgid "Algeria, People's Democratic Republic of"
-#~ msgstr "Algerie, Den demokratiske folkerepublikken"
-
-#~ msgid "Andorra, Principality of"
-#~ msgstr "Andorra, Fyrstedømmet"
-
-#~ msgid "Angola, Republic of"
-#~ msgstr "Angola, Republikken"
-
-#~ msgid "Antarctica (the territory South of 60 deg S)"
-#~ msgstr "Antarktika (territoriet sør for 60 grader S)"
-
-#~ msgid "Argentina, Argentine Republic"
-#~ msgstr "Argentina, Den argentinske republikken"
-
-#~ msgid "Australia, Commonwealth of"
-#~ msgstr "Australia, Samveldet"
-
-#~ msgid "Austria, Republic of"
-#~ msgstr "Østerrike, Republikken"
-
-#~ msgid "Bahamas, Commonwealth of the"
-#~ msgstr "Bahamas, Samveldet"
-
-#~ msgid "Bahrain, Kingdom of"
-#~ msgstr "Bahrain, Kongeriket"
-
-#~ msgid "Bangladesh, People's Republic of"
-#~ msgstr "Bangladesh, Folkerepublikken"
-
-#~ msgid "Belgium, Kingdom of"
-#~ msgstr "Belgia, Kongeriket"
-
-#~ msgid "Benin, People's Republic of"
-#~ msgstr "Benin, Folkerepublikken"
-
-#~ msgid "Bhutan, Kingdom of"
-#~ msgstr "Bhutan, Kongeriket"
-
-#~ msgid "Bolivia, Republic of"
-#~ msgstr "Bolivia, Republikken"
-
-#~ msgid "Botswana, Republic of"
-#~ msgstr "Botswana, Republikken"
-
-#~ msgid "Brazil, Federative Republic of"
-#~ msgstr "Brasil, Den fødererte republikken"
-
-#~ msgid "Bulgaria, People's Republic of"
-#~ msgstr "Bulgaria, Folkerepublikken"
-
-#~ msgid "Burundi, Republic of"
-#~ msgstr "Burundi, Republikken"
-
-#~ msgid "Cambodia, Kingdom of"
-#~ msgstr "Kambodsja, Kongeriket"
-
-#~ msgid "Cameroon, United Republic of"
-#~ msgstr "Kamerun, Den forente republikken"
-
-#~ msgid "Chad, Republic of"
-#~ msgstr "Tsjad, Republikken"
-
-#~ msgid "Chile, Republic of"
-#~ msgstr "Chile, Republikken"
-
-#~ msgid "China, People's Republic of"
-#~ msgstr "Kina, Folkerepublikken"
-
-#~ msgid "Colombia, Republic of"
-#~ msgstr "Colombia, Republikken"
-
-#~ msgid "Comoros, Union of the"
-#~ msgstr "Komorene, Unionen av"
-
-#~ msgid "Congo, People's Republic of"
-#~ msgstr "Kongo-Brazaville, Folkerepublikken"
-
-#~ msgid "Cote D'Ivoire, Ivory Coast, Republic of the"
-#~ msgstr "Elfenbeinskysten, Republikken"
-
-#~ msgid "Cuba, Republic of"
-#~ msgstr "Cuba, Republikken"
-
-#~ msgid "Cyprus, Republic of"
-#~ msgstr "Kypros, Republikken"
-
-#~ msgid "Denmark, Kingdom of"
-#~ msgstr "Danmark, Kongeriket"
-
-#~ msgid "Djibouti, Republic of"
-#~ msgstr "Djibouti, Republikken"
-
-#~ msgid "Dominica, Commonwealth of"
-#~ msgstr "Dominica, Samveldet"
-
-#~ msgid "Ecuador, Republic of"
-#~ msgstr "Ecuador, Republikken"
-
-#~ msgid "Egypt, Arab Republic of"
-#~ msgstr "Egypt, Den arabiske republikken"
-
-#~ msgid "Fiji, Republic of the Fiji Islands"
-#~ msgstr "Fiji, Republikken av Fiji-øyene"
-
-#~ msgid "Finland, Republic of"
-#~ msgstr "Finland, Republikken"
-
-#~ msgid "France, French Republic"
-#~ msgstr "Frankrike, Den franske republikken"
-
-#~ msgid "Gabon, Gabonese Republic"
-#~ msgstr "Gabon, Den gabonesiske republikken"
-
-#~ msgid "Gambia, Republic of the"
-#~ msgstr "Gambia, Republikken"
-
-#~ msgid "Ghana, Republic of"
-#~ msgstr "Ghana, Republikken"
-
-#~ msgid "Greece, Hellenic Republic"
-#~ msgstr "Hellas, Den hellenske republikken"
-
-#~ msgid "Guatemala, Republic of"
-#~ msgstr "Guatemala, Republikken"
-
-#~ msgid "Guinea, Revolutionary People's Rep'c of"
-#~ msgstr "Guinea, Den revolusjonære folkerepublikken"
-
-#~ msgid "Guyana, Republic of"
-#~ msgstr "Guyana, Republikken"
-
-#~ msgid "Haiti, Republic of"
-#~ msgstr "Haiti, Republikken"
-
-#~ msgid "Honduras, Republic of"
-#~ msgstr "Honduras, Republikken"
-
-#~ msgid "Hong Kong, Special Administrative Region of China"
-#~ msgstr "Hongkong, Den spesielt administrerte kinesiske regionen"
-
-#~ msgid "Hrvatska (Croatia)"
-#~ msgstr "Kroatia"
-
-#~ msgid "Hungary, Hungarian People's Republic"
-#~ msgstr "Ungarn, Den ungarske folkerepublikken"
-
-#~ msgid "Iceland, Republic of"
-#~ msgstr "Island, Republikken"
-
-#~ msgid "India, Republic of"
-#~ msgstr "India, Republikken"
-
-#~ msgid "Indonesia, Republic of"
-#~ msgstr "Indonesia, Republikken"
-
-#~ msgid "Iran, Islamic Republic of"
-#~ msgstr "Iran, Den islamske republikken"
-
-#~ msgid "Iraq, Republic of"
-#~ msgstr "Irak, Republikken"
-
-#~ msgid "Israel, State of"
-#~ msgstr "Israel, Staten"
-
-#~ msgid "Italy, Italian Republic"
-#~ msgstr "Italia, Den italienske republikken"
-
-#~ msgid "Jordan, Hashemite Kingdom of"
-#~ msgstr "Jordan, Det hashemittiske kongeriket"
-
-#~ msgid "Kenya, Republic of"
-#~ msgstr "Kenya, Republikken"
-
-#~ msgid "Kiribati, Republic of"
-#~ msgstr "Kiribati, Republikken"
-
-#~ msgid "Korea, Democratic People's Republic of"
-#~ msgstr "Nord-Korea, Den demokratiske folkerepublikken"
-
-#~ msgid "Korea, Republic of"
-#~ msgstr "Sør-Korea, Republikken"
-
-#~ msgid "Kuwait, State of"
-#~ msgstr "Kuwait, Staten"
-
-#~ msgid "Kyrgyz Republic"
-#~ msgstr "Kirgisistan, Republikken"
-
-#~ msgid "Lao People's Democratic Republic"
-#~ msgstr "Laos, Den demokratiske folkerepublikken"
-
-#~ msgid "Lebanon, Lebanese Republic"
-#~ msgstr "Libanon, Den libanesiske republikken"
-
-#~ msgid "Lesotho, Kingdom of"
-#~ msgstr "Lesotho, Kongeriket"
-
-#~ msgid "Liberia, Republic of"
-#~ msgstr "Liberia, Republikken"
-
-#~ msgid "Luxembourg, Grand Duchy of"
-#~ msgstr "Luxemburg, Det store hertugdømmet"
-
-#~ msgid "Macao, Special Administrative Region of China"
-#~ msgstr "Macao, Den spesielt administrerte kinesiske regionen"
-
-#~ msgid "Macedonia, the former Yugoslav Republic of"
-#~ msgstr "Makedonia, Den tidligere jugoslaviske republikken"
-
-#~ msgid "Malawi, Republic of"
-#~ msgstr "Malawi, Republikken"
-
-#~ msgid "Maldives, Republic of"
-#~ msgstr "Maldivene, Republikken"
-
-#~ msgid "Mali, Republic of"
-#~ msgstr "Mali, Republikken"
-
-#~ msgid "Malta, Republic of"
-#~ msgstr "Malta, Republikken"
-
-#~ msgid "Mauritania, Islamic Republic of"
-#~ msgstr "Mauritania, Den islamske republikken"
-
-#~ msgid "Mexico, United Mexican States"
-#~ msgstr "Mexico, De forente meksikanske statene"
-
-#~ msgid "Micronesia, Federated States of"
-#~ msgstr "Mikronesiaføderasjonen"
-
-#~ msgid "Moldova, Republic of"
-#~ msgstr "Moldova, Republikken"
-
-#~ msgid "Monaco, Principality of"
-#~ msgstr "Monaco, Fyrstedømmet"
-
-#~ msgid "Mongolia, Mongolian People's Republic"
-#~ msgstr "Mongolia, Den mongolske folkerepublikken"
-
-#~ msgid "Morocco, Kingdom of"
-#~ msgstr "Marokko, Kongeriket"
-
-#~ msgid "Mozambique, People's Republic of"
-#~ msgstr "Mosambik, Folkerepublikken"
-
-#~ msgid "Nauru, Republic of"
-#~ msgstr "Nauru, Republikken"
-
-#~ msgid "Nepal, Kingdom of"
-#~ msgstr "Nepal, Kongeriket"
-
-#~ msgid "Netherlands, Kingdom of the"
-#~ msgstr "Nederland, Kongeriket"
-
-#~ msgid "Nicaragua, Republic of"
-#~ msgstr "Nicaragua, Republikken"
-
-#~ msgid "Niger, Republic of the"
-#~ msgstr "Niger, Republikken"
-
-#~ msgid "Nigeria, Federal Republic of"
-#~ msgstr "Nigeria, Den fødererte republikken"
-
-#~ msgid "Niue, Republic of"
-#~ msgstr "Niue, Republikken"
-
-#~ msgid "Norway, Kingdom of"
-#~ msgstr "Norge, Kongeriket"
-
-#~ msgid "Oman, Sultanate of"
-#~ msgstr "Oman, Sultanatet"
-
-#~ msgid "Pakistan, Islamic Republic of"
-#~ msgstr "Pakistan, Den islamske republikken"
-
-#~ msgid "Panama, Republic of"
-#~ msgstr "Panama, Republikken"
-
-#~ msgid "Paraguay, Republic of"
-#~ msgstr "Paraguay, Republikken"
-
-#~ msgid "Peru, Republic of"
-#~ msgstr "Peru, Republikken"
-
-#~ msgid "Philippines, Republic of the"
-#~ msgstr "Filipinene, Republikken"
-
-#~ msgid "Poland, Polish People's Republic"
-#~ msgstr "Polen, Den polske folkerepublikken"
-
-#~ msgid "Portugal, Portuguese Republic"
-#~ msgstr "Portugal, Den portugisiske republikken"
-
-#~ msgid "Qatar, State of"
-#~ msgstr "Qatar, Staten"
-
-#~ msgid "Romania, Socialist Republic of"
-#~ msgstr "Romania, Den sosialistiske republikken"
-
-#~ msgid "Rwanda, Rwandese Republic"
-#~ msgstr "Rwanda, Den rwandiske republikken"
-
-#~ msgid "Samoa, Independent State of"
-#~ msgstr "Samoa, Den uavhengige staten"
-
-#~ msgid "Senegal, Republic of"
-#~ msgstr "Senegal, Republikken"
-
-#~ msgid "Seychelles, Republic of"
-#~ msgstr "Seychellene, Republikken"
-
-#~ msgid "Singapore, Republic of"
-#~ msgstr "Singapore, Republikken"
-
-#~ msgid "Slovakia (Slovak Republic)"
-#~ msgstr "Slovakia"
-
-#~ msgid "Somalia, Somali Republic"
-#~ msgstr "Somalia, Den somaliske republikken"
-
-#~ msgid "Spain, Kingdom of"
-#~ msgstr "Spania, Kongeriket"
-
-#~ msgid "Sri Lanka, Democratic Socialist Republic of"
-#~ msgstr "Sri Lanka, Den demokratiske sosialistiske republikken"
-
-#~ msgid "Sudan, Democratic Republic of the"
-#~ msgstr "Sudan, Den demokratiske republikken"
-
-#~ msgid "Suriname, Republic of"
-#~ msgstr "Surinam, Republikken"
-
-#~ msgid "Swaziland, Kingdom of"
-#~ msgstr "Swaziland, Kongeriket"
-
-#~ msgid "Switzerland, Swiss Confederation"
-#~ msgstr "Sveits, Den sveitsiske konføderasjonen"
-
-#~ msgid "Taiwan, Province of China"
-#~ msgstr "Taiwan, Den kinesiske provinsen"
-
-#~ msgid "Tanzania, United Republic of"
-#~ msgstr "Tanzania, Den forente republikken"
-
-#~ msgid "Thailand, Kingdom of"
-#~ msgstr "Thailand, Kongeriket"
-
-#~ msgid "Timor-Leste, Democratic Republic of"
-#~ msgstr "Øst-Timor, Den demokratiske republikken"
-
-#~ msgid "Togo, Togolese Republic"
-#~ msgstr "Togo, Den togolesiske republikken"
-
-#~ msgid "Tokelau (Tokelau Islands)"
-#~ msgstr "Tokelau"
-
-#~ msgid "Tonga, Kingdom of"
-#~ msgstr "Tonga, Kongeriket"
-
-#~ msgid "Tunisia, Republic of"
-#~ msgstr "Tunisia, Republikken"
-
-#~ msgid "Turkey, Republic of"
-#~ msgstr "Tyrkia, Republikken"
-
-#~ msgid "Uganda, Republic of"
-#~ msgstr "Uganda, Republikken"
-
-#~ msgid "United Kingdom of Great Britain & N. Ireland"
-#~ msgstr "Storbritannia"
-
-#~ msgid "Uruguay, Eastern Republic of"
-#~ msgstr "Uruguay, Den østre republikken"
-
-#~ msgid "Venezuela, Bolivarian Republic of"
-#~ msgstr "Venezuela, Den bolivariske republikken"
-
-#~ msgid "Viet Nam, Socialist Republic of"
-#~ msgstr "Vietnam, Den sosialistiske republikken"
-
-#~ msgid "Yugoslavia"
-#~ msgstr "Jugoslavia"
-
-#~ msgid "Zambia, Republic of"
-#~ msgstr "Zambia, Republikken"
-
-#~ msgid "Auto-download selected by..."
-#~ msgstr "Last valgte ned automatisk ved . . ."
-
-#~ msgid "urn:sha1"
-#~ msgstr "um:sha1"
-
-#~ msgid "New search from selected"
-#~ msgstr "Nytt søk fra valgte"
-
-#~ msgid "Add/Replace"
-#~ msgstr "Legg til/Erstatt"
-
-#~ msgid "Force local _IP to"
-#~ msgstr "Tving lokal _IP til"
-
-#~ msgid "New/replace"
-#~ msgstr "Ny/Erstatt"
