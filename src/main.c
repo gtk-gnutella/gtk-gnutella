@@ -891,7 +891,11 @@ static struct {
 	OPTION(help, 			NONE, "Print this message."),
 	OPTION(log_stderr,		PATH, "Log standard output to a file."),
 	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+#ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
+#else
+	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
+#endif	/* USE_HALLOC */
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
