@@ -394,8 +394,7 @@ verify_final(struct verify *ctx)
 	verify_check(ctx);
 
 	if (ctx->amount > 0) {
-		g_warning("File shrunk? \"%s\"",
-			file_object_get_pathname(ctx->file));
+		g_warning("File shrunk? \"%s\"", file_object_get_pathname(ctx->file));
 		verify_failure(ctx);
 	} else if (verify_hash_final(ctx)) {
 		g_warning("verify_hash_final() failed for \"%s\"",
