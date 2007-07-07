@@ -182,6 +182,7 @@ extra_files/ja/Makefile.SH
 extra_files/magnet.svg
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
+extra_files/spam_sha1.txt
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
 pixmaps/Jmakefile

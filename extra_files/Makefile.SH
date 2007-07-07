@@ -71,7 +71,8 @@ EXTRA_FILES = \
 	geo-ip.txt \
 	hostiles.txt \
 	robots.txt \
-	spam.txt
+	spam.txt \
+	spam_sha1.txt
 
 PIXMAP_FILES = \
 	gtk-gnutella.png	\
