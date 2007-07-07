@@ -3038,6 +3038,8 @@ search_gui_common_init(void)
 	}
 
 	drop_widget_init(gui_main_window(), drag_data_received, NULL);
+
+	search_gui_option_menu_searches_update();
 }
 
 /**
