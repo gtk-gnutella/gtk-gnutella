@@ -12,7 +12,7 @@ Before releasing, double check that:
   with the date (timestamp) listed in the token_keys[] array being accurate.
   Generate new keys with this:
 
-	od -x /dev/random | awk '{
+	dd if=/dev/random count=1 | od -x | awk '{
 		printf("\t\042%s %s %s %s %s %s %s %s\042,\n",
 			      $2,$3,$4,$5,$6,$7,$8,$9) }' | head -n 22
 
@@ -26,7 +26,7 @@ Release steps
 	cd "top directory"
 	svn update
 	cd extra_files
-	make update				# updates bogons.txt and geo-ip.txt
+	make update			# updates bogons.txt and geo-ip.txt
 
 1. Write user summary of changes since last release in ChangeLog.
 
