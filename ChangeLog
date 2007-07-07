@@ -1,3 +1,45 @@
+# v 0.96.4   2006-07-07  [stable]
+
+Bug Fixes:
+
+ - The download overlap checking was incorrectly detecting mismatches.
+ - A bug in the network queue caused frequent crashes (#1601523).
+ - A bug in the event timing caused failures after 25 days uptime.
+ - A stalling issue with TLS connections.
+ - The search retry timeouts weren't accepted (#1568205).
+ - The order of items in the search history was wrong (#1568206).
+ - The quick-connect limit wasn't respected causing too frequent
+   connection attempts during startup.
+ - Removed incorrect use of SF_NODISKIO flag for sendfile() on FreeBSD.
+ - Fixed crash that could be triggered by changing the listening port
+   temporarily to zero.
+ - iconv() was not used correctly which could cause wrong conversions
+   for longer strings.
+ - Generated filenames weren't properly restricted in length which
+   could cause crashes.
+ - There was a compile issue on NetBSD caused by namespace pollution.
+ - Added workaround for the issue that on Solaris only the file descriptors
+   0..255 can be used for stdio.
+
+Improvements:
+
+ - Finished downloads are now seeded for the whole session or until
+   they are manually purged, if partial file-sharing is enabled.
+ - Server-side support for Tigertree hashes and THEX thanks to patches
+   provided by Martijn van Oosterhout.
+ - Improved spam filters.
+ - Slightly better drag & drop support.
+ - Removed GWebCache support so only UHCs are used for bootstrapping.
+ - Improved the shell interface somewhat.
+ - Downloads can be paused now.
+ - Added a simple query syntax for easier creation of result filters.
+
+Under the hood:
+
+ - Added support for HEAD Pings and Pongs which improves the download mesh.
+ - Implemented for Out-of-Band result delivery protocol v3 which protects
+   against certain kinds of forged results.
+
 # v 0.96.3   2006-11-09  [stable]
 
 Bug fixes:
