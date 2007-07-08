@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/misc.h"
 
 #include "if/gnet_property_priv.h"
@@ -71,7 +72,7 @@ RCSID("$Id$")
  * in the pings.
  */
 static struct uhc_context {
-	const gchar *host;			/**< Last selected host (string atom) */
+	const gchar *host;			/**< Last selected host (static buffer) */
 	cevent_t *timeout_ev;		/**< Ping timeout */
 	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
@@ -79,12 +80,12 @@ static struct uhc_context {
 	gchar muid[GUID_RAW_SIZE];	/**< MUID of the ping */
 } uhc_ctx;
 
-static GList *uhc_avail;	/**< List of UHCs as string */
-static GList *uhc_used;		/**< List of used UHCs as ``struct used_uhc'' */
+static hash_list_t *uhc_list;	/**< List of ``struct uhc'' */
 
-struct used_uhc {
+struct uhc {
 	const gchar	*host;	/**< An UHC host as "<host>:<port>" (string atom) */
 	time_t		stamp;	/**< Timestamp of the last request */
+	guint		used;	/**< How often have we tried to contact it */
 };
 
 /**
@@ -93,6 +94,9 @@ struct used_uhc {
 static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
+#if 1 || defined(USE_LOCAL_UHC)
+	{ "localhost:6346" },
+#else	/* !USE_LOCAL_UHC */
 	{ "g6.6dns.org:1337" },
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "secondary.udp-host-cache.com:9999" },
@@ -100,6 +104,7 @@ static const struct {
 	{ "void.ghostwhitecrab.de:443" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
+#endif	/* USE_LOCAL_UHC */
 };
 
 static gboolean uhc_connecting = FALSE;
@@ -132,6 +137,7 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 
 	*host = NULL;
 	*port = 0;
+	hostname[0] = '\0';
 
 	if (!string_to_host_or_addr(hp, &ep, NULL) || ':' != *ep)
 		return FALSE;
@@ -155,40 +161,109 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 	return TRUE;
 }
 
-static void
-add_available_uhc(const gchar *hc)
+static struct uhc *
+uhc_new(const gchar *host)
 {
-	const gchar *host;
-
-	g_assert(hc);
-
-	host = atom_str_get(hc);
-	uhc_avail = random_value(100) < 50
-		? g_list_append(uhc_avail, deconstify_gchar(host))
-		: g_list_prepend(uhc_avail, deconstify_gchar(host));
-}
-
-static struct used_uhc *
-used_uhc_new(const gchar *host)
-{
-	struct used_uhc *uu;
+	static const struct uhc zero_uhc;
+	struct uhc *uhc;
 
 	g_assert(host);
-	uu = g_malloc(sizeof *uu);
-	uu->host = atom_str_get(host);
-	uu->stamp = tm_time();
-	return uu;
+	uhc = g_malloc(sizeof *uhc);
+	*uhc = zero_uhc;
+	uhc->host = atom_str_get(host);
+	uhc->stamp = 0;
+	uhc->used = 0;
+	return uhc;
 }
 
 static void
-used_uhc_free(struct used_uhc **ptr)
+uhc_free(struct uhc **ptr)
 {
 	if (*ptr) {	
-		struct used_uhc *uu = *ptr;
+		struct uhc *uu = *ptr;
 		atom_str_free_null(&uu->host);
 		G_FREE_NULL(uu);
 		*ptr = NULL;
 	}
+}
+
+static guint
+uhc_hash(gconstpointer key)
+{
+	const struct uhc *uhc = key;
+
+	return g_str_hash(uhc->host);
+}
+
+static gint
+uhc_equal(gconstpointer p, gconstpointer q)
+{
+	const struct uhc *a = p, *b = q;
+
+	return 0 == strcmp(a->host, b->host);
+}
+
+
+static void
+uhc_list_add(const gchar *host)
+{
+	struct uhc *uhc;
+
+	g_return_if_fail(host);
+
+	uhc = uhc_new(host);
+	if (hash_list_contains(uhc_list, uhc, NULL)) {
+		g_warning("Duplicate bootstrap UHC: \"%s\"", uhc->host);
+		uhc_free(&uhc);
+		return;
+	}
+
+	if (random_value(100) < 50) {
+		hash_list_append(uhc_list, uhc);
+	} else {
+		hash_list_prepend(uhc_list, uhc);
+	}
+}
+
+/**
+ * @return NULL on error, a newly allocated string otherwise.
+ */
+static gchar *
+uhc_get_next(void)
+{
+	struct uhc *uhc;
+	gchar *host;
+	time_t now;
+
+	g_return_val_if_fail(uhc_list, NULL);
+	
+	now = tm_time();
+	uhc = hash_list_head(uhc_list);
+	if (NULL == uhc)
+		return NULL;
+
+	/*
+	 * Wait UHC_RETRY_AFTER secs before contacting the UHC again.
+	 * Can't be too long because the UDP reply may get lost if the
+	 * requesting host already has a saturated b/w.
+	 * If we come here, it's because we're lacking hosts for establishing
+	 * a Gnutella connection, after we exhausted our caches.
+	 */
+	if (uhc->stamp && delta_time(now, uhc->stamp) < UHC_RETRY_AFTER)
+		return NULL;
+
+	uhc->stamp = now;
+	host = g_strdup(uhc->host);
+
+	if (uhc->used < UHC_MAX_ATTEMPTS) {
+		uhc->used++;
+		hash_list_moveto_tail(uhc_list, uhc);
+	} else {
+		hash_list_remove(uhc_list, uhc);
+		uhc_free(&uhc);
+	}
+
+	return host;
 }
 
 /**
@@ -199,51 +274,19 @@ used_uhc_free(struct used_uhc **ptr)
 static gboolean
 uhc_pick(void)
 {
-	gchar *hc;
-	size_t len;
-	guint idx;
-	time_t now = tm_time();
+	gboolean success = FALSE;
+	gchar *uhc;
 
-	/* First check whether used UHCs can added back */
-	while (uhc_used) {
-		struct used_uhc *uu;
-
-		uu = uhc_used->data;
-		g_assert(uu);
-
-		/*
-		 * Wait UHC_RETRY_AFTER secs before contacting the UHC again.
-		 * Can't be too long because the UDP reply may get lost if the
-		 * requesting host already has a saturated b/w.
-		 * If we come here, it's because we're lacking hosts for establishing
-		 * a Gnutella connection, after we exhausted our caches.
-		 */
-
-		if (delta_time(now, uu->stamp) < UHC_RETRY_AFTER)
-			break;
-
-		add_available_uhc(uu->host);
-		uhc_used = g_list_remove(uhc_used, uu);
-		used_uhc_free(&uu);
-	}
-
-	len = g_list_length(uhc_avail);
-	if (len < 1) {
+	uhc = uhc_get_next();
+	if (NULL == uhc) {
 		if (GNET_PROPERTY(bootstrap_debug))
 			g_warning("BOOT ran out of UHCs");
-		return FALSE;
+		goto finish;
 	}
 
-	idx = random_value(len - 1);
-	hc = g_list_nth_data(uhc_avail, idx);
-	g_assert(hc);
-
-	uhc_avail = g_list_remove(uhc_avail, hc);
-	uhc_used = g_list_append(uhc_used, used_uhc_new(hc));
-
-	if (!uhc_get_host_port(hc, &uhc_ctx.host, &uhc_ctx.port)) {
-		g_warning("cannot parse UDP host cache \"%s\"", hc);
-		return FALSE;
+	if (!uhc_get_host_port(uhc, &uhc_ctx.host, &uhc_ctx.port)) {
+		g_warning("cannot parse UDP host cache \"%s\"", uhc);
+		goto finish;
 	}
 
 	/*
@@ -252,11 +295,14 @@ uhc_pick(void)
 	{
 		gchar msg[256];
 
-		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), hc);
+		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
 	}
+	success = TRUE;
 
-	return TRUE;
+finish:
+	G_FREE_NULL(uhc);
+	return success;
 }
 
 /**
@@ -503,6 +549,9 @@ uhc_init(void)
 {
 	guint i;
 
+	g_return_if_fail(NULL == uhc_list);
+	uhc_list = hash_list_new(uhc_hash, uhc_equal);
+
 	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
 		const gchar *host, *ep, *uhc;
 		guint16 port;
@@ -518,7 +567,7 @@ uhc_init(void)
 		g_assert(NULL != ep);
 		g_assert(':' == ep[0]);
 
-		add_available_uhc(uhc);
+		uhc_list_add(uhc);
 	}
 }
 
@@ -530,15 +579,14 @@ uhc_close(void)
 {
 	cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 	uhc_connecting = FALSE;
-	while (uhc_avail) {
-		const gchar *host = uhc_avail->data;
-		uhc_avail = g_list_remove(uhc_avail, uhc_avail->data);
-		atom_str_free_null(&host);
-	}
-	while (uhc_used) {
-		struct used_uhc *uu = uhc_used->data;
-		uhc_used = g_list_remove(uhc_used, uu);
-		used_uhc_free(&uu);
+
+	if (uhc_list) {
+		struct uhc *uhc;
+
+		while (NULL != (uhc = hash_list_shift(uhc_list))) {
+			uhc_free(&uhc);
+		}
+		hash_list_free(&uhc_list);
 	}
 }
 
