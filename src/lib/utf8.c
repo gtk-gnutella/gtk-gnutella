@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14008 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14076 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -4342,17 +4342,20 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 			break;
 
 		case U_OTHER_PUNCTUATION :
-	/* XXX: Disabled for backwards compatibility. Especially '.' is
+			if (
+				'\'' == uc || '*' == uc
+#if 0
+	/* XXX: Disabled for backwards compatibility. The ASCII dot '.' is
 	 *		problematic because filename extensions are not separated
 	 *		from the rest of the name otherwise. Also, some people use
 	 *		dots instead of spaces in filenames. */
-#if 0
-			if ('\'' == uc || '*' == uc || '.' == uc) {
+				|| '.' == uc
+#endif
+			) {
 				result[j++] = uc;
 				break;
 			}
 			/* FALLTHRU */
-#endif
 
 		case U_UPPERCASE_LETTER :
 		case U_TITLECASE_LETTER :
