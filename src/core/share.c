@@ -2075,6 +2075,12 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			struct sha1 *sha1;
 
 			switch (e->ext_token) {
+			case EXT_T_XML:
+				if (GNET_PROPERTY(share_debug) > 6)
+					g_message("Query Packet with XML");
+				drop_it = TRUE;
+				break;
+
 			case EXT_T_OVERHEAD:
 				if (GNET_PROPERTY(share_debug) > 6)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
