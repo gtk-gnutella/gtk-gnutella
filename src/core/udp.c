@@ -442,8 +442,10 @@ udp_send_ping(const gchar *muid, const host_addr_t addr, guint16 port,
 void
 udp_close(void)
 {
-	udp_ping_expire(TRUE);
-	hash_list_free(&udp_pings);
+	if (udp_pings) {
+		udp_ping_expire(TRUE);
+		hash_list_free(&udp_pings);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
