@@ -2,15 +2,15 @@
 #
 # Hungarian translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Sulyok Péter <sp@elte.hu>, 2003-2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -2505,9 +2505,6 @@ msgstr ""
 "Pillanatnyilag számít-e gtk-gnutella SHA1-et a megosztott fájlokra a "
 "háttérben"
 
-msgid "This is an interim property."
-msgstr ""
-
 #, fuzzy
 msgid "disable"
 msgstr "biztos"
@@ -3942,12 +3939,6 @@ msgid "Bitzi|Best Version"
 msgstr ""
 
 msgid "No other data"
-msgstr ""
-
-msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "starts with"
@@ -7256,6 +7247,12 @@ msgid "N2R URI"
 msgstr ""
 
 msgid "Classic URL"
+msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr ""
+
+msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "Never"

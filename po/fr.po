@@ -2,16 +2,16 @@
 #
 # French translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # T'aZ <tazdev@punkass.com>, 2004-2005.
 # FlashCode <flashcode@flashtux.org>, 2006-2007.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2007-01-05 22:54+0100\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2518,9 +2518,6 @@ msgstr ""
 "Indique si gtk-gnutella est actuellement en train de calculer le SHA1 des "
 "fichiers partagés en arrière plan."
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "désactiver"
 
@@ -3873,12 +3870,6 @@ msgstr "Meilleure Version"
 
 msgid "No other data"
 msgstr "Pas d'autres données"
-
-msgid "Support for this protocol is not yet implemented"
-msgstr "Le support de ce protocole n'est pas encore implémenté"
-
-msgid "Cannot handle the dropped data"
-msgstr "Impossible de traiter les données supprimées"
 
 msgid "starts with"
 msgstr "commence par"
@@ -7024,6 +7015,12 @@ msgstr ""
 
 msgid "Classic URL"
 msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr "Le support de ce protocole n'est pas encore implémenté"
+
+msgid "Cannot handle the dropped data"
+msgstr "Impossible de traiter les données supprimées"
 
 msgid "Never"
 msgstr "Jamais"

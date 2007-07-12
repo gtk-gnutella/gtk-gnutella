@@ -2,16 +2,16 @@
 #
 # Spanish translation for gtk-gnutella package.
 # Copyright (c) 2000-2001, Yann Grossel.
-# Copyright (c) 2001-2006, Raphaël Manfredi.
+# Copyright (c) 2001-2007, Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Nicolás Lichtmaier <nick@technisys.com.ar>, 2003.
 # Paco Arjonilla García <pacoarjonilla@yahoo.es>, 2004-2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2403,9 +2403,6 @@ msgid ""
 msgstr ""
 "Si gtk-gnutella está actualmente calculando el SHA1 de archivos compartidos."
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "desactivar"
 
@@ -3816,12 +3813,6 @@ msgstr "Mejor Versión"
 
 msgid "No other data"
 msgstr "No hay más datos"
-
-msgid "Support for this protocol is not yet implemented"
-msgstr "El soporte para este protocolo aún no ha sido implementado"
-
-msgid "Cannot handle the dropped data"
-msgstr "No se pudo gestionar los datos abandonados"
 
 msgid "starts with"
 msgstr "empieza con"
@@ -7031,6 +7022,12 @@ msgstr ""
 
 msgid "Classic URL"
 msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr "El soporte para este protocolo aún no ha sido implementado"
+
+msgid "Cannot handle the dropped data"
+msgstr "No se pudo gestionar los datos abandonados"
 
 msgid "Never"
 msgstr "Nunca"

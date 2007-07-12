@@ -73,9 +73,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2007-06-30 16:37+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2495,9 +2495,6 @@ msgid ""
 "background."
 msgstr "共有ファイルの TTH を算出しているかどうかを表します。"
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "表示しない"
 
@@ -3863,12 +3860,6 @@ msgstr "最良版"
 
 msgid "No other data"
 msgstr "他のデータはありません"
-
-msgid "Support for this protocol is not yet implemented"
-msgstr "このプロトコルはまだ実装されていません"
-
-msgid "Cannot handle the dropped data"
-msgstr "この破棄データを扱えません"
 
 msgid "starts with"
 msgstr "これで始まる"
@@ -7125,6 +7116,12 @@ msgstr "N2R URI"
 
 msgid "Classic URL"
 msgstr "従来のURL"
+
+msgid "Support for this protocol is not yet implemented"
+msgstr "このプロトコルはまだ実装されていません"
+
+msgid "Cannot handle the dropped data"
+msgstr "この破棄データを扱えません"
 
 msgid "Never"
 msgstr "未発生"

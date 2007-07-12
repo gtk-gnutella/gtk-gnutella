@@ -2,15 +2,15 @@
 #
 # Chinese (Simplified) translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Wu Xiaoguang <wxgnj@yahoo.com.cn>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -2159,9 +2159,6 @@ msgid ""
 "background."
 msgstr ""
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr ""
 
@@ -3455,12 +3452,6 @@ msgid "Bitzi|Best Version"
 msgstr ""
 
 msgid "No other data"
-msgstr ""
-
-msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "starts with"
@@ -6541,6 +6532,12 @@ msgid "N2R URI"
 msgstr ""
 
 msgid "Classic URL"
+msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr ""
+
+msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "Never"

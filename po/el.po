@@ -2,15 +2,15 @@
 #
 # Greek translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Bouklis Panos <panos@echidna-band.com>, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -2404,9 +2404,6 @@ msgstr ""
 "Αν το gtk-gnutella υπολογίζει τα SHA1 των αρχείων για ανταλλαγή αυτή τη "
 "στιγμή στο παρασκήνιο."
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -3813,12 +3810,6 @@ msgstr "Καλύτερη Έκδοση"
 
 msgid "No other data"
 msgstr "Όχι άλλα δεδομένα"
-
-msgid "Support for this protocol is not yet implemented"
-msgstr "Αυτό το πρωτόκολλο δεν υποστηρίζεται ακόμα"
-
-msgid "Cannot handle the dropped data"
-msgstr "Δεν είναι δυνατή η διαχείριση των απορριφθέντων δεδομένων"
 
 msgid "starts with"
 msgstr "ξεκινά με"
@@ -6979,6 +6970,12 @@ msgstr ""
 
 msgid "Classic URL"
 msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr "Αυτό το πρωτόκολλο δεν υποστηρίζεται ακόμα"
+
+msgid "Cannot handle the dropped data"
+msgstr "Δεν είναι δυνατή η διαχείριση των απορριφθέντων δεδομένων"
 
 msgid "Never"
 msgstr "Ποτέ"

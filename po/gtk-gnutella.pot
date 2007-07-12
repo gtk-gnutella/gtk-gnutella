@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2029,9 +2029,6 @@ msgid ""
 "background."
 msgstr ""
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr ""
 
@@ -3316,12 +3313,6 @@ msgid "Bitzi|Best Version"
 msgstr ""
 
 msgid "No other data"
-msgstr ""
-
-msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "starts with"
@@ -6320,6 +6311,12 @@ msgid "N2R URI"
 msgstr ""
 
 msgid "Classic URL"
+msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr ""
+
+msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "Never"

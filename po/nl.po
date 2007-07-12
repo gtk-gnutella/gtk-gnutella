@@ -2,15 +2,15 @@
 #
 # Dutch translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2006 Raphaël Manfredi.
+# Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 # Jeroen Asselman <jeroen@asselman.com>, 2003-2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -2522,9 +2522,6 @@ msgstr ""
 "Of gtk-gnutella momenteel in de achtergrond bezig is met het berekenen van "
 "de SHA1 waarden van de gedeelde bestanden."
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -3937,12 +3934,6 @@ msgstr "Beste versie"
 
 msgid "No other data"
 msgstr "Geen andere gegevens"
-
-msgid "Support for this protocol is not yet implemented"
-msgstr "Ondersteuning voor die protocol is niet geïmplementeerd."
-
-msgid "Cannot handle the dropped data"
-msgstr "Kan de geplaatste data niet afhandelen"
 
 msgid "starts with"
 msgstr "begint met"
@@ -7128,6 +7119,12 @@ msgstr ""
 
 msgid "Classic URL"
 msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr "Ondersteuning voor die protocol is niet geïmplementeerd."
+
+msgid "Cannot handle the dropped data"
+msgstr "Kan de geplaatste data niet afhandelen"
 
 msgid "Never"
 msgstr "Nooit"

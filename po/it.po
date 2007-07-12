@@ -7,9 +7,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.4u\n"
+"Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-06-30 16:23+0900\n"
+"POT-Creation-Date: 2007-07-13 05:13+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -2517,9 +2517,6 @@ msgstr ""
 "gtk-gnutella sta attualmente calcolando l'SHA1 dei file condivisi in "
 "background."
 
-msgid "This is an interim property."
-msgstr ""
-
 msgid "disable"
 msgstr "disabilita"
 
@@ -3913,12 +3910,6 @@ msgid "Bitzi|Best Version"
 msgstr ""
 
 msgid "No other data"
-msgstr ""
-
-msgid "Support for this protocol is not yet implemented"
-msgstr ""
-
-msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "starts with"
@@ -7080,6 +7071,12 @@ msgid "N2R URI"
 msgstr ""
 
 msgid "Classic URL"
+msgstr ""
+
+msgid "Support for this protocol is not yet implemented"
+msgstr ""
+
+msgid "Cannot handle the dropped data"
 msgstr ""
 
 msgid "Never"
