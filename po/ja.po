@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-07-13 05:13+0900\n"
-"PO-Revision-Date: 2007-06-30 16:37+0900\n"
+"PO-Revision-Date: 2007-07-13 05:09+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2479,13 +2479,13 @@ msgid "Debug level for push-proxy code."
 msgstr "PUSHプロキシコードのデバッグレベルです。"
 
 msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
+msgstr "これはTigertreeがサポートされるまでの一時的なプロパティです。"
 
 msgid "Number of THEX file requests received in this session."
-msgstr "このセッション中に受信した THEX ファイルリクエストの回数です。"
+msgstr "このセッション中に受信したTHEXファイルリクエストの回数です。"
 
 msgid "Number of THEX file requests fully served in this session."
-msgstr "このセッション中に完全に送信された THEX 参照リクエストの回数です。"
+msgstr "このセッション中に完全に送信されたTHEX参照リクエストの回数です。"
 
 msgid "Debug level for Tigertree-related code."
 msgstr "Tigertree関連コードのデバッグレベルです。"
@@ -2493,7 +2493,7 @@ msgstr "Tigertree関連コードのデバッグレベルです。"
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
-msgstr "共有ファイルの TTH を算出しているかどうかを表します。"
+msgstr "共有ファイルのTTHを算出しているかどうかを表します。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -4392,8 +4392,9 @@ msgstr[0] "選択された %u/%u 件の待機ダウンロードが「%s」に一
 msgid "Downloading (%s)  TR: %s"
 msgstr "ダウンロード中 (%s)  残り時間: %s"
 
+# XXX: WTF
 msgid "Seeding"
-msgstr ""
+msgstr "シード中"
 
 msgid "Finished"
 msgstr "終了しました"
@@ -6600,7 +6601,7 @@ msgid "Error loading pixmap file: %s"
 msgstr "Pixmap ファイルを読み込み中にエラー: %s"
 
 msgid " (partial)"
-msgstr " (部分的)"
+msgstr " (部分ファイル)"
 
 #, c-format
 msgid " (slot %u"
@@ -7106,7 +7107,7 @@ msgid "Servent ID"
 msgstr "サーバントID"
 
 msgid "Alt-Locs"
-msgstr ""
+msgstr "別の送信元"
 
 msgid "Push-proxies"
 msgstr "PUSHプロキシ"
@@ -7248,7 +7249,7 @@ msgstr "後続リクエストを読込中..."
 
 # FIXME: should be revised.
 msgid "Unavailable range, waiting retry..."
-msgstr "この部分を取得できません、間をおいて再実行します..."
+msgstr "この範囲は現在取得/提供できません、間をおいて再実行します..."
 
 msgid "Transmission aborted"
 msgstr "転送が中断されました"
