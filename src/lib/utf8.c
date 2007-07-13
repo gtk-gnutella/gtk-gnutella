@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14076 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14088 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -2847,6 +2847,30 @@ utf32_lowercase(guint32 uc)
 	return uc; /* not found */
 }
 
+/**
+ * Looks up the simple lowercase variant of an UTF-32 character.
+ *
+ * @return the lowercase variant of ``uc'' or ``uc'' itself.
+ */
+const guint32 *
+utf32_special_folding(guint32 uc)
+{
+#define GET_ITEM(i) (utf32_special_folding_lut[(i)].uc)
+#define FOUND(i) G_STMT_START { \
+	return utf32_special_folding_lut[(i)].folded; \
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_special_folding_lut), CMP,
+		GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+
+	return NULL;
+}
+
 static GHashTable *utf32_compose_roots;
 
 /**
@@ -3828,6 +3852,47 @@ utf8_strupper_copy(const gchar *src)
 	return dst;
 }
 
+size_t
+utf32_case_fold_char(guint32 uc, guint32 *dst, size_t size)
+{
+	const guint32 *folded;
+	size_t length;
+	
+	uc = utf32_lowercase(uc);
+	folded = utf32_special_folding(uc);
+	if (folded) {
+		length = utf32_strlen(folded);
+	} else {
+		folded = &uc;
+		length = 1;
+	}
+	if (size >= length) {
+		memcpy(dst, folded, length * sizeof *folded);
+	}
+	return length;
+}
+
+size_t
+utf32_case_fold(const guint32 * const src0, guint32 * const dst0,
+	const size_t size)
+{
+	const guint32 *src = src0;
+	guint32 *dst = dst0, uc;
+	size_t left = size;
+
+	while (0x0000 != (uc = *src++)) {
+		size_t n;
+
+		n = utf32_case_fold_char(uc, dst, left);
+		dst += n;
+		left = left > n ? (left - n) : 0;
+	}
+	if (size > 0) {
+		*dst = 0x0000;
+	}
+	return dst - dst0; 
+}
+
 /**
  * Filters characters that are ignorable for query strings. *space
  * should be initialized to TRUE for the first character of a string.
@@ -4644,61 +4709,59 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
  * Apply the NFKD/NFC algo to have nomalized keywords
  */
 guint32 *
-utf32_canonize(const guint32 *src)
+utf32_canonize(const guint32 *src0)
 {
-	guint32 nfkd_buf[1024], nfd_buf[1024];
-	guint32 *nfkd, *nfd, *nfc;
+	guint32 *dst, *src;
 	size_t size, n;
 
-	/* Convert to NFKD */
-	n = utf32_decompose(src, nfkd_buf, G_N_ELEMENTS(nfkd_buf), TRUE);
+	/* Convert to NFC */
+	size = utf32_strlen(src0) + 1;
+	src = g_memdup(src0, size * sizeof *src);
+	(void) utf32_compose(src);
+
+	/* Apply simple and special folding */
+	n = utf32_case_fold(src, NULL, 0);
 	size = n + 1;
-	if (n < G_N_ELEMENTS(nfkd_buf)) {
-		nfkd = nfkd_buf;
-	} else {
-		nfkd = g_malloc(size * sizeof *nfkd);
-		n = utf32_decompose(src, nfkd, size, TRUE);
-		g_assert(size - 1 == n);
-	}
+	dst = g_malloc(size * sizeof *dst);
+	n = utf32_case_fold(src, dst, size);
+	G_FREE_NULL(src);
+	src = dst;
 
-	/* FIXME: Must convert 'szett' to "ss" */
-	n = utf32_strlower(nfkd, nfkd, size);
+	/* Convert to NFKD */
+	n = utf32_decompose(src, NULL, 0, TRUE);
+	size = n + 1;
+	dst = g_malloc(size * sizeof *dst);
+	n = utf32_decompose(src, dst, size, TRUE);
 	g_assert(size - 1 == n);
+	src = dst;
 
-	n = utf32_filter(nfkd, nfkd, size);
+	/* Apply special filter; works in-place */
+	n = utf32_filter(src, src, size);
 	g_assert(size - 1 >= n);
 
 	/* Convert to NFD; this might be unnecessary if the previous
 	 * operations did not destroy the NFKD */
-	n = utf32_decompose(nfkd, nfd_buf, G_N_ELEMENTS(nfd_buf), FALSE);
+	n = utf32_decompose(src, NULL, 0, FALSE);
 	size = n + 1;
-	if (n < G_N_ELEMENTS(nfd_buf)) {
-		nfd = nfd_buf;
-	} else {
-		nfd = g_malloc(size * sizeof *nfd);
-		n = utf32_decompose(nfkd, nfd, size, FALSE);
-		g_assert(size - 1 == n);
-	}
+	dst = g_malloc(size * sizeof *dst);
+	n = utf32_decompose(src, dst, size, FALSE);
+	g_assert(size - 1 == n);
+	G_FREE_NULL(src);
+	src = dst;
 
-	if (nfkd_buf != nfkd) {
-		G_FREE_NULL(nfkd);
-	}
-	/* Convert to NFC */
-	n = utf32_compose(nfd);
-	n = utf32_compose_hangul(nfd);
+	/* Convert to NFC; works in-place */
+	n = utf32_compose(src);
+	n = utf32_compose_hangul(src);
 
 	/* Insert an ASCII space at block changes, this keeps NFC */
-	n = utf32_split_blocks(nfd, NULL, 0);
+	n = utf32_split_blocks(src, NULL, 0);
 	size = n + 1;
-	nfc = g_malloc(size * sizeof *nfc);
-	n = utf32_split_blocks(nfd, nfc, size);
+	dst = g_malloc(size * sizeof *dst);
+	n = utf32_split_blocks(src, dst, size);
 	g_assert(size - 1 == n);
+	G_FREE_NULL(src);
 
-	if (nfd_buf != nfd) {
-		G_FREE_NULL(nfd);
-	}
-
-	return nfc;
+	return dst;
 }
 
 /**
