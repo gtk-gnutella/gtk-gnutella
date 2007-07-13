@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-07-13 05:13+0900\n"
-"PO-Revision-Date: 2007-07-13 05:09+0900\n"
+"PO-Revision-Date: 2007-07-14 06:50+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -1425,25 +1425,25 @@ msgid "Remove files of aborted downloads from disk."
 msgstr "中止するダウンロードのファイルをディスクから削除します。"
 
 msgid "Use username and password to authenticate to proxy."
-msgstr "この利用者名とパスワードを代理サーバーの認証に使います。"
+msgstr "このユーザー名とパスワードをプロキシサーバーの認証に使います。"
 
 msgid "Username for proxy."
-msgstr "代理サーバーの利用者名です。"
+msgstr "プロキシサーバーのユーザー名です。"
 
 msgid "Password for proxy."
-msgstr "代理サーバーのパスワードです。"
+msgstr "プロキシサーバーのパスワードです。"
 
 msgid "Address of the proxy."
-msgstr "代理サーバーのアドレスです。"
+msgstr "プロキシサーバーのアドレスです。"
 
 msgid "Hostname of the proxy."
-msgstr "代理サーバーのホスト名です。"
+msgstr "プロキシサーバーのホスト名です。"
 
 msgid "TCP Port the proxy is listening on."
-msgstr "代理サーバーが利用する TCP ポートです。"
+msgstr "プロキシサーバーが利用する TCP ポートです。"
 
 msgid "Protocol the proxy uses."
-msgstr "代理サーバーが用いるプロトコルです。"
+msgstr "プロキシサーバーが用いるプロトコルです。"
 
 msgid "Network protocols to use."
 msgstr "使用するネットワークのプロトコルです。"
@@ -2318,13 +2318,13 @@ msgid ""
 "messages and lowering the efficiency of the search network."
 msgstr ""
 "ウルトラピアとして動作している時に、検索クエリーヒットの帯域外 (Out-Of-Band) "
-"配送を要求していないリーフ検索クエリーに対して代理サーバーとして振る舞うかど"
-"うかを選択します: gtk-gnutella は遠隔ピアからのヒットを催促して、適切なリーフ"
-"に転送します。これは各リーフに対して有利に働きますが、あなたのウルトラピアに"
-"折り返される UDP トラフィックの大渋滞を引き起こす可能性があります。これを無効"
-"にすると、あなたに接続している全てのウルトラピアがこのヒットを中継しなければ"
-"いけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効率を下"
-"げてしまうかもしれません。"
+"配送を要求していないリーフ検索クエリーに対してプロキシサーバーとして振る舞う"
+"かどうかを選択します: gtk-gnutella は遠隔ピアからのヒットを催促して、適切な"
+"リーフに転送します。これは各リーフに対して有利に働きますが、あなたのウルトラ"
+"ピアに折り返される UDP トラフィックの大渋滞を引き起こす可能性があります。これ"
+"を無効にすると、あなたに接続している全てのウルトラピアがこのヒットを中継しな"
+"ければいけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効"
+"率を下げてしまうかもしれません。"
 
 msgid ""
 "Whether uploads are frequently stalling, indicating that the bandwidth is "
@@ -4078,7 +4078,7 @@ msgstr "あなたの検索クエリーが受取った検索クエリーヒット
 
 # XXX: wtf
 msgid "Query hits received for OOB-proxied queries"
-msgstr "OOB代理検索クエリーで受取った検索クエリーヒット"
+msgstr "OOBプロキシ検索クエリーで受取った検索クエリーヒット"
 
 # XXX: wtf
 msgid "Queries requesting OOB hit delivery"
@@ -4094,11 +4094,11 @@ msgstr "高TTLでの重複"
 
 # XXX: wtf
 msgid "Duplicate OOB-proxied queries"
-msgstr "重複するOOB代理検索クエリー"
+msgstr "重複するOOBプロキシ検索クエリー"
 
 # XXX: wtf
 msgid "OOB hits received for OOB-proxied queries"
-msgstr "OOB代理検索クエリーで受取ったOOBヒット"
+msgstr "OOBプロキシ検索クエリーで受取ったOOBヒット"
 
 # XXX: wtf
 msgid "OOB hits bearing alien IP address"
@@ -4153,7 +4153,7 @@ msgstr "リーフ生成の動的検索クエリー"
 
 # XXX: wtf
 msgid "OOB-proxied leaf queries"
-msgstr "代理OOBリーフ検索クエリー"
+msgstr "プロキシOOBリーフ検索クエリー"
 
 # XXX: wtf
 msgid "Fully completed dynamic queries"
@@ -5675,7 +5675,7 @@ msgid "Use IPv6-to-IPv4 TRT prefix:"
 msgstr "IPv6-IPv4 TRT プリフィックスを使う:"
 
 msgid "Proxy settings"
-msgstr "代理サーバー設定"
+msgstr "プロキシサーバー設定"
 
 msgid "H_ost:"
 msgstr "ホスト(_O):"
@@ -5684,13 +5684,13 @@ msgid "TCP _Port:"
 msgstr "TCPポート(_P):"
 
 msgid "Proxy _type:"
-msgstr "代理サーバーの種類(_T):"
+msgstr "プロキシサーバーの種類(_T):"
 
 msgid "Use username and password to _authenticate to proxy"
-msgstr "代理サーバーの認証に利用者名とパスワードを使用する(_A)"
+msgstr "プロキシサーバーの認証にユーザー名とパスワードを使用する(_A)"
 
 msgid "_Username"
-msgstr "利用者名(_U)"
+msgstr "ユーザー名(_U)"
 
 msgid "Pass_word"
 msgstr "パスワード(_W)"
@@ -6766,7 +6766,7 @@ msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "KB, KiB, MB, MiB, GB, GiB 等の接尾辞を使用できます。"
 
 msgid "Reverse DNS lookup"
-msgstr "DNSの逆引き検索"
+msgstr "ホスト名の逆引き参照"
 
 msgid "Force external IPv4 address to"
 msgstr "強制的にこのIPv4アドレスを使う"
@@ -6795,7 +6795,7 @@ msgstr "ローカルネットのアドレス(_A)"
 
 # FIXME: should be revised.
 msgid "Enough UDP support"
-msgstr "UPDをサポートしている"
+msgstr "UDPをサポートしている"
 
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 無効)"
