@@ -308,6 +308,7 @@ gchar *gnet_host_vec_to_string(const gnet_host_vec_t *hvec);
 
 void search_gui_clear_details(void);
 void search_gui_append_detail(const gchar *title, const gchar *value);
+const gchar *search_new_error_to_string(enum search_new_result result);
 
 #endif /* _gtk_search_common_h_ */
 

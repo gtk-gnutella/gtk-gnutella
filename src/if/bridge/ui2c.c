@@ -735,11 +735,12 @@ guc_search_is_frozen(gnet_search_t sh)
 	return search_is_frozen(sh);
 }
 
-gnet_search_t
-guc_search_new(const gchar *query,
+enum search_new_result
+guc_search_new(gnet_search_t *ptr, const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
-	return search_new(query, create_time, lifetime, reissue_timeout, flags);
+	return search_new(ptr, query,
+				create_time, lifetime, reissue_timeout, flags);
 }
 
 gboolean

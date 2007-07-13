@@ -667,6 +667,7 @@ search_gui_new_search_full(const gchar *query_str,
 	GtkListStore *model;
 	GtkTreeIter iter;
 	gboolean is_only_search;
+	enum search_new_result result;
 	
 	if (search) {
 		*search = NULL;
@@ -683,16 +684,10 @@ search_gui_new_search_full(const gchar *query_str,
 	g_assert(query);
 	g_assert(query->text);
 	
-	sch_id = guc_search_new(query->text, create_time, lifetime,
+	result = guc_search_new(&sch_id, query->text, create_time, lifetime,
 				reissue_timeout, flags);
-	if ((gnet_search_t) -1 == sch_id) {
-		/*
-		 * An invalidly encoded SHA1 is already detected by
-		 * search_gui_query_parse(), so a too short query is the only reason
-		 * this may fail at the moment.
-		 */
-		statusbar_gui_warning(5, "%s",
-			_("The normalized search text is too short."));
+	if (SEARCH_NEW_SUCCESS != result) {
+		statusbar_gui_warning(5, "%s", search_new_error_to_string(result));
 		search_gui_query_free(&query);
 		return FALSE;
 	}

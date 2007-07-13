@@ -215,7 +215,7 @@ gboolean guc_search_is_frozen(gnet_search_t sh);
 gboolean guc_search_is_local(gnet_search_t sh);
 gboolean guc_search_is_passive(gnet_search_t sh);
 
-gnet_search_t guc_search_new(const gchar *query,
+enum search_new_result guc_search_new(gnet_search_t *ptr, const gchar *query,
 	time_t create_time, guint lifetime,
 	guint32 reissue_timeout, flag_t flags);
 gboolean guc_search_browse(gnet_search_t sh,

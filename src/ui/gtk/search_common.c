@@ -3009,6 +3009,27 @@ cleanup:
 	gtk_drag_finish(dc, success, FALSE, stamp);
 }
 
+const gchar *
+search_new_error_to_string(enum search_new_result result)
+{
+	const gchar *msg = "";
+
+	switch (result) {
+	case SEARCH_NEW_TOO_LONG:
+		msg = _("The normalized search text is too long.");
+		break;
+	case SEARCH_NEW_TOO_SHORT:
+		msg = _("The normalized search text is too short.");
+		break;
+	case SEARCH_NEW_INVALID_URN:
+		msg = _("The URN in the search text is invalid.");
+		break;
+	case SEARCH_NEW_SUCCESS:
+		break;
+	}
+	return msg;
+}
+
 /**
  * Initialize common structures.
  */

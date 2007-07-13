@@ -346,6 +346,7 @@ search_gui_new_search_full(const gchar *query_str,
 	gnet_search_t sch_id;
     gint row;
 	gboolean is_only_search = FALSE;
+	enum search_new_result result;
 
 	if (search) {
 		*search = NULL;
@@ -363,10 +364,10 @@ search_gui_new_search_full(const gchar *query_str,
 	g_assert(query);
 	g_assert(query->text);
 
-    sch_id = guc_search_new(query->text, create_time, lifetime,
+    result = guc_search_new(&sch_id, query->text, create_time, lifetime,
 				reissue_timeout, flags);
-	if ((gnet_search_t) -1 == sch_id) {
-		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
+	if (SEARCH_NEW_SUCCESS != result) {
+		statusbar_gui_warning(5, "%s", search_new_error_to_string(result));
 		search_gui_query_free(&query);
 		return FALSE;
 	}

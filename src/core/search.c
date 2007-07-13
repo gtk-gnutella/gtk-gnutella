@@ -106,6 +106,9 @@ RCSID("$Id$")
 #endif
 #endif
 
+#define MIN_SEARCH_TERM_BYTES 3		/* in bytes! */
+#define MAX_SEARCH_TERM_CHARS 30	/* in characters! */
+
 #define MUID_MAX			4	 /**< Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800 /**< Minimum search retry timeout */
 
@@ -3490,17 +3493,21 @@ search_set_create_time(gnet_search_t sh, time_t t)
  * @param flags				option flags for the search.
  * @param reissue_timeout	delay in seconds before requerying.
  *
- * @return	-1 if the search could not be created, a valid handle for the
- *			search otherwise.
+ * @return	SEARCH_NEW_SUCCESS on success
+ *			SEARCH_NEW_TOO_LONG if too long,
+ *			SEARCH_NEW_TOO_SHORT if too short,
+ *			SEARCH_NEW_INVALID_URN if the URN was unparsable.
  */
-gnet_search_t
-search_new(const gchar *query,
+enum search_new_result
+search_new(gnet_search_t *ptr, const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
 	const gchar *endptr;
 	search_ctrl_t *sch;
 	gchar *qdup;
+	gint result;
 
+	g_assert(ptr);
 	g_assert(utf8_is_valid_string(query));
 	
 	/*
@@ -3510,7 +3517,9 @@ search_new(const gchar *query,
 	if (NULL != (endptr = is_strprefix(query, "urn:sha1:"))) {
 		if (SHA1_BASE32_SIZE != strlen(endptr) || !urn_get_sha1(query, NULL)) {
 			g_warning("Rejected invalid urn:sha1 search");
-			return (gnet_search_t) -1;
+			qdup = NULL;
+			result = SEARCH_NEW_INVALID_URN;
+			goto failure;
 		}
 		qdup = g_strdup(query);
 	} else if (
@@ -3518,11 +3527,20 @@ search_new(const gchar *query,
 	) {
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
-		
-		if (compact_query(qdup) < 3) {
-			g_warning("Rejected too short query string: \"%s\"", qdup);
-			G_FREE_NULL(qdup);
-			return (gnet_search_t) -1;
+		compact_query(qdup);
+
+		if (strlen(qdup) < MIN_SEARCH_TERM_BYTES) {
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("Rejected too short query string: \"%s\"", qdup);
+			}
+			result = SEARCH_NEW_TOO_SHORT;
+			goto failure;
+		} else if (utf8_char_count(qdup) > MAX_SEARCH_TERM_CHARS) {
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_warning("Rejected too long query string: \"%s\"", qdup);
+			}
+			result = SEARCH_NEW_TOO_LONG;
+			goto failure;
 		}
 	} else {
 		qdup = g_strdup(query);
@@ -3570,7 +3588,13 @@ search_new(const gchar *query,
 	if (sbool_get(sch->passive))
 		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, sch);
 
-	return sch->search_handle;
+	*ptr = sch->search_handle;
+	return SEARCH_NEW_SUCCESS;
+
+failure:
+	G_FREE_NULL(qdup);
+	*ptr = -1;
+	return result;
 }
 
 /**

@@ -209,14 +209,21 @@ typedef struct gnet_record {
 typedef void (*search_got_results_listener_t)
     (GSList *, const gnet_results_set_t *);
 
+enum search_new_result {
+	SEARCH_NEW_SUCCESS,
+	SEARCH_NEW_TOO_LONG,
+	SEARCH_NEW_TOO_SHORT,
+	SEARCH_NEW_INVALID_URN
+};
+
 /*
  * Search public interface, visible only from the bridge.
  */
 
 #ifdef CORE_SOURCES
 
-gnet_search_t search_new(const gchar *, time_t create_time, guint lifetime,
-		guint32 timeout, flag_t flags);
+enum search_new_result search_new(gnet_search_t *ptr, const gchar *,
+			time_t create_time, guint lifetime, guint32 timeout, flag_t flags);
 void search_close(gnet_search_t sh);
 
 void search_start(gnet_search_t sh);
