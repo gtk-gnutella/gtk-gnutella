@@ -244,6 +244,7 @@ po/remove-potcdate.sin
 po/tr.po
 po/uk.po
 po/zh_CN.po
+scripts/firefox-magnet.sh
 scripts/fix_copyright.pl
 scripts/geo-to-db.pl
 scripts/gtkg-dbus-listener.py
