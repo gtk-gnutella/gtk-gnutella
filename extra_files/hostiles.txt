@@ -504,8 +504,8 @@
 69.42.74.68
 69.42.87.192/26
 216.255.178.18
-216.130.182.228
-216.130.188.210/31
+#216.130.182.228
+#216.130.188.210/31
 # Above mentioned adware downloads executables from the following web servers
 # puzzledesktop dot com
 64.40.106.131
@@ -1033,4 +1033,6 @@
 204.13.55.164
 67.55.93.196
 
+# webair.com hosts a lot of DRM and pr0n spammers
+216.130.160.0/19
 
