@@ -1024,7 +1024,7 @@
 85.233.199.128/25
 
 # ASX spam; giFT-based
-204.13.55.176/28
+#204.13.55.176/28
 
 # Accelerator and enhancer spam; zip; rar; exe; port 41000; LimeWire
 85.92.153.192/26
