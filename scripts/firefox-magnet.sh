@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 # $Id$
 
@@ -9,6 +9,13 @@
 # full path to this script.  Also create a new boolean called
 # "network.protocol-handler.external.magnet" and set it to true.
 # This script should have execute permissions.  Ie, chmod +x.
+
+# Make sure that there is only one argument and that it starts
+# with "magnet:".
+if [ $# != 1 ] || [ "X$1" = "X${1#magnet:}" ]; then
+   echo "Usage: ${0##*/} magnet:?[...]" >&2
+   exit 1
+fi
 
 # Select a default configuration directory.  FireFox/Mozilla can be
 # run with alternate exports to over-ride behaviour in this script.
