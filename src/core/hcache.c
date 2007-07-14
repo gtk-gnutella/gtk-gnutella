@@ -51,15 +51,16 @@
 
 RCSID("$Id$")
 
-#include "hosts.h"
-#include "hcache.h"
-#include "pcache.h"
-#include "nodes.h"
-#include "settings.h"
 #include "bogons.h"
+#include "hcache.h"
 #include "hostiles.h"
+#include "hosts.h"
+#include "nodes.h"
+#include "pcache.h"
+#include "settings.h"
 
 #include "lib/file.h"
+#include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -68,6 +69,8 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"			/* Must be the last header included */
+
+#define HOSTCACHE_EXPIRY (60 * 30) /* 30 minutes */
 
 #define MIN_RESERVE_SIZE	1024	/**< we'd like that many pongs in reserve */
 
@@ -191,7 +194,7 @@ stop_mass_update(hostcache_t *hc)
 /**
  * Hashtable: IP/Port -> Metadata
  */
-static GHashTable * ht_known_hosts = NULL;
+static GHashTable *ht_known_hosts;
 
 static void
 hcache_update_low_on_pongs(void)
@@ -484,6 +487,29 @@ host_type_to_string(host_type_t type)
 	return host_type_names[type];
 }
 
+static gint
+hcache_slots_max(hcache_type_t type)
+{
+	g_assert(UNSIGNED(type) < HCACHE_MAX);
+
+    switch (type) {
+    case HCACHE_FRESH_ANY:
+    case HCACHE_VALID_ANY:
+        return GNET_PROPERTY(max_hosts_cached);
+    case HCACHE_FRESH_ULTRA:
+    case HCACHE_VALID_ULTRA:
+        return GNET_PROPERTY(max_ultra_hosts_cached);
+	case HCACHE_BUSY:
+	case HCACHE_TIMEOUT:
+	case HCACHE_UNSTABLE:
+		return GNET_PROPERTY(max_bad_hosts_cached);
+	case HCACHE_NONE:
+	case HCACHE_MAX:
+		break;
+    }
+	g_assert_not_reached();
+	return 0;
+}
 
 /**
  * @return the number of slots which can be added to the given type.
@@ -495,21 +521,50 @@ host_type_to_string(host_type_t type)
 static gint
 hcache_slots_left(hcache_type_t type)
 {
+	gint limit, current = 0;
+
     g_assert(UNSIGNED(type) < HCACHE_MAX);
 
+	limit = hcache_slots_max(type);
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_VALID_ANY:
-        return GNET_PROPERTY(max_hosts_cached) - hcache_size(HOST_ANY);
+		current = hcache_size(HOST_ANY);
+		break;
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
-        return GNET_PROPERTY(max_ultra_hosts_cached) - hcache_size(HOST_ULTRA);
+        current = hcache_size(HOST_ULTRA);
+		break;
+	case HCACHE_BUSY:
+	case HCACHE_TIMEOUT:
+	case HCACHE_UNSTABLE:
+		current = hash_list_length(caches[type]->hostlist);
+		break;
 	case HCACHE_NONE:
+	case HCACHE_MAX:
 		g_assert_not_reached();
-    default:
-        return GNET_PROPERTY(max_bad_hosts_cached) -
-					hash_list_length(caches[type]->hostlist);
     }
+	return limit - current;
+}
+
+/**
+ * Check whether a slot is available and use a simple probability filter to
+ * prevent that the lists can be easily flooded with potentially unwanted
+ * items.
+ *
+ * @return TRUE whether there is an available slot which should be used.
+ */
+static gboolean
+hcache_request_slot(hcache_type_t type)
+{
+	guint limit, left;
+
+	limit = hcache_slots_max(type);
+	left = hcache_slots_left(type);
+
+	return limit > 0
+		&& left > 0
+		&& ((left > limit / 2) || (random_raw() % limit < left));
 }
 
 /**
@@ -525,9 +580,9 @@ hcache_slots_left(hcache_type_t type)
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
-gboolean
-hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
-	const gchar *what)
+static gboolean
+hcache_add_internal(hcache_type_t type, time_t added,
+	const host_addr_t addr, guint16 port, const gchar *what)
 {
 	gnet_host_t *host;
 	hostcache_t *hc;
@@ -639,10 +694,13 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
-		hce->time_added = tm_time();
+		hce->time_added = added;
 
 		return TRUE;
     }
+
+	if (!hcache_request_slot(hc->type))
+		return FALSE;
 
 	/* Okay, we got a new host */
 	host = walloc(sizeof *host);
@@ -695,6 +753,13 @@ hcache_add(hcache_type_t type, const host_addr_t addr, guint16 port,
     }
 
 	return TRUE;
+}
+
+gboolean
+hcache_add(hcache_type_t type,
+	const host_addr_t addr, guint16 port, const gchar *what)
+{
+	return hcache_add_internal(type, tm_time(), addr, port, what);
 }
 
 /**
@@ -864,7 +929,6 @@ hcache_size(host_type_t type)
 static guint32
 hcache_expire_cache(hostcache_t *hc, time_t now)
 {
-    gint32 secs_to_keep = 60 * 30; /* 30 minutes */
     guint32 expire_count = 0;
 	gnet_host_t *h;
 
@@ -880,7 +944,7 @@ hcache_expire_cache(hostcache_t *hc, time_t now)
 
         g_assert(hce != NULL);
 
-        if (delta_time(now, hce->time_added) > secs_to_keep) {
+        if (delta_time(now, hce->time_added) > HOSTCACHE_EXPIRY) {
             hcache_remove(h);
             expire_count++;
         } else {
@@ -1246,20 +1310,38 @@ static void
 hcache_load_file(hostcache_t *hc, FILE *f)
 {
 	gchar buffer[1024];
+	time_t now;
 
 	g_return_if_fail(hc);
 	g_return_if_fail(f);
 
+	now = tm_time();
 	while (fgets(buffer, sizeof buffer, f)) {
+		const gchar *endptr;
 		host_addr_t addr;
 		guint16 port;
+		time_t added;
 
-		if (string_to_host_addr_port(buffer, NULL, &addr, &port)) {
-			hcache_add(hc->type, addr, port, "on-disk cache");
-			if (hcache_slots_left(hc->type) < 1) {
-				break;
-			}
+		if (!string_to_host_addr_port(buffer, &endptr, &addr, &port))
+			continue;
+
+		endptr = skip_ascii_spaces(endptr);
+		added = date2time(endptr, now);
+
+		/* NOTE: hcache_expire_cache() stops on the first item which has
+		 *		 not yet expired.
+		 */
+		if (
+			(time_t)-1 == added ||
+			delta_time(now, added) < 0 ||
+			delta_time(now, added) > HOSTCACHE_EXPIRY
+		) {
+			added = now - HOSTCACHE_EXPIRY;
 		}
+
+		hcache_add_internal(hc->type, added, addr, port, "on-disk cache");
+		if (hcache_slots_left(hc->type) < 1)
+			break;
 	}
 }
 
@@ -1291,7 +1373,14 @@ hcache_write(FILE *f, hostcache_t *hc)
 
 	iter = hash_list_iterator(hc->hostlist);
 	while (NULL != (h = hash_list_iter_next(iter))) {
-		fprintf(f, "%s\n", gnet_host_to_string(h));
+		const hostcache_entry_t *hce;
+
+		hce = hcache_get_metadata(h);
+    	if (hce == NULL || hce == NO_METADATA)
+			continue;
+		
+		fprintf(f, "%s %s\n",
+			gnet_host_to_string(h), timestamp_utc_to_string(hce->time_added));
 	}
 	hash_list_iter_release(&iter);
 }
