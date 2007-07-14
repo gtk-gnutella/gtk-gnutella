@@ -1032,6 +1032,7 @@
 # MOV pr0n spam; video-elf dot com
 204.13.55.164
 67.55.93.196
+8.3.218.0/24
 
 # webair.com hosts a lot of DRM and pr0n spammers
 216.130.160.0/19
