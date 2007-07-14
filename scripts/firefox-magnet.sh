@@ -22,12 +22,15 @@ fi
 GTK_GNUTELLA_DIR=${GTK_GNUTELLA_DIR-$HOME/.gtk-gnutella}
 export GTK_GNUTELLA_DIR
 
+# gtk-gnutella may not be installed or local_shell.c might have been
+# compiled as a standalone.  Allow some way to over-ride default.
+GTKG=${GTKG-gtk-gnutella}
+
 # Don't do anything if GTKG is not running.
-gtk-gnutella --ping || exit 1
+$GTKG --ping || exit 1
 
 # Send a shell command to download the magnet URL.
-# Fixme: How to escape spaces and shell escapces, etc.
-cat <<EOF | exec gtk-gnutella --shell
+cat <<EOF | exec $GTKG --shell
 download add "$1"
 EOF
 
