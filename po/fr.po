@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-07-13 05:13+0900\n"
-"PO-Revision-Date: 2007-01-05 22:54+0100\n"
+"PO-Revision-Date: 2007-07-14 11:59+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -31,9 +31,8 @@ msgstr "x"
 msgid "No longer connected"
 msgstr "N'est plus connecté"
 
-#, fuzzy
 msgid "Too many data timeouts"
-msgstr "Trop de tentatives (%u fois)"
+msgstr "Trop de timeout de données"
 
 msgid "Timeout"
 msgstr "Timeout"
@@ -47,13 +46,12 @@ msgstr "Remis dans la file pour changement d'info du fichier"
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendu (vérification SHA1)"
 
-#, fuzzy, c-format
+#, c-format
 msgid " at %s - rescheduled for %s%s"
-msgstr " à %s - replanifié pour %s"
+msgstr " à %s - replanifié pour %s%s"
 
-#, fuzzy
 msgid "Paused"
-msgstr "Passif"
+msgstr "En pause"
 
 msgid "Waiting for a free chunk"
 msgstr "En attente d'un bloc libre"
@@ -177,7 +175,7 @@ msgstr "<Parcourir l'hôte %s>"
 
 #, c-format
 msgid "<THEX data for %s>"
-msgstr ""
+msgstr "<Données THEX pour %s>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Données stoppées (EOF) <download_got_eof>"
@@ -249,7 +247,7 @@ msgid "Query had unnecessary overhead"
 msgstr "La demande avait un surplus inutile"
 
 msgid "Query had bad URN"
-msgstr ""
+msgstr "La demande avait un mauvais URN"
 
 msgid "Message with malformed SHA1"
 msgstr "Message avec SHA1 malformé"
@@ -278,9 +276,8 @@ msgstr "Erreur d'exrtaction de la charge utile"
 msgid "Unknown header flags present"
 msgstr "Drapeaux d'en-tête inconnus présents"
 
-#, fuzzy
 msgid "Own search results"
-msgstr "Résultats de la recherche"
+msgstr "Propres résultats de recherche"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -488,7 +485,7 @@ msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "Ne fonctionne qu'en mode feuille si firewallé en TCP"
 
 msgid "Invalid command syntax"
-msgstr ""
+msgstr "Syntaxe de commande invalide"
 
 msgid "Invalid IP/Port"
 msgstr "IP/Port invalide"
@@ -496,19 +493,17 @@ msgstr "IP/Port invalide"
 msgid "Node added"
 msgstr "Noeud ajouté"
 
-#, fuzzy
 msgid "Invalid IP"
-msgstr "IP/Port invalide"
+msgstr "IP invalide"
 
-#, fuzzy
 msgid "Invalid port"
-msgstr "IP/Port invalide"
+msgstr "Port invalide"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "Enlevé %u téléchargement"
-msgstr[1] "Enlevé %u téléchargements"
+msgstr[0] "Enlevé %u noeud"
+msgstr[1] "Enlevé %u noeuds"
 
 msgid "Unknown operation"
 msgstr "opération inconnue"
@@ -516,7 +511,6 @@ msgstr "opération inconnue"
 msgid "Query string missing"
 msgstr "String de la demande manquante"
 
-#, fuzzy
 msgid "Query string is not UTF-8 encoded"
 msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
 
@@ -582,19 +576,17 @@ msgstr "Le téléchargement ne peut pas être créé"
 msgid "Download added"
 msgstr "Téléchargement ajouté"
 
-#, fuzzy
 msgid "Interactive mode turned on."
-msgstr "Sources inactives"
+msgstr "Mode interactif activé."
 
 msgid "Interactive mode turned off."
-msgstr ""
+msgstr "Mode interactif désactivé."
 
 msgid "No matching property."
 msgstr "Aucune propriété correspondant."
 
-#, fuzzy
 msgid "No help available"
-msgstr "Indisponible"
+msgstr "Pas d'aide disponible"
 
 msgid "Good bye"
 msgstr "Aurevoir"
@@ -635,11 +627,11 @@ msgstr "Recherche du cache d'hôtes UDP %s"
 msgid "Sent ping to UDP host cache %s:%u"
 msgstr "Ping envoyé au cache d'hôte UDP %s:%u"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
-msgstr[0] "Reçu %d hôte du cache UDP %s:%u"
-msgstr[1] "Reçu %d hôtes du cache UDP %s:%u"
+msgstr[0] "Reçu %d hôte du cache des hôtes UDP %s"
+msgstr[1] "Reçu %d hôtes du cache des hôtes UDP %s"
 
 msgid "Connect back timeout"
 msgstr "Timeout sur le retour de connexion"
@@ -2092,13 +2084,10 @@ msgstr ""
 "Si les connections vers gtk-gnutella via un shell de contrôle de l'interface "
 "sont autorisées."
 
-#, fuzzy
 msgid ""
 "Amount of seconds until an idle remote shell session gets disconnected. If "
 "set to zero, no timeout occurs."
-msgstr ""
-"Nombre de secondes après lequel le shell de contrôle distant est déconnecté. "
-"Si zéro, il n'y a pas de timeout."
+msgstr "Nombre de secondes après lequel le shell de contrôle distant est déconnecté. Si zéro, il n'y a pas de timeout."
 
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
@@ -2445,13 +2434,10 @@ msgstr ""
 msgid "Debug level for the OOB-proxying of queries."
 msgstr "Niveau de débugage pour le cache OOB des requêtes."
 
-#, fuzzy
 msgid ""
 "If set gtk-gnutella also listens on a local (unix domain) socket which is "
 "located in ~/.gtk-gnutella/socket."
-msgstr ""
-"Si activé, gtk-gnutella écoute aussi sur une socket locale (domaine unix) "
-"qui est dans ~/.gtk-gnutella/socket."
+msgstr "Si activé, gtk-gnutella écoute aussi sur une socket locale (domaine unix) qui est dans ~/.gtk-gnutella/socket."
 
 msgid "Don't start more than this number of parallel downloads per file."
 msgstr ""
@@ -2483,40 +2469,30 @@ msgid "Debug level for the shell."
 msgstr "Niveau de débugage pour le shell."
 
 msgid "If larger than zero, no downloads are started."
-msgstr "Si supérieur à zéro, aucun téléchargeement n'est démarré."
+msgstr "Si supérieur à zéro, aucun téléchargement n'est démarré."
 
-#, fuzzy
 msgid "Debug level for the search queue."
-msgstr "Niveau de débugage pour le shell."
+msgstr "Niveau de débugage pour la file d'attente de recherche."
 
-#, fuzzy
 msgid "Debug level for push-proxy code."
-msgstr "Niveau de débugage pour le code HTTP."
+msgstr "Niveau de débugage pour le code push-proxy."
 
 msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
+msgstr "C'est une propriété temporaire tant que le support Tigertree n'est pas terminé."
 
-#, fuzzy
 msgid "Number of THEX file requests received in this session."
-msgstr "Nombre de requêtes de parcours HTML reçues pendant cette session."
+msgstr "Nombre de requêtes de fichier THEX reçues pendant cette session."
 
-#, fuzzy
 msgid "Number of THEX file requests fully served in this session."
-msgstr ""
-"Nombre de requêtes de parcours HTML entièrement servies pendant cette "
-"session."
+msgstr "Nombre de requêtes de fichier THEX servies entièrement pendant cette session."
 
-#, fuzzy
 msgid "Debug level for Tigertree-related code."
-msgstr "Niveau de débugage pour les noeuds Gnutella."
+msgstr "Niveau de débugage pour le code Tigertree."
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
-msgstr ""
-"Indique si gtk-gnutella est actuellement en train de calculer le SHA1 des "
-"fichiers partagés en arrière plan."
+msgstr "Indique si gtk-gnutella est actuellement en train de calculer le TTH des fichiers partagés en arrière plan."
 
 msgid "disable"
 msgstr "désactiver"
@@ -3833,40 +3809,40 @@ msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "Build non officiel avec accès fichiers accédés dans ce répertoire :"
 
 msgid "Bitzi|Unknown"
-msgstr "Inconnu"
+msgstr "Bitzi|Inconnu"
 
 msgid "Bitzi|Bitzi lookup failure"
-msgstr ""
+msgstr "Bitzi|Erreur de recherche Bitzi"
 
 msgid "Bitzi|Filesize mismatch"
-msgstr ""
+msgstr "Bitzi|Erreur de taille de fichier"
 
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Dangereux/Trompeur"
+msgstr "Bitzi|Dangereux/Trompeur"
 
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Incomplet/Endommagé"
+msgstr "Bitzi|Incomplet/Endommagé"
 
 msgid "Bitzi|Substandard"
-msgstr "Inférieur"
+msgstr "Bitzi|Inférieur"
 
 msgid "Bitzi|Overrated"
-msgstr "Sur-estimé"
+msgstr "Bitzi|Sur-estimé"
 
 msgid "Bitzi|Normal"
-msgstr "Normal"
+msgstr "Bitzi|Normal"
 
 msgid "Bitzi|Underrated"
-msgstr "Sous-estimé"
+msgstr "Bitzi|Sous-estimé"
 
 msgid "Bitzi|Complete"
-msgstr "Terminé"
+msgstr "Bitzi|Terminé"
 
 msgid "Bitzi|Recommended"
-msgstr "Recommandé"
+msgstr "Bitzi|Recommandé"
 
 msgid "Bitzi|Best Version"
-msgstr "Meilleure Version"
+msgstr "Bitzi|Meilleure Version"
 
 msgid "No other data"
 msgstr "Pas d'autres données"
@@ -4313,9 +4289,8 @@ msgstr "(bloqué)"
 msgid " [%d/%d] TR: %s"
 msgstr " [%d/%d] TR: %s"
 
-#, fuzzy
 msgid "ignoring"
-msgstr "entrant"
+msgstr "ignorant"
 
 msgid "Connected"
 msgstr "Connecté"
@@ -4367,9 +4342,8 @@ msgstr[1] ""
 msgid "Downloading (%s)  TR: %s"
 msgstr "Téléchargement (%s)  TR: %s"
 
-#, fuzzy
 msgid "Seeding"
-msgstr "Envoi de push"
+msgstr "Pollinisation"
 
 msgid "Finished"
 msgstr "Terminé"
@@ -5451,7 +5425,6 @@ msgstr "Annuler"
 msgid "gtk-gnutella shutdown"
 msgstr "arrêt de gtk-gnutella"
 
-#, fuzzy
 msgid ""
 "Gtk-Gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -5459,7 +5432,7 @@ msgid ""
 "Grace time remaining:"
 msgstr ""
 "gtk-gnutella s'arrête.\n"
-"Envoi des messages 'bye'.\n"
+"Envoi des messages 'bye' aux hôtes.\n"
 "\n"
 "Temps de grâce restant:"
 
@@ -6458,9 +6431,8 @@ msgstr "#"
 msgid "Metadata"
 msgstr "Métadonnées"
 
-#, fuzzy
 msgid "Vendor"
-msgstr "Vendeur:"
+msgstr "Vendeur"
 
 msgid "Route"
 msgstr "Route"
@@ -6524,9 +6496,8 @@ msgstr " réessayer dans %us"
 msgid "Sending request (%u%%)"
 msgstr "Envoi de la requête (%u%%)"
 
-#, fuzzy
 msgid "Uploaded"
-msgstr "Envoyé:"
+msgstr "Envoyé"
 
 msgid "Aliases"
 msgstr "Alias"
@@ -6540,9 +6511,8 @@ msgstr[1] "%u téléchargements sur %u correspondant à \"%s\"."
 msgid "Cache contains"
 msgstr "Le cache contient"
 
-#, fuzzy
 msgid "Pause"
-msgstr "Push"
+msgstr "Pause"
 
 msgid "Copy Magnet to clipboard"
 msgstr "Copier Magnet vers le presse-papiers"
@@ -6556,7 +6526,6 @@ msgstr "Copier vers le presse-papiers"
 msgid "_Remove filter"
 msgstr "_Supprimer le filtre"
 
-#, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -6564,7 +6533,7 @@ msgid ""
 "Grace time remaining:"
 msgstr ""
 "gtk-gnutella s'arrête.\n"
-"Envoi des messages 'bye'.\n"
+"Envoi des messages 'bye' aux hôtes.\n"
 "\n"
 "Temps de grâce restant:"
 
@@ -6628,9 +6597,8 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Recherche _actuelle:"
 
-#, fuzzy
 msgid "XML Metadata"
-msgstr "Métadonnées"
+msgstr "Métadonnées XML"
 
 msgid "Flow _control"
 msgstr "_Contrôle de flux"
@@ -6776,7 +6744,7 @@ msgid "Unstable"
 msgstr "Instable"
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
+msgstr "gtk-gnutella: Cliquez pour minimiser/restaurer"
 
 msgid "Stats"
 msgstr "Stats"
@@ -6807,14 +6775,11 @@ msgid_plural "%d seconds"
 msgstr[0] "%d seconde"
 msgstr[1] "%d secondes"
 
-#, fuzzy
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
-msgstr ""
-"Le document FAQ ne peut pas être chargé. Merci de lire la FAQ en ligne à "
-"http://gtk-gnutella.sourceforge.net/?page=faq"
+msgstr "<html><head><title>Questions fréquemment posées</title></head><body><p>Le document FAQ ne peut pas être chargé. Merci de lire la <a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">FAQ en ligne</a> à la place.</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -6934,7 +6899,7 @@ msgid "Handled magnet link (%s, %s)."
 msgstr "Lien aimant manipulé (%s, %s)."
 
 msgid "Ignored unusable magnet link."
-msgstr ""
+msgstr "Lien magnet inutilisable ignoré."
 
 msgid "The given urn type is not supported."
 msgstr "Le type urn n'est pas supporté."
@@ -6943,11 +6908,10 @@ msgid "The given SHA-1 is not correctly encoded."
 msgstr "Le SHA-1 n'est pas correctement encodé."
 
 msgid "Missing port number"
-msgstr ""
+msgstr "Numéro de port manquant"
 
-#, fuzzy
 msgid "Could not parse host address"
-msgstr "Impossible de lancer le parcours d'hôte pour %s"
+msgstr "Impossible d'examiner les adresses hôtes"
 
 msgid "The query string is not UTF-8 encoded"
 msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
@@ -6964,57 +6928,49 @@ msgid "Could not launch browse host for %s"
 msgstr "Impossible de lancer le parcours d'hôte pour %s"
 
 msgid "Bitzi URL"
-msgstr ""
+msgstr "URL Bitzi"
 
 msgid "ShareMonkey URL"
-msgstr ""
+msgstr "URL ShareMonkey"
 
-#, fuzzy
 msgid "Index"
-msgstr "Index:"
+msgstr "Index"
 
 msgid "No"
 msgstr "Non"
 
-#, fuzzy
 msgid "Pathname"
-msgstr "Panama"
+msgstr "Chemin"
 
-#, fuzzy
 msgid "File URL"
-msgstr "Fichier"
+msgstr "URL fichier"
 
-#, fuzzy
 msgid "Source"
-msgstr "Sources"
+msgstr "Source"
 
-#, fuzzy
 msgid "Browsable"
-msgstr "parcourable"
+msgstr "Parcourable"
 
-#, fuzzy
 msgid "Maybe"
-msgstr "Mayotte"
+msgstr "Peut-être"
 
-#, fuzzy
 msgid "Hostname"
-msgstr "Cache des hôtes"
+msgstr "Nom d'hôte"
 
-#, fuzzy
 msgid "Servent ID"
-msgstr "ID servent:"
+msgstr "ID servent"
 
 msgid "Alt-Locs"
-msgstr ""
+msgstr "Alt-Locs"
 
 msgid "Push-proxies"
-msgstr ""
+msgstr "Push-proxies"
 
 msgid "N2R URI"
-msgstr ""
+msgstr "N2R URI"
 
 msgid "Classic URL"
-msgstr ""
+msgstr "URL classique"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "Le support de ce protocole n'est pas encore implémenté"
@@ -7046,7 +7002,7 @@ msgid ""
 "Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
 "gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
 "body></html>"
-msgstr ""
+msgstr "<html><head><title>Ancienne version détectée !</title></head><body><h1>Attention</h1><p>Cette version de gtk-gnutella est ancianne. Merci de visiter <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> et de mettre à jour votre copie de gtk-gnutella.</p></body></html>"
 
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "*** EXÉCUTION D'UNE ANCIENNE VERSION ! ***"
@@ -7064,7 +7020,7 @@ msgid "*** FILE DESCRIPTORS RUNNING LOW! ***"
 msgstr "*** COMMENCE À MANQUER DE DESCRIPTEURS DE FICHIERS ! ***"
 
 msgid "*** Please update gtk-gnutella ***"
-msgstr ""
+msgstr "*** Merci de mettre à jour gtk-gnutella ***"
 
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
@@ -7130,9 +7086,9 @@ msgstr "Reçu Push, se connecte..."
 msgid "< 1s"
 msgstr "< 1s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s) TR: %s %s #%u"
-msgstr "%s(%s) TR: %s %s"
+msgstr "%s(%s) TR: %s %s #%u"
 
 msgid "stalled"
 msgstr "bloqué"
@@ -7168,272 +7124,4 @@ msgstr "Envoi de QUEUE, se connecte..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
 
-#~ msgid ""
-#~ "Use fuzzy file name matching (recommended = NO; only rely on SHA1 "
-#~ "matching to be safe)."
-#~ msgstr ""
-#~ "Utiliser la correspondance floue pour les noms de fichiers (recommandé = "
-#~ "NON; comptez seulement sur la correspondance SHA1 pour être sur)."
-
-#~ msgid ""
-#~ "Fuzziness threshold for filename matching (higher = stricter). A value of "
-#~ "100 means the filenames must be 100% identical.  A value of 0 means any "
-#~ "two filenames will always be considered to be identical.  The minimum is "
-#~ "50%."
-#~ msgstr ""
-#~ "Seuil de flou pour faire correspondre les noms de fichiers (plus grand = "
-#~ "plus strict). Une valeur de 100 signifie que les noms de fichiers doivent "
-#~ "être 100% identiques.  Une valeur de 0 signifie que deux fichiers seront "
-#~ "toujours considérés comme identiques. Le minimum est 50%."
-
-#~ msgid ""
-#~ "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
-#~ "this filtering is to remove entries whose names are too different to be "
-#~ "sensibly part of the same mesh. When activated, your mesh will probably "
-#~ "be more consistent at the cost of extra CPU time, and at the cost of "
-#~ "losing some valid entries in the process."
-#~ msgstr ""
-#~ "S'il faut appliquer un filtre flou sur les entrées du maillage du "
-#~ "téléchargement.  Le but de ce filtrage est de supprimer les entrées dont "
-#~ "les noms sont trop différents pour faire partie du même maillage. Quand "
-#~ "ceci est activé, votre maillage va probablement être plus solide mais "
-#~ "demandera du temps CPU en plus, quelques entrées valides seront perdues "
-#~ "dans le processus."
-
-#~ msgid "Protocol is not supported"
-#~ msgstr "Le protocole n'est pas supporté"
-
-#~ msgid "Unknown parameter"
-#~ msgstr "Paramètre inconnu"
-
-#~ msgid "normal node"
-#~ msgstr "Noeud normal"
-
-#~ msgid "<no SHA1 known>"
-#~ msgstr "<pas de SHA1 connu>"
-
-#~ msgid "Queued (%u active, %u passive)"
-#~ msgstr "Mis dans la file (%u actifs, %u passifs)"
-
-#~ msgid "Completed (%s) %s%s"
-#~ msgstr "Terminé (%s) %s%s"
-
-#~ msgid "Out of memory"
-#~ msgstr "Plus de mémoire disponible"
-
-#~ msgid "Browse Host Enabled"
-#~ msgstr "Parcours d'hôte activé"
-
-#~ msgid "Display download settings."
-#~ msgstr "Afficher les paramètres de téléchargement."
-
-#~ msgid "Sho_w settings"
-#~ msgstr "Afficher les para_mètres"
-
-#~ msgid "Hide settings"
-#~ msgstr "Cacher les paramètres"
-
-#~ msgid ""
-#~ "This property must be set to the current version number of gtk-gnutella "
-#~ "in order to allow it to run when it is ancient."
-#~ msgstr ""
-#~ "Cette propriété doit être mise à la version actuelle de gtk-gnutella pour "
-#~ "lui permettre de tourner quand elle est ancienne."
-
-#~ msgid "Display search settings."
-#~ msgstr "Afficher les paramètres de recherche."
-
-#~ msgid "Retry in %ds"
-#~ msgstr "Nouvel essai dans %ds"
-
-#~ msgid "Displaying"
-#~ msgstr "Affichant"
-
-#, fuzzy
-#~ msgid ""
-#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
-#~ "Network. RFC1918 will be ignored."
-#~ msgstr ""
-#~ "Cochez ce bouton si vous voulez utilisez gtk-gnutella dans votre réseau "
-#~ "local. La RFC1918 sera ignorée."
-
-#~ msgid "*** VERSION WILL SOON BECOME OLD! ***"
-#~ msgstr "*** CETTE VERSION VA BIENTOT ÊTRE ANCIENNE ! ***"
-
-#~ msgid "Improper hops/TTL combination"
-#~ msgstr "Combinaison inexacte de hops/TTL"
-
-#~ msgid "Flow control"
-#~ msgstr "Contrôle de flux"
-
-#~ msgid ""
-#~ "\n"
-#~ "The FAQ document is damaged.\n"
-#~ msgstr ""
-#~ "\n"
-#~ "Le document FAQ est endommagé.\n"
-
-#~ msgid "Got %d host from %s"
-#~ msgid_plural "Got %d hosts from %s"
-#~ msgstr[0] "Reçu %d hôte depuis %s"
-#~ msgstr[1] "Reçu %d hôtes depuis %s"
-
-#~ msgid "Connecting to web cache %s"
-#~ msgstr "Connexion au cache web %s"
-
-#~ msgid "Updated web cache "
-#~ msgstr "Cache web mis à jour "
-
-#~ msgid "Type not supported"
-#~ msgstr "Type non supporté"
-
-#~ msgid "Verbosity of GWebCache related debug messages."
-#~ msgstr "Verbosité des messages de debug liés aux GWebCache."
-
-#~ msgid ""
-#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
-#~ "read-ahead.  This gives more room for reading large amount of data "
-#~ "without issuing too many system calls. It complements buffering nicely "
-#~ "because it prevents reading a few bytes before committing the buffered "
-#~ "data to disk: when read-ahead space is available, it will be used in "
-#~ "addition to buffering, but read-ahead data is committed to disk "
-#~ "immediately.  If you don't wish to reserve more memory per active source, "
-#~ "you can disable this feature by setting the read-ahead buffer size to 0."
-#~ msgstr ""
-#~ "Extra amount of data per downloading source that gtk-gnutella will try to "
-#~ "read-ahead.  This gives more room for reading large amount of data "
-#~ "without issuing too many system calls. It complements buffering nicely "
-#~ "because it prevents reading a few bytes before committing the buffered "
-#~ "data to disk: when read-ahead space is available, it will be used in "
-#~ "addition to buffering, but read-ahead data is committed to disk "
-#~ "immediately.  If you don't wish to reserve more memory per active source, "
-#~ "you can disable this feature by setting the read-ahead buffer size to 0."
-
-#~ msgid "No download slot (create)"
-#~ msgstr "Pas de créneau libre pour télécharger (création)"
-
-#~ msgid "gtk-gnutella"
-#~ msgstr "gtk-gnutella"
-
-#~ msgid "[Gnet]"
-#~ msgstr "[Gnet]"
-
-#~ msgid "0"
-#~ msgstr "0"
-
-#~ msgid "1"
-#~ msgstr "1"
-
-#~ msgid "2"
-#~ msgstr "2"
-
-#~ msgid "3"
-#~ msgstr "3"
-
-#~ msgid "4"
-#~ msgstr "4"
-
-#~ msgid "5"
-#~ msgstr "5"
-
-#~ msgid "6"
-#~ msgstr "6"
-
-#~ msgid "7"
-#~ msgstr "7"
-
-#~ msgid "8+"
-#~ msgstr "8+"
-
-#~ msgid "[Gnet Stats]"
-#~ msgstr "[Gnet Stats]"
-
-#~ msgid "[Hostcache]"
-#~ msgstr "[Cache des hôtes]"
-
-#~ msgid "[Uploads]"
-#~ msgstr "[Envois]"
-
-#~ msgid "[BH qhits served]"
-#~ msgstr "[BH qhits servis]"
-
-#~ msgid "[Upload Stats]"
-#~ msgstr "[Stats d'envois]"
-
-#~ msgid "[all count]"
-#~ msgstr "[tous les compteurs]"
-
-#~ msgid "[with source count]"
-#~ msgstr "[compteur avec source]"
-
-#~ msgid "[Downloads]"
-#~ msgstr "[Téléchargements]"
-
-#~ msgid "[running]"
-#~ msgstr "[en cours]"
-
-#~ msgid "[Active]"
-#~ msgstr "[Actif]"
-
-#~ msgid "[queued downloads]"
-#~ msgstr "[téléchargements en file]"
-
-#~ msgid "[hosts alive]"
-#~ msgstr "[hôtes en vie]"
-
-#~ msgid "[Queue]"
-#~ msgstr "[File]"
-
-#~ msgid "[Search]"
-#~ msgstr "[Recherche]"
-
-#~ msgid "[Monitor]"
-#~ msgstr "[Moniteur]"
-
-#~ msgid "[Search Stats]"
-#~ msgstr "[Stats de recherche]"
-
-#~ msgid "[Add/Remove]"
-#~ msgstr "[Ajouter/Retirer]"
-
-#~ msgid "[Filename]"
-#~ msgstr "[Nom de fichier]"
-
-#~ msgid "[IP address]"
-#~ msgstr "[Adresse IP]"
-
-#~ msgid "[Filesize]"
-#~ msgstr "[Taille de fichier]"
-
-#~ msgid "[Jump]"
-#~ msgstr "[Sauter]"
-
-#~ msgid "[SHA1]"
-#~ msgstr "[SHA1]"
-
-#~ msgid "[Flags]"
-#~ msgstr "[Drapeaux]"
-
-#~ msgid "[State]"
-#~ msgstr "[Etat]"
-
-#~ msgid "[time]"
-#~ msgstr "[heure]"
-
-#~ msgid "[name and version]"
-#~ msgstr "[nom et version]"
-
-#~ msgid "[place holder]"
-#~ msgstr "[place holder]"
-
-#~ msgid "%"
-#~ msgstr "%"
-
-#~ msgid "TCP"
-#~ msgstr "TCP"
-
-#~ msgid "Edit filters"
-#~ msgstr "Editer les filtres"
-
-#~ msgid ", browsable"
-#~ msgstr ", parcourable"
+ 	  	 
