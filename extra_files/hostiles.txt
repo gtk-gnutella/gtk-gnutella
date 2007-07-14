@@ -363,6 +363,7 @@
 209.190.22.86
 209.190.122.186
 222.73.219.128
+222.73.218.24
 
 # DRM WMV spammer; license URL links to 209.190.122.186
 68.178.144.112
@@ -1027,3 +1028,9 @@
 
 # Accelerator and enhancer spam; zip; rar; exe; port 41000; LimeWire
 85.92.153.192/26
+
+# MOV pr0n spam; video-elf dot com
+204.13.55.164
+67.55.93.196
+
+
