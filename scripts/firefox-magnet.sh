@@ -20,4 +20,7 @@ gtk-gnutella --ping || exit 1
 
 # Send a shell command to download the magnet URL.
 # Fixme: How to escape spaces and shell escapces, etc.
-echo download add \"$1\" | gtk-gnutella --shell
+cat <<EOF | exec gtk-gnutella --shell
+download add "$1"
+EOF
+
