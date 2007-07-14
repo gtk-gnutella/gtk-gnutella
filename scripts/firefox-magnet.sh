@@ -12,18 +12,18 @@
 
 # Select a default configuration directory.  FireFox/Mozilla can be
 # run with alternate exports to over-ride behaviour in this script.
-if [ "$GTK_GNUTELLA_DIR" == "" ]
+if [ "$GTK_GNUTELLA_DIR" = "" ]
 then
 export GTK_GNUTELLA_DIR=$HOME/.gtk-gnutella
 fi
 
 # Select default for gtk-gnutella executable.
-if [ "$GTKG" == "" ]
+if [ "$GTKG" = "" ]
 then
 
 GTKG=gtk-gnutella
 
-if [ `uname -s` == "Linux" ]
+if [ `uname -s` = "Linux" ]
 then
 
 # Obtain the PID of the process.
