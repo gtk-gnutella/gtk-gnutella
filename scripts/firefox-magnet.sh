@@ -12,32 +12,12 @@
 
 # Select a default configuration directory.  FireFox/Mozilla can be
 # run with alternate exports to over-ride behaviour in this script.
-if [ "$GTK_GNUTELLA_DIR" = "" ]
-then
-export GTK_GNUTELLA_DIR=$HOME/.gtk-gnutella
-fi
-
-# Select default for gtk-gnutella executable.
-if [ "$GTKG" = "" ]
-then
-
-GTKG=gtk-gnutella
-
-if [ `uname -s` = "Linux" ]
-then
-
-# Obtain the PID of the process.
-GTKG_PID=`pgrep -f "gnutella" | tail -n 1`
-
-GTKG=/proc/$GTKG_PID/exe
-fi
-
-fi
-
+GTK_GNUTELLA_DIR=${GTK_GNUTELLA_DIR-$HOME/.gtk-gnutella}
+export GTK_GNUTELLA_DIR
 
 # Don't do anything if GTKG is not running.
-$GTKG --ping || exit
+gtk-gnutella --ping || exit 1
 
 # Send a shell command to download the magnet URL.
 # Fixme: How to escape spaces and shell escapces, etc.
-echo download add \"$1\" | $GTKG --shell
+echo download add \"$1\" | gtk-gnutella --shell
