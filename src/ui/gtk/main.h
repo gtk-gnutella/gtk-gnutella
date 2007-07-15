@@ -59,6 +59,7 @@ void main_gui_shutdown(void);
 void main_gui_timer(time_t now);
 void main_gui_update_coords(void);
 void main_gui_shutdown_tick(guint);
+gboolean main_gui_window_visible(void);
 
 #endif /* _gtk_main_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -275,6 +275,28 @@ gui_menu_shutdown(void)
 		NULL);
 }
 
+static GdkWindowState main_window_state;
+
+gboolean
+main_gui_window_visible(void)
+{
+	GdkWindowState mask;
+
+	mask = GDK_WINDOW_STATE_WITHDRAWN | GDK_WINDOW_STATE_ICONIFIED;
+	return !(main_window_state & mask);
+}
+
+static gboolean
+on_main_gui_window_state_event(GtkWidget *unused_widget,
+	GdkEventWindowState *event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+
+	main_window_state = event->new_window_state;
+	return FALSE;	/* propagate further */
+}
+
 #else
 
 static void
@@ -308,7 +330,13 @@ gui_menu_shutdown(void)
 {
 	/* NOTHING */
 }
-	
+
+gboolean
+main_gui_window_visible(void)
+{
+	return TRUE;
+}
+
 #endif /* USE_GTK2 */
 
 /**
@@ -363,6 +391,9 @@ gui_init_main_window(void)
 	 */
 	gtk_container_remove(GTK_CONTAINER(notebook),
 		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+
+	gui_signal_connect(gui_main_window(), "window-state-event",
+		on_main_gui_window_state_event, NULL);
 
 #endif	/* USE_GTK2 */
 }
@@ -518,7 +549,7 @@ gui_init_dlg_about(void)
  *
  * Where the last one can overrule settings from earlier resource files.
  */
-void
+static void
 main_gui_gtkrc_init(void)
 {
 #ifdef USE_GTK2
@@ -712,7 +743,7 @@ main_gui_run(const gchar *geometry_spec)
 		}
 	}
 	gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
- 
+
     icon_init();
     main_gui_timer(now);
 
