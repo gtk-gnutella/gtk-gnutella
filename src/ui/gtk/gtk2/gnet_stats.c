@@ -693,18 +693,19 @@ void
 gnet_stats_gui_update(time_t now)
 {
 	static gnet_stats_t stats;
-	static gboolean locked = FALSE;
-	static time_t last_update = 0;
+	static time_t last_update;
 	gint current_page;
 
-	if (last_update == now || locked)
+	if (!main_gui_window_visible())
 		return;
-	last_update = now;
-	locked = TRUE;
 
 	current_page = gtk_notebook_get_current_page(notebook_main);
 	if (current_page != nb_main_page_gnet_stats)
-		goto cleanup;
+		return;
+
+	if (last_update && 0 == delta_time(last_update, now))
+		return;
+	last_update = now;
 
 	guc_gnet_stats_get(&stats);
 
@@ -713,10 +714,10 @@ gnet_stats_gui_update(time_t now)
 	case GNET_STATS_NB_PAGE_STATS:
 		gnet_stats_update_general(&stats);
 		gnet_stats_update_drop_reasons(&stats);
-		goto cleanup;
+		break;
 	case GNET_STATS_NB_PAGE_HORIZON:
 		gnet_stats_update_horizon();
-		goto cleanup;
+		break;
 	case GNET_STATS_NB_PAGE_MESSAGES:
 		switch (GUI_PROPERTY(gnet_stats_source)) {
 		case GNET_STATS_FULL:
@@ -731,21 +732,16 @@ gnet_stats_gui_update(time_t now)
 			g_assert_not_reached();
 		}
 		gnet_stats_update_messages(&stats);
-		goto cleanup;
+		break;
 	case GNET_STATS_NB_PAGE_FLOWC:
 		gnet_stats_update_flowc(&stats);
-		goto cleanup;
+		break;
 	case GNET_STATS_NB_PAGE_RECV:
 		gnet_stats_update_recv(&stats);
-		goto cleanup;
-
+		break;
 	case NUM_GNET_STATS_NB_PAGES:
 		break;
 	}
-	g_assert_not_reached();
-
-cleanup:
-	locked = FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
