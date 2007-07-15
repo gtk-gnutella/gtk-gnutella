@@ -419,17 +419,19 @@ gnet_stats_gui_update(time_t now)
 	static time_t last_horizon_update = 0;
 	gint global_table_size;
 	gnet_stats_t *xstats = NULL;
-
     gint current_page;
+
+	if (!main_gui_window_visible())
+		return;
+
+    current_page = gtk_notebook_get_current_page(
+						GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")));
+    if (current_page != nb_main_page_gnet_stats)
+        return;
 
 	if (last_update == now)
 		return;
 	last_update = now;
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")));
-
-    if (current_page != nb_main_page_gnet_stats)
-        return;
 
     guc_gnet_stats_get(&stats);
 
