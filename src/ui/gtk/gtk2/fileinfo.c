@@ -814,6 +814,9 @@ fi_gui_update_display(time_t unused_now)
 {
 	(void) unused_now;
 
+	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_downloads)))
+		return;
+
 	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
 	g_object_thaw_notify(G_OBJECT(store_fileinfo));
 	g_object_thaw_notify(G_OBJECT(treeview_downloads));

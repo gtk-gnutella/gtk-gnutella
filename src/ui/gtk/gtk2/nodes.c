@@ -748,12 +748,7 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 void
 nodes_gui_update_nodes_display(time_t now)
 {
-#define DO_FREEZE FALSE
-	static const gboolean do_freeze = DO_FREEZE;
-    static time_t last_update = 0;
-	gint current_page;
-	static GtkNotebook *notebook = NULL;
-    GtkTreeModel *model;
+    static time_t last_update;
 
 	if (GUI_PROPERTY(gui_debug) > 0) {
     	g_message("recorded changed: flags: %d info: %d",
@@ -761,48 +756,17 @@ nodes_gui_update_nodes_display(time_t now)
         	g_hash_table_size(ht_node_info_changed));
 	}
 
-    if (delta_time(now, last_update) < 2)
-        return;
-
-	/*
-	 * Usually don't perform updates if nobody is watching.  However,
-	 * we do need to perform periodic cleanup of dead entries or the
-	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
-	 * at least.
-	 *		--RAM, 28/12/2003
-	 */
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
-    current_page = gtk_notebook_get_current_page(notebook);
-	if (
-		current_page != nb_main_page_gnet &&
-		delta_time(now, last_update) < UPDATE_MIN
-	) {
+	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_nodes)))
 		return;
-	}
 
+	g_message("nodes are visible");
+    if (last_update && 0 == delta_time(now, last_update))
+        return;
     last_update = now;
 
-	if (do_freeze) {
-    	/* "Freeze" view */
-    	model = gtk_tree_view_get_model(treeview_nodes);
-    	g_object_ref(model);
-    	gtk_tree_view_set_model(treeview_nodes, NULL);
-	} else {
-		model = NULL; /* dumb compiler */
-	}
-
+	g_object_freeze_notify(G_OBJECT(treeview_nodes));
 	g_hash_table_foreach(nodes_handles, update_row, &now);
-
-	if (do_freeze) {
-    	/* "Thaw" view */
-    	gtk_tree_view_set_model(treeview_nodes, model);
-    	g_object_unref(model);
-	} else {
-    	gtk_widget_queue_draw(GTK_WIDGET(treeview_nodes));
-	}
+	g_object_thaw_notify(G_OBJECT(treeview_nodes));
 }
 
 /***

@@ -3332,8 +3332,6 @@ GtkWidget*
 create_main_window_gnet_tab (void)
 {
   GtkWidget *main_window_gnet_tab;
-  GtkWidget *scrolledwindow73;
-  GtkWidget *viewport70;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *frame5;
   GtkWidget *vbox17;
@@ -3389,22 +3387,10 @@ create_main_window_gnet_tab (void)
   gtk_widget_set_name (main_window_gnet_tab, "main_window_gnet_tab");
   gtk_widget_set_size_request (main_window_gnet_tab, 587, 359);
 
-  scrolledwindow73 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow73, "scrolledwindow73");
-  gtk_widget_show (scrolledwindow73);
-  gtk_container_add (GTK_CONTAINER (main_window_gnet_tab), scrolledwindow73);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow73), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  viewport70 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport70, "viewport70");
-  gtk_widget_show (viewport70);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow73), viewport70);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport70), GTK_SHADOW_NONE);
-
   vbox_gnutellanet = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox_gnutellanet, "vbox_gnutellanet");
   gtk_widget_show (vbox_gnutellanet);
-  gtk_container_add (GTK_CONTAINER (viewport70), vbox_gnutellanet);
+  gtk_container_add (GTK_CONTAINER (main_window_gnet_tab), vbox_gnutellanet);
 
   frame5 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame5, "frame5");
@@ -3682,8 +3668,6 @@ create_main_window_gnet_tab (void)
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_gnet_tab, main_window_gnet_tab, "main_window_gnet_tab");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, scrolledwindow73, "scrolledwindow73");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, viewport70, "viewport70");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox_gnutellanet, "vbox_gnutellanet");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, frame5, "frame5");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox17, "vbox17");
