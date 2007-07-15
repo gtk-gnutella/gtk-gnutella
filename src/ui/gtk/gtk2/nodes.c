@@ -750,11 +750,8 @@ nodes_gui_update_nodes_display(time_t now)
 {
     static time_t last_update;
 
-	if (GUI_PROPERTY(gui_debug) > 0) {
-    	g_message("recorded changed: flags: %d info: %d",
-        	g_hash_table_size(ht_node_flags_changed),
-        	g_hash_table_size(ht_node_info_changed));
-	}
+	if (!main_gui_window_visible())
+		return;
 
 	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_nodes)))
 		return;

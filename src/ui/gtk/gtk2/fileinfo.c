@@ -814,6 +814,9 @@ fi_gui_update_display(time_t unused_now)
 {
 	(void) unused_now;
 
+	if (!main_gui_window_visible())
+		return;
+
 	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_downloads)))
 		return;
 
