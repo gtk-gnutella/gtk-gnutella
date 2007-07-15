@@ -275,28 +275,6 @@ gui_menu_shutdown(void)
 		NULL);
 }
 
-static GdkWindowState main_window_state;
-
-gboolean
-main_gui_window_visible(void)
-{
-	GdkWindowState mask;
-
-	mask = GDK_WINDOW_STATE_WITHDRAWN | GDK_WINDOW_STATE_ICONIFIED;
-	return !(main_window_state & mask);
-}
-
-static gboolean
-on_main_gui_window_state_event(GtkWidget *unused_widget,
-	GdkEventWindowState *event, gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_udata;
-
-	main_window_state = event->new_window_state;
-	return FALSE;	/* propagate further */
-}
-
 #else
 
 static void
@@ -331,13 +309,44 @@ gui_menu_shutdown(void)
 	/* NOTHING */
 }
 
+#endif /* USE_GTK2 */
+
+static gboolean main_window_is_visible = TRUE;
+
 gboolean
 main_gui_window_visible(void)
 {
-	return TRUE;
+	return main_window_is_visible;
 }
 
-#endif /* USE_GTK2 */
+static gboolean
+on_main_gui_map_event(GtkWidget *unused_widget,
+	GdkEvent *event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+
+	switch (event->type) {
+	case GDK_MAP:
+		main_window_is_visible = TRUE;
+		break;
+
+	case GDK_UNMAP:
+		main_window_is_visible = FALSE;
+		break;
+
+#if GTK_CHECK_VERSION(2,0,0)
+	case GDK_WINDOW_STATE:
+		main_window_is_visible = !(event->window_state.new_window_state
+				& (GDK_WINDOW_STATE_WITHDRAWN | GDK_WINDOW_STATE_ICONIFIED));
+		break;
+#endif	/* Gtk+ >= 2.0 */
+
+	default:
+		break;
+	}
+	return FALSE;	/* propagate further */
+}
 
 /**
  * Handles main window UI joining.
@@ -393,9 +402,14 @@ gui_init_main_window(void)
 		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
 
 	gui_signal_connect(gui_main_window(), "window-state-event",
-		on_main_gui_window_state_event, NULL);
+		on_main_gui_map_event, NULL);
 
 #endif	/* USE_GTK2 */
+
+	gui_signal_connect(gui_main_window(), "map-event",
+		on_main_gui_map_event, NULL);
+	gui_signal_connect(gui_main_window(), "unmap-event",
+		on_main_gui_map_event, NULL);
 }
 
 static void 
