@@ -1768,6 +1768,9 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 	GSList *sl, *to_stop = NULL;
 	gint count = 0;
 
+	g_return_if_fail(fi);
+	file_info_check(fi);
+
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
 		gnutella_upload_t *up = sl->data;
 		g_assert(up);
