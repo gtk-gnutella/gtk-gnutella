@@ -1042,3 +1042,7 @@
 # GUID switcher; AUDJ; LimeWire/4.9.11
 193.164.133.74
 
+# SOULI?; sub-range of Global Crossing (GBLX); fake video files; high vendor
+# diversity (faked)
+64.208.52.0/22
+
