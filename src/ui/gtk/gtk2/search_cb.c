@@ -265,8 +265,6 @@ gboolean
 on_tree_view_search_results_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
-	static guint click_time = 0;
-
 	(void) unused_udata;
 
 	switch (event->button) {
@@ -274,21 +272,8 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
         /* left click section */
 		if (event->type == GDK_2BUTTON_PRESS) {
 			gui_signal_stop_emit_by_name(widget, "button_press_event");
-			return FALSE;
-		}
-		if (event->type == GDK_BUTTON_PRESS) {
-			if ((event->time - click_time) <= 250) {
-				/*
-				 * 2 clicks within 250 msec == doubleclick.
-				 * Surpress further events
-				 */
-				gui_signal_stop_emit_by_name(widget, "button_press_event");
-				search_gui_download_files();
-				return TRUE;
-			} else {
-				click_time = event->time;
-				return FALSE;
-			}
+			search_gui_download_files();
+			return TRUE;
 		}
 		return FALSE;
 
