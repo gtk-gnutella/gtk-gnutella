@@ -759,7 +759,6 @@ nodes_gui_update_nodes_display(time_t now)
 	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_nodes)))
 		return;
 
-	g_message("nodes are visible");
     if (last_update && 0 == delta_time(now, last_update))
         return;
     last_update = now;
