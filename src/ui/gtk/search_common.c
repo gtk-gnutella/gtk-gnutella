@@ -2764,7 +2764,11 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Bitzi URL"), buf);
 	}
 
-#ifdef USE_SHAREMONKEY
+	/*
+	 * Show them the ShareMonkey URL if we have a SHA1.
+	 * This URL can be used to get commercial information about a file.
+	 */
+
 	if (rc->sha1) {
 		const gchar *filename;
 		gchar *url, *escaped;
@@ -2783,7 +2787,6 @@ search_gui_set_details(const record_t *rc)
 		}
 		G_FREE_NULL(url);
 	}
-#endif	/* USE_SHAREMONKEY */
 
 	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
 	search_gui_append_detail(_("Owned"),
