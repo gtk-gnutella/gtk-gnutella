@@ -45,7 +45,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
+#define UPDATE_MIN	60		/**< Update screen every minute at least */
 
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;
@@ -369,13 +369,29 @@ uploads_gui_shutdown(void)
     guc_upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
+static gboolean
+uploads_gui_is_visible(void)
+{
+	static GtkNotebook *notebook = NULL;
+	gint current_page;
+
+	if (!main_gui_window_visible())
+		return FALSE;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+
+	return current_page == nb_main_page_uploads;
+}
+
 /**
  * Update all the uploads at the same time.
  */
 void
 uploads_gui_update_display(time_t now)
 {
-	static GtkNotebook *notebook = NULL;
     static time_t last_update = 0;
 	GtkCList *clist;
 	GList *iter;
@@ -384,7 +400,6 @@ uploads_gui_update_display(time_t now)
     GSList *to_remove = NULL;
     GSList *sl;
 	gboolean all_removed = TRUE;
-	gint current_page;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -394,11 +409,7 @@ uploads_gui_update_display(time_t now)
 	 *		--RAM, 28/12/2003
 	 */
 
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
+	if (!uploads_gui_is_visible() && now - last_update < UPDATE_MIN)
 		return;
 
     if (last_update == now)

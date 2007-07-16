@@ -126,6 +126,23 @@ hcache_gui_shutdown(void)
 	/* Nothing for now */
 }
 
+static gboolean
+hcache_gui_is_visible(void)
+{
+	static GtkNotebook *notebook = NULL;
+	gint current_page;
+
+	if (!main_gui_window_visible())
+		return FALSE;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+
+	return current_page == nb_main_page_hostcache;
+}
+
 void
 hcache_gui_update(time_t now)
 {
@@ -134,21 +151,16 @@ hcache_gui_update(time_t now)
     gint n;
     hcache_stats_t stats[HCACHE_MAX];
 
-    gint current_page;
-
 	if (last_update == now)
 		return;
 	last_update = now;
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")));
 
-    if (current_page != nb_main_page_hostcache)
-        return;
+	if (!hcache_gui_is_visible())
+		return;
 
     guc_hcache_get_stats(stats);
 
     clist_hcache = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
-
     gtk_clist_freeze(clist_hcache);
 
     for (n = 0; n < HCACHE_MAX; n ++) {

@@ -640,6 +640,24 @@ fi_gui_shutdown(void)
  * Update all the fileinfo at the same time.
  */
 
+static gboolean
+fi_gui_is_visible(void)
+{
+	static GtkNotebook *notebook = NULL;
+	gint current_page;
+
+	if (!main_gui_window_visible())
+		return FALSE;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+
+	return current_page == nb_main_page_dl_files;
+}
+
+
 /**
  * @bug
  * FIXME: We should remember for every node when it was last
@@ -651,6 +669,9 @@ fi_gui_shutdown(void)
 void
 fi_gui_update_display(time_t now)
 {
+	if (!fi_gui_is_visible())
+		return;
+
     gtk_clist_freeze(clist_fileinfo);
 	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
     gtk_clist_thaw(clist_fileinfo);

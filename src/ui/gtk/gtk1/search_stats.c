@@ -363,6 +363,23 @@ search_stats_gui_shutdown(void)
 	stat_hash = NULL;
 }
 
+static gboolean
+search_stats_gui_is_visible(void)
+{
+	static GtkNotebook *notebook = NULL;
+	gint current_page;
+
+	if (!main_gui_window_visible())
+		return FALSE;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+
+	return current_page == nb_main_page_search_stats;
+}
+
 /**
  * Display the data gathered during the last time period.
  * Perhaps it would be better to have this done on a button click(?)
@@ -381,6 +398,9 @@ search_stats_gui_update(time_t now)
         return;
 
     last_update = now;
+
+	if (!search_stats_gui_is_visible())
+		return;
 
     clist_search_stats = gui_main_window_lookup("clist_search_stats");
     label_search_stats_count =

@@ -1906,6 +1906,9 @@ downloads_gui_update_display(time_t unused_now)
 		return;
 	}
 
+	if (!main_gui_window_visible())
+		return;
+
 	g_assert(frozen != NULL);
 
 	if (*frozen)
