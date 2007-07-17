@@ -104,15 +104,16 @@ gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *hvec, gint hcnt);
  * Result sets `status' flags.
  */
 enum {
-	 ST_GOOD_TOKEN			= (1 << 22), /**< OOB v3 matched */
-	 ST_BROWSE				= (1 << 21), /**< Browse Host "search" result */
-	 ST_LOCAL				= (1 << 20), /**< Local search result */
-	 ST_FW2FW				= (1 << 19), /**< Firewall-to-Firewall support */
-	 ST_HOSTILE				= (1 << 18), /**< From an hostile host */
-	 ST_UNREQUESTED			= (1 << 17), /**< Unrequested (OOB) result */
-	 ST_EVIL				= (1 << 16), /**< Carries evil filename */
-	 ST_ALT_SPAM			= (1 << 15), /**< Carries alt-loc spam */
-	 ST_DUP_SPAM			= (1 << 14), /**< Carries spam known by URN */
+	 ST_GOOD_TOKEN			= (1 << 23), /**< OOB v3 matched */
+	 ST_BROWSE				= (1 << 22), /**< Browse Host "search" result */
+	 ST_LOCAL				= (1 << 21), /**< Local search result */
+	 ST_FW2FW				= (1 << 20), /**< Firewall-to-Firewall support */
+	 ST_HOSTILE				= (1 << 19), /**< From an hostile host */
+	 ST_UNREQUESTED			= (1 << 18), /**< Unrequested (OOB) result */
+	 ST_EVIL				= (1 << 17), /**< Carries evil filename */
+	 ST_ALT_SPAM			= (1 << 16), /**< Carries alt-loc spam */
+	 ST_DUP_SPAM			= (1 << 15), /**< Carries spam known by URN */
+	 ST_FAKE_SPAM			= (1 << 14), /**< Fake file */
 	 ST_NAME_SPAM			= (1 << 13), /**< Carries alt-loc spam */
 	 ST_URL_SPAM			= (1 << 12), /**< Carries action URL spam */
 	 ST_URN_SPAM			= (1 << 11), /**< Carries spam known by URN */
@@ -128,7 +129,12 @@ enum {
 	 ST_BUSY				= (1 << 1),	 /**< Has currently no slots */
 	 ST_FIREWALL			= (1 << 0),	 /**< Is behind a firewall */
 
-	 ST_SPAM	= (ST_ALT_SPAM|ST_DUP_SPAM|ST_NAME_SPAM|ST_URL_SPAM|ST_URN_SPAM)
+	 ST_SPAM	= (	ST_ALT_SPAM
+			 		|ST_DUP_SPAM
+					|ST_FAKE_SPAM
+					|ST_NAME_SPAM
+					|ST_URL_SPAM
+					|ST_URN_SPAM)
 };
 
 /*

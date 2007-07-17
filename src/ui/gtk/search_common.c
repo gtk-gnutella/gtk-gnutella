@@ -2823,7 +2823,7 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Hostile"),
 			ST_HOSTILE & rs->status ? _("Yes") : _("No"));
 		search_gui_append_detail(_("Created"),
-			rc->create_time
+			(time_t) -1 != rc->create_time
 			? timestamp_to_string(rc->create_time)
 			: _("Unknown"));
 		search_gui_append_detail(_("Hostname"), rs->hostname);

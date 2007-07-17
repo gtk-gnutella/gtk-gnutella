@@ -598,6 +598,7 @@ search_record_new(void)
 
 	rc = zalloc(rc_zone);
 	*rc = zero_record;
+	rc->create_time = (time_t) -1;
 	return rc;
 }
 
@@ -1918,9 +1919,26 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
+	if (T_LIME == peek_be32(&rs->vcode.be32)) {	
+		GSList *sl;
+
+		/*
+		 * If there's no timestamp, this is most-likely not from LimeWire.
+		 */
+		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
+			gnet_record_t *record = sl->data;
+
+			if ((time_t) -1 == record->create_time) {
+				set_flags(record->flags, SR_SPAM);
+				rs->status |= ST_FAKE_SPAM;
+			}
+		}
+	}
+
 	if (has_dupe_spam(rs)) {
 		rs->status |= ST_DUP_SPAM;
 	}
+
 	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM)) & rs->status) {
 		GSList *sl;
 
