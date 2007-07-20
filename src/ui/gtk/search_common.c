@@ -2750,13 +2750,56 @@ search_gui_set_details(const record_t *rc)
 	search_gui_append_detail(_("Filename"),
 		lazy_utf8_to_ui_string(rc->utf8_name));
 	search_gui_append_detail(_("Extension"), rc->ext);
+	search_gui_append_detail(_("Size"), search_gui_nice_size(rc));
 	search_gui_append_detail(_("SHA-1"),
 		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
-	search_gui_append_detail(_("Size"), search_gui_nice_size(rc));
+	search_gui_append_detail(_("Owned"),
+		(SR_OWNED   & rc->flags) ? _("owned") :
+		(SR_PARTIAL & rc->flags) ? _("partial") :
+		(SR_SHARED  & rc->flags) ? _("shared") :
+		_("No"));
+
+	if (!(ST_LOCAL & rs->status)) {
+		search_gui_append_detail(_("Spam"),
+			(SR_SPAM & rc->flags) ? _("Yes") :
+			(ST_SPAM & rs->status) ? _("Maybe") :
+			_("No"));
+		search_gui_append_detail(_("Source"),
+			host_addr_port_to_string(rs->addr, rs->port));
+		search_gui_append_detail(_("Created"),
+			(time_t) -1 != rc->create_time
+			? timestamp_to_string(rc->create_time)
+			: _("Unknown"));
+	}
+
+	if (rc->alt_locs) {
+		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
+		search_gui_append_detail(_("Alt-Locs"), hosts);
+		G_FREE_NULL(hosts);
+	}
+
+	if (utf8_can_latinize(rc->utf8_name)) {
+		size_t size;
+		gchar *buf;
+		
+		size = 1 + utf8_latinize(NULL, 0, rc->utf8_name);
+		buf = g_malloc(size);
+		utf8_latinize(buf, size, rc->utf8_name);
+		search_gui_append_detail("Latinized", lazy_utf8_to_ui_string(buf));
+		G_FREE_NULL(buf);
+	}
+
+#if 0
+	/* The index is already shown in the classic URL in expert mode,
+	 * so don't show it explicitely as it's just visual noise. */
+	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
+#endif
 
 	if (rc->sha1) {
 		static const gchar base_url[] = "http://bitzi.com/lookup/";
 		gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+
+		search_gui_append_detail(_("External metadata"), NULL);
 
 		concat_strings(buf, sizeof buf,
 			base_url, sha1_base32(rc->sha1),
@@ -2788,12 +2831,47 @@ search_gui_set_details(const record_t *rc)
 		G_FREE_NULL(url);
 	}
 
-	search_gui_append_detail(_("Index"), uint32_to_string(rc->file_index));
-	search_gui_append_detail(_("Owned"),
-		(SR_OWNED   & rc->flags)  ? _("owned") :
-		(SR_PARTIAL & rc->flags) ? _("partial") :
-		(SR_SHARED  & rc->flags)  ? _("shared") :
-		_("No"));
+	if (!(ST_LOCAL & rs->status)) {
+		search_gui_append_detail(_("Host information"), NULL);
+
+		search_gui_append_detail(_("Hostname"), rs->hostname);
+		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
+		search_gui_append_detail(_("Browsable"),
+				ST_BH & rs->status ? _("Yes") : _("No"));
+		search_gui_append_detail(_("Hostile"),
+				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
+
+		if (rs->proxies) {
+			gchar *hosts = gnet_host_vec_to_string(rs->proxies);
+			search_gui_append_detail(_("Push-proxies"), hosts);
+			G_FREE_NULL(hosts);
+		}
+	}
+
+	if (!((ST_BROWSE | ST_LOCAL) & rs->status)) {
+		search_gui_append_detail(_("Paket information"), NULL);
+
+		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
+
+		search_gui_append_detail(_("Protocol"),
+			ST_UDP & rs->status ? "UDP" : "TCP");
+
+		search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
+		search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
+
+		if (ISO3166_INVALID != rs->country) {
+			search_gui_append_detail(_("Country"),
+				iso3166_country_name(rs->country));
+		}
+
+		search_gui_append_detail(_("Received"),
+			timestamp_to_string(rs->stamp));
+
+		search_gui_append_detail(_("Query"),
+				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
+					UNI_NORM_GUI, NULL));
+	}
 
 	if (ST_LOCAL & rs->status) {
 		const gchar *display_path;
@@ -2811,57 +2889,11 @@ search_gui_set_details(const record_t *rc)
 		url = url_from_absolute_path(rc->tag);
 		search_gui_append_detail(_("File URL"), url);
 		G_FREE_NULL(url);
-	} else {
-		search_gui_append_detail(_("Source"),
-			host_addr_port_to_string(rs->addr, rs->port));
-		search_gui_append_detail(_("Browsable"),
-			ST_BH & rs->status ? _("Yes") : _("No"));
-		search_gui_append_detail(_("Spam"),
-			(SR_SPAM & rc->flags) ? _("Yes") :
-			(ST_SPAM & rs->status) ? _("Maybe") :
-			_("No"));
-		search_gui_append_detail(_("Hostile"),
-			ST_HOSTILE & rs->status ? _("Yes") : _("No"));
-		search_gui_append_detail(_("Created"),
-			(time_t) -1 != rc->create_time
-			? timestamp_to_string(rc->create_time)
-			: _("Unknown"));
-		search_gui_append_detail(_("Hostname"), rs->hostname);
-		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
-		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
-
-		if (!(ST_BROWSE & rs->status)) {
-			search_gui_append_detail(_("Route"), search_gui_get_route(rs));
-
-			search_gui_append_detail(_("Protocol"),
-					ST_UDP & rs->status ? "UDP" : "TCP");
-
-			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
-			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
-
-			search_gui_append_detail(_("Query"),
-					lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
-						UNI_NORM_GUI, NULL));
-		}
-
-		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
-		if (ISO3166_INVALID != rs->country) {
-			search_gui_append_detail(_("Country"),
-				iso3166_country_name(rs->country));
-		}
-	}
-	if (rc->alt_locs) {
-		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);
-		search_gui_append_detail(_("Alt-Locs"), hosts);
-		G_FREE_NULL(hosts);
-	}
-	if (rs->proxies) {
-		gchar *hosts = gnet_host_vec_to_string(rs->proxies);
-		search_gui_append_detail(_("Push-proxies"), hosts);
-		G_FREE_NULL(hosts);
 	}
 
 	if (GUI_PROPERTY(expert_mode)) {
+		search_gui_append_detail(_("URLs"), NULL);
+
 		if (rc->sha1) {
 			gchar *url;
 
@@ -2870,6 +2902,31 @@ search_gui_set_details(const record_t *rc)
 					"/uri-res/N2R?urn:sha1:", sha1_base32(rc->sha1),
 					(void *)0);
 			search_gui_append_detail(_("N2R URI"), url);
+			G_FREE_NULL(url);
+		}
+
+		if (rc->sha1) {
+			gchar *url;
+			host_addr_t addr;
+			guint16 port;
+
+			if (rs->proxies) {
+				gnet_host_t host;
+
+				host = gnet_host_vec_get(rs->proxies, 0);
+				addr = gnet_host_get_addr(&host);
+				port = gnet_host_get_port(&host);
+			} else {
+				addr = rs->addr;
+				port = rs->port;
+			}
+
+			url = g_strconcat("push://",
+					guid_to_string(rs->guid), ":",
+					host_addr_port_to_string(addr, port),
+					"/uri-res/N2R?urn:sha1:", sha1_base32(rc->sha1),
+					(void *)0);
+			search_gui_append_detail(_("Push URL"), url);
 			G_FREE_NULL(url);
 		}
 
@@ -2889,17 +2946,6 @@ search_gui_set_details(const record_t *rc)
 			}
 			G_FREE_NULL(url);
 		}
-	}
-
-	if (utf8_can_latinize(rc->utf8_name)) {
-		size_t size;
-		gchar *buf;
-		
-		size = 1 + utf8_latinize(NULL, 0, rc->utf8_name);
-		buf = g_malloc(size);
-		utf8_latinize(buf, size, rc->utf8_name);
-		search_gui_append_detail("Latinized", lazy_utf8_to_ui_string(buf));
-		G_FREE_NULL(buf);
 	}
 }
 
