@@ -92,6 +92,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Payload inflating error"),		 /**< MSG_DROP_INFLATE_ERROR */
 		N_("Unknown header flags present"),/**< MSG_DROP_UNKNOWN_HEADER_FLAGS */
 		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULTS */
+		N_("Ancient query format"),			 /**< MSG_DROP_ANCIENT_QUERY */
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(msg_drop_reasons) == MSG_DROP_REASON_COUNT);

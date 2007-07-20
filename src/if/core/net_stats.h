@@ -84,6 +84,7 @@ typedef enum msg_drop_reason {
 	MSG_DROP_INFLATE_ERROR,
 	MSG_DROP_UNKNOWN_HEADER_FLAGS,
 	MSG_DROP_OWN_RESULT,
+	MSG_DROP_ANCIENT_QUERY,
 	
 	MSG_DROP_REASON_COUNT /**< number of known reasons to drop a message */
 } msg_drop_reason_t;

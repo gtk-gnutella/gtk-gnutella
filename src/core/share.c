@@ -1934,11 +1934,40 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean drop_it = FALSE;
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean secure_oob = FALSE;
-	gboolean tagged_speed = FALSE;
 	gboolean should_oob = FALSE;
 	gboolean ggep_h = FALSE;
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	gchar muid[GUID_RAW_SIZE];
+
+	/*
+	 * Special processing for the "connection speed" field of queries.
+	 *
+	 * Unless bit 15 is set, process as a speed.
+	 * Otherwise if bit 15 is set:
+	 *
+	 * 1. If the firewall bit (bit 14) is set, the remote servent is firewalled.
+	 *    Therefore, if we are also firewalled, don't reply.
+	 *
+	 * 2. If the XML bit (bit 13) is cleared and we support XML meta data, don't
+	 *    include them in the result set [GTKG does not support XML meta data]
+	 *
+	 *		--RAM, 19/01/2003, updated 06/07/2003 (bit 14-13 instead of 8-9)
+	 *
+	 * 3. If the GGEP "H" bit (bit 11) is set, the issuer of the query will
+	 *    understand the "H" extension in query hits.
+	 *		--RAM, 16/07/2003
+	 *
+	 * Starting today (06/07/2003), we ignore the connection speed overall
+	 * if it's not marked with the QUERY_SPEED_MARK flag to indicate new
+	 * interpretation. --RAM
+	 */
+
+	req_speed = peek_le16(n->data);
+
+	if (!(req_speed & QUERY_SPEED_MARK)) {
+		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
+		goto drop;		/* Drop the message! */
+	}
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -2364,33 +2393,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	} else
 		share_emit_search_request(QUERY_STRING, search, n->addr, n->port);
 
-	/*
-	 * Special processing for the "connection speed" field of queries.
-	 *
-	 * Unless bit 15 is set, process as a speed.
-	 * Otherwise if bit 15 is set:
-	 *
-	 * 1. If the firewall bit (bit 14) is set, the remote servent is firewalled.
-	 *    Therefore, if we are also firewalled, don't reply.
-	 *
-	 * 2. If the XML bit (bit 13) is cleared and we support XML meta data, don't
-	 *    include them in the result set [GTKG does not support XML meta data]
-	 *
-	 *		--RAM, 19/01/2003, updated 06/07/2003 (bit 14-13 instead of 8-9)
-	 *
-	 * 3. If the GGEP "H" bit (bit 11) is set, the issuer of the query will
-	 *    understand the "H" extension in query hits.
-	 *		--RAM, 16/07/2003
-	 *
-	 * Starting today (06/07/2003), we ignore the connection speed overall
-	 * if it's not marked with the QUERY_SPEED_MARK flag to indicate new
-	 * interpretation. --RAM
-	 */
 
-	req_speed = peek_le16(n->data);
-
-	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
-	oob = tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY);
+	oob = 0 != (req_speed & QUERY_SPEED_OOB_REPLY);
 
 	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
@@ -2421,7 +2425,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 	}
 
-	if (tagged_speed && (req_speed & QUERY_SPEED_GGEP_H)) {
+	if (0 != (req_speed & QUERY_SPEED_GGEP_H)) {
 		ggep_h = TRUE;
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 	}
@@ -2570,11 +2574,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (
-		tagged_speed &&
-		(req_speed & QUERY_SPEED_FIREWALLED) &&
+		0 != (req_speed & QUERY_SPEED_FIREWALLED) &&
 		GNET_PROPERTY(is_firewalled)
 	) {
-			return FALSE;			/* Both servents are firewalled */
+		return FALSE;			/* Both servents are firewalled */
 	}
 
 	if (!skip_file_search || exv_sha1cnt > 0) {
