@@ -2850,7 +2850,7 @@ search_gui_set_details(const record_t *rc)
 	}
 
 	if (!((ST_BROWSE | ST_LOCAL) & rs->status)) {
-		search_gui_append_detail(_("Paket information"), NULL);
+		search_gui_append_detail(_("Packet information"), NULL);
 
 		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
 
