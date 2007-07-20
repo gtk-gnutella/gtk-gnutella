@@ -3242,6 +3242,13 @@ file_info_name_is_uniq(const gchar *pathname)
 	   	file_does_not_exist(pathname);
 }
 
+char *
+file_info_unique_filename(const gchar *path, const gchar *file,
+	const gchar *ext)
+{
+	return unique_filename(path, file, ext, file_info_name_is_uniq);
+}
+	
 /**
  * Allocate unique output name for file `name', stored in `dir'.
  *
@@ -3277,7 +3284,7 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 	 * If `name' (sanitized form) is not taken yet, it will do.
 	 */
 
-	uniq = unique_filename(dir, name, "", file_info_name_is_uniq);
+	uniq = file_info_unique_filename(dir, name, "");
 	G_FREE_NULL(to_free);
 
 	if (uniq) {
@@ -3396,7 +3403,9 @@ fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
 	file_info_check(fi);
 
 	path = filepath_directory(pathname);
-	dead = unique_filename(path, filepath_basename(pathname), ".DEAD", NULL);
+	dead = file_info_unique_filename(path,
+				filepath_basename(pathname), ".DEAD");
+
 	if (dead && 0 == rename(pathname, dead)) {
 		file_info_strip_trailer(fi, dead);
 	} else {
@@ -3423,6 +3432,9 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
 	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_SEEDING));
 
+	if (!fi->hashed)
+		return;
+
 	xfi = g_hash_table_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
@@ -3432,6 +3444,8 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
 	file_object_revoke(fi->pathname);
 
 	atom_str_change(&fi->pathname, pathname);
+
+	g_assert(NULL == g_hash_table_lookup(fi_by_outname, fi->pathname));
 	gm_hash_table_insert_const(fi_by_outname, fi->pathname, fi);
 
 	if (fi->sf) {

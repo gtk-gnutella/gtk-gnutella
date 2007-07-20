@@ -130,6 +130,9 @@ typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, gpointer udata);
 void file_info_foreach(file_info_foreach_cb callback, gpointer udata);
 gboolean file_info_purge(fileinfo_t *fi);
 
+char *file_info_unique_filename(const gchar *path, const gchar *file,
+	const gchar *ext);
+
 /***
  *** Inlined routines.
  ***/

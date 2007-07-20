@@ -220,7 +220,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	name = file_info_readable_filename(d->file_info);
 
-	md->target = unique_filename(we->dest, name, we->ext, NULL);
+	md->target = file_info_unique_filename(we->dest, name, we->ext);
 	if (NULL == md->target)
 		goto abort_read;
 

@@ -3117,11 +3117,10 @@ download_stop_v(struct download *d, download_status_t new_status,
 	enum dl_list list_target;
 
 	download_check(d);
+	file_info_check(d->file_info);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 	g_assert(!DOWNLOAD_IS_STOPPED(d));
 	g_assert(d->status != new_status);
-	g_assert(d->file_info);
-	g_assert(d->file_info->refcount);
 
 	if (DOWNLOAD_IS_ACTIVE(d)) {
 		g_assert(d->file_info->recvcount > 0);
@@ -3358,8 +3357,8 @@ static void
 download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 {
 	download_check(d);
+	file_info_check(d->file_info);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
-	g_assert(d->file_info);
 	g_assert(d->file_info->refcount > 0);
 	g_assert(d->file_info->lifecount > 0);
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
@@ -3573,7 +3572,7 @@ download_send_head_ping(struct download *d)
 	time_t now = tm_time();
 
 	download_check(d);
-	g_assert(d->file_info);
+	file_info_check(d->file_info);
 	g_assert(d->server);
 
 	if (download_queue_is_frozen())
@@ -3767,8 +3766,7 @@ download_start_prepare_running(struct download *d)
 	 */
 
 	download_check(d);
-
-	g_assert(d->file_info);
+	file_info_check(d->file_info);
 	fi = d->file_info;
 
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -7397,7 +7395,7 @@ handle_content_urn(struct download *d, header_t *header)
 	 */
 
 collect_locations:
-	g_assert(d->file_info != NULL);
+	file_info_check(d->file_info);
 	g_assert(d->sha1 || d->file_info->sha1);
 
 	huge_collect_locations(d->sha1 ? d->sha1 : d->file_info->sha1, header);
@@ -8924,9 +8922,9 @@ download_read(struct download *d, pmsg_t *mb)
 	fileinfo_t *fi;
 
 	download_check(d);
+	socket_check(d->socket);
+	file_info_check(d->file_info);
 	g_assert(d->file_info->recvcount > 0);
-	g_assert(d->socket);
-	g_assert(d->file_info);
 
 	fi = d->file_info;
 
@@ -8970,9 +8968,9 @@ static gboolean
 download_ignore_data(struct download *d, pmsg_t *mb)
 {
 	download_check(d);
+	socket_check(d->socket);
+	file_info_check(d->file_info);
 	g_assert(d->file_info->recvcount > 0);
-	g_assert(d->socket);
-	g_assert(d->file_info);
 
 	d->last_update = tm_time();
 	d->pos += pmsg_size(mb);
@@ -9637,9 +9635,10 @@ select_push_download(GSList *servers)
 		iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
 		while (list_iter_has_next(iter)) {
 			d = list_iter_next(iter);
+
 			download_check(d);
+			file_info_check(d->file_info);
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
-			g_assert(d->file_info);
 
 			if (!DOWNLOAD_IS_EXPECTING_GIV(d))
 				continue;
@@ -10526,7 +10525,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 		G_FREE_NULL(path);
 
 		if (same_dir) {
-			dest = unique_filename(dir, name, ext, NULL);
+			dest = file_info_unique_filename(dir, name, ext);
 			if (NULL == dest || -1 == rename(fi->pathname, dest))
 				goto error;
 			goto renamed;
@@ -10543,7 +10542,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	common_dir = 0 == strcmp(GNET_PROPERTY(move_file_path),
 						GNET_PROPERTY(bad_file_path));
 
-	dest = unique_filename(dir, name, common_dir ? ext : "", NULL);
+	dest = file_info_unique_filename(dir, name, common_dir ? ext : "");
 	if (NULL == dest)
 		goto error;
 
@@ -10687,7 +10686,7 @@ download_move_error(struct download *d)
 
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
 	path = filepath_directory(fi->pathname);
-	dest = unique_filename(path, name, ext, NULL);
+	dest = file_info_unique_filename(path, name, ext);
 	G_FREE_NULL(path);
 
 	file_info_strip_binary(fi);
