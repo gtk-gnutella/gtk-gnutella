@@ -872,10 +872,7 @@ fi_free(fileinfo_t *fi)
 	 * Stop all uploads occurring for this file.
 	 */
 
-	if (NULL != fi->sf) {
-		file_info_upload_stop(fi, "File info discarded");
-		g_assert(NULL == fi->sf);
-	}
+	file_info_upload_stop(fi, "File info discarded");
 
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi, TRUE));
@@ -2336,10 +2333,14 @@ transient:
 void
 file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 {
-	upload_stop_all(fi, reason);
-	shared_file_unref(&fi->sf);
-	fi->flags &= ~FI_F_SEEDING;
-	file_info_changed(fi);
+	file_info_check(fi);
+
+	if (fi->sf) {
+		upload_stop_all(fi, reason);
+		shared_file_unref(&fi->sf);
+		fi->flags &= ~FI_F_SEEDING;
+		file_info_changed(fi);
+	}
 }
 
 /**
@@ -2385,8 +2386,7 @@ file_info_unlink(fileinfo_t *fi)
 	 * requesting it are terminated.
 	 */
 
-	if (NULL != fi->sf)
-		file_info_upload_stop(fi, "Partial file removed");
+	file_info_upload_stop(fi, "Partial file removed");
 }
 
 /**
@@ -4083,8 +4083,8 @@ file_info_reset(fileinfo_t *fi)
 
 	atom_sha1_free_null(&fi->cha1);
 
-	if (NULL != fi->sf)				/* File possibly shared */
-		file_info_upload_stop(fi, "File info being reset");
+	/* File possibly shared */
+	file_info_upload_stop(fi, "File info being reset");
 
 	fi->flags &= ~FI_F_STRIPPED;
 
