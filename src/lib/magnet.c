@@ -60,12 +60,13 @@ RCSID("$Id$")
 
 enum magnet_key {
 	MAGNET_KEY_NONE,
-	MAGNET_KEY_DISPLAY_NAME,	/* Display Name */
-	MAGNET_KEY_KEYWORD_TOPIC,	/* Keyword Topic */
-	MAGNET_KEY_EXACT_LENGTH,	/* eXact file Length */
-	MAGNET_KEY_EXACT_SOURCE,	/* eXact Source */
-	MAGNET_KEY_EXACT_TOPIC,		/* eXact Topic */
-	MAGNET_KEY_PARQ_ID,			/* PARQ ID */
+	MAGNET_KEY_DISPLAY_NAME,		/* Display Name */
+	MAGNET_KEY_KEYWORD_TOPIC,		/* Keyword Topic */
+	MAGNET_KEY_EXACT_LENGTH,		/* eXact file Length */
+	MAGNET_KEY_ALTERNATE_SOURCE,	/* Alternate Source */
+	MAGNET_KEY_EXACT_SOURCE,		/* eXact Source */
+	MAGNET_KEY_EXACT_TOPIC,			/* eXact Topic */
+	MAGNET_KEY_PARQ_ID,				/* PARQ ID */
 	
 	NUM_MAGNET_KEYS
 };
@@ -75,6 +76,7 @@ static const struct {
 	const enum magnet_key id;
 } magnet_keys[] = {
 	{ "",			MAGNET_KEY_NONE },
+	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
 	{ "xl",			MAGNET_KEY_EXACT_LENGTH },
@@ -286,6 +288,7 @@ magnet_handle_key(struct magnet_resource *res,
 		}
 		break;
 
+	case MAGNET_KEY_ALTERNATE_SOURCE:
 	case MAGNET_KEY_EXACT_SOURCE:
 		{
 			struct magnet_source *ms;
