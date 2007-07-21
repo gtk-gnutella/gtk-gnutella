@@ -860,6 +860,7 @@ fi_free(fileinfo_t *fi)
 {
 	file_info_check(fi);
 	g_assert(!fi->hashed);
+	g_assert(NULL == fi->sf);
 
 #if 0
 	/* This does not seem to be a bug; see file_info_remove_source(). */
@@ -871,8 +872,6 @@ fi_free(fileinfo_t *fi)
 	/*
 	 * Stop all uploads occurring for this file.
 	 */
-
-	file_info_upload_stop(fi, "File info discarded");
 
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi, TRUE));
@@ -2248,6 +2247,8 @@ file_info_hash_remove(fileinfo_t *fi)
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
+
+	file_info_upload_stop(fi, "File info discarded");
 
     /*
      * Notify interested parties that file info is being removed and
