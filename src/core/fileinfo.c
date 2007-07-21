@@ -2086,6 +2086,8 @@ void
 file_info_changed(fileinfo_t *fi)
 {
 	file_info_check(fi);
+
+	g_return_if_fail(fi->hashed);
     event_trigger(fi_events[EV_FI_STATUS_CHANGED],
         T_NORMAL(fi_listener_t, (fi->fi_handle)));
 }
