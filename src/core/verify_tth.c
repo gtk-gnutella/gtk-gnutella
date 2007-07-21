@@ -189,6 +189,24 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	return FALSE;
 }
 
+gboolean
+verify_tth_append(const char *pathname,
+	filesize_t offset, filesize_t amount,
+	verify_callback callback, void *user_data)
+{
+	return verify_enqueue(verify_tth.verify, FALSE,
+				pathname, offset, amount, callback, user_data);
+}
+
+gboolean
+verify_tth_prepend(const char *pathname,
+	filesize_t offset, filesize_t amount,
+	verify_callback callback, void *user_data)
+{
+	return verify_enqueue(verify_tth.verify, TRUE,
+				pathname, offset, amount, callback, user_data);
+}
+
 void
 request_tigertree(struct shared_file *sf, gboolean high_priority)
 {
