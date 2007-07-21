@@ -4627,24 +4627,18 @@ query_set_oob_flag(const gnutella_node_t *n, gchar *data)
 
 
 /**
- * Searches requests (from others nodes)
- * Basic matching. The search request is made lowercase and
- * is matched to the filenames in the LL.
+ * Preprocesses searches requests (from others nodes)
  *
- * If `qhv' is not NULL, it is filled with hashes of URN or query words,
- * so that we may later properly route the query among the leaf nodes.
- *
- * @returns TRUE if the message should be dropped and not propagated further.
+ * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
 gboolean
-search_request(struct gnutella_node *n, query_hashvec_t *qhv)
+search_request_preprocess(struct gnutella_node *n)
 {
 	static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
 	static gchar stmp_1[4096];
 	guint16 req_speed;
 	gchar *search;
 	size_t search_len;
-	gboolean decoded = FALSE;
 	gboolean skip_file_search = FALSE;
 	struct {
 		struct sha1 sha1;
@@ -4653,13 +4647,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	struct sha1 *last_sha1_digest = NULL;
 	gint exv_sha1cnt = 0;
 	guint offset = 0;			/**< Query string start offset */
-	gboolean drop_it = FALSE;
-	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
-	gboolean secure_oob = FALSE;
-	gboolean should_oob = FALSE;
-	gboolean ggep_h = FALSE;
-	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
-	gchar muid[GUID_RAW_SIZE];
+	gboolean oob;		/**< Wants out-of-band query hit delivery? */
 
 	/*
 	 * Special processing for the "connection speed" field of queries.
@@ -4685,7 +4673,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	req_speed = peek_le16(n->data);
-
 	if (!(req_speed & QUERY_SPEED_MARK)) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
@@ -4731,6 +4718,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	/*
+	 * Look whether we're facing an UTF-8 query.
+	 */
+
+	if (!query_utf8_decode(search, &offset)) {
+		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+		goto drop;					/* Drop message! */
+	}
+
+	/*
 	 * Compact query, if requested and we're going to relay that message.
 	 */
 
@@ -4740,16 +4736,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		GNET_PROPERTY(current_peermode) != NODE_P_LEAF
 	) {
 		size_t mangled_search_len;
-
-		/*
-		 * Look whether we're facing an UTF-8 query.
-		 */
-
-		if (!query_utf8_decode(search, &offset)) {
-			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
-			goto drop;					/* Drop message! */
-		}
-		decoded = TRUE;
 
 		if (!is_ascii_string(search))
 			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
@@ -4796,6 +4782,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		extvec_t exv[MAX_EXTVEC];
 		gint i, exvcnt;
 		size_t extra;
+		gboolean drop_it = FALSE;
 
 	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
 		ext_prepare(exv, MAX_EXTVEC);
@@ -4841,15 +4828,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				}
 				gnet_stats_count_dropped(n, MSG_DROP_BAD_URN);
 				drop_it = TRUE;
-				break;
-
-			case EXT_T_GGEP_NP:
-				/* This may override LIME/13v1 */
-				may_oob_proxy = FALSE;
-				break;
-
-			case EXT_T_GGEP_SO:
-				secure_oob = TRUE;
 				break;
 
 			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
@@ -4909,17 +4887,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				exv_sha1[exv_sha1cnt].matched = FALSE;
 				exv_sha1cnt++;
 
-				/*
-				 * Add valid URN query to the list of query hashes, if we
-				 * are to fill any for query routing.
-				 */
-
-				if (qhv != NULL) {
-					gm_snprintf(stmp_1, sizeof(stmp_1),
-						"urn:sha1:%s", sha1_base32(sha1));
-						qhvec_add(qhv, stmp_1, QUERY_H_URN);
-				}
-
 				last_sha1_digest = sha1;
 				break;
 
@@ -4954,15 +4921,21 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
     /*
-     * Reorderd the checks: if we drop the packet, we won't notify any
-     * listeners. We first check whether we want to drop the packet and
-     * later decide whether we are eligible for answering the query:
-     * 1) try top drop
-     * 2) notify listeners
-     * 3) bail out if not eligible for a local search
-     * 4) local search
-     *      --Richard, 11/09/2002
+     * Push the query string to interested ones (GUI tracing).
      */
+
+    if (
+		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
+		&& exv_sha1cnt
+    ) {
+		gint i;
+		for (i = 0; i < exv_sha1cnt; i++) {
+			search_request_listener_emit(QUERY_SHA1,
+				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
+		}
+	} else {
+		search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
+	}
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
@@ -4972,14 +4945,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * The idea here is to give some response, but not too many.
 	 */
 
-	if (
-		search_len <= 1 ||
-		(
-		 	search_len < 5 &&
-			gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2)
-		)
-	)
-		skip_file_search = TRUE;
+	skip_file_search = search_len <= 1 || (
+		search_len < 5 &&
+		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
     if (0 == exv_sha1cnt && skip_file_search) {
         gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
@@ -5018,9 +4986,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		g_assert(NODE_IS_LEAF(n));
 
-		if (last_sha1_digest != NULL) {
-			gm_snprintf(stmp_1, sizeof(stmp_1),
-				"urn:sha1:%s", sha1_base32(last_sha1_digest));
+		if (last_sha1_digest) {
+			sha1_to_urn_string_buf(last_sha1_digest, stmp_1, sizeof stmp_1);
 			query = stmp_1;
 		}
 
@@ -5100,23 +5067,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			atom_str_get(stmp_1), GINT_TO_POINTER(1));
 	}
 
-    /*
-     * Push the query string to interested ones (GUI tracing).
-     */
-
-    if (
-		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
-		&& exv_sha1cnt
-    ) {
-		gint i;
-		for (i = 0; i < exv_sha1cnt; i++) {
-			search_request_listener_emit(QUERY_SHA1,
-				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
-		}
-	} else {
-		search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
-	}
-
 	oob = 0 != (req_speed & QUERY_SPEED_OOB_REPLY);
 
 	/*
@@ -5149,7 +5099,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (0 != (req_speed & QUERY_SPEED_GGEP_H)) {
-		ggep_h = TRUE;
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 	}
 
@@ -5215,27 +5164,29 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port));
 		}
+	}
 
-		/*
-		 * If the query comes from a leaf node and has the "firewalled"
-		 * bit set, chances are the leaf is UDP-firewalled as well.
-		 * Clear the OOB flag.
-		 */
+	/*
+	 * If the query comes from a leaf node and has the "firewalled"
+	 * bit set, chances are the leaf is UDP-firewalled as well.
+	 * Clear the OOB flag.
+	 * If there is a SHA1 URN, validate it and extract the binary digest
+	 * into sha1_digest[], and set `sha1_query' to the base32 value.
+	 */
 
-		if (
-			oob &&
-			may_oob_proxy &&
-			NODE_IS_LEAF(n) &&
-			(req_speed & QUERY_SPEED_FIREWALLED)
-		) {
-			query_strip_oob_flag(n, n->data);
-			oob = FALSE;
+	if (
+		oob &&
+		(req_speed & QUERY_SPEED_FIREWALLED) &&
+		NODE_IS_LEAF(n)
+	) {
+		query_strip_oob_flag(n, n->data);
+		oob = FALSE;
 
-			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-				g_message("QUERY %s node %s <%s>: removed OOB flag "
-					"(leaf node is TCP-firewalled)",
-					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					node_addr(n), node_vendor(n));
+		if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
+			g_message("QUERY %s node %s <%s>: removed OOB flag "
+				"(leaf node is TCP-firewalled)",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				node_addr(n), node_vendor(n));
 		}
 	}
 
@@ -5248,40 +5199,184 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * relayed messages, so we compare to that, and not to my_ttl, which is
 	 * the TTL used for "standard" packets.
 	 *
-	 *				--RAM, 12/09/2001
+	 *                              --RAM, 12/09/2001
 	 *
 	 * Naturally, we don't do this check for OOB queries, since the reply
 	 * won't be relayed but delivered directly via UDP.
 	 *
-	 *				--RAM, 2004-11-27
+	 *                              --RAM, 2004-11-27                        
 	 */
 
-	should_oob = GNET_PROPERTY(process_oob_queries) &&
+	oob = oob &&
+			GNET_PROPERTY(process_oob_queries) && 
+			GNET_PROPERTY(recv_solicited_udp) && 
 			udp_active() &&
-			GNET_PROPERTY(recv_solicited_udp) &&
 			gnutella_header_get_hops(&n->header) > 1;
 
-    if (
-		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl) &&
-		!(oob && should_oob)
+	if (
+		!oob &&
+		gnutella_header_get_hops(&n->header) > GNET_PROPERTY(max_ttl)
 	) {
-        gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
-		goto drop;					/* Drop this long-lived search */
-    }
+		gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
+		goto drop;  /* Drop this long-lived search */
+	}
+
+	return FALSE;
+
+drop:
+	return TRUE;
+}
+
+/**
+ * Searches requests (from others nodes)
+ * Basic matching. The search request is made lowercase and
+ * is matched to the filenames in the LL.
+ *
+ * If `qhv' is not NULL, it is filled with hashes of URN or query words,
+ * so that we may later properly route the query among the leaf nodes.
+ *
+ * @returns TRUE if the message should be dropped and not propagated further.
+ */
+gboolean
+search_request(struct gnutella_node *n, query_hashvec_t *qhv)
+{
+	guint16 req_speed;
+	gchar *search;
+	size_t search_len;
+	gboolean skip_file_search = FALSE;
+	struct {
+		struct sha1 sha1;
+		gboolean matched;
+	} exv_sha1[MAX_EXTVEC];
+	gint exv_sha1cnt = 0;
+	guint offset = 0;			/**< Query string start offset */
+	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
+	gboolean secure_oob = FALSE;
+	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
+	gchar muid[GUID_RAW_SIZE];
+
+	/* NOTE: search_request_preprocess() has already handled this query. */
+
+	search = n->data + 2;	/* skip flags */
+	search_len = clamp_strlen(search, n->size - 2);
 
 	/*
-	 * If the query does not have an OOB mark, comes from a leaf node and
-	 * they allow us to be an OOB-proxy, then replace the IP:port of the
-	 * query with ours, so that we are the ones to get the UDP replies.
-	 *
-	 * Since calling oob_proxy_create() is going to mangle the query's
-	 * MUID in place (alterting n->header.muid), we must save the MUID
-	 * in case we have local hits to deliver: since we send those directly
-	 *		--RAM, 2005-08-28
+	 * If there is extra data after the first NUL, fill the extension vector.
 	 */
 
-	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
+	if (search_len + 3 != n->size) {
+		extvec_t exv[MAX_EXTVEC];
+		gint i, exvcnt;
+		size_t extra;
 
+	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
+		ext_prepare(exv, MAX_EXTVEC);
+		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
+
+		/*
+		 * If there is a SHA1 URN, validate it and extract the binary digest
+		 * into sha1_digest[], and set `sha1_query' to the base32 value.
+		 */
+
+		for (i = 0; i < exvcnt; i++) {
+			extvec_t *e = &exv[i];
+			struct sha1 *sha1;
+
+			switch (e->ext_token) {
+			case EXT_T_OVERHEAD:
+			case EXT_T_URN_BAD:
+				g_assert_not_reached();
+				break;
+
+			case EXT_T_GGEP_NP:
+				/* This may override LIME/13v1 */
+				may_oob_proxy = FALSE;
+				break;
+
+			case EXT_T_GGEP_SO:
+				secure_oob = TRUE;
+				break;
+
+			case EXT_T_GGEP_H:			/* Expect SHA1 value only */
+			case EXT_T_URN_SHA1:
+				sha1 = &exv_sha1[exv_sha1cnt].sha1;
+
+				if (EXT_T_GGEP_H == e->ext_token) {
+					gint ret;
+				
+					ret = ggept_h_sha1_extract(e, sha1);
+					if (GGEP_OK == ret) {
+						/* Okay */
+					} else if (GGEP_NOT_FOUND == ret) {
+						continue;		/* Unsupported hash type */
+					} else {
+						g_assert_not_reached();
+					}
+				} else if (EXT_T_URN_SHA1 == e->ext_token) {
+					size_t paylen = ext_paylen(e);
+
+					if (paylen == 0)
+						continue;				/* A simple "urn:sha1:" */
+
+					if (
+						!huge_sha1_extract32(ext_payload(e), paylen,
+							sha1, &n->header)
+					) {
+						g_assert_not_reached();
+					}
+
+				}
+
+				exv_sha1[exv_sha1cnt].matched = FALSE;
+				exv_sha1cnt++;
+
+				/*
+				 * Add valid URN query to the list of query hashes, if we
+				 * are to fill any for query routing.
+				 */
+
+				if (qhv) {
+					qhvec_add(qhv, sha1_to_urn_string(sha1), QUERY_H_URN);
+				}
+				break;
+
+			default:;
+			}
+		}
+
+		if (exv_sha1cnt)
+			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+
+		if (exvcnt)
+			ext_reset(exv, MAX_EXTVEC);
+	}
+
+    /*
+     * Reorderd the checks: if we drop the packet, we won't notify any
+     * listeners. We first check whether we want to drop the packet and
+     * later decide whether we are eligible for answering the query:
+     * 1) try top drop
+     * 2) notify listeners
+     * 3) bail out if not eligible for a local search
+     * 4) local search
+     *      --Richard, 11/09/2002
+     */
+
+	/*
+	 * When an URN search is present, there can be an empty search string.
+	 *
+	 * If requester if farther than half our TTL hops. save bandwidth when
+	 * returning lots of hits from short queries, which are not specific enough.
+	 * The idea here is to give some response, but not too many.
+	 */
+
+	skip_file_search = search_len <= 1 || (
+	 	search_len < 5 &&
+		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
+
+	oob = 0 != (req_speed & QUERY_SPEED_OOB_REPLY);
+
+	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 	if (
 		!oob &&
 		may_oob_proxy &&
@@ -5295,6 +5390,17 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		oob = TRUE;
 		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
 	}
+
+	/*
+	 * If the query does not have an OOB mark, comes from a leaf node and
+	 * they allow us to be an OOB-proxy, then replace the IP:port of the
+	 * query with ours, so that we are the ones to get the UDP replies.
+	 *
+	 * Since calling oob_proxy_create() is going to mangle the query's
+	 * MUID in place (alterting n->header.muid), we must save the MUID
+	 * in case we have local hits to deliver: since we send those directly
+	 *		--RAM, 2005-08-28
+	 */
 
 	if (
 		0 != (req_speed & QUERY_SPEED_FIREWALLED) &&
@@ -5315,9 +5421,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (
 			GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
 			node_ultra_received_qrp(n)
-		)
+		) {
 			node_inc_qrp_query(n);
-
+		}
 		qctx = share_query_context_make();
 		max_replies = GNET_PROPERTY(search_max_items) == (guint32) -1
 				? 255
@@ -5347,29 +5453,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		if (!skip_file_search) {
-			/*
-			 * Keep only UTF8 encoded queries (This includes ASCII)
-			 */
-
-			g_assert('\0' == search[search_len]);
-
-			if (!decoded) {
-				if (!query_utf8_decode(search, &offset)) {
-					gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
-					drop_it = TRUE;			/* Drop message! */
-					goto finish;			/* Flush any SHA1 result we have */
-				}
-				decoded = TRUE;
-
-				if (!is_ascii_string(search))
-					gnet_stats_count_general(GNR_QUERY_UTF8, 1);
-			}
-
-			shared_files_match(&search[offset],
-				got_match, qctx, max_replies, qhv);
+			shared_files_match(search, got_match, qctx, max_replies, qhv);
 		}
 
-finish:
 		if (qctx->found > 0) {
 			gnet_stats_count_general(GNR_LOCAL_HITS, qctx->found);
 			if (
@@ -5408,23 +5494,27 @@ finish:
 		 */
 
 		if (qctx->found) {
-			if (oob && should_oob)
+			gboolean ggep_h, should_oob;
+
+			ggep_h = 0 != (req_speed & QUERY_SPEED_GGEP_H);
+			should_oob = oob &&
+							GNET_PROPERTY(process_oob_queries) && 
+							GNET_PROPERTY(recv_solicited_udp) && 
+							udp_active() &&
+							gnutella_header_get_hops(&n->header) > 1;
+
+			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
 					secure_oob, ggep_h);
-			else
+			} else {
 				qhit_send_results(n, qctx->files, qctx->found, muid, ggep_h);
+			}
 		}
 
 		share_query_context_free(qctx);
 	}
 
-	if (drop_it)
-		goto drop;
-
 	return FALSE;
-
-drop:
-	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -6735,6 +6735,20 @@ node_parse(struct gnutella_node *node)
 			}
 		}
 		goto reset_header;
+	case GTA_MSG_SEARCH:
+			/* Only handle if no unknown header flags */
+			if (0 != n->header_flags)
+				break;
+
+            /*
+             * search_request_preprocess() takes care of telling the stats that
+             * the message was dropped.
+			 */
+
+		 	if (search_request_preprocess(n))
+				goto reset_header;
+
+			break;
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
 		if (host_low_on_pongs) {
 			host_addr_t addr;

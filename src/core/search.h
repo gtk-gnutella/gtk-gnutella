@@ -80,6 +80,7 @@ void search_oob_pending_results(gnutella_node_t *n, const gchar *muid,
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
+gboolean search_request_preprocess(struct gnutella_node *n);
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 size_t compact_query(gchar *search);
 void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
