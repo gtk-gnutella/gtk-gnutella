@@ -41,14 +41,17 @@
 
 struct tth;
 
-void verify_tth_append(const char *pathname,
-	filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data);
-void verify_tth_prepend(const char *pathname,
-	filesize_t offset, filesize_t amount,
-	verify_callback callback, void *user_data);
+gboolean verify_tth_append(const char *pathname,
+		filesize_t offset, filesize_t amount,
+		verify_callback callback, void *user_data);
+
+gboolean verify_tth_prepend(const char *pathname,
+		filesize_t offset, filesize_t amount,
+		verify_callback callback, void *user_data);
 
 const struct tth *verify_tth_digest(const struct verify *);
+const struct tth *verify_tth_leaves(const struct verify *);
+size_t verify_tth_leave_count(const struct verify *);
 
 void verify_tth_init(void);
 void verify_tth_close(void);
