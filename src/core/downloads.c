@@ -49,6 +49,7 @@
 #include "ignore.h"
 #include "ioheader.h"
 #include "verify_sha1.h"
+#include "verify_tth.h"
 #include "move.h"
 #include "settings.h"
 #include "nodes.h"
@@ -142,6 +143,7 @@ static void download_resume_bg_tasks(void);
 static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
+static void download_verify_tigertree(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
 static void download_unavailable(struct download *d,
@@ -5468,11 +5470,11 @@ download_remove(struct download *d)
 	 * make sure we decrement it here (e.g. if the download was queued).
 	 */
 
-	if (DOWNLOAD_IS_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_stop(d, GTA_DL_ABORTED, no_reason);
-	else if (DOWNLOAD_IS_STOPPED(d))
-		/* nothing, lifecount already decremented */;
-	else {
+	} else if (DOWNLOAD_IS_STOPPED(d)) {
+		/* nothing, lifecount already decremented */
+	} else {
 		g_assert(d->file_info->lifecount > 0);
 		d->file_info->lifecount--;
 	}
@@ -10477,6 +10479,7 @@ download_moved_with_bad_sha1(struct download *d)
 	 *		  source. For now there really isn't any better option to
 	 *		  pause the download.
 	 */
+
 	download_pause(d);
 }
 
@@ -10710,7 +10713,7 @@ download_move_error(struct download *d)
  * Called when the verification daemon task starts processing a download.
  */
 static void
-download_verify_start(struct download *d)
+download_verify_sha1_start(struct download *d)
 {
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
@@ -10726,7 +10729,7 @@ download_verify_start(struct download *d)
  * Called to register the current verification progress.
  */
 static void
-download_verify_progress(struct download *d, guint32 hashed)
+download_verify_sha1_progress(struct download *d, guint32 hashed)
 {
 	download_check(d);
 	g_assert(d->status == GTA_DL_VERIFYING);
@@ -10740,7 +10743,8 @@ download_verify_progress(struct download *d, guint32 hashed)
  * Called when download verification is finished and digest is known.
  */
 static void
-download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
+download_verify_sha1_done(struct download *d,
+	const struct sha1 *sha1, guint elapsed)
 {
 	fileinfo_t *fi;
 	const gchar *name;
@@ -10768,6 +10772,8 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, GNET_PROPERTY(move_file_path), DL_OK_EXT);
+	} else if (fi->tigertree.num_leaves > 0) {
+		download_verify_tigertree(d);
 	} else {
 		download_move(d, GNET_PROPERTY(bad_file_path), DL_BAD_EXT);
 		/* Will go to download_moved_with_bad_sha1() upon completion */
@@ -10778,7 +10784,7 @@ download_verify_done(struct download *d, const struct sha1 *sha1, guint elapsed)
  * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
  */
 static void
-download_verify_error(struct download *d)
+download_verify_sha1_error(struct download *d)
 {
 	fileinfo_t *fi;
 	const gchar *name;
@@ -10807,8 +10813,8 @@ download_verify_error(struct download *d)
 }
 
 static gboolean
-download_verify_callback(const struct verify *ctx, enum verify_status status,
-	void *user_data)
+download_verify_sha1_callback(const struct verify *ctx,
+	enum verify_status status, void *user_data)
 {
 	struct download *d = user_data;
 
@@ -10816,18 +10822,19 @@ download_verify_callback(const struct verify *ctx, enum verify_status status,
 	switch (status) {
 	case VERIFY_START:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, TRUE);
-		download_verify_start(d);
+		download_verify_sha1_start(d);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		download_verify_progress(d, verify_hashed(ctx));
+		download_verify_sha1_progress(d, verify_hashed(ctx));
 		return TRUE;
 	case VERIFY_DONE:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
-		download_verify_done(d, verify_sha1_digest(ctx), verify_elapsed(ctx));
+		download_verify_sha1_done(d,
+			verify_sha1_digest(ctx), verify_elapsed(ctx));
 		return TRUE;
 	case VERIFY_ERROR:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, FALSE);
-		download_verify_error(d);
+		download_verify_sha1_error(d);
 		return TRUE;
 	case VERIFY_SHUTDOWN:
 		return TRUE;
@@ -10866,8 +10873,181 @@ download_verify_sha1(struct download *d)
 	d->status = GTA_DL_VERIFY_WAIT;
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
-					download_filesize(d), download_verify_callback, d);
+					download_filesize(d), download_verify_sha1_callback, d);
 	g_assert(inserted); /* There should be no duplicates */
+
+	if (!DOWNLOAD_IS_VISIBLE(d))
+		gcu_download_gui_add(d);
+
+	gcu_gui_update_download(d, TRUE);
+}
+
+
+/***
+ *** Tigertree verification routines.
+ ***/
+
+/**
+ * Called when the verification daemon task starts processing a download.
+ */
+static void
+download_verify_tigertree_start(struct download *d)
+{
+	download_check(d);
+	g_assert(d->status == GTA_DL_VERIFY_WAIT);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	d->status = GTA_DL_VERIFYING;
+	gcu_gui_update_download(d, TRUE);
+}
+
+/**
+ * Called to register the current verification progress.
+ */
+static void
+download_verify_tigertree_progress(struct download *d, guint32 hashed)
+{
+	download_check(d);
+	g_assert(d->status == GTA_DL_VERIFYING);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	(void) hashed;
+}
+
+/**
+ * Called when download verification is finished and digest is known.
+ */
+static void
+download_verify_tigertree_done(struct download *d,
+	const struct tth *tth, guint elapsed,
+	const struct tth *leaves, size_t num_leaves)
+{
+	fileinfo_t *fi;
+
+	download_check(d);
+	g_assert(d->status == GTA_DL_VERIFYING);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	fi = d->file_info;
+	file_info_check(fi);
+
+	(void) elapsed;
+
+	d->status = GTA_DL_VERIFIED;
+	file_info_changed(fi);
+
+	if (tth_eq(tth, fi->tth)) {
+		g_message("TTH matches (file=\"%s\")",
+			filepath_basename(fi->pathname));
+	} else {
+		filesize_t offset, slice_size, num_blocks;
+		size_t i;
+
+		g_message("TTH mismatch (file=\"%s\")",
+			filepath_basename(fi->pathname));
+
+		slice_size = TTH_BLOCKSIZE;
+		num_blocks = tt_block_count(download_filesize(d));
+		while (num_blocks > num_leaves) {
+			num_blocks = (num_blocks + 1) / 2;
+			slice_size *= 2;
+		}
+
+		g_message("filesize=%s", filesize_to_string(download_filesize(d)));
+		g_message("slice_size=%s", filesize_to_string(slice_size));
+		
+		offset = 0;
+		for (i = 0; i < num_leaves; i++) {
+			gboolean match;
+			filesize_t next;
+			
+			if (download_filesize(d) - offset < slice_size) {
+				slice_size = download_filesize(d) - offset;
+			}
+			next = offset + slice_size;
+
+			match = tth_eq(&leaves[i], &fi->tigertree.leaves[i]);
+			if (!match) {
+				g_message("TTH bad slice #%lu (%s-%s)",
+					(gulong) i,
+					filesize_to_string(offset),
+					uint64_to_string(next - 1));
+
+				file_info_update(d, offset, next, DL_CHUNK_EMPTY);
+			}
+			offset = next;
+		}
+		queue_suspend_downloads_with_file(fi, FALSE);
+	}
+}
+
+/**
+ * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
+ */
+static void
+download_verify_tigertree_error(struct download *d)
+{
+	fileinfo_t *fi;
+
+	download_check(d);
+	g_assert(d->status == GTA_DL_VERIFYING);
+
+	fi = d->file_info;
+	file_info_changed(fi);
+}
+
+static gboolean
+download_verify_tigertree_callback(const struct verify *ctx,
+	enum verify_status status, void *user_data)
+{
+	struct download *d = user_data;
+
+	download_check(d);
+	switch (status) {
+	case VERIFY_START:
+		download_verify_tigertree_start(d);
+		return TRUE;
+	case VERIFY_PROGRESS:
+		download_verify_tigertree_progress(d, verify_hashed(ctx));
+		return TRUE;
+	case VERIFY_DONE:
+		download_verify_tigertree_done(d,
+			verify_tth_digest(ctx), verify_elapsed(ctx),
+			verify_tth_leaves(ctx), verify_tth_leave_count(ctx));
+		return TRUE;
+	case VERIFY_ERROR:
+		download_verify_tigertree_error(d);
+		return TRUE;
+	case VERIFY_SHUTDOWN:
+		return TRUE;
+	case VERIFY_INVALID:
+		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+static void
+download_verify_tigertree(struct download *d)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	g_assert(DOWNLOAD_IS_STOPPED(d));
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+	g_return_if_fail(!(d->flags & DL_F_TRANSIENT));
+	g_return_if_fail(d->file_info->tigertree.num_leaves > 0);
+
+	/*
+	 * Even if download was aborted or in error, we have a complete file
+	 * anyway, so start verifying its TTH.
+	 */
+
+	d->status = GTA_DL_VERIFY_WAIT;
+	queue_suspend_downloads_with_file(d->file_info, TRUE);
+
+	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
+		download_verify_tigertree_callback, d);
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
 		gcu_download_gui_add(d);
@@ -11338,7 +11518,7 @@ download_thex_done(struct download *d)
 	sha1 = atom_sha1_get(sha1);
 
 	if (!thex_download_finished(d->thex)) {
-		g_message("Discarding tigertree data: No more download");
+		g_message("Discarding tigertree data: Bad THEX data");
 		goto finish;
 	}
 
