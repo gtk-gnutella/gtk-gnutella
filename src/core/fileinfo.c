@@ -847,6 +847,7 @@ fi_tigertree_free(fileinfo_t *fi)
 	if (fi->tigertree.leaves) {
 		wfree(fi->tigertree.leaves,
 				fi->tigertree.num_leaves * sizeof fi->tigertree.leaves[0]);
+		fi->tigertree.slice_size = 0;
 		fi->tigertree.num_leaves = 0;
 		fi->tigertree.leaves = NULL;
 	}
@@ -2505,15 +2506,25 @@ void
 file_info_got_tigertree(fileinfo_t *fi,
 	const struct tth *leaves, size_t num_leaves)
 {
+	filesize_t num_blocks;
+
 	file_info_check(fi);
 	
 	g_return_if_fail(leaves);
 	g_return_if_fail(num_leaves > 0);
 	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
+	g_return_if_fail(fi->file_size_known);
 
 	fi_tigertree_free(fi);
 	fi->tigertree.leaves = wcopy(leaves, num_leaves * sizeof leaves[0]);
 	fi->tigertree.num_leaves = num_leaves;
+
+	fi->tigertree.slice_size = TTH_BLOCKSIZE;
+	num_blocks = tt_block_count(fi->size);
+	while (num_blocks > fi->tigertree.num_leaves) {
+		num_blocks = (num_blocks + 1) / 2;
+		fi->tigertree.slice_size *= 2;
+	}
 }
 
 /**

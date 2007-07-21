@@ -99,6 +99,7 @@ typedef struct dl_file_info {
 	struct {
 		struct tth *leaves;	/**< Tigertree leaves */
 		size_t num_leaves;	/**< Number of tigertree leaves */
+		filesize_t slice_size;	/* Slice size (bytes covered by a leaf) */
 	} tigertree;
 	gint32 refcount;		/**< Reference count of file (number of sources)*/
 	GSList *sources;        /**< list of sources (struct download *) */

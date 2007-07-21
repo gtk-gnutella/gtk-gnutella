@@ -10940,30 +10940,27 @@ download_verify_tigertree_done(struct download *d,
 		g_message("TTH matches (file=\"%s\")",
 			filepath_basename(fi->pathname));
 	} else {
-		filesize_t offset, slice_size, num_blocks;
+		filesize_t offset, slice_size;
 		size_t i;
 
 		g_message("TTH mismatch (file=\"%s\")",
 			filepath_basename(fi->pathname));
 
-		slice_size = TTH_BLOCKSIZE;
-		num_blocks = tt_block_count(download_filesize(d));
-		while (num_blocks > num_leaves) {
-			num_blocks = (num_blocks + 1) / 2;
-			slice_size *= 2;
-		}
-
-		g_message("filesize=%s", filesize_to_string(download_filesize(d)));
-		g_message("slice_size=%s", filesize_to_string(slice_size));
+		slice_size = fi->tigertree.slice_size;
+		g_message("filesize=%s, slice_size=%s",
+			filesize_to_string(download_filesize(d)),
+			uint64_to_string(fi->tigertree.slice_size));
 		
 		offset = 0;
 		for (i = 0; i < num_leaves; i++) {
 			gboolean match;
-			filesize_t next;
-			
-			if (download_filesize(d) - offset < slice_size) {
-				slice_size = download_filesize(d) - offset;
-			}
+			filesize_t next, amount;
+
+			/* The last slice is smaller than the slice size, if
+			 * if the filesize isn't a multiple of the slice size.
+			 */
+			amount = download_filesize(d) - offset;
+			amount = MIN(amount, slice_size);
 			next = offset + slice_size;
 
 			match = tth_eq(&leaves[i], &fi->tigertree.leaves[i]);
