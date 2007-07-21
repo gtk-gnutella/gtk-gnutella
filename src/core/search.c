@@ -4650,6 +4650,37 @@ search_request_preprocess(struct gnutella_node *n)
 	gboolean oob;		/**< Wants out-of-band query hit delivery? */
 
 	/*
+	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
+	 *
+	 * We can't simply check the last byte, because there can be extensions
+	 * at the end of the query after the first NUL.  So we need to scan the
+	 * string.  Note that we use this scanning opportunity to also compute
+	 * the search string length.
+	 *		--RAN, 21/12/2001
+	 */
+
+	search = n->data + 2;	/* skip flags */
+	search_len = clamp_strlen(search, n->size - 2);
+	if (search_len >= n->size - 2U) {
+		g_assert(n->data[n->size - 1] != '\0');
+		if (GNET_PROPERTY(share_debug))
+			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				n->size - 2,
+				n->size == 3 ? "" : "s");
+		if (GNET_PROPERTY(share_debug) > 4)
+			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
+
+		gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
+		goto drop;		/* Drop the message! */
+	}
+
+	/* We can now use `search' safely as a C string: it embeds a NUL */
+
+	search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
+
+	/*
 	 * Special processing for the "connection speed" field of queries.
 	 *
 	 * Unless bit 15 is set, process as a speed.
@@ -4677,34 +4708,6 @@ search_request_preprocess(struct gnutella_node *n)
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
 	}
-
-	/*
-	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
-	 *
-	 * We can't simply check the last byte, because there can be extensions
-	 * at the end of the query after the first NUL.  So we need to scan the
-	 * string.  Note that we use this scanning opportunity to also compute
-	 * the search string length.
-	 *		--RAN, 21/12/2001
-	 */
-
-	search = n->data + 2;	/* skip flags */
-	search_len = clamp_strlen(search, n->size - 2);
-	if (search_len >= n->size - 2U) {
-		g_assert(n->data[n->size - 1] != '\0');
-		if (GNET_PROPERTY(share_debug))
-			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header),
-				n->size - 2,
-				n->size == 3 ? "" : "s");
-		if (GNET_PROPERTY(share_debug) > 4)
-			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
-
-		gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
-		goto drop;		/* Drop the message! */
-	}
-	/* We can now use `search' safely as a C string: it embeds a NUL */
 
 	/*
 	 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
@@ -4933,8 +4936,6 @@ search_request_preprocess(struct gnutella_node *n)
 			search_request_listener_emit(QUERY_SHA1,
 				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
 		}
-	} else {
-		search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
 	}
 
 	/*
