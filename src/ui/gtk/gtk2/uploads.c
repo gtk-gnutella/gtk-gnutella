@@ -67,9 +67,9 @@ RCSID("$Id$")
 static gboolean uploads_remove_lock = FALSE;
 static gboolean uploads_shutting_down = FALSE;
 
-static GtkTreeView *treeview_uploads;
-static GtkListStore *store_uploads;
-static GtkWidget *button_uploads_clear_completed;
+static GtkTreeView *treeview_uploads = NULL;
+static GtkListStore *store_uploads = NULL;
+static GtkWidget *button_uploads_clear_completed = NULL;
 
 /** hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *upload_handles = NULL;
@@ -638,32 +638,53 @@ void
 uploads_gui_update_display(time_t now)
 {
     static time_t last_update;
-	remove_row_ctx_t ctx;
+	gint current_page;
+	static GtkNotebook *notebook = NULL;
 
-	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_uploads)))
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+	if (
+		current_page != nb_main_page_uploads &&
+		delta_time(now, last_update) < UPDATE_MIN
+	) {
 		return;
+	}
 
-    if (last_update && 0 == delta_time(now, last_update))
-		return;
+    if (last_update != now) {
+    	static gboolean locked = FALSE;
+		remove_row_ctx_t ctx;
 
-	last_update = now;
+    	last_update = now;
+		ctx.force = FALSE;
+		ctx.now = now;
+		ctx.sl_remaining = NULL;
 
-	ctx.force = FALSE;
-	ctx.now = now;
-	ctx.sl_remaining = NULL;
+		g_return_if_fail(!locked);
+		locked = TRUE;
 
-	/* Remove all rows with `removed' uploads. */
-	G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
-	g_slist_free(sl_removed_uploads);
-	sl_removed_uploads = ctx.sl_remaining;
+		/* Remove all rows with `removed' uploads. */
+		G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
+		g_slist_free(sl_removed_uploads);
+		sl_removed_uploads = ctx.sl_remaining;
 
-	/* Update the status column for all active uploads. */
-	g_object_freeze_notify(G_OBJECT(treeview_uploads));
-	g_hash_table_foreach(upload_handles, update_row, NULL);
-	g_object_thaw_notify(G_OBJECT(treeview_uploads));
+		/* Update the status column for all active uploads. */
+		g_hash_table_foreach(upload_handles, update_row, NULL);
 
-	if (NULL == sl_removed_uploads)
-		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
+		if (NULL == sl_removed_uploads)
+			gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
+
+		locked = FALSE;
+	}
 }
 
 static gboolean
