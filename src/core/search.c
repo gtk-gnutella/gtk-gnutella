@@ -4636,7 +4636,7 @@ search_request_preprocess(struct gnutella_node *n)
 {
 	static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
 	static gchar stmp_1[4096];
-	guint16 req_speed;
+	guint16 flags;
 	gchar *search;
 	size_t search_len;
 	gboolean skip_file_search = FALSE;
@@ -4672,8 +4672,8 @@ search_request_preprocess(struct gnutella_node *n)
 	 * interpretation. --RAM
 	 */
 
-	req_speed = peek_le16(n->data);
-	if (!(req_speed & QUERY_SPEED_MARK)) {
+	flags = peek_le16(n->data);
+	if (!(flags & QUERY_SPEED_MARK)) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
 	}
@@ -5067,7 +5067,7 @@ search_request_preprocess(struct gnutella_node *n)
 			atom_str_get(stmp_1), GINT_TO_POINTER(1));
 	}
 
-	oob = 0 != (req_speed & QUERY_SPEED_OOB_REPLY);
+	oob = 0 != (flags & QUERY_SPEED_OOB_REPLY);
 
 	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
@@ -5098,7 +5098,7 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 	}
 
-	if (0 != (req_speed & QUERY_SPEED_GGEP_H)) {
+	if (0 != (flags & QUERY_SPEED_GGEP_H)) {
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 	}
 
@@ -5176,7 +5176,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 	if (
 		oob &&
-		(req_speed & QUERY_SPEED_FIREWALLED) &&
+		(flags & QUERY_SPEED_FIREWALLED) &&
 		NODE_IS_LEAF(n)
 	) {
 		query_strip_oob_flag(n, n->data);
@@ -5240,7 +5240,7 @@ drop:
 gboolean
 search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
-	guint16 req_speed;
+	guint16 flags;
 	gchar *search;
 	size_t search_len;
 	gboolean skip_file_search = FALSE;
@@ -5374,7 +5374,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 	search_len < 5 &&
 		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
-	oob = 0 != (req_speed & QUERY_SPEED_OOB_REPLY);
+	oob = 0 != (flags & QUERY_SPEED_OOB_REPLY);
 
 	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 	if (
@@ -5403,7 +5403,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		0 != (req_speed & QUERY_SPEED_FIREWALLED) &&
+		0 != (flags & QUERY_SPEED_FIREWALLED) &&
 		GNET_PROPERTY(is_firewalled)
 	) {
 		return FALSE;			/* Both servents are firewalled */
@@ -5475,7 +5475,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 								exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&exv_sha1[i].sha1));
 				}
-				g_message("\treq_speed=%u ttl=%d hops=%d", (guint) req_speed,
+				g_message("\tflags=0x%04x ttl=%d hops=%d",
+						(guint) flags,
 						(gint) gnutella_header_get_ttl(&n->header),
 						(gint) gnutella_header_get_hops(&n->header));
 			}
@@ -5496,7 +5497,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (qctx->found) {
 			gboolean ggep_h, should_oob;
 
-			ggep_h = 0 != (req_speed & QUERY_SPEED_GGEP_H);
+			ggep_h = 0 != (flags & QUERY_SPEED_GGEP_H);
 			should_oob = oob &&
 							GNET_PROPERTY(process_oob_queries) && 
 							GNET_PROPERTY(recv_solicited_udp) && 
