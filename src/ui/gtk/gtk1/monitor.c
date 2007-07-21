@@ -150,11 +150,9 @@ monitor_gui_enable_monitor(const gboolean val)
     gtk_widget_set_sensitive(gui_main_window_lookup("clist_monitor"), !val);
     if (val != registered) {
         if (val) {
-            guc_share_add_search_request_listener
-                (monitor_gui_append_to_monitor);
+            guc_search_request_listener_add(monitor_gui_append_to_monitor);
         } else {
-            guc_share_remove_search_request_listener
-                (monitor_gui_append_to_monitor);
+            guc_search_request_listener_remove(monitor_gui_append_to_monitor);
         }
         registered = val;
     }

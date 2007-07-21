@@ -204,10 +204,11 @@ monitor_gui_enable_monitor(const gboolean val)
     static gboolean registered = FALSE;
 
     if (val != registered) {
-        if (val)
-            guc_share_add_search_request_listener(monitor_gui_add);
-        else
-            guc_share_remove_search_request_listener(monitor_gui_add);
+        if (val) {
+            guc_search_request_listener_add(monitor_gui_add);
+		} else {
+            guc_search_request_listener_remove(monitor_gui_add);
+		}
         registered = val;
     }
 }

@@ -356,6 +356,7 @@ add_column(
 		"reorderable", FALSE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"expand", (gboolean) (0 == id),
 		(void *) 0);
 	
     gtk_tree_view_append_column(tv, column);

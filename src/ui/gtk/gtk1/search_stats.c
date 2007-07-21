@@ -252,7 +252,7 @@ static void
 search_stats_gui_enable(search_request_listener_t lst)
 {
     if (!callback_registered) {
-        guc_share_add_search_request_listener(lst);
+        guc_search_request_listener_add(lst);
         callback_registered = TRUE;
     }
 }
@@ -261,9 +261,9 @@ static void
 search_stats_gui_disable(void)
 {
     if (callback_registered) {
-        guc_share_remove_search_request_listener(search_stats_notify_word);
-        guc_share_remove_search_request_listener(search_stats_notify_whole);
-        guc_share_remove_search_request_listener(search_stats_notify_routed);
+        guc_search_request_listener_remove(search_stats_notify_word);
+        guc_search_request_listener_remove(search_stats_notify_whole);
+        guc_search_request_listener_remove(search_stats_notify_routed);
         callback_registered = FALSE;
     }
 

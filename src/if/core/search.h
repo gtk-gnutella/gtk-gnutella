@@ -208,10 +208,21 @@ typedef struct gnet_record {
     flag_t  flags;
 } gnet_record_t;
 
+/**
+ * Search query types.
+ */
+typedef enum {
+    QUERY_STRING,
+    QUERY_SHA1
+} query_type_t;
 
 /**
  * Search callbacks
  */
+
+typedef void (*search_request_listener_t) (
+    query_type_t, const gchar *query, const host_addr_t addr, guint16);
+
 typedef void (*search_got_results_listener_t)
     (GSList *, const gnet_results_set_t *);
 
@@ -234,6 +245,9 @@ void search_close(gnet_search_t sh);
 
 void search_start(gnet_search_t sh);
 void search_stop(gnet_search_t sh);
+
+void search_request_listener_add(search_request_listener_t l);
+void search_request_listener_remove(search_request_listener_t l);
 
 /*  search_is_stopped doesn't exist yet!
 gboolean search_is_stopped(gnet_search_t sh);

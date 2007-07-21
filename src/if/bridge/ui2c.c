@@ -837,16 +837,16 @@ guc_shared_kbytes_scanned(void)
 }
 
 void
-guc_share_add_search_request_listener(search_request_listener_t l)
+guc_search_request_listener_add(search_request_listener_t l)
 {
-	share_add_search_request_listener(l);
+	search_request_listener_add(l);
 }
 
 
 void
-guc_share_remove_search_request_listener(search_request_listener_t l)
+guc_search_request_listener_remove(search_request_listener_t l)
 {
-	share_remove_search_request_listener(l);
+	search_request_listener_remove(l);
 }
 
 void

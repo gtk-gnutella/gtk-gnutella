@@ -259,9 +259,9 @@ static void
 search_stats_gui_disable(void)
 {
     if (callback_registered) {
-        guc_share_remove_search_request_listener(search_stats_notify_word);
-        guc_share_remove_search_request_listener(search_stats_notify_whole);
-        guc_share_remove_search_request_listener(search_stats_notify_routed);
+        guc_search_request_listener_remove(search_stats_notify_word);
+        guc_search_request_listener_remove(search_stats_notify_whole);
+        guc_search_request_listener_remove(search_stats_notify_routed);
         callback_registered = FALSE;
     }
 

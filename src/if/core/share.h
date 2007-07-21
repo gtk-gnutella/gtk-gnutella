@@ -28,21 +28,6 @@
 
 #include "lib/host_addr.h"
 
-/**
- * Search query types.
- */
-typedef enum {
-    QUERY_STRING,
-    QUERY_SHA1
-} query_type_t;
-
-/**
- * Sharing callbacks.
- */
-
-typedef void (*search_request_listener_t) (
-    query_type_t, const gchar *query, const host_addr_t addr, guint16);
-
 /*
  * Public interface, visible from the bridge.
  */
@@ -53,8 +38,6 @@ void shared_dir_add(const gchar *);
 void share_scan(void);
 guint64 shared_files_scanned(void);
 guint64 shared_kbytes_scanned(void);
-void share_add_search_request_listener(search_request_listener_t l);
-void share_remove_search_request_listener(search_request_listener_t l);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_share_h */

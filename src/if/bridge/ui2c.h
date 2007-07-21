@@ -228,6 +228,9 @@ void guc_search_start(gnet_search_t sh);
 void guc_search_stop(gnet_search_t sh);
 void guc_search_add_kept(gnet_search_t sh, guint32 kept);
 
+void guc_search_request_listener_add(search_request_listener_t l);
+void guc_search_request_listener_remove(search_request_listener_t l);
+
 /* settings interface functions */
 guint16 guc_listen_port(void);
 host_addr_t guc_listen_addr(enum net_type net);
@@ -239,10 +242,6 @@ void guc_shared_dir_add(const gchar * path);
 void guc_share_scan(void);
 guint64 guc_shared_files_scanned(void);
 guint64 guc_shared_kbytes_scanned(void);
-void guc_share_add_search_request_listener
-	(search_request_listener_t l);
-void guc_share_remove_search_request_listener
-	(search_request_listener_t l);
 
 /* upload interface functions */
 gnet_upload_info_t *guc_upload_get_info(gnet_upload_t uh);

@@ -40,6 +40,9 @@
 #define _core_share_h_
 
 #include "common.h"
+
+#include "matching.h"
+
 #include "if/core/share.h"
 #include "if/core/fileinfo.h"
 
@@ -106,15 +109,10 @@ shared_file_t *shared_special(const gchar *path);
 void shared_file_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
-gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(const gchar *);
 gchar *get_file_path(gint);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const gchar *);
-
-size_t compact_query(gchar *search);
-void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
-void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 
 void shared_file_set_sha1(struct shared_file *, const struct sha1 *sha1);
 void shared_file_set_tth(struct shared_file *, const struct tth *tth);
@@ -141,8 +139,9 @@ fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
 const gchar *shared_file_content_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 
-void record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query);
-const gchar *map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE]);
+void shared_files_match(const gchar *search_term,
+		st_search_callback callback, gpointer user_data,
+		gint max_res, struct query_hashvec *qhv);
 
 #endif /* _core_share_h_ */
 
