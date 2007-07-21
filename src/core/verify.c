@@ -67,9 +67,9 @@ struct verify {
 	struct bgtask *task;
 	struct verify_hash hash;
 	struct file_object *file;	/**< The file object to access the file. */
-	filesize_t amount;			/**< Total amount of bytes to hash. */
 	filesize_t offset;			/**< Current offset into the file. */
-	filesize_t start;			/**< Initial offset. */
+	filesize_t start;			/**< Start offset of range to verify. */
+	filesize_t end;				/**< End offset of range to verify . */
 	time_t started;				/**< Start time, to determine comp. rate */
 	char *buffer;				/**< Read buffer */
 	size_t buffer_size;			/**< Size of buffer in bytes. */
@@ -89,7 +89,7 @@ verify_check(const struct verify * const ctx)
 static inline void
 verify_hash_init(const struct verify * const ctx)
 {
-	ctx->hash.init(ctx->amount);
+	ctx->hash.init(ctx->end - ctx->start);
 }
 
 static inline int
@@ -346,8 +346,8 @@ verify_next_file(struct verify *ctx)
 		ctx->user_data = item->user_data;
 		ctx->callback = item->callback;
 		ctx->start = item->offset;
-		ctx->offset = item->offset;
-		ctx->amount = item->amount;
+		ctx->end = item->offset + item->amount;
+		ctx->offset = ctx->start;
 
 		if (verify_start(ctx)) {
 			ctx->file = file_object_open(item->pathname, O_RDONLY);
@@ -393,7 +393,7 @@ verify_final(struct verify *ctx)
 {
 	verify_check(ctx);
 
-	if (ctx->amount > 0) {
+	if (ctx->offset != ctx->end) {
 		g_warning("File shrunk? \"%s\"", file_object_get_pathname(ctx->file));
 		verify_failure(ctx);
 	} else if (verify_hash_final(ctx)) {
@@ -413,10 +413,12 @@ verify_update(struct verify *ctx)
 
 	verify_check(ctx);
 
-	if (ctx->amount > 0) {
+	if (ctx->offset < ctx->end) {
+		filesize_t amount;
 		size_t n;
 
-		n = MIN(ctx->amount, ctx->buffer_size);
+		amount = ctx->end - ctx->offset;
+		n = MIN(amount, ctx->buffer_size);
 		r = file_object_pread(ctx->file, ctx->buffer, n, ctx->offset);
 	} else {
 		r = 0;
@@ -430,7 +432,6 @@ verify_update(struct verify *ctx)
 	} else if (0 == r) {
 		verify_final(ctx);
 	} else {
-		ctx->amount -= (size_t) r;
 		ctx->offset += (size_t) r;
 
 		if (verify_hash_update(ctx, ctx->buffer, r)) {
