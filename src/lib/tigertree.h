@@ -95,6 +95,7 @@ filesize_t tt_node_count_at_depth(filesize_t filesize, unsigned depth);
 size_t tt_good_node_count(filesize_t filesize);
 filesize_t tt_good_slice_size(filesize_t filesize);
 
+filesize_t tt_block_count(filesize_t filesize);
 unsigned tt_full_depth(filesize_t filesize);
 unsigned tt_good_depth(filesize_t filesize);
 
