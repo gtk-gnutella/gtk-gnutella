@@ -348,6 +348,25 @@ on_main_gui_map_event(GtkWidget *unused_widget,
 	return FALSE;	/* propagate further */
 }
 
+#ifdef USE_GTK2
+static const gchar *
+notebook_main_page_label(gint page)
+{
+	switch (page) {
+	case nb_main_page_gnet:				return _("GnutellaNet");
+	case nb_main_page_uploads:			return _("Uploads");
+	case nb_main_page_uploads_stats:	return _("Upload History");
+	case nb_main_page_downloads:		return _("Downloads");
+	case nb_main_page_search:			return _("Searches");
+	case nb_main_page_monitor:			return _("Search Monitor");
+	case nb_main_page_search_stats:		return _("Search Stats");
+	case nb_main_page_gnet_stats:		return _("Gnutella Stats");
+	case nb_main_page_hostcache:		return _("Hostcache");
+	}
+	return NULL;
+}
+#endif	/* Gtk+ >= 2.0 */
+
 /**
  * Handles main window UI joining.
  *
@@ -366,6 +385,7 @@ gui_init_main_window(void)
 	 * First create the main window without the tab contents.
 	 */
 	notebook = gui_main_window_lookup("notebook_main");
+	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook), TRUE);
 
 	/*
 	 * Then create all the tabs in their own window.
@@ -391,6 +411,7 @@ gui_init_main_window(void)
 		GtkWidget *w = tab_window[i];
 		gui_merge_window_as_tab(gui_main_window(), notebook, w);
 		gtk_object_destroy(GTK_OBJECT(w));
+
 	}
 
 	/*
@@ -400,6 +421,12 @@ gui_init_main_window(void)
 	 */
 	gtk_container_remove(GTK_CONTAINER(notebook),
 		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+
+	for (i = 0; i < nb_main_page_num; i++) {
+		gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook),
+			gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), i),
+			notebook_main_page_label(i));
+	}
 
 	gui_signal_connect(gui_main_window(), "window-state-event",
 		on_main_gui_map_event, NULL);

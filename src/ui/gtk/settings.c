@@ -5740,14 +5740,6 @@ settings_gui_init(void)
 
     settings_gui_init_prop_map();
 
-    /*
-     * Just hide the tabs so we can keep them displayed in glade
-     * which is easier for editing.
-     *      --BLUE, 11/05/2002
-     */
-    gtk_notebook_set_show_tabs
-        (GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")), FALSE);
-
 	/*
 	 * If they don't have requested compilation of the "remote shell", disable
 	 * the checkbutton controlling it but leave it in the GUI so that they
