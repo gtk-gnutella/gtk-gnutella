@@ -3787,7 +3787,7 @@ http://maxmind.com/</property>
 		  <property name="show_tabs">True</property>
 		  <property name="show_border">True</property>
 		  <property name="tab_pos">GTK_POS_TOP</property>
-		  <property name="scrollable">False</property>
+		  <property name="scrollable">True</property>
 		  <property name="enable_popup">False</property>
 
 		  <child>
@@ -6123,7 +6123,7 @@ http://maxmind.com/</property>
 		      <property name="show_tabs">True</property>
 		      <property name="show_border">False</property>
 		      <property name="tab_pos">GTK_POS_TOP</property>
-		      <property name="scrollable">False</property>
+		      <property name="scrollable">True</property>
 		      <property name="enable_popup">False</property>
 
 		      <child>
@@ -6175,7 +6175,7 @@ http://maxmind.com/</property>
 		  <property name="show_tabs">True</property>
 		  <property name="show_border">True</property>
 		  <property name="tab_pos">GTK_POS_TOP</property>
-		  <property name="scrollable">False</property>
+		  <property name="scrollable">True</property>
 		  <property name="enable_popup">False</property>
 
 		  <child>
@@ -7609,7 +7609,7 @@ http://maxmind.com/</property>
 	  <property name="show_tabs">True</property>
 	  <property name="show_border">False</property>
 	  <property name="tab_pos">GTK_POS_TOP</property>
-	  <property name="scrollable">False</property>
+	  <property name="scrollable">True</property>
 	  <property name="enable_popup">False</property>
 
 	  <child>
@@ -29089,7 +29089,7 @@ message</property>
 		      <property name="show_tabs">True</property>
 		      <property name="show_border">True</property>
 		      <property name="tab_pos">GTK_POS_TOP</property>
-		      <property name="scrollable">False</property>
+		      <property name="scrollable">True</property>
 		      <property name="enable_popup">False</property>
 
 		      <child>
@@ -30965,10 +30965,6 @@ message</property>
 	  <property name="expand">False</property>
 	  <property name="fill">True</property>
 	</packing>
-      </child>
-
-      <child>
-	<placeholder/>
       </child>
     </widget>
   </child>

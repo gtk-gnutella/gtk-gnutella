@@ -2455,6 +2455,7 @@ create_main_window (void)
   gtk_widget_set_name (notebook_main, "notebook_main");
   gtk_widget_show (notebook_main);
   gtk_box_pack_start (GTK_BOX (vbox_right), notebook_main, TRUE, TRUE, 0);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook_main), TRUE);
 
   empty_notebook_page = gtk_vbox_new (FALSE, 0);
   gtk_widget_show (empty_notebook_page);
@@ -3831,6 +3832,7 @@ create_main_window_search_tab (void)
   gtk_widget_show (notebook_search_results);
   gtk_container_add (GTK_CONTAINER (viewport16), notebook_search_results);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_search_results), FALSE);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook_search_results), TRUE);
 
   empty_notebook_page = gtk_vbox_new (FALSE, 0);
   gtk_widget_show (empty_notebook_page);
@@ -3852,6 +3854,7 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (notebook1, "notebook1");
   gtk_widget_show (notebook1);
   gtk_container_add (GTK_CONTAINER (viewport477), notebook1);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook1), TRUE);
 
   viewport106 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport106, "viewport106");
@@ -4620,6 +4623,7 @@ create_main_window_gnet_stats_tab (void)
   gtk_widget_show (gnet_stats_notebook);
   gtk_box_pack_start (GTK_BOX (vbox101), gnet_stats_notebook, TRUE, TRUE, 0);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (gnet_stats_notebook), FALSE);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (gnet_stats_notebook), TRUE);
 
   viewport463 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport463, "viewport463");
@@ -15243,6 +15247,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (notebook2, "notebook2");
   gtk_widget_show (notebook2);
   gtk_container_add (GTK_CONTAINER (viewport105), notebook2);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook2), TRUE);
 
   frame82 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame82, "frame82");
