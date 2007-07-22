@@ -458,35 +458,9 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 #endif /* USE_GTK1 */
 #ifdef USE_GTK2
 {
-	static gboolean lock;
-	GtkTreeView *tv;
-	GtkTreeModel *model;
-	GtkTreeIter iter;
-
 	(void) unused_notebook;
 	(void) unused_udata;
 	(void) unused_page;
-
-	if (lock)	/* Prevent recursion */
-		return;
-	lock = TRUE;
-	
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
-	model = gtk_tree_view_get_model(tv);
-	if (tree_find_iter_by_data(model, 1, GINT_TO_POINTER(page_num), &iter)) {
-		GtkTreePath *path;
-
-		path = gtk_tree_model_get_path(model, &iter);
-		while (gtk_tree_path_up(path))
-			gtk_tree_view_expand_row(tv, path, FALSE);
-		gtk_tree_path_free(path);
-		
-		path = gtk_tree_model_get_path(model, &iter);
-		gtk_tree_view_set_cursor(tv, path, NULL, FALSE);
-		gtk_tree_path_free(path);
-	}
-	
-	lock = FALSE;
 }
 #endif /* USE_GTK1 */
 

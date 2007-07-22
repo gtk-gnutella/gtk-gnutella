@@ -141,145 +141,30 @@ gui_init_window_title(void)
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }
 
-/**
- * The contents of the navigation tree menu in exact order.
- */
-static const struct {
-	const gint	depth;	/**< Depth in tree */
-	const gchar *title; /**< Translatable title for the node */
-	const gint	page;	/**< Page reference ("the target") for the node */
-} menu[] = {
-	{   0,	 N_("GnutellaNet"),		nb_main_page_gnet },
-	{     1, N_("Stats"),			nb_main_page_gnet_stats },
-	{     1, N_("Hostcache"),		nb_main_page_hostcache },
-	{   0,	 N_("Uploads"),			nb_main_page_uploads },
-	{     1, N_("History"), 		nb_main_page_uploads_stats },
+static void
+gui_init_menu(void)
+{
 #ifdef USE_GTK1
-	{   0,	 N_("Downloads"),		nb_main_page_dl_files },
-	{     1, N_("Active"),			nb_main_page_dl_active },
-	{     1, N_("Queue"),			nb_main_page_dl_queue },
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
-	{   0,	 N_("Downloads"),		nb_main_page_downloads },
-#endif /* USE_GTK1 */
-	{   0,	 N_("Search"),			nb_main_page_search },
-	{     1, N_("Monitor"),			nb_main_page_monitor },
-	{     1, N_("Stats"),			nb_main_page_search_stats },
-};
-
-
-#ifdef USE_GTK2
-
-static gboolean
-gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
-	GtkTreeIter *iter, gpointer data)
-{
-	static const GValue zero_value;
-	GValue value;
-	guint32 expanded;
-	gint id;
-
-	value = zero_value;
-	gtk_tree_model_get_value(model, iter, 1, &value);
-	id = GPOINTER_TO_UINT(g_value_get_pointer(&value));
-	
-	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
-	if (expanded)
-		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
-	return FALSE;
-}
-
-static void
-gui_init_menu(void)
-{
-	static GType types[] = {
-		G_TYPE_STRING,	/* Label */
-		G_TYPE_POINTER,	/* Notebook page number (casted to a pointer) */
+	/**
+	 * The contents of the navigation tree menu in exact order.
+	 */
+	static const struct {
+		const gint	depth;	/**< Depth in tree */
+		const gchar *title; /**< Translatable title for the node */
+		const gint	page;	/**< Page reference ("the target") for the node */
+	} menu[] = {
+		{   0,	 N_("GnutellaNet"),		nb_main_page_gnet },
+		{     1, N_("Stats"),			nb_main_page_gnet_stats },
+		{     1, N_("Hostcache"),		nb_main_page_hostcache },
+		{   0,	 N_("Uploads"),			nb_main_page_uploads },
+		{     1, N_("History"), 		nb_main_page_uploads_stats },
+		{   0,	 N_("Downloads"),		nb_main_page_dl_files },
+		{     1, N_("Active"),			nb_main_page_dl_active },
+		{     1, N_("Queue"),			nb_main_page_dl_queue },
+		{   0,	 N_("Search"),			nb_main_page_search },
+		{     1, N_("Monitor"),			nb_main_page_monitor },
+		{     1, N_("Stats"),			nb_main_page_search_stats },
 	};
-	GtkTreeView	*treeview;
-	GtkTreeIter	parent, iter;
-	GtkTreeStore *store;
-	GtkTreeViewColumn *column;
-    GtkCellRenderer *renderer;
-	guint i;
-	gint depth = -1;
-
-	STATIC_ASSERT(G_N_ELEMENTS(types) == 2);
-
-    renderer = gtk_cell_renderer_text_new();
-    g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, (void *) 0);
-	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
-	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
-
-	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
-		if (depth < menu[i].depth) {
-			g_assert(menu[i].depth == depth + 1);
-	
-			parent = iter;
-			depth = menu[i].depth;
-		} else if (depth > menu[i].depth) {
-			do {
-				gboolean valid;
-				
-				valid = gtk_tree_model_iter_parent(GTK_TREE_MODEL(store),
-							&parent, &iter);	
-				g_assert(valid);
-				iter = parent;
-			} while (--depth > menu[i].depth);
-			depth = menu[i].depth;
-		}
-		
-		gtk_tree_store_append(store, &iter, depth > 0 ? &parent : NULL);
-		gtk_tree_store_set(store, &iter,
-				0, _(menu[i].title),
-				1, GUINT_TO_POINTER(menu[i].page),
-				(-1));
-	}
-
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-
-	column = gtk_tree_view_column_new_with_attributes(
-				NULL, renderer, "text", 0, (void *) 0);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(treeview, column);
-	gtk_tree_view_columns_autosize(treeview);
-
-	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
-		gui_init_menu_helper, treeview);
-
-	g_object_unref(store);
-
-	gui_signal_connect(treeview, "cursor-changed",
-		on_main_gui_treeview_menu_cursor_changed, NULL);
-	gui_signal_connect(treeview, "row-collapsed",
-		on_main_gui_treeview_menu_row_collapsed, NULL);
-	gui_signal_connect(treeview, "row-expanded",
-		on_main_gui_treeview_menu_row_expanded, NULL);
-}
-
-static void
-gui_menu_shutdown(void)
-{
-	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(gui_main_window_lookup("treeview_menu")),
-		on_main_gui_treeview_menu_cursor_changed,
-		NULL);
-	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(gui_main_window_lookup("treeview_menu")),
-		on_main_gui_treeview_menu_row_collapsed,
-		NULL);
-	g_signal_handlers_disconnect_by_func(
-		G_OBJECT(gui_main_window_lookup("treeview_menu")),
-		on_main_gui_treeview_menu_row_expanded,
-		NULL);
-}
-
-#else
-
-static void
-gui_init_menu(void)
-{
     GtkCTree *ctree_menu = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
 	GtkCTreeNode *parent_node = NULL;
 	guint i;
@@ -301,15 +186,8 @@ gui_init_menu(void)
 	}
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
+#endif	/* USE_GTK1 */
 }
-
-static void
-gui_menu_shutdown(void)
-{
-	/* NOTHING */
-}
-
-#endif /* USE_GTK2 */
 
 static gboolean main_window_is_visible = TRUE;
 
@@ -837,7 +715,6 @@ main_gui_shutdown(void)
 	if (gui_dlg_prefs())
 		gtk_widget_hide(gui_dlg_prefs());
 
-	gui_menu_shutdown();
     search_stats_gui_shutdown();
     filter_cb_close();
     monitor_gui_shutdown();

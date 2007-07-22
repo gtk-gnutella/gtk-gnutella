@@ -1632,17 +1632,22 @@ sidebar_visible_changed(property_t prop)
 static gboolean
 navtree_visible_changed(property_t prop)
 {
+#ifdef USE_GTK1
 	GtkWidget *widget;
-    gboolean b;
+    gboolean visible;
 
-    gui_prop_get_boolean_val(prop, &b);
+    gui_prop_get_boolean_val(prop, &visible);
 
 	widget = gui_main_window_lookup("menu_navtree_visible");
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
 
 	widget = gui_main_window_lookup("viewport_menu");
-   	(b ? gtk_widget_show : gtk_widget_hide)(widget);
-
+	if (visible) {
+		gtk_widget_show(widget)
+	} else {
+		gtk_widget_hide(widget);
+	}
+#endif	/* USE_GTK1 */
     return FALSE;
 }
 
@@ -2945,6 +2950,7 @@ static prop_map_t property_map[] = {
         "menu_sidebar_visible",
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK1
     PROP_ENTRY(
         gui_main_window,
         PROP_NAVTREE_VISIBLE,
@@ -2953,6 +2959,7 @@ static prop_map_t property_map[] = {
         "menu_navtree_visible",
         FREQ_UPDATES, 0
     ),
+#endif	/* USE_GTK1 */
     PROP_ENTRY(
         gui_main_window,
         PROP_STATUSBAR_VISIBLE,

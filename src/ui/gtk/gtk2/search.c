@@ -1387,46 +1387,6 @@ collect_all_iters(GtkTreeModel *model, GtkTreePath *path,
 	}
 }
 
-struct menu_helper {
-	gint page;
-	GtkTreeIter iter;
-};
-
-static gboolean
-search_gui_menu_select_helper(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	struct menu_helper *mh = data;
-	gpointer value;
-	gint page;
-
-	(void) path;
-	gtk_tree_model_get(model, iter, 1, &value, (-1));
-	page = GPOINTER_TO_INT(value);
-	if (page == mh->page) {
-		mh->iter = *iter;
-		return TRUE;
-	}
-	return FALSE;
-}
-
-static void
-search_gui_menu_select(gint page)
-{
-	GtkTreeView *treeview;
-	GtkTreeModel *model;
-	GtkTreeSelection *selection;
-	struct menu_helper mh;
-
-	mh.page = page;
-
-	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_menu"));
-	model = GTK_TREE_MODEL(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_foreach(model, search_gui_menu_select_helper, &mh);
-	selection = gtk_tree_view_get_selection(treeview);
-	gtk_tree_selection_select_iter(selection, &mh.iter);
-}
-
 void
 search_gui_download_files(void)
 {
@@ -1957,8 +1917,6 @@ search_gui_set_current_search(search_t *sch)
 	gtk_notebook_set_current_page(notebook_search_results,
 		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window));
 
-	search_gui_menu_select(nb_main_page_search);
-	
 	if (search_gui_update_expiry(sch))
 		gui_search_set_enabled(sch, FALSE);
 
