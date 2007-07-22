@@ -9901,8 +9901,10 @@ download_push_ack(struct gnutella_socket *s)
 	if (d) {
 		download_check(d);
 	} else {
-		g_warning("discarded GIV \"%s\" from %s",
-			giv, host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("discarded GIV \"%s\" from %s",
+				giv, host_addr_to_string(s->addr));
+		}
 		goto discard;
 	}
 
