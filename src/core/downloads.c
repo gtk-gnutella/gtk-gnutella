@@ -343,6 +343,8 @@ download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
 
+	g_assert(DOWNLOAD_IS_ACTIVE(d));		/* No I/O via RX stack otherwise */
+
 	return download_read(d, mb);
 }
 
@@ -356,6 +358,8 @@ static gboolean
 download_ignore_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct download *d = rx_owner(rx);
+
+	g_assert(DOWNLOAD_IS_ACTIVE(d));		/* No I/O via RX stack otherwise */
 
 	return download_ignore_data(d, mb);
 }
@@ -8888,6 +8892,8 @@ http_version_nofix:
 	g_assert(d->bio == NULL);
 
 	d->bio = rx_bio_source(d->rx);
+
+	g_assert(DOWNLOAD_IS_ACTIVE(d));	/* Ready to receive via RX stack */
 
 	/*
 	 * If we have something in the socket buffer, feed it to the RX stack.
