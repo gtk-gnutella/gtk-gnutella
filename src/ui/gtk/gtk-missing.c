@@ -1008,6 +1008,7 @@ gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
     max_width = PANGO_PIXELS((gint)
 		(pango_font_metrics_get_approximate_digit_width(pfm) * chars + extra));
 
+	max_width *= 1.2;	/* The above still allocates less than it should */
     gtk_widget_set_size_request(w, max_width, -1);
 
     pango_font_metrics_unref(pfm);
