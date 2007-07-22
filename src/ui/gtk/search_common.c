@@ -2842,6 +2842,11 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Hostile"),
 				ST_HOSTILE & rs->status ? _("Yes") : _("No"));
 
+		if (ISO3166_INVALID != rs->country) {
+			search_gui_append_detail(_("Country"),
+				iso3166_country_name(rs->country));
+		}
+
 		if (rs->proxies) {
 			gchar *hosts = gnet_host_vec_to_string(rs->proxies);
 			search_gui_append_detail(_("Push-proxies"), hosts);
@@ -2859,11 +2864,6 @@ search_gui_set_details(const record_t *rc)
 
 		search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
 		search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
-
-		if (ISO3166_INVALID != rs->country) {
-			search_gui_append_detail(_("Country"),
-				iso3166_country_name(rs->country));
-		}
 
 		search_gui_append_detail(_("Received"),
 			timestamp_to_string(rs->stamp));
