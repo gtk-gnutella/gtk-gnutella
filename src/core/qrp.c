@@ -262,7 +262,7 @@ qrp_hashcode(const gchar *s)
 	 * (Cormen, Leiserson, and Rivest) [CLR]
 	 */
 
-	return x * 0x4F1BBCDC;
+	return x * 0x4F1BBCDCUL;
 }
 
 /**
@@ -1284,8 +1284,7 @@ qrp_add_file(struct shared_file *sf)
 	if (sha1_hash_available(sf)) {
 		gchar key[256];
 
-		concat_strings(key, sizeof key,
-			"urn:sha1:", sha1_base32(shared_file_sha1(sf)), (void *) 0);
+		sha1_to_urn_string_buf(shared_file_sha1(sf), key, sizeof key);
 		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
 			gpointer p;
 			size_t n;
