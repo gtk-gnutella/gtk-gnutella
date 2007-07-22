@@ -166,8 +166,16 @@ translate the rest only.
 If you want to see the strings translated every so often in gtk-gnutella
 when it is running, without having to install as root each time, do
 
-    $ ./Configure -Oders -Dlocale=$HOME/gtkg/locale
+    $ ./build.sh --localedir="$HOME/gtkg/locale"
     $ make install
+
+You can then set the environment variable NLSPATH to override the
+system default paths:
+
+    $ NLSPATH="$HOME/gtkg/locale" gtk-gnutella
+
+Note: Not all systems support the NLSPATH variable, some may use another
+one.
 
 
 6. Convert the output to UTF-8 (if it's not already UTF-8 encoded):

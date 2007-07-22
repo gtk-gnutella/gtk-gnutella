@@ -33,17 +33,9 @@ ifeq ($(DEB_BUILD_ARCH), alpha)
 	CFLAGS += -mieee
 endif
 
-config-stamp: Configure
+config-stamp: build.sh
 	dh_testdir
-	./Configure \
-		-Dccflags="$(CFLAGS)" \
-		-Dprefix=/usr \
-		-Dprivlib=/usr/share/gtk-gnutella \
-		-Dyacc=bison \
-		-Dipv6=true \
-		-Dgtkversion=2 \
-		-Dofficial=true \
-		-ders
+	./build.sh --configure-only --prefix=/usr --gtk2
 	touch $@
 
 #Architecture

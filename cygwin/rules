@@ -3,21 +3,10 @@
 
 package=gtk-gnutella
 
-OPTFLAGS=-O2 -g
-EXTRA_FLAGS=
-
-ifeq ($(DEB_BUILD_ARCH), alpha)
-	EXTRA_FLAGS=-mieee
-endif
-
-
 build:
 	$(checkdir)
 	rm -f config.sh
-	./Configure -Dccflags="-Wall $(EXTRA_FLAGS)" -Doptimize="$(OPTFLAGS)" \
-		-Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -Dofficial=true \
-		-ders
-	$(MAKE)
+	./build.sh --prefix=/usr
 	touch build
 
 clean:

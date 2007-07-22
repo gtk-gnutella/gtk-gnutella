@@ -83,63 +83,44 @@ documentation.
 
 To compile gtk-gnutella:  
 
-    Configure
-    make
+    ./build.sh
     make install
 
-The `Configure' shell script attempts to guess correct values for various 
-system-dependent variables used during compilation.  It uses those values to 
-create a `Makefile' in each directory of the package.  It may also create one 
-or more `.h' files containing system-dependent definitions.  Finally, it 
-creates `config.sh' file that saves the results of its tests to speed up 
-reconfiguring, reusing your previous values as defaults.  If you don't want to 
-reuse your previous values you can delete them with:
+The build.sh shell script is a wrapper for Configure. There should almost never
+be a need to invoke Configure manually.  The `Configure' shell script attempts
+to guess correct values for various system-dependent variables used during
+compilation.  It uses those values to create a `Makefile' in each directory of
+the package.  It may also create one or more `.h' files containing
+system-dependent definitions.  Finally, it creates `config.sh' file that saves
+the results of its tests to speed up reconfiguring, reusing your previous
+values as defaults.  If you don't want to reuse your previous values you can
+delete them with:
 
     make clobber
 
-If you don't know how to answer a question, it is generally safe to use the 
-default.  
+A list of available build options is shown if you run
+    
+    ./build.sh --help
 
-For a list of command line switches use "Configure -h"
-
-Although "Configure" is intended to be run interactively, it can be run 
-non-interactively by using the "-d" commandline option, which will configure 
-gtk-gnutella using default values for all symbols.  Defaults can be changed 
-using the "-D" and "-U" options, whether in interactive or noninteractive 
-mode.  The "-O" option will allow "-D" and "-U" options to override values 
-which have been written to config.sh from a previous Configure.  The 
-following is a list of commonly used options with the defaults. 
-
--D prefix=/usr/local
--D bindir=/usr/local/bin
--D sysman=/usr/local/man/man1
--D privlib=/usr/local/lib/gtk-gnutella
--D locale=/usr/local/share/locale
--D cc=cc
--D ccflags=''
--D ldflags=''
--D optimize='-O'
--D yacc='yacc'
--D gtkversion=1
--D official='false'
--D remotectrl='true'
--D dbus='true'
--D ipv6='true'
+The environment variables CC, CFLAGS, LDFLAGS, PREFIX, MAKE, YACC are
+respected if set. The default path prefix is /usr/local. The default
+front-end is Gtk+ 2.x. Support for DBUS, GNUTLS, IPv6, NLS, Socker is
+enabled by default but will only be used if actually available during
+the Configure run.
 
 National Language Support requires at least GNU gettext 0.11.5 or a
 compatible implementation which supports its plural model. To disable
 NLS (National Language Support) i.e., nationalized text in the user
 interface:
 
--U d_enablenls
+    ./build.sh --disable-nls
 
 gtk-gnutella can also be compiled for headless operation the so-called
 "topless" mode. The resulting executable won't use or depend on Gtk+
 and gtk-gnutella can only be controlled through the remote shell in
-this case. Use the following flag for Configure if you want a topless
-gtk-gnutella:
+this case. If you want a topless gtk-gnutella run
 
--D d_headless
+    ./build.sh --topless
 
 The option "official" should be set to "true" unless you want to test
 gtk-gnutella from SVN or are a developer. Currently, an "inofficial" build
@@ -150,23 +131,11 @@ only.
 
 For example, a fairly typical configuration for Linux x86, Gtk+ 2.x UI:
 
-    ./Configure \
-        -Oders \
-        -D prefix=/usr \
-        -D privlib=/usr/share/gtk-gnutella \
-        -D cc=gcc \
-        -D ccflags='-W -Wall -Wformat=2 -Wshadow' \
-        -D optimize='-O2 -g' \
-        -D gtkversion=2 \
-        -D yacc='bison' \
-        -D official=true
+    CC=gcc ./build.sh --prefix=/usr
 
-If you're used to Autoconf with CFLAGS and LDFLAGS, you can use
--D ccflags="$CFLAGS" respectively -D ldflags="$LDFLAGS" for Configure.
-Hint: A common pitfall is to miss the double-c in ccflags. The option
-ldflags is passed to the linker. Thus, use it to supply additional linker
-flags (e.g., library paths, libraries) which might be necessary for a
-given platform.
+You might have to CFLAGS and LDFLAGS so that the compiler and linker can find
+the necessary libraries if they are not installed in the systems default
+directories.
 
 Packagers who need to install gtk-gnutella to a special base directory can 
 do so with:

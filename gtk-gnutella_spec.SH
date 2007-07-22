@@ -34,22 +34,20 @@ Name: gtk-gnutella
 Summary: A GUI-based Gnutella Client
 Version: $gtkgversion
 
-%define gtkver $gtkversion
 %define gtk2 $gtk2
 !GROK!THIS!
+
+%if %{gtk2}
+%define gtkver 2
+%else
+%define gtkver 1
+%endif
 
 : In the following dollars and backticks do not need the extra backslash.
 $spitshell >>gtk-gnutella.spec <<'!NO!SUBS!'
 # Edit this: fedora and mdk are exclusive (1 == true)
 %define fedora 1
 %define mdk    0
-# This is for distribution-specific Configure options.
-%if %{fedora}
-%define extra_configure_opts -Dyacc=byacc
-%endif
-%if %{mdk}
-%define extra_configure_opts -Dyacc="bison -y"
-%endif
 
 URL: http://sourceforge.net/projects/gtk-gnutella/
 Source: %{name}-%{version}.tar.bz2
@@ -85,11 +83,13 @@ features.
 %setup -q
 
 %build
-./Configure -O -ders -Dprefix=%{_prefix} -Dbindir=%{_bindir} \
-	-Dprivlib=%{_datadir}/%{name} -Dofficial=true -Dcc=%{__cc} \
-	-Doptimize="%{optflags}" -Dgtkversion=%{gtkver} \
-	-Dsysman=%{_mandir}/man1} -Dccflags="-Wall" %{extra_configure_opts}
-%{__make}
+./build.sh \
+	--gtk%{gtkver} \
+	--prefix=%{_prefix} \
+	--bindir=%{_bindir} \
+	--datadir=%{_datadir}/%{name} \
+	--mandir=%{_mandir}/man1} \
+	--configure-only
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT

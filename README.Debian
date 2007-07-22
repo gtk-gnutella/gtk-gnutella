@@ -58,7 +58,7 @@ To install gtk-gnutella just run (version and architecture will vary):
   dpkg --install gtk-gnutella*.deb
 
 For further compile options and instructions, see the README file and
-edit the debian/rules file to change the line calling "Configure" to suit
-your taste.
+edit the debian/rules file to change the line calling "./build.sh" to suit
+your taste. Run "./build.sh --help" to list available options.
 
 $Id$
