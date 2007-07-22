@@ -381,6 +381,7 @@ fi_gui_clear_details(void)
 {
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
+    gtk_label_set_text(label_fi_sha1, "");
     gtk_list_store_clear(store_aliases);
 
     gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), FALSE);
