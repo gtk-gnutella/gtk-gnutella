@@ -127,8 +127,8 @@ RCSID("$Id$")
 #define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	  /**< Bye sent, give time to propagate */
 #define MAX_WEIRD_MSG			5	  /**< End link after so much weirds */
-#define MAX_TX_RX_RATIO			70	  /**< Max TX/RX ratio for shortage */
-#define MIN_TX_FOR_RATIO		500	  /**< TX packets before enforcing ratio */
+#define MAX_TX_RX_RATIO			85	  /**< Max TX/RX ratio for shortage */
+#define MIN_TX_FOR_RATIO		1000  /**< TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20	  /**< Seconds between each alive ping */
 #define ALIVE_PERIOD_LEAF		120	  /**< Idem, for leaves <-> ultrapeers */
 #define ALIVE_MAX_PENDING		6	  /**< Max unanswered pings in a row */
@@ -1022,7 +1022,6 @@ node_timer(time_t now)
 			time_delta_t rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
-
 				g_message("Removing %s <%s> due to security violation",
 					node_addr(n), node_vendor(n));
 				node_bye_if_writable(n, 412, "Security violation");
