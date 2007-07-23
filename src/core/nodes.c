@@ -1028,6 +1028,11 @@ node_timer(time_t now)
 				return;
 			}
 
+#if 0
+			/* FIXME: Disabled because it's nonsense. The ratio sent:received
+			 * can be very high due to OOB reply indications for example and
+			 * indicates no bad condition for this peer at all.
+			 */
 			if (
 				!NODE_IS_LEAF(n) &&
 				n->sent > MIN_TX_FOR_RATIO &&
@@ -1036,6 +1041,7 @@ node_timer(time_t now)
 				node_bye_if_writable(n, 405, "Reception shortage");
 				return;
 			}
+#endif
 
 			/*
 			 * If quiet period is nearing timeout and node supports
