@@ -1643,7 +1643,7 @@ navtree_visible_changed(property_t prop)
 
 	widget = gui_main_window_lookup("viewport_menu");
 	if (visible) {
-		gtk_widget_show(widget)
+		gtk_widget_show(widget);
 	} else {
 		gtk_widget_hide(widget);
 	}
