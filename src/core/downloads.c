@@ -9872,17 +9872,20 @@ download_push_ack(struct gnutella_socket *s)
 
 	switch (count) {
 	case 0:
-		g_warning("discarding GIV: found no host bearing GUID %s or at %s",
-			hex_guid, host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("discarding GIV: found no host bearing GUID %s or at %s",
+				hex_guid, host_addr_to_string(s->addr));
+		}
 		goto discard;
 	case 1:
 		break;
 	default:
-		g_warning("found %d possible targets for GIV from GUID %s at %s",
-			count, hex_guid, host_addr_to_string(s->addr));
 		if (GNET_PROPERTY(download_debug)) {
 			GSList *sl;
 			guint i;
+
+			g_warning("found %d possible targets for GIV from GUID %s at %s",
+				count, hex_guid, host_addr_to_string(s->addr));
 
 			for (sl = servers, i = 0; sl; sl = g_slist_next(sl), i++) {
 				struct dl_server *serv = sl->data;
