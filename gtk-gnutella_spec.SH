@@ -35,13 +35,14 @@ Summary: A GUI-based Gnutella Client
 Version: $gtkgversion
 
 %define gtk2 $gtk2
-!GROK!THIS!
 
 %if %{gtk2}
 %define gtkver 2
 %else
 %define gtkver 1
 %endif
+
+!GROK!THIS!
 
 : In the following dollars and backticks do not need the extra backslash.
 $spitshell >>gtk-gnutella.spec <<'!NO!SUBS!'
