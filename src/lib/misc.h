@@ -455,6 +455,7 @@ const gchar *short_rate(guint64 rate, gboolean metric);
 const gchar *compact_size(guint64 size, gboolean metric);
 const gchar *compact_rate(guint64 rate, gboolean metric);
 const gchar *compact_kb_size(guint32 size, gboolean metric);
+const gchar *nice_size(guint64 size, gboolean metric);
 gchar *short_value(gchar *buf, size_t size, guint64 v, gboolean metric);
 gchar *compact_value(gchar *buf, size_t size, guint64 v, gboolean metric);
 

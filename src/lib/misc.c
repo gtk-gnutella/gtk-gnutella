@@ -1072,6 +1072,17 @@ compact_kb_size(guint32 size, gboolean metric)
 	return b;
 }
 
+const gchar *
+nice_size(guint64 size, gboolean metric)
+{
+	static gchar buf[256];
+	gchar bytes[UINT64_DEC_BUFLEN];
+
+	uint64_to_string_buf(size, bytes, sizeof bytes);
+	gm_snprintf(buf, sizeof buf,
+		_("%s (%s bytes)"), short_size(size, metric), bytes);
+	return buf;
+}
 
 gchar *
 compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
