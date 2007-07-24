@@ -6946,9 +6946,6 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	g_return_if_fail(d);
 	g_return_if_fail(header);
 
-	if (!GNET_PROPERTY(experimental_tigertree_support))
-		return;
-
 	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
 		return;
 

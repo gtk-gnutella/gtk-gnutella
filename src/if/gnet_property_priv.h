@@ -337,7 +337,6 @@ extern const guint32  gnet_property_variable_shell_debug;
 extern const guint32  gnet_property_variable_download_queue_frozen;
 extern const guint32  gnet_property_variable_sq_debug;
 extern const guint32  gnet_property_variable_push_proxy_debug;
-extern const gboolean gnet_property_variable_experimental_tigertree_support;
 extern const guint32  gnet_property_variable_thex_files_requested;
 extern const guint32  gnet_property_variable_thex_files_served;
 extern const guint32  gnet_property_variable_tigertree_debug;

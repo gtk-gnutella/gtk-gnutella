@@ -3366,15 +3366,6 @@ prop = {
 };
 
 prop = {
-    name = "experimental_tigertree_support";
-    desc = "This is an interim property while Tigertree support is unfinished.";
-	type = boolean;
-	data = {
-		default = FALSE;
-	};
-};
-
-prop = {
     name = "thex_files_requested";
     desc = "Number of THEX file requests received in this session.";
 	save = FALSE;

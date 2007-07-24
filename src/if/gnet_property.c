@@ -651,8 +651,6 @@ guint32  gnet_property_variable_sq_debug     = 0;
 static const guint32  gnet_property_variable_sq_debug_default = 0;
 guint32  gnet_property_variable_push_proxy_debug     = 0;
 static const guint32  gnet_property_variable_push_proxy_debug_default = 0;
-gboolean gnet_property_variable_experimental_tigertree_support     = FALSE;
-static const gboolean gnet_property_variable_experimental_tigertree_support_default = FALSE;
 guint32  gnet_property_variable_thex_files_requested     = 0;
 static const guint32  gnet_property_variable_thex_files_requested_default = 0;
 guint32  gnet_property_variable_thex_files_served     = 0;
@@ -6213,40 +6211,23 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_EXPERIMENTAL_TIGERTREE_SUPPORT:
-     *
-     * General data:
-     */
-    gnet_property->props[291].name = "experimental_tigertree_support";
-    gnet_property->props[291].desc = _("This is an interim property while Tigertree support is unfinished.");
-    gnet_property->props[291].ev_changed = event_new("experimental_tigertree_support_changed");
-    gnet_property->props[291].save = TRUE;
-    gnet_property->props[291].vector_size = 1;
-
-    /* Type specific data: */
-    gnet_property->props[291].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[291].data.boolean.def   = (void *) &gnet_property_variable_experimental_tigertree_support_default;
-    gnet_property->props[291].data.boolean.value = (void *) &gnet_property_variable_experimental_tigertree_support;
-
-
-    /*
      * PROP_THEX_FILES_REQUESTED:
      *
      * General data:
      */
-    gnet_property->props[292].name = "thex_files_requested";
-    gnet_property->props[292].desc = _("Number of THEX file requests received in this session.");
-    gnet_property->props[292].ev_changed = event_new("thex_files_requested_changed");
-    gnet_property->props[292].save = FALSE;
-    gnet_property->props[292].vector_size = 1;
+    gnet_property->props[291].name = "thex_files_requested";
+    gnet_property->props[291].desc = _("Number of THEX file requests received in this session.");
+    gnet_property->props[291].ev_changed = event_new("thex_files_requested_changed");
+    gnet_property->props[291].save = FALSE;
+    gnet_property->props[291].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[292].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[292].data.guint32.def   = (void *) &gnet_property_variable_thex_files_requested_default;
-    gnet_property->props[292].data.guint32.value = (void *) &gnet_property_variable_thex_files_requested;
-    gnet_property->props[292].data.guint32.choices = NULL;
-    gnet_property->props[292].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[292].data.guint32.min   = 0x00000000;
+    gnet_property->props[291].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[291].data.guint32.def   = (void *) &gnet_property_variable_thex_files_requested_default;
+    gnet_property->props[291].data.guint32.value = (void *) &gnet_property_variable_thex_files_requested;
+    gnet_property->props[291].data.guint32.choices = NULL;
+    gnet_property->props[291].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[291].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -6254,19 +6235,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[293].name = "thex_files_served";
-    gnet_property->props[293].desc = _("Number of THEX file requests fully served in this session.");
-    gnet_property->props[293].ev_changed = event_new("thex_files_served_changed");
-    gnet_property->props[293].save = FALSE;
-    gnet_property->props[293].vector_size = 1;
+    gnet_property->props[292].name = "thex_files_served";
+    gnet_property->props[292].desc = _("Number of THEX file requests fully served in this session.");
+    gnet_property->props[292].ev_changed = event_new("thex_files_served_changed");
+    gnet_property->props[292].save = FALSE;
+    gnet_property->props[292].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[293].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[293].data.guint32.def   = (void *) &gnet_property_variable_thex_files_served_default;
-    gnet_property->props[293].data.guint32.value = (void *) &gnet_property_variable_thex_files_served;
-    gnet_property->props[293].data.guint32.choices = NULL;
-    gnet_property->props[293].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[293].data.guint32.min   = 0x00000000;
+    gnet_property->props[292].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[292].data.guint32.def   = (void *) &gnet_property_variable_thex_files_served_default;
+    gnet_property->props[292].data.guint32.value = (void *) &gnet_property_variable_thex_files_served;
+    gnet_property->props[292].data.guint32.choices = NULL;
+    gnet_property->props[292].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[292].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -6274,19 +6255,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[294].name = "tigertree_debug";
-    gnet_property->props[294].desc = _("Debug level for Tigertree-related code.");
-    gnet_property->props[294].ev_changed = event_new("tigertree_debug_changed");
-    gnet_property->props[294].save = TRUE;
-    gnet_property->props[294].vector_size = 1;
+    gnet_property->props[293].name = "tigertree_debug";
+    gnet_property->props[293].desc = _("Debug level for Tigertree-related code.");
+    gnet_property->props[293].ev_changed = event_new("tigertree_debug_changed");
+    gnet_property->props[293].save = TRUE;
+    gnet_property->props[293].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[294].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[294].data.guint32.def   = (void *) &gnet_property_variable_tigertree_debug_default;
-    gnet_property->props[294].data.guint32.value = (void *) &gnet_property_variable_tigertree_debug;
-    gnet_property->props[294].data.guint32.choices = NULL;
-    gnet_property->props[294].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[294].data.guint32.min   = 0x00000000;
+    gnet_property->props[293].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[293].data.guint32.def   = (void *) &gnet_property_variable_tigertree_debug_default;
+    gnet_property->props[293].data.guint32.value = (void *) &gnet_property_variable_tigertree_debug;
+    gnet_property->props[293].data.guint32.choices = NULL;
+    gnet_property->props[293].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[293].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -6294,16 +6275,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[295].name = "tth_rebuilding";
-    gnet_property->props[295].desc = _("Whether gtk-gnutella is currently computing TTH of shared files in the background.");
-    gnet_property->props[295].ev_changed = event_new("tth_rebuilding_changed");
-    gnet_property->props[295].save = FALSE;
-    gnet_property->props[295].vector_size = 1;
+    gnet_property->props[294].name = "tth_rebuilding";
+    gnet_property->props[294].desc = _("Whether gtk-gnutella is currently computing TTH of shared files in the background.");
+    gnet_property->props[294].ev_changed = event_new("tth_rebuilding_changed");
+    gnet_property->props[294].save = FALSE;
+    gnet_property->props[294].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[295].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[295].data.boolean.def   = (void *) &gnet_property_variable_tth_rebuilding_default;
-    gnet_property->props[295].data.boolean.value = (void *) &gnet_property_variable_tth_rebuilding;
+    gnet_property->props[294].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[294].data.boolean.def   = (void *) &gnet_property_variable_tth_rebuilding_default;
+    gnet_property->props[294].data.boolean.value = (void *) &gnet_property_variable_tth_rebuilding;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
