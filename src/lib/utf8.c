@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14088 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14178 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -4733,6 +4733,7 @@ utf32_canonize(const guint32 *src0)
 	dst = g_malloc(size * sizeof *dst);
 	n = utf32_decompose(src, dst, size, TRUE);
 	g_assert(size - 1 == n);
+	G_FREE_NULL(src);
 	src = dst;
 
 	/* Apply special filter; works in-place */
