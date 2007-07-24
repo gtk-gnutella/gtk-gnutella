@@ -1012,7 +1012,7 @@ print_download_info(gnet_fi_t handle, void *udata)
 	g_return_if_fail(info);
 	guc_fi_get_status(handle, &status);
 
-	gm_snprintf(buf, sizeof buf, "Filename: \"%s\"", info->file_name);
+	gm_snprintf(buf, sizeof buf, "Filename: \"%s\"", info->filename);
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 	

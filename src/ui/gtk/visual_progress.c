@@ -75,12 +75,12 @@ typedef struct vp_context {
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
-    const gchar *file_name;		/* atom */
+    const gchar *filename;		/* atom */
     GSList *chunks_list;
 	GSList *chunks_initial;
 	GSList *ranges_list;
     vp_context_t *context;
-    filesize_t file_size;
+    filesize_t filesize;
 	filesize_t done_initial;
 } vp_info_t;
 
@@ -127,16 +127,16 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 	 * neither should be zero when we end up here, so this can be
 	 * considered a bug somewhere in the calling code.
 	 *
-	 * file_size should be set in the fileinfo code. For files with
-	 * unknown size the file_size == 0, but in this case
+	 * filesize should be set in the fileinfo code. For files with
+	 * unknown size the filesize == 0, but in this case
 	 * vp_draw_fi_progress catches this case.
 	 */
-	g_assert(v->file_size > 0);
+	g_assert(v->filesize > 0);
 
-	s_from = ((gdouble) from * v->context->widget->allocation.width)
-		/ v->file_size;
-	s_to   = ((gdouble) to   * v->context->widget->allocation.width)
-		/ v->file_size;
+	s_from = (1.0 * from * v->context->widget->allocation.width)
+		/ v->filesize;
+	s_to   = (1.0 * to   * v->context->widget->allocation.width)
+		/ v->filesize;
 
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE,
         s_from, top, s_to - s_from, bottom);
@@ -180,9 +180,9 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
     g_assert(v->context);
     g_assert(v->context->drawable);
 
-	g_assert(v->file_size);
+	g_assert(v->filesize);
 
-	s_at = ((gdouble) at * v->context->widget->allocation.width) / v->file_size;
+	s_at = (1.0 * at * v->context->widget->allocation.width) / v->filesize;
 
 	/* Fill the inside of the arrow */
 	points[0].x = s_at - VP_ARROW_HEIGHT;
@@ -266,7 +266,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 			v = value;
 			v->context = &fi_context;
 
-			if (v->file_size > 0) {
+			if (v->filesize > 0) {
 				g_slist_foreach(v->chunks_list, vp_draw_chunk, v);
 				g_slist_foreach(v->chunks_list, vp_draw_arrows, v);
 				g_slist_foreach(v->ranges_list, vp_draw_range, v);
@@ -374,8 +374,8 @@ vp_gui_fi_added(gnet_fi_t fih)
 
     new_vp_info = walloc0(sizeof *new_vp_info);
     new_vp_info->fi_handle = fih;
-    new_vp_info->file_name = atom_str_get(fi->file_name);
-    new_vp_info->file_size = s.size;
+    new_vp_info->filename = atom_str_get(fi->filename);
+    new_vp_info->filesize = s.size;
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
 
@@ -404,7 +404,7 @@ vp_info_free(vp_info_t **v_ptr)
 		guc_fi_free_chunks(v->chunks_list);
 		guc_fi_free_chunks(v->chunks_initial);
 		guc_fi_free_ranges(v->ranges_list);
-		atom_str_free_null(&v->file_name);
+		atom_str_free_null(&v->filename);
 		wfree(v, sizeof *v);
 		*v_ptr = NULL;
 	}
@@ -510,7 +510,7 @@ vp_assert_chunks_list(const GSList *list, const gnet_fi_info_t *fi)
 		const gnet_fi_chunks_t *chunk = sl->data;
 
 		if (last != chunk->from) {
-			g_warning("BAD CHUNK LIST for \"%s\"", fi->file_name);
+			g_warning("BAD CHUNK LIST for \"%s\"", fi->filename);
 			vp_print_chunk_list(stderr, list, "Chunks list");
 			return FALSE;
 		}

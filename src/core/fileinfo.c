@@ -5204,11 +5204,12 @@ fi_get_info(gnet_fi_t fih)
 
     info = walloc(sizeof *info);
 
-    info->file_name = atom_str_get(filepath_basename(fi->pathname));
+    info->filename = atom_str_get(filepath_basename(fi->pathname));
 	sha1 = fi->sha1 ? fi->sha1 : fi->cha1;
     info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+    info->tth = fi->tth ? atom_tth_get(fi->tth) : NULL;
     info->fi_handle = fi->fi_handle;
-	info->aliases   = NULL;
+	info->aliases = NULL;
 
 	if (fi->alias) {
 		GSList *sl;
@@ -5233,8 +5234,9 @@ fi_free_info(gnet_fi_info_t *info)
 
     g_assert(NULL != info);
 
-	atom_str_free_null(&info->file_name);
+	atom_str_free_null(&info->filename);
 	atom_sha1_free_null(&info->sha1);
+	atom_tth_free_null(&info->tth);
 
 	for (sl = info->aliases; NULL != sl; sl = g_slist_next(sl)) {
 		const gchar *s = sl->data;
