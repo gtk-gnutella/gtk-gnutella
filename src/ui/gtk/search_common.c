@@ -2674,14 +2674,7 @@ search_gui_is_passive(const search_t *search)
 const gchar *
 search_gui_nice_size(const record_t *rc)
 {
-	static gchar buf[256];
-	gchar bytes[UINT64_DEC_BUFLEN];
-
-	uint64_to_string_buf(rc->size, bytes, sizeof bytes);
-	gm_snprintf(buf, sizeof buf,
-		_("%s (%s bytes)"), short_size(rc->size, show_metric_units()),
-		bytes);
-	return buf;
+	return nice_size(rc->size, show_metric_units());
 }
 
 const gchar *
