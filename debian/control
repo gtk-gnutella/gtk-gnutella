@@ -2,8 +2,8 @@ Source: gtk-gnutella
 Build-Depends: debhelper (>= 4.0.0), libglib2.0-dev, libgtk2.0-dev, zlib1g-dev (>= 1:1.1.4), libxml2-dev (>= 2.6.0), gettext, libgnutls-dev, libdbus-1-dev
 Section: net
 Priority: optional
-Maintainer: Anand Kumria <wildfire@progsoc.org>
-Standards-Version: 3.6.2.1
+Maintainer: Luca Bruno <luca.br@uno.it>
+Standards-Version: 3.7.2
 
 Package: gtk-gnutella
 Architecture: any
