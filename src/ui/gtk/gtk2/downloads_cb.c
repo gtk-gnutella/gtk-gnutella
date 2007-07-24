@@ -44,6 +44,7 @@ RCSID("$Id$")
 
 GSList *fi_gui_download_select(gboolean unselect);
 void fi_gui_select_by_regex(const gchar *regex);
+GtkTreeView *fi_gui_current_treeview(void);
 
 /***
  *** Popup menu: downloads
@@ -468,8 +469,7 @@ on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    cc = gtk_column_chooser_new(
-			GTK_WIDGET(gui_main_window_lookup("treeview_downloads")));
+    cc = gtk_column_chooser_new(GTK_WIDGET(fi_gui_current_treeview()));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 }
 

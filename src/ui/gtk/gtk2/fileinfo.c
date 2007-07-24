@@ -63,17 +63,54 @@ RCSID("$Id$")
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
-static GtkTreeView *treeview_downloads;
-static GtkTreeView *treeview_fi_aliases;
 static GtkEntry *entry_fi_filename;
 static GtkLabel *label_fi_sha1;
 static GtkLabel *label_fi_size;
 
-static GtkTreeStore *store_fileinfo;
-static GtkListStore *store_aliases;
 static GHashTable *fi_handles;
 static GHashTable *fi_updates;
 static GHashTable *fi_downloads;
+
+static GtkTreeView *
+fi_gui_get_treeview(guint page)
+{
+	const char *name = NULL;
+	
+	switch (page) {
+#define CASE(x) \
+	case nb_downloads_page_ ## x : name = "treeview_downloads_" #x ; break;
+
+	CASE(all)
+	CASE(active)
+	CASE(queued)
+	CASE(finished)
+	CASE(seeding)
+#undef CASE
+	}
+
+	g_return_val_if_fail(name, NULL);
+	return GTK_TREE_VIEW(gui_main_window_lookup(name));
+}
+
+static int
+fi_gui_current_page(void)
+{
+	return gtk_notebook_get_current_page(
+			GTK_NOTEBOOK(gui_main_window_lookup("notebook_downloads")));
+}
+
+GtkTreeView *
+fi_gui_current_treeview(void)
+{
+	return fi_gui_get_treeview(fi_gui_current_page());
+}
+
+static GtkTreeStore *
+fi_gui_current_store(void)
+{
+	return GTK_TREE_STORE(gtk_tree_view_get_model(
+				GTK_TREE_VIEW(fi_gui_current_treeview())));
+}
 
 struct fileinfo_data {
 	GtkTreeIter iter;
@@ -126,7 +163,7 @@ fi_gui_add_file(gnet_fi_t handle)
 	data->file.handle = handle;
 	g_hash_table_insert(fi_handles, GUINT_TO_POINTER(handle), data);
 	
-	gtk_tree_store_append(store_fileinfo, &data->iter, NULL);
+	gtk_tree_store_append(fi_gui_current_store(), &data->iter, NULL);
 }
 
 static void 
@@ -153,7 +190,7 @@ fi_gui_remove_data(struct fileinfo_data *data)
 		g_hash_table_remove(fi_handles, key);
 		g_hash_table_remove(fi_updates, key);
 	}
-	gtk_tree_store_remove(store_fileinfo, &data->iter);
+	gtk_tree_store_remove(fi_gui_current_store(), &data->iter);
 	fi_gui_free_data(data);
 }
 
@@ -188,7 +225,7 @@ set_fileinfo_data(struct fileinfo_data *data)
 	g_assert(data);
 	g_value_init(&value, G_TYPE_POINTER);
 	g_value_set_pointer(&value, data);
-	gtk_tree_store_set_value(store_fileinfo, &data->iter, 0, &value);
+	gtk_tree_store_set_value(fi_gui_current_store(), &data->iter, 0, &value);
 }
 
 static void
@@ -317,10 +354,39 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	g_return_if_fail(!data->is_download);
 	g_return_if_fail(handle == data->file.handle);
 	g_return_if_fail(
-		!gtk_tree_model_iter_has_child(GTK_TREE_MODEL(store_fileinfo),
+		!gtk_tree_model_iter_has_child(GTK_TREE_MODEL(fi_gui_current_store()),
 			&data->iter));
 
 	fi_gui_remove_data(data);
+}
+
+static void
+fi_gui_set_aliases(gnet_fi_t handle)
+{
+	GtkTreeModel *model;
+    gchar **aliases;
+	gint i;
+
+	model = gtk_tree_view_get_model(
+				GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases")));
+    gtk_list_store_clear(GTK_LIST_STORE(model));
+
+    aliases = guc_fi_get_aliases(handle);
+	for (i = 0; NULL != aliases[i]; i++) {
+		GtkTreeIter iter;
+		gchar *filename;
+
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		filename = utf8_is_valid_string(aliases[i])
+			? aliases[i]
+			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
+
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, filename, (-1));
+		if (filename != aliases[i]) {
+			G_FREE_NULL(filename);
+		}
+	}
+    g_strfreev(aliases);
 }
 
 static void
@@ -328,17 +394,14 @@ fi_gui_set_details(gnet_fi_t handle)
 {
     gnet_fi_info_t *info = NULL;
     gnet_fi_status_t fis;
-    gchar **aliases;
-	GtkTreeIter iter;
 	gchar bytes[UINT64_DEC_BUFLEN];
 	gchar *filename;
-	gint i;
 
     info = guc_fi_get_info(handle);
-    g_assert(info != NULL);
+	g_return_if_fail(info);
 
+	fi_gui_set_aliases(handle);
     guc_fi_get_status(handle, &fis);
-    aliases = guc_fi_get_aliases(handle);
 
 	filename = filename_to_utf8_normalized(info->file_name, UNI_NORM_GUI);
     gtk_entry_set_text(entry_fi_filename, filename);
@@ -352,20 +415,6 @@ fi_gui_set_details(gnet_fi_t handle)
 		info->sha1 ? "urn:sha1:" : _("<none>"),
 		info->sha1 ? sha1_base32(info->sha1) : "");
 
-    gtk_list_store_clear(store_aliases);
-	for (i = 0; NULL != aliases[i]; i++) {
-		gchar *s;
-		gtk_list_store_append(store_aliases, &iter);
-		s = utf8_is_valid_string(aliases[i])
-			? aliases[i]
-			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
-
-		gtk_list_store_set(store_aliases, &iter, 0, s, (-1));
-		if (s != aliases[i]) {
-			G_FREE_NULL(s);
-		}
-	}
-    g_strfreev(aliases);
     guc_fi_free_info(info);
 
     last_shown = handle;
@@ -382,7 +431,9 @@ fi_gui_clear_details(void)
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
     gtk_label_set_text(label_fi_sha1, "");
-    gtk_list_store_clear(store_aliases);
+
+    gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases")))));
 
     gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), FALSE);
 
@@ -661,7 +712,7 @@ on_treeview_downloads_column_clicked(GtkTreeViewColumn *column,
 	gint col;
 
 	(void) unused_data;
-	model = GTK_TREE_SORTABLE(store_fileinfo);
+	model = GTK_TREE_SORTABLE(fi_gui_current_store());
 
 	/*
 	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
@@ -813,23 +864,25 @@ fi_gui_get_alias(GtkWidget *widget)
 void
 fi_gui_update_display(time_t unused_now)
 {
+	GtkTreeView *tv;
+
 	(void) unused_now;
 
 	if (!main_gui_window_visible())
 		return;
 
-	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_downloads)))
+	tv = GTK_TREE_VIEW(fi_gui_current_treeview());
+	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(tv)))
 		return;
 
 	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
-	g_object_thaw_notify(G_OBJECT(store_fileinfo));
-	g_object_thaw_notify(G_OBJECT(treeview_downloads));
-	g_object_freeze_notify(G_OBJECT(treeview_downloads));
-	g_object_freeze_notify(G_OBJECT(store_fileinfo));
+
+	g_object_thaw_notify(G_OBJECT(tv));
+	g_object_freeze_notify(G_OBJECT(tv));
 }
 
-void
-fi_gui_init(void)
+static void
+fi_gui_init_columns(GtkTreeView *tv)
 {
 	static const struct {
 		const gint id;
@@ -847,59 +900,90 @@ fi_gui_init(void)
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		GtkTreeViewColumn *column;
+		GtkTreeView *model;
+		
+    	column = add_column(tv, cell_renderer,
+					columns[i].id, _(columns[i].title), columns[i].align);
+		model = gtk_tree_view_get_model(tv);
+		if (model) {
+			gtk_tree_sortable_set_sort_func(
+				GTK_TREE_SORTABLE(model), columns[i].id,
+				fileinfo_data_cmp, GUINT_TO_POINTER(columns[i].id), NULL);
+		}
+		gui_signal_connect(column, "clicked",
+			on_treeview_downloads_column_clicked, NULL);
+	}
+}
+
+static void
+on_notebook_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata)
+{
+	(void) unused_notebook;
+	(void) unused_udata;
+	(void) unused_page;
+
+	gtk_tree_view_set_model(fi_gui_get_treeview(page_num),
+		GTK_TREE_MODEL(fi_gui_current_store()));
+	gtk_tree_view_set_model(fi_gui_current_treeview(), NULL);
+}
+
+void
+fi_gui_init(void)
+{
+	gint i;
+
 	fi_handles = g_hash_table_new(NULL, NULL);
 	fi_updates = g_hash_table_new(NULL, NULL);
 	fi_downloads = g_hash_table_new(NULL, NULL);
 
-    treeview_fi_aliases =
-		GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases"));
-	treeview_downloads =
-		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
 	entry_fi_filename = GTK_ENTRY(gui_main_window_lookup("entry_fi_filename"));
 	label_fi_sha1 = GTK_LABEL(gui_main_window_lookup("label_fi_sha1"));
 	label_fi_size = GTK_LABEL(gui_main_window_lookup("label_fi_size"));
 
-	store_fileinfo = gtk_tree_store_new(1, G_TYPE_POINTER);
-	gtk_tree_view_set_model(treeview_downloads, GTK_TREE_MODEL(store_fileinfo));
-	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview_downloads),
-		GTK_SELECTION_MULTIPLE);
+	gui_signal_connect(gui_main_window_lookup("notebook_downloads"),
+		"switch-page", on_notebook_switch_page, NULL);
 
-	g_object_freeze_notify(G_OBJECT(treeview_downloads));
-	g_object_freeze_notify(G_OBJECT(store_fileinfo));
+	for (i = 0; i < nb_downloads_page_num; i++) {
+		GtkTreeView *tv;
 
-	g_signal_connect(GTK_OBJECT(treeview_downloads), "cursor-changed",
-        G_CALLBACK(on_treeview_downloads_cursor_changed), NULL);
-	g_signal_connect(GTK_OBJECT(treeview_downloads), "button-press-event",
-		G_CALLBACK(on_treeview_downloads_button_press_event), NULL);
+		tv = fi_gui_get_treeview(i);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		GtkTreeViewColumn *column;
-		
-    	column = add_column(treeview_downloads, cell_renderer,
-					columns[i].id, _(columns[i].title), columns[i].align);
-		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
-			columns[i].id, fileinfo_data_cmp, GUINT_TO_POINTER(columns[i].id),
-			NULL);
-		g_signal_connect(G_OBJECT(column), "clicked",
-			G_CALLBACK(on_treeview_downloads_column_clicked), NULL);
+		if (i == fi_gui_current_page()) {
+			GtkTreeModel *model;
+
+			model = GTK_TREE_MODEL(gtk_tree_store_new(1, G_TYPE_POINTER));
+			gtk_tree_view_set_model(tv, model);
+			g_object_unref(model);
+		}
+
+		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
+			GTK_SELECTION_MULTIPLE);
+
+		g_object_freeze_notify(G_OBJECT(tv));
+
+		gui_signal_connect(tv, "cursor-changed",
+			on_treeview_downloads_cursor_changed, NULL);
+		gui_signal_connect(tv, "button-press-event",
+			on_treeview_downloads_button_press_event, NULL);
+
+		fi_gui_init_columns(tv);
+		drag_attach(GTK_WIDGET(tv), fi_gui_get_file_url);
+		tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 	}
 
-	drag_attach(GTK_WIDGET(treeview_downloads), fi_gui_get_file_url);
+	{
+		GtkTreeView *tv;
 
+		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases"));
+		gtk_tree_view_set_model(tv,
+			GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_STRING)));
 
-#if 0
-	/* Don't try this with a few thousands downloads */
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_fileinfo),
-		c_fi_status, GTK_SORT_DESCENDING);
-#endif
-
-	tree_view_restore_widths(treeview_downloads, PROP_FILE_INFO_COL_WIDTHS);
-
-	store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
-	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
-
-    add_column(treeview_fi_aliases, NULL, 0, _("Aliases"), 0.0);
-	drag_attach(GTK_WIDGET(treeview_fi_aliases), fi_gui_get_alias);
+		add_column(tv, NULL, 0, _("Aliases"), 0.0);
+		drag_attach(GTK_WIDGET(tv), fi_gui_get_alias);
+	}
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
@@ -945,22 +1029,31 @@ fi_downloads_shutdown(gpointer key, gpointer value, gpointer unused_data)
 void
 fi_gui_shutdown(void)
 {
+	guint i;
+
     guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
-	tree_view_save_widths(treeview_downloads, PROP_FILE_INFO_COL_WIDTHS);
-	gtk_tree_store_clear(store_fileinfo);
+	fi_gui_clear_details();
+
+	tree_view_save_widths(fi_gui_current_treeview(), PROP_FILE_INFO_COL_WIDTHS);
+
 	g_hash_table_foreach(fi_handles, fi_handles_shutdown, NULL);
 	g_hash_table_foreach(fi_downloads, fi_downloads_shutdown, NULL);
+
+	gtk_tree_store_clear(fi_gui_current_store());
+
+	for (i = 0; i < nb_downloads_page_num; i++) {
+		GtkTreeView *tv;
+
+		tv = fi_gui_get_treeview(i);
+		gtk_tree_view_set_model(tv, NULL);
+	}
 	
-	g_object_unref(G_OBJECT(store_fileinfo));
-	gtk_tree_view_set_model(treeview_downloads, NULL);
-	store_fileinfo = NULL;
-	gtk_list_store_clear(store_aliases);
-	g_object_unref(G_OBJECT(store_aliases));
-	store_aliases = NULL;
-	gtk_tree_view_set_model(treeview_fi_aliases, NULL);
+	gtk_tree_view_set_model(
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases")), NULL);
+
 	g_hash_table_destroy(fi_handles);
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
@@ -990,7 +1083,7 @@ fi_gui_add_download(struct download *d)
 	data->download.handle = d;
 	g_hash_table_insert(fi_downloads, d, data);
 
-	gtk_tree_store_append(store_fileinfo, &data->iter, &parent->iter);
+	gtk_tree_store_append(fi_gui_current_store(), &data->iter, &parent->iter);
 	fi_gui_update_download(d);
 }
 
@@ -1074,10 +1167,10 @@ fi_gui_select_by_regex(const gchar *regex)
         statusbar_gui_warning(15,
 			"on_entry_regex_activate: regex error %s", buf);
     } else {
-		ctx.selection = gtk_tree_view_get_selection(treeview_downloads);
+		ctx.selection = gtk_tree_view_get_selection(fi_gui_current_treeview());
 		gtk_tree_selection_unselect_all(ctx.selection);
 
-		gtk_tree_model_foreach(GTK_TREE_MODEL(store_fileinfo),
+		gtk_tree_model_foreach(GTK_TREE_MODEL(fi_gui_current_store()),
 			fi_gui_select_by_regex_helper, &ctx);
 
 		statusbar_gui_message(15,
@@ -1139,25 +1232,26 @@ void
 on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	struct download_selection ctx;
-	GtkTreeSelection *selection;
+	GtkTreeView *tv;
 
 	(void) unused_button;
 	(void) unused_udata;
 
 	fi_gui_clear_details();
-	g_object_freeze_notify(G_OBJECT(treeview_downloads));
+	tv = fi_gui_current_treeview();
+	g_object_freeze_notify(G_OBJECT(tv));
 
 	ctx.sl = NULL;
 	ctx.ht = g_hash_table_new(NULL, NULL);
-	selection = gtk_tree_view_get_selection(treeview_downloads);
-	gtk_tree_selection_selected_foreach(selection, fi_purge_helper, &ctx);
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(tv),
+		fi_purge_helper, &ctx);
 	g_hash_table_foreach(ctx.ht, fi_gui_purge_select_helper, &ctx);
 	g_hash_table_destroy(ctx.ht);
 	ctx.ht = NULL;
 	guc_fi_purge_by_handle_list(ctx.sl);
 	g_slist_free(ctx.sl);
 
-	g_object_thaw_notify(G_OBJECT(treeview_downloads));
+	g_object_thaw_notify(G_OBJECT(tv));
 }
 
 static void
@@ -1215,7 +1309,7 @@ fi_gui_download_select(gboolean unselect)
 	GtkTreeSelection *selection;
 	GtkTreeView *tv;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
+	tv = fi_gui_current_treeview();
 	selection = gtk_tree_view_get_selection(tv);
 
 	ctx.sl = NULL;
@@ -1365,12 +1459,11 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
+	tv = fi_gui_current_treeview();
 	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path) {
+	if (!path)
 		return;
-	}
-	
+
 	model = gtk_tree_view_get_model(tv);
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gnet_fi_t handle;

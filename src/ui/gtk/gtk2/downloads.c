@@ -59,6 +59,7 @@ RCSID("$Id$")
 void fi_gui_add_download(struct download *d);
 void fi_gui_remove_download(struct download *d);
 void fi_gui_download_set_status(struct download *d, const gchar *s);
+GtkTreeView *fi_gui_current_treeview(void);
 
 /***
  *** Private
@@ -485,8 +486,7 @@ gui_update_download_abort_resume(void)
 void
 downloads_gui_expand_all(void)
 {
-	gtk_tree_view_expand_all(
-		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads")));
+	gtk_tree_view_expand_all(fi_gui_current_treeview());
 }
 
 
@@ -496,8 +496,7 @@ downloads_gui_expand_all(void)
 void
 downloads_gui_collapse_all(void)
 {
-	gtk_tree_view_collapse_all(
-		GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads")));
+	gtk_tree_view_collapse_all(fi_gui_current_treeview());
 }
 
 /**

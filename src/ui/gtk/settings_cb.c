@@ -968,39 +968,6 @@ on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 }
 
 void
-on_menu_navtree_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
-{
-	gboolean sidebar, navtree;
-	
-	(void) unused_udata;
-
-	checkmenu_changed(gui, PROP_NAVTREE_VISIBLE, menuitem);
-
-	gui_prop_get_boolean_val(PROP_NAVTREE_VISIBLE, &navtree);
-	gui_prop_get_boolean_val(PROP_SIDEBAR_VISIBLE, &sidebar);
-	if (navtree && !sidebar) {
-		gui_prop_set_boolean_val(PROP_SIDEBAR_VISIBLE, TRUE);
-	}
-	/*
-	 * Gtk+ 2.x automagically moves the gutter when a child's
-	 * visibility status changes.
-	 */
-#ifdef USE_GTK1
-	{
-		GtkPaned *paned;
-		
-		paned = GTK_PANED(gui_main_window_lookup("vpaned_sidebar"));
-		if (navtree) {
-			paned_restore_position(paned, PROP_SIDE_DIVIDER_POS);
-		} else {
-			paned_save_position(paned, PROP_SIDE_DIVIDER_POS);
-			gtk_paned_set_position(paned, 0);
-		}
-	}
-#endif /* USE_GTK1 */
-}
-
-void
 on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
 	(void) unused_udata;

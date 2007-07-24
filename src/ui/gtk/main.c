@@ -141,54 +141,6 @@ gui_init_window_title(void)
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }
 
-static void
-gui_init_menu(void)
-{
-#ifdef USE_GTK1
-	/**
-	 * The contents of the navigation tree menu in exact order.
-	 */
-	static const struct {
-		const gint	depth;	/**< Depth in tree */
-		const gchar *title; /**< Translatable title for the node */
-		const gint	page;	/**< Page reference ("the target") for the node */
-	} menu[] = {
-		{   0,	 N_("GnutellaNet"),		nb_main_page_gnet },
-		{     1, N_("Stats"),			nb_main_page_gnet_stats },
-		{     1, N_("Hostcache"),		nb_main_page_hostcache },
-		{   0,	 N_("Uploads"),			nb_main_page_uploads },
-		{     1, N_("History"), 		nb_main_page_uploads_stats },
-		{   0,	 N_("Downloads"),		nb_main_page_dl_files },
-		{     1, N_("Active"),			nb_main_page_dl_active },
-		{     1, N_("Queue"),			nb_main_page_dl_queue },
-		{   0,	 N_("Search"),			nb_main_page_search },
-		{     1, N_("Monitor"),			nb_main_page_monitor },
-		{     1, N_("Stats"),			nb_main_page_search_stats },
-	};
-    GtkCTree *ctree_menu = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
-	GtkCTreeNode *parent_node = NULL;
-	guint i;
-
-	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
-		GtkCTreeNode *node;
-		const gchar *title[1];
-
-		title[0] = _(menu[i].title);
-    	node = gtk_ctree_insert_node(ctree_menu,
-					menu[i].depth == 0 ? NULL : parent_node, NULL,
-					(gchar **) title, /* Override const */
-					0, NULL, NULL, NULL, NULL, FALSE, TRUE);
-		if (i == 0 || menu[i].depth < menu[i - 1].depth)
-			parent_node = node;
-
-    	gtk_ctree_node_set_row_data(ctree_menu, node,
-			GINT_TO_POINTER(menu[i].page));
-	}
-
-	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
-#endif	/* USE_GTK1 */
-}
-
 static gboolean main_window_is_visible = TRUE;
 
 gboolean
@@ -231,14 +183,14 @@ static const gchar *
 notebook_main_page_label(gint page)
 {
 	switch (page) {
-	case nb_main_page_gnet:				return _("GnutellaNet");
+	case nb_main_page_gnet:				return _("Network");
 	case nb_main_page_uploads:			return _("Uploads");
 	case nb_main_page_uploads_stats:	return _("Upload History");
 	case nb_main_page_downloads:		return _("Downloads");
 	case nb_main_page_search:			return _("Searches");
 	case nb_main_page_monitor:			return _("Search Monitor");
 	case nb_main_page_search_stats:		return _("Search Stats");
-	case nb_main_page_gnet_stats:		return _("Gnutella Stats");
+	case nb_main_page_gnet_stats:		return _("Statistics");
 	case nb_main_page_hostcache:		return _("Hostcache");
 	}
 	return NULL;
@@ -630,7 +582,6 @@ main_gui_init(void)
 	downloads_gui_init();
     vp_gui_init();
     nodes_gui_init();
-    gui_init_menu();
     hcache_gui_init();
     gnet_stats_gui_init();
     search_stats_gui_init();
@@ -671,9 +622,6 @@ main_gui_run(const gchar *geometry_spec)
         gui_main_window_lookup("label_statusbar_uptime"),
         8, 8);
 
-	gui_signal_connect(gui_main_window_lookup("notebook_main"), "switch-page",
-		on_notebook_main_switch_page, NULL);
-
 	/*
 	 * Make sure the application starts in the Gnet pane.
 	 */
@@ -681,21 +629,6 @@ main_gui_run(const gchar *geometry_spec)
 	gtk_notebook_set_page(
 		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 		nb_main_page_gnet);
-
-#ifdef USE_GTK1
-	{
-		GtkCTree *ctree_menu =
-			GTK_CTREE(gui_main_window_lookup("ctree_menu"));
-		GtkCTreeNode *node;
-
-		node = gtk_ctree_find_by_row_data(ctree_menu,
-			gtk_ctree_node_nth(ctree_menu, 0),
-			GINT_TO_POINTER(nb_main_page_gnet));
-
-		if (node != NULL)
-			gtk_ctree_select(ctree_menu, node);
-	}
-#endif /* USE_GTK1 */
 
 	settings_gui_restore_panes();
     gtk_main();

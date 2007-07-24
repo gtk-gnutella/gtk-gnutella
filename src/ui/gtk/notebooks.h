@@ -74,8 +74,12 @@ enum {
  * Notebook tabs in the downloads page.
  */
 enum {
-	nb_downloads_page_downloads = 0,
-	nb_downloads_page_fileinfo,
+	nb_downloads_page_all,
+	nb_downloads_page_active,
+	nb_downloads_page_queued,
+	nb_downloads_page_finished,
+	nb_downloads_page_seeding,
+
 	nb_downloads_page_num
 };
 

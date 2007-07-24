@@ -402,17 +402,6 @@ prop = {
 };
 
 prop = {
-    name = "side_divider_pos";
-    desc = "Size of the menu in the sidebar.";
-    type = guint32;
-    data = {
-        default = 100;
-        min     = 0x0000;
-        max     = 0xFFFF;
-    };
-};
-
-prop = {
     name = "results_divider_pos";
     desc = "Position of the divider in the search results pane.";
     type = guint32;

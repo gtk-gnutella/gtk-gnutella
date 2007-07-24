@@ -29,38 +29,19 @@ create_main_window (void)
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
   GtkAccelGroup *menu_file_menu_accels;
-  GtkWidget *connections;
-  GtkWidget *menu_net_stats;
-  GtkWidget *menu_net_hostcache;
-  GtkWidget *separator22;
   GtkWidget *menu_prefs;
   GtkWidget *separator23;
   GtkWidget *quit;
-  GtkWidget *menu_uploads;
-  GtkWidget *menu_uploads_menu;
-  GtkAccelGroup *menu_uploads_menu_accels;
-  GtkWidget *menu_uploads_transfers;
-  GtkWidget *menu_uploads_history;
-  GtkWidget *menu_downloads;
-  GtkWidget *menu_downloads_menu;
-  GtkAccelGroup *menu_downloads_menu_accels;
-  GtkWidget *menu_downloads_files;
-  GtkWidget *menu_downloads_active;
-  GtkWidget *menu_downloads_queue;
-  GtkWidget *menu_search;
-  GtkWidget *menu_search_menu;
-  GtkAccelGroup *menu_search_menu_accels;
-  GtkWidget *menu_search_results;
-  GtkWidget *menu_search_monitor;
-  GtkWidget *menu_search_stats;
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkAccelGroup *menu_view_menu_accels;
   GtkWidget *menu_searchbar_visible;
-  GtkWidget *menu_toolbar_visible;
   GtkWidget *menu_sidebar_visible;
-  GtkWidget *menu_navtree_visible;
+  GtkWidget *menu_statusbar_visible;
   GtkWidget *separator24;
+  GtkWidget *connection_counters1;
+  GtkWidget *connection_counters1_menu;
+  GtkAccelGroup *connection_counters1_menu_accels;
   GtkWidget *menu_downloads_visible;
   GtkWidget *menu_uploads_visible;
   GtkWidget *menu_connections_visible;
@@ -81,7 +62,6 @@ create_main_window (void)
   GtkWidget *menu_bws_glin_visible;
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *separator20;
-  GtkWidget *menu_statusbar_visible;
   GtkWidget *menu_help;
   GtkWidget *menu_help_menu;
   GtkAccelGroup *menu_help_menu_accels;
@@ -100,11 +80,6 @@ create_main_window (void)
   GtkWidget *button_search_passive;
   GtkWidget *hpaned_main;
   GtkWidget *vbox_sidebar;
-  GtkWidget *vpaned_sidebar;
-  GtkWidget *viewport_menu;
-  GtkWidget *sw_menu;
-  GtkWidget *ctree_menu;
-  GtkWidget *label117;
   GtkWidget *vbox46;
   GtkWidget *notebook_sidebar;
   GtkWidget *viewport49;
@@ -146,7 +121,6 @@ create_main_window (void)
   GtkWidget *vbox_right;
   GtkWidget *notebook_main;
   GtkWidget *vbox_gnutellanet;
-  GtkWidget *frame5;
   GtkWidget *vbox17;
   GtkWidget *sw_nodes;
   GtkWidget *clist_nodes;
@@ -198,7 +172,6 @@ create_main_window (void)
   GtkWidget *entry_nodes_ip;
   GtkWidget *label_gnutellanet;
   GtkWidget *vbox93;
-  GtkWidget *frame69;
   GtkWidget *vbox97;
   GtkWidget *notebook3;
   GtkWidget *hbox2106;
@@ -272,7 +245,6 @@ create_main_window (void)
   GtkWidget *option_menu_gnet_stats_type_menu;
   GtkWidget *label_gnet_stats;
   GtkWidget *vbox127;
-  GtkWidget *frame128;
   GtkWidget *scrolledwindow46;
   GtkWidget *clist_hcache;
   GtkWidget *label674;
@@ -303,7 +275,6 @@ create_main_window (void)
   GtkWidget *spinbutton_max_bad_hosts_cached;
   GtkWidget *button_hostcache_clear_bad;
   GtkWidget *label_hostcache;
-  GtkWidget *frame6;
   GtkWidget *vbox18;
   GtkWidget *scrolledwindow9;
   GtkWidget *clist_uploads;
@@ -328,7 +299,6 @@ create_main_window (void)
   GtkObject *spinbutton_max_uploads_ip_adj;
   GtkWidget *spinbutton_max_uploads_ip;
   GtkWidget *label_uploads;
-  GtkWidget *frame7;
   GtkWidget *vbox19;
   GtkWidget *ul_stats_scrolledwindow;
   GtkWidget *clist_ul_stats;
@@ -352,7 +322,6 @@ create_main_window (void)
   GtkWidget *label_qhits_browse_count;
   GtkWidget *label749;
   GtkWidget *label_ul_stats;
-  GtkWidget *frame76;
   GtkWidget *vbox109;
   GtkWidget *vpaned_fileinfo;
   GtkWidget *viewport48;
@@ -426,7 +395,6 @@ create_main_window (void)
   GtkWidget *label_fi_with_source_count;
   GtkWidget *label545;
   GtkWidget *label_downloads;
-  GtkWidget *frame3;
   GtkWidget *vbox16;
   GtkWidget *scrolledwindow6;
   GtkWidget *ctree_downloads;
@@ -455,7 +423,6 @@ create_main_window (void)
   GtkWidget *label_dl_aqueued_count;
   GtkWidget *label536;
   GtkWidget *label734;
-  GtkWidget *frame4;
   GtkWidget *vbox15;
   GtkWidget *scrolledwindow13;
   GtkWidget *ctree_downloads_queue;
@@ -487,7 +454,6 @@ create_main_window (void)
   GtkWidget *label_dl_pqueued_count;
   GtkWidget *label539;
   GtkWidget *label735;
-  GtkWidget *frame89;
   GtkWidget *vbox76;
   GtkWidget *hbox146;
   GtkWidget *label651;
@@ -709,51 +675,6 @@ create_main_window (void)
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_file), menu_file_menu);
   menu_file_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_file_menu));
 
-  connections = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (connections)->child),
-                                   _("_GnutellaNet"));
-  gtk_widget_add_accelerator (connections, "activate_item", menu_file_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (connections, "connections");
-  gtk_widget_ref (connections);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "connections", connections,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (connections);
-  gtk_container_add (GTK_CONTAINER (menu_file_menu), connections);
-
-  menu_net_stats = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_net_stats)->child),
-                                   _("_Stats"));
-  gtk_widget_add_accelerator (menu_net_stats, "activate_item", menu_file_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_net_stats, "menu_net_stats");
-  gtk_widget_ref (menu_net_stats);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_net_stats", menu_net_stats,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_net_stats);
-  gtk_container_add (GTK_CONTAINER (menu_file_menu), menu_net_stats);
-
-  menu_net_hostcache = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_net_hostcache)->child),
-                                   _("_Hostcache"));
-  gtk_widget_add_accelerator (menu_net_hostcache, "activate_item", menu_file_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_net_hostcache, "menu_net_hostcache");
-  gtk_widget_ref (menu_net_hostcache);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_net_hostcache", menu_net_hostcache,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_net_hostcache);
-  gtk_container_add (GTK_CONTAINER (menu_file_menu), menu_net_hostcache);
-
-  separator22 = gtk_menu_item_new ();
-  gtk_widget_set_name (separator22, "separator22");
-  gtk_widget_ref (separator22);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "separator22", separator22,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (separator22);
-  gtk_container_add (GTK_CONTAINER (menu_file_menu), separator22);
-  gtk_widget_set_sensitive (separator22, FALSE);
-
   menu_prefs = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_prefs)->child),
                                    _("_Preferences"));
@@ -792,162 +713,6 @@ create_main_window (void)
   gtk_widget_add_accelerator (quit, "activate", accel_group,
                               GDK_q, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
-
-  menu_uploads = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_uploads)->child),
-                                   _("_Uploads"));
-  gtk_widget_add_accelerator (menu_uploads, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (menu_uploads, "menu_uploads");
-  gtk_widget_ref (menu_uploads);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_uploads", menu_uploads,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_uploads);
-  gtk_container_add (GTK_CONTAINER (menubar1), menu_uploads);
-
-  menu_uploads_menu = gtk_menu_new ();
-  gtk_widget_set_name (menu_uploads_menu, "menu_uploads_menu");
-  gtk_widget_ref (menu_uploads_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_uploads_menu", menu_uploads_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_uploads), menu_uploads_menu);
-  menu_uploads_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_uploads_menu));
-
-  menu_uploads_transfers = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_uploads_transfers)->child),
-                                   _("_Transfers"));
-  gtk_widget_add_accelerator (menu_uploads_transfers, "activate_item", menu_uploads_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_uploads_transfers, "menu_uploads_transfers");
-  gtk_widget_ref (menu_uploads_transfers);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_uploads_transfers", menu_uploads_transfers,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_uploads_transfers);
-  gtk_container_add (GTK_CONTAINER (menu_uploads_menu), menu_uploads_transfers);
-
-  menu_uploads_history = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_uploads_history)->child),
-                                   _("_History"));
-  gtk_widget_add_accelerator (menu_uploads_history, "activate_item", menu_uploads_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_uploads_history, "menu_uploads_history");
-  gtk_widget_ref (menu_uploads_history);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_uploads_history", menu_uploads_history,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_uploads_history);
-  gtk_container_add (GTK_CONTAINER (menu_uploads_menu), menu_uploads_history);
-
-  menu_downloads = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads)->child),
-                                   _("_Downloads"));
-  gtk_widget_add_accelerator (menu_downloads, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (menu_downloads, "menu_downloads");
-  gtk_widget_ref (menu_downloads);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads", menu_downloads,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_downloads);
-  gtk_container_add (GTK_CONTAINER (menubar1), menu_downloads);
-
-  menu_downloads_menu = gtk_menu_new ();
-  gtk_widget_set_name (menu_downloads_menu, "menu_downloads_menu");
-  gtk_widget_ref (menu_downloads_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads_menu", menu_downloads_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_downloads), menu_downloads_menu);
-  menu_downloads_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_downloads_menu));
-
-  menu_downloads_files = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_files)->child),
-                                   _("_Files"));
-  gtk_widget_add_accelerator (menu_downloads_files, "activate_item", menu_downloads_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_downloads_files, "menu_downloads_files");
-  gtk_widget_ref (menu_downloads_files);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads_files", menu_downloads_files,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_downloads_files);
-  gtk_container_add (GTK_CONTAINER (menu_downloads_menu), menu_downloads_files);
-
-  menu_downloads_active = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_active)->child),
-                                   _("_Active"));
-  gtk_widget_add_accelerator (menu_downloads_active, "activate_item", menu_downloads_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_downloads_active, "menu_downloads_active");
-  gtk_widget_ref (menu_downloads_active);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads_active", menu_downloads_active,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_downloads_active);
-  gtk_container_add (GTK_CONTAINER (menu_downloads_menu), menu_downloads_active);
-
-  menu_downloads_queue = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_queue)->child),
-                                   _("_Queue"));
-  gtk_widget_add_accelerator (menu_downloads_queue, "activate_item", menu_downloads_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_downloads_queue, "menu_downloads_queue");
-  gtk_widget_ref (menu_downloads_queue);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads_queue", menu_downloads_queue,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_downloads_queue);
-  gtk_container_add (GTK_CONTAINER (menu_downloads_menu), menu_downloads_queue);
-
-  menu_search = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_search)->child),
-                                   _("_Search"));
-  gtk_widget_add_accelerator (menu_search, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (menu_search, "menu_search");
-  gtk_widget_ref (menu_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_search", menu_search,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_search);
-  gtk_container_add (GTK_CONTAINER (menubar1), menu_search);
-
-  menu_search_menu = gtk_menu_new ();
-  gtk_widget_set_name (menu_search_menu, "menu_search_menu");
-  gtk_widget_ref (menu_search_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_search_menu", menu_search_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_search), menu_search_menu);
-  menu_search_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_search_menu));
-
-  menu_search_results = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_search_results)->child),
-                                   _("_Results"));
-  gtk_widget_add_accelerator (menu_search_results, "activate_item", menu_search_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_search_results, "menu_search_results");
-  gtk_widget_ref (menu_search_results);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_search_results", menu_search_results,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_search_results);
-  gtk_container_add (GTK_CONTAINER (menu_search_menu), menu_search_results);
-
-  menu_search_monitor = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_search_monitor)->child),
-                                   _("_Monitor"));
-  gtk_widget_add_accelerator (menu_search_monitor, "activate_item", menu_search_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_search_monitor, "menu_search_monitor");
-  gtk_widget_ref (menu_search_monitor);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_search_monitor", menu_search_monitor,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_search_monitor);
-  gtk_container_add (GTK_CONTAINER (menu_search_menu), menu_search_monitor);
-
-  menu_search_stats = gtk_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_search_stats)->child),
-                                   _("S_tats"));
-  gtk_widget_add_accelerator (menu_search_stats, "activate_item", menu_search_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_search_stats, "menu_search_stats");
-  gtk_widget_ref (menu_search_stats);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_search_stats", menu_search_stats,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_search_stats);
-  gtk_container_add (GTK_CONTAINER (menu_search_menu), menu_search_stats);
 
   menu_view = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_view)->child),
@@ -989,22 +754,6 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_searchbar_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_searchbar_visible), TRUE);
 
-  menu_toolbar_visible = gtk_check_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_toolbar_visible)->child),
-                                   _("show _Toolbar"));
-  gtk_widget_add_accelerator (menu_toolbar_visible, "activate_item", menu_view_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_toolbar_visible, "menu_toolbar_visible");
-  gtk_widget_ref (menu_toolbar_visible);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_toolbar_visible", menu_toolbar_visible,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_toolbar_visible);
-  gtk_widget_add_accelerator (menu_toolbar_visible, "toggled", accel_group,
-                              GDK_t, GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_toolbar_visible), TRUE);
-  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_toolbar_visible), TRUE);
-
   menu_sidebar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_sidebar_visible)->child),
                                    _("show _Sidebar"));
@@ -1021,21 +770,22 @@ create_main_window (void)
                               GTK_ACCEL_VISIBLE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_sidebar_visible), TRUE);
 
-  menu_navtree_visible = gtk_check_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_navtree_visible)->child),
-                                   _("show _Navigation Tree"));
-  gtk_widget_add_accelerator (menu_navtree_visible, "activate_item", menu_view_menu_accels,
+  menu_statusbar_visible = gtk_check_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_statusbar_visible)->child),
+                                   _("show _Statusbar"));
+  gtk_widget_add_accelerator (menu_statusbar_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
-  gtk_widget_set_name (menu_navtree_visible, "menu_navtree_visible");
-  gtk_widget_ref (menu_navtree_visible);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_navtree_visible", menu_navtree_visible,
+  gtk_widget_set_name (menu_statusbar_visible, "menu_statusbar_visible");
+  gtk_widget_ref (menu_statusbar_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_statusbar_visible", menu_statusbar_visible,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_navtree_visible);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_navtree_visible);
-  gtk_widget_add_accelerator (menu_navtree_visible, "activate", accel_group,
-                              GDK_F9, 0,
+  gtk_widget_show (menu_statusbar_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_statusbar_visible);
+  gtk_widget_add_accelerator (menu_statusbar_visible, "toggled", accel_group,
+                              GDK_s, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
-  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_navtree_visible), TRUE);
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
 
   separator24 = gtk_menu_item_new ();
   gtk_widget_set_name (separator24, "separator24");
@@ -1046,17 +796,33 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_view_menu), separator24);
   gtk_widget_set_sensitive (separator24, FALSE);
 
+  connection_counters1 = gtk_menu_item_new_with_label (_("Connection counters"));
+  gtk_widget_set_name (connection_counters1, "connection_counters1");
+  gtk_widget_ref (connection_counters1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "connection_counters1", connection_counters1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (connection_counters1);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), connection_counters1);
+
+  connection_counters1_menu = gtk_menu_new ();
+  gtk_widget_set_name (connection_counters1_menu, "connection_counters1_menu");
+  gtk_widget_ref (connection_counters1_menu);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "connection_counters1_menu", connection_counters1_menu,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (connection_counters1), connection_counters1_menu);
+  connection_counters1_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (connection_counters1_menu));
+
   menu_downloads_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_visible)->child),
                                    _("show _Downloads"));
-  gtk_widget_add_accelerator (menu_downloads_visible, "activate_item", menu_view_menu_accels,
+  gtk_widget_add_accelerator (menu_downloads_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_downloads_visible, "menu_downloads_visible");
   gtk_widget_ref (menu_downloads_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_downloads_visible", menu_downloads_visible,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_downloads_visible);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_downloads_visible);
+  gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_downloads_visible);
   gtk_widget_add_accelerator (menu_downloads_visible, "toggled", accel_group,
                               GDK_d, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -1066,14 +832,14 @@ create_main_window (void)
   menu_uploads_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_uploads_visible)->child),
                                    _("show _Uploads"));
-  gtk_widget_add_accelerator (menu_uploads_visible, "activate_item", menu_view_menu_accels,
+  gtk_widget_add_accelerator (menu_uploads_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_uploads_visible, "menu_uploads_visible");
   gtk_widget_ref (menu_uploads_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_uploads_visible", menu_uploads_visible,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_uploads_visible);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_uploads_visible);
+  gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_uploads_visible);
   gtk_widget_add_accelerator (menu_uploads_visible, "toggled", accel_group,
                               GDK_u, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -1083,14 +849,14 @@ create_main_window (void)
   menu_connections_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_connections_visible)->child),
                                    _("show _Connections"));
-  gtk_widget_add_accelerator (menu_connections_visible, "activate_item", menu_view_menu_accels,
+  gtk_widget_add_accelerator (menu_connections_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_connections_visible, "menu_connections_visible");
   gtk_widget_ref (menu_connections_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_connections_visible", menu_connections_visible,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (menu_connections_visible);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_connections_visible);
+  gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_connections_visible);
   gtk_widget_add_accelerator (menu_connections_visible, "toggled", accel_group,
                               GDK_c, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -1147,7 +913,7 @@ create_main_window (void)
 
   menu_gnet_stats_visible = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_gnet_stats_visible)->child),
-                                   _("_Gnet traffic stats"));
+                                   _("_Gnutella traffic stats"));
   gtk_widget_add_accelerator (menu_gnet_stats_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_gnet_stats_visible, "menu_gnet_stats_visible");
@@ -1195,7 +961,7 @@ create_main_window (void)
 
   menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_gnet_leaf_stats_visible)->child),
-                                   _("Gnet _leaf traffic stats"));
+                                   _("Gnutella _leaf traffic stats"));
   gtk_widget_add_accelerator (menu_gnet_leaf_stats_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
@@ -1260,23 +1026,6 @@ create_main_window (void)
   gtk_widget_show (separator20);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), separator20);
   gtk_widget_set_sensitive (separator20, FALSE);
-
-  menu_statusbar_visible = gtk_check_menu_item_new_with_label ("");
-  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_statusbar_visible)->child),
-                                   _("show _Statusbar"));
-  gtk_widget_add_accelerator (menu_statusbar_visible, "activate_item", menu_view_menu_accels,
-                              tmp_key, 0, 0);
-  gtk_widget_set_name (menu_statusbar_visible, "menu_statusbar_visible");
-  gtk_widget_ref (menu_statusbar_visible);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_statusbar_visible", menu_statusbar_visible,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (menu_statusbar_visible);
-  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_statusbar_visible);
-  gtk_widget_add_accelerator (menu_statusbar_visible, "toggled", accel_group,
-                              GDK_s, GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
-  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_statusbar_visible), TRUE);
 
   menu_help = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_help)->child),
@@ -1419,59 +1168,13 @@ create_main_window (void)
   gtk_widget_show (vbox_sidebar);
   gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_sidebar, FALSE, TRUE);
 
-  vpaned_sidebar = gtk_vpaned_new ();
-  gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
-  gtk_widget_ref (vpaned_sidebar);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_sidebar", vpaned_sidebar,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vpaned_sidebar);
-  gtk_box_pack_start (GTK_BOX (vbox_sidebar), vpaned_sidebar, TRUE, TRUE, 0);
-
-  viewport_menu = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport_menu, "viewport_menu");
-  gtk_widget_ref (viewport_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_menu", viewport_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (viewport_menu);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), viewport_menu, FALSE, TRUE);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_menu), GTK_SHADOW_NONE);
-
-  sw_menu = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (sw_menu, "sw_menu");
-  gtk_widget_ref (sw_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_menu", sw_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (sw_menu);
-  gtk_container_add (GTK_CONTAINER (viewport_menu), sw_menu);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  ctree_menu = gtk_ctree_new (1, 0);
-  gtk_widget_set_name (ctree_menu, "ctree_menu");
-  gtk_widget_ref (ctree_menu);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "ctree_menu", ctree_menu,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (ctree_menu);
-  gtk_container_add (GTK_CONTAINER (sw_menu), ctree_menu);
-  gtk_clist_set_column_width (GTK_CLIST (ctree_menu), 0, 80);
-  gtk_clist_set_selection_mode (GTK_CLIST (ctree_menu), GTK_SELECTION_BROWSE);
-  gtk_clist_column_titles_show (GTK_CLIST (ctree_menu));
-
-  label117 = gtk_label_new (_("Navigator"));
-  gtk_widget_set_name (label117, "label117");
-  gtk_widget_ref (label117);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label117", label117,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label117);
-  gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label117);
-  gtk_misc_set_alignment (GTK_MISC (label117), 7.45058e-09, 0.5);
-
   vbox46 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox46, "vbox46");
   gtk_widget_ref (vbox46);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox46", vbox46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox46);
-  gtk_paned_pack2 (GTK_PANED (vpaned_sidebar), vbox46, TRUE, TRUE);
+  gtk_box_pack_start (GTK_BOX (vbox_sidebar), vbox46, TRUE, TRUE, 0);
 
   notebook_sidebar = gtk_notebook_new ();
   gtk_widget_set_name (notebook_sidebar, "notebook_sidebar");
@@ -1835,6 +1538,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook_main);
   gtk_box_pack_start (GTK_BOX (vbox_right), notebook_main, TRUE, TRUE, 0);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook_main), TRUE);
 
   vbox_gnutellanet = gtk_vbox_new (FALSE, 6);
   gtk_widget_set_name (vbox_gnutellanet, "vbox_gnutellanet");
@@ -1843,15 +1547,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_gnutellanet);
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox_gnutellanet);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox_gnutellanet), 2);
-
-  frame5 = gtk_frame_new (_("GnutellaNet connections"));
-  gtk_widget_set_name (frame5, "frame5");
-  gtk_widget_ref (frame5);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame5", frame5,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame5);
-  gtk_box_pack_start (GTK_BOX (vbox_gnutellanet), frame5, TRUE, TRUE, 0);
 
   vbox17 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox17, "vbox17");
@@ -1859,8 +1554,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox17", vbox17,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox17);
-  gtk_container_add (GTK_CONTAINER (frame5), vbox17);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox17), 2);
+  gtk_box_pack_start (GTK_BOX (vbox_gnutellanet), vbox17, TRUE, TRUE, 0);
 
   sw_nodes = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (sw_nodes, "sw_nodes");
@@ -1878,7 +1572,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (clist_nodes);
   gtk_container_add (GTK_CONTAINER (sw_nodes), clist_nodes);
-  gtk_container_set_border_width (GTK_CONTAINER (clist_nodes), 2);
   GTK_WIDGET_UNSET_FLAGS (clist_nodes, GTK_CAN_FOCUS);
   gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 1, 36);
@@ -2313,7 +2006,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to File->Preferences->Network."), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
-  label_gnutellanet = gtk_label_new (_("[Gnet]"));
+  label_gnutellanet = gtk_label_new (_("Network"));
   gtk_widget_set_name (label_gnutellanet, "label_gnutellanet");
   gtk_widget_ref (label_gnutellanet);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnutellanet", label_gnutellanet,
@@ -2329,23 +2022,13 @@ create_main_window (void)
   gtk_widget_show (vbox93);
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox93);
 
-  frame69 = gtk_frame_new (_("Message/flow control stats"));
-  gtk_widget_set_name (frame69, "frame69");
-  gtk_widget_ref (frame69);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame69", frame69,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame69);
-  gtk_box_pack_start (GTK_BOX (vbox93), frame69, TRUE, TRUE, 0);
-  gtk_widget_set_usize (frame69, -2, 210);
-
   vbox97 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox97, "vbox97");
   gtk_widget_ref (vbox97);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox97", vbox97,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox97);
-  gtk_container_add (GTK_CONTAINER (frame69), vbox97);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox97), 2);
+  gtk_box_pack_start (GTK_BOX (vbox93), vbox97, TRUE, TRUE, 0);
 
   notebook3 = gtk_notebook_new ();
   gtk_widget_set_name (notebook3, "notebook3");
@@ -2955,7 +2638,7 @@ create_main_window (void)
   option_menu_gnet_stats_type_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_gnet_stats_type), option_menu_gnet_stats_type_menu);
 
-  label_gnet_stats = gtk_label_new (_("[Gnet Stats]"));
+  label_gnet_stats = gtk_label_new (_("Statistics"));
   gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
   gtk_widget_ref (label_gnet_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnet_stats", label_gnet_stats,
@@ -2970,15 +2653,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox127);
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox127);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox127), 2);
-
-  frame128 = gtk_frame_new (_("Hostcache statistics"));
-  gtk_widget_set_name (frame128, "frame128");
-  gtk_widget_ref (frame128);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame128", frame128,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame128);
-  gtk_box_pack_start (GTK_BOX (vbox127), frame128, TRUE, TRUE, 0);
 
   scrolledwindow46 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow46, "scrolledwindow46");
@@ -2986,7 +2660,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow46", scrolledwindow46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow46);
-  gtk_container_add (GTK_CONTAINER (frame128), scrolledwindow46);
+  gtk_box_pack_start (GTK_BOX (vbox127), scrolledwindow46, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow46), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   clist_hcache = gtk_clist_new (4);
@@ -3209,7 +2883,7 @@ create_main_window (void)
   gtk_widget_show (button_hostcache_clear_bad);
   gtk_box_pack_start (GTK_BOX (hbox204), button_hostcache_clear_bad, FALSE, FALSE, 0);
 
-  label_hostcache = gtk_label_new (_("[Hostcache]"));
+  label_hostcache = gtk_label_new (_("Hostcache"));
   gtk_widget_set_name (label_hostcache, "label_hostcache");
   gtk_widget_ref (label_hostcache);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_hostcache", label_hostcache,
@@ -3217,23 +2891,13 @@ create_main_window (void)
   gtk_widget_show (label_hostcache);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 2), label_hostcache);
 
-  frame6 = gtk_frame_new (_("Uploads"));
-  gtk_widget_set_name (frame6, "frame6");
-  gtk_widget_ref (frame6);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame6", frame6,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame6);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame6);
-  gtk_container_set_border_width (GTK_CONTAINER (frame6), 2);
-
   vbox18 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox18, "vbox18");
   gtk_widget_ref (vbox18);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox18", vbox18,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox18);
-  gtk_container_add (GTK_CONTAINER (frame6), vbox18);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox18), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox18);
 
   scrolledwindow9 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow9, "scrolledwindow9");
@@ -3430,7 +3094,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_uploads_ip), TRUE);
 
-  label_uploads = gtk_label_new (_("[Uploads]"));
+  label_uploads = gtk_label_new (_("Uploads"));
   gtk_widget_set_name (label_uploads, "label_uploads");
   gtk_widget_ref (label_uploads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_uploads", label_uploads,
@@ -3438,23 +3102,13 @@ create_main_window (void)
   gtk_widget_show (label_uploads);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 3), label_uploads);
 
-  frame7 = gtk_frame_new (_("Upload history"));
-  gtk_widget_set_name (frame7, "frame7");
-  gtk_widget_ref (frame7);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame7", frame7,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame7);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame7);
-  gtk_container_set_border_width (GTK_CONTAINER (frame7), 2);
-
   vbox19 = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox19, "vbox19");
   gtk_widget_ref (vbox19);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox19", vbox19,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox19);
-  gtk_container_add (GTK_CONTAINER (frame7), vbox19);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox19), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox19);
 
   ul_stats_scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (ul_stats_scrolledwindow, "ul_stats_scrolledwindow");
@@ -3635,7 +3289,7 @@ create_main_window (void)
   gtk_widget_show (label749);
   gtk_box_pack_start (GTK_BOX (hbox2101), label749, FALSE, FALSE, 0);
 
-  label_ul_stats = gtk_label_new (_("[Upload Stats]"));
+  label_ul_stats = gtk_label_new (_("Upload History"));
   gtk_widget_set_name (label_ul_stats, "label_ul_stats");
   gtk_widget_ref (label_ul_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_ul_stats", label_ul_stats,
@@ -3643,23 +3297,13 @@ create_main_window (void)
   gtk_widget_show (label_ul_stats);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 4), label_ul_stats);
 
-  frame76 = gtk_frame_new (_("Files to get"));
-  gtk_widget_set_name (frame76, "frame76");
-  gtk_widget_ref (frame76);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame76", frame76,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame76);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame76);
-  gtk_container_set_border_width (GTK_CONTAINER (frame76), 2);
-
   vbox109 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox109, "vbox109");
   gtk_widget_ref (vbox109);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox109", vbox109,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox109);
-  gtk_container_add (GTK_CONTAINER (frame76), vbox109);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox109), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox109);
 
   vpaned_fileinfo = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_fileinfo, "vpaned_fileinfo");
@@ -4288,7 +3932,7 @@ create_main_window (void)
   gtk_widget_show (label545);
   gtk_box_pack_start (GTK_BOX (hbox175), label545, FALSE, FALSE, 0);
 
-  label_downloads = gtk_label_new (_("[Downloads]"));
+  label_downloads = gtk_label_new (_("Downloads"));
   gtk_widget_set_name (label_downloads, "label_downloads");
   gtk_widget_ref (label_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_downloads", label_downloads,
@@ -4296,23 +3940,13 @@ create_main_window (void)
   gtk_widget_show (label_downloads);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 5), label_downloads);
 
-  frame3 = gtk_frame_new (_("Active sources"));
-  gtk_widget_set_name (frame3, "frame3");
-  gtk_widget_ref (frame3);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame3", frame3,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame3);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame3);
-  gtk_container_set_border_width (GTK_CONTAINER (frame3), 2);
-
   vbox16 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox16, "vbox16");
   gtk_widget_ref (vbox16);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox16", vbox16,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox16);
-  gtk_container_add (GTK_CONTAINER (frame3), vbox16);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox16), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox16);
 
   scrolledwindow6 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow6, "scrolledwindow6");
@@ -4534,7 +4168,7 @@ create_main_window (void)
   gtk_widget_show (label536);
   gtk_box_pack_start (GTK_BOX (hbox166), label536, FALSE, FALSE, 0);
 
-  label734 = gtk_label_new (_("[Active]"));
+  label734 = gtk_label_new (_("Active"));
   gtk_widget_set_name (label734, "label734");
   gtk_widget_ref (label734);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label734", label734,
@@ -4542,23 +4176,13 @@ create_main_window (void)
   gtk_widget_show (label734);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 6), label734);
 
-  frame4 = gtk_frame_new (_("Inactive sources"));
-  gtk_widget_set_name (frame4, "frame4");
-  gtk_widget_ref (frame4);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame4", frame4,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame4);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame4);
-  gtk_container_set_border_width (GTK_CONTAINER (frame4), 2);
-
   vbox15 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox15, "vbox15");
   gtk_widget_ref (vbox15);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox15", vbox15,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox15);
-  gtk_container_add (GTK_CONTAINER (frame4), vbox15);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox15), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox15);
 
   scrolledwindow13 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow13, "scrolledwindow13");
@@ -4802,7 +4426,7 @@ create_main_window (void)
   gtk_widget_show (label539);
   gtk_box_pack_start (GTK_BOX (hbox169), label539, FALSE, FALSE, 0);
 
-  label735 = gtk_label_new (_("[Queue]"));
+  label735 = gtk_label_new (_("Queue"));
   gtk_widget_set_name (label735, "label735");
   gtk_widget_ref (label735);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label735", label735,
@@ -4810,23 +4434,13 @@ create_main_window (void)
   gtk_widget_show (label735);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 7), label735);
 
-  frame89 = gtk_frame_new (_("Search results"));
-  gtk_widget_set_name (frame89, "frame89");
-  gtk_widget_ref (frame89);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame89", frame89,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame89);
-  gtk_container_add (GTK_CONTAINER (notebook_main), frame89);
-  gtk_container_set_border_width (GTK_CONTAINER (frame89), 2);
-
   vbox76 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox76, "vbox76");
   gtk_widget_ref (vbox76);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox76", vbox76,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox76);
-  gtk_container_add (GTK_CONTAINER (frame89), vbox76);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox76), 2);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox76);
 
   hbox146 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox146, "hbox146");
@@ -5346,7 +4960,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox181), button_search_clear, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_search_clear, FALSE);
 
-  label_search = gtk_label_new (_("[Search]"));
+  label_search = gtk_label_new (_("Search"));
   gtk_widget_set_name (label_search, "label_search");
   gtk_widget_ref (label_search);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search", label_search,
@@ -5361,7 +4975,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_monitor);
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox_monitor);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox_monitor), 2);
 
   hbox45 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox45, "hbox45");
@@ -5449,7 +5062,7 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label70), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label70), 7.45058e-09, 0.5);
 
-  label_monitor = gtk_label_new (_("[Monitor]"));
+  label_monitor = gtk_label_new (_("Monitor"));
   gtk_widget_set_name (label_monitor, "label_monitor");
   gtk_widget_ref (label_monitor);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_monitor", label_monitor,
@@ -5464,7 +5077,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox12a);
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox12a);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox12a), 2);
 
   hbox67 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox67, "hbox67");
@@ -5625,7 +5237,7 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label_search_stats_count), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_search_stats_count), 5, 0);
 
-  label_search_stats = gtk_label_new (_("[Search Stats]"));
+  label_search_stats = gtk_label_new (_("Search Stats"));
   gtk_widget_set_name (label_search_stats, "label_search_stats");
   gtk_widget_ref (label_search_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_stats", label_search_stats,
@@ -6126,56 +5738,20 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
                       GTK_SIGNAL_FUNC (on_main_window_delete_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (connections), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_net_connections_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_net_stats), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_net_stats_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_net_hostcache), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_net_hostcache_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (menu_prefs), "activate",
                       GTK_SIGNAL_FUNC (on_menu_prefs_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (quit), "activate",
                       GTK_SIGNAL_FUNC (on_button_quit_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_uploads_transfers), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_uploads_transfers_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_uploads_history), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_uploads_history_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_downloads_files), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_downloads_files_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_downloads_active), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_downloads_active_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_downloads_queue), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_downloads_queue_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_search_results), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_search_results_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_search_monitor), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_search_monitor_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_search_stats), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_search_stats_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (menu_searchbar_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_searchbar_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_toolbar_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_toolbar_visible_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_sidebar_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_sidebar_visible_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_navtree_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_navtree_visible_activate),
+  gtk_signal_connect (GTK_OBJECT (menu_statusbar_visible), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_statusbar_visible_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_downloads_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_downloads_visible_activate),
@@ -6207,9 +5783,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (menu_bws_glout_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_bws_glout_visible_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_statusbar_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_statusbar_visible_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (menu_about), "activate",
                       GTK_SIGNAL_FUNC (on_menu_about_activate),
                       NULL);
@@ -6227,9 +5800,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
-                      GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_search_resize_column),

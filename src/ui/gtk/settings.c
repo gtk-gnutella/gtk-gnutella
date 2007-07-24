@@ -135,9 +135,6 @@ static const struct {
 	{ "vpaned_fileinfo",	PROP_FILEINFO_DIVIDER_POS },
 	{ "hpaned_main",		PROP_MAIN_DIVIDER_POS },
 	{ "vpaned_results",		PROP_RESULTS_DIVIDER_POS },
-#ifdef USE_GTK1
-	{ "vpaned_sidebar",		PROP_SIDE_DIVIDER_POS },
-#endif /* USE_GTK1 */
 };
 
 /*
@@ -1630,28 +1627,6 @@ sidebar_visible_changed(property_t prop)
 }
 
 static gboolean
-navtree_visible_changed(property_t prop)
-{
-#ifdef USE_GTK1
-	GtkWidget *widget;
-    gboolean visible;
-
-    gui_prop_get_boolean_val(prop, &visible);
-
-	widget = gui_main_window_lookup("menu_navtree_visible");
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
-
-	widget = gui_main_window_lookup("viewport_menu");
-	if (visible) {
-		gtk_widget_show(widget);
-	} else {
-		gtk_widget_hide(widget);
-	}
-#endif	/* USE_GTK1 */
-    return FALSE;
-}
-
-static gboolean
 statusbar_visible_changed(property_t prop)
 {
     gboolean b;
@@ -2950,16 +2925,6 @@ static prop_map_t property_map[] = {
         "menu_sidebar_visible",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_NAVTREE_VISIBLE,
-        navtree_visible_changed,
-        TRUE,
-        "menu_navtree_visible",
-        FREQ_UPDATES, 0
-    ),
-#endif	/* USE_GTK1 */
     PROP_ENTRY(
         gui_main_window,
         PROP_STATUSBAR_VISIBLE,
@@ -2968,28 +2933,6 @@ static prop_map_t property_map[] = {
         "menu_statusbar_visible",
         FREQ_UPDATES, 0
     ),
-#if 0
-/* XXX: Toolbar currently removed because Glade 2.6.0 creates source code
- * 		for it which depends on GTK+ 2.4.0. Also, there are only two buttons
- *		for "Quit" and "Edit filters" which are quite redundant.
- */
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_TOOLBAR_VISIBLE,
-        toolbar_visible_changed,
-        TRUE,
-        "menu_toolbar_visible",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_dlg_prefs,
-        PROP_CONFIG_TOOLBAR_STYLE,
-        config_toolbar_style_changed,
-        TRUE,
-        "option_menu_config_toolbar_style",
-        FREQ_UPDATES, 0
-    ),
-#endif /* 0 */
 #ifdef USE_GTK1
     PROP_ENTRY(
         gui_main_window,

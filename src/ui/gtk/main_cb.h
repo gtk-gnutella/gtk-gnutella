@@ -84,48 +84,4 @@ void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_quit_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
-/***
- *** Navigation menu
- ***/
-void on_menu_net_connections_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_net_stats_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_net_hostcache_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_uploads_transfers_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_uploads_history_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_downloads_files_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-
-#ifdef USE_GTK1
-void on_menu_downloads_active_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_downloads_queue_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-#endif /* USE_GTK1 */
-
-void on_menu_search_results_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_search_monitor_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_search_stats_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-
-void on_notebook_main_switch_page(GtkNotebook *unused_notebook,
-	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata);
-
-#ifdef USE_GTK2
-void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
-void on_main_gui_treeview_menu_row_collapsed(
-	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
-void on_main_gui_treeview_menu_row_expanded(
-	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
-void on_menu_downloads_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-#endif /* USE_GTK2 */
-
-
 #endif /* _gtk_main_cb_h_ */

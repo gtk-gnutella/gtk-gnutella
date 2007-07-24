@@ -2311,25 +2311,6 @@ search_gui_set_current_search(search_t *sch)
                   sch->scrolled_window));
     }
 
-    /*
-     * Tree menu
-     */
-    {
-        GtkCTree *ctree;
-    	GtkCTreeNode *node;
-	   
-		ctree = GTK_CTREE(gui_main_window_lookup("ctree_menu"));
-
-        node = gtk_ctree_find_by_row_data(ctree, gtk_ctree_node_nth(ctree, 0),
-					GINT_TO_POINTER(nb_main_page_search));
-
-        if (node != NULL) {
-            gtk_ctree_select(ctree, node);
-			if (!GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(ctree)))
-				gtk_ctree_node_moveto(ctree, node, 0, 0.0, 0.0);
-		}
-    }
-
 	if (search_gui_update_expiry(sch))
 		gui_search_set_enabled(sch, FALSE);
 

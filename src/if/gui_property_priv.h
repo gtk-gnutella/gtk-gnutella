@@ -81,7 +81,6 @@ extern const guint32  gui_property_variable_prefs_dlg_coords[4];
 extern const guint32  gui_property_variable_fileinfo_divider_pos;
 extern const guint32  gui_property_variable_main_divider_pos;
 extern const guint32  gui_property_variable_gnet_stats_divider_pos;
-extern const guint32  gui_property_variable_side_divider_pos;
 extern const guint32  gui_property_variable_results_divider_pos;
 extern const guint32  gui_property_variable_search_max_results;
 extern const guint32  gui_property_variable_browse_host_max_results;

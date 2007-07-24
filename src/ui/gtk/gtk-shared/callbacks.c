@@ -59,25 +59,8 @@ static GtkWidget *add_dir_filesel = NULL;
 
 
 /***
- *** Left panel (selection tree)
+ *** Left panel
  ***/
-
-void
-on_ctree_menu_tree_select_row(GtkCTree *ctree, GList *node,
-	gint unused_column, gpointer unused_udata)
-{
-    gint tab;
-
-	(void) unused_column;
-	(void) unused_udata;
-
-    tab = GPOINTER_TO_INT(
-		gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node)));
-
-	gtk_notebook_set_page(
-		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")), tab);
-}
-
 
 gboolean
 on_progressbar_bws_in_button_press_event(GtkWidget *unused_widget,
