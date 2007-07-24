@@ -38,8 +38,6 @@
 
 RCSID("$Id$")
 
-#include <gdk/gdkkeysyms.h>
-
 #include "search_cb.h"
 
 #include "gtk/columns.h"

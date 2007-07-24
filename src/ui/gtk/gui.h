@@ -64,6 +64,7 @@ main_gui_run(const gchar *unused_geometry_spec)
 #else	/* !USE_TOPLESS */
 
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 
 #ifdef USE_GTK1
 #include "gtk1/support-glade.h"

@@ -41,8 +41,6 @@
 
 RCSID("$Id$")
 
-#include <gdk/gdkkeysyms.h>
-
 #include "gtk/gui.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"

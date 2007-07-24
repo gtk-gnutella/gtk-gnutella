@@ -37,8 +37,6 @@
 
 RCSID("$Id$")
 
-#include <gdk/gdkkeysyms.h>
-
 #include "filter_core.h"
 #include "filter_cb.h"
 #include "filter.h"
