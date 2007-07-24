@@ -27,6 +27,7 @@
 #define _gtk_downloads_common_h_
 
 #include "if/ui/gtk/downloads.h"
+#include "lib/misc.h"
 
 #define IO_STALLED	60 /**< If nothing exchanged after that many secs */
 
@@ -37,6 +38,11 @@ void on_togglebutton_queue_freeze_toggled(
 
 const gchar *download_progress_to_string(const struct download *d);
 const gchar *source_progress_to_string(const struct download *d);
+
+void downloads_gui_clear_details(void);
+void downloads_gui_set_details(const gchar *filename, filesize_t filesize,
+	const struct sha1 *sha1, const struct tth *tth);
+void downloads_gui_append_detail(const gchar *title, const gchar *value);
 
 /***
  *** popup-downloads

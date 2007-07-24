@@ -26,8 +26,10 @@
 #include "gui.h"
 
 RCSID("$Id$")
+
 #include "downloads_common.h"
 #include "downloads.h"
+#include "settings.h"
 #include "statusbar.h"
 
 #ifdef USE_GTK2
@@ -41,10 +43,12 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
-#include "lib/override.h"		/* Must be the last header included */
+#include "lib/utf8.h"
 
-#define IO_STALLED		60		/**< If nothing exchanged after that many secs */
-#define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
+#include "lib/override.h"	/* Must be the last header included */
+
+#define IO_STALLED		60	/**< If nothing exchanged after that many secs */
+#define IO_AVG_RATE		5	/**< Compute global recv rate every 5 secs */
 
 static gboolean update_download_clear_needed = FALSE;
 
@@ -135,7 +139,7 @@ download_progress_to_string(const struct download *d)
 	return buf;
 }
 
- const gchar *
+const gchar *
 source_progress_to_string(const struct download *d)
 {
 	static gchar buf[32];
@@ -143,6 +147,22 @@ source_progress_to_string(const struct download *d)
 	gm_snprintf(buf, sizeof buf, "%5.2f%%",
 		100.0 * guc_download_source_progress(d));
 	return buf;
+}
+
+void
+downloads_gui_set_details(const gchar *filename, filesize_t filesize,
+	const struct sha1 *sha1, const struct tth *tth)
+{
+	downloads_gui_clear_details();
+
+	downloads_gui_append_detail(_("Filename"),
+		lazy_filename_to_ui_string(filename));
+	downloads_gui_append_detail(_("Size"),
+		nice_size(filesize, show_metric_units()));
+	downloads_gui_append_detail(_("SHA-1"),
+		sha1 ? sha1_to_urn_string(sha1) : NULL);
+	downloads_gui_append_detail(_("Bitprint"),
+		sha1 && tth ? bitprint_to_urn_string(sha1, tth) : NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
