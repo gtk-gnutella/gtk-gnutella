@@ -253,6 +253,9 @@ on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
 
 	g_return_if_fail(search);
     search_gui_set_current_search(search);
+	
+	gtk_notebook_set_page(GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
+		nb_main_page_search);
 }
 
 /**
@@ -310,8 +313,8 @@ on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_udata;
 
 	gui_search_clear_results();
-	gtk_widget_set_sensitive
-        (gui_main_window_lookup("button_search_clear"), FALSE);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_clear"),
+		FALSE);
 }
 
 void
