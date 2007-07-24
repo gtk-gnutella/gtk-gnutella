@@ -510,4 +510,24 @@ downloads_gui_update_display(time_t unused_now)
 	/* Nothing needed for GTK2 */
 }
 
+void
+downloads_gui_clear_details(void)
+{
+    gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_details")))));
+}
+
+void
+downloads_gui_append_detail(const gchar *title, const gchar *value)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+    model = gtk_tree_view_get_model(GTK_TREE_VIEW(
+				gui_main_window_lookup("treeview_download_details")));
+
+	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
+}
+
 /* vi: set ts=4 sw=4 cindent: */

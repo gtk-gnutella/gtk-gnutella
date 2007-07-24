@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "downloads_cb.h"
 
 #include "gtk/columns.h"
+#include "gtk/downloads_common.h"
 #include "gtk/drag.h"
 #include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
@@ -62,10 +63,6 @@ RCSID("$Id$")
 
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
-
-static GtkEntry *entry_fi_filename;
-static GtkLabel *label_fi_sha1;
-static GtkLabel *label_fi_size;
 
 static GHashTable *fi_handles;
 static GHashTable *fi_updates;
@@ -392,34 +389,20 @@ fi_gui_set_aliases(gnet_fi_t handle)
 static void
 fi_gui_set_details(gnet_fi_t handle)
 {
-    gnet_fi_info_t *info = NULL;
+    gnet_fi_info_t *info;
     gnet_fi_status_t fis;
-	gchar bytes[UINT64_DEC_BUFLEN];
-	gchar *filename;
 
     info = guc_fi_get_info(handle);
 	g_return_if_fail(info);
 
-	fi_gui_set_aliases(handle);
     guc_fi_get_status(handle, &fis);
-
-	filename = filename_to_utf8_normalized(info->file_name, UNI_NORM_GUI);
-    gtk_entry_set_text(entry_fi_filename, filename);
-	G_FREE_NULL(filename);
-
-	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
-    gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
-		short_size(fis.size, show_metric_units()), bytes);
-
-    gtk_label_printf(label_fi_sha1, "%s%s",
-		info->sha1 ? "urn:sha1:" : _("<none>"),
-		info->sha1 ? sha1_base32(info->sha1) : "");
-
+	downloads_gui_set_details(info->filename, fis.size, info->sha1, info->tth);
     guc_fi_free_info(info);
+
+	fi_gui_set_aliases(handle);
 
     last_shown = handle;
     last_shown_valid = TRUE;
-
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
     gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), TRUE);
@@ -428,9 +411,7 @@ fi_gui_set_details(gnet_fi_t handle)
 static void
 fi_gui_clear_details(void)
 {
-    gtk_entry_set_text(entry_fi_filename, "");
-    gtk_label_set_text(label_fi_size, "");
-    gtk_label_set_text(label_fi_sha1, "");
+	downloads_gui_clear_details();
 
     gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(gui_main_window_lookup("treeview_fi_aliases")))));
@@ -492,16 +473,16 @@ fi_gui_fill_info(struct fileinfo_data *data)
     info = guc_fi_get_info(data->file.handle);
     g_assert(info != NULL);
 
-	filename = info->file_name;
+	filename = info->filename;
 	if (!utf8_is_valid_string(filename)) {
-		to_free = filename_to_utf8_normalized(info->file_name, UNI_NORM_GUI);
+		to_free = filename_to_utf8_normalized(info->filename, UNI_NORM_GUI);
 		filename = to_free;
 	}
 	data->filename = atom_str_get(filename);
 	G_FREE_NULL(to_free);
 }
 
-/* FIXME -- factorize this code with GTK1's one */
+/* TODO: factorize this code with GTK1's one */
 static void
 fi_gui_fill_status(struct fileinfo_data *data)
 {
@@ -881,6 +862,75 @@ fi_gui_update_display(time_t unused_now)
 	g_object_freeze_notify(G_OBJECT(tv));
 }
 
+static gchar *
+fi_gui_details_get_text(GtkWidget *widget)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_return_val_if_fail(widget, NULL);
+
+	if (drag_get_iter(GTK_TREE_VIEW(widget), &model, &iter)) {
+		static const GValue zero_value;
+		GValue value;
+
+		value = zero_value;
+		gtk_tree_model_get_value(model, &iter, 1, &value);
+		return g_strdup(g_value_get_string(&value));
+	} else {
+		return NULL;
+	}
+}
+
+
+static void
+fi_gui_details_treeview_init(void)
+{
+	static const struct {
+		const gchar *title;
+		gfloat xalign;
+		gboolean editable;
+	} tab[] = {
+		{ "Item",	1.0, FALSE },
+		{ "Value",	0.0, TRUE },
+	};
+	GtkTreeView *tv;
+	GtkTreeModel *model;
+	guint i;
+
+	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_details"));
+	g_return_if_fail(tv);
+
+	model = GTK_TREE_MODEL(
+		gtk_list_store_new(G_N_ELEMENTS(tab), G_TYPE_STRING, G_TYPE_STRING));
+
+	gtk_tree_view_set_model(tv, model);
+	g_object_unref(model);
+
+	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+    	GtkTreeViewColumn *column;
+		GtkCellRenderer *renderer;
+		
+		renderer = create_cell_renderer(tab[i].xalign);
+		g_object_set(G_OBJECT(renderer),
+			"editable", tab[i].editable,
+			(void *) 0);
+		column = gtk_tree_view_column_new_with_attributes(tab[i].title,
+					renderer, "text", i, (void *) 0);
+		g_object_set(column,
+			"min-width", 1,
+			"resizable", TRUE,
+			(void *) 0);
+		g_object_set(column,
+			"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
+			(void *) 0);
+    	gtk_tree_view_append_column(tv, column);
+	}
+
+	drag_attach(GTK_WIDGET(tv), fi_gui_details_get_text);
+}
+
+
 static void
 fi_gui_init_columns(GtkTreeView *tv)
 {
@@ -902,7 +952,7 @@ fi_gui_init_columns(GtkTreeView *tv)
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		GtkTreeViewColumn *column;
-		GtkTreeView *model;
+		GtkTreeModel *model;
 		
     	column = add_column(tv, cell_renderer,
 					columns[i].id, _(columns[i].title), columns[i].align);
@@ -938,10 +988,6 @@ fi_gui_init(void)
 	fi_handles = g_hash_table_new(NULL, NULL);
 	fi_updates = g_hash_table_new(NULL, NULL);
 	fi_downloads = g_hash_table_new(NULL, NULL);
-
-	entry_fi_filename = GTK_ENTRY(gui_main_window_lookup("entry_fi_filename"));
-	label_fi_sha1 = GTK_LABEL(gui_main_window_lookup("label_fi_sha1"));
-	label_fi_size = GTK_LABEL(gui_main_window_lookup("label_fi_size"));
 
 	gui_signal_connect(gui_main_window_lookup("notebook_downloads"),
 		"switch-page", on_notebook_switch_page, NULL);
@@ -984,6 +1030,8 @@ fi_gui_init(void)
 		add_column(tv, NULL, 0, _("Aliases"), 0.0);
 		drag_attach(GTK_WIDGET(tv), fi_gui_get_alias);
 	}
+
+	fi_gui_details_treeview_init();
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);

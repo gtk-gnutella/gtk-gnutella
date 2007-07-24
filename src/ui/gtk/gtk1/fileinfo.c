@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "gtk/columns.h"
+#include "gtk/downloads_common.h"
 #include "gtk/drag.h"
 #include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
@@ -55,6 +56,8 @@ RCSID("$Id$")
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 static GHashTable *fi_updates;
+static gint download_details_selected_row = -1;
+static gchar *selected_text;
 
 /*
  * Together visible_fi and hidden_fi are a list of all fileinfo handles
@@ -109,12 +112,12 @@ fi_gui_fill_info(gnet_fi_t fih, const gchar *titles[c_fi_num])
     last_fi = guc_fi_get_info(fih);
     g_assert(last_fi != NULL);
 
-    titles[c_fi_filename] = last_fi->file_name;
+    titles[c_fi_filename] = last_fi->filename;
 
 	return last_fi;
 }
 
-/* XXX -- factorize this code with GTK2's one */
+/* TODO -- factorize this code with GTK2's one */
 static void
 fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 {
@@ -204,58 +207,53 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
     }
 }
 
+static void
+fi_gui_set_aliases(gnet_fi_t handle)
+{
+    GtkCList *clist;
+    gchar **aliases;
+	guint i;
+
+    clist = GTK_CLIST(gui_main_window_lookup("clist_fi_aliases"));
+	g_return_if_fail(clist);
+
+    gtk_clist_freeze(clist);
+    gtk_clist_clear(clist);
+
+    aliases = guc_fi_get_aliases(handle);
+    for (i = 0; aliases[i] != NULL; i++) {
+        gtk_clist_append(clist, &aliases[i]);
+	}
+    g_strfreev(aliases);
+
+    gtk_clist_thaw(clist);
+}
+
 /**
  * Display details for the given fileinfo entry in the details pane.
  * It is expected, that the given handle is really used. If not, an
  * assertion will be triggered.
  */
 static void
-fi_gui_set_details(gnet_fi_t fih)
+fi_gui_set_details(gnet_fi_t handle)
 {
-    gnet_fi_info_t *fi;
+    gnet_fi_info_t *info;
     gnet_fi_status_t fis;
-    gchar **aliases;
-    guint n;
-    GtkCList *cl_aliases;
-	gchar bytes[32];
 
-    fi = guc_fi_get_info(fih);
-    g_assert(fi != NULL);
+	info = guc_fi_get_info(handle);
+    g_return_if_fail(info);
 
-    guc_fi_get_status(fih, &fis);
-    aliases = guc_fi_get_aliases(fih);
+    guc_fi_get_status(handle, &fis);
+	downloads_gui_set_details(info->filename, fis.size, info->sha1, info->tth);
+    guc_fi_free_info(info);
 
-    cl_aliases = GTK_CLIST(gui_main_window_lookup("clist_fi_aliases"));
+	fi_gui_set_aliases(handle);
 
-    gtk_entry_printf(
-		GTK_ENTRY(gui_main_window_lookup("entry_fi_sha1")),
-		"%s%s",
-		fi->sha1 ? "urn:sha1:" : _("<none>"),
-		fi->sha1 ? sha1_base32(fi->sha1) : "");
-    gtk_entry_set_text(
-        GTK_ENTRY(gui_main_window_lookup("entry_fi_filename")),
-        fi->file_name);
-	uint64_to_string_buf(fis.size, bytes, sizeof bytes);
-    gtk_entry_printf(
-        GTK_ENTRY(gui_main_window_lookup("entry_fi_size")),
-        _("%s (%s bytes)"), short_size(fis.size, show_metric_units()), bytes);
-
-    gtk_clist_freeze(cl_aliases);
-    gtk_clist_clear(cl_aliases);
-    for (n = 0; aliases[n] != NULL; n++)
-        gtk_clist_append(cl_aliases, &aliases[n]);
-    gtk_clist_thaw(cl_aliases);
-
-    g_strfreev(aliases);
-    guc_fi_free_info(fi);
-
-    last_shown = fih;
+    last_shown = handle;
     last_shown_valid = TRUE;
-
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
-	gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"),
-							 TRUE);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), TRUE);
 }
 
 /**
@@ -264,24 +262,11 @@ fi_gui_set_details(gnet_fi_t fih)
 static void
 fi_gui_clear_details(void)
 {
-	static const gchar *widgets[] = {
-		"entry_fi_filename",
-		"entry_fi_sha1",
-		"entry_fi_size",
-	};
-	guint i;
-		
     last_shown_valid = FALSE;
 
-	for (i = 0; i < G_N_ELEMENTS(widgets); i++) {
-		GtkEntry *entry = GTK_ENTRY(gui_main_window_lookup(widgets[i]));
-		gtk_entry_set_text(entry, "");
-	}
-
-    gtk_clist_clear(
-        GTK_CLIST(gui_main_window_lookup("clist_fi_aliases")));
-    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"),
-        FALSE);
+	downloads_gui_clear_details();
+    gtk_clist_clear(GTK_CLIST(gui_main_window_lookup("clist_fi_aliases")));
+    gtk_widget_set_sensitive(gui_main_window_lookup("button_fi_purge"), FALSE);
 
     vp_draw_fi_progress(last_shown_valid, last_shown);
 }
@@ -329,7 +314,7 @@ fi_gui_add_row(gnet_fi_t fih)
      * return.
 	 */
 
-	filter_match = fi_gui_match_filter(info->file_name);
+	filter_match = fi_gui_match_filter(info->filename);
 
 	for (l = info->aliases; !filter_match && l; l = g_slist_next(l)) {
 		const gchar *alias = l->data;
@@ -592,6 +577,99 @@ on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 	}
 }
 
+static gchar * 
+download_details_get_text(GtkWidget *widget)
+{
+	gchar *text = NULL;
+
+	if (
+		download_details_selected_row >= 0 &&
+		gtk_clist_get_text(GTK_CLIST(widget), download_details_selected_row, 1,
+			&text)
+	) {
+		return g_strdup(text);
+	} else {
+		return NULL;
+	}
+}
+
+static void
+on_clist_download_details_selection_get(GtkWidget *unused_widget,
+	GtkSelectionData *data, guint unused_info,
+	guint unused_eventtime, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_info;
+	(void) unused_udata;
+	(void) unused_eventtime;
+
+    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
+		8 /* CHAR_BIT */,
+		(guchar *) selected_text,
+		selected_text ? strlen(selected_text) : 0);
+}
+
+static gboolean
+on_clist_download_details_key_press_event(GtkWidget *widget,
+	GdkEventKey *event, gpointer unused_udata)
+{
+    g_assert(event != NULL);
+
+	(void) unused_udata;
+
+	switch (event->keyval) {
+	guint modifier;
+	case GDK_c:
+		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
+		if (GDK_CONTROL_MASK == modifier) {
+			if (gtk_selection_owner_set(widget,
+					GDK_SELECTION_PRIMARY, GDK_CURRENT_TIME)
+			) {
+				G_FREE_NULL(selected_text);
+				selected_text = download_details_get_text(widget);
+			}
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
+}
+
+static gint
+on_clist_download_details_selection_clear_event(GtkWidget *unused_widget,
+	GdkEventSelection *unused_event)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	G_FREE_NULL(selected_text);
+    return TRUE;
+}
+
+static void
+on_clist_download_details_select_row(GtkCList *unused_clist,
+	gint row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+	download_details_selected_row = row;
+}
+
+static void
+on_clist_download_details_unselect_row(GtkCList *unused_clist,
+	gint unused_row, gint unused_column, GdkEventButton *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_clist;
+	(void) unused_row;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+	download_details_selected_row = -1;
+}
+
 void
 fi_gui_init(void)
 {
@@ -604,19 +682,46 @@ fi_gui_init(void)
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-    clist_fileinfo = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
+	{
+		GtkCList *clist;
 
-    gtk_clist_set_column_justification(clist_fileinfo,
-        c_fi_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(clist_fileinfo,
-        c_fi_uploaded, GTK_JUSTIFY_RIGHT);
+		clist = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
+		clist_fileinfo = clist;
 
-    gtk_clist_column_titles_active(clist_fileinfo);
+		gtk_clist_set_column_justification(clist,
+			c_fi_size, GTK_JUSTIFY_RIGHT);
+		gtk_clist_set_column_justification(clist,
+			c_fi_uploaded, GTK_JUSTIFY_RIGHT);
 
+		gtk_clist_column_titles_active(clist);
+
+		drag_attach(GTK_WIDGET(clist), fi_gui_get_file_url);
+	}
+	
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);
 
-	drag_attach(GTK_WIDGET(clist_fileinfo), fi_gui_get_file_url);
+	{
+		GtkCList *clist;
+		
+		clist = GTK_CLIST(gui_main_window_lookup("clist_download_details"));
+		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
+		gui_signal_connect(clist, "select-row",
+			on_clist_download_details_select_row, NULL);
+		gui_signal_connect(clist, "unselect-row",
+			on_clist_download_details_unselect_row, NULL);
+		gui_signal_connect(clist, "key-press-event",
+			on_clist_download_details_key_press_event, NULL);
+		gui_signal_connect(clist, "selection_get",
+			on_clist_download_details_selection_get, NULL);
+  		gui_signal_connect(clist, "selection_clear_event",
+			on_clist_download_details_selection_clear_event, NULL);
+
+		gtk_selection_add_target(GTK_WIDGET(clist),
+			GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
+
+		drag_attach(GTK_WIDGET(clist), download_details_get_text);
+	}
 }
 
 void
@@ -742,7 +847,7 @@ fi_gui_cmp_filename(GtkCList *unused_clist,
 
 	a_fi = guc_fi_get_info(a);
 	b_fi = guc_fi_get_info(b);
-	r = strcmp(a_fi->file_name, b_fi->file_name);
+	r = strcmp(a_fi->filename, b_fi->filename);
 	guc_fi_free_info(b_fi);
 	guc_fi_free_info(a_fi);
 

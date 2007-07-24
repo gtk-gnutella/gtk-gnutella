@@ -1918,4 +1918,29 @@ downloads_gui_update_display(time_t unused_now)
 	*frozen = TRUE;
 }
 
+void
+downloads_gui_clear_details(void)
+{
+	GtkCList *clist;
+
+	clist = GTK_CLIST(gui_main_window_lookup("clist_download_details"));
+	g_return_if_fail(clist);
+
+    gtk_clist_clear(clist);
+}
+
+void
+downloads_gui_append_detail(const gchar *name, const gchar *value)
+{
+ 	const gchar *titles[2];
+	GtkCList *clist;
+
+	clist = GTK_CLIST(gui_main_window_lookup("clist_download_details"));
+	g_return_if_fail(clist);
+
+	titles[0] = name;
+	titles[1] = EMPTY_STRING(value);
+    gtk_clist_append(clist, (gchar **) titles);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
