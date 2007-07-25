@@ -442,7 +442,8 @@ static void fi_update_seen_on_network(gnet_src_t srcid);
 static const gchar *file_info_new_outname(const gchar *dir, const gchar *name);
 static gboolean looks_like_urn(const gchar *filename);
 
-static idtable_t *fi_handle_map = NULL;
+static idtable_t *fi_handle_map;
+static event_t *fi_events[EV_FI_EVENTS];
 
 static inline fileinfo_t *
 file_info_find_by_handle(gnet_fi_t n)
@@ -456,14 +457,17 @@ file_info_request_handle(fileinfo_t *fi)
 	return idtable_new_id(fi_handle_map, fi);
 }
 
-static inline void
-file_info_drop_handle(gnet_fi_t n)
+static void
+file_info_drop_handle(fileinfo_t *fi, const gchar *reason)
 {
-    idtable_free_id(fi_handle_map, n);
-}
+	file_info_check(fi);
 
-event_t *fi_events[EV_FI_EVENTS] = {
-    NULL, NULL, NULL, NULL, NULL, NULL };
+	file_info_upload_stop(fi, reason);
+    event_trigger(fi_events[EV_FI_REMOVED],
+		T_NORMAL(fi_listener_t, (fi->fi_handle)));
+
+    idtable_free_id(fi_handle_map, fi->fi_handle);
+}
 
 /**
  * Checks the kind of trailer. The trailer must be initialized.
@@ -1977,7 +1981,7 @@ fi_dispose(fileinfo_t *fi)
 {
 	file_info_check(fi);
 
-	file_info_upload_stop(fi, "Shutting down");
+    file_info_drop_handle(fi, "Shutting down");
 
 	/*
 	 * Note that normally all fileinfo structures should have been collected
@@ -1991,10 +1995,6 @@ fi_dispose(fileinfo_t *fi)
 	if (fi->refcount)
 		g_warning("fi_dispose() refcount = %u for \"%s\"",
 			fi->refcount, fi->pathname);
-
-    event_trigger(fi_events[EV_FI_REMOVED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
-    file_info_drop_handle(fi->fi_handle);
 
 	fi->hashed = FALSE;
 	fi_free(fi);
@@ -2252,17 +2252,7 @@ file_info_hash_remove(fileinfo_t *fi)
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
 
-	file_info_upload_stop(fi, "File info discarded");
-
-    /*
-     * Notify interested parties that file info is being removed and
-	 * free its handle.
-     */
-
-    event_trigger(fi_events[EV_FI_REMOVED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
-
-    file_info_drop_handle(fi->fi_handle);
+    file_info_drop_handle(fi, "Discarding file info");
 
 	g_assert(GNET_PROPERTY(fi_all_count) > 0);
 	gnet_prop_decr_guint32(PROP_FI_ALL_COUNT);
