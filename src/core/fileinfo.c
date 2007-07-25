@@ -1976,6 +1976,9 @@ static void
 fi_dispose(fileinfo_t *fi)
 {
 	file_info_check(fi);
+
+	file_info_upload_stop(fi, "Shutting down");
+
 	/*
 	 * Note that normally all fileinfo structures should have been collected
 	 * during the freeing of downloads, so if we come here with a non-zero
