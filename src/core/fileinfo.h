@@ -47,21 +47,6 @@
 #define FI_LOW_SRC_COUNT	5			/**< Few sources known if beneath */
 
 /*
- * Operating flags.
- */
-
-enum {
-	FI_F_SUSPEND	= 1 << 0,	/**< Marked "suspended" new downloads */
-	FI_F_DISCARD	= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
-	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
-	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
-	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
-	FI_F_SEEDING	= 1 << 5,	/**< Seeding after successful download */
-	FI_F_STRIPPED	= 1 << 6,	/**< Fileinfo trailler has been stripped */
-	FI_F_FETCH_TTH	= 1 << 7	/**< Tigertree data is being downloaded */
-};
-
-/*
  * Public interface.
  */
 

@@ -33,6 +33,21 @@
 struct shared_file;
 struct download;
 
+/*
+ * Operating flags.
+ */
+
+enum {
+	FI_F_SUSPEND	= 1 << 0,	/**< Marked "suspended" new downloads */
+	FI_F_DISCARD	= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
+	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
+	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
+	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
+	FI_F_SEEDING	= 1 << 5,	/**< Seeding after successful download */
+	FI_F_STRIPPED	= 1 << 6,	/**< Fileinfo trailler has been stripped */
+	FI_F_FETCH_TTH	= 1 << 7	/**< Tigertree data is being downloaded */
+};
+
 /**
  * These used to be in fileinfo.h, but we need them now at several places.
  */
@@ -159,6 +174,14 @@ FILE_INFO_COMPLETE(const fileinfo_t *fi)
 {
 	file_info_check(fi);
 	return fi->file_size_known && fi->done == fi->size;
+}
+
+static inline gboolean
+FILE_INFO_FINISHED(const fileinfo_t *fi)
+{
+	file_info_check(fi);
+	return 0 != ((FI_F_STRIPPED | FI_F_TRANSIENT) & fi->flags)
+		&& FILE_INFO_COMPLETE(fi);
 }
 
 static inline gboolean
