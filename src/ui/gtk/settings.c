@@ -1851,7 +1851,7 @@ autoclear_completed_downloads_changed(property_t prop)
 		GTK_TOGGLE_BUTTON(lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        guc_download_clear_stopped(TRUE, FALSE, FALSE, TRUE);
+        guc_download_clear_stopped(TRUE, FALSE, FALSE, FALSE, TRUE);
 
     return FALSE;
 }
@@ -1870,7 +1870,7 @@ autoclear_failed_downloads_changed(property_t prop)
 		GTK_TOGGLE_BUTTON(lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        guc_download_clear_stopped(FALSE, TRUE, FALSE, TRUE);
+        guc_download_clear_stopped(FALSE, TRUE, FALSE, FALSE, TRUE);
 
     return FALSE;
 }
@@ -1889,7 +1889,26 @@ autoclear_unavailable_downloads_changed(property_t prop)
 		GTK_TOGGLE_BUTTON(lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        guc_download_clear_stopped(FALSE, FALSE, TRUE, TRUE);
+        guc_download_clear_stopped(FALSE, FALSE, TRUE, FALSE, TRUE);
+
+    return FALSE;
+}
+
+static gboolean
+autoclear_finished_downloads_changed(property_t prop)
+{
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    gtk_toggle_button_set_active(
+		GTK_TOGGLE_BUTTON(lookup_widget(top, map_entry->wid)), val);
+
+    if (val)
+        guc_download_clear_stopped(FALSE, FALSE, FALSE, TRUE, TRUE);
 
     return FALSE;
 }
@@ -3750,6 +3769,14 @@ static prop_map_t property_map[] = {
         autoclear_unavailable_downloads_changed,
         TRUE,
         "checkbutton_dl_clear_unavailable",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_AUTOCLEAR_FINISHED_DOWNLOADS,
+        autoclear_finished_downloads_changed,
+        TRUE,
+        "checkbutton_dl_clear_finished",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

@@ -15086,6 +15086,10 @@ create_main_window_downloads_tab (void)
   GtkWidget *treeview_downloads_seeding;
   GtkWidget *label1020;
   GtkWidget *vbox132;
+  GtkWidget *hbox9332;
+  GtkWidget *label334;
+  GtkWidget *entry_queue_regex;
+  GtkWidget *checkbutton_queue_regex_case;
   GtkWidget *viewport105;
   GtkWidget *notebook2;
   GtkWidget *frame82;
@@ -15100,6 +15104,9 @@ create_main_window_downloads_tab (void)
   GtkWidget *scrolledwindow72;
   GtkWidget *treeview_fi_aliases;
   GtkWidget *label1013;
+  GtkWidget *scrolledwindow89;
+  GtkWidget *treeview_download_transfers;
+  GtkWidget *label1022;
   GtkWidget *hbox261;
   GtkWidget *table95;
   GtkWidget *label64;
@@ -15120,6 +15127,7 @@ create_main_window_downloads_tab (void)
   GtkWidget *vbox129;
   GtkWidget *frame85;
   GtkWidget *vbox130;
+  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *checkbutton_dl_clear_complete;
   GtkWidget *checkbutton_dl_clear_failed;
   GtkWidget *checkbutton_dl_clear_unavailable;
@@ -15148,10 +15156,6 @@ create_main_window_downloads_tab (void)
   GtkWidget *image1797;
   GtkWidget *label995;
   GtkWidget *label888;
-  GtkWidget *hbox9332;
-  GtkWidget *label334;
-  GtkWidget *entry_queue_regex;
-  GtkWidget *checkbutton_queue_regex_case;
   GtkWidget *table53;
   GtkWidget *viewport28;
   GtkWidget *hbox212;
@@ -15308,16 +15312,39 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (vbox132);
   gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), vbox132, TRUE, TRUE);
 
+  hbox9332 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox9332, "hbox9332");
+  gtk_widget_show (hbox9332);
+  gtk_box_pack_start (GTK_BOX (vbox132), hbox9332, FALSE, TRUE, 0);
+
+  label334 = gtk_label_new (_("Select all matching regex"));
+  gtk_widget_set_name (label334, "label334");
+  gtk_widget_show (label334);
+  gtk_box_pack_start (GTK_BOX (hbox9332), label334, FALSE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label334), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label334), 4, 0);
+
+  entry_queue_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
+  gtk_widget_show (entry_queue_regex);
+  gtk_box_pack_start (GTK_BOX (hbox9332), entry_queue_regex, TRUE, TRUE, 0);
+
+  checkbutton_queue_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
+  gtk_widget_show (checkbutton_queue_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox9332), checkbutton_queue_regex_case, TRUE, TRUE, 4);
+
   viewport105 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport105, "viewport105");
   gtk_widget_show (viewport105);
   gtk_box_pack_start (GTK_BOX (vbox132), viewport105, TRUE, TRUE, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport105), GTK_SHADOW_ETCHED_IN);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport105), GTK_SHADOW_NONE);
 
   notebook2 = gtk_notebook_new ();
   gtk_widget_set_name (notebook2, "notebook2");
   gtk_widget_show (notebook2);
   gtk_container_add (GTK_CONTAINER (viewport105), notebook2);
+  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook2), GTK_POS_LEFT);
   gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook2), TRUE);
 
   frame82 = gtk_frame_new (NULL);
@@ -15396,10 +15423,29 @@ create_main_window_downloads_tab (void)
   gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_fi_aliases), FALSE);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fi_aliases), TRUE);
 
-  label1013 = gtk_label_new (_("Alternate filenames"));
+  label1013 = gtk_label_new (_("Aliases"));
   gtk_widget_set_name (label1013, "label1013");
   gtk_widget_show (label1013);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 1), label1013);
+
+  scrolledwindow89 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow89, "scrolledwindow89");
+  gtk_widget_show (scrolledwindow89);
+  gtk_container_add (GTK_CONTAINER (notebook2), scrolledwindow89);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow89), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow89), GTK_SHADOW_IN);
+
+  treeview_download_transfers = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_download_transfers, "treeview_download_transfers");
+  gtk_widget_show (treeview_download_transfers);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow89), treeview_download_transfers);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_download_transfers), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_download_transfers), FALSE);
+
+  label1022 = gtk_label_new (_("Transfers"));
+  gtk_widget_set_name (label1022, "label1022");
+  gtk_widget_show (label1022);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 2), label1022);
 
   hbox261 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox261, "hbox261");
@@ -15523,6 +15569,11 @@ create_main_window_downloads_tab (void)
   gtk_container_add (GTK_CONTAINER (frame85), vbox130);
   gtk_container_set_border_width (GTK_CONTAINER (vbox130), 2);
 
+  checkbutton_dl_clear_finished = gtk_check_button_new_with_mnemonic (_("Finished"));
+  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
+  gtk_widget_show (checkbutton_dl_clear_finished);
+  gtk_box_pack_start (GTK_BOX (vbox130), checkbutton_dl_clear_finished, FALSE, FALSE, 0);
+
   checkbutton_dl_clear_complete = gtk_check_button_new_with_mnemonic (_("Completed"));
   gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   gtk_widget_show (checkbutton_dl_clear_complete);
@@ -15543,10 +15594,10 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label724);
   gtk_frame_set_label_widget (GTK_FRAME (frame85), label724);
 
-  label1014 = gtk_label_new (_("Download settings"));
+  label1014 = gtk_label_new (_("Settings"));
   gtk_widget_set_name (label1014, "label1014");
   gtk_widget_show (label1014);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 2), label1014);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label1014);
 
   table57 = gtk_table_new (1, 5, FALSE);
   gtk_widget_set_name (table57, "table57");
@@ -15680,28 +15731,6 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label888), 0, 0.5);
-
-  hbox9332 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox9332, "hbox9332");
-  gtk_widget_show (hbox9332);
-  gtk_box_pack_start (GTK_BOX (vbox142), hbox9332, FALSE, TRUE, 0);
-
-  label334 = gtk_label_new (_("Select all matching regex"));
-  gtk_widget_set_name (label334, "label334");
-  gtk_widget_show (label334);
-  gtk_box_pack_start (GTK_BOX (hbox9332), label334, FALSE, TRUE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label334), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label334), 4, 0);
-
-  entry_queue_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
-  gtk_widget_show (entry_queue_regex);
-  gtk_box_pack_start (GTK_BOX (hbox9332), entry_queue_regex, TRUE, TRUE, 0);
-
-  checkbutton_queue_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
-  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
-  gtk_widget_show (checkbutton_queue_regex_case);
-  gtk_box_pack_start (GTK_BOX (hbox9332), checkbutton_queue_regex_case, TRUE, TRUE, 4);
 
   table53 = gtk_table_new (1, 5, FALSE);
   gtk_widget_set_name (table53, "table53");
@@ -15863,6 +15892,9 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label913);
   gtk_box_pack_start (GTK_BOX (hbox235), label913, FALSE, TRUE, 4);
 
+  g_signal_connect ((gpointer) entry_queue_regex, "activate",
+                    G_CALLBACK (on_entry_regex_activate),
+                    NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
                     NULL);
@@ -15877,9 +15909,6 @@ create_main_window_downloads_tab (void)
                     NULL);
   g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
                     G_CALLBACK (on_togglebutton_queue_freeze_toggled),
-                    NULL);
-  g_signal_connect ((gpointer) entry_queue_regex, "activate",
-                    G_CALLBACK (on_entry_regex_activate),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -15904,6 +15933,10 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_downloads_seeding, "treeview_downloads_seeding");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1020, "label1020");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox132, "vbox132");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9332, "hbox9332");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_queue_regex, "entry_queue_regex");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport105, "viewport105");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook2, "notebook2");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame82, "frame82");
@@ -15918,6 +15951,9 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow72, "scrolledwindow72");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_aliases, "treeview_fi_aliases");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1013, "label1013");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow89, "scrolledwindow89");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_download_transfers, "treeview_download_transfers");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1022, "label1022");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox261, "hbox261");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table95, "table95");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label64, "label64");
@@ -15934,6 +15970,7 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox129, "vbox129");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame85, "frame85");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox130, "vbox130");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
@@ -15962,10 +15999,6 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image1797, "image1797");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label995, "label995");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label888, "label888");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9332, "hbox9332");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_queue_regex, "entry_queue_regex");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table53, "table53");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport28, "viewport28");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox212, "hbox212");

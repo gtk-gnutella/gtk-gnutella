@@ -214,9 +214,9 @@ guc_download_queue_is_frozen(void)
 
 void
 guc_download_clear_stopped(gboolean complete,
-	gboolean failed, gboolean unavailable, gboolean now)
+	gboolean failed, gboolean unavailable, gboolean finished, gboolean now)
 {
-	download_clear_stopped(complete, failed, unavailable, now);
+	download_clear_stopped(complete, failed, unavailable, finished, now);
 }
 
 guint

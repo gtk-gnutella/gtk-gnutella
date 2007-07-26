@@ -1168,6 +1168,17 @@ prop = {
 };
 
 prop = {
+    name = "autoclear_finished_downloads";
+    cfgvar = "auto_clear_finished_downloads";
+    desc = "Auto clear finished downloads";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = clear_finished_downloads;
+    };
+};
+
+prop = {
     name = "search_remove_downloaded";
     desc = "Remove downloaded files from the search result.";
     type = boolean;

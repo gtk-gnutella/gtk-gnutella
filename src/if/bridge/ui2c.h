@@ -113,7 +113,7 @@ void guc_download_freeze_queue(void);
 void guc_download_thaw_queue(void);
 gboolean guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
-	gboolean failed, gboolean unavailable, gboolean now);
+	gboolean failed, gboolean unavailable, gboolean finished, gboolean now);
 guint guc_download_handle_magnet(const gchar *url);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);

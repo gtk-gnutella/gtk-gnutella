@@ -148,6 +148,7 @@ extern const gboolean gnet_property_variable_bw_allow_stealing;
 extern const gboolean gnet_property_variable_clear_complete_downloads;
 extern const gboolean gnet_property_variable_clear_failed_downloads;
 extern const gboolean gnet_property_variable_clear_unavailable_downloads;
+extern const gboolean gnet_property_variable_clear_finished_downloads;
 extern const gboolean gnet_property_variable_search_remove_downloaded;
 extern const gboolean gnet_property_variable_force_local_ip;
 extern const gboolean gnet_property_variable_force_local_ip6;

@@ -375,6 +375,7 @@ create_main_window (void)
   GtkWidget *vbox124;
   GtkWidget *frame_dl_autoclear;
   GtkWidget *vbox118;
+  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *checkbutton_dl_clear_complete;
   GtkWidget *checkbutton_dl_clear_failed;
   GtkWidget *checkbutton_dl_clear_unavailable;
@@ -3440,6 +3441,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook5);
   gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), notebook5, TRUE, TRUE);
+  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook5), GTK_POS_LEFT);
 
   vbox110 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox110, "vbox110");
@@ -3572,7 +3574,7 @@ create_main_window (void)
   gtk_widget_show (label526);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fi_aliases), 0, label526);
 
-  label791 = gtk_label_new (_("Alternate filenames"));
+  label791 = gtk_label_new (_("Aliases"));
   gtk_widget_set_name (label791, "label791");
   gtk_widget_ref (label791);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label791", label791,
@@ -3757,6 +3759,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_dl_autoclear), vbox118);
   gtk_container_set_border_width (GTK_CONTAINER (vbox118), 2);
 
+  checkbutton_dl_clear_finished = gtk_check_button_new_with_label (_("Finished"));
+  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
+  gtk_widget_ref (checkbutton_dl_clear_finished);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_finished", checkbutton_dl_clear_finished,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_finished);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_finished, FALSE, FALSE, 0);
+
   checkbutton_dl_clear_complete = gtk_check_button_new_with_label (_("Completed"));
   gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   gtk_widget_ref (checkbutton_dl_clear_complete);
@@ -3781,7 +3791,7 @@ create_main_window (void)
   gtk_widget_show (checkbutton_dl_clear_unavailable);
   gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_unavailable, FALSE, FALSE, 0);
 
-  label792 = gtk_label_new (_("Download settings"));
+  label792 = gtk_label_new (_("Settings"));
   gtk_widget_set_name (label792, "label792");
   gtk_widget_ref (label792);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label792", label792,

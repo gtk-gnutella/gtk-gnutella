@@ -4411,7 +4411,7 @@
 		<can_focus>True</can_focus>
 		<show_tabs>True</show_tabs>
 		<show_border>True</show_border>
-		<tab_pos>GTK_POS_TOP</tab_pos>
+		<tab_pos>GTK_POS_LEFT</tab_pos>
 		<scrollable>False</scrollable>
 		<tab_hborder>2</tab_hborder>
 		<tab_vborder>2</tab_vborder>
@@ -4621,7 +4621,7 @@
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label791</name>
-		  <label>Alternate filenames</label>
+		  <label>Aliases</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>
@@ -4995,6 +4995,20 @@
 
 			<widget>
 			  <class>GtkCheckButton</class>
+			  <name>checkbutton_dl_clear_finished</name>
+			  <can_focus>True</can_focus>
+			  <label>Finished</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkCheckButton</class>
 			  <name>checkbutton_dl_clear_complete</name>
 			  <can_focus>True</can_focus>
 			  <label>Completed</label>
@@ -5043,7 +5057,7 @@
 		  <class>GtkLabel</class>
 		  <child_name>Notebook:tab</child_name>
 		  <name>label792</name>
-		  <label>Download settings</label>
+		  <label>Settings</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>

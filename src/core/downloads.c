@@ -1277,6 +1277,7 @@ download_timer(time_t now)
 		GNET_PROPERTY(clear_complete_downloads),
 		GNET_PROPERTY(clear_failed_downloads),
 		GNET_PROPERTY(clear_unavailable_downloads),
+		GNET_PROPERTY(clear_finished_downloads),
 		FALSE);
 
 	download_free_removed();
@@ -2770,7 +2771,8 @@ download_set_sha1(struct download *d, const struct sha1 *sha1)
  */
 void
 download_clear_stopped(gboolean complete,
-	gboolean failed, gboolean unavailable, gboolean now)
+	gboolean failed, gboolean unavailable, gboolean finished,
+	gboolean now)
 {
 	struct download *next;
 
@@ -2798,7 +2800,7 @@ download_clear_stopped(gboolean complete,
 			}
 			break;
 		case GTA_DL_VERIFIED:
-			if (!now) {
+			if (!(now || finished)) {
 				/* We don't want clear "finished" downloads automagically
 				 * because it would make it difficult to notice them in the
 				 * GUI. */
@@ -2809,15 +2811,26 @@ download_clear_stopped(gboolean complete,
 		}
 
 		if (
-			now ||
-			delta_time(tm_time(), d->last_update) >
+			!now &&
+			delta_time(tm_time(), d->last_update) <
 				(time_delta_t) GNET_PROPERTY(entry_removal_timeout)
 		) {
-			if (d->flags & DL_F_TRANSIENT) {
-				file_info_purge(d->file_info);
-			} else {
-				download_remove(d);
-			}
+			continue;
+		}
+
+		if (
+			finished &&
+			FILE_INFO_FINISHED(d->file_info) &&
+			!(FI_F_SEEDING & d->file_info->flags)
+		) {
+			file_info_purge(d->file_info);
+			continue;
+		}
+		
+		if (d->flags & DL_F_TRANSIENT) {
+			file_info_purge(d->file_info);
+		} else {
+			download_remove(d);
 		}
 	}
 

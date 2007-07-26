@@ -440,7 +440,7 @@ void download_resume(struct download *);
 void download_freeze_queue(void);
 void download_thaw_queue(void);
 gboolean download_queue_is_frozen(void);
-void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
+void download_clear_stopped(gboolean, gboolean, gboolean, gboolean, gboolean);
 const gchar *download_get_hostname(const struct download *d);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);
