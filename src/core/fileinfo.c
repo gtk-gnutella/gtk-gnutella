@@ -1350,7 +1350,12 @@ file_info_shared_sha1(const struct sha1 *sha1)
 	fi = g_hash_table_lookup(fi_by_sha1, sha1);
 	if (fi) {
 		file_info_check(fi);
-		if (fi->done > 0 && fi->size >= GNET_PROPERTY(pfsp_minimum_filesize)) {
+
+		if (
+			fi->done > 0 &&
+			fi->size >= GNET_PROPERTY(pfsp_minimum_filesize) &&
+			(!FILE_INFO_COMPLETE(fi) || (FI_F_SEEDING & fi->flags))
+		) {
 			g_assert(NULL != fi->sha1);
 
 			/*
