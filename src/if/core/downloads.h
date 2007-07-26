@@ -445,10 +445,6 @@ const gchar *download_get_hostname(const struct download *d);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);
-struct download *src_get_download(gnet_src_t src_handle);
-void src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
-	frequency_t t, guint32 interval);
-void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev);
 guint download_speed_avg(struct download *d);
 
 #endif /* CORE_SOURCES */
