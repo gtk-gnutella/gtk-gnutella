@@ -1,0 +1,133 @@
+/* $Id: default.css 14043 2007-07-05 21:36:05Z cbiere $ */
+a:link    { color: #4444BB; }
+a:visited { color: #BB4444; }
+a:active  { color: #4444BB; }
+
+body,th,td,h3,h4,h5,p,ul {
+	font-family: helvetica, sans-serif;
+	color: #000000;
+}
+
+p,pre,ul {
+	margin: 1em 2em;
+}
+
+body {
+	background-color: #FFFFFF;
+}
+
+h1 {
+	text-align: center;
+}
+
+h1.attention {
+	margin: 0 0;
+	border-style: solid;
+	border-color: red;
+	background: red;
+	color: white;
+	text-align: center;
+}
+
+h3,h4,h5 {
+	font-size: medium;
+	margin: 0em 1em;
+}
+
+.nav {
+	font-weight: bold
+}
+
+a.navlink:link,a.navlink:visited {
+	text-decoration: none
+}
+
+a.navlink:active,a.navlink:hover {
+	text-decoration: underline
+}
+
+code {
+	font-weight: bold
+}
+
+div.sidebar {
+	width: 14em;
+	float: left;
+}
+
+div.content {
+	margin-left: 0em;
+}
+
+div.boxed {
+	border-style: solid;
+	border-width: 2px;
+	background-color: white;
+	margin: 0.5em;
+	padding: 0.5em;
+}
+
+div.indent {
+	margin-left: 1em;
+}
+
+div.warning {
+	background-color: #FFCCCC;
+	text-align: center;
+	border-style: outset;
+	border-color: red;
+	margin: 1em;
+	padding: 0.5em;
+	font-weight: bold;
+}
+
+div.scroll {
+	overflow: auto;
+	max-height: 10em;
+}
+
+div.sb_section {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+	padding: 0.3em;
+	border-left: solid 2px #D3D3D3;
+	border-top: solid 2px #D3D3D3;
+}
+
+a.sb_section_header {
+	font-size: large;
+	font-weight: bold;
+}
+
+a.rss {
+	font-size:large;
+	font-weight:bold;
+	color: white;
+	background: #e60;
+	border: solid 2pt #f70;
+        text-decoration: none;
+}
+
+div.sb_section_content {
+	margin-left: 1em;
+}
+
+div.hidden {
+	visibility: hidden;
+	width: 0;
+	height: 0;
+	font-size: 0pt;
+}
+
+img {
+	border: 0;
+}
+
+.image {
+        text-align: center
+}
+
+.image img {
+	margin: 0.5em;
+}
+
