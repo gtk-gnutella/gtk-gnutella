@@ -1035,10 +1035,36 @@ The gateway will have at least two IP addresses.  You can find the
 external IP address by visiting a web sight like <ulink
 url="http://www.hostip.info/"/>.</para>
 
-<!-- Describe NAT, masquerade, etc.
-     IP  - ip configuration section, NAT, firewalls, 
-           public and private networks. SNAT, DNAT, PAT, masquerade...
- -->
+<para>The gateway will use <emphasis>network address
+translation</emphasis> or <emphasis role="bold">NAT</emphasis> for
+short.  There are two types of NAT, source and destination NAT or
+simply SNAT and DNAT.  DNAT is the appropriate technology to get
+gtk-gnutella working inside a translated network.  Often NAT is
+combined with port blocking, more commonly known as firewalling.
+Changing the port that gtk-gnutella uses can avoid port blocking.  The
+port gtk-gnutella uses can be changed via the
+"Settings->Preferences->Network" menu.</para>
+
+<para> If your gateway uses iptables, it maybe as simple as adding a
+few rules to forward gtk-gnutella traffic on the gateway. </para>
+
+<para><informalexample><programlisting>
+#
+# DNAT rules to allow machines inside to act as servers on external ports.
+#
+EXTIF=ppp0
+gtkg=192.168.0.111
+port=6346
+
+# Forward Gnutella traffic.
+iptables -t nat -A PREROUTING -i $EXTIF -p udp --dport $port -j DNAT --to $gtkg
+iptables -t nat -A PREROUTING -i $EXTIF -p tcp --dport $port -j DNAT --to $gtkg
+
+</programlisting></informalexample></para>
+
+<para><emphasis role="bold">NOTE:</emphasis> Many consumer firewall
+products refer to DNAT as "DMZ".  This is the wrong nomenclature, but
+it maybe what you want. </para>
 
 </chapter>
 
