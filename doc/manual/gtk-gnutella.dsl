@@ -48,7 +48,7 @@
 ;   (list "ALINK" "#0000FF")))
 
 (define %stylesheet%
-  "../default.css")
+  "manual.css")
 
 (define %stylesheet-type%
   "text/css")
