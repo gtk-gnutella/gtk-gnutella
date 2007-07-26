@@ -1354,7 +1354,7 @@ file_info_shared_sha1(const struct sha1 *sha1)
 		if (
 			fi->done > 0 &&
 			fi->size >= GNET_PROPERTY(pfsp_minimum_filesize) &&
-			(!FILE_INFO_COMPLETE(fi) || (FI_F_SEEDING & fi->flags))
+			((FI_F_SEEDING & fi->flags) || !FILE_INFO_FINISHED(fi))
 		) {
 			g_assert(NULL != fi->sha1);
 
