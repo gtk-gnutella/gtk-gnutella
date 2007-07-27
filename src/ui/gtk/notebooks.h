@@ -30,23 +30,15 @@
  * For GTK1 these must be in the same order as the notebook tabs.
  */
 enum {
-    nb_main_page_gnet = 0,
+    nb_main_page_gnet,
     nb_main_page_gnet_stats,
     nb_main_page_hostcache,
 
     nb_main_page_uploads,
     nb_main_page_uploads_stats,
 
-#ifdef USE_GTK1
-    nb_main_page_dl_files,
-    nb_main_page_dl_active,
-    nb_main_page_dl_queue,
-#endif
-
-#ifdef USE_GTK2
     nb_main_page_downloads,
-#endif
-	
+
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
