@@ -980,7 +980,7 @@ gui_update_download(struct download *d, gboolean force)
 	 */
 
     current_page = gtk_notebook_get_current_page(notebook);
-    if (current_page != nb_main_page_dl_active)
+    if (current_page != nb_main_page_downloads)
         looking = FALSE;
 
 	if (!looking) {
@@ -1868,29 +1868,33 @@ downloads_update_queue_pane(void)
 void
 downloads_gui_update_display(time_t unused_now)
 {
-	GtkCList *clist = NULL;
-	gboolean *frozen = NULL;
+	GtkCList *clist;
+	gboolean *frozen;
     gint current_page;
 
 	(void) unused_now;
 
-    current_page = gtk_notebook_get_current_page(notebook);
+    current_page = gtk_notebook_get_current_page(GTK_NOTEBOOK(
+						gui_main_window_lookup("notebook_downloads")));
 
 	/*
 	 * We make sure the trees are frozen, so that no GUI redrawing ever
 	 * takes place until we're called here and they are watching.
 	 */
 
-    if (current_page == nb_main_page_dl_active) {
+    if (current_page == nb_downloads_page_active) {
 		frozen = &ctree_downloads_frozen;
 		clist = GTK_CLIST(ctree_downloads);
-	} else if (current_page == nb_main_page_dl_queue) {
+	} else if (current_page == nb_downloads_page_queued) {
 		frozen = &ctree_downloads_queue_frozen;
 		clist = GTK_CLIST(ctree_downloads_queue);
 	} else {
 		/*
 		 * They're not looking, no need to update the visuals!
 		 */
+
+		frozen = NULL;
+		clist = NULL;
 
 		if (!ctree_downloads_frozen) {
 			clist = GTK_CLIST(ctree_downloads);

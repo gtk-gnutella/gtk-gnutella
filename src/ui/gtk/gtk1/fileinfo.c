@@ -759,7 +759,7 @@ fi_gui_is_visible(void)
 
 	current_page = gtk_notebook_get_current_page(notebook);
 
-	return current_page == nb_main_page_dl_files;
+	return current_page == nb_main_page_downloads;
 }
 
 
