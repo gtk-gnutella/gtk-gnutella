@@ -2390,68 +2390,6 @@ dl_aqueued_count_changed(property_t prop)
 	return FALSE;
 }
 
-#if 0
-/* Currently deactivated for GTK+ 2.x because the code created by Glade 2.6.0
- * requires GTK+ 2.4. Also, the toolbar is completely redundant and
- * underutilized. */
-static gboolean
-config_toolbar_style_changed(property_t prop)
-{
-	guint32 val;
-	GtkToolbarStyle style;
-
-	gui_prop_get_guint32_val(PROP_CONFIG_TOOLBAR_STYLE, &val);
-
-	switch (val) {
-		case 1:
-			style = GTK_TOOLBAR_ICONS;
-			break;
-		case 2:
-			style = GTK_TOOLBAR_TEXT;
-			break;
-		case 3:
-			style = GTK_TOOLBAR_BOTH;
-			break;
-		case 4:
-#ifdef USE_GTK2
-			style = GTK_TOOLBAR_BOTH_HORIZ;
-#else
-			style = GTK_TOOLBAR_BOTH;
-#endif /* USE_GTK2 */
-			break;
-		default:
-			style = GTK_TOOLBAR_BOTH;
-			g_warning(
-				"config_toolbar_style_changed: Unknown toolbar style (val=%ld)",
-				(gulong) val);
-	}
-
-	gtk_toolbar_set_style(
-   		GTK_TOOLBAR(gui_main_window_lookup("toolbar_main")), style);
-	update_multichoice(prop);
-	return FALSE;
-}
-
-static gboolean
-toolbar_visible_changed(property_t prop)
-{
-    gboolean b;
-
-    gui_prop_get_boolean_val(prop, &b);
-    gtk_check_menu_item_set_active(
-		GTK_CHECK_MENU_ITEM(gui_main_window_lookup("menu_toolbar_visible")),
-        b);
-
-   	if (b) {
-		gtk_widget_show(gui_main_window_lookup("hb_toolbar"));
-	} else {
-		gtk_widget_hide(gui_main_window_lookup("hb_toolbar"));
-	}
-
-    return FALSE;
-}
-#endif /* 0 */
-
 static gboolean
 update_spinbutton_ultranode(property_t prop)
 {
