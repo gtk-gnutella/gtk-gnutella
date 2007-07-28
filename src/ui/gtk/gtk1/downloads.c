@@ -872,38 +872,19 @@ gui_update_download_server(struct download *d)
 void
 gui_update_download_range(struct download *d)
 {
-	const gchar *and_more = "";
 	GtkCTreeNode *node;
-	filesize_t len;
-	gint rw;
-
-	g_assert(d);
-	g_assert(d->status != GTA_DL_QUEUED);
 
 	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */
 
-	if (d->file_info->use_swarming) {
-		len = d->size;
-		if (d->range_end > d->skip + d->size)
-			and_more = "+";
-		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
-			and_more = "-";
-	} else
-		len = d->range_end - d->skip;
+	download_check(d);
+	g_assert(d->status != GTA_DL_QUEUED);
 
-	len += d->overlap_size;
-
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-			compact_size(len, show_metric_units()), and_more);
-
-	if (d->skip)
-		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip, show_metric_units()));
-
-	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
-	if (NULL != node)
-		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_range, tmpstr);
+	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, d);
+	if (node) {
+		gtk_ctree_node_set_text(ctree_downloads, node,
+			c_dl_range, downloads_gui_range_string(d));
+	}
 }
 
 /*
