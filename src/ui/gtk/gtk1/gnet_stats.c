@@ -417,7 +417,7 @@ gnet_stats_gui_is_visible(void)
 
 	current_page = gtk_notebook_get_current_page(notebook);
 
-	return current_page == nb_main_page_gnet_stats;
+	return current_page == nb_main_page_stats;
 }
 
 void

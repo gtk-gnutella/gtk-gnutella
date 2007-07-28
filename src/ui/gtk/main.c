@@ -183,15 +183,15 @@ static const gchar *
 notebook_main_page_label(gint page)
 {
 	switch (page) {
-	case nb_main_page_gnet:				return _("Network");
-	case nb_main_page_uploads:			return _("Uploads");
-	case nb_main_page_uploads_stats:	return _("Upload History");
-	case nb_main_page_downloads:		return _("Downloads");
+	case nb_main_page_network:			return _("Network");
 	case nb_main_page_search:			return _("Searches");
+	case nb_main_page_downloads:		return _("Downloads");
+	case nb_main_page_uploads:			return _("Uploads");
+	case nb_main_page_stats:			return _("Statistics");
 	case nb_main_page_monitor:			return _("Search Monitor");
-	case nb_main_page_search_stats:		return _("Search Stats");
-	case nb_main_page_gnet_stats:		return _("Statistics");
+	case nb_main_page_uploads_stats:	return _("Upload History");
 	case nb_main_page_hostcache:		return _("Hostcache");
+	case nb_main_page_search_stats:		return _("Search Stats");
 	}
 	return NULL;
 }
@@ -220,7 +220,7 @@ gui_init_main_window(void)
 	/*
 	 * Then create all the tabs in their own window.
 	 */
-	tab_window[nb_main_page_gnet] = create_main_window_gnet_tab();
+	tab_window[nb_main_page_network] = create_main_window_gnet_tab();
 	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
 	tab_window[nb_main_page_uploads_stats] =
 		create_main_window_upload_stats_tab();
@@ -231,7 +231,7 @@ gui_init_main_window(void)
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
 	tab_window[nb_main_page_search_stats] =
 		create_main_window_search_stats_tab();
-	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
+	tab_window[nb_main_page_stats] = create_main_window_gnet_stats_tab();
 	tab_window[nb_main_page_hostcache] = create_main_window_hostcache_tab();
 
 	/*
@@ -628,7 +628,7 @@ main_gui_run(const gchar *geometry_spec)
 
 	gtk_notebook_set_page(
 		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-		nb_main_page_gnet);
+		nb_main_page_network);
 
 	settings_gui_restore_panes();
     gtk_main();

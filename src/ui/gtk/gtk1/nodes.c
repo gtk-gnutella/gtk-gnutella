@@ -94,7 +94,7 @@ nodes_gui_is_visible(void)
 
 	current_page = gtk_notebook_get_current_page(notebook);
 
-	return current_page == nb_main_page_gnet;
+	return current_page == nb_main_page_network;
 }
 
 /***

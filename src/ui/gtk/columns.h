@@ -101,7 +101,7 @@ enum {
  */
 
 enum {
-    c_dl_filename = 0,
+    c_dl_filename,
     c_dl_host,
     c_dl_loc,
     c_dl_size,
@@ -109,6 +109,7 @@ enum {
     c_dl_server,
     c_dl_progress,
     c_dl_status,
+
     c_dl_num
 #define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
 };

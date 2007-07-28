@@ -700,7 +700,7 @@ gnet_stats_gui_update(time_t now)
 		return;
 
 	current_page = gtk_notebook_get_current_page(notebook_main);
-	if (current_page != nb_main_page_gnet_stats)
+	if (current_page != nb_main_page_stats)
 		return;
 
 	if (last_update && 0 == delta_time(last_update, now))
