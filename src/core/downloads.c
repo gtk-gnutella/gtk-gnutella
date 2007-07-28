@@ -3243,7 +3243,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		d->bio = NULL;		/* Was a copy via browse_host_io_source() */
 	}
 
-	if (d->flags & DL_F_THEX) {
+	if (d->thex) {
 		const struct sha1 *sha1;
 		fileinfo_t *fi;
 
@@ -4097,8 +4097,13 @@ download_start(struct download *d, gboolean check_allowed)
 	guint16 port;
 
 	download_check(d);
-	g_return_if_fail(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
 	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
+
+	if (FILE_INFO_FINISHED(d->file_info))
+		return;
+
+	g_return_if_fail(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
 	g_return_if_fail(d->file_info->refcount > 0);
 	g_return_if_fail(d->file_info->lifecount > 0);
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
@@ -4226,8 +4231,12 @@ void
 download_pause(struct download *d)
 {
 	download_check(d);
-
 	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
+
+	if (FILE_INFO_FINISHED(d->file_info))
+		return;
+
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags |= DL_F_PAUSED;
@@ -4241,9 +4250,9 @@ download_pause(struct download *d)
 
 	if (!DOWNLOAD_IS_QUEUED(d)) {
 
-		if (DOWNLOAD_IS_STOPPED(d))
+		if (DOWNLOAD_IS_STOPPED(d)) {
 			d->file_info->lifecount++;
-
+		}
 		download_queue(d, _("Paused"));
 	}
 }
@@ -5600,8 +5609,12 @@ void
 download_resume(struct download *d)
 {
 	download_check(d);
-
 	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
+
+	if (FILE_INFO_FINISHED(d->file_info))
+		return;
+
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags &= ~DL_F_PAUSED;
@@ -5656,14 +5669,20 @@ void
 download_requeue(struct download *d)
 {
 	download_check(d);
-	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
+	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
 
+	if (FILE_INFO_FINISHED(d->file_info))
+		return;
+
+	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
 
 	if (DOWNLOAD_IS_STOPPED(d))
 		d->file_info->lifecount++;
 
+	g_return_if_fail(d->file_info->lifecount > 0);
 	download_queue(d, _("Explicitly requeued"));
 }
 
