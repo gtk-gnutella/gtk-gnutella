@@ -114,6 +114,9 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 	GtkWidget *menuitem = NULL;
 	GtkTreeViewColumn *col;
 
+	g_assert(menuitem_ptr);
+	*menuitem_ptr = NULL;
+
 	g_return_val_if_fail(widget != NULL, NULL);
 	g_return_val_if_fail(i >= 0, NULL);
 
@@ -127,8 +130,7 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 		menuitem = gtk_check_menu_item_new_with_label(title);
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), visible);
 	}
-	if (menuitem_ptr)
-		*menuitem_ptr = menuitem;
+	*menuitem_ptr = menuitem;
 
 	return col;
 }
@@ -158,16 +160,15 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 GtkWidget *
 gtk_column_chooser_new(GtkWidget *widget)
 {
-    GtkColumnChooser * cc;
-    GtkMenu * menu;
-    GtkWidget * menuitem;
+    GtkColumnChooser *cc;
+    GtkWidget *menuitem;
+    GtkMenu *menu;
 	gint i;
 
 	g_return_val_if_fail(widget != NULL, NULL);
 
     cc = gtk_type_new(GTK_TYPE_COLUMN_CHOOSER);
     cc->widget = widget;
-
     menu = GTK_MENU(cc);
 
 	for (i = 0; has_nth_column(widget, i); i++) {
