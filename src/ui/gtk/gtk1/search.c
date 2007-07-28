@@ -98,7 +98,7 @@ static void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree);
 /*
  * If no searches are currently allocated
  */
-GtkCTree *default_search_ctree;
+static GtkCTree *default_search_ctree;
 static GtkWidget *default_scrolled_window;
 
 
