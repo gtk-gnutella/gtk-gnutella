@@ -1323,6 +1323,12 @@ fi_gui_select_by_regex(const gchar *regex)
 
 	ctx.matches = 0;
 	ctx.total_nodes = 0;
+	ctx.selection = gtk_tree_view_get_selection(fi_gui_current_treeview());
+	gtk_tree_selection_unselect_all(ctx.selection);
+
+	if (NULL == regex || '\0' == regex[0])
+		return;
+
 	flags = REG_EXTENDED | REG_NOSUB;
    	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
     err = regcomp(&ctx.re, regex, flags);
@@ -1330,12 +1336,8 @@ fi_gui_select_by_regex(const gchar *regex)
         gchar buf[1024];
 
 		regerror(err, &ctx.re, buf, sizeof buf);
-        statusbar_gui_warning(15,
-			"on_entry_regex_activate: regex error %s", buf);
+        statusbar_gui_warning(15, "regex error %s", buf);
     } else {
-		ctx.selection = gtk_tree_view_get_selection(fi_gui_current_treeview());
-		gtk_tree_selection_unselect_all(ctx.selection);
-
 		gtk_tree_model_foreach(GTK_TREE_MODEL(fi_gui_current_store()),
 			fi_gui_select_by_regex_helper, &ctx);
 
