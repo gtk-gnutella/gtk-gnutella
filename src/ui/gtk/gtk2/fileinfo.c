@@ -1309,8 +1309,7 @@ fi_gui_select_by_regex_helper(GtkTreeModel *model,
 		gtk_tree_selection_select_iter(ctx->selection, iter);
 		ctx->matches++;
 	} else if (n == REG_ESPACE) {
-		g_warning("on_entry_regex_activate: "
-				"regexp memory overflow");
+		g_warning("on_entry_regex_activate: regexp memory overflow");
 	}
 	return FALSE;
 }
@@ -1336,7 +1335,8 @@ fi_gui_select_by_regex(const gchar *regex)
         gchar buf[1024];
 
 		regerror(err, &ctx.re, buf, sizeof buf);
-        statusbar_gui_warning(15, "regex error %s", buf);
+        statusbar_gui_warning(15, "regex error: %s",
+			lazy_locale_to_ui_string(buf));
     } else {
 		gtk_tree_model_foreach(GTK_TREE_MODEL(fi_gui_current_store()),
 			fi_gui_select_by_regex_helper, &ctx);
