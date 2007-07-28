@@ -853,6 +853,16 @@ shrink_frame_status(void)
 #endif /* USE_GTK1 */
 }
 
+static GtkWidget *
+get_push_button(void)
+{
+#ifdef USE_GTK1
+	return gui_popup_downloads_lookup("popup_downloads_push");
+#else
+	return gui_popup_sources_lookup("popup_sources_push");
+#endif
+}
+
 static gboolean
 is_firewalled_changed(property_t unused_prop)
 {
@@ -906,13 +916,13 @@ is_firewalled_changed(property_t unused_prop)
 			gtk_widget_show(icon_udp_firewall_punchable);
 		else
 			gtk_widget_show(icon_udp_firewall);
-	} else
+	} else {
 		gtk_widget_show(icon_open);
-
+	}
 	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
-	gtk_widget_set_sensitive
-		(gui_popup_downloads_lookup("popup_downloads_push"),
-		!is_tcp_firewalled && send_pushes);
+	send_pushes = send_pushes && !is_tcp_firewalled;
+
+	gtk_widget_set_sensitive(get_push_button(), send_pushes);
 
 	return FALSE;
 }
@@ -1575,9 +1585,8 @@ send_pushes_changed(property_t prop)
     gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(lookup_widget(top, map_entry->wid)), !val);
 
-  	gtk_widget_set_sensitive
-        (gui_popup_downloads_lookup("popup_downloads_push"),
-		val && !is_firewalled);
+	val = val && !is_firewalled;
+	gtk_widget_set_sensitive(get_push_button(), val);
 
     return FALSE;
 }

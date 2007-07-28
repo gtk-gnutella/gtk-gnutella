@@ -48,6 +48,7 @@ WIDGET(popup_nodes)
 WIDGET(popup_queue)
 WIDGET(popup_search)
 WIDGET(popup_search_list)
+WIDGET(popup_sources)
 WIDGET(popup_uploads)
 WIDGET(shutdown_window)
 #undef WIDGET

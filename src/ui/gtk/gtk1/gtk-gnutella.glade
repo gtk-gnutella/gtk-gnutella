@@ -25115,4 +25115,75 @@ allowed</label>
   </widget>
 </widget>
 
+<widget>
+  <class>GtkMenu</class>
+  <name>popup_sources</name>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_sources_browse_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_sources_browse_host_activate</handler>
+      <last_modification_time>Sat, 28 Jul 2007 03:43:17 GMT</last_modification_time>
+    </signal>
+    <label>Browse host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_sources_connect</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_sources_connect_activate</handler>
+      <last_modification_time>Sat, 28 Jul 2007 03:43:17 GMT</last_modification_time>
+    </signal>
+    <label>Connect to host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_sources_copy_url</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_sources_copy_url_activate</handler>
+      <last_modification_time>Sat, 28 Jul 2007 03:43:17 GMT</last_modification_time>
+    </signal>
+    <label>Copy URL to clipboard</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_sources_push</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_sources_push_activate</handler>
+      <last_modification_time>Sat, 28 Jul 2007 03:43:17 GMT</last_modification_time>
+    </signal>
+    <label>Force push mode</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator26</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_sources_config_cols</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_sources_config_cols_activate</handler>
+      <last_modification_time>Sat, 28 Jul 2007 03:43:17 GMT</last_modification_time>
+    </signal>
+    <label>Configure columns</label>
+    <right_justify>False</right_justify>
+  </widget>
+</widget>
+
 </GTK-Interface>

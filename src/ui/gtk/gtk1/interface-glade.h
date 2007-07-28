@@ -19,3 +19,4 @@ GtkWidget* create_removed_widgets (void);
 GtkWidget* create_dlg_faq (void);
 GtkWidget* create_popup_search_list (void);
 GtkWidget* create_dlg_ancient (void);
+GtkWidget* create_popup_sources (void);

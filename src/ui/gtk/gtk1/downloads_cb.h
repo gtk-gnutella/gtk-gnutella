@@ -89,4 +89,15 @@ void on_popup_downloads_selection_get(GtkWidget *widget,
 gint on_popup_downloads_selection_clear_event(GtkWidget *widget,
 	GdkEventSelection *event);
 
+void on_popup_sources_browse_host_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_config_cols_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_connect_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_copy_url_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_forget_activate(GtkMenuItem *, gpointer udata);
+void on_popup_sources_pause_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_push_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_queue_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_resume_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_start_now_activate(GtkMenuItem *, gpointer udata);
+
 #endif /* _gtk1_downloads_cb_h_ */

@@ -118,6 +118,7 @@ WIDGET(popup_nodes)
 WIDGET(popup_queue)
 WIDGET(popup_search)
 WIDGET(popup_search_list)
+WIDGET(popup_sources)
 WIDGET(popup_uploads)
 WIDGET(shutdown_window)
 #undef WIDGET
@@ -509,6 +510,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	gui_popup_queue_set(create_popup_dl_queued());
 #endif /* USE_GTK1 */
 
+	gui_popup_sources_set(create_popup_sources());
 	gui_popup_monitor_set(create_popup_monitor());
 
 	gui_popup_nodes_set(create_popup_nodes());
@@ -569,12 +571,6 @@ main_gui_init(void)
         (gui_popup_queue_lookup("popup_queue_abort_named"), FALSE);
 	gtk_widget_set_sensitive
         (gui_popup_queue_lookup("popup_queue_abort_host"), FALSE);
-    gtk_widget_set_sensitive(
-        gui_popup_downloads_lookup("popup_downloads_push"),
-    	!gtk_toggle_button_get_active(
-            GTK_TOGGLE_BUTTON
-                (lookup_widget(gui_main_window(),
-                               "checkbutton_downloads_never_push"))));
 #endif /* USE_GTK1 */
 
     settings_gui_init();

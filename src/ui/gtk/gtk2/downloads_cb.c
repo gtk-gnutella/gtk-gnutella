@@ -42,26 +42,15 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-GSList *fi_gui_download_select(gboolean unselect);
 void fi_gui_select_by_regex(const gchar *regex);
+GSList *fi_gui_sources_select(gboolean unselect);
+GSList *fi_gui_files_select(gboolean unselect);
+GSList *fi_gui_sources_of_selected_files(gboolean unselect);
 GtkTreeView *fi_gui_current_treeview(void);
 
 /***
  *** Popup menu: downloads
  ***/
-
-/**
- * Informs the user about the number of removed downloads.
- *
- * @param removed amount of removed downloads.
- */
-static void
-show_removed(guint removed)
-{
-    statusbar_gui_message(15,
-		NG_("Removed %u download", "Removed %u downloads", removed),
-		removed);
-}
 
 static void
 push_activate(void)
@@ -75,7 +64,7 @@ push_activate(void)
    	if (firewalled || !send_pushes)
        	return;
 
-	selected = fi_gui_download_select(TRUE);
+	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -91,7 +80,7 @@ push_activate(void)
  * Causes all selected active downloads to fall back to push.
  */
 void
-on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	(void) unused_menuitem;
@@ -104,7 +93,7 @@ on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
  * Initiates a browse host request to the currently selected host.
  */
 void
-on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
@@ -112,7 +101,7 @@ on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -127,39 +116,10 @@ on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 /**
  * For all selected active downloads, remove all downloads with
- * the same name.
- */
-void
-on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	GSList *sl, *selected;
-    guint removed = 0;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-   	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-		removed += guc_download_remove_all_named(d->file_name);
-	}
-	g_slist_free(selected);
-
-	show_removed(removed);
-}
-
-
-/**
- * For all selected active downloads, remove all downloads with
  * the same host.
  */
-/* XXX: routing misnamed: we're "forgetting" here, not "aborting" */
 void
-on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
@@ -168,7 +128,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	selected = fi_gui_download_select(TRUE);
+	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -184,83 +144,14 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 		removed);
 }
 
-
-/**
- * For all selected active downloads, remove all downloads with
- * the same sha1.
- */
-void
-on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	GSList *sl, *selected;
-    guint removed = 0;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-   	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-
-		if (d->file_info->sha1)
-			removed += guc_download_remove_all_with_sha1(d->file_info->sha1);
-	}
-	g_slist_free(selected);
-
-    show_removed(removed);
-}
-
-
-/**
- * For all selected active downloads, remove file.
- */
-void
-on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
-     gpointer unused_udata)
-{
-	GSList *sl, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-	/*
-	 * We request a reset of the fileinfo to prevent discarding
-	 * should we relaunch: non-reset fileinfos are discarded if the file
-	 * is missing.
-	 *		--RAM, 04/01/2003.
-	 */
-
-   	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-
-    	if (d->status != GTA_DL_ERROR && d->status != GTA_DL_ABORTED)
-			continue;
-
-		if (guc_download_file_exists(d))
-			guc_download_remove_file(d, TRUE);
-	}
-	g_slist_free(selected);
-}
-
 static void
 copy_selection_to_clipboard(void)
 {
-	GSList *sl, *selected;
+	GSList *selected;
 
-   	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
+   	selected = fi_gui_sources_select(TRUE);
+	if (selected) {
+		struct download *d = selected->data;
 		gchar *url;
 
 		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
@@ -282,7 +173,7 @@ copy_selection_to_clipboard(void)
  * For selected download, copy URL to clipboard.
  */
 void
-on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	(void) unused_menuitem;
@@ -296,7 +187,7 @@ on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
  * For all selected active downloads connect to host.
  */
 void
-on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_connect_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
@@ -304,7 +195,7 @@ on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -327,7 +218,30 @@ on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_of_selected_files(TRUE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		guc_download_start(d, TRUE);
+   	}
+	g_slist_free(selected);
+}
+
+/**
+ * For all selected downloads, activate them.
+ */
+void
+on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *sl, *selected;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -350,7 +264,7 @@ on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_of_selected_files(TRUE);
 	if (!selected)
 		return;
 
@@ -361,12 +275,11 @@ on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	g_slist_free(selected);
 }
 
-
 /**
- * For all selected downloads, remove them.
+ * For all selected downloads, activate them.
  */
 void
-on_popup_downloads_remove_activate(GtkMenuItem *unused_menuitem,
+on_popup_sources_pause_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
@@ -374,13 +287,13 @@ on_popup_downloads_remove_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		guc_download_remove_file(d, TRUE);
+		guc_download_pause(d);
    	}
 	g_slist_free(selected);
 }
@@ -397,7 +310,30 @@ on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_of_selected_files(TRUE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		guc_download_resume(d);
+   	}
+	g_slist_free(selected);
+}
+
+/**
+ * For all selected downloads, resume them.
+ */
+void
+on_popup_sources_resume_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *sl, *selected;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -420,7 +356,30 @@ on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
+   	selected = fi_gui_sources_of_selected_files(TRUE);
+	if (!selected)
+		return;
+
+	for (sl = selected; sl; sl = g_slist_next(sl)) {
+		struct download *d = sl->data;
+		guc_download_requeue(d);
+   	}
+	g_slist_free(selected);
+}
+
+/**
+ * For all selected downloads, queue them.
+ */
+void
+on_popup_sources_queue_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	GSList *sl, *selected;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+   	selected = fi_gui_sources_select(TRUE);
 	if (!selected)
 		return;
 
@@ -438,22 +397,11 @@ void
 on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-	GSList *sl, *selected;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-   	selected = fi_gui_download_select(TRUE);
-	if (!selected)
-		return;
-
-	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-		guc_download_abort(d);
-   	}
-	g_slist_free(selected);
+	guc_fi_purge_by_handle_list(fi_gui_files_select(TRUE));
 }
-
 
 /***
  *** downloads pane
@@ -473,7 +421,19 @@ on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 }
 
+void
+on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+    GtkWidget *widget, *cc;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	widget = gui_main_window_lookup("treeview_download_sources");
+    cc = gtk_column_chooser_new(GTK_WIDGET(widget));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+}
 
 /***
  *** Queued downloads
@@ -511,7 +471,6 @@ on_treeview_downloads_button_press_event(GtkWidget *widget,
 	if (event->button != 3)
 		return FALSE;
 
-
 	if (NULL == gtk_tree_view_get_selection(GTK_TREE_VIEW(widget)))
 		return FALSE;
 
@@ -521,35 +480,26 @@ on_treeview_downloads_button_press_event(GtkWidget *widget,
 	return TRUE;
 }
 
-void
-on_treeview_downloads_select_row(GtkTreeView *tree_view,
-	gpointer unused_udata)
+/**
+ * When the right mouse button is clicked on the active downloads
+ * treeview, show the popup with the context menu.
+ */
+gboolean
+on_treeview_sources_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata)
 {
-	GtkTreeSelection *selection;
-   	GSList *selected;
-    gboolean activate;
-
 	(void) unused_udata;
 
-	/* The user selects a row(s) in the downloads treeview
-	 * we unselect all rows in the downloads tree view
-	 */
-	tree_view = GTK_TREE_VIEW(gui_main_window_lookup("treeview_downloads"));
-	selection = gtk_tree_view_get_selection(tree_view);
-	gtk_tree_selection_unselect_all(selection);
+	if (event->button != 3)
+		return FALSE;
 
-   	selected = fi_gui_download_select(FALSE);
-	activate = NULL != selected && g_slist_next(selected) == NULL;
-	g_slist_free(selected);
-	selected = NULL;
+	if (NULL == gtk_tree_view_get_selection(GTK_TREE_VIEW(widget)))
+		return FALSE;
 
-    gtk_widget_set_sensitive(
-		gui_popup_downloads_lookup("popup_downloads_copy_url"), activate);
-   	gtk_widget_set_sensitive(
-		gui_popup_downloads_lookup("popup_downloads_connect"), activate);
+    gtk_menu_popup(GTK_MENU(gui_popup_sources()), NULL, NULL, NULL, NULL,
+        event->button, event->time);
 
-	/* Takes care of other widgets */
-	gui_update_download_abort_resume();
+	return TRUE;
 }
 
 void

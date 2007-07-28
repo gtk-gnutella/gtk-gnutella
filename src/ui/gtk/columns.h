@@ -114,6 +114,18 @@ enum {
 #define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
 };
 
+enum {
+	c_src_host,
+	c_src_country,
+	c_src_server,
+	c_src_range,
+	c_src_progress,
+	c_src_status,
+
+#define SOURCES_VISIBLE_COLUMNS ((guint) c_src_num)
+	c_src_num
+};
+
 /*
  * Queue table columns.
  */
