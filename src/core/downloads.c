@@ -11197,8 +11197,16 @@ download_resume_bg_tasks(void)
 
 	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
 		fileinfo_t *fi = sl->data;
-		g_assert(FILE_INFO_COMPLETE(fi));
-		queue_remove_downloads_with_file(fi, NULL);
+	
+		file_info_check(fi);
+
+		/*
+		 * Recheck whether the file is complete as some of the
+		 * above may cause the file to become incomplete again.
+		 */
+		if (FILE_INFO_COMPLETE(fi)) {
+			queue_remove_downloads_with_file(fi, NULL);
+		}
 	}
 
 	g_slist_free(to_remove);
