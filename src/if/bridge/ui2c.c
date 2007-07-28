@@ -293,6 +293,12 @@ guc_download_get_country(const struct download *d)
 	return iso3166_country_cc(download_country(d));
 }
 
+const gchar *
+guc_download_get_vendor(const struct download *d)
+{
+	return download_vendor_str(d);
+}
+
 gdouble
 guc_download_source_progress(const struct download *d)
 {

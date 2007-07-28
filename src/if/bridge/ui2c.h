@@ -117,6 +117,7 @@ void guc_download_clear_stopped(gboolean complete,
 guint guc_download_handle_magnet(const gchar *url);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
+const gchar *guc_download_get_vendor(const struct download *d);
 gdouble guc_download_source_progress(const struct download *d);
 gdouble guc_download_total_progress(const struct download *d);
 gboolean guc_download_something_to_clear(void);
