@@ -968,10 +968,12 @@ on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 }
 
 void
-on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
+on_menu_menubar_visible_activate(GtkMenuItem *menuitem,
+	gpointer unused_udata)
 {
 	(void) unused_udata;
-	checkmenu_changed(gui, PROP_TOOLBAR_VISIBLE, menuitem);
+
+	checkmenu_changed(gui, PROP_MENUBAR_VISIBLE, menuitem);
 }
 
 void

@@ -11,6 +11,7 @@ gchar *s = N_("_Quit");
 gchar *s = N_("_View");
 gchar *s = N_("show Search_bar");
 gchar *s = N_("show _Sidebar");
+gchar *s = N_("show _Menubar");
 gchar *s = N_("show _Statusbar");
 gchar *s = N_("Connection counters");
 gchar *s = N_("show _Downloads");

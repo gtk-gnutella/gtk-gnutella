@@ -36,6 +36,7 @@ create_main_window (void)
   GtkAccelGroup *menu_view_menu_accels;
   GtkWidget *menu_searchbar_visible;
   GtkWidget *menu_sidebar_visible;
+  GtkWidget *menu_menubar_visible;
   GtkWidget *menu_statusbar_visible;
   GtkWidget *separator24;
   GtkWidget *connection_counters1;
@@ -758,6 +759,22 @@ create_main_window (void)
                               GDK_F8, 0,
                               GTK_ACCEL_VISIBLE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_sidebar_visible), TRUE);
+
+  menu_menubar_visible = gtk_check_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_menubar_visible)->child),
+                                   _("show _Menubar"));
+  gtk_widget_add_accelerator (menu_menubar_visible, "activate_item", menu_view_menu_accels,
+                              tmp_key, 0, 0);
+  gtk_widget_set_name (menu_menubar_visible, "menu_menubar_visible");
+  gtk_widget_ref (menu_menubar_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_menubar_visible", menu_menubar_visible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_menubar_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_menubar_visible);
+  gtk_widget_add_accelerator (menu_menubar_visible, "activate", accel_group,
+                              GDK_F9, 0,
+                              GTK_ACCEL_VISIBLE);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_menubar_visible), TRUE);
 
   menu_statusbar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_statusbar_visible)->child),
@@ -5704,6 +5721,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_sidebar_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_sidebar_visible_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_menubar_visible), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_menubar_visible_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_statusbar_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_statusbar_visible_activate),

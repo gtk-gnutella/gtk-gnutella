@@ -32,13 +32,21 @@
 #include "lib/prop.h"
 
 /*
+ * GtkWidget
+ */
+#ifdef USE_GTK1
+#define gtk_widget_set_size_request(widget, width, height) \
+	gtk_widget_set_usize((widget), (width), (height))
+#endif
+
+/*
  * GtkProgressBar
  *
  * Make Gtk1 and Gtk2 versions useable using the same interface.
  */
-#ifndef USE_GTK2
+#ifdef USE_GTK1
 #define gtk_progress_bar_set_fraction(pb, val) \
-    gtk_progress_set_percentage(GTK_PROGRESS(pb), val)
+    gtk_progress_set_percentage(GTK_PROGRESS(pb), (val))
 void gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text);
 gint gtk_paned_get_position(GtkPaned *paned);
 #endif
@@ -46,7 +54,7 @@ gint gtk_paned_get_position(GtkPaned *paned);
 /*
  * GtkSpinButton
  */
-#ifndef USE_GTK2
+#ifdef USE_GTK1
 #define gtk_spin_button_get_value(w) \
     _gtk_spin_button_get_value(w)
 #endif

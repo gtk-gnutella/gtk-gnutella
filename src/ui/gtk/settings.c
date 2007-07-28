@@ -1587,25 +1587,24 @@ searchbar_visible_changed(property_t prop)
 {
 	GtkWidget *widget;
 	GtkWidget *viewport, *entry;
-	gboolean b;
+	gboolean visible;
 
-	gui_prop_get_boolean_val(prop, &b);
+	gui_prop_get_boolean_val(prop, &visible);
 
 	viewport = gui_main_window_lookup("viewport_searchbar");
 	entry = gui_main_window_lookup("entry_search");
 
-	if (b) {
+	if (visible) {
 		gtk_widget_show(viewport);
 	} else {
 		gtk_widget_hide(viewport);
 	}
 
 	widget = gui_main_window_lookup("menu_searchbar_visible");
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
-
-	if (b && !GTK_WIDGET_HAS_FOCUS(entry))
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
+	if (visible && !GTK_WIDGET_HAS_FOCUS(entry)) {
 		gtk_widget_grab_focus(entry);
-
+	}
 	return FALSE;
 }
 
@@ -1613,36 +1612,63 @@ static gboolean
 sidebar_visible_changed(property_t prop)
 {
 	GtkWidget *widget;
-    gboolean b;
+    gboolean visible;
 
-    gui_prop_get_boolean_val(prop, &b);
+    gui_prop_get_boolean_val(prop, &visible);
 
 	widget = gui_main_window_lookup("menu_sidebar_visible");
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), b);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
 
 	widget = gui_main_window_lookup("vbox_sidebar");
-   	(b ? gtk_widget_show : gtk_widget_hide)(widget);
+	if (visible) {
+		gtk_widget_show(widget);
+	} else {
+		gtk_widget_hide(widget);
+	}
 
+    return FALSE;
+}
+
+static gboolean
+menubar_visible_changed(property_t prop)
+{
+	GtkWidget *widget;
+    gboolean visible;
+
+	widget = gui_main_window_lookup("menu_menubar_visible");
+    gui_prop_get_boolean_val(prop, &visible);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
+	widget = gui_main_window_lookup("menubar_main");
+	/*
+	 * The menubar is not hidden but shrunk to a single pixel in height
+	 * so that the accelerator keys (like Control-Q) are still functional.
+	 */
+	if (visible) {
+		gtk_widget_set_size_request(widget, -1, -1);
+	} else {
+		/* 1 pixel is the smallest size, 0 means "as small as possible" */
+		gtk_widget_set_size_request(widget, -1, 1);
+	}
     return FALSE;
 }
 
 static gboolean
 statusbar_visible_changed(property_t prop)
 {
-    gboolean b;
+	GtkWidget *widget;
+    gboolean visible;
 
-    gui_prop_get_boolean_val(prop, &b);
+    gui_prop_get_boolean_val(prop, &visible);
     gtk_check_menu_item_set_active(
         GTK_CHECK_MENU_ITEM
             (gui_main_window_lookup("menu_statusbar_visible")),
-        b);
+        visible);
 
-   	if (b) {
-		gtk_widget_show
-            (gui_main_window_lookup("hbox_statusbar"));
+	widget = gui_main_window_lookup("hbox_statusbar");
+   	if (visible) {
+		gtk_widget_show(widget);
 	} else {
-		gtk_widget_hide
-            (gui_main_window_lookup("hbox_statusbar"));
+		gtk_widget_hide(widget);
 	}
 
     return FALSE;
@@ -2872,6 +2898,14 @@ static prop_map_t property_map[] = {
         searchbar_visible_changed,
         TRUE,
         "menu_searchbar_visible",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_MENUBAR_VISIBLE,
+        menubar_visible_changed,
+        TRUE,
+        "menu_menubar_visible",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

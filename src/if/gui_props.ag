@@ -484,20 +484,12 @@ prop = {
 };
 
 prop = {
-    name = "navtree_visible";
-    desc = "Display Navigation Tree.";
+    name = "menubar_visible";
+    desc = "Display Menu.";
+    save = FALSE;
     type = boolean;
     data = {
         default     = TRUE;
-    };
-};
-
-prop = {
-    name = "toolbar_visible";
-    desc = "Display toolbar.";
-    type = boolean;
-    data = {
-        default     = FALSE;
     };
 };
 

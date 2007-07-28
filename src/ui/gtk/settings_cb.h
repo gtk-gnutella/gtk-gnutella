@@ -71,30 +71,27 @@ void on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	gpointer unused_udata);
 #endif /* USE_GTK1*/
 
-void on_menu_searchbar_visible_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata);
-void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_connections_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_downloads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_uploads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_glin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_autohide_bws_gleaf_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_searchbar_visible_activate(GtkMenuItem *, gpointer unused_udata);
+void on_menu_menubar_visible_activate(GtkMenuItem *, gpointer unused_udata);
+void on_menu_sidebar_visible_activate(GtkMenuItem *, gpointer unused_udata);
+void on_menu_statusbar_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_toolbar_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_connections_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_downloads_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_uploads_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_in_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_out_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_gin_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_gout_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_glin_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_bws_glout_visible_activate(GtkMenuItem *, gpointer user_data);
+void on_menu_autohide_bws_gleaf_activate(GtkMenuItem *, gpointer user_data);
 
-void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_button_dbg_property_refresh_clicked(GtkButton *unused_button,
-	gpointer unused_udata);
+void on_popup_search_toggle_tabs_activate (GtkMenuItem *, gpointer user_data);
+void on_button_dbg_property_refresh_clicked(GtkButton *, gpointer unused_udata);
 
 #ifdef USE_GTK2
-void
-on_button_config_remove_dir_clicked(GtkButton *unused_button,
-	gpointer unused_udata);
+void on_button_config_remove_dir_clicked(GtkButton *, gpointer unused_udata);
 #endif /* USE_GTK2 */
 
 #endif /* _gtk_settings_cb_h_ */

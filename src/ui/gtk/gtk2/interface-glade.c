@@ -1638,18 +1638,19 @@ create_main_window (void)
   GtkWidget *vbox12;
   GtkWidget *menubar_main;
   GtkWidget *menu_file;
-  GtkWidget *image1946;
+  GtkWidget *image1985;
   GtkWidget *menu_file_menu;
   GtkWidget *menu_prefs;
-  GtkWidget *image1947;
+  GtkWidget *image1986;
   GtkWidget *separator27;
   GtkWidget *quit;
-  GtkWidget *image1948;
+  GtkWidget *image1987;
   GtkWidget *menu_view;
-  GtkWidget *image1949;
+  GtkWidget *image1988;
   GtkWidget *menu_view_menu;
   GtkWidget *menu_searchbar_visible;
   GtkWidget *menu_sidebar_visible;
+  GtkWidget *menu_menubar_visible;
   GtkWidget *menu_statusbar_visible;
   GtkWidget *separator29;
   GtkWidget *connection_counters1;
@@ -1671,14 +1672,12 @@ create_main_window (void)
   GtkWidget *menu_bws_glin_visible;
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_help;
-  GtkWidget *image1950;
+  GtkWidget *image1989;
   GtkWidget *menu_help_menu;
-  GtkWidget *menu_keyboard_shortcuts;
-  GtkWidget *image1951;
   GtkWidget *menu_faq;
-  GtkWidget *image1952;
+  GtkWidget *image1990;
   GtkWidget *menu_about;
-  GtkWidget *image1953;
+  GtkWidget *image1991;
   GtkWidget *viewport_searchbar;
   GtkWidget *table107;
   GtkWidget *button_search;
@@ -1829,10 +1828,10 @@ create_main_window (void)
   gtk_widget_show (menu_file);
   gtk_container_add (GTK_CONTAINER (menubar_main), menu_file);
 
-  image1946 = gtk_image_new_from_stock ("gtk-home", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1946, "image1946");
-  gtk_widget_show (image1946);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_file), image1946);
+  image1985 = gtk_image_new_from_stock ("gtk-home", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1985, "image1985");
+  gtk_widget_show (image1985);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_file), image1985);
 
   menu_file_menu = gtk_menu_new ();
   gtk_widget_set_name (menu_file_menu, "menu_file_menu");
@@ -1846,10 +1845,10 @@ create_main_window (void)
                               GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image1947 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1947, "image1947");
-  gtk_widget_show (image1947);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_prefs), image1947);
+  image1986 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1986, "image1986");
+  gtk_widget_show (image1986);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_prefs), image1986);
 
   separator27 = gtk_separator_menu_item_new ();
   gtk_widget_set_name (separator27, "separator27");
@@ -1865,20 +1864,20 @@ create_main_window (void)
                               GDK_q, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image1948 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1948, "image1948");
-  gtk_widget_show (image1948);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image1948);
+  image1987 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1987, "image1987");
+  gtk_widget_show (image1987);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image1987);
 
   menu_view = gtk_image_menu_item_new_with_mnemonic (_("_View"));
   gtk_widget_set_name (menu_view, "menu_view");
   gtk_widget_show (menu_view);
   gtk_container_add (GTK_CONTAINER (menubar_main), menu_view);
 
-  image1949 = gtk_image_new_from_stock ("gtk-properties", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1949, "image1949");
-  gtk_widget_show (image1949);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_view), image1949);
+  image1988 = gtk_image_new_from_stock ("gtk-properties", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1988, "image1988");
+  gtk_widget_show (image1988);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_view), image1988);
 
   menu_view_menu = gtk_menu_new ();
   gtk_widget_set_name (menu_view_menu, "menu_view_menu");
@@ -1898,6 +1897,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_sidebar_visible);
   gtk_widget_add_accelerator (menu_sidebar_visible, "activate", accel_group,
                               GDK_F8, (GdkModifierType) 0,
+                              GTK_ACCEL_VISIBLE);
+
+  menu_menubar_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Menubar"));
+  gtk_widget_set_name (menu_menubar_visible, "menu_menubar_visible");
+  gtk_widget_show (menu_menubar_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_menubar_visible);
+  gtk_widget_add_accelerator (menu_menubar_visible, "activate", accel_group,
+                              GDK_F9, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
   menu_statusbar_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Statusbar"));
@@ -2010,24 +2017,14 @@ create_main_window (void)
   gtk_widget_show (menu_help);
   gtk_container_add (GTK_CONTAINER (menubar_main), menu_help);
 
-  image1950 = gtk_image_new_from_stock ("gtk-help", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1950, "image1950");
-  gtk_widget_show (image1950);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_help), image1950);
+  image1989 = gtk_image_new_from_stock ("gtk-help", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1989, "image1989");
+  gtk_widget_show (image1989);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_help), image1989);
 
   menu_help_menu = gtk_menu_new ();
   gtk_widget_set_name (menu_help_menu, "menu_help_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_help), menu_help_menu);
-
-  menu_keyboard_shortcuts = gtk_image_menu_item_new_with_mnemonic (_("_Keyboard shortcuts"));
-  gtk_widget_set_name (menu_keyboard_shortcuts, "menu_keyboard_shortcuts");
-  gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_keyboard_shortcuts);
-  gtk_widget_set_sensitive (menu_keyboard_shortcuts, FALSE);
-
-  image1951 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1951, "image1951");
-  gtk_widget_show (image1951);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_keyboard_shortcuts), image1951);
 
   menu_faq = gtk_image_menu_item_new_with_mnemonic (_("_FAQ"));
   gtk_widget_set_name (menu_faq, "menu_faq");
@@ -2035,20 +2032,20 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
-  image1952 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1952, "image1952");
-  gtk_widget_show (image1952);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image1952);
+  image1990 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1990, "image1990");
+  gtk_widget_show (image1990);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image1990);
 
   menu_about = gtk_image_menu_item_new_with_mnemonic (_("_About"));
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_show (menu_about);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
 
-  image1953 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image1953, "image1953");
-  gtk_widget_show (image1953);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image1953);
+  image1991 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image1991, "image1991");
+  gtk_widget_show (image1991);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image1991);
 
   viewport_searchbar = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
@@ -2745,6 +2742,9 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_sidebar_visible, "activate",
                     G_CALLBACK (on_menu_sidebar_visible_activate),
                     NULL);
+  g_signal_connect ((gpointer) menu_menubar_visible, "activate",
+                    G_CALLBACK (on_menu_menubar_visible_activate),
+                    NULL);
   g_signal_connect ((gpointer) menu_statusbar_visible, "activate",
                     G_CALLBACK (on_menu_statusbar_visible_activate),
                     NULL);
@@ -2777,9 +2777,6 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) menu_bws_glout_visible, "activate",
                     G_CALLBACK (on_menu_bws_glout_visible_activate),
-                    NULL);
-  g_signal_connect ((gpointer) menu_keyboard_shortcuts, "activate",
-                    G_CALLBACK (on_menu_keyboard_shortcuts_activate),
                     NULL);
   g_signal_connect ((gpointer) menu_faq, "activate",
                     G_CALLBACK (on_menu_faq_activate),
@@ -2823,18 +2820,19 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, vbox12, "vbox12");
   GLADE_HOOKUP_OBJECT (main_window, menubar_main, "menubar_main");
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
-  GLADE_HOOKUP_OBJECT (main_window, image1946, "image1946");
+  GLADE_HOOKUP_OBJECT (main_window, image1985, "image1985");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_prefs, "menu_prefs");
-  GLADE_HOOKUP_OBJECT (main_window, image1947, "image1947");
+  GLADE_HOOKUP_OBJECT (main_window, image1986, "image1986");
   GLADE_HOOKUP_OBJECT (main_window, separator27, "separator27");
   GLADE_HOOKUP_OBJECT (main_window, quit, "quit");
-  GLADE_HOOKUP_OBJECT (main_window, image1948, "image1948");
+  GLADE_HOOKUP_OBJECT (main_window, image1987, "image1987");
   GLADE_HOOKUP_OBJECT (main_window, menu_view, "menu_view");
-  GLADE_HOOKUP_OBJECT (main_window, image1949, "image1949");
+  GLADE_HOOKUP_OBJECT (main_window, image1988, "image1988");
   GLADE_HOOKUP_OBJECT (main_window, menu_view_menu, "menu_view_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_searchbar_visible, "menu_searchbar_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_sidebar_visible, "menu_sidebar_visible");
+  GLADE_HOOKUP_OBJECT (main_window, menu_menubar_visible, "menu_menubar_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_statusbar_visible, "menu_statusbar_visible");
   GLADE_HOOKUP_OBJECT (main_window, separator29, "separator29");
   GLADE_HOOKUP_OBJECT (main_window, connection_counters1, "connection_counters1");
@@ -2856,14 +2854,12 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_glin_visible, "menu_bws_glin_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_glout_visible, "menu_bws_glout_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_help, "menu_help");
-  GLADE_HOOKUP_OBJECT (main_window, image1950, "image1950");
+  GLADE_HOOKUP_OBJECT (main_window, image1989, "image1989");
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
-  GLADE_HOOKUP_OBJECT (main_window, menu_keyboard_shortcuts, "menu_keyboard_shortcuts");
-  GLADE_HOOKUP_OBJECT (main_window, image1951, "image1951");
   GLADE_HOOKUP_OBJECT (main_window, menu_faq, "menu_faq");
-  GLADE_HOOKUP_OBJECT (main_window, image1952, "image1952");
+  GLADE_HOOKUP_OBJECT (main_window, image1990, "image1990");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
-  GLADE_HOOKUP_OBJECT (main_window, image1953, "image1953");
+  GLADE_HOOKUP_OBJECT (main_window, image1991, "image1991");
   GLADE_HOOKUP_OBJECT (main_window, viewport_searchbar, "viewport_searchbar");
   GLADE_HOOKUP_OBJECT (main_window, table107, "table107");
   GLADE_HOOKUP_OBJECT (main_window, button_search, "button_search");
