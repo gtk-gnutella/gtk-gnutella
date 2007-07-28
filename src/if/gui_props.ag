@@ -139,6 +139,17 @@ prop = {
 };
 
 prop = {
+    name = "sources_col_widths";
+    cfgvar = "widths_sources";
+    desc = "Widths of the columns in the sources table.";
+    type = guint32;
+    vector_size = SOURCES_VISIBLE_COLUMNS;
+    data = {
+        default = "{ 100, 100, 100, 100, 100, 100 }";
+    };
+};
+
+prop = {
     name = "search_list_col_widths";
     cfgvar = "widths_search_list";
     desc = "Widths of the columns in the search list on the sidebar.";
