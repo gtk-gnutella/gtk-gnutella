@@ -258,6 +258,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 {
 	struct moved *md = ctx;
 	struct download *d = md->d;
+	struct stat buf;
 	gint elapsed = 0;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -273,7 +274,11 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	close(md->rd);
 	md->rd = -1;
 
-	close(md->wd);
+	if (-1 == close(md->wd)) {
+		md->error = errno;
+		g_warning("error whilst closing copy target \"%s\": %s",
+			md->target, g_strerror(errno));
+	}
 	md->wd = -1;
 
 	/*
@@ -286,6 +291,28 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	if (md->error == 0) {
 		g_assert(md->copied == md->size);
 
+		/*
+		 * As a precaution, stat() the file.  When moving the file accross
+		 * NFS where the target filesystem is full, write() or close() may
+		 * not return ENOSPC.  Double-check here otherwise they'll lose
+		 * a perfectly good file.
+		 *		--RAM, 2007-07-30.
+		 */
+
+		if (-1 == stat(md->target, &buf)) {
+			md->error = errno;
+			g_warning("cannot stat copy target \"%s\": %s",
+				md->target, g_strerror(errno));
+			goto error;
+		}
+
+		if ((filesize_t) buf.st_size != md->copied) {
+			md->error = ENOSPC;
+			g_warning("target size mismatch for \"%s\": got only %s",
+				md->target, filesize_to_string(buf.st_size));
+			goto error;
+		}
+
 		if (-1 == unlink(download_pathname(md->d)))
 			g_warning("cannot unlink \"%s\": %s",
 				download_basename(md->d), g_strerror(errno));
@@ -295,6 +322,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 				md->target, g_strerror(errno));
 	}
 
+error:
 	elapsed = delta_time(tm_time(), md->start);
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
