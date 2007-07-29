@@ -1002,9 +1002,9 @@ fi_gui_details_treeview_init(void)
 		g_object_set(column,
 			"min-width", 1,
 			"resizable", TRUE,
-			(void *) 0);
-		g_object_set(column,
-			"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
+			"sizing", (0 == i)
+						? GTK_TREE_VIEW_COLUMN_AUTOSIZE
+						: GTK_TREE_VIEW_COLUMN_FIXED,
 			(void *) 0);
     	gtk_tree_view_append_column(tv, column);
 	}
