@@ -300,6 +300,8 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 	gtk_widget_set_sensitive(gui_main_window_lookup("button_search"),
 		s[0] != '\0');
 	G_FREE_NULL(s);
+
+    gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
 }
 
 

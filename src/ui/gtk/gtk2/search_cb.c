@@ -129,6 +129,8 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 			s[0] != '\0');
 	}
 	G_FREE_NULL(s);
+
+    gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
 }
 
 void
