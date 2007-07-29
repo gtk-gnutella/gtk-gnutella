@@ -3238,7 +3238,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	 * Disable RX stacks to stop reception and clean up I/O structures.
 	 */
 
-	if (d->flags & DL_F_BROWSE) {
+	if (d->browse) {
 		browse_host_dl_close(d->browse);
 		d->bio = NULL;		/* Was a copy via browse_host_io_source() */
 	}
