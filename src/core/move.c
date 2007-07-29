@@ -258,7 +258,6 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 {
 	struct moved *md = ctx;
 	struct download *d = md->d;
-	struct stat buf;
 	gint elapsed = 0;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -289,6 +288,8 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	 */
 
 	if (md->error == 0) {
+		struct stat buf;
+
 		g_assert(md->copied == md->size);
 
 		/*
@@ -306,10 +307,13 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 			goto error;
 		}
 
-		if ((filesize_t) buf.st_size != md->copied) {
+		if (
+			!S_ISREG(buf.st_mode) ||
+			(filesize_t) 0 + buf.st_size != (off_t) 0 + md->copied
+		) {
 			md->error = ENOSPC;
 			g_warning("target size mismatch for \"%s\": got only %s",
-				md->target, filesize_to_string(buf.st_size));
+				md->target, off_t_to_string(buf.st_size));
 			goto error;
 		}
 
