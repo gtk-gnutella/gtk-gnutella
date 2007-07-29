@@ -130,7 +130,6 @@ struct fileinfo_data {
 	filesize_t uploaded;
 
 	gnet_fi_t handle;
-
 	guint32 rank;
 
 	guint actively_queued;
@@ -142,6 +141,60 @@ struct fileinfo_data {
 	unsigned hashed:1;
 	unsigned seeding:1;
 };
+
+/**
+ * Fill in the cell data. Calling this will always break the data
+ * it filled in last time!
+ */
+static void
+fi_gui_set_filename(struct fileinfo_data *file)
+{
+    gnet_fi_info_t *info;
+
+	g_return_if_fail(file);
+	
+    info = guc_fi_get_info(file->handle);
+    g_return_if_fail(info);
+
+	if (utf8_is_valid_string(info->filename)) {
+		file->filename = atom_str_get(info->filename);
+	} else {
+		gchar *name;
+
+		name = filename_to_utf8_normalized(info->filename, UNI_NORM_GUI);
+		file->filename = atom_str_get(name);
+		G_FREE_NULL(name);
+	}
+	guc_fi_free_info(info);
+}
+
+/* TODO: factorize this code with GTK1's one */
+static void
+fi_gui_fill_status(struct fileinfo_data *file)
+{
+    gnet_fi_status_t status;
+
+	g_return_if_fail(file);
+
+    guc_fi_get_status(file->handle, &status);
+
+	file->recv_count = status.recvcount;
+	file->actively_queued = status.aqueued_count;
+	file->passively_queued = status.pqueued_count;
+	file->life_count = status.lifecount;
+
+	file->uploaded = status.uploaded;
+	file->size = status.size;
+	file->done = status.done;
+
+	file->paused = 0 != status.paused;
+	file->hashed = 0 != status.sha1_hashed;
+	file->seeding = 0 != status.seeding;
+
+	G_FREE_NULL(file->status);	
+	file->status = g_strdup(guc_file_info_status_to_string(&status));
+}
+
 
 static void
 fi_gui_clear_data(struct fileinfo_data *file)
@@ -163,7 +216,7 @@ fi_gui_add_file(gnet_fi_t handle)
 
 	file->handle = handle;
 	g_hash_table_insert(fi_handles, GUINT_TO_POINTER(handle), file);
-	
+	fi_gui_set_filename(file);
 	gtk_list_store_append(fi_gui_current_store(), &file->iter);
 }
 
@@ -302,9 +355,8 @@ static void
 renderer_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
-	const gchar *text;
 	struct download *d;
-
+	const gchar *text;
 	guint id;
 
 	if (!gtk_tree_view_column_get_visible(column))
@@ -362,8 +414,9 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	struct fileinfo_data *file;
 	gpointer key = GUINT_TO_POINTER(handle);
 	
-	if (handle == last_shown)
-		last_shown_valid = FALSE;
+	if (handle == last_shown) {
+		fi_gui_clear_details();
+	}
 
 	file = g_hash_table_lookup(fi_handles, key);
 	g_return_if_fail(file);
@@ -492,95 +545,35 @@ fi_gui_clear_details(void)
 void
 on_treeview_downloads_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
-	GtkTreeIter iter;
 	GtkTreePath *path;
-	GtkTreeModel *model;
 
 	(void) unused_udata;
 
 	fi_gui_clear_details();
 	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path)
-		return;
+	if (path) {
+		GtkTreeModel *model;
+		GtkTreeIter iter;
 
-	model = gtk_tree_view_get_model(tv);
-	if (gtk_tree_model_get_iter(model, &iter, path)) {
-		gnet_fi_t handle;
+		model = gtk_tree_view_get_model(tv);
+		if (gtk_tree_model_get_iter(model, &iter, path)) {
+			gnet_fi_t handle;
 
-		handle = fi_gui_get_handle(model, &iter);
-		fi_gui_set_details(handle);
+			handle = fi_gui_get_handle(model, &iter);
+			fi_gui_set_details(handle);
+		}
+		gtk_tree_path_free(path);
 	}
-	gtk_tree_path_free(path);
-}
-
-/**
- * Fill in the cell data. Calling this will always break the data
- * it filled in last time!
- */
-static void
-fi_gui_fill_info(struct fileinfo_data *file)
-{
-    static gnet_fi_info_t *info = NULL;
-	const gchar *filename;
-	gchar *to_free = NULL;
-
-	g_return_if_fail(file);
-	
-    /* Clear info from last call. We keep this around so we don't
-     * have to strdup entries from it when passing them to the
-     * outside through titles[]. */
-    if (info != NULL) {
-        guc_fi_free_info(info);
-    }
-
-    /* Fetch new info */
-    info = guc_fi_get_info(file->handle);
-    g_assert(info != NULL);
-
-	filename = info->filename;
-	if (!utf8_is_valid_string(filename)) {
-		to_free = filename_to_utf8_normalized(info->filename, UNI_NORM_GUI);
-		filename = to_free;
-	}
-	file->filename = atom_str_get(filename);
-	G_FREE_NULL(to_free);
-}
-
-/* TODO: factorize this code with GTK1's one */
-static void
-fi_gui_fill_status(struct fileinfo_data *file)
-{
-    gnet_fi_status_t status;
-
-	g_return_if_fail(file);
-
-    guc_fi_get_status(file->handle, &status);
-
-	file->recv_count = status.recvcount;
-	file->actively_queued = status.aqueued_count;
-	file->passively_queued = status.pqueued_count;
-	file->life_count = status.lifecount;
-	file->paused = status.paused;
-	file->hashed = status.sha1_hashed;
-	file->seeding = status.seeding;
-	file->uploaded = status.uploaded;
-	file->size = status.size;
-	file->done = status.done;
-
-	G_FREE_NULL(file->status);	
-	file->status = g_strdup(guc_file_info_status_to_string(&status));
 }
 
 static void
-fi_gui_update(gnet_fi_t handle, gboolean full)
+fi_gui_update(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
 
 	file = g_hash_table_lookup(fi_handles, GUINT_TO_POINTER(handle));
 	g_return_if_fail(file);
-	if (full) {
-		fi_gui_fill_info(file);
-	}
+
 	fi_gui_fill_status(file);
 	set_fileinfo_data(file);
 
@@ -655,7 +648,7 @@ static void
 fi_gui_fi_added(gnet_fi_t handle)
 {
     fi_gui_add_file(handle);
-	fi_gui_update(handle, TRUE);
+	fi_gui_update(handle);
 }
 
 static void
@@ -680,7 +673,7 @@ fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 	(void) unused_value;
 	(void) unused_udata;
 
-  	fi_gui_update(handle, FALSE);
+  	fi_gui_update(handle);
 	return TRUE; /* Remove the handle from the hashtable */
 }
 
@@ -887,7 +880,7 @@ add_column(GtkTreeView *tv, GtkTreeCellDataFunc cell_data_func,
 	}
 
 	g_object_set(G_OBJECT(column),
-		"fixed-width", 150,
+		"fixed-width", 100,
 		"min-width", 1,
 		"reorderable", FALSE,
 		"resizable", TRUE,
