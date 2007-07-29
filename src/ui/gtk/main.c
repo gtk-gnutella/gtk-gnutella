@@ -462,6 +462,16 @@ main_gui_gtkrc_init(void)
  *** Public functions
  ***/
 
+void
+main_gui_show_prefences(void)
+{
+	g_return_if_fail(gui_dlg_prefs());
+	
+    gtk_widget_show(gui_dlg_prefs());
+	gui_restore_window(gui_dlg_prefs(), PROP_PREFS_DLG_COORDS);
+	gdk_window_raise(gui_dlg_prefs()->window);
+}
+
 /**
  * Some setup of the gui side which I wanted out of main.c but must be done
  * before the backend can be initialized since the core code is not free of

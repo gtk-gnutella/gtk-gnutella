@@ -141,7 +141,29 @@ on_button_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
     quit(FALSE);
 }
 
+/***
+ *** Tray menu
+ ***/
 
+void
+on_popup_tray_preferences_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	main_gui_show_prefences();
+}
+
+void
+on_popup_tray_quit_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    quit(FALSE);
+}
 
 /***
  *** menu bar
@@ -178,11 +200,7 @@ on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_return_if_fail(gui_dlg_prefs());
-	
-    gtk_widget_show(gui_dlg_prefs());
-	gui_restore_window(gui_dlg_prefs(), PROP_PREFS_DLG_COORDS);
-	gdk_window_raise(gui_dlg_prefs()->window);
+	main_gui_show_prefences();
 }
 
 void

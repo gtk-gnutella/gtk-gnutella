@@ -84,4 +84,11 @@ void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_quit_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
+
+/***
+ *** Tray menu
+ ***/
+void on_popup_tray_preferences_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_tray_quit_activate(GtkMenuItem *, gpointer user_data);
+
 #endif /* _gtk_main_cb_h_ */

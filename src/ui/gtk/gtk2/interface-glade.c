@@ -1501,10 +1501,9 @@ create_main_window (void)
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
   GtkWidget *menu_prefs;
-  GtkWidget *image2103;
   GtkWidget *separator27;
   GtkWidget *quit;
-  GtkWidget *image2104;
+  GtkWidget *image2126;
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkWidget *menu_searchbar_visible;
@@ -1533,9 +1532,9 @@ create_main_window (void)
   GtkWidget *menu_help;
   GtkWidget *menu_help_menu;
   GtkWidget *menu_faq;
-  GtkWidget *image2105;
+  GtkWidget *image2127;
   GtkWidget *menu_about;
-  GtkWidget *image2106;
+  GtkWidget *image2128;
   GtkWidget *viewport_searchbar;
   GtkWidget *table107;
   GtkWidget *button_search;
@@ -1690,18 +1689,10 @@ create_main_window (void)
   gtk_widget_set_name (menu_file_menu, "menu_file_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_file), menu_file_menu);
 
-  menu_prefs = gtk_image_menu_item_new_with_mnemonic (_("_Preferences"));
+  menu_prefs = gtk_image_menu_item_new_from_stock ("gtk-preferences", accel_group);
   gtk_widget_set_name (menu_prefs, "menu_prefs");
   gtk_widget_show (menu_prefs);
   gtk_container_add (GTK_CONTAINER (menu_file_menu), menu_prefs);
-  gtk_widget_add_accelerator (menu_prefs, "activate", accel_group,
-                              GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
-
-  image2103 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2103, "image2103");
-  gtk_widget_show (image2103);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_prefs), image2103);
 
   separator27 = gtk_separator_menu_item_new ();
   gtk_widget_set_name (separator27, "separator27");
@@ -1717,10 +1708,10 @@ create_main_window (void)
                               GDK_q, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image2104 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2104, "image2104");
-  gtk_widget_show (image2104);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image2104);
+  image2126 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2126, "image2126");
+  gtk_widget_show (image2126);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image2126);
 
   menu_view = gtk_menu_item_new_with_mnemonic (_("_View"));
   gtk_widget_set_name (menu_view, "menu_view");
@@ -1875,20 +1866,20 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
-  image2105 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2105, "image2105");
-  gtk_widget_show (image2105);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image2105);
+  image2127 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2127, "image2127");
+  gtk_widget_show (image2127);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image2127);
 
   menu_about = gtk_image_menu_item_new_with_mnemonic (_("_About"));
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_show (menu_about);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
 
-  image2106 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2106, "image2106");
-  gtk_widget_show (image2106);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image2106);
+  image2128 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2128, "image2128");
+  gtk_widget_show (image2128);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image2128);
 
   viewport_searchbar = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
@@ -2665,10 +2656,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_prefs, "menu_prefs");
-  GLADE_HOOKUP_OBJECT (main_window, image2103, "image2103");
   GLADE_HOOKUP_OBJECT (main_window, separator27, "separator27");
   GLADE_HOOKUP_OBJECT (main_window, quit, "quit");
-  GLADE_HOOKUP_OBJECT (main_window, image2104, "image2104");
+  GLADE_HOOKUP_OBJECT (main_window, image2126, "image2126");
   GLADE_HOOKUP_OBJECT (main_window, menu_view, "menu_view");
   GLADE_HOOKUP_OBJECT (main_window, menu_view_menu, "menu_view_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_searchbar_visible, "menu_searchbar_visible");
@@ -2697,9 +2687,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_help, "menu_help");
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_faq, "menu_faq");
-  GLADE_HOOKUP_OBJECT (main_window, image2105, "image2105");
+  GLADE_HOOKUP_OBJECT (main_window, image2127, "image2127");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
-  GLADE_HOOKUP_OBJECT (main_window, image2106, "image2106");
+  GLADE_HOOKUP_OBJECT (main_window, image2128, "image2128");
   GLADE_HOOKUP_OBJECT (main_window, viewport_searchbar, "viewport_searchbar");
   GLADE_HOOKUP_OBJECT (main_window, table107, "table107");
   GLADE_HOOKUP_OBJECT (main_window, button_search, "button_search");
@@ -16025,5 +16015,45 @@ create_popup_sources (void)
   GLADE_HOOKUP_OBJECT (popup_sources, image2123, "image2123");
 
   return popup_sources;
+}
+
+GtkWidget*
+create_popup_tray (void)
+{
+  GtkWidget *popup_tray;
+  GtkWidget *popup_tray_preferences;
+  GtkWidget *popup_tray_quit;
+  GtkAccelGroup *accel_group;
+
+  accel_group = gtk_accel_group_new ();
+
+  popup_tray = gtk_menu_new ();
+  gtk_widget_set_name (popup_tray, "popup_tray");
+
+  popup_tray_preferences = gtk_image_menu_item_new_from_stock ("gtk-preferences", accel_group);
+  gtk_widget_set_name (popup_tray_preferences, "popup_tray_preferences");
+  gtk_widget_show (popup_tray_preferences);
+  gtk_container_add (GTK_CONTAINER (popup_tray), popup_tray_preferences);
+
+  popup_tray_quit = gtk_image_menu_item_new_from_stock ("gtk-quit", accel_group);
+  gtk_widget_set_name (popup_tray_quit, "popup_tray_quit");
+  gtk_widget_show (popup_tray_quit);
+  gtk_container_add (GTK_CONTAINER (popup_tray), popup_tray_quit);
+
+  g_signal_connect ((gpointer) popup_tray_preferences, "activate",
+                    G_CALLBACK (on_popup_tray_preferences_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_tray_quit, "activate",
+                    G_CALLBACK (on_popup_tray_quit_activate),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (popup_tray, popup_tray, "popup_tray");
+  GLADE_HOOKUP_OBJECT (popup_tray, popup_tray_preferences, "popup_tray_preferences");
+  GLADE_HOOKUP_OBJECT (popup_tray, popup_tray_quit, "popup_tray_quit");
+
+  gtk_menu_set_accel_group (GTK_MENU (popup_tray), accel_group);
+
+  return popup_tray;
 }
 
