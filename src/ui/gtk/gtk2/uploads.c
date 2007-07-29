@@ -556,6 +556,7 @@ uploads_gui_init(void)
 	treeview_uploads =
 		GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
 	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
+	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
 	for (i = 0; i < G_N_ELEMENTS(cols); i++)
 		add_column(cols[i].id, cols[i].sortfunc,

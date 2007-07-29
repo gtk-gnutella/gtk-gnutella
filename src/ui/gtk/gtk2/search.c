@@ -2329,6 +2329,7 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
 	gtk_tree_view_set_search_column(treeview, 0);
 	gtk_tree_view_set_rules_hint(treeview, TRUE);
 	gtk_tree_view_set_search_equal_func(treeview, search_by_regex, NULL, NULL);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 
       /* add columns to the tree view */
 	add_results_columns(treeview, udata);

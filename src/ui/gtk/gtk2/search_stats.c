@@ -406,6 +406,7 @@ search_stats_gui_init(void)
 		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
 	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 
 	stat_hash = g_hash_table_new(NULL, NULL);
 }

@@ -1099,6 +1099,7 @@ fi_gui_init(void)
 		fi_gui_init_columns(tv);
 		drag_attach(GTK_WIDGET(tv), fi_gui_get_file_url);
 		tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
+		tree_view_set_fixed_height_mode(tv, TRUE);
 	}
 
 	{
@@ -1113,6 +1114,7 @@ fi_gui_init(void)
 		g_object_unref(model);
 
 		add_column(tv, NULL, 0, _("Aliases"), 0.0);
+		tree_view_set_fixed_height_mode(tv, TRUE);
 		drag_attach(GTK_WIDGET(tv), fi_gui_get_alias);
 	}
 
@@ -1137,6 +1139,7 @@ fi_gui_init(void)
 		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 			GTK_SELECTION_MULTIPLE);
 		tree_view_restore_widths(tv, PROP_SOURCES_COL_WIDTHS);
+		tree_view_set_fixed_height_mode(tv, TRUE);
 
 		gui_signal_connect(tv, "button-press-event",
 			on_treeview_sources_button_press_event, NULL);

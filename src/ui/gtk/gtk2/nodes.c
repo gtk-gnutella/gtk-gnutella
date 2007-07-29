@@ -550,7 +550,6 @@ nodes_gui_init(void)
 
 	tree_view_restore_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
-
 	tree_view_set_fixed_height_mode(treeview_nodes, TRUE);
 
 	nodes_handles = g_hash_table_new(node_id_hash, node_id_eq_func);

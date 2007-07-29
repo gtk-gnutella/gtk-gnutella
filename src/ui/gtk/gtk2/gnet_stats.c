@@ -404,6 +404,7 @@ gnet_stats_gui_horizon_init(void)
 	}
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 }
 
 static void
@@ -455,6 +456,7 @@ gnet_stats_gui_flowc_init(void)
 	}
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 }
 
 static void
@@ -492,6 +494,7 @@ gnet_stats_gui_drop_reasons_init(void)
 	}
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 }
 
 static void
@@ -528,6 +531,7 @@ gnet_stats_gui_general_init(void)
 	}
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 }
 
 static void
@@ -577,6 +581,7 @@ gnet_stats_gui_messages_init(void)
 
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+	tree_view_set_fixed_height_mode(treeview, TRUE);
 }
 
 static void

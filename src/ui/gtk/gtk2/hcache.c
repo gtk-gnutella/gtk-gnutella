@@ -117,13 +117,15 @@ hcache_gui_init(void)
             (-1));
 	}
 
-	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++)
+	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++) {
 		add_column(treeview_hcache, n, (gfloat) (n != 0),
 			_(hcache_col_labels[n].text));
-
+	}
     gtk_tree_view_set_model(treeview_hcache, model);
     tree_view_restore_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
 	g_object_unref(model);
+
+	tree_view_set_fixed_height_mode(treeview_hcache, TRUE);
 }
 
 void
