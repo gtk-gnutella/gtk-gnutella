@@ -816,7 +816,8 @@ on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
 	g_return_if_fail(search);
 
 	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
-   	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+   	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
+		gtk_get_current_event_time());
 
 	/* GtkColumnChooser takes care of cleaning up itself */
 }

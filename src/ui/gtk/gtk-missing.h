@@ -154,6 +154,10 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 
 void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
 
+#ifdef USE_GTK1
+#define gtk_get_current_event_time() (GDK_CURRENT_TIME)
+#endif
+
 #endif	/* _gtk_gtk_missing_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

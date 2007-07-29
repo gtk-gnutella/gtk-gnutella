@@ -144,7 +144,8 @@ on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
     cc = gtk_column_chooser_new(gui_main_window_lookup("treeview_nodes"));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
+		gtk_get_current_event_time());
 
     /* GtkColumnChooser takes care of cleaning up itself */
 	return TRUE;
