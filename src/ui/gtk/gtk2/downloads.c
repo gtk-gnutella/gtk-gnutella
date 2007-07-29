@@ -137,25 +137,6 @@ gui_update_download_abort_resume(void)
 
 
 /**
- *	Expand all nodes in given tree, either downloads or downloads_queue
- */
-void
-downloads_gui_expand_all(void)
-{
-	gtk_tree_view_expand_all(fi_gui_current_treeview());
-}
-
-
-/**
- *	Collapse all nodes in given, tree either downloads or downloads_queue
- */
-void
-downloads_gui_collapse_all(void)
-{
-	gtk_tree_view_collapse_all(fi_gui_current_treeview());
-}
-
-/**
  * Periodically called to update downloads display.
  */
 void

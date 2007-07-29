@@ -502,24 +502,4 @@ on_treeview_sources_button_press_event(GtkWidget *widget,
 	return TRUE;
 }
 
-void
-on_popup_downloads_expand_all_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	downloads_gui_expand_all();
-}
-
-void
-on_popup_downloads_collapse_all_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	downloads_gui_collapse_all();
-}
-
 /* vi: set ts=4 sw=4 cindent: */
