@@ -732,6 +732,8 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 			memcpy(data->info, s, size);
 		}
 	}
+
+	tree_model_iter_changed(GTK_TREE_MODEL(nodes_model), &data->iter);
 }
 
 /**

@@ -133,6 +133,13 @@ search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
 	gtk_tree_store_set_value(GTK_TREE_STORE(model), &rd->iter, 0, &value);
 }
 
+/* Refresh the display/sorting */
+static inline void
+search_gui_data_changed(GtkTreeModel *model, struct result_data *rd)
+{
+	tree_model_iter_changed(model, &rd->iter);
+}
+
 static void
 search_gui_synchronize_list(GtkTreeModel *model)
 {
@@ -1280,8 +1287,7 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 
 	if (SR_DOWNLOADED & rd->record->flags) {
 		rd->color = GUI_COLOR_DOWNLOADING;
-		/* Re-store the parent to refresh the display/sorting */
-		search_gui_set_data(model, rd);
+		search_gui_data_changed(model, rd);
 	}
 }
 
@@ -2287,9 +2293,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 	   	rd = find_parent2(search, data->sha1, data->size);
 		if (rd) {
 			atom_str_change(&rd->meta, text ? text : _("Not in database"));
-			
-			/* Re-store the parent to refresh the display/sorting */
-			search_gui_set_data(gtk_tree_view_get_model(search->tree), rd);
+			search_gui_data_changed(gtk_tree_view_get_model(search->tree), rd);
 		}
 	}
 
@@ -2438,8 +2442,7 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 		if (parent) {
 			record_check(parent->record);
 			parent->children++;
-			/* Re-store the parent to refresh the display/sorting */
-			search_gui_set_data(model, parent);
+			search_gui_data_changed(model, parent);
 		} else {
 			gm_hash_table_insert_const(search->parents, rd, rd);
 		}

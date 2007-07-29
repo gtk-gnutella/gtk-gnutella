@@ -590,13 +590,8 @@ fi_gui_update_download(struct download *d)
 
 	iter = g_hash_table_lookup(fi_sources, d);
 	if (iter) {
-		GtkTreeModel *model;
-		GtkTreePath *path;
-
-		model = gtk_tree_view_get_model(treeview_download_sources);
-		path = gtk_tree_model_get_path(model, iter);
-		gtk_tree_model_row_changed(model, path, iter);
-		gtk_tree_path_free(path);
+		tree_model_iter_changed(
+			gtk_tree_view_get_model(treeview_download_sources), iter);
 	}
 }
 
