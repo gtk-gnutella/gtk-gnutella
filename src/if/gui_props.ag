@@ -19,6 +19,7 @@ uses = "ui/gtk/notebooks.h";
 prop = {
     name = "monitor_enabled";
     desc = "Search monitor enabled.";
+	save = FALSE;
     type = boolean;
     data = {
         default = FALSE;

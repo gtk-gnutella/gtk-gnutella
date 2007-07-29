@@ -343,7 +343,7 @@ gui_prop_init(void) {
     gui_property->props[0].name = "monitor_enabled";
     gui_property->props[0].desc = _("Search monitor enabled.");
     gui_property->props[0].ev_changed = event_new("monitor_enabled_changed");
-    gui_property->props[0].save = TRUE;
+    gui_property->props[0].save = FALSE;
     gui_property->props[0].vector_size = 1;
 
     /* Type specific data: */
