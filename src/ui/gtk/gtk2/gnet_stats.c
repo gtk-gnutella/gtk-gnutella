@@ -189,7 +189,7 @@ add_column(GtkTreeView *treeview, gint column_id, gint width, gfloat xalign,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
-		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		(void *) 0);
 	gtk_tree_view_append_column(treeview, column);
 }
