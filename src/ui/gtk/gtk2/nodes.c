@@ -551,9 +551,7 @@ nodes_gui_init(void)
 	tree_view_restore_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
-#if GTK_CHECK_VERSION(2, 4, 0)
-    g_object_set(treeview_nodes, "fixed_height_mode", TRUE, (void *) 0);
-#endif /* GTK+ >= 2.4.0 */
+	tree_view_set_fixed_height_mode(treeview_nodes, TRUE);
 
 	nodes_handles = g_hash_table_new(node_id_hash, node_id_eq_func);
     ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);

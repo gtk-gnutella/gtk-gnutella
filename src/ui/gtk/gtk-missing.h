@@ -136,24 +136,26 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl,
 typedef void (*tree_view_motion_callback)(GtkTreeView *, GtkTreePath *);
 typedef struct tree_view_motion tree_view_motion_t;
 
-typedef gpointer (*tree_selection_get_data_func)(GtkTreeModel *model, GtkTreeIter *iter);
+typedef gpointer (*tree_selection_get_data_func)(GtkTreeModel *, GtkTreeIter *);
 
 GtkTreeIter *w_tree_iter_new(void);
-GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
-void w_tree_iter_free(GtkTreeIter *iter);
+GtkTreeIter *w_tree_iter_copy(GtkTreeIter *);
+void w_tree_iter_free(GtkTreeIter *);
 void ht_w_tree_iter_free(gpointer);
-GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
-		tree_selection_get_data_func gdf, GCompareFunc cfn);
-tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *tv,
-	tree_view_motion_callback cb, guint interval);
-void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
-void tree_model_iter_changed(GtkTreeModel *model, GtkTreeIter *iter);
+
+GSList *tree_selection_collect_data(GtkTreeSelection *,
+		tree_selection_get_data_func, GCompareFunc);
+tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *,
+	tree_view_motion_callback, guint interval);
+void tree_view_motion_clear_callback(GtkTreeView *, tree_view_motion_t *);
+void tree_view_set_fixed_height_mode(GtkTreeView *, gboolean fixed);
+void tree_model_iter_changed(GtkTreeModel *, GtkTreeIter *);
 #endif /* USE_GTK2 */
 
 gint gtk_main_flush(void);
-GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
+GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *);
 
-void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
+void gtk_widget_fix_width(GtkWidget *, GtkWidget *, guint chars, guint extra);
 
 #ifdef USE_GTK1
 #define gtk_get_current_event_time() (GDK_CURRENT_TIME)
