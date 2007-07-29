@@ -407,6 +407,36 @@ create_cell_renderer(gfloat xalign)
 	return renderer;
 }
 
+static gboolean
+fi_sources_remove(gpointer unused_key, gpointer value, gpointer unused_udata)
+{
+	GtkTreeIter *iter;
+
+	g_assert(value);
+	(void) unused_key;
+	(void) unused_udata;
+
+	iter = value;
+	wfree(iter, sizeof *iter);
+	return TRUE; /* Remove the handle from the hashtable */
+}
+
+static void
+fi_gui_clear_details(void)
+{
+	downloads_gui_clear_details();
+
+    gtk_list_store_clear(
+		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_aliases)));
+
+    gtk_list_store_clear(
+		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_sources)));
+
+	g_hash_table_foreach_remove(fi_sources, fi_sources_remove, NULL);
+
+    last_shown_valid = FALSE;
+    vp_draw_fi_progress(last_shown_valid, last_shown);
+}
 
 static void
 fi_gui_fi_removed(gnet_fi_t handle)
@@ -469,20 +499,6 @@ fi_gui_add_source(GtkTreeModel *model, gpointer key)
 	gtk_list_store_set(GTK_LIST_STORE(model), iter, 0, key, (-1));
 }
 
-static gboolean
-fi_sources_remove(gpointer unused_key, gpointer value, gpointer unused_udata)
-{
-	GtkTreeIter *iter;
-
-	g_assert(value);
-	(void) unused_key;
-	(void) unused_udata;
-
-	iter = value;
-	wfree(iter, sizeof *iter);
-	return TRUE; /* Remove the handle from the hashtable */
-}
-
 static void
 fi_gui_set_sources(gnet_fi_t handle)
 {
@@ -523,23 +539,6 @@ fi_gui_set_details(gnet_fi_t handle)
     last_shown = handle;
     last_shown_valid = TRUE;
 	vp_draw_fi_progress(last_shown_valid, last_shown);
-}
-
-static void
-fi_gui_clear_details(void)
-{
-	downloads_gui_clear_details();
-
-    gtk_list_store_clear(
-		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_aliases)));
-
-    gtk_list_store_clear(
-		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_sources)));
-
-	g_hash_table_foreach_remove(fi_sources, fi_sources_remove, NULL);
-
-    last_shown_valid = FALSE;
-    vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
 void
