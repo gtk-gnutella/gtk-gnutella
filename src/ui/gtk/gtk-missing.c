@@ -626,6 +626,16 @@ tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tvm)
 	G_FREE_NULL(tvm);
 }
 
+void
+tree_model_iter_changed(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	GtkTreePath *path;
+
+	path = gtk_tree_model_get_path(model, iter);
+	gtk_tree_model_row_changed(model, path, iter);
+	gtk_tree_path_free(path);
+}
+
 #endif /* USE_GTK2 */
 
 gdouble

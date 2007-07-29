@@ -147,6 +147,7 @@ GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
 tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *tv,
 	tree_view_motion_callback cb, guint interval);
 void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
+void tree_model_iter_changed(GtkTreeModel *model, GtkTreeIter *iter);
 #endif /* USE_GTK2 */
 
 gint gtk_main_flush(void);
