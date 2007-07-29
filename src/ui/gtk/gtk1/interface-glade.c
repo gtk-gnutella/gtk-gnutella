@@ -255,13 +255,14 @@ create_main_window (void)
   GtkWidget *label656;
   GtkWidget *entry_fi_regex;
   GtkWidget *checkbutton_fi_regex_case;
-  GtkWidget *notebook5;
-  GtkWidget *vbox110;
+  GtkWidget *vbox140;
   GtkWidget *table59;
-  GtkWidget *label658;
   GtkWidget *viewport44;
   GtkWidget *hbox198;
   GtkWidget *drawingarea_fi_progress;
+  GtkWidget *label658;
+  GtkWidget *notebook5;
+  GtkWidget *vbox110;
   GtkWidget *scrolledwindow496;
   GtkWidget *clist_download_details;
   GtkWidget *label796;
@@ -2703,22 +2704,13 @@ create_main_window (void)
   gtk_widget_show (checkbutton_fi_regex_case);
   gtk_box_pack_start (GTK_BOX (hbox196), checkbutton_fi_regex_case, FALSE, FALSE, 0);
 
-  notebook5 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook5, "notebook5");
-  gtk_widget_ref (notebook5);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook5", notebook5,
+  vbox140 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox140, "vbox140");
+  gtk_widget_ref (vbox140);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox140", vbox140,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (notebook5);
-  gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), notebook5, TRUE, TRUE);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook5), GTK_POS_LEFT);
-
-  vbox110 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox110, "vbox110");
-  gtk_widget_ref (vbox110);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox110", vbox110,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox110);
-  gtk_container_add (GTK_CONTAINER (notebook5), vbox110);
+  gtk_widget_show (vbox140);
+  gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), vbox140, TRUE, TRUE);
 
   table59 = gtk_table_new (1, 2, FALSE);
   gtk_widget_set_name (table59, "table59");
@@ -2726,20 +2718,9 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table59", table59,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table59);
-  gtk_box_pack_start (GTK_BOX (vbox110), table59, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox140), table59, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (table59), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table59), 4);
-
-  label658 = gtk_label_new (_("Progress:"));
-  gtk_widget_set_name (label658, "label658");
-  gtk_widget_ref (label658);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label658", label658,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label658);
-  gtk_table_attach (GTK_TABLE (table59), label658, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label658), 0, 0.5);
 
   viewport44 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport44, "viewport44");
@@ -2770,6 +2751,34 @@ create_main_window (void)
   gtk_widget_set_usize (drawingarea_fi_progress, -2, 16);
   gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
   gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
+
+  label658 = gtk_label_new (_("Progress:"));
+  gtk_widget_set_name (label658, "label658");
+  gtk_widget_ref (label658);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label658", label658,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label658);
+  gtk_table_attach (GTK_TABLE (table59), label658, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 3, 0);
+  gtk_misc_set_alignment (GTK_MISC (label658), 0, 0.5);
+
+  notebook5 = gtk_notebook_new ();
+  gtk_widget_set_name (notebook5, "notebook5");
+  gtk_widget_ref (notebook5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook5", notebook5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (notebook5);
+  gtk_box_pack_start (GTK_BOX (vbox140), notebook5, TRUE, TRUE, 0);
+  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook5), GTK_POS_LEFT);
+
+  vbox110 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox110, "vbox110");
+  gtk_widget_ref (vbox110);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox110", vbox110,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox110);
+  gtk_container_add (GTK_CONTAINER (notebook5), vbox110);
 
   scrolledwindow496 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow496, "scrolledwindow496");
@@ -3086,7 +3095,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_fi_purge", button_fi_purge,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_fi_purge);
-  gtk_box_pack_start (GTK_BOX (hbox197a), button_fi_purge, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox197a), button_fi_purge, FALSE, TRUE, 0);
   gtk_widget_set_sensitive (button_fi_purge, FALSE);
 
   viewport43 = gtk_viewport_new (NULL, NULL);
