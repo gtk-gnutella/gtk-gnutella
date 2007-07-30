@@ -138,6 +138,9 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 {
 	GtkWidget *menuitem = NULL;
 
+	g_assert(menuitem_ptr);
+	*menuitem_ptr = NULL;
+
 	g_return_val_if_fail(widget != NULL, NULL);
 	g_return_val_if_fail(i >= 0, NULL);
 	
@@ -150,8 +153,7 @@ get_nth_column(GtkWidget *widget, gint i, GtkWidget **menuitem_ptr)
 		visible = GTK_CLIST(widget)->column[i].visible;
 		gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), visible);
 	}
-	if (menuitem_ptr)
-		*menuitem_ptr = menuitem;
+	*menuitem_ptr = menuitem;
 		
 	return GINT_TO_POINTER(i);
 }
