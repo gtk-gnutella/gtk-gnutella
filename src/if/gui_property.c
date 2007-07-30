@@ -66,8 +66,8 @@ guint32  gui_property_variable_dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUM
 static const guint32  gui_property_variable_dl_queued_col_widths_default[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80 };
 gboolean gui_property_variable_dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1 };
 static const gboolean gui_property_variable_dl_queued_col_visible_default[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
-guint32  gui_property_variable_file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
-static const guint32  gui_property_variable_file_info_col_widths_default[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
+guint32  gui_property_variable_file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80, 100 };
+static const guint32  gui_property_variable_file_info_col_widths_default[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80, 100 };
 guint32  gui_property_variable_sources_col_widths[SOURCES_VISIBLE_COLUMNS]     = { 100, 100, 100, 100, 100, 100 };
 static const guint32  gui_property_variable_sources_col_widths_default[SOURCES_VISIBLE_COLUMNS] = { 100, 100, 100, 100, 100, 100 };
 guint32  gui_property_variable_search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]     = { 80, 20, 20 };

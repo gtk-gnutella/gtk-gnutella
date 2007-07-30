@@ -125,8 +125,10 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
     static gchar fi_status[256];
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
+    static gchar fi_progress[SIZE_FIELD_MAX];
     static gchar fi_uploaded[SIZE_FIELD_MAX];
     gnet_fi_status_t s;
+	gboolean metric = show_metric_units();
 
     guc_fi_get_status(fih, &s);
 
@@ -134,22 +136,26 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
         s.recvcount, s.aqueued_count + s.pqueued_count, s.lifecount);
     titles[c_fi_sources] = fi_sources;
 
-    if (s.done) {
-		gdouble d;
+    if (s.done && s.size) {
+        gm_snprintf(fi_progress, sizeof fi_progress,
+			"%.1f%%", (1.0 * s.done / s.size) * 100.0);
+        titles[c_fi_progress] = fi_progress;
+    } else {
+        titles[c_fi_progress] = "-";
+    }
 
-		d = s.size > 0 ? ((gdouble) s.done / s.size) * 100.0 : 100.0;
-        gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
-            short_size(s.done, show_metric_units()), d);
+    if (s.done) {
+		g_strlcpy(fi_done, short_size(s.done, metric), sizeof fi_done);
         titles[c_fi_done] = fi_done;
     } else {
         titles[c_fi_done] = "-";
     }
 
-    g_strlcpy(fi_size, short_size(s.size, show_metric_units()), sizeof fi_size);
+    g_strlcpy(fi_size, short_size(s.size, metric), sizeof fi_size);
     titles[c_fi_size] = fi_size;
 
     if (s.uploaded) {
-    	g_strlcpy(fi_uploaded, short_size(s.uploaded, show_metric_units()),
+    	g_strlcpy(fi_uploaded, short_size(s.uploaded, metric),
 			sizeof fi_uploaded);
         titles[c_fi_uploaded] = fi_uploaded;
     } else {
@@ -164,7 +170,7 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 
         gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%s)  TR: %s"),
-			short_rate(s.recv_last_rate, show_metric_units()),
+			short_rate(s.recv_last_rate, metric),
 			secs ? short_time(secs) : "-");
 
         titles[c_fi_status] = fi_status;
@@ -184,15 +190,15 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 			else
 				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 						"; %s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(s.sha1_hashed, show_metric_units()),
-						((gdouble) s.sha1_hashed / s.size) * 100.0);
+						short_size(s.sha1_hashed, metric),
+						(1.0 * s.sha1_hashed / s.size) * 100.0);
 		}
 
 		if (s.copied > 0 && s.copied < s.size) 
 			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
 					"; %s %s (%.1f%%)", _("Moving"),
-					short_size(s.copied, show_metric_units()),
-					((gdouble) s.copied / s.size) * 100.0);
+					short_size(s.copied, metric),
+					(1.0 * s.copied / s.size) * 100.0);
 
         titles[c_fi_status] = fi_status;
     } else if (s.lifecount == 0) {
@@ -684,17 +690,22 @@ fi_gui_init(void)
 
 	{
 		GtkCList *clist;
+		guint i;
 
 		clist = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
 		clist_fileinfo = clist;
 
-		gtk_clist_set_column_justification(clist,
-			c_fi_size, GTK_JUSTIFY_RIGHT);
-		gtk_clist_set_column_justification(clist,
-			c_fi_uploaded, GTK_JUSTIFY_RIGHT);
-
+		for (i = 0; i < c_fi_num; i++) {
+			switch (i) {
+			case c_fi_size:
+			case c_fi_done:
+			case c_fi_uploaded:
+			case c_fi_progress:
+				gtk_clist_set_column_justification(clist, i, GTK_JUSTIFY_RIGHT);
+				break;
+			}
+		}
 		gtk_clist_column_titles_active(clist);
-
 		drag_attach(GTK_WIDGET(clist), fi_gui_get_file_url);
 	}
 	
@@ -748,18 +759,30 @@ fi_gui_shutdown(void)
 static gboolean
 fi_gui_is_visible(void)
 {
-	static GtkNotebook *notebook = NULL;
-	gint current_page;
-
 	if (!main_gui_window_visible())
 		return FALSE;
 
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+	{
+		static GtkNotebook *notebook;
 
-	current_page = gtk_notebook_get_current_page(notebook);
+		if (notebook == NULL) {
+			notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+		}
+		if (nb_main_page_downloads != gtk_notebook_get_current_page(notebook))
+			return FALSE;
+	}
 
-	return current_page == nb_main_page_downloads;
+	{
+		static GtkNotebook *notebook;
+
+		if (notebook == NULL) {
+			notebook = GTK_NOTEBOOK(
+							gui_main_window_lookup("notebook_downloads"));
+		}
+		if (nb_downloads_page_all != gtk_notebook_get_current_page(notebook))
+			return FALSE;
+	}
+	return TRUE;
 }
 
 
@@ -877,6 +900,23 @@ fi_gui_cmp_done(GtkCList *unused_clist,
 {
     gnet_fi_status_t a, b;
     gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(a.done, b.done);
+}
+
+static gint 
+fi_gui_cmp_progress(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
 	gint ret;
 
 	(void) unused_clist;
@@ -966,6 +1006,7 @@ on_clist_fileinfo_click_column(GtkCList *clist, gint column,
 		gtk_clist_set_compare_func(clist, fi_gui_cmp_ ## x ); break;
 	CASE(filename)
 	CASE(size)
+	CASE(progress)
 	CASE(done)
 	CASE(uploaded)
 	CASE(sources)

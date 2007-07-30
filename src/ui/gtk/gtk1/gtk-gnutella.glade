@@ -3061,8 +3061,8 @@
 			  <handler>on_clist_fileinfo_click_column</handler>
 			  <last_modification_time>Sat, 23 Sep 2006 20:31:07 GMT</last_modification_time>
 			</signal>
-			<columns>6</columns>
-			<column_widths>80,80,80,80,80,80</column_widths>
+			<columns>7</columns>
+			<column_widths>80,80,80,80,80,80,80</column_widths>
 			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 			<show_titles>True</show_titles>
 			<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -3085,6 +3085,19 @@
 			  <child_name>CList:title</child_name>
 			  <name>label_size</name>
 			  <label>Size</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label_progress</name>
+			  <label>Progress</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -3230,12 +3243,38 @@
 		    <columns>2</columns>
 		    <homogeneous>False</homogeneous>
 		    <row_spacing>0</row_spacing>
-		    <column_spacing>4</column_spacing>
+		    <column_spacing>0</column_spacing>
 		    <child>
 		      <padding>0</padding>
-		      <expand>True</expand>
+		      <expand>False</expand>
 		      <fill>True</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label658</name>
+		      <label>Progress:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>3</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
 
 		    <widget>
 		      <class>GtkViewport</class>
@@ -3246,7 +3285,7 @@
 			<right_attach>2</right_attach>
 			<top_attach>0</top_attach>
 			<bottom_attach>1</bottom_attach>
-			<xpad>8</xpad>
+			<xpad>0</xpad>
 			<ypad>0</ypad>
 			<xexpand>True</xexpand>
 			<yexpand>False</yexpand>
@@ -3285,32 +3324,6 @@
 			  </child>
 			</widget>
 		      </widget>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label658</name>
-		      <label>Progress:</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<left_attach>0</left_attach>
-			<right_attach>1</right_attach>
-			<top_attach>0</top_attach>
-			<bottom_attach>1</bottom_attach>
-			<xpad>3</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
 		    </widget>
 		  </widget>
 

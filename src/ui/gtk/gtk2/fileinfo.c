@@ -247,6 +247,8 @@ struct fileinfo_data {
 	unsigned paused:1;
 	unsigned hashed:1;
 	unsigned seeding:1;
+
+	unsigned char progress;
 };
 
 static gboolean
@@ -321,6 +323,13 @@ fi_gui_fill_status(struct fileinfo_data *file)
 	file->paused = 0 != status.paused;
 	file->hashed = 0 != status.sha1_hashed;
 	file->seeding = 0 != status.seeding;
+
+	if (file->size) {
+		file->progress = (1.0 * file->done / file->size) * 100.0;
+		file->progress = MIN(file->progress, 100);
+	} else {
+		file->progress = 0;
+	}
 
 	G_FREE_NULL(file->status);	
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
@@ -488,27 +497,18 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		}
 		break;
 	case c_fi_done:
-		{
-			static char buf[256];
-
-			if (file->done && file->size) {
-				gdouble done;
-
-				done = (1.0 * file->done / file->size) * 100.0;
-				gm_snprintf(buf, sizeof buf, "%s (%.2f%%)",
-					short_size(file->done, show_metric_units()), done);
-				text = buf;
-			} else {
-				text = "-";
-			}
+		if (file->done && file->size) {
+			text = short_size(file->done, show_metric_units());
 		}
 		break;
 	case c_fi_status:
 		text = file->status;
 		break;
-
-	default:
-		text = NULL;
+	case c_fi_progress:
+		g_object_set(cell, "value", file->progress, (void *) 0);
+		return;
+	case c_fi_num:
+		g_assert_not_reached();
 	}
 	g_object_set(cell, "text", text, (void *) 0);
 }
@@ -880,12 +880,18 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 	case c_fi_uploaded:
 		ret = CMP(a->uploaded, b->uploaded);
 		break;
-	case c_fi_done:
-		ret = CMP(fi_gui_relative_done(a, FALSE),
-					fi_gui_relative_done(b, FALSE));
-		if (0 == ret) {
-			ret = CMP(a->done, b->done);
+	case c_fi_progress:
+		{
+			unsigned value_a, value_b;
+
+			value_a = fi_gui_relative_done(a, FALSE);
+			value_b = fi_gui_relative_done(b, FALSE);
+			ret = CMP(value_a, value_b);
+			ret = ret ? ret : CMP(a->done, b->done);
 		}
+		break;
+	case c_fi_done:
+		ret = CMP(a->done, b->done);
 		break;
 	case c_fi_status:
 		ret = CMP(fileinfo_numeric_status(a), fileinfo_numeric_status(b));
@@ -1081,22 +1087,27 @@ fi_gui_init_columns(GtkTreeView *tv)
 		const char * const title;
 		const gfloat align;
 	} columns[] = {
-		{ c_fi_filename, N_("Filename"), 0.0 },
-    	{ c_fi_size,	 N_("Size"),	 1.0 },
-    	{ c_fi_done,	 N_("Progress"), 1.0 },
-    	{ c_fi_uploaded, N_("Uploaded"), 1.0 },
-    	{ c_fi_sources,  N_("Sources"),  0.0 },
-    	{ c_fi_status,   N_("Status"),	 0.0 }
+		{ c_fi_filename, N_("Filename"), 	0.0 },
+    	{ c_fi_size,	 N_("Size"),	 	1.0 },
+    	{ c_fi_progress, N_("Progress"), 	0.0 },
+    	{ c_fi_done,	 N_("Downloaded"), 	1.0 },
+    	{ c_fi_uploaded, N_("Uploaded"), 	1.0 },
+    	{ c_fi_sources,  N_("Sources"),  	0.0 },
+    	{ c_fi_status,   N_("Status"),	 	0.0 }
 	};
 	unsigned i;
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		GtkCellRenderer *renderer;
 		GtkTreeModel *model;
-		
-    	add_column(tv, columns[i].id, _(columns[i].title), columns[i].align,
-			NULL, render_files);
+
+		renderer = columns[i].id == c_fi_progress
+					? gtk_cell_renderer_progress_new()
+					: NULL;
+		add_column(tv, columns[i].id, _(columns[i].title), columns[i].align,
+			renderer, render_files);
 
 		model = gtk_tree_view_get_model(tv);
 		if (model) {
@@ -1137,6 +1148,8 @@ on_notebook_switch_page(GtkNotebook *unused_notebook,
 	g_assert(UNSIGNED(current_page) < nb_downloads_page_num);
 
 	tv = fi_gui_current_treeview();
+	tree_view_save_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
+
 	g_object_freeze_notify(G_OBJECT(tv));
 	gtk_tree_view_set_model(tv, NULL);
 
@@ -1149,14 +1162,18 @@ on_notebook_switch_page(GtkNotebook *unused_notebook,
 	fi_gui_clear_details();
 
 	current_page = page_num;
-	g_hash_table_foreach(fi_handles, fi_handles_visualize,
-		GUINT_TO_POINTER(page_num));
 
 	update_popup_downloads();
 	
+	g_object_freeze_notify(G_OBJECT(store_files));
+	g_hash_table_foreach(fi_handles, fi_handles_visualize,
+		GUINT_TO_POINTER(page_num));
+	g_object_thaw_notify(G_OBJECT(store_files));
+
 	tv = fi_gui_get_treeview(page_num);
 	g_object_freeze_notify(G_OBJECT(tv));
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_files));
+	tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 	g_object_thaw_notify(G_OBJECT(tv));
 }
 
@@ -1242,9 +1259,6 @@ fi_gui_init(void)
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_sources"));
 		treeview_download_sources = tv;
 
-		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
-		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
-
 		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
 			GtkCellRenderer *renderer;
 
@@ -1254,6 +1268,9 @@ fi_gui_init(void)
     		add_column(tv, tab[i].id, tab[i].title, 0.0,
 				renderer, render_sources);
 		}
+
+		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
+		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
 
 		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 			GTK_SELECTION_MULTIPLE);

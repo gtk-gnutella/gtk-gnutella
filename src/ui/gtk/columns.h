@@ -42,7 +42,7 @@
  */
 
 enum {
-	c_gnet_host = 0,
+	c_gnet_host,
 	c_gnet_loc,
 	c_gnet_flags,
 	c_gnet_user_agent,
@@ -63,7 +63,7 @@ enum {
  */
 
 enum {
-    c_ul_filename = 0,
+    c_ul_filename,
     c_ul_host,
     c_ul_loc,
     c_ul_size,
@@ -85,7 +85,7 @@ enum {
  */
 
 enum {
-    c_us_filename = 0,
+    c_us_filename,
     c_us_size,
     c_us_attempts,
     c_us_complete,
@@ -131,14 +131,15 @@ enum c_src {
  */
 
 enum {
-    c_queue_filename = 0,
+    c_queue_filename,
     c_queue_host,
     c_queue_loc,
     c_queue_size,
     c_queue_server,
     c_queue_status,
-	c_queue_num
+
 #define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_num)
+	c_queue_num
 };
 
 /**
@@ -146,13 +147,15 @@ enum {
  */
 
 enum c_fi {
-	c_fi_filename = 0,
+	c_fi_filename,
 	c_fi_size,
+	c_fi_progress,
 	c_fi_done,
 	c_fi_uploaded,
 	c_fi_sources,
 	c_fi_status,
-#define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_status + 1)
+
+#define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_num)
 	c_fi_num
 };
 
