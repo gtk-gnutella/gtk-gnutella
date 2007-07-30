@@ -137,7 +137,12 @@ search_gui_set_data(GtkTreeModel *model, struct result_data *rd)
 static inline void
 search_gui_data_changed(GtkTreeModel *model, struct result_data *rd)
 {
+#if 0
+	/* THIS DOES NOT KEEP THE ROWS IN ORDER */
 	tree_model_iter_changed(model, &rd->iter);
+#else
+	search_gui_set_data(model, rd);
+#endif
 }
 
 static void
