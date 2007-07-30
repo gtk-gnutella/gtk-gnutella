@@ -371,14 +371,21 @@ downloads_gui_status_string(const struct download *d)
 		g_assert(FILE_INFO_COMPLETE(fi));
 		g_assert(fi->cha1_hashed <= fi->size);
 		{
-			gboolean sha1_ok = fi->cha1 &&
-				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
+			const gchar *sha1_status;
+			
+			if (fi->cha1) {
+				if (fi->sha1) {
+					sha1_status = sha1_eq(fi->sha1, fi->cha1)
+						? _("SHA-1 OK")
+						: _("SHA-1 MISMATCH");
+				} else {
+					sha1_status = _("SHA-1 calculated");
+				}
+			} else {
+				sha1_status = _("SHA-1 VERIFICATION FAILED");
+			}
+			rw = gm_snprintf(tmpstr, sizeof tmpstr, "%s", sha1_status);
 
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "SHA1 %s %s",
-				fi->sha1 == NULL ? "figure" : "check",
-				fi->cha1 == NULL ?	"ERROR" :
-				sha1_ok ?			"OK" :
-									"FAILED");
 			if (fi->cha1 && fi->cha1_hashed) {
 				guint elapsed = fi->cha1_elapsed;
 			
