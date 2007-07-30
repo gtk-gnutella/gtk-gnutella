@@ -10973,18 +10973,20 @@ download_verify_tigertree_done(struct download *d,
 
 	(void) elapsed;
 
-	d->status = GTA_DL_VERIFIED;
-	file_info_changed(fi);
-
 	if (tth_eq(tth, fi->tth)) {
 		g_message("TTH matches (file=\"%s\")",
 			filepath_basename(fi->pathname));
+
+		d->status = GTA_DL_VERIFIED;
+		file_info_changed(fi);
 	} else {
 		filesize_t offset, slice_size;
 		size_t i;
 
 		g_message("TTH mismatch (file=\"%s\")",
 			filepath_basename(fi->pathname));
+
+		d->status = GTA_DL_COMPLETED;
 
 		slice_size = fi->tigertree.slice_size;
 		g_message("filesize=%s, slice_size=%s",
