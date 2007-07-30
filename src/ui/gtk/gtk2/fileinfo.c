@@ -78,6 +78,116 @@ static GtkListStore *store_aliases;
 
 static enum nb_downloads_page current_page;
 
+static void
+update_popup_downloads_start_now(void)
+{
+	gboolean sensitive = TRUE;
+
+	switch (current_page) {
+	case nb_downloads_page_active:
+	case nb_downloads_page_finished:
+	case nb_downloads_page_seeding:
+		sensitive = FALSE;
+		break;
+	case nb_downloads_page_queued:
+	case nb_downloads_page_paused:
+	case nb_downloads_page_incomplete:
+	case nb_downloads_page_all:
+		sensitive = TRUE;
+		break;
+	case nb_downloads_page_num:
+		g_assert_not_reached();
+		break;
+	}
+	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_start_now"),
+		sensitive);
+
+}
+
+static void
+update_popup_downloads_queue(void)
+{
+	gboolean sensitive = TRUE;
+
+	switch (current_page) {
+	case nb_downloads_page_active:
+	case nb_downloads_page_paused:
+	case nb_downloads_page_incomplete:
+	case nb_downloads_page_all:
+		sensitive = TRUE;
+		break;
+	case nb_downloads_page_queued:
+	case nb_downloads_page_finished:
+	case nb_downloads_page_seeding:
+		sensitive = FALSE;
+		break;
+	case nb_downloads_page_num:
+		g_assert_not_reached();
+		break;
+	}
+	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_queue"),
+		sensitive);
+}
+
+static void
+update_popup_downloads_resume(void)
+{
+	gboolean sensitive = TRUE;
+
+	switch (current_page) {
+	case nb_downloads_page_queued:
+	case nb_downloads_page_paused:
+	case nb_downloads_page_incomplete:
+	case nb_downloads_page_all:
+		sensitive = TRUE;
+		break;
+	case nb_downloads_page_active:
+	case nb_downloads_page_finished:
+	case nb_downloads_page_seeding:
+		sensitive = FALSE;
+		break;
+	case nb_downloads_page_num:
+		g_assert_not_reached();
+		break;
+	}
+	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_resume"),
+		sensitive);
+}
+
+static void
+update_popup_downloads_pause(void)
+{
+	gboolean sensitive = TRUE;
+
+	switch (current_page) {
+	case nb_downloads_page_active:
+	case nb_downloads_page_queued:
+	case nb_downloads_page_incomplete:
+	case nb_downloads_page_all:
+		sensitive = TRUE;
+		break;
+	case nb_downloads_page_paused:
+	case nb_downloads_page_finished:
+	case nb_downloads_page_seeding:
+		sensitive = FALSE;
+		break;
+	case nb_downloads_page_num:
+		g_assert_not_reached();
+		break;
+	}
+	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_pause"),
+		sensitive);
+}
+
+static void
+update_popup_downloads(void)
+{
+	update_popup_downloads_start_now();
+	update_popup_downloads_queue();
+	update_popup_downloads_resume();
+	update_popup_downloads_pause();
+}
+
 static GtkTreeView *
 fi_gui_get_treeview(enum nb_downloads_page page)
 {
@@ -1036,9 +1146,13 @@ on_notebook_switch_page(GtkNotebook *unused_notebook,
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tv));
 	g_object_thaw_notify(G_OBJECT(tv));
 
+	fi_gui_clear_details();
+
 	current_page = page_num;
 	g_hash_table_foreach(fi_handles, fi_handles_visualize,
 		GUINT_TO_POINTER(page_num));
+
+	update_popup_downloads();
 	
 	tv = fi_gui_get_treeview(page_num);
 	g_object_freeze_notify(G_OBJECT(tv));
@@ -1158,6 +1272,8 @@ fi_gui_init(void)
 		FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
+
+	update_popup_downloads();
 }
 
 static gboolean
