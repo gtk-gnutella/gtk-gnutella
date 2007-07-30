@@ -844,10 +844,9 @@ gui_update_download_server(struct download *d)
 {
 	GtkCTreeNode *node;
 
-	if (DL_GUI_IS_HEADER == d)
-		return;			/* A header was sent here by mistake */
+	g_return_if_fail(DL_GUI_IS_HEADER != d);
 
-	g_assert(d);
+	download_check(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 	g_assert(d->server);
 	g_assert(download_vendor(d));
@@ -874,8 +873,7 @@ gui_update_download_range(struct download *d)
 {
 	GtkCTreeNode *node;
 
-	if (DL_GUI_IS_HEADER == d)
-		return;			/* A header was sent here by mistake */
+	g_return_if_fail(DL_GUI_IS_HEADER != d);
 
 	download_check(d);
 	g_assert(d->status != GTA_DL_QUEUED);
@@ -895,7 +893,9 @@ gui_update_download_size(struct download *d)
 {
 	GtkCTreeNode *node;
 
-	g_assert(d);
+	g_return_if_fail(DL_GUI_IS_HEADER != d);
+
+	download_check(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
 	if (!d->file_info->file_size_known)
@@ -914,10 +914,10 @@ gui_update_download_host(struct download *d)
 {
 	GtkCTreeNode *node;
 
-	if (DL_GUI_IS_HEADER == d)
-		return;			/* A header was sent here by mistake */
+	g_return_if_fail(DL_GUI_IS_HEADER != d);
 
-	g_assert(d);
+	download_check(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
 	g_assert(d->status != GTA_DL_QUEUED);
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
@@ -941,16 +941,14 @@ gui_update_download(struct download *d, gboolean force)
 	gpointer key;
 	gint active_src, tot_src;
 	gboolean copy_status_to_parent = FALSE;
-
 	gint rw;
     gint current_page;
 	gboolean looking = TRUE;
 
+	g_return_if_fail(DL_GUI_IS_HEADER != d);
+
     if (d->last_gui_update == now && !force)
 		return;
-
-	if (DL_GUI_IS_HEADER == d)
-		return;			/* A header was sent here by mistake */
 
 	/*
 	 * Why update if no one's looking?
