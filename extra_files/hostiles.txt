@@ -1047,3 +1047,6 @@
 # diversity (faked)
 64.208.52.0/22
 
+# French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
+91.121.67.16
+
