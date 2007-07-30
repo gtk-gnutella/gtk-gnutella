@@ -1028,7 +1028,7 @@
 
 # Accelerator and enhancer spam; zip; rar; exe; port 41000; LimeWire
 85.92.153.192/26
-121.119.182.32/26
+121.119.182.32/27
 
 # MOV pr0n spam; video-elf dot com
 8.3.218.0/24
