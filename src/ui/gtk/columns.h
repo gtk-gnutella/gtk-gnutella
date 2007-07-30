@@ -114,7 +114,7 @@ enum {
 #define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
 };
 
-enum {
+enum c_src {
 	c_src_host,
 	c_src_country,
 	c_src_server,

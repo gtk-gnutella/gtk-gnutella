@@ -62,8 +62,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static gnet_fi_t last_shown = 0;
-static gboolean  last_shown_valid = FALSE;
+static gnet_fi_t last_shown;
+static gboolean  last_shown_valid;
 
 static GHashTable *fi_handles;
 static GHashTable *fi_updates;
@@ -72,8 +72,14 @@ static GHashTable *fi_sources;
 static GtkTreeView *treeview_download_sources;
 static GtkTreeView *treeview_download_aliases;
 
+static GtkListStore *store_files;
+static GtkListStore *store_sources;
+static GtkListStore *store_aliases;
+
+static enum nb_downloads_page current_page;
+
 static GtkTreeView *
-fi_gui_get_treeview(guint page)
+fi_gui_get_treeview(enum nb_downloads_page page)
 {
 	const char *name = NULL;
 	
@@ -89,40 +95,31 @@ fi_gui_get_treeview(guint page)
 			return tv; \
 		}
 
-	CASE(all)
 	CASE(active)
 	CASE(queued)
+	CASE(incomplete)
+	CASE(paused)
 	CASE(finished)
 	CASE(seeding)
+	CASE(all)
 #undef CASE
+	case nb_downloads_page_num:
+		break;
 	}
 	g_assert_not_reached();
-}
-
-static int
-fi_gui_current_page(void)
-{
-	return gtk_notebook_get_current_page(
-			GTK_NOTEBOOK(gui_main_window_lookup("notebook_downloads")));
+	return NULL;
 }
 
 GtkTreeView *
 fi_gui_current_treeview(void)
 {
-	return fi_gui_get_treeview(fi_gui_current_page());
-}
-
-static GtkListStore *
-fi_gui_current_store(void)
-{
-	return GTK_LIST_STORE(gtk_tree_view_get_model(
-				GTK_TREE_VIEW(fi_gui_current_treeview())));
+	return fi_gui_get_treeview(current_page);
 }
 
 struct fileinfo_data {
-	GtkTreeIter iter;
-	const gchar *filename;	/* atom */
-	gchar *status;			/* g_strdup */
+	GtkTreeIter *iter;
+	const char *filename;	/* atom */
+	char *status;			/* g_strdup */
 	hash_list_t *downloads;
 
 	filesize_t size;
@@ -132,15 +129,40 @@ struct fileinfo_data {
 	gnet_fi_t handle;
 	guint32 rank;
 
-	guint actively_queued;
-	guint passively_queued;
-	guint life_count;
-	guint recv_count;
+	unsigned actively_queued;
+	unsigned passively_queued;
+	unsigned life_count;
+	unsigned recv_count;
 
 	unsigned paused:1;
 	unsigned hashed:1;
 	unsigned seeding:1;
 };
+
+static gboolean
+fi_gui_visible(const struct fileinfo_data *file)
+{
+	switch (current_page) {
+	case nb_downloads_page_active:
+		return file->recv_count > 0;
+	case nb_downloads_page_queued:
+		return file->actively_queued || file->passively_queued;
+	case nb_downloads_page_finished:
+		return file->size && file->done == file->size;
+	case nb_downloads_page_seeding:
+		return file->seeding;
+	case nb_downloads_page_paused:
+		return file->paused;
+	case nb_downloads_page_incomplete:
+		return file->done != file->size || 0 == file->size;
+	case nb_downloads_page_all:
+		return TRUE;
+	case nb_downloads_page_num:
+		break;
+	}
+	g_assert_not_reached();
+	return TRUE;
+}
 
 /**
  * Fill in the cell data. Calling this will always break the data
@@ -159,7 +181,7 @@ fi_gui_set_filename(struct fileinfo_data *file)
 	if (utf8_is_valid_string(info->filename)) {
 		file->filename = atom_str_get(info->filename);
 	} else {
-		gchar *name;
+		char *name;
 
 		name = filename_to_utf8_normalized(info->filename, UNI_NORM_GUI);
 		file->filename = atom_str_get(name);
@@ -168,7 +190,6 @@ fi_gui_set_filename(struct fileinfo_data *file)
 	guc_fi_free_info(info);
 }
 
-/* TODO: factorize this code with GTK1's one */
 static void
 fi_gui_fill_status(struct fileinfo_data *file)
 {
@@ -195,12 +216,52 @@ fi_gui_fill_status(struct fileinfo_data *file)
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
 }
 
-
 static void
 fi_gui_clear_data(struct fileinfo_data *file)
 {
 	atom_str_free_null(&file->filename);
 	G_FREE_NULL(file->status);
+}
+
+static void
+fi_gui_set_data(struct fileinfo_data *file)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	g_assert(file);
+	g_value_init(&value, G_TYPE_POINTER);
+	g_value_set_pointer(&value, file);
+	gtk_list_store_set_value(store_files, file->iter, 0, &value);
+}
+
+static void
+fi_gui_show_data(struct fileinfo_data *file)
+{
+	if (!file->iter) {
+		file->iter = walloc(sizeof *file->iter);
+		gtk_list_store_append(store_files, file->iter);
+	}
+	fi_gui_set_data(file);
+}
+
+static void
+fi_gui_hide_data(struct fileinfo_data *file)
+{
+	if (file->iter) {
+		gtk_list_store_remove(store_files, file->iter);
+		WFREE_NULL(file->iter, sizeof *file->iter);
+	}
+}
+
+static void
+fi_gui_update_visibility(struct fileinfo_data *file)
+{
+	if (fi_gui_visible(file)) {
+		fi_gui_show_data(file);
+	} else {
+		fi_gui_hide_data(file);
+	}
 }
 
 static void 
@@ -217,7 +278,8 @@ fi_gui_add_file(gnet_fi_t handle)
 	file->handle = handle;
 	g_hash_table_insert(fi_handles, GUINT_TO_POINTER(handle), file);
 	fi_gui_set_filename(file);
-	gtk_list_store_append(fi_gui_current_store(), &file->iter);
+	fi_gui_fill_status(file);
+	fi_gui_show_data(file);
 }
 
 static void 
@@ -230,7 +292,7 @@ fi_gui_free_data(struct fileinfo_data *file)
 static void 
 fi_gui_remove_data(struct fileinfo_data *file)
 {
-	gpointer key;
+	void *key;
 
 	g_assert(file);
 
@@ -239,28 +301,30 @@ fi_gui_remove_data(struct fileinfo_data *file)
 	g_hash_table_remove(fi_updates, key);
 	g_assert(NULL == file->downloads);
 
-	gtk_list_store_remove(fi_gui_current_store(), &file->iter);
+	fi_gui_hide_data(file);
 	fi_gui_free_data(file);
+}
+
+static inline void *
+get_row_data(GtkTreeModel *model, GtkTreeIter *iter)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	gtk_tree_model_get_value(model, iter, 0, &value);
+	return g_value_get_pointer(&value);
 }
 
 static inline struct fileinfo_data *
 get_fileinfo_data(GtkTreeModel *model, GtkTreeIter *iter)
 {
-	static const GValue zero_value;
-	GValue value = zero_value;
-
-	gtk_tree_model_get_value(model, iter, 0, &value);
-	return g_value_get_pointer(&value);
+	return get_row_data(model, iter);
 }
 
 static inline struct download *
 get_download(GtkTreeModel *model, GtkTreeIter *iter)
 {
-	static const GValue zero_value;
-	GValue value = zero_value;
-
-	gtk_tree_model_get_value(model, iter, 0, &value);
-	return g_value_get_pointer(&value);
+	return get_row_data(model, iter);
 }
 
 static inline gnet_fi_t
@@ -274,24 +338,12 @@ fi_gui_get_handle(GtkTreeModel *model, GtkTreeIter *iter)
 }
 
 static void
-set_fileinfo_data(struct fileinfo_data *file)
-{
-	static const GValue zero_value;
-	GValue value = zero_value;
-
-	g_assert(file);
-	g_value_init(&value, G_TYPE_POINTER);
-	g_value_set_pointer(&value, file);
-	gtk_list_store_set_value(fi_gui_current_store(), &file->iter, 0, &value);
-}
-
-static void
-cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
-	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
+render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
+	GtkTreeModel *model, GtkTreeIter *iter, void *udata)
 {
 	const struct fileinfo_data *file;
-	const gchar *text;
-	guint id;
+	const char *text;
+	enum c_fi id;
 
 	if (!gtk_tree_view_column_get_visible(column))
 		return;
@@ -300,7 +352,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	g_return_if_fail(file);
 
 	id = GPOINTER_TO_UINT(udata);
-	switch ((enum c_fi) id) {
+	switch (id) {
 	case c_fi_filename:
 		text = file->filename;
 		break;
@@ -316,7 +368,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_fi_sources:
 		{
-			static gchar buf[256];
+			static char buf[256];
 
 			gm_snprintf(buf, sizeof buf, "%u/%u/%u",
 				file->recv_count,
@@ -327,12 +379,12 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_fi_done:
 		{
-			static gchar buf[256];
+			static char buf[256];
 
 			if (file->done && file->size) {
 				gdouble done;
 
-				done = ((gdouble) file->done / file->size) * 100.0;
+				done = (1.0 * file->done / file->size) * 100.0;
 				gm_snprintf(buf, sizeof buf, "%s (%.2f%%)",
 					short_size(file->done, show_metric_units()), done);
 				text = buf;
@@ -352,12 +404,12 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 }
 
 static void
-renderer_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
-	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
+render_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
+	GtkTreeModel *model, GtkTreeIter *iter, void *udata)
 {
 	struct download *d;
-	const gchar *text;
-	guint id;
+	const char *text;
+	enum c_src id;
 
 	if (!gtk_tree_view_column_get_visible(column))
 		return;
@@ -380,18 +432,26 @@ renderer_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	case c_src_range:
 		text = downloads_gui_range_string(d);
 		break;
-	case c_src_progress:
-		text = source_progress_to_string(d);
-		break;
 	case c_src_status:
 		text = downloads_gui_status_string(d);
 		break;
+	case c_src_progress:
+		{
+			int value;
+			
+			value = 100.0 * guc_download_source_progress(d);
+			value = CLAMP(value, 0, 100);
+			g_object_set(cell, "value", value, (void *) 0);
+		}
+		return;
+	case c_src_num:
+		g_assert_not_reached();
 	}
 	g_object_set(cell, "text", text, (void *) 0);
 }
 
 static GtkCellRenderer *
-create_cell_renderer(gfloat xalign)
+create_text_cell_renderer(gfloat xalign)
 {
 	GtkCellRenderer *renderer;
 	
@@ -401,14 +461,14 @@ create_cell_renderer(gfloat xalign)
 	g_object_set(G_OBJECT(renderer),
 		"mode",		GTK_CELL_RENDERER_MODE_INERT,
 		"xalign",	xalign,
-		"ypad",		(guint) GUI_CELL_RENDERER_YPAD,
+		"ypad",		(unsigned) GUI_CELL_RENDERER_YPAD,
 		(void *) 0);
 
 	return renderer;
 }
 
 static gboolean
-fi_sources_remove(gpointer unused_key, gpointer value, gpointer unused_udata)
+fi_sources_remove(void *unused_key, void *value, void *unused_udata)
 {
 	GtkTreeIter *iter;
 
@@ -426,12 +486,8 @@ fi_gui_clear_details(void)
 {
 	downloads_gui_clear_details();
 
-    gtk_list_store_clear(
-		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_aliases)));
-
-    gtk_list_store_clear(
-		GTK_LIST_STORE(gtk_tree_view_get_model(treeview_download_sources)));
-
+    gtk_list_store_clear(store_aliases);
+    gtk_list_store_clear(store_sources);
 	g_hash_table_foreach_remove(fi_sources, fi_sources_remove, NULL);
 
     last_shown_valid = FALSE;
@@ -442,18 +498,15 @@ static void
 fi_gui_fi_removed(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
-	gpointer key = GUINT_TO_POINTER(handle);
+	void *key = GUINT_TO_POINTER(handle);
 	
-	if (handle == last_shown) {
+	if (last_shown_valid && handle == last_shown) {
 		fi_gui_clear_details();
 	}
 
 	file = g_hash_table_lookup(fi_handles, key);
 	g_return_if_fail(file);
 	g_return_if_fail(handle == file->handle);
-	g_return_if_fail(
-		!gtk_tree_model_iter_has_child(GTK_TREE_MODEL(fi_gui_current_store()),
-			&file->iter));
 
 	fi_gui_remove_data(file);
 }
@@ -461,24 +514,23 @@ fi_gui_fi_removed(gnet_fi_t handle)
 static void
 fi_gui_set_aliases(gnet_fi_t handle)
 {
-	GtkTreeModel *model;
-    gchar **aliases;
-	gint i;
+    char **aliases;
+	int i;
 
-	model = gtk_tree_view_get_model(treeview_download_aliases);
-    gtk_list_store_clear(GTK_LIST_STORE(model));
+	g_return_if_fail(store_aliases);
+    gtk_list_store_clear(store_aliases);
 
     aliases = guc_fi_get_aliases(handle);
 	for (i = 0; NULL != aliases[i]; i++) {
 		GtkTreeIter iter;
-		gchar *filename;
+		char *filename;
 
-		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		gtk_list_store_append(store_aliases, &iter);
 		filename = utf8_is_valid_string(aliases[i])
 			? aliases[i]
 			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
-		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, filename, (-1));
+		gtk_list_store_set(store_aliases, &iter, 0, atom_str_get(filename), (-1));
 		if (filename != aliases[i]) {
 			G_FREE_NULL(filename);
 		}
@@ -487,25 +539,24 @@ fi_gui_set_aliases(gnet_fi_t handle)
 }
 
 static void
-fi_gui_add_source(GtkTreeModel *model, gpointer key)
+fi_gui_add_source(void *key)
 {
 	GtkTreeIter *iter;
 
+	g_return_if_fail(store_sources);
 	g_return_if_fail(NULL == g_hash_table_lookup(fi_sources, key));
 
 	iter = walloc(sizeof *iter);
 	g_hash_table_insert(fi_sources, key, iter);
-	gtk_list_store_append(GTK_LIST_STORE(model), iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), iter, 0, key, (-1));
+	gtk_list_store_append(store_sources, iter);
+	gtk_list_store_set(store_sources, iter, 0, key, (-1));
 }
 
 static void
 fi_gui_set_sources(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
-	GtkTreeModel *model;
 
-	model = gtk_tree_view_get_model(treeview_download_sources);
 	file = g_hash_table_lookup(fi_handles, GUINT_TO_POINTER(handle));
 	g_return_if_fail(file);
 
@@ -514,7 +565,7 @@ fi_gui_set_sources(gnet_fi_t handle)
 
 		iter = hash_list_iterator(file->downloads);
 		while (hash_list_iter_has_next(iter)) {
-			fi_gui_add_source(model, hash_list_iter_next(iter));
+			fi_gui_add_source(hash_list_iter_next(iter));
 		}
 		hash_list_iter_release(&iter);
 	}
@@ -542,7 +593,7 @@ fi_gui_set_details(gnet_fi_t handle)
 }
 
 void
-on_treeview_downloads_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
+on_treeview_downloads_cursor_changed(GtkTreeView *tv, void *unused_udata)
 {
 	GtkTreePath *path;
 
@@ -574,9 +625,9 @@ fi_gui_update(gnet_fi_t handle)
 	g_return_if_fail(file);
 
 	fi_gui_fill_status(file);
-	set_fileinfo_data(file);
+	fi_gui_update_visibility(file);
 
-	if (handle == last_shown) {
+	if (last_shown_valid && handle == last_shown) {
 		vp_draw_fi_progress(last_shown_valid, last_shown);
 	}
 }
@@ -590,13 +641,12 @@ fi_gui_update_download(struct download *d)
 
 	iter = g_hash_table_lookup(fi_sources, d);
 	if (iter) {
-		tree_model_iter_changed(
-			gtk_tree_view_get_model(treeview_download_sources), iter);
+		tree_model_iter_changed(GTK_TREE_MODEL(store_sources), iter);
 	}
 }
 
 void
-fi_gui_download_set_status(struct download *d, const gchar *s)
+fi_gui_download_set_status(struct download *d, const char *s)
 {
 	(void) s;
 	fi_gui_update_download(d);
@@ -648,19 +698,20 @@ fi_gui_fi_added(gnet_fi_t handle)
 static void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
-	gpointer key = GUINT_TO_POINTER(handle);
+	void *key = GUINT_TO_POINTER(handle);
 	g_hash_table_insert(fi_updates, key, key);
 }
 
 static void
 fi_gui_fi_status_changed_transient(gnet_fi_t handle)
 {
-	if (handle == last_shown)
+	if (last_shown_valid && handle == last_shown) {
 		fi_gui_fi_status_changed(handle);
+	}
 }
 
 static gboolean
-fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
+fi_gui_update_queued(void *key, void *unused_value, void *unused_udata)
 {
 	gnet_fi_t handle = GPOINTER_TO_UINT(key);
 
@@ -671,7 +722,7 @@ fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 	return TRUE; /* Remove the handle from the hashtable */
 }
 
-static inline guint
+static inline unsigned
 fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
 {
 	if (percent) {
@@ -681,10 +732,10 @@ fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
 	}
 }
 
-static inline guint
+static inline unsigned
 fileinfo_numeric_status(const struct fileinfo_data *file)
 {
-	guint v;
+	unsigned v;
 
 	v = fi_gui_relative_done(file, TRUE);
 	v |= file->seeding ? (1 << 13) : 0;
@@ -697,13 +748,13 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 	return v;
 }
 
-static gint
+static int
 fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
-		gpointer user_data)
+		void *user_data)
 {
 	const struct fileinfo_data *a, *b;
-	gint ret = 0;
 	enum c_fi id;
+	int ret = 0;
 
 	id = GPOINTER_TO_UINT(user_data);
 	a = get_fileinfo_data(model, i);
@@ -745,134 +796,26 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 	return ret;
 }
 
-/**
- * Callback handler used with gtk_tree_model_foreach() to record the current
- * rank/position in tree enabling stable sorting. 
- */
-static gboolean
-fi_gui_update_rank(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter,
-	gpointer udata)
-{
-	struct fileinfo_data *file;
-	guint32 *rank_ptr = udata;
-
-	(void) path;
-	
-	file = get_fileinfo_data(model, iter);
-	file->rank = *rank_ptr;
-	(*rank_ptr)++;
-	return FALSE;
-}
-
-
-static gboolean
-on_treeview_downloads_column_clicked(GtkTreeViewColumn *column,
-	gpointer unused_data)
-{
-	static gint sort_column, sort_order;
-	GtkTreeSortable *model;
-	GtkSortType order;
-	gint col;
-
-	(void) unused_data;
-	model = GTK_TREE_SORTABLE(fi_gui_current_store());
-
-	/*
-	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
-	 * switch between ascending and descending but never switch back
-	 * to the unsorted state.
-	 *
-	 * 			+--> sort ascending -> sort descending -> unsorted -+
-     *      	|                                                   |
-     *      	+-----------------------<---------------------------+
-     */
-
-	/*
-	 * "order" is set to the current sort-order, not the previous one
-	 * i.e., Gtk+ has already changed the order
-	 */
-	g_object_get(G_OBJECT(column), "sort-order", &order, (void *) 0);
-
-	gtk_tree_sortable_get_sort_column_id(model, &col, NULL);
-
-	/* If the user switched to another sort column, reset the sort order. */
-	if (sort_column != col) {
-		guint32 rank = 0;
-
-		sort_order = SORT_NONE;
-		/*
-		 * Iterate over all rows and record their current rank/position so
-	 	 * that re-sorting is stable.
-		 */
-		gtk_tree_model_foreach(GTK_TREE_MODEL(model),
-			fi_gui_update_rank, &rank);
-	}
-
-	sort_column = col;
-
-	/* The search has to keep state about the sort order itself because
-	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (sort_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		sort_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		sort_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		sort_order = SORT_NONE;
-		break;
-	}
-
-	if (SORT_NONE == sort_order) {
-		/*
-		 * Reset the sorting and let the arrow disappear from the
-		 * header. Gtk+ actually seems to change the order of the
-		 * rows back to the original order (i.e., chronological).
-		 */
-		gtk_tree_view_column_set_sort_indicator(column, FALSE);
-#if GTK_CHECK_VERSION(2,6,0)
-		gtk_tree_sortable_set_sort_column_id(model,
-			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
-#endif /* Gtk+ >= 2.6.0 */
-	} else {
-		/*
-		 * Enforce the order as decided from the search state. Gtk+
-		 * might disagree but it'll do as told.
-		 */
-		gtk_tree_sortable_set_sort_column_id(model, sort_column,
-			SORT_ASC == sort_order
-				? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
-	}
-	/* Make the column stays clickable. */
-	gtk_tree_view_column_set_clickable(column, TRUE);
-
-	return FALSE;
-}
-
-
 static GtkTreeViewColumn *
-add_column(GtkTreeView *tv, GtkTreeCellDataFunc cell_data_func,
- 	gint column_id, const gchar *title, gfloat xalign)
+create_column(int column_id, const char *title, gfloat xalign,
+	GtkCellRenderer *renderer, GtkTreeCellDataFunc cell_data_func)
 {
     GtkTreeViewColumn *column;
-	GtkCellRenderer *renderer;
 
-	renderer = create_cell_renderer(xalign);
-	column = gtk_tree_view_column_new_with_attributes(title,
-				renderer, (void *) 0);
-
-	if (cell_data_func) {
-		column = gtk_tree_view_column_new_with_attributes(title, renderer,
-					(void *) 0);
-		gtk_tree_view_column_set_cell_data_func(column, renderer,
-			cell_data_func, GUINT_TO_POINTER(column_id), NULL);
-	} else {
-		column = gtk_tree_view_column_new_with_attributes(title, renderer,
-					"text", column_id, (void *) 0);
+	if (!renderer) {
+		renderer = create_text_cell_renderer(xalign);
 	}
 
+	column = gtk_tree_view_column_new_with_attributes(title,
+				renderer, (void *) 0);
+	gtk_tree_view_column_set_cell_data_func(column, renderer,
+		cell_data_func, GUINT_TO_POINTER(column_id), NULL);
+	return column;
+}
+
+void
+configure_column(GtkTreeViewColumn *column)
+{
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 100,
 		"min-width", 1,
@@ -880,13 +823,22 @@ add_column(GtkTreeView *tv, GtkTreeCellDataFunc cell_data_func,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		(void *) 0);
+}
 
+static GtkTreeViewColumn *
+add_column(GtkTreeView *tv, int column_id, const char *title, gfloat xalign,
+	GtkCellRenderer *renderer, GtkTreeCellDataFunc cell_data_func)
+{
+	GtkTreeViewColumn *column;
+
+	column = create_column(column_id, title, xalign, renderer, cell_data_func);
+	configure_column(column);
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(tv, column);
 	return column;
 }
 
-static gchar *
+static char *
 fi_gui_get_file_url(GtkWidget *widget)
 {
 	GtkTreeModel *model;
@@ -904,7 +856,7 @@ fi_gui_get_file_url(GtkWidget *widget)
 	}
 }
 
-static gchar *
+static char *
 fi_gui_get_alias(GtkWidget *widget)
 {
 	GtkTreeModel *model;
@@ -938,13 +890,12 @@ fi_gui_update_display(time_t unused_now)
 	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(tv)))
 		return;
 
-	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
-
-	g_object_thaw_notify(G_OBJECT(tv));
 	g_object_freeze_notify(G_OBJECT(tv));
+	g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
+	g_object_thaw_notify(G_OBJECT(tv));
 }
 
-static gchar *
+static char *
 fi_gui_details_get_text(GtkWidget *widget)
 {
 	GtkTreeModel *model;
@@ -969,7 +920,7 @@ static void
 fi_gui_details_treeview_init(void)
 {
 	static const struct {
-		const gchar *title;
+		const char *title;
 		gfloat xalign;
 		gboolean editable;
 	} tab[] = {
@@ -978,7 +929,7 @@ fi_gui_details_treeview_init(void)
 	};
 	GtkTreeView *tv;
 	GtkTreeModel *model;
-	guint i;
+	unsigned i;
 
 	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_details"));
 	g_return_if_fail(tv);
@@ -993,7 +944,7 @@ fi_gui_details_treeview_init(void)
     	GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 		
-		renderer = create_cell_renderer(tab[i].xalign);
+		renderer = create_text_cell_renderer(tab[i].xalign);
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
 			(void *) 0);
@@ -1016,8 +967,8 @@ static void
 fi_gui_init_columns(GtkTreeView *tv)
 {
 	static const struct {
-		const gint id;
-		const gchar * const title;
+		const int id;
+		const char * const title;
 		const gfloat align;
 	} columns[] = {
 		{ c_fi_filename, N_("Filename"), 0.0 },
@@ -1027,69 +978,93 @@ fi_gui_init_columns(GtkTreeView *tv)
     	{ c_fi_sources,  N_("Sources"),  0.0 },
     	{ c_fi_status,   N_("Status"),	 0.0 }
 	};
-	guint i;
+	unsigned i;
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		GtkTreeViewColumn *column;
 		GtkTreeModel *model;
 		
-    	column = add_column(tv, cell_renderer,
-					columns[i].id, _(columns[i].title), columns[i].align);
+    	add_column(tv, columns[i].id, _(columns[i].title), columns[i].align,
+			NULL, render_files);
+
 		model = gtk_tree_view_get_model(tv);
 		if (model) {
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(model), columns[i].id,
 				fileinfo_data_cmp, GUINT_TO_POINTER(columns[i].id), NULL);
 		}
-		gui_signal_connect(column, "clicked",
-			on_treeview_downloads_column_clicked, NULL);
 	}
 }
 
 static void
-on_notebook_switch_page(GtkNotebook *unused_notebook,
-	GtkNotebookPage *unused_page, gint page_num, gpointer unused_udata)
+fi_handles_visualize(void *key, void *value, void *unused_udata)
 {
+	struct fileinfo_data *file;
+	gnet_fi_t handle;
+	
+	g_assert(value);
+	(void) unused_udata;
+	
+	handle = GPOINTER_TO_UINT(key);
+	file = value;
+
+	g_assert(handle == file->handle);
+	fi_gui_update_visibility(file);
+}
+
+static void
+on_notebook_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
+{
+	GtkTreeView *tv;
+
 	(void) unused_notebook;
 	(void) unused_udata;
 	(void) unused_page;
 
-	gtk_tree_view_set_model(fi_gui_get_treeview(page_num),
-		GTK_TREE_MODEL(fi_gui_current_store()));
-	gtk_tree_view_set_model(fi_gui_current_treeview(), NULL);
+	g_assert(UNSIGNED(page_num) < nb_downloads_page_num);
+	g_assert(UNSIGNED(current_page) < nb_downloads_page_num);
+
+	tv = fi_gui_current_treeview();
+	g_object_freeze_notify(G_OBJECT(tv));
+	gtk_tree_view_set_model(tv, NULL);
+
+	/* The selection is cleared anyway but we're rather safe than
+	 * sorry. We don't want to apply an action to a hidden treeview
+	 * by accident. */
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tv));
+	g_object_thaw_notify(G_OBJECT(tv));
+
+	current_page = page_num;
+	g_hash_table_foreach(fi_handles, fi_handles_visualize,
+		GUINT_TO_POINTER(page_num));
+	
+	tv = fi_gui_get_treeview(page_num);
+	g_object_freeze_notify(G_OBJECT(tv));
+	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_files));
+	g_object_thaw_notify(G_OBJECT(tv));
 }
 
 void
 fi_gui_init(void)
 {
-	gint i;
+	unsigned page;
 
 	fi_handles = g_hash_table_new(NULL, NULL);
 	fi_updates = g_hash_table_new(NULL, NULL);
 	fi_sources = g_hash_table_new(NULL, NULL);
 
-	gui_signal_connect(gui_main_window_lookup("notebook_downloads"),
-		"switch-page", on_notebook_switch_page, NULL);
+	store_files = gtk_list_store_new(1, G_TYPE_POINTER);
+	gtk_tree_view_set_model(fi_gui_current_treeview(),
+		GTK_TREE_MODEL(store_files));
 
-	for (i = 0; i < nb_downloads_page_num; i++) {
+	for (page = 0; page < nb_downloads_page_num; page++) {
 		GtkTreeView *tv;
 
-		tv = fi_gui_get_treeview(i);
-
-		if (i == fi_gui_current_page()) {
-			GtkTreeModel *model;
-
-			model = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_POINTER));
-			gtk_tree_view_set_model(tv, model);
-			g_object_unref(model);
-		}
-
+		tv = fi_gui_get_treeview(page);
 		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 			GTK_SELECTION_MULTIPLE);
-
-		g_object_freeze_notify(G_OBJECT(tv));
 
 		gui_signal_connect(tv, "cursor-changed",
 			on_treeview_downloads_cursor_changed, NULL);
@@ -1103,38 +1078,68 @@ fi_gui_init(void)
 	}
 
 	{
+		GtkWidget *notebook;
+
+		notebook = gui_main_window_lookup("notebook_downloads");
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), current_page);
+		gui_signal_connect(notebook, "switch-page",
+			on_notebook_switch_page, NULL);
+	}
+
+	{
+		GtkTreeViewColumn *column;
 		GtkTreeView *tv;
-		GtkTreeModel *model;
 
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_aliases"));
 		treeview_download_aliases = tv;
 
-		model = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_STRING));
-		gtk_tree_view_set_model(tv, model);
-		g_object_unref(model);
+		store_aliases = gtk_list_store_new(1, G_TYPE_STRING);
+		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_aliases));
 
-		add_column(tv, NULL, 0, _("Aliases"), 0.0);
+		column = gtk_tree_view_column_new_with_attributes(_("Aliases"),
+					create_text_cell_renderer(0.0),
+					"text", 0,
+					(void *) 0);
+		configure_column(column);
+		gtk_tree_view_column_set_sort_column_id(column, 0);
+    	gtk_tree_view_append_column(tv, column);
+
 		tree_view_set_fixed_height_mode(tv, TRUE);
 		drag_attach(GTK_WIDGET(tv), fi_gui_get_alias);
 	}
 
 	{
+		static const struct {
+			enum c_src id;
+			const char *title;
+		} tab[] = {
+   			{ c_src_host, 	 	N_("Host"), },
+   			{ c_src_country, 	N_("Country"), },
+   			{ c_src_server,  	N_("Server"), },
+   			{ c_src_range, 	 	N_("Range"), },
+   			{ c_src_progress,	N_("Progress"), },
+   			{ c_src_status,	 	N_("Status"), },
+		};
 		GtkTreeView *tv;
-		GtkTreeModel *model;
+		unsigned i;
 
+		STATIC_ASSERT(c_src_num == G_N_ELEMENTS(tab));
+		
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_sources"));
 		treeview_download_sources = tv;
 
-		model = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_POINTER));
-		gtk_tree_view_set_model(tv, model);
-		g_object_unref(model);
+		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
+		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
 
-    	add_column(tv, renderer_sources, c_src_host, 	 _("Host"), 	0.0);
-    	add_column(tv, renderer_sources, c_src_country,  _("Country"), 	0.0);
-    	add_column(tv, renderer_sources, c_src_server, 	 _("Server"), 	0.0);
-    	add_column(tv, renderer_sources, c_src_range, 	 _("Range"), 	0.0);
-    	add_column(tv, renderer_sources, c_src_progress, _("Progress"), 0.0);
-    	add_column(tv, renderer_sources, c_src_status, 	 _("Status"),	0.0);
+		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+			GtkCellRenderer *renderer;
+
+			renderer = tab[i].id == c_src_progress
+						? gtk_cell_renderer_progress_new()
+						: NULL;
+    		add_column(tv, tab[i].id, tab[i].title, 0.0,
+				renderer, render_sources);
+		}
 
 		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 			GTK_SELECTION_MULTIPLE);
@@ -1155,8 +1160,8 @@ fi_gui_init(void)
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 }
 
-static void
-fi_handles_shutdown(gpointer key, gpointer value, gpointer unused_data)
+static gboolean
+fi_handles_shutdown(void *key, void *value, void *unused_data)
 {
 	struct fileinfo_data *file;
 	gnet_fi_t handle;
@@ -1168,12 +1173,14 @@ fi_handles_shutdown(gpointer key, gpointer value, gpointer unused_data)
 	file = value;
 	g_assert(handle == file->handle);
 	fi_gui_free_data(file);
+
+	return TRUE; /* Remove the handle from the hashtable */
 }
 
 void
 fi_gui_shutdown(void)
 {
-	guint i;
+	unsigned i;
 
     guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
@@ -1183,9 +1190,7 @@ fi_gui_shutdown(void)
 
 	tree_view_save_widths(fi_gui_current_treeview(), PROP_FILE_INFO_COL_WIDTHS);
 	tree_view_save_widths(treeview_download_sources, PROP_SOURCES_COL_WIDTHS);
-	g_hash_table_foreach(fi_handles, fi_handles_shutdown, NULL);
-
-	gtk_list_store_clear(fi_gui_current_store());
+	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
 
 	for (i = 0; i < nb_downloads_page_num; i++) {
 		GtkTreeView *tv;
@@ -1193,9 +1198,18 @@ fi_gui_shutdown(void)
 		tv = fi_gui_get_treeview(i);
 		gtk_tree_view_set_model(tv, NULL);
 	}
-	
+
+	gtk_list_store_clear(store_files);
+	g_object_unref(store_files);
+	store_files = NULL;
+
 	gtk_tree_view_set_model(treeview_download_aliases, NULL);
+	g_object_unref(store_aliases);
+	store_aliases = NULL;
+
 	gtk_tree_view_set_model(treeview_download_sources, NULL);
+	g_object_unref(store_sources);
+	store_sources = NULL;
 
 	g_hash_table_destroy(fi_handles);
 	fi_handles = NULL;
@@ -1215,7 +1229,7 @@ void
 fi_gui_add_download(struct download *d)
 {
 	struct fileinfo_data *file;
-	gpointer key;
+	void *key;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
@@ -1224,15 +1238,16 @@ fi_gui_add_download(struct download *d)
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
 	g_return_if_fail(file);
+	g_assert(d->file_info->fi_handle == file->handle);
 
 	if (NULL == file->downloads) {
 		file->downloads = hash_list_new(NULL, NULL);
 	}
 	g_return_if_fail(!hash_list_contains(file->downloads, key, NULL));
 	hash_list_append(file->downloads, key);
-	if (last_shown_valid && last_shown == d->file_info->fi_handle) {
-		fi_gui_add_source(gtk_tree_view_get_model(treeview_download_sources),
-			key);
+
+	if (last_shown_valid && last_shown == file->handle) {
+		fi_gui_add_source(key);
 	}
 }
 
@@ -1240,7 +1255,7 @@ void
 fi_gui_remove_download(struct download *d)
 {
 	struct fileinfo_data *file;
-	gpointer key;
+	void *key;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
@@ -1249,6 +1264,7 @@ fi_gui_remove_download(struct download *d)
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
 	g_return_if_fail(file);
+	g_assert(d->file_info->fi_handle == file->handle);
 
 	g_return_if_fail(file->downloads);
 	g_return_if_fail(hash_list_contains(file->downloads, key, NULL));
@@ -1263,10 +1279,7 @@ fi_gui_remove_download(struct download *d)
 
 		iter = g_hash_table_lookup(fi_sources, key);
 		if (iter) {
-			GtkTreeModel *model;
-
-			model = gtk_tree_view_get_model(treeview_download_sources);
-			gtk_list_store_remove(GTK_LIST_STORE(model), iter);
+			gtk_list_store_remove(store_sources, iter);
 			g_hash_table_remove(fi_sources, key);
 			wfree(iter, sizeof *iter);
 		}
@@ -1276,16 +1289,16 @@ fi_gui_remove_download(struct download *d)
 struct select_by_regex {
 	regex_t re;
 	GtkTreeSelection *selection;
-	guint matches, total_nodes;
+	unsigned matches, total_nodes;
 };
 
 gboolean
 fi_gui_select_by_regex_helper(GtkTreeModel *model,
-	GtkTreePath *unused_path, GtkTreeIter *iter, gpointer user_data)
+	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
 {
 	const struct fileinfo_data *file;
 	struct select_by_regex *ctx;
-	gint n;
+	int n;
 
 	(void) unused_path;
 	g_assert(user_data);
@@ -1305,10 +1318,10 @@ fi_gui_select_by_regex_helper(GtkTreeModel *model,
 }
 
 void
-fi_gui_select_by_regex(const gchar *regex)
+fi_gui_select_by_regex(const char *regex)
 {
 	struct select_by_regex ctx;
-    gint err, flags;
+    int err, flags;
 
 	ctx.matches = 0;
 	ctx.total_nodes = 0;
@@ -1322,13 +1335,13 @@ fi_gui_select_by_regex(const gchar *regex)
    	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
     err = regcomp(&ctx.re, regex, flags);
    	if (err) {
-        gchar buf[1024];
+        char buf[1024];
 
 		regerror(err, &ctx.re, buf, sizeof buf);
         statusbar_gui_warning(15, "regex error: %s",
 			lazy_locale_to_ui_string(buf));
     } else {
-		gtk_tree_model_foreach(GTK_TREE_MODEL(fi_gui_current_store()),
+		gtk_tree_model_foreach(GTK_TREE_MODEL(store_files),
 			fi_gui_select_by_regex_helper, &ctx);
 
 		statusbar_gui_message(15,
@@ -1362,7 +1375,7 @@ fi_gui_collect_selected(GtkTreeView *tv,
 
 static void
 fi_gui_sources_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, gpointer user_data)
+	GtkTreeIter *iter, void *user_data)
 {
 	GSList **sources_ptr = user_data;
 
@@ -1372,7 +1385,7 @@ fi_gui_sources_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 
 static void
 fi_gui_files_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, gpointer user_data)
+	GtkTreeIter *iter, void *user_data)
 {
 	GSList **files_ptr = user_data;
 	struct fileinfo_data *file;
@@ -1384,7 +1397,7 @@ fi_gui_files_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 
 static void
 fi_gui_sources_of_selected_files_helper(GtkTreeModel *model,
-	GtkTreePath *unused_path, GtkTreeIter *iter, gpointer user_data)
+	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
 {
 	GSList **files_ptr = user_data;
 	struct fileinfo_data *file;
@@ -1430,7 +1443,7 @@ fi_gui_sources_of_selected_files(gboolean unselect)
 
 void
 on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
+	void *unused_udata)
 {
 	GtkTreeView *tv;
 	GtkTreeIter iter;
@@ -1448,7 +1461,7 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 	model = gtk_tree_view_get_model(tv);
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gnet_fi_t handle;
-		gchar *url;
+		char *url;
 
 		handle = fi_gui_get_handle(model, &iter);
 		url = guc_file_info_build_magnet(handle);
