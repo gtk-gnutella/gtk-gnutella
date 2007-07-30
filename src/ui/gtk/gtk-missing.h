@@ -39,6 +39,16 @@
 	gtk_widget_set_usize((widget), (width), (height))
 #endif
 
+static inline void
+widget_set_visible(GtkWidget *widget, gboolean visible)
+{
+	if (visible) {
+		gtk_widget_show(widget);
+	} else {
+		gtk_widget_hide(widget);
+	}
+}
+
 /*
  * GtkProgressBar
  *
