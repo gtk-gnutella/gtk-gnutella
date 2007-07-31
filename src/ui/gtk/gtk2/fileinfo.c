@@ -248,7 +248,7 @@ struct fileinfo_data {
 	unsigned hashed:1;
 	unsigned seeding:1;
 
-	unsigned char progress;
+	guint16 progress; /* 0..1000 (per mille) */
 };
 
 static gboolean
@@ -319,17 +319,11 @@ fi_gui_fill_status(struct fileinfo_data *file)
 	file->uploaded = status.uploaded;
 	file->size = status.size;
 	file->done = status.done;
+	file->progress = file->size ? filesize_per_1000(file->size, file->done) : 0;
 
 	file->paused = 0 != status.paused;
 	file->hashed = 0 != status.sha1_hashed;
 	file->seeding = 0 != status.seeding;
-
-	if (file->size) {
-		file->progress = (1.0 * file->done / file->size) * 100.0;
-		file->progress = MIN(file->progress, 100);
-	} else {
-		file->progress = 0;
-	}
 
 	G_FREE_NULL(file->status);	
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
@@ -505,7 +499,7 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		text = file->status;
 		break;
 	case c_fi_progress:
-		g_object_set(cell, "value", file->progress, (void *) 0);
+		g_object_set(cell, "value", file->progress / 10, (void *) 0);
 		return;
 	case c_fi_num:
 		g_assert_not_reached();
@@ -833,28 +827,25 @@ fi_gui_update_queued(void *key, void *unused_value, void *unused_udata)
 }
 
 static inline unsigned
-fi_gui_relative_done(const struct fileinfo_data *s, gboolean percent)
-{
-	if (percent) {
-		return filesize_per_100(s->size, s->done);
-	} else {
-		return filesize_per_1000(s->size, s->done);
-	}
-}
-
-static inline unsigned
 fileinfo_numeric_status(const struct fileinfo_data *file)
 {
 	unsigned v;
 
-	v = fi_gui_relative_done(file, TRUE);
-	v |= file->seeding ? (1 << 13) : 0;
-	v |= file->hashed ? (1 << 12) : 0;
-	v |= file->size > 0 && file->size == file->done ? (1 << 11) : 0;
-	v |= file->recv_count > 0 ? (1 << 10) : 0;
-	v |= (file->actively_queued || file->passively_queued) ? (1 << 9) : 0;
-	v |= file->paused ? (1 << 8) : 0;
-	v |= file->life_count > 0 ? (1 << 7) : 0;
+	v = file->progress;
+	v |= file->seeding
+			? (1 << 16) : 0;
+	v |= file->hashed
+			? (1 << 15) : 0;
+	v |= file->size > 0 && file->size == file->done
+			? (1 << 14) : 0;
+	v |= file->recv_count > 0
+			? (1 << 13) : 0;
+	v |= (file->actively_queued || file->passively_queued)
+			? (1 << 12) : 0;
+	v |= file->paused
+			? (1 << 11) : 0;
+	v |= file->life_count > 0
+			? (1 << 10) : 0;
 	return v;
 }
 
@@ -881,14 +872,8 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 		ret = CMP(a->uploaded, b->uploaded);
 		break;
 	case c_fi_progress:
-		{
-			unsigned value_a, value_b;
-
-			value_a = fi_gui_relative_done(a, FALSE);
-			value_b = fi_gui_relative_done(b, FALSE);
-			ret = CMP(value_a, value_b);
-			ret = ret ? ret : CMP(a->done, b->done);
-		}
+		ret = CMP(a->progress, b->progress);
+		ret = ret ? ret : CMP(a->done, b->done);
 		break;
 	case c_fi_done:
 		ret = CMP(a->done, b->done);
