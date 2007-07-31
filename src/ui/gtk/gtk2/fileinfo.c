@@ -243,6 +243,7 @@ struct fileinfo_data {
 	unsigned passively_queued;
 	unsigned life_count;
 	unsigned recv_count;
+	unsigned recv_rate;
 
 	unsigned paused:1;
 	unsigned hashed:1;
@@ -312,6 +313,7 @@ fi_gui_fill_status(struct fileinfo_data *file)
 
     guc_fi_get_status(file->handle, &status);
 
+	file->recv_rate = status.recv_last_rate;
 	file->recv_count = status.recvcount;
 	file->actively_queued = status.aqueued_count;
 	file->passively_queued = status.pqueued_count;
@@ -494,6 +496,11 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	case c_fi_done:
 		if (file->done && file->size) {
 			text = short_size(file->done, show_metric_units());
+		}
+		break;
+	case c_fi_rx:
+		if (file->recv_count > 0) {
+			text = short_rate(file->recv_rate, show_metric_units());
 		}
 		break;
 	case c_fi_status:
@@ -989,6 +996,9 @@ fileinfo_data_cmp(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
 		ret = CMP(a->progress, b->progress);
 		ret = ret ? ret : CMP(a->done, b->done);
 		break;
+	case c_fi_rx:
+		ret = CMP(a->recv_rate, b->recv_rate);
+		break;
 	case c_fi_done:
 		ret = CMP(a->done, b->done);
 		break;
@@ -1184,15 +1194,16 @@ fi_gui_init_columns(GtkTreeView *tv)
 	static const struct {
 		const int id;
 		const char * const title;
-		const gfloat align;
+		gboolean justify_right;
 	} columns[] = {
-		{ c_fi_filename, N_("Filename"), 	0.0 },
-    	{ c_fi_size,	 N_("Size"),	 	1.0 },
-    	{ c_fi_progress, N_("Progress"), 	0.0 },
-    	{ c_fi_done,	 N_("Downloaded"), 	1.0 },
-    	{ c_fi_uploaded, N_("Uploaded"), 	1.0 },
-    	{ c_fi_sources,  N_("Sources"),  	0.0 },
-    	{ c_fi_status,   N_("Status"),	 	0.0 }
+		{ c_fi_filename, N_("Filename"), 	FALSE },
+    	{ c_fi_size,	 N_("Size"),	 	TRUE },
+    	{ c_fi_progress, N_("Progress"), 	FALSE },
+    	{ c_fi_rx, 		 N_("RX"), 			TRUE },
+    	{ c_fi_done,	 N_("Downloaded"), 	TRUE },
+    	{ c_fi_uploaded, N_("Uploaded"), 	TRUE },
+    	{ c_fi_sources,  N_("Sources"),  	FALSE },
+    	{ c_fi_status,   N_("Status"),	 	FALSE }
 	};
 	unsigned i;
 
@@ -1205,7 +1216,8 @@ fi_gui_init_columns(GtkTreeView *tv)
 		renderer = columns[i].id == c_fi_progress
 					? gtk_cell_renderer_progress_new()
 					: NULL;
-		add_column(tv, columns[i].id, _(columns[i].title), columns[i].align,
+		add_column(tv, columns[i].id, _(columns[i].title),
+			columns[i].justify_right ? 1.0 : 0.0,
 			renderer, render_files);
 
 		model = gtk_tree_view_get_model(tv);

@@ -122,7 +122,6 @@ static void
 fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
 {
     static gchar fi_sources[32];
-    static gchar fi_status[256];
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
     static gchar fi_progress[SIZE_FIELD_MAX];
@@ -162,55 +161,8 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
         titles[c_fi_uploaded] = "-";
     }
 	
-    if (s.recvcount) {
-		guint32 secs = 0;
-
-		if (s.recv_last_rate)
-			secs = (s.size - s.done) / s.recv_last_rate;
-
-        gm_snprintf(fi_status, sizeof(fi_status),
-            _("Downloading (%s)  TR: %s"),
-			short_rate(s.recv_last_rate, metric),
-			secs ? short_time(secs) : "-");
-
-        titles[c_fi_status] = fi_status;
-    } else if (s.size && s.done == s.size){
-		gint rw;
-
-		rw = gm_snprintf(fi_status, sizeof(fi_status),
-				"%s", s.seeding ? _("Seeding") : _("Finished"));
-
-		if (s.has_sha1) {
-			if (s.sha1_hashed == s.size)
-				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
-						"; SHA1 %s", s.sha1_matched ? _("OK") : _("failed"));
-			else if (s.sha1_hashed == 0)
-				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
-						"; %s", _("Waiting for SHA1 check"));
-			else
-				rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
-						"; %s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(s.sha1_hashed, metric),
-						(1.0 * s.sha1_hashed / s.size) * 100.0);
-		}
-
-		if (s.copied > 0 && s.copied < s.size) 
-			rw += gm_snprintf(&fi_status[rw], sizeof(fi_status)-rw,
-					"; %s %s (%.1f%%)", _("Moving"),
-					short_size(s.copied, metric),
-					(1.0 * s.copied / s.size) * 100.0);
-
-        titles[c_fi_status] = fi_status;
-    } else if (s.lifecount == 0) {
-        titles[c_fi_status] = _("No sources");
-    } else if (s.aqueued_count || s.pqueued_count) {
-        gm_snprintf(fi_status, sizeof(fi_status),
-            _("Queued (%d active, %d passive)"),
-            s.aqueued_count, s.pqueued_count);
-        titles[c_fi_status] = fi_status;
-    } else {
-        titles[c_fi_status] = _("Waiting");
-    }
+	titles[c_fi_rx] = short_rate(s.recv_last_rate, metric);
+	titles[c_fi_status] = guc_file_info_status_to_string(&s);
 }
 
 static void
@@ -701,6 +653,7 @@ fi_gui_init(void)
 			case c_fi_done:
 			case c_fi_uploaded:
 			case c_fi_progress:
+			case c_fi_rx:
 				gtk_clist_set_column_justification(clist, i, GTK_JUSTIFY_RIGHT);
 				break;
 			}
@@ -931,6 +884,23 @@ fi_gui_cmp_progress(GtkCList *unused_clist,
 }
 
 static gint 
+fi_gui_cmp_rx(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
+{
+    gnet_fi_status_t a, b;
+    gnet_fi_t fi_a, fi_b;
+
+	(void) unused_clist;
+	fi_a = GPOINTER_TO_UINT(((const GtkCListRow *) ptr1)->data);
+    fi_b = GPOINTER_TO_UINT(((const GtkCListRow *) ptr2)->data);
+
+    guc_fi_get_status(fi_a, &a);
+    guc_fi_get_status(fi_b, &b);
+
+	return CMP(a.recv_last_rate, b.recv_last_rate);
+}
+
+static gint 
 fi_gui_cmp_uploaded(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -1007,6 +977,7 @@ on_clist_fileinfo_click_column(GtkCList *clist, gint column,
 	CASE(filename)
 	CASE(size)
 	CASE(progress)
+	CASE(rx)
 	CASE(done)
 	CASE(uploaded)
 	CASE(sources)

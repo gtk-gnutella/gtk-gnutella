@@ -6032,12 +6032,8 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-
         gm_snprintf(buf, sizeof buf,
-            _("Downloading (%s)  TR: %s"),
-			short_rate(status->recv_last_rate,
-				GNET_PROPERTY(display_metric_units)),
-			secs ? short_time(secs) : "-");
+            _("Downloading; TR: %s"), secs ? short_time(secs) : "-");
 		return buf;
     } else if (status->size && status->done == status->size) {
 		static gchar msg_sha1[1024], msg_copy[1024];
@@ -6054,7 +6050,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 						"%s %s (%.1f%%)", _("Computing SHA1"),
 						short_size(status->sha1_hashed,
 							GNET_PROPERTY(display_metric_units)),
-						((gdouble) status->sha1_hashed / status->size) * 100.0);
+						(1.0 * status->sha1_hashed / status->size) * 100.0);
 			}
 		} else {
 			msg_sha1[0] = '\0';
@@ -6065,7 +6061,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 				"; %s %s (%.1f%%)", _("Moving"),
 				short_size(status->copied,
 					GNET_PROPERTY(display_metric_units)),
-				((gfloat) status->copied / status->size) * 100.0);
+				(1.0 * status->copied / status->size) * 100.0);
 		} else {
 			msg_copy[0] = '\0';
 		}

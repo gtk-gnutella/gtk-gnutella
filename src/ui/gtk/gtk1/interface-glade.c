@@ -248,6 +248,7 @@ create_main_window (void)
   GtkWidget *label_file;
   GtkWidget *label_size;
   GtkWidget *label_progress;
+  GtkWidget *label_rx;
   GtkWidget *label_done;
   GtkWidget *label_uploaded;
   GtkWidget *label_sources;
@@ -260,7 +261,6 @@ create_main_window (void)
   GtkWidget *table59;
   GtkWidget *label658;
   GtkWidget *viewport44;
-  GtkWidget *hbox198;
   GtkWidget *drawingarea_fi_progress;
   GtkWidget *notebook5;
   GtkWidget *vbox110;
@@ -2608,7 +2608,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox111), scrolledwindow42, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow42), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-  clist_fileinfo = gtk_clist_new (7);
+  clist_fileinfo = gtk_clist_new (8);
   gtk_widget_set_name (clist_fileinfo, "clist_fileinfo");
   gtk_widget_ref (clist_fileinfo);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_fileinfo", clist_fileinfo,
@@ -2622,6 +2622,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 4, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 5, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 6, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_fileinfo), 7, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_fileinfo), GTK_SELECTION_EXTENDED);
   gtk_clist_column_titles_show (GTK_CLIST (clist_fileinfo));
 
@@ -2650,13 +2651,21 @@ create_main_window (void)
   gtk_widget_show (label_progress);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 2, label_progress);
 
+  label_rx = gtk_label_new (_("RX"));
+  gtk_widget_set_name (label_rx, "label_rx");
+  gtk_widget_ref (label_rx);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_rx", label_rx,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_rx);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 3, label_rx);
+
   label_done = gtk_label_new (_("Done"));
   gtk_widget_set_name (label_done, "label_done");
   gtk_widget_ref (label_done);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_done", label_done,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_done);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 3, label_done);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label_done);
 
   label_uploaded = gtk_label_new (_("Uploaded"));
   gtk_widget_set_name (label_uploaded, "label_uploaded");
@@ -2664,7 +2673,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_uploaded", label_uploaded,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_uploaded);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label_uploaded);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 5, label_uploaded);
 
   label_sources = gtk_label_new (_("Sources"));
   gtk_widget_set_name (label_sources, "label_sources");
@@ -2672,7 +2681,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_sources", label_sources,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_sources);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 5, label_sources);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 6, label_sources);
 
   label_status = gtk_label_new (_("Status"));
   gtk_widget_set_name (label_status, "label_status");
@@ -2680,7 +2689,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_status", label_status,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_status);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 6, label_status);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 7, label_status);
 
   hbox196 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox196, "hbox196");
@@ -2750,16 +2759,8 @@ create_main_window (void)
   gtk_widget_show (viewport44);
   gtk_table_attach (GTK_TABLE (table59), viewport44, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport44), GTK_SHADOW_ETCHED_IN);
-
-  hbox198 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox198, "hbox198");
-  gtk_widget_ref (hbox198);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox198", hbox198,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox198);
-  gtk_container_add (GTK_CONTAINER (viewport44), hbox198);
 
   drawingarea_fi_progress = gtk_drawing_area_new ();
   gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
@@ -2767,7 +2768,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "drawingarea_fi_progress", drawingarea_fi_progress,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (drawingarea_fi_progress);
-  gtk_box_pack_start (GTK_BOX (hbox198), drawingarea_fi_progress, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport44), drawingarea_fi_progress);
   gtk_widget_set_usize (drawingarea_fi_progress, -2, 16);
   gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
   gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);

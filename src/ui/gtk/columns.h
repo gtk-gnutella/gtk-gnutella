@@ -150,6 +150,7 @@ enum c_fi {
 	c_fi_filename,
 	c_fi_size,
 	c_fi_progress,
+	c_fi_rx,
 	c_fi_done,
 	c_fi_uploaded,
 	c_fi_sources,

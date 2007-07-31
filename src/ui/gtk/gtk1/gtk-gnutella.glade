@@ -3061,8 +3061,8 @@
 			  <handler>on_clist_fileinfo_click_column</handler>
 			  <last_modification_time>Sat, 23 Sep 2006 20:31:07 GMT</last_modification_time>
 			</signal>
-			<columns>7</columns>
-			<column_widths>80,80,80,80,80,80,80</column_widths>
+			<columns>8</columns>
+			<column_widths>80,80,80,80,80,80,80,80</column_widths>
 			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 			<show_titles>True</show_titles>
 			<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -3098,6 +3098,19 @@
 			  <child_name>CList:title</child_name>
 			  <name>label_progress</name>
 			  <label>Progress</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <child_name>CList:title</child_name>
+			  <name>label_rx</name>
+			  <label>RX</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -3292,37 +3305,25 @@
 			<xshrink>True</xshrink>
 			<yshrink>False</yshrink>
 			<xfill>True</xfill>
-			<yfill>True</yfill>
+			<yfill>False</yfill>
 		      </child>
 
 		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox198</name>
-			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
-
-			<widget>
-			  <class>GtkDrawingArea</class>
-			  <name>drawingarea_fi_progress</name>
-			  <height>16</height>
-			  <tooltip>Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</tooltip>
-			  <events>GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</events>
-			  <signal>
-			    <name>realize</name>
-			    <handler>on_drawingarea_fi_progress_realize</handler>
-			    <last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>expose_event</name>
-			    <handler>on_drawingarea_fi_progress_expose_event</handler>
-			    <last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
-			  </signal>
-			  <child>
-			    <padding>0</padding>
-			    <expand>True</expand>
-			    <fill>True</fill>
-			  </child>
-			</widget>
+			<class>GtkDrawingArea</class>
+			<name>drawingarea_fi_progress</name>
+			<height>16</height>
+			<tooltip>Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</tooltip>
+			<events>GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</events>
+			<signal>
+			  <name>realize</name>
+			  <handler>on_drawingarea_fi_progress_realize</handler>
+			  <last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
+			</signal>
+			<signal>
+			  <name>expose_event</name>
+			  <handler>on_drawingarea_fi_progress_expose_event</handler>
+			  <last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
+			</signal>
 		      </widget>
 		    </widget>
 		  </widget>
