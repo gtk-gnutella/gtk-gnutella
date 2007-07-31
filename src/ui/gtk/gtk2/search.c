@@ -2316,11 +2316,11 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
 	GtkTreeView	*treeview;
 
 	*sw = gtk_scrolled_window_new(NULL, NULL);
-
-	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(*sw),
-		GTK_SHADOW_IN);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+	g_object_set(*sw,
+		"shadow-type", GTK_SHADOW_IN,
+		"hscrollbar-policy", GTK_POLICY_AUTOMATIC,
+		"vscrollbar-policy", GTK_POLICY_ALWAYS,
+		(void *) 0);
 
 	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
 	*tv = treeview;
@@ -2340,18 +2340,17 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
 	add_results_columns(treeview, udata);
 
 	gtk_container_add(GTK_CONTAINER(*sw), GTK_WIDGET(*tv));
-
-	if (!GTK_WIDGET_VISIBLE (*sw))
+	if (!GTK_WIDGET_VISIBLE(*sw)) {
 		gtk_widget_show_all(*sw);
-
-	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
-		G_CALLBACK(on_tree_view_search_results_select_row), treeview);
-	g_signal_connect(GTK_OBJECT(treeview), "button-press-event",
-		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "key-press-event",
-		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
-		G_CALLBACK(on_leave_notify), NULL);
+	}
+	gui_signal_connect(treeview, "cursor-changed",
+		on_tree_view_search_results_select_row, treeview);
+	gui_signal_connect(treeview, "button-press-event",
+		on_tree_view_search_results_button_press_event, NULL);
+    gui_signal_connect(treeview, "key-press-event",
+		on_tree_view_search_results_key_press_event, NULL);
+    gui_signal_connect(treeview, "leave-notify-event",
+		on_leave_notify, NULL);
 	g_object_freeze_notify(G_OBJECT(treeview));
 }
 
