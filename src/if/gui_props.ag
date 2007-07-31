@@ -135,7 +135,17 @@ prop = {
     type = guint32;
     vector_size = FILEINFO_VISIBLE_COLUMNS;
     data = {
-        default = "{ 240, 80, 80, 80, 80, 100 }";
+        default = "{ 240, 80, 80, 80, 80, 80, 100 }";
+    };
+};
+
+prop = {
+    name = "file_info_col_visible";
+    desc = "Visibility of the columns in the file info table.";
+    type = boolean;
+    vector_size = FILEINFO_VISIBLE_COLUMNS;
+    data = {
+        default = "{ 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
 

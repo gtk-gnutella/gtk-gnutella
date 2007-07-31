@@ -258,7 +258,8 @@ fi_gui_visible(const struct fileinfo_data *file)
 	case nb_downloads_page_active:
 		return file->recv_count > 0;
 	case nb_downloads_page_queued:
-		return file->actively_queued || file->passively_queued;
+		return 0 == file->recv_count
+			&& (file->actively_queued || file->passively_queued);
 	case nb_downloads_page_finished:
 		return file->size && file->done == file->size;
 	case nb_downloads_page_seeding:
@@ -634,7 +635,7 @@ fi_gui_set_aliases(gnet_fi_t handle)
 			? aliases[i]
 			: filename_to_utf8_normalized(aliases[i], UNI_NORM_GUI);
 
-		gtk_list_store_set(store_aliases, &iter, 0, atom_str_get(filename), (-1));
+		gtk_list_store_set(store_aliases, &iter, 0, filename, (-1));
 		if (filename != aliases[i]) {
 			G_FREE_NULL(filename);
 		}
@@ -696,6 +697,95 @@ fi_gui_set_details(gnet_fi_t handle)
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
+static GSList *
+fi_gui_collect_selected(GtkTreeView *tv,
+	GtkTreeSelectionForeachFunc func, gboolean unselect)
+{
+	GtkTreeSelection *selection;
+	GSList *list;
+
+	g_return_val_if_fail(tv, NULL);
+	g_return_val_if_fail(func, NULL);
+
+	list = NULL;
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tv));
+	gtk_tree_selection_selected_foreach(selection, func, &list);
+	if (unselect) {
+		gtk_tree_selection_unselect_all(selection);
+	}
+	return list;
+}
+
+
+static void
+fi_gui_sources_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, void *user_data)
+{
+	GSList **sources_ptr = user_data;
+
+	(void) unused_path;
+	*sources_ptr = g_slist_prepend(*sources_ptr, get_download(model, iter));
+}
+
+static void
+fi_gui_files_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, void *user_data)
+{
+	GSList **files_ptr = user_data;
+	struct fileinfo_data *file;
+
+	(void) unused_path;
+	file = get_fileinfo_data(model, iter);
+	*files_ptr = g_slist_prepend(*files_ptr, GUINT_TO_POINTER(file->handle));
+}
+
+static void
+fi_gui_sources_of_selected_files_helper(GtkTreeModel *model,
+	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
+{
+	GSList **files_ptr = user_data;
+	struct fileinfo_data *file;
+
+	(void) unused_path;
+
+	file = get_fileinfo_data(model, iter);
+	if (file->downloads) {
+		hash_list_iter_t *hi;
+
+		hi = hash_list_iterator(file->downloads);
+		while (hash_list_iter_has_next(hi)) {
+			*files_ptr = g_slist_prepend(*files_ptr, hash_list_iter_next(hi));
+		}
+		hash_list_iter_release(&hi);
+	}
+
+}
+
+GSList *
+fi_gui_sources_select(gboolean unselect)
+{
+	return fi_gui_collect_selected(treeview_download_sources,
+			fi_gui_sources_select_helper,
+			unselect);
+}
+
+GSList *
+fi_gui_files_select(gboolean unselect)
+{
+	return fi_gui_collect_selected(fi_gui_current_treeview(),
+			fi_gui_files_select_helper,
+			unselect);
+}
+
+GSList *
+fi_gui_sources_of_selected_files(gboolean unselect)
+{
+	return fi_gui_collect_selected(fi_gui_current_treeview(),
+			fi_gui_sources_of_selected_files_helper,
+			unselect);
+}
+
+
 void
 on_treeview_downloads_cursor_changed(GtkTreeView *tv, void *unused_udata)
 {
@@ -719,6 +809,30 @@ on_treeview_downloads_cursor_changed(GtkTreeView *tv, void *unused_udata)
 		gtk_tree_path_free(path);
 	}
 }
+
+static gboolean
+on_treeview_downloads_key_press_event(GtkWidget *unused_widget,
+	GdkEventKey *event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+
+	if (
+		GDK_Delete == event->keyval &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+		switch (current_page) {
+		case nb_downloads_page_finished:
+		case nb_downloads_page_seeding:
+			guc_fi_purge_by_handle_list(fi_gui_files_select(TRUE));
+			return TRUE;
+		default:
+			break;
+		}
+	}
+	return FALSE;
+}
+
 
 static void
 fi_gui_update(gnet_fi_t handle)
@@ -1133,6 +1247,7 @@ on_notebook_switch_page(GtkNotebook *unused_notebook,
 	g_assert(UNSIGNED(current_page) < nb_downloads_page_num);
 
 	tv = fi_gui_current_treeview();
+	tree_view_save_visibility(tv, PROP_FILE_INFO_COL_VISIBLE);
 	tree_view_save_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 
 	g_object_freeze_notify(G_OBJECT(tv));
@@ -1158,6 +1273,7 @@ on_notebook_switch_page(GtkNotebook *unused_notebook,
 	tv = fi_gui_get_treeview(page_num);
 	g_object_freeze_notify(G_OBJECT(tv));
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_files));
+	tree_view_restore_visibility(tv, PROP_FILE_INFO_COL_VISIBLE);
 	tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 	g_object_thaw_notify(G_OBJECT(tv));
 }
@@ -1186,9 +1302,12 @@ fi_gui_init(void)
 			on_treeview_downloads_cursor_changed, NULL);
 		gui_signal_connect(tv, "button-press-event",
 			on_treeview_downloads_button_press_event, NULL);
+		gui_signal_connect(tv, "key-press-event",
+			on_treeview_downloads_key_press_event, NULL);
 
 		fi_gui_init_columns(tv);
 		drag_attach(GTK_WIDGET(tv), fi_gui_get_file_url);
+		tree_view_restore_visibility(tv, PROP_FILE_INFO_COL_VISIBLE);
 		tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 		tree_view_set_fixed_height_mode(tv, TRUE);
 	}
@@ -1244,6 +1363,9 @@ fi_gui_init(void)
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_sources"));
 		treeview_download_sources = tv;
 
+		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
+		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
+
 		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
 			GtkCellRenderer *renderer;
 
@@ -1254,9 +1376,7 @@ fi_gui_init(void)
 				renderer, render_sources);
 		}
 
-		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
-		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
-
+		gtk_tree_view_set_headers_clickable(tv, FALSE);
 		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 			GTK_SELECTION_MULTIPLE);
 		tree_view_restore_widths(tv, PROP_SOURCES_COL_WIDTHS);
@@ -1306,8 +1426,13 @@ fi_gui_shutdown(void)
 
 	fi_gui_clear_details();
 
-	tree_view_save_widths(fi_gui_current_treeview(), PROP_FILE_INFO_COL_WIDTHS);
-	tree_view_save_widths(treeview_download_sources, PROP_SOURCES_COL_WIDTHS);
+	tree_view_save_visibility(fi_gui_current_treeview(),
+		PROP_FILE_INFO_COL_VISIBLE);
+	tree_view_save_widths(fi_gui_current_treeview(),
+		PROP_FILE_INFO_COL_WIDTHS);
+	tree_view_save_widths(treeview_download_sources,
+		PROP_SOURCES_COL_WIDTHS);
+
 	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
 
 	for (i = 0; i < nb_downloads_page_num; i++) {
@@ -1469,94 +1594,6 @@ fi_gui_select_by_regex(const char *regex)
 			ctx.matches, ctx.total_nodes, regex);
 	}
 	regfree(&ctx.re);
-}
-
-static GSList *
-fi_gui_collect_selected(GtkTreeView *tv,
-	GtkTreeSelectionForeachFunc func, gboolean unselect)
-{
-	GtkTreeSelection *selection;
-	GSList *list;
-
-	g_return_val_if_fail(tv, NULL);
-	g_return_val_if_fail(func, NULL);
-
-	list = NULL;
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tv));
-	gtk_tree_selection_selected_foreach(selection, func, &list);
-	if (unselect) {
-		gtk_tree_selection_unselect_all(selection);
-	}
-	return list;
-}
-
-
-static void
-fi_gui_sources_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, void *user_data)
-{
-	GSList **sources_ptr = user_data;
-
-	(void) unused_path;
-	*sources_ptr = g_slist_prepend(*sources_ptr, get_download(model, iter));
-}
-
-static void
-fi_gui_files_select_helper(GtkTreeModel *model, GtkTreePath *unused_path,
-	GtkTreeIter *iter, void *user_data)
-{
-	GSList **files_ptr = user_data;
-	struct fileinfo_data *file;
-
-	(void) unused_path;
-	file = get_fileinfo_data(model, iter);
-	*files_ptr = g_slist_prepend(*files_ptr, GUINT_TO_POINTER(file->handle));
-}
-
-static void
-fi_gui_sources_of_selected_files_helper(GtkTreeModel *model,
-	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
-{
-	GSList **files_ptr = user_data;
-	struct fileinfo_data *file;
-
-	(void) unused_path;
-
-	file = get_fileinfo_data(model, iter);
-	if (file->downloads) {
-		hash_list_iter_t *hi;
-
-		hi = hash_list_iterator(file->downloads);
-		while (hash_list_iter_has_next(hi)) {
-			*files_ptr = g_slist_prepend(*files_ptr, hash_list_iter_next(hi));
-		}
-		hash_list_iter_release(&hi);
-	}
-
-}
-
-GSList *
-fi_gui_sources_select(gboolean unselect)
-{
-	return fi_gui_collect_selected(treeview_download_sources,
-			fi_gui_sources_select_helper,
-			unselect);
-}
-
-GSList *
-fi_gui_files_select(gboolean unselect)
-{
-	return fi_gui_collect_selected(fi_gui_current_treeview(),
-			fi_gui_files_select_helper,
-			unselect);
-}
-
-GSList *
-fi_gui_sources_of_selected_files(gboolean unselect)
-{
-	return fi_gui_collect_selected(fi_gui_current_treeview(),
-			fi_gui_sources_of_selected_files_helper,
-			unselect);
 }
 
 void
