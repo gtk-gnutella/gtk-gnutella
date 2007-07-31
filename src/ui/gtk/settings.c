@@ -1621,24 +1621,24 @@ static gboolean
 sidebar_visible_changed(property_t prop)
 {
 	GtkWidget *widget;
-	GtkPaned *paned;
     gboolean visible;
 
     gui_prop_get_boolean_val(prop, &visible);
 
+#if !GTK_CHECK_VERSION(2,0,0)
+	widget = gui_main_window_lookup("hpaned_main");
+	gtk_paned_set_gutter_size(GTK_PANED(widget), visible ? 10 : 0);
+#endif	/* Gtk+ < 2.x */
+
 	widget = gui_main_window_lookup("menu_sidebar_visible");
-	paned = GTK_PANED(gui_main_window_lookup("hpaned_main"));
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), visible);
 
 	widget = gui_main_window_lookup("vbox_sidebar");
 	if (visible) {
-		gtk_paned_set_gutter_size(paned, 10);
 		gtk_widget_show(widget);
 	} else {
 		gtk_widget_hide(widget);
-		gtk_paned_set_gutter_size(paned, 0);
 	}
-
     return FALSE;
 }
 
