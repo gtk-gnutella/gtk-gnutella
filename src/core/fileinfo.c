@@ -6032,8 +6032,8 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-        gm_snprintf(buf, sizeof buf,
-            _("Downloading; TR: %s"), secs ? short_time(secs) : "-");
+        gm_snprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
+			secs ? short_time(secs) : "-");
 		return buf;
     } else if (status->size && status->done == status->size) {
 		static gchar msg_sha1[1024], msg_copy[1024];
