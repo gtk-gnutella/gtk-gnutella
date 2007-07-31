@@ -502,13 +502,17 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_TIMEOUT_WAIT:
 		{
-			time_delta_t when;
+			time_delta_t elapsed;
+			unsigned when;
 			
-			when = d->timeout_delay - delta_time(now, d->last_update);
-			when = MAX(0, when);
-			when = MIN(when, INT_MAX);
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), _("Retry in %us"),
-					(unsigned) when);
+			elapsed = delta_time(now, d->last_update);
+			if (elapsed < (time_delta_t) d->timeout_delay) {
+				elapsed = MAX(0, elapsed);
+				when = d->timeout_delay - elapsed; 
+			} else {
+				when = 0;
+			}
+			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Retry in %us"), when);
 		}
 		status = tmpstr;
 		break;
