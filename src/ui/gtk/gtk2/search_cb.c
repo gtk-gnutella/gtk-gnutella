@@ -247,18 +247,20 @@ on_tree_view_search_results_key_press_event(GtkWidget *unused_widget,
 {
 	(void) unused_widget;
 	(void) unused_udata;
-    g_assert(event != NULL);
 
-    switch (event->keyval) {
-    case GDK_Return:
-        search_gui_download_files();
-        return TRUE;
-	case GDK_Delete:
-        search_gui_discard_files();
-		return TRUE;
-    default:
-        return FALSE;
-    }
+	if (0 == (gtk_accelerator_get_default_mod_mask() & event->state)) {
+		switch (event->keyval) {
+		case GDK_Return:
+			search_gui_download_files();
+			return TRUE;
+		case GDK_Delete:
+			search_gui_discard_files();
+			return TRUE;
+		default:
+			break;
+		}
+	}
+	return FALSE;
 }
 
 gboolean
@@ -606,8 +608,6 @@ gboolean
 on_treeview_search_details_key_press_event(GtkWidget *widget,
 	GdkEventKey *event, gpointer unused_udata)
 {
-    g_assert(event != NULL);
-
 	(void) unused_udata;
 
 	switch (event->keyval) {

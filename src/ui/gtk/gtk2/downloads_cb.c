@@ -465,21 +465,21 @@ on_entry_regex_activate(GtkEditable *editable, gpointer unused_udata)
  * treeview, show the popup with the context menu.
  */
 gboolean
-on_treeview_downloads_button_press_event(GtkWidget *widget,
+on_treeview_downloads_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
+	(void) unused_widget;
 	(void) unused_udata;
 
-	if (event->button != 3)
-		return FALSE;
-
-	if (NULL == gtk_tree_view_get_selection(GTK_TREE_VIEW(widget)))
-		return FALSE;
-
-    gtk_menu_popup(GTK_MENU(gui_popup_downloads()), NULL, NULL, NULL, NULL,
-        event->button, event->time);
-
-	return TRUE;
+	if (
+		3 == event->button &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+    	gtk_menu_popup(GTK_MENU(gui_popup_downloads()), NULL, NULL, NULL, NULL,
+        	event->button, event->time);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /**
@@ -487,21 +487,21 @@ on_treeview_downloads_button_press_event(GtkWidget *widget,
  * treeview, show the popup with the context menu.
  */
 gboolean
-on_treeview_sources_button_press_event(GtkWidget *widget,
+on_treeview_sources_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
+	(void) unused_widget;
 	(void) unused_udata;
 
-	if (event->button != 3)
-		return FALSE;
-
-	if (NULL == gtk_tree_view_get_selection(GTK_TREE_VIEW(widget)))
-		return FALSE;
-
-    gtk_menu_popup(GTK_MENU(gui_popup_sources()), NULL, NULL, NULL, NULL,
-        event->button, event->time);
-
-	return TRUE;
+	if (
+		3 == event->button &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+    	gtk_menu_popup(GTK_MENU(gui_popup_sources()), NULL, NULL, NULL, NULL,
+        	event->button, event->time);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
