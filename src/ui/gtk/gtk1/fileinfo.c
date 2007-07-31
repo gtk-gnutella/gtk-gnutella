@@ -160,8 +160,8 @@ fi_gui_fill_status(gnet_fi_t fih, const gchar *titles[c_fi_num])
     } else {
         titles[c_fi_uploaded] = "-";
     }
-	
-	titles[c_fi_rx] = short_rate(s.recv_last_rate, metric);
+
+	titles[c_fi_rx] = s.recvcount ? short_rate(s.recv_last_rate, metric) : "-";
 	titles[c_fi_status] = guc_file_info_status_to_string(&s);
 }
 
