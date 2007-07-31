@@ -435,6 +435,7 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	file = get_fileinfo_data(model, iter);
 	g_return_if_fail(file);
 
+	text = NULL;
 	id = GPOINTER_TO_UINT(udata);
 	switch (id) {
 	case c_fi_filename:
