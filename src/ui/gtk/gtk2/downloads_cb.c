@@ -30,8 +30,8 @@ RCSID("$Id$")
 #include "downloads_cb.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"
-#include "gtk/statusbar.h"
 #include "gtk/gtkcolumnchooser.h"
+#include "gtk/statusbar.h"
 #include "gtk/columns.h"
 #include "gtk/search_common.h"
 
@@ -41,12 +41,6 @@ RCSID("$Id$")
 #include "if/core/sockets.h"
 
 #include "lib/override.h"		/* Must be the last header included */
-
-void fi_gui_select_by_regex(const gchar *regex);
-GSList *fi_gui_sources_select(gboolean unselect);
-GSList *fi_gui_files_select(gboolean unselect);
-GSList *fi_gui_sources_of_selected_files(gboolean unselect);
-GtkTreeView *fi_gui_current_treeview(void);
 
 /***
  *** Popup menu: downloads
@@ -400,7 +394,7 @@ on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	guc_fi_purge_by_handle_list(fi_gui_files_select(TRUE));
+	fi_gui_purge_selected_files();
 }
 
 /***
@@ -412,14 +406,10 @@ void
 on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-    GtkWidget *cc;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-    cc = gtk_column_chooser_new(GTK_WIDGET(fi_gui_current_treeview()));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
-		gtk_get_current_event_time());
+	fi_gui_files_configure_columns();
 }
 
 void

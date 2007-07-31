@@ -28,6 +28,14 @@
 
 #include "gtk/gui.h"
 
+void fi_gui_files_configure_columns(void);
+void fi_gui_purge_selected_files(void);
+void fi_gui_select_by_regex(const gchar *regex);
+GSList *fi_gui_sources_select(gboolean unselect);
+GSList *fi_gui_files_select(gboolean unselect);
+GSList *fi_gui_sources_of_selected_files(gboolean unselect);
+
+
 gboolean on_treeview_downloads_button_press_event(GtkWidget *,
 			GdkEventButton *, gpointer user_data);
 gboolean on_treeview_sources_button_press_event(GtkWidget *,
