@@ -358,7 +358,7 @@ gui_fix_coords(guint32 *coord)
 	gint x, y, w, h;
 	gint screen_w, screen_h;
 
-	g_assert(coord != NULL);
+	g_return_if_fail(coord);
 
 	screen_w = gdk_screen_width();
 	screen_h = gdk_screen_height();
@@ -624,10 +624,10 @@ static void
 gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer user_data)
 {
 	const gchar *name;
-	steal_dict_params_t *params = (steal_dict_params_t *) user_data;
+	steal_dict_params_t *params = user_data;
 
-	g_assert(widget != NULL);
-	g_assert(user_data != NULL);
+	g_return_if_fail(widget);
+	g_return_if_fail(user_data);
 
 	name = gtk_widget_get_name(widget);
 	if (name != NULL) {
@@ -738,7 +738,7 @@ paned_save_position(GtkPaned *paned, property_t prop)
 {
 	guint32 pos;
 	
-	g_assert(paned);
+	g_return_if_fail(paned);
 
 	pos = gtk_paned_get_position(paned);
 	gui_prop_set_guint32_val(prop, pos);
@@ -749,7 +749,7 @@ paned_restore_position(GtkPaned *paned, property_t prop)
 {
 	guint32 pos;
 	
-	g_assert(paned);
+	g_return_if_fail(paned);
 
 	gui_prop_get_guint32_val(prop, &pos);
 	gtk_paned_set_position(paned, pos);
@@ -761,7 +761,8 @@ tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 {
 	gint i;
 
-	g_assert(treeview);
+	g_return_if_fail(treeview);
+
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		guint32 width;
@@ -781,7 +782,8 @@ tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
 {
 	gint i;
 
-	g_assert(treeview);
+	g_return_if_fail(treeview);
+
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		guint32 width;
@@ -801,7 +803,8 @@ tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 {
 	guint i;
 
-	g_assert(treeview);
+	g_return_if_fail(treeview);
+
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		gboolean val;
@@ -819,7 +822,8 @@ tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 {
 	guint i;
 
-	g_assert(treeview);
+	g_return_if_fail(treeview);
+
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		gboolean val;
@@ -844,7 +848,7 @@ gtk_clist_save_visibility(GtkCList *clist, property_t prop)
 	gint i;
 	gboolean val;
 
-	g_assert(clist);
+	g_return_if_fail(clist);
 
     for (i = 0; i < clist->columns; i++) {
 		val = clist->column[i].visible;
@@ -862,7 +866,7 @@ gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
 	gint i;
 	gboolean val;
 
-	g_assert(clist);
+	g_return_if_fail(clist);
 
     for (i = 0; i < clist->columns; i++) {
 		gui_prop_get_boolean(prop, &val, i, 1);
