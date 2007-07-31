@@ -256,7 +256,7 @@ fi_gui_set_filename(struct fileinfo_data *file)
     info = guc_fi_get_info(file->handle);
     g_return_if_fail(info);
 
-	if (utf8_is_valid_string(info->filename)) {
+	if (is_ascii_string(info->filename)) {
 		file->filename = atom_str_get(info->filename);
 	} else {
 		char *name;
