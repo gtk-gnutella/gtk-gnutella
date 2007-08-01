@@ -108,19 +108,19 @@ void search_gui_shutdown(void);
 
 gboolean search_gui_new_search_full(const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
-	gint sort_col, gint sort_order, flag_t flags, search_t **search);
+	gint sort_col, gint sort_order, flag_t flags, struct search **);
 struct search *search_new_full(const gchar *, guint32, flag_t flags);
-void search_gui_close_search(search_t *sch);
+void search_gui_close_search(struct search *);
 
-void search_gui_clear_search(search_t *sch);
-void search_gui_remove_search(search_t * sch);
-void search_gui_reset_search(search_t *sch);
+void search_gui_clear_search(struct search *);
+void search_gui_remove_search(struct search *);
+void search_gui_reset_search(struct search *);
 void search_gui_download_files(void);
 void search_gui_discard_files(void);
 
-void search_gui_sort_column(search_t *search, gint column);
+void search_gui_sort_column(struct search *, gint column);
 
-void search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color);
+void search_gui_add_record(struct search *, record_t *, enum gui_color);
 
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
@@ -128,8 +128,7 @@ void gui_search_clear_results(void);
 #ifdef USE_GTK2
 void gui_search_force_update_tab_label(struct search *, time_t now);
 void search_gui_request_bitzi_data(void);
-const record_t *search_gui_get_record_at_path(GtkTreeView *tv,
-					GtkTreePath *path);
+const record_t *search_gui_get_record_at_path(GtkTreeView *, GtkTreePath *);
 #else
 void gui_search_force_update_tab_label(struct search *);
 #endif /* USE_GTK2 */
@@ -137,27 +136,27 @@ void gui_search_force_update_tab_label(struct search *);
 void search_gui_expand_all(void);
 void search_gui_collapse_all(void);
 
-void gui_search_set_enabled(struct search *sch, gboolean enabled);
+void gui_search_set_enabled(struct search *, gboolean enabled);
 const GList *search_gui_get_searches(void);
 
 void search_gui_set_clear_button_sensitive(gboolean flag);
 
-void search_gui_start_massive_update(search_t *sch);
-void search_gui_end_massive_update(search_t *sch);
+void search_gui_start_massive_update(struct search *);
+void search_gui_end_massive_update(struct search *);
 
 /**
  * Metadata Update.
  */
 
-void search_gui_metadata_update(const bitzi_data_t *data);
+void search_gui_metadata_update(const bitzi_data_t *);
 
 /*
  * Callbacks
  */
-gboolean search_gui_search_results_col_widths_changed(property_t prop);
-gboolean search_gui_search_results_col_visible_changed(property_t prop);
+gboolean search_gui_search_results_col_widths_changed(property_t);
+gboolean search_gui_search_results_col_visible_changed(property_t);
 
-void search_gui_queue_bitzi_by_sha1(const record_t *rec);
+void search_gui_queue_bitzi_by_sha1(const record_t *);
 
 #endif /* _gtk_search_h_ */
 
