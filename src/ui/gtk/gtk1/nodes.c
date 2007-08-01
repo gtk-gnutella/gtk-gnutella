@@ -30,7 +30,6 @@
 RCSID("$Id$")
 
 #include "gtk/gui.h"
-#include "interface-glade.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/nodes_common.h"
@@ -287,7 +286,8 @@ nodes_gui_init(void)
     gtk_clist_set_column_name(clist, c_gnet_connected, _("Connected time"));
     gtk_clist_set_column_name(clist, c_gnet_uptime, _("Uptime"));
     gtk_clist_set_column_name(clist, c_gnet_info, _("Status"));
-	gtk_clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
+	clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
+	clist_restore_widths(clist, PROP_NODES_COL_WIDTHS);
 
     ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
     ht_node_flags_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
@@ -334,7 +334,8 @@ nodes_gui_shutdown(void)
 	GtkCList *clist;
 
 	clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
-	gtk_clist_save_visibility(clist, PROP_NODES_COL_VISIBLE);
+	clist_save_visibility(clist, PROP_NODES_COL_VISIBLE);
+	clist_save_widths(clist, PROP_NODES_COL_WIDTHS);
 
     guc_node_remove_node_added_listener(nodes_gui_node_added);
     guc_node_remove_node_removed_listener(nodes_gui_node_removed);

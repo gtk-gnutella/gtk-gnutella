@@ -328,8 +328,9 @@ on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_udata;
 
     search = search_gui_get_current_search();
-    if (search != NULL)
-        search_gui_close_search(search);
+	g_return_if_fail(search);
+
+	search_gui_close_search(search);
 }
 
 void
@@ -657,20 +658,6 @@ on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *unused_node,
 
 	selected_row_changed(ctree, NULL);
 }
-
-void
-on_ctree_search_results_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
-}
-
 
 /**
  *	Please add comment

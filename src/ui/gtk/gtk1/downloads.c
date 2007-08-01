@@ -27,13 +27,15 @@
 
 RCSID("$Id$")
 
+#include "downloads_cb.h"
+
+#include "gtk/columns.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"
-#include "downloads_cb.h"
-#include "gtk/statusbar.h"
-#include "gtk/columns.h"
+#include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
+#include "gtk/statusbar.h"
 
 #include "if/core/pproxy.h"
 #include "if/core/bsched.h"
@@ -72,11 +74,11 @@ static GHashTable *parents_children;
 static GHashTable *parents_queue_children;
 
 static GtkCTree *ctree_downloads;
-static GtkCTree *ctree_downloads_queue;
+static GtkCTree *ctree_queue;
 static GtkNotebook *notebook;
 
 static gboolean ctree_downloads_frozen = FALSE;
-static gboolean ctree_downloads_queue_frozen = FALSE;
+static gboolean ctree_queue_frozen = FALSE;
 
 #define DL_GUI_TREE_SPACE	5	/**< Space between a child node and a parent */
 
@@ -206,7 +208,7 @@ parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 
 	if (ctree == ctree_downloads)
 		ht = parents_children;
-	else if (ctree == ctree_downloads_queue)
+	else if (ctree == ctree_queue)
 		ht = parents_queue_children;
 	else
 		g_error("unknown ctree object");
@@ -470,27 +472,25 @@ void gui_update_download_hostcount(struct download *d)
 void
 downloads_gui_init(void)
 {
-    GtkCList *clist_queue;
     GtkCList *clist;
 
-	ctree_downloads = GTK_CTREE
-		(gui_main_window_lookup("ctree_downloads"));
-	ctree_downloads_queue = GTK_CTREE
-		(gui_main_window_lookup("ctree_downloads_queue"));
+	notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+	ctree_downloads = GTK_CTREE(gui_main_window_lookup("ctree_downloads"));
+	ctree_queue = GTK_CTREE(gui_main_window_lookup("ctree_downloads_queue"));
+
+	clist = GTK_CLIST(ctree_queue);
+    gtk_clist_column_titles_passive(clist);
+    gtk_clist_set_column_justification(clist, c_queue_size, GTK_JUSTIFY_RIGHT);
+	clist_restore_widths(clist, PROP_DL_QUEUED_COL_WIDTHS);
+
 
 	clist = GTK_CLIST(ctree_downloads);
-	clist_queue = GTK_CLIST(ctree_downloads_queue);
-	notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
     gtk_clist_column_titles_passive(clist);
-    gtk_clist_column_titles_passive(clist_queue);
-
-    gtk_clist_set_column_justification(
-        clist_queue, c_queue_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist, c_dl_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist, c_dl_progress, GTK_JUSTIFY_RIGHT);
+	clist_restore_widths(clist, PROP_DL_ACTIVE_COL_WIDTHS);
 
 	parents = g_hash_table_new(NULL, NULL);
 	parents_queue = g_hash_table_new(NULL, NULL);
@@ -505,6 +505,9 @@ downloads_gui_init(void)
 void
 downloads_gui_shutdown(void)
 {
+	clist_save_widths(GTK_CLIST(ctree_downloads), PROP_DL_ACTIVE_COL_WIDTHS);
+	clist_save_widths(GTK_CLIST(ctree_queue), PROP_DL_QUEUED_COL_WIDTHS);
+
 	g_hash_table_destroy(parents);
 	g_hash_table_destroy(parents_queue);
 	g_hash_table_destroy(parents_gui_time);
@@ -579,8 +582,7 @@ download_gui_add(struct download *d)
 				/* 	There already is a download with that file_info
 				 *	we need to figure out if there is a header entry yet
 				 */
-				drecord = gtk_ctree_node_get_row_data(ctree_downloads_queue,
-					parent);
+				drecord = gtk_ctree_node_get_row_data(ctree_queue, parent);
 
 				if (DL_GUI_IS_HEADER != drecord) {	/* not a header entry */
 					/* No header entry so we will create one */
@@ -588,15 +590,15 @@ download_gui_add(struct download *d)
 
 					filename = guc_file_info_readable_filename
 						(drecord->file_info);
-					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_get_text(ctree_queue, parent,
 						c_queue_host, &host);
-					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_get_text(ctree_queue, parent,
 						c_queue_size, &size);
-					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_get_text(ctree_queue, parent,
 						c_queue_server, &server);
-					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_get_text(ctree_queue, parent,
 						c_queue_status, &status);
-					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_get_text(ctree_queue, parent,
 						c_queue_loc, &country);
 
 					titles_parent[c_queue_filename] = filename;
@@ -606,34 +608,33 @@ download_gui_add(struct download *d)
         			titles_parent[c_queue_host] = host;
         			titles_parent[c_queue_loc] = country;
 
-					new_node = gtk_ctree_insert_node(ctree_downloads_queue,
+					new_node = gtk_ctree_insert_node(ctree_queue,
 						parent, NULL,
 						(gchar **) titles_parent, /* Override const */
 						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
 						FALSE, FALSE);
 
-					parent_children_add(ctree_downloads_queue, key, 1);
+					parent_children_add(ctree_queue, key, 1);
 
-					gtk_ctree_node_set_row_data(ctree_downloads_queue, new_node,
-						(gpointer) drecord);
+					gtk_ctree_node_set_row_data(ctree_queue, new_node, drecord);
 
 					if (drecord->always_push)
-						 gtk_ctree_node_set_foreground(ctree_downloads_queue,
+						 gtk_ctree_node_set_foreground(ctree_queue,
 							new_node, color);
 
 					/* Clear old values in parent, turn it into a header */
-					gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_text(ctree_queue, parent,
 						c_queue_filename, filename);
-					gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_text(ctree_queue, parent,
 						c_queue_size, size);
-					gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_text(ctree_queue, parent,
 						c_queue_server, "");
-					gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_text(ctree_queue, parent,
 						c_queue_status, "");
-					gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_text(ctree_queue, parent,
 						c_queue_loc, "");
 
-					gtk_ctree_node_set_row_data(ctree_downloads_queue, parent,
+					gtk_ctree_node_set_row_data(ctree_queue, parent,
 						DL_GUI_IS_HEADER);
 				}
 
@@ -650,24 +651,23 @@ download_gui_add(struct download *d)
 				 */
 				titles[c_queue_size] = "\"";
 
-				new_node = gtk_ctree_insert_node(ctree_downloads_queue,
+				new_node = gtk_ctree_insert_node(ctree_queue,
 						parent, NULL,
 						(gchar **) titles, /* Override const */
 						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
 						FALSE, FALSE);
 
-				gtk_ctree_node_set_row_data(ctree_downloads_queue, new_node,
-						(gpointer) d);
+				gtk_ctree_node_set_row_data(ctree_queue, new_node, d);
 
 				if (d->always_push)
-					 gtk_ctree_node_set_foreground(ctree_downloads_queue,
+					 gtk_ctree_node_set_foreground(ctree_queue,
 						new_node, color);
 
-				n = parent_children_add(ctree_downloads_queue, key, 1);
+				n = parent_children_add(ctree_queue, key, 1);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
 					NG_("%u host", "%u hosts", n), n);
 
-				gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+				gtk_ctree_node_set_text(ctree_queue, parent,
 					c_queue_host, tmpstr);
 
 			} else {
@@ -678,15 +678,14 @@ download_gui_add(struct download *d)
 				 *  the file_info atom will be destroyed.  We can leave it
 				 *  for now.
 				 */
-				new_node = gtk_ctree_insert_node(ctree_downloads_queue,
+				new_node = gtk_ctree_insert_node(ctree_queue,
 						NULL, NULL,
 						(gchar **) titles, /* Override const */
 						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
 						FALSE, FALSE);
-				gtk_ctree_node_set_row_data(ctree_downloads_queue, new_node,
-						(gpointer) d);
+				gtk_ctree_node_set_row_data(ctree_queue, new_node, d);
 				if (d->always_push)
-					 gtk_ctree_node_set_foreground(ctree_downloads_queue,
+					 gtk_ctree_node_set_foreground(ctree_queue,
 						new_node, color);
 				add_parent_with_fi_handle(parents_queue, key, new_node);
 			}
@@ -1356,15 +1355,13 @@ gui_update_download(struct download *d, gboolean force)
 		d->last_gui_update = now;
 
     if (d->status == GTA_DL_QUEUED) {
-		node = gtk_ctree_find_by_row_data(ctree_downloads_queue,
-			NULL, (gpointer) d);
+		node = gtk_ctree_find_by_row_data(ctree_queue, NULL, d);
 
 		if (NULL != node) {
-			gtk_ctree_node_set_text(ctree_downloads_queue, node,
+			gtk_ctree_node_set_text(ctree_queue, node,
 				c_queue_status, a);
         	if (d->always_push)
-        	     gtk_ctree_node_set_foreground(ctree_downloads_queue,
-					node, color);
+        	     gtk_ctree_node_set_foreground(ctree_queue, node, color);
 		}
 
 		/*  Update header for downloads with multiple hosts */
@@ -1375,16 +1372,14 @@ gui_update_download(struct download *d, gboolean force)
 
 			if (parent != NULL) {
 
-				drecord = gtk_ctree_node_get_row_data(ctree_downloads_queue,
-					parent);
-
+				drecord = gtk_ctree_node_get_row_data(ctree_queue, parent);
 				if (DL_GUI_IS_HEADER == drecord) {
 					/* There is a header entry, we need to update it */
 
 					/* Download is done */
 					if (FILE_INFO_COMPLETE(d->file_info)) {
 						gm_snprintf(tmpstr, sizeof(tmpstr), _("Complete"));
-						gtk_ctree_node_set_text(ctree_downloads_queue, parent,
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_status, tmpstr);
 					}
 				}
@@ -1603,8 +1598,7 @@ download_gui_remove(struct download *d)
 
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-		node = gtk_ctree_find_by_row_data(ctree_downloads_queue,
-			NULL, (gpointer) d);
+		node = gtk_ctree_find_by_row_data(ctree_queue, NULL, d);
 
 		if (NULL != node) {
 			/*  We need to discover if the download has a parent */
@@ -1615,7 +1609,7 @@ download_gui_remove(struct download *d)
 
 				if (NULL != parent) {
 
-					n = parent_children_add(ctree_downloads_queue, key, 0);
+					n = parent_children_add(ctree_queue, key, 0);
 
 					/* If there are children, there should be >1 */
 					if (1 == n || n < 0) {
@@ -1629,38 +1623,37 @@ download_gui_remove(struct download *d)
 						 * we'll have to get rid of the header. */
 
 						/* Get rid of current download, d */
-						gtk_ctree_remove_node(ctree_downloads_queue, node);
-						parent_children_add(ctree_downloads_queue, key, -1);
+						gtk_ctree_remove_node(ctree_queue, node);
+						parent_children_add(ctree_queue, key, -1);
 
 						/* Replace header with only remaining child */
 						parent_row = GTK_CTREE_ROW(parent);
 						node = parent_row->children;
 
-						drecord = gtk_ctree_node_get_row_data
-							(ctree_downloads_queue, node);
-						filename =
-							guc_file_info_readable_filename
-							(drecord->file_info);
-						gtk_ctree_node_get_text(ctree_downloads_queue, node,
+						drecord = gtk_ctree_node_get_row_data(ctree_queue,
+									node);
+						filename = guc_file_info_readable_filename(
+									drecord->file_info);
+						gtk_ctree_node_get_text(ctree_queue, node,
 							c_queue_host, &host);
-						gtk_ctree_node_get_text(ctree_downloads_queue, node,
+						gtk_ctree_node_get_text(ctree_queue, node,
 							c_queue_server, &server);
-						gtk_ctree_node_get_text(ctree_downloads_queue, node,
+						gtk_ctree_node_get_text(ctree_queue, node,
 							c_queue_status, &status);
-						gtk_ctree_node_get_text(ctree_downloads_queue, node,
+						gtk_ctree_node_get_text(ctree_queue, node,
 							c_queue_loc, &country);
 
-						gtk_ctree_node_set_row_data
-							(ctree_downloads_queue, parent, drecord);
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_row_data(ctree_queue,
+							parent, drecord);
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_host, filename);
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_host, host);
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_server, server);
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_status, status);
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_text(ctree_queue, parent,
 							c_queue_loc, country);
 					} else if (0 == n) {
 						/* Node has no children -> is a parent */
@@ -1672,14 +1665,14 @@ download_gui_remove(struct download *d)
 						gm_snprintf(tmpstr, sizeof(tmpstr),
 							NG_("%u host", "%u hosts", v), v);
 
-						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+						gtk_ctree_node_set_text(ctree_queue,  parent,
 							c_queue_host, tmpstr);
 					}
 
 					/*  Note: this line IS correct for cases n=0, n=2,and n>2 */
-					gtk_ctree_remove_node(ctree_downloads_queue, node);
+					gtk_ctree_remove_node(ctree_queue, node);
 					if (n > 0)
-						parent_children_add(ctree_downloads_queue, key, -1);
+						parent_children_add(ctree_queue, key, -1);
 
 				} else
 					g_warning("download_gui_remove(): "
@@ -1832,9 +1825,9 @@ downloads_update_active_pane(void)
 void
 downloads_update_queue_pane(void)
 {
-	GtkCList *clist = GTK_CLIST(ctree_downloads_queue);
+	GtkCList *clist = GTK_CLIST(ctree_queue);
 
-	if (!ctree_downloads_queue_frozen)
+	if (!ctree_queue_frozen)
 		return;
 
 	gtk_clist_thaw(clist);
@@ -1865,8 +1858,8 @@ downloads_gui_update_display(time_t unused_now)
 		frozen = &ctree_downloads_frozen;
 		clist = GTK_CLIST(ctree_downloads);
 	} else if (current_page == nb_downloads_page_queued) {
-		frozen = &ctree_downloads_queue_frozen;
-		clist = GTK_CLIST(ctree_downloads_queue);
+		frozen = &ctree_queue_frozen;
+		clist = GTK_CLIST(ctree_queue);
 	} else {
 		/*
 		 * They're not looking, no need to update the visuals!
@@ -1880,10 +1873,10 @@ downloads_gui_update_display(time_t unused_now)
 			gtk_clist_freeze(clist);
 			ctree_downloads_frozen = TRUE;
 		}
-		if (!ctree_downloads_queue_frozen) {
-			clist = GTK_CLIST(ctree_downloads_queue);
+		if (!ctree_queue_frozen) {
+			clist = GTK_CLIST(ctree_queue);
 			gtk_clist_freeze(clist);
-			ctree_downloads_queue_frozen = TRUE;
+			ctree_queue_frozen = TRUE;
 		}
 
 		return;

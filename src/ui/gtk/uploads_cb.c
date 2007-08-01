@@ -119,17 +119,6 @@ on_clist_uploads_unselect_row(GtkCList *clist,
 }
 
 void
-on_clist_uploads_resize_column(GtkCList *unused_clist,
-    gint column, gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-
-    /* FIXME: use properties */
-	*(gint *) &GUI_PROPERTY(uploads_col_widths)[column] = width;
-}
-
-void
 on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
     GSList *sl = NULL;

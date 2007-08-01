@@ -34,7 +34,6 @@
  ***/
 
 gboolean on_clist_nodes_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_nodes_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_nodes_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data);

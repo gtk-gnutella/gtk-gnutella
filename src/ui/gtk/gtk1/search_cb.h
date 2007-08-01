@@ -52,7 +52,6 @@ void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
 
 void on_ctree_search_results_select_row(GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 void on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *node, gint column, gpointer user_data);
-void on_ctree_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 gchar *search_details_get_text(GtkWidget *widget);
 void on_clist_search_details_select_row(GtkCList *unused_clist,

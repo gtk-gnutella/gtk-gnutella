@@ -28,12 +28,13 @@
 RCSID("$Id$")
 
 #include "gtk/gui.h"
-#include "interface-glade.h"
-#include "gtk/uploads.h"
-#include "gtk/uploads_common.h"
+
 #include "gtk/columns.h"
+#include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
+#include "gtk/uploads.h"
+#include "gtk/uploads_common.h"
 
 #include "if/bridge/ui2c.h"
 
@@ -352,6 +353,7 @@ uploads_gui_init(void)
     gtk_clist_set_column_justification(clist, c_ul_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(clist, c_ul_progress, GTK_JUSTIFY_RIGHT);
 	gtk_clist_column_titles_passive(clist);
+	clist_restore_widths(clist, PROP_UPLOADS_COL_WIDTHS);
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
@@ -364,6 +366,8 @@ uploads_gui_init(void)
 void
 uploads_gui_shutdown(void)
 {
+	clist_restore_widths(GTK_CLIST(gui_main_window_lookup("clist_uploads")),
+		PROP_UPLOADS_COL_WIDTHS);
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
     guc_upload_remove_upload_info_changed_listener(upload_info_changed);

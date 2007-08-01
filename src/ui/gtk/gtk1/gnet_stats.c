@@ -29,6 +29,7 @@ RCSID("$Id$")
 
 #include "gtk/gui.h"
 #include "gtk/gnet_stats.h"
+#include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
 
@@ -41,134 +42,6 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-/***
- *** Callbacks
- ***/
-void
-on_clist_gnet_stats_msg_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-    static gboolean lock = FALSE;
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_MSG_COL_WIDTHS, &buf, column, 1);
-
-    lock = FALSE;
-}
-
-
-void
-on_clist_gnet_stats_fc_ttl_resize_column(GtkCList *unused_clist,
-	gint unused_column, gint width, gpointer unused_udata)
-{
-    static gboolean lock = FALSE;
-    guint32 buf[9];
-    guint n;
-
-	(void) unused_clist;
-	(void) unused_column;
-	(void) unused_udata;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /* remember the width for storing it to the config file later */
-    for (n = 0; n < G_N_ELEMENTS(buf); n ++)
-        buf[n] = width;
-
-    gui_prop_set_guint32(PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
-		buf, 1, G_N_ELEMENTS(buf));
-
-    lock = FALSE;
-}
-
-void
-on_clist_gnet_stats_fc_hops_resize_column(GtkCList *unused_clist,
-	gint unused_column, gint width, gpointer unused_udata)
-{
-    static gboolean lock = FALSE;
-    guint32 buf[9];
-    guint n;
-
-	(void) unused_clist;
-	(void) unused_column;
-	(void) unused_udata;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /* remember the width for storing it to the config file later */
-    for (n = 0; n < G_N_ELEMENTS(buf); n ++)
-        buf[n] = width;
-
-    gui_prop_set_guint32(PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
-		buf, 1, G_N_ELEMENTS(buf));
-
-    lock = FALSE;
-}
-
-void
-on_clist_gnet_stats_horizon_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-    static gboolean lock = FALSE;
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_HORIZON_COL_WIDTHS, &buf, column, 1);
-
-    lock = FALSE;
-}
-
-void
-on_clist_gnet_stats_drop_reasons_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
-        &buf, column, 1);
-}
-
-void
-on_clist_gnet_stats_general_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-        &buf, column, 1);
-}
 
 /***
  *** Private functions
@@ -355,6 +228,14 @@ gnet_stats_gui_init(void)
 	gtk_clist_column_titles_passive(clist_general);
 	gtk_clist_column_titles_passive(clist_horizon);
 
+	clist_restore_widths(clist_stats_msg, PROP_GNET_STATS_MSG_COL_WIDTHS);
+	clist_restore_widths(clist_stats_fc_ttl, PROP_GNET_STATS_FC_TTL_COL_WIDTHS);
+	clist_restore_widths(clist_stats_fc_hops,
+		PROP_GNET_STATS_FC_HOPS_COL_WIDTHS);
+	clist_restore_widths(clist_reason, PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS);
+	clist_restore_widths(clist_general, PROP_GNET_STATS_GENERAL_COL_WIDTHS);
+	clist_restore_widths(clist_horizon, PROP_GNET_STATS_HORIZON_COL_WIDTHS);
+
     /*
      * Initialize stats tables.
      */
@@ -400,7 +281,26 @@ void
 gnet_stats_gui_shutdown(void)
 {
 	guc_hsep_remove_global_table_listener(
-	    (GCallback) gnet_stats_gui_horizon_update);
+		(GCallback) gnet_stats_gui_horizon_update);
+	
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_msg")),
+		PROP_GNET_STATS_MSG_COL_WIDTHS);
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_fc_ttl")),
+		PROP_GNET_STATS_FC_TTL_COL_WIDTHS);
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_fc_hops")),
+		PROP_GNET_STATS_FC_HOPS_COL_WIDTHS);
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_drop_reasons")),
+		PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS);
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_general")),
+		PROP_GNET_STATS_GENERAL_COL_WIDTHS);
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_horizon")),
+		PROP_GNET_STATS_HORIZON_COL_WIDTHS);
 }
 
 static gboolean

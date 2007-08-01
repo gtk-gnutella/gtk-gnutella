@@ -839,19 +839,53 @@ tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 
 #ifdef USE_GTK1
 /**
- * Save visibility of columns in given property which must by a boolean array
+ * Save widths of columns in given property which must by a boolean array
  * property with at least as many elements as there are columns.
  */
 void
-gtk_clist_save_visibility(GtkCList *clist, property_t prop)
+clist_save_widths(GtkCList *clist, property_t prop)
 {
 	gint i;
-	gboolean val;
 
 	g_return_if_fail(clist);
 
     for (i = 0; i < clist->columns; i++) {
-		val = clist->column[i].visible;
+		guint32 width = clist->column[i].width;
+		gui_prop_set_guint32(prop, &width, i, 1);
+	}
+}
+
+/**
+ * Restore widths of columns from given property which must by a boolean
+ * array property with at least as many elements as there are columns.
+ */
+void
+clist_restore_widths(GtkCList *clist, property_t prop)
+{
+	gint i;
+
+	g_return_if_fail(clist);
+
+    for (i = 0; i < clist->columns; i++) {
+		guint32 width;
+
+		gui_prop_get_guint32(prop, &width, i, 1);
+    	gtk_clist_set_column_width(clist, i, width);
+	}
+}
+/**
+ * Save visibility of columns in given property which must by a boolean array
+ * property with at least as many elements as there are columns.
+ */
+void
+clist_save_visibility(GtkCList *clist, property_t prop)
+{
+	gint i;
+
+	g_return_if_fail(clist);
+
+    for (i = 0; i < clist->columns; i++) {
+		gboolean val = clist->column[i].visible;
 		gui_prop_set_boolean(prop, &val, i, 1);
 	}
 }
@@ -861,14 +895,15 @@ gtk_clist_save_visibility(GtkCList *clist, property_t prop)
  * array property with at least as many elements as there are columns.
  */
 void
-gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
+clist_restore_visibility(GtkCList *clist, property_t prop)
 {
 	gint i;
-	gboolean val;
 
 	g_return_if_fail(clist);
 
     for (i = 0; i < clist->columns; i++) {
+		gboolean val;
+
 		gui_prop_get_boolean(prop, &val, i, 1);
     	gtk_clist_set_column_visibility(clist, i, val);
 	}

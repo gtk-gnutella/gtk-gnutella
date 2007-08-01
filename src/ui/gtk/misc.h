@@ -59,8 +59,10 @@ void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
 #endif /* USE_GTK2 */
 
 #ifdef USE_GTK1
-void gtk_clist_save_visibility(GtkCList *clist, property_t prop);
-void gtk_clist_restore_visibility(GtkCList *clist, property_t prop);
+void clist_save_visibility(GtkCList *clist, property_t prop);
+void clist_save_widths(GtkCList *clist, property_t prop);
+void clist_restore_visibility(GtkCList *clist, property_t prop);
+void clist_restore_widths(GtkCList *clist, property_t prop);
 #endif /* USE_GTK1 */
 
 void paned_save_position(GtkPaned *paned, property_t prop);

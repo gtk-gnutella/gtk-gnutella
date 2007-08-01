@@ -185,16 +185,6 @@ on_clist_ul_stats_click_column(GtkCList *clist, gint column,
 	gtk_clist_sort(clist);
 }
 
-void
-on_clist_ul_stats_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-    /* FIXME: use properties */
-	*(gint *) &GUI_PROPERTY(ul_stats_col_widths)[column] = width;
-}
-
 #endif /* USE_GTK1 */
 
 #ifdef USE_GTK2

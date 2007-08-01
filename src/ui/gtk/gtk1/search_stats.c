@@ -51,11 +51,14 @@
 RCSID("$Id$")
 
 #include "gtk/gui.h"
-#include "gtk/gtk-missing.h"
-#include "gtk/search_stats.h"
+
 #include "gtk/columns.h"
+#include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
+#include "gtk/search_stats.h"
 
 #include "if/core/share.h"
+#include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
@@ -344,13 +347,12 @@ search_stats_gui_set_type(gint type)
 void
 search_stats_gui_init(void)
 {
-    GtkWidget *clist_search_stats =
-        gui_main_window_lookup("clist_search_stats");
+    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_search_stats"));
 
     /* set up the clist to be sorted properly */
-	gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), c_st_total);
-	gtk_clist_set_sort_type(GTK_CLIST(clist_search_stats),
-		GTK_SORT_DESCENDING);
+	gtk_clist_set_sort_column(clist, c_st_total);
+	gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
+	clist_restore_widths(clist, PROP_SEARCH_STATS_COL_WIDTHS);
 
 	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
 }
@@ -358,6 +360,9 @@ search_stats_gui_init(void)
 void
 search_stats_gui_shutdown(void)
 {
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
+		PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
     g_hash_table_destroy(stat_hash);
 	stat_hash = NULL;

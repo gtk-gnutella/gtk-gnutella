@@ -331,26 +331,6 @@ on_button_filter_reset_all_clicked(GtkButton *unused_button,
 }
 
 void
-on_ctree_filter_filters_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-
-    *(gint *) &GUI_PROPERTY(filter_filters_col_widths)[column] = width;
-}
-
-void
-on_clist_filter_rules_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-
-    *(gint *) &GUI_PROPERTY(filter_rules_col_widths)[column] = width;
-}
-
-void
 on_clist_filter_rules_select_row(GtkCList *clist, gint row,
 	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
 {

@@ -36,13 +36,11 @@
 gboolean on_ctree_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data);
 void on_button_downloads_resume_clicked (GtkButton *button, gpointer user_data);
-void on_ctree_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_ctree_downloads_tree_select_row (GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 void on_ctree_downloads_tree_unselect_row (GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 
 /* queued downloads */
 gboolean on_ctree_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-void on_ctree_downloads_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_ctree_downloads_queue_tree_select_row (GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 void on_ctree_downloads_queue_tree_unselect_row (GtkCTree *ctree, GList *node, gint column, gpointer user_data);
 void on_ctree_downloads_queue_drag_begin(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);

@@ -43,7 +43,6 @@ void fi_gui_update_display(time_t now);
 void fi_gui_shutdown(void);
 
 #ifdef USE_GTK1
-void on_clist_fileinfo_resize_column(GtkCList *, gint, gint, gpointer);
 gboolean on_clist_fileinfo_button_press_event(
     GtkWidget *, GdkEventButton *event, gpointer user_data);
 

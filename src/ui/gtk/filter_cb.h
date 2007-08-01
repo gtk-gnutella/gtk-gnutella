@@ -36,8 +36,6 @@ void filter_cb_close(void);
 gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
 
 #ifdef USE_GTK1
-void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
-void on_ctree_filter_filters_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_filter_rules_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);

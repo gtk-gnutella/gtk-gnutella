@@ -194,15 +194,6 @@ on_button_search_stats_reset_clicked(GtkButton *unused_button,
 	search_stats_gui_reset();
 }
 
-void
-on_clist_search_stats_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-	*(gint *) &GUI_PROPERTY(search_stats_col_widths)[column] = width;
-}
-
 /***
  *** Config pane
  ***/
@@ -477,14 +468,6 @@ FOCUS_TO_ACTIVATE(entry_config_netmask)
 /***
  *** search list (sidebar)
  ***/
-void
-on_clist_search_resize_column(GtkCList *unused_clist, gint column,
-	gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-    *(gint *) &GUI_PROPERTY(search_list_col_widths)[column] = width;
-}
 
 void
 on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,

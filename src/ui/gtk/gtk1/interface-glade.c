@@ -5795,9 +5795,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_search_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_in), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_in_button_press_event),
                       NULL);
@@ -5824,9 +5821,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_nodes_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_nodes), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_nodes_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_nodes_disconnect), "clicked",
                       GTK_SIGNAL_FUNC (on_button_nodes_disconnect_clicked),
@@ -5858,9 +5852,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_fileinfo_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_select_row),
                       NULL);
@@ -5891,9 +5882,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (ctree_downloads), "button_press_event",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_button_press_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_downloads), "resize_column",
-                      GTK_SIGNAL_FUNC (on_ctree_downloads_resize_column),
-                      NULL);
   gtk_signal_connect_after (GTK_OBJECT (ctree_downloads), "button_release_event",
                             GTK_SIGNAL_FUNC (on_ctree_downloads_button_release_event),
                             NULL);
@@ -5911,9 +5899,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_downloads_queue), "tree_unselect_row",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_queue_tree_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_downloads_queue), "resize_column",
-                      GTK_SIGNAL_FUNC (on_ctree_downloads_queue_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_downloads_queue), "button_press_event",
                       GTK_SIGNAL_FUNC (on_ctree_downloads_queue_button_press_event),
@@ -5942,32 +5927,11 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_uploads), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_uploads_button_press_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_uploads), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_uploads_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_uploads_kill), "clicked",
                       GTK_SIGNAL_FUNC (on_button_uploads_kill_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_uploads_clear_completed), "clicked",
                       GTK_SIGNAL_FUNC (on_button_uploads_clear_completed_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_general), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_general_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_drop_reasons), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_drop_reasons_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_fc_ttl), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_fc_ttl_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_fc_hops), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_fc_hops_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_msg), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_msg_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_horizon), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_horizon_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
@@ -5975,17 +5939,11 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "click_column",
                       GTK_SIGNAL_FUNC (on_clist_ul_stats_click_column),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_ul_stats_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_ul_stats_clear_deleted), "clicked",
                       GTK_SIGNAL_FUNC (on_button_ul_stats_clear_deleted_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_ul_stats_clear_all), "clicked",
                       GTK_SIGNAL_FUNC (on_button_ul_stats_clear_all_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_hcache), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_hcache_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_host_catcher_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_host_catcher_clear_clicked),
@@ -5995,9 +5953,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_hostcache_clear_bad), "clicked",
                       GTK_SIGNAL_FUNC (on_button_hostcache_clear_bad_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search_stats), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_search_stats_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_stats_reset), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_stats_reset_clicked),
@@ -9518,9 +9473,6 @@ create_dlg_filters (void)
   gtk_signal_connect (GTK_OBJECT (ctree_filter_filters), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_filter_filters_tree_select_row),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_filter_filters), "resize_column",
-                      GTK_SIGNAL_FUNC (on_ctree_filter_filters_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_filter_enabled), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_filter_enabled_toggled),
                       NULL);
@@ -9529,9 +9481,6 @@ create_dlg_filters (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_filter_rules_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "drag_end",
                       GTK_SIGNAL_FUNC (on_clist_filter_rules_drag_end),

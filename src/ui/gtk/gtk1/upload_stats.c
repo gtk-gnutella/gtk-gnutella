@@ -60,9 +60,11 @@
 RCSID("$Id$")
 
 #include "gtk/gui.h"
-#include "gtk/upload_stats.h"
+
 #include "gtk/columns.h"
+#include "gtk/misc.h"
 #include "gtk/settings.h"
+#include "gtk/upload_stats.h"
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
@@ -114,11 +116,13 @@ ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
 void
 upload_stats_gui_init(void)
 {
+	clist_restore_widths(clist_ul_stats(), PROP_UL_STATS_COL_WIDTHS);
 }
 
 void
 upload_stats_gui_shutdown(void)
 {
+	clist_save_widths(clist_ul_stats(), PROP_UL_STATS_COL_WIDTHS);
 }
 
 void

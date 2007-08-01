@@ -29,39 +29,16 @@ RCSID("$Id$")
 
 #include "gtk/gui.h"
 
-#include "gtk/hcache.h"
-#include "gtk/notebooks.h"
 #include "gtk/columns.h"
+#include "gtk/hcache.h"
+#include "gtk/misc.h"
+#include "gtk/notebooks.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
 #include "lib/override.h"	/* Must be the last header included */
-
-/***
- *** Callbacks
- ***/
-void
-on_clist_hcache_resize_column(GtkCList *unused_clist, gint column, gint width,
-	gpointer unused_udata)
-{
-    static gboolean lock = FALSE;
-    guint32 buf = width;
-
-	(void) unused_clist;
-	(void) unused_udata;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /** remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_HCACHE_COL_WIDTHS, &buf, column, 1);
-
-    lock = FALSE;
-}
 
 /***
  *** Private functions
@@ -84,46 +61,47 @@ guint_to_str(guint32 i)
 void
 hcache_gui_init(void)
 {
-    GtkCList *clist_hcache;
+    GtkCList *clist;
     const gchar *titles[5];
-    guint n;
+    guint i;
 
-    for (n = 0; n < G_N_ELEMENTS(titles); n ++)
-        titles[n] = "-";
-
-    clist_hcache = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
+    for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+        titles[i] = "-";
+	}
+    clist = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
 
     /*
      * Stats can't be sorted: make column headers insensitive.
      */
-	gtk_clist_column_titles_passive(clist_hcache);
+	gtk_clist_column_titles_passive(clist);
 
     /*
      * Initialize stats tables.
      */
-    for (n = 0; n < HCACHE_MAX; n ++) {
+    for (i = 0; i < HCACHE_MAX; i++) {
         gint row;
 
-		if (n == HCACHE_NONE)
+		if (i == HCACHE_NONE)
 			continue;
 
-        titles[0] = get_hcache_name(n);
+        titles[0] = get_hcache_name(i);
 
 	/* Override const */
-        row = gtk_clist_append(clist_hcache, (gchar **) titles);
-        gtk_clist_set_selectable(clist_hcache, row, FALSE);
+        row = gtk_clist_append(clist, (gchar **) titles);
+        gtk_clist_set_selectable(clist, row, FALSE);
     }
 
-    for (n = 1; n < 4; n ++) {
-        gtk_clist_set_column_justification(
-            clist_hcache, n, GTK_JUSTIFY_RIGHT);
+    for (i = 1; i < 4; i++) {
+        gtk_clist_set_column_justification(clist, i, GTK_JUSTIFY_RIGHT);
     }
+	clist_restore_widths(clist, PROP_HCACHE_COL_WIDTHS);
 }
 
 void
 hcache_gui_shutdown(void)
 {
-	/* Nothing for now */
+	clist_save_widths(GTK_CLIST(gui_main_window_lookup("clist_hcache")),
+		PROP_HCACHE_COL_WIDTHS);
 }
 
 static gboolean
@@ -146,10 +124,10 @@ hcache_gui_is_visible(void)
 void
 hcache_gui_update(time_t now)
 {
-	static time_t last_update = 0;
-    GtkCList *clist_hcache;
-    gint n;
+	static time_t last_update;
     hcache_stats_t stats[HCACHE_MAX];
+    GtkCList *clist;
+    gint n;
 
 	if (last_update == now)
 		return;
@@ -160,24 +138,24 @@ hcache_gui_update(time_t now)
 
     guc_hcache_get_stats(stats);
 
-    clist_hcache = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
-    gtk_clist_freeze(clist_hcache);
+    clist = GTK_CLIST(gui_main_window_lookup("clist_hcache"));
+    gtk_clist_freeze(clist);
 
     for (n = 0; n < HCACHE_MAX; n ++) {
 		if (n == HCACHE_NONE)
 			continue;
 
-        gtk_clist_set_text( clist_hcache, n,
+        gtk_clist_set_text(clist, n,
             c_hcs_host_count, guint_to_str(stats[n].host_count));
 
-        gtk_clist_set_text( clist_hcache, n,
+        gtk_clist_set_text(clist, n,
             c_hcs_hits, guint_to_str(stats[n].hits));
 
-        gtk_clist_set_text( clist_hcache, n,
+        gtk_clist_set_text(clist, n,
             c_hcs_misses, guint_to_str(stats[n].misses));
     }
 
-    gtk_clist_thaw(clist_hcache);
+    gtk_clist_thaw(clist);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

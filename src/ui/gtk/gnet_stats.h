@@ -29,21 +29,6 @@
 #include "gui.h"
 #include "gnet_stats_common.h"
 
-#ifndef USE_GTK2
-void on_clist_gnet_stats_msg_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_fc_ttl_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_fc_hops_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_drop_reasons_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_general_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_horizon_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-#endif /* USE_GTK2 */
-
 void gnet_stats_gui_init(void);
 void gnet_stats_gui_update(time_t now);
 void gnet_stats_gui_shutdown(void);

@@ -149,13 +149,6 @@ void search_gui_end_massive_update(struct search *);
  */
 
 void search_gui_metadata_update(const bitzi_data_t *);
-
-/*
- * Callbacks
- */
-gboolean search_gui_search_results_col_widths_changed(property_t);
-gboolean search_gui_search_results_col_visible_changed(property_t);
-
 void search_gui_queue_bitzi_by_sha1(const record_t *);
 
 #endif /* _gtk_search_h_ */

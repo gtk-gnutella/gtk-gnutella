@@ -2432,6 +2432,8 @@ filter_shutdown(void)
     if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("shutting down filters");
 
+	filter_gui_shutdown();
+
     /*
      * It is important that all searches have already been closed.
      * Since it is not allowd to use a bound filter as a target,

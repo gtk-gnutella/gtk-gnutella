@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "gtk/drag.h"
 #include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/misc.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 #include "gtk/visual_progress.h"
@@ -75,15 +76,6 @@ fi_gui_get_file_url(GtkWidget *unused_widget)
 {
 	(void) unused_widget;
 	return last_shown_valid ? guc_file_info_get_file_url(last_shown) : NULL;
-}
-
-void
-on_clist_fileinfo_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-    *(gint *) &GUI_PROPERTY(file_info_col_widths)[column] = width;
 }
 
 /* Cache for fi_gui_fill_info. This is global so it can be freed
@@ -641,11 +633,9 @@ fi_gui_init(void)
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
 	{
-		GtkCList *clist;
 		guint i;
 
-		clist = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
-		clist_fileinfo = clist;
+		clist_fileinfo = GTK_CLIST(gui_main_window_lookup("clist_fileinfo"));
 
 		for (i = 0; i < c_fi_num; i++) {
 			switch (i) {
@@ -654,12 +644,15 @@ fi_gui_init(void)
 			case c_fi_uploaded:
 			case c_fi_progress:
 			case c_fi_rx:
-				gtk_clist_set_column_justification(clist, i, GTK_JUSTIFY_RIGHT);
+				gtk_clist_set_column_justification(clist_fileinfo,
+					i, GTK_JUSTIFY_RIGHT);
 				break;
 			}
 		}
-		gtk_clist_column_titles_active(clist);
-		drag_attach(GTK_WIDGET(clist), fi_gui_get_file_url);
+		gtk_clist_column_titles_active(clist_fileinfo);
+		clist_restore_widths(GTK_CLIST(clist_fileinfo),
+			PROP_FILE_INFO_COL_WIDTHS);
+		drag_attach(GTK_WIDGET(clist_fileinfo), fi_gui_get_file_url);
 	}
 	
     /* Initialize the row filter */
@@ -691,6 +684,7 @@ fi_gui_init(void)
 void
 fi_gui_shutdown(void)
 {
+	clist_save_widths(GTK_CLIST(clist_fileinfo), PROP_FILE_INFO_COL_WIDTHS);
     g_slist_free(hidden_fi);
     g_slist_free(visible_fi);
 

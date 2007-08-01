@@ -240,22 +240,14 @@ filter_gui_init(void)
 
 #ifdef USE_GTK1
 	{
-		GtkCList *clist_filter_rules;
-		GtkCTree *ctree_filter_filters;
+		GtkCList *clist;
 
-		clist_filter_rules = GTK_CLIST
-			(gui_filter_dialog_lookup("clist_filter_rules"));
-		ctree_filter_filters = GTK_CTREE
-			(gui_filter_dialog_lookup("ctree_filter_filters"));
+		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
+		gtk_clist_set_reorderable(clist, TRUE);
+		clist_restore_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
 
-		gtk_clist_set_reorderable(clist_filter_rules, TRUE);
-		for (i = 0; i < 4; i++)
-			gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-					GUI_PROPERTY(filter_rules_col_widths)[i]);
-
-		for (i = 0; i < 3; i++)
-			gtk_clist_set_column_width(GTK_CLIST(ctree_filter_filters), i,
-					GUI_PROPERTY(filter_filters_col_widths)[i]);
+		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
+		clist_restore_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
 	}
 #endif /* USE_GTK1 */
 #ifdef USE_GTK2
@@ -291,15 +283,6 @@ filter_gui_init(void)
 			G_CALLBACK(on_treeview_filter_rules_button_press_event), NULL);
 
 		gtk_tree_view_set_reorderable(tv_rules, TRUE);
-#if 0
-		for (i = 0; i < 4; i++)
-			gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-					GUI_PROPERTY(filter_rules_col_widths)[i]);
-
-		for (i = 0; i < 3; i++)
-			gtk_clist_set_column_width(GTK_CLIST(ctree_filter_filters), i,
-					GUI_PROPERTY(filter_filters_col_widths)[i]);
-#endif
 	}
 #endif /* USE_GTK2 */
 
@@ -327,6 +310,22 @@ filter_gui_init(void)
 			GTK_OBJECT(gui_filter_dialog_lookup(radio_buttons[i].name)),
 			GUINT_TO_POINTER(radio_buttons[i].id));
 	}
+}
+
+void
+filter_gui_shutdown(void)
+{
+#ifdef USE_GTK1
+    if (gui_filter_dialog()) {
+		GtkCList *clist;
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
+		clist_save_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
+		clist_save_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
+	}
+#endif /* USE_GTK1 */
 }
 
 /**

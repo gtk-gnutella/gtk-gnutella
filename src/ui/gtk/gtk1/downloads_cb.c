@@ -111,15 +111,6 @@ on_ctree_downloads_tree_unselect_row(GtkCTree *ctree, GList *node,
     on_ctree_downloads_tree_select_row(ctree, node, column, user_data);
 }
 
-void
-on_ctree_downloads_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-	*(gint *) &GUI_PROPERTY(dl_active_col_widths)[column] = width;
-}
-
 gboolean
 on_ctree_downloads_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer unused_udata)
@@ -1164,15 +1155,6 @@ on_ctree_downloads_queue_button_press_event(GtkWidget *widget,
                   event->button, event->time);
 
 	return TRUE;
-}
-
-void
-on_ctree_downloads_queue_resize_column(GtkCList *unused_clist,
-	gint column, gint width, gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_udata;
-	*(gint *) &GUI_PROPERTY(dl_queued_col_widths)[column] = width;
 }
 
 void

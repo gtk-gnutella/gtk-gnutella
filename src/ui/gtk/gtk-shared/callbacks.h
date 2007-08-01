@@ -104,7 +104,6 @@ void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
  *** search stats
  ***/
 void on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data);
-void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
 
@@ -112,7 +111,6 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint wid
  *** search list (sidebar)
  ***/
 #ifdef USE_GTK1
-void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 gboolean
 on_ctree_downloads_queue_button_release_event
                                         (GtkWidget       *widget,

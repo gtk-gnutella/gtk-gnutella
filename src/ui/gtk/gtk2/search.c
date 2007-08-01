@@ -759,10 +759,10 @@ search_gui_new_search_full(const gchar *query_str,
 
 			default_search_tree_view = NULL;
 			default_scrolled_window = NULL;
-		} else
+		} else {
 			g_warning("new_search():"
 				" No current search but no default tree_view !?");
-
+		}
 		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
 	}
 

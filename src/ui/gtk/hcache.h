@@ -29,11 +29,6 @@
 #include "gui.h"
 #include "hcache_common.h"
 
-#ifdef USE_GTK1
-void on_clist_hcache_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data);
-#endif /* USE_GTK1 */
-
 void hcache_gui_init(void);
 void hcache_gui_update(time_t now);
 void hcache_gui_shutdown(void);
