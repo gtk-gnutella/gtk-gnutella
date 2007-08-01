@@ -146,14 +146,14 @@ void
 on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
 	gint page_num, gpointer unused_udata)
 {
-	search_t *sch = (search_t *) gtk_object_get_user_data(
-		GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
-
+	search_t *search;
+	
 	(void) unused_page;
 	(void) unused_udata;
-	g_return_if_fail(sch);
-
-	search_gui_set_current_search(sch);
+	search = gtk_object_get_user_data(
+				GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
+	g_return_if_fail(search);
+	search_gui_set_current_search(search);
 }
 
 void
@@ -180,30 +180,30 @@ void
 on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
 	GtkTreePath *path = NULL;
-	GtkTreeIter iter;
 
 	(void) unused_udata;
 
 	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (!path) {
-		return;
-	}
-	if (gtk_tree_model_get_iter(gtk_tree_view_get_model(tv), &iter, path)) {
-		gpointer ptr = NULL;
+	if (path) {
+		GtkTreeModel *model;
+		GtkTreeIter iter;
 
-		gtk_tree_model_get(gtk_tree_view_get_model(tv),
-			&iter, c_sl_sch, &ptr, (-1));
+		model = gtk_tree_view_get_model(tv);
+		if (gtk_tree_model_get_iter(model, &iter, path)) {
+			gpointer ptr = NULL;
 
-		if (ptr) {
-			search_t *sch = ptr;
+			gtk_tree_model_get(model, &iter, c_sl_sch, &ptr, (-1));
+			if (ptr) {
+				search_t *sch = ptr;
 
-			gtk_notebook_set_page(
-				GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-				nb_main_page_search);
-			search_gui_set_current_search(sch);
+				gtk_notebook_set_page(
+					GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
+					nb_main_page_search);
+				search_gui_set_current_search(sch);
+			}
 		}
+		gtk_tree_path_free(path);
 	}
-	gtk_tree_path_free(path);
 }
 
 void
