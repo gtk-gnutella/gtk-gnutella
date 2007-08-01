@@ -436,10 +436,7 @@ on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 
 	tv = GTK_TREE_VIEW(data);
 	update_tooltip(GTK_TREE_VIEW(widget), NULL);
-	if (tvm_dbg_property) {
-		tree_view_motion_clear_callback(tv, tvm_dbg_property);
-		tvm_dbg_property = NULL;
-	}
+	tree_view_motion_clear_callback(&tvm_dbg_property);
 	return FALSE;
 }
 

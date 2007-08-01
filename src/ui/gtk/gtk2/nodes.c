@@ -578,11 +578,7 @@ nodes_gui_init(void)
 void
 nodes_gui_shutdown(void)
 {
-	if (tvm_nodes) {
-		tree_view_motion_clear_callback(treeview_nodes, tvm_nodes);
-		tvm_nodes = NULL;
-	}
-
+	tree_view_motion_clear_callback(&tvm_nodes);
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_save_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 

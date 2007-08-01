@@ -603,11 +603,11 @@ tree_view_motion_set_callback(GtkTreeView *tv,
 {
 	tree_view_motion_t *tvm;
 
-	g_assert(tv != NULL);
-	g_assert(cb != NULL);
+	g_return_val_if_fail(tv, NULL);
+	g_return_val_if_fail(cb, NULL);
 
 	tvm = g_malloc(sizeof *tvm);
-	tvm->tv = tv;
+	tvm->tv = GTK_TREE_VIEW(g_object_ref(tv));
 	tvm->cb = cb;
 	tvm->timeout_id = g_timeout_add(interval, tree_view_motion_timeout, tvm);
 	tvm->signal_id = g_signal_connect(GTK_OBJECT(tv),
@@ -616,14 +616,18 @@ tree_view_motion_set_callback(GtkTreeView *tv,
 }
 
 void
-tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tvm)
+tree_view_motion_clear_callback(tree_view_motion_t **ptr)
 {
-	g_assert(tv != NULL);
-	g_assert(tvm != NULL);
+	if (*ptr) {
+		tree_view_motion_t *tvm = *ptr;
 
-	g_signal_handler_disconnect(GTK_OBJECT(tv), tvm->signal_id);
-	g_source_remove(tvm->timeout_id);
-	G_FREE_NULL(tvm);
+		g_signal_handler_disconnect(tvm->tv, tvm->signal_id);
+		g_source_remove(tvm->timeout_id);
+		g_object_unref(tvm->tv);
+		tvm->tv = NULL;
+		G_FREE_NULL(tvm);
+		*ptr = NULL;
+	}
 }
 
 void
