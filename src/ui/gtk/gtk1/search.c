@@ -1289,7 +1289,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				}
 				break;
 			case c_sr_ctime:
-				if (rc->create_time) {
+				if ((time_t) -1 != rc->create_time) {
 					text = timestamp_to_string(rc->create_time);
 				}
 				break;

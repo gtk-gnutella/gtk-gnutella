@@ -303,7 +303,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		}
 		break;
 	case c_sr_ctime:
-		if (data->record->create_time) {
+		if ((time_t) -1 != data->record->create_time) {
 			text = timestamp_to_string(data->record->create_time);
 		}
 		break;
