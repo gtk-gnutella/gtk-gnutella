@@ -5612,19 +5612,17 @@ download_resume(struct download *d)
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
 
-	if (FILE_INFO_FINISHED(d->file_info))
-		return;
-
-	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
-
 	d->flags &= ~DL_F_PAUSED;
-	if (d->file_info && (FI_F_PAUSED & d->file_info->flags)) {
+	if (FI_F_PAUSED & d->file_info->flags) {
 		d->file_info->flags &= ~FI_F_PAUSED;
 		file_info_changed(d->file_info);
-		return;
 	}
+	
+	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	if (
+		FILE_INFO_FINISHED(d->file_info) ||
+		!DOWNLOAD_IS_STOPPED(d) ||
 		!DOWNLOAD_IS_QUEUED(d) ||
 		DOWNLOAD_IS_RUNNING(d) ||
 		DOWNLOAD_IS_WAITING(d)
@@ -5633,24 +5631,10 @@ download_resume(struct download *d)
 	}
 
 	g_return_if_fail(d->list_idx == DL_LIST_STOPPED);
-
-	switch (d->status) {
-	case GTA_DL_COMPLETED:
-	case GTA_DL_VERIFY_WAIT:
-	case GTA_DL_VERIFYING:
-	case GTA_DL_VERIFIED:
-	case GTA_DL_MOVE_WAIT:
-	case GTA_DL_MOVING:
-	case GTA_DL_DONE:
-		return;
-	default: ;
-		/* FALL THROUGH */
-	}
-
 	d->file_info->lifecount++;
 
 	if (
-		NULL != has_same_download(d->file_name, d->sha1, d->file_size,
+		has_same_download(d->file_name, d->sha1, d->file_size,
 			download_guid(d), download_addr(d), download_port(d))
 	) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
