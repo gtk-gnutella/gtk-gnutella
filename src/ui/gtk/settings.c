@@ -112,19 +112,17 @@ typedef struct prop_map {
 #define NOT_IN_MAP	(-1)
 #define IGNORE		NULL
 
-static prop_set_stub_t *gui_prop_set_stub = NULL;
-static prop_set_stub_t *gnet_prop_set_stub = NULL;
+static prop_set_stub_t *gui_prop_set_stub;
+static prop_set_stub_t *gnet_prop_set_stub;
 
 static gint gui_init_list[GUI_PROPERTY_NUM];
 static gint gnet_init_list[GNET_PROPERTY_NUM];
-static GtkTooltips* tooltips = NULL;
+static GtkTooltips* tooltips;
 
-static gchar *home_dir = NULL;
+static gchar *home_dir;
 static const gchar property_file[] = "config_gui";
 
-static gchar set_tmp[4096];
-
-static prop_set_t *properties = NULL;
+static prop_set_t *properties;
 
 static prop_map_t * settings_gui_get_map_entry(property_t prop);
 
@@ -1184,17 +1182,17 @@ static void
 set_host_progress(const gchar *w, guint32 cur, guint32 max)
 {
     GtkProgressBar *pg = GTK_PROGRESS_BAR(gui_main_window_lookup(w));
+	gchar buf[256];
     guint frac;
 
-    frac = MIN(cur, max);
-	if (frac != 0)
-    	frac = frac * 100 / max;
+    frac = MIN(cur, max) * 100;
+	frac = max ? (frac / max) : 0;
 
-	gm_snprintf(set_tmp, sizeof(set_tmp),
+	gm_snprintf(buf, sizeof buf,
 		NG_("%u/%u host (%u%%)", "%u/%u hosts (%u%%)", max),
 		cur, max, frac);
 
-    gtk_progress_bar_set_text(pg, set_tmp);
+    gtk_progress_bar_set_text(pg, buf);
     gtk_progress_bar_set_fraction(pg, frac / 100.0);
 }
 
@@ -2405,8 +2403,8 @@ update_spinbutton_ultranode(property_t prop)
 static gboolean
 gnet_connections_changed(property_t unused_prop)
 {
-    GtkProgressBar *pg = GTK_PROGRESS_BAR(
-        gui_main_window_lookup("progressbar_connections"));
+    GtkProgressBar *pg;
+	gchar buf[128];
     guint32 leaf_count;
     guint32 normal_count;
     guint32 ultra_count;
@@ -2414,12 +2412,13 @@ gnet_connections_changed(property_t unused_prop)
     guint32 max_leaves;
     guint32 max_normal;
     guint32 max_ultrapeers;
-    gfloat  frac;
     guint32 cnodes;
     guint32 nodes = 0;
     guint32 peermode;
 
 	(void) unused_prop;
+
+    pg = GTK_PROGRESS_BAR(gui_main_window_lookup("progressbar_connections"));
     gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_count);
     gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &normal_count);
     gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
@@ -2436,14 +2435,14 @@ gnet_connections_changed(property_t unused_prop)
     case NODE_P_NORMAL: /* normal */
         nodes = (peermode == NODE_P_NORMAL) ?
             max_connections : max_ultrapeers;
-		gm_snprintf(set_tmp, sizeof(set_tmp),
+		gm_snprintf(buf, sizeof buf,
 			NG_("%u/%u connection", "%u/%u connections", cnodes),
 			cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
-        gm_snprintf(set_tmp, sizeof(set_tmp),
-            "%u/%uU | %u/%uN | %u/%uL",
+        gm_snprintf(buf, sizeof buf,
+            "%u/%uU |%u/%uN | %u/%uL",
             ultra_count,
 			max_connections < max_normal ? 0 : max_connections - max_normal,
             normal_count, max_normal,
@@ -2452,10 +2451,10 @@ gnet_connections_changed(property_t unused_prop)
     default:
         g_assert_not_reached();
     }
-    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
 
-    gtk_progress_bar_set_text(pg, set_tmp);
-    gtk_progress_bar_set_fraction(pg, frac);
+    gtk_progress_bar_set_text(pg, buf);
+    gtk_progress_bar_set_fraction(pg,
+    	nodes ? (1.0 * MIN(cnodes, nodes) / nodes) : 0.0);
 
     return FALSE;
 }
@@ -2463,50 +2462,50 @@ gnet_connections_changed(property_t unused_prop)
 static gboolean
 uploads_count_changed(property_t unused_prop)
 {
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-         (gui_main_window_lookup("progressbar_uploads"));
-    gfloat frac;
+    GtkProgressBar *pg;
+	gchar buf[128];
 	guint32 registered;
 	guint32 running;
-	guint32 min;
 
 	(void) unused_prop;
+	
+    pg = GTK_PROGRESS_BAR(gui_main_window_lookup("progressbar_uploads"));
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
-	gm_snprintf(set_tmp, sizeof(set_tmp),
+
+	gm_snprintf(buf, sizeof buf,
 		NG_("%u/%u upload", "%u/%u uploads", registered),
 		running, registered);
 
-	min = MIN(running, registered);
-    frac = min != 0 ? (gfloat) min / registered : 0;
+    gtk_progress_bar_set_text(pg, buf);
+    gtk_progress_bar_set_fraction(pg,
+		registered ? (1.0 * MIN(running, registered) / registered) : 0.0);
 
-    gtk_progress_bar_set_text(pg, set_tmp);
-    gtk_progress_bar_set_fraction(pg, frac);
 	return FALSE;
 }
 
 static gboolean
 downloads_count_changed(property_t unused_prop)
 {
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-         (gui_main_window_lookup("progressbar_downloads"));
-    gfloat frac;
+    GtkProgressBar *pg;
+	gchar buf[128];
     guint32 active;
     guint32 running;
-    guint32 min;
 
 	(void) unused_prop;
+
+    pg = GTK_PROGRESS_BAR(gui_main_window_lookup("progressbar_downloads"));
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
-	gm_snprintf(set_tmp, sizeof(set_tmp),
+
+	gm_snprintf(buf, sizeof buf,
 		NG_("%u/%u download", "%u/%u downloads", running),
 		active, running);
 
-    min = MIN(active, running);
-    frac = min != 0 ? (gfloat) min / running : 0;
+    gtk_progress_bar_set_text(pg, buf);
+    gtk_progress_bar_set_fraction(pg,
+		running ? (1.0 * MIN(active, running) / running) : 0.0);
 
-    gtk_progress_bar_set_text(pg, set_tmp);
-    gtk_progress_bar_set_fraction(pg, frac);
     return FALSE;
 }
 
