@@ -45,7 +45,8 @@ enum {
 	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
 	FI_F_SEEDING	= 1 << 5,	/**< Seeding after successful download */
 	FI_F_STRIPPED	= 1 << 6,	/**< Fileinfo trailler has been stripped */
-	FI_F_FETCH_TTH	= 1 << 7	/**< Tigertree data is being downloaded */
+	FI_F_FETCH_TTH	= 1 << 7,	/**< Tigertree data is being downloaded */
+	FI_F_UNLINKED	= 1 << 8	/**< Removed from disk */
 };
 
 /**

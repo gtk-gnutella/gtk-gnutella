@@ -2351,7 +2351,14 @@ file_info_unlink(fileinfo_t *fi)
 {
 	file_info_check(fi);
 
-	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
+	/*
+	 * If this fileinfo was partially shared, make sure all uploads currently
+	 * requesting it are terminated.
+	 */
+
+	file_info_upload_stop(fi, "Partial file removed");
+
+	if (fi->flags & (FI_F_TRANSIENT|FI_F_SEEDING|FI_F_STRIPPED|FI_F_UNLINKED))
 		return;
 
 	/*
@@ -2360,7 +2367,7 @@ file_info_unlink(fileinfo_t *fi)
 	 * the filename of another download started afterwards which 
 	 * means the wrong file would be removed.
 	 */
-	if (fi->file_size_known && fi->size == fi->done)
+	if (FILE_INFO_COMPLETE(fi))
 		return;
 
 	if (-1 == unlink(fi->pathname)) {
@@ -2380,13 +2387,7 @@ file_info_unlink(fileinfo_t *fi)
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");
 	}
-
-	/*
-	 * If this fileinfo was partially shared, make sur all uploads currently
-	 * requesting it are terminated.
-	 */
-
-	file_info_upload_stop(fi, "Partial file removed");
+	fi->flags |= FI_F_UNLINKED;
 }
 
 /**
@@ -4096,7 +4097,7 @@ file_info_reset(fileinfo_t *fi)
 	/* File possibly shared */
 	file_info_upload_stop(fi, "File info being reset");
 
-	fi->flags &= ~FI_F_STRIPPED;
+	fi->flags &= ~(FI_F_STRIPPED | FI_F_UNLINKED);
 
 restart:
 	for (list = fi->chunklist; list; list = g_slist_next(list)) {
@@ -5567,8 +5568,7 @@ file_info_purge(fileinfo_t *fi)
 
 		g_assert(0 == fi->refcount);
 
-		if (!FILE_INFO_COMPLETE(fi))	/* Paranoid: don't lose if complete */
-			file_info_unlink(fi);
+		file_info_unlink(fi);
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
