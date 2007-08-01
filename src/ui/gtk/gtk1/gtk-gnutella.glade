@@ -5298,7 +5298,7 @@
 		<can_focus>True</can_focus>
 		<show_tabs>True</show_tabs>
 		<show_border>True</show_border>
-		<tab_pos>GTK_POS_TOP</tab_pos>
+		<tab_pos>GTK_POS_BOTTOM</tab_pos>
 		<scrollable>False</scrollable>
 		<tab_hborder>2</tab_hborder>
 		<tab_vborder>2</tab_vborder>
@@ -5895,77 +5895,173 @@
 		</widget>
 
 		<widget>
-		  <class>GtkScrolledWindow</class>
-		  <name>scrolledwindow45</name>
-		  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		  <class>GtkVBox</class>
+		  <name>vbox141</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 
 		  <widget>
-		    <class>GtkCList</class>
-		    <name>clist_gnet_stats_horizon</name>
-		    <can_focus>True</can_focus>
-		    <columns>4</columns>
-		    <column_widths>56,50,78,80</column_widths>
-		    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-		    <show_titles>True</show_titles>
-		    <shadow_type>GTK_SHADOW_IN</shadow_type>
+		    <class>GtkScrolledWindow</class>
+		    <name>scrolledwindow45</name>
+		    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label663</name>
-		      <width>30</width>
-		      <label>Hops</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
+		      <class>GtkCList</class>
+		      <name>clist_gnet_stats_horizon</name>
+		      <can_focus>True</can_focus>
+		      <columns>4</columns>
+		      <column_widths>56,50,78,80</column_widths>
+		      <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+		      <show_titles>True</show_titles>
+		      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label663</name>
+			<width>30</width>
+			<label>Hops</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label664</name>
+			<width>36</width>
+			<label>Nodes</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label665</name>
+			<width>36</width>
+			<label>Files</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label666</name>
+			<width>36</width>
+			<label>Size</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox2109</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkFrame</class>
+		      <name>frame129</name>
+		      <label_xalign>0</label_xalign>
+		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label_statusbar_horizon_node_count</name>
+			<label>Nodes</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>5</xpad>
+			<ypad>0</ypad>
+		      </widget>
 		    </widget>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label664</name>
-		      <width>36</width>
-		      <label>Nodes</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
+		      <class>GtkFrame</class>
+		      <name>frame130</name>
+		      <label_xalign>0</label_xalign>
+		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label_statusbar_horizon_file_count</name>
+			<label>Files</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>5</xpad>
+			<ypad>0</ypad>
+		      </widget>
 		    </widget>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label665</name>
-		      <width>36</width>
-		      <label>Files</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
+		      <class>GtkFrame</class>
+		      <name>frame131</name>
+		      <label_xalign>0</label_xalign>
+		      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
 
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label666</name>
-		      <width>36</width>
-		      <label>Size</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label_statusbar_horizon_kb_count</name>
+			<label>Size</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>5</xpad>
+			<ypad>0</ypad>
+		      </widget>
 		    </widget>
 		  </widget>
 		</widget>
@@ -7458,78 +7554,6 @@
 	<widget>
 	  <class>GtkStatusbar</class>
 	  <name>statusbar</name>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkFrame</class>
-	<name>frame129</name>
-	<label_xalign>0</label_xalign>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label_statusbar_horizon_node_count</name>
-	  <label>Nodes</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>5</xpad>
-	  <ypad>0</ypad>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkFrame</class>
-	<name>frame130</name>
-	<label_xalign>0</label_xalign>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label_statusbar_horizon_file_count</name>
-	  <label>Files</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>5</xpad>
-	  <ypad>0</ypad>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkFrame</class>
-	<name>frame131</name>
-	<label_xalign>0</label_xalign>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label_statusbar_horizon_kb_count</name>
-	  <label>Size</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>5</xpad>
-	  <ypad>0</ypad>
 	</widget>
       </widget>
 

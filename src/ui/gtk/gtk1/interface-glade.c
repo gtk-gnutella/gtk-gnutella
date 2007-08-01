@@ -444,12 +444,20 @@ create_main_window (void)
   GtkWidget *label501;
   GtkWidget *label396;
   GtkWidget *label776;
+  GtkWidget *vbox141;
   GtkWidget *scrolledwindow45;
   GtkWidget *clist_gnet_stats_horizon;
   GtkWidget *label663;
   GtkWidget *label664;
   GtkWidget *label665;
   GtkWidget *label666;
+  GtkWidget *hbox2109;
+  GtkWidget *frame129;
+  GtkWidget *label_statusbar_horizon_node_count;
+  GtkWidget *frame130;
+  GtkWidget *label_statusbar_horizon_file_count;
+  GtkWidget *frame131;
+  GtkWidget *label_statusbar_horizon_kb_count;
   GtkWidget *label777;
   GtkWidget *table93;
   guint checkbutton_gnet_stats_bytes_key;
@@ -567,12 +575,6 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
-  GtkWidget *frame129;
-  GtkWidget *label_statusbar_horizon_node_count;
-  GtkWidget *frame130;
-  GtkWidget *label_statusbar_horizon_file_count;
-  GtkWidget *frame131;
-  GtkWidget *label_statusbar_horizon_kb_count;
   GtkWidget *frame_status_images;
   GtkWidget *hbox199;
   GtkWidget *eventbox_image_chip;
@@ -3911,6 +3913,7 @@ create_main_window (void)
   gtk_widget_show (notebook3);
   gtk_box_pack_start (GTK_BOX (vbox97), notebook3, TRUE, TRUE, 0);
   gtk_widget_set_usize (notebook3, -2, 157);
+  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook3), GTK_POS_BOTTOM);
 
   hbox2106 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox2106, "hbox2106");
@@ -4341,13 +4344,21 @@ create_main_window (void)
   gtk_widget_show (label776);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook3), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook3), 3), label776);
 
+  vbox141 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox141, "vbox141");
+  gtk_widget_ref (vbox141);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox141", vbox141,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox141);
+  gtk_container_add (GTK_CONTAINER (notebook3), vbox141);
+
   scrolledwindow45 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow45, "scrolledwindow45");
   gtk_widget_ref (scrolledwindow45);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow45", scrolledwindow45,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow45);
-  gtk_container_add (GTK_CONTAINER (notebook3), scrolledwindow45);
+  gtk_box_pack_start (GTK_BOX (vbox141), scrolledwindow45, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow45), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   clist_gnet_stats_horizon = gtk_clist_new (4);
@@ -4398,6 +4409,65 @@ create_main_window (void)
   gtk_widget_show (label666);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 3, label666);
   gtk_widget_set_usize (label666, 36, -2);
+
+  hbox2109 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2109, "hbox2109");
+  gtk_widget_ref (hbox2109);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2109", hbox2109,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2109);
+  gtk_box_pack_start (GTK_BOX (vbox141), hbox2109, FALSE, TRUE, 0);
+
+  frame129 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame129, "frame129");
+  gtk_widget_ref (frame129);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame129", frame129,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame129);
+  gtk_box_pack_start (GTK_BOX (hbox2109), frame129, TRUE, TRUE, 0);
+
+  label_statusbar_horizon_node_count = gtk_label_new (_("Nodes"));
+  gtk_widget_set_name (label_statusbar_horizon_node_count, "label_statusbar_horizon_node_count");
+  gtk_widget_ref (label_statusbar_horizon_node_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_node_count", label_statusbar_horizon_node_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_node_count);
+  gtk_container_add (GTK_CONTAINER (frame129), label_statusbar_horizon_node_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_node_count), 5, 0);
+
+  frame130 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame130, "frame130");
+  gtk_widget_ref (frame130);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame130", frame130,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame130);
+  gtk_box_pack_start (GTK_BOX (hbox2109), frame130, TRUE, TRUE, 0);
+
+  label_statusbar_horizon_file_count = gtk_label_new (_("Files"));
+  gtk_widget_set_name (label_statusbar_horizon_file_count, "label_statusbar_horizon_file_count");
+  gtk_widget_ref (label_statusbar_horizon_file_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_file_count", label_statusbar_horizon_file_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_file_count);
+  gtk_container_add (GTK_CONTAINER (frame130), label_statusbar_horizon_file_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_file_count), 5, 0);
+
+  frame131 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame131, "frame131");
+  gtk_widget_ref (frame131);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame131", frame131,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame131);
+  gtk_box_pack_start (GTK_BOX (hbox2109), frame131, TRUE, TRUE, 0);
+
+  label_statusbar_horizon_kb_count = gtk_label_new (_("Size"));
+  gtk_widget_set_name (label_statusbar_horizon_kb_count, "label_statusbar_horizon_kb_count");
+  gtk_widget_ref (label_statusbar_horizon_kb_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_kb_count", label_statusbar_horizon_kb_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_horizon_kb_count);
+  gtk_container_add (GTK_CONTAINER (frame131), label_statusbar_horizon_kb_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_kb_count), 5, 0);
 
   label777 = gtk_label_new ("");
   gtk_label_parse_uline (GTK_LABEL (label777),
@@ -5303,60 +5373,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (statusbar);
   gtk_container_add (GTK_CONTAINER (alignment25), statusbar);
-
-  frame129 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame129, "frame129");
-  gtk_widget_ref (frame129);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame129", frame129,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame129);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame129, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_IN);
-
-  label_statusbar_horizon_node_count = gtk_label_new (_("Nodes"));
-  gtk_widget_set_name (label_statusbar_horizon_node_count, "label_statusbar_horizon_node_count");
-  gtk_widget_ref (label_statusbar_horizon_node_count);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_node_count", label_statusbar_horizon_node_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_statusbar_horizon_node_count);
-  gtk_container_add (GTK_CONTAINER (frame129), label_statusbar_horizon_node_count);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_node_count), 5, 0);
-
-  frame130 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame130, "frame130");
-  gtk_widget_ref (frame130);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame130", frame130,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame130);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame130, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame130), GTK_SHADOW_IN);
-
-  label_statusbar_horizon_file_count = gtk_label_new (_("Files"));
-  gtk_widget_set_name (label_statusbar_horizon_file_count, "label_statusbar_horizon_file_count");
-  gtk_widget_ref (label_statusbar_horizon_file_count);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_file_count", label_statusbar_horizon_file_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_statusbar_horizon_file_count);
-  gtk_container_add (GTK_CONTAINER (frame130), label_statusbar_horizon_file_count);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_file_count), 5, 0);
-
-  frame131 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame131, "frame131");
-  gtk_widget_ref (frame131);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame131", frame131,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame131);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame131, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame131), GTK_SHADOW_IN);
-
-  label_statusbar_horizon_kb_count = gtk_label_new (_("Size"));
-  gtk_widget_set_name (label_statusbar_horizon_kb_count, "label_statusbar_horizon_kb_count");
-  gtk_widget_ref (label_statusbar_horizon_kb_count);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_kb_count", label_statusbar_horizon_kb_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_statusbar_horizon_kb_count);
-  gtk_container_add (GTK_CONTAINER (frame131), label_statusbar_horizon_kb_count);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_kb_count), 5, 0);
 
   frame_status_images = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_status_images, "frame_status_images");
