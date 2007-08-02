@@ -4247,7 +4247,7 @@ download_pause(struct download *d)
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags |= DL_F_PAUSED;
-	if (d->file_info && !(FI_F_PAUSED & d->file_info->flags)) {
+	if (!(FI_F_PAUSED & d->file_info->flags)) {
 		d->file_info->flags |= FI_F_PAUSED;
 		file_info_changed(d->file_info);
 	}
