@@ -266,6 +266,24 @@ nodes_gui_early_init(void)
 	}
 }
 
+static const char *
+nodes_gui_column_title(int column)
+{
+	switch ((enum c_gnet) column) {
+    case c_gnet_host:		return _("Host");
+    case c_gnet_loc:		return _("Country");
+	case c_gnet_flags:		return _("Flags");
+	case c_gnet_user_agent:	return _("User-Agent");
+	case c_gnet_version:	return _("Ver");
+	case c_gnet_connected:	return _("Connected time");
+	case c_gnet_uptime:		return _("Uptime");
+	case c_gnet_info:		return _("Status");
+	case c_gnet_num:
+		break;
+	}
+	g_assert_not_reached();
+	return NULL;
+}
 
 /**
  * Initialize the nodes controller. Register callbacks in the backend.
@@ -273,19 +291,15 @@ nodes_gui_early_init(void)
 void
 nodes_gui_init(void)
 {
+	unsigned i;
 	GtkCList *clist;
 
 	clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
 
     gtk_clist_column_titles_passive(clist);
-    gtk_clist_set_column_name(clist, c_gnet_host, _("Host"));
-    gtk_clist_set_column_name(clist, c_gnet_loc, _("Country"));
-    gtk_clist_set_column_name(clist, c_gnet_flags, _("Flags"));
-    gtk_clist_set_column_name(clist, c_gnet_user_agent, _("User-Agent"));
-    gtk_clist_set_column_name(clist, c_gnet_version, _("Ver"));
-    gtk_clist_set_column_name(clist, c_gnet_connected, _("Connected time"));
-    gtk_clist_set_column_name(clist, c_gnet_uptime, _("Uptime"));
-    gtk_clist_set_column_name(clist, c_gnet_info, _("Status"));
+	for (i = 0; i < c_gnet_num; i++) {
+    	gtk_clist_set_column_name(clist, i, nodes_gui_column_title(i));
+	}
 	clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
 	clist_restore_widths(clist, PROP_NODES_COL_WIDTHS);
 
