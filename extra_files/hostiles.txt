@@ -838,6 +838,11 @@
 216.7.183.192/26
 216.17.100.0/24
 
+# The following is probably a fake range and not the spam origin.
+# It is used by the above spammers; the results are marked as firewalled
+# and only work through pushes causing some of the above to connect.
+216.139.239.240/28
+
 # Open Proxies
 24.239.248.21
 61.90.250.15
@@ -1052,5 +1057,4 @@
 
 # French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
 91.121.67.16
-
 
