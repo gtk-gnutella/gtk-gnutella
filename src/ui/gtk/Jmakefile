@@ -30,6 +30,7 @@
 LSRC = \
 	bitzi.c \
 	downloads_common.c \
+	clipboard.c \
 	drag.c \
 	drop.c \
 	filter.c \

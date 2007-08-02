@@ -27,7 +27,11 @@
 #define _gtk_misc_h_
 
 #include "gui.h"
+
+#include "clipboard.h"
+
 #include "if/ui/gtk/misc.h"
+
 #include "lib/prop.h"
 
 void gui_general_timer(time_t now);

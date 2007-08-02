@@ -634,6 +634,8 @@ src/ui/gtk/columns.h
 src/ui/gtk/downloads.h
 src/ui/gtk/downloads_common.c
 src/ui/gtk/downloads_common.h
+src/ui/gtk/clipboard.c
+src/ui/gtk/clipboard.h
 src/ui/gtk/drag.c
 src/ui/gtk/drag.h
 src/ui/gtk/drop.c
