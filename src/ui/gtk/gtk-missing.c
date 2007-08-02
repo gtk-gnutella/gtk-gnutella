@@ -75,7 +75,7 @@ gtk_paned_get_position(GtkPaned *paned)
  * @warning EVIL HACK
  */
 void
-gtk_clist_set_column_name(GtkCList * clist, gint col, gchar *title)
+gtk_clist_set_column_name(GtkCList *clist, int col, const char *title)
 {
     if (col >= 0 && col < clist->columns) {
 		G_FREE_NULL(clist->column[col].title);
@@ -239,6 +239,19 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
 
     va_end(args);
 }
+
+
+#ifdef USE_GTK1
+const char *
+gtk_label_get_text(GtkLabel *label)
+{
+	const char *text = NULL;
+
+	g_return_val_if_fail(label, NULL);
+	gtk_label_get(GTK_LABEL(label), (char **) &text);
+	return text;
+}
+#endif	/* USE_GTK1 */
 
 /**
  * Takes an array of strings which are supposed to be widgets names found with

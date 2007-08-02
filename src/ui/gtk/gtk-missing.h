@@ -74,7 +74,7 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *);
  * GtkCList
  */
 #ifdef USE_GTK1
-void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
+void gtk_clist_set_column_name(GtkCList *clist, int col, const char *);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
     GCompareFunc cfn);
 #endif /* USE_GTK1 */
@@ -114,6 +114,9 @@ GtkWidget *gtk_paned_get_child2(GtkPaned *paned);
  * GtkLabel
  */
 void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+#ifdef USE_GTK1 /* USE_GTK1 */
+const char *gtk_label_get_text(GtkLabel *);
+#endif /* USE_GTK1 */
 
 /**
  * GtkEntry
