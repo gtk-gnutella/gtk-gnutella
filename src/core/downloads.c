@@ -4100,6 +4100,12 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
 
+	d->flags &= ~DL_F_PAUSED;
+	if (FI_F_PAUSED & d->file_info->flags) {
+		d->file_info->flags &= ~FI_F_PAUSED;
+		file_info_changed(d->file_info);
+	}
+
 	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
 	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
 	g_return_if_fail(!DOWNLOAD_IS_RUNNING(d));
@@ -4119,12 +4125,6 @@ download_start(struct download *d, gboolean check_allowed)
 
 	addr = download_addr(d);
 	port = download_port(d);
-
-	d->flags &= ~DL_F_PAUSED;
-	if (FI_F_PAUSED & d->file_info->flags) {
-		d->file_info->flags &= ~FI_F_PAUSED;
-		file_info_changed(d->file_info);
-	}
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
