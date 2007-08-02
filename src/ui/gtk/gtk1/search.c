@@ -2167,7 +2167,7 @@ search_gui_set_current_search(search_t *sch)
 
         notebook = GTK_NOTEBOOK(
 					gui_main_window_lookup("notebook_search_results"));
-        gtk_notebook_set_page(notebook,
+        gtk_notebook_set_current_page(notebook,
   			  gtk_notebook_page_num(notebook, sch->scrolled_window));
     }
 
@@ -2564,7 +2564,7 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 		search = gtk_clist_get_row_data(GTK_CLIST(widget), row);
 		if (search) {
 			search_gui_set_current_search(search);
-			gtk_notebook_set_page(
+			gtk_notebook_set_current_page(
 				GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 				nb_main_page_search);
 		}

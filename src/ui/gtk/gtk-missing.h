@@ -104,6 +104,13 @@ GtkWidget *gtk_paned_get_child2(GtkPaned *paned);
 #endif /* USE_GTK1 */
 
 /**
+ * GtkNotebook
+ */
+#ifdef USE_GTK1 /* USE_GTK1 */
+#define gtk_notebook_set_current_page(nb, i) gtk_notebook_set_page((nb), (i))
+#endif /* USE_GTK1 */
+
+/**
  * GtkLabel
  */
 void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
