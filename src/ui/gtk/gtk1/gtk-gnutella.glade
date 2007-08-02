@@ -1144,7 +1144,7 @@
 	  <name>notebook_main</name>
 	  <can_focus>True</can_focus>
 	  <show_tabs>True</show_tabs>
-	  <show_border>True</show_border>
+	  <show_border>False</show_border>
 	  <tab_pos>GTK_POS_TOP</tab_pos>
 	  <scrollable>True</scrollable>
 	  <tab_hborder>0</tab_hborder>
@@ -2997,7 +2997,7 @@
 		  <name>notebook_downloads</name>
 		  <can_focus>True</can_focus>
 		  <show_tabs>True</show_tabs>
-		  <show_border>True</show_border>
+		  <show_border>False</show_border>
 		  <tab_pos>GTK_POS_BOTTOM</tab_pos>
 		  <scrollable>True</scrollable>
 		  <tab_hborder>0</tab_hborder>
@@ -3197,7 +3197,7 @@
 		  <name>notebook5</name>
 		  <can_focus>True</can_focus>
 		  <show_tabs>True</show_tabs>
-		  <show_border>True</show_border>
+		  <show_border>False</show_border>
 		  <tab_pos>GTK_POS_BOTTOM</tab_pos>
 		  <scrollable>True</scrollable>
 		  <tab_hborder>0</tab_hborder>
@@ -7552,13 +7552,49 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_edit_filter</name>
+    <name>popup_search_download</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_edit_filter_activate</handler>
-      <last_modification_time>Sat, 15 Jun 2002 14:26:42 GMT</last_modification_time>
+      <handler>on_popup_search_download_activate</handler>
+      <last_modification_time>Thu, 02 Aug 2007 19:29:21 GMT</last_modification_time>
     </signal>
-    <label>_Edit filters</label>
+    <label>Download</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_metadata</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_metadata_activate</handler>
+      <last_modification_time>Tue, 21 Sep 2004 09:04:22 GMT</last_modification_time>
+    </signal>
+    <label>Bitzi metadata</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_browse_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_browse_host_activate</handler>
+      <last_modification_time>Mon, 01 Aug 2005 22:18:24 GMT</last_modification_time>
+    </signal>
+    <label>Browse host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_copy_magnet</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_copy_magnet_activate</handler>
+      <last_modification_time>Thu, 02 Aug 2007 19:29:21 GMT</last_modification_time>
+    </signal>
+    <label>Copy magnet to clipboard</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -7676,13 +7712,43 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_expand_all</name>
+    <name>popup_search_stop</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_expand_all_activate</handler>
-      <last_modification_time>Fri, 02 Jan 2004 05:15:02 GMT</last_modification_time>
+      <handler>on_popup_search_stop_activate</handler>
+      <last_modification_time>Sat, 31 Mar 2001 11:59:21 GMT</last_modification_time>
     </signal>
-    <label>Expand all</label>
+    <label>Stop</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_resume</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_resume_activate</handler>
+      <last_modification_time>Sat, 31 Mar 2001 12:17:13 GMT</last_modification_time>
+    </signal>
+    <label>Resume</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_restart</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_restart_activate</handler>
+      <last_modification_time>Sun, 21 May 2000 08:49:51 GMT</last_modification_time>
+    </signal>
+    <label>Restart</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator29</name>
     <right_justify>False</right_justify>
   </widget>
 
@@ -7700,55 +7766,13 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>separator18</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_stop</name>
+    <name>popup_search_expand_all</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_stop_activate</handler>
-      <last_modification_time>Sat, 31 Mar 2001 11:59:21 GMT</last_modification_time>
+      <handler>on_popup_search_expand_all_activate</handler>
+      <last_modification_time>Fri, 02 Jan 2004 05:15:02 GMT</last_modification_time>
     </signal>
-    <label>Stop this search</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_resume</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_resume_activate</handler>
-      <last_modification_time>Sat, 31 Mar 2001 12:17:13 GMT</last_modification_time>
-    </signal>
-    <label>Resume this search</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_restart</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_restart_activate</handler>
-      <last_modification_time>Sun, 21 May 2000 08:49:51 GMT</last_modification_time>
-    </signal>
-    <label>Restart this search</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_duplicate</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_duplicate_activate</handler>
-      <last_modification_time>Sun, 21 May 2000 08:50:32 GMT</last_modification_time>
-    </signal>
-    <label>Duplicate this search</label>
+    <label>Expand all</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -7760,68 +7784,50 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_toggle_tabs</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_toggle_tabs_activate</handler>
-      <last_modification_time>Mon, 08 May 2000 14:08:36 GMT</last_modification_time>
-    </signal>
-    <label>Show tabs</label>
+    <name>item2</name>
+    <label>Preferences</label>
     <right_justify>False</right_justify>
-  </widget>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_config_cols</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_config_cols_activate</handler>
-      <last_modification_time>Wed, 22 May 2002 12:17:34 GMT</last_modification_time>
-    </signal>
-    <label>Configure columns</label>
-    <right_justify>False</right_justify>
-  </widget>
+    <widget>
+      <class>GtkMenu</class>
+      <name>item2_menu</name>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_sort_defaults</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_sort_defaults_activate</handler>
-      <last_modification_time>Sun, 11 Sep 2005 13:21:26 GMT</last_modification_time>
-    </signal>
-    <label>Make current sorting default</label>
-    <right_justify>False</right_justify>
-  </widget>
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_search_toggle_tabs</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_search_toggle_tabs_activate</handler>
+	  <last_modification_time>Mon, 08 May 2000 14:08:36 GMT</last_modification_time>
+	</signal>
+	<label>Show tabs</label>
+	<right_justify>False</right_justify>
+      </widget>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>separator19</name>
-    <right_justify>False</right_justify>
-  </widget>
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_search_config_cols</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_search_config_cols_activate</handler>
+	  <last_modification_time>Wed, 22 May 2002 12:17:34 GMT</last_modification_time>
+	</signal>
+	<label>Configure columns</label>
+	<right_justify>False</right_justify>
+      </widget>
 
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_metadata</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_metadata_activate</handler>
-      <last_modification_time>Tue, 21 Sep 2004 09:04:22 GMT</last_modification_time>
-    </signal>
-    <label>Bitzi Metadata</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_browse_host</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_browse_host_activate</handler>
-      <last_modification_time>Mon, 01 Aug 2005 22:18:24 GMT</last_modification_time>
-    </signal>
-    <label>Browse Host</label>
-    <right_justify>False</right_justify>
+      <widget>
+	<class>GtkMenuItem</class>
+	<name>popup_search_sort_defaults</name>
+	<signal>
+	  <name>activate</name>
+	  <handler>on_popup_search_sort_defaults_activate</handler>
+	  <last_modification_time>Sun, 11 Sep 2005 13:21:26 GMT</last_modification_time>
+	</signal>
+	<label>Make current sorting default</label>
+	<right_justify>False</right_justify>
+      </widget>
+    </widget>
   </widget>
 </widget>
 
@@ -24148,10 +24154,10 @@ allowed</label>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_edit_filter</name>
+    <name>popup_search_list_edit_filters</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_edit_filter_activate</handler>
+      <handler>on_popup_search_list_edit_filters_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
     <label>_Edit filters</label>
@@ -24172,7 +24178,7 @@ allowed</label>
       <handler>on_popup_search_list_stop_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>_Stop this search</label>
+    <label>_Stop</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -24184,7 +24190,7 @@ allowed</label>
       <handler>on_popup_search_list_resume_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>Resu_me this search</label>
+    <label>Resu_me</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -24196,7 +24202,7 @@ allowed</label>
       <handler>on_popup_search_list_restart_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>_Restart this search</label>
+    <label>_Restart</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -24208,7 +24214,7 @@ allowed</label>
       <handler>on_popup_search_list_duplicate_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>_Duplicate this search</label>
+    <label>_Duplicate</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -24220,7 +24226,7 @@ allowed</label>
       <handler>on_popup_search_list_close_activate</handler>
       <last_modification_time>Wed, 08 Nov 2006 20:53:14 GMT</last_modification_time>
     </signal>
-    <label>Close this search</label>
+    <label>Close</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>

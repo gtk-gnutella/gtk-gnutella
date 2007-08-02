@@ -1988,19 +1988,16 @@ search_gui_init(void)
 			on_clist_search_details_unselect_row, NULL);
 		gui_signal_connect(clist, "key-press-event",
 			on_clist_search_details_key_press_event, NULL);
-		gui_signal_connect(clist, "selection_get",
-			on_clist_search_details_selection_get, NULL);
-  		gui_signal_connect(clist, "selection_clear_event",
-			on_clist_search_details_selection_clear_event, NULL);
-
-		gtk_selection_add_target(GTK_WIDGET(clist),
-			GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
-
+		clipboard_attach(GTK_WIDGET(clist));
 		drag_attach(GTK_WIDGET(clist), search_details_get_text);
 	}
 
-	drop_widget_init(gui_main_window_lookup("entry_search"),
-		drag_data_received, NULL);
+	{
+		GtkWidget *widget;
+
+		widget = gui_main_window_lookup("entry_search");
+		drop_widget_init(widget, drag_data_received, NULL);
+	}
 }
 
 void

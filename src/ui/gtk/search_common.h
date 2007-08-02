@@ -29,8 +29,8 @@
 #include "if/core/search.h"
 #include "if/ui/gtk/search.h"
 
-void search_add_got_results_listener(search_got_results_listener_t l);
-void search_remove_got_results_listener(search_got_results_listener_t l);
+void search_add_got_results_listener(search_got_results_listener_t);
+void search_remove_got_results_listener(search_got_results_listener_t);
 
 #define TAB_UPDATE_TIME	5		/**< Update search tabs after 5 seconds */
 
@@ -150,11 +150,10 @@ enum gui_color {
 };
 
 
-void gui_color_init(GtkWidget *widget);
-GdkColor *gui_color_get(enum gui_color id);
-void gui_color_set(const enum gui_color id, GdkColor *color);
-void gui_search_get_colors(search_t *sch,
-		GdkColor **mark_color, GdkColor **ignore_color);
+void gui_color_init(GtkWidget *);
+GdkColor *gui_color_get(enum gui_color);
+void gui_color_set(const enum gui_color, GdkColor *);
+void gui_search_get_colors(search_t *, GdkColor **mark, GdkColor **ignore);
 
 #include "search.h"
 
@@ -166,149 +165,121 @@ void search_gui_common_init(void);
 void search_gui_common_shutdown(void);
 
 search_t *search_gui_get_current_search(void);
-void search_gui_set_current_search(search_t *sch);
+void search_gui_set_current_search(search_t *);
 void search_gui_forget_current_search(void);
-void search_gui_current_search(search_t *sch);
+void search_gui_current_search(search_t *);
 
-void search_gui_ref_record(record_t *rc);
-void search_gui_unref_record(record_t *rc);
-guint search_gui_hash_func(gconstpointer key);
-gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b);
-const gchar *search_gui_get_route(const struct results_set *rs);
-search_t *search_gui_find(gnet_search_t sh);
+void search_gui_ref_record(record_t *);
+void search_gui_unref_record(record_t *);
+guint search_gui_hash_func(gconstpointer);
+gint search_gui_hash_key_compare(gconstpointer, gconstpointer);
+const gchar *search_gui_get_route(const struct results_set *);
+search_t *search_gui_find(gnet_search_t);
 const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 void search_gui_set_sort_defaults(void);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
 
-void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
+void search_gui_got_results(GSList *, const gnet_results_set_t *);
 void search_gui_flush(time_t now, gboolean force);
-struct query *search_gui_handle_query(const gchar *query_str, flag_t flags,
+struct query *search_gui_handle_query(const gchar *, flag_t flags,
 						const gchar **error_str);
 void search_gui_query_free(struct query **query_ptr);
-void search_gui_filter_new(search_t *sch, GList *rules);
+void search_gui_filter_new(search_t *, GList *rules);
 
 gboolean search_gui_new_browse_host(
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 
 struct filter;
+
 void search_gui_add_targetted_search(gpointer data, gpointer unused_udata);
 void search_gui_update_items(const struct search *);
-gboolean search_gui_update_expiry(const struct search *sch);
-gboolean search_gui_is_expired(const struct search *sch);
+gboolean search_gui_update_expiry(const struct search *);
+gboolean search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
 void search_gui_option_menu_searches_update(void);
-void search_gui_option_menu_searches_select(const search_t *sch);
+void search_gui_option_menu_searches_select(const search_t *);
 
 void search_gui_browse_selected(void);
-gboolean search_gui_insert_query(const gchar *text);
+gboolean search_gui_insert_query(const gchar *);
 
-gchar *search_xml_indent(const gchar *s);
+gchar *search_xml_indent(const gchar *);
 
-void on_option_menu_search_changed(GtkOptionMenu *option_menu,
-			gpointer unused_udata);
+void on_option_menu_search_changed(GtkOptionMenu *, gpointer user_udata);
 
-void on_spinbutton_search_reissue_timeout_activate(GtkEditable *editable,
+void on_spinbutton_search_reissue_timeout_activate(GtkEditable *,
 			gpointer user_data);
-gboolean on_spinbutton_search_reissue_timeout_focus_out_event(GtkWidget *widget,
-			GdkEventFocus *event, gpointer user_data);
-void on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
-			gpointer unused_udata);
+gboolean on_spinbutton_search_reissue_timeout_focus_out_event(GtkWidget *,
+			GdkEventFocus *, gpointer user_data);
+void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
+			gpointer user_udata);
 
-gint search_gui_cmp_sha1s(const struct sha1 *a, const struct sha1 *b);
+gint search_gui_cmp_sha1s(const struct sha1 *, const struct sha1 *);
 
-void search_gui_duplicate_search(search_t *search);
-void search_gui_restart_search(search_t *search);
-void search_gui_resume_search(search_t *search);
-void search_gui_stop_search(search_t *search);
+void search_gui_duplicate_search(search_t *);
+void search_gui_restart_search(search_t *);
+void search_gui_resume_search(search_t *);
+void search_gui_stop_search(search_t *);
 
 /***
  *** Search results popup
  ***/
 
-void on_popup_search_download_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_name_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_sha1_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_host_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_name_global_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_sha1_global_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_drop_host_global_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_edit_filter_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_clear_results_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_close_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_duplicate_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_restart_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_resume_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_stop_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_config_cols_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_expand_all_activate (GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_metadata_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_copy_magnet_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
+void on_popup_search_collapse_all_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_config_cols_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_copy_magnet_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_download_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_host_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_host_global_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_name_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_name_global_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_sha1_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_drop_sha1_global_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_expand_all_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_metadata_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_restart_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_resume_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_stop_activate(GtkMenuItem *, gpointer udata);
 
 /***
  *** Search list popup
  ***/
 
-void on_popup_search_list_clear_results_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_list_close_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_list_duplicate_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_list_restart_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_list_resume_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
-void on_popup_search_list_stop_activate(GtkMenuItem *menuitem,
-		gpointer user_data);
+void on_popup_search_list_edit_filters_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_clear_results_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_close_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_duplicate_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_restart_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_resume_activate(GtkMenuItem *, gpointer udata);
+void on_popup_search_list_stop_activate(GtkMenuItem *, gpointer udata);
 
-gboolean on_search_list_button_press_event(GtkWidget *unused_widget,
-	GdkEventButton *event, gpointer unused_udata);
+gboolean on_search_list_button_press_event(GtkWidget *,
+			GdkEventButton *, gpointer unused_udata);
 
 GSList *search_gui_get_selected_searches(void);
-gboolean search_gui_has_selected_item(search_t *search);
+gboolean search_gui_has_selected_item(search_t *);
 void search_gui_refresh_popup(void);
-void search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event);
+void search_gui_search_list_clicked(GtkWidget *, GdkEventButton *);
 void search_gui_flush_queues(void);
 
-const gchar *search_gui_query(const search_t *search);
-gboolean search_gui_is_browse(const search_t *search);
-gboolean search_gui_is_enabled(const search_t *search);
-gboolean search_gui_is_local(const search_t *search);
-gboolean search_gui_is_passive(const search_t *search);
+const gchar *search_gui_query(const search_t *);
+gboolean search_gui_is_browse(const search_t *);
+gboolean search_gui_is_enabled(const search_t *);
+gboolean search_gui_is_local(const search_t *);
+gboolean search_gui_is_passive(const search_t *);
 
-void search_gui_download(record_t *rc);
-const gchar *search_gui_nice_size(const record_t *rc);
-const gchar *search_gui_get_vendor(const struct results_set *rs);
-void search_gui_set_details(const record_t *rc);
+void search_gui_download(record_t *);
+const gchar *search_gui_nice_size(const record_t *);
+const gchar *search_gui_get_vendor(const struct results_set *);
+void search_gui_set_details(const record_t *);
 
 /* FIXME: This does not belong here. */
-gchar *gnet_host_vec_to_string(const gnet_host_vec_t *hvec);
+gchar *gnet_host_vec_to_string(const gnet_host_vec_t *);
 
 void search_gui_clear_details(void);
 void search_gui_append_detail(const gchar *title, const gchar *value);
-const gchar *search_new_error_to_string(enum search_new_result result);
+const gchar *search_new_error_to_string(enum search_new_result);
 
 #endif /* _gtk_search_common_h_ */
 

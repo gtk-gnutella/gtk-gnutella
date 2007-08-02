@@ -28,7 +28,9 @@
 RCSID("$Id$")
 
 #include "gtk/monitor_cb.h"
+#include "gtk/misc.h"
 #include "gtk/search.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 gboolean
@@ -72,17 +74,14 @@ static void
 copy_to_clipboard(GtkTreeModel *model, GtkTreePath *unused_path,
 		GtkTreeIter *iter, gpointer unused_data)
 {
-	gchar *s;
+	char *text = NULL;
 	
 	(void) unused_path;
 	(void) unused_data;
 
-   	gtk_tree_model_get(model, iter, 0, &s, (-1));
-	gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
-	gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY), s, -1);
-	gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
-	gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), s, -1);
-	G_FREE_NULL(s);
+   	gtk_tree_model_get(model, iter, 0, &text, (-1));
+	clipboard_set_text(gui_main_window(), text);
+	G_FREE_NULL(text);
 }
 
 void

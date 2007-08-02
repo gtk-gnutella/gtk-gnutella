@@ -1558,15 +1558,7 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 
 		handle = fi_gui_get_handle(model, &iter);
 		url = guc_file_info_build_magnet(handle);
-
-		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
-		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
-		if (url) {
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
-					url, -1);
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
-					url, -1);
-		}
+		clipboard_set_text(GTK_WIDGET(tv), url);
 		G_FREE_NULL(url);
 	}
 	gtk_tree_path_free(path);

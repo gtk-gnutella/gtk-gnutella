@@ -615,14 +615,10 @@ on_treeview_search_details_key_press_event(GtkWidget *widget,
 	case GDK_c:
 		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
 		if (GDK_CONTROL_MASK == modifier) {
-			gchar *text;
-			size_t length;
-
+			char *text;
+			
 			text = search_details_get_text(widget);
-			length = text ? strlen(text) : 0;
-			length = length < INT_MAX ? length : 0;
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
-				text, length);
+			clipboard_set_text(widget, text);
 			G_FREE_NULL(text);
 			return TRUE;
 		}
@@ -909,15 +905,8 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 		gchar *url;
 
 		url = search_gui_get_magnet(model, &iter);
-		if (url) {
-			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
-				url, -1);
-			gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
-				url, -1);
-			G_FREE_NULL(url);
-		}
+		clipboard_set_text(GTK_WIDGET(tv), url);
+		G_FREE_NULL(url);
 	}
 	gtk_tree_path_free(path);
 }

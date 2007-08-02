@@ -529,9 +529,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
     gtk_combo_disable_activate(GTK_COMBO(
 		gui_main_window_lookup("combo_search")));
 
-    /* copy url selection stuff */
-    gtk_selection_add_target(gui_popup_downloads(),
-		GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
+	clipboard_attach(gui_main_window());
 }
 
 void

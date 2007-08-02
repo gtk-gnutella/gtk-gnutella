@@ -2466,6 +2466,16 @@ on_popup_search_list_duplicate_activate(GtkMenuItem *unused_menuitem,
 	g_slist_free(searches);
 }
 
+void
+on_popup_search_list_edit_filters_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    filter_open_dialog();
+}
+
 gboolean
 on_search_list_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer unused_udata)
@@ -2547,16 +2557,6 @@ search_gui_refresh_popup(void)
 }
 
 void
-on_popup_search_close_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_close_search(search_gui_get_current_search());
-}
-
-void
 on_popup_search_download_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
@@ -2564,26 +2564,6 @@ on_popup_search_download_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     search_gui_download_files();
-}
-
-void
-on_popup_search_edit_filter_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    filter_open_dialog();
-}
-
-void
-on_popup_search_duplicate_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search_gui_duplicate_search(search_gui_get_current_search());
 }
 
 void
@@ -3045,7 +3025,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	}
 
 cleanup:
-	if (!success) {
+	if (!success && data->length > 0) {
 		statusbar_gui_warning(10, _("Cannot handle the dropped data"));
 	}
 	gtk_drag_finish(dc, success, FALSE, stamp);

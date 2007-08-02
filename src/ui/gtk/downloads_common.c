@@ -31,6 +31,7 @@ RCSID("$Id$")
 #include "gtk/downloads_common.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/gtkcolumnchooser.h"
+#include "gtk/misc.h"
 #include "gtk/search_common.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
@@ -769,35 +770,6 @@ on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
 		removed);
 }
 
-static void
-copy_selection_to_clipboard(void)
-{
-#if GTK_CHECK_VERSION(2,0,0)
-	GSList *selected;
-
-   	selected = fi_gui_sources_select(TRUE);
-	if (selected) {
-		struct download *d = selected->data;
-		gchar *url;
-
-		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
-		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
-
-       	url = guc_download_build_url(d);
-		if (url) {
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
-					url, -1);
-			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
-					url, -1);
-		}
-		G_FREE_NULL(url);
-	}
-	g_slist_free(selected);
-#else	/* Gtk+ 1.2 */
-	/* FIXME: Implement */
-#endif	/* Gtk+ 2.x*/
-}
-
 /**
  * For selected download, copy URL to clipboard.
  */
@@ -805,10 +777,21 @@ void
 on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
+	GSList *selected;
+
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	copy_selection_to_clipboard();
+   	selected = fi_gui_sources_select(TRUE);
+	if (selected) {
+		struct download *d = selected->data;
+		gchar *url;
+
+       	url = guc_download_build_url(d);
+		clipboard_set_text(gui_main_window(), url);
+		G_FREE_NULL(url);
+	}
+	g_slist_free(selected);
 }
 
 

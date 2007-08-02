@@ -69,7 +69,6 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static gint search_details_selected_row = -1;
-static gchar *selected_text;
 
 static record_t *selected_record; 
 
@@ -149,6 +148,7 @@ search_gui_refresh_details(const record_t *rc)
 	if (NULL == clist_search_details) {
 		static const gchar name[] = "clist_search_details";
 		clist_search_details = GTK_CLIST(gui_main_window_lookup(name));
+		gtk_clist_set_column_auto_resize(clist_search_details, 0, TRUE);
 	}
 	g_return_if_fail(clist_search_details);
 
@@ -499,28 +499,10 @@ on_clist_search_results_click_column(GtkCList *clist, gint column,
 	search_gui_sort_column(search, column); /* Sort column, draw arrow */
 }
 
-void
-on_clist_search_details_selection_get(GtkWidget *unused_widget,
-	GtkSelectionData *data, guint unused_info,
-	guint unused_eventtime, gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_info;
-	(void) unused_udata;
-	(void) unused_eventtime;
-
-    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-		8 /* CHAR_BIT */,
-		(guchar *) selected_text,
-		selected_text ? strlen(selected_text) : 0);
-}
-
 gboolean
 on_clist_search_details_key_press_event(GtkWidget *widget,
 	GdkEventKey *event, gpointer unused_udata)
 {
-    g_assert(event != NULL);
-
 	(void) unused_udata;
 
 	switch (event->keyval) {
@@ -528,27 +510,16 @@ on_clist_search_details_key_press_event(GtkWidget *widget,
 	case GDK_c:
 		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
 		if (GDK_CONTROL_MASK == modifier) {
-			if (gtk_selection_owner_set(widget,
-					GDK_SELECTION_PRIMARY, GDK_CURRENT_TIME)
-			) {
-				G_FREE_NULL(selected_text);
-				selected_text = search_details_get_text(widget);
-			}
+			char *text;
+
+			text = search_details_get_text(widget);
+			clipboard_set_text(widget, text);
+			G_FREE_NULL(text);
 			return TRUE;
 		}
 		break;
 	}
 	return FALSE;
-}
-
-gint
-on_clist_search_details_selection_clear_event(GtkWidget *unused_widget,
-	GdkEventSelection *unused_event)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	G_FREE_NULL(selected_text);
-    return TRUE;
 }
 
 void
@@ -970,6 +941,16 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	gtk_clist_thaw(GTK_CLIST(search->tree));
 	g_slist_free(data_list);
 	g_list_free(node_list);
+}
+
+void
+on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
+	gpointer unused_udata)
+{
+	(void) unused_item;
+	(void) unused_udata;
+
+	/* FIXME: Implement */
 }
 
 void
