@@ -4100,8 +4100,15 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
 
-	if (FILE_INFO_FINISHED(d->file_info))
-		return;
+	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
+	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
+	g_return_if_fail(!DOWNLOAD_IS_RUNNING(d));
+	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
+	
+	g_return_if_fail(
+		GTA_DL_INVALID == d->status ||
+		DOWNLOAD_IS_QUEUED(d) ||
+		DOWNLOAD_IS_WAITING(d));
 
 	g_return_if_fail(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
 	g_return_if_fail(d->file_info->refcount > 0);
