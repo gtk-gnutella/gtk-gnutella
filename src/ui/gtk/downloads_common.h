@@ -46,54 +46,55 @@ void downloads_gui_set_details(const gchar *filename, filesize_t filesize,
 	const struct sha1 *sha1, const struct tth *tth);
 void downloads_gui_append_detail(const gchar *title, const gchar *value);
 
+void downloads_gui_update_popup_downloads(void);
+
+void fi_gui_files_configure_columns(void);
+void fi_gui_purge_selected_files(void);
+void fi_gui_select_by_regex(const gchar *regex);
+GSList *fi_gui_sources_select(gboolean unselect);
+GSList *fi_gui_files_select(gboolean unselect);
+GSList *fi_gui_sources_of_selected_files(gboolean unselect);
+enum nb_downloads_page fi_gui_get_current_page(void);
+
+void fi_gui_add_download(struct download *);
+void fi_gui_remove_download(struct download *);
+void fi_gui_download_set_status(struct download *);
+
+void on_entry_downloads_regex_activate(GtkEditable *, gpointer user_data);
 
 /***
  *** popup-downloads
  ***/
 
-void on_popup_downloads_push_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_named_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_host_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_sha1_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_remove_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_search_again_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_queue_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_copy_url_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_connect_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_browse_host_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
-void on_popup_downloads_resume_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_start_now_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_pause_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_push_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_host_activate(
-	GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_downloads_abort_named_activate(
-	GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_downloads_abort_sha1_activate(
-	GtkMenuItem * menuitem, gpointer user_data);
-void on_popup_downloads_abort_activate(GtkMenuItem * menuitem,
-	gpointer user_data);
-void on_popup_downloads_expand_all_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_collapse_all_activate(
-	GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_copy_magnet_activate(
-	GtkMenuItem *unused_menuitem, gpointer unused_udata);
-void on_popup_downloads_config_cols_activate(GtkMenuItem *menuitem,
-	gpointer user_data);
+void on_popup_downloads_abort_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_browse_host_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_config_cols_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_connect_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_copy_magnet_activate(GtkMenuItem *, gpointer udata);
+void on_popup_downloads_forget_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_pause_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_queue_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_resume_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_downloads_start_now_activate(GtkMenuItem *, gpointer user_data);
+
+/***
+ *** popup-sources
+ ***/
+
+void on_popup_sources_browse_host_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_config_cols_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_connect_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_copy_url_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_forget_activate(GtkMenuItem *, gpointer udata);
+void on_popup_sources_pause_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_push_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_queue_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_resume_activate(GtkMenuItem *, gpointer user_data);
+void on_popup_sources_start_now_activate(GtkMenuItem *, gpointer udata);
+
+gboolean on_download_files_button_press_event(GtkWidget *,
+		GdkEventButton *, gpointer user_udata);
+gboolean on_download_sources_button_press_event(GtkWidget *,
+		GdkEventButton *, gpointer user_udata);
 
 #endif /* _gtk_downloads_common_h_ */

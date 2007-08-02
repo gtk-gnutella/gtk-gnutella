@@ -31,9 +31,6 @@
 
 struct download;
 
-/** Indicates that a dl node is a header node */
-#define DL_GUI_IS_HEADER GINT_TO_POINTER(0x1)
-
 /*
  * Global Functions
  */
@@ -41,15 +38,6 @@ struct download;
 void downloads_gui_init(void);
 void downloads_gui_shutdown(void);
 void downloads_gui_update_display(time_t now);
-
-#ifdef USE_GTK1
-GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
-	gboolean unselect, gboolean add_children);
-void downloads_gui_expand_all(GtkCTree *ctree);
-void downloads_gui_collapse_all(GtkCTree *ctree);
-void downloads_update_active_pane(void);
-void downloads_update_queue_pane(void);
-#endif	/* Gtk+ 1.2 */
 
 #endif /* _gtk_downloads_h_ */
 

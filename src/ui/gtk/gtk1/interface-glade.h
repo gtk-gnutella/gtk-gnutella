@@ -3,8 +3,7 @@
  */
 
 GtkWidget* create_main_window (void);
-GtkWidget* create_popup_dl_active (void);
-GtkWidget* create_popup_dl_queued (void);
+GtkWidget* create_popup_downloads (void);
 GtkWidget* create_popup_search (void);
 GtkWidget* create_popup_monitor (void);
 GtkWidget* create_popup_nodes (void);

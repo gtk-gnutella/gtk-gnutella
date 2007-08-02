@@ -115,7 +115,6 @@ WIDGET(main_window)
 WIDGET(popup_downloads)
 WIDGET(popup_monitor)
 WIDGET(popup_nodes)
-WIDGET(popup_queue)
 WIDGET(popup_search)
 WIDGET(popup_search_list)
 WIDGET(popup_sources)
@@ -513,13 +512,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	gui_popup_search_set(create_popup_search());
 	gui_popup_search_list_set(create_popup_search_list());
 
-#if defined(USE_GTK2)
 	gui_popup_downloads_set(create_popup_downloads());
-#elif defined(USE_GTK1)
-	gui_popup_downloads_set(create_popup_dl_active());
-	gui_popup_queue_set(create_popup_dl_queued());
-#endif /* USE_GTK1 */
-
 	gui_popup_sources_set(create_popup_sources());
 	gui_popup_monitor_set(create_popup_monitor());
 
@@ -566,22 +559,6 @@ main_gui_init(void)
 #ifdef USE_GTK2
 	GTK_WINDOW(gui_main_window())->allow_shrink = TRUE;
 #endif /* USE_GTK2 */
-
-#ifdef USE_GTK1
-    /* FIXME: those gtk_widget_set_sensitive should become obsolete when
-     * all property-change callbacks are set up properly
-     */
-	gtk_widget_set_sensitive
-        (gui_popup_downloads_lookup("popup_downloads_remove_file"), FALSE);
-    gtk_widget_set_sensitive
-        (gui_popup_downloads_lookup("popup_downloads_copy_url"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort_named"), FALSE);
-	gtk_widget_set_sensitive
-        (gui_popup_queue_lookup("popup_queue_abort_host"), FALSE);
-#endif /* USE_GTK1 */
 
     settings_gui_init();
     fi_gui_init();

@@ -80,114 +80,10 @@ static GtkListStore *store_aliases;
 
 static enum nb_downloads_page current_page;
 
-static void
-update_popup_downloads_start_now(void)
+enum nb_downloads_page
+fi_gui_get_current_page(void)
 {
-	gboolean sensitive = TRUE;
-
-	switch (current_page) {
-	case nb_downloads_page_active:
-	case nb_downloads_page_finished:
-	case nb_downloads_page_seeding:
-		sensitive = FALSE;
-		break;
-	case nb_downloads_page_queued:
-	case nb_downloads_page_paused:
-	case nb_downloads_page_incomplete:
-	case nb_downloads_page_all:
-		sensitive = TRUE;
-		break;
-	case nb_downloads_page_num:
-		g_assert_not_reached();
-		break;
-	}
-	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_start_now"),
-		sensitive);
-
-}
-
-static void
-update_popup_downloads_queue(void)
-{
-	gboolean sensitive = TRUE;
-
-	switch (current_page) {
-	case nb_downloads_page_active:
-	case nb_downloads_page_paused:
-	case nb_downloads_page_incomplete:
-	case nb_downloads_page_all:
-		sensitive = TRUE;
-		break;
-	case nb_downloads_page_queued:
-	case nb_downloads_page_finished:
-	case nb_downloads_page_seeding:
-		sensitive = FALSE;
-		break;
-	case nb_downloads_page_num:
-		g_assert_not_reached();
-		break;
-	}
-	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_queue"),
-		sensitive);
-}
-
-static void
-update_popup_downloads_resume(void)
-{
-	gboolean sensitive = TRUE;
-
-	switch (current_page) {
-	case nb_downloads_page_queued:
-	case nb_downloads_page_paused:
-	case nb_downloads_page_incomplete:
-	case nb_downloads_page_all:
-		sensitive = TRUE;
-		break;
-	case nb_downloads_page_active:
-	case nb_downloads_page_finished:
-	case nb_downloads_page_seeding:
-		sensitive = FALSE;
-		break;
-	case nb_downloads_page_num:
-		g_assert_not_reached();
-		break;
-	}
-	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_resume"),
-		sensitive);
-}
-
-static void
-update_popup_downloads_pause(void)
-{
-	gboolean sensitive = TRUE;
-
-	switch (current_page) {
-	case nb_downloads_page_active:
-	case nb_downloads_page_queued:
-	case nb_downloads_page_incomplete:
-	case nb_downloads_page_all:
-		sensitive = TRUE;
-		break;
-	case nb_downloads_page_paused:
-	case nb_downloads_page_finished:
-	case nb_downloads_page_seeding:
-		sensitive = FALSE;
-		break;
-	case nb_downloads_page_num:
-		g_assert_not_reached();
-		break;
-	}
-	widget_set_visible(gui_popup_downloads_lookup("popup_downloads_pause"),
-		sensitive);
-}
-
-static void
-update_popup_downloads(void)
-{
-	update_popup_downloads_start_now();
-	update_popup_downloads_queue();
-	update_popup_downloads_resume();
-	update_popup_downloads_pause();
+	return current_page;
 }
 
 struct fileinfo_data {
@@ -201,7 +97,6 @@ struct fileinfo_data {
 	filesize_t uploaded;
 
 	gnet_fi_t handle;
-	guint32 rank;
 
 	unsigned actively_queued;
 	unsigned passively_queued;
@@ -256,15 +151,7 @@ fi_gui_set_filename(struct fileinfo_data *file)
     info = guc_fi_get_info(file->handle);
     g_return_if_fail(info);
 
-	if (is_ascii_string(info->filename)) {
-		file->filename = atom_str_get(info->filename);
-	} else {
-		char *name;
-
-		name = filename_to_utf8_normalized(info->filename, UNI_NORM_GUI);
-		file->filename = atom_str_get(name);
-		G_FREE_NULL(name);
-	}
+	file->filename = atom_str_get(lazy_filename_to_ui_string(info->filename));
 	guc_fi_free_info(info);
 }
 
@@ -763,7 +650,7 @@ fi_gui_sources_of_selected_files(gboolean unselect)
 
 
 void
-on_treeview_downloads_cursor_changed(GtkTreeView *tv, void *unused_udata)
+on_treeview_download_files_cursor_changed(GtkTreeView *tv, void *unused_udata)
 {
 	GtkTreePath *path;
 
@@ -797,7 +684,7 @@ fi_gui_purge_selected_files(void)
 }
 
 static gboolean
-on_treeview_downloads_key_press_event(GtkWidget *unused_widget,
+on_treeview_download_files_key_press_event(GtkWidget *unused_widget,
 	GdkEventKey *event, gpointer unused_udata)
 {
 	(void) unused_widget;
@@ -850,9 +737,8 @@ fi_gui_update_download(struct download *d)
 }
 
 void
-fi_gui_download_set_status(struct download *d, const char *s)
+fi_gui_download_set_status(struct download *d)
 {
-	(void) s;
 	fi_gui_update_download(d);
 }
 
@@ -1256,11 +1142,11 @@ treeview_download_files_init(void)
 	tree_view_restore_widths(tv, PROP_FILE_INFO_COL_WIDTHS);
 
 	gui_signal_connect(tv, "cursor-changed",
-		on_treeview_downloads_cursor_changed, NULL);
-	gui_signal_connect(tv, "button-press-event",
-		on_treeview_downloads_button_press_event, NULL);
+		on_treeview_download_files_cursor_changed, NULL);
 	gui_signal_connect(tv, "key-press-event",
-		on_treeview_downloads_key_press_event, NULL);
+		on_treeview_download_files_key_press_event, NULL);
+	gui_signal_connect(tv, "button-press-event",
+		on_download_files_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(tv), fi_gui_get_file_url);
 }
@@ -1271,7 +1157,7 @@ notebook_downloads_init_page(GtkNotebook *notebook)
 	g_return_if_fail(notebook);
 	g_return_if_fail(UNSIGNED(current_page) < nb_downloads_page_num);
 
-	update_popup_downloads();
+	downloads_gui_update_popup_downloads();
 
 	store_files_init();
 	treeview_download_files_init();
@@ -1429,7 +1315,7 @@ fi_gui_init(void)
 		tree_view_set_fixed_height_mode(tv, TRUE);
 
 		gui_signal_connect(tv, "button-press-event",
-			on_treeview_sources_button_press_event, NULL);
+			on_download_sources_button_press_event, NULL);
 	}
 
 	fi_gui_details_treeview_init();
@@ -1441,7 +1327,7 @@ fi_gui_init(void)
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-	update_popup_downloads();
+	downloads_gui_update_popup_downloads();
 }
 
 static gboolean
@@ -1607,7 +1493,7 @@ fi_gui_select_by_regex_helper(GtkTreeModel *model,
 		gtk_tree_selection_select_iter(ctx->selection, iter);
 		ctx->matches++;
 	} else if (n == REG_ESPACE) {
-		g_warning("on_entry_regex_activate: regexp memory overflow");
+		g_warning("regexp memory overflow");
 	}
 	return FALSE;
 }

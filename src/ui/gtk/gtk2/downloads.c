@@ -52,19 +52,6 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-void fi_gui_add_download(struct download *d);
-void fi_gui_remove_download(struct download *d);
-void fi_gui_download_set_status(struct download *d, const gchar *s);
-GtkTreeView *fi_gui_current_treeview(void);
-
-/***
- *** Private
- ***/
- 
-/***
- *** Public interface
- ***/
- 
 /**
  *	Initalize the download gui.
  */
@@ -87,7 +74,7 @@ downloads_gui_shutdown(void)
  * 	appropriately and creation of parent/child nodes.
  */
 void
-download_gui_add(download_t *d)
+download_gui_add(struct download *d)
 {
 	download_check(d);
 	
@@ -121,7 +108,7 @@ gui_update_download(download_t *d, gboolean force)
 	now = tm_time();
     if (force || 0 != delta_time(now, d->last_gui_update)) {
 		d->last_gui_update = now;
-		fi_gui_download_set_status(d, downloads_gui_status_string(d));
+		fi_gui_download_set_status(d);
 	}
 }
 

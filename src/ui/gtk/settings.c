@@ -808,11 +808,7 @@ shrink_frame_status(void)
 static GtkWidget *
 get_push_button(void)
 {
-#ifdef USE_GTK1
-	return gui_popup_downloads_lookup("popup_downloads_push");
-#else
 	return gui_popup_sources_lookup("popup_sources_push");
-#endif
 }
 
 static gboolean
@@ -2603,31 +2599,6 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
         ) {
             val = adj->value * 100.0;
         }
-
-        /*
-         * When MAX_DOWNLOADS or MAX_HOST_DOWNLOADS are changed, we
-         * have some ancient workaround which may still be necessary.
-         */
-        if (
-            (map_entry->prop == PROP_MAX_DOWNLOADS) ||
-            (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
-        ) {
-            /*
-             * XXX If the user modifies the max simultaneous download
-             * XXX and click on a queued download, gtk-gnutella segfaults
-             * XXX in some cases. This unselected_all() is a first attempt
-             * XXX to work around the problem.
-             *
-             * It's unknown whether this ancient workaround is still
-             * needed.
-             *      -- Richard, 13/08/2002
-             */
-
-#ifdef USE_GTK1
-            gtk_clist_unselect_all(GTK_CLIST(
-                gui_main_window_lookup("ctree_downloads_queue")));
-#endif /* USE_GTK1 */
-        }
     }
 
     stub->guint32.set(map_entry->prop, &val, 0, 1);
@@ -2845,19 +2816,9 @@ static prop_map_t property_map[] = {
         PROP_QUEUE_REGEX_CASE,
         update_togglebutton,
         TRUE,
-        "checkbutton_queue_regex_case",
+        "checkbutton_downloads_regex_case",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_FI_REGEX_CASE,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_fi_regex_case",
-        FREQ_UPDATES, 0
-    ),
-#endif /* USE_GTK1 */
     PROP_ENTRY(
         gui_main_window,
         PROP_SEARCHBAR_VISIBLE,

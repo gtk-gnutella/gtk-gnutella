@@ -65,12 +65,6 @@ enum {
  * Notebook tabs in the downloads page.
  */
 enum nb_downloads_page {
-#ifdef USE_GTK1 
-	nb_downloads_page_all,
-	nb_downloads_page_active,
-	nb_downloads_page_queued,
-#endif	/* Gtk+ 1.2 */
-#ifdef USE_GTK2
 	nb_downloads_page_active,
 	nb_downloads_page_queued,
 	nb_downloads_page_paused,
@@ -78,7 +72,6 @@ enum nb_downloads_page {
 	nb_downloads_page_finished,
 	nb_downloads_page_seeding,
 	nb_downloads_page_all,
-#endif	/* Gtk+ 2.x */
 
 	nb_downloads_page_num
 };
