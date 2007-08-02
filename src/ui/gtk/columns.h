@@ -41,7 +41,7 @@
  * Gnet table columns.
  */
 
-enum {
+enum c_gnet {
 	c_gnet_host,
 	c_gnet_loc,
 	c_gnet_flags,
