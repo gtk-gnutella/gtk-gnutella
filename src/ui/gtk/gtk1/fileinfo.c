@@ -1151,7 +1151,7 @@ clist_download_files_init(void)
 	} columns[] = {
 		{ c_fi_filename, N_("Filename"), 	FALSE },
     	{ c_fi_size,	 N_("Size"),	 	TRUE },
-    	{ c_fi_progress, N_("Progress"), 	FALSE },
+    	{ c_fi_progress, N_("Progress"), 	TRUE },
     	{ c_fi_rx, 		 N_("RX"), 			TRUE },
     	{ c_fi_done,	 N_("Downloaded"), 	TRUE },
     	{ c_fi_uploaded, N_("Uploaded"), 	TRUE },
@@ -1167,23 +1167,29 @@ clist_download_files_init(void)
 	clist = GTK_CLIST(gtk_clist_new(G_N_ELEMENTS(columns)));
 	clist_download_files = clist;
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		GtkWidget *label;
-		int column;
-
-		column = columns[i].id;
-		label = gtk_label_new(_(columns[i].title));
-		gtk_widget_show(label);
-		gtk_clist_set_column_widget(clist, column, label);
-		gtk_clist_set_column_justification(clist, column,
-			columns[i].justify_right ? GTK_JUSTIFY_RIGHT : GTK_JUSTIFY_LEFT);
-	}
 	gtk_clist_set_shadow_type(clist, GTK_SHADOW_IN);
 	gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show(clist);
 	gtk_clist_set_compare_func(clist, fileinfo_data_cmp);
 	gtk_clist_set_sort_column(clist, 0);
 	gtk_clist_set_sort_type(clist, GTK_SORT_ASCENDING);
+
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		}
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		GtkWidget *label;
+		int column;
+
+		column = columns[i].id;
+		gtk_clist_set_column_justification(clist, column,
+			columns[i].justify_right ? GTK_JUSTIFY_RIGHT : GTK_JUSTIFY_LEFT);
+		label = gtk_label_new(_(columns[i].title));
+    	gtk_widget_show(label);
+    	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+		gtk_clist_set_column_widget(clist, column, label);
+    	gtk_clist_set_column_name(clist, column,
+			gtk_label_get_text(GTK_LABEL(label)));
+	}
 
 	clist_restore_visibility(clist, PROP_FILE_INFO_COL_VISIBLE);
 	clist_restore_widths(clist, PROP_FILE_INFO_COL_WIDTHS);
@@ -1336,12 +1342,21 @@ fi_gui_init(void)
 
 	{
 		GtkCList *clist;
+		unsigned i;
 
 		clist = GTK_CLIST(gui_main_window_lookup("clist_download_sources"));
 		clist_download_sources = clist;
 
 		clist_restore_widths(clist, PROP_SOURCES_COL_WIDTHS);
 		gtk_clist_column_titles_passive(clist);
+		for (i = 0; i < c_src_num; i++) {
+			const char *title;
+			GtkLabel *label;
+
+			label = GTK_LABEL(gtk_clist_get_column_widget(clist, i));
+			title = gtk_label_get_text(label);
+			gtk_clist_set_column_name(clist, i, EMPTY_STRING(title));
+		}
 
 		gui_signal_connect(clist, "button-press-event",
 			on_download_sources_button_press_event, NULL);

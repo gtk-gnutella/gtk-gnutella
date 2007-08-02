@@ -1056,7 +1056,12 @@ on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+#if GTK_CHECK_VERSION(2,0,0)
 	widget = gui_main_window_lookup("treeview_download_sources");
+#else
+	widget = gui_main_window_lookup("clist_download_sources");
+#endif
+
     cc = gtk_column_chooser_new(GTK_WIDGET(widget));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
 		gtk_get_current_event_time());
