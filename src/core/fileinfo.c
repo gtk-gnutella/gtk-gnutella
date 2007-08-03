@@ -5208,6 +5208,7 @@ fi_get_info(gnet_fi_t fih)
     info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
     info->tth = fi->tth ? atom_tth_get(fi->tth) : NULL;
     info->fi_handle = fi->fi_handle;
+	info->size = fi->size;
 	info->aliases = NULL;
 
 	if (fi->alias) {
