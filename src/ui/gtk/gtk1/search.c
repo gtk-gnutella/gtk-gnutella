@@ -120,10 +120,9 @@ search_gui_current_ctree(void)
  *	Emile 02/15/2004
  */
 static inline void
-add_parent_with_sha1(GHashTable *ht, const gchar *sha1,
-	GtkCTreeNode *data)
+add_parent_with_sha1(search_t *search, const gchar *sha1, GtkCTreeNode *data)
 {
-	gm_hash_table_insert_const(ht, sha1, data);
+	gm_hash_table_insert_const(search->parents, sha1, data);
 }
 
 
@@ -132,19 +131,19 @@ add_parent_with_sha1(GHashTable *ht, const gchar *sha1,
  *  The atom used for the key is then freed
  */
 static inline void
-remove_parent_with_sha1(GHashTable *ht, const struct sha1 *sha1)
+remove_parent_with_sha1(search_t *search, const struct sha1 *sha1)
 {
 	gconstpointer key;
 	gpointer orig_key;
 
 	key = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup_extended(ht, key, &orig_key, NULL)) {
+	if (g_hash_table_lookup_extended(search->parents, key, &orig_key, NULL)) {
 		/* Must first free memory used by the original key */
 		atom_sha1_free(orig_key);
 
 		/* Then remove the key */
-		g_hash_table_remove(ht, key);
+		g_hash_table_remove(search->parents, key);
 	} else
 		g_warning("remove_parent_with_sha1: can't find sha1 in hash table!");
 
@@ -157,9 +156,9 @@ remove_parent_with_sha1(GHashTable *ht, const struct sha1 *sha1)
  *	sha1.
  */
 GtkCTreeNode *
-find_parent_with_sha1(GHashTable *ht, gconstpointer key)
+find_parent_with_sha1(search_t *search, gconstpointer key)
 {
-	return g_hash_table_lookup(ht, key);
+	return g_hash_table_lookup(search->parents, key);
 }
 
 gboolean
@@ -1320,7 +1319,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 		/* We use the sch->parents hash table to store pointers to all the
 		 * parent tree nodes referenced by their atomized sha1.
 		 */
-		parent = find_parent_with_sha1(sch->parents, rc->sha1);
+		parent = find_parent_with_sha1(sch, rc->sha1);
 
 		if (NULL != parent) {
 			guint count;
@@ -1352,7 +1351,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
 						(gchar **) titles, /* override const */
 						G_N_ELEMENTS(titles), NULL, NULL, NULL, NULL, 0, 0);
-			add_parent_with_sha1(sch->parents, key, node);
+			add_parent_with_sha1(sch, key, node);
 
 			/* Update count in the records (use for column sorting) */
 			gui_rc->num_children = 0;
@@ -1566,15 +1565,15 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			 * just removed) so we must remove that hash entry and create one
 			 * for the new parent.
 			 */
-			remove_parent_with_sha1(current_search->parents, rc->sha1);
+			remove_parent_with_sha1(current_search, rc->sha1);
 			key = atom_sha1_get(rc->sha1);
-			add_parent_with_sha1(current_search->parents, key, child_node);
+			add_parent_with_sha1(current_search, key, child_node);
 
 
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
 			if (NULL != rc->sha1)
-				remove_parent_with_sha1(current_search->parents, rc->sha1);
+				remove_parent_with_sha1(current_search, rc->sha1);
 
 			gtk_ctree_remove_node(ctree, node);
 		}
@@ -2472,7 +2471,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		GtkCTree *ctree = GTK_CTREE(search->tree);
     	GtkCTreeNode *parent;
 
-		parent = find_parent_with_sha1(search->parents, data->sha1);
+		parent = find_parent_with_sha1(search, data->sha1);
 		if (parent)
 			gtk_ctree_node_set_text(ctree, parent,
 					c_sr_meta, text ? text : _("Not in database"));
@@ -2504,7 +2503,7 @@ search_gui_queue_bitzi_by_sha1(const record_t *rec)
 		search_t *search = l->data;
 		GtkCTree *ctree = GTK_CTREE(search->tree);
 
-		parent = find_parent_with_sha1(search->parents, rec->sha1);
+		parent = find_parent_with_sha1(search, rec->sha1);
 		if (parent)
 			gtk_ctree_node_set_text(ctree, parent, c_sr_meta,
 					_("Query queued..."));
@@ -2521,12 +2520,11 @@ search_gui_record_get_parent(search_t *search, record_t *record)
 	g_return_val_if_fail(record, NULL);
 	record_check(record);
 
-	g_message("%s", __func__);
 	if (record->sha1) {
 		GtkCTreeNode *parent;
 		gui_record_t *grc;
 	
-		parent = find_parent_with_sha1(search->parents, record->sha1);
+		parent = find_parent_with_sha1(search, record->sha1);
 		if (parent) {
 			grc = gtk_ctree_node_get_row_data(search->tree, parent);
 			return grc->shared_record;
@@ -2539,26 +2537,25 @@ GSList *
 search_gui_record_get_children(search_t *search, record_t *record)
 {
 	GtkCTreeNode *parent;
-	GtkCTreeNode *node;
-	GtkCTreeRow *row;
-
-	GSList *children;
+	GSList *children = NULL;
 
 	g_return_val_if_fail(search, NULL);
 	g_return_val_if_fail(record, NULL);
 	record_check(record);
 
-	g_message("%s", __func__);
-	parent = find_parent_with_sha1(search->parents, record->sha1);
+	parent = record->sha1 ? find_parent_with_sha1(search, record->sha1) : NULL;
+	if (parent) {
+		GtkCTreeNode *node;
+		GtkCTreeRow *row;
 
-	children = NULL;
-	row = GTK_CTREE_ROW(parent);
-	for (node = row->children; NULL != node; node = row->sibling) {
-		gui_record_t *grc;
+		row = GTK_CTREE_ROW(parent);
+		for (node = row->children; NULL != node; node = row->sibling) {
+			gui_record_t *grc;
 
-		row = GTK_CTREE_ROW(node);
-		grc = gtk_ctree_node_get_row_data(search->tree, node);
-		children = g_slist_prepend(children, grc->shared_record);
+			row = GTK_CTREE_ROW(node);
+			grc = gtk_ctree_node_get_row_data(search->tree, node);
+			children = g_slist_prepend(children, grc->shared_record);
+		}
 	}
 	return g_slist_reverse(children);
 }
