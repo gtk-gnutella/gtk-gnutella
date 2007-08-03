@@ -135,7 +135,7 @@ gnet_fi_info_t *guc_fi_get_info(gnet_fi_t fih);
 void guc_fi_free_info(gnet_fi_info_t *info);
 void guc_fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s);
 gchar **guc_fi_get_aliases(gnet_fi_t fih);
-void guc_fi_purge_by_handle_list(const GSList *list);
+void guc_fi_purge(gnet_fi_t fih);
 void guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval);
 void guc_fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev);

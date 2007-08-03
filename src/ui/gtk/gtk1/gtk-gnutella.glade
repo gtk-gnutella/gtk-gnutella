@@ -3884,7 +3884,7 @@
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
-		<fill>True</fill>
+		<fill>False</fill>
 	      </child>
 
 	      <widget>
@@ -3972,9 +3972,10 @@
 	      </widget>
 
 	      <widget>
-		<class>GtkViewport</class>
-		<name>viewport43</name>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
+		<class>GtkFrame</class>
+		<name>frame150</name>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>

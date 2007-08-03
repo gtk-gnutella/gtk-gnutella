@@ -5577,23 +5577,10 @@ file_info_purge(fileinfo_t *fi)
 	return TRUE;
 }
 
-static gboolean
+gboolean
 fi_purge(gnet_fi_t fih)
 {
 	return file_info_purge(file_info_find_by_handle(fih));
-}
-
-/**
- * Purge all handles contained in list.
- */
-void
-fi_purge_by_handle_list(const GSList *list)
-{
-    const GSList *sl;
-
-    for (sl = list; NULL != sl; sl = g_slist_next(sl)) {
-        fi_purge((gnet_fi_t) GPOINTER_TO_UINT(sl->data));
-    }
 }
 
 /**

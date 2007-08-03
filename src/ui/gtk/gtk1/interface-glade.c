@@ -305,7 +305,7 @@ create_main_window (void)
   GtkWidget *label406;
   GtkWidget *vbox_queue_thaw;
   GtkWidget *label407;
-  GtkWidget *viewport43;
+  GtkWidget *frame150;
   GtkWidget *hbox197;
   GtkWidget *hbox175;
   GtkWidget *label_fi_all_count;
@@ -3055,7 +3055,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox197a", hbox197a,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox197a);
-  gtk_box_pack_start (GTK_BOX (vbox143), hbox197a, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox143), hbox197a, FALSE, FALSE, 0);
 
   togglebutton_queue_freeze = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
@@ -3104,13 +3104,13 @@ create_main_window (void)
   gtk_widget_show (label407);
   gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), label407, TRUE, TRUE, 0);
 
-  viewport43 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport43, "viewport43");
-  gtk_widget_ref (viewport43);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport43", viewport43,
+  frame150 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame150, "frame150");
+  gtk_widget_ref (frame150);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame150", frame150,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (viewport43);
-  gtk_box_pack_start (GTK_BOX (hbox197a), viewport43, TRUE, TRUE, 0);
+  gtk_widget_show (frame150);
+  gtk_box_pack_start (GTK_BOX (hbox197a), frame150, TRUE, TRUE, 0);
 
   hbox197 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox197, "hbox197");
@@ -3118,7 +3118,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox197", hbox197,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox197);
-  gtk_container_add (GTK_CONTAINER (viewport43), hbox197);
+  gtk_container_add (GTK_CONTAINER (frame150), hbox197);
 
   hbox175 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox175, "hbox175");

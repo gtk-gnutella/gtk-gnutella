@@ -82,6 +82,85 @@ gtk_clist_set_column_name(GtkCList *clist, int col, const char *title)
 		clist->column[col].title = g_strdup(title);
 	}
 }
+
+void
+clist_sync_rows(GtkCList *clist, void (*func)(int, void *))
+{
+	GList *iter;
+	int i;
+
+	g_return_if_fail(clist);
+	g_return_if_fail(func);
+	
+	i = 0;
+	for (iter = clist->row_list; NULL != iter; iter = g_list_next(iter), i++) {
+		GtkCListRow *row;
+
+		row = iter->data;
+		(*func)(i, row->data);
+	}
+}
+
+char *
+clist_copy_text(GtkCList *clist, int row, int column)
+{
+	char *text;
+
+	g_return_val_if_fail(clist, NULL);
+	
+	if (
+		row < 0 ||
+		column < 0 ||
+		!gtk_clist_get_text(GTK_CLIST(clist), row, column, &text)
+	) {
+		text = NULL;
+	}
+	return g_strdup(text);
+}
+
+static void
+on_clist_select_row(GtkCList *unused_clist,
+	int row, int unused_column, GdkEventButton *unused_event,
+	void *user_data)
+{
+	int *row_ptr = user_data;
+	
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_event;
+	
+	g_return_if_fail(row_ptr);
+	*row_ptr = row;
+}
+
+static void
+on_clist_unselect_row(GtkCList *unused_clist,
+	int row, int unused_column, GdkEventButton *unused_event,
+	void *user_data)
+{
+	int *row_ptr = user_data;
+
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_event;
+
+	g_return_if_fail(row_ptr);
+	if (row == *row_ptr) {
+		*row_ptr = -1;
+	}
+}
+
+void
+clist_watch_cursor(GtkCList *clist, int *row_ptr)
+{
+	g_return_if_fail(clist);
+	g_return_if_fail(row_ptr);
+
+	*row_ptr = -1;
+	gui_signal_connect(clist, "select-row", on_clist_select_row, row_ptr);
+	gui_signal_connect(clist, "unselect-row", on_clist_unselect_row, row_ptr);
+}
+
 #endif /* USE_GTK1 */
 
 #define GTK_ITERATION_MAX	100		/* Don't spend too much time in GUI */

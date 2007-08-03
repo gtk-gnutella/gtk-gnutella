@@ -57,8 +57,8 @@ widget_set_visible(GtkWidget *widget, gboolean visible)
 #ifdef USE_GTK1
 #define gtk_progress_bar_set_fraction(pb, val) \
     gtk_progress_set_percentage(GTK_PROGRESS(pb), (val))
-void gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text);
-gint gtk_paned_get_position(GtkPaned *paned);
+void gtk_progress_bar_set_text(GtkProgressBar *, const gchar *);
+gint gtk_paned_get_position(GtkPaned *);
 #endif
 
 /*
@@ -74,18 +74,20 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *);
  * GtkCList
  */
 #ifdef USE_GTK1
-void gtk_clist_set_column_name(GtkCList *clist, int col, const char *);
-GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
-    GCompareFunc cfn);
+void gtk_clist_set_column_name(GtkCList *, int column, const char *);
+GSList *clist_collect_data(GtkCList *, gboolean allow_null, GCompareFunc);
+void clist_sync_rows(GtkCList *, void (*func)(int, void *));
+char *clist_copy_text(GtkCList *, int row, int column);
+void clist_watch_cursor(GtkCList *, int *row_ptr);
 #endif /* USE_GTK1 */
 
 /*
  * GtkCTree
  */
 #ifdef USE_GTK1
-void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
-	GtkCTreeNode *new_sibling);
-gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent);
+void gtk_ctree_fast_move (GtkCTree *,
+		GtkCTreeNode *node, GtkCTreeNode *new_sibling);
+gint gtk_ctree_count_node_children(GtkCTree *, GtkCTreeNode *parent);
 
 #define GTK_CTREE_NODE_HAS_CHILDREN(n) \
     ((n) ? (GTK_CTREE_ROW(n)->children) != NULL : FALSE)
@@ -99,8 +101,8 @@ gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent);
  * GtkPaned
  */
 #ifdef USE_GTK1 /* USE_GTK1 */
-GtkWidget *gtk_paned_get_child1(GtkPaned *paned);
-GtkWidget *gtk_paned_get_child2(GtkPaned *paned);
+GtkWidget *gtk_paned_get_child1(GtkPaned *);
+GtkWidget *gtk_paned_get_child2(GtkPaned *);
 #endif /* USE_GTK1 */
 
 /**
@@ -126,27 +128,38 @@ void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 /**
  * GtkEditable
  */
-guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
+guint32 gtk_editable_get_value_as_uint(GtkEditable *);
 
 /**
  * GtkCombo
  */
-void widget_init_choices(GtkWidget * widget, GtkSignalFunc func,
-		prop_def_t *def, gpointer user_data);
+void widget_init_choices(GtkWidget *, GtkSignalFunc, prop_def_t *,
+		gpointer user_data);
 
 /**
  * GtkOptionMenu
  */
-void option_menu_select_item_by_data(GtkOptionMenu *option_menu,
-	gconstpointer data);
-gpointer option_menu_get_selected_data(GtkOptionMenu *option_menu);
-GtkWidget *menu_new_item_with_data(GtkMenu *menu, const gchar *label_text,
-	gpointer data);
+void option_menu_select_item_by_data(GtkOptionMenu *, gconstpointer data);
+gpointer option_menu_get_selected_data(GtkOptionMenu *);
+GtkWidget *menu_new_item_with_data(GtkMenu *, const gchar *label_text,
+			gpointer data);
+
+/**
+ * GtkScrolledWindow
+ */
+#ifdef USE_GTK1
+static inline void
+gtk_scrolled_window_set_shadow_type(GtkScrolledWindow *sw, GtkShadowType shadow)
+{
+	(void) sw;
+	(void) shadow;
+}
+#endif	/* Gtk+ 1.2 */
 
 /**
  * GtkWidget
  */
-void gtk_mass_widget_set_sensitive(GtkWidget *tl,
+void gtk_mass_widget_set_sensitive(GtkWidget *,
 	const gchar * const list[], guint n, gboolean b);
 
 /*

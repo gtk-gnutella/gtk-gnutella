@@ -376,9 +376,9 @@ guc_fi_get_aliases(gnet_fi_t fih)
 }
 
 void
-guc_fi_purge_by_handle_list(const GSList *list)
+guc_fi_purge(gnet_fi_t fih)
 {
-	fi_purge_by_handle_list(list);
+	fi_purge(fih);
 }
 
 void
