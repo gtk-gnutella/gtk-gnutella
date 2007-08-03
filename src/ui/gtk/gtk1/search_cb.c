@@ -955,12 +955,9 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 	search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	g_message("%s", __func__);
-
 	if (selected_record) {
 		char *magnet = search_gui_get_magnet(search, selected_record);
 		clipboard_set_text(gui_main_window(), magnet);
-		g_message("%s: url=%s", __func__, magnet);
 		G_FREE_NULL(magnet);
 	}
 }
