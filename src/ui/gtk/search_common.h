@@ -281,6 +281,11 @@ void search_gui_clear_details(void);
 void search_gui_append_detail(const gchar *title, const gchar *value);
 const gchar *search_new_error_to_string(enum search_new_result);
 
+record_t *search_gui_record_get_parent(search_t *, record_t *);
+GSList *search_gui_record_get_children(search_t *, record_t *);
+
+char *search_gui_get_magnet(search_t *, record_t *);
+
 #endif /* _gtk_search_common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

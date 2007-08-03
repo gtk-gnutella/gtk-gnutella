@@ -904,7 +904,8 @@ on_popup_search_copy_magnet_activate(GtkMenuItem *unused_item,
 	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gchar *url;
 
-		url = search_gui_get_magnet(model, &iter);
+		url = search_gui_get_magnet(search,
+					search_gui_get_record(model, &iter));
 		clipboard_set_text(GTK_WIDGET(tv), url);
 		G_FREE_NULL(url);
 	}

@@ -2514,6 +2514,55 @@ search_gui_queue_bitzi_by_sha1(const record_t *rec)
 	guc_query_bitzi_by_sha1(rec->sha1, rec->size);
 }
 
+record_t *
+search_gui_record_get_parent(search_t *search, record_t *record)
+{
+	g_return_val_if_fail(search, NULL);
+	g_return_val_if_fail(record, NULL);
+	record_check(record);
+
+	g_message("%s", __func__);
+	if (record->sha1) {
+		GtkCTreeNode *parent;
+		gui_record_t *grc;
+	
+		parent = find_parent_with_sha1(search->parents, record->sha1);
+		if (parent) {
+			grc = gtk_ctree_node_get_row_data(search->tree, parent);
+			return grc->shared_record;
+		}
+	}
+	return record;
+}
+
+GSList *
+search_gui_record_get_children(search_t *search, record_t *record)
+{
+	GtkCTreeNode *parent;
+	GtkCTreeNode *node;
+	GtkCTreeRow *row;
+
+	GSList *children;
+
+	g_return_val_if_fail(search, NULL);
+	g_return_val_if_fail(record, NULL);
+	record_check(record);
+
+	g_message("%s", __func__);
+	parent = find_parent_with_sha1(search->parents, record->sha1);
+
+	children = NULL;
+	row = GTK_CTREE_ROW(parent);
+	for (node = row->children; NULL != node; node = row->sibling) {
+		gui_record_t *grc;
+
+		row = GTK_CTREE_ROW(node);
+		grc = gtk_ctree_node_get_row_data(search->tree, node);
+		children = g_slist_prepend(children, grc->shared_record);
+	}
+	return g_slist_reverse(children);
+}
+
 GSList *
 search_gui_get_selected_searches(void)
 {

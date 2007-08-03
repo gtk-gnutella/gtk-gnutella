@@ -3052,6 +3052,86 @@ search_new_error_to_string(enum search_new_result result)
 	return msg;
 }
 
+static void
+search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
+{
+	struct results_set *rs;
+
+	g_return_if_fail(magnet);
+	g_return_if_fail(record);
+	record_check(record);
+	
+	rs = record->results_set;
+
+	if (ST_FIREWALL & rs->status) {
+		if (rs->proxies) {
+			gnet_host_t host;
+
+			host = gnet_host_vec_get(rs->proxies, 0);
+			magnet_add_sha1_source(magnet, record->sha1,
+				gnet_host_get_addr(&host), gnet_host_get_port(&host),
+				rs->guid);
+		}
+	} else {
+		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port, NULL);
+	}
+
+	if (record->alt_locs) {
+		gint i, n;
+
+		n = gnet_host_vec_count(record->alt_locs);
+		n = MIN(10, n);
+
+		for (i = 0; i < n; i++) {
+			gnet_host_t host;
+
+			host = gnet_host_vec_get(record->alt_locs, i);
+			magnet_add_sha1_source(magnet, record->sha1,
+				gnet_host_get_addr(&host), gnet_host_get_port(&host), NULL);
+		}
+	}
+}
+
+char *
+search_gui_get_magnet(search_t *search, record_t *record)
+{
+	struct magnet_resource *magnet;
+	char *url;
+
+	g_return_val_if_fail(search, NULL);
+	g_return_val_if_fail(record, NULL);
+	record_check(record);
+
+	magnet = magnet_resource_new();
+	magnet_set_display_name(magnet, record->utf8_name);
+	magnet_set_filesize(magnet, record->size);
+
+	if (record->sha1) {
+		record_t *parent;
+
+		magnet_set_sha1(magnet, record->sha1);
+		search_gui_magnet_add_source(magnet, record);
+
+		parent = search_gui_record_get_parent(search, record);
+		if (parent) {
+			GSList *children, *iter;
+
+			children = search_gui_record_get_children(search, parent);
+			for (iter = children; NULL != iter; iter = g_slist_next(iter)) {
+				record_t *child = iter->data;
+				record_check(child);
+				search_gui_magnet_add_source(magnet, child);
+			}
+			g_slist_free(children);
+		}
+	}
+
+	url = magnet_to_string(magnet);
+	magnet_resource_free(&magnet);
+	return url;
+}
+
+
 /**
  * Initialize common structures.
  */

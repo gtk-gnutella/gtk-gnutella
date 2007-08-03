@@ -55,7 +55,6 @@
 #include "if/core/sockets.h"
 
 #include "lib/atoms.h"
-#include "lib/magnet.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
@@ -1205,89 +1204,6 @@ search_gui_set_clear_button_sensitive(gboolean sensitive)
 		sensitive);
 }
 
-/* ----------------------------------------- */
-
-
-static void
-search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
-{
-	struct results_set *rs;
-
-	g_assert(magnet);
-	g_assert(record);
-	
-	rs = record->results_set;
-
-	if (ST_FIREWALL & rs->status) {
-		if (rs->proxies) {
-			gnet_host_t host;
-
-			host = gnet_host_vec_get(rs->proxies, 0);
-			magnet_add_sha1_source(magnet, record->sha1,
-				gnet_host_get_addr(&host), gnet_host_get_port(&host),
-				rs->guid);
-		}
-	} else {
-		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port, NULL);
-	}
-
-	if (record->alt_locs) {
-		gint i, n;
-
-		n = gnet_host_vec_count(record->alt_locs);
-		n = MIN(10, n);
-
-		for (i = 0; i < n; i++) {
-			gnet_host_t host;
-
-			host = gnet_host_vec_get(record->alt_locs, i);
-			magnet_add_sha1_source(magnet, record->sha1,
-				gnet_host_get_addr(&host), gnet_host_get_port(&host), NULL);
-		}
-	}
-}
-
-gchar *
-search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter)
-{
-	GtkTreeIter parent_iter;
-	struct result_data *parent;
-	struct magnet_resource *magnet;
-	gchar *url;
-
-	magnet = magnet_resource_new();
-
-	if (gtk_tree_model_iter_parent(model, &parent_iter, iter)) {
-		iter = &parent_iter;
-	}
-	parent = get_result_data(model, iter);
-
-	magnet_set_display_name(magnet, parent->record->utf8_name);
-
-	if (parent->record->sha1) {
-		GtkTreeIter child;
-
-		magnet_set_sha1(magnet, parent->record->sha1);
-		magnet_set_filesize(magnet, parent->record->size);
-
-		search_gui_magnet_add_source(magnet, parent->record);
-		
-		if (gtk_tree_model_iter_children(model, &child, &parent->iter)) {
-			do {	
-				struct result_data *data;
-
-				data = get_result_data(model, &child);
-				g_assert(data);
-				search_gui_magnet_add_source(magnet, data->record);
-			} while (gtk_tree_model_iter_next(model, &child));
-		}
-	}
-
-	url = magnet_to_string(magnet);
-	magnet_resource_free(&magnet);
-	return url;
-}
-
 static void
 download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 {
@@ -2328,6 +2244,49 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 		}
 		gtk_tree_path_free(path);
 	}
+}
+
+record_t *
+search_gui_record_get_parent(search_t *search, record_t *record)
+{
+	struct result_data *parent;
+	
+	g_return_val_if_fail(search, NULL);
+	g_return_val_if_fail(record, NULL);
+	record_check(record);
+
+	parent = find_parent2(search, record->sha1, record->size);
+	return parent ? parent->record : NULL;
+}
+
+GSList *
+search_gui_record_get_children(search_t *search, record_t *record)
+{
+	struct result_data *parent;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GSList *children;
+
+	g_return_val_if_fail(search, NULL);
+	g_return_val_if_fail(record, NULL);
+	record_check(record);
+
+	model = gtk_tree_view_get_model(search->tree);
+	g_return_val_if_fail(model, NULL);
+
+	children = NULL;
+	parent = find_parent2(search, record->sha1, record->size);
+
+	if (
+		parent->record == record &&
+		gtk_tree_model_iter_children(model, &iter, &parent->iter)
+	) {
+		do {
+			children = g_slist_prepend(children,
+							search_gui_get_record(model, &iter));
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+	return g_slist_reverse(children);
 }
 
 static void

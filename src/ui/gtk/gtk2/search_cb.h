@@ -55,7 +55,6 @@ void search_gui_callbacks_shutdown(void);
 gpointer search_gui_get_record(GtkTreeModel *model, GtkTreeIter *iter);
 gboolean search_gui_update_rank(GtkTreeModel *model,
 		GtkTreePath *path, GtkTreeIter *iter, gpointer udata);
-gchar *search_gui_get_magnet(GtkTreeModel *model, GtkTreeIter *iter);
 gchar *search_details_get_text(GtkWidget *widget);
 
 gboolean on_treeview_search_details_key_press_event(GtkWidget *widget,
