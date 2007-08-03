@@ -3106,7 +3106,7 @@
 
 		  <widget>
 		    <class>GtkCheckButton</class>
-		    <name>checkbutton_download_selects_regex_case</name>
+		    <name>checkbutton_downloads_selects_regex_case</name>
 		    <can_focus>True</can_focus>
 		    <label>case-sensitive</label>
 		    <active>False</active>
