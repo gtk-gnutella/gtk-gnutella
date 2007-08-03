@@ -247,7 +247,7 @@ create_main_window (void)
   GtkWidget *label8007;
   GtkWidget *label149;
   GtkWidget *entry_downloads_select_regex;
-  GtkWidget *checkbutton_downloads_selects_regex_case;
+  GtkWidget *checkbutton_downloads_select_regex_case;
   GtkWidget *label8006;
   GtkWidget *entry_downloads_filter_regex;
   GtkWidget *checkbutton_downloads_filter_regex_case;
@@ -2609,13 +2609,13 @@ create_main_window (void)
   gtk_widget_show (entry_downloads_select_regex);
   gtk_box_pack_start (GTK_BOX (hbox86), entry_downloads_select_regex, FALSE, TRUE, 0);
 
-  checkbutton_downloads_selects_regex_case = gtk_check_button_new_with_label (_("case-sensitive"));
-  gtk_widget_set_name (checkbutton_downloads_selects_regex_case, "checkbutton_downloads_selects_regex_case");
-  gtk_widget_ref (checkbutton_downloads_selects_regex_case);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_selects_regex_case", checkbutton_downloads_selects_regex_case,
+  checkbutton_downloads_select_regex_case = gtk_check_button_new_with_label (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_downloads_select_regex_case, "checkbutton_downloads_select_regex_case");
+  gtk_widget_ref (checkbutton_downloads_select_regex_case);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_select_regex_case", checkbutton_downloads_select_regex_case,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_selects_regex_case);
-  gtk_box_pack_start (GTK_BOX (hbox86), checkbutton_downloads_selects_regex_case, FALSE, FALSE, 0);
+  gtk_widget_show (checkbutton_downloads_select_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox86), checkbutton_downloads_select_regex_case, FALSE, FALSE, 0);
 
   label8006 = gtk_label_new (_("Filter"));
   gtk_widget_set_name (label8006, "label8006");
