@@ -838,9 +838,10 @@
 216.7.183.192/26
 216.17.100.0/24
 
-# The following is probably a fake range and not the spam origin.
+# The following is possibly a fake range and not the spam origin.
 # It is used by the above spammers; the results are marked as firewalled
 # and only work through pushes causing some of the above to connect.
+# Some of these results use out-of-band v3 though.
 216.139.239.240/28
 
 # Open Proxies
