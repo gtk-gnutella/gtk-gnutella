@@ -441,18 +441,6 @@ on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 }
 
 void
-fi_gui_purge_selected_files(void)
-{
-	GtkTreeView *tv = treeview_download_files;
-	
-	g_return_if_fail(tv);
-
-	g_object_freeze_notify(G_OBJECT(tv));
-	fi_gui_purge_selected_fileinfo();
-	g_object_thaw_notify(G_OBJECT(tv));
-}
-
-void
 fi_gui_source_update(struct download *d)
 {
 	GtkTreeIter *iter;
@@ -919,6 +907,20 @@ fi_gui_files_configure_columns(void)
     cc = gtk_column_chooser_new(GTK_WIDGET(treeview_download_files));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
 		gtk_get_current_event_time());
+}
+
+void
+fi_gui_files_freeze(void)
+{
+	g_return_if_fail(treeview_download_files);
+	g_object_freeze_notify(G_OBJECT(treeview_download_files));
+}
+
+void
+fi_gui_files_thaw(void)
+{
+	g_return_if_fail(treeview_download_files);
+	g_object_thaw_notify(G_OBJECT(treeview_download_files));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

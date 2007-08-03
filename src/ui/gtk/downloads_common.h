@@ -141,6 +141,9 @@ void fi_gui_file_invalidate(struct fileinfo_data *);
 void fi_gui_file_show(struct fileinfo_data *);
 void fi_gui_file_hide(struct fileinfo_data *);
 void fi_gui_file_select(struct fileinfo_data *);
+
+void fi_gui_files_freeze(void);
+void fi_gui_files_thaw(void);
 void fi_gui_files_unselect_all(void);
 
 void fi_gui_show_aliases(const char * const *aliases);

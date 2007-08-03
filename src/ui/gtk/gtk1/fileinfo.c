@@ -431,17 +431,6 @@ fi_gui_sources_of_selected_files(gboolean unselect)
 }
 
 void
-fi_gui_purge_selected_files(void)
-{
-	g_return_if_fail(clist_download_files);
-
-	gtk_clist_freeze(clist_download_files);
-	fi_gui_purge_selected_fileinfo();
-	gtk_clist_thaw(clist_download_files);
-}
-
-
-void
 fi_gui_source_update(struct download *d)
 {
 	void *value;
@@ -830,6 +819,20 @@ fi_gui_files_configure_columns(void)
     cc = gtk_column_chooser_new(GTK_WIDGET(clist_download_files));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
 		gtk_get_current_event_time());
+}
+
+void
+fi_gui_files_freeze(void)
+{
+	g_return_if_fail(clist_download_files);
+	gtk_clist_freeze(clist_download_files);
+}
+
+void
+fi_gui_files_thaw(void)
+{
+	g_return_if_fail(clist_download_files);
+	gtk_clist_thaw(clist_download_files);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
