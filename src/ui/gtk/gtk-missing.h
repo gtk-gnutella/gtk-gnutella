@@ -157,6 +157,11 @@ gtk_scrolled_window_set_shadow_type(GtkScrolledWindow *sw, GtkShadowType shadow)
 #endif	/* Gtk+ 1.2 */
 
 /**
+ * GtkStatusbar
+ */
+void statusbar_set_shadow_type(GtkStatusbar *, GtkShadowType);
+
+/**
  * GtkWidget
  */
 void gtk_mass_widget_set_sensitive(GtkWidget *,

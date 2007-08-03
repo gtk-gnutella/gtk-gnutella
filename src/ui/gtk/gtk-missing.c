@@ -1172,4 +1172,15 @@ gtk_paned_get_child2(GtkPaned *paned)
 }
 #endif
 
+void
+statusbar_set_shadow_type(GtkStatusbar *sb, GtkShadowType shadow)
+{
+	g_return_if_fail(sb);
+	(void) shadow;
+
+#if !GTK_CHECK_VERSION(2,0,0)
+	gtk_frame_set_shadow_type(GTK_FRAME(sb->frame), shadow);
+#endif	/* Gtk+ 1.2 */
+}
+
 /* vi: set ts=4 sw=4 cindent: */

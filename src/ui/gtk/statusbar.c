@@ -39,11 +39,13 @@
 
 RCSID("$Id$")
 
+#include "gtk-missing.h"
 #include "statusbar.h"
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static const statusbar_msgid_t zero_msgid;
@@ -197,8 +199,8 @@ statusbar_gui_init(void)
     GtkStatusbar *sb;
 
     sb = statusbar_get();
+	statusbar_set_shadow_type(GTK_STATUSBAR(sb), GTK_SHADOW_ETCHED_IN);
 
-    /* statusbar stuff */
 	scid_bottom = gtk_statusbar_get_context_id(sb, "default");
 	scid_hostsfile = gtk_statusbar_get_context_id(sb, "reading hosts file");
 	scid_queue_freezed = gtk_statusbar_get_context_id(sb, "queue freezed");
