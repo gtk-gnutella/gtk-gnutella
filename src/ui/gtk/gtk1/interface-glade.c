@@ -326,6 +326,7 @@ create_main_window (void)
   GtkWidget *label537;
   GtkWidget *label_dl_aqueued_count;
   GtkWidget *label536;
+  GtkWidget *label8004;
   GtkWidget *label7984;
   GtkWidget *vbox18;
   GtkWidget *scrolledwindow9;
@@ -468,6 +469,7 @@ create_main_window (void)
   GtkWidget *label779;
   GtkWidget *label_qhits_browse_count;
   GtkWidget *label749;
+  GtkWidget *label8005;
   GtkWidget *label7980;
   GtkWidget *vbox127;
   GtkWidget *scrolledwindow46;
@@ -508,6 +510,7 @@ create_main_window (void)
   GtkWidget *label101;
   GtkObject *spinbutton_search_stats_update_interval_adj;
   GtkWidget *spinbutton_search_stats_update_interval;
+  guint label102_key;
   GtkWidget *label102;
   GtkObject *spinbutton_search_stats_delcoef_adj;
   GtkWidget *spinbutton_search_stats_delcoef;
@@ -2370,6 +2373,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport_fix_flashing_1);
   gtk_box_pack_start (GTK_BOX (hbox147), viewport_fix_flashing_1, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_fix_flashing_1), GTK_SHADOW_ETCHED_IN);
 
   hbox167 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox167, "hbox167");
@@ -3276,6 +3280,15 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label536);
   gtk_box_pack_start (GTK_BOX (hbox166), label536, FALSE, FALSE, 0);
+
+  label8004 = gtk_label_new ("");
+  gtk_widget_set_name (label8004, "label8004");
+  gtk_widget_ref (label8004);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8004", label8004,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8004);
+  gtk_box_pack_start (GTK_BOX (hbox166), label8004, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (label8004), 4, 0);
 
   label7984 = gtk_label_new (_("Downloads"));
   gtk_widget_set_name (label7984, "label7984");
@@ -4403,6 +4416,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport50);
   gtk_box_pack_start (GTK_BOX (ul_stats_hbox2), viewport50, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport50), GTK_SHADOW_ETCHED_IN);
 
   hbox2101 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox2101, "hbox2101");
@@ -4484,6 +4498,15 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label749);
   gtk_box_pack_start (GTK_BOX (hbox2101), label749, FALSE, FALSE, 0);
+
+  label8005 = gtk_label_new ("");
+  gtk_widget_set_name (label8005, "label8005");
+  gtk_widget_ref (label8005);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8005", label8005,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8005);
+  gtk_box_pack_start (GTK_BOX (hbox2101), label8005, FALSE, FALSE, 0);
+  gtk_misc_set_padding (GTK_MISC (label8005), 4, 0);
 
   label7980 = gtk_label_new (_("Upload History"));
   gtk_widget_set_name (label7980, "label7980");
@@ -4772,7 +4795,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label101", label101,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label101);
-  gtk_box_pack_start (GTK_BOX (hbox67), label101, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox67), label101, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label101), GTK_JUSTIFY_RIGHT);
 
   spinbutton_search_stats_update_interval_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
@@ -4785,14 +4808,14 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox67), spinbutton_search_stats_update_interval, FALSE, FALSE, 0);
 
   label102 = gtk_label_new ("");
-  gtk_label_parse_uline (GTK_LABEL (label102),
-                         _("_Deletion coeff. (0-100)"));
+  label102_key = gtk_label_parse_uline (GTK_LABEL (label102),
+                                   _("_Deletion coeff. (0-100)"));
   gtk_widget_set_name (label102, "label102");
   gtk_widget_ref (label102);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label102", label102,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label102);
-  gtk_box_pack_start (GTK_BOX (hbox67), label102, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox67), label102, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label102), GTK_JUSTIFY_RIGHT);
 
   spinbutton_search_stats_delcoef_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
@@ -4802,7 +4825,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_stats_delcoef", spinbutton_search_stats_delcoef,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_search_stats_delcoef);
-  gtk_box_pack_end (GTK_BOX (hbox67), spinbutton_search_stats_delcoef, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox67), spinbutton_search_stats_delcoef, FALSE, TRUE, 0);
 
   scrolledwindow10 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow10, "scrolledwindow10");
@@ -4885,6 +4908,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport_fix_flashing_2);
   gtk_box_pack_start (GTK_BOX (hbox66), viewport_fix_flashing_2, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_fix_flashing_2), GTK_SHADOW_ETCHED_IN);
 
   hbox168 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox168, "hbox168");
@@ -4913,14 +4937,13 @@ create_main_window (void)
   gtk_widget_show (label7988);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 8), label7988);
 
-  hbox_statusbar = gtk_hbox_new (FALSE, 4);
+  hbox_statusbar = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
   gtk_widget_ref (hbox_statusbar);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_statusbar", hbox_statusbar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox_statusbar), 1);
 
   togglebutton_online = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_online, "togglebutton_online");
@@ -4988,7 +5011,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame_status_images);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_status_images, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_status_images), GTK_SHADOW_IN);
 
   hbox199 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox199, "hbox199");
@@ -5339,7 +5361,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame_statusbar_uptime);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_statusbar_uptime, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_statusbar_uptime), GTK_SHADOW_IN);
 
   label_statusbar_uptime = gtk_label_new (_("Uptime"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
@@ -5540,6 +5561,8 @@ create_main_window (void)
                               label68_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (spinbutton_search_stats_update_interval, "grab_focus", accel_group,
                               label101_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_add_accelerator (spinbutton_search_stats_delcoef, "grab_focus", accel_group,
+                              label102_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
 
   gtk_object_set_data (GTK_OBJECT (main_window), "tooltips", tooltips);
 
@@ -10298,6 +10321,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport3);
   gtk_container_add (GTK_CONTAINER (scrolledwindow32), viewport3);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport3), GTK_SHADOW_NONE);
 
   vbox24 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox24, "vbox24");
@@ -11179,6 +11203,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport5);
   gtk_container_add (GTK_CONTAINER (scrolledwindow19), viewport5);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport5), GTK_SHADOW_NONE);
 
   vbox25 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox25, "vbox25");
@@ -12774,6 +12799,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport4);
   gtk_container_add (GTK_CONTAINER (scrolledwindow33), viewport4);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport4), GTK_SHADOW_NONE);
 
   vbox29 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox29, "vbox29");
@@ -13416,6 +13442,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport6);
   gtk_container_add (GTK_CONTAINER (scrolledwindow34), viewport6);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport6), GTK_SHADOW_NONE);
 
   vbox38 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox38, "vbox38");
@@ -14246,6 +14273,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport7);
   gtk_container_add (GTK_CONTAINER (scrolledwindow35), viewport7);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport7), GTK_SHADOW_NONE);
 
   vbox40 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox40, "vbox40");
@@ -15396,6 +15424,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport8);
   gtk_container_add (GTK_CONTAINER (scrolledwindow36), viewport8);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport8), GTK_SHADOW_NONE);
 
   vbox77 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox77, "vbox77");
@@ -15877,6 +15906,7 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport9);
   gtk_container_add (GTK_CONTAINER (scrolledwindow37), viewport9);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport9), GTK_SHADOW_NONE);
 
   vbox75 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox75, "vbox75");

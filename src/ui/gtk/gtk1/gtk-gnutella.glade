@@ -2702,7 +2702,7 @@
 	      <widget>
 		<class>GtkViewport</class>
 		<name>viewport_fix_flashing_1</name>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -4293,6 +4293,23 @@
 			<padding>0</padding>
 			<expand>False</expand>
 			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label8004</name>
+		      <label></label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>4</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
 		      </child>
 		    </widget>
 		  </widget>
@@ -6026,7 +6043,7 @@
 	      <widget>
 		<class>GtkViewport</class>
 		<name>viewport50</name>
-		<shadow_type>GTK_SHADOW_IN</shadow_type>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -6184,6 +6201,23 @@
 		    <xalign>0.5</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label8005</name>
+		    <label></label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>4</xpad>
 		    <ypad>0</ypad>
 		    <child>
 		      <padding>0</padding>
@@ -6677,7 +6711,7 @@
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>False</fill>
+		  <fill>True</fill>
 		</child>
 	      </widget>
 
@@ -6714,10 +6748,11 @@
 		<yalign>0.5</yalign>
 		<xpad>0</xpad>
 		<ypad>0</ypad>
+		<default_focus_target>spinbutton_search_stats_delcoef</default_focus_target>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>False</fill>
+		  <fill>True</fill>
 		</child>
 	      </widget>
 
@@ -6740,8 +6775,7 @@
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
-		  <fill>False</fill>
-		  <pack>GTK_PACK_END</pack>
+		  <fill>True</fill>
 		</child>
 	      </widget>
 	    </widget>
@@ -6850,7 +6884,7 @@
 		<widget>
 		  <class>GtkViewport</class>
 		  <name>viewport_fix_flashing_2</name>
-		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
@@ -6904,9 +6938,8 @@
     <widget>
       <class>GtkHBox</class>
       <name>hbox_statusbar</name>
-      <border_width>1</border_width>
       <homogeneous>False</homogeneous>
-      <spacing>4</spacing>
+      <spacing>0</spacing>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
@@ -6994,7 +7027,7 @@
 	<class>GtkFrame</class>
 	<name>frame_status_images</name>
 	<label_xalign>0</label_xalign>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
+	<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -7423,7 +7456,7 @@
 	<class>GtkFrame</class>
 	<name>frame_statusbar_uptime</name>
 	<label_xalign>0</label_xalign>
-	<shadow_type>GTK_SHADOW_IN</shadow_type>
+	<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -12780,7 +12813,7 @@ http://maxmind.com/</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport3</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -14478,7 +14511,7 @@ http://maxmind.com/</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport5</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -17709,7 +17742,7 @@ allowed</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport4</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -18892,7 +18925,7 @@ allowed</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport6</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -20478,7 +20511,7 @@ allowed</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport7</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -22534,7 +22567,7 @@ allowed</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport8</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
@@ -23479,7 +23512,7 @@ allowed</label>
 	<widget>
 	  <class>GtkViewport</class>
 	  <name>viewport9</name>
-	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+	  <shadow_type>GTK_SHADOW_NONE</shadow_type>
 
 	  <widget>
 	    <class>GtkVBox</class>
