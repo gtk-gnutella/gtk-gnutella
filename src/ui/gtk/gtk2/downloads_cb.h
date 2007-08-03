@@ -28,18 +28,5 @@
 
 #include "gtk/gui.h"
 
-
-gboolean on_treeview_downloads_button_press_event(GtkWidget *,
-			GdkEventButton *, gpointer user_data);
-gboolean on_treeview_sources_button_press_event(GtkWidget *,
-			GdkEventButton *, gpointer user_data);
-
-/***
- *** downloads panel
- ***/
-
-/* active downloads */
-void on_button_downloads_clear_stopped_clicked(GtkButton *, gpointer user_data);
-
 #endif /* _gtk2_downloads_cb_h_ */
 /* vi: set ts=4 sw=4 cindent: */

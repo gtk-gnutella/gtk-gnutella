@@ -89,14 +89,14 @@ void on_popup_sources_queue_activate(GtkMenuItem *, void *user_data);
 void on_popup_sources_resume_activate(GtkMenuItem *, void *user_data);
 void on_popup_sources_start_now_activate(GtkMenuItem *, void *udata);
 
-gboolean on_download_files_button_press_event(GtkWidget *,
-		GdkEventButton *, void *user_data);
-gboolean on_download_sources_button_press_event(GtkWidget *,
-		GdkEventButton *, void *user_data);
-gboolean on_download_details_key_press_event(GtkWidget *,
-		GdkEventKey *, void *user_data);
-gboolean on_download_files_key_press_event(GtkWidget *,
-		GdkEventKey *, void *user_data);
+gboolean on_files_button_press_event(GtkWidget *, GdkEventButton *,
+		void *user_data);
+gboolean on_sources_button_press_event(GtkWidget *, GdkEventButton *,
+		void *user_data);
+gboolean on_details_key_press_event(GtkWidget *, GdkEventKey *,
+		void *user_data);
+gboolean on_files_key_press_event(GtkWidget *, GdkEventKey *,
+		void *user_data);
 
 /**
  * Common functions available to the interface
@@ -140,6 +140,8 @@ char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 void fi_gui_file_invalidate(struct fileinfo_data *);
 void fi_gui_file_show(struct fileinfo_data *);
 void fi_gui_file_hide(struct fileinfo_data *);
+void fi_gui_file_select(struct fileinfo_data *);
+void fi_gui_files_unselect_all(void);
 
 void fi_gui_show_aliases(const char * const *aliases);
 void fi_gui_clear_aliases(void);
@@ -149,11 +151,14 @@ void fi_gui_source_add(struct download *);
 void fi_gui_source_update(struct download *);
 void fi_gui_source_remove(struct download *);
 
-GtkWidget *fi_gui_download_files_widget_new(void);
-void fi_gui_download_files_widget_destroy(void);
+GtkWidget *fi_gui_files_widget_new(void);
+void fi_gui_files_widget_destroy(void);
 
 char *fi_gui_get_detail_at_cursor(void);
 struct fileinfo_data *fi_gui_get_file_at_cursor(void);
 struct download *fi_gui_get_source_at_cursor(void);
+
+typedef int (*fi_gui_files_foreach_cb)(struct fileinfo_data *, void *user_data);
+void fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data);
 
 #endif /* _gtk_downloads_common_h_ */

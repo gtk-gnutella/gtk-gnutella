@@ -424,7 +424,7 @@ fi_gui_get_source_at_cursor(void)
 	return get_row_data_at_cursor(treeview_download_sources);
 }
 
-void
+static void
 on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 	void *unused_udata)
 {
@@ -443,11 +443,13 @@ on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 void
 fi_gui_purge_selected_files(void)
 {
-	g_return_if_fail(treeview_download_files);
+	GtkTreeView *tv = treeview_download_files;
+	
+	g_return_if_fail(tv);
 
-	g_object_freeze_notify(G_OBJECT(treeview_download_files));
+	g_object_freeze_notify(G_OBJECT(tv));
 	fi_gui_purge_selected_fileinfo();
-	g_object_thaw_notify(G_OBJECT(treeview_download_files));
+	g_object_thaw_notify(G_OBJECT(tv));
 }
 
 void
@@ -685,16 +687,17 @@ treeview_download_files_init(void)
 
 	gui_signal_connect(tv, "cursor-changed",
 		on_treeview_download_files_cursor_changed, NULL);
+
 	gui_signal_connect(tv, "key-press-event",
-		on_download_files_key_press_event, NULL);
+		on_files_key_press_event, NULL);
 	gui_signal_connect(tv, "button-press-event",
-		on_download_files_button_press_event, NULL);
+		on_files_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(tv), download_files_get_file_url);
 }
 
 GtkWidget *
-fi_gui_download_files_widget_new(void)
+fi_gui_files_widget_new(void)
 {
 	store_files_init();
 	treeview_download_files_init();
@@ -702,7 +705,7 @@ fi_gui_download_files_widget_new(void)
 }
 
 void
-fi_gui_download_files_widget_destroy(void)
+fi_gui_files_widget_destroy(void)
 {
 	if (treeview_download_files) {
 		tree_view_save_visibility(treeview_download_files,
@@ -783,7 +786,7 @@ fi_gui_init(void)
 		tree_view_set_fixed_height_mode(tv, TRUE);
 
 		gui_signal_connect(tv, "button-press-event",
-			on_download_sources_button_press_event, NULL);
+			on_sources_button_press_event, NULL);
 	}
 
 	fi_gui_details_treeview_init();
@@ -845,72 +848,65 @@ fi_gui_source_remove(struct download *d)
 	}
 }
 
-struct select_by_regex {
-	regex_t re;
-	GtkTreeSelection *selection;
-	unsigned matches, total_nodes;
-};
-
-gboolean
-fi_gui_select_by_regex_helper(GtkTreeModel *unused_model,
-	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
+void
+fi_gui_files_unselect_all(void)
 {
-	const struct fileinfo_data *file;
-	struct select_by_regex *ctx;
-	int n;
+	GtkTreeView *tv = treeview_download_files;
 
-	(void) unused_model;
-	(void) unused_path;
-	g_assert(user_data);
-
-	ctx = user_data;
-	ctx->total_nodes++;
-	file = get_fileinfo_data(iter); 
-
-	n = regexec(&ctx->re, fi_gui_file_get_filename(file), 0, NULL, 0);
-	if (0 == n) {
-		gtk_tree_selection_select_iter(ctx->selection, iter);
-		ctx->matches++;
-	} else if (n == REG_ESPACE) {
-		g_warning("regexp memory overflow");
-	}
-	return FALSE;
+	g_return_if_fail(tv);
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tv));
 }
 
 void
-fi_gui_select_by_regex(const char *regex)
+fi_gui_file_select(struct fileinfo_data *file)
 {
-	struct select_by_regex ctx;
-    int err, flags;
+	GtkTreeIter *iter;
 
-	ctx.matches = 0;
-	ctx.total_nodes = 0;
-	ctx.selection = gtk_tree_view_get_selection(treeview_download_files);
-	gtk_tree_selection_unselect_all(ctx.selection);
+	g_return_if_fail(file);
+	iter = fileinfo_data_get_iter(file);
+	if (iter) {
+		GtkTreeView *tv = treeview_download_files;
 
-	if (NULL == regex || '\0' == regex[0])
-		return;
-
-	flags = REG_EXTENDED | REG_NOSUB;
-   	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
-    err = regcomp(&ctx.re, regex, flags);
-   	if (err) {
-        char buf[1024];
-
-		regerror(err, &ctx.re, buf, sizeof buf);
-        statusbar_gui_warning(15, "regex error: %s",
-			lazy_locale_to_ui_string(buf));
-    } else {
-		gtk_tree_model_foreach(GTK_TREE_MODEL(store_files),
-			fi_gui_select_by_regex_helper, &ctx);
-
-		statusbar_gui_message(15,
-			NG_("Selected %u of %u download matching \"%s\".",
-				"Selected %u of %u downloads matching \"%s\".",
-				ctx.total_nodes),
-			ctx.matches, ctx.total_nodes, regex);
+		g_return_if_fail(tv);
+		gtk_tree_selection_select_iter(gtk_tree_view_get_selection(tv), iter);
 	}
-	regfree(&ctx.re);
+}
+
+struct fi_gui_files_foreach {
+	fi_gui_files_foreach_cb func;
+	void *user_data;
+};
+
+static int
+fi_gui_files_foreach_helper(GtkTreeModel *unused_model,
+	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
+{
+	struct fi_gui_files_foreach *ctx;
+
+	(void) unused_model;
+	(void) unused_path;
+
+	ctx = user_data;
+	return ctx->func(get_fileinfo_data(iter), ctx->user_data);
+}
+
+void
+fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
+{
+	struct fi_gui_files_foreach ctx;
+	GtkTreeView *tv;
+
+	g_return_if_fail(func);
+
+	tv = treeview_download_files;
+	g_object_freeze_notify(G_OBJECT(tv));
+
+	ctx.func = func;
+	ctx.user_data = user_data;
+	gtk_tree_model_foreach(GTK_TREE_MODEL(store_files),
+		fi_gui_files_foreach_helper, &ctx);
+
+	g_object_thaw_notify(G_OBJECT(tv));
 }
 
 void

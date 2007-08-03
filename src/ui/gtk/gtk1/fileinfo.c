@@ -654,10 +654,11 @@ clist_download_files_init(void)
 		on_clist_download_files_select_row, NULL);
 	gui_signal_connect(clist, "unselect-row",
 		on_clist_download_files_unselect_row, NULL);
+
 	gui_signal_connect(clist, "key-press-event",
-		on_download_files_key_press_event, NULL);
+		on_files_key_press_event, NULL);
 	gui_signal_connect(clist, "button-press-event",
-		on_download_files_button_press_event, NULL);
+		on_files_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(clist), download_files_get_file_url);
 
@@ -667,14 +668,14 @@ clist_download_files_init(void)
 }
 
 GtkWidget *
-fi_gui_download_files_widget_new(void)
+fi_gui_files_widget_new(void)
 {
 	clist_download_files_init();
 	return GTK_WIDGET(clist_download_files);
 }
 
 void
-fi_gui_download_files_widget_destroy(void)
+fi_gui_files_widget_destroy(void)
 {
 	if (clist_download_files) {
 		clist_save_visibility(clist_download_files,
@@ -709,7 +710,7 @@ fi_gui_init(void)
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
 		clist_watch_cursor(clist, &download_details_selected_row);
 		gui_signal_connect(clist, "key-press-event",
-			on_download_details_key_press_event, NULL);
+			on_details_key_press_event, NULL);
 
 		clipboard_attach(GTK_WIDGET(clist));
 		drag_attach(GTK_WIDGET(clist), download_details_get_text);
@@ -742,7 +743,7 @@ fi_gui_init(void)
 
 		clist_watch_cursor(clist, &download_sources_selected_row);
 		gui_signal_connect(clist, "button-press-event",
-			on_download_sources_button_press_event, NULL);
+			on_sources_button_press_event, NULL);
 	}
 }
 
@@ -779,77 +780,44 @@ fi_gui_shutdown(void)
 	source_rows = NULL;
 }
 
-struct select_by_regex {
-	regex_t re;
-	unsigned matches, total_nodes;
-};
-
-static gboolean
-fi_gui_select_by_regex_helper(GtkCList *clist, int row, void *user_data)
+void
+fi_gui_files_unselect_all(void)
 {
-	const struct fileinfo_data *file;
-	struct select_by_regex *ctx;
-	int n;
+	GtkCList *clist = clist_download_files;
 
-	(void) clist;
-
-	file = get_fileinfo_data(row);
-	g_return_val_if_fail(file, FALSE);
-
-	ctx = user_data;
-	g_return_val_if_fail(ctx, FALSE);
-	ctx->total_nodes++;
-
-	n = regexec(&ctx->re, fi_gui_file_get_filename(file), 0, NULL, 0);
-	if (0 == n) {
-		gtk_clist_select_row(clist, row, 0);
-		ctx->matches++;
-	} else if (n == REG_ESPACE) {
-		g_warning("regexp memory overflow");
-	}
-	return FALSE;
+	g_return_if_fail(clist);
+	gtk_clist_unselect_all(clist);
 }
 
 void
-fi_gui_select_by_regex(const char *regex)
+fi_gui_file_select(struct fileinfo_data *file)
 {
-	struct select_by_regex ctx;
-	GtkCList *clist;
-    int err, flags;
+	GtkCList *clist = clist_download_files;
+	int row;
 
-	clist = clist_download_files;
-	ctx.matches = 0;
-	ctx.total_nodes = 0;
-	gtk_clist_unselect_all(clist);
+	g_return_if_fail(file);
+	g_return_if_fail(clist);
+	
+   	row = fileinfo_data_get_row(file);
+	g_return_if_fail(row >= 0);
 
-	if (NULL == regex || '\0' == regex[0])
-		return;
+	gtk_clist_select_row(clist, row, 0);
+}
 
-	flags = REG_EXTENDED | REG_NOSUB;
-   	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
-    err = regcomp(&ctx.re, regex, flags);
-   	if (err) {
-        char buf[1024];
+void
+fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
+{
+	GtkCList *clist = clist_download_files;
+	int row;
 
-		regerror(err, &ctx.re, buf, sizeof buf);
-        statusbar_gui_warning(15, "regex error: %s",
-			lazy_locale_to_ui_string(buf));
-    } else {
-		int row;
-
-		gtk_clist_freeze(clist);
-    	for (row = 0; row < clist->rows; row++) {
-			fi_gui_select_by_regex_helper(clist, row, &ctx);
-		}
-		gtk_clist_thaw(clist);
-
-		statusbar_gui_message(15,
-			NG_("Selected %u of %u download matching \"%s\".",
-				"Selected %u of %u downloads matching \"%s\".",
-				ctx.total_nodes),
-			ctx.matches, ctx.total_nodes, regex);
+	g_return_if_fail(func);
+	g_return_if_fail(clist);
+	
+	gtk_clist_freeze(clist);
+    for (row = 0; row < clist->rows; row++) {
+		(*func)(get_fileinfo_data(row), user_data);
 	}
-	regfree(&ctx.re);
+	gtk_clist_thaw(clist);
 }
 
 void

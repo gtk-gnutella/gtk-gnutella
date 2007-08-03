@@ -1088,7 +1088,7 @@ on_entry_downloads_regex_activate(GtkEditable *editable, void *unused_udata)
  * treeview, show the popup with the context menu.
  */
 gboolean
-on_download_files_button_press_event(GtkWidget *unused_widget,
+on_files_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *event, void *unused_udata)
 {
 	(void) unused_widget;
@@ -1105,12 +1105,8 @@ on_download_files_button_press_event(GtkWidget *unused_widget,
 	return FALSE;
 }
 
-/**
- * When the right mouse button is clicked on the active downloads
- * treeview, show the popup with the context menu.
- */
 gboolean
-on_download_sources_button_press_event(GtkWidget *unused_widget,
+on_sources_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *event, void *unused_udata)
 {
 	(void) unused_widget;
@@ -1508,7 +1504,7 @@ fi_gui_purge_selected_fileinfo(void)
 }
 
 gboolean
-on_download_files_key_press_event(GtkWidget *unused_widget,
+on_files_key_press_event(GtkWidget *unused_widget,
 	GdkEventKey *event, void *unused_udata)
 {
 	(void) unused_widget;
@@ -1603,7 +1599,7 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 }
 
 gboolean
-on_download_details_key_press_event(GtkWidget *widget,
+on_details_key_press_event(GtkWidget *widget,
 	GdkEventKey *event, void *unused_udata)
 {
 	(void) unused_udata;
@@ -1792,7 +1788,7 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 	container = GTK_CONTAINER(gtk_notebook_get_nth_page(notebook, page_num));
 	g_return_if_fail(container);
 
-	widget = fi_gui_download_files_widget_new();
+	widget = fi_gui_files_widget_new();
 	g_return_if_fail(widget);
 
 	gtk_container_add(container, widget);
@@ -1812,7 +1808,7 @@ on_notebook_switch_page(GtkNotebook *notebook,
 	g_return_if_fail(UNSIGNED(current_page) < nb_downloads_page_num);
 
 	fi_gui_clear_details();
-	fi_gui_download_files_widget_destroy();
+	fi_gui_files_widget_destroy();
 
 	current_page = page_num;
 	notebook_downloads_init_page(notebook, current_page);
@@ -1863,6 +1859,76 @@ notebook_downloads_init(void)
 	notebook_downloads_init_page(notebook, current_page);
 
 	gui_signal_connect(notebook, "switch-page", on_notebook_switch_page, NULL);
+}
+
+struct select_by_regex {
+	regex_t expr;
+	unsigned matches, total_nodes;
+};
+
+static void
+fi_gui_regex_error(regex_t *expr, int error)
+{
+    char buf[1024];
+
+	g_return_if_fail(expr);
+
+	regerror(error, expr, buf, sizeof buf);
+   	statusbar_gui_warning(15, "regex error: %s", lazy_locale_to_ui_string(buf));
+}
+
+static int 
+fi_gui_select_by_regex_helper(struct fileinfo_data *file, void *user_data)
+{
+	struct select_by_regex *ctx;
+	int ret;
+
+	g_return_val_if_fail(file, FALSE);
+	g_return_val_if_fail(user_data, FALSE);
+
+	ctx = user_data;
+	ctx->total_nodes++;
+
+	ret = regexec(&ctx->expr, fi_gui_file_get_filename(file), 0, NULL, 0);
+	if (0 == ret) {
+		ctx->matches++;
+		fi_gui_file_select(file);
+	} else if (REG_NOMATCH != ret) {
+		fi_gui_regex_error(&ctx->expr, ret);
+		fi_gui_files_unselect_all();
+		ctx->matches = 0;
+		return TRUE;	/* stop */
+	}
+	return FALSE;
+}
+
+void
+fi_gui_select_by_regex(const char *regex)
+{
+	struct select_by_regex ctx;
+    int ret, flags;
+
+	ctx.matches = 0;
+	ctx.total_nodes = 0;
+	fi_gui_files_unselect_all();
+
+	if (NULL == regex || '\0' == regex[0])
+		return;
+
+	flags = REG_EXTENDED | REG_NOSUB;
+   	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
+    ret = regcomp(&ctx.expr, regex, flags);
+   	if (ret) {
+		fi_gui_regex_error(&ctx.expr, ret);
+    } else {
+		fi_gui_files_foreach(fi_gui_select_by_regex_helper, &ctx);
+		statusbar_gui_message(15,
+			NG_("Selected %u of %u download matching \"%s\".",
+				"Selected %u of %u downloads matching \"%s\".",
+				ctx.total_nodes),
+			ctx.matches, ctx.total_nodes, regex);
+	}
+	regfree(&ctx.expr);
 }
 
 void
