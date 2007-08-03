@@ -37,13 +37,6 @@ RCSID("$Id$")
 #include "gtk/statusbar.h"
 #include "gtk/visual_progress.h"
 
-#ifdef USE_GTK2
-#include "gtk2/downloads_cb.h"
-#endif
-#ifdef USE_GTK1
-#include "gtk1/downloads_cb.h"
-#endif
-
 #include "if/bridge/ui2c.h"
 #include "if/core/bsched.h"
 #include "if/core/http.h"
@@ -67,11 +60,11 @@ struct fileinfo_data {
 	char *status;			/* g_strdup */
 	hash_list_t *downloads;
 
+	void *user_data;
+
 	filesize_t size;
 	filesize_t done;
 	filesize_t uploaded;
-
-	void * user_data;
 
 	gnet_fi_t handle;
 
@@ -85,6 +78,8 @@ struct fileinfo_data {
 	unsigned hashed:1;
 	unsigned seeding:1;
 
+	unsigned matched:1;
+
 	guint16 progress; /* 0..1000 (per mille) */
 };
 
@@ -97,6 +92,8 @@ static GHashTable *fi_updates;	/* gnet_fi_t */
 static enum nb_downloads_page current_page;
 
 static gboolean update_download_clear_needed = FALSE;
+
+static regex_t *filter_regex;
 
 /**
  * Remember that we need to check for cleared downloads at the next
@@ -1060,29 +1057,6 @@ on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 		gtk_get_current_event_time());
 }
 
-/***
- *** Queued downloads
- ***/
-
-
-/**
- * Select all downloads that match given regex in editable.
- */
-void
-on_entry_downloads_regex_activate(GtkEditable *editable, void *unused_udata)
-{
-    char *regex;
-
-	(void) unused_udata;
-
-    regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
-	g_return_if_fail(regex != NULL);
-
-	fi_gui_select_by_regex(regex);
-	G_FREE_NULL(regex);
-}
-
-
 /**
  * When the right mouse button is clicked on the active downloads
  * treeview, show the popup with the context menu.
@@ -1149,6 +1123,15 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 	return TRUE;
 }
 
+static void
+fi_gui_file_update_matched(struct fileinfo_data *file)
+{
+	g_return_if_fail(file);
+
+	file->matched = !filter_regex
+		|| 0 == regexec(filter_regex, file->filename, 0, NULL, 0);
+}
+
 /**
  * Fill in the cell data. Calling this will always break the data
  * it filled in last time!
@@ -1165,6 +1148,7 @@ fi_gui_file_set_filename(struct fileinfo_data *file)
 
 	file->filename = atom_str_get(lazy_filename_to_ui_string(info->filename));
 	guc_fi_free_info(info);
+	fi_gui_file_update_matched(file);
 }
 
 static void
@@ -1198,7 +1182,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 void
 fi_gui_file_update_visibility(struct fileinfo_data *file)
 {
-	if (fi_gui_file_visible(file)) {
+	if (file->matched && fi_gui_file_visible(file)) {
 		fi_gui_file_show(file);
 	} else {
 		fi_gui_file_hide(file);
@@ -1902,7 +1886,7 @@ fi_gui_select_by_regex_helper(struct fileinfo_data *file, void *user_data)
 	return FALSE;
 }
 
-void
+static void
 fi_gui_select_by_regex(const char *regex)
 {
 	struct select_by_regex ctx;
@@ -1916,7 +1900,7 @@ fi_gui_select_by_regex(const char *regex)
 		return;
 
 	flags = REG_EXTENDED | REG_NOSUB;
-   	flags |= GUI_PROPERTY(queue_regex_case) ? 0 : REG_ICASE;
+   	flags |= GUI_PROPERTY(download_select_regex_case) ? 0 : REG_ICASE;
     ret = regcomp(&ctx.expr, regex, flags);
    	if (ret) {
 		fi_gui_regex_error(&ctx.expr, ret);
@@ -1929,6 +1913,87 @@ fi_gui_select_by_regex(const char *regex)
 			ctx.matches, ctx.total_nodes, regex);
 	}
 	regfree(&ctx.expr);
+}
+
+/**
+ * Select all downloads that match given regex in editable.
+ */
+void
+on_entry_downloads_select_regex_activate(GtkEditable *editable,
+	void *unused_udata)
+{
+    char *regex;
+
+	(void) unused_udata;
+
+    regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
+	g_return_if_fail(regex);
+
+	fi_gui_select_by_regex(regex);
+	G_FREE_NULL(regex);
+}
+
+
+static void
+fi_handles_filter(void *key, void *value, void *unused_udata)
+{
+	struct fileinfo_data *file;
+	gnet_fi_t handle;
+	
+	g_assert(value);
+	(void) unused_udata;
+	
+	handle = GPOINTER_TO_UINT(key);
+	file = value;
+
+	g_assert(handle == file->handle);
+	fi_gui_file_update_matched(file);
+	fi_gui_file_update_visibility(file);
+}
+
+static void
+filter_regex_clear(void)
+{
+	if (filter_regex) {
+		regfree(filter_regex);
+		G_FREE_NULL(filter_regex);
+	}
+}
+
+static void
+fi_gui_filter_by_regex(const char *expr)
+{
+	filter_regex_clear();
+
+	g_return_if_fail(fi_handles);
+	if (expr && '\0' != expr[0]) {
+		int ret, flags;
+		
+		flags = REG_EXTENDED | REG_NOSUB;
+   		flags |= GUI_PROPERTY(download_filter_regex_case) ? 0 : REG_ICASE;
+		filter_regex = g_malloc(sizeof *filter_regex);
+    	ret = regcomp(filter_regex, expr, flags);
+		if (ret) {
+			fi_gui_regex_error(filter_regex, ret);
+			filter_regex_clear();
+		}
+	}
+	g_hash_table_foreach(fi_handles, fi_handles_filter, NULL);
+}
+
+void
+on_entry_downloads_filter_regex_activate(GtkEditable *editable,
+	void *unused_udata)
+{
+    char *regex;
+
+	(void) unused_udata;
+
+    regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
+	g_return_if_fail(regex);
+
+	fi_gui_filter_by_regex(regex);
+	G_FREE_NULL(regex);
 }
 
 void
@@ -1971,6 +2036,7 @@ fi_gui_common_shutdown(void)
     guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
+	filter_regex_clear();
 	fi_gui_clear_details();
 	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
 

@@ -14870,14 +14870,17 @@ create_main_window_downloads_tab (void)
   GtkWidget *label1023;
   GtkWidget *label1024;
   GtkWidget *hbox9332;
-  GtkWidget *label334;
-  GtkWidget *entry_downloads_regex;
-  GtkWidget *checkbutton_downloads_regex_case;
   GtkWidget *button_downloads_clear_stopped;
   GtkWidget *alignment29;
   GtkWidget *hbox160;
   GtkWidget *image30;
   GtkWidget *label411;
+  GtkWidget *label334;
+  GtkWidget *entry_downloads_select_regex;
+  GtkWidget *checkbutton_downloads_select_regex_case;
+  GtkWidget *label1027;
+  GtkWidget *entry_downloads_filter_regex;
+  GtkWidget *checkbutton_downloads_filter_regex_case;
   GtkWidget *scrolledwindow899;
   GtkWidget *viewport479;
   GtkWidget *vbox151;
@@ -15021,27 +15024,10 @@ create_main_window_downloads_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox153), hbox9332, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox9332), 2);
 
-  label334 = gtk_label_new (_("Select all matching regex"));
-  gtk_widget_set_name (label334, "label334");
-  gtk_widget_show (label334);
-  gtk_box_pack_start (GTK_BOX (hbox9332), label334, FALSE, TRUE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label334), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label334), 4, 0);
-
-  entry_downloads_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_downloads_regex, "entry_downloads_regex");
-  gtk_widget_show (entry_downloads_regex);
-  gtk_box_pack_start (GTK_BOX (hbox9332), entry_downloads_regex, TRUE, TRUE, 0);
-
-  checkbutton_downloads_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
-  gtk_widget_set_name (checkbutton_downloads_regex_case, "checkbutton_downloads_regex_case");
-  gtk_widget_show (checkbutton_downloads_regex_case);
-  gtk_box_pack_start (GTK_BOX (hbox9332), checkbutton_downloads_regex_case, FALSE, FALSE, 4);
-
   button_downloads_clear_stopped = gtk_button_new ();
   gtk_widget_set_name (button_downloads_clear_stopped, "button_downloads_clear_stopped");
   gtk_widget_show (button_downloads_clear_stopped);
-  gtk_box_pack_start (GTK_BOX (hbox9332), button_downloads_clear_stopped, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox9332), button_downloads_clear_stopped, FALSE, TRUE, 0);
   gtk_widget_set_sensitive (button_downloads_clear_stopped, FALSE);
   gtk_tooltips_set_tip (tooltips, button_downloads_clear_stopped, _("Remove completed downloads from list"), NULL);
 
@@ -15064,6 +15050,40 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (label411, "label411");
   gtk_widget_show (label411);
   gtk_box_pack_start (GTK_BOX (hbox160), label411, FALSE, FALSE, 0);
+
+  label334 = gtk_label_new (_("Select"));
+  gtk_widget_set_name (label334, "label334");
+  gtk_widget_show (label334);
+  gtk_box_pack_start (GTK_BOX (hbox9332), label334, FALSE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label334), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label334), 4, 0);
+
+  entry_downloads_select_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_downloads_select_regex, "entry_downloads_select_regex");
+  gtk_widget_show (entry_downloads_select_regex);
+  gtk_box_pack_start (GTK_BOX (hbox9332), entry_downloads_select_regex, TRUE, TRUE, 0);
+
+  checkbutton_downloads_select_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_downloads_select_regex_case, "checkbutton_downloads_select_regex_case");
+  gtk_widget_show (checkbutton_downloads_select_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox9332), checkbutton_downloads_select_regex_case, FALSE, FALSE, 4);
+
+  label1027 = gtk_label_new (_("Filter"));
+  gtk_widget_set_name (label1027, "label1027");
+  gtk_widget_show (label1027);
+  gtk_box_pack_start (GTK_BOX (hbox9332), label1027, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1027), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label1027), 4, 0);
+
+  entry_downloads_filter_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_downloads_filter_regex, "entry_downloads_filter_regex");
+  gtk_widget_show (entry_downloads_filter_regex);
+  gtk_box_pack_start (GTK_BOX (hbox9332), entry_downloads_filter_regex, TRUE, TRUE, 0);
+
+  checkbutton_downloads_filter_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
+  gtk_widget_show (checkbutton_downloads_filter_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox9332), checkbutton_downloads_filter_regex_case, FALSE, FALSE, 0);
 
   scrolledwindow899 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow899, "scrolledwindow899");
@@ -15565,11 +15585,14 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label995);
   gtk_box_pack_start (GTK_BOX (hbox9335), label995, FALSE, TRUE, 0);
 
-  g_signal_connect ((gpointer) entry_downloads_regex, "activate",
-                    G_CALLBACK (on_entry_downloads_regex_activate),
-                    NULL);
   g_signal_connect ((gpointer) button_downloads_clear_stopped, "clicked",
                     G_CALLBACK (on_button_downloads_clear_stopped_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_downloads_select_regex, "activate",
+                    G_CALLBACK (on_entry_downloads_select_regex_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_downloads_filter_regex, "activate",
+                    G_CALLBACK (on_entry_downloads_filter_regex_activate),
                     NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
@@ -15591,14 +15614,17 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1023, "label1023");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1024, "label1024");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9332, "hbox9332");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_downloads_regex, "entry_downloads_regex");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_regex_case, "checkbutton_downloads_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_clear_stopped, "button_downloads_clear_stopped");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment29, "alignment29");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox160, "hbox160");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image30, "image30");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label411, "label411");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_downloads_select_regex, "entry_downloads_select_regex");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_select_regex_case, "checkbutton_downloads_select_regex_case");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1027, "label1027");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_downloads_filter_regex, "entry_downloads_filter_regex");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow899, "scrolledwindow899");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport479, "viewport479");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox151, "vbox151");

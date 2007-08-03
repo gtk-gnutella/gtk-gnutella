@@ -38,8 +38,8 @@ prop = {
 };
 
 prop = {
-    name = "queue_regex_case";
-    desc = "Match queue selection by regexp case sensitive.";
+    name = "download_select_regex_case";
+    desc = "Select downloads by regex case-sensitive.";
     type = boolean;
     data = {
         default = FALSE;
@@ -47,8 +47,8 @@ prop = {
 };
 
 prop = {
-    name = "fi_regex_case";
-    desc = "Match fileinfo selection by regexp case sensitive.";
+    name = "download_filter_regex_case";
+    desc = "Filter downloads by regex case-sensitive.";
     type = boolean;
     data = {
         default = FALSE;

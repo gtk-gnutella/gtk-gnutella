@@ -42,25 +42,5 @@ void fi_gui_init(void);
 void fi_gui_update_display(time_t now);
 void fi_gui_shutdown(void);
 
-#ifdef USE_GTK1
-gboolean on_clist_fileinfo_button_press_event(
-    GtkWidget *, GdkEventButton *event, gpointer user_data);
-
-void on_clist_fileinfo_select_row(
-    GtkCList *, gint, gint, GdkEvent *, gpointer user_data);
-
-void on_clist_fileinfo_unselect_row(
-    GtkCList *, gint, gint, GdkEvent *, gpointer user_data);
-
-void on_clist_fileinfo_click_column(GtkCList * clist,
-	gint column, gpointer user_data);
-#endif /* USE_GTK1 */
-
-void on_button_fi_purge_clicked(
-	GtkButton *button, gpointer user_data);
-
-void on_entry_fi_regex_activate(
-    GtkEditable *editable, gpointer user_data);
-
 #endif /* _gtk_fileinfo_h_ */
 

@@ -48,7 +48,6 @@ void downloads_gui_update_popup_downloads(void);
 
 void fi_gui_files_configure_columns(void);
 void fi_gui_purge_selected_files(void);
-void fi_gui_select_by_regex(const char *regex);
 GSList *fi_gui_sources_select(gboolean unselect);
 GSList *fi_gui_files_select(gboolean unselect);
 GSList *fi_gui_sources_of_selected_files(gboolean unselect);
@@ -57,7 +56,8 @@ void fi_gui_add_download(struct download *);
 void fi_gui_remove_download(struct download *);
 void fi_gui_download_set_status(struct download *);
 
-void on_entry_downloads_regex_activate(GtkEditable *, void *user_data);
+void on_entry_downloads_filter_regex_activate(GtkEditable *, void *user_data);
+void on_entry_downloads_select_regex_activate(GtkEditable *, void *user_data);
 
 /***
  *** popup-downloads

@@ -2813,10 +2813,18 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_QUEUE_REGEX_CASE,
+        PROP_DOWNLOAD_SELECT_REGEX_CASE,
         update_togglebutton,
         TRUE,
-        "checkbutton_downloads_regex_case",
+        "checkbutton_downloads_select_regex_case",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_DOWNLOAD_FILTER_REGEX_CASE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_downloads_filter_regex_case",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

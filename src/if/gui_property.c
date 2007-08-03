@@ -48,10 +48,10 @@ gboolean gui_property_variable_monitor_enabled     = FALSE;
 static const gboolean gui_property_variable_monitor_enabled_default = FALSE;
 guint32  gui_property_variable_monitor_max_items     = 25;
 static const guint32  gui_property_variable_monitor_max_items_default = 25;
-gboolean gui_property_variable_queue_regex_case     = FALSE;
-static const gboolean gui_property_variable_queue_regex_case_default = FALSE;
-gboolean gui_property_variable_fi_regex_case     = FALSE;
-static const gboolean gui_property_variable_fi_regex_case_default = FALSE;
+gboolean gui_property_variable_download_select_regex_case     = FALSE;
+static const gboolean gui_property_variable_download_select_regex_case_default = FALSE;
+gboolean gui_property_variable_download_filter_regex_case     = FALSE;
+static const gboolean gui_property_variable_download_filter_regex_case_default = FALSE;
 gboolean gui_property_variable_search_hide_downloaded     = FALSE;
 static const gboolean gui_property_variable_search_hide_downloaded_default = FALSE;
 guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS]     = { 130, 50, 120, 20, 30, 30, 80 };
@@ -375,37 +375,37 @@ gui_prop_init(void) {
 
 
     /*
-     * PROP_QUEUE_REGEX_CASE:
+     * PROP_DOWNLOAD_SELECT_REGEX_CASE:
      *
      * General data:
      */
-    gui_property->props[2].name = "queue_regex_case";
-    gui_property->props[2].desc = _("Match queue selection by regexp case sensitive.");
-    gui_property->props[2].ev_changed = event_new("queue_regex_case_changed");
+    gui_property->props[2].name = "download_select_regex_case";
+    gui_property->props[2].desc = _("Select downloads by regex case-sensitive.");
+    gui_property->props[2].ev_changed = event_new("download_select_regex_case_changed");
     gui_property->props[2].save = TRUE;
     gui_property->props[2].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[2].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[2].data.boolean.def   = (void *) &gui_property_variable_queue_regex_case_default;
-    gui_property->props[2].data.boolean.value = (void *) &gui_property_variable_queue_regex_case;
+    gui_property->props[2].data.boolean.def   = (void *) &gui_property_variable_download_select_regex_case_default;
+    gui_property->props[2].data.boolean.value = (void *) &gui_property_variable_download_select_regex_case;
 
 
     /*
-     * PROP_FI_REGEX_CASE:
+     * PROP_DOWNLOAD_FILTER_REGEX_CASE:
      *
      * General data:
      */
-    gui_property->props[3].name = "fi_regex_case";
-    gui_property->props[3].desc = _("Match fileinfo selection by regexp case sensitive.");
-    gui_property->props[3].ev_changed = event_new("fi_regex_case_changed");
+    gui_property->props[3].name = "download_filter_regex_case";
+    gui_property->props[3].desc = _("Filter downloads by regex case-sensitive.");
+    gui_property->props[3].ev_changed = event_new("download_filter_regex_case_changed");
     gui_property->props[3].save = TRUE;
     gui_property->props[3].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[3].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[3].data.boolean.def   = (void *) &gui_property_variable_fi_regex_case_default;
-    gui_property->props[3].data.boolean.value = (void *) &gui_property_variable_fi_regex_case;
+    gui_property->props[3].data.boolean.def   = (void *) &gui_property_variable_download_filter_regex_case_default;
+    gui_property->props[3].data.boolean.value = (void *) &gui_property_variable_download_filter_regex_case;
 
 
     /*
