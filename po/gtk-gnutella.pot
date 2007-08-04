@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-07-13 05:13+0900\n"
+"POT-Creation-Date: 2007-08-04 20:35+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -176,6 +176,41 @@ msgstr ""
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+#, c-format
+msgid "Downloading (TR: %s)"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "failed"
+msgstr ""
+
+msgid "Waiting for SHA1 check"
+msgstr ""
+
+msgid "Computing SHA1"
+msgstr ""
+
+msgid "Moving"
+msgstr ""
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Finished"
+msgstr ""
+
+msgid "No sources"
+msgstr ""
+
+#, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""
+
 msgid "Bad size"
 msgstr ""
 
@@ -273,6 +308,9 @@ msgid "Unknown header flags present"
 msgstr ""
 
 msgid "Own search results"
+msgstr ""
+
+msgid "Ancient query format"
 msgstr ""
 
 #, c-format
@@ -591,9 +629,6 @@ msgid "Shutdown sequence initiated."
 msgstr ""
 
 msgid "Malformed command"
-msgstr ""
-
-msgid "OK"
 msgstr ""
 
 msgid "Unknown command"
@@ -1178,6 +1213,9 @@ msgstr ""
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
+msgstr ""
+
+msgid "Auto clear finished downloads"
 msgstr ""
 
 msgid "Remove downloaded files from the search result."
@@ -2012,9 +2050,6 @@ msgstr ""
 msgid "Debug level for push-proxy code."
 msgstr ""
 
-msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
-
 msgid "Number of THEX file requests received in this session."
 msgstr ""
 
@@ -2125,10 +2160,10 @@ msgstr ""
 msgid "Maximum number of queries visible in search monitor."
 msgstr ""
 
-msgid "Match queue selection by regexp case sensitive."
+msgid "Select downloads by regex case-sensitive."
 msgstr ""
 
-msgid "Match fileinfo selection by regexp case sensitive."
+msgid "Filter downloads by regex case-sensitive."
 msgstr ""
 
 msgid ""
@@ -2155,6 +2190,12 @@ msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
+msgstr ""
+
+msgid "Visibility of the columns in the file info table."
+msgstr ""
+
+msgid "Widths of the columns in the sources table."
 msgstr ""
 
 msgid "Widths of the columns in the search list on the sidebar."
@@ -2223,9 +2264,6 @@ msgstr ""
 msgid "Position of the divider in the Gnet stats pane."
 msgstr ""
 
-msgid "Size of the menu in the sidebar."
-msgstr ""
-
 msgid "Position of the divider in the search results pane."
 msgstr ""
 
@@ -2250,10 +2288,7 @@ msgstr ""
 msgid "Display Sidebar."
 msgstr ""
 
-msgid "Display Navigation Tree."
-msgstr ""
-
-msgid "Display toolbar."
+msgid "Display Menu."
 msgstr ""
 
 msgid "Display statusbar."
@@ -3250,6 +3285,10 @@ msgid_plural "%u&nbsp;Bytes"
 msgstr[0] ""
 msgstr[1] ""
 
+#, c-format
+msgid "%s (%s bytes)"
+msgstr ""
+
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
 msgstr ""
@@ -3314,6 +3353,157 @@ msgstr ""
 
 msgid "No other data"
 msgstr ""
+
+msgid "Filename"
+msgstr ""
+
+msgid "SHA-1"
+msgstr ""
+
+msgid "Bitprint"
+msgstr ""
+
+msgid "Queued"
+msgstr ""
+
+#, c-format
+msgid " (slot %u"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ""
+
+#, c-format
+msgid " retry in %us"
+msgstr ""
+
+msgid "Complete"
+msgstr ""
+
+msgid "Connecting..."
+msgstr ""
+
+msgid "Push sent directly"
+msgstr ""
+
+msgid "Push sent"
+msgstr ""
+
+msgid "Failed to send push"
+msgstr ""
+
+msgid "Sending push"
+msgstr ""
+
+#, c-format
+msgid " via %s"
+msgstr ""
+
+msgid "Connecting"
+msgstr ""
+
+msgid "Sending request"
+msgstr ""
+
+msgid "Request sent"
+msgstr ""
+
+msgid "Reading headers"
+msgstr ""
+
+msgid "Falling back to push"
+msgstr ""
+
+#, c-format
+msgid "Sending request (%u%%)"
+msgstr ""
+
+msgid "Receiving headers"
+msgstr ""
+
+msgid "Aborted (Server down)"
+msgstr ""
+
+msgid "Aborted"
+msgstr ""
+
+msgid "Completed"
+msgstr ""
+
+msgid "Chunk done"
+msgstr ""
+
+msgid "Waiting for SHA1 checking..."
+msgstr ""
+
+#, c-format
+msgid "Computing SHA1 (%.02f%%)"
+msgstr ""
+
+msgid "SHA-1 OK"
+msgstr ""
+
+msgid "SHA-1 MISMATCH"
+msgstr ""
+
+msgid "SHA-1 calculated"
+msgstr ""
+
+msgid "SHA-1 VERIFICATION FAILED"
+msgstr ""
+
+msgid "; Waiting for moving..."
+msgstr ""
+
+#, c-format
+msgid "; Moving (%.02f%%)"
+msgstr ""
+
+#, c-format
+msgid "; Moved (%s) %s"
+msgstr ""
+
+msgid "(stalled)"
+msgstr ""
+
+msgid "Connected"
+msgstr ""
+
+msgid "ignoring"
+msgstr ""
+
+msgid "Unknown error"
+msgstr ""
+
+#, c-format
+msgid "Retry in %us"
+msgstr ""
+
+#, c-format
+msgid "Sinking (%s bytes left)"
+msgstr ""
+
+#, c-format
+msgid "Forgot %u download"
+msgid_plural "Forgot %u downloads"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Incomplete"
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+#, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "starts with"
 msgstr ""
@@ -3654,562 +3844,164 @@ msgstr ""
 msgid "Please choose a directory to share"
 msgstr ""
 
-msgid "no size"
-msgstr ""
-
-#, c-format
-msgid "%u host"
-msgid_plural "%u hosts"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Queued"
-msgstr ""
-
-#, c-format
-msgid " (slot %d"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ""
-
-#, c-format
-msgid " retry in %ds"
-msgstr ""
-
-msgid "Connecting..."
-msgstr ""
-
-msgid "Push sent directly"
-msgstr ""
-
-msgid "Push sent"
-msgstr ""
-
-msgid "Failed to send push"
-msgstr ""
-
-msgid "Sending push"
-msgstr ""
-
-#, c-format
-msgid " via %s"
-msgstr ""
-
-msgid "Connecting"
-msgstr ""
-
-msgid "Sending request"
-msgstr ""
-
-msgid "Request sent"
-msgstr ""
-
-msgid "Reading headers"
-msgstr ""
-
-msgid "Falling back to push"
-msgstr ""
-
-#, c-format
-msgid "Sending request (%d%%)"
-msgstr ""
-
-msgid "Receiving headers"
-msgstr ""
-
-msgid "Aborted (Server down)"
-msgstr ""
-
-msgid "Aborted"
-msgstr ""
-
-msgid "Completed"
-msgstr ""
-
-msgid "Chunk done"
-msgstr ""
-
-msgid "Waiting for SHA1 checking..."
-msgstr ""
-
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
-msgstr ""
-
-msgid "; Waiting for moving..."
-msgstr ""
-
-#, c-format
-msgid "; Moving (%.02f%%)"
-msgstr ""
-
-#, c-format
-msgid "; Moved (%s) %s"
-msgstr ""
-
-msgid "(stalled)"
-msgstr ""
-
-#, c-format
-msgid " [%d/%d] TR: %s"
-msgstr ""
-
-msgid "ignoring"
-msgstr ""
-
-msgid "Connected"
-msgstr ""
-
-msgid "Unknown error"
-msgstr ""
-
-#, c-format
-msgid "Retry in %us"
-msgstr ""
-
-#, c-format
-msgid "Sinking (%s bytes left)"
-msgstr ""
-
-msgid "Complete"
-msgstr ""
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  %s"
-msgstr ""
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  -"
-msgstr ""
-
-#, c-format
-msgid "Removed %u download"
-msgid_plural "Removed %u downloads"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
-msgid "Forgot %u download"
-msgid_plural "Forgot %u downloads"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
-msgid "Selected %u of %u queued download matching \"%s\"."
-msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
-msgid "Downloading (%s)  TR: %s"
-msgstr ""
-
-msgid "Seeding"
-msgstr ""
-
-msgid "Finished"
-msgstr ""
-
-msgid "failed"
-msgstr ""
-
-msgid "Waiting for SHA1 check"
-msgstr ""
-
-msgid "Computing SHA1"
-msgstr ""
-
-msgid "Moving"
-msgstr ""
-
-msgid "No sources"
-msgstr ""
-
-#, c-format
-msgid "Queued (%d active, %d passive)"
-msgstr ""
-
-msgid "Waiting"
-msgstr ""
-
-msgid "<none>"
-msgstr ""
-
-#, c-format
-msgid "%s (%s bytes)"
-msgstr ""
-
-msgid "_File"
-msgstr ""
-
-msgid "_GnutellaNet"
-msgstr ""
-
-msgid "_Stats"
-msgstr ""
-
-msgid "_Hostcache"
-msgstr ""
-
-msgid "_Preferences"
-msgstr ""
-
-msgid "_Quit"
-msgstr ""
-
-msgid "_Uploads"
-msgstr ""
-
-msgid "_Transfers"
-msgstr ""
-
-msgid "_History"
-msgstr ""
-
-msgid "_Downloads"
-msgstr ""
-
-msgid "_Files"
-msgstr ""
-
-msgid "_Active"
-msgstr ""
-
-msgid "_Queue"
-msgstr ""
-
-msgid "_Search"
-msgstr ""
-
-msgid "_Results"
-msgstr ""
-
-msgid "_Monitor"
-msgstr ""
-
-msgid "S_tats"
-msgstr ""
-
-msgid "_View"
-msgstr ""
-
-msgid "show Search_bar"
-msgstr ""
-
-msgid "show _Toolbar"
-msgstr ""
-
-msgid "show _Sidebar"
-msgstr ""
-
-msgid "show _Navigation Tree"
-msgstr ""
-
-msgid "show _Downloads"
-msgstr ""
-
-msgid "show _Uploads"
-msgstr ""
-
-msgid "show _Connections"
-msgstr ""
-
-msgid "_HTTP traffic stats"
-msgstr ""
-
-msgid "show HTTP _incoming traffic"
-msgstr ""
-
-msgid "show HTTP _outgoing traffic"
-msgstr ""
-
-msgid "_Gnet traffic stats"
-msgstr ""
-
-msgid "show Gnet _incoming traffic"
-msgstr ""
-
-msgid "show Gnet _outgoing traffic"
-msgstr ""
-
-msgid "Gnet _leaf traffic stats"
-msgstr ""
-
-msgid "_auto-hide leaf traffic stats"
-msgstr ""
-
-msgid "show leaf _incoming traffic"
-msgstr ""
-
-msgid "show leaf _outgoing traffic"
-msgstr ""
-
-msgid "show _Statusbar"
-msgstr ""
-
-msgid "_Help"
-msgstr ""
-
-msgid "_About"
-msgstr ""
-
-msgid "Frequently Asked Questions"
-msgstr ""
-
-msgid "_FAQ"
-msgstr ""
-
-msgid "Navigator"
-msgstr ""
-
-msgid "Search"
-msgstr ""
-
-msgid "Hits"
-msgstr ""
-
-msgid "New"
-msgstr ""
-
-msgid "Gnet connections"
-msgstr ""
-
-msgid "%v/%u Gnet nodes"
-msgstr ""
-
-msgid "uploads"
-msgstr ""
-
-msgid "%v/%u uploads"
-msgstr ""
-
-msgid "downloads"
-msgstr ""
-
-msgid "%v/%u downloads"
-msgstr ""
-
-msgid "HTTP traffic"
-msgstr ""
-
-msgid "Click to toggle display."
-msgstr ""
-
-msgid "in"
-msgstr ""
-
-msgid "out"
-msgstr ""
-
-msgid "GnutellaNet traffic"
-msgstr ""
-
-msgid "Leaf traffic"
-msgstr ""
-
-msgid "A passive search matches any search results routed through this node"
-msgstr ""
-
-msgid "_Passive"
-msgstr ""
-
-msgid "GnutellaNet connections"
-msgstr ""
-
-msgid "Host"
-msgstr ""
-
-msgid "Loc"
-msgstr ""
-
-msgid "Flags"
-msgstr ""
-
-msgid "User-Agent"
-msgstr ""
-
-msgid "Ver"
-msgstr ""
-
-msgid "Connected time"
-msgstr ""
-
-msgid "Uptime"
-msgstr ""
-
-msgid "Info"
-msgstr ""
-
-msgid "Disconnect from selected nodes"
-msgstr ""
-
-msgid "Disconnect"
-msgstr ""
-
-msgid "Try to connect to specified address"
-msgstr ""
-
-msgid "Add"
-msgstr ""
-
-msgid "Minimum"
-msgstr ""
-
-msgid "Maximum"
-msgstr ""
-
-msgid "Ultrapeers in leaf mode"
-msgstr ""
-
-msgid "Quick-connect pool size"
-msgstr ""
-
-msgid "Transferred data"
-msgstr ""
-
-msgid "Uploaded:"
-msgstr ""
-
-msgid "Downloaded:"
-msgstr ""
-
-msgid "Chunks/Files:"
-msgstr ""
-
-msgid "Volume:"
-msgstr ""
-
-msgid "Local node"
-msgstr ""
-
-msgid "GUID:"
-msgstr ""
-
-msgid "IP:Port:"
-msgstr ""
-
-msgid ""
-"The current IP address and listening port for this node. To change these go "
-"to File->Preferences->Network."
-msgstr ""
-
-msgid "Message/flow control stats"
-msgstr ""
-
-msgid "Type"
-msgstr ""
-
-msgid "Count"
-msgstr ""
-
-msgid "Reason"
-msgstr ""
-
-msgid "_General"
-msgstr ""
-
-msgid "FC/_TTL"
-msgstr ""
-
-msgid "FC/_hops"
-msgstr ""
-
-msgid "Received"
-msgstr ""
-
-msgid "Expired"
-msgstr ""
-
-msgid "Dropped"
-msgstr ""
-
-msgid "Relayed"
-msgstr ""
-
-msgid "Gen. queued"
-msgstr ""
-
-msgid "Gen. sent"
-msgstr ""
-
-msgid "_Messages"
-msgstr ""
-
-msgid "_Horizon"
-msgstr ""
-
-msgid "Show _bytes"
-msgstr ""
-
-msgid "Show _percentages"
-msgstr ""
-
-msgid "_Include headers"
-msgstr ""
-
-msgid "Show pr_otocol:"
-msgstr ""
-
-msgid "Show r_easons for"
-msgstr ""
-
-msgid "Hostcache statistics"
-msgstr ""
-
-msgid "Cache"
-msgstr ""
-
-msgid "Hosts"
-msgstr ""
-
-msgid "Misses"
-msgstr ""
-
-msgid "Hostcache capacity"
-msgstr ""
-
-msgid "%v/%u (%P%%)"
-msgstr ""
-
-msgid "Regular hosts"
-msgstr ""
-
-msgid "Clear"
-msgstr ""
-
-msgid "Ultrapeers"
-msgstr ""
-
-msgid "Bad hosts"
-msgstr ""
-
-msgid "Uploads"
-msgstr ""
-
-msgid "Filename"
-msgstr ""
-
-msgid "Range"
-msgstr ""
-
 msgid "Progress"
+msgstr ""
+
+msgid "RX"
+msgstr ""
+
+msgid "Downloaded"
+msgstr ""
+
+msgid "Uploaded"
+msgstr ""
+
+msgid "Sources"
 msgstr ""
 
 msgid "Status"
 msgstr ""
 
-msgid "Abort and remove all selected uploads"
+msgid " Clear completed "
+msgstr ""
+
+msgid " Gnutella browse requests"
+msgstr ""
+
+msgid " HTML and "
 msgstr ""
 
 msgid " Kill selected "
 msgstr ""
 
-msgid "Clear already completed uploads from list"
+msgid " alive with "
 msgstr ""
 
-msgid " Clear completed "
+msgid " passive)"
+msgstr ""
+
+msgid " queued ("
+msgstr ""
+
+msgid " registered, "
+msgstr ""
+
+msgid " with sources"
+msgstr ""
+
+msgid "%v/%u Gnet nodes"
+msgstr ""
+
+msgid "%v/%u downloads"
+msgstr ""
+
+msgid "%v/%u uploads"
+msgstr ""
+
+msgid "(Disable: 0, Random: 1)"
+msgstr ""
+
+msgid "(no search)"
+msgstr ""
+
+msgid "(not forwarded)"
+msgstr ""
+
+msgid "0 terms counted"
+msgstr ""
+
+msgid ""
+"==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr ""
+
+msgid ""
+"A filter cannot be removed if it is bound to a search or if it is in use "
+"(used as a target in a rule)."
+msgstr ""
+
+msgid "A passive search matches any search results routed through this node"
+msgstr ""
+
+msgid "A_ggressive mode"
+msgstr ""
+
+msgid "Abort and remove all selected uploads"
+msgstr ""
+
+msgid "About gtk-gnutella"
+msgstr ""
+
+msgid "Act as OOB proxy for leaves"
+msgstr ""
+
+msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
+msgstr ""
+
+msgid "Add IP rule"
+msgstr ""
+
+msgid "Add as search"
+msgstr ""
+
+msgid "Add flag rule"
+msgstr ""
+
+msgid "Add jump rule"
+msgstr ""
+
+msgid "Add name rule"
+msgstr ""
+
+msgid "Add size rule"
+msgstr ""
+
+msgid "Add state rule"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files names to the global "
+"pre-filter."
+msgstr ""
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files names to the search "
+"filter."
+msgstr ""
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"global pre-filter."
+msgstr ""
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"search filter."
+msgstr ""
+
+msgid "Aliases"
+msgstr ""
+
+msgid "Allow connections from and to _LAN addresses"
+msgstr ""
+
+msgid "Amount of bytes to overlap when resuming download"
+msgstr ""
+
+msgid "Amount of tolerable messages above hard TTL limit per node"
+msgstr ""
+
+msgid ""
+"Apply above conversions, upon startup, to existing files in the downloading "
+"directory"
+msgstr ""
+
+msgid "Apply"
+msgstr ""
+
+msgid "Attempts"
 msgstr ""
 
 msgid "Auto clear completed uploads"
@@ -4218,67 +4010,985 @@ msgstr ""
 msgid "Auto clear failed uploads"
 msgstr ""
 
+msgid "Auto clear stopped downloads"
+msgstr ""
+
+msgid "Available bandwidth"
+msgstr ""
+
+msgid "Available physical memory:"
+msgstr ""
+
+msgid "Avg. time between IP address changes:"
+msgstr ""
+
+msgid "Avg. uptime of this servent:"
+msgstr ""
+
+msgid "Bad hosts"
+msgstr ""
+
+msgid "Bandwidth limits for GnutellaNet traffic"
+msgstr ""
+
+msgid "Bandwidth limits for HTTP traffic"
+msgstr ""
+
+msgid "Bandwidth"
+msgstr ""
+
+msgid "Banning"
+msgstr ""
+
+msgid "Bitzi Metadata"
+msgstr ""
+
+msgid "Browse host"
+msgstr ""
+
+msgid "Busy"
+msgstr ""
+
+msgid "Bytes to back off on mismatch"
+msgstr ""
+
+msgid "Cache"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Case-sensitive sorting"
+msgstr ""
+
+msgid "Chunks/Files:"
+msgstr ""
+
+msgid "Cl_ose search"
+msgstr ""
+
+msgid "Clean up queries before processing"
+msgstr ""
+
+msgid "Clear all"
+msgstr ""
+
+msgid "Clear already completed uploads from list"
+msgstr ""
+
+msgid "Clear completed, failed and unavailable downloads from list"
+msgstr ""
+
+msgid "Clear non-existent files"
+msgstr ""
+
+msgid "Clear results"
+msgstr ""
+
+msgid "Clear stopped"
+msgstr ""
+
+msgid "Clock skew:"
+msgstr ""
+
+msgid "Clock synchronization"
+msgstr ""
+
+msgid "Close this search"
+msgstr ""
+
+msgid "Compressed length:"
+msgstr ""
+
+msgid "Compression ratio:"
+msgstr ""
+
+msgid "Condition: If IP address matches"
+msgstr ""
+
+msgid "Condition: If current filter result properties match"
+msgstr ""
+
+msgid "Condition: If file size matches"
+msgstr ""
+
+msgid "Condition: If filename matches"
+msgstr ""
+
+msgid "Condition: If result has flags"
+msgstr ""
+
+msgid "Condition: If urn:sha1 matches"
+msgstr ""
+
+msgid "Condition: always"
+msgstr ""
+
+msgid "Configured peermode"
+msgstr ""
+
+msgid "Conflict ratio:"
+msgstr ""
+
+msgid "Connect to host"
+msgstr ""
+
+msgid "Connected time"
+msgstr ""
+
+msgid "Connection counters"
+msgstr ""
+
+msgid "Connection settings"
+msgstr ""
+
+msgid "Connections reserved for gtk-gnutella nodes"
+msgstr ""
+
+msgid "Contributors:"
+msgstr ""
+
+msgid ""
+"Convert \"evil\" characters (like shell meta characters) to underscores in "
+"generated filenames"
+msgstr ""
+
+msgid "Convert spaces to underscores in generated filenames"
+msgstr ""
+
+msgid "Copy Magnet to clipboard"
+msgstr ""
+
+msgid "Copy URL to clipboard"
+msgstr ""
+
+msgid "Copy browse-host results to passive searches"
+msgstr ""
+
+msgid "Copy rule"
+msgstr ""
+
+msgid "Core development:"
+msgstr ""
+
+msgid "Country"
+msgstr ""
+
+msgid "Cumulative _download rate"
+msgstr ""
+
+msgid "Cumulative _upload rate"
+msgstr ""
+
+msgid "Current IP settings (Address:Port):"
+msgstr ""
+
+msgid "Current search:"
+msgstr ""
+
+msgid "Currently used"
+msgstr ""
+
+msgid "Debugging"
+msgstr ""
+
+msgid "Default search _reissue timeout"
+msgstr ""
+
+msgid "Default value:"
+msgstr ""
+
+msgid "Delay in seconds to wait after HTTP busy indication"
+msgstr ""
+
+msgid "Delay in seconds to wait after connection failure"
+msgstr ""
+
+msgid "Delay in seconds to wait if connection is refused"
+msgstr ""
+
+msgid "Delay in seconds to wait when running download stops"
+msgstr ""
+
+msgid "Delays and timeouts (all values in seconds)"
+msgstr ""
+
+msgid "Delete file on abort"
+msgstr ""
+
+msgid "Detailed traffic information to display"
+msgstr ""
+
+msgid "Details"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
+msgid "Disconnect from selected nodes"
+msgstr ""
+
+msgid "Display detailed traffic information"
+msgstr ""
+
+msgid "Diverse properties"
+msgstr ""
+
+msgid "Do you really want to quit?"
+msgstr ""
+
+msgid "Downloaded:"
+msgstr ""
+
+msgid "Downloading from multiple sources (swarming)"
+msgstr ""
+
+msgid "Drop results..."
+msgstr ""
+
+msgid "Dropped"
+msgstr ""
+
+msgid "Dup / Bad / Weird"
+msgstr ""
+
+msgid "Duplicate this search"
+msgstr ""
+
+msgid "E_xpose relative paths"
+msgstr ""
+
+msgid "Edit value:"
+msgstr ""
+
+msgid "Enable \"_Browse Host\" feature"
+msgstr ""
+
+msgid "Enable _UDP"
+msgstr ""
+
+msgid "Enable dynamic upload slots _allocation"
+msgstr ""
+
+msgid "Enable remote _shell control interface"
+msgstr ""
+
+msgid "Enable s_warming"
+msgstr ""
+
+msgid "Enable upload of _partially downloaded files"
+msgstr ""
+
+msgid "Enough UDP support"
+msgstr ""
+
+msgid "Enough available bandwidth"
+msgstr ""
+
+msgid "Enough file descriptors"
+msgstr ""
+
+msgid "Enough min # of connections"
+msgstr ""
+
+msgid "Enough physical memory"
+msgstr ""
+
+msgid ""
+"Enter a semicolon separated list of networks that are local to you in the "
+"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
+"192.168.1.0/255.255.255.0)"
+msgstr ""
+
+msgid "Expert mode"
+msgstr ""
+
+msgid "Expired"
+msgstr ""
+
+msgid "FC/_TTL"
+msgstr ""
+
+msgid "FC/_hops"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "File scanning time:"
+msgstr ""
+
+msgid "Files scanned"
+msgstr ""
+
+msgid "Filled ratio:"
+msgstr ""
+
+msgid "Filled slots:"
+msgstr ""
+
+msgid "First chunk _size"
+msgstr ""
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Force push mode"
+msgstr ""
+
+msgid "Forget"
+msgstr ""
+
+msgid ""
+"Forwarded\n"
+"message"
+msgstr ""
+
+msgid "Freeze queue"
+msgstr ""
+
+msgid "Frequently Asked Questions"
+msgstr ""
+
+msgid "Fully served "
+msgstr ""
+
+msgid "GUI development:"
+msgstr ""
+
+msgid "GUID:"
+msgstr ""
+
+msgid "Gen. queued"
+msgstr ""
+
+msgid "Gen. sent"
+msgstr ""
+
+msgid "General search settings (affect all searches)"
+msgstr ""
+
+msgid "Generated queries"
+msgstr ""
+
+msgid "Generation:"
+msgstr ""
+
+msgid "Globally drop results..."
+msgstr ""
+
+msgid "Gnet connections"
+msgstr ""
+
+msgid "Gnutella _leaf traffic stats"
+msgstr ""
+
+msgid "Gnutella network mode"
+msgstr ""
+
+msgid "GnutellaNet TTL settings"
+msgstr ""
+
+msgid "GnutellaNet display"
+msgstr ""
+
+msgid "GnutellaNet message size limits"
+msgstr ""
+
+msgid "GnutellaNet timeouts (all values in seconds)"
+msgstr ""
+
+msgid "GnutellaNet traffic"
+msgstr ""
+
+msgid "GnutellaNet"
+msgstr ""
+
+msgid ""
+"Gtk-Gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+
+msgid "HTTP traffic"
+msgstr ""
+
+msgid "H_ard TTL limit"
+msgstr ""
+
+msgid "H_ost:"
+msgstr ""
+
+msgid "Hard limit of _file descriptors used"
+msgstr ""
+
+msgid "Honor OOB flag in queries"
+msgstr ""
+
+msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
+msgstr ""
+
+msgid "Hops random factor"
+msgstr ""
+
+msgid "Host runs _NTP"
+msgstr ""
+
+msgid "Hostcache capacity"
+msgstr ""
+
+msgid "Hostcache"
+msgstr ""
+
+msgid "Hosts"
+msgstr ""
+
+msgid "IP address stability"
+msgstr ""
+
+msgid "IP address/mask"
+msgstr ""
+
+msgid "IP settings"
+msgstr ""
+
+msgid "IP:Port:"
+msgstr ""
+
+msgid "IPv4 settings"
+msgstr ""
+
+msgid "IPv6 settings"
+msgstr ""
+
+msgid "Ignore symbolically linked _directories"
+msgstr ""
+
+msgid "Ignore symbolically linked regular _files"
+msgstr ""
+
+msgid "Ignored files are"
+msgstr ""
+
+msgid "Incoming connecting timeout"
+msgstr ""
+
+msgid "Incoming traffic from _leaves"
+msgstr ""
+
+msgid "Indexing started on:"
+msgstr ""
+
+msgid "Info"
+msgstr ""
+
+msgid "Information about selected file"
+msgstr ""
+
+msgid "Jeroen Asselman"
+msgstr ""
+
+msgid "Join the users or developers mailing lists."
+msgstr ""
+
+msgid "Keep downloading/incomplete files in"
+msgstr ""
+
+msgid "Keywords:"
+msgstr ""
+
+msgid "Large enough uptime"
+msgstr ""
+
+msgid "Last check"
+msgstr ""
+
+msgid "Last scan initiated on:"
+msgstr ""
+
+msgid "Last switch"
+msgstr ""
+
+msgid "Leaf requery threshold"
+msgstr ""
+
+msgid "Leaf traffic"
+msgstr ""
+
+msgid "Legacy connections"
+msgstr ""
+
+msgid "Library # of files"
+msgstr ""
+
+msgid "Library scanning:"
+msgstr ""
+
+msgid "Library size"
+msgstr ""
+
+msgid "Limit search _results to "
+msgstr ""
+
+msgid "Local node"
+msgstr ""
+
+msgid "M_inimum chunk size"
+msgstr ""
+
+msgid "M_y TTL"
+msgstr ""
+
+msgid "Ma_ximum chunk size"
+msgstr ""
+
+msgid "Make current sorting default"
+msgstr ""
+
+msgid "Max # of _high TTL msg"
+msgstr ""
+
+msgid "Max _TTL"
+msgstr ""
+
+msgid "Max connections allowed per unique vendor"
+msgstr ""
+
+msgid "Max hard TTL limit (hop+ttl) on message"
+msgstr ""
+
+msgid "Max. _number of results"
+msgstr ""
+
+msgid "Max. _percentage of file descriptors"
+msgstr ""
+
+msgid "Max. downloads from single host"
+msgstr ""
+
+msgid "Max. file _descriptors reserved"
+msgstr ""
+
+msgid "Max. number of browse host results"
+msgstr ""
+
+msgid "Max. simultaneous downloads per file"
+msgstr ""
+
+msgid "Max. simultaneous downloads"
+msgstr ""
+
 msgid "Max. simultaneous uploads"
 msgstr ""
 
 msgid "Max. uploads to a single host"
 msgstr ""
 
-msgid "Upload history"
+msgid "Maximum # of leaves"
 msgstr ""
 
-msgid "Attempts"
+msgid "Maximum attempts to make, not counting HTTP busy indications"
+msgstr ""
+
+msgid "Maximum number of _retries"
+msgstr ""
+
+msgid "Maximum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+msgid "Maximum size:"
+msgstr ""
+
+msgid ""
+"Maximum size\n"
+"allowed"
+msgstr ""
+
+msgid "Maximum"
+msgstr ""
+
+msgid "Measured HTTP latency:"
+msgstr ""
+
+msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+msgstr ""
+
+msgid "Min/Max:"
+msgstr ""
+
+msgid "Minimum chunk size"
+msgstr ""
+
+msgid "Minimum file size"
+msgstr ""
+
+msgid "Minimum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+msgid "Minimum size:"
+msgstr ""
+
+msgid "Minimum upload time"
+msgstr ""
+
+msgid "Minimum"
+msgstr ""
+
+msgid "Misses"
+msgstr ""
+
+msgid "Monitor and auto-ban unstable servent types"
+msgstr ""
+
+msgid "Monitor bad node IP addresses"
+msgstr ""
+
+msgid "Move completely downloaded files to"
+msgstr ""
+
+msgid "Move corrupted downloaded files to"
+msgstr ""
+
+msgid "Network protocol:"
+msgstr ""
+
+msgid "Never send a push request"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "No, take me back!"
 msgstr ""
 
 msgid "Normalized"
 msgstr ""
 
-msgid "Clear non-existent files"
+msgid "Not firewalled"
 msgstr ""
 
-msgid "Clear all"
+msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr ""
 
-msgid "Fully served "
+msgid "Number of seconds before timeout for a connected download"
 msgstr ""
 
-msgid " / "
+msgid "Number of seconds before timeout for a connecting download"
 msgstr ""
 
-msgid " HTML and "
+msgid "Number of tolerable _duplicate messages per node"
 msgstr ""
 
-msgid " Gnutella browse requests"
+msgid "Ok"
 msgstr ""
 
-msgid "Files to get"
+msgid "Optimistic first _chunk"
 msgstr ""
 
-msgid "File"
+msgid "Original author:"
 msgstr ""
 
-msgid "Done"
+msgid "Originally obtained from"
 msgstr ""
 
-msgid "Sources"
+msgid "Other"
 msgstr ""
 
-msgid "Filename filter:"
+msgid "Out of Band Querying"
 msgstr ""
 
-msgid "case-sensitive"
+msgid "Outgoing traffic to lea_ves"
 msgstr ""
 
-msgid "Detail information"
+msgid "PARQ development:"
+msgstr ""
+
+msgid "Partial File Sharing"
+msgstr ""
+
+msgid "Pass_word"
+msgstr ""
+
+msgid "Paste rule"
+msgstr ""
+
+msgid "Patch generation started on:"
+msgstr ""
+
+msgid "Pending local queries"
+msgstr ""
+
+msgid ""
+"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
+"can punch a hole into that firewall, allowing reception of replies to your "
+"UDP packets.  You will be able to send out-of-band query hits, but you won't "
+"be able to receive any."
+msgstr ""
+
+msgid ""
+"People can connect to you, using both TCP and UDP. Push should work and you "
+"will be able to receive out-of-band results for your queries."
+msgstr ""
+
+msgid "Ping / Pong round trip"
+msgstr ""
+
+msgid "Please confirm:"
+msgstr ""
+
+msgid "Prefer _compressed connections"
+msgstr ""
+
+msgid "Preferences"
 msgstr ""
 
 msgid "Progress:"
 msgstr ""
 
-msgid "Size:"
+msgid "Project leader:"
 msgstr ""
 
-msgid "Filename:"
+msgid "Property browser"
+msgstr ""
+
+msgid "Property pattern:"
+msgstr ""
+
+msgid "Property"
+msgstr ""
+
+msgid "Proxy _type:"
+msgstr ""
+
+msgid "Proxy settings"
+msgstr ""
+
+msgid "Public _hostname"
+msgstr ""
+
+msgid "QRP stats"
+msgstr ""
+
+msgid "Quality management"
+msgstr ""
+
+msgid "Queries ask for OOB results"
+msgstr ""
+
+msgid "Query Routing Protocol:"
+msgstr ""
+
+msgid "Query routing patch information:"
+msgstr ""
+
+msgid "Query routing table information:"
+msgstr ""
+
+msgid "Queuing details"
+msgstr ""
+
+msgid "Quick-connect pool size"
+msgstr ""
+
+msgid "RX compression"
+msgstr ""
+
+msgid "RX dropped"
+msgstr ""
+
+msgid "RX flow control ratio"
+msgstr ""
+
+msgid "RX queries"
+msgstr ""
+
+msgid "RX query hits"
+msgstr ""
+
+msgid "RX speed"
+msgstr ""
+
+msgid "RX wire bytes"
+msgstr ""
+
+msgid "Ratio of tolerable duplicate messages per _node"
+msgstr ""
+
+msgid "Raw length:"
+msgstr ""
+
+msgid "Re_try search every"
+msgstr ""
+
+msgid "Reason"
+msgstr ""
+
+msgid "Received"
+msgstr ""
+
+msgid "Regular hosts"
+msgstr ""
+
+msgid "Relayed"
+msgstr ""
+
+msgid ""
+"Remove all rules\n"
+"from this filter"
+msgstr ""
+
+msgid "Remove file on mismatch"
+msgstr ""
+
+msgid "Remove filter"
+msgstr ""
+
+msgid "Report an upload connection _speed of"
+msgstr ""
+
+msgid "Require _URN"
+msgstr ""
+
+msgid "Require _server name"
+msgstr ""
+
+msgid ""
+"Reset all rule stats\n"
+"in this filter"
+msgstr ""
+
+msgid ""
+"Reset filter stats\n"
+"for all filters"
+msgstr ""
+
+msgid ""
+"Reset filter stats\n"
+"for this filter"
+msgstr ""
+
+msgid "Restart this search"
+msgstr ""
+
+msgid "Resu_me this search"
+msgstr ""
+
+msgid "Resume and retry"
+msgstr ""
+
+msgid "Resume this search"
+msgstr ""
+
+msgid "Retry busy delay"
+msgstr ""
+
+msgid "Retry refused delay"
+msgstr ""
+
+msgid "Retry stopped delay"
+msgstr ""
+
+msgid "Retry timeout delay"
+msgstr ""
+
+msgid "Retry timeout max"
+msgstr ""
+
+msgid "Retry timeout min"
+msgstr ""
+
+msgid "Revert"
+msgstr ""
+
+msgid "Richard Eckart"
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Ruleset editor"
+msgstr ""
+
+msgid "Running in leaf mode."
+msgstr ""
+
+msgid "Running in legacy mode. Consider switching to auto mode."
+msgstr ""
+
+msgid "Running in ultrapeer mode."
+msgstr ""
+
+msgid "SHA1 hash (not editable, add from search popup)"
+msgstr ""
+
+msgid "Saved"
+msgstr ""
+
+msgid "Search Monitor"
+msgstr ""
+
+msgid "Search Stats"
+msgstr ""
+
+msgid "Search Term"
+msgstr ""
+
+msgid "Search _extensions"
+msgstr ""
+
+msgid "Search _monitor enabled"
+msgstr ""
+
+msgid "Search queue"
+msgstr ""
+
+msgid "Select"
+msgstr ""
+
+msgid "Selected property:"
+msgstr ""
+
+msgid "Server"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Show _bytes"
+msgstr ""
+
+msgid "Show _confirmation dialog when leaving gtk-gnutella"
+msgstr ""
+
+msgid "Show _last"
+msgstr ""
+
+msgid "Show _metric units"
+msgstr ""
+
+msgid "Show _percentages"
+msgstr ""
+
+msgid "Show _tooltips (does not affect all tooltips yet)"
+msgstr ""
+
+msgid "Show additional information and settings for advanced and _expert users"
+msgstr ""
+
+msgid "Show pr_otocol:"
+msgstr ""
+
+msgid "Show r_easons for"
+msgstr ""
+
+msgid "Show tabs"
 msgstr ""
 
 msgid ""
@@ -4289,260 +4999,209 @@ msgid ""
 "which parts of the file have been seen on the network in this session."
 msgstr ""
 
-msgid "SHA1:"
+msgid "Similar query half-life"
 msgstr ""
 
-msgid "Alternate filenames"
+msgid ""
+"Size threshold\n"
+"before kicking"
 msgstr ""
 
-msgid "_Purge selected"
+msgid "Slots:"
 msgstr ""
 
-msgid " registered, "
+msgid "Socket receive buffer size"
 msgstr ""
 
-msgid " with sources"
+msgid "Source quality"
 msgstr ""
 
-msgid "Active sources"
+msgid "Spacing"
 msgstr ""
 
-msgid "Server"
+msgid "Stable"
 msgstr ""
 
-msgid "Download settings"
+msgid "Statistics"
 msgstr ""
 
-msgid "Never send a push request"
+msgid "Statistics:"
 msgstr ""
 
-msgid "Delete file on abort"
+msgid "Stop this search"
 msgstr ""
 
-msgid "Remove file on mismatch"
+msgid "Strict SHA_1 matching"
 msgstr ""
 
-msgid "Bytes to back off on mismatch"
+msgid "Sufficient average uptime"
 msgstr ""
 
-msgid "Max. downloads from single host"
+msgid "Swarming development:"
 msgstr ""
 
-msgid "Max. simultaneous downloads"
+msgid "TCP _Port:"
 msgstr ""
 
-msgid "Max. simultaneous downloads per file"
+msgid "TX compression"
 msgstr ""
 
-msgid "Auto clear stopped downloads"
+msgid "TX dropped"
 msgstr ""
 
-msgid "Failed"
+msgid "TX queries"
 msgstr ""
 
-msgid "Unavailable"
+msgid "TX query hits"
 msgstr ""
 
-msgid "Abort all selected downloads"
+msgid "TX speed"
 msgstr ""
 
-msgid "_Abort selected"
+msgid "TX wire bytes"
 msgstr ""
 
-msgid "Resume all selected downloads"
+msgid "T_X flow control timeout"
 msgstr ""
 
-msgid "_Resume selected"
-msgstr ""
-
-msgid "Clear completed, failed and unavailable downloads from list"
-msgstr ""
-
-msgid "Clear stopped"
-msgstr ""
-
-msgid "("
-msgstr ""
-
-msgid "active"
-msgstr ""
-
-msgid ", "
-msgstr ""
-
-msgid "queued"
-msgstr ""
-
-msgid ")"
-msgstr ""
-
-msgid "Show settings"
-msgstr ""
-
-msgid "Inactive sources"
-msgstr ""
-
-msgid "Select"
-msgstr ""
-
-msgid "Freeze queue"
+msgid "Table generation started on:"
 msgstr ""
 
 msgid "Thaw queue"
 msgstr ""
 
-msgid " queued ("
+msgid ""
+"The current IP address and listening port for this node. To change these go "
+"to File->Preferences->Network."
 msgstr ""
 
-msgid " alive with "
-msgstr ""
-
-msgid " passive)"
-msgstr ""
-
-msgid "Search results"
-msgstr ""
-
-msgid "Current search:"
-msgstr ""
-
-msgid "Cl_ose search"
-msgstr ""
-
-msgid "(no search)"
-msgstr ""
-
-msgid "General search settings (affect all searches)"
-msgstr ""
-
-msgid "Max. _number of results"
-msgstr ""
-
-msgid "Ignored files are"
-msgstr ""
-
-msgid "Case-sensitive sorting"
-msgstr ""
-
-msgid "_Hide downloaded files"
-msgstr ""
-
-msgid "_Remove manually downloaded files"
-msgstr ""
-
-msgid "Max. number of browse host results"
-msgstr ""
-
-msgid "Copy browse-host results to passive searches"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Information about selected file"
-msgstr ""
-
-msgid "Index:"
-msgstr ""
-
-msgid "Source:"
-msgstr ""
-
-msgid "Received:"
-msgstr ""
-
-msgid "Vendor:"
-msgstr ""
-
-msgid "Country:"
-msgstr ""
-
-msgid "Query:"
-msgstr ""
-
-msgid "Speed:"
-msgstr ""
-
-msgid "Servent ID:"
-msgstr ""
-
-msgid "XML data:"
-msgstr ""
-
-msgid "Re_try search every"
-msgstr ""
-
-msgid "secs   "
-msgstr ""
-
-msgid "_Download selected"
-msgstr ""
-
-msgid "_Edit filters"
-msgstr ""
-
-msgid "Expand all"
-msgstr ""
-
-msgid "Collapse all"
-msgstr ""
-
-msgid "_Clear results"
-msgstr ""
-
-msgid "Search _monitor enabled"
-msgstr ""
-
-msgid "Show _last"
-msgstr ""
-
-msgid "searches"
-msgstr ""
-
-msgid "_Update interval (sec)"
-msgstr ""
-
-msgid "_Deletion coeff. (0-100)"
-msgstr ""
-
-msgid "Search Term"
+msgid ""
+"There is no condition. When this rule is reached, the matching will continue "
+"in the specified target filter. That's also why you can't invert this "
+"condition. If you could, this rule would just be ignored."
 msgstr ""
 
 msgid "This Interval"
 msgstr ""
 
-msgid "_Reset stats"
-msgstr ""
-
-msgid "0 terms counted"
-msgstr ""
-
-msgid "You seem to be offline."
+msgid ""
+"This limits how many results gnutella returns to other people searching your "
+"files."
 msgstr ""
 
 msgid ""
-"Your uploads are stalling at an abnormal rate, indicating that your "
-"bandwidth is probably saturated. You should not run as an ultra node, and "
-"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
-"both your incoming and outgoing paths."
+"This product includes GeoIP data created by MaxMind, available from\n"
+"http://maxmind.com/"
+msgstr ""
+
+msgid "Timeouts (all values in seconds)"
+msgstr ""
+
+msgid "Toolbar style"
+msgstr ""
+
+msgid "Total input bandwidth limit:"
+msgstr ""
+
+msgid "Total output bandwidth limit:"
+msgstr ""
+
+msgid "Transferred data"
+msgstr ""
+
+msgid "Try to connect to specified address"
+msgstr ""
+
+msgid "Try to keep 'dead' entries around for"
+msgstr ""
+
+msgid "Ultrapeer mode settings"
+msgstr ""
+
+msgid "Ultrapeer mode"
+msgstr ""
+
+msgid "Ultrapeer promotion statistics"
+msgstr ""
+
+msgid "Ultrapeers in leaf mode"
+msgstr ""
+
+msgid "Ultrapeers"
+msgstr ""
+
+msgid "Unavailable"
 msgstr ""
 
 msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits."
+"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
+"additional upload slots on request."
 msgstr ""
 
-msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits. However, it is possible to punch a hole into the UDP "
-"firewall, so you will be able to send out-of-band query hits."
+msgid "Update search results pane every"
+msgstr ""
+
+msgid "Upload History"
+msgstr ""
+
+msgid "Uploaded:"
+msgstr ""
+
+msgid "Use IP _Type of Service (TOS)"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
+
+msgid "Use _surplus bandwidth"
+msgstr ""
+
+msgid "Use global hostiles.txt"
+msgstr ""
+
+msgid "Use realistic PARQ estimates"
+msgstr ""
+
+msgid "Use username and password to _authenticate to proxy"
+msgstr ""
+
+msgid "User Interface"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Ver"
+msgstr ""
+
+msgid "Vidar Madsen"
+msgstr ""
+
+msgid "Visit http://gtk-gnutella.sourceforge.net/."
+msgstr ""
+
+msgid "Volume:"
+msgstr ""
+
+msgid "Watch for similar queries"
+msgstr ""
+
+msgid "Watch hits for _alternate sources"
+msgstr ""
+
+msgid "What other people see as your connection speed."
+msgstr ""
+
+msgid "Write buffer size"
+msgstr ""
+
+msgid "XML Metadata"
+msgstr ""
+
+msgid "Yann Grossel"
+msgstr ""
+
+msgid "Yes"
 msgstr ""
 
 msgid ""
@@ -4558,1200 +5217,228 @@ msgid ""
 msgstr ""
 
 msgid ""
-"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
-"can punch a hole into that firewall, allowing reception of replies to your "
-"UDP packets.  You will be able to send out-of-band query hits, but you won't "
-"be able to receive any."
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits. However, it is possible to punch a hole into the UDP "
+"firewall, so you will be able to send out-of-band query hits."
 msgstr ""
 
 msgid ""
-"People can connect to you, using both TCP and UDP. Push should work and you "
-"will be able to receive out-of-band results for your queries."
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits."
 msgstr ""
 
-msgid "Running in leaf mode."
+msgid "You seem to be offline."
 msgstr ""
 
-msgid "Running in legacy mode. Consider switching to auto mode."
-msgstr ""
-
-msgid "Running in ultrapeer mode."
-msgstr ""
-
-msgid "Abort"
-msgstr ""
-
-msgid "Abort all..."
-msgstr ""
-
-msgid "with the same name"
-msgstr ""
-
-msgid "with the same urn:sha1"
-msgstr ""
-
-msgid "from the same host"
-msgstr ""
-
-msgid "Remove file"
-msgstr ""
-
-msgid "Resume"
-msgstr ""
-
-msgid "Move back to queue"
-msgstr ""
-
-msgid "Force push mode"
-msgstr ""
-
-msgid "Copy URL to clipboard"
-msgstr ""
-
-msgid "Connect to host"
-msgstr ""
-
-msgid "Browse Host"
-msgstr ""
-
-msgid "Start now"
-msgstr ""
-
-msgid "Drop results..."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-
-msgid "Globally drop results..."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-
-msgid "Stop this search"
-msgstr ""
-
-msgid "Resume this search"
-msgstr ""
-
-msgid "Restart this search"
-msgstr ""
-
-msgid "Duplicate this search"
-msgstr ""
-
-msgid "Show tabs"
-msgstr ""
-
-msgid "Configure columns"
-msgstr ""
-
-msgid "Make current sorting default"
-msgstr ""
-
-msgid "Bitzi Metadata"
-msgstr ""
-
-msgid "Add as search"
-msgstr ""
-
-msgid "Ruleset editor"
-msgstr ""
-
-msgid "_Create filter"
-msgstr ""
-
-msgid "Rules"
-msgstr ""
-
-msgid "enabled"
-msgstr ""
-
-msgid ""
-"A filter cannot be removed if it is bound to a search or if it is in use "
-"(used as a target in a rule)."
-msgstr ""
-
-msgid "Remove filter"
-msgstr ""
-
-msgid ""
-"Remove all rules\n"
-"from this filter"
-msgstr ""
-
-msgid ""
-"Reset all rule stats\n"
-"in this filter"
-msgstr ""
-
-msgid ""
-"Reset filter stats\n"
-"for this filter"
-msgstr ""
-
-msgid ""
-"Reset filter stats\n"
-"for all filters"
-msgstr ""
-
-msgid "Add name rule"
-msgstr ""
-
-msgid "Add size rule"
-msgstr ""
-
-msgid "Add flag rule"
-msgstr ""
-
-msgid "Add jump rule"
-msgstr ""
-
-msgid "Add IP rule"
-msgstr ""
-
-msgid "Add state rule"
-msgstr ""
-
-msgid "invert condition"
-msgstr ""
-
-msgid "mark only"
-msgstr ""
-
-msgid "Condition: If filename matches"
-msgstr ""
-
-msgid "case sensitive"
-msgstr ""
-
-msgid "Save"
-msgstr ""
-
-msgid "Remove"
-msgstr ""
-
-msgid "Condition: If IP address matches"
-msgstr ""
-
-msgid "IP address/mask"
-msgstr ""
-
-msgid "Condition: If file size matches"
-msgstr ""
-
-msgid "Minimum size:"
-msgstr ""
-
-msgid "Maximum size:"
-msgstr ""
-
-msgid "bytes"
-msgstr ""
-
-msgid "Condition: always"
-msgstr ""
-
-msgid ""
-"There is no condition. When this rule is reached, the matching will continue "
-"in the specified target filter. That's also why you can't invert this "
-"condition. If you could, this rule would just be ignored."
-msgstr ""
-
-msgid "Condition: If urn:sha1 matches"
-msgstr ""
-
-msgid "SHA1 hash (not editable, add from search popup)"
-msgstr ""
-
-msgid "Originally obtained from"
-msgstr ""
-
-msgid "Condition: If result has flags"
-msgstr ""
-
-msgid "Busy"
-msgstr ""
-
-msgid "unset"
-msgstr ""
-
-msgid "ignored"
-msgstr ""
-
-msgid "set"
-msgstr ""
-
-msgid "Stable"
-msgstr ""
-
-msgid "Condition: If current filter result properties match"
-msgstr ""
-
-msgid "don't"
-msgstr ""
-
-msgid "undefined"
-msgstr ""
-
-msgid "do"
-msgstr ""
-
-msgid "ignore"
-msgstr ""
-
-msgid "Apply"
-msgstr ""
-
-msgid "Revert"
-msgstr ""
-
-msgid "Ok"
-msgstr ""
-
-msgid "Cancel"
-msgstr ""
-
-msgid "gtk-gnutella shutdown"
-msgstr ""
-
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-
-msgid "About gtk-gnutella"
-msgstr ""
-
-msgid "Original author:"
-msgstr ""
-
-msgid "Core development:"
-msgstr ""
-
-msgid "PARQ development:"
-msgstr ""
-
-msgid "Project leader:"
-msgstr ""
-
-msgid "GUI development:"
-msgstr ""
-
-msgid "Swarming development:"
-msgstr ""
-
-msgid "Vidar Madsen"
-msgstr ""
-
-msgid "Richard Eckart"
-msgstr ""
-
-msgid "Raphael Manfredi"
-msgstr ""
-
-msgid "Yann Grossel"
-msgstr ""
-
-msgid "Jeroen Asselman"
-msgstr ""
-
-msgid "Contributors:"
-msgstr ""
-
-msgid ""
-"==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr ""
-
-msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr ""
-
-msgid "Join the users or developers mailing lists."
-msgstr ""
-
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr ""
-
-msgid ""
-"This product includes GeoIP data created by MaxMind, available from\n"
-"http://maxmind.com/"
-msgstr ""
-
-msgid "_Close"
-msgstr ""
-
-msgid "Copy rule"
-msgstr ""
-
-msgid "Paste rule"
-msgstr ""
-
-msgid "gtk-gnutella: Quit?"
-msgstr ""
-
-msgid "Yes"
-msgstr ""
-
-msgid "No, take me back!"
-msgstr ""
-
-msgid "Please confirm:"
-msgstr ""
-
-msgid "Do you really want to quit?"
-msgstr ""
-
-msgid "Preferences"
-msgstr ""
-
-msgid "IP settings"
-msgstr ""
-
-msgid "Current IP settings (Address:Port):"
-msgstr ""
-
-msgid "not yet determined"
-msgstr ""
-
-msgid "_Listen port"
-msgstr ""
-
-msgid "Public _hostname"
-msgstr ""
-
-msgid "Enable _UDP"
-msgstr ""
-
-msgid "Network protocol:"
-msgstr ""
-
-msgid "(Disable: 0, Random: 1)"
-msgstr ""
-
-msgid "IPv4 settings"
-msgstr ""
-
-msgid "Force external IPv_4 address to"
-msgstr ""
-
-msgid "Bind to this address"
-msgstr ""
-
-msgid "IPv6 settings"
-msgstr ""
-
-msgid "Force external IPv_6 address to"
-msgstr ""
-
-msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
-
-msgid "Proxy settings"
-msgstr ""
-
-msgid "H_ost:"
-msgstr ""
-
-msgid "TCP _Port:"
-msgstr ""
-
-msgid "Proxy _type:"
-msgstr ""
-
-msgid "Use username and password to _authenticate to proxy"
-msgstr ""
-
-msgid "_Username"
-msgstr ""
-
-msgid "Pass_word"
-msgstr ""
-
-msgid "Local networks"
-msgstr ""
-
-msgid "_Try to connect to local networks first"
-msgstr ""
-
-msgid "Allow connections from and to _LAN addresses"
-msgstr ""
-
-msgid ""
-"Enter a semicolon separated list of networks that are local to you in the "
-"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
-"192.168.1.0/255.255.255.0)"
-msgstr ""
-
-msgid "Banning"
-msgstr ""
-
-msgid "Max. file _descriptors reserved"
-msgstr ""
-
-msgid "Max. _percentage of file descriptors"
-msgstr ""
-
-msgid "Hard limit of _file descriptors used"
-msgstr ""
-
-msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr ""
-
-msgid "Currently used"
-msgstr ""
-
-msgid "Use global hostiles.txt"
-msgstr ""
-
-msgid "Clock synchronization"
-msgstr ""
-
-msgid "Host runs _NTP"
-msgstr ""
-
-msgid "Clock skew:"
-msgstr ""
-
-msgid "Miscellaneous"
-msgstr ""
-
-msgid "Enable remote _shell control interface"
-msgstr ""
-
-msgid "Socket receive buffer size"
-msgstr ""
-
-msgid "_Gnutella RX buffer:"
-msgstr ""
-
-msgid "KiB"
-msgstr ""
-
-msgid "_Download RX buffer:"
-msgstr ""
-
-msgid "Network"
-msgstr ""
-
-msgid "Gnutella network mode"
-msgstr ""
-
-msgid "Configured peermode"
-msgstr ""
-
-msgid "Monitor bad node IP addresses"
-msgstr ""
-
-msgid "Monitor and auto-ban unstable servent types"
-msgstr ""
-
-msgid "Ultrapeer mode settings"
-msgstr ""
-
-msgid "Legacy connections"
-msgstr ""
-
-msgid "Maximum # of leaves"
-msgstr ""
-
-msgid "Ultrapeer promotion statistics"
-msgstr ""
-
-msgid "Last check"
-msgstr ""
-
-msgid "Last switch"
-msgstr ""
-
-msgid "Large enough uptime"
-msgstr ""
-
-msgid "Not firewalled"
-msgstr ""
-
-msgid "Enough file descriptors"
-msgstr ""
-
-msgid "Enough physical memory"
-msgstr ""
-
-msgid "Enough available bandwidth"
-msgstr ""
-
-msgid "IP address stability"
-msgstr ""
-
-msgid "Sufficient average uptime"
-msgstr ""
-
-msgid "Enough min # of connections"
-msgstr ""
-
-msgid "Engouh UDP support"
-msgstr ""
-
-msgid "Searches"
-msgstr ""
-
-msgid "Limit search _results to "
-msgstr ""
-
-msgid ""
-"This limits how many results gnutella returns to other people searching your "
-"files."
-msgstr ""
-
-msgid "items"
-msgstr ""
-
-msgid "Default search _reissue timeout"
-msgstr ""
-
-msgid "seconds"
-msgstr ""
-
-msgid "Out of Band Querying"
-msgstr ""
-
-msgid "Queries ask for OOB results"
-msgstr ""
-
-msgid "Honor OOB flag in queries"
-msgstr ""
-
-msgid "Act as OOB proxy for leaves"
-msgstr ""
-
-msgid "Search queue"
-msgstr ""
-
-msgid "Spacing"
-msgstr ""
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr ""
-
-msgid "Connectin_g timeout"
-msgstr ""
-
-msgid "Connected time_out"
-msgstr ""
-
-msgid "T_X flow control timeout"
-msgstr ""
-
-msgid "Incoming connecting timeout"
-msgstr ""
-
-msgid "GnutellaNet TTL settings"
-msgstr ""
-
-msgid "Max _TTL"
-msgstr ""
-
-msgid "M_y TTL"
-msgstr ""
-
-msgid "from _nodes within a"
-msgstr ""
-
-msgid "Max # of _high TTL msg"
-msgstr ""
-
-msgid "H_ard TTL limit"
-msgstr ""
-
-msgid "Amount of tolerable messages above hard TTL limit per node"
-msgstr ""
-
-msgid "Max hard TTL limit (hop+ttl) on message"
-msgstr ""
-
-msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
-msgstr ""
-
-msgid "hops radius"
-msgstr ""
-
-msgid "Quality management"
-msgstr ""
-
-msgid "Ratio of tolerable duplicate messages per _node"
-msgstr ""
-
-msgid "Number of tolerable _duplicate messages per node"
-msgstr ""
-
-msgid "RX flow control ratio"
-msgstr ""
-
-msgid "Watch for similar queries"
-msgstr ""
-
-msgid "Similar query half-life"
-msgstr ""
-
-msgid "Leaf requery threshold"
-msgstr ""
-
-msgid "Connection settings"
-msgstr ""
-
-msgid "Connections reserved for gtk-gnutella nodes"
-msgstr ""
-
-msgid "Max connections allowed per unique vendor"
-msgstr ""
-
-msgid "Other"
-msgstr ""
-
-msgid "Hops random factor"
-msgstr ""
-
-msgid "Clean up queries before processing"
-msgstr ""
-
-msgid "GnutellaNet message size limits"
-msgstr ""
-
-msgid ""
-"Forwarded\n"
-"message"
-msgstr ""
-
-msgid ""
-"Size threshold\n"
-"before kicking"
-msgstr ""
-
-msgid "(not forwarded)"
-msgstr ""
-
-msgid ""
-"Maximum size\n"
-"allowed"
-msgstr ""
-
-msgid "GnutellaNet"
-msgstr ""
-
-msgid "General"
-msgstr ""
-
-msgid "Use _surplus bandwidth"
-msgstr ""
-
-msgid "Prefer _compressed connections"
-msgstr ""
-
-msgid "Use IP _Type of Service (TOS)"
-msgstr ""
-
-msgid "Available bandwidth"
-msgstr ""
-
-msgid "Total input bandwidth limit:"
-msgstr ""
-
-msgid "KiB/s"
-msgstr ""
-
-msgid "Total output bandwidth limit:"
-msgstr ""
-
-msgid "Measured HTTP latency:"
-msgstr ""
-
-msgid "secs"
-msgstr ""
-
-msgid "Bandwidth limits for GnutellaNet traffic"
-msgstr ""
-
-msgid "_Outgoing traffic"
-msgstr ""
-
-msgid "_Incoming traffic"
-msgstr ""
-
-msgid "Ultrapeer mode"
-msgstr ""
-
-msgid "Outgoing traffic to lea_ves"
-msgstr ""
-
-msgid "Incoming traffic from _leaves"
-msgstr ""
-
-msgid "Bandwidth limits for HTTP traffic"
-msgstr ""
-
-msgid "Cumulative _download rate"
-msgstr ""
-
-msgid "Cumulative _upload rate"
-msgstr ""
-
-msgid "Enable dynamic upload slots _allocation"
-msgstr ""
-
-msgid ""
-"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
-"additional upload slots on request."
-msgstr ""
-
-msgid "Report an upload connection _speed of"
-msgstr ""
-
-msgid "What other people see as your connection speed."
-msgstr ""
-
-msgid "kbps to peers"
-msgstr ""
-
-msgid "_Compute upload connection speed"
-msgstr ""
-
-msgid "Bandwidth"
-msgstr ""
-
-msgid "Keep downloading/incomplete files in"
-msgstr ""
-
-msgid "_Browse"
-msgstr ""
-
-msgid "Move completely downloaded files to"
-msgstr ""
-
-msgid "Move corrupted downloaded files to"
-msgstr ""
-
-msgid "Convert spaces to underscores in generated filenames"
-msgstr ""
-
-msgid ""
-"Convert \"evil\" characters (like shell meta characters) to underscores in "
-"generated filenames"
-msgstr ""
-
-msgid ""
-"Apply above conversions, upon startup, to existing files in the downloading "
-"directory"
-msgstr ""
-
-msgid "Resume and retry"
-msgstr ""
-
-msgid "_Overlap when resuming"
-msgstr ""
-
-msgid "Maximum number of _retries"
-msgstr ""
-
-msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr ""
-
-msgid "Amount of bytes to overlap when resuming download"
-msgstr ""
-
-msgid "Source quality"
-msgstr ""
-
-msgid "Optimistic first _chunk"
-msgstr ""
-
-msgid "Require _URN"
-msgstr ""
-
-msgid "Require _server name"
-msgstr ""
-
-msgid "Delays and timeouts (all values in seconds)"
-msgstr ""
-
-msgid "Retry stopped delay"
-msgstr ""
-
-msgid "Retry refused delay"
-msgstr ""
-
-msgid "Retry busy delay"
-msgstr ""
-
-msgid "Retry timeout delay"
-msgstr ""
-
-msgid "Retry timeout max"
-msgstr ""
-
-msgid "Retry timeout min"
-msgstr ""
-
-msgid "_Push sent timeout"
-msgstr ""
-
-msgid "Delay in seconds to wait when running download stops"
-msgstr ""
-
-msgid "Delay in seconds to wait if connection is refused"
-msgstr ""
-
-msgid "Delay in seconds to wait after HTTP busy indication"
-msgstr ""
-
-msgid "Delay in seconds to wait after connection failure"
-msgstr ""
-
-msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr ""
-
-msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr ""
-
-msgid "Number of seconds before timeout for a connecting download"
-msgstr ""
-
-msgid "Number of seconds before timeout for a 'push sent' download"
-msgstr ""
-
-msgid "Number of seconds before timeout for a connected download"
-msgstr ""
-
-msgid "Downloading from multiple sources (swarming)"
-msgstr ""
-
-msgid "Enable s_warming"
-msgstr ""
-
-msgid "A_ggressive mode"
-msgstr ""
-
-msgid "M_inimum chunk size"
-msgstr ""
-
-msgid "Ma_ximum chunk size"
-msgstr ""
-
-msgid "Write buffer size"
-msgstr ""
-
-msgid "Read-ahead buffer"
-msgstr ""
-
-msgid "Strict SHA_1 matching"
-msgstr ""
-
-msgid "Use fu_zzy matching"
-msgstr ""
-
-msgid "Fuzzy threshold"
-msgstr ""
-
-msgid "_Apply fuzzy filter on download mesh entries"
-msgstr ""
-
-msgid "Watch hits for _alternate sources"
-msgstr ""
-
-msgid "_Feed mesh from hits"
-msgstr ""
-
-msgid "Downloads"
-msgstr ""
-
-msgid "_Path(s) to files"
+msgid "_About"
 msgstr ""
 
 msgid "_Add directory"
 msgstr ""
 
-msgid "_Rescan"
+msgid "_Compute upload connection speed"
 msgstr ""
 
-msgid "Files scanned"
+msgid "_Create filter"
 msgstr ""
 
-msgid "Ignore symbolically linked _directories"
+msgid "_Deletion coeff. (0-100)"
 msgstr ""
 
-msgid "Ignore symbolically linked regular _files"
+msgid "_Download RX buffer:"
 msgstr ""
 
-msgid "Search _extensions"
-msgstr ""
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr ""
-
-msgid "Timeouts (all values in seconds)"
-msgstr ""
-
-msgid "Partial File Sharing"
-msgstr ""
-
-msgid "First chunk _size"
-msgstr ""
-
-msgid "Enable upload of _partially downloaded files"
-msgstr ""
-
-msgid "Minimum file size"
-msgstr ""
-
-msgid "Queuing details"
-msgstr ""
-
-msgid "Minimum upload time"
-msgstr ""
-
-msgid "Minimum chunk size"
-msgstr ""
-
-msgid "Use realistic PARQ estimates"
-msgstr ""
-
-msgid "Statistics:"
-msgstr ""
-
-msgid "Library scanning:"
-msgstr ""
-
-msgid "Last scan initiated on:"
-msgstr ""
-
-msgid "File scanning time:"
-msgstr ""
-
-msgid "Query Routing Protocol:"
-msgstr ""
-
-msgid "Indexing started on:"
-msgstr ""
-
-msgid "and lasted"
-msgstr ""
-
-msgid "Table generation started on:"
-msgstr ""
-
-msgid "Patch generation started on:"
-msgstr ""
-
-msgid "Query routing table information:"
-msgstr ""
-
-msgid "Keywords:"
-msgstr ""
-
-msgid "Slots:"
-msgstr ""
-
-msgid "Filled slots:"
-msgstr ""
-
-msgid "Generation:"
-msgstr ""
-
-msgid "Filled ratio:"
-msgstr ""
-
-msgid "Conflict ratio:"
-msgstr ""
-
-msgid "Query routing patch information:"
-msgstr ""
-
-msgid "Raw length:"
-msgstr ""
-
-msgid "Compressed length:"
-msgstr ""
-
-msgid "Compression ratio:"
-msgstr ""
-
-msgid "Show _confirmation dialog when leaving gtk-gnutella"
-msgstr ""
-
-msgid "Show _tooltips (does not affect all tooltips yet)"
-msgstr ""
-
-msgid "Show _metric units"
-msgstr ""
-
-msgid "Toolbar style"
-msgstr ""
-
-msgid "Update search results pane every"
-msgstr ""
-
-msgid "Try to keep 'dead' entries around for"
-msgstr ""
-
-msgid "Expert mode"
-msgstr ""
-
-msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-
-msgid "GnutellaNet display"
-msgstr ""
-
-msgid "Display detailed traffic information"
-msgstr ""
-
-msgid "Detailed traffic information to display"
-msgstr ""
-
-msgid "TX compression"
-msgstr ""
-
-msgid "RX compression"
-msgstr ""
-
-msgid "TX speed"
-msgstr ""
-
-msgid "RX speed"
-msgstr ""
-
-msgid "TX queries"
-msgstr ""
-
-msgid "RX queries"
-msgstr ""
-
-msgid "TX query hits"
-msgstr ""
-
-msgid "RX query hits"
-msgstr ""
-
-msgid "Generated queries"
-msgstr ""
-
-msgid "Pending local queries"
-msgstr ""
-
-msgid "TX dropped"
-msgstr ""
-
-msgid "RX dropped"
-msgstr ""
-
-msgid "QRP stats"
-msgstr ""
-
-msgid "Dup / Bad / Weird"
-msgstr ""
-
-msgid "Ping / Pong round trip"
-msgstr ""
-
-msgid "Library size"
-msgstr ""
-
-msgid "Library # of files"
-msgstr ""
-
-msgid "RX wire bytes"
-msgstr ""
-
-msgid "TX wire bytes"
-msgstr ""
-
-msgid "User Interface"
-msgstr ""
-
-msgid "Property browser"
-msgstr ""
-
-msgid "Property pattern:"
-msgstr ""
-
-msgid "Saved"
-msgstr ""
-
-msgid "Property"
-msgstr ""
-
-msgid "Value"
-msgstr ""
-
-msgid "Selected property:"
-msgstr ""
-
-msgid "<no property selected>"
-msgstr ""
-
-msgid "Min/Max:"
-msgstr ""
-
-msgid "Default value:"
-msgstr ""
-
-msgid "Edit value:"
-msgstr ""
-
-msgid "Diverse properties"
-msgstr ""
-
-msgid "Avg. time between IP address changes:"
-msgstr ""
-
-msgid "Avg. uptime of this servent:"
-msgstr ""
-
-msgid "Available physical memory:"
-msgstr ""
-
-msgid "Debugging"
-msgstr ""
-
-msgid "gtk-gnutella - Frequently Asked Questions"
-msgstr ""
-
-msgid "Frequently Asked Questions:"
-msgstr ""
-
-msgid "_Stop this search"
-msgstr ""
-
-msgid "Resu_me this search"
-msgstr ""
-
-msgid "_Restart this search"
+msgid "_Download selected"
 msgstr ""
 
 msgid "_Duplicate this search"
 msgstr ""
 
-msgid "_Close this search"
+msgid "_FAQ"
 msgstr ""
 
-msgid "Country"
+msgid "_Feed mesh from hits"
 msgstr ""
 
-msgid "Failed to create the search"
+msgid "_File"
+msgstr ""
+
+msgid "_General"
+msgstr ""
+
+msgid "_Gnutella RX buffer:"
+msgstr ""
+
+msgid "_Gnutella traffic stats"
+msgstr ""
+
+msgid "_HTTP traffic stats"
+msgstr ""
+
+msgid "_Help"
+msgstr ""
+
+msgid "_Hide downloaded files"
+msgstr ""
+
+msgid "_Horizon"
+msgstr ""
+
+msgid "_Include headers"
+msgstr ""
+
+msgid "_Incoming traffic"
+msgstr ""
+
+msgid "_Listen port"
+msgstr ""
+
+msgid "_Outgoing traffic"
+msgstr ""
+
+msgid "_Overlap when resuming"
+msgstr ""
+
+msgid "_Passive"
+msgstr ""
+
+msgid "_Path(s) to files"
+msgstr ""
+
+msgid "_Preferences"
+msgstr ""
+
+msgid "_Push sent timeout"
+msgstr ""
+
+msgid "_Remove manually downloaded files"
+msgstr ""
+
+msgid "_Rescan"
+msgstr ""
+
+msgid "_Restart this search"
+msgstr ""
+
+msgid "_Stop this search"
+msgstr ""
+
+msgid "_Try to connect to local networks first"
+msgstr ""
+
+msgid "_Update interval (sec)"
+msgstr ""
+
+msgid "_Username"
+msgstr ""
+
+msgid "_View"
+msgstr ""
+
+msgid "_auto-hide leaf traffic stats"
+msgstr ""
+
+msgid "case sensitive"
+msgstr ""
+
+msgid "case-sensitive"
+msgstr ""
+
+msgid "downloads"
+msgstr ""
+
+msgid "enabled"
+msgstr ""
+
+msgid "from _nodes within a"
+msgstr ""
+
+msgid "gtk-gnutella shutdown"
+msgstr ""
+
+msgid "gtk-gnutella"
+msgstr ""
+
+msgid "gtk-gnutella: Quit?"
+msgstr ""
+
+msgid "hops radius"
+msgstr ""
+
+msgid "items"
+msgstr ""
+
+msgid "kbps to peers"
+msgstr ""
+
+msgid "not yet determined"
+msgstr ""
+
+msgid "searches"
+msgstr ""
+
+msgid "secs   "
+msgstr ""
+
+msgid "secs"
+msgstr ""
+
+msgid "show Gnet _incoming traffic"
+msgstr ""
+
+msgid "show Gnet _outgoing traffic"
+msgstr ""
+
+msgid "show HTTP _incoming traffic"
+msgstr ""
+
+msgid "show HTTP _outgoing traffic"
+msgstr ""
+
+msgid "show Search_bar"
+msgstr ""
+
+msgid "show _Connections"
+msgstr ""
+
+msgid "show _Downloads"
+msgstr ""
+
+msgid "show _Menubar"
+msgstr ""
+
+msgid "show _Sidebar"
+msgstr ""
+
+msgid "show _Statusbar"
+msgstr ""
+
+msgid "show _Uploads"
+msgstr ""
+
+msgid "show leaf _incoming traffic"
+msgstr ""
+
+msgid "show leaf _outgoing traffic"
+msgstr ""
+
+msgid "uploads"
+msgstr ""
+
+msgid "Host"
+msgstr ""
+
+msgid "Flags"
+msgstr ""
+
+msgid "User-Agent"
+msgstr ""
+
+msgid "Uptime"
 msgstr ""
 
 msgid "owned"
@@ -5781,6 +5468,9 @@ msgid_plural "Discarded %u results"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "File"
+msgstr ""
+
 msgid "Extension"
 msgstr ""
 
@@ -5788,6 +5478,9 @@ msgid "Encoding"
 msgstr ""
 
 msgid "#"
+msgstr ""
+
+msgid "Loc"
 msgstr ""
 
 msgid "Metadata"
@@ -5811,9 +5504,6 @@ msgstr ""
 msgid "Hostile"
 msgstr ""
 
-msgid "SHA-1"
-msgstr ""
-
 msgid "Created"
 msgstr ""
 
@@ -5830,12 +5520,6 @@ msgid "Passive"
 msgstr ""
 
 #, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr ""
 
@@ -5846,43 +5530,73 @@ msgstr ""
 msgid " (partial)"
 msgstr ""
 
-#, c-format
-msgid " (slot %u"
+msgid "Range"
 msgstr ""
 
-#, c-format
-msgid " retry in %us"
+msgid "Type"
 msgstr ""
 
-#, c-format
-msgid "Sending request (%u%%)"
+msgid "Count"
 msgstr ""
-
-msgid "Uploaded"
-msgstr ""
-
-msgid "Aliases"
-msgstr ""
-
-#, c-format
-msgid "Selected %u of %u download matching \"%s\"."
-msgid_plural "Selected %u of %u downloads matching \"%s\"."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Cache contains"
+msgstr ""
+
+msgid "Hits"
+msgstr ""
+
+msgid "Copy magnet to clipboard"
+msgstr ""
+
+msgid "Start now"
 msgstr ""
 
 msgid "Pause"
 msgstr ""
 
-msgid "Copy Magnet to clipboard"
+msgid "Resume"
 msgstr ""
 
-msgid "Download selected files"
+msgid "Move back to queue"
+msgstr ""
+
+msgid "Abort"
+msgstr ""
+
+msgid "Configure columns"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "Bitzi metadata"
+msgstr ""
+
+msgid "with the same name"
+msgstr ""
+
+msgid "with the same urn:sha1"
+msgstr ""
+
+msgid "from the same host"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Restart"
+msgstr ""
+
+msgid "Expand all"
+msgstr ""
+
+msgid "Collapse all"
 msgstr ""
 
 msgid "Copy to clipboard"
+msgstr ""
+
+msgid "Browse Host"
 msgstr ""
 
 msgid "_Remove filter"
@@ -5895,16 +5609,44 @@ msgid ""
 "Grace time remaining:"
 msgstr ""
 
-msgid "Gnet _traffic stats"
+msgid "_Close"
 msgstr ""
 
-msgid "_Keyboard shortcuts"
+msgid "_Quit"
+msgstr ""
+
+msgid "show _Peers"
+msgstr ""
+
+msgid "Gnutella _traffic stats"
+msgstr ""
+
+msgid "_Search"
+msgstr ""
+
+msgid "Uploads"
+msgstr ""
+
+msgid "Downloads"
+msgstr ""
+
+msgid "Click to toggle display."
+msgstr ""
+
+msgid ""
+"Your uploads are stalling at an abnormal rate, indicating that your "
+"bandwidth is probably saturated. You should not run as an ultra node, and "
+"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
+"both your incoming and outgoing paths."
 msgstr ""
 
 msgid "Connect to"
 msgstr ""
 
 msgid "ultrapeers"
+msgstr ""
+
+msgid "Disconnect"
 msgstr ""
 
 msgid "Try to keep at least"
@@ -5930,9 +5672,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr ""
 
-msgid "Uploaded data:"
-msgstr ""
-
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr ""
 
@@ -5940,6 +5679,9 @@ msgid "Served "
 msgstr ""
 
 msgid "[BH HTML served]"
+msgstr ""
+
+msgid " / "
 msgstr ""
 
 msgid "[BH HTML]"
@@ -5951,13 +5693,31 @@ msgstr ""
 msgid "Current _search:"
 msgstr ""
 
-msgid "XML Metadata"
+msgid "_Edit filters"
+msgstr ""
+
+msgid "_Clear results"
+msgstr ""
+
+msgid "_Reset stats"
+msgstr ""
+
+msgid "_Messages"
 msgstr ""
 
 msgid "Flow _control"
 msgstr ""
 
 msgid "_Received"
+msgstr ""
+
+msgid "Downloaded data:"
+msgstr ""
+
+msgid "Uploaded data:"
+msgstr ""
+
+msgid "File transfers"
 msgstr ""
 
 msgid "_Columns show hops"
@@ -5969,16 +5729,55 @@ msgstr ""
 msgid "Show reasons _for"
 msgstr ""
 
-msgid "Gnutella stats"
+msgid "invert condition"
+msgstr ""
+
+msgid "active"
+msgstr ""
+
+msgid "mark only"
+msgstr ""
+
+msgid "Save"
 msgstr ""
 
 msgid "Delete"
 msgstr ""
 
+msgid "bytes"
+msgstr ""
+
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr ""
 
+msgid "ignored"
+msgstr ""
+
+msgid "unset"
+msgstr ""
+
+msgid "set"
+msgstr ""
+
+msgid "don't"
+msgstr ""
+
+msgid "undefined"
+msgstr ""
+
+msgid "do"
+msgstr ""
+
+msgid "ignore"
+msgstr ""
+
 msgid "Reverse DNS lookup"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Network"
 msgstr ""
 
 msgid "Force external IPv4 address to"
@@ -5993,6 +5792,9 @@ msgstr ""
 msgid "Force external IPv6 address to"
 msgstr ""
 
+msgid "Bind to this address"
+msgstr ""
+
 msgid "IPv_6 settings"
 msgstr ""
 
@@ -6004,10 +5806,16 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr ""
 
-msgid "Enough UDP support"
+msgid "Local networks"
+msgstr ""
+
+msgid "Miscellaneous"
 msgstr ""
 
 msgid "seconds (0 - disable)"
+msgstr ""
+
+msgid "Searches"
 msgstr ""
 
 msgid "slots"
@@ -6016,7 +5824,22 @@ msgstr ""
 msgid "unit_of_time|s"
 msgstr ""
 
+msgid "Connectin_g timeout"
+msgstr ""
+
+msgid "Connected time_out"
+msgstr ""
+
 msgid "Maximum percentage of connection slots a vendor can occupy."
+msgstr ""
+
+msgid "KiB/s"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "_Browse"
 msgstr ""
 
 msgid "attempts"
@@ -6025,15 +5848,37 @@ msgstr ""
 msgid "_Remove directory"
 msgstr ""
 
-msgid "E_xpose relative paths"
-msgstr ""
-
 msgid "Minimum chunk _size"
 msgstr ""
 
-msgid ""
-"Erases all selected files as far as they are incomplete and discontinues the "
-"download of the selected files."
+msgid "and lasted"
+msgstr ""
+
+msgid "seconds"
+msgstr ""
+
+msgid "<no property selected>"
+msgstr ""
+
+msgid "_Stop"
+msgstr ""
+
+msgid "Resu_me"
+msgstr ""
+
+msgid "_Restart"
+msgstr ""
+
+msgid "_Duplicate"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Select files by regex"
+msgstr ""
+
+msgid "Filter files by regex"
 msgstr ""
 
 msgid "Remove completed downloads from list"
@@ -6042,10 +5887,10 @@ msgstr ""
 msgid "_Clear completed"
 msgstr ""
 
-msgid "Select all matching regex"
+msgid "Tools"
 msgstr ""
 
-msgid "Downloaded data:"
+msgid ", "
 msgstr ""
 
 msgid "Version"
@@ -6063,6 +5908,12 @@ msgstr ""
 msgid "outgoing"
 msgstr ""
 
+msgid "Country:"
+msgstr ""
+
+msgid "Vendor:"
+msgstr ""
+
 msgid "Move the cursor over a row to see details."
 msgstr ""
 
@@ -6073,7 +5924,19 @@ msgstr ""
 msgid "Reverse lookup in progress..."
 msgstr ""
 
-msgid "The normalized search text is too short."
+msgid "Search"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+#, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Done"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6092,24 +5955,6 @@ msgid "Unstable"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
-
-msgid "Stats"
-msgstr ""
-
-msgid "Hostcache"
-msgstr ""
-
-msgid "History"
-msgstr ""
-
-msgid "Active"
-msgstr ""
-
-msgid "Queue"
-msgstr ""
-
-msgid "Monitor"
 msgstr ""
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
@@ -6134,6 +5979,12 @@ msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "in"
+msgstr ""
+
+msgid "out"
+msgstr ""
 
 msgid "(avg)"
 msgstr ""
@@ -6268,31 +6119,31 @@ msgstr ""
 msgid "Could not launch browse host for %s"
 msgstr ""
 
+msgid "No"
+msgstr ""
+
+msgid "Maybe"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Index"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
 msgid "Bitzi URL"
 msgstr ""
 
 msgid "ShareMonkey URL"
 msgstr ""
 
-msgid "Index"
-msgstr ""
-
-msgid "No"
-msgstr ""
-
-msgid "Pathname"
-msgstr ""
-
-msgid "File URL"
-msgstr ""
-
-msgid "Source"
-msgstr ""
-
-msgid "Browsable"
-msgstr ""
-
-msgid "Maybe"
+msgid "Host information"
 msgstr ""
 
 msgid "Hostname"
@@ -6301,13 +6152,28 @@ msgstr ""
 msgid "Servent ID"
 msgstr ""
 
-msgid "Alt-Locs"
+msgid "Browsable"
 msgstr ""
 
 msgid "Push-proxies"
 msgstr ""
 
+msgid "Packet information"
+msgstr ""
+
+msgid "Pathname"
+msgstr ""
+
+msgid "File URL"
+msgstr ""
+
+msgid "URLs"
+msgstr ""
+
 msgid "N2R URI"
+msgstr ""
+
+msgid "Push URL"
 msgstr ""
 
 msgid "Classic URL"
@@ -6317,6 +6183,15 @@ msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
+msgstr ""
+
+msgid "The normalized search text is too long."
+msgstr ""
+
+msgid "The normalized search text is too short."
+msgstr ""
+
+msgid "The URN in the search text is invalid."
 msgstr ""
 
 msgid "Never"

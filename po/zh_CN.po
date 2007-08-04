@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-07-13 05:13+0900\n"
+"POT-Creation-Date: 2007-08-04 20:35+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -192,6 +192,43 @@ msgstr ""
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "中止的数据 (EOF)"
 
+#, c-format
+msgid "Downloading (TR: %s)"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "failed"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for SHA1 check"
+msgstr "等待一个自由的块"
+
+msgid "Computing SHA1"
+msgstr ""
+
+#, fuzzy
+msgid "Moving"
+msgstr "正删除"
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Finished"
+msgstr ""
+
+msgid "No sources"
+msgstr ""
+
+#, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""
+
 msgid "Bad size"
 msgstr "大小错误"
 
@@ -299,6 +336,9 @@ msgstr ""
 #, fuzzy
 msgid "Own search results"
 msgstr "将搜索结果限制为(_r)"
+
+msgid "Ancient query format"
+msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -625,9 +665,6 @@ msgstr ""
 
 msgid "Malformed command"
 msgstr "命令有误"
-
-msgid "OK"
-msgstr ""
 
 msgid "Unknown command"
 msgstr "未知命令"
@@ -1278,6 +1315,10 @@ msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
 msgstr "自动清除不可用的下载。(由于连接超时，push路由丢失等)"
+
+#, fuzzy
+msgid "Auto clear finished downloads"
+msgstr "自动清除已下载完毕的项目。"
 
 msgid "Remove downloaded files from the search result."
 msgstr "从搜索结果中去掉已下载的文件。"
@@ -2140,9 +2181,6 @@ msgstr "动态查询的debug级别。"
 msgid "Debug level for push-proxy code."
 msgstr "用于HTTP代码的debug级别。"
 
-msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
-
 msgid "Number of THEX file requests received in this session."
 msgstr ""
 
@@ -2256,10 +2294,10 @@ msgstr ""
 msgid "Maximum number of queries visible in search monitor."
 msgstr ""
 
-msgid "Match queue selection by regexp case sensitive."
+msgid "Select downloads by regex case-sensitive."
 msgstr ""
 
-msgid "Match fileinfo selection by regexp case sensitive."
+msgid "Filter downloads by regex case-sensitive."
 msgstr ""
 
 msgid ""
@@ -2286,6 +2324,12 @@ msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
+msgstr ""
+
+msgid "Visibility of the columns in the file info table."
+msgstr ""
+
+msgid "Widths of the columns in the sources table."
 msgstr ""
 
 msgid "Widths of the columns in the search list on the sidebar."
@@ -2354,9 +2398,6 @@ msgstr ""
 msgid "Position of the divider in the Gnet stats pane."
 msgstr ""
 
-msgid "Size of the menu in the sidebar."
-msgstr ""
-
 msgid "Position of the divider in the search results pane."
 msgstr ""
 
@@ -2384,11 +2425,9 @@ msgstr "正显示"
 msgid "Display Sidebar."
 msgstr "正显示"
 
-msgid "Display Navigation Tree."
-msgstr ""
-
-msgid "Display toolbar."
-msgstr ""
+#, fuzzy
+msgid "Display Menu."
+msgstr "正显示"
 
 msgid "Display statusbar."
 msgstr ""
@@ -3389,6 +3428,10 @@ msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
 msgstr[0] ""
 
+#, c-format
+msgid "%s (%s bytes)"
+msgstr ""
+
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
 msgstr ""
@@ -3453,6 +3496,157 @@ msgstr ""
 
 msgid "No other data"
 msgstr ""
+
+msgid "Filename"
+msgstr ""
+
+msgid "SHA-1"
+msgstr ""
+
+msgid "Bitprint"
+msgstr ""
+
+msgid "Queued"
+msgstr ""
+
+#, c-format
+msgid " (slot %u"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ""
+
+#, c-format
+msgid " retry in %us"
+msgstr ""
+
+msgid "Complete"
+msgstr ""
+
+msgid "Connecting..."
+msgstr ""
+
+msgid "Push sent directly"
+msgstr ""
+
+msgid "Push sent"
+msgstr ""
+
+msgid "Failed to send push"
+msgstr ""
+
+msgid "Sending push"
+msgstr ""
+
+#, c-format
+msgid " via %s"
+msgstr ""
+
+msgid "Connecting"
+msgstr ""
+
+msgid "Sending request"
+msgstr ""
+
+msgid "Request sent"
+msgstr ""
+
+msgid "Reading headers"
+msgstr ""
+
+msgid "Falling back to push"
+msgstr ""
+
+#, c-format
+msgid "Sending request (%u%%)"
+msgstr ""
+
+msgid "Receiving headers"
+msgstr ""
+
+msgid "Aborted (Server down)"
+msgstr ""
+
+msgid "Aborted"
+msgstr ""
+
+msgid "Completed"
+msgstr ""
+
+msgid "Chunk done"
+msgstr ""
+
+msgid "Waiting for SHA1 checking..."
+msgstr ""
+
+#, c-format
+msgid "Computing SHA1 (%.02f%%)"
+msgstr ""
+
+msgid "SHA-1 OK"
+msgstr ""
+
+msgid "SHA-1 MISMATCH"
+msgstr ""
+
+msgid "SHA-1 calculated"
+msgstr ""
+
+msgid "SHA-1 VERIFICATION FAILED"
+msgstr ""
+
+msgid "; Waiting for moving..."
+msgstr ""
+
+#, c-format
+msgid "; Moving (%.02f%%)"
+msgstr ""
+
+#, c-format
+msgid "; Moved (%s) %s"
+msgstr ""
+
+msgid "(stalled)"
+msgstr ""
+
+msgid "Connected"
+msgstr ""
+
+#, fuzzy
+msgid "ignoring"
+msgstr "流入："
+
+msgid "Unknown error"
+msgstr ""
+
+#, c-format
+msgid "Retry in %us"
+msgstr ""
+
+#, c-format
+msgid "Sinking (%s bytes left)"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Forgot %u download"
+msgid_plural "Forgot %u downloads"
+msgstr[0] "下载 %1$u/%2$u"
+
+#, fuzzy
+msgid "Active"
+msgstr "%u 个活动"
+
+msgid "Incomplete"
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+#, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] ""
 
 msgid "starts with"
 msgstr ""
@@ -3791,753 +3985,36 @@ msgstr ""
 msgid "Please choose a directory to share"
 msgstr ""
 
-msgid "no size"
-msgstr ""
-
-#, c-format
-msgid "%u host"
-msgid_plural "%u hosts"
-msgstr[0] ""
-
-msgid "Queued"
-msgstr ""
-
-#, c-format
-msgid " (slot %d"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ""
-
-#, c-format
-msgid " retry in %ds"
-msgstr ""
-
-msgid "Connecting..."
-msgstr ""
-
-msgid "Push sent directly"
-msgstr ""
-
-msgid "Push sent"
-msgstr ""
-
-msgid "Failed to send push"
-msgstr ""
-
-msgid "Sending push"
-msgstr ""
-
-#, c-format
-msgid " via %s"
-msgstr ""
-
-msgid "Connecting"
-msgstr ""
-
-msgid "Sending request"
-msgstr ""
-
-msgid "Request sent"
-msgstr ""
-
-msgid "Reading headers"
-msgstr ""
-
-msgid "Falling back to push"
-msgstr ""
-
-#, c-format
-msgid "Sending request (%d%%)"
-msgstr ""
-
-msgid "Receiving headers"
-msgstr ""
-
-msgid "Aborted (Server down)"
-msgstr ""
-
-msgid "Aborted"
-msgstr ""
-
-msgid "Completed"
-msgstr ""
-
-msgid "Chunk done"
-msgstr ""
-
-msgid "Waiting for SHA1 checking..."
-msgstr ""
-
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
-msgstr ""
-
-msgid "; Waiting for moving..."
-msgstr ""
-
-#, c-format
-msgid "; Moving (%.02f%%)"
-msgstr ""
-
-#, c-format
-msgid "; Moved (%s) %s"
-msgstr ""
-
-msgid "(stalled)"
-msgstr ""
-
-#, c-format
-msgid " [%d/%d] TR: %s"
-msgstr ""
-
-#, fuzzy
-msgid "ignoring"
-msgstr "流入："
-
-msgid "Connected"
-msgstr ""
-
-msgid "Unknown error"
-msgstr ""
-
-#, c-format
-msgid "Retry in %us"
-msgstr ""
-
-#, c-format
-msgid "Sinking (%s bytes left)"
-msgstr ""
-
-msgid "Complete"
-msgstr ""
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  %s"
-msgstr ""
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  -"
-msgstr ""
-
-#, fuzzy, c-format
-msgid "Removed %u download"
-msgid_plural "Removed %u downloads"
-msgstr[0] "下载 %1$u/%2$u"
-
-#, fuzzy, c-format
-msgid "Forgot %u download"
-msgid_plural "Forgot %u downloads"
-msgstr[0] "下载 %1$u/%2$u"
-
-#, c-format
-msgid "Selected %u of %u queued download matching \"%s\"."
-msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] ""
-
-#, c-format
-msgid "Downloading (%s)  TR: %s"
-msgstr ""
-
-msgid "Seeding"
-msgstr ""
-
-msgid "Finished"
-msgstr ""
-
-msgid "failed"
-msgstr ""
-
-#, fuzzy
-msgid "Waiting for SHA1 check"
-msgstr "等待一个自由的块"
-
-msgid "Computing SHA1"
-msgstr ""
-
-#, fuzzy
-msgid "Moving"
-msgstr "正删除"
-
-msgid "No sources"
-msgstr ""
-
-#, c-format
-msgid "Queued (%d active, %d passive)"
-msgstr ""
-
-msgid "Waiting"
-msgstr ""
-
-msgid "<none>"
-msgstr ""
-
-#, c-format
-msgid "%s (%s bytes)"
-msgstr ""
-
-msgid "_File"
-msgstr ""
-
-#, fuzzy
-msgid "_GnutellaNet"
-msgstr "Gnutella RX 缓冲(_G)："
-
-#, fuzzy
-msgid "_Stats"
-msgstr "#|状态"
-
-msgid "_Hostcache"
-msgstr ""
-
-msgid "_Preferences"
-msgstr ""
-
-msgid "_Quit"
-msgstr ""
-
-msgid "_Uploads"
-msgstr ""
-
-msgid "_Transfers"
-msgstr ""
-
-#, fuzzy
-msgid "_History"
-msgstr "历史"
-
-#, fuzzy
-msgid "_Downloads"
-msgstr "已下载数据："
-
-#, fuzzy
-msgid "_Files"
-msgstr "文件"
-
-#, fuzzy
-msgid "_Active"
-msgstr "%u 个活动"
-
-#, fuzzy
-msgid "_Queue"
-msgstr "队列"
-
-msgid "_Search"
-msgstr "搜索 (_S)"
-
-msgid "_Results"
-msgstr ""
-
-msgid "_Monitor"
-msgstr ""
-
-#, fuzzy
-msgid "S_tats"
-msgstr "#|状态"
-
-msgid "_View"
-msgstr ""
-
-msgid "show Search_bar"
-msgstr ""
-
-msgid "show _Toolbar"
-msgstr ""
-
-msgid "show _Sidebar"
-msgstr ""
-
-msgid "show _Navigation Tree"
-msgstr ""
-
-msgid "show _Downloads"
-msgstr ""
-
-msgid "show _Uploads"
-msgstr ""
-
-msgid "show _Connections"
-msgstr ""
-
-msgid "_HTTP traffic stats"
-msgstr ""
-
-msgid "show HTTP _incoming traffic"
-msgstr ""
-
-msgid "show HTTP _outgoing traffic"
-msgstr ""
-
-msgid "_Gnet traffic stats"
-msgstr ""
-
-msgid "show Gnet _incoming traffic"
-msgstr ""
-
-msgid "show Gnet _outgoing traffic"
-msgstr ""
-
-msgid "Gnet _leaf traffic stats"
-msgstr ""
-
-msgid "_auto-hide leaf traffic stats"
-msgstr ""
-
-msgid "show leaf _incoming traffic"
-msgstr ""
-
-msgid "show leaf _outgoing traffic"
-msgstr ""
-
-msgid "show _Statusbar"
-msgstr ""
-
-msgid "_Help"
-msgstr "帮助 (_H)"
-
-msgid "_About"
-msgstr ""
-
-msgid "Frequently Asked Questions"
-msgstr ""
-
-msgid "_FAQ"
-msgstr ""
-
-msgid "Navigator"
-msgstr ""
-
-msgid "Search"
-msgstr ""
-
-msgid "Hits"
-msgstr ""
-
-msgid "New"
-msgstr ""
-
-msgid "Gnet connections"
-msgstr ""
-
-msgid "%v/%u Gnet nodes"
-msgstr ""
-
-msgid "uploads"
-msgstr ""
-
-msgid "%v/%u uploads"
-msgstr ""
-
-msgid "downloads"
-msgstr ""
-
-msgid "%v/%u downloads"
-msgstr ""
-
-msgid "HTTP traffic"
-msgstr ""
-
-msgid "Click to toggle display."
-msgstr ""
-
-msgid "in"
-msgstr ""
-
-msgid "out"
-msgstr ""
-
-msgid "GnutellaNet traffic"
-msgstr ""
-
-msgid "Leaf traffic"
-msgstr ""
-
-msgid "A passive search matches any search results routed through this node"
-msgstr ""
-
-msgid "_Passive"
-msgstr ""
-
-msgid "GnutellaNet connections"
-msgstr ""
-
-msgid "Host"
-msgstr ""
-
-msgid "Loc"
-msgstr ""
-
-msgid "Flags"
-msgstr ""
-
-msgid "User-Agent"
-msgstr ""
-
-msgid "Ver"
-msgstr ""
-
-msgid "Connected time"
-msgstr ""
-
-msgid "Uptime"
-msgstr ""
-
-msgid "Info"
-msgstr ""
-
-msgid "Disconnect from selected nodes"
-msgstr ""
-
-msgid "Disconnect"
-msgstr ""
-
-msgid "Try to connect to specified address"
-msgstr ""
-
-msgid "Add"
-msgstr ""
-
-msgid "Minimum"
-msgstr ""
-
-msgid "Maximum"
-msgstr ""
-
-msgid "Ultrapeers in leaf mode"
-msgstr ""
-
-msgid "Quick-connect pool size"
-msgstr ""
-
-msgid "Transferred data"
-msgstr ""
-
-msgid "Uploaded:"
-msgstr ""
-
-msgid "Downloaded:"
-msgstr ""
-
-msgid "Chunks/Files:"
-msgstr ""
-
-msgid "Volume:"
-msgstr ""
-
-msgid "Local node"
-msgstr ""
-
-msgid "GUID:"
-msgstr ""
-
-msgid "IP:Port:"
-msgstr ""
-
-msgid ""
-"The current IP address and listening port for this node. To change these go "
-"to File->Preferences->Network."
-msgstr ""
-
-msgid "Message/flow control stats"
-msgstr ""
-
-msgid "Type"
-msgstr ""
-
-msgid "Count"
-msgstr ""
-
-msgid "Reason"
-msgstr ""
-
-msgid "_General"
-msgstr ""
-
-msgid "FC/_TTL"
-msgstr ""
-
-msgid "FC/_hops"
-msgstr ""
-
-msgid "Received"
-msgstr ""
-
-msgid "Expired"
-msgstr ""
-
-msgid "Dropped"
-msgstr ""
-
-msgid "Relayed"
-msgstr ""
-
-msgid "Gen. queued"
-msgstr ""
-
-msgid "Gen. sent"
-msgstr ""
-
-msgid "_Messages"
-msgstr ""
-
-msgid "_Horizon"
-msgstr ""
-
-#, fuzzy
-msgid "Show _bytes"
-msgstr "字节"
-
-msgid "Show _percentages"
-msgstr ""
-
-msgid "_Include headers"
-msgstr ""
-
-msgid "Show pr_otocol:"
-msgstr ""
-
-msgid "Show r_easons for"
-msgstr ""
-
-msgid "Hostcache statistics"
-msgstr ""
-
-msgid "Cache"
-msgstr ""
-
-msgid "Hosts"
-msgstr ""
-
-msgid "Misses"
-msgstr ""
-
-msgid "Hostcache capacity"
-msgstr ""
-
-msgid "%v/%u (%P%%)"
-msgstr ""
-
-msgid "Regular hosts"
-msgstr ""
-
-msgid "Clear"
-msgstr ""
-
-msgid "Ultrapeers"
-msgstr ""
-
-msgid "Bad hosts"
-msgstr ""
-
-msgid "Uploads"
-msgstr ""
-
-msgid "Filename"
-msgstr ""
-
-msgid "Range"
-msgstr ""
-
 msgid "Progress"
+msgstr ""
+
+msgid "RX"
+msgstr ""
+
+#, fuzzy
+msgid "Downloaded"
+msgstr "节点已增加"
+
+#, fuzzy
+msgid "Uploaded"
+msgstr "已上传数据："
+
+msgid "Sources"
 msgstr ""
 
 msgid "Status"
 msgstr ""
 
-msgid "Abort and remove all selected uploads"
-msgstr ""
-
-msgid " Kill selected "
-msgstr ""
-
-msgid "Clear already completed uploads from list"
-msgstr ""
-
 msgid " Clear completed "
-msgstr ""
-
-msgid "Auto clear completed uploads"
-msgstr ""
-
-msgid "Auto clear failed uploads"
-msgstr ""
-
-msgid "Max. simultaneous uploads"
-msgstr ""
-
-msgid "Max. uploads to a single host"
-msgstr ""
-
-msgid "Upload history"
-msgstr ""
-
-msgid "Attempts"
-msgstr ""
-
-msgid "Normalized"
-msgstr ""
-
-msgid "Clear non-existent files"
-msgstr "清除不存在的文件"
-
-msgid "Clear all"
-msgstr ""
-
-msgid "Fully served "
-msgstr ""
-
-msgid " / "
-msgstr ""
-
-msgid " HTML and "
 msgstr ""
 
 msgid " Gnutella browse requests"
 msgstr ""
 
-msgid "Files to get"
+msgid " HTML and "
 msgstr ""
 
-msgid "File"
-msgstr ""
-
-msgid "Done"
-msgstr ""
-
-msgid "Sources"
-msgstr ""
-
-#, fuzzy
-msgid "Filename filter:"
-msgstr "#|文件名"
-
-msgid "case-sensitive"
-msgstr ""
-
-msgid "Detail information"
-msgstr ""
-
-msgid "Progress:"
-msgstr ""
-
-msgid "Size:"
-msgstr ""
-
-msgid "Filename:"
-msgstr ""
-
-msgid ""
-"Shows visual information on the download progress. Green chunks have been "
-"downloaded, with the brighter green chunks touched during this session. "
-"Yellow chunks are active right now; these active chunks are also marked with "
-"a triangle. Red chunks have not been downloaded yet. The blue line indicates "
-"which parts of the file have been seen on the network in this session."
-msgstr ""
-
-msgid "SHA1:"
-msgstr ""
-
-msgid "Alternate filenames"
-msgstr ""
-
-msgid "_Purge selected"
-msgstr ""
-
-msgid " registered, "
-msgstr ""
-
-msgid " with sources"
-msgstr ""
-
-msgid "Active sources"
-msgstr ""
-
-msgid "Server"
-msgstr ""
-
-msgid "Download settings"
-msgstr ""
-
-msgid "Never send a push request"
-msgstr ""
-
-msgid "Delete file on abort"
-msgstr ""
-
-msgid "Remove file on mismatch"
-msgstr ""
-
-msgid "Bytes to back off on mismatch"
-msgstr ""
-
-msgid "Max. downloads from single host"
-msgstr ""
-
-msgid "Max. simultaneous downloads"
-msgstr ""
-
-msgid "Max. simultaneous downloads per file"
-msgstr ""
-
-msgid "Auto clear stopped downloads"
-msgstr ""
-
-msgid "Failed"
-msgstr ""
-
-msgid "Unavailable"
-msgstr ""
-
-msgid "Abort all selected downloads"
-msgstr ""
-
-msgid "_Abort selected"
-msgstr ""
-
-msgid "Resume all selected downloads"
-msgstr ""
-
-msgid "_Resume selected"
-msgstr ""
-
-msgid "Clear completed, failed and unavailable downloads from list"
-msgstr ""
-
-msgid "Clear stopped"
-msgstr ""
-
-msgid "("
-msgstr ""
-
-msgid "active"
-msgstr ""
-
-msgid ", "
-msgstr ""
-
-msgid "queued"
-msgstr ""
-
-msgid ")"
-msgstr ""
-
-msgid "Show settings"
-msgstr ""
-
-msgid "Inactive sources"
-msgstr ""
-
-msgid "Select"
-msgstr ""
-
-msgid "Freeze queue"
-msgstr ""
-
-msgid "Thaw queue"
-msgstr ""
-
-msgid " queued ("
+msgid " Kill selected "
 msgstr ""
 
 msgid " alive with "
@@ -4546,162 +4023,888 @@ msgstr ""
 msgid " passive)"
 msgstr ""
 
-msgid "Search results"
+msgid " queued ("
 msgstr ""
 
-msgid "Current search:"
+msgid " registered, "
 msgstr ""
 
-msgid "Cl_ose search"
+msgid " with sources"
 msgstr ""
+
+msgid "%v/%u Gnet nodes"
+msgstr ""
+
+msgid "%v/%u downloads"
+msgstr ""
+
+msgid "%v/%u uploads"
+msgstr ""
+
+#, fuzzy
+msgid "(Disable: 0, Random: 1)"
+msgstr "禁用：0，随机：1"
 
 msgid "(no search)"
 msgstr ""
 
-msgid "General search settings (affect all searches)"
-msgstr ""
-
-msgid "Max. _number of results"
-msgstr ""
-
-msgid "Ignored files are"
-msgstr ""
-
-msgid "Case-sensitive sorting"
-msgstr ""
-
-msgid "_Hide downloaded files"
-msgstr ""
-
-msgid "_Remove manually downloaded files"
-msgstr ""
-
-msgid "Max. number of browse host results"
-msgstr ""
-
-msgid "Copy browse-host results to passive searches"
-msgstr ""
-
-msgid "Discard spam"
-msgstr ""
-
-msgid "Discard results without SHA-1 hashes"
-msgstr ""
-
-msgid "Information about selected file"
-msgstr ""
-
-msgid "Index:"
-msgstr ""
-
-msgid "Source:"
-msgstr ""
-
-msgid "Received:"
-msgstr ""
-
-msgid "Vendor:"
-msgstr ""
-
-msgid "Country:"
-msgstr ""
-
-#, fuzzy
-msgid "Query:"
-msgstr "变形的查询命中"
-
-msgid "Speed:"
-msgstr ""
-
-msgid "Servent ID:"
-msgstr ""
-
-msgid "XML data:"
-msgstr "XML 数据："
-
-msgid "Re_try search every"
-msgstr ""
-
-msgid "secs   "
-msgstr ""
-
-msgid "_Download selected"
-msgstr ""
-
-msgid "_Edit filters"
-msgstr ""
-
-msgid "Expand all"
-msgstr ""
-
-msgid "Collapse all"
-msgstr ""
-
-msgid "_Clear results"
-msgstr ""
-
-msgid "Search _monitor enabled"
-msgstr ""
-
-msgid "Show _last"
-msgstr ""
-
-msgid "searches"
-msgstr ""
-
-msgid "_Update interval (sec)"
-msgstr ""
-
-msgid "_Deletion coeff. (0-100)"
-msgstr ""
-
-msgid "Search Term"
-msgstr ""
-
-msgid "This Interval"
-msgstr ""
-
-msgid "_Reset stats"
+msgid "(not forwarded)"
 msgstr ""
 
 msgid "0 terms counted"
 msgstr ""
 
-msgid "You seem to be offline."
+#, fuzzy
+msgid ""
+"==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr "==> 我们正在寻求您的支援以进一步改善这个东东。<=="
+
+msgid ""
+"A filter cannot be removed if it is bound to a search or if it is in use "
+"(used as a target in a rule)."
+msgstr ""
+
+msgid "A passive search matches any search results routed through this node"
+msgstr ""
+
+msgid "A_ggressive mode"
+msgstr ""
+
+msgid "Abort and remove all selected uploads"
+msgstr ""
+
+msgid "About gtk-gnutella"
+msgstr "关于 gtk-gnutella"
+
+msgid "Act as OOB proxy for leaves"
+msgstr "对叶节点作为OOB代理"
+
+#, fuzzy
+msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
+msgstr "实际使用的文件描述符数量。运行时无法被修改。"
+
+msgid "Add IP rule"
+msgstr "增加IP规则"
+
+msgid "Add as search"
+msgstr ""
+
+#, fuzzy
+msgid "Add flag rule"
+msgstr "增加参数规则"
+
+msgid "Add jump rule"
+msgstr "增加跳转规则"
+
+msgid "Add name rule"
+msgstr "增加名称规则"
+
+msgid "Add size rule"
+msgstr "增加大小规则"
+
+#, fuzzy
+msgid "Add state rule"
+msgstr "增加状态规则"
+
+msgid "Add"
 msgstr ""
 
 msgid ""
-"Your uploads are stalling at an abnormal rate, indicating that your "
-"bandwidth is probably saturated. You should not run as an ultra node, and "
-"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
-"both your incoming and outgoing paths."
+"Adds \"don't display\" rules matching the selected files names to the global "
+"pre-filter."
 msgstr ""
 
 msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits."
+"Adds \"don't display\" rules matching the selected files names to the search "
+"filter."
 msgstr ""
 
 msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits. However, it is possible to punch a hole into the UDP "
-"firewall, so you will be able to send out-of-band query hits."
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"global pre-filter."
 msgstr ""
 
 msgid ""
-"You appear to be TCP-firewalled, i.e. others cannot connect to you to "
-"download files. You will not see push results, which may prevent you from "
-"seeing a large amount of results."
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"search filter."
+msgstr ""
+
+msgid "Aliases"
+msgstr ""
+
+msgid "Allow connections from and to _LAN addresses"
+msgstr "允许与LAN地址的连接出入(_L)"
+
+msgid "Amount of bytes to overlap when resuming download"
+msgstr ""
+
+msgid "Amount of tolerable messages above hard TTL limit per node"
+msgstr "每个节点可容许的高于TTL硬限制的数量"
+
+msgid ""
+"Apply above conversions, upon startup, to existing files in the downloading "
+"directory"
+msgstr ""
+
+msgid "Apply"
+msgstr "应用"
+
+msgid "Attempts"
+msgstr ""
+
+msgid "Auto clear completed uploads"
+msgstr ""
+
+msgid "Auto clear failed uploads"
+msgstr ""
+
+msgid "Auto clear stopped downloads"
+msgstr ""
+
+msgid "Available bandwidth"
+msgstr ""
+
+msgid "Available physical memory:"
+msgstr ""
+
+msgid "Avg. time between IP address changes:"
+msgstr ""
+
+msgid "Avg. uptime of this servent:"
+msgstr ""
+
+msgid "Bad hosts"
+msgstr ""
+
+msgid "Bandwidth limits for GnutellaNet traffic"
+msgstr ""
+
+msgid "Bandwidth limits for HTTP traffic"
+msgstr ""
+
+msgid "Bandwidth"
+msgstr ""
+
+#, fuzzy
+msgid "Banning"
+msgstr "禁止中"
+
+msgid "Bitzi Metadata"
+msgstr ""
+
+#, fuzzy
+msgid "Browse host"
+msgstr "允许浏览主机"
+
+msgid "Busy"
+msgstr "忙"
+
+msgid "Bytes to back off on mismatch"
+msgstr ""
+
+msgid "Cache"
+msgstr ""
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Case-sensitive sorting"
+msgstr ""
+
+msgid "Chunks/Files:"
+msgstr ""
+
+msgid "Cl_ose search"
+msgstr ""
+
+msgid "Clean up queries before processing"
+msgstr ""
+
+msgid "Clear all"
+msgstr ""
+
+msgid "Clear already completed uploads from list"
+msgstr ""
+
+msgid "Clear completed, failed and unavailable downloads from list"
+msgstr ""
+
+msgid "Clear non-existent files"
+msgstr "清除不存在的文件"
+
+#, fuzzy
+msgid "Clear results"
+msgstr "将搜索结果限制为(_r)"
+
+msgid "Clear stopped"
+msgstr ""
+
+#, fuzzy
+msgid "Clock skew:"
+msgstr "时钟扭曲："
+
+#, fuzzy
+msgid "Clock synchronization"
+msgstr "时钟同步"
+
+#, fuzzy
+msgid "Close this search"
+msgstr "关闭该搜索"
+
+msgid "Compressed length:"
+msgstr ""
+
+msgid "Compression ratio:"
+msgstr ""
+
+msgid "Condition: If IP address matches"
+msgstr "条件：IP地址是否匹配"
+
+#, fuzzy
+msgid "Condition: If current filter result properties match"
+msgstr "条件：如果当前过滤器的结果属性能匹配"
+
+msgid "Condition: If file size matches"
+msgstr "条件：文件大小是否匹配"
+
+msgid "Condition: If filename matches"
+msgstr "条件：如果文件名匹配"
+
+msgid "Condition: If result has flags"
+msgstr "条件：如果结果有标志"
+
+msgid "Condition: If urn:sha1 matches"
+msgstr "条件：如果urn:sha1匹配"
+
+msgid "Condition: always"
+msgstr "条件：总是"
+
+#, fuzzy
+msgid "Configured peermode"
+msgstr "配置peer模式"
+
+msgid "Conflict ratio:"
+msgstr ""
+
+msgid "Connect to host"
+msgstr ""
+
+msgid "Connected time"
+msgstr ""
+
+#, fuzzy
+msgid "Connection counters"
+msgstr "正在连接已超时(_g)"
+
+msgid "Connection settings"
+msgstr ""
+
+msgid "Connections reserved for gtk-gnutella nodes"
+msgstr ""
+
+msgid "Contributors:"
+msgstr "贡献者："
+
+msgid ""
+"Convert \"evil\" characters (like shell meta characters) to underscores in "
+"generated filenames"
+msgstr ""
+
+msgid "Convert spaces to underscores in generated filenames"
+msgstr ""
+
+msgid "Copy Magnet to clipboard"
+msgstr ""
+
+msgid "Copy URL to clipboard"
+msgstr ""
+
+msgid "Copy browse-host results to passive searches"
+msgstr ""
+
+msgid "Copy rule"
+msgstr "复制规则"
+
+msgid "Core development:"
+msgstr "核心开发："
+
+msgid "Country"
+msgstr ""
+
+msgid "Cumulative _download rate"
+msgstr ""
+
+msgid "Cumulative _upload rate"
+msgstr ""
+
+msgid "Current IP settings (Address:Port):"
+msgstr "当前IP设置 (地址:端口)"
+
+msgid "Current search:"
+msgstr ""
+
+msgid "Currently used"
+msgstr "当前使用"
+
+msgid "Debugging"
+msgstr ""
+
+msgid "Default search _reissue timeout"
+msgstr "默认重新搜索超时(_r)"
+
+msgid "Default value:"
+msgstr ""
+
+msgid "Delay in seconds to wait after HTTP busy indication"
+msgstr ""
+
+msgid "Delay in seconds to wait after connection failure"
+msgstr ""
+
+msgid "Delay in seconds to wait if connection is refused"
+msgstr ""
+
+msgid "Delay in seconds to wait when running download stops"
+msgstr ""
+
+msgid "Delays and timeouts (all values in seconds)"
+msgstr ""
+
+msgid "Delete file on abort"
+msgstr ""
+
+msgid "Detailed traffic information to display"
+msgstr ""
+
+msgid "Details"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr ""
+
+msgid "Discard spam"
+msgstr ""
+
+msgid "Disconnect from selected nodes"
+msgstr ""
+
+msgid "Display detailed traffic information"
+msgstr ""
+
+msgid "Diverse properties"
+msgstr ""
+
+msgid "Do you really want to quit?"
+msgstr "真的要退出？"
+
+msgid "Downloaded:"
+msgstr ""
+
+msgid "Downloading from multiple sources (swarming)"
+msgstr ""
+
+msgid "Drop results..."
+msgstr ""
+
+msgid "Dropped"
+msgstr ""
+
+msgid "Dup / Bad / Weird"
+msgstr ""
+
+msgid "Duplicate this search"
+msgstr ""
+
+msgid "E_xpose relative paths"
+msgstr ""
+
+#, fuzzy
+msgid "Edit value:"
+msgstr "编辑过滤器"
+
+msgid "Enable \"_Browse Host\" feature"
+msgstr "开启\"浏览主机\"功能"
+
+msgid "Enable _UDP"
+msgstr "允许 UDP(_U)"
+
+msgid "Enable dynamic upload slots _allocation"
+msgstr ""
+
+#, fuzzy
+msgid "Enable remote _shell control interface"
+msgstr "允许\"shell\"控制界面(_s)"
+
+msgid "Enable s_warming"
+msgstr ""
+
+msgid "Enable upload of _partially downloaded files"
+msgstr ""
+
+msgid "Enough UDP support"
+msgstr ""
+
+msgid "Enough available bandwidth"
+msgstr "足够的可用带宽"
+
+msgid "Enough file descriptors"
+msgstr "足够的文件描述符"
+
+#, fuzzy
+msgid "Enough min # of connections"
+msgstr "连接的足够最小#"
+
+msgid "Enough physical memory"
+msgstr "足够的物理内存"
+
+msgid ""
+"Enter a semicolon separated list of networks that are local to you in the "
+"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
+"192.168.1.0/255.255.255.0)"
+msgstr ""
+"输入由分号分开的本地网络，格式：IP/bits，或者IP/掩码。(例如：192.168.1.0/24·"
+"或者·192.168.1.0/255.255.255.0)"
+
+msgid "Expert mode"
+msgstr "高级模式"
+
+msgid "Expired"
+msgstr ""
+
+msgid "FC/_TTL"
+msgstr ""
+
+msgid "FC/_hops"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "File scanning time:"
+msgstr "文件扫描时间："
+
+msgid "Files scanned"
+msgstr ""
+
+msgid "Filled ratio:"
+msgstr ""
+
+msgid "Filled slots:"
+msgstr ""
+
+msgid "First chunk _size"
+msgstr ""
+
+msgid "Force external IPv_4 address to"
+msgstr ""
+
+msgid "Force external IPv_6 address to"
+msgstr ""
+
+msgid "Force push mode"
+msgstr ""
+
+msgid "Forget"
 msgstr ""
 
 msgid ""
-"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
-"via UDP. You will not be able to send queries requesting out-of-band "
-"delivery of query hits."
+"Forwarded\n"
+"message"
+msgstr ""
+
+msgid "Freeze queue"
+msgstr ""
+
+msgid "Frequently Asked Questions"
+msgstr ""
+
+msgid "Fully served "
+msgstr ""
+
+msgid "GUI development:"
+msgstr "图形开发："
+
+msgid "GUID:"
+msgstr ""
+
+msgid "Gen. queued"
+msgstr ""
+
+msgid "Gen. sent"
+msgstr ""
+
+msgid "General search settings (affect all searches)"
+msgstr ""
+
+msgid "Generated queries"
+msgstr ""
+
+msgid "Generation:"
+msgstr ""
+
+msgid "Globally drop results..."
+msgstr ""
+
+msgid "Gnet connections"
+msgstr ""
+
+#, fuzzy
+msgid "Gnutella _leaf traffic stats"
+msgstr "Gnutella RX 缓冲(_G)："
+
+msgid "Gnutella network mode"
+msgstr "Gnutella网络模式"
+
+msgid "GnutellaNet TTL settings"
+msgstr "GnutellaNet TTL 设置"
+
+msgid "GnutellaNet display"
+msgstr ""
+
+msgid "GnutellaNet message size limits"
+msgstr ""
+
+msgid "GnutellaNet timeouts (all values in seconds)"
+msgstr "GnutellaNet超时(所有值以秒为单位)"
+
+msgid "GnutellaNet traffic"
+msgstr ""
+
+msgid "GnutellaNet"
+msgstr ""
+
+#, fuzzy
+msgid ""
+"Gtk-Gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella正在关闭。\n"
+"正在对peers发送bye消息。\n"
+"\n"
+"请稍候："
+
+msgid "HTTP traffic"
+msgstr ""
+
+#, fuzzy
+msgid "H_ard TTL limit"
+msgstr "TTL硬限制(_a)"
+
+msgid "H_ost:"
+msgstr "主机(_o)："
+
+msgid "Hard limit of _file descriptors used"
+msgstr "使用的文件描述符的硬限制"
+
+#, fuzzy
+msgid "Honor OOB flag in queries"
+msgstr "查询中有Honour OOB标志"
+
+msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
+msgstr ""
+
+msgid "Hops random factor"
+msgstr ""
+
+msgid "Host runs _NTP"
+msgstr "运行NTP的主机(_N)"
+
+msgid "Hostcache capacity"
+msgstr ""
+
+msgid "Hostcache"
+msgstr ""
+
+msgid "Hosts"
+msgstr ""
+
+msgid "IP address stability"
+msgstr "IP地址的稳定性"
+
+#, fuzzy
+msgid "IP address/mask"
+msgstr "IP 地址"
+
+msgid "IP settings"
+msgstr "IP 设置"
+
+msgid "IP:Port:"
+msgstr ""
+
+#, fuzzy
+msgid "IPv4 settings"
+msgstr "IP 设置"
+
+#, fuzzy
+msgid "IPv6 settings"
+msgstr "IP 设置"
+
+msgid "Ignore symbolically linked _directories"
+msgstr ""
+
+msgid "Ignore symbolically linked regular _files"
+msgstr ""
+
+msgid "Ignored files are"
+msgstr ""
+
+msgid "Incoming connecting timeout"
+msgstr "进入的正在连接超时"
+
+msgid "Incoming traffic from _leaves"
+msgstr ""
+
+msgid "Indexing started on:"
+msgstr ""
+
+msgid "Info"
+msgstr ""
+
+msgid "Information about selected file"
+msgstr ""
+
+msgid "Jeroen Asselman"
+msgstr ""
+
+msgid "Join the users or developers mailing lists."
+msgstr "参加用户或开发者的邮件列表；"
+
+msgid "Keep downloading/incomplete files in"
+msgstr ""
+
+msgid "Keywords:"
+msgstr "关键字："
+
+msgid "Large enough uptime"
+msgstr "足够长的在线时间"
+
+msgid "Last check"
+msgstr "最近核实"
+
+msgid "Last scan initiated on:"
+msgstr ""
+
+#, fuzzy
+msgid "Last switch"
+msgstr "最近切换"
+
+msgid "Leaf requery threshold"
+msgstr ""
+
+msgid "Leaf traffic"
+msgstr ""
+
+#, fuzzy
+msgid "Legacy connections"
+msgstr "传统连接"
+
+msgid "Library # of files"
+msgstr ""
+
+msgid "Library scanning:"
+msgstr ""
+
+msgid "Library size"
+msgstr ""
+
+msgid "Limit search _results to "
+msgstr "将搜索结果限制为(_r)"
+
+msgid "Local node"
+msgstr ""
+
+msgid "M_inimum chunk size"
+msgstr ""
+
+msgid "M_y TTL"
+msgstr "我的TTL(_y)"
+
+msgid "Ma_ximum chunk size"
+msgstr ""
+
+msgid "Make current sorting default"
+msgstr ""
+
+#, fuzzy
+msgid "Max # of _high TTL msg"
+msgstr "高TTL消息的最大数量"
+
+msgid "Max _TTL"
+msgstr "最大TTL(_T)"
+
+msgid "Max connections allowed per unique vendor"
+msgstr ""
+
+msgid "Max hard TTL limit (hop+ttl) on message"
+msgstr "消息中的最大TTL硬限制(hop+ttl)"
+
+msgid "Max. _number of results"
+msgstr ""
+
+msgid "Max. _percentage of file descriptors"
+msgstr "文件描述符的最大百分比"
+
+msgid "Max. downloads from single host"
+msgstr ""
+
+msgid "Max. file _descriptors reserved"
+msgstr "保留的最大文件描述符(_d)"
+
+msgid "Max. number of browse host results"
+msgstr ""
+
+msgid "Max. simultaneous downloads per file"
+msgstr ""
+
+msgid "Max. simultaneous downloads"
+msgstr ""
+
+msgid "Max. simultaneous uploads"
+msgstr ""
+
+msgid "Max. uploads to a single host"
+msgstr ""
+
+#, fuzzy
+msgid "Maximum # of leaves"
+msgstr "叶最大 #"
+
+msgid "Maximum attempts to make, not counting HTTP busy indications"
+msgstr ""
+
+msgid "Maximum number of _retries"
+msgstr ""
+
+msgid "Maximum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+msgid "Maximum size:"
+msgstr "最大体积："
+
+msgid ""
+"Maximum size\n"
+"allowed"
+msgstr ""
+
+msgid "Maximum"
+msgstr ""
+
+msgid "Measured HTTP latency:"
+msgstr ""
+
+msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+msgstr "通过irc.freenode.net在#gtk-gnutella聊天室直接交流。"
+
+msgid "Min/Max:"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum chunk size"
+msgstr "最小体积："
+
+#, fuzzy
+msgid "Minimum file size"
+msgstr "最小体积："
+
+msgid "Minimum seconds to wait on auto-retry timeouts"
+msgstr ""
+
+msgid "Minimum size:"
+msgstr "最小体积："
+
+#, fuzzy
+msgid "Minimum upload time"
+msgstr "最小体积："
+
+msgid "Minimum"
+msgstr ""
+
+msgid "Misses"
+msgstr ""
+
+msgid "Monitor and auto-ban unstable servent types"
+msgstr "监视并自动禁止不稳定的servent类型"
+
+msgid "Monitor bad node IP addresses"
+msgstr "监视坏节点的IP地址"
+
+msgid "Move completely downloaded files to"
+msgstr ""
+
+msgid "Move corrupted downloaded files to"
+msgstr ""
+
+#, fuzzy
+msgid "Network protocol:"
+msgstr "代理用的协议"
+
+msgid "Never send a push request"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "No, take me back!"
+msgstr "不是，我要返回！"
+
+msgid "Normalized"
+msgstr ""
+
+msgid "Not firewalled"
+msgstr "没有防火墙"
+
+msgid "Number of seconds before timeout for a 'push sent' download"
+msgstr ""
+
+msgid "Number of seconds before timeout for a connected download"
+msgstr ""
+
+msgid "Number of seconds before timeout for a connecting download"
+msgstr ""
+
+msgid "Number of tolerable _duplicate messages per node"
+msgstr ""
+
+msgid "Ok"
+msgstr "好"
+
+msgid "Optimistic first _chunk"
+msgstr ""
+
+msgid "Original author:"
+msgstr "原作者："
+
+msgid "Originally obtained from"
+msgstr "最初获取自"
+
+msgid "Other"
+msgstr ""
+
+#, fuzzy
+msgid "Out of Band Querying"
+msgstr "超出波段查询"
+
+msgid "Outgoing traffic to lea_ves"
+msgstr ""
+
+msgid "PARQ development:"
+msgstr "PARQ开发："
+
+msgid "Partial File Sharing"
+msgstr ""
+
+msgid "Pass_word"
+msgstr "密码(_w)"
+
+msgid "Paste rule"
+msgstr "粘贴规则"
+
+msgid "Patch generation started on:"
+msgstr ""
+
+msgid "Pending local queries"
 msgstr ""
 
 msgid ""
@@ -4716,131 +4919,128 @@ msgid ""
 "will be able to receive out-of-band results for your queries."
 msgstr ""
 
-msgid "Running in leaf mode."
+msgid "Ping / Pong round trip"
 msgstr ""
 
-msgid "Running in legacy mode. Consider switching to auto mode."
+msgid "Please confirm:"
+msgstr "请确认："
+
+msgid "Prefer _compressed connections"
 msgstr ""
 
-msgid "Running in ultrapeer mode."
+msgid "Preferences"
+msgstr "首选项"
+
+msgid "Progress:"
 msgstr ""
 
-msgid "Abort"
+msgid "Project leader:"
+msgstr "项目头头："
+
+msgid "Property browser"
+msgstr "属性浏览器"
+
+#, fuzzy
+msgid "Property pattern:"
+msgstr "属性模式："
+
+msgid "Property"
+msgstr "属性"
+
+msgid "Proxy _type:"
+msgstr "代理类型(_t)："
+
+msgid "Proxy settings"
+msgstr "代理设置"
+
+msgid "Public _hostname"
+msgstr "公开的主机名(_h)"
+
+msgid "QRP stats"
 msgstr ""
 
-msgid "Abort all..."
-msgstr ""
-
-msgid "with the same name"
-msgstr ""
-
-msgid "with the same urn:sha1"
-msgstr ""
-
-msgid "from the same host"
-msgstr ""
-
-msgid "Remove file"
-msgstr ""
-
-msgid "Resume"
-msgstr ""
-
-msgid "Move back to queue"
-msgstr ""
-
-msgid "Force push mode"
-msgstr ""
-
-msgid "Copy URL to clipboard"
-msgstr ""
-
-msgid "Connect to host"
+msgid "Quality management"
 msgstr ""
 
 #, fuzzy
-msgid "Browse Host"
-msgstr "允许浏览主机"
+msgid "Queries ask for OOB results"
+msgstr "查询请求OOB结果"
 
-msgid "Start now"
+msgid "Query Routing Protocol:"
 msgstr ""
 
-msgid "Drop results..."
+msgid "Query routing patch information:"
 msgstr ""
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
+msgid "Query routing table information:"
 msgstr ""
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
+msgid "Queuing details"
 msgstr ""
 
-msgid "Globally drop results..."
+msgid "Quick-connect pool size"
 msgstr ""
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
+msgid "RX compression"
 msgstr ""
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
+msgid "RX dropped"
 msgstr ""
 
-msgid "Stop this search"
+msgid "RX flow control ratio"
 msgstr ""
 
-msgid "Resume this search"
+msgid "RX queries"
 msgstr ""
 
-msgid "Restart this search"
+msgid "RX query hits"
 msgstr ""
 
-msgid "Duplicate this search"
+msgid "RX speed"
 msgstr ""
 
-msgid "Show tabs"
+msgid "RX wire bytes"
 msgstr ""
 
-msgid "Configure columns"
+msgid "Ratio of tolerable duplicate messages per _node"
 msgstr ""
 
-msgid "Make current sorting default"
+msgid "Raw length:"
 msgstr ""
 
-msgid "Bitzi Metadata"
+msgid "Re_try search every"
 msgstr ""
 
-msgid "Add as search"
+msgid "Reason"
 msgstr ""
 
-msgid "Ruleset editor"
+msgid "Received"
 msgstr ""
 
-msgid "_Create filter"
+msgid "Regular hosts"
 msgstr ""
 
-msgid "Rules"
-msgstr ""
-
-msgid "enabled"
-msgstr ""
-
-msgid ""
-"A filter cannot be removed if it is bound to a search or if it is in use "
-"(used as a target in a rule)."
-msgstr ""
-
-msgid "Remove filter"
+msgid "Relayed"
 msgstr ""
 
 msgid ""
 "Remove all rules\n"
 "from this filter"
+msgstr ""
+
+msgid "Remove file on mismatch"
+msgstr ""
+
+msgid "Remove filter"
+msgstr ""
+
+msgid "Report an upload connection _speed of"
+msgstr ""
+
+msgid "Require _URN"
+msgstr ""
+
+msgid "Require _server name"
 msgstr ""
 
 msgid ""
@@ -4850,740 +5050,34 @@ msgstr ""
 
 msgid ""
 "Reset filter stats\n"
-"for this filter"
+"for all filters"
 msgstr ""
 
 msgid ""
 "Reset filter stats\n"
-"for all filters"
+"for this filter"
 msgstr ""
 
-msgid "Add name rule"
-msgstr "增加名称规则"
-
-msgid "Add size rule"
-msgstr "增加大小规则"
-
-#, fuzzy
-msgid "Add flag rule"
-msgstr "增加参数规则"
-
-msgid "Add jump rule"
-msgstr "增加跳转规则"
-
-msgid "Add IP rule"
-msgstr "增加IP规则"
-
-#, fuzzy
-msgid "Add state rule"
-msgstr "增加状态规则"
-
-msgid "invert condition"
-msgstr "反转条件"
-
-msgid "mark only"
-msgstr "只标记"
-
-msgid "Condition: If filename matches"
-msgstr "条件：如果文件名匹配"
-
-msgid "case sensitive"
-msgstr ""
-
-msgid "Save"
-msgstr ""
-
-msgid "Remove"
-msgstr ""
-
-msgid "Condition: If IP address matches"
-msgstr "条件：IP地址是否匹配"
-
-#, fuzzy
-msgid "IP address/mask"
-msgstr "IP 地址"
-
-msgid "Condition: If file size matches"
-msgstr "条件：文件大小是否匹配"
-
-msgid "Minimum size:"
-msgstr "最小体积："
-
-msgid "Maximum size:"
-msgstr "最大体积："
-
-msgid "bytes"
-msgstr "字节"
-
-msgid "Condition: always"
-msgstr "条件：总是"
-
-#, fuzzy
-msgid ""
-"There is no condition. When this rule is reached, the matching will continue "
-"in the specified target filter. That's also why you can't invert this "
-"condition. If you could, this rule would just be ignored."
-msgstr ""
-"没有条件。如果此符合此规则，将在指定目标的过滤器中继续尝试匹配。这就是为什么"
-"你不能反转该条件。如果你可以的话，该规则将被忽略。"
-
-msgid "Condition: If urn:sha1 matches"
-msgstr "条件：如果urn:sha1匹配"
-
-#, fuzzy
-msgid "SHA1 hash (not editable, add from search popup)"
-msgstr "SHA1 hash(无法编辑，从搜索弹出框中添加)"
-
-msgid "Originally obtained from"
-msgstr "最初获取自"
-
-msgid "Condition: If result has flags"
-msgstr "条件：如果结果有标志"
-
-msgid "Busy"
-msgstr "忙"
-
-msgid "unset"
-msgstr "未设置"
-
-msgid "ignored"
-msgstr "忽略"
-
-msgid "set"
-msgstr "设置"
-
-msgid "Stable"
-msgstr "稳定的"
-
-#, fuzzy
-msgid "Condition: If current filter result properties match"
-msgstr "条件：如果当前过滤器的结果属性能匹配"
-
-msgid "don't"
-msgstr "否"
-
-msgid "undefined"
-msgstr "未定义"
-
-#, fuzzy
-msgid "do"
-msgstr "做"
-
-msgid "ignore"
-msgstr "忽略"
-
-msgid "Apply"
-msgstr "应用"
-
-msgid "Revert"
-msgstr "恢复"
-
-msgid "Ok"
-msgstr "好"
-
-msgid "Cancel"
-msgstr "取消"
-
-msgid "gtk-gnutella shutdown"
-msgstr "关闭 gtk-gnutella"
-
-#, fuzzy
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella正在关闭。\n"
-"正在对peers发送bye消息。\n"
-"\n"
-"请稍候："
-
-msgid "About gtk-gnutella"
-msgstr "关于 gtk-gnutella"
-
-msgid "Original author:"
-msgstr "原作者："
-
-msgid "Core development:"
-msgstr "核心开发："
-
-msgid "PARQ development:"
-msgstr "PARQ开发："
-
-msgid "Project leader:"
-msgstr "项目头头："
-
-msgid "GUI development:"
-msgstr "图形开发："
-
-msgid "Swarming development:"
-msgstr "Swarming开发："
-
-msgid "Vidar Madsen"
-msgstr ""
-
-msgid "Richard Eckart"
-msgstr ""
-
-msgid "Raphael Manfredi"
-msgstr ""
-
-msgid "Yann Grossel"
-msgstr ""
-
-msgid "Jeroen Asselman"
-msgstr ""
-
-msgid "Contributors:"
-msgstr "贡献者："
-
-#, fuzzy
-msgid ""
-"==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr "==> 我们正在寻求您的支援以进一步改善这个东东。<=="
-
-msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr "请访问主页 http://gtk-gnutella.sourceforge.net/"
-
-msgid "Join the users or developers mailing lists."
-msgstr "参加用户或开发者的邮件列表；"
-
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "通过irc.freenode.net在#gtk-gnutella聊天室直接交流。"
-
-msgid ""
-"This product includes GeoIP data created by MaxMind, available from\n"
-"http://maxmind.com/"
-msgstr ""
-"此产品包括由MaxMind创建的GeoIP数据，可从此获取\n"
-"http://maxmind.com/"
-
-msgid "_Close"
-msgstr "关闭(_C)"
-
-msgid "Copy rule"
-msgstr "复制规则"
-
-msgid "Paste rule"
-msgstr "粘贴规则"
-
-msgid "gtk-gnutella: Quit?"
-msgstr "gtk-gnutella：退出？"
-
-msgid "Yes"
-msgstr "是"
-
-msgid "No, take me back!"
-msgstr "不是，我要返回！"
-
-msgid "Please confirm:"
-msgstr "请确认："
-
-msgid "Do you really want to quit?"
-msgstr "真的要退出？"
-
-msgid "Preferences"
-msgstr "首选项"
-
-msgid "IP settings"
-msgstr "IP 设置"
-
-msgid "Current IP settings (Address:Port):"
-msgstr "当前IP设置 (地址:端口)"
-
-msgid "not yet determined"
-msgstr "尚未拿定主意"
-
-msgid "_Listen port"
-msgstr "侦听端口(_L)"
-
-msgid "Public _hostname"
-msgstr "公开的主机名(_h)"
-
-msgid "Enable _UDP"
-msgstr "允许 UDP(_U)"
-
-#, fuzzy
-msgid "Network protocol:"
-msgstr "代理用的协议"
-
-#, fuzzy
-msgid "(Disable: 0, Random: 1)"
-msgstr "禁用：0，随机：1"
-
-#, fuzzy
-msgid "IPv4 settings"
-msgstr "IP 设置"
-
-msgid "Force external IPv_4 address to"
+msgid "Restart this search"
 msgstr ""
 
 #, fuzzy
-msgid "Bind to this address"
-msgstr "返回地址错误"
-
-#, fuzzy
-msgid "IPv6 settings"
-msgstr "IP 设置"
-
-msgid "Force external IPv_6 address to"
-msgstr ""
-
-msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr ""
-
-msgid "Proxy settings"
-msgstr "代理设置"
-
-msgid "H_ost:"
-msgstr "主机(_o)："
-
-msgid "TCP _Port:"
-msgstr "TCP 端口(_P)："
-
-msgid "Proxy _type:"
-msgstr "代理类型(_t)："
-
-msgid "Use username and password to _authenticate to proxy"
-msgstr "使用用户名和密码进行代理的认证"
-
-msgid "_Username"
-msgstr "用户名(_U)"
-
-msgid "Pass_word"
-msgstr "密码(_w)"
-
-msgid "Local networks"
-msgstr "本地网络"
-
-msgid "_Try to connect to local networks first"
-msgstr "先尝试连接本地网络(_T)"
-
-msgid "Allow connections from and to _LAN addresses"
-msgstr "允许与LAN地址的连接出入(_L)"
-
-msgid ""
-"Enter a semicolon separated list of networks that are local to you in the "
-"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
-"192.168.1.0/255.255.255.0)"
-msgstr ""
-"输入由分号分开的本地网络，格式：IP/bits，或者IP/掩码。(例如：192.168.1.0/24·"
-"或者·192.168.1.0/255.255.255.0)"
-
-#, fuzzy
-msgid "Banning"
-msgstr "禁止中"
-
-msgid "Max. file _descriptors reserved"
-msgstr "保留的最大文件描述符(_d)"
-
-msgid "Max. _percentage of file descriptors"
-msgstr "文件描述符的最大百分比"
-
-msgid "Hard limit of _file descriptors used"
-msgstr "使用的文件描述符的硬限制"
-
-#, fuzzy
-msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr "实际使用的文件描述符数量。运行时无法被修改。"
-
-msgid "Currently used"
-msgstr "当前使用"
-
-msgid "Use global hostiles.txt"
-msgstr "使用全局的hostiles.txt文件"
-
-#, fuzzy
-msgid "Clock synchronization"
-msgstr "时钟同步"
-
-msgid "Host runs _NTP"
-msgstr "运行NTP的主机(_N)"
-
-#, fuzzy
-msgid "Clock skew:"
-msgstr "时钟扭曲："
-
-msgid "Miscellaneous"
-msgstr "杂项"
-
-#, fuzzy
-msgid "Enable remote _shell control interface"
-msgstr "允许\"shell\"控制界面(_s)"
-
-msgid "Socket receive buffer size"
-msgstr "套接字接收到了缓冲大小"
-
-msgid "_Gnutella RX buffer:"
-msgstr "Gnutella RX 缓冲(_G)："
-
-msgid "KiB"
-msgstr ""
-
-msgid "_Download RX buffer:"
-msgstr "下载 RX 缓冲(_D)："
-
-msgid "Network"
-msgstr "网络"
-
-msgid "Gnutella network mode"
-msgstr "Gnutella网络模式"
-
-#, fuzzy
-msgid "Configured peermode"
-msgstr "配置peer模式"
-
-msgid "Monitor bad node IP addresses"
-msgstr "监视坏节点的IP地址"
-
-msgid "Monitor and auto-ban unstable servent types"
-msgstr "监视并自动禁止不稳定的servent类型"
-
-msgid "Ultrapeer mode settings"
-msgstr "超级peer模式设置"
-
-#, fuzzy
-msgid "Legacy connections"
-msgstr "传统连接"
-
-#, fuzzy
-msgid "Maximum # of leaves"
-msgstr "叶最大 #"
-
-msgid "Ultrapeer promotion statistics"
-msgstr "超级peer成长统计"
-
-msgid "Last check"
-msgstr "最近核实"
-
-#, fuzzy
-msgid "Last switch"
-msgstr "最近切换"
-
-msgid "Large enough uptime"
-msgstr "足够长的在线时间"
-
-msgid "Not firewalled"
-msgstr "没有防火墙"
-
-msgid "Enough file descriptors"
-msgstr "足够的文件描述符"
-
-msgid "Enough physical memory"
-msgstr "足够的物理内存"
-
-msgid "Enough available bandwidth"
-msgstr "足够的可用带宽"
-
-msgid "IP address stability"
-msgstr "IP地址的稳定性"
-
-msgid "Sufficient average uptime"
-msgstr "足够的平均在线时间"
-
-#, fuzzy
-msgid "Enough min # of connections"
-msgstr "连接的足够最小#"
-
-msgid "Engouh UDP support"
-msgstr ""
-
-msgid "Searches"
-msgstr "搜索"
-
-msgid "Limit search _results to "
-msgstr "将搜索结果限制为(_r)"
-
-msgid ""
-"This limits how many results gnutella returns to other people searching your "
-"files."
-msgstr "该值限定当其他人搜索你的文件时，gnutella将返回多少个结果。"
-
-msgid "items"
-msgstr "项目"
-
-msgid "Default search _reissue timeout"
-msgstr "默认重新搜索超时(_r)"
-
-msgid "seconds"
-msgstr "秒"
-
-#, fuzzy
-msgid "Out of Band Querying"
-msgstr "超出波段查询"
-
-#, fuzzy
-msgid "Queries ask for OOB results"
-msgstr "查询请求OOB结果"
-
-#, fuzzy
-msgid "Honor OOB flag in queries"
-msgstr "查询中有Honour OOB标志"
-
-msgid "Act as OOB proxy for leaves"
-msgstr "对叶节点作为OOB代理"
-
-msgid "Search queue"
-msgstr "搜索排队"
-
-#, fuzzy
-msgid "Spacing"
-msgstr "空"
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "GnutellaNet超时(所有值以秒为单位)"
-
-msgid "Connectin_g timeout"
-msgstr "正在连接已超时(_g)"
-
-msgid "Connected time_out"
-msgstr "已连接的超时(_o)"
-
-msgid "T_X flow control timeout"
-msgstr "TX流控超时(_X)"
-
-msgid "Incoming connecting timeout"
-msgstr "进入的正在连接超时"
-
-msgid "GnutellaNet TTL settings"
-msgstr "GnutellaNet TTL 设置"
-
-msgid "Max _TTL"
-msgstr "最大TTL(_T)"
-
-msgid "M_y TTL"
-msgstr "我的TTL(_y)"
-
-#, fuzzy
-msgid "from _nodes within a"
-msgstr "节点带有一个(_n)"
-
-#, fuzzy
-msgid "Max # of _high TTL msg"
-msgstr "高TTL消息的最大数量"
-
-#, fuzzy
-msgid "H_ard TTL limit"
-msgstr "TTL硬限制(_a)"
-
-msgid "Amount of tolerable messages above hard TTL limit per node"
-msgstr "每个节点可容许的高于TTL硬限制的数量"
-
-msgid "Max hard TTL limit (hop+ttl) on message"
-msgstr "消息中的最大TTL硬限制(hop+ttl)"
-
-msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
-msgstr ""
-
-msgid "hops radius"
-msgstr ""
-
-msgid "Quality management"
-msgstr ""
-
-msgid "Ratio of tolerable duplicate messages per _node"
-msgstr ""
-
-msgid "Number of tolerable _duplicate messages per node"
-msgstr ""
-
-msgid "RX flow control ratio"
-msgstr ""
-
-msgid "Watch for similar queries"
-msgstr ""
-
-msgid "Similar query half-life"
-msgstr ""
-
-msgid "Leaf requery threshold"
-msgstr ""
-
-msgid "Connection settings"
-msgstr ""
-
-msgid "Connections reserved for gtk-gnutella nodes"
-msgstr ""
-
-msgid "Max connections allowed per unique vendor"
-msgstr ""
-
-msgid "Other"
-msgstr ""
-
-msgid "Hops random factor"
-msgstr ""
-
-msgid "Clean up queries before processing"
-msgstr ""
-
-msgid "GnutellaNet message size limits"
-msgstr ""
-
-msgid ""
-"Forwarded\n"
-"message"
-msgstr ""
-
-msgid ""
-"Size threshold\n"
-"before kicking"
-msgstr ""
-
-msgid "(not forwarded)"
-msgstr ""
-
-msgid ""
-"Maximum size\n"
-"allowed"
-msgstr ""
-
-msgid "GnutellaNet"
-msgstr ""
-
-msgid "General"
-msgstr ""
-
-msgid "Use _surplus bandwidth"
-msgstr ""
-
-msgid "Prefer _compressed connections"
-msgstr ""
-
-msgid "Use IP _Type of Service (TOS)"
-msgstr ""
-
-msgid "Available bandwidth"
-msgstr ""
-
-msgid "Total input bandwidth limit:"
-msgstr ""
-
-msgid "KiB/s"
-msgstr ""
-
-msgid "Total output bandwidth limit:"
-msgstr ""
-
-msgid "Measured HTTP latency:"
-msgstr ""
-
-msgid "secs"
-msgstr ""
-
-msgid "Bandwidth limits for GnutellaNet traffic"
-msgstr ""
-
-msgid "_Outgoing traffic"
-msgstr ""
-
-msgid "_Incoming traffic"
-msgstr ""
-
-msgid "Ultrapeer mode"
-msgstr ""
-
-msgid "Outgoing traffic to lea_ves"
-msgstr ""
-
-msgid "Incoming traffic from _leaves"
-msgstr ""
-
-msgid "Bandwidth limits for HTTP traffic"
-msgstr ""
-
-msgid "Cumulative _download rate"
-msgstr ""
-
-msgid "Cumulative _upload rate"
-msgstr ""
-
-msgid "Enable dynamic upload slots _allocation"
-msgstr ""
-
-msgid ""
-"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
-"additional upload slots on request."
-msgstr ""
-
-msgid "Report an upload connection _speed of"
-msgstr ""
-
-msgid "What other people see as your connection speed."
-msgstr ""
-
-msgid "kbps to peers"
-msgstr ""
-
-msgid "_Compute upload connection speed"
-msgstr ""
-
-msgid "Bandwidth"
-msgstr ""
-
-msgid "Keep downloading/incomplete files in"
-msgstr ""
-
-msgid "_Browse"
-msgstr ""
-
-msgid "Move completely downloaded files to"
-msgstr ""
-
-msgid "Move corrupted downloaded files to"
-msgstr ""
-
-msgid "Convert spaces to underscores in generated filenames"
-msgstr ""
-
-msgid ""
-"Convert \"evil\" characters (like shell meta characters) to underscores in "
-"generated filenames"
-msgstr ""
-
-msgid ""
-"Apply above conversions, upon startup, to existing files in the downloading "
-"directory"
-msgstr ""
+msgid "Resu_me this search"
+msgstr "关闭该搜索"
 
 msgid "Resume and retry"
 msgstr ""
 
-msgid "_Overlap when resuming"
+msgid "Resume this search"
 msgstr ""
 
-msgid "Maximum number of _retries"
-msgstr ""
-
-msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr ""
-
-msgid "Amount of bytes to overlap when resuming download"
-msgstr ""
-
-msgid "Source quality"
-msgstr ""
-
-msgid "Optimistic first _chunk"
-msgstr ""
-
-msgid "Require _URN"
-msgstr ""
-
-msgid "Require _server name"
-msgstr ""
-
-msgid "Delays and timeouts (all values in seconds)"
-msgstr ""
-
-msgid "Retry stopped delay"
+msgid "Retry busy delay"
 msgstr ""
 
 msgid "Retry refused delay"
 msgstr ""
 
-msgid "Retry busy delay"
+msgid "Retry stopped delay"
 msgstr ""
 
 msgid "Retry timeout delay"
@@ -5595,364 +5089,563 @@ msgstr ""
 msgid "Retry timeout min"
 msgstr ""
 
-msgid "_Push sent timeout"
+msgid "Revert"
+msgstr "恢复"
+
+msgid "Richard Eckart"
 msgstr ""
 
-msgid "Delay in seconds to wait when running download stops"
+msgid "Rules"
 msgstr ""
 
-msgid "Delay in seconds to wait if connection is refused"
+msgid "Ruleset editor"
 msgstr ""
 
-msgid "Delay in seconds to wait after HTTP busy indication"
+msgid "Running in leaf mode."
 msgstr ""
 
-msgid "Delay in seconds to wait after connection failure"
+msgid "Running in legacy mode. Consider switching to auto mode."
 msgstr ""
 
-msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr ""
-
-msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr ""
-
-msgid "Number of seconds before timeout for a connecting download"
-msgstr ""
-
-msgid "Number of seconds before timeout for a 'push sent' download"
-msgstr ""
-
-msgid "Number of seconds before timeout for a connected download"
-msgstr ""
-
-msgid "Downloading from multiple sources (swarming)"
-msgstr ""
-
-msgid "Enable s_warming"
-msgstr ""
-
-msgid "A_ggressive mode"
-msgstr ""
-
-msgid "M_inimum chunk size"
-msgstr ""
-
-msgid "Ma_ximum chunk size"
+msgid "Running in ultrapeer mode."
 msgstr ""
 
 #, fuzzy
-msgid "Write buffer size"
-msgstr "套接字接收到了缓冲大小"
+msgid "SHA1 hash (not editable, add from search popup)"
+msgstr "SHA1 hash(无法编辑，从搜索弹出框中添加)"
 
-msgid "Read-ahead buffer"
+msgid "Saved"
 msgstr ""
 
-msgid "Strict SHA_1 matching"
+msgid "Search Monitor"
 msgstr ""
 
-msgid "Use fu_zzy matching"
-msgstr ""
+#, fuzzy
+msgid "Search Stats"
+msgstr "搜索"
 
-msgid "Fuzzy threshold"
-msgstr ""
-
-msgid "_Apply fuzzy filter on download mesh entries"
-msgstr ""
-
-msgid "Watch hits for _alternate sources"
-msgstr ""
-
-msgid "_Feed mesh from hits"
-msgstr ""
-
-msgid "Downloads"
-msgstr ""
-
-msgid "_Path(s) to files"
-msgstr ""
-
-msgid "_Add directory"
-msgstr ""
-
-msgid "_Rescan"
-msgstr ""
-
-msgid "Files scanned"
-msgstr ""
-
-msgid "Ignore symbolically linked _directories"
-msgstr ""
-
-msgid "Ignore symbolically linked regular _files"
+msgid "Search Term"
 msgstr ""
 
 msgid "Search _extensions"
 msgstr ""
 
-msgid "Enable \"_Browse Host\" feature"
-msgstr "开启\"浏览主机\"功能"
-
-msgid "Timeouts (all values in seconds)"
+msgid "Search _monitor enabled"
 msgstr ""
 
-msgid "Partial File Sharing"
+msgid "Search queue"
+msgstr "搜索排队"
+
+msgid "Select"
 msgstr ""
 
-msgid "First chunk _size"
+msgid "Selected property:"
 msgstr ""
 
-msgid "Enable upload of _partially downloaded files"
-msgstr ""
-
-#, fuzzy
-msgid "Minimum file size"
-msgstr "最小体积："
-
-msgid "Queuing details"
+msgid "Server"
 msgstr ""
 
 #, fuzzy
-msgid "Minimum upload time"
-msgstr "最小体积："
+msgid "Settings"
+msgstr "IP 设置"
 
 #, fuzzy
-msgid "Minimum chunk size"
-msgstr "最小体积："
-
-msgid "Use realistic PARQ estimates"
-msgstr ""
-
-msgid "Statistics:"
-msgstr "统计："
-
-msgid "Library scanning:"
-msgstr ""
-
-msgid "Last scan initiated on:"
-msgstr ""
-
-msgid "File scanning time:"
-msgstr "文件扫描时间："
-
-msgid "Query Routing Protocol:"
-msgstr ""
-
-msgid "Indexing started on:"
-msgstr ""
-
-msgid "and lasted"
-msgstr ""
-
-msgid "Table generation started on:"
-msgstr ""
-
-msgid "Patch generation started on:"
-msgstr ""
-
-msgid "Query routing table information:"
-msgstr ""
-
-msgid "Keywords:"
-msgstr "关键字："
-
-msgid "Slots:"
-msgstr ""
-
-msgid "Filled slots:"
-msgstr ""
-
-msgid "Generation:"
-msgstr ""
-
-msgid "Filled ratio:"
-msgstr ""
-
-msgid "Conflict ratio:"
-msgstr ""
-
-msgid "Query routing patch information:"
-msgstr ""
-
-msgid "Raw length:"
-msgstr ""
-
-msgid "Compressed length:"
-msgstr ""
-
-msgid "Compression ratio:"
-msgstr ""
+msgid "Show _bytes"
+msgstr "字节"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr ""
 
-msgid "Show _tooltips (does not affect all tooltips yet)"
+msgid "Show _last"
 msgstr ""
 
 #, fuzzy
 msgid "Show _metric units"
 msgstr "显示搜索列表"
 
-msgid "Toolbar style"
-msgstr "工具栏风格"
-
-msgid "Update search results pane every"
+msgid "Show _percentages"
 msgstr ""
 
-msgid "Try to keep 'dead' entries around for"
+msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
-
-msgid "Expert mode"
-msgstr "高级模式"
 
 msgid "Show additional information and settings for advanced and _expert users"
 msgstr ""
 
-msgid "GnutellaNet display"
+msgid "Show pr_otocol:"
 msgstr ""
 
-msgid "Display detailed traffic information"
+msgid "Show r_easons for"
 msgstr ""
 
-msgid "Detailed traffic information to display"
+msgid "Show tabs"
 msgstr ""
+
+msgid ""
+"Shows visual information on the download progress. Green chunks have been "
+"downloaded, with the brighter green chunks touched during this session. "
+"Yellow chunks are active right now; these active chunks are also marked with "
+"a triangle. Red chunks have not been downloaded yet. The blue line indicates "
+"which parts of the file have been seen on the network in this session."
+msgstr ""
+
+msgid "Similar query half-life"
+msgstr ""
+
+msgid ""
+"Size threshold\n"
+"before kicking"
+msgstr ""
+
+msgid "Slots:"
+msgstr ""
+
+msgid "Socket receive buffer size"
+msgstr "套接字接收到了缓冲大小"
+
+msgid "Source quality"
+msgstr ""
+
+#, fuzzy
+msgid "Spacing"
+msgstr "空"
+
+msgid "Stable"
+msgstr "稳定的"
+
+#, fuzzy
+msgid "Statistics"
+msgstr "统计："
+
+msgid "Statistics:"
+msgstr "统计："
+
+msgid "Stop this search"
+msgstr ""
+
+msgid "Strict SHA_1 matching"
+msgstr ""
+
+msgid "Sufficient average uptime"
+msgstr "足够的平均在线时间"
+
+msgid "Swarming development:"
+msgstr "Swarming开发："
+
+msgid "TCP _Port:"
+msgstr "TCP 端口(_P)："
 
 msgid "TX compression"
-msgstr ""
-
-msgid "RX compression"
-msgstr ""
-
-msgid "TX speed"
-msgstr ""
-
-msgid "RX speed"
-msgstr ""
-
-msgid "TX queries"
-msgstr ""
-
-msgid "RX queries"
-msgstr ""
-
-msgid "TX query hits"
-msgstr ""
-
-msgid "RX query hits"
-msgstr ""
-
-msgid "Generated queries"
-msgstr ""
-
-msgid "Pending local queries"
 msgstr ""
 
 msgid "TX dropped"
 msgstr ""
 
-msgid "RX dropped"
+msgid "TX queries"
 msgstr ""
 
-msgid "QRP stats"
+msgid "TX query hits"
 msgstr ""
 
-msgid "Dup / Bad / Weird"
-msgstr ""
-
-msgid "Ping / Pong round trip"
-msgstr ""
-
-msgid "Library size"
-msgstr ""
-
-msgid "Library # of files"
-msgstr ""
-
-msgid "RX wire bytes"
+msgid "TX speed"
 msgstr ""
 
 msgid "TX wire bytes"
 msgstr ""
 
-msgid "User Interface"
+msgid "T_X flow control timeout"
+msgstr "TX流控超时(_X)"
+
+msgid "Table generation started on:"
 msgstr ""
 
-msgid "Property browser"
-msgstr "属性浏览器"
+msgid "Thaw queue"
+msgstr ""
+
+msgid ""
+"The current IP address and listening port for this node. To change these go "
+"to File->Preferences->Network."
+msgstr ""
 
 #, fuzzy
-msgid "Property pattern:"
-msgstr "属性模式："
+msgid ""
+"There is no condition. When this rule is reached, the matching will continue "
+"in the specified target filter. That's also why you can't invert this "
+"condition. If you could, this rule would just be ignored."
+msgstr ""
+"没有条件。如果此符合此规则，将在指定目标的过滤器中继续尝试匹配。这就是为什么"
+"你不能反转该条件。如果你可以的话，该规则将被忽略。"
 
-msgid "Saved"
+msgid "This Interval"
 msgstr ""
 
-msgid "Property"
-msgstr "属性"
+msgid ""
+"This limits how many results gnutella returns to other people searching your "
+"files."
+msgstr "该值限定当其他人搜索你的文件时，gnutella将返回多少个结果。"
+
+msgid ""
+"This product includes GeoIP data created by MaxMind, available from\n"
+"http://maxmind.com/"
+msgstr ""
+"此产品包括由MaxMind创建的GeoIP数据，可从此获取\n"
+"http://maxmind.com/"
+
+msgid "Timeouts (all values in seconds)"
+msgstr ""
+
+msgid "Toolbar style"
+msgstr "工具栏风格"
+
+msgid "Total input bandwidth limit:"
+msgstr ""
+
+msgid "Total output bandwidth limit:"
+msgstr ""
+
+msgid "Transferred data"
+msgstr ""
+
+msgid "Try to connect to specified address"
+msgstr ""
+
+msgid "Try to keep 'dead' entries around for"
+msgstr ""
+
+msgid "Ultrapeer mode settings"
+msgstr "超级peer模式设置"
+
+msgid "Ultrapeer mode"
+msgstr ""
+
+msgid "Ultrapeer promotion statistics"
+msgstr "超级peer成长统计"
+
+msgid "Ultrapeers in leaf mode"
+msgstr ""
+
+msgid "Ultrapeers"
+msgstr ""
+
+msgid "Unavailable"
+msgstr ""
+
+msgid ""
+"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
+"additional upload slots on request."
+msgstr ""
+
+msgid "Update search results pane every"
+msgstr ""
+
+#, fuzzy
+msgid "Upload History"
+msgstr "历史"
+
+msgid "Uploaded:"
+msgstr ""
+
+msgid "Use IP _Type of Service (TOS)"
+msgstr ""
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr ""
+
+msgid "Use _surplus bandwidth"
+msgstr ""
+
+msgid "Use global hostiles.txt"
+msgstr "使用全局的hostiles.txt文件"
+
+msgid "Use realistic PARQ estimates"
+msgstr ""
+
+msgid "Use username and password to _authenticate to proxy"
+msgstr "使用用户名和密码进行代理的认证"
+
+msgid "User Interface"
+msgstr ""
 
 msgid "Value"
 msgstr "值"
 
-msgid "Selected property:"
+msgid "Ver"
 msgstr ""
 
-msgid "<no property selected>"
+msgid "Vidar Madsen"
 msgstr ""
 
-msgid "Min/Max:"
+msgid "Visit http://gtk-gnutella.sourceforge.net/."
+msgstr "请访问主页 http://gtk-gnutella.sourceforge.net/"
+
+msgid "Volume:"
 msgstr ""
 
-msgid "Default value:"
+msgid "Watch for similar queries"
 msgstr ""
 
-#, fuzzy
-msgid "Edit value:"
-msgstr "编辑过滤器"
-
-msgid "Diverse properties"
+msgid "Watch hits for _alternate sources"
 msgstr ""
 
-msgid "Avg. time between IP address changes:"
-msgstr ""
-
-msgid "Avg. uptime of this servent:"
-msgstr ""
-
-msgid "Available physical memory:"
-msgstr ""
-
-msgid "Debugging"
-msgstr ""
-
-msgid "gtk-gnutella - Frequently Asked Questions"
-msgstr ""
-
-msgid "Frequently Asked Questions:"
+msgid "What other people see as your connection speed."
 msgstr ""
 
 #, fuzzy
-msgid "_Stop this search"
+msgid "Write buffer size"
+msgstr "套接字接收到了缓冲大小"
+
+#, fuzzy
+msgid "XML Metadata"
+msgstr "XML 数据："
+
+msgid "Yann Grossel"
+msgstr ""
+
+msgid "Yes"
+msgstr "是"
+
+msgid ""
+"You appear to be TCP-firewalled, i.e. others cannot connect to you to "
+"download files. You will not see push results, which may prevent you from "
+"seeing a large amount of results."
+msgstr ""
+
+msgid ""
+"You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic "
+"via UDP. You will not be able to send queries requesting out-of-band "
+"delivery of query hits."
+msgstr ""
+
+msgid ""
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits. However, it is possible to punch a hole into the UDP "
+"firewall, so you will be able to send out-of-band query hits."
+msgstr ""
+
+msgid ""
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits."
+msgstr ""
+
+msgid "You seem to be offline."
+msgstr ""
+
+msgid "_About"
+msgstr ""
+
+msgid "_Add directory"
+msgstr ""
+
+msgid "_Compute upload connection speed"
+msgstr ""
+
+msgid "_Create filter"
+msgstr ""
+
+msgid "_Deletion coeff. (0-100)"
+msgstr ""
+
+msgid "_Download RX buffer:"
+msgstr "下载 RX 缓冲(_D)："
+
+msgid "_Download selected"
+msgstr ""
+
+#, fuzzy
+msgid "_Duplicate this search"
 msgstr "关闭该搜索"
 
+msgid "_FAQ"
+msgstr ""
+
+msgid "_Feed mesh from hits"
+msgstr ""
+
+msgid "_File"
+msgstr ""
+
+msgid "_General"
+msgstr ""
+
+msgid "_Gnutella RX buffer:"
+msgstr "Gnutella RX 缓冲(_G)："
+
 #, fuzzy
-msgid "Resu_me this search"
-msgstr "关闭该搜索"
+msgid "_Gnutella traffic stats"
+msgstr "Gnutella RX 缓冲(_G)："
+
+msgid "_HTTP traffic stats"
+msgstr ""
+
+msgid "_Help"
+msgstr "帮助 (_H)"
+
+msgid "_Hide downloaded files"
+msgstr ""
+
+msgid "_Horizon"
+msgstr ""
+
+msgid "_Include headers"
+msgstr ""
+
+msgid "_Incoming traffic"
+msgstr ""
+
+msgid "_Listen port"
+msgstr "侦听端口(_L)"
+
+msgid "_Outgoing traffic"
+msgstr ""
+
+msgid "_Overlap when resuming"
+msgstr ""
+
+msgid "_Passive"
+msgstr ""
+
+msgid "_Path(s) to files"
+msgstr ""
+
+msgid "_Preferences"
+msgstr ""
+
+msgid "_Push sent timeout"
+msgstr ""
+
+msgid "_Remove manually downloaded files"
+msgstr ""
+
+msgid "_Rescan"
+msgstr ""
 
 #, fuzzy
 msgid "_Restart this search"
 msgstr "关闭该搜索"
 
 #, fuzzy
-msgid "_Duplicate this search"
+msgid "_Stop this search"
 msgstr "关闭该搜索"
 
-#, fuzzy
-msgid "_Close this search"
-msgstr "关闭该搜索"
+msgid "_Try to connect to local networks first"
+msgstr "先尝试连接本地网络(_T)"
 
-msgid "Country"
+msgid "_Update interval (sec)"
 msgstr ""
 
-msgid "Failed to create the search"
+msgid "_Username"
+msgstr "用户名(_U)"
+
+msgid "_View"
+msgstr ""
+
+msgid "_auto-hide leaf traffic stats"
+msgstr ""
+
+msgid "case sensitive"
+msgstr ""
+
+msgid "case-sensitive"
+msgstr ""
+
+msgid "downloads"
+msgstr ""
+
+msgid "enabled"
+msgstr ""
+
+#, fuzzy
+msgid "from _nodes within a"
+msgstr "节点带有一个(_n)"
+
+msgid "gtk-gnutella shutdown"
+msgstr "关闭 gtk-gnutella"
+
+#, fuzzy
+msgid "gtk-gnutella"
+msgstr "关于 gtk-gnutella"
+
+msgid "gtk-gnutella: Quit?"
+msgstr "gtk-gnutella：退出？"
+
+msgid "hops radius"
+msgstr ""
+
+msgid "items"
+msgstr "项目"
+
+msgid "kbps to peers"
+msgstr ""
+
+msgid "not yet determined"
+msgstr "尚未拿定主意"
+
+msgid "searches"
+msgstr ""
+
+msgid "secs   "
+msgstr ""
+
+msgid "secs"
+msgstr ""
+
+msgid "show Gnet _incoming traffic"
+msgstr ""
+
+msgid "show Gnet _outgoing traffic"
+msgstr ""
+
+msgid "show HTTP _incoming traffic"
+msgstr ""
+
+msgid "show HTTP _outgoing traffic"
+msgstr ""
+
+msgid "show Search_bar"
+msgstr ""
+
+msgid "show _Connections"
+msgstr ""
+
+msgid "show _Downloads"
+msgstr ""
+
+#, fuzzy
+msgid "show _Menubar"
+msgstr "字节"
+
+msgid "show _Sidebar"
+msgstr ""
+
+msgid "show _Statusbar"
+msgstr ""
+
+msgid "show _Uploads"
+msgstr ""
+
+msgid "show leaf _incoming traffic"
+msgstr ""
+
+msgid "show leaf _outgoing traffic"
+msgstr ""
+
+msgid "uploads"
+msgstr ""
+
+msgid "Host"
+msgstr ""
+
+msgid "Flags"
+msgstr ""
+
+msgid "User-Agent"
+msgstr ""
+
+msgid "Uptime"
 msgstr ""
 
 msgid "owned"
@@ -5979,6 +5672,9 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
 
+msgid "File"
+msgstr ""
+
 msgid "Extension"
 msgstr ""
 
@@ -5987,6 +5683,9 @@ msgid "Encoding"
 msgstr "流入："
 
 msgid "#"
+msgstr ""
+
+msgid "Loc"
 msgstr ""
 
 msgid "Metadata"
@@ -6012,9 +5711,6 @@ msgstr ""
 msgid "Hostile"
 msgstr "主机(_o)："
 
-msgid "SHA-1"
-msgstr ""
-
 msgid "Created"
 msgstr ""
 
@@ -6031,11 +5727,6 @@ msgid "Passive"
 msgstr "被动"
 
 #, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] ""
-
-#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr ""
 
@@ -6046,45 +5737,79 @@ msgstr ""
 msgid " (partial)"
 msgstr ""
 
-#, c-format
-msgid " (slot %u"
+msgid "Range"
 msgstr ""
 
-#, c-format
-msgid " retry in %us"
+msgid "Type"
 msgstr ""
 
-#, c-format
-msgid "Sending request (%u%%)"
+msgid "Count"
 msgstr ""
-
-#, fuzzy
-msgid "Uploaded"
-msgstr "已上传数据："
-
-msgid "Aliases"
-msgstr ""
-
-#, c-format
-msgid "Selected %u of %u download matching \"%s\"."
-msgid_plural "Selected %u of %u downloads matching \"%s\"."
-msgstr[0] ""
 
 msgid "Cache contains"
+msgstr ""
+
+msgid "Hits"
+msgstr ""
+
+msgid "Copy magnet to clipboard"
+msgstr ""
+
+msgid "Start now"
 msgstr ""
 
 #, fuzzy
 msgid "Pause"
 msgstr "被动"
 
-msgid "Copy Magnet to clipboard"
+msgid "Resume"
 msgstr ""
 
-msgid "Download selected files"
+msgid "Move back to queue"
+msgstr ""
+
+msgid "Abort"
+msgstr ""
+
+msgid "Configure columns"
+msgstr ""
+
+#, fuzzy
+msgid "Download"
+msgstr "节点已增加"
+
+#, fuzzy
+msgid "Bitzi metadata"
+msgstr "XML 数据："
+
+msgid "with the same name"
+msgstr ""
+
+msgid "with the same urn:sha1"
+msgstr ""
+
+msgid "from the same host"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+#, fuzzy
+msgid "Restart"
+msgstr "恢复"
+
+msgid "Expand all"
+msgstr ""
+
+msgid "Collapse all"
 msgstr ""
 
 msgid "Copy to clipboard"
 msgstr ""
+
+#, fuzzy
+msgid "Browse Host"
+msgstr "允许浏览主机"
 
 #, fuzzy
 msgid "_Remove filter"
@@ -6102,16 +5827,46 @@ msgstr ""
 "\n"
 "请稍候："
 
-msgid "Gnet _traffic stats"
+msgid "_Close"
+msgstr "关闭(_C)"
+
+msgid "_Quit"
 msgstr ""
 
-msgid "_Keyboard shortcuts"
+#, fuzzy
+msgid "show _Peers"
+msgstr "字节"
+
+#, fuzzy
+msgid "Gnutella _traffic stats"
+msgstr "Gnutella RX 缓冲(_G)："
+
+msgid "_Search"
+msgstr "搜索 (_S)"
+
+msgid "Uploads"
+msgstr ""
+
+msgid "Downloads"
+msgstr ""
+
+msgid "Click to toggle display."
+msgstr ""
+
+msgid ""
+"Your uploads are stalling at an abnormal rate, indicating that your "
+"bandwidth is probably saturated. You should not run as an ultra node, and "
+"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
+"both your incoming and outgoing paths."
 msgstr ""
 
 msgid "Connect to"
 msgstr "连接到"
 
 msgid "ultrapeers"
+msgstr ""
+
+msgid "Disconnect"
 msgstr ""
 
 msgid "Try to keep at least"
@@ -6137,9 +5892,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr "地址/端口："
 
-msgid "Uploaded data:"
-msgstr "已上传数据："
-
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr ""
 
@@ -6147,6 +5899,9 @@ msgid "Served "
 msgstr ""
 
 msgid "[BH HTML served]"
+msgstr ""
+
+msgid " / "
 msgstr ""
 
 msgid "[BH HTML]"
@@ -6159,15 +5914,33 @@ msgstr ""
 msgid "Current _search:"
 msgstr "当前使用"
 
-#, fuzzy
-msgid "XML Metadata"
-msgstr "XML 数据："
+msgid "_Edit filters"
+msgstr ""
+
+msgid "_Clear results"
+msgstr ""
+
+msgid "_Reset stats"
+msgstr ""
+
+msgid "_Messages"
+msgstr ""
 
 msgid "Flow _control"
 msgstr ""
 
 msgid "_Received"
 msgstr "接收(_R)"
+
+msgid "Downloaded data:"
+msgstr "已下载数据："
+
+msgid "Uploaded data:"
+msgstr "已上传数据："
+
+#, fuzzy
+msgid "File transfers"
+msgstr "文件读取出错：%s"
 
 msgid "_Columns show hops"
 msgstr ""
@@ -6178,18 +5951,57 @@ msgstr ""
 msgid "Show reasons _for"
 msgstr ""
 
-#, fuzzy
-msgid "Gnutella stats"
-msgstr "Gnutella RX 缓冲(_G)："
+msgid "invert condition"
+msgstr "反转条件"
+
+msgid "active"
+msgstr ""
+
+msgid "mark only"
+msgstr "只标记"
+
+msgid "Save"
+msgstr ""
 
 msgid "Delete"
 msgstr "删除"
 
+msgid "bytes"
+msgstr "字节"
+
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr ""
 
+msgid "ignored"
+msgstr "忽略"
+
+msgid "unset"
+msgstr "未设置"
+
+msgid "set"
+msgstr "设置"
+
+msgid "don't"
+msgstr "否"
+
+msgid "undefined"
+msgstr "未定义"
+
+#, fuzzy
+msgid "do"
+msgstr "做"
+
+msgid "ignore"
+msgstr "忽略"
+
 msgid "Reverse DNS lookup"
 msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Network"
+msgstr "网络"
 
 msgid "Force external IPv4 address to"
 msgstr ""
@@ -6206,6 +6018,10 @@ msgid "Force external IPv6 address to"
 msgstr ""
 
 #, fuzzy
+msgid "Bind to this address"
+msgstr "返回地址错误"
+
+#, fuzzy
 msgid "IPv_6 settings"
 msgstr "IP 设置"
 
@@ -6217,11 +6033,17 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr "本地网络地址 (_A)"
 
-msgid "Enough UDP support"
-msgstr ""
+msgid "Local networks"
+msgstr "本地网络"
+
+msgid "Miscellaneous"
+msgstr "杂项"
 
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 禁用)"
+
+msgid "Searches"
+msgstr "搜索"
 
 msgid "slots"
 msgstr ""
@@ -6229,7 +6051,22 @@ msgstr ""
 msgid "unit_of_time|s"
 msgstr ""
 
+msgid "Connectin_g timeout"
+msgstr "正在连接已超时(_g)"
+
+msgid "Connected time_out"
+msgstr "已连接的超时(_o)"
+
 msgid "Maximum percentage of connection slots a vendor can occupy."
+msgstr ""
+
+msgid "KiB/s"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "_Browse"
 msgstr ""
 
 #, fuzzy
@@ -6239,16 +6076,40 @@ msgstr "项目"
 msgid "_Remove directory"
 msgstr ""
 
-msgid "E_xpose relative paths"
-msgstr ""
-
 #, fuzzy
 msgid "Minimum chunk _size"
 msgstr "最小体积："
 
-msgid ""
-"Erases all selected files as far as they are incomplete and discontinues the "
-"download of the selected files."
+msgid "and lasted"
+msgstr ""
+
+msgid "seconds"
+msgstr "秒"
+
+msgid "<no property selected>"
+msgstr ""
+
+msgid "_Stop"
+msgstr ""
+
+msgid "Resu_me"
+msgstr ""
+
+msgid "_Restart"
+msgstr ""
+
+#, fuzzy
+msgid "_Duplicate"
+msgstr "复制消息"
+
+#, fuzzy
+msgid "Close"
+msgstr "关闭(_C)"
+
+msgid "Select files by regex"
+msgstr ""
+
+msgid "Filter files by regex"
 msgstr ""
 
 msgid "Remove completed downloads from list"
@@ -6257,11 +6118,11 @@ msgstr "从列表中删除已下载项"
 msgid "_Clear completed"
 msgstr ""
 
-msgid "Select all matching regex"
+msgid "Tools"
 msgstr ""
 
-msgid "Downloaded data:"
-msgstr "已下载数据："
+msgid ", "
+msgstr ""
 
 msgid "Version"
 msgstr ""
@@ -6278,6 +6139,12 @@ msgstr "流入："
 msgid "outgoing"
 msgstr "流出："
 
+msgid "Country:"
+msgstr ""
+
+msgid "Vendor:"
+msgstr ""
+
 msgid "Move the cursor over a row to see details."
 msgstr ""
 
@@ -6288,7 +6155,18 @@ msgstr ""
 msgid "Reverse lookup in progress..."
 msgstr ""
 
-msgid "The normalized search text is too short."
+msgid "Search"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+#, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] ""
+
+msgid "Done"
 msgstr ""
 
 msgid "Fresh regular"
@@ -6307,25 +6185,6 @@ msgid "Unstable"
 msgstr "不稳定"
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
-
-msgid "Stats"
-msgstr ""
-
-msgid "Hostcache"
-msgstr ""
-
-msgid "History"
-msgstr "历史"
-
-#, fuzzy
-msgid "Active"
-msgstr "%u 个活动"
-
-msgid "Queue"
-msgstr "队列"
-
-msgid "Monitor"
 msgstr ""
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
@@ -6348,6 +6207,12 @@ msgstr ""
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] ""
+
+msgid "in"
+msgstr ""
+
+msgid "out"
+msgstr ""
 
 msgid "(avg)"
 msgstr ""
@@ -6483,35 +6348,32 @@ msgstr ""
 msgid "Could not launch browse host for %s"
 msgstr ""
 
+msgid "No"
+msgstr "否"
+
+msgid "Maybe"
+msgstr ""
+
+#, fuzzy
+msgid "Source"
+msgstr "%u 个源"
+
+msgid "Alt-Locs"
+msgstr ""
+
+msgid "Index"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
 msgid "Bitzi URL"
 msgstr ""
 
 msgid "ShareMonkey URL"
 msgstr ""
 
-msgid "Index"
-msgstr ""
-
-msgid "No"
-msgstr "否"
-
-#, fuzzy
-msgid "Pathname"
-msgstr "主机(_o)："
-
-#, fuzzy
-msgid "File URL"
-msgstr "文件"
-
-#, fuzzy
-msgid "Source"
-msgstr "%u 个源"
-
-#, fuzzy
-msgid "Browsable"
-msgstr "稳定"
-
-msgid "Maybe"
+msgid "Host information"
 msgstr ""
 
 #, fuzzy
@@ -6522,13 +6384,31 @@ msgstr "主机(_o)："
 msgid "Servent ID"
 msgstr "Servent关闭"
 
-msgid "Alt-Locs"
-msgstr ""
+#, fuzzy
+msgid "Browsable"
+msgstr "稳定"
 
 msgid "Push-proxies"
 msgstr ""
 
+msgid "Packet information"
+msgstr ""
+
+#, fuzzy
+msgid "Pathname"
+msgstr "主机(_o)："
+
+#, fuzzy
+msgid "File URL"
+msgstr "文件"
+
+msgid "URLs"
+msgstr ""
+
 msgid "N2R URI"
+msgstr ""
+
+msgid "Push URL"
 msgstr ""
 
 msgid "Classic URL"
@@ -6538,6 +6418,15 @@ msgid "Support for this protocol is not yet implemented"
 msgstr ""
 
 msgid "Cannot handle the dropped data"
+msgstr ""
+
+msgid "The normalized search text is too long."
+msgstr ""
+
+msgid "The normalized search text is too short."
+msgstr ""
+
+msgid "The URN in the search text is invalid."
 msgstr ""
 
 msgid "Never"
@@ -6681,6 +6570,93 @@ msgstr "正发送队列，正向回连接..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
 
+#, fuzzy
+#~ msgid "Removed %u download"
+#~ msgid_plural "Removed %u downloads"
+#~ msgstr[0] "下载 %1$u/%2$u"
+
+#, fuzzy
+#~ msgid "Filename filter:"
+#~ msgstr "#|文件名"
+
+#, fuzzy
+#~ msgid "[running]"
+#~ msgstr "禁止中"
+
+#, fuzzy
+#~ msgid "[queued downloads]"
+#~ msgstr "下载 %1$u/%2$u"
+
+#~ msgid "Queue"
+#~ msgstr "队列"
+
+#, fuzzy
+#~ msgid "[Add/Remove]"
+#~ msgstr "添加/替换"
+
+#, fuzzy
+#~ msgid "[Filename]"
+#~ msgstr "#|文件名"
+
+#, fuzzy
+#~ msgid "[IP address]"
+#~ msgstr "IP 地址"
+
+#, fuzzy
+#~ msgid "[Filesize]"
+#~ msgstr "文件"
+
+#, fuzzy
+#~ msgid "[State]"
+#~ msgstr "#|状态"
+
+#, fuzzy
+#~ msgid "[time]"
+#~ msgstr "%u 个活动"
+
+#, fuzzy
+#~ msgid "_Close this search"
+#~ msgstr "关闭该搜索"
+
+#, fuzzy
+#~ msgid "_GnutellaNet"
+#~ msgstr "Gnutella RX 缓冲(_G)："
+
+#, fuzzy
+#~ msgid "_Stats"
+#~ msgstr "#|状态"
+
+#, fuzzy
+#~ msgid "_History"
+#~ msgstr "历史"
+
+#, fuzzy
+#~ msgid "_Downloads"
+#~ msgstr "已下载数据："
+
+#, fuzzy
+#~ msgid "_Files"
+#~ msgstr "文件"
+
+#, fuzzy
+#~ msgid "_Active"
+#~ msgstr "%u 个活动"
+
+#, fuzzy
+#~ msgid "_Queue"
+#~ msgstr "队列"
+
+#, fuzzy
+#~ msgid "S_tats"
+#~ msgstr "#|状态"
+
+#, fuzzy
+#~ msgid "Query:"
+#~ msgstr "变形的查询命中"
+
+#~ msgid "XML data:"
+#~ msgstr "XML 数据："
+
 #~ msgid "Unknown parameter"
 #~ msgstr "未知的参数"
 
@@ -6702,9 +6678,6 @@ msgstr "发送队列，正等待头部..."
 
 #~ msgid "Hide settings"
 #~ msgstr "隐藏设置"
-
-#~ msgid "Displaying"
-#~ msgstr "正显示"
 
 #, fuzzy
 #~ msgid ""
@@ -6748,48 +6721,12 @@ msgstr "发送队列，正等待头部..."
 #~ msgstr "已下载数据："
 
 #, fuzzy
-#~ msgid "[running]"
-#~ msgstr "禁止中"
-
-#, fuzzy
-#~ msgid "[Active]"
-#~ msgstr "%u 个活动"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "下载 %1$u/%2$u"
-
-#, fuzzy
 #~ msgid "[Queue]"
 #~ msgstr "队列"
 
 #, fuzzy
 #~ msgid "[Search]"
 #~ msgstr "搜索 (_S)"
-
-#, fuzzy
-#~ msgid "[Search Stats]"
-#~ msgstr "搜索"
-
-#, fuzzy
-#~ msgid "[Add/Remove]"
-#~ msgstr "添加/替换"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "#|文件名"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "IP 地址"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "文件"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "#|状态"
 
 #~ msgid "Edit filters"
 #~ msgstr "编辑过滤器"

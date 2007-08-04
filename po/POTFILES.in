@@ -1,5 +1,9 @@
+# List of source files containing translatable strings.
+# $Id$
+
 src/core/bitzi.c
 src/core/downloads.c
+src/core/fileinfo.c
 src/core/gnet_stats.c
 src/core/nodes.c
 src/core/rx_link.c
@@ -19,24 +23,19 @@ src/lib/utf8.c
 src/main.c
 src/ui/gtk/bitzi.c
 src/ui/gtk/downloads_common.c
-src/ui/gtk/drop.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
+src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
-src/ui/gtk/gtk1/downloads.c
-src/ui/gtk/gtk1/downloads_cb.c
 src/ui/gtk/gtk1/fileinfo.c
 src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/nodes.c
 src/ui/gtk/gtk1/search.c
 src/ui/gtk/gtk1/search_cb.c
-src/ui/gtk/gtk1/search_stats.c
 src/ui/gtk/gtk1/support-glade.c
 src/ui/gtk/gtk1/uploads.c
 src/ui/gtk/gtk2/callbacks.c
-src/ui/gtk/gtk2/downloads.c
-src/ui/gtk/gtk2/downloads_cb.c
 src/ui/gtk/gtk2/fileinfo.c
 src/ui/gtk/gtk2/gnet_stats.c
 src/ui/gtk/gtk2/hcache.c

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-07-13 05:13+0900\n"
+"POT-Creation-Date: 2007-08-04 20:35+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -180,6 +180,41 @@ msgstr "<THEX-data for %s>"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Stoppet data (slutt på fil) <download_got_eof>"
 
+#, fuzzy, c-format
+msgid "Downloading (TR: %s)"
+msgstr "Laster ned (%s)  Tid igjen: %s"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "failed"
+msgstr "feilet"
+
+msgid "Waiting for SHA1 check"
+msgstr "Venter på SHA1-kontroll"
+
+msgid "Computing SHA1"
+msgstr "Kalkulerer SHA1"
+
+msgid "Moving"
+msgstr "Flytter"
+
+msgid "Seeding"
+msgstr "Deler"
+
+msgid "Finished"
+msgstr "Ferdig"
+
+msgid "No sources"
+msgstr "Ingen kilder"
+
+#, fuzzy, c-format
+msgid "Queued (%u active, %u passive)"
+msgstr "I kø (%d aktiv, %d passiv)"
+
+msgid "Waiting"
+msgstr "Venter"
+
 msgid "Bad size"
 msgstr "Ugyldig størrelse"
 
@@ -278,6 +313,9 @@ msgstr "Fikk ukjent meldingshode"
 
 msgid "Own search results"
 msgstr "Egne søkeresultater"
+
+msgid "Ancient query format"
+msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -596,9 +634,6 @@ msgstr "Startet avsluttingsprosedyren."
 
 msgid "Malformed command"
 msgstr "Feilformet kommando"
-
-msgid "OK"
-msgstr "OK"
 
 msgid "Unknown command"
 msgstr "Ukjent kommando"
@@ -1307,6 +1342,10 @@ msgid ""
 msgstr ""
 "Fjern utilgjengelige nedlastinger automatisk (tidsavbrudd for tilkobling, "
 "tapt dytterute etc.)."
+
+#, fuzzy
+msgid "Auto clear finished downloads"
+msgstr "FJern stoppede nedlastinger automatisk"
 
 msgid "Remove downloaded files from the search result."
 msgstr "Fjern nedlastede filer fra søkeresultatet."
@@ -2409,10 +2448,6 @@ msgstr "Feilsøkingsnivå for søkekøen."
 msgid "Debug level for push-proxy code."
 msgstr "Feilsøkingsnivå for dyttemellomtjener-koden."
 
-msgid "This is an interim property while Tigertree support is unfinished."
-msgstr ""
-"Dette er en midlertidig innstilling mens Tigertree-støtten ikke er ferdig."
-
 msgid "Number of THEX file requests received in this session."
 msgstr "Antall THEX-filforespørsler mottatt i denne økten."
 
@@ -2525,12 +2560,14 @@ msgstr "Søkeovervåkning er på."
 msgid "Maximum number of queries visible in search monitor."
 msgstr "Høyeste antall spørringer synlig i søkeovervåkeren."
 
-msgid "Match queue selection by regexp case sensitive."
+#, fuzzy
+msgid "Select downloads by regex case-sensitive."
 msgstr ""
 "Treff kømerking etter et regulært uttrykk, og skill mellom store og små "
 "bokstaver."
 
-msgid "Match fileinfo selection by regexp case sensitive."
+#, fuzzy
+msgid "Filter downloads by regex case-sensitive."
 msgstr ""
 "Treff filinformasjonsmerking med et regulært uttrykk, og skill mellom store "
 "og små bokstaver."
@@ -2562,6 +2599,14 @@ msgstr "Hvilke kolonner som er synlige i tabellen over nedlastinger i kø."
 
 msgid "Widths of the columns in the file info table."
 msgstr "Bredden på kolonnene i filinformasjonstabellen."
+
+#, fuzzy
+msgid "Visibility of the columns in the file info table."
+msgstr "Bredden på kolonnene i filinformasjonstabellen."
+
+#, fuzzy
+msgid "Widths of the columns in the sources table."
+msgstr "Bredden på kolonnene i nodetabellen."
 
 msgid "Widths of the columns in the search list on the sidebar."
 msgstr "Bredden på kolonnene i søkelisten på sidelinjen."
@@ -2629,9 +2674,6 @@ msgstr "Størrelsen på sidelinjen."
 msgid "Position of the divider in the Gnet stats pane."
 msgstr "Posisjonen på deleren i Gnet-statistikkruten."
 
-msgid "Size of the menu in the sidebar."
-msgstr "Størrelsen på menyen i sidelinjen."
-
 msgid "Position of the divider in the search results pane."
 msgstr "Posisjonen til deleren i søkeresultatruten."
 
@@ -2657,11 +2699,9 @@ msgstr "Vis søkelinje."
 msgid "Display Sidebar."
 msgstr "Vis sidelinje."
 
-msgid "Display Navigation Tree."
-msgstr "Vis navigeringstre."
-
-msgid "Display toolbar."
-msgstr "Vis verktøylinje."
+#, fuzzy
+msgid "Display Menu."
+msgstr "Vis sidelinje."
 
 msgid "Display statusbar."
 msgstr "Vis statuslinje."
@@ -3685,6 +3725,10 @@ msgid_plural "%u&nbsp;Bytes"
 msgstr[0] "%u&nbsp;Byte"
 msgstr[1] "%u&nbsp;byte"
 
+#, c-format
+msgid "%s (%s bytes)"
+msgstr "%s (%s byte)"
+
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
 msgstr "B/s"
@@ -3750,6 +3794,159 @@ msgstr "Beste versjon"
 
 msgid "No other data"
 msgstr "Ikke andre data"
+
+msgid "Filename"
+msgstr "Filnavn"
+
+msgid "SHA-1"
+msgstr "SHA-1"
+
+msgid "Bitprint"
+msgstr ""
+
+msgid "Queued"
+msgstr "Lagt i kø"
+
+#, c-format
+msgid " (slot %u"
+msgstr " (plass %u"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", tid igjen: %s"
+
+#, c-format
+msgid " retry in %us"
+msgstr " nytt forsøk om %us"
+
+msgid "Complete"
+msgstr "Fullført"
+
+msgid "Connecting..."
+msgstr "Kobler til . . ."
+
+msgid "Push sent directly"
+msgstr "Dytt sendt direkte"
+
+msgid "Push sent"
+msgstr "Dytt sendt"
+
+msgid "Failed to send push"
+msgstr "Klarte ikke sende dytt"
+
+msgid "Sending push"
+msgstr "Sender dytt"
+
+#, c-format
+msgid " via %s"
+msgstr " via %s"
+
+msgid "Connecting"
+msgstr "Kobler til"
+
+msgid "Sending request"
+msgstr "Sender forespørsel"
+
+msgid "Request sent"
+msgstr "Forespørsel sendt"
+
+msgid "Reading headers"
+msgstr "Leser hoder"
+
+msgid "Falling back to push"
+msgstr "Faller tilbake på dytt"
+
+#, c-format
+msgid "Sending request (%u%%)"
+msgstr "Sender forespørsel (%u%%)"
+
+msgid "Receiving headers"
+msgstr "Mottar hoder"
+
+msgid "Aborted (Server down)"
+msgstr "Avbrutt (tjener nede)"
+
+msgid "Aborted"
+msgstr "Avbrutt"
+
+msgid "Completed"
+msgstr "Fullført"
+
+msgid "Chunk done"
+msgstr "Bit ferdig"
+
+msgid "Waiting for SHA1 checking..."
+msgstr "Venter på SHA1-kontrollering . . ."
+
+#, c-format
+msgid "Computing SHA1 (%.02f%%)"
+msgstr "Kalkulerer SHA! (%.02f%%)"
+
+#, fuzzy
+msgid "SHA-1 OK"
+msgstr "SHA-1"
+
+msgid "SHA-1 MISMATCH"
+msgstr ""
+
+msgid "SHA-1 calculated"
+msgstr ""
+
+msgid "SHA-1 VERIFICATION FAILED"
+msgstr ""
+
+msgid "; Waiting for moving..."
+msgstr "; venter på flytting . . ."
+
+#, c-format
+msgid "; Moving (%.02f%%)"
+msgstr "; flytter (%.02f%%)"
+
+#, c-format
+msgid "; Moved (%s) %s"
+msgstr "; flyttet (%s) %s"
+
+msgid "(stalled)"
+msgstr "(stanset)"
+
+msgid "Connected"
+msgstr "Koblet til"
+
+msgid "ignoring"
+msgstr "Ignorerer"
+
+msgid "Unknown error"
+msgstr "Ukjent feil"
+
+#, c-format
+msgid "Retry in %us"
+msgstr "Nytt forsøk om %us"
+
+#, c-format
+msgid "Sinking (%s bytes left)"
+msgstr "Synker (%s byte igjen)"
+
+#, c-format
+msgid "Forgot %u download"
+msgid_plural "Forgot %u downloads"
+msgstr[0] "Glemte %u nedlasting"
+msgstr[1] "Glemte %u nedlastinger"
+
+msgid "Active"
+msgstr "Aktiv"
+
+#, fuzzy
+msgid "Incomplete"
+msgstr "Fullført"
+
+msgid "All"
+msgstr ""
+
+#, c-format
+msgid "Selected %u of %u download matching \"%s\"."
+msgid_plural "Selected %u of %u downloads matching \"%s\"."
+msgstr[0] "Valgte %u av %u nedlasting som passer til «%s»."
+msgstr[1] "Valgte %u av %u nedlastinger som passer til «%s»."
 
 msgid "starts with"
 msgstr "begynner med"
@@ -4090,566 +4287,181 @@ msgstr "Velg hvor korrupte filer skal lagres"
 msgid "Please choose a directory to share"
 msgstr "Velg en katalog å dele"
 
-msgid "no size"
-msgstr "ingen størrelse"
+msgid "Progress"
+msgstr "Framgang"
 
-#, c-format
-msgid "%u host"
-msgid_plural "%u hosts"
-msgstr[0] "%u vert"
-msgstr[1] "%u verter"
+msgid "RX"
+msgstr ""
 
-msgid "Queued"
-msgstr "Lagt i kø"
+#, fuzzy
+msgid "Downloaded"
+msgstr "Lastet ned."
 
-#, c-format
-msgid " (slot %d"
-msgstr " (plass %d"
+msgid "Uploaded"
+msgstr "Lastet opp"
 
-#, c-format
-msgid ", ETA: %s"
-msgstr ", tid igjen: %s"
+msgid "Sources"
+msgstr "Kilder"
 
-#, c-format
-msgid " retry in %ds"
-msgstr " prøver på nytt om %ds"
+msgid "Status"
+msgstr "Status"
 
-msgid "Connecting..."
-msgstr "Kobler til . . ."
+msgid " Clear completed "
+msgstr " Fjern fullførte "
 
-msgid "Push sent directly"
-msgstr "Dytt sendt direkte"
+msgid " Gnutella browse requests"
+msgstr " Gnutella-blaforespørsler"
 
-msgid "Push sent"
-msgstr "Dytt sendt"
+msgid " HTML and "
+msgstr " HTML og "
 
-msgid "Failed to send push"
-msgstr "Klarte ikke sende dytt"
+msgid " Kill selected "
+msgstr " Drep valgte "
 
-msgid "Sending push"
-msgstr "Sender dytt"
+msgid " alive with "
+msgstr " i live med "
 
-#, c-format
-msgid " via %s"
-msgstr " via %s"
+msgid " passive)"
+msgstr " passiv)"
 
-msgid "Connecting"
-msgstr "Kobler til"
+msgid " queued ("
+msgstr " i kø ("
 
-msgid "Sending request"
-msgstr "Sender forespørsel"
+msgid " registered, "
+msgstr " registrert, "
 
-msgid "Request sent"
-msgstr "Forespørsel sendt"
-
-msgid "Reading headers"
-msgstr "Leser hoder"
-
-msgid "Falling back to push"
-msgstr "Faller tilbake på dytt"
-
-#, c-format
-msgid "Sending request (%d%%)"
-msgstr "Sender forespørsel (%d%%)"
-
-msgid "Receiving headers"
-msgstr "Mottar hoder"
-
-msgid "Aborted (Server down)"
-msgstr "Avbrutt (tjener nede)"
-
-msgid "Aborted"
-msgstr "Avbrutt"
-
-msgid "Completed"
-msgstr "Fullført"
-
-msgid "Chunk done"
-msgstr "Bit ferdig"
-
-msgid "Waiting for SHA1 checking..."
-msgstr "Venter på SHA1-kontrollering . . ."
-
-#, c-format
-msgid "Computing SHA1 (%.02f%%)"
-msgstr "Kalkulerer SHA! (%.02f%%)"
-
-msgid "; Waiting for moving..."
-msgstr "; venter på flytting . . ."
-
-#, c-format
-msgid "; Moving (%.02f%%)"
-msgstr "; flytter (%.02f%%)"
-
-#, c-format
-msgid "; Moved (%s) %s"
-msgstr "; flyttet (%s) %s"
-
-msgid "(stalled)"
-msgstr "(stanset)"
-
-#, c-format
-msgid " [%d/%d] TR: %s"
-msgstr " [%d/%d] Igjen: %s"
-
-msgid "ignoring"
-msgstr "Ignorerer"
-
-msgid "Connected"
-msgstr "Koblet til"
-
-msgid "Unknown error"
-msgstr "Ukjent feil"
-
-#, c-format
-msgid "Retry in %us"
-msgstr "Nytt forsøk om %us"
-
-#, c-format
-msgid "Sinking (%s bytes left)"
-msgstr "Synker (%s byte igjen)"
-
-msgid "Complete"
-msgstr "Fullført"
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  %s"
-msgstr "(%s)  [%d/%d]  Igjen:  %s"
-
-#, c-format
-msgid "(%s)  [%d/%d]  TR:  -"
-msgstr "(%s)  [%d/%d]  Igjen:  -"
-
-#, c-format
-msgid "Removed %u download"
-msgid_plural "Removed %u downloads"
-msgstr[0] "Fjernet %u nedlasting"
-msgstr[1] "Fjernet %u nedlastinger"
-
-#, c-format
-msgid "Forgot %u download"
-msgid_plural "Forgot %u downloads"
-msgstr[0] "Glemte %u nedlasting"
-msgstr[1] "Glemte %u nedlastinger"
-
-#, c-format
-msgid "Selected %u of %u queued download matching \"%s\"."
-msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-msgstr[0] "Valgte %u av %u nedlasting i kø som passer til «%s»."
-msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
-
-#, c-format
-msgid "Downloading (%s)  TR: %s"
-msgstr "Laster ned (%s)  Tid igjen: %s"
-
-msgid "Seeding"
-msgstr "Deler"
-
-msgid "Finished"
-msgstr "Ferdig"
-
-msgid "failed"
-msgstr "feilet"
-
-msgid "Waiting for SHA1 check"
-msgstr "Venter på SHA1-kontroll"
-
-msgid "Computing SHA1"
-msgstr "Kalkulerer SHA1"
-
-msgid "Moving"
-msgstr "Flytter"
-
-msgid "No sources"
-msgstr "Ingen kilder"
-
-#, c-format
-msgid "Queued (%d active, %d passive)"
-msgstr "I kø (%d aktiv, %d passiv)"
-
-msgid "Waiting"
-msgstr "Venter"
-
-msgid "<none>"
-msgstr "<ingen>"
-
-#, c-format
-msgid "%s (%s bytes)"
-msgstr "%s (%s byte)"
-
-msgid "_File"
-msgstr "_Fil"
-
-msgid "_GnutellaNet"
-msgstr "_GnutellaNet"
-
-msgid "_Stats"
-msgstr "_Statistikk"
-
-msgid "_Hostcache"
-msgstr "Vert_hurtigminne"
-
-msgid "_Preferences"
-msgstr "_Innstillinger"
-
-msgid "_Quit"
-msgstr "_Avslutt"
-
-msgid "_Uploads"
-msgstr "_Opplastinger"
-
-msgid "_Transfers"
-msgstr "_Overføringer"
-
-msgid "_History"
-msgstr "_Historikk"
-
-msgid "_Downloads"
-msgstr "Ne_dlastinger"
-
-msgid "_Files"
-msgstr "_Filer"
-
-msgid "_Active"
-msgstr "_Aktiv"
-
-msgid "_Queue"
-msgstr "_Kø"
-
-msgid "_Search"
-msgstr "_Søk"
-
-msgid "_Results"
-msgstr "_Resultater"
-
-msgid "_Monitor"
-msgstr "_Overvåker"
-
-msgid "S_tats"
-msgstr "S_tatistikk"
-
-msgid "_View"
-msgstr "_Vis"
-
-msgid "show Search_bar"
-msgstr "Vis søke_linje"
-
-msgid "show _Toolbar"
-msgstr "Vis verk_tøylinje"
-
-msgid "show _Sidebar"
-msgstr "Vis _sidelinje"
-
-msgid "show _Navigation Tree"
-msgstr "Vis _navigeringstre"
-
-msgid "show _Downloads"
-msgstr "Vis ne_dlastinger"
-
-msgid "show _Uploads"
-msgstr "Vis _opplastinger"
-
-msgid "show _Connections"
-msgstr "Vis _tilkoblinger"
-
-msgid "_HTTP traffic stats"
-msgstr "_HTTP-trafikkstatistikk"
-
-msgid "show HTTP _incoming traffic"
-msgstr "Vis _innkommende HTTP-trafikk"
-
-msgid "show HTTP _outgoing traffic"
-msgstr "Vis _utgående HTTP-trafikk"
-
-msgid "_Gnet traffic stats"
-msgstr "_Gnet-trafikkstatistikk"
-
-msgid "show Gnet _incoming traffic"
-msgstr "Vis _innkommende Gnet-trafikk"
-
-msgid "show Gnet _outgoing traffic"
-msgstr "Vis _utgående Gnet-trafikk"
-
-msgid "Gnet _leaf traffic stats"
-msgstr "Gnet b_ladstatistikk"
-
-msgid "_auto-hide leaf traffic stats"
-msgstr "Skjul bl_adstatistikk automatisk"
-
-msgid "show leaf _incoming traffic"
-msgstr "Vis _innkommende bladtrafikk"
-
-msgid "show leaf _outgoing traffic"
-msgstr "Vis _utgående bladtrafikk"
-
-msgid "show _Statusbar"
-msgstr "Vis _statuslinje"
-
-msgid "_Help"
-msgstr "_Hjelp"
-
-msgid "_About"
-msgstr "_Om"
-
-msgid "Frequently Asked Questions"
-msgstr "Ofte stilte spørsmål"
-
-msgid "_FAQ"
-msgstr "_Ofte stilte spørsmål"
-
-msgid "Navigator"
-msgstr "Navigerer"
-
-msgid "Search"
-msgstr "Søk"
-
-msgid "Hits"
-msgstr "Treff"
-
-msgid "New"
-msgstr "Ny"
-
-msgid "Gnet connections"
-msgstr "Gnet-forbindelser"
+msgid " with sources"
+msgstr " med kilder"
 
 msgid "%v/%u Gnet nodes"
 msgstr "%v/%u Gnet-noder"
 
-msgid "uploads"
-msgstr "opplastinger"
+msgid "%v/%u downloads"
+msgstr "%v/%u nedlastinger"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u opplastinger"
 
-msgid "downloads"
-msgstr "nedlastinger"
+msgid "(Disable: 0, Random: 1)"
+msgstr "(Ikke bruk: 0, tilfeldig: 1)"
 
-msgid "%v/%u downloads"
-msgstr "%v/%u nedlastinger"
+msgid "(no search)"
+msgstr "(intet søk)"
 
-msgid "HTTP traffic"
-msgstr "HTTP-trafikk"
+msgid "(not forwarded)"
+msgstr "(ikke videresendt)"
 
-msgid "Click to toggle display."
-msgstr "Trykk for å bytte visning."
+msgid "0 terms counted"
+msgstr "0 begreper talt"
 
-msgid "in"
-msgstr "inn"
+msgid ""
+"==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr ""
+"==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
 
-msgid "out"
-msgstr "ut"
-
-msgid "GnutellaNet traffic"
-msgstr "GnutellaNet-trafikk"
-
-msgid "Leaf traffic"
-msgstr "Bladtrafikk"
+msgid ""
+"A filter cannot be removed if it is bound to a search or if it is in use "
+"(used as a target in a rule)."
+msgstr ""
+"Et filter kan ikke fjernes hvis det er bundet til et søk eller hvis det er i "
+"bruk (bruk som mål i en regel)."
 
 msgid "A passive search matches any search results routed through this node"
 msgstr ""
 "Et passivt søk passer alle søkeresultatene som dirigeres gjennom denne noden."
 
-msgid "_Passive"
-msgstr "_Passiv"
-
-msgid "GnutellaNet connections"
-msgstr "GnutellaNet-forbindelser"
-
-msgid "Host"
-msgstr "Vert"
-
-msgid "Loc"
-msgstr "Land"
-
-msgid "Flags"
-msgstr "Flagg"
-
-msgid "User-Agent"
-msgstr "Program"
-
-msgid "Ver"
-msgstr "Ver"
-
-msgid "Connected time"
-msgstr "Tilkoblet tid"
-
-msgid "Uptime"
-msgstr "Oppetid"
-
-msgid "Info"
-msgstr "Informasjon"
-
-msgid "Disconnect from selected nodes"
-msgstr "Koble fra valgte noder"
-
-msgid "Disconnect"
-msgstr "Koble fra"
-
-msgid "Try to connect to specified address"
-msgstr "Prøv å koble til oppgitte adresse"
-
-msgid "Add"
-msgstr "Legg til"
-
-msgid "Minimum"
-msgstr "Minst"
-
-msgid "Maximum"
-msgstr "Høyst"
-
-msgid "Ultrapeers in leaf mode"
-msgstr "Ultrapersoner i bladmodus"
-
-msgid "Quick-connect pool size"
-msgstr "Bassengstørrelse for rask tilkobling"
-
-msgid "Transferred data"
-msgstr "Overført data"
-
-msgid "Uploaded:"
-msgstr "Lastet opp."
-
-msgid "Downloaded:"
-msgstr "Lastet ned."
-
-msgid "Chunks/Files:"
-msgstr "Biter/Filer:"
-
-msgid "Volume:"
-msgstr "Volum:"
-
-msgid "Local node"
-msgstr "Lokal node"
-
-msgid "GUID:"
-msgstr "GUID:"
-
-msgid "IP:Port:"
-msgstr "IP:port:"
-
-msgid ""
-"The current IP address and listening port for this node. To change these go "
-"to File->Preferences->Network."
-msgstr ""
-"Gjeldende IP-adresse og lytteport for denne noden. Gå til «Fil» -> "
-"«Innstillinger» -> «Nettverk» for å endre disse."
-
-msgid "Message/flow control stats"
-msgstr "Statistikk for meldinger/flytkontroll"
-
-msgid "Type"
-msgstr "Type"
-
-msgid "Count"
-msgstr "Antall"
-
-msgid "Reason"
-msgstr "Årsak"
-
-msgid "_General"
-msgstr "_Generelt"
-
-msgid "FC/_TTL"
-msgstr "FC/_TTL"
-
-msgid "FC/_hops"
-msgstr "FC/_hop'er"
-
-msgid "Received"
-msgstr "Mottatt"
-
-msgid "Expired"
-msgstr "Utgått"
-
-msgid "Dropped"
-msgstr "Sluppet"
-
-msgid "Relayed"
-msgstr "Relésendt"
-
-msgid "Gen. queued"
-msgstr "Gen. lagt i kø"
-
-msgid "Gen. sent"
-msgstr "Gen. sendt"
-
-msgid "_Messages"
-msgstr "_Meldinger"
-
-msgid "_Horizon"
-msgstr "_Horisont"
-
-msgid "Show _bytes"
-msgstr "Vis _byte"
-
-msgid "Show _percentages"
-msgstr "Vis _prosenter"
-
-msgid "_Include headers"
-msgstr "_Ta med hoder"
-
-msgid "Show pr_otocol:"
-msgstr "Vis pr_otokoll:"
-
-msgid "Show r_easons for"
-msgstr "Vis grunn_er for"
-
-msgid "Hostcache statistics"
-msgstr "Statistikk for verthurtigminne"
-
-msgid "Cache"
-msgstr "Hurtigminne"
-
-msgid "Hosts"
-msgstr "Verter"
-
-msgid "Misses"
-msgstr "Bommer"
-
-msgid "Hostcache capacity"
-msgstr "Vertminne-kapasitet"
-
-msgid "%v/%u (%P%%)"
-msgstr "%v/%u (%P%%)"
-
-msgid "Regular hosts"
-msgstr "Vanlige verter"
-
-msgid "Clear"
-msgstr "Tøm"
-
-msgid "Ultrapeers"
-msgstr "Ultrapersoner"
-
-msgid "Bad hosts"
-msgstr "Dårlige verter"
-
-msgid "Uploads"
-msgstr "Opplastinger"
-
-msgid "Filename"
-msgstr "Filnavn"
-
-msgid "Range"
-msgstr "Rekkevidde"
-
-msgid "Progress"
-msgstr "Framgang"
-
-msgid "Status"
-msgstr "Status"
+msgid "A_ggressive mode"
+msgstr "A_ggressiv modus"
 
 msgid "Abort and remove all selected uploads"
 msgstr "Avbryt og fjern alle valgte opplastinger"
 
-msgid " Kill selected "
-msgstr " Drep valgte "
+msgid "About gtk-gnutella"
+msgstr "Om gtk-gnutella"
 
-msgid "Clear already completed uploads from list"
-msgstr "Fjern allerede fullførte opplastinger fra listen"
+msgid "Act as OOB proxy for leaves"
+msgstr "Opptre som OOB-mellomtjener for blad"
 
-msgid " Clear completed "
-msgstr " Fjern fullførte "
+msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
+msgstr ""
+"Faktisk mengde av filbeskrivere som brukes; kan ikke endres mens programmet "
+"kjører"
+
+msgid "Add IP rule"
+msgstr "Legg til IP-regel"
+
+msgid "Add as search"
+msgstr "Legg til som søk"
+
+msgid "Add flag rule"
+msgstr "Legg til flaggregel"
+
+msgid "Add jump rule"
+msgstr "Legg til hopperegel"
+
+msgid "Add name rule"
+msgstr "Legg til navneregel"
+
+msgid "Add size rule"
+msgstr "Legg til størrelsesregel"
+
+msgid "Add state rule"
+msgstr "Legg til tilstandregel"
+
+msgid "Add"
+msgstr "Legg til"
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files names to the global "
+"pre-filter."
+msgstr ""
+"Legger ikke vis-regler som passer de valgte filnavnene til i det lokale "
+"forhåndsfilteret."
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files names to the search "
+"filter."
+msgstr ""
+"Legger til ikke vis-regler som passer de valgte filnavnene til søkefilteret."
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"global pre-filter."
+msgstr ""
+"Legger til ikke vis-regler som passer de valgte filenes «um:sha1»-verdier "
+"til i det globale forhåndsfilteret."
+
+msgid ""
+"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
+"search filter."
+msgstr ""
+"Legger til ikke vis-regler som passer til de valgte filenes «um:sha1»-"
+"verdier til søkefilteret."
+
+msgid "Aliases"
+msgstr "Aliaser"
+
+msgid "Allow connections from and to _LAN addresses"
+msgstr "Tillat forbindelser fra og til _lokale nettverksadresser"
+
+msgid "Amount of bytes to overlap when resuming download"
+msgstr "Antall byte å overlappe ved nedlasting"
+
+msgid "Amount of tolerable messages above hard TTL limit per node"
+msgstr "Antall tålbare meldinger over hard TTL-begrensning per node"
+
+msgid ""
+"Apply above conversions, upon startup, to existing files in the downloading "
+"directory"
+msgstr ""
+"Bruk navneinnstillingene ovenfor på eksisterende filer i "
+"nedlastingskatalogen ved oppstart"
+
+msgid "Apply"
+msgstr "Bruk"
+
+msgid "Attempts"
+msgstr "Forsøk"
 
 msgid "Auto clear completed uploads"
 msgstr "Fjern ferdig opplastinger automatisk"
@@ -4657,68 +4469,1025 @@ msgstr "Fjern ferdig opplastinger automatisk"
 msgid "Auto clear failed uploads"
 msgstr "Fjern feilede opplastinger automatisk"
 
+msgid "Auto clear stopped downloads"
+msgstr "FJern stoppede nedlastinger automatisk"
+
+msgid "Available bandwidth"
+msgstr "Tilgjengelig båndbredde"
+
+msgid "Available physical memory:"
+msgstr "Tilgjengelig fysisk minne:"
+
+msgid "Avg. time between IP address changes:"
+msgstr "Gjennomsnittlig tid mellom IP-adresseendringer:"
+
+msgid "Avg. uptime of this servent:"
+msgstr "Denne tjenentens gjennomsnittlige oppetid:"
+
+msgid "Bad hosts"
+msgstr "Dårlige verter"
+
+msgid "Bandwidth limits for GnutellaNet traffic"
+msgstr "Båndbreddebegrensninger for GnutellaNet-trafikk"
+
+msgid "Bandwidth limits for HTTP traffic"
+msgstr "Båndbreddebegrensninger for HTTP-trafikk"
+
+msgid "Bandwidth"
+msgstr "Båndbredde"
+
+msgid "Banning"
+msgstr "Bannlysing"
+
+msgid "Bitzi Metadata"
+msgstr "Bitzi-metadata"
+
+#, fuzzy
+msgid "Browse host"
+msgstr "Bla i vert"
+
+msgid "Busy"
+msgstr "Opptatt"
+
+msgid "Bytes to back off on mismatch"
+msgstr "Byte å laste ned på nytt igjen ved usamsvar"
+
+msgid "Cache"
+msgstr "Hurtigminne"
+
+msgid "Cancel"
+msgstr "Avbryt"
+
+msgid "Case-sensitive sorting"
+msgstr "Skill mellom store og små bokstaver ved sortering"
+
+msgid "Chunks/Files:"
+msgstr "Biter/Filer:"
+
+msgid "Cl_ose search"
+msgstr "_Lukk søk"
+
+msgid "Clean up queries before processing"
+msgstr "Rydd opp spørringer før de behandles"
+
+msgid "Clear all"
+msgstr "Fjern alle"
+
+msgid "Clear already completed uploads from list"
+msgstr "Fjern allerede fullførte opplastinger fra listen"
+
+msgid "Clear completed, failed and unavailable downloads from list"
+msgstr "Fjerne fullførte, feilede og utilgjengelige nedlastinger fra listen"
+
+msgid "Clear non-existent files"
+msgstr "Fjern ikke-eksisterende filer"
+
+#, fuzzy
+msgid "Clear results"
+msgstr "_Fjern resultater"
+
+msgid "Clear stopped"
+msgstr "Fjern stoppede"
+
+msgid "Clock skew:"
+msgstr "Klokkeforskyvning:"
+
+msgid "Clock synchronization"
+msgstr "Klokkesynkronisering"
+
+#, fuzzy
+msgid "Close this search"
+msgstr "_Lukk dette søket"
+
+msgid "Compressed length:"
+msgstr "Komprimert lengde:"
+
+msgid "Compression ratio:"
+msgstr "Komprimeringsforhold:"
+
+msgid "Condition: If IP address matches"
+msgstr "Betingelse: Hvis IP-adressen passer"
+
+msgid "Condition: If current filter result properties match"
+msgstr "Betingelse: Hvis resultategenskapene for gjeldende filter passer"
+
+msgid "Condition: If file size matches"
+msgstr "Betingelse: Hvis filstørrelsen passer"
+
+msgid "Condition: If filename matches"
+msgstr "Betingelse: Hvis filnavnet passer"
+
+msgid "Condition: If result has flags"
+msgstr "Betingelse: Hvis resultat har flagg"
+
+msgid "Condition: If urn:sha1 matches"
+msgstr "Betingelse: Hvis «um:sha1» passer"
+
+msgid "Condition: always"
+msgstr "Betingelse: Alltid"
+
+msgid "Configured peermode"
+msgstr "Sett opp likemannmodus"
+
+msgid "Conflict ratio:"
+msgstr "Konfliktforhold:"
+
+msgid "Connect to host"
+msgstr "Koble til vert"
+
+msgid "Connected time"
+msgstr "Tilkoblet tid"
+
+#, fuzzy
+msgid "Connection counters"
+msgstr "Tilkoblin_gstidsavbrudd"
+
+msgid "Connection settings"
+msgstr "Tilkoblingsinnstillinger"
+
+msgid "Connections reserved for gtk-gnutella nodes"
+msgstr "Tilkoblinger reservert for gtk-gnutella-noder"
+
+msgid "Contributors:"
+msgstr "Bidragsytere:"
+
+msgid ""
+"Convert \"evil\" characters (like shell meta characters) to underscores in "
+"generated filenames"
+msgstr "Bytt onde tegn (som skallmetategn) med understreker i lagde filnavn"
+
+msgid "Convert spaces to underscores in generated filenames"
+msgstr "Bytt mellomrom med undertreker i lagde filnavn"
+
+msgid "Copy Magnet to clipboard"
+msgstr "Kopier magnet til utklippstavlen"
+
+msgid "Copy URL to clipboard"
+msgstr "Kopier URL til utklippstavlen"
+
+msgid "Copy browse-host results to passive searches"
+msgstr "Kopier bla i vert-resultater til passive søk"
+
+msgid "Copy rule"
+msgstr "Kopier regel"
+
+msgid "Core development:"
+msgstr "Kjerneutvikling:"
+
+msgid "Country"
+msgstr "Land"
+
+msgid "Cumulative _download rate"
+msgstr "Kumulativ ne_dlastingshatighet"
+
+msgid "Cumulative _upload rate"
+msgstr "Kumulativ _opplastingshastighet"
+
+msgid "Current IP settings (Address:Port):"
+msgstr "Gjeldende IP-innstillinger (adresse:port):"
+
+msgid "Current search:"
+msgstr "Gjeldende søk:"
+
+msgid "Currently used"
+msgstr "I bruk"
+
+msgid "Debugging"
+msgstr "Feilsøking"
+
+msgid "Default search _reissue timeout"
+msgstr "Standa_rd tidsavbrudd for gjentatt søk"
+
+msgid "Default value:"
+msgstr "StandardverdI:"
+
+msgid "Delay in seconds to wait after HTTP busy indication"
+msgstr "Antall sekunder å vente etter HTTP-opptattindikering"
+
+msgid "Delay in seconds to wait after connection failure"
+msgstr "Antall sekunder å vente etter tilkoblingsfeil"
+
+msgid "Delay in seconds to wait if connection is refused"
+msgstr "Antall sekunder å vente hvis tilkobling nektes"
+
+msgid "Delay in seconds to wait when running download stops"
+msgstr "Antall sekunder å vente ved kjøring av nedlastingsstopp."
+
+msgid "Delays and timeouts (all values in seconds)"
+msgstr "Forsinkinger og tidsavbrudd (i sekunder)"
+
+msgid "Delete file on abort"
+msgstr "Slett fil ved avbryting"
+
+msgid "Detailed traffic information to display"
+msgstr "Detaljert trafikkinformasjon som skal vises"
+
+msgid "Details"
+msgstr ""
+
+msgid "Discard results without SHA-1 hashes"
+msgstr "Overse resultater uten SHA1-kontrollverdier"
+
+msgid "Discard spam"
+msgstr "Overse falske søkeresultater"
+
+msgid "Disconnect from selected nodes"
+msgstr "Koble fra valgte noder"
+
+msgid "Display detailed traffic information"
+msgstr "Vis detaljert trafikkinformasjon"
+
+msgid "Diverse properties"
+msgstr "Diverse egenskaper"
+
+msgid "Do you really want to quit?"
+msgstr "Vil du virkelig avslutte?"
+
+msgid "Downloaded:"
+msgstr "Lastet ned."
+
+msgid "Downloading from multiple sources (swarming)"
+msgstr "Nedlasting fra flere kilder (sverming)"
+
+msgid "Drop results..."
+msgstr "Slipp resultater . . ."
+
+msgid "Dropped"
+msgstr "Sluppet"
+
+msgid "Dup / Bad / Weird"
+msgstr "Duplikat / Dårlig / Rar"
+
+msgid "Duplicate this search"
+msgstr "Dupliser dette søket"
+
+msgid "E_xpose relative paths"
+msgstr "_Oppgi relative stier"
+
+msgid "Edit value:"
+msgstr "Rediger verdi:"
+
+msgid "Enable \"_Browse Host\" feature"
+msgstr "Slå på «_Bla i vert»-funksjonen"
+
+msgid "Enable _UDP"
+msgstr "Slå på _UDP"
+
+msgid "Enable dynamic upload slots _allocation"
+msgstr "Slå på dyn_amisk tildeling av opplastingsplasser"
+
+msgid "Enable remote _shell control interface"
+msgstr "Slå på grensesnitt for ekstern _skallkontroll"
+
+msgid "Enable s_warming"
+msgstr "Slå på s_verming"
+
+msgid "Enable upload of _partially downloaded files"
+msgstr "Slå på opplasting av _delvis nedlastede filer"
+
+msgid "Enough UDP support"
+msgstr "Nok UDP-støtte"
+
+msgid "Enough available bandwidth"
+msgstr "Nok tilgjengelig båndbredde"
+
+msgid "Enough file descriptors"
+msgstr "Nok filbeskrivere"
+
+msgid "Enough min # of connections"
+msgstr "Nok minste antall forbindelser"
+
+msgid "Enough physical memory"
+msgstr "Nok fysisk minne"
+
+msgid ""
+"Enter a semicolon separated list of networks that are local to you in the "
+"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
+"192.168.1.0/255.255.255.0)"
+msgstr ""
+"Skriv inn en semikolon-separaert liste av nettverk som er lokale for deg i "
+"formen IP/biter eller IP/nettverksmaske (f.eks. 192.168.1.0/24 eller "
+"192.168.1.0/255.255.255.0)"
+
+msgid "Expert mode"
+msgstr "Ekspertmodus"
+
+msgid "Expired"
+msgstr "Utgått"
+
+msgid "FC/_TTL"
+msgstr "FC/_TTL"
+
+msgid "FC/_hops"
+msgstr "FC/_hop'er"
+
+msgid "Failed"
+msgstr "Feilet"
+
+msgid "File scanning time:"
+msgstr "Filsøkingstid:"
+
+msgid "Files scanned"
+msgstr "Filene er undersøkt"
+
+msgid "Filled ratio:"
+msgstr "Fyllforhold:"
+
+msgid "Filled slots:"
+msgstr "Fylte plasser:"
+
+msgid "First chunk _size"
+msgstr "_Størrelse på første bit"
+
+msgid "Force external IPv_4 address to"
+msgstr "Tving ekstern IPv_4 adresse til"
+
+msgid "Force external IPv_6 address to"
+msgstr "Tving ekstern IPv_6-adresse til"
+
+msgid "Force push mode"
+msgstr "Tving dytte-modus"
+
+#, fuzzy
+msgid "Forget"
+msgstr "Mål"
+
+msgid ""
+"Forwarded\n"
+"message"
+msgstr ""
+"Videresend\n"
+"melding"
+
+msgid "Freeze queue"
+msgstr "Frys kø"
+
+msgid "Frequently Asked Questions"
+msgstr "Ofte stilte spørsmål"
+
+msgid "Fully served "
+msgstr "Fullt betjent "
+
+msgid "GUI development:"
+msgstr "Grensesnittutvikling:"
+
+msgid "GUID:"
+msgstr "GUID:"
+
+msgid "Gen. queued"
+msgstr "Gen. lagt i kø"
+
+msgid "Gen. sent"
+msgstr "Gen. sendt"
+
+msgid "General search settings (affect all searches)"
+msgstr "Generelle søkeinnstillinger (berører alle søk)"
+
+msgid "Generated queries"
+msgstr "Lagde spørringer"
+
+msgid "Generation:"
+msgstr "Laging:"
+
+msgid "Globally drop results..."
+msgstr "Slipp resultater globalt . . ."
+
+msgid "Gnet connections"
+msgstr "Gnet-forbindelser"
+
+#, fuzzy
+msgid "Gnutella _leaf traffic stats"
+msgstr "Gnet b_ladstatistikk"
+
+msgid "Gnutella network mode"
+msgstr "Nettverksmodus for Gnutella"
+
+msgid "GnutellaNet TTL settings"
+msgstr "GnutellaNet TTL-innstillinger"
+
+msgid "GnutellaNet display"
+msgstr "GnutellaNet-visning"
+
+msgid "GnutellaNet message size limits"
+msgstr "Størrelsesbegrensninger på GnutellaNet-meldinger"
+
+msgid "GnutellaNet timeouts (all values in seconds)"
+msgstr "GnutellaNet-tidsavbrudd (alle verdier i sekunder)"
+
+msgid "GnutellaNet traffic"
+msgstr "GnutellaNet-trafikk"
+
+msgid "GnutellaNet"
+msgstr "GnutellaNet"
+
+msgid ""
+"Gtk-Gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"Gtk-Gnutella avsluttes.\n"
+"Sender farvelmeldinger.\n"
+"\n"
+"Gjenstående elegansetid:"
+
+msgid "HTTP traffic"
+msgstr "HTTP-trafikk"
+
+msgid "H_ard TTL limit"
+msgstr "H_ard TTL-begrensning"
+
+msgid "H_ost:"
+msgstr "_Vert:"
+
+msgid "Hard limit of _file descriptors used"
+msgstr "Hard begrensning av _filbeskrivere i bruk"
+
+msgid "Honor OOB flag in queries"
+msgstr "Respekter OOB-flagg i spørringer"
+
+msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
+msgstr ""
+"Hop-radius for telling av meldinger med høy TTL-begrensning (antall hop'er "
+"lavere enn . . .)"
+
+msgid "Hops random factor"
+msgstr "Tilfeldighetsfaktor for hop'er"
+
+msgid "Host runs _NTP"
+msgstr "Vet kjører _NTP"
+
+msgid "Hostcache capacity"
+msgstr "Vertminne-kapasitet"
+
+msgid "Hostcache"
+msgstr "Verthurtigminne"
+
+msgid "Hosts"
+msgstr "Verter"
+
+msgid "IP address stability"
+msgstr "IP-adresse-stabilitet"
+
+msgid "IP address/mask"
+msgstr "IP-adresse/maske"
+
+msgid "IP settings"
+msgstr "IP-innstillinger"
+
+msgid "IP:Port:"
+msgstr "IP:port:"
+
+msgid "IPv4 settings"
+msgstr "IPv¤-innstillinger"
+
+msgid "IPv6 settings"
+msgstr "IPv6-innstillinger"
+
+msgid "Ignore symbolically linked _directories"
+msgstr "Ignorer symbolsk koble_de kataloger"
+
+msgid "Ignore symbolically linked regular _files"
+msgstr "Ignorer symbolsk koblede vanlige _filer"
+
+msgid "Ignored files are"
+msgstr "Ignorerte filer er"
+
+msgid "Incoming connecting timeout"
+msgstr "Tidsavbrudd for innkommende tilkobling"
+
+msgid "Incoming traffic from _leaves"
+msgstr "Innkommende trafikk fra b_lader"
+
+msgid "Indexing started on:"
+msgstr "Indeksering startet på:"
+
+msgid "Info"
+msgstr "Informasjon"
+
+msgid "Information about selected file"
+msgstr "Informasjon om valgt fil"
+
+msgid "Jeroen Asselman"
+msgstr "Jeroen Asselman"
+
+msgid "Join the users or developers mailing lists."
+msgstr "Bli med i e-postlisten for brukere eller utviklere."
+
+msgid "Keep downloading/incomplete files in"
+msgstr "Oppbevar uferdige filer i"
+
+msgid "Keywords:"
+msgstr "Nøkkelord:"
+
+msgid "Large enough uptime"
+msgstr "Nok oppetid"
+
+msgid "Last check"
+msgstr "Siste kontroll"
+
+msgid "Last scan initiated on:"
+msgstr "Siste søk startet:"
+
+msgid "Last switch"
+msgstr "Siste bytte"
+
+msgid "Leaf requery threshold"
+msgstr "Grense for bladforespørsler"
+
+msgid "Leaf traffic"
+msgstr "Bladtrafikk"
+
+msgid "Legacy connections"
+msgstr "Arvforbindelser"
+
+msgid "Library # of files"
+msgstr "Antall filer i biblioteket"
+
+msgid "Library scanning:"
+msgstr "Bibliotekssøking:"
+
+msgid "Library size"
+msgstr "Bibliotekstørrelse"
+
+msgid "Limit search _results to "
+msgstr "Begrens søke_resultater til "
+
+msgid "Local node"
+msgstr "Lokal node"
+
+msgid "M_inimum chunk size"
+msgstr "M_inste størrelse på biter"
+
+msgid "M_y TTL"
+msgstr "M_in TTL"
+
+msgid "Ma_ximum chunk size"
+msgstr "_Høyeste størrelse på biter"
+
+msgid "Make current sorting default"
+msgstr "Gjør gjeldende sortering standard"
+
+msgid "Max # of _high TTL msg"
+msgstr "Høyeste antall meldinger om _høy TTL"
+
+msgid "Max _TTL"
+msgstr "Høyeste _TTL"
+
+msgid "Max connections allowed per unique vendor"
+msgstr "Høyeste antall forbindelser per unike selger"
+
+msgid "Max hard TTL limit (hop+ttl) on message"
+msgstr "Høyeste harde TTL-begrensning (hop + ttl) på melding"
+
+msgid "Max. _number of results"
+msgstr "Høyeste a_ntall resultater"
+
+msgid "Max. _percentage of file descriptors"
+msgstr "Høyeste _prosentdel av filbeskrivere"
+
+msgid "Max. downloads from single host"
+msgstr "Høyeste antall nedlastinger fra én vert"
+
+msgid "Max. file _descriptors reserved"
+msgstr "_Høyste antall reserverte filbeskrivere"
+
+msgid "Max. number of browse host results"
+msgstr "Høyeste antall bla i vert-resultater"
+
+msgid "Max. simultaneous downloads per file"
+msgstr "Høyeste antall samtidige nedlastinger per fil"
+
+msgid "Max. simultaneous downloads"
+msgstr "Høyeste antall samtidige nedlastinger"
+
 msgid "Max. simultaneous uploads"
 msgstr "Høyeste antall samtidige opplastinger"
 
 msgid "Max. uploads to a single host"
 msgstr "Høyeste antall opplastinger til samme vert"
 
-msgid "Upload history"
-msgstr "Opplastingshistorikk"
+msgid "Maximum # of leaves"
+msgstr "Høyeste antall forlatinger"
 
-msgid "Attempts"
-msgstr "Forsøk"
+msgid "Maximum attempts to make, not counting HTTP busy indications"
+msgstr "Høyeste antall forsøk som skal gjøres, utenom HTTP-opptatindikatorer"
+
+msgid "Maximum number of _retries"
+msgstr "Høyeste antall gjenp_røvinger"
+
+msgid "Maximum seconds to wait on auto-retry timeouts"
+msgstr ""
+"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+
+msgid "Maximum size:"
+msgstr "Største størrelse:"
+
+msgid ""
+"Maximum size\n"
+"allowed"
+msgstr ""
+"Høyeste tillatte\n"
+"størrelse"
+
+msgid "Maximum"
+msgstr "Høyst"
+
+msgid "Measured HTTP latency:"
+msgstr "Målt HTTP-ventetid:"
+
+msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+msgstr "Møt oss i «#gtk-gnutella» på «irc.freenode.net»."
+
+msgid "Min/Max:"
+msgstr "Min/Maks:"
+
+msgid "Minimum chunk size"
+msgstr "Minste bitstørrelse"
+
+msgid "Minimum file size"
+msgstr "Minste filstørrelse"
+
+msgid "Minimum seconds to wait on auto-retry timeouts"
+msgstr ""
+"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+
+msgid "Minimum size:"
+msgstr "MInste størrelse:"
+
+msgid "Minimum upload time"
+msgstr "Minste opplastingstid"
+
+msgid "Minimum"
+msgstr "Minst"
+
+msgid "Misses"
+msgstr "Bommer"
+
+msgid "Monitor and auto-ban unstable servent types"
+msgstr "Overvåk og bannlys ustabile tjenent-typer automatisk"
+
+msgid "Monitor bad node IP addresses"
+msgstr "Overvåk dårlige noders IP-adresse"
+
+msgid "Move completely downloaded files to"
+msgstr "Flytt ferdig nedlastede filer til"
+
+msgid "Move corrupted downloaded files to"
+msgstr "Flytt korrupte filer til"
+
+msgid "Network protocol:"
+msgstr "Nettverksprotokoll:"
+
+msgid "Never send a push request"
+msgstr "Aldri send en dytteforespørsel"
+
+msgid "New"
+msgstr "Ny"
+
+msgid "No, take me back!"
+msgstr "Nei, ta med tilbake!"
 
 msgid "Normalized"
 msgstr "Normalisert"
 
-msgid "Clear non-existent files"
-msgstr "Fjern ikke-eksisterende filer"
+msgid "Not firewalled"
+msgstr "Ikke brannmurt"
 
-msgid "Clear all"
-msgstr "Fjern alle"
+msgid "Number of seconds before timeout for a 'push sent' download"
+msgstr "Antall sekunder før tidsavbrudd for en nedlasting sendt med dytt"
 
-msgid "Fully served "
-msgstr "Fullt betjent "
+msgid "Number of seconds before timeout for a connected download"
+msgstr "Antall sekunder før tidsavbrudd for en tilbkoblet nedlasting"
 
-msgid " / "
-msgstr " av "
+msgid "Number of seconds before timeout for a connecting download"
+msgstr "Antall sekunder før tidsavbrudd for en tilkoblende nedlasting"
 
-msgid " HTML and "
-msgstr " HTML og "
+msgid "Number of tolerable _duplicate messages per node"
+msgstr "Antall tolererte _dupliserte meldinger per node"
 
-msgid " Gnutella browse requests"
-msgstr " Gnutella-blaforespørsler"
+msgid "Ok"
+msgstr "OK"
 
-msgid "Files to get"
-msgstr "Filer å hente"
+msgid "Optimistic first _chunk"
+msgstr "Optimistisk første _bit"
 
-msgid "File"
-msgstr "FIl"
+msgid "Original author:"
+msgstr "Opprinnelig forfatter:"
 
-msgid "Done"
-msgstr "Ferdig"
+msgid "Originally obtained from"
+msgstr "Opprinnelig skaffet fra"
 
-msgid "Sources"
-msgstr "Kilder"
+msgid "Other"
+msgstr "Annet"
 
-msgid "Filename filter:"
-msgstr "Filnavnfilter:"
+msgid "Out of Band Querying"
+msgstr "Utenfor rekkevidde-spørring"
 
-msgid "case-sensitive"
-msgstr "skill mellom store og små bokstaver"
+msgid "Outgoing traffic to lea_ves"
+msgstr "Utgående trafikk til _blader"
 
-msgid "Detail information"
-msgstr "Detaljert informasjon"
+msgid "PARQ development:"
+msgstr "PARQ-utvikling:"
+
+msgid "Partial File Sharing"
+msgstr "Deling av uferdige filer"
+
+msgid "Pass_word"
+msgstr "_Passord"
+
+msgid "Paste rule"
+msgstr "Lim inn regel"
+
+msgid "Patch generation started on:"
+msgstr "Lappelaging startet:"
+
+msgid "Pending local queries"
+msgstr "Uavgjorte lokale spørringer"
+
+msgid ""
+"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
+"can punch a hole into that firewall, allowing reception of replies to your "
+"UDP packets.  You will be able to send out-of-band query hits, but you won't "
+"be able to receive any."
+msgstr ""
+"Folk kan koble til deg via TCP, men du er bak en UDP-brannmur. Du kan "
+"imidlertid lage et hull i muren, for å tillate mottak av svar på UDP-pakkene "
+"dine. Du vil være i stand til å sende utenfor rekkevidde-spørringstreff, men "
+"du kan ikke motta noen."
+
+msgid ""
+"People can connect to you, using both TCP and UDP. Push should work and you "
+"will be able to receive out-of-band results for your queries."
+msgstr ""
+"Folk kan koble til deg, ved bruk av både TCP og UDP. Dytting skal virke, o "
+"gdu kan motta utenfor rekkevidde-resultater på spørringene dine."
+
+msgid "Ping / Pong round trip"
+msgstr "Ping-/Pong-rundtur"
+
+msgid "Please confirm:"
+msgstr "Bekreft:"
+
+msgid "Prefer _compressed connections"
+msgstr "Foretrekk _komprimerte forbindelser"
+
+msgid "Preferences"
+msgstr "Oppsett"
 
 msgid "Progress:"
 msgstr "Framgang:"
 
-msgid "Size:"
-msgstr "Størrelse:"
+msgid "Project leader:"
+msgstr "Prosjektleder:"
 
-msgid "Filename:"
-msgstr "Filnavn:"
+msgid "Property browser"
+msgstr "Verdileser"
+
+msgid "Property pattern:"
+msgstr "Verdimønster:"
+
+msgid "Property"
+msgstr "Verdi"
+
+msgid "Proxy _type:"
+msgstr "Mellomtjener_type:"
+
+msgid "Proxy settings"
+msgstr "Innstillinger for mellomtjener"
+
+msgid "Public _hostname"
+msgstr "_Offentlig vertsnavn"
+
+msgid "QRP stats"
+msgstr "QRP-statistikk"
+
+msgid "Quality management"
+msgstr "Kvalitetsbehandling"
+
+msgid "Queries ask for OOB results"
+msgstr "Spørringer spør etter OOB-resultater"
+
+msgid "Query Routing Protocol:"
+msgstr "Spørringdirigeringsprotokoll:"
+
+msgid "Query routing patch information:"
+msgstr "Informasjon om spørringdirigeringstabellap:"
+
+msgid "Query routing table information:"
+msgstr "Informasjon om spørringdirigeringstabell:"
+
+msgid "Queuing details"
+msgstr "Køleggingsdetaljer"
+
+msgid "Quick-connect pool size"
+msgstr "Bassengstørrelse for rask tilkobling"
+
+msgid "RX compression"
+msgstr "RX-komprimering"
+
+msgid "RX dropped"
+msgstr "RX sluppet"
+
+msgid "RX flow control ratio"
+msgstr "RX-flytkontrollforhold"
+
+msgid "RX queries"
+msgstr "RX-spørringer"
+
+msgid "RX query hits"
+msgstr "RX-spørringstreff"
+
+msgid "RX speed"
+msgstr "RX-fart"
+
+msgid "RX wire bytes"
+msgstr "RX-lednings-byte"
+
+msgid "Ratio of tolerable duplicate messages per _node"
+msgstr "Forhold for tålbare dupliserte meldinger per _node"
+
+msgid "Raw length:"
+msgstr "Rå lengde:"
+
+msgid "Re_try search every"
+msgstr "Søk på ny_tt hvert"
+
+msgid "Reason"
+msgstr "Årsak"
+
+msgid "Received"
+msgstr "Mottatt"
+
+msgid "Regular hosts"
+msgstr "Vanlige verter"
+
+msgid "Relayed"
+msgstr "Relésendt"
+
+msgid ""
+"Remove all rules\n"
+"from this filter"
+msgstr ""
+"Fjern alle regler\n"
+"fra dette filteret"
+
+msgid "Remove file on mismatch"
+msgstr "Fjern fil ved usamsvar"
+
+msgid "Remove filter"
+msgstr "Fjern filter"
+
+msgid "Report an upload connection _speed of"
+msgstr "Vi_s en forbindelseshastighet for opplastinger på"
+
+msgid "Require _URN"
+msgstr "Krev _URN"
+
+msgid "Require _server name"
+msgstr "Krev _tjenernavn"
+
+msgid ""
+"Reset all rule stats\n"
+"in this filter"
+msgstr ""
+"Tilbakestill alle regel-\n"
+"statistikk i dette filteret"
+
+msgid ""
+"Reset filter stats\n"
+"for all filters"
+msgstr ""
+"TIlbakestill filterstatistikk\n"
+"for alle filtre"
+
+msgid ""
+"Reset filter stats\n"
+"for this filter"
+msgstr ""
+"Tilbakestill filterstatistikk\n"
+"for dette filteret"
+
+msgid "Restart this search"
+msgstr "Start søket på nytt"
+
+msgid "Resu_me this search"
+msgstr "_Fortsett dette søket"
+
+msgid "Resume and retry"
+msgstr "Fortsett og prøv på nytt"
+
+msgid "Resume this search"
+msgstr "Fortsett dette søket"
+
+msgid "Retry busy delay"
+msgstr "Forsinkelse for opptatt ved gjenprøving"
+
+msgid "Retry refused delay"
+msgstr "Forsinkelse for nektet ved gjenprøving"
+
+msgid "Retry stopped delay"
+msgstr "Forsinkelse for stopping ved gjenprøving"
+
+msgid "Retry timeout delay"
+msgstr "Forsinkelse for tidsavbrudd for gjenprøving"
+
+msgid "Retry timeout max"
+msgstr "Høyeste tidsavbrudd for gjenprøving"
+
+msgid "Retry timeout min"
+msgstr "Minste tidsavbrudd for gjenprøving"
+
+msgid "Revert"
+msgstr "Gå tilbake"
+
+msgid "Richard Eckart"
+msgstr "Richard Eckart"
+
+msgid "Rules"
+msgstr "Regler"
+
+msgid "Ruleset editor"
+msgstr "Regelsett-redigerer"
+
+msgid "Running in leaf mode."
+msgstr "Kjører i bladmodus."
+
+msgid "Running in legacy mode. Consider switching to auto mode."
+msgstr "Kjører i arvmodus. Vurder å bytte til automatisk modus."
+
+msgid "Running in ultrapeer mode."
+msgstr "Kjører i ultralikemannmodus."
+
+msgid "SHA1 hash (not editable, add from search popup)"
+msgstr "SHA1-lappskaus (ikke redigerbar, legg til fra søkevindu)"
+
+msgid "Saved"
+msgstr "Lagret"
+
+#, fuzzy
+msgid "Search Monitor"
+msgstr "Søkefiltre"
+
+#, fuzzy
+msgid "Search Stats"
+msgstr "Søk"
+
+msgid "Search Term"
+msgstr "Søkeuttrykk"
+
+msgid "Search _extensions"
+msgstr "Søk_eutvidelser"
+
+msgid "Search _monitor enabled"
+msgstr "Søkeovervåking er s_lått på"
+
+msgid "Search queue"
+msgstr "Søkekø"
+
+msgid "Select"
+msgstr "Velg"
+
+msgid "Selected property:"
+msgstr "Valgte verdi:"
+
+msgid "Server"
+msgstr "Tjener"
+
+#, fuzzy
+msgid "Settings"
+msgstr "Vis innstillinger"
+
+msgid "Show _bytes"
+msgstr "Vis _byte"
+
+msgid "Show _confirmation dialog when leaving gtk-gnutella"
+msgstr "Vis _bekreftingsvindu ved forlating av gtk-gnutella"
+
+msgid "Show _last"
+msgstr "Vis _siste"
+
+msgid "Show _metric units"
+msgstr "Vis _metriske måleenheter"
+
+msgid "Show _percentages"
+msgstr "Vis _prosenter"
+
+msgid "Show _tooltips (does not affect all tooltips yet)"
+msgstr "Vis verk_tøytips (rører ikke alle verktøytipsene ennå)"
+
+msgid "Show additional information and settings for advanced and _expert users"
+msgstr ""
+"Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
+
+msgid "Show pr_otocol:"
+msgstr "Vis pr_otokoll:"
+
+msgid "Show r_easons for"
+msgstr "Vis grunn_er for"
+
+msgid "Show tabs"
+msgstr "Vis faner"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -4733,274 +5502,225 @@ msgstr ""
 "ennå. Den blå linjen viser hvilke deler av filen som er sett på nettverket i "
 "denne økten."
 
-msgid "SHA1:"
-msgstr "SHA1:"
+msgid "Similar query half-life"
+msgstr "Halveringstid for liknende spørringer"
 
-msgid "Alternate filenames"
-msgstr "Alternative filnavn"
+msgid ""
+"Size threshold\n"
+"before kicking"
+msgstr ""
+"Størrelsesgrense\n"
+"før sparking"
 
-msgid "_Purge selected"
-msgstr "_Fjern valgte"
+msgid "Slots:"
+msgstr "Plasser:"
 
-msgid " registered, "
-msgstr " registrert, "
+msgid "Socket receive buffer size"
+msgstr "Størrelse på hurtigminne for sokkelmottak"
 
-msgid " with sources"
-msgstr " med kilder"
+msgid "Source quality"
+msgstr "Kildekvalitet"
 
-msgid "Active sources"
-msgstr "Aktive kilder"
+msgid "Spacing"
+msgstr "Mellomrom"
 
-msgid "Server"
-msgstr "Tjener"
+msgid "Stable"
+msgstr "Stabil"
 
-msgid "Download settings"
-msgstr "Nedlastingsinnstillinger"
+#, fuzzy
+msgid "Statistics"
+msgstr "Statistikk:"
 
-msgid "Never send a push request"
-msgstr "Aldri send en dytteforespørsel"
+msgid "Statistics:"
+msgstr "Statistikk:"
 
-msgid "Delete file on abort"
-msgstr "Slett fil ved avbryting"
+msgid "Stop this search"
+msgstr "Stopp dette søket"
 
-msgid "Remove file on mismatch"
-msgstr "Fjern fil ved usamsvar"
+msgid "Strict SHA_1 matching"
+msgstr "Streng SHA_1-sammenlikning"
 
-msgid "Bytes to back off on mismatch"
-msgstr "Byte å laste ned på nytt igjen ved usamsvar"
+msgid "Sufficient average uptime"
+msgstr "Nok gjennomsnittlig oppetid"
 
-msgid "Max. downloads from single host"
-msgstr "Høyeste antall nedlastinger fra én vert"
+msgid "Swarming development:"
+msgstr "Svermeutvikling:"
 
-msgid "Max. simultaneous downloads"
-msgstr "Høyeste antall samtidige nedlastinger"
+msgid "TCP _Port:"
+msgstr "TCP-_port:"
 
-msgid "Max. simultaneous downloads per file"
-msgstr "Høyeste antall samtidige nedlastinger per fil"
+msgid "TX compression"
+msgstr "TX-komprimering"
 
-msgid "Auto clear stopped downloads"
-msgstr "FJern stoppede nedlastinger automatisk"
+msgid "TX dropped"
+msgstr "TX sluppet"
 
-msgid "Failed"
-msgstr "Feilet"
+msgid "TX queries"
+msgstr "TX-spørringer"
 
-msgid "Unavailable"
-msgstr "Utilgjengelig"
+msgid "TX query hits"
+msgstr "TX-spørringstreff"
 
-msgid "Abort all selected downloads"
-msgstr "Avbryt alle merkede nedlastinger"
+msgid "TX speed"
+msgstr "TX-fart"
 
-msgid "_Abort selected"
-msgstr "_Avbryt valgte"
+msgid "TX wire bytes"
+msgstr "TX-lednins-byte"
 
-msgid "Resume all selected downloads"
-msgstr "Fortsett med de valgte nedlastingene"
+msgid "T_X flow control timeout"
+msgstr "Tidsavbrudd for T_X-flytkontroll"
 
-msgid "_Resume selected"
-msgstr "Fo_rtsett valgte"
-
-msgid "Clear completed, failed and unavailable downloads from list"
-msgstr "Fjerne fullførte, feilede og utilgjengelige nedlastinger fra listen"
-
-msgid "Clear stopped"
-msgstr "Fjern stoppede"
-
-msgid "("
-msgstr "("
-
-msgid "active"
-msgstr "aktiv"
-
-msgid ", "
-msgstr ", "
-
-msgid "queued"
-msgstr "i kø"
-
-msgid ")"
-msgstr ")"
-
-msgid "Show settings"
-msgstr "Vis innstillinger"
-
-msgid "Inactive sources"
-msgstr "Inaktive kilder"
-
-msgid "Select"
-msgstr "Velg"
-
-msgid "Freeze queue"
-msgstr "Frys kø"
+msgid "Table generation started on:"
+msgstr "Tabellaging startet:"
 
 msgid "Thaw queue"
 msgstr "Tin kø"
 
-msgid " queued ("
-msgstr " i kø ("
+msgid ""
+"The current IP address and listening port for this node. To change these go "
+"to File->Preferences->Network."
+msgstr ""
+"Gjeldende IP-adresse og lytteport for denne noden. Gå til «Fil» -> "
+"«Innstillinger» -> «Nettverk» for å endre disse."
 
-msgid " alive with "
-msgstr " i live med "
-
-msgid " passive)"
-msgstr " passiv)"
-
-msgid "Search results"
-msgstr "Søkeresultater"
-
-msgid "Current search:"
-msgstr "Gjeldende søk:"
-
-msgid "Cl_ose search"
-msgstr "_Lukk søk"
-
-msgid "(no search)"
-msgstr "(intet søk)"
-
-msgid "General search settings (affect all searches)"
-msgstr "Generelle søkeinnstillinger (berører alle søk)"
-
-msgid "Max. _number of results"
-msgstr "Høyeste a_ntall resultater"
-
-msgid "Ignored files are"
-msgstr "Ignorerte filer er"
-
-msgid "Case-sensitive sorting"
-msgstr "Skill mellom store og små bokstaver ved sortering"
-
-msgid "_Hide downloaded files"
-msgstr "Skjul _nedlastede filer"
-
-msgid "_Remove manually downloaded files"
-msgstr "Fje_rn manuelt nedlastede filer"
-
-msgid "Max. number of browse host results"
-msgstr "Høyeste antall bla i vert-resultater"
-
-msgid "Copy browse-host results to passive searches"
-msgstr "Kopier bla i vert-resultater til passive søk"
-
-msgid "Discard spam"
-msgstr "Overse falske søkeresultater"
-
-msgid "Discard results without SHA-1 hashes"
-msgstr "Overse resultater uten SHA1-kontrollverdier"
-
-msgid "Information about selected file"
-msgstr "Informasjon om valgt fil"
-
-msgid "Index:"
-msgstr "Indeks:"
-
-msgid "Source:"
-msgstr "Kilde:"
-
-msgid "Received:"
-msgstr "Mottatt:"
-
-msgid "Vendor:"
-msgstr "Selger:"
-
-msgid "Country:"
-msgstr "Land:"
-
-msgid "Query:"
-msgstr "Spørring:"
-
-msgid "Speed:"
-msgstr "Fart:"
-
-msgid "Servent ID:"
-msgstr "Tjenent-ID:"
-
-msgid "XML data:"
-msgstr "XML-data:"
-
-msgid "Re_try search every"
-msgstr "Søk på ny_tt hvert"
-
-msgid "secs   "
-msgstr "sekund   "
-
-msgid "_Download selected"
-msgstr "Last ne_d valgte"
-
-msgid "_Edit filters"
-msgstr "R_ediger filtre"
-
-msgid "Expand all"
-msgstr "Utvid alle"
-
-msgid "Collapse all"
-msgstr "Slå sammen alle"
-
-msgid "_Clear results"
-msgstr "_Fjern resultater"
-
-msgid "Search _monitor enabled"
-msgstr "Søkeovervåking er s_lått på"
-
-msgid "Show _last"
-msgstr "Vis _siste"
-
-msgid "searches"
-msgstr "søk"
-
-msgid "_Update interval (sec)"
-msgstr "_Oppdateringsintervall (sekunder)"
-
-msgid "_Deletion coeff. (0-100)"
-msgstr "_Slettingskoeffisient (0-100)"
-
-msgid "Search Term"
-msgstr "Søkeuttrykk"
+msgid ""
+"There is no condition. When this rule is reached, the matching will continue "
+"in the specified target filter. That's also why you can't invert this "
+"condition. If you could, this rule would just be ignored."
+msgstr ""
+"Det er ingen betingelse. Når denne regelen nås, fortsetter treffingen i det "
+"spesifiserte målfilteret. Dette er også grunnen til at du ikke kan invertere "
+"denne betingelsen; hvis du kunne det ville denne regelen bare bli ignorert."
 
 msgid "This Interval"
 msgstr "Dette intervallet"
 
-msgid "_Reset stats"
-msgstr "_Tilbakestill statistikk"
-
-msgid "0 terms counted"
-msgstr "0 begreper talt"
-
-msgid "You seem to be offline."
-msgstr "Du ser ut til å være frakoblet."
+msgid ""
+"This limits how many results gnutella returns to other people searching your "
+"files."
+msgstr ""
+"Dette begrenser hvor mange resultater Gnutella returnerer til andre folk som "
+"søker i dine filer."
 
 msgid ""
-"Your uploads are stalling at an abnormal rate, indicating that your "
-"bandwidth is probably saturated. You should not run as an ultra node, and "
-"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
-"both your incoming and outgoing paths."
+"This product includes GeoIP data created by MaxMind, available from\n"
+"http://maxmind.com/"
 msgstr ""
-"Opplastingene dine stopper unormalt ofte, noe som tyder på at båndbredden "
-"din er mettet. Du bør ikke kjøre som ultranode, prøv heller å redusre den "
-"tildelte båndbredden til gtk-gnutella for å unngå å mette både innkommende "
-"og utgående stier."
+"Dette produktet inneholder GeoIP-data laget av MaxMind, tilgjengelig fra\n"
+"http://maxmind.com/"
+
+msgid "Timeouts (all values in seconds)"
+msgstr "Tidsavbrudd (i sekunder)"
+
+msgid "Toolbar style"
+msgstr "Verktøylinjestil"
+
+msgid "Total input bandwidth limit:"
+msgstr "Begrensning på total innbåndbredde:"
+
+msgid "Total output bandwidth limit:"
+msgstr "Begrensning på total utbåndbredde:"
+
+msgid "Transferred data"
+msgstr "Overført data"
+
+msgid "Try to connect to specified address"
+msgstr "Prøv å koble til oppgitte adresse"
+
+msgid "Try to keep 'dead' entries around for"
+msgstr "Prøv å beholde «døde» oppføringer i"
+
+msgid "Ultrapeer mode settings"
+msgstr "Innstillinger for ultralikemannmodus"
+
+msgid "Ultrapeer mode"
+msgstr "Ultralikemannmodus"
+
+msgid "Ultrapeer promotion statistics"
+msgstr "Statistikk for ultralikemannforfremming"
+
+msgid "Ultrapeers in leaf mode"
+msgstr "Ultrapersoner i bladmodus"
+
+msgid "Ultrapeers"
+msgstr "Ultrapersoner"
+
+msgid "Unavailable"
+msgstr "Utilgjengelig"
 
 msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits."
+"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
+"additional upload slots on request."
 msgstr ""
-"Du ser ut til å være brannmurt for både TCP og IDP. Du kommer ikke til å se "
-"dytteresultater, som kan hindre deg i så et stort antall resultater. Du kan "
-"heller ikke sende spørringer som ber om utenfor rekkevidde-levering av "
-"spørringstreff."
+"Åpne flere opplastingsplasser ved forespørsel inntil den valgte prosentdelen "
+"av utgående HTTP-båndbredde er i bruk."
 
-msgid ""
-"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
-"any push results, which may prevent you from seeing a large amount of "
-"results. You will not be able to send queries requesting out-of-band "
-"delivery of query hits. However, it is possible to punch a hole into the UDP "
-"firewall, so you will be able to send out-of-band query hits."
-msgstr ""
-"Du ser ut til å være brannmurt for både TCP og UDP. Du kommer ikke til å se "
-"dytteresultater, som kan hindre deg i å se et stort antall resultater. Du "
-"kan heller ikke sende spørringer som ber om utenfor rekkevidde-levering av "
-"spørirngstreff. Det er derimot mulig å laget et hull i UDP-brannmuren, så du "
-"kan sende utenfor rekkevidde-spørringstreff."
+msgid "Update search results pane every"
+msgstr "Oppdater søkeresultatruten hvert"
+
+#, fuzzy
+msgid "Upload History"
+msgstr "Opplastingshistorikk"
+
+msgid "Uploaded:"
+msgstr "Lastet opp."
+
+msgid "Use IP _Type of Service (TOS)"
+msgstr "Bruk IP _type tjeneste (TOS)"
+
+msgid "Use IPv6-to-IPv4 TRT prefix:"
+msgstr "Bruk IPv6 til IPv4 TRT-prefiks:"
+
+msgid "Use _surplus bandwidth"
+msgstr "_Bruk overflødig båndbredde"
+
+msgid "Use global hostiles.txt"
+msgstr "Bruk global «hostfiles.txt»"
+
+msgid "Use realistic PARQ estimates"
+msgstr "Bruk realistiske PARQ-beregninger"
+
+msgid "Use username and password to _authenticate to proxy"
+msgstr "Bruk brukern_avn og passord for å logge på mellomtjener"
+
+msgid "User Interface"
+msgstr "Brukergrensesnitt"
+
+msgid "Value"
+msgstr "Verdi"
+
+msgid "Ver"
+msgstr "Ver"
+
+msgid "Vidar Madsen"
+msgstr "Vidar Madsen"
+
+msgid "Visit http://gtk-gnutella.sourceforge.net/."
+msgstr "Besøk «http://gtk-gnutella.sourceforge.net/»."
+
+msgid "Volume:"
+msgstr "Volum:"
+
+msgid "Watch for similar queries"
+msgstr "Se etter liknende spørringer"
+
+msgid "Watch hits for _alternate sources"
+msgstr "Overvåk treff for _alternative kilder"
+
+msgid "What other people see as your connection speed."
+msgstr "Hva andre folk ser som din tilkoblingshastighet."
+
+msgid "Write buffer size"
+msgstr "Størrelse på skrivehurtigminne"
+
+msgid "XML Metadata"
+msgstr "XM-informasjon"
+
+msgid "Yann Grossel"
+msgstr "Yann Grossel"
+
+msgid "Yes"
+msgstr "Ja"
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -5021,1256 +5741,241 @@ msgstr ""
 "utenfor rekkevidde-levering av spørringstreff."
 
 msgid ""
-"People can connect to you via TCP, but you are UDP-firewalled.  However, you "
-"can punch a hole into that firewall, allowing reception of replies to your "
-"UDP packets.  You will be able to send out-of-band query hits, but you won't "
-"be able to receive any."
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits. However, it is possible to punch a hole into the UDP "
+"firewall, so you will be able to send out-of-band query hits."
 msgstr ""
-"Folk kan koble til deg via TCP, men du er bak en UDP-brannmur. Du kan "
-"imidlertid lage et hull i muren, for å tillate mottak av svar på UDP-pakkene "
-"dine. Du vil være i stand til å sende utenfor rekkevidde-spørringstreff, men "
-"du kan ikke motta noen."
+"Du ser ut til å være brannmurt for både TCP og UDP. Du kommer ikke til å se "
+"dytteresultater, som kan hindre deg i å se et stort antall resultater. Du "
+"kan heller ikke sende spørringer som ber om utenfor rekkevidde-levering av "
+"spørirngstreff. Det er derimot mulig å laget et hull i UDP-brannmuren, så du "
+"kan sende utenfor rekkevidde-spørringstreff."
 
 msgid ""
-"People can connect to you, using both TCP and UDP. Push should work and you "
-"will be able to receive out-of-band results for your queries."
+"You appear to be firewalled, both TCP-wise and UDP-wise. You will not see "
+"any push results, which may prevent you from seeing a large amount of "
+"results. You will not be able to send queries requesting out-of-band "
+"delivery of query hits."
 msgstr ""
-"Folk kan koble til deg, ved bruk av både TCP og UDP. Dytting skal virke, o "
-"gdu kan motta utenfor rekkevidde-resultater på spørringene dine."
-
-msgid "Running in leaf mode."
-msgstr "Kjører i bladmodus."
-
-msgid "Running in legacy mode. Consider switching to auto mode."
-msgstr "Kjører i arvmodus. Vurder å bytte til automatisk modus."
-
-msgid "Running in ultrapeer mode."
-msgstr "Kjører i ultralikemannmodus."
-
-msgid "Abort"
-msgstr "Avbryt"
-
-msgid "Abort all..."
-msgstr "Abryt alt . . ."
-
-msgid "with the same name"
-msgstr "med det samme navnet"
-
-msgid "with the same urn:sha1"
-msgstr "med samme «um:sha1»"
-
-msgid "from the same host"
-msgstr "fra samme verten"
-
-msgid "Remove file"
-msgstr "Fjern fil"
-
-msgid "Resume"
-msgstr "Fortsett"
-
-msgid "Move back to queue"
-msgstr "Flytt tilbake til køen"
-
-msgid "Force push mode"
-msgstr "Tving dytte-modus"
-
-msgid "Copy URL to clipboard"
-msgstr "Kopier URL til utklippstavlen"
-
-msgid "Connect to host"
-msgstr "Koble til vert"
-
-msgid "Browse Host"
-msgstr "Bla i vert"
-
-msgid "Start now"
-msgstr "Start nå"
-
-msgid "Drop results..."
-msgstr "Slipp resultater . . ."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-"Legger til ikke vis-regler som passer de valgte filnavnene til søkefilteret."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-"Legger til ikke vis-regler som passer til de valgte filenes «um:sha1»-"
-"verdier til søkefilteret."
-
-msgid "Globally drop results..."
-msgstr "Slipp resultater globalt . . ."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-"Legger ikke vis-regler som passer de valgte filnavnene til i det lokale "
-"forhåndsfilteret."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-"Legger til ikke vis-regler som passer de valgte filenes «um:sha1»-verdier "
-"til i det globale forhåndsfilteret."
-
-msgid "Stop this search"
-msgstr "Stopp dette søket"
-
-msgid "Resume this search"
-msgstr "Fortsett dette søket"
-
-msgid "Restart this search"
-msgstr "Start søket på nytt"
-
-msgid "Duplicate this search"
-msgstr "Dupliser dette søket"
-
-msgid "Show tabs"
-msgstr "Vis faner"
-
-msgid "Configure columns"
-msgstr "Sett opp kolonner"
-
-msgid "Make current sorting default"
-msgstr "Gjør gjeldende sortering standard"
-
-msgid "Bitzi Metadata"
-msgstr "Bitzi-metadata"
-
-msgid "Add as search"
-msgstr "Legg til som søk"
-
-msgid "Ruleset editor"
-msgstr "Regelsett-redigerer"
-
-msgid "_Create filter"
-msgstr "_Lag filter"
-
-msgid "Rules"
-msgstr "Regler"
-
-msgid "enabled"
-msgstr "slått på"
-
-msgid ""
-"A filter cannot be removed if it is bound to a search or if it is in use "
-"(used as a target in a rule)."
-msgstr ""
-"Et filter kan ikke fjernes hvis det er bundet til et søk eller hvis det er i "
-"bruk (bruk som mål i en regel)."
-
-msgid "Remove filter"
-msgstr "Fjern filter"
-
-msgid ""
-"Remove all rules\n"
-"from this filter"
-msgstr ""
-"Fjern alle regler\n"
-"fra dette filteret"
-
-msgid ""
-"Reset all rule stats\n"
-"in this filter"
-msgstr ""
-"Tilbakestill alle regel-\n"
-"statistikk i dette filteret"
-
-msgid ""
-"Reset filter stats\n"
-"for this filter"
-msgstr ""
-"Tilbakestill filterstatistikk\n"
-"for dette filteret"
-
-msgid ""
-"Reset filter stats\n"
-"for all filters"
-msgstr ""
-"TIlbakestill filterstatistikk\n"
-"for alle filtre"
-
-msgid "Add name rule"
-msgstr "Legg til navneregel"
-
-msgid "Add size rule"
-msgstr "Legg til størrelsesregel"
-
-msgid "Add flag rule"
-msgstr "Legg til flaggregel"
-
-msgid "Add jump rule"
-msgstr "Legg til hopperegel"
-
-msgid "Add IP rule"
-msgstr "Legg til IP-regel"
-
-msgid "Add state rule"
-msgstr "Legg til tilstandregel"
-
-msgid "invert condition"
-msgstr "inverter betingelse"
-
-msgid "mark only"
-msgstr "bare merk"
-
-msgid "Condition: If filename matches"
-msgstr "Betingelse: Hvis filnavnet passer"
-
-msgid "case sensitive"
-msgstr "skill mellom store og små bokstaver"
-
-msgid "Save"
-msgstr "Lagre"
-
-msgid "Remove"
-msgstr "Fjern"
-
-msgid "Condition: If IP address matches"
-msgstr "Betingelse: Hvis IP-adressen passer"
-
-msgid "IP address/mask"
-msgstr "IP-adresse/maske"
-
-msgid "Condition: If file size matches"
-msgstr "Betingelse: Hvis filstørrelsen passer"
-
-msgid "Minimum size:"
-msgstr "MInste størrelse:"
-
-msgid "Maximum size:"
-msgstr "Største størrelse:"
-
-msgid "bytes"
-msgstr "byte"
-
-msgid "Condition: always"
-msgstr "Betingelse: Alltid"
-
-msgid ""
-"There is no condition. When this rule is reached, the matching will continue "
-"in the specified target filter. That's also why you can't invert this "
-"condition. If you could, this rule would just be ignored."
-msgstr ""
-"Det er ingen betingelse. Når denne regelen nås, fortsetter treffingen i det "
-"spesifiserte målfilteret. Dette er også grunnen til at du ikke kan invertere "
-"denne betingelsen; hvis du kunne det ville denne regelen bare bli ignorert."
-
-msgid "Condition: If urn:sha1 matches"
-msgstr "Betingelse: Hvis «um:sha1» passer"
-
-msgid "SHA1 hash (not editable, add from search popup)"
-msgstr "SHA1-lappskaus (ikke redigerbar, legg til fra søkevindu)"
-
-msgid "Originally obtained from"
-msgstr "Opprinnelig skaffet fra"
-
-msgid "Condition: If result has flags"
-msgstr "Betingelse: Hvis resultat har flagg"
-
-msgid "Busy"
-msgstr "Opptatt"
-
-msgid "unset"
-msgstr "ikke valgt"
-
-msgid "ignored"
-msgstr "ignorert"
-
-msgid "set"
-msgstr "valgt"
-
-msgid "Stable"
-msgstr "Stabil"
-
-msgid "Condition: If current filter result properties match"
-msgstr "Betingelse: Hvis resultategenskapene for gjeldende filter passer"
-
-msgid "don't"
-msgstr "ikke"
-
-msgid "undefined"
-msgstr "udefinert"
-
-msgid "do"
-msgstr "gjør"
-
-msgid "ignore"
-msgstr "ignorer"
-
-msgid "Apply"
-msgstr "Bruk"
-
-msgid "Revert"
-msgstr "Gå tilbake"
-
-msgid "Ok"
-msgstr "OK"
-
-msgid "Cancel"
-msgstr "Avbryt"
-
-msgid "gtk-gnutella shutdown"
-msgstr "Avslutting av gtk-gnutella"
-
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"Gtk-Gnutella avsluttes.\n"
-"Sender farvelmeldinger.\n"
-"\n"
-"Gjenstående elegansetid:"
-
-msgid "About gtk-gnutella"
-msgstr "Om gtk-gnutella"
-
-msgid "Original author:"
-msgstr "Opprinnelig forfatter:"
-
-msgid "Core development:"
-msgstr "Kjerneutvikling:"
-
-msgid "PARQ development:"
-msgstr "PARQ-utvikling:"
-
-msgid "Project leader:"
-msgstr "Prosjektleder:"
-
-msgid "GUI development:"
-msgstr "Grensesnittutvikling:"
-
-msgid "Swarming development:"
-msgstr "Svermeutvikling:"
-
-msgid "Vidar Madsen"
-msgstr "Vidar Madsen"
-
-msgid "Richard Eckart"
-msgstr "Richard Eckart"
-
-msgid "Raphael Manfredi"
-msgstr "Raphael Manfredi"
-
-msgid "Yann Grossel"
-msgstr "Yann Grossel"
-
-msgid "Jeroen Asselman"
-msgstr "Jeroen Asselman"
-
-msgid "Contributors:"
-msgstr "Bidragsytere:"
-
-msgid ""
-"==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr ""
-"==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
-
-msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr "Besøk «http://gtk-gnutella.sourceforge.net/»."
-
-msgid "Join the users or developers mailing lists."
-msgstr "Bli med i e-postlisten for brukere eller utviklere."
-
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Møt oss i «#gtk-gnutella» på «irc.freenode.net»."
-
-msgid ""
-"This product includes GeoIP data created by MaxMind, available from\n"
-"http://maxmind.com/"
-msgstr ""
-"Dette produktet inneholder GeoIP-data laget av MaxMind, tilgjengelig fra\n"
-"http://maxmind.com/"
-
-msgid "_Close"
-msgstr "_Lukk"
-
-msgid "Copy rule"
-msgstr "Kopier regel"
-
-msgid "Paste rule"
-msgstr "Lim inn regel"
-
-msgid "gtk-gnutella: Quit?"
-msgstr "gtk-gnutella: avslutte?"
-
-msgid "Yes"
-msgstr "Ja"
-
-msgid "No, take me back!"
-msgstr "Nei, ta med tilbake!"
-
-msgid "Please confirm:"
-msgstr "Bekreft:"
-
-msgid "Do you really want to quit?"
-msgstr "Vil du virkelig avslutte?"
-
-msgid "Preferences"
-msgstr "Oppsett"
-
-msgid "IP settings"
-msgstr "IP-innstillinger"
-
-msgid "Current IP settings (Address:Port):"
-msgstr "Gjeldende IP-innstillinger (adresse:port):"
-
-msgid "not yet determined"
-msgstr "ikke oppdaget ennå"
-
-msgid "_Listen port"
-msgstr "_Lytteport"
-
-msgid "Public _hostname"
-msgstr "_Offentlig vertsnavn"
-
-msgid "Enable _UDP"
-msgstr "Slå på _UDP"
-
-msgid "Network protocol:"
-msgstr "Nettverksprotokoll:"
-
-msgid "(Disable: 0, Random: 1)"
-msgstr "(Ikke bruk: 0, tilfeldig: 1)"
-
-msgid "IPv4 settings"
-msgstr "IPv¤-innstillinger"
-
-msgid "Force external IPv_4 address to"
-msgstr "Tving ekstern IPv_4 adresse til"
-
-msgid "Bind to this address"
-msgstr "Bind til denne adressen"
-
-msgid "IPv6 settings"
-msgstr "IPv6-innstillinger"
-
-msgid "Force external IPv_6 address to"
-msgstr "Tving ekstern IPv_6-adresse til"
-
-msgid "Use IPv6-to-IPv4 TRT prefix:"
-msgstr "Bruk IPv6 til IPv4 TRT-prefiks:"
-
-msgid "Proxy settings"
-msgstr "Innstillinger for mellomtjener"
-
-msgid "H_ost:"
-msgstr "_Vert:"
-
-msgid "TCP _Port:"
-msgstr "TCP-_port:"
-
-msgid "Proxy _type:"
-msgstr "Mellomtjener_type:"
-
-msgid "Use username and password to _authenticate to proxy"
-msgstr "Bruk brukern_avn og passord for å logge på mellomtjener"
-
-msgid "_Username"
-msgstr "Br_ukernavn"
-
-msgid "Pass_word"
-msgstr "_Passord"
-
-msgid "Local networks"
-msgstr "Lokale nettverk"
-
-msgid "_Try to connect to local networks first"
-msgstr "Prøv å koble _til lokale nettverk først"
-
-msgid "Allow connections from and to _LAN addresses"
-msgstr "Tillat forbindelser fra og til _lokale nettverksadresser"
-
-msgid ""
-"Enter a semicolon separated list of networks that are local to you in the "
-"form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
-"192.168.1.0/255.255.255.0)"
-msgstr ""
-"Skriv inn en semikolon-separaert liste av nettverk som er lokale for deg i "
-"formen IP/biter eller IP/nettverksmaske (f.eks. 192.168.1.0/24 eller "
-"192.168.1.0/255.255.255.0)"
-
-msgid "Banning"
-msgstr "Bannlysing"
-
-msgid "Max. file _descriptors reserved"
-msgstr "_Høyste antall reserverte filbeskrivere"
-
-msgid "Max. _percentage of file descriptors"
-msgstr "Høyeste _prosentdel av filbeskrivere"
-
-msgid "Hard limit of _file descriptors used"
-msgstr "Hard begrensning av _filbeskrivere i bruk"
-
-msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr ""
-"Faktisk mengde av filbeskrivere som brukes; kan ikke endres mens programmet "
-"kjører"
-
-msgid "Currently used"
-msgstr "I bruk"
-
-msgid "Use global hostiles.txt"
-msgstr "Bruk global «hostfiles.txt»"
-
-msgid "Clock synchronization"
-msgstr "Klokkesynkronisering"
-
-msgid "Host runs _NTP"
-msgstr "Vet kjører _NTP"
-
-msgid "Clock skew:"
-msgstr "Klokkeforskyvning:"
-
-msgid "Miscellaneous"
-msgstr "Diverse"
-
-msgid "Enable remote _shell control interface"
-msgstr "Slå på grensesnitt for ekstern _skallkontroll"
-
-msgid "Socket receive buffer size"
-msgstr "Størrelse på hurtigminne for sokkelmottak"
-
-msgid "_Gnutella RX buffer:"
-msgstr "_Gnutella RX-hurtigminne:"
-
-msgid "KiB"
-msgstr "KiB"
-
-msgid "_Download RX buffer:"
-msgstr "RX-hurtigminne for ne_dlasting:"
-
-msgid "Network"
-msgstr "Nettverk"
-
-msgid "Gnutella network mode"
-msgstr "Nettverksmodus for Gnutella"
-
-msgid "Configured peermode"
-msgstr "Sett opp likemannmodus"
-
-msgid "Monitor bad node IP addresses"
-msgstr "Overvåk dårlige noders IP-adresse"
-
-msgid "Monitor and auto-ban unstable servent types"
-msgstr "Overvåk og bannlys ustabile tjenent-typer automatisk"
-
-msgid "Ultrapeer mode settings"
-msgstr "Innstillinger for ultralikemannmodus"
-
-msgid "Legacy connections"
-msgstr "Arvforbindelser"
-
-msgid "Maximum # of leaves"
-msgstr "Høyeste antall forlatinger"
-
-msgid "Ultrapeer promotion statistics"
-msgstr "Statistikk for ultralikemannforfremming"
-
-msgid "Last check"
-msgstr "Siste kontroll"
-
-msgid "Last switch"
-msgstr "Siste bytte"
-
-msgid "Large enough uptime"
-msgstr "Nok oppetid"
-
-msgid "Not firewalled"
-msgstr "Ikke brannmurt"
-
-msgid "Enough file descriptors"
-msgstr "Nok filbeskrivere"
-
-msgid "Enough physical memory"
-msgstr "Nok fysisk minne"
-
-msgid "Enough available bandwidth"
-msgstr "Nok tilgjengelig båndbredde"
-
-msgid "IP address stability"
-msgstr "IP-adresse-stabilitet"
-
-msgid "Sufficient average uptime"
-msgstr "Nok gjennomsnittlig oppetid"
-
-msgid "Enough min # of connections"
-msgstr "Nok minste antall forbindelser"
-
-msgid "Engouh UDP support"
-msgstr "Nok UDP-støtte"
-
-msgid "Searches"
-msgstr "Søk"
-
-msgid "Limit search _results to "
-msgstr "Begrens søke_resultater til "
-
-msgid ""
-"This limits how many results gnutella returns to other people searching your "
-"files."
-msgstr ""
-"Dette begrenser hvor mange resultater Gnutella returnerer til andre folk som "
-"søker i dine filer."
-
-msgid "items"
-msgstr "elementer"
-
-msgid "Default search _reissue timeout"
-msgstr "Standa_rd tidsavbrudd for gjentatt søk"
-
-msgid "seconds"
-msgstr "sekunder"
-
-msgid "Out of Band Querying"
-msgstr "Utenfor rekkevidde-spørring"
-
-msgid "Queries ask for OOB results"
-msgstr "Spørringer spør etter OOB-resultater"
-
-msgid "Honor OOB flag in queries"
-msgstr "Respekter OOB-flagg i spørringer"
-
-msgid "Act as OOB proxy for leaves"
-msgstr "Opptre som OOB-mellomtjener for blad"
-
-msgid "Search queue"
-msgstr "Søkekø"
-
-msgid "Spacing"
-msgstr "Mellomrom"
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "GnutellaNet-tidsavbrudd (alle verdier i sekunder)"
-
-msgid "Connectin_g timeout"
-msgstr "Tilkoblin_gstidsavbrudd"
-
-msgid "Connected time_out"
-msgstr "Tilk_oblet tidsavbrudd"
-
-msgid "T_X flow control timeout"
-msgstr "Tidsavbrudd for T_X-flytkontroll"
-
-msgid "Incoming connecting timeout"
-msgstr "Tidsavbrudd for innkommende tilkobling"
-
-msgid "GnutellaNet TTL settings"
-msgstr "GnutellaNet TTL-innstillinger"
-
-msgid "Max _TTL"
-msgstr "Høyeste _TTL"
-
-msgid "M_y TTL"
-msgstr "M_in TTL"
-
-msgid "from _nodes within a"
-msgstr "fra _noder innen et"
-
-msgid "Max # of _high TTL msg"
-msgstr "Høyeste antall meldinger om _høy TTL"
-
-msgid "H_ard TTL limit"
-msgstr "H_ard TTL-begrensning"
-
-msgid "Amount of tolerable messages above hard TTL limit per node"
-msgstr "Antall tålbare meldinger over hard TTL-begrensning per node"
-
-msgid "Max hard TTL limit (hop+ttl) on message"
-msgstr "Høyeste harde TTL-begrensning (hop + ttl) på melding"
-
-msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
-msgstr ""
-"Hop-radius for telling av meldinger med høy TTL-begrensning (antall hop'er "
-"lavere enn . . .)"
-
-msgid "hops radius"
-msgstr "hop-radius"
-
-msgid "Quality management"
-msgstr "Kvalitetsbehandling"
-
-msgid "Ratio of tolerable duplicate messages per _node"
-msgstr "Forhold for tålbare dupliserte meldinger per _node"
-
-msgid "Number of tolerable _duplicate messages per node"
-msgstr "Antall tolererte _dupliserte meldinger per node"
-
-msgid "RX flow control ratio"
-msgstr "RX-flytkontrollforhold"
-
-msgid "Watch for similar queries"
-msgstr "Se etter liknende spørringer"
-
-msgid "Similar query half-life"
-msgstr "Halveringstid for liknende spørringer"
-
-msgid "Leaf requery threshold"
-msgstr "Grense for bladforespørsler"
-
-msgid "Connection settings"
-msgstr "Tilkoblingsinnstillinger"
-
-msgid "Connections reserved for gtk-gnutella nodes"
-msgstr "Tilkoblinger reservert for gtk-gnutella-noder"
-
-msgid "Max connections allowed per unique vendor"
-msgstr "Høyeste antall forbindelser per unike selger"
-
-msgid "Other"
-msgstr "Annet"
-
-msgid "Hops random factor"
-msgstr "Tilfeldighetsfaktor for hop'er"
-
-msgid "Clean up queries before processing"
-msgstr "Rydd opp spørringer før de behandles"
-
-msgid "GnutellaNet message size limits"
-msgstr "Størrelsesbegrensninger på GnutellaNet-meldinger"
-
-msgid ""
-"Forwarded\n"
-"message"
-msgstr ""
-"Videresend\n"
-"melding"
-
-msgid ""
-"Size threshold\n"
-"before kicking"
-msgstr ""
-"Størrelsesgrense\n"
-"før sparking"
-
-msgid "(not forwarded)"
-msgstr "(ikke videresendt)"
-
-msgid ""
-"Maximum size\n"
-"allowed"
-msgstr ""
-"Høyeste tillatte\n"
-"størrelse"
-
-msgid "GnutellaNet"
-msgstr "GnutellaNet"
-
-msgid "General"
-msgstr "Generelt"
-
-msgid "Use _surplus bandwidth"
-msgstr "_Bruk overflødig båndbredde"
-
-msgid "Prefer _compressed connections"
-msgstr "Foretrekk _komprimerte forbindelser"
-
-msgid "Use IP _Type of Service (TOS)"
-msgstr "Bruk IP _type tjeneste (TOS)"
-
-msgid "Available bandwidth"
-msgstr "Tilgjengelig båndbredde"
-
-msgid "Total input bandwidth limit:"
-msgstr "Begrensning på total innbåndbredde:"
-
-msgid "KiB/s"
-msgstr "KiB/s"
-
-msgid "Total output bandwidth limit:"
-msgstr "Begrensning på total utbåndbredde:"
-
-msgid "Measured HTTP latency:"
-msgstr "Målt HTTP-ventetid:"
-
-msgid "secs"
-msgstr "sekunder"
-
-msgid "Bandwidth limits for GnutellaNet traffic"
-msgstr "Båndbreddebegrensninger for GnutellaNet-trafikk"
-
-msgid "_Outgoing traffic"
-msgstr "_Utgående trafikk"
-
-msgid "_Incoming traffic"
-msgstr "_Innkommende trafikk"
-
-msgid "Ultrapeer mode"
-msgstr "Ultralikemannmodus"
-
-msgid "Outgoing traffic to lea_ves"
-msgstr "Utgående trafikk til _blader"
-
-msgid "Incoming traffic from _leaves"
-msgstr "Innkommende trafikk fra b_lader"
-
-msgid "Bandwidth limits for HTTP traffic"
-msgstr "Båndbreddebegrensninger for HTTP-trafikk"
-
-msgid "Cumulative _download rate"
-msgstr "Kumulativ ne_dlastingshatighet"
-
-msgid "Cumulative _upload rate"
-msgstr "Kumulativ _opplastingshastighet"
-
-msgid "Enable dynamic upload slots _allocation"
-msgstr "Slå på dyn_amisk tildeling av opplastingsplasser"
-
-msgid ""
-"Until the configured percentage of outgoing HTTP bandwidth is in use, open "
-"additional upload slots on request."
-msgstr ""
-"Åpne flere opplastingsplasser ved forespørsel inntil den valgte prosentdelen "
-"av utgående HTTP-båndbredde er i bruk."
-
-msgid "Report an upload connection _speed of"
-msgstr "Vi_s en forbindelseshastighet for opplastinger på"
-
-msgid "What other people see as your connection speed."
-msgstr "Hva andre folk ser som din tilkoblingshastighet."
-
-msgid "kbps to peers"
-msgstr "kbps til personer"
-
-msgid "_Compute upload connection speed"
-msgstr "_Kalkulrer tilkoblingshastighet for opplastinger"
-
-msgid "Bandwidth"
-msgstr "Båndbredde"
-
-msgid "Keep downloading/incomplete files in"
-msgstr "Oppbevar uferdige filer i"
-
-msgid "_Browse"
-msgstr "_Bla"
-
-msgid "Move completely downloaded files to"
-msgstr "Flytt ferdig nedlastede filer til"
-
-msgid "Move corrupted downloaded files to"
-msgstr "Flytt korrupte filer til"
-
-msgid "Convert spaces to underscores in generated filenames"
-msgstr "Bytt mellomrom med undertreker i lagde filnavn"
-
-msgid ""
-"Convert \"evil\" characters (like shell meta characters) to underscores in "
-"generated filenames"
-msgstr "Bytt onde tegn (som skallmetategn) med understreker i lagde filnavn"
-
-msgid ""
-"Apply above conversions, upon startup, to existing files in the downloading "
-"directory"
-msgstr ""
-"Bruk navneinnstillingene ovenfor på eksisterende filer i "
-"nedlastingskatalogen ved oppstart"
-
-msgid "Resume and retry"
-msgstr "Fortsett og prøv på nytt"
-
-msgid "_Overlap when resuming"
-msgstr "_Overlapp ved fortsetting"
-
-msgid "Maximum number of _retries"
-msgstr "Høyeste antall gjenp_røvinger"
-
-msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr "Høyeste antall forsøk som skal gjøres, utenom HTTP-opptatindikatorer"
-
-msgid "Amount of bytes to overlap when resuming download"
-msgstr "Antall byte å overlappe ved nedlasting"
-
-msgid "Source quality"
-msgstr "Kildekvalitet"
-
-msgid "Optimistic first _chunk"
-msgstr "Optimistisk første _bit"
-
-msgid "Require _URN"
-msgstr "Krev _URN"
-
-msgid "Require _server name"
-msgstr "Krev _tjenernavn"
-
-msgid "Delays and timeouts (all values in seconds)"
-msgstr "Forsinkinger og tidsavbrudd (i sekunder)"
-
-msgid "Retry stopped delay"
-msgstr "Forsinkelse for stopping ved gjenprøving"
-
-msgid "Retry refused delay"
-msgstr "Forsinkelse for nektet ved gjenprøving"
-
-msgid "Retry busy delay"
-msgstr "Forsinkelse for opptatt ved gjenprøving"
-
-msgid "Retry timeout delay"
-msgstr "Forsinkelse for tidsavbrudd for gjenprøving"
-
-msgid "Retry timeout max"
-msgstr "Høyeste tidsavbrudd for gjenprøving"
-
-msgid "Retry timeout min"
-msgstr "Minste tidsavbrudd for gjenprøving"
-
-msgid "_Push sent timeout"
-msgstr "Tidsavbrudd for sendt _dytt"
-
-msgid "Delay in seconds to wait when running download stops"
-msgstr "Antall sekunder å vente ved kjøring av nedlastingsstopp."
-
-msgid "Delay in seconds to wait if connection is refused"
-msgstr "Antall sekunder å vente hvis tilkobling nektes"
-
-msgid "Delay in seconds to wait after HTTP busy indication"
-msgstr "Antall sekunder å vente etter HTTP-opptattindikering"
-
-msgid "Delay in seconds to wait after connection failure"
-msgstr "Antall sekunder å vente etter tilkoblingsfeil"
-
-msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
-
-msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
-
-msgid "Number of seconds before timeout for a connecting download"
-msgstr "Antall sekunder før tidsavbrudd for en tilkoblende nedlasting"
-
-msgid "Number of seconds before timeout for a 'push sent' download"
-msgstr "Antall sekunder før tidsavbrudd for en nedlasting sendt med dytt"
-
-msgid "Number of seconds before timeout for a connected download"
-msgstr "Antall sekunder før tidsavbrudd for en tilbkoblet nedlasting"
-
-msgid "Downloading from multiple sources (swarming)"
-msgstr "Nedlasting fra flere kilder (sverming)"
-
-msgid "Enable s_warming"
-msgstr "Slå på s_verming"
-
-msgid "A_ggressive mode"
-msgstr "A_ggressiv modus"
-
-msgid "M_inimum chunk size"
-msgstr "M_inste størrelse på biter"
-
-msgid "Ma_ximum chunk size"
-msgstr "_Høyeste størrelse på biter"
-
-msgid "Write buffer size"
-msgstr "Størrelse på skrivehurtigminne"
-
-msgid "Read-ahead buffer"
-msgstr "Les foran-hurtigminne"
-
-msgid "Strict SHA_1 matching"
-msgstr "Streng SHA_1-sammenlikning"
-
-msgid "Use fu_zzy matching"
-msgstr "Bruk _uklar treffing"
-
-msgid "Fuzzy threshold"
-msgstr "Uklarhetsgrense"
-
-msgid "_Apply fuzzy filter on download mesh entries"
-msgstr "Bruk ukl_art filter på oppføringer i nedlastingsmasken"
-
-msgid "Watch hits for _alternate sources"
-msgstr "Overvåk treff for _alternative kilder"
-
-msgid "_Feed mesh from hits"
-msgstr "Mat maske _fra treff"
-
-msgid "Downloads"
-msgstr "Nedlastinger"
-
-msgid "_Path(s) to files"
-msgstr "_Sti(er) til filer"
+"Du ser ut til å være brannmurt for både TCP og IDP. Du kommer ikke til å se "
+"dytteresultater, som kan hindre deg i så et stort antall resultater. Du kan "
+"heller ikke sende spørringer som ber om utenfor rekkevidde-levering av "
+"spørringstreff."
+
+msgid "You seem to be offline."
+msgstr "Du ser ut til å være frakoblet."
+
+msgid "_About"
+msgstr "_Om"
 
 msgid "_Add directory"
 msgstr "Legg til k_atalog"
 
-msgid "_Rescan"
-msgstr "_Søk på nytt"
+msgid "_Compute upload connection speed"
+msgstr "_Kalkulrer tilkoblingshastighet for opplastinger"
 
-msgid "Files scanned"
-msgstr "Filene er undersøkt"
+msgid "_Create filter"
+msgstr "_Lag filter"
 
-msgid "Ignore symbolically linked _directories"
-msgstr "Ignorer symbolsk koble_de kataloger"
+msgid "_Deletion coeff. (0-100)"
+msgstr "_Slettingskoeffisient (0-100)"
 
-msgid "Ignore symbolically linked regular _files"
-msgstr "Ignorer symbolsk koblede vanlige _filer"
+msgid "_Download RX buffer:"
+msgstr "RX-hurtigminne for ne_dlasting:"
 
-msgid "Search _extensions"
-msgstr "Søk_eutvidelser"
-
-msgid "Enable \"_Browse Host\" feature"
-msgstr "Slå på «_Bla i vert»-funksjonen"
-
-msgid "Timeouts (all values in seconds)"
-msgstr "Tidsavbrudd (i sekunder)"
-
-msgid "Partial File Sharing"
-msgstr "Deling av uferdige filer"
-
-msgid "First chunk _size"
-msgstr "_Størrelse på første bit"
-
-msgid "Enable upload of _partially downloaded files"
-msgstr "Slå på opplasting av _delvis nedlastede filer"
-
-msgid "Minimum file size"
-msgstr "Minste filstørrelse"
-
-msgid "Queuing details"
-msgstr "Køleggingsdetaljer"
-
-msgid "Minimum upload time"
-msgstr "Minste opplastingstid"
-
-msgid "Minimum chunk size"
-msgstr "Minste bitstørrelse"
-
-msgid "Use realistic PARQ estimates"
-msgstr "Bruk realistiske PARQ-beregninger"
-
-msgid "Statistics:"
-msgstr "Statistikk:"
-
-msgid "Library scanning:"
-msgstr "Bibliotekssøking:"
-
-msgid "Last scan initiated on:"
-msgstr "Siste søk startet:"
-
-msgid "File scanning time:"
-msgstr "Filsøkingstid:"
-
-msgid "Query Routing Protocol:"
-msgstr "Spørringdirigeringsprotokoll:"
-
-msgid "Indexing started on:"
-msgstr "Indeksering startet på:"
-
-msgid "and lasted"
-msgstr "og varte"
-
-msgid "Table generation started on:"
-msgstr "Tabellaging startet:"
-
-msgid "Patch generation started on:"
-msgstr "Lappelaging startet:"
-
-msgid "Query routing table information:"
-msgstr "Informasjon om spørringdirigeringstabell:"
-
-msgid "Keywords:"
-msgstr "Nøkkelord:"
-
-msgid "Slots:"
-msgstr "Plasser:"
-
-msgid "Filled slots:"
-msgstr "Fylte plasser:"
-
-msgid "Generation:"
-msgstr "Laging:"
-
-msgid "Filled ratio:"
-msgstr "Fyllforhold:"
-
-msgid "Conflict ratio:"
-msgstr "Konfliktforhold:"
-
-msgid "Query routing patch information:"
-msgstr "Informasjon om spørringdirigeringstabellap:"
-
-msgid "Raw length:"
-msgstr "Rå lengde:"
-
-msgid "Compressed length:"
-msgstr "Komprimert lengde:"
-
-msgid "Compression ratio:"
-msgstr "Komprimeringsforhold:"
-
-msgid "Show _confirmation dialog when leaving gtk-gnutella"
-msgstr "Vis _bekreftingsvindu ved forlating av gtk-gnutella"
-
-msgid "Show _tooltips (does not affect all tooltips yet)"
-msgstr "Vis verk_tøytips (rører ikke alle verktøytipsene ennå)"
-
-msgid "Show _metric units"
-msgstr "Vis _metriske måleenheter"
-
-msgid "Toolbar style"
-msgstr "Verktøylinjestil"
-
-msgid "Update search results pane every"
-msgstr "Oppdater søkeresultatruten hvert"
-
-msgid "Try to keep 'dead' entries around for"
-msgstr "Prøv å beholde «døde» oppføringer i"
-
-msgid "Expert mode"
-msgstr "Ekspertmodus"
-
-msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-"Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
-
-msgid "GnutellaNet display"
-msgstr "GnutellaNet-visning"
-
-msgid "Display detailed traffic information"
-msgstr "Vis detaljert trafikkinformasjon"
-
-msgid "Detailed traffic information to display"
-msgstr "Detaljert trafikkinformasjon som skal vises"
-
-msgid "TX compression"
-msgstr "TX-komprimering"
-
-msgid "RX compression"
-msgstr "RX-komprimering"
-
-msgid "TX speed"
-msgstr "TX-fart"
-
-msgid "RX speed"
-msgstr "RX-fart"
-
-msgid "TX queries"
-msgstr "TX-spørringer"
-
-msgid "RX queries"
-msgstr "RX-spørringer"
-
-msgid "TX query hits"
-msgstr "TX-spørringstreff"
-
-msgid "RX query hits"
-msgstr "RX-spørringstreff"
-
-msgid "Generated queries"
-msgstr "Lagde spørringer"
-
-msgid "Pending local queries"
-msgstr "Uavgjorte lokale spørringer"
-
-msgid "TX dropped"
-msgstr "TX sluppet"
-
-msgid "RX dropped"
-msgstr "RX sluppet"
-
-msgid "QRP stats"
-msgstr "QRP-statistikk"
-
-msgid "Dup / Bad / Weird"
-msgstr "Duplikat / Dårlig / Rar"
-
-msgid "Ping / Pong round trip"
-msgstr "Ping-/Pong-rundtur"
-
-msgid "Library size"
-msgstr "Bibliotekstørrelse"
-
-msgid "Library # of files"
-msgstr "Antall filer i biblioteket"
-
-msgid "RX wire bytes"
-msgstr "RX-lednings-byte"
-
-msgid "TX wire bytes"
-msgstr "TX-lednins-byte"
-
-msgid "User Interface"
-msgstr "Brukergrensesnitt"
-
-msgid "Property browser"
-msgstr "Verdileser"
-
-msgid "Property pattern:"
-msgstr "Verdimønster:"
-
-msgid "Saved"
-msgstr "Lagret"
-
-msgid "Property"
-msgstr "Verdi"
-
-msgid "Value"
-msgstr "Verdi"
-
-msgid "Selected property:"
-msgstr "Valgte verdi:"
-
-msgid "<no property selected>"
-msgstr "<Ingen verdi er valgt>"
-
-msgid "Min/Max:"
-msgstr "Min/Maks:"
-
-msgid "Default value:"
-msgstr "StandardverdI:"
-
-msgid "Edit value:"
-msgstr "Rediger verdi:"
-
-msgid "Diverse properties"
-msgstr "Diverse egenskaper"
-
-msgid "Avg. time between IP address changes:"
-msgstr "Gjennomsnittlig tid mellom IP-adresseendringer:"
-
-msgid "Avg. uptime of this servent:"
-msgstr "Denne tjenentens gjennomsnittlige oppetid:"
-
-msgid "Available physical memory:"
-msgstr "Tilgjengelig fysisk minne:"
-
-msgid "Debugging"
-msgstr "Feilsøking"
-
-msgid "gtk-gnutella - Frequently Asked Questions"
-msgstr "gtk-gnutella: Ofte stitle spørsmål"
-
-msgid "Frequently Asked Questions:"
-msgstr "Ofte stitle spørsmål:"
-
-msgid "_Stop this search"
-msgstr "_Stopp dette søket"
-
-msgid "Resu_me this search"
-msgstr "_Fortsett dette søket"
-
-msgid "_Restart this search"
-msgstr "Sta_rt søket på nytt"
+msgid "_Download selected"
+msgstr "Last ne_d valgte"
 
 msgid "_Duplicate this search"
 msgstr "_Dupliser dette søket"
 
-msgid "_Close this search"
-msgstr "_Lukk dette søket"
+msgid "_FAQ"
+msgstr "_Ofte stilte spørsmål"
 
-msgid "Country"
-msgstr "Land"
+msgid "_Feed mesh from hits"
+msgstr "Mat maske _fra treff"
 
-msgid "Failed to create the search"
-msgstr "Klarte ikke lage søket"
+msgid "_File"
+msgstr "_Fil"
+
+msgid "_General"
+msgstr "_Generelt"
+
+msgid "_Gnutella RX buffer:"
+msgstr "_Gnutella RX-hurtigminne:"
+
+#, fuzzy
+msgid "_Gnutella traffic stats"
+msgstr "_Gnet-trafikkstatistikk"
+
+msgid "_HTTP traffic stats"
+msgstr "_HTTP-trafikkstatistikk"
+
+msgid "_Help"
+msgstr "_Hjelp"
+
+msgid "_Hide downloaded files"
+msgstr "Skjul _nedlastede filer"
+
+msgid "_Horizon"
+msgstr "_Horisont"
+
+msgid "_Include headers"
+msgstr "_Ta med hoder"
+
+msgid "_Incoming traffic"
+msgstr "_Innkommende trafikk"
+
+msgid "_Listen port"
+msgstr "_Lytteport"
+
+msgid "_Outgoing traffic"
+msgstr "_Utgående trafikk"
+
+msgid "_Overlap when resuming"
+msgstr "_Overlapp ved fortsetting"
+
+msgid "_Passive"
+msgstr "_Passiv"
+
+msgid "_Path(s) to files"
+msgstr "_Sti(er) til filer"
+
+msgid "_Preferences"
+msgstr "_Innstillinger"
+
+msgid "_Push sent timeout"
+msgstr "Tidsavbrudd for sendt _dytt"
+
+msgid "_Remove manually downloaded files"
+msgstr "Fje_rn manuelt nedlastede filer"
+
+msgid "_Rescan"
+msgstr "_Søk på nytt"
+
+msgid "_Restart this search"
+msgstr "Sta_rt søket på nytt"
+
+msgid "_Stop this search"
+msgstr "_Stopp dette søket"
+
+msgid "_Try to connect to local networks first"
+msgstr "Prøv å koble _til lokale nettverk først"
+
+msgid "_Update interval (sec)"
+msgstr "_Oppdateringsintervall (sekunder)"
+
+msgid "_Username"
+msgstr "Br_ukernavn"
+
+msgid "_View"
+msgstr "_Vis"
+
+msgid "_auto-hide leaf traffic stats"
+msgstr "Skjul bl_adstatistikk automatisk"
+
+msgid "case sensitive"
+msgstr "skill mellom store og små bokstaver"
+
+msgid "case-sensitive"
+msgstr "skill mellom store og små bokstaver"
+
+msgid "downloads"
+msgstr "nedlastinger"
+
+msgid "enabled"
+msgstr "slått på"
+
+msgid "from _nodes within a"
+msgstr "fra _noder innen et"
+
+msgid "gtk-gnutella shutdown"
+msgstr "Avslutting av gtk-gnutella"
+
+#, fuzzy
+msgid "gtk-gnutella"
+msgstr "Om gtk-gnutella"
+
+msgid "gtk-gnutella: Quit?"
+msgstr "gtk-gnutella: avslutte?"
+
+msgid "hops radius"
+msgstr "hop-radius"
+
+msgid "items"
+msgstr "elementer"
+
+msgid "kbps to peers"
+msgstr "kbps til personer"
+
+msgid "not yet determined"
+msgstr "ikke oppdaget ennå"
+
+msgid "searches"
+msgstr "søk"
+
+msgid "secs   "
+msgstr "sekund   "
+
+msgid "secs"
+msgstr "sekunder"
+
+msgid "show Gnet _incoming traffic"
+msgstr "Vis _innkommende Gnet-trafikk"
+
+msgid "show Gnet _outgoing traffic"
+msgstr "Vis _utgående Gnet-trafikk"
+
+msgid "show HTTP _incoming traffic"
+msgstr "Vis _innkommende HTTP-trafikk"
+
+msgid "show HTTP _outgoing traffic"
+msgstr "Vis _utgående HTTP-trafikk"
+
+msgid "show Search_bar"
+msgstr "Vis søke_linje"
+
+msgid "show _Connections"
+msgstr "Vis _tilkoblinger"
+
+msgid "show _Downloads"
+msgstr "Vis ne_dlastinger"
+
+#, fuzzy
+msgid "show _Menubar"
+msgstr "Vis _sidelinje"
+
+msgid "show _Sidebar"
+msgstr "Vis _sidelinje"
+
+msgid "show _Statusbar"
+msgstr "Vis _statuslinje"
+
+msgid "show _Uploads"
+msgstr "Vis _opplastinger"
+
+msgid "show leaf _incoming traffic"
+msgstr "Vis _innkommende bladtrafikk"
+
+msgid "show leaf _outgoing traffic"
+msgstr "Vis _utgående bladtrafikk"
+
+msgid "uploads"
+msgstr "opplastinger"
+
+msgid "Host"
+msgstr "Vert"
+
+msgid "Flags"
+msgstr "Flagg"
+
+msgid "User-Agent"
+msgstr "Program"
+
+msgid "Uptime"
+msgstr "Oppetid"
 
 msgid "owned"
 msgstr "eid"
@@ -6299,6 +6004,9 @@ msgid_plural "Discarded %u results"
 msgstr[0] "Overså %u resultat"
 msgstr[1] "Overså %u resultater"
 
+msgid "File"
+msgstr "FIl"
+
 msgid "Extension"
 msgstr "Utvidelse"
 
@@ -6307,6 +6015,9 @@ msgstr "Koding"
 
 msgid "#"
 msgstr "#"
+
+msgid "Loc"
+msgstr "Land"
 
 msgid "Metadata"
 msgstr "Metadata"
@@ -6329,9 +6040,6 @@ msgstr "Eid"
 msgid "Hostile"
 msgstr "Fiendtlig"
 
-msgid "SHA-1"
-msgstr "SHA-1"
-
 msgid "Created"
 msgstr "Opprettet"
 
@@ -6348,12 +6056,6 @@ msgid "Passive"
 msgstr "Passiv"
 
 #, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "Talte %u begrep"
-msgstr[1] "Talte %u begreper"
-
-#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Klarte ikke finne pikselkartfilen «%s»"
 
@@ -6364,44 +6066,78 @@ msgstr "Klarte ikke åpne pikselkartfilen «%s»"
 msgid " (partial)"
 msgstr " (delvis)"
 
-#, c-format
-msgid " (slot %u"
-msgstr " (plass %u"
+msgid "Range"
+msgstr "Rekkevidde"
 
-#, c-format
-msgid " retry in %us"
-msgstr " nytt forsøk om %us"
+msgid "Type"
+msgstr "Type"
 
-#, c-format
-msgid "Sending request (%u%%)"
-msgstr "Sender forespørsel (%u%%)"
-
-msgid "Uploaded"
-msgstr "Lastet opp"
-
-msgid "Aliases"
-msgstr "Aliaser"
-
-#, c-format
-msgid "Selected %u of %u download matching \"%s\"."
-msgid_plural "Selected %u of %u downloads matching \"%s\"."
-msgstr[0] "Valgte %u av %u nedlasting som passer til «%s»."
-msgstr[1] "Valgte %u av %u nedlastinger som passer til «%s»."
+msgid "Count"
+msgstr "Antall"
 
 msgid "Cache contains"
 msgstr "Hurtigminne inneholder"
 
+msgid "Hits"
+msgstr "Treff"
+
+#, fuzzy
+msgid "Copy magnet to clipboard"
+msgstr "Kopier magnet til utklippstavlen"
+
+msgid "Start now"
+msgstr "Start nå"
+
 msgid "Pause"
 msgstr "Pause"
 
-msgid "Copy Magnet to clipboard"
-msgstr "Kopier magnet til utklippstavlen"
+msgid "Resume"
+msgstr "Fortsett"
 
-msgid "Download selected files"
-msgstr "Last ned valgte filer"
+msgid "Move back to queue"
+msgstr "Flytt tilbake til køen"
+
+msgid "Abort"
+msgstr "Avbryt"
+
+msgid "Configure columns"
+msgstr "Sett opp kolonner"
+
+#, fuzzy
+msgid "Download"
+msgstr "Nedlastinger"
+
+#, fuzzy
+msgid "Bitzi metadata"
+msgstr "Bitzi-metadata"
+
+msgid "with the same name"
+msgstr "med det samme navnet"
+
+msgid "with the same urn:sha1"
+msgstr "med samme «um:sha1»"
+
+msgid "from the same host"
+msgstr "fra samme verten"
+
+msgid "Stop"
+msgstr ""
+
+#, fuzzy
+msgid "Restart"
+msgstr "_Tilbakestill statistikk"
+
+msgid "Expand all"
+msgstr "Utvid alle"
+
+msgid "Collapse all"
+msgstr "Slå sammen alle"
 
 msgid "Copy to clipboard"
 msgstr "Kopier til utklippstavlen"
+
+msgid "Browse Host"
+msgstr "Bla i vert"
 
 msgid "_Remove filter"
 msgstr "Fje_rn filter"
@@ -6417,17 +6153,51 @@ msgstr ""
 "\n"
 "Gjenstående elegansetid:"
 
-msgid "Gnet _traffic stats"
+msgid "_Close"
+msgstr "_Lukk"
+
+msgid "_Quit"
+msgstr "_Avslutt"
+
+#, fuzzy
+msgid "show _Peers"
+msgstr "Vis _sidelinje"
+
+#, fuzzy
+msgid "Gnutella _traffic stats"
 msgstr "_Trafikkstatistikk for Gnet"
 
-msgid "_Keyboard shortcuts"
-msgstr "T_astatursnarveier"
+msgid "_Search"
+msgstr "_Søk"
+
+msgid "Uploads"
+msgstr "Opplastinger"
+
+msgid "Downloads"
+msgstr "Nedlastinger"
+
+msgid "Click to toggle display."
+msgstr "Trykk for å bytte visning."
+
+msgid ""
+"Your uploads are stalling at an abnormal rate, indicating that your "
+"bandwidth is probably saturated. You should not run as an ultra node, and "
+"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
+"both your incoming and outgoing paths."
+msgstr ""
+"Opplastingene dine stopper unormalt ofte, noe som tyder på at båndbredden "
+"din er mettet. Du bør ikke kjøre som ultranode, prøv heller å redusre den "
+"tildelte båndbredden til gtk-gnutella for å unngå å mette både innkommende "
+"og utgående stier."
 
 msgid "Connect to"
 msgstr "Koble til"
 
 msgid "ultrapeers"
 msgstr "ultrapersoner"
+
+msgid "Disconnect"
+msgstr "Koble fra"
 
 msgid "Try to keep at least"
 msgstr "Prøv å beholde minst"
@@ -6454,9 +6224,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr "Adresse/Port:"
 
-msgid "Uploaded data:"
-msgstr "Opplastet data:"
-
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr "Noen må gi med et fornuftig verktøytips for dette."
 
@@ -6465,6 +6232,9 @@ msgstr "Tjent "
 
 msgid "[BH HTML served]"
 msgstr "[BH HTML betjent]"
+
+msgid " / "
+msgstr " av "
 
 msgid "[BH HTML]"
 msgstr "[BH HTML]"
@@ -6475,14 +6245,33 @@ msgstr "[BH qtreff]"
 msgid "Current _search:"
 msgstr "Gjeldende _søk:"
 
-msgid "XML Metadata"
-msgstr "XM-informasjon"
+msgid "_Edit filters"
+msgstr "R_ediger filtre"
+
+msgid "_Clear results"
+msgstr "_Fjern resultater"
+
+msgid "_Reset stats"
+msgstr "_Tilbakestill statistikk"
+
+msgid "_Messages"
+msgstr "_Meldinger"
 
 msgid "Flow _control"
 msgstr "Flyt_kontroll"
 
 msgid "_Received"
 msgstr "_Mottatt"
+
+msgid "Downloaded data:"
+msgstr "Nedlastet data:"
+
+msgid "Uploaded data:"
+msgstr "Opplastet data:"
+
+#, fuzzy
+msgid "File transfers"
+msgstr "_Overføringer"
 
 msgid "_Columns show hops"
 msgstr "_Kolonner viser hops"
@@ -6493,17 +6282,56 @@ msgstr " "
 msgid "Show reasons _for"
 msgstr "Vis grunner _for"
 
-msgid "Gnutella stats"
-msgstr "Gnutella-statistikk"
+msgid "invert condition"
+msgstr "inverter betingelse"
+
+msgid "active"
+msgstr "aktiv"
+
+msgid "mark only"
+msgstr "bare merk"
+
+msgid "Save"
+msgstr "Lagre"
 
 msgid "Delete"
 msgstr "Slett"
 
+msgid "bytes"
+msgstr "byte"
+
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "Tallet kan etterfølges av «KB», «KiB», «MB», «MiB», «GB», «GiB» etc."
 
+msgid "ignored"
+msgstr "ignorert"
+
+msgid "unset"
+msgstr "ikke valgt"
+
+msgid "set"
+msgstr "valgt"
+
+msgid "don't"
+msgstr "ikke"
+
+msgid "undefined"
+msgstr "udefinert"
+
+msgid "do"
+msgstr "gjør"
+
+msgid "ignore"
+msgstr "ignorer"
+
 msgid "Reverse DNS lookup"
 msgstr "Omvendt DNS-oppslag"
+
+msgid "Clear"
+msgstr "Tøm"
+
+msgid "Network"
+msgstr "Nettverk"
 
 msgid "Force external IPv4 address to"
 msgstr "Tving ekstern IPv4-adresse til"
@@ -6516,6 +6344,9 @@ msgstr "IPv_4-innstillinger"
 
 msgid "Force external IPv6 address to"
 msgstr "Tving ekstern IPv6-adresse til"
+
+msgid "Bind to this address"
+msgstr "Bind til denne adressen"
 
 msgid "IPv_6 settings"
 msgstr "IPv_6-innstillinger"
@@ -6530,11 +6361,17 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr "_Adresser til lokale nettverk"
 
-msgid "Enough UDP support"
-msgstr "Nok UDP-støtte"
+msgid "Local networks"
+msgstr "Lokale nettverk"
+
+msgid "Miscellaneous"
+msgstr "Diverse"
 
 msgid "seconds (0 - disable)"
 msgstr "sekunder (0 - av)"
+
+msgid "Searches"
+msgstr "Søk"
 
 msgid "slots"
 msgstr "plasser"
@@ -6542,8 +6379,23 @@ msgstr "plasser"
 msgid "unit_of_time|s"
 msgstr "s"
 
+msgid "Connectin_g timeout"
+msgstr "Tilkoblin_gstidsavbrudd"
+
+msgid "Connected time_out"
+msgstr "Tilk_oblet tidsavbrudd"
+
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Høyeste prosentdel av tilkoblingsplasser en selger kan bruke."
+
+msgid "KiB/s"
+msgstr "KiB/s"
+
+msgid "General"
+msgstr "Generelt"
+
+msgid "_Browse"
+msgstr "_Bla"
 
 msgid "attempts"
 msgstr "forsøk"
@@ -6551,18 +6403,43 @@ msgstr "forsøk"
 msgid "_Remove directory"
 msgstr "Fje_rn katalog"
 
-msgid "E_xpose relative paths"
-msgstr "_Oppgi relative stier"
-
 msgid "Minimum chunk _size"
 msgstr "Minste bit_størrelse"
 
-msgid ""
-"Erases all selected files as far as they are incomplete and discontinues the "
-"download of the selected files."
+msgid "and lasted"
+msgstr "og varte"
+
+msgid "seconds"
+msgstr "sekunder"
+
+msgid "<no property selected>"
+msgstr "<Ingen verdi er valgt>"
+
+msgid "_Stop"
 msgstr ""
-"Sletter de valgte filene så lenge de er uferdige og stopper nedlastingen av "
-"dem."
+
+#, fuzzy
+msgid "Resu_me"
+msgstr "Fortsett"
+
+#, fuzzy
+msgid "_Restart"
+msgstr "_Tilbakestill statistikk"
+
+#, fuzzy
+msgid "_Duplicate"
+msgstr "Duplisert melding"
+
+#, fuzzy
+msgid "Close"
+msgstr "_Lukk"
+
+#, fuzzy
+msgid "Select files by regex"
+msgstr "Velg alle passende regulære uttrykk"
+
+msgid "Filter files by regex"
+msgstr ""
 
 msgid "Remove completed downloads from list"
 msgstr "Fjern ferdige nedlastinger fra listen"
@@ -6570,11 +6447,12 @@ msgstr "Fjern ferdige nedlastinger fra listen"
 msgid "_Clear completed"
 msgstr "_Fjern ferdige"
 
-msgid "Select all matching regex"
-msgstr "Velg alle passende regulære uttrykk"
+#, fuzzy
+msgid "Tools"
+msgstr "Togo"
 
-msgid "Downloaded data:"
-msgstr "Nedlastet data:"
+msgid ", "
+msgstr ", "
 
 msgid "Version"
 msgstr "Versjon"
@@ -6591,6 +6469,12 @@ msgstr "innkommende"
 msgid "outgoing"
 msgstr "utgående"
 
+msgid "Country:"
+msgstr "Land:"
+
+msgid "Vendor:"
+msgstr "Selger:"
+
 msgid "Move the cursor over a row to see details."
 msgstr "Flytt pekeren over en rad for å se detaljer."
 
@@ -6601,8 +6485,20 @@ msgstr "Omvendt oppslag for %s feilet"
 msgid "Reverse lookup in progress..."
 msgstr "Holder på med omvendt oppslag . . ."
 
-msgid "The normalized search text is too short."
-msgstr "Den normaliserte søketeksten er for kort."
+msgid "Search"
+msgstr "Søk"
+
+msgid "Size:"
+msgstr "Størrelse:"
+
+#, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "Talte %u begrep"
+msgstr[1] "Talte %u begreper"
+
+msgid "Done"
+msgstr "Ferdig"
 
 msgid "Fresh regular"
 msgstr "Fersk vanlig"
@@ -6621,24 +6517,6 @@ msgstr "Ustabil"
 
 msgid "gtk-gnutella: Click to minimize/restore"
 msgstr "gtk-gnutella: Klikk for å minimere/gjenopprette"
-
-msgid "Stats"
-msgstr "Statistikk"
-
-msgid "Hostcache"
-msgstr "Verthurtigminne"
-
-msgid "History"
-msgstr "Historikk"
-
-msgid "Active"
-msgstr "Aktiv"
-
-msgid "Queue"
-msgstr "Kø"
-
-msgid "Monitor"
-msgstr "Overvåker"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
@@ -6665,6 +6543,12 @@ msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu file delt (%s)"
 msgstr[1] "%lu filer delt (%s)"
+
+msgid "in"
+msgstr "inn"
+
+msgid "out"
+msgstr "ut"
 
 msgid "(avg)"
 msgstr "(gjen.)"
@@ -6806,32 +6690,33 @@ msgstr "La til søk som viser bla-resultater for «%s»"
 msgid "Could not launch browse host for %s"
 msgstr "Klarte ikke starte bla-verten for «%s»"
 
+msgid "No"
+msgstr "Nei"
+
+msgid "Maybe"
+msgstr "Kanskje"
+
+msgid "Source"
+msgstr "Kilde"
+
+msgid "Alt-Locs"
+msgstr "Alt-låser"
+
+msgid "Index"
+msgstr "Indeks"
+
+msgid "External metadata"
+msgstr ""
+
 msgid "Bitzi URL"
 msgstr "Bitzi-URL"
 
 msgid "ShareMonkey URL"
 msgstr "ShareMonkey-URL"
 
-msgid "Index"
-msgstr "Indeks"
-
-msgid "No"
-msgstr "Nei"
-
-msgid "Pathname"
-msgstr "Stinavn"
-
-msgid "File URL"
-msgstr "Fil-URL"
-
-msgid "Source"
-msgstr "Kilde"
-
-msgid "Browsable"
-msgstr "Kan blas i"
-
-msgid "Maybe"
-msgstr "Kanskje"
+#, fuzzy
+msgid "Host information"
+msgstr "Detaljert informasjon"
 
 msgid "Hostname"
 msgstr "Vertnavn"
@@ -6839,14 +6724,31 @@ msgstr "Vertnavn"
 msgid "Servent ID"
 msgstr "Tjenent-ID:"
 
-msgid "Alt-Locs"
-msgstr "Alt-låser"
+msgid "Browsable"
+msgstr "Kan blas i"
 
 msgid "Push-proxies"
 msgstr "Dyttemellomtjenere"
 
+#, fuzzy
+msgid "Packet information"
+msgstr "Detaljert informasjon"
+
+msgid "Pathname"
+msgstr "Stinavn"
+
+msgid "File URL"
+msgstr "Fil-URL"
+
+msgid "URLs"
+msgstr ""
+
 msgid "N2R URI"
 msgstr "N2R-URI"
+
+#, fuzzy
+msgid "Push URL"
+msgstr "Dytt"
 
 msgid "Classic URL"
 msgstr "Klassisk URL"
@@ -6856,6 +6758,16 @@ msgstr "Støtte for denne protokollen er ikke implementert ennå"
 
 msgid "Cannot handle the dropped data"
 msgstr "Klarte ikke håndtere de slupne dataene"
+
+#, fuzzy
+msgid "The normalized search text is too long."
+msgstr "Den normaliserte søketeksten er for kort."
+
+msgid "The normalized search text is too short."
+msgstr "Den normaliserte søketeksten er for kort."
+
+msgid "The URN in the search text is invalid."
+msgstr ""
 
 msgid "Never"
 msgstr "Aldri"
@@ -7006,6 +6918,302 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "no size"
+#~ msgstr "ingen størrelse"
+
+#~ msgid "%u host"
+#~ msgid_plural "%u hosts"
+#~ msgstr[0] "%u vert"
+#~ msgstr[1] "%u verter"
+
+#~ msgid " (slot %d"
+#~ msgstr " (plass %d"
+
+#~ msgid " retry in %ds"
+#~ msgstr " prøver på nytt om %ds"
+
+#~ msgid "Sending request (%d%%)"
+#~ msgstr "Sender forespørsel (%d%%)"
+
+#~ msgid " [%d/%d] TR: %s"
+#~ msgstr " [%d/%d] Igjen: %s"
+
+#~ msgid "(%s)  [%d/%d]  TR:  %s"
+#~ msgstr "(%s)  [%d/%d]  Igjen:  %s"
+
+#~ msgid "(%s)  [%d/%d]  TR:  -"
+#~ msgstr "(%s)  [%d/%d]  Igjen:  -"
+
+#~ msgid "Removed %u download"
+#~ msgid_plural "Removed %u downloads"
+#~ msgstr[0] "Fjernet %u nedlasting"
+#~ msgstr[1] "Fjernet %u nedlastinger"
+
+#~ msgid "Selected %u of %u queued download matching \"%s\"."
+#~ msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
+#~ msgstr[0] "Valgte %u av %u nedlasting i kø som passer til «%s»."
+#~ msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
+
+#~ msgid "Filename filter:"
+#~ msgstr "Filnavnfilter:"
+
+#~ msgid "_Purge selected"
+#~ msgstr "_Fjern valgte"
+
+#, fuzzy
+#~ msgid "[with source count]"
+#~ msgstr " med kilder"
+
+#~ msgid "Abort all selected downloads"
+#~ msgstr "Avbryt alle merkede nedlastinger"
+
+#~ msgid "_Abort selected"
+#~ msgstr "_Avbryt valgte"
+
+#~ msgid "Resume all selected downloads"
+#~ msgstr "Fortsett med de valgte nedlastingene"
+
+#~ msgid "_Resume selected"
+#~ msgstr "Fo_rtsett valgte"
+
+#, fuzzy
+#~ msgid "[running]"
+#~ msgstr "Bannlysing"
+
+#~ msgid "("
+#~ msgstr "("
+
+#~ msgid "queued"
+#~ msgstr "i kø"
+
+#~ msgid ")"
+#~ msgstr ")"
+
+#, fuzzy
+#~ msgid "[queued downloads]"
+#~ msgstr "%u nedlasting"
+
+#~ msgid "Queue"
+#~ msgstr "Kø"
+
+#, fuzzy
+#~ msgid "[BH qhits served]"
+#~ msgstr "[BH qtreff]"
+
+#~ msgid "%v/%u (%P%%)"
+#~ msgstr "%v/%u (%P%%)"
+
+#~ msgid "Abort all..."
+#~ msgstr "Abryt alt . . ."
+
+#~ msgid "Remove file"
+#~ msgstr "Fjern fil"
+
+#, fuzzy
+#~ msgid "[Add/Remove]"
+#~ msgstr "Fjern"
+
+#~ msgid "Remove"
+#~ msgstr "Fjern"
+
+#, fuzzy
+#~ msgid "[Filename]"
+#~ msgstr "Filnavn"
+
+#, fuzzy
+#~ msgid "[IP address]"
+#~ msgstr "IP-adresse/maske"
+
+#, fuzzy
+#~ msgid "[Filesize]"
+#~ msgstr "Filer"
+
+#, fuzzy
+#~ msgid "[SHA1]"
+#~ msgstr "SHA1:"
+
+#, fuzzy
+#~ msgid "[Flags]"
+#~ msgstr "Flagg"
+
+#, fuzzy
+#~ msgid "[State]"
+#~ msgstr "Statistikk"
+
+#, fuzzy
+#~ msgid "[time]"
+#~ msgstr "Oppetid"
+
+#~ msgid "Raphael Manfredi"
+#~ msgstr "Raphael Manfredi"
+
+#~ msgid "KiB"
+#~ msgstr "KiB"
+
+#~ msgid "Download selected files"
+#~ msgstr "Last ned valgte filer"
+
+#~ msgid "_Close this search"
+#~ msgstr "_Lukk dette søket"
+
+#~ msgid "Display Navigation Tree."
+#~ msgstr "Vis navigeringstre."
+
+#~ msgid "Display toolbar."
+#~ msgstr "Vis verktøylinje."
+
+#~ msgid "Queued (%d active, %d passive)"
+#~ msgstr "I kø (%d aktiv, %d passiv)"
+
+#~ msgid "Alternate filenames"
+#~ msgstr "Alternative filnavn"
+
+#~ msgid "Download settings"
+#~ msgstr "Nedlastingsinnstillinger"
+
+#~ msgid "Monitor"
+#~ msgstr "Overvåker"
+
+#~ msgid "_Keyboard shortcuts"
+#~ msgstr "T_astatursnarveier"
+
+#~ msgid ""
+#~ "Erases all selected files as far as they are incomplete and discontinues "
+#~ "the download of the selected files."
+#~ msgstr ""
+#~ "Sletter de valgte filene så lenge de er uferdige og stopper nedlastingen "
+#~ "av dem."
+
+#~ msgid "This is an interim property while Tigertree support is unfinished."
+#~ msgstr ""
+#~ "Dette er en midlertidig innstilling mens Tigertree-støtten ikke er ferdig."
+
+#~ msgid "Size of the menu in the sidebar."
+#~ msgstr "Størrelsen på menyen i sidelinjen."
+
+#~ msgid "<none>"
+#~ msgstr "<ingen>"
+
+#~ msgid "_GnutellaNet"
+#~ msgstr "_GnutellaNet"
+
+#~ msgid "_Stats"
+#~ msgstr "_Statistikk"
+
+#~ msgid "_Hostcache"
+#~ msgstr "Vert_hurtigminne"
+
+#~ msgid "_Uploads"
+#~ msgstr "_Opplastinger"
+
+#~ msgid "_History"
+#~ msgstr "_Historikk"
+
+#~ msgid "_Downloads"
+#~ msgstr "Ne_dlastinger"
+
+#~ msgid "_Files"
+#~ msgstr "_Filer"
+
+#~ msgid "_Active"
+#~ msgstr "_Aktiv"
+
+#~ msgid "_Queue"
+#~ msgstr "_Kø"
+
+#~ msgid "_Results"
+#~ msgstr "_Resultater"
+
+#~ msgid "_Monitor"
+#~ msgstr "_Overvåker"
+
+#~ msgid "S_tats"
+#~ msgstr "S_tatistikk"
+
+#~ msgid "show _Toolbar"
+#~ msgstr "Vis verk_tøylinje"
+
+#~ msgid "show _Navigation Tree"
+#~ msgstr "Vis _navigeringstre"
+
+#~ msgid "Navigator"
+#~ msgstr "Navigerer"
+
+#~ msgid "GnutellaNet connections"
+#~ msgstr "GnutellaNet-forbindelser"
+
+#~ msgid "Message/flow control stats"
+#~ msgstr "Statistikk for meldinger/flytkontroll"
+
+#~ msgid "Hostcache statistics"
+#~ msgstr "Statistikk for verthurtigminne"
+
+#~ msgid "Files to get"
+#~ msgstr "Filer å hente"
+
+#~ msgid "Filename:"
+#~ msgstr "Filnavn:"
+
+#~ msgid "Active sources"
+#~ msgstr "Aktive kilder"
+
+#~ msgid "Inactive sources"
+#~ msgstr "Inaktive kilder"
+
+#~ msgid "Search results"
+#~ msgstr "Søkeresultater"
+
+#~ msgid "Index:"
+#~ msgstr "Indeks:"
+
+#~ msgid "Source:"
+#~ msgstr "Kilde:"
+
+#~ msgid "Received:"
+#~ msgstr "Mottatt:"
+
+#~ msgid "Query:"
+#~ msgstr "Spørring:"
+
+#~ msgid "Speed:"
+#~ msgstr "Fart:"
+
+#~ msgid "Servent ID:"
+#~ msgstr "Tjenent-ID:"
+
+#~ msgid "XML data:"
+#~ msgstr "XML-data:"
+
+#~ msgid "Engouh UDP support"
+#~ msgstr "Nok UDP-støtte"
+
+#~ msgid "Read-ahead buffer"
+#~ msgstr "Les foran-hurtigminne"
+
+#~ msgid "Use fu_zzy matching"
+#~ msgstr "Bruk _uklar treffing"
+
+#~ msgid "Fuzzy threshold"
+#~ msgstr "Uklarhetsgrense"
+
+#~ msgid "_Apply fuzzy filter on download mesh entries"
+#~ msgstr "Bruk ukl_art filter på oppføringer i nedlastingsmasken"
+
+#~ msgid "gtk-gnutella - Frequently Asked Questions"
+#~ msgstr "gtk-gnutella: Ofte stitle spørsmål"
+
+#~ msgid "Frequently Asked Questions:"
+#~ msgstr "Ofte stitle spørsmål:"
+
+#~ msgid "Gnutella stats"
+#~ msgstr "Gnutella-statistikk"
+
+#~ msgid "History"
+#~ msgstr "Historikk"
+
+#~ msgid "Failed to create the search"
+#~ msgstr "Klarte ikke lage søket"
 
 #~ msgid "This is an interim property."
 #~ msgstr "Dette er en midlertidig innstilling."
