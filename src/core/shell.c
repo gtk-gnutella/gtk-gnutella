@@ -140,7 +140,7 @@ shell_print_help(gnutella_shell_t *sh, shell_help_t *help)
 	shell_write(sh, help->summary);
 	shell_write(sh, "\n");
 
-	if (help->help && strlen(help->help)) {
+	if (help->help && '\0' != help->help[0]) {
 		shell_write(sh, help->help);
 		shell_write(sh, "\n");
 	}
