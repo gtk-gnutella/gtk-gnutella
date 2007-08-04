@@ -175,6 +175,20 @@ download_basename(const struct download *d)
 	return filepath_basename(download_pathname(d));
 }
 
+const char *
+download_host_info(const struct download *d)
+{
+	static char info[256];
+	char host[128];
+	
+	host_addr_port_to_string_buf(download_addr(d), download_port(d),
+		host, sizeof host);
+	concat_strings(info, sizeof info,
+		host, "<", host, " \'", download_vendor_str(d), "\'>",
+		(void *) 0);
+	return info;
+}
+
 /*
  * Download structures.
  *
@@ -6978,13 +6992,15 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	endptr = strchr(value, ';');
 	if (NULL == endptr) {
-		g_message("X-Thex-Uri header has no root hash");
+		g_message("X-Thex-Uri header has no root hash (%s)",
+			download_host_info(d));
 		return;
 	}
 
 	uri_end = endptr;
 	if (uri_end == value || '/' != value[0]) {
-		g_message("X-Thex-Uri header has no valid URI");
+		g_message("X-Thex-Uri header has no valid URI (%s)",
+			download_host_info(d));
 		return;
 	}
 	uri_end--;	/* skip trailing semi-colon */
@@ -6995,24 +7011,28 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	endptr = skip_ascii_spaces(&endptr[1]);
 	if (strlen(endptr) < TTH_BASE32_SIZE) {
-		g_message("X-Thex-Uri header has no root hash");
+		g_message("X-Thex-Uri header has no root hash (%s)",
+			download_host_info(d));
 		return;
 	}
 
 	tth = base32_tth(endptr);
 	if (NULL == tth) {
-		g_message("X-Thex-Uri header has no root hash");
+		g_message("X-Thex-Uri header has no root hash (%s)",
+			download_host_info(d));
 		return;
 	}
 
 	if (d->file_info->tth) {
 		if (!tth_eq(tth, d->file_info->tth)) {
-			g_warning("X-Thex-Uri causes TTH mismatch");
+			g_warning("X-Thex-Uri causes TTH mismatch (%s)",
+				download_host_info(d));
 			return;
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Tigertree value is %s", tth_base32(tth));
+			g_message("Discovered TTH (%s) from %s", tth_base32(tth),
+				download_host_info(d));
 		}
 		file_info_got_tth(d->file_info, tth);
 	}
@@ -11556,13 +11576,15 @@ download_thex_done(struct download *d)
 	sha1 = atom_sha1_get(sha1);
 
 	if (!thex_download_finished(d->thex)) {
-		g_message("Discarding tigertree data: Bad THEX data");
+		g_message("Discarding tigertree data from %s: Bad THEX data",
+			download_host_info(d));
 		goto finish;
 	}
 
 	fi = file_info_by_sha1(sha1);
 	if (NULL == fi) {
-		g_message("Discarding tigertree data: No more download");
+		g_message("Discarding tigertree data from %s: No more download",
+			download_host_info(d));
 		cancel_all = TRUE;
 		goto finish;
 	}
@@ -11577,7 +11599,8 @@ download_thex_done(struct download *d)
 		file_info_got_tth(fi, tth);
 	}
 	if (fi->tigertree.num_leaves >= num_leaves) {
-		g_message("Discarding tigertree data: Already known.");
+		g_message("Discarding tigertree data from %s: Already known.",
+			download_host_info(d));
 		cancel_all = TRUE;
 		goto finish;
 	}
