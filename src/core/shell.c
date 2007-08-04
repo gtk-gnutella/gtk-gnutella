@@ -914,6 +914,44 @@ static shell_help_t shell_help_download_add = {
 	NULL,
 };
 
+static enum shell_reply
+shell_exec_download_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
+{
+	const gchar *url;
+	gboolean success;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3) {
+		sh->msg = _("URL missing");
+		goto error;
+	}
+	url = argv[2];
+
+	if (is_strcaseprefix(url, "http://")) {
+		success = download_handle_http(url);
+	} else if (is_strcaseprefix(url, "magnet:?")) {
+		guint n_downloads, n_searches;
+
+		n_downloads = download_handle_magnet(url);
+		n_searches = search_handle_magnet(url);
+		success = n_downloads > 0 || n_searches > 0;
+	} else {
+		success = FALSE;
+	}
+	if (!success) {
+		sh->msg = _("The download could not be created");
+		goto error;
+	}
+	sh->msg = _("Download added");
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
 /**
  * Handles the download command.
  */
@@ -928,32 +966,7 @@ shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		goto error;
 
 	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		const gchar *url;
-		gboolean success;
-
-		if (argc < 3) {
-			sh->msg = _("URL missing");
-			goto error;
-		}
-		url = argv[2];
-
-		if (is_strcaseprefix(url, "http://")) {
-			success = download_handle_http(url);
-		} else if (is_strcaseprefix(url, "magnet:?")) {
-			guint n_downloads, n_searches;
-
-			n_downloads = download_handle_magnet(url);
-			n_searches = search_handle_magnet(url);
-			success = n_downloads > 0 || n_searches > 0;
-		} else {
-			success = FALSE;
-		}
-		if (!success) {
-			sh->msg = _("The download could not be created");
-			goto error;
-		}
-		sh->msg = _("Download added");
-		return REPLY_READY;
+		shell_exec_download_add(sh, argc, argv);
 	} else {
 		sh->msg = _("Unknown operation");
 		goto error;
