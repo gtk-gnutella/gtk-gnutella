@@ -952,6 +952,23 @@ error:
 	return REPLY_ERROR;
 }
 
+static enum shell_reply
+shell_exec_download_abort(gnutella_shell_t *sh, gint argc, const gchar *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3) {
+		sh->msg = _("parameter missing");
+		goto error;
+	}
+	sh->msg = "FIXME: Implement this";
+
+error:
+	return REPLY_ERROR;
+}
+
 /**
  * Handles the download command.
  */
@@ -965,12 +982,17 @@ shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 	if (argc < 2)
 		goto error;
 
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		shell_exec_download_add(sh, argc, argv);
-	} else {
-		sh->msg = _("Unknown operation");
-		goto error;
-	}
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_download_ ## name(sh, argc, argv); \
+} G_STMT_END
+
+	CMD(add);
+	CMD(abort);
+#undef CMD
+	
+	sh->msg = _("Unknown operation");
+	goto error;
 
 error:
 	return REPLY_ERROR;
