@@ -824,15 +824,15 @@ fi_gui_files_configure_columns(void)
 void
 fi_gui_files_freeze(void)
 {
-	g_return_if_fail(clist_download_files);
 	gtk_clist_freeze(clist_download_files);
+	gtk_clist_freeze(clist_download_sources);
 }
 
 void
 fi_gui_files_thaw(void)
 {
-	g_return_if_fail(clist_download_files);
 	gtk_clist_thaw(clist_download_files);
+	gtk_clist_thaw(clist_download_sources);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

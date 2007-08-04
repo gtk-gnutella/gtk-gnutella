@@ -912,15 +912,15 @@ fi_gui_files_configure_columns(void)
 void
 fi_gui_files_freeze(void)
 {
-	g_return_if_fail(treeview_download_files);
 	g_object_freeze_notify(G_OBJECT(treeview_download_files));
+	g_object_freeze_notify(G_OBJECT(treeview_download_sources));
 }
 
 void
 fi_gui_files_thaw(void)
 {
-	g_return_if_fail(treeview_download_files);
 	g_object_thaw_notify(G_OBJECT(treeview_download_files));
+	g_object_thaw_notify(G_OBJECT(treeview_download_sources));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
