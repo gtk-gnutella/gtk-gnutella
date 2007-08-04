@@ -1438,7 +1438,7 @@ shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
 		gchar *cmd = g_strjoinv(" ", (gchar **) &argv[1]);
 		shell_help_t *help = shell_cmd_get_help(cmd);
 
-		g_free(cmd);
+		G_FREE_NULL(cmd);
 
 		if (help)
 			shell_print_help(sh, help);
