@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-08-04 20:35+0900\n"
-"PO-Revision-Date: 2007-07-14 06:50+0900\n"
+"PO-Revision-Date: 2007-08-04 20:29+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -245,9 +245,9 @@ msgstr "<%s のTHEXデータ>"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Downloading (TR: %s)"
-msgstr "ダウンロード中 (%s)  残り時間: %s"
+msgstr "ダウンロード中 (残り時間: %s)"
 
 msgid "OK"
 msgstr "OK"
@@ -271,13 +271,12 @@ msgstr "シード中"
 msgid "Finished"
 msgstr "終了しました"
 
-# MERGEBLE: not yet reported
 msgid "No sources"
 msgstr "送信元はありません"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Queued (%u active, %u passive)"
-msgstr "待機中 (%d 件が動作、%d 件が受動)"
+msgstr "待機中 (%u 件がアクティブ、%u 件がパッシブ)"
 
 msgid "Waiting"
 msgstr "待受中"
@@ -1418,7 +1417,6 @@ msgstr ""
 "ダウンロード出来ないもの (接続のタイムアウト、PUSH経路喪失、他...) を自動消去"
 "します。"
 
-#, fuzzy
 msgid "Auto clear finished downloads"
 msgstr "中断したダウンロードの自動消去"
 
@@ -2631,13 +2629,11 @@ msgstr "あなたのピアを通過する検索クエリーをチェックしま
 msgid "Maximum number of queries visible in search monitor."
 msgstr "検索モニターに表示する検索クエリーの最大数です。"
 
-#, fuzzy
 msgid "Select downloads by regex case-sensitive."
-msgstr "正規表現 (大・小文字を区別) に一致するキューを選択します。"
+msgstr "正規表現 (大・小文字を区別) に一致するダウンロードを選択します。"
 
-#, fuzzy
 msgid "Filter downloads by regex case-sensitive."
-msgstr "正規表現 (大・小文字を区別) に一致するファイル情報を選択します。"
+msgstr "正規表現 (大・小文字を区別) に一致するダウンロードを振り分けます。"
 
 msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
@@ -2667,13 +2663,11 @@ msgstr "待機中のダウンロードのテーブルでどの欄を表示する
 msgid "Widths of the columns in the file info table."
 msgstr "ファイル情報テーブルの表示欄の幅です。"
 
-#, fuzzy
 msgid "Visibility of the columns in the file info table."
-msgstr "ファイル情報テーブルの表示欄の幅です。"
+msgstr "ファイル情報テーブルの表示可否です。"
 
-#, fuzzy
 msgid "Widths of the columns in the sources table."
-msgstr "ピア・テーブルの表示欄の幅です。"
+msgstr "送信元テーブルの表示欄の幅です。"
 
 msgid "Widths of the columns in the search list on the sidebar."
 msgstr "サイドバーにある検索リストの表示欄の幅です。"
@@ -2765,9 +2759,8 @@ msgstr "検索バーを表示します。"
 msgid "Display Sidebar."
 msgstr "サイドバーを表示します。"
 
-#, fuzzy
 msgid "Display Menu."
-msgstr "サイドバーを表示します。"
+msgstr "メニューを表示します。"
 
 msgid "Display statusbar."
 msgstr "ステータスバーを表示します。"
@@ -3915,7 +3908,7 @@ msgid "SHA-1"
 msgstr "SHA-1"
 
 msgid "Bitprint"
-msgstr ""
+msgstr "Bitprint"
 
 msgid "Queued"
 msgstr "待機中"
@@ -4004,18 +3997,17 @@ msgstr "SHA1 確認を待っています..."
 msgid "Computing SHA1 (%.02f%%)"
 msgstr "SHA1 を算出しています (%.02f%%)"
 
-#, fuzzy
 msgid "SHA-1 OK"
-msgstr "SHA-1"
+msgstr "SHA-1 OK"
 
 msgid "SHA-1 MISMATCH"
-msgstr ""
+msgstr "SHA-1 ミスマッチ"
 
 msgid "SHA-1 calculated"
-msgstr ""
+msgstr "SHA-1 算出済"
 
 msgid "SHA-1 VERIFICATION FAILED"
-msgstr ""
+msgstr "SHA-1 検証失敗"
 
 msgid "; Waiting for moving..."
 msgstr "; 移動を待っています..."
@@ -4057,12 +4049,11 @@ msgid "Active"
 msgstr "アクティブ"
 
 # FIXME: separation (src/ui/gtk/gtk2/upload_stats.c: Complete -> Completes)
-#, fuzzy
 msgid "Incomplete"
-msgstr "完了"
+msgstr "不完全"
 
 msgid "All"
-msgstr ""
+msgstr "全て"
 
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
@@ -4444,15 +4435,13 @@ msgid "Progress"
 msgstr "途中経過"
 
 msgid "RX"
-msgstr ""
+msgstr "受信"
 
-#, fuzzy
 msgid "Downloaded"
-msgstr "ダウンロード:"
+msgstr "ダウンロード"
 
-# FIXME: should be revised
 msgid "Uploaded"
-msgstr "アップロードされました"
+msgstr "アップロード"
 
 msgid "Sources"
 msgstr "送信元"
@@ -4662,7 +4651,6 @@ msgstr "禁止処理"
 msgid "Bitzi Metadata"
 msgstr "Bitziメタデータ検索"
 
-#, fuzzy
 msgid "Browse host"
 msgstr "ホストの参照"
 
@@ -4706,9 +4694,8 @@ msgstr "完了・失敗・取得不可のダウンロードをリストから消
 msgid "Clear non-existent files"
 msgstr "存在しないファイルを消去"
 
-#, fuzzy
 msgid "Clear results"
-msgstr "結果を消去(_C)"
+msgstr "結果を消去"
 
 msgid "Clear stopped"
 msgstr "中断したものを消去"
@@ -4719,9 +4706,8 @@ msgstr "時計の誤差:"
 msgid "Clock synchronization"
 msgstr "時計の同期化"
 
-#, fuzzy
 msgid "Close this search"
-msgstr "この検索を閉じる(_C)"
+msgstr "この検索を閉じる"
 
 msgid "Compressed length:"
 msgstr "圧縮された長さ:"
@@ -4762,11 +4748,8 @@ msgstr "ホストへ接続"
 msgid "Connected time"
 msgstr "接続時間"
 
-# NOTE: `timeout' may be redundant
-# XXX: `Connecting' to which?
-#, fuzzy
 msgid "Connection counters"
-msgstr "外への接続(_G)"
+msgstr "接続件数"
 
 msgid "Connection settings"
 msgstr "接続設定"
@@ -4853,7 +4836,7 @@ msgid "Detailed traffic information to display"
 msgstr "表示するトラフィック情報"
 
 msgid "Details"
-msgstr ""
+msgstr "詳細"
 
 msgid "Discard results without SHA-1 hashes"
 msgstr "SHA1ハッシュの無い検索結果を破棄する"
@@ -5032,9 +5015,8 @@ msgstr "検索結果を永久に破棄..."
 msgid "Gnet connections"
 msgstr "Gnutellaネット接続"
 
-#, fuzzy
 msgid "Gnutella _leaf traffic stats"
-msgstr "Gnetリーフトラフィック統計(_L)"
+msgstr "Gnutellaリーフトラフィック統計(_L)"
 
 # NOTE: `Gnutella' may be redundant
 msgid "Gnutella network mode"
@@ -5623,13 +5605,11 @@ msgstr "SHA1 ハッシュ (編集不可、検索ポップアップから追加�
 msgid "Saved"
 msgstr "保存済"
 
-#, fuzzy
 msgid "Search Monitor"
-msgstr "検索フィルター"
+msgstr "検索モニター"
 
-#, fuzzy
 msgid "Search Stats"
-msgstr "検索"
+msgstr "検索ステータス"
 
 # FIXME: `Search Term' -> `Searches' or `Search queries'
 msgid "Search Term"
@@ -5654,9 +5634,8 @@ msgstr "選択されたプロパティ:"
 msgid "Server"
 msgstr "サーバー"
 
-#, fuzzy
 msgid "Settings"
-msgstr "設定の表示"
+msgstr "設定"
 
 msgid "Show _bytes"
 msgstr "バイト数を表示(_B)"
@@ -5730,9 +5709,8 @@ msgstr "間隔"
 msgid "Stable"
 msgstr "安定"
 
-#, fuzzy
 msgid "Statistics"
-msgstr "各種統計:"
+msgstr "各種統計"
 
 msgid "Statistics:"
 msgstr "各種統計:"
@@ -5863,7 +5841,6 @@ msgstr ""
 msgid "Update search results pane every"
 msgstr "検索結果の更新"
 
-#, fuzzy
 msgid "Upload History"
 msgstr "アップロード履歴"
 
@@ -6012,9 +5989,8 @@ msgstr "一般(_G)"
 msgid "_Gnutella RX buffer:"
 msgstr "Gnutella受信バッファ(_G):"
 
-#, fuzzy
 msgid "_Gnutella traffic stats"
-msgstr "Gnetトラフィック統計(_G)"
+msgstr "Gnutellaトラフィック統計(_G)"
 
 msgid "_HTTP traffic stats"
 msgstr "HTTPトラフィック統計(_H)"
@@ -6102,9 +6078,8 @@ msgstr "ピア(_N)"
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutellaの停止"
 
-#, fuzzy
 msgid "gtk-gnutella"
-msgstr "gtk-gnutellaについて"
+msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: 終了しますか？"
@@ -6154,14 +6129,13 @@ msgid "show Search_bar"
 msgstr "検索バー(_B)"
 
 msgid "show _Connections"
-msgstr "接続件数(_C)"
+msgstr "接続(_C)"
 
 msgid "show _Downloads"
-msgstr "ダウンロード件数(_D)"
+msgstr "ダウンロード(_D)"
 
-#, fuzzy
 msgid "show _Menubar"
-msgstr "サイドバー(_S)"
+msgstr "メニューバー(_M)"
 
 msgid "show _Sidebar"
 msgstr "サイドバー(_S)"
@@ -6170,7 +6144,7 @@ msgid "show _Statusbar"
 msgstr "ステータスバー(_S)"
 
 msgid "show _Uploads"
-msgstr "アップロード件数(_U)"
+msgstr "アップロード(_U)"
 
 msgid "show leaf _incoming traffic"
 msgstr "リーフからのトラフィック(_I)"
@@ -6305,7 +6279,6 @@ msgstr "キャッシュ内容"
 msgid "Hits"
 msgstr "ヒット数"
 
-#, fuzzy
 msgid "Copy magnet to clipboard"
 msgstr "マグネットをクリップボードへコピー"
 
@@ -6327,13 +6300,11 @@ msgstr "中止する"
 msgid "Configure columns"
 msgstr "表示欄の設定"
 
-#, fuzzy
 msgid "Download"
 msgstr "ダウンロード"
 
-#, fuzzy
 msgid "Bitzi metadata"
-msgstr "Bitziメタデータ検索"
+msgstr "Bitziメタデータ"
 
 msgid "with the same name"
 msgstr "同じ名前で"
@@ -6345,11 +6316,10 @@ msgid "from the same host"
 msgstr "同じホストから"
 
 msgid "Stop"
-msgstr ""
+msgstr "停止"
 
-#, fuzzy
 msgid "Restart"
-msgstr "状態をリセット(_R)"
+msgstr "再開"
 
 msgid "Expand all"
 msgstr "全て拡げる"
@@ -6383,13 +6353,11 @@ msgstr "閉じる(_C)"
 msgid "_Quit"
 msgstr "終了(_Q)"
 
-#, fuzzy
 msgid "show _Peers"
-msgstr "サイドバー(_S)"
+msgstr "ピア(_P)"
 
-#, fuzzy
 msgid "Gnutella _traffic stats"
-msgstr "Gnetトラフィック統計(_T)"
+msgstr "Gnutellaトラフィック統計(_T)"
 
 msgid "_Search"
 msgstr "検索(_S)"
@@ -6520,9 +6488,8 @@ msgstr "ダウンロード済データ:"
 msgid "Uploaded data:"
 msgstr "アップロード済データ:"
 
-#, fuzzy
 msgid "File transfers"
-msgstr "転送(_T)"
+msgstr "ファイル転送"
 
 msgid "_Columns show hops"
 msgstr "ホップ数を表示(_C)"
@@ -6672,30 +6639,25 @@ msgid "<no property selected>"
 msgstr "<プロパティは選択されていません>"
 
 msgid "_Stop"
-msgstr ""
+msgstr "停止(_S)"
 
-#, fuzzy
 msgid "Resu_me"
-msgstr "再開する"
+msgstr "再開(_M)"
 
-#, fuzzy
 msgid "_Restart"
-msgstr "状態をリセット(_R)"
+msgstr "開始(_R)"
 
-#, fuzzy
 msgid "_Duplicate"
-msgstr "重複メッセージ"
+msgstr "コピー(_D)"
 
-#, fuzzy
 msgid "Close"
-msgstr "閉じる(_C)"
+msgstr "閉じる"
 
-#, fuzzy
 msgid "Select files by regex"
-msgstr "正規表現に一致する全てのキューを選択"
+msgstr "正規表現に一致するファイルを選択"
 
 msgid "Filter files by regex"
-msgstr ""
+msgstr "正規表現に一致するファイルを振り分け"
 
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
@@ -6703,9 +6665,8 @@ msgstr "完了したダウンロードを一覧から削除する"
 msgid "_Clear completed"
 msgstr "完了したものを消去(_C)"
 
-#, fuzzy
 msgid "Tools"
-msgstr "トーゴ共和国"
+msgstr "ツール"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 msgid ", "
@@ -6973,7 +6934,7 @@ msgid "Index"
 msgstr "インデックス"
 
 msgid "External metadata"
-msgstr ""
+msgstr "外部メタデータ"
 
 msgid "Bitzi URL"
 msgstr "Bitzi URL"
@@ -6981,9 +6942,8 @@ msgstr "Bitzi URL"
 msgid "ShareMonkey URL"
 msgstr "ShareMonkey URL"
 
-#, fuzzy
 msgid "Host information"
-msgstr "詳細情報"
+msgstr "ホスト情報"
 
 msgid "Hostname"
 msgstr "ホスト名"
@@ -6997,9 +6957,8 @@ msgstr "参照可"
 msgid "Push-proxies"
 msgstr "PUSHプロキシ"
 
-#, fuzzy
 msgid "Packet information"
-msgstr "詳細情報"
+msgstr "パケット情報"
 
 msgid "Pathname"
 msgstr "パス名"
@@ -7008,14 +6967,13 @@ msgid "File URL"
 msgstr "ファイルURL"
 
 msgid "URLs"
-msgstr ""
+msgstr "URL"
 
 msgid "N2R URI"
 msgstr "N2R URI"
 
-#, fuzzy
 msgid "Push URL"
-msgstr "PUSH"
+msgstr "プッシュURL"
 
 msgid "Classic URL"
 msgstr "従来のURL"
@@ -7026,15 +6984,14 @@ msgstr "このプロトコルはまだ実装されていません"
 msgid "Cannot handle the dropped data"
 msgstr "この破棄データを扱えません"
 
-#, fuzzy
 msgid "The normalized search text is too long."
-msgstr "正規化された検索テキストが短すぎます。"
+msgstr "正規化された検索テキストが長すぎます。"
 
 msgid "The normalized search text is too short."
 msgstr "正規化された検索テキストが短すぎます。"
 
 msgid "The URN in the search text is invalid."
-msgstr ""
+msgstr "検索文字列中のURNが不正です。"
 
 msgid "Never"
 msgstr "未発生"
