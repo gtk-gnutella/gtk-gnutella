@@ -149,59 +149,6 @@ static void update_input_bw_display(void);
  *** II. Simple default callbacks
  ***/
 
-/**
- * Helper function for update_label() and update_entry()
- */
-#if 0
-static gchar *prop_to_string(property_t prop)
-{
-    static gchar s[4096];
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-
-    switch (map_entry->type) {
-        case PROP_TYPE_GUINT32: {
-            guint32 val;
-
-            stub->guint32.get(prop, &val, 0, 1);
-
-            gm_snprintf(s, sizeof(s), "%u", val);
-            break;
-        }
-        case PROP_TYPE_STRING: {
-            gchar *buf = stub->string.get(prop, NULL, 0);
-            gm_snprintf(s, sizeof(s), "%s", buf);
-            g_free(buf);
-            break;
-        }
-        case PROP_TYPE_IP: {
-            guint32 val;
-
-            stub->guint32.get(prop, &val, 0, 1);
-
-            gm_snprintf(s, sizeof(s), "%s", ip_to_string(val));
-            break;
-        }
-        case PROP_TYPE_BOOLEAN: {
-            gboolean val;
-
-            stub->boolean.get(prop, &val, 0, 1);
-
-            gm_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
-            break;
-        }
-        default:
-            s[0] = '\0';
-            g_error("update_entry_gnet: incompatible type: %u",
-                (guint) map_entry->type);
-    }
-
-    return s;
-}
-
-#endif
-
-
 static gboolean
 update_entry(property_t prop)
 {
@@ -1507,13 +1454,8 @@ new_version_str_changed(property_t prop)
 	g_return_val_if_fail(PROP_NEW_VERSION_STR == prop, FALSE);
 
     str = gnet_prop_get_string(prop, NULL, 0);
-	if (!str)
-		str = g_strdup(GTA_WEBSITE);
-
-    statusbar_gui_set_default("%s", str);
-
-	if (str)
-		g_free(str);
+   	statusbar_gui_set_default("%s", str ? str : GTA_WEBSITE);
+	G_FREE_NULL(str);
 
     return FALSE;
 }

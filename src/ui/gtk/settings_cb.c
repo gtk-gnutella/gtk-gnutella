@@ -130,7 +130,7 @@ on_entry_config_extensions_activate(GtkEditable *editable, gpointer unused_data)
 	(void) unused_data;
     ext = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     gnet_prop_set_string(PROP_SCAN_EXTENSIONS, ext);
-    g_free(ext);
+    G_FREE_NULL(ext);
 }
 FOCUS_TO_ACTIVATE(entry_config_extensions)
 
@@ -142,7 +142,7 @@ on_entry_config_path_activate(GtkEditable *editable, gpointer unused_udata)
 
 	(void) unused_udata;
     gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, path);
-    g_free(path);
+    G_FREE_NULL(path);
 }
 FOCUS_TO_ACTIVATE(entry_config_path)
 #endif /* USE_GTK1 */
