@@ -118,49 +118,46 @@ clist_copy_text(GtkCList *clist, int row, int column)
 	return g_strdup(text);
 }
 
-static void
-on_clist_select_row(GtkCList *unused_clist,
-	int row, int unused_column, GdkEventButton *unused_event,
-	void *user_data)
+static int
+clist_get_focus_row(GtkCList *clist)
 {
-	int *row_ptr = user_data;
-	
-	(void) unused_clist;
-	(void) unused_column;
-	(void) unused_event;
-	
-	g_return_if_fail(row_ptr);
-	*row_ptr = row;
-}
+	g_return_val_if_fail(clist, -1);
 
-static void
-on_clist_unselect_row(GtkCList *unused_clist,
-	int row, int unused_column, GdkEventButton *unused_event,
-	void *user_data)
-{
-	int *row_ptr = user_data;
-
-	(void) unused_clist;
-	(void) unused_column;
-	(void) unused_event;
-
-	g_return_if_fail(row_ptr);
-	if (row == *row_ptr) {
-		*row_ptr = -1;
+	if (
+		GTK_WIDGET_HAS_FOCUS(GTK_WIDGET(clist))
+		&& clist->focus_row >= 0
+		&& clist->focus_row < clist->rows
+	) {
+		return clist->focus_row;
 	}
+	return -1;
 }
 
-void
-clist_watch_cursor(GtkCList *clist, int *row_ptr)
+static gboolean
+clist_row_is_selected(GtkCList *clist, int row)
 {
-	g_return_if_fail(clist);
-	g_return_if_fail(row_ptr);
+	const GList *node;
 
-	*row_ptr = -1;
-	gui_signal_connect(clist, "select-row", on_clist_select_row, row_ptr);
-	gui_signal_connect(clist, "unselect-row", on_clist_unselect_row, row_ptr);
+	g_return_val_if_fail(clist, FALSE);
+	g_return_val_if_fail(row >= 0, FALSE);
+	g_return_val_if_fail(row < clist->rows, FALSE);
+
+	node = g_list_nth(clist->row_list, row);
+	g_return_val_if_fail(node, FALSE);
+
+	return GTK_STATE_SELECTED == GTK_CLIST_ROW(node)->state;
 }
 
+int
+clist_get_cursor_row(GtkCList *clist)
+{
+	int row;
+
+	g_return_val_if_fail(clist, -1);
+	
+	row = clist_get_focus_row(clist);
+	return row >= 0 && clist_row_is_selected(clist, row) ? row : -1;
+}
 #endif /* USE_GTK1 */
 
 #define GTK_ITERATION_MAX	100		/* Don't spend too much time in GUI */

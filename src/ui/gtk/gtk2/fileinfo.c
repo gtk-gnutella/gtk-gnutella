@@ -42,24 +42,13 @@ RCSID("$Id$")
 #include "gtk/columns.h"
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"
-#include "gtk/filter.h"
 #include "gtk/gtk-missing.h"
-#include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
-#include "gtk/settings.h"
-#include "gtk/statusbar.h"
-#include "gtk/visual_progress.h"
 
 #include "if/gui_property.h"
-#include "if/gui_property_priv.h"
-#include "if/bridge/ui2c.h"
 
-#include "lib/atoms.h"
-#include "lib/utf8.h"
-#include "lib/url.h"
 #include "lib/walloc.h"
-#include "lib/hashlist.h"
-#include "lib/glib-missing.h"
+#include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -168,7 +157,7 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	file = get_fileinfo_data(iter);
 	g_return_if_fail(file);
 
-	idx = GPOINTER_TO_UINT(udata);
+	idx = pointer_to_uint(udata);
 	if (c_fi_progress == idx) {
 		unsigned value = fi_gui_file_get_progress(file);
 		g_object_set(cell, "value", value, (void *) 0);
@@ -193,12 +182,9 @@ render_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	d = get_source(iter);
 	g_return_if_fail(d);
 
-	idx = GPOINTER_TO_UINT(udata);
+	idx = pointer_to_uint(udata);
 	if (c_src_progress == idx) {
-		int value;
-
-		value = 100.0 * guc_download_source_progress(d);
-		value = CLAMP(value, 0, 100);
+		unsigned value = fi_gui_source_get_progress(d);
 		g_object_set(cell, "value", value, (void *) 0);
 	} else {
 		const char *text = fi_gui_source_column_text(d, idx);
@@ -323,24 +309,11 @@ fi_gui_files_select_helper(GtkTreeModel *unused_model,
 	(void) unused_model;
 	(void) unused_path;
 	file = get_fileinfo_data(iter);
-	*files_ptr = g_slist_prepend(*files_ptr, GUINT_TO_POINTER(file));
-}
-
-static void
-fi_gui_sources_of_selected_files_helper(GtkTreeModel *unused_model,
-	GtkTreePath *unused_path, GtkTreeIter *iter, void *user_data)
-{
-	GSList **files_ptr = user_data;
-	struct fileinfo_data *file;
-
-	(void) unused_model;
-	(void) unused_path;
-	file = get_fileinfo_data(iter);
-	*files_ptr = g_slist_concat(fi_gui_file_get_sources(file), *files_ptr);
+	*files_ptr = g_slist_prepend(*files_ptr, file);
 }
 
 GSList *
-fi_gui_sources_select(gboolean unselect)
+fi_gui_get_selected_sources(gboolean unselect)
 {
 	return fi_gui_collect_selected(treeview_download_sources,
 			fi_gui_sources_select_helper,
@@ -348,18 +321,10 @@ fi_gui_sources_select(gboolean unselect)
 }
 
 GSList *
-fi_gui_files_select(gboolean unselect)
+fi_gui_get_selected_files(gboolean unselect)
 {
 	return fi_gui_collect_selected(treeview_download_files,
 			fi_gui_files_select_helper,
-			unselect);
-}
-
-GSList *
-fi_gui_sources_of_selected_files(gboolean unselect)
-{
-	return fi_gui_collect_selected(treeview_download_files,
-			fi_gui_sources_of_selected_files_helper,
 			unselect);
 }
 
@@ -438,6 +403,7 @@ on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 	if (file) {
 		fi_gui_set_details(file);
 	}
+	downloads_gui_update_popup_downloads();
 }
 
 void
@@ -459,7 +425,7 @@ fileinfo_data_cmp_func(GtkTreeModel *unused_model,
 {
 	(void) unused_model;
 	return fileinfo_data_cmp(get_fileinfo_data(a), get_fileinfo_data(b),
-				GPOINTER_TO_UINT(user_data));
+				pointer_to_uint(user_data));
 }
 
 static GtkTreeViewColumn *
@@ -475,7 +441,7 @@ create_column(int column_id, const char *title, gfloat xalign,
 	column = gtk_tree_view_column_new_with_attributes(title,
 				renderer, (void *) 0);
 	gtk_tree_view_column_set_cell_data_func(column, renderer,
-		cell_data_func, GUINT_TO_POINTER(column_id), NULL);
+		cell_data_func, uint_to_pointer(column_id), NULL);
 	return column;
 }
 
@@ -539,24 +505,6 @@ fi_gui_get_alias(GtkWidget *widget)
 	}
 }
 
-void
-fi_gui_update_display(time_t unused_now)
-{
-	(void) unused_now;
-
-	if (!main_gui_window_visible())
-		return;
-
-	g_return_if_fail(treeview_download_files);
-	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_download_files)))
-		return;
-
-	g_object_freeze_notify(G_OBJECT(treeview_download_files));
-	fi_gui_file_process_updates();
-	g_object_thaw_notify(G_OBJECT(treeview_download_files));
-}
-
-
 static void
 fi_gui_details_treeview_init(void)
 {
@@ -617,7 +565,7 @@ store_files_init(void)
 
 	for (i = 0; i < c_fi_num; i++) {
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_files),
-			i, fileinfo_data_cmp_func, GUINT_TO_POINTER(i), NULL);
+			i, fileinfo_data_cmp_func, uint_to_pointer(i), NULL);
 	}
 
 	g_object_freeze_notify(G_OBJECT(store_files));
@@ -685,11 +633,23 @@ treeview_download_files_init(void)
 }
 
 GtkWidget *
+fi_gui_sources_widget(void)
+{
+	return GTK_WIDGET(treeview_download_sources);
+}
+
+GtkWidget *
+fi_gui_files_widget(void)
+{
+	return GTK_WIDGET(treeview_download_files);
+}
+
+GtkWidget *
 fi_gui_files_widget_new(void)
 {
 	store_files_init();
 	treeview_download_files_init();
-	return GTK_WIDGET(treeview_download_files);
+	return fi_gui_files_widget();
 }
 
 void
@@ -895,18 +855,6 @@ fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
 		fi_gui_files_foreach_helper, &ctx);
 
 	g_object_thaw_notify(G_OBJECT(tv));
-}
-
-void
-fi_gui_files_configure_columns(void)
-{
-    GtkWidget *cc;
-
-	g_return_if_fail(treeview_download_files);
-
-    cc = gtk_column_chooser_new(GTK_WIDGET(treeview_download_files));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
-		gtk_get_current_event_time());
 }
 
 void

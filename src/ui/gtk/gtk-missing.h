@@ -78,7 +78,7 @@ void gtk_clist_set_column_name(GtkCList *, int column, const char *);
 GSList *clist_collect_data(GtkCList *, gboolean allow_null, GCompareFunc);
 void clist_sync_rows(GtkCList *, void (*func)(int, void *));
 char *clist_copy_text(GtkCList *, int row, int column);
-void clist_watch_cursor(GtkCList *, int *row_ptr);
+int clist_get_cursor_row(GtkCList *);
 #endif /* USE_GTK1 */
 
 /*

@@ -131,7 +131,6 @@ gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 	(void) max_downloads;
 }
 
-
 /**
  *	Clear all stopped, complete, and unavailable downloads.
  */
@@ -161,17 +160,7 @@ on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
     }
 }
 
-const char *
-download_progress_to_string(const struct download *d)
-{
-	static char buf[32];
-
-	gm_snprintf(buf, sizeof buf, "%5.2f%%",
-		100.0 * guc_download_total_progress(d));
-	return buf;
-}
-
-const char *
+static const char *
 source_progress_to_string(const struct download *d)
 {
 	static char buf[32];
@@ -188,7 +177,7 @@ source_progress_to_string(const struct download *d)
 	return buf;
 }
 
-void
+static void
 downloads_gui_set_details(const char *filename, filesize_t filesize,
 	const struct sha1 *sha1, const struct tth *tth)
 {
@@ -697,6 +686,14 @@ update_popup_downloads_pause(void)
 		sensitive);
 }
 
+static void
+update_popup_downloads_copy_magnet(void)
+{
+	gtk_widget_set_sensitive(
+		gui_popup_downloads_lookup("popup_downloads_copy_magnet"),
+		NULL != fi_gui_get_file_at_cursor());
+}
+
 void
 downloads_gui_update_popup_downloads(void)
 {
@@ -704,99 +701,148 @@ downloads_gui_update_popup_downloads(void)
 	update_popup_downloads_queue();
 	update_popup_downloads_resume();
 	update_popup_downloads_pause();
+	update_popup_downloads_copy_magnet();
 }
-
-/***
- *** Popup menu: downloads
- ***/
 
 static void
-push_activate(void)
+update_popup_downloads_copy_url(void)
 {
-	GSList *iter, *selected;
-	gboolean send_pushes, firewalled;
+	gtk_widget_set_sensitive(
+		gui_popup_sources_lookup("popup_sources_copy_url"),
+		NULL != fi_gui_get_source_at_cursor());
+}
 
-   	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
-   	gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
+void
+downloads_gui_update_popup_sources(void)
+{
+	update_popup_downloads_copy_url();
+}
 
-   	if (firewalled || !send_pushes)
-       	return;
+#define SELECTED_FILES_FOREACH_START(item) { \
+	GSList *iter_, *files_selected_; \
+	files_selected_ = fi_gui_get_selected_files(TRUE); \
+	iter_ = files_selected_; \
+	for (iter_ = files_selected_; /*NOTHING */; iter_ = g_slist_next(iter_)) { \
+		struct fileinfo_data *item; \
+		if (NULL == iter_) { \
+			g_slist_free(files_selected_); \
+			files_selected_ = NULL; \
+			fi_gui_files_thaw(); \
+			break; \
+		} \
+		item = iter_->data;
 
-	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_fallback_to_push(d, FALSE, TRUE);
-	}
-	g_slist_free(selected);
+
+#define SELECTED_FILES_FOREACH_END \
+	} \
+}
+
+#define SELECTED_SOURCES_FOREACH_START(item) { \
+	GSList *iter_, *sources_selected_; \
+	fi_gui_files_freeze(); \
+	sources_selected_ = fi_gui_get_selected_sources(TRUE); \
+	iter_ = sources_selected_; \
+	for (/* NOTHING*/; /* NOTHING */; iter_ = g_slist_next(iter_)) { \
+		struct download *item; \
+		if (NULL == iter_) { \
+			g_slist_free(sources_selected_); \
+			sources_selected_ = NULL; \
+			fi_gui_files_thaw(); \
+			break; \
+		} \
+		item = iter_->data; \
+		download_check(item);
+
+
+#define SELECTED_SOURCES_FOREACH_END \
+	} \
 }
 
 
-/**
- * Causes all selected active downloads to fall back to push.
- */
+#define SELECTED_FILES_FOREACH_SOURCE_START(item) \
+SELECTED_FILES_FOREACH_START(file_) { \
+	if (file_->downloads) { \
+		hash_list_iter_t *source_iter_; \
+		source_iter_ = hash_list_iterator(file_->downloads); \
+		for (;;) { \
+			struct download *item; \
+			if (!hash_list_iter_has_next(source_iter_)) { \
+				hash_list_iter_release(&source_iter_); \
+				break; \
+			} \
+			item = hash_list_iter_next(source_iter_); \
+			download_check(item);
+
+			
+#define SELECTED_FILES_FOREACH_SOURCE_END \
+		} \
+	} \
+} SELECTED_FILES_FOREACH_END
+
 void
-on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
+on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+	SELECTED_FILES_FOREACH_SOURCE_START(d) {
+		guc_download_start(d, TRUE);
+	} SELECTED_FILES_FOREACH_SOURCE_END
+}
+
+void
+on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	void *unused_udata)
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	fi_gui_files_freeze();
-	push_activate();
-	fi_gui_files_thaw();
+	SELECTED_FILES_FOREACH_SOURCE_START(d) {
+		guc_download_pause(d);
+	} SELECTED_FILES_FOREACH_SOURCE_END
 }
 
-/**
- * Initiates a browse host request to the currently selected host.
- */
 void
-on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
+on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
 	void *unused_udata)
 {
-	GSList *iter, *selected;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		const struct download *d = iter->data;
-   		search_gui_new_browse_host(
-			download_hostname(d), download_addr(d), download_port(d),
-			download_guid(d), NULL, 0);
-	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
+	SELECTED_FILES_FOREACH_SOURCE_START(d) {
+		guc_download_resume(d);
+	} SELECTED_FILES_FOREACH_SOURCE_END
 }
 
-/**
- * For all selected active downloads, remove all downloads with
- * the same host.
- */
 void
-on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
+on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
 	void *unused_udata)
 {
-	GSList *iter, *selected;
-    unsigned removed = 0;
-
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	fi_gui_files_freeze();
-	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		removed += guc_download_remove_all_from_peer(download_guid(d),
-						download_addr(d), download_port(d), FALSE);
-	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
+	SELECTED_FILES_FOREACH_SOURCE_START(d) {
+		guc_download_requeue(d);
+	} SELECTED_FILES_FOREACH_SOURCE_END
+}
 
-    statusbar_gui_message(15,
-		NG_("Forgot %u download", "Forgot %u downloads", removed),
-		removed);
+static void
+fi_gui_purge_selected_files(void)
+{
+	SELECTED_FILES_FOREACH_START(file) {
+		guc_fi_purge(file->handle);
+	} SELECTED_FILES_FOREACH_END
+}
+
+void
+on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	fi_gui_purge_selected_files();
 }
 
 void
@@ -816,6 +862,138 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 	}
 }
 
+void
+on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+    GtkWidget *cc, *widget;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	widget = fi_gui_files_widget();
+	g_return_if_fail(widget);
+
+    cc = gtk_column_chooser_new(widget);
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
+		gtk_get_current_event_time());
+}
+
+/***
+ *** popup_sources
+ ***/
+
+
+void
+on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+	SELECTED_SOURCES_FOREACH_START(d) {
+		guc_download_start(d, TRUE);
+	} SELECTED_SOURCES_FOREACH_END
+}
+
+void
+on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	gboolean send_pushes, firewalled;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+   	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+   	gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
+
+   	if (!firewalled || send_pushes) {
+		SELECTED_SOURCES_FOREACH_START(d) {
+			guc_download_fallback_to_push(d, FALSE, TRUE);
+		} SELECTED_SOURCES_FOREACH_END
+	}
+}
+
+void
+on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		search_gui_new_browse_host(download_hostname(d),
+			download_addr(d), download_port(d), download_guid(d), NULL, 0);
+	} SELECTED_SOURCES_FOREACH_END
+}
+
+void
+on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	unsigned removed = 0;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		removed += guc_download_remove_all_from_peer(download_guid(d),
+						download_addr(d), download_port(d), FALSE);
+	} SELECTED_SOURCES_FOREACH_END 
+
+    statusbar_gui_message(15,
+		NG_("Forgot %u download", "Forgot %u downloads", removed),
+		removed);
+}
+
+void
+on_popup_sources_connect_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
+	} SELECTED_SOURCES_FOREACH_END 
+}
+
+void
+on_popup_sources_pause_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		guc_download_pause(d);
+	} SELECTED_SOURCES_FOREACH_END 
+}
+
+void
+on_popup_sources_resume_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		guc_download_resume(d);
+	} SELECTED_SOURCES_FOREACH_END 
+}
+
+void
+on_popup_sources_queue_activate(GtkMenuItem *unused_menuitem,
+	void *unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	SELECTED_SOURCES_FOREACH_START(d) {
+		guc_download_requeue(d);
+	} SELECTED_SOURCES_FOREACH_END 
+}
 
 void
 on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
@@ -834,233 +1012,6 @@ on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 	}
 }
 
-
-/**
- * For all selected active downloads connect to host.
- */
-void
-on_popup_sources_connect_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		const struct download *d = iter->data;
-   		guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, activate them.
- */
-void
-on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-	
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_of_selected_files(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_start(d, TRUE);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, activate them.
- */
-void
-on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_start(d, TRUE);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, activate them.
- */
-void
-on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_of_selected_files(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_pause(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, activate them.
- */
-void
-on_popup_sources_pause_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_pause(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, resume them.
- */
-void
-on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_of_selected_files(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_resume(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, resume them.
- */
-void
-on_popup_sources_resume_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_resume(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, queue them.
- */
-void
-on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_of_selected_files(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_requeue(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, queue them.
- */
-void
-on_popup_sources_queue_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	GSList *iter, *selected;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_freeze();
-   	selected = fi_gui_sources_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct download *d = iter->data;
-		guc_download_requeue(d);
-   	}
-	g_slist_free(selected);
-	fi_gui_files_thaw();
-}
-
-/**
- * For all selected downloads, queue them.
- */
-void
-on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_purge_selected_files();
-}
-
-/***
- *** downloads pane
- ***/
-
-
-void
-on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
-	void *unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	fi_gui_files_configure_columns();
-}
-
 void
 on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 	void *unused_udata)
@@ -1070,11 +1021,8 @@ on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-#if GTK_CHECK_VERSION(2,0,0)
-	widget = gui_main_window_lookup("treeview_download_sources");
-#else
-	widget = gui_main_window_lookup("clist_download_sources");
-#endif
+	widget = fi_gui_sources_widget();
+	g_return_if_fail(widget);
 
     cc = gtk_column_chooser_new(GTK_WIDGET(widget));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
@@ -1096,6 +1044,7 @@ on_files_button_press_event(GtkWidget *unused_widget,
 		3 == event->button &&
 		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
 	) {
+		downloads_gui_update_popup_downloads();
     	gtk_menu_popup(GTK_MENU(gui_popup_downloads()), NULL, NULL, NULL, NULL,
         	event->button, event->time);
 		return TRUE;
@@ -1114,6 +1063,7 @@ on_sources_button_press_event(GtkWidget *unused_widget,
 		3 == event->button &&
 		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
 	) {
+		downloads_gui_update_popup_sources();
     	gtk_menu_popup(GTK_MENU(gui_popup_sources()), NULL, NULL, NULL, NULL,
         	event->button, event->time);
 		return TRUE;
@@ -1227,25 +1177,6 @@ fi_gui_file_get_user_data(const struct fileinfo_data *file)
 	return file->user_data;
 }
 
-GSList *
-fi_gui_file_get_sources(struct fileinfo_data *file)
-{
-	GSList *sources = NULL;
-
-	g_return_val_if_fail(file, NULL);
-
-	if (file->downloads) {
-		hash_list_iter_t *iter;
-
-		iter = hash_list_iterator(file->downloads);
-		while (hash_list_iter_has_next(iter)) {
-			sources = g_slist_prepend(sources, hash_list_iter_next(iter));
-		}
-		hash_list_iter_release(&iter);
-	}
-	return sources;
-}
-
 const char *
 fi_gui_file_get_filename(const struct fileinfo_data *file)
 {
@@ -1346,13 +1277,14 @@ fi_gui_fi_removed(gnet_fi_t handle)
 }
 
 static void
-fi_gui_set_aliases(gnet_fi_t handle)
+fi_gui_set_aliases(struct fileinfo_data *file)
 {
     char **aliases;
 
-	fi_gui_clear_aliases();
+	g_return_if_fail(file);
 	
-    aliases = guc_fi_get_aliases(handle);
+	fi_gui_clear_aliases();
+    aliases = guc_fi_get_aliases(file->handle);
 	g_return_if_fail(aliases);
 	
 	fi_gui_show_aliases((const char **) aliases);
@@ -1408,11 +1340,8 @@ fi_gui_remove_download(struct download *d)
 
 
 static void
-fi_gui_set_sources(gnet_fi_t handle)
+fi_gui_set_sources(struct fileinfo_data *file)
 {
-	struct fileinfo_data *file;
-
-	file = g_hash_table_lookup(fi_handles, GUINT_TO_POINTER(handle));
 	g_return_if_fail(file);
 
 	if (file->downloads) {
@@ -1424,6 +1353,7 @@ fi_gui_set_sources(gnet_fi_t handle)
 		}
 		hash_list_iter_release(&iter);
 	}
+	downloads_gui_update_popup_sources();
 }
 
 void
@@ -1441,8 +1371,8 @@ fi_gui_set_details(struct fileinfo_data *file)
 		info->sha1, info->tth);
     guc_fi_free_info(info);
 
-	fi_gui_set_aliases(file->handle);
-	fi_gui_set_sources(file->handle);
+	fi_gui_set_aliases(file);
+	fi_gui_set_sources(file);
 
     last_shown = file->handle;
     last_shown_valid = TRUE;
@@ -1493,23 +1423,23 @@ fi_gui_file_update_queued(void *key, void *unused_value, void *unused_udata)
 }
 
 void
-fi_gui_file_process_updates(void)
+fi_gui_update_display(time_t unused_now)
 {
-	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
-}
+	GtkWidget *widget;
 
-void
-fi_gui_purge_selected_files(void)
-{
-	GSList *iter, *selected;
-	
+	(void) unused_now;
+
+	if (!main_gui_window_visible())
+		return;
+
+	widget = fi_gui_files_widget();
+	g_return_if_fail(widget);
+
+	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(widget)))
+		return;
+
 	fi_gui_files_freeze();
-	selected = fi_gui_files_select(TRUE);
-	for (iter = selected; NULL != iter; iter = g_slist_next(iter)) {
-		struct fileinfo_data *file = iter->data;
-		guc_fi_purge(file->handle);
-	}
-	g_slist_free(selected);
+	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
 	fi_gui_files_thaw();
 }
 
@@ -1673,6 +1603,17 @@ fileinfo_data_cmp(const struct fileinfo_data *a, const struct fileinfo_data *b,
 		g_assert_not_reached();
 	}
 	return ret;
+}
+
+unsigned
+fi_gui_source_get_progress(const struct download *d)
+{
+	guint value;
+
+	g_return_val_if_fail(d, 0);
+	value = 100.0 * guc_download_source_progress(d);
+	value = MIN(value, 100);
+	return value;
 }
 
 const char *
