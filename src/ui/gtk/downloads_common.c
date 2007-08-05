@@ -720,6 +720,7 @@ downloads_gui_update_popup_sources(void)
 
 #define SELECTED_FILES_FOREACH_START(item) { \
 	GSList *iter_, *files_selected_; \
+	fi_gui_files_freeze(); \
 	files_selected_ = fi_gui_get_selected_files(TRUE); \
 	iter_ = files_selected_; \
 	for (iter_ = files_selected_; /*NOTHING */; iter_ = g_slist_next(iter_)) { \
