@@ -272,13 +272,28 @@ static void
 magnet_handle_key(struct magnet_resource *res,
 	const gchar *name, const gchar *value)
 {
+	char *to_free = NULL;
+
 	g_return_if_fail(res);
 	g_return_if_fail(name);
 	g_return_if_fail(value);
 	
 	if (!utf8_is_valid_string(value)) {
+		const char *encoding;
+		char *result;
+			
 		g_message("MAGNET URI key \"%s\" is not UTF-8 encoded", name);
-		return;
+
+		if (MAGNET_KEY_DISPLAY_NAME != magnet_key_get(name))
+			return;
+
+		result = unknown_to_utf8(value, &encoding);
+		if (result != value) {
+			to_free = result;
+		}
+		value = result;
+		g_message("Assuming MAGNET URI key \"%s\" is %s encoded",
+			name, encoding);
 	}
 
 	switch (magnet_key_get(name)) {
@@ -340,6 +355,8 @@ magnet_handle_key(struct magnet_resource *res,
 	case NUM_MAGNET_KEYS:
 		g_assert_not_reached();
 	}
+
+	G_FREE_NULL(to_free);
 }
 
 struct magnet_resource * 
