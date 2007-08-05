@@ -451,7 +451,7 @@ fi_gui_files_select_helper(GtkCList *unused_clist, int row, void *user_data)
 	(void) unused_clist;
 
 	file = get_fileinfo_data(row);
-	*files_ptr = g_slist_prepend(*files_ptr, uint_to_pointer(file));
+	*files_ptr = g_slist_prepend(*files_ptr, file);
 }
 
 GSList *
