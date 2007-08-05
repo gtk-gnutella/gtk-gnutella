@@ -1817,7 +1817,6 @@ on_notebook_switch_page(GtkNotebook *notebook,
 	g_return_if_fail(UNSIGNED(page_num) < nb_downloads_page_num);
 	g_return_if_fail(UNSIGNED(current_page) < nb_downloads_page_num);
 
-	fi_gui_clear_details();
 	fi_gui_files_widget_destroy();
 
 	current_page = page_num;
