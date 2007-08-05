@@ -262,7 +262,7 @@
 # root servers or vservers so the addresses should be stable
 80.237.174.147
 81.209.165.73
-85.88.2.192/27
+85.88.2.192/26
 85.88.9.0/26
 # Jironimo at Versatel; dynamic range
 83.135.89.16
