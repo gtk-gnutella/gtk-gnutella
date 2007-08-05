@@ -78,7 +78,12 @@ static gint ul_rows = 0;
 static GtkCList *
 clist_ul_stats(void)
 {
-	return GTK_CLIST(gui_main_window_lookup("clist_ul_stats"));
+	static GtkCList *clist;
+
+	if (!clist) {
+		clist = GTK_CLIST(gui_main_window_lookup("clist_ul_stats"));
+	}
+	return clist;
 }
 
 /**
@@ -194,6 +199,18 @@ upload_stats_gui_clear_all(void)
 {
 	gtk_clist_clear(clist_ul_stats());
 	ul_rows = 0;
+}
+
+void
+upload_stats_gui_freeze(void)
+{
+	gtk_clist_freeze(clist_ul_stats());
+}
+
+void
+upload_stats_gui_thaw(void)
+{
+	gtk_clist_thaw(clist_ul_stats());
 }
 
 /* vi: set ts=4 sw=4 cindent: */

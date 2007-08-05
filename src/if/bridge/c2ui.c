@@ -57,10 +57,12 @@
 #define	download_gui_remove(d) ((void) d)
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
-#define search_gui_new_search(query, flags, x) (query && flags) ? FALSE : FALSE
+#define search_gui_new_search(query, flags, x) (((query) && (flags)), FALSE)
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
 #define	upload_stats_gui_clear_all()
+#define gcu_upload_stats_gui_thaw()
+#define gcu_upload_stats_gui_freeze()
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
 #define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
@@ -197,6 +199,18 @@ void
 gcu_upload_stats_gui_clear_all(void)
 {
 	upload_stats_gui_clear_all();
+}
+
+void
+gcu_upload_stats_gui_freeze(void)
+{
+	upload_stats_gui_freeze();
+}
+
+void
+gcu_upload_stats_gui_thaw(void)
+{
+	upload_stats_gui_thaw();
 }
 
 /**

@@ -40,6 +40,8 @@ void upload_stats_gui_init(void);
 void upload_stats_gui_clear_all(void);
 void upload_stats_gui_add(const struct ul_stats *s);
 void upload_stats_gui_update(const struct ul_stats *s);
+void upload_stats_gui_freeze(void);
+void upload_stats_gui_thaw(void);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_upload_stats_h_ */

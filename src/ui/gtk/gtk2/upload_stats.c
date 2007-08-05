@@ -413,6 +413,20 @@ upload_stats_gui_init(void)
 	upload_stats_gui_init_intern(FALSE);
 }
 
+void
+upload_stats_gui_freeze(void)
+{
+	upload_stats_gui_init_intern(TRUE);
+	g_object_freeze_notify(G_OBJECT(upload_stats_treeview));
+}
+
+void
+upload_stats_gui_thaw(void)
+{
+	g_return_if_fail(upload_stats_treeview);
+	g_object_thaw_notify(G_OBJECT(upload_stats_treeview));
+}
+
 /**
  * Update the visible statistics for a given file.
  *

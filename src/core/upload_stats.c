@@ -143,6 +143,8 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 	gchar line[FILENAME_MAX + 64];
 	guint lineno = 0;
 
+	gcu_upload_stats_gui_freeze();
+	
 	stats_file = g_strdup(ul_history_file_name);
 
 	/* open file for reading */
@@ -218,6 +220,7 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 	fclose(upload_stats_file);
 
 done:
+	gcu_upload_stats_gui_thaw();
 	return;
 }
 
