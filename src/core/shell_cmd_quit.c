@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- *   Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,18 +23,40 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_shell_h_
-#define _core_shell_h_
-
 #include "common.h"
 
-struct gnutella_socket;
+RCSID("$Id$")
 
-void shell_init(void);
-void shell_close(void);
+#include "shell_cmd.h"
 
-void shell_add(struct gnutella_socket *);
-void shell_timer(time_t now);
+#include "lib/override.h"		/* Must be the last header included */
 
-#endif /* _core_shell_h_ */
+
+enum shell_reply
+shell_exec_quit(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+	
+	shell_set_msg(sh, _("Good bye"));
+	shell_shutdown(sh);
+	return REPLY_GOOD_BYE;
+}
+
+const char *
+shell_summary_quit(void)
+{
+	return "Close the shell connection";
+}
+
+const char *
+shell_help_quit(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return NULL;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

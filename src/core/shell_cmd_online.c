@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- *   Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,18 +23,46 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_shell_h_
-#define _core_shell_h_
-
 #include "common.h"
 
-struct gnutella_socket;
+RCSID("$Id$")
 
-void shell_init(void);
-void shell_close(void);
+#include "shell_cmd.h"
 
-void shell_add(struct gnutella_socket *);
-void shell_timer(time_t now);
+#include "if/gnet_property.h"
+#include "if/gnet_property_priv.h"
 
-#endif /* _core_shell_h_ */
+#include "lib/override.h"		/* Must be the last header included */
+
+/**
+ * Open Gnutella connections
+ */
+enum shell_reply
+shell_exec_online(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
+	shell_write(sh, "Opening Gnutella connections\n");
+
+	return REPLY_READY;
+}
+
+const char *
+shell_summary_online(void)
+{
+	return "Connect to the Gnutella network";
+}
+
+const char *
+shell_help_online(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return "Put the node back online. See also \"offline\".\n";
+}
+
 /* vi: set ts=4 sw=4 cindent: */

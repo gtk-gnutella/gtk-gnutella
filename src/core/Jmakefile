@@ -87,6 +87,25 @@ SRC = \
 	settings.c \
 	share.c \
 	shell.c \
+	shell_cmd_download.c \
+	shell_cmd_downloads.c \
+	shell_cmd_help.c \
+	shell_cmd_horizon.c \
+	shell_cmd_intr.c \
+	shell_cmd_node.c \
+	shell_cmd_nodes.c \
+	shell_cmd_offline.c \
+	shell_cmd_online.c \
+	shell_cmd_print.c \
+	shell_cmd_props.c \
+	shell_cmd_quit.c \
+	shell_cmd_rescan.c \
+	shell_cmd_search.c \
+	shell_cmd_set.c \
+	shell_cmd_shutdown.c \
+	shell_cmd_status.c \
+	shell_cmd_uploads.c \
+	shell_cmd_whatis.c \
 	sockets.c \
 	spam.c \
 	spam_sha1.c \

@@ -143,6 +143,25 @@ SRC = \
 	settings.c \
 	share.c \
 	shell.c \
+	shell_cmd_download.c \
+	shell_cmd_downloads.c \
+	shell_cmd_help.c \
+	shell_cmd_horizon.c \
+	shell_cmd_intr.c \
+	shell_cmd_node.c \
+	shell_cmd_nodes.c \
+	shell_cmd_offline.c \
+	shell_cmd_online.c \
+	shell_cmd_print.c \
+	shell_cmd_props.c \
+	shell_cmd_quit.c \
+	shell_cmd_rescan.c \
+	shell_cmd_search.c \
+	shell_cmd_set.c \
+	shell_cmd_shutdown.c \
+	shell_cmd_status.c \
+	shell_cmd_uploads.c \
+	shell_cmd_whatis.c \
 	sockets.c \
 	spam.c \
 	spam_sha1.c \
@@ -230,6 +249,25 @@ OBJ = \
 	settings.o \
 	share.o \
 	shell.o \
+	shell_cmd_download.o \
+	shell_cmd_downloads.o \
+	shell_cmd_help.o \
+	shell_cmd_horizon.o \
+	shell_cmd_intr.o \
+	shell_cmd_node.o \
+	shell_cmd_nodes.o \
+	shell_cmd_offline.o \
+	shell_cmd_online.o \
+	shell_cmd_print.o \
+	shell_cmd_props.o \
+	shell_cmd_quit.o \
+	shell_cmd_rescan.o \
+	shell_cmd_search.o \
+	shell_cmd_set.o \
+	shell_cmd_shutdown.o \
+	shell_cmd_status.o \
+	shell_cmd_uploads.o \
+	shell_cmd_whatis.o \
 	sockets.o \
 	spam.o \
 	spam_sha1.o \

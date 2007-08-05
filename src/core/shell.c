@@ -27,29 +27,20 @@
 
 RCSID("$Id$")
 
-#include "downloads.h"
-#include "hsep.h"
-#include "nodes.h"
-#include "settings.h"
 #include "shell.h"
+#include "shell_cmd.h"
+
 #include "sockets.h"
-#include "uploads.h"
 #include "version.h"
 
-#include "if/bridge/c2ui.h"
 #include "if/bridge/ui2c.h"
-#include "if/core/main.h"
-
-#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/file.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
-#include "lib/iso3166.h"
 #include "lib/misc.h"
-#include "lib/options.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -57,14 +48,7 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-enum shell_reply {
-	REPLY_NONE		= 0,
-	REPLY_READY		= 100,
-	REPLY_ERROR		= 400,
-	REPLY_GOOD_BYE	= 900
-};
-
-static GSList *sl_shells = NULL;
+static GSList *sl_shells;
 
 /*
  * guc_share_scan() causes dispatching of I/O events, so we must not call
@@ -78,18 +62,18 @@ enum shell_magic {
 	SHELL_MAGIC = 0xb3f3e711U
 };
 
-typedef struct gnutella_shell {
+struct gnutella_shell {
 	enum shell_magic	magic;
 	struct gnutella_socket *socket;
 	slist_t *output;
-	const gchar *msg;   	/**< Additional information to reply code */
+	gchar *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	gboolean shutdown;  	/**< In shutdown mode? */
 	gboolean interactive;	/**< Interactive mode? */
-} gnutella_shell_t;
+};
 
-static inline void
-shell_check(gnutella_shell_t *sh)
+void
+shell_check(const struct gnutella_shell * const sh)
 {
 	g_assert(sh);
 	g_assert(SHELL_MAGIC == sh->magic);
@@ -97,7 +81,7 @@ shell_check(gnutella_shell_t *sh)
 }
 
 static inline gboolean
-shell_has_pending_output(gnutella_shell_t *sh)
+shell_has_pending_output(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 	return sh->output && slist_length(sh->output) > 0;
@@ -105,45 +89,110 @@ shell_has_pending_output(gnutella_shell_t *sh)
 
 #ifdef USE_REMOTE_CTRL
 static struct sha1 auth_cookie;
-static gboolean shell_auth(const gchar *str);
+static gboolean shell_auth(const char *str);
 #endif	/* USE_REMOTE_CTRL */
 
-static void shell_shutdown(gnutella_shell_t *sh);
-static void shell_destroy(gnutella_shell_t *sh);
-static void shell_write(gnutella_shell_t *sh, const gchar *s);
-static void shell_handle_data(gpointer data, gint unused_source,
+static void shell_handle_data(void *data, int unused_source,
 	inputevt_cond_t cond);
 
 typedef enum shell_reply (*shell_cmd_handler_t)(
-				gnutella_shell_t *sh, gint argc, const gchar **argv);
-
-typedef const struct shell_help {
-	const gchar *usage;
-	const gchar *summary;
-	const gchar *help;
-} shell_help_t;
-
-static shell_help_t *shell_cmd_get_help(const gchar *cmd);
+				struct gnutella_shell *sh, int argc, const char **argv);
 
 /**
- * Emit detail help message.
+ * Create a new gnutella_shell object.
+ */
+static struct gnutella_shell *
+shell_new(struct gnutella_socket *s)
+{
+	static const struct gnutella_shell zero_shell;
+	struct gnutella_shell *sh;
+
+	socket_check(s);
+
+	sh = walloc(sizeof *sh);
+	*sh = zero_shell;
+	sh->magic = SHELL_MAGIC;
+	sh->socket = s;
+	sh->output = slist_new();
+
+	return sh;
+}
+
+/**
+ * Free gnutella_shell object.
  */
 static void
-shell_print_help(gnutella_shell_t *sh, shell_help_t *help)
+shell_free(struct gnutella_shell *sh)
 {
-	g_return_if_fail(sh);
-	g_return_if_fail(help);
+	g_assert(sh);
+	g_assert(SHELL_MAGIC == sh->magic);
+	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
+	g_assert(NULL == sh->output); /* must have called shell_destroy before */
+	G_FREE_NULL(sh->msg);
 
-	shell_write(sh, "100~\n");
-	shell_write(sh, help->usage);
-	shell_write(sh, "\n  ");
-	shell_write(sh, help->summary);
-	shell_write(sh, "\n");
+	sh->magic = 0;
+	wfree(sh, sizeof *sh);
+}
 
-	if (help->help && '\0' != help->help[0]) {
-		shell_write(sh, help->help);
-		shell_write(sh, "\n");
+static void
+shell_discard_output(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+	pmsg_slist_free(&sh->output);
+}
+
+/**
+ * Terminate shell and free associated ressources. The gnutella_shell is also
+ * removed from sl_shells, so don't call this while iterating over sl_shells.
+ */
+static void
+shell_destroy(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	if (GNET_PROPERTY(dbg) > 0) {
+		g_message("shell_destroy");
 	}
+	sl_shells = g_slist_remove(sl_shells, sh);
+	socket_evt_clear(sh->socket);
+	shell_discard_output(sh);
+	socket_free_null(&sh->socket);
+	shell_free(sh);
+}
+
+static void
+shell_write_msg(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	if (sh->msg) {
+		shell_write(sh, " ");
+		shell_write(sh, sh->msg);
+		G_FREE_NULL(sh->msg);
+	}
+}
+
+void
+shell_set_msg(struct gnutella_shell *sh, const char *text)
+{
+	shell_check(sh);
+	sh->msg = g_strdup(text);
+}
+
+gboolean
+shell_toggle_interactive(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+	sh->interactive = !sh->interactive;
+	return sh->interactive;
+}
+
+gboolean
+shell_request_library_rescan(void)
+{
+	gboolean previous = library_rescan_requested;
+	library_rescan_requested = TRUE;
+	return previous;
 }
 
 /**
@@ -151,23 +200,22 @@ shell_print_help(gnutella_shell_t *sh, shell_help_t *help)
  * s only consists of a single token, it returns a pointer to the
  * terminating \0 in the string.
  */
-static const gchar *
-shell_token_end(const gchar *s)
+static const char *
+shell_token_end(const char *s)
 {
 	gboolean escape = FALSE;
 	gboolean quote  = FALSE;
-	guchar c;
 
 	g_assert(s);
 
-	for (/* NOTHING*/; '\0' != (c = *s); s++) {
-		if (escape || '\\' == c) {
+	for (/* NOTHING*/; '\0' != *s; s++) {
+		if (escape || '\\' == *s) {
 			escape = !escape;
-		} else if ('"' == c) {
+		} else if ('"' == *s) {
 			quote = !quote;
 			if (!quote)
 				break;
-		} else if (is_ascii_space(c) && !quote) {
+		} else if (is_ascii_space(*s) && !quote) {
 			break;
 		}
 	}
@@ -181,1322 +229,28 @@ shell_token_end(const gchar *s)
  *
  * @return The number of arguments parsed, -1 on error.
  */
-static gint
-shell_options_parse(gnutella_shell_t *sh,
-	const gchar *argv[], option_t *ovec, gint ovcnt)
+int
+shell_options_parse(struct gnutella_shell *sh,
+	const char *argv[], option_t *ovec, int ovcnt)
 {
-	gint ret;
+	int ret;
 
 	ret = options_parse(argv, ovec, ovcnt);
 	if (ret < 0) {
 		shell_write(sh, "400-Syntax error: ");
 		shell_write(sh, options_parse_last_error());
 		shell_write(sh, "\n");
-		sh->msg = _("Invalid command syntax");
+		shell_set_msg(sh, _("Invalid command syntax"));
 	}
 	return ret;
 }
 
-static shell_help_t shell_help_node_add = {
-	"node add <ip>[:<port>]",
-	"add connection to specified <ip>[:<port>]",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_node_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	const gchar *host, *endptr, *port_str;
-	gchar host_buf[MAX_HOSTLEN + 1];
-	gint flags = SOCK_F_FORCE;
-	guint16 port;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 3)
-		goto error;
-
-	host = argv[2];
-	endptr = is_strprefix(host, "tls:");
-	if (endptr) {
-		host = endptr;
-		flags |= SOCK_F_TLS;
-	}
-	if (!string_to_host_or_addr(host, &endptr, NULL))
-		goto error;
-	
-	switch (endptr[0]) {
-	case ':':
-		{
-			size_t n;
-		  
-		    endptr++;	
-			n = endptr - host;
-			n = MIN(n, sizeof host_buf);
-			g_strlcpy(host_buf, host, n);
-			host = host_buf;
-			g_message("host=\"%s\"", host);
-			port_str = endptr;
-		}
-		break;
-	case '\0':
-		port_str = NULL;
-		break;
-	default:
-		goto error;
-	}
-	if (argc > 3 && !port_str) {
-		port_str = argv[3];
-	}
-	if (port_str) {
-		gint error;
-		port = parse_uint16(port_str, NULL, 10, &error);
-	} else {
-		port = GTA_PORT;
-	}
-	if (0 == port) {
-		sh->msg = _("Invalid IP/Port");
-		goto error;
-	}
-
-	node_add_by_name(host, port, flags);
-	sh->msg = _("Node added");
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_node_drop = {
-	"node drop <ip>[:<port>]",
-	"drop connection to specified <ip>[:<port>]",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_node_drop(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	const char *endptr, *port_str;
-	host_addr_t addr;
-	guint16 port;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 3)
-		goto error;
-
-	if (!string_to_host_addr(argv[2], &endptr, &addr)) {
-		/* Bad address. */
-		sh->msg = _("Invalid IP");
-		goto error;
-	}
-	switch (endptr[0]) {
-	case ':':
-		port_str = &endptr[1];
-		break;
-	case '\0':
-		port_str = argv[3];
-		break;
-	default:
-		goto error;
-	}
-
-	/* No port is a wild card.. */
-	if (port_str) {
-		gint error;
-		port = parse_uint16(port_str, NULL, 10, &error);
-		if (error || 0 == port) {
-			sh->msg = _("Invalid port");
-			goto error;
-		}
-	} else {
-		port = 0;
-	}
-	
-	{
-		gchar buf[256];
-		guint n;
-		
-		n = node_remove_by_addr(addr, port);
-		gm_snprintf(buf, sizeof buf,
-			NG_("Removed %u node", "Removed %u nodes", n), n);
-		shell_write(sh, "100-");
-		shell_write(sh, buf);
-		shell_write(sh, "\n");
-	}
-
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_node = {
-	"node add | drop <args>",
-	"add / drop connection to node",
-	"Use \"help node add\" or \"help node drop\" for additional information",
-};
-
-/**
- * Handle the "NODE" command.
- */
-static enum shell_reply
-shell_exec_node(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	enum shell_reply reply_code;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2)
-		goto error;
-
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		reply_code = shell_exec_node_add(sh, argc, argv);
-	} else if (0 == ascii_strcasecmp(argv[1], "drop")){
-		reply_code = shell_exec_node_drop(sh, argc, argv);
-	} else {
-		sh->msg = _("Unknown operation");
-		goto error;
-	}
-
-	return reply_code;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_search = {
-	"search add",
-	"adds a search",
-	NULL,
-};
-
-static shell_help_t shell_help_search_add = {
-	"search add",
-	"adds a search",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_search(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2)
-		goto error;
-
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		if (argc < 3) {
-			sh->msg = _("Query string missing");
-			goto error;
-		}
-		if (!utf8_is_valid_string(argv[2])) {
-			sh->msg = _("Query string is not UTF-8 encoded");
-			goto error;
-		}
-		if (gcu_search_gui_new_search(argv[2], 0)) {
-			sh->msg = _("Search added");
-		} else {
-			sh->msg = _("The search could not be created");
-			goto error;
-		}
-	} else {
-		sh->msg = _("Unknown operation");
-		goto error;
-	}
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_print = {
-	"print <property>",
-	"prints the value of given property",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_print(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	property_t prop;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2) {
-		sh->msg = _("Property missing");
-		goto error;
-	}
-
-	prop = gnet_prop_get_by_name(argv[1]);
-	if (prop == NO_PROP) {
-		sh->msg = _("Unknown property");
-		goto error;
-	}
-
-	shell_write(sh, _("Value: "));
-	shell_write(sh, gnet_prop_to_string(prop));
-	shell_write(sh, "\n");
-
-	sh->msg = _("Value found and displayed");
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_set = {
-	"set [-v] <property> <value>",
-	"sets the value of given property",
-	"-v : be verbose, printing old and new values",
-};
-
-static enum shell_reply
-shell_exec_set(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	property_t prop;
-	const gchar *verbose;
-	gint parsed;
-	option_t options[] = {
-		{ "v", &verbose },
-	};
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
-	if (parsed < 0)
-		return REPLY_ERROR;
-
-	argv += parsed;	/* args[0] is first command argument */
-	argc -= parsed;	/* counts only command arguments now */
-
-	if (argc < 1) {
-		sh->msg = _("Property missing");
-		goto error;
-	}
-
-	prop = gnet_prop_get_by_name(argv[0]);
-	if (prop == NO_PROP) {
-		sh->msg = _("Unknown property");
-		goto error;
-	}
-
-	if (argc < 2) {
-		sh->msg = _("Value missing");
-		goto error;
-	}
-
-	if (verbose) {
-		shell_write(sh, "100-Previous value was ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
-	}
-
-	gnet_prop_set_from_string(prop,	argv[1]);
-
-	if (verbose) {
-		shell_write(sh, "100-New value is ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
-	}
-
-	sh->msg = _("Value found and set");
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_whatis = {
-	"whatis <property>",
-	"show description of property",
-	NULL,
-};
-
-/**
- * Takes a whatis command and tries to execute it.
- */
-static enum shell_reply
-shell_exec_whatis(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	property_t prop;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2) {
-		sh->msg = _("Property missing");
-		goto error;
-	}
-
-	prop = gnet_prop_get_by_name(argv[1]);
-	if (prop == NO_PROP) {
-		sh->msg = _("Unknown property");
-		goto error;
-	}
-
-	shell_write(sh, _("Help: "));
-	shell_write(sh, gnet_prop_description(prop));
-	shell_write(sh, "\n");
-
-	sh->msg = "";
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static shell_help_t shell_help_rescan = {
-	"rescan",
-	"rescan the library to update shared file information",
-	NULL,
-};
-
-/**
- * Rescan the shared directories for added/removed files.
- */
-static enum shell_reply
-shell_exec_rescan(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (GNET_PROPERTY(library_rebuilding)) {
-		sh->msg = _("The library is currently being rebuilt.");
-		return REPLY_ERROR;
-	} else if (library_rescan_requested) {
-		sh->msg = _("A rescan has already been scheduled");
-		return REPLY_ERROR;
-	} else {
-		library_rescan_requested = TRUE;
-		shell_write(sh, "100-Scheduling library rescan\n");
-		return REPLY_READY;
-	}
-}
-
 static void
-print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
-	int triples, hsep_triple *non_hsep_ptr)
-{
-	static hsep_triple empty_non_hsep;
-	const gchar *hops_str = _("Hops");
-	const gchar *nodes_str = _("Nodes");
-	const gchar *files_str = _("Files");
-	const gchar *size_str = _("Size");
-	hsep_triple non_hsep, *t;
-	gchar buf[200];
-	guint maxlen[4];
-	gint i;
-
-	if (!non_hsep_ptr) {
-		non_hsep_ptr = &empty_non_hsep;
-	}
-	memcpy(non_hsep, non_hsep_ptr, sizeof non_hsep);
-	t = &table[1];
-
-	/*
-	 * Determine maximum width of each column.
-	 */
-
-	maxlen[0] = strlen(hops_str);   /* length of Hops */
-	maxlen[1] = strlen(nodes_str);  /* length of Nodes */
-	maxlen[2] = strlen(files_str);  /* length of Files */
-	maxlen[3] = strlen(size_str);   /* length of Size */
-
-	for (i = 0; i < triples * 4; i++) {
-		size_t n;
-		guint m = i % 4;
-
-		switch (m) {
-		case 0:
-			n = strlen(uint64_to_string(i / 4 + 1));
-			break;
-
-		case 1:
-		case 2:
-		case 3:
-			{
-				guint j = 0;
-
-				switch (m) {
-				case 1: j = HSEP_IDX_NODES; break;
-				case 2: j = HSEP_IDX_FILES; break;
-				case 3: j = HSEP_IDX_KIB; break;
-				}
-
-				n = strlen(uint64_to_string(t[i][j] + non_hsep[j]));
-			}
-			break;
-
-		default:
-			n = 0;
-			g_assert_not_reached();
-		}
-
-		if (n > maxlen[m])
-			maxlen[m] = n;
-	}
-
-	gm_snprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
-		maxlen[0], hops_str,
-		maxlen[1], nodes_str,
-		maxlen[2], files_str,
-		maxlen[3], size_str);
-
-	shell_write(sh, buf);
-
-	for (i = maxlen[0] + maxlen[1] + maxlen[2] + maxlen[3] + 6; i > 0; i--)
-		shell_write(sh, "-");
-
-	shell_write(sh, "\n");
-
-	t = &table[1];
-
-	for (i = 0; i < triples; i++) {
-		const gchar *s1, *s2, *s3;
-
-		s1 = uint64_to_string(t[i][HSEP_IDX_NODES] + non_hsep[HSEP_IDX_NODES]);
-		s2 = uint64_to_string2(t[i][HSEP_IDX_FILES] + non_hsep[HSEP_IDX_FILES]);
-		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
-				GNET_PROPERTY(display_metric_units));
-
-		gm_snprintf(buf, sizeof buf, "%*d  %*s  %*s  %*s\n",
-			maxlen[0], i + 1,
-			maxlen[1], s1,
-			maxlen[2], s2,
-			maxlen[3], s3);
-
-		shell_write(sh, buf);
-	}
-
-}
-
-static shell_help_t shell_help_horizon = {
-	"horizon [-a]",
-	"show horizon information collected via nodes supporting HSEP",
-	"-a: show all the information we have, not just a summary",
-};
-
-/**
- * Displays horizon size information.
- */
-static enum shell_reply
-shell_exec_horizon(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	gchar buf[200];
-	hsep_triple globaltable[HSEP_N_MAX + 1];
-	hsep_triple non_hsep[1];
-	const gchar *all;
-	gint parsed;
-	option_t options[] = {
-		{ "a", &all },
-	};
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
-	if (parsed < 0)
-		return REPLY_ERROR;
-
-	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
-	hsep_get_non_hsep_triple(non_hsep);
-
-	gm_snprintf(buf, sizeof buf,
-		_("Total horizon size (%u/%u nodes support HSEP):"),
-		(guint)globaltable[1][HSEP_IDX_NODES],
-		(guint)(globaltable[1][HSEP_IDX_NODES] + non_hsep[0][HSEP_IDX_NODES]));
-
-	shell_write(sh, buf);
-	shell_write(sh, "\n\n");
-
-	print_hsep_table(sh, globaltable, HSEP_N_MAX, non_hsep);
-
-	if (all) {
-		const GSList *sl;
-		hsep_triple table[HSEP_N_MAX + 1];
-
-		for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-			const struct gnutella_node *n = sl->data;
-
-			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))
-				continue;
-
-			shell_write(sh, "\n");
-
-			gm_snprintf(buf, sizeof buf,
-				_("Horizon size via HSEP node %s (%s):"),
-				node_addr(n),
-				node_peermode_to_string(n->peermode));
-
-			shell_write(sh, buf);
-			shell_write(sh, "\n\n");
-
-			hsep_get_connection_table(n, table, G_N_ELEMENTS(table));
-			print_hsep_table(sh, table, NODE_IS_LEAF(n) ? 1 : HSEP_N_MAX, NULL);
-		}
-	}
-
-	return REPLY_READY;
-}
-
-static void
-print_node_info(gnutella_shell_t *sh, const struct gnutella_node *n)
-{
-	gnet_node_flags_t flags;
-	time_delta_t up, con;
-	time_t now;
-	gchar buf[1024];
-	gchar vendor_escaped[20];
-	gchar uptime_buf[8];
-	gchar contime_buf[8];
-
-	g_return_if_fail(sh);
-	g_return_if_fail(n);
-	
-	if (
-		!NODE_IS_ESTABLISHED(n) ||
-		!node_fill_flags(NODE_ID(n), &flags)
-	) {
-		return;
-	}
-
-	now = tm_time();
-	con = n->connect_date ? delta_time(now, n->connect_date) : 0;
-	up = n->up_date ? delta_time(now, n->up_date) : 0;
-
-	{
-		const gchar *vendor;
-		gchar *escaped;
-		
-		vendor = node_vendor(n);
-		escaped = hex_escape(vendor, TRUE);
-		g_strlcpy(vendor_escaped, escaped, sizeof vendor_escaped);
-		if (escaped != vendor) {
-			G_FREE_NULL(escaped);
-		}
-	}
-
-	g_strlcpy(uptime_buf, up > 0 ? compact_time(up) : "?",
-		sizeof uptime_buf);
-	g_strlcpy(contime_buf, con > 0 ? compact_time(con) : "?",
-		sizeof contime_buf);
-
-	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.30s",
-		node_addr(n),
-		(guint) n->gnet_port,
-		node_flags_to_string(&flags),
-		iso3166_country_cc(n->country),
-		contime_buf,
-		uptime_buf,
-		vendor_escaped);
-
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-}
-
-static shell_help_t shell_help_nodes = {
-	"nodes",
-	"displays all connected nodes",
-	NULL,
-};
-
-/**
- * Displays all connected nodes
- */
-static enum shell_reply
-shell_exec_nodes(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	const GSList *sl;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	sh->msg = "";
-
-	shell_write(sh,
-	  "100~ \n"
-	  "Node                  Port  Flags       CC Since  Uptime User-Agent\n");
-
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
-		const struct gnutella_node *n = sl->data;
-		print_node_info(sh, n);
-	}
-	shell_write(sh, ".\n");	/* Terminate message body */
-
-	return REPLY_READY;
-}
-
-static void
-print_upload_info(gnutella_shell_t *sh, const struct gnet_upload_info *info)
-{
-	gchar buf[1024];
-
-	g_return_if_fail(sh);
-	g_return_if_fail(info);
-
-	gm_snprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
-		info->encrypted ? "(E)" : "",
-		host_addr_to_string(info->addr),
-		iso3166_country_cc(info->country),
-		compact_size(info->range_end - info->range_start,
-			GNET_PROPERTY(display_metric_units)),
-		short_size(info->range_start,
-			GNET_PROPERTY(display_metric_units)),
-		info->name ? "\"" : "<",
-		info->name ? info->name : "none",
-		info->name ? "\"" : ">");
-
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-}
-
-static shell_help_t shell_help_uploads = {
-	"uploads",
-	"displays all active uploads",
-	NULL,
-};
-
-/**
- * Displays all active uploads
- */
-static enum shell_reply
-shell_exec_uploads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	const GSList *sl;
-	GSList *sl_info;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	sh->msg = "";
-
-	shell_write(sh, "100~ \n");
-
-	sl_info = upload_get_info_list();
-	for (sl = sl_info; sl; sl = g_slist_next(sl)) {
-		print_upload_info(sh, sl->data);
-	}
-	upload_free_info_list(&sl_info);
-
-	shell_write(sh, ".\n");	/* Terminate message body */
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_download = {
-	"download add <URL>|<magnet>",
-	"add a download by URL or magnet",
-	NULL,
-};
-
-static shell_help_t shell_help_download_add = {
-	"download add <URL>|<magnet>",
-	"add a download by URL or magnet",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_download_add(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	const gchar *url;
-	gboolean success;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 3) {
-		sh->msg = _("URL missing");
-		goto error;
-	}
-	url = argv[2];
-
-	if (is_strcaseprefix(url, "http://")) {
-		success = download_handle_http(url);
-	} else if (is_strcaseprefix(url, "magnet:?")) {
-		guint n_downloads, n_searches;
-
-		n_downloads = download_handle_magnet(url);
-		n_searches = search_handle_magnet(url);
-		success = n_downloads > 0 || n_searches > 0;
-	} else {
-		success = FALSE;
-	}
-	if (!success) {
-		sh->msg = _("The download could not be created");
-		goto error;
-	}
-	sh->msg = _("Download added");
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
-}
-
-static enum shell_reply
-shell_exec_download_abort(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 3) {
-		sh->msg = _("parameter missing");
-		goto error;
-	}
-	sh->msg = "FIXME: Implement this";
-
-error:
-	return REPLY_ERROR;
-}
-
-/**
- * Handles the download command.
- */
-static enum shell_reply
-shell_exec_download(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2)
-		goto error;
-
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_download_ ## name(sh, argc, argv); \
-} G_STMT_END
-
-	CMD(add);
-	CMD(abort);
-#undef CMD
-	
-	sh->msg = _("Unknown operation");
-	goto error;
-
-error:
-	return REPLY_ERROR;
-}
-
-const gchar *
-get_download_status_string(const struct download *d)
-{
-	download_check(d);
-
-	switch (d->status) {
-	case GTA_DL_QUEUED:			return "queued";
-	case GTA_DL_CONNECTING:		return "connecting";
-	case GTA_DL_PUSH_SENT:		return "push sent";
-	case GTA_DL_FALLBACK:		return "falling back to push";
-	case GTA_DL_REQ_SENT:		return "request sent";
-	case GTA_DL_HEADERS:		return "receiving headers";
-	case GTA_DL_RECEIVING:		return "receiving";
-	case GTA_DL_COMPLETED:		return "completed";
-	case GTA_DL_ERROR:			return "error";
-	case GTA_DL_ABORTED:		return "aborted";
-	case GTA_DL_TIMEOUT_WAIT:	return "timeout";
-	case GTA_DL_REMOVED:		return "removed";
-	case GTA_DL_VERIFY_WAIT:	return "waiting for verify";
-	case GTA_DL_VERIFYING:		return "verifying";
-	case GTA_DL_VERIFIED:		return "verified";
-	case GTA_DL_MOVE_WAIT:		return "waiting for move";
-	case GTA_DL_MOVING:			return "moving";
-	case GTA_DL_DONE:			return "done";
-	case GTA_DL_SINKING:		return "sinking";
-	case GTA_DL_ACTIVE_QUEUED:	return "actively queued";
-	case GTA_DL_PASSIVE_QUEUED:	return "passively queued";
-	case GTA_DL_REQ_SENDING:	return "sending request";
-	case GTA_DL_IGNORING:		return "ignoring data";
-	case GTA_DL_INVALID:		g_assert_not_reached();
-	}
-	return "unknown";
-}
-
-
-static void
-print_download_info(gnet_fi_t handle, void *udata)
-{
-	gnutella_shell_t *sh = udata;
-	gnet_fi_status_t status;
-	gnet_fi_info_t *info;
-	gchar buf[1024];
-
-	shell_check(sh);
-
-	info = guc_fi_get_info(handle);
-	g_return_if_fail(info);
-	guc_fi_get_status(handle, &status);
-
-	gm_snprintf(buf, sizeof buf, "Filename: \"%s\"", info->filename);
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-	
-	gm_snprintf(buf, sizeof buf, "Hash: %s",
-		info->sha1 ? sha1_to_urn_string(info->sha1) : "<none>");
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-
-	gm_snprintf(buf, sizeof buf, "Status: %s",
-		file_info_status_to_string(&status));
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-
-	gm_snprintf(buf, sizeof buf, "Size: %s",
-		compact_size(status.size, GNET_PROPERTY(display_metric_units)));
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-	
-	gm_snprintf(buf, sizeof buf, "Done: %u%% (%s)",
-		filesize_per_100(status.size, status.done),
-		compact_size(status.done, GNET_PROPERTY(display_metric_units)));
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-	
-	shell_write(sh, "--\n");
-	guc_fi_free_info(info);
-}
-
-static shell_help_t shell_help_downloads = {
-	"downloads",
-	"displays all active downloads",
-	NULL,
-};
-
-/**
- * Displays all active downloads.
- */
-static enum shell_reply
-shell_exec_downloads(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	sh->msg = "";
-
-	shell_write(sh, "100~ \n");
-
-	file_info_foreach(print_download_info, sh);
-
-	shell_write(sh, ".\n");	/* Terminate message body */
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_intr = {
-	"intr",
-	"toggles interactive mode",
-	"By default, interactive mode is automatically turned\n"
-	"on when running \"gtk-gnutella --shell\" from a terminal",
-};
-
-/**
- * The "INTR" command.
- */
-static enum shell_reply
-shell_exec_intr(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	sh->interactive = !sh->interactive;
-
-	if (sh->interactive)
-		sh->msg = _("Interactive mode turned on.");
-	else {
-		/* Always give them feedback on that command! */
-		shell_write(sh, "100 ");
-		shell_write(sh, _("Interactive mode turned off."));
-		shell_write(sh, "\n");
-	}
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_status = {
-	"status",
-	"displays a nicely formatted general status report",
-	NULL,
-};
-
-/**
- * Displays assorted status information
- */
-static enum shell_reply
-shell_exec_status(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	gchar buf[2048];
-	time_t now;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	now = tm_time();
-
-	shell_write(sh,
-		"+---------------------------------------------------------+\n"
-		"|                      Status                             |\n"
-		"|=========================================================|\n");
-			
-	/* General status */ 
-	{
-		const gchar *blackout;
-		short_string_t leaf_switch;
-		short_string_t ultra_check;
-	
-		leaf_switch = timestamp_get_string(
-						GNET_PROPERTY(node_last_ultra_leaf_switch));
-		ultra_check = timestamp_get_string(
-						GNET_PROPERTY(node_last_ultra_check));
-
-		if (GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(is_udp_firewalled))
-			blackout = "TCP,UDP";
-		else if (GNET_PROPERTY(is_firewalled))
-			blackout = "TCP";
-		else if (GNET_PROPERTY(is_udp_firewalled))
-			blackout = "UDP";
-		else
-			blackout = "No";
-
-		gm_snprintf(buf, sizeof buf,
-			"|   Mode: %-9s  Last Switch: %-19s     |\n"
-			"| Uptime: %-9s   Last Check: %-19s     |\n"
-			"|   Port: %-5u         Blackout: %-7s                 |\n"
-			"|=========================================================|\n",
-			GNET_PROPERTY(online_mode)
-				? guc_node_peermode_to_string(GNET_PROPERTY(current_peermode))
-				: "offline",
-			GNET_PROPERTY(node_last_ultra_leaf_switch)
-				? leaf_switch.str : "never",
-			short_time(delta_time(now, GNET_PROPERTY(start_stamp))),
-			GNET_PROPERTY(node_last_ultra_check)
-				? ultra_check.str : "never",
-			socket_listen_port(),
-			blackout);
-		shell_write(sh, buf);
-	}
-
-	/* IPv4 info */ 
-	switch (GNET_PROPERTY(network_protocol)) {
-	case NET_USE_BOTH:
-	case NET_USE_IPV4:
-		gm_snprintf(buf, sizeof buf,
-			"| IPv4 Address: %-17s Last Change: %-9s  |\n",
-			host_addr_to_string(listen_addr()),
-			short_time(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
-		shell_write(sh, buf);
-	}
-
-	/* IPv6 info */ 
-	switch (GNET_PROPERTY(network_protocol)) {
-	case NET_USE_BOTH:
-		shell_write(sh,
-			"|---------------------------------------------------------|\n");
-		/* FALL THROUGH */
-	case NET_USE_IPV6:
-		gm_snprintf(buf, sizeof buf,
-			"| IPv6 Address: %-39s   |\n"
-			"|                                 Last Change: %-9s  |\n",
-			host_addr_to_string(listen_addr6()),
-			short_time(delta_time(now, GNET_PROPERTY(current_ip6_stamp))));
-		shell_write(sh, buf);
-	}
-
-	/* Node counts */
-	gm_snprintf(buf, sizeof buf,
-		"|=========================================================|\n"
-		"| Connected Peers: %-4u                                   |\n"
-		"|    Ultra %4u/%-4u   Leaf %4u/%-4u   Legacy %4u/%-4u  |\n"
-		"|=========================================================|\n",
-		GNET_PROPERTY(node_ultra_count)
-			+ GNET_PROPERTY(node_leaf_count)
-			+ GNET_PROPERTY(node_normal_count),
-		GNET_PROPERTY(node_ultra_count),
-		NODE_P_ULTRA == GNET_PROPERTY(current_peermode)
-			? GNET_PROPERTY(max_connections)
-			: GNET_PROPERTY(max_ultrapeers),
-		GNET_PROPERTY(node_leaf_count),
-		GNET_PROPERTY(max_leaves),
-		GNET_PROPERTY(node_normal_count),
-		GNET_PROPERTY(normal_connections));
-	shell_write(sh, buf);
-
-	/* Bandwidths */
-	{	
-		const gboolean metric = GNET_PROPERTY(display_metric_units);
-		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
-		gnet_bw_stats_t bw_stats;
-
-		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
-		gnet_in = short_rate_get_string(bw_stats.average, metric);
-
-		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
-		gnet_out = short_rate_get_string(bw_stats.average, metric);
-		
-		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
-		http_in = short_rate_get_string(bw_stats.average, metric);
-		
-		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
-		http_out = short_rate_get_string(bw_stats.average, metric);
-		
-		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
-		leaf_in = short_rate_get_string(bw_stats.average, metric);
-
-		gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
-		leaf_out = short_rate_get_string(bw_stats.average, metric);
-
-		gm_snprintf(buf, sizeof buf,
-			"| Bandwidth:       Gnutella          HTTP          Leaf   |\n"
-			"|---------------------------------------------------------|\n"
-			"|        In:    %11s   %11s   %11s   |\n"
-			"|       Out:    %11s   %11s   %11s   |\n",
-			gnet_in.str, http_in.str, leaf_in.str,
-			gnet_out.str, http_out.str, leaf_out.str);
-		shell_write(sh, buf);
-	}
-	
-	{
-		gchar line[128];
-
-		shell_write(sh,
-			"|---------------------------------------------------------|\n");
-		concat_strings(line, sizeof line,
-			"Sharing ",
-			uint64_to_string(shared_files_scanned()),
-			" file",
-			shared_files_scanned() == 1 ? "" : "s",
-			" ",
-			short_kb_size(shared_kbytes_scanned(),
-				GNET_PROPERTY(display_metric_units)),
-			" total",
-			(void *) 0);
-		gm_snprintf(buf, sizeof buf, "| %-55s |\n", line);
-		shell_write(sh, buf);
-		shell_write(sh,
-			"+---------------------------------------------------------+\n");
-	}
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_offline = {
-	"offline",
-	"disconnect from the Gnutella network",
-	"Use \"online\" to re-connect to the Gnutella network",
-};
-
-/**
- * Close Gnutella connections
- */
-static enum shell_reply
-shell_exec_offline(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, FALSE);
-	shell_write(sh, "Closing Gnutella connections\n");
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_online = {
-	"online",
-	"put the node back online",
-	"See also \"offline\"",
-};
-
-/**
- * Open Gnutella connections
- */
-static enum shell_reply
-shell_exec_online(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
-	shell_write(sh, "Opening Gnutella connections\n");
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_props = {
-	"props [<regexp>]",
-	"display all properties, or those matching the regular expression supplied",
-	NULL,
-};
-
-/**
- * Display all properties
- */
-static enum shell_reply
-shell_exec_props(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	GSList *props, *sl;
-
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-
-	props = gnet_prop_get_by_regex(argc > 1 ? argv[1] : ".", NULL);
-	if (!props) {
-		sh->msg = _("No matching property.");
-		return REPLY_ERROR;
-	}
-
-	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		const gchar *name_1, *name_2;
-		property_t prop;
-		gchar buf[80];
-	   
-		prop = GPOINTER_TO_UINT(sl->data);
-		name_1 = gnet_prop_name(prop);
-
-		if (g_slist_next(sl)) {
-			sl = g_slist_next(sl);
-			prop = GPOINTER_TO_UINT(sl->data);
-			name_2 = gnet_prop_name(prop);
-		} else {
-			name_2 = "";
-		}
-
-		gm_snprintf(buf, sizeof buf, "%-34.34s  %-34.34s\n", name_1, name_2);
-		shell_write(sh, buf);
-	}
-	g_slist_free(props);
-	props = NULL;
-
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_help = {
-	"help [<cmd>]",
-	"displays command summary, or give detailed help about specific command",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_help(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc == 1) {
-		shell_write(sh,
-			"100~\n"
-			"The following commands are available:\n"
-			"download add <URL>|<magnet>\n"
-			"downloads\n"
-			"help\n"
-			"horizon [-a]\n"
-			"intr\n"
-			"node add <ip>[:port]\n"
-			"node drop <ip>[:port]\n"
-			"nodes\n"
-			"offline\n"
-			"online\n"
-			"print <property>\n"
-			"props [<regexp>]\n"
-			"quit\n"
-			"rescan\n"
-			"search add <query>\n"
-			"set [-v] <property> <value>\n"
-			"shutdown\n"
-			"status\n"
-			"uploads\n"
-			"whatis <property>\n"
-			"Use \"help <cmd>\" for additional help about a command.\n"
-		);
-	} else {
-		gchar *cmd = g_strjoinv(" ", (gchar **) &argv[1]);
-		shell_help_t *help = shell_cmd_get_help(cmd);
-
-		G_FREE_NULL(cmd);
-
-		if (help)
-			shell_print_help(sh, help);
-		else {
-			sh->msg = _("No help available");
-			return REPLY_ERROR;
-		}
-	}
-	shell_write(sh, ".\n");
-	return REPLY_READY;
-}
-
-static shell_help_t shell_help_quit = {
-	"quit",
-	"close the shell connection",
-	NULL,
-};
-
-static enum shell_reply
-shell_exec_quit(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-	
-	sh->msg = _("Good bye");
-	shell_shutdown(sh);
-	return REPLY_GOOD_BYE;
-}
-
-static shell_help_t shell_help_shutdown = {
-	"shutdown",
-	"initiates a shutdown of gtk-gnutella",
-	"As a side effect the shell connection is closed as well.",
-};
-
-static enum shell_reply
-shell_exec_shutdown(gnutella_shell_t *sh, gint argc, const gchar *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-	
-	sh->msg = _("Shutdown sequence initiated.");
-	/*
-	 * Don't use gtk_gnutella_exit() because we want to at least send
-	 * some feedback before terminating. 
-	 */
-	gtk_gnutella_request_shutdown();
-	return REPLY_READY;
-}
-
-static void
-shell_unescape(gchar *s)
+shell_unescape(char *s)
 {
 	gboolean escape = FALSE;
-	const gchar *c_read = s;
-	gchar *c_write = s;
+	const char *c_read = s;
+	char *c_write = s;
 
 	g_assert(s);
 
@@ -1519,11 +273,11 @@ shell_unescape(gchar *s)
  * that pos is 0 or something sensible when calling this the first time!.
  * The returned string needs to be g_free-ed when no longer needed.
  */
-static gchar *
-shell_get_token(const gchar *s, gint *pos)
+static char *
+shell_get_token(const char *s, int *pos)
 {
-	const gchar *start, *end;
-	gchar *retval;
+	const char *start, *end;
+	char *retval;
 
 	g_assert(pos);
 	g_assert(s);
@@ -1556,12 +310,12 @@ shell_get_token(const gchar *s, gint *pos)
 	return retval;
 }
 
-static gint 
-shell_parse_command(const gchar *line, const gchar ***argv_ptr)
+static int 
+shell_parse_command(const char *line, const char ***argv_ptr)
 {
-	const gchar **argv = NULL;
-	guint argc = 0;
-	gint pos = 0;
+	const char **argv = NULL;
+	unsigned argc = 0;
+	int pos = 0;
 	size_t n = 0;
 
 	g_assert(line);
@@ -1572,7 +326,7 @@ shell_parse_command(const gchar *line, const gchar ***argv_ptr)
 	 * overflow.
 	 */
 	for (;;) {
-		gchar *token;
+		char *token;
 
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
@@ -1596,10 +350,10 @@ shell_parse_command(const gchar *line, const gchar ***argv_ptr)
 }
 
 static void
-shell_free_argv(const gchar ***argv_ptr)
+shell_free_argv(const char ***argv_ptr)
 {
 	if (*argv_ptr) {
-		gchar **argv = deconstify_gpointer(*argv_ptr);
+		char **argv = deconstify_gpointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
 			G_FREE_NULL(argv[0]);
@@ -1613,10 +367,10 @@ shell_free_argv(const gchar ***argv_ptr)
  * @return command handler based on command name (case-insensitive).
  */
 static shell_cmd_handler_t
-shell_cmd_get_handler(const gchar *cmd)
+shell_cmd_get_handler(const char *cmd)
 {
 	static const struct {
-		const gchar * const cmd;
+		const char * const cmd;
 		shell_cmd_handler_t handler;
 	} commands[] = {
 #define CMD(x)	{ #x, shell_exec_ ## x }
@@ -1642,7 +396,7 @@ shell_cmd_get_handler(const gchar *cmd)
 		CMD(whatis),
 #undef CMD
 	};
-	guint i;
+	size_t i;
 
 	g_return_val_if_fail(cmd, NULL);
 
@@ -1654,72 +408,14 @@ shell_cmd_get_handler(const gchar *cmd)
 }
 
 /**
- * Find the help structure associated with a command, if any.
- * A command can be given as several words, as in "node add".
- *
- * @return help based on the case-insensitive command name.
- */
-static shell_help_t *
-shell_cmd_get_help(const gchar *cmd)
-{
-	static const struct {
-		const gchar * const cmd;
-		shell_help_t *help;
-	} commands[] = {
-#define HELP(x)	{ #x, &shell_help_ ## x }
-#define HELP2(x,y) { #x " " #y , &shell_help_ ## x ## _ ## y }
-		HELP(download),
-		HELP(downloads),
-		HELP(help),
-		HELP(horizon),
-		HELP(intr),
-		HELP(node),
-		HELP(nodes),
-		HELP(offline),
-		HELP(online),
-		HELP(print),
-		HELP(props),
-		HELP(quit),
-		HELP(rescan),
-		HELP(search),
-		HELP(set),
-		HELP(shutdown),
-		HELP(status),
-		HELP(uploads),
-		HELP(whatis),
-		HELP2(download,add),
-		HELP2(node,add),
-		HELP2(node,drop),
-		HELP2(search,add),
-
-		/* Above line intentionally left blank for sorting */
-#undef HELP2
-#undef HELP
-	};
-	shell_help_t *found = NULL;
-	guint i;
-
-	g_return_val_if_fail(cmd, NULL);
-
-	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
-		if (ascii_strcasecmp(commands[i].cmd, cmd) == 0) {
-			found = commands[i].help;
-			break;
-		}
-	}
-
-	return found;
-}
-
-/**
  * Takes a command string and tries to parse and execute it.
  */
 static enum shell_reply
-shell_exec(gnutella_shell_t *sh, const gchar *line)
+shell_exec(struct gnutella_shell *sh, const char *line)
 {
 	enum shell_reply reply_code;
-	const gchar **argv;
-	gint argc;
+	const char **argv;
+	int argc;
 
 	shell_check(sh);
 
@@ -1733,25 +429,18 @@ shell_exec(gnutella_shell_t *sh, const gchar *line)
 		if (handler) {
 			reply_code = (*handler)(sh, argc, argv);
 			if (REPLY_ERROR == reply_code && !sh->msg) {
-				sh->msg = _("Malformed command");
+				shell_set_msg(sh, _("Malformed command"));
 			}
 			if (REPLY_READY == reply_code && !sh->msg) {
-				sh->msg = _("OK");
+				shell_set_msg(sh, _("OK"));
 			}
 		} else {
-			sh->msg = _("Unknown command");
+			shell_set_msg(sh, _("Unknown command"));
 			reply_code = REPLY_ERROR;
 		}
 	}
 	shell_free_argv(&argv);
 	return reply_code;
-}
-
-static void
-shell_discard_output(gnutella_shell_t *sh)
-{
-	shell_check(sh);
-	pmsg_slist_free(&sh->output);
 }
 
 /**
@@ -1760,12 +449,12 @@ shell_discard_output(gnutella_shell_t *sh)
  * buffer is empty.
  */
 static void
-shell_write_data(gnutella_shell_t *sh)
+shell_write_data(struct gnutella_shell *sh)
 {
 	struct gnutella_socket *s;
 	ssize_t written;
 	struct iovec *iov;
-	gint iov_cnt;
+	int iov_cnt;
 
 	shell_check(sh);
 	g_assert(sh->output);
@@ -1811,7 +500,7 @@ done:
  * read the available data line by line.
  */
 static void
-shell_read_data(gnutella_shell_t *sh)
+shell_read_data(struct gnutella_shell *sh)
 {
 	struct gnutella_socket *s;
 
@@ -1894,14 +583,11 @@ shell_read_data(gnutella_shell_t *sh)
 			}
 
 			shell_write(sh, uint32_to_string(reply_code));
-			if (sh->msg) {
-				shell_write(sh, " ");
-				shell_write(sh, sh->msg);
-			}
+			shell_write_msg(sh);
 			shell_write(sh, "\n");
 		}
 
-		sh->msg = NULL;
+		shell_set_msg(sh, NULL);
 		getline_reset(s->getline);
 	}
 
@@ -1911,9 +597,9 @@ shell_read_data(gnutella_shell_t *sh)
  * Called whenever some event occurs on a shell socket.
  */
 static void
-shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
+shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 {
-	gnutella_shell_t *sh = data;
+	struct gnutella_shell *sh = data;
 
 	(void) unused_source;
 	g_assert(sh);
@@ -1939,8 +625,9 @@ shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 }
 
-static void
-shell_write(gnutella_shell_t *sh, const gchar *text)
+
+void
+shell_write(struct gnutella_shell *sh, const char *text)
 {
 	size_t len;
 
@@ -1960,62 +647,8 @@ shell_write(gnutella_shell_t *sh, const gchar *text)
 	}
 }
 
-/**
- * Create a new gnutella_shell object.
- */
-static gnutella_shell_t *
-shell_new(struct gnutella_socket *s)
-{
-	static const gnutella_shell_t zero_shell;
-	gnutella_shell_t *sh;
-
-	socket_check(s);
-
-	sh = walloc(sizeof *sh);
-	*sh = zero_shell;
-	sh->magic = SHELL_MAGIC;
-	sh->socket = s;
-	sh->output = slist_new();
-
-	return sh;
-}
-
-/**
- * Free gnutella_shell object.
- */
-static void
-shell_free(gnutella_shell_t *sh)
-{
-	g_assert(sh);
-	g_assert(SHELL_MAGIC == sh->magic);
-	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
-	g_assert(NULL == sh->output); /* must have called shell_destroy before */
-
-	sh->magic = 0;
-	wfree(sh, sizeof *sh);
-}
-
-/**
- * Terminate shell and free associated ressources. The gnutella_shell is also
- * removed from sl_shells, so don't call this while iterating over sl_shells.
- */
-static void
-shell_destroy(gnutella_shell_t *sh)
-{
-	shell_check(sh);
-
-	if (GNET_PROPERTY(dbg) > 0)
-		g_message("shell_destroy");
-
-	sl_shells = g_slist_remove(sl_shells, sh);
-	socket_evt_clear(sh->socket);
-	shell_discard_output(sh);
-	socket_free_null(&sh->socket);
-	shell_free(sh);
-}
-
-static void
-shell_shutdown(gnutella_shell_t *sh)
+void
+shell_shutdown(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 	g_assert(!sh->shutdown);
@@ -2029,7 +662,7 @@ shell_shutdown(gnutella_shell_t *sh)
 void
 shell_add(struct gnutella_socket *s)
 {
-	gnutella_shell_t *sh;
+	struct gnutella_shell *sh;
 	gboolean granted = FALSE;
 
 	socket_check(s);
@@ -2069,10 +702,10 @@ shell_add(struct gnutella_socket *s)
 			getline_reset(s->getline); /* remove HELO command */
 
 			if (READ_DONE == getline_read(s->getline, s->buf, s->pos, &r)) {
-				if (GNET_PROPERTY(shell_debug) > 1)
+				if (GNET_PROPERTY(shell_debug) > 1) {
 					g_message("next shell command is \"%s\"",
 						getline_str(s->getline));
-
+				}
 				if (0 == strcmp(getline_str(s->getline), "INTR")) {
 					/* Swallow INTR */
 					if (s->pos != r)
@@ -2131,7 +764,7 @@ shell_timer(time_t now)
 		GSList *sl, *to_remove = NULL;
 
 		for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
-			gnutella_shell_t *sh = sl->data;
+			struct gnutella_shell *sh = sl->data;
 
 			shell_check(sh);
 			if (
@@ -2142,7 +775,7 @@ shell_timer(time_t now)
 			}
 		}
 		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-			gnutella_shell_t *sh = sl->data;
+			struct gnutella_shell *sh = sl->data;
 			shell_destroy(sh);
 		}
 		g_slist_free(to_remove);
@@ -2238,7 +871,7 @@ void
 shell_close(void)
 {
 	while (sl_shells) {
-		gnutella_shell_t *sh = sl_shells->data;
+		struct gnutella_shell *sh = sl_shells->data;
 		shell_destroy(sh);
 	}
 }

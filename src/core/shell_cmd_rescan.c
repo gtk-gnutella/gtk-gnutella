@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- *   Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,18 +23,52 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_shell_h_
-#define _core_shell_h_
-
 #include "common.h"
 
-struct gnutella_socket;
+RCSID("$Id$")
 
-void shell_init(void);
-void shell_close(void);
+#include "shell_cmd.h"
 
-void shell_add(struct gnutella_socket *);
-void shell_timer(time_t now);
+#include "if/gnet_property.h"
+#include "if/gnet_property_priv.h"
 
-#endif /* _core_shell_h_ */
+#include "lib/override.h"		/* Must be the last header included */
+
+/**
+ * Rescan the shared directories for added/removed files.
+ */
+enum shell_reply
+shell_exec_rescan(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (GNET_PROPERTY(library_rebuilding)) {
+		shell_set_msg(sh, _("The library is currently being rebuilt."));
+		return REPLY_ERROR;
+	} else if (shell_request_library_rescan()) {
+		shell_set_msg(sh, _("A rescan has already been scheduled"));
+		return REPLY_ERROR;
+	} else {
+		shell_write(sh, "100-Scheduling library rescan\n");
+		return REPLY_READY;
+	}
+}
+
+const char *
+shell_summary_rescan(void)
+{
+	return "Scan shared directories";
+}
+
+const char *
+shell_help_rescan(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return NULL;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

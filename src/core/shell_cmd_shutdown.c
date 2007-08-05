@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- *   Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,18 +23,45 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_shell_h_
-#define _core_shell_h_
-
 #include "common.h"
 
-struct gnutella_socket;
+RCSID("$Id$")
 
-void shell_init(void);
-void shell_close(void);
+#include "shell_cmd.h"
 
-void shell_add(struct gnutella_socket *);
-void shell_timer(time_t now);
+#include "if/core/main.h"
 
-#endif /* _core_shell_h_ */
+#include "lib/override.h"		/* Must be the last header included */
+
+enum shell_reply
+shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+	
+	shell_set_msg(sh, _("Shutdown sequence initiated."));
+	/*
+	 * Don't use gtk_gnutella_exit() because we want to at least send
+	 * some feedback before terminating. 
+	 */
+	gtk_gnutella_request_shutdown();
+	return REPLY_READY;
+}
+
+const char *
+shell_summary_shutdown(void)
+{
+	return "Terminate gtk-gnutella";
+}
+
+const char *
+shell_help_shutdown(int argc, const char *argv[])
+{
+	(void) argc;
+	(void) argv;
+	return "Initiates a shutdown of gtk-gnutella.\n"
+		"As a side effect the shell connection is closed as well.\n";
+}
+
 /* vi: set ts=4 sw=4 cindent: */
