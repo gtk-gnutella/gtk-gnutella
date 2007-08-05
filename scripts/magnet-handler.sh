@@ -11,7 +11,7 @@
 # This script should have execute permissions.  Ie, chmod +x.
 
 # Make sure that there is only one argument and that it starts
-# with "magnet:".
+# either with "magnet:?" or "http://".
 
 scheme=
 case "$1" in
