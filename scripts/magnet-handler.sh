@@ -12,7 +12,15 @@
 
 # Make sure that there is only one argument and that it starts
 # with "magnet:".
-if [ $# != 1 ] || [ "X$1" = "X${1#magnet:}" ]; then
+
+scheme=
+case "$1" in
+'http://'*)	scheme='http';;
+'magnet:?'*)	scheme='magnet';;
+*)
+esac
+
+if [ $# != 1 ] || [ "X$scheme" = X ]; then
    echo "Usage: ${0##*/} magnet:?[...]" >&2
    exit 1
 fi
@@ -24,13 +32,12 @@ export GTK_GNUTELLA_DIR
 
 # gtk-gnutella may not be installed or local_shell.c might have been
 # compiled as a standalone.  Allow some way to over-ride default.
-GTKG=${GTKG-gtk-gnutella}
 
 # Don't do anything if GTKG is not running.
-$GTKG --ping || exit 1
+gtk-gnutella --ping || exit 1
 
 # Send a shell command to download the magnet URL.
-cat <<EOF | exec $GTKG --shell
+cat <<EOF | exec gtk-gnutella --shell
 download add "$1"
 EOF
 
