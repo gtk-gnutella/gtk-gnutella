@@ -4107,9 +4107,6 @@ download_connect(struct download *d)
 void
 download_start(struct download *d, gboolean check_allowed)
 {
-	host_addr_t addr;
-	guint16 port;
-
 	download_check(d);
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
@@ -4137,8 +4134,8 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
-	addr = download_addr(d);
-	port = download_port(d);
+	if (download_queue_is_frozen())
+		return;
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -4183,7 +4180,10 @@ download_start(struct download *d, gboolean check_allowed)
 		d->always_push = FALSE;
 	}
 
-	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && host_is_valid(addr, port)) {
+	if (
+		!DOWNLOAD_IS_IN_PUSH_MODE(d) &&
+		host_is_valid(download_addr(d), download_port(d))
+	) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
 		d->socket = download_connect(d);
@@ -4205,7 +4205,8 @@ download_start(struct download *d, gboolean check_allowed)
 				GNET_PROPERTY(file_descriptor_runout) &&
 				GNET_PROPERTY(banned_count) == 0
 			) {
-				download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
+				download_queue_delay(d,
+					GNET_PROPERTY(download_retry_busy_delay),
 					_("Connection failed (Out of file descriptors?)"));
 				return;
 			}
@@ -4285,7 +4286,6 @@ void
 download_pickup_queued(void)
 {
 	time_t now = tm_time();
-	guint running = count_running_downloads();
 	guint i;
 
 	/*
@@ -4297,15 +4297,16 @@ download_pickup_queued(void)
 	 * all hosts first.
 	 */
 
-	for (
-		i = 0;
-		i < DHASH_SIZE && running < GNET_PROPERTY(max_downloads) &&
-			bws_can_connect(SOCK_TYPE_DOWNLOAD);
-		i++
-	) {
+	for (i = 0; i < DHASH_SIZE; i++) {
 		GList *l;
 		gint last_change;
 
+		if (count_running_downloads() >= GNET_PROPERTY(max_downloads))
+			break;
+
+		if (!bws_can_connect(SOCK_TYPE_DOWNLOAD))
+			break;
+		
 	retry:
 		l = dl_by_time.servers[i];
 		last_change = dl_by_time.change[i];
@@ -4318,7 +4319,7 @@ download_pickup_queued(void)
 
 			g_assert(dl_server_valid(server));
 
-			if (running >= GNET_PROPERTY(max_downloads))
+			if (count_running_downloads() >= GNET_PROPERTY(max_downloads))
 				break;
 
 			/*
@@ -4419,8 +4420,6 @@ download_pickup_queued(void)
 
 			if (d) {
 				download_start(d, FALSE);
-				if (DOWNLOAD_IS_RUNNING(d))
-					running++;
 			}
 
 
@@ -4437,7 +4436,8 @@ download_pickup_queued(void)
 		}
 	}
 
-	gcu_download_enable_start_now(running, GNET_PROPERTY(max_downloads));
+	gcu_download_enable_start_now(count_running_downloads(),
+		GNET_PROPERTY(max_downloads));
 }
 
 static void
