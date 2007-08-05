@@ -4742,11 +4742,14 @@ create_download(
 {
 	struct dl_server *server;
 	struct download *d;
+	const gchar *reason;
 	guint32 record_index;
 	fileinfo_t *fi;
 
 	g_assert(host_addr_initialized(addr));
-	g_return_val_if_fail(NULL == sha1 || NULL == file_info || file_info->sha1 == sha1, NULL);
+	g_return_val_if_fail(
+		NULL == sha1 || NULL == file_info || file_info->sha1 == sha1,
+		NULL);
 
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
@@ -4944,27 +4947,25 @@ create_download(
 
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
-	{
-		const gchar *reason;
-
-		if (d->flags & DL_F_SUSPENDED) {
-			reason = _("Suspended (SHA1 checking)");
-		} else if (d->flags & DL_F_PAUSED) {
-			reason = _("Paused");
-		} else if (count_running_downloads() >= GNET_PROPERTY(max_downloads)) {
-			reason = _("Max. number of downloads reached");
-		} else if (
+	if (d->flags & DL_F_SUSPENDED) {
+		reason = _("Suspended (SHA1 checking)");
+	} else if (d->flags & DL_F_PAUSED) {
+		reason = _("Paused");
+	} else if (count_running_downloads() >= GNET_PROPERTY(max_downloads)) {
+		reason = _("Max. number of downloads reached");
+	} else if (
 			count_running_on_server(d->server)
-				>= GNET_PROPERTY(max_host_downloads)
-		) {
-			reason = _("Max. number of downloads for this host reached");
-		} else if (download_has_enough_active_sources(d)) {
-			reason = _("Has already enough active sources");
-		} else {
-			download_start(d, FALSE);		/* Start the download immediately */
-			return d;
-		}
-	
+			>= GNET_PROPERTY(max_host_downloads)
+			) {
+		reason = _("Max. number of downloads for this host reached");
+	} else if (download_has_enough_active_sources(d)) {
+		reason = _("Has already enough active sources");
+	} else {
+		reason = "download_start() failed";
+		download_start(d, FALSE);		/* Start the download immediately */
+	}
+
+	if (!DOWNLOAD_IS_RUNNING(d)) {
 		/* Ensure it has a time for status display */
 		d->retry_after = time_advance(tm_time(), (random_raw() % 4) + 1);
 		download_queue(d, "%s", reason);
@@ -4974,7 +4975,7 @@ create_download(
 	 * Record PARQ id if present, so we may answer QUEUE callbacks.
 	 */
 
-	if (parq_id) {
+	if (parq_id && !d->parq_dl) {
 		d->parq_dl = parq_dl_create(d);
 		parq_dl_add_id(d, parq_id);
 	}
