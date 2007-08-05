@@ -291,9 +291,9 @@ create_main_window (void)
   GtkObject *spinbutton_max_file_downloads_adj;
   GtkWidget *spinbutton_max_file_downloads;
   GtkWidget *vbox124;
+  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *frame_dl_autoclear;
   GtkWidget *vbox118;
-  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *checkbutton_dl_clear_complete;
   GtkWidget *checkbutton_dl_clear_failed;
   GtkWidget *checkbutton_dl_clear_unavailable;
@@ -2884,7 +2884,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_label (_("Remove file on mismatch"));
+  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_label (_("Delete file on mismatch"));
   gtk_widget_set_name (checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
   gtk_widget_ref (checkbutton_dl_remove_file_on_mismatch);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_remove_file_on_mismatch", checkbutton_dl_remove_file_on_mismatch,
@@ -2988,7 +2988,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_file_downloads), TRUE);
 
-  vbox124 = gtk_vbox_new (FALSE, 0);
+  vbox124 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox124, "vbox124");
   gtk_widget_ref (vbox124);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox124", vbox124,
@@ -2997,7 +2997,15 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox189), vbox124, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (vbox124), 4);
 
-  frame_dl_autoclear = gtk_frame_new (_("Auto clear stopped downloads"));
+  checkbutton_dl_clear_finished = gtk_check_button_new_with_label (_("Automatically clear finished files"));
+  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
+  gtk_widget_ref (checkbutton_dl_clear_finished);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_finished", checkbutton_dl_clear_finished,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_finished);
+  gtk_box_pack_start (GTK_BOX (vbox124), checkbutton_dl_clear_finished, FALSE, TRUE, 0);
+
+  frame_dl_autoclear = gtk_frame_new (_("Automatically clear sources when..."));
   gtk_widget_set_name (frame_dl_autoclear, "frame_dl_autoclear");
   gtk_widget_ref (frame_dl_autoclear);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_dl_autoclear", frame_dl_autoclear,
@@ -3014,37 +3022,29 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_dl_autoclear), vbox118);
   gtk_container_set_border_width (GTK_CONTAINER (vbox118), 2);
 
-  checkbutton_dl_clear_finished = gtk_check_button_new_with_label (_("Finished"));
-  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
-  gtk_widget_ref (checkbutton_dl_clear_finished);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_finished", checkbutton_dl_clear_finished,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_dl_clear_finished);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_finished, FALSE, FALSE, 0);
-
-  checkbutton_dl_clear_complete = gtk_check_button_new_with_label (_("Completed"));
+  checkbutton_dl_clear_complete = gtk_check_button_new_with_label (_("completed"));
   gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   gtk_widget_ref (checkbutton_dl_clear_complete);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_complete", checkbutton_dl_clear_complete,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_dl_clear_complete);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_complete, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_complete, FALSE, TRUE, 0);
 
-  checkbutton_dl_clear_failed = gtk_check_button_new_with_label (_("Failed"));
+  checkbutton_dl_clear_failed = gtk_check_button_new_with_label (_("failed"));
   gtk_widget_set_name (checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
   gtk_widget_ref (checkbutton_dl_clear_failed);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_failed", checkbutton_dl_clear_failed,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_dl_clear_failed);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_failed, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_failed, FALSE, TRUE, 0);
 
-  checkbutton_dl_clear_unavailable = gtk_check_button_new_with_label (_("Unavailable"));
+  checkbutton_dl_clear_unavailable = gtk_check_button_new_with_label (_("unavailable"));
   gtk_widget_set_name (checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
   gtk_widget_ref (checkbutton_dl_clear_unavailable);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_unavailable", checkbutton_dl_clear_unavailable,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_dl_clear_unavailable);
-  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_unavailable, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_dl_clear_unavailable, FALSE, TRUE, 0);
 
   label8009 = gtk_label_new (_("Settings"));
   gtk_widget_set_name (label8009, "label8009");

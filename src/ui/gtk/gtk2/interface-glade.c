@@ -14920,9 +14920,9 @@ create_main_window_downloads_tab (void)
   GtkObject *spinbutton_max_file_downloads_adj;
   GtkWidget *spinbutton_max_file_downloads;
   GtkWidget *vbox129;
+  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *frame85;
   GtkWidget *vbox130;
-  GtkWidget *checkbutton_dl_clear_finished;
   GtkWidget *checkbutton_dl_clear_complete;
   GtkWidget *checkbutton_dl_clear_failed;
   GtkWidget *checkbutton_dl_clear_unavailable;
@@ -15282,7 +15282,7 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_mismatch_backout), TRUE);
 
-  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_mnemonic (_("Remove file on mismatch"));
+  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_mnemonic (_("Delete file on mismatch"));
   gtk_widget_set_name (checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
   gtk_widget_show (checkbutton_dl_remove_file_on_mismatch);
   gtk_table_attach (GTK_TABLE (table95), checkbutton_dl_remove_file_on_mismatch, 2, 3, 3, 4,
@@ -15339,10 +15339,15 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_file_downloads), TRUE);
 
-  vbox129 = gtk_vbox_new (FALSE, 0);
+  vbox129 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox129, "vbox129");
   gtk_widget_show (vbox129);
   gtk_box_pack_start (GTK_BOX (hbox261), vbox129, FALSE, TRUE, 0);
+
+  checkbutton_dl_clear_finished = gtk_check_button_new_with_mnemonic (_("Automatically clear finished files"));
+  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
+  gtk_widget_show (checkbutton_dl_clear_finished);
+  gtk_box_pack_start (GTK_BOX (vbox129), checkbutton_dl_clear_finished, FALSE, FALSE, 0);
 
   frame85 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame85, "frame85");
@@ -15355,27 +15360,22 @@ create_main_window_downloads_tab (void)
   gtk_container_add (GTK_CONTAINER (frame85), vbox130);
   gtk_container_set_border_width (GTK_CONTAINER (vbox130), 2);
 
-  checkbutton_dl_clear_finished = gtk_check_button_new_with_mnemonic (_("Finished"));
-  gtk_widget_set_name (checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
-  gtk_widget_show (checkbutton_dl_clear_finished);
-  gtk_box_pack_start (GTK_BOX (vbox130), checkbutton_dl_clear_finished, FALSE, FALSE, 0);
-
-  checkbutton_dl_clear_complete = gtk_check_button_new_with_mnemonic (_("Completed"));
+  checkbutton_dl_clear_complete = gtk_check_button_new_with_mnemonic (_("completed"));
   gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   gtk_widget_show (checkbutton_dl_clear_complete);
   gtk_box_pack_start (GTK_BOX (vbox130), checkbutton_dl_clear_complete, FALSE, FALSE, 0);
 
-  checkbutton_dl_clear_failed = gtk_check_button_new_with_mnemonic (_("Failed"));
+  checkbutton_dl_clear_failed = gtk_check_button_new_with_mnemonic (_("failed"));
   gtk_widget_set_name (checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
   gtk_widget_show (checkbutton_dl_clear_failed);
   gtk_box_pack_start (GTK_BOX (vbox130), checkbutton_dl_clear_failed, FALSE, FALSE, 0);
 
-  checkbutton_dl_clear_unavailable = gtk_check_button_new_with_mnemonic (_("Unavailable"));
+  checkbutton_dl_clear_unavailable = gtk_check_button_new_with_mnemonic (_("unavailable"));
   gtk_widget_set_name (checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
   gtk_widget_show (checkbutton_dl_clear_unavailable);
   gtk_box_pack_start (GTK_BOX (vbox130), checkbutton_dl_clear_unavailable, FALSE, FALSE, 0);
 
-  label724 = gtk_label_new (_("Auto clear stopped downloads"));
+  label724 = gtk_label_new (_("Automatically clear sources when..."));
   gtk_widget_set_name (label724, "label724");
   gtk_widget_show (label724);
   gtk_frame_set_label_widget (GTK_FRAME (frame85), label724);
@@ -15689,9 +15689,9 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, spinbutton_max_file_downloads, "spinbutton_max_file_downloads");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox129, "vbox129");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame85, "frame85");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox130, "vbox130");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_finished, "checkbutton_dl_clear_finished");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");

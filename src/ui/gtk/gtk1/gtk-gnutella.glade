@@ -3451,7 +3451,7 @@
 				<class>GtkCheckButton</class>
 				<name>checkbutton_dl_remove_file_on_mismatch</name>
 				<can_focus>True</can_focus>
-				<label>Remove file on mismatch</label>
+				<label>Delete file on mismatch</label>
 				<active>False</active>
 				<draw_indicator>True</draw_indicator>
 				<child>
@@ -3710,7 +3710,7 @@
 			    <name>vbox124</name>
 			    <border_width>4</border_width>
 			    <homogeneous>False</homogeneous>
-			    <spacing>0</spacing>
+			    <spacing>2</spacing>
 			    <child>
 			      <padding>0</padding>
 			      <expand>False</expand>
@@ -3718,9 +3718,23 @@
 			    </child>
 
 			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_dl_clear_finished</name>
+			      <can_focus>True</can_focus>
+			      <label>Automatically clear finished files</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>True</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
 			      <class>GtkFrame</class>
 			      <name>frame_dl_autoclear</name>
-			      <label>Auto clear stopped downloads</label>
+			      <label>Automatically clear sources when...</label>
 			      <label_xalign>0</label_xalign>
 			      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 			      <child>
@@ -3738,29 +3752,15 @@
 
 				<widget>
 				  <class>GtkCheckButton</class>
-				  <name>checkbutton_dl_clear_finished</name>
-				  <can_focus>True</can_focus>
-				  <label>Finished</label>
-				  <active>False</active>
-				  <draw_indicator>True</draw_indicator>
-				  <child>
-				    <padding>0</padding>
-				    <expand>False</expand>
-				    <fill>False</fill>
-				  </child>
-				</widget>
-
-				<widget>
-				  <class>GtkCheckButton</class>
 				  <name>checkbutton_dl_clear_complete</name>
 				  <can_focus>True</can_focus>
-				  <label>Completed</label>
+				  <label>completed</label>
 				  <active>False</active>
 				  <draw_indicator>True</draw_indicator>
 				  <child>
 				    <padding>0</padding>
 				    <expand>False</expand>
-				    <fill>False</fill>
+				    <fill>True</fill>
 				  </child>
 				</widget>
 
@@ -3768,13 +3768,13 @@
 				  <class>GtkCheckButton</class>
 				  <name>checkbutton_dl_clear_failed</name>
 				  <can_focus>True</can_focus>
-				  <label>Failed</label>
+				  <label>failed</label>
 				  <active>False</active>
 				  <draw_indicator>True</draw_indicator>
 				  <child>
 				    <padding>0</padding>
 				    <expand>False</expand>
-				    <fill>False</fill>
+				    <fill>True</fill>
 				  </child>
 				</widget>
 
@@ -3782,13 +3782,13 @@
 				  <class>GtkCheckButton</class>
 				  <name>checkbutton_dl_clear_unavailable</name>
 				  <can_focus>True</can_focus>
-				  <label>Unavailable</label>
+				  <label>unavailable</label>
 				  <active>False</active>
 				  <draw_indicator>True</draw_indicator>
 				  <child>
 				    <padding>0</padding>
 				    <expand>False</expand>
-				    <fill>False</fill>
+				    <fill>True</fill>
 				  </child>
 				</widget>
 			      </widget>

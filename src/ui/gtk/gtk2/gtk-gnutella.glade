@@ -29540,7 +29540,7 @@ message</property>
 				    <widget class="GtkCheckButton" id="checkbutton_dl_remove_file_on_mismatch">
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
-				      <property name="label" translatable="yes">Remove file on mismatch</property>
+				      <property name="label" translatable="yes">Delete file on mismatch</property>
 				      <property name="use_underline">True</property>
 				      <property name="relief">GTK_RELIEF_NORMAL</property>
 				      <property name="focus_on_click">True</property>
@@ -29712,7 +29712,26 @@ message</property>
 				<widget class="GtkVBox" id="vbox129">
 				  <property name="visible">True</property>
 				  <property name="homogeneous">False</property>
-				  <property name="spacing">0</property>
+				  <property name="spacing">2</property>
+
+				  <child>
+				    <widget class="GtkCheckButton" id="checkbutton_dl_clear_finished">
+				      <property name="visible">True</property>
+				      <property name="can_focus">True</property>
+				      <property name="label" translatable="yes">Automatically clear finished files</property>
+				      <property name="use_underline">True</property>
+				      <property name="relief">GTK_RELIEF_NORMAL</property>
+				      <property name="focus_on_click">True</property>
+				      <property name="active">False</property>
+				      <property name="inconsistent">False</property>
+				      <property name="draw_indicator">True</property>
+				    </widget>
+				    <packing>
+				      <property name="padding">0</property>
+				      <property name="expand">False</property>
+				      <property name="fill">False</property>
+				    </packing>
+				  </child>
 
 				  <child>
 				    <widget class="GtkFrame" id="frame85">
@@ -29729,29 +29748,10 @@ message</property>
 					  <property name="spacing">2</property>
 
 					  <child>
-					    <widget class="GtkCheckButton" id="checkbutton_dl_clear_finished">
-					      <property name="visible">True</property>
-					      <property name="can_focus">True</property>
-					      <property name="label" translatable="yes">Finished</property>
-					      <property name="use_underline">True</property>
-					      <property name="relief">GTK_RELIEF_NORMAL</property>
-					      <property name="focus_on_click">True</property>
-					      <property name="active">False</property>
-					      <property name="inconsistent">False</property>
-					      <property name="draw_indicator">True</property>
-					    </widget>
-					    <packing>
-					      <property name="padding">0</property>
-					      <property name="expand">False</property>
-					      <property name="fill">False</property>
-					    </packing>
-					  </child>
-
-					  <child>
 					    <widget class="GtkCheckButton" id="checkbutton_dl_clear_complete">
 					      <property name="visible">True</property>
 					      <property name="can_focus">True</property>
-					      <property name="label" translatable="yes">Completed</property>
+					      <property name="label" translatable="yes">completed</property>
 					      <property name="use_underline">True</property>
 					      <property name="relief">GTK_RELIEF_NORMAL</property>
 					      <property name="focus_on_click">True</property>
@@ -29770,7 +29770,7 @@ message</property>
 					    <widget class="GtkCheckButton" id="checkbutton_dl_clear_failed">
 					      <property name="visible">True</property>
 					      <property name="can_focus">True</property>
-					      <property name="label" translatable="yes">Failed</property>
+					      <property name="label" translatable="yes">failed</property>
 					      <property name="use_underline">True</property>
 					      <property name="relief">GTK_RELIEF_NORMAL</property>
 					      <property name="focus_on_click">True</property>
@@ -29789,7 +29789,7 @@ message</property>
 					    <widget class="GtkCheckButton" id="checkbutton_dl_clear_unavailable">
 					      <property name="visible">True</property>
 					      <property name="can_focus">True</property>
-					      <property name="label" translatable="yes">Unavailable</property>
+					      <property name="label" translatable="yes">unavailable</property>
 					      <property name="use_underline">True</property>
 					      <property name="relief">GTK_RELIEF_NORMAL</property>
 					      <property name="focus_on_click">True</property>
@@ -29809,7 +29809,7 @@ message</property>
 				      <child>
 					<widget class="GtkLabel" id="label724">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">Auto clear stopped downloads</property>
+					  <property name="label" translatable="yes">Automatically clear sources when...</property>
 					  <property name="use_underline">False</property>
 					  <property name="use_markup">False</property>
 					  <property name="justify">GTK_JUSTIFY_LEFT</property>
