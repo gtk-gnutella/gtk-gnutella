@@ -55,8 +55,8 @@ RCSID("$Id$")
  * should be used to access this struct member.
  */
 #if defined(HAS_KEVENT_INT_UDATA)
-#define KEVENT_UDATA_TO_PTR(x) cast_uintptr_to_ptr(x)
-#define PTR_TO_KEVENT_UDATA(x) cast_ptr_to_uintptr(x)
+#define KEVENT_UDATA_TO_PTR(x) ulong_to_pointer(x)
+#define PTR_TO_KEVENT_UDATA(x) pointer_to_ulong(x)
 #else
 #define KEVENT_UDATA_TO_PTR(x) (x)
 #define PTR_TO_KEVENT_UDATA(x) (x)
@@ -189,7 +189,7 @@ static inline gint
 get_poll_event_fd(gpointer p)
 {
 	struct kevent *ev = p;
-	return GPOINTER_TO_INT(KEVENT_UDATA_TO_PTR(ev->udata));
+	return pointer_to_uint(KEVENT_UDATA_TO_PTR(ev->udata));
 }
 
 static inline inputevt_cond_t 

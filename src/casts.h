@@ -90,26 +90,32 @@ cast_to_guchar_ptr(gpointer p)
 	return p;
 }
 
-/**
- * FIXME: Use uintptr_t if available.
- */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gulong
-cast_ptr_to_uintptr(gpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+uint_to_pointer(unsigned u)
 {
-	gulong u = (gulong) p;
-	STATIC_ASSERT(sizeof u >= sizeof p);
+	void *p = (void *) (size_t) u;
+	return p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned
+pointer_to_uint(void *p)
+{
+	unsigned u = (size_t) p;
 	return u;
 }
 
-/**
- * FIXME: Use uintptr_t if available.
- */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gpointer
-cast_uintptr_to_ptr(gulong u)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+ulong_to_pointer(unsigned long u)
 {
-	gpointer p = (gpointer) u;
-	STATIC_ASSERT(sizeof p >= sizeof u);
+	void *p = (void *) (size_t) u;
 	return p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned long
+pointer_to_ulong(void *p)
+{
+	unsigned long u = (size_t) p;
+	return u;
 }
 
 typedef void (*func_ptr_t)(void);
