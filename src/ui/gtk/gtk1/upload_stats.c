@@ -159,7 +159,9 @@ upload_stats_gui_add(const struct ul_stats *us)
 	gtk_clist_set_row_data_full(clist, row, deconstify_gpointer(us), NULL);
 
     /* FIXME: should use auto_sort? */
-	gtk_clist_sort(clist);
+	if (0 == clist->freeze_count) {
+		gtk_clist_sort(clist);
+	}
 }
 
 
@@ -191,7 +193,9 @@ upload_stats_gui_update(const struct ul_stats *us)
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
 
 	/* FIXME: use auto-sort? */
-	gtk_clist_sort(clist);
+	if (0 == clist->freeze_count) {
+		gtk_clist_sort(clist);
+	}
 }
 
 void
@@ -210,7 +214,13 @@ upload_stats_gui_freeze(void)
 void
 upload_stats_gui_thaw(void)
 {
-	gtk_clist_thaw(clist_ul_stats());
+	GtkCList *clist = clist_ul_stats();
+
+	g_return_if_fail(clist);
+	gtk_clist_thaw(clist);
+	if (0 == clist->freeze_count) {
+		gtk_clist_sort(clist);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
