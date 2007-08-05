@@ -91,31 +91,39 @@ cast_to_guchar_ptr(gpointer p)
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
-uint_to_pointer(unsigned u)
+ulong_to_pointer(unsigned long value)
 {
-	void *p = (void *) (size_t) u;
-	return p;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned
-pointer_to_uint(void *p)
-{
-	unsigned u = (size_t) p;
-	return u;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
-ulong_to_pointer(unsigned long u)
-{
-	void *p = (void *) (size_t) u;
-	return p;
+	return (void *) value;
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned long
 pointer_to_ulong(void *p)
 {
-	unsigned long u = (size_t) p;
-	return u;
+	return (unsigned long) p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+uint_to_pointer(unsigned value)
+{
+	return ulong_to_pointer(value);
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned
+pointer_to_uint(void *p)
+{
+	return pointer_to_ulong(p);
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+int_to_pointer(int value)
+{
+	return uint_to_pointer(value);
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE int
+pointer_to_int(void *p)
+{
+	return pointer_to_uint(p);
 }
 
 typedef void (*func_ptr_t)(void);
