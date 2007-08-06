@@ -40,13 +40,16 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 	
-	shell_set_msg(sh, _("Shutdown sequence initiated."));
 	/*
 	 * Don't use gtk_gnutella_exit() because we want to at least send
 	 * some feedback before terminating. 
 	 */
 	gtk_gnutella_request_shutdown();
-	return REPLY_READY;
+
+	shell_write(sh, "100 Shutdown sequence initiated.\n");
+	shell_shutdown(sh);
+
+	return REPLY_NONE;
 }
 
 const char *
