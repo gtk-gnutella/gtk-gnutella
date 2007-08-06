@@ -1570,6 +1570,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		s->pos += r;
 	}
 
+	if (!s->getline) {
+		s->getline = getline_make(MAX_LINE_SIZE);
+	}
+
 	/*
 	 * Get first line.
 	 */
@@ -1742,6 +1746,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		NULL != (endptr = is_strprefix(first, "HELO")) &&
 		(is_ascii_space(endptr[0]) || '\0' == endptr[0])
 	) {
+		getline_set_maxlen(s->getline, SHELL_MAX_LINE_SIZE);
         shell_add(s);
 	} else
 		goto unknown;
@@ -2132,7 +2137,6 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	t->file_desc = fd;
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
-	t->getline = getline_make(MAX_LINE_SIZE);
 
 	if (SOCK_F_TCP & s->flags) {
 		t->addr = socket_addr_get_addr(&addr);

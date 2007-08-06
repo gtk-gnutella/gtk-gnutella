@@ -30,6 +30,8 @@
 
 struct gnutella_socket;
 
+#define SHELL_MAX_LINE_SIZE	(16*1024)	/**< Maximum length for a shell line */
+
 void shell_init(void);
 void shell_close(void);
 
