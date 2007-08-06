@@ -4965,7 +4965,7 @@ create_download(
 		download_start(d, FALSE);		/* Start the download immediately */
 	}
 
-	if (!DOWNLOAD_IS_RUNNING(d)) {
+	if (GTA_DL_INVALID == d->status) {
 		/* Ensure it has a time for status display */
 		d->retry_after = time_advance(tm_time(), (random_raw() % 4) + 1);
 		download_queue(d, "%s", reason);
