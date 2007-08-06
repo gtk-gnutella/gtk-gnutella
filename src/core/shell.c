@@ -487,7 +487,7 @@ shell_read_data(struct gnutella_shell *sh)
 
 	shell_check(sh);
 	g_assert(sh->socket->getline);
-	g_return_if_fail(!sh->shutdown);
+	g_assert(!sh->shutdown);
 
 	sh->last_update = tm_time();
 	s = sh->socket;
@@ -504,13 +504,13 @@ shell_read_data(struct gnutella_shell *sh)
 				if (GNET_PROPERTY(shell_debug)) {
 					g_message("shell connection closed: EOF");
 				}
-				shell_destroy(sh);
+				shell_shutdown(sh);
 				goto finish;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Receiving data failed: %s\n", g_strerror(errno));
-				shell_destroy(sh);
+				shell_shutdown(sh);
 				goto finish;
 			}
 		} else {
@@ -603,7 +603,7 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 			goto finish;
 	}
 
-	if (cond & INPUT_EVENT_R) {
+	if ((cond & INPUT_EVENT_R) && !sh->shutdown) {
 		shell_read_data(sh);
 	}
 
