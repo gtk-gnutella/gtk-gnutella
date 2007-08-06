@@ -373,28 +373,9 @@ shell_cmd_get_handler(const char *cmd)
 		const char * const cmd;
 		shell_cmd_handler_t handler;
 	} commands[] = {
-#define CMD(x)	{ #x, shell_exec_ ## x }
-		CMD(download),
-		CMD(downloads),
-		CMD(help),
-		CMD(horizon),
-		CMD(intr),
-		CMD(node),
-		CMD(quit),
-		CMD(nodes),
-		CMD(offline),
-		CMD(online),
-		CMD(print),
-		CMD(props),
-		CMD(quit),
-		CMD(rescan),
-		CMD(search),
-		CMD(set),
-		CMD(shutdown),
-		CMD(status),
-		CMD(uploads),
-		CMD(whatis),
-#undef CMD
+#define SHELL_CMD(x)	{ #x, shell_exec_ ## x },
+#include "shell_cmd.inc"
+#undef	SHELL_CMD 
 	};
 	size_t i;
 
@@ -506,6 +487,7 @@ shell_read_data(struct gnutella_shell *sh)
 
 	shell_check(sh);
 	g_assert(sh->socket->getline);
+	g_return_if_fail(!sh->shutdown);
 
 	sh->last_update = tm_time();
 	s = sh->socket;
@@ -523,13 +505,13 @@ shell_read_data(struct gnutella_shell *sh)
 					g_message("shell connection closed: EOF");
 				}
 				shell_destroy(sh);
-				return;
+				goto finish;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
 				g_warning("Receiving data failed: %s\n", g_strerror(errno));
 				shell_destroy(sh);
-				return;
+				goto finish;
 			}
 		} else {
 			s->pos += ret;
@@ -544,8 +526,9 @@ shell_read_data(struct gnutella_shell *sh)
 		case READ_OVERFLOW:
 			g_warning("Line is too long (from shell at %s)\n",
 				host_addr_port_to_string(s->addr, s->port));
-			shell_destroy(sh);
-			return;
+			shell_write(sh, "400 Line is too long.\n");
+			shell_shutdown(sh);
+			goto finish;
 		case READ_DONE:
 			if (s->pos != parsed)
 				memmove(s->buf, &s->buf[parsed], s->pos - parsed);
@@ -554,7 +537,7 @@ shell_read_data(struct gnutella_shell *sh)
 		case READ_MORE:
 			g_assert(parsed == s->pos);
 			s->pos = 0;
-			return;
+			goto finish;
 		}
 
 		/*
@@ -589,8 +572,12 @@ shell_read_data(struct gnutella_shell *sh)
 
 		shell_set_msg(sh, NULL);
 		getline_reset(s->getline);
+		if (sh->shutdown)
+			goto finish;
 	}
 
+finish:
+	return;
 }
 
 /**
@@ -610,19 +597,20 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh))
+	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh)) {
 		shell_write_data(sh);
-
-	if (sh->shutdown) {
-		if (!shell_has_pending_output(sh)) {
-			shell_destroy(sh);
-		}
-		return;
+		if (sh->shutdown)
+			goto finish;
 	}
 
-	if (cond & INPUT_EVENT_R)
+	if (cond & INPUT_EVENT_R) {
 		shell_read_data(sh);
+	}
 
+finish:
+	if (sh->shutdown && !shell_has_pending_output(sh)) {
+		shell_destroy(sh);
+	}
 }
 
 
