@@ -759,24 +759,45 @@ downloads_gui_update_popup_sources(void)
 	} \
 }
 
+static inline struct download *
+selected_files_foreach_first(struct fileinfo_data *file)
+{
+	struct download *d;
+	
+	g_return_val_if_fail(file, NULL);
+
+	/* NOTE: Traverse back-to-front because new items are appended */
+	d = file->downloads ? hash_list_tail(file->downloads) : NULL;
+	if (d) {
+		download_check(d);
+	}
+	return d;
+}
+
+static inline struct download *
+selected_files_foreach_next(struct fileinfo_data *file, struct download *d)
+{
+	g_return_val_if_fail(file, NULL);
+	g_return_val_if_fail(d, NULL);
+	download_check(d);
+
+	/* NOTE: Traverse back-to-front because new items are appended */
+	d = file->downloads ? hash_list_previous(file->downloads, d) : NULL;
+	if (d) {
+		download_check(d);
+	}
+	return d;
+}
 
 #define SELECTED_FILES_FOREACH_SOURCE_START(item) \
 SELECTED_FILES_FOREACH_START(file_) { \
-	if (file_->downloads) { \
-		hash_list_iter_t *source_iter_; \
-		source_iter_ = hash_list_iterator(file_->downloads); \
-		for (;;) { \
-			struct download *item; \
-			if (!hash_list_iter_has_next(source_iter_)) { \
-				hash_list_iter_release(&source_iter_); \
-				break; \
-			} \
-			item = hash_list_iter_next(source_iter_); \
-			download_check(item);
+	struct download *item, *next_; \
+	next_ = selected_files_foreach_first(file_); \
+	while (next_) { \
+		item = next_; \
+		next_ = selected_files_foreach_next(file_, next_); \
 
-			
 #define SELECTED_FILES_FOREACH_SOURCE_END \
-		} \
 	} \
 } SELECTED_FILES_FOREACH_END
 
@@ -1309,6 +1330,11 @@ fi_gui_add_download(struct download *d)
 		file->downloads = hash_list_new(NULL, NULL);
 	}
 	g_return_if_fail(!hash_list_contains(file->downloads, d, NULL));
+
+	/* 
+	 * NOTE: Always append items so that we can jump through the hashlist with
+	 * hash_list_previous().
+	 */
 	hash_list_append(file->downloads, d);
 
 	if (last_shown_valid && last_shown == file->handle) {
