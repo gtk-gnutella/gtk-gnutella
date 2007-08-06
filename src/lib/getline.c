@@ -70,6 +70,13 @@ getline_make(size_t maxlen)
 	return o;
 }
 
+void
+getline_set_maxlen(getline_t *o, size_t maxlen)
+{
+	g_assert(o);
+	o->maxlen = MAX(o->maxlen, maxlen);
+}
+
 /**
  * Destroy getline object.
  */
