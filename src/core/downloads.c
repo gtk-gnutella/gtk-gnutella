@@ -4134,8 +4134,12 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
-	if (download_queue_is_frozen())
+	if (download_queue_is_frozen()) {
+		if (!DOWNLOAD_IS_QUEUED(d)) {
+			download_queue(d, _("Download queue is frozen"));
+		}
 		return;
+	}
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
