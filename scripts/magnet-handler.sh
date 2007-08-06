@@ -11,7 +11,7 @@
 # This script should have execute permissions.  Ie, chmod +x.
 
 # Make sure that there is only one argument and that it starts
-# either with "magnet:?" or "http://".
+# with "magnet:".
 
 scheme=
 case "$1" in
@@ -30,14 +30,18 @@ fi
 GTK_GNUTELLA_DIR=${GTK_GNUTELLA_DIR-$HOME/.gtk-gnutella}
 export GTK_GNUTELLA_DIR
 
-# gtk-gnutella may not be installed or local_shell.c might have been
-# compiled as a standalone.  Allow some way to over-ride default.
-
 # Don't do anything if GTKG is not running.
-gtk-gnutella --ping || exit 1
+gtk-gnutella --ping || {
+   echo 'gtk-gnutella is not running.' >&2
+   exit 1
+}
+
+# Special characters in the URL must not be parsed as quotes or escapes.
+url="`printf '%s' "$1" |sed 's,",%22,g' |sed "s,',%27,g" |sed 's,\\\\,%5c,g'`"
 
 # Send a shell command to download the magnet URL.
 cat <<EOF | exec gtk-gnutella --shell
-download add "$1"
+intr
+download add "$url"
 EOF
 
