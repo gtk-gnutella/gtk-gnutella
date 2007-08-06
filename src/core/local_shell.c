@@ -400,9 +400,11 @@ local_shell_mainloop(int fd)
 			 * the shell would not terminate before another write()
 			 * (which should gain 0 or EPIPE) is attempted.
 			 */
-			if (0 == client.fill || server.hup) {
-				return 0;
+			if (client.fill > 0) {
+				fprintf(stderr, "Server hung up unexpectedly!\n");
+				return -1;
 			}
+			return 0;
 		}
 		if (client.eof && 0 == client.fill) {
 			if ((server.eof && 0 == server.fill) || client.hup) {
