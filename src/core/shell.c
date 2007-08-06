@@ -466,11 +466,6 @@ shell_write_data(struct gnutella_shell *sh)
 		pmsg_slist_discard(sh->output, written);
 	}
 
-	if (!shell_has_pending_output(sh)) {
-		socket_evt_clear(sh->socket);
-		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
-	}
-	
 done:
 	G_FREE_NULL(iov);
 	return;
@@ -599,8 +594,6 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 
 	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh)) {
 		shell_write_data(sh);
-		if (sh->shutdown)
-			goto finish;
 	}
 
 	if ((cond & INPUT_EVENT_R) && !sh->shutdown) {
@@ -608,8 +601,13 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 	}
 
 finish:
-	if (sh->shutdown && !shell_has_pending_output(sh)) {
-		shell_destroy(sh);
+	if (!shell_has_pending_output(sh)) {
+		if (sh->shutdown) {
+			shell_destroy(sh);
+		} else {
+			socket_evt_clear(sh->socket);
+			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+		}
 	}
 }
 
