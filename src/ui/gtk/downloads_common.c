@@ -53,7 +53,6 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define IO_STALLED		60	/**< If nothing exchanged after that many secs */
-#define IO_AVG_RATE		5	/**< Compute global recv rate every 5 secs */
 
 struct fileinfo_data {
 	const char *filename;	/* atom */
