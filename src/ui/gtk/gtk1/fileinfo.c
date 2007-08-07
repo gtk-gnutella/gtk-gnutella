@@ -111,19 +111,11 @@ fi_gui_get_file_at_cursor(void)
 static void
 cursor_expire(cqueue_t *unused_cq, gpointer unused_udata)
 {
-	struct fileinfo_data *file;
-
 	(void) unused_cq;
 	(void) unused_udata;
 
 	cursor_ev = NULL;
-
-	file = fi_gui_get_file_at_cursor();
-	if (file) {
-		fi_gui_set_details(file);
-	}
-	downloads_gui_update_popup_downloads();
-	downloads_gui_update_popup_sources();
+	fi_gui_files_cursor_update();
 }
 
 static void

@@ -393,17 +393,10 @@ static void
 on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 	void *unused_udata)
 {
-	struct fileinfo_data *file;
-
 	(void) unused_tv;
 	(void) unused_udata;
 
-	fi_gui_clear_info();
-	file = fi_gui_get_file_at_cursor();
-	if (file) {
-		fi_gui_show_info(file);
-	}
-	downloads_gui_update_popup_downloads();
+	fi_gui_files_cursor_update();
 }
 
 void
@@ -874,8 +867,13 @@ fi_gui_files_thaw(void)
 void
 fi_gui_clear_details(void)
 {
+	GtkTreeModel *model;
+
 	g_return_if_fail(treeview_download_details);
-    gtk_list_store_clear(treeview_download_details);
+    model = gtk_tree_view_get_model(treeview_download_details);
+	g_return_if_fail(model);
+
+    gtk_list_store_clear(GTK_LIST_STORE(model));
 }
 
 void

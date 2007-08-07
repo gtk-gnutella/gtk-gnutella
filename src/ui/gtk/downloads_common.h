@@ -31,9 +31,6 @@
 
 #include "lib/misc.h"
 
-void downloads_gui_update_popup_downloads(void);
-void downloads_gui_update_popup_sources(void);
-
 void fi_gui_add_download(struct download *);
 void fi_gui_remove_download(struct download *);
 void fi_gui_download_set_status(struct download *);
@@ -96,9 +93,7 @@ const char *fi_gui_source_column_text(const struct download *, int column);
 
 void fi_gui_file_update_visibility(struct fileinfo_data *file);
 void fi_gui_files_visualize(void);
-
-void fi_gui_clear_set_info(struct fileinfo_data *file);
-void fi_gui_clear_info(void);
+void fi_gui_files_cursor_update(void);
 
 int fileinfo_data_cmp(const struct fileinfo_data *,
 	const struct fileinfo_data *, int column);

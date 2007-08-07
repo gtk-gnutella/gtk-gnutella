@@ -684,7 +684,7 @@ update_popup_downloads_copy_magnet(void)
 		NULL != fi_gui_get_file_at_cursor());
 }
 
-void
+static void
 downloads_gui_update_popup_downloads(void)
 {
 	update_popup_downloads_start_now();
@@ -702,7 +702,7 @@ update_popup_downloads_copy_url(void)
 		NULL != fi_gui_get_source_at_cursor());
 }
 
-void
+static void
 downloads_gui_update_popup_sources(void)
 {
 	update_popup_downloads_copy_url();
@@ -1260,7 +1260,7 @@ fi_gui_file_remove(struct fileinfo_data *file)
 	fi_gui_file_free(file);
 }
 
-void
+static void
 fi_gui_clear_info(void)
 {
 	fi_gui_clear_details();
@@ -1373,7 +1373,7 @@ fi_gui_set_sources(struct fileinfo_data *file)
 	downloads_gui_update_popup_sources();
 }
 
-void
+static void
 fi_gui_show_info(struct fileinfo_data *file)
 {
     gnet_fi_info_t *info;
@@ -1393,6 +1393,21 @@ fi_gui_show_info(struct fileinfo_data *file)
     last_shown = file->handle;
     last_shown_valid = TRUE;
 	vp_draw_fi_progress(last_shown_valid, last_shown);
+}
+
+void
+fi_gui_files_cursor_update(void)
+{
+	struct fileinfo_data *file;
+
+	file = fi_gui_get_file_at_cursor();
+	if (file) {
+		fi_gui_show_info(file);
+	} else {
+		fi_gui_clear_info();
+	}
+	downloads_gui_update_popup_downloads();
+	downloads_gui_update_popup_sources();
 }
 
 static void
