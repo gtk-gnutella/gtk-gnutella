@@ -35,17 +35,11 @@
 
 #include "gtk/gui.h"
 
-#include "interface-glade.h"
-#if !GTK_CHECK_VERSION(2,5,0)
-#include "pbarcellrenderer.h"
-#endif
-
 #include "gtk/uploads.h"
 #include "gtk/uploads_common.h"
 #include "gtk/columns.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
-#include "gtk/notebooks.h"
 #include "gtk/settings.h"
 
 #include "if/gui_property.h"
@@ -62,19 +56,17 @@
 
 RCSID("$Id$")
 
-#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
+static gboolean uploads_remove_lock;
+static gboolean uploads_shutting_down;
 
-static gboolean uploads_remove_lock = FALSE;
-static gboolean uploads_shutting_down = FALSE;
-
-static GtkTreeView *treeview_uploads = NULL;
-static GtkListStore *store_uploads = NULL;
-static GtkWidget *button_uploads_clear_completed = NULL;
+static GtkTreeView *treeview_uploads;
+static GtkListStore *store_uploads;
+static GtkWidget *button_uploads_clear_completed;
 
 /** hash table for fast handle -> GtkTreeIter mapping */
-static GHashTable *upload_handles = NULL;
+static GHashTable *upload_handles;
 /** list of all *removed* uploads; contains the handles */
-static GSList *sl_removed_uploads = NULL;
+static GSList *sl_removed_uploads;
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
@@ -152,13 +144,9 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
  * try to use the handle to communicate with the backend.
  */
 static void
-upload_removed(gnet_upload_t uh, const gchar *reason,
-		guint32 running, guint32 registered)
+upload_removed(gnet_upload_t uh, const gchar *reason)
 {
-    upload_row_data_t *rd = NULL;
-
-	(void) running;
-	(void) registered;
+    upload_row_data_t *rd;
 
     /* Invalidate row and remove it from the GUI if autoclear is on */
 	rd = find_upload(uh);
@@ -180,12 +168,9 @@ upload_removed(gnet_upload_t uh, const gchar *reason,
  * Adds the upload to the gui.
  */
 static void
-upload_added(gnet_upload_t n, guint32 running, guint32 registered)
+upload_added(gnet_upload_t n)
 {
     gnet_upload_info_t *info;
-
-	(void) running;
-	(void) registered;
 
     info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
@@ -206,13 +191,9 @@ uploads_gui_get_row_data(gnet_upload_t uhandle)
  * This updates the upload information in the gui.
  */
 static void
-upload_info_changed(gnet_upload_t u,
-    guint32 running, guint32 registered)
+upload_info_changed(gnet_upload_t u)
 {
     gnet_upload_info_t *info;
-
-	(void) running;
-	(void) registered;
 
     info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
@@ -558,12 +539,12 @@ uploads_gui_init(void)
 	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
 	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
-	for (i = 0; i < G_N_ELEMENTS(cols); i++)
+	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
 		add_column(cols[i].id, cols[i].sortfunc,
 			c_ul_progress == cols[i].id
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
-
+	}
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 
@@ -638,54 +619,33 @@ update_row(gpointer key, gpointer data, gpointer unused_udata)
 void
 uploads_gui_update_display(time_t now)
 {
-    static time_t last_update;
-	gint current_page;
-	static GtkNotebook *notebook = NULL;
+   	static gboolean locked = FALSE;
+	remove_row_ctx_t ctx;
 
-	/*
-	 * Usually don't perform updates if nobody is watching.  However,
-	 * we do need to perform periodic cleanup of dead entries or the
-	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
-	 * at least.
-	 *		--RAM, 28/12/2003
-	 */
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-	if (
-		current_page != nb_main_page_uploads &&
-		delta_time(now, last_update) < UPDATE_MIN
-	) {
+	if (!uploads_gui_update_required(now))
 		return;
-	}
 
-    if (last_update != now) {
-    	static gboolean locked = FALSE;
-		remove_row_ctx_t ctx;
+	ctx.force = FALSE;
+	ctx.now = now;
+	ctx.sl_remaining = NULL;
 
-    	last_update = now;
-		ctx.force = FALSE;
-		ctx.now = now;
-		ctx.sl_remaining = NULL;
+	g_return_if_fail(!locked);
+	locked = TRUE;
 
-		g_return_if_fail(!locked);
-		locked = TRUE;
+	g_object_freeze_notify(G_OBJECT(treeview_uploads));
+	/* Remove all rows with `removed' uploads. */
+	G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
+	g_slist_free(sl_removed_uploads);
+	sl_removed_uploads = ctx.sl_remaining;
 
-		/* Remove all rows with `removed' uploads. */
-		G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
-		g_slist_free(sl_removed_uploads);
-		sl_removed_uploads = ctx.sl_remaining;
+	/* Update the status column for all active uploads. */
+	g_hash_table_foreach(upload_handles, update_row, NULL);
+	g_object_thaw_notify(G_OBJECT(treeview_uploads));
 
-		/* Update the status column for all active uploads. */
-		g_hash_table_foreach(upload_handles, update_row, NULL);
+	gtk_widget_set_sensitive(button_uploads_clear_completed,
+		NULL != sl_removed_uploads);
 
-		if (NULL == sl_removed_uploads)
-			gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
-
-		locked = FALSE;
-	}
+	locked = FALSE;
 }
 
 static gboolean
@@ -700,6 +660,7 @@ uploads_clear_helper(gpointer user_data)
 	if (uploads_shutting_down)
 		return FALSE; /* Finished. */
 
+	g_object_freeze_notify(G_OBJECT(treeview_uploads));
 	/* Remove all rows with `removed' uploads. */
 
 	G_SLIST_FOREACH_WITH_DATA(sl_removed_uploads, remove_row, &ctx);
@@ -715,6 +676,8 @@ uploads_clear_helper(gpointer user_data)
 			break;
 		}
     }
+	g_object_thaw_notify(G_OBJECT(treeview_uploads));
+
 	/* The elements' data has been freed or is now referenced
 	 * by ctx->remaining. */
 	g_slist_free(sl_removed_uploads);

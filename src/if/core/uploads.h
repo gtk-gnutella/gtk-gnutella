@@ -128,12 +128,9 @@ struct ul_stats {
 /*
  * Uploads callback definitions
  */
-typedef void (*upload_added_listener_t) (
-    gnet_upload_t, guint32, guint32);
-typedef void (*upload_removed_listener_t) (
-    gnet_upload_t, const gchar *, guint32, guint32);
-typedef void (*upload_info_changed_listener_t) (
-    gnet_upload_t, guint32, guint32);
+typedef void (*upload_added_listener_t)(gnet_upload_t);
+typedef void (*upload_removed_listener_t)(gnet_upload_t, const gchar *);
+typedef void (*upload_info_changed_listener_t)(gnet_upload_t);
 
 #define upload_add_listener(signal, callback) \
     CAT3(upload_add_,signal,_listener)(callback);
@@ -147,19 +144,17 @@ typedef void (*upload_info_changed_listener_t) (
 
 #ifdef CORE_SOURCES
 
-gnet_upload_info_t *upload_get_info(gnet_upload_t uh);
-void upload_free_info(gnet_upload_info_t *info);
-void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si);
-void upload_kill_addr(const host_addr_t addr);
-void upload_add_upload_added_listener(upload_added_listener_t l);
-void upload_remove_upload_added_listener(upload_added_listener_t l);
-void upload_add_upload_removed_listener(upload_removed_listener_t l);
-void upload_remove_upload_removed_listener(upload_removed_listener_t l);
-void upload_add_upload_info_changed_listener(
-	upload_info_changed_listener_t l);
-void upload_remove_upload_info_changed_listener(
-	upload_info_changed_listener_t l);
-void upload_kill(gnet_upload_t upload);
+gnet_upload_info_t *upload_get_info(gnet_upload_t);
+void upload_free_info(gnet_upload_info_t *);
+void upload_get_status(gnet_upload_t, gnet_upload_status_t *);
+void upload_kill_addr(const host_addr_t);
+void upload_add_upload_added_listener(upload_added_listener_t);
+void upload_remove_upload_added_listener(upload_added_listener_t);
+void upload_add_upload_removed_listener(upload_removed_listener_t);
+void upload_remove_upload_removed_listener(upload_removed_listener_t);
+void upload_add_upload_info_changed_listener(upload_info_changed_listener_t);
+void upload_remove_upload_info_changed_listener(upload_info_changed_listener_t);
+void upload_kill(gnet_upload_t);
 void upload_stats_prune_nonexistent(void);
 
 #endif /* CORE_SOURCES */

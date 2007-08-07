@@ -31,7 +31,6 @@ RCSID("$Id$")
 
 #include "gtk/columns.h"
 #include "gtk/misc.h"
-#include "gtk/notebooks.h"
 #include "gtk/settings.h"
 #include "gtk/uploads.h"
 #include "gtk/uploads_common.h"
@@ -44,12 +43,11 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	60		/**< Update screen every minute at least */
-
-static gboolean uploads_remove_lock = FALSE;
-static guint uploads_rows_done = 0;
+static gboolean uploads_remove_lock;
+static guint uploads_rows_done;
 
 static gint find_row(gnet_upload_t u, upload_row_data_t **data);
 
@@ -68,14 +66,10 @@ static void uploads_gui_add_upload(gnet_upload_info_t *u);
  * try to use the handle to communicate with the backend.
  */
 static void
-upload_removed(gnet_upload_t uh, const gchar *reason,
-    guint32 unused_running, guint32 unused_registered)
+upload_removed(gnet_upload_t uh, const gchar *reason)
 {
     gint row;
     upload_row_data_t *data;
-
-	(void) unused_running;
-	(void) unused_registered;
 
     /* Invalidate row and remove it from the gui if autoclear is on */
     row = find_row(uh, &data);
@@ -99,12 +93,9 @@ upload_removed(gnet_upload_t uh, const gchar *reason,
  * Adds the upload to the gui.
  */
 static void
-upload_added(gnet_upload_t n, guint32 unused_running, guint32 unused_registered)
+upload_added(gnet_upload_t n)
 {
     gnet_upload_info_t *info;
-
-	(void) unused_running;
-	(void) unused_registered;
 
     info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
@@ -116,13 +107,9 @@ upload_added(gnet_upload_t n, guint32 unused_running, guint32 unused_registered)
  * This updates the upload information in the gui.
  */
 static void
-upload_info_changed(gnet_upload_t u,
-	guint32 unused_running, guint32 unused_registered)
+upload_info_changed(gnet_upload_t u)
 {
     gnet_upload_info_t *info;
-
-	(void) unused_running;
-	(void) unused_registered;
 
     info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
@@ -373,30 +360,12 @@ uploads_gui_shutdown(void)
     guc_upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
-static gboolean
-uploads_gui_is_visible(void)
-{
-	static GtkNotebook *notebook = NULL;
-	gint current_page;
-
-	if (!main_gui_window_visible())
-		return FALSE;
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-
-	return current_page == nb_main_page_uploads;
-}
-
 /**
  * Update all the uploads at the same time.
  */
 void
 uploads_gui_update_display(time_t now)
 {
-    static time_t last_update = 0;
 	GtkCList *clist;
 	GList *iter;
 	gint row = 0;
@@ -405,21 +374,8 @@ uploads_gui_update_display(time_t now)
     GSList *sl;
 	gboolean all_removed = TRUE;
 
-	/*
-	 * Usually don't perform updates if nobody is watching.  However,
-	 * we do need to perform periodic cleanup of dead entries or the
-	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
-	 * at least.
-	 *		--RAM, 28/12/2003
-	 */
-
-	if (!uploads_gui_is_visible() && now - last_update < UPDATE_MIN)
+	if (!uploads_gui_update_required(now))
 		return;
-
-    if (last_update == now)
-        return;
-
-    last_update = now;
 
     clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     gtk_clist_freeze(clist);

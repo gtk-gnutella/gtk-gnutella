@@ -230,9 +230,7 @@ static void
 upload_fire_upload_added(struct upload *u)
 {
 	gnet_prop_incr_guint32(PROP_UL_REGISTERED);
-    LISTENER_EMIT(upload_added,
-		(u->upload_handle,
-		 	GNET_PROPERTY(ul_running), GNET_PROPERTY(ul_registered)));
+    LISTENER_EMIT(upload_added, (u->upload_handle));
 }
 
 static void
@@ -242,17 +240,13 @@ upload_fire_upload_removed(struct upload *u, const gchar *reason)
 		gnet_prop_decr_guint32(PROP_UL_RUNNING);
 	}
 	gnet_prop_decr_guint32(PROP_UL_REGISTERED);
-    LISTENER_EMIT(upload_removed,
-		(u->upload_handle, reason,
-			GNET_PROPERTY(ul_running), GNET_PROPERTY(ul_registered)));
+    LISTENER_EMIT(upload_removed, (u->upload_handle, reason));
 }
 
 void
 upload_fire_upload_info_changed(struct upload *u)
 {
-    LISTENER_EMIT(upload_info_changed,
-		(u->upload_handle,
-		 	GNET_PROPERTY(ul_running), GNET_PROPERTY(ul_registered)));
+    LISTENER_EMIT(upload_info_changed, (u->upload_handle));
 }
 
 /***

@@ -42,4 +42,6 @@ const gchar *uploads_gui_host_string(const gnet_upload_info_t *u);
 void uploads_gui_browse_host(host_addr_t addr, guint16 port);
 upload_row_data_t *uploads_gui_get_row_data(gnet_upload_t uhandle);
 
+gboolean uploads_gui_update_required(time_t now);
+
 #endif /* _gtk_uploads_common_h_ */

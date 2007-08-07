@@ -31,6 +31,7 @@ RCSID("$Id$")
 #include "uploads_common.h"
 #include "search_common.h"
 #include "settings.h"
+#include "notebooks.h"
 
 #include "if/gui_property.h"
 #include "if/gnet_property.h"
@@ -43,7 +44,8 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define IO_STALLED		60	/**< If nothing exchanged after that many secs */
+#define IO_STALLED	60	/**< If nothing exchanged after that many secs */
+#define UPDATE_MIN	60	/**< Update screen every minute at least */
 
 /**
  *
@@ -300,6 +302,43 @@ uploads_gui_browse_host(host_addr_t addr, guint16 port)
 {
 	if (host_addr_is_routable(addr) && port != 0)
 		search_gui_new_browse_host(NULL, addr, port, NULL, NULL, 0);
+}
+
+static gboolean
+uploads_gui_is_visible(void)
+{
+	static GtkNotebook *notebook;
+
+	if (!main_gui_window_visible())
+		return FALSE;
+
+	if (NULL == notebook) {
+		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
+	}
+	return nb_main_page_uploads == gtk_notebook_get_current_page(notebook);
+}
+
+gboolean
+uploads_gui_update_required(time_t now)
+{
+	static time_t last_update;
+	time_delta_t delta;
+
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
+	delta = last_update ? delta_time(now, last_update) : UPDATE_MIN;
+	if (0 == delta || (delta < UPDATE_MIN && !uploads_gui_is_visible())) {
+		last_update = now;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
