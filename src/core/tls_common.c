@@ -898,9 +898,15 @@ const char *
 tls_version_string(void)
 {
 	static char buf[128];
+
 	if ('\0' == buf[0]) {
-		concat_strings(buf, sizeof buf, "GNU TLS ", gnutls_check_version(NULL),
-			" (compiled against ", LIBGNUTLS_VERSION, ")",
+		const char *current = gnutls_check_version(NULL);
+		int differ = strcmp(current, LIBGNUTLS_VERSION);
+
+		concat_strings(buf, sizeof buf, "GNU TLS ", current,
+			differ ? " (compiled against " : "",
+			differ ? LIBGNUTLS_VERSION : "",
+			differ ? ")" : "",
 			(void *) 0);
 	}
 	return buf;

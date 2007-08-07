@@ -1076,7 +1076,6 @@ prehandle_arguments(char **argv)
 	}
 }
 
-
 static void
 handle_arguments(int argc, char **argv)
 {
@@ -1156,20 +1155,36 @@ handle_arguments(int argc, char **argv)
 	}
 	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
+		
+		printf("GLib %u.%u.%u",
+			glib_major_version, glib_minor_version, glib_micro_version);
+		if (
+			GLIB_MAJOR_VERSION != glib_major_version ||
+			GLIB_MINOR_VERSION != glib_minor_version ||
+			GLIB_MICRO_VERSION != glib_micro_version
+		) {
+			printf(" (compiled against %u.%u.%u)",
+				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+		}
+		printf("\n");
 
-		printf("GLib %u.%u.%u (compiled against %u.%u.%u)\n",
-			glib_major_version, glib_minor_version, glib_micro_version,
-			GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
+		printf("Gtk+ %u.%u.%u",
+			gtk_major_version, gtk_minor_version, gtk_micro_version);
+		if (
+			GTK_MAJOR_VERSION != gtk_major_version ||
+			GTK_MINOR_VERSION != gtk_minor_version ||
+			GTK_MICRO_VERSION != gtk_micro_version
+		) {
+			printf(" (compiled against %u.%u.%u)",
+				GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+		}
+		printf("\n");
+#endif	/* Gtk+ */
 
-#ifndef USE_TOPLESS
-		printf("Gtk+ %u.%u.%u (compiled against %u.%u.%u)\n",
-			gtk_major_version, gtk_minor_version, gtk_micro_version,
-			GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-#endif	/* USE_TOPLESS */
-
-		if (tls_version_string())
+		if (tls_version_string()) {
 			printf("%s\n", tls_version_string());
-
+		}
 		exit(EXIT_SUCCESS);
 	}
 	if (options[main_arg_ping].used) {
