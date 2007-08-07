@@ -584,7 +584,7 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 	struct gnutella_shell *sh = data;
 
 	(void) unused_source;
-	g_assert(sh);
+	shell_check(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning ("shell connection closed: exception");
@@ -600,7 +600,6 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 		shell_read_data(sh);
 	}
 
-finish:
 	if (!shell_has_pending_output(sh)) {
 		if (sh->shutdown) {
 			shell_destroy(sh);
