@@ -122,16 +122,6 @@ gui_update_download_clear_now(void)
 }
 
 /**
- * Enable the "start now" menu entry for queued items.
- */
-void
-gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
-{
-	(void) running_downloads;
-	(void) max_downloads;
-}
-
-/**
  *	Clear all stopped, complete, and unavailable downloads.
  */
 void
@@ -1533,6 +1523,18 @@ void
 gui_update_download_host(struct download *d)
 {
 	fi_gui_source_update(d);
+}
+
+void
+gui_download_updates_freeze(void)
+{
+	fi_gui_files_freeze();
+}
+
+void
+gui_download_updates_thaw(void)
+{
+	fi_gui_files_thaw();
 }
 
 static void

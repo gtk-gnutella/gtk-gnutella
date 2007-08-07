@@ -53,18 +53,18 @@
 #include "if/gui_property.h"
 
 /* download interface functions */
-void gcu_download_enable_start_now(guint32 running_downloads,
-	guint32 max_num_downloads);
-void gcu_gui_update_download(struct download *d, gboolean force);
-void gcu_gui_update_download_server(struct download *d);
-void gcu_gui_update_download_range(struct download *d);
-void gcu_gui_update_download_size(struct download *d);
-void gcu_gui_update_download_host(struct download *d);
+void gcu_gui_update_download(struct download *, gboolean force);
+void gcu_gui_update_download_server(struct download *);
+void gcu_gui_update_download_range(struct download *);
+void gcu_gui_update_download_size(struct download *);
+void gcu_gui_update_download_host(struct download *);
 void gcu_gui_update_download_abort_resume(void);
 void gcu_gui_update_download_clear(void);
 void gcu_gui_update_download_clear_now(void);
-void gcu_download_gui_add(struct download *d);
-void gcu_download_gui_remove(struct download *d);
+void gcu_download_gui_add(struct download *);
+void gcu_download_gui_remove(struct download *);
+void gcu_download_gui_updates_thaw(void);
+void gcu_download_gui_updates_freeze(void);
 
 /* misc interface functions */
 void guc_allow_rescan_dir(gboolean flag);
@@ -86,7 +86,7 @@ void gcu_upload_stats_gui_freeze(void);
 void gcu_upload_stats_gui_thaw(void);
 
 /** bitzi results */
-void gcu_bitzi_result(bitzi_data_t *bitzi_data);
+void gcu_bitzi_result(bitzi_data_t *);
 
 #endif /* _if_bridge_c2ui_h_ */
 

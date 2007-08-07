@@ -36,20 +36,20 @@
 
 struct download;
 
-void gui_download_enable_start_now(
-	guint32 running_downloads, guint32 max_downloads);
-
-void download_gui_add(struct download *d);
-void download_gui_remove(struct download *d);
+void download_gui_add(struct download *);
+void download_gui_remove(struct download *);
 
 void gui_update_download(struct download *, gboolean);
 void gui_update_download_server(struct download *);
-void gui_update_download_range(struct download *d);
-void gui_update_download_size(struct download *d);
-void gui_update_download_host(struct download *d);
+void gui_update_download_range(struct download *);
+void gui_update_download_size(struct download *);
+void gui_update_download_host(struct download *);
 void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
 void gui_update_download_clear_now(void);
+
+void gui_download_updates_freeze(void);
+void gui_download_updates_thaw(void);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_downloads_h_ */

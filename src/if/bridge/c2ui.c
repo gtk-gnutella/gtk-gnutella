@@ -43,8 +43,6 @@
 #define GUI_SOURCES
 
 #if defined(USE_TOPLESS)
-#define gui_download_enable_start_now(running_downloads, max_downloads) \
-	((void) running_downloads, (void) max_downloads)
 #define gui_update_download(d, force) ((void) d, (void) force)
 #define gui_update_download_server(d) ((void) d)
 #define gui_update_download_range(d) ((void) d)
@@ -53,20 +51,29 @@
 #define gui_update_download_abort_resume()
 #define gui_update_download_clear()
 #define	gui_update_download_clear_now()
+
+#define	gui_download_updates_freeze()
+#define	gui_download_updates_thaw()
+
 #define	download_gui_add(d) ((void) d)
 #define	download_gui_remove(d) ((void) d)
+
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
 #define search_gui_new_search(query, flags, x) \
 	((query) && (flags) ? FALSE : FALSE)
+
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
 #define	upload_stats_gui_clear_all()
 #define upload_stats_gui_thaw()
 #define upload_stats_gui_freeze()
+
 #define statusbar_gui_warning(sec, fmt, message) g_message((fmt), (message))
 #define statusbar_gui_message(sec, fmt, message) g_message((fmt), (message))
+
 #define bitzi_gui_update(bitzi_data) ((void) bitzi_data)
+
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
@@ -83,15 +90,8 @@
  * Functions the CORE uses to access the UI
  */
 
-/*	download interface functions (CORE -> UI) */
 void
-gcu_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
-{
-	gui_download_enable_start_now(running_downloads, max_downloads);
-}
-
-void
-gcu_gui_update_download(download_t *d, gboolean force)
+gcu_gui_update_download(struct download *d, gboolean force)
 {
 	gui_update_download(d, force);
 }
@@ -150,6 +150,17 @@ gcu_download_gui_remove(struct download *d)
 	download_gui_remove(d);
 }
 
+void
+gcu_download_gui_updates_freeze(void)
+{
+	gui_download_updates_freeze();
+}
+
+void
+gcu_download_gui_updates_thaw(void)
+{
+	gui_download_updates_thaw();
+}
 
 /** misc. interface functions (CORE -> UI) */
 void

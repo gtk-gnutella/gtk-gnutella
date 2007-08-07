@@ -709,6 +709,7 @@ download_restore_state(void)
 	 * The order of the following calls matters.
 	 */
 
+	gcu_download_gui_updates_freeze();
 	download_freeze_queue();
 
 	file_info_retrieve();					/* Get all fileinfos */
@@ -720,6 +721,7 @@ download_restore_state(void)
 	file_info_store();
 
 	download_thaw_queue();
+	gcu_download_gui_updates_thaw();
 }
 
 /* ----------------------------------------- */
@@ -4439,9 +4441,6 @@ download_pickup_queued(void)
 				goto retry;
 		}
 	}
-
-	gcu_download_enable_start_now(count_running_downloads(),
-		GNET_PROPERTY(max_downloads));
 }
 
 static void
@@ -11260,6 +11259,8 @@ download_close(void)
 {
 	struct download *d;
 
+	gcu_download_gui_updates_freeze();
+
 	download_store();			/* Save latest copy */
 	download_freeze_queue();
 	download_free_removed();
@@ -11336,6 +11337,8 @@ download_close(void)
 	/* XXX free & check other hash tables as well.
 	 * dl_by_addr, dl_by_host
 	 */
+
+	gcu_download_gui_updates_thaw();
 }
 
 static gchar *

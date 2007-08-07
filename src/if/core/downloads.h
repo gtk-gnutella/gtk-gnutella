@@ -365,7 +365,7 @@ enum {
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 #define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
 
-gboolean download_has_blank_guid(const struct download *d);
+gboolean download_has_blank_guid(const struct download *);
 
 static inline void
 download_check(const struct download * const d)
@@ -375,8 +375,8 @@ download_check(const struct download * const d)
 	g_assert(!d->always_push || !download_has_blank_guid(d));
 }
 
-const gchar *download_pathname(const struct download *d);
-const gchar *download_basename(const struct download *d);
+const gchar *download_pathname(const struct download *);
+const gchar *download_basename(const struct download *);
 
 /*
  * Public interface, visible only from the bridge.
@@ -422,30 +422,35 @@ void src_remove_listener(src_listener_t, gnet_src_ev_t);
 struct download *src_get_download(gnet_src_t src_handle);
 
 guint download_handle_magnet(const gchar *url);
-gchar *download_build_url(const struct download *d);
-gint download_get_http_req_percent(const struct download *d);
+gchar *download_build_url(const struct download *);
+gint download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 gint download_remove_all_from_peer(const gchar *guid,
 		host_addr_t addr, guint16 port, gboolean unavailable);
 gint download_remove_all_named(const gchar *name);
-gint download_remove_all_with_sha1(const struct sha1 *sha1);
-void download_remove_file(struct download *d, gboolean reset);
-gboolean download_file_exists(const struct download *d);
+gint download_remove_all_with_sha1(const struct sha1 *);
+void download_remove_file(struct download *, gboolean reset);
+gboolean download_file_exists(const struct download *);
 void download_requeue(struct download *);
 void download_start(struct download *, gboolean);
 void download_pause(struct download *);
 gboolean download_remove(struct download *);
 void download_abort(struct download *);
 void download_resume(struct download *);
+
 void download_freeze_queue(void);
 void download_thaw_queue(void);
 gboolean download_queue_is_frozen(void);
+
+void download_gui_updates_freeze(void);
+void download_gui_updates_thaw(void);
+
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean, gboolean);
-const gchar *download_get_hostname(const struct download *d);
+const gchar *download_get_hostname(const struct download *);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);
-guint download_speed_avg(struct download *d);
+guint download_speed_avg(struct download *);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */
