@@ -225,7 +225,7 @@ struct parq_ul_queued {
 	struct parq_ul_queue *queue;	/**< In which queue this entry is listed */
 	struct parq_ul_queued_by_addr *by_addr;
 
-	gnutella_upload_t *u;	/**< Internal reference to upload structure if
+	struct upload *u;	/**< Internal reference to upload structure if
 							     available */
 };
 
@@ -1434,7 +1434,7 @@ parq_upload_new_queue(void)
  * @return a pointer to the queue in which the upload should be queued.
  */
 static struct parq_ul_queue *
-parq_upload_which_queue(gnutella_upload_t *u)
+parq_upload_which_queue(struct upload *u)
 {
 	struct parq_ul_queue *queue;
 	guint size = PARQ_UL_LARGE_SIZE;
@@ -1479,10 +1479,10 @@ parq_upload_which_queue(gnutella_upload_t *u)
  */
 static void
 parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
-	gnutella_upload_t *u)
+	struct upload *u)
 {
 	g_assert(parq_ul != NULL);
-	g_assert(u != NULL);
+	upload_check(u);
 	g_assert(u->name != NULL);
 
 	if (parq_ul->addr_and_name != NULL) {
@@ -1505,7 +1505,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *parq_ul,
  * the newly created ul_queued structure.
  */
 static struct parq_ul_queued *
-parq_upload_create(gnutella_upload_t *u)
+parq_upload_create(struct upload *u)
 {
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
@@ -1515,7 +1515,7 @@ parq_upload_create(gnutella_upload_t *u)
 	guint rel_pos = 1;
 	GList *l;
 
-	g_assert(u != NULL);
+	upload_check(u);
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
 
@@ -1811,11 +1811,11 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
  * @return NULL if upload could not be found.
  */
 static inline struct parq_ul_queued *
-parq_upload_find(const gnutella_upload_t *u)
+parq_upload_find(const struct upload *u)
 {
 	gchar buf[1024 + 128];
 
-	g_assert(u != NULL);
+	upload_check(u);
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
 
@@ -1838,7 +1838,7 @@ static void
 parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 {
 	struct gnutella_socket *s;
-	gnutella_upload_t *u;
+	struct upload *u;
 	time_t now = tm_time();
 
 	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
@@ -2214,10 +2214,12 @@ parq_upload_timer(time_t now)
  * @return TRUE if parq cannot hold any more uploads.
  */
 gboolean
-parq_upload_queue_full(gnutella_upload_t *u)
+parq_upload_queue_full(struct upload *u)
 {
-	struct parq_ul_queue *q_ul = NULL;
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queue *q_ul;
+	struct parq_ul_queued *parq_ul;
+
+	upload_check(u);
 
 	q_ul = parq_upload_which_queue(u);
 	g_assert(q_ul->size >= q_ul->alive);
@@ -2245,7 +2247,7 @@ parq_upload_queue_full(gnutella_upload_t *u)
  * Whether the current upload is already queued.
  */
 gboolean
-parq_upload_queued(gnutella_upload_t *u)
+parq_upload_queued(struct upload *u)
 {
 	return parq_upload_lookup_position(u) != (guint) -1;
 }
@@ -2265,10 +2267,12 @@ parq_upload_get_at(struct parq_ul_queue *queue, int position)
  * @return TRUE if it is OK for that IP to download from us.
  */
 gboolean
-parq_upload_addr_can_proceed(const gnutella_upload_t *u)
+parq_upload_addr_can_proceed(const struct upload *u)
 {
 	const struct parq_ul_queued *uq = u->parq_ul;
 
+	upload_check(u);
+	uq = u->parq_ul;
 	g_assert(uq != NULL);
 
 	return (guint32) uq->by_addr->uploading < GNET_PROPERTY(max_uploads_ip);
@@ -2517,9 +2521,11 @@ parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 
 
 void
-parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
+parq_upload_upload_got_cloned(struct upload *u, struct upload *cu)
 {
 	struct parq_ul_queued *parq_ul;
+
+	upload_check(u);
 
 	if (u->parq_ul == NULL) {
 		g_assert(cu->parq_ul == NULL);
@@ -2544,7 +2550,7 @@ parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
  * Makes sure parq doesn't keep any internal reference to the upload structure
  */
 void
-parq_upload_upload_got_freed(gnutella_upload_t *u)
+parq_upload_upload_got_freed(struct upload *u)
 {
 	struct parq_ul_queued *parq_ul;
 
@@ -2572,12 +2578,12 @@ parq_upload_upload_got_freed(gnutella_upload_t *u)
  * @return slot as an opaque handle, NULL if slot cannot be created.
  */
 struct parq_ul_queued *
-parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
+parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 {
 	struct parq_ul_queued *parq_ul;
 	gchar *buf;
 
-	g_assert(u != NULL);
+	upload_check(u);
 	g_assert(header != NULL);
 
 	/*
@@ -2629,13 +2635,13 @@ parq_upload_get(gnutella_upload_t *u, header_t *header, gboolean replacing)
 cleanup:
 	g_assert(parq_ul != NULL);
 
-	if (parq_ul->u != NULL) {
-		if (parq_ul->u != u) {
+	if (parq_ul->u != NULL && parq_ul->u != u) {
+		if (GNET_PROPERTY(parq_debug) > 1) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
 				"upload %s while another one is still active within PARQ",
 				host_addr_to_string(u->addr), upload_vendor_str(u), u->name);
-			return NULL;
 		}
+		return NULL;
 	}
 
 	if (parq_ul->queue->by_date_dead != NULL &&
@@ -2723,7 +2729,7 @@ cleanup:
  * first.
  */
 gboolean
-parq_upload_request_force(gnutella_upload_t *u, struct parq_ul_queued *handle)
+parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 
@@ -2753,13 +2759,13 @@ parq_upload_request_force(gnutella_upload_t *u, struct parq_ul_queued *handle)
  * (which probably means the upload is queued).
  */
 gboolean
-parq_upload_request(gnutella_upload_t *u)
+parq_upload_request(struct upload *u)
 {
 	struct parq_ul_queued *parq_ul;
 	time_t now, org_retry;
 	guint avg_bps;
 
-	g_assert(u != NULL);
+	upload_check(u);
 
 	parq_ul = handle_to_queued(u->parq_ul);
 	org_retry = parq_ul->retry;
@@ -2926,10 +2932,11 @@ parq_upload_request(gnutella_upload_t *u)
  * Mark an upload as really being active instead of just being queued.
  */
 void
-parq_upload_busy(gnutella_upload_t *u, struct parq_ul_queued *handle)
+parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 
+	upload_check(u);
 	g_assert(parq_ul != NULL);
 
 	if (GNET_PROPERTY(parq_debug) > 2) {
@@ -2958,33 +2965,36 @@ parq_upload_busy(gnutella_upload_t *u, struct parq_ul_queued *handle)
 }
 
 void
-parq_upload_add(gnutella_upload_t *unused_u)
+parq_upload_add(struct upload *u)
 {
 	/*
-	 * Cosmetic. Not used at the moment. gnutella_upload_t structure probably
+	 * Cosmetic. Not used at the moment. struct upload structure probably
 	 * isn't complete yet at this moment
 	 */
-	(void) unused_u;
+	upload_check(u);
 }
 
 void
-parq_upload_force_remove(gnutella_upload_t *u)
+parq_upload_force_remove(struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+	struct parq_ul_queued *parq_ul;
 
-	if (parq_ul != NULL && !parq_upload_remove(u))
+	upload_check(u);
+	parq_ul = parq_upload_find(u);
+	if (parq_ul != NULL && !parq_upload_remove(u)) {
 		parq_upload_free(parq_ul);
+	}
 }
 
 /**
  * Collect running stats about the completed / removed upload.
  */
 void
-parq_upload_collect_stats(const gnutella_upload_t *u)
+parq_upload_collect_stats(const struct upload *u)
 {
 	struct parq_ul_queued *uq;
 
-	g_assert(u);
+	upload_check(u);
 
 	/*
 	 * Browse host requests have no PARQ data structures associated with them,
@@ -3013,14 +3023,14 @@ parq_upload_collect_stats(const gnutella_upload_t *u)
  * was cleared. FALSE if the parq structure still exists.
  */
 gboolean
-parq_upload_remove(gnutella_upload_t *u)
+parq_upload_remove(struct upload *u)
 {
-	gboolean return_result = FALSE; /* True if the upload was really removed
-									   ie: Removed from memory */
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
+	gboolean return_result = FALSE; /* True if the upload was really removed
+									   ie: Removed from memory */
 
-	g_assert(u != NULL);
+	upload_check(u);
 
 	/*
 	 * Avoid removing an upload which is being removed because we are returning
@@ -3230,9 +3240,11 @@ parq_upload_add_x_queue_header(gchar *buf, size_t size)
 static size_t
 parq_upload_add_x_queued_header(gchar *buf, size_t size,
 	struct parq_ul_queued *parq_ul, guint max_poll,
-	gboolean small_reply, gnutella_upload_t *u)
+	gboolean small_reply, struct upload *u)
 {
 	size_t rw = 0, len;
+
+	upload_check(u);
 
 	/* Reserve space for the trailing \r\n */	
 	if (sizeof "\r\n" >= size)
@@ -3310,16 +3322,19 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 {
 	struct parq_ul_queued *parq_ul;
 	struct upload_http_cb *a = arg;
+	struct upload *u = a->u;
 	gboolean small_reply;
 	time_delta_t d;
 	guint min_poll, max_poll;
 	time_t now;
 	size_t rw = 0;
 
-	if (!parq_upload_queued(a->u))
+	upload_check(u);
+
+	if (!parq_upload_queued(u))
 		return 0;
 	
-	parq_ul = parq_upload_find(a->u);
+	parq_ul = parq_upload_find(u);
 	g_return_val_if_fail(parq_ul, 0);
 		
 	now = tm_time();
@@ -3340,14 +3355,14 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 	if (
 		parq_ul->major == 0 &&
 		parq_ul->minor == 1 &&
-		a->u->status == GTA_UL_QUEUED
+		u->status == GTA_UL_QUEUED
 	) {
 		rw += parq_upload_add_old_queue_header(&buf[rw], size - rw,
 				parq_ul, min_poll, max_poll, small_reply);
 	} else { 
 		rw += parq_upload_add_x_queue_header(&buf[rw], size - rw);
 		rw += parq_upload_add_x_queued_header(&buf[rw], size - rw,
-				parq_ul, max_poll, small_reply, a->u);
+				parq_ul, max_poll, small_reply, u);
 	}
 	return rw;
 }
@@ -3365,16 +3380,17 @@ parq_upload_add_header_id(gchar *buf, size_t size, gpointer arg,
 	guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
+	struct upload *u = a->u;
 	struct parq_ul_queued *parq_ul;
 	size_t rw = 0;
 
 	(void) unused_flags;
 	g_assert(buf != NULL);
-	g_assert(a->u != NULL);
 
-	parq_ul = parq_upload_find(a->u);
+	upload_check(u);
+	parq_ul = parq_upload_find(u);
 
-	g_assert(a->u->status == GTA_UL_SENDING);
+	g_assert(u->status == GTA_UL_SENDING);
 	g_assert(parq_ul != NULL);
 
 	/*
@@ -3389,7 +3405,7 @@ parq_upload_add_header_id(gchar *buf, size_t size, gpointer arg,
 
 		len = concat_strings(&buf[rw], size,
 				parq_get_x_queue_1_0_header(), "\r\n",
-				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(a->u)),
+				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 				"\r\n",
 				(void *) 0);
 
@@ -3410,10 +3426,12 @@ finish:
  * Determines whether the PARQ ID was already sent for an upload.
  */
 gboolean
-parq_ul_id_sent(const gnutella_upload_t *u)
+parq_ul_id_sent(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+	struct parq_ul_queued *parq_ul;
 
+	upload_check(u);
+	parq_ul = parq_upload_find(u);
 	return parq_ul != NULL && (parq_ul->flags & PARQ_UL_ID_SENT);
 }
 
@@ -3422,12 +3440,11 @@ parq_ul_id_sent(const gnutella_upload_t *u)
  * (guint) -1 if not found.
  */
 guint
-parq_upload_lookup_position(const gnutella_upload_t *u)
+parq_upload_lookup_position(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
-	g_assert(u != NULL);
-
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
@@ -3441,12 +3458,11 @@ parq_upload_lookup_position(const gnutella_upload_t *u)
  * @return the current ID of the upload.
  */
 const gchar *
-parq_upload_lookup_id(const gnutella_upload_t *u)
+parq_upload_lookup_id(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
-	g_assert(u != NULL);
-
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 	return parq_ul ? parq_ul->id : NULL;
 }
@@ -3455,10 +3471,11 @@ parq_upload_lookup_id(const gnutella_upload_t *u)
  * @return the Estimated Time of Arrival for an upload slot for a given upload.
  */
 guint
-parq_upload_lookup_eta(const gnutella_upload_t *u)
+parq_upload_lookup_eta(const struct upload *u)
 {
 	struct parq_ul_queued *parq_ul;
 
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	/* If parq_ul == NULL the current upload isn't queued and ETA is unknown */
@@ -3472,20 +3489,20 @@ parq_upload_lookup_eta(const gnutella_upload_t *u)
  * @return the current upload queue size of alive uploads.
  */
 guint
-parq_upload_lookup_size(const gnutella_upload_t *u)
+parq_upload_lookup_size(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
 	/*
 	 * There can be multiple queues. Find the queue in which the upload is
 	 * queued.
 	 */
 
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
 		g_assert(parq_ul->queue != NULL);
-
 		return parq_ul->queue->alive;
 	} else {
 		/* No queue created yet */
@@ -3497,15 +3514,16 @@ parq_upload_lookup_size(const gnutella_upload_t *u)
  * @return the lifetime of a queued upload.
  */
 time_t
-parq_upload_lookup_lifetime(const gnutella_upload_t *u)
+parq_upload_lookup_lifetime(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
 	/*
 	 * There can be multiple queues. Find the queue in which the upload is
 	 * queued.
 	 */
 
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
@@ -3520,15 +3538,16 @@ parq_upload_lookup_lifetime(const gnutella_upload_t *u)
  * @return the time_t at which the next retry is expected.
  */
 time_t
-parq_upload_lookup_retry(const gnutella_upload_t *u)
+parq_upload_lookup_retry(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
 	/*
 	 * There can be multiple queues. Find the queue in which the upload is
 	 * queued.
 	 */
 
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
@@ -3543,10 +3562,11 @@ parq_upload_lookup_retry(const gnutella_upload_t *u)
  * @return the queue number the current upload is queued in.
  */
 guint
-parq_upload_lookup_queue_no(const gnutella_upload_t *u)
+parq_upload_lookup_queue_no(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 
+	upload_check(u);
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
@@ -3562,30 +3582,29 @@ parq_upload_lookup_queue_no(const gnutella_upload_t *u)
  * @return TRUE if the upload was allowed quickly by PARQ.
  */
 gboolean
-parq_upload_lookup_quick(const gnutella_upload_t *u)
+parq_upload_lookup_quick(const struct upload *u)
 {
-	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+	struct parq_ul_queued *parq_ul;
 
-	if (parq_ul != NULL)
-		return parq_ul->quick;
-
-	return FALSE;
+	upload_check(u);
+	parq_ul = parq_upload_find(u);
+	return parq_ul ? parq_ul->quick : FALSE;
 }
 
 /**
  * 'Call back' connection was succesfull. So prepare to send headers
  */
 void
-parq_upload_send_queue_conf(gnutella_upload_t *u)
+parq_upload_send_queue_conf(struct upload *u)
 {
 	gchar queue[MAX_LINE_SIZE];
-	struct parq_ul_queued *parq_ul = NULL;
+	struct parq_ul_queued *parq_ul;
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
 	time_t now = tm_time();
 
-	g_assert(u);
+	upload_check(u);
 	g_assert(u->status == GTA_UL_QUEUE);
 	g_assert(u->name);
 
@@ -3853,7 +3872,6 @@ parq_upload_load_queue(void)
 	file_path_t fp[1];
 	gchar line[4096];
 	gboolean next = FALSE;
-	gnutella_upload_t u;
 	struct parq_ul_queued *parq_ul;
 	time_t now = tm_time();
 	guint line_no = 0;
@@ -4069,20 +4087,20 @@ parq_upload_load_queue(void)
 		}
 
 		if (next) {
+			struct upload *fake_upload;
+
 			next = FALSE;
 
 			g_assert(!damaged);
+			g_assert(entry.name != NULL);
 
 			/* Fill a fake upload structure */
-			memset(&u, 0, sizeof u);
-			u.file_size = entry.filesize;
-			u.name = entry.name;
-			u.addr = entry.addr;
+			fake_upload = upload_alloc();
+			fake_upload->file_size = entry.filesize;
+			fake_upload->name = entry.name;
+			fake_upload->addr = entry.addr;
 
-			g_assert(u.name != NULL);
-
-			parq_ul = parq_upload_create(&u);
-
+			parq_ul = parq_upload_create(fake_upload);
 			g_assert(parq_ul != NULL);
 
 			parq_ul->enter = entry.entered;
@@ -4100,7 +4118,7 @@ parq_upload_load_queue(void)
 			memcpy(parq_ul->id, entry.id, sizeof parq_ul->id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
-			if (GNET_PROPERTY(parq_debug) > 2)
+			if (GNET_PROPERTY(parq_debug) > 2) {
 				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
 					"Restored: %s '%s'",
 					g_list_position(ul_parqs,
@@ -4109,16 +4127,18 @@ parq_upload_load_queue(void)
 					parq_ul->position,
 				 	parq_ul->relative_position,
 					parq_ul->queue->size,
-					short_time(parq_upload_lookup_eta(&u)),
+					short_time(parq_upload_lookup_eta(fake_upload)),
 					host_addr_to_string(parq_ul->remote_addr),
 					parq_ul->name);
-
-			if (GNET_PROPERTY(max_uploads) > 0)
+			}
+			if (GNET_PROPERTY(max_uploads) > 0) {
 				parq_upload_register_send_queue(parq_ul);
+			}
 
 			/* Reset state */
 			entry = zero_entry;
 			bit_array_clear_range(tag_used, 0, (guint) NUM_PARQ_TAGS - 1);
+			upload_free(&fake_upload);	
 		}
 	}
 

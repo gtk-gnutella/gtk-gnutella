@@ -58,7 +58,10 @@ struct upload_http_cb {
 	time_t mtime;				/**< File modification time */
 };
 
-typedef struct upload {
+enum upload_magic { UPLOAD_MAGIC = 0xac20f063U };	/**< Magic number */
+
+struct upload {
+	enum upload_magic magic;
     gnet_upload_t upload_handle;
 	guint32 flags;					/**< Operating flags */
 	upload_stage_t status;
@@ -129,7 +132,14 @@ typedef struct upload {
 	gboolean was_running;
 
 	gboolean parq_status;
-} gnutella_upload_t;
+};
+
+static inline void
+upload_check(const struct upload * const u)
+{
+	g_assert(u);
+	g_assert(UPLOAD_MAGIC == u->magic);
+}
 
 #define upload_vendor_str(u)	((u)->user_agent ? (u)->user_agent : "")
 
@@ -152,20 +162,23 @@ gboolean upload_is_enabled(void);
 void upload_timer(time_t now);
 void upload_remove(struct upload *, const gchar *, ...) G_GNUC_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *);
-void upload_add(struct gnutella_socket *s);
-void upload_connect_conf(struct upload *u);
+void upload_add(struct gnutella_socket *);
+void upload_connect_conf(struct upload *);
 void upload_init(void);
 void upload_close(void);
-void upload_stop_all(struct dl_file_info *fi, const gchar *reason);
+void upload_stop_all(struct dl_file_info *, const gchar *reason);
 void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
 	guint8 ttl, guint32 file_index, const gchar *file_name,
 	gboolean banning, guint32 flags);
-gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
-void upload_fire_upload_info_changed(gnutella_upload_t *n);
-void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
+struct upload *upload_create(struct gnutella_socket *, gboolean push);
+void upload_fire_upload_info_changed(struct upload *);
+void expect_http_header(struct upload *, upload_stage_t new_status);
 
 GSList *upload_get_info_list(void);
 void upload_free_info_list(GSList **sl_ptr);
+
+struct upload *upload_alloc(void);
+void upload_free(struct upload **ptr);
 
 #endif /* _core_uploads_h_ */
 
