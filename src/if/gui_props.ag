@@ -435,28 +435,6 @@ prop = {
 };
 
 prop = {
-    name = "search_max_results";
-    desc = "Maximum number of results to show in any search.";
-    type = guint32;
-    data = {
-        default = 1000;
-        min     = 10;
-        max     = 100000;
-    };
-};
-
-prop = {
-    name = "browse_host_max_results";
-    desc = "Maximum number of results to show in a browse_host request.";
-    type = guint32;
-    data = {
-        default = 10000;
-        min     = 100;
-        max     = 500000;
-    };
-};
-
-prop = {
     name = "gui_debug";
     desc = "Debug level for the gui.";
     type = guint32;

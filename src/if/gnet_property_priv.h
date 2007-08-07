@@ -342,6 +342,8 @@ extern const guint32  gnet_property_variable_thex_files_requested;
 extern const guint32  gnet_property_variable_thex_files_served;
 extern const guint32  gnet_property_variable_tigertree_debug;
 extern const gboolean gnet_property_variable_tth_rebuilding;
+extern const guint32  gnet_property_variable_search_max_results;
+extern const guint32  gnet_property_variable_browse_host_max_results;
 
 
 prop_set_t *gnet_prop_init(void);

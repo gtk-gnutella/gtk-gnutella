@@ -1083,9 +1083,11 @@ search_matched(search_t *sch, results_set_t *rs)
     g_assert(sch != NULL);
 	results_set_check(rs);
 
-	max_results = search_gui_is_browse(sch)
-		? GUI_PROPERTY(browse_host_max_results)
-		: GUI_PROPERTY(search_max_results);
+	if (search_gui_is_browse(sch)) {
+		gnet_prop_get_guint32_val(PROP_BROWSE_HOST_MAX_RESULTS, &max_results);
+	} else {
+		gnet_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_results);
+	}
 
 	if (rs->status & ST_UDP) {
 		sch->udp_qhits++;

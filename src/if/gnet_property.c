@@ -661,6 +661,10 @@ guint32  gnet_property_variable_tigertree_debug     = 0;
 static const guint32  gnet_property_variable_tigertree_debug_default = 0;
 gboolean gnet_property_variable_tth_rebuilding     = FALSE;
 static const gboolean gnet_property_variable_tth_rebuilding_default = FALSE;
+guint32  gnet_property_variable_search_max_results     = 1000;
+static const guint32  gnet_property_variable_search_max_results_default = 1000;
+guint32  gnet_property_variable_browse_host_max_results     = 10000;
+static const guint32  gnet_property_variable_browse_host_max_results_default = 10000;
 
 static prop_set_t *gnet_property;
 
@@ -6304,6 +6308,46 @@ gnet_prop_init(void) {
     gnet_property->props[295].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[295].data.boolean.def   = (void *) &gnet_property_variable_tth_rebuilding_default;
     gnet_property->props[295].data.boolean.value = (void *) &gnet_property_variable_tth_rebuilding;
+
+
+    /*
+     * PROP_SEARCH_MAX_RESULTS:
+     *
+     * General data:
+     */
+    gnet_property->props[296].name = "search_max_results";
+    gnet_property->props[296].desc = _("Maximum number of results to show in any search.");
+    gnet_property->props[296].ev_changed = event_new("search_max_results_changed");
+    gnet_property->props[296].save = TRUE;
+    gnet_property->props[296].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[296].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[296].data.guint32.def   = (void *) &gnet_property_variable_search_max_results_default;
+    gnet_property->props[296].data.guint32.value = (void *) &gnet_property_variable_search_max_results;
+    gnet_property->props[296].data.guint32.choices = NULL;
+    gnet_property->props[296].data.guint32.max   = 100000;
+    gnet_property->props[296].data.guint32.min   = 10;
+
+
+    /*
+     * PROP_BROWSE_HOST_MAX_RESULTS:
+     *
+     * General data:
+     */
+    gnet_property->props[297].name = "browse_host_max_results";
+    gnet_property->props[297].desc = _("Maximum number of results to show in a browse_host request.");
+    gnet_property->props[297].ev_changed = event_new("browse_host_max_results_changed");
+    gnet_property->props[297].save = TRUE;
+    gnet_property->props[297].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[297].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[297].data.guint32.def   = (void *) &gnet_property_variable_browse_host_max_results_default;
+    gnet_property->props[297].data.guint32.value = (void *) &gnet_property_variable_browse_host_max_results;
+    gnet_property->props[297].data.guint32.choices = NULL;
+    gnet_property->props[297].data.guint32.max   = 500000;
+    gnet_property->props[297].data.guint32.min   = 100;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -70,11 +70,6 @@ RCSID("$Id$")
 #include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
-
-#if !defined(USE_TOPLESS)
-#include "if/gui_property.h"
-#endif /* USE_TOPLESS */
-
 #include "if/core/hosts.h"
 #include "if/bridge/c2ui.h"
 
@@ -2650,14 +2645,7 @@ search_reissue_timeout_callback(gpointer data)
 static guint32
 search_max_results_for_ui(void)
 {
-	guint32 max_items;
-
-#if defined(USE_TOPLESS)
-	max_items = 1;
-#else
-	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
-#endif
-	return max_items;
+	return GNET_PROPERTY(search_max_results);
 }
 
 /**
