@@ -541,27 +541,12 @@ download_files_get_file_url(GtkWidget *widget)
 static void
 clist_download_files_init(void)
 {
-	static const struct {
-		const int id;
-		const char * const title;
-		gboolean justify_right;
-	} columns[] = {
-		{ c_fi_filename, N_("Filename"), 	FALSE },
-    	{ c_fi_size,	 N_("Size"),	 	TRUE },
-    	{ c_fi_progress, N_("Progress"), 	TRUE },
-    	{ c_fi_rx, 		 N_("RX"), 			TRUE },
-    	{ c_fi_done,	 N_("Downloaded"), 	TRUE },
-    	{ c_fi_uploaded, N_("Uploaded"), 	TRUE },
-    	{ c_fi_sources,  N_("Sources"),  	FALSE },
-    	{ c_fi_status,   N_("Status"),	 	FALSE }
-	};
 	GtkCList *clist;
 	unsigned i;
 
-	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
-	STATIC_ASSERT(c_fi_num == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_fi_num == FILEINFO_VISIBLE_COLUMNS);
 
-	clist = GTK_CLIST(gtk_clist_new(G_N_ELEMENTS(columns)));
+	clist = GTK_CLIST(gtk_clist_new(c_fi_num));
 	clist_download_files = clist;
 
 	gtk_clist_set_shadow_type(clist, GTK_SHADOW_IN);
@@ -571,18 +556,19 @@ clist_download_files_init(void)
 	gtk_clist_set_sort_column(clist, 0);
 	gtk_clist_set_sort_type(clist, GTK_SORT_ASCENDING);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < c_fi_num; i++) {
 		GtkWidget *label;
-		int column;
 
-		column = columns[i].id;
-		gtk_clist_set_column_justification(clist, column,
-			columns[i].justify_right ? GTK_JUSTIFY_RIGHT : GTK_JUSTIFY_LEFT);
-		label = gtk_label_new(_(columns[i].title));
+		gtk_clist_set_column_justification(clist, i,
+			fi_gui_files_column_justify_right(i)
+				? GTK_JUSTIFY_RIGHT
+				: GTK_JUSTIFY_LEFT);
+
+		label = gtk_label_new(fi_gui_files_column_title(i));
     	gtk_widget_show(label);
     	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-		gtk_clist_set_column_widget(clist, column, label);
-    	gtk_clist_set_column_name(clist, column,
+		gtk_clist_set_column_widget(clist, i, label);
+    	gtk_clist_set_column_name(clist, i,
 			gtk_label_get_text(GTK_LABEL(label)));
 	}
 
@@ -606,6 +592,16 @@ clist_download_files_init(void)
     gtk_clist_freeze(clist_download_files);
 	fi_gui_files_visualize();
     gtk_clist_thaw(clist_download_files);
+}
+
+void
+fi_gui_filter_changed(void)
+{
+	GtkCList *clist = clist_download_files;
+
+	g_return_if_fail(clist);
+	gtk_clist_set_column_title(clist, c_fi_filename,
+		fi_gui_files_column_title(c_fi_filename));
 }
 
 GtkWidget *

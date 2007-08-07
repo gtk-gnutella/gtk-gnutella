@@ -90,6 +90,7 @@ const char *fi_gui_source_column_text(const struct download *, int column);
 void fi_gui_file_update_visibility(struct fileinfo_data *file);
 void fi_gui_files_visualize(void);
 void fi_gui_files_cursor_update(void);
+gboolean fi_gui_filter_active(void);
 
 int fileinfo_data_cmp(const struct fileinfo_data *,
 	const struct fileinfo_data *, int column);
@@ -103,6 +104,9 @@ char *fi_gui_file_get_file_url(const struct fileinfo_data *);
 char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 
 unsigned fi_gui_source_get_progress(const struct download *);
+
+const char *fi_gui_files_column_title(int column);
+gboolean fi_gui_files_column_justify_right(int column);
 
 /**
  * Interface which must be implemented by Gtk+ 1.2 and Gtk+ 2.x
@@ -125,6 +129,7 @@ void fi_gui_clear_details(void);
 void fi_gui_source_add(struct download *);
 void fi_gui_source_update(struct download *);
 void fi_gui_source_remove(struct download *);
+void fi_gui_filter_changed(void);
 
 GtkWidget *fi_gui_sources_widget(void);
 

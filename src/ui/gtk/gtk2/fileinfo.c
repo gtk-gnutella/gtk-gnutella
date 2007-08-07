@@ -570,37 +570,20 @@ store_files_init(void)
 static void
 treeview_download_files_init(void)
 {
-	static const struct {
-		const int id;
-		const char * const title;
-		gboolean justify_right;
-	} columns[] = {
-		{ c_fi_filename, N_("Filename"), 	FALSE },
-    	{ c_fi_size,	 N_("Size"),	 	TRUE },
-    	{ c_fi_progress, N_("Progress"), 	FALSE },
-    	{ c_fi_rx, 		 N_("RX"), 			TRUE },
-    	{ c_fi_done,	 N_("Downloaded"), 	TRUE },
-    	{ c_fi_uploaded, N_("Uploaded"), 	TRUE },
-    	{ c_fi_sources,  N_("Sources"),  	FALSE },
-    	{ c_fi_status,   N_("Status"),	 	FALSE }
-	};
 	GtkTreeView *tv;
 	unsigned i;
 
-	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == c_fi_num);
 
 	tv = GTK_TREE_VIEW(gtk_tree_view_new());
 	treeview_download_files = tv;
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		GtkCellRenderer *renderer;
-
-		renderer = columns[i].id == c_fi_progress
-					? gtk_cell_renderer_progress_new()
-					: NULL;
-		add_column(tv, columns[i].id, _(columns[i].title),
-			columns[i].justify_right ? 1.0 : 0.0,
-			renderer, render_files);
+	for (i = 0; i < c_fi_num; i++) {
+		add_column(tv, i,
+			fi_gui_files_column_title(i),
+			fi_gui_files_column_justify_right(i) ? 1.0 : 0.0,
+			c_fi_progress == i ? gtk_cell_renderer_progress_new() : NULL,
+			render_files);
 	}
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 		GTK_SELECTION_MULTIPLE);
@@ -623,6 +606,20 @@ treeview_download_files_init(void)
 		on_files_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(tv), download_files_get_file_url);
+}
+
+void
+fi_gui_filter_changed(void)
+{
+	GtkTreeView *tv = treeview_download_files;
+	GtkTreeViewColumn *column;
+
+	g_return_if_fail(tv);
+
+	column = gtk_tree_view_get_column(tv, c_fi_filename);
+	g_return_if_fail(column);
+	gtk_tree_view_column_set_title(column,
+		fi_gui_files_column_title(c_fi_filename));
 }
 
 GtkWidget *

@@ -27,6 +27,7 @@
 
 RCSID("$Id$")
 
+#include "gtk/columns.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"
 #include "gtk/gtk-missing.h"
@@ -1756,6 +1757,51 @@ fi_gui_files_visualize(void)
 	g_hash_table_foreach(fi_handles, fi_handles_visualize, NULL);
 }
 
+const char *
+fi_gui_files_column_title(int column)
+{
+	g_return_val_if_fail(column >= 0, NULL);
+	g_return_val_if_fail(column < c_fi_num, NULL);
+
+	switch ((enum c_fi) column) {
+	case c_fi_filename:
+		return fi_gui_filter_active()
+					? _("Filename (filtered)")
+					: _("Filename");
+	case c_fi_size:		return _("Size");
+	case c_fi_progress:	return _("Progress");
+	case c_fi_rx:		return _("RX");
+	case c_fi_done:		return _("Downloaded");
+	case c_fi_uploaded:	return _("Uploaded");
+	case c_fi_sources:	return _("Sources");
+	case c_fi_status:	return _("Status");
+	case c_fi_num:		break;
+	}
+	g_assert_not_reached();
+	return NULL;
+}
+
+gboolean
+fi_gui_files_column_justify_right(int column)
+{
+	g_return_val_if_fail(column >= 0, FALSE);
+	g_return_val_if_fail(column < c_fi_num, FALSE);
+
+	switch ((enum c_fi) column) {
+	case c_fi_filename: return FALSE;
+	case c_fi_size:		return TRUE;
+	case c_fi_progress:	return TRUE;
+	case c_fi_rx:		return TRUE;
+	case c_fi_done:		return TRUE;
+	case c_fi_uploaded:	return TRUE;
+	case c_fi_sources:	return FALSE;
+	case c_fi_status:	return FALSE;
+	case c_fi_num:		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
 static void
 notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 {
@@ -1957,13 +2003,24 @@ filter_regex_clear(void)
 	}
 }
 
+gboolean
+fi_gui_filter_active(void)
+{
+	return NULL != filter_regex;
+}
+
 static void
 fi_gui_filter_by_regex(const char *expr)
 {
-	filter_regex_clear();
-
 	g_return_if_fail(fi_handles);
-	if (expr && '\0' != expr[0]) {
+
+	filter_regex_clear();
+	if (
+		expr &&
+	   	0 != strcmp(expr, "") &&
+	   	0 != strcmp(expr, ".") &&
+	   	0 != strcmp(expr, ".*")
+	) {
 		int ret, flags;
 		
 		flags = REG_EXTENDED | REG_NOSUB;
@@ -1976,6 +2033,7 @@ fi_gui_filter_by_regex(const char *expr)
 		}
 	}
 	fi_gui_files_freeze();
+	fi_gui_filter_changed();
 	g_hash_table_foreach(fi_handles, fi_handles_filter, NULL);
 	fi_gui_files_thaw();
 }
