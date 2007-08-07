@@ -69,8 +69,13 @@ main_gui_run(const gchar *unused_geometry_spec)
 #ifdef USE_GTK1
 #include "gtk1/support-glade.h"
 #endif
+
 #ifdef USE_GTK2
 #include "gtk2/support-glade.h"
+
+#if !GTK_CHECK_VERSION(2,5,0)
+#include "pbarcellrenderer.h"
+#endif
 #endif
 
 #include "main.h"

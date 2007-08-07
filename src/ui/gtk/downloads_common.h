@@ -97,8 +97,8 @@ const char *fi_gui_source_column_text(const struct download *, int column);
 void fi_gui_file_update_visibility(struct fileinfo_data *file);
 void fi_gui_files_visualize(void);
 
-void fi_gui_set_details(struct fileinfo_data *file);
-void fi_gui_clear_details(void);
+void fi_gui_clear_set_info(struct fileinfo_data *file);
+void fi_gui_clear_info(void);
 
 int fileinfo_data_cmp(const struct fileinfo_data *,
 	const struct fileinfo_data *, int column);
@@ -129,6 +129,7 @@ void fi_gui_files_unselect_all(void);
 void fi_gui_show_aliases(const char * const *aliases);
 void fi_gui_clear_aliases(void);
 void fi_gui_clear_sources(void);
+void fi_gui_clear_details(void);
 
 void fi_gui_source_add(struct download *);
 void fi_gui_source_update(struct download *);
@@ -147,8 +148,7 @@ struct download *fi_gui_get_source_at_cursor(void);
 typedef int (*fi_gui_files_foreach_cb)(struct fileinfo_data *, void *user_data);
 void fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data);
 
-void downloads_gui_clear_details(void);
-void downloads_gui_append_detail(const char *title, const char *value);
+void fi_gui_append_detail(const char *title, const char *value);
 
 GSList *fi_gui_get_selected_files(gboolean unselect);
 GSList *fi_gui_get_selected_sources(gboolean unselect);

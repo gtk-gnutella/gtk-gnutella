@@ -398,10 +398,10 @@ on_treeview_download_files_cursor_changed(GtkTreeView *unused_tv,
 	(void) unused_tv;
 	(void) unused_udata;
 
-	fi_gui_clear_details();
+	fi_gui_clear_info();
 	file = fi_gui_get_file_at_cursor();
 	if (file) {
-		fi_gui_set_details(file);
+		fi_gui_show_info(file);
 	}
 	downloads_gui_update_popup_downloads();
 }
@@ -869,6 +869,26 @@ fi_gui_files_thaw(void)
 {
 	g_object_thaw_notify(G_OBJECT(treeview_download_files));
 	g_object_thaw_notify(G_OBJECT(treeview_download_sources));
+}
+
+void
+fi_gui_clear_details(void)
+{
+	g_return_if_fail(treeview_download_details);
+    gtk_list_store_clear(treeview_download_details);
+}
+
+void
+fi_gui_append_detail(const gchar *title, const gchar *value)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_return_if_fail(treeview_download_details);
+    model = gtk_tree_view_get_model(treeview_download_details);
+
+	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

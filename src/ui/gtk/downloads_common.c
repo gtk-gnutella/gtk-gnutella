@@ -168,18 +168,18 @@ source_progress_to_string(const struct download *d)
 }
 
 static void
-downloads_gui_set_details(const char *filename, filesize_t filesize,
+fi_gui_set_details(const char *filename, filesize_t filesize,
 	const struct sha1 *sha1, const struct tth *tth)
 {
-	downloads_gui_clear_details();
+	fi_gui_clear_details();
 
-	downloads_gui_append_detail(_("Filename"),
+	fi_gui_append_detail(_("Filename"),
 		lazy_filename_to_ui_string(filename));
-	downloads_gui_append_detail(_("Size"),
+	fi_gui_append_detail(_("Size"),
 		nice_size(filesize, show_metric_units()));
-	downloads_gui_append_detail(_("SHA-1"),
+	fi_gui_append_detail(_("SHA-1"),
 		sha1 ? sha1_to_urn_string(sha1) : NULL);
-	downloads_gui_append_detail(_("Bitprint"),
+	fi_gui_append_detail(_("Bitprint"),
 		sha1 && tth ? bitprint_to_urn_string(sha1, tth) : NULL);
 }
 
@@ -1261,9 +1261,9 @@ fi_gui_file_remove(struct fileinfo_data *file)
 }
 
 void
-fi_gui_clear_details(void)
+fi_gui_clear_info(void)
 {
-	downloads_gui_clear_details();
+	fi_gui_clear_details();
 	fi_gui_clear_aliases();
 	fi_gui_clear_sources();
 
@@ -1278,7 +1278,7 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	void *key = GUINT_TO_POINTER(handle);
 	
 	if (last_shown_valid && handle == last_shown) {
-		fi_gui_clear_details();
+		fi_gui_clear_info();
 	}
 
 	file = g_hash_table_lookup(fi_handles, key);
@@ -1374,18 +1374,17 @@ fi_gui_set_sources(struct fileinfo_data *file)
 }
 
 void
-fi_gui_set_details(struct fileinfo_data *file)
+fi_gui_show_info(struct fileinfo_data *file)
 {
     gnet_fi_info_t *info;
 
-	fi_gui_clear_details();
+	fi_gui_clear_info();
 	g_return_if_fail(file);
 
     info = guc_fi_get_info(file->handle);
 	g_return_if_fail(info);
 
-	downloads_gui_set_details(info->filename, info->size,
-		info->sha1, info->tth);
+	fi_gui_set_details(info->filename, info->size, info->sha1, info->tth);
     guc_fi_free_info(info);
 
 	fi_gui_set_aliases(file);
@@ -2037,13 +2036,93 @@ fi_gui_common_shutdown(void)
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
 	filter_regex_clear();
-	fi_gui_clear_details();
+	fi_gui_clear_info();
 	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
 
 	g_hash_table_destroy(fi_handles);
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
 	fi_updates = NULL;
+}
+
+/**
+ *	Initalize the download gui.
+ */
+void
+downloads_gui_init(void)
+{
+}
+
+/**
+ * Shutdown procedures.
+ */
+void
+downloads_gui_shutdown(void)
+{
+}
+
+/**
+ *	Add a download to either the active or queued download treeview depending
+ *	on the download's flags.  This function handles grouping new downloads
+ * 	appropriately and creation of parent/child nodes.
+ */
+void
+download_gui_add(struct download *d)
+{
+	download_check(d);
+	
+	fi_gui_add_download(d);
+	d->visible = TRUE;
+}
+
+
+/**
+ *	Remove a download from the GUI.
+ */
+void
+download_gui_remove(struct download *d)
+{
+	download_check(d);
+	
+	fi_gui_remove_download(d);
+	d->visible = FALSE;
+}
+
+/**
+ *	Update the gui to reflect the current state of the given download
+ */
+void
+gui_update_download(download_t *d, gboolean force)
+{
+	time_t now;
+
+	download_check(d);
+
+	now = tm_time();
+    if (force || 0 != delta_time(now, d->last_gui_update)) {
+		d->last_gui_update = now;
+		fi_gui_download_set_status(d);
+	}
+}
+
+/**
+ *	Determines if abort/resume buttons should be sensitive or not
+ *  Determines if the queue and abort options should be available in the
+ *	treeview popups.
+ */
+void
+gui_update_download_abort_resume(void)
+{
+}
+
+
+/**
+ * Periodically called to update downloads display.
+ */
+void
+downloads_gui_update_display(time_t unused_now)
+{
+	(void) unused_now;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

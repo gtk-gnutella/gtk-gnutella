@@ -797,4 +797,25 @@ fi_gui_files_thaw(void)
 	gtk_clist_thaw(clist_download_sources);
 }
 
+void
+fi_gui_clear_details(void)
+{
+	GtkCList *clist = clist_download_details;
+
+	g_return_if_fail(clist);
+    gtk_clist_clear(clist);
+}
+
+void
+fi_gui_append_detail(const gchar *name, const gchar *value)
+{
+	GtkCList *clist = clist_download_details;
+ 	const gchar *titles[2];
+
+	g_return_if_fail(clist);
+	titles[0] = name;
+	titles[1] = EMPTY_STRING(value);
+    gtk_clist_append(clist, (gchar **) titles);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
