@@ -1302,13 +1302,19 @@ fi_gui_set_aliases(struct fileinfo_data *file)
     g_strfreev(aliases);
 }
 
+/**
+ *	Add a download to either the active or queued download treeview depending
+ *	on the download's flags.  This function handles grouping new downloads
+ * 	appropriately and creation of parent/child nodes.
+ */
 void
-fi_gui_add_download(struct download *d)
+download_gui_add(struct download *d)
 {
 	struct fileinfo_data *file;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
+	d->visible = TRUE;
 
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
@@ -1331,13 +1337,17 @@ fi_gui_add_download(struct download *d)
 	}
 }
 
+/**
+ *	Remove a download from the GUI.
+ */
 void
-fi_gui_remove_download(struct download *d)
+download_gui_remove(struct download *d)
 {
 	struct fileinfo_data *file;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
+	d->visible = FALSE;
 
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
@@ -1494,12 +1504,6 @@ on_files_key_press_event(GtkWidget *unused_widget,
 		}
 	}
 	return FALSE;
-}
-
-void
-fi_gui_download_set_status(struct download *d)
-{
-	fi_gui_source_update(d);
 }
 
 /**
@@ -2076,37 +2080,10 @@ downloads_gui_shutdown(void)
 }
 
 /**
- *	Add a download to either the active or queued download treeview depending
- *	on the download's flags.  This function handles grouping new downloads
- * 	appropriately and creation of parent/child nodes.
- */
-void
-download_gui_add(struct download *d)
-{
-	download_check(d);
-	
-	fi_gui_add_download(d);
-	d->visible = TRUE;
-}
-
-
-/**
- *	Remove a download from the GUI.
- */
-void
-download_gui_remove(struct download *d)
-{
-	download_check(d);
-	
-	fi_gui_remove_download(d);
-	d->visible = FALSE;
-}
-
-/**
  *	Update the gui to reflect the current state of the given download
  */
 void
-gui_update_download(download_t *d, gboolean force)
+gui_update_download(struct download *d, gboolean force)
 {
 	time_t now;
 
@@ -2115,7 +2092,7 @@ gui_update_download(download_t *d, gboolean force)
 	now = tm_time();
     if (force || 0 != delta_time(now, d->last_gui_update)) {
 		d->last_gui_update = now;
-		fi_gui_download_set_status(d);
+		fi_gui_source_update(d);
 	}
 }
 

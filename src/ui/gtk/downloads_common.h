@@ -31,10 +31,6 @@
 
 #include "lib/misc.h"
 
-void fi_gui_add_download(struct download *);
-void fi_gui_remove_download(struct download *);
-void fi_gui_download_set_status(struct download *);
-
 /* Widget signal callbacks */
 
 void on_entry_downloads_filter_regex_activate(GtkEditable *, void *user_data);
