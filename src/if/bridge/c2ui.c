@@ -57,7 +57,8 @@
 #define	download_gui_remove(d) ((void) d)
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
-#define search_gui_new_search(query, flags, x) (((query) && (flags)), FALSE)
+#define search_gui_new_search(query, flags, x) \
+	((query) && (flags) ? FALSE : FALSE)
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
 #define	upload_stats_gui_clear_all()
