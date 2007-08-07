@@ -1216,8 +1216,8 @@ fi_gui_file_get_magnet(const struct fileinfo_data *file)
 	return guc_file_info_build_magnet(file->handle);
 }
 
-static void 
-fi_gui_file_add(gnet_fi_t handle)
+static void
+fi_gui_fi_added(gnet_fi_t handle)
 {
 	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
@@ -1232,7 +1232,7 @@ fi_gui_file_add(gnet_fi_t handle)
 	g_hash_table_insert(fi_handles, GUINT_TO_POINTER(handle), file);
 	fi_gui_file_set_filename(file);
 	fi_gui_file_fill_status(file);
-	fi_gui_file_show(file);
+	fi_gui_file_update_visibility(file);
 }
 
 static void 
@@ -1241,22 +1241,6 @@ fi_gui_file_free(struct fileinfo_data *file)
 	atom_str_free_null(&file->filename);
 	G_FREE_NULL(file->status);
 	wfree(file, sizeof *file);
-}
-
-static void 
-fi_gui_file_remove(struct fileinfo_data *file)
-{
-	void *key;
-
-	g_assert(file);
-
-	key = GUINT_TO_POINTER(file->handle);
-	g_hash_table_remove(fi_handles, key);
-	g_hash_table_remove(fi_updates, key);
-	g_assert(NULL == file->downloads);
-
-	fi_gui_file_hide(file);
-	fi_gui_file_free(file);
 }
 
 static void
@@ -1274,17 +1258,22 @@ static void
 fi_gui_fi_removed(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
-	void *key = GUINT_TO_POINTER(handle);
+	void *key;
 	
-	if (last_shown_valid && handle == last_shown) {
-		fi_gui_clear_info();
-	}
-
+	key = GUINT_TO_POINTER(handle);
 	file = g_hash_table_lookup(fi_handles, key);
 	g_return_if_fail(file);
 	g_return_if_fail(handle == file->handle);
 
-	fi_gui_file_remove(file);
+	if (last_shown_valid && handle == last_shown) {
+		fi_gui_clear_info();
+	}
+	g_hash_table_remove(fi_handles, key);
+	g_hash_table_remove(fi_updates, key);
+	g_assert(NULL == file->downloads);
+
+	fi_gui_file_hide(file);
+	fi_gui_file_free(file);
 }
 
 static void
@@ -1552,13 +1541,6 @@ void
 gui_download_updates_thaw(void)
 {
 	fi_gui_files_thaw();
-}
-
-static void
-fi_gui_fi_added(gnet_fi_t handle)
-{
-    fi_gui_file_add(handle);
-	fi_gui_file_update(handle);
 }
 
 static inline unsigned
