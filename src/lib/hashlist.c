@@ -653,11 +653,13 @@ gpointer
 hash_list_next(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
+	GList *l;
 
 	hash_list_check(hl);
 
 	item = g_hash_table_lookup(hl->ht, key);
-	item = item ? g_list_next(item->list) : NULL;
+	l = item ? g_list_next(item->list) : NULL;
+	item = l ? l->data : NULL;
 	return item ? deconstify_gpointer(item->orig_key) : NULL;
 }
 
@@ -668,11 +670,13 @@ gpointer
 hash_list_previous(hash_list_t *hl, gconstpointer key)
 {
 	struct hash_list_item *item;
+	GList *l;
 
 	hash_list_check(hl);
 
 	item = g_hash_table_lookup(hl->ht, key);
-	item = item ? g_list_previous(item->list) : NULL;
+	l = item ? g_list_previous(item->list) : NULL;
+	item = l ? l->data : NULL;
 	return item ? deconstify_gpointer(item->orig_key) : NULL;
 }
 
