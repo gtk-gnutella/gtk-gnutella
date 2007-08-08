@@ -283,7 +283,7 @@ thex_download_handle_xml(struct thex_download *ctx,
   
 	node = find_element_by_name(hashtree->children, "serializedtree");
 	if (node) {
-		guint32 depth;
+		unsigned depth, good_depth;
 		char *value;
 		int error;
 		
@@ -306,7 +306,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 			goto finish;
 		}
 		
-		depth = parse_uint32(value, NULL, 10, &error);
+		depth = parse_uint16(value, NULL, 10, &error);
 		error |= depth > tt_full_depth(ctx->filesize);
 		if (error) {
 			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
@@ -316,8 +316,10 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (error)
 			goto finish;
 
-		if (depth < tt_good_depth(ctx->filesize)) {
-			g_message("Tree depth is below the \"good\" depth");
+		good_depth = tt_good_depth(ctx->filesize);
+		if (depth < good_depth) {
+			g_message("Tree depth (%u) is below the \"good\" depth (%u)",
+				depth, good_depth);
 			goto finish;
 		}
 		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
