@@ -118,6 +118,10 @@ gboolean file_info_purge(fileinfo_t *fi);
 char *file_info_unique_filename(const gchar *path, const gchar *file,
 	const gchar *ext);
 
+void fi_src_info_changed(struct download *);
+void fi_src_ranges_changed(struct download *);
+void fi_src_status_changed(struct download *);
+
 /***
  *** Inlined routines.
  ***/

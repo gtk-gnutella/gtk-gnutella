@@ -103,6 +103,7 @@ static regex_t *filter_regex;
 void
 gui_update_download_clear(void)
 {
+	/* FIXME: Not used by anything currently */
 	update_download_clear_needed = TRUE;
 }
 
@@ -113,6 +114,8 @@ gui_update_download_clear(void)
 void
 gui_update_download_clear_now(void)
 {
+	/* FIXME: Not used by anything currently */
+
 	if (!update_download_clear_needed)
 		return;
 
@@ -1297,14 +1300,13 @@ fi_gui_set_aliases(struct fileinfo_data *file)
  *	on the download's flags.  This function handles grouping new downloads
  * 	appropriately and creation of parent/child nodes.
  */
-void
+static void
 download_gui_add(struct download *d)
 {
 	struct fileinfo_data *file;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
-	d->visible = TRUE;
 
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
@@ -1327,17 +1329,22 @@ download_gui_add(struct download *d)
 	}
 }
 
+static void
+fi_gui_src_added(gnet_src_t handle)
+{
+	download_gui_add(guc_src_get_download(handle));
+}
+
 /**
  *	Remove a download from the GUI.
  */
-void
+static void
 download_gui_remove(struct download *d)
 {
 	struct fileinfo_data *file;
 
 	download_check(d);
 	g_return_if_fail(d->file_info);
-	d->visible = FALSE;
 
 	file = g_hash_table_lookup(fi_handles,
 				GUINT_TO_POINTER(d->file_info->fi_handle));
@@ -1354,6 +1361,30 @@ download_gui_remove(struct download *d)
 	fi_gui_source_remove(d);
 }
 
+static void
+fi_gui_src_removed(gnet_src_t handle)
+{
+	download_gui_remove(guc_src_get_download(handle));
+}
+
+static void
+download_gui_update(struct download *d)
+{
+	download_check(d);
+	fi_gui_source_update(d);
+}
+
+static void
+fi_gui_src_status_changed(gnet_src_t handle)
+{
+	download_gui_update(guc_src_get_download(handle));
+}
+
+static void
+fi_gui_src_info_changed(gnet_src_t handle)
+{
+	download_gui_update(guc_src_get_download(handle));
+}
 
 static void
 fi_gui_set_sources(struct fileinfo_data *file)
@@ -1494,42 +1525,6 @@ on_files_key_press_event(GtkWidget *unused_widget,
 		}
 	}
 	return FALSE;
-}
-
-/**
- *	Update the server/vendor column of the active downloads treeview
- */
-void
-gui_update_download_server(struct download *d)
-{
-	fi_gui_source_update(d);
-}
-
-/**
- *	Update the range column of the active downloads treeview
- */
-void
-gui_update_download_range(struct download *d)
-{
-	fi_gui_source_update(d);
-}
-
-/**
- *	Update the size column of the active downloads treeview
- */
-void
-gui_update_download_size(struct download *d)
-{
-	fi_gui_source_update(d);
-}
-
-/**
- *	Update the host column of the active downloads treeview
- */
-void
-gui_update_download_host(struct download *d)
-{
-	fi_gui_source_update(d);
 }
 
 void
@@ -2067,6 +2062,17 @@ fi_gui_common_init(void)
 		FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
+
+    guc_src_add_listener(fi_gui_src_added, EV_SRC_ADDED, FREQ_SECS, 0);
+    guc_src_add_listener(fi_gui_src_removed, EV_SRC_REMOVED, FREQ_SECS, 0);
+    guc_src_add_listener(fi_gui_src_status_changed, EV_SRC_STATUS_CHANGED,
+		FREQ_SECS, 0);
+    guc_src_add_listener(fi_gui_src_info_changed, EV_SRC_INFO_CHANGED,
+		FREQ_SECS, 0);
+	
+	gtk_widget_set_sensitive(
+		gui_main_window_lookup("button_downloads_clear_stopped"),
+		TRUE);
 }
 
 static gboolean
@@ -2101,59 +2107,6 @@ fi_gui_common_shutdown(void)
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
 	fi_updates = NULL;
-}
-
-/**
- *	Initalize the download gui.
- */
-void
-downloads_gui_init(void)
-{
-}
-
-/**
- * Shutdown procedures.
- */
-void
-downloads_gui_shutdown(void)
-{
-}
-
-/**
- *	Update the gui to reflect the current state of the given download
- */
-void
-gui_update_download(struct download *d, gboolean force)
-{
-	time_t now;
-
-	download_check(d);
-
-	now = tm_time();
-    if (force || 0 != delta_time(now, d->last_gui_update)) {
-		d->last_gui_update = now;
-		fi_gui_source_update(d);
-	}
-}
-
-/**
- *	Determines if abort/resume buttons should be sensitive or not
- *  Determines if the queue and abort options should be available in the
- *	treeview popups.
- */
-void
-gui_update_download_abort_resume(void)
-{
-}
-
-
-/**
- * Periodically called to update downloads display.
- */
-void
-downloads_gui_update_display(time_t unused_now)
-{
-	(void) unused_now;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -194,20 +194,28 @@ FILE_INFO_COMPLETE_AFTER(const fileinfo_t *fi, filesize_t off)
 }
 
 typedef void (*fi_listener_t) (gnet_fi_t);
-typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
+typedef void (*src_listener_t) (gnet_src_t);
 
 typedef enum {
 	EV_FI_ADDED = 0,       /**< fi_listener */
 	EV_FI_REMOVED,         /**< fi_listener */
 	EV_FI_INFO_CHANGED,    /**< fi_listener */
+	EV_FI_RANGES_CHANGED,  /**< fi_listener */
 	EV_FI_STATUS_CHANGED,  /**< fi_listener */
 	EV_FI_STATUS_CHANGED_TRANSIENT, /**< fi_listener */
-	EV_FI_SRC_ADDED,       /**< fi_src_listener */
-	EV_FI_SRC_REMOVED,     /**< fi_src_listener */
-	EV_FI_RANGES_CHANGED,  /**< fi_listener */
 
 	EV_FI_EVENTS           /**< Number of events in this domain */
 } gnet_fi_ev_t;
+
+typedef enum {
+	EV_SRC_ADDED,			/**< src_listener */
+	EV_SRC_REMOVED,			/**< src_listener */
+	EV_SRC_INFO_CHANGED,	/**< src_listener */
+	EV_SRC_RANGES_CHANGED,	/**< src_listener */
+	EV_SRC_STATUS_CHANGED,	/**< src_listener */
+
+	EV_SRC_EVENTS           /**< Number of events in this domain */
+} gnet_src_ev_t;
 
 /*
  * Public interface, visible only from the bridge.
@@ -217,6 +225,11 @@ typedef enum {
 
 void fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, guint32);
 void fi_remove_listener(fi_listener_t, gnet_fi_ev_t);
+
+void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
+void src_remove_listener(src_listener_t, gnet_src_ev_t);
+
+struct download *src_get_download(gnet_src_t);
 
 gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);

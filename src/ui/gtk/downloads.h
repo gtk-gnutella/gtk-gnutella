@@ -26,18 +26,7 @@
 #ifndef _gtk_downloads_h_
 #define _gtk_downloads_h_
 
-#include "gui.h"
 #include "downloads_common.h"
-
-struct download;
-
-/*
- * Global Functions
- */
-
-void downloads_gui_init(void);
-void downloads_gui_shutdown(void);
-void downloads_gui_update_display(time_t now);
 
 #endif /* _gtk_downloads_h_ */
 

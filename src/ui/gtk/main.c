@@ -566,7 +566,6 @@ main_gui_init(void)
 
     settings_gui_init();
     fi_gui_init();
-	downloads_gui_init();
     vp_gui_init();
     nodes_gui_init();
     hcache_gui_init();
@@ -640,7 +639,6 @@ main_gui_shutdown(void)
     filter_cb_close();
     monitor_gui_shutdown();
     search_gui_shutdown(); /* must be done before filter_shutdown! */
- 	downloads_gui_shutdown();
 	filter_shutdown();
 	vp_gui_shutdown();
     fi_gui_shutdown();
@@ -657,7 +655,7 @@ main_gui_shutdown(void)
 void
 main_gui_timer(time_t now)
 {
-	static const gint num_states = 11;
+	static const gint num_states = 10;
 	gboolean overloaded;
 	gint i;
 
@@ -683,9 +681,8 @@ main_gui_timer(time_t now)
 		case 5: fi_gui_update_display(now);				break;
 		case 6: statusbar_gui_clear_timeouts(now);		break;
 		case 7: filter_timer();							break;
-		case 8: downloads_gui_update_display(now);		break;
-		case 9: search_gui_timer(now);					break;
-		case 10: icon_timer();							break;
+		case 8: search_gui_timer(now);					break;
+		case 9: icon_timer();							break;
 		default:
 			g_error("bad modulus computation (counter is %d)", counter);
 			break;

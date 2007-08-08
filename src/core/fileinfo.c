@@ -443,7 +443,16 @@ static const gchar *file_info_new_outname(const gchar *dir, const gchar *name);
 static gboolean looks_like_urn(const gchar *filename);
 
 static idtable_t *fi_handle_map;
+static idtable_t *src_handle_map;
+
 static event_t *fi_events[EV_FI_EVENTS];
+static event_t *src_events[EV_SRC_EVENTS];
+
+struct download *
+src_get_download(gnet_src_t src_handle)
+{
+	return idtable_get_value(src_handle_map, src_handle);
+}
 
 static inline fileinfo_t *
 file_info_find_by_handle(gnet_fi_t n)
@@ -458,15 +467,21 @@ file_info_request_handle(fileinfo_t *fi)
 }
 
 static void
+fi_event_trigger(fileinfo_t *fi, gnet_fi_ev_t id)
+{
+	file_info_check(fi);
+	g_assert(UNSIGNED(id) < EV_FI_EVENTS);
+	event_trigger(fi_events[id], T_NORMAL(fi_listener_t, (fi->fi_handle)));
+}
+
+static void
 file_info_drop_handle(fileinfo_t *fi, const gchar *reason)
 {
 	file_info_check(fi);
 
 	file_info_upload_stop(fi, reason);
-    event_trigger(fi_events[EV_FI_REMOVED],
-		T_NORMAL(fi_listener_t, (fi->fi_handle)));
-
-    idtable_free_id(fi_handle_map, fi->fi_handle);
+	fi_event_trigger(fi, EV_FI_REMOVED);
+	idtable_free_id(fi_handle_map, fi->fi_handle);
 }
 
 /**
@@ -1986,7 +2001,7 @@ fi_dispose(fileinfo_t *fi)
 {
 	file_info_check(fi);
 
-    file_info_drop_handle(fi, "Shutting down");
+	file_info_drop_handle(fi, "Shutting down");
 
 	/*
 	 * Note that normally all fileinfo structures should have been collected
@@ -2091,10 +2106,42 @@ void
 file_info_changed(fileinfo_t *fi)
 {
 	file_info_check(fi);
-
 	g_return_if_fail(fi->hashed);
-    event_trigger(fi_events[EV_FI_STATUS_CHANGED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+
+	fi_event_trigger(fi, EV_FI_STATUS_CHANGED);
+}
+
+static void
+src_event_trigger(struct download *d, gnet_src_ev_t id)
+{
+	fileinfo_t *fi;
+
+	download_check(d);
+	g_assert(d->src_handle_valid);
+
+	fi = d->file_info;
+	file_info_check(fi);
+
+	g_assert(UNSIGNED(id) < EV_SRC_EVENTS);
+	event_trigger(src_events[id], T_NORMAL(src_listener_t, (d->src_handle)));
+}
+
+void
+fi_src_status_changed(struct download *d)
+{
+	src_event_trigger(d, EV_SRC_STATUS_CHANGED);
+}
+
+void
+fi_src_info_changed(struct download *d)
+{
+	src_event_trigger(d, EV_SRC_INFO_CHANGED);
+}
+
+void
+fi_src_ranges_changed(struct download *d)
+{
+	src_event_trigger(d, EV_SRC_RANGES_CHANGED);
 }
 
 /**
@@ -2114,7 +2161,7 @@ file_info_close_pre(void)
 void
 file_info_close(void)
 {
-    guint n;
+	unsigned i;
 
 	/*
 	 * Freeing callbacks expect that the freeing of the `fi_by_outname'
@@ -2127,18 +2174,25 @@ file_info_close(void)
 	g_hash_table_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
 	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
-    /*
-     * The hash tables may still not be completely empty, but the referenced
-     * file_info structs are all freed.
-     *      --Richard, 9/3/2003
-     */
+	g_assert(0 == idtable_ids(src_handle_map));
+	idtable_destroy(src_handle_map);
 
-    g_assert(0 == idtable_ids(fi_handle_map));
-    idtable_destroy(fi_handle_map);
+	for (i = 0; i < G_N_ELEMENTS(src_events); i++) {
+		event_destroy(src_events[i]);
+	}
 
-    for (n = 0; n < G_N_ELEMENTS(fi_events); n ++)
-        event_destroy(fi_events[n]);
+	/*
+	 * The hash tables may still not be completely empty, but the referenced
+	 * file_info structs are all freed.
+	 *      --Richard, 9/3/2003
+	 */
 
+	g_assert(0 == idtable_ids(fi_handle_map));
+	idtable_destroy(fi_handle_map);
+
+	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
+		event_destroy(fi_events[i]);
+	}
 	g_hash_table_destroy(fi_by_sha1);
 	g_hash_table_destroy(fi_by_namesize);
 	g_hash_table_destroy(fi_by_guid);
@@ -2231,8 +2285,7 @@ transient:
 
 	gnet_prop_incr_guint32(PROP_FI_ALL_COUNT);
 
-    event_trigger(fi_events[EV_FI_ADDED],
-        T_NORMAL(fi_listener_t, (fi->fi_handle)));
+    fi_event_trigger(fi, EV_FI_ADDED);
 }
 
 /**
@@ -2257,7 +2310,7 @@ file_info_hash_remove(fileinfo_t *fi)
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
 
-    file_info_drop_handle(fi, "Discarding file info");
+	file_info_drop_handle(fi, "Discarding file info");
 
 	g_assert(GNET_PROPERTY(fi_all_count) > 0);
 	gnet_prop_decr_guint32(PROP_FI_ALL_COUNT);
@@ -4077,8 +4130,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	 * because other parts of gtkg, i.e. the visual progress view,
 	 * needs to know about them.
 	 */
-	event_trigger(fi_events[EV_FI_STATUS_CHANGED_TRANSIENT],
-	      T_NORMAL(fi_listener_t, (fi->fi_handle)));
+    fi_event_trigger(fi, EV_FI_STATUS_CHANGED_TRANSIENT);
 }
 
 /**
@@ -5186,6 +5238,23 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
     event_remove_subscriber(fi_events[ev], (GCallback) cb);
 }
 
+void
+src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
+	frequency_t t, guint32 interval)
+{
+    g_assert(UNSIGNED(ev) < EV_SRC_EVENTS);
+
+    event_add_subscriber(src_events[ev], (GCallback) cb, t, interval);
+}
+
+void
+src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
+{
+    g_assert(UNSIGNED(ev) < EV_SRC_EVENTS);
+
+    event_remove_subscriber(src_events[ev], (GCallback) cb);
+}
+
 /**
  * Get an information structure summarizing the file info.
  * This is used by the GUI to avoid peeking into the file info structure
@@ -5418,26 +5487,28 @@ fi_get_aliases(gnet_fi_t fih)
  * Add new download source for the file.
  */
 void
-file_info_add_new_source(fileinfo_t *fi, struct download *dl)
+file_info_add_new_source(fileinfo_t *fi, struct download *d)
 {
 	fi->ntime = tm_time();
-	file_info_add_source(fi, dl);
+	file_info_add_source(fi, d);
 }
 
 /**
  * Add download source for the file, but preserve original "ntime".
  */
 void
-file_info_add_source(fileinfo_t *fi, struct download *dl)
+file_info_add_source(fileinfo_t *fi, struct download *d)
 {
 	file_info_check(fi);
-    g_assert(NULL == dl->file_info);
-    g_assert(!DOWNLOAD_IS_VISIBLE(dl)); /* Must be removed from the GUI first */
+	g_assert(NULL == d->file_info);
+	g_assert(!d->src_handle_valid);
 
-    fi->refcount++;
-    fi->dirty_status = TRUE;
-    dl->file_info = fi;
-    fi->sources = g_slist_prepend(fi->sources, dl);
+	fi->refcount++;
+	fi->dirty_status = TRUE;
+	d->file_info = fi;
+	d->src_handle = idtable_new_id(src_handle_map, d);
+	d->src_handle_valid = TRUE;
+	fi->sources = g_slist_prepend(fi->sources, d);
 
 	if (1 == fi->refcount) {
 		g_assert(GNET_PROPERTY(fi_with_source_count)
@@ -5445,8 +5516,7 @@ file_info_add_source(fileinfo_t *fi, struct download *dl)
 		gnet_prop_incr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 	}
 
-    event_trigger(fi_events[EV_FI_SRC_ADDED],
-        T_NORMAL(fi_src_listener_t, (fi->fi_handle, dl->src_handle)));
+	src_event_trigger(d, EV_SRC_ADDED);
 }
 
 /**
@@ -5456,21 +5526,23 @@ file_info_add_source(fileinfo_t *fi, struct download *dl)
  * This replaces file_info_free()
  */
 void
-file_info_remove_source(
-	fileinfo_t *fi, struct download *dl, gboolean discard)
+file_info_remove_source(fileinfo_t *fi, struct download *d, gboolean discard)
 {
 	file_info_check(fi);
-    g_assert(NULL != dl->file_info);
-    g_assert(fi->refcount > 0);
+	g_assert(NULL != d->file_info);
+	g_assert(d->src_handle_valid);
+	g_assert(fi->refcount > 0);
 	g_assert(fi->hashed);
 
-    event_trigger(fi_events[EV_FI_SRC_REMOVED],
-        T_NORMAL(fi_src_listener_t, (fi->fi_handle, dl->src_handle)));
+	src_event_trigger(d, EV_SRC_REMOVED);
 
-    fi->refcount--;
-    fi->dirty_status = TRUE;
-    dl->file_info = NULL;
-    fi->sources = g_slist_remove(fi->sources, dl);
+	idtable_free_id(src_handle_map, d->src_handle);
+	d->src_handle_valid = FALSE;
+
+	fi->refcount--;
+	fi->dirty_status = TRUE;
+	d->file_info = NULL;
+	fi->sources = g_slist_remove(fi->sources, d);
 
 	/*
 	 * We don't free the structure when `discard' is FALSE: keeping the
@@ -5481,7 +5553,7 @@ file_info_remove_source(
 	 * as soon as this happens.
 	 */
 
-    if (0 == fi->refcount) {
+	if (0 == fi->refcount) {
 		g_assert(GNET_PROPERTY(fi_with_source_count) > 0);
 		gnet_prop_decr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 
@@ -5548,12 +5620,11 @@ file_info_purge(fileinfo_t *fi)
 	csl = g_slist_copy(fi->sources);	/* Clone list, orig can be modified */
 
 	for (sl = csl; NULL != sl; sl = g_slist_next(sl)) {
-		struct download *dl = sl->data;
+		struct download *d = sl->data;
 
-		download_abort(dl);
-		if (!download_remove(dl)) {
+		download_abort(d);
+		if (!download_remove(d)) {
 			g_slist_free(csl);
-
 			return FALSE;
 		}
 	}
@@ -5971,8 +6042,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
-	event_trigger(fi_events[EV_FI_RANGES_CHANGED],
-        T_NORMAL(fi_listener_t, (d->file_info->fi_handle)));
+	fi_event_trigger(d->file_info, EV_FI_RANGES_CHANGED);
 }
 
 struct file_info_foreach {
@@ -6099,12 +6169,18 @@ file_info_init(void)
     fi_events[EV_FI_ADDED]          = event_new("fi_added");
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
     fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
+	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
     fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
     fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] =
 									  event_new("fi_status_changed_transient");
-    fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
-    fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
-	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
+
+	src_handle_map = idtable_new();
+
+	src_events[EV_SRC_ADDED]			= event_new("src_added");
+	src_events[EV_SRC_REMOVED]			= event_new("src_removed");
+	src_events[EV_SRC_INFO_CHANGED]		= event_new("src_info_changed");
+	src_events[EV_SRC_STATUS_CHANGED]	= event_new("src_status_changed");
+	src_events[EV_SRC_RANGES_CHANGED]	= event_new("src_ranges_changed");
 }
 
 /**

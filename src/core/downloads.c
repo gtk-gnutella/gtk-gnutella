@@ -258,68 +258,7 @@ count_running_on_server(const struct dl_server *server)
 	return server_list_length(server, DL_LIST_RUNNING);
 }
 
-#define MAGIC_TIME	1		/**< For recreation upon starup */
-
-/***
- *** Sources API
- ***/
-
-static struct event *src_events[EV_SRC_EVENTS] = {
-	NULL, NULL, NULL, NULL
-};
-
-static idtable_t *src_handle_map = NULL;
-
-static void
-src_init(void)
-{
-    src_handle_map = idtable_new();
-
-    src_events[EV_SRC_ADDED]          = event_new("src_added");
-    src_events[EV_SRC_REMOVED]        = event_new("src_removed");
-    src_events[EV_SRC_INFO_CHANGED]   = event_new("src_info_changed");
-    src_events[EV_SRC_STATUS_CHANGED] = event_new("src_status_changed");
-    src_events[EV_SRC_RANGES_CHANGED] = event_new("src_ranges_changed");
-}
-
-static void
-src_close(void)
-{
-    guint n;
-
-    /* See FIXME in download_close()!! */
-#if 0
-    g_assert(idtable_ids(src_handle_map) == 0);
-#endif
-    idtable_destroy(src_handle_map);
-
-    for (n = 0; n < G_N_ELEMENTS(src_events); n ++)
-        event_destroy(src_events[n]);
-}
-
-void
-src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
-    frequency_t t, guint32 interval)
-{
-    g_assert(ev < EV_SRC_EVENTS);
-
-    event_add_subscriber(src_events[ev], (GCallback) cb,
-        t, interval);
-}
-
-void
-src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
-{
-    g_assert(ev < EV_SRC_EVENTS);
-
-    event_remove_subscriber(src_events[ev], (GCallback) cb);
-}
-
-struct download *
-src_get_download(gnet_src_t src_handle)
-{
-	return idtable_get_value(src_handle_map, src_handle);
-}
+#define MAGIC_TIME	1		/**< For recreation upon startup */
 
 /***
  *** RX link callbacks
@@ -695,8 +634,6 @@ download_init(void)
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);
-
-	src_init();
 }
 
 /**
@@ -1134,11 +1071,6 @@ download_timer(time_t now)
 {
 	struct download *next;
 
-	if (download_queue_is_frozen()) {
-		gcu_gui_update_download_clear_now();
-		return;
-	}
-
 	next = hash_list_head(sl_unqueued);
 	while (next) {
 		struct download *d = next;
@@ -1242,7 +1174,7 @@ download_timer(time_t now)
 					}
 				}
 			} else if (now != d->last_gui_update) {
-				gcu_gui_update_download(d, TRUE);
+				fi_src_status_changed(d);
 			}
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
@@ -1263,12 +1195,12 @@ download_timer(time_t now)
 				download_queue_delay(d,
 					GNET_PROPERTY(download_retry_timeout_delay),
 				    _("Requeued due to timeout"));
-				gcu_gui_update_download(d, FALSE);
+				fi_src_status_changed(d);
 			}
 			break;
 		case GTA_DL_VERIFYING:
 		case GTA_DL_MOVING:
-			gcu_gui_update_download(d, FALSE);
+			fi_src_status_changed(d);
 			break;
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
@@ -1297,7 +1229,6 @@ download_timer(time_t now)
 		FALSE);
 
 	download_free_removed();
-	gcu_gui_update_download_clear_now();
 
 	/* Dequeuing */
 	if (GNET_PROPERTY(is_inet_connected))
@@ -2377,11 +2308,6 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 			break;
 		}
 
-		/* Below file_info_add_source() changes d->file_info. Therefore, the
-		 * download must be removed from the GUI right now. */
-		if (DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_remove(d);
-
 		g_assert(old_fi->refcount > 0);
 		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
 		file_info_add_source(new_fi, d);
@@ -2422,9 +2348,6 @@ download_info_reget(struct download *d)
 	 * The GUI uses d->file_info internally, so the download must be
 	 * removed from it before changing the d->file_info.
 	 */
-
-	if (DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_remove(d);
 
 	downloads_with_name_dec(download_basename(d));	/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
@@ -2849,9 +2772,6 @@ download_clear_stopped(gboolean complete,
 			download_remove(d);
 		}
 	}
-
-	gcu_gui_update_download_abort_resume();
-	gcu_gui_update_download_clear();
 }
 
 /*
@@ -3324,23 +3244,17 @@ download_stop_v(struct download *d, download_status_t new_status,
 	d->status = new_status;
 	d->last_update = tm_time();
 
-	if (d->status != GTA_DL_TIMEOUT_WAIT)
+	if (d->status != GTA_DL_TIMEOUT_WAIT) {
 		d->retries = 0;		/* If they retry, go over whole cycle again */
-
-	if (DOWNLOAD_IS_VISIBLE(d))
-		gcu_gui_update_download(d, TRUE);
-
-	if (store_queue)
-		download_dirty = TRUE;		/* Refresh list, in case we crash */
-
-	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
-		download_push_remove(d);
-
-	if (DOWNLOAD_IS_VISIBLE(d)) {
-		gcu_gui_update_download_abort_resume();
-		gcu_gui_update_download_clear();
 	}
+	fi_src_status_changed(d);
 
+	if (store_queue) {
+		download_dirty = TRUE;		/* Refresh list, in case we crash */
+	}
+	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
+		download_push_remove(d);
+	}
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
 	file_info_changed(d->file_info);		/* Update status! */
@@ -3440,14 +3354,11 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 			lazy_locale_to_ui_string2(resched), pfs);
 	}
 
-	if (DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_remove(d);
-
-	if (DOWNLOAD_IS_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);
-	else
+	} else {
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
-
+	}
 	/*
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
@@ -3466,8 +3377,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (d->flags & DL_F_REPLIED) {
 		gnet_prop_incr_guint32(PROP_DL_QALIVE_COUNT);
 	}
-	gcu_download_gui_add(d);
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 /**
@@ -3714,9 +3624,6 @@ download_ignore_requested(struct download *d)
 	if (reason != IGNORE_FALSE) {
 		const gchar *s_reason;
 		
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_add(d);
-
 		s_reason = ignore_reason_to_string(reason);
 		g_assert(s_reason);
 		
@@ -3764,9 +3671,6 @@ download_unqueue(struct download *d)
 	download_check(d);
 	g_assert(DOWNLOAD_IS_QUEUED(d));
 	g_assert(GNET_PROPERTY(dl_queue_count) > 0);
-
-	if (DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_remove(d);
 
 	hash_list_prepend(sl_unqueued, d);
 	gnet_prop_decr_guint32(PROP_DL_QUEUE_COUNT);
@@ -3876,8 +3780,6 @@ download_start_prepare_running(struct download *d)
 	 */
 
 	if (FILE_INFO_COMPLETE(fi)) {
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
 		download_verify_sha1(d);
 		return FALSE;
@@ -3971,9 +3873,6 @@ download_pick_chunk(struct download *d)
 		download_queue_delay(d, 10, _("Waiting for a free chunk"));
 		return FALSE;
 	case DL_CHUNK_DONE:
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_add(d);
-
 		download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
 		queue_remove_downloads_with_file(d->file_info, d);
 		return FALSE;
@@ -4194,9 +4093,6 @@ download_start(struct download *d, gboolean check_allowed)
 		d->status = GTA_DL_CONNECTING;
 		d->socket = download_connect(d);
 
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_add(d);
-
 		if (!d->socket) {
 			/*
 			 * If we ran out of file descriptors, requeue this download.
@@ -4226,7 +4122,7 @@ download_start(struct download *d, gboolean check_allowed)
 
 			if (d->flags & DL_F_DNS_LOOKUP) {
 				atom_str_free_null(&d->server->hostname);
-				gcu_gui_update_download_host(d);
+				fi_src_info_changed(d);
 			}
 
 			download_unavailable(d, GTA_DL_ERROR, "Connection failed");
@@ -4240,15 +4136,12 @@ download_start(struct download *d, gboolean check_allowed)
 
 		g_assert(d->socket == NULL);
 
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_add(d);
-
 		download_push(d, FALSE);
 	}
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
@@ -4644,7 +4537,7 @@ download_fallback_to_push(struct download *d,
 				d->server->hostname,
 				host_addr_port_to_string(download_addr(d), download_port(d)));
 			atom_str_free_null(&d->server->hostname);
-			gcu_gui_update_download_host(d);
+			fi_src_info_changed(d);
 		}
 
 		/*
@@ -4669,7 +4562,7 @@ download_fallback_to_push(struct download *d,
 	d->last_update = tm_time();		/* Reset timeout if we send the push */
 	download_push(d, on_timeout);
 
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 static const gchar *
@@ -4841,7 +4734,6 @@ create_download(
 
 	d = download_alloc();
 
-	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
 	d->server->refcnt++;
 
@@ -5084,9 +4976,8 @@ download_clone(struct download *d)
 
 	cd = download_alloc();
 	*cd = *d;						/* Struct copy */
-	cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
 	cd->file_info = NULL;			/* has not been added to fi sources list */
-	cd->visible = FALSE;
+	cd->src_handle_valid = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
@@ -5503,9 +5394,6 @@ download_remove(struct download *d)
 	if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
 		return FALSE;
 
-	if (DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_remove(d);
-
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_assert(GNET_PROPERTY(dl_queue_count) > 0);
 
@@ -5573,8 +5461,6 @@ download_remove(struct download *d)
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 	d->file_info = NULL;
 
-	idtable_free_id(src_handle_map, d->src_handle);
-
 	download_check(d);
 	sl_removed = g_slist_prepend(sl_removed, d);
 
@@ -5598,7 +5484,6 @@ download_forget(struct download *d, gboolean unavailable)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		download_unqueue(d);
-		gcu_download_gui_add(d);
 	}
 
 	if (unavailable)
@@ -5726,7 +5611,7 @@ use_push_proxy(struct download *d)
 
 		if (d->cproxy) {
 			/* Will read status in d->cproxy */
-			gcu_gui_update_download(d, TRUE);
+			fi_src_status_changed(d);
 			return TRUE;
 		}
 
@@ -5746,7 +5631,7 @@ download_proxy_newstate(struct download *d)
 {
 	download_check(d);
 	/* Will read status in d->cproxy */
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 /**
@@ -5758,7 +5643,7 @@ download_proxy_sent(struct download *d)
 {
 	download_check(d);
 	/* Will read status in d->cproxy */
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 /**
@@ -5775,7 +5660,7 @@ download_proxy_failed(struct download *d)
 	g_assert(cp != NULL);
 
 	/* Will read status in d->cproxy */
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 
 	remove_proxy(d->server, cproxy_addr(cp), cproxy_port(cp));
 	cproxy_free(d->cproxy);
@@ -6027,7 +5912,7 @@ download_start_reading(gpointer o)
 
 	d->status = GTA_DL_HEADERS;
 	d->last_update = tm_time();			/* Starting reading */
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 static void
@@ -6501,7 +6386,6 @@ download_continue(struct download *d, gboolean trimmed)
 		download_queue(cd, "Giving priority to THEX");
 	} else if (download_start_prepare(cd)) {
 		cd->keep_alive = TRUE;			/* Was reset by _prepare() */
-		gcu_download_gui_add(cd);
 		download_send_request(cd);		/* Will pick up new range */
 	}
 }
@@ -6655,10 +6539,11 @@ download_write_data(struct download *d)
 
 			break;					/* Go on... */
 		}
-	} else if (FILE_INFO_COMPLETE(fi))
+	} else if (FILE_INFO_COMPLETE(fi)) {
 		goto done;
-	else
-		gcu_gui_update_download(d, FALSE);
+	} else {
+		fi_src_status_changed(d);
+	}
 
 	return DOWNLOAD_IS_RUNNING(d);
 
@@ -7165,7 +7050,7 @@ check_xhostname(struct download *d, const header_t *header)
 		return;
 
 	set_server_hostname(server, buf);
-	gcu_gui_update_download_host(d);
+	fi_src_info_changed(d);
 }
 
 /**
@@ -7560,15 +7445,14 @@ update_available_ranges(struct download *d, header_t *header)
 
 	d->ranges_size = http_range_size(d->ranges);
 
+ send_event:
 	/*
 	 * We should always send an update event for the ranges, even when
 	 * not using swarming or when there are no available ranges. That
 	 * way the receiver of this event can still determine that the
 	 * whole range for this file is available.
 	 */
- send_event:
-	event_trigger(src_events[EV_SRC_RANGES_CHANGED],
-				  T_NORMAL(src_listener_t, (d->src_handle)));
+	fi_src_ranges_changed(d);
 }
 
 /**
@@ -7707,7 +7591,7 @@ download_mark_active(struct download *d)
 	 */
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 
 	/*
@@ -7865,9 +7749,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 * we already have it.
 	 */
 
-	if (download_get_server_name(d, header))
-		gcu_gui_update_download_server(d);
-
+	if (download_get_server_name(d, header)) {
+		fi_src_info_changed(d);
+	}
 	node_check_remote_ip_header(download_addr(d), header);
 
 	/*
@@ -8215,10 +8099,10 @@ http_version_nofix:
 					d->bio = bsched_source_add(BSCHED_BWS_IN, &s->wio,
 						BIO_F_READ, download_sink_read, d);
 
-					if (s->pos > 0)
+					if (s->pos > 0) {
 						download_sink(d);
-
-					gcu_gui_update_download(d, TRUE);
+					}
+					fi_src_status_changed(d);
 				}
 			} else {
 				/* Host might support queueing. If so, retrieve queue status */
@@ -8381,9 +8265,9 @@ http_version_nofix:
 			d->server->attrs &= ~DLS_A_BANNING;
 			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
 
-			if (was_banning)
-				gcu_gui_update_download_server(d);
-
+			if (was_banning) {
+				fi_src_info_changed(d);
+			}
 		} else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
 			case 401:
@@ -8519,7 +8403,7 @@ http_version_nofix:
 			file_info_size_known(d, content_size);
 			d->range_end = download_filesize(d);
 			requested_size = d->range_end - d->skip + d->overlap_size;
-			gcu_gui_update_download_size(d);
+			fi_src_info_changed(d);
 		}
 
 		if (error) {
@@ -8559,7 +8443,7 @@ http_version_nofix:
 				file_info_size_known(d, total);
 				d->range_end = download_filesize(d);
 				requested_size = d->range_end - d->skip + d->overlap_size;
-				gcu_gui_update_download_size(d);
+				fi_src_info_changed(d);
 			}
 
 			if (check_content_range > total) {
@@ -8691,7 +8575,7 @@ http_version_nofix:
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
 				d->flags |= DL_F_SHRUNK_REPLY;		/* Remember shrinking */
 
-				gcu_gui_update_download_range(d);
+				fi_src_info_changed(d);
 			}
 			got_content_length = TRUE;
 			check_content_range = 0;		/* We validated the served range */
@@ -9034,7 +8918,7 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 	 *		--RAM, 2007-05-07
 	 */
 
-	gcu_gui_update_download(d, FALSE);
+	fi_src_status_changed(d);
 
 	if (d->pos >= d->range_end) {
 		/*
@@ -9066,7 +8950,7 @@ download_request_sent(struct download *d)
 	d->status = GTA_DL_REQ_SENT;
 	tm_now(&d->header_sent);
 
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 
 	/*
 	 * Now prepare to read the status line and the headers.
@@ -9213,7 +9097,8 @@ download_send_request(struct download *d)
 		change_server_addr(d->server, s->addr);
 		g_assert(host_addr_equal(download_addr(d), s->addr));
 	}
-	gcu_gui_update_download_host(d);
+
+	fi_src_info_changed(d);
 
 	/*
 	 * If we have d->always_push set, yet we did not use a Push, it means we
@@ -9288,10 +9173,7 @@ picked:
 
 	d->status = GTA_DL_REQ_SENDING;
 	d->last_update = tm_time();
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_add(d);
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 
 	/*
 	 * Build the HTTP request.
@@ -9417,7 +9299,7 @@ picked:
 				uint64_to_string(d->skip - d->overlap_size));
 	}
 
-	gcu_gui_update_download_range(d);		/* Now that we know d->range_end */
+	fi_src_info_changed(d);		/* Now that we know d->range_end */
 
 	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
 
@@ -9736,10 +9618,7 @@ select_push_download(GSList *servers)
 
 			if (download_start_prepare(d)) {
 				d->status = GTA_DL_CONNECTING;
-				if (!DOWNLOAD_IS_VISIBLE(d))
-					gcu_download_gui_add(d);
-
-				gcu_gui_update_download(d, TRUE);
+				fi_src_status_changed(d);
 				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 					count_running_downloads());
@@ -9985,7 +9864,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	g_assert(host_addr_equal(download_addr(d), s->addr));
 
-	gcu_gui_update_download_host(d);
+	fi_src_info_changed(d);
 
 	/*
 	 * Now we have to read that trailing "\n" which comes right afterwards.
@@ -10621,11 +10500,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 
 	d->status = GTA_DL_MOVE_WAIT;
 	move_queue(d, dir, common_dir ? ext : "");
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_add(d);
-
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 
 	goto cleanup;
 
@@ -10659,7 +10534,7 @@ download_move_start(struct download *d)
 	d->status = GTA_DL_MOVING;
 	d->file_info->copied = 0;
 
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);	
 }
 
 /**
@@ -10716,7 +10591,7 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 		download_moved_with_bad_sha1(d);
 	}
 	file_info_changed(fi);
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);	
 }
 
 /**
@@ -10777,7 +10652,7 @@ download_verify_sha1_start(struct download *d)
 	d->status = GTA_DL_VERIFYING;
 	d->file_info->cha1_hashed = 0;
 
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);	
 }
 
 /**
@@ -10818,7 +10693,7 @@ download_verify_sha1_done(struct download *d,
 	file_info_changed(fi);
 
 	d->status = GTA_DL_VERIFIED;
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);	
 
 	ignore_add_sha1(name, fi->cha1);
 
@@ -10864,7 +10739,7 @@ download_verify_sha1_error(struct download *d)
 	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, GNET_PROPERTY(move_file_path), DL_UNKN_EXT);
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);	
 }
 
 static gboolean
@@ -10930,11 +10805,7 @@ download_verify_sha1(struct download *d)
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
 	g_assert(inserted); /* There should be no duplicates */
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_add(d);
-
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 
@@ -10953,7 +10824,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	d->status = GTA_DL_VERIFYING;
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 /**
@@ -11033,6 +10904,7 @@ download_verify_tigertree_done(struct download *d,
 		}
 		queue_suspend_downloads_with_file(fi, FALSE);
 	}
+	fi_src_status_changed(d);
 }
 
 /**
@@ -11102,11 +10974,7 @@ download_verify_tigertree(struct download *d)
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
 		download_verify_tigertree_callback, d);
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		gcu_download_gui_add(d);
-
-	gcu_gui_update_download(d, TRUE);
+	fi_src_status_changed(d);
 }
 
 /**
@@ -11205,7 +11073,7 @@ download_resume_bg_tasks(void)
 				to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
 
-		gcu_gui_update_download(d, TRUE);
+		fi_src_status_changed(d);
 	}
 
 	/*
@@ -11267,8 +11135,7 @@ download_close(void)
 
 	while (NULL != (d = hash_list_head(sl_downloads))) {
 		download_check(d);
-		if (DOWNLOAD_IS_VISIBLE(d))
-			gcu_download_gui_remove(d);
+
 		if (d->buffers) {
 			if (d->buffers->held > 0) {
 				download_flush(d, NULL, FALSE);
@@ -11328,8 +11195,6 @@ download_close(void)
 	 * src_close is called. (see src_close)
 	 * -- Richard, 24 Mar 2003
 	 */
-
-	src_close();
 
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
@@ -11710,7 +11575,6 @@ download_abort_browse_host(struct download *d, gnet_search_t sh)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		download_unqueue(d);
-		gcu_download_gui_add(d);
 	}
 
 	if (!DOWNLOAD_IS_STOPPED(d))
@@ -11762,7 +11626,7 @@ download_rx_done(struct download *d)
 		file_info_size_known(d, fi->done);
 		d->size = fi->size;
 		d->range_end = download_filesize(d);	/* New upper boundary */
-		gcu_gui_update_download_size(d);
+		fi_src_info_changed(d);
 	}
 	g_assert(FILE_INFO_COMPLETE(fi));
 

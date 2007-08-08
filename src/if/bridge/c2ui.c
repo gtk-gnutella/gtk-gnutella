@@ -45,20 +45,8 @@
 #if defined(USE_TOPLESS)
 #define running_topless 1
 
-#define gui_update_download(d, force) ((void) d, (void) force)
-#define gui_update_download_server(d) ((void) d)
-#define gui_update_download_range(d) ((void) d)
-#define gui_update_download_size(d) ((void) d)
-#define gui_update_download_host(d) ((void) d)
-#define gui_update_download_abort_resume()
-#define gui_update_download_clear()
-#define	gui_update_download_clear_now()
-
 #define	gui_download_updates_freeze()
 #define	gui_download_updates_thaw()
-
-#define	download_gui_add(d) ((void) d)
-#define	download_gui_remove(d) ((void) d)
 
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
@@ -91,86 +79,6 @@ extern gboolean running_topless;
 /*
  * Functions the CORE uses to access the UI
  */
-
-void
-gcu_gui_update_download(struct download *d, gboolean force)
-{
-	if (!running_topless) {
-		gui_update_download(d, force);
-	}
-}
-
-void
-gcu_gui_update_download_server(struct download *d)
-{
-	if (!running_topless) {
-		gui_update_download_server(d);
-	}
-}
-
-void
-gcu_gui_update_download_range(struct download *d)
-{
-	if (!running_topless) {
-		gui_update_download_range(d);
-	}
-}
-
-void
-gcu_gui_update_download_size(struct download *d)
-{
-	if (!running_topless) {
-		gui_update_download_size(d);
-	}
-}
-
-void
-gcu_gui_update_download_host(struct download *d)
-{
-	if (!running_topless) {
-		gui_update_download_host(d);
-	}
-}
-
-void
-gcu_gui_update_download_abort_resume(void)
-{
-	if (!running_topless) {
-		gui_update_download_abort_resume();
-	}
-}
-
-void
-gcu_gui_update_download_clear(void)
-{
-	if (!running_topless) {
-		gui_update_download_clear();
-	}
-}
-
-void
-gcu_gui_update_download_clear_now(void)
-{
-	if (!running_topless) {
-		gui_update_download_clear_now();
-	}
-}
-
-void
-gcu_download_gui_add(struct download *d)
-{
-	if (!running_topless) {
-		download_gui_add(d);
-	}
-}
-
-void
-gcu_download_gui_remove(struct download *d)
-{
-	if (!running_topless) {
-		download_gui_remove(d);
-	}
-}
 
 void
 gcu_download_gui_updates_freeze(void)

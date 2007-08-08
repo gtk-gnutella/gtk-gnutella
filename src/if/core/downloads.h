@@ -43,17 +43,6 @@
 
 typedef guint32 gnet_src_t;
 
-typedef void (*src_listener_t) (gnet_src_t);
-typedef enum {
-	EV_SRC_ADDED = 0,
-	EV_SRC_REMOVED,
-	EV_SRC_INFO_CHANGED,
-	EV_SRC_STATUS_CHANGED,
-	EV_SRC_RANGES_CHANGED,
-
-	EV_SRC_EVENTS /* Number of events in this domain */
-} gnet_src_ev_t;
-
 #define URN_INDEX	0xffffffff		/**< Marking index, indicates URN instead */
 
 /*
@@ -176,6 +165,7 @@ enum download_magic { DOWNLOAD_MAGIC = 0x2dd6efe9 };	/**< Magic number */
 struct download {
 	enum download_magic magic;	/**< Magic number */
     gnet_src_t src_handle;      /**< Handle */
+	gboolean src_handle_valid;	/**< TRUE if src_handle is initialized */
 
 	gchar error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
@@ -234,7 +224,6 @@ struct download {
 	guint32 cflags;
 
 	gboolean keep_alive;		/**< Keep HTTP connection? */
-	gboolean visible;			/**< The download is visible in the GUI */
 	gboolean push;				/**< Currently in push mode */
 	gboolean always_push;		/**< Always use the push method for this */
 	gboolean got_giv;			/**< Whether initiated from GIV reception */
@@ -363,7 +352,6 @@ enum {
 	||	DOWNLOAD_IS_ESTABLISHING(d)		)
 
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
-#define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
 
 gboolean download_has_blank_guid(const struct download *);
 
@@ -416,10 +404,6 @@ void download_auto_new(const gchar *filename,
 	struct dl_file_info *fi,
 	gnet_host_vec_t *proxies,
 	guint32 flags);
-
-void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
-void src_remove_listener(src_listener_t, gnet_src_ev_t);
-struct download *src_get_download(gnet_src_t src_handle);
 
 guint download_handle_magnet(const gchar *url);
 gchar *download_build_url(const struct download *);
