@@ -60,7 +60,7 @@
 
 #define	gui_update_files_scanned()
 #define	gui_allow_rescan_dir(flag) ((void) flag)
-#define search_gui_new_search(query, flags, x) IGNORE_RESULT((query) && (flags))
+#define search_gui_new_search(query, flags, x) (((query) && (flags)) ? 0 : 0)
 
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
