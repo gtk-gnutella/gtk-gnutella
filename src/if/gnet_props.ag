@@ -3438,4 +3438,12 @@ prop = {
     };
 };
 
+prop = {
+    name = "session_id";
+    desc = "The current Session ID.";
+    type = storage;
+    save = FALSE;
+    vector_size = GUID_RAW_SIZE;
+};
+
 /* vi: set ts=4: */

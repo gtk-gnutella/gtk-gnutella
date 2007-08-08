@@ -665,6 +665,9 @@ guint32  gnet_property_variable_search_max_results     = 1000;
 static const guint32  gnet_property_variable_search_max_results_default = 1000;
 guint32  gnet_property_variable_browse_host_max_results     = 10000;
 static const guint32  gnet_property_variable_browse_host_max_results_default = 10000;
+gchar   gnet_property_variable_session_id[GUID_RAW_SIZE];
+static const gchar   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
+
 
 static prop_set_t *gnet_property;
 
@@ -6348,6 +6351,22 @@ gnet_prop_init(void) {
     gnet_property->props[297].data.guint32.choices = NULL;
     gnet_property->props[297].data.guint32.max   = 500000;
     gnet_property->props[297].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_SESSION_ID:
+     *
+     * General data:
+     */
+    gnet_property->props[298].name = "session_id";
+    gnet_property->props[298].desc = _("The current Session ID.");
+    gnet_property->props[298].ev_changed = event_new("session_id_changed");
+    gnet_property->props[298].save = FALSE;
+    gnet_property->props[298].vector_size = GUID_RAW_SIZE;
+
+    /* Type specific data: */
+    gnet_property->props[298].type               = PROP_TYPE_STORAGE;
+    gnet_property->props[298].data.storage.value = gnet_property_variable_session_id;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

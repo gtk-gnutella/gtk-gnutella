@@ -344,6 +344,7 @@ extern const guint32  gnet_property_variable_tigertree_debug;
 extern const gboolean gnet_property_variable_tth_rebuilding;
 extern const guint32  gnet_property_variable_search_max_results;
 extern const guint32  gnet_property_variable_browse_host_max_results;
+extern const gchar    gnet_property_variable_session_id[GUID_RAW_SIZE];
 
 
 prop_set_t *gnet_prop_init(void);

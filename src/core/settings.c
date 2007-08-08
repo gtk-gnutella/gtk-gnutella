@@ -61,11 +61,13 @@
 #include "if/bridge/c2ui.h"
 
 #include "lib/bit_array.h"
-#include "lib/getphysmemsize.h"
 #include "lib/cq.h"
 #include "lib/file.h"
+#include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
+#include "lib/sha1.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 RCSID("$Id$")
@@ -385,6 +387,25 @@ settings_ensure_unicity(gboolean check_only)
 	return 0;
 }
 
+static void
+settings_init_session_id(void)
+{
+	SHA1Context ctx;
+	struct sha1 digest;
+	guint32 noise[64];
+	size_t size, i;
+
+	for (i = 0; i < G_N_ELEMENTS(noise); i++) {
+		noise[i] = random_raw();
+	}
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, &noise, sizeof noise);
+	SHA1Result(&ctx, &digest);
+
+	size = MIN(GUID_RAW_SIZE, sizeof digest.data);
+	gnet_prop_set_storage(PROP_SESSION_ID, digest.data, size);
+}
+
 void
 settings_init(void)
 {
@@ -411,6 +432,7 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
+	settings_init_session_id();
 	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
 	if (NULL == config_dir || '\0' == config_dir[0])
