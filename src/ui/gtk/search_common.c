@@ -941,7 +941,7 @@ search_gui_set_sort_defaults(void)
 /**
  * Persist searches to disk.
  */
-static void
+void
 search_gui_store_searches(void)
 {
 	char *path;
@@ -2166,6 +2166,9 @@ search_gui_new_search_full(const gchar *query_str,
 	} else {
 		gui_search_force_update_tab_label(search);
 	}
+
+	search_gui_store_searches();
+
 	return TRUE;
 }
 
@@ -2201,6 +2204,8 @@ search_gui_close_search(search_t *search)
     guc_search_close(search->search_handle);
 
 	wfree(search, sizeof *search);
+
+	search_gui_store_searches();
 }
 
 void
@@ -2500,6 +2505,8 @@ search_gui_duplicate_search(search_t *search)
 		tm_time(), GUI_PROPERTY(search_lifetime),
 		timeout, search->sort_col, search->sort_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
+
+	search_gui_store_searches();
 }
 
 /**

@@ -453,6 +453,7 @@ filter_close_dialog(gboolean commit)
 {
     if (commit) {
         filter_apply_changes();
+		search_gui_store_searches();
     } else
         filter_revert_changes();
 
