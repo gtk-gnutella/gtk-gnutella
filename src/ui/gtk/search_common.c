@@ -941,7 +941,7 @@ search_gui_set_sort_defaults(void)
 /**
  * Persist searches to disk.
  */
-void
+static void
 search_gui_store_searches(void)
 {
 	char *path;
@@ -2204,8 +2204,6 @@ search_gui_close_search(search_t *search)
     guc_search_close(search->search_handle);
 
 	wfree(search, sizeof *search);
-
-	search_gui_store_searches();
 }
 
 void

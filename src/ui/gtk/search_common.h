@@ -159,7 +159,6 @@ void gui_search_get_colors(search_t *, GdkColor **mark, GdkColor **ignore);
  */
 
 void search_gui_common_init(void);
-void search_gui_store_searches(void);
 
 void search_gui_init_tree(search_t *);
 search_t *search_gui_get_current_search(void);
