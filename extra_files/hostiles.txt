@@ -258,11 +258,13 @@
 # VersaTel and HanseNet; always German ISPs; results copy the query string
 # adding diverse prefixes and suffixes. "ysbweb dot com" (Integrated Search
 # Technologies) is the origin of this spam.
+# Jironimo is presumedly Manuel Prueter (Rostock, DE) the owner of
+# free-drm-encoder dot com. Or maybe he is just one of their slaves.
 66.152.93.0/25
 # root servers or vservers so the addresses should be stable
 80.237.174.147
 81.209.165.73
-85.88.2.192/26
+85.88.2.192/26 
 85.88.9.0/26
 # Jironimo at Versatel; dynamic range
 83.135.89.16
