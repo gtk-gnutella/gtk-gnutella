@@ -29,9 +29,6 @@
 #include "if/core/search.h"
 #include "if/ui/gtk/search.h"
 
-void search_add_got_results_listener(search_got_results_listener_t);
-void search_remove_got_results_listener(search_got_results_listener_t);
-
 #define TAB_UPDATE_TIME	5		/**< Update search tabs after 5 seconds */
 
 typedef enum {
@@ -162,8 +159,8 @@ void gui_search_get_colors(search_t *, GdkColor **mark, GdkColor **ignore);
  */
 
 void search_gui_common_init(void);
-void search_gui_common_shutdown(void);
 
+void search_gui_init_tree(search_t *);
 search_t *search_gui_get_current_search(void);
 void search_gui_set_current_search(search_t *);
 void search_gui_forget_current_search(void);
@@ -177,10 +174,7 @@ const gchar *search_gui_get_route(const struct results_set *);
 search_t *search_gui_find(gnet_search_t);
 const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 void search_gui_set_sort_defaults(void);
-void search_gui_store_searches(void);
-void search_gui_retrieve_searches(void);
 
-void search_gui_got_results(GSList *, const gnet_results_set_t *);
 void search_gui_flush(time_t now, gboolean force);
 struct query *search_gui_handle_query(const gchar *, flag_t flags,
 						const gchar **error_str);
@@ -221,6 +215,8 @@ void search_gui_duplicate_search(search_t *);
 void search_gui_restart_search(search_t *);
 void search_gui_resume_search(search_t *);
 void search_gui_stop_search(search_t *);
+
+void search_gui_callbacks_shutdown(void);
 
 /***
  *** Search results popup
@@ -285,6 +281,11 @@ record_t *search_gui_record_get_parent(search_t *, record_t *);
 GSList *search_gui_record_get_children(search_t *, record_t *);
 
 char *search_gui_get_magnet(search_t *, record_t *);
+
+typedef search_t *(*search_gui_synchronize_list_cb)(void *user_data);
+
+void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
+			void *user_data);
 
 #endif /* _gtk_search_common_h_ */
 

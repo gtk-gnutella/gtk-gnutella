@@ -68,6 +68,4 @@ void on_clist_search_details_unselect_row(GtkCList *, gint row, gint column,
 gboolean on_clist_search_details_key_press_event(GtkWidget *, GdkEventKey *,
 	gpointer user_data);
 
-void search_gui_callbacks_shutdown(void);
-
 #endif /* _gtk1_search_cb_h_ */

@@ -41,9 +41,9 @@
 #define main_gui_shutdown_tick(remain)
 #define settings_gui_shutdown()
 
-#define search_gui_store_searches()
-
 #define icon_timer()
+
+#define gui_exit(n)	exit(n)
 
 static inline void
 main_gui_run(const gchar *unused_geometry_spec)
@@ -79,6 +79,8 @@ main_gui_run(const gchar *unused_geometry_spec)
 #endif
 
 #include "main.h"
+
+#define gui_exit(n)	gtk_exit(n)
 
 #ifdef USE_GTK1
 #define g_ascii_strcasecmp g_strcasecmp

@@ -96,9 +96,9 @@ gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
 
 gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
-gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *vec);
-void gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port);
-gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *hvec, gint hcnt);
+gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
+void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
+gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, gint hcnt);
 
 /*
  * Result sets `status' flags.
@@ -233,6 +233,10 @@ enum search_new_result {
 	SEARCH_NEW_INVALID_URN
 };
 
+void search_add_got_results_listener(search_got_results_listener_t);
+void search_remove_got_results_listener(search_got_results_listener_t);
+
+
 /*
  * Search public interface, visible only from the bridge.
  */
@@ -241,45 +245,45 @@ enum search_new_result {
 
 enum search_new_result search_new(gnet_search_t *ptr, const gchar *,
 			time_t create_time, guint lifetime, guint32 timeout, flag_t flags);
-void search_close(gnet_search_t sh);
+void search_close(gnet_search_t);
 
-void search_start(gnet_search_t sh);
-void search_stop(gnet_search_t sh);
-
-void search_request_listener_add(search_request_listener_t l);
-void search_request_listener_remove(search_request_listener_t l);
+void search_start(gnet_search_t);
+void search_stop(gnet_search_t);
 
 /*  search_is_stopped doesn't exist yet!
 gboolean search_is_stopped(gnet_search_t sh);
 */
 
-void search_reissue(gnet_search_t sh);
-void search_add_kept(gnet_search_t sh, guint32 kept);
+void search_reissue(gnet_search_t);
+void search_add_kept(gnet_search_t, guint32 kept);
 
-const gchar *search_query(gnet_search_t sh);
+const gchar *search_query(gnet_search_t);
 
-gboolean search_is_active(gnet_search_t sh);
-gboolean search_is_browse(gnet_search_t sh);
-gboolean search_is_expired(gnet_search_t sh);
-gboolean search_is_frozen(gnet_search_t sh);
-gboolean search_is_local(gnet_search_t sh);
-gboolean search_is_passive(gnet_search_t sh);
+gboolean search_is_active(gnet_search_t);
+gboolean search_is_browse(gnet_search_t);
+gboolean search_is_expired(gnet_search_t);
+gboolean search_is_frozen(gnet_search_t);
+gboolean search_is_local(gnet_search_t);
+gboolean search_is_passive(gnet_search_t);
 
-void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
-guint32 search_get_reissue_timeout(gnet_search_t sh);
-guint search_get_lifetime(gnet_search_t sh);
-time_t search_get_create_time(gnet_search_t sh);
-void search_set_create_time(gnet_search_t sh, time_t t);
+void search_set_reissue_timeout(gnet_search_t, guint32 timeout);
+guint32 search_get_reissue_timeout(gnet_search_t);
+guint search_get_lifetime(gnet_search_t);
+time_t search_get_create_time(gnet_search_t);
+void search_set_create_time(gnet_search_t, time_t);
 
-void search_free_alt_locs(gnet_record_t *rc);
+void search_free_alt_locs(gnet_record_t *);
 
-void search_update_items(gnet_search_t sh, guint32 items);
+void search_update_items(gnet_search_t, guint32 items);
 
-gboolean search_browse(gnet_search_t sh,
+gboolean search_browse(gnet_search_t,
 	const gchar *hostname, host_addr_t addr, guint16 port,
 	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean search_locally(gnet_search_t sh, const gchar *query);
 guint search_handle_magnet(const gchar *url);
+
+void search_request_listener_add(search_request_listener_t);
+void search_request_listener_remove(search_request_listener_t);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_search_h_ */

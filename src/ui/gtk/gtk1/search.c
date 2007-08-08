@@ -70,8 +70,6 @@ RCSID("$Id$")
 
 static gchar tmpstr[4096];
 
-static GList *searches;		/* List of search structs */
-
 /**
  * Characteristics of data in search results columns, used for sorting.
  */
@@ -107,6 +105,26 @@ search_gui_current_ctree(void)
 {
 	search_t *search = search_gui_get_current_search();
     return search ? GTK_CTREE(search->tree) : default_search_ctree;
+}
+
+static GtkNotebook *
+notebook_search_results(void)
+{
+    static GtkWidget *notebook;
+	if (!notebook) {
+    	notebook = gui_main_window_lookup("notebook_search_results");
+	}
+	return GTK_NOTEBOOK(notebook);
+}
+
+static GtkCList *
+clist_search(void)
+{
+    static GtkWidget *clist;
+	if (!clist) {
+    	clist = gui_main_window_lookup("clist_search");
+	}
+	return GTK_CLIST(clist);
 }
 
 /**
@@ -244,41 +262,6 @@ search_gui_clear_search(search_t *sch)
 	guc_search_update_items(sch->search_handle, sch->items);
 }
 
-
-/**
- * Remove the search from the list of searches and free all
- * associated ressources (including filter and gui stuff).
- */
-void
-search_gui_close_search(search_t *sch)
-{
-    g_return_if_fail(sch);
-
-    /*
-     * We remove the search immeditaly from the list of searches,
-     * because some of the following calls (may) depend on
-     * "searches" holding only the remaining searches.
-     * We may not free any ressources of "sch" yet, because
-     * the same calls may still need them!.
-     *      --BLUE 26/05/2002
-     */
- 	searches = g_list_remove(searches, sch);
-	search_gui_option_menu_searches_update();
-
-	search_gui_clear_search(sch);
-    search_gui_remove_search(sch);
-	filter_close_search(sch);
-
-	g_hash_table_destroy(sch->dups);
-	sch->dups = NULL;
-	g_hash_table_destroy(sch->parents);
-	sch->parents = NULL;
-
-    guc_search_close(sch->search_handle);
-
-	G_FREE_NULL(sch);
-}
-
 static gint search_gui_cursor_x, search_gui_cursor_y;
 
 /**
@@ -325,173 +308,57 @@ search_gui_get_file_url(GtkWidget *widget)
 	return url_from_absolute_path(record->tag);
 }
 
-/**
- * Create a new search and start it.
- *
- * @returns TRUE if search was sucessfully created and FALSE if an error
- *			occured. If the "search" argument is not NULL a pointer to the new
- *			search is stored there.
- */
-gboolean
-search_gui_new_search_full(const gchar *query_str,
-	time_t create_time, guint lifetime, guint32 reissue_timeout,
-	gint sort_col, gint sort_order, flag_t flags, search_t **search)
+void
+search_gui_init_tree(search_t *search)
 {
-    GtkWidget *clist_search = gui_main_window_lookup("clist_search");
-    GtkWidget *notebook_search_results =
-        gui_main_window_lookup("notebook_search_results");
-    GtkWidget *button_search_close =
-        gui_main_window_lookup("button_search_close");
     const gchar *titles[c_sl_num];
-    const gchar *error_str;
-	struct query *query;
-    search_t *sch;
-	gnet_search_t sch_id;
     gint row;
-	gboolean is_only_search = FALSE;
-	enum search_new_result result;
 
-	if (search) {
-		*search = NULL;
-	}
+	g_assert(NULL == search->parents);
+	search->parents = g_hash_table_new(pointer_hash_func, NULL);
 
-	query = search_gui_handle_query(query_str, flags, &error_str);
-	if (!query) {
-		if (error_str) {
-			statusbar_gui_warning(5, "%s", error_str);
-			return FALSE;
-		} else {
-			return TRUE;
-		}
-	}
-	g_assert(query);
-	g_assert(query->text);
-
-    result = guc_search_new(&sch_id, query->text, create_time, lifetime,
-				reissue_timeout, flags);
-	if (SEARCH_NEW_SUCCESS != result) {
-		statusbar_gui_warning(5, "%s", search_new_error_to_string(result));
-		search_gui_query_free(&query);
-		return FALSE;
-	}
-
-	sch = g_malloc0(sizeof *sch);
-
-	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS)
-		sch->sort_col = sort_col;
-	else
-		sch->sort_col = SORT_NO_COL;
-
-	switch (sort_order) {
-	case SORT_ASC:
-	case SORT_DESC:
-		sch->sort_order = sort_order;
-		break;
-	default:
-		sch->sort_order = SORT_NONE;
-	}
-
-    sch->search_handle = sch_id;
-	sch->dups = g_hash_table_new(search_gui_hash_func,
-					search_gui_hash_key_compare);
-
-	sch->parents = g_hash_table_new(pointer_hash_func, NULL);
-
-	search_gui_filter_new(sch, query->rules);
-
-    titles[c_sl_name] = lazy_utf8_to_ui_string(search_gui_query(sch));
+    titles[c_sl_name] = lazy_utf8_to_ui_string(search_gui_query(search));
     titles[c_sl_hit] = "0";
     titles[c_sl_new] = "0";
-    row = gtk_clist_append(GTK_CLIST(clist_search), (gchar **) titles);
-    gtk_clist_set_row_data(GTK_CLIST(clist_search), row, sch);
+    row = gtk_clist_append(GTK_CLIST(clist_search()), (gchar **) titles);
+    gtk_clist_set_row_data(GTK_CLIST(clist_search()), row, search);
 
 	/* Create a new ctree if needed, or use the default ctree */
+	g_assert(NULL == search->scrolled_window);
+	g_assert(NULL == search->tree);
 
-	if (searches) {
+	if (search_gui_get_searches()) {
 		/* We have to create a new ctree for this search */
-		gui_search_create_ctree(&sch->scrolled_window, &sch->tree);
-		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
-		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
-								 sch->scrolled_window, NULL);
+		gui_search_create_ctree(&search->scrolled_window, &search->tree);
+		gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
+		gtk_notebook_append_page(notebook_search_results(),
+			search->scrolled_window, NULL);
 	} else {
 		/* There are no searches currently, we can use the default ctree */
 		if (default_scrolled_window && default_search_ctree) {
-			sch->scrolled_window = default_scrolled_window;
-			sch->tree = default_search_ctree;
+			search->scrolled_window = default_scrolled_window;
+			search->tree = default_search_ctree;
 			default_scrolled_window = NULL;
 			default_search_ctree = NULL;
 		} else {
 			g_warning("search_gui_new_search_full(): "
 				"No current search but no default ctree !?");
 		}
-		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
+		gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
 	}
 
-	sch->tab_updating = gtk_timeout_add(TAB_UPDATE_TIME * 1000,
-        (GtkFunction)gui_search_update_tab_label, sch);
-
-    if (!searches) {
-        GtkWidget *w;
-	   
-		w = gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook_search_results), 0);
-		gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
-            w, _("(no search)"));
-    }
-
-	search_gui_sort_column(sch, sort_col);
+	search_gui_sort_column(search, search->sort_col);
 	
-	gtk_widget_set_sensitive(button_search_close, TRUE);
     gtk_widget_set_sensitive(
         gui_main_window_lookup("button_search_expand_all"), TRUE);
     gtk_widget_set_sensitive(
         gui_main_window_lookup("button_search_collapse_all"), TRUE);
 
-	is_only_search = NULL == searches;
-	searches = g_list_append(searches, sch);
-	search_gui_option_menu_searches_update();
-
-	if (search_gui_update_expiry(sch)) {
-		guc_search_stop(sch->search_handle);
-	} else if (0 == (SEARCH_F_ENABLED & flags)) {
-		guc_search_start(sch->search_handle);
-	}
-
-	if (search_gui_update_expiry(sch) || 0 == (SEARCH_F_ENABLED & flags)) {
-		if (search_gui_is_enabled(sch))
-			guc_search_stop(sch->search_handle);
-	} else {
-		if (!search_gui_is_enabled(sch))
-			guc_search_start(sch->search_handle);
-	}
-	gui_search_update_tab_label(sch);
-
-	/*
-	 * Make new search the current search, unless it's a browse-host search:
-	 * we need to initiate the download and only if everything is OK will
-	 * we move to the newly created search.
-	 *
-	 * If the browse host is the only search in the list, it must be made
-	 * the current search though, since the code relies on one always being
-	 * set when the list of searches is not empty.
-	 */
-	if (
-		is_only_search ||
-		(!search_gui_is_browse(sch) && GUI_PROPERTY(search_jump_to_created))
-	) {
-		search_gui_set_current_search(sch);
-	} else {
-		gui_search_force_update_tab_label(sch);
-	}
-	if (search) {
-		*search = sch;
-	}
-	search_gui_query_free(&query);
-	if (search_gui_is_local(sch)) {
-		drag_attach(GTK_WIDGET(sch->tree), search_gui_get_file_url);
-	}
-	set_search_color(sch);
+	set_search_color(search);
 	
-	return TRUE;
+	if (search_gui_is_local(search)) {
+		drag_attach(GTK_WIDGET(search->tree), search_gui_get_file_url);
+	}
 }
 
 
@@ -1892,22 +1759,42 @@ search_gui_discard_files(void)
 	}
 }
 
+struct synchronize_search_list {
+	GtkCList *clist;
+	int row;
+};
+
+static search_t *
+synchronize_search_list_callback(void *user_data)
+{
+	struct synchronize_search_list *ctx = user_data;
+	void *data;
+
+	data = gtk_clist_get_row_data(ctx->clist, ctx->row);
+	g_assert(data);
+	ctx->row++;
+	return data;
+}
+
+static void
+search_gui_synchronize_list(GtkCList *clist)
+{
+	struct synchronize_search_list ctx;
+
+	ctx.clist = clist;
+	ctx.row = 0;
+	search_gui_synchronize_search_list(synchronize_search_list_callback, &ctx);
+}
+
 static void
 on_search_list_row_move_event(GtkCList *clist,
 	gint unused_from, gint unused_to, gpointer unused_udata)
 {
-	GList *iter;
-	gint i;
-
 	(void) unused_udata;
 	(void) unused_from;
 	(void) unused_to;
 
-	i = 0;
-	for (iter = searches; iter != NULL; iter = g_list_next(iter)) {
-		iter->data = gtk_clist_get_row_data(clist, i++);
-		g_assert(iter->data);
-	}
+	search_gui_synchronize_list(clist);
 	search_gui_option_menu_searches_update();
 }
 
@@ -1940,10 +1827,7 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 void
 search_gui_init(void)
 {
-    GtkNotebook *notebook;
-
-    notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
-	search_gui_common_init();
+    GtkNotebook *notebook = notebook_search_results();
 
 	gui_search_create_ctree(&default_scrolled_window, &default_search_ctree);
 	gui_color_init(GTK_WIDGET(default_search_ctree));
@@ -1961,13 +1845,9 @@ search_gui_init(void)
 	clist_restore_widths(GTK_CLIST(search_gui_current_ctree()),
 		PROP_SEARCH_RESULTS_COL_WIDTHS);
 
-	search_gui_retrieve_searches();
-    search_add_got_results_listener(search_gui_got_results);
-
 	{
-		GtkCList *clist;
+		GtkCList *clist = clist_search();
 		
-		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
 		gtk_clist_set_reorderable(clist, TRUE);
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
 		gui_signal_connect(clist, "button-press-event",
@@ -1997,26 +1877,8 @@ search_gui_init(void)
 		widget = gui_main_window_lookup("entry_search");
 		drop_widget_init(widget, drag_data_received, NULL);
 	}
-}
 
-void
-search_gui_shutdown(void)
-{
-    search_remove_got_results_listener(search_gui_got_results);
-	search_gui_store_searches();
-
-    while (searches) {
-        search_gui_close_search(searches->data);
-	}
-
-	search_gui_callbacks_shutdown();
-	search_gui_common_shutdown();
-}
-
-const GList *
-search_gui_get_searches(void)
-{
-	return (const GList *) searches;
+	search_gui_common_init();
 }
 
 /**
@@ -2026,19 +1888,11 @@ void
 search_gui_remove_search(search_t *sch)
 {
     search_t *current_search;
-    GtkNotebook *notebook;
 
 	g_return_if_fail(sch);
-	notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
-	{
-		GtkCList *clist;
-		gint row;
-		
-		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
-		row = gtk_clist_find_row_from_data(clist, sch);
-		gtk_clist_remove(clist, row);
-	}
+	gtk_clist_remove(clist_search(),
+		gtk_clist_find_row_from_data(clist_search(), sch));
 
     gtk_timeout_remove(sch->tab_updating);
 
@@ -2048,9 +1902,10 @@ search_gui_remove_search(search_t *sch)
         sch->arrow = NULL;
     }
 
-    if (searches) {				/* Some other searches remain. */
-		gtk_notebook_remove_page(notebook,
-				gtk_notebook_page_num(notebook, sch->scrolled_window));
+    if (search_gui_get_searches()) {		/* Some other searches remain. */
+		gtk_notebook_remove_page(notebook_search_results(),
+			gtk_notebook_page_num(notebook_search_results(),
+				sch->scrolled_window));
 	} else {
 		/*
 		 * Keep the clist of this search, clear it and make it the
@@ -2072,7 +1927,7 @@ search_gui_remove_search(search_t *sch)
 		search_gui_update_items(NULL);
     	search_gui_update_expiry(NULL);
 
-        gtk_notebook_set_tab_label_text(notebook,
+        gtk_notebook_set_tab_label_text(notebook_search_results(),
 			default_scrolled_window, _("(no search)"));
 
 		gtk_widget_set_sensitive(
@@ -2158,14 +2013,8 @@ search_gui_set_current_search(search_t *sch)
 
 	search_gui_current_search(sch);
 
-    {
-        GtkNotebook *notebook;
-
-        notebook = GTK_NOTEBOOK(
-					gui_main_window_lookup("notebook_search_results"));
-        gtk_notebook_set_current_page(notebook,
-  			  gtk_notebook_page_num(notebook, sch->scrolled_window));
-    }
+	gtk_notebook_set_current_page(notebook_search_results(),
+		gtk_notebook_page_num(notebook_search_results(), sch->scrolled_window));
 
 	if (search_gui_update_expiry(sch)) {
 		gui_search_set_enabled(sch, FALSE);
@@ -2276,10 +2125,6 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 void
 gui_search_force_update_tab_label(struct search *sch)
 {
-    GtkNotebook *notebook_search_results = GTK_NOTEBOOK
-        (gui_main_window_lookup("notebook_search_results"));
-    GtkCList *clist_search = GTK_CLIST
-        (gui_main_window_lookup("clist_search"));
 	search_t *current_search = search_gui_get_current_search();
     gint row;
 
@@ -2296,22 +2141,22 @@ gui_search_force_update_tab_label(struct search *sch)
 	}
 	
 	sch->last_update_items = sch->items;
-	gtk_notebook_set_tab_label_text
-        (notebook_search_results, sch->scrolled_window, tmpstr);
+	gtk_notebook_set_tab_label_text(notebook_search_results(),
+		sch->scrolled_window, tmpstr);
 
-    row = gtk_clist_find_row_from_data(clist_search, sch);
+    row = gtk_clist_find_row_from_data(clist_search(), sch);
     gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->items);
-    gtk_clist_set_text(clist_search, row, c_sl_hit, tmpstr);
+    gtk_clist_set_text(clist_search(), row, c_sl_hit, tmpstr);
     gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->unseen_items);
-    gtk_clist_set_text(clist_search, row, c_sl_new, tmpstr);
+    gtk_clist_set_text(clist_search(), row, c_sl_new, tmpstr);
 
     if (sch->unseen_items > 0) {
         gtk_clist_set_background(
-            clist_search, row,
-            &gtk_widget_get_style(GTK_WIDGET(clist_search))
+            clist_search(), row,
+            &gtk_widget_get_style(GTK_WIDGET(clist_search()))
                 ->bg[GTK_STATE_ACTIVE]);
     } else {
-        gtk_clist_set_background(clist_search, row, NULL);
+        gtk_clist_set_background(clist_search(), row, NULL);
     }
 
 	sch->last_update_time = tm_time();
@@ -2356,24 +2201,16 @@ gui_search_clear_results(void)
 static void
 set_search_color(struct search *sch)
 {
-	static GtkNotebook *notebook_search_results = NULL;
-	GtkCList *clist_search;
 	GdkColor *color;
-
-	clist_search = GTK_CLIST(gui_main_window_lookup("clist_search"));
-
-	if (notebook_search_results == NULL)
-		notebook_search_results =
-			GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
 
 	if (search_gui_is_enabled(sch)) {
 		color = NULL;
 	} else {
-		color = &gtk_widget_get_style(GTK_WIDGET(clist_search))
+		color = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
 					->fg[GTK_STATE_INSENSITIVE];
 	}
-	gtk_clist_set_foreground(clist_search,
-		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window),
+	gtk_clist_set_foreground(clist_search(),
+		gtk_notebook_page_num(notebook_search_results(), sch->scrolled_window),
 		color);
 }
 
@@ -2457,7 +2294,7 @@ search_gui_end_massive_update(search_t *sch)
 void
 search_gui_metadata_update(const bitzi_data_t *data)
 {
-    GList *l;
+    const GList *iter;
     gchar *text;
 
 	text = bitzi_gui_get_metadata(data);
@@ -2466,8 +2303,9 @@ search_gui_metadata_update(const bitzi_data_t *data)
 	 * Fill in the columns in each search that contains a reference
 	 */
 
-	for (l = searches; l != NULL; l = g_list_next(l)) {
-		search_t *search = l->data;
+	iter = search_gui_get_searches();
+	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
+		search_t *search = iter->data;
 		GtkCTree *ctree = GTK_CTREE(search->tree);
     	GtkCTreeNode *parent;
 
@@ -2487,7 +2325,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 void
 search_gui_queue_bitzi_by_sha1(const record_t *rec)
 {
-	GList *l;
+	const GList *iter;
 	GtkCTreeNode *parent;
 
 	g_assert(rec != NULL);
@@ -2499,8 +2337,9 @@ search_gui_queue_bitzi_by_sha1(const record_t *rec)
 	 * Add some feedback that a search has been kicked off.
 	 */
 
-	for (l = searches; l; l = g_list_next(l)) {
-		search_t *search = l->data;
+	iter = search_gui_get_searches();
+	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
+		search_t *search = iter->data;
 		GtkCTree *ctree = GTK_CTREE(search->tree);
 
 		parent = find_parent_with_sha1(search, rec->sha1);

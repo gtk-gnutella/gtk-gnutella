@@ -117,12 +117,9 @@
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
 
-#if defined(USE_TOPLESS)
 #include "ui/gtk/gui.h"
-#endif
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
-#include "ui/gtk/gui.h"
 #include "ui/gtk/icon.h"
 #include "ui/gtk/main.h"
 #include "ui/gtk/settings.h"
@@ -505,11 +502,7 @@ gtk_gnutella_exit(gint n)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_message("gtk-gnutella shut down cleanly.");
 
-#if defined(USE_GTK1) || defined(USE_GTK2)
-	gtk_exit(n);
-#else
-	exit(n);
-#endif
+	gui_exit(n);
 }
 
 static void
@@ -520,13 +513,6 @@ sig_terminate(int n)
 	if (from_atexit)			/* Might be stuck in some cleanup callback */
 		exit(1);				/* Terminate ASAP */
 }
-
-#if !defined(USE_TOPLESS)
-/* FIXME: this is declared in search_gui.c and should be called in the
- *        main timer loop of the gui.
- */
-void search_gui_store_searches(void);
-#endif /* USE_TOPLESS */
 
 static void
 slow_main_timer(time_t now)
@@ -550,7 +536,6 @@ slow_main_timer(time_t now)
 		dmesh_ban_store();
 		break;
 	case 1:
-		search_gui_store_searches();
 		hcache_store_if_dirty(HOST_ANY);
 		break;
 	case 2:

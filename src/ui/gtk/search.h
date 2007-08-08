@@ -125,12 +125,11 @@ void search_gui_add_record(struct search *, record_t *, enum gui_color);
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
 
+void gui_search_force_update_tab_label(struct search *);
+
 #ifdef USE_GTK2
-void gui_search_force_update_tab_label(struct search *, time_t now);
 void search_gui_request_bitzi_data(void);
 const record_t *search_gui_get_record_at_path(GtkTreeView *, GtkTreePath *);
-#else
-void gui_search_force_update_tab_label(struct search *);
 #endif /* USE_GTK2 */
 
 void search_gui_expand_all(void);
