@@ -2505,8 +2505,6 @@ search_gui_duplicate_search(search_t *search)
 		tm_time(), GUI_PROPERTY(search_lifetime),
 		timeout, search->sort_col, search->sort_order,
 		search_gui_is_enabled(search) ? SEARCH_F_ENABLED : 0, NULL);
-
-	search_gui_store_searches();
 }
 
 /**
