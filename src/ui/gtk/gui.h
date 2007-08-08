@@ -30,36 +30,16 @@
 
 #ifdef USE_TOPLESS
 
-/* Diverse dummy definitions */
 #define settings_gui_save_if_dirty()
+#define settings_gui_shutdown()
 
 #define main_gui_early_init(argc, argv, disable_xshm)
 #define main_gui_init()
+#define main_gui_run(x)
+#define main_gui_exit(x)
 #define main_gui_timer(x)
-#define main_gui_update_coords()
 #define main_gui_shutdown()
 #define main_gui_shutdown_tick(remain)
-#define settings_gui_shutdown()
-
-#define icon_timer()
-
-#define gui_exit(n)	exit(n)
-
-static inline void
-main_gui_run(const gchar *unused_geometry_spec)
-{
-	GMainLoop *ml;
-
-	(void) unused_geometry_spec;
-
-#if defined(USE_GLIB1)
-	ml = g_main_new(FALSE);
-	g_main_run(ml);
-#elif defined(USE_GLIB2)
-	ml = g_main_loop_new(NULL, FALSE);
-	g_main_loop_run(ml);
-#endif /* GLIB */
-}
 
 #else	/* !USE_TOPLESS */
 
@@ -79,8 +59,6 @@ main_gui_run(const gchar *unused_geometry_spec)
 #endif
 
 #include "main.h"
-
-#define gui_exit(n)	gtk_exit(n)
 
 #ifdef USE_GTK1
 #define g_ascii_strcasecmp g_strcasecmp

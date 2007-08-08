@@ -420,6 +420,8 @@ src/core/tth_cache.c
 src/core/tth_cache.h
 src/core/token.c
 src/core/token.h
+src/core/topless.c
+src/core/topless.h
 src/core/tsync.c
 src/core/tsync.h
 src/core/tx.c

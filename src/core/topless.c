@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
+ * Copyright (c) 2007, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,44 +23,34 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _gtk_main_h_
-#define _gtk_main_h_
+/**
+ * @ingroup core
+ * @file
+ *
+ */
 
 #include "common.h"
 
-#include <gtk/gtk.h>
+RCSID("$Id$")
 
-#define WIDGET(name) \
-	GtkWidget *gui_ ## name (void); \
-	GtkWidget *gui_ ## name ## _lookup(const gchar *id);
+#include "topless.h"
 
-WIDGET(dlg_about)
-WIDGET(dlg_ancient)
-WIDGET(dlg_faq)
-WIDGET(dlg_prefs)
-WIDGET(dlg_quit)
-WIDGET(filter_dialog)
-WIDGET(main_window)
-WIDGET(popup_downloads)
-WIDGET(popup_filter_rule)
-WIDGET(popup_monitor)
-WIDGET(popup_nodes)
-WIDGET(popup_search)
-WIDGET(popup_search_list)
-WIDGET(popup_sources)
-WIDGET(popup_uploads)
-WIDGET(shutdown_window)
-#undef WIDGET
+#ifndef USE_TOPLESS
+gboolean running_topless;
+#endif	/* USE_TOPLESS */
 
-void main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm);
-void main_gui_init(void);
-void main_gui_exit(int n);
-void main_gui_run(const gchar *geometry_spec);
-void main_gui_shutdown(void);
-void main_gui_timer(time_t now);
-void main_gui_shutdown_tick(guint);
-void main_gui_show_prefences(void);
-gboolean main_gui_window_visible(void);
+void
+topless_main_run(void)
+{
+	GMainLoop *ml;
 
-#endif /* _gtk_main_h_ */
+#if GLIB_CHECK_VERSION(2,0,0)
+	ml = g_main_loop_new(NULL, FALSE);
+	g_main_loop_run(ml);
+#else
+	ml = g_main_new(FALSE);
+	g_main_run(ml);
+#endif /* GLIB */
+}
+
 /* vi: set ts=4 sw=4 cindent: */

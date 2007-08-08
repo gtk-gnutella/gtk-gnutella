@@ -43,6 +43,8 @@
 #define GUI_SOURCES
 
 #if defined(USE_TOPLESS)
+#define running_topless 1
+
 #define gui_update_download(d, force) ((void) d, (void) force)
 #define gui_update_download_server(d) ((void) d)
 #define gui_update_download_range(d) ((void) d)
@@ -76,6 +78,7 @@
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
+extern gboolean running_topless;
 #include "if/ui/gtk/bitzi.h"
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
@@ -92,104 +95,138 @@
 void
 gcu_gui_update_download(struct download *d, gboolean force)
 {
-	gui_update_download(d, force);
+	if (!running_topless) {
+		gui_update_download(d, force);
+	}
 }
 
 void
 gcu_gui_update_download_server(struct download *d)
 {
-	gui_update_download_server(d);
+	if (!running_topless) {
+		gui_update_download_server(d);
+	}
 }
 
 void
 gcu_gui_update_download_range(struct download *d)
 {
-	gui_update_download_range(d);
+	if (!running_topless) {
+		gui_update_download_range(d);
+	}
 }
 
 void
 gcu_gui_update_download_size(struct download *d)
 {
-	gui_update_download_size(d);
+	if (!running_topless) {
+		gui_update_download_size(d);
+	}
 }
 
 void
 gcu_gui_update_download_host(struct download *d)
 {
-	gui_update_download_host(d);
+	if (!running_topless) {
+		gui_update_download_host(d);
+	}
 }
 
 void
 gcu_gui_update_download_abort_resume(void)
 {
-	gui_update_download_abort_resume();
+	if (!running_topless) {
+		gui_update_download_abort_resume();
+	}
 }
 
 void
 gcu_gui_update_download_clear(void)
 {
-	gui_update_download_clear();
+	if (!running_topless) {
+		gui_update_download_clear();
+	}
 }
 
 void
 gcu_gui_update_download_clear_now(void)
 {
-	gui_update_download_clear_now();
+	if (!running_topless) {
+		gui_update_download_clear_now();
+	}
 }
 
 void
 gcu_download_gui_add(struct download *d)
 {
-	download_gui_add(d);
+	if (!running_topless) {
+		download_gui_add(d);
+	}
 }
 
 void
 gcu_download_gui_remove(struct download *d)
 {
-	download_gui_remove(d);
+	if (!running_topless) {
+		download_gui_remove(d);
+	}
 }
 
 void
 gcu_download_gui_updates_freeze(void)
 {
-	gui_download_updates_freeze();
+	if (!running_topless) {
+		gui_download_updates_freeze();
+	}
 }
 
 void
 gcu_download_gui_updates_thaw(void)
 {
-	gui_download_updates_thaw();
+	if (!running_topless) {
+		gui_download_updates_thaw();
+	}
 }
 
 /** misc. interface functions (CORE -> UI) */
 void
 gcu_gui_update_files_scanned(void)
 {
-	gui_update_files_scanned();
+	if (!running_topless) {
+		gui_update_files_scanned();
+	}
 }
 
 void
 guc_allow_rescan_dir(gboolean flag)
 {
-	gui_allow_rescan_dir(flag);
+	if (!running_topless) {
+		gui_allow_rescan_dir(flag);
+	}
 }
 
 gint
 gcu_gtk_main_flush(void)
 {
 #if defined(USE_GTK1) || defined(USE_GTK2)
-	extern gint gtk_main_flush();	/* Don't include any GTK-related header */
-	return gtk_main_flush();
-#else
-	return 0;
+	if (!running_topless) {
+		extern gint gtk_main_flush();
+		/* Don't include any GTK-related header */
+		return gtk_main_flush();
+	}
 #endif /* GTK */
+	return 0;
 }
 
 /**	search interface functions (CORE -> UI) */
 gboolean
 gcu_search_gui_new_search(const gchar *query, flag_t flags)
 {
-	return search_gui_new_search(query, flags, NULL);
+	if (!running_topless) {
+		return search_gui_new_search(query, flags, NULL);
+	} else {
+		return FALSE;
+	}
 }
 
 
@@ -197,31 +234,41 @@ gcu_search_gui_new_search(const gchar *query, flag_t flags)
 void
 gcu_upload_stats_gui_add(const struct ul_stats *s)
 {
-	upload_stats_gui_add(s);
+	if (!running_topless) {
+		upload_stats_gui_add(s);
+	}
 }
 
 void
 gcu_upload_stats_gui_update(const struct ul_stats *s)
 {
-	upload_stats_gui_update(s);
+	if (!running_topless) {
+		upload_stats_gui_update(s);
+	}
 }
 
 void
 gcu_upload_stats_gui_clear_all(void)
 {
-	upload_stats_gui_clear_all();
+	if (!running_topless) {
+		upload_stats_gui_clear_all();
+	}
 }
 
 void
 gcu_upload_stats_gui_freeze(void)
 {
-	upload_stats_gui_freeze();
+	if (!running_topless) {
+		upload_stats_gui_freeze();
+	}
 }
 
 void
 gcu_upload_stats_gui_thaw(void)
 {
-	upload_stats_gui_thaw();
+	if (!running_topless) {
+		upload_stats_gui_thaw();
+	}
 }
 
 /**
@@ -234,20 +281,26 @@ gcu_upload_stats_gui_thaw(void)
 void
 gcu_bitzi_result(bitzi_data_t *bitzi_data)
 {
-    bitzi_gui_update(bitzi_data);
+	if (!running_topless) {
+    	bitzi_gui_update(bitzi_data);
+	}
 }
 
 /*	statusbar interface functions (CORE -> UI) */
 void
 gcu_statusbar_warning(const gchar *message)
 {
-	statusbar_gui_warning(15, "%s", message);
+	if (!running_topless) {
+		statusbar_gui_warning(15, "%s", message);
+	}
 }
 
 void
 gcu_statusbar_message(const gchar *message)
 {
-	statusbar_gui_message(10, "%s", message);
+	if (!running_topless) {
+		statusbar_gui_message(10, "%s", message);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

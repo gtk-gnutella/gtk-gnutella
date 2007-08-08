@@ -650,7 +650,7 @@ version_build_string(void)
 			gm_snprintf(buf, sizeof buf,
 					"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
 					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
-					GTA_INTERFACE,
+					gtk_gnutella_interface(),
 					sysname,
 					machine && machine[0] ? " " : "",
 					machine ? machine : "");
@@ -658,7 +658,7 @@ version_build_string(void)
 			gm_snprintf(buf, sizeof buf,
 					"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
 					GTA_VERSION_NUMBER, main_get_build(),
-					GTA_RELEASE, GTA_INTERFACE,
+					GTA_RELEASE, gtk_gnutella_interface(),
 					sysname,
 					machine && machine[0] ? " " : "",
 					machine ? machine : "");

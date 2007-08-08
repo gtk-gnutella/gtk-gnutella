@@ -82,6 +82,7 @@
 #include "core/sq.h"
 #include "core/tls_cache.h"
 #include "core/tls_common.h"
+#include "core/topless.h"
 #include "core/tsync.h"
 #include "core/tx.h"
 #include "core/udp.h"
@@ -120,11 +121,9 @@
 #include "ui/gtk/gui.h"
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
-#include "ui/gtk/icon.h"
 #include "ui/gtk/main.h"
 #include "ui/gtk/settings.h"
 #include "ui/gtk/upload_stats.h"
-#include "if/ui/gtk/search.h"
 #endif /* GTK */
 
 #include "if/gnet_property.h"
@@ -264,6 +263,12 @@ debugging(guint t)
 		0;
 }
 
+const char *
+gtk_gnutella_interface(void)
+{
+	return running_topless ? "Topless" : GTA_INTERFACE;
+}
+
 /**
  * Invoked as an atexit() callback when someone does an exit().
  */
@@ -391,7 +396,9 @@ gtk_gnutella_exit(gint n)
 	 */
 
 	DO(settings_save_if_dirty);
-	DO(settings_gui_save_if_dirty);
+	if (!running_topless) {
+		DO(settings_gui_save_if_dirty);
+	}
 
 	safe_to_exit = TRUE;	/* Will immediately exit if re-entered */
 
@@ -400,8 +407,9 @@ gtk_gnutella_exit(gint n)
 
 #undef DO
 
-	main_gui_update_coords();
-	main_gui_shutdown();
+	if (!running_topless) {
+		main_gui_shutdown();
+	}
 
     hcache_shutdown();		/* Save host caches to disk */
 	settings_shutdown();
@@ -410,7 +418,9 @@ gtk_gnutella_exit(gint n)
 	search_shutdown();
 	bsched_shutdown();
 
-	settings_gui_shutdown();
+	if (!running_topless) {
+		settings_gui_shutdown();
+	}
 
 	/*
 	 * Show total CPU used, and the amount spent in user / kernel, before
@@ -441,7 +451,9 @@ gtk_gnutella_exit(gint n)
 		if ((d = delta_time(now, exit_time)) >= exit_grace)
 			break;
 
-		main_gui_shutdown_tick(exit_grace - d);
+		if (!running_topless) {
+			main_gui_shutdown_tick(exit_grace - d);
+		}
 		sleep(1);
 	}
 
@@ -499,10 +511,13 @@ gtk_gnutella_exit(gint n)
 	malloc_close();
 #endif
 
-	if (debugging(0) || signal_received || shutdown_requested)
+	if (debugging(0) || signal_received || shutdown_requested) {
 		g_message("gtk-gnutella shut down cleanly.");
-
-	gui_exit(n);
+	}
+	if (!running_topless) {
+		main_gui_exit(n);
+	}
+	exit(n);
 }
 
 static void
@@ -554,7 +569,9 @@ slow_main_timer(time_t now)
 
 	download_store_if_dirty();		/* Important, so always attempt it */
 	settings_save_if_dirty();		/* Nice to have, and file is small */
-	settings_gui_save_if_dirty();	/* Ditto */
+	if (!running_topless) {
+		settings_gui_save_if_dirty();	/* Ditto */
+	}
 	tx_collect();					/* Collect freed TX stacks */
 	rx_collect();					/* Idem for freed RX stacks */
 	prune_page_cache();
@@ -562,10 +579,6 @@ slow_main_timer(time_t now)
 	node_slow_timer(now);
 	ignore_timer(now);
 }
-
-#if !defined(USE_TOPLESS)
-void icon_timer(void);
-#endif /* USE_TOPLESS */
 
 /**
  * Check CPU usage.
@@ -713,7 +726,10 @@ main_timer(gpointer p)
 	 */
 
 	if (!exiting) {
-		main_gui_timer(now);
+
+		if (!running_topless) {
+			main_gui_timer(now);
+		}
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -726,11 +742,6 @@ main_timer(gpointer p)
 	 * The following are low-priority tasks, not called if we've
 	 * detected a high CPU load.
 	 */
-
-	if (!GNET_PROPERTY(overloaded_cpu)) {
-		icon_timer();
-	}
-
 	bg_sched_timer(GNET_PROPERTY(overloaded_cpu));	/* Background tasks */
 
 	return TRUE;
@@ -838,6 +849,7 @@ enum main_arg {
 	main_arg_pause_on_crash,
 	main_arg_ping,
 	main_arg_shell,
+	main_arg_topless,
 	main_arg_version,
 
 	/* Passed through for Gtk+/GDK/GLib */
@@ -885,6 +897,11 @@ static struct {
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
+#ifdef USE_TOPLESS
+	OPTION(topless,			NONE, NULL),	/* accept by hide */
+#else
+	OPTION(topless,			NONE, "Disable the graphical user-interface."),
+#endif	/* USE_TOPLESS */
 	OPTION(version,			NONE, "Show version information."),
 
 	/* These are handled by Gtk+/GDK/GLib */
@@ -1072,6 +1089,10 @@ handle_arguments(int argc, char **argv)
 		g_assert(options[i].id == i);
 	}
 
+#ifdef USE_TOPLESS
+	options[main_arg_topless].used = TRUE;
+#endif	/* USE_TOPLESS */
+
 	argv0 = argv[0];
 	argv++;
 	argc--;
@@ -1138,6 +1159,11 @@ handle_arguments(int argc, char **argv)
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
+#ifndef USE_TOPLESS
+	if (options[main_arg_topless].used) {
+		running_topless = TRUE;
+	}
+#endif	/* USE_TOPLESS */
 	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
 		
@@ -1194,7 +1220,6 @@ handle_arguments(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
-
 }
 
 int
@@ -1275,7 +1300,9 @@ main(int argc, char **argv)
 	dbus_util_init();
 	vendor_init();
 
-	main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
+	if (!running_topless) {
+		main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
+	}
 
 	cq_init();
 	vmsg_init();
@@ -1330,7 +1357,9 @@ main(int argc, char **argv)
 	dht_route_init();
 	dht_rpc_init();
 
-	main_gui_init();
+	if (!running_topless) {
+		main_gui_init();
+	}
 	node_post_init();
 
 	download_restore_state();
@@ -1360,7 +1389,11 @@ main(int argc, char **argv)
 	bsched_enable_all();
 	version_ancient_warn();
 
-	main_gui_run(options[main_arg_geometry].arg);
+	if (running_topless) {
+		topless_main_run();
+	} else {
+		main_gui_run(options[main_arg_geometry].arg);
+	}
 
 	return 0;
 }

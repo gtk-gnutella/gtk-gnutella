@@ -172,6 +172,7 @@ SRC = \
 	tls_common.c \
 	tth_cache.c \
 	token.c \
+	topless.c \
 	tsync.c \
 	tx.c \
 	tx_chunk.c \
@@ -278,6 +279,7 @@ OBJ = \
 	tls_common.o \
 	tth_cache.o \
 	token.o \
+	topless.o \
 	tsync.o \
 	tx.o \
 	tx_chunk.o \

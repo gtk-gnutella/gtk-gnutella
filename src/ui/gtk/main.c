@@ -533,6 +533,12 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 }
 
 void
+main_gui_exit(int n)
+{
+	gtk_exit(n);
+}
+
+void
 main_gui_init(void)
 {
 	main_gui_gtkrc_init();
@@ -618,6 +624,7 @@ main_gui_run(const gchar *geometry_spec)
 void
 main_gui_shutdown(void)
 {
+	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 	icon_close();
 
     /*
@@ -645,19 +652,13 @@ main_gui_shutdown(void)
     hcache_gui_shutdown();
 }
 
-void
-main_gui_update_coords(void)
-{
-	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
-}
-
 /**
  * Main gui timer. This is called once a second.
  */
 void
 main_gui_timer(time_t now)
 {
-	static const gint num_states = 10;
+	static const gint num_states = 11;
 	gboolean overloaded;
 	gint i;
 
@@ -685,6 +686,7 @@ main_gui_timer(time_t now)
 		case 7: filter_timer();							break;
 		case 8: downloads_gui_update_display(now);		break;
 		case 9: search_gui_flush(now, FALSE);			break;
+		case 10: icon_timer();							break;
 		default:
 			g_error("bad modulus computation (counter is %d)", counter);
 			break;
