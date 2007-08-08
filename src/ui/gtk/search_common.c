@@ -88,6 +88,9 @@ static GtkNotebook *notebook_search_results;
 static GtkLabel *label_items_found;
 static GtkLabel *label_search_expiry;
 
+static gboolean store_searches_requested;
+static gboolean store_searches_disabled;
+
 /**
  * Human readable translation of servent trailer open flags.
  * Decompiled flags are listed in the order of the table.
@@ -942,7 +945,7 @@ search_gui_set_sort_defaults(void)
  * Persist searches to disk.
  */
 static void
-search_gui_store_searches(void)
+search_gui_real_store_searches(void)
 {
 	char *path;
 
@@ -2191,6 +2194,8 @@ search_gui_close_search(search_t *search)
      */
  	list_searches = g_list_remove(list_searches, search);
 
+	search_gui_store_searches();
+
 	search_gui_option_menu_searches_update();
 	search_gui_clear_search(search);
     search_gui_remove_search(search);
@@ -3314,6 +3319,22 @@ search_gui_get_magnet(search_t *search, record_t *record)
 	return url;
 }
 
+void
+search_gui_store_searches(void)
+{
+	store_searches_requested = TRUE;
+}
+
+void
+search_gui_timer(time_t now)
+{
+    search_gui_flush(now, FALSE);
+
+	if (store_searches_requested && !store_searches_disabled) {
+		store_searches_requested = FALSE;
+		search_gui_real_store_searches();
+	}
+}
 
 /**
  * Initialize common structures.
@@ -3361,7 +3382,8 @@ search_gui_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
  	search_remove_got_results_listener(search_gui_got_results);
-	search_gui_store_searches();
+	search_gui_real_store_searches();
+	store_searches_disabled = TRUE;
 
     while (search_gui_get_searches()) {
         search_gui_close_search(search_gui_get_searches()->data);

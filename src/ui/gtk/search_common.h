@@ -175,7 +175,6 @@ search_t *search_gui_find(gnet_search_t);
 const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
 void search_gui_set_sort_defaults(void);
 
-void search_gui_flush(time_t now, gboolean force);
 struct query *search_gui_handle_query(const gchar *, flag_t flags,
 						const gchar **error_str);
 void search_gui_query_free(struct query **query_ptr);
@@ -286,6 +285,9 @@ typedef search_t *(*search_gui_synchronize_list_cb)(void *user_data);
 
 void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 			void *user_data);
+
+void search_gui_timer(time_t now);
+void search_gui_store_searches(void);
 
 #endif /* _gtk_search_common_h_ */
 

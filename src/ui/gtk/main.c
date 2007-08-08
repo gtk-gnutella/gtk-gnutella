@@ -639,7 +639,6 @@ main_gui_shutdown(void)
     search_stats_gui_shutdown();
     filter_cb_close();
     monitor_gui_shutdown();
-    search_gui_flush(tm_time(), TRUE);
     search_gui_shutdown(); /* must be done before filter_shutdown! */
  	downloads_gui_shutdown();
 	filter_shutdown();
@@ -685,7 +684,7 @@ main_gui_timer(time_t now)
 		case 6: statusbar_gui_clear_timeouts(now);		break;
 		case 7: filter_timer();							break;
 		case 8: downloads_gui_update_display(now);		break;
-		case 9: search_gui_flush(now, FALSE);			break;
+		case 9: search_gui_timer(now);					break;
 		case 10: icon_timer();							break;
 		default:
 			g_error("bad modulus computation (counter is %d)", counter);
