@@ -173,7 +173,7 @@ shell_set_msg(struct gnutella_shell *sh, const char *text)
 	sh->msg = g_strdup(text);
 }
 
-void
+static void
 shell_write_welcome(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -195,6 +195,9 @@ shell_toggle_interactive(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 	sh->interactive = !sh->interactive;
+	if (sh->interactive && 1 == shell_line_count(sh)) {
+		shell_write_welcome(sh);
+	}
 	return sh->interactive;
 }
 
