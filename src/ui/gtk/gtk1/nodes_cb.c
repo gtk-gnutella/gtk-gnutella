@@ -35,7 +35,6 @@ RCSID("$Id$")
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/nodes_common.h"
 #include "gtk/settings.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/search_common.h"
 
 #include "if/gui_property_priv.h"

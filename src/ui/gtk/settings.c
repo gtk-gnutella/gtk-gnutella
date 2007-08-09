@@ -40,7 +40,6 @@ RCSID("$Id$")
 #include "columns.h"
 #include "downloads_common.h"
 #include "filter.h"
-#include "gtk-missing.h"
 #include "html_view.h"
 #include "misc.h"
 #include "monitor.h"
@@ -1758,7 +1757,7 @@ search_results_show_tabs_changed(property_t prop)
     	gtk_widget_show(w);
 
 #ifdef USE_GTK1
-    gtk_notebook_set_page(
+    gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_main_window_lookup("notebook_sidebar")),
         GUI_PROPERTY(search_results_show_tabs) ? 1 : 0);
 #endif /* USE_GTK1 */

@@ -39,7 +39,6 @@ RCSID("$Id$")
 
 #include "gtk/search.h"			/* search_t */
 #include "gtk/misc.h"			/* gui_record_sha1_eq() */
-#include "gtk/gtk-missing.h"
 
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"

@@ -38,9 +38,6 @@
 
 RCSID("$Id$")
 
-#include "interface-glade.h"
-
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/nodes_common.h"
 #include "gtk/nodes.h"

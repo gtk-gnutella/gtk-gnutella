@@ -42,13 +42,6 @@ RCSID("$Id$")
 #include <pwd.h>
 #endif /* I_PWD */
 
-#ifdef USE_GTK1
-#include "gtk1/interface-glade.h"
-#endif
-#ifdef USE_GTK2
-#include "gtk2/interface-glade.h"
-#endif
-
 #include "notebooks.h"
 #include "main.h"
 #include "misc.h"
@@ -70,8 +63,6 @@ RCSID("$Id$")
 #include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
 #include "fileinfo.h"
 #include "visual_progress.h"
-
-#include "gtk-missing.h"
 
 #include "gtk/misc.h"
 
@@ -612,7 +603,7 @@ main_gui_run(const gchar *geometry_spec)
 	 * Make sure the application starts in the Gnet pane.
 	 */
 
-	gtk_notebook_set_page(
+	gtk_notebook_set_current_page(
 		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 		nb_main_page_network);
 

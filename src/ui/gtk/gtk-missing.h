@@ -27,7 +27,6 @@
 #define _gtk_gtk_missing_h_
 
 #include "gui.h"
-#include <gtk/gtk.h>
 
 #include "lib/prop.h"
 

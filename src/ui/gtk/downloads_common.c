@@ -30,7 +30,6 @@ RCSID("$Id$")
 #include "gtk/columns.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
 #include "gtk/search_common.h"

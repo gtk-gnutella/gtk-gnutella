@@ -38,7 +38,6 @@
 
 RCSID("$Id$")
 
-#include "gtk-missing.h"
 #include "misc.h"
 #include "settings_cb.h"
 #include "settings.h"

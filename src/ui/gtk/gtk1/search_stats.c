@@ -53,7 +53,6 @@ RCSID("$Id$")
 #include "gtk/gui.h"
 
 #include "gtk/columns.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/search_stats.h"
 

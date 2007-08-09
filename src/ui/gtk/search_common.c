@@ -38,7 +38,6 @@
 RCSID("$Id$")
 
 #include "drop.h"
-#include "gtk-missing.h"
 #include "search.h"
 #include "settings.h"
 
@@ -1364,7 +1363,8 @@ search_gui_update_expiry(const struct search *sch)
 				}
 			}
 		} else {
-        	gtk_label_printf(label_search_expiry, "%s", _("[stopped]"));
+        	gtk_label_printf(label_search_expiry, "%s",
+				_("This search has been stopped"));
 		}
     } else {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
@@ -3325,10 +3325,26 @@ search_gui_store_searches(void)
 	store_searches_requested = TRUE;
 }
 
+static void
+search_gui_update_display(time_t now)
+{
+    static time_t last_update;
+
+	if (!main_gui_window_visible())
+		return;
+
+    if (last_update && 0 == delta_time(now, last_update))
+        return;
+    last_update = now;
+
+	search_gui_update_expiry(current_search);
+}
+
 void
 search_gui_timer(time_t now)
 {
     search_gui_flush(now, FALSE);
+	search_gui_update_display(now);
 
 	if (store_searches_requested && !store_searches_disabled) {
 		store_searches_requested = FALSE;

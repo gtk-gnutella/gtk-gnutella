@@ -46,16 +46,21 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "gtk-missing.h"
+
 #ifdef USE_GTK1
+#include "gtk1/interface-glade.h"
 #include "gtk1/support-glade.h"
 #endif
 
 #ifdef USE_GTK2
+#include "gtk2/interface-glade.h"
 #include "gtk2/support-glade.h"
 
 #if !GTK_CHECK_VERSION(2,5,0)
 #include "pbarcellrenderer.h"
 #endif
+
 #endif
 
 #include "main.h"

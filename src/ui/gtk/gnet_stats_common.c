@@ -28,7 +28,6 @@
 RCSID("$Id$")
 
 #include "gnet_stats_common.h"
-#include "gtk-missing.h"
 #include "settings.h"
 
 #include "if/core/net_stats.h"

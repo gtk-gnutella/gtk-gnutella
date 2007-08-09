@@ -34,7 +34,7 @@
  * @date 2001-2003
  */
 
-#include "common.h"
+#include "gui.h"
 
 RCSID("$Id$")
 
@@ -42,14 +42,6 @@ RCSID("$Id$")
 #include "filter_core.h"
 #include "search.h"
 #include "settings.h"
-#include "gtk-missing.h"
-
-#ifdef USE_GTK1
-#include "gtk/gtk1/interface-glade.h"
-#endif
-#ifdef USE_GTK2
-#include "gtk/gtk2/interface-glade.h"
-#endif
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"

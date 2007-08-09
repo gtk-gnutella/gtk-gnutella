@@ -38,7 +38,6 @@
 RCSID("$Id$")
 
 #include "clipboard.h"
-#include "gtk-missing.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 

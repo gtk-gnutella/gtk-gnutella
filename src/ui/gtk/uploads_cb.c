@@ -31,7 +31,6 @@ RCSID("$Id$")
 #include "uploads.h"
 #include "uploads_common.h"
 #include "gtkcolumnchooser.h"
-#include "gtk-missing.h"
 #include "columns.h"
 
 #include "gtk/statusbar.h"		/* XXX: whilst we have a FIXME for BH */

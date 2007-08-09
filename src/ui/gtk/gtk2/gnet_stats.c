@@ -29,7 +29,6 @@ RCSID("$Id$")
 
 #include "gtk/gnet_stats.h"
 #include "gtk/notebooks.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
 

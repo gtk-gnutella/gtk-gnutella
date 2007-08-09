@@ -41,7 +41,6 @@
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/gui.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"

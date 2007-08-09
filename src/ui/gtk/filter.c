@@ -38,24 +38,18 @@
 
 RCSID("$Id$")
 
-#include "filter.h"
-#include "filter_cb.h"
-#include "gtk-missing.h"
-
+#include "gtk/gui.h"
 #include "gtk/misc.h"
 
-#ifdef USE_GTK1
-#include "gtk/gtk1/interface-glade.h"
-#endif
-#ifdef USE_GTK2
-#include "gtk/gtk2/interface-glade.h"
-#endif
+#include "filter.h"
+#include "filter_cb.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define DEFAULT_TARGET (filter_get_drop_target())
@@ -1222,9 +1216,8 @@ filter_gui_edit_rule(rule_t *r)
             g_error("Unknown rule type: %d", r->type);
         }
     } else {
-        gtk_notebook_set_page(
-            GTK_NOTEBOOK
-                (gui_filter_dialog_lookup("notebook_filter_detail")),
+        gtk_notebook_set_current_page(
+            GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
             nb_filt_page_buttons);
 
 #ifdef USE_GTK1
@@ -1290,7 +1283,7 @@ filter_gui_edit_ip_rule(rule_t *r)
 
    	G_FREE_NULL(ip);
 
-    gtk_notebook_set_page(
+    gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_ip);
 }
@@ -1347,9 +1340,8 @@ filter_gui_edit_sha1_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_sha1_soft")),
         soft);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_sha1);
 }
 
@@ -1411,9 +1403,8 @@ filter_gui_edit_text_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_text_soft")),
         soft);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_text);
 }
 
@@ -1468,9 +1459,8 @@ filter_gui_edit_size_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_size_soft")),
         soft);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_size);
 }
 
@@ -1503,9 +1493,8 @@ filter_gui_edit_jump_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_jump_active")),
         active);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_jump);
 }
 
@@ -1602,9 +1591,8 @@ filter_gui_edit_flag_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_flag_soft")),
         soft);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_flag);
 }
 
@@ -1696,9 +1684,8 @@ filter_gui_edit_state_rule(rule_t *r)
             (gui_filter_dialog_lookup("checkbutton_filter_state_soft")),
         soft);
 
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_state);
 }
 

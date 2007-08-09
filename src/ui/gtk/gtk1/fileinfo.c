@@ -42,7 +42,6 @@ RCSID("$Id$")
 #include "gtk/columns.h"
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 
 #include "if/gui_property.h"

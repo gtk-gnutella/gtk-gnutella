@@ -49,7 +49,6 @@
 RCSID("$Id$")
 
 #include "gtk/search_stats.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 
 #include "if/gui_property.h"

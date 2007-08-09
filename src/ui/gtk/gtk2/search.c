@@ -41,7 +41,6 @@
 #include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "gtk/search.h"

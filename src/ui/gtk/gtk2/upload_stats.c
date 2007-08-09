@@ -61,7 +61,6 @@ RCSID("$Id$")
 #include "interface-glade.h" /* for create_popup_upload_stats */
 
 #include "gtk/columns.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
 

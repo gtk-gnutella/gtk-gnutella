@@ -45,7 +45,6 @@ RCSID("$Id$")
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"
 #include "gtk/statusbar.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/bitzi.h"			/* Bitzi GTK functions */
 #include "gtk/columns.h"
 #include "gtk/misc.h"

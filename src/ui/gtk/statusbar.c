@@ -39,7 +39,6 @@
 
 RCSID("$Id$")
 
-#include "gtk-missing.h"
 #include "statusbar.h"
 
 #include "lib/glib-missing.h"

@@ -41,8 +41,8 @@ RCSID("$Id$")
 
 #ifdef USE_GTK2
 
-#include "gtk2/interface-glade.h"
 #include "if/gnet_property.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkWidget *icon;

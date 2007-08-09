@@ -40,7 +40,6 @@ RCSID("$Id$")
 #include "filter_core.h"
 #include "filter_cb.h"
 #include "filter.h"
-#include "gtk-missing.h"
 
 #include "if/gui_property_priv.h"
 
@@ -223,7 +222,7 @@ on_button_filter_abort_rule_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-    gtk_notebook_set_page(
+    gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
@@ -514,9 +513,8 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
     }
 
     gtk_clist_thaw(clist);
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK
-            (gui_filter_dialog_lookup("notebook_filter_detail")),
+    gtk_notebook_set_current_page(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
 
@@ -538,7 +536,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 
     filter_remove_rule_from_session(work_filter, r);
 
-    gtk_notebook_set_page(
+    gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
@@ -969,7 +967,7 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 	g_slist_free(sl_rules);
 	sl_rules = NULL;
 	
-    gtk_notebook_set_page(
+    gtk_notebook_set_current_page(
         GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
         nb_filt_page_buttons);
 }
@@ -1002,7 +1000,7 @@ on_button_filter_remove_rule_clicked(GtkButton *unused_button,
 		gtk_tree_model_get(model, &iter, 0, &p, (-1));
     	filter_remove_rule_from_session(work_filter, p);
 
-    	gtk_notebook_set_page(
+    	gtk_notebook_set_current_page(
           GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
           nb_filt_page_buttons);
 	}

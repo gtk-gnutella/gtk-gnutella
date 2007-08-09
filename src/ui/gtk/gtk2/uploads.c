@@ -38,7 +38,6 @@
 #include "gtk/uploads.h"
 #include "gtk/uploads_common.h"
 #include "gtk/columns.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
 

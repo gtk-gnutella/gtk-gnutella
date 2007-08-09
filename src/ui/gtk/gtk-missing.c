@@ -39,7 +39,6 @@
 
 RCSID("$Id$")
 
-#include "gtk-missing.h"
 #include "columns.h"
 
 #include "if/gui_property.h"

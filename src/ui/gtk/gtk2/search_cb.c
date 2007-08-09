@@ -42,7 +42,6 @@ RCSID("$Id$")
 
 #include "gtk/columns.h"
 #include "gtk/drag.h"
-#include "gtk/gtk-missing.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
@@ -196,7 +195,7 @@ on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 			if (ptr) {
 				search_t *sch = ptr;
 
-				gtk_notebook_set_page(
+				gtk_notebook_set_current_page(
 					GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 					nb_main_page_search);
 				search_gui_set_current_search(sch);

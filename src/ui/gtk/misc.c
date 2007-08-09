@@ -44,7 +44,6 @@ RCSID("$Id$")
 #include "downloads.h"
 #include "settings.h"
 #include "search.h"
-#include "gtk-missing.h"
 
 #include "if/gnet_property.h"
 #include "if/gui_property.h"
