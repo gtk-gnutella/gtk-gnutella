@@ -104,7 +104,18 @@ RCSID("$Id$")
 #endif
 
 #define MIN_SEARCH_TERM_BYTES 3		/* in bytes! */
+#define MAX_SEARCH_TERM_BYTES 200	/* in bytes; reserve some for GGEP etc. */
+
+/*
+ * Ignore this nonsense for release but see whether anyone complains about this
+ * rather low limit for non-releases. LimeWire drops searches with more than
+ * 30 characters (actually UTF-16 codepoints).
+ */
+#ifdef OFFICIAL_BUILD
+#define MAX_SEARCH_TERM_CHARS MAX_SEARCH_TERM_BYTES	/* in characters! */
+#else
 #define MAX_SEARCH_TERM_CHARS 30	/* in characters! */
+#endif	/* OFFICIAL_BUILD */
 
 #define MUID_MAX			4	 /**< Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800 /**< Minimum search retry timeout */
@@ -3640,17 +3651,22 @@ search_new(gnet_search_t *ptr, const gchar *query,
 	} else if (
 		!(flags & (SEARCH_F_LOCAL | SEARCH_F_BROWSE | SEARCH_F_PASSIVE))
 	) {
+		size_t byte_count;
+
 		qdup = UNICODE_CANONIZE(query);
 		g_assert(qdup != query);
-		compact_query(qdup);
+		byte_count = compact_query(qdup);
 
-		if (strlen(qdup) < MIN_SEARCH_TERM_BYTES) {
+		if (byte_count < MIN_SEARCH_TERM_BYTES) {
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_warning("Rejected too short query string: \"%s\"", qdup);
 			}
 			result = SEARCH_NEW_TOO_SHORT;
 			goto failure;
-		} else if (utf8_char_count(qdup) > MAX_SEARCH_TERM_CHARS) {
+		} else if (
+			byte_count > MAX_SEARCH_TERM_BYTES ||
+			utf8_char_count(qdup) > MAX_SEARCH_TERM_CHARS
+		) {
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_warning("Rejected too long query string: \"%s\"", qdup);
 			}
