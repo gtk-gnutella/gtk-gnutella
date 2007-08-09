@@ -132,6 +132,8 @@ gui_init_window_title(void)
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }
 
+static GSList *visibility_listeners[nb_main_page_num];
+static int notebook_main_current_page;
 static gboolean main_window_is_visible = TRUE;
 
 gboolean
@@ -140,10 +142,28 @@ main_gui_window_visible(void)
 	return main_window_is_visible;
 }
 
+static void
+main_gui_page_visibility_change(int page_num, gboolean visible)
+{
+	GSList *iter;
+
+	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	iter = visibility_listeners[page_num];
+	for (/* NOTHING */; NULL != iter; iter = g_slist_next(iter)) {
+		main_gui_visibility_cb func = iter->data;
+
+		g_assert(func);
+		(*func)(visible);
+	}
+}
+
 static gboolean
 on_main_gui_map_event(GtkWidget *unused_widget,
 	GdkEvent *event, gpointer unused_udata)
 {
+	const gboolean was_visible = main_window_is_visible;
+
 	(void) unused_widget;
 	(void) unused_udata;
 
@@ -166,21 +186,54 @@ on_main_gui_map_event(GtkWidget *unused_widget,
 	default:
 		break;
 	}
+	if (was_visible != main_window_is_visible) {
+		main_gui_page_visibility_change(notebook_main_current_page,
+			main_window_is_visible);
+	}
 	return FALSE;	/* propagate further */
 }
-
-static int notebook_main_current_page;
 
 static void
 on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
 {
+	int old_page;
+
 	(void) unused_notebook;
 	(void) unused_page;
 	(void) unused_udata;
 
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	old_page = notebook_main_current_page;
 	notebook_main_current_page = page_num;
+
+	if (main_window_is_visible) {
+		main_gui_page_visibility_change(old_page, FALSE);
+		main_gui_page_visibility_change(notebook_main_current_page, TRUE);
+	}
+}
+
+void
+main_gui_add_page_visibility_listener(main_gui_visibility_cb func,
+	int page_num)
+{
+	g_return_if_fail(func);
+	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	visibility_listeners[page_num] = g_slist_append(
+										visibility_listeners[page_num], func);
+}
+
+void
+main_gui_remove_page_visibility_listener(main_gui_visibility_cb func,
+	int page_num)
+{
+	g_return_if_fail(func);
+	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+
+	visibility_listeners[page_num] = g_slist_remove(
+										visibility_listeners[page_num], func);
 }
 
 int
@@ -700,7 +753,7 @@ main_gui_timer(time_t now)
 		case 2: search_stats_gui_update(now);			break;
 		case 3: nodes_gui_update_nodes_display(now);	break;
 		case 4: uploads_gui_update_display(now);		break;
-		case 5: fi_gui_update_display(now);				break;
+		case 5: fi_gui_timer(now);						break;
 		case 6: statusbar_gui_clear_timeouts(now);		break;
 		case 7: filter_timer();							break;
 		case 8: search_gui_timer(now);					break;

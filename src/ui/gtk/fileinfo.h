@@ -39,7 +39,7 @@
 #include "gui.h"
 
 void fi_gui_init(void);
-void fi_gui_update_display(time_t now);
+void fi_gui_timer(time_t now);
 void fi_gui_shutdown(void);
 
 #endif /* _gtk_fileinfo_h_ */

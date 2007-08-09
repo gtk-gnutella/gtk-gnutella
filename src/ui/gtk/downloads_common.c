@@ -91,7 +91,8 @@ static GHashTable *src_updates;	/* gnet_src_t */
 
 static enum nb_downloads_page current_page;
 
-static gboolean update_download_clear_needed = FALSE;
+static gboolean update_download_clear_needed;
+static gboolean download_gui_visible;
 
 static regex_t *filter_regex;
 
@@ -1078,6 +1079,9 @@ on_sources_button_press_event(GtkWidget *unused_widget,
 static gboolean
 fi_gui_file_visible(const struct fileinfo_data *file)
 {
+	if (!file->matched)
+		return FALSE;
+
 	switch (current_page) {
 	case nb_downloads_page_active:
 		return file->recv_count > 0;
@@ -1157,10 +1161,10 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
 }
 
-void
+static void
 fi_gui_file_update_visibility(struct fileinfo_data *file)
 {
-	if (file->matched && fi_gui_file_visible(file)) {
+	if (fi_gui_file_visible(file)) {
 		fi_gui_file_show(file);
 	} else {
 		fi_gui_file_hide(file);
@@ -1485,26 +1489,24 @@ fi_gui_source_update_queued(void *key, void *unused_value, void *unused_udata)
 	return TRUE; /* Remove the handle from the hashtable */
 }
 
-void
-fi_gui_update_display(time_t unused_now)
+static void
+fi_gui_update_display(void)
 {
-	GtkWidget *widget;
-
-	(void) unused_now;
-
-	if (!main_gui_window_visible())
-		return;
-
-	widget = fi_gui_files_widget();
-	g_return_if_fail(widget);
-
-	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(widget)))
-		return;
-
 	fi_gui_files_freeze();
 	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
 	g_hash_table_foreach_remove(src_updates, fi_gui_source_update_queued, NULL);
 	fi_gui_files_thaw();
+}
+
+void
+fi_gui_timer(time_t now)
+{
+	static time_t last_update;
+
+	if (download_gui_visible && now != last_update) {
+		last_update = now;
+		fi_gui_update_display();
+	}
 }
 
 gboolean
@@ -1748,10 +1750,12 @@ fi_handles_visualize(void *key, void *value, void *unused_udata)
 	fi_gui_file_update_visibility(file);
 }
 
-void
+static void
 fi_gui_files_visualize(void)
 {
+	fi_gui_files_freeze();
 	g_hash_table_foreach(fi_handles, fi_handles_visualize, NULL);
+	fi_gui_files_thaw();
 }
 
 const char *
@@ -1813,6 +1817,8 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 	widget = fi_gui_files_widget_new();
 	g_return_if_fail(widget);
 
+	fi_gui_files_visualize();
+
 	gtk_container_add(container, widget);
 	gtk_widget_show_all(GTK_WIDGET(container));
 
@@ -1820,7 +1826,21 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 }
 
 static void
-on_notebook_switch_page(GtkNotebook *notebook,
+on_visibility_change(gboolean visible)
+{
+	g_return_if_fail(visible != download_gui_visible);
+
+	download_gui_visible = visible;
+	if (visible) {
+		fi_gui_update_display();
+		fi_gui_files_thaw();
+	} else {
+		fi_gui_files_freeze();
+	}
+}
+
+static void
+on_notebook_downloads_switch_page(GtkNotebook *notebook,
 	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
 {
 	(void) unused_udata;
@@ -1835,7 +1855,7 @@ on_notebook_switch_page(GtkNotebook *notebook,
 	notebook_downloads_init_page(notebook, current_page);
 }
 
-void
+static void
 notebook_downloads_init(void)
 {
 	GtkNotebook *notebook;
@@ -1879,7 +1899,10 @@ notebook_downloads_init(void)
 	gtk_notebook_set_current_page(notebook, current_page);
 	notebook_downloads_init_page(notebook, current_page);
 
-	gui_signal_connect(notebook, "switch-page", on_notebook_switch_page, NULL);
+	gui_signal_connect(notebook, "switch-page",
+		on_notebook_downloads_switch_page, NULL);
+
+	fi_gui_files_freeze();
 }
 
 struct select_by_regex {
@@ -2030,7 +2053,7 @@ fi_gui_filter_by_regex(const char *expr)
 		}
 	}
 	fi_gui_files_freeze();
-	fi_gui_filter_changed();
+	fi_gui_files_filter_changed();
 	g_hash_table_foreach(fi_handles, fi_handles_filter, NULL);
 	fi_gui_files_thaw();
 }
@@ -2076,6 +2099,9 @@ fi_gui_common_init(void)
 	gtk_widget_set_sensitive(
 		gui_main_window_lookup("button_downloads_clear_stopped"),
 		TRUE);
+
+	main_gui_add_page_visibility_listener(on_visibility_change,
+		nb_main_page_downloads);
 }
 
 static gboolean
@@ -2108,6 +2134,9 @@ fi_gui_common_shutdown(void)
     guc_src_remove_listener(fi_gui_src_removed, EV_SRC_REMOVED);
     guc_src_remove_listener(fi_gui_src_status_changed, EV_SRC_STATUS_CHANGED);
     guc_src_remove_listener(fi_gui_src_info_changed, EV_SRC_INFO_CHANGED);
+
+	main_gui_remove_page_visibility_listener(on_visibility_change,
+		nb_main_page_downloads);
 
 	filter_regex_clear();
 	fi_gui_clear_info();

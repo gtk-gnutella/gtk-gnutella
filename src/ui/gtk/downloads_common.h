@@ -86,8 +86,6 @@ void fi_gui_common_shutdown(void);
 const char *fi_gui_file_column_text(const struct fileinfo_data *, int column);
 const char *fi_gui_source_column_text(const struct download *, int column);
 
-void fi_gui_file_update_visibility(struct fileinfo_data *file);
-void fi_gui_files_visualize(void);
 void fi_gui_files_cursor_update(void);
 gboolean fi_gui_filter_active(void);
 
@@ -119,6 +117,7 @@ void fi_gui_file_select(struct fileinfo_data *);
 void fi_gui_files_freeze(void);
 void fi_gui_files_thaw(void);
 void fi_gui_files_unselect_all(void);
+void fi_gui_files_filter_changed(void);
 
 void fi_gui_show_aliases(const char * const *aliases);
 void fi_gui_clear_aliases(void);
@@ -128,7 +127,6 @@ void fi_gui_clear_details(void);
 void fi_gui_source_show(struct download *);
 void fi_gui_source_update(struct download *);
 void fi_gui_source_hide(struct download *);
-void fi_gui_filter_changed(void);
 
 GtkWidget *fi_gui_sources_widget(void);
 
