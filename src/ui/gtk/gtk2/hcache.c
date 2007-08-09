@@ -37,8 +37,7 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static GtkTreeView *treeview_hcache = NULL;
-static GtkNotebook *notebook_main = NULL;
+static GtkTreeView *treeview_hcache;
 
 static const struct {
 	const gchar *text;
@@ -93,10 +92,7 @@ hcache_gui_init(void)
 	STATIC_ASSERT(G_N_ELEMENTS(hcache_col_labels) ==
 		HCACHE_STATS_VISIBLE_COLUMNS);
 
-	notebook_main = GTK_NOTEBOOK(
-		gui_main_window_lookup("notebook_main"));
-    treeview_hcache = GTK_TREE_VIEW(
-        gui_main_window_lookup("treeview_hcache"));
+    treeview_hcache = GTK_TREE_VIEW(gui_main_window_lookup("treeview_hcache"));
 	model = GTK_TREE_MODEL(gtk_list_store_new(4,
 							G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT,
 							G_TYPE_UINT));
@@ -137,27 +133,26 @@ void
 hcache_gui_update(time_t now)
 {
     hcache_stats_t stats[HCACHE_MAX];
-	static gboolean locked = FALSE;
-	static time_t last_update = 0;
+	static time_t last_update;
     gint current_page;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
 
-	if (last_update == now || locked)
+	if (
+		last_update == now
+		!main_gui_window_is_visible() ||
+		nb_main_page_hostcache != main_gui_notebook_get_page()
+	) {
 		return;
+	}
 	last_update = now;
-	locked = TRUE;
-
-    current_page = gtk_notebook_get_current_page(notebook_main);
-    if (current_page != nb_main_page_hostcache)
-		goto cleanup;
 
     guc_hcache_get_stats(stats);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_hcache));
 	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
-		goto cleanup;
+		return;
 
 	for (n = 0; n < HCACHE_MAX; n++) {
 		if (n == HCACHE_NONE)
@@ -174,9 +169,6 @@ hcache_gui_update(time_t now)
 	}
 
 	gtk_tree_view_set_model(treeview_hcache, GTK_TREE_MODEL(store));
-
-cleanup:
-	locked = FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

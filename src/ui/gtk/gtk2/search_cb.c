@@ -195,10 +195,8 @@ on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 			if (ptr) {
 				search_t *sch = ptr;
 
-				gtk_notebook_set_current_page(
-					GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-					nb_main_page_search);
 				search_gui_set_current_search(sch);
+				main_gui_notebook_set_page(nb_main_page_search);
 			}
 		}
 		gtk_tree_path_free(path);

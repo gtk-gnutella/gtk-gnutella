@@ -61,6 +61,8 @@ void main_gui_timer(time_t now);
 void main_gui_shutdown_tick(guint);
 void main_gui_show_prefences(void);
 gboolean main_gui_window_visible(void);
+int main_gui_notebook_get_page(void);
+void main_gui_notebook_set_page(int);
 
 #endif /* _gtk_main_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -307,15 +307,8 @@ uploads_gui_browse_host(host_addr_t addr, guint16 port)
 static gboolean
 uploads_gui_is_visible(void)
 {
-	static GtkNotebook *notebook;
-
-	if (!main_gui_window_visible())
-		return FALSE;
-
-	if (NULL == notebook) {
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-	}
-	return nb_main_page_uploads == gtk_notebook_get_current_page(notebook);
+	return main_gui_window_visible() &&
+		nb_main_page_uploads == main_gui_notebook_get_page();
 }
 
 gboolean

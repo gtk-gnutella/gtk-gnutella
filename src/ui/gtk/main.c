@@ -169,10 +169,41 @@ on_main_gui_map_event(GtkWidget *unused_widget,
 	return FALSE;	/* propagate further */
 }
 
+static int notebook_main_current_page;
+
+static void
+on_notebook_main_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
+{
+	(void) unused_notebook;
+	(void) unused_page;
+	(void) unused_udata;
+
+	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+	notebook_main_current_page = page_num;
+}
+
+int
+main_gui_notebook_get_page(void)
+{
+	g_assert(UNSIGNED(notebook_main_current_page) < nb_main_page_num);
+	return notebook_main_current_page;
+}
+
+void
+main_gui_notebook_set_page(int page_num)
+{
+	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
+	gtk_notebook_set_current_page(
+		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
+		page_num);
+}
+
 #ifdef USE_GTK2
 static const gchar *
 notebook_main_page_label(gint page)
 {
+	g_return_val_if_fail(UNSIGNED(page) < nb_main_page_num, NULL);
 	switch (page) {
 	case nb_main_page_network:			return _("Network");
 	case nb_main_page_search:			return _("Searches");
@@ -603,9 +634,9 @@ main_gui_run(const gchar *geometry_spec)
 	 * Make sure the application starts in the Gnet pane.
 	 */
 
-	gtk_notebook_set_current_page(
-		GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-		nb_main_page_network);
+	gui_signal_connect(GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
+		"switch-page", on_notebook_main_switch_page, NULL);
+	main_gui_notebook_set_page(nb_main_page_network);
 
 	settings_gui_restore_panes();
     gtk_main();

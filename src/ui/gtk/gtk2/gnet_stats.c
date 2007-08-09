@@ -41,14 +41,13 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static GtkTreeView *treeview_gnet_stats_messages = NULL;
-static GtkTreeView *treeview_gnet_stats_drop_reasons = NULL;
-static GtkTreeView *treeview_gnet_stats_flowc = NULL;
-static GtkTreeView *treeview_gnet_stats_recv = NULL;
-static GtkTreeView *treeview_gnet_stats_general = NULL;
-static GtkTreeView *treeview_gnet_stats_horizon = NULL;
-static GtkNotebook *notebook_main = NULL;
-static GtkNotebook *notebook_gnet_stats = NULL;
+static GtkTreeView *treeview_gnet_stats_messages;
+static GtkTreeView *treeview_gnet_stats_drop_reasons;
+static GtkTreeView *treeview_gnet_stats_flowc;
+static GtkTreeView *treeview_gnet_stats_recv;
+static GtkTreeView *treeview_gnet_stats_general;
+static GtkTreeView *treeview_gnet_stats_horizon;
+static GtkNotebook *notebook_gnet_stats;
 
 static const gchar * const msg_stats_label[] = {
 	N_("Type"),
@@ -644,7 +643,6 @@ gnet_stats_gui_recv_init(void)
 void
 gnet_stats_gui_init(void)
 {
-	notebook_main = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
 	notebook_gnet_stats = GTK_NOTEBOOK(
 							gui_main_window_lookup("gnet_stats_notebook"));
 
@@ -698,17 +696,14 @@ gnet_stats_gui_update(time_t now)
 {
 	static gnet_stats_t stats;
 	static time_t last_update;
-	gint current_page;
 
-	if (!main_gui_window_visible())
+	if (
+		now == last_update ||
+		!main_gui_window_visible() ||
+		nb_main_page_stats != main_gui_notebook_get_page()
+	) {
 		return;
-
-	current_page = gtk_notebook_get_current_page(notebook_main);
-	if (current_page != nb_main_page_stats)
-		return;
-
-	if (last_update && 0 == delta_time(last_update, now))
-		return;
+	}
 	last_update = now;
 
 	guc_gnet_stats_get(&stats);

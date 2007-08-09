@@ -306,18 +306,8 @@ gnet_stats_gui_shutdown(void)
 static gboolean
 gnet_stats_gui_is_visible(void)
 {
-	static GtkNotebook *notebook = NULL;
-	gint current_page;
-
-	if (!main_gui_window_visible())
-		return FALSE;
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(gui_main_window_lookup("notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-
-	return current_page == nb_main_page_stats;
+	return main_gui_window_visible() &&
+		nb_main_page_stats == main_gui_notebook_get_page();
 }
 
 void

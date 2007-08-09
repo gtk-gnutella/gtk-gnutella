@@ -2445,9 +2445,7 @@ search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
 		search = gtk_clist_get_row_data(GTK_CLIST(widget), row);
 		if (search) {
 			search_gui_set_current_search(search);
-			gtk_notebook_set_current_page(
-				GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
-				nb_main_page_search);
+			main_gui_notebook_set_page(nb_main_page_search);
 		}
 	}
 }
