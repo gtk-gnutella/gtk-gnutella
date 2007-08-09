@@ -181,7 +181,7 @@ on_clist_download_files_row_moved(int dst, void *user_data)
 	}
 }
 
-static char * 
+static char *
 download_details_get_text(GtkWidget *widget)
 {
 	GtkCList *clist;
@@ -192,7 +192,7 @@ download_details_get_text(GtkWidget *widget)
 	return clist_copy_text(clist, row, 1);
 }
 
-static char * 
+static char *
 download_aliases_get_text(GtkWidget *widget)
 {
 	GtkCList *clist;
@@ -356,7 +356,7 @@ on_clist_download_sources_row_removed(void *data)
 }
 
 void
-fi_gui_source_add(struct download *key)
+fi_gui_source_show(struct download *key)
 {
 	const char *titles[c_fi_sources];
 	GtkCList *clist;
@@ -384,7 +384,7 @@ fi_gui_source_add(struct download *key)
 }
 
 void
-fi_gui_source_remove(struct download *key)
+fi_gui_source_hide(struct download *key)
 {
 	void *value;
 

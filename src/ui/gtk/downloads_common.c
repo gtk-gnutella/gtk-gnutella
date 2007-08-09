@@ -57,7 +57,7 @@ RCSID("$Id$")
 struct fileinfo_data {
 	const char *filename;	/* atom */
 	char *status;			/* g_strdup */
-	hash_list_t *downloads;
+	hash_list_t *sources;	/* struct download * */
 
 	void *user_data;
 
@@ -87,6 +87,7 @@ static gboolean  last_shown_valid;
 
 static GHashTable *fi_handles;	/* gnet_fi_t -> row */
 static GHashTable *fi_updates;	/* gnet_fi_t */
+static GHashTable *src_updates;	/* gnet_src_t */
 
 static enum nb_downloads_page current_page;
 
@@ -515,7 +516,7 @@ downloads_gui_status_string(const struct download *d)
 			elapsed = delta_time(now, d->last_update);
 			if (elapsed < (time_delta_t) d->timeout_delay) {
 				elapsed = MAX(0, elapsed);
-				when = d->timeout_delay - elapsed; 
+				when = d->timeout_delay - elapsed;
 			} else {
 				when = 0;
 			}
@@ -754,31 +755,20 @@ downloads_gui_update_popup_sources(void)
 static inline struct download *
 selected_files_foreach_first(struct fileinfo_data *file)
 {
-	struct download *d;
-	
 	g_return_val_if_fail(file, NULL);
 
 	/* NOTE: Traverse back-to-front because new items are appended */
-	d = file->downloads ? hash_list_tail(file->downloads) : NULL;
-	if (d) {
-		download_check(d);
-	}
-	return d;
+	return file->sources ? hash_list_tail(file->sources) : NULL;
 }
 
 static inline struct download *
-selected_files_foreach_next(struct fileinfo_data *file, struct download *d)
+selected_files_foreach_next(struct fileinfo_data *file, struct download *cur)
 {
 	g_return_val_if_fail(file, NULL);
-	g_return_val_if_fail(d, NULL);
-	download_check(d);
+	g_return_val_if_fail(cur, NULL);
 
 	/* NOTE: Traverse back-to-front because new items are appended */
-	d = file->downloads ? hash_list_previous(file->downloads, d) : NULL;
-	if (d) {
-		download_check(d);
-	}
-	return d;
+	return file->sources ? hash_list_previous(file->sources, cur) : NULL;
 }
 
 #define SELECTED_FILES_FOREACH_SOURCE_START(item) \
@@ -954,7 +944,7 @@ on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
 	SELECTED_SOURCES_FOREACH_START(d) {
 		removed += guc_download_remove_all_from_peer(download_guid(d),
 						download_addr(d), download_port(d), FALSE);
-	} SELECTED_SOURCES_FOREACH_END 
+	} SELECTED_SOURCES_FOREACH_END
 
     statusbar_gui_message(15,
 		NG_("Forgot %u download", "Forgot %u downloads", removed),
@@ -970,7 +960,7 @@ on_popup_sources_connect_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
-	} SELECTED_SOURCES_FOREACH_END 
+	} SELECTED_SOURCES_FOREACH_END
 }
 
 void
@@ -982,7 +972,7 @@ on_popup_sources_pause_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_pause(d);
-	} SELECTED_SOURCES_FOREACH_END 
+	} SELECTED_SOURCES_FOREACH_END
 }
 
 void
@@ -994,7 +984,7 @@ on_popup_sources_resume_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_resume(d);
-	} SELECTED_SOURCES_FOREACH_END 
+	} SELECTED_SOURCES_FOREACH_END
 }
 
 void
@@ -1006,7 +996,7 @@ on_popup_sources_queue_activate(GtkMenuItem *unused_menuitem,
 
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_requeue(d);
-	} SELECTED_SOURCES_FOREACH_END 
+	} SELECTED_SOURCES_FOREACH_END
 }
 
 void
@@ -1225,20 +1215,19 @@ fi_gui_fi_added(gnet_fi_t handle)
 	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
 	
-	g_return_if_fail(
-		!g_hash_table_lookup(fi_handles, GUINT_TO_POINTER(handle)));
+	g_return_if_fail(!g_hash_table_lookup(fi_handles, uint_to_pointer(handle)));
 
 	file = walloc(sizeof *file);
 	*file = zero_data;
 	file->handle = handle;
 	fi_gui_file_invalidate(file);
-	g_hash_table_insert(fi_handles, GUINT_TO_POINTER(handle), file);
+	g_hash_table_insert(fi_handles, uint_to_pointer(handle), file);
 	fi_gui_file_set_filename(file);
 	fi_gui_file_fill_status(file);
 	fi_gui_file_update_visibility(file);
 }
 
-static void 
+static void
 fi_gui_file_free(struct fileinfo_data *file)
 {
 	atom_str_free_null(&file->filename);
@@ -1263,7 +1252,7 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	struct fileinfo_data *file;
 	void *key;
 	
-	key = GUINT_TO_POINTER(handle);
+	key = uint_to_pointer(handle);
 	file = g_hash_table_lookup(fi_handles, key);
 	g_return_if_fail(file);
 	g_return_if_fail(handle == file->handle);
@@ -1273,7 +1262,7 @@ fi_gui_fi_removed(gnet_fi_t handle)
 	}
 	g_hash_table_remove(fi_handles, key);
 	g_hash_table_remove(fi_updates, key);
-	g_assert(NULL == file->downloads);
+	g_assert(NULL == file->sources);
 
 	fi_gui_file_hide(file);
 	fi_gui_file_free(file);
@@ -1294,95 +1283,97 @@ fi_gui_set_aliases(struct fileinfo_data *file)
     g_strfreev(aliases);
 }
 
+static struct fileinfo_data *
+fi_gui_source_get_file(const struct download *d)
+{
+	struct fileinfo_data *file;
+	const fileinfo_t *fi;
+
+	download_check(d);
+	fi = d->file_info;
+	g_return_val_if_fail(fi, NULL);
+
+	file = g_hash_table_lookup(fi_handles, uint_to_pointer(fi->fi_handle));
+	g_return_val_if_fail(file, NULL);
+	g_assert(fi->fi_handle == file->handle);
+	return file;
+}
+
 /**
  *	Add a download to either the active or queued download treeview depending
  *	on the download's flags.  This function handles grouping new downloads
  * 	appropriately and creation of parent/child nodes.
  */
 static void
-download_gui_add(struct download *d)
+fi_gui_source_add(struct download *d)
 {
 	struct fileinfo_data *file;
 
-	download_check(d);
-	g_return_if_fail(d->file_info);
-
-	file = g_hash_table_lookup(fi_handles,
-				GUINT_TO_POINTER(d->file_info->fi_handle));
+	file = fi_gui_source_get_file(d);
 	g_return_if_fail(file);
-	g_assert(d->file_info->fi_handle == file->handle);
 
-	if (NULL == file->downloads) {
-		file->downloads = hash_list_new(NULL, NULL);
+	if (NULL == file->sources) {
+		file->sources = hash_list_new(NULL, NULL);
 	}
-	g_return_if_fail(!hash_list_contains(file->downloads, d, NULL));
+	g_return_if_fail(!hash_list_contains(file->sources, d, NULL));
 
-	/* 
+	/*
 	 * NOTE: Always append items so that we can jump through the hashlist with
 	 * hash_list_previous().
 	 */
-	hash_list_append(file->downloads, d);
+	hash_list_append(file->sources, d);
 
 	if (last_shown_valid && last_shown == file->handle) {
-		fi_gui_source_add(d);
+		fi_gui_source_show(d);
 	}
 }
 
 static void
 fi_gui_src_added(gnet_src_t handle)
 {
-	download_gui_add(guc_src_get_download(handle));
+	fi_gui_source_add(guc_src_get_download(handle));
 }
 
 /**
  *	Remove a download from the GUI.
  */
 static void
-download_gui_remove(struct download *d)
+fi_gui_source_remove(struct download *d)
 {
 	struct fileinfo_data *file;
 
-	download_check(d);
-	g_return_if_fail(d->file_info);
-
-	file = g_hash_table_lookup(fi_handles,
-				GUINT_TO_POINTER(d->file_info->fi_handle));
+	file = fi_gui_source_get_file(d);
 	g_return_if_fail(file);
-	g_assert(d->file_info->fi_handle == file->handle);
 
-	g_return_if_fail(file->downloads);
-	g_return_if_fail(hash_list_contains(file->downloads, d, NULL));
+	g_return_if_fail(file->sources);
+	g_return_if_fail(hash_list_contains(file->sources, d, NULL));
 
-	hash_list_remove(file->downloads, d);
-	if (0 == hash_list_length(file->downloads)) {
-		hash_list_free(&file->downloads);
+	hash_list_remove(file->sources, d);
+	if (0 == hash_list_length(file->sources)) {
+		hash_list_free(&file->sources);
 	}
-	fi_gui_source_remove(d);
+	fi_gui_source_hide(d);
 }
 
 static void
 fi_gui_src_removed(gnet_src_t handle)
 {
-	download_gui_remove(guc_src_get_download(handle));
-}
-
-static void
-download_gui_update(struct download *d)
-{
-	download_check(d);
-	fi_gui_source_update(d);
+	fi_gui_source_remove(guc_src_get_download(handle));
+	g_hash_table_remove(src_updates, uint_to_pointer(handle));
 }
 
 static void
 fi_gui_src_status_changed(gnet_src_t handle)
 {
-	download_gui_update(guc_src_get_download(handle));
+	void *key = uint_to_pointer(handle);
+	g_hash_table_insert(src_updates, key, key);
 }
 
 static void
 fi_gui_src_info_changed(gnet_src_t handle)
 {
-	download_gui_update(guc_src_get_download(handle));
+	/* Update both info and status always for simplicity for now */
+	fi_gui_src_status_changed(handle);
 }
 
 static void
@@ -1390,12 +1381,12 @@ fi_gui_set_sources(struct fileinfo_data *file)
 {
 	g_return_if_fail(file);
 
-	if (file->downloads) {
+	if (file->sources) {
 		hash_list_iter_t *iter;
 
-		iter = hash_list_iterator(file->downloads);
+		iter = hash_list_iterator(file->sources);
 		while (hash_list_iter_has_next(iter)) {
-			fi_gui_source_add(hash_list_iter_next(iter));
+			fi_gui_source_show(hash_list_iter_next(iter));
 		}
 		hash_list_iter_release(&iter);
 	}
@@ -1444,7 +1435,7 @@ fi_gui_file_update(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
 
-	file = g_hash_table_lookup(fi_handles, GUINT_TO_POINTER(handle));
+	file = g_hash_table_lookup(fi_handles, uint_to_pointer(handle));
 	g_return_if_fail(file);
 
 	fi_gui_file_fill_status(file);
@@ -1458,7 +1449,7 @@ fi_gui_file_update(gnet_fi_t handle)
 static void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
-	void *key = GUINT_TO_POINTER(handle);
+	void *key = uint_to_pointer(handle);
 	g_hash_table_insert(fi_updates, key, key);
 }
 
@@ -1473,12 +1464,24 @@ fi_gui_fi_status_changed_transient(gnet_fi_t handle)
 static gboolean
 fi_gui_file_update_queued(void *key, void *unused_value, void *unused_udata)
 {
-	gnet_fi_t handle = GPOINTER_TO_UINT(key);
+	gnet_fi_t handle = pointer_to_uint(key);
 
 	(void) unused_value;
 	(void) unused_udata;
 
   	fi_gui_file_update(handle);
+	return TRUE; /* Remove the handle from the hashtable */
+}
+
+static gboolean
+fi_gui_source_update_queued(void *key, void *unused_value, void *unused_udata)
+{
+	gnet_src_t src = pointer_to_uint(key);
+
+	(void) unused_value;
+	(void) unused_udata;
+
+  	fi_gui_source_update(guc_src_get_download(src));
 	return TRUE; /* Remove the handle from the hashtable */
 }
 
@@ -1500,6 +1503,7 @@ fi_gui_update_display(time_t unused_now)
 
 	fi_gui_files_freeze();
 	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
+	g_hash_table_foreach_remove(src_updates, fi_gui_source_update_queued, NULL);
 	fi_gui_files_thaw();
 }
 
@@ -1633,7 +1637,6 @@ fi_gui_source_get_progress(const struct download *d)
 {
 	guint value;
 
-	g_return_val_if_fail(d, 0);
 	value = 100.0 * guc_download_source_progress(d);
 	value = MIN(value, 100);
 	return value;
@@ -1685,7 +1688,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 				: "?";
 		break;
 	case c_fi_uploaded:
-		text = file->uploaded > 0 
+		text = file->uploaded > 0
 				? compact_size(file->uploaded, show_metric_units())
 				: "-";
 		break;
@@ -1737,7 +1740,7 @@ fi_handles_visualize(void *key, void *value, void *unused_udata)
 	g_assert(value);
 	(void) unused_udata;
 	
-	handle = GPOINTER_TO_UINT(key);
+	handle = pointer_to_uint(key);
 	file = value;
 
 	g_assert(handle == file->handle);
@@ -1895,7 +1898,7 @@ fi_gui_regex_error(regex_t *expr, int error)
    	statusbar_gui_warning(15, "regex error: %s", lazy_locale_to_ui_string(buf));
 }
 
-static int 
+static int
 fi_gui_select_by_regex_helper(struct fileinfo_data *file, void *user_data)
 {
 	struct select_by_regex *ctx;
@@ -1980,7 +1983,7 @@ fi_handles_filter(void *key, void *value, void *unused_udata)
 	g_assert(value);
 	(void) unused_udata;
 	
-	handle = GPOINTER_TO_UINT(key);
+	handle = pointer_to_uint(key);
 	file = value;
 
 	g_assert(handle == file->handle);
@@ -2052,6 +2055,7 @@ fi_gui_common_init(void)
 {
 	fi_handles = g_hash_table_new(NULL, NULL);
 	fi_updates = g_hash_table_new(NULL, NULL);
+	src_updates = g_hash_table_new(NULL, NULL);
 
 	notebook_downloads_init();
 
@@ -2083,7 +2087,7 @@ fi_handles_shutdown(void *key, void *value, void *unused_data)
 	(void) unused_data;
 	g_assert(value);
 	
-	handle = GPOINTER_TO_UINT(key);
+	handle = pointer_to_uint(key);
 	file = value;
 	g_assert(handle == file->handle);
 	fi_gui_file_free(file);
@@ -2094,9 +2098,16 @@ fi_handles_shutdown(void *key, void *value, void *unused_data)
 void
 fi_gui_common_shutdown(void)
 {
-    guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
+    guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(fi_gui_fi_status_changed_transient,
+		EV_FI_STATUS_CHANGED_TRANSIENT);
+
+    guc_src_remove_listener(fi_gui_src_added, EV_SRC_ADDED);
+    guc_src_remove_listener(fi_gui_src_removed, EV_SRC_REMOVED);
+    guc_src_remove_listener(fi_gui_src_status_changed, EV_SRC_STATUS_CHANGED);
+    guc_src_remove_listener(fi_gui_src_info_changed, EV_SRC_INFO_CHANGED);
 
 	filter_regex_clear();
 	fi_gui_clear_info();
@@ -2106,6 +2117,8 @@ fi_gui_common_shutdown(void)
 	fi_handles = NULL;
 	g_hash_table_destroy(fi_updates);
 	fi_updates = NULL;
+	g_hash_table_destroy(src_updates);
+	src_updates = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

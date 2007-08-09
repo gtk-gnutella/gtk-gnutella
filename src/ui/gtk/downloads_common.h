@@ -79,7 +79,6 @@ gboolean on_files_key_press_event(GtkWidget *, GdkEventKey *, void *);
  */
 
 struct fileinfo_data;
-struct download;
 
 void fi_gui_common_init(void);
 void fi_gui_common_shutdown(void);
@@ -126,9 +125,9 @@ void fi_gui_clear_aliases(void);
 void fi_gui_clear_sources(void);
 void fi_gui_clear_details(void);
 
-void fi_gui_source_add(struct download *);
+void fi_gui_source_show(struct download *);
 void fi_gui_source_update(struct download *);
-void fi_gui_source_remove(struct download *);
+void fi_gui_source_hide(struct download *);
 void fi_gui_filter_changed(void);
 
 GtkWidget *fi_gui_sources_widget(void);

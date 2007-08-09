@@ -68,7 +68,7 @@ fileinfo_data_set_iter(struct fileinfo_data *file, GtkTreeIter *iter)
 	fi_gui_file_set_user_data(file, iter);
 }
 
-static inline GtkTreeIter * 
+static inline GtkTreeIter *
 fileinfo_data_get_iter(const struct fileinfo_data *file)
 {
 	return fi_gui_file_get_user_data(file);
@@ -142,7 +142,7 @@ get_source(GtkTreeIter *iter)
 }
 
 static void
-render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
+render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	GtkTreeModel *unused_model, GtkTreeIter *iter, void *udata)
 {
 	const struct fileinfo_data *file;
@@ -167,7 +167,7 @@ render_files(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 }
 
 static void
-render_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
+render_sources(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	GtkTreeModel *unused_model, GtkTreeIter *iter, void *udata)
 {
 	struct download *d;
@@ -254,7 +254,7 @@ fi_gui_show_aliases(const char * const *aliases)
 }
 
 void
-fi_gui_source_add(struct download *d)
+fi_gui_source_show(struct download *d)
 {
 	GtkTreeIter *iter;
 
@@ -327,7 +327,7 @@ fi_gui_get_selected_files(gboolean unselect)
 			unselect);
 }
 
-static char * 
+static char *
 download_details_get_text(GtkWidget *widget)
 {
 	GtkTreeModel *model;
@@ -771,7 +771,7 @@ fi_gui_shutdown(void)
 }
 
 void
-fi_gui_source_remove(struct download *d)
+fi_gui_source_hide(struct download *d)
 {
 	GtkTreeIter *iter;
 
