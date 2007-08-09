@@ -30,6 +30,7 @@ RCSID("$Id$")
 #include "shell.h"
 #include "shell_cmd.h"
 
+#include "settings.h"
 #include "sockets.h"
 #include "version.h"
 
@@ -41,6 +42,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
 #include "lib/misc.h"
+#include "lib/sha1.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -68,6 +70,7 @@ struct gnutella_shell {
 	slist_t *output;
 	gchar *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
+	guint64 line_count;		/**< Number of input lines after HELO */
 	gboolean shutdown;  	/**< In shutdown mode? */
 	gboolean interactive;	/**< Interactive mode? */
 };
@@ -87,17 +90,6 @@ shell_has_pending_output(struct gnutella_shell *sh)
 	return sh->output && slist_length(sh->output) > 0;
 }
 
-#ifdef USE_REMOTE_CTRL
-static struct sha1 auth_cookie;
-static gboolean shell_auth(const char *str);
-#endif	/* USE_REMOTE_CTRL */
-
-static void shell_handle_data(void *data, int unused_source,
-	inputevt_cond_t cond);
-
-typedef enum shell_reply (*shell_cmd_handler_t)(
-				struct gnutella_shell *sh, int argc, const char **argv);
-
 /**
  * Create a new gnutella_shell object.
  */
@@ -114,6 +106,8 @@ shell_new(struct gnutella_socket *s)
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
+
+	sl_shells = g_slist_prepend(sl_shells, sh);
 
 	return sh;
 }
@@ -177,6 +171,23 @@ shell_set_msg(struct gnutella_shell *sh, const char *text)
 {
 	shell_check(sh);
 	sh->msg = g_strdup(text);
+}
+
+void
+shell_write_welcome(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+	
+	shell_write(sh, "100 Welcome to ");
+	shell_write(sh, version_short_string);
+	shell_write(sh, "\n");
+}
+
+guint64
+shell_line_count(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+	return sh->line_count;
 }
 
 gboolean
@@ -543,6 +554,7 @@ shell_read_data(struct gnutella_shell *sh)
 		 * interactively.
 		 */
 
+		sh->line_count++;
 		reply_code = shell_exec(sh, getline_str(s->getline));
 		if (
 			REPLY_NONE != reply_code &&
@@ -575,21 +587,26 @@ finish:
 	return;
 }
 
+static void shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
+
 /**
  * Called whenever some event occurs on a shell socket.
  */
 static void
 shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 {
-	struct gnutella_shell *sh = data;
-
 	(void) unused_source;
+	shell_handle_event(data, cond);
+}
+
+static void
+shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
+{
 	shell_check(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning ("shell connection closed: exception");
-		shell_destroy(sh);
-		return;
+		goto destroy;
 	}
 
 	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh)) {
@@ -601,15 +618,17 @@ shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 	}
 
 	if (!shell_has_pending_output(sh)) {
-		if (sh->shutdown) {
-			shell_destroy(sh);
-		} else {
-			socket_evt_clear(sh->socket);
-			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
-		}
-	}
-}
+		if (sh->shutdown)
+			goto destroy;
 
+		socket_evt_clear(sh->socket);
+		socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+	}
+	return;
+
+destroy:
+	shell_destroy(sh);
+}
 
 void
 shell_write(struct gnutella_shell *sh, const char *text)
@@ -641,6 +660,143 @@ shell_shutdown(struct gnutella_shell *sh)
 	sh->shutdown = TRUE;
 }
 
+#ifdef USE_REMOTE_CTRL
+
+static void
+shell_dump_cookie(const struct sha1 *cookie)
+{
+	FILE *out;
+	file_path_t fp;
+	mode_t mask;
+
+	file_path_set(&fp, settings_config_dir(), "auth_cookie");
+	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
+	out = file_config_open_write("auth_cookie", &fp);
+	umask(mask);
+
+	if (out) {
+		fputs(sha1_base32(cookie), out);
+		file_config_close(out, &fp);
+	}
+}
+
+static const struct sha1 * 
+shell_auth_cookie(void)
+{
+	static struct sha1 cookie;
+	static gboolean initialized;
+
+	if (!initialized) {
+		SHA1Context ctx;
+		guint32 noise[64];
+		size_t i;
+
+		for (i = 0; i < G_N_ELEMENTS(noise); i++) {
+			noise[i] = random_raw();
+		}
+		SHA1Reset(&ctx);
+		SHA1Input(&ctx, &noise, sizeof noise);
+		SHA1Result(&ctx, &cookie);
+		shell_dump_cookie(&cookie);
+		initialized = TRUE;
+	}
+	return &cookie;
+}
+
+/**
+ * Takes a HELO command string and checks whether the connection
+ * is allowed using the specified credentials.
+ *
+ * @return TRUE if the connection is allowed.
+ */
+static gboolean
+shell_auth(const gchar *str)
+{
+	const struct sha1 *cookie;
+	gchar *tok_helo, *tok_cookie;
+	gboolean ok = FALSE;
+	gint pos = 0;
+
+	tok_helo = shell_get_token(str, &pos);
+	tok_cookie = shell_get_token(str, &pos);
+
+	if (GNET_PROPERTY(shell_debug)) {
+		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
+	}
+
+	cookie = shell_auth_cookie();
+	if (
+		tok_helo && 0 == strcmp("HELO", tok_helo) &&
+		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
+		0 == memcmp_diff(sha1_base32(cookie), tok_cookie, SHA1_BASE32_SIZE)
+	) {
+		ok = TRUE;
+	} else {
+		cpu_noise();
+	}
+
+	G_FREE_NULL(tok_helo);
+	G_FREE_NULL(tok_cookie);
+
+	return ok;
+}
+
+static gboolean
+shell_grant_remote_shell(struct gnutella_shell *sh)
+{
+	gboolean granted = FALSE;
+
+	shell_check(sh);
+
+	if (GNET_PROPERTY(enable_shell)) {
+		if (shell_auth(getline_str(sh->socket->getline))) {
+			granted = TRUE;
+			sh->interactive = TRUE;
+			shell_write_welcome(sh);
+		} else {
+			g_warning("invalid credentials");
+			shell_write(sh, "400 Invalid credentials\n");
+		}
+		getline_reset(sh->socket->getline); /* clear AUTH command from buffer */
+	} else {
+		g_warning("remote shell control interface disabled");
+		shell_write(sh, "401 Disabled\n");
+	}
+	return granted;
+}
+
+#else /* !USE_REMOTE_CTRL */
+
+static const struct sha1 * 
+shell_auth_cookie(void)
+{
+	return NULL;
+}
+
+static gboolean
+shell_grant_remote_shell(const struct gnutella_shell *sh)
+{
+	shell_check(sh);
+	g_warning("remote shell control interface disabled");
+	return FALSE;
+}
+#endif /* USE_REMOTE_CTRL */
+
+static gboolean
+shell_grant_local_shell(struct gnutella_shell *sh)
+{
+	shell_check(sh);
+
+	if (GNET_PROPERTY(enable_local_socket)) {
+		getline_reset(sh->socket->getline); /* remove HELO command */
+		return TRUE;
+	} else {
+		g_warning("local shell control interface disabled");
+		shell_write(sh, "401 Disabled\n");
+		return FALSE;
+	}
+}
+
 /**
  * Create a new shell connection. Hook up shell_handle_data as callback.
  */
@@ -664,78 +820,20 @@ shell_add(struct gnutella_socket *s)
 
 	sh = shell_new(s);
 
-	socket_evt_clear(s);
-	socket_evt_set(s, INPUT_EVENT_RX, shell_handle_data, sh);
-
-	sl_shells = g_slist_prepend(sl_shells, sh);
-
 	if (socket_is_local(s)) {
-		if (GNET_PROPERTY(enable_local_socket)) {
-			size_t r;
-			granted = TRUE;
-
-			if (GNET_PROPERTY(shell_debug) > 1)
-				g_message("shell command is \"%s\"", getline_str(s->getline));
-
-			/*
-			 * An empty INTR command is sent by the local shell only
-			 * when running inter-actively on the terminal.
-			 *
-			 * First swallow the initial HELO command.
-			 */
-
-			getline_reset(s->getline); /* remove HELO command */
-
-			if (READ_DONE == getline_read(s->getline, s->buf, s->pos, &r)) {
-				if (GNET_PROPERTY(shell_debug) > 1) {
-					g_message("next shell command is \"%s\"",
-						getline_str(s->getline));
-				}
-				if (0 == strcmp(getline_str(s->getline), "INTR")) {
-					/* Swallow INTR */
-					if (s->pos != r)
-						memmove(s->buf, &s->buf[r], s->pos - r);
-					s->pos -= r;
-
-					sh->interactive = TRUE;
-				}
-			}
-		} else {
-			g_warning("local shell control interface disabled");
-			shell_write(sh, "401 Disabled\n");
-			shell_shutdown(sh);
-		}
+		granted = shell_grant_local_shell(sh);
 	} else {
-#ifdef USE_REMOTE_CTRL
-		if (GNET_PROPERTY(enable_shell)) {
-		   	if (shell_auth(getline_str(s->getline))) {
-				granted = TRUE;
-				sh->interactive = TRUE;
-			} else {
-				g_warning("invalid credentials");
-				shell_write(sh, "400 Invalid credentials\n");
-				shell_shutdown(sh);
-			}
-		} else {
-			g_warning("remote shell control interface disabled");
-			shell_write(sh, "401 Disabled\n");
-			shell_shutdown(sh);
-		}
-#else	/* !USE_REMOTE_CTRL */
-		g_warning("remote shell control interface disabled");
+		granted = shell_grant_remote_shell(sh);
+	}
+
+	if (!granted) {
 		shell_shutdown(sh);
-#endif	/* USE_REMOTE_CTRL */
 	}
 
-	getline_reset(s->getline); /* clear AUTH command from buffer */
-
-	if (!sh->shutdown && granted && sh->interactive) {
-		shell_write(sh, "100 Welcome to ");
-		shell_write(sh, version_short_string);
-		shell_write(sh, "\n");
-	}
-
-	if (!shell_has_pending_output(sh) && sh->shutdown && !granted) {
+	if (!sh->shutdown || shell_has_pending_output(sh)) {
+		/* We don't read anymore on shutdown, but be paranoid just in case. */
+		shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
+	} else {
 		shell_destroy(sh);
 	}
 }
@@ -772,85 +870,11 @@ shell_timer(time_t now)
 	}
 }
 
-#ifdef USE_REMOTE_CTRL
-/**
- * Takes a HELO command string and checks whether the connection
- * is allowed using the specified credentials.
- *
- * @return TRUE if the connection is allowed.
- */
-static gboolean
-shell_auth(const gchar *str)
-{
-	gchar *tok_helo, *tok_cookie;
-	gboolean ok = FALSE;
-	gint pos = 0;
-
-	tok_helo = shell_get_token(str, &pos);
-	tok_cookie = shell_get_token(str, &pos);
-
-	if (GNET_PROPERTY(shell_debug)) {
-		g_message("auth: [%s] [<cookie not displayed>]", tok_helo);
-	}
-
-	if (
-		tok_helo && 0 == strcmp("HELO", tok_helo) &&
-		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
-		0 == memcmp_diff(sha1_base32(&auth_cookie), tok_cookie, SHA1_BASE32_SIZE)
-	) {
-		ok = TRUE;
-	} else {
-		cpu_noise();
-	}
-
-	G_FREE_NULL(tok_helo);
-	G_FREE_NULL(tok_cookie);
-
-	return ok;
-}
-
-static void
-shell_dump_cookie(void)
-{
-	FILE *out;
-	file_path_t fp;
-	mode_t mask;
-
-	file_path_set(&fp, settings_config_dir(), "auth_cookie");
-	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
-	out = file_config_open_write("auth_cookie", &fp);
-	umask(mask);
-
-	if (!out)
-		return;
-
-	fputs(sha1_base32(&auth_cookie), out);
-
-	file_config_close(out, &fp);
-}
-
 void
 shell_init(void)
 {
-
-	size_t i;
-
-	for (i = 0; i < sizeof auth_cookie.data; i++) {
-		guint32 v = random_value(~0U);
-
-		v ^= (v >> 24) ^ (v >> 16) ^ (v >> 8);
-		auth_cookie.data[i] = v & 0xff;
-	}
-
-	shell_dump_cookie();
+	(void) shell_auth_cookie();
 }
-#else	/* !USE_REMOTE_CTRL */
-void
-shell_init(void)
-{
-	/* Nothing to do */
-}
-#endif	/* USE_REMOTE_CTRL */
 
 void
 shell_close(void)

@@ -42,15 +42,20 @@ shell_exec_intr(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argc > 0);
 
 	if (shell_toggle_interactive(sh)) {
-		shell_set_msg(sh, _("Interactive mode turned on."));
+		if (1 != shell_line_count(sh)) {
+			shell_set_msg(sh, _("Interactive mode turned on."));
+			return REPLY_READY;
+		} else {
+			shell_write_welcome(sh);
+			return REPLY_NONE;
+		}
 	} else {
 		/* Always give them feedback on that command! */
 		shell_write(sh, "100 ");
 		shell_write(sh, _("Interactive mode turned off."));
 		shell_write(sh, "\n");
+		return REPLY_READY;
 	}
-
-	return REPLY_READY;
 }
 
 const char *

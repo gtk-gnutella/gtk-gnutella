@@ -43,11 +43,16 @@ enum shell_reply {
 
 struct gnutella_shell;
 
+typedef enum shell_reply (*shell_cmd_handler_t)(struct gnutella_shell *,
+							int argc, const char **argv);
+
 void shell_check(const struct gnutella_shell *);
 void shell_set_msg(struct gnutella_shell *, const char *);
 void shell_write(struct gnutella_shell *, const char *);
 void shell_shutdown(struct gnutella_shell *);
+void shell_write_welcome(struct gnutella_shell *);
 gboolean shell_toggle_interactive(struct gnutella_shell *);
+guint64 shell_line_count(struct gnutella_shell *);
 gboolean shell_request_library_rescan(void);
 
 int shell_options_parse(struct gnutella_shell *,
