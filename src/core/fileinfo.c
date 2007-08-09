@@ -2841,14 +2841,16 @@ file_info_retrieve(void)
 			gboolean upgraded;
 			gboolean reload_chunks = FALSE;
 
-			if (!(filename && path)) /* There's an incomplete fileinfo record */
-				goto reset;
-
-			{
+			if (filename && path) {
 				gchar *pathname = make_pathname(path, filename);
 				fi->pathname = atom_str_get(pathname);
 				G_FREE_NULL(pathname);
+			} else {
+				/* There's an incomplete fileinfo record */
+				goto reset;
 			}
+			atom_str_free_null(&filename);
+			atom_str_free_null(&path);
 
 			/*
 			 * There can't be duplicates!
