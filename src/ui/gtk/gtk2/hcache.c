@@ -134,14 +134,13 @@ hcache_gui_update(time_t now)
 {
     hcache_stats_t stats[HCACHE_MAX];
 	static time_t last_update;
-    gint current_page;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
 
 	if (
-		last_update == now
-		!main_gui_window_is_visible() ||
+		last_update == now ||
+		!main_gui_window_visible() ||
 		nb_main_page_hostcache != main_gui_notebook_get_page()
 	) {
 		return;

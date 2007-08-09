@@ -696,6 +696,7 @@ gnet_stats_gui_update(time_t now)
 {
 	static gnet_stats_t stats;
 	static time_t last_update;
+	gint current_page;
 
 	if (
 		now == last_update ||
