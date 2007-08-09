@@ -738,6 +738,38 @@ tree_model_iter_changed(GtkTreeModel *model, GtkTreeIter *iter)
 	gtk_tree_path_free(path);
 }
 
+void
+list_store_set_pointer(GtkListStore *store, GtkTreeIter *iter,
+	int column, void *data)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+
+	g_value_init(&value, G_TYPE_POINTER);
+	g_value_set_pointer(&value, data);
+	gtk_list_store_set_value(store, iter, column, &value);
+}
+
+void
+list_store_append_pointer(GtkListStore *store, GtkTreeIter *iter,
+	int column, void *data)
+#if GTK_CHECK_VERSION(2,6,0)
+{
+	static const GValue zero_value;
+	GValue value = zero_value;
+	const int row = INT_MAX;
+
+	g_value_init(&value, G_TYPE_POINTER);
+	g_value_set_pointer(&value, data);
+	gtk_list_store_insert_with_valuesv(store, iter, row, &column, &value, 1);
+}
+#else	/* Gtk+ < 2.6 */
+{
+	gtk_list_store_append(store, iter);
+	list_store_set_pointer(store, iter, column, data);
+}
+#endif	/* Gtk+ >= 2.6 */
+
 #endif /* USE_GTK2 */
 
 gdouble

@@ -187,6 +187,8 @@ tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *,
 void tree_view_motion_clear_callback(tree_view_motion_t **);
 void tree_view_set_fixed_height_mode(GtkTreeView *, gboolean fixed);
 void tree_model_iter_changed(GtkTreeModel *, GtkTreeIter *);
+void list_store_set_pointer(GtkListStore *, GtkTreeIter *, int, void *);
+void list_store_append_pointer(GtkListStore *, GtkTreeIter *, int, void *);
 #endif /* USE_GTK2 */
 
 gint gtk_main_flush(void);
