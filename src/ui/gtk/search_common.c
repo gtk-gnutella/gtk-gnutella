@@ -40,9 +40,7 @@ RCSID("$Id$")
 #include "drop.h"
 #include "search.h"
 #include "settings.h"
-
 #include "search_xml.h"
-#include <libxml/parser.h>
 
 #include "gtk/statusbar.h"
 
@@ -979,8 +977,6 @@ search_gui_real_store_searches(void)
 static void
 search_gui_retrieve_searches(void)
 {
-	LIBXML_TEST_VERSION
-
     search_retrieve_xml();
 }
 
