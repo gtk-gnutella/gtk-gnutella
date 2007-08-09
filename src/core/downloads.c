@@ -4734,6 +4734,7 @@ create_download(
 
 	d = download_alloc();
 
+	d->last_update = tm_time();
 	d->server = server;
 	d->server->refcnt++;
 
