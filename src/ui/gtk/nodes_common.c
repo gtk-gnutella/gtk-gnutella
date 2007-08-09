@@ -50,10 +50,11 @@ RCSID("$Id$")
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-static gchar gui_tmp[4096];
+#define UPDATE_MIN	60		/**< Update screen every minute at least */
 
 /**
  * Compute info string for node.
@@ -63,6 +64,7 @@ static gchar gui_tmp[4096];
 const gchar *
 nodes_gui_common_status_str(const gnet_node_status_t *n)
 {
+	static gchar gui_tmp[4096];
 	const gchar *a;
 
 	switch (n->status) {
@@ -457,6 +459,38 @@ nodes_gui_common_connect_by_name(const gchar *line)
 
 			G_FREE_NULL(p);
 		}
+	}
+}
+
+static gboolean
+nodes_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_network == main_gui_notebook_get_page();
+}
+
+void
+nodes_gui_timer(time_t now)
+{
+    static time_t last_update;
+
+    if (last_update == now)
+        return;
+
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
+	if (
+		nodes_gui_is_visible() ||
+		delta_time(now, last_update) >= UPDATE_MIN
+	) {
+    	last_update = now;
+		nodes_gui_update_display(now);
 	}
 }
 

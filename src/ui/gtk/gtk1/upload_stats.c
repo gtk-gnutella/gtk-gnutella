@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "gtk/misc.h"
 #include "gtk/settings.h"
 #include "gtk/upload_stats.h"
+#include "gtk/upload_stats_cb.h"
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
@@ -122,6 +123,7 @@ void
 upload_stats_gui_init(void)
 {
 	clist_restore_widths(clist_ul_stats(), PROP_UL_STATS_COL_WIDTHS);
+    gtk_clist_set_compare_func(clist_ul_stats(), compare_ul_norm);
 }
 
 void

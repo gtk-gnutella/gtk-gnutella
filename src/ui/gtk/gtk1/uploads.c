@@ -322,48 +322,10 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
         data, free_data);
 }
 
-/***
- *** Public functions
- ***/
-
-void
-uploads_gui_early_init(void)
-{
-}
-
-void
-uploads_gui_init(void)
-{
-	GtkCList *clist;
-
-	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
-    gtk_clist_set_column_justification(clist, c_ul_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(clist, c_ul_progress, GTK_JUSTIFY_RIGHT);
-	gtk_clist_column_titles_passive(clist);
-	clist_restore_widths(clist, PROP_UPLOADS_COL_WIDTHS);
-
-    guc_upload_add_upload_added_listener(upload_added);
-    guc_upload_add_upload_removed_listener(upload_removed);
-    guc_upload_add_upload_info_changed_listener(upload_info_changed);
-}
-
-/**
- * Unregister callbacks in the backend and clean up.
- */
-void
-uploads_gui_shutdown(void)
-{
-	clist_restore_widths(GTK_CLIST(gui_main_window_lookup("clist_uploads")),
-		PROP_UPLOADS_COL_WIDTHS);
-    guc_upload_remove_upload_added_listener(upload_added);
-    guc_upload_remove_upload_removed_listener(upload_removed);
-    guc_upload_remove_upload_info_changed_listener(upload_info_changed);
-}
-
 /**
  * Update all the uploads at the same time.
  */
-void
+static void
 uploads_gui_update_display(time_t now)
 {
 	GtkCList *clist;
@@ -373,9 +335,6 @@ uploads_gui_update_display(time_t now)
     GSList *to_remove = NULL;
     GSList *sl;
 	gboolean all_removed = TRUE;
-
-	if (!uploads_gui_update_required(now))
-		return;
 
     clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     gtk_clist_freeze(clist);
@@ -477,6 +436,54 @@ uploads_gui_clear_completed(void)
 		uploads_rows_done = 0;
 		gtk_timeout_add(100, uploads_clear_helper, NULL);
 	}
+}
+
+static void
+uploads_gui_timer(time_t now)
+{
+	if (uploads_gui_update_required(now)) {
+		uploads_gui_update_display(now);
+	}
+}
+
+/***
+ *** Public functions
+ ***/
+
+void
+uploads_gui_early_init(void)
+{
+}
+
+void
+uploads_gui_init(void)
+{
+	GtkCList *clist;
+
+	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
+    gtk_clist_set_column_justification(clist, c_ul_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(clist, c_ul_progress, GTK_JUSTIFY_RIGHT);
+	gtk_clist_column_titles_passive(clist);
+	clist_restore_widths(clist, PROP_UPLOADS_COL_WIDTHS);
+
+    guc_upload_add_upload_added_listener(upload_added);
+    guc_upload_add_upload_removed_listener(upload_removed);
+    guc_upload_add_upload_info_changed_listener(upload_info_changed);
+
+	main_gui_add_timer(uploads_gui_timer);
+}
+
+/**
+ * Unregister callbacks in the backend and clean up.
+ */
+void
+uploads_gui_shutdown(void)
+{
+	clist_restore_widths(GTK_CLIST(gui_main_window_lookup("clist_uploads")),
+		PROP_UPLOADS_COL_WIDTHS);
+    guc_upload_remove_upload_added_listener(upload_added);
+    guc_upload_remove_upload_removed_listener(upload_removed);
+    guc_upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

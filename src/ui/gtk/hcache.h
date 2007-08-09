@@ -30,7 +30,6 @@
 #include "hcache_common.h"
 
 void hcache_gui_init(void);
-void hcache_gui_update(time_t now);
 void hcache_gui_shutdown(void);
 
 #endif /* _gtk_hcache_h_ */

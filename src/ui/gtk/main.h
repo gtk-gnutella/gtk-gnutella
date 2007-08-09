@@ -60,9 +60,21 @@ void main_gui_shutdown(void);
 void main_gui_timer(time_t now);
 void main_gui_shutdown_tick(guint);
 void main_gui_show_prefences(void);
+
 gboolean main_gui_window_visible(void);
+
+typedef void (*main_gui_visibility_cb)(gboolean visible);
+
+void main_gui_add_page_visibility_listener(main_gui_visibility_cb, int page);
+void main_gui_remove_page_visibility_listener(main_gui_visibility_cb, int page);
+
 int main_gui_notebook_get_page(void);
 void main_gui_notebook_set_page(int);
+
+typedef void (*main_gui_timer_cb)(time_t);
+
+void main_gui_add_timer(main_gui_timer_cb func);
+void main_gui_remove_timer(main_gui_timer_cb func);
 
 #endif /* _gtk_main_h_ */
 /* vi: set ts=4 sw=4 cindent: */

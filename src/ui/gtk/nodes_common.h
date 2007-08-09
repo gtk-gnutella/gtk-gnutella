@@ -35,4 +35,7 @@ void nodes_gui_common_shutdown(void);
 const gchar *nodes_gui_common_status_str(const gnet_node_status_t *n);
 void nodes_gui_common_connect_by_name(const gchar *addr);
 
+void nodes_gui_update_display(time_t now);
+void nodes_gui_timer(time_t now);
+
 #endif /* _gtk_nodes_common_h_ */

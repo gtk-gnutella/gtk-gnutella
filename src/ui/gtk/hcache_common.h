@@ -29,6 +29,9 @@
 #include "gui.h"
 #include "if/core/hcache.h"
 
-const gchar *get_hcache_name(hcache_type_t type);
+const gchar *get_hcache_name(hcache_type_t);
+void hcache_gui_timer(time_t now);
+void hcache_gui_update_display(void);
 
 #endif /* _gtk_hcache_common_h_ */
+/* vi: set ts=4 sw=4 cindent: */

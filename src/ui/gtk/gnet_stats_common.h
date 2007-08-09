@@ -39,4 +39,7 @@ const gchar *horizon_stat_str(gint row,	c_horizon_t column);
 gint msg_type_str_size(void);
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);
 
+void gnet_stats_gui_timer(time_t now);
+void gnet_stats_gui_update_display(time_t now);
+
 #endif /* _gtk_gnet_stats_common_h_ */

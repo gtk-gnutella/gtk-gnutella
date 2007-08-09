@@ -287,11 +287,13 @@ create_icon(void)
     gui_signal_connect(canvas, "expose_event", on_canvas_expose_event, NULL);
 }
 
-void
-icon_timer(void)
+static void
+icon_timer(time_t unused_now)
 {
     GdkRectangle rect;
     guint con_old, up_old, down_old;
+
+	(void) unused_now;
 
     /*   don't do anything if icon isn't even visible or the
        application is closing   */
@@ -434,6 +436,8 @@ icon_init(void)
 			on_status_icon_popup_menu, NULL);
 	}
 #endif	/* Gtk+ >= 2.10.0 */
+
+	main_gui_add_timer(icon_timer);
 }
 
 void
@@ -457,10 +461,10 @@ icon_close(void)
 static GdkPixmap *icon_map;
 static GdkBitmap *icon_mask;
 
-void
-icon_timer(void)
+static void
+icon_timer(time_t unused_now)
 {
-    return;
+	(void) unused_now;
 }
 
 void

@@ -587,14 +587,10 @@ clist_download_files_init(void)
 		on_files_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(clist), download_files_get_file_url);
-
-    gtk_clist_freeze(clist_download_files);
-	fi_gui_files_visualize();
-    gtk_clist_thaw(clist_download_files);
 }
 
 void
-fi_gui_filter_changed(void)
+fi_gui_files_filter_changed(void)
 {
 	GtkCList *clist = clist_download_files;
 
@@ -638,8 +634,6 @@ fi_gui_files_widget_destroy(void)
 void
 fi_gui_init(void)
 {
-	fi_gui_common_init();
-
 	file_rows = g_hash_table_new(NULL, NULL);
 	source_rows = g_hash_table_new(NULL, NULL);
 	fi_sources = g_hash_table_new(NULL, NULL);
@@ -695,6 +689,7 @@ fi_gui_init(void)
 		gui_signal_connect(clist, "button-press-event",
 			on_sources_button_press_event, NULL);
 	}
+	fi_gui_common_init();
 }
 
 void

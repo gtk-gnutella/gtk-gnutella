@@ -28,6 +28,8 @@
 RCSID("$Id$")
 
 #include "hcache_common.h"
+#include "gtk/notebooks.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -51,3 +53,24 @@ get_hcache_name(hcache_type_t type)
 	g_warning("get_hcache_name: unknown hcache %d", type);
 	return "";
 }
+
+static gboolean
+hcache_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_hostcache == main_gui_notebook_get_page();
+}
+
+void
+hcache_gui_timer(time_t now)
+{
+	static time_t last_update;
+
+	if (last_update != now && hcache_gui_is_visible()) {
+		last_update = now;
+		hcache_gui_update_display();
+	}
+}
+
+/* vi: set ts=4 sw=4 cindent: */
+

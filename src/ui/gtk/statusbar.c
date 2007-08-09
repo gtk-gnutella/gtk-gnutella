@@ -72,13 +72,13 @@ static guint scid_warn                = (guint) -1;
 /**
  * List with timeout entries for statusbar messages.
  */
-static GSList *sl_statusbar_timeouts = NULL;
+static GSList *sl_statusbar_timeouts;
 
 /*
  * Status bar
  */
-static gchar *statbar_botstr = NULL;
-static gchar *statbar_botstr_new = NULL;
+static gchar *statbar_botstr;
+static gchar *statbar_botstr_new;
 
 static void statusbar_gui_free_timeout(struct statusbar_timeout * t);
 static void statusbar_gui_free_timeout_list(void);
@@ -89,9 +89,9 @@ statusbar_get(void)
 {
     static GtkStatusbar *sb;
 
-	if (!sb)
+	if (!sb) {
 		sb = GTK_STATUSBAR(gui_main_window_lookup("statusbar"));
-
+	}
 	return sb;
 }
 
@@ -193,44 +193,6 @@ statusbar_gui_warning(guint timeout, const gchar *format, ...)
 }
 
 void
-statusbar_gui_init(void)
-{
-    GtkStatusbar *sb;
-
-    sb = statusbar_get();
-	statusbar_set_shadow_type(GTK_STATUSBAR(sb), GTK_SHADOW_ETCHED_IN);
-
-	scid_bottom = gtk_statusbar_get_context_id(sb, "default");
-	scid_hostsfile = gtk_statusbar_get_context_id(sb, "reading hosts file");
-	scid_queue_freezed = gtk_statusbar_get_context_id(sb, "queue freezed");
-   	scid_info = gtk_statusbar_get_context_id(sb, "information");
-    scid_ip_changed = gtk_statusbar_get_context_id(sb, "ip changed");
-    scid_warn = gtk_statusbar_get_context_id(sb, "warning");
-
-   	/*
-	 * This message lies at the bottom of the statusbar, and is never removed,
-	 * but to be replaced by an updated message.
-	 *
-	 * The current string held at the bottom is stored in `statbar_botstr'.
-	 * If a new string is pending replacement in `statbar_botstr_new', then
-	 * it will replace the current one when the last timeout for pushed
-	 * messages expires, at which time we'll know the bottom message is shown.
-	 *		--RAM, 27/06/2002
-	 */
-
-	statbar_botstr = g_strdup(GTA_WEBSITE);
-	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
-}
-
-void
-statusbar_gui_shutdown(void)
-{
-    statusbar_gui_free_timeout_list();
-	G_FREE_NULL(statbar_botstr_new);
-	G_FREE_NULL(statbar_botstr);
-}
-
-void
 statusbar_gui_set_default(const char *format, ...)
 {
     static gchar buf[1024];
@@ -291,7 +253,7 @@ statusbar_gui_free_timeout(struct statusbar_timeout *t)
  * Check whether statusbar items have expired and remove them from the
  * statusbar.
  */
-void
+static void
 statusbar_gui_clear_timeouts(time_t now)
 {
 	GSList *sl, *to_remove = NULL;
@@ -304,9 +266,9 @@ statusbar_gui_clear_timeouts(time_t now)
 			to_remove = g_slist_prepend(to_remove, t);
 	}
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl))
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
 		statusbar_gui_free_timeout(sl->data);
-
+	}
 	g_slist_free(to_remove);
 
 	/*
@@ -335,6 +297,46 @@ statusbar_gui_free_timeout_list(void)
 
 		statusbar_gui_free_timeout(t);
 	}
+}
+
+void
+statusbar_gui_init(void)
+{
+    GtkStatusbar *sb;
+
+    sb = statusbar_get();
+	statusbar_set_shadow_type(GTK_STATUSBAR(sb), GTK_SHADOW_ETCHED_IN);
+
+	scid_bottom = gtk_statusbar_get_context_id(sb, "default");
+	scid_hostsfile = gtk_statusbar_get_context_id(sb, "reading hosts file");
+	scid_queue_freezed = gtk_statusbar_get_context_id(sb, "queue freezed");
+   	scid_info = gtk_statusbar_get_context_id(sb, "information");
+    scid_ip_changed = gtk_statusbar_get_context_id(sb, "ip changed");
+    scid_warn = gtk_statusbar_get_context_id(sb, "warning");
+
+   	/*
+	 * This message lies at the bottom of the statusbar, and is never removed,
+	 * but to be replaced by an updated message.
+	 *
+	 * The current string held at the bottom is stored in `statbar_botstr'.
+	 * If a new string is pending replacement in `statbar_botstr_new', then
+	 * it will replace the current one when the last timeout for pushed
+	 * messages expires, at which time we'll know the bottom message is shown.
+	 *		--RAM, 27/06/2002
+	 */
+
+	statbar_botstr = g_strdup(GTA_WEBSITE);
+	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
+
+	main_gui_add_timer(statusbar_gui_clear_timeouts);
+}
+
+void
+statusbar_gui_shutdown(void)
+{
+    statusbar_gui_free_timeout_list();
+	G_FREE_NULL(statbar_botstr_new);
+	G_FREE_NULL(statbar_botstr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

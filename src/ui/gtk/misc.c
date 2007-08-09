@@ -87,13 +87,13 @@ gui_allow_rescan_dir(gboolean flag)
 void
 gui_general_timer(time_t now)
 {
-	static GtkLabel *label = NULL;
+	static GtkLabel *label;
 	const gchar *uptime;
 	time_t start;
 
-	if (label == NULL)
+	if (label == NULL) {
 		label = GTK_LABEL(gui_main_window_lookup("label_statusbar_uptime"));
-
+	}
 	gnet_prop_get_timestamp_val(PROP_START_STAMP, &start);
 	uptime = short_uptime(delta_time(now, start));
 
@@ -101,7 +101,7 @@ gui_general_timer(time_t now)
 	{
 		gchar buf[128];
 
-		gm_snprintf(buf, sizeof buf, "<tt> %s </tt>", uptime);
+		gm_snprintf(buf, sizeof buf, "<tt>%s</tt>", uptime);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}

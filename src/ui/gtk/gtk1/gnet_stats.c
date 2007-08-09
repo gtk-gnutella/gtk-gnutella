@@ -30,7 +30,6 @@ RCSID("$Id$")
 #include "gtk/gui.h"
 #include "gtk/gnet_stats.h"
 #include "gtk/misc.h"
-#include "gtk/notebooks.h"
 #include "gtk/settings.h"
 
 #include "if/core/hsep.h"
@@ -275,6 +274,8 @@ gnet_stats_gui_init(void)
 
     guc_hsep_add_global_table_listener(
 		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
+
+	main_gui_add_timer(gnet_stats_gui_timer);
 }
 
 void
@@ -303,17 +304,9 @@ gnet_stats_gui_shutdown(void)
 		PROP_GNET_STATS_HORIZON_COL_WIDTHS);
 }
 
-static gboolean
-gnet_stats_gui_is_visible(void)
-{
-	return main_gui_window_visible() &&
-		nb_main_page_stats == main_gui_notebook_get_page();
-}
-
 void
-gnet_stats_gui_update(time_t now)
+gnet_stats_gui_update_display(time_t now)
 {
-	static time_t last_update = 0;
     GtkCList *clist_stats_msg;
     GtkCList *clist_reason;
     GtkCList *clist_general;
@@ -326,13 +319,6 @@ gnet_stats_gui_update(time_t now)
 	static time_t last_horizon_update = 0;
 	gint global_table_size;
 	gnet_stats_t *xstats = NULL;
-
-	if (last_update == now)
-		return;
-	last_update = now;
-
-	if (!gnet_stats_gui_is_visible())
-		return;
 
     guc_gnet_stats_get(&stats);
 

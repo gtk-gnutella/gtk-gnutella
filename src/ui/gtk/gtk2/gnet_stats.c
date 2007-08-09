@@ -316,14 +316,13 @@ gnet_stats_update_recv(const gnet_stats_t *stats)
 }
 
 static void
-gnet_stats_update_horizon(void)
+gnet_stats_update_horizon(time_t now)
 {
+	static time_t last_horizon_update;
 	GtkTreeView *treeview = treeview_gnet_stats_horizon;
 	GtkListStore *store;
 	GtkTreeIter iter;
 	gint i;
-	static time_t last_horizon_update = 0;
-	time_t now = tm_time();
 	gint global_table_size;
 
 	/*
@@ -659,6 +658,8 @@ gnet_stats_gui_init(void)
 
 	guc_hsep_add_global_table_listener(
 		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
+
+	main_gui_add_timer(gnet_stats_gui_timer);
 }
 
 void
@@ -692,20 +693,10 @@ gnet_stats_gui_shutdown(void)
 }
 
 void
-gnet_stats_gui_update(time_t now)
+gnet_stats_gui_update_display(time_t now)
 {
 	static gnet_stats_t stats;
-	static time_t last_update;
 	gint current_page;
-
-	if (
-		now == last_update ||
-		!main_gui_window_visible() ||
-		nb_main_page_stats != main_gui_notebook_get_page()
-	) {
-		return;
-	}
-	last_update = now;
 
 	guc_gnet_stats_get(&stats);
 
@@ -716,7 +707,7 @@ gnet_stats_gui_update(time_t now)
 		gnet_stats_update_drop_reasons(&stats);
 		break;
 	case GNET_STATS_NB_PAGE_HORIZON:
-		gnet_stats_update_horizon();
+		gnet_stats_update_horizon(now);
 		break;
 	case GNET_STATS_NB_PAGE_MESSAGES:
 		switch (GUI_PROPERTY(gnet_stats_source)) {

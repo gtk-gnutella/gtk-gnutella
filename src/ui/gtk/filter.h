@@ -62,8 +62,6 @@ void filter_gui_init(void);
 void filter_gui_shutdown(void);
 void filter_gui_rebuild_target_combos(GList *filters);
 void filter_gui_set_ruleset(GList *ruleset);
-void filter_gui_update_filter_stats(void);
-void filter_gui_update_rule_stats(void);
 void filter_gui_show_dialog(void);
 rule_t *filter_gui_get_rule(void);
 void filter_gui_update_rule_count(filter_t *f, GList *ruleset);

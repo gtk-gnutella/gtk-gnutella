@@ -30,7 +30,6 @@
 #include "gnet_stats_common.h"
 
 void gnet_stats_gui_init(void);
-void gnet_stats_gui_update(time_t now);
 void gnet_stats_gui_shutdown(void);
 
 #endif /* _gtk_gnet_stats_h_ */

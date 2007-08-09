@@ -2494,8 +2494,6 @@ filter_init(void)
     gui_popup_filter_rule_set(create_popup_filter_rule());
 }
 
-
-
 /**
  * Trigger a rebuild of the target combos.
  */
@@ -2504,20 +2502,6 @@ filter_update_targets(void)
 {
     filter_gui_rebuild_target_combos(filters_current);
 }
-
-
-
-/**
- * Periodically update the filter display with current data.
- */
-void
-filter_timer(void)
-{
-    filter_gui_update_filter_stats();
-    filter_gui_update_rule_stats();
-}
-
-
 
 /**
  * Reset the rule stats for a given rule.

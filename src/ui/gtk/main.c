@@ -60,7 +60,6 @@ RCSID("$Id$")
 #include "icon.h"
 #include "filter_cb.h"
 #include "filter_core.h"
-#include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
 #include "fileinfo.h"
 #include "visual_progress.h"
 
@@ -630,9 +629,6 @@ main_gui_init(void)
 
     gtk_clist_column_titles_passive(
         GTK_CLIST(gui_main_window_lookup("clist_search")));
-    gtk_clist_set_compare_func(
-        GTK_CLIST(gui_main_window_lookup("clist_ul_stats")),
-        compare_ul_norm);
 #endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
@@ -699,6 +695,8 @@ void
 main_gui_shutdown(void)
 {
 	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
+
+	slist_free(&timers);
 	icon_close();
 
     /*
@@ -724,15 +722,38 @@ main_gui_shutdown(void)
     hcache_gui_shutdown();
 }
 
+static slist_t *timers;
+
+void
+main_gui_add_timer(main_gui_timer_cb func)
+{
+	g_return_if_fail(func);
+
+	if (NULL == timers) {
+		timers = slist_new();
+	}
+	g_return_if_fail(!slist_contains_identical(timers, func));
+
+	slist_append(timers, func);
+}
+
+void
+main_gui_remove_timer(main_gui_timer_cb func)
+{
+	g_return_if_fail(func);
+	g_return_if_fail(timers);
+
+	slist_remove(timers, func);
+}
+
 /**
  * Main gui timer. This is called once a second.
  */
 void
 main_gui_timer(time_t now)
 {
-	static const gint num_states = 10;
 	gboolean overloaded;
-	gint i;
+	size_t length;
 
 	gnet_prop_get_boolean_val(PROP_OVERLOADED_CPU, &overloaded);
 
@@ -744,26 +765,15 @@ main_gui_timer(time_t now)
 	 * updated every second.
 	 */
 
-	for (i = 0; i < num_states; i++) {
-		static guint counter = 0;
+	length = timers ? slist_length(timers) : 0;
+	while (length-- > 0) {
+		main_gui_timer_cb func;
 
-		switch (counter) {
-		case 0: hcache_gui_update(now);					break;
-		case 1: gnet_stats_gui_update(now);				break;
-		case 2: search_stats_gui_update(now);			break;
-		case 3: nodes_gui_update_nodes_display(now);	break;
-		case 4: uploads_gui_update_display(now);		break;
-		case 5: fi_gui_timer(now);						break;
-		case 6: statusbar_gui_clear_timeouts(now);		break;
-		case 7: filter_timer();							break;
-		case 8: search_gui_timer(now);					break;
-		case 9: icon_timer();							break;
-		default:
-			g_error("bad modulus computation (counter is %d)", counter);
-			break;
+		func = slist_shift(timers);
+		if (func) {
+			slist_append(timers, func);
+			(*func)(now);
 		}
-		counter = (counter + 1) % num_states;
-
 		if (overloaded)
 			break;
 	}

@@ -43,8 +43,6 @@
 void icon_init(void);
 void icon_close(void);
 
-void icon_timer(void);
-
 #endif	/* _gtk_icon_h_ */
 
 /* vi: set ts=4: */

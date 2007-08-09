@@ -44,9 +44,8 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
-#include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	60		/**< Update screen every minute at least */
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * These hash tables record which information about which nodes has
@@ -76,13 +75,6 @@ remove_item(GHashTable *ht, const node_id_t node_id)
 	} else {
 		return FALSE;
 	}
-}
-
-static gboolean
-nodes_gui_is_visible(void)
-{
-	return main_gui_window_visible() &&
-		nb_main_page_network == main_gui_notebook_get_page();
 }
 
 /***
@@ -299,6 +291,8 @@ nodes_gui_init(void)
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+
+	main_gui_add_timer(nodes_gui_timer);
 }
 
 static gboolean
@@ -432,31 +426,12 @@ nodes_gui_add_node(gnet_node_info_t *n)
  *        when removing the row (see upload stats code).
  */
 void
-nodes_gui_update_nodes_display(time_t now)
+nodes_gui_update_display(time_t now)
 {
 	GtkCList *clist;
 	GList *l;
 	gint row = 0;
     gnet_node_status_t status;
-    static time_t last_update = 0;
-
-    if (last_update == now)
-        return;
-
-	/*
-	 * Usually don't perform updates if nobody is watching.  However,
-	 * we do need to perform periodic cleanup of dead entries or the
-	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
-	 * at least.
-	 *		--RAM, 28/12/2003
-	 */
-	if (!nodes_gui_is_visible() && delta_time(now, last_update) < UPDATE_MIN)
-		return;
-
-    if (last_update == now)
-        return;
-
-    last_update = now;
 
     clist = GTK_CLIST(gui_main_window_lookup("clist_nodes"));
     gtk_clist_freeze(clist);

@@ -365,6 +365,48 @@ add_column(GtkTreeView *treeview, gint id, gfloat xalign,
 	gtk_tree_view_column_set_sort_column_id(column, id);
 }
 
+/**
+ * Display the data gathered during the last time period.
+ * Perhaps it would be better to have this done on a button click(?)
+ */
+static void
+search_stats_gui_update_display(void)
+{
+	stat_count = 0;
+	gtk_list_store_clear(store_search_stats);
+	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
+	/* insert the hash table contents into the sorted treeview */
+	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
+	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
+
+	/* update the counter */
+	gtk_label_printf(GTK_LABEL(label_search_stats_count),
+		NG_("%u term counted", "%u terms counted", stat_count),
+		stat_count);
+}
+
+static gboolean
+search_stats_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_search_stats == main_gui_notebook_get_page();
+}
+
+static void
+search_stats_gui_timer(time_t now)
+{
+	static time_t last_update;
+	time_delta_t interval = GUI_PROPERTY(search_stats_update_interval);
+
+    if (
+		search_stats_gui_is_visible() &&
+		delta_time(now, last_update) > interval
+	) {
+    	last_update = now;
+		search_stats_gui_update_display();
+	}
+}
+
 void
 search_stats_gui_init(void)
 {
@@ -408,6 +450,7 @@ search_stats_gui_init(void)
 	tree_view_set_fixed_height_mode(treeview, TRUE);
 
 	stat_hash = g_hash_table_new(NULL, NULL);
+	main_gui_add_timer(search_stats_gui_timer);
 }
 
 void
@@ -417,34 +460,6 @@ search_stats_gui_shutdown(void)
     search_stats_gui_set_type(NO_SEARCH_STATS);
     g_hash_table_destroy(stat_hash);
 	stat_hash = NULL;
-}
-
-/**
- * Display the data gathered during the last time period.
- * Perhaps it would be better to have this done on a button click(?)
- */
-void
-search_stats_gui_update(time_t now)
-{
-	static time_t last_update = 0;
-	const time_delta_t interval = GUI_PROPERTY(search_stats_update_interval);
-
-    if (delta_time(now, last_update) < interval)
-        return;
-
-    last_update = now;
-
-	stat_count = 0;
-	gtk_list_store_clear(store_search_stats);
-	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
-	/* insert the hash table contents into the sorted treeview */
-	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
-	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
-
-	/* update the counter */
-	gtk_label_printf(GTK_LABEL(label_search_stats_count),
-		NG_("%u term counted", "%u terms counted", stat_count),
-		stat_count);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

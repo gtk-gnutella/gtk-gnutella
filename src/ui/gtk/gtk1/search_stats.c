@@ -343,58 +343,15 @@ search_stats_gui_set_type(gint type)
     }
 }
 
-void
-search_stats_gui_init(void)
-{
-    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_search_stats"));
-
-    /* set up the clist to be sorted properly */
-	gtk_clist_set_sort_column(clist, c_st_total);
-	gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
-	clist_restore_widths(clist, PROP_SEARCH_STATS_COL_WIDTHS);
-
-	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
-}
-
-void
-search_stats_gui_shutdown(void)
-{
-	clist_save_widths(
-		GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
-		PROP_SEARCH_STATS_COL_WIDTHS);
-    search_stats_gui_set_type(NO_SEARCH_STATS);
-    g_hash_table_destroy(stat_hash);
-	stat_hash = NULL;
-}
-
-static gboolean
-search_stats_gui_is_visible(void)
-{
-	return main_gui_window_visible() &&
-		nb_main_page_search_stats == main_gui_notebook_get_page();
-}
-
 /**
  * Display the data gathered during the last time period.
  * Perhaps it would be better to have this done on a button click(?)
  */
-void
-search_stats_gui_update(time_t now)
+static void
+search_stats_gui_update_display(void)
 {
-	static time_t last_update = 0;
     GtkWidget *clist_search_stats;
     GtkWidget *label_search_stats_count;
-
-    if (
-		delta_time(now, last_update) <
-			(time_delta_t) GUI_PROPERTY(search_stats_update_interval)
-	)
-        return;
-
-    last_update = now;
-
-	if (!search_stats_gui_is_visible())
-		return;
 
     clist_search_stats = gui_main_window_lookup("clist_search_stats");
     label_search_stats_count =
@@ -414,6 +371,53 @@ search_stats_gui_update(time_t now)
 	gtk_label_printf(GTK_LABEL(label_search_stats_count),
 		NG_("%u term counted", "%u terms counted", stat_count),
 		stat_count);
+}
+
+static gboolean
+search_stats_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_search_stats == main_gui_notebook_get_page();
+}
+
+static void
+search_stats_gui_timer(time_t now)
+{
+	static time_t last_update;
+	time_delta_t interval = GUI_PROPERTY(search_stats_update_interval);
+
+    if (
+		search_stats_gui_is_visible() &&
+		delta_time(now, last_update) > interval
+	) {
+    	last_update = now;
+		search_stats_gui_update_display();
+	}
+}
+
+void
+search_stats_gui_init(void)
+{
+    GtkCList *clist = GTK_CLIST(gui_main_window_lookup("clist_search_stats"));
+
+    /* set up the clist to be sorted properly */
+	gtk_clist_set_sort_column(clist, c_st_total);
+	gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
+	clist_restore_widths(clist, PROP_SEARCH_STATS_COL_WIDTHS);
+
+	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	main_gui_add_timer(search_stats_gui_timer);
+}
+
+void
+search_stats_gui_shutdown(void)
+{
+	clist_save_widths(
+		GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
+		PROP_SEARCH_STATS_COL_WIDTHS);
+    search_stats_gui_set_type(NO_SEARCH_STATS);
+    g_hash_table_destroy(stat_hash);
+	stat_hash = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

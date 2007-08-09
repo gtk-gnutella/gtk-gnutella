@@ -286,7 +286,6 @@ typedef search_t *(*search_gui_synchronize_list_cb)(void *user_data);
 void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 			void *user_data);
 
-void search_gui_timer(time_t now);
 void search_gui_store_searches(void);
 
 #endif /* _gtk_search_common_h_ */

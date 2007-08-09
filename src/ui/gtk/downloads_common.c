@@ -1498,7 +1498,7 @@ fi_gui_update_display(void)
 	fi_gui_files_thaw();
 }
 
-void
+static void
 fi_gui_timer(time_t now)
 {
 	static time_t last_update;
@@ -2102,6 +2102,7 @@ fi_gui_common_init(void)
 
 	main_gui_add_page_visibility_listener(on_visibility_change,
 		nb_main_page_downloads);
+	main_gui_add_timer(fi_gui_timer);
 }
 
 static gboolean

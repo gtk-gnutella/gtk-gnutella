@@ -3336,7 +3336,7 @@ search_gui_update_display(time_t now)
 	search_gui_update_expiry(current_search);
 }
 
-void
+static void
 search_gui_timer(time_t now)
 {
     search_gui_flush(now, FALSE);
@@ -3384,6 +3384,8 @@ search_gui_common_init(void)
 
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
+
+	main_gui_add_timer(search_gui_timer);
 }
 
 /**

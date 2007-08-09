@@ -38,7 +38,6 @@
 
 RCSID("$Id$")
 
-#include "gtk/gui.h"
 #include "gtk/misc.h"
 
 #include "filter.h"
@@ -174,152 +173,6 @@ getFilterRoot(filter_t *f)
     } else {
         return fl_nodes[FILTER_NODE_FREE];
     }
-}
-
-/**
- * Initialize the contents of the dialog editor and some
- * internal variables like the roots in the filter list etc.
- */
-void
-filter_gui_init(void)
-{
-	static const struct {
-		const gchar *name;
-		const guint id;
-	} radio_buttons[] = {
-#define D(x) "radiobutton_filter_" x 
-
-		{ D("flag_stable_set"),		RULE_FLAG_SET },
-		{ D("flag_stable_unset"),	RULE_FLAG_UNSET },
-		{ D("flag_stable_ignore"),	RULE_FLAG_IGNORE },
-
-		{ D("flag_busy_set"),		RULE_FLAG_SET },
-		{ D("flag_busy_unset"),		RULE_FLAG_UNSET },
-		{ D("flag_busy_ignore"),	RULE_FLAG_IGNORE },
-
-		{ D("flag_push_set"),		RULE_FLAG_SET },
-		{ D("flag_push_unset"),		RULE_FLAG_UNSET },
-		{ D("flag_push_ignore"),	RULE_FLAG_IGNORE },
-
-		/*
-		 * The user_data set here is later relevant for
-		 * filter_gui_get_state_rule().
-		 */
-		{ D("state_display_do"),		FILTER_PROP_STATE_DO },
-		{ D("state_display_dont"),		FILTER_PROP_STATE_DONT },
-		{ D("state_display_ignore"),	FILTER_PROP_STATE_IGNORE },
-		{ D("state_display_undef"), 	FILTER_PROP_STATE_UNKNOWN },
-
-		{ D("state_download_do"),		FILTER_PROP_STATE_DO },
-		{ D("state_download_dont"), 	FILTER_PROP_STATE_DONT },
-		{ D("state_download_ignore"),	FILTER_PROP_STATE_IGNORE },
-		{ D("state_download_undef"), 	FILTER_PROP_STATE_UNKNOWN },
-#undef D
-	};
-	static const struct {
-		const guint id;
-	} menu_items[] = {
-		{ RULE_TEXT_PREFIX },
-		{ RULE_TEXT_WORDS },
-		{ RULE_TEXT_SUFFIX },
-		{ RULE_TEXT_SUBSTR },
-		{ RULE_TEXT_REGEXP },
-		{ RULE_TEXT_EXACT },
-	};
-    GtkMenu *m;
-    guint i;
-
-    if (gui_filter_dialog() == NULL)
-        return;
-
-#ifdef USE_GTK1
-	{
-		GtkCList *clist;
-
-		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
-		gtk_clist_set_reorderable(clist, TRUE);
-		clist_restore_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
-
-		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
-		clist_restore_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
-	}
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
-	{
-		GtkTreeView *tv_rules;
-		GtkTreeView *tv_filters;
-		GtkTreeModel *model;
-
-		tv_rules = GTK_TREE_VIEW(lookup_widget(gui_filter_dialog(),
-									"treeview_filter_rules"));
-		tv_filters = GTK_TREE_VIEW(lookup_widget(gui_filter_dialog(),
-									"treeview_filter_filters"));
-
-		model = create_filters_model();
-		gtk_tree_view_set_model(tv_filters, model);	
-		add_column(tv_filters, _("Filter"), 1);
-		add_column(tv_filters, _("Rule"), 2);
-		add_column(tv_filters, _("Match"), 3);
-		gtk_tree_view_set_rules_hint(tv_filters, TRUE);
-		g_signal_connect(G_OBJECT(tv_filters), "cursor-changed",
-			G_CALLBACK(on_treeview_filter_filters_select_row), NULL);
-
-		model = create_rules_model();
-		add_column(tv_rules, _("!"), 1);
-		add_column(tv_rules, _("Condition"), 2);
-		add_column(tv_rules, _("Target"), 3);
-		add_column(tv_rules, _("Match"), 4);
-		gtk_tree_view_set_model(tv_rules, model);	
-		gtk_tree_view_set_rules_hint(tv_rules, TRUE);
-		g_signal_connect(G_OBJECT(tv_rules), "cursor-changed",
-			G_CALLBACK(on_treeview_filter_rules_select_row), NULL);
-		g_signal_connect(GTK_OBJECT(tv_rules), "button-press-event",
-			G_CALLBACK(on_treeview_filter_rules_button_press_event), NULL);
-
-		gtk_tree_view_set_reorderable(tv_rules, TRUE);
-	}
-#endif /* USE_GTK2 */
-
-    gtk_notebook_set_show_tabs(
-        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
-        FALSE);
-
-    m = GTK_MENU(gtk_menu_new());
-	for (i = 0; i < G_N_ELEMENTS(menu_items); i++) {
-		guint id = menu_items[i].id;
-    	menu_new_item_with_data(m, _(rule_text_type_labels[id]),
-        	GUINT_TO_POINTER(id));
-	}
-
-    gtk_option_menu_set_menu(GTK_OPTION_MENU(
-			gui_filter_dialog_lookup("optionmenu_filter_text_type")),
-        GTK_WIDGET(m));
-
-    /*
-     * The user_data set here is later relevant for filter_gui_get_flag_rule()
-     */
-
-	for (i = 0; i < G_N_ELEMENTS(radio_buttons); i++) {
-    	gtk_object_set_user_data(
-			GTK_OBJECT(gui_filter_dialog_lookup(radio_buttons[i].name)),
-			GUINT_TO_POINTER(radio_buttons[i].id));
-	}
-}
-
-void
-filter_gui_shutdown(void)
-{
-#ifdef USE_GTK1
-    if (gui_filter_dialog()) {
-		GtkCList *clist;
-
-		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
-		clist_save_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
-
-		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
-		clist_save_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
-	}
-#endif /* USE_GTK1 */
 }
 
 /**
@@ -921,7 +774,7 @@ filter_get_filter_stats(const filter_t *filter)
 /**
  * Update the filter list with the current stats data from the filters.
  */
-void
+static void
 filter_gui_update_filter_stats(void)
 {
     GtkCTree *ctree;
@@ -978,7 +831,7 @@ filter_update_filter_stats_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 /**
  * Update the filter list with the current stats data from the filters.
  */
-void
+static void
 filter_gui_update_filter_stats(void)
 {
     if (gui_filter_dialog() == NULL)
@@ -1020,7 +873,7 @@ filter_get_rule_stats(const rule_t *rule)
 /**
  * Update the rules list with the current stats data from the rules.
  */
-void
+static void
 filter_gui_update_rule_stats(void)
 {
     GtkCList *clist;
@@ -1073,7 +926,7 @@ filter_update_rule_stats_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 /**
  * Update the rules list with the current stats data from the rules.
  */
-void
+static void
 filter_gui_update_rule_stats(void)
 {
     if (gui_filter_dialog() == NULL || work_filter == NULL)
@@ -2345,5 +2198,168 @@ filter_gui_create_dlg_filters(void)
 	return gui_filter_dialog();
 }
 #endif	/* USE_GTK2 */
+
+/**
+ * Periodically update the filter display with current data.
+ */
+static void
+filter_gui_timer(time_t now)
+{
+	static time_t last_update;
+
+	if (last_update != now) {
+		last_update = now;
+		filter_gui_update_filter_stats();
+		filter_gui_update_rule_stats();
+	}
+}
+
+/**
+ * Initialize the contents of the dialog editor and some
+ * internal variables like the roots in the filter list etc.
+ */
+void
+filter_gui_init(void)
+{
+	static const struct {
+		const gchar *name;
+		const guint id;
+	} radio_buttons[] = {
+#define D(x) "radiobutton_filter_" x 
+
+		{ D("flag_stable_set"),		RULE_FLAG_SET },
+		{ D("flag_stable_unset"),	RULE_FLAG_UNSET },
+		{ D("flag_stable_ignore"),	RULE_FLAG_IGNORE },
+
+		{ D("flag_busy_set"),		RULE_FLAG_SET },
+		{ D("flag_busy_unset"),		RULE_FLAG_UNSET },
+		{ D("flag_busy_ignore"),	RULE_FLAG_IGNORE },
+
+		{ D("flag_push_set"),		RULE_FLAG_SET },
+		{ D("flag_push_unset"),		RULE_FLAG_UNSET },
+		{ D("flag_push_ignore"),	RULE_FLAG_IGNORE },
+
+		/*
+		 * The user_data set here is later relevant for
+		 * filter_gui_get_state_rule().
+		 */
+		{ D("state_display_do"),		FILTER_PROP_STATE_DO },
+		{ D("state_display_dont"),		FILTER_PROP_STATE_DONT },
+		{ D("state_display_ignore"),	FILTER_PROP_STATE_IGNORE },
+		{ D("state_display_undef"), 	FILTER_PROP_STATE_UNKNOWN },
+
+		{ D("state_download_do"),		FILTER_PROP_STATE_DO },
+		{ D("state_download_dont"), 	FILTER_PROP_STATE_DONT },
+		{ D("state_download_ignore"),	FILTER_PROP_STATE_IGNORE },
+		{ D("state_download_undef"), 	FILTER_PROP_STATE_UNKNOWN },
+#undef D
+	};
+	static const struct {
+		const guint id;
+	} menu_items[] = {
+		{ RULE_TEXT_PREFIX },
+		{ RULE_TEXT_WORDS },
+		{ RULE_TEXT_SUFFIX },
+		{ RULE_TEXT_SUBSTR },
+		{ RULE_TEXT_REGEXP },
+		{ RULE_TEXT_EXACT },
+	};
+    GtkMenu *m;
+    guint i;
+
+	main_gui_add_timer(filter_gui_timer);
+
+    if (gui_filter_dialog() == NULL)
+        return;
+
+#ifdef USE_GTK1
+	{
+		GtkCList *clist;
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
+		gtk_clist_set_reorderable(clist, TRUE);
+		clist_restore_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
+		clist_restore_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
+	}
+#endif /* USE_GTK1 */
+#ifdef USE_GTK2
+	{
+		GtkTreeView *tv_rules;
+		GtkTreeView *tv_filters;
+		GtkTreeModel *model;
+
+		tv_rules = GTK_TREE_VIEW(lookup_widget(gui_filter_dialog(),
+									"treeview_filter_rules"));
+		tv_filters = GTK_TREE_VIEW(lookup_widget(gui_filter_dialog(),
+									"treeview_filter_filters"));
+
+		model = create_filters_model();
+		gtk_tree_view_set_model(tv_filters, model);	
+		add_column(tv_filters, _("Filter"), 1);
+		add_column(tv_filters, _("Rule"), 2);
+		add_column(tv_filters, _("Match"), 3);
+		gtk_tree_view_set_rules_hint(tv_filters, TRUE);
+		g_signal_connect(G_OBJECT(tv_filters), "cursor-changed",
+			G_CALLBACK(on_treeview_filter_filters_select_row), NULL);
+
+		model = create_rules_model();
+		add_column(tv_rules, _("!"), 1);
+		add_column(tv_rules, _("Condition"), 2);
+		add_column(tv_rules, _("Target"), 3);
+		add_column(tv_rules, _("Match"), 4);
+		gtk_tree_view_set_model(tv_rules, model);	
+		gtk_tree_view_set_rules_hint(tv_rules, TRUE);
+		g_signal_connect(G_OBJECT(tv_rules), "cursor-changed",
+			G_CALLBACK(on_treeview_filter_rules_select_row), NULL);
+		g_signal_connect(GTK_OBJECT(tv_rules), "button-press-event",
+			G_CALLBACK(on_treeview_filter_rules_button_press_event), NULL);
+
+		gtk_tree_view_set_reorderable(tv_rules, TRUE);
+	}
+#endif /* USE_GTK2 */
+
+    gtk_notebook_set_show_tabs(
+        GTK_NOTEBOOK(gui_filter_dialog_lookup("notebook_filter_detail")),
+        FALSE);
+
+    m = GTK_MENU(gtk_menu_new());
+	for (i = 0; i < G_N_ELEMENTS(menu_items); i++) {
+		guint id = menu_items[i].id;
+    	menu_new_item_with_data(m, _(rule_text_type_labels[id]),
+        	GUINT_TO_POINTER(id));
+	}
+
+    gtk_option_menu_set_menu(GTK_OPTION_MENU(
+			gui_filter_dialog_lookup("optionmenu_filter_text_type")),
+        GTK_WIDGET(m));
+
+    /*
+     * The user_data set here is later relevant for filter_gui_get_flag_rule()
+     */
+
+	for (i = 0; i < G_N_ELEMENTS(radio_buttons); i++) {
+    	gtk_object_set_user_data(
+			GTK_OBJECT(gui_filter_dialog_lookup(radio_buttons[i].name)),
+			GUINT_TO_POINTER(radio_buttons[i].id));
+	}
+}
+
+void
+filter_gui_shutdown(void)
+{
+#ifdef USE_GTK1
+    if (gui_filter_dialog()) {
+		GtkCList *clist;
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("clist_filter_rules"));
+		clist_save_widths(clist, PROP_FILTER_RULES_COL_WIDTHS);
+
+		clist = GTK_CLIST(gui_filter_dialog_lookup("ctree_filter_filters"));
+		clist_save_widths(clist, PROP_FILTER_FILTERS_COL_WIDTHS);
+	}
+#endif /* USE_GTK1 */
+}
 
 /* vi: set ts=4 sw=4 cindent: */

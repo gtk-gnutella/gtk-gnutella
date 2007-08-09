@@ -621,9 +621,6 @@ uploads_gui_update_display(time_t now)
    	static gboolean locked = FALSE;
 	remove_row_ctx_t ctx;
 
-	if (!uploads_gui_update_required(now))
-		return;
-
 	ctx.force = FALSE;
 	ctx.now = now;
 	ctx.sl_remaining = NULL;

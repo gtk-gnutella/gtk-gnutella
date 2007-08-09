@@ -37,8 +37,6 @@
 void statusbar_gui_init(void);
 void statusbar_gui_shutdown(void);
 
-void statusbar_gui_clear_timeouts(time_t now);
-
 void statusbar_gui_set_default(const gchar *, ...) G_GNUC_PRINTF(1, 2);
 void statusbar_gui_remove(statusbar_msgid_t);
 

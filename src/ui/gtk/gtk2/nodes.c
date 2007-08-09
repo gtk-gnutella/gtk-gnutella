@@ -56,9 +56,8 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
-#include "lib/override.h"	/* Must be the last header included */
 
-#define UPDATE_MIN	300		/**< Update screen every 5 minutes at least */
+#include "lib/override.h"	/* Must be the last header included */
 
 /*
  * These hash tables record which information about which nodes has
@@ -567,6 +566,8 @@ nodes_gui_init(void)
 
 	tvm_nodes = tree_view_motion_set_callback(treeview_nodes,
 					update_tooltip, 400);
+
+	main_gui_add_timer(nodes_gui_timer);
 }
 
 /**
@@ -738,20 +739,8 @@ update_row(gpointer key, gpointer value, gpointer user_data)
  */
 
 void
-nodes_gui_update_nodes_display(time_t now)
+nodes_gui_update_display(time_t now)
 {
-    static time_t last_update;
-
-	if (!main_gui_window_visible())
-		return;
-
-	if (!GTK_WIDGET_DRAWABLE(GTK_WIDGET(treeview_nodes)))
-		return;
-
-    if (last_update && 0 == delta_time(now, last_update))
-        return;
-    last_update = now;
-
 	g_object_freeze_notify(G_OBJECT(treeview_nodes));
 	g_hash_table_foreach(nodes_handles, update_row, &now);
 	g_object_thaw_notify(G_OBJECT(treeview_nodes));

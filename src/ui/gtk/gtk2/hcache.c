@@ -121,6 +121,7 @@ hcache_gui_init(void)
 	g_object_unref(model);
 
 	tree_view_set_fixed_height_mode(treeview_hcache, TRUE);
+	main_gui_add_timer(hcache_gui_timer);
 }
 
 void
@@ -130,22 +131,12 @@ hcache_gui_shutdown(void)
 }
 
 void
-hcache_gui_update(time_t now)
+hcache_gui_update_display(void)
 {
     hcache_stats_t stats[HCACHE_MAX];
-	static time_t last_update;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
-
-	if (
-		last_update == now ||
-		!main_gui_window_visible() ||
-		nb_main_page_hostcache != main_gui_notebook_get_page()
-	) {
-		return;
-	}
-	last_update = now;
 
     guc_hcache_get_stats(stats);
 

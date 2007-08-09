@@ -27,6 +27,8 @@
 
 RCSID("$Id$")
 
+#include "gtk/notebooks.h"
+
 #include "gnet_stats_common.h"
 #include "settings.h"
 
@@ -222,6 +224,24 @@ gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	gtk_label_printf(GTK_LABEL(
 			gui_main_window_lookup("label_statusbar_horizon_kb_count")),
 		"%s", short_kb_size(val, show_metric_units()));
+}
+
+static gboolean
+gnet_stats_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_stats == main_gui_notebook_get_page();
+}
+
+void
+gnet_stats_gui_timer(time_t now)
+{
+	static time_t last_update;
+
+	if (last_update != now && gnet_stats_gui_is_visible()) {
+		last_update = now;
+		gnet_stats_gui_update_display(now);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -87,8 +87,6 @@ fi_gui_file_invalidate(struct fileinfo_data *file)
 void
 fi_gui_file_show(struct fileinfo_data *file)
 {
-	static const GValue zero_value;
-	GValue value = zero_value;
 	GtkTreeIter *iter;
 
 	g_return_if_fail(store_files);
@@ -98,11 +96,10 @@ fi_gui_file_show(struct fileinfo_data *file)
 	if (!iter) {
 		iter = walloc(sizeof *iter);
 		fileinfo_data_set_iter(file, iter);
-		gtk_list_store_append(store_files, iter);
+		list_store_append_pointer(store_files, iter, 0, file);
+	} else {
+		list_store_set_pointer(store_files, iter, 0, file);
 	}
-	g_value_init(&value, G_TYPE_POINTER);
-	g_value_set_pointer(&value, file);
-	gtk_list_store_set_value(store_files, iter, 0, &value);
 }
 
 void
@@ -263,8 +260,8 @@ fi_gui_source_show(struct download *d)
 
 	iter = walloc(sizeof *iter);
 	g_hash_table_insert(fi_sources, d, iter);
-	gtk_list_store_append(store_sources, iter);
-	gtk_list_store_set(store_sources, iter, 0, d, (-1));
+
+	list_store_append_pointer(store_sources, iter, 0, d);
 }
 
 static GSList *
@@ -559,11 +556,6 @@ store_files_init(void)
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_files),
 			i, fileinfo_data_cmp_func, uint_to_pointer(i), NULL);
 	}
-
-	g_object_freeze_notify(G_OBJECT(store_files));
-	fi_gui_files_visualize();
-	g_object_thaw_notify(G_OBJECT(store_files));
-
 }
 
 static void
@@ -608,7 +600,7 @@ treeview_download_files_init(void)
 }
 
 void
-fi_gui_filter_changed(void)
+fi_gui_files_filter_changed(void)
 {
 	GtkTreeView *tv = treeview_download_files;
 	GtkTreeViewColumn *column;
@@ -659,8 +651,6 @@ fi_gui_init(void)
 {
 	fi_sources = g_hash_table_new(NULL, NULL);
 	
-	fi_gui_common_init();
-
 	{
 		GtkTreeViewColumn *column;
 		GtkTreeView *tv;
@@ -727,6 +717,7 @@ fi_gui_init(void)
 	}
 
 	fi_gui_details_treeview_init();
+	fi_gui_common_init();
 }
 
 void
