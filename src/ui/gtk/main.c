@@ -691,37 +691,6 @@ main_gui_run(const gchar *geometry_spec)
     gtk_main();
 }
 
-void
-main_gui_shutdown(void)
-{
-	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
-
-	slist_free(&timers);
-	icon_close();
-
-    /*
-     * Discard all changes and close the dialog.
-     */
-
-    filter_close_dialog(FALSE);
-	gtk_widget_hide(gui_main_window());
-	if (gui_dlg_prefs())
-		gtk_widget_hide(gui_dlg_prefs());
-
-    search_stats_gui_shutdown();
-    filter_cb_close();
-    monitor_gui_shutdown();
-    search_gui_shutdown(); /* must be done before filter_shutdown! */
-	filter_shutdown();
-	vp_gui_shutdown();
-    fi_gui_shutdown();
-    nodes_gui_shutdown();
-    uploads_gui_shutdown();
-    upload_stats_gui_shutdown();
-	gnet_stats_gui_shutdown();
-    hcache_gui_shutdown();
-}
-
 static slist_t *timers;
 
 void
@@ -793,6 +762,44 @@ main_gui_shutdown_tick(guint left)
     label = GTK_LABEL(gui_shutdown_window_lookup("label_shutdown_count"));
 	gtk_label_printf(label, NG_("%d second", "%d seconds", left), left);
     gtk_main_flush();
+}
+
+void
+main_gui_shutdown(void)
+{
+	unsigned i;
+	
+	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
+
+	for (i = 0; i < G_N_ELEMENTS(visibility_listeners); i++) {
+		g_slist_free(visibility_listeners[i]);
+		visibility_listeners[i] = NULL;
+	}
+	slist_free(&timers);
+
+	icon_close();
+
+    /*
+     * Discard all changes and close the dialog.
+     */
+
+    filter_close_dialog(FALSE);
+	gtk_widget_hide(gui_main_window());
+	if (gui_dlg_prefs()) {
+		gtk_widget_hide(gui_dlg_prefs());
+	}
+    search_stats_gui_shutdown();
+    filter_cb_close();
+    monitor_gui_shutdown();
+    search_gui_shutdown(); /* must be done before filter_shutdown! */
+	filter_shutdown();
+	vp_gui_shutdown();
+    fi_gui_shutdown();
+    nodes_gui_shutdown();
+    uploads_gui_shutdown();
+    upload_stats_gui_shutdown();
+	gnet_stats_gui_shutdown();
+    hcache_gui_shutdown();
 }
 
 /* vi: set ts=4 sw=4 cindent: */
