@@ -326,12 +326,11 @@ uploads_gui_update_required(time_t now)
 	 */
 
 	delta = last_update ? delta_time(now, last_update) : UPDATE_MIN;
-	if (0 == delta || (delta < UPDATE_MIN && !uploads_gui_is_visible())) {
-		last_update = now;
-		return TRUE;
-	} else {
+	if (0 == delta || (delta < UPDATE_MIN && !uploads_gui_is_visible()))
 		return FALSE;
-	}
+
+	last_update = now;
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
