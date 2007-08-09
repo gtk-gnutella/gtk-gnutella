@@ -833,12 +833,8 @@ shell_add(struct gnutella_socket *s)
 		shell_shutdown(sh);
 	}
 
-	if (!sh->shutdown || shell_has_pending_output(sh)) {
-		/* We don't read anymore on shutdown, but be paranoid just in case. */
-		shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
-	} else {
-		shell_destroy(sh);
-	}
+	/* We don't read anymore on shutdown, but be paranoid just in case. */
+	shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
 }
 
 void
