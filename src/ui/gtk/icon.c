@@ -461,12 +461,6 @@ icon_close(void)
 static GdkPixmap *icon_map;
 static GdkBitmap *icon_mask;
 
-static void
-icon_timer(time_t unused_now)
-{
-	(void) unused_now;
-}
-
 void
 icon_init(void)
 {
