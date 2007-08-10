@@ -269,6 +269,7 @@
 # leaseweb/ocom
 85.17.167.134
 # Jironimo at Versatel; dynamic range
+83.135.71.235
 83.135.89.16
 87.122.145.255
 87.122.147.144
