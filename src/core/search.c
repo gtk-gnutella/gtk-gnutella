@@ -225,8 +225,8 @@ map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE])
 	return NULL;
 }
 
-static guint32 search_id = 0;			/**< Unique search counter */
-static GHashTable *searches = NULL;		/**< All alive searches */
+static guint32 search_id;				/**< Unique search counter */
+static GHashTable *searches;			/**< All alive searches */
 
 /**
  * Structure for search results.
@@ -275,8 +275,8 @@ typedef struct search_ctrl {
 /*
  * List of all searches, and of passive searches only.
  */
-static GSList *sl_search_ctrl = NULL;		/**< All searches */
-static GSList *sl_passive_ctrl = NULL;		/**< Only passive searches */
+static GSList *sl_search_ctrl;		/**< All searches */
+static GSList *sl_passive_ctrl;		/**< Only passive searches */
 
 /*
  * Table holding all the active MUIDs for all the searches, pointing back
@@ -284,13 +284,13 @@ static GSList *sl_passive_ctrl = NULL;		/**< Only passive searches */
  * The keys are not atoms but directly the MUID objects allocated and held
  * in the search's set of MUIDs.
  */
-static GHashTable *search_by_muid = NULL;
+static GHashTable *search_by_muid;
 
-static zone_t *rs_zone = NULL;		/**< Allocation of results_set */
-static zone_t *rc_zone = NULL;		/**< Allocation of record */
+static zone_t *rs_zone;		/**< Allocation of results_set */
+static zone_t *rc_zone;		/**< Allocation of record */
 
-static idtable_t *search_handle_map = NULL;
-static query_hashvec_t *query_hashvec = NULL;
+static idtable_t *search_handle_map;
+static query_hashvec_t *query_hashvec;
 
 static inline search_ctrl_t *
 search_find_by_handle(gnet_search_t n)
@@ -316,16 +316,16 @@ static void search_check_results_set(gnet_results_set_t *rs);
  *** Counters
  ***/
 
-static GHashTable *ht_sha1 = NULL;
-static GHashTable *ht_host = NULL;
+static GHashTable *ht_sha1;
+static GHashTable *ht_host;
 
 #if !GLIB_CHECK_VERSION(2, 0, 0)
 #undef SEARCH_STATS_COUNTERS
 #endif
 
 #ifdef SEARCH_STATS_COUNTERS
-static GList *top_sha1 = NULL;
-static GList *top_host = NULL;
+static GList *top_sha1;
+static GList *top_host;
 
 struct item_count {
 	gpointer p;
@@ -489,7 +489,7 @@ count_host(host_addr_t addr)
  *** Callbacks (private and public)
  ***/
 
-static listeners_t search_got_results_listeners = NULL;
+static listeners_t search_got_results_listeners;
 
 void
 search_add_got_results_listener(search_got_results_listener_t l)
