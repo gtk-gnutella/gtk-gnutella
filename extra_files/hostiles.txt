@@ -1065,3 +1065,6 @@
 # French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
 91.121.67.16
 
+# "Fun Workplace Time Waster", "(US Special Release)" etc. EXE, ZIP, RAR malware/adware
+216.139.213.22/31
+
