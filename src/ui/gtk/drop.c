@@ -67,9 +67,9 @@ drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
 	{
 		static GtkClipboard *clipboard;
 	
-		g_return_if_fail(!clipboard);
-		clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-		g_return_if_fail(clipboard);
+		if (!clipboard) {
+			clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+		}
 	}
 	
 	gtk_drag_dest_set_target_list(widget, gtk_target_list_new(targets,
