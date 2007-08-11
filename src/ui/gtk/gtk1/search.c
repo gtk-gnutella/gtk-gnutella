@@ -81,31 +81,6 @@ enum {
 	SEARCH_COL_SORT_DATA_DEFAULT		/**< Catch all case */
 };
 
-
-/*
- * Private function prototypes
- */
-#if 0
-static gint search_results_compare_func
-    (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2);
-#endif
-static void set_search_color(struct search *sch);
-static void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree);
-
-/*
- * If no searches are currently allocated
- */
-static GtkCTree *default_search_ctree;
-static GtkWidget *default_scrolled_window;
-
-
-static GtkCTree *
-search_gui_current_ctree(void)
-{
-	search_t *search = search_gui_get_current_search();
-    return search ? GTK_CTREE(search->tree) : default_search_ctree;
-}
-
 static GtkNotebook *
 notebook_search_results(void)
 {
@@ -194,16 +169,6 @@ search_gui_free_gui_record(gpointer gui_rc)
 }
 
 /**
- * Reset the internal model of the search.
- * Called when a search is restarted, for example.
- */
-void
-search_gui_reset_search(search_t *sch)
-{
-	search_gui_clear_search(sch);
-}
-
-/**
  * Decrement refcount of hash table key entry.
  */
 static gboolean
@@ -252,7 +217,7 @@ search_gui_clear_search(search_t *sch)
 	g_assert(sch);
 	g_assert(sch->dups);
 
-	search_gui_clear_ctree(sch->tree);
+	search_gui_clear_ctree(GTK_CTREE(sch->tree));
 	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
 	g_hash_table_foreach_remove(sch->parents, search_gui_free_parent, NULL);
 
@@ -277,13 +242,13 @@ search_gui_set_cursor_position(gint x, gint y)
 }
 
 
-static gchar * 
-search_gui_get_file_url(GtkWidget *widget)
+char * 
+search_gui_get_local_file_url(GtkWidget *widget)
 {
 	GtkCTreeNode *node;
 	gui_record_t *grc;
 	record_t *record;
-	gint row = -1;
+	int row = -1;
 
 	if (
 		!gtk_clist_get_selection_info(GTK_CLIST(widget),
@@ -311,7 +276,7 @@ void
 search_gui_init_tree(search_t *search)
 {
     const gchar *titles[c_sl_num];
-    gint row;
+    int row;
 
 	g_assert(NULL == search->parents);
 	search->parents = g_hash_table_new(pointer_hash_func, NULL);
@@ -322,42 +287,7 @@ search_gui_init_tree(search_t *search)
     row = gtk_clist_append(GTK_CLIST(clist_search()), (gchar **) titles);
     gtk_clist_set_row_data(GTK_CLIST(clist_search()), row, search);
 
-	/* Create a new ctree if needed, or use the default ctree */
-	g_assert(NULL == search->scrolled_window);
-	g_assert(NULL == search->tree);
-
-	if (search_gui_get_searches()) {
-		/* We have to create a new ctree for this search */
-		gui_search_create_ctree(&search->scrolled_window, &search->tree);
-		gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
-		gtk_notebook_append_page(notebook_search_results(),
-			search->scrolled_window, NULL);
-	} else {
-		/* There are no searches currently, we can use the default ctree */
-		if (default_scrolled_window && default_search_ctree) {
-			search->scrolled_window = default_scrolled_window;
-			search->tree = default_search_ctree;
-			default_scrolled_window = NULL;
-			default_search_ctree = NULL;
-		} else {
-			g_warning("search_gui_new_search_full(): "
-				"No current search but no default ctree !?");
-		}
-		gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
-	}
-
 	search_gui_sort_column(search, search->sort_col);
-	
-    gtk_widget_set_sensitive(
-        gui_main_window_lookup("button_search_expand_all"), TRUE);
-    gtk_widget_set_sensitive(
-        gui_main_window_lookup("button_search_collapse_all"), TRUE);
-
-	set_search_color(search);
-	
-	if (search_gui_is_local(search)) {
-		drag_attach(GTK_WIDGET(search->tree), search_gui_get_file_url);
-	}
 }
 
 
@@ -1044,7 +974,7 @@ search_gui_sort_column(search_t *search, gint column)
             gtk_box_reorder_child(GTK_BOX(cw), search->arrow, 0);
             gtk_widget_show(search->arrow);
         }
-		search_gui_perform_sort(search->tree, ascending, column);
+		search_gui_perform_sort(GTK_CTREE(search->tree), ascending, column);
         search->sort = TRUE;
 
 	} else {
@@ -1258,7 +1188,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			is_parent = TRUE;
 			parent_row = GTK_CTREE_ROW(node);
 			auto_node = parent_row->parent;
-			grc1 = gtk_ctree_node_get_row_data(sch->tree, auto_node);
+			grc1 = gtk_ctree_node_get_row_data(GTK_CTREE(sch->tree), auto_node);
 		} else {
 			auto_node = node;
 			grc1 = gui_rc;
@@ -1332,18 +1262,6 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 	gtk_ctree_node_set_foreground(ctree, node, gui_color_get(color));
 }
-
-
-void
-search_gui_set_clear_button_sensitive(gboolean flag)
-{
-	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_clear"),
-		flag);
-}
-
-
-/* ----------------------------------------- */
-
 
 /**
  * Removes the given node from the ctree
@@ -1591,7 +1509,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
-    gui_search_force_update_tab_label(current_search);
+    search_gui_force_update_tab_label(current_search);
     search_gui_update_items(current_search);
     guc_search_update_items(current_search->search_handle,
 		current_search->items);
@@ -1696,7 +1614,7 @@ discard_selection_of_ctree(GtkCTree *ctree)
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
-    gui_search_force_update_tab_label(current_search);
+    search_gui_force_update_tab_label(current_search);
     search_gui_update_items(current_search);
     guc_search_update_items(current_search->search_handle,
 		current_search->items);
@@ -1794,29 +1712,6 @@ on_search_list_row_move_event(GtkCList *clist,
 	(void) unused_to;
 
 	search_gui_synchronize_list(clist);
-	search_gui_option_menu_searches_update();
-}
-
-static void
-drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
-	gint unused_x, gint unused_y, GtkSelectionData *selection,
-	guint unused_info, guint stamp, gpointer unused_udata)
-{
-	gboolean success = FALSE;
-
-	(void) unused_udata;
-	(void) unused_widget;
-	(void) unused_x;
-	(void) unused_y;
-	(void) unused_info;
-
-	if (selection->length > 0 && selection->format == 8) {
-		const gchar *text;
-
-		text = cast_to_gchar_ptr(selection->data);
-		success = search_gui_insert_query(cast_to_gchar_ptr(selection->data));
-	}
-	gtk_drag_finish(dc, success, FALSE, stamp);
 }
 
 /***
@@ -1826,24 +1721,6 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 void
 search_gui_init(void)
 {
-    GtkNotebook *notebook = notebook_search_results();
-
-	gui_search_create_ctree(&default_scrolled_window, &default_search_ctree);
-	gui_color_init(GTK_WIDGET(default_search_ctree));
-    gtk_notebook_remove_page(notebook, 0);
-	gtk_notebook_set_scrollable(notebook, TRUE);
-	gtk_notebook_append_page(notebook, default_scrolled_window, NULL);
-  	gtk_notebook_set_tab_label_text(notebook,
-		default_scrolled_window, _("(no search)"));
-
-	gui_signal_connect(notebook, "switch-page",
-		on_search_notebook_switch, NULL);
-
-	clist_restore_visibility(GTK_CLIST(search_gui_current_ctree()),
-		PROP_SEARCH_RESULTS_COL_VISIBLE);
-	clist_restore_widths(GTK_CLIST(search_gui_current_ctree()),
-		PROP_SEARCH_RESULTS_COL_WIDTHS);
-
 	{
 		GtkCList *clist = clist_search();
 		
@@ -1870,13 +1747,6 @@ search_gui_init(void)
 		drag_attach(GTK_WIDGET(clist), search_details_get_text);
 	}
 
-	{
-		GtkWidget *widget;
-
-		widget = gui_main_window_lookup("entry_search");
-		drop_widget_init(widget, drag_data_received, NULL);
-	}
-
 	search_gui_common_init();
 }
 
@@ -1886,152 +1756,68 @@ search_gui_init(void)
 void
 search_gui_remove_search(search_t *sch)
 {
-    search_t *current_search;
-
 	g_return_if_fail(sch);
+
+	if (search_gui_get_current_search() == sch) {
+		GtkCList *clist = GTK_CLIST(sch->tree);
+
+		clist_save_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
+		clist_save_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	}
 
 	gtk_clist_remove(clist_search(),
 		gtk_clist_find_row_from_data(clist_search(), sch));
-
-    gtk_timeout_remove(sch->tab_updating);
 
     /* remove column header arrow if it exists */
     if (sch->arrow) {
         gtk_widget_destroy(sch->arrow);
         sch->arrow = NULL;
     }
-
-    if (search_gui_get_searches()) {		/* Some other searches remain. */
-		gtk_notebook_remove_page(notebook_search_results(),
-			gtk_notebook_page_num(notebook_search_results(),
-				sch->scrolled_window));
-	} else {
-		/*
-		 * Keep the clist of this search, clear it and make it the
-		 * default clist
-		 */
-		gtk_clist_clear(GTK_CLIST(sch->tree));
-		clist_save_visibility(GTK_CLIST(sch->tree),
-			PROP_SEARCH_RESULTS_COL_VISIBLE);
-		clist_save_widths(GTK_CLIST(sch->tree),
-			PROP_SEARCH_RESULTS_COL_WIDTHS);
-
-		default_search_ctree = sch->tree;
-		default_scrolled_window = sch->scrolled_window;
-		sch->tree = NULL;
-		sch->scrolled_window = NULL;
-
-		search_gui_forget_current_search();
-
-		search_gui_update_items(NULL);
-    	search_gui_update_expiry(NULL);
-
-        gtk_notebook_set_tab_label_text(notebook_search_results(),
-			default_scrolled_window, _("(no search)"));
-
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_clear"),
-			FALSE);
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_close"),
-			FALSE);
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_expand_all"),
-			FALSE);
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_collapse_all"),
-			FALSE);
-	}
-
-    current_search = search_gui_get_current_search();
-    gtk_widget_set_sensitive(
-		gui_main_window_lookup("button_search_download"),
-		current_search && GTK_CLIST(current_search->tree)->selection);
 }
 
 void
-search_gui_set_current_search(search_t *sch)
+search_gui_set_current_search(search_t *search)
 {
 	search_t *current_search;
 
-	g_return_if_fail(sch);
-
 	current_search = search_gui_get_current_search();
-	if (sch == current_search)
+	if (search == current_search)
 		return;
 
 	if (current_search) {
-		gui_search_force_update_tab_label(current_search);
-	}
-
-	if (search_gui_current_ctree()) {
-		GtkCList *clist = GTK_CLIST(search_gui_current_ctree());
+		GtkCList *clist = GTK_CLIST(current_search->tree);
 
 		clist_save_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		clist_save_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
 	}
+    if (search) {
+		GtkCList *clist;
+		int row;
 
-	/* This prevents side-effects otherwise caused by  changing the value of
-	 * spinbutton_reissue_timeout.
-	 */
-	search_gui_forget_current_search();
-	sch->unseen_items = 0;
-
-    if (sch) {
-    	GtkWidget *button;
-
-        gui_search_force_update_tab_label(sch);
-        search_gui_update_items(sch);
-
-		{
-   			GtkCList *clist;
-			gint row;
-
-   			clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
-			row = gtk_clist_find_row_from_data(clist, sch);
-			gtk_clist_unselect_all(clist);
-			gtk_clist_select_row(clist, row, 0);
-			if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
-				gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
-			}
+		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+		row = gtk_clist_find_row_from_data(clist, search);
+		gtk_clist_unselect_all(clist);
+		gtk_clist_select_row(clist, row, 0);
+		if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
+			gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
 		}
 
-		button = gui_main_window_lookup("spinbutton_search_reissue_timeout");
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(button),
-    		guc_search_get_reissue_timeout(sch->search_handle));
-        gtk_widget_set_sensitive(GTK_WIDGET(button),
-			guc_search_is_active(sch->search_handle));
-
+		clist = GTK_CLIST(search->tree);
+		clist_restore_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
+		clist_restore_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
         gtk_widget_set_sensitive(
-            gui_main_window_lookup("button_search_download"),
-            GTK_CLIST(sch->tree)->selection != NULL);
-        gtk_widget_set_sensitive(
-            gui_main_window_lookup("button_search_clear"),
-            sch->items != 0);
-    }
-
-	search_gui_current_search(sch);
-
-	gtk_notebook_set_current_page(notebook_search_results(),
-		gtk_notebook_page_num(notebook_search_results(), sch->scrolled_window));
-
-	if (search_gui_update_expiry(sch)) {
-		gui_search_set_enabled(sch, FALSE);
+			gui_main_window_lookup("button_search_download"),
+			clist->selection != NULL);
 	}
-	clist_restore_visibility(GTK_CLIST(sch->tree),
-		PROP_SEARCH_RESULTS_COL_VISIBLE);
-	clist_restore_widths(GTK_CLIST(sch->tree),
-		PROP_SEARCH_RESULTS_COL_WIDTHS);
+	search_gui_current_search(search);
 }
-
 
 /**
  *	Create a new GtkCTree for search results
  */
-static void
-gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
+GtkWidget *
+search_gui_create_tree(void)
 {
-    GtkWidget *ctree_widget;
 	static const struct {
 		const gchar *title;
 		const gint id;
@@ -2055,28 +1841,19 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 		{ N_("SHA-1"),     	c_sr_sha1		},
 		{ N_("Created"),   	c_sr_ctime		},
 	};
+    GtkCList *ctree;
 	guint i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(columns) == c_sr_num);
 
-	*sw = gtk_scrolled_window_new(NULL, NULL);
+	ctree = GTK_CLIST(gtk_ctree_new(c_sr_num, 0));
 
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-
-	ctree_widget = gtk_ctree_new(c_sr_num,0);
-	*ctree = GTK_CTREE(ctree_widget);
-
-	gtk_container_add(GTK_CONTAINER(*sw), ctree_widget);
-
-	gtk_clist_set_selection_mode(GTK_CLIST(*ctree), GTK_SELECTION_EXTENDED);
-	gtk_clist_column_titles_show(GTK_CLIST(*ctree));
+	gtk_clist_set_selection_mode(ctree, GTK_SELECTION_EXTENDED);
+	gtk_clist_column_titles_show(ctree);
 
 	/* Right/Left justification of column text */
-    gtk_clist_set_column_justification(GTK_CLIST(*ctree),
-        c_sr_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(GTK_CLIST(*ctree),
-        c_sr_count, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(ctree, c_sr_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(ctree, c_sr_count, GTK_JUSTIFY_RIGHT);
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		GtkWidget *label, *hbox;
@@ -2089,147 +1866,63 @@ gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     	gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
     	hbox = gtk_hbox_new(FALSE, 4);
     	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-		gtk_clist_set_column_widget(GTK_CLIST(*ctree), id, hbox);
+		gtk_clist_set_column_widget(ctree, id, hbox);
     	gtk_widget_show_all(hbox);
-    	gtk_clist_set_column_name(GTK_CLIST(*ctree), id,
-			deconstify_gchar(title));
+    	gtk_clist_set_column_name(ctree, id, deconstify_gchar(title));
 	}
 
-	clist_restore_visibility(GTK_CLIST(*ctree),
-		PROP_SEARCH_RESULTS_COL_VISIBLE);
-	clist_restore_widths(GTK_CLIST(*ctree),
-		PROP_SEARCH_RESULTS_COL_WIDTHS);
+	clist_restore_visibility(ctree, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	clist_restore_widths(ctree, PROP_SEARCH_RESULTS_COL_WIDTHS);
 	
-	gtk_widget_show_all(*sw);
-
-	gui_signal_connect(*ctree, "tree_select_row",
+	gui_signal_connect(ctree, "tree_select_row",
 		on_ctree_search_results_select_row, NULL);
-	gui_signal_connect(*ctree, "tree_unselect_row",
+	gui_signal_connect(ctree, "tree_unselect_row",
 		on_ctree_search_results_unselect_row, NULL);
-	gui_signal_connect(*ctree, "click_column",
+	gui_signal_connect(ctree, "click_column",
 		on_clist_search_results_click_column, NULL);
-	gui_signal_connect(*ctree, "button_press_event",
+	gui_signal_connect(ctree, "button_press_event",
 		on_clist_search_results_button_press_event, NULL);
-    gui_signal_connect(*ctree, "key_press_event",
+    gui_signal_connect(ctree, "key_press_event",
 		on_clist_search_results_key_press_event, NULL);
-}
 
-
-/**
- *	gui_search_force_update_tab_label
- *
- *	Like search_update_tab_label but always update the label
- *
- */
-void
-gui_search_force_update_tab_label(struct search *sch)
-{
-	search_t *current_search = search_gui_get_current_search();
-    gint row;
-
-	{
-		const gchar *s;
-		
-		s = lazy_utf8_to_ui_string(search_gui_query(sch));
-		if (sch == current_search || sch->unseen_items == 0)
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)",
-				s, sch->items);
-		else
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)",
-				s, sch->items, sch->unseen_items);
-	}
-	
-	sch->last_update_items = sch->items;
-	gtk_notebook_set_tab_label_text(notebook_search_results(),
-		sch->scrolled_window, tmpstr);
-
-    row = gtk_clist_find_row_from_data(clist_search(), sch);
-    gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->items);
-    gtk_clist_set_text(clist_search(), row, c_sl_hit, tmpstr);
-    gm_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->unseen_items);
-    gtk_clist_set_text(clist_search(), row, c_sl_new, tmpstr);
-
-    if (sch->unseen_items > 0) {
-        gtk_clist_set_background(
-            clist_search(), row,
-            &gtk_widget_get_style(GTK_WIDGET(clist_search()))
-                ->bg[GTK_STATE_ACTIVE]);
-    } else {
-        gtk_clist_set_background(clist_search(), row, NULL);
-    }
-
-	sch->last_update_time = tm_time();
-}
-
-
-/**
- *  Update the label if nothing's changed or if the last update was
- *  recent.
- */
-gboolean
-gui_search_update_tab_label(struct search *sch)
-{
-	if (sch->items == sch->last_update_items)
-		return TRUE;
-
-	if (tm_time() - sch->last_update_time < TAB_UPDATE_TIME)
-		return TRUE;
-
-	gui_search_force_update_tab_label(sch);
-
-	return TRUE;
-}
-
-
-/**
- * Removes all search results from the current search.
- */
-void
-gui_search_clear_results(void)
-{
-	search_t *current_search = search_gui_get_current_search();
-
-	search_gui_reset_search(current_search);
-	gui_search_force_update_tab_label(current_search);
-    search_gui_update_items(current_search);
+	return GTK_WIDGET(ctree);
 }
 
 /**
  * Set proper search color in list depending on whether it is enabled.
  */
 static void
-set_search_color(struct search *sch)
+search_gui_set_search_list_color(const struct search *search, int row)
 {
-	GdkColor *color;
+	GdkColor *fg, *bg;
 
-	if (search_gui_is_enabled(sch)) {
-		color = NULL;
+	if (search_gui_is_enabled(search)) {
+		fg = NULL;
+		bg = NULL;
 	} else {
-		color = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
+		fg = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
 					->fg[GTK_STATE_INSENSITIVE];
+		bg = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
+					->bg[GTK_STATE_INSENSITIVE];
 	}
-	gtk_clist_set_foreground(clist_search(),
-		gtk_notebook_page_num(notebook_search_results(), sch->scrolled_window),
-		color);
+	gtk_clist_set_foreground(clist_search(), row, fg);
+	gtk_clist_set_background(clist_search(), row, bg);
 }
 
-
-/**
- * Flag whether search is enabled.
- */
 void
-gui_search_set_enabled(struct search *sch, gboolean enabled)
+search_gui_update_list_label(struct search *search)
 {
-	if (search_gui_is_enabled(sch) != enabled) {
-		if (enabled)
-			guc_search_start(sch->search_handle);
-		else
-			guc_search_stop(sch->search_handle);
+	if (search) {
+		int row;
 
-		set_search_color(sch);
+		row = gtk_clist_find_row_from_data(clist_search(), search);
+		gtk_clist_set_text(clist_search(), row, c_sl_hit,
+				uint32_to_string(search->items));
+		gtk_clist_set_text(clist_search(), row, c_sl_new,
+				uint32_to_string(search->unseen_items));
+		search_gui_set_search_list_color(search, row);
 	}
 }
-
 
 /**
  *	Expand all nodes in tree for current search
@@ -2237,15 +1930,11 @@ gui_search_set_enabled(struct search *sch, gboolean enabled)
 void
 search_gui_expand_all(void)
 {
-	GtkCTree *ctree;
-    search_t *current_search = search_gui_get_current_search();
+    search_t *search = search_gui_get_current_search();
 
-	if (current_search == NULL)
-        return;
-
-    ctree = current_search->tree;
-
-	gtk_ctree_expand_recursive(ctree, NULL);
+	if (search) {
+		gtk_ctree_expand_recursive(GTK_CTREE(search->tree), NULL);
+	}
 }
 
 
@@ -2255,15 +1944,11 @@ search_gui_expand_all(void)
 void
 search_gui_collapse_all(void)
 {
-	GtkCTree *ctree;
-    search_t *current_search = search_gui_get_current_search();
+    search_t *search = search_gui_get_current_search();
 
-	if (current_search == NULL)
-        return;
-
-    ctree = current_search->tree;
-
-	gtk_ctree_collapse_recursive(ctree, NULL);
+	if (search) {
+		gtk_ctree_collapse_recursive(GTK_CTREE(search->tree), NULL);
+	}
 }
 
 void
@@ -2364,7 +2049,7 @@ search_gui_record_get_parent(search_t *search, record_t *record)
 	
 		parent = find_parent_with_sha1(search, record->sha1);
 		if (parent) {
-			grc = gtk_ctree_node_get_row_data(search->tree, parent);
+			grc = gtk_ctree_node_get_row_data(GTK_CTREE(search->tree), parent);
 			return grc->shared_record;
 		}
 	}
@@ -2391,7 +2076,7 @@ search_gui_record_get_children(search_t *search, record_t *record)
 			gui_record_t *grc;
 
 			row = GTK_CTREE_ROW(node);
-			grc = gtk_ctree_node_get_row_data(search->tree, node);
+			grc = gtk_ctree_node_get_row_data(GTK_CTREE(search->tree), node);
 			children = g_slist_prepend(children, grc->shared_record);
 		}
 	}

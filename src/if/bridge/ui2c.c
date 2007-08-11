@@ -843,11 +843,34 @@ guc_shared_kbytes_scanned(void)
 }
 
 void
+guc_search_got_results_listener_add(search_got_results_listener_t l)
+{
+	search_got_results_listener_add(l);
+}
+
+void
+guc_search_got_results_listener_remove(search_got_results_listener_t l)
+{
+	search_got_results_listener_remove(l);
+}
+
+void
+guc_search_status_change_listener_add(search_status_change_listener_t l)
+{
+	search_status_change_listener_add(l);
+}
+
+void
+guc_search_status_change_listener_remove(search_status_change_listener_t l)
+{
+	search_status_change_listener_remove(l);
+}
+
+void
 guc_search_request_listener_add(search_request_listener_t l)
 {
 	search_request_listener_add(l);
 }
-
 
 void
 guc_search_request_listener_remove(search_request_listener_t l)

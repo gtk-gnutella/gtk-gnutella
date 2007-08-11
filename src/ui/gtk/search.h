@@ -41,17 +41,13 @@
 struct search {
     gnet_search_t search_handle;	/**< Search handle */
 
-#ifdef USE_GTK2
-	GtkTreeView  *tree;				/**< GtkTreeView for this search */
-#else
-	GtkCTree   *tree;			   	/**< GtkCTree for this search */
-#endif /* USE_GTK2 */
+	GtkWidget  *tree;				/**< GtkTreeView or GtkCTree */
+	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains tree */
+    GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
+	GHashTable *dups;				/**< keep a record of dups. */
 	GHashTable *parents;			/**< table of mount iterators for
 										 any seen SHA1 */
-	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains
-										 the GtkCList */
-    GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
     gint        sort_col;
     gint        sort_order;
@@ -59,10 +55,7 @@ struct search {
 
 	time_t      last_update_time;	/**< last time notebook tab was updated */
 	guint32     last_update_items;	/**< # of items included in last update */
-	gint        tab_updating;		/**< ID for timeout func. to be cancelled */
 	guint32     unseen_items;		/**< How many items haven't been seen yet */
-
-	GHashTable *dups;				/**< keep a record of dups. */
 
     filter_t   *filter;				/**< filter ruleset bound to this search */
 
@@ -113,7 +106,6 @@ struct search *search_new_full(const gchar *, guint32, flag_t flags);
 void search_gui_close_search(struct search *);
 
 void search_gui_clear_search(struct search *);
-void search_gui_remove_search(struct search *);
 void search_gui_reset_search(struct search *);
 void search_gui_download_files(void);
 void search_gui_discard_files(void);
@@ -122,10 +114,8 @@ void search_gui_sort_column(struct search *, gint column);
 
 void search_gui_add_record(struct search *, record_t *, enum gui_color);
 
-gboolean gui_search_update_tab_label(struct search *);
-void gui_search_clear_results(void);
+void search_gui_clear_results(void);
 
-void gui_search_force_update_tab_label(struct search *);
 
 #ifdef USE_GTK2
 void search_gui_request_bitzi_data(void);
@@ -135,10 +125,7 @@ const record_t *search_gui_get_record_at_path(GtkTreeView *, GtkTreePath *);
 void search_gui_expand_all(void);
 void search_gui_collapse_all(void);
 
-void gui_search_set_enabled(struct search *, gboolean enabled);
 const GList *search_gui_get_searches(void);
-
-void search_gui_set_clear_button_sensitive(gboolean flag);
 
 void search_gui_start_massive_update(struct search *);
 void search_gui_end_massive_update(struct search *);

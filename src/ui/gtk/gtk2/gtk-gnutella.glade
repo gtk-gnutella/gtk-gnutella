@@ -2649,7 +2649,6 @@ http://maxmind.com/</property>
 		  <property name="can_focus">True</property>
 		  <property name="relief">GTK_RELIEF_NONE</property>
 		  <property name="focus_on_click">True</property>
-		  <signal name="clicked" handler="on_button_search_clicked"/>
 
 		  <child>
 		    <widget class="GtkAlignment" id="alignment106">
@@ -2752,8 +2751,6 @@ http://maxmind.com/</property>
 			  <property name="has_frame">True</property>
 			  <property name="invisible_char">*</property>
 			  <property name="activates_default">False</property>
-			  <signal name="activate" handler="on_entry_search_activate" last_modification_time="Sun, 30 Oct 2005 05:04:56 GMT"/>
-			  <signal name="changed" handler="on_entry_search_changed" last_modification_time="Sun, 30 Oct 2005 05:22:03 GMT"/>
 			</widget>
 		      </child>
 
@@ -2836,7 +2833,6 @@ http://maxmind.com/</property>
 		  <property name="can_focus">True</property>
 		  <property name="relief">GTK_RELIEF_NONE</property>
 		  <property name="focus_on_click">True</property>
-		  <signal name="clicked" handler="on_button_search_passive_clicked"/>
 		  <accelerator key="p" modifiers="GDK_CONTROL_MASK" signal="clicked"/>
 
 		  <child>
@@ -5999,7 +5995,6 @@ http://maxmind.com/</property>
 	      <property name="can_focus">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="clicked" handler="on_button_search_close_clicked"/>
 
 	      <child>
 		<widget class="GtkAlignment" id="alignment76">
@@ -6808,7 +6803,6 @@ http://maxmind.com/</property>
 	      <property name="can_focus">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="clicked" handler="on_button_search_download_clicked" last_modification_time="Mon, 12 Sep 2005 21:36:18 GMT"/>
 
 	      <child>
 		<widget class="GtkAlignment" id="alignment89">
@@ -6887,7 +6881,6 @@ http://maxmind.com/</property>
 	      <property name="can_focus">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="clicked" handler="on_button_search_filter_clicked" last_modification_time="Sat, 01 Feb 2003 17:54:46 GMT"/>
 
 	      <child>
 		<widget class="GtkAlignment" id="alignment75">
@@ -6991,7 +6984,6 @@ http://maxmind.com/</property>
 	      <property name="can_focus">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="clicked" handler="on_button_search_clear_clicked"/>
 	      <accelerator key="c" modifiers="GDK_CONTROL_MASK" signal="clicked"/>
 
 	      <child>

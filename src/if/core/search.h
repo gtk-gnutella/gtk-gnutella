@@ -226,16 +226,14 @@ typedef void (*search_request_listener_t) (
 typedef void (*search_got_results_listener_t)
     (GSList *, const gnet_results_set_t *);
 
+typedef void (*search_status_change_listener_t)(gnet_search_t);
+
 enum search_new_result {
 	SEARCH_NEW_SUCCESS,
 	SEARCH_NEW_TOO_LONG,
 	SEARCH_NEW_TOO_SHORT,
 	SEARCH_NEW_INVALID_URN
 };
-
-void search_add_got_results_listener(search_got_results_listener_t);
-void search_remove_got_results_listener(search_got_results_listener_t);
-
 
 /*
  * Search public interface, visible only from the bridge.
@@ -281,6 +279,12 @@ gboolean search_browse(gnet_search_t,
 	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean search_locally(gnet_search_t sh, const gchar *query);
 guint search_handle_magnet(const gchar *url);
+
+void search_got_results_listener_add(search_got_results_listener_t);
+void search_got_results_listener_remove(search_got_results_listener_t);
+
+void search_status_change_listener_add(search_status_change_listener_t);
+void search_status_change_listener_remove(search_status_change_listener_t);
 
 void search_request_listener_add(search_request_listener_t);
 void search_request_listener_remove(search_request_listener_t);

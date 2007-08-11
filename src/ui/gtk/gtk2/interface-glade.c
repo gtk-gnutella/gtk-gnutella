@@ -2570,18 +2570,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_about, "activate",
                     G_CALLBACK (on_menu_about_activate),
                     NULL);
-  g_signal_connect ((gpointer) button_search, "clicked",
-                    G_CALLBACK (on_button_search_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) entry_search, "activate",
-                    G_CALLBACK (on_entry_search_activate),
-                    NULL);
-  g_signal_connect ((gpointer) entry_search, "changed",
-                    G_CALLBACK (on_entry_search_changed),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_passive, "clicked",
-                    G_CALLBACK (on_button_search_passive_clicked),
-                    NULL);
   g_signal_connect ((gpointer) progressbar_bws_in, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_in_button_press_event),
                     NULL);
@@ -4114,19 +4102,6 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (label407, "label407");
   gtk_widget_show (label407);
   gtk_box_pack_start (GTK_BOX (hbox156), label407, FALSE, FALSE, 0);
-
-  g_signal_connect ((gpointer) button_search_close, "clicked",
-                    G_CALLBACK (on_button_search_close_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_download, "clicked",
-                    G_CALLBACK (on_button_search_download_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_filter, "clicked",
-                    G_CALLBACK (on_button_search_filter_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_clear, "clicked",
-                    G_CALLBACK (on_button_search_clear_clicked),
-                    NULL);
 
   gtk_label_set_mnemonic_widget (GTK_LABEL (label832), option_menu_searches);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label557), spinbutton_search_max_results);

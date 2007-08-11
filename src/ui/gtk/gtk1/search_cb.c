@@ -234,56 +234,6 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 
 
 /**
- *	When the user switches notebook tabs, update the rest of GUI
- *
- *	This may be obsolete as we removed the tabbed interface --Emile 27/12/03
- */
-void
-on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
-	gint page_num, gpointer unused_udata)
-{
-	search_t *search;
-
-	(void) unused_page;
-	(void) unused_udata;
-
-	search = gtk_object_get_user_data(
-				GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
-
-	g_return_if_fail(search);
-    search_gui_set_current_search(search);
-	main_gui_notebook_set_page(nb_main_page_search);
-}
-
-/**
- *	Create a search based on query entered
- */
-void
-on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	search_gui_new_search_entered();
-}
-
-
-void
-on_entry_search_activate(GtkEditable *unused_editable, gpointer unused_udata)
-{
-    /*
-     * Delegate to: on_button_search_clicked.
-     *      --BLUE, 30/04/2002
-     */
-
-	(void) unused_editable;
-	(void) unused_udata;
-
-	search_gui_new_search_entered();
-}
-
-
-/**
  *	When a search string is entered, activate the search button
  */
 void
@@ -301,73 +251,6 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
     gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
 }
 
-
-/**
- *	Clear search results, de-activate clear search button
- */
-void
-on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	gui_search_clear_results();
-	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_clear"),
-		FALSE);
-}
-
-void
-on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-    search_t *search;
-
-	(void) unused_button;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-	g_return_if_fail(search);
-
-	search_gui_close_search(search);
-}
-
-void
-on_button_search_download_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    search_gui_download_files();
-}
-
-void
-on_button_search_collapse_all_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    search_gui_collapse_all();
-}
-
-void
-on_button_search_expand_all_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-    search_gui_expand_all();
-}
-
-void
-on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	filter_open_dialog();
-}
 
 gboolean
 on_clist_search_results_key_press_event(GtkWidget *unused_widget,
@@ -627,49 +510,6 @@ on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *unused_node,
 	selected_row_changed(ctree, NULL);
 }
 
-/**
- *	Please add comment
- */
-void
-on_button_search_passive_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-    filter_t *default_filter;
-	search_t *search;
-
-	(void) unused_button;
-	(void) unused_udata;
-
-    /*
-     * We have to capture the selection here already, because
-     * new_search will trigger a rebuild of the menu as a
-     * side effect.
-     */
-    default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
-				gui_main_window_lookup("optionmenu_search_filter")));
-
-	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
-
-    /*
-     * If we should set a default filter, we do that.
-     */
-    if (default_filter != NULL) {
-        rule_t *rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
-
-        /*
-         * Since we don't want to distrub the shadows and
-         * do a "force commit" without the user having pressed
-         * the "ok" button in the dialog, we add the rule
-         * manually.
-         */
-        search->filter->ruleset =
-            g_list_append(search->filter->ruleset, rule);
-        rule->target->refcount ++;
-    }
-}
-
-
-
 /***
  *** Search results popup
  ***/
@@ -688,7 +528,7 @@ search_gui_browse_selected(void)
     search = search_gui_get_current_search();
     g_assert(search != NULL);
 
-    ctree = search->tree;
+    ctree = GTK_CTREE(search->tree);
 	selected = GTK_CLIST(ctree)->selection;
 
 	if (selected == NULL) {
@@ -761,7 +601,8 @@ add_filter(filter_t *filter, GFunc filter_add_func, GCompareFunc cfn)
     gtk_clist_freeze(GTK_CLIST(search->tree));
 
 	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
-	data_list = search_cb_collect_ctree_data(search->tree, node_list, cfn);
+	data_list = search_cb_collect_ctree_data(GTK_CTREE(search->tree),
+					node_list, cfn);
 
     g_slist_foreach(data_list, filter_add_func, filter);
 
@@ -912,7 +753,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
     gtk_clist_freeze(GTK_CLIST(search->tree));
 
 	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
-	data_list = search_cb_collect_ctree_data(search->tree,
+	data_list = search_cb_collect_ctree_data(GTK_CTREE(search->tree),
 					node_list, gui_record_sha1_eq);
 
 	/* Make sure the column is actually visible. */

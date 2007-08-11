@@ -492,13 +492,13 @@ count_host(host_addr_t addr)
 static listeners_t search_got_results_listeners;
 
 void
-search_add_got_results_listener(search_got_results_listener_t l)
+search_got_results_listener_add(search_got_results_listener_t l)
 {
 	LISTENER_ADD(search_got_results, l);
 }
 
 void
-search_remove_got_results_listener(search_got_results_listener_t l)
+search_got_results_listener_remove(search_got_results_listener_t l)
 {
 	LISTENER_REMOVE(search_got_results, l);
 }
@@ -509,6 +509,26 @@ search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
     g_assert(rs != NULL);
 
 	LISTENER_EMIT(search_got_results, (sch_matched, rs));
+}
+
+static listeners_t search_status_change_listeners;
+
+void
+search_status_change_listener_add(search_status_change_listener_t l)
+{
+	LISTENER_ADD(search_status_change, l);
+}
+
+void
+search_status_change_listener_remove(search_status_change_listener_t l)
+{
+	LISTENER_REMOVE(search_status_change, l);
+}
+
+static void
+search_status_changed(gnet_search_t search_handle)
+{
+	LISTENER_EMIT(search_status_change, (search_handle));
 }
 
 /***
@@ -3701,8 +3721,7 @@ search_new(gnet_search_t *ptr, const gchar *query,
 	if (sbool_get(sch->active)) {
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
-		sch->new_node_hook->func =
-				cast_func_to_gpointer((func_ptr_t) node_added_callback);
+		sch->new_node_hook->func = node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
@@ -3796,6 +3815,7 @@ search_start(gnet_search_t sh)
 		}
 
         update_one_reissue_timeout(sch);
+		search_status_changed(sch->search_handle);
 	}
 }
 
@@ -3803,9 +3823,9 @@ search_start(gnet_search_t sh)
  * Stop search. Cancel reissue timer and don't return any results anymore.
  */
 void
-search_stop(gnet_search_t sh)
+search_stop(gnet_search_t search_handle)
 {
-    search_ctrl_t *sch = search_find_by_handle(sh);
+    search_ctrl_t *sch = search_find_by_handle(search_handle);
 
     g_assert(sch != NULL);
     g_assert(!sbool_get(sch->frozen));
@@ -3814,6 +3834,8 @@ search_stop(gnet_search_t sh)
 
     if (sbool_get(sch->active))
 		update_one_reissue_timeout(sch);
+
+	search_status_changed(sch->search_handle);
 }
 
 /**
@@ -4096,17 +4118,19 @@ search_browse(gnet_search_t sh,
  * the removed download.
  */
 void
-search_dissociate_browse(gnet_search_t sh, struct download *d)
+search_dissociate_browse(gnet_search_t search_handle, struct download *d)
 {
-    search_ctrl_t *sch = search_find_by_handle(sh);
+    search_ctrl_t *sch = search_find_by_handle(search_handle);
 
     g_assert(sch != NULL);
 	g_assert(sbool_get(sch->browse));
 	g_assert(sch->download == d);
 
 	sch->download = NULL;
-
-	/* FIXME: notify the GUI that the browse is finished */
+	if (!sbool_get(sch->frozen)) {
+		search_stop(sch->search_handle);
+		search_status_changed(sch->search_handle);
+	}
 }
 
 #define LOCAL_MAX_ALT	30		/* Max alt-locs we report for local searches */

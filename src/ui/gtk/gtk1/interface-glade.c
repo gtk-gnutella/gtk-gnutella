@@ -223,8 +223,6 @@ create_main_window (void)
   guint button_search_filter_key;
   GtkWidget *button_search_filter;
   GtkWidget *label294;
-  GtkWidget *button_search_expand_all;
-  GtkWidget *button_search_collapse_all;
   GtkWidget *label650;
   GtkWidget *button_search_clear;
   GtkWidget *label7985;
@@ -2377,24 +2375,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label294);
   gtk_box_pack_start (GTK_BOX (hbox181), label294, TRUE, TRUE, 0);
-
-  button_search_expand_all = gtk_button_new_with_label (_("Expand all"));
-  gtk_widget_set_name (button_search_expand_all, "button_search_expand_all");
-  gtk_widget_ref (button_search_expand_all);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_expand_all", button_search_expand_all,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_expand_all);
-  gtk_box_pack_start (GTK_BOX (hbox181), button_search_expand_all, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_search_expand_all, FALSE);
-
-  button_search_collapse_all = gtk_button_new_with_label (_("Collapse all"));
-  gtk_widget_set_name (button_search_collapse_all, "button_search_collapse_all");
-  gtk_widget_ref (button_search_collapse_all);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_collapse_all", button_search_collapse_all,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_collapse_all);
-  gtk_box_pack_start (GTK_BOX (hbox181), button_search_collapse_all, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_search_collapse_all, FALSE);
 
   label650 = gtk_label_new ("");
   gtk_widget_set_name (label650, "label650");
@@ -5545,18 +5525,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (menu_faq), "activate",
                       GTK_SIGNAL_FUNC (on_menu_faq_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_search_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_search_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_in), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_in_button_press_event),
                       NULL);
@@ -5595,24 +5563,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_host), "activate",
                       GTK_SIGNAL_FUNC (on_entry_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_close), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_close_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_download_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_filter), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_expand_all), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_expand_all_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_collapse_all), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_collapse_all_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "realize",
                       GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_realize),
@@ -16536,97 +16486,6 @@ create_dlg_prefs (void)
   gtk_window_add_accel_group (GTK_WINDOW (dlg_prefs), accel_group);
 
   return dlg_prefs;
-}
-
-GtkWidget*
-create_removed_widgets (void)
-{
-  GtkWidget *removed_widgets;
-  GtkWidget *vbox135;
-  GtkWidget *hb_toolbar;
-  GtkWidget *toolbar_main;
-  GtkWidget *tmp_toolbar_icon;
-  GtkWidget *button_quit;
-  GtkWidget *button_filters;
-  GtkAccelGroup *accel_group;
-
-  accel_group = gtk_accel_group_new ();
-
-  removed_widgets = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_widget_set_name (removed_widgets, "removed_widgets");
-  gtk_object_set_data (GTK_OBJECT (removed_widgets), "removed_widgets", removed_widgets);
-
-  vbox135 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox135, "vbox135");
-  gtk_widget_ref (vbox135);
-  gtk_object_set_data_full (GTK_OBJECT (removed_widgets), "vbox135", vbox135,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox135);
-  gtk_container_add (GTK_CONTAINER (removed_widgets), vbox135);
-
-  hb_toolbar = gtk_handle_box_new ();
-  gtk_widget_set_name (hb_toolbar, "hb_toolbar");
-  gtk_widget_ref (hb_toolbar);
-  gtk_object_set_data_full (GTK_OBJECT (removed_widgets), "hb_toolbar", hb_toolbar,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hb_toolbar);
-  gtk_box_pack_start (GTK_BOX (vbox135), hb_toolbar, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (hb_toolbar), 1);
-
-  toolbar_main = gtk_toolbar_new (GTK_ORIENTATION_HORIZONTAL, GTK_TOOLBAR_BOTH);
-  gtk_widget_set_name (toolbar_main, "toolbar_main");
-  gtk_widget_ref (toolbar_main);
-  gtk_object_set_data_full (GTK_OBJECT (removed_widgets), "toolbar_main", toolbar_main,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (toolbar_main);
-  gtk_container_add (GTK_CONTAINER (hb_toolbar), toolbar_main);
-  gtk_toolbar_set_space_style (GTK_TOOLBAR (toolbar_main), GTK_TOOLBAR_SPACE_LINE);
-  gtk_toolbar_set_button_relief (GTK_TOOLBAR (toolbar_main), GTK_RELIEF_NONE);
-
-  tmp_toolbar_icon = create_pixmap (removed_widgets, "exit.xpm");
-  button_quit = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("_Quit"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_widget_set_name (button_quit, "button_quit");
-  gtk_widget_ref (button_quit);
-  gtk_object_set_data_full (GTK_OBJECT (removed_widgets), "button_quit", button_quit,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_quit);
-  gtk_widget_add_accelerator (button_quit, "clicked", accel_group,
-                              GDK_q, GDK_MOD1_MASK,
-                              GTK_ACCEL_VISIBLE);
-
-  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar_main));
-
-  tmp_toolbar_icon = create_pixmap (removed_widgets, "filter.xpm");
-  button_filters = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("_Edit filters"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_widget_set_name (button_filters, "button_filters");
-  gtk_widget_ref (button_filters);
-  gtk_object_set_data_full (GTK_OBJECT (removed_widgets), "button_filters", button_filters,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_filters);
-  gtk_widget_add_accelerator (button_filters, "clicked", accel_group,
-                              GDK_f, GDK_MOD1_MASK,
-                              GTK_ACCEL_VISIBLE);
-
-  gtk_signal_connect (GTK_OBJECT (button_quit), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_quit_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filters), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
-                      NULL);
-
-  gtk_window_add_accel_group (GTK_WINDOW (removed_widgets), accel_group);
-
-  return removed_widgets;
 }
 
 GtkWidget*

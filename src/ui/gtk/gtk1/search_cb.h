@@ -26,46 +26,30 @@
 #ifndef _gtk1_search_cb_h_
 #define _gtk1_search_cb_h_
 
-#include "common.h"
-#include <gtk/gtk.h>
+#include "gtk/gui.h"
 
-void search_gui_set_cursor_position(gint x, gint y);
+void search_gui_set_cursor_position(int x, int y);
 
-void on_search_popdown_switch(GtkWidget *, gpointer data);
-void on_search_notebook_switch(GtkNotebook *, GtkNotebookPage *,
-	gint page_num, gpointer user_data);
-void on_clist_search_select_row(GtkCList *, gint row, gint column, GdkEvent *,
-	gpointer user_data);
-void on_search_selected(GtkItem *, gpointer data);
-void on_button_search_clicked (GtkButton *, gpointer user_data);
-void on_entry_search_activate (GtkEditable *, gpointer user_data);
-void on_entry_search_changed (GtkEditable *, gpointer user_data);
-void on_button_search_clear_clicked(GtkButton *, gpointer user_data);
-void on_button_search_close_clicked (GtkButton *, gpointer user_data);
-void on_button_search_download_clicked (GtkButton *, gpointer user_data);
-void on_button_search_collapse_all_clicked (GtkButton *, gpointer user_data);
-void on_button_search_expand_all_clicked (GtkButton *, gpointer user_data);
-
+void on_clist_search_select_row(GtkCList *, int row, int column, GdkEvent *,
+		void *user_data);
 gboolean on_clist_search_results_key_press_event(GtkWidget *, GdkEventKey *,
-		gpointer user_data);
+		void *user_data);
 gboolean on_clist_search_results_button_press_event(GtkWidget *,
-		GdkEventButton *, gpointer user_data);
-void on_button_search_filter_clicked(GtkButton *, gpointer user_data);
-void on_clist_search_results_click_column(GtkCList *, gint column,
-	gpointer user_data);
-void on_button_search_passive_clicked (GtkButton *, gpointer user_data);
+		GdkEventButton *, void *user_data);
+void on_clist_search_results_click_column(GtkCList *, int column,
+		void *user_data);
 
 void on_ctree_search_results_select_row(GtkCTree *, GList *node,
-	gint column, gpointer user_data);
+	int column, void *user_data);
 void on_ctree_search_results_unselect_row(GtkCTree *, GList *node,
-	gint column, gpointer user_data);
+	int column, void *user_data);
 
-gchar *search_details_get_text(GtkWidget *);
-void on_clist_search_details_select_row(GtkCList *, gint row, gint column,
-	GdkEventButton *, gpointer user_data);
-void on_clist_search_details_unselect_row(GtkCList *, gint row, gint column,
-	GdkEventButton *, gpointer unused_udata);
+char *search_details_get_text(GtkWidget *);
+void on_clist_search_details_select_row(GtkCList *, int row, int column,
+	GdkEventButton *, void *user_data);
+void on_clist_search_details_unselect_row(GtkCList *, int row, int column,
+	GdkEventButton *, void *unused_udata);
 gboolean on_clist_search_details_key_press_event(GtkWidget *, GdkEventKey *,
-	gpointer user_data);
+	void *user_data);
 
 #endif /* _gtk1_search_cb_h_ */

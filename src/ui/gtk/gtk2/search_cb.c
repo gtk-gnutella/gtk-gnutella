@@ -62,40 +62,6 @@ RCSID("$Id$")
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/* Privat variables */
-
-static search_t *search_selected;
-
-/***
- *** Private functions
- ***/
-
-/***
- *** Glade callbacks
- ***/
-void
-on_combo_entry_searches_activate(GtkEditable *unused_editable,
-	gpointer unused_udata)
-{
-	(void) unused_editable;
-	(void) unused_udata;
-}
-
-void
-on_entry_search_activate(GtkEditable *unused_editable,
-	gpointer unused_udata)
-{
-    /*
-     * Delegate to: on_button_search_clicked.
-     *      --BLUE, 30/04/2002
-     */
-
-	(void) unused_editable;
-	(void) unused_udata;
-
-	search_gui_new_search_entered();
-}
-
 /**
  *	When a search string is entered, activate the search button
  */
@@ -115,10 +81,9 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 	normalized = utf8_normalize(s, UNI_NORM_GUI);
 	changed = normalized != s && 0 != strcmp(s, normalized);
 	
-	if (changed)
-		gtk_entry_set_text(
-			GTK_ENTRY(gui_main_window_lookup("entry_search")), normalized);
-
+	if (changed) {
+		gtk_entry_set_text(GTK_ENTRY(editable), normalized);
+	}
 	if (normalized != s) {
 		G_FREE_NULL(normalized);
 	}
@@ -130,49 +95,6 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
 	G_FREE_NULL(s);
 
     gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
-}
-
-void
-on_search_popdown_switch(GtkWidget *unused_w, gpointer unused_data)
-{
-	(void) unused_w;
-	(void) unused_data;
-	g_return_if_fail(NULL != search_selected);
-	search_gui_set_current_search(search_selected);
-}
-
-void
-on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *unused_page,
-	gint page_num, gpointer unused_udata)
-{
-	search_t *search;
-	
-	(void) unused_page;
-	(void) unused_udata;
-	search = gtk_object_get_user_data(
-				GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
-	g_return_if_fail(search);
-	search_gui_set_current_search(search);
-}
-
-void
-on_search_notebook_focus_tab(GtkNotebook *notebook, GtkNotebookTab unused_tab,
-	gpointer unused_udata)
-{
-	search_t *sch;
-	GtkWidget *widget;
-	gint page_num;
-
-	(void) unused_tab;
-	(void) unused_udata;
-
-	page_num = gtk_notebook_get_current_page(notebook);
-	widget = gtk_notebook_get_nth_page(notebook, page_num);
-	sch = gtk_object_get_user_data(GTK_OBJECT(widget));
-
-	g_return_if_fail(sch);
-
-	search_gui_set_current_search(sch);
 }
 
 void
@@ -201,41 +123,6 @@ on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 		}
 		gtk_tree_path_free(path);
 	}
-}
-
-void
-on_search_selected(GtkItem *unused_item, gpointer data)
-{
-	(void) unused_item;
-	search_selected = (search_t *) data;
-}
-
-void
-on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-	search_gui_new_search_entered();
-}
-
-void
-on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	gui_search_clear_results();
-	gtk_widget_set_sensitive(
-		gui_main_window_lookup("button_search_clear"), FALSE);
-}
-
-void
-on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-
-	search_gui_close_search(search_gui_get_current_search());
 }
 
 gboolean
@@ -622,44 +509,6 @@ on_treeview_search_details_key_press_event(GtkWidget *widget,
 		break;
 	}
 	return FALSE;
-}
-
-
-void
-on_button_search_passive_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-    filter_t *default_filter;
-	search_t *search;
-
-	(void) unused_button;
-	(void) unused_udata;
-
-    /*
-     * We have to capture the selection here already, because
-     * new_search will trigger a rebuild of the menu as a
-     * side effect.
-     */
-    default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
-					gui_main_window_lookup("optionmenu_search_filter")));
-
-	search_gui_new_search(_("Passive"), SEARCH_F_PASSIVE, &search);
-
-    /*
-     * If we should set a default filter, we do that.
-     */
-    if (default_filter != NULL) {
-        rule_t *rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
-
-        /*
-         * Since we don't want to distrub the shadows and
-         * do a "force commit" without the user having pressed
-         * the "ok" button in the dialog, we add the rule
-         * manually.
-         */
-        search->filter->ruleset = g_list_append(search->filter->ruleset, rule);
-        rule->target->refcount ++;
-    }
 }
 
 

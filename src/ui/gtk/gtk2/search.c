@@ -69,19 +69,6 @@ RCSID("$Id$")
 static GtkTreeView *tree_view_search;
 static GtkNotebook *notebook_search_results;
 
-/*
- * Private function prototypes.
- */
-static void gui_search_create_tree_view(GtkWidget ** sw,
-				GtkTreeView ** tv, gpointer udata);
-
-/*
- * If no search are currently allocated
- */
-static GtkTreeView *default_search_tree_view;
-static GtkWidget *default_scrolled_window;
-
-
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
 
@@ -138,17 +125,6 @@ search_gui_data_changed(GtkTreeModel *model, struct result_data *rd)
 #endif
 }
 
-static GtkTreeView *
-search_gui_current_treeview(void)
-{
-	search_t *search;
-	GtkTreeView *tv;
-		
-	search = search_gui_get_current_search();
-	tv = search ? search->tree : default_search_tree_view;
-	return GTK_TREE_VIEW(tv);
-}
-
 struct synchronize_search_list {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
@@ -185,7 +161,6 @@ on_search_list_row_deleted(GtkTreeModel *model, GtkTreePath *unused_path,
 	(void) unused_udata;
 
 	search_gui_synchronize_list(model);
-	search_gui_option_menu_searches_update();
 }
 
 void
@@ -195,7 +170,6 @@ on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 	
 	search_gui_synchronize_list(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(column->tree_view)));
-	search_gui_option_menu_searches_update();
 }
 
 
@@ -483,16 +457,6 @@ search_gui_clear_queue(search_t *search)
 	}
 }
 
-/**
- * Reset internal search model.
- * Called when a search is restarted, for example.
- */
-void
-search_gui_reset_search(search_t *sch)
-{
-	search_gui_clear_search(sch);
-}
-
 static gboolean
 on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
@@ -505,13 +469,13 @@ on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 }
 
 static void
-search_gui_clear_ctree(search_t *search)
+search_gui_clear_tree(search_t *search)
 {
 	GtkTreeModel *model;
 
 	search_gui_start_massive_update(search);
 
-	model = gtk_tree_view_get_model(search->tree);
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	gtk_tree_model_foreach(model, prepare_remove_record, search);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
 
@@ -527,7 +491,7 @@ search_gui_clear_search(search_t *search)
 	g_assert(search);
 	g_assert(search->dups);
 
-	search_gui_clear_ctree(search);
+	search_gui_clear_tree(search);
 	search_gui_clear_queue(search);
 	g_assert(0 == g_hash_table_size(search->dups));
 	g_assert(0 == g_hash_table_size(search->parents));
@@ -545,7 +509,7 @@ search_gui_clear_sorting(search_t *sch)
 		
 	g_return_if_fail(sch);
 
-	model = gtk_tree_view_get_model(sch->tree);
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree));
 	g_return_if_fail(model);
 
 #if GTK_CHECK_VERSION(2,6,0)
@@ -564,7 +528,7 @@ search_gui_restore_sorting(search_t *sch)
 
 	g_return_if_fail(sch);
 
-	model = gtk_tree_view_get_model(sch->tree);
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree));
 	g_return_if_fail(model);
 
 	if (
@@ -580,11 +544,11 @@ search_gui_restore_sorting(search_t *sch)
 	}
 }
 
-static gchar *
-get_local_file_url(GtkWidget *widget)
+char *
+search_gui_get_local_file_url(GtkWidget *widget)
 {
 	const struct result_data *data;
-	const gchar *pathname;
+	const char *pathname;
 	GtkTreeModel *model;
    	GtkTreeIter iter;
 
@@ -639,32 +603,6 @@ search_gui_init_tree(search_t *sch)
 	g_assert(NULL == sch->queue);
 	sch->queue = slist_new();
 
-	g_assert(NULL == sch->scrolled_window);
-	g_assert(NULL == sch->tree);
-
-	/* Create a new TreeView if needed, or use the default TreeView */
-	if (search_gui_get_searches()) {
-		/* We have to create a new TreeView for this search */
-		gui_search_create_tree_view(&sch->scrolled_window, &sch->tree, sch);
-		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
-		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
-			 sch->scrolled_window, NULL);
-	} else {
-		/* There are no searches currently, we can use the default TreeView */
-
-		if (default_scrolled_window && default_search_tree_view) {
-			sch->scrolled_window = default_scrolled_window;
-			sch->tree = default_search_tree_view;
-
-			default_search_tree_view = NULL;
-			default_scrolled_window = NULL;
-		} else {
-			g_warning("new_search():"
-				" No current search but no default tree_view !?");
-		}
-		gtk_object_set_user_data(GTK_OBJECT(sch->scrolled_window), sch);
-	}
-
 	/* Add the search to the TreeView in pane on the left */
 	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
 	gtk_list_store_append(model, &iter);
@@ -677,48 +615,11 @@ search_gui_init_tree(search_t *sch)
 		c_sl_bg, NULL,
 		(-1));
 
-	if (search_gui_is_local(sch)) {
-		drag_attach(GTK_WIDGET(sch->tree), get_local_file_url);
-	}
-
 	search_gui_restore_sorting(sch);
 }
 
-/**
- * Search results.
- */
-static gint
-search_gui_cmp_size(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	gint ret;
-	
-	(void) unused_udata;
-	
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = CMP(d1->record->size, d2->record->size);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static gint
-search_gui_cmp_count(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = CMP(d1->children, d2->children);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static inline gint
-search_gui_cmp_strings(const gchar *a, const gchar *b)
+static inline int
+search_gui_cmp_strings(const char *a, const char *b)
 {
 	if (a && b) {
 		return a == b ? 0 : strcmp(a, b);
@@ -727,280 +628,160 @@ search_gui_cmp_strings(const gchar *a, const gchar *b)
 	}
 }
 
-static gint
-search_gui_cmp_filename(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+#define SEARCH_GUI_CMP(a, b, c) CMP(((a)->c), ((b)->c))
+
+static int
+search_gui_cmp_size(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
+	return SEARCH_GUI_CMP(a, b, record->size);
+}
 
-	(void) unused_udata;
+static int
+search_gui_cmp_count(const struct result_data *a, const struct result_data *b)
+{
+	return SEARCH_GUI_CMP(a, b, children);
+}
 
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->utf8_name, d2->record->utf8_name);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+static int
+search_gui_cmp_filename(const struct result_data *a,
+	const struct result_data *b)
+{
+	return search_gui_cmp_strings(a->record->utf8_name, b->record->utf8_name);
+}
+
+static int
+search_gui_cmp_sha1(const struct result_data *a, const struct result_data *b)
+{
+	return search_gui_cmp_sha1s(a->record->sha1, b->record->sha1);
+}
+
+static int
+search_gui_cmp_ctime(const struct result_data *a, const struct result_data *b)
+{
+	return delta_time(a->record->create_time, b->record->create_time);
+}
+
+static int
+search_gui_cmp_charset(const struct result_data *a, const struct result_data *b)
+{
+	return search_gui_cmp_strings(a->record->charset, b->record->charset);
+}
+
+static int
+search_gui_cmp_ext(const struct result_data *a, const struct result_data *b)
+{
+	return search_gui_cmp_strings(a->record->ext, b->record->ext);
+}
+
+static int
+search_gui_cmp_meta(const struct result_data *a, const struct result_data *b)
+{
+	return search_gui_cmp_strings(a->meta, b->meta);
 }
 
 
-static gint
-search_gui_cmp_sha1(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_country(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_sha1s(d1->record->sha1, d2->record->sha1);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->country);
 }
 
-static gint
-search_gui_cmp_ctime(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_vendor(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = delta_time(d1->record->create_time, d2->record->create_time);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->vcode.be32);
 }
 
-static gint
-search_gui_cmp_charset(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_info(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->charset, d2->record->charset);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return search_gui_cmp_strings(a->record->info, b->record->info);
 }
 
-
-static gint
-search_gui_cmp_ext(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_route(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->ext, d2->record->ext);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	
+	return host_addr_cmp(a->record->results_set->last_hop,
+				b->record->results_set->last_hop);
 }
 
-static gint
-search_gui_cmp_meta(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_hops(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->meta, d2->meta);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->hops);
 }
 
-
-static gint
-search_gui_cmp_country(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_ttl(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-
-	ret = CMP(d1->record->results_set->country,
-					d2->record->results_set->country);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->ttl);
 }
 
-static gint
-search_gui_cmp_vendor(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_protocol(const struct result_data *a,
+	const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = CMP(d1->record->results_set->vcode.be32,
-				d2->record->results_set->vcode.be32);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->status & ST_UDP);
 }
 
-static gint
-search_gui_cmp_info(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_owned(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = search_gui_cmp_strings(d1->record->info, d2->record->info);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-
-static gint
-search_gui_cmp_route(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = host_addr_cmp(rs1->last_hop, rs2->last_hop);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static gint
-search_gui_cmp_hops(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = CMP(rs1->hops, rs2->hops);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static gint
-search_gui_cmp_ttl(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = CMP(rs1->ttl, rs2->ttl);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static gint
-search_gui_cmp_protocol(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
-	const guint32 mask = ST_UDP;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = CMP(mask & rs1->status, mask & rs2->status);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
-}
-
-static gint
-search_gui_cmp_owned(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
-{
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
 	const guint32 mask = SR_OWNED | SR_SHARED;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = CMP(mask & d1->record->flags, mask & d2->record->flags);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->flags & mask);
 }
 
-static gint
-search_gui_cmp_hostile(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_hostile(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	const struct results_set *rs1, *rs2;
-	const guint32 mask = ST_HOSTILE;
-	gint ret;
-
-	(void) unused_udata;
-
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	rs1 = d1->record->results_set;
-	rs2 = d2->record->results_set;
-	ret = CMP(mask & rs1->status, mask & rs2->status);
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return SEARCH_GUI_CMP(a, b, record->results_set->status & ST_HOSTILE);
 }
 
-static gint
-search_gui_cmp_spam(
-    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+static int
+search_gui_cmp_spam(const struct result_data *a, const struct result_data *b)
 {
-	const struct result_data *d1, *d2;
-	guint32 mask = SR_SPAM;
-	gint ret;
+	int ret = SEARCH_GUI_CMP(a, b, record->flags & SR_SPAM);
+	return ret
+		? ret
+		: SEARCH_GUI_CMP(a, b, record->results_set->status & ST_SPAM);
+}
 
-	(void) unused_udata;
+#undef SEARCH_GUI_CMP
 
-	d1 = get_result_data(model, a);
-	d2 = get_result_data(model, b);
-	ret = CMP(mask & d1->record->flags, mask & d2->record->flags);
-	if (0 == ret) {
-		const struct results_set *rs1, *rs2;
-		rs1 = d1->record->results_set;
-		rs2 = d2->record->results_set;
-		mask = ST_SPAM;
-		ret = CMP(mask & rs1->status, mask & rs2->status);
+static int
+search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
+	void *user_data)
+{
+	const struct result_data *a, *b;
+	enum c_sr_columns column;
+	int ret = 0;
+	
+	column = GPOINTER_TO_UINT(user_data);
+	a = get_result_data(model, iter1);
+	b = get_result_data(model, iter2);
+	switch (column) {
+	case c_sr_filename: ret = search_gui_cmp_filename(a, b); break;
+	case c_sr_ext:		ret = search_gui_cmp_ext(a, b); break;
+	case c_sr_meta:		ret = search_gui_cmp_meta(a, b); break;
+	case c_sr_vendor:	ret = search_gui_cmp_vendor(a, b); break;
+	case c_sr_info:		ret = search_gui_cmp_info(a, b); break;
+	case c_sr_size:		ret = search_gui_cmp_size(a, b); break;
+	case c_sr_count:	ret = search_gui_cmp_count(a, b); break;
+	case c_sr_loc:		ret = search_gui_cmp_country(a, b); break;
+	case c_sr_charset:	ret = search_gui_cmp_charset(a, b); break;
+	case c_sr_route:	ret = search_gui_cmp_route(a, b); break;
+	case c_sr_protocol:	ret = search_gui_cmp_protocol(a, b); break;
+	case c_sr_hops:		ret = search_gui_cmp_hops(a, b); break;
+	case c_sr_ttl:		ret = search_gui_cmp_ttl(a, b); break;
+	case c_sr_spam:		ret = search_gui_cmp_spam(a, b); break;
+	case c_sr_owned:	ret = search_gui_cmp_owned(a, b); break;
+	case c_sr_hostile:	ret = search_gui_cmp_hostile(a, b); break;
+	case c_sr_sha1:		ret = search_gui_cmp_sha1(a, b); break;
+	case c_sr_ctime:	ret = search_gui_cmp_ctime(a, b); break;
+	case c_sr_num: 		g_assert_not_reached(); break;
 	}
-	return 0 != ret ? ret : CMP(d1->rank, d2->rank);
+	return ret ? ret : CMP(a->rank, b->rank);
 }
 
 void
@@ -1045,14 +826,6 @@ search_gui_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
 	} else {
 		return NULL;
 	}
-}
-
-void
-search_gui_set_clear_button_sensitive(gboolean sensitive)
-{
-	gtk_widget_set_sensitive(
-		GTK_WIDGET(GTK_BUTTON(gui_main_window_lookup("button_search_clear"))),
-		sensitive);
 }
 
 static void
@@ -1209,7 +982,7 @@ search_gui_download_files(void)
 
 	search_gui_end_massive_update(search);
 
-    gui_search_force_update_tab_label(search);
+    search_gui_force_update_tab_label(search);
     search_gui_update_items(search);
     guc_search_update_items(search->search_handle, search->items);
 }
@@ -1242,7 +1015,7 @@ search_gui_discard_files(void)
 
 	search_gui_end_massive_update(search);
 
-    gui_search_force_update_tab_label(search);
+    search_gui_force_update_tab_label(search);
     search_gui_update_items(search);
     guc_search_update_items(search->search_handle, search->items);
 }
@@ -1281,13 +1054,7 @@ add_list_columns(GtkTreeView *tv)
 }
 
 static void
-add_results_column(
-	GtkTreeView *tv,
-	const gchar *name,
-	gint id,
-	gfloat xalign,
-	GtkTreeIterCompareFunc sortfunc,
-	gpointer udata)
+add_results_column(GtkTreeView *tv, const gchar *name, gint id, gfloat xalign)
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
@@ -1295,11 +1062,6 @@ add_results_column(
 	model = gtk_tree_view_get_model(tv);
 	column = add_column(tv, name, id, xalign, cell_renderer, -1, -1);
    	gtk_tree_view_column_set_sort_column_id(column, id);
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model), id,
-		sortfunc, NULL, NULL);
-	g_signal_connect_after(G_OBJECT(column), "clicked",
-		G_CALLBACK(on_tree_view_search_results_click_column),
-		udata);
 }
 
 static void
@@ -1386,9 +1148,6 @@ create_searches_model(void)
 void
 search_gui_init(void)
 {
-    GtkTreeView *tv;
-	search_t *current_search;
-
     tree_view_search =
 		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
     notebook_search_results =
@@ -1406,25 +1165,6 @@ search_gui_init(void)
 		G_CALLBACK(on_tree_view_search_cursor_changed), NULL);
 	g_signal_connect_after(G_OBJECT(gtk_tree_view_get_model(tree_view_search)),
 		"row-deleted", G_CALLBACK(on_search_list_row_deleted), NULL);
-	gui_search_create_tree_view(&default_scrolled_window,
-		&default_search_tree_view, NULL);
-	gui_color_init(GTK_WIDGET(default_search_tree_view));
-    gtk_notebook_remove_page(notebook_search_results, 0);
-	gtk_notebook_set_scrollable(notebook_search_results, TRUE);
-	gtk_notebook_append_page(notebook_search_results,
-		default_scrolled_window, NULL);
-  	gtk_notebook_set_tab_label_text(notebook_search_results,
-		default_scrolled_window, _("(no search)"));
-
-	g_signal_connect(GTK_OBJECT(notebook_search_results), "switch-page",
-		G_CALLBACK(on_search_notebook_switch), NULL);
-	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus-tab",
-		G_CALLBACK(on_search_notebook_focus_tab), NULL);
-
-   	current_search = search_gui_get_current_search();
-	tv = search_gui_current_treeview();
-	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
-	tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 
 	search_details_treeview_init();
 
@@ -1437,101 +1177,64 @@ search_gui_init(void)
 void
 search_gui_remove_search(search_t *search)
 {
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+
 	g_return_if_fail(search);
 
+	g_object_freeze_notify(G_OBJECT(search->tree));
+
 	if (search_gui_get_current_search() == search) {
-		GtkTreeView *tv = search->tree;
+		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
 
 		tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_motion_clear_callback(&tvm_search);
 	}
-	search_gui_clear_search(search);
 	g_assert(0 == slist_length(search->queue));
 	slist_free(&search->queue);
 
-	{
-		GtkTreeIter iter;
-		GtkTreeModel *model;
-
-
-		model = gtk_tree_view_get_model(tree_view_search);
-		if (tree_find_iter_by_data(model, c_sl_sch, search, &iter))
-    		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
-	}
-
-    gtk_timeout_remove(search->tab_updating);
-
-    if (search_gui_get_searches()) {		/* Some other searches remain. */
-		gtk_notebook_remove_page(notebook_search_results,
-			gtk_notebook_page_num(notebook_search_results,
-				search->scrolled_window));
-	} else {
-		/*
-		 * Keep the GtkTreeView of this search, clear it and make it the
-		 * default GtkTreeView
-		 */
-
-		g_object_freeze_notify(G_OBJECT(search->tree));
-		default_search_tree_view = search->tree;
-		default_scrolled_window = search->scrolled_window;
-		search->tree = NULL;
-		search->scrolled_window = NULL;
-
-		search_gui_forget_current_search();
-		search_gui_update_items(NULL);
-		search_gui_update_expiry(NULL);
-
-        gtk_notebook_set_tab_label_text(notebook_search_results,
-			default_scrolled_window, _("(no search)"));
-
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_clear"), FALSE);
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_close"), FALSE);
-		gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_download"), FALSE);
+	model = gtk_tree_view_get_model(tree_view_search);
+	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
+   		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 	}
 }
 
 static void
-search_gui_set_cursor(void)
+search_gui_set_search_list_cursor(search_t *search)
 {
 	GtkTreeModel *model;
+	GtkTreePath *path;
 	GtkTreeIter iter;
-	search_t *search;
 
-	search = search_gui_get_current_search();
 	model = gtk_tree_view_get_model(tree_view_search);
 	if (search && tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
-		GtkTreePath *path;
-
 		path = gtk_tree_model_get_path(model, &iter);
-		gtk_tree_view_set_cursor(tree_view_search, path, NULL, FALSE);
-		gtk_tree_path_free(path);
 	} else {
-		gtk_tree_view_set_cursor(tree_view_search, NULL, NULL, FALSE);
+		path = NULL;
+	}
+	gtk_tree_view_set_cursor(tree_view_search, path, NULL, FALSE);
+	if (path) {
+		gtk_tree_path_free(path);
 	}
 }
 
 void
-search_gui_set_current_search(search_t *sch)
+search_gui_set_current_search(search_t *search)
 {
 	search_t *current_search;
 	GtkTreeView *tv;
 
-	g_return_if_fail(sch);
-
 	current_search = search_gui_get_current_search();
-	if (sch == current_search)
+	if (search == current_search)
 		return;
-	
+
     /*
      * We now propagate the column visibility from the current_search
      * to the new current_search.
      */
 
-	tv = search_gui_current_treeview();
+	tv = current_search ? GTK_TREE_VIEW(current_search->tree) : NULL;
 	if (tv) {
 		tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
@@ -1539,55 +1242,36 @@ search_gui_set_current_search(search_t *sch)
 		gtk_widget_hide(GTK_WIDGET(tv));
 		g_object_freeze_notify(G_OBJECT(tv));
 	}
-
-	tv = GTK_TREE_VIEW(sch->tree);
-	gtk_widget_show(GTK_WIDGET(tv));
-	g_object_thaw_notify(G_OBJECT(tv));
-
-	if (current_search) {
-		gui_search_force_update_tab_label(current_search);
+	if (current_search) {	
 		search_gui_clear_sorting(current_search);
 	}
 
-	/* This prevents side-effects otherwise caused by  changing the value of
-	 * spinbutton_reissue_timeout.
-	 */
-	search_gui_forget_current_search();
-	sch->unseen_items = 0;
+	if (search) {
+		int i;
 
-    if (sch) {
-        gui_search_force_update_tab_label(sch);
-        search_gui_update_items(sch);
+		tv = GTK_TREE_VIEW(search->tree);
+		gtk_widget_show(GTK_WIDGET(tv));
+		g_object_thaw_notify(G_OBJECT(tv));
 
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(
-			gui_main_window_lookup("spinbutton_search_reissue_timeout")),
-			guc_search_get_reissue_timeout(sch->search_handle));
-		search_gui_restore_sorting(sch);
-    }
-	gtk_widget_set_sensitive(
-		gui_main_window_lookup("spinbutton_search_reissue_timeout"),
-    	guc_search_is_active(sch->search_handle));
-    gtk_widget_set_sensitive(
-		gui_popup_search_lookup("popup_search_download"),
-		search_gui_is_local(sch));
+		search_gui_restore_sorting(search);
 
-	search_gui_current_search(sch);
+		tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
+		tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
+		tvm_search = tree_view_motion_set_callback(tv,
+						search_update_tooltip, 400);
 
-    /*
-     * Search results notebook
-     */
-	gtk_notebook_set_current_page(notebook_search_results,
-		gtk_notebook_page_num(notebook_search_results, sch->scrolled_window));
-
-	if (search_gui_update_expiry(sch)) {
-		gui_search_set_enabled(sch, FALSE);
+		for (i = 0; i < c_sr_num; i++) {
+			gtk_tree_sortable_set_sort_func(
+				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
+				search_gui_cmp, NULL, NULL);
+			g_signal_connect_after(G_OBJECT(gtk_tree_view_get_column(tv, i)),
+				"clicked",
+				G_CALLBACK(on_tree_view_search_results_click_column),
+				search);
+		}
 	}
-   	tree_view_restore_visibility(GTK_TREE_VIEW(tv),
-		PROP_SEARCH_RESULTS_COL_VISIBLE);
-	tree_view_restore_widths(GTK_TREE_VIEW(tv),
-		PROP_SEARCH_RESULTS_COL_WIDTHS);
-	tvm_search = tree_view_motion_set_callback(tv, search_update_tooltip, 400);
-	search_gui_set_cursor();
+	search_gui_current_search(search);
+	search_gui_set_search_list_cursor(search);
 }
 
 static GtkTreeModel *
@@ -1600,42 +1284,38 @@ create_results_model(void)
 }
 
 static void
-add_results_columns(GtkTreeView *tv, gpointer udata)
+add_results_columns(GtkTreeView *tv)
 {
 	static const struct {
 		const gchar * const title;
-		const gint id;
 		const gfloat align;
-		const GtkTreeIterCompareFunc func;
 	} columns[] = {
-		{ N_("File"),	   c_sr_filename, 0.0, search_gui_cmp_filename },
-		{ N_("Extension"), c_sr_ext,	  0.0, search_gui_cmp_ext },
-		{ N_("Encoding"),  c_sr_charset,  0.0, search_gui_cmp_charset },
-		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_cmp_size },
-		{ N_("#"),		   c_sr_count,	  1.0, search_gui_cmp_count },
-		{ N_("Loc"),	   c_sr_loc,	  0.0, search_gui_cmp_country },
-		{ N_("Metadata"),  c_sr_meta,	  0.0, search_gui_cmp_meta },
-		{ N_("Vendor"),	   c_sr_vendor,	  0.0, search_gui_cmp_vendor },
-		{ N_("Info"),	   c_sr_info,	  0.0, search_gui_cmp_info },
-		{ N_("Route"),	   c_sr_route,	  0.0, search_gui_cmp_route },
-		{ N_("Protocol"),  c_sr_protocol, 0.0, search_gui_cmp_protocol },
-		{ N_("Hops"),  	   c_sr_hops,	  0.0, search_gui_cmp_hops },
-		{ N_("TTL"),  	   c_sr_ttl,	  0.0, search_gui_cmp_ttl },
-		{ N_("Owned"),     c_sr_owned,	  0.0, search_gui_cmp_owned },
-		{ N_("Spam"),      c_sr_spam,	  0.0, search_gui_cmp_spam },
-		{ N_("Hostile"),   c_sr_hostile,  0.0, search_gui_cmp_hostile },
-		{ N_("SHA-1"),     c_sr_sha1,     0.0, search_gui_cmp_sha1 },
-		{ N_("Created"),   c_sr_ctime,    0.0, search_gui_cmp_ctime },
+		{ N_("File"),	   0.0,  },
+		{ N_("Extension"), 0.0,  },
+		{ N_("Encoding"),  0.0,  },
+		{ N_("Size"),	   1.0,  },
+		{ N_("#"),		   1.0,  },
+		{ N_("Loc"),	   0.0,  },
+		{ N_("Metadata"),  0.0,  },
+		{ N_("Vendor"),	   0.0,  },
+		{ N_("Info"),	   0.0,  },
+		{ N_("Route"),	   0.0,  },
+		{ N_("Protocol"),  0.0,  },
+		{ N_("Hops"),  	   0.0,  },
+		{ N_("TTL"),  	   0.0,  },
+		{ N_("Owned"),     0.0,  },
+		{ N_("Spam"),      0.0,  },
+		{ N_("Hostile"),   0.0,  },
+		{ N_("SHA-1"),     0.0,  },
+		{ N_("Created"),   0.0,  },
 	};
 	guint i;
 
 	STATIC_ASSERT(SEARCH_RESULTS_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		add_results_column(tv, _(columns[i].title), columns[i].id,
-			columns[i].align, columns[i].func, udata);
+		add_results_column(tv, _(columns[i].title), i, columns[i].align);
 	}
-	tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 }
 
 static gboolean
@@ -1725,74 +1405,10 @@ tree_view_search_update(
  * Like search_update_tab_label but always update the label.
  */
 void
-gui_search_force_update_tab_label(search_t *sch)
+search_gui_update_list_label(search_t *search)
 {
-    search_t *search;
-	GtkTreeModel *model;
-	gchar buf[4096];
-
-    search = search_gui_get_current_search();
-
-	if (sch == search || sch->unseen_items == 0) {
-		gm_snprintf(buf, sizeof buf, "%s\n(%d)",
-			search_gui_query(sch), sch->items);
-	} else {
-		gm_snprintf(buf, sizeof buf, "%s\n(%d, %d)",
-			search_gui_query(sch), sch->items, sch->unseen_items);
-	}
-	sch->last_update_items = sch->items;
-	gtk_notebook_set_tab_label_text(notebook_search_results,
-		sch->scrolled_window, buf);
-	model = gtk_tree_view_get_model(tree_view_search);
-	gtk_tree_model_foreach(model, tree_view_search_update, sch);
-	sch->last_update_time = tm_time();
-}
-
-/**
- * Doesn't update the label if nothing's changed or if the last update was
- * recent.
- */
-gboolean
-gui_search_update_tab_label(struct search *sch)
-{
-	static time_t now;
-
-	if (sch->items != sch->last_update_items) {
-		now = tm_time();
-
-		if (delta_time(now, sch->last_update_time) >= TAB_UPDATE_TIME)
-			gui_search_force_update_tab_label(sch);
-	}
-
-	return TRUE;
-}
-
-void
-gui_search_clear_results(void)
-{
-	search_t *search;
-
-	search = search_gui_get_current_search();
-	search_gui_reset_search(search);
-	gui_search_force_update_tab_label(search);
-	search_gui_update_items(search);
-}
-
-/**
- * Flag whether search is enabled.
- */
-void
-gui_search_set_enabled(struct search *sch, gboolean enabled)
-{
-	if (search_gui_is_enabled(sch) != enabled) {
-		if (enabled)
-			guc_search_start(sch->search_handle);
-		else
-			guc_search_stop(sch->search_handle);
-
-		/* Marks this entry as active/inactive in the searches list. */
-		gui_search_force_update_tab_label(sch);
-	}
+	gtk_tree_model_foreach(gtk_tree_view_get_model(tree_view_search),
+		tree_view_search_update, search);
 }
 
 /**
@@ -1801,10 +1417,11 @@ gui_search_set_enabled(struct search *sch, gboolean enabled)
 void
 search_gui_expand_all(void)
 {
-	search_t *current_search = search_gui_get_current_search();
-	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree));
+	search_t *search = search_gui_get_current_search();
+	if (search) {
+		gtk_tree_view_expand_all(GTK_TREE_VIEW(search->tree));
+	}
 }
-
 
 /**
  * Collapse all nodes in tree for current search.
@@ -1812,8 +1429,10 @@ search_gui_expand_all(void)
 void
 search_gui_collapse_all(void)
 {
-	search_t *current_search = search_gui_get_current_search();
-	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree));
+	search_t *search = search_gui_get_current_search();
+	if (search) {
+		gtk_tree_view_collapse_all(GTK_TREE_VIEW(search->tree));
+	}
 }
 
 void
@@ -1829,7 +1448,7 @@ search_gui_end_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-    gui_search_force_update_tab_label(sch);
+    search_gui_force_update_tab_label(sch);
 	g_object_thaw_notify(G_OBJECT(sch->tree));
 }
 
@@ -1951,8 +1570,9 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		search = iter->data;
 	   	rd = find_parent2(search, data->sha1, data->size);
 		if (rd) {
+			GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
 			atom_str_change(&rd->meta, text ? text : _("Not in database"));
-			search_gui_data_changed(gtk_tree_view_get_model(search->tree), rd);
+			search_gui_data_changed(gtk_tree_view_get_model(tv), rd);
 		}
 	}
 
@@ -1962,50 +1582,43 @@ search_gui_metadata_update(const bitzi_data_t *data)
 /**
  * Create a new GtkTreeView for search results.
  */
-static void
-gui_search_create_tree_view(GtkWidget ** sw, GtkTreeView ** tv, gpointer udata)
+GtkWidget *
+search_gui_create_tree(void)
 {
 	GtkTreeModel *model = create_results_model();
 	GtkTreeSelection *selection;
-	GtkTreeView	*treeview;
+	GtkTreeView	*tv;
 
-	*sw = gtk_scrolled_window_new(NULL, NULL);
-	g_object_set(*sw,
-		"shadow-type", GTK_SHADOW_IN,
-		"hscrollbar-policy", GTK_POLICY_AUTOMATIC,
-		"vscrollbar-policy", GTK_POLICY_ALWAYS,
-		(void *) 0);
-
-	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
-	*tv = treeview;
+	tv = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
 	g_object_unref(model);
 
-	selection = gtk_tree_view_get_selection(treeview);
+	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
-	gtk_tree_view_set_headers_visible(treeview, TRUE);
-	gtk_tree_view_set_headers_clickable(treeview, TRUE);
-	gtk_tree_view_set_enable_search(treeview, TRUE);
-	gtk_tree_view_set_search_column(treeview, 0);
-	gtk_tree_view_set_rules_hint(treeview, TRUE);
-	gtk_tree_view_set_search_equal_func(treeview, search_by_regex, NULL, NULL);
-	tree_view_set_fixed_height_mode(treeview, TRUE);
+	gtk_tree_view_set_headers_visible(tv, TRUE);
+	gtk_tree_view_set_headers_clickable(tv, TRUE);
+	gtk_tree_view_set_enable_search(tv, TRUE);
+	gtk_tree_view_set_search_column(tv, 0);
+	gtk_tree_view_set_rules_hint(tv, TRUE);
+	gtk_tree_view_set_search_equal_func(tv, search_by_regex, NULL, NULL);
+	tree_view_set_fixed_height_mode(tv, TRUE);
 
       /* add columns to the tree view */
-	add_results_columns(treeview, udata);
+	add_results_columns(tv);
 
-	gtk_container_add(GTK_CONTAINER(*sw), GTK_WIDGET(treeview));
-	if (!GTK_WIDGET_VISIBLE(*sw)) {
-		gtk_widget_show_all(*sw);
-	}
-	gui_signal_connect(treeview, "cursor-changed",
-		on_tree_view_search_results_select_row, treeview);
-	gui_signal_connect(treeview, "button-press-event",
+	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
+
+	gui_signal_connect(tv, "cursor-changed",
+		on_tree_view_search_results_select_row, tv);
+	gui_signal_connect(tv, "button-press-event",
 		on_tree_view_search_results_button_press_event, NULL);
-    gui_signal_connect(treeview, "key-press-event",
+    gui_signal_connect(tv, "key-press-event",
 		on_tree_view_search_results_key_press_event, NULL);
-    gui_signal_connect(treeview, "leave-notify-event",
+    gui_signal_connect(tv, "leave-notify-event",
 		on_leave_notify, NULL);
-	g_object_freeze_notify(G_OBJECT(treeview));
+	g_object_freeze_notify(G_OBJECT(tv));
+
+	return GTK_WIDGET(tv);
 }
 
 static void
@@ -2104,7 +1717,7 @@ search_gui_record_get_children(search_t *search, record_t *record)
 	g_return_val_if_fail(record, NULL);
 	record_check(record);
 
-	model = gtk_tree_view_get_model(search->tree);
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	g_return_val_if_fail(model, NULL);
 
 	children = NULL;
@@ -2173,7 +1786,7 @@ search_gui_flush_queue(search_t *search)
 
 		search_gui_start_massive_update(search);
 
-		model = gtk_tree_view_get_model(search->tree);
+		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 
 		iter = slist_iter_on_head(search->queue);
 		while (slist_iter_has_item(iter) && n++ < 100) {
