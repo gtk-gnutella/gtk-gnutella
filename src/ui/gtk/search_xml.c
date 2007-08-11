@@ -396,7 +396,7 @@ xml_prop_printf(xmlNodePtr node, const gchar *name, const char *fmt, ...)
 void
 search_store_xml(void)
 {
-	const GList *l;
+	const GList *iter;
 	time_t now = tm_time();
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -428,15 +428,17 @@ search_store_xml(void)
     /*
      * Iterate over the searches and add them to the tree
      */
-    for (l = search_gui_get_searches(); l; l = g_list_next(l))
-        search_to_xml(root, l->data);
+    for (iter = search_gui_get_searches(); iter; iter = g_list_next(iter)) {
+        search_to_xml(root, iter->data);
+	}
 
     /*
      * Iterate over the rulesets and add them to the tree.
      * Only those that are not bound to a search.
      */
-    for (l = filters; l; l = g_list_next(l))
-        filter_to_xml(root, l->data);
+    for (iter = filters; NULL != iter; iter = g_list_next(iter)) {
+        filter_to_xml(root, iter->data);
+	}
 
     /*
      * Try to save the file
@@ -717,28 +719,34 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     GList *iter;
 
     g_assert(s != NULL);
-    g_assert(search_gui_query(s) != NULL);
+    g_assert(guc_search_query(s->search_handle) != NULL);
     g_assert(parent != NULL);
 
-	if (search_gui_is_browse(s) || search_gui_is_local(s))
-		return;			/* Don't persist "browse host" searches. */
+	if (guc_search_is_browse(s->search_handle))
+		return;	
+
+	if (guc_search_is_local(s->search_handle))
+		return;
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
         g_message(
 			"saving search: %s (%p enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
 			"  -- search is         : %p",
-			search_gui_query(s), cast_to_gconstpointer(s),
-			search_gui_is_enabled(s),
+			guc_search_query(s->search_handle),
+			cast_to_gconstpointer(s),
+			!guc_search_is_frozen(s->search_handle),
 			cast_to_gconstpointer(s->filter->search),
 			cast_to_gconstpointer(s));
     }
 
     newxml = xml_new_empty_child(parent, NODE_SEARCH);
-    xml_prop_set(newxml, TAG_SEARCH_QUERY, search_gui_query(s));
-
-	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", search_gui_is_enabled(s));
-    xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", search_gui_is_passive(s));
+    xml_prop_set(newxml, TAG_SEARCH_QUERY,
+		guc_search_query(s->search_handle));
+	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u",
+		!guc_search_is_frozen(s->search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u",
+		guc_search_is_passive(s->search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT, "%u",
 		guc_search_get_reissue_timeout(s->search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_CREATE_TIME, "%s",
