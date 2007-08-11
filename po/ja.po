@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-08-12 00:52+0900\n"
-"PO-Revision-Date: 2007-08-04 20:29+0900\n"
+"PO-Revision-Date: 2007-08-12 01:16+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -121,9 +121,8 @@ msgstr "一時停止中"
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
 
-#, fuzzy
 msgid "Download queue is frozen"
-msgstr "キューが凍結されました"
+msgstr "ダウンロードキューが凍結されました"
 
 # FIXME: what does `start' mean?
 msgid "No download slot (start)"
@@ -214,7 +213,7 @@ msgid "No URN on server to validate"
 msgstr "相手側に検証するための URN がありません"
 
 msgid "URN fileinfo mismatch"
-msgstr "URNファイル情報が一致しません"
+msgstr "URNファイル情報が合致しません"
 
 msgid "Discovered dup SHA1"
 msgstr "重複するSHA1を発見しました"
@@ -273,7 +272,7 @@ msgid "Seeding"
 msgstr "シード中"
 
 msgid "Finished"
-msgstr "終了しました"
+msgstr "完了"
 
 msgid "No sources"
 msgstr "送信元はありません"
@@ -388,7 +387,7 @@ msgid "Own search results"
 msgstr "自分自身の検索結果数"
 
 msgid "Ancient query format"
-msgstr ""
+msgstr "古いクエリー形式"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -612,24 +611,22 @@ msgid "Unknown command"
 msgstr "不明なコマンドエラーです"
 
 msgid "URL missing"
-msgstr "URL がありません"
+msgstr "URLがありません"
 
-# FIXME: what does `create' mean?
 msgid "The download could not be created"
-msgstr "ダウンロードを作成できませんでした"
+msgstr "ダウンロードは作成されませんでした"
 
 msgid "Download added"
 msgstr "ダウンロードが追加されました"
 
-#, fuzzy
 msgid "parameter missing"
-msgstr "プロパティがありません"
+msgstr "パラメータがありません"
 
 msgid "Unknown operation"
 msgstr "不明な操作です"
 
 msgid "No help available"
-msgstr "ヘルプは利用できません"
+msgstr "ヘルプは参照できません"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 msgid "Hops"
@@ -646,15 +643,13 @@ msgstr "ファイル数"
 msgid "Size"
 msgstr "大きさ"
 
-# FIXME: peer
 #, c-format
 msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ピア):"
+msgstr "合計到達領域サイズ (%u/%u基のピアがHSEPに対応):"
 
-# FIXME: node -> peer
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr "HSEPピア %s (%s) 経由の到達領域サイズ:"
+msgstr ""
 
 msgid "Interactive mode turned on."
 msgstr "インタラクティブモードが有効になりました。"
@@ -663,64 +658,64 @@ msgid "Interactive mode turned off."
 msgstr "インタラクティブモードが無効になりました。"
 
 msgid "Invalid IP/Port"
-msgstr "無効な IP/ポートです"
+msgstr "無効なIP/ポート"
 
-# FIXME: node -> peer
 msgid "Node added"
-msgstr "ピアが追加されました"
+msgstr "ノードが追加されました"
 
 msgid "Invalid IP"
-msgstr "無効な IP"
+msgstr "無効なIP"
 
 msgid "Invalid port"
-msgstr "無効な ポートです"
+msgstr "無効なポート"
 
+# FIXME: node -> peer
 #, c-format
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
-msgstr[0] "%u 基のノードを削除しました。"
+msgstr[0] "%u基のピアを削除しました"
 
 msgid "Property missing"
 msgstr "プロパティがありません"
 
 msgid "Unknown property"
-msgstr "不明なプロパティです"
+msgstr "不明なプロパティ"
 
 msgid "Value: "
 msgstr "値: "
 
 msgid "Value found and displayed"
-msgstr "値発見、表示します"
+msgstr "値が見つかりましたので表示します"
 
 msgid "No matching property."
-msgstr "該当するプロパティがありません。"
+msgstr "合致するプロパティがありません。"
 
 msgid "Good bye"
-msgstr "Good bye"
+msgstr "Good Bye"
 
 msgid "The library is currently being rebuilt."
 msgstr "現在ライブラリの再構築中です。"
 
 msgid "A rescan has already been scheduled"
-msgstr "再スキャンは既に予定されています。"
+msgstr "再スキャンの実行は既に予定されています"
 
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
 msgid "Query string is not UTF-8 encoded"
-msgstr "検索クエリー文字列がUTF-8でエンコードされていません。"
+msgstr "この検索クエリー文字列はUTF-8でエンコードされていません"
 
 msgid "Search added"
 msgstr "検索が追加されました"
 
 msgid "The search could not be created"
-msgstr "検索を作成できませんでした"
+msgstr "この検索は作成されませんでした"
 
 msgid "Value missing"
 msgstr "値がありません"
 
 msgid "Value found and set"
-msgstr "値発見、設定します"
+msgstr "値が見つかりましたので設定します"
 
 msgid "Help: "
 msgstr "へルプ: "
@@ -2542,7 +2537,7 @@ msgid "Maximum number of results to show in a browse_host request."
 msgstr "ホスト参照リクエストで表示する最大数です。"
 
 msgid "The current Session ID."
-msgstr ""
+msgstr "現在のセッションIDです。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -4008,7 +4003,7 @@ msgid "SHA-1 OK"
 msgstr "SHA-1 OK"
 
 msgid "SHA-1 MISMATCH"
-msgstr "SHA-1 ミスマッチ"
+msgstr "SHA-1 不一致"
 
 msgid "SHA-1 calculated"
 msgstr "SHA-1 算出済"
@@ -4052,9 +4047,8 @@ msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
 msgstr[0] "%u 件のダウンロードを消却しました。"
 
-#, fuzzy
 msgid "Filename (filtered)"
-msgstr "任意フィルター"
+msgstr "ファイル名 (振り分け済)"
 
 msgid "Progress"
 msgstr "途中経過"
@@ -4077,7 +4071,6 @@ msgstr "ステータス"
 msgid "Active"
 msgstr "アクティブ"
 
-# FIXME: separation (src/ui/gtk/gtk2/upload_stats.c: Complete -> Completes)
 msgid "Incomplete"
 msgstr "不完全"
 
@@ -4505,7 +4498,7 @@ msgid "%v/%u uploads"
 msgstr "%v/%u 件のアップロード"
 
 msgid "("
-msgstr ""
+msgstr "("
 
 msgid "(Disable: 0, Random: 1)"
 msgstr "(無効: 0, ランダム: 1)"
@@ -4638,9 +4631,8 @@ msgstr "完了したアップロードを自動消去"
 msgid "Auto clear failed uploads"
 msgstr "失敗したアップロードを自動消去"
 
-#, fuzzy
 msgid "Automatically clear finished files"
-msgstr "中断したダウンロードの自動消去"
+msgstr "完了したファイルの自動消去"
 
 msgid "Automatically clear sources when..."
 msgstr ""
@@ -4688,7 +4680,7 @@ msgid "Busy"
 msgstr "使用中"
 
 msgid "Bytes to back off on mismatch"
-msgstr "不一致の際に取消されるバイト"
+msgstr "ミスマッチ発生時に切り戻されるバイト数"
 
 msgid "Cache"
 msgstr "キャッシュ"
@@ -4890,9 +4882,8 @@ msgstr "遅延とタイムアウト (全て秒単位)"
 msgid "Delete file on abort"
 msgstr "中止する場合ファイルを削除"
 
-#, fuzzy
 msgid "Delete file on mismatch"
-msgstr "一致しない場合ファイルを削除"
+msgstr "ミスマッチ発生時にファイルを削除"
 
 msgid "Detailed traffic information to display"
 msgstr "表示するトラフィック情報"
@@ -5041,9 +5032,8 @@ msgstr "強制的にこのIPv6アドレスを使う(_6)"
 msgid "Force push mode"
 msgstr "強制PUSHモード"
 
-#, fuzzy
 msgid "Forget"
-msgstr "ターゲット"
+msgstr ""
 
 msgid ""
 "Forwarded\n"
@@ -5611,9 +5601,8 @@ msgstr ""
 msgid "Remove filter"
 msgstr "フィルターを削除"
 
-#, fuzzy
 msgid "Remove"
-msgstr "削除中"
+msgstr "削除"
 
 msgid "Report an upload connection _speed of"
 msgstr "相手に告げるアップロード接続速度(_S)"
@@ -6221,10 +6210,8 @@ msgstr "大・小文字を区別"
 msgid "case-sensitive"
 msgstr "大・小文字を区別"
 
-# FIXME:
-#, fuzzy
 msgid "completed"
-msgstr "完了しました"
+msgstr ""
 
 msgid "do"
 msgstr "○"
@@ -6354,9 +6341,8 @@ msgstr "リーフからのトラフィック(_I)"
 msgid "show leaf _outgoing traffic"
 msgstr "リーフへのトラフィック(_O)"
 
-#, fuzzy
 msgid "unavailable"
-msgstr "取得できないもの"
+msgstr "取得不可"
 
 msgid "undefined"
 msgstr "未定義"
@@ -6854,7 +6840,7 @@ msgid "Expires with this session"
 msgstr "このセッションで無効になります"
 
 msgid "This search has been stopped"
-msgstr ""
+msgstr "この検索は中断されています"
 
 #, c-format
 msgid "%u download"
@@ -6912,9 +6898,8 @@ msgstr "送信元"
 msgid "Alt-Locs"
 msgstr "別の送信元"
 
-#, fuzzy
 msgid "Latinized"
-msgstr "仏領マルチニーク島"
+msgstr "ローマ字表記"
 
 msgid "Index"
 msgstr "インデックス"
