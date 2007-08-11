@@ -1609,8 +1609,8 @@ fileinfo_data_cmp(const struct fileinfo_data *a, const struct fileinfo_data *b,
 		ret = ret ? ret : CMP(a->done, b->done);
 		break;
 	case c_fi_rx:
-		ret = CMP(a->recv_rate, b->recv_rate);
-		ret = ret ? ret : CMP(a->recv_count > 0, b->recv_count > 0);
+		ret = CMP(a->recv_count > 0 ? a->recv_rate : 0,
+					b->recv_count > 0 ? b->recv_rate : 0);
 		break;
 	case c_fi_done:
 		ret = CMP(a->done, b->done);
