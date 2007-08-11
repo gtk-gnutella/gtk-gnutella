@@ -59,14 +59,14 @@ typedef GSList *listeners_t;
 
 #define LISTENER_ADD(signal, callback) 										\
 G_STMT_START {																\
-	gpointer p = cast_func_to_gpointer((func_ptr_t) (callback));			\
+	void *p = (callback);			\
 	g_assert(NULL != p);				 									\
 	CAT2(signal,_listeners) = g_slist_append(CAT2(signal,_listeners), p);	\
 } G_STMT_END
 
 #define LISTENER_REMOVE(signal, callback)									\
 G_STMT_START {																\
-	gpointer p = cast_func_to_gpointer((func_ptr_t) (callback));			\
+	void *p = (callback);			\
 	g_assert(NULL != p);													\
 	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
 } G_STMT_END
@@ -77,7 +77,7 @@ G_STMT_START {																\
 	for (sl = CAT2(signal,_listeners); sl != NULL; sl = g_slist_next(sl)) { \
 		CAT2(signal,_listener_t) fn;										\
 		g_assert(NULL != sl->data);	  										\
-		fn = (CAT2(signal,_listener_t)) cast_gpointer_to_func(sl->data);	\
+		fn = (CAT2(signal,_listener_t)) cast_pointer_to_func(sl->data);	\
 		fn params;															\
 	}																		\
 } G_STMT_END
