@@ -2942,7 +2942,7 @@ search_gui_set_details(const record_t *rc)
 		size = 1 + utf8_latinize(NULL, 0, rc->utf8_name);
 		buf = g_malloc(size);
 		utf8_latinize(buf, size, rc->utf8_name);
-		search_gui_append_detail("Latinized", lazy_utf8_to_ui_string(buf));
+		search_gui_append_detail(_("Latinized"), lazy_utf8_to_ui_string(buf));
 		G_FREE_NULL(buf);
 	}
 

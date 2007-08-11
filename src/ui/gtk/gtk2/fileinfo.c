@@ -702,7 +702,7 @@ fi_gui_init(void)
 			renderer = tab[i].id == c_src_progress
 						? gtk_cell_renderer_progress_new()
 						: NULL;
-    		add_column(tv, tab[i].id, tab[i].title, 0.0,
+    		add_column(tv, tab[i].id, _(tab[i].title), 0.0,
 				renderer, render_sources);
 		}
 
