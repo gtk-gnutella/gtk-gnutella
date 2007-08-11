@@ -9,6 +9,18 @@ src/core/nodes.c
 src/core/rx_link.c
 src/core/settings.c
 src/core/shell.c
+src/core/shell_cmd_download.c
+src/core/shell_cmd_help.c
+src/core/shell_cmd_horizon.c
+src/core/shell_cmd_intr.c
+src/core/shell_cmd_node.c
+src/core/shell_cmd_print.c
+src/core/shell_cmd_props.c
+src/core/shell_cmd_quit.c
+src/core/shell_cmd_rescan.c
+src/core/shell_cmd_search.c
+src/core/shell_cmd_set.c
+src/core/shell_cmd_whatis.c
 src/core/sockets.c
 src/core/tx_link.c
 src/core/uhc.c
@@ -28,7 +40,6 @@ src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
 src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
-src/ui/gtk/gtk1/fileinfo.c
 src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/nodes.c
 src/ui/gtk/gtk1/search.c

@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-04 20:35+0900\n"
+"POT-Creation-Date: 2007-08-12 00:52+0900\n"
 "PO-Revision-Date: 2007-08-04 20:29+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -120,6 +120,10 @@ msgstr "一時停止中"
 
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
+
+#, fuzzy
+msgid "Download queue is frozen"
+msgstr "キューが凍結されました"
 
 # FIXME: what does `start' mean?
 msgid "No download slot (start)"
@@ -601,65 +605,31 @@ msgstr "TCP がファイアウォール内にある場合はリーフとして�
 msgid "Invalid command syntax"
 msgstr "無効なコマンド行です"
 
-msgid "Invalid IP/Port"
-msgstr "無効な IP/ポートです"
+msgid "Malformed command"
+msgstr "変なコマンドです"
 
-# FIXME: node -> peer
-msgid "Node added"
-msgstr "ピアが追加されました"
+msgid "Unknown command"
+msgstr "不明なコマンドエラーです"
 
-msgid "Invalid IP"
-msgstr "無効な IP"
+msgid "URL missing"
+msgstr "URL がありません"
 
-msgid "Invalid port"
-msgstr "無効な ポートです"
+# FIXME: what does `create' mean?
+msgid "The download could not be created"
+msgstr "ダウンロードを作成できませんでした"
 
-#, c-format
-msgid "Removed %u node"
-msgid_plural "Removed %u nodes"
-msgstr[0] "%u 基のノードを削除しました。"
+msgid "Download added"
+msgstr "ダウンロードが追加されました"
+
+#, fuzzy
+msgid "parameter missing"
+msgstr "プロパティがありません"
 
 msgid "Unknown operation"
 msgstr "不明な操作です"
 
-msgid "Query string missing"
-msgstr "検索クエリー文字列がありません"
-
-msgid "Query string is not UTF-8 encoded"
-msgstr "検索クエリー文字列がUTF-8でエンコードされていません。"
-
-msgid "Search added"
-msgstr "検索が追加されました"
-
-msgid "The search could not be created"
-msgstr "検索を作成できませんでした"
-
-msgid "Property missing"
-msgstr "プロパティがありません"
-
-msgid "Unknown property"
-msgstr "不明なプロパティです"
-
-msgid "Value: "
-msgstr "値: "
-
-msgid "Value found and displayed"
-msgstr "値発見、表示します"
-
-msgid "Value missing"
-msgstr "値がありません"
-
-msgid "Value found and set"
-msgstr "値発見、設定します"
-
-msgid "Help: "
-msgstr "へルプ: "
-
-msgid "The library is currently being rebuilt."
-msgstr "現在ライブラリの再構築中です。"
-
-msgid "A rescan has already been scheduled"
-msgstr "再スキャンは既に予定されています。"
+msgid "No help available"
+msgstr "ヘルプは利用できません"
 
 # FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
 msgid "Hops"
@@ -686,40 +656,74 @@ msgstr "到達領域サイズの合計 (%u/%u 基のHSEP対応ピア):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "HSEPピア %s (%s) 経由の到達領域サイズ:"
 
-msgid "URL missing"
-msgstr "URL がありません"
-
-# FIXME: what does `create' mean?
-msgid "The download could not be created"
-msgstr "ダウンロードを作成できませんでした"
-
-msgid "Download added"
-msgstr "ダウンロードが追加されました"
-
 msgid "Interactive mode turned on."
 msgstr "インタラクティブモードが有効になりました。"
 
 msgid "Interactive mode turned off."
 msgstr "インタラクティブモードが無効になりました。"
 
+msgid "Invalid IP/Port"
+msgstr "無効な IP/ポートです"
+
+# FIXME: node -> peer
+msgid "Node added"
+msgstr "ピアが追加されました"
+
+msgid "Invalid IP"
+msgstr "無効な IP"
+
+msgid "Invalid port"
+msgstr "無効な ポートです"
+
+#, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%u 基のノードを削除しました。"
+
+msgid "Property missing"
+msgstr "プロパティがありません"
+
+msgid "Unknown property"
+msgstr "不明なプロパティです"
+
+msgid "Value: "
+msgstr "値: "
+
+msgid "Value found and displayed"
+msgstr "値発見、表示します"
+
 msgid "No matching property."
 msgstr "該当するプロパティがありません。"
-
-msgid "No help available"
-msgstr "ヘルプは利用できません"
 
 msgid "Good bye"
 msgstr "Good bye"
 
-# FIXME: should be revised.
-msgid "Shutdown sequence initiated."
-msgstr "一連のシャットダウン処理が始まりました。"
+msgid "The library is currently being rebuilt."
+msgstr "現在ライブラリの再構築中です。"
 
-msgid "Malformed command"
-msgstr "変なコマンドです"
+msgid "A rescan has already been scheduled"
+msgstr "再スキャンは既に予定されています。"
 
-msgid "Unknown command"
-msgstr "不明なコマンドエラーです"
+msgid "Query string missing"
+msgstr "検索クエリー文字列がありません"
+
+msgid "Query string is not UTF-8 encoded"
+msgstr "検索クエリー文字列がUTF-8でエンコードされていません。"
+
+msgid "Search added"
+msgstr "検索が追加されました"
+
+msgid "The search could not be created"
+msgstr "検索を作成できませんでした"
+
+msgid "Value missing"
+msgstr "値がありません"
+
+msgid "Value found and set"
+msgstr "値発見、設定します"
+
+msgid "Help: "
+msgstr "へルプ: "
 
 msgid "Read error"
 msgstr "読込エラー"
@@ -2531,6 +2535,15 @@ msgid ""
 "background."
 msgstr "共有ファイルのTTHを算出しているかどうかを表します。"
 
+msgid "Maximum number of results to show in any search."
+msgstr "検索で表示する検索結果の最大数です。"
+
+msgid "Maximum number of results to show in a browse_host request."
+msgstr "ホスト参照リクエストで表示する最大数です。"
+
+msgid "The current Session ID."
+msgstr ""
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -2737,12 +2750,6 @@ msgstr "Gnutella ネットワーク統計テーブル・ペインの分割位置
 
 msgid "Position of the divider in the search results pane."
 msgstr "検索結果ペインの分割位置です。"
-
-msgid "Maximum number of results to show in any search."
-msgstr "検索で表示する検索結果の最大数です。"
-
-msgid "Maximum number of results to show in a browse_host request."
-msgstr "ホスト参照リクエストで表示する最大数です。"
 
 msgid "Debug level for the gui."
 msgstr "GUI のデバッグレベルです。"
@@ -4045,6 +4052,28 @@ msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
 msgstr[0] "%u 件のダウンロードを消却しました。"
 
+#, fuzzy
+msgid "Filename (filtered)"
+msgstr "任意フィルター"
+
+msgid "Progress"
+msgstr "途中経過"
+
+msgid "RX"
+msgstr "受信"
+
+msgid "Downloaded"
+msgstr "ダウンロード"
+
+msgid "Uploaded"
+msgstr "アップロード"
+
+msgid "Sources"
+msgstr "送信元"
+
+msgid "Status"
+msgstr "ステータス"
+
 msgid "Active"
 msgstr "アクティブ"
 
@@ -4078,25 +4107,6 @@ msgstr "正規表現に一致する"
 msgid "is exactly"
 msgstr "これで正確に一致する"
 
-msgid "Filter"
-msgstr "フィルター"
-
-# MERGLEBLE: Rule -> Rules
-msgid "Rule"
-msgstr "ルール数"
-
-msgid "Match"
-msgstr "該当数"
-
-msgid "!"
-msgstr "!"
-
-msgid "Condition"
-msgstr "条件"
-
-msgid "Target"
-msgstr "ターゲット"
-
 msgid "Builtin targets (not editable)"
 msgstr "組込ターゲット (編集不可)"
 
@@ -4120,6 +4130,25 @@ msgstr "フィルター無し"
 
 msgid "[no hash]"
 msgstr "[ハッシュ無し]"
+
+msgid "Filter"
+msgstr "フィルター"
+
+# MERGLEBLE: Rule -> Rules
+msgid "Rule"
+msgstr "ルール数"
+
+msgid "Match"
+msgstr "該当数"
+
+msgid "!"
+msgstr "!"
+
+msgid "Condition"
+msgstr "条件"
+
+msgid "Target"
+msgstr "ターゲット"
 
 # MERGEBLE:
 msgid "(case-sensitive)"
@@ -4431,24 +4460,6 @@ msgstr "破損したファイルを移動する場所を選んで下さい"
 msgid "Please choose a directory to share"
 msgstr "共有するフォルダを選んで下さい"
 
-msgid "Progress"
-msgstr "途中経過"
-
-msgid "RX"
-msgstr "受信"
-
-msgid "Downloaded"
-msgstr "ダウンロード"
-
-msgid "Uploaded"
-msgstr "アップロード"
-
-msgid "Sources"
-msgstr "送信元"
-
-msgid "Status"
-msgstr "ステータス"
-
 msgid " Clear completed "
 msgstr " 完了したものを消去 "
 
@@ -4493,6 +4504,9 @@ msgstr "%v/%u 件のダウンロード"
 msgid "%v/%u uploads"
 msgstr "%v/%u 件のアップロード"
 
+msgid "("
+msgstr ""
+
 msgid "(Disable: 0, Random: 1)"
 msgstr "(無効: 0, ランダム: 1)"
 
@@ -4504,6 +4518,9 @@ msgstr "(転送されない)"
 
 msgid "0 terms counted"
 msgstr "0 件の検索クエリー"
+
+msgid "<no property selected>"
+msgstr "<プロパティは選択されていません>"
 
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
@@ -4526,6 +4543,9 @@ msgstr "積極モード(_G)"
 # NOTE: it works as a tooltip
 msgid "Abort and remove all selected uploads"
 msgstr "選択した全てのアップロードを中止して削除します。"
+
+msgid "Abort"
+msgstr "中止する"
 
 msgid "About gtk-gnutella"
 msgstr "gtk-gnutellaについて"
@@ -4618,8 +4638,12 @@ msgstr "完了したアップロードを自動消去"
 msgid "Auto clear failed uploads"
 msgstr "失敗したアップロードを自動消去"
 
-msgid "Auto clear stopped downloads"
+#, fuzzy
+msgid "Automatically clear finished files"
 msgstr "中断したダウンロードの自動消去"
+
+msgid "Automatically clear sources when..."
+msgstr ""
 
 msgid "Available bandwidth"
 msgstr "使用可能な帯域幅"
@@ -4648,8 +4672,14 @@ msgstr "帯域幅"
 msgid "Banning"
 msgstr "禁止処理"
 
-msgid "Bitzi Metadata"
-msgstr "Bitziメタデータ検索"
+msgid "Bind to this address"
+msgstr "このアドレスにバインドする"
+
+msgid "Bitzi metadata"
+msgstr "Bitziメタデータ"
+
+msgid "Browse Host"
+msgstr "ホストの参照"
 
 msgid "Browse host"
 msgstr "ホストの参照"
@@ -4700,14 +4730,23 @@ msgstr "結果を消去"
 msgid "Clear stopped"
 msgstr "中断したものを消去"
 
+msgid "Clear"
+msgstr "クリア"
+
+msgid "Click to toggle display."
+msgstr "クリックで表示を切り替えます。"
+
 msgid "Clock skew:"
 msgstr "時計の誤差:"
 
 msgid "Clock synchronization"
 msgstr "時計の同期化"
 
-msgid "Close this search"
-msgstr "この検索を閉じる"
+msgid "Close"
+msgstr "閉じる"
+
+msgid "Collapse all"
+msgstr "全て折畳む"
 
 msgid "Compressed length:"
 msgstr "圧縮された長さ:"
@@ -4736,6 +4775,9 @@ msgstr "条件: URN:SHA1が一致するかどうか"
 msgid "Condition: always"
 msgstr "条件: 常に"
 
+msgid "Configure columns"
+msgstr "表示欄の設定"
+
 msgid "Configured peermode"
 msgstr "設定するピアモード"
 
@@ -4747,6 +4789,16 @@ msgstr "ホストへ接続"
 
 msgid "Connected time"
 msgstr "接続時間"
+
+# NOTE: `timeout' may be redundant
+# XXX: `Connected' by which?
+msgid "Connected time_out"
+msgstr "内への接続(_O)"
+
+# NOTE: `timeout' may be redundant
+# XXX: `Connecting' to which?
+msgid "Connectin_g timeout"
+msgstr "外への接続(_G)"
 
 msgid "Connection counters"
 msgstr "接続件数"
@@ -4777,11 +4829,17 @@ msgstr "URLをコピー"
 msgid "Copy browse-host results to passive searches"
 msgstr "ホスト参照の結果を受動検索にコピー"
 
+msgid "Copy magnet to clipboard"
+msgstr "マグネットをクリップボードへコピー"
+
 msgid "Copy rule"
 msgstr "ルールをコピー"
 
 msgid "Core development:"
 msgstr "中心部の開発:"
+
+msgid "Count"
+msgstr "回数"
 
 msgid "Country"
 msgstr "国(地域)"
@@ -4832,6 +4890,10 @@ msgstr "遅延とタイムアウト (全て秒単位)"
 msgid "Delete file on abort"
 msgstr "中止する場合ファイルを削除"
 
+#, fuzzy
+msgid "Delete file on mismatch"
+msgstr "一致しない場合ファイルを削除"
+
 msgid "Detailed traffic information to display"
 msgstr "表示するトラフィック情報"
 
@@ -4848,6 +4910,9 @@ msgstr "スパムを破棄する"
 msgid "Disconnect from selected nodes"
 msgstr "選択したピアとの接続を解除します。"
 
+msgid "Disconnect"
+msgstr "接続の解除"
+
 msgid "Display detailed traffic information"
 msgstr "詳細なトラフィック情報を表示する"
 
@@ -4857,11 +4922,17 @@ msgstr "様々なプロパティ"
 msgid "Do you really want to quit?"
 msgstr "本当に終了しますか？"
 
+msgid "Download"
+msgstr "ダウンロード"
+
 msgid "Downloaded:"
 msgstr "ダウンロード:"
 
 msgid "Downloading from multiple sources (swarming)"
 msgstr "多数の送信元からのダウンロード (Swarming)"
+
+msgid "Downloads"
+msgstr "ダウンロード"
 
 msgid "Drop results..."
 msgstr "検索結果を破棄..."
@@ -4871,9 +4942,6 @@ msgstr "破棄"
 
 msgid "Dup / Bad / Weird"
 msgstr "重複/不正/変なメッセージ数"
-
-msgid "Duplicate this search"
-msgstr "この検索をコピーする"
 
 # XXX: is not opposite of "absolute paths".
 msgid "E_xpose relative paths"
@@ -4925,6 +4993,9 @@ msgstr ""
 "切り、並べて入力して下さい。(例 192.168.1.0/24 または "
 "192.168.1.0/255.255.255.0)"
 
+msgid "Expand all"
+msgstr "全て拡げる"
+
 msgid "Expert mode"
 msgstr "上級者モード"
 
@@ -4937,11 +5008,11 @@ msgstr "FC/_TTL"
 msgid "FC/_hops"
 msgstr "FC/ホップ(_H)"
 
-msgid "Failed"
-msgstr "失敗したもの"
-
 msgid "File scanning time:"
 msgstr "ファイルのスキャン時間:"
+
+msgid "File transfers"
+msgstr "ファイル転送"
 
 msgid "Files scanned"
 msgstr "各ファイルがスキャンされています。"
@@ -4952,8 +5023,14 @@ msgstr "使用済み比率:"
 msgid "Filled slots:"
 msgstr "使用済スロット:"
 
+msgid "Filter files by regex"
+msgstr "正規表現に一致するファイルを振り分け"
+
 msgid "First chunk _size"
 msgstr "先頭のチャンクサイズ(_S)"
+
+msgid "Flags"
+msgstr "フラッグ"
 
 msgid "Force external IPv_4 address to"
 msgstr "強制的にこのIPv4アドレスを使う(_4)"
@@ -5002,6 +5079,9 @@ msgstr "生成 (送信)"
 
 msgid "General search settings (affect all searches)"
 msgstr "全体検索設定"
+
+msgid "General"
+msgstr "一般"
 
 msgid "Generated queries"
 msgstr "生成検索クエリー数"
@@ -5066,6 +5146,9 @@ msgstr "ホスト(_O):"
 msgid "Hard limit of _file descriptors used"
 msgstr "使用するファイル記述子の固定数(_F)"
 
+msgid "Hits"
+msgstr "ヒット数"
+
 msgid "Honor OOB flag in queries"
 msgstr "検索クエリーでは帯域外フラッグを遵守する"
 
@@ -5077,6 +5160,9 @@ msgstr "ホップのランダム因子"
 
 msgid "Host runs _NTP"
 msgstr "NTPを実行している(_N)"
+
+msgid "Host"
+msgstr "ホスト"
 
 msgid "Hostcache capacity"
 msgstr "ホストキャッシュの内容"
@@ -5130,9 +5216,6 @@ msgstr "情報"
 msgid "Information about selected file"
 msgstr "ファイルに関する情報"
 
-msgid "Jeroen Asselman"
-msgstr "Jeroen Asselman"
-
 msgid "Join the users or developers mailing lists."
 msgstr "users または developers メーリングリストへ参加して下さい。"
 
@@ -5174,6 +5257,12 @@ msgstr "ライブラリーの大きさ"
 
 msgid "Limit search _results to "
 msgstr "検索結果の上限(_R) "
+
+msgid "Loc"
+msgstr "場所"
+
+msgid "Local networks"
+msgstr "ローカルネット"
 
 msgid "Local node"
 msgstr "あなたのピア"
@@ -5285,6 +5374,9 @@ msgstr "最短アップロード時間"
 msgid "Minimum"
 msgstr "最小"
 
+msgid "Miscellaneous"
+msgstr "その他"
+
 msgid "Misses"
 msgstr "取逃し数"
 
@@ -5294,6 +5386,9 @@ msgstr "不安定なサーバントの種類の監視と自動禁止"
 msgid "Monitor bad node IP addresses"
 msgstr "不正ピアのIPアドレスを監視"
 
+msgid "Move back to queue"
+msgstr "キューへ戻す"
+
 msgid "Move completely downloaded files to"
 msgstr "ダウンロードが完了したファイルをここに移動"
 
@@ -5302,6 +5397,9 @@ msgstr "ダウンロードで破損したファイルをここに移動"
 
 msgid "Network protocol:"
 msgstr "ネットワークのプロトコル:"
+
+msgid "Network"
+msgstr "ネットワーク"
 
 msgid "Never send a push request"
 msgstr "PUSH リクエストを送らない"
@@ -5366,6 +5464,9 @@ msgstr "ルールを貼り付け"
 
 msgid "Patch generation started on:"
 msgstr "パッチ生成の開始時間:"
+
+msgid "Pause"
+msgstr "一時停止"
 
 msgid "Pending local queries"
 msgstr "保留ローカル検索クエリー数"
@@ -5472,6 +5573,9 @@ msgstr "RX (受信) 伝送速度"
 msgid "RX wire bytes"
 msgstr "RX (受信) 伝送バイト数"
 
+msgid "Range"
+msgstr "取得範囲"
+
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "ピアにつき受容可能な重複メッセージ比率(_N)"
 
@@ -5504,11 +5608,12 @@ msgstr ""
 "このフィルターから\n"
 "全ルールを削除"
 
-msgid "Remove file on mismatch"
-msgstr "一致しない場合ファイルを削除"
-
 msgid "Remove filter"
 msgstr "フィルターを削除"
+
+#, fuzzy
+msgid "Remove"
+msgstr "削除中"
 
 msgid "Report an upload connection _speed of"
 msgstr "相手に告げるアップロード接続速度(_S)"
@@ -5540,17 +5645,17 @@ msgstr ""
 "このフィルターのフィルター\n"
 "ステータスをリセット"
 
-msgid "Restart this search"
-msgstr "この検索を再開する"
+msgid "Restart"
+msgstr "再開"
 
-msgid "Resu_me this search"
-msgstr "この検索を再開(リジューム)する(_M)"
+msgid "Resu_me"
+msgstr "再開(_M)"
 
 msgid "Resume and retry"
 msgstr "再開と再実行"
 
-msgid "Resume this search"
-msgstr "この検索を再開する(リジューム)"
+msgid "Resume"
+msgstr "再開する"
 
 # FIXME: messy
 msgid "Retry busy delay"
@@ -5580,9 +5685,6 @@ msgstr "再実行タイムアウトの最短秒数"
 msgid "Revert"
 msgstr "戻す"
 
-msgid "Richard Eckart"
-msgstr "Richard Eckart"
-
 # MERGEBLE:
 msgid "Rules"
 msgstr "ルール数"
@@ -5601,6 +5703,9 @@ msgstr "ウルトラピアモードで動作しています。"
 
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr "SHA1 ハッシュ (編集不可、検索ポップアップから追加します)"
+
+msgid "Save"
+msgstr "保存"
 
 msgid "Saved"
 msgstr "保存済"
@@ -5625,8 +5730,14 @@ msgstr "検索モニターを実行する(_M)"
 msgid "Search queue"
 msgstr "検索キュー"
 
-msgid "Select"
-msgstr "選択"
+msgid "Search"
+msgstr "検索"
+
+msgid "Searches"
+msgstr "検索"
+
+msgid "Select files by regex"
+msgstr "正規表現に一致するファイルを選択"
 
 msgid "Selected property:"
 msgstr "選択されたプロパティ:"
@@ -5709,14 +5820,17 @@ msgstr "間隔"
 msgid "Stable"
 msgstr "安定"
 
+msgid "Start now"
+msgstr "すぐに開始する"
+
 msgid "Statistics"
 msgstr "各種統計"
 
 msgid "Statistics:"
 msgstr "各種統計:"
 
-msgid "Stop this search"
-msgstr "この検索を中止する"
+msgid "Stop"
+msgstr "停止"
 
 msgid "Strict SHA_1 matching"
 msgstr "SHA1で確実にマッチさせる(_1)"
@@ -5797,6 +5911,9 @@ msgstr "タイムアウト (全て秒単位)"
 msgid "Toolbar style"
 msgstr "ツールバーのスタイル"
 
+msgid "Tools"
+msgstr "ツール"
+
 msgid "Total input bandwidth limit:"
 msgstr "入力帯域幅の制限の合計:"
 
@@ -5813,6 +5930,9 @@ msgstr "指定アドレスへの接続を試みます。"
 msgid "Try to keep 'dead' entries around for"
 msgstr "「遺棄」項目を保存しておく時間"
 
+msgid "Type"
+msgstr "種類"
+
 msgid "Ultrapeer mode settings"
 msgstr "ウルトラピアモードの設定"
 
@@ -5827,9 +5947,6 @@ msgstr "リーフモードでのウルトラピア"
 
 msgid "Ultrapeers"
 msgstr "ウルトラピア"
-
-msgid "Unavailable"
-msgstr "取得できないもの"
 
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
@@ -5846,6 +5963,12 @@ msgstr "アップロード履歴"
 
 msgid "Uploaded:"
 msgstr "アップロード:"
+
+msgid "Uploads"
+msgstr "アップロード"
+
+msgid "Uptime"
+msgstr "稼動時間"
 
 msgid "Use IP _Type of Service (TOS)"
 msgstr "IP Type of Service (TOS) を使用する(_T)"
@@ -5868,14 +5991,14 @@ msgstr "プロキシサーバーの認証にユーザー名とパスワードを
 msgid "User Interface"
 msgstr "インターフェイス"
 
+msgid "User-Agent"
+msgstr "エージェント"
+
 msgid "Value"
 msgstr "値"
 
 msgid "Ver"
 msgstr "バージョン"
-
-msgid "Vidar Madsen"
-msgstr "Vidar Madsen"
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "http://gtk-gnutella.sourceforge.net を訪ねてみて下さい。"
@@ -5897,9 +6020,6 @@ msgstr "書込バッファサイズ"
 
 msgid "XML Metadata"
 msgstr "XMLメタデータ"
-
-msgid "Yann Grossel"
-msgstr "Yann Grossel"
 
 msgid "Yes"
 msgstr "はい"
@@ -5950,11 +6070,25 @@ msgstr ""
 msgid "You seem to be offline."
 msgstr "オフラインのようです。"
 
+msgid ""
+"Your uploads are stalling at an abnormal rate, indicating that your "
+"bandwidth is probably saturated. You should not run as an ultra node, and "
+"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
+"both your incoming and outgoing paths."
+msgstr ""
+"アップロードが異常な速度で停滞しています、これは恐らく帯域幅が飽和している事"
+"を示しています。このような状態ではウルトラピアとして実行すべきではありませ"
+"ん。内部と外部への通り道の飽和を避けるためにも、帯域幅の割り当てを減らして下"
+"さい。"
+
 msgid "_About"
 msgstr "このプログラムについて(_A)"
 
 msgid "_Add directory"
 msgstr "フォルダを追加(_A)"
+
+msgid "_Browse"
+msgstr "参照(_B)"
 
 msgid "_Compute upload connection speed"
 msgstr "アップロード接続速度を算出する(_C)"
@@ -5971,8 +6105,11 @@ msgstr "ダウンロード受信バッファ(_D):"
 msgid "_Download selected"
 msgstr "ダウンロード(_D)"
 
-msgid "_Duplicate this search"
-msgstr "この検索をコピーする(_D)"
+msgid "_Duplicate"
+msgstr "コピー(_D)"
+
+msgid "_Edit filters"
+msgstr "フィルター編集(_E)"
 
 msgid "_FAQ"
 msgstr "_FAQ"
@@ -6013,6 +6150,9 @@ msgstr "ピア内へのトラフィック(_I)"
 msgid "_Listen port"
 msgstr "待受ポート(_L)"
 
+msgid "_Messages"
+msgstr "メッセージ(_M)"
+
 msgid "_Outgoing traffic"
 msgstr "ピア外へのトラフィック(_O)"
 
@@ -6031,17 +6171,23 @@ msgstr "環境設定(_P)"
 msgid "_Push sent timeout"
 msgstr "PUSH 送信のタイムアウト(_P)"
 
+msgid "_Quit"
+msgstr "終了(_Q)"
+
 msgid "_Remove manually downloaded files"
 msgstr "ダウンロードしたファイルは削除する(_R)"
 
 msgid "_Rescan"
 msgstr "再スキャン(_R)"
 
-msgid "_Restart this search"
-msgstr "この検索を再開する(_R)"
+msgid "_Reset stats"
+msgstr "状態をリセット(_R)"
 
-msgid "_Stop this search"
-msgstr "この検索を中止する(_S)"
+msgid "_Restart"
+msgstr "開始(_R)"
+
+msgid "_Stop"
+msgstr "停止(_S)"
 
 msgid "_Try to connect to local networks first"
 msgstr "最初にローカルネットへ接続する(_T)"
@@ -6058,6 +6204,15 @@ msgstr "表示(_V)"
 msgid "_auto-hide leaf traffic stats"
 msgstr "自動的に隠す(_A)"
 
+msgid "active"
+msgstr "有効にする"
+
+msgid "and lasted"
+msgstr "継続時間"
+
+msgid "bytes"
+msgstr "バイト"
+
 # MERGEBLE:
 msgid "case sensitive"
 msgstr "大・小文字を区別"
@@ -6065,6 +6220,17 @@ msgstr "大・小文字を区別"
 # MERGEBLE:
 msgid "case-sensitive"
 msgstr "大・小文字を区別"
+
+# FIXME:
+#, fuzzy
+msgid "completed"
+msgstr "完了しました"
+
+msgid "do"
+msgstr "○"
+
+msgid "don't"
+msgstr "×"
 
 msgid "downloads"
 msgstr "ダウンロード"
@@ -6075,11 +6241,11 @@ msgstr "有効にする"
 msgid "from _nodes within a"
 msgstr "ピア(_N)"
 
+msgid "from the same host"
+msgstr "同じホストから"
+
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutellaの停止"
-
-msgid "gtk-gnutella"
-msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: 終了しますか？"
@@ -6087,14 +6253,44 @@ msgstr "gtk-gnutella: 終了しますか？"
 msgid "hops radius"
 msgstr "ホップ半径以内のものから"
 
+msgid "ignore"
+msgstr "無視"
+
+msgid "ignored"
+msgstr "無視"
+
+# NOTE: this string is used as follows
+#
+# '17KiB/s in (avg)'
+#
+msgid "in"
+msgstr "(平均) で内へ"
+
+msgid "invert condition"
+msgstr "条件を逆転"
+
 msgid "items"
 msgstr "個のアイテム"
 
 msgid "kbps to peers"
 msgstr "キロビット/秒でピアへ"
 
+msgid "mark only"
+msgstr "マークのみ"
+
 msgid "not yet determined"
 msgstr "まだ確定していません"
+
+# NOTE: this string is used as follows
+#
+# '17KiB/s out (avg)'
+#
+msgid "out"
+msgstr "(平均) で外へ"
+
+#, fuzzy
+msgid "queued"
+msgstr "待機中"
 
 # NOTE: this string is used as follows
 #
@@ -6102,6 +6298,9 @@ msgstr "まだ確定していません"
 #
 msgid "searches"
 msgstr "件の検索を表示"
+
+msgid "seconds"
+msgstr "秒"
 
 # NOTE: this string is used as follows
 #
@@ -6112,6 +6311,9 @@ msgstr "秒毎に実行   "
 
 msgid "secs"
 msgstr "秒"
+
+msgid "set"
+msgstr "○"
 
 msgid "show Gnet _incoming traffic"
 msgstr "内へのGnetトラフィック(_I)"
@@ -6152,20 +6354,24 @@ msgstr "リーフからのトラフィック(_I)"
 msgid "show leaf _outgoing traffic"
 msgstr "リーフへのトラフィック(_O)"
 
+#, fuzzy
+msgid "unavailable"
+msgstr "取得できないもの"
+
+msgid "undefined"
+msgstr "未定義"
+
+msgid "unset"
+msgstr "×"
+
 msgid "uploads"
 msgstr "アップロード"
 
-msgid "Host"
-msgstr "ホスト"
+msgid "with the same name"
+msgstr "同じ名前で"
 
-msgid "Flags"
-msgstr "フラッグ"
-
-msgid "User-Agent"
-msgstr "エージェント"
-
-msgid "Uptime"
-msgstr "稼動時間"
+msgid "with the same urn:sha1"
+msgstr "同じURN:SHA1で"
 
 msgid "owned"
 msgstr "取得済"
@@ -6214,9 +6420,6 @@ msgstr "エンコード方式"
 msgid "#"
 msgstr "数"
 
-msgid "Loc"
-msgstr "場所"
-
 msgid "Metadata"
 msgstr "メタデータ"
 
@@ -6264,74 +6467,11 @@ msgstr "Pixmap ファイルを読み込み中にエラー: %s"
 msgid " (partial)"
 msgstr " (部分ファイル)"
 
-msgid "Range"
-msgstr "取得範囲"
-
-msgid "Type"
-msgstr "種類"
-
-msgid "Count"
-msgstr "回数"
-
 msgid "Cache contains"
 msgstr "キャッシュ内容"
 
-msgid "Hits"
-msgstr "ヒット数"
-
-msgid "Copy magnet to clipboard"
-msgstr "マグネットをクリップボードへコピー"
-
-msgid "Start now"
-msgstr "すぐに開始する"
-
-msgid "Pause"
-msgstr "一時停止"
-
-msgid "Resume"
-msgstr "再開する"
-
-msgid "Move back to queue"
-msgstr "キューへ戻す"
-
-msgid "Abort"
-msgstr "中止する"
-
-msgid "Configure columns"
-msgstr "表示欄の設定"
-
-msgid "Download"
-msgstr "ダウンロード"
-
-msgid "Bitzi metadata"
-msgstr "Bitziメタデータ"
-
-msgid "with the same name"
-msgstr "同じ名前で"
-
-msgid "with the same urn:sha1"
-msgstr "同じURN:SHA1で"
-
-msgid "from the same host"
-msgstr "同じホストから"
-
-msgid "Stop"
-msgstr "停止"
-
-msgid "Restart"
-msgstr "再開"
-
-msgid "Expand all"
-msgstr "全て拡げる"
-
-msgid "Collapse all"
-msgstr "全て折畳む"
-
 msgid "Copy to clipboard"
 msgstr "クリップボードへコピー"
-
-msgid "Browse Host"
-msgstr "ホストの参照"
 
 msgid "_Remove filter"
 msgstr "フィルターを削除(_R)"
@@ -6350,9 +6490,6 @@ msgstr ""
 msgid "_Close"
 msgstr "閉じる(_C)"
 
-msgid "_Quit"
-msgstr "終了(_Q)"
-
 msgid "show _Peers"
 msgstr "ピア(_P)"
 
@@ -6361,26 +6498,6 @@ msgstr "Gnutellaトラフィック統計(_T)"
 
 msgid "_Search"
 msgstr "検索(_S)"
-
-msgid "Uploads"
-msgstr "アップロード"
-
-msgid "Downloads"
-msgstr "ダウンロード"
-
-msgid "Click to toggle display."
-msgstr "クリックで表示を切り替えます。"
-
-msgid ""
-"Your uploads are stalling at an abnormal rate, indicating that your "
-"bandwidth is probably saturated. You should not run as an ultra node, and "
-"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
-"both your incoming and outgoing paths."
-msgstr ""
-"アップロードが異常な速度で停滞しています、これは恐らく帯域幅が飽和している事"
-"を示しています。このような状態ではウルトラピアとして実行すべきではありませ"
-"ん。内部と外部への通り道の飽和を避けるためにも、帯域幅の割り当てを減らして下"
-"さい。"
 
 # NOTE: this string is used as follows
 #
@@ -6392,9 +6509,6 @@ msgstr "リーフ時には"
 # NOTE: see above
 msgid "ultrapeers"
 msgstr "基のウルトラピアに接続する。"
-
-msgid "Disconnect"
-msgstr "接続の解除"
 
 # NOTE: this string is used as follows
 #
@@ -6464,17 +6578,8 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
-msgid "_Edit filters"
-msgstr "フィルター編集(_E)"
-
 msgid "_Clear results"
 msgstr "結果を消去(_C)"
-
-msgid "_Reset stats"
-msgstr "状態をリセット(_R)"
-
-msgid "_Messages"
-msgstr "メッセージ(_M)"
 
 msgid "Flow _control"
 msgstr "フロー制御(_C)"
@@ -6488,9 +6593,6 @@ msgstr "ダウンロード済データ:"
 msgid "Uploaded data:"
 msgstr "アップロード済データ:"
 
-msgid "File transfers"
-msgstr "ファイル転送"
-
 msgid "_Columns show hops"
 msgstr "ホップ数を表示(_C)"
 
@@ -6501,56 +6603,14 @@ msgstr " "
 msgid "Show reasons _for"
 msgstr "原因の表示(_F)"
 
-msgid "invert condition"
-msgstr "条件を逆転"
-
-msgid "active"
-msgstr "有効にする"
-
-msgid "mark only"
-msgstr "マークのみ"
-
-msgid "Save"
-msgstr "保存"
-
 msgid "Delete"
 msgstr "削除"
-
-msgid "bytes"
-msgstr "バイト"
 
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "KB, KiB, MB, MiB, GB, GiB 等の接尾辞を使用できます。"
 
-msgid "ignored"
-msgstr "無視"
-
-msgid "unset"
-msgstr "×"
-
-msgid "set"
-msgstr "○"
-
-msgid "don't"
-msgstr "×"
-
-msgid "undefined"
-msgstr "未定義"
-
-msgid "do"
-msgstr "○"
-
-msgid "ignore"
-msgstr "無視"
-
 msgid "Reverse DNS lookup"
 msgstr "ホスト名の逆引き参照"
-
-msgid "Clear"
-msgstr "クリア"
-
-msgid "Network"
-msgstr "ネットワーク"
 
 msgid "Force external IPv4 address to"
 msgstr "強制的にこのIPv4アドレスを使う"
@@ -6563,9 +6623,6 @@ msgstr "IPv4設定(_4)"
 
 msgid "Force external IPv6 address to"
 msgstr "強制的にこのIPv6アドレスを使う"
-
-msgid "Bind to this address"
-msgstr "このアドレスにバインドする"
 
 msgid "IPv_6 settings"
 msgstr "IPv6設定(_6)"
@@ -6580,17 +6637,8 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr "ローカルネットのアドレス(_A)"
 
-msgid "Local networks"
-msgstr "ローカルネット"
-
-msgid "Miscellaneous"
-msgstr "その他"
-
 msgid "seconds (0 - disable)"
 msgstr "秒 (0 - 無効)"
-
-msgid "Searches"
-msgstr "検索"
 
 msgid "slots"
 msgstr "個"
@@ -6598,27 +6646,11 @@ msgstr "個"
 msgid "unit_of_time|s"
 msgstr "秒"
 
-# NOTE: `timeout' may be redundant
-# XXX: `Connecting' to which?
-msgid "Connectin_g timeout"
-msgstr "外への接続(_G)"
-
-# NOTE: `timeout' may be redundant
-# XXX: `Connected' by which?
-msgid "Connected time_out"
-msgstr "内への接続(_O)"
-
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "ベンダーが占有できる接続スロットの最大割合です。"
 
 msgid "KiB/s"
 msgstr "KiB/秒"
-
-msgid "General"
-msgstr "一般"
-
-msgid "_Browse"
-msgstr "参照(_B)"
 
 msgid "attempts"
 msgstr "回"
@@ -6629,44 +6661,11 @@ msgstr "フォルダを削除(_R)"
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
 
-msgid "and lasted"
-msgstr "継続時間"
-
-msgid "seconds"
-msgstr "秒"
-
-msgid "<no property selected>"
-msgstr "<プロパティは選択されていません>"
-
-msgid "_Stop"
-msgstr "停止(_S)"
-
-msgid "Resu_me"
-msgstr "再開(_M)"
-
-msgid "_Restart"
-msgstr "開始(_R)"
-
-msgid "_Duplicate"
-msgstr "コピー(_D)"
-
-msgid "Close"
-msgstr "閉じる"
-
-msgid "Select files by regex"
-msgstr "正規表現に一致するファイルを選択"
-
-msgid "Filter files by regex"
-msgstr "正規表現に一致するファイルを振り分け"
-
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
 
 msgid "_Clear completed"
 msgstr "完了したものを消去(_C)"
-
-msgid "Tools"
-msgstr "ツール"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
 msgid ", "
@@ -6702,9 +6701,6 @@ msgstr "%s の逆引き検索に失敗しました。"
 
 msgid "Reverse lookup in progress..."
 msgstr "逆引き検索を実行中..."
-
-msgid "Search"
-msgstr "検索"
 
 msgid "Size:"
 msgstr "大きさ:"
@@ -6763,20 +6759,6 @@ msgstr ""
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu 個のファイルを共有 (%s)"
-
-# NOTE: this string is used as follows
-#
-# '17KiB/s in (avg)'
-#
-msgid "in"
-msgstr "(平均) で内へ"
-
-# NOTE: this string is used as follows
-#
-# '17KiB/s out (avg)'
-#
-msgid "out"
-msgstr "(平均) で外へ"
 
 # NOTE: this string is used as follows
 #
@@ -6871,8 +6853,8 @@ msgstr "%sで無効になります"
 msgid "Expires with this session"
 msgstr "このセッションで無効になります"
 
-msgid "[stopped]"
-msgstr "[打ち切られました]"
+msgid "This search has been stopped"
+msgstr ""
 
 #, c-format
 msgid "%u download"
@@ -6929,6 +6911,10 @@ msgstr "送信元"
 
 msgid "Alt-Locs"
 msgstr "別の送信元"
+
+#, fuzzy
+msgid "Latinized"
+msgstr "仏領マルチニーク島"
 
 msgid "Index"
 msgstr "インデックス"

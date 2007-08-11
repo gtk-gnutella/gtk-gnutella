@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-04 20:35+0900\n"
+"POT-Creation-Date: 2007-08-12 00:52+0900\n"
 "PO-Revision-Date: 2007-07-14 11:59+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -55,6 +55,10 @@ msgstr "En pause"
 
 msgid "Waiting for a free chunk"
 msgstr "En attente d'un bloc libre"
+
+#, fuzzy
+msgid "Download queue is frozen"
+msgstr "File d'attente figée"
 
 msgid "No download slot (start)"
 msgstr "Pas de créneau libre pour télécharger (démarrage)"
@@ -525,65 +529,30 @@ msgstr "Ne fonctionne qu'en mode feuille si firewallé en TCP"
 msgid "Invalid command syntax"
 msgstr "Syntaxe de commande invalide"
 
-msgid "Invalid IP/Port"
-msgstr "IP/Port invalide"
+msgid "Malformed command"
+msgstr "commande malformée"
 
-msgid "Node added"
-msgstr "Noeud ajouté"
+msgid "Unknown command"
+msgstr "Commande inconnue"
 
-msgid "Invalid IP"
-msgstr "IP invalide"
+msgid "URL missing"
+msgstr "URL manquant"
 
-msgid "Invalid port"
-msgstr "Port invalide"
+msgid "The download could not be created"
+msgstr "Le téléchargement ne peut pas être créé"
 
-#, c-format
-msgid "Removed %u node"
-msgid_plural "Removed %u nodes"
-msgstr[0] "Enlevé %u noeud"
-msgstr[1] "Enlevé %u noeuds"
+msgid "Download added"
+msgstr "Téléchargement ajouté"
+
+#, fuzzy
+msgid "parameter missing"
+msgstr "Propriété manquante"
 
 msgid "Unknown operation"
 msgstr "opération inconnue"
 
-msgid "Query string missing"
-msgstr "String de la demande manquante"
-
-msgid "Query string is not UTF-8 encoded"
-msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
-
-msgid "Search added"
-msgstr "Rcherche ajoutée"
-
-msgid "The search could not be created"
-msgstr "La recherche ne peux pas être créée"
-
-msgid "Property missing"
-msgstr "Propriété manquante"
-
-msgid "Unknown property"
-msgstr "Propriété inconnue"
-
-msgid "Value: "
-msgstr "Valeur:"
-
-msgid "Value found and displayed"
-msgstr "Valeur trouvée et affichée"
-
-msgid "Value missing"
-msgstr "Valeur manquante"
-
-msgid "Value found and set"
-msgstr "Valeur trouvée et utilisée"
-
-msgid "Help: "
-msgstr "Aide:"
-
-msgid "The library is currently being rebuilt."
-msgstr "La bibliothèque est en cours de reconstruction."
-
-msgid "A rescan has already been scheduled"
-msgstr "Un parcours a déjà été planifié"
+msgid "No help available"
+msgstr "Pas d'aide disponible"
 
 msgid "Hops"
 msgstr "Sauts"
@@ -605,38 +574,74 @@ msgstr "Taille de l'horizon (%u/%u noeuds supportant HSEP):"
 msgid "Horizon size via HSEP node %s (%s):"
 msgstr "Taille d'horizon via le noeud HSEP %s (%s):"
 
-msgid "URL missing"
-msgstr "URL manquant"
-
-msgid "The download could not be created"
-msgstr "Le téléchargement ne peut pas être créé"
-
-msgid "Download added"
-msgstr "Téléchargement ajouté"
-
 msgid "Interactive mode turned on."
 msgstr "Mode interactif activé."
 
 msgid "Interactive mode turned off."
 msgstr "Mode interactif désactivé."
 
+msgid "Invalid IP/Port"
+msgstr "IP/Port invalide"
+
+msgid "Node added"
+msgstr "Noeud ajouté"
+
+msgid "Invalid IP"
+msgstr "IP invalide"
+
+msgid "Invalid port"
+msgstr "Port invalide"
+
+#, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "Enlevé %u noeud"
+msgstr[1] "Enlevé %u noeuds"
+
+msgid "Property missing"
+msgstr "Propriété manquante"
+
+msgid "Unknown property"
+msgstr "Propriété inconnue"
+
+msgid "Value: "
+msgstr "Valeur:"
+
+msgid "Value found and displayed"
+msgstr "Valeur trouvée et affichée"
+
 msgid "No matching property."
 msgstr "Aucune propriété correspondant."
-
-msgid "No help available"
-msgstr "Pas d'aide disponible"
 
 msgid "Good bye"
 msgstr "Aurevoir"
 
-msgid "Shutdown sequence initiated."
-msgstr "Séquence d'arrêt engagée."
+msgid "The library is currently being rebuilt."
+msgstr "La bibliothèque est en cours de reconstruction."
 
-msgid "Malformed command"
-msgstr "commande malformée"
+msgid "A rescan has already been scheduled"
+msgstr "Un parcours a déjà été planifié"
 
-msgid "Unknown command"
-msgstr "Commande inconnue"
+msgid "Query string missing"
+msgstr "String de la demande manquante"
+
+msgid "Query string is not UTF-8 encoded"
+msgstr "La chaîne de recherche n'est pas encodée en UTF-8"
+
+msgid "Search added"
+msgstr "Rcherche ajoutée"
+
+msgid "The search could not be created"
+msgstr "La recherche ne peux pas être créée"
+
+msgid "Value missing"
+msgstr "Valeur manquante"
+
+msgid "Value found and set"
+msgstr "Valeur trouvée et utilisée"
+
+msgid "Help: "
+msgstr "Aide:"
 
 msgid "Read error"
 msgstr "Erreur de lecture"
@@ -2537,6 +2542,15 @@ msgstr ""
 "Indique si gtk-gnutella est actuellement en train de calculer le TTH des "
 "fichiers partagés en arrière plan."
 
+msgid "Maximum number of results to show in any search."
+msgstr "Nombre maximum de résultats à afficher pour toute recherche."
+
+msgid "Maximum number of results to show in a browse_host request."
+msgstr "Nombre maximum de résultats à afficher par parcours de hôte."
+
+msgid "The current Session ID."
+msgstr ""
+
 msgid "disable"
 msgstr "désactiver"
 
@@ -2755,12 +2769,6 @@ msgstr "Position du séparateur dans le panneau des stats Gnet."
 
 msgid "Position of the divider in the search results pane."
 msgstr "Position du séparateur dans le panneau résultats de recherches."
-
-msgid "Maximum number of results to show in any search."
-msgstr "Nombre maximum de résultats à afficher pour toute recherche."
-
-msgid "Maximum number of results to show in a browse_host request."
-msgstr "Nombre maximum de résultats à afficher par parcours de hôte."
 
 msgid "Debug level for the gui."
 msgstr "Niveau de débugage pour l'interface."
@@ -4036,6 +4044,29 @@ msgid_plural "Forgot %u downloads"
 msgstr[0] "Oublié %u téléchargement"
 msgstr[1] "Oublié %u téléchargements"
 
+#, fuzzy
+msgid "Filename (filtered)"
+msgstr "Filtre de nom de fichier:"
+
+msgid "Progress"
+msgstr "Progression"
+
+msgid "RX"
+msgstr ""
+
+#, fuzzy
+msgid "Downloaded"
+msgstr "Téléchargé:"
+
+msgid "Uploaded"
+msgstr "Envoyé"
+
+msgid "Sources"
+msgstr "Sources"
+
+msgid "Status"
+msgstr "Etat"
+
 msgid "Active"
 msgstr "Actif"
 
@@ -4070,24 +4101,6 @@ msgstr "correspond à l'expression régulière"
 msgid "is exactly"
 msgstr "est exactement"
 
-msgid "Filter"
-msgstr "Filtre"
-
-msgid "Rule"
-msgstr "Règle"
-
-msgid "Match"
-msgstr "Correspond"
-
-msgid "!"
-msgstr "!"
-
-msgid "Condition"
-msgstr "Condition"
-
-msgid "Target"
-msgstr "Cible"
-
 msgid "Builtin targets (not editable)"
 msgstr "Cibles intégrées (non modifiable)"
 
@@ -4111,6 +4124,24 @@ msgstr "pas de filtre par défaut"
 
 msgid "[no hash]"
 msgstr "[pas de hash]"
+
+msgid "Filter"
+msgstr "Filtre"
+
+msgid "Rule"
+msgstr "Règle"
+
+msgid "Match"
+msgstr "Correspond"
+
+msgid "!"
+msgstr "!"
+
+msgid "Condition"
+msgstr "Condition"
+
+msgid "Target"
+msgstr "Cible"
 
 msgid "(case-sensitive)"
 msgstr "(sensible à la casse)"
@@ -4392,25 +4423,6 @@ msgstr "Veuillez choisir où déplacer les fichiers corrompus"
 msgid "Please choose a directory to share"
 msgstr "Veuillez choisir un répertoire à partager"
 
-msgid "Progress"
-msgstr "Progression"
-
-msgid "RX"
-msgstr ""
-
-#, fuzzy
-msgid "Downloaded"
-msgstr "Téléchargé:"
-
-msgid "Uploaded"
-msgstr "Envoyé"
-
-msgid "Sources"
-msgstr "Sources"
-
-msgid "Status"
-msgstr "Etat"
-
 msgid " Clear completed "
 msgstr " Effacer ceux terminés "
 
@@ -4447,6 +4459,9 @@ msgstr "%v/%u téléchargements"
 msgid "%v/%u uploads"
 msgstr "%v/%u envois"
 
+msgid "("
+msgstr "("
+
 msgid "(Disable: 0, Random: 1)"
 msgstr "(Désactiver: 0, Hasard: 1)"
 
@@ -4458,6 +4473,9 @@ msgstr "(pas relayé)"
 
 msgid "0 terms counted"
 msgstr "0 terme compté"
+
+msgid "<no property selected>"
+msgstr "<aucune propriété sélectionnée>"
 
 msgid ""
 "==> We are looking for people who want to contribute to this fine tool. <=="
@@ -4481,6 +4499,9 @@ msgstr "Mode a_gressif"
 
 msgid "Abort and remove all selected uploads"
 msgstr "Annuler et enlever tous les envois sélectionnés"
+
+msgid "Abort"
+msgstr "Annuler"
 
 msgid "About gtk-gnutella"
 msgstr "A propos de gtk-gnutella"
@@ -4576,8 +4597,12 @@ msgstr "Effacer automatiquement les envois terminés"
 msgid "Auto clear failed uploads"
 msgstr "Effacer automatiquement les envois échoués"
 
-msgid "Auto clear stopped downloads"
+#, fuzzy
+msgid "Automatically clear finished files"
 msgstr "Effacer automatiquement les téléchargements arrêtés"
+
+msgid "Automatically clear sources when..."
+msgstr ""
 
 msgid "Available bandwidth"
 msgstr "Bande passante disponible"
@@ -4606,8 +4631,15 @@ msgstr "Bande passante"
 msgid "Banning"
 msgstr "Bannissement"
 
-msgid "Bitzi Metadata"
+msgid "Bind to this address"
+msgstr "Associer cette adresse"
+
+#, fuzzy
+msgid "Bitzi metadata"
 msgstr "Métadonnées Bitzi"
+
+msgid "Browse Host"
+msgstr "Parcourir l'hôte"
 
 #, fuzzy
 msgid "Browse host"
@@ -4657,6 +4689,12 @@ msgstr "Effa_cer les résultats"
 msgid "Clear stopped"
 msgstr "Effacer ceux arrêtés"
 
+msgid "Clear"
+msgstr "Effacer"
+
+msgid "Click to toggle display."
+msgstr "Clickez pour alterner l'affichage."
+
 msgid "Clock skew:"
 msgstr "Décalage de l'heure:"
 
@@ -4664,8 +4702,11 @@ msgid "Clock synchronization"
 msgstr "Synchronisation de l'horloge"
 
 #, fuzzy
-msgid "Close this search"
-msgstr "_Fermer la recherche"
+msgid "Close"
+msgstr "_Fermer"
+
+msgid "Collapse all"
+msgstr "Tout regrouper"
 
 msgid "Compressed length:"
 msgstr "Longueur compressée:"
@@ -4694,6 +4735,9 @@ msgstr "Condition: Si urn:sha1 correspond"
 msgid "Condition: always"
 msgstr "Condition: toujours"
 
+msgid "Configure columns"
+msgstr "Configurer les colonnes"
+
 msgid "Configured peermode"
 msgstr "Peermode configuré"
 
@@ -4705,6 +4749,12 @@ msgstr "Se connecter à l'hôte"
 
 msgid "Connected time"
 msgstr "Temps de connexion"
+
+msgid "Connected time_out"
+msgstr "Time_out quand connecté"
+
+msgid "Connectin_g timeout"
+msgstr "Timeout de connexio_n"
 
 #, fuzzy
 msgid "Connection counters"
@@ -4738,11 +4788,18 @@ msgstr "Copier l'URL vers le presse-papiers"
 msgid "Copy browse-host results to passive searches"
 msgstr "Copier les résultats de parcours d'hôtes en recherches passives"
 
+#, fuzzy
+msgid "Copy magnet to clipboard"
+msgstr "Copier Magnet vers le presse-papiers"
+
 msgid "Copy rule"
 msgstr "Copier la règle"
 
 msgid "Core development:"
 msgstr "Développement du noyau:"
+
+msgid "Count"
+msgstr "Nombre"
 
 msgid "Country"
 msgstr "Pays"
@@ -4789,6 +4846,10 @@ msgstr "Délais et timeouts (toutes les valeurs en secondes)"
 msgid "Delete file on abort"
 msgstr "Supprimer le fichier lors de l'arrêt"
 
+#, fuzzy
+msgid "Delete file on mismatch"
+msgstr "Supprimer le fichier lors d'une disparité"
+
 msgid "Detailed traffic information to display"
 msgstr "Information détaillées du trafic à afficher"
 
@@ -4804,6 +4865,9 @@ msgstr "Ecarter le spam"
 msgid "Disconnect from selected nodes"
 msgstr "Se déconnecter des noeuds sélectionnés"
 
+msgid "Disconnect"
+msgstr "Se déconnecter"
+
 msgid "Display detailed traffic information"
 msgstr "Afficher les informations détaillées du trafic"
 
@@ -4813,11 +4877,18 @@ msgstr "Diverses propriétés"
 msgid "Do you really want to quit?"
 msgstr "Voulez-vous vraiment quitter ?"
 
+#, fuzzy
+msgid "Download"
+msgstr "Téléchargements"
+
 msgid "Downloaded:"
 msgstr "Téléchargé:"
 
 msgid "Downloading from multiple sources (swarming)"
 msgstr "Télécharger de plusieurs sources (swarming)"
+
+msgid "Downloads"
+msgstr "Téléchargements"
 
 msgid "Drop results..."
 msgstr "Supprimer les résultats..."
@@ -4827,9 +4898,6 @@ msgstr "Laché"
 
 msgid "Dup / Bad / Weird"
 msgstr "Doublons / Mauvais / Bizarres"
-
-msgid "Duplicate this search"
-msgstr "Dupliquer cette recherche"
 
 msgid "E_xpose relative paths"
 msgstr "M_ontrer les chemins relatifs"
@@ -4878,6 +4946,9 @@ msgstr ""
 "Entrer une liste séparée par ';' de réseaux qui sont locaux pour vous, de la "
 "forme ip/bits ou ip/masque (ex: 192.168.1.0/24 ou 192.168.1.0/255.255.255.0)"
 
+msgid "Expand all"
+msgstr "Etendre tout"
+
 msgid "Expert mode"
 msgstr "Mode expert"
 
@@ -4890,11 +4961,12 @@ msgstr "FC/_TTL"
 msgid "FC/_hops"
 msgstr "FC/_hops"
 
-msgid "Failed"
-msgstr "Échoué"
-
 msgid "File scanning time:"
 msgstr "Temps de balayage des fichiers:"
+
+#, fuzzy
+msgid "File transfers"
+msgstr "_Transferts"
 
 msgid "Files scanned"
 msgstr "Fichiers balayés"
@@ -4905,8 +4977,14 @@ msgstr "Proportion de remplissage:"
 msgid "Filled slots:"
 msgstr "Créneaux remplis:"
 
+msgid "Filter files by regex"
+msgstr ""
+
 msgid "First chunk _size"
 msgstr "_Taille du premier bloc"
+
+msgid "Flags"
+msgstr "Drapeaux"
 
 msgid "Force external IPv_4 address to"
 msgstr "Forcer l'adresse externe IPv_4 à"
@@ -4951,6 +5029,9 @@ msgstr "Gen. envoyé"
 
 msgid "General search settings (affect all searches)"
 msgstr "Paramètres de recherche généraux (affecte toutes les recherches)"
+
+msgid "General"
+msgstr "Général"
 
 msgid "Generated queries"
 msgstr "Demandes générées"
@@ -5012,6 +5093,9 @@ msgstr "H_ote:"
 msgid "Hard limit of _file descriptors used"
 msgstr "Limite dure des descripteurs de _fichiers utilisés"
 
+msgid "Hits"
+msgstr "Hits"
+
 msgid "Honor OOB flag in queries"
 msgstr "Hônorer le drapeau OOB dans les requêtes"
 
@@ -5025,6 +5109,9 @@ msgstr "Facteur aléatoire des hops"
 
 msgid "Host runs _NTP"
 msgstr "L'hôte utilise _NTP"
+
+msgid "Host"
+msgstr "Hôte"
 
 msgid "Hostcache capacity"
 msgstr "Capacité du cache des hôtes"
@@ -5077,9 +5164,6 @@ msgstr "Info"
 msgid "Information about selected file"
 msgstr "Informations à propos du fichier sélectionné"
 
-msgid "Jeroen Asselman"
-msgstr "Jeroen Asselman"
-
 msgid "Join the users or developers mailing lists."
 msgstr "Rejoignez la liste de discussion des utilisateurs ou des développeurs."
 
@@ -5121,6 +5205,12 @@ msgstr "Taille de la bibliothèque"
 
 msgid "Limit search _results to "
 msgstr "Limiter les _résultats de la recherche à"
+
+msgid "Loc"
+msgstr "Lieu"
+
+msgid "Local networks"
+msgstr "Réseaux locaux"
 
 msgid "Local node"
 msgstr "Noeud local"
@@ -5232,6 +5322,9 @@ msgstr "Temps minimum des envois"
 msgid "Minimum"
 msgstr "Minimum"
 
+msgid "Miscellaneous"
+msgstr "Divers"
+
 msgid "Misses"
 msgstr "Ratés"
 
@@ -5241,6 +5334,9 @@ msgstr "Monitorer et bannir automatiquement les types de servents instables"
 msgid "Monitor bad node IP addresses"
 msgstr "Monitorer les adresses IP des mauvais noeuds"
 
+msgid "Move back to queue"
+msgstr "Remettre dans la file"
+
 msgid "Move completely downloaded files to"
 msgstr "Déplacer les fichiers téléchargés entièrement vers"
 
@@ -5249,6 +5345,9 @@ msgstr "Déplacer les fichiers corrompus vers"
 
 msgid "Network protocol:"
 msgstr "Protocole réseau:"
+
+msgid "Network"
+msgstr "Réseau"
 
 msgid "Never send a push request"
 msgstr "Ne jamais envoyer une requête push"
@@ -5316,6 +5415,9 @@ msgstr "Coller la règle"
 
 msgid "Patch generation started on:"
 msgstr "Génération du patch commencée à:"
+
+msgid "Pause"
+msgstr "Pause"
 
 msgid "Pending local queries"
 msgstr "Demandes locales en attente"
@@ -5420,6 +5522,9 @@ msgstr "Vitesse RX"
 msgid "RX wire bytes"
 msgstr "Octets RX"
 
+msgid "Range"
+msgstr "Intervalle"
+
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Proportion de messages dupliqués tolérable par _noeud"
 
@@ -5448,11 +5553,11 @@ msgstr ""
 "Enlever toutes les\n"
 "règles de ce filtre"
 
-msgid "Remove file on mismatch"
-msgstr "Supprimer le fichier lors d'une disparité"
-
 msgid "Remove filter"
 msgstr "Supprimer le filtre"
+
+msgid "Remove"
+msgstr "Retirer"
 
 msgid "Report an upload connection _speed of"
 msgstr "Rapporter une vite_sse de connexion d'envoi de"
@@ -5484,17 +5589,19 @@ msgstr ""
 "Réinitialiser les stats\n"
 "pour ce filtre"
 
-msgid "Restart this search"
-msgstr "Recommencer cette recherche"
+#, fuzzy
+msgid "Restart"
+msgstr "_Réinitialiser les stats"
 
-msgid "Resu_me this search"
-msgstr "Repren_dre cette recherche"
+#, fuzzy
+msgid "Resu_me"
+msgstr "Reprendre"
 
 msgid "Resume and retry"
 msgstr "Reprendre et réessayer"
 
-msgid "Resume this search"
-msgstr "Reprendre cette recherche"
+msgid "Resume"
+msgstr "Reprendre"
 
 msgid "Retry busy delay"
 msgstr "Délai entre les essais occupés"
@@ -5517,9 +5624,6 @@ msgstr "Temps de réessai min pour un timeout"
 msgid "Revert"
 msgstr "Retourner"
 
-msgid "Richard Eckart"
-msgstr "Richard Eckart"
-
 msgid "Rules"
 msgstr "Règles"
 
@@ -5537,6 +5641,9 @@ msgstr "Tourne en mode ultrapeer."
 
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr "hash SHA1 (pas éditable, ajouter depuis la fenêtre de recherche)"
+
+msgid "Save"
+msgstr "Sauver"
 
 msgid "Saved"
 msgstr "Sauvé"
@@ -5561,8 +5668,15 @@ msgstr "_Moniteur de recherche activé"
 msgid "Search queue"
 msgstr "File d'attente des recherches"
 
-msgid "Select"
-msgstr "Selectionner"
+msgid "Search"
+msgstr "Recherche"
+
+msgid "Searches"
+msgstr "Recherches"
+
+#, fuzzy
+msgid "Select files by regex"
+msgstr "Sélectionner tous ceux correspondant à la regex"
 
 msgid "Selected property:"
 msgstr "Propriété sélectionnée:"
@@ -5648,6 +5762,9 @@ msgstr "Espacement "
 msgid "Stable"
 msgstr "Stable"
 
+msgid "Start now"
+msgstr "Commencer maintenant"
+
 #, fuzzy
 msgid "Statistics"
 msgstr "Statistiques:"
@@ -5655,8 +5772,8 @@ msgstr "Statistiques:"
 msgid "Statistics:"
 msgstr "Statistiques:"
 
-msgid "Stop this search"
-msgstr "Arrêter cette recherche"
+msgid "Stop"
+msgstr ""
 
 msgid "Strict SHA_1 matching"
 msgstr "Correspondance stricte SHA_1"
@@ -5737,6 +5854,10 @@ msgstr "Timeouts (toutes les valeurs en secondes)"
 msgid "Toolbar style"
 msgstr "Style de la barre d'outil"
 
+#, fuzzy
+msgid "Tools"
+msgstr "Togo"
+
 msgid "Total input bandwidth limit:"
 msgstr "Limite totale de la bande passante entrante:"
 
@@ -5752,6 +5873,9 @@ msgstr "Essayer de se connecter à une adresse spécifique"
 msgid "Try to keep 'dead' entries around for"
 msgstr "Essayer de garder les entrées 'mortes' pendant"
 
+msgid "Type"
+msgstr "Type"
+
 msgid "Ultrapeer mode settings"
 msgstr "Paramètres du mode Ultrapeer"
 
@@ -5766,9 +5890,6 @@ msgstr "Ultrapeers en mode feuille"
 
 msgid "Ultrapeers"
 msgstr "Ultrapeers"
-
-msgid "Unavailable"
-msgstr "Indisponible"
 
 msgid ""
 "Until the configured percentage of outgoing HTTP bandwidth is in use, open "
@@ -5786,6 +5907,12 @@ msgstr "Historique d'envois"
 
 msgid "Uploaded:"
 msgstr "Envoyé:"
+
+msgid "Uploads"
+msgstr "Envois"
+
+msgid "Uptime"
+msgstr "Uptime"
 
 msgid "Use IP _Type of Service (TOS)"
 msgstr "Utilise le _Type de Service (TOS) IP"
@@ -5810,14 +5937,14 @@ msgstr ""
 msgid "User Interface"
 msgstr "Interface utilisateur"
 
+msgid "User-Agent"
+msgstr "Logiciel"
+
 msgid "Value"
 msgstr "Valeur"
 
 msgid "Ver"
 msgstr "Ver"
-
-msgid "Vidar Madsen"
-msgstr "Vidar Madsen"
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Visitez http://gtk-gnutella.sourceforge.net/."
@@ -5839,9 +5966,6 @@ msgstr "Taille du tampon pour l'écriture"
 
 msgid "XML Metadata"
 msgstr "Métadonnées XML"
-
-msgid "Yann Grossel"
-msgstr "Yann Grossel"
 
 msgid "Yes"
 msgstr "Oui"
@@ -5891,11 +6015,25 @@ msgstr ""
 msgid "You seem to be offline."
 msgstr "Vous semblez être déconnecté."
 
+msgid ""
+"Your uploads are stalling at an abnormal rate, indicating that your "
+"bandwidth is probably saturated. You should not run as an ultra node, and "
+"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
+"both your incoming and outgoing paths."
+msgstr ""
+"Vos envois s'arrêtent trop fréquement, indiquant que votre bande passante "
+"est probablement saturée. Vous ne devriez pas tourner en mode noeud ultra, "
+"et essayez de réduire la bande passante allouée à gtk-gnutella pour éviter "
+"de saturer en même temps l'envoi et la réception."
+
 msgid "_About"
 msgstr "_A propos"
 
 msgid "_Add directory"
 msgstr "_Ajouter un répertoire"
+
+msgid "_Browse"
+msgstr "_Parcourir"
 
 msgid "_Compute upload connection speed"
 msgstr "_Calculer la vitesse de connexion d'envoi"
@@ -5912,8 +6050,12 @@ msgstr "Tampon RX de _téléchargement:"
 msgid "_Download selected"
 msgstr "_Télécharger ceux sélectionnés"
 
-msgid "_Duplicate this search"
-msgstr "_Dupliquer cette recherche"
+#, fuzzy
+msgid "_Duplicate"
+msgstr "Message double"
+
+msgid "_Edit filters"
+msgstr "_Editer les filtres"
 
 msgid "_FAQ"
 msgstr "_FAQ"
@@ -5955,6 +6097,9 @@ msgstr "Trafic _entrant"
 msgid "_Listen port"
 msgstr "Port d'éc_oute"
 
+msgid "_Messages"
+msgstr "_Messages"
+
 msgid "_Outgoing traffic"
 msgstr "Trafic _sortant"
 
@@ -5973,17 +6118,24 @@ msgstr "_Préférences"
 msgid "_Push sent timeout"
 msgstr "Timeout des _push envoyés"
 
+msgid "_Quit"
+msgstr "_Quitter"
+
 msgid "_Remove manually downloaded files"
 msgstr "Supp_rimer manuellement les fichiers téléchargés"
 
 msgid "_Rescan"
 msgstr "_Rebalayer"
 
-msgid "_Restart this search"
-msgstr "_Recommencer cette recherche"
+msgid "_Reset stats"
+msgstr "_Réinitialiser les stats"
 
-msgid "_Stop this search"
-msgstr "_Arrêter cette recherche"
+#, fuzzy
+msgid "_Restart"
+msgstr "_Réinitialiser les stats"
+
+msgid "_Stop"
+msgstr ""
 
 msgid "_Try to connect to local networks first"
 msgstr "_Essayer de se connecter aux réseaux locaux en premier"
@@ -6000,11 +6152,30 @@ msgstr "_Voir"
 msgid "_auto-hide leaf traffic stats"
 msgstr "cacher _automatiquement les stats du trafic feuille"
 
+msgid "active"
+msgstr "actif"
+
+msgid "and lasted"
+msgstr "et a duré"
+
+msgid "bytes"
+msgstr "octets"
+
 msgid "case sensitive"
 msgstr "sensible à la casse"
 
 msgid "case-sensitive"
 msgstr "sensible à la casse"
+
+#, fuzzy
+msgid "completed"
+msgstr "Terminé"
+
+msgid "do"
+msgstr "faire"
+
+msgid "don't"
+msgstr "ne pas"
 
 msgid "downloads"
 msgstr "téléchargements"
@@ -6015,12 +6186,11 @@ msgstr "activé"
 msgid "from _nodes within a"
 msgstr "d'un _noeud dans un"
 
+msgid "from the same host"
+msgstr "du même hôte"
+
 msgid "gtk-gnutella shutdown"
 msgstr "arrêt de gtk-gnutella"
-
-#, fuzzy
-msgid "gtk-gnutella"
-msgstr "A propos de gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Quitter ?"
@@ -6028,23 +6198,50 @@ msgstr "gtk-gnutella: Quitter ?"
 msgid "hops radius"
 msgstr "rayon des hops"
 
+msgid "ignore"
+msgstr "ignorer"
+
+msgid "ignored"
+msgstr "ignoré"
+
+msgid "in"
+msgstr "entrant"
+
+msgid "invert condition"
+msgstr "inverser la condition"
+
 msgid "items"
 msgstr "éléments"
 
 msgid "kbps to peers"
 msgstr "kbits/sec vers les hôtes"
 
+msgid "mark only"
+msgstr "marquer seulement"
+
 msgid "not yet determined"
 msgstr "pas encore déterminé"
 
+msgid "out"
+msgstr "sortant"
+
+msgid "queued"
+msgstr "dans la file"
+
 msgid "searches"
 msgstr "recherches"
+
+msgid "seconds"
+msgstr "secondes"
 
 msgid "secs   "
 msgstr "secs   "
 
 msgid "secs"
 msgstr "secs"
+
+msgid "set"
+msgstr "mis"
 
 msgid "show Gnet _incoming traffic"
 msgstr "afficher le trafic Gnet _entrant"
@@ -6086,20 +6283,24 @@ msgstr "afficher le trafic feuille _entrant"
 msgid "show leaf _outgoing traffic"
 msgstr "afficher le trafic feuille _sortant"
 
+#, fuzzy
+msgid "unavailable"
+msgstr "Indisponible"
+
+msgid "undefined"
+msgstr "indéfini"
+
+msgid "unset"
+msgstr "non mis"
+
 msgid "uploads"
 msgstr "envois"
 
-msgid "Host"
-msgstr "Hôte"
+msgid "with the same name"
+msgstr "avec le même nom"
 
-msgid "Flags"
-msgstr "Drapeaux"
-
-msgid "User-Agent"
-msgstr "Logiciel"
-
-msgid "Uptime"
-msgstr "Uptime"
+msgid "with the same urn:sha1"
+msgstr "avec le même urn:sha1"
 
 msgid "owned"
 msgstr "détenu"
@@ -6139,9 +6340,6 @@ msgstr "Codage"
 
 msgid "#"
 msgstr "#"
-
-msgid "Loc"
-msgstr "Lieu"
 
 msgid "Metadata"
 msgstr "Métadonnées"
@@ -6190,78 +6388,11 @@ msgstr "Ne peut trouver le fichier pixmap: %s"
 msgid " (partial)"
 msgstr " (partiel)"
 
-msgid "Range"
-msgstr "Intervalle"
-
-msgid "Type"
-msgstr "Type"
-
-msgid "Count"
-msgstr "Nombre"
-
 msgid "Cache contains"
 msgstr "Le cache contient"
 
-msgid "Hits"
-msgstr "Hits"
-
-#, fuzzy
-msgid "Copy magnet to clipboard"
-msgstr "Copier Magnet vers le presse-papiers"
-
-msgid "Start now"
-msgstr "Commencer maintenant"
-
-msgid "Pause"
-msgstr "Pause"
-
-msgid "Resume"
-msgstr "Reprendre"
-
-msgid "Move back to queue"
-msgstr "Remettre dans la file"
-
-msgid "Abort"
-msgstr "Annuler"
-
-msgid "Configure columns"
-msgstr "Configurer les colonnes"
-
-#, fuzzy
-msgid "Download"
-msgstr "Téléchargements"
-
-#, fuzzy
-msgid "Bitzi metadata"
-msgstr "Métadonnées Bitzi"
-
-msgid "with the same name"
-msgstr "avec le même nom"
-
-msgid "with the same urn:sha1"
-msgstr "avec le même urn:sha1"
-
-msgid "from the same host"
-msgstr "du même hôte"
-
-msgid "Stop"
-msgstr ""
-
-#, fuzzy
-msgid "Restart"
-msgstr "_Réinitialiser les stats"
-
-msgid "Expand all"
-msgstr "Etendre tout"
-
-msgid "Collapse all"
-msgstr "Tout regrouper"
-
 msgid "Copy to clipboard"
 msgstr "Copier vers le presse-papiers"
-
-msgid "Browse Host"
-msgstr "Parcourir l'hôte"
 
 msgid "_Remove filter"
 msgstr "_Supprimer le filtre"
@@ -6280,9 +6411,6 @@ msgstr ""
 msgid "_Close"
 msgstr "_Fermer"
 
-msgid "_Quit"
-msgstr "_Quitter"
-
 #, fuzzy
 msgid "show _Peers"
 msgstr "afficher la _Sidebar"
@@ -6294,34 +6422,11 @@ msgstr "stats du trafic _Gnet"
 msgid "_Search"
 msgstr "_Recherche"
 
-msgid "Uploads"
-msgstr "Envois"
-
-msgid "Downloads"
-msgstr "Téléchargements"
-
-msgid "Click to toggle display."
-msgstr "Clickez pour alterner l'affichage."
-
-msgid ""
-"Your uploads are stalling at an abnormal rate, indicating that your "
-"bandwidth is probably saturated. You should not run as an ultra node, and "
-"try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating "
-"both your incoming and outgoing paths."
-msgstr ""
-"Vos envois s'arrêtent trop fréquement, indiquant que votre bande passante "
-"est probablement saturée. Vous ne devriez pas tourner en mode noeud ultra, "
-"et essayez de réduire la bande passante allouée à gtk-gnutella pour éviter "
-"de saturer en même temps l'envoi et la réception."
-
 msgid "Connect to"
 msgstr "Se connecter à"
 
 msgid "ultrapeers"
 msgstr "noeuds ultra"
-
-msgid "Disconnect"
-msgstr "Se déconnecter"
 
 msgid "Try to keep at least"
 msgstr "Essayer de garder au moins"
@@ -6371,17 +6476,8 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "Recherche _actuelle:"
 
-msgid "_Edit filters"
-msgstr "_Editer les filtres"
-
 msgid "_Clear results"
 msgstr "Effa_cer les résultats"
-
-msgid "_Reset stats"
-msgstr "_Réinitialiser les stats"
-
-msgid "_Messages"
-msgstr "_Messages"
 
 msgid "Flow _control"
 msgstr "_Contrôle de flux"
@@ -6395,10 +6491,6 @@ msgstr "Données téléchargées:"
 msgid "Uploaded data:"
 msgstr "Données envoyées :"
 
-#, fuzzy
-msgid "File transfers"
-msgstr "_Transferts"
-
 msgid "_Columns show hops"
 msgstr "Les _colonnes affichent les hops"
 
@@ -6408,56 +6500,14 @@ msgstr " "
 msgid "Show reasons _for"
 msgstr "Afficher les raisons _pour"
 
-msgid "invert condition"
-msgstr "inverser la condition"
-
-msgid "active"
-msgstr "actif"
-
-msgid "mark only"
-msgstr "marquer seulement"
-
-msgid "Save"
-msgstr "Sauver"
-
 msgid "Delete"
 msgstr "Supprimer"
-
-msgid "bytes"
-msgstr "octets"
 
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr "Vous pouvez utiliser des suffixes comme KB, KiB, MB, MiB, GB, GiB etc."
 
-msgid "ignored"
-msgstr "ignoré"
-
-msgid "unset"
-msgstr "non mis"
-
-msgid "set"
-msgstr "mis"
-
-msgid "don't"
-msgstr "ne pas"
-
-msgid "undefined"
-msgstr "indéfini"
-
-msgid "do"
-msgstr "faire"
-
-msgid "ignore"
-msgstr "ignorer"
-
 msgid "Reverse DNS lookup"
 msgstr "Recherche inverse de DNS"
-
-msgid "Clear"
-msgstr "Effacer"
-
-msgid "Network"
-msgstr "Réseau"
 
 msgid "Force external IPv4 address to"
 msgstr "Forcer l'adresse externe IPv4 à"
@@ -6470,9 +6520,6 @@ msgstr "Options IPv_4"
 
 msgid "Force external IPv6 address to"
 msgstr "Forcer l'adresse externe IPv6 à"
-
-msgid "Bind to this address"
-msgstr "Associer cette adresse"
 
 msgid "IPv_6 settings"
 msgstr "Options IPv_6"
@@ -6488,17 +6535,8 @@ msgstr ""
 msgid "_Addresses of local network(s)"
 msgstr "_Adresses du/des réseaux locaux"
 
-msgid "Local networks"
-msgstr "Réseaux locaux"
-
-msgid "Miscellaneous"
-msgstr "Divers"
-
 msgid "seconds (0 - disable)"
 msgstr "secondes (0 - désactiver)"
-
-msgid "Searches"
-msgstr "Recherches"
 
 msgid "slots"
 msgstr "créneaux"
@@ -6506,24 +6544,12 @@ msgstr "créneaux"
 msgid "unit_of_time|s"
 msgstr "s"
 
-msgid "Connectin_g timeout"
-msgstr "Timeout de connexio_n"
-
-msgid "Connected time_out"
-msgstr "Time_out quand connecté"
-
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 "Pourcentage maximum de créneaux de connexions qu'un vendeur peut prendre."
 
 msgid "KiB/s"
 msgstr "KiB/s"
-
-msgid "General"
-msgstr "Général"
-
-msgid "_Browse"
-msgstr "_Parcourir"
 
 msgid "attempts"
 msgstr "tentatives"
@@ -6534,50 +6560,11 @@ msgstr "_Retirer un répertoire"
 msgid "Minimum chunk _size"
 msgstr "Taille minimum des _blocs"
 
-msgid "and lasted"
-msgstr "et a duré"
-
-msgid "seconds"
-msgstr "secondes"
-
-msgid "<no property selected>"
-msgstr "<aucune propriété sélectionnée>"
-
-msgid "_Stop"
-msgstr ""
-
-#, fuzzy
-msgid "Resu_me"
-msgstr "Reprendre"
-
-#, fuzzy
-msgid "_Restart"
-msgstr "_Réinitialiser les stats"
-
-#, fuzzy
-msgid "_Duplicate"
-msgstr "Message double"
-
-#, fuzzy
-msgid "Close"
-msgstr "_Fermer"
-
-#, fuzzy
-msgid "Select files by regex"
-msgstr "Sélectionner tous ceux correspondant à la regex"
-
-msgid "Filter files by regex"
-msgstr ""
-
 msgid "Remove completed downloads from list"
 msgstr "Enlever les téléchargements terminés de la liste"
 
 msgid "_Clear completed"
 msgstr "_Effacer ceux terminés"
-
-#, fuzzy
-msgid "Tools"
-msgstr "Togo"
 
 msgid ", "
 msgstr ", "
@@ -6612,9 +6599,6 @@ msgstr "La recherche inverse pour %s a échoué"
 
 msgid "Reverse lookup in progress..."
 msgstr "Recherche inverse en cours..."
-
-msgid "Search"
-msgstr "Recherche"
 
 msgid "Size:"
 msgstr "Taille:"
@@ -6672,12 +6656,6 @@ msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu fichier partagé (%s)"
 msgstr[1] "%lu fichiers partagés (%s)"
-
-msgid "in"
-msgstr "entrant"
-
-msgid "out"
-msgstr "sortant"
 
 msgid "(avg)"
 msgstr "(moyenne)"
@@ -6771,8 +6749,8 @@ msgstr "Expire dans %s"
 msgid "Expires with this session"
 msgstr "Expire avec cette session"
 
-msgid "[stopped]"
-msgstr "[arrêté]"
+msgid "This search has been stopped"
+msgstr ""
 
 #, c-format
 msgid "%u download"
@@ -6830,6 +6808,10 @@ msgstr "Source"
 
 msgid "Alt-Locs"
 msgstr "Alt-Locs"
+
+#, fuzzy
+msgid "Latinized"
+msgstr "Martinique"
 
 msgid "Index"
 msgstr "Index"
@@ -7049,6 +7031,68 @@ msgstr "Envoi de QUEUE, se connecte..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
 
+#~ msgid "Shutdown sequence initiated."
+#~ msgstr "Séquence d'arrêt engagée."
+
+#~ msgid "Auto clear stopped downloads"
+#~ msgstr "Effacer automatiquement les téléchargements arrêtés"
+
+#~ msgid "Bitzi Metadata"
+#~ msgstr "Métadonnées Bitzi"
+
+#, fuzzy
+#~ msgid "Close this search"
+#~ msgstr "_Fermer la recherche"
+
+#~ msgid "Duplicate this search"
+#~ msgstr "Dupliquer cette recherche"
+
+#~ msgid "Failed"
+#~ msgstr "Échoué"
+
+#~ msgid "Jeroen Asselman"
+#~ msgstr "Jeroen Asselman"
+
+#~ msgid "Restart this search"
+#~ msgstr "Recommencer cette recherche"
+
+#~ msgid "Resu_me this search"
+#~ msgstr "Repren_dre cette recherche"
+
+#~ msgid "Resume this search"
+#~ msgstr "Reprendre cette recherche"
+
+#~ msgid "Richard Eckart"
+#~ msgstr "Richard Eckart"
+
+#~ msgid "Select"
+#~ msgstr "Selectionner"
+
+#~ msgid "Stop this search"
+#~ msgstr "Arrêter cette recherche"
+
+#~ msgid "Vidar Madsen"
+#~ msgstr "Vidar Madsen"
+
+#~ msgid "Yann Grossel"
+#~ msgstr "Yann Grossel"
+
+#~ msgid "_Duplicate this search"
+#~ msgstr "_Dupliquer cette recherche"
+
+#~ msgid "_Restart this search"
+#~ msgstr "_Recommencer cette recherche"
+
+#~ msgid "_Stop this search"
+#~ msgstr "_Arrêter cette recherche"
+
+#, fuzzy
+#~ msgid "gtk-gnutella"
+#~ msgstr "A propos de gtk-gnutella"
+
+#~ msgid "[stopped]"
+#~ msgstr "[arrêté]"
+
 #~ msgid "no size"
 #~ msgstr "pas de taille"
 
@@ -7089,9 +7133,6 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 #~ "Sélectionné %u de %u téléchargements en file d'attente correspondant à \"%"
 #~ "s\"."
 
-#~ msgid "Filename filter:"
-#~ msgstr "Filtre de nom de fichier:"
-
 #~ msgid "_Purge selected"
 #~ msgstr "_Purger ceux sélectionnés"
 
@@ -7114,12 +7155,6 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 #, fuzzy
 #~ msgid "[running]"
 #~ msgstr "Bannissement"
-
-#~ msgid "("
-#~ msgstr "("
-
-#~ msgid "queued"
-#~ msgstr "dans la file"
 
 #~ msgid ")"
 #~ msgstr ")"
@@ -7146,9 +7181,6 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 
 #, fuzzy
 #~ msgid "[Add/Remove]"
-#~ msgstr "Retirer"
-
-#~ msgid "Remove"
 #~ msgstr "Retirer"
 
 #, fuzzy
