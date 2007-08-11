@@ -62,6 +62,58 @@ static GtkListStore *store_aliases;
 static GtkListStore *store_files;
 static GtkListStore *store_sources;
 
+#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+static GtkSortType files_sort_order;
+static int files_sort_column;
+static int files_sort_depth;
+#endif	/* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+
+static void
+fi_gui_files_sort_reset(void)
+{
+#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+	files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
+	files_sort_order = GTK_SORT_ASCENDING;
+	files_sort_depth = 0;
+#endif	/* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+}
+
+static void
+fi_gui_files_sort_save(void)
+{
+#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+	if (0 == files_sort_depth++) {
+		GtkTreeSortable *sortable;
+		GtkSortType order;
+		int column;
+
+		sortable = GTK_TREE_SORTABLE(store_files);
+		if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
+			files_sort_column = column;
+			files_sort_order = order;
+			gtk_tree_sortable_set_sort_column_id(sortable,
+					GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
+		}
+	}
+#endif /* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+}
+
+static void
+fi_gui_files_sort_restore(void)
+{
+#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+	g_return_if_fail(files_sort_depth > 0);
+	files_sort_depth--
+
+	if (0 == files_sort_depth) {
+		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort_column) {
+			gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store_files),
+					files_sort_column, files_sort_order);
+		}
+	}
+#endif /* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+}
+
 static inline void
 fileinfo_data_set_iter(struct fileinfo_data *file, GtkTreeIter *iter)
 {
@@ -552,6 +604,8 @@ store_files_init(void)
 	}
 	store_files = gtk_list_store_new(1, G_TYPE_POINTER);
 
+	fi_gui_files_sort_reset();
+
 	for (i = 0; i < c_fi_num; i++) {
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_files),
 			i, fileinfo_data_cmp_func, uint_to_pointer(i), NULL);
@@ -819,36 +873,43 @@ fi_gui_files_foreach_helper(GtkTreeModel *unused_model,
 }
 
 void
+fi_gui_files_freeze(void)
+{
+
+	g_object_freeze_notify(G_OBJECT(treeview_download_files));
+	g_object_freeze_notify(G_OBJECT(treeview_download_sources));
+	g_object_freeze_notify(G_OBJECT(store_files));
+	g_object_freeze_notify(G_OBJECT(store_sources));
+
+	fi_gui_files_sort_save();
+}
+
+void
+fi_gui_files_thaw(void)
+{
+	fi_gui_files_sort_restore();
+
+	g_object_thaw_notify(G_OBJECT(store_files));
+	g_object_thaw_notify(G_OBJECT(store_sources));
+	g_object_thaw_notify(G_OBJECT(treeview_download_files));
+	g_object_thaw_notify(G_OBJECT(treeview_download_sources));
+}
+
+void
 fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
 {
 	struct fi_gui_files_foreach ctx;
-	GtkTreeView *tv;
 
 	g_return_if_fail(func);
 
-	tv = treeview_download_files;
-	g_object_freeze_notify(G_OBJECT(tv));
+	fi_gui_files_freeze();
 
 	ctx.func = func;
 	ctx.user_data = user_data;
 	gtk_tree_model_foreach(GTK_TREE_MODEL(store_files),
 		fi_gui_files_foreach_helper, &ctx);
 
-	g_object_thaw_notify(G_OBJECT(tv));
-}
-
-void
-fi_gui_files_freeze(void)
-{
-	g_object_freeze_notify(G_OBJECT(treeview_download_files));
-	g_object_freeze_notify(G_OBJECT(treeview_download_sources));
-}
-
-void
-fi_gui_files_thaw(void)
-{
-	g_object_thaw_notify(G_OBJECT(treeview_download_files));
-	g_object_thaw_notify(G_OBJECT(treeview_download_sources));
+	fi_gui_files_thaw();
 }
 
 void
