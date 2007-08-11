@@ -43,6 +43,8 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
+enum cevent_magic { CEVENT_MAGIC = 0xc0110172U };
+
 /**
  * Callout queue event.
  */
@@ -52,8 +54,15 @@ struct cevent {
 	cq_service_t ce_fn;			/**< Callback routine */
 	gpointer ce_arg;			/**< Argument to pass to said callback */
 	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
-	guint ce_magic;				/**< Magic number */
+	enum cevent_magic ce_magic;
 };
+
+static inline void
+cevent_check(const struct cevent * const ce)
+{
+	g_assert(ce);
+	g_assert(CEVENT_MAGIC == ce->ce_magic);
+}
 
 /**
  * @struct cqueue
@@ -85,18 +94,27 @@ struct chash {
 	cevent_t *ch_tail;			/**< Bucket list tail */
 };
 
+enum cqueue_magic { CQUEUE_MAGIC = 0x940332ddU };
+
 struct cqueue {
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	cq_time_t cq_time;			/**< "current time" */
+	enum cqueue_magic cq_magic;
 	gint cq_ticks;				/**< Number of cq_clock() calls processed */
 	gint cq_items;				/**< Amount of recorded events */
 	gint cq_last_bucket;		/**< Last bucket slot we were at */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
 };
 
+static inline void
+cqueue_check(const struct cqueue * const cq)
+{
+	g_assert(cq);
+	g_assert(CQUEUE_MAGIC == cq->cq_magic);
+}
+
 #define HASH_SIZE	1024			/**< Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
-#define EV_MAGIC	0xc0110172U		/**< Magic number for event marking */
 
 /*
  * The hashing function divides the time by 2^5 or 32, to avoid cq_clock()
@@ -106,8 +124,6 @@ struct cqueue {
  */
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
-
-#define valid_ptr(a)	(cast_to_gconstpointer(a) > GUINT_TO_POINTER(100U))
 
 cqueue_t *callout_queue;
 
@@ -121,6 +137,7 @@ cq_make(cq_time_t now)
 	cqueue_t *cq;
 
 	cq = g_malloc(sizeof *cq);
+	cq->cq_magic = CQUEUE_MAGIC;
 
 	/*
 	 * The cq_hash hash list is used to speed up insert/delete operations.
@@ -147,7 +164,7 @@ cq_free(cqueue_t *cq)
 	gint i;
 	struct chash *ch;
 
-	g_assert(valid_ptr(cq));
+	cqueue_check(cq);
 
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
@@ -170,8 +187,8 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	cq_time_t trigger;		/* Trigger time */
 	cevent_t *hev;			/* To loop through the hash bucket */
 
-	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(ev));
+	cqueue_check(cq);
+	cevent_check(ev);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 
 	trigger = ev->ce_time;
@@ -189,7 +206,7 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 	else
 		ch = &cq->cq_hash[EV_HASH(trigger)];
 
-	g_assert(valid_ptr(ch));
+	g_assert(ch);
 
 	/*
 	 * If bucket is empty, the event is the new head.
@@ -202,7 +219,7 @@ ev_link(cqueue_t *cq, cevent_t *ev)
 		return;
 	}
 
-	g_assert(valid_ptr(ch->ch_tail));
+	g_assert(ch->ch_tail);
 
 	/*
 	 * If item is larger than the tail, insert at the end right away.
@@ -261,8 +278,8 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
 {
 	struct chash *ch;			/* Hashing bucket */
 
-	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(ev));
+	cqueue_check(cq);
+	cevent_check(ev);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
@@ -305,13 +322,13 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 {
 	cevent_t *ev;				/* Event to insert */
 
-	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(cast_func_to_gpointer((func_ptr_t) fn)));
+	cqueue_check(cq);
+	g_assert(fn);
 	g_assert(delay > 0);
 
 	ev = walloc(sizeof *ev);
 
-	ev->ce_magic = EV_MAGIC;
+	ev->ce_magic = CEVENT_MAGIC;
 	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
@@ -336,9 +353,8 @@ cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
 	cevent_t *ev = *handle_ptr;
 
 	if (ev) {
-		g_assert(valid_ptr(cq));
-		g_assert(valid_ptr(ev));
-		g_assert(ev->ce_magic == EV_MAGIC);
+		cqueue_check(cq);
+		cevent_check(ev);
 		g_assert(cq->cq_items > 0);
 
 		ev_unlink(cq, ev);
@@ -354,13 +370,10 @@ cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
  * expired, i.e. that the event has not triggered yet.
  */
 void
-cq_resched(cqueue_t *cq, cevent_t *handle, gint delay)
+cq_resched(cqueue_t *cq, cevent_t *ev, gint delay)
 {
-	cevent_t *ev = handle;
-
-	g_assert(valid_ptr(cq));
-	g_assert(valid_ptr(handle));
-	g_assert(ev->ce_magic == EV_MAGIC);
+	cqueue_check(cq);
+	cevent_check(ev);
 
 	/*
 	 * If is perfectly possible that whilst running cq_clock() and
@@ -392,12 +405,15 @@ cq_resched(cqueue_t *cq, cevent_t *handle, gint delay)
 void
 cq_expire(cqueue_t *cq, cevent_t *ev)
 {
-	cq_service_t fn = ev->ce_fn;
-	gpointer arg = ev->ce_arg;
+	cq_service_t fn;
+	gpointer arg;
 
-	g_assert(valid_ptr(cq));
-	g_assert(ev->ce_magic == EV_MAGIC);
-	g_assert(valid_ptr(cast_func_to_gpointer((func_ptr_t) fn)));
+	cqueue_check(cq);
+	cevent_check(ev);
+	fn = ev->ce_fn;
+	arg = ev->ce_arg;
+
+	g_assert(fn);
 
 	cq_cancel(cq, &ev);			/* Remove event from queue before firing */
 
@@ -429,7 +445,7 @@ cq_clock(cqueue_t *cq, gint elapsed)
 	cevent_t *ev;
 	cq_time_t now;
 
-	g_assert(valid_ptr(cq));
+	cqueue_check(cq);
 	g_assert(elapsed >= 0);
 	g_assert(cq->cq_current == NULL);
 
