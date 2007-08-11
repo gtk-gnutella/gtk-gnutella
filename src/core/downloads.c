@@ -9956,8 +9956,9 @@ download_build_magnet(const struct download *d)
 	
 		magnet = magnet_resource_new();
 		magnet_set_display_name(magnet, filepath_basename(fi->pathname));
-		sha1 = d->sha1 ? d->sha1 : d->file_info->sha1;
-		if (sha1) {
+		sha1 = download_get_sha1(d);
+		if (sha1 && d->uri) {
+			/* Don't set for N2R URLs, the SHA-1 can be derived from it */
 			magnet_set_sha1(magnet, sha1);
 		}
 		if (fi->file_size_known && fi->size) {
