@@ -48,10 +48,10 @@ deconstify_gboolean(const gboolean *p)
 	return (gboolean *) p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gchar *
-deconstify_gchar(const gchar *p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
+deconstify_gchar(const char *p)
 {
-	return (gchar *) p;
+	return (char *) p;
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE guint32 *
@@ -60,32 +60,32 @@ deconstify_guint32(const guint32 *p)
 	return (guint32 *) p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gpointer
-deconstify_gpointer(gconstpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void * 
+deconstify_gpointer(const void *p)
 {
-	return (gpointer) p;
+	return (void *) p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gconstpointer
-cast_to_gconstpointer(gconstpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE const void *
+cast_to_gconstpointer(const void *p)
 {
 	return p; 
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gpointer
-cast_to_gpointer(gpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+cast_to_gpointer(void *p)
 {
 	return p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gchar *
-cast_to_gchar_ptr(gpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
+cast_to_gchar_ptr(void *p)
 {
 	return p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE guchar *
-cast_to_guchar_ptr(gpointer p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned char *
+cast_to_guchar_ptr(void *p)
 {
 	return p;
 }
@@ -97,7 +97,7 @@ ulong_to_pointer(unsigned long value)
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned long
-pointer_to_ulong(void *p)
+pointer_to_ulong(const void *p)
 {
 	return (unsigned long) p;
 }
@@ -109,7 +109,7 @@ uint_to_pointer(unsigned value)
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE unsigned
-pointer_to_uint(void *p)
+pointer_to_uint(const void *p)
 {
 	return pointer_to_ulong(p);
 }
@@ -121,29 +121,23 @@ int_to_pointer(int value)
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE int
-pointer_to_int(void *p)
+pointer_to_int(const void *p)
 {
 	return pointer_to_uint(p);
 }
 
 typedef void (*func_ptr_t)(void);
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gpointer
-cast_func_to_gpointer(func_ptr_t f)
-{
-	return (gpointer) f;
-}
-
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE func_ptr_t
-cast_gpointer_to_func(gconstpointer p)
+cast_pointer_to_func(const void *p)
 {
 	return (func_ptr_t) p;
 }
 
 static inline size_t G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
-ptr_diff(gconstpointer a, gconstpointer b)
+ptr_diff(const void *a, const void *b)
 {
-	return (gchar *) a - (gchar *) b;
+	return (const char *) a - (const char *) b;
 }
 
 /**
