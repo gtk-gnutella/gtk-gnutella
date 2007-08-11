@@ -2081,23 +2081,28 @@ route_exists_for_reply(const gchar *muid, guint8 function)
 GSList *
 route_towards_guid(const gchar *guid)
 {
+	struct gnutella_node *node;
 	struct message *m;
-	GSList *nodes = NULL;
 
-	if (
-		!is_banned_push(guid) &&
-		find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) &&
-		NULL != m->routes
-	) {
-		GSList *sl;
+	if (is_banned_push(guid))
+		return NULL;
+	
+	node = node_by_guid(guid);
+	if (node)
+		return g_slist_prepend(NULL, node);
+	
+	if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
+		GSList *iter, *nodes = NULL;
 		
 		revitalize_entry(m, TRUE);
-		for (sl = m->routes; NULL != sl; sl = g_slist_next(sl)) {
-			struct route_data *rd = sl->data;
+		for (iter = m->routes; NULL != iter; iter = g_slist_next(iter)) {
+			struct route_data *rd = iter->data;
 			nodes = g_slist_prepend(nodes, rd->node);
 		}
+		return nodes;
 	}
-	return nodes;
+
+	return NULL;
 }
 
 /**
