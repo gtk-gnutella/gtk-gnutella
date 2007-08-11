@@ -1487,7 +1487,9 @@ free_server(struct dl_server *server)
 	{
 		guint n = g_hash_table_size(server->sha1_counts);
 		if (0 != n) {
-			g_warning("server->sha1_counts contains still %u items", n);
+			g_warning("server->sha1_counts (%s) contains still %u items",
+				host_addr_port_to_string(server->key->addr, server->key->port),
+				n);
 		}
 	}
 	g_hash_table_destroy(server->sha1_counts);
@@ -4989,6 +4991,7 @@ download_clone(struct download *d)
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
+	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->escaped_name = atom_str_get(d->escaped_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
@@ -4997,6 +5000,8 @@ download_clone(struct download *d)
 	cd->server->refcnt++;
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
+
+	download_set_sha1(d, NULL);
 
 	/*
 	 * NOTE: These are explicitely prepended to avoid inconsistencies if
@@ -5030,7 +5035,6 @@ download_clone(struct download *d)
 	 * free them.
 	 */
 
-	d->sha1 = NULL;
 	d->socket = NULL;
 	d->ranges = NULL;
 
@@ -7955,7 +7959,8 @@ http_version_nofix:
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
 	delay = extract_retry_after(d, header);
-	d->retry_after = (delay > 0) ? time_advance(tm_time(), delay) : 0;
+	delay = MAX(1, delay);
+	d->retry_after = time_advance(tm_time(), delay);
 	d->timeout_delay = 0;			/* We managed to connect */
 
 	/*
@@ -11149,8 +11154,24 @@ download_close(void)
 		if (d->push) {
 			download_push_remove(d);
 		}
-		browse_host_dl_free(&d->browse);
-		thex_download_free(&d->thex);
+		if (d->browse) {
+			browse_host_dl_close(d->browse);
+			browse_host_dl_free(&d->browse);
+			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
+		}
+		if (d->thex) {
+			const struct sha1 *sha1;
+			fileinfo_t *fi;
+
+			sha1 = thex_download_get_sha1(d->thex);
+			fi = file_info_by_sha1(sha1);
+			if (fi) {
+				fi->flags &= ~FI_F_FETCH_TTH;
+			}
+			thex_download_close(d->thex);
+			thex_download_free(&d->thex);
+			d->bio = NULL;		/* Was a copy via thex_download_io_source() */
+		}
 		if (d->io_opaque) {
 			io_free(d->io_opaque);
 			d->io_opaque = NULL;
