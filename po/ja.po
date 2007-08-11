@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-08-12 00:52+0900\n"
-"PO-Revision-Date: 2007-08-12 01:16+0900\n"
+"PO-Revision-Date: 2007-08-12 01:31+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -255,8 +255,16 @@ msgstr "ダウンロード中 (残り時間: %s)"
 msgid "OK"
 msgstr "OK"
 
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
 msgid "failed"
-msgstr "失敗しました"
+msgstr "失敗した時"
 
 msgid "Waiting for SHA1 check"
 msgstr "SHA1 確認を待っています"
@@ -649,7 +657,7 @@ msgstr "合計到達領域サイズ (%u/%u基のピアがHSEPに対応):"
 
 #, c-format
 msgid "Horizon size via HSEP node %s (%s):"
-msgstr ""
+msgstr "HSEPピア %s (%s)経由の到達領域サイズ:"
 
 msgid "Interactive mode turned on."
 msgstr "インタラクティブモードが有効になりました。"
@@ -3985,7 +3993,6 @@ msgstr "中止しました (サーバーダウン)"
 msgid "Aborted"
 msgstr "中止しました"
 
-# FIXME:
 msgid "Completed"
 msgstr "完了しました"
 
@@ -4634,8 +4641,14 @@ msgstr "失敗したアップロードを自動消去"
 msgid "Automatically clear finished files"
 msgstr "完了したファイルの自動消去"
 
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
 msgid "Automatically clear sources when..."
-msgstr ""
+msgstr "送信元を自動的に消去します..."
 
 msgid "Available bandwidth"
 msgstr "使用可能な帯域幅"
@@ -6210,8 +6223,16 @@ msgstr "大・小文字を区別"
 msgid "case-sensitive"
 msgstr "大・小文字を区別"
 
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
 msgid "completed"
-msgstr ""
+msgstr "完了した時"
 
 msgid "do"
 msgstr "○"
@@ -6275,9 +6296,8 @@ msgstr "まだ確定していません"
 msgid "out"
 msgstr "(平均) で外へ"
 
-#, fuzzy
 msgid "queued"
-msgstr "待機中"
+msgstr ""
 
 # NOTE: this string is used as follows
 #
@@ -6341,8 +6361,16 @@ msgstr "リーフからのトラフィック(_I)"
 msgid "show leaf _outgoing traffic"
 msgstr "リーフへのトラフィック(_O)"
 
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
 msgid "unavailable"
-msgstr "取得不可"
+msgstr "利用できない時"
 
 msgid "undefined"
 msgstr "未定義"
