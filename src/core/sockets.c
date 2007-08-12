@@ -3137,39 +3137,38 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 static void
 socket_enable_recvdstaddr(const struct gnutella_socket *s)
 {
-	static const gint enable = 1;
-	gint level = -1, opt = -1;
+	static const int on = 1;
+	int fd;
 
 	socket_check(s);
-	g_assert(s->file_desc >= 0);
+	fd = s->file_desc;
+	g_assert(fd >= 0);
 
+	(void) on;
 	switch (s->net) {
 	case NET_TYPE_IPV4:
 #if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
-		level = sol_ip();
-		opt = IP_RECVDSTADDR;
+		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, &on, sizeof on)) {
+			g_warning("socket_enable_recvdstaddr(): "
+				"setsockopt() for IP_RECVDSTADDR failed: %s",
+				g_strerror(errno));
+		}
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
 		break;
 
 	case NET_TYPE_IPV6:
 #if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
-		level = sol_ipv6();
-		opt = IPV6_RECVPKTINFO;
+		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, &on, sizeof on)) {
+			g_warning("socket_enable_recvdstaddr(): "
+				"setsockopt() for IPV6_RECVPKTINFO failed: %s",
+				g_strerror(errno));
+		}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		break;
 
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
-	}
-
-	if (
-		-1 != level &&
-		-1 != opt &&
-		0 != setsockopt(s->file_desc, level, opt, &enable, sizeof enable)
-	) {
-		g_warning("socket_enable_recvdstaddr(): setsockopt() failed: %s",
-			g_strerror(errno));
 	}
 }
 
