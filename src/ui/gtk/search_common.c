@@ -298,18 +298,14 @@ search_gui_option_menu_searches_select(const search_t *search)
 	}
 }
 
-void
-search_gui_force_update_tab_label(struct search *search)
+static void
+search_gui_update_tab_label(const struct search *search)
 {
 	char label[4096];
 	char items[32];
 
 	if (NULL == search)
 		return;
-
-	if (current_search == search) {
-		search->unseen_items = 0;
-	}
 
     uint32_to_string_buf(search->items, items, sizeof items);
 	concat_strings(label, sizeof label,
@@ -320,30 +316,91 @@ search_gui_force_update_tab_label(struct search *search)
 		")",
 		(void *) 0);
 
-	search->last_update_items = search->items;
-	search->last_update_time = tm_time();
 	gtk_notebook_set_tab_label_text(notebook_search_results,
 		search->scrolled_window, label);
-
-	search_gui_update_list_label(search);
 }
 
+void 
+search_gui_update_status_label(const struct search *search)
+{
+	if (search != current_search) {
+		return;
+	} else if (NULL == search) {
+        gtk_label_printf(label_search_expiry, "%s", _("No search"));
+	} else if (!search_gui_is_enabled(search)) {
+       	gtk_label_printf(label_search_expiry, "%s",
+			_("The search has been stopped"));
+	} else if (search_gui_is_passive(search)) {
+		gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
+	} else if (search_gui_is_expired(search)) {
+		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
+	} else {
+		unsigned time_left;
+
+		time_left = 3600 * guc_search_get_lifetime(search->search_handle);
+		if (time_left) {
+			time_t created;
+			time_delta_t d;
+					
+			created = guc_search_get_create_time(search->search_handle);
+					
+			d = delta_time(tm_time(), created);
+			d = MAX(0, d);
+			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
+			gtk_label_printf(label_search_expiry,
+				_("Expires in %s"), short_time(d));
+		} else {
+   			gtk_label_printf(label_search_expiry, "%s",
+				_("Expires with this session"));
+		}
+	}
+}
 
 /**
- * Flag whether search is enabled.
+ * Update the label string showing search stats.
  */
 static void
-search_gui_set_enabled(struct search *search, gboolean enabled)
+search_gui_update_items_label(const struct search *sch)
 {
-	if (search_gui_is_enabled(search) != enabled) {
-		if (enabled) {
-			guc_search_start(search->search_handle);
-		} else {
-			guc_search_stop(search->search_handle);
-		}
-		/* Marks this entry as active/inactive in the searches list. */
-		search_gui_update_status(search);
+    if (sch) {
+		gtk_label_printf(label_items_found, _("%u %s "
+			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
+			" Hits: %u (%u TCP, %u UDP)"),
+			sch->items, NG_("item", "items", sch->items),
+			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
+			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
+			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
+    } else {
+       gtk_label_printf(label_items_found, "%s", _("No search"));
 	}
+}
+
+static gboolean
+search_gui_is_visible(void)
+{
+	return main_gui_window_visible() &&
+		nb_main_page_search == main_gui_notebook_get_page();
+}
+
+void 
+search_gui_update_status(struct search *search)
+{
+	if (search) {
+		if (current_search == search && search_gui_is_visible()) {
+			search->unseen_items = 0;
+		}
+		search->last_update_time = tm_time();
+	}
+	search_gui_update_tab_label(search);
+	search_gui_update_list_label(search);
+	search_gui_update_status_label(search);
+	search_gui_update_items_label(search);
+}
+
+static void
+search_gui_update_display(void)
+{
+	search_gui_update_status(current_search);
 }
 
 /**
@@ -1199,26 +1256,6 @@ search_gui_get_route(const struct results_set *rs)
 	}
 }
 
-/**
- * Update the label string showing search stats.
- */
-static void
-search_gui_update_items(const struct search *sch)
-{
-    if (sch) {
-		gtk_label_printf(label_items_found, _("%u %s "
-			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
-			" Hits: %u (%u TCP, %u UDP)"),
-			sch->items, NG_("item", "items", sch->items),
-			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
-			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
-			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
-    } else {
-       gtk_label_printf(label_items_found, "%s", _("No search"));
-	}
-}
-
-
 enum gui_color
 search_gui_color_for_record(const record_t * const rc)
 {
@@ -1476,6 +1513,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (old_items == 0 && sch == current_search && sch->items > 0) {
 		search_gui_set_clear_button_sensitive(TRUE);
 	}
+	sch->unseen_items += sch->items - old_items;
 
 	/*
 	 * Update counters in the core-side of the search.
@@ -1493,13 +1531,10 @@ search_matched(search_t *sch, results_set_t *rs)
 	 */
 
 	if (sch->items >= max_results && !search_gui_is_passive(sch)) {
-		search_gui_set_enabled(sch, FALSE);
+		search_gui_stop_search(sch);
 	}
 
-	sch->unseen_items += sch->items - old_items;
-	if (delta_time(tm_time(), sch->last_update_time) > TAB_UPDATE_TIME) {
-		search_gui_update_status(sch);
-	}
+	search_gui_update_status(sch);
 }
 
 gboolean
@@ -1512,43 +1547,39 @@ search_gui_is_expired(const struct search *search)
 	}
 }
 
-void 
-search_gui_update_status(struct search *search)
+/**
+ * Tell the core to start or stop the search.
+ */
+static void
+search_gui_set_enabled(struct search *search, gboolean enable)
 {
-	search_gui_force_update_tab_label(search);
-	search_gui_update_items(search);
-
-	if (search != current_search) {
-		return;
-	} else if (NULL == search) {
-        gtk_label_printf(label_search_expiry, "%s", _("No search"));
-	} else if (!search_gui_is_enabled(search)) {
-       	gtk_label_printf(label_search_expiry, "%s",
-			_("The search has been stopped"));
-	} else if (search_gui_is_passive(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
-	} else if (search_gui_is_expired(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
-	} else {
-		unsigned time_left;
-
-		time_left = 3600 * guc_search_get_lifetime(search->search_handle);
-		if (time_left) {
-			time_t created;
-			time_delta_t d;
-					
-			created = guc_search_get_create_time(search->search_handle);
-					
-			d = delta_time(tm_time(), created);
-			d = MAX(0, d);
-			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
-			gtk_label_printf(label_search_expiry,
-				_("Expires in %s"), short_time(d));
+	if (search_gui_is_enabled(search) != enable) {
+		if (enable) {
+			guc_search_start(search->search_handle);
 		} else {
-   			gtk_label_printf(label_search_expiry, "%s",
-				_("Expires with this session"));
+			guc_search_stop(search->search_handle);
 		}
+		/* Refresh is caused by status change event */
+	} else {
+		/* Refresh the status anyway, required initially */
+		search_gui_update_status(search);
 	}
+}
+
+static void
+search_gui_start_search(search_t *search)
+{
+	g_return_if_fail(search);
+
+	search_gui_set_enabled(search, TRUE);
+}
+
+void
+search_gui_stop_search(search_t *search)
+{
+	g_return_if_fail(search);
+
+	search_gui_set_enabled(search, FALSE);
 }
 
 static GtkWidget *
@@ -2383,14 +2414,6 @@ search_gui_new_search_full(const gchar *query_str,
 	list_searches = g_list_append(list_searches, search);
 	search_gui_option_menu_searches_update();
 
-	if (search_gui_is_expired(search) || !(SEARCH_F_ENABLED & flags)) {
-		if (search_gui_is_enabled(search))
-			guc_search_stop(search->search_handle);
-	} else {
-		if (!search_gui_is_enabled(search))
-			guc_search_start(search->search_handle);
-	}
-
 	if (is_only_search) {
     	gtk_notebook_remove_page(notebook_search_results, 0);
 	}
@@ -2412,7 +2435,12 @@ search_gui_new_search_full(const gchar *query_str,
 		search_gui_set_current_search(search);
 	}
 
-	search_gui_update_status(search);
+	if (search_gui_is_expired(search) || !(SEARCH_F_ENABLED & flags)) {
+		search_gui_stop_search(search);
+	} else {
+		search_gui_start_search(search);
+	}
+
 	search_gui_store_searches();
 
 	return TRUE;
@@ -2777,10 +2805,6 @@ search_gui_duplicate_search(search_t *search)
 void
 search_gui_restart_search(search_t *search)
 {
-	if (!search_gui_is_enabled(search)) {
-		search_gui_set_enabled(search, TRUE);
-	}
-
 	search_gui_reset_search(search);
 	search->items = 0;
 	search->unseen_items = 0;
@@ -2792,7 +2816,8 @@ search_gui_restart_search(search_t *search)
 	search->auto_downloaded = 0;
 	search->duplicates = 0;
 
-	search_gui_update_items(search);
+	search_gui_start_search(search);
+
 	guc_search_set_create_time(search->search_handle, tm_time());
 	guc_search_update_items(search->search_handle, search->items);
 	guc_search_reissue(search->search_handle);
@@ -2805,18 +2830,8 @@ search_gui_resume_search(search_t *search)
 	g_return_if_fail(search);
 
 	if (!search_gui_is_expired(search)) {
-		search_gui_set_enabled(search, TRUE);
-		search_gui_update_status(search);
+		search_gui_start_search(search);
 	}
-}
-
-void
-search_gui_stop_search(search_t *search)
-{
-	g_return_if_fail(search);
-
-	search_gui_set_enabled(search, FALSE);
-	search_gui_update_status(search);
 }
 
 void
@@ -3568,19 +3583,6 @@ void
 search_gui_store_searches(void)
 {
 	store_searches_requested = TRUE;
-}
-
-static gboolean
-search_gui_is_visible(void)
-{
-	return main_gui_window_visible() &&
-		nb_main_page_search == main_gui_notebook_get_page();
-}
-
-static void
-search_gui_update_display(void)
-{
-	search_gui_update_status(current_search);
 }
 
 static void

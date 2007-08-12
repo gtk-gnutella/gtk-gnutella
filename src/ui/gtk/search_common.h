@@ -253,7 +253,7 @@ void search_gui_refresh_popup(void);
 void search_gui_search_list_clicked(GtkWidget *, GdkEventButton *);
 void search_gui_flush_queues(void);
 void search_gui_remove_search(search_t *);
-void search_gui_update_list_label(search_t *);
+void search_gui_update_list_label(const struct search *);
 void search_gui_clear_search(struct search *);
 char *search_gui_get_local_file_url(GtkWidget *);
 GtkWidget *search_gui_create_tree(void);

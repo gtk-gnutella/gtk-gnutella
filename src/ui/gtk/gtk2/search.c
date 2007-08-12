@@ -1354,55 +1354,35 @@ search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
 	return 0 == ret ? found : !found;
 }
 
-static gboolean
-tree_view_search_update(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	search_t *sch;
-
-	(void) path;
-    gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
- 	if (sch == data) {
-   		GtkWidget *widget;
-		GdkColor *fg;
-		GdkColor *bg;
-
-		widget = GTK_WIDGET(tree_view_search);
-		if (sch->unseen_items > 0) {
-#if 0
-    		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_PRELIGHT]);
-    		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_PRELIGHT]);
-#endif
-			fg = NULL;
-			bg = NULL;
-		} else if (!search_gui_is_enabled(sch)) {
-    		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
-    		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
-		} else {
-			fg = NULL;
-			bg = NULL;
-		}
-
-		gtk_list_store_set(GTK_LIST_STORE(model), iter,
-			c_sl_hit, sch->items,
-			c_sl_new, sch->unseen_items,
-			c_sl_fg, fg,
-			c_sl_bg, bg,
-			(-1));
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
- * Like search_update_tab_label but always update the label.
- */
 void
-search_gui_update_list_label(search_t *search)
+search_gui_update_list_label(const struct search *search)
 {
-	gtk_tree_model_foreach(gtk_tree_view_get_model(tree_view_search),
-		tree_view_search_update, search);
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkTreeView *tv;
+	GdkColor *fg, *bg;
+
+	if (NULL == search)
+		return;
+
+	tv = GTK_TREE_VIEW(tree_view_search);
+	model = gtk_tree_view_get_model(tv);
+	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
+		if (search_gui_is_enabled(search)) {
+			fg = NULL;
+			bg = NULL;
+		} else {
+			GtkWidget *widget = GTK_WIDGET(tv);
+			fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
+			bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
+		}
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+				c_sl_hit, search->items,
+				c_sl_new, search->unseen_items,
+				c_sl_fg, fg,
+				c_sl_bg, bg,
+				(-1));
+	}
 }
 
 /**

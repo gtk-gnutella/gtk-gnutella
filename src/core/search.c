@@ -3558,6 +3558,7 @@ search_reissue(gnet_search_t sh)
 
 done:
 	update_one_reissue_timeout(sch);
+	search_status_changed(sch->search_handle);
 }
 
 /**
@@ -3813,10 +3814,9 @@ search_start(gnet_search_t sh)
 			search_add_new_muid(sch, muid);
 			search_send_packet_all(sch);		/* Send initial query */
 		}
-
         update_one_reissue_timeout(sch);
-		search_status_changed(sch->search_handle);
 	}
+	search_status_changed(sch->search_handle);
 }
 
 /**
@@ -3832,9 +3832,9 @@ search_stop(gnet_search_t search_handle)
 
     sch->frozen = sbool_set(TRUE);
 
-    if (sbool_get(sch->active))
+    if (sbool_get(sch->active)) {
 		update_one_reissue_timeout(sch);
-
+	}
 	search_status_changed(sch->search_handle);
 }
 

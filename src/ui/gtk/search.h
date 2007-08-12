@@ -54,7 +54,6 @@ struct search {
     gboolean    sort;
 
 	time_t      last_update_time;	/**< last time notebook tab was updated */
-	guint32     last_update_items;	/**< # of items included in last update */
 	guint32     unseen_items;		/**< How many items haven't been seen yet */
 
     filter_t   *filter;				/**< filter ruleset bound to this search */
