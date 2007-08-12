@@ -67,7 +67,6 @@
 RCSID("$Id$")
 
 static GtkTreeView *tree_view_search;
-static GtkNotebook *notebook_search_results;
 
 /** For cyclic updates of the tooltip. */
 static tree_view_motion_t *tvm_search;
@@ -1144,9 +1143,6 @@ search_gui_init(void)
 {
     tree_view_search =
 		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
-    notebook_search_results =
-		GTK_NOTEBOOK(gui_main_window_lookup("notebook_search_results"));
-	gtk_notebook_popup_enable(notebook_search_results);
 
 	gtk_tree_view_set_reorderable(tree_view_search, TRUE);	
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),

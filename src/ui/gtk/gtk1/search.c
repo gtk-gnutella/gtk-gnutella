@@ -81,16 +81,6 @@ enum {
 	SEARCH_COL_SORT_DATA_DEFAULT		/**< Catch all case */
 };
 
-static GtkNotebook *
-notebook_search_results(void)
-{
-    static GtkWidget *notebook;
-	if (!notebook) {
-    	notebook = gui_main_window_lookup("notebook_search_results");
-	}
-	return GTK_NOTEBOOK(notebook);
-}
-
 static GtkCList *
 clist_search(void)
 {
@@ -1909,7 +1899,8 @@ search_gui_update_list_label(const struct search *search)
 	if (search) {
 		int row;
 
-		row = gtk_clist_find_row_from_data(clist_search(), search);
+		row = gtk_clist_find_row_from_data(clist_search(),
+				deconstify_gpointer(search));
 		gtk_clist_set_text(clist_search(), row, c_sl_hit,
 				uint32_to_string(search->items));
 		gtk_clist_set_text(clist_search(), row, c_sl_new,
