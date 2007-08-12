@@ -94,7 +94,7 @@ struct uhc {
 static const struct {
 	const gchar *uhc;
 } boot_hosts[] = {
-#if 1 || defined(USE_LOCAL_UHC)
+#if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "g6.6dns.org:1337" },
