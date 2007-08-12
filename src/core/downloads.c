@@ -7310,13 +7310,9 @@ handle_content_urn(struct download *d, header_t *header)
 		}
 
 		/*
-		 * Discovery of the SHA1 for a download should be infrequent enough,
-		 * yet is very important.   This justifies immediately storing that
-		 * new information without waiting for the "dirty timer" to trigger.
+		 * We discovered the SHA-1, thus refresh on next occasion.
 		 */
-
-		download_store();				/* Save SHA1 */
-		file_info_store_if_dirty();
+		download_dirty = TRUE;
 
 		/*
 		 * Insert record in download mesh if it does not require
