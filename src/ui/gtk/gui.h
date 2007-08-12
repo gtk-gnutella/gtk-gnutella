@@ -61,14 +61,13 @@
 #include "pbarcellrenderer.h"
 #endif
 
+/* Common padding values for GtkCellRenderer */
+#define GUI_CELL_RENDERER_XPAD ((guint) 4U)
+#define GUI_CELL_RENDERER_YPAD ((guint) 0U)
+
 #endif
 
 #include "main.h"
-
-#ifdef USE_GTK1
-#define g_ascii_strcasecmp g_strcasecmp
-#define gdk_drawable_get_size gdk_window_get_size
-#endif
 
 /* GUI signal functions */
 #ifdef USE_GTK1
@@ -106,11 +105,6 @@
 	g_signal_stop_emission_by_name((widget), (name))
 	
 #endif	/* Gtk+ 2.0 */
-
-
-/* Common padding values for GtkCellRenderer */
-#define GUI_CELL_RENDERER_XPAD ((guint) 4U)
-#define GUI_CELL_RENDERER_YPAD ((guint) 0U)
 
 /**
  * Sorting constants.

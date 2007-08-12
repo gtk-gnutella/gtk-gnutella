@@ -698,8 +698,8 @@ tree_view_motion_set_callback(GtkTreeView *tv,
 	tvm->tv = GTK_TREE_VIEW(g_object_ref(tv));
 	tvm->cb = cb;
 	tvm->timeout_id = g_timeout_add(interval, tree_view_motion_timeout, tvm);
-	tvm->signal_id = g_signal_connect(GTK_OBJECT(tv),
-		"motion-notify-event", G_CALLBACK(on_tree_view_motion_notify), tvm);
+	tvm->signal_id = gui_signal_connect(tv,
+						"motion-notify-event", on_tree_view_motion_notify, tvm);
 	return tvm;
 }
 

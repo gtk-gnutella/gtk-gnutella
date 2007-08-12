@@ -2301,8 +2301,8 @@ filter_gui_init(void)
 		add_column(tv_filters, _("Rule"), 2);
 		add_column(tv_filters, _("Match"), 3);
 		gtk_tree_view_set_rules_hint(tv_filters, TRUE);
-		g_signal_connect(G_OBJECT(tv_filters), "cursor-changed",
-			G_CALLBACK(on_treeview_filter_filters_select_row), NULL);
+		gui_signal_connect(tv_filters,
+			"cursor-changed", on_treeview_filter_filters_select_row, NULL);
 
 		model = create_rules_model();
 		add_column(tv_rules, _("!"), 1);
@@ -2311,10 +2311,11 @@ filter_gui_init(void)
 		add_column(tv_rules, _("Match"), 4);
 		gtk_tree_view_set_model(tv_rules, model);	
 		gtk_tree_view_set_rules_hint(tv_rules, TRUE);
-		g_signal_connect(G_OBJECT(tv_rules), "cursor-changed",
-			G_CALLBACK(on_treeview_filter_rules_select_row), NULL);
-		g_signal_connect(GTK_OBJECT(tv_rules), "button-press-event",
-			G_CALLBACK(on_treeview_filter_rules_button_press_event), NULL);
+		gui_signal_connect(tv_rules,
+			"cursor-changed", on_treeview_filter_rules_select_row, NULL);
+		gui_signal_connect(tv_rules,
+			"button-press-event", on_treeview_filter_rules_button_press_event,
+			NULL);
 
 		gtk_tree_view_set_reorderable(tv_rules, TRUE);
 	}

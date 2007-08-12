@@ -558,11 +558,10 @@ nodes_gui_init(void)
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
-	g_signal_connect(GTK_OBJECT(treeview_nodes), "cursor-changed",
-		G_CALLBACK(on_cursor_changed), treeview_nodes);
-
-	g_signal_connect(GTK_OBJECT(treeview_nodes), "leave-notify-event",
-		G_CALLBACK(on_leave_notify), treeview_nodes);
+	gui_signal_connect(treeview_nodes,
+		"cursor-changed", on_cursor_changed, treeview_nodes);
+	gui_signal_connect(treeview_nodes,
+		"leave-notify-event", on_leave_notify, treeview_nodes);
 
 	tvm_nodes = tree_view_motion_set_callback(treeview_nodes,
 					update_tooltip, 400);

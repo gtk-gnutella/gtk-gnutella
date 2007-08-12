@@ -198,7 +198,9 @@ void gtk_widget_fix_width(GtkWidget *, GtkWidget *, guint chars, guint extra);
 
 #ifdef USE_GTK1
 #define gtk_get_current_event_time() (GDK_CURRENT_TIME)
-#endif
+#define gdk_drawable_get_size(window, width, height) \
+			gdk_window_get_size((window), (width), (height))
+#endif	/* Gtk+ 1.2 */
 
 #endif	/* _gtk_gtk_missing_h_ */
 

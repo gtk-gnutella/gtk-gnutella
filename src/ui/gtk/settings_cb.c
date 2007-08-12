@@ -580,8 +580,7 @@ dbg_tree_init(void)
 		renderer = gtk_cell_renderer_text_new();
 
 		if (columns[i].editable) {
-			g_signal_connect(renderer, "edited",
-					G_CALLBACK(on_cell_edited), NULL);
+			gui_signal_connect(renderer, "edited", on_cell_edited, NULL);
 			g_object_set(renderer,
 					"editable", TRUE,
 					(void *) 0);
@@ -619,12 +618,9 @@ dbg_tree_init(void)
 		gtk_tree_view_append_column(tv, column);
 	}
 
-	g_signal_connect(GTK_OBJECT(tv),
-			"enter-notify-event", G_CALLBACK(on_enter_notify), tv);
-	g_signal_connect(GTK_OBJECT(tv),
-			"leave-notify-event", G_CALLBACK(on_leave_notify), tv);
-	g_signal_connect(GTK_OBJECT(tv),
-			"cursor-changed", G_CALLBACK(on_cursor_changed), tv);
+	gui_signal_connect(tv, "enter-notify-event", on_enter_notify, tv);
+	gui_signal_connect(tv, "leave-notify-event", on_leave_notify, tv);
+	gui_signal_connect(tv, "cursor-changed", on_cursor_changed, tv);
 }
 
 void

@@ -772,14 +772,12 @@ html_view_load(struct html_view *html_view)
 	ctx->html_view = html_view;
 	gtk_widget_show_all(gtk_widget_get_toplevel(widget));
 
-	g_signal_connect(widget, "motion-notify-event", 
-		G_CALLBACK(motion_notify_event), NULL);
-	g_signal_connect(widget, "visibility-notify-event", 
-		G_CALLBACK(visibility_notify_event), NULL);
-	g_signal_connect(widget, "key-press-event", 
-		G_CALLBACK(key_press_event), NULL);
-	g_signal_connect(widget, "event-after", 
-		G_CALLBACK(event_after), NULL);
+	gui_signal_connect(widget,
+		"motion-notify-event", motion_notify_event, NULL);
+	gui_signal_connect(widget,
+		"visibility-notify-event", visibility_notify_event, NULL);
+	gui_signal_connect(widget, "key-press-event", key_press_event, NULL);
+	gui_signal_connect(widget, "event-after", event_after, NULL);
 		  
  	gtk_text_view_set_buffer(GTK_TEXT_VIEW(widget), NULL);
 	{

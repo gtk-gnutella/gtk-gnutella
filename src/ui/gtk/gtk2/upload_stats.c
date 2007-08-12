@@ -348,10 +348,8 @@ upload_stats_gui_init_intern(gboolean intern)
 				cell_renderer_func);
 		}
 
-		g_signal_connect(GTK_OBJECT(upload_stats_treeview),
-			"button_press_event",
-			G_CALLBACK(on_button_press_event),
-			NULL);
+		gui_signal_connect(upload_stats_treeview,
+			"button_press_event", on_button_press_event, NULL);
 	}
 
 	if (!intern) {

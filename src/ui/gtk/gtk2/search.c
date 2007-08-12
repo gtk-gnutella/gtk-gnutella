@@ -1039,9 +1039,8 @@ add_list_columns(GtkTreeView *tv)
 		column = add_column(tv, _(columns[i].title), columns[i].id,
 					columns[i].align, NULL, c_sl_fg, c_sl_bg);
 		gtk_tree_view_column_set_sort_column_id(column, columns[i].id);
-		g_signal_connect_after(G_OBJECT(column), "clicked",
-			G_CALLBACK(on_search_list_column_clicked),
-			NULL);
+		gui_signal_connect_after(column,
+			"clicked", on_search_list_column_clicked, NULL);
 	}
 	tree_view_restore_widths(tv, PROP_SEARCH_LIST_COL_WIDTHS);
 }
@@ -1134,6 +1133,28 @@ create_searches_model(void)
 	return GTK_TREE_MODEL(store);
 }
 
+static void
+search_list_tree_view_init(void)
+{
+	GtkTreeView *tv;
+	
+    tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
+    tree_view_search = tv;
+
+	gtk_tree_view_set_reorderable(tv, TRUE);	
+	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
+		GTK_SELECTION_MULTIPLE);
+	gtk_tree_view_set_model(tv, create_searches_model());
+	add_list_columns(tv);
+
+	gui_signal_connect(tv,
+		"cursor-changed", on_tree_view_search_cursor_changed, NULL);
+	gui_signal_connect(tv,
+		"button-press-event", on_search_list_button_press_event, NULL);
+	gui_signal_connect_after(gtk_tree_view_get_model(tv),
+		"row-deleted", on_search_list_row_deleted, NULL);
+}
+
 /***
  *** Public functions
  ***/
@@ -1141,23 +1162,8 @@ create_searches_model(void)
 void
 search_gui_init(void)
 {
-    tree_view_search =
-		GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
-
-	gtk_tree_view_set_reorderable(tree_view_search, TRUE);	
-	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view_search),
-		GTK_SELECTION_MULTIPLE);
-	g_signal_connect(GTK_OBJECT(tree_view_search), "button-press-event",
-		G_CALLBACK(on_search_list_button_press_event), NULL);
-	gtk_tree_view_set_model(tree_view_search, create_searches_model());
-	add_list_columns(tree_view_search);
-	g_signal_connect(G_OBJECT(tree_view_search), "cursor-changed",
-		G_CALLBACK(on_tree_view_search_cursor_changed), NULL);
-	g_signal_connect_after(G_OBJECT(gtk_tree_view_get_model(tree_view_search)),
-		"row-deleted", G_CALLBACK(on_search_list_row_deleted), NULL);
-
+	search_list_tree_view_init();
 	search_details_treeview_init();
-
 	search_gui_common_init();
 }
 
@@ -1254,10 +1260,8 @@ search_gui_set_current_search(search_t *search)
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
 				search_gui_cmp, NULL, NULL);
-			g_signal_connect_after(G_OBJECT(gtk_tree_view_get_column(tv, i)),
-				"clicked",
-				G_CALLBACK(on_tree_view_search_results_click_column),
-				search);
+			gui_signal_connect_after(gtk_tree_view_get_column(tv, i),
+				"clicked", on_tree_view_search_results_click_column, search);
 		}
 	}
 	search_gui_current_search(search);

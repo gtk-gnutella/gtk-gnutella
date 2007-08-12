@@ -172,8 +172,8 @@ monitor_gui_init(void)
     /* Add the column to the view. */
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 
-	g_signal_connect(G_OBJECT(tree), "button_press_event",
-		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
+	gui_signal_connect(tree,
+		"button_press_event", on_treeview_monitor_button_press_event, NULL);
 
 	drag_attach(GTK_WIDGET(tree), monitor_gui_get_text);
 }
