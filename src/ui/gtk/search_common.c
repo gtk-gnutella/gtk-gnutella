@@ -3015,6 +3015,27 @@ search_gui_refresh_popup(void)
 		gtk_widget_set_sensitive(
 			gui_popup_search_lookup("popup_search_resume"), FALSE);
     }
+
+	{
+		GtkMenuItem *item;
+
+		item = GTK_MENU_ITEM(
+					gui_popup_search_lookup("popup_search_toggle_tabs"));
+		gtk_label_set(GTK_LABEL(item->item.bin.child),
+			GUI_PROPERTY(search_results_show_tabs)
+				? _("Show search list")
+				: _("Show tabs"));
+	}
+}
+
+void
+search_gui_show_popup_menu(void)
+{
+	if (search_gui_get_current_search()) {
+		search_gui_refresh_popup();
+		gtk_menu_popup(GTK_MENU(gui_popup_search()), NULL, NULL, NULL, NULL,
+			3, gtk_get_current_event_time());
+	}
 }
 
 void
@@ -3624,6 +3645,7 @@ search_gui_common_init(void)
 		notebook_search_results = nb;
 
 		gtk_notebook_set_scrollable(nb, TRUE);
+		gtk_notebook_popup_enable(nb);
 	}
 
     gtk_combo_set_case_sensitive(

@@ -208,6 +208,9 @@ void search_gui_restart_search(search_t *);
 void search_gui_resume_search(search_t *);
 void search_gui_stop_search(search_t *);
 
+void search_gui_refresh_popup(void);
+void search_gui_show_popup_menu(void);
+
 void search_gui_callbacks_shutdown(void);
 
 /***
@@ -249,7 +252,6 @@ void on_entry_search_changed(GtkEditable *, void *user_data);
 
 GSList *search_gui_get_selected_searches(void);
 gboolean search_gui_has_selected_item(search_t *);
-void search_gui_refresh_popup(void);
 void search_gui_search_list_clicked(GtkWidget *, GdkEventButton *);
 void search_gui_flush_queues(void);
 void search_gui_remove_search(search_t *);

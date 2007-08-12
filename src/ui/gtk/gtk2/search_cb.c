@@ -164,19 +164,12 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
 		return FALSE;
 
 	case 3:
-        /* right click section (popup menu) */
-		if (search_gui_get_current_search()) {
-        	search_gui_refresh_popup();
-        	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
-				gui_popup_search_lookup("popup_search_toggle_tabs"))
-                	->item.bin.child)),
-				GUI_PROPERTY(search_results_show_tabs) ?
-					_("Show search list") : _("Show tabs"));
-			gtk_menu_popup(GTK_MENU(gui_popup_search()), NULL, NULL, NULL, NULL,
-				event->button, event->time);
+		/* right click section (popup menu) */
+		if (event->type == GDK_BUTTON_PRESS) {
+			search_gui_show_popup_menu();
 		}
 		return TRUE;
-    }
+	}
 
 	return FALSE;
 }
