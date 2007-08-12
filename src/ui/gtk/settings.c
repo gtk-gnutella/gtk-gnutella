@@ -5201,6 +5201,14 @@ static prop_map_t property_map[] = {
        	NULL, 
         FREQ_UPDATES, 0
     ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_STATUS_ICON_ENABLED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_status_icon_enabled",
+        FREQ_UPDATES, 0
+    ),
 };
 
 /* Not needed any longer */

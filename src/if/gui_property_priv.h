@@ -157,6 +157,7 @@ extern const guint32  gui_property_variable_gnet_stats_pkg_col_widths[6];
 extern const guint32  gui_property_variable_gnet_stats_byte_col_widths[6];
 extern const guint32  gui_property_variable_config_toolbar_style;
 extern const guint32  gui_property_variable_search_lifetime;
+extern const gboolean gui_property_variable_status_icon_enabled;
 
 
 prop_set_t *gui_prop_init(void);

@@ -314,6 +314,8 @@ prop_def_choice_t gui_property_variable_search_lifetime_choices[] = {
     {N_("2 weeks"), 336},
     {NULL, 0}
 };
+gboolean gui_property_variable_status_icon_enabled     = TRUE;
+static const gboolean gui_property_variable_status_icon_enabled_default = TRUE;
 
 static prop_set_t *gui_property;
 
@@ -2367,6 +2369,23 @@ gui_prop_init(void) {
     gui_property->props[111].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[111].data.guint32.min   = 0x00000000;
     gui_property->props[111].data.guint32.choices = (void *) &gui_property_variable_search_lifetime_choices;
+
+
+    /*
+     * PROP_STATUS_ICON_ENABLED:
+     *
+     * General data:
+     */
+    gui_property->props[112].name = "status_icon_enabled";
+    gui_property->props[112].desc = _("Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer).");
+    gui_property->props[112].ev_changed = event_new("status_icon_enabled_changed");
+    gui_property->props[112].save = TRUE;
+    gui_property->props[112].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[112].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[112].data.boolean.def   = (void *) &gui_property_variable_status_icon_enabled_default;
+    gui_property->props[112].data.boolean.value = (void *) &gui_property_variable_status_icon_enabled;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

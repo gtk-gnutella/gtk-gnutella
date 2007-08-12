@@ -1270,5 +1270,16 @@ prop = {
     };
 };
 
+prop = {
+    name = "status_icon_enabled";
+    desc = "Show a status icon in the system tray if possible "
+			"(requires Gtk+ 2.10 or newer).";
+	save = TRUE;
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 #endif /* !USE_TOPLESS */
 /* vi: set ts=4: */

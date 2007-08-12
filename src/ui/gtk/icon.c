@@ -42,6 +42,7 @@ RCSID("$Id$")
 #ifdef USE_GTK2
 
 #include "if/gnet_property.h"
+#include "if/gui_property.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -336,7 +337,7 @@ icon_timer(time_t unused_now)
     gdk_window_invalidate_rect(canvas->window, &rect, FALSE);
 }
 
-#if GTK_CHECK_VERSION(2, 10, 0)
+#if GTK_CHECK_VERSION(2,10,0)
 static void
 on_status_icon_activate(GtkStatusIcon *status_icon, gpointer unused_udata)
 {
@@ -376,6 +377,73 @@ on_status_icon_popup_menu(GtkStatusIcon *status_icon, guint button,
 		button, activate_time);
 }
 
+static GtkStatusIcon *status_icon;
+
+static void
+status_icon_enable(void)
+{
+	GdkPixbuf *icon_pixbuf;
+
+	if (status_icon)
+		return;
+
+	/*
+	 * Create an status so that gtk-gnutella can be minimized to a
+	 * so-called "system tray" if supported by the window manager.
+	 */
+
+	icon_pixbuf = create_pixbuf("icon.16x16.xpm");
+	status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
+	gtk_status_icon_set_tooltip(status_icon,
+		_("gtk-gnutella: Click to minimize/restore"));
+	gtk_status_icon_set_visible(status_icon, TRUE);
+	gui_signal_connect(status_icon, "activate",
+		on_status_icon_activate, NULL);
+	gui_signal_connect(status_icon, "size-changed",
+		on_status_icon_size_changed, NULL);
+	gui_signal_connect(status_icon, "popup-menu",
+		on_status_icon_popup_menu, NULL);
+}
+
+static void
+status_icon_disable(void)
+{
+	if (status_icon) {
+		g_object_unref(status_icon);
+		status_icon = NULL;
+		gtk_widget_show(gui_main_window());
+	}
+}
+
+static gboolean
+status_icon_enabled_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gui_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		status_icon_enable();
+	} else {
+		status_icon_disable();
+	}
+	return FALSE;
+}
+
+static void
+status_icon_init(void)
+{
+	gui_prop_add_prop_changed_listener(PROP_STATUS_ICON_ENABLED,
+		status_icon_enabled_changed, TRUE);
+}
+
+#else	/* Gtk+ < 2.10 */
+static void
+status_icon_init(void)
+{
+	gtk_widget_set_sensitive(
+		gui_dlg_prefs_lookup("checkbutton_status_icon_enabled"),
+		FALSE);
+}
 #endif	/* Gtk+ >= 2.10.0 */
 
 /**
@@ -413,29 +481,7 @@ icon_init(void)
     up_pixbuf = create_pixbuf("upload.xpm");
     down_pixbuf = create_pixbuf("download.xpm");
 
-#if GTK_CHECK_VERSION(2, 10, 0)
-	{
-		GtkStatusIcon *status_icon;
-		GdkPixbuf *icon_pixbuf;
-		
-		/*
-		 * Create an status so that gtk-gnutella can be minimized to a
-		 * so-called "system tray" if supported by the window manager.
-		 */
-
-    	icon_pixbuf = create_pixbuf("icon.16x16.xpm");
-		status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
-		gtk_status_icon_set_tooltip(status_icon,
-			_("gtk-gnutella: Click to minimize/restore"));
-		gtk_status_icon_set_visible(status_icon, TRUE);
-    	gui_signal_connect(status_icon, "activate",
-			on_status_icon_activate, NULL);
-    	gui_signal_connect(status_icon, "size-changed",
-			on_status_icon_size_changed, NULL);
-    	gui_signal_connect(status_icon, "popup-menu",
-			on_status_icon_popup_menu, NULL);
-	}
-#endif	/* Gtk+ >= 2.10.0 */
+	status_icon_init();
 
 	main_gui_add_timer(icon_timer);
 }
@@ -445,11 +491,14 @@ icon_close(void)
 {
     icon_close_fg = TRUE;
 
-    /*
-     * Because the icon window is a top level window, it must be
-     * destroyed manually.
-     */
-    gtk_widget_destroy(icon);
+	if (icon) {
+		/*
+		 * Because the icon window is a top level window, it must be
+		 * destroyed manually.
+		 */
+		gtk_widget_destroy(icon);
+		icon = NULL;
+	}
 }
 
 #endif /* USE_GTK2  */
