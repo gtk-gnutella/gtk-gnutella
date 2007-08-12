@@ -153,6 +153,7 @@ static tm_t start_time;
 
 void gtk_gnutella_exit(gint n);
 static gint reopen_log_files(void);
+static gboolean stderr_disabled;
 
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -777,6 +778,10 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 
 	(void) domain;
 	(void) user_data;
+
+	if (stderr_disabled)
+		return;
+
 	now = tm_time();
 	ct = localtime(&now);
 
@@ -977,18 +982,25 @@ reopen_log_files(void)
 		} else {
 			fprintf(stderr, "freopen(..., \"a\", stdout) failed: %s",
 				g_strerror(errno));
-			failure |= TRUE;
+			failure = TRUE;
 		}
 	}
 	if (options[main_arg_log_stderr].used) {
-		if (freopen(options[main_arg_log_stderr].arg, "a", stderr)) {
+		const char *pathname = options[main_arg_log_stderr].arg;
+		
+		if (freopen(pathname, "a", stderr)) {
+			stderr_disabled = 0 == strcmp(pathname, "/dev/null");
 			setvbuf(stderr, NULL, _IOLBF, 0);
 		} else {
 			fprintf(stderr, "freopen(..., \"a\", stderr) failed: %s",
 				g_strerror(errno));
-			failure |= TRUE;
+			failure = TRUE;
+			stderr_disabled = TRUE;
 		}
+	} else if (options[main_arg_daemonize].used) {
+		stderr_disabled = TRUE;
 	}
+
 	return failure ? -1 : 0;
 }
 
