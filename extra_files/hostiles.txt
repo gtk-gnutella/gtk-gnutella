@@ -276,7 +276,10 @@
 87.122.149.179
 87.122.154.230
 87.122.158.23
+89.246.28.253
 89.246.50.198
+# same at Deutsche Telekom AG
+91.34.200.133
 
 # Spammer hosted by pie.us
 # (Sansui Ltd. has 206.223.156.0/24)
