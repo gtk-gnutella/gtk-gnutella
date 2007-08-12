@@ -1904,7 +1904,7 @@ search_gui_set_search_list_color(const struct search *search, int row)
 }
 
 void
-search_gui_update_list_label(struct search *search)
+search_gui_update_list_label(const struct search *search)
 {
 	if (search) {
 		int row;
