@@ -183,7 +183,7 @@ gboolean search_gui_new_browse_host(
 struct filter;
 
 void search_gui_add_targetted_search(void *data, void *user_data);
-void search_gui_update_items(const struct search *);
+void search_gui_update_status(struct search *);
 gboolean search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
 
@@ -254,13 +254,13 @@ void search_gui_search_list_clicked(GtkWidget *, GdkEventButton *);
 void search_gui_flush_queues(void);
 void search_gui_remove_search(search_t *);
 void search_gui_update_list_label(search_t *);
+void search_gui_clear_search(struct search *);
 char *search_gui_get_local_file_url(GtkWidget *);
 GtkWidget *search_gui_create_tree(void);
 
 const gchar *search_gui_query(const search_t *);
 gboolean search_gui_is_enabled(const search_t *);
 
-void search_gui_force_update_tab_label(search_t *);
 void search_gui_download(record_t *);
 const gchar *search_gui_nice_size(const record_t *);
 const gchar *search_gui_get_vendor(const struct results_set *);

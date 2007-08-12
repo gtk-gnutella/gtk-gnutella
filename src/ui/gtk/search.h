@@ -104,16 +104,10 @@ gboolean search_gui_new_search_full(const gchar *query,
 	gint sort_col, gint sort_order, flag_t flags, struct search **);
 struct search *search_new_full(const gchar *, guint32, flag_t flags);
 void search_gui_close_search(struct search *);
-
-void search_gui_clear_search(struct search *);
-void search_gui_reset_search(struct search *);
 void search_gui_download_files(void);
 void search_gui_discard_files(void);
-
 void search_gui_sort_column(struct search *, gint column);
-
 void search_gui_add_record(struct search *, record_t *, enum gui_color);
-
 void search_gui_clear_results(void);
 
 

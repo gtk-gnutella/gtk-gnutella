@@ -220,10 +220,6 @@ search_gui_clear_search(search_t *sch)
 	search_gui_clear_ctree(GTK_CTREE(sch->tree));
 	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
 	g_hash_table_foreach_remove(sch->parents, search_gui_free_parent, NULL);
-
-	sch->items = 0;
-	sch->unseen_items = 0;
-	guc_search_update_items(sch->search_handle, sch->items);
 }
 
 static gint search_gui_cursor_x, search_gui_cursor_y;
@@ -1509,8 +1505,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
-    search_gui_force_update_tab_label(current_search);
-    search_gui_update_items(current_search);
+    search_gui_update_status(current_search);
     guc_search_update_items(current_search->search_handle,
 		current_search->items);
 
@@ -1614,8 +1609,7 @@ discard_selection_of_ctree(GtkCTree *ctree)
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
-    search_gui_force_update_tab_label(current_search);
-    search_gui_update_items(current_search);
+    search_gui_update_status(current_search);
     guc_search_update_items(current_search->search_handle,
 		current_search->items);
 

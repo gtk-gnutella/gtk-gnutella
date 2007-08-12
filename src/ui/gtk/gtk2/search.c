@@ -495,10 +495,6 @@ search_gui_clear_search(search_t *search)
 	search_gui_clear_queue(search);
 	g_assert(0 == g_hash_table_size(search->dups));
 	g_assert(0 == g_hash_table_size(search->parents));
-
-	search->items = 0;
-	search->unseen_items = 0;
-	guc_search_update_items(search->search_handle, search->items);
 }
 
 static void
@@ -982,8 +978,7 @@ search_gui_download_files(void)
 
 	search_gui_end_massive_update(search);
 
-    search_gui_force_update_tab_label(search);
-    search_gui_update_items(search);
+    search_gui_update_status(search);
     guc_search_update_items(search->search_handle, search->items);
 }
 
@@ -1015,8 +1010,7 @@ search_gui_discard_files(void)
 
 	search_gui_end_massive_update(search);
 
-    search_gui_force_update_tab_label(search);
-    search_gui_update_items(search);
+    search_gui_update_status(search);
     guc_search_update_items(search->search_handle, search->items);
 }
 
@@ -1448,7 +1442,6 @@ search_gui_end_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
-    search_gui_force_update_tab_label(sch);
 	g_object_thaw_notify(G_OBJECT(sch->tree));
 }
 

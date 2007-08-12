@@ -307,6 +307,10 @@ search_gui_force_update_tab_label(struct search *search)
 	if (NULL == search)
 		return;
 
+	if (current_search == search) {
+		search->unseen_items = 0;
+	}
+
     uint32_to_string_buf(search->items, items, sizeof items);
 	concat_strings(label, sizeof label,
 		lazy_utf8_to_ui_string(search_gui_query(search)),
@@ -338,7 +342,7 @@ search_gui_set_enabled(struct search *search, gboolean enabled)
 			guc_search_stop(search->search_handle);
 		}
 		/* Marks this entry as active/inactive in the searches list. */
-		search_gui_force_update_tab_label(search);
+		search_gui_update_status(search);
 	}
 }
 
@@ -1196,19 +1200,21 @@ search_gui_get_route(const struct results_set *rs)
 }
 
 /**
- *  Update the label if nothing's changed or if the last update was
- *  recent.
+ * Update the label string showing search stats.
  */
 static void
-search_gui_update_tab_label(search_t *search)
+search_gui_update_items(const struct search *sch)
 {
-	g_return_if_fail(search);
-
-	if (
-		search->items != search->last_update_items &&
-		delta_time(tm_time(), search->last_update_time) < TAB_UPDATE_TIME
-	) {
-		search_gui_force_update_tab_label(search);
+    if (sch) {
+		gtk_label_printf(label_items_found, _("%u %s "
+			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
+			" Hits: %u (%u TCP, %u UDP)"),
+			sch->items, NG_("item", "items", sch->items),
+			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
+			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
+			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
+    } else {
+       gtk_label_printf(label_items_found, "%s", _("No search"));
 	}
 }
 
@@ -1489,37 +1495,10 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (sch->items >= max_results && !search_gui_is_passive(sch)) {
 		search_gui_set_enabled(sch, FALSE);
 	}
-	/*
-	 * FIXME When not for current_search, unseen_items is increased even if
-	 * FIXME we're not at the search pane.  Is this a problem?
-	 */
 
-	if (sch == current_search) {
-		search_gui_update_items(sch);
-	} else {
-		sch->unseen_items += sch->items - old_items;
-	}
+	sch->unseen_items += sch->items - old_items;
 	if (delta_time(tm_time(), sch->last_update_time) > TAB_UPDATE_TIME) {
-		search_gui_update_tab_label(sch);
-	}
-}
-
-/**
- * Update the label string showing search stats.
- */
-void
-search_gui_update_items(const struct search *sch)
-{
-    if (sch) {
-		gtk_label_printf(label_items_found, _("%u %s "
-			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
-			" Hits: %u (%u TCP, %u UDP)"),
-			sch->items, NG_("item", "items", sch->items),
-			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
-			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
-			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
-    } else {
-       gtk_label_printf(label_items_found, "%s", _("No search"));
+		search_gui_update_status(sch);
 	}
 }
 
@@ -1533,9 +1512,12 @@ search_gui_is_expired(const struct search *search)
 	}
 }
 
-static void 
-search_gui_update_status(const struct search *search)
+void 
+search_gui_update_status(struct search *search)
 {
+	search_gui_force_update_tab_label(search);
+	search_gui_update_items(search);
+
 	if (search != current_search) {
 		return;
 	} else if (NULL == search) {
@@ -1607,8 +1589,6 @@ search_gui_current_search(search_t *search)
 		NULL != search && !search_gui_is_local(search));
 
 	if (search) {
-		search->unseen_items = 0;
-
 		current_search = search;
 
 		gtk_notebook_set_current_page(notebook_search_results,
@@ -1627,9 +1607,7 @@ search_gui_current_search(search_t *search)
 		gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
 		gtk_widget_show_all(sw);
 	}
-	search_gui_force_update_tab_label(search);
 	search_gui_update_status(search);
-	search_gui_update_items(search);
 }
 
 /***
@@ -1664,8 +1642,6 @@ search_gui_status_change(gnet_search_t search_handle)
 
 	search = search_gui_find(search_handle);
 	g_return_if_fail(search);
-	search_gui_force_update_tab_label(search);
-	search_gui_update_items(search);
 	search_gui_update_status(search);
 }
 
@@ -2436,7 +2412,7 @@ search_gui_new_search_full(const gchar *query_str,
 		search_gui_set_current_search(search);
 	}
 
-	search_gui_force_update_tab_label(search);
+	search_gui_update_status(search);
 	search_gui_store_searches();
 
 	return TRUE;
@@ -2446,10 +2422,15 @@ search_gui_new_search_full(const gchar *query_str,
  * Reset the internal model of the search.
  * Called when a search is restarted, for example.
  */
-void
+static void
 search_gui_reset_search(search_t *search)
 {
+	search->items = 0;
+	search->unseen_items = 0;
+	guc_search_update_items(search->search_handle, search->items);
+
 	search_gui_clear_search(search);
+	search_gui_update_status(search);
 }
 
 /**
@@ -2470,7 +2451,7 @@ search_gui_close_search(search_t *search)
 	search_gui_store_searches();
 	search_gui_option_menu_searches_update();
 
-	search_gui_clear_search(search);
+	search_gui_reset_search(search);
     search_gui_remove_search(search);
 
 	search_gui_set_current_search(next ? next->data : NULL);
@@ -2897,7 +2878,7 @@ on_popup_search_list_clear_activate(GtkMenuItem *unused_menuitem,
 
 	searches = search_gui_get_selected_searches();
 	for (sl = searches; sl; sl = g_slist_next(sl)) {
-		search_gui_clear_search(sl->data);
+		search_gui_reset_search(sl->data);
 	}
 	g_slist_free(searches);
 }
@@ -3580,8 +3561,7 @@ search_gui_clear_results(void)
 	g_return_if_fail(search);
 
 	search_gui_reset_search(search);
-	search_gui_force_update_tab_label(search);
-	search_gui_update_items(search);
+	search_gui_update_status(search);
 }
 
 void
