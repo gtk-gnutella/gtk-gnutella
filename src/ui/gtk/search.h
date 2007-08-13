@@ -55,7 +55,7 @@ struct search {
 
 	time_t      last_update_time;	/**< last time notebook tab was updated */
 	guint32     unseen_items;		/**< How many items haven't been seen yet */
-	gboolean	items_changed;
+	gboolean	list_refreshed;
 
     filter_t   *filter;				/**< filter ruleset bound to this search */
 

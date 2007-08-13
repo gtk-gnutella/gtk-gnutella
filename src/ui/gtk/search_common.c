@@ -345,7 +345,7 @@ search_gui_reset_search(search_t *search)
 {
 	search->items = 0;
 	search->unseen_items = 0;
-	search->items_changed = TRUE;
+	search->list_refreshed = FALSE;
 	guc_search_update_items(search->search_handle, search->items);
 
 	search_gui_clear_search(search);
@@ -499,7 +499,7 @@ search_gui_update_status(struct search *search)
 			search_gui_is_visible()
 		) {
 			search->unseen_items = 0;
-			search->items_changed = FALSE;
+			search->list_refreshed = TRUE;
 			search_gui_update_list_label(search);
 		}
 		search->last_update_time = tm_time();
@@ -1711,7 +1711,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	 * Update the GUI periodically but not immediately due to the overhead
 	 * when we're receiving lots of results quickly.
 	 */
-	sch->items_changed = TRUE;
+	sch->list_refreshed = FALSE;
 }
 
 gboolean
@@ -1826,6 +1826,7 @@ search_gui_status_change(gnet_search_t search_handle)
 
 	search = search_gui_find(search_handle);
 	g_return_if_fail(search);
+	search->list_refreshed = FALSE;
 	search_gui_update_status(search);
 }
 
@@ -2898,7 +2899,7 @@ search_gui_restart_search(search_t *search)
 	search_gui_reset_search(search);
 	search->items = 0;
 	search->unseen_items = 0;
-	search->items_changed = TRUE;
+	search->list_refreshed = FALSE;
 	search->hidden = 0;
 	search->tcp_qhits = 0;
 	search->udp_qhits = 0;
@@ -3684,8 +3685,8 @@ search_gui_timer(time_t now)
 		for (iter = list_searches; NULL != iter; iter = g_list_next(iter)) {
 			struct search *search = iter->data;
 
-			if (search->items_changed) {
-				search->items_changed = FALSE;
+			if (!search->list_refreshed) {
+				search->list_refreshed = TRUE;
 				search_gui_update_list_label(iter->data);
 			}
 		}
