@@ -5201,6 +5201,7 @@ static prop_map_t property_map[] = {
        	NULL, 
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK2
     PROP_ENTRY(
         gui_dlg_prefs,
         PROP_STATUS_ICON_ENABLED,
@@ -5209,6 +5210,7 @@ static prop_map_t property_map[] = {
         "checkbutton_status_icon_enabled",
         FREQ_UPDATES, 0
     ),
+#endif	/* USE_GTK2 */
 };
 
 /* Not needed any longer */
