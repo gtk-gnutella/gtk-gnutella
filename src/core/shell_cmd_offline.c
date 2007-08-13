@@ -53,7 +53,7 @@ shell_exec_offline(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_offline(void)
 {
-	return "Disconnect to the Gnutella network";
+	return "Disconnect from the Gnutella network";
 }
 
 const char *
