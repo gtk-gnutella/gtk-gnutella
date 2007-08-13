@@ -27,58 +27,74 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/glib-missing.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
+/**
+ * Display all properties
+ */
 enum shell_reply
-shell_exec_print(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	property_t prop;
+	GSList *props, *sl;
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc < 2) {
-		shell_set_msg(sh, _("Property missing"));
-		goto error;
+
+	props = gnet_prop_get_by_regex(argc > 1 ? argv[1] : ".", NULL);
+	if (!props) {
+		shell_set_msg(sh, _("No matching property."));
+		return REPLY_ERROR;
 	}
 
-	prop = gnet_prop_get_by_name(argv[1]);
-	if (prop == NO_PROP) {
-		shell_set_msg(sh, _("Unknown property"));
-		goto error;
+	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
+		const char *name_1, *name_2;
+		property_t prop;
+		char buf[80];
+	   
+		prop = GPOINTER_TO_UINT(sl->data);
+		name_1 = gnet_prop_name(prop);
+
+		if (g_slist_next(sl)) {
+			sl = g_slist_next(sl);
+			prop = GPOINTER_TO_UINT(sl->data);
+			name_2 = gnet_prop_name(prop);
+		} else {
+			name_2 = "";
+		}
+
+		gm_snprintf(buf, sizeof buf, "%-34.34s  %-34.34s\n", name_1, name_2);
+		shell_write(sh, buf);
 	}
+	g_slist_free(props);
+	props = NULL;
 
-	shell_write(sh, _("Value: "));
-	shell_write(sh, gnet_prop_to_string(prop));
-	shell_write(sh, "\n");
-
-	shell_set_msg(sh, _("Value found and displayed"));
 	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
 }
 
 const char *
-shell_summary_print(void)
+shell_summary_props(void)
 {
-	return "Print the value of a property";
-
+	return "List properties";
 }
 
 const char *
-shell_help_print(int argc, const char *argv[])
+shell_help_props(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "print <property>\n";
+	return "props [<regexp>]\n"
+		"Display all properties,\n"
+		"or those matching the regular expression supplied.\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

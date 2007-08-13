@@ -27,84 +27,47 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
-
-#include "uploads.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/glib-missing.h"
-#include "lib/iso3166.h"
-#include "lib/misc.h"
-
 #include "lib/override.h"		/* Must be the last header included */
 
-static void
-print_upload_info(struct gnutella_shell *sh,
-	const struct gnet_upload_info *info)
-{
-	char buf[1024];
-
-	g_return_if_fail(sh);
-	g_return_if_fail(info);
-
-	gm_snprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
-		info->encrypted ? "(E)" : "",
-		host_addr_to_string(info->addr),
-		iso3166_country_cc(info->country),
-		compact_size(info->range_end - info->range_start,
-			GNET_PROPERTY(display_metric_units)),
-		short_size(info->range_start,
-			GNET_PROPERTY(display_metric_units)),
-		info->name ? "\"" : "<",
-		info->name ? info->name : "none",
-		info->name ? "\"" : ">");
-
-	shell_write(sh, buf);
-	shell_write(sh, "\n");	/* Terminate line */
-}
-
 /**
- * Displays all active uploads
+ * Rescan the shared directories for added/removed files.
  */
 enum shell_reply
-shell_exec_uploads(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_rescan(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const GSList *sl;
-	GSList *sl_info;
-
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	shell_set_msg(sh, "");
-
-	shell_write(sh, "100~ \n");
-
-	sl_info = upload_get_info_list();
-	for (sl = sl_info; sl; sl = g_slist_next(sl)) {
-		print_upload_info(sh, sl->data);
+	if (GNET_PROPERTY(library_rebuilding)) {
+		shell_set_msg(sh, _("The library is currently being rebuilt."));
+		return REPLY_ERROR;
+	} else if (shell_request_library_rescan()) {
+		shell_set_msg(sh, _("A rescan has already been scheduled"));
+		return REPLY_ERROR;
+	} else {
+		shell_write(sh, "100-Scheduling library rescan\n");
+		return REPLY_READY;
 	}
-	upload_free_info_list(&sl_info);
-
-	shell_write(sh, ".\n");	/* Terminate message body */
-
-	return REPLY_READY;
 }
 
 const char *
-shell_summary_uploads(void)
+shell_summary_rescan(void)
 {
-	return "Display uploads";
+	return "Scan shared directories";
 }
 
 const char *
-shell_help_uploads(int argc, const char *argv[])
+shell_help_rescan(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-	
+
 	return NULL;
 }
 

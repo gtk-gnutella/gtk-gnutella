@@ -27,7 +27,7 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "lib/misc.h"
 
@@ -41,7 +41,7 @@ struct shell_cmd_help {
 
 static const struct shell_cmd_help commands[] = {
 #define SHELL_CMD(x)	{ #x, &shell_summary_ ## x, &shell_help_ ## x },
-#include "shell_cmd.inc"
+#include "cmd.inc"
 #undef	SHELL_CMD
 };
 

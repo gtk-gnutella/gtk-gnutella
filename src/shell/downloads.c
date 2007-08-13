@@ -27,9 +27,9 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
-#include "downloads.h"
+#include "core/downloads.h"
 
 #include "if/bridge/ui2c.h"
 

@@ -27,9 +27,9 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
-#include "nodes.h"
+#include "core/nodes.h"
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"

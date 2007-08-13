@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_shell_cmd_h_
-#define _core_shell_cmd_h_
+#ifndef _shell_cmd_h_
+#define _shell_cmd_h_
 
 #include "common.h"
 
@@ -74,7 +74,7 @@ int shell_options_parse(struct gnutella_shell *,
 	SHELL_HELP_PROTO(name); \
 	SHELL_SUMMARY_PROTO(name);
 
-#include "shell_cmd.inc"
+#include "cmd.inc"
 #undef SHELL_CMD
 
 #undef SHELL_EXEC_PROTO

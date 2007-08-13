@@ -27,74 +27,85 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
+
+#include "core/uploads.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
+#include "lib/misc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
+static void
+print_upload_info(struct gnutella_shell *sh,
+	const struct gnet_upload_info *info)
+{
+	char buf[1024];
+
+	g_return_if_fail(sh);
+	g_return_if_fail(info);
+
+	gm_snprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
+		info->encrypted ? "(E)" : "",
+		host_addr_to_string(info->addr),
+		iso3166_country_cc(info->country),
+		compact_size(info->range_end - info->range_start,
+			GNET_PROPERTY(display_metric_units)),
+		short_size(info->range_start,
+			GNET_PROPERTY(display_metric_units)),
+		info->name ? "\"" : "<",
+		info->name ? info->name : "none",
+		info->name ? "\"" : ">");
+
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+}
+
 /**
- * Display all properties
+ * Displays all active uploads
  */
 enum shell_reply
-shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_uploads(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	GSList *props, *sl;
+	const GSList *sl;
+	GSList *sl_info;
 
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
+	shell_set_msg(sh, "");
 
-	props = gnet_prop_get_by_regex(argc > 1 ? argv[1] : ".", NULL);
-	if (!props) {
-		shell_set_msg(sh, _("No matching property."));
-		return REPLY_ERROR;
+	shell_write(sh, "100~ \n");
+
+	sl_info = upload_get_info_list();
+	for (sl = sl_info; sl; sl = g_slist_next(sl)) {
+		print_upload_info(sh, sl->data);
 	}
+	upload_free_info_list(&sl_info);
 
-	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		const char *name_1, *name_2;
-		property_t prop;
-		char buf[80];
-	   
-		prop = GPOINTER_TO_UINT(sl->data);
-		name_1 = gnet_prop_name(prop);
-
-		if (g_slist_next(sl)) {
-			sl = g_slist_next(sl);
-			prop = GPOINTER_TO_UINT(sl->data);
-			name_2 = gnet_prop_name(prop);
-		} else {
-			name_2 = "";
-		}
-
-		gm_snprintf(buf, sizeof buf, "%-34.34s  %-34.34s\n", name_1, name_2);
-		shell_write(sh, buf);
-	}
-	g_slist_free(props);
-	props = NULL;
+	shell_write(sh, ".\n");	/* Terminate message body */
 
 	return REPLY_READY;
 }
 
 const char *
-shell_summary_props(void)
+shell_summary_uploads(void)
 {
-	return "List properties";
+	return "Display uploads";
 }
 
 const char *
-shell_help_props(int argc, const char *argv[])
+shell_help_uploads(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-
-	return "props [<regexp>]\n"
-		"Display all properties,\n"
-		"or those matching the regular expression supplied.\n";
+	
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

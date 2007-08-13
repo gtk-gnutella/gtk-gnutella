@@ -27,68 +27,36 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
-
-#include "if/bridge/c2ui.h"
-
-#include "lib/misc.h"
-#include "lib/utf8.h"
+#include "cmd.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
+
 enum shell_reply
-shell_exec_search(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_quit(struct gnutella_shell *sh, int argc, const char *argv[])
 {
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
-
-	if (argc < 2)
-		goto error;
-
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		if (argc < 3) {
-			shell_set_msg(sh, _("Query string missing"));
-			goto error;
-		}
-		if (!utf8_is_valid_string(argv[2])) {
-			shell_set_msg(sh, _("Query string is not UTF-8 encoded"));
-			goto error;
-		}
-		if (gcu_search_gui_new_search(argv[2], 0)) {
-			shell_set_msg(sh, _("Search added"));
-		} else {
-			shell_set_msg(sh, _("The search could not be created"));
-			goto error;
-		}
-	} else {
-		shell_set_msg(sh, _("Unknown operation"));
-		goto error;
-	}
-	return REPLY_READY;
-
-error:
-	return REPLY_ERROR;
+	
+	shell_set_msg(sh, _("Good bye"));
+	shell_shutdown(sh);
+	return REPLY_GOOD_BYE;
 }
 
 const char *
-shell_summary_search(void)
+shell_summary_quit(void)
 {
-	return "Manage searches";
+	return "Close the shell connection";
 }
 
 const char *
-shell_help_search(int argc, const char *argv[])
+shell_help_quit(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc > 1) {	
-		/* FIXME */
-		return NULL;
-	} else {
-		return "search add\n";
-	}
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

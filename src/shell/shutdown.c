@@ -27,7 +27,7 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/core/main.h"
 

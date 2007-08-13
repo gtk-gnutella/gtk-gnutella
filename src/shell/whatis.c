@@ -27,7 +27,7 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -35,34 +35,53 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
- * Open Gnutella connections
+ * Takes a whatis command and tries to execute it.
  */
 enum shell_reply
-shell_exec_online(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_whatis(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	property_t prop;
+
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
-	shell_write(sh, "Opening Gnutella connections\n");
+	if (argc < 2) {
+		shell_set_msg(sh, _("Property missing"));
+		goto error;
+	}
 
+	prop = gnet_prop_get_by_name(argv[1]);
+	if (prop == NO_PROP) {
+		shell_set_msg(sh, _("Unknown property"));
+		goto error;
+	}
+
+	shell_write(sh, _("Help: "));
+	shell_write(sh, gnet_prop_description(prop));
+	shell_write(sh, "\n");
+
+	shell_set_msg(sh, "");
 	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
 }
 
 const char *
-shell_summary_online(void)
+shell_summary_whatis(void)
 {
-	return "Connect to the Gnutella network";
+	return "Describe properties";
 }
 
 const char *
-shell_help_online(int argc, const char *argv[])
+shell_help_whatis(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-
-	return "Put the node back online. See also \"offline\".\n";
+	
+	return "whatis <property>\n"
+		"show description of property\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

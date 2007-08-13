@@ -27,7 +27,7 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -35,35 +35,34 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
- * Close Gnutella connections
+ * Open Gnutella connections
  */
 enum shell_reply
-shell_exec_offline(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_online(struct gnutella_shell *sh, int argc, const char *argv[])
 {
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, FALSE);
-	shell_write(sh, "Closing Gnutella connections\n");
+	gnet_prop_set_boolean_val(PROP_ONLINE_MODE, TRUE);
+	shell_write(sh, "Opening Gnutella connections\n");
 
 	return REPLY_READY;
 }
 
 const char *
-shell_summary_offline(void)
+shell_summary_online(void)
 {
-	return "Disconnect from the Gnutella network";
+	return "Connect to the Gnutella network";
 }
 
 const char *
-shell_help_offline(int argc, const char *argv[])
+shell_help_online(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "Disconnect from the Gnutella network."
-		"Use \"online\" to re-connect to the Gnutella network.\n";
+	return "Put the node back online. See also \"offline\".\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

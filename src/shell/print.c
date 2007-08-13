@@ -27,18 +27,15 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
- * Takes a whatis command and tries to execute it.
- */
 enum shell_reply
-shell_exec_whatis(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_print(struct gnutella_shell *sh, int argc, const char *argv[])
 {
 	property_t prop;
 
@@ -57,11 +54,11 @@ shell_exec_whatis(struct gnutella_shell *sh, int argc, const char *argv[])
 		goto error;
 	}
 
-	shell_write(sh, _("Help: "));
-	shell_write(sh, gnet_prop_description(prop));
+	shell_write(sh, _("Value: "));
+	shell_write(sh, gnet_prop_to_string(prop));
 	shell_write(sh, "\n");
 
-	shell_set_msg(sh, "");
+	shell_set_msg(sh, _("Value found and displayed"));
 	return REPLY_READY;
 
 error:
@@ -69,19 +66,19 @@ error:
 }
 
 const char *
-shell_summary_whatis(void)
+shell_summary_print(void)
 {
-	return "Describe properties";
+	return "Print the value of a property";
+
 }
 
 const char *
-shell_help_whatis(int argc, const char *argv[])
+shell_help_print(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-	
-	return "whatis <property>\n"
-		"show description of property\n";
+
+	return "print <property>\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

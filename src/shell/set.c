@@ -27,48 +27,88 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
- * Rescan the shared directories for added/removed files.
- */
 enum shell_reply
-shell_exec_rescan(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	property_t prop;
+	const char *verbose;
+	int parsed;
+	option_t options[] = {
+		{ "v", &verbose },
+	};
+
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (GNET_PROPERTY(library_rebuilding)) {
-		shell_set_msg(sh, _("The library is currently being rebuilt."));
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
 		return REPLY_ERROR;
-	} else if (shell_request_library_rescan()) {
-		shell_set_msg(sh, _("A rescan has already been scheduled"));
-		return REPLY_ERROR;
-	} else {
-		shell_write(sh, "100-Scheduling library rescan\n");
-		return REPLY_READY;
+
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
+
+	if (argc < 1) {
+		shell_set_msg(sh, _("Property missing"));
+		goto error;
 	}
+
+	prop = gnet_prop_get_by_name(argv[0]);
+	if (prop == NO_PROP) {
+		shell_set_msg(sh, _("Unknown property"));
+		goto error;
+	}
+
+	if (argc < 2) {
+		shell_set_msg(sh, _("Value missing"));
+		goto error;
+	}
+
+	if (verbose) {
+		shell_write(sh, "100-Previous value was ");
+		shell_write(sh, gnet_prop_to_string(prop));
+		shell_write(sh, "\n");
+	}
+
+	gnet_prop_set_from_string(prop,	argv[1]);
+
+	if (verbose) {
+		shell_write(sh, "100-New value is ");
+		shell_write(sh, gnet_prop_to_string(prop));
+		shell_write(sh, "\n");
+	}
+
+	shell_set_msg(sh, _("Value found and set"));
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
 }
 
 const char *
-shell_summary_rescan(void)
+shell_summary_set(void)
 {
-	return "Scan shared directories";
+	return "Modify properties";
 }
 
 const char *
-shell_help_rescan(int argc, const char *argv[])
+shell_help_set(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return NULL;
+	return
+		"set [-v] <property> <value>\n"
+		"sets the value of given property\n"
+		"-v : be verbose, printing old and new values\n";
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */

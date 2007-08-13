@@ -28,11 +28,11 @@
 RCSID("$Id$")
 
 #include "shell.h"
-#include "shell_cmd.h"
+#include "cmd.h"
 
-#include "settings.h"
-#include "sockets.h"
-#include "version.h"
+#include "core/settings.h"
+#include "core/sockets.h"
+#include "core/version.h"
 
 #include "if/bridge/ui2c.h"
 #include "if/gnet_property_priv.h"
@@ -388,7 +388,7 @@ shell_cmd_get_handler(const char *cmd)
 		shell_cmd_handler_t handler;
 	} commands[] = {
 #define SHELL_CMD(x)	{ #x, shell_exec_ ## x },
-#include "shell_cmd.inc"
+#include "cmd.inc"
 #undef	SHELL_CMD 
 	};
 	size_t i;

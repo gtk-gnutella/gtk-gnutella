@@ -27,10 +27,10 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
-#include "hsep.h"
-#include "nodes.h"
+#include "core/hsep.h"
+#include "core/nodes.h"
 
 #include "if/gnet_property_priv.h"
 

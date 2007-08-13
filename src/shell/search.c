@@ -27,65 +27,44 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
-#include "if/gnet_property.h"
-#include "if/gnet_property_priv.h"
+#include "if/bridge/c2ui.h"
+
+#include "lib/misc.h"
+#include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
 enum shell_reply
-shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_search(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	property_t prop;
-	const char *verbose;
-	int parsed;
-	option_t options[] = {
-		{ "v", &verbose },
-	};
-
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
-	if (parsed < 0)
-		return REPLY_ERROR;
+	if (argc < 2)
+		goto error;
 
-	argv += parsed;	/* args[0] is first command argument */
-	argc -= parsed;	/* counts only command arguments now */
-
-	if (argc < 1) {
-		shell_set_msg(sh, _("Property missing"));
+	if (0 == ascii_strcasecmp(argv[1], "add")) {
+		if (argc < 3) {
+			shell_set_msg(sh, _("Query string missing"));
+			goto error;
+		}
+		if (!utf8_is_valid_string(argv[2])) {
+			shell_set_msg(sh, _("Query string is not UTF-8 encoded"));
+			goto error;
+		}
+		if (gcu_search_gui_new_search(argv[2], 0)) {
+			shell_set_msg(sh, _("Search added"));
+		} else {
+			shell_set_msg(sh, _("The search could not be created"));
+			goto error;
+		}
+	} else {
+		shell_set_msg(sh, _("Unknown operation"));
 		goto error;
 	}
-
-	prop = gnet_prop_get_by_name(argv[0]);
-	if (prop == NO_PROP) {
-		shell_set_msg(sh, _("Unknown property"));
-		goto error;
-	}
-
-	if (argc < 2) {
-		shell_set_msg(sh, _("Value missing"));
-		goto error;
-	}
-
-	if (verbose) {
-		shell_write(sh, "100-Previous value was ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
-	}
-
-	gnet_prop_set_from_string(prop,	argv[1]);
-
-	if (verbose) {
-		shell_write(sh, "100-New value is ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
-	}
-
-	shell_set_msg(sh, _("Value found and set"));
 	return REPLY_READY;
 
 error:
@@ -93,22 +72,23 @@ error:
 }
 
 const char *
-shell_summary_set(void)
+shell_summary_search(void)
 {
-	return "Modify properties";
+	return "Manage searches";
 }
 
 const char *
-shell_help_set(int argc, const char *argv[])
+shell_help_search(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return
-		"set [-v] <property> <value>\n"
-		"sets the value of given property\n"
-		"-v : be verbose, printing old and new values\n";
-
+	if (argc > 1) {	
+		/* FIXME */
+		return NULL;
+	} else {
+		return "search add\n";
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -27,7 +27,7 @@
 
 RCSID("$Id$")
 
-#include "shell_cmd.h"
+#include "cmd.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
