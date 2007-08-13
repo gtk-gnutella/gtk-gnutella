@@ -29,7 +29,7 @@
 
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(core dht lib ui if)
+SetSubdirs(core shell dht lib ui if)
 DependSubdirs()
 
 SRC = main.c
@@ -77,6 +77,7 @@ CFLAGS = -I.. -I. \
 
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
+	-Lshell -lshell \
 	-Lcore -lcore \
 	-Ldht -ldht \
 |case d_headless in undef
@@ -88,6 +89,7 @@ LDFLAGS = \
 
 RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
 RemoteTargetDependency(gtk-gnutella, core, libcore.a)
+RemoteTargetDependency(gtk-gnutella, shell, libshell.a)
 RemoteTargetDependency(gtk-gnutella, dht, libdht.a)
 |case d_headless in undef
 RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtk-common.a)
