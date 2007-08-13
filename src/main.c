@@ -1248,6 +1248,9 @@ main(int argc, char **argv)
 	 * file descriptor.
 	 */
 	close_file_descriptors(3); /* Just in case */
+	if (reserve_standard_file_descriptors()) {
+		exit(EXIT_FAILURE);
+	}
 
 	prehandle_arguments(argv);
 

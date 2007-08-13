@@ -4127,6 +4127,29 @@ close_file_descriptors(const int first_fd)
 	}
 }
 
+/*
+ * Ensures that fd 0, 1 and 2 are opened.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int
+reserve_standard_file_descriptors(void)
+{
+	int fd;
+
+	/*
+	 * POSIX guarantees that open() and dup() return the lowest unassigned file
+	 * descriptor. Check this but don't rely on it.
+	 */
+	for (fd = 0; fd < 3; fd++) {
+		if (-1 != fcntl(fd, F_GETFL))
+			continue;
+		if (open("/dev/null", O_RDWR, 0) != fd)
+			return -1;
+	}
+	return 0; 
+}
+
 /**
  * Equivalent to strstr() for raw memory without NUL-termination.
  *

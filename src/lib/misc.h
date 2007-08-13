@@ -610,6 +610,7 @@ guint32 html_decode_entity(const gchar *src, const gchar **endptr);
 gint canonize_path(gchar *dst, const gchar *path);
 guint compat_max_fd(void);
 void close_file_descriptors(const int first_fd);
+int reserve_standard_file_descriptors(void);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
 void set_close_on_exec(gint fd);
