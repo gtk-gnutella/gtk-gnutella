@@ -11928,7 +11928,7 @@ for all filters</label>
       <widget>
 	<class>GtkLabel</class>
 	<name>label184</name>
-	<label>Gtk-Gnutella is shutting down.
+	<label>gtk-gnutella is shutting down.
 Sending bye messages to peers.
 
 Grace time remaining:</label>

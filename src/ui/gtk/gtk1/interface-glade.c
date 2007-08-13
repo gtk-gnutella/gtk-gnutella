@@ -9061,7 +9061,7 @@ create_shutdown_window (void)
   gtk_container_add (GTK_CONTAINER (frame30), vbox44);
   gtk_container_set_border_width (GTK_CONTAINER (vbox44), 30);
 
-  label184 = gtk_label_new (_("Gtk-Gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
+  label184 = gtk_label_new (_("gtk-gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
   gtk_widget_set_name (label184, "label184");
   gtk_widget_ref (label184);
   gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "label184", label184,
