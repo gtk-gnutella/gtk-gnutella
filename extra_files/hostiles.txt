@@ -1071,3 +1071,6 @@
 # "Fun Workplace Time Waster", "(US Special Release)" etc. EXE, ZIP, RAR malware/adware
 216.139.213.16/28
 
+# Fake LimeWire; ZIP spam; "BitTorrent downloader" etc.
+83.133.126.189
+
