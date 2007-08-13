@@ -281,7 +281,7 @@ file_exists(const gchar *pathname)
   	struct stat st;
 
     g_assert(pathname);
-    return 0 == do_stat(pathname, &st);
+    return 0 == stat(pathname, &st);
 }
 
 /**
@@ -293,7 +293,7 @@ file_does_not_exist(const gchar *pathname)
   	struct stat st;
 
     g_assert(pathname);
-	return 0 != do_stat(pathname, &st) && ENOENT == do_errno;
+	return stat(pathname, &st) && ENOENT == errno;
 }
 
 /**
@@ -812,9 +812,7 @@ is_directory(const gchar *pathname)
 	struct stat st;
 
 	g_assert(pathname);
-	if (0 != do_stat(pathname, &st))
-		return FALSE;
-	return S_ISDIR(st.st_mode);
+	return 0 == stat(pathname, &st) && S_ISDIR(st.st_mode);
 }
 
 /**
@@ -826,9 +824,7 @@ is_regular(const gchar *pathname)
 	struct stat st;
 
 	g_assert(pathname);
-	if (0 != do_stat(pathname, &st))
-		return FALSE;
-	return S_ISREG(st.st_mode);
+	return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
 }
 
 /**
@@ -3015,63 +3011,6 @@ string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	return TRUE;
 }
 
-/***
- *** System call wrapping with errno remapping.
- ***/
-
-gint do_errno;
-
-/**
- * Wrapper for the stat() system call.
- */
-gint
-do_stat(const gchar *path, struct stat *buf)
-{
-	gint ret;
-
-	/*
-	 * On my system, since I upgraded to libc6 2.3.2, I have system calls
-	 * that fail with errno = 0.  I assume this is a multi-threading issue,
-	 * since my kernel is SMP and gcc 3.3 requires a libpthread.  Or whatever,
-	 * but it did not occur before with the same kernel and a previous libc6
-	 * along with gcc 2.95.
-	 *
-	 * So... Assume that if stat() returns -1 and errno is 0, then it
-	 * really means ENOENT.
-	 *
-	 *		--RAM, 27/10/2003
-	 */
-
-	ret = stat(path, buf);
-	do_errno = errno;
-
-	if (-1 == ret && 0 == do_errno) {
-		g_warning("stat(\"%s\") returned -1 with errno = 0, assuming ENOENT",
-			path);
-		do_errno = errno = ENOENT;
-	}
-
-	/*
-	 * Perform some remapping.  Stats through NFS may return EXDEV?
-	 */
-
-	switch (do_errno) {
-	case EXDEV:
-		g_warning("stat(\"%s\") failed with weird errno = %d (%s), "
-			"assuming ENOENT", path, do_errno, g_strerror(do_errno));
-		do_errno = errno = ENOENT;
-		break;
-	default:
-		break;
-	}
-
-	if (-1 == ret && ENOENT != do_errno)
-		g_warning("stat(\"%s\") returned -1 with errno = %d (%s)",
-			path, do_errno, g_strerror(do_errno));
-
-	return ret;
-}
-
 /**
  * Create new pathname from the concatenation of the dirname and the basename
  * of the file. A directory separator is insert, unless "dir" already ends
@@ -3258,15 +3197,12 @@ filepath_directory(const gchar *pathname)
 gboolean
 filepath_exists(const gchar *dir, const gchar *file)
 {
-	gchar *path;
 	struct stat buf;
-	gboolean exists = TRUE;
+	gboolean exists;
+	gchar *path;
 
 	path = make_pathname(dir, file);
-
-	if (-1 == do_stat(path, &buf))
-		exists = FALSE;
-
+	exists = 0 == stat(path, &buf);
 	G_FREE_NULL(path);
 
 	return exists;

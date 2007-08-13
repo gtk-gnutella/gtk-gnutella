@@ -71,7 +71,7 @@ watcher_mtime(const gchar *filename)
 {
 	struct stat buf;
 
-	if (-1 == do_stat(filename, &buf))
+	if (-1 == stat(filename, &buf))
 		return 0;
 
 	return buf.st_mtime;

@@ -759,10 +759,6 @@ round_size(size_t align, size_t n)
 
 struct stat;
 
-extern gint do_errno;
-
-gint do_stat(const gchar *path, struct stat *buf);
-
 static inline gboolean
 is_temporary_error(gint error)
 {

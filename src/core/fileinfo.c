@@ -4285,7 +4285,7 @@ fi_check_file(fileinfo_t *fi)
 	 * File should exist since fi->done > 0, and it was not completed.
 	 */
 
-	if (-1 == do_stat(fi->pathname, &buf) && ENOENT == errno) {
+	if (stat(fi->pathname, &buf) && ENOENT == errno) {
 		g_warning("file %s removed, resetting swarming", fi->pathname);
 		file_info_reset(fi);
 	}
