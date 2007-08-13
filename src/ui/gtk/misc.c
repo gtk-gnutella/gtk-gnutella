@@ -40,6 +40,8 @@ RCSID("$Id$")
 
 #include "gtk-shared/callbacks.h"
 
+#include "gtk/misc.h"
+
 #include "nodes.h"
 #include "downloads.h"
 #include "settings.h"
@@ -908,5 +910,85 @@ clist_restore_visibility(GtkCList *clist, property_t prop)
 	}
 }
 #endif /* USE_GTK1 */
+
+static gboolean
+show_popup_menu(widget_popup_menu_cb handler)
+{
+	GtkMenu *menu;
+
+	g_return_val_if_fail(handler, FALSE);
+
+	menu = (*handler)();
+	if (menu) {
+		gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
+			3, gtk_get_current_event_time());
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+#if GTK_CHECK_VERSION(2,0,0)
+static gboolean
+on_popup_menu(GtkWidget *unused_widget, void *user_data)
+{
+	(void) unused_widget;
+	return show_popup_menu(user_data);
+}
+#endif	/* Gtk+ >= 2.0*/
+
+static gboolean
+on_key_press_event(GtkWidget *unused_widget,
+	GdkEventKey *event, void *user_data)
+{
+	(void) unused_widget;
+
+	switch (event->keyval) {
+	unsigned modifier;
+	case GDK_F10:
+	case 0x1008FE0A:	/* Shift+F10 under Xnest */
+		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
+		if (GDK_SHIFT_MASK == modifier) {
+			return show_popup_menu(user_data);
+		}
+		break;
+	}
+	return FALSE;
+}
+
+static gboolean
+on_button_press_event(GtkWidget *unused_widget,
+	GdkEventButton *event, void *user_data)
+{
+	(void) unused_widget;
+
+	if (
+		3 == event->button &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+		return show_popup_menu(user_data);
+	}
+	return FALSE;
+}
+
+/**
+ * "handler" will be called whenever a popup menu is requested for "widget".
+ */
+void
+widget_add_popup_menu(GtkWidget *widget, widget_popup_menu_cb handler)
+{
+	g_return_if_fail(widget);
+	g_return_if_fail(handler);
+
+	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_FOCUS);
+	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_DEFAULT);
+#if GTK_CHECK_VERSION(2,0,0)
+	gui_signal_connect(widget, "popup-menu", on_popup_menu, handler);
+#endif	/* Gtk+ >= 2.0*/
+
+	gui_signal_connect(widget, "key-press-event", on_key_press_event, handler);
+	gui_signal_connect(widget, "button-press-event", on_button_press_event,
+		handler);
+}
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -72,4 +72,7 @@ void clist_restore_widths(GtkCList *clist, property_t prop);
 void paned_save_position(GtkPaned *paned, property_t prop);
 void paned_restore_position(GtkPaned *paned, property_t prop);
 
+typedef GtkMenu *(*widget_popup_menu_cb)(void);
+void widget_add_popup_menu(GtkWidget *, widget_popup_menu_cb);
+
 #endif /* _gtk_misc_h_ */
