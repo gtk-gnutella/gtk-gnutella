@@ -1,4 +1,6 @@
 # List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+#
 # $Id$
 
 src/core/bitzi.c
@@ -8,19 +10,6 @@ src/core/gnet_stats.c
 src/core/nodes.c
 src/core/rx_link.c
 src/core/settings.c
-src/core/shell.c
-src/core/shell_cmd_download.c
-src/core/shell_cmd_help.c
-src/core/shell_cmd_horizon.c
-src/core/shell_cmd_intr.c
-src/core/shell_cmd_node.c
-src/core/shell_cmd_print.c
-src/core/shell_cmd_props.c
-src/core/shell_cmd_quit.c
-src/core/shell_cmd_rescan.c
-src/core/shell_cmd_search.c
-src/core/shell_cmd_set.c
-src/core/shell_cmd_whatis.c
 src/core/sockets.c
 src/core/tx_link.c
 src/core/uhc.c
@@ -33,6 +22,19 @@ src/lib/magnet.c
 src/lib/misc.c
 src/lib/utf8.c
 src/main.c
+src/shell/download.c
+src/shell/help.c
+src/shell/horizon.c
+src/shell/intr.c
+src/shell/node.c
+src/shell/print.c
+src/shell/props.c
+src/shell/quit.c
+src/shell/rescan.c
+src/shell/search.c
+src/shell/set.c
+src/shell/shell.c
+src/shell/whatis.c
 src/ui/gtk/bitzi.c
 src/ui/gtk/downloads_common.c
 src/ui/gtk/filter.c
@@ -43,7 +45,6 @@ src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/nodes.c
 src/ui/gtk/gtk1/search.c
-src/ui/gtk/gtk1/search_cb.c
 src/ui/gtk/gtk1/support-glade.c
 src/ui/gtk/gtk1/uploads.c
 src/ui/gtk/gtk2/callbacks.c

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-12 00:52+0900\n"
+"POT-Creation-Date: 2007-08-13 20:41+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -554,138 +554,6 @@ msgstr "E keresés megkettőzése"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
-
-msgid "Invalid command syntax"
-msgstr ""
-
-msgid "Malformed command"
-msgstr ""
-
-#, fuzzy
-msgid "Unknown command"
-msgstr "Ismeretlen hiba"
-
-msgid "URL missing"
-msgstr ""
-
-#, fuzzy
-msgid "The download could not be created"
-msgstr "Nics letöltő nyílás"
-
-#, fuzzy
-msgid "Download added"
-msgstr "Letöltve"
-
-#, fuzzy
-msgid "parameter missing"
-msgstr "Proxy beállítása"
-
-#, fuzzy
-msgid "Unknown operation"
-msgstr "Ismeretlen hiba"
-
-#, fuzzy
-msgid "No help available"
-msgstr "Nem elérhető"
-
-msgid "Hops"
-msgstr "Ugrás"
-
-msgid "Nodes"
-msgstr "Csomópont"
-
-msgid "Files"
-msgstr "Fájl"
-
-msgid "Size"
-msgstr "Méret"
-
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr ""
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr ""
-
-#, fuzzy
-msgid "Interactive mode turned on."
-msgstr "Inaktív forrás"
-
-#, fuzzy
-msgid "Interactive mode turned off."
-msgstr "Inaktív forrás"
-
-msgid "Invalid IP/Port"
-msgstr ""
-
-#, fuzzy
-msgid "Node added"
-msgstr "Letöltve"
-
-msgid "Invalid IP"
-msgstr ""
-
-msgid "Invalid port"
-msgstr ""
-
-#, fuzzy, c-format
-msgid "Removed %u node"
-msgid_plural "Removed %u nodes"
-msgstr[0] "%v/%u letöltés"
-
-#, fuzzy
-msgid "Property missing"
-msgstr "Proxy beállítása"
-
-#, fuzzy
-msgid "Unknown property"
-msgstr "Ismeretlen hiba"
-
-#, fuzzy
-msgid "Value: "
-msgstr "Méret"
-
-msgid "Value found and displayed"
-msgstr ""
-
-msgid "No matching property."
-msgstr ""
-
-msgid "Good bye"
-msgstr ""
-
-msgid "The library is currently being rebuilt."
-msgstr ""
-
-msgid "A rescan has already been scheduled"
-msgstr ""
-
-#, fuzzy
-msgid "Query string missing"
-msgstr "Proxy beállítása"
-
-msgid "Query string is not UTF-8 encoded"
-msgstr ""
-
-#, fuzzy
-msgid "Search added"
-msgstr "Keresések"
-
-#, fuzzy
-msgid "The search could not be created"
-msgstr "Nics letöltő nyílás"
-
-#, fuzzy
-msgid "Value missing"
-msgstr "Proxy beállítása"
-
-msgid "Value found and set"
-msgstr ""
-
-#, fuzzy
-msgid "Help: "
-msgstr "Súgó"
 
 msgid "Read error"
 msgstr ""
@@ -3130,6 +2998,11 @@ msgid ""
 "The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr ""
 
+msgid ""
+"Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
+"newer)."
+msgstr ""
+
 msgid "Anonymizing proxies"
 msgstr ""
 
@@ -3953,6 +3826,138 @@ msgstr "hu"
 
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
+
+msgid "URL missing"
+msgstr ""
+
+#, fuzzy
+msgid "The download could not be created"
+msgstr "Nics letöltő nyílás"
+
+#, fuzzy
+msgid "Download added"
+msgstr "Letöltve"
+
+#, fuzzy
+msgid "parameter missing"
+msgstr "Proxy beállítása"
+
+#, fuzzy
+msgid "Unknown operation"
+msgstr "Ismeretlen hiba"
+
+#, fuzzy
+msgid "Unknown command"
+msgstr "Ismeretlen hiba"
+
+#, fuzzy
+msgid "No help available"
+msgstr "Nem elérhető"
+
+msgid "Hops"
+msgstr "Ugrás"
+
+msgid "Nodes"
+msgstr "Csomópont"
+
+msgid "Files"
+msgstr "Fájl"
+
+msgid "Size"
+msgstr "Méret"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr ""
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr ""
+
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Inaktív forrás"
+
+#, fuzzy
+msgid "Interactive mode turned off."
+msgstr "Inaktív forrás"
+
+msgid "Invalid IP/Port"
+msgstr ""
+
+#, fuzzy
+msgid "Node added"
+msgstr "Letöltve"
+
+msgid "Invalid IP"
+msgstr ""
+
+msgid "Invalid port"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%v/%u letöltés"
+
+#, fuzzy
+msgid "Property missing"
+msgstr "Proxy beállítása"
+
+#, fuzzy
+msgid "Unknown property"
+msgstr "Ismeretlen hiba"
+
+#, fuzzy
+msgid "Value: "
+msgstr "Méret"
+
+msgid "Value found and displayed"
+msgstr ""
+
+msgid "No matching property."
+msgstr ""
+
+msgid "Good bye"
+msgstr ""
+
+msgid "The library is currently being rebuilt."
+msgstr ""
+
+msgid "A rescan has already been scheduled"
+msgstr ""
+
+#, fuzzy
+msgid "Query string missing"
+msgstr "Proxy beállítása"
+
+msgid "Query string is not UTF-8 encoded"
+msgstr ""
+
+#, fuzzy
+msgid "Search added"
+msgstr "Keresések"
+
+#, fuzzy
+msgid "The search could not be created"
+msgstr "Nics letöltő nyílás"
+
+#, fuzzy
+msgid "Value missing"
+msgstr "Proxy beállítása"
+
+msgid "Value found and set"
+msgstr ""
+
+msgid "Invalid command syntax"
+msgstr ""
+
+msgid "Malformed command"
+msgstr ""
+
+#, fuzzy
+msgid "Help: "
+msgstr "Súgó"
 
 #, fuzzy
 msgid "Bitzi|Unknown"
@@ -6584,12 +6589,6 @@ msgstr ""
 msgid "Query queued..."
 msgstr "%u sorban"
 
-msgid "Show search list"
-msgstr "Keresőlista"
-
-msgid "Passive"
-msgstr "Passzív"
-
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "%s képfájl betöltése sikertelen!"
@@ -6790,6 +6789,10 @@ msgstr " Mappa hozzáadása "
 msgid "Minimum chunk _size"
 msgstr "Leg_kisebb darabméret"
 
+#, fuzzy
+msgid "Show a status _icon"
+msgstr "Okok megjelenítése"
+
 msgid "Remove completed downloads from list"
 msgstr "Sikeres letöltéseket töröl a listáról"
 
@@ -6925,6 +6928,43 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "foglalt"
 
+msgid "No search"
+msgstr "Nincs keresés"
+
+#, fuzzy
+msgid "The search has been stopped"
+msgstr "Nics letöltő nyílás"
+
+#, fuzzy
+msgid "Passive search"
+msgstr "(passzív keresés)"
+
+#, fuzzy, c-format
+msgid "Expires in %s"
+msgstr " %d után újra"
+
+msgid "Expires with this session"
+msgstr ""
+
+#, c-format
+msgid ""
+"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
+"TCP, %u UDP)"
+msgstr ""
+
+#, fuzzy
+msgid "item"
+msgid_plural "items"
+msgstr[0] "elem"
+
+msgid "dupe"
+msgid_plural "dupes"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Passive"
+msgstr "Passzív"
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -6949,39 +6989,6 @@ msgstr "<feldolgozatlan>"
 #, fuzzy
 msgid "browsable"
 msgstr "biztos"
-
-#, c-format
-msgid ""
-"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
-"TCP, %u UDP)"
-msgstr ""
-
-#, fuzzy
-msgid "item"
-msgid_plural "items"
-msgstr[0] "elem"
-
-msgid "dupe"
-msgid_plural "dupes"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "No search"
-msgstr "Nincs keresés"
-
-#, fuzzy
-msgid "Passive search"
-msgstr "(passzív keresés)"
-
-#, fuzzy, c-format
-msgid "Expires in %s"
-msgstr " %d után újra"
-
-msgid "Expires with this session"
-msgstr ""
-
-msgid "This search has been stopped"
-msgstr ""
 
 #, fuzzy, c-format
 msgid "%u download"
@@ -7025,6 +7032,9 @@ msgstr ""
 #, c-format
 msgid "Could not launch browse host for %s"
 msgstr ""
+
+msgid "Show search list"
+msgstr "Keresőlista"
 
 msgid "No"
 msgstr "Nem"

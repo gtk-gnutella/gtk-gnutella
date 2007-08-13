@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-12 00:52+0900\n"
+"POT-Creation-Date: 2007-08-13 20:41+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -548,133 +548,6 @@ msgstr "Imposible crear la búsqueda"
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr ""
 "Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
-
-msgid "Invalid command syntax"
-msgstr ""
-
-msgid "Malformed command"
-msgstr "Comando malformado"
-
-msgid "Unknown command"
-msgstr "Comando desconocido"
-
-#, fuzzy
-msgid "URL missing"
-msgstr "Falta el valor"
-
-#, fuzzy
-msgid "The download could not be created"
-msgstr "Ranuras de bajada agotadas"
-
-#, fuzzy
-msgid "Download added"
-msgstr "Bajados:"
-
-#, fuzzy
-msgid "parameter missing"
-msgstr "Falta la propiedad"
-
-msgid "Unknown operation"
-msgstr "Operación desconocida"
-
-#, fuzzy
-msgid "No help available"
-msgstr "No disponibles"
-
-msgid "Hops"
-msgstr "Saltos"
-
-msgid "Nodes"
-msgstr "Nodos"
-
-msgid "Files"
-msgstr "Archivos"
-
-msgid "Size"
-msgstr "Tamaño"
-
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "Tamaño total del horizonte (%u/%u nodos soportan HSEP):"
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "Tamaño del horizonte por nodo HSEP %s (%s)"
-
-#, fuzzy
-msgid "Interactive mode turned on."
-msgstr "Fuentes inactivas"
-
-#, fuzzy
-msgid "Interactive mode turned off."
-msgstr "Fuentes inactivas"
-
-msgid "Invalid IP/Port"
-msgstr "IP/Puerto inválido"
-
-msgid "Node added"
-msgstr "Nodo añadido"
-
-#, fuzzy
-msgid "Invalid IP"
-msgstr "IP/Puerto inválido"
-
-#, fuzzy
-msgid "Invalid port"
-msgstr "IP/Puerto inválido"
-
-#, fuzzy, c-format
-msgid "Removed %u node"
-msgid_plural "Removed %u nodes"
-msgstr[0] "Quitada %u bajada"
-msgstr[1] "Quitadas %u bajadas"
-
-msgid "Property missing"
-msgstr "Falta la propiedad"
-
-msgid "Unknown property"
-msgstr "Propiedad desconocida"
-
-msgid "Value: "
-msgstr "Valor: "
-
-msgid "Value found and displayed"
-msgstr "Valor encontrado y mostrado"
-
-msgid "No matching property."
-msgstr ""
-
-msgid "Good bye"
-msgstr "Adiós"
-
-msgid "The library is currently being rebuilt."
-msgstr ""
-
-msgid "A rescan has already been scheduled"
-msgstr ""
-
-msgid "Query string missing"
-msgstr "Texto de la petición inexistente"
-
-#, fuzzy
-msgid "Query string is not UTF-8 encoded"
-msgstr "La petición SHA1 no está codificada correctamente"
-
-msgid "Search added"
-msgstr "Búsqueda añadida"
-
-#, fuzzy
-msgid "The search could not be created"
-msgstr "Ranuras de bajada agotadas"
-
-msgid "Value missing"
-msgstr "Falta el valor"
-
-msgid "Value found and set"
-msgstr "Valor encontrado y ajustado"
-
-msgid "Help: "
-msgstr "Ayudai: "
 
 msgid "Read error"
 msgstr "Error de lectura"
@@ -2967,6 +2840,11 @@ msgid ""
 "The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr ""
 
+msgid ""
+"Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
+"newer)."
+msgstr ""
+
 msgid "Anonymizing proxies"
 msgstr "Anonimizando proxies"
 
@@ -3831,6 +3709,133 @@ msgid "This is an unofficial build which accesses files in this directory:"
 msgstr ""
 "Este ejecutable ha sido compilado de forma no oficial y accede a los "
 "archivos en este directorio:"
+
+#, fuzzy
+msgid "URL missing"
+msgstr "Falta el valor"
+
+#, fuzzy
+msgid "The download could not be created"
+msgstr "Ranuras de bajada agotadas"
+
+#, fuzzy
+msgid "Download added"
+msgstr "Bajados:"
+
+#, fuzzy
+msgid "parameter missing"
+msgstr "Falta la propiedad"
+
+msgid "Unknown operation"
+msgstr "Operación desconocida"
+
+msgid "Unknown command"
+msgstr "Comando desconocido"
+
+#, fuzzy
+msgid "No help available"
+msgstr "No disponibles"
+
+msgid "Hops"
+msgstr "Saltos"
+
+msgid "Nodes"
+msgstr "Nodos"
+
+msgid "Files"
+msgstr "Archivos"
+
+msgid "Size"
+msgstr "Tamaño"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "Tamaño total del horizonte (%u/%u nodos soportan HSEP):"
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "Tamaño del horizonte por nodo HSEP %s (%s)"
+
+#, fuzzy
+msgid "Interactive mode turned on."
+msgstr "Fuentes inactivas"
+
+#, fuzzy
+msgid "Interactive mode turned off."
+msgstr "Fuentes inactivas"
+
+msgid "Invalid IP/Port"
+msgstr "IP/Puerto inválido"
+
+msgid "Node added"
+msgstr "Nodo añadido"
+
+#, fuzzy
+msgid "Invalid IP"
+msgstr "IP/Puerto inválido"
+
+#, fuzzy
+msgid "Invalid port"
+msgstr "IP/Puerto inválido"
+
+#, fuzzy, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "Quitada %u bajada"
+msgstr[1] "Quitadas %u bajadas"
+
+msgid "Property missing"
+msgstr "Falta la propiedad"
+
+msgid "Unknown property"
+msgstr "Propiedad desconocida"
+
+msgid "Value: "
+msgstr "Valor: "
+
+msgid "Value found and displayed"
+msgstr "Valor encontrado y mostrado"
+
+msgid "No matching property."
+msgstr ""
+
+msgid "Good bye"
+msgstr "Adiós"
+
+msgid "The library is currently being rebuilt."
+msgstr ""
+
+msgid "A rescan has already been scheduled"
+msgstr ""
+
+msgid "Query string missing"
+msgstr "Texto de la petición inexistente"
+
+#, fuzzy
+msgid "Query string is not UTF-8 encoded"
+msgstr "La petición SHA1 no está codificada correctamente"
+
+msgid "Search added"
+msgstr "Búsqueda añadida"
+
+#, fuzzy
+msgid "The search could not be created"
+msgstr "Ranuras de bajada agotadas"
+
+msgid "Value missing"
+msgstr "Falta el valor"
+
+msgid "Value found and set"
+msgstr "Valor encontrado y ajustado"
+
+msgid "Invalid command syntax"
+msgstr ""
+
+msgid "Malformed command"
+msgstr "Comando malformado"
+
+msgid "Help: "
+msgstr "Ayudai: "
 
 msgid "Bitzi|Unknown"
 msgstr "Desconocido"
@@ -6368,12 +6373,6 @@ msgstr "No está en la base de datos"
 msgid "Query queued..."
 msgstr "Petición encolada"
 
-msgid "Show search list"
-msgstr "Mostrar lista de búsquedas"
-
-msgid "Passive"
-msgstr "Pasivo"
-
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "No se pùdo encontrar la imagen: %s"
@@ -6569,6 +6568,10 @@ msgstr "_Añadir directorio"
 msgid "Minimum chunk _size"
 msgstr "Tamaño de bloque mí_nimo"
 
+#, fuzzy
+msgid "Show a status _icon"
+msgstr "Mostrar razones para"
+
 msgid "Remove completed downloads from list"
 msgstr "Quitar de la lista las descargas completadas"
 
@@ -6700,6 +6703,46 @@ msgstr "proxy"
 msgid "bogus"
 msgstr "erróneo"
 
+msgid "No search"
+msgstr "Ninguna búsqueda"
+
+#, fuzzy
+msgid "The search has been stopped"
+msgstr "Ranuras de bajada agotadas"
+
+#, fuzzy
+msgid "Passive search"
+msgstr "(búsqueda pasiva)"
+
+#, fuzzy, c-format
+msgid "Expires in %s"
+msgstr " reintento en %ds"
+
+msgid "Expires with this session"
+msgstr ""
+
+#, fuzzy, c-format
+msgid ""
+"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
+"TCP, %u UDP)"
+msgstr ""
+"%s%s%u %s (%u saltados, %u ignorados, %uocultos, %u auto-descarga, %u %s)"
+"Hits: %u (%u TCP, %u UDP)"
+
+#, fuzzy
+msgid "item"
+msgid_plural "items"
+msgstr[0] "Filtro"
+msgstr[1] "Filtro"
+
+msgid "dupe"
+msgid_plural "dupes"
+msgstr[0] "duplicado"
+msgstr[1] "duplicados"
+
+msgid "Passive"
+msgstr "Pasivo"
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -6724,42 +6767,6 @@ msgstr "<sin analizar>"
 #, fuzzy
 msgid "browsable"
 msgstr "estable"
-
-#, fuzzy, c-format
-msgid ""
-"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
-"TCP, %u UDP)"
-msgstr ""
-"%s%s%u %s (%u saltados, %u ignorados, %uocultos, %u auto-descarga, %u %s)"
-"Hits: %u (%u TCP, %u UDP)"
-
-#, fuzzy
-msgid "item"
-msgid_plural "items"
-msgstr[0] "Filtro"
-msgstr[1] "Filtro"
-
-msgid "dupe"
-msgid_plural "dupes"
-msgstr[0] "duplicado"
-msgstr[1] "duplicados"
-
-msgid "No search"
-msgstr "Ninguna búsqueda"
-
-#, fuzzy
-msgid "Passive search"
-msgstr "(búsqueda pasiva)"
-
-#, fuzzy, c-format
-msgid "Expires in %s"
-msgstr " reintento en %ds"
-
-msgid "Expires with this session"
-msgstr ""
-
-msgid "This search has been stopped"
-msgstr ""
 
 #, fuzzy, c-format
 msgid "%u download"
@@ -6808,6 +6815,9 @@ msgstr ""
 #, c-format
 msgid "Could not launch browse host for %s"
 msgstr ""
+
+msgid "Show search list"
+msgstr "Mostrar lista de búsquedas"
 
 msgid "No"
 msgstr "No"

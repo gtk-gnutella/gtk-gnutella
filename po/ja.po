@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-12 00:52+0900\n"
+"POT-Creation-Date: 2007-08-13 20:41+0900\n"
 "PO-Revision-Date: 2007-08-12 01:31+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -608,125 +608,6 @@ msgstr "待ち受けポートの作成に失敗しました"
 
 msgid "Can only run as a leaf when TCP-firewalled"
 msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
-
-msgid "Invalid command syntax"
-msgstr "無効なコマンド行です"
-
-msgid "Malformed command"
-msgstr "変なコマンドです"
-
-msgid "Unknown command"
-msgstr "不明なコマンドエラーです"
-
-msgid "URL missing"
-msgstr "URLがありません"
-
-msgid "The download could not be created"
-msgstr "ダウンロードは作成されませんでした"
-
-msgid "Download added"
-msgstr "ダウンロードが追加されました"
-
-msgid "parameter missing"
-msgstr "パラメータがありません"
-
-msgid "Unknown operation"
-msgstr "不明な操作です"
-
-msgid "No help available"
-msgstr "ヘルプは参照できません"
-
-# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-msgid "Hops"
-msgstr "ホップ数"
-
-# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-msgid "Nodes"
-msgstr "ピア数"
-
-# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
-msgid "Files"
-msgstr "ファイル数"
-
-msgid "Size"
-msgstr "大きさ"
-
-#, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
-msgstr "合計到達領域サイズ (%u/%u基のピアがHSEPに対応):"
-
-#, c-format
-msgid "Horizon size via HSEP node %s (%s):"
-msgstr "HSEPピア %s (%s)経由の到達領域サイズ:"
-
-msgid "Interactive mode turned on."
-msgstr "インタラクティブモードが有効になりました。"
-
-msgid "Interactive mode turned off."
-msgstr "インタラクティブモードが無効になりました。"
-
-msgid "Invalid IP/Port"
-msgstr "無効なIP/ポート"
-
-msgid "Node added"
-msgstr "ノードが追加されました"
-
-msgid "Invalid IP"
-msgstr "無効なIP"
-
-msgid "Invalid port"
-msgstr "無効なポート"
-
-# FIXME: node -> peer
-#, c-format
-msgid "Removed %u node"
-msgid_plural "Removed %u nodes"
-msgstr[0] "%u基のピアを削除しました"
-
-msgid "Property missing"
-msgstr "プロパティがありません"
-
-msgid "Unknown property"
-msgstr "不明なプロパティ"
-
-msgid "Value: "
-msgstr "値: "
-
-msgid "Value found and displayed"
-msgstr "値が見つかりましたので表示します"
-
-msgid "No matching property."
-msgstr "合致するプロパティがありません。"
-
-msgid "Good bye"
-msgstr "Good Bye"
-
-msgid "The library is currently being rebuilt."
-msgstr "現在ライブラリの再構築中です。"
-
-msgid "A rescan has already been scheduled"
-msgstr "再スキャンの実行は既に予定されています"
-
-msgid "Query string missing"
-msgstr "検索クエリー文字列がありません"
-
-msgid "Query string is not UTF-8 encoded"
-msgstr "この検索クエリー文字列はUTF-8でエンコードされていません"
-
-msgid "Search added"
-msgstr "検索が追加されました"
-
-msgid "The search could not be created"
-msgstr "この検索は作成されませんでした"
-
-msgid "Value missing"
-msgstr "値がありません"
-
-msgid "Value found and set"
-msgstr "値が見つかりましたので設定します"
-
-msgid "Help: "
-msgstr "へルプ: "
 
 msgid "Read error"
 msgstr "読込エラー"
@@ -3033,6 +2914,11 @@ msgid ""
 "The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr "検索の有効期限です。この期限が経過すると、検索は打ち切られます。"
 
+msgid ""
+"Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
+"newer)."
+msgstr ""
+
 msgid "Anonymizing proxies"
 msgstr "匿名プロキシサーバー"
 
@@ -3822,6 +3708,125 @@ msgstr "ja"
 
 msgid "This is an unofficial build which accesses files in this directory:"
 msgstr "これは非公式ビルドです、このフォルダのファイルにアクセスします:"
+
+msgid "URL missing"
+msgstr "URLがありません"
+
+msgid "The download could not be created"
+msgstr "ダウンロードは作成されませんでした"
+
+msgid "Download added"
+msgstr "ダウンロードが追加されました"
+
+msgid "parameter missing"
+msgstr "パラメータがありません"
+
+msgid "Unknown operation"
+msgstr "不明な操作です"
+
+msgid "Unknown command"
+msgstr "不明なコマンドエラーです"
+
+msgid "No help available"
+msgstr "ヘルプは参照できません"
+
+# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
+msgid "Hops"
+msgstr "ホップ数"
+
+# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
+msgid "Nodes"
+msgstr "ピア数"
+
+# FIXME: separation (src/ui/gtk/gtk2/gnet_stats.c)
+msgid "Files"
+msgstr "ファイル数"
+
+msgid "Size"
+msgstr "大きさ"
+
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):"
+msgstr "合計到達領域サイズ (%u/%u基のピアがHSEPに対応):"
+
+#, c-format
+msgid "Horizon size via HSEP node %s (%s):"
+msgstr "HSEPピア %s (%s)経由の到達領域サイズ:"
+
+msgid "Interactive mode turned on."
+msgstr "インタラクティブモードが有効になりました。"
+
+msgid "Interactive mode turned off."
+msgstr "インタラクティブモードが無効になりました。"
+
+msgid "Invalid IP/Port"
+msgstr "無効なIP/ポート"
+
+msgid "Node added"
+msgstr "ノードが追加されました"
+
+msgid "Invalid IP"
+msgstr "無効なIP"
+
+msgid "Invalid port"
+msgstr "無効なポート"
+
+# FIXME: node -> peer
+#, c-format
+msgid "Removed %u node"
+msgid_plural "Removed %u nodes"
+msgstr[0] "%u基のピアを削除しました"
+
+msgid "Property missing"
+msgstr "プロパティがありません"
+
+msgid "Unknown property"
+msgstr "不明なプロパティ"
+
+msgid "Value: "
+msgstr "値: "
+
+msgid "Value found and displayed"
+msgstr "値が見つかりましたので表示します"
+
+msgid "No matching property."
+msgstr "合致するプロパティがありません。"
+
+msgid "Good bye"
+msgstr "Good Bye"
+
+msgid "The library is currently being rebuilt."
+msgstr "現在ライブラリの再構築中です。"
+
+msgid "A rescan has already been scheduled"
+msgstr "再スキャンの実行は既に予定されています"
+
+msgid "Query string missing"
+msgstr "検索クエリー文字列がありません"
+
+msgid "Query string is not UTF-8 encoded"
+msgstr "この検索クエリー文字列はUTF-8でエンコードされていません"
+
+msgid "Search added"
+msgstr "検索が追加されました"
+
+msgid "The search could not be created"
+msgstr "この検索は作成されませんでした"
+
+msgid "Value missing"
+msgstr "値がありません"
+
+msgid "Value found and set"
+msgstr "値が見つかりましたので設定します"
+
+msgid "Invalid command syntax"
+msgstr "無効なコマンド行です"
+
+msgid "Malformed command"
+msgstr "変なコマンドです"
+
+msgid "Help: "
+msgstr "へルプ: "
 
 msgid "Bitzi|Unknown"
 msgstr "不明"
@@ -6464,12 +6469,6 @@ msgstr "データベースにありません"
 msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
 
-msgid "Show search list"
-msgstr "検索一覧を表示する"
-
-msgid "Passive"
-msgstr "受動検索"
-
 #, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Pixmap ファイルがありません: %s"
@@ -6675,6 +6674,10 @@ msgstr "フォルダを削除(_R)"
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
 
+#, fuzzy
+msgid "Show a status _icon"
+msgstr "原因の表示(_F)"
+
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
 
@@ -6815,6 +6818,42 @@ msgstr "プロキシ"
 msgid "bogus"
 msgstr "偽IP"
 
+msgid "No search"
+msgstr "検索無し"
+
+#, fuzzy
+msgid "The search has been stopped"
+msgstr "この検索は中断されています"
+
+msgid "Passive search"
+msgstr "受動検索"
+
+#, c-format
+msgid "Expires in %s"
+msgstr "%sで無効になります"
+
+msgid "Expires with this session"
+msgstr "このセッションで無効になります"
+
+#, c-format
+msgid ""
+"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
+"TCP, %u UDP)"
+msgstr ""
+"%u %s (%u 省略, %u 無視, %u 隠す, %u 自動DL, %u %s) がヒット: %u (%u TCP, %u "
+"UDP)"
+
+msgid "item"
+msgid_plural "items"
+msgstr[0] "個のアイテム"
+
+msgid "dupe"
+msgid_plural "dupes"
+msgstr[0] "重複"
+
+msgid "Passive"
+msgstr "受動検索"
+
 #, c-format
 msgid ""
 "Found old searches file. The search information has been\n"
@@ -6837,38 +6876,6 @@ msgstr "<未解析>"
 
 msgid "browsable"
 msgstr "参照可"
-
-#, c-format
-msgid ""
-"%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
-"TCP, %u UDP)"
-msgstr ""
-"%u %s (%u 省略, %u 無視, %u 隠す, %u 自動DL, %u %s) がヒット: %u (%u TCP, %u "
-"UDP)"
-
-msgid "item"
-msgid_plural "items"
-msgstr[0] "個のアイテム"
-
-msgid "dupe"
-msgid_plural "dupes"
-msgstr[0] "重複"
-
-msgid "No search"
-msgstr "検索無し"
-
-msgid "Passive search"
-msgstr "受動検索"
-
-#, c-format
-msgid "Expires in %s"
-msgstr "%sで無効になります"
-
-msgid "Expires with this session"
-msgstr "このセッションで無効になります"
-
-msgid "This search has been stopped"
-msgstr "この検索は中断されています"
 
 #, c-format
 msgid "%u download"
@@ -6913,6 +6920,9 @@ msgstr "ホスト %s の参照結果を検索リストに追加しました。"
 #, c-format
 msgid "Could not launch browse host for %s"
 msgstr "ホスト %s を参照できませんでした。"
+
+msgid "Show search list"
+msgstr "検索一覧を表示する"
 
 msgid "No"
 msgstr "いいえ"
