@@ -76,7 +76,6 @@
 #include "core/search.h"
 #include "core/settings.h"
 #include "core/share.h"
-#include "core/shell.h"
 #include "core/sockets.h"
 #include "core/spam.h"
 #include "core/sq.h"
@@ -117,6 +116,7 @@
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
+#include "shell/shell.h"
 
 #include "ui/gtk/gui.h"
 
