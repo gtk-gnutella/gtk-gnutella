@@ -58,7 +58,7 @@ SED = $sed
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = core dht lib ui if
+SUBDIRS = core shell dht lib ui if
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
@@ -95,7 +95,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 12683 2006-12-27 10:36:13Z rmanfredi $
+# $X-Id: Jmakefile 14436 2007-08-13 10:29:02Z rmanfredi $
 
 all::
 
@@ -126,6 +126,7 @@ CFLAGS = -I.. -I. \
 
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
+	-Lshell -lshell \
 	-Lcore -lcore \
 	-Ldht -ldht \
 !NO!SUBS!
@@ -156,6 +157,13 @@ core/libcore.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  core/libcore.a
+
+shell/libshell.a: .FORCE
+	@echo "Checking "libshell.a" in "shell"..."
+	cd shell; $(MAKE) libshell.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  shell/libshell.a
 
 dht/libdht.a: .FORCE
 	@echo "Checking "libdht.a" in "dht"..."

@@ -17,7 +17,7 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-CURRENT=src/core
+CURRENT=src/shell
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
@@ -53,10 +53,7 @@ SED = $sed
 USRINC = $usrinc
 SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
-SOCKER_CFLAGS =  $sockercflags
 GLIB_CFLAGS =  $glibcflags
-XML2_CFLAGS =  $xmlcflags
-GNUTLS_CFLAGS =  $gnutlscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -81,185 +78,54 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 14435 2007-08-13 10:26:25Z rmanfredi $
+# $X-Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
 
 SRC = \
-	alive.c \
-	ban.c \
-	bh_download.c \
-	bh_upload.c \
-	bitzi.c \
-	bogons.c \
-	bsched.c \
-	clock.c \
-	dh.c \
-	dime.c \
-	dmesh.c \
+	download.c \
 	downloads.c \
-	dq.c \
-	extensions.c \
-	features.c \
-	fileinfo.c \
-	file_object.c \
-	geo_ip.c \
-	ggep.c \
-	ggep_type.c \
-	gmsg.c \
-	gnet_stats.c \
-	guid.c \
-	hcache.c \
-	hostiles.c \
-	hosts.c \
-	hsep.c \
-	http.c \
-	huge.c \
-	ignore.c \
-	inet.c \
-	ioheader.c \
-	local_shell.c \
-	matching.c \
-	move.c \
-	mq.c \
-	mq_tcp.c \
-	mq_udp.c \
-	namesize.c \
+	help.c \
+	horizon.c \
+	intr.c \
+	node.c \
 	nodes.c \
-	ntp.c \
-	oob.c \
-	oob_proxy.c \
-	parq.c \
-	pcache.c \
-	pmsg.c \
-	pproxy.c \
-	qhit.c \
-	qrp.c \
-	routing.c \
-	rx.c \
-	rx_chunk.c \
-	rx_inflate.c \
-	rx_link.c \
-	rxbuf.c \
+	offline.c \
+	online.c \
+	print.c \
+	props.c \
+	quit.c \
+	rescan.c \
 	search.c \
-	settings.c \
-	share.c \
-	sockets.c \
-	spam.c \
-	spam_sha1.c \
-	sq.c \
-	thex_download.c \
-	thex_upload.c \
-	tls_cache.c \
-	tls_common.c \
-	tth_cache.c \
-	token.c \
-	topless.c \
-	tsync.c \
-	tx.c \
-	tx_chunk.c \
-	tx_deflate.c \
-	tx_dgram.c \
-	tx_link.c \
-	udp.c \
-	uhc.c \
-	upload_stats.c \
+	set.c \
+	shell.c \
+	shutdown.c \
+	status.c \
 	uploads.c \
-	verify.c \
-	verify_sha1.c \
-	verify_tth.c \
-	version.c \
-	vmsg.c \
-	whitelist.c
+	whatis.c
 
 OBJ = \
-	alive.o \
-	ban.o \
-	bh_download.o \
-	bh_upload.o \
-	bitzi.o \
-	bogons.o \
-	bsched.o \
-	clock.o \
-	dh.o \
-	dime.o \
-	dmesh.o \
+	download.o \
 	downloads.o \
-	dq.o \
-	extensions.o \
-	features.o \
-	fileinfo.o \
-	file_object.o \
-	geo_ip.o \
-	ggep.o \
-	ggep_type.o \
-	gmsg.o \
-	gnet_stats.o \
-	guid.o \
-	hcache.o \
-	hostiles.o \
-	hosts.o \
-	hsep.o \
-	http.o \
-	huge.o \
-	ignore.o \
-	inet.o \
-	ioheader.o \
-	local_shell.o \
-	matching.o \
-	move.o \
-	mq.o \
-	mq_tcp.o \
-	mq_udp.o \
-	namesize.o \
+	help.o \
+	horizon.o \
+	intr.o \
+	node.o \
 	nodes.o \
-	ntp.o \
-	oob.o \
-	oob_proxy.o \
-	parq.o \
-	pcache.o \
-	pmsg.o \
-	pproxy.o \
-	qhit.o \
-	qrp.o \
-	routing.o \
-	rx.o \
-	rx_chunk.o \
-	rx_inflate.o \
-	rx_link.o \
-	rxbuf.o \
+	offline.o \
+	online.o \
+	print.o \
+	props.o \
+	quit.o \
+	rescan.o \
 	search.o \
-	settings.o \
-	share.o \
-	sockets.o \
-	spam.o \
-	spam_sha1.o \
-	sq.o \
-	thex_download.o \
-	thex_upload.o \
-	tls_cache.o \
-	tls_common.o \
-	tth_cache.o \
-	token.o \
-	topless.o \
-	tsync.o \
-	tx.o \
-	tx_chunk.o \
-	tx_deflate.o \
-	tx_dgram.o \
-	tx_link.o \
-	udp.o \
-	uhc.o \
-	upload_stats.o \
+	set.o \
+	shell.o \
+	shutdown.o \
+	status.o \
 	uploads.o \
-	verify.o \
-	verify_sha1.o \
-	verify_tth.o \
-	version.o \
-	vmsg.o \
-	whitelist.o 
+	whatis.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) $(GNUTLS_CFLAGS) \
-	$(SOCKER_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if
@@ -274,12 +140,12 @@ $(IF)/$(GNET_PROPS): .FORCE
 
 libcore.a:  $(IF)/$(GNET_PROPS)
 
-all:: libcore.a
+all:: libshell.a
 
 local_realclean::
-	$(RM) libcore.a
+	$(RM) libshell.a
 
-libcore.a:  $(OBJ)
+libshell.a:  $(OBJ)
 	$(RM) $@
 	$(AR) $@  $(OBJ)
 	$(RANLIB) $@
