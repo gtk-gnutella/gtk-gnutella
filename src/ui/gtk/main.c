@@ -133,7 +133,7 @@ gui_init_window_title(void)
 
 static GSList *visibility_listeners[nb_main_page_num];
 static int notebook_main_current_page;
-static gboolean main_window_is_visible = TRUE;
+static gboolean main_window_is_visible;
 
 gboolean
 main_gui_window_visible(void)
@@ -658,7 +658,8 @@ main_gui_run(const gchar *geometry_spec)
 {
 	time_t now = tm_time_exact();
 
-    gtk_widget_show(gui_main_window());		/* Display the main window */
+    gtk_widget_show_now(gui_main_window());		/* Display the main window */
+	gtk_widget_map(gui_main_window());
 
 	if (geometry_spec) {
 		guint32 coord[4] = { 0, 0, 0, 0 };
