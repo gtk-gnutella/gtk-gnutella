@@ -102,21 +102,13 @@ gboolean search_gui_new_search_full(const gchar *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, struct search **);
 struct search *search_new_full(const gchar *, guint32, flag_t flags);
-void search_gui_close_search(struct search *);
-void search_gui_download_files(void);
-void search_gui_discard_files(void);
-void search_gui_sort_column(struct search *, gint column);
 void search_gui_add_record(struct search *, record_t *, enum gui_color);
-void search_gui_clear_results(void);
 
 
 #ifdef USE_GTK2
 void search_gui_request_bitzi_data(void);
 const record_t *search_gui_get_record_at_path(GtkTreeView *, GtkTreePath *);
 #endif /* USE_GTK2 */
-
-void search_gui_expand_all(void);
-void search_gui_collapse_all(void);
 
 const GList *search_gui_get_searches(void);
 

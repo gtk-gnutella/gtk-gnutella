@@ -284,6 +284,8 @@ nodes_gui_init(void)
 	clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
 	clist_restore_widths(clist, PROP_NODES_COL_WIDTHS);
 
+	widget_add_popup_menu(GTK_WIDGET(clist), nodes_gui_get_popup_menu);
+
     ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
     ht_node_flags_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
 

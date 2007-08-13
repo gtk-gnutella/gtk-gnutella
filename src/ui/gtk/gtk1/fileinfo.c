@@ -143,21 +143,6 @@ on_clist_select_row(GtkCList *unused_clist,
 }
 
 static void
-on_clist_unselect_row(GtkCList *unused_clist,
-	int unused_row, int unused_column,
-	GdkEvent *unused_event, void *unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_row;
-	(void) unused_column;
-	(void) unused_event;
-	(void) unused_udata;
-
-	cursor_update();
-}
-
-
-static void
 render_files(const struct fileinfo_data *file, int row, int column)
 {
 	const char *text;
@@ -523,20 +508,6 @@ on_clist_download_files_click_column(GtkCList *clist, int column,
     gtk_clist_thaw(clist);
 }
 
-static char *
-download_files_get_file_url(GtkWidget *widget)
-{
-	struct fileinfo_data *file;
-	int row;
-
-	row = clist_get_cursor_row(GTK_CLIST(widget));
-
-	file = get_fileinfo_data(row);
-	g_return_val_if_fail(file, NULL);
-
-	return fi_gui_file_get_file_url(file);
-}
-
 static void
 clist_download_files_init(void)
 {
@@ -574,19 +545,9 @@ clist_download_files_init(void)
 	clist_restore_visibility(clist, PROP_FILE_INFO_COL_VISIBLE);
 	clist_restore_widths(clist, PROP_FILE_INFO_COL_WIDTHS);
 
-	gui_signal_connect(clist, "click-column",
-		on_clist_download_files_click_column, NULL);
-	gui_signal_connect(clist, "select-row",
-		on_clist_select_row, NULL);
-	gui_signal_connect(clist, "unselect-row",
-		on_clist_unselect_row, NULL);
-
-	gui_signal_connect(clist, "key-press-event",
-		on_files_key_press_event, NULL);
-	gui_signal_connect(clist, "button-press-event",
-		on_files_button_press_event, NULL);
-
-	drag_attach(GTK_WIDGET(clist), download_files_get_file_url);
+	gui_signal_connect(clist,
+		"click-column", on_clist_download_files_click_column, NULL);
+	gui_signal_connect(clist, "select-row", on_clist_select_row, NULL);
 }
 
 void
@@ -650,8 +611,8 @@ fi_gui_init(void)
 		
 		clist = GTK_CLIST(gui_main_window_lookup("clist_download_details"));
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gui_signal_connect(clist, "key-press-event",
-			on_details_key_press_event, NULL);
+		gui_signal_connect(clist,
+			"key-press-event", on_details_key_press_event, NULL);
 
 		clipboard_attach(GTK_WIDGET(clist));
 		drag_attach(GTK_WIDGET(clist), download_details_get_text);
@@ -681,13 +642,8 @@ fi_gui_init(void)
 			gtk_clist_set_column_name(clist, i, EMPTY_STRING(title));
 		}
 
-		gui_signal_connect(clist, "select-row",
-			on_clist_select_row, NULL);
-		gui_signal_connect(clist, "unselect-row",
-			on_clist_unselect_row, NULL);
-
-		gui_signal_connect(clist, "button-press-event",
-			on_sources_button_press_event, NULL);
+		gui_signal_connect(clist, "select-row", on_clist_select_row, NULL);
+		widget_add_popup_menu(GTK_WIDGET(clist), fi_gui_sources_get_popup_menu);	
 	}
 	fi_gui_common_init();
 }

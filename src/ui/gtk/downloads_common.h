@@ -70,9 +70,10 @@ void on_popup_sources_resume_activate(GtkMenuItem *, void *user_data);
 void on_popup_sources_start_now_activate(GtkMenuItem *, void *udata);
 
 gboolean on_files_button_press_event(GtkWidget *, GdkEventButton *, void *);
-gboolean on_sources_button_press_event(GtkWidget *, GdkEventButton *, void *);
-gboolean on_details_key_press_event(GtkWidget *, GdkEventKey *, void *);
 gboolean on_files_key_press_event(GtkWidget *, GdkEventKey *, void *);
+gboolean on_sources_button_press_event(GtkWidget *, GdkEventButton *, void *);
+gboolean on_sources_key_press_event(GtkWidget *, GdkEventKey *, void *);
+gboolean on_details_key_press_event(GtkWidget *, GdkEventKey *, void *);
 
 /**
  * Common functions available to the interface
@@ -97,13 +98,14 @@ void *fi_gui_file_get_user_data(const struct fileinfo_data *);
 
 const char *fi_gui_file_get_filename(const struct fileinfo_data *);
 unsigned fi_gui_file_get_progress(const struct fileinfo_data *);
-char *fi_gui_file_get_file_url(const struct fileinfo_data *);
 char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 
 unsigned fi_gui_source_get_progress(const struct download *);
 
 const char *fi_gui_files_column_title(int column);
 gboolean fi_gui_files_column_justify_right(int column);
+
+GtkMenu *fi_gui_sources_get_popup_menu(void);
 
 /**
  * Interface which must be implemented by Gtk+ 1.2 and Gtk+ 2.x

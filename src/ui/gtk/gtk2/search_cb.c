@@ -125,72 +125,6 @@ on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 	}
 }
 
-gboolean
-on_tree_view_search_results_key_press_event(GtkWidget *unused_widget,
-	GdkEventKey *event, gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_udata;
-
-	if (0 == (gtk_accelerator_get_default_mod_mask() & event->state)) {
-		switch (event->keyval) {
-		case GDK_Return:
-			search_gui_download_files();
-			return TRUE;
-		case GDK_Delete:
-			search_gui_discard_files();
-			return TRUE;
-		default:
-			break;
-		}
-	}
-	return FALSE;
-}
-
-gboolean
-on_tree_view_search_results_button_press_event(GtkWidget *widget,
-	GdkEventButton *event, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	switch (event->button) {
-	case 1:
-        /* left click section */
-		if (event->type == GDK_2BUTTON_PRESS) {
-			gui_signal_stop_emit_by_name(widget, "button_press_event");
-			search_gui_download_files();
-			return TRUE;
-		}
-		return FALSE;
-
-	case 3:
-		/* right click section (popup menu) */
-		if (event->type == GDK_BUTTON_PRESS) {
-			search_gui_show_popup_menu();
-		}
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-void
-on_button_search_filter_clicked(GtkButton *unused_button, gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-	filter_open_dialog();
-}
-
-void
-on_button_search_download_clicked(GtkButton *unused_button,
-	gpointer unused_udata)
-{
-	(void) unused_button;
-	(void) unused_udata;
-    search_gui_download_files();
-}
-
 void
 on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
 	gpointer udata)
@@ -331,8 +265,8 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	}
 }
 
-gchar *
-search_details_get_text(GtkWidget *widget)
+char *
+search_gui_details_get_text(GtkWidget *widget)
 {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
@@ -479,29 +413,6 @@ on_tree_view_search_results_select_row(GtkTreeView *unused_tv,
 		row_selected_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
 							row_selected_expire, NULL);
 	}
-}
-
-gboolean
-on_treeview_search_details_key_press_event(GtkWidget *widget,
-	GdkEventKey *event, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	switch (event->keyval) {
-	guint modifier;
-	case GDK_c:
-		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
-		if (GDK_CONTROL_MASK == modifier) {
-			char *text;
-			
-			text = search_details_get_text(widget);
-			clipboard_set_text(widget, text);
-			G_FREE_NULL(text);
-			return TRUE;
-		}
-		break;
-	}
-	return FALSE;
 }
 
 

@@ -542,11 +542,14 @@ nodes_gui_early_init(void)
 void
 nodes_gui_init(void)
 {
-	treeview_nodes = GTK_TREE_VIEW(gui_main_window_lookup( "treeview_nodes"));
+	GtkTreeView *tv;
+	
+	tv = GTK_TREE_VIEW(gui_main_window_lookup( "treeview_nodes"));
+	treeview_nodes = tv;
 
-	tree_view_restore_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
-	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
-	tree_view_set_fixed_height_mode(treeview_nodes, TRUE);
+	tree_view_restore_widths(tv, PROP_NODES_COL_WIDTHS);
+	tree_view_restore_visibility(tv, PROP_NODES_COL_VISIBLE);
+	tree_view_set_fixed_height_mode(tv, TRUE);
 
 	nodes_handles = g_hash_table_new(node_id_hash, node_id_eq_func);
     ht_node_info_changed = g_hash_table_new(node_id_hash, node_id_eq_func);
@@ -558,13 +561,11 @@ nodes_gui_init(void)
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
-	gui_signal_connect(treeview_nodes,
-		"cursor-changed", on_cursor_changed, treeview_nodes);
-	gui_signal_connect(treeview_nodes,
-		"leave-notify-event", on_leave_notify, treeview_nodes);
+	widget_add_popup_menu(GTK_WIDGET(tv), nodes_gui_get_popup_menu);
+	gui_signal_connect(tv, "cursor-changed", on_cursor_changed, tv);
+	gui_signal_connect(tv, "leave-notify-event", on_leave_notify, tv);
 
-	tvm_nodes = tree_view_motion_set_callback(treeview_nodes,
-					update_tooltip, 400);
+	tvm_nodes = tree_view_motion_set_callback(tv, update_tooltip, 400);
 
 	main_gui_add_timer(nodes_gui_timer);
 }

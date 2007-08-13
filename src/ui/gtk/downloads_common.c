@@ -30,6 +30,7 @@ RCSID("$Id$")
 #include "gtk/columns.h"
 #include "gtk/downloads.h"
 #include "gtk/downloads_common.h"
+#include "gtk/drag.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
 #include "gtk/search_common.h"
@@ -1034,46 +1035,18 @@ on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 		gtk_get_current_event_time());
 }
 
-/**
- * When the right mouse button is clicked on the active downloads
- * treeview, show the popup with the context menu.
- */
-gboolean
-on_files_button_press_event(GtkWidget *unused_widget,
-	GdkEventButton *event, void *unused_udata)
+static GtkMenu *
+fi_gui_files_get_popup_menu(void)
 {
-	(void) unused_widget;
-	(void) unused_udata;
-
-	if (
-		3 == event->button &&
-		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
-	) {
-		downloads_gui_update_popup_downloads();
-    	gtk_menu_popup(GTK_MENU(gui_popup_downloads()), NULL, NULL, NULL, NULL,
-        	event->button, event->time);
-		return TRUE;
-	}
-	return FALSE;
+	downloads_gui_update_popup_downloads();
+	return GTK_MENU(gui_popup_downloads());
 }
 
-gboolean
-on_sources_button_press_event(GtkWidget *unused_widget,
-	GdkEventButton *event, void *unused_udata)
+GtkMenu *
+fi_gui_sources_get_popup_menu(void)
 {
-	(void) unused_widget;
-	(void) unused_udata;
-
-	if (
-		3 == event->button &&
-		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
-	) {
-		downloads_gui_update_popup_sources();
-    	gtk_menu_popup(GTK_MENU(gui_popup_sources()), NULL, NULL, NULL, NULL,
-        	event->button, event->time);
-		return TRUE;
-	}
-	return FALSE;
+	downloads_gui_update_popup_sources();
+   	return GTK_MENU(gui_popup_sources());
 }
 
 static gboolean
@@ -1199,7 +1172,7 @@ fi_gui_file_get_progress(const struct fileinfo_data *file)
 	return file->progress / 10;
 }
 
-char *
+static char *
 fi_gui_file_get_file_url(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
@@ -1211,6 +1184,16 @@ fi_gui_file_get_magnet(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
 	return guc_file_info_build_magnet(file->handle);
+}
+
+static char *
+fi_gui_file_get_file_url_at_cursor(GtkWidget *unused_widget)
+{
+	struct fileinfo_data *file;
+	
+	(void) unused_widget;
+	file = fi_gui_get_file_at_cursor();
+	return file ? fi_gui_file_get_file_url(file) : NULL;
 }
 
 static void
@@ -1513,21 +1496,25 @@ gboolean
 on_files_key_press_event(GtkWidget *unused_widget,
 	GdkEventKey *event, void *unused_udata)
 {
+	unsigned modifier;
+
 	(void) unused_widget;
 	(void) unused_udata;
 
-	if (
-		GDK_Delete == event->keyval &&
-		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
-	) {
-		switch (current_page) {
-		case nb_downloads_page_finished:
-		case nb_downloads_page_seeding:
-			fi_gui_purge_selected_files();
-			return TRUE;
-		default:
-			break;
+	modifier = gtk_accelerator_get_default_mod_mask() & event->state;
+	switch (event->keyval) {
+	case GDK_Delete:
+		if (0 == modifier) {
+			switch (current_page) {
+			case nb_downloads_page_finished:
+			case nb_downloads_page_seeding:
+				fi_gui_purge_selected_files();
+				return TRUE;
+			default:
+				break;
+			}
 		}
+		break;
 	}
 	return FALSE;
 }
@@ -1817,6 +1804,11 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 	widget = fi_gui_files_widget_new();
 	g_return_if_fail(widget);
 
+	gui_signal_connect(widget,
+		"key-press-event", on_files_key_press_event, NULL);
+	widget_add_popup_menu(widget, fi_gui_files_get_popup_menu);
+	drag_attach(widget, fi_gui_file_get_file_url_at_cursor);
+
 	fi_gui_files_visualize();
 
 	gtk_container_add(container, widget);
@@ -1899,8 +1891,8 @@ notebook_downloads_init(void)
 	gtk_notebook_set_current_page(notebook, current_page);
 	notebook_downloads_init_page(notebook, current_page);
 
-	gui_signal_connect(notebook, "switch-page",
-		on_notebook_downloads_switch_page, NULL);
+	gui_signal_connect(notebook,
+		"switch-page", on_notebook_downloads_switch_page, NULL);
 
 	fi_gui_files_freeze();
 }

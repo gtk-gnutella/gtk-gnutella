@@ -37,11 +37,10 @@
  * @date 2005
  */
 
-#include "common.h"
+#include "gtk/gui.h"
 
 RCSID("$Id$")
 
-#include "gtk/gui.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"
 #include "gtk/statusbar.h"
@@ -67,20 +66,18 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static gint search_details_selected_row = -1;
-
 static record_t *selected_record; 
 
-gchar * 
-search_details_get_text(GtkWidget *widget)
+char * 
+search_gui_details_get_text(GtkWidget *widget)
 {
-	gchar *text = NULL;
+	char *text = NULL;
+	int row;
 
-	if (
-		search_details_selected_row >= 0 &&
-		gtk_clist_get_text(GTK_CLIST(widget), search_details_selected_row, 1,
-			&text)
-	) {
+	g_return_val_if_fail(widget, NULL);
+
+	row = clist_get_cursor_row(GTK_CLIST(widget));
+	if (row >= 0 && gtk_clist_get_text(GTK_CLIST(widget), row, 1, &text)) {
 		return g_strdup(text);
 	} else {
 		return NULL;
@@ -251,86 +248,6 @@ on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
     gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
 }
 
-
-gboolean
-on_clist_search_results_key_press_event(GtkWidget *unused_widget,
-	GdkEventKey *event, gpointer unused_udata)
-{
-    g_assert(event != NULL);
-
-	(void) unused_widget;
-	(void) unused_udata;
-
-    switch (event->keyval) {
-    case GDK_Return:
-        search_gui_download_files();
-        return TRUE;
-	case GDK_Delete:
-        search_gui_discard_files();
-		return TRUE;
-    default:
-        return FALSE;
-    }
-}
-
-
-/**
- *	Handles showing the popup in the event of right-clicks and downloading
- *	for double-clicks
- */
-gboolean
-on_clist_search_results_button_press_event(GtkWidget *widget,
-	GdkEventButton *event, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	switch (event->button) {
-	case 1:
-        /* left click section */
-		if (event->type == GDK_2BUTTON_PRESS) {
-			gui_signal_stop_emit_by_name(widget, "button_press_event");
-			return FALSE;
-		}
-		if (event->type == GDK_BUTTON_PRESS) {
-			static guint click_time = 0;
-
-			search_gui_set_cursor_position(event->x, event->y);
-
-			if ((event->time - click_time) <= 250) {
-				gint row = 0;
-				gint column = 0;
-
-				/*
-				 * 2 clicks within 250 msec == doubleclick.
-				 * Surpress further events
-				 */
-				gui_signal_stop_emit_by_name(widget, "button_press_event");
-
-				if (gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
-					event->y, &row, &column)) {
-
-					search_gui_download_files();
-                    return TRUE;
-				}
-			} else {
-				click_time = event->time;
-				return FALSE;
-			}
-		}
-		return FALSE;
-
-	case 3:
-		/* right click section (popup menu) */
-		if (event->type == GDK_BUTTON_PRESS) {
-			search_gui_show_popup_menu();
-		}
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-
 /**
  *	Sort search according to selected column
  */
@@ -365,54 +282,6 @@ on_clist_search_results_click_column(GtkCList *clist, gint column,
 	}
 
 	search_gui_sort_column(search, column); /* Sort column, draw arrow */
-}
-
-gboolean
-on_clist_search_details_key_press_event(GtkWidget *widget,
-	GdkEventKey *event, gpointer unused_udata)
-{
-	(void) unused_udata;
-
-	switch (event->keyval) {
-	guint modifier;
-	case GDK_c:
-		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
-		if (GDK_CONTROL_MASK == modifier) {
-			char *text;
-
-			text = search_details_get_text(widget);
-			clipboard_set_text(widget, text);
-			G_FREE_NULL(text);
-			return TRUE;
-		}
-		break;
-	}
-	return FALSE;
-}
-
-void
-on_clist_search_details_select_row(GtkCList *unused_clist,
-	gint row, gint unused_column, GdkEventButton *unused_event,
-	gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_column;
-	(void) unused_event;
-	(void) unused_udata;
-	search_details_selected_row = row;
-}
-
-void
-on_clist_search_details_unselect_row(GtkCList *unused_clist,
-	gint unused_row, gint unused_column, GdkEventButton *unused_event,
-	gpointer unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_row;
-	(void) unused_column;
-	(void) unused_event;
-	(void) unused_udata;
-	search_details_selected_row = -1;
 }
 
 static cevent_t *row_selected_ev;
@@ -456,14 +325,24 @@ row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
 }
 
 static void
-selected_row_changed(GtkCTree *ctree, GtkCTreeNode *node)
+selected_row_changed(GtkCTree *ctree)
 {
+	int row;
+	
 	if (selected_record) {
 		search_gui_unref_record(selected_record);
+		selected_record = NULL;
 	}
-	selected_record = search_gui_get_record(ctree, GTK_CTREE_NODE(node));
-	if (selected_record) {
-		search_gui_ref_record(selected_record);
+
+	row = clist_get_cursor_row(GTK_CLIST(ctree));
+	if (row >= 0) {
+		GtkCTreeNode *node;
+
+		node = gtk_ctree_node_nth(GTK_CTREE(ctree), row);
+		selected_record = search_gui_get_record(ctree, GTK_CTREE_NODE(node));
+		if (selected_record) {
+			search_gui_ref_record(selected_record);
+		}
 	}
 
 	if (row_selected_ev) {
@@ -480,23 +359,13 @@ selected_row_changed(GtkCTree *ctree, GtkCTreeNode *node)
  */
 void
 on_ctree_search_results_select_row(GtkCTree *ctree,
-	GList *node, gint unused_column, gpointer unused_udata)
+	GList *unused_node, gint unused_column, gpointer unused_udata)
 {
 	(void) unused_column;
 	(void) unused_udata;
-
-	selected_row_changed(ctree, GTK_CTREE_NODE(node));
-}
-
-void
-on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *unused_node,
-	gint unused_column, gpointer unused_udata)
-{
 	(void) unused_node;
-	(void) unused_column;
-	(void) unused_udata;
 
-	selected_row_changed(ctree, NULL);
+	selected_row_changed(ctree);
 }
 
 /***

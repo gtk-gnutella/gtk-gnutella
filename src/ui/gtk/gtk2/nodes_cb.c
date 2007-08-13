@@ -115,23 +115,6 @@ on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 	G_FREE_NULL(e);
 }
 
-gboolean
-on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
-		GdkEventButton *event, gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_udata;
-
-    if (3 == event->button) {
-        /* right click section (popup menu) */
-
-        gtk_menu_popup(GTK_MENU(gui_popup_nodes()), NULL, NULL, NULL, NULL,
-			event->button, event->time);
-        return TRUE;
-	}
-	return FALSE;
-}
-
 /**
  * Creates and pops up the column chooser for ``treeview_nodes''
  */

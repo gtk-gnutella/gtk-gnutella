@@ -30,10 +30,6 @@
 
 void on_tree_view_search_cursor_changed(GtkTreeView *, void *user_data);
 
-gboolean on_tree_view_search_results_key_press_event(GtkWidget *, GdkEventKey *,
-	void *user_data);
-gboolean on_tree_view_search_results_button_press_event(GtkWidget *,
-	GdkEventButton *, void *user_data);
 void on_tree_view_search_results_click_column(GtkTreeViewColumn *,
 	void *user_data);
 void on_tree_view_search_results_select_row(GtkTreeView *, void *user_data);
@@ -45,10 +41,5 @@ void search_update_tooltip(GtkTreeView *, GtkTreePath *);
 void *search_gui_get_record(GtkTreeModel *, GtkTreeIter *);
 gboolean search_gui_update_rank(GtkTreeModel *, GtkTreePath *, GtkTreeIter *,
 		void *user_data);
-char *search_details_get_text(GtkWidget *);
-
-gboolean on_treeview_search_details_key_press_event(GtkWidget *, GdkEventKey *,
-		void *user_data);
-
 
 #endif /* _gtk2_search_cb_h_ */

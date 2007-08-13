@@ -29,9 +29,7 @@
 #include "gui.h"
 #include "if/core/nodes.h"
 
-void nodes_gui_common_init(void);
-void nodes_gui_common_shutdown(void);
-
+GtkMenu *nodes_gui_get_popup_menu(void);
 const gchar *nodes_gui_common_status_str(const gnet_node_status_t *n);
 void nodes_gui_common_connect_by_name(const gchar *addr);
 

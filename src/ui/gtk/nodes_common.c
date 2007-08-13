@@ -56,6 +56,12 @@ RCSID("$Id$")
 
 #define UPDATE_MIN	60		/**< Update screen every minute at least */
 
+GtkMenu *
+nodes_gui_get_popup_menu(void)
+{
+	return GTK_MENU(gui_popup_nodes());
+}
+
 /**
  * Compute info string for node.
  *

@@ -31,25 +31,18 @@
 void search_gui_set_cursor_position(int x, int y);
 
 void on_clist_search_select_row(GtkCList *, int row, int column, GdkEvent *,
-		void *user_data);
-gboolean on_clist_search_results_key_press_event(GtkWidget *, GdkEventKey *,
-		void *user_data);
-gboolean on_clist_search_results_button_press_event(GtkWidget *,
-		GdkEventButton *, void *user_data);
+	void *user_data);
 void on_clist_search_results_click_column(GtkCList *, int column,
-		void *user_data);
+	void *user_data);
 
 void on_ctree_search_results_select_row(GtkCTree *, GList *node,
 	int column, void *user_data);
 void on_ctree_search_results_unselect_row(GtkCTree *, GList *node,
 	int column, void *user_data);
 
-char *search_details_get_text(GtkWidget *);
 void on_clist_search_details_select_row(GtkCList *, int row, int column,
 	GdkEventButton *, void *user_data);
 void on_clist_search_details_unselect_row(GtkCList *, int row, int column,
 	GdkEventButton *, void *unused_udata);
-gboolean on_clist_search_details_key_press_event(GtkWidget *, GdkEventKey *,
-	void *user_data);
 
 #endif /* _gtk1_search_cb_h_ */

@@ -42,7 +42,6 @@
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
-#include "gtk/notebooks.h"
 #include "gtk/search.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
@@ -162,7 +161,7 @@ on_search_list_row_deleted(GtkTreeModel *model, GtkTreePath *unused_path,
 	search_gui_synchronize_list(model);
 }
 
-void
+static void
 on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 {
 	(void) unused_udata;
@@ -170,7 +169,6 @@ on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 	search_gui_synchronize_list(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(column->tree_view)));
 }
-
 
 /**
  * Callback handler used with gtk_tree_model_foreach() to record the current
@@ -1101,9 +1099,9 @@ search_details_treeview_init(void)
     	gtk_tree_view_append_column(tv, column);
 	}
 
-	gui_signal_connect(tv, "key-press-event",
-		on_treeview_search_details_key_press_event, NULL);
-	drag_attach(GTK_WIDGET(tv), search_details_get_text);
+	gui_signal_connect(tv,
+		"key-press-event", on_search_details_key_press_event, NULL);
+	drag_attach(GTK_WIDGET(tv), search_gui_details_get_text);
 }
 
 static GtkTreeModel *
@@ -1147,10 +1145,10 @@ search_list_tree_view_init(void)
 	gtk_tree_view_set_model(tv, create_searches_model());
 	add_list_columns(tv);
 
+	widget_add_popup_menu(GTK_WIDGET(tv),
+		search_gui_get_search_list_popup_menu);
 	gui_signal_connect(tv,
 		"cursor-changed", on_tree_view_search_cursor_changed, NULL);
-	gui_signal_connect(tv,
-		"button-press-event", on_search_list_button_press_event, NULL);
 	gui_signal_connect_after(gtk_tree_view_get_model(tv),
 		"row-deleted", on_search_list_row_deleted, NULL);
 }
@@ -1203,23 +1201,24 @@ search_gui_set_search_list_cursor(search_t *search)
 	GtkTreePath *path;
 	GtkTreeIter iter;
 
+	if (NULL == search)
+		return;
+
 	model = gtk_tree_view_get_model(tree_view_search);
-	if (search && tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
+	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
 		path = gtk_tree_model_get_path(model, &iter);
 	} else {
 		path = NULL;
 	}
+	g_return_if_fail(path);
 	gtk_tree_view_set_cursor(tree_view_search, path, NULL, FALSE);
-	if (path) {
-		gtk_tree_path_free(path);
-	}
+	gtk_tree_path_free(path);
 }
 
 void
 search_gui_set_current_search(search_t *search)
 {
 	search_t *current_search;
-	GtkTreeView *tv;
 
 	current_search = search_gui_get_current_search();
 	if (search == current_search)
@@ -1230,27 +1229,24 @@ search_gui_set_current_search(search_t *search)
      * to the new current_search.
      */
 
-	tv = current_search ? GTK_TREE_VIEW(current_search->tree) : NULL;
-	if (tv) {
+	if (current_search) {
+		GtkTreeView *tv = GTK_TREE_VIEW(current_search->tree);
+
 		tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_motion_clear_callback(&tvm_search);
 		gtk_widget_hide(GTK_WIDGET(tv));
 		g_object_freeze_notify(G_OBJECT(tv));
-	}
-	if (current_search) {	
 		search_gui_clear_sorting(current_search);
 	}
+	search_gui_current_search(search);
 
+	search = search_gui_get_current_search();
 	if (search) {
+		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
 		int i;
 
 		tv = GTK_TREE_VIEW(search->tree);
-		gtk_widget_show(GTK_WIDGET(tv));
-		g_object_thaw_notify(G_OBJECT(tv));
-
-		search_gui_restore_sorting(search);
-
 		tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tvm_search = tree_view_motion_set_callback(tv,
@@ -1263,9 +1259,11 @@ search_gui_set_current_search(search_t *search)
 			gui_signal_connect_after(gtk_tree_view_get_column(tv, i),
 				"clicked", on_tree_view_search_results_click_column, search);
 		}
+		search_gui_restore_sorting(search);
+		gtk_widget_show(GTK_WIDGET(tv));
+		g_object_thaw_notify(G_OBJECT(tv));
+		search_gui_set_search_list_cursor(search);
 	}
-	search_gui_current_search(search);
-	search_gui_set_search_list_cursor(search);
 }
 
 static GtkTreeModel *
@@ -1581,14 +1579,13 @@ search_gui_create_tree(void)
 	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 
-	gui_signal_connect(tv, "cursor-changed",
-		on_tree_view_search_results_select_row, tv);
-	gui_signal_connect(tv, "button-press-event",
-		on_tree_view_search_results_button_press_event, NULL);
-    gui_signal_connect(tv, "key-press-event",
-		on_tree_view_search_results_key_press_event, NULL);
-    gui_signal_connect(tv, "leave-notify-event",
-		on_leave_notify, NULL);
+	gui_signal_connect(tv,
+		"cursor-changed", on_tree_view_search_results_select_row, tv);
+    gui_signal_connect(tv,
+		"key-press-event", on_search_results_key_press_event, NULL);
+	gui_signal_connect(tv,
+		"button-press-event", on_search_results_button_press_event, NULL);
+    gui_signal_connect(tv, "leave-notify-event", on_leave_notify, NULL);
 	g_object_freeze_notify(G_OBJECT(tv));
 
 	return GTK_WIDGET(tv);
@@ -1639,16 +1636,13 @@ search_gui_has_selected_item(search_t *search)
 }
 
 void
-search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
+search_gui_search_list_clicked(void)
 {
-	GtkTreeView *tv = GTK_TREE_VIEW(widget);
+	GtkTreeView *tv = GTK_TREE_VIEW(tree_view_search);
 	GtkTreePath *path = NULL;
-	GtkTreeViewColumn *column = NULL;
 
-	if (
-		gtk_tree_view_get_path_at_pos(tv, event->x, event->y,
-			&path, &column, NULL, NULL)
-	) {
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (path) {
 		GtkTreeModel *model;
 		GtkTreeIter iter;
 

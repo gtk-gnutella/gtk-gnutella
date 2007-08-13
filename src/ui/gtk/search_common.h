@@ -49,12 +49,12 @@ typedef enum {
  */
 typedef struct results_set {
 	results_set_magic_t magic;
-	gint num_recs;
+	int num_recs;
 
-	const gchar *guid;			/**< Servent's GUID (atom) */
-	const gchar *version;		/**< Version information (atom) */
-	const gchar *hostname;		/**< Optional: server's hostname (atom) */
-	const gchar *query;			/**< Optional: original query (atom) */
+	const char *guid;			/**< Servent's GUID (atom) */
+	const char *version;		/**< Version information (atom) */
+	const char *hostname;		/**< Optional: server's hostname (atom) */
+	const char *query;			/**< Optional: original query (atom) */
 
 	GSList *records;
     GSList *schl;
@@ -88,18 +88,18 @@ typedef enum {
  */
 typedef struct record {
 	record_magic_t magic;		/**< Magic ID */
-	gint refcount;				/**< Number of hash tables it has been put to */
+	int refcount;				/**< Number of hash tables it has been put to */
 
 	results_set_t *results_set;	/**< Parent, containing record */
-	const gchar *name;			/**< Filename (atom) */
-	const gchar *ext;			/**< File extension (atom) */
-	const gchar *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
-	const gchar *charset;		/**< Detected charset of name (static const) */
+	const char *name;			/**< Filename (atom) */
+	const char *ext;			/**< File extension (atom) */
+	const char *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
+	const char *charset;		/**< Detected charset of name (static const) */
 	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
-	const gchar *xml;			/**< Optional XML data string (atom) */
-	const gchar *tag;			/**< Optional tag data string (atom) */
-	const gchar *info;			/**< Short version of tag (atom) */
-	const gchar *path;			/**< Optional path (atom) */
+	const char *xml;			/**< Optional XML data string (atom) */
+	const char *tag;			/**< Optional tag data string (atom) */
+	const char *info;			/**< Short version of tag (atom) */
+	const char *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
@@ -126,9 +126,9 @@ results_set_check(const results_set_t * const rs)
 }
 
 struct query {
-	gchar *text;
+	char *text;
 	GList *rules;
-	guint flags;
+	unsigned flags;
 };
 
 enum gui_color {
@@ -165,20 +165,20 @@ void search_gui_current_search(search_t *);
 
 void search_gui_ref_record(record_t *);
 void search_gui_unref_record(record_t *);
-guint search_gui_hash_func(gconstpointer);
-gint search_gui_hash_key_compare(gconstpointer, gconstpointer);
-const gchar *search_gui_get_route(const struct results_set *);
-const gchar *search_gui_get_filename_extension(const gchar *filename_utf8);
+unsigned search_gui_hash_func(gconstpointer);
+int search_gui_hash_key_compare(gconstpointer, gconstpointer);
+const char *search_gui_get_route(const struct results_set *);
+const char *search_gui_get_filename_extension(const char *filename_utf8);
 void search_gui_set_sort_defaults(void);
 
-struct query *search_gui_handle_query(const gchar *, flag_t flags,
-						const gchar **error_str);
+struct query *search_gui_handle_query(const char *, flag_t flags,
+						const char **error_str);
 void search_gui_query_free(struct query **query_ptr);
 void search_gui_filter_new(search_t *, GList *rules);
 
 gboolean search_gui_new_browse_host(
-	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
+	const char *hostname, host_addr_t addr, guint16 port,
+	const char *guid, const gnet_host_vec_t *proxies, guint32 flags);
 
 struct filter;
 
@@ -188,28 +188,23 @@ gboolean search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
 
 void search_gui_browse_selected(void);
-gboolean search_gui_insert_query(const gchar *);
+gboolean search_gui_insert_query(const char *);
 
-gchar *search_xml_indent(const gchar *);
+char *search_xml_indent(const char *);
 
-void on_option_menu_search_changed(GtkOptionMenu *, void *user_udata);
-
-void on_spinbutton_search_reissue_timeout_activate(GtkEditable *,
-			void *user_data);
-gboolean on_spinbutton_search_reissue_timeout_focus_out_event(GtkWidget *,
-			GdkEventFocus *, void *user_data);
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 			void *user_udata);
+gboolean on_search_results_key_press_event(GtkWidget *, GdkEventKey *,
+			void *user_data);
+gboolean on_search_results_button_press_event(GtkWidget *, GdkEventButton *,
+			void *user_data);
+gboolean on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
+			void *user_data);
 
-gint search_gui_cmp_sha1s(const struct sha1 *, const struct sha1 *);
-
-void search_gui_duplicate_search(search_t *);
-void search_gui_restart_search(search_t *);
-void search_gui_resume_search(search_t *);
-void search_gui_stop_search(search_t *);
+int search_gui_cmp_sha1s(const struct sha1 *, const struct sha1 *);
 
 void search_gui_refresh_popup(void);
-void search_gui_show_popup_menu(void);
+GtkMenu *search_gui_get_search_list_popup_menu(void);
 
 void search_gui_callbacks_shutdown(void);
 
@@ -252,25 +247,32 @@ void on_entry_search_changed(GtkEditable *, void *user_data);
 
 GSList *search_gui_get_selected_searches(void);
 gboolean search_gui_has_selected_item(search_t *);
-void search_gui_search_list_clicked(GtkWidget *, GdkEventButton *);
+void search_gui_search_list_clicked(void);
+void search_gui_download_files(void);
+void search_gui_discard_files(void);
+void search_gui_sort_column(struct search *, gint column);
+void search_gui_expand_all(void);
+void search_gui_collapse_all(void);
 void search_gui_flush_queues(void);
 void search_gui_remove_search(search_t *);
 void search_gui_update_list_label(const struct search *);
 void search_gui_clear_search(struct search *);
 char *search_gui_get_local_file_url(GtkWidget *);
+char *search_gui_details_get_text(GtkWidget *);
 GtkWidget *search_gui_create_tree(void);
 
-const gchar *search_gui_query(const search_t *);
+const char *search_gui_query(const search_t *);
 gboolean search_gui_is_enabled(const search_t *);
 
 void search_gui_download(record_t *);
-const gchar *search_gui_nice_size(const record_t *);
-const gchar *search_gui_get_vendor(const struct results_set *);
+const char *search_gui_nice_size(const record_t *);
+const char *search_gui_get_vendor(const struct results_set *);
 
 void search_gui_set_details(const record_t *);
 void search_gui_clear_details(void);
-void search_gui_append_detail(const gchar *title, const gchar *value);
-const gchar *search_new_error_to_string(enum search_new_result);
+void search_gui_append_detail(const char *title, const char *value);
+const char *search_new_error_to_string(enum search_new_result);
+
 
 record_t *search_gui_record_get_parent(search_t *, record_t *);
 GSList *search_gui_record_get_children(search_t *, record_t *);
@@ -285,7 +287,7 @@ void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 void search_gui_store_searches(void);
 
 /* FIXME: This does not belong here. */
-gchar *gnet_host_vec_to_string(const gnet_host_vec_t *);
+char *gnet_host_vec_to_string(const gnet_host_vec_t *);
 
 #endif /* _gtk_search_common_h_ */
 

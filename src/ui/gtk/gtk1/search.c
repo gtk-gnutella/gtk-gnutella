@@ -35,13 +35,14 @@
  * @author Richard Eckart
  * @date 2001-2003
  */
-#include "common.h"
+#include "gtk/gui.h"
+
+RCSID("$Id$")
 
 #include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
-#include "gtk/gui.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
 #include "gtk/search.h"
@@ -55,6 +56,7 @@
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
@@ -64,8 +66,6 @@
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-RCSID("$Id$")
 
 static gchar tmpstr[4096];
 
@@ -1698,6 +1698,46 @@ on_search_list_row_move_event(GtkCList *clist,
 	search_gui_synchronize_list(clist);
 }
 
+static cevent_t *cursor_ev;
+#define ROW_SELECT_TIMEOUT	150 /* milliseconds */
+
+static void
+cursor_expire(cqueue_t *unused_cq, gpointer unused_udata)
+{
+	(void) unused_cq;
+	(void) unused_udata;
+
+	cursor_ev = NULL;
+	
+	search_gui_search_list_clicked();
+}
+
+static void
+cursor_update(void)
+{
+	if (cursor_ev) {
+		cq_resched(callout_queue, cursor_ev, ROW_SELECT_TIMEOUT);
+	} else {
+		cursor_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
+						cursor_expire, NULL);
+	}
+}
+
+
+static void
+on_search_list_select_row(GtkCList *unused_clist,
+	int unused_row, int unused_column,
+	GdkEvent *unused_event, void *unused_udata)
+{
+	(void) unused_clist;
+	(void) unused_row;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
+
+	cursor_update();
+}
+
 /***
  *** Public functions
  ***/
@@ -1710,25 +1750,25 @@ search_gui_init(void)
 		
 		gtk_clist_set_reorderable(clist, TRUE);
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gui_signal_connect(clist, "button-press-event",
-			on_search_list_button_press_event, NULL);
+		widget_add_popup_menu(GTK_WIDGET(clist),
+			search_gui_get_search_list_popup_menu);
 		gui_signal_connect_after(clist, "row-move",
 			on_search_list_row_move_event, NULL);
+		gui_signal_connect(clist,
+			"select-row", on_search_list_select_row, NULL);
+		gui_signal_connect(clist,
+			"button-press-event", on_search_list_button_press_event, NULL);
 	}
 
 	{
 		GtkCList *clist;
 		
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search_details"));
-		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
-		gui_signal_connect(clist, "select-row",
-			on_clist_search_details_select_row, NULL);
-		gui_signal_connect(clist, "unselect-row",
-			on_clist_search_details_unselect_row, NULL);
+		gtk_clist_set_selection_mode(clist, GTK_SELECTION_SINGLE);
 		gui_signal_connect(clist, "key-press-event",
-			on_clist_search_details_key_press_event, NULL);
+			on_search_details_key_press_event, NULL);
 		clipboard_attach(GTK_WIDGET(clist));
-		drag_attach(GTK_WIDGET(clist), search_details_get_text);
+		drag_attach(GTK_WIDGET(clist), search_gui_details_get_text);
 	}
 
 	search_gui_common_init();
@@ -1757,6 +1797,7 @@ search_gui_remove_search(search_t *sch)
         gtk_widget_destroy(sch->arrow);
         sch->arrow = NULL;
     }
+	cq_cancel(callout_queue, &cursor_ev);
 }
 
 void
@@ -1774,8 +1815,12 @@ search_gui_set_current_search(search_t *search)
 		clist_save_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		clist_save_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
 	}
+	search_gui_current_search(search);
+
+	search = search_gui_get_current_search();
     if (search) {
 		GtkCList *clist;
+#if 0
 		int row;
 
 		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
@@ -1785,6 +1830,7 @@ search_gui_set_current_search(search_t *search)
 		if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
 			gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
 		}
+#endif
 
 		clist = GTK_CLIST(search->tree);
 		clist_restore_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
@@ -1793,7 +1839,6 @@ search_gui_set_current_search(search_t *search)
 			gui_main_window_lookup("button_search_download"),
 			clist->selection != NULL);
 	}
-	search_gui_current_search(search);
 }
 
 /**
@@ -1858,16 +1903,14 @@ search_gui_create_tree(void)
 	clist_restore_visibility(ctree, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	clist_restore_widths(ctree, PROP_SEARCH_RESULTS_COL_WIDTHS);
 	
-	gui_signal_connect(ctree, "tree_select_row",
-		on_ctree_search_results_select_row, NULL);
-	gui_signal_connect(ctree, "tree_unselect_row",
-		on_ctree_search_results_unselect_row, NULL);
-	gui_signal_connect(ctree, "click_column",
-		on_clist_search_results_click_column, NULL);
-	gui_signal_connect(ctree, "button_press_event",
-		on_clist_search_results_button_press_event, NULL);
-    gui_signal_connect(ctree, "key_press_event",
-		on_clist_search_results_key_press_event, NULL);
+	gui_signal_connect(ctree,
+		"tree_select_row", on_ctree_search_results_select_row, NULL);
+	gui_signal_connect(ctree,
+		"click_column", on_clist_search_results_click_column, NULL);
+	gui_signal_connect(ctree,
+		"button_press_event", on_search_results_button_press_event, NULL);
+    gui_signal_connect(ctree,
+		"key_press_event", on_search_results_key_press_event, NULL);
 
 	return GTK_WIDGET(ctree);
 }
@@ -2103,20 +2146,19 @@ search_gui_has_selected_item(search_t *search)
 }
 
 void
-search_gui_search_list_clicked(GtkWidget *widget, GdkEventButton *event)
+search_gui_search_list_clicked(void)
 {
-	gint row, column;
+	int row;
 
-	if (gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
-			event->y, &row, &column)
-	) {
+	row = clist_get_cursor_row(clist_search());
+	if (row >= 0) { 
 		search_t *search;
 
-		search = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-		if (search) {
-			search_gui_set_current_search(search);
-			main_gui_notebook_set_page(nb_main_page_search);
-		}
+		search = gtk_clist_get_row_data(clist_search(), row);
+		g_return_if_fail(search);
+		
+		search_gui_set_current_search(search);
+		main_gui_notebook_set_page(nb_main_page_search);
 	}
 }
 

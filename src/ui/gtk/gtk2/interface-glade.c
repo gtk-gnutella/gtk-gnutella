@@ -3141,9 +3141,6 @@ create_main_window_gnet_tab (void)
   gtk_widget_show (label282);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_node_info), label282);
 
-  g_signal_connect ((gpointer) treeview_nodes, "button_press_event",
-                    G_CALLBACK (on_treeview_nodes_button_press_event),
-                    NULL);
   g_signal_connect ((gpointer) button_nodes_add, "clicked",
                     G_CALLBACK (on_button_nodes_add_clicked),
                     NULL);
