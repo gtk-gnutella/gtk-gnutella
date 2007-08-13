@@ -67,6 +67,62 @@ RCSID("$Id$")
 static const gchar spam_text_file[] = "spam.txt";
 static const gchar spam_what[] = "Spam database";
 
+/****** BEGIN IDEAS ONLY ******/
+
+/*
+ * The following hash tables function in pairs, which are "rotated" on a
+ * regular basis, the currently active table becoming the old one and the
+ * old one being cleared.  This provides a way to store temporary information
+ * that will naturally fade out if unused.
+ */
+
+/*
+ * These tables keep track of the association between a GUID and the
+ * last known IP:port of the servent.  If more than one association is found,
+ * then we most probably face a spamming entity using the same GUID accross
+ * a range of different IP addresses..
+ */
+
+/*
+ * These tables keep track of the association between an IP:port and a servent
+ * GUID.  If more than one association is found, then we most probably face a
+ * spamming entity using random GUIDs.
+ */
+
+/*
+ * These tables keep track of the amount of query hits we have seen from a given
+ * GUID and IP:port for a given query MUID, and the total amount of entries
+ * that these hits contained.
+ */
+
+/*
+ * These tables keep track of all the different ports we see behind a given
+ * IP address.  Too many ports are likely to indicate a spamming origin.
+ */
+
+/*
+ * These tables keep track of all the various vendor codes we see originating
+ * from a given IP:port.
+ */
+
+/*
+ * These tables keep track of the amount of query hits originating from a /24
+ * network for a given MUID for one pair, and the various /24 networks that
+ * have replied to a given MUID in another pair.
+ */
+
+/****** END IDEAS ONLY ******/
+
+/* NOTE: This is disabled because SQLite does not seem worth the overhead
+ *       here for now as spam.txt isn't horribly large. With a slow disk
+ *		 or NFS, for example, the performance hit may be noticable.
+ */
+#if 0
+#ifdef HAS_SQLITE
+#define USE_SQLITE 1
+#endif /* HAS_SQLITE */
+#endif
+
 struct spam_lut {
 	GSList *sl_names;	/* List of g_malloc()ed regex_t items */
 };

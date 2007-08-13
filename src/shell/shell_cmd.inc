@@ -1,4 +1,4 @@
-/* ls src/core/ | sed -n 's,.*shell_cmd_\(.*\)[.]c,SHELL_CMD(\1),p' */
+/* ls src/shell/ | sed -n 's,.*shell_cmd_\(.*\)[.]c,SHELL_CMD(\1),p' */
 SHELL_CMD(download)
 SHELL_CMD(downloads)
 SHELL_CMD(help)
