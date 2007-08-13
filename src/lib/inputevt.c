@@ -1014,6 +1014,8 @@ inputevt_init(void)
 	} else {
 		GIOChannel *ch;
 
+		set_close_on_exec(poll_ctx->fd);	/* Just in case */
+
 #ifdef HAS_DEV_POLL
 		g_main_set_poll_func(poll_func);
 #endif	/* HAS_DEV_POLL */

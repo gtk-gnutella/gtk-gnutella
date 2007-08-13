@@ -377,7 +377,9 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	}
 
 	if (fd >= 0) {
-		return get_non_stdio_fd(fd);
+		fd = get_non_stdio_fd(fd);
+		set_close_on_exec(fd);	/* Just in case */
+		return fd;
 	}
 
 	/*
