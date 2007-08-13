@@ -552,6 +552,7 @@ gui_restore_window(GtkWidget *widget, property_t prop)
         gdk_window_move_resize(widget->window,
 			coord[0], coord[1], coord[2], coord[3]);
 
+#if WINDOW_SHIFT_HACK
 		/* This causes a wandering window -- make it optional */
 		{
 			gint x, y, dx, dy;
@@ -575,6 +576,7 @@ gui_restore_window(GtkWidget *widget, property_t prop)
 			if ((x || y) && (dx || dy))
 				gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
 		}
+#endif	/* WINDOW_SHIFT_HACK */
 	}
 #endif /* USE_GTK2 */
 }
