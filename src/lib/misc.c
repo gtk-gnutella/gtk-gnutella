@@ -2712,6 +2712,9 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	if (pathname)
 		goto finish;
 
+	if (!is_directory(path))
+		return NULL;
+
 	/*
 	 * Looks like we need to make the filename more unique.  Append .00, then
 	 * .01, etc... until .99.
