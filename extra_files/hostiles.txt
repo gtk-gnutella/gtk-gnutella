@@ -1049,7 +1049,7 @@
 
 # MOV pr0n spam; video-elf dot com
 8.3.218.0/24
-84.40.30.64/27
+# XXX 84.40.30.64/27
 204.13.55.0/24
 #67.55.89.0/24
 #67.55.93.0/24
@@ -1069,5 +1069,5 @@
 91.121.67.16
 
 # "Fun Workplace Time Waster", "(US Special Release)" etc. EXE, ZIP, RAR malware/adware
-216.139.213.22/31
+216.139.213.16/28
 
