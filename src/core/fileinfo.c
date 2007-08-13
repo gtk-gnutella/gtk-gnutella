@@ -2918,6 +2918,8 @@ file_info_retrieve(void)
 				new_pathname = file_info_new_outname(old_path,
 									filepath_basename(fi->pathname));
 				G_FREE_NULL(old_path);
+				if (NULL == new_pathname)
+					goto reset;
 
 				/*
 				 * If fi->done == 0, the file might not exist on disk.
@@ -3363,8 +3365,6 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 		g_assert(NULL == g_hash_table_lookup(fi_by_outname, pathname));
 		return pathname;
 	} else {
-		/* Should NOT happen */
-		g_error("no luck with random number generator");
 		return NULL;
 	}
 }
@@ -3378,14 +3378,18 @@ static fileinfo_t *
 file_info_create(const gchar *file, const gchar *path, filesize_t size,
 	const struct sha1 *sha1, gboolean file_size_known)
 {
+	const char *pathname;
 	fileinfo_t *fi;
 	struct stat st;
+
+	pathname = file_info_new_outname(path, file);
+	g_return_val_if_fail(pathname, NULL);
 
 	fi = walloc0(sizeof *fi);
 	fi->magic = FI_MAGIC;
 
 	/* Get unique file name */
-	fi->pathname = file_info_new_outname(path, file);
+	fi->pathname = pathname;
 
 	/* Get unique ID */
 	fi->guid = fi_random_guid_atom();
@@ -3612,6 +3616,8 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	 */
 
 	pathname = file_info_new_outname(path, file);
+	if (NULL == pathname)
+		goto finish;
 
 	/*
 	 * Check whether the file exists and has embedded meta info.
@@ -3679,6 +3685,10 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	if (NULL == fi) {
 		fi = file_info_create(filepath_basename(pathname), path,
 				size, sha1, file_size_known);
+
+		if (NULL == fi)
+			goto finish;
+
 		fi_alias(fi, file, FALSE);
 	}
 
@@ -3687,6 +3697,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size, fi);
 
+finish:
 	atom_str_free_null(&pathname);
 	G_FREE_NULL(to_free);
 

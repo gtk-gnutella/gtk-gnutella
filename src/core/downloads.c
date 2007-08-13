@@ -2360,6 +2360,9 @@ download_info_reget(struct download *d)
 
 	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
 			d->file_size, d->sha1, file_size_known);
+
+	g_return_if_fail(fi);
+
 	file_info_add_source(fi, d);
 	fi->lifecount++;
 
@@ -4725,7 +4728,7 @@ create_download(
 				size, sha1, 0 != size)
 		: file_info;
 
-	if (fi && (FI_F_SEEDING & fi->flags)) {
+	if (NULL == fi || (FI_F_SEEDING & fi->flags)) {
 		atom_str_free_null(&file_name);
 		return NULL;
 	}
