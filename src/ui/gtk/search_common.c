@@ -345,6 +345,7 @@ search_gui_reset_search(search_t *search)
 {
 	search->items = 0;
 	search->unseen_items = 0;
+	search->items_changed = TRUE;
 	guc_search_update_items(search->search_handle, search->items);
 
 	search_gui_clear_search(search);
@@ -492,13 +493,18 @@ void
 search_gui_update_status(struct search *search)
 {
 	if (search) {
-		if (current_search == search && search_gui_is_visible()) {
+		if (
+			current_search == search &&
+			search->unseen_items > 0 &&
+			search_gui_is_visible()
+		) {
 			search->unseen_items = 0;
+			search->items_changed = FALSE;
+			search_gui_update_list_label(search);
 		}
 		search->last_update_time = tm_time();
 	}
 	search_gui_update_tab_label(search);
-	search_gui_update_list_label(search);
 	search_gui_update_status_label(search);
 	search_gui_update_items_label(search);
 }
@@ -1701,7 +1707,11 @@ search_matched(search_t *sch, results_set_t *rs)
 		search_gui_stop_search(sch);
 	}
 
-	search_gui_update_status(sch);
+	/*
+	 * Update the GUI periodically but not immediately due to the overhead
+	 * when we're receiving lots of results quickly.
+	 */
+	sch->items_changed = TRUE;
 }
 
 gboolean
@@ -2888,6 +2898,7 @@ search_gui_restart_search(search_t *search)
 	search_gui_reset_search(search);
 	search->items = 0;
 	search->unseen_items = 0;
+	search->items_changed = TRUE;
 	search->hidden = 0;
 	search->tcp_qhits = 0;
 	search->udp_qhits = 0;
@@ -3023,14 +3034,6 @@ on_popup_search_list_edit_filters_activate(GtkMenuItem *unused_menuitem,
 GtkMenu *
 search_gui_get_search_list_popup_menu(void)
 {
-	GtkMenuItem *item;
-
-	item = GTK_MENU_ITEM(gui_popup_search_lookup("popup_search_toggle_tabs"));
-	gtk_label_set(GTK_LABEL(item->item.bin.child),
-		GUI_PROPERTY(search_results_show_tabs)
-			? _("Show search list")
-			: _("Show tabs"));
-
 	return GTK_MENU(gui_popup_search_list());
 }
 
@@ -3101,6 +3104,16 @@ search_gui_refresh_popup(void)
 		gtk_widget_set_sensitive(
 			gui_popup_search_lookup("popup_search_resume"), FALSE);
     }
+
+	{
+		GtkWidget *item;
+
+		item = gui_popup_search_lookup("popup_search_toggle_tabs");
+		gtk_label_set(GTK_LABEL(GTK_MENU_ITEM(item)->item.bin.child),
+				GUI_PROPERTY(search_results_show_tabs)
+				? _("Show search list")
+				: _("Show tabs"));
+	}
 }
 
 void
@@ -3663,9 +3676,22 @@ search_gui_timer(time_t now)
 
     search_gui_flush(now, FALSE);
 
-	if (delta_time(last_update, now) && search_gui_is_visible()) {
+	if (delta_time(last_update, now)) {
+		GList *iter;
+
 		last_update = now;
-		search_gui_update_display();
+
+		for (iter = list_searches; NULL != iter; iter = g_list_next(iter)) {
+			struct search *search = iter->data;
+
+			if (search->items_changed) {
+				search->items_changed = FALSE;
+				search_gui_update_list_label(iter->data);
+			}
+		}
+		if (search_gui_is_visible()) {
+			search_gui_update_display();
+		}
 	}
 	if (store_searches_requested && !store_searches_disabled) {
 		store_searches_requested = FALSE;
