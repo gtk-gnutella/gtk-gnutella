@@ -28,8 +28,10 @@ build_yacc=
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--bindir=*)		build_bindir="${1##--*=}";;
-	--datadir=*)		build_datadir="${1##--*=}";;
+	--cc=*)			build_cc="${1##--*=}";;
+	--cflags=*)		build_ccflags="${1##--*=}";;
 	--configure-only)	build_configure_only='yes';;
+	--datadir=*)		build_datadir="${1##--*=}";;
 	--disable-dbus)		build_dbus='-U d_dbus';;
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
@@ -38,8 +40,10 @@ while [ $# -gt 0 ]; do
 	--enable-halloc)	build_halloc='-DUSE_HALLOC';;
 	--gtk1)			build_ui='gtkversion=1';;
 	--gtk2)			build_ui='gtkversion=2';;
+	--ldflags=*)		build_ldflags="${1##--*=}";;
 	--localedir=*)		build_localedir="${1##--*=}";;
 	--mandir=*)		build_mandir="${1##--*=}";;
+	--make=*)		build_make="${1##--*=}";;
 	--prefix=*)		build_prefix="${1##--*=}";;
 	--topless)		build_ui='d_headless';;
 	--unofficial)		build_official='false';;
@@ -47,9 +51,8 @@ while [ $# -gt 0 ]; do
 	--) 		break
 			;;
 	*)
-echo The following switches are available:
+echo 'The following switches are available, defaults are shown in brackets:'
 echo
-echo '  --prefix=PATH    Path prefix used for installing files. [/usr/local]'
 echo '  --gtk2           Use Gtk+ 2.x for the user interface [default].'
 echo '  --gtk1           Use the deprecated Gtk+ 1.2 for the user interface.'
 echo '  --topless        Compile for topless use (no graphical user interface).'
@@ -58,20 +61,29 @@ echo '  --disable-gnutls Do not use GNU TLS even if available.'
 echo '  --disable-ipv6   Do not use IPv6 even if supported.'
 echo '  --disable-nls    Disable NLS (native language support).'
 echo '  --disable-socker Disable support for Socker.'
-echo '  --enable-halloc  Enable mmap()-based malloc() replacement.'
-echo '  --unofficial     Use for test builds only. Requires no installation.'
-echo '  --yacc=TOOL      yacc, bison or some compatible tool.'
-echo '  --bindir=PATH    Directory for installing executables. [$prefix/bin]'
-echo '  --datadir=PATH   Directory for installing application data. [$prefix/share]'
-echo '  --localedir=PATH Directory for installing locale data. [$prefix/share/locale]'
-echo '  --mandir=PATH    Directory for installing manual pages. [$prefix/man]'
+echo '  --prefix=PATH    Path prefix used for installing files. [$PREFIX]'
+echo '  --bindir=PATH    Directory for installing executables. [$PREFIX/bin]'
+echo '  --datadir=PATH   Directory for installing application data. [$PREFIX/share]'
+echo '  --localedir=PATH Directory for installing locale data. [$PREFIX/share/locale]'
+echo '  --mandir=PATH    Directory for installing manual pages. [$PREFIX/man]'
+echo '  --cc=TOOL        C compiler to use. [$CC]'
+echo '  --cflags=FLAGS   Flags to pass to the C compiler. [$CFLAGS]'
+echo '  --ldflags=FLAGS  Flags to pass to the linker. [$LDFLAGS]'
+echo '  --make=TOOL      make tool to be used. [$MAKE]'
+echo '  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]'
 echo '  --configure-only Do not run make after Configure.'
+echo '  --unofficial     Use for test builds only. Requires no installation.'
+echo '  --enable-halloc  Enable mmap()-based malloc() replacement.'
 echo
-echo 'The following environment variables are honored:'
-echo
-echo '  CC, CFLAGS, LDFLAGS, PREFIX, MAKE, YACC'
-			exit 1
-			;;
+echo 'Typically no switches need to be used. Just run '"$0"' to start the'
+echo 'build process.'
+			case "$1" in
+			--help);;
+			*) 	echo
+				echo "ERROR: Unknown switch: \"$1\"";;
+		esac
+		exit 1
+		;;
 	esac
 	shift
 done
