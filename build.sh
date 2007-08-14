@@ -27,11 +27,11 @@ build_yacc=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--bindir=*)		build_bindir="${1##--*=}";;
-	--cc=*)			build_cc="${1##--*=}";;
-	--cflags=*)		build_ccflags="${1##--*=}";;
+	--bindir=*)		build_bindir="${1#--*=}";;
+	--cc=*)			build_cc="${1#--*=}";;
+	--cflags=*)		build_ccflags="${1#--*=}";;
 	--configure-only)	build_configure_only='yes';;
-	--datadir=*)		build_datadir="${1##--*=}";;
+	--datadir=*)		build_datadir="${1#--*=}";;
 	--disable-dbus)		build_dbus='-U d_dbus';;
 	--disable-gnutls)	build_gnutls='-U d_gnutls';;
 	--disable-ipv6)		build_ipv6='-U d_ipv6';;
@@ -40,14 +40,14 @@ while [ $# -gt 0 ]; do
 	--enable-halloc)	build_halloc='-DUSE_HALLOC';;
 	--gtk1)			build_ui='gtkversion=1';;
 	--gtk2)			build_ui='gtkversion=2';;
-	--ldflags=*)		build_ldflags="${1##--*=}";;
-	--localedir=*)		build_localedir="${1##--*=}";;
-	--mandir=*)		build_mandir="${1##--*=}";;
-	--make=*)		build_make="${1##--*=}";;
-	--prefix=*)		build_prefix="${1##--*=}";;
+	--ldflags=*)		build_ldflags="${1#--*=}";;
+	--localedir=*)		build_localedir="${1#--*=}";;
+	--mandir=*)		build_mandir="${1#--*=}";;
+	--make=*)		build_make="${1#--*=}";;
+	--prefix=*)		build_prefix="${1#--*=}";;
 	--topless)		build_ui='d_headless';;
 	--unofficial)		build_official='false';;
-	--yacc=*)		build_yacc="${1##--*=}";;
+	--yacc=*)		build_yacc="${1#--*=}";;
 	--) 		break
 			;;
 	*)
