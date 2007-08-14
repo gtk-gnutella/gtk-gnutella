@@ -408,6 +408,75 @@ done:
 	return 0;
 }
 
+static void
+gui_window_get_position(GtkWidget *widget, int *x, int *y)
+{
+#if GTK_CHECK_VERSION(2,0,0)
+	gtk_window_get_position(GTK_WINDOW(widget), x, y);
+#else
+	gdk_window_get_root_origin(widget->window, x, y);
+#endif	/* Gtk+ 2.x */
+}
+
+static void
+gui_window_get_size(GtkWidget *widget, int *width, int *height)
+{
+#if GTK_CHECK_VERSION(2,0,0)
+	gtk_window_get_size(GTK_WINDOW(widget), width, height);
+#else
+	gdk_window_get_size(widget->window, width, height);
+#endif	/* Gtk+ 2.x */
+}
+
+static void
+gui_window_move(GtkWidget *widget, int x, int y)
+{
+#if GTK_CHECK_VERSION(2,0,0)
+	gtk_window_move(GTK_WINDOW(widget), x, y);
+#else
+	gdk_window_move(widget->window, x, y);
+#endif	/* Gtk+ 2.x */
+}
+
+static void
+gui_window_move_resize(GtkWidget *widget, int x, int y, int width, int height)
+{
+#if GTK_CHECK_VERSION(2,0,0)
+	gtk_window_move(GTK_WINDOW(widget), x, y);
+	gtk_window_resize(GTK_WINDOW(widget), width, height);
+#else
+	gdk_window_move_resize(widget->window, x, y, width, height);
+#endif	/* Gtk+ 2.x */
+}
+
+
+static void
+anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
+{
+	int ax, ay, dx, dy;
+	
+	/* First, move the window to the supposed location. Next make the
+	 * window visible by gtk_window_get_position()... */
+
+	gui_window_move_resize(widget, x, y, width, height);
+
+	ax = x;
+	ay = y;
+	gui_window_get_position(widget, &ax, &ay);
+
+	/*
+	 * (At least) FVWM2 doesn't take the window decoration into account
+	 * when handling positions requests. Readjust the window position
+	 * if we detect that the window manager added an offset.
+	 */
+
+	dx = x - ax;
+	dy = x - ay;
+	if ((dx || dy) && abs(dx) < 64 && abs(dy) < 64) {
+		gui_window_move(widget, x + dx, y + dy);
+	}
+}
+
 void
 gui_restore_window(GtkWidget *widget, property_t prop)
 {
@@ -424,100 +493,20 @@ gui_restore_window(GtkWidget *widget, property_t prop)
      */
 
     gtk_window_set_default_size(GTK_WINDOW(widget), coord[2], coord[3]);
-
-
-#ifdef USE_GTK2
     if (coord[2] != 0 && coord[3] != 0) {
-
-		/* First, move the window to the supposed location. Next make the
-		 * window visible by gtk_window_get_position()... */
-
-       	gtk_window_move(GTK_WINDOW(widget), coord[0], coord[1]);
-		gtk_window_resize(GTK_WINDOW(widget), coord[2], coord[3]);
-
-		{
-			gint x, y, dx, dy;
-			gint i;
-
-			/* The first call to gtk_window_get_position() makes the window
-			 * visible but x and y are always set to zero. The second call
-			 * yields the *real* values.
-			 *
-			 * Must wait some time between subsequent calls, and if we get both
-			 * x and y set to 0, assume we did not correctly compute the
-			 * position and leave it unaltered..
-			 */
-
-			for (i = 0; i < 2; i++) {
-#ifdef HAS_USLEEP
-				usleep(20000);
-#endif
-				gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
-				if (x || y)
-					break;
-			}
-
-			/*
-			 * (At least) FVWM2 doesn't take the window decoration into account
-			 * when handling positions requests. Readjust the window position
-			 * if we detect that the window manager added an offset.
-			 */
-
-			dx = (gint) coord[0] - x;
-			dy = (gint) coord[1] - y;
-			if ((x || y) && (dx || dy)) {
-				gtk_window_move(GTK_WINDOW(widget),
-					coord[0] + dx, coord[1] + dy);
-			}
-		}
+		anti_window_shift_hack(widget, coord[0], coord[1], coord[2], coord[3]);
 	}
-#else	/* !USE_GTK2 */
-    if (coord[2] != 0 && coord[3] != 0) {
-        gdk_window_move_resize(widget->window,
-			coord[0], coord[1], coord[2], coord[3]);
 
-#if WINDOW_SHIFT_HACK
-		/* This causes a wandering window -- make it optional */
-		{
-			gint x, y, dx, dy;
-			gint i;
-
-			/* (At least) FVWM2 doesn't take the window decoration into account
-			 * when handling positions requests. Readjust the window position
-			 * if we detect that the window manager added an offset.
-			 */
-
-			for (i = 0; i < 2; i++) {
-#ifdef HAS_USLEEP
-				usleep(20000);
-#endif
-				gdk_window_get_root_origin(widget->window, &x, &y);
-				if (x || y)
-					break;
-			}
-			dx = (gint) coord[0] - x;
-			dy = (gint) coord[1] - y;
-			if ((x || y) && (dx || dy))
-				gdk_window_move(widget->window, coord[0] + dx, coord[1] + dy);
-		}
-#endif	/* WINDOW_SHIFT_HACK */
-	}
-#endif /* USE_GTK2 */
 }
 
 void
 gui_save_window(GtkWidget *widget, property_t prop)
 {
     guint32 coord[4] = { 0, 0, 0, 0};
-	gint x, y, w, h;
+	int x, y, w, h;
 
-#ifdef USE_GTK1
-	gdk_window_get_root_origin(widget->window, &x, &y);
-	gdk_window_get_size(widget->window, &w, &h);
-#else	/* !USE_GTK1 */
-	gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
-	gtk_window_get_size(GTK_WINDOW(widget), &w, &h);
-#endif /* USE_GTK1 */
+	gui_window_get_position(widget, &x, &y);
+	gui_window_get_size(widget, &w, &h);
 	coord[0] = x;
 	coord[1] = y;
 	coord[2] = w;
