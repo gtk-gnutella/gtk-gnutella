@@ -735,7 +735,6 @@ while test $# -gt 0; do
 	arg="$1"
 	shift
 
-	echo "arg=$arg"
 	case "$arg" in
 	--) break;;
 	-*);;
@@ -743,7 +742,7 @@ while test $# -gt 0; do
 		break;;
 	esac
 	
-	while :; do
+	while test X"$arg" != X; do
 		case "$arg" in
 		-d*) 	fastread=yes;;
 		-e*) 	alldone=yes;;
@@ -779,7 +778,7 @@ while test $# -gt 0; do
 			arg=
 
 			symbol="${param%%=*}"
-			if [ X"$symbol" = X"$param" ]; then
+			if test X"$symbol" = X"$param"; then
 				value='define'
 			else
 				value="${param#*=}"
@@ -807,7 +806,7 @@ while test $# -gt 0; do
 			arg=
 
 			symbol="${param%%=*}"
-			if [ X"$symbol" = X"$param" ]; then
+			if test X"$symbol" = X"$param"; then
 				value='undef'
 			else
 				value="${param#*=}"
@@ -888,7 +887,6 @@ while test $# -gt 0; do
 		esac
 		arg=${arg#-?}
 		arg=${arg:+-$arg}
-		if [ X"$arg" = X ]; then break; fi
 	done
 done
 
