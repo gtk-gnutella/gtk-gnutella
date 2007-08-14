@@ -756,7 +756,7 @@ src/ui/gtk/notebooks.h
 src/ui/gtk/search.h
 src/ui/gtk/search_common.c
 src/ui/gtk/search_common.h
-src/ui/gtk/search_record.h
+src/ui/gtk/search_result.h
 src/ui/gtk/search_stats.h
 src/ui/gtk/search_xml.c
 src/ui/gtk/search_xml.h
