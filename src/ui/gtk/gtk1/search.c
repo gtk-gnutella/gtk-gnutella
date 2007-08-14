@@ -2132,8 +2132,8 @@ search_gui_search_list_clicked(void)
 		g_return_if_fail(search);
 		
 		search_gui_set_current_search(search);
-		main_gui_notebook_set_page(nb_main_page_search);
 	}
+	main_gui_notebook_set_page(nb_main_page_search);
 }
 
 void
