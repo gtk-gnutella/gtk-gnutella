@@ -45,7 +45,7 @@ RCSID("$Id$")
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
-#include "gtk/search_common.h"
+#include "gtk/search.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"

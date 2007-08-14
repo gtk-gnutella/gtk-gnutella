@@ -42,15 +42,6 @@ void gui_save_window(GtkWidget *widget, property_t prop);
 void gui_restore_window(GtkWidget *widget, property_t prop);
 gint gui_parse_geometry_spec(const gchar *spec, guint32 coord[4]);
 
-/*
- * Hit record comparison functions.
- */
-
-gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2);
-gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2);
-gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2);
-gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2);
-
 #ifdef USE_GTK2
 void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 	GtkWidget *window);

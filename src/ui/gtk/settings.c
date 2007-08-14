@@ -1741,31 +1741,6 @@ progressbar_connections_visible_changed(property_t prop)
 }
 
 static gboolean
-search_results_show_tabs_changed(property_t prop)
-{
-    gboolean val;
-	GtkWidget *w;
-
-    gui_prop_get_boolean_val(prop, &val);
-	w = gui_main_window_lookup("notebook_search_results");
-	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(w), val);
-
-	w = gui_main_window_lookup("sw_searches");
-	if (GUI_PROPERTY(search_results_show_tabs))
-    	gtk_widget_hide(w);
-	else
-    	gtk_widget_show(w);
-
-#ifdef USE_GTK1
-    gtk_notebook_set_current_page(
-        GTK_NOTEBOOK(gui_main_window_lookup("notebook_sidebar")),
-        GUI_PROPERTY(search_results_show_tabs) ? 1 : 0);
-#endif /* USE_GTK1 */
-
-    return FALSE;
-}
-
-static gboolean
 autoclear_completed_downloads_changed(property_t prop)
 {
     gboolean val;
@@ -2878,14 +2853,6 @@ static prop_map_t property_map[] = {
         progressbar_connections_visible_changed,
         TRUE,
         "menu_connections_visible",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_popup_search,
-        PROP_SEARCH_RESULTS_SHOW_TABS,
-        search_results_show_tabs_changed,
-        TRUE,
-        "popup_search_toggle_tabs",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

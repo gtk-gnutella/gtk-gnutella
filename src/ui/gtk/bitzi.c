@@ -37,12 +37,13 @@
 
 RCSID("$Id$")
 
-#include "gtk/search.h"			/* search_t */
+#include "gtk/search.h"
 #include "gtk/misc.h"			/* gui_record_sha1_eq() */
 
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 #include "if/core/bitzi.h"    	/* bitzi_data_t */
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**

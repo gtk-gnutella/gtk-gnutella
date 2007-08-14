@@ -41,29 +41,27 @@
 
 RCSID("$Id$")
 
-#include "gtk/gtkcolumnchooser.h"
-#include "gtk/search.h"
-#include "gtk/statusbar.h"
-#include "gtk/bitzi.h"			/* Bitzi GTK functions */
-#include "gtk/columns.h"
-#include "gtk/misc.h"
-#include "gtk/settings.h"
 #include "search_cb.h"
+
+#include "gtk/bitzi.h"
+#include "gtk/columns.h"
+#include "gtk/filter_core.h"
+#include "gtk/misc.h"
+#include "gtk/search_common.h"
+#include "gtk/settings.h"
+#include "gtk/statusbar.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
-
-#include "if/core/search.h"
 #include "if/core/sockets.h"
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
-#include "lib/iso3166.h"
-#include "lib/vendors.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static record_t *selected_record; 
@@ -223,29 +221,6 @@ search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
 
 	return sel_sources;
-}
-
-/***
- *** Glade callbacks
- ***/
-
-
-/**
- *	When a search string is entered, activate the search button
- */
-void
-on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
-{
-	gchar *s = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-
-	(void) unused_udata;
-	
-	g_strstrip(s);
-	gtk_widget_set_sensitive(gui_main_window_lookup("button_search"),
-		s[0] != '\0');
-	G_FREE_NULL(s);
-
-    gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
 }
 
 /**
@@ -447,7 +422,7 @@ search_cb_collect_ctree_data(GtkCTree *ctree,
 }
 
 static void
-add_filter(filter_t *filter, GFunc filter_add_func, GCompareFunc cfn)
+add_filter(struct filter *filter, GFunc filter_add_func, GCompareFunc cfn)
 {
     GList *node_list;
     GSList *data_list = NULL;
@@ -557,37 +532,14 @@ on_popup_search_drop_sha1_global_activate(GtkMenuItem *unused_menuitem,
 /**
  *	For all selected results, create a global filter based on host
  */
-void on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
+void
+on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
 
     global_add_filter((GFunc) filter_add_drop_host_rule, gui_record_host_eq);
-}
-
-/**
- *	Please add comment
- */
-void
-on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-    GtkWidget * cc;
-    search_t *search;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-    g_return_if_fail(search != NULL);
-    g_assert(search->tree != NULL);
-
-    cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
-		gtk_get_current_event_time());
-
-    /* GtkColumnChooser takes care of cleaning up itself */
 }
 
 /**

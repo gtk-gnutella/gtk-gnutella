@@ -39,16 +39,17 @@
 
 RCSID("$Id$")
 
+#include "search_cb.h"
+
 #include "gtk/bitzi.h"
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/drop.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
-#include "gtk/search.h"
+#include "gtk/search_common.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
-#include "search_cb.h"
 
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
@@ -336,7 +337,7 @@ search_gui_compare_records(gint sort_col,
             break;
 
         case c_sr_vendor:
-			result = CMP(rs1->vcode.be32, rs2->vcode.be32);
+			result = CMP(rs1->vendor, rs2->vendor);
             break;
 
         case c_sr_info:
@@ -1013,7 +1014,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				break;
 	 		case c_sr_vendor:
 				if (!(ST_LOCAL & rs->status))
-					text = lookup_vendor_name(rs->vcode);
+					text = vendor_get_name(rs->vendor);
 				break;
 	 		case c_sr_info:
 				text = rc->info;
@@ -1253,12 +1254,13 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
  * Removes the given node from the ctree
  */
 static void
-search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
+search_gui_remove_result(struct search *search, GtkCTreeNode *node)
 {
 	gui_record_t *grc = NULL;
 	gui_record_t *parent_grc;
 	gui_record_t *child_grc;
 	record_t *rc;
+	GtkCTree *ctree;
 	GtkCTreeRow *row;
 	GtkCTreeRow *child_row;
 	GtkCTreeNode *child_node;
@@ -1267,8 +1269,12 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	GtkCTreeNode *child_sibling;
 	gint n;
 
-	search_t *current_search = search_gui_get_current_search();
-    current_search->items--;
+	g_return_if_fail(search);
+	g_return_if_fail(search->tree);
+
+	ctree = GTK_CTREE(search->tree);
+    g_assert(search->items > 0);
+    search->items--;
 
 	/* First get the record, it must be unreferenced at the end */
 	grc = gtk_ctree_node_get_row_data(ctree, node);
@@ -1335,15 +1341,13 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			 * just removed) so we must remove that hash entry and create one
 			 * for the new parent.
 			 */
-			remove_parent_with_sha1(current_search, rc->sha1);
+			remove_parent_with_sha1(search, rc->sha1);
 			key = atom_sha1_get(rc->sha1);
-			add_parent_with_sha1(current_search, key, child_node);
-
-
+			add_parent_with_sha1(search, key, child_node);
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
 			if (NULL != rc->sha1)
-				remove_parent_with_sha1(current_search, rc->sha1);
+				remove_parent_with_sha1(search, rc->sha1);
 
 			gtk_ctree_remove_node(ctree, node);
 		}
@@ -1376,7 +1380,7 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	 * (Note that GTK2 hashtables allow us to define an auto remove function,
 	 *  not so with GTK1, so we have to do it ourselves)
 	*/
-	g_hash_table_remove(current_search->dups, rc);
+	g_hash_table_remove(search->dups, rc);
 	search_gui_unref_record(rc);
 	search_gui_unref_record(rc);
 }
@@ -1388,8 +1392,8 @@ search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
  * @returns the amount of downloads actually created, and the amount of
  * items in the selection within `selected'.
  */
-static guint
-download_selection_of_ctree(GtkCTree *ctree, guint *selected)
+static unsigned
+download_selection_of_ctree(struct search *search, unsigned *selected)
 {
 	gui_record_t *grc;
 	record_t *rc;
@@ -1400,12 +1404,15 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 	guint count = 0;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
-	search_t *current_search = search_gui_get_current_search();
+	GtkCTree *ctree;
+
+	g_return_val_if_fail(search, 0);
+	g_return_val_if_fail(search->tree, 0);
+
+	ctree = GTK_CTREE(search->tree);
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
-
-	gtk_clist_freeze(GTK_CLIST(ctree));
 
 	/* Selection list changes after we process each selected node, so we have to
 	 * "re-get" it each iteration.
@@ -1452,7 +1459,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
              *     -- Richard, 17/04/2004
 			 */
 
-			if (!resort && c_sr_count == current_search->sort_col) {
+			if (!resort && c_sr_count == search->sort_col) {
 				row = GTK_CTREE_ROW(node);
 
 				if (NULL == row->parent) {
@@ -1478,7 +1485,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 				}
 			}
 
-			search_gui_remove_result(ctree, node);
+			search_gui_remove_result(search, node);
 		} else {
             /* make it visibile that we already selected this for download */
             gtk_ctree_node_set_foreground(ctree, node,
@@ -1489,15 +1496,10 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
 	}
 
 	if (resort) {
-		search_gui_sort_column(current_search, current_search->sort_col);
+		search_gui_sort_column(search, search->sort_col);
 	}
 
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
-	gtk_clist_thaw(GTK_CLIST(ctree));
-
-    search_gui_update_status(current_search);
-    guc_search_update_items(current_search->search_handle,
-		current_search->items);
 
 	*selected = count;
 	return created;
@@ -1509,7 +1511,7 @@ download_selection_of_ctree(GtkCTree *ctree, guint *selected)
  * @returns the amount of discarded results.
  */
 static guint
-discard_selection_of_ctree(GtkCTree *ctree)
+discard_selection_of_ctree(struct search *search)
 {
 	gui_record_t *grc;
 	record_t *rc;
@@ -1518,9 +1520,12 @@ discard_selection_of_ctree(GtkCTree *ctree)
 	guint discarded = 0;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
-	search_t *current_search = search_gui_get_current_search();
+	GtkCTree *ctree;
 
-	gtk_clist_freeze(GTK_CLIST(ctree));
+	g_return_val_if_fail(search, 0);
+	g_return_val_if_fail(search->tree, 0);
+
+	ctree = GTK_CTREE(search->tree);
 
 	/* Selection list changes after we process each selected node, so we have to
 	 * "re-get" it each iteration.
@@ -1563,7 +1568,7 @@ discard_selection_of_ctree(GtkCTree *ctree)
          *     -- Richard, 17/04/2004
 		 */
 
-		if (!resort && c_sr_count == current_search->sort_col) {
+		if (!resort && c_sr_count == search->sort_col) {
 			row = GTK_CTREE_ROW(node);
 
 			if (NULL == row->parent) {
@@ -1589,19 +1594,14 @@ discard_selection_of_ctree(GtkCTree *ctree)
 			}
 		}
 
-		search_gui_remove_result(ctree, node);
+		search_gui_remove_result(search, node);
 	}
 
 	if (resort) {
-		search_gui_sort_column(current_search, current_search->sort_col);
+		search_gui_sort_column(search, search->sort_col);
 	}
 
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
-	gtk_clist_thaw(GTK_CLIST(ctree));
-
-    search_gui_update_status(current_search);
-    guc_search_update_items(current_search->search_handle,
-		current_search->items);
 
 	return discarded;
 }
@@ -1610,54 +1610,39 @@ discard_selection_of_ctree(GtkCTree *ctree)
  *	Download selected files
  */
 void
-search_gui_download_files(void)
+search_gui_download_files(struct search *search)
 {
-    search_t *current_search = search_gui_get_current_search();
+	unsigned selected, created;
+	char buf[1024];
 
-	if (current_search) {
-        guint selected;
-        guint created;
-		gchar buf[1024];
+	g_return_if_fail(search);
 
-		created = download_selection_of_ctree(
-			GTK_CTREE(current_search->tree), &selected);
+	created = download_selection_of_ctree(search, &selected);
+	gtk_clist_unselect_all(GTK_CLIST(search->tree));
 
-        gtk_clist_unselect_all(GTK_CLIST(current_search->tree));
-
-		gm_snprintf(buf, sizeof buf,
-			NG_("Created %u download", "Created %u downloads", created),
-			created);
-		statusbar_gui_message(15,
-			NG_("%s from the %u selected item", "%s from the %u selected items",
-				selected),
-			buf, selected);
-	} else {
-		g_warning("search_gui_download_files(): no possible search!\n");
-	}
+	gm_snprintf(buf, sizeof buf,
+		NG_("Created %u download", "Created %u downloads", created),
+		created);
+	statusbar_gui_message(15,
+		NG_("%s from the %u selected item", "%s from the %u selected items",
+			selected),
+		buf, selected);
 }
 
 /**
  *	Discard selected files
  */
 void
-search_gui_discard_files(void)
+search_gui_discard_files(struct search *search)
 {
-    search_t *current_search = search_gui_get_current_search();
+	unsigned discarded;
 
-	if (current_search) {
-        guint discarded;
+	discarded = discard_selection_of_ctree(search);
+	gtk_clist_unselect_all(GTK_CLIST(search->tree));
 
-		discarded = discard_selection_of_ctree(
-			GTK_CTREE(current_search->tree));
-
-        gtk_clist_unselect_all(GTK_CLIST(current_search->tree));
-
-		statusbar_gui_message(15,
-			NG_("Discarded %u result", "Discarded %u results", discarded),
-			discarded);
-	} else {
-		g_warning("search_gui_discard_files(): no possible search!\n");
-	}
+	statusbar_gui_message(15,
+		NG_("Discarded %u result", "Discarded %u results", discarded),
+		discarded);
 }
 
 struct synchronize_search_list {
@@ -1800,45 +1785,48 @@ search_gui_remove_search(search_t *sch)
 	cq_cancel(callout_queue, &cursor_ev);
 }
 
-void
-search_gui_set_current_search(search_t *search)
+static void
+search_gui_set_search_list_cursor(struct search *search)
 {
-	search_t *current_search;
+	GtkCList *clist;
+	int row;
 
-	current_search = search_gui_get_current_search();
-	if (search == current_search)
-		return;
+	g_return_if_fail(search);
 
-	if (current_search) {
-		GtkCList *clist = GTK_CLIST(current_search->tree);
-
-		clist_save_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
-		clist_save_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+	row = gtk_clist_find_row_from_data(clist, search);
+	gtk_clist_unselect_all(clist);
+	gtk_clist_select_row(clist, row, 0);
+	if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
+		gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
 	}
-	search_gui_current_search(search);
+}
 
-	search = search_gui_get_current_search();
-    if (search) {
-		GtkCList *clist;
-#if 0
-		int row;
+void
+search_gui_hide_search(struct search *search)
+{
+	GtkCList *clist;
 
-		clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
-		row = gtk_clist_find_row_from_data(clist, search);
-		gtk_clist_unselect_all(clist);
-		gtk_clist_select_row(clist, row, 0);
-		if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
-			gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
-		}
-#endif
+	g_return_if_fail(search);
 
-		clist = GTK_CLIST(search->tree);
-		clist_restore_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
-		clist_restore_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
-        gtk_widget_set_sensitive(
-			gui_main_window_lookup("button_search_download"),
-			clist->selection != NULL);
-	}
+	clist = GTK_CLIST(search->tree);
+	clist_save_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	clist_save_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
+}
+
+void
+search_gui_show_search(struct search *search)
+{
+	GtkCList *clist;
+
+	g_return_if_fail(search);
+
+	clist = GTK_CLIST(search->tree);
+	clist_restore_visibility(clist, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	clist_restore_widths(clist, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_download"),
+		NULL != clist->selection);
+	search_gui_set_search_list_cursor(search);
 }
 
 /**
@@ -1907,10 +1895,6 @@ search_gui_create_tree(void)
 		"tree_select_row", on_ctree_search_results_select_row, NULL);
 	gui_signal_connect(ctree,
 		"click_column", on_clist_search_results_click_column, NULL);
-	gui_signal_connect(ctree,
-		"button_press_event", on_search_results_button_press_event, NULL);
-    gui_signal_connect(ctree,
-		"key_press_event", on_search_results_key_press_event, NULL);
 
 	return GTK_WIDGET(ctree);
 }
@@ -1956,10 +1940,8 @@ search_gui_update_list_label(const struct search *search)
  *	Expand all nodes in tree for current search
  */
 void
-search_gui_expand_all(void)
+search_gui_expand_all(struct search *search)
 {
-    search_t *search = search_gui_get_current_search();
-
 	if (search) {
 		gtk_ctree_expand_recursive(GTK_CTREE(search->tree), NULL);
 	}
@@ -1970,33 +1952,25 @@ search_gui_expand_all(void)
  *	Expand all nodes in tree for current search
  */
 void
-search_gui_collapse_all(void)
+search_gui_collapse_all(struct search *search)
 {
-    search_t *search = search_gui_get_current_search();
-
 	if (search) {
 		gtk_ctree_collapse_recursive(GTK_CTREE(search->tree), NULL);
 	}
 }
 
 void
-search_gui_start_massive_update(search_t *sch)
+search_gui_start_massive_update(struct search *search)
 {
-	g_assert(sch);
-	gtk_clist_freeze(GTK_CLIST(sch->tree));
+	g_return_if_fail(search);
+	gtk_clist_freeze(GTK_CLIST(search->tree));
 }
 
 void
-search_gui_end_massive_update(search_t *sch)
+search_gui_end_massive_update(struct search *search)
 {
-	GtkCList *ctree;
-
-	g_assert(sch);
-	ctree = GTK_CLIST(sch->tree);
-	g_assert(ctree);
-
-	while (ctree->freeze_count > 0)
-		gtk_clist_thaw(ctree);
+	g_return_if_fail(search);
+	gtk_clist_thaw(GTK_CLIST(search->tree));
 }
 
 /**

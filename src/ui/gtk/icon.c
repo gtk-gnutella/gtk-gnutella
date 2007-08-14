@@ -388,6 +388,14 @@ status_icon_enable(void)
 		return;
 
 	/*
+	 * Due to lazy binding it's possible that runtime version is older
+	 * than the compile-time version. This is the only code which requires
+	 * Gtk+ >= 2.10 currently.
+	 */
+	if (!check_gtk_version(2,10,0))
+		return;
+
+	/*
 	 * Create an status so that gtk-gnutella can be minimized to a
 	 * so-called "system tray" if supported by the window manager.
 	 */

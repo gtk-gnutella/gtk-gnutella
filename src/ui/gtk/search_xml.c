@@ -82,7 +82,7 @@ extern GList *filters_current;
  */
 static void parse_xml(xmlNodePtr xmlnode, gpointer user_data);
 static void builtin_to_xml(xmlNodePtr);
-static void search_to_xml(xmlNodePtr, search_t *);
+static void search_to_xml(xmlNodePtr, const struct search *);
 static void filter_to_xml(xmlNodePtr, filter_t *);
 static void rule_to_xml(xmlNodePtr, rule_t *);
 static void xml_to_builtin(xmlNodePtr, gpointer);
@@ -656,9 +656,11 @@ search_retrieve_xml(void)
             g_message("verifying bindings...");
 
         for (s = search_gui_get_searches(); s != NULL; s = g_list_next(s)) {
-            search_t *search = s->data;
+            const struct search *search = s->data;
+            const struct filter *filter;
 
-            if (search->filter->search == search) {
+			filter = search_gui_get_filter(search);
+            if (filter->search == search) {
                 if (GUI_PROPERTY(gui_debug) >= 6)
                     g_message("binding ok for: %s", search_gui_query(search));
             } else {
@@ -713,51 +715,56 @@ builtin_to_xml(xmlNodePtr parent)
 }
 
 static void
-search_to_xml(xmlNodePtr parent, search_t *s)
+search_to_xml(xmlNodePtr parent, const struct search *search)
 {
+	gnet_search_t search_handle;
     xmlNodePtr newxml;
     GList *iter;
 
-    g_assert(s != NULL);
-    g_assert(guc_search_query(s->search_handle) != NULL);
+    g_assert(search != NULL);
+	search_handle = search_gui_get_handle(search);
+    g_assert(guc_search_query(search_handle) != NULL);
     g_assert(parent != NULL);
 
-	if (guc_search_is_browse(s->search_handle))
+	if (guc_search_is_browse(search_handle))
 		return;	
 
-	if (guc_search_is_local(s->search_handle))
+	if (guc_search_is_local(search_handle))
 		return;
 
     if (GUI_PROPERTY(gui_debug) >= 6) {
         g_message(
-			"saving search: %s (%p enabled=%d)\n"
+			"saving search: %s (enabled=%d)\n"
 			"  -- filter is bound to: %p\n"
 			"  -- search is         : %p",
-			guc_search_query(s->search_handle),
-			cast_to_gconstpointer(s),
-			!guc_search_is_frozen(s->search_handle),
-			cast_to_gconstpointer(s->filter->search),
-			cast_to_gconstpointer(s));
+			guc_search_query(search_handle),
+			!guc_search_is_frozen(search_handle),
+			cast_to_gconstpointer(search_gui_get_filter(search)->search),
+			cast_to_gconstpointer(search));
     }
 
     newxml = xml_new_empty_child(parent, NODE_SEARCH);
     xml_prop_set(newxml, TAG_SEARCH_QUERY,
-		guc_search_query(s->search_handle));
+		guc_search_query(search_handle));
 	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u",
-		!guc_search_is_frozen(s->search_handle));
+		!guc_search_is_frozen(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u",
-		guc_search_is_passive(s->search_handle));
+		guc_search_is_passive(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_REISSUE_TIMEOUT, "%u",
-		guc_search_get_reissue_timeout(s->search_handle));
+		guc_search_get_reissue_timeout(search_handle));
     xml_prop_printf(newxml, TAG_SEARCH_CREATE_TIME, "%s",
-		timestamp_to_string(guc_search_get_create_time(s->search_handle)));
+		timestamp_to_string(guc_search_get_create_time(search_handle)));
     xml_prop_printf(newxml, TAG_SEARCH_LIFETIME, "%u",
-		guc_search_get_lifetime(s->search_handle));
-    xml_prop_printf(newxml, TAG_SEARCH_SORT_COL, "%d", s->sort_col);
-    xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%d", s->sort_order);
+		guc_search_get_lifetime(search_handle));
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_COL, "%d",
+		search_gui_get_sort_column(search));
+    xml_prop_printf(newxml, TAG_SEARCH_SORT_ORDER, "%d",
+		search_gui_get_sort_order(search));
 
-    for (iter = s->filter->ruleset; iter != NULL; iter = g_list_next(iter))
+    iter = search_gui_get_filter(search)->ruleset;
+    for (/* NOTHING */; iter != NULL; iter = g_list_next(iter)) {
         rule_to_xml(newxml, iter->data);
+	}
 }
 
 
@@ -845,7 +852,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         newxml = xml_new_empty_child(parent, NODE_RULE_IP);
         xml_prop_set(newxml, TAG_RULE_IP_ADDR,
 			host_addr_to_string(r->u.ip.addr));
-        xml_prop_printf(newxml, TAG_RULE_IP_MASK, "%u", r->u.ip.mask);
+        xml_prop_printf(newxml, TAG_RULE_IP_MASK, "%u", r->u.ip.cidr);
         break;
     case RULE_SIZE:
 		{
@@ -1017,7 +1024,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
     guint32 reissue_timeout;
     xmlNodePtr node;
-    search_t *search;
+    struct search *search;
     guint flags = 0;
 	guint lifetime;
 	time_t create_time;
@@ -1125,7 +1132,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 		 * Also parse all children.
 		 */
 		for (node = xmlnode->children; node != NULL; node = node->next) {
-			parse_xml(node, search->filter);
+			parse_xml(node, search_gui_get_filter(search));
 		}
 	}
 }

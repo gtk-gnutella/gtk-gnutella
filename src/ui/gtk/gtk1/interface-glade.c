@@ -6038,61 +6038,6 @@ create_popup_search (void)
   gtk_widget_show (popup_search_sort_defaults);
   gtk_container_add (GTK_CONTAINER (item2_menu), popup_search_sort_defaults);
 
-  gtk_signal_connect (GTK_OBJECT (popup_search_download), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_download_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_metadata), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_metadata_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_browse_host), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_browse_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_copy_magnet), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_copy_magnet_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_stop_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_resume), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_resume_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_restart), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_restart_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_collapse_all), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_collapse_all_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_expand_all), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_expand_all_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_config_cols), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_config_cols_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_sort_defaults), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_sort_defaults_activate),
-                      NULL);
-
   gtk_object_set_data (GTK_OBJECT (popup_search), "tooltips", tooltips);
 
   return popup_search;
@@ -16622,25 +16567,6 @@ create_popup_search_list (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_list_close);
   gtk_container_add (GTK_CONTAINER (popup_search_list), popup_search_list_close);
-
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_edit_filters), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_edit_filters_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_stop), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_stop_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_resume), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_resume_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_restart), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_restart_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_duplicate), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_duplicate_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_list_close), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_list_close_activate),
-                      NULL);
 
   return popup_search_list;
 }

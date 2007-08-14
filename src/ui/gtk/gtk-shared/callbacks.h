@@ -35,7 +35,6 @@
 #include "gtk/hcache.h"
 #include "gtk/main_cb.h"
 #include "gtk/monitor_cb.h"
-#include "gtk/search_common.h"
 #include "gtk/settings_cb.h"
 #include "gtk/upload_stats_cb.h"
 #include "gtk/uploads_cb.h"
@@ -44,12 +43,10 @@
 #ifdef USE_GTK1
 #include "gtk/gtk1/downloads_cb.h"
 #include "gtk/gtk1/nodes_cb.h"
-#include "gtk/gtk1/search_cb.h"
 #endif
 #ifdef USE_GTK2
 #include "gtk/gtk2/downloads_cb.h"
 #include "gtk/gtk2/nodes_cb.h"
-#include "gtk/gtk2/search_cb.h"
 #endif
 
 void on_button_extra_config_clicked(GtkButton *, gpointer user_data);
@@ -116,11 +113,6 @@ void on_entry_config_speed_activate(GtkEditable *, gpointer user_data);
  *** search stats
  ***/
 void on_button_search_stats_reset_clicked(GtkButton *, gpointer user_data);
-
-
-
-void on_popup_search_browse_host_activate(GtkMenuItem *, gpointer user_data);
-void on_popup_search_sort_defaults_activate(GtkMenuItem *, gpointer user_data);
 
 void on_menu_faq_activate(GtkMenuItem *, gpointer user_data);
 gboolean on_dlg_faq_delete_event(GtkWidget *, GdkEvent *, gpointer user_data);

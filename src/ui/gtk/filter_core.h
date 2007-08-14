@@ -119,7 +119,7 @@ typedef struct rule {
         } text;
         struct _f_ip {
             host_addr_t addr;		    /**< IP address */
-            guint8 mask;               	/**< CIDR netmask */
+            guint8 cidr;               	/**< CIDR netmask */
         } ip;
         struct _f_size {
             filesize_t lower;           /**< lower limit or 0 */
@@ -171,7 +171,7 @@ void filter_reset_stats(filter_t *filter);
 void filter_rule_reset_stats(rule_t *rule);
 rule_t *filter_duplicate_rule(const rule_t *rule);
 rule_t *filter_new_ip_rule(const host_addr_t addr,
-		guint8 mask, filter_t *, guint16);
+		guint8 cidr, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(const gchar *, gint,

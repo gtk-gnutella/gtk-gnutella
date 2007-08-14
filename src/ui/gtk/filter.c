@@ -1106,7 +1106,7 @@ filter_gui_edit_ip_rule(rule_t *r)
 
     if (r != NULL) {
         ip   = g_strdup_printf("%s/%u",
-					host_addr_to_string(r->u.ip.addr), r->u.ip.mask);
+					host_addr_to_string(r->u.ip.addr), r->u.ip.cidr);
         target = r->target;
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);

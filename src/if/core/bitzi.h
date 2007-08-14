@@ -56,7 +56,7 @@ struct sha1;
 /**
  * bitzi_data_t
  */
-typedef struct {
+typedef struct bitzi_data {
 	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
 	const gchar	*mime_type;		/**< mime type (string atom) */
 	const gchar	*mime_desc;		/**< mime details (fps, bitrate etc) (string atom) */

@@ -436,61 +436,6 @@ create_popup_search (void)
   gtk_widget_show (image2190);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_search_sort_defaults), image2190);
 
-  g_signal_connect ((gpointer) popup_search_download, "activate",
-                    G_CALLBACK (on_popup_search_download_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_metadata, "activate",
-                    G_CALLBACK (on_popup_search_metadata_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_browse_host, "activate",
-                    G_CALLBACK (on_popup_search_browse_host_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_copy_magnet, "activate",
-                    G_CALLBACK (on_popup_search_copy_magnet_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_name, "activate",
-                    G_CALLBACK (on_popup_search_drop_name_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_sha1, "activate",
-                    G_CALLBACK (on_popup_search_drop_sha1_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_host, "activate",
-                    G_CALLBACK (on_popup_search_drop_host_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_name_global, "activate",
-                    G_CALLBACK (on_popup_search_drop_name_global_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_sha1_global, "activate",
-                    G_CALLBACK (on_popup_search_drop_sha1_global_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_drop_host_global, "activate",
-                    G_CALLBACK (on_popup_search_drop_host_global_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_stop, "activate",
-                    G_CALLBACK (on_popup_search_stop_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_resume, "activate",
-                    G_CALLBACK (on_popup_search_resume_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_restart, "activate",
-                    G_CALLBACK (on_popup_search_restart_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_expand_all, "activate",
-                    G_CALLBACK (on_popup_search_expand_all_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_collapse_all, "activate",
-                    G_CALLBACK (on_popup_search_collapse_all_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_toggle_tabs, "activate",
-                    G_CALLBACK (on_popup_search_toggle_tabs_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_config_cols, "activate",
-                    G_CALLBACK (on_popup_search_config_cols_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_sort_defaults, "activate",
-                    G_CALLBACK (on_popup_search_sort_defaults_activate),
-                    NULL);
-
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_search, popup_search, "popup_search");
   GLADE_HOOKUP_OBJECT (popup_search, popup_search_download, "popup_search_download");
@@ -14781,25 +14726,6 @@ create_popup_search_list (void)
   gtk_widget_set_name (image2211, "image2211");
   gtk_widget_show (image2211);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_search_list_close), image2211);
-
-  g_signal_connect ((gpointer) popup_search_list_edit_filters, "activate",
-                    G_CALLBACK (on_popup_search_list_edit_filters_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_list_stop, "activate",
-                    G_CALLBACK (on_popup_search_list_stop_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_list_resume, "activate",
-                    G_CALLBACK (on_popup_search_list_resume_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_list_restart, "activate",
-                    G_CALLBACK (on_popup_search_list_restart_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_list_duplicate, "activate",
-                    G_CALLBACK (on_popup_search_list_duplicate_activate),
-                    NULL);
-  g_signal_connect ((gpointer) popup_search_list_close, "activate",
-                    G_CALLBACK (on_popup_search_list_close_activate),
-                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_search_list, popup_search_list, "popup_search_list");

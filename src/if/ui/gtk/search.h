@@ -34,9 +34,10 @@
 
 #ifdef GUI_SOURCES
 
-typedef struct search search_t;
+struct search;
 
-gboolean search_gui_new_search(const gchar *, flag_t flags, search_t **search);
+gboolean search_gui_new_search(const gchar *, flag_t flags, 
+			struct search **search);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_search_h_ */

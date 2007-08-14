@@ -1061,7 +1061,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (!trailer || trailer_size < 7)
 		return FALSE;
 
-	vendor = lookup_vendor_name(rs->vcode);
+	vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
 	open_size = trailer[4];
 	open_parsing_size = trailer[4];
 	enabler_mask = trailer[5];
@@ -1916,7 +1916,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		if (trailer) {
 			memcpy(&rs->vcode.be32, trailer, 4);
-			vendor = lookup_vendor_name(rs->vcode);
+			vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
 			if (vendor != NULL && is_vendor_known(rs->vcode)) {
 				rs->status |= ST_KNOWN_VENDOR;
 			}
@@ -2120,7 +2120,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
-    vendor = lookup_vendor_name(rs->vcode);
+    vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
@@ -3278,7 +3278,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-    	const gchar *vendor = lookup_vendor_name(rs->vcode);
+    	const gchar *vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
 		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),

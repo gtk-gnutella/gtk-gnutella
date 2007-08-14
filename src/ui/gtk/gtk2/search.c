@@ -42,7 +42,7 @@
 #include "gtk/columns.h"
 #include "gtk/drag.h"
 #include "gtk/misc.h"
-#include "gtk/search.h"
+#include "gtk/search_common.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
@@ -218,7 +218,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_sr_vendor:
 		if (!(ST_LOCAL & rs->status))
-			text = lookup_vendor_name(rs->vcode);
+			text = vendor_get_name(rs->vendor);
 		break;
 	case c_sr_info:
 		text = data->record->info;
@@ -495,47 +495,103 @@ search_gui_clear_search(search_t *search)
 }
 
 static void
-search_gui_clear_sorting(search_t *sch)
+search_gui_disable_sort(struct search *search)
 {
-	GtkTreeModel *model;
-	gint id;
-		
-	g_return_if_fail(sch);
+	if (search) {
+#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+		GtkTreeModel *model;
+		GtkTreeSortable *sortable;
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree));
-	g_return_if_fail(model);
+		g_return_if_fail(search);
 
-#if GTK_CHECK_VERSION(2,6,0)
-	id = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
-#else
-	id = c_sr_count;
+		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+		sortable = GTK_TREE_SORTABLE(model);
+		if (gtk_tree_sortable_get_sort_column_id(sortable, NULL)) {
+			gtk_tree_sortable_set_sort_column_id(sortable,
+				GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_DESCENDING);
+		}
 #endif /* Gtk+ >= 2.6.0 */
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
-		id, GTK_SORT_ASCENDING);
+	}
 }
 
 static void
-search_gui_restore_sorting(search_t *sch)
+search_gui_enable_sort(struct search *search)
 {
-	GtkTreeModel *model;
-
-	g_return_if_fail(sch);
-
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree));
-	g_return_if_fail(model);
+	g_return_if_fail(search);
 
 	if (
-		SORT_NONE != sch->sort_order &&
-		sch->sort_col >= 0 &&
-		(guint) sch->sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS
+		SORT_NONE != search->sort_order &&
+		UNSIGNED(search->sort_col) < SEARCH_RESULTS_VISIBLE_COLUMNS
 	) {
+		GtkTreeModel *model;
+		GtkSortType order;
+
+		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+		order = SORT_ASC == search->sort_order
+					? GTK_SORT_ASCENDING
+					: GTK_SORT_DESCENDING;
 		gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
-			sch->sort_col, SORT_ASC == sch->sort_order
-							? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+			search->sort_col, order);
 	} else {
-		search_gui_clear_sorting(sch);
+		search_gui_disable_sort(search);
 	}
 }
+
+/*
+ * Here we enforce a tri-state sorting. Normally, Gtk+ would only
+ * switch between ascending and descending but never switch back
+ * to the unsorted state.
+ *
+ * 			+--> sort ascending -> sort descending -> unsorted -+
+ *      	|                                                   |
+ *      	+-----------------------<---------------------------+
+ */
+
+/*
+ * "order" is set to the current sort-order, not the previous one
+ * i.e., Gtk+ has already changed the order
+ */
+static void
+on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
+	void *udata)
+{
+	struct search *search = udata;
+	GtkTreeModel *model;
+	GtkTreeSortable *sortable;
+	int sort_col;
+
+	/* The default treeview is empty */
+	if (!search)
+		return;
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view));
+	sortable = GTK_TREE_SORTABLE(model);
+	gtk_tree_sortable_get_sort_column_id(sortable, &sort_col, NULL);
+
+	/* If the user switched to another sort column, reset the sort order. */
+	if (search->sort_col != sort_col) {
+		search->sort_order = SORT_NONE;
+	}
+
+	search->sort_col = sort_col;
+
+	/* The search has to keep state about the sort order itself because
+	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
+	switch (search->sort_order) {
+	case SORT_NONE:
+	case SORT_NO_COL:
+		search->sort_order = SORT_ASC;
+		break;
+	case SORT_ASC:
+		search->sort_order = SORT_DESC;
+		break;
+	case SORT_DESC:
+		search->sort_order = SORT_NONE;
+		break;
+	}
+	search_gui_enable_sort(search);
+}
+
 
 char *
 search_gui_get_local_file_url(GtkWidget *widget)
@@ -607,8 +663,6 @@ search_gui_init_tree(search_t *sch)
 		c_sl_fg, NULL,
 		c_sl_bg, NULL,
 		(-1));
-
-	search_gui_restore_sorting(sch);
 }
 
 static inline int
@@ -682,7 +736,7 @@ search_gui_cmp_country(const struct result_data *a, const struct result_data *b)
 static int
 search_gui_cmp_vendor(const struct result_data *a, const struct result_data *b)
 {
-	return SEARCH_GUI_CMP(a, b, record->results_set->vcode.be32);
+	return SEARCH_GUI_CMP(a, b, record->results_set->vendor);
 }
 
 static int
@@ -843,14 +897,18 @@ download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 }
 
 static void
-remove_selected_file(gpointer iter_ptr, gpointer model_ptr)
+remove_selected_file(void *iter_ptr, void *search_ptr)
 {
-	GtkTreeModel *model = model_ptr;
-	GtkTreeIter *iter = iter_ptr;
+	GtkTreeModel *model;
+	GtkTreeIter *iter;
 	GtkTreeIter child;
 	struct result_data *rd;
+	struct search *search;
 	record_t *rc;
-	search_t *search = search_gui_get_current_search();
+
+	search = search_ptr;
+	iter = iter_ptr;
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 
 	g_assert(search->items > 0);
 	search->items--;
@@ -945,17 +1003,13 @@ collect_all_iters(GtkTreeModel *model, GtkTreePath *path,
 }
 
 void
-search_gui_download_files(void)
+search_gui_download_files(struct search *search)
 {
-	search_t *search = search_gui_get_current_search();
 	GSList *sl = NULL;
 	struct selection_ctx ctx;
     gboolean clear;
 
-	if (NULL == search)
-		return;
-
-	search_gui_start_massive_update(search);
+	g_return_if_fail(search);
 
 	/* FIXME: This has to be GUI (not a core) property! */
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
@@ -966,31 +1020,18 @@ search_gui_download_files(void)
 		download_selected_all_files, &ctx);
 
 	if (sl) {
-		GtkTreeModel *model;
-
-		model = gtk_tree_view_get_model(ctx.tv);
-		g_slist_foreach(sl, remove_selected_file, model);
+		g_slist_foreach(sl, remove_selected_file, search);
     	g_slist_free(sl);
 	}
-
-	search_gui_end_massive_update(search);
-
-    search_gui_update_status(search);
-    guc_search_update_items(search->search_handle, search->items);
 }
 
-
 void
-search_gui_discard_files(void)
+search_gui_discard_files(struct search *search)
 {
-	search_t *search = search_gui_get_current_search();
 	GSList *sl = NULL;
 	struct selection_ctx ctx;
 
-	if (NULL == search)
-		return;
-
-	search_gui_start_massive_update(search);
+	g_return_if_fail(search);
 
 	ctx.tv = GTK_TREE_VIEW(search->tree);
 	ctx.iters = &sl;
@@ -998,17 +1039,9 @@ search_gui_discard_files(void)
 		collect_all_iters, &ctx);
 
 	if (sl) {
-		GtkTreeModel *model;
-
-		model = gtk_tree_view_get_model(ctx.tv);
-		g_slist_foreach(sl, remove_selected_file, model);
+		g_slist_foreach(sl, remove_selected_file, search);
     	g_slist_free(sl);
 	}
-
-	search_gui_end_massive_update(search);
-
-    search_gui_update_status(search);
-    guc_search_update_items(search->search_handle, search->items);
 }
 
 /***
@@ -1176,7 +1209,7 @@ search_gui_remove_search(search_t *search)
 
 	g_return_if_fail(search);
 
-	g_object_freeze_notify(G_OBJECT(search->tree));
+	search_gui_start_massive_update(search);
 
 	if (search_gui_get_current_search() == search) {
 		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
@@ -1195,14 +1228,13 @@ search_gui_remove_search(search_t *search)
 }
 
 static void
-search_gui_set_search_list_cursor(search_t *search)
+search_gui_set_search_list_cursor(struct search *search)
 {
 	GtkTreeModel *model;
 	GtkTreePath *path;
 	GtkTreeIter iter;
 
-	if (NULL == search)
-		return;
+	g_return_if_fail(search);
 
 	model = gtk_tree_view_get_model(tree_view_search);
 	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
@@ -1216,54 +1248,49 @@ search_gui_set_search_list_cursor(search_t *search)
 }
 
 void
-search_gui_set_current_search(search_t *search)
+search_gui_hide_search(struct search *search)
 {
-	search_t *current_search;
+	GtkTreeView *tv;
 
-	current_search = search_gui_get_current_search();
-	if (search == current_search)
-		return;
+	g_return_if_fail(search);
 
-    /*
-     * We now propagate the column visibility from the current_search
-     * to the new current_search.
-     */
+	tv = GTK_TREE_VIEW(search->tree);
+	tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	tree_view_motion_clear_callback(&tvm_search);
+}
 
-	if (current_search) {
-		GtkTreeView *tv = GTK_TREE_VIEW(current_search->tree);
+void
+search_gui_show_search(struct search *search)
+{
+	GtkTreeView *tv;
 
-		tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
-		tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
-		tree_view_motion_clear_callback(&tvm_search);
-		gtk_widget_hide(GTK_WIDGET(tv));
-		g_object_freeze_notify(G_OBJECT(tv));
-		search_gui_clear_sorting(current_search);
-	}
-	search_gui_current_search(search);
+	g_return_if_fail(search);
 
-	search = search_gui_get_current_search();
-	if (search) {
-		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
+	tv = GTK_TREE_VIEW(search->tree);
+	tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
+	tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	tvm_search = tree_view_motion_set_callback(tv,
+			search_update_tooltip, 400);
+
+	if (!gtk_tree_view_get_headers_clickable(tv)) {
 		int i;
 
-		tv = GTK_TREE_VIEW(search->tree);
-		tree_view_restore_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
-		tree_view_restore_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
-		tvm_search = tree_view_motion_set_callback(tv,
-						search_update_tooltip, 400);
-
+		gtk_tree_view_set_headers_clickable(tv, TRUE);
 		for (i = 0; i < c_sr_num; i++) {
+			GtkTreeViewColumn *column;
+
+			column = gtk_tree_view_get_column(tv, i);
+			gtk_tree_view_column_set_sort_column_id(column, i);
 			gtk_tree_sortable_set_sort_func(
 				GTK_TREE_SORTABLE(gtk_tree_view_get_model(tv)), i,
-				search_gui_cmp, NULL, NULL);
+				search_gui_cmp, uint_to_pointer(i), NULL);
 			gui_signal_connect_after(gtk_tree_view_get_column(tv, i),
 				"clicked", on_tree_view_search_results_click_column, search);
 		}
-		search_gui_restore_sorting(search);
-		gtk_widget_show(GTK_WIDGET(tv));
-		g_object_thaw_notify(G_OBJECT(tv));
-		search_gui_set_search_list_cursor(search);
 	}
+
+	search_gui_set_search_list_cursor(search);
 }
 
 static GtkTreeModel *
@@ -1387,9 +1414,8 @@ search_gui_update_list_label(const struct search *search)
  * Expand all nodes in tree for current search.
  */
 void
-search_gui_expand_all(void)
+search_gui_expand_all(struct search *search)
 {
-	search_t *search = search_gui_get_current_search();
 	if (search) {
 		gtk_tree_view_expand_all(GTK_TREE_VIEW(search->tree));
 	}
@@ -1399,28 +1425,37 @@ search_gui_expand_all(void)
  * Collapse all nodes in tree for current search.
  */
 void
-search_gui_collapse_all(void)
+search_gui_collapse_all(struct search *search)
 {
-	search_t *search = search_gui_get_current_search();
 	if (search) {
 		gtk_tree_view_collapse_all(GTK_TREE_VIEW(search->tree));
 	}
 }
 
 void
-search_gui_start_massive_update(search_t *sch)
+search_gui_start_massive_update(struct search *search)
 {
-	g_assert(sch);
+	GtkTreeModel *model;
 
-	g_object_freeze_notify(G_OBJECT(sch->tree));
+	g_return_if_fail(search);
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+	g_object_freeze_notify(G_OBJECT(search->tree));
+	g_object_freeze_notify(G_OBJECT(model));
+	search_gui_disable_sort(search);
 }
 
 void
-search_gui_end_massive_update(search_t *sch)
+search_gui_end_massive_update(struct search *search)
 {
-	g_assert(sch);
+	GtkTreeModel *model;
 
-	g_object_thaw_notify(G_OBJECT(sch->tree));
+	g_return_if_fail(search);
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+	g_object_thaw_notify(G_OBJECT(model));
+	g_object_thaw_notify(G_OBJECT(search->tree));
+	search_gui_enable_sort(search);
 }
 
 static void
@@ -1480,18 +1515,16 @@ search_gui_make_meta_column_visible(search_t *search)
 }
 
 void
-search_gui_request_bitzi_data(void)
+search_gui_request_bitzi_data(struct search *search)
 {
 	GtkTreeSelection *selection;
 	GHashTable *results;
-	search_t *search;
 
 	/* collect the list of files selected */
 
-	search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	g_object_freeze_notify(G_OBJECT(search->tree));
+	search_gui_start_massive_update(search);
 
 	results = g_hash_table_new(NULL, NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
@@ -1514,8 +1547,8 @@ search_gui_request_bitzi_data(void)
 
 	/* Make sure the column is actually visible. */
 	search_gui_make_meta_column_visible(search);
-	
-	g_object_thaw_notify(G_OBJECT(search->tree));
+
+	search_gui_end_massive_update(search);	
 }
 
 /**
@@ -1566,7 +1599,6 @@ search_gui_create_tree(void)
 	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 	gtk_tree_view_set_headers_visible(tv, TRUE);
-	gtk_tree_view_set_headers_clickable(tv, TRUE);
 	gtk_tree_view_set_enable_search(tv, TRUE);
 	gtk_tree_view_set_search_column(tv, 0);
 	gtk_tree_view_set_rules_hint(tv, TRUE);
@@ -1581,12 +1613,9 @@ search_gui_create_tree(void)
 
 	gui_signal_connect(tv,
 		"cursor-changed", on_tree_view_search_results_select_row, tv);
-    gui_signal_connect(tv,
-		"key-press-event", on_search_results_key_press_event, NULL);
-	gui_signal_connect(tv,
-		"button-press-event", on_search_results_button_press_event, NULL);
     gui_signal_connect(tv, "leave-notify-event", on_leave_notify, NULL);
-	g_object_freeze_notify(G_OBJECT(tv));
+
+	gtk_tree_view_set_headers_clickable(tv, FALSE);
 
 	return GTK_WIDGET(tv);
 }

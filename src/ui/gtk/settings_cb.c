@@ -1047,18 +1047,4 @@ on_menu_autohide_bws_gleaf_activate(GtkMenuItem *menuitem,
 	checkmenu_changed(gui, PROP_AUTOHIDE_BWS_GLEAF, menuitem);
 }
 
-void
-on_popup_search_toggle_tabs_activate(GtkMenuItem *unused_menuitem,
-		gpointer unused_udata)
-{
-    gboolean val;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, &val);
-    val = !val;
-    gui_prop_set_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, val);
-}
-
 /* vi: set ts=4 sw=4 cindent: */

@@ -137,7 +137,7 @@ typedef struct vendor_code {
 } vendor_code_t;
 
 const gchar *vendor_code_str(guint32 code);
-const gchar *lookup_vendor_name(vendor_code_t code);
+const char *vendor_get_name(guint32 code);
 gboolean is_vendor_known(vendor_code_t code);
 
 void vendor_init(void);

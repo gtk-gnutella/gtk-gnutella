@@ -36,7 +36,10 @@
 #ifndef _gtk_search_xml_h_
 #define _gtk_search_xml_h_
 
+#include "if/core/search.h"
+
 void search_store_xml(void);
 gboolean search_retrieve_xml(void);
+gnet_search_t search_gui_get_handle(const struct search *);
 
 #endif	/* _gtk_search_xml_h_ */

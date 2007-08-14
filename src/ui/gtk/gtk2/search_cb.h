@@ -28,10 +28,11 @@
 
 #include "gtk/gui.h"
 
+struct search;
+struct record;
+
 void on_tree_view_search_cursor_changed(GtkTreeView *, void *user_data);
 
-void on_tree_view_search_results_click_column(GtkTreeViewColumn *,
-	void *user_data);
 void on_tree_view_search_results_select_row(GtkTreeView *, void *user_data);
 void on_tree_view_search_results_unselect_row(GtkTreeView *,
 	int row, int column, GdkEvent *, void *user_data);
@@ -41,5 +42,9 @@ void search_update_tooltip(GtkTreeView *, GtkTreePath *);
 void *search_gui_get_record(GtkTreeModel *, GtkTreeIter *);
 gboolean search_gui_update_rank(GtkTreeModel *, GtkTreePath *, GtkTreeIter *,
 		void *user_data);
+
+void search_gui_request_bitzi_data(struct search *);
+const struct record *search_gui_get_record_at_path(GtkTreeView *,
+			GtkTreePath *);
 
 #endif /* _gtk2_search_cb_h_ */

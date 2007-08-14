@@ -202,6 +202,8 @@ void gtk_widget_fix_width(GtkWidget *, GtkWidget *, guint chars, guint extra);
 			gdk_window_get_size((window), (width), (height))
 #endif	/* Gtk+ 1.2 */
 
+gboolean check_gtk_version(unsigned major, unsigned minor, unsigned micro);
+
 #endif	/* _gtk_gtk_missing_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

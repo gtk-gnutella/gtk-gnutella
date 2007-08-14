@@ -1211,4 +1211,19 @@ statusbar_set_shadow_type(GtkStatusbar *sb, GtkShadowType shadow)
 #endif	/* Gtk+ 1.2 */
 }
 
+/**
+ * @return TRUE if the runtime Gtk+ version is the given version or newer.
+ */
+gboolean
+check_gtk_version(unsigned major, unsigned minor, unsigned micro)
+{
+	if (gtk_major_version != major)
+		return gtk_major_version > major;
+	if (gtk_minor_version != minor)
+		return gtk_minor_version > minor;
+	if (gtk_micro_version != micro)
+		return gtk_micro_version > micro;
+	return TRUE;
+}
+
 /* vi: set ts=4 sw=4 cindent: */

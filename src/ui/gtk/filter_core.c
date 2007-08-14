@@ -38,18 +38,22 @@
 
 RCSID("$Id$")
 
-#include "filter.h"
-#include "filter_core.h"
-#include "search.h"
-#include "settings.h"
+#include "gtk/filter.h"
+#include "gtk/filter_core.h"
+#include "gtk/search.h"
+#include "gtk/search_result.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
+
+#include "if/core/search.h"
 
 #include "lib/atoms.h"
 #include "lib/walloc.h"
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /**
@@ -418,7 +422,7 @@ filter_refresh_display(GList *filter_list)
 void
 filter_open_dialog(void)
 {
-    search_t *current_search;
+    struct search *current_search;
 
     current_search = search_gui_get_current_search();
 
@@ -430,7 +434,11 @@ filter_open_dialog(void)
         filter_refresh_display(filters_current);
     }
 
-    filter_set(current_search ? current_search->filter : NULL);
+	if (current_search) {
+    	filter_set(search_gui_get_filter(current_search));
+	} else {
+    	filter_set(NULL);
+	}
     filter_gui_show_dialog();
 }
 
@@ -487,7 +495,7 @@ filter_duplicate_rule(const rule_t *r)
         return filter_new_text_rule(r->u.text.match, r->u.text.type,
 					r->u.text.case_sensitive, r->target, r->flags);
     case RULE_IP:
-        return filter_new_ip_rule(r->u.ip.addr, r->u.ip.mask,
+        return filter_new_ip_rule(r->u.ip.addr, r->u.ip.cidr,
 					r->target, r->flags);
     case RULE_SIZE:
         return filter_new_size_rule(r->u.size.lower, r->u.size.upper,
@@ -583,7 +591,7 @@ filter_new_text_rule(const gchar *match, gint type,
 
 
 rule_t *
-filter_new_ip_rule(const host_addr_t addr, guint8 mask,
+filter_new_ip_rule(const host_addr_t addr, guint8 cidr,
 	filter_t *target, guint16 flags)
 {
 	rule_t *r;
@@ -594,8 +602,16 @@ filter_new_ip_rule(const host_addr_t addr, guint8 mask,
 
    	r->type = RULE_IP;
 
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:	cidr = MIN(cidr, 32); break;
+	case NET_TYPE_IPV6:	cidr = MIN(cidr, 128); break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
 	r->u.ip.addr  = addr;
-	r->u.ip.mask  = mask;
+	r->u.ip.cidr  = cidr;
     r->target     = target;
     r->flags      = flags;
     set_flags(r->flags, RULE_FLAG_VALID);
@@ -772,30 +788,31 @@ filter_set(filter_t *f)
 
 /**
  * Clear the searches shadow, update the combobox and the filter
- * bound to this search (search->ruleser).
+ * bound to this search (search->ruleset).
  */
 void
-filter_close_search(search_t *s)
+filter_close_search(struct search *s)
 {
     shadow_t *shadow;
+	filter_t *filter;
 
-    g_assert(s != NULL);
-    g_assert(s->filter != NULL);
+	g_return_if_fail(s);
+	filter = search_gui_get_filter(s);
+	g_return_if_fail(filter);
 
     if (GUI_PROPERTY(gui_debug) >= 6)
         g_message("closing search (freeing filter): %s", search_gui_query(s));
 
-    shadow = shadow_find(s->filter);
+    shadow = shadow_find(filter);
     if (shadow != NULL) {
 		GList *copy;
 
 		copy = g_list_copy(shadow->removed);
-		G_LIST_FOREACH_SWAPPED(copy, filter_append_rule_to_session, s->filter);
+		G_LIST_FOREACH_SWAPPED(copy, filter_append_rule_to_session, filter);
         g_list_free(copy);
 
 		copy = g_list_copy(shadow->added);
-		G_LIST_FOREACH_SWAPPED(copy,
-			filter_remove_rule_from_session, s->filter);
+		G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule_from_session, filter);
         g_list_free(copy);
 
         shadow_cancel(shadow);
@@ -804,16 +821,14 @@ filter_close_search(search_t *s)
     /*
      * If this is the filter currently worked on, clear the display.
      */
-    if (s->filter == work_filter)
+    if (filter == work_filter) {
         filter_set(NULL);
+	}
+    filter_gui_filter_remove(filter);
 
-    filter_gui_filter_remove(s->filter);
-
-    filter_free(s->filter);
-    s->filter = NULL;
+    filter_free(filter);
+	search_gui_set_filter(s, NULL);
 }
-
-
 
 /**
  * Go through all the shadow filters, and commit the recorded
@@ -1005,7 +1020,7 @@ filter_rule_condition_to_string(const rule_t *r)
         break;
     case RULE_IP:
 		gm_snprintf(tmp, sizeof tmp, _("If IP address matches %s/%u"),
-			host_addr_to_string(r->u.ip.addr), r->u.ip.mask);
+			host_addr_to_string(r->u.ip.addr), r->u.ip.cidr);
         break;
     case RULE_SIZE:
 		if (r->u.size.upper == r->u.size.lower) {
@@ -1269,7 +1284,7 @@ filter_add_to_session(filter_t *f)
  * Create a new filter bound to a search and register it.
  */
 void
-filter_new_for_search(search_t *s)
+filter_new_for_search(struct search *s)
 {
 	const gchar *query;
     filter_t *f;
@@ -1297,7 +1312,7 @@ filter_new_for_search(search_t *s)
      * Crosslink filter and search
      */
     f->search = s;
-    s->filter = f;
+	search_gui_set_filter(s, f);
 
     /*
      * It's important to add the filter here, because it was not
@@ -2054,10 +2069,8 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
     g_assert(filter != NULL);
     g_assert(ctx != NULL);
 	rec = ctx->rec;
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(res != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     /*
      * We only try to prevent circles or the filter is inactive.
@@ -2188,7 +2201,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 			}
             case RULE_IP:
 				match = host_addr_matches(rec->results_set->addr,
-							r->u.ip.addr, r->u.ip.mask);
+							r->u.ip.addr, r->u.ip.cidr);
                 break;
             case RULE_SIZE:
                 if (rec->size >= r->u.size.lower &&
@@ -2345,16 +2358,14 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
  * rows. This must be freed with filter_free_properties.
  */
 filter_result_t *
-filter_record(search_t *sch, const struct record *rec)
+filter_record(struct search *search, const struct record *rec)
 {
     filter_result_t *result;
 	struct filter_context ctx;
     gint i;
 
-    g_assert(sch != NULL);
-    g_assert(rec != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
+    g_assert(search != NULL);
+	record_check(rec);
 
 	ctx.rec = rec;
 	ctx.l_name = ctx.utf8_name = NULL;
@@ -2372,7 +2383,7 @@ filter_record(search_t *sch, const struct record *rec)
      * If not decided check if the filters for this search apply.
      */
     if (result->props_set < MAX_FILTER_PROP)
-        filter_apply(sch->filter, &ctx, result);
+        filter_apply(search_gui_get_filter(search), &ctx, result);
 
     /*
      * If it has not yet been decided, try the global filter
@@ -2687,10 +2698,8 @@ filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter)
     rule_t *rule;
 	gchar *s;
 
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(filter != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
 	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
     rule = filter_new_sha1_rule(rec->sha1, s,
@@ -2711,10 +2720,8 @@ filter_add_drop_name_rule(const struct record *rec, filter_t *filter)
     rule_t *rule;
 	gchar *s;
 
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(filter != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
 	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
     rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,
@@ -2734,10 +2741,8 @@ filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
 
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(filter != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     rule = filter_new_ip_rule(rec->results_set->addr, -1,
         		filter_get_drop_target(), RULE_FLAG_ACTIVE);
@@ -2751,10 +2756,8 @@ filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 void
 filter_add_download_sha1_rule(const struct record *rec, filter_t *filter)
 {
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(filter != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     if (rec->sha1) {
         rule_t *rule;
@@ -2780,10 +2783,8 @@ filter_add_download_name_rule(const struct record *rec, filter_t *filter)
     rule_t *rule;
 	gchar *s;
 
-    g_assert(rec != NULL);
+	record_check(rec);
     g_assert(filter != NULL);
-	g_assert(rec->magic == RECORD_MAGIC);
-	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
 	s = unknown_to_utf8_normalized(rec->name, UNI_NORM_GUI, FALSE);
     rule = filter_new_text_rule(s, RULE_TEXT_EXACT, TRUE,

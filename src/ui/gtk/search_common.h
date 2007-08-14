@@ -26,104 +26,66 @@
 #ifndef _gtk_search_common_h_
 #define _gtk_search_common_h_
 
+#include "gtk/search.h"
+#include "gtk/search_result.h"
+
 #include "if/core/search.h"
 #include "if/ui/gtk/search.h"
 
-typedef enum {
-	RESULTS_SET_MAGIC = 0xa44eb853U
-} results_set_magic_t;
+struct filter;
+struct slist;
 
 /**
- * A results_set structure factorizes the common information from a Query Hit
- * packet, and then has a list of individual records, one for each hit.
- *
- * A single structure is created for each Query Hit packet we receive, but
- * then it can be dispatched for displaying some of its records to the
- * various searches in presence.  Each time the structure is dispatched,
- * the `refcount' is incremented, so that we don't free it and its content
- * until it has been "forgotten" that many times.
- *
- * @attention
- * NB: we reuse the pure data structure gnet_host_vec_t from the core.  It
- *     is purely descriptive anyway.
+ * Structure for search results.
  */
-typedef struct results_set {
-	results_set_magic_t magic;
-	int num_recs;
+typedef struct search {
+    gnet_search_t search_handle;	/**< Search handle */
 
-	const char *guid;			/**< Servent's GUID (atom) */
-	const char *version;		/**< Version information (atom) */
-	const char *hostname;		/**< Optional: server's hostname (atom) */
-	const char *query;			/**< Optional: original query (atom) */
+	GtkWidget  *tree;				/**< GtkTreeView or GtkCTree */
+	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains tree */
+    GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
-	GSList *records;
-    GSList *schl;
-	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
+	GHashTable *dups;				/**< keep a record of dups. */
+	GHashTable *parents;			/**< table of mount iterators for
+										 any seen SHA1 */
 
-	host_addr_t addr;
-	host_addr_t last_hop;		/**< IP of delivering node */
-	time_t  stamp;				/**< Reception time of the hit */
+    struct filter *filter;		/**< filter ruleset bound to this search */
+	struct slist *queue;		/**< records to be inserted */
 
-	vendor_code_t vcode;		/**< Vendor code */
-	guint32 status;				/**< Parsed status bits from trailer */
-	guint16 country;			/**< Country code -- encoded ISO3166 */
-	guint16 port;
-	guint16 speed;
-	guint8 hops;
-	guint8 ttl;
-} results_set_t;
+	gboolean	list_refreshed;
+	gboolean	sort;
 
-typedef enum {
-	RECORD_MAGIC = 0x3fb9c04e
-} record_magic_t;
+    int        sort_col;
+    int        sort_order;
+
+	/*
+	 * Search stats.
+	 */
+
+	guint32     items;			/**< Total number of items for the search */
+	guint32     unseen_items;	/**< How many items haven't been seen yet */
+	guint32		tcp_qhits;			/**< Query hits received from TCP */
+	guint32		udp_qhits;			/**< Query hits received from UDP */
+	guint32		skipped;			/**< Ignored hits (skipped over) */
+	guint32		ignored;			/**< Filtered out hits */
+	guint32		hidden;				/**< Hidden hits, never shown */
+	guint32		auto_downloaded;	/**< Auto-downloaded hits */
+	guint32		duplicates;			/**< Duplicate hits ignored */
+} search_t;
+
+#ifdef USE_GTK1
 
 /**
- * An individual hit.  It referes to a file entry on the remote servent,
- * as identified by the parent results_set structure that contains this hit.
- *
- * When a record is kept in a search window for display, it is put into
- * a hash table and its `refcount' is incremented: since the parent structure
- * can be dispatched to various searches, each record can be inserted in so
- * many different hash tables (one per search).
+ *	Record associated with each gui node in the search results ctree.
  */
-typedef struct record {
-	record_magic_t magic;		/**< Magic ID */
-	int refcount;				/**< Number of hash tables it has been put to */
+typedef struct gui_record {
+	struct record *shared_record;		/**< Common record data, shared between
+										 searches */
 
-	results_set_t *results_set;	/**< Parent, containing record */
-	const char *name;			/**< Filename (atom) */
-	const char *ext;			/**< File extension (atom) */
-	const char *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
-	const char *charset;		/**< Detected charset of name (static const) */
-	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
-	const char *xml;			/**< Optional XML data string (atom) */
-	const char *tag;			/**< Optional tag data string (atom) */
-	const char *info;			/**< Short version of tag (atom) */
-	const char *path;			/**< Optional path (atom) */
-	gnet_host_vec_t *alt_locs;	/**< Optional alternate locations for record */
-	filesize_t size;			/**< Size of file, in bytes */
-	time_t  create_time;		/**< Create Time of file; zero if unknown */
-	guint32 file_index;			/**< Index for GET command */
-    flag_t  flags;              /**< same flags as in gnet_record_t */
-} record_t;
+	int num_children;				/**< Number of children under this node */
+} gui_record_t;
 
-static inline void
-record_check(const record_t * const rc)
-{
-	g_assert(rc);
-	g_assert(rc->magic == RECORD_MAGIC);
-	g_assert(rc->refcount >= 0);
-	g_assert(rc->refcount < INT_MAX);
-}
-
-static inline void
-results_set_check(const results_set_t * const rs)
-{
-	g_assert(rs);
-	g_assert(rs->magic == RESULTS_SET_MAGIC);
-	g_assert(rs->num_recs >= 0);
-	g_assert(rs->num_recs < INT_MAX);
-}
+#endif /* USE_GTK1 */
 
 struct query {
 	char *text;
@@ -145,12 +107,7 @@ enum gui_color {
 };
 
 
-void gui_color_init(GtkWidget *);
 GdkColor *gui_color_get(enum gui_color);
-void gui_color_set(const enum gui_color, GdkColor *);
-void search_gui_get_colors(search_t *, GdkColor **mark, GdkColor **ignore);
-
-#include "search.h"
 
 /*
  * Global Functions
@@ -158,10 +115,8 @@ void search_gui_get_colors(search_t *, GdkColor **mark, GdkColor **ignore);
 
 void search_gui_common_init(void);
 
-void search_gui_init_tree(search_t *);
-search_t *search_gui_get_current_search(void);
-void search_gui_set_current_search(search_t *);
-void search_gui_current_search(search_t *);
+void search_gui_init_tree(struct search *);
+void search_gui_set_current_search(struct search *);
 
 void search_gui_ref_record(record_t *);
 void search_gui_unref_record(record_t *);
@@ -176,14 +131,7 @@ struct query *search_gui_handle_query(const char *, flag_t flags,
 void search_gui_query_free(struct query **query_ptr);
 void search_gui_filter_new(search_t *, GList *rules);
 
-gboolean search_gui_new_browse_host(
-	const char *hostname, host_addr_t addr, guint16 port,
-	const char *guid, const gnet_host_vec_t *proxies, guint32 flags);
-
-struct filter;
-
 void search_gui_add_targetted_search(void *data, void *user_data);
-void search_gui_update_status(struct search *);
 gboolean search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
 
@@ -194,12 +142,17 @@ char *search_xml_indent(const char *);
 
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 			void *user_udata);
-gboolean on_search_results_key_press_event(GtkWidget *, GdkEventKey *,
-			void *user_data);
-gboolean on_search_results_button_press_event(GtkWidget *, GdkEventButton *,
-			void *user_data);
 gboolean on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
 			void *user_data);
+
+void on_popup_search_drop_name_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_drop_sha1_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_drop_host_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_drop_name_global_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_drop_sha1_global_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_drop_host_global_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_metadata_activate(GtkMenuItem *, void *user_data);
+void on_popup_search_copy_magnet_activate(GtkMenuItem *, void *user_data);
 
 int search_gui_cmp_sha1s(const struct sha1 *, const struct sha1 *);
 
@@ -208,51 +161,17 @@ GtkMenu *search_gui_get_search_list_popup_menu(void);
 
 void search_gui_callbacks_shutdown(void);
 
-/***
- *** Search results popup
- ***/
-
-void on_popup_search_collapse_all_activate(GtkMenuItem *, void *udata);
-void on_popup_search_config_cols_activate(GtkMenuItem *, void *udata);
-void on_popup_search_copy_magnet_activate(GtkMenuItem *, void *udata);
-void on_popup_search_download_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_host_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_host_global_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_name_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_name_global_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_sha1_activate(GtkMenuItem *, void *udata);
-void on_popup_search_drop_sha1_global_activate(GtkMenuItem *, void *udata);
-void on_popup_search_expand_all_activate(GtkMenuItem *, void *udata);
-void on_popup_search_metadata_activate(GtkMenuItem *, void *udata);
-void on_popup_search_restart_activate(GtkMenuItem *, void *udata);
-void on_popup_search_resume_activate(GtkMenuItem *, void *udata);
-void on_popup_search_stop_activate(GtkMenuItem *, void *udata);
-
-/***
- *** Search list popup
- ***/
-
-void on_popup_search_list_edit_filters_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_clear_results_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_close_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_duplicate_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_restart_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_resume_activate(GtkMenuItem *, void *udata);
-void on_popup_search_list_stop_activate(GtkMenuItem *, void *udata);
-
 gboolean on_search_list_button_press_event(GtkWidget *,
 			GdkEventButton *, void *user_data);
 
-void on_entry_search_changed(GtkEditable *, void *user_data);
-
 GSList *search_gui_get_selected_searches(void);
-gboolean search_gui_has_selected_item(search_t *);
+gboolean search_gui_has_selected_item(struct search *);
 void search_gui_search_list_clicked(void);
-void search_gui_download_files(void);
-void search_gui_discard_files(void);
-void search_gui_sort_column(struct search *, gint column);
-void search_gui_expand_all(void);
-void search_gui_collapse_all(void);
+void search_gui_download_files(struct search *);
+void search_gui_discard_files(struct search *);
+void search_gui_sort_column(struct search *, int column);
+void search_gui_expand_all(struct search *);
+void search_gui_collapse_all(struct search *);
 void search_gui_flush_queues(void);
 void search_gui_remove_search(search_t *);
 void search_gui_update_list_label(const struct search *);
@@ -261,8 +180,7 @@ char *search_gui_get_local_file_url(GtkWidget *);
 char *search_gui_details_get_text(GtkWidget *);
 GtkWidget *search_gui_create_tree(void);
 
-const char *search_gui_query(const search_t *);
-gboolean search_gui_is_enabled(const search_t *);
+gboolean search_gui_is_enabled(const struct search *);
 
 void search_gui_download(record_t *);
 const char *search_gui_nice_size(const record_t *);
@@ -272,7 +190,6 @@ void search_gui_set_details(const record_t *);
 void search_gui_clear_details(void);
 void search_gui_append_detail(const char *title, const char *value);
 const char *search_new_error_to_string(enum search_new_result);
-
 
 record_t *search_gui_record_get_parent(search_t *, record_t *);
 GSList *search_gui_record_get_children(search_t *, record_t *);
@@ -284,7 +201,21 @@ typedef search_t *(*search_gui_synchronize_list_cb)(void *user_data);
 void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 			void *user_data);
 
-void search_gui_store_searches(void);
+void search_gui_start_massive_update(struct search *);
+void search_gui_end_massive_update(struct search *);
+void search_gui_queue_bitzi_by_sha1(const record_t *);
+void search_gui_add_record(struct search *, record_t *, enum gui_color);
+void search_gui_hide_search(struct search *);
+void search_gui_show_search(struct search *);
+
+/*
+ * Search result record comparison functions.
+ */
+
+int gui_record_name_eq(const void *, const void *);
+int gui_record_sha1_eq(const void *, const void *);
+int gui_record_host_eq(const void *, const void *);
+int gui_record_sha1_or_name_eq(const void *, const void *);
 
 /* FIXME: This does not belong here. */
 char *gnet_host_vec_to_string(const gnet_host_vec_t *);

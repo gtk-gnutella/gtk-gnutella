@@ -194,37 +194,30 @@ vendor_code_str(guint32 code)
  * If we can't understand the code return NULL or if the 4-byte code
  * consists only of printable characters, return the code as a string.
  */
-const gchar *
-lookup_vendor_name(vendor_code_t code)
+const char *
+vendor_get_name(guint32 code)
 {
-	static gchar temp[5];
-	const gchar *name;
-    guint i;
+	const char *name;
 
-	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
-	
-    if (code.be32 == 0)
-        return NULL;
-
-	name = find_vendor(ntohl(code.be32));
-	if (name != NULL)
+    if (0 == code) {
+		return NULL;
+	} else if (NULL != (name = find_vendor(code))) {
 		return name;
+	} else {
+		static char bytes[5];
+		unsigned i;
 
-	
-	/* Unknown type, look whether we have all printable ASCII */
-	for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
-		const guint8 *u8 = cast_to_gconstpointer(&code.be32);
+		STATIC_ASSERT(sizeof code == G_N_ELEMENTS(bytes) - 1);
+		poke_be32(&bytes, code);
 
-		if (is_ascii_print(u8[i]))
-            temp[i] = u8[i];
-		else {
-            temp[0] = '\0';
-			break;
+		/* Unknown type, look whether we have all printable ASCII */
+		for (i = 0; i < G_N_ELEMENTS(bytes) - 1; i++) {
+			if (!is_ascii_alnum(bytes[i]))
+				return NULL;
 		}
+		bytes[i] = '\0';
+		return bytes;
 	}
-	temp[4] = '\0';
-
-	return temp[0] ? temp : NULL;
 }
 
 /**

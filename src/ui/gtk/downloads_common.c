@@ -33,7 +33,7 @@ RCSID("$Id$")
 #include "gtk/drag.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
-#include "gtk/search_common.h"
+#include "gtk/search.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 #include "gtk/visual_progress.h"
@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

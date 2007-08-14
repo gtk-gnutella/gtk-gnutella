@@ -42,10 +42,7 @@ RCSID("$Id$")
 
 #include "gtk/misc.h"
 
-#include "nodes.h"
-#include "downloads.h"
 #include "settings.h"
-#include "search.h"
 
 #include "if/gnet_property.h"
 #include "if/gui_property.h"
@@ -55,6 +52,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -270,80 +268,6 @@ gui_update_stats_frames(void)
         gtk_widget_show(frame_bws_glinout);
     else
         gtk_widget_hide(frame_bws_glinout);
-}
-
-/**
- * Tells if two hit records have the same filename.
- */
-gint
-gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
-{
-    gint result;
-
-    result = strcmp(((const record_t *) rec1)->name,
-       ((const record_t *) rec2)->name);
-
-	if (GUI_PROPERTY(gui_debug) > 4)
-    	g_message("[%s] == [%s] -> %d\n", ((const record_t *) rec1)->name,
-			((const record_t *) rec2)->name, result);
-
-    return result;
-}
-
-/**
- * Tells if two hit records have the same SHA1.
- */
-gint
-gui_record_sha1_eq(gconstpointer p1, gconstpointer p2)
-{
-	const record_t *a = p1, *b = p2;
-
-    if (a->sha1 == b->sha1)
-        return 0;
-
-    if (a->sha1 == NULL || b->sha1 == NULL)
-		return 1;
-
-    return memcmp(a->sha1, b->sha1, SHA1_RAW_SIZE);
-}
-
-/**
- * Tells if two hit records come from the same host.
- */
-gint
-gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
-{
-	const record_t *r1 = rec1, *r2 = rec2;
-    return !host_addr_equal(r1->results_set->addr, r2->results_set->addr);
-}
-
-/**
- * Tells if two hit records have the same SHA1 or the same name.
- *
- * The targetted search feature by Andrew Meredith (andrew@anvil.org)
- * now uses this function to filter input and avoid duplicates.
- * Andrew, if this somehow breaks the intent, let me know at
- * junkpile@free.fr.
- *
- * This provides the following behavior :
- *
- * - If several hits with the same SHA1 are selected, only one SHA1 rule
- *   will be added even if the filenames differ (same as before).
- *
- * - If several hits with the same filename and no SHA1 are selected,
- *   only one filename rule will be added.
- *
- * - If two selected hits have the same filename, but one has an SHA1
- *   and the other doesn't, both rules (filename and SHA1) will be added.
- *
- */
-gint
-gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
-{
-    if (((const record_t *) rec1)->sha1 || ((const record_t *) rec2)->sha1)
-        return gui_record_sha1_eq(rec1, rec2);
-    else
-        return gui_record_name_eq(rec1, rec2);
 }
 
 /**

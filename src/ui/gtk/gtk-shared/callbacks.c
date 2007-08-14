@@ -465,28 +465,4 @@ on_entry_config_netmask_activate(GtkEditable *editable, gpointer unused_data)
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
 
-/***
- *** search list (sidebar)
- ***/
-
-void
-on_popup_search_browse_host_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-	search_gui_browse_selected();
-}
-
-void
-on_popup_search_sort_defaults_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	(void) unused_menuitem;
-	(void) unused_udata;
-	
-	search_gui_set_sort_defaults();
-}
-
 /* vi: set ts=4 sw=4 cindent: */

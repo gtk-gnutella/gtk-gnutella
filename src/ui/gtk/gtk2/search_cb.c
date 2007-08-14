@@ -42,10 +42,11 @@ RCSID("$Id$")
 
 #include "gtk/columns.h"
 #include "gtk/drag.h"
+#include "gtk/filter_core.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/misc.h"
 #include "gtk/notebooks.h"
-#include "gtk/search.h"
+#include "gtk/search_common.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
@@ -61,41 +62,6 @@ RCSID("$Id$")
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-/**
- *	When a search string is entered, activate the search button
- */
-void
-on_entry_search_changed(GtkEditable *editable, gpointer unused_udata)
-{
-	gchar *s = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-	gchar *normalized;
-	gboolean changed;
-
-	(void) unused_udata;
-
-	/* Gimmick: Normalize the input on the fly because Gtk+ currently
-	 * renders them differently (for example decomposed) if they're are
-	 * not in Normalization Form Canonic (NFC)
-	 */
-	normalized = utf8_normalize(s, UNI_NORM_GUI);
-	changed = normalized != s && 0 != strcmp(s, normalized);
-	
-	if (changed) {
-		gtk_entry_set_text(GTK_ENTRY(editable), normalized);
-	}
-	if (normalized != s) {
-		G_FREE_NULL(normalized);
-	}
-	if (!changed) {
-		g_strstrip(s);
-		gtk_widget_set_sensitive(gui_main_window_lookup("button_search"),
-			s[0] != '\0');
-	}
-	G_FREE_NULL(s);
-
-    gui_prop_set_boolean_val(PROP_SEARCHBAR_VISIBLE, TRUE);
-}
 
 void
 on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
@@ -123,95 +89,6 @@ on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 		}
 		gtk_tree_path_free(path);
 	}
-}
-
-void
-on_tree_view_search_results_click_column(GtkTreeViewColumn *column,
-	gpointer udata)
-{
-	GtkTreeSortable *model;
-	search_t *search = udata;
-	GtkSortType order;
-	gint sort_col;
-
-	/* The default treeview is empty */
-	if (!search)
-		return;
-
-	model = GTK_TREE_SORTABLE(
-				gtk_tree_view_get_model(GTK_TREE_VIEW(column->tree_view)));
-
-	/*
-	 * Here we enforce a tri-state sorting. Normally, Gtk+ would only
-	 * switch between ascending and descending but never switch back
-	 * to the unsorted state.
-	 *
-	 * 			+--> sort ascending -> sort descending -> unsorted -+
-     *      	|                                                   |
-     *      	+-----------------------<---------------------------+
-     */
-
-	/*
-	 * "order" is set to the current sort-order, not the previous one
-	 * i.e., Gtk+ has already changed the order
-	 */
-	g_object_get(G_OBJECT(column), "sort-order", &order, (void *) 0);
-
-	gtk_tree_sortable_get_sort_column_id(model, &sort_col, NULL);
-
-	/* If the user switched to another sort column, reset the sort order. */
-	if (search->sort_col != sort_col) {
-		guint32 rank = 0;
-
-		search->sort_order = SORT_NONE;
-		/*
-		 * Iterate over all rows and record their current rank/position so
-	 	 * that re-sorting is stable.
-		 */
-		gtk_tree_model_foreach(GTK_TREE_MODEL(model),
-			search_gui_update_rank, &rank);
-	}
-
-	search->sort_col = sort_col;
-
-	/* The search has to keep state about the sort order itself because
-	 * Gtk+ knows only ASCENDING/DESCENDING but not NONE (unsorted). */
-	switch (search->sort_order) {
-	case SORT_NONE:
-	case SORT_NO_COL:
-		search->sort_order = SORT_ASC;
-		break;
-	case SORT_ASC:
-		search->sort_order = SORT_DESC;
-		break;
-	case SORT_DESC:
-		search->sort_order = SORT_NONE;
-		break;
-	}
-
-	if (SORT_NONE == search->sort_order) {
-		/*
-		 * Reset the sorting and let the arrow disappear from the
-		 * header. Gtk+ actually seems to change the order of the
-		 * rows back to the original order (i.e., chronological).
-		 */
-#if GTK_CHECK_VERSION(2,6,0)
-		gtk_tree_sortable_set_sort_column_id(model,
-			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
-#endif /* Gtk+ >= 2.6.0 */
-		gtk_tree_view_column_set_sort_indicator(column, FALSE);
-	} else {
-		/*
-		 * Enforce the order as decided from the search state. Gtk+
-		 * might disagree but it'll do as told.
-		 */
-		gtk_tree_sortable_set_sort_column_id(model, sort_col,
-			SORT_ASC == search->sort_order
-				? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
-		gtk_tree_view_column_set_sort_indicator(column, TRUE);
-	}
-	/* Make the column stays clickable. */
-	gtk_tree_view_column_set_clickable(column, TRUE);
 }
 
 void
@@ -550,26 +427,6 @@ on_popup_search_drop_host_global_activate(GtkMenuItem *unused_menuitem,
     g_slist_free(sl);
 }
 
-void
-on_popup_search_config_cols_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
-{
-	GtkWidget * cc;
-    search_t *search;
-
-	(void) unused_menuitem;
-	(void) unused_udata;
-
-    search = search_gui_get_current_search();
-	g_return_if_fail(search);
-
-	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree));
-   	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1,
-		gtk_get_current_event_time());
-
-	/* GtkColumnChooser takes care of cleaning up itself */
-}
-
 /**
  * Queue a bitzi query.
  */
@@ -586,7 +443,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	if (bitzi_debug)
 		g_message("on_search_meta_data_active: called");
 
-	search_gui_request_bitzi_data();
+	search_gui_request_bitzi_data(search_gui_get_current_search());
 }
 
 static void
