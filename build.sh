@@ -27,12 +27,12 @@ while [ $# -gt 0 ]; do
 	--cflags=*)		CFLAGS="${1#--*=}";;
 	--configure-only)	build_configure_only='yes';;
 	--datadir=*)		build_datadir="${1#--*=}";;
-	--disable-dbus)		build_dbus='-U d_dbus';;
-	--disable-gnutls)	build_gnutls='-U d_gnutls';;
-	--disable-ipv6)		build_ipv6='-U d_ipv6';;
-	--disable-nls)		build_nls='-U d_enablenls';;
-	--disable-socker)	build_socker='-U d_socker_get';;
-	--enable-halloc)	build_halloc='-DUSE_HALLOC';;
+	--disable-dbus)		build_dbus='d_dbus';;
+	--disable-gnutls)	build_gnutls='d_gnutls';;
+	--disable-ipv6)		build_ipv6='d_ipv6';;
+	--disable-nls)		build_nls='d_enablenls';;
+	--disable-socker)	build_socker='d_socker_get';;
+	--enable-halloc)	build_halloc='true';;
 	--gtk1)			build_ui='gtkversion=1';;
 	--gtk2)			build_ui='gtkversion=2';;
 	--ldflags=*)		LDFLAGS="${1#--*=}";;
@@ -91,20 +91,20 @@ if [ "X$YACC" = X ]; then
 	which yacc >/dev/null 2>&1 && YACC=yacc || YACC=bison
 fi
 
-CFLAGS="$CFLAGS${build_halloc:+ $build_halloc}"
+CFLAGS="${CFLAGS:+$CFLAGS }${build_halloc:+-DUSE_HALLOC}"
 PREFIX=${PREFIX:-/usr/local}
 
 build_bindir=${build_bindir:-$PREFIX/bin}
-build_bindir=${build_bindir:+"'$build_bindir'"}
+build_bindir=${build_bindir:+"$build_bindir"}
 
 build_mandir=${build_mandir:-$PREFIX/man}
-build_mandir=${build_mandir:+"'$build_mandir'"}
+build_mandir=${build_mandir:+"$build_mandir"}
 
 build_datadir=${build_datadir:-$PREFIX/share/gtk-gnutella}
-build_datadir=${build_datadir:+"'$build_datadir'"}
+build_datadir=${build_datadir:+"$build_datadir"}
 
 build_localedir=${build_localedir:-$PREFIX/share/locale}
-build_localedir=${build_localedir:+"'$build_localedir'"}
+build_localedir=${build_localedir:+"$build_localedir"}
 
 build_official=${build_official:-true}
 build_ui=${build_ui:-gtkversion=2}
@@ -116,23 +116,23 @@ rm -f config.sh
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
 /bin/sh ./Configure -Oders \
-	${CC:+"-D cc='$CC'"} \
-	${CFLAGS:+"-D ccflags='$CFLAGS'"} \
-	${LDFLAGS:+"-D ldflags='$LDFLAGS'"} \
-	${PREFIX:+"-D prefix='$PREFIX'"} \
-	${MAKE:+"-D make='$MAKE'"} \
-	${YACC:+"-D yacc='$YACC'"} \
-	${build_bindir:+"-D bindir='$build_bindir'"} \
-	${build_datadir:+"-D privlib='$build_datadir'"} \
-	${build_localedir:+"-D locale='$build_localedir'"} \
-	${build_mandir:+"-D sysman='$build_mandir'"} \
-	${build_official:+"-D official=$build_official"} \
-	${build_ui:+"-D $build_ui"} \
-	${build_nls:+"$build_nls"} \
-	${build_dbus:+"$build_dbus"} \
-	${build_gnutls:+"$build_gnutls"} \
-	${build_ipv6:+"$build_ipv6"} \
-	${build_socker:+"$build_socker"} \
+	${CC:+-D "cc=$CC"} \
+	${CFLAGS:+-D "ccflags=$CFLAGS"} \
+	${LDFLAGS:+-D "ldflags=$LDFLAGS"} \
+	${PREFIX:+-D "prefix=$PREFIX"} \
+	${MAKE:+-D "make=$MAKE"} \
+	${YACC:+-D "yacc=$YACC"} \
+	${build_bindir:+-D "bindir=$build_bindir"} \
+	${build_datadir:+-D "privlib=$build_datadir"} \
+	${build_localedir:+-D "locale=$build_localedir"} \
+	${build_mandir:+-D "sysman=$build_mandir"} \
+	${build_official:+-D "official=$build_official"} \
+	${build_ui:+-D "$build_ui"} \
+	${build_nls:+-U "$build_nls"} \
+	${build_dbus:+-U "$build_dbus"} \
+	${build_gnutls:+-U "$build_gnutls"} \
+	${build_ipv6:+-U "$build_ipv6"} \
+	${build_socker:+-U "$build_socker"} \
 	|| { echo; echo 'ERROR: Configure failed.'; exit 1; }
 
 if [ "X$build_configure_only" != X ]; then
