@@ -90,6 +90,8 @@ features.
 	--bindir=%{_bindir} \
 	--datadir=%{_datadir}/%{name} \
 	--mandir=%{_mandir}/man1} \
+	--cc=%{__cc} \
+	--cflags="%{optflags}" \
 	--configure-only
 
 %install
