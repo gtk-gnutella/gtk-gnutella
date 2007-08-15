@@ -4469,7 +4469,7 @@ int main()
 EOC
 	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
 	then
-		case "$ccflags" in
+		case "$ccflags $optimize" in
 		*-momit-leaf-frame-pointer*) ;;
 		*-O0*) ;;
 		*-O*)
