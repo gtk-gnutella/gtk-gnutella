@@ -3157,7 +3157,7 @@ else
 fi
 
 case "$hint" in
-default|recommended) dflt="$ccflags $dflt" ;;
+default|recommended) dflt="$dflt $ccflags" ;;
 *) dflt="$ccflags";;
 esac
 
@@ -4470,10 +4470,10 @@ EOC
 	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
 	then
 		case "$ccflags" in
-		*-O0*) ;;
 		*-momit-leaf-frame-pointer*) ;;
-		*)
-			ccflags="$ccflags -momit-leaf-frame-pointer"
+		*-O0*) ;;
+		*-O*)
+			ccflags="-momit-leaf-frame-pointer $ccflags"
 			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
 			;;
 		esac
@@ -8496,7 +8496,7 @@ int main(void)
 }
 EOC
 	saved_ccflags=$ccflags
-	ccflags="$ccflags $flag"
+	ccflags="$flag $ccflags"
 	set result
 	eval $trylink
 
@@ -8529,7 +8529,7 @@ int main(void)
 }
 EOC
 		saved_ccflags=$ccflags
-		ccflags="$ccflags $flag"
+		ccflags="$flag $ccflags"
 
 		set result
 		eval $trylink
