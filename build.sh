@@ -92,7 +92,7 @@ if [ "X$YACC" = X ]; then
 	which yacc >/dev/null 2>&1 && YACC=yacc || YACC=bison
 fi
 
-CFLAGS="${CFLAGS:+$CFLAGS }${build_halloc:+-DUSE_HALLOC}"
+CFLAGS="$CFLAGS${build_halloc:+ -DUSE_HALLOC}"
 PREFIX=${PREFIX:-/usr/local}
 
 build_bindir=${build_bindir:-$PREFIX/bin}
@@ -117,9 +117,11 @@ case "`uname -s`" in
 darwin|Darwin) build_so_suffix='dylib';;
 esac
 
+# Preserve the previous version, just in case.
+mv config.sh config.sh.bak >/dev/null 2>&1 || : ignore failure
+
 # Make sure previous Configure settings have no influence.
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
-rm -f config.sh
 
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
