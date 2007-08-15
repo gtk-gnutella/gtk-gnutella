@@ -1255,10 +1255,14 @@ search_gui_show_search(struct search *search)
 	tvm_search = tree_view_motion_set_callback(tv,
 			search_update_tooltip, 400);
 
-	if (!gtk_tree_view_get_headers_clickable(tv)) {
+	if (!search->sort) {
 		int i;
 
-		gtk_tree_view_set_headers_clickable(tv, TRUE);
+		/*
+		 * The signal handler for "clicked" must only be installed once,
+		 * not each time the treeview is made visible.
+		 */
+		search->sort = TRUE;
 		for (i = 0; i < c_sr_num; i++) {
 			GtkTreeViewColumn *column;
 
@@ -1584,6 +1588,7 @@ search_gui_create_tree(void)
 
 	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	gtk_tree_view_set_headers_clickable(tv, TRUE);
 	gtk_tree_view_set_headers_visible(tv, TRUE);
 	gtk_tree_view_set_enable_search(tv, TRUE);
 	gtk_tree_view_set_search_column(tv, 0);
@@ -1600,8 +1605,6 @@ search_gui_create_tree(void)
 	gui_signal_connect(tv,
 		"cursor-changed", on_tree_view_search_results_select_row, tv);
     gui_signal_connect(tv, "leave-notify-event", on_leave_notify, NULL);
-
-	gtk_tree_view_set_headers_clickable(tv, FALSE);
 
 	return GTK_WIDGET(tv);
 }
