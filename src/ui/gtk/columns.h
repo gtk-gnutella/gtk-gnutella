@@ -96,24 +96,6 @@ enum {
 	c_us_num
 };
 
-/*
- * Downloads table columns.
- */
-
-enum {
-    c_dl_filename,
-    c_dl_host,
-    c_dl_loc,
-    c_dl_size,
-    c_dl_range,
-    c_dl_server,
-    c_dl_progress,
-    c_dl_status,
-
-    c_dl_num
-#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
-};
-
 enum c_src {
 	c_src_host,
 	c_src_country,
