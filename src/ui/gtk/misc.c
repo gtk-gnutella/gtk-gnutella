@@ -835,8 +835,13 @@ show_popup_menu(widget_popup_menu_cb handler)
 
 	menu = (*handler)();
 	if (menu) {
+		/*
+		 * NOTE: Use 1 as button here even though 3 was probably pressed
+		 * (right-click) because under Gtk+ 1.2 the popup will otherwise
+		 * immediately disappear on button release.
+		 */
 		gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
-			3, gtk_get_current_event_time());
+			1, gtk_get_current_event_time());
 		return TRUE;
 	} else {
 		return FALSE;
@@ -878,6 +883,7 @@ on_button_press_event(GtkWidget *unused_widget,
 	(void) unused_widget;
 
 	if (
+		GDK_BUTTON_PRESS == event->type &&
 		3 == event->button &&
 		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
 	) {
