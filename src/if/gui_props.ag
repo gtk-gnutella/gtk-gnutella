@@ -87,27 +87,6 @@ prop = {
 };
 
 prop = {
-    name = "dl_active_col_widths";
-    cfgvar = "widths_dl_active";
-    desc = "Widths of the columns in the active downloads table.";
-    type = guint32;
-    vector_size = DOWNLOADS_VISIBLE_COLUMNS;
-    data = {
-        default = "{ 240, 80, 40, 80, 80, 80, 80 }";
-    };
-};
-
-prop = {
-    name = "dl_active_col_visible";
-    desc = "Which columns are visible in the active downloads table.";
-    type = boolean;
-    vector_size = DOWNLOADS_VISIBLE_COLUMNS;
-    data = {
-        default = "{ 1, 1, 1, 1, 1, 1, 1 }";
-    };
-};
-
-prop = {
     name = "dl_queued_col_widths";
     cfgvar = "widths_dl_queued";
     desc = "Widths of the columns in the queued downloads table.";

@@ -58,10 +58,6 @@ guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS]     = { 1
 static const guint32  gui_property_variable_nodes_col_widths_default[NODES_VISIBLE_COLUMNS] = { 130, 50, 120, 20, 30, 30, 80 };
 gboolean gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1};
 static const gboolean gui_property_variable_nodes_col_visible_default[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
-guint32  gui_property_variable_dl_active_col_widths[DOWNLOADS_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80, 80 };
-static const guint32  gui_property_variable_dl_active_col_widths_default[DOWNLOADS_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80, 80 };
-gboolean gui_property_variable_dl_active_col_visible[DOWNLOADS_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
-static const gboolean gui_property_variable_dl_active_col_visible_default[DOWNLOADS_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
 guint32  gui_property_variable_dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80 };
 static const guint32  gui_property_variable_dl_queued_col_widths_default[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80 };
 gboolean gui_property_variable_dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1 };
@@ -461,60 +457,23 @@ gui_prop_init(void) {
 
 
     /*
-     * PROP_DL_ACTIVE_COL_WIDTHS:
-     *
-     * General data:
-     */
-    gui_property->props[7].name = "widths_dl_active";
-    gui_property->props[7].desc = _("Widths of the columns in the active downloads table.");
-    gui_property->props[7].ev_changed = event_new("dl_active_col_widths_changed");
-    gui_property->props[7].save = TRUE;
-    gui_property->props[7].vector_size = DOWNLOADS_VISIBLE_COLUMNS;
-
-    /* Type specific data: */
-    gui_property->props[7].type               = PROP_TYPE_GUINT32;
-    gui_property->props[7].data.guint32.def   = (void *) gui_property_variable_dl_active_col_widths_default;
-    gui_property->props[7].data.guint32.value = gui_property_variable_dl_active_col_widths;
-    gui_property->props[7].data.guint32.choices = NULL;
-    gui_property->props[7].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[7].data.guint32.min   = 0x00000000;
-
-
-    /*
-     * PROP_DL_ACTIVE_COL_VISIBLE:
-     *
-     * General data:
-     */
-    gui_property->props[8].name = "dl_active_col_visible";
-    gui_property->props[8].desc = _("Which columns are visible in the active downloads table.");
-    gui_property->props[8].ev_changed = event_new("dl_active_col_visible_changed");
-    gui_property->props[8].save = TRUE;
-    gui_property->props[8].vector_size = DOWNLOADS_VISIBLE_COLUMNS;
-
-    /* Type specific data: */
-    gui_property->props[8].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[8].data.boolean.def   = (void *) gui_property_variable_dl_active_col_visible_default;
-    gui_property->props[8].data.boolean.value = gui_property_variable_dl_active_col_visible;
-
-
-    /*
      * PROP_DL_QUEUED_COL_WIDTHS:
      *
      * General data:
      */
-    gui_property->props[9].name = "widths_dl_queued";
-    gui_property->props[9].desc = _("Widths of the columns in the queued downloads table.");
-    gui_property->props[9].ev_changed = event_new("dl_queued_col_widths_changed");
-    gui_property->props[9].save = TRUE;
-    gui_property->props[9].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
+    gui_property->props[7].name = "widths_dl_queued";
+    gui_property->props[7].desc = _("Widths of the columns in the queued downloads table.");
+    gui_property->props[7].ev_changed = event_new("dl_queued_col_widths_changed");
+    gui_property->props[7].save = TRUE;
+    gui_property->props[7].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[9].type               = PROP_TYPE_GUINT32;
-    gui_property->props[9].data.guint32.def   = (void *) gui_property_variable_dl_queued_col_widths_default;
-    gui_property->props[9].data.guint32.value = gui_property_variable_dl_queued_col_widths;
-    gui_property->props[9].data.guint32.choices = NULL;
-    gui_property->props[9].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[9].data.guint32.min   = 0x00000000;
+    gui_property->props[7].type               = PROP_TYPE_GUINT32;
+    gui_property->props[7].data.guint32.def   = (void *) gui_property_variable_dl_queued_col_widths_default;
+    gui_property->props[7].data.guint32.value = gui_property_variable_dl_queued_col_widths;
+    gui_property->props[7].data.guint32.choices = NULL;
+    gui_property->props[7].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[7].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -522,16 +481,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[10].name = "dl_queued_col_visible";
-    gui_property->props[10].desc = _("Which columns are visible in the queued downloads table.");
-    gui_property->props[10].ev_changed = event_new("dl_queued_col_visible_changed");
-    gui_property->props[10].save = TRUE;
-    gui_property->props[10].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
+    gui_property->props[8].name = "dl_queued_col_visible";
+    gui_property->props[8].desc = _("Which columns are visible in the queued downloads table.");
+    gui_property->props[8].ev_changed = event_new("dl_queued_col_visible_changed");
+    gui_property->props[8].save = TRUE;
+    gui_property->props[8].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[10].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[10].data.boolean.def   = (void *) gui_property_variable_dl_queued_col_visible_default;
-    gui_property->props[10].data.boolean.value = gui_property_variable_dl_queued_col_visible;
+    gui_property->props[8].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[8].data.boolean.def   = (void *) gui_property_variable_dl_queued_col_visible_default;
+    gui_property->props[8].data.boolean.value = gui_property_variable_dl_queued_col_visible;
 
 
     /*
@@ -539,19 +498,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[11].name = "widths_file_info";
-    gui_property->props[11].desc = _("Widths of the columns in the file info table.");
-    gui_property->props[11].ev_changed = event_new("file_info_col_widths_changed");
-    gui_property->props[11].save = TRUE;
-    gui_property->props[11].vector_size = FILEINFO_VISIBLE_COLUMNS;
+    gui_property->props[9].name = "widths_file_info";
+    gui_property->props[9].desc = _("Widths of the columns in the file info table.");
+    gui_property->props[9].ev_changed = event_new("file_info_col_widths_changed");
+    gui_property->props[9].save = TRUE;
+    gui_property->props[9].vector_size = FILEINFO_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[11].type               = PROP_TYPE_GUINT32;
-    gui_property->props[11].data.guint32.def   = (void *) gui_property_variable_file_info_col_widths_default;
-    gui_property->props[11].data.guint32.value = gui_property_variable_file_info_col_widths;
-    gui_property->props[11].data.guint32.choices = NULL;
-    gui_property->props[11].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[11].data.guint32.min   = 0x00000000;
+    gui_property->props[9].type               = PROP_TYPE_GUINT32;
+    gui_property->props[9].data.guint32.def   = (void *) gui_property_variable_file_info_col_widths_default;
+    gui_property->props[9].data.guint32.value = gui_property_variable_file_info_col_widths;
+    gui_property->props[9].data.guint32.choices = NULL;
+    gui_property->props[9].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[9].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -559,16 +518,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[12].name = "file_info_col_visible";
-    gui_property->props[12].desc = _("Visibility of the columns in the file info table.");
-    gui_property->props[12].ev_changed = event_new("file_info_col_visible_changed");
-    gui_property->props[12].save = TRUE;
-    gui_property->props[12].vector_size = FILEINFO_VISIBLE_COLUMNS;
+    gui_property->props[10].name = "file_info_col_visible";
+    gui_property->props[10].desc = _("Visibility of the columns in the file info table.");
+    gui_property->props[10].ev_changed = event_new("file_info_col_visible_changed");
+    gui_property->props[10].save = TRUE;
+    gui_property->props[10].vector_size = FILEINFO_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[12].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[12].data.boolean.def   = (void *) gui_property_variable_file_info_col_visible_default;
-    gui_property->props[12].data.boolean.value = gui_property_variable_file_info_col_visible;
+    gui_property->props[10].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[10].data.boolean.def   = (void *) gui_property_variable_file_info_col_visible_default;
+    gui_property->props[10].data.boolean.value = gui_property_variable_file_info_col_visible;
 
 
     /*
@@ -576,19 +535,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[13].name = "widths_sources";
-    gui_property->props[13].desc = _("Widths of the columns in the sources table.");
-    gui_property->props[13].ev_changed = event_new("sources_col_widths_changed");
-    gui_property->props[13].save = TRUE;
-    gui_property->props[13].vector_size = SOURCES_VISIBLE_COLUMNS;
+    gui_property->props[11].name = "widths_sources";
+    gui_property->props[11].desc = _("Widths of the columns in the sources table.");
+    gui_property->props[11].ev_changed = event_new("sources_col_widths_changed");
+    gui_property->props[11].save = TRUE;
+    gui_property->props[11].vector_size = SOURCES_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[13].type               = PROP_TYPE_GUINT32;
-    gui_property->props[13].data.guint32.def   = (void *) gui_property_variable_sources_col_widths_default;
-    gui_property->props[13].data.guint32.value = gui_property_variable_sources_col_widths;
-    gui_property->props[13].data.guint32.choices = NULL;
-    gui_property->props[13].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[13].data.guint32.min   = 0x00000000;
+    gui_property->props[11].type               = PROP_TYPE_GUINT32;
+    gui_property->props[11].data.guint32.def   = (void *) gui_property_variable_sources_col_widths_default;
+    gui_property->props[11].data.guint32.value = gui_property_variable_sources_col_widths;
+    gui_property->props[11].data.guint32.choices = NULL;
+    gui_property->props[11].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[11].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -596,19 +555,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[14].name = "widths_search_list";
-    gui_property->props[14].desc = _("Widths of the columns in the search list on the sidebar.");
-    gui_property->props[14].ev_changed = event_new("search_list_col_widths_changed");
-    gui_property->props[14].save = TRUE;
-    gui_property->props[14].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
+    gui_property->props[12].name = "widths_search_list";
+    gui_property->props[12].desc = _("Widths of the columns in the search list on the sidebar.");
+    gui_property->props[12].ev_changed = event_new("search_list_col_widths_changed");
+    gui_property->props[12].save = TRUE;
+    gui_property->props[12].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[14].type               = PROP_TYPE_GUINT32;
-    gui_property->props[14].data.guint32.def   = (void *) gui_property_variable_search_list_col_widths_default;
-    gui_property->props[14].data.guint32.value = gui_property_variable_search_list_col_widths;
-    gui_property->props[14].data.guint32.choices = NULL;
-    gui_property->props[14].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[14].data.guint32.min   = 0x00000000;
+    gui_property->props[12].type               = PROP_TYPE_GUINT32;
+    gui_property->props[12].data.guint32.def   = (void *) gui_property_variable_search_list_col_widths_default;
+    gui_property->props[12].data.guint32.value = gui_property_variable_search_list_col_widths;
+    gui_property->props[12].data.guint32.choices = NULL;
+    gui_property->props[12].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[12].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -616,16 +575,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[15].name = "search_results_col_visible";
-    gui_property->props[15].desc = _("Which columns are visible in the search results tables.");
-    gui_property->props[15].ev_changed = event_new("search_results_col_visible_changed");
-    gui_property->props[15].save = TRUE;
-    gui_property->props[15].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+    gui_property->props[13].name = "search_results_col_visible";
+    gui_property->props[13].desc = _("Which columns are visible in the search results tables.");
+    gui_property->props[13].ev_changed = event_new("search_results_col_visible_changed");
+    gui_property->props[13].save = TRUE;
+    gui_property->props[13].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[15].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[15].data.boolean.def   = (void *) gui_property_variable_search_results_col_visible_default;
-    gui_property->props[15].data.boolean.value = gui_property_variable_search_results_col_visible;
+    gui_property->props[13].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[13].data.boolean.def   = (void *) gui_property_variable_search_results_col_visible_default;
+    gui_property->props[13].data.boolean.value = gui_property_variable_search_results_col_visible;
 
 
     /*
@@ -633,19 +592,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[16].name = "widths_search_results";
-    gui_property->props[16].desc = _("Widths of the columns in the search results tables.");
-    gui_property->props[16].ev_changed = event_new("search_results_col_widths_changed");
-    gui_property->props[16].save = TRUE;
-    gui_property->props[16].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+    gui_property->props[14].name = "widths_search_results";
+    gui_property->props[14].desc = _("Widths of the columns in the search results tables.");
+    gui_property->props[14].ev_changed = event_new("search_results_col_widths_changed");
+    gui_property->props[14].save = TRUE;
+    gui_property->props[14].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[16].type               = PROP_TYPE_GUINT32;
-    gui_property->props[16].data.guint32.def   = (void *) gui_property_variable_search_results_col_widths_default;
-    gui_property->props[16].data.guint32.value = gui_property_variable_search_results_col_widths;
-    gui_property->props[16].data.guint32.choices = NULL;
-    gui_property->props[16].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[16].data.guint32.min   = 0x00000000;
+    gui_property->props[14].type               = PROP_TYPE_GUINT32;
+    gui_property->props[14].data.guint32.def   = (void *) gui_property_variable_search_results_col_widths_default;
+    gui_property->props[14].data.guint32.value = gui_property_variable_search_results_col_widths;
+    gui_property->props[14].data.guint32.choices = NULL;
+    gui_property->props[14].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[14].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -653,19 +612,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[17].name = "widths_search_stats";
-    gui_property->props[17].desc = _("Widths of the columns in the search stats table.");
-    gui_property->props[17].ev_changed = event_new("search_stats_col_widths_changed");
-    gui_property->props[17].save = TRUE;
-    gui_property->props[17].vector_size = 3;
+    gui_property->props[15].name = "widths_search_stats";
+    gui_property->props[15].desc = _("Widths of the columns in the search stats table.");
+    gui_property->props[15].ev_changed = event_new("search_stats_col_widths_changed");
+    gui_property->props[15].save = TRUE;
+    gui_property->props[15].vector_size = 3;
 
     /* Type specific data: */
-    gui_property->props[17].type               = PROP_TYPE_GUINT32;
-    gui_property->props[17].data.guint32.def   = (void *) gui_property_variable_search_stats_col_widths_default;
-    gui_property->props[17].data.guint32.value = gui_property_variable_search_stats_col_widths;
-    gui_property->props[17].data.guint32.choices = NULL;
-    gui_property->props[17].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[17].data.guint32.min   = 0x00000000;
+    gui_property->props[15].type               = PROP_TYPE_GUINT32;
+    gui_property->props[15].data.guint32.def   = (void *) gui_property_variable_search_stats_col_widths_default;
+    gui_property->props[15].data.guint32.value = gui_property_variable_search_stats_col_widths;
+    gui_property->props[15].data.guint32.choices = NULL;
+    gui_property->props[15].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[15].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -673,19 +632,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[18].name = "widths_ul_stats";
-    gui_property->props[18].desc = _("Widths of the columns in the upload stats table.");
-    gui_property->props[18].ev_changed = event_new("ul_stats_col_widths_changed");
-    gui_property->props[18].save = TRUE;
-    gui_property->props[18].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
+    gui_property->props[16].name = "widths_ul_stats";
+    gui_property->props[16].desc = _("Widths of the columns in the upload stats table.");
+    gui_property->props[16].ev_changed = event_new("ul_stats_col_widths_changed");
+    gui_property->props[16].save = TRUE;
+    gui_property->props[16].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[18].type               = PROP_TYPE_GUINT32;
-    gui_property->props[18].data.guint32.def   = (void *) gui_property_variable_ul_stats_col_widths_default;
-    gui_property->props[18].data.guint32.value = gui_property_variable_ul_stats_col_widths;
-    gui_property->props[18].data.guint32.choices = NULL;
-    gui_property->props[18].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[18].data.guint32.min   = 0x00000000;
+    gui_property->props[16].type               = PROP_TYPE_GUINT32;
+    gui_property->props[16].data.guint32.def   = (void *) gui_property_variable_ul_stats_col_widths_default;
+    gui_property->props[16].data.guint32.value = gui_property_variable_ul_stats_col_widths;
+    gui_property->props[16].data.guint32.choices = NULL;
+    gui_property->props[16].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[16].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -693,16 +652,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[19].name = "ul_stats_col_visible";
-    gui_property->props[19].desc = _("Which columns are visible in the upload stats table.");
-    gui_property->props[19].ev_changed = event_new("ul_stats_col_visible_changed");
-    gui_property->props[19].save = TRUE;
-    gui_property->props[19].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
+    gui_property->props[17].name = "ul_stats_col_visible";
+    gui_property->props[17].desc = _("Which columns are visible in the upload stats table.");
+    gui_property->props[17].ev_changed = event_new("ul_stats_col_visible_changed");
+    gui_property->props[17].save = TRUE;
+    gui_property->props[17].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[19].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[19].data.boolean.def   = (void *) gui_property_variable_ul_stats_col_visible_default;
-    gui_property->props[19].data.boolean.value = gui_property_variable_ul_stats_col_visible;
+    gui_property->props[17].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[17].data.boolean.def   = (void *) gui_property_variable_ul_stats_col_visible_default;
+    gui_property->props[17].data.boolean.value = gui_property_variable_ul_stats_col_visible;
 
 
     /*
@@ -710,19 +669,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[20].name = "widths_uploads";
-    gui_property->props[20].desc = _("Widths of the columns in the uploads table.");
-    gui_property->props[20].ev_changed = event_new("uploads_col_widths_changed");
-    gui_property->props[20].save = TRUE;
-    gui_property->props[20].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
+    gui_property->props[18].name = "widths_uploads";
+    gui_property->props[18].desc = _("Widths of the columns in the uploads table.");
+    gui_property->props[18].ev_changed = event_new("uploads_col_widths_changed");
+    gui_property->props[18].save = TRUE;
+    gui_property->props[18].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[20].type               = PROP_TYPE_GUINT32;
-    gui_property->props[20].data.guint32.def   = (void *) gui_property_variable_uploads_col_widths_default;
-    gui_property->props[20].data.guint32.value = gui_property_variable_uploads_col_widths;
-    gui_property->props[20].data.guint32.choices = NULL;
-    gui_property->props[20].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[20].data.guint32.min   = 0x00000000;
+    gui_property->props[18].type               = PROP_TYPE_GUINT32;
+    gui_property->props[18].data.guint32.def   = (void *) gui_property_variable_uploads_col_widths_default;
+    gui_property->props[18].data.guint32.value = gui_property_variable_uploads_col_widths;
+    gui_property->props[18].data.guint32.choices = NULL;
+    gui_property->props[18].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[18].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -730,16 +689,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[21].name = "uploads_col_visible";
-    gui_property->props[21].desc = _("Which columns are visible in the uploads table.");
-    gui_property->props[21].ev_changed = event_new("uploads_col_visible_changed");
-    gui_property->props[21].save = TRUE;
-    gui_property->props[21].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
+    gui_property->props[19].name = "uploads_col_visible";
+    gui_property->props[19].desc = _("Which columns are visible in the uploads table.");
+    gui_property->props[19].ev_changed = event_new("uploads_col_visible_changed");
+    gui_property->props[19].save = TRUE;
+    gui_property->props[19].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
-    gui_property->props[21].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[21].data.boolean.def   = (void *) gui_property_variable_uploads_col_visible_default;
-    gui_property->props[21].data.boolean.value = gui_property_variable_uploads_col_visible;
+    gui_property->props[19].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[19].data.boolean.def   = (void *) gui_property_variable_uploads_col_visible_default;
+    gui_property->props[19].data.boolean.value = gui_property_variable_uploads_col_visible;
 
 
     /*
@@ -747,19 +706,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[22].name = "widths_filter_table";
-    gui_property->props[22].desc = _("Widths of the columns in the rules table in the filter dialog.");
-    gui_property->props[22].ev_changed = event_new("filter_rules_col_widths_changed");
-    gui_property->props[22].save = TRUE;
-    gui_property->props[22].vector_size = 4;
+    gui_property->props[20].name = "widths_filter_table";
+    gui_property->props[20].desc = _("Widths of the columns in the rules table in the filter dialog.");
+    gui_property->props[20].ev_changed = event_new("filter_rules_col_widths_changed");
+    gui_property->props[20].save = TRUE;
+    gui_property->props[20].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[22].type               = PROP_TYPE_GUINT32;
-    gui_property->props[22].data.guint32.def   = (void *) gui_property_variable_filter_rules_col_widths_default;
-    gui_property->props[22].data.guint32.value = gui_property_variable_filter_rules_col_widths;
-    gui_property->props[22].data.guint32.choices = NULL;
-    gui_property->props[22].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[22].data.guint32.min   = 0x00000000;
+    gui_property->props[20].type               = PROP_TYPE_GUINT32;
+    gui_property->props[20].data.guint32.def   = (void *) gui_property_variable_filter_rules_col_widths_default;
+    gui_property->props[20].data.guint32.value = gui_property_variable_filter_rules_col_widths;
+    gui_property->props[20].data.guint32.choices = NULL;
+    gui_property->props[20].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[20].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -767,19 +726,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[23].name = "widths_filter_filters";
-    gui_property->props[23].desc = _("Widths of the columns in the filter table in the filter dialog.");
-    gui_property->props[23].ev_changed = event_new("filter_filters_col_widths_changed");
-    gui_property->props[23].save = TRUE;
-    gui_property->props[23].vector_size = 3;
+    gui_property->props[21].name = "widths_filter_filters";
+    gui_property->props[21].desc = _("Widths of the columns in the filter table in the filter dialog.");
+    gui_property->props[21].ev_changed = event_new("filter_filters_col_widths_changed");
+    gui_property->props[21].save = TRUE;
+    gui_property->props[21].vector_size = 3;
 
     /* Type specific data: */
-    gui_property->props[23].type               = PROP_TYPE_GUINT32;
-    gui_property->props[23].data.guint32.def   = (void *) gui_property_variable_filter_filters_col_widths_default;
-    gui_property->props[23].data.guint32.value = gui_property_variable_filter_filters_col_widths;
-    gui_property->props[23].data.guint32.choices = NULL;
-    gui_property->props[23].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[23].data.guint32.min   = 0x00000000;
+    gui_property->props[21].type               = PROP_TYPE_GUINT32;
+    gui_property->props[21].data.guint32.def   = (void *) gui_property_variable_filter_filters_col_widths_default;
+    gui_property->props[21].data.guint32.value = gui_property_variable_filter_filters_col_widths;
+    gui_property->props[21].data.guint32.choices = NULL;
+    gui_property->props[21].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[21].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -787,19 +746,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[24].name = "widths_gnet_stats_msg";
-    gui_property->props[24].desc = _("Widths of the columns in the Gnet packet stats table.");
-    gui_property->props[24].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
-    gui_property->props[24].save = TRUE;
-    gui_property->props[24].vector_size = 8;
+    gui_property->props[22].name = "widths_gnet_stats_msg";
+    gui_property->props[22].desc = _("Widths of the columns in the Gnet packet stats table.");
+    gui_property->props[22].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
+    gui_property->props[22].save = TRUE;
+    gui_property->props[22].vector_size = 8;
 
     /* Type specific data: */
-    gui_property->props[24].type               = PROP_TYPE_GUINT32;
-    gui_property->props[24].data.guint32.def   = (void *) gui_property_variable_gnet_stats_msg_col_widths_default;
-    gui_property->props[24].data.guint32.value = gui_property_variable_gnet_stats_msg_col_widths;
-    gui_property->props[24].data.guint32.choices = NULL;
-    gui_property->props[24].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[24].data.guint32.min   = 0x00000000;
+    gui_property->props[22].type               = PROP_TYPE_GUINT32;
+    gui_property->props[22].data.guint32.def   = (void *) gui_property_variable_gnet_stats_msg_col_widths_default;
+    gui_property->props[22].data.guint32.value = gui_property_variable_gnet_stats_msg_col_widths;
+    gui_property->props[22].data.guint32.choices = NULL;
+    gui_property->props[22].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[22].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -807,19 +766,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[25].name = "widths_gnet_stats_fc_ttl";
-    gui_property->props[25].desc = _("Widths of the columns in the Gnet fc ttl stats table.");
-    gui_property->props[25].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
-    gui_property->props[25].save = TRUE;
-    gui_property->props[25].vector_size = 10;
+    gui_property->props[23].name = "widths_gnet_stats_fc_ttl";
+    gui_property->props[23].desc = _("Widths of the columns in the Gnet fc ttl stats table.");
+    gui_property->props[23].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
+    gui_property->props[23].save = TRUE;
+    gui_property->props[23].vector_size = 10;
 
     /* Type specific data: */
-    gui_property->props[25].type               = PROP_TYPE_GUINT32;
-    gui_property->props[25].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_ttl_col_widths_default;
-    gui_property->props[25].data.guint32.value = gui_property_variable_gnet_stats_fc_ttl_col_widths;
-    gui_property->props[25].data.guint32.choices = NULL;
-    gui_property->props[25].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[25].data.guint32.min   = 0x00000000;
+    gui_property->props[23].type               = PROP_TYPE_GUINT32;
+    gui_property->props[23].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_ttl_col_widths_default;
+    gui_property->props[23].data.guint32.value = gui_property_variable_gnet_stats_fc_ttl_col_widths;
+    gui_property->props[23].data.guint32.choices = NULL;
+    gui_property->props[23].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[23].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -827,19 +786,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[26].name = "widths_gnet_stats_fc_hops";
-    gui_property->props[26].desc = _("Widths of the columns in the Gnet fc hops stats table.");
-    gui_property->props[26].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
-    gui_property->props[26].save = TRUE;
-    gui_property->props[26].vector_size = 10;
+    gui_property->props[24].name = "widths_gnet_stats_fc_hops";
+    gui_property->props[24].desc = _("Widths of the columns in the Gnet fc hops stats table.");
+    gui_property->props[24].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
+    gui_property->props[24].save = TRUE;
+    gui_property->props[24].vector_size = 10;
 
     /* Type specific data: */
-    gui_property->props[26].type               = PROP_TYPE_GUINT32;
-    gui_property->props[26].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_hops_col_widths_default;
-    gui_property->props[26].data.guint32.value = gui_property_variable_gnet_stats_fc_hops_col_widths;
-    gui_property->props[26].data.guint32.choices = NULL;
-    gui_property->props[26].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[26].data.guint32.min   = 0x00000000;
+    gui_property->props[24].type               = PROP_TYPE_GUINT32;
+    gui_property->props[24].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_hops_col_widths_default;
+    gui_property->props[24].data.guint32.value = gui_property_variable_gnet_stats_fc_hops_col_widths;
+    gui_property->props[24].data.guint32.choices = NULL;
+    gui_property->props[24].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[24].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -847,19 +806,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[27].name = "widths_gnet_stats_fc";
-    gui_property->props[27].desc = _("Widths of the columns in the Gnet fc hops stats table.");
-    gui_property->props[27].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
-    gui_property->props[27].save = TRUE;
-    gui_property->props[27].vector_size = 10;
+    gui_property->props[25].name = "widths_gnet_stats_fc";
+    gui_property->props[25].desc = _("Widths of the columns in the Gnet fc hops stats table.");
+    gui_property->props[25].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
+    gui_property->props[25].save = TRUE;
+    gui_property->props[25].vector_size = 10;
 
     /* Type specific data: */
-    gui_property->props[27].type               = PROP_TYPE_GUINT32;
-    gui_property->props[27].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_col_widths_default;
-    gui_property->props[27].data.guint32.value = gui_property_variable_gnet_stats_fc_col_widths;
-    gui_property->props[27].data.guint32.choices = NULL;
-    gui_property->props[27].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[27].data.guint32.min   = 0x00000000;
+    gui_property->props[25].type               = PROP_TYPE_GUINT32;
+    gui_property->props[25].data.guint32.def   = (void *) gui_property_variable_gnet_stats_fc_col_widths_default;
+    gui_property->props[25].data.guint32.value = gui_property_variable_gnet_stats_fc_col_widths;
+    gui_property->props[25].data.guint32.choices = NULL;
+    gui_property->props[25].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[25].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -867,19 +826,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[28].name = "widths_gnet_stats_horizon";
-    gui_property->props[28].desc = _("Widths of the columns in the Gnet horizon stats table.");
-    gui_property->props[28].ev_changed = event_new("gnet_stats_horizon_col_widths_changed");
-    gui_property->props[28].save = TRUE;
-    gui_property->props[28].vector_size = 4;
+    gui_property->props[26].name = "widths_gnet_stats_horizon";
+    gui_property->props[26].desc = _("Widths of the columns in the Gnet horizon stats table.");
+    gui_property->props[26].ev_changed = event_new("gnet_stats_horizon_col_widths_changed");
+    gui_property->props[26].save = TRUE;
+    gui_property->props[26].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[28].type               = PROP_TYPE_GUINT32;
-    gui_property->props[28].data.guint32.def   = (void *) gui_property_variable_gnet_stats_horizon_col_widths_default;
-    gui_property->props[28].data.guint32.value = gui_property_variable_gnet_stats_horizon_col_widths;
-    gui_property->props[28].data.guint32.choices = NULL;
-    gui_property->props[28].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[28].data.guint32.min   = 0x00000000;
+    gui_property->props[26].type               = PROP_TYPE_GUINT32;
+    gui_property->props[26].data.guint32.def   = (void *) gui_property_variable_gnet_stats_horizon_col_widths_default;
+    gui_property->props[26].data.guint32.value = gui_property_variable_gnet_stats_horizon_col_widths;
+    gui_property->props[26].data.guint32.choices = NULL;
+    gui_property->props[26].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[26].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -887,19 +846,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[29].name = "widths_gnet_stats_drop_reasons";
-    gui_property->props[29].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
-    gui_property->props[29].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
-    gui_property->props[29].save = TRUE;
-    gui_property->props[29].vector_size = 2;
+    gui_property->props[27].name = "widths_gnet_stats_drop_reasons";
+    gui_property->props[27].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
+    gui_property->props[27].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
+    gui_property->props[27].save = TRUE;
+    gui_property->props[27].vector_size = 2;
 
     /* Type specific data: */
-    gui_property->props[29].type               = PROP_TYPE_GUINT32;
-    gui_property->props[29].data.guint32.def   = (void *) gui_property_variable_gnet_stats_drop_reasons_col_widths_default;
-    gui_property->props[29].data.guint32.value = gui_property_variable_gnet_stats_drop_reasons_col_widths;
-    gui_property->props[29].data.guint32.choices = NULL;
-    gui_property->props[29].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[29].data.guint32.min   = 0x00000000;
+    gui_property->props[27].type               = PROP_TYPE_GUINT32;
+    gui_property->props[27].data.guint32.def   = (void *) gui_property_variable_gnet_stats_drop_reasons_col_widths_default;
+    gui_property->props[27].data.guint32.value = gui_property_variable_gnet_stats_drop_reasons_col_widths;
+    gui_property->props[27].data.guint32.choices = NULL;
+    gui_property->props[27].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[27].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -907,19 +866,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[30].name = "widths_gnet_stats_recv";
-    gui_property->props[30].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
-    gui_property->props[30].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
-    gui_property->props[30].save = TRUE;
-    gui_property->props[30].vector_size = 10;
+    gui_property->props[28].name = "widths_gnet_stats_recv";
+    gui_property->props[28].desc = _("Widths of the columns in the Gnet stats drop reasons table.");
+    gui_property->props[28].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
+    gui_property->props[28].save = TRUE;
+    gui_property->props[28].vector_size = 10;
 
     /* Type specific data: */
-    gui_property->props[30].type               = PROP_TYPE_GUINT32;
-    gui_property->props[30].data.guint32.def   = (void *) gui_property_variable_gnet_stats_recv_col_widths_default;
-    gui_property->props[30].data.guint32.value = gui_property_variable_gnet_stats_recv_col_widths;
-    gui_property->props[30].data.guint32.choices = NULL;
-    gui_property->props[30].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[30].data.guint32.min   = 0x00000000;
+    gui_property->props[28].type               = PROP_TYPE_GUINT32;
+    gui_property->props[28].data.guint32.def   = (void *) gui_property_variable_gnet_stats_recv_col_widths_default;
+    gui_property->props[28].data.guint32.value = gui_property_variable_gnet_stats_recv_col_widths;
+    gui_property->props[28].data.guint32.choices = NULL;
+    gui_property->props[28].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[28].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -927,19 +886,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[31].name = "widths_hcache";
-    gui_property->props[31].desc = _("Widths of the columns in the hostcache table.");
-    gui_property->props[31].ev_changed = event_new("hcache_col_widths_changed");
-    gui_property->props[31].save = TRUE;
-    gui_property->props[31].vector_size = 4;
+    gui_property->props[29].name = "widths_hcache";
+    gui_property->props[29].desc = _("Widths of the columns in the hostcache table.");
+    gui_property->props[29].ev_changed = event_new("hcache_col_widths_changed");
+    gui_property->props[29].save = TRUE;
+    gui_property->props[29].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[31].type               = PROP_TYPE_GUINT32;
-    gui_property->props[31].data.guint32.def   = (void *) gui_property_variable_hcache_col_widths_default;
-    gui_property->props[31].data.guint32.value = gui_property_variable_hcache_col_widths;
-    gui_property->props[31].data.guint32.choices = NULL;
-    gui_property->props[31].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[31].data.guint32.min   = 0x00000000;
+    gui_property->props[29].type               = PROP_TYPE_GUINT32;
+    gui_property->props[29].data.guint32.def   = (void *) gui_property_variable_hcache_col_widths_default;
+    gui_property->props[29].data.guint32.value = gui_property_variable_hcache_col_widths;
+    gui_property->props[29].data.guint32.choices = NULL;
+    gui_property->props[29].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[29].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -947,19 +906,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[32].name = "window_coords";
-    gui_property->props[32].desc = _("Position and size of the main window.");
-    gui_property->props[32].ev_changed = event_new("window_coords_changed");
-    gui_property->props[32].save = TRUE;
-    gui_property->props[32].vector_size = 4;
+    gui_property->props[30].name = "window_coords";
+    gui_property->props[30].desc = _("Position and size of the main window.");
+    gui_property->props[30].ev_changed = event_new("window_coords_changed");
+    gui_property->props[30].save = TRUE;
+    gui_property->props[30].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[32].type               = PROP_TYPE_GUINT32;
-    gui_property->props[32].data.guint32.def   = (void *) gui_property_variable_window_coords_default;
-    gui_property->props[32].data.guint32.value = gui_property_variable_window_coords;
-    gui_property->props[32].data.guint32.choices = NULL;
-    gui_property->props[32].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[32].data.guint32.min   = 0x00000000;
+    gui_property->props[30].type               = PROP_TYPE_GUINT32;
+    gui_property->props[30].data.guint32.def   = (void *) gui_property_variable_window_coords_default;
+    gui_property->props[30].data.guint32.value = gui_property_variable_window_coords;
+    gui_property->props[30].data.guint32.choices = NULL;
+    gui_property->props[30].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[30].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -967,19 +926,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[33].name = "filter_dlg_coords";
-    gui_property->props[33].desc = _("Position and size of the filter dialog.");
-    gui_property->props[33].ev_changed = event_new("filter_dlg_coords_changed");
-    gui_property->props[33].save = TRUE;
-    gui_property->props[33].vector_size = 4;
+    gui_property->props[31].name = "filter_dlg_coords";
+    gui_property->props[31].desc = _("Position and size of the filter dialog.");
+    gui_property->props[31].ev_changed = event_new("filter_dlg_coords_changed");
+    gui_property->props[31].save = TRUE;
+    gui_property->props[31].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[33].type               = PROP_TYPE_GUINT32;
-    gui_property->props[33].data.guint32.def   = (void *) gui_property_variable_filter_dlg_coords_default;
-    gui_property->props[33].data.guint32.value = gui_property_variable_filter_dlg_coords;
-    gui_property->props[33].data.guint32.choices = NULL;
-    gui_property->props[33].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[33].data.guint32.min   = 0x00000000;
+    gui_property->props[31].type               = PROP_TYPE_GUINT32;
+    gui_property->props[31].data.guint32.def   = (void *) gui_property_variable_filter_dlg_coords_default;
+    gui_property->props[31].data.guint32.value = gui_property_variable_filter_dlg_coords;
+    gui_property->props[31].data.guint32.choices = NULL;
+    gui_property->props[31].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[31].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -987,19 +946,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[34].name = "prefs_dlg_coords";
-    gui_property->props[34].desc = _("Position and size of the preferences dialog.");
-    gui_property->props[34].ev_changed = event_new("prefs_dlg_coords_changed");
-    gui_property->props[34].save = TRUE;
-    gui_property->props[34].vector_size = 4;
+    gui_property->props[32].name = "prefs_dlg_coords";
+    gui_property->props[32].desc = _("Position and size of the preferences dialog.");
+    gui_property->props[32].ev_changed = event_new("prefs_dlg_coords_changed");
+    gui_property->props[32].save = TRUE;
+    gui_property->props[32].vector_size = 4;
 
     /* Type specific data: */
-    gui_property->props[34].type               = PROP_TYPE_GUINT32;
-    gui_property->props[34].data.guint32.def   = (void *) gui_property_variable_prefs_dlg_coords_default;
-    gui_property->props[34].data.guint32.value = gui_property_variable_prefs_dlg_coords;
-    gui_property->props[34].data.guint32.choices = NULL;
-    gui_property->props[34].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[34].data.guint32.min   = 0x00000000;
+    gui_property->props[32].type               = PROP_TYPE_GUINT32;
+    gui_property->props[32].data.guint32.def   = (void *) gui_property_variable_prefs_dlg_coords_default;
+    gui_property->props[32].data.guint32.value = gui_property_variable_prefs_dlg_coords;
+    gui_property->props[32].data.guint32.choices = NULL;
+    gui_property->props[32].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[32].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1007,19 +966,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[35].name = "fileinfo_divider_pos";
-    gui_property->props[35].desc = _("Position of the divider in the fileinfo panel.");
-    gui_property->props[35].ev_changed = event_new("fileinfo_divider_pos_changed");
-    gui_property->props[35].save = TRUE;
-    gui_property->props[35].vector_size = 1;
+    gui_property->props[33].name = "fileinfo_divider_pos";
+    gui_property->props[33].desc = _("Position of the divider in the fileinfo panel.");
+    gui_property->props[33].ev_changed = event_new("fileinfo_divider_pos_changed");
+    gui_property->props[33].save = TRUE;
+    gui_property->props[33].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[35].type               = PROP_TYPE_GUINT32;
-    gui_property->props[35].data.guint32.def   = (void *) &gui_property_variable_fileinfo_divider_pos_default;
-    gui_property->props[35].data.guint32.value = (void *) &gui_property_variable_fileinfo_divider_pos;
-    gui_property->props[35].data.guint32.choices = NULL;
-    gui_property->props[35].data.guint32.max   = 0xFFFF;
-    gui_property->props[35].data.guint32.min   = 0x0000;
+    gui_property->props[33].type               = PROP_TYPE_GUINT32;
+    gui_property->props[33].data.guint32.def   = (void *) &gui_property_variable_fileinfo_divider_pos_default;
+    gui_property->props[33].data.guint32.value = (void *) &gui_property_variable_fileinfo_divider_pos;
+    gui_property->props[33].data.guint32.choices = NULL;
+    gui_property->props[33].data.guint32.max   = 0xFFFF;
+    gui_property->props[33].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1027,19 +986,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[36].name = "main_divider_pos";
-    gui_property->props[36].desc = _("Size of the sidebar.");
-    gui_property->props[36].ev_changed = event_new("main_divider_pos_changed");
-    gui_property->props[36].save = TRUE;
-    gui_property->props[36].vector_size = 1;
+    gui_property->props[34].name = "main_divider_pos";
+    gui_property->props[34].desc = _("Size of the sidebar.");
+    gui_property->props[34].ev_changed = event_new("main_divider_pos_changed");
+    gui_property->props[34].save = TRUE;
+    gui_property->props[34].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[36].type               = PROP_TYPE_GUINT32;
-    gui_property->props[36].data.guint32.def   = (void *) &gui_property_variable_main_divider_pos_default;
-    gui_property->props[36].data.guint32.value = (void *) &gui_property_variable_main_divider_pos;
-    gui_property->props[36].data.guint32.choices = NULL;
-    gui_property->props[36].data.guint32.max   = 0xFFFF;
-    gui_property->props[36].data.guint32.min   = 0x0000;
+    gui_property->props[34].type               = PROP_TYPE_GUINT32;
+    gui_property->props[34].data.guint32.def   = (void *) &gui_property_variable_main_divider_pos_default;
+    gui_property->props[34].data.guint32.value = (void *) &gui_property_variable_main_divider_pos;
+    gui_property->props[34].data.guint32.choices = NULL;
+    gui_property->props[34].data.guint32.max   = 0xFFFF;
+    gui_property->props[34].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1047,19 +1006,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[37].name = "gnet_stats_divider_pos";
-    gui_property->props[37].desc = _("Position of the divider in the Gnet stats pane.");
-    gui_property->props[37].ev_changed = event_new("gnet_stats_divider_pos_changed");
-    gui_property->props[37].save = TRUE;
-    gui_property->props[37].vector_size = 1;
+    gui_property->props[35].name = "gnet_stats_divider_pos";
+    gui_property->props[35].desc = _("Position of the divider in the Gnet stats pane.");
+    gui_property->props[35].ev_changed = event_new("gnet_stats_divider_pos_changed");
+    gui_property->props[35].save = TRUE;
+    gui_property->props[35].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[37].type               = PROP_TYPE_GUINT32;
-    gui_property->props[37].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_divider_pos_default;
-    gui_property->props[37].data.guint32.value = (void *) &gui_property_variable_gnet_stats_divider_pos;
-    gui_property->props[37].data.guint32.choices = NULL;
-    gui_property->props[37].data.guint32.max   = 0xFFFF;
-    gui_property->props[37].data.guint32.min   = 0x0000;
+    gui_property->props[35].type               = PROP_TYPE_GUINT32;
+    gui_property->props[35].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_divider_pos_default;
+    gui_property->props[35].data.guint32.value = (void *) &gui_property_variable_gnet_stats_divider_pos;
+    gui_property->props[35].data.guint32.choices = NULL;
+    gui_property->props[35].data.guint32.max   = 0xFFFF;
+    gui_property->props[35].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1067,19 +1026,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[38].name = "results_divider_pos";
-    gui_property->props[38].desc = _("Position of the divider in the search results pane.");
-    gui_property->props[38].ev_changed = event_new("results_divider_pos_changed");
-    gui_property->props[38].save = TRUE;
-    gui_property->props[38].vector_size = 1;
+    gui_property->props[36].name = "results_divider_pos";
+    gui_property->props[36].desc = _("Position of the divider in the search results pane.");
+    gui_property->props[36].ev_changed = event_new("results_divider_pos_changed");
+    gui_property->props[36].save = TRUE;
+    gui_property->props[36].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[38].type               = PROP_TYPE_GUINT32;
-    gui_property->props[38].data.guint32.def   = (void *) &gui_property_variable_results_divider_pos_default;
-    gui_property->props[38].data.guint32.value = (void *) &gui_property_variable_results_divider_pos;
-    gui_property->props[38].data.guint32.choices = NULL;
-    gui_property->props[38].data.guint32.max   = 0xFFFF;
-    gui_property->props[38].data.guint32.min   = 0x0000;
+    gui_property->props[36].type               = PROP_TYPE_GUINT32;
+    gui_property->props[36].data.guint32.def   = (void *) &gui_property_variable_results_divider_pos_default;
+    gui_property->props[36].data.guint32.value = (void *) &gui_property_variable_results_divider_pos;
+    gui_property->props[36].data.guint32.choices = NULL;
+    gui_property->props[36].data.guint32.max   = 0xFFFF;
+    gui_property->props[36].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1087,19 +1046,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[39].name = "gui_debug";
-    gui_property->props[39].desc = _("Debug level for the gui.");
-    gui_property->props[39].ev_changed = event_new("gui_debug_changed");
-    gui_property->props[39].save = TRUE;
-    gui_property->props[39].vector_size = 1;
+    gui_property->props[37].name = "gui_debug";
+    gui_property->props[37].desc = _("Debug level for the gui.");
+    gui_property->props[37].ev_changed = event_new("gui_debug_changed");
+    gui_property->props[37].save = TRUE;
+    gui_property->props[37].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[39].type               = PROP_TYPE_GUINT32;
-    gui_property->props[39].data.guint32.def   = (void *) &gui_property_variable_gui_debug_default;
-    gui_property->props[39].data.guint32.value = (void *) &gui_property_variable_gui_debug;
-    gui_property->props[39].data.guint32.choices = NULL;
-    gui_property->props[39].data.guint32.max   = 20;
-    gui_property->props[39].data.guint32.min   = 0;
+    gui_property->props[37].type               = PROP_TYPE_GUINT32;
+    gui_property->props[37].data.guint32.def   = (void *) &gui_property_variable_gui_debug_default;
+    gui_property->props[37].data.guint32.value = (void *) &gui_property_variable_gui_debug;
+    gui_property->props[37].data.guint32.choices = NULL;
+    gui_property->props[37].data.guint32.max   = 20;
+    gui_property->props[37].data.guint32.min   = 0;
 
 
     /*
@@ -1107,19 +1066,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[40].name = "filter_main_divider_pos";
-    gui_property->props[40].desc = _("Size of the filter tree in the filter dialog.");
-    gui_property->props[40].ev_changed = event_new("filter_main_divider_pos_changed");
-    gui_property->props[40].save = TRUE;
-    gui_property->props[40].vector_size = 1;
+    gui_property->props[38].name = "filter_main_divider_pos";
+    gui_property->props[38].desc = _("Size of the filter tree in the filter dialog.");
+    gui_property->props[38].ev_changed = event_new("filter_main_divider_pos_changed");
+    gui_property->props[38].save = TRUE;
+    gui_property->props[38].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[40].type               = PROP_TYPE_GUINT32;
-    gui_property->props[40].data.guint32.def   = (void *) &gui_property_variable_filter_main_divider_pos_default;
-    gui_property->props[40].data.guint32.value = (void *) &gui_property_variable_filter_main_divider_pos;
-    gui_property->props[40].data.guint32.choices = NULL;
-    gui_property->props[40].data.guint32.max   = 0xFFFF;
-    gui_property->props[40].data.guint32.min   = 0x0000;
+    gui_property->props[38].type               = PROP_TYPE_GUINT32;
+    gui_property->props[38].data.guint32.def   = (void *) &gui_property_variable_filter_main_divider_pos_default;
+    gui_property->props[38].data.guint32.value = (void *) &gui_property_variable_filter_main_divider_pos;
+    gui_property->props[38].data.guint32.choices = NULL;
+    gui_property->props[38].data.guint32.max   = 0xFFFF;
+    gui_property->props[38].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1127,16 +1086,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[41].name = "search_results_show_tabs";
-    gui_property->props[41].desc = _("Show tabs or search list.");
-    gui_property->props[41].ev_changed = event_new("search_results_show_tabs_changed");
-    gui_property->props[41].save = TRUE;
-    gui_property->props[41].vector_size = 1;
+    gui_property->props[39].name = "search_results_show_tabs";
+    gui_property->props[39].desc = _("Show tabs or search list.");
+    gui_property->props[39].ev_changed = event_new("search_results_show_tabs_changed");
+    gui_property->props[39].save = TRUE;
+    gui_property->props[39].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[41].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[41].data.boolean.def   = (void *) &gui_property_variable_search_results_show_tabs_default;
-    gui_property->props[41].data.boolean.value = (void *) &gui_property_variable_search_results_show_tabs;
+    gui_property->props[39].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[39].data.boolean.def   = (void *) &gui_property_variable_search_results_show_tabs_default;
+    gui_property->props[39].data.boolean.value = (void *) &gui_property_variable_search_results_show_tabs;
 
 
     /*
@@ -1144,16 +1103,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[42].name = "searchbar_visible";
-    gui_property->props[42].desc = _("Display Searchbar.");
-    gui_property->props[42].ev_changed = event_new("searchbar_visible_changed");
-    gui_property->props[42].save = TRUE;
-    gui_property->props[42].vector_size = 1;
+    gui_property->props[40].name = "searchbar_visible";
+    gui_property->props[40].desc = _("Display Searchbar.");
+    gui_property->props[40].ev_changed = event_new("searchbar_visible_changed");
+    gui_property->props[40].save = TRUE;
+    gui_property->props[40].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[42].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[42].data.boolean.def   = (void *) &gui_property_variable_searchbar_visible_default;
-    gui_property->props[42].data.boolean.value = (void *) &gui_property_variable_searchbar_visible;
+    gui_property->props[40].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[40].data.boolean.def   = (void *) &gui_property_variable_searchbar_visible_default;
+    gui_property->props[40].data.boolean.value = (void *) &gui_property_variable_searchbar_visible;
 
 
     /*
@@ -1161,16 +1120,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[43].name = "sidebar_visible";
-    gui_property->props[43].desc = _("Display Sidebar.");
-    gui_property->props[43].ev_changed = event_new("sidebar_visible_changed");
-    gui_property->props[43].save = TRUE;
-    gui_property->props[43].vector_size = 1;
+    gui_property->props[41].name = "sidebar_visible";
+    gui_property->props[41].desc = _("Display Sidebar.");
+    gui_property->props[41].ev_changed = event_new("sidebar_visible_changed");
+    gui_property->props[41].save = TRUE;
+    gui_property->props[41].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[43].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[43].data.boolean.def   = (void *) &gui_property_variable_sidebar_visible_default;
-    gui_property->props[43].data.boolean.value = (void *) &gui_property_variable_sidebar_visible;
+    gui_property->props[41].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[41].data.boolean.def   = (void *) &gui_property_variable_sidebar_visible_default;
+    gui_property->props[41].data.boolean.value = (void *) &gui_property_variable_sidebar_visible;
 
 
     /*
@@ -1178,16 +1137,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[44].name = "menubar_visible";
-    gui_property->props[44].desc = _("Display Menu.");
-    gui_property->props[44].ev_changed = event_new("menubar_visible_changed");
-    gui_property->props[44].save = FALSE;
-    gui_property->props[44].vector_size = 1;
+    gui_property->props[42].name = "menubar_visible";
+    gui_property->props[42].desc = _("Display Menu.");
+    gui_property->props[42].ev_changed = event_new("menubar_visible_changed");
+    gui_property->props[42].save = FALSE;
+    gui_property->props[42].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[44].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[44].data.boolean.def   = (void *) &gui_property_variable_menubar_visible_default;
-    gui_property->props[44].data.boolean.value = (void *) &gui_property_variable_menubar_visible;
+    gui_property->props[42].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[42].data.boolean.def   = (void *) &gui_property_variable_menubar_visible_default;
+    gui_property->props[42].data.boolean.value = (void *) &gui_property_variable_menubar_visible;
 
 
     /*
@@ -1195,16 +1154,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[45].name = "statusbar_visible";
-    gui_property->props[45].desc = _("Display statusbar.");
-    gui_property->props[45].ev_changed = event_new("statusbar_visible_changed");
-    gui_property->props[45].save = TRUE;
-    gui_property->props[45].vector_size = 1;
+    gui_property->props[43].name = "statusbar_visible";
+    gui_property->props[43].desc = _("Display statusbar.");
+    gui_property->props[43].ev_changed = event_new("statusbar_visible_changed");
+    gui_property->props[43].save = TRUE;
+    gui_property->props[43].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[45].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[45].data.boolean.def   = (void *) &gui_property_variable_statusbar_visible_default;
-    gui_property->props[45].data.boolean.value = (void *) &gui_property_variable_statusbar_visible;
+    gui_property->props[43].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[43].data.boolean.def   = (void *) &gui_property_variable_statusbar_visible_default;
+    gui_property->props[43].data.boolean.value = (void *) &gui_property_variable_statusbar_visible;
 
 
     /*
@@ -1212,16 +1171,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[46].name = "progressbar_uploads_visible";
-    gui_property->props[46].desc = _("Display upload statistics in sidebar.");
-    gui_property->props[46].ev_changed = event_new("progressbar_uploads_visible_changed");
-    gui_property->props[46].save = TRUE;
-    gui_property->props[46].vector_size = 1;
+    gui_property->props[44].name = "progressbar_uploads_visible";
+    gui_property->props[44].desc = _("Display upload statistics in sidebar.");
+    gui_property->props[44].ev_changed = event_new("progressbar_uploads_visible_changed");
+    gui_property->props[44].save = TRUE;
+    gui_property->props[44].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[46].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[46].data.boolean.def   = (void *) &gui_property_variable_progressbar_uploads_visible_default;
-    gui_property->props[46].data.boolean.value = (void *) &gui_property_variable_progressbar_uploads_visible;
+    gui_property->props[44].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[44].data.boolean.def   = (void *) &gui_property_variable_progressbar_uploads_visible_default;
+    gui_property->props[44].data.boolean.value = (void *) &gui_property_variable_progressbar_uploads_visible;
 
 
     /*
@@ -1229,16 +1188,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[47].name = "progressbar_downloads_visible";
-    gui_property->props[47].desc = _("Display download statistics in sidebar.");
-    gui_property->props[47].ev_changed = event_new("progressbar_downloads_visible_changed");
-    gui_property->props[47].save = TRUE;
-    gui_property->props[47].vector_size = 1;
+    gui_property->props[45].name = "progressbar_downloads_visible";
+    gui_property->props[45].desc = _("Display download statistics in sidebar.");
+    gui_property->props[45].ev_changed = event_new("progressbar_downloads_visible_changed");
+    gui_property->props[45].save = TRUE;
+    gui_property->props[45].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[47].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[47].data.boolean.def   = (void *) &gui_property_variable_progressbar_downloads_visible_default;
-    gui_property->props[47].data.boolean.value = (void *) &gui_property_variable_progressbar_downloads_visible;
+    gui_property->props[45].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[45].data.boolean.def   = (void *) &gui_property_variable_progressbar_downloads_visible_default;
+    gui_property->props[45].data.boolean.value = (void *) &gui_property_variable_progressbar_downloads_visible;
 
 
     /*
@@ -1246,16 +1205,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[48].name = "progressbar_connections_visible";
-    gui_property->props[48].desc = _("Display connection statistics in sidebar.");
-    gui_property->props[48].ev_changed = event_new("progressbar_connections_visible_changed");
-    gui_property->props[48].save = TRUE;
-    gui_property->props[48].vector_size = 1;
+    gui_property->props[46].name = "progressbar_connections_visible";
+    gui_property->props[46].desc = _("Display connection statistics in sidebar.");
+    gui_property->props[46].ev_changed = event_new("progressbar_connections_visible_changed");
+    gui_property->props[46].save = TRUE;
+    gui_property->props[46].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[48].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[48].data.boolean.def   = (void *) &gui_property_variable_progressbar_connections_visible_default;
-    gui_property->props[48].data.boolean.value = (void *) &gui_property_variable_progressbar_connections_visible;
+    gui_property->props[46].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[46].data.boolean.def   = (void *) &gui_property_variable_progressbar_connections_visible_default;
+    gui_property->props[46].data.boolean.value = (void *) &gui_property_variable_progressbar_connections_visible;
 
 
     /*
@@ -1263,16 +1222,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[49].name = "progressbar_bws_in_visible";
-    gui_property->props[49].desc = _("Display incoming HTTP traffic bandwidth usage.");
-    gui_property->props[49].ev_changed = event_new("progressbar_bws_in_visible_changed");
-    gui_property->props[49].save = TRUE;
-    gui_property->props[49].vector_size = 1;
+    gui_property->props[47].name = "progressbar_bws_in_visible";
+    gui_property->props[47].desc = _("Display incoming HTTP traffic bandwidth usage.");
+    gui_property->props[47].ev_changed = event_new("progressbar_bws_in_visible_changed");
+    gui_property->props[47].save = TRUE;
+    gui_property->props[47].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[49].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[49].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_visible_default;
-    gui_property->props[49].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_visible;
+    gui_property->props[47].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[47].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_visible_default;
+    gui_property->props[47].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_visible;
 
 
     /*
@@ -1280,16 +1239,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[50].name = "progressbar_bws_out_visible";
-    gui_property->props[50].desc = _("Display outgoing HTTP traffic bandwidth usage.");
-    gui_property->props[50].ev_changed = event_new("progressbar_bws_out_visible_changed");
-    gui_property->props[50].save = TRUE;
-    gui_property->props[50].vector_size = 1;
+    gui_property->props[48].name = "progressbar_bws_out_visible";
+    gui_property->props[48].desc = _("Display outgoing HTTP traffic bandwidth usage.");
+    gui_property->props[48].ev_changed = event_new("progressbar_bws_out_visible_changed");
+    gui_property->props[48].save = TRUE;
+    gui_property->props[48].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[50].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[50].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_visible_default;
-    gui_property->props[50].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_visible;
+    gui_property->props[48].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[48].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_visible_default;
+    gui_property->props[48].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_visible;
 
 
     /*
@@ -1297,16 +1256,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[51].name = "progressbar_bws_gin_visible";
-    gui_property->props[51].desc = _("Display incoming Gnet traffic bandwidth usage.");
-    gui_property->props[51].ev_changed = event_new("progressbar_bws_gin_visible_changed");
-    gui_property->props[51].save = TRUE;
-    gui_property->props[51].vector_size = 1;
+    gui_property->props[49].name = "progressbar_bws_gin_visible";
+    gui_property->props[49].desc = _("Display incoming Gnet traffic bandwidth usage.");
+    gui_property->props[49].ev_changed = event_new("progressbar_bws_gin_visible_changed");
+    gui_property->props[49].save = TRUE;
+    gui_property->props[49].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[51].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[51].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_visible_default;
-    gui_property->props[51].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_visible;
+    gui_property->props[49].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[49].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_visible_default;
+    gui_property->props[49].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_visible;
 
 
     /*
@@ -1314,16 +1273,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[52].name = "progressbar_bws_gout_visible";
-    gui_property->props[52].desc = _("Display outgoing Gnet traffic bandwidth usage.");
-    gui_property->props[52].ev_changed = event_new("progressbar_bws_gout_visible_changed");
-    gui_property->props[52].save = TRUE;
-    gui_property->props[52].vector_size = 1;
+    gui_property->props[50].name = "progressbar_bws_gout_visible";
+    gui_property->props[50].desc = _("Display outgoing Gnet traffic bandwidth usage.");
+    gui_property->props[50].ev_changed = event_new("progressbar_bws_gout_visible_changed");
+    gui_property->props[50].save = TRUE;
+    gui_property->props[50].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[52].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[52].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_visible_default;
-    gui_property->props[52].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_visible;
+    gui_property->props[50].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[50].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_visible_default;
+    gui_property->props[50].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_visible;
 
 
     /*
@@ -1331,16 +1290,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[53].name = "progressbar_bws_glin_visible";
-    gui_property->props[53].desc = _("Display incoming Gnet leaf traffic bandwidth usage.");
-    gui_property->props[53].ev_changed = event_new("progressbar_bws_glin_visible_changed");
-    gui_property->props[53].save = TRUE;
-    gui_property->props[53].vector_size = 1;
+    gui_property->props[51].name = "progressbar_bws_glin_visible";
+    gui_property->props[51].desc = _("Display incoming Gnet leaf traffic bandwidth usage.");
+    gui_property->props[51].ev_changed = event_new("progressbar_bws_glin_visible_changed");
+    gui_property->props[51].save = TRUE;
+    gui_property->props[51].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[53].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_visible_default;
-    gui_property->props[53].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_visible;
+    gui_property->props[51].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[51].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_visible_default;
+    gui_property->props[51].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_visible;
 
 
     /*
@@ -1348,16 +1307,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[54].name = "progressbar_bws_glout_visible";
-    gui_property->props[54].desc = _("Display outgoing Gnet leaf traffic bandwidth usage.");
-    gui_property->props[54].ev_changed = event_new("progressbar_bws_glout_visible_changed");
-    gui_property->props[54].save = TRUE;
-    gui_property->props[54].vector_size = 1;
+    gui_property->props[52].name = "progressbar_bws_glout_visible";
+    gui_property->props[52].desc = _("Display outgoing Gnet leaf traffic bandwidth usage.");
+    gui_property->props[52].ev_changed = event_new("progressbar_bws_glout_visible_changed");
+    gui_property->props[52].save = TRUE;
+    gui_property->props[52].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[54].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_visible_default;
-    gui_property->props[54].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_visible;
+    gui_property->props[52].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[52].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_visible_default;
+    gui_property->props[52].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_visible;
 
 
     /*
@@ -1365,16 +1324,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[55].name = "autohide_bws_gleaf";
-    gui_property->props[55].desc = _("Automatically hide leaf bandwidth display when not in ultrapeer mode.");
-    gui_property->props[55].ev_changed = event_new("autohide_bws_gleaf_changed");
-    gui_property->props[55].save = TRUE;
-    gui_property->props[55].vector_size = 1;
+    gui_property->props[53].name = "autohide_bws_gleaf";
+    gui_property->props[53].desc = _("Automatically hide leaf bandwidth display when not in ultrapeer mode.");
+    gui_property->props[53].ev_changed = event_new("autohide_bws_gleaf_changed");
+    gui_property->props[53].save = TRUE;
+    gui_property->props[53].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[55].data.boolean.def   = (void *) &gui_property_variable_autohide_bws_gleaf_default;
-    gui_property->props[55].data.boolean.value = (void *) &gui_property_variable_autohide_bws_gleaf;
+    gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[53].data.boolean.def   = (void *) &gui_property_variable_autohide_bws_gleaf_default;
+    gui_property->props[53].data.boolean.value = (void *) &gui_property_variable_autohide_bws_gleaf;
 
 
     /*
@@ -1382,16 +1341,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[56].name = "progressbar_bws_in_avg";
-    gui_property->props[56].desc = _("Display incoming HTTP traffic bandwidth average.");
-    gui_property->props[56].ev_changed = event_new("progressbar_bws_in_avg_changed");
-    gui_property->props[56].save = TRUE;
-    gui_property->props[56].vector_size = 1;
+    gui_property->props[54].name = "progressbar_bws_in_avg";
+    gui_property->props[54].desc = _("Display incoming HTTP traffic bandwidth average.");
+    gui_property->props[54].ev_changed = event_new("progressbar_bws_in_avg_changed");
+    gui_property->props[54].save = TRUE;
+    gui_property->props[54].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[56].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[56].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_avg_default;
-    gui_property->props[56].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_avg;
+    gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[54].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_in_avg_default;
+    gui_property->props[54].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_in_avg;
 
 
     /*
@@ -1399,16 +1358,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[57].name = "progressbar_bws_out_avg";
-    gui_property->props[57].desc = _("Display outgoing HTTP traffic bandwidth average.");
-    gui_property->props[57].ev_changed = event_new("progressbar_bws_out_avg_changed");
-    gui_property->props[57].save = TRUE;
-    gui_property->props[57].vector_size = 1;
+    gui_property->props[55].name = "progressbar_bws_out_avg";
+    gui_property->props[55].desc = _("Display outgoing HTTP traffic bandwidth average.");
+    gui_property->props[55].ev_changed = event_new("progressbar_bws_out_avg_changed");
+    gui_property->props[55].save = TRUE;
+    gui_property->props[55].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[57].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[57].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_avg_default;
-    gui_property->props[57].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_avg;
+    gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[55].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_out_avg_default;
+    gui_property->props[55].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_out_avg;
 
 
     /*
@@ -1416,16 +1375,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[58].name = "progressbar_bws_gin_avg";
-    gui_property->props[58].desc = _("Display incoming Gnet traffic bandwidth average.");
-    gui_property->props[58].ev_changed = event_new("progressbar_bws_gin_avg_changed");
-    gui_property->props[58].save = TRUE;
-    gui_property->props[58].vector_size = 1;
+    gui_property->props[56].name = "progressbar_bws_gin_avg";
+    gui_property->props[56].desc = _("Display incoming Gnet traffic bandwidth average.");
+    gui_property->props[56].ev_changed = event_new("progressbar_bws_gin_avg_changed");
+    gui_property->props[56].save = TRUE;
+    gui_property->props[56].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[58].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[58].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_avg_default;
-    gui_property->props[58].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_avg;
+    gui_property->props[56].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[56].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gin_avg_default;
+    gui_property->props[56].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gin_avg;
 
 
     /*
@@ -1433,16 +1392,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[59].name = "progressbar_bws_gout_avg";
-    gui_property->props[59].desc = _("Display outgoing Gnet traffic bandwidth average.");
-    gui_property->props[59].ev_changed = event_new("progressbar_bws_gout_avg_changed");
-    gui_property->props[59].save = TRUE;
-    gui_property->props[59].vector_size = 1;
+    gui_property->props[57].name = "progressbar_bws_gout_avg";
+    gui_property->props[57].desc = _("Display outgoing Gnet traffic bandwidth average.");
+    gui_property->props[57].ev_changed = event_new("progressbar_bws_gout_avg_changed");
+    gui_property->props[57].save = TRUE;
+    gui_property->props[57].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[59].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_avg_default;
-    gui_property->props[59].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_avg;
+    gui_property->props[57].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[57].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_gout_avg_default;
+    gui_property->props[57].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_gout_avg;
 
 
     /*
@@ -1450,16 +1409,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[60].name = "progressbar_bws_glin_avg";
-    gui_property->props[60].desc = _("Display incoming Gnet leaf traffic bandwidth average.");
-    gui_property->props[60].ev_changed = event_new("progressbar_bws_glin_avg_changed");
-    gui_property->props[60].save = TRUE;
-    gui_property->props[60].vector_size = 1;
+    gui_property->props[58].name = "progressbar_bws_glin_avg";
+    gui_property->props[58].desc = _("Display incoming Gnet leaf traffic bandwidth average.");
+    gui_property->props[58].ev_changed = event_new("progressbar_bws_glin_avg_changed");
+    gui_property->props[58].save = TRUE;
+    gui_property->props[58].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[60].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[60].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_avg_default;
-    gui_property->props[60].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_avg;
+    gui_property->props[58].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[58].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glin_avg_default;
+    gui_property->props[58].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glin_avg;
 
 
     /*
@@ -1467,16 +1426,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[61].name = "progressbar_bws_glout_avg";
-    gui_property->props[61].desc = _("Display outgoing Gnet leaf traffic bandwidth average.");
-    gui_property->props[61].ev_changed = event_new("progressbar_bws_glout_avg_changed");
-    gui_property->props[61].save = TRUE;
-    gui_property->props[61].vector_size = 1;
+    gui_property->props[59].name = "progressbar_bws_glout_avg";
+    gui_property->props[59].desc = _("Display outgoing Gnet leaf traffic bandwidth average.");
+    gui_property->props[59].ev_changed = event_new("progressbar_bws_glout_avg_changed");
+    gui_property->props[59].save = TRUE;
+    gui_property->props[59].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[61].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[61].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_avg_default;
-    gui_property->props[61].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_avg;
+    gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[59].data.boolean.def   = (void *) &gui_property_variable_progressbar_bws_glout_avg_default;
+    gui_property->props[59].data.boolean.value = (void *) &gui_property_variable_progressbar_bws_glout_avg;
 
 
     /*
@@ -1484,16 +1443,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[62].name = "search_sort_casesense";
-    gui_property->props[62].desc = _("Do a case sensitive sorting.");
-    gui_property->props[62].ev_changed = event_new("search_sort_casesense_changed");
-    gui_property->props[62].save = TRUE;
-    gui_property->props[62].vector_size = 1;
+    gui_property->props[60].name = "search_sort_casesense";
+    gui_property->props[60].desc = _("Do a case sensitive sorting.");
+    gui_property->props[60].ev_changed = event_new("search_sort_casesense_changed");
+    gui_property->props[60].save = TRUE;
+    gui_property->props[60].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[62].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[62].data.boolean.def   = (void *) &gui_property_variable_search_sort_casesense_default;
-    gui_property->props[62].data.boolean.value = (void *) &gui_property_variable_search_sort_casesense;
+    gui_property->props[60].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[60].data.boolean.def   = (void *) &gui_property_variable_search_sort_casesense_default;
+    gui_property->props[60].data.boolean.value = (void *) &gui_property_variable_search_sort_casesense;
 
 
     /*
@@ -1501,19 +1460,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[63].name = "search_sort_default_order";
-    gui_property->props[63].desc = _("Default sort order for search results.");
-    gui_property->props[63].ev_changed = event_new("search_sort_default_order_changed");
-    gui_property->props[63].save = TRUE;
-    gui_property->props[63].vector_size = 1;
+    gui_property->props[61].name = "search_sort_default_order";
+    gui_property->props[61].desc = _("Default sort order for search results.");
+    gui_property->props[61].ev_changed = event_new("search_sort_default_order_changed");
+    gui_property->props[61].save = TRUE;
+    gui_property->props[61].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[63].type               = PROP_TYPE_GUINT32;
-    gui_property->props[63].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_order_default;
-    gui_property->props[63].data.guint32.value = (void *) &gui_property_variable_search_sort_default_order;
-    gui_property->props[63].data.guint32.choices = NULL;
-    gui_property->props[63].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[63].data.guint32.min   = 0x00000000;
+    gui_property->props[61].type               = PROP_TYPE_GUINT32;
+    gui_property->props[61].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_order_default;
+    gui_property->props[61].data.guint32.value = (void *) &gui_property_variable_search_sort_default_order;
+    gui_property->props[61].data.guint32.choices = NULL;
+    gui_property->props[61].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[61].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1521,19 +1480,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[64].name = "search_sort_default_column";
-    gui_property->props[64].desc = _("Default sort column for search results.");
-    gui_property->props[64].ev_changed = event_new("search_sort_default_column_changed");
-    gui_property->props[64].save = TRUE;
-    gui_property->props[64].vector_size = 1;
+    gui_property->props[62].name = "search_sort_default_column";
+    gui_property->props[62].desc = _("Default sort column for search results.");
+    gui_property->props[62].ev_changed = event_new("search_sort_default_column_changed");
+    gui_property->props[62].save = TRUE;
+    gui_property->props[62].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[64].type               = PROP_TYPE_GUINT32;
-    gui_property->props[64].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_column_default;
-    gui_property->props[64].data.guint32.value = (void *) &gui_property_variable_search_sort_default_column;
-    gui_property->props[64].data.guint32.choices = NULL;
-    gui_property->props[64].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[64].data.guint32.min   = 0x00000000;
+    gui_property->props[62].type               = PROP_TYPE_GUINT32;
+    gui_property->props[62].data.guint32.def   = (void *) &gui_property_variable_search_sort_default_column_default;
+    gui_property->props[62].data.guint32.value = (void *) &gui_property_variable_search_sort_default_column;
+    gui_property->props[62].data.guint32.choices = NULL;
+    gui_property->props[62].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[62].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1541,16 +1500,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[65].name = "search_discard_spam";
-    gui_property->props[65].desc = _("Discard search results which are considered spam.");
-    gui_property->props[65].ev_changed = event_new("search_discard_spam_changed");
-    gui_property->props[65].save = TRUE;
-    gui_property->props[65].vector_size = 1;
+    gui_property->props[63].name = "search_discard_spam";
+    gui_property->props[63].desc = _("Discard search results which are considered spam.");
+    gui_property->props[63].ev_changed = event_new("search_discard_spam_changed");
+    gui_property->props[63].save = TRUE;
+    gui_property->props[63].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[65].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[65].data.boolean.def   = (void *) &gui_property_variable_search_discard_spam_default;
-    gui_property->props[65].data.boolean.value = (void *) &gui_property_variable_search_discard_spam;
+    gui_property->props[63].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[63].data.boolean.def   = (void *) &gui_property_variable_search_discard_spam_default;
+    gui_property->props[63].data.boolean.value = (void *) &gui_property_variable_search_discard_spam;
 
 
     /*
@@ -1558,16 +1517,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[66].name = "search_discard_hashless";
-    gui_property->props[66].desc = _("Discard search results which carry no hashsum.");
-    gui_property->props[66].ev_changed = event_new("search_discard_hashless_changed");
-    gui_property->props[66].save = TRUE;
-    gui_property->props[66].vector_size = 1;
+    gui_property->props[64].name = "search_discard_hashless";
+    gui_property->props[64].desc = _("Discard search results which carry no hashsum.");
+    gui_property->props[64].ev_changed = event_new("search_discard_hashless_changed");
+    gui_property->props[64].save = TRUE;
+    gui_property->props[64].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[66].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[66].data.boolean.def   = (void *) &gui_property_variable_search_discard_hashless_default;
-    gui_property->props[66].data.boolean.value = (void *) &gui_property_variable_search_discard_hashless;
+    gui_property->props[64].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[64].data.boolean.def   = (void *) &gui_property_variable_search_discard_hashless_default;
+    gui_property->props[64].data.boolean.value = (void *) &gui_property_variable_search_discard_hashless;
 
 
     /*
@@ -1575,16 +1534,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[67].name = "search_jump_to_created";
-    gui_property->props[67].desc = _("Jump to newly created searches");
-    gui_property->props[67].ev_changed = event_new("search_jump_to_created_changed");
-    gui_property->props[67].save = TRUE;
-    gui_property->props[67].vector_size = 1;
+    gui_property->props[65].name = "search_jump_to_created";
+    gui_property->props[65].desc = _("Jump to newly created searches");
+    gui_property->props[65].ev_changed = event_new("search_jump_to_created_changed");
+    gui_property->props[65].save = TRUE;
+    gui_property->props[65].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[67].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[67].data.boolean.def   = (void *) &gui_property_variable_search_jump_to_created_default;
-    gui_property->props[67].data.boolean.value = (void *) &gui_property_variable_search_jump_to_created;
+    gui_property->props[65].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[65].data.boolean.def   = (void *) &gui_property_variable_search_jump_to_created_default;
+    gui_property->props[65].data.boolean.value = (void *) &gui_property_variable_search_jump_to_created;
 
 
     /*
@@ -1592,19 +1551,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[68].name = "search_stats_mode";
-    gui_property->props[68].desc = _("Collect statistics about searches that go through this node.");
-    gui_property->props[68].ev_changed = event_new("search_stats_mode_changed");
-    gui_property->props[68].save = TRUE;
-    gui_property->props[68].vector_size = 1;
+    gui_property->props[66].name = "search_stats_mode";
+    gui_property->props[66].desc = _("Collect statistics about searches that go through this node.");
+    gui_property->props[66].ev_changed = event_new("search_stats_mode_changed");
+    gui_property->props[66].save = TRUE;
+    gui_property->props[66].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[68].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[68].data.guint32.def   = (void *) &gui_property_variable_search_stats_mode_default;
-    gui_property->props[68].data.guint32.value = (void *) &gui_property_variable_search_stats_mode;
-    gui_property->props[68].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[68].data.guint32.min   = 0x00000000;
-    gui_property->props[68].data.guint32.choices = (void *) &gui_property_variable_search_stats_mode_choices;
+    gui_property->props[66].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[66].data.guint32.def   = (void *) &gui_property_variable_search_stats_mode_default;
+    gui_property->props[66].data.guint32.value = (void *) &gui_property_variable_search_stats_mode;
+    gui_property->props[66].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[66].data.guint32.min   = 0x00000000;
+    gui_property->props[66].data.guint32.choices = (void *) &gui_property_variable_search_stats_mode_choices;
 
 
     /*
@@ -1612,19 +1571,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[69].name = "search_stats_update_interval";
-    gui_property->props[69].desc = _("Interval in which the search stats are updated.");
-    gui_property->props[69].ev_changed = event_new("search_stats_update_interval_changed");
-    gui_property->props[69].save = TRUE;
-    gui_property->props[69].vector_size = 1;
+    gui_property->props[67].name = "search_stats_update_interval";
+    gui_property->props[67].desc = _("Interval in which the search stats are updated.");
+    gui_property->props[67].ev_changed = event_new("search_stats_update_interval_changed");
+    gui_property->props[67].save = TRUE;
+    gui_property->props[67].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[69].type               = PROP_TYPE_GUINT32;
-    gui_property->props[69].data.guint32.def   = (void *) &gui_property_variable_search_stats_update_interval_default;
-    gui_property->props[69].data.guint32.value = (void *) &gui_property_variable_search_stats_update_interval;
-    gui_property->props[69].data.guint32.choices = NULL;
-    gui_property->props[69].data.guint32.max   = 50000;
-    gui_property->props[69].data.guint32.min   = 0;
+    gui_property->props[67].type               = PROP_TYPE_GUINT32;
+    gui_property->props[67].data.guint32.def   = (void *) &gui_property_variable_search_stats_update_interval_default;
+    gui_property->props[67].data.guint32.value = (void *) &gui_property_variable_search_stats_update_interval;
+    gui_property->props[67].data.guint32.choices = NULL;
+    gui_property->props[67].data.guint32.max   = 50000;
+    gui_property->props[67].data.guint32.min   = 0;
 
 
     /*
@@ -1632,19 +1591,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[70].name = "search_stats_delcoef";
-    gui_property->props[70].desc = _("A deletion coefficient, so that small non-significant results can be dropped.  The lower it is, the more search statistics will be kept in memory.");
-    gui_property->props[70].ev_changed = event_new("search_stats_delcoef_changed");
-    gui_property->props[70].save = TRUE;
-    gui_property->props[70].vector_size = 1;
+    gui_property->props[68].name = "search_stats_delcoef";
+    gui_property->props[68].desc = _("A deletion coefficient, so that small non-significant results can be dropped.  The lower it is, the more search statistics will be kept in memory.");
+    gui_property->props[68].ev_changed = event_new("search_stats_delcoef_changed");
+    gui_property->props[68].save = TRUE;
+    gui_property->props[68].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[70].type               = PROP_TYPE_GUINT32;
-    gui_property->props[70].data.guint32.def   = (void *) &gui_property_variable_search_stats_delcoef_default;
-    gui_property->props[70].data.guint32.value = (void *) &gui_property_variable_search_stats_delcoef;
-    gui_property->props[70].data.guint32.choices = NULL;
-    gui_property->props[70].data.guint32.max   = 100;
-    gui_property->props[70].data.guint32.min   = 0;
+    gui_property->props[68].type               = PROP_TYPE_GUINT32;
+    gui_property->props[68].data.guint32.def   = (void *) &gui_property_variable_search_stats_delcoef_default;
+    gui_property->props[68].data.guint32.value = (void *) &gui_property_variable_search_stats_delcoef;
+    gui_property->props[68].data.guint32.choices = NULL;
+    gui_property->props[68].data.guint32.max   = 100;
+    gui_property->props[68].data.guint32.min   = 0;
 
 
     /*
@@ -1652,16 +1611,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[71].name = "confirm_quit";
-    gui_property->props[71].desc = _("Show confirmation dialog when leaving gtk-gnutella.");
-    gui_property->props[71].ev_changed = event_new("confirm_quit_changed");
-    gui_property->props[71].save = TRUE;
-    gui_property->props[71].vector_size = 1;
+    gui_property->props[69].name = "confirm_quit";
+    gui_property->props[69].desc = _("Show confirmation dialog when leaving gtk-gnutella.");
+    gui_property->props[69].ev_changed = event_new("confirm_quit_changed");
+    gui_property->props[69].save = TRUE;
+    gui_property->props[69].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[71].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[71].data.boolean.def   = (void *) &gui_property_variable_confirm_quit_default;
-    gui_property->props[71].data.boolean.value = (void *) &gui_property_variable_confirm_quit;
+    gui_property->props[69].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[69].data.boolean.def   = (void *) &gui_property_variable_confirm_quit_default;
+    gui_property->props[69].data.boolean.value = (void *) &gui_property_variable_confirm_quit;
 
 
     /*
@@ -1669,16 +1628,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[72].name = "show_tooltips";
-    gui_property->props[72].desc = _("Show a helpful message when the mouse pointer lingers over a widget.");
-    gui_property->props[72].ev_changed = event_new("show_tooltips_changed");
-    gui_property->props[72].save = TRUE;
-    gui_property->props[72].vector_size = 1;
+    gui_property->props[70].name = "show_tooltips";
+    gui_property->props[70].desc = _("Show a helpful message when the mouse pointer lingers over a widget.");
+    gui_property->props[70].ev_changed = event_new("show_tooltips_changed");
+    gui_property->props[70].save = TRUE;
+    gui_property->props[70].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[72].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[72].data.boolean.def   = (void *) &gui_property_variable_show_tooltips_default;
-    gui_property->props[72].data.boolean.value = (void *) &gui_property_variable_show_tooltips;
+    gui_property->props[70].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[70].data.boolean.def   = (void *) &gui_property_variable_show_tooltips_default;
+    gui_property->props[70].data.boolean.value = (void *) &gui_property_variable_show_tooltips;
 
 
     /*
@@ -1686,16 +1645,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[73].name = "expert_mode";
-    gui_property->props[73].desc = _("Show a lot more settings to tweak. If you tamper with them be sure to read up on what they are doing.");
-    gui_property->props[73].ev_changed = event_new("expert_mode_changed");
-    gui_property->props[73].save = TRUE;
-    gui_property->props[73].vector_size = 1;
+    gui_property->props[71].name = "expert_mode";
+    gui_property->props[71].desc = _("Show a lot more settings to tweak. If you tamper with them be sure to read up on what they are doing.");
+    gui_property->props[71].ev_changed = event_new("expert_mode_changed");
+    gui_property->props[71].save = TRUE;
+    gui_property->props[71].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[73].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[73].data.boolean.def   = (void *) &gui_property_variable_expert_mode_default;
-    gui_property->props[73].data.boolean.value = (void *) &gui_property_variable_expert_mode;
+    gui_property->props[71].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[71].data.boolean.def   = (void *) &gui_property_variable_expert_mode_default;
+    gui_property->props[71].data.boolean.value = (void *) &gui_property_variable_expert_mode;
 
 
     /*
@@ -1703,16 +1662,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[74].name = "gnet_stats_perc";
-    gui_property->props[74].desc = _("Show percentages instead of absolute values in the Gnet stats.");
-    gui_property->props[74].ev_changed = event_new("gnet_stats_perc_changed");
-    gui_property->props[74].save = TRUE;
-    gui_property->props[74].vector_size = 1;
+    gui_property->props[72].name = "gnet_stats_perc";
+    gui_property->props[72].desc = _("Show percentages instead of absolute values in the Gnet stats.");
+    gui_property->props[72].ev_changed = event_new("gnet_stats_perc_changed");
+    gui_property->props[72].save = TRUE;
+    gui_property->props[72].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[74].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[74].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_perc_default;
-    gui_property->props[74].data.boolean.value = (void *) &gui_property_variable_gnet_stats_perc;
+    gui_property->props[72].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[72].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_perc_default;
+    gui_property->props[72].data.boolean.value = (void *) &gui_property_variable_gnet_stats_perc;
 
 
     /*
@@ -1720,16 +1679,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[75].name = "gnet_stats_bytes";
-    gui_property->props[75].desc = _("Show bytes instead of packets in the Gnet stats.");
-    gui_property->props[75].ev_changed = event_new("gnet_stats_bytes_changed");
-    gui_property->props[75].save = TRUE;
-    gui_property->props[75].vector_size = 1;
+    gui_property->props[73].name = "gnet_stats_bytes";
+    gui_property->props[73].desc = _("Show bytes instead of packets in the Gnet stats.");
+    gui_property->props[73].ev_changed = event_new("gnet_stats_bytes_changed");
+    gui_property->props[73].save = TRUE;
+    gui_property->props[73].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[75].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[75].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_bytes_default;
-    gui_property->props[75].data.boolean.value = (void *) &gui_property_variable_gnet_stats_bytes;
+    gui_property->props[73].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[73].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_bytes_default;
+    gui_property->props[73].data.boolean.value = (void *) &gui_property_variable_gnet_stats_bytes;
 
 
     /*
@@ -1737,16 +1696,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[76].name = "gnet_stats_hops";
-    gui_property->props[76].desc = _("Show stats per hops instead of per TTL.");
-    gui_property->props[76].ev_changed = event_new("gnet_stats_hops_changed");
-    gui_property->props[76].save = TRUE;
-    gui_property->props[76].vector_size = 1;
+    gui_property->props[74].name = "gnet_stats_hops";
+    gui_property->props[74].desc = _("Show stats per hops instead of per TTL.");
+    gui_property->props[74].ev_changed = event_new("gnet_stats_hops_changed");
+    gui_property->props[74].save = TRUE;
+    gui_property->props[74].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[76].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[76].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_hops_default;
-    gui_property->props[76].data.boolean.value = (void *) &gui_property_variable_gnet_stats_hops;
+    gui_property->props[74].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[74].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_hops_default;
+    gui_property->props[74].data.boolean.value = (void *) &gui_property_variable_gnet_stats_hops;
 
 
     /*
@@ -1754,19 +1713,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[77].name = "gnet_stats_source";
-    gui_property->props[77].desc = _("Choose source of stats to be displayed.");
-    gui_property->props[77].ev_changed = event_new("gnet_stats_source_changed");
-    gui_property->props[77].save = TRUE;
-    gui_property->props[77].vector_size = 1;
+    gui_property->props[75].name = "gnet_stats_source";
+    gui_property->props[75].desc = _("Choose source of stats to be displayed.");
+    gui_property->props[75].ev_changed = event_new("gnet_stats_source_changed");
+    gui_property->props[75].save = TRUE;
+    gui_property->props[75].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[77].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[77].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_source_default;
-    gui_property->props[77].data.guint32.value = (void *) &gui_property_variable_gnet_stats_source;
-    gui_property->props[77].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[77].data.guint32.min   = 0x00000000;
-    gui_property->props[77].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_source_choices;
+    gui_property->props[75].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[75].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_source_default;
+    gui_property->props[75].data.guint32.value = (void *) &gui_property_variable_gnet_stats_source;
+    gui_property->props[75].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[75].data.guint32.min   = 0x00000000;
+    gui_property->props[75].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_source_choices;
 
 
     /*
@@ -1774,19 +1733,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[78].name = "gnet_stats_drop_reasons_type";
-    gui_property->props[78].desc = _("Choose message type for drop reasons.");
-    gui_property->props[78].ev_changed = event_new("gnet_stats_drop_reasons_type_changed");
-    gui_property->props[78].save = TRUE;
-    gui_property->props[78].vector_size = 1;
+    gui_property->props[76].name = "gnet_stats_drop_reasons_type";
+    gui_property->props[76].desc = _("Choose message type for drop reasons.");
+    gui_property->props[76].ev_changed = event_new("gnet_stats_drop_reasons_type_changed");
+    gui_property->props[76].save = TRUE;
+    gui_property->props[76].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[78].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[78].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_default;
-    gui_property->props[78].data.guint32.value = (void *) &gui_property_variable_gnet_stats_drop_reasons_type;
-    gui_property->props[78].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[78].data.guint32.min   = 0x00000000;
-    gui_property->props[78].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_choices;
+    gui_property->props[76].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[76].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_default;
+    gui_property->props[76].data.guint32.value = (void *) &gui_property_variable_gnet_stats_drop_reasons_type;
+    gui_property->props[76].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[76].data.guint32.min   = 0x00000000;
+    gui_property->props[76].data.guint32.choices = (void *) &gui_property_variable_gnet_stats_drop_reasons_type_choices;
 
 
     /*
@@ -1794,16 +1753,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[79].name = "gnet_stats_with_headers";
-    gui_property->props[79].desc = _("Include Gnutella packet header size to the volume.");
-    gui_property->props[79].ev_changed = event_new("gnet_stats_with_headers_changed");
-    gui_property->props[79].save = TRUE;
-    gui_property->props[79].vector_size = 1;
+    gui_property->props[77].name = "gnet_stats_with_headers";
+    gui_property->props[77].desc = _("Include Gnutella packet header size to the volume.");
+    gui_property->props[77].ev_changed = event_new("gnet_stats_with_headers_changed");
+    gui_property->props[77].save = TRUE;
+    gui_property->props[77].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[79].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[79].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_with_headers_default;
-    gui_property->props[79].data.boolean.value = (void *) &gui_property_variable_gnet_stats_with_headers;
+    gui_property->props[77].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[77].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_with_headers_default;
+    gui_property->props[77].data.boolean.value = (void *) &gui_property_variable_gnet_stats_with_headers;
 
 
     /*
@@ -1811,16 +1770,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[80].name = "gnet_stats_drop_perc";
-    gui_property->props[80].desc = _("Show percentages instead of absolute values in the Gnet stats (drop reasons).");
-    gui_property->props[80].ev_changed = event_new("gnet_stats_drop_perc_changed");
-    gui_property->props[80].save = TRUE;
-    gui_property->props[80].vector_size = 1;
+    gui_property->props[78].name = "gnet_stats_drop_perc";
+    gui_property->props[78].desc = _("Show percentages instead of absolute values in the Gnet stats (drop reasons).");
+    gui_property->props[78].ev_changed = event_new("gnet_stats_drop_perc_changed");
+    gui_property->props[78].save = TRUE;
+    gui_property->props[78].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[80].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[80].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_drop_perc_default;
-    gui_property->props[80].data.boolean.value = (void *) &gui_property_variable_gnet_stats_drop_perc;
+    gui_property->props[78].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[78].data.boolean.def   = (void *) &gui_property_variable_gnet_stats_drop_perc_default;
+    gui_property->props[78].data.boolean.value = (void *) &gui_property_variable_gnet_stats_drop_perc;
 
 
     /*
@@ -1828,19 +1787,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[81].name = "widths_gnet_stats_general";
-    gui_property->props[81].desc = _("Widths of the columns in the Gnet stats general table.");
-    gui_property->props[81].ev_changed = event_new("gnet_stats_general_col_widths_changed");
-    gui_property->props[81].save = TRUE;
-    gui_property->props[81].vector_size = 2;
+    gui_property->props[79].name = "widths_gnet_stats_general";
+    gui_property->props[79].desc = _("Widths of the columns in the Gnet stats general table.");
+    gui_property->props[79].ev_changed = event_new("gnet_stats_general_col_widths_changed");
+    gui_property->props[79].save = TRUE;
+    gui_property->props[79].vector_size = 2;
 
     /* Type specific data: */
-    gui_property->props[81].type               = PROP_TYPE_GUINT32;
-    gui_property->props[81].data.guint32.def   = (void *) gui_property_variable_gnet_stats_general_col_widths_default;
-    gui_property->props[81].data.guint32.value = gui_property_variable_gnet_stats_general_col_widths;
-    gui_property->props[81].data.guint32.choices = NULL;
-    gui_property->props[81].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[81].data.guint32.min   = 0x00000000;
+    gui_property->props[79].type               = PROP_TYPE_GUINT32;
+    gui_property->props[79].data.guint32.def   = (void *) gui_property_variable_gnet_stats_general_col_widths_default;
+    gui_property->props[79].data.guint32.value = gui_property_variable_gnet_stats_general_col_widths;
+    gui_property->props[79].data.guint32.choices = NULL;
+    gui_property->props[79].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[79].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1848,16 +1807,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[82].name = "auto_clear_completed_uploads";
-    gui_property->props[82].desc = _("Auto clear completed uploads.");
-    gui_property->props[82].ev_changed = event_new("autoclear_completed_uploads_changed");
-    gui_property->props[82].save = TRUE;
-    gui_property->props[82].vector_size = 1;
+    gui_property->props[80].name = "auto_clear_completed_uploads";
+    gui_property->props[80].desc = _("Auto clear completed uploads.");
+    gui_property->props[80].ev_changed = event_new("autoclear_completed_uploads_changed");
+    gui_property->props[80].save = TRUE;
+    gui_property->props[80].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[82].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[82].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_complete_default;
-    gui_property->props[82].data.boolean.value = (void *) &gui_property_variable_clear_uploads_complete;
+    gui_property->props[80].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[80].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_complete_default;
+    gui_property->props[80].data.boolean.value = (void *) &gui_property_variable_clear_uploads_complete;
 
 
     /*
@@ -1865,16 +1824,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[83].name = "auto_clear_failed_uploads";
-    gui_property->props[83].desc = _("Auto clear failed uploads.");
-    gui_property->props[83].ev_changed = event_new("autoclear_failed_uploads_changed");
-    gui_property->props[83].save = TRUE;
-    gui_property->props[83].vector_size = 1;
+    gui_property->props[81].name = "auto_clear_failed_uploads";
+    gui_property->props[81].desc = _("Auto clear failed uploads.");
+    gui_property->props[81].ev_changed = event_new("autoclear_failed_uploads_changed");
+    gui_property->props[81].save = TRUE;
+    gui_property->props[81].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[83].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[83].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_failed_default;
-    gui_property->props[83].data.boolean.value = (void *) &gui_property_variable_clear_uploads_failed;
+    gui_property->props[81].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[81].data.boolean.def   = (void *) &gui_property_variable_clear_uploads_failed_default;
+    gui_property->props[81].data.boolean.value = (void *) &gui_property_variable_clear_uploads_failed;
 
 
     /*
@@ -1882,16 +1841,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[84].name = "node_show_uptime";
-    gui_property->props[84].desc = _("Whether the node's uptime should be shown (not all nodes provide this information).");
-    gui_property->props[84].ev_changed = event_new("node_show_uptime_changed");
-    gui_property->props[84].save = TRUE;
-    gui_property->props[84].vector_size = 1;
+    gui_property->props[82].name = "node_show_uptime";
+    gui_property->props[82].desc = _("Whether the node's uptime should be shown (not all nodes provide this information).");
+    gui_property->props[82].ev_changed = event_new("node_show_uptime_changed");
+    gui_property->props[82].save = TRUE;
+    gui_property->props[82].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[84].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[84].data.boolean.def   = (void *) &gui_property_variable_node_show_uptime_default;
-    gui_property->props[84].data.boolean.value = (void *) &gui_property_variable_node_show_uptime;
+    gui_property->props[82].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[82].data.boolean.def   = (void *) &gui_property_variable_node_show_uptime_default;
+    gui_property->props[82].data.boolean.value = (void *) &gui_property_variable_node_show_uptime;
 
 
     /*
@@ -1899,16 +1858,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[85].name = "node_show_handshake_version";
-    gui_property->props[85].desc = _("Whether the handshaking version number should be displayed.");
-    gui_property->props[85].ev_changed = event_new("node_show_handshake_version_changed");
-    gui_property->props[85].save = TRUE;
-    gui_property->props[85].vector_size = 1;
+    gui_property->props[83].name = "node_show_handshake_version";
+    gui_property->props[83].desc = _("Whether the handshaking version number should be displayed.");
+    gui_property->props[83].ev_changed = event_new("node_show_handshake_version_changed");
+    gui_property->props[83].save = TRUE;
+    gui_property->props[83].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[85].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[85].data.boolean.def   = (void *) &gui_property_variable_node_show_handshake_version_default;
-    gui_property->props[85].data.boolean.value = (void *) &gui_property_variable_node_show_handshake_version;
+    gui_property->props[83].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[83].data.boolean.def   = (void *) &gui_property_variable_node_show_handshake_version_default;
+    gui_property->props[83].data.boolean.value = (void *) &gui_property_variable_node_show_handshake_version;
 
 
     /*
@@ -1916,16 +1875,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[86].name = "node_show_detailed_info";
-    gui_property->props[86].desc = _("Whether detailed traffic information should be shown for the node.  When enabled, it is possible to also customize how much information to display.  When disabled, only TX and RX message counts are displayed, followed by the message queue info.");
-    gui_property->props[86].ev_changed = event_new("node_show_detailed_info_changed");
-    gui_property->props[86].save = TRUE;
-    gui_property->props[86].vector_size = 1;
+    gui_property->props[84].name = "node_show_detailed_info";
+    gui_property->props[84].desc = _("Whether detailed traffic information should be shown for the node.  When enabled, it is possible to also customize how much information to display.  When disabled, only TX and RX message counts are displayed, followed by the message queue info.");
+    gui_property->props[84].ev_changed = event_new("node_show_detailed_info_changed");
+    gui_property->props[84].save = TRUE;
+    gui_property->props[84].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[86].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[86].data.boolean.def   = (void *) &gui_property_variable_node_show_detailed_info_default;
-    gui_property->props[86].data.boolean.value = (void *) &gui_property_variable_node_show_detailed_info;
+    gui_property->props[84].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[84].data.boolean.def   = (void *) &gui_property_variable_node_show_detailed_info_default;
+    gui_property->props[84].data.boolean.value = (void *) &gui_property_variable_node_show_detailed_info;
 
 
     /*
@@ -1933,16 +1892,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[87].name = "show_gnet_info_txc";
-    gui_property->props[87].desc = _("Whether TX traffic compression ratio should be displayed.");
-    gui_property->props[87].ev_changed = event_new("show_gnet_info_txc_changed");
-    gui_property->props[87].save = TRUE;
-    gui_property->props[87].vector_size = 1;
+    gui_property->props[85].name = "show_gnet_info_txc";
+    gui_property->props[85].desc = _("Whether TX traffic compression ratio should be displayed.");
+    gui_property->props[85].ev_changed = event_new("show_gnet_info_txc_changed");
+    gui_property->props[85].save = TRUE;
+    gui_property->props[85].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[87].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[87].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_txc_default;
-    gui_property->props[87].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_txc;
+    gui_property->props[85].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[85].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_txc_default;
+    gui_property->props[85].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_txc;
 
 
     /*
@@ -1950,16 +1909,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[88].name = "show_gnet_info_rxc";
-    gui_property->props[88].desc = _("Whether RX traffic compression ratio should be displayed.");
-    gui_property->props[88].ev_changed = event_new("show_gnet_info_rxc_changed");
-    gui_property->props[88].save = TRUE;
-    gui_property->props[88].vector_size = 1;
+    gui_property->props[86].name = "show_gnet_info_rxc";
+    gui_property->props[86].desc = _("Whether RX traffic compression ratio should be displayed.");
+    gui_property->props[86].ev_changed = event_new("show_gnet_info_rxc_changed");
+    gui_property->props[86].save = TRUE;
+    gui_property->props[86].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[88].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[88].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rxc_default;
-    gui_property->props[88].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rxc;
+    gui_property->props[86].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[86].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rxc_default;
+    gui_property->props[86].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rxc;
 
 
     /*
@@ -1967,16 +1926,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[89].name = "show_gnet_info_tx_wire";
-    gui_property->props[89].desc = _("Whether to display the amount of bytes sent on the TX wire.");
-    gui_property->props[89].ev_changed = event_new("show_gnet_info_tx_wire_changed");
-    gui_property->props[89].save = TRUE;
-    gui_property->props[89].vector_size = 1;
+    gui_property->props[87].name = "show_gnet_info_tx_wire";
+    gui_property->props[87].desc = _("Whether to display the amount of bytes sent on the TX wire.");
+    gui_property->props[87].ev_changed = event_new("show_gnet_info_tx_wire_changed");
+    gui_property->props[87].save = TRUE;
+    gui_property->props[87].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[89].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[89].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_wire_default;
-    gui_property->props[89].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_wire;
+    gui_property->props[87].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[87].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_wire_default;
+    gui_property->props[87].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_wire;
 
 
     /*
@@ -1984,16 +1943,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[90].name = "show_gnet_info_rx_wire";
-    gui_property->props[90].desc = _("Whether to display the amount of bytes received on the RX wire.");
-    gui_property->props[90].ev_changed = event_new("show_gnet_info_rx_wire_changed");
-    gui_property->props[90].save = TRUE;
-    gui_property->props[90].vector_size = 1;
+    gui_property->props[88].name = "show_gnet_info_rx_wire";
+    gui_property->props[88].desc = _("Whether to display the amount of bytes received on the RX wire.");
+    gui_property->props[88].ev_changed = event_new("show_gnet_info_rx_wire_changed");
+    gui_property->props[88].save = TRUE;
+    gui_property->props[88].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[90].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[90].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_wire_default;
-    gui_property->props[90].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_wire;
+    gui_property->props[88].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[88].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_wire_default;
+    gui_property->props[88].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_wire;
 
 
     /*
@@ -2001,16 +1960,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[91].name = "show_gnet_info_tx_speed";
-    gui_property->props[91].desc = _("Whether TX instantaneous transmission speed should be displayed.");
-    gui_property->props[91].ev_changed = event_new("show_gnet_info_tx_speed_changed");
-    gui_property->props[91].save = TRUE;
-    gui_property->props[91].vector_size = 1;
+    gui_property->props[89].name = "show_gnet_info_tx_speed";
+    gui_property->props[89].desc = _("Whether TX instantaneous transmission speed should be displayed.");
+    gui_property->props[89].ev_changed = event_new("show_gnet_info_tx_speed_changed");
+    gui_property->props[89].save = TRUE;
+    gui_property->props[89].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[91].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[91].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_speed_default;
-    gui_property->props[91].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_speed;
+    gui_property->props[89].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[89].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_speed_default;
+    gui_property->props[89].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_speed;
 
 
     /*
@@ -2018,16 +1977,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[92].name = "show_gnet_info_rx_speed";
-    gui_property->props[92].desc = _("Whether RX instantaneous transmission speed should be displayed.");
-    gui_property->props[92].ev_changed = event_new("show_gnet_info_rx_speed_changed");
-    gui_property->props[92].save = TRUE;
-    gui_property->props[92].vector_size = 1;
+    gui_property->props[90].name = "show_gnet_info_rx_speed";
+    gui_property->props[90].desc = _("Whether RX instantaneous transmission speed should be displayed.");
+    gui_property->props[90].ev_changed = event_new("show_gnet_info_rx_speed_changed");
+    gui_property->props[90].save = TRUE;
+    gui_property->props[90].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[92].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[92].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_speed_default;
-    gui_property->props[92].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_speed;
+    gui_property->props[90].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[90].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_speed_default;
+    gui_property->props[90].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_speed;
 
 
     /*
@@ -2035,16 +1994,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[93].name = "show_gnet_info_tx_queries";
-    gui_property->props[93].desc = _("Whether count of transmitted queries should be displayed.");
-    gui_property->props[93].ev_changed = event_new("show_gnet_info_tx_queries_changed");
-    gui_property->props[93].save = TRUE;
-    gui_property->props[93].vector_size = 1;
+    gui_property->props[91].name = "show_gnet_info_tx_queries";
+    gui_property->props[91].desc = _("Whether count of transmitted queries should be displayed.");
+    gui_property->props[91].ev_changed = event_new("show_gnet_info_tx_queries_changed");
+    gui_property->props[91].save = TRUE;
+    gui_property->props[91].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[93].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[93].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_queries_default;
-    gui_property->props[93].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_queries;
+    gui_property->props[91].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[91].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_queries_default;
+    gui_property->props[91].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_queries;
 
 
     /*
@@ -2052,16 +2011,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[94].name = "show_gnet_info_rx_queries";
-    gui_property->props[94].desc = _("Whether count of received queries should be displayed.");
-    gui_property->props[94].ev_changed = event_new("show_gnet_info_rx_queries_changed");
-    gui_property->props[94].save = TRUE;
-    gui_property->props[94].vector_size = 1;
+    gui_property->props[92].name = "show_gnet_info_rx_queries";
+    gui_property->props[92].desc = _("Whether count of received queries should be displayed.");
+    gui_property->props[92].ev_changed = event_new("show_gnet_info_rx_queries_changed");
+    gui_property->props[92].save = TRUE;
+    gui_property->props[92].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[94].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[94].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_queries_default;
-    gui_property->props[94].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_queries;
+    gui_property->props[92].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[92].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_queries_default;
+    gui_property->props[92].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_queries;
 
 
     /*
@@ -2069,16 +2028,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[95].name = "show_gnet_info_tx_hits";
-    gui_property->props[95].desc = _("Whether count of transmitted query hits should be displayed.");
-    gui_property->props[95].ev_changed = event_new("show_gnet_info_tx_hits_changed");
-    gui_property->props[95].save = TRUE;
-    gui_property->props[95].vector_size = 1;
+    gui_property->props[93].name = "show_gnet_info_tx_hits";
+    gui_property->props[93].desc = _("Whether count of transmitted query hits should be displayed.");
+    gui_property->props[93].ev_changed = event_new("show_gnet_info_tx_hits_changed");
+    gui_property->props[93].save = TRUE;
+    gui_property->props[93].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[95].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[95].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_hits_default;
-    gui_property->props[95].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_hits;
+    gui_property->props[93].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[93].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_hits_default;
+    gui_property->props[93].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_hits;
 
 
     /*
@@ -2086,16 +2045,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[96].name = "show_gnet_info_rx_hits";
-    gui_property->props[96].desc = _("Whether count of received query hits should be displayed.");
-    gui_property->props[96].ev_changed = event_new("show_gnet_info_rx_hits_changed");
-    gui_property->props[96].save = TRUE;
-    gui_property->props[96].vector_size = 1;
+    gui_property->props[94].name = "show_gnet_info_rx_hits";
+    gui_property->props[94].desc = _("Whether count of received query hits should be displayed.");
+    gui_property->props[94].ev_changed = event_new("show_gnet_info_rx_hits_changed");
+    gui_property->props[94].save = TRUE;
+    gui_property->props[94].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[96].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[96].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_hits_default;
-    gui_property->props[96].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_hits;
+    gui_property->props[94].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[94].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_hits_default;
+    gui_property->props[94].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_hits;
 
 
     /*
@@ -2103,16 +2062,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[97].name = "show_gnet_info_gen_queries";
-    gui_property->props[97].desc = _("Whether count of locally generated queries should be displayed.");
-    gui_property->props[97].ev_changed = event_new("show_gnet_info_gen_queries_changed");
-    gui_property->props[97].save = TRUE;
-    gui_property->props[97].vector_size = 1;
+    gui_property->props[95].name = "show_gnet_info_gen_queries";
+    gui_property->props[95].desc = _("Whether count of locally generated queries should be displayed.");
+    gui_property->props[95].ev_changed = event_new("show_gnet_info_gen_queries_changed");
+    gui_property->props[95].save = TRUE;
+    gui_property->props[95].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[97].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[97].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_gen_queries_default;
-    gui_property->props[97].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_gen_queries;
+    gui_property->props[95].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[95].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_gen_queries_default;
+    gui_property->props[95].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_gen_queries;
 
 
     /*
@@ -2120,16 +2079,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[98].name = "show_gnet_info_sq_queries";
-    gui_property->props[98].desc = _("Whether count of local queries pending transmission should be displayed.");
-    gui_property->props[98].ev_changed = event_new("show_gnet_info_sq_queries_changed");
-    gui_property->props[98].save = TRUE;
-    gui_property->props[98].vector_size = 1;
+    gui_property->props[96].name = "show_gnet_info_sq_queries";
+    gui_property->props[96].desc = _("Whether count of local queries pending transmission should be displayed.");
+    gui_property->props[96].ev_changed = event_new("show_gnet_info_sq_queries_changed");
+    gui_property->props[96].save = TRUE;
+    gui_property->props[96].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[98].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[98].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_sq_queries_default;
-    gui_property->props[98].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_sq_queries;
+    gui_property->props[96].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[96].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_sq_queries_default;
+    gui_property->props[96].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_sq_queries;
 
 
     /*
@@ -2137,16 +2096,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[99].name = "show_gnet_info_tx_dropped";
-    gui_property->props[99].desc = _("Whether count of dropped messages on TX should be displayed.");
-    gui_property->props[99].ev_changed = event_new("show_gnet_info_tx_dropped_changed");
-    gui_property->props[99].save = TRUE;
-    gui_property->props[99].vector_size = 1;
+    gui_property->props[97].name = "show_gnet_info_tx_dropped";
+    gui_property->props[97].desc = _("Whether count of dropped messages on TX should be displayed.");
+    gui_property->props[97].ev_changed = event_new("show_gnet_info_tx_dropped_changed");
+    gui_property->props[97].save = TRUE;
+    gui_property->props[97].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[99].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[99].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_dropped_default;
-    gui_property->props[99].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_dropped;
+    gui_property->props[97].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[97].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_tx_dropped_default;
+    gui_property->props[97].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_tx_dropped;
 
 
     /*
@@ -2154,16 +2113,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[100].name = "show_gnet_info_rx_dropped";
-    gui_property->props[100].desc = _("Whether count of dropped messages on RX should be displayed.");
-    gui_property->props[100].ev_changed = event_new("show_gnet_info_rx_dropped_changed");
-    gui_property->props[100].save = TRUE;
-    gui_property->props[100].vector_size = 1;
+    gui_property->props[98].name = "show_gnet_info_rx_dropped";
+    gui_property->props[98].desc = _("Whether count of dropped messages on RX should be displayed.");
+    gui_property->props[98].ev_changed = event_new("show_gnet_info_rx_dropped_changed");
+    gui_property->props[98].save = TRUE;
+    gui_property->props[98].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[100].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[100].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_dropped_default;
-    gui_property->props[100].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_dropped;
+    gui_property->props[98].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[98].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rx_dropped_default;
+    gui_property->props[98].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rx_dropped;
 
 
     /*
@@ -2171,16 +2130,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[101].name = "show_gnet_info_qrp_stats";
-    gui_property->props[101].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the node after QRP table filtering.");
-    gui_property->props[101].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
-    gui_property->props[101].save = TRUE;
-    gui_property->props[101].vector_size = 1;
+    gui_property->props[99].name = "show_gnet_info_qrp_stats";
+    gui_property->props[99].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the node after QRP table filtering.");
+    gui_property->props[99].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
+    gui_property->props[99].save = TRUE;
+    gui_property->props[99].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[101].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[101].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_qrp_stats_default;
-    gui_property->props[101].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_qrp_stats;
+    gui_property->props[99].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[99].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_qrp_stats_default;
+    gui_property->props[99].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_qrp_stats;
 
 
     /*
@@ -2188,16 +2147,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[102].name = "show_gnet_info_dbw";
-    gui_property->props[102].desc = _("Whether we should display message counts for duplicate, bad, weird and messages bearing an hostile IP address.");
-    gui_property->props[102].ev_changed = event_new("show_gnet_info_dbw_changed");
-    gui_property->props[102].save = TRUE;
-    gui_property->props[102].vector_size = 1;
+    gui_property->props[100].name = "show_gnet_info_dbw";
+    gui_property->props[100].desc = _("Whether we should display message counts for duplicate, bad, weird and messages bearing an hostile IP address.");
+    gui_property->props[100].ev_changed = event_new("show_gnet_info_dbw_changed");
+    gui_property->props[100].save = TRUE;
+    gui_property->props[100].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[102].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[102].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_dbw_default;
-    gui_property->props[102].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_dbw;
+    gui_property->props[100].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[100].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_dbw_default;
+    gui_property->props[100].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_dbw;
 
 
     /*
@@ -2205,16 +2164,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[103].name = "show_gnet_info_rt";
-    gui_property->props[103].desc = _("Whether ping/pong roundtrip times (average and last) should be displayed.  Values shown are in milliseconds.");
-    gui_property->props[103].ev_changed = event_new("show_gnet_info_rt_changed");
-    gui_property->props[103].save = TRUE;
-    gui_property->props[103].vector_size = 1;
+    gui_property->props[101].name = "show_gnet_info_rt";
+    gui_property->props[101].desc = _("Whether ping/pong roundtrip times (average and last) should be displayed.  Values shown are in milliseconds.");
+    gui_property->props[101].ev_changed = event_new("show_gnet_info_rt_changed");
+    gui_property->props[101].save = TRUE;
+    gui_property->props[101].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[103].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[103].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rt_default;
-    gui_property->props[103].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rt;
+    gui_property->props[101].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[101].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_rt_default;
+    gui_property->props[101].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_rt;
 
 
     /*
@@ -2222,16 +2181,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[104].name = "show_gnet_info_shared_size";
-    gui_property->props[104].desc = _("Whether we should display the size of the node's library, when it is known to us.");
-    gui_property->props[104].ev_changed = event_new("show_gnet_info_shared_size_changed");
-    gui_property->props[104].save = TRUE;
-    gui_property->props[104].vector_size = 1;
+    gui_property->props[102].name = "show_gnet_info_shared_size";
+    gui_property->props[102].desc = _("Whether we should display the size of the node's library, when it is known to us.");
+    gui_property->props[102].ev_changed = event_new("show_gnet_info_shared_size_changed");
+    gui_property->props[102].save = TRUE;
+    gui_property->props[102].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[104].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[104].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_size_default;
-    gui_property->props[104].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_size;
+    gui_property->props[102].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[102].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_size_default;
+    gui_property->props[102].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_size;
 
 
     /*
@@ -2239,16 +2198,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[105].name = "show_gnet_info_shared_files";
-    gui_property->props[105].desc = _("Whether we should display the amount of files shared by nodes, when that is known to us.");
-    gui_property->props[105].ev_changed = event_new("show_gnet_info_shared_files_changed");
-    gui_property->props[105].save = TRUE;
-    gui_property->props[105].vector_size = 1;
+    gui_property->props[103].name = "show_gnet_info_shared_files";
+    gui_property->props[103].desc = _("Whether we should display the amount of files shared by nodes, when that is known to us.");
+    gui_property->props[103].ev_changed = event_new("show_gnet_info_shared_files_changed");
+    gui_property->props[103].save = TRUE;
+    gui_property->props[103].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[105].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[105].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_files_default;
-    gui_property->props[105].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_files;
+    gui_property->props[103].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[103].data.boolean.def   = (void *) &gui_property_variable_show_gnet_info_shared_files_default;
+    gui_property->props[103].data.boolean.value = (void *) &gui_property_variable_show_gnet_info_shared_files;
 
 
     /*
@@ -2256,19 +2215,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[106].name = "search_accumulation_period";
-    gui_property->props[106].desc = _("The amount of time in seconds that the GUI should buffer search results as they come in.  This prevents too frequent updates that may cause flickering, but also saves CPU cycles since less redrawing has to occur in the search pane.");
-    gui_property->props[106].ev_changed = event_new("search_accumulation_period_changed");
-    gui_property->props[106].save = TRUE;
-    gui_property->props[106].vector_size = 1;
+    gui_property->props[104].name = "search_accumulation_period";
+    gui_property->props[104].desc = _("The amount of time in seconds that the GUI should buffer search results as they come in.  This prevents too frequent updates that may cause flickering, but also saves CPU cycles since less redrawing has to occur in the search pane.");
+    gui_property->props[104].ev_changed = event_new("search_accumulation_period_changed");
+    gui_property->props[104].save = TRUE;
+    gui_property->props[104].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[106].type               = PROP_TYPE_GUINT32;
-    gui_property->props[106].data.guint32.def   = (void *) &gui_property_variable_search_accumulation_period_default;
-    gui_property->props[106].data.guint32.value = (void *) &gui_property_variable_search_accumulation_period;
-    gui_property->props[106].data.guint32.choices = NULL;
-    gui_property->props[106].data.guint32.max   = 30;
-    gui_property->props[106].data.guint32.min   = 1;
+    gui_property->props[104].type               = PROP_TYPE_GUINT32;
+    gui_property->props[104].data.guint32.def   = (void *) &gui_property_variable_search_accumulation_period_default;
+    gui_property->props[104].data.guint32.value = (void *) &gui_property_variable_search_accumulation_period;
+    gui_property->props[104].data.guint32.choices = NULL;
+    gui_property->props[104].data.guint32.max   = 30;
+    gui_property->props[104].data.guint32.min   = 1;
 
 
     /*
@@ -2276,19 +2235,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[107].name = "treemenu_nodes_expanded";
-    gui_property->props[107].desc = _("Expanded stati of the nodes in the treemenu.");
-    gui_property->props[107].ev_changed = event_new("treemenu_nodes_expanded_changed");
-    gui_property->props[107].save = TRUE;
-    gui_property->props[107].vector_size = nb_main_page_num;
+    gui_property->props[105].name = "treemenu_nodes_expanded";
+    gui_property->props[105].desc = _("Expanded stati of the nodes in the treemenu.");
+    gui_property->props[105].ev_changed = event_new("treemenu_nodes_expanded_changed");
+    gui_property->props[105].save = TRUE;
+    gui_property->props[105].vector_size = nb_main_page_num;
 
     /* Type specific data: */
-    gui_property->props[107].type               = PROP_TYPE_GUINT32;
-    gui_property->props[107].data.guint32.def   = (void *) gui_property_variable_treemenu_nodes_expanded_default;
-    gui_property->props[107].data.guint32.value = gui_property_variable_treemenu_nodes_expanded;
-    gui_property->props[107].data.guint32.choices = NULL;
-    gui_property->props[107].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[107].data.guint32.min   = 0x00000000;
+    gui_property->props[105].type               = PROP_TYPE_GUINT32;
+    gui_property->props[105].data.guint32.def   = (void *) gui_property_variable_treemenu_nodes_expanded_default;
+    gui_property->props[105].data.guint32.value = gui_property_variable_treemenu_nodes_expanded;
+    gui_property->props[105].data.guint32.choices = NULL;
+    gui_property->props[105].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[105].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2296,19 +2255,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[108].name = "widths_gnet_stats_pkg";
-    gui_property->props[108].desc = _("Widths of the columns in the Gnet packet stats table (pkg). [GTK2]");
-    gui_property->props[108].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
-    gui_property->props[108].save = TRUE;
-    gui_property->props[108].vector_size = 6;
+    gui_property->props[106].name = "widths_gnet_stats_pkg";
+    gui_property->props[106].desc = _("Widths of the columns in the Gnet packet stats table (pkg). [GTK2]");
+    gui_property->props[106].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
+    gui_property->props[106].save = TRUE;
+    gui_property->props[106].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[108].type               = PROP_TYPE_GUINT32;
-    gui_property->props[108].data.guint32.def   = (void *) gui_property_variable_gnet_stats_pkg_col_widths_default;
-    gui_property->props[108].data.guint32.value = gui_property_variable_gnet_stats_pkg_col_widths;
-    gui_property->props[108].data.guint32.choices = NULL;
-    gui_property->props[108].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[108].data.guint32.min   = 0x00000000;
+    gui_property->props[106].type               = PROP_TYPE_GUINT32;
+    gui_property->props[106].data.guint32.def   = (void *) gui_property_variable_gnet_stats_pkg_col_widths_default;
+    gui_property->props[106].data.guint32.value = gui_property_variable_gnet_stats_pkg_col_widths;
+    gui_property->props[106].data.guint32.choices = NULL;
+    gui_property->props[106].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[106].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2316,19 +2275,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[109].name = "widths_gnet_stats_byte";
-    gui_property->props[109].desc = _("Widths of the columns in the Gnet packet stats table (byte). [GTK2]");
-    gui_property->props[109].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
-    gui_property->props[109].save = TRUE;
-    gui_property->props[109].vector_size = 6;
+    gui_property->props[107].name = "widths_gnet_stats_byte";
+    gui_property->props[107].desc = _("Widths of the columns in the Gnet packet stats table (byte). [GTK2]");
+    gui_property->props[107].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
+    gui_property->props[107].save = TRUE;
+    gui_property->props[107].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[109].type               = PROP_TYPE_GUINT32;
-    gui_property->props[109].data.guint32.def   = (void *) gui_property_variable_gnet_stats_byte_col_widths_default;
-    gui_property->props[109].data.guint32.value = gui_property_variable_gnet_stats_byte_col_widths;
-    gui_property->props[109].data.guint32.choices = NULL;
-    gui_property->props[109].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[109].data.guint32.min   = 0x00000000;
+    gui_property->props[107].type               = PROP_TYPE_GUINT32;
+    gui_property->props[107].data.guint32.def   = (void *) gui_property_variable_gnet_stats_byte_col_widths_default;
+    gui_property->props[107].data.guint32.value = gui_property_variable_gnet_stats_byte_col_widths;
+    gui_property->props[107].data.guint32.choices = NULL;
+    gui_property->props[107].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[107].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2336,19 +2295,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[110].name = "config_toolbar_style";
-    gui_property->props[110].desc = _("Configures the appearance of the toolbar.");
-    gui_property->props[110].ev_changed = event_new("config_toolbar_style_changed");
-    gui_property->props[110].save = TRUE;
-    gui_property->props[110].vector_size = 1;
+    gui_property->props[108].name = "config_toolbar_style";
+    gui_property->props[108].desc = _("Configures the appearance of the toolbar.");
+    gui_property->props[108].ev_changed = event_new("config_toolbar_style_changed");
+    gui_property->props[108].save = TRUE;
+    gui_property->props[108].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[110].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[110].data.guint32.def   = (void *) &gui_property_variable_config_toolbar_style_default;
-    gui_property->props[110].data.guint32.value = (void *) &gui_property_variable_config_toolbar_style;
-    gui_property->props[110].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[110].data.guint32.min   = 0x00000000;
-    gui_property->props[110].data.guint32.choices = (void *) &gui_property_variable_config_toolbar_style_choices;
+    gui_property->props[108].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[108].data.guint32.def   = (void *) &gui_property_variable_config_toolbar_style_default;
+    gui_property->props[108].data.guint32.value = (void *) &gui_property_variable_config_toolbar_style;
+    gui_property->props[108].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[108].data.guint32.min   = 0x00000000;
+    gui_property->props[108].data.guint32.choices = (void *) &gui_property_variable_config_toolbar_style_choices;
 
 
     /*
@@ -2356,19 +2315,19 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[111].name = "search_lifetime";
-    gui_property->props[111].desc = _("The lifetime of a search. If this time is exceeded, the search is stopped.");
-    gui_property->props[111].ev_changed = event_new("search_lifetime_changed");
-    gui_property->props[111].save = FALSE;
-    gui_property->props[111].vector_size = 1;
+    gui_property->props[109].name = "search_lifetime";
+    gui_property->props[109].desc = _("The lifetime of a search. If this time is exceeded, the search is stopped.");
+    gui_property->props[109].ev_changed = event_new("search_lifetime_changed");
+    gui_property->props[109].save = FALSE;
+    gui_property->props[109].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[111].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[111].data.guint32.def   = (void *) &gui_property_variable_search_lifetime_default;
-    gui_property->props[111].data.guint32.value = (void *) &gui_property_variable_search_lifetime;
-    gui_property->props[111].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[111].data.guint32.min   = 0x00000000;
-    gui_property->props[111].data.guint32.choices = (void *) &gui_property_variable_search_lifetime_choices;
+    gui_property->props[109].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[109].data.guint32.def   = (void *) &gui_property_variable_search_lifetime_default;
+    gui_property->props[109].data.guint32.value = (void *) &gui_property_variable_search_lifetime;
+    gui_property->props[109].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[109].data.guint32.min   = 0x00000000;
+    gui_property->props[109].data.guint32.choices = (void *) &gui_property_variable_search_lifetime_choices;
 
 
     /*
@@ -2376,16 +2335,16 @@ gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[112].name = "status_icon_enabled";
-    gui_property->props[112].desc = _("Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer).");
-    gui_property->props[112].ev_changed = event_new("status_icon_enabled_changed");
-    gui_property->props[112].save = TRUE;
-    gui_property->props[112].vector_size = 1;
+    gui_property->props[110].name = "status_icon_enabled";
+    gui_property->props[110].desc = _("Show a status icon in the system tray if possible (requires Gtk+ 2.10 or newer).");
+    gui_property->props[110].ev_changed = event_new("status_icon_enabled_changed");
+    gui_property->props[110].save = TRUE;
+    gui_property->props[110].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[112].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[112].data.boolean.def   = (void *) &gui_property_variable_status_icon_enabled_default;
-    gui_property->props[112].data.boolean.value = (void *) &gui_property_variable_status_icon_enabled;
+    gui_property->props[110].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[110].data.boolean.def   = (void *) &gui_property_variable_status_icon_enabled_default;
+    gui_property->props[110].data.boolean.value = (void *) &gui_property_variable_status_icon_enabled;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
