@@ -116,6 +116,7 @@ rm -f config.sh
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
 /bin/sh ./Configure -Oders \
+	-U usenm \
 	${CC:+-D "cc=$CC"} \
 	${CFLAGS:+-D "ccflags=$CFLAGS"} \
 	${LDFLAGS:+-D "ldflags=$LDFLAGS"} \
