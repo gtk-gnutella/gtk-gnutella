@@ -17,6 +17,7 @@ build_ipv6=
 build_localedir=
 build_nls=
 build_official=
+build_so_suffix=
 build_socker=
 build_ui=
 
@@ -109,6 +110,13 @@ build_localedir=${build_localedir:+"$build_localedir"}
 build_official=${build_official:-true}
 build_ui=${build_ui:-gtkversion=2}
 
+# There is something broken about Configure, so it needs to know the
+# suffix for shared objects (dynamically loaded libraries) for some odd
+# reasons.
+case "`uname -s`" in
+darwin|Darwin) build_so_suffix='dylib';;
+esac
+
 # Make sure previous Configure settings have no influence.
 ${MAKE} clobber >/dev/null 2>&1 || : ignore failure
 rm -f config.sh
@@ -128,6 +136,7 @@ rm -f config.sh
 	${build_localedir:+-D "locale=$build_localedir"} \
 	${build_mandir:+-D "sysman=$build_mandir"} \
 	${build_official:+-D "official=$build_official"} \
+	${build_so_suffix:+-D "so=$build_so_suffix"} \
 	${build_ui:+-D "$build_ui"} \
 	${build_nls:+-U "$build_nls"} \
 	${build_dbus:+-U "$build_dbus"} \
