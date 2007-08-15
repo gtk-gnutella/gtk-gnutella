@@ -1382,18 +1382,14 @@ on_search_results_button_press_event(GtkWidget *widget,
 {
 	(void) unused_udata;
 
-	switch (event->button) {
-	case 1:
-        /* left click section */
-		if (
-			event->type == GDK_2BUTTON_PRESS &&
-			0 == (gtk_accelerator_get_default_mod_mask() & event->state)
-		) {
-			gui_signal_stop_emit_by_name(widget, "button_press_event");
-			search_gui_download_selected_files();
-			return TRUE;
-		}
-		break;
+	if (
+		GDK_2BUTTON_PRESS == event->type &&
+		1 == event->button &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+		gui_signal_stop_emit_by_name(widget, "button_press_event");
+		search_gui_download_selected_files();
+		return TRUE;
 	}
 	return FALSE;
 }
@@ -1951,16 +1947,22 @@ void
 search_gui_set_current_search(struct search *search)
 {
 	if (search != current_search) {
-		if (current_search) {
-			gtk_widget_hide(current_search->tree);
-			search_gui_start_massive_update(current_search);
-			search_gui_hide_search(current_search);
-		}
+		struct search *previous = current_search;
+
 		search_gui_switch_search(search);
+		if (previous) {
+			gtk_widget_hide(previous->tree);
+			search_gui_start_massive_update(previous);
+			search_gui_hide_search(previous);
+			previous->list_refreshed = FALSE;
+			search_gui_update_counters(previous);
+		}
 		if (search) {	
 			search_gui_show_search(search);
 			search_gui_end_massive_update(search);
 			gtk_widget_show(search->tree);
+			search->list_refreshed = FALSE;
+			search_gui_update_counters(search);
 		}
 	}
 }
@@ -3206,19 +3208,37 @@ search_gui_get_search_list_popup_menu(void)
 }
 
 gboolean
-on_search_list_button_press_event(GtkWidget *unused_widget,
+on_search_list_key_release_event(GtkWidget *unused_widget,
+	GdkEventKey *event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+
+	if (
+		GDK_Return == event->keyval &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+		main_gui_notebook_set_page(nb_main_page_search);
+		search_gui_search_list_clicked();
+	}
+	return FALSE;
+}
+
+gboolean
+on_search_list_button_release_event(GtkWidget *unused_widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
 	(void) unused_udata;
-
 	(void) unused_widget;
-	switch (event->button) {
-	case 1:
-		if (0 == (gtk_accelerator_get_default_mod_mask() & event->state)) {
-			search_gui_search_list_clicked();
-		}
-		break;
-    }
+
+	if (
+		GDK_BUTTON_RELEASE == event->type &&
+		1 == event->button &&
+		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
+	) {
+		main_gui_notebook_set_page(nb_main_page_search);
+		search_gui_search_list_clicked();
+	}
 	return FALSE;
 }
 

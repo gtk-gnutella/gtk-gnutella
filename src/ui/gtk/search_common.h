@@ -161,8 +161,10 @@ GtkMenu *search_gui_get_search_list_popup_menu(void);
 
 void search_gui_callbacks_shutdown(void);
 
-gboolean on_search_list_button_press_event(GtkWidget *,
-			GdkEventButton *, void *user_data);
+gboolean on_search_list_button_release_event(GtkWidget *, GdkEventButton *,
+			void *user_data);
+gboolean on_search_list_key_release_event(GtkWidget *, GdkEventKey *,
+			void *user_data);
 
 GSList *search_gui_get_selected_searches(void);
 gboolean search_gui_has_selected_item(struct search *);

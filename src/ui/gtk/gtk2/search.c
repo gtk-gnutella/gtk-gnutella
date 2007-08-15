@@ -1181,7 +1181,9 @@ search_list_tree_view_init(void)
 	widget_add_popup_menu(GTK_WIDGET(tv),
 		search_gui_get_search_list_popup_menu);
 	gui_signal_connect(tv,
-		"cursor-changed", on_tree_view_search_cursor_changed, NULL);
+		"button-release-event", on_search_list_button_release_event, NULL);
+	gui_signal_connect(tv,
+		"key-release-event", on_search_list_key_release_event, NULL);
 	gui_signal_connect_after(gtk_tree_view_get_model(tv),
 		"row-deleted", on_search_list_row_deleted, NULL);
 }
@@ -1227,26 +1229,6 @@ search_gui_remove_search(search_t *search)
 	}
 }
 
-static void
-search_gui_set_search_list_cursor(struct search *search)
-{
-	GtkTreeModel *model;
-	GtkTreePath *path;
-	GtkTreeIter iter;
-
-	g_return_if_fail(search);
-
-	model = gtk_tree_view_get_model(tree_view_search);
-	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
-		path = gtk_tree_model_get_path(model, &iter);
-	} else {
-		path = NULL;
-	}
-	g_return_if_fail(path);
-	gtk_tree_view_set_cursor(tree_view_search, path, NULL, FALSE);
-	gtk_tree_path_free(path);
-}
-
 void
 search_gui_hide_search(struct search *search)
 {
@@ -1289,8 +1271,6 @@ search_gui_show_search(struct search *search)
 				"clicked", on_tree_view_search_results_click_column, search);
 		}
 	}
-
-	search_gui_set_search_list_cursor(search);
 }
 
 static GtkTreeModel *
@@ -1385,6 +1365,7 @@ search_gui_update_list_label(const struct search *search)
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkTreeView *tv;
+	GtkStyle *style;
 	GdkColor *fg, *bg;
 
 	if (NULL == search)
@@ -1392,22 +1373,27 @@ search_gui_update_list_label(const struct search *search)
 
 	tv = GTK_TREE_VIEW(tree_view_search);
 	model = gtk_tree_view_get_model(tv);
-	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
-		if (search_gui_is_enabled(search)) {
-			fg = NULL;
-			bg = NULL;
-		} else {
-			GtkWidget *widget = GTK_WIDGET(tv);
-			fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
-			bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
-		}
-		gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				c_sl_hit, search->items,
-				c_sl_new, search->unseen_items,
-				c_sl_fg, fg,
-				c_sl_bg, bg,
-				(-1));
+	if (!tree_find_iter_by_data(model, c_sl_sch, search, &iter))
+		return;
+
+	style = gtk_widget_get_style(GTK_WIDGET(tv));
+	if (search_gui_get_current_search() == search) {
+		fg = &style->fg[GTK_STATE_ACTIVE];
+		bg = &style->bg[GTK_STATE_ACTIVE];
+	} else if (search_gui_is_enabled(search)) {
+		fg = NULL;
+		bg = NULL;
+	} else {
+		fg = &style->fg[GTK_STATE_INSENSITIVE];
+		bg = &style->bg[GTK_STATE_INSENSITIVE];
 	}
+
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+			c_sl_hit, search->items,
+			c_sl_new, search->unseen_items,
+			c_sl_fg, fg,
+			c_sl_bg, bg,
+			(-1));
 }
 
 /**

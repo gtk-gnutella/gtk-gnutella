@@ -57,7 +57,6 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
-#include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
@@ -1406,6 +1405,7 @@ download_selection_of_ctree(struct search *search, unsigned *selected)
 	GtkCTreeRow *row;
 	GtkCTree *ctree;
 
+	*selected = 0;
 	g_return_val_if_fail(search, 0);
 	g_return_val_if_fail(search->tree, 0);
 
@@ -1683,46 +1683,6 @@ on_search_list_row_move_event(GtkCList *clist,
 	search_gui_synchronize_list(clist);
 }
 
-static cevent_t *cursor_ev;
-#define ROW_SELECT_TIMEOUT	150 /* milliseconds */
-
-static void
-cursor_expire(cqueue_t *unused_cq, gpointer unused_udata)
-{
-	(void) unused_cq;
-	(void) unused_udata;
-
-	cursor_ev = NULL;
-	
-	search_gui_search_list_clicked();
-}
-
-static void
-cursor_update(void)
-{
-	if (cursor_ev) {
-		cq_resched(callout_queue, cursor_ev, ROW_SELECT_TIMEOUT);
-	} else {
-		cursor_ev = cq_insert(callout_queue, ROW_SELECT_TIMEOUT,
-						cursor_expire, NULL);
-	}
-}
-
-
-static void
-on_search_list_select_row(GtkCList *unused_clist,
-	int unused_row, int unused_column,
-	GdkEvent *unused_event, void *unused_udata)
-{
-	(void) unused_clist;
-	(void) unused_row;
-	(void) unused_column;
-	(void) unused_event;
-	(void) unused_udata;
-
-	cursor_update();
-}
-
 /***
  *** Public functions
  ***/
@@ -1740,9 +1700,9 @@ search_gui_init(void)
 		gui_signal_connect_after(clist, "row-move",
 			on_search_list_row_move_event, NULL);
 		gui_signal_connect(clist,
-			"select-row", on_search_list_select_row, NULL);
+			"button-release-event", on_search_list_button_release_event, NULL);
 		gui_signal_connect(clist,
-			"button-press-event", on_search_list_button_press_event, NULL);
+			"key-release-event", on_search_list_key_release_event, NULL);
 	}
 
 	{
@@ -1782,7 +1742,6 @@ search_gui_remove_search(search_t *sch)
         gtk_widget_destroy(sch->arrow);
         sch->arrow = NULL;
     }
-	cq_cancel(callout_queue, &cursor_ev);
 }
 
 static void
@@ -1793,10 +1752,8 @@ search_gui_set_search_list_cursor(struct search *search)
 
 	g_return_if_fail(search);
 
-	clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+	clist = clist_search();
 	row = gtk_clist_find_row_from_data(clist, search);
-	gtk_clist_unselect_all(clist);
-	gtk_clist_select_row(clist, row, 0);
 	if (GTK_VISIBILITY_FULL != gtk_clist_row_is_visible(clist, row)) {
 		gtk_clist_moveto(clist, row, 0, 0.0, 0.0);
 	}
@@ -1905,17 +1862,21 @@ search_gui_create_tree(void)
 static void
 search_gui_set_search_list_color(const struct search *search, int row)
 {
+	GtkStyle *style;
 	GdkColor *fg, *bg;
 
-	if (search_gui_is_enabled(search)) {
+	style = gtk_widget_get_style(GTK_WIDGET(clist_search()));
+	if (search_gui_get_current_search() == search) {
+		fg = &style->fg[GTK_STATE_ACTIVE];
+		bg = &style->bg[GTK_STATE_ACTIVE];
+	} else if (search_gui_is_enabled(search)) {
 		fg = NULL;
 		bg = NULL;
 	} else {
-		fg = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
-					->fg[GTK_STATE_INSENSITIVE];
-		bg = &gtk_widget_get_style(GTK_WIDGET(clist_search()))
-					->bg[GTK_STATE_INSENSITIVE];
+		fg = &style->fg[GTK_STATE_INSENSITIVE];
+		bg = &style->bg[GTK_STATE_INSENSITIVE];
 	}
+
 	gtk_clist_set_foreground(clist_search(), row, fg);
 	gtk_clist_set_background(clist_search(), row, bg);
 }
@@ -2092,7 +2053,7 @@ search_gui_get_selected_searches(void)
     GtkCList *clist;
 	GList *selection;
 
-    clist = GTK_CLIST(gui_main_window_lookup("clist_search"));
+    clist = clist_search();
 	selection = GTK_CLIST(clist)->selection;
 
 	for (/* NOTHING */; selection; selection = g_list_next(selection)) {
@@ -2133,7 +2094,6 @@ search_gui_search_list_clicked(void)
 		
 		search_gui_set_current_search(search);
 	}
-	main_gui_notebook_set_page(nb_main_page_search);
 }
 
 void

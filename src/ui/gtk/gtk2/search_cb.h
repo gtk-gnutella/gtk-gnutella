@@ -31,8 +31,6 @@
 struct search;
 struct record;
 
-void on_tree_view_search_cursor_changed(GtkTreeView *, void *user_data);
-
 void on_tree_view_search_results_select_row(GtkTreeView *, void *user_data);
 void on_tree_view_search_results_unselect_row(GtkTreeView *,
 	int row, int column, GdkEvent *, void *user_data);

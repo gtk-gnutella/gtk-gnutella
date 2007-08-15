@@ -64,34 +64,6 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 void
-on_tree_view_search_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
-{
-	GtkTreePath *path = NULL;
-
-	(void) unused_udata;
-
-	gtk_tree_view_get_cursor(tv, &path, NULL);
-	if (path) {
-		GtkTreeModel *model;
-		GtkTreeIter iter;
-
-		model = gtk_tree_view_get_model(tv);
-		if (gtk_tree_model_get_iter(model, &iter, path)) {
-			gpointer ptr = NULL;
-
-			gtk_tree_model_get(model, &iter, c_sl_sch, &ptr, (-1));
-			if (ptr) {
-				search_t *sch = ptr;
-
-				search_gui_set_current_search(sch);
-				main_gui_notebook_set_page(nb_main_page_search);
-			}
-		}
-		gtk_tree_path_free(path);
-	}
-}
-
-void
 search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
 	GtkTreeModel *model;
