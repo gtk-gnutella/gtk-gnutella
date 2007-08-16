@@ -459,7 +459,7 @@ upload_timer(time_t now)
 
 		is_connecting = UPLOAD_IS_CONNECTING(u);
 		t = is_connecting ?  GNET_PROPERTY(upload_connecting_timeout) :
-			UPLOAD_IS_QUEUED(u) ?
+			UPLOAD_IS_QUEUED(u) ? (guint32)
 				MAX(0, delta_time(parq_upload_lifetime(u), u->last_update)) :
 			MAX(GNET_PROPERTY(upload_connected_timeout), IO_STALLED);
 
