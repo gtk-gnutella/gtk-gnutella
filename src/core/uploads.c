@@ -444,7 +444,7 @@ void
 upload_timer(time_t now)
 {
 	GSList *sl, *to_remove = NULL;
-	gint t;
+	time_delta_t timeout;
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
@@ -458,10 +458,14 @@ upload_timer(time_t now)
 		 */
 
 		is_connecting = UPLOAD_IS_CONNECTING(u);
-		t = is_connecting ?  GNET_PROPERTY(upload_connecting_timeout) :
-			UPLOAD_IS_QUEUED(u) ? (guint32)
-				MAX(0, delta_time(parq_upload_lifetime(u), u->last_update)) :
-			MAX(GNET_PROPERTY(upload_connected_timeout), IO_STALLED);
+		if (is_connecting) {
+			timeout = GNET_PROPERTY(upload_connecting_timeout);
+		} else if (UPLOAD_IS_QUEUED(u)) {
+			timeout = delta_time(parq_upload_lifetime(u), u->last_update);
+			timeout = MAX(0, timeout);
+		} else {
+			timeout = MAX(IO_STALLED, GNET_PROPERTY(upload_connected_timeout));
+		}
 
 		/*
 		 * Detect frequent stalling conditions on sending.
@@ -547,9 +551,9 @@ upload_timer(time_t now)
 		 * be much more lenient about connection timeouts.
 		 */
 
-		if (!is_connecting && stalled > stall_thresh())
-			t = MAX(t, IO_LONG_TIMEOUT);
-
+		if (!is_connecting && stalled > stall_thresh()) {
+			timeout = MAX(IO_LONG_TIMEOUT, timeout);
+		}
 		/*
 		 * We can't call upload_remove() since it will remove the upload
 		 * from the list we are traversing.
@@ -558,9 +562,9 @@ upload_timer(time_t now)
 		 * if we are no longer transmitting.
 		 */
 
-		if (delta_time(now, u->last_update) > t)
+		if (delta_time(now, u->last_update) > timeout) {
 			to_remove = g_slist_prepend(to_remove, u);
-		else if (UPLOAD_IS_SENDING(u)) {
+		} else if (UPLOAD_IS_SENDING(u)) {
 			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
 				if (sock_is_corked(u->socket)) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
