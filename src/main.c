@@ -1301,6 +1301,10 @@ main(int argc, char **argv)
 	STATIC_ASSERT(sizeof(size_t) == sizeof(gsize));
 	STATIC_ASSERT(sizeof(ssize_t) == sizeof(gssize));
 
+	STATIC_ASSERT(UNSIGNED(INT_MIN) > 0);
+	STATIC_ASSERT(UNSIGNED(LONG_MIN) > 0);
+	STATIC_ASSERT(UNSIGNED(-1) > 0);
+
 	inputevt_init();
 	tiger_check();
 	tt_check();
