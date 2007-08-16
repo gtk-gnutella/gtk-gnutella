@@ -464,16 +464,17 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	 * if we detect that the window manager added an offset.
 	 */
 
-	dx = x - ax;
-	dy = y - ay;
+	dx = ax - x;
+	dy = ay - y;
 	if ((dx || dy) && abs(dx) < 64 && abs(dy) < 64) {
-		g_message("anti_window_shift_hack: x=%d, y=%d dx=%d, dy=%d",
-			x, y, dx, dy);
+		g_message("anti_window_shift_hack: "
+			"x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
+			x, y, ax, ay, dx, dy);
 
-		gtk_window_move(GTK_WINDOW(widget), x + dx, y + dy);
+		gtk_window_move(GTK_WINDOW(widget), x - dx, y - dy);
 
 		gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
-		g_message("anti_window_shift_hack: x=%d, y=%d", ax, ay);
+		g_message("anti_window_shift_hack: ax=%d, ay=%d", ax, ay);
 	}
 }
 
