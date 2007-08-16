@@ -8329,7 +8329,7 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 		) {
 			g_warning("Node %s (%s) uses same GUID as %s (%s)",
 				node_addr(n), node_vendor(n),
-				node_addr2(owner), node_vendor(n));
+				node_addr2(owner), node_vendor(owner));
 		}
 		return TRUE;
 	} else {
