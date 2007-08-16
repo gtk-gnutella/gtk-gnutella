@@ -2533,14 +2533,6 @@ parq_upload_continue(struct parq_ul_queued *uq)
 
 			return TRUE;
 		}
-
-		/*
-		 * If we reached an actively queued entry, we cannot allow
-		 * uploads further down in the queue.
-		 */
-
-		if (parq_ul->active_queued)
-			break;
 	}
 
 	if (GNET_PROPERTY(parq_debug))
