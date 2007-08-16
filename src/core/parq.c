@@ -72,7 +72,7 @@ RCSID("$Id$")
 #define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
 #define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
-#define MIN_LIFE_TIME		90
+#define MIN_LIFE_TIME		120
 #define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
 #define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
@@ -3375,11 +3375,18 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 	d = MAX(0, d);
 	d = MIN(d, INT_MAX);
 	min_poll = d;
-	
+
+	/*
+	 * Give them some time for the max_poll time, to allow for network
+	 * transmission delays.
+	 */
+
 	d = delta_time(parq_ul->expire, now);
+	d -= PARQ_RETRY_SAFETY;
 	d = MAX(0, d);
 	d = MIN(d, INT_MAX);
 	max_poll = d;
+	max_poll = MAX(max_poll, min_poll);
 
 	small_reply = 0 != (flags & HTTP_CBF_SMALL_REPLY);
 	
