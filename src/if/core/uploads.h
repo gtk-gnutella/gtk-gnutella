@@ -110,6 +110,9 @@ typedef struct gnet_upload_info {
 #define UPLOAD_IS_SENDING(u)	\
 	((u)->status == GTA_UL_SENDING)
 
+#define UPLOAD_IS_QUEUED(u)	\
+	((u)->status == GTA_UL_QUEUED)
+
 #define UPLOAD_WAITING_FOLLOWUP(u) \
 	((u)->status == GTA_UL_WAITING || (u)->status == GTA_UL_EXPECTING)
 

@@ -91,8 +91,8 @@ gboolean parq_upload_queue_full(struct upload *);
 guint parq_upload_lookup_size(const struct upload *);
 gboolean parq_upload_addr_can_proceed(const struct upload *);
 
-time_t parq_upload_lookup_lifetime(const struct upload *);
-time_t parq_upload_lookup_retry(const struct upload *);
+time_t parq_upload_lifetime(const struct upload *);
+time_t parq_upload_retry(const struct upload *);
 guint parq_upload_lookup_eta(const struct upload *);
 guint parq_upload_lookup_queue_no(const struct upload *);
 gboolean parq_upload_lookup_quick(const struct upload *);

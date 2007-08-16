@@ -458,9 +458,10 @@ upload_timer(time_t now)
 		 */
 
 		is_connecting = UPLOAD_IS_CONNECTING(u);
-		t = is_connecting
-			? GNET_PROPERTY(upload_connecting_timeout)
-			: MAX(GNET_PROPERTY(upload_connected_timeout), IO_STALLED);
+		t = is_connecting ?  GNET_PROPERTY(upload_connecting_timeout) :
+			UPLOAD_IS_QUEUED(u) ?
+				MAX(0, delta_time(parq_upload_lifetime(u), u->last_update)) :
+			MAX(GNET_PROPERTY(upload_connected_timeout), IO_STALLED);
 
 		/*
 		 * Detect frequent stalling conditions on sending.
@@ -1525,7 +1526,7 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 			gchar index_href[32];
 			glong retry;
 
-			retry = delta_time(parq_upload_lookup_retry(u), tm_time());
+			retry = delta_time(parq_upload_retry(u), tm_time());
 			retry = MAX(0, retry);
 
 			{
@@ -4666,8 +4667,8 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
 	si->parq_size = parq_upload_lookup_size(u);
-	si->parq_lifetime = MAX(0, delta_time(parq_upload_lookup_lifetime(u), now));
-	si->parq_retry = MAX(0, delta_time(parq_upload_lookup_retry(u), now));
+	si->parq_lifetime = MAX(0, delta_time(parq_upload_lifetime(u), now));
+	si->parq_retry = MAX(0, delta_time(parq_upload_retry(u), now));
 	si->parq_quick = parq_upload_lookup_quick(u);
 
     if (u->bio) {
