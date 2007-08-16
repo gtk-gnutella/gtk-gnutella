@@ -56,11 +56,11 @@ int main()
 EOC
 	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
 	then
-		case "$ccflags" in
-		*-O0*) ;;
+		case "$ccflags $optimize" in
 		*-momit-leaf-frame-pointer*) ;;
-		*)
-			ccflags="$ccflags -momit-leaf-frame-pointer"
+		*-O0*) ;;
+		*-O*)
+			ccflags="-momit-leaf-frame-pointer $ccflags"
 			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
 			;;
 		esac

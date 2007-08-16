@@ -24,7 +24,7 @@ int main(void)
 }
 EOC
 		saved_ccflags=$ccflags
-		ccflags="$ccflags $flag"
+		ccflags="$flag $ccflags"
 
 		set result
 		eval $trylink
