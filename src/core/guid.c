@@ -162,6 +162,10 @@ guid_init(void)
 }
 
 /**
+ * FIXME: This actually long deprecated by now. LimeWire does not care about
+ * it anymore but some older or less maintained clients might still care. It
+ * reduces the randomness of the MUIDs resp. GUID and makes them stick out too.
+ *
  * Make sure the MUID we use in initial handshaking pings are marked
  * specially to indicate we're modern nodes.
  */

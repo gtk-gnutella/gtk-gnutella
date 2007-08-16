@@ -763,9 +763,9 @@ routing_init(void)
 		need_guid = TRUE;
 
 retry:
-	if (need_guid)
-		guid_ping_muid(guid_buf);		/* We want a "modern" GUID */
-
+	if (need_guid) {
+		guid_random_muid(guid_buf);
+	}
 	/*
 	 * If by extraordinary, we have generated a banned GUID, retry.
 	 */
