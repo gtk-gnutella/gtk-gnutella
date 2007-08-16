@@ -1815,6 +1815,18 @@ prop = {
 };
 
 prop = {
+    name = "ul_quick_running";
+    desc = "Number of quick uploads currently running.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min = 0x00000000;
+        max = 0xFFFFFFFF;
+    };
+};
+
+prop = {
     name = "ul_registered";
     desc = "Number of registered (pending) uploads.";
     save = FALSE;
