@@ -467,7 +467,13 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	dx = x - ax;
 	dy = y - ay;
 	if ((dx || dy) && abs(dx) < 64 && abs(dy) < 64) {
+		g_message("anti_window_shift_hack: x=%d, y=%d dx=%d, dy=%d",
+			x, y, dx, dy);
+
 		gtk_window_move(GTK_WINDOW(widget), x + dx, y + dy);
+
+		gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
+		g_message("anti_window_shift_hack: x=%d, y=%d", ax, ay);
 	}
 }
 
