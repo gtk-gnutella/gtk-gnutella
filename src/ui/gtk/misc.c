@@ -465,7 +465,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	 */
 
 	dx = x - ax;
-	dy = x - ay;
+	dy = y - ay;
 	if ((dx || dy) && abs(dx) < 64 && abs(dy) < 64) {
 		gtk_window_move(GTK_WINDOW(widget), x + dx, y + dy);
 	}
