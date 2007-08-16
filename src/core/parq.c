@@ -1234,7 +1234,7 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 		uqx->relative_position = ++pos;
 	}
 
-	g_assert(pos <= (guint) q->size);
+	g_assert(pos <= UNSIGNED(q->size));
 }
 
 /**
@@ -1262,7 +1262,7 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 		uqx->relative_position = ++rel_pos;
 	}
 
-	g_assert(rel_pos <= (guint) cur_parq_ul->queue->size);
+	g_assert(rel_pos <= UNSIGNED(cur_parq_ul->queue->size));
 }
 
 /**
@@ -1681,7 +1681,7 @@ parq_upload_create(struct upload *u)
 	g_assert(parq_ul->queue->by_rel_pos != NULL);
 	g_assert(parq_ul->queue->by_position->data != NULL);
 	g_assert(parq_ul->relative_position > 0);
-	g_assert(parq_ul->relative_position <= (guint) parq_ul->queue->size);
+	g_assert(parq_ul->relative_position <= UNSIGNED(parq_ul->queue->size));
 	g_assert(parq_ul->by_addr != NULL);
 	g_assert(parq_ul->by_addr->uploading <= parq_ul->by_addr->total);
 
@@ -2446,7 +2446,9 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		struct parq_ul_queue *queue = l->data;
 		if (queue->alive > queue->active_uploads) {
 			/* Queue would like to get another upload slot */
-			if ((guint) allowed_max_uploads > (guint) queue->active_uploads) {
+			if (
+				UNSIGNED(allowed_max_uploads) > UNSIGNED(queue->active_uploads)
+			) {
 				/*
 				 * Determine the current maximum of upload
 				 * slots allowed compared to other queues.
@@ -4019,7 +4021,7 @@ parq_upload_load_queue(void)
 
 	/* Reset state */
 	entry = zero_entry;
-	bit_array_clear_range(tag_used, 0, (guint) NUM_PARQ_TAGS - 1);
+	bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
 
 	while (fgets(line, sizeof(line), f)) {
 		const gchar *tag_name, *value;
@@ -4266,7 +4268,7 @@ parq_upload_load_queue(void)
 
 			/* Reset state */
 			entry = zero_entry;
-			bit_array_clear_range(tag_used, 0, (guint) NUM_PARQ_TAGS - 1);
+			bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
 			upload_free(&fake_upload);	
 		}
 	}
