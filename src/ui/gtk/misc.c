@@ -408,44 +408,38 @@ done:
 	return 0;
 }
 
+#if !GTK_CHECK_VERSION(2,0,0)
 static void
-gui_window_get_position(GtkWidget *widget, int *x, int *y)
+gtk_window_get_position(GtkWindow *widget, int *x, int *y)
 {
-#if GTK_CHECK_VERSION(2,0,0)
-	gtk_window_get_position(GTK_WINDOW(widget), x, y);
-#else
-	gdk_window_get_root_origin(widget->window, x, y);
-#endif	/* Gtk+ 2.x */
+	g_assert(widget);
+	gdk_window_get_root_origin(GTK_WIDGET(widget)->window, x, y);
 }
 
 static void
-gui_window_get_size(GtkWidget *widget, int *width, int *height)
+gtk_window_get_size(GtkWindow *widget, int *width, int *height)
 {
-#if GTK_CHECK_VERSION(2,0,0)
-	gtk_window_get_size(GTK_WINDOW(widget), width, height);
-#else
-	gdk_window_get_size(widget->window, width, height);
-#endif	/* Gtk+ 2.x */
+	g_assert(widget);
+	gdk_window_get_size(GTK_WIDGET(widget)->window, width, height);
 }
 
 static void
-gui_window_move(GtkWidget *widget, int x, int y)
+gtk_window_move(GtkWindow *widget, int x, int y)
 {
-#if GTK_CHECK_VERSION(2,0,0)
-	gtk_window_move(GTK_WINDOW(widget), x, y);
-#else
-	gdk_window_move(widget->window, x, y);
-#endif	/* Gtk+ 2.x */
+	g_return_if_fail(widget);
+	gdk_window_move(GTK_WIDGET(widget)->window, x, y);
 }
+#endif	/* Gtk+ < 2.x */
 
 static void
 gui_window_move_resize(GtkWidget *widget, int x, int y, int width, int height)
 {
+	g_return_if_fail(widget);
 #if GTK_CHECK_VERSION(2,0,0)
 	gtk_window_move(GTK_WINDOW(widget), x, y);
 	gtk_window_resize(GTK_WINDOW(widget), width, height);
 #else
-	gdk_window_move_resize(widget->window, x, y, width, height);
+	gdk_window_move_resize(GTK_WIDGET(widget)->window, x, y, width, height);
 #endif	/* Gtk+ 2.x */
 }
 
@@ -462,7 +456,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 
 	ax = x;
 	ay = y;
-	gui_window_get_position(widget, &ax, &ay);
+	gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
 
 	/*
 	 * (At least) FVWM2 doesn't take the window decoration into account
@@ -473,7 +467,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	dx = x - ax;
 	dy = x - ay;
 	if ((dx || dy) && abs(dx) < 64 && abs(dy) < 64) {
-		gui_window_move(widget, x + dx, y + dy);
+		gtk_window_move(GTK_WINDOW(widget), x + dx, y + dy);
 	}
 }
 
@@ -481,9 +475,14 @@ void
 gui_restore_window(GtkWidget *widget, property_t prop)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
+	int x, y, width, height;
 
     gui_prop_get_guint32(prop, coord, 0, G_N_ELEMENTS(coord));
 	gui_fix_coords(coord);
+	x = coord[0];
+	y = coord[1];
+	width = coord[2];
+	height = coord[3];
 
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
@@ -492,9 +491,9 @@ gui_restore_window(GtkWidget *widget, property_t prop)
      *      -- Richard, 8/9/2002
      */
 
-    gtk_window_set_default_size(GTK_WINDOW(widget), coord[2], coord[3]);
-    if (coord[2] != 0 && coord[3] != 0) {
-		anti_window_shift_hack(widget, coord[0], coord[1], coord[2], coord[3]);
+    gtk_window_set_default_size(GTK_WINDOW(widget), width, height);
+    if (width != 0 && height != 0) {
+		anti_window_shift_hack(widget, x, y, width, height);
 	}
 
 }
@@ -505,8 +504,8 @@ gui_save_window(GtkWidget *widget, property_t prop)
     guint32 coord[4] = { 0, 0, 0, 0};
 	int x, y, w, h;
 
-	gui_window_get_position(widget, &x, &y);
-	gui_window_get_size(widget, &w, &h);
+	gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
+	gtk_window_get_size(GTK_WINDOW(widget), &w, &h);
 	coord[0] = x;
 	coord[1] = y;
 	coord[2] = w;
