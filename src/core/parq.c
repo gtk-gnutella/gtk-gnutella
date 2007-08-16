@@ -79,6 +79,7 @@ RCSID("$Id$")
 
 #define MAX_UPLOADS			100		/**< Avoid more than that many uploads */
 #define MAX_UPLOAD_QSIZE	4000	/**< Size of the PARQ queue */
+#define MIN_UPLOAD_AQUEUED	2		/**< Actively queued uploads per queue */
 
 #define MEBI (1024 * 1024)
 /*
@@ -150,6 +151,7 @@ struct parq_ul_queue {
 								 queued items. This queue shall be removed when
 								 all queued items are finished / removed. */
 	gint active_uploads;
+	gint active_queued_cnt;	/**< Number of actively queued entries */
 	gint alive;
 	gboolean recompute;		/**< Flagged as requiring update of internal data */
 };
@@ -1231,6 +1233,8 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 
 		uqx->relative_position = ++pos;
 	}
+
+	g_assert(pos <= (guint) q->size);
 }
 
 /**
@@ -1257,6 +1261,8 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 
 		uqx->relative_position = ++rel_pos;
 	}
+
+	g_assert(rel_pos <= (guint) cur_parq_ul->queue->size);
 }
 
 /**
@@ -1302,19 +1308,6 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	if (parq_ul->is_alive) {
 		parq_ul->queue->alive--;
 		parq_ul->is_alive = FALSE;
-		parq_ul->queue->by_rel_pos =
-			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
-
-		/*
-		 * Don't update ETA on shutdown, we don't need this information, so
-		 * speed up the shutdown process. Also it is better not doing so as on
-		 * shutdown not all entries are removed the 'correct' way, we just want
-		 * to free the memory
-		 */
-		if (!parq_shutdown) {
-			parq_upload_recompute_relative_positions(parq_ul->queue);
-			parq_upload_update_eta(parq_ul->queue);
-		}
 	} else {
 		parq_ul->queue->by_date_dead = g_list_remove(
 			  parq_ul->queue->by_date_dead, parq_ul);
@@ -1324,6 +1317,9 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	parq_ul->queue->by_position =
 		g_list_remove(parq_ul->queue->by_position, parq_ul);
 
+	parq_ul->queue->by_rel_pos =
+		  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
+
 	g_hash_table_remove(ul_all_parq_by_addr_and_name, parq_ul->addr_and_name);
 	g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
 
@@ -1332,7 +1328,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 
 	/*
 	 * Queued upload is now removed from all lists. So queue size can be
-	 * safely decreased and new ETAs can be calculate.
+	 * safely decreased and new ETAs can be calculated.
 	 */
 	parq_ul->queue->size--;
 
@@ -1342,20 +1338,24 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	 * not all entries are removed the 'correct' way, we just want to free
 	 * the memory
 	 */
-	if (!parq_shutdown)
+	if (!parq_shutdown) {
+		parq_upload_recompute_relative_positions(parq_ul->queue);
 		parq_upload_update_eta(parq_ul->queue);
+	}
 
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->addr_and_name);
 	atom_sha1_free_null(&parq_ul->sha1);
 	parq_ul->name = NULL;
 
+	if (GNET_PROPERTY(parq_debug) > 3)
+		g_message(
+			"PARQ UL: Entry %s freed from memory", guid_hex_str(parq_ul->id));
+
 	parq_ul->magic = 0;
 	wfree(parq_ul, sizeof *parq_ul);
 	parq_ul = NULL;
 
-	if (GNET_PROPERTY(parq_debug) > 3)
-		g_message("PARQ UL: Entry freed from memory");
 }
 
 /**
@@ -1433,6 +1433,7 @@ parq_upload_new_queue(void)
 	queue->by_rel_pos = NULL;
 	queue->by_date_dead = NULL;
 	queue->active_uploads = 0;
+	queue->active_queued_cnt = 0;
 	queue->alive = 0;
 	queue->recompute = FALSE;
 
@@ -1633,11 +1634,8 @@ parq_upload_create(struct upload *u)
 	parq_ul_queue->by_position =
 		g_list_append(parq_ul_queue->by_position, parq_ul);
 
-	/* XXX by_rel_pos should be an array, not a list -- RAM, 2007-08-16 */
-
 	parq_ul->queue->by_rel_pos = g_list_insert_sorted(parq_ul->queue->by_rel_pos,
 		parq_ul, parq_ul_rel_pos_cmp);
-
 	parq_upload_update_relative_position_after(parq_ul);
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
@@ -2075,13 +2073,14 @@ parq_upload_timer(time_t now)
 			) {
 				if (GNET_PROPERTY(parq_debug) > 3)
 					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-						"Timeout: %s '%s'",
+						"Timeout: %s %s '%s'",
 						g_list_position(ul_parqs,
 							g_list_find(ul_parqs, parq_ul->queue)) + 1,
 						g_list_length(ul_parqs),
 						parq_ul->position,
 						parq_ul->relative_position,
 						parq_ul->queue->size,
+						guid_hex_str(parq_ul->id),
 						host_addr_to_string(parq_ul->remote_addr),
 						parq_ul->name);
 
@@ -2111,7 +2110,6 @@ parq_upload_timer(time_t now)
 		parq_ul->queue->by_rel_pos =
 			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
 
-		
 		parq_ul->queue->recompute = TRUE;	/* Defer costly recomputations */
 
 		g_assert(parq_ul->queue->alive >= 0);
@@ -2280,7 +2278,8 @@ parq_upload_queue_full(struct upload *u)
 	g_assert(q_ul->by_date_dead != NULL);
 
 	if (GNET_PROPERTY(parq_debug) > 2)
-		g_message("PARQ UL: Removing a 'dead' upload");
+		g_message(
+			"PARQ UL: Removing a 'dead' upload %s", guid_hex_str(parq_ul->id));
 
 	parq_ul = g_list_first(q_ul->by_date_dead)->data;
 	parq_upload_free(parq_ul);
@@ -2495,28 +2494,35 @@ parq_upload_continue(struct parq_ul_queued *uq)
 				goto check_quick;
 			}
 			slots_free--;
-		} else if (
-				parq_ul == uq ||
-				host_addr_equal(parq_ul->by_addr->addr, uq->by_addr->addr)
-		) {
+		} else if (parq_ul == uq) {
 			/*
 			 * So the current upload is the first in line (we would have
 			 * returned FALSE otherwise by now).
-			 * We also check on ip slot (instead of only the requested file-
-			 * name). This is allowed as PARQ is a slot reservation system. So
-			 * we check if the requesting host has another queued item which
-			 * is allowed to continue. We will just use that position here then.
+			 *
+			 * We do NOT compare IP addresses here because that will mess up
+			 * with our relative_position management.
+			 *		--RAM, 2007-08-16
 			 */
 			if (GNET_PROPERTY(parq_debug))
-				g_message("[PARQ UL] Allowing upload \"%s\" from %s (%s), "
-					"relative pos = %u (%u)",
+				g_message("[PARQ UL] Allowing %supload \"%s\" from %s (%s), "
+					"relative pos = %u [%s]",
+					uq->active_queued ? "actively queued " : "",
 					uq->u->name,
 					host_addr_port_to_string(
 						uq->u->socket->addr, uq->u->socket->port),
 					upload_vendor_str(uq->u),
-					parq_ul->relative_position, uq->relative_position);
+					uq->relative_position, guid_hex_str(uq->id));
+
 			return TRUE;
 		}
+
+		/*
+		 * If we reached an actively queued entry, we cannot allow
+		 * uploads further down in the queue.
+		 */
+
+		if (parq_ul->active_queued)
+			break;
 	}
 
 check_quick:
@@ -2652,7 +2658,7 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 
 		if (GNET_PROPERTY(parq_debug) >= 3)
 			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
-				"ETA: %s Added: %s '%s'",
+				"ETA: %s Added: %s '%s' %s",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				g_list_length(ul_parqs),
@@ -2661,7 +2667,7 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 				parq_ul->queue->size,
 				short_time(parq_upload_lookup_eta(u)),
 				host_addr_to_string(parq_ul->remote_addr),
-				parq_ul->name);
+				parq_ul->name, guid_hex_str(parq_ul->id));
 	}
 
 cleanup:
@@ -2694,6 +2700,7 @@ cleanup:
 		parq_ul->queue->alive++;
 		parq_ul->is_alive = TRUE;
 		g_assert(parq_ul->queue->alive > 0);
+		g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
 
 		/* Insert again, in the relative position list. */
 		parq_ul->queue->by_rel_pos =
@@ -2824,12 +2831,13 @@ parq_upload_request(struct upload *u)
 	if (GNET_PROPERTY(parq_debug) > 1)
 		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
 			"chunk=%lu, now=%d, retry=%d, expire=%d, quick=%s, has_slot=%s, "
-			"uploaded=%lu",
+			"uploaded=%lu id=%s",
 			u->name, host_addr_to_string(u->addr),
 			upload_vendor_str(u),
 			(gulong) parq_ul->chunk_size, (gint) now, (gint) parq_ul->retry,
 			(gint) parq_ul->expire, parq_ul->quick ? "y" : "n",
-			parq_ul->has_slot ? "y" : "n", (gulong) parq_ul->uploaded_size);
+			parq_ul->has_slot ? "y" : "n", (gulong) parq_ul->uploaded_size,
+			guid_hex_str(parq_ul->id));
 
 	/*
 	 * Make sure they did not retry the request too soon.
@@ -2872,10 +2880,11 @@ parq_upload_request(struct upload *u)
 
 			if (GNET_PROPERTY(parq_debug)) g_warning(
 				"[PARQ UL] "
-				"punishing %s (%s) for re-requesting \"%s\" %d secs early",
+				"punishing %s (%s) for re-requesting \"%s\" %d secs early [%s]",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
-				u->name, (gint) (org_retry - now));
+				u->name, (gint) (org_retry - now),
+				guid_hex_str(parq_ul->id));
 
 			parq_add_banned_source(u->addr, parq_ul->retry - now);
 			parq_upload_force_remove(u);
@@ -2930,15 +2939,19 @@ parq_upload_request(struct upload *u)
 
 	/* Don't allow more than 1 active queued upload per ip */
 	if (parq_ul->by_addr->active_queued == 0 || parq_ul->active_queued) {
+		guint max_slot = parq_upload_active_size +
+			GNET_PROPERTY(max_uploads) / 2;
 
 		/* Active queue requests which are either a push request and at a
 		 * reasonable position. Or if the request is at a position which
 		 * might actually get an upload slot soon
 		 */
 		if (
-			(u->push &&
-			  parq_ul->relative_position <= parq_upload_active_size) ||
-			  parq_ul->relative_position <= GNET_PROPERTY(max_uploads) + 2
+			(u->push && parq_ul->relative_position <= max_slot) ||
+			(parq_ul->queue->active_queued_cnt < MIN_UPLOAD_AQUEUED &&
+			parq_ul->relative_position <= GNET_PROPERTY(max_uploads) * 2) ||
+			parq_ul->relative_position <=
+				GNET_PROPERTY(max_uploads) + MIN_UPLOAD_AQUEUED
 		) {
 			if (parq_ul->minor > 0 || parq_ul->major > 0) {
 				if (!parq_ul->active_queued) {
@@ -2947,6 +2960,7 @@ parq_upload_request(struct upload *u)
 
 						parq_ul->active_queued = TRUE;
 						parq_ul->by_addr->active_queued++;
+						parq_ul->queue->active_queued_cnt++;
 					}
 				} else {
 						u->status = GTA_UL_QUEUED;
@@ -2962,6 +2976,20 @@ parq_upload_request(struct upload *u)
 }
 
 /**
+ * Unmark actively queued upload.
+ */
+static void
+parq_upload_clear_actively_queued(struct parq_ul_queued *uq)
+{
+	uq->by_addr->active_queued--;
+	g_assert(uq->by_addr->active_queued >= 0);
+	uq->queue->active_queued_cnt--;
+	g_assert(uq->queue->active_queued_cnt >= 0);
+
+	uq->active_queued = FALSE;
+}
+
+/**
  * Mark an upload as really being active instead of just being queued.
  */
 void
@@ -2973,11 +3001,39 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	g_assert(parq_ul != NULL);
 
 	if (GNET_PROPERTY(parq_debug) > 2) {
-		g_message("PARQ UL: Upload %d[%d] is busy",
-		  	  parq_ul->position, parq_ul->relative_position);
+		g_message("PARQ UL: Upload %d[%d] (%s, %s, %s) is now busy [%s]",
+		  	  parq_ul->position, parq_ul->relative_position,
+			  parq_ul->active_queued ? "active" : "passive",
+			  parq_ul->has_slot ? "with slot" : "no slot yet",
+			  parq_ul->quick ? "quick" : "regular",
+			  guid_hex_str(parq_ul->id));
 	}
 
 	u->parq_status = FALSE;			/* XXX -- get rid of `parq_status'? */
+
+	if (parq_ul->active_queued)
+		parq_upload_clear_actively_queued(parq_ul);
+
+	/*
+	 * Remove upload from the relative position list since it has a slot.
+	 * It will be re-added as slot #1 when the upload is removed, where it
+	 * will stay there until it expires.  This allows them to reclaim their
+	 * slot in case something weird happens.
+	 *
+	 * We only do that when the slot is a regular one and not a quick shot,
+	 * since quick uploads are bound to be queued anyway.
+	 *
+	 *		--RAM, 2007-08-16
+	 */
+
+	if (!parq_ul->quick && parq_ul->relative_position) {
+		parq_ul->queue->by_rel_pos = g_list_remove(
+			parq_ul->queue->by_rel_pos, parq_ul);
+		parq_upload_recompute_relative_positions(parq_ul->queue);
+
+		parq_ul->relative_position = 0;		/* Signals: has regular slot */
+		parq_ul->had_slot = TRUE;			/* Had a regular slot */
+	}
 
 	if (parq_ul->has_slot)
 		return;
@@ -2990,9 +3046,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	g_assert(parq_ul->by_addr != NULL);
 	g_assert(host_addr_equal(parq_ul->by_addr->addr, parq_ul->remote_addr));
 
-
 	parq_ul->has_slot = TRUE;
-	parq_ul->had_slot = TRUE;
 	parq_ul->queue->active_uploads++;
 	parq_ul->by_addr->uploading++;
 }
@@ -3014,7 +3068,7 @@ parq_upload_force_remove(struct upload *u)
 
 	upload_check(u);
 	parq_ul = parq_upload_find(u);
-	if (parq_ul != NULL && !parq_upload_remove(u)) {
+	if (parq_ul != NULL && !parq_upload_remove(u, UPLOAD_IS_SENDING(u))) {
 		parq_upload_free(parq_ul);
 	}
 }
@@ -3056,7 +3110,7 @@ parq_upload_collect_stats(const struct upload *u)
  * was cleared. FALSE if the parq structure still exists.
  */
 gboolean
-parq_upload_remove(struct upload *u)
+parq_upload_remove(struct upload *u, gboolean was_sending)
 {
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
@@ -3082,7 +3136,7 @@ parq_upload_remove(struct upload *u)
 	 * or it is the parent of a now cloned upload (see upload_clone()).
 	 */
 
-	if (parq_ul == NULL)
+	if (parq_ul == NULL || parq_ul->u != u)
 		return FALSE;
 
 	parq_upload_collect_stats(u);
@@ -3111,12 +3165,21 @@ parq_upload_remove(struct upload *u)
 
 	if (parq_ul->has_slot && u->keep_alive && UPLOAD_WAITING_FOLLOWUP(u)) {
 		if (GNET_PROPERTY(parq_debug)) g_message(
-			"**** PARQ UL Q %d/%d: Not removed, waiting for new request",
+			"**** PARQ UL Q %d/%d [%s]: Not removed, waiting for new request",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			g_list_length(ul_parqs));
+			g_list_length(ul_parqs), guid_hex_str(parq_ul->id));
 		return FALSE;
 	}
+
+	/*
+	 * If upload was killed whilst sending, then reset the "had_slot" flag
+	 * to have the entry persisted again.
+	 *		--RAM, 2007-08-16
+	 */
+
+	if (was_sending)
+		parq_ul->had_slot = FALSE;		/* Did not get a chance to complete */
 
 	/*
 	 * Reset "quick slot" indication since the upload is moved back
@@ -3134,24 +3197,22 @@ parq_upload_remove(struct upload *u)
 		u->last_update = parq_ul->updated;
 	}
 
-	if (u->status == GTA_UL_QUEUED) {
-		parq_ul->by_addr->active_queued--;
-		g_assert(parq_ul->by_addr->active_queued >= 0);
-	}
-
-	parq_ul->active_queued = FALSE;
+	if (parq_ul->active_queued)
+		parq_upload_clear_actively_queued(parq_ul);
 
 	if (GNET_PROPERTY(parq_debug) > 3)
-		g_message("PARQ UL Q %d/%d: Upload removed",
+		g_message("PARQ UL Q %d/%d [%s]: Upload removed (was %ssending)",
 			g_list_position(ul_parqs,
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			g_list_length(ul_parqs));
+			g_list_length(ul_parqs), guid_hex_str(parq_ul->id),
+			was_sending ? "" : "not ");
 
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 
 		if (GNET_PROPERTY(parq_debug) > 2)
-			g_message("PARQ UL: Freed an upload slot");
+			g_message("PARQ UL: [%s] Freed an upload slot%s",
+				guid_hex_str(parq_ul->id), was_sending ? " sending" : "");
 
 		g_assert(parq_ul->by_addr != NULL);
 		g_assert(parq_ul->by_addr->uploading > 0);
@@ -3171,6 +3232,17 @@ parq_upload_remove(struct upload *u)
 					parq_upload_register_send_queue(parq_ul_next);
 				break;
 			}
+		}
+
+		/*
+		 * Put back in queue as first position, until it expires.
+		 */
+
+		if (0 == parq_ul->relative_position) {
+			parq_ul->relative_position = 1;		/* As first item */
+			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
+				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
+			parq_upload_update_relative_position_after(parq_ul);
 		}
 	}
 

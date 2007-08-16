@@ -1667,8 +1667,11 @@ upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
 {
 	const gchar *logreason;
 	gchar errbuf[1024];
+	gboolean was_sending;
 
 	upload_check(u);
+
+	was_sending = UPLOAD_IS_SENDING(u);
 
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(errbuf, sizeof errbuf, reason, ap);
@@ -1742,7 +1745,7 @@ upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
         upload_fire_upload_info_changed(u);
     }
 
-	parq_upload_remove(u);
+	parq_upload_remove(u, was_sending);
 
 	reason = reason != no_reason ? reason : NULL;
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
