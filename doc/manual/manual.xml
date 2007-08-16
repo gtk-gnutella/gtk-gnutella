@@ -422,8 +422,76 @@ web search capabilities and descriptions of files with magnet links.
 A magnet link is just text that gtk-gnutella can understand (a URI in computer
 parlance).  Magnet links can be copied to IRC and other chat programs,
 sent in emails, posted to Usenet groups or put on your own web
-site. Paste the magnet link to the gtk-gnutella search box and gtk-gnutella will start
-to download the file as soon as a source is found.</para> </section>
+site. Paste the magnet link to the gtk-gnutella search box and gtk-gnutella 
+will start to download the file as soon as a source is found.</para>
+
+<para>If you use a Mozilla based browser (Mozilla, Firefox, SeaMonkey,
+etc), you can configure the browser to have gtk-gnutella handle magnet
+links.  You need to have a script like the one below, </para>
+
+<para><informalexample><programlisting>
+#! /bin/sh
+
+# $Id$
+
+# The following two options should be set in FireFox/Mozilla.
+# Enter &quot;about:config&quot; in the address bar.
+# Right click and create a new string under the name
+# &quot;network.protocol-handler.app.magnet&quot;.  Set the value to the
+# full path to this script.  Also create a new boolean called
+# &quot;network.protocol-handler.external.magnet&quot; and set it to true.
+# This script should have execute permissions.  Ie, chmod +x.
+
+# Make sure that there is only one argument and that it starts
+# either with &quot;magnet:?&quot; or &quot;http://&quot;.
+
+scheme=
+case &quot;$1&quot; in
+'http://'*)	scheme='http';;
+'magnet:?'*)	scheme='magnet';;
+*)
+esac
+
+if [ $# != 1 ] || [ &quot;X$scheme&quot; = X ]; then
+   echo &quot;Usage: ${0##*/} magnet:?[...]&quot; &gt;&amp;2
+   exit 1
+fi
+
+# Select a default configuration directory.  FireFox/Mozilla can be
+# run with alternate exports to over-ride behaviour in this script.
+GTK_GNUTELLA_DIR=${GTK_GNUTELLA_DIR-$HOME/.gtk-gnutella}
+export GTK_GNUTELLA_DIR
+
+# Don't do anything if GTKG is not running.
+gtk-gnutella --ping || {
+   echo 'gtk-gnutella is not running.' &gt;&amp;2
+   exit 1
+}
+
+# Special characters in the URL must not be parsed as quotes or escapes.
+url=&quot;`printf '%s' &quot;$1&quot; |sed 's,&quot;,%22,g' |sed &quot;s,',%27,g&quot; |sed 's,\\\\,%5c,g'`&quot;
+
+# Send a shell command to download the magnet URL.
+cat &lt;&lt;EOF | exec gtk-gnutella --shell
+intr
+download add &quot;$url&quot;
+EOF
+
+</programlisting></informalexample></para>
+
+<para>
+To use the script, type "about:config" in the address bar of the
+browser.  Right click and create a new string under the name
+"network.protocol-handler.app.magnet".  Set the value to the full path
+and name of the script.  Also create a new boolean called
+"network.protocol-handler.external.magnet" and set it to true.  This
+script should have execute permissions.  Ie, chmod +x.  An up to date
+version of this script is in gtk-gnutella source in the scripts
+directory.  When the script is active, clicking on a magnet link in
+the browser will automatically start a download in gtk-gnutella.
+</para>
+
+</section>
 
 <section id="SEARCH_MONITOR"> <title>Search "Monitor"</title>
 
