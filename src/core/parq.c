@@ -2372,7 +2372,7 @@ static gboolean
 parq_upload_continue(struct parq_ul_queued *uq)
 {
 	GList *l = NULL;
-	gint slots_free = GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running);
+	gint slots_free;
 	gboolean quick_allowed = FALSE;
 	gint allowed_max_uploads;
 
@@ -2384,16 +2384,29 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	 */
 	allowed_max_uploads = -1;
 
-	if (GNET_PROPERTY(ul_running) >= GNET_PROPERTY(max_uploads)) {
+	/*
+	 * Since by definition "quick" uploads do not last for long, they do
+	 * not count as consuming an upload slot.  --RAM, 2007-08-16
+	 */
+
+	slots_free = GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
+		+ GNET_PROPERTY(ul_quick_running);
+
+	if (UNSIGNED(slots_free) > GNET_PROPERTY(max_uploads))
+		slots_free = GNET_PROPERTY(max_uploads);
+
+	if (GNET_PROPERTY(parq_debug) >= 5) {
+		g_message("[PARQ UL] parq_upload_continue: "
+			"free_slots=%d (with %u quick)",
+			slots_free, GNET_PROPERTY(ul_quick_running));
+	}
+
+	if (slots_free <= 0) {
 		/*
 		 * If there are no free upload slots the queued upload isn't allowed an
 		 * upload slot anyway. So we might just as well abort here.
 		 */
 		goto check_quick;
-	}
-
-	if (GNET_PROPERTY(parq_debug) >= 5) {
-		g_message("[PARQ UL] parq_upload_continue, free_slots=%d", slots_free);
 	}
 
 	/*
@@ -2563,6 +2576,8 @@ check_quick:
 		if (GNET_PROPERTY(parq_debug))
 			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
 				(gulong) uq->chunk_size);
+
+		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
 		uq->quick = TRUE;
 		return TRUE;
 	}
@@ -2932,7 +2947,10 @@ parq_upload_request(struct upload *u)
 		/* FALL THROUGH */
 	}
 
-	parq_ul->quick = FALSE;		/* Doing full "continue" checks now */
+	if (parq_ul->quick) {
+		gnet_prop_decr_guint32(PROP_UL_QUICK_RUNNING);
+		parq_ul->quick = FALSE;		/* Doing full "continue" checks now */
+	}
 
 	/*
 	 * Check whether the current upload is allowed to get an upload slot. If so
@@ -3135,13 +3153,22 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	 * We need to clear the "active_queued" flag everytime, in case we
 	 * get an EOF from an actively queued upload...  It still has a
 	 * u->parq_status field when not running.
+	 *
+	 * Likewise, we need to manage the amount of "quick" uploads runnings.
 	 *		--RAM, 2007-08-16
 	 */
 
 	parq_ul = parq_upload_find(u);
 
-	if (parq_ul && parq_ul->active_queued)
-		parq_upload_clear_actively_queued(parq_ul);
+	if (parq_ul) {
+		if (parq_ul->active_queued)
+			parq_upload_clear_actively_queued(parq_ul);
+
+		if (parq_ul->quick) {
+			gnet_prop_decr_guint32(PROP_UL_QUICK_RUNNING);
+			parq_ul->quick = FALSE;
+		}
+	}
 
 	/*
 	 * Avoid removing an upload which is being removed because we are returning
@@ -3202,13 +3229,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 	if (was_sending)
 		parq_ul->had_slot = FALSE;		/* Did not get a chance to complete */
-
-	/*
-	 * Reset "quick slot" indication since the upload is moved back
-	 * to the queue.
-	 */
-
-	parq_ul->quick = FALSE;
 
 	/*
 	 * When the upload was actively queued, the last_update timestamp was

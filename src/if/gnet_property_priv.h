@@ -202,6 +202,7 @@ extern const gchar   *gnet_property_variable_shared_dirs_paths;
 extern const gchar   *gnet_property_variable_local_netmasks_string;
 extern const guint32  gnet_property_variable_total_downloads;
 extern const guint32  gnet_property_variable_ul_running;
+extern const guint32  gnet_property_variable_ul_quick_running;
 extern const guint32  gnet_property_variable_ul_registered;
 extern const guint32  gnet_property_variable_total_uploads;
 extern const gchar    gnet_property_variable_servent_guid[GUID_RAW_SIZE];
