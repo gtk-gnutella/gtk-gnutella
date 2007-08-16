@@ -2481,20 +2481,23 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	for (l = g_list_first(uq->queue->by_rel_pos); l; l = g_list_next(l)) {
 		struct parq_ul_queued *parq_ul = l->data;
 
-		if (
-			  !parq_ul->has_slot && parq_ul != uq &&
-			  !host_addr_equal(parq_ul->by_addr->addr, uq->by_addr->addr) &&
-			  !parq_ul->by_addr->uploading
-			) {
+		if (parq_ul != uq) {
+			if (GNET_PROPERTY(parq_debug) >= 5)
+				g_message("[PARQ UL] (free=%d) Skipping %supload, "
+					"relative pos = %u [%s]",
+					slots_free,
+					parq_ul->active_queued ? "actively queued " : "",
+					parq_ul->relative_position, guid_hex_str(parq_ul->id));
+
 			/* Another upload in the current queue is allowed first */
-			if (slots_free < 0) {
+			if (slots_free <= 0) {
 				if (GNET_PROPERTY(parq_debug) >= 4)
 					g_message("[PARQ UL] Other uploads in queue with pos < %u",
 						uq->relative_position);
-				goto check_quick;
+				break;
 			}
 			slots_free--;
-		} else if (parq_ul == uq) {
+		} else {
 			/*
 			 * So the current upload is the first in line (we would have
 			 * returned FALSE otherwise by now).
@@ -2524,6 +2527,13 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		if (parq_ul->active_queued)
 			break;
 	}
+
+	if (GNET_PROPERTY(parq_debug))
+		g_message("[PARQ UL] Not allowing regular for \"%s\" from %s (%s)",
+		uq->u->name,
+		host_addr_port_to_string(
+			uq->u->socket->addr, uq->u->socket->port),
+		upload_vendor_str(uq->u));
 
 check_quick:
 	/*
@@ -3120,6 +3130,18 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	upload_check(u);
 
 	/*
+	 * We need to clear the "active_queued" flag everytime, in case we
+	 * get an EOF from an actively queued upload...  It still has a
+	 * u->parq_status field when not running.
+	 *		--RAM, 2007-08-16
+	 */
+
+	parq_ul = parq_upload_find(u);
+
+	if (parq_ul && parq_ul->active_queued)
+		parq_upload_clear_actively_queued(parq_ul);
+
+	/*
 	 * Avoid removing an upload which is being removed because we are returning
 	 * a busy (503), in which case the upload got queued
 	 */
@@ -3128,8 +3150,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		u->parq_status = FALSE;
 		return FALSE;
 	}
-
-	parq_ul = parq_upload_find(u);
 
 	/*
 	 * If parq_ul = NULL, than the upload didn't get a slot in the PARQ,
@@ -3196,9 +3216,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	if (u->status == GTA_UL_QUEUED && u->last_update > now) {
 		u->last_update = parq_ul->updated;
 	}
-
-	if (parq_ul->active_queued)
-		parq_upload_clear_actively_queued(parq_ul);
 
 	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL Q %d/%d [%s]: Upload removed (was %ssending)",
