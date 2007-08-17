@@ -1224,20 +1224,18 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 static void
 parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 {
-	GList *l = NULL;
-	guint pos = 0;
+	if (q->by_rel_pos) {
+		GList *l = NULL;
+		guint pos = 0;
 
-	g_return_if_fail(q->by_rel_pos);
+		for (l = q->by_rel_pos; l; l = g_list_next(l)) {
+			struct parq_ul_queued *uqx = l->data;
 
-	g_assert((NULL == q->by_rel_pos) ^ (q->size > 0));
+			uqx->relative_position = ++pos;
+		}
 
-	for (l = q->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *uqx = l->data;
-
-		uqx->relative_position = ++pos;
+		g_assert(pos <= UNSIGNED(q->size));
 	}
-
-	g_assert(pos <= UNSIGNED(q->size));
 }
 
 /**
