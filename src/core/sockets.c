@@ -2144,6 +2144,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		t->port = socket_addr_get_port(&addr);
 		t->local_port = s->local_port;
 		t->flags |= SOCK_F_TCP;
+		g_assert(is_host_addr(t->addr));
 	} else {
 		g_assert(SOCK_F_LOCAL & s->flags);
 		t->flags |= SOCK_F_LOCAL;
