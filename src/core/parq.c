@@ -2849,33 +2849,40 @@ parq_upload_request(struct upload *u)
 	parq_ul->updated = now;
 	parq_ul->retry = time_advance(now, parq_ul_calc_retry(parq_ul));
 
-	g_assert(parq_ul->retry >= now);
+	g_assert(delta_time(parq_ul->retry, now) >= 0);
 
 	if (GNET_PROPERTY(parq_optimistic)) {
+		time_delta_t delta;
 
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
+		delta = parq_ul->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
 		/* If the chunk sizes are really small, expire them sooner */
-		parq_ul->expire = parq_ul->retry +
-			parq_ul->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
+		parq_ul->expire = time_advance(parq_ul->retry, delta);
 	} else {
-		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
+		parq_ul->expire = time_advance(parq_ul->retry, MIN_LIFE_TIME);
 	}
 
 	grace = delta_time(parq_ul->expire, parq_ul->retry);
-	if (grace < PARQ_GRACE_TIME)
-		parq_ul->expire += PARQ_GRACE_TIME - grace;
+	if (grace < PARQ_GRACE_TIME) {
+		time_delta_t delta = PARQ_GRACE_TIME - grace;
+		parq_ul->expire = time_advance(parq_ul->expire, delta);
+	}
 
 	if (GNET_PROPERTY(parq_debug) > 1)
 		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
-			"chunk=%lu, now=%d, retry=%d, expire=%d, quick=%s, has_slot=%s, "
-			"uploaded=%lu id=%s",
+			"chunk=%s, now=%lu, retry=%lu, expire=%lu, quick=%s, has_slot=%s, "
+			"uploaded=%s id=%s",
 			u->name, host_addr_to_string(u->addr),
 			upload_vendor_str(u),
-			(gulong) parq_ul->chunk_size, (gint) now, (gint) parq_ul->retry,
-			(gint) parq_ul->expire, parq_ul->quick ? "y" : "n",
-			parq_ul->has_slot ? "y" : "n", (gulong) parq_ul->uploaded_size,
+			uint64_to_string(parq_ul->chunk_size),
+			(unsigned long) now,
+			(unsigned long) parq_ul->retry,
+			(unsigned long) parq_ul->expire,
+			parq_ul->quick ? "y" : "n",
+			parq_ul->has_slot ? "y" : "n",
+			filesize_to_string(parq_ul->uploaded_size),
 			guid_hex_str(parq_ul->id));
 
 	/*
@@ -2919,13 +2926,13 @@ parq_upload_request(struct upload *u)
 
 			if (GNET_PROPERTY(parq_debug)) g_warning(
 				"[PARQ UL] "
-				"punishing %s (%s) for re-requesting \"%s\" %d secs early [%s]",
+				"punishing %s (%s) for re-requesting \"%s\" %u secs early [%s]",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
-				u->name, (gint) (org_retry - now),
+				u->name, (unsigned) (org_retry - now),
 				guid_hex_str(parq_ul->id));
 
-			parq_add_banned_source(u->addr, parq_ul->retry - now);
+			parq_add_banned_source(u->addr, delta_time(parq_ul->retry, now));
 			parq_upload_force_remove(u);
 			return FALSE;
 		}
