@@ -110,6 +110,7 @@ static guint parq_upload_ban_window = 600;
 static const gchar file_parq_file[] = "parq";
 
 static GList *ul_parqs = NULL;			/**< List of all queued uploads */
+static gint ul_parqs_cnt = 0;			/**< Amount of queues */
 static GList *ul_parq_queue = NULL;		/**< To whom we need to send a QUEUE */
 static GHashTable *ul_all_parq_by_addr_and_name = NULL;
 static GHashTable *ul_all_parq_by_addr = NULL;
@@ -146,14 +147,15 @@ struct parq_ul_queue {
 								 not alive */
 	gint by_position_length;/**< Number of items in "by_position" */
 
-	gboolean active;		/**< Set to false when the number of upload slots
-								 was decreased but the queue still contained
-								 queued items. This queue shall be removed when
-								 all queued items are finished / removed. */
+	gint num;				/**< Queue number */
 	gint active_uploads;
 	gint active_queued_cnt;	/**< Number of actively queued entries */
 	gint alive;
 	gboolean recompute;		/**< Flagged as requiring update of internal data */
+	gboolean active;		/**< Set to false when the number of upload slots
+								 was decreased but the queue still contained
+								 queued items. This queue shall be removed when
+								 all queued items are finished / removed. */
 };
 
 struct parq_ul_queued_by_addr {
@@ -1431,10 +1433,11 @@ parq_upload_new_queue(void)
 	queue->active = TRUE;
 
 	ul_parqs = g_list_append(ul_parqs, queue);
+	ul_parqs_cnt++;
+	queue->num = g_list_length(ul_parqs);
 
 	if (GNET_PROPERTY(parq_debug))
-		g_message("PARQ UL: Created new queue %d",
-			g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
+		g_message("PARQ UL: Created new queue %d", queue->num);
 
 	g_assert(ul_parqs != NULL);
 	g_assert(ul_parqs->data != NULL);
@@ -1634,8 +1637,7 @@ parq_upload_create(struct upload *u)
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"",
-			g_list_position(ul_parqs,
-				g_list_find(ul_parqs, parq_ul->queue)) + 1,
+			parq_ul->queue->num,
 			g_list_length(ul_parqs),
 			parq_ul->position,
 			parq_ul->relative_position,
@@ -1683,6 +1685,22 @@ parq_upload_create(struct upload *u)
 }
 
 /**
+ * Renumber queues after a queue has been removed from the list.
+ */
+static void
+parq_upload_recompute_queue_num(void)
+{
+	GList *l;
+	gint pos = 0;
+
+	for (l = ul_parqs; l; l = g_list_next(l)) {
+		struct parq_ul_queue *q = l->data;
+
+		q->num = ++pos;
+	}
+}
+
+/**
  * Frees the queue from memory and the ul_parqs linked list.
  */
 static void
@@ -1697,11 +1715,14 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(queue->active == FALSE);
 
 	if (GNET_PROPERTY(parq_debug))
-		g_message("PARQ UL: Removing inactive queue %d",
-				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
+		g_message("PARQ UL: Removing inactive queue %d", queue->num);
 
-	/* Remove queue from all lists */
+	/* Remove queue from the list containing all the queues */
 	ul_parqs = g_list_remove(ul_parqs, queue);
+	parq_upload_recompute_queue_num();
+
+	ul_parqs_cnt--;
+	g_assert(ul_parqs_cnt >= 0);
 
 	/* Free memory */
 	wfree(queue, sizeof(*queue));
@@ -1810,9 +1831,8 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 		if (GNET_PROPERTY(parq_debug) > 2) {
 			g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 				"No port to send QUEUE: %s '%s'",
-				  g_list_position(ul_parqs,
-				  	g_list_find(ul_parqs, parq_ul->queue)) + 1,
-				  	g_list_length(ul_parqs),
+				  parq_ul->queue->num,
+				  ul_parqs_cnt,
 				  parq_ul->position,
 				  parq_ul->relative_position,
 				  parq_ul->queue->by_position_length,
@@ -1875,9 +1895,8 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	if (GNET_PROPERTY(parq_debug))
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'",
-			  g_list_position(ul_parqs,
-			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			  g_list_length(ul_parqs),
+			  parq_ul->queue->num,
+			  ul_parqs_cnt,
 			  parq_ul->position,
 			  parq_ul->relative_position,
 			  parq_ul->queue->by_position_length,
@@ -2068,9 +2087,8 @@ parq_upload_timer(time_t now)
 				if (GNET_PROPERTY(parq_debug) > 3)
 					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 						"Timeout: %s %s '%s'",
-						g_list_position(ul_parqs,
-							g_list_find(ul_parqs, parq_ul->queue)) + 1,
-						g_list_length(ul_parqs),
+						parq_ul->queue->num,
+						ul_parqs_cnt,
 						parq_ul->position,
 						parq_ul->relative_position,
 						parq_ul->queue->by_position_length,
@@ -2142,9 +2160,8 @@ parq_upload_timer(time_t now)
 
 				g_message("PARQ UL: Queue %d/%d contains %d items, "
 					  "%d uploading, %d alive, queue is marked %s",
-					  g_list_position(ul_parqs, g_list_find(ul_parqs, queue))
-						  + 1,
-					  g_list_length(ul_parqs),
+					  queue->num,
+					  ul_parqs_cnt,
 					  queue->by_position_length,
 					  queue->active_uploads,
 					  queue->alive,
@@ -2369,7 +2386,6 @@ free_upload_slots(struct parq_ul_queue *q)
 	gint even_slots;
 	gint remainder;
 	gint surplus;
-	gint qcnt;
 	gint available;
 	gint result;
 	GList *l;
@@ -2393,14 +2409,12 @@ free_upload_slots(struct parq_ul_queue *q)
 	 * to the target queue.
 	 */
 
-	qcnt = g_list_length(ul_parqs);
+	g_assert(ul_parqs_cnt > 0);
 
-	g_assert(qcnt > 0);
+	even_slots = GNET_PROPERTY(max_uploads) / ul_parqs_cnt;
+	remainder = GNET_PROPERTY(max_uploads) - even_slots * ul_parqs_cnt;
 
-	even_slots = GNET_PROPERTY(max_uploads) / qcnt;
-	remainder = GNET_PROPERTY(max_uploads) - even_slots * qcnt;
-
-	g_assert(remainder >= 0 && remainder < qcnt);
+	g_assert(remainder >= 0 && remainder < ul_parqs_cnt);
 
 	/*
 	 * Look at the surplus that can be donated.
@@ -2437,10 +2451,11 @@ free_upload_slots(struct parq_ul_queue *q)
 	result = MAX(0, result);
 
 	if (GNET_PROPERTY(parq_debug) >= 5) {
-		g_message("[PARQ UL] free_upload_slots: "
+		g_message("[PARQ UL] free_upload_slots(#%d): "
 			"free_slots=%d (with %u quick), even=%d, remainder=%d, "
 			"surplus=%d, usage=%d, usable=%d, avail=%d -> result=%d",
-			slots_free, GNET_PROPERTY(ul_quick_running), even_slots, remainder,
+			q->num, slots_free,
+			GNET_PROPERTY(ul_quick_running), even_slots, remainder,
 			surplus, q->active_uploads, even_slots + remainder + surplus,
 			available, result);
 	}
@@ -2501,7 +2516,8 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
 				if (GNET_PROPERTY(parq_debug))
-					g_message("[PARQ UL] Upload in inactive queue first");
+					g_message("[PARQ UL] Upload in inactive queue #%d first",
+						uq->queue->num);
 				goto check_quick;
 			}
 		}
@@ -2517,8 +2533,9 @@ parq_upload_continue(struct parq_ul_queued *uq)
 
 	if (uq->relative_position <= UNSIGNED(slots_free)) {
 		if (GNET_PROPERTY(parq_debug))
-			g_message("[PARQ UL] Allowing %supload \"%s\" from %s (%s), "
+			g_message("[PARQ UL] [#%d] Allowing %supload \"%s\" from %s (%s), "
 				"relative pos = %u [%s]",
+				uq->queue->num,
 				uq->active_queued ? "actively queued " : "",
 				uq->u->name,
 				host_addr_port_to_string(
@@ -2530,8 +2547,8 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	}
 
 	if (GNET_PROPERTY(parq_debug))
-		g_message("[PARQ UL] Not allowing regular for \"%s\" from %s (%s)",
-		uq->u->name,
+		g_message("[PARQ UL] [#%d] Not allowing regular for \"%s\" from %s (%s)",
+		uq->queue->num, uq->u->name,
 		host_addr_port_to_string(
 			uq->u->socket->addr, uq->u->socket->port),
 		upload_vendor_str(uq->u));
@@ -2553,15 +2570,15 @@ check_quick:
 
 	if (GNET_PROPERTY(uploads_stalling) && quick_allowed) {
 		if (GNET_PROPERTY(parq_debug))
-			g_message("[PARQ UL] No quick upload of %ld bytes (stalling)",
-				(gulong) uq->chunk_size);
+			g_message("[PARQ UL] [#%d] No quick upload of %ld bytes (stalling)",
+				uq->queue->num, (gulong) uq->chunk_size);
 		quick_allowed = FALSE;
 	}
 
 	if (quick_allowed) {
 		if (GNET_PROPERTY(parq_debug))
-			g_message("[PARQ UL] Allowed quick upload (%ld bytes)",
-				(gulong) uq->chunk_size);
+			g_message("[PARQ UL] [#%d] Allowed quick upload (%ld bytes)",
+				uq->queue->num, (gulong) uq->chunk_size);
 
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
 		uq->quick = TRUE;
@@ -2672,9 +2689,8 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 		if (GNET_PROPERTY(parq_debug) >= 3)
 			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
 				"ETA: %s Added: %s '%s' %s",
-				g_list_position(ul_parqs,
-					g_list_find(ul_parqs, parq_ul->queue)) + 1,
-				g_list_length(ul_parqs),
+				parq_ul->queue->num,
+				ul_parqs_cnt,
 				parq_ul->position,
 				parq_ul->relative_position,
 				parq_ul->queue->by_position_length,
@@ -2696,8 +2712,10 @@ cleanup:
 		return NULL;
 	}
 
-	if (parq_ul->queue->by_date_dead != NULL &&
-		  g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL)
+	if (
+		parq_ul->queue->by_date_dead != NULL &&
+		g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL
+	)
 		parq_ul->queue->by_date_dead =
 			  g_list_remove(parq_ul->queue->by_date_dead, parq_ul);
 
@@ -2955,8 +2973,8 @@ parq_upload_request(struct upload *u)
 		 *		parq_ul->queue->active_uploads--;
 		 *
 		 * since this is only incremented for non-quick uploads: quick slots
-		 * are only a graceful answer we give, but it is transient.
-		 *
+		 * are only a graceful answer we give, and they are transient.
+		 *		--RAM, 2007-08-17
 		 */
 
 		g_assert(parq_ul->relative_position > 0);	/* Was a quick slot */
@@ -3061,7 +3079,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 
 		parq_ul->relative_position = 0;		/* Signals: has regular slot */
 		parq_ul->had_slot = TRUE;			/* Had a regular slot */
-		parq_ul->queue->active_uploads++;
+		parq_ul->queue->active_uploads++;	/* Account active in queue */
 	}
 
 	if (parq_ul->has_slot)
@@ -3169,16 +3187,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	}
 
 	/*
-	 * Avoid removing an upload which is being removed because we are returning
-	 * a busy (503), in which case the upload got queued
-	 */
-
-	if (u->parq_status) {
-		u->parq_status = FALSE;
-		return FALSE;
-	}
-
-	/*
 	 * If parq_ul = NULL, than the upload didn't get a slot in the PARQ,
 	 * or it is the parent of a now cloned upload (see upload_clone()).
 	 */
@@ -3198,9 +3206,8 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	if (GNET_PROPERTY(parq_debug) > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
 		g_message("PARQ UL Q %d/%d: "
 			"QUEUE #%d sent [refused=%d], u->status = %d",
-			g_list_position(ul_parqs,
-				g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			g_list_length(ul_parqs),
+			parq_ul->queue->num,
+			ul_parqs_cnt,
 			parq_ul->queue_sent, parq_ul->queue_refused, u->status);
 
 	if (u->status == GTA_UL_QUEUE_WAITING)
@@ -3209,15 +3216,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		parq_ul->queue_refused = 0;
 
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
-
-	if (parq_ul->has_slot && u->keep_alive && UPLOAD_WAITING_FOLLOWUP(u)) {
-		if (GNET_PROPERTY(parq_debug)) g_message(
-			"**** PARQ UL Q %d/%d [%s]: Not removed, waiting for new request",
-			g_list_position(ul_parqs,
-				g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			g_list_length(ul_parqs), guid_hex_str(parq_ul->id));
-		return FALSE;
-	}
 
 	/*
 	 * If upload was killed whilst sending, then reset the "had_slot" flag
@@ -3230,8 +3228,10 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 	/*
 	 * When the upload was actively queued, the last_update timestamp was
-	 * set to somewhere in the feature to avoid early removal. However, now we
+	 * set to somewhere in the future to avoid early removal. However, now we
 	 * do want to remove the upload.
+	 *
+	 * XXX What's this encapsulation breaking? Needed? --RAM, 2007-08-17
 	 */
 	if (u->status == GTA_UL_QUEUED && u->last_update > now) {
 		u->last_update = parq_ul->updated;
@@ -3239,16 +3239,16 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL Q %d/%d [%s]: Upload removed (was %ssending)",
-			g_list_position(ul_parqs,
-				g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			g_list_length(ul_parqs), guid_hex_str(parq_ul->id),
+			parq_ul->queue->num,
+			ul_parqs_cnt, guid_hex_str(parq_ul->id),
 			was_sending ? "" : "not ");
 
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 
 		if (GNET_PROPERTY(parq_debug) > 2)
-			g_message("PARQ UL: [%s] Freed an upload slot%s",
+			g_message("PARQ UL: [#%d] [%s] Freed an upload slot%s",
+				parq_ul->queue->num,
 				guid_hex_str(parq_ul->id), was_sending ? " sending" : "");
 
 		g_assert(parq_ul->by_addr != NULL);
@@ -3256,8 +3256,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		g_assert(host_addr_equal(parq_ul->by_addr->addr,parq_ul->remote_addr));
 
 		parq_ul->by_addr->uploading--;
-		if (parq_ul->relative_position == 0)
-			parq_ul->queue->active_uploads--;
 
 		/* Tell next waiting upload that a slot is available, using QUEUE */
 		for (lnext = g_list_first(parq_ul->queue->by_rel_pos); lnext != NULL;
@@ -3278,6 +3276,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		 */
 
 		if (0 == parq_ul->relative_position) {
+			parq_ul->queue->active_uploads--;
 			parq_ul->relative_position = free_upload_slots(parq_ul->queue) + 1;
 			parq_ul->expire = time_advance(now, GUARDING_TIME);
 			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
@@ -3287,6 +3286,16 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	}
 
 	g_assert(parq_ul->queue->active_uploads >= 0);
+
+	/*
+	 * Avoid removing an upload which is being removed because we are returning
+	 * a busy (503), in which case the upload got queued
+	 */
+
+	if (u->parq_status) {
+		u->parq_status = FALSE;
+		return FALSE;
+	}
 
 	if (u->status == GTA_UL_ABORTED &&
 			parq_ul->disc_timeout > now && parq_ul->has_slot) {
@@ -3723,8 +3732,7 @@ parq_upload_lookup_queue_no(const struct upload *u)
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul != NULL) {
-		return g_list_position(ul_parqs,
-			  g_list_find(ul_parqs, parq_ul->queue)) + 1;
+		return parq_ul->queue->num;
 	} else {
 		/* No queue created yet */
 		return 0;
@@ -3839,9 +3847,8 @@ parq_store(gpointer data, gpointer file_ptr)
 	g_assert(NULL != f);
 	if (GNET_PROPERTY(parq_debug) > 5)
 		g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
-			  g_list_position(ul_parqs,
-				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
-			  g_list_length(ul_parqs),
+			  parq_ul->queue->num,
+			  ul_parqs_cnt,
 			  parq_ul->position,
 			  parq_ul->relative_position,
 			  parq_ul->queue->by_position_length,
@@ -3868,7 +3875,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		  "QUEUESSENT: %d\n"
 		  "SENDNEXTQUEUE: %s\n"
 		  ,
-		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
+		  parq_ul->queue->num,
 		  parq_ul->position,
 		  enter_buf,
 		  expire,
@@ -4274,9 +4281,8 @@ parq_upload_load_queue(void)
 			if (GNET_PROPERTY(parq_debug) > 2) {
 				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
 					"Restored: %s '%s'",
-					g_list_position(ul_parqs,
-						g_list_find(ul_parqs, parq_ul->queue)) + 1,
-					g_list_length(ul_parqs),
+					parq_ul->queue->num,
+					ul_parqs_cnt,
 					parq_ul->position,
 				 	parq_ul->relative_position,
 					parq_ul->queue->by_position_length,
