@@ -1227,8 +1227,9 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 	GList *l = NULL;
 	guint pos = 0;
 
-	g_assert(q->by_rel_pos != NULL);
-	g_assert(q->size > 0);
+	g_return_if_fail(q->by_rel_pos);
+
+	g_assert((NULL == q->by_rel_pos) ^ (q->size > 0));
 
 	for (l = q->by_rel_pos; l; l = g_list_next(l)) {
 		struct parq_ul_queued *uqx = l->data;
