@@ -1076,3 +1076,7 @@
 # Fake LimeWire; ZIP spam; "BitTorrent downloader" etc.
 83.133.126.189
 
+# MOV; pr0n spam
+69.59.21.192/26
+76.76.8.192/26
+
