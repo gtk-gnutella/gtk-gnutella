@@ -1118,6 +1118,8 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 
 	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 	avg_bps = MAX(1, avg_bps);
+	if (GNET_PROPERTY(parq_optimistic))
+		avg_bps = MAX(avg_bps, GNET_PROPERTY(bw_http_out));
 
 	if (which_ul_queue->active_uploads) {
 		/*
@@ -3242,6 +3244,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 		if (0 == parq_ul->relative_position) {
 			parq_ul->relative_position = 1;		/* As first item */
+			parq_ul->expire = time_advance(now, GUARDING_TIME);
 			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
 				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
 			parq_upload_update_relative_position_after(parq_ul);
