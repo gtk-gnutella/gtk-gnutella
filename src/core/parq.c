@@ -73,7 +73,7 @@ RCSID("$Id$")
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
 #define PARQ_MIN_POLL		10		/**< Minimum poll time */
 #define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
-#define MIN_LIFE_TIME		120
+#define MIN_LIFE_TIME		60		/**< Grace time past retry-after */
 #define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
 #define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
@@ -1383,7 +1383,8 @@ parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 guint32
 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
-	int result = 60 + 45 * (parq_ul->relative_position - 1);
+	int result = PARQ_TIMER_BY_POS +
+		(parq_ul->relative_position - 1) * (PARQ_TIMER_BY_POS / 2);
 
 	/* Used for optimistic mode */
 	int fast_result;
@@ -2836,6 +2837,7 @@ parq_upload_request(struct upload *u)
 	struct parq_ul_queued *parq_ul;
 	time_t now, org_retry;
 	guint avg_bps;
+	time_delta_t grace;
 
 	upload_check(u);
 
@@ -2850,15 +2852,20 @@ parq_upload_request(struct upload *u)
 	g_assert(parq_ul->retry >= now);
 
 	if (GNET_PROPERTY(parq_optimistic)) {
+
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
 		/* If the chunk sizes are really small, expire them sooner */
 		parq_ul->expire = parq_ul->retry +
-			parq_ul->chunk_size / avg_bps * GNET_PROPERTY(max_uploads);
-		parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
-	} else
+			parq_ul->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
+	} else {
 		parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
+	}
+
+	grace = delta_time(parq_ul->expire, parq_ul->retry);
+	if (grace < PARQ_GRACE_TIME)
+		parq_ul->expire += PARQ_GRACE_TIME - grace;
 
 	if (GNET_PROPERTY(parq_debug) > 1)
 		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
@@ -4264,8 +4271,14 @@ parq_upload_load_queue(void)
 			parq_ul = parq_upload_create(fake_upload);
 			g_assert(parq_ul != NULL);
 
+			/*
+			 * Upon restart, give them time to retry before we expire the
+			 * slot: add MIN_LIFE_TIME to all expiration times.
+			 *		--RAM, 2007-08-18
+			 */
+
 			parq_ul->enter = entry.entered;
-			parq_ul->expire = time_advance(now, entry.expire);
+			parq_ul->expire = time_advance(now, MIN_LIFE_TIME + entry.expire);
 			parq_ul->addr = entry.x_addr;
 			parq_ul->port = entry.xport;
 			parq_ul->sha1 = entry.sha1;
