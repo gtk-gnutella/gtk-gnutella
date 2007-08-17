@@ -2446,7 +2446,7 @@ gcc_version_patchlevel __GNUC_PATCHLEVEL__
 #endif
 }
 EOM
-if $cc $ccflags -E try.c > try 2>&1
+if $cc -E try.c > try 2>&1
 then
 	gccversion=`sed -n 's/^gcc_version_major[^0-9]*//p' try`
 	case "$gccversion" in
