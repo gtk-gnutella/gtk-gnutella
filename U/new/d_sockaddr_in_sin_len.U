@@ -1,0 +1,39 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_sockaddr_in_sin_len: Trylink cat i_arpainet
+?MAKE:	-pick add $@ %<
+?S:d_sockaddr_in_sin_len:
+?S:	This variable conditionally defines the HAS_SOCKADDR_IN_SIN_LEN symbol,
+?S:	indicates to the C program that struct sockaddr_in has a member named
+?S:	"sin_len".
+?S:.
+?C:HAS_SOCKADDR_IN_SIN_LEN:
+?C:	This symbol is defined if struct sockaddr_in has sin_len.
+?C:.
+?H:#$d_sockaddr_in_sin_len HAS_SOCKADDR_IN_SIN_LEN
+?H:.
+?LINT: set d_sockaddr_in_sin_len
+: can we use getaddrinfo?
+echo " "
+echo "Checking whether getaddrinfo() can be used ..." >&4
+val="$define"
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#$i_arpainet I_ARPA_INET
+#ifdef I_ARPA_INET
+#include <arpa/inet.h>
+#endif
+int main(void)
+{
+	static struct sockaddr_in addr;
+	addr.sin_len = 1;
+	return 0;
+}
+EOC
+set d_sockaddr_in_sin_len
+eval $trylink
+

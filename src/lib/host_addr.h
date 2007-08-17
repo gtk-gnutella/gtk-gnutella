@@ -111,7 +111,6 @@ struct packed_host {
 };
 
 typedef union socket_addr {
-	guint8 len;
 	struct sockaddr_in inet4;
 #ifdef HAS_IPV6
 	struct sockaddr_in6 inet6;

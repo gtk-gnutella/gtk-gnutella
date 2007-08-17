@@ -635,6 +635,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_setproctitle HAS_SETPROCTITLE
 
+/* HAS_SOCKADDR_IN_SIN_LEN:
+ *	This symbol is defined if struct sockaddr_in has sin_len.
+ */
+#$d_sockaddr_in_sin_len HAS_SOCKADDR_IN_SIN_LEN
+
 /* HAS_SOCKER_GET:
  *	This symbol is defined when socker_get() can be used to get sockets
  *	bound to privileged ports.

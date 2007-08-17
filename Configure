@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Aug 16 16:18:49 CEST 2007 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 18 00:22:39 CEST 2007 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -333,6 +333,7 @@ d_sendfile=''
 d_setproctitle=''
 d_sigaction=''
 d_sigsetjmp=''
+d_sockaddr_in_sin_len=''
 d_socker_get=''
 sockercflags=''
 sockerldflags=''
@@ -6231,6 +6232,28 @@ set d_sigsetjmp
 eval $setvar
 $rm -f set.c set
 
+: can we use getaddrinfo?
+echo " "
+echo "Checking whether getaddrinfo() can be used ..." >&4
+val="$define"
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#$i_arpainet I_ARPA_INET
+#ifdef I_ARPA_INET
+#include <arpa/inet.h>
+#endif
+int main(void)
+{
+	static struct sockaddr_in addr;
+	addr.sin_len = 1;
+	return 0;
+}
+EOC
+set d_sockaddr_in_sin_len
+eval $trylink
+
 : determine whether socker_get is available
 
 case "$d_socker_get" in
@@ -8868,6 +8891,7 @@ d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_sigaction='$d_sigaction'
 d_sigsetjmp='$d_sigsetjmp'
+d_sockaddr_in_sin_len='$d_sockaddr_in_sin_len'
 d_socker_get='$d_socker_get'
 d_srandom='$d_srandom'
 d_strchr='$d_strchr'

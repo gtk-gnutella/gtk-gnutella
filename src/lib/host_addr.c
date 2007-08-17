@@ -639,14 +639,9 @@ socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
 			static const struct sockaddr_in zero_sin;
 
 			sa_ptr->inet4 = zero_sin;
-			/* Note: The next line is a cheap(?) hack to be used until
-			 *       HAS_SIN_LEN is initialized by Configure. sin_len if
-			 *       available.
-			 */
-			sa_ptr->len = sizeof sa_ptr->inet4;
-#ifdef HAS_SIN_LEN
+#ifdef HAS_SOCKADDR_IN_SIN_LEN
 			sa_ptr->inet4.sin_len = sizeof sa_ptr->inet4;
-#endif /* HAS_SIN_LEN */
+#endif /* HAS_SOCKADDR_IN_SIN_LEN */
 			sa_ptr->inet4.sin_family = AF_INET;
 			sa_ptr->inet4.sin_port = htons(port);
 			sa_ptr->inet4.sin_addr.s_addr = htonl(host_addr_ipv4(addr));
