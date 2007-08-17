@@ -62,7 +62,7 @@ tls_cache_item_expired(time_t seen, time_t now)
 	return d < 0 || d > tls_cache_max_time;
 }
 
-static hash_list_t *tls_hosts = NULL;
+static hash_list_t *tls_hosts;
 
 typedef enum {
 	TLS_CACHE_TAG_UNKNOWN = 0,
@@ -113,6 +113,62 @@ struct tls_cache_item {
 	gnet_host_t host;
 	time_t seen;
 };
+
+static void
+tls_cache_dump(FILE *f)
+{
+	hash_list_iter_t *iter;
+
+	g_return_if_fail(f);
+	g_return_if_fail(tls_hosts);
+
+	iter = hash_list_iterator(tls_hosts);
+	while (hash_list_iter_has_next(iter)) {
+		const struct tls_cache_item *item;
+		
+		item = hash_list_iter_next(iter);
+		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
+			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
+	}
+	hash_list_iter_release(&iter);
+}
+
+static file_path_t *
+tls_cache_file_path(void)
+{
+	static file_path_t fp;
+	static gboolean initialized;
+
+	if (!initialized) {
+		initialized = TRUE;
+		file_path_set(&fp, g_strdup(settings_config_dir()), "tls_cache");
+	}
+	return &fp;
+}
+
+static void
+tls_cache_store(void)
+{
+	FILE *f;
+
+	f = file_config_open_write("TLS cache", tls_cache_file_path());
+	if (f) {
+		tls_cache_dump(f);
+		file_config_close(f, tls_cache_file_path());
+	}
+}
+
+static void
+tls_cache_store_periodically(time_t now)
+{
+	static time_t last_stored;
+
+	if (!last_stored || delta_time(now, last_stored) > 600) {
+		tls_cache_store();
+		last_stored = tm_time();	/* Ignore failure */
+	}
+}
+
 
 static void
 tls_cache_remove_oldest(void)
@@ -166,17 +222,20 @@ void
 tls_cache_insert(const host_addr_t addr, guint16 port)
 {
 	struct tls_cache_item item;
+	time_t now;
 
 	g_return_if_fail(is_host_addr(addr));
 	g_return_if_fail(0 != port);
 
+	now = tm_time();
 	gnet_host_set(&item.host, addr, port);
-	item.seen = tm_time();
+	item.seen = now;
 	tls_cache_insert_intern(&item);
+	tls_cache_store_periodically(now);
 }
 
-gboolean
-tls_cache_lookup(const host_addr_t addr, guint16 port)
+struct tls_cache_item *
+tls_cache_lookup_intern(const host_addr_t addr, guint16 port)
 {
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
 		struct tls_cache_item item;
@@ -186,15 +245,36 @@ tls_cache_lookup(const host_addr_t addr, guint16 port)
 		if (hash_list_contains(tls_hosts, &item, &key)) {
 			struct tls_cache_item *item_ptr = deconstify_gpointer(key);
 			
-			if (tls_cache_item_expired(item_ptr->seen, tm_time())) {
-				hash_list_remove(tls_hosts, item_ptr);
-				wfree(item_ptr, sizeof *item_ptr);
-			} else {
-				return TRUE;
-			}
+			if (!tls_cache_item_expired(item_ptr->seen, tm_time()))
+				return item_ptr;
+
+			hash_list_remove(tls_hosts, item_ptr);
+			wfree(item_ptr, sizeof *item_ptr);
 		}
 	}
-	return FALSE;
+	return NULL;
+}
+
+/**
+ * @return TRUE if addr:port is currently in the cache.
+ */
+gboolean
+tls_cache_lookup(const host_addr_t addr, guint16 port)
+{
+	return NULL != tls_cache_lookup_intern(addr, port);
+}
+
+/*
+ * @return If the addr:port is not found, zero is returned. Otherwise, the
+ *         timestamp the time of the last refresh is returned.
+ */
+time_t
+tls_cache_get_timestamp(const host_addr_t addr, guint16 port)
+{
+	const struct tls_cache_item *item;
+
+	item = tls_cache_lookup_intern(addr, port);
+	return item ? item->seen : 0;
 }
 
 static guint
@@ -343,19 +423,6 @@ tls_cache_parse(FILE *f)
 	}
 }
 
-static file_path_t *
-tls_cache_file_path(void)
-{
-	static file_path_t fp;
-	static gboolean initialized;
-
-	if (!initialized) {
-		initialized = TRUE;
-		file_path_set(&fp, g_strdup(settings_config_dir()), "tls_cache");
-	}
-	return &fp;
-}
-
 static void
 tls_cache_load(void)
 {
@@ -371,37 +438,6 @@ tls_cache_load(void)
 			g_message("Loaded %u items from the TLS cache", n);
 		}
 		fclose(f);
-	}
-}
-
-static void
-tls_cache_dump(FILE *f)
-{
-	hash_list_iter_t *iter;
-
-	g_return_if_fail(f);
-	g_return_if_fail(tls_hosts);
-
-	iter = hash_list_iterator(tls_hosts);
-	while (hash_list_iter_has_next(iter)) {
-		const struct tls_cache_item *item;
-		
-		item = hash_list_iter_next(iter);
-		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
-			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
-	}
-	hash_list_iter_release(&iter);
-}
-
-static void
-tls_cache_store(void)
-{
-	FILE *f;
-
-	f = file_config_open_write("TLS cache", tls_cache_file_path());
-	if (f) {
-		tls_cache_dump(f);
-		file_config_close(f, tls_cache_file_path());
 	}
 }
 

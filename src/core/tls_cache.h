@@ -31,6 +31,7 @@
 void tls_cache_init(void);
 void tls_cache_insert(const host_addr_t addr, guint16 port);
 gboolean tls_cache_lookup(const host_addr_t addr, guint16 port);
+time_t tls_cache_get_timestamp(const host_addr_t addr, guint16 port);
 void tls_cache_close(void);
 
 #endif /* _tls_cache_h_ */
