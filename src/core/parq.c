@@ -2392,7 +2392,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	slots_free = GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
 		+ GNET_PROPERTY(ul_quick_running);
 
-	if (UNSIGNED(slots_free) > GNET_PROPERTY(max_uploads))
+	if (slots_free > 0 && UNSIGNED(slots_free) > GNET_PROPERTY(max_uploads))
 		slots_free = GNET_PROPERTY(max_uploads);
 
 	if (GNET_PROPERTY(parq_debug) >= 5) {
@@ -2473,9 +2473,8 @@ parq_upload_continue(struct parq_ul_queued *uq)
 			slots_free--;
 	}
 
-	/* This is to ensure dynamic slot allocation */
 	if (slots_free < 0)
-		slots_free = 0;
+		slots_free = 0;		/* Must stay >= 0 for unsigned comparisons */
 
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
@@ -2493,46 +2492,18 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	 *		   already downloading something in another queue.
 	 */
 
-	for (l = g_list_first(uq->queue->by_rel_pos); l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = l->data;
+	if (uq->relative_position <= UNSIGNED(slots_free)) {
+		if (GNET_PROPERTY(parq_debug))
+			g_message("[PARQ UL] Allowing %supload \"%s\" from %s (%s), "
+				"relative pos = %u [%s]",
+				uq->active_queued ? "actively queued " : "",
+				uq->u->name,
+				host_addr_port_to_string(
+					uq->u->socket->addr, uq->u->socket->port),
+				upload_vendor_str(uq->u),
+				uq->relative_position, guid_hex_str(uq->id));
 
-		if (parq_ul != uq) {
-			if (GNET_PROPERTY(parq_debug) >= 5)
-				g_message("[PARQ UL] (free=%d) Skipping %supload, "
-					"relative pos = %u [%s]",
-					slots_free,
-					parq_ul->active_queued ? "actively queued " : "",
-					parq_ul->relative_position, guid_hex_str(parq_ul->id));
-
-			/* Another upload in the current queue is allowed first */
-			if (slots_free <= 0) {
-				if (GNET_PROPERTY(parq_debug) >= 4)
-					g_message("[PARQ UL] Other uploads in queue with pos < %u",
-						uq->relative_position);
-				break;
-			}
-			slots_free--;
-		} else {
-			/*
-			 * So the current upload is the first in line (we would have
-			 * returned FALSE otherwise by now).
-			 *
-			 * We do NOT compare IP addresses here because that will mess up
-			 * with our relative_position management.
-			 *		--RAM, 2007-08-16
-			 */
-			if (GNET_PROPERTY(parq_debug))
-				g_message("[PARQ UL] Allowing %supload \"%s\" from %s (%s), "
-					"relative pos = %u [%s]",
-					uq->active_queued ? "actively queued " : "",
-					uq->u->name,
-					host_addr_port_to_string(
-						uq->u->socket->addr, uq->u->socket->port),
-					upload_vendor_str(uq->u),
-					uq->relative_position, guid_hex_str(uq->id));
-
-			return TRUE;
-		}
+		return TRUE;
 	}
 
 	if (GNET_PROPERTY(parq_debug))
