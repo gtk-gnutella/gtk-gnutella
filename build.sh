@@ -85,11 +85,11 @@ echo 'build process.'
 done
 
 if [ "X$MAKE" = X ]; then
-	which gmake >/dev/null 2>&1 && MAKE=gmake || MAKE=make
+	command -v gmake >/dev/null 2>&1 && MAKE=gmake || MAKE=make
 fi
 
 if [ "X$YACC" = X ]; then
-	which yacc >/dev/null 2>&1 && YACC=yacc || YACC=bison
+	command -v yacc >/dev/null 2>&1 && YACC=yacc || YACC=bison
 fi
 
 CFLAGS="$CFLAGS${build_halloc:+ -DUSE_HALLOC}"
