@@ -2290,11 +2290,12 @@ parq_upload_queue_full(struct upload *u)
 
 	g_assert(q_ul->by_date_dead != NULL);
 
+	parq_ul = g_list_first(q_ul->by_date_dead)->data;
+
 	if (GNET_PROPERTY(parq_debug) > 2)
 		g_message(
 			"PARQ UL: Removing a 'dead' upload %s", guid_hex_str(parq_ul->id));
 
-	parq_ul = g_list_first(q_ul->by_date_dead)->data;
 	parq_upload_free(parq_ul);
 
 	return FALSE;
