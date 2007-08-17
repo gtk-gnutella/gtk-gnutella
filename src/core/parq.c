@@ -1224,18 +1224,16 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 static void
 parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 {
-	if (q->by_rel_pos) {
-		GList *l = NULL;
-		guint pos = 0;
+	GList *l = NULL;
+	guint pos = 0;
 
-		for (l = q->by_rel_pos; l; l = g_list_next(l)) {
-			struct parq_ul_queued *uqx = l->data;
+	for (l = q->by_rel_pos; l; l = g_list_next(l)) {
+		struct parq_ul_queued *uqx = l->data;
 
-			uqx->relative_position = ++pos;
-		}
-
-		g_assert(pos <= UNSIGNED(q->by_position_length));
+		uqx->relative_position = ++pos;
 	}
+
+	g_assert(pos <= UNSIGNED(q->by_position_length));
 }
 
 /**
@@ -2362,6 +2360,95 @@ parq_upload_quick_continue(struct parq_ul_queued *uq)
 }
 
 /**
+ * Computes the amount of free upload slots available for queue.
+ */
+static gint
+free_upload_slots(struct parq_ul_queue *q)
+{
+	gint slots_free;
+	gint even_slots;
+	gint remainder;
+	gint surplus;
+	gint qcnt;
+	gint available;
+	gint result;
+	GList *l;
+
+	/*
+	 * Since by definition "quick" uploads do not last for long, they do
+	 * not count as consuming an upload slot.  --RAM, 2007-08-16
+	 */
+
+	slots_free = GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
+		+ GNET_PROPERTY(ul_quick_running);
+
+	if (slots_free > 0 && UNSIGNED(slots_free) > GNET_PROPERTY(max_uploads))
+		slots_free = GNET_PROPERTY(max_uploads);
+
+	/*
+	 * Determine the amount of slots that can be devoted to this queue.
+	 *
+	 * All the upload slots are evenly shared among the queues, but if
+	 * a queue would need less than that amount, the surplus would be given
+	 * to the target queue.
+	 */
+
+	qcnt = g_list_length(ul_parqs);
+
+	g_assert(qcnt > 0);
+
+	even_slots = GNET_PROPERTY(max_uploads) / qcnt;
+	remainder = GNET_PROPERTY(max_uploads) - even_slots * qcnt;
+
+	g_assert(remainder >= 0 && remainder < qcnt);
+
+	/*
+	 * Look at the surplus that can be donated.
+	 *
+	 * XXX we don't handle inactive queues (due to upload slot reduction).
+	 * XXX we must decide how we handle their entries.
+	 */
+
+	surplus = 0;
+
+	for (l = ul_parqs; l; l = g_list_next(l)) {
+		struct parq_ul_queue *queue = l->data;
+		gint wanted = queue->alive - queue->active_uploads;
+
+		g_assert(wanted >= 0);
+
+		if (wanted < even_slots)
+			surplus += even_slots - wanted;
+	}
+
+	g_assert(surplus >= 0);
+
+	if (slots_free < 0)
+		slots_free = 0;		/* Must stay >= 0 for unsigned comparisons */
+
+	/*
+	 * The max amount of slots usable is: even_slots + remainder + surplus.
+	 * To get overall available slots we can grant this queue, we need
+	 * to remove the active uploads.
+	 */
+
+	available = even_slots + remainder + surplus - q->active_uploads;
+	result = MIN(available, slots_free);
+	result = MAX(0, result);
+
+	if (GNET_PROPERTY(parq_debug) >= 5) {
+		g_message("[PARQ UL] free_upload_slots: "
+			"free_slots=%d (with %u quick), even=%d, remainder=%d, "
+			"surplus=%d, usage=%d, usable=%d, avail=%d -> result=%d",
+			slots_free, GNET_PROPERTY(ul_quick_running), even_slots, remainder,
+			surplus, q->active_uploads, even_slots + remainder + surplus,
+			available, result);
+	}
+
+	return result;
+}
+
+/**
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
@@ -2380,22 +2467,7 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	 */
 	allowed_max_uploads = -1;
 
-	/*
-	 * Since by definition "quick" uploads do not last for long, they do
-	 * not count as consuming an upload slot.  --RAM, 2007-08-16
-	 */
-
-	slots_free = GNET_PROPERTY(max_uploads) - GNET_PROPERTY(ul_running)
-		+ GNET_PROPERTY(ul_quick_running);
-
-	if (slots_free > 0 && UNSIGNED(slots_free) > GNET_PROPERTY(max_uploads))
-		slots_free = GNET_PROPERTY(max_uploads);
-
-	if (GNET_PROPERTY(parq_debug) >= 5) {
-		g_message("[PARQ UL] parq_upload_continue: "
-			"free_slots=%d (with %u quick)",
-			slots_free, GNET_PROPERTY(ul_quick_running));
-	}
+	slots_free = free_upload_slots(uq->queue);
 
 	if (slots_free <= 0) {
 		/*
@@ -2436,56 +2508,11 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	}
 
 	/*
-	 * 1) First check if another queue 'needs' an upload slot.
-	 * 2) Avoid  one queue getting almost all upload slots.
-	 * 3) Then, check if the current upload is allowed this upload slot.
-	 */
-
-	/*
-	 * Step 1. Check if another queues must have an upload.
-	 *         That is when the current queue has no active uploads while there
-	 *         are uploads alive.
-	 * Step 2. Avoid one queue getting almost all upload slots.
+	 * Check if current upload may have this slot
 	 *
-	 * This is done by determining how many upload slots every queue is using,
-	 * and if the queue would like to have another upload slot.
-	 */
-
-	for (l = g_list_last(ul_parqs); l; l = l->prev) {
-		struct parq_ul_queue *queue = l->data;
-		if (queue->alive > queue->active_uploads) {
-			/* Queue would like to get another upload slot */
-			if (
-				UNSIGNED(allowed_max_uploads) > UNSIGNED(queue->active_uploads)
-			) {
-				/*
-				 * Determine the current maximum of upload
-				 * slots allowed compared to other queues.
-				 */
-				allowed_max_uploads = queue->active_uploads + 1;
-			}
-		}
-		if (queue->alive > 0)
-			slots_free--;
-	}
-
-	if (slots_free < 0)
-		slots_free = 0;		/* Must stay >= 0 for unsigned comparisons */
-
-	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
-		if (GNET_PROPERTY(parq_debug) >= 5)
-			g_message("[PARQ UL] parq_upload_continue max_uploads reached "
-				"(%d-%d)/%d",
-				uq->queue->active_uploads, slots_free,
-				allowed_max_uploads);
-		goto check_quick;
-	}
-
-	/*
-	 * Step 3. Check if current upload may have this slot
-	 *         That is when the current upload is the first upload in its
-	 *         queue which has no upload slot. Or if a earlier queued item is
-	 *		   already downloading something in another queue.
+	 * That is when the current upload is the first upload in its
+	 * queue which has no upload slot. Or if a earlier queued item is
+	 * already downloading something in another queue.
 	 */
 
 	if (uq->relative_position <= UNSIGNED(slots_free)) {
@@ -2921,8 +2948,20 @@ parq_upload_request(struct upload *u)
 		return TRUE;
 
 	if (parq_ul->has_slot) {
+		/*
+		 * This was a quick slot (or we'd have returned TRUE above already
+		 * if we had a regular slot).  Therefore, don't do a
+		 *
+		 *		parq_ul->queue->active_uploads--;
+		 *
+		 * since this is only incremented for non-quick uploads: quick slots
+		 * are only a graceful answer we give, but it is transient.
+		 *
+		 */
+
+		g_assert(parq_ul->relative_position > 0);	/* Was a quick slot */
+
 		parq_ul->by_addr->uploading--;
-		parq_ul->queue->active_uploads--;
 		parq_ul->has_slot = FALSE;
 	}
 
@@ -3022,6 +3061,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 
 		parq_ul->relative_position = 0;		/* Signals: has regular slot */
 		parq_ul->had_slot = TRUE;			/* Had a regular slot */
+		parq_ul->queue->active_uploads++;
 	}
 
 	if (parq_ul->has_slot)
@@ -3036,7 +3076,6 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	g_assert(host_addr_equal(parq_ul->by_addr->addr, parq_ul->remote_addr));
 
 	parq_ul->has_slot = TRUE;
-	parq_ul->queue->active_uploads++;
 	parq_ul->by_addr->uploading++;
 }
 
@@ -3217,7 +3256,8 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		g_assert(host_addr_equal(parq_ul->by_addr->addr,parq_ul->remote_addr));
 
 		parq_ul->by_addr->uploading--;
-		parq_ul->queue->active_uploads--;
+		if (parq_ul->relative_position == 0)
+			parq_ul->queue->active_uploads--;
 
 		/* Tell next waiting upload that a slot is available, using QUEUE */
 		for (lnext = g_list_first(parq_ul->queue->by_rel_pos); lnext != NULL;
@@ -3233,11 +3273,12 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		}
 
 		/*
-		 * Put back in queue as first position, until it expires.
+		 * Put back in queue as first position after the currently available
+		 * upload slots, until it expires.
 		 */
 
 		if (0 == parq_ul->relative_position) {
-			parq_ul->relative_position = 1;		/* As first item */
+			parq_ul->relative_position = free_upload_slots(parq_ul->queue) + 1;
 			parq_ul->expire = time_advance(now, GUARDING_TIME);
 			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
 				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
