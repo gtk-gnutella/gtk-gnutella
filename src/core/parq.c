@@ -71,6 +71,7 @@ RCSID("$Id$")
 
 #define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
+#define PARQ_MIN_POLL		10		/**< Minimum poll time */
 #define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
 #define MIN_LIFE_TIME		120
 #define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
@@ -1615,7 +1616,7 @@ parq_upload_create(struct upload *u)
 	/*
 	 * On create, set the retry to now. If we use the
 	 * now + parq_ul_calc_retry method, the new request
-	 * would immediatly be followed by a requested to soon
+	 * would immediatly be followed by a "requested too soon"
 	 * error.
 	 */
 	parq_ul->retry = now;
@@ -3281,7 +3282,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 			parq_ul->expire = time_advance(now, GUARDING_TIME);
 			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
 				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
-			parq_upload_update_relative_position_after(parq_ul);
+			parq_upload_recompute_relative_positions(parq_ul->queue);
 		}
 	}
 
@@ -3494,7 +3495,7 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 		
 	now = tm_time();
 	d = delta_time(parq_ul->retry, now);
-	d = MAX(0, d);
+	d = MAX(PARQ_MIN_POLL, d);
 	d = MIN(d, INT_MAX);
 	min_poll = d;
 
