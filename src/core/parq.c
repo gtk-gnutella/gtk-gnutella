@@ -144,7 +144,7 @@ struct parq_ul_queue {
 	GList *by_rel_pos;		/**< Queued items sorted by relative position */
 	GList *by_date_dead;	/**< Queued items sorted on last update and
 								 not alive */
-	gint size;				/**< Number of entries in current list */
+	gint by_position_length;/**< Number of items in "by_position" */
 
 	gboolean active;		/**< Set to false when the number of upload slots
 								 was decreased but the queue still contained
@@ -1194,7 +1194,7 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	g_assert(cur_parq_ul != NULL);
 	g_assert(cur_parq_ul->queue != NULL);
 	g_assert(cur_parq_ul->queue->by_position != NULL);
-	g_assert(cur_parq_ul->queue->size > 0);
+	g_assert(cur_parq_ul->queue->by_position_length > 0);
 
 	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
 	pos_cnt = ((struct parq_ul_queued *) l->data)->position;
@@ -1234,7 +1234,7 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 			uqx->relative_position = ++pos;
 		}
 
-		g_assert(pos <= UNSIGNED(q->size));
+		g_assert(pos <= UNSIGNED(q->by_position_length));
 	}
 }
 
@@ -1250,7 +1250,7 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 	g_assert(cur_parq_ul != NULL);
 	g_assert(cur_parq_ul->queue != NULL);
 	g_assert(cur_parq_ul->queue->by_rel_pos != NULL);
-	g_assert(cur_parq_ul->queue->size > 0);
+	g_assert(cur_parq_ul->queue->by_position_length > 0);
 	g_assert(rel_pos > 0);
 
 	l = g_list_find(cur_parq_ul->queue->by_rel_pos, cur_parq_ul);
@@ -1263,7 +1263,7 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 		uqx->relative_position = ++rel_pos;
 	}
 
-	g_assert(rel_pos <= UNSIGNED(cur_parq_ul->queue->size));
+	g_assert(rel_pos <= UNSIGNED(cur_parq_ul->queue->by_position_length));
 }
 
 /**
@@ -1275,7 +1275,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->addr_and_name != NULL);
 	g_assert(parq_ul->queue != NULL);
-	g_assert(parq_ul->queue->size > 0);
+	g_assert(parq_ul->queue->by_position_length > 0);
 	g_assert(parq_ul->queue->by_position != NULL);
 	g_assert(parq_ul->by_addr != NULL);
 	g_assert(parq_ul->by_addr->total > 0);
@@ -1331,7 +1331,8 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	 * Queued upload is now removed from all lists. So queue size can be
 	 * safely decreased and new ETAs can be calculated.
 	 */
-	parq_ul->queue->size--;
+	g_assert(parq_ul->queue->by_position_length > 0);
+	parq_ul->queue->by_position_length--;
 
 	/*
 	 * Don't update ETA on shutdown, we don't need this information, so speed
@@ -1423,20 +1424,13 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 static struct parq_ul_queue *
 parq_upload_new_queue(void)
 {
-	struct parq_ul_queue *queue = NULL;
+	static const struct parq_ul_queue zero_queue;
+	struct parq_ul_queue *queue;
 
-	queue = walloc(sizeof(*queue));
-	g_assert(queue != NULL);
+	queue = walloc(sizeof *queue);
+	*queue = zero_queue;
 
-	queue->size = 0;
 	queue->active = TRUE;
-	queue->by_position = NULL;
-	queue->by_rel_pos = NULL;
-	queue->by_date_dead = NULL;
-	queue->active_uploads = 0;
-	queue->active_queued_cnt = 0;
-	queue->alive = 0;
-	queue->recompute = FALSE;
 
 	ul_parqs = g_list_append(ul_parqs, queue);
 
@@ -1600,7 +1594,7 @@ parq_upload_create(struct upload *u)
 	g_assert(parq_ul->addr_and_name != NULL);
 
 	/* Fill parq_ul structure */
-	parq_ul->position = ++parq_ul_queue->size;
+	parq_ul->position = parq_ul_queue->by_position_length + 1;
 	parq_ul->relative_position = rel_pos;
 	parq_ul->eta = eta;
 	parq_ul->enter = now;
@@ -1632,6 +1626,7 @@ parq_upload_create(struct upload *u)
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
+	parq_ul_queue->by_position_length++;
 	parq_ul_queue->by_position =
 		g_list_append(parq_ul_queue->by_position, parq_ul);
 
@@ -1646,7 +1641,7 @@ parq_upload_create(struct upload *u)
 			g_list_length(ul_parqs),
 			parq_ul->position,
 			parq_ul->relative_position,
-			parq_ul->queue->size,
+			parq_ul->queue->by_position_length,
 			host_addr_to_string(parq_ul->remote_addr),
 			parq_ul->name,
 			guid_hex_str(parq_ul->id));
@@ -1682,7 +1677,7 @@ parq_upload_create(struct upload *u)
 	g_assert(parq_ul->queue->by_rel_pos != NULL);
 	g_assert(parq_ul->queue->by_position->data != NULL);
 	g_assert(parq_ul->relative_position > 0);
-	g_assert(parq_ul->relative_position <= UNSIGNED(parq_ul->queue->size));
+	g_assert(parq_ul->relative_position <= UNSIGNED(parq_ul->queue->by_position_length));
 	g_assert(parq_ul->by_addr != NULL);
 	g_assert(parq_ul->by_addr->uploading <= parq_ul->by_addr->total);
 
@@ -1699,7 +1694,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(ul_parqs != NULL);
 
 	/* Never ever remove a queue which is in use and/or marked as active */
-	g_assert(queue->size == 0);
+	g_assert(queue->by_position_length == 0);
 	g_assert(queue->active_uploads == 0);
 	g_assert(queue->active == FALSE);
 
@@ -1822,7 +1817,7 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 				  	g_list_length(ul_parqs),
 				  parq_ul->position,
 				  parq_ul->relative_position,
-				  parq_ul->queue->size,
+				  parq_ul->queue->by_position_length,
 				  host_addr_to_string(parq_ul->remote_addr),
 				  parq_ul->name
 			);
@@ -1887,7 +1882,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 			  g_list_length(ul_parqs),
 			  parq_ul->position,
 			  parq_ul->relative_position,
-			  parq_ul->queue->size,
+			  parq_ul->queue->by_position_length,
 			  parq_ul->queue_sent,
 			  host_addr_port_to_string(parq_ul->addr, parq_ul->port),
 			  parq_ul->name);
@@ -2080,7 +2075,7 @@ parq_upload_timer(time_t now)
 						g_list_length(ul_parqs),
 						parq_ul->position,
 						parq_ul->relative_position,
-						parq_ul->queue->size,
+						parq_ul->queue->by_position_length,
 						guid_hex_str(parq_ul->id),
 						host_addr_to_string(parq_ul->remote_addr),
 						parq_ul->name);
@@ -2152,7 +2147,7 @@ parq_upload_timer(time_t now)
 					  g_list_position(ul_parqs, g_list_find(ul_parqs, queue))
 						  + 1,
 					  g_list_length(ul_parqs),
-					  queue->size,
+					  queue->by_position_length,
 					  queue->active_uploads,
 					  queue->alive,
 					  queue->active ? "active" : "inactive");
@@ -2172,7 +2167,7 @@ parq_upload_timer(time_t now)
 
 	if (queues != NULL) {
 		struct parq_ul_queue *queue = queues->data;
-		if (!queue->active && queue->size == 0) {
+		if (!queue->active && queue->by_position_length == 0) {
 			parq_upload_free_queue(queue);
 		}
 	}
@@ -2266,9 +2261,9 @@ parq_upload_queue_full(struct upload *u)
 	upload_check(u);
 
 	q_ul = parq_upload_which_queue(u);
-	g_assert(q_ul->size >= q_ul->alive);
+	g_assert(q_ul->by_position_length >= q_ul->alive);
 
-	if ((guint32) q_ul->size < parq_max_upload_size)
+	if (UNSIGNED(q_ul->by_position_length) < parq_max_upload_size)
 		return FALSE;
 
 	if (q_ul->by_date_dead == NULL ||
@@ -2655,7 +2650,7 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 				g_list_length(ul_parqs),
 				parq_ul->position,
 				parq_ul->relative_position,
-				parq_ul->queue->size,
+				parq_ul->queue->by_position_length,
 				short_time(parq_upload_lookup_eta(u)),
 				host_addr_to_string(parq_ul->remote_addr),
 				parq_ul->name, guid_hex_str(parq_ul->id));
@@ -3324,7 +3319,7 @@ parq_upload_add_old_queue_header(gchar *buf, size_t size,
 		len = gm_snprintf(buf, size,
 				"X-Queue: position=%d, length=%d, "
 				"limit=%d, pollMin=%u, pollMax=%u\r\n",
-				parq_ul->relative_position, parq_ul->queue->size,
+				parq_ul->relative_position, parq_ul->queue->by_position_length,
 				1, min_poll, max_poll);
 	}
 	if (len >= size || (len > 0 && '\n' != buf[len - 1])) {
@@ -3381,7 +3376,8 @@ parq_upload_add_x_queued_header(gchar *buf, size_t size,
 
 			if (!small_reply) {
 				len = concat_strings(&buf[rw], size,
-					"; length=", uint32_to_string(parq_ul->queue->size),
+					"; length=",
+					uint32_to_string(parq_ul->queue->by_position_length),
 					(void *) 0);
 				if (len < size) {
 					rw += len;
@@ -3807,7 +3803,7 @@ parq_store(gpointer data, gpointer file_ptr)
 			  g_list_length(ul_parqs),
 			  parq_ul->position,
 			  parq_ul->relative_position,
-			  parq_ul->queue->size,
+			  parq_ul->queue->by_position_length,
 			  guid_hex_str(parq_ul->id),
 			  host_addr_to_string(parq_ul->remote_addr),
 			  parq_ul->name);
@@ -4242,7 +4238,7 @@ parq_upload_load_queue(void)
 					g_list_length(ul_parqs),
 					parq_ul->position,
 				 	parq_ul->relative_position,
-					parq_ul->queue->size,
+					parq_ul->queue->by_position_length,
 					short_time(parq_upload_lookup_eta(fake_upload)),
 					host_addr_to_string(parq_ul->remote_addr),
 					parq_ul->name);
