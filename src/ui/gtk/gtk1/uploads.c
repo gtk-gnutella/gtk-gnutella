@@ -451,11 +451,6 @@ uploads_gui_timer(time_t now)
  ***/
 
 void
-uploads_gui_early_init(void)
-{
-}
-
-void
 uploads_gui_init(void)
 {
 	GtkCList *clist;

@@ -500,63 +500,6 @@ create_uploads_model(void)
 	return GTK_LIST_STORE(store);
 }
 
-
-/***
- *** Public functions
- ***/
-
-void
-uploads_gui_early_init(void)
-{
-}
-
-void
-uploads_gui_init(void)
-{
-	static const struct {
-		gint id;
-		GtkTreeIterCompareFunc sortfunc;
-	} cols[] = {
-		{ c_ul_filename, 	NULL },
-		{ c_ul_host, 		compare_hosts },
-		{ c_ul_loc, 		NULL },
-		{ c_ul_size, 		compare_sizes },
-		{ c_ul_range, 		compare_ranges },
-		{ c_ul_agent, 		NULL },
-		{ c_ul_progress, 	NULL },
-		{ c_ul_status, 		NULL },
-	};
-	size_t i;
-
-	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
-	store_uploads = create_uploads_model();
-
-	button_uploads_clear_completed =
-		gui_main_window_lookup("button_uploads_clear_completed");
-	treeview_uploads =
-		GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
-	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
-	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
-
-	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
-		add_column(cols[i].id, cols[i].sortfunc,
-			c_ul_progress == cols[i].id
-				? GTK_TYPE_CELL_RENDERER_PROGRESS
-				: GTK_TYPE_CELL_RENDERER_TEXT);
-	}
-	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
-	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
-
-	upload_handles = g_hash_table_new(NULL, NULL);
-
-    guc_upload_add_upload_added_listener(upload_added);
-    guc_upload_add_upload_removed_listener(upload_removed);
-    guc_upload_add_upload_info_changed_listener(upload_info_changed);
-
-	gui_signal_connect(treeview_uploads,
-		"button_press_event", on_button_press_event, NULL);
-}
-
 static inline void
 free_row_data(upload_row_data_t *rd)
 {
@@ -615,7 +558,7 @@ update_row(gpointer key, gpointer data, gpointer unused_udata)
 /**
  * Update all the uploads at the same time.
  */
-void
+static void
 uploads_gui_update_display(time_t now)
 {
    	static gboolean locked = FALSE;
@@ -642,6 +585,14 @@ uploads_gui_update_display(time_t now)
 		NULL != sl_removed_uploads);
 
 	locked = FALSE;
+}
+
+static void
+uploads_gui_timer(time_t now)
+{
+	if (uploads_gui_update_required(now)) {
+		uploads_gui_update_display(now);
+	}
 }
 
 static gboolean
@@ -695,6 +646,55 @@ uploads_gui_clear_completed(void)
 		uploads_remove_lock = TRUE;
 		gtk_timeout_add(100, uploads_clear_helper, store_uploads);
 	}
+}
+
+void
+uploads_gui_init(void)
+{
+	static const struct {
+		gint id;
+		GtkTreeIterCompareFunc sortfunc;
+	} cols[] = {
+		{ c_ul_filename, 	NULL },
+		{ c_ul_host, 		compare_hosts },
+		{ c_ul_loc, 		NULL },
+		{ c_ul_size, 		compare_sizes },
+		{ c_ul_range, 		compare_ranges },
+		{ c_ul_agent, 		NULL },
+		{ c_ul_progress, 	NULL },
+		{ c_ul_status, 		NULL },
+	};
+	size_t i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
+	store_uploads = create_uploads_model();
+
+	button_uploads_clear_completed =
+		gui_main_window_lookup("button_uploads_clear_completed");
+	treeview_uploads =
+		GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
+	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
+	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
+
+	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
+		add_column(cols[i].id, cols[i].sortfunc,
+			c_ul_progress == cols[i].id
+				? GTK_TYPE_CELL_RENDERER_PROGRESS
+				: GTK_TYPE_CELL_RENDERER_TEXT);
+	}
+	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
+	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
+
+	upload_handles = g_hash_table_new(NULL, NULL);
+
+    guc_upload_add_upload_added_listener(upload_added);
+    guc_upload_add_upload_removed_listener(upload_removed);
+    guc_upload_add_upload_info_changed_listener(upload_info_changed);
+
+	gui_signal_connect(treeview_uploads,
+		"button_press_event", on_button_press_event, NULL);
+
+	main_gui_add_timer(uploads_gui_timer);
 }
 
 /**

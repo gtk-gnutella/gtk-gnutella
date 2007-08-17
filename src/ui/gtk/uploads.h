@@ -50,7 +50,6 @@ typedef struct upload_row_data {
 #endif /* USE_GTK2 */
 } upload_row_data_t;
 
-void uploads_gui_early_init(void);
 void uploads_gui_init(void);
 void uploads_gui_shutdown(void);
 
