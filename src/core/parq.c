@@ -2930,12 +2930,14 @@ cleanup:
 		g_assert(parq_ul->queue->alive > 0);
 		g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
 
-		/* Insert again, in the relative position list. */
-		parq_ul->queue->by_rel_pos =
-			g_list_insert_sorted(parq_ul->queue->by_rel_pos, parq_ul,
-				  parq_ul_rel_pos_cmp);
-		parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
-		parq_upload_update_eta(parq_ul->queue);
+		/* Re-insert in the relative position list, unless entry is frozen */
+		if (!(parq_ul->flags & PARQ_UL_FROZEN)) {
+			parq_ul->queue->by_rel_pos =
+				g_list_insert_sorted(parq_ul->queue->by_rel_pos, parq_ul,
+					  parq_ul_rel_pos_cmp);
+			parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
+			parq_upload_update_eta(parq_ul->queue);
+		}
 	}
 
 	buf = header_get(header, "X-Queue");
