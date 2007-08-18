@@ -2477,11 +2477,12 @@ filter_shutdown(void)
 }
 
 static filter_t *
-filters_add(const char *name)
+filters_add(const char *name, unsigned flags)
 {
 	filter_t *filter;
 
     filter = filter_new(lazy_ui_string_to_utf8(name));
+	set_flags(filter->flags, flags);
     filters = g_list_append(filters, filter);
 	return filter;
 }
@@ -2492,13 +2493,18 @@ filters_add(const char *name)
 void
 filter_init(void)
 {
-    filter_global_pre  = filters_add(_("Global (pre)"));
-    filter_global_post = filters_add(_("Global (post)"));
-    filter_show        = filters_add(_("DISPLAY"));
-    filter_drop        = filters_add(_("DON'T DISPLAY"));
-    filter_download    = filters_add(_("DOWNLOAD"));
-    filter_nodownload  = filters_add(_("DON'T DOWNLOAD"));
-    filter_return      = filters_add(_("RETURN"));
+	unsigned flags;
+
+	flags = FILTER_FLAG_GLOBAL;
+    filter_global_pre  = filters_add(_("Global (pre)"), flags);
+    filter_global_post = filters_add(_("Global (post)"), flags);
+
+	flags = FILTER_FLAG_BUILTIN;
+    filter_show        = filters_add(_("DISPLAY"), flags);
+    filter_drop        = filters_add(_("DON'T DISPLAY"), flags);
+    filter_download    = filters_add(_("DOWNLOAD"), flags);
+    filter_nodownload  = filters_add(_("DON'T DOWNLOAD"), flags);
+    filter_return      = filters_add(_("RETURN"), flags);
 
     filters_current = g_list_copy(filters);
 
@@ -2634,17 +2640,15 @@ filter_find_by_name_in_session(const gchar *name)
 gboolean
 filter_is_global(const filter_t *f)
 {
-    return f == filter_global_pre || f == filter_global_post;
+	g_return_val_if_fail(f, FALSE);
+    return 0 != (FILTER_FLAG_GLOBAL & f->flags);
 }
 
 gboolean
 filter_is_builtin(const filter_t *f)
 {
-    return	f == filter_show ||
-			f == filter_drop ||
-            f == filter_download ||
-			f == filter_nodownload ||
-            f == filter_return;
+	g_return_val_if_fail(f, FALSE);
+    return 0 != (FILTER_FLAG_BUILTIN & f->flags);
 }
 
 filter_t *
