@@ -2056,15 +2056,17 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		GSList *sl;
 
 		/*
-		 * If there's no timestamp, this is most-likely not from LimeWire.
+		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 */
 		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
 			gnet_record_t *record = sl->data;
 
-			if ((time_t) -1 == record->create_time) {
-				set_flags(record->flags, SR_SPAM);
-				rs->status |= ST_FAKE_SPAM;
-			}
+			if ((time_t) -1 != record->create_time)
+				break;
+			set_flags(record->flags, SR_SPAM);
+		}
+		if (NULL == sl) {
+			rs->status |= ST_FAKE_SPAM;
 		}
 	}
 
