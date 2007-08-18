@@ -594,7 +594,6 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
     nodes_gui_early_init();
 
     gui_popup_uploads_set(create_popup_uploads());
-    uploads_gui_early_init();
     statusbar_gui_init();
 
 	gui_init_window_title();
