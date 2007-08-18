@@ -914,6 +914,15 @@ node_tls_refresh(struct gnutella_node *n)
 	}
 }
 
+void
+node_supports_tls(struct gnutella_node *n)
+{
+	node_check(n);
+	
+	n->flags |= NODE_F_CAN_TLS;
+	node_tls_refresh(n);
+}
+
 /**
  * Periodic node heartbeat timer.
  */
@@ -4927,8 +4936,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	if (header_get_feature("tls", head, NULL, NULL)) {
-		n->flags |= NODE_F_CAN_TLS;
-		node_tls_refresh(n);
+		node_supports_tls(n);
 	}
 
 	/* Bye-Packet -- support for final notification */

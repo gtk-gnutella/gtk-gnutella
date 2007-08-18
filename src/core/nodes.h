@@ -610,6 +610,7 @@ gnutella_node_t *node_browse_prepare(
 	gchar *data, guint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
+void node_supports_tls(struct gnutella_node *);
 
 node_id_t node_id_get_self(void);
 gboolean node_id_self(const node_id_t node_id);
