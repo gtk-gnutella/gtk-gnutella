@@ -126,12 +126,14 @@ dh_table_clear(GHashTable *ht)
  * Free specified hash table.
  */
 static void
-dh_table_free(GHashTable *ht)
+dh_table_free(GHashTable **ptr)
 {
-	g_assert(ht != NULL);
-
-	g_hash_table_foreach_remove(ht, free_muid_true, NULL);
-	g_hash_table_destroy(ht);
+	if (*ptr) {
+		GHashTable *ht = *ptr;
+		g_hash_table_foreach_remove(ht, free_muid_true, NULL);
+		g_hash_table_destroy(ht);
+		*ptr = NULL;
+	}
 }
 
 /**
@@ -158,10 +160,10 @@ dh_locate(const gchar *muid)
 		g_hash_table_remove(by_muid_old, key);
 		g_assert(!g_hash_table_lookup(by_muid, key));
 		g_hash_table_insert(by_muid, key, value);
-		return (dqhit_t *) value;
+		return value;
 	}
 
-	return (dqhit_t *) g_hash_table_lookup(by_muid, muid);
+	return g_hash_table_lookup(by_muid, muid);
 }
 
 /**
@@ -459,7 +461,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	dh->hits_queued += count;
 	dh->msg_queued++;
 
-	g_assert(dh->hits_queued >= (guint) count);
+	g_assert(dh->hits_queued >= UNSIGNED(count));
 
 	/*
 	 * Magic: we create an extended version of a pmsg_t that contains a
@@ -530,8 +532,8 @@ dh_init(void)
 void
 dh_close(void)
 {
-	dh_table_free(by_muid);
-	dh_table_free(by_muid_old);
+	dh_table_free(&by_muid);
+	dh_table_free(&by_muid_old);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
