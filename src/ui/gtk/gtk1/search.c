@@ -1792,57 +1792,33 @@ search_gui_show_search(struct search *search)
 GtkWidget *
 search_gui_create_tree(void)
 {
-	static const struct {
-		const gchar *title;
-		const gint id;
-	} columns[] = {
-		{ N_("File"), 		c_sr_filename	},
-		{ N_("Extension"),	c_sr_ext		},
-		{ N_("Encoding"),	c_sr_charset	},
-		{ N_("Size"),		c_sr_size		},
-		{ N_("#"),			c_sr_count		},
-		{ N_("Loc"),		c_sr_loc		},
-		{ N_("Metadata"),	c_sr_meta		},
-		{ N_("Vendor"),		c_sr_vendor		},
-		{ N_("Info"),		c_sr_info		},
-		{ N_("Route"),		c_sr_route		},
-		{ N_("Protocol"),	c_sr_protocol	},
-		{ N_("Hops"),  	   	c_sr_hops		},
-		{ N_("TTL"),  	   	c_sr_ttl		},
-		{ N_("Owned"),     	c_sr_owned		},
-		{ N_("Spam"),      	c_sr_spam		},
-		{ N_("Hostile"),   	c_sr_hostile	},
-		{ N_("SHA-1"),     	c_sr_sha1		},
-		{ N_("Created"),   	c_sr_ctime		},
-	};
     GtkCList *ctree;
 	guint i;
-
-	STATIC_ASSERT(G_N_ELEMENTS(columns) == c_sr_num);
 
 	ctree = GTK_CLIST(gtk_ctree_new(c_sr_num, 0));
 
 	gtk_clist_set_selection_mode(ctree, GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show(ctree);
 
-	/* Right/Left justification of column text */
-    gtk_clist_set_column_justification(ctree, c_sr_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(ctree, c_sr_count, GTK_JUSTIFY_RIGHT);
+	for (i = 0; i < c_sr_num; i++) {
+    	gtk_clist_set_column_justification(ctree, i,
+			search_gui_column_justify_right(i)
+				 ? GTK_JUSTIFY_RIGHT
+				 : GTK_JUSTIFY_LEFT);
+	}
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < c_sr_num; i++) {
 		GtkWidget *label, *hbox;
 		const gchar *title;
-		gint id;
 	
-		title = _(columns[i].title);
-		id = columns[i].id;
+		title = search_gui_column_title(i);
 		label = gtk_label_new(title);
-    	gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
     	hbox = gtk_hbox_new(FALSE, 4);
     	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
-		gtk_clist_set_column_widget(ctree, id, hbox);
+		gtk_clist_set_column_widget(ctree, i, hbox);
     	gtk_widget_show_all(hbox);
-    	gtk_clist_set_column_name(ctree, id, deconstify_gchar(title));
+    	gtk_clist_set_column_name(ctree, i, deconstify_gchar(title));
 	}
 
 	clist_restore_visibility(ctree, PROP_SEARCH_RESULTS_COL_VISIBLE);
