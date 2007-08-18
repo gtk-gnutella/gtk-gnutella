@@ -355,6 +355,13 @@ handle_features_supported(struct gnutella_node *n,
 	const gchar *description;
 	guint16 count;
 
+	if (NODE_IS_UDP(n)) {
+		g_warning("got %s/%uv%u over UDP via %s, ignoring",
+			vendor_code_str(vmsg->vendor),
+			vmsg->id, vmsg->version, node_addr(n));
+		return;
+	}
+
 	count = peek_le16(payload);
 
 	if (GNET_PROPERTY(vmsg_debug))
@@ -386,8 +393,7 @@ handle_features_supported(struct gnutella_node *n,
 				feature, version);
 
 		if (0 == strcmp(feature, "TLS!")) {
-			n->flags |= NODE_F_CAN_TLS;
-			tls_cache_insert(n->gnet_addr, n->gnet_port);
+			node_supports_tls(n);
 		}
 	}
 }
