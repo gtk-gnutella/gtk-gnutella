@@ -1079,3 +1079,6 @@
 69.59.21.192/26
 76.76.8.192/26
 
+# HTM files; LimeWire; links to amateur dot himegimi dot jp
+125.0.151.116
+
