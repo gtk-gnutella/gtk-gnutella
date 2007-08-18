@@ -52,6 +52,8 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/override.h"		/* Must be the last header included */
+
 static const time_delta_t tls_cache_max_time = 12 * 3600;
 static const size_t tls_cache_max_items = 10000;
 
