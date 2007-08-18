@@ -1289,35 +1289,11 @@ create_results_model(void)
 static void
 add_results_columns(GtkTreeView *tv)
 {
-	static const struct {
-		const gchar * const title;
-		const gfloat align;
-	} columns[] = {
-		{ N_("File"),	   0.0,  },
-		{ N_("Extension"), 0.0,  },
-		{ N_("Encoding"),  0.0,  },
-		{ N_("Size"),	   1.0,  },
-		{ N_("#"),		   1.0,  },
-		{ N_("Loc"),	   0.0,  },
-		{ N_("Metadata"),  0.0,  },
-		{ N_("Vendor"),	   0.0,  },
-		{ N_("Info"),	   0.0,  },
-		{ N_("Route"),	   0.0,  },
-		{ N_("Protocol"),  0.0,  },
-		{ N_("Hops"),  	   0.0,  },
-		{ N_("TTL"),  	   0.0,  },
-		{ N_("Owned"),     0.0,  },
-		{ N_("Spam"),      0.0,  },
-		{ N_("Hostile"),   0.0,  },
-		{ N_("SHA-1"),     0.0,  },
-		{ N_("Created"),   0.0,  },
-	};
 	guint i;
 
-	STATIC_ASSERT(SEARCH_RESULTS_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
-
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-		add_results_column(tv, _(columns[i].title), i, columns[i].align);
+	for (i = 0; i < c_sr_num; i++) {
+		add_results_column(tv, search_gui_column_title(i), i,
+			search_gui_column_justify_right(i) ? 1.0 : 0.0);
 	}
 }
 

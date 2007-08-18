@@ -140,6 +140,9 @@ gboolean search_gui_insert_query(const char *);
 
 char *search_xml_indent(const char *);
 
+const char *search_gui_column_title(int column);
+gboolean search_gui_column_justify_right(int column);
+
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 			void *user_udata);
 gboolean on_search_details_key_press_event(GtkWidget *, GdkEventKey *,

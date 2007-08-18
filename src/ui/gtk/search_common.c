@@ -4044,6 +4044,69 @@ search_gui_signals_init(void)
 #undef ON_ACTIVATE
 }
 
+const char *
+search_gui_column_title(int column)
+{
+	g_return_val_if_fail(column >= 0, NULL);
+	g_return_val_if_fail(column < c_sr_num, NULL);
+
+	switch ((enum c_sr_columns) column) {
+	case c_sr_filename:	return _("Filename");
+	case c_sr_ext:		return _("Extension");
+	case c_sr_charset:	return _("Encoding");
+	case c_sr_size:		return _("Size");
+	case c_sr_count:	return _("#");
+	case c_sr_loc:		return _("Loc");
+	case c_sr_meta:		return _("Metadata");
+	case c_sr_vendor:	return _("Vendor");
+	case c_sr_info:		return _("Info");
+	case c_sr_route:	return _("Route");
+	case c_sr_protocol:	return _("Protocol");
+	case c_sr_hops:		return _("Hops");
+	case c_sr_ttl:		return _("TTL");
+	case c_sr_owned:	return _("Owned");
+	case c_sr_spam:		return _("Spam");
+	case c_sr_hostile:	return _("Hostile");
+	case c_sr_sha1:		return _("SHA-1");
+	case c_sr_ctime:	return _("Created");
+	case c_sr_num:		break;
+	}
+	g_assert_not_reached();
+	return NULL;
+}
+
+gboolean
+search_gui_column_justify_right(int column)
+{
+	g_return_val_if_fail(column >= 0, FALSE);
+	g_return_val_if_fail(column < c_sr_num, FALSE);
+
+	switch ((enum c_sr_columns) column) {
+	case c_sr_filename:	return FALSE;
+	case c_sr_ext:		return FALSE;
+	case c_sr_charset:	return FALSE;
+	case c_sr_size:		return TRUE;
+	case c_sr_count:	return TRUE;
+	case c_sr_loc:		return FALSE;
+	case c_sr_meta:		return FALSE;
+	case c_sr_vendor:	return FALSE;
+	case c_sr_info:		return FALSE;
+	case c_sr_route:	return FALSE;
+	case c_sr_protocol:	return FALSE;
+	case c_sr_hops:		return TRUE;
+	case c_sr_ttl:		return TRUE;
+	case c_sr_owned:	return FALSE;
+	case c_sr_spam:		return FALSE;
+	case c_sr_hostile:	return FALSE;
+	case c_sr_sha1:		return FALSE;
+	case c_sr_ctime:	return FALSE;
+	case c_sr_num:		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
+
 /**
  * Initialize common structures.
  */
