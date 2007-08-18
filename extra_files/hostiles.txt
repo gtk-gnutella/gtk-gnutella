@@ -328,8 +328,8 @@
 38.96.5.128/26
 
 # Gnucleus-based DRM WMV spammer hosted by GoDaddy
-68.178.200.89
-68.178.225.162
+#68.178.200.89
+#68.178.225.162
 
 # DRM License server used by DRM WMV spam
 216.93.188.81
@@ -374,7 +374,7 @@
 222.73.218.24
 
 # DRM WMV spammer; license URL links to 209.190.122.186
-68.178.144.112
+#68.178.144.112
 
 # Gnucleus-based DRM WMV spammer hosted by ServerBeach/Peer-1
 72.51.22.0/24
@@ -406,13 +406,15 @@
 
 # Gnoozle; "sponsored results" exploiting a brain-dead LimeWire feature
 # The SHA-1s are obviously faked and the files are not downloadable.
-68.178.144.2
-68.178.160.177
-68.178.194.60
-68.178.198.68
-68.178.206.62
-68.178.242.167
-68.178.250.209
+# Seems to be same as getlaidquickly spammers.
+68.178.128.0/17
+#68.178.144.2
+#68.178.160.177
+#68.178.194.60
+#68.178.198.68
+#68.178.206.62
+#68.178.242.167
+#68.178.250.209
 208.109.0.0/16
 216.69.164.211
 
