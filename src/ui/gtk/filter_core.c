@@ -2476,7 +2476,15 @@ filter_shutdown(void)
         filter_free(f->data);
 }
 
+static filter_t *
+filters_add(const char *name)
+{
+	filter_t *filter;
 
+    filter = filter_new(lazy_ui_string_to_utf8(name));
+    filters = g_list_append(filters, filter);
+	return filter;
+}
 
 /**
  * Initialize global filters.
@@ -2484,21 +2492,13 @@ filter_shutdown(void)
 void
 filter_init(void)
 {
-    filter_global_pre  = filter_new(lazy_ui_string_to_utf8(_("Global (pre)")));
-    filter_global_post = filter_new(lazy_ui_string_to_utf8(_("Global (post)")));
-    filter_show        = filter_new(lazy_ui_string_to_utf8(_("DISPLAY")));
-    filter_drop        = filter_new(lazy_ui_string_to_utf8(_("DON'T DISPLAY")));
-    filter_download    = filter_new(lazy_ui_string_to_utf8(_("DOWNLOAD")));
-    filter_nodownload = filter_new(lazy_ui_string_to_utf8(_("DON'T DOWNLOAD")));
-    filter_return      = filter_new(lazy_ui_string_to_utf8(_("RETURN")));
-
-    filters = g_list_append(filters, filter_global_pre);
-    filters = g_list_append(filters, filter_global_post);
-    filters = g_list_append(filters, filter_show);
-    filters = g_list_append(filters, filter_drop);
-    filters = g_list_append(filters, filter_download);
-    filters = g_list_append(filters, filter_nodownload);
-    filters = g_list_append(filters, filter_return);
+    filter_global_pre  = filters_add(_("Global (pre)"));
+    filter_global_post = filters_add(_("Global (post)"));
+    filter_show        = filters_add(_("DISPLAY"));
+    filter_drop        = filters_add(_("DON'T DISPLAY"));
+    filter_download    = filters_add(_("DOWNLOAD"));
+    filter_nodownload  = filters_add(_("DON'T DOWNLOAD"));
+    filter_return      = filters_add(_("RETURN"));
 
     filters_current = g_list_copy(filters);
 
