@@ -892,8 +892,8 @@ parq_download_add_header(
 {
 	g_assert(d != NULL);
 	g_assert(rw != NULL);
-	g_assert((int) len >= 0 && len <= INT_MAX);
-	g_assert((int) *rw >= 0 && *rw <= INT_MAX);
+	g_assert(UNSIGNED(len) <= INT_MAX);
+	g_assert(UNSIGNED(*rw) <= INT_MAX);
 	g_assert(len >= *rw);
 
 	*rw += gm_snprintf(&buf[*rw], len - *rw,
@@ -1222,12 +1222,11 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 		struct parq_ul_queued *parq_ul = l->data;
 
 		g_assert(parq_ul != NULL);
+		g_assert(parq_ul->position > 1);
+		g_assert(parq_ul->position - 1 == UNSIGNED(pos_cnt));
+
 		parq_ul->position--;
-
-		g_assert((gint) parq_ul->position == pos_cnt);
-
 		pos_cnt++;
-		g_assert(parq_ul->position > 0);
 	}
 }
 
@@ -3117,10 +3116,10 @@ parq_upload_request(struct upload *u)
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
 		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
-			"host %s (%s) re-requested \"%s\" too soon (%d secs early)",
+			"host %s (%s) re-requested \"%s\" too soon (%u secs early)",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
-			u->name, (gint) (org_retry - now));
+			u->name, (unsigned) (org_retry - now));
 
 		if (
 			parq_ul->ban_timeout > now &&
@@ -3529,16 +3528,16 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 		if (u->socket != NULL) {
 			g_warning("[PARQ UL] "
 				"Removing %s (%s) for too many disconnections \"%s\" "
-				"%d secs early",
+				"%u secs early",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
-				u->name, (gint) (parq_ul->disc_timeout - now));
+				u->name, (unsigned) delta_time(parq_ul->disc_timeout, now));
 		} else {
 			g_warning("[PARQ UL] "
 				"Removing (%s) for too many disconnections \"%s\" "
-				"%d secs early",
+				"%u secs early",
 				upload_vendor_str(u),
-				u->name, (gint) (parq_ul->disc_timeout - now));
+				u->name, (unsigned) delta_time(parq_ul->disc_timeout, now));
 		}
 		parq_upload_free(parq_ul);
 		return_result = TRUE;
@@ -4336,7 +4335,7 @@ parq_upload_load_queue(void)
 		value++;	/* skip blank after colon */
 
 		tag = parq_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag < NUM_PARQ_TAGS);
+		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
 		if (PARQ_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("parq_upload_load_queue(): "
 				"duplicate tag \"%s\" in entry in line %u",
