@@ -1134,6 +1134,9 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			struct parq_ul_queued *parq_ul = l->data;
 
 			if (parq_ul->has_slot) {		/* Recompute ETA */
+				/* XXX: unsigned int has only 32 bit, this is no proper
+				 *      way to calculate in C.
+				 */
 				eta += (parq_ul->file_size / avg_bps)
 							* GNET_PROPERTY(max_uploads);
 				break;
@@ -1155,6 +1158,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			if (q->active_uploads > 1) {
 				struct parq_ul_queued *parq_ul = q->by_rel_pos->data;
 
+				/* XXX: q->by_rel_pos can be NULL */
 				eta = parq_ul->eta;
 				break;
 			}
