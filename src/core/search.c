@@ -1798,6 +1798,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					{
 						time_t stamp;
 
+						rs->status |= ST_HAS_CT;
 						ret = ggept_ct_extract(e, &stamp);
 						if (GGEP_OK == ret) {
 							rc->create_time = stamp;
@@ -2052,22 +2053,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-	if (T_LIME == peek_be32(&rs->vcode.be32)) {	
-		GSList *sl;
-
+	if (T_LIME == peek_be32(&rs->vcode.be32) && !(ST_HAS_CT & rs->status)) {	
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 */
-		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
-			gnet_record_t *record = sl->data;
-
-			if ((time_t) -1 != record->create_time)
-				break;
-			set_flags(record->flags, SR_SPAM);
-		}
-		if (NULL == sl) {
-			rs->status |= ST_FAKE_SPAM;
-		}
+		rs->status |= ST_FAKE_SPAM;
 	}
 
 	if (has_dupe_spam(rs)) {

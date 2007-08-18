@@ -104,6 +104,7 @@ gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, gint hcnt);
  * Result sets `status' flags.
  */
 enum {
+	 ST_HAS_CT				= (1 << 24), /**< Has GGEP CT */
 	 ST_GOOD_TOKEN			= (1 << 23), /**< OOB v3 matched */
 	 ST_BROWSE				= (1 << 22), /**< Browse Host "search" result */
 	 ST_LOCAL				= (1 << 21), /**< Local search result */
