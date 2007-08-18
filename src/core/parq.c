@@ -1159,10 +1159,12 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			struct parq_ul_queue *q = l->data;
 
 			if (q->active_uploads > 1) {
-				struct parq_ul_queued *parq_ul = q->by_rel_pos->data;
+				struct parq_ul_queued *parq_ul;
 
 				/* XXX: q->by_rel_pos can be NULL */
-				eta = parq_ul->eta;
+				parq_ul = g_list_nth_data(q->by_rel_pos, 0);
+				g_assert(parq_ul);
+				eta = parq_ul ? parq_ul->eta : 0;
 				break;
 			}
 		}
@@ -1736,8 +1738,8 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	ul_parqs = g_list_remove(ul_parqs, queue);
 	parq_upload_recompute_queue_num();
 
+	g_assert(ul_parqs_cnt > 0);
 	ul_parqs_cnt--;
-	g_assert(ul_parqs_cnt >= 0);
 
 	/* Free memory */
 	wfree(queue, sizeof(*queue));
@@ -2132,6 +2134,7 @@ parq_upload_timer(time_t now)
 		struct parq_ul_queued *parq_ul = sl->data;
 
 		parq_ul->is_alive = FALSE;
+		g_assert(parq_ul->queue->alive > 0);
 		parq_ul->queue->alive--;
 
 		parq_ul->queue->by_rel_pos =
@@ -2139,7 +2142,6 @@ parq_upload_timer(time_t now)
 
 		parq_ul->queue->recompute = TRUE;	/* Defer costly recomputations */
 
-		g_assert(parq_ul->queue->alive >= 0);
 		if (enable_real_passive && parq_still_sharing(parq_ul)) {
 			parq_ul->queue->by_date_dead =
 			g_list_append(parq_ul->queue->by_date_dead, parq_ul);
@@ -2532,11 +2534,10 @@ parq_upload_unfreeze_one(struct parq_ul_queued *uq)
 	uq->flags &= ~PARQ_UL_FROZEN;
 	uq->queue->by_rel_pos = g_list_insert_sorted(
 		uq->queue->by_rel_pos, uq, parq_ul_rel_pos_cmp);
+	g_assert(uq->by_addr->frozen > 0);
 	uq->by_addr->frozen--;
 
 	parq_upload_recompute_relative_positions(uq->queue);
-
-	g_assert(uq->by_addr->frozen >= 0);
 }
 
 /**
@@ -3191,10 +3192,10 @@ parq_upload_request(struct upload *u)
 static void
 parq_upload_clear_actively_queued(struct parq_ul_queued *uq)
 {
+	g_assert(uq->by_addr->active_queued > 0);
 	uq->by_addr->active_queued--;
-	g_assert(uq->by_addr->active_queued >= 0);
+	g_assert(uq->queue->active_queued_cnt > 0);
 	uq->queue->active_queued_cnt--;
-	g_assert(uq->queue->active_queued_cnt >= 0);
 
 	uq->active_queued = FALSE;
 }
