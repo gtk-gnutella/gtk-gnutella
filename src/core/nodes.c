@@ -8331,7 +8331,12 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("Node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
-		return TRUE;
+		goto error;
+	}
+
+	if (guid_eq(guid, blank_guid)) {
+		g_warning("Node %s (%s) uses blank GUID", node_addr(n), node_vendor(n));
+		goto error;
 	}
 
 	owner = node_by_guid(guid);
@@ -8344,12 +8349,16 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 				node_addr(n), node_vendor(n),
 				node_addr2(owner), node_vendor(owner));
 		}
-		return TRUE;
-	} else {
-		n->guid = atom_guid_get(guid);
-		gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
-		return FALSE;
+		goto error;
 	}
+
+	n->guid = atom_guid_get(guid);
+	gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
+	return FALSE;
+	
+
+error:
+	return TRUE;
 }
 
 /**
