@@ -1232,6 +1232,43 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 }
 
 /**
+ * Function used to keep the relative position list sorted by relative position.
+ */
+static gint
+parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
+{
+	const struct parq_ul_queued *as = a, *bs = b;
+
+	if (as->relative_position == bs->relative_position)
+		return 0;
+
+	return as->relative_position > bs->relative_position ? +1 : -1;
+}
+
+/**
+ * Insert item in relative position list.
+ */
+static inline void
+parq_upload_insert_relative(struct parq_ul_queued *uq)
+{
+	g_assert(uq);
+
+	uq->queue->by_rel_pos = g_list_insert_sorted(
+		uq->queue->by_rel_pos, uq, parq_ul_rel_pos_cmp);
+}
+
+/**
+ * Remove item from relative position list.
+ */
+static inline void
+parq_upload_remove_relative(struct parq_ul_queued *uq)
+{
+	g_assert(uq);
+
+	uq->queue->by_rel_pos = g_list_remove(uq->queue->by_rel_pos, uq);
+}
+
+/**
  * Recomputes all relative positions of given queue.
  *
  * @param q		the queue for which we wish to recompute position
@@ -1272,7 +1309,7 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q, gboolean check
 				q->num, uqx->is_alive ? "alive" : "dead",
 				guid_hex_str(uqx->id));
 
-			q->by_rel_pos = g_list_remove(q->by_rel_pos, uqx);
+			parq_upload_remove_relative(uqx);
 		}
 
 		/* recurse without checks to recompute proper positions now */
@@ -1362,8 +1399,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	parq_ul->queue->by_position =
 		g_list_remove(parq_ul->queue->by_position, parq_ul);
 
-	parq_ul->queue->by_rel_pos =
-		  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
+	parq_upload_remove_relative(parq_ul);
 
 	g_hash_table_remove(ul_all_parq_by_addr_and_name, parq_ul->addr_and_name);
 	g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
@@ -1402,20 +1438,6 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
 	wfree(parq_ul, sizeof *parq_ul);
 	parq_ul = NULL;
 
-}
-
-/**
- * Function used to keep the relative position list sorted by relative position.
- */
-static gint
-parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
-{
-	const struct parq_ul_queued *as = a, *bs = b;
-
-	if (as->relative_position == bs->relative_position)
-		return 0;
-
-	return as->relative_position > bs->relative_position ? +1 : -1;
 }
 
 /**
@@ -1681,8 +1703,7 @@ parq_upload_create(struct upload *u)
 	parq_ul_queue->by_position =
 		g_list_append(parq_ul_queue->by_position, parq_ul);
 
-	parq_ul->queue->by_rel_pos = g_list_insert_sorted(parq_ul->queue->by_rel_pos,
-		parq_ul, parq_ul_rel_pos_cmp);
+	parq_upload_insert_relative(parq_ul);
 	parq_upload_update_relative_position_after(parq_ul);
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
@@ -2171,9 +2192,7 @@ parq_upload_timer(time_t now)
 		g_assert(parq_ul->queue->alive > 0);
 		parq_ul->queue->alive--;
 
-		parq_ul->queue->by_rel_pos =
-			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
-
+		parq_upload_remove_relative(parq_ul);
 		parq_ul->queue->recompute = TRUE;	/* Defer costly recomputations */
 
 		if (enable_real_passive && parq_still_sharing(parq_ul)) {
@@ -2531,7 +2550,7 @@ parq_upload_freeze_all(struct parq_ul_queued *uq)
 					guid_hex_str(uqx->id), uqx->queue->num,
 					host_addr_to_string(uq->by_addr->addr));
 
-			uqx->queue->by_rel_pos = g_list_remove(uqx->queue->by_rel_pos, uqx);
+			parq_upload_remove_relative(uqx);
 			uqx->flags |= PARQ_UL_FROZEN;
 		}
 
@@ -2569,8 +2588,8 @@ parq_upload_unfreeze_one(struct parq_ul_queued *uq)
 	g_assert(g_list_find(uq->queue->by_rel_pos, uq) == NULL);
 
 	uq->flags &= ~PARQ_UL_FROZEN;
-	uq->queue->by_rel_pos = g_list_insert_sorted(
-		uq->queue->by_rel_pos, uq, parq_ul_rel_pos_cmp);
+	parq_upload_insert_relative(uq);
+
 	g_assert(uq->by_addr->frozen > 0);
 	uq->by_addr->frozen--;
 
@@ -2602,8 +2621,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *uq)
 
 			uqx->flags &= ~PARQ_UL_FROZEN;
 			if (uqx->is_alive) {
-				uqx->queue->by_rel_pos = g_list_insert_sorted(
-					uqx->queue->by_rel_pos, uqx, parq_ul_rel_pos_cmp);
+				parq_upload_insert_relative(uqx);
 				inserted = TRUE;
 			}
 
@@ -2932,9 +2950,7 @@ cleanup:
 
 		/* Re-insert in the relative position list, unless entry is frozen */
 		if (!(parq_ul->flags & PARQ_UL_FROZEN)) {
-			parq_ul->queue->by_rel_pos =
-				g_list_insert_sorted(parq_ul->queue->by_rel_pos, parq_ul,
-					  parq_ul_rel_pos_cmp);
+			parq_upload_insert_relative(parq_ul);
 			parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
 			parq_upload_update_eta(parq_ul->queue);
 		}
@@ -3278,8 +3294,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 	 */
 
 	if (!parq_ul->quick && parq_ul->relative_position) {
-		parq_ul->queue->by_rel_pos = g_list_remove(
-			parq_ul->queue->by_rel_pos, parq_ul);
+		parq_upload_remove_relative(parq_ul);
 		parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
 
 		parq_ul->relative_position = 0;		/* Signals: has regular slot */
@@ -3488,8 +3503,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 			g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
 
-			parq_ul->queue->by_rel_pos = g_list_insert_sorted(
-				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
+			parq_upload_insert_relative(parq_ul);
 			parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
 		}
 
