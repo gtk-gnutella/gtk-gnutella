@@ -69,6 +69,7 @@ RCSID("$Id$")
 #define PARQ_VERSION_MAJOR	1
 #define PARQ_VERSION_MINOR	0
 
+#define PARQ_RETRY_FROZEN	300		/**< Each 5 minutes for frozen uploads */
 #define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/**< 30 seconds for each queue position */
 #define PARQ_MIN_POLL		10		/**< Minimum poll time */
@@ -163,6 +164,7 @@ struct parq_ul_queued_by_addr {
 	gint	uploading;		/**< Number of uploads uploading */
 	gint	total;			/**< Total queued items for this ip */
 	gint 	active_queued;	/**< Total actively queued items for this ip */
+	gint 	frozen;			/**< Total frozen items for this ip */
 	host_addr_t addr;
 
 	time_t	last_queue_sent;
@@ -243,6 +245,7 @@ struct parq_ul_queued {
 #define PARQ_UL_NOQUEUE		0x00000002	/**< No IP:port, don't send QUEUE */
 #define PARQ_UL_QUEUE_SENT	0x00000004	/**< QUEUE message sent */
 #define PARQ_UL_ID_SENT		0x00000008	/**< We already sent an ID */
+#define PARQ_UL_FROZEN		0x00000010	/**< Frozen entry */
 
 /**
  * Contains the queued download status.
@@ -1420,7 +1423,12 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 		}
 	}
 
-	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
+	result = MIN(PARQ_MAX_UL_RETRY_DELAY, result);
+
+	if (parq_ul->flags & PARQ_UL_FROZEN)
+		result = MAX(result, PARQ_RETRY_FROZEN);
+
+	return result;
 }
 
 /**
@@ -1683,7 +1691,8 @@ parq_upload_create(struct upload *u)
 	g_assert(parq_ul->queue->by_rel_pos != NULL);
 	g_assert(parq_ul->queue->by_position->data != NULL);
 	g_assert(parq_ul->relative_position > 0);
-	g_assert(parq_ul->relative_position <= UNSIGNED(parq_ul->queue->by_position_length));
+	g_assert(parq_ul->relative_position <=
+		UNSIGNED(parq_ul->queue->by_position_length));
 	g_assert(parq_ul->by_addr != NULL);
 	g_assert(parq_ul->by_addr->uploading <= parq_ul->by_addr->total);
 
@@ -2324,23 +2333,6 @@ parq_upload_get_at(struct parq_ul_queue *queue, int position)
 }
 
 /**
- * Check that the IP is not already downloading more than is alllowed.
- *
- * @return TRUE if it is OK for that IP to download from us.
- */
-gboolean
-parq_upload_addr_can_proceed(const struct upload *u)
-{
-	const struct parq_ul_queued *uq = u->parq_ul;
-
-	upload_check(u);
-	uq = u->parq_ul;
-	g_assert(uq != NULL);
-
-	return (guint32) uq->by_addr->uploading < GNET_PROPERTY(max_uploads_ip);
-}
-
-/**
  * @return TRUE if the current upload will finish quickly enough and 
  * actually scheduling would only cost more resources then it would
  * save.
@@ -2471,6 +2463,100 @@ free_upload_slots(struct parq_ul_queue *q)
 }
 
 /**
+ * Mark all the entries which do not have a slot for this IP as "frozen",
+ * thereby removing them from the PARQ scheduling logic until the amount
+ * of slots used by this IP decreases..
+ */
+static void
+parq_upload_freeze_all(struct parq_ul_queued *uq)
+{
+	GList *l;
+	gint frozen = 0;
+
+	g_assert(uq);
+	g_assert(uq->by_addr);
+
+	if (GNET_PROPERTY(parq_debug))
+		g_message("[PARQ UL] Freezing entries for IP %s (has %d already)",
+			host_addr_to_string(uq->by_addr->addr), uq->by_addr->frozen);
+
+	for (l = uq->by_addr->list; l; l = g_list_next(l)) {
+		struct parq_ul_queued *uqx = l->data;
+
+		if (uqx->has_slot) {
+			g_assert(!(uqx->flags & PARQ_UL_FROZEN));
+			continue;
+		}
+
+		if (!(uqx->flags & PARQ_UL_FROZEN)) {
+			if (GNET_PROPERTY(parq_debug) >= 5)
+				g_message("[PARQ UL] Freezing %s [#%d] from IP %s",
+					guid_hex_str(uqx->id), uqx->queue->num,
+					host_addr_to_string(uq->by_addr->addr));
+
+			uqx->queue->by_rel_pos = g_list_remove(uqx->queue->by_rel_pos, uqx);
+			uqx->flags |= PARQ_UL_FROZEN;
+		}
+
+		frozen++;
+	}
+
+	if (GNET_PROPERTY(parq_debug))
+		g_message("[PARQ UL] Froze %d entr%s for IP %s",
+			frozen, frozen == 1 ? "y" : "ies",
+			host_addr_to_string(uq->by_addr->addr));
+
+	uq->by_addr->frozen = frozen;
+}
+
+/**
+ * Unfreeze all entries for given IP, allowing them to compete for a slot again.
+ */
+static void
+parq_upload_unfreeze_all(struct parq_ul_queued *uq)
+{
+	GList *l;
+	gint thawed = 0;
+
+	g_assert(uq);
+	g_assert(uq->by_addr);
+
+	if (GNET_PROPERTY(parq_debug))
+		g_message("[PARQ UL] Thawing entries for IP %s (has %d)",
+			host_addr_to_string(uq->by_addr->addr), uq->by_addr->frozen);
+
+	for (l = uq->by_addr->list; l; l = g_list_next(l)) {
+		struct parq_ul_queued *uqx = l->data;
+
+		if (uqx->flags & PARQ_UL_FROZEN) {
+			g_assert(!uqx->has_slot);
+
+			uqx->flags &= ~PARQ_UL_FROZEN;
+			if (uqx->is_alive)
+				uqx->queue->by_rel_pos = g_list_insert_sorted(
+					uqx->queue->by_rel_pos, uqx, parq_ul_rel_pos_cmp);
+
+			if (GNET_PROPERTY(parq_debug) >= 5)
+				g_message("[PARQ UL] Thawed %s [#%d] from IP %s",
+					guid_hex_str(uqx->id), uqx->queue->num,
+					host_addr_to_string(uq->by_addr->addr));
+
+			thawed++;
+		}
+	}
+
+	if (thawed)
+		parq_upload_recompute_relative_positions(uq->queue);
+
+	if (GNET_PROPERTY(parq_debug))
+		g_message("[PARQ UL] Thawed %d entr%s for IP %s",
+			thawed, thawed == 1 ? "y" : "ies",
+			host_addr_to_string(uq->by_addr->addr));
+
+	uq->by_addr->frozen = 0;
+}
+
+/**
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
 static gboolean
@@ -2482,6 +2568,36 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	gint allowed_max_uploads;
 
 	g_assert(uq != NULL);
+
+	/**
+	 * A "frozen" entry is an entry still in the queue but removed from the
+	 * "by_rel_pos" list because it has concurrent uploads from the same
+	 * address and its its max number of uploads per IP.
+	 *
+	 * Such an entry gets higher retry time and expiration times, and only
+	 * when one upload from that IP will be ended can we unfreeze all the
+	 * entries for the IP and let the compete again in the queues.
+	 *		--RAM, 2007-08-18
+	 */
+
+	if (uq->flags & PARQ_UL_FROZEN) {
+		if (GNET_PROPERTY(parq_debug) >= 5)
+			g_message("[PARQ UL] parq_upload_continue, "
+				"frozen entry, IP %s has %d entries uploading (max %u)",
+				host_addr_to_string(uq->by_addr->addr),
+				uq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
+
+		/*
+		 * Maybe the max_uploads_ip setting changed since last time we froze
+		 * the entry?  If so, unfreeze them all now and proceed.
+		 */
+
+		if (UNSIGNED(uq->by_addr->uploading) >= GNET_PROPERTY(max_uploads_ip))
+			return FALSE;		/* No quick upload slot either */
+
+		parq_upload_unfreeze_all(uq);
+		/* FALL THROUGH */
+	}
 
 	/*
 	 * max_uploads holds the number of upload slots a queue may currently
@@ -2502,11 +2618,12 @@ parq_upload_continue(struct parq_ul_queued *uq)
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
 	 */
-	if ((guint32) uq->by_addr->uploading >= GNET_PROPERTY(max_uploads_ip)) {
+	if (UNSIGNED(uq->by_addr->uploading) >= GNET_PROPERTY(max_uploads_ip)) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_message("[PARQ UL] parq_upload_continue, "
 				"max_uploads_ip per single host reached %d/%d",
 				uq->by_addr->uploading, GNET_PROPERTY(max_uploads_ip));
+		parq_upload_freeze_all(uq);
 		goto check_quick;
 	}
 
@@ -3020,22 +3137,15 @@ parq_upload_request(struct upload *u)
 				GNET_PROPERTY(max_uploads) + MIN_UPLOAD_AQUEUED
 		) {
 			if (parq_ul->minor > 0 || parq_ul->major > 0) {
+				u->status = GTA_UL_QUEUED;
 				if (!parq_ul->active_queued) {
-					if (parq_ul->by_addr->active_queued == 0) {
-						u->status = GTA_UL_QUEUED;
-
-						parq_ul->active_queued = TRUE;
-						parq_ul->by_addr->active_queued++;
-						parq_ul->queue->active_queued_cnt++;
-					}
-				} else {
-						u->status = GTA_UL_QUEUED;
+					parq_ul->active_queued = TRUE;
+					parq_ul->by_addr->active_queued++;
+					parq_ul->queue->active_queued_cnt++;
 				}
 			}
 		}
 	}
-
-	g_assert(parq_ul->by_addr->active_queued <= 1);
 
 	u->parq_status = TRUE;		/* XXX would violate encapsulation */
 	return FALSE;
@@ -3271,6 +3381,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 				parq_ul->queue->num,
 				guid_hex_str(parq_ul->id), was_sending ? " sending" : "");
 
+		g_assert(!(parq_ul->flags & PARQ_UL_FROZEN));
 		g_assert(parq_ul->by_addr != NULL);
 		g_assert(parq_ul->by_addr->uploading > 0);
 		g_assert(host_addr_equal(parq_ul->by_addr->addr,parq_ul->remote_addr));
@@ -3303,6 +3414,8 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 				parq_ul->queue->by_rel_pos, parq_ul, parq_ul_rel_pos_cmp);
 			parq_upload_recompute_relative_positions(parq_ul->queue);
 		}
+
+		parq_upload_unfreeze_all(parq_ul);	/* Allow others to compete */
 	}
 
 	g_assert(parq_ul->queue->active_uploads >= 0);
@@ -3770,6 +3883,19 @@ parq_upload_lookup_quick(const struct upload *u)
 	upload_check(u);
 	parq_ul = parq_upload_find(u);
 	return parq_ul ? parq_ul->quick : FALSE;
+}
+
+/**
+ * @return TRUE if the upload is frozen.
+ */
+gboolean
+parq_upload_lookup_frozen(const struct upload *u)
+{
+	struct parq_ul_queued *parq_ul;
+
+	upload_check(u);
+	parq_ul = parq_upload_find(u);
+	return (parq_ul && (parq_ul->flags & PARQ_UL_FROZEN)) ? TRUE : FALSE;
 }
 
 /**

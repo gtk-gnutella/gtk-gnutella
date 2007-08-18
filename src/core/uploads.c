@@ -3329,24 +3329,8 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		}
 	}
 
-	if (!u->head_only) {
-		/*
-		 * Avoid race conditions in case of QUEUE callback answer: they might
-		 * already have got an upload slot since we sent the QUEUE and they
-		 * replied.  Not sure this is the right fix though, but it does
-		 * the job.
-		 *		--RAM, 24/12/2003
-		 */
-
-		if (!u->is_followup && !parq_upload_addr_can_proceed(u)) {
-			upload_error_remove(u, 503,
-				"Too many uploads to this IP address (limit=%d)",
-				GNET_PROPERTY(max_uploads_ip));
-			return;
-		}
-
+	if (!u->head_only)
 		parq_upload_busy(u, u->parq_ul);
-	}
 
 	/*
 	 * Ensure that a given persistent connection never requests more than
@@ -4677,6 +4661,7 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	si->parq_lifetime = MAX(0, delta_time(parq_upload_lifetime(u), now));
 	si->parq_retry = MAX(0, delta_time(parq_upload_retry(u), now));
 	si->parq_quick = parq_upload_lookup_quick(u);
+	si->parq_frozen = parq_upload_lookup_frozen(u);
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);

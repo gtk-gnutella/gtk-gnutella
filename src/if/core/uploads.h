@@ -60,6 +60,7 @@ typedef struct gnet_upload_status {
 	guint reqnum;		 /**< Count of uploaded chunks */
 
 	gboolean parq_quick;
+	gboolean parq_frozen;
 	guint	parq_position;
 	guint	parq_size;
 	guint32	parq_lifetime;

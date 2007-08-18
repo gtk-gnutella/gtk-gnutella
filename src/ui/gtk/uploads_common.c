@@ -188,6 +188,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			}
 			gm_snprintf(tmpstr, sizeof tmpstr,
 						_("%s [%d] (slot %d/%d)%s %s %s"),
+						u->parq_frozen ? _("Frozen") :
 						queued ? _("Queued") : _("Waiting"),
 						u->parq_queue_no,
 						u->parq_position,
