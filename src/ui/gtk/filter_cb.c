@@ -53,7 +53,7 @@ RCSID("$Id$")
 /**
  * Private variables.
  */
-static rule_t *rule_clipboard = NULL;
+static rule_t *rule_clipboard;
 
 /**
  * Private functions.

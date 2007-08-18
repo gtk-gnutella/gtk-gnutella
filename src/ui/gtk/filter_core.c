@@ -101,29 +101,29 @@ static void filter_free(filter_t *f);
 /**
  * Public variables.
  */
-filter_t *work_filter = NULL;
+filter_t *work_filter;
 
 /*
  * Private variables
  */
-static GList *shadow_filters = NULL;
-static GList *filters_added = NULL;
-static GList *filters_removed = NULL;
+static GList *shadow_filters;
+static GList *filters_added;
+static GList *filters_removed;
 
 /* built-in targets */
-static filter_t *filter_drop = NULL;
-static filter_t *filter_show = NULL;
-static filter_t *filter_download = NULL;
-static filter_t *filter_nodownload = NULL;
-static filter_t *filter_return = NULL;
+static filter_t *filter_drop;
+static filter_t *filter_show;
+static filter_t *filter_download;
+static filter_t *filter_nodownload;
+static filter_t *filter_return;
 
 /* global filters */
-static filter_t *filter_global_pre = NULL;
-static filter_t *filter_global_post = NULL;
+static filter_t *filter_global_pre;
+static filter_t *filter_global_post;
 
 /* not static because needed in search_xml. */
-GList *filters = NULL;
-GList *filters_current = NULL;
+GList *filters;
+GList *filters_current;
 
 
 /***
