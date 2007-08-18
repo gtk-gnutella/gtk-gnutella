@@ -895,6 +895,25 @@ node_error_cleanup(void)
 	g_slist_free(to_remove);
 }
 
+static void
+node_tls_refresh(struct gnutella_node *n)
+{
+	node_check(n);
+
+	if (
+		(n->flags & NODE_F_CAN_TLS) &&
+		n->gnet_port &&
+		is_host_addr(n->gnet_addr)
+	) {
+		time_t seen;
+		
+		seen = tls_cache_get_timestamp(n->gnet_addr, n->gnet_port);
+		if (!seen || delta_time(tm_time(), seen) > 60) {
+			tls_cache_insert(n->gnet_addr, n->gnet_port);
+		}
+	}
+}
+
 /**
  * Periodic node heartbeat timer.
  */
@@ -925,13 +944,7 @@ node_timer(time_t now)
 		 */
  		sl = g_slist_next(sl);
 
-		if (
-			(n->flags & NODE_F_CAN_TLS) &&
-			n->gnet_port &&
-			is_host_addr(n->gnet_addr)
-		) {
-			tls_cache_insert(n->gnet_addr, n->gnet_port);
-		}
+		node_tls_refresh(n);
 
 		/*
 		 * If we're sending a BYE message, check whether the whole TX
@@ -4915,7 +4928,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	if (header_get_feature("tls", head, NULL, NULL)) {
 		n->flags |= NODE_F_CAN_TLS;
-		tls_cache_insert(n->gnet_addr, n->gnet_port);
+		node_tls_refresh(n);
 	}
 
 	/* Bye-Packet -- support for final notification */
