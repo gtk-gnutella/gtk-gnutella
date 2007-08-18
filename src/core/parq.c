@@ -2510,6 +2510,36 @@ parq_upload_freeze_all(struct parq_ul_queued *uq)
 }
 
 /**
+ * Unfreeze one entry, if needed.
+ */
+static void
+parq_upload_unfreeze_one(struct parq_ul_queued *uq)
+{
+	g_assert(uq);
+	g_assert(uq->by_addr);
+
+	if (!(uq->flags & PARQ_UL_FROZEN))
+		return;
+
+	g_assert(!uq->has_slot);
+	g_assert(uq->is_alive);
+
+	if (GNET_PROPERTY(parq_debug) >= 5)
+		g_message("[PARQ UL] Thawing one %s [#%d] from IP %s",
+			guid_hex_str(uq->id), uq->queue->num,
+			host_addr_to_string(uq->by_addr->addr));
+
+	uq->flags &= ~PARQ_UL_FROZEN;
+	uq->queue->by_rel_pos = g_list_insert_sorted(
+		uq->queue->by_rel_pos, uq, parq_ul_rel_pos_cmp);
+	uq->by_addr->frozen--;
+
+	parq_upload_recompute_relative_positions(uq->queue);
+
+	g_assert(uq->by_addr->frozen >= 0);
+}
+
+/**
  * Unfreeze all entries for given IP, allowing them to compete for a slot again.
  */
 static void
@@ -2707,6 +2737,7 @@ check_quick:
 			g_message("[PARQ UL] [#%d] Allowed quick upload (%ld bytes)",
 				uq->queue->num, (gulong) uq->chunk_size);
 
+		parq_upload_unfreeze_one(uq);
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
 		uq->quick = TRUE;
 		return TRUE;
