@@ -2517,6 +2517,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *uq)
 {
 	GList *l;
 	gint thawed = 0;
+	gboolean inserted = FALSE;
 
 	g_assert(uq);
 	g_assert(uq->by_addr);
@@ -2532,9 +2533,11 @@ parq_upload_unfreeze_all(struct parq_ul_queued *uq)
 			g_assert(!uqx->has_slot);
 
 			uqx->flags &= ~PARQ_UL_FROZEN;
-			if (uqx->is_alive)
+			if (uqx->is_alive) {
 				uqx->queue->by_rel_pos = g_list_insert_sorted(
 					uqx->queue->by_rel_pos, uqx, parq_ul_rel_pos_cmp);
+				inserted = TRUE;
+			}
 
 			if (GNET_PROPERTY(parq_debug) >= 5)
 				g_message("[PARQ UL] Thawed %s [#%d] from IP %s",
@@ -2545,7 +2548,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *uq)
 		}
 	}
 
-	if (thawed)
+	if (inserted)
 		parq_upload_recompute_relative_positions(uq->queue);
 
 	if (GNET_PROPERTY(parq_debug))
