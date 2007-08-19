@@ -9241,10 +9241,11 @@ picked:
 		header_features_generate(FEATURES_DOWNLOADS,
 			dl_tmp, sizeof(dl_tmp), &rw);
 
-		/* If we request the file by an custom URI it's most likely
-		 * not a Gnutella peer.
+		/*
+		 * If we request the file by a custom URI it's most likely
+		 * not a Gnutella peer, unless it's a THEX request.
 		 */
-		if (!d->uri) {
+		if (!d->uri || (d->flags & DL_F_THEX)) {
 			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 					"X-Token: %s\r\n", tok_version());
 		}
