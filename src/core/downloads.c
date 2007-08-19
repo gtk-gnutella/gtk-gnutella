@@ -4018,10 +4018,7 @@ download_start(struct download *d, gboolean check_allowed)
 	file_info_check(d->file_info);
 
 	d->flags &= ~DL_F_PAUSED;
-	if (FI_F_PAUSED & d->file_info->flags) {
-		d->file_info->flags &= ~FI_F_PAUSED;
-		file_info_changed(d->file_info);
-	}
+	file_info_resume(d->file_info);
 
 	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
 	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
@@ -4166,10 +4163,7 @@ download_pause(struct download *d)
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	d->flags |= DL_F_PAUSED;
-	if (!(FI_F_PAUSED & d->file_info->flags)) {
-		d->file_info->flags |= FI_F_PAUSED;
-		file_info_changed(d->file_info);
-	}
+	file_info_pause(d->file_info);
 
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
@@ -5531,10 +5525,7 @@ download_resume(struct download *d)
 	file_info_check(d->file_info);
 
 	d->flags &= ~DL_F_PAUSED;
-	if (FI_F_PAUSED & d->file_info->flags) {
-		d->file_info->flags &= ~FI_F_PAUSED;
-		file_info_changed(d->file_info);
-	}
+	file_info_resume(d->file_info);
 	
 	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
