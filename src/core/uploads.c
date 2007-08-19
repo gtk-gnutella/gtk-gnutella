@@ -1745,7 +1745,7 @@ upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
         upload_fire_upload_info_changed(u);
     }
 
-	parq_upload_remove(u, was_sending);
+	parq_upload_remove(u, was_sending, u->was_running);
 
 	reason = reason != no_reason ? reason : NULL;
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
@@ -3329,9 +3329,6 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		}
 	}
 
-	if (!u->head_only)
-		parq_upload_busy(u, u->parq_ul);
-
 	/*
 	 * Ensure that a given persistent connection never requests more than
 	 * the total file length.  Add 10% to account for partial overlapping
@@ -3373,6 +3370,9 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		upload_error_not_found(u, NULL);
 		return;
 	}
+
+	if (!u->head_only)
+		parq_upload_busy(u, u->parq_ul);
 
 	/*
 	 * PARQ ID, emitted if needed.
@@ -3814,7 +3814,6 @@ upload_request(struct upload *u, header_t *header)
 			return;
 		}
 	}
-
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,

@@ -98,7 +98,7 @@ gboolean parq_upload_lookup_quick(const struct upload *);
 gboolean parq_upload_lookup_frozen(const struct upload *);
 
 gboolean parq_upload_queued(struct upload *);
-gboolean parq_upload_remove(struct upload *, gboolean);
+gboolean parq_upload_remove(struct upload *, gboolean, gboolean);
 void parq_upload_collect_stats(const struct upload *);
 void parq_upload_upload_got_freed(struct upload *);
 void parq_upload_upload_got_cloned(struct upload *u, struct upload *cu);

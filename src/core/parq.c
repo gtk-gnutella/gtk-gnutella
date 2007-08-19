@@ -3070,24 +3070,31 @@ parq_upload_request(struct upload *u)
 		avg_bps = MAX(1, avg_bps);
 
 		delta = parq_ul->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
-		/* If the chunk sizes are really small, expire them sooner */
+		if (parq_ul->active_queued)
+			delta = MIN(delta, MIN_LIFE_TIME);
 		parq_ul->expire = time_advance(parq_ul->retry, delta);
 	} else {
 		parq_ul->expire = time_advance(parq_ul->retry, MIN_LIFE_TIME);
 	}
 
+	/* Ensure our adjustments make sense here */
+	STATIC_ASSERT(PARQ_RETRY_SAFETY < MIN_LIFE_TIME);
+
 	grace = delta_time(parq_ul->expire, parq_ul->retry);
-	if (grace < PARQ_GRACE_TIME) {
-		time_delta_t delta = PARQ_GRACE_TIME - grace;
+	if (grace < PARQ_RETRY_SAFETY) {
+		time_delta_t delta = PARQ_RETRY_SAFETY - grace;
 		parq_ul->expire = time_advance(parq_ul->expire, delta);
 	}
 
 	if (GNET_PROPERTY(parq_debug) > 1)
-		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: "
+		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: %s, "
 			"chunk=%s, now=%lu, retry=%lu, expire=%lu, quick=%s, has_slot=%s, "
 			"uploaded=%s id=%s",
 			u->name, host_addr_to_string(u->addr),
 			upload_vendor_str(u),
+			parq_ul->active_queued ?
+				"active" : parq_ul->has_slot ?
+				"running" : "passive",
 			uint64_to_string(parq_ul->chunk_size),
 			(unsigned long) now,
 			(unsigned long) parq_ul->retry,
@@ -3171,8 +3178,14 @@ parq_upload_request(struct upload *u)
 	 */
 
 	if (parq_ul->has_slot) {
-		if (!parq_ul->quick || parq_upload_quick_continue(parq_ul))
-			return TRUE;
+		if (!parq_ul->quick) {
+			g_assert(parq_ul->relative_position == 0);
+			return TRUE;			/* Has regular slot */
+		}
+		if (parq_upload_quick_continue(parq_ul)) {
+			g_assert(parq_ul->relative_position > 0);
+			return TRUE;			/* Has quick slot */
+		}
 		if (GNET_PROPERTY(parq_debug))
 			g_message("[PARQ UL] Fully checking quick upload slot");
 		/* FALL THROUGH */
@@ -3210,8 +3223,10 @@ parq_upload_request(struct upload *u)
 		parq_ul->has_slot = FALSE;
 	}
 
-	/* Don't allow more than 1 active queued upload per ip */
-	if (parq_ul->by_addr->active_queued == 0 || parq_ul->active_queued) {
+	/*
+	 * Check whether we should actively queue this upload.
+	 */
+	if (!parq_ul->active_queued) {
 		guint max_slot = parq_upload_active_size +
 			GNET_PROPERTY(max_uploads) / 2;
 
@@ -3228,11 +3243,9 @@ parq_upload_request(struct upload *u)
 		) {
 			if (parq_ul->minor > 0 || parq_ul->major > 0) {
 				u->status = GTA_UL_QUEUED;
-				if (!parq_ul->active_queued) {
-					parq_ul->active_queued = TRUE;
-					parq_ul->by_addr->active_queued++;
-					parq_ul->queue->active_queued_cnt++;
-				}
+				parq_ul->active_queued = TRUE;
+				parq_ul->by_addr->active_queued++;
+				parq_ul->queue->active_queued_cnt++;
 			}
 		}
 	}
@@ -3333,7 +3346,7 @@ parq_upload_force_remove(struct upload *u)
 
 	upload_check(u);
 	parq_ul = parq_upload_find(u);
-	if (parq_ul != NULL && !parq_upload_remove(u, UPLOAD_IS_SENDING(u))) {
+	if (parq_ul != NULL && !parq_upload_remove(u, UPLOAD_IS_SENDING(u), TRUE)) {
 		parq_upload_free(parq_ul);
 	}
 }
@@ -3375,7 +3388,7 @@ parq_upload_collect_stats(const struct upload *u)
  * was cleared. FALSE if the parq structure still exists.
  */
 gboolean
-parq_upload_remove(struct upload *u, gboolean was_sending)
+parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 {
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = NULL;
@@ -3395,23 +3408,24 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 
 	parq_ul = parq_upload_find(u);
 
-	if (parq_ul) {
-		if (parq_ul->active_queued)
-			parq_upload_clear_actively_queued(parq_ul);
-
-		if (parq_ul->quick) {
-			gnet_prop_decr_guint32(PROP_UL_QUICK_RUNNING);
-			parq_ul->quick = FALSE;
-		}
-	}
-
 	/*
-	 * If parq_ul = NULL, than the upload didn't get a slot in the PARQ,
-	 * or it is the parent of a now cloned upload (see upload_clone()).
+	 * If we can't find the PARQ entry, this is probably a cloned upload.
+	 *
+	 * If the upload mismatches, then it's probably an error like "Already
+	 * downloading this file" and the lookup for the PARQ entry was done
+	 * by name only, but the PARQ slot refers to the running upload.
 	 */
 
 	if (parq_ul == NULL || parq_ul->u != u)
 		return FALSE;
+
+	if (parq_ul->active_queued)
+		parq_upload_clear_actively_queued(parq_ul);
+
+	if (parq_ul->quick) {
+		gnet_prop_decr_guint32(PROP_UL_QUICK_RUNNING);
+		parq_ul->quick = FALSE;
+	}
 
 	parq_upload_collect_stats(u);
 
@@ -3437,15 +3451,6 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	/*
-	 * If upload was killed whilst sending, then reset the "had_slot" flag
-	 * to have the entry persisted again.
-	 *		--RAM, 2007-08-16
-	 */
-
-	if (was_sending)
-		parq_ul->had_slot = FALSE;		/* Did not get a chance to complete */
-
-	/*
 	 * When the upload was actively queued, the last_update timestamp was
 	 * set to somewhere in the future to avoid early removal. However, now we
 	 * do want to remove the upload.
@@ -3457,10 +3462,25 @@ parq_upload_remove(struct upload *u, gboolean was_sending)
 	}
 
 	if (GNET_PROPERTY(parq_debug) > 3)
-		g_message("PARQ UL Q %d/%d [%s]: Upload removed (was %ssending)",
+		g_message("PARQ UL Q %d/%d [%s]: Upload removed (%s, %s slot) \"%s\"",
 			parq_ul->queue->num,
 			ul_parqs_cnt, guid_hex_str(parq_ul->id),
-			was_sending ? "" : "not ");
+			was_running ? "running" : "waiting",
+			parq_ul->has_slot ? "with" : "no",
+			u->name);
+
+	/*
+	 * If upload was killed whilst sending, then reset the "had_slot" flag
+	 * to have the entry persisted again.
+	 *		--RAM, 2007-08-16
+	 */
+
+	if (was_sending && was_running)
+		parq_ul->had_slot = FALSE;		/* Did not get a chance to complete */
+
+	/*
+	 * Cleanup its slot if it had one.
+	 */
 
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
@@ -3715,7 +3735,9 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
 	
 	parq_ul = parq_upload_find(u);
 	g_return_val_if_fail(parq_ul, 0);
-		
+
+	STATIC_ASSERT(PARQ_MIN_POLL < PARQ_RETRY_SAFETY);
+
 	now = tm_time();
 	d = delta_time(parq_ul->retry, now);
 	d = MAX(PARQ_MIN_POLL, d);
