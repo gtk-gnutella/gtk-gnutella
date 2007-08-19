@@ -1163,18 +1163,23 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			struct parq_ul_queue *q = l->data;
 
 			if (q->active_uploads > 1) {
-				struct parq_ul_queued *parq_ul;
+				GList *lx;
 
-				/* q->by_rel_pos can be NULL as we remove active uploads */
-				parq_ul = g_list_nth_data(q->by_rel_pos, 0);
-				eta = parq_ul ? parq_ul->eta : 0;
-				break;
+				for (lx = q->by_position; lx; lx = g_list_next(lx)) {
+					struct parq_ul_queued *parq_ul;
+
+					if (parq_ul->has_slot) {		/* Recompute ETA */
+						eta = (parq_ul->file_size / avg_bps)
+									* GNET_PROPERTY(max_uploads);
+						goto estimated;
+					}
+				}
 			}
 		}
 
+	estimated:
 		if (eta == 0 && GNET_PROPERTY(parq_debug) > 0)
 			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
-
 	}
 
 	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
