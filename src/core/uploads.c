@@ -1620,6 +1620,18 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 	 * 		-- JA, 22/4/2003
 	 */
 	u->keep_alive = GTA_UL_QUEUED == u->status;
+
+	if (GNET_PROPERTY(upload_debug) >= 4) {
+		g_message(
+			"sending code=%d to %s (%s) [status=%d]: %s",
+			code,
+			u->socket
+				? host_addr_to_string(u->socket->addr) : "<no socket>",
+			upload_vendor_str(u),
+			u->status, reason);
+		
+	}
+
 	upload_send_http_status(u, u->keep_alive, code, reason);
 	u->error_sent = code;
 }
