@@ -641,8 +641,6 @@ fi_gui_init(void)
 			title = gtk_label_get_text(label);
 			gtk_clist_set_column_name(clist, i, EMPTY_STRING(title));
 		}
-
-		gui_signal_connect(clist, "select-row", on_clist_select_row, NULL);
 		widget_add_popup_menu(GTK_WIDGET(clist), fi_gui_sources_get_popup_menu);	
 	}
 	fi_gui_common_init();
