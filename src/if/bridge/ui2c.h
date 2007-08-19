@@ -136,6 +136,8 @@ void guc_fi_get_status(gnet_fi_t, gnet_fi_status_t *);
 
 gchar **guc_fi_get_aliases(gnet_fi_t);
 void guc_fi_purge(gnet_fi_t);
+void guc_fi_pause(gnet_fi_t);
+void guc_fi_resume(gnet_fi_t);
 
 GSList *guc_fi_get_chunks(gnet_fi_t);
 void guc_fi_free_chunks(GSList *chunks);

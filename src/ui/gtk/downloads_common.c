@@ -805,6 +805,10 @@ on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	SELECTED_FILES_FOREACH_START(file) {
+		guc_fi_pause(file->handle);
+	} SELECTED_FILES_FOREACH_END
+
 	SELECTED_FILES_FOREACH_SOURCE_START(d) {
 		guc_download_pause(d);
 	} SELECTED_FILES_FOREACH_SOURCE_END
@@ -816,6 +820,10 @@ on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	SELECTED_FILES_FOREACH_START(file) {
+		guc_fi_resume(file->handle);
+	} SELECTED_FILES_FOREACH_END
 
 	SELECTED_FILES_FOREACH_SOURCE_START(d) {
 		guc_download_resume(d);

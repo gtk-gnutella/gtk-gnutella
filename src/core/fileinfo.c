@@ -5689,6 +5689,18 @@ fi_purge(gnet_fi_t fih)
 	return file_info_purge(file_info_find_by_handle(fih));
 }
 
+void
+fi_pause(gnet_fi_t fih)
+{
+	file_info_pause(file_info_find_by_handle(fih));
+}
+
+void
+fi_resume(gnet_fi_t fih)
+{
+	return file_info_resume(file_info_find_by_handle(fih));
+}
+
 /**
  * Emit an X-Available-Ranges header listing the ranges within the file that
  * we have on disk and we can share as a PFSP-server.  The header is emitted
