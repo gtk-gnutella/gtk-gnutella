@@ -646,6 +646,7 @@ main_gui_init(void)
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init();
     search_gui_init();
+	filter_init_presets();
     filter_update_targets(); /* Make sure the default filters are ok */
     monitor_gui_init();
 	gui_update_files_scanned();

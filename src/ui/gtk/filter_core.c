@@ -751,23 +751,23 @@ filter_new_state_rule(enum filter_prop_state display,
 void
 filter_set(filter_t *f)
 {
-    if (f != NULL) {
+    if (f) {
         shadow_t *shadow;
         gboolean removable;
         gboolean active;
         GList *ruleset;
 
+		removable = filter_is_modifiable(f) &&
+			!filter_is_global(f) &&
+			!filter_is_bound(f);
+
         shadow = shadow_find(f);
         if (shadow != NULL) {
-            removable =
-                (shadow->refcount == 0) && !filter_is_builtin(f) &&
-                !filter_is_global(f) && !filter_is_bound(f);
+            removable = removable && 0 == shadow->refcount;
             active = filter_is_active(shadow);
             ruleset = shadow->current;
         } else {
-            removable =
-                (f->refcount == 0) && !filter_is_builtin(f) &&
-                !filter_is_global(f) && !filter_is_bound(f);
+            removable = removable && 0 == f->refcount;
             active = filter_is_active(f);
             ruleset = f->ruleset;
         }
@@ -2476,6 +2476,95 @@ filter_shutdown(void)
         filter_free(f->data);
 }
 
+static void
+filter_video_init(void)
+{
+	const char *name = lazy_ui_string_to_utf8(_("<Video>"));
+	filter_t *filter;
+
+	filter = filter_find_by_name_in_session(name);
+	if (NULL == filter) {
+		rule_t *rule;
+
+		filter = filter_new(name);
+
+		rule = filter_new_size_rule(0, 10000000,
+				filter_get_drop_target(),
+				RULE_FLAG_ACTIVE);
+		filter_append_rule(filter, rule);
+
+		rule = filter_new_text_rule("[.](avi|mpg|mp4|mpeg|mkv|ogm)$",
+				RULE_TEXT_REGEXP,
+				FALSE,	/* case-insensitive */
+				filter_get_drop_target(),
+				RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
+		filter_append_rule(filter, rule);
+
+		filter_add_to_session(filter);
+	}
+	set_flags(filter->flags, FILTER_FLAG_PRESET);
+}
+
+static void
+filter_audio_init(void)
+{
+	const char *name = lazy_ui_string_to_utf8(_("<Audio>"));
+	filter_t *filter;
+
+	filter = filter_find_by_name_in_session(name);
+	if (NULL == filter) {
+		rule_t *rule;
+
+		filter = filter_new(name);
+		rule = filter_new_size_rule(0, 1000000,
+				filter_get_drop_target(),
+				RULE_FLAG_ACTIVE);
+		filter_append_rule(filter, rule);
+
+		rule = filter_new_text_rule("[.](mp3|m4a|ogg|flac)$",
+				RULE_TEXT_REGEXP,
+				FALSE,	/* case-insensitive */
+				filter_get_drop_target(),
+				RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
+		filter_append_rule(filter, rule);
+
+		filter_add_to_session(filter);
+	}
+	set_flags(filter->flags, FILTER_FLAG_PRESET);
+}
+
+static void
+filter_image_init(void)
+{
+	const char *name = lazy_ui_string_to_utf8(_("<Image>"));
+	filter_t *filter;
+
+	filter = filter_find_by_name_in_session(name);
+	if (NULL == filter) {
+		rule_t *rule;
+
+    	filter = filter_new(name);
+		rule = filter_new_text_rule("[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$",
+			RULE_TEXT_REGEXP,
+			FALSE,	/* case-insensitive */
+			filter_get_drop_target(),
+			RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
+		filter_append_rule(filter, rule);
+
+		filter_add_to_session(filter);
+	}
+	set_flags(filter->flags, FILTER_FLAG_PRESET);
+}
+
+void
+filter_init_presets(void)
+{
+	filter_audio_init();
+	filter_image_init();
+	filter_video_init();
+	filter_update_targets();
+}
+
 static filter_t *
 filters_add(const char *name, unsigned flags)
 {
@@ -2487,25 +2576,35 @@ filters_add(const char *name, unsigned flags)
 	return filter;
 }
 
+static void
+filter_init_globals(void)
+{
+	const unsigned flags = FILTER_FLAG_GLOBAL;
+
+    filter_global_pre  = filters_add(_("Global (pre)"), flags);
+    filter_global_post = filters_add(_("Global (post)"), flags);
+}
+
+static void
+filter_init_builtins(void)
+{
+	const unsigned flags = FILTER_FLAG_BUILTIN;
+
+    filter_show        = filters_add(_("DISPLAY"), flags);
+    filter_drop        = filters_add(_("DON'T DISPLAY"), flags);
+    filter_download    = filters_add(_("DOWNLOAD"), flags);
+    filter_nodownload  = filters_add(_("DON'T DOWNLOAD"), flags);
+    filter_return      = filters_add(_("RETURN"), flags);
+}
+
 /**
  * Initialize global filters.
  */
 void
 filter_init(void)
 {
-	unsigned flags;
-
-	flags = FILTER_FLAG_GLOBAL;
-    filter_global_pre  = filters_add(_("Global (pre)"), flags);
-    filter_global_post = filters_add(_("Global (post)"), flags);
-
-	flags = FILTER_FLAG_BUILTIN;
-    filter_show        = filters_add(_("DISPLAY"), flags);
-    filter_drop        = filters_add(_("DON'T DISPLAY"), flags);
-    filter_download    = filters_add(_("DOWNLOAD"), flags);
-    filter_nodownload  = filters_add(_("DON'T DOWNLOAD"), flags);
-    filter_return      = filters_add(_("RETURN"), flags);
-
+	filter_init_globals();
+	filter_init_builtins();
     filters_current = g_list_copy(filters);
 
     gui_popup_filter_rule_set(create_popup_filter_rule());
@@ -2649,6 +2748,13 @@ filter_is_builtin(const filter_t *f)
 {
 	g_return_val_if_fail(f, FALSE);
     return 0 != (FILTER_FLAG_BUILTIN & f->flags);
+}
+
+gboolean
+filter_is_modifiable(const filter_t *f)
+{
+	g_return_val_if_fail(f, FALSE);
+    return !((FILTER_FLAG_BUILTIN | FILTER_FLAG_PRESET) & f->flags);
 }
 
 filter_t *

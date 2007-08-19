@@ -58,6 +58,7 @@ enum {
 };
 
 enum {
+	FILTER_FLAG_PRESET	= 1 << 4,
 	FILTER_FLAG_GLOBAL	= 1 << 3,
 	FILTER_FLAG_BUILTIN	= 1 << 2,
 	FILTER_FLAG_ACTIVE	= 1 << 1,
@@ -172,6 +173,7 @@ filter_result_t *filter_record(struct search *, const struct record *);
 gchar *filter_rule_condition_to_string(const rule_t *r);
 gchar *filter_rule_to_string(const rule_t *f);
 gboolean filter_is_builtin(const filter_t *f);
+gboolean filter_is_modifiable(const filter_t *f);
 gboolean filter_is_global(const filter_t *f);
 void filter_reset_stats(filter_t *filter);
 void filter_rule_reset_stats(rule_t *rule);
@@ -201,6 +203,7 @@ void filter_close_search(struct search *);
 void filter_add_to_session(filter_t *f);
 void filter_remove_from_session(filter_t *f);
 void filter_init(void);
+void filter_init_presets(void);
 void filter_new_for_search(struct search *s);
 void filter_open_dialog(void);
 void filter_remove_rule_from_session(filter_t *, rule_t * const);

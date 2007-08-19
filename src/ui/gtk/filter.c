@@ -584,7 +584,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 
     if (f != NULL) {
         gtk_mass_widget_set_sensitive(gui_filter_dialog(),
-			widgets, G_N_ELEMENTS(widgets), TRUE);
+			widgets, G_N_ELEMENTS(widgets), filter_is_modifiable(f));
 
         gtk_widget_set_sensitive
             (gui_filter_dialog_lookup("button_filter_remove"), removable);
@@ -658,14 +658,6 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
             GTK_ENTRY(gui_filter_dialog_lookup("entry_filter_name")), "");
         filter_gui_set_ruleset(NULL);
         filter_gui_filter_set_enabled(NULL, FALSE);
-
-#ifdef USE_GTK1
-        gtk_clist_unselect_all(GTK_CLIST(ctree));
-#endif /* USE_GTK1 */
-#ifdef USE_GTK2
-		gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tv));
-#endif /* USE_GTK2 */
-
 
         gtk_widget_set_sensitive
             (gui_filter_dialog_lookup("button_filter_remove"), FALSE);
@@ -1042,7 +1034,7 @@ filter_gui_edit_rule(rule_t *r)
     if (gui_filter_dialog() == NULL)
         return;
 
-    if (r != NULL) {
+    if (r && filter_is_modifiable(work_filter)) {
         switch (r->type) {
         case RULE_TEXT:
             filter_gui_edit_text_rule(r);
@@ -1594,7 +1586,7 @@ filter_gui_set_ruleset(GList *ruleset)
 
     gtk_widget_set_sensitive(
         gui_filter_dialog_lookup("button_filter_clear"),
-        count != 0);
+        count > 0 && filter_is_modifiable(work_filter));
 
     if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("updated %d items\n", count);
@@ -1646,7 +1638,7 @@ filter_gui_set_ruleset(GList *ruleset)
 
     gtk_widget_set_sensitive(
         gui_filter_dialog_lookup("button_filter_clear"),
-        count != 0);
+        count > 0 && filter_is_modifiable(work_filter));
 
     if (GUI_PROPERTY(gui_debug) >= 5)
         g_message("updated %d items\n", count);
