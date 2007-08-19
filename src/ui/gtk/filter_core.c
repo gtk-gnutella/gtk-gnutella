@@ -2477,9 +2477,8 @@ filter_shutdown(void)
 }
 
 static void
-filter_video_init(void)
+filter_preset_init(const char * name, char *regexp, unsigned int size)
 {
-	const char *name = lazy_ui_string_to_utf8(_("<Video>"));
 	filter_t *filter;
 
 	filter = filter_find_by_name_in_session(name);
@@ -2488,12 +2487,14 @@ filter_video_init(void)
 
 		filter = filter_new(name);
 
-		rule = filter_new_size_rule(0, 10000000,
-				filter_get_drop_target(),
-				RULE_FLAG_ACTIVE);
-		filter_append_rule(filter, rule);
+        if(size) {
+            rule = filter_new_size_rule(0, size,
+                                        filter_get_drop_target(),
+                                        RULE_FLAG_ACTIVE);
+            filter_append_rule(filter, rule);
+        }
 
-		rule = filter_new_text_rule("[.](avi|mpg|mp4|mpeg|mkv|ogm)$",
+		rule = filter_new_text_rule(regexp,
 				RULE_TEXT_REGEXP,
 				FALSE,	/* case-insensitive */
 				filter_get_drop_target(),
@@ -2505,63 +2506,17 @@ filter_video_init(void)
 	set_flags(filter->flags, FILTER_FLAG_PRESET);
 }
 
-static void
-filter_audio_init(void)
-{
-	const char *name = lazy_ui_string_to_utf8(_("<Audio>"));
-	filter_t *filter;
-
-	filter = filter_find_by_name_in_session(name);
-	if (NULL == filter) {
-		rule_t *rule;
-
-		filter = filter_new(name);
-		rule = filter_new_size_rule(0, 1000000,
-				filter_get_drop_target(),
-				RULE_FLAG_ACTIVE);
-		filter_append_rule(filter, rule);
-
-		rule = filter_new_text_rule("[.](mp3|m4a|ogg|flac)$",
-				RULE_TEXT_REGEXP,
-				FALSE,	/* case-insensitive */
-				filter_get_drop_target(),
-				RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
-		filter_append_rule(filter, rule);
-
-		filter_add_to_session(filter);
-	}
-	set_flags(filter->flags, FILTER_FLAG_PRESET);
-}
-
-static void
-filter_image_init(void)
-{
-	const char *name = lazy_ui_string_to_utf8(_("<Image>"));
-	filter_t *filter;
-
-	filter = filter_find_by_name_in_session(name);
-	if (NULL == filter) {
-		rule_t *rule;
-
-    	filter = filter_new(name);
-		rule = filter_new_text_rule("[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$",
-			RULE_TEXT_REGEXP,
-			FALSE,	/* case-insensitive */
-			filter_get_drop_target(),
-			RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
-		filter_append_rule(filter, rule);
-
-		filter_add_to_session(filter);
-	}
-	set_flags(filter->flags, FILTER_FLAG_PRESET);
-}
-
+/**
+ *  Adds simple filter rules, for use by novice users.
+ */
 void
 filter_init_presets(void)
 {
-	filter_audio_init();
-	filter_image_init();
-	filter_video_init();
+	filter_preset_init("<Archives>", "[.](bz2|gz|zip|rar|iso)$", 0);
+	filter_preset_init("<Audio>", "[.](mp3|m4a|ogg|flac)$", 1000000);
+	filter_preset_init("<Books>", "[.](pdf|doc|lit|djvu)$", 10000);
+	filter_preset_init("<Image>", "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0);
+	filter_preset_init("<Video>", "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000);
 	filter_update_targets();
 }
 
