@@ -1231,7 +1231,7 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 	cp->addr = addr;
 	cp->port = port;
 	cp->guid = atom_guid_get(guid);
-	cp->file_idx = file_idx;
+	cp->file_idx = file_idx == URN_INDEX ? 0 : file_idx;
 	cp->http_handle = handle;
 	cp->flags = 0;
 
