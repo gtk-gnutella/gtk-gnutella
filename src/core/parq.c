@@ -2083,8 +2083,10 @@ parq_upload_timer(time_t now)
 	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
 		struct parq_banned *banned = dl->data;
 
-		if (now - banned->added > PARQ_MAX_UL_RETRY_DELAY ||
-			now - banned->expire > 0) {
+		if (
+			delta_time(now, banned->added) > PARQ_MAX_UL_RETRY_DELAY ||
+			delta_time(now, banned->expire) > 0
+		) {
 			to_remove = g_slist_prepend(to_remove, banned);
 		}
 	}
@@ -3127,7 +3129,7 @@ parq_upload_request(struct upload *u)
 			"host %s (%s) re-requested \"%s\" too soon (%u secs early)",
 			host_addr_port_to_string(u->socket->addr, u->socket->port),
 			upload_vendor_str(u),
-			u->name, (unsigned) (org_retry - now));
+			u->name, (unsigned) delta_time(org_retry, now));
 
 		if (
 			delta_time(parq_ul->ban_timeout, now) > 0 &&
@@ -3149,7 +3151,7 @@ parq_upload_request(struct upload *u)
 				"punishing %s (%s) for re-requesting \"%s\" %u secs early [%s]",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
-				u->name, (unsigned) (org_retry - now),
+				u->name, (unsigned) delta_time(org_retry, now),
 				guid_hex_str(parq_ul->id));
 
 			parq_add_banned_source(u->addr, delta_time(parq_ul->retry, now));
@@ -3461,7 +3463,10 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 	 *
 	 * XXX What's this encapsulation breaking? Needed? --RAM, 2007-08-17
 	 */
-	if (u->status == GTA_UL_QUEUED && u->last_update > now) {
+	if (
+		u->status == GTA_UL_QUEUED &&
+		delta_time(u->last_update, now) > 0
+	) {
 		u->last_update = parq_ul->updated;
 	}
 
@@ -3545,8 +3550,11 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 		return FALSE;
 	}
 
-	if (u->status == GTA_UL_ABORTED &&
-			parq_ul->disc_timeout > now && parq_ul->has_slot) {
+	if (
+		u->status == GTA_UL_ABORTED &&
+		parq_ul->has_slot &&
+		delta_time(parq_ul->disc_timeout, now) > 0
+	) {
 		/* Client disconnects too often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
 		if (u->socket != NULL) {
