@@ -110,11 +110,11 @@ add_column(GtkTreeView *tv, const gchar *name, gint id)
 				(void *) 0);
 
 	g_object_set(G_OBJECT(column),
-		"fixed-width", 100,
-		"min-width", 1,
+		"fixed-width", 200,
+		"min-width", 10,
 		"reorderable", FALSE,
 		"resizable", TRUE,
-		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
 		(void *) 0);
 	
     gtk_tree_view_append_column(tv, column);
