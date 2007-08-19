@@ -6180,7 +6180,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
     } else if (status->aqueued_count || status->pqueued_count) {
         gm_snprintf(buf, sizeof buf,
             _("Queued (%u active, %u passive)"),
-            status->aqueued_count, status->aqueued_count);
+            status->aqueued_count, status->pqueued_count);
 		return buf;
     } else if (status->paused) {
         return _("Paused");
