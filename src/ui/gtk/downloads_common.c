@@ -1625,7 +1625,7 @@ fileinfo_data_cmp(const struct fileinfo_data *a, const struct fileinfo_data *b,
 unsigned
 fi_gui_source_get_progress(const struct download *d)
 {
-	guint value;
+	unsigned value;
 
 	value = 100.0 * guc_download_source_progress(d);
 	value = MIN(value, 100);
