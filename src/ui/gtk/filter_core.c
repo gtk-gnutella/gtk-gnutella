@@ -2530,11 +2530,22 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 void
 filter_init_presets(void)
 {
-	filter_preset_init(_("<Archives>"), "[.](bz2|gz|zip|rar|iso)$", 0);
-	filter_preset_init(_("<Audio>"), "[.](mp3|m4a|ogg|flac)$", 1000000);
-	filter_preset_init(_("<Literature>"), "[.](pdf|doc|lit|djvu|ps)$", 10000);
-	filter_preset_init(_("<Image>"), "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0);
-	filter_preset_init(_("<Video>"), "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000);
+	static const struct {
+		const char *name;
+		const char *regex;
+		filesize_t minsize;
+	} tab[] = {
+		{ N_("<Archiv>"),	  "[.](bz2|gz|zip|rar|iso)$", 0 },
+		{ N_("<Audio>"), 	  "[.](mp3|m4a|ogg|flac)$", 1000000 },
+		{ N_("<Literature>"), "[.](pdf|doc|lit|djvu|ps)$", 10000 },
+		{ N_("<Image>"), 	  "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0 },
+		{ N_("<Video>"), 	  "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000 },
+	};
+	unsigned i;
+
+	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		filter_preset_init(_(tab[i].name), tab[i].regex, tab[i].minsize);
+	}
 	filter_update_targets();
 }
 
