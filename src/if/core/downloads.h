@@ -306,7 +306,9 @@ enum {
  * State inspection macros.
  */
 
-#define DOWNLOAD_IS_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
+#define DOWNLOAD_IS_QUEUED(d) \
+	(	(d)->status == GTA_DL_QUEUED	\
+	||  (d)->status == GTA_DL_PASSIVE_QUEUED)
 
 #define DOWNLOAD_IS_VERIFYING(d)		 \
 	(  (d)->status == GTA_DL_VERIFY_WAIT \

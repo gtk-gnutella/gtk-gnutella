@@ -2117,8 +2117,8 @@ download_actively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_ACTIVE_QUEUED;
-	        d->file_info->aqueued_count ++;
-	        d->file_info->dirty = TRUE;
+        d->file_info->aqueued_count ++;
+        d->file_info->dirty = TRUE;
 
 		g_assert(GNET_PROPERTY(dl_aqueued_count) < INT_MAX);
 		gnet_prop_incr_guint32(PROP_DL_AQUEUED_COUNT);
@@ -2131,9 +2131,11 @@ download_actively_queued(struct download *d, gboolean queued)
 
 		d->flags &= ~DL_F_ACTIVE_QUEUED;
 		g_assert(d->file_info->aqueued_count > 0);
-	        d->file_info->aqueued_count --;
-	        d->file_info->dirty = TRUE;
+        d->file_info->aqueued_count --;
+        d->file_info->dirty = TRUE;
 	}
+
+	file_info_changed(d->file_info);
 }
 
 /**
@@ -2166,6 +2168,8 @@ download_passively_queued(struct download *d, gboolean queued)
 		d->file_info->pqueued_count--;
 		d->file_info->dirty = TRUE;
 	}
+
+	file_info_changed(d->file_info);
 }
 
 /**
@@ -3262,9 +3266,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
-	file_info_changed(d->file_info);		/* Update status! */
-
 	download_actively_queued(d, FALSE);
+	file_info_changed(d->file_info);		/* Update status! */
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
@@ -3369,7 +3372,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 */
 
 	d->remove_msg = fmt ? d->error_str: NULL;
-	d->status = GTA_DL_QUEUED;
+	d->status = d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED;
 
 	g_assert(d->socket == NULL);
 
@@ -4633,7 +4636,8 @@ create_download(
 	fileinfo_t *file_info,
 	const gnet_host_vec_t *proxies,
 	guint32 cflags,
-	const gchar *parq_id)
+	const gchar *parq_id,
+	gboolean use_mesh)
 {
 	struct dl_server *server;
 	struct download *d;
@@ -4875,6 +4879,9 @@ create_download(
 		parq_dl_add_id(d, parq_id);
 	}
 
+	if (use_mesh && sha1 && size)
+		dmesh_multiple_downloads(sha1, size, d->file_info);
+
 	return d;
 }
 
@@ -4932,7 +4939,7 @@ download_auto_new(const gchar *file_name,
 	 */
 
 	create_download(file_name,
-		NULL, /* URI */
+		NULL,	/* URI */
 		size,
 		addr,
 		port,
@@ -4943,7 +4950,9 @@ download_auto_new(const gchar *file_name,
 		fi,
 		proxies,
 		flags,
-		NULL); /* PARQ ID */
+		NULL, 	/* PARQ ID */
+		FALSE	/* Don't use download mesh */
+	);
 
 	return;
 
@@ -5249,7 +5258,8 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 			req->fi,
 			NULL,
 			req->flags,
-			req->parq_id);
+			req->parq_id,
+			TRUE);
 	}
 	download_request_free(&req);
 }
@@ -5306,7 +5316,7 @@ download_new(const gchar *filename,
 	}
 	return NULL != create_download(filename, uri, size, addr,
 					port, guid, hostname, sha1, stamp,
-					fi, proxies, flags, parq_id);
+					fi, proxies, flags, parq_id, TRUE);
 }
 
 /**
@@ -5330,7 +5340,8 @@ download_orphan_new(const gchar *filename, filesize_t size,
 			fi,
 			NULL,	/* proxies */
 			0,		/* cflags */
-			NULL);	/* PARQ ID */
+			NULL,	/* PARQ ID */
+			TRUE);	/* use mesh */
 	fi->ntime = ntime;
 }
 
@@ -8207,14 +8218,33 @@ http_version_nofix:
 			 *		-- JA, 21/03/2003 (it is spring!)
 			 */
 			if (parq_download_is_passive_queued(d)) {
+				char tmp[80];
+				gint pos = get_parq_dl_position(d);
+				gint length = get_parq_dl_queue_length(d);
+				gint eta = get_parq_dl_eta(d);
+				size_t rw;
+
 				download_passively_queued(d, TRUE);
+
+				rw = gm_snprintf(tmp, sizeof(tmp), "%s", _("Queued"));
+				if (pos > 0) {
+					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+						_(" (slot %d"), pos);		/* ) */
+
+					if (length > 0)
+						rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+							"/%d", length);
+
+					if (eta > 0)
+						rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+							_(", ETA: %s"), short_time(eta));
+
+					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
+				}
+
 				download_queue_delay(d,
 					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
-						_("Queued (slot %u/%u) ETA: %s"),
-							get_parq_dl_position(d),
-							get_parq_dl_queue_length(d),
-							short_time_ascii(get_parq_dl_eta(d))
-				);
+					"%s", tmp);
 			} else {
 				/* No hammering -- hold further requests on server */
 				download_passively_queued(d, FALSE);
@@ -10046,6 +10076,9 @@ download_store_if_dirty(void)
 	}
 }
 
+/**
+ * Retrieve stored downloads, saved as magnet URIs.
+ */
 static gboolean
 download_retrieve_magnets(FILE *f)
 {
@@ -10089,8 +10122,15 @@ download_retrieve_magnets(FILE *f)
 			}
 
 			if (is_strcaseprefix(buffer, "magnet:?")) {
+				guint created;
+
 				expect_old_format = FALSE;
-				(void) download_handle_magnet(buffer);
+				created = download_handle_magnet(buffer);
+
+				if (GNET_PROPERTY(download_debug)) {
+					g_message("created %d download%s from %s",
+						created, created == 1 ? "" : "s", buffer);
+				}
 			} else {
 				g_warning("%s, line %u: Ignored unknown item",
 					download_file, line);
@@ -10324,7 +10364,7 @@ download_retrieve_old(FILE *f)
 
 		d = create_download(d_name, NULL, d_size, d_addr,
 				d_port, d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
-				1, NULL, NULL, flags, parq_id);
+				1, NULL, NULL, flags, parq_id, TRUE);
 
 		if (d == NULL) {
 			if (GNET_PROPERTY(download_debug))
@@ -11423,7 +11463,7 @@ download_browse_start(const gchar *hostname,
 
 	d = create_download(filepath_basename(fi->pathname), "/",
 			0, addr, port, guid, hostname,
-			NULL, tm_time(), fi, proxies, flags, NULL);
+			NULL, tm_time(), fi, proxies, flags, NULL, FALSE);
 
 	if (d) {
 		gnet_host_t host;
@@ -11558,7 +11598,8 @@ download_thex_start(const gchar *uri,
 			fi,
 			proxies,
 			flags,
-			NULL);		/* PARQ ID */
+			NULL,		/* PARQ ID */
+			FALSE);		/* No mesh */
 
 	if (d) {
 		gnet_host_t host;
@@ -11693,6 +11734,9 @@ download_maybe_finished(struct download *d)
 		download_rx_done(d);
 }
 
+/**
+ * Create a download based on the information from the magnet URI.
+ */
 guint
 download_handle_magnet(const gchar *url)
 {
@@ -11844,6 +11888,9 @@ download_handle_magnet(const gchar *url)
 	return n_downloads;
 }
 
+/**
+ * Create a download based on an HTTP URL.
+ */
 gboolean
 download_handle_http(const gchar *url)
 {

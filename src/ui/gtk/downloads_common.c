@@ -250,6 +250,7 @@ downloads_gui_status_string(const struct download *d)
 
 		status = tmpstr;
 		break;
+	case GTA_DL_PASSIVE_QUEUED:	/* RAM, 2007-08-19 Passive queueing */
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
 			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
