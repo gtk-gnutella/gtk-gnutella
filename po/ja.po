@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-08-20 04:43+0900\n"
-"PO-Revision-Date: 2007-08-12 01:31+0900\n"
+"PO-Revision-Date: 2007-08-20 04:45+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -230,9 +230,9 @@ msgstr "相手側の部分ファイルを待受中"
 msgid "Queued"
 msgstr "待機中"
 
-#, fuzzy, c-format
+#, c-format
 msgid " (slot %d"
-msgstr " (スロット %u"
+msgstr " (スロット %d"
 
 #, c-format
 msgid ", ETA: %s"
@@ -1584,9 +1584,8 @@ msgstr "このセッションでのダウンロード完了総数です。"
 msgid "Number of running uploads."
 msgstr "実行中のアップロード数です。"
 
-#, fuzzy
 msgid "Number of quick uploads currently running."
-msgstr "現在接続しているウルトラピアの数です。"
+msgstr "現在実行している簡易アップロードの数です。"
 
 msgid "Number of registered (pending) uploads."
 msgstr "登録済 (未確定) のアップロード数です。"
@@ -2923,6 +2922,8 @@ msgid ""
 "Show a status icon in the system tray if possible (requires Gtk+ 2.10 or "
 "newer)."
 msgstr ""
+"可能であれば (Gtk+ 2.10 以上が必要です) システムトレイにステータスアイコンを"
+"表示します。"
 
 msgid "Anonymizing proxies"
 msgstr "匿名プロキシサーバー"
@@ -4280,21 +4281,20 @@ msgstr "(無効化)"
 msgid "(invalid)"
 msgstr "(無効)"
 
-#, fuzzy
 msgid "<Archives>"
-msgstr "アクティブ"
+msgstr "<アーカイブ>"
 
 msgid "<Audio>"
-msgstr ""
+msgstr "<音楽>"
 
 msgid "<Literature>"
-msgstr ""
+msgstr "<文書>"
 
 msgid "<Image>"
-msgstr ""
+msgstr "<画像>"
 
 msgid "<Video>"
-msgstr ""
+msgstr "<動画>"
 
 msgid "Global (pre)"
 msgstr "全体 (振り分け前)"
@@ -6652,9 +6652,8 @@ msgstr "フォルダを削除(_R)"
 msgid "Minimum chunk _size"
 msgstr "最小チャンクサイズ(_S)"
 
-#, fuzzy
 msgid "Show a status _icon"
-msgstr "原因の表示(_F)"
+msgstr "ステータスアイコンを表示する(_I)"
 
 msgid "Remove completed downloads from list"
 msgstr "完了したダウンロードを一覧から削除する"
@@ -6799,7 +6798,6 @@ msgstr "偽IP"
 msgid "No search"
 msgstr "検索無し"
 
-#, fuzzy
 msgid "The search has been stopped"
 msgstr "この検索は中断されています"
 
@@ -7151,7 +7149,7 @@ msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (スロット %d/%d)%s %s %s"
 
 msgid "Frozen"
-msgstr ""
+msgstr "凍結"
 
 msgid "lifetime:"
 msgstr "有効期限:"
