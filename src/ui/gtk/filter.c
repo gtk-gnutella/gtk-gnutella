@@ -212,7 +212,7 @@ filter_gui_filter_clear_list(void)
 	static const struct {
 		const gchar *title;
 	} nodes[] = {
-		{ N_("Builtin targets (not editable)") },
+		{ N_("Builtin targets") },
 		{ N_("Global filters") },
 		{ N_("Search filters") },
 		{ N_("Free filters") },
@@ -271,7 +271,7 @@ filter_gui_filter_clear_list(void)
 	static const struct {
 		const gchar *title;
 	} nodes[] = {
-		{ N_("Builtin targets (not editable)") },
+		{ N_("Builtin targets") },
 		{ N_("Global filters") },
 		{ N_("Search filters") },
 		{ N_("Free filters") },
