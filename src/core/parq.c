@@ -877,14 +877,12 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 
 
 /**
- * Needs brief description here.
- *
  * Adds an:
  *
  *    - X-Queue: 1.0
  *    - X-Queued: position=x; ID=xxxxx
  *
- * to the HTTP GET request.
+ * to the HTTP GET request in the buffer "buf".
  */
 void
 parq_download_add_header(
@@ -3107,11 +3105,13 @@ parq_upload_request(struct upload *u)
 	/*
 	 * Make sure they did not retry the request too soon.
 	 * This check is naturally skipped for follow-up requests.
+	 *
+	 * Be nice however if they only request a few seconds too early.
 	 */
 
 	if (
 		!parq_ul->has_slot &&		/* Not a follow-up request */
-		org_retry > now &&
+		delta_time(org_retry, now) >= PARQ_MIN_POLL &&
 		!(
 			(parq_ul->flags & PARQ_UL_QUEUE_SENT) ||
 			u->status == GTA_UL_QUEUE_WAITING
@@ -3121,6 +3121,7 @@ parq_upload_request(struct upload *u)
 		 * Bad bad client, re-requested within the Retry-After interval.
 		 * we are not going to allow this download. Whether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
+		 *
 		 */
 		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
 			"host %s (%s) re-requested \"%s\" too soon (%u secs early)",
@@ -3129,7 +3130,7 @@ parq_upload_request(struct upload *u)
 			u->name, (unsigned) (org_retry - now));
 
 		if (
-			parq_ul->ban_timeout > now &&
+			delta_time(parq_ul->ban_timeout, now) > 0 &&
 			GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
 		)
 			parq_ul->ban_countwait++;
@@ -3159,6 +3160,9 @@ parq_upload_request(struct upload *u)
 		parq_ul->ban_timeout = time_advance(now, parq_upload_ban_window);
 		return FALSE;
 	}
+
+	if (parq_ul->ban_countwait > 0)
+		parq_ul->ban_countwait--;		/* They requested on time */
 
 	/*
 	 * If we sent a QUEUE message and we're getting a reply, reset the
@@ -4095,13 +4099,13 @@ parq_store(gpointer data, gpointer file_ptr)
 	gchar enter_buf[TIMESTAMP_BUF_LEN];
 	gint expire;
 
+	/* We are not saving uploads which already finished an upload */
 	if (parq_ul->had_slot && !parq_ul->has_slot)
-		/* We are not saving uploads which already finished an upload */
 		return;
 
 	expire = delta_time(parq_ul->expire, now);
 	if (expire <= 0)
-		return;
+		expire = 0;		/* Save expired entries as well */
 
 	g_assert(NULL != f);
 	if (GNET_PROPERTY(parq_debug) > 5)
