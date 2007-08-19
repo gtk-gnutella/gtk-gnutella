@@ -2482,27 +2482,45 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 	filter_t *filter;
 
 	filter = filter_find_by_name_in_session(name);
-	if (NULL == filter) {
+	if (filter) {
+		/* Remove all rules, we want to keep this filters up-to-date */
+		while (NULL != filter->ruleset) {
+			rule_t *rule;
+		
+			rule = g_list_nth_data(filter->ruleset, 0);
+			g_assert(rule->target);
+			g_assert(rule->target->refcount > 0);
+			rule->target->refcount--;
+
+			filter->ruleset = g_list_remove(filter->ruleset, rule);
+			filter_free_rule(rule);
+		}
+		filter_remove_from_session(filter);
+	} else {
+		filter = filter_new(lazy_ui_string_to_utf8(name));
+	}
+
+	if (minsize > 0) {
 		rule_t *rule;
 
-		filter = filter_new(lazy_ui_string_to_utf8(name));
+		rule = filter_new_size_rule(0, minsize - 1,
+				filter_get_drop_target(),
+				RULE_FLAG_ACTIVE);
+		filter_append_rule(filter, rule);
+	}
 
-        if (minsize > 0) {
-            rule = filter_new_size_rule(0, minsize - 1,
-                                        filter_get_drop_target(),
-                                        RULE_FLAG_ACTIVE);
-            filter_append_rule(filter, rule);
-        }
+	if (regexp) {
+		rule_t *rule;
 
 		rule = filter_new_text_rule(regexp,
-				RULE_TEXT_REGEXP,
-				FALSE,	/* case-insensitive */
-				filter_get_drop_target(),
-				RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
+			RULE_TEXT_REGEXP,
+			FALSE,	/* case-insensitive */
+			filter_get_drop_target(),
+			RULE_FLAG_ACTIVE | RULE_FLAG_NEGATE);
 		filter_append_rule(filter, rule);
-
-		filter_add_to_session(filter);
 	}
+
+	filter_add_to_session(filter);
 	set_flags(filter->flags, FILTER_FLAG_PRESET);
 }
 
