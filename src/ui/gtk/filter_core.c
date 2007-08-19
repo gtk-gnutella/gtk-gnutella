@@ -2477,7 +2477,7 @@ filter_shutdown(void)
 }
 
 static void
-filter_preset_init(const char * name, char *regexp, unsigned int size)
+filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 {
 	filter_t *filter;
 
@@ -2487,8 +2487,8 @@ filter_preset_init(const char * name, char *regexp, unsigned int size)
 
 		filter = filter_new(name);
 
-        if(size) {
-            rule = filter_new_size_rule(0, size,
+        if (minsize > 0) {
+            rule = filter_new_size_rule(0, minsize - 1,
                                         filter_get_drop_target(),
                                         RULE_FLAG_ACTIVE);
             filter_append_rule(filter, rule);
