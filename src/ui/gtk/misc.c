@@ -319,11 +319,11 @@ gui_fix_coords(guint32 *coord)
 }
 
 /**
- * Parses an geometry string of the form WIDTHxHEIGHT+X+Y. If the string
+ * Parses an geometry string of the form [WIDTHxHEIGHT][+X+Y]. If the string
  * is not parsable a failure occurs. In case of failure, the coord[] array
  * is not touched. The coord[] array should be initialized with default
- * values before calling this function because the x and y coordinates
- * are optional and are not touched if not specified.
+ * values before calling this function because the coordinates and the
+ * dimensions are both optional and are not touched if omitted.
  *
  * @param spec  The string holding the geometry specification.
  * @param coord An array of four 32-bit integers representing
@@ -347,18 +347,22 @@ gui_parse_geometry_spec(const gchar *spec, guint32 coord[4])
 	h = coord[3];
 
 	s = spec;
-	w = parse_uint32(s, &endptr, 10, &error);
-	if (error || 'x' != endptr[0]) {
-		return -1;
+
+	if (is_ascii_digit(s[0])) {
+		w = parse_uint32(s, &endptr, 10, &error);
+		if (error || 'x' != endptr[0]) {
+			return -1;
+		}
+
+		s = &endptr[1];
+		h = parse_uint32(s, &endptr, 10, &error);
+		if (error) {
+			return -1;
+		}
+		s = endptr;
 	}
 
-	s = &endptr[1];
-	h = parse_uint32(s, &endptr, 10, &error);
-	if (error) {
-		return -1;
-	}
-
-	switch (endptr[0]) {
+	switch (s[0]) {
 	case '-':
 		sign = -1;
 		break;
@@ -370,17 +374,18 @@ gui_parse_geometry_spec(const gchar *spec, guint32 coord[4])
 	default:
 		return -1;
 	}
+	s++;
 
-	s = &endptr[1];
 	x = parse_uint32(s, &endptr, 10, &error);
 	if (error) {
 		return -1;
 	}
+	s = endptr;
 	if (sign < 0) {
 		x = gdk_screen_width() - 1 - x - w;
 	}
 
-	switch (endptr[0]) {
+	switch (s[0]) {
 	case '-':
 		sign = -1;
 		break;
@@ -390,8 +395,8 @@ gui_parse_geometry_spec(const gchar *spec, guint32 coord[4])
 	default:
 		return -1;
 	}
+	s++;
 
-	s = &endptr[1];
 	y = parse_uint32(s, &endptr, 10, &error);
 	if (error) {
 		return -1;
