@@ -174,19 +174,27 @@ source_progress_to_string(const struct download *d)
 }
 
 static void
-fi_gui_set_details(const char *filename, filesize_t filesize,
-	const struct sha1 *sha1, const struct tth *tth)
+fi_gui_set_details(const struct fileinfo_data *file)
 {
+    gnet_fi_info_t *info;
+
 	fi_gui_clear_details();
 
+    info = guc_fi_get_info(file->handle);
+	g_return_if_fail(info);
+
 	fi_gui_append_detail(_("Filename"),
-		lazy_filename_to_ui_string(filename));
+		lazy_filename_to_ui_string(info->filename));
 	fi_gui_append_detail(_("Size"),
-		nice_size(filesize, show_metric_units()));
+		nice_size(info->size, show_metric_units()));
 	fi_gui_append_detail(_("SHA-1"),
-		sha1 ? sha1_to_urn_string(sha1) : NULL);
+		info->sha1 ? sha1_to_urn_string(info->sha1) : NULL);
 	fi_gui_append_detail(_("Bitprint"),
-		sha1 && tth ? bitprint_to_urn_string(sha1, tth) : NULL);
+		info->sha1 && info->tth
+			? bitprint_to_urn_string(info->sha1, info->tth)
+			: NULL);
+
+    guc_fi_free_info(info);
 }
 
 const char *
@@ -1393,17 +1401,10 @@ fi_gui_set_sources(struct fileinfo_data *file)
 static void
 fi_gui_show_info(struct fileinfo_data *file)
 {
-    gnet_fi_info_t *info;
-
 	fi_gui_clear_info();
 	g_return_if_fail(file);
 
-    info = guc_fi_get_info(file->handle);
-	g_return_if_fail(info);
-
-	fi_gui_set_details(info->filename, info->size, info->sha1, info->tth);
-    guc_fi_free_info(info);
-
+	fi_gui_set_details(file);
 	fi_gui_set_aliases(file);
 	fi_gui_set_sources(file);
 
