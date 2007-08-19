@@ -234,7 +234,7 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_handler = handler;
 	s->tls.cb_data = data;
 
-	if (GNET_PROPERTY(tls_debug) > 1)
+	if (GNET_PROPERTY(tls_debug) > 4)
 		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
 			fd, inputevt_cond_to_string(cond), handler);
 #endif /* HAS_GNUTLS */
@@ -259,7 +259,7 @@ socket_evt_clear(struct gnutella_socket *s)
 
 	if (s->gdk_tag) {
 #ifdef HAS_GNUTLS
-		if (GNET_PROPERTY(tls_debug) > 1) {
+		if (GNET_PROPERTY(tls_debug) > 4) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
 				fd, inputevt_cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
