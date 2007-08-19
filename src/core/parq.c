@@ -1166,7 +1166,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 				GList *lx;
 
 				for (lx = q->by_position; lx; lx = g_list_next(lx)) {
-					struct parq_ul_queued *parq_ul;
+					struct parq_ul_queued *parq_ul = lx->data;
 
 					if (parq_ul->has_slot) {		/* Recompute ETA */
 						eta = (parq_ul->file_size / avg_bps)
