@@ -1086,3 +1086,6 @@
 # HTM files; LimeWire; links to amateur dot himegimi dot jp
 125.0.151.116
 
+# shares thousands of ZIPs with UPX'd sharK trojan inside.
+208.116.32.210/31
+
