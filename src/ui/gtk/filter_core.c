@@ -2485,7 +2485,7 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 	if (NULL == filter) {
 		rule_t *rule;
 
-		filter = filter_new(name);
+		filter = filter_new(lazy_ui_string_to_utf8(name));
 
         if (minsize > 0) {
             rule = filter_new_size_rule(0, minsize - 1,
@@ -2512,11 +2512,11 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 void
 filter_init_presets(void)
 {
-	filter_preset_init("<Archives>", "[.](bz2|gz|zip|rar|iso)$", 0);
-	filter_preset_init("<Audio>", "[.](mp3|m4a|ogg|flac)$", 1000000);
-	filter_preset_init("<Books>", "[.](pdf|doc|lit|djvu)$", 10000);
-	filter_preset_init("<Image>", "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0);
-	filter_preset_init("<Video>", "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000);
+	filter_preset_init(_("<Archives>")), "[.](bz2|gz|zip|rar|iso)$", 0);
+	filter_preset_init(_("<Audio>"), "[.](mp3|m4a|ogg|flac)$", 1000000);
+	filter_preset_init(_("<Books>"), "[.](pdf|doc|lit|djvu)$", 10000);
+	filter_preset_init(_("<Image>"), "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0);
+	filter_preset_init(_("<Video>"), "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000);
 	filter_update_targets();
 }
 
