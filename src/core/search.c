@@ -2200,8 +2200,9 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	 */
 
 	if (
-		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
+		!guid_eq(rs->guid, blank_guid) &&	/* Not the blank GUID */
+		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
 		!is_private_addr(rs->addr)			/* Address not private */
 	) {
 		if (
