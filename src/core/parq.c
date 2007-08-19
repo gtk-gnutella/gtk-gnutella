@@ -1122,7 +1122,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	guint avg_bps;
 
 	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
-	avg_bps = MAX(1, avg_bps);
+	avg_bps = MAX(1024, avg_bps);		/* Assume at least 1 KiB/s */
 	if (GNET_PROPERTY(parq_optimistic))
 		avg_bps = MAX(avg_bps, GNET_PROPERTY(bw_http_out));
 
