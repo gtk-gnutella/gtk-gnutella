@@ -2535,10 +2535,10 @@ filter_init_presets(void)
 		const char *regex;
 		filesize_t minsize;
 	} tab[] = {
-		{ N_("<Archiv>"),	  "[.](bz2|gz|zip|rar|iso)$", 0 },
+		{ N_("<Archive>"),	  "[.](bz2|gz|zip|rar|iso)$", 0 },
 		{ N_("<Audio>"), 	  "[.](mp3|m4a|ogg|flac)$", 1000000 },
-		{ N_("<Literature>"), "[.](pdf|doc|lit|djvu|ps)$", 10000 },
 		{ N_("<Image>"), 	  "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0 },
+		{ N_("<Literature>"), "[.](pdf|doc|lit|djvu|ps)$", 10000 },
 		{ N_("<Video>"), 	  "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000 },
 	};
 	unsigned i;
