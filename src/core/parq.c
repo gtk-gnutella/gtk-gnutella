@@ -1172,7 +1172,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			}
 		}
 
-		if (eta == 0)
+		if (eta == 0 && GNET_PROPERTY(parq_debug) > 0)
 			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
 
 	}
