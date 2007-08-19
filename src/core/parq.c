@@ -3232,7 +3232,13 @@ parq_upload_request(struct upload *u)
 	/*
 	 * Check whether we should actively queue this upload.
 	 */
-	if (!parq_ul->active_queued) {
+	if (parq_ul->active_queued) {
+		/*
+		 * Status is changed by upload_request(), so we must make sure
+		 * we reset the status to "actively queued".
+		 */
+		u->status = GTA_UL_QUEUED;
+	} else {
 		guint max_slot = parq_upload_active_size +
 			GNET_PROPERTY(max_uploads) / 2;
 
