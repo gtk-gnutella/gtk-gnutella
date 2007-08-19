@@ -3716,9 +3716,6 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 
 	file_info_hash_insert(fi);
 
-	if (sha1)
-		dmesh_multiple_downloads(sha1, size, fi);
-
 finish:
 	atom_str_free_null(&pathname);
 	G_FREE_NULL(to_free);
