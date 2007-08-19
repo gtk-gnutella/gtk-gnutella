@@ -2512,9 +2512,9 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 void
 filter_init_presets(void)
 {
-	filter_preset_init(_("<Archives>")), "[.](bz2|gz|zip|rar|iso)$", 0);
+	filter_preset_init(_("<Archives>"), "[.](bz2|gz|zip|rar|iso)$", 0);
 	filter_preset_init(_("<Audio>"), "[.](mp3|m4a|ogg|flac)$", 1000000);
-	filter_preset_init(_("<Books>"), "[.](pdf|doc|lit|djvu|ps)$", 10000);
+	filter_preset_init(_("<Literature>"), "[.](pdf|doc|lit|djvu|ps)$", 10000);
 	filter_preset_init(_("<Image>"), "[.](bmp|gif|jpg|jpeg|png|psd|tif|tiff)$", 0);
 	filter_preset_init(_("<Video>"), "[.](avi|mpg|mp4|mpeg|mkv|ogm)$", 10000000);
 	filter_update_targets();
