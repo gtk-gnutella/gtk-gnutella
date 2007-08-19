@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -161,8 +161,15 @@ msgstr "Spamversuch erkannt"
 msgid "Partial file on server, waiting"
 msgstr "Teildatei auf dem Server; warte"
 
+msgid "Queued"
+msgstr "In Warteschlange gestellt"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
+msgid " (slot %d"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
 msgstr ""
 
 msgid "Stopped (Read buffer full)"
@@ -1475,6 +1482,10 @@ msgstr "Gesamtzahl vollständiger Downloads seit Programmstart"
 msgid "Number of running uploads."
 msgstr "Anzahl derzeit aktiver Uploads"
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Anzahl der derzeit verbundenen Ultrapeers."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Anzahl derzeit ausstehender Uploads"
 
@@ -2401,12 +2412,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the active downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the active downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the queued downloads table."
@@ -3754,15 +3759,8 @@ msgstr "SHA-1"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "In Warteschlange gestellt"
-
 #, c-format
 msgid " (slot %u"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
 msgstr ""
 
 #, c-format
@@ -4096,6 +4094,22 @@ msgstr "(deaktiviert)"
 
 msgid "(invalid)"
 msgstr "(ungültig)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Aktiv"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Global (Vorfilter)"
@@ -6115,42 +6129,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u Treffer verworfen"
 msgstr[1] "%u Treffer verworfen"
 
-msgid "File"
-msgstr "Datei"
-
-msgid "Extension"
-msgstr "Endung"
-
-msgid "Encoding"
-msgstr ""
-
-msgid "#"
-msgstr ""
-
-msgid "Metadata"
-msgstr "Meta-Daten"
-
-msgid "Vendor"
-msgstr ""
-
-msgid "Route"
-msgstr "Route"
-
-msgid "Protocol"
-msgstr "Protokoll"
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-msgid "Hostile"
-msgstr "Feindselig"
-
-msgid "Created"
-msgstr "Angelegt"
-
 msgid "Not in database"
 msgstr "Nicht in Datenbank"
 
@@ -6583,6 +6561,12 @@ msgstr ""
 msgid "Show search list"
 msgstr "Suchliste anzeigen"
 
+msgid "Extension"
+msgstr "Endung"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "Nein"
 
@@ -6591,6 +6575,9 @@ msgstr "vielleicht"
 
 msgid "Source"
 msgstr "Quelle"
+
+msgid "Created"
+msgstr "Angelegt"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6620,8 +6607,14 @@ msgstr "Hostname"
 msgid "Servent ID"
 msgstr "Servent-ID"
 
+msgid "Vendor"
+msgstr ""
+
 msgid "Browsable"
 msgstr ""
+
+msgid "Hostile"
+msgstr "Feindselig"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6629,6 +6622,15 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Detailinformation"
+
+msgid "Route"
+msgstr "Route"
+
+msgid "Protocol"
+msgstr "Protokoll"
+
+msgid "TTL"
+msgstr ""
 
 msgid "Pathname"
 msgstr "Pfadname"
@@ -6663,6 +6665,15 @@ msgstr ""
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "#"
+msgstr ""
+
+msgid "Metadata"
+msgstr "Meta-Daten"
 
 msgid "Never"
 msgstr "Nie"
@@ -6801,6 +6812,9 @@ msgstr "Übertragung beendet"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (Slot %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "Lebensdauer:"
 
@@ -6809,6 +6823,9 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "File"
+#~ msgstr "Datei"
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Angehaltene Downloads automatisch entfernen"

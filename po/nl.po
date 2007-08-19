@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -169,9 +169,16 @@ msgstr "Spammer gedetecteerd"
 msgid "Partial file on server, waiting"
 msgstr "Gedeeltelijk bestand op de server, aan het wachten"
 
+msgid "Queued"
+msgstr "In de wacht"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
+msgid " (slot %d"
+msgstr " slot( %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", geschatte resterende tijd: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Gestopped (less buffer vol)"
@@ -1542,6 +1549,10 @@ msgstr "Totaal aantal afgeronde downloads tijdens deze sessie."
 msgid "Number of running uploads."
 msgstr "Aantal uploads die draaien."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Aantal momenteel verbonden ultra nodes"
+
 msgid "Number of registered (pending) uploads."
 msgstr "Aantal geregistreerde uploads (welke nog verwerkt moeten worden)."
 
@@ -2574,12 +2585,6 @@ msgstr "Breedte van de kolommen in de nodes tabel."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "De kolommen die zichtbaar zijn in het node paneel."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Breedte van de kolommen in de actieve downloads tabel."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "De kolommen die zichtbaar zijn in de actieve downloads tabel."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Breedte van de kolommen in de downloads wachtrij tabel."
@@ -4006,16 +4011,9 @@ msgstr "SHA1:"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "In de wacht"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (slot %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", geschatte resterende tijd: %s"
 
 #, c-format
 msgid " retry in %us"
@@ -4351,6 +4349,22 @@ msgstr "(gedeactiveerd)"
 
 msgid "(invalid)"
 msgstr "(ongeldig)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Actief"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Algemeen (vooraf)"
@@ -6450,47 +6464,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u resultaat genegeerd"
 msgstr[1] "%u resultaten genegeerd"
 
-msgid "File"
-msgstr "Bestand"
-
-msgid "Extension"
-msgstr "Extenties"
-
-msgid "Encoding"
-msgstr "Encoding"
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr "Metagegevens"
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Maker:"
-
-#, fuzzy
-msgid "Route"
-msgstr "uitgaand"
-
-#, fuzzy
-msgid "Protocol"
-msgstr "Puerto Rico"
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Host"
-
-#, fuzzy
-msgid "Created"
-msgstr "Afgerond"
-
 msgid "Not in database"
 msgstr "Niet in de database"
 
@@ -6934,6 +6907,12 @@ msgstr "Kon geen host bladeren initialiseren voor %s"
 msgid "Show search list"
 msgstr "Geef zoek lijst weer"
 
+msgid "Extension"
+msgstr "Extenties"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "Nee"
 
@@ -6944,6 +6923,10 @@ msgstr "Mayotte"
 #, fuzzy
 msgid "Source"
 msgstr "Bronnen"
+
+#, fuzzy
+msgid "Created"
+msgstr "Afgerond"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6978,8 +6961,16 @@ msgid "Servent ID"
 msgstr "Verkoper ID:"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Maker:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "bladerbaar"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Host"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6987,6 +6978,17 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Gedetaileerde informatie"
+
+#, fuzzy
+msgid "Route"
+msgstr "uitgaand"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Puerto Rico"
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -7024,6 +7026,15 @@ msgstr "The opgeschoonde zoek tekst is te kort."
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "Encoding"
+msgstr "Encoding"
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
+msgstr "Metagegevens"
 
 msgid "Never"
 msgstr "Nooit"
@@ -7163,6 +7174,9 @@ msgstr "Versturen afgerond"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (slot %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "resterende leeftijd:"
 
@@ -7171,6 +7185,18 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "In de wacht (slot %u / %u), geschatte resterende tijd: %s"
+
+#~ msgid "File"
+#~ msgstr "Bestand"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Breedte van de kolommen in de actieve downloads tabel."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr "De kolommen die zichtbaar zijn in de actieve downloads tabel."
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Automatisch opschonen: afgeronde downloads"
@@ -7241,9 +7267,6 @@ msgstr "QUEUE verstuurd, wacht op koppen..."
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u host"
 #~ msgstr[1] "%u hosts"
-
-#~ msgid " (slot %d"
-#~ msgstr " slot( %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr "opnieuw proberen over %ds"

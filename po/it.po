@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -168,9 +168,16 @@ msgstr "Rilevato spammer"
 msgid "Partial file on server, waiting"
 msgstr "File parziale sul server, attesa"
 
+msgid "Queued"
+msgstr "Accodati"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Accodato (posizione %u/%u) ETA: %s"
+msgid " (slot %d"
+msgstr " (posizione %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ""
 
 msgid "Stopped (Read buffer full)"
 msgstr "Arrestato (contenitore lettura pieno)"
@@ -1548,6 +1555,10 @@ msgstr "Numero complessivo di scaricamenti completati in questa sessione."
 msgid "Number of running uploads."
 msgstr "Numero di caricamenti in atto."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Numero di ultra nodi attualmente connessi."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Numero di caricamenti registrati (in attesa)."
 
@@ -2564,12 +2575,6 @@ msgstr "Larghezza delle colonne nella tabella dei nodi."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Quali colonne sono visibili nel pannello dei nodi."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Larghezza delle colonne nella tabella degli scaricamenti attiva."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "Quali colonne sono visibili nella tabella degli scaricamenti attiva."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Larghezza delle colonne nella tabella degli scaricamenti in coda."
@@ -3981,16 +3986,9 @@ msgstr ""
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Accodati"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (posizione %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ""
 
 #, c-format
 msgid " retry in %us"
@@ -4326,6 +4324,22 @@ msgstr "(disattivato)"
 
 msgid "(invalid)"
 msgstr "(invalido)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Attivi"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Globale (pre)"
@@ -6403,47 +6417,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "Scartato %u risultato"
 msgstr[1] "Scartati %u risultati"
 
-msgid "File"
-msgstr ""
-
-msgid "Extension"
-msgstr "Estensione"
-
-msgid "Encoding"
-msgstr "Codifica"
-
-msgid "#"
-msgstr ""
-
-msgid "Metadata"
-msgstr "Metadati"
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Offerente:"
-
-#, fuzzy
-msgid "Route"
-msgstr "Perso instradamento"
-
-#, fuzzy
-msgid "Protocol"
-msgstr "Mostra pr_otocollo"
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Host"
-
-#, fuzzy
-msgid "Created"
-msgstr "Completati"
-
 msgid "Not in database"
 msgstr "Non c'è nel database"
 
@@ -6885,6 +6858,12 @@ msgstr "Non posso lanciare la consultazione per l'host %s"
 msgid "Show search list"
 msgstr "Mostra elenco ricerca"
 
+msgid "Extension"
+msgstr "Estensione"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr ""
 
@@ -6894,6 +6873,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Sorgenti"
+
+#, fuzzy
+msgid "Created"
+msgstr "Completati"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6928,8 +6911,16 @@ msgid "Servent ID"
 msgstr "ID server:"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Offerente:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "consultabile"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Host"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6937,6 +6928,17 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Informazione dettagliata"
+
+#, fuzzy
+msgid "Route"
+msgstr "Perso instradamento"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Mostra pr_otocollo"
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -6974,6 +6976,15 @@ msgstr "Il testo normalizzato della ricerca è troppo breve."
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "Encoding"
+msgstr "Codifica"
+
+msgid "#"
+msgstr ""
+
+msgid "Metadata"
+msgstr "Metadati"
 
 msgid "Never"
 msgstr "Mai"
@@ -7113,6 +7124,9 @@ msgstr "Trasmissione completa"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (posizione %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "tempo di vita:"
 
@@ -7121,6 +7135,16 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Accodato (posizione %u/%u) ETA: %s"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Larghezza delle colonne nella tabella degli scaricamenti attiva."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr ""
+#~ "Quali colonne sono visibili nella tabella degli scaricamenti attiva."
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Ripulisci automaticamente gli scaricamenti fermati"
@@ -7180,9 +7204,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u host"
 #~ msgstr[1] "%u host"
-
-#~ msgid " (slot %d"
-#~ msgstr " (posizione %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr " ritenta in %ds"

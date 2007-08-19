@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -173,9 +173,16 @@ msgstr "检测到SHA不匹配"
 msgid "Partial file on server, waiting"
 msgstr "部分文件在服务器上，请等待"
 
-#, fuzzy, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
+msgid "Queued"
+msgstr ""
+
+#, c-format
+msgid " (slot %d"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ""
 
 msgid "Stopped (Read buffer full)"
 msgstr "中止(读取缓存已满)"
@@ -1432,6 +1439,10 @@ msgstr "本此会话中完成下载的总数。"
 msgid "Number of running uploads."
 msgstr "在运行的上传数量"
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "当前连接的超级节点数量。"
+
 msgid "Number of registered (pending) uploads."
 msgstr "已注册(但推延了)的上传数量"
 
@@ -2200,12 +2211,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the active downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the active downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the queued downloads table."
@@ -3519,15 +3524,8 @@ msgstr ""
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr ""
-
 #, c-format
 msgid " (slot %u"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
 msgstr ""
 
 #, c-format
@@ -3859,6 +3857,22 @@ msgid "(deactivated)"
 msgstr ""
 
 msgid "(invalid)"
+msgstr ""
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "%u 个活动"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
 msgstr ""
 
 msgid "Global (pre)"
@@ -5869,45 +5883,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
 
-msgid "File"
-msgstr ""
-
-msgid "Extension"
-msgstr ""
-
-#, fuzzy
-msgid "Encoding"
-msgstr "流入："
-
-msgid "#"
-msgstr ""
-
-msgid "Metadata"
-msgstr ""
-
-msgid "Vendor"
-msgstr ""
-
-#, fuzzy
-msgid "Route"
-msgstr "路由丢失"
-
-msgid "Protocol"
-msgstr ""
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "主机(_o)："
-
-msgid "Created"
-msgstr ""
-
 msgid "Not in database"
 msgstr ""
 
@@ -6331,6 +6306,12 @@ msgstr ""
 msgid "Show search list"
 msgstr "显示搜索列表"
 
+msgid "Extension"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "否"
 
@@ -6340,6 +6321,9 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "%u 个源"
+
+msgid "Created"
+msgstr ""
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6370,14 +6354,31 @@ msgstr "主机(_o)："
 msgid "Servent ID"
 msgstr "Servent关闭"
 
+msgid "Vendor"
+msgstr ""
+
 #, fuzzy
 msgid "Browsable"
 msgstr "稳定"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "主机(_o)："
 
 msgid "Push-proxies"
 msgstr ""
 
 msgid "Packet information"
+msgstr ""
+
+#, fuzzy
+msgid "Route"
+msgstr "路由丢失"
+
+msgid "Protocol"
+msgstr ""
+
+msgid "TTL"
 msgstr ""
 
 #, fuzzy
@@ -6413,6 +6414,16 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+#, fuzzy
+msgid "Encoding"
+msgstr "流入："
+
+msgid "#"
+msgstr ""
+
+msgid "Metadata"
 msgstr ""
 
 msgid "Never"
@@ -6547,6 +6558,9 @@ msgstr "传送完成"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "生命周期："
 
@@ -6555,6 +6569,10 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#, fuzzy
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
 
 #, fuzzy
 #~ msgid "Close this search"

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -171,9 +171,16 @@ msgstr "Detectado distinto SHA1"
 msgid "Partial file on server, waiting"
 msgstr "Archivo parcial en el servidor, esperando"
 
-#, fuzzy, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Encolado (ranura %d/%d) ETA: %s"
+msgid "Queued"
+msgstr "Encolado"
+
+#, c-format
+msgid " (slot %d"
+msgstr " (ranura %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", ETA: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Parado (Búfer de lectura lleno)"
@@ -1514,6 +1521,10 @@ msgstr "Número total de descargas completadas en esta sesión."
 msgid "Number of running uploads."
 msgstr "Número de subidas actuales."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Número de ultranodos actualmente conectados."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Número de subidas registradas (pendientes)."
 
@@ -2455,12 +2466,6 @@ msgstr "Ancho de las columnas en la tabla de nodos."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Qué columnas son visibles en el panel de nodos."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Ancho de las columnas en la tabla de descargas activas."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "Qué columnas son visibles en la tabla de descargas activas."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Ancho de las columnas en la tabla de la cola de descargas."
@@ -3888,16 +3893,9 @@ msgstr "SHA1:"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Encolado"
-
 #, fuzzy, c-format
 msgid " (slot %u"
 msgstr " (ranura %d"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", ETA: %s"
 
 #, fuzzy, c-format
 msgid " retry in %us"
@@ -4235,6 +4233,22 @@ msgstr "(desactivado)"
 
 msgid "(invalid)"
 msgstr "(inválido)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "activo"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Global (pre)"
@@ -6325,48 +6339,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "Descartado %u resultado"
 msgstr[1] "Descartados %u resultados"
 
-msgid "File"
-msgstr "Archivo"
-
-msgid "Extension"
-msgstr "Extensión"
-
-#, fuzzy
-msgid "Encoding"
-msgstr "entrada"
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr "Metadatos"
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Cliente:"
-
-#, fuzzy
-msgid "Route"
-msgstr "salida"
-
-#, fuzzy
-msgid "Protocol"
-msgstr "Puerto Rico"
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Nodo"
-
-#, fuzzy
-msgid "Created"
-msgstr "Completadas"
-
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -6819,6 +6791,12 @@ msgstr ""
 msgid "Show search list"
 msgstr "Mostrar lista de búsquedas"
 
+msgid "Extension"
+msgstr "Extensión"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "No"
 
@@ -6828,6 +6806,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Fuentes"
+
+#, fuzzy
+msgid "Created"
+msgstr "Completadas"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6862,8 +6844,16 @@ msgid "Servent ID"
 msgstr "ID del nodo:"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Cliente:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "estable"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Nodo"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6871,6 +6861,17 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Detalle"
+
+#, fuzzy
+msgid "Route"
+msgstr "salida"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Puerto Rico"
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -6907,6 +6908,16 @@ msgstr ""
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+#, fuzzy
+msgid "Encoding"
+msgstr "entrada"
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
+msgstr "Metadatos"
 
 msgid "Never"
 msgstr "Nunca"
@@ -7046,6 +7057,9 @@ msgstr "Transmisión abortada"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (ranura %d/%d)"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "tiempo de vida:"
 
@@ -7054,6 +7068,19 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#, fuzzy
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Encolado (ranura %d/%d) ETA: %s"
+
+#~ msgid "File"
+#~ msgstr "Archivo"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Ancho de las columnas en la tabla de descargas activas."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr "Qué columnas son visibles en la tabla de descargas activas."
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Autolimpiar descargas detenidas"
@@ -7125,9 +7152,6 @@ msgstr "QUEUE enviado, esperando las cabeceras"
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u nodo"
 #~ msgstr[1] "%u nodos"
-
-#~ msgid " (slot %d"
-#~ msgstr " (ranura %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr " reintento en %ds"

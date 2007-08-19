@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2007-08-12 01:31+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -227,9 +227,16 @@ msgstr "迷惑ファイル送信者を検知しました"
 msgid "Partial file on server, waiting"
 msgstr "相手側の部分ファイルを待受中"
 
+msgid "Queued"
+msgstr "待機中"
+
+#, fuzzy, c-format
+msgid " (slot %d"
+msgstr " (スロット %u"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "待機中 (スロット %u/%u) 予定時間: %s"
+msgid ", ETA: %s"
+msgstr ", 予定時間: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
@@ -1577,6 +1584,10 @@ msgstr "このセッションでのダウンロード完了総数です。"
 msgid "Number of running uploads."
 msgstr "実行中のアップロード数です。"
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "現在接続しているウルトラピアの数です。"
+
 msgid "Number of registered (pending) uploads."
 msgstr "登録済 (未確定) のアップロード数です。"
 
@@ -2544,12 +2555,6 @@ msgstr "ピア・テーブルの表示欄の幅です。"
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "ピア・ペインでどの欄を表示するのかを指定します。"
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "動作中のダウンロードのテーブルの表示欄の幅です。"
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "動作中のダウンロードのテーブルでどの欄を表示するのかを指定します。"
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "待機中のダウンロードのテーブルの表示欄の幅です。"
@@ -3925,16 +3930,9 @@ msgstr "SHA-1"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-msgid "Queued"
-msgstr "待機中"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (スロット %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", 予定時間: %s"
 
 #, c-format
 msgid " retry in %us"
@@ -4281,6 +4279,22 @@ msgstr "(無効化)"
 
 msgid "(invalid)"
 msgstr "(無効)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "アクティブ"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "全体 (振り分け前)"
@@ -6427,42 +6441,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u 件の結果を破棄しました。"
 
-msgid "File"
-msgstr "ファイル"
-
-msgid "Extension"
-msgstr "拡張子"
-
-msgid "Encoding"
-msgstr "エンコード方式"
-
-msgid "#"
-msgstr "数"
-
-msgid "Metadata"
-msgstr "メタデータ"
-
-msgid "Vendor"
-msgstr "ベンダー"
-
-msgid "Route"
-msgstr "経路"
-
-msgid "Protocol"
-msgstr "プロトコル"
-
-msgid "TTL"
-msgstr "TTL"
-
-msgid "Owned"
-msgstr "取得状況"
-
-msgid "Hostile"
-msgstr "有害ホスト"
-
-msgid "Created"
-msgstr "作成日"
-
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -6924,6 +6902,12 @@ msgstr "ホスト %s を参照できませんでした。"
 msgid "Show search list"
 msgstr "検索一覧を表示する"
 
+msgid "Extension"
+msgstr "拡張子"
+
+msgid "Owned"
+msgstr "取得状況"
+
 msgid "No"
 msgstr "いいえ"
 
@@ -6932,6 +6916,9 @@ msgstr "多分"
 
 msgid "Source"
 msgstr "送信元"
+
+msgid "Created"
+msgstr "作成日"
 
 msgid "Alt-Locs"
 msgstr "別の送信元"
@@ -6960,14 +6947,29 @@ msgstr "ホスト名"
 msgid "Servent ID"
 msgstr "サーバントID"
 
+msgid "Vendor"
+msgstr "ベンダー"
+
 msgid "Browsable"
 msgstr "参照可"
+
+msgid "Hostile"
+msgstr "有害ホスト"
 
 msgid "Push-proxies"
 msgstr "PUSHプロキシ"
 
 msgid "Packet information"
 msgstr "パケット情報"
+
+msgid "Route"
+msgstr "経路"
+
+msgid "Protocol"
+msgstr "プロトコル"
+
+msgid "TTL"
+msgstr "TTL"
 
 msgid "Pathname"
 msgstr "パス名"
@@ -7001,6 +7003,15 @@ msgstr "正規化された検索テキストが短すぎます。"
 
 msgid "The URN in the search text is invalid."
 msgstr "検索文字列中のURNが不正です。"
+
+msgid "Encoding"
+msgstr "エンコード方式"
+
+msgid "#"
+msgstr "数"
+
+msgid "Metadata"
+msgstr "メタデータ"
 
 msgid "Never"
 msgstr "未発生"
@@ -7138,6 +7149,9 @@ msgstr "転送が完了しました"
 #, c-format
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (スロット %d/%d)%s %s %s"
+
+msgid "Frozen"
+msgstr ""
 
 msgid "lifetime:"
 msgstr "有効期限:"

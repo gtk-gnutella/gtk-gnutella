@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2007-07-14 11:59+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -163,9 +163,16 @@ msgstr "Spameur détecté"
 msgid "Partial file on server, waiting"
 msgstr "Fichier partiel sur le serveur, attente"
 
+msgid "Queued"
+msgstr "Dans la file"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Dans la file (créneau %u/%u) temps de vie: %s"
+msgid " (slot %d"
+msgstr " (créneau %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", ETA: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Stoppé (Tampon de lecture plein)"
@@ -1539,6 +1546,10 @@ msgstr "Nombre total de téléchargements complets pendant cette session."
 msgid "Number of running uploads."
 msgstr "Nombre d'envois en cours."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Nombre de noeuds 'ultra' connectés actuellement."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Nombre d'envois enregistrés (en attente)."
 
@@ -2554,13 +2565,6 @@ msgstr "Largeur des colonnes dans la table des noeuds."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Quelles colonnes sont visibles dans le panneau des noeuds."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Largeur des colonnes dans la table des téléchargements actifs."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr ""
-"Quelles colonnes sont visibles dans la table des téléchargements actifs."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Largeur des colonnes dans la table des téléchargements en attente."
@@ -3921,16 +3925,9 @@ msgstr "SHA-1"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Dans la file"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (créneau %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", ETA: %s"
 
 #, c-format
 msgid " retry in %us"
@@ -4263,6 +4260,22 @@ msgstr "(désactivé)"
 
 msgid "(invalid)"
 msgstr "(invalide)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Actif"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Global (pre)"
@@ -6334,42 +6347,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u résultat écarté"
 msgstr[1] "%u résultats écartés"
 
-msgid "File"
-msgstr "Fichier"
-
-msgid "Extension"
-msgstr "Extension"
-
-msgid "Encoding"
-msgstr "Codage"
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr "Métadonnées"
-
-msgid "Vendor"
-msgstr "Vendeur"
-
-msgid "Route"
-msgstr "Route"
-
-msgid "Protocol"
-msgstr "Protocole"
-
-msgid "TTL"
-msgstr "TTL"
-
-msgid "Owned"
-msgstr "Détenu"
-
-msgid "Hostile"
-msgstr "Hostile"
-
-msgid "Created"
-msgstr "Créé"
-
 msgid "Not in database"
 msgstr "Pas dans la base de données"
 
@@ -6807,6 +6784,12 @@ msgstr "Impossible de lancer le parcours d'hôte pour %s"
 msgid "Show search list"
 msgstr "Afficher la liste des recherches"
 
+msgid "Extension"
+msgstr "Extension"
+
+msgid "Owned"
+msgstr "Détenu"
+
 msgid "No"
 msgstr "Non"
 
@@ -6815,6 +6798,9 @@ msgstr "Peut-être"
 
 msgid "Source"
 msgstr "Source"
+
+msgid "Created"
+msgstr "Créé"
 
 msgid "Alt-Locs"
 msgstr "Alt-Locs"
@@ -6845,8 +6831,14 @@ msgstr "Nom d'hôte"
 msgid "Servent ID"
 msgstr "ID servent"
 
+msgid "Vendor"
+msgstr "Vendeur"
+
 msgid "Browsable"
 msgstr "Parcourable"
+
+msgid "Hostile"
+msgstr "Hostile"
 
 msgid "Push-proxies"
 msgstr "Push-proxies"
@@ -6854,6 +6846,15 @@ msgstr "Push-proxies"
 #, fuzzy
 msgid "Packet information"
 msgstr "Information en détail"
+
+msgid "Route"
+msgstr "Route"
+
+msgid "Protocol"
+msgstr "Protocole"
+
+msgid "TTL"
+msgstr "TTL"
 
 msgid "Pathname"
 msgstr "Chemin"
@@ -6889,6 +6890,15 @@ msgstr "Le texte normalisé est trop court."
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "Encoding"
+msgstr "Codage"
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
+msgstr "Métadonnées"
 
 msgid "Never"
 msgstr "Jamais"
@@ -7032,6 +7042,9 @@ msgstr "Transmission complète"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (créneau %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "durée de vie:"
 
@@ -7040,6 +7053,19 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Dans la file (créneau %u/%u) temps de vie: %s"
+
+#~ msgid "File"
+#~ msgstr "Fichier"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Largeur des colonnes dans la table des téléchargements actifs."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr ""
+#~ "Quelles colonnes sont visibles dans la table des téléchargements actifs."
 
 #~ msgid "Shutdown sequence initiated."
 #~ msgstr "Séquence d'arrêt engagée."
@@ -7110,9 +7136,6 @@ msgstr "QUEUE envoyé, en attente des en-têtes..."
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u hôte"
 #~ msgstr[1] "%u hôtes"
-
-#~ msgid " (slot %d"
-#~ msgstr " (créneau %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr " réessayer dans %ds"

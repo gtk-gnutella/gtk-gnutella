@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -168,8 +168,15 @@ msgstr "SHA1 eltérés érzékelve"
 msgid "Partial file on server, waiting"
 msgstr "Részleges fájlmegosztás (zsúfolás)"
 
+msgid "Queued"
+msgstr "Sorban"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
+msgid " (slot %d"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
 msgstr ""
 
 msgid "Stopped (Read buffer full)"
@@ -1622,6 +1629,10 @@ msgid "Number of running uploads."
 msgstr "Folyamatban lévő feltöltések száma"
 
 #, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Pillanatnyilag az átjátszó kapcsolatok száma."
+
+#, fuzzy
 msgid "Number of registered (pending) uploads."
 msgstr "Bejegyzett (függő) feltöltések száma"
 
@@ -2562,14 +2573,6 @@ msgstr "Az oszlopok szélessége a pontok táblán"
 #, fuzzy
 msgid "Which columns are visible in the nodes pane."
 msgstr "Mely oszlopok láthatóak a csomóponti táblán"
-
-#, fuzzy
-msgid "Widths of the columns in the active downloads table."
-msgstr "Az oszlopok szélessége az aktív letöltések táblán"
-
-#, fuzzy
-msgid "Which columns are visible in the active downloads table."
-msgstr "Mely oszlopok láthatóak az aktív letöltések táblán"
 
 #, fuzzy
 msgid "Widths of the columns in the queued downloads table."
@@ -4014,15 +4017,8 @@ msgstr "SHA1:"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Sorban"
-
 #, c-format
 msgid " (slot %u"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
 msgstr ""
 
 #, fuzzy, c-format
@@ -4372,6 +4368,22 @@ msgid "(deactivated)"
 msgstr "aktív"
 
 msgid "(invalid)"
+msgstr ""
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "aktív"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
 msgstr ""
 
 #, fuzzy
@@ -6542,46 +6554,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "File"
-msgstr "Fájl"
-
-msgid "Extension"
-msgstr "Végződés"
-
-msgid "Encoding"
-msgstr ""
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr ""
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Eladó:"
-
-#, fuzzy
-msgid "Route"
-msgstr "ki"
-
-msgid "Protocol"
-msgstr ""
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Gép"
-
-#, fuzzy
-msgid "Created"
-msgstr "Befejezve"
-
 msgid "Not in database"
 msgstr ""
 
@@ -7036,6 +7008,12 @@ msgstr ""
 msgid "Show search list"
 msgstr "Keresőlista"
 
+msgid "Extension"
+msgstr "Végződés"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "Nem"
 
@@ -7045,6 +7023,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Forrás"
+
+#, fuzzy
+msgid "Created"
+msgstr "Befejezve"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -7078,8 +7060,16 @@ msgid "Servent ID"
 msgstr "Kiszolgáló-azonosító:"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Eladó:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "biztos"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Gép"
 
 msgid "Push-proxies"
 msgstr ""
@@ -7087,6 +7077,16 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Részletes tájékoztató"
+
+#, fuzzy
+msgid "Route"
+msgstr "ki"
+
+msgid "Protocol"
+msgstr ""
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -7122,6 +7122,15 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
 msgstr ""
 
 msgid "Never"
@@ -7258,6 +7267,9 @@ msgstr ""
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr ""
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr ""
 
@@ -7266,6 +7278,17 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "File"
+#~ msgstr "Fájl"
+
+#, fuzzy
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Az oszlopok szélessége az aktív letöltések táblán"
+
+#, fuzzy
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr "Mely oszlopok láthatóak az aktív letöltések táblán"
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Leállt letöltések önműködő törlése"

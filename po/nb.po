@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -163,9 +163,16 @@ msgstr "Kjøttmann oppdaget"
 msgid "Partial file on server, waiting"
 msgstr "Del av fil på tjener, venter"
 
+msgid "Queued"
+msgstr "Lagt i kø"
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
+msgid " (slot %d"
+msgstr " (plass %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", tid igjen: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Stoppet (lesehurtigminnet er fullt)"
@@ -1502,6 +1509,10 @@ msgstr "Totalt antall fullførte nedlastinger i denne økten."
 msgid "Number of running uploads."
 msgstr "Antall kjørende opplastinger."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Antall ultranoder som er tilkoblet for øyeblikket."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Antall registrerte (ventende) opplastinger."
 
@@ -2482,12 +2493,6 @@ msgstr "Bredden på kolonnene i nodetabellen."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Hvilke kolonner som er synlige i noderuten."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Bredden på kolonnene i tabellen over aktive nedlastinger."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "Hvilke kolonner som er synlige i tabellen over aktive nedlastinger."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Bredden på kolonnene i tabellen over nedlastinger i kø."
@@ -3817,16 +3822,9 @@ msgstr "SHA-1"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Lagt i kø"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (plass %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", tid igjen: %s"
 
 #, c-format
 msgid " retry in %us"
@@ -4159,6 +4157,22 @@ msgstr "(slått av)"
 
 msgid "(invalid)"
 msgstr "(ugyldig)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Aktiv"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Global (før)"
@@ -6210,42 +6224,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "Overså %u resultat"
 msgstr[1] "Overså %u resultater"
 
-msgid "File"
-msgstr "FIl"
-
-msgid "Extension"
-msgstr "Utvidelse"
-
-msgid "Encoding"
-msgstr "Koding"
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr "Metadata"
-
-msgid "Vendor"
-msgstr "Program"
-
-msgid "Route"
-msgstr "Rute"
-
-msgid "Protocol"
-msgstr "Protokoll"
-
-msgid "TTL"
-msgstr "TTL"
-
-msgid "Owned"
-msgstr "Eid"
-
-msgid "Hostile"
-msgstr "Fiendtlig"
-
-msgid "Created"
-msgstr "Opprettet"
-
 msgid "Not in database"
 msgstr "Ikke i databasen"
 
@@ -6678,6 +6656,12 @@ msgstr "Klarte ikke starte bla-verten for «%s»"
 msgid "Show search list"
 msgstr "Vis søkeliste"
 
+msgid "Extension"
+msgstr "Utvidelse"
+
+msgid "Owned"
+msgstr "Eid"
+
 msgid "No"
 msgstr "Nei"
 
@@ -6686,6 +6670,9 @@ msgstr "Kanskje"
 
 msgid "Source"
 msgstr "Kilde"
+
+msgid "Created"
+msgstr "Opprettet"
 
 msgid "Alt-Locs"
 msgstr "Alt-låser"
@@ -6716,8 +6703,14 @@ msgstr "Vertnavn"
 msgid "Servent ID"
 msgstr "Tjenent-ID:"
 
+msgid "Vendor"
+msgstr "Program"
+
 msgid "Browsable"
 msgstr "Kan blas i"
+
+msgid "Hostile"
+msgstr "Fiendtlig"
 
 msgid "Push-proxies"
 msgstr "Dyttemellomtjenere"
@@ -6725,6 +6718,15 @@ msgstr "Dyttemellomtjenere"
 #, fuzzy
 msgid "Packet information"
 msgstr "Detaljert informasjon"
+
+msgid "Route"
+msgstr "Rute"
+
+msgid "Protocol"
+msgstr "Protokoll"
+
+msgid "TTL"
+msgstr "TTL"
 
 msgid "Pathname"
 msgstr "Stinavn"
@@ -6760,6 +6762,15 @@ msgstr "Den normaliserte søketeksten er for kort."
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "Encoding"
+msgstr "Koding"
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
+msgstr "Metadata"
 
 msgid "Never"
 msgstr "Aldri"
@@ -6902,6 +6913,9 @@ msgstr "Sending ferdig"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (plass %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "Levetid:"
 
@@ -6910,6 +6924,18 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
+
+#~ msgid "File"
+#~ msgstr "FIl"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Bredden på kolonnene i tabellen over aktive nedlastinger."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr "Hvilke kolonner som er synlige i tabellen over aktive nedlastinger."
 
 #~ msgid "Shutdown sequence initiated."
 #~ msgstr "Startet avsluttingsprosedyren."
@@ -6980,9 +7006,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u vert"
 #~ msgstr[1] "%u verter"
-
-#~ msgid " (slot %d"
-#~ msgstr " (plass %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr " prøver på nytt om %ds"

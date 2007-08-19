@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -159,8 +159,15 @@ msgstr ""
 msgid "Partial file on server, waiting"
 msgstr ""
 
+msgid "Queued"
+msgstr ""
+
 #, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
+msgid " (slot %d"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
 msgstr ""
 
 msgid "Stopped (Read buffer full)"
@@ -1320,6 +1327,9 @@ msgstr ""
 msgid "Number of running uploads."
 msgstr ""
 
+msgid "Number of quick uploads currently running."
+msgstr ""
+
 msgid "Number of registered (pending) uploads."
 msgstr ""
 
@@ -2075,12 +2085,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the active downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the active downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the queued downloads table."
@@ -3391,15 +3395,8 @@ msgstr "SHA1:"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr ""
-
 #, c-format
 msgid " (slot %u"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
 msgstr ""
 
 #, c-format
@@ -3732,6 +3729,22 @@ msgid "(deactivated)"
 msgstr ""
 
 msgid "(invalid)"
+msgstr ""
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Aktif"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
 msgstr ""
 
 msgid "Global (pre)"
@@ -5698,46 +5711,6 @@ msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
 
-msgid "File"
-msgstr "Dosya"
-
-msgid "Extension"
-msgstr ""
-
-msgid "Encoding"
-msgstr ""
-
-msgid "#"
-msgstr ""
-
-msgid "Metadata"
-msgstr ""
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Sağlayıcı:"
-
-#, fuzzy
-msgid "Route"
-msgstr "dışarı"
-
-msgid "Protocol"
-msgstr ""
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "IP Önbelleği"
-
-#, fuzzy
-msgid "Created"
-msgstr "Tamamlandı"
-
 msgid "Not in database"
 msgstr ""
 
@@ -6145,6 +6118,12 @@ msgstr ""
 msgid "Show search list"
 msgstr ""
 
+msgid "Extension"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "Hayır"
 
@@ -6154,6 +6133,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Kaynaklar"
+
+#, fuzzy
+msgid "Created"
+msgstr "Tamamlandı"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6187,8 +6170,16 @@ msgid "Servent ID"
 msgstr "Sunucu"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Sağlayıcı:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "_Gözat"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "IP Önbelleği"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6196,6 +6187,16 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Ayrıntılı bilgi"
+
+#, fuzzy
+msgid "Route"
+msgstr "dışarı"
+
+msgid "Protocol"
+msgstr ""
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -6230,6 +6231,15 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "#"
+msgstr ""
+
+msgid "Metadata"
 msgstr ""
 
 msgid "Never"
@@ -6364,6 +6374,9 @@ msgstr "Aktarım tamamlandı"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr ""
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr ""
 
@@ -6372,6 +6385,9 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "File"
+#~ msgstr "Dosya"
 
 #, fuzzy
 #~ msgid "Close this search"

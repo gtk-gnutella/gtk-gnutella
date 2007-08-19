@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -165,9 +165,16 @@ msgstr ""
 msgid "Partial file on server, waiting"
 msgstr ""
 
-#, fuzzy, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Поставлено в чергу (слот %d/%d) ETA: %s"
+msgid "Queued"
+msgstr "Поставлено в чергу"
+
+#, c-format
+msgid " (slot %d"
+msgstr ""
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ""
 
 msgid "Stopped (Read buffer full)"
 msgstr "Зупинено (Буфер зчитування заповнений)"
@@ -1327,6 +1334,9 @@ msgstr ""
 msgid "Number of running uploads."
 msgstr ""
 
+msgid "Number of quick uploads currently running."
+msgstr ""
+
 msgid "Number of registered (pending) uploads."
 msgstr ""
 
@@ -2081,12 +2091,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the active downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the active downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the queued downloads table."
@@ -3403,15 +3407,8 @@ msgstr ""
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Поставлено в чергу"
-
 #, c-format
 msgid " (slot %u"
-msgstr ""
-
-#, c-format
-msgid ", ETA: %s"
 msgstr ""
 
 #, c-format
@@ -3744,6 +3741,21 @@ msgid "(deactivated)"
 msgstr ""
 
 msgid "(invalid)"
+msgstr ""
+
+msgid "<Archives>"
+msgstr ""
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
 msgstr ""
 
 msgid "Global (pre)"
@@ -5726,46 +5738,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "File"
-msgstr "Файл"
-
-msgid "Extension"
-msgstr ""
-
-msgid "Encoding"
-msgstr ""
-
-msgid "#"
-msgstr ""
-
-msgid "Metadata"
-msgstr ""
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Версія"
-
-#, fuzzy
-msgid "Route"
-msgstr "Немає роуту"
-
-msgid "Protocol"
-msgstr ""
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Хост"
-
-#, fuzzy
-msgid "Created"
-msgstr "З'єднано"
-
 msgid "Not in database"
 msgstr ""
 
@@ -6189,6 +6161,12 @@ msgstr ""
 msgid "Show search list"
 msgstr ""
 
+msgid "Extension"
+msgstr ""
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr ""
 
@@ -6198,6 +6176,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Джерела"
+
+#, fuzzy
+msgid "Created"
+msgstr "З'єднано"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6229,8 +6211,16 @@ msgstr "Хост"
 msgid "Servent ID"
 msgstr ""
 
+#, fuzzy
+msgid "Vendor"
+msgstr "Версія"
+
 msgid "Browsable"
 msgstr ""
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Хост"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6238,6 +6228,16 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Детальна інформація"
+
+#, fuzzy
+msgid "Route"
+msgstr "Немає роуту"
+
+msgid "Protocol"
+msgstr ""
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -6272,6 +6272,15 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "#"
+msgstr ""
+
+msgid "Metadata"
 msgstr ""
 
 msgid "Never"
@@ -6411,6 +6420,9 @@ msgstr ""
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr ""
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr ""
 
@@ -6419,6 +6431,13 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Поставлено в чергу (слот %d/%d) ETA: %s"
+
+#~ msgid "File"
+#~ msgstr "Файл"
 
 #~ msgid "gtk-gnutella"
 #~ msgstr "gtk-gnutella"

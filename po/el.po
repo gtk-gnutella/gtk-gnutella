@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-13 20:41+0900\n"
+"POT-Creation-Date: 2007-08-20 04:43+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -169,9 +169,16 @@ msgstr ""
 msgid "Partial file on server, waiting"
 msgstr "Μερικό αρχείο στον εξυπηρετητή, αναμονή"
 
-#, fuzzy, c-format
-msgid "Queued (slot %u/%u) ETA: %s"
-msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %u/%u) ETA: %s"
+msgid "Queued"
+msgstr "Μπήκε στη λίστα αναμονής"
+
+#, c-format
+msgid " (slot %d"
+msgstr " (υποδοχή %d"
+
+#, c-format
+msgid ", ETA: %s"
+msgstr ", ETA: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "Διακόπηκε (Ενδιάμεση μνήμη ανάγνωσης πλήρης)"
@@ -1511,6 +1518,10 @@ msgstr "Συνολικός αριθμός ολοκληρωμένων λήψεω�
 msgid "Number of running uploads."
 msgstr "Αριθμών αποστολών αυτή τη στιγμή."
 
+#, fuzzy
+msgid "Number of quick uploads currently running."
+msgstr "Αριθμός συνδεδεμένων υπερ-κόμβων."
+
 msgid "Number of registered (pending) uploads."
 msgstr "Αριθμός καταχωρημένων (σε αναμονή) αποστολών."
 
@@ -2450,12 +2461,6 @@ msgstr "Πλάτη των στηλών στον πίνακα κόμβων."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Ποιες στήλες είναι ορατές στο παράθυρο κόμβων."
-
-msgid "Widths of the columns in the active downloads table."
-msgstr "Πλάτη των στηλών στον πίνακα ενεργών λήψεων."
-
-msgid "Which columns are visible in the active downloads table."
-msgstr "Ποιες στήλες θα είναι ορατές στον πίνακα ενεργών λήψεων."
 
 msgid "Widths of the columns in the queued downloads table."
 msgstr "Πλάτη των στηλών στον πίνακα της λίστας αναμονής λήψεων."
@@ -3880,16 +3885,9 @@ msgstr "SHA1:"
 msgid "Bitprint"
 msgstr ""
 
-msgid "Queued"
-msgstr "Μπήκε στη λίστα αναμονής"
-
 #, c-format
 msgid " (slot %u"
 msgstr " (υποδοχή %u"
-
-#, c-format
-msgid ", ETA: %s"
-msgstr ", ETA: %s"
 
 #, c-format
 msgid " retry in %us"
@@ -4224,6 +4222,22 @@ msgstr "(απενεργοποιήθηκε)"
 
 msgid "(invalid)"
 msgstr "(Λανθασμένο)"
+
+#, fuzzy
+msgid "<Archives>"
+msgstr "Ενεργός"
+
+msgid "<Audio>"
+msgstr ""
+
+msgid "<Literature>"
+msgstr ""
+
+msgid "<Image>"
+msgstr ""
+
+msgid "<Video>"
+msgstr ""
 
 msgid "Global (pre)"
 msgstr "Παγκόσμιο (προ)"
@@ -6298,48 +6312,6 @@ msgid_plural "Discarded %u results"
 msgstr[0] "%u αποτέλεσμα απορρίφθηκε"
 msgstr[1] "%u αποτελέσματα απορρίφθηκαν"
 
-msgid "File"
-msgstr "Αρχείο"
-
-msgid "Extension"
-msgstr "Επέκταση"
-
-#, fuzzy
-msgid "Encoding"
-msgstr "εισερχόμενο"
-
-msgid "#"
-msgstr "#"
-
-msgid "Metadata"
-msgstr ""
-
-#, fuzzy
-msgid "Vendor"
-msgstr "Κατασκευαστής:"
-
-#, fuzzy
-msgid "Route"
-msgstr "έξω"
-
-#, fuzzy
-msgid "Protocol"
-msgstr "Πουέρτο Ρίκο"
-
-msgid "TTL"
-msgstr ""
-
-msgid "Owned"
-msgstr ""
-
-#, fuzzy
-msgid "Hostile"
-msgstr "Υπολογιστής"
-
-#, fuzzy
-msgid "Created"
-msgstr "Ολοκληρώθηκε"
-
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
@@ -6782,6 +6754,12 @@ msgstr ""
 msgid "Show search list"
 msgstr "Εμφάνιση λίστας αναζητήσεων"
 
+msgid "Extension"
+msgstr "Επέκταση"
+
+msgid "Owned"
+msgstr ""
+
 msgid "No"
 msgstr "Όχι"
 
@@ -6791,6 +6769,10 @@ msgstr ""
 #, fuzzy
 msgid "Source"
 msgstr "Πηγές"
+
+#, fuzzy
+msgid "Created"
+msgstr "Ολοκληρώθηκε"
 
 msgid "Alt-Locs"
 msgstr ""
@@ -6824,8 +6806,16 @@ msgid "Servent ID"
 msgstr "ID πελάτη:"
 
 #, fuzzy
+msgid "Vendor"
+msgstr "Κατασκευαστής:"
+
+#, fuzzy
 msgid "Browsable"
 msgstr "εξερευνήσιμο"
+
+#, fuzzy
+msgid "Hostile"
+msgstr "Υπολογιστής"
 
 msgid "Push-proxies"
 msgstr ""
@@ -6833,6 +6823,17 @@ msgstr ""
 #, fuzzy
 msgid "Packet information"
 msgstr "Λεπτομέρειες"
+
+#, fuzzy
+msgid "Route"
+msgstr "έξω"
+
+#, fuzzy
+msgid "Protocol"
+msgstr "Πουέρτο Ρίκο"
+
+msgid "TTL"
+msgstr ""
 
 #, fuzzy
 msgid "Pathname"
@@ -6869,6 +6870,16 @@ msgid "The normalized search text is too short."
 msgstr "Το κείμενο κανονικοποιημένης αναζήτησης είναι πολύ μικρό."
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+#, fuzzy
+msgid "Encoding"
+msgstr "εισερχόμενο"
+
+msgid "#"
+msgstr "#"
+
+msgid "Metadata"
 msgstr ""
 
 msgid "Never"
@@ -7009,6 +7020,9 @@ msgstr "Η μεταφορά ολοκληρώθηκε"
 msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr "%s [%d] (υποδοχή %d/%d)%s %s %s"
 
+msgid "Frozen"
+msgstr ""
+
 msgid "lifetime:"
 msgstr "χρόνος ζωής:"
 
@@ -7017,6 +7031,19 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "Queued (slot %u/%u) ETA: %s"
+#~ msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %u/%u) ETA: %s"
+
+#~ msgid "File"
+#~ msgstr "Αρχείο"
+
+#~ msgid "Widths of the columns in the active downloads table."
+#~ msgstr "Πλάτη των στηλών στον πίνακα ενεργών λήψεων."
+
+#~ msgid "Which columns are visible in the active downloads table."
+#~ msgstr "Ποιες στήλες θα είναι ορατές στον πίνακα ενεργών λήψεων."
 
 #~ msgid "Auto clear stopped downloads"
 #~ msgstr "Αυτόματος καθαρισμός των σταματημένων λήψεων"
@@ -7085,9 +7112,6 @@ msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδ�
 #~ msgid_plural "%u hosts"
 #~ msgstr[0] "%u υπολογιστής"
 #~ msgstr[1] "%u υπολογιστές"
-
-#~ msgid " (slot %d"
-#~ msgstr " (υποδοχή %d"
 
 #~ msgid " retry in %ds"
 #~ msgstr " προσπάθεια ξανά σε %ds"
