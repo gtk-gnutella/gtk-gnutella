@@ -96,7 +96,9 @@ void file_info_remove_source(
 void file_info_timer(void);
 void file_info_unlink(fileinfo_t *fi);
 void file_info_upload_stop(fileinfo_t *fi, const gchar *reason);
-void file_info_changed(fileinfo_t *fi);
+void file_info_pause(fileinfo_t *);
+void file_info_resume(fileinfo_t *);
+void file_info_changed(fileinfo_t *);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
 gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);

@@ -2396,6 +2396,28 @@ file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 	}
 }
 
+void
+file_info_resume(fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (FI_F_PAUSED & fi->flags) {
+		fi->flags &= ~FI_F_PAUSED;
+		file_info_changed(fi);
+	}
+}
+
+void
+file_info_pause(fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (!(FI_F_PAUSED & fi->flags)) {
+		fi->flags |= FI_F_PAUSED;
+		file_info_changed(fi);
+	}
+}
+
 /**
  * Unlink file from disk.
  */
