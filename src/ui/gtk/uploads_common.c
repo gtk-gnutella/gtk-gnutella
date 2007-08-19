@@ -83,7 +83,7 @@ uploads_gui_progress(const gnet_upload_status_t *u,
 
 			requested = data->range_end - data->range_start + 1;
 			done = requested > 0 ? u->pos - data->range_start : 0;
-			progress = filesize_per_100(requested, done) / 100.0;
+			progress = filesize_per_10000(requested, done) / 10000.0;
 		}
 		break;
 	}

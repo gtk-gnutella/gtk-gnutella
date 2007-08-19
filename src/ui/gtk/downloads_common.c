@@ -81,7 +81,7 @@ struct fileinfo_data {
 
 	unsigned matched:1;
 
-	guint16 progress; /* 0..1000 (per mille) */
+	guint16 progress; /* 0..10000 (per ten thousands) */
 };
 
 static gnet_fi_t last_shown;
@@ -1142,7 +1142,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->uploaded = status.uploaded;
 	file->size = status.size;
 	file->done = status.done;
-	file->progress = file->size ? filesize_per_1000(file->size, file->done) : 0;
+	file->progress = file->size ? filesize_per_10000(file->size, file->done) : 0;
 
 	file->paused = 0 != status.paused;
 	file->hashed = 0 != status.sha1_hashed;
@@ -1187,7 +1187,7 @@ unsigned
 fi_gui_file_get_progress(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, 0);
-	return file->progress / 10;
+	return file->progress / 100;
 }
 
 static char *
@@ -1721,7 +1721,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 			static char buf[256];
 
 			gm_snprintf(buf, sizeof buf, "%u.%u",
-				file->progress / 10, file->progress % 10);
+				file->progress / 100, file->progress % 100);
 			text = buf;
 		}
 		break;
