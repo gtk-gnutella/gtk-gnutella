@@ -1152,6 +1152,11 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 * Use the eta of another queue. First by the queue which uses more than
 		 * one upload slot. If that result is still 0, we have a small problem
 		 * as the ETA can't be calculated correctly anymore.
+		 *
+		 * XXX this is old code that assumed by_rel_pos contained running
+		 * XXX entries.  This is no longer the case, so this code is almost
+		 * XXX meaningless.  We could track active entries some day.
+		 *		--RAM, 2007-08-19
 		 */
 
 		for (l = ul_parqs; l; l = g_list_next(l)) {
@@ -1160,9 +1165,8 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			if (q->active_uploads > 1) {
 				struct parq_ul_queued *parq_ul;
 
-				/* XXX: q->by_rel_pos can be NULL */
+				/* q->by_rel_pos can be NULL as we remove active uploads */
 				parq_ul = g_list_nth_data(q->by_rel_pos, 0);
-				g_assert(parq_ul);
 				eta = parq_ul ? parq_ul->eta : 0;
 				break;
 			}
