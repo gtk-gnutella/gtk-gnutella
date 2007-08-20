@@ -8343,7 +8343,10 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 	}
 
 	if (guid_eq(guid, blank_guid)) {
-		g_warning("Node %s (%s) uses blank GUID", node_addr(n), node_vendor(n));
+		if (GNET_PROPERTY(node_debug) > 0) {
+			g_warning("Node %s (%s) uses blank GUID",
+				node_addr(n), node_vendor(n));
+		}
 		goto error;
 	}
 
