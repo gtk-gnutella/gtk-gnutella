@@ -11274,14 +11274,19 @@ download_url_for_uri(const struct download *d, const gchar *uri)
 
 	if (DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push) {
 
-		g_assert(NULL == d->server || dl_server_valid(d->server));
-	
-		if (download_guid(d) && d->server && d->server->proxies) {
+		g_assert(dl_server_valid(d->server));
+
+		if (download_guid(d)) {
 			gchar guid_buf[GUID_HEX_SIZE + 1];
 			
-			/* Pick the first push-proxy */
-			addr = gnet_host_get_addr(d->server->proxies->data);
-			port = gnet_host_get_port(d->server->proxies->data);
+		   	if (d->server->proxies) {
+				/* Pick the first push-proxy */
+				addr = gnet_host_get_addr(d->server->proxies->data);
+				port = gnet_host_get_port(d->server->proxies->data);
+			} else {
+				addr = download_addr(d);
+				port = download_port(d);
+			}
 
 			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 			concat_strings(prefix_buf, sizeof prefix_buf,
@@ -11352,10 +11357,9 @@ const gchar *
 download_get_hostname(const struct download *d)
 {
 	static gchar buf[MAX_HOSTLEN + UINT16_DEC_BUFLEN + sizeof ": (E)"];
-	gboolean encrypted;
+	gboolean encrypted, inbound, outbound;
 	host_addr_t addr;
 	guint port;
-	const gchar *enc;
 
 	download_check(d);
 	if (is_faked_download(d))
@@ -11364,20 +11368,29 @@ download_get_hostname(const struct download *d)
 	if (d->socket) {
 		addr = d->socket->addr;
 		port = d->socket->port;
-		encrypted = 0 != socket_uses_tls(d->socket);
+		inbound = SOCK_CONN_INCOMING == d->socket->direction;
+		outbound = SOCK_CONN_OUTGOING == d->socket->direction;
+		encrypted = inbound
+				? socket_uses_tls(d->socket)
+				: socket_with_tls(d->socket);
 	} else {
 		addr = download_addr(d);
 		port = download_port(d);
-		encrypted = 0 != (d->cflags & SOCK_F_TLS);
+		encrypted = FALSE;
+		inbound = FALSE;
+		outbound = FALSE;
 	}
 
-	enc = encrypted ? " (E)" : "";
-	if (d->server->hostname)
-		gm_snprintf(buf, sizeof buf, "%s:%u%s", d->server->hostname, port, enc);
-	else
-		concat_strings(buf, sizeof buf,
-			host_addr_port_to_string(addr, port), enc, (void *) 0);
-
+	concat_strings(buf, sizeof buf,
+		host_addr_port_to_string(addr, port),
+		inbound ? ", inbound" : "",
+		outbound ? ", outbound" : "",
+		encrypted ? ", TLS" : "",
+		d->server->hostname ? ", (" : "",
+		d->server->hostname ? d->server->hostname : "",
+		d->server->hostname ? ")" : "",
+		(void *) 0);
+	
 	return buf;
 }
 
