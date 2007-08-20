@@ -2068,7 +2068,7 @@ static void
 socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	socket_addr_t addr;
-	socklen_t len = sizeof addr;
+	socklen_t addr_len;
 	struct gnutella_socket *s = data;
 	struct gnutella_socket *t = NULL;
 	gint fd;
@@ -2092,7 +2092,8 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	fd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
+	addr_len = sizeof addr;
+	fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
 	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
@@ -2103,7 +2104,8 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			fd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
+			addr_len = sizeof addr;
+			fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
 		}
 
 		if (fd < 0) {
