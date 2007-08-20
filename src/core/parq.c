@@ -88,11 +88,11 @@ RCSID("$Id$")
  * File sizes in queues:
  *
  * 1 ul: 0 < q1 < oo
- * 2 ul: 0 < q2 <= 300 Mi < q1 < oo
- * 3 ul: 0 < q3 <= 150 Mi < q2 <= 300 Mi < q1 < oo
+ * 2 ul: 0 < q2 <= 600 Mi < q1 < oo
+ * 3 ul: 0 < q3 <= 300 Mi < q2 <= 600 Mi < q1 < oo
  * ...
  */
-#define PARQ_UL_LARGE_SIZE (300 * MEBI)
+#define PARQ_UL_LARGE_SIZE (600 * MEBI)
 
 static GHashTable *dl_all_parq_by_id = NULL;
 
@@ -1539,7 +1539,8 @@ parq_upload_which_queue(struct upload *u)
 
 	/*
 	 * Determine in which queue the upload should be placed. Upload queues:
-	 * 300 Mi < size < oo
+	 * 600 Mi < size < oo
+	 * 300 Mi < size <= 600 Mi
 	 * 150 Mi < size <= 300 Mi
 	 *  75 Mi < size <= 150 Mi
 	 *   0 Mi < size <= 75 Mi
@@ -2768,12 +2769,13 @@ parq_upload_continue(struct parq_ul_queued *uq)
 		return TRUE;
 	}
 
-	if (GNET_PROPERTY(parq_debug))
-		g_message("[PARQ UL] [#%d] Not allowing regular for \"%s\" from %s (%s)",
-		uq->queue->num, uq->u->name,
-		host_addr_port_to_string(
-			uq->u->socket->addr, uq->u->socket->port),
-		upload_vendor_str(uq->u));
+	if (GNET_PROPERTY(parq_debug) > 1)
+		g_message("[PARQ UL] [#%d] Not allowing regular for \"%s\""
+			"from %s (%s) pos=%d",
+			uq->queue->num, uq->u->name,
+			host_addr_port_to_string(
+				uq->u->socket->addr, uq->u->socket->port),
+			upload_vendor_str(uq->u), uq->relative_position);
 
 check_quick:
 	/*
@@ -3543,6 +3545,15 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 			parq_ul->queue->active_uploads--;
 			parq_ul->relative_position = free_upload_slots(parq_ul->queue) + 1;
 			parq_ul->expire = time_advance(now, GUARDING_TIME);
+
+			/*
+			 *
+			 * If the upload is deemed to be complete, prevent the sending
+			 * of QUEUE callbacks, until they make a new request at least.
+			 */
+
+			if (parq_ul->had_slot)
+				parq_ul->flags |= PARQ_UL_NOQUEUE;
 
 			g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
 
