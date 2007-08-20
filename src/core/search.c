@@ -1957,6 +1957,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;		
 	}
 
+	if (guid_eq(rs->guid, blank_guid)) {
+		gnet_stats_count_dropped(n, MSG_DROP_BLANK_SERVENT_ID);
+		goto bad_packet;		
+	}
+
 	if (
 		trailer &&
 		search_results_handle_trailer(n, rs, trailer, endptr - trailer)
