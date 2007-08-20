@@ -1136,11 +1136,6 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	gchar addr_v6_buf[128];
 	host_addr_t addr;
 
-	/*
-	 * Note that we send an HTTP/1.0 request here, hence we need neither
-	 * the Host: nor the Connection: header.
-	 */
-
 	(void) unused_handle;
 	(void) unused_host;
 	(void) unused_port;
@@ -1162,8 +1157,10 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	}
 	
 	return gm_snprintf(buf, len,
-		"%s %s HTTP/1.0\r\n"
+		"%s %s HTTP/1.1\r\n"
 		"User-Agent: %s\r\n"
+		"Connection: close\r\n"
+		"Host:\r\n"
 		"X-Token: %s\r\n"
 		"%s"
 		"%s"
