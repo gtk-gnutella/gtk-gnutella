@@ -888,6 +888,8 @@ void
 parq_download_add_header(
 	gchar *buf, size_t len, size_t *rw, struct download *d)
 {
+	gboolean has_ipv4 = FALSE;
+
 	g_assert(d != NULL);
 	g_assert(rw != NULL);
 	g_assert(UNSIGNED(len) <= INT_MAX);
@@ -916,19 +918,24 @@ parq_download_add_header(
 	 * we're claiming is "valid".
 	 */
 
-	if (
-		!GNET_PROPERTY(is_firewalled) &&
-		host_is_valid(listen_addr(), socket_listen_port())
-	) {
+	if (GNET_PROPERTY(is_firewalled))
+		return;
+	
+	if (host_is_valid(listen_addr(), socket_listen_port())) {
+		has_ipv4 = TRUE;
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
+			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
+	}
+	if (host_is_valid(listen_addr6(), socket_listen_port())) {
+		*rw += gm_snprintf(&buf[*rw], len - *rw,
+		  	  "%s%s\r\n",
+			  has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
 	}
 }
 
 /**
- * parq_download_queue_ack
- *
  * PARQ enabled servers send a 'QUEUE' command when the lifetime of the download
  * (upload from the servers point of view) is about to expire, or if the
  * download has retrieved an download slot (upload slot from the servers point
@@ -2983,6 +2990,8 @@ cleanup:
 		GList *l = NULL;
 
 		buf = header_get(header, "X-Node");
+		if (buf == NULL)
+			buf = header_get(header, "X-Node-IPv6");
 		if (buf == NULL)
 			buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
 

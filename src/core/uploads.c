@@ -3535,6 +3535,8 @@ upload_determine_peer_address(struct upload *u, header_t *header)
 
 	buf = header_get(header, "X-Node");
 	if (buf == NULL)
+		buf = header_get(header, "X-Node-IPv6");
+	if (buf == NULL)
 		buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
 	if (buf == NULL)
 		buf = header_get(header, "Listen-Ip");		/* Gnucleus! */

@@ -626,6 +626,58 @@ validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
 	return result;
 }
 
+static void
+pproxy_fetch_addresses(struct pproxy *pp, const char *buf)
+{
+	const gchar *endptr;
+	host_addr_t addr;
+	guint16 port;
+
+	if (NULL == buf)
+		return;
+
+	if (!string_to_host_addr_port(buf, &endptr, &addr, &port))
+		return;
+
+	pp->addr_v4 = zero_host_addr;
+	pp->addr_v6 = zero_host_addr;
+	pp->port = port;
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		pp->addr_v4 = addr;
+		break;
+	case NET_TYPE_IPV6:
+		pp->addr_v6 = addr;
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	/* Allow a second address */
+	endptr = skip_ascii_spaces(endptr);
+	if (',' == *endptr) {
+		endptr = skip_ascii_spaces(&endptr[1]);
+		if (
+			string_to_host_addr_port(endptr, NULL, &addr, &port) &&
+			port == pp->port
+		) {
+			switch (host_addr_net(addr)) {
+			case NET_TYPE_IPV4:
+				pp->addr_v4 = addr;
+				break;
+			case NET_TYPE_IPV6:
+				pp->addr_v6 = addr;
+				break;
+			case NET_TYPE_LOCAL:
+			case NET_TYPE_NONE:
+				break;
+			}
+		}
+	}
+}
+
 /**
  * Called once all the HTTP headers have been read to proceed with
  * the push proxyfication.
@@ -636,7 +688,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	struct gnutella_socket *s = pp->socket;
 	const gchar *request = getline_str(s->getline);
 	struct gnutella_node *n;
-	gchar *buf;
+	const gchar *buf;
 	gchar *token;
 	gchar *user_agent;
 	GSList *nodes;
@@ -678,60 +730,12 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 	buf = header_get(header, "X-Node");
-
-	if (buf == NULL) {
-		pproxy_error_remove(pp, 400,
-			"Malformed push-proxy request: missing X-Node header");
-		return;
+	if (buf) {
+		pproxy_fetch_addresses(pp, buf);
 	}
-
-	{
-		const gchar *endptr;
-		host_addr_t addr;
-		guint16 port;
-
-		if (!string_to_host_addr_port(buf, &endptr, &addr, &port)) {
-			pproxy_error_remove(pp, 400,
-				"Malformed push-proxy request: cannot parse X-Node");
-			return;
-		}
-
-		pp->addr_v4 = zero_host_addr;
-		pp->addr_v6 = zero_host_addr;
-		pp->port = port;
-
-		switch (host_addr_net(addr)) {
-		case NET_TYPE_IPV4:
-			pp->addr_v4 = addr;
-			break;
-		case NET_TYPE_IPV6:
-			pp->addr_v6 = addr;
-			break;
-		case NET_TYPE_LOCAL:
-		case NET_TYPE_NONE:
-			break;
-		}
-		
-		endptr = skip_ascii_spaces(endptr);
-		if (',' == *endptr) {
-			endptr = skip_ascii_spaces(&endptr[1]);
-			if (
-				string_to_host_addr_port(endptr, NULL, &addr, &port) &&
-				port == pp->port
-			) {
-				switch (host_addr_net(addr)) {
-				case NET_TYPE_IPV4:
-					pp->addr_v4 = addr;
-					break;
-				case NET_TYPE_IPV6:
-					pp->addr_v6 = addr;
-					break;
-				case NET_TYPE_LOCAL:
-				case NET_TYPE_NONE:
-					break;
-				}
-			}
-		}
+	buf = header_get(header, "X-Node-IPv6");
+	if (buf) {
+		pproxy_fetch_addresses(pp, buf);
 	}
 
 	if (!host_is_valid(pp->addr_v4, pp->port)) {
@@ -743,7 +747,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	
 	if (!is_host_addr(pp->addr_v4) && !is_host_addr(pp->addr_v6)) {
 		pproxy_error_remove(pp, 400,
-			"Malformed push-proxy request: supplied address is unreachable");
+			"Malformed push-proxy request: supplied no valid address");
 		return;
 	}
 
@@ -1135,6 +1139,7 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	gchar addr_buf[128];
 	gchar addr_v6_buf[128];
 	host_addr_t addr;
+	gboolean has_ipv4 = FALSE;
 
 	(void) unused_handle;
 	(void) unused_host;
@@ -1142,18 +1147,28 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	g_assert(len <= INT_MAX);
 
 	addr = listen_addr();
+	addr_buf[0] = '\0';
 	if (is_host_addr(addr)) {
-		gm_snprintf(addr_buf, sizeof addr_buf, "X-Node: %s\r\n",
-			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)));
-	} else {
-		addr_buf[0] = '\0';
+		has_ipv4 = TRUE;
+		concat_strings(addr_buf, sizeof addr_buf,
+			"X-Node: ",
+			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
+			"\r\n",
+			(void *) 0);
 	}
+
 	addr = listen_addr6();
+	addr_v6_buf[0] = '\0';
 	if (is_host_addr(addr)) {
-		gm_snprintf(addr_v6_buf, sizeof addr_v6_buf, "X-Node: %s\r\n",
-			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)));
-	} else {
-		addr_v6_buf[0] = '\0';
+		/* Older clients only node X-Node, so if we don't have an IPv4
+		 * address, use the X-Node header instead. If they don't support
+		 * IPv6 we lose anyway.
+		 */
+		concat_strings(addr_buf, sizeof addr_buf,
+			has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
+			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
+			"\r\n",
+			(void *) 0);
 	}
 	
 	return gm_snprintf(buf, len,

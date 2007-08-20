@@ -3919,13 +3919,14 @@ feed_host_cache_from_headers(header_t *header,
 		{ "X-Listen-Ip",		TRUE,	TRUE,  HOST_ANY },
 		{ "X-My-Address",		TRUE,	TRUE,  HOST_ANY },
 		{ "X-Node",				TRUE,	TRUE,  HOST_ANY },
+		{ "X-Node-IPv6",		TRUE,	TRUE,  HOST_ANY },
 		{ "X-Try",				FALSE,	TRUE,  HOST_ANY },
 		{ "X-Try-Ultrapeers",	FALSE,	TRUE,  HOST_ULTRA },
 	};
 	guint i, n = 0;
 
 	g_assert(header);
-    g_assert((guint) sender < HOST_MAX);
+    g_assert(UNSIGNED(sender) < HOST_MAX);
 
 	for (;;) {
 		for (i = 0; i < G_N_ELEMENTS(headers); i++) {
