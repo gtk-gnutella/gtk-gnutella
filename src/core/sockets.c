@@ -2047,9 +2047,7 @@ socket_addr_getpeername(socket_addr_t *p_addr, int fd)
 #endif	/* HAS_IPV6 */
 
 	if (!is_host_addr(addr)) {
-		if (!error) {
-			errno = 0;
-		}
+		errno = error;	/* Clear it if getpeername() did not fail */
 		return -1;
 	}
 	
