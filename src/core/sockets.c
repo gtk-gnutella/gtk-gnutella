@@ -2017,6 +2017,46 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	return 0;
 }
 
+static int
+socket_addr_getpeername(socket_addr_t *p_addr, int fd)
+{
+	struct sockaddr_in sin4;
+	socklen_t len;
+	host_addr_t addr = zero_host_addr;
+	guint16 port = 0;
+	int error = 0;
+
+	len = sizeof sin4;
+	if (-1 != getpeername(fd, cast_to_gpointer(&sin4), &len)) {
+		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
+		port = sin4.sin_port;
+		error = errno;
+	}
+
+#ifdef HAS_IPV6
+	if (!is_host_addr(addr)) {
+		struct sockaddr_in6 sin6;
+
+		len = sizeof sin6;
+		if (-1 != getpeername(fd, cast_to_gpointer(&sin6), &len)) {
+			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
+			port = sin6.sin6_port;
+			error = errno;
+		}
+	}
+#endif	/* HAS_IPV6 */
+
+	if (!is_host_addr(addr)) {
+		if (!error) {
+			errno = 0;
+		}
+		return -1;
+	}
+	
+	socket_addr_set(p_addr, addr, port);
+	return 0;
+}
+
 /**
  * Tries to guess the local IP address.
  */
@@ -2093,7 +2133,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	addr_len = sizeof addr;
-	fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
+	fd = accept(s->file_desc, socket_addr_get_sockaddr(&addr), &addr_len);
 	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
@@ -2105,7 +2145,8 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
 			addr_len = sizeof addr;
-			fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
+			fd = accept(s->file_desc,
+					socket_addr_get_sockaddr(&addr), &addr_len);
 		}
 
 		if (fd < 0) {
@@ -2146,7 +2187,6 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		t->port = socket_addr_get_port(&addr);
 		t->local_port = s->local_port;
 		t->flags |= SOCK_F_TCP;
-		g_assert(is_host_addr(t->addr));
 	} else {
 		g_assert(SOCK_F_LOCAL & s->flags);
 		t->flags |= SOCK_F_LOCAL;
@@ -2154,14 +2194,33 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 	t->net = host_addr_net(t->addr);
 
+	if ((SOCK_F_TCP & t->flags) && !is_host_addr(t->addr)) {
+		if (socket_addr_getpeername(&addr, t->file_desc)) {
+			g_warning("getpeername() failed: %s", g_strerror(errno));
+			socket_free_null(&t);
+			return;
+		}
+		t->addr = socket_addr_get_addr(&addr);
+		t->port = socket_addr_get_port(&addr);
+		if (!is_host_addr(t->addr)) {
+			g_warning("Incoming TCP connection from unidentifiable source");
+			socket_free_null(&t);
+			return;
+		}
+		g_warning("Had to use getpeername() after accept(): peer=%s",
+			host_addr_port_to_string(t->addr, t->port));
+	}
+
 #ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
 	t->tls.stage = SOCK_TLS_NONE;
 	t->tls.ctx = NULL;
 	t->tls.snarf = 0;
 
-	if (GNET_PROPERTY(tls_debug) > 2)
-		g_message("Incoming connection");
+	if (GNET_PROPERTY(tls_debug) > 2) {
+		g_message("Incoming connection from %s",
+			host_addr_port_to_string(t->addr, t->port));
+	}
 #endif	/* HAS_GNUTLS */
         
 	socket_wio_link(t);
