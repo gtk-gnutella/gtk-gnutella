@@ -5,11 +5,10 @@
  */
 
 /*
-	s,^[^=]*= ,,
-	g/"[,%()0-9]"/d
+	%s,^[^=]*= ,,
 	g/"label[0-9]*"/d
 	g/"\[.*\]"/d
-	g/[^;]$/j
+	g/^N_.*[^;]$/j
 	sort | uniq
 */
 
@@ -22,10 +21,9 @@ N_(" passive)");
 N_(" queued (");
 N_(" registered, ");
 N_(" with sources");
-N_("%v/%u Gnet nodes");
+N_("%v/%u Gnutella peers");
 N_("%v/%u downloads");
 N_("%v/%u uploads");
-N_("(");
 N_("(Disable: 0, Random: 1)");
 N_("(no search)");
 N_("(not forwarded)");
@@ -68,7 +66,7 @@ N_("Available physical memory:");
 N_("Avg. time between IP address changes:");
 N_("Avg. uptime of this servent:");
 N_("Bad hosts");
-N_("Bandwidth limits for GnutellaNet traffic");
+N_("Bandwidth limits for Gnutella traffic");
 N_("Bandwidth limits for HTTP traffic");
 N_("Bandwidth");
 N_("Banning");
@@ -208,16 +206,15 @@ N_("General");
 N_("Generated queries");
 N_("Generation:");
 N_("Globally drop results...");
-N_("Gnet connections");
+N_("Gnutella TTL settings");
 N_("Gnutella _leaf traffic stats");
+N_("Gnutella display");
+N_("Gnutella message size limits");
 N_("Gnutella network mode");
-N_("GnutellaNet TTL settings");
-N_("GnutellaNet display");
-N_("GnutellaNet message size limits");
-N_("GnutellaNet timeouts (all values in seconds)");
-N_("GnutellaNet traffic");
-N_("GnutellaNet");
-N_("Gtk-Gnutella is shutting down.\n" "Sending bye messages to peers.\n" "\n" "Grace time remaining:");
+N_("Gnutella peers");
+N_("Gnutella timeouts (all values in seconds)");
+N_("Gnutella traffic");
+N_("Gnutella");
 N_("HTTP traffic");
 N_("H_ard TTL limit");
 N_("H_ost:");
@@ -393,6 +390,7 @@ N_("Retry timeout delay");
 N_("Retry timeout max");
 N_("Retry timeout min");
 N_("Revert");
+N_("Richard Eckart");
 N_("Rules");
 N_("Ruleset editor");
 N_("Running in leaf mode.");
@@ -413,10 +411,23 @@ N_("Select files by regex");
 N_("Selected property:");
 N_("Server");
 N_("Settings");
+N_("Show Search_bar");
+N_("Show Status_bar");
+N_("Show _Connections");
+N_("Show _Downloads");
+N_("Show _Menubar");
+N_("Show _Sidebar");
+N_("Show _Uploads");
 N_("Show _bytes");
 N_("Show _confirmation dialog when leaving gtk-gnutella");
+N_("Show _inbound Gnutella traffic");
+N_("Show _inbound HTTP traffic");
+N_("Show _inbound leaf traffic");
 N_("Show _last");
 N_("Show _metric units");
+N_("Show _outbound Gnutella traffic");
+N_("Show _outbound leaf traffic");
+N_("Show _outbound HTTP traffic");
 N_("Show _percentages");
 N_("Show _tooltips (does not affect all tooltips yet)");
 N_("Show additional information and settings for advanced and _expert users");
@@ -557,7 +568,9 @@ N_("enabled");
 N_("failed");
 N_("from _nodes within a");
 N_("from the same host");
+N_("gtk-gnutella is shutting down.\n" "Sending bye messages to peers.\n" "\n" "Grace time remaining:");
 N_("gtk-gnutella shutdown");
+N_("gtk-gnutella");
 N_("gtk-gnutella: Quit?");
 N_("hops radius");
 N_("ignore");
@@ -575,19 +588,6 @@ N_("seconds");
 N_("secs   ");
 N_("secs");
 N_("set");
-N_("show Gnet _incoming traffic");
-N_("show Gnet _outgoing traffic");
-N_("show HTTP _incoming traffic");
-N_("show HTTP _outgoing traffic");
-N_("show Search_bar");
-N_("show _Connections");
-N_("show _Downloads");
-N_("show _Menubar");
-N_("show _Sidebar");
-N_("show _Statusbar");
-N_("show _Uploads");
-N_("show leaf _incoming traffic");
-N_("show leaf _outgoing traffic");
 N_("unavailable");
 N_("undefined");
 N_("unset");
