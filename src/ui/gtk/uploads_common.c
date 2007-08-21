@@ -160,32 +160,36 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
     case GTA_UL_CLOSED:
         return _("Transmission complete");
 
-	case GTA_UL_QUEUED:
+	case GTA_UL_QUEUED:		/* Actively queued */
 		{
 			guint32 max_up, cur_up;
 			gboolean queued;
+			guint available = 0;
 			gchar tbuf[64];
-
-			/*
-			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload
-			 * slots are full an upload is placed into the PARQ-upload. Clients
-			 * supporting Queue 0.1 and 1.0 will get an active slot. We
-			 * probably want to display this information
-			 *		-- JA, 06/02/2003
-			 */
-
 
 			gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &max_up);
 			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
-			queued = u->parq_position > max_up - cur_up;
 
-			/* position 1 should always get an upload slot */
+			if (cur_up < max_up)
+				available = max_up - cur_up;
+
+			/*
+			 * We'll flag as "Waiting" instead of "Queued" uploads
+			 * that are actively queued and whose position is low
+			 * enough to possibly get scheduled at the next request,
+			 * given the amount of free slots.
+			 *		--RAM, 2007-08-21
+			 */
+
+			queued = u->parq_position > available;
+
 			if (u->parq_retry > 0) {
 				gm_snprintf(tbuf, sizeof tbuf,
 							" %s,", short_time(u->parq_retry));
 			} else {
 				tbuf[0] = '\0';
 			}
+
 			gm_snprintf(tmpstr, sizeof tmpstr,
 						_("%s [%d] (slot %d/%d)%s %s %s"),
 						u->parq_frozen ? _("Frozen") :
