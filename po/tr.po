@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -39,6 +39,10 @@ msgstr "Zaman aşımı"
 msgid "Requeued due to timeout"
 msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 
+#, fuzzy
+msgid "Requeued due to file removal"
+msgstr "Zaman aşımı yüzünden kuyruğa alındı"
+
 msgid "Requeued by file info change"
 msgstr ""
 
@@ -49,10 +53,20 @@ msgstr "Askıya alındı (SHA1 kontrolü)"
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Ignoring requested (%s)"
+msgstr "İstek gönderiliyor"
+
 msgid "Paused"
 msgstr ""
 
+msgid "Nothing more to get"
+msgstr ""
+
 msgid "Waiting for a free chunk"
+msgstr ""
+
+msgid "No more gaps to fill"
 msgstr ""
 
 msgid "Download queue is frozen"
@@ -64,7 +78,16 @@ msgstr ""
 msgid "Connection failed (Out of file descriptors?)"
 msgstr ""
 
+msgid "Connection failed"
+msgstr "Bağlantı başarısız"
+
+msgid "Push route lost"
+msgstr ""
+
 msgid "Ignoring Push flag"
+msgstr ""
+
+msgid "Can't reach host (Push or Direct)"
 msgstr ""
 
 #, c-format
@@ -95,10 +118,29 @@ msgstr ""
 msgid "Has already enough active sources"
 msgstr ""
 
+#, fuzzy
+msgid "download_start() failed"
+msgstr "Seçili dosyaları indir"
+
 msgid "Stopped (Index changed)"
 msgstr ""
 
+#, fuzzy
+msgid "Duplicate download"
+msgstr "indirmeler"
+
 msgid "Explicitly requeued"
+msgstr ""
+
+#, fuzzy
+msgid "Failed (Header line too large)"
+msgstr "Başarısız (Okuma hatası: %s)"
+
+#, c-format
+msgid "Failed (%s)"
+msgstr "Başarısız (%s)"
+
+msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -119,17 +161,42 @@ msgstr ""
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Can't check resume data: %s"
+msgstr "Veri kaydedilemedi: %s"
+
+#, fuzzy, c-format
+msgid "Can't stat opened file: %s"
+msgstr "Veri kaydedilemedi: %s"
+
 msgid "Stopped (Output file size changed)"
 msgstr "Durdu (Çıktı dosyası boyutu değişti)"
+
+#, fuzzy, c-format
+msgid "Can't read resume data: %s"
+msgstr "Veri kaydedilemedi: %s"
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
 
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Veri kaydedilemedi: %s"
 
+msgid "Partial write to file"
+msgstr ""
+
 msgid "Requeued after trimmed data"
 msgstr ""
 
 msgid "Chunk done, connection closed"
+msgstr ""
+
+msgid "Giving priority to THEX"
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -138,10 +205,27 @@ msgstr ""
 msgid "Weird HTTP status (protocol desync?)"
 msgstr ""
 
+msgid "Weird HTTP status"
+msgstr ""
+
+#, fuzzy
+msgid "Download was a duplicate"
+msgstr "Seçili olanı _indir"
+
+#, fuzzy
+msgid "Filesize mismatch"
+msgstr "İptal edilince dosyayı sil"
+
+msgid "No URN on server (required)"
+msgstr ""
+
 msgid "No URN on server, waiting for overlap"
 msgstr ""
 
 msgid "No URN on server to validate"
+msgstr ""
+
+msgid "URN mismatch detected"
 msgstr ""
 
 msgid "URN fileinfo mismatch"
@@ -150,13 +234,46 @@ msgstr ""
 msgid "Discovered dup SHA1"
 msgstr ""
 
-msgid "Stopped data (EOF) <download_sink_read>"
+msgid "More data to sink than expected"
+msgstr ""
+
+#, fuzzy
+msgid "Stopped data (EOF)"
+msgstr "Durduruldu (%s)"
+
+#, fuzzy, c-format
+msgid "Stopped data (%s)"
+msgstr "Durduruldu (%s)"
+
+msgid "Timeout reading HTTP status"
+msgstr ""
+
+#, fuzzy
+msgid "Timeout reading headers"
+msgstr "Başlıklar okunuyor"
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
 msgstr ""
 
 msgid "Spammer detected"
 msgstr ""
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 msgid "Partial file on server, waiting"
+msgstr ""
+
+#, c-format
+msgid "%sRequested range unavailable yet"
 msgstr ""
 
 msgid "Queued"
@@ -170,10 +287,74 @@ msgstr ""
 msgid ", ETA: %s"
 msgstr ""
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+msgid "Total/served sizes mismatch"
+msgstr ""
+
+#, fuzzy
+msgid "Range start mismatch"
+msgstr "Aramayı baştan başlat"
+
+#, fuzzy
+msgid "Range end too large"
+msgstr "Çok büyük"
+
+msgid "Range mismatch"
+msgstr ""
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+#, fuzzy
+msgid "Search already closed"
+msgstr "Aramalar"
+
+#, fuzzy
+msgid "THEX download aborted"
+msgstr "İndirilen:"
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, c-format
+msgid "Cannot write into file: %s"
+msgstr ""
+
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
+#, fuzzy
+msgid "Failed (Completed?)"
+msgstr "Tamamlandı"
+
+msgid "Could not send whole HTTP request"
+msgstr ""
+
+#, c-format
+msgid "Write failed: %s"
+msgstr ""
+
+msgid "Malformed push reply"
+msgstr ""
+
 msgid "SHA1 mismatch detected"
+msgstr ""
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
 msgstr ""
 
 #, c-format
@@ -183,6 +364,10 @@ msgstr "<Kişiye Gözat %s>"
 #, c-format
 msgid "<THEX data for %s>"
 msgstr ""
+
+#, fuzzy
+msgid "Browse search closed"
+msgstr "<Kişiye Gözat %s>"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
@@ -327,6 +512,10 @@ msgstr "Arama sonuçları"
 msgid "Ancient query format"
 msgstr ""
 
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "Sunucu"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Kapanıyor (%s)"
@@ -437,14 +626,7 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#, c-format
-msgid "Failed (%s)"
-msgstr "Başarısız (%s)"
-
 msgid "Failed (Input Exception)"
-msgstr ""
-
-msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -537,14 +719,7 @@ msgstr "Okuma hatası"
 msgid "Got EOF"
 msgstr ""
 
-msgid "Connection failed"
-msgstr "Bağlantı başarısız"
-
 msgid "Write failed (Input Exception)"
-msgstr ""
-
-#, c-format
-msgid "Write failed: %s"
 msgstr ""
 
 #, c-format
@@ -3550,6 +3725,10 @@ msgstr "Tamamlandı"
 msgid "All"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "regex error: %s"
+msgstr "Başarısız (Okuma hatası: %s)"
+
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
@@ -3573,7 +3752,7 @@ msgstr ""
 msgid "is exactly"
 msgstr ""
 
-msgid "Builtin targets (not editable)"
+msgid "Built-in targets"
 msgstr ""
 
 msgid "Global filters"
@@ -3732,16 +3911,16 @@ msgid "(invalid)"
 msgstr ""
 
 #, fuzzy
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr "Aktif"
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -3935,16 +4114,13 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
-msgid "%v/%u Gnet nodes"
+msgid "%v/%u Gnutella peers"
 msgstr ""
 
 msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
-msgstr ""
-
-msgid "("
 msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
@@ -4086,7 +4262,7 @@ msgstr ""
 msgid "Bad hosts"
 msgstr ""
 
-msgid "Bandwidth limits for GnutellaNet traffic"
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr ""
 
 msgid "Bandwidth limits for HTTP traffic"
@@ -4502,40 +4678,39 @@ msgstr ""
 msgid "Globally drop results..."
 msgstr ""
 
-msgid "Gnet connections"
-msgstr ""
+#, fuzzy
+msgid "Gnutella TTL settings"
+msgstr "Gnutella istatistikleri"
 
 #, fuzzy
 msgid "Gnutella _leaf traffic stats"
 msgstr "Gnet _trafik istatistikleri"
 
+#, fuzzy
+msgid "Gnutella display"
+msgstr "Gnutella istatistikleri"
+
+#, fuzzy
+msgid "Gnutella message size limits"
+msgstr "Gnutella istatistikleri"
+
 msgid "Gnutella network mode"
 msgstr ""
 
-msgid "GnutellaNet TTL settings"
+#, fuzzy
+msgid "Gnutella peers"
+msgstr "Gnutella istatistikleri"
+
+msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
-msgid "GnutellaNet display"
-msgstr ""
+#, fuzzy
+msgid "Gnutella traffic"
+msgstr "Gnet _trafik istatistikleri"
 
-msgid "GnutellaNet message size limits"
-msgstr ""
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr ""
-
-msgid "GnutellaNet traffic"
-msgstr ""
-
-msgid "GnutellaNet"
-msgstr ""
-
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
+#, fuzzy
+msgid "Gnutella"
+msgstr "_GnutellaNet"
 
 msgid "HTTP traffic"
 msgstr ""
@@ -5056,6 +5231,9 @@ msgstr ""
 msgid "Revert"
 msgstr ""
 
+msgid "Richard Eckart"
+msgstr ""
+
 msgid "Rules"
 msgstr ""
 
@@ -5119,10 +5297,47 @@ msgstr "Sunucu"
 msgid "Settings"
 msgstr "Ayarları Göster"
 
+msgid "Show Search_bar"
+msgstr ""
+
+#, fuzzy
+msgid "Show Status_bar"
+msgstr "Tabları göster"
+
+#, fuzzy
+msgid "Show _Connections"
+msgstr "Bağlanıyor"
+
+#, fuzzy
+msgid "Show _Downloads"
+msgstr "İ_ndirmeler"
+
+#, fuzzy
+msgid "Show _Menubar"
+msgstr "_Sonuncuyu göster"
+
+#, fuzzy
+msgid "Show _Sidebar"
+msgstr "_Sonuncuyu göster"
+
+#, fuzzy
+msgid "Show _Uploads"
+msgstr "_Sonuncuyu göster"
+
 msgid "Show _bytes"
 msgstr ""
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
+msgstr ""
+
+#, fuzzy
+msgid "Show _inbound Gnutella traffic"
+msgstr "Gnet _trafik istatistikleri"
+
+msgid "Show _inbound HTTP traffic"
+msgstr ""
+
+msgid "Show _inbound leaf traffic"
 msgstr ""
 
 msgid "Show _last"
@@ -5131,6 +5346,16 @@ msgstr "_Sonuncuyu göster"
 #, fuzzy
 msgid "Show _metric units"
 msgstr "Ayarları Göster"
+
+#, fuzzy
+msgid "Show _outbound Gnutella traffic"
+msgstr "Gnet _trafik istatistikleri"
+
+msgid "Show _outbound leaf traffic"
+msgstr ""
+
+msgid "Show _outbound HTTP traffic"
+msgstr ""
 
 msgid "Show _percentages"
 msgstr ""
@@ -5575,8 +5800,18 @@ msgstr ""
 msgid "from the same host"
 msgstr ""
 
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+
 msgid "gtk-gnutella shutdown"
 msgstr ""
+
+msgid "gtk-gnutella"
+msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Çık?"
@@ -5627,45 +5862,6 @@ msgid "secs"
 msgstr "sn"
 
 msgid "set"
-msgstr ""
-
-msgid "show Gnet _incoming traffic"
-msgstr ""
-
-msgid "show Gnet _outgoing traffic"
-msgstr ""
-
-msgid "show HTTP _incoming traffic"
-msgstr ""
-
-msgid "show HTTP _outgoing traffic"
-msgstr ""
-
-msgid "show Search_bar"
-msgstr ""
-
-msgid "show _Connections"
-msgstr ""
-
-msgid "show _Downloads"
-msgstr ""
-
-msgid "show _Menubar"
-msgstr ""
-
-msgid "show _Sidebar"
-msgstr ""
-
-msgid "show _Statusbar"
-msgstr ""
-
-msgid "show _Uploads"
-msgstr ""
-
-msgid "show leaf _incoming traffic"
-msgstr ""
-
-msgid "show leaf _outgoing traffic"
 msgstr ""
 
 msgid "unavailable"
@@ -5737,21 +5933,23 @@ msgstr "Panoya kopyala"
 msgid "_Remove filter"
 msgstr "Filtreyi _Kaldır"
 
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-
 msgid "_Close"
 msgstr ""
 
-msgid "show _Peers"
-msgstr ""
+#, fuzzy
+msgid "Show _Statusbar"
+msgstr "Tabları göster"
+
+#, fuzzy
+msgid "Show _Peers"
+msgstr "_Sonuncuyu göster"
 
 #, fuzzy
 msgid "Gnutella _traffic stats"
+msgstr "Gnet _trafik istatistikleri"
+
+#, fuzzy
+msgid "_Auto-hide leaf traffic stats"
 msgstr "Gnet _trafik istatistikleri"
 
 msgid "_Search"
@@ -6396,9 +6594,6 @@ msgstr ""
 #~ msgid "Failed"
 #~ msgstr "Başarısız"
 
-#~ msgid "Restart this search"
-#~ msgstr "Aramayı baştan başlat"
-
 #, fuzzy
 #~ msgid "Resu_me this search"
 #~ msgstr "Aramayı devam ettir"
@@ -6423,9 +6618,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "_Stop this search"
 #~ msgstr "Aramayı durdur"
-
-#~ msgid "gtk-gnutella"
-#~ msgstr "gtk-gnutella"
 
 #~ msgid "no size"
 #~ msgstr "boyut yok"
@@ -6471,9 +6663,6 @@ msgstr ""
 #~ msgid "[time]"
 #~ msgstr "Aktif"
 
-#~ msgid "Download selected files"
-#~ msgstr "Seçili dosyaları indir"
-
 #, fuzzy
 #~ msgid "_Close this search"
 #~ msgstr "Bu aramayı kapat"
@@ -6487,9 +6676,6 @@ msgstr ""
 #~ msgid "<none>"
 #~ msgstr "<hiçbiri>"
 
-#~ msgid "_GnutellaNet"
-#~ msgstr "_GnutellaNet"
-
 #~ msgid "_Stats"
 #~ msgstr "İs_tatistikler"
 
@@ -6501,9 +6687,6 @@ msgstr ""
 
 #~ msgid "_History"
 #~ msgstr "_Geçmiş"
-
-#~ msgid "_Downloads"
-#~ msgstr "İ_ndirmeler"
 
 #~ msgid "_Files"
 #~ msgstr "_Dosyalar"
@@ -6555,9 +6738,6 @@ msgstr ""
 
 #~ msgid "XML data:"
 #~ msgstr "XML bilgisi:"
-
-#~ msgid "Gnutella stats"
-#~ msgstr "Gnutella istatistikleri"
 
 #~ msgid "History"
 #~ msgstr "Geçmiş"

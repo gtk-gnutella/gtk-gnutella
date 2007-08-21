@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -40,6 +40,10 @@ msgstr "Türelmi idő"
 msgid "Requeued due to timeout"
 msgstr "Adatokat igazítva újra sorbaállítva"
 
+#, fuzzy
+msgid "Requeued due to file removal"
+msgstr "Adatokat igazítva újra sorbaállítva"
+
 msgid "Requeued by file info change"
 msgstr "Fájl infó változás miatt újra sorban áll"
 
@@ -50,13 +54,23 @@ msgstr "Felfüggesztve (SHA1 ellenőrzés)"
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Ignoring requested (%s)"
+msgstr "(%d%%) kérelem elküldése"
+
 #, fuzzy
 msgid "Paused"
 msgstr "Passzív"
 
+msgid "Nothing more to get"
+msgstr ""
+
 #, fuzzy
 msgid "Waiting for a free chunk"
 msgstr "SHA1 ellenőrzésre várakozás…"
+
+msgid "No more gaps to fill"
+msgstr ""
 
 msgid "Download queue is frozen"
 msgstr ""
@@ -69,8 +83,19 @@ msgstr "Nics letöltő nyílás"
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Használt fájleírók legnagyobb százaléka"
 
+#, fuzzy
+msgid "Connection failed"
+msgstr "Összekapcsolva"
+
+#, fuzzy
+msgid "Push route lost"
+msgstr "Út elveszett"
+
 msgid "Ignoring Push flag"
 msgstr "Nyomás-jelzés mellőzése "
+
+msgid "Can't reach host (Push or Direct)"
+msgstr ""
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -102,11 +127,29 @@ msgstr "Eredmények leg_nagyobb száma"
 msgid "Has already enough active sources"
 msgstr "Inaktív forrás"
 
+#, fuzzy
+msgid "download_start() failed"
+msgstr "Kijelölt fájlok letöltése"
+
 msgid "Stopped (Index changed)"
 msgstr ""
 
+#, fuzzy
+msgid "Duplicate download"
+msgstr "%u/%u letöltés"
+
 msgid "Explicitly requeued"
 msgstr "Kifejezetten újra sorba állítva"
+
+msgid "Failed (Header line too large)"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Failed (%s)"
+msgstr "Sikertelen"
+
+msgid "Failed (Input buffer full)"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "Stopped (%s)"
@@ -126,11 +169,33 @@ msgstr ""
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
+#, c-format
+msgid "Can't check resume data: %s"
+msgstr ""
+
+#, c-format
+msgid "Can't stat opened file: %s"
+msgstr ""
+
 msgid "Stopped (Output file size changed)"
 msgstr ""
 
 #, c-format
+msgid "Can't read resume data: %s"
+msgstr ""
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
+
+#, c-format
 msgid "Can't save data: %s"
+msgstr ""
+
+msgid "Partial write to file"
 msgstr ""
 
 msgid "Requeued after trimmed data"
@@ -139,11 +204,29 @@ msgstr "Adatokat igazítva újra sorbaállítva"
 msgid "Chunk done, connection closed"
 msgstr "Darab kész, kapcsolat lezárva"
 
+msgid "Giving priority to THEX"
+msgstr ""
+
 msgid "Requeued by competing download"
 msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
+
+#, fuzzy
+msgid "Weird HTTP status"
+msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
+
+#, fuzzy
+msgid "Download was a duplicate"
+msgstr "Kijelölt le_töltése"
+
+#, fuzzy
+msgid "Filesize mismatch"
+msgstr "URN fájlinfó eltérés"
+
+msgid "No URN on server (required)"
+msgstr ""
 
 msgid "No URN on server, waiting for overlap"
 msgstr ""
@@ -151,22 +234,59 @@ msgstr ""
 msgid "No URN on server to validate"
 msgstr ""
 
+#, fuzzy
+msgid "URN mismatch detected"
+msgstr "SHA1 eltérés érzékelve"
+
 msgid "URN fileinfo mismatch"
 msgstr "URN fájlinfó eltérés"
 
 msgid "Discovered dup SHA1"
 msgstr "SHA1 készítve"
 
-msgid "Stopped data (EOF) <download_sink_read>"
+msgid "More data to sink than expected"
+msgstr ""
+
+#, fuzzy
+msgid "Stopped data (EOF)"
+msgstr "Leálltak törlése"
+
+#, fuzzy, c-format
+msgid "Stopped data (%s)"
+msgstr "Leálltak törlése"
+
+msgid "Timeout reading HTTP status"
+msgstr ""
+
+#, fuzzy
+msgid "Timeout reading headers"
+msgstr "Fejlécek olvasása"
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
 msgstr ""
 
 #, fuzzy
 msgid "Spammer detected"
 msgstr "SHA1 eltérés érzékelve"
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 #, fuzzy
 msgid "Partial file on server, waiting"
 msgstr "Részleges fájlmegosztás (zsúfolás)"
+
+#, c-format
+msgid "%sRequested range unavailable yet"
+msgstr ""
 
 msgid "Queued"
 msgstr "Sorban"
@@ -179,11 +299,77 @@ msgstr ""
 msgid ", ETA: %s"
 msgstr ""
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+msgid "Total/served sizes mismatch"
+msgstr ""
+
+#, fuzzy
+msgid "Range start mismatch"
+msgstr "Újrakezdi e keresést"
+
+#, fuzzy
+msgid "Range end too large"
+msgstr "Túlontúl nagy"
+
+#, fuzzy
+msgid "Range mismatch"
+msgstr "URN fájlinfó eltérés"
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+#, fuzzy
+msgid "Search already closed"
+msgstr "Keresések"
+
+#, fuzzy
+msgid "THEX download aborted"
+msgstr "Letöltve"
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, c-format
+msgid "Cannot write into file: %s"
+msgstr ""
+
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
+#, fuzzy
+msgid "Failed (Completed?)"
+msgstr "Befejezve"
+
+msgid "Could not send whole HTTP request"
+msgstr ""
+
+#, c-format
+msgid "Write failed: %s"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed push reply"
+msgstr "Hibás találat"
+
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 eltérés érzékelve"
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "<Browse Host %s>"
@@ -192,6 +378,10 @@ msgstr "_Tallóz"
 #, c-format
 msgid "<THEX data for %s>"
 msgstr ""
+
+#, fuzzy
+msgid "Browse search closed"
+msgstr "Keresőlista"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
@@ -342,6 +532,10 @@ msgstr "Keresési eredmények"
 msgid "Ancient query format"
 msgstr ""
 
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "Kiszolgáló-azonosító:"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr ""
@@ -458,14 +652,7 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#, fuzzy, c-format
-msgid "Failed (%s)"
-msgstr "Sikertelen"
-
 msgid "Failed (Input Exception)"
-msgstr ""
-
-msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -568,15 +755,7 @@ msgstr ""
 msgid "Got EOF"
 msgstr ""
 
-#, fuzzy
-msgid "Connection failed"
-msgstr "Összekapcsolva"
-
 msgid "Write failed (Input Exception)"
-msgstr ""
-
-#, c-format
-msgid "Write failed: %s"
 msgstr ""
 
 #, c-format
@@ -4176,6 +4355,10 @@ msgid "All"
 msgstr ""
 
 #, c-format
+msgid "regex error: %s"
+msgstr ""
+
+#, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
 msgstr[0] ""
@@ -4199,7 +4382,8 @@ msgstr "illik regkif-hez"
 msgid "is exactly"
 msgstr "egyezik"
 
-msgid "Builtin targets (not editable)"
+#, fuzzy
+msgid "Built-in targets"
 msgstr "Beépített célok (nem szerkeszthető)"
 
 msgid "Global filters"
@@ -4371,16 +4555,16 @@ msgid "(invalid)"
 msgstr ""
 
 #, fuzzy
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr "aktív"
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -4582,7 +4766,7 @@ msgid " with sources"
 msgstr " forrással"
 
 #, fuzzy
-msgid "%v/%u Gnet nodes"
+msgid "%v/%u Gnutella peers"
 msgstr "%v/%u gNet csomópont"
 
 msgid "%v/%u downloads"
@@ -4590,9 +4774,6 @@ msgstr "%v/%u letöltés"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u feltöltés"
-
-msgid "("
-msgstr ""
 
 #, fuzzy
 msgid "(Disable: 0, Random: 1)"
@@ -4753,7 +4934,7 @@ msgid "Bad hosts"
 msgstr "Rossz gazdák"
 
 #, fuzzy
-msgid "Bandwidth limits for GnutellaNet traffic"
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr "GnutellaNet sávszélesség-vezérlése"
 
 #, fuzzy
@@ -5207,50 +5388,39 @@ msgid "Globally drop results..."
 msgstr "Globálisan ejt..."
 
 #, fuzzy
-msgid "Gnet connections"
-msgstr "gNet kapcsolatok"
+msgid "Gnutella TTL settings"
+msgstr "gnutellaNet TTL beállítása"
 
 #, fuzzy
 msgid "Gnutella _leaf traffic stats"
 msgstr "gnet végponti forgalmi adatok"
 
+#, fuzzy
+msgid "Gnutella display"
+msgstr "gnutellaNet kijelző"
+
+#, fuzzy
+msgid "Gnutella message size limits"
+msgstr "gnutellaNet üzenetméret korlátok"
+
 msgid "Gnutella network mode"
 msgstr "Gnutella hálózati üzemmód"
 
 #, fuzzy
-msgid "GnutellaNet TTL settings"
-msgstr "gnutellaNet TTL beállítása"
-
-#, fuzzy
-msgid "GnutellaNet display"
-msgstr "gnutellaNet kijelző"
-
-#, fuzzy
-msgid "GnutellaNet message size limits"
-msgstr "gnutellaNet üzenetméret korlátok"
-
-#, fuzzy
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "gnutellaNet türelmi idők (minden érték másodpercben)"
-
-#, fuzzy
-msgid "GnutellaNet traffic"
-msgstr "GNet-forgalom"
-
-msgid "GnutellaNet"
+msgid "Gnutella peers"
 msgstr "GnutellaNet"
 
 #, fuzzy
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella leáll.\n"
-"Elköszönés a többi csomóponttól.\n"
-"\n"
-"Várakozási idő:"
+msgid "Gnutella timeouts (all values in seconds)"
+msgstr "gnutellaNet türelmi idők (minden érték másodpercben)"
+
+#, fuzzy
+msgid "Gnutella traffic"
+msgstr "GNet-forgalom"
+
+#, fuzzy
+msgid "Gnutella"
+msgstr "GnutellaNet"
 
 msgid "HTTP traffic"
 msgstr "HTTP-forgalom"
@@ -5821,6 +5991,9 @@ msgstr "Ismétlés türelmi ideje legalább"
 msgid "Revert"
 msgstr "Visszaállít"
 
+msgid "Richard Eckart"
+msgstr "Richard Eckart"
+
 msgid "Rules"
 msgstr "Szabályok"
 
@@ -5891,11 +6064,51 @@ msgid "Settings"
 msgstr "Beállítások megjelenítése"
 
 #, fuzzy
+msgid "Show Search_bar"
+msgstr "Á_llapotsor"
+
+#, fuzzy
+msgid "Show Status_bar"
+msgstr "Á_llapotsor"
+
+#, fuzzy
+msgid "Show _Connections"
+msgstr "_Kapcsolatok"
+
+#, fuzzy
+msgid "Show _Downloads"
+msgstr "Le_töltések"
+
+#, fuzzy
+msgid "Show _Menubar"
+msgstr "Á_llapotsor"
+
+#, fuzzy
+msgid "Show _Sidebar"
+msgstr "Á_llapotsor"
+
+#, fuzzy
+msgid "Show _Uploads"
+msgstr "_Feltöltések"
+
+#, fuzzy
 msgid "Show _bytes"
 msgstr "Bájtok"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Gtk-gnutellából kilépéskor megerősítés dialógus"
+
+#, fuzzy
+msgid "Show _inbound Gnutella traffic"
+msgstr "GNet-forgalom"
+
+#, fuzzy
+msgid "Show _inbound HTTP traffic"
+msgstr "bejövő gNet forgalom"
+
+#, fuzzy
+msgid "Show _inbound leaf traffic"
+msgstr "bejövő gNet forgalom"
 
 msgid "Show _last"
 msgstr "_Utolsó"
@@ -5903,6 +6116,18 @@ msgstr "_Utolsó"
 #, fuzzy
 msgid "Show _metric units"
 msgstr "Százalékok"
+
+#, fuzzy
+msgid "Show _outbound Gnutella traffic"
+msgstr "GNet-forgalom"
+
+#, fuzzy
+msgid "Show _outbound leaf traffic"
+msgstr "kimenő gNet forgalom"
+
+#, fuzzy
+msgid "Show _outbound HTTP traffic"
+msgstr "kimenő gNet forgalom"
 
 #, fuzzy
 msgid "Show _percentages"
@@ -6402,8 +6627,23 @@ msgstr "_pontoktól a köv-n belül"
 msgid "from the same host"
 msgstr "gépről"
 
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella leáll.\n"
+"Elköszönés a többi csomóponttól.\n"
+"\n"
+"Várakozási idő:"
+
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutella leállítása"
+
+msgid "gtk-gnutella"
+msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Kilépés?"
@@ -6457,54 +6697,6 @@ msgstr "mp"
 
 msgid "set"
 msgstr "bekapcsolva"
-
-#, fuzzy
-msgid "show Gnet _incoming traffic"
-msgstr "bejövő gNet forgalom"
-
-#, fuzzy
-msgid "show Gnet _outgoing traffic"
-msgstr "kimenő gNet forgalom"
-
-#, fuzzy
-msgid "show HTTP _incoming traffic"
-msgstr "bejövő HTTP forgalom"
-
-#, fuzzy
-msgid "show HTTP _outgoing traffic"
-msgstr "kimenő HTTP forgalom"
-
-#, fuzzy
-msgid "show Search_bar"
-msgstr "Á_llapotsor"
-
-msgid "show _Connections"
-msgstr "_Kapcsolatok"
-
-msgid "show _Downloads"
-msgstr "Le_töltések"
-
-#, fuzzy
-msgid "show _Menubar"
-msgstr "Á_llapotsor"
-
-#, fuzzy
-msgid "show _Sidebar"
-msgstr "Á_llapotsor"
-
-msgid "show _Statusbar"
-msgstr "Á_llapotsor"
-
-msgid "show _Uploads"
-msgstr "_Feltöltések"
-
-#, fuzzy
-msgid "show leaf _incoming traffic"
-msgstr "bejövő végponti forgalom"
-
-#, fuzzy
-msgid "show leaf _outgoing traffic"
-msgstr "kimenő végponti forgalom"
 
 #, fuzzy
 msgid "unavailable"
@@ -6583,28 +6775,24 @@ msgstr "Url-t vágólapra másol"
 msgid "_Remove filter"
 msgstr "Szűrő eltávolítása"
 
-#, fuzzy
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella leáll.\n"
-"Elköszönés a többi csomóponttól.\n"
-"\n"
-"Várakozási idő:"
-
 msgid "_Close"
 msgstr "_Bezár"
 
 #, fuzzy
-msgid "show _Peers"
+msgid "Show _Statusbar"
+msgstr "Á_llapotsor"
+
+#, fuzzy
+msgid "Show _Peers"
 msgstr "Á_llapotsor"
 
 #, fuzzy
 msgid "Gnutella _traffic stats"
 msgstr "gnet-forgalmi adatok"
+
+#, fuzzy
+msgid "_Auto-hide leaf traffic stats"
+msgstr "gnet végpontforgalmi adatok rejtése"
 
 #, fuzzy
 msgid "_Search"
@@ -7279,6 +7467,38 @@ msgstr ""
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
 
+#, fuzzy
+#~ msgid "Gnet connections"
+#~ msgstr "gNet kapcsolatok"
+
+#, fuzzy
+#~ msgid ""
+#~ "Gtk-Gnutella is shutting down.\n"
+#~ "Sending bye messages to peers.\n"
+#~ "\n"
+#~ "Grace time remaining:"
+#~ msgstr ""
+#~ "gtk-gnutella leáll.\n"
+#~ "Elköszönés a többi csomóponttól.\n"
+#~ "\n"
+#~ "Várakozási idő:"
+
+#, fuzzy
+#~ msgid "show HTTP _incoming traffic"
+#~ msgstr "bejövő HTTP forgalom"
+
+#, fuzzy
+#~ msgid "show HTTP _outgoing traffic"
+#~ msgstr "kimenő HTTP forgalom"
+
+#, fuzzy
+#~ msgid "show leaf _incoming traffic"
+#~ msgstr "bejövő végponti forgalom"
+
+#, fuzzy
+#~ msgid "show leaf _outgoing traffic"
+#~ msgstr "kimenő végponti forgalom"
+
 #~ msgid "File"
 #~ msgstr "Fájl"
 
@@ -7310,18 +7530,12 @@ msgstr ""
 #~ msgid "Jeroen Asselman"
 #~ msgstr "Jeroen Asselman"
 
-#~ msgid "Restart this search"
-#~ msgstr "Újrakezdi e keresést"
-
 #, fuzzy
 #~ msgid "Resu_me this search"
 #~ msgstr "Folytatja e keresést"
 
 #~ msgid "Resume this search"
 #~ msgstr "Folytatja e keresést"
-
-#~ msgid "Richard Eckart"
-#~ msgstr "Richard Eckart"
 
 #~ msgid "Select"
 #~ msgstr "Kiválaszt"
@@ -7346,9 +7560,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "_Stop this search"
 #~ msgstr "Leállítja e keresést"
-
-#~ msgid "gtk-gnutella"
-#~ msgstr "gtk-gnutella"
 
 #, fuzzy
 #~ msgid "[stopped]"
@@ -7454,9 +7665,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "KiB"
 #~ msgstr "KB"
-
-#~ msgid "Download selected files"
-#~ msgstr "Kijelölt fájlok letöltése"
 
 #, fuzzy
 #~ msgid "_Close this search"

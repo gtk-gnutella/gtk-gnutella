@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -40,6 +40,10 @@ msgstr "Tidsavbrudd"
 msgid "Requeued due to timeout"
 msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
 
+#, fuzzy
+msgid "Requeued due to file removal"
+msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
+
 msgid "Requeued by file info change"
 msgstr "Lagt i kø på nytt grunnet endret filinformasjon"
 
@@ -50,11 +54,21 @@ msgstr "Suspendert (SHA1-kontrollering)"
 msgid " at %s - rescheduled for %s%s"
 msgstr " på %s - planlagt på nytt for %s%s"
 
+#, fuzzy, c-format
+msgid "Ignoring requested (%s)"
+msgstr "Sender forespørsel (%u%%)"
+
 msgid "Paused"
 msgstr "Pause"
 
+msgid "Nothing more to get"
+msgstr ""
+
 msgid "Waiting for a free chunk"
 msgstr "Venter på en ledig bit"
+
+msgid "No more gaps to fill"
+msgstr ""
 
 #, fuzzy
 msgid "Download queue is frozen"
@@ -66,8 +80,18 @@ msgstr "Ingen nedlastingsplass (start)"
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Tilkoblingen feilet (ikke flere filbeskrivere?)"
 
+msgid "Connection failed"
+msgstr "Tilkobling feilet"
+
+#, fuzzy
+msgid "Push route lost"
+msgstr "Tapt rute"
+
 msgid "Ignoring Push flag"
 msgstr "Ingorerer dytte-flagg"
+
+msgid "Can't reach host (Push or Direct)"
+msgstr ""
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -99,11 +123,30 @@ msgstr "Høyeste antall nedlastinger for denne verten nådd"
 msgid "Has already enough active sources"
 msgstr "Har allerede nok aktive kilder"
 
+#, fuzzy
+msgid "download_start() failed"
+msgstr "Last ned valgte filer"
+
 msgid "Stopped (Index changed)"
 msgstr "Stoppet (endret indeks)"
 
+#, fuzzy
+msgid "Duplicate download"
+msgstr "%u nedlasting"
+
 msgid "Explicitly requeued"
 msgstr "Ble bedt om"
+
+#, fuzzy
+msgid "Failed (Header line too large)"
+msgstr "Feilet (Hodelinjen er for lang)"
+
+#, c-format
+msgid "Failed (%s)"
+msgstr "Feilet (%s)"
+
+msgid "Failed (Input buffer full)"
+msgstr "Feilet (Inndatahurtigminnet er fullt)"
 
 #, c-format
 msgid "Stopped (%s)"
@@ -123,12 +166,34 @@ msgstr "Holdt ikke liv i forbindelsen (slutt på fil)"
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr "Stoppet (slutt på fil) <err_header_read_eof>"
 
+#, fuzzy, c-format
+msgid "Can't check resume data: %s"
+msgstr "Klarte ikke lagre data: %s"
+
+#, fuzzy, c-format
+msgid "Can't stat opened file: %s"
+msgstr "Klarte ikke lagre data: %s"
+
 msgid "Stopped (Output file size changed)"
 msgstr "Stoppet (filstørrelsen ble endret)"
+
+#, fuzzy, c-format
+msgid "Can't read resume data: %s"
+msgstr "Klarte ikke lagre data: %s"
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
 
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Klarte ikke lagre data: %s"
+
+msgid "Partial write to file"
+msgstr ""
 
 msgid "Requeued after trimmed data"
 msgstr "Lagt i kø på nytt etter trimmet data"
@@ -136,11 +201,30 @@ msgstr "Lagt i kø på nytt etter trimmet data"
 msgid "Chunk done, connection closed"
 msgstr "Biten er ferdig, forbindelse lukket"
 
+msgid "Giving priority to THEX"
+msgstr ""
+
 msgid "Requeued by competing download"
 msgstr "Lagt i kø på nytt av konkurrerende nedlasting"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Rar HTTP-status (desynkronisert protokoll?)"
+
+#, fuzzy
+msgid "Weird HTTP status"
+msgstr "Rar HTTP-status (desynkronisert protokoll?)"
+
+#, fuzzy
+msgid "Download was a duplicate"
+msgstr "Last ne_d valgte"
+
+#, fuzzy
+msgid "Filesize mismatch"
+msgstr "Filstørrelsen stemmer ikke"
+
+#, fuzzy
+msgid "No URN on server (required)"
+msgstr "Ingen URN på tjeneren å validere"
 
 msgid "No URN on server, waiting for overlap"
 msgstr "Ingen URN på tjeneren, venter på overlapping"
@@ -148,20 +232,58 @@ msgstr "Ingen URN på tjeneren, venter på overlapping"
 msgid "No URN on server to validate"
 msgstr "Ingen URN på tjeneren å validere"
 
+#, fuzzy
+msgid "URN mismatch detected"
+msgstr "Fant upassende SHA1"
+
 msgid "URN fileinfo mismatch"
 msgstr "URN-filinformasjon stemmer ikke"
 
 msgid "Discovered dup SHA1"
 msgstr "Oppdaget duplisert SHA1"
 
-msgid "Stopped data (EOF) <download_sink_read>"
-msgstr "Stoppet data (slutt på fil) <download_sink_read>"
+msgid "More data to sink than expected"
+msgstr ""
+
+#, fuzzy
+msgid "Stopped data (EOF)"
+msgstr "Stoppet (%s)"
+
+#, fuzzy, c-format
+msgid "Stopped data (%s)"
+msgstr "Stoppet (%s)"
+
+#, fuzzy
+msgid "Timeout reading HTTP status"
+msgstr "Klarte ikke sende hele HTTP-statusen"
+
+#, fuzzy
+msgid "Timeout reading headers"
+msgstr "Leser hoder"
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
+msgstr ""
 
 msgid "Spammer detected"
 msgstr "Kjøttmann oppdaget"
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 msgid "Partial file on server, waiting"
 msgstr "Del av fil på tjener, venter"
+
+#, c-format
+msgid "%sRequested range unavailable yet"
+msgstr ""
 
 msgid "Queued"
 msgstr "Lagt i kø"
@@ -174,11 +296,79 @@ msgstr " (plass %d"
 msgid ", ETA: %s"
 msgstr ", tid igjen: %s"
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+#, fuzzy
+msgid "Total/served sizes mismatch"
+msgstr "Filstørrelsen stemmer ikke"
+
+#, fuzzy
+msgid "Range start mismatch"
+msgstr "Start søket på nytt"
+
+#, fuzzy
+msgid "Range end too large"
+msgstr "Altfor stor"
+
+#, fuzzy
+msgid "Range mismatch"
+msgstr "URN-filinformasjon stemmer ikke"
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+#, fuzzy
+msgid "Search already closed"
+msgstr "La til søk"
+
+#, fuzzy
+msgid "THEX download aborted"
+msgstr "La til nedlasting"
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Cannot write into file: %s"
+msgstr "Klarte ikke skrive: %s"
+
 msgid "Stopped (Read buffer full)"
 msgstr "Stoppet (lesehurtigminnet er fullt)"
 
+#, fuzzy
+msgid "Failed (Completed?)"
+msgstr "Fullført"
+
+#, fuzzy
+msgid "Could not send whole HTTP request"
+msgstr "Klarte ikke sende hele HTTP-statusen"
+
+#, c-format
+msgid "Write failed: %s"
+msgstr "Klarte ikke skrive: %s"
+
+#, fuzzy
+msgid "Malformed push reply"
+msgstr "Traff feilformet spørring"
+
 msgid "SHA1 mismatch detected"
 msgstr "Fant upassende SHA1"
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
+msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -187,6 +377,10 @@ msgstr "<Bla i verten %s>"
 #, c-format
 msgid "<THEX data for %s>"
 msgstr "<THEX-data for %s>"
+
+#, fuzzy
+msgid "Browse search closed"
+msgstr "Vis søkeliste"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Stoppet data (slutt på fil) <download_got_eof>"
@@ -328,6 +522,10 @@ msgstr "Egne søkeresultater"
 msgid "Ancient query format"
 msgstr ""
 
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "Tjenent-ID:"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Slå av (%s)"
@@ -439,15 +637,8 @@ msgstr "Feilet (Klarte ikke sende %s automatisk)"
 msgid "Failed (Header line too long)"
 msgstr "Feilet (Hodelinjen er for lang)"
 
-#, c-format
-msgid "Failed (%s)"
-msgstr "Feilet (%s)"
-
 msgid "Failed (Input Exception)"
 msgstr "Feilet (Inndataunntak)"
-
-msgid "Failed (Input buffer full)"
-msgstr "Feilet (Inndatahurtigminnet er fullt)"
 
 #, c-format
 msgid "Failed (Input error: %s)"
@@ -539,15 +730,8 @@ msgstr "Lesefeil"
 msgid "Got EOF"
 msgstr "Fikk filslutt"
 
-msgid "Connection failed"
-msgstr "Tilkobling feilet"
-
 msgid "Write failed (Input Exception)"
 msgstr "Skrivefeil (Inndatafeil)"
-
-#, c-format
-msgid "Write failed: %s"
-msgstr "Klarte ikke skrive: %s"
 
 #, c-format
 msgid "Looking for UDP host cache %s"
@@ -3976,6 +4160,10 @@ msgstr "Fullført"
 msgid "All"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "regex error: %s"
+msgstr "Lesefeil: %s"
+
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
@@ -4000,7 +4188,8 @@ msgstr "passer det regulære mønsteret"
 msgid "is exactly"
 msgstr "er akkurat"
 
-msgid "Builtin targets (not editable)"
+#, fuzzy
+msgid "Built-in targets"
 msgstr "Innebygde mål (kan ikke redigeres)"
 
 msgid "Global filters"
@@ -4159,16 +4348,16 @@ msgid "(invalid)"
 msgstr "(ugyldig)"
 
 #, fuzzy
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr "Aktiv"
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -4364,7 +4553,8 @@ msgstr " registrert, "
 msgid " with sources"
 msgstr " med kilder"
 
-msgid "%v/%u Gnet nodes"
+#, fuzzy
+msgid "%v/%u Gnutella peers"
 msgstr "%v/%u Gnet-noder"
 
 msgid "%v/%u downloads"
@@ -4372,9 +4562,6 @@ msgstr "%v/%u nedlastinger"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u opplastinger"
-
-msgid "("
-msgstr "("
 
 msgid "(Disable: 0, Random: 1)"
 msgstr "(Ikke bruk: 0, tilfeldig: 1)"
@@ -4531,7 +4718,8 @@ msgstr "Denne tjenentens gjennomsnittlige oppetid:"
 msgid "Bad hosts"
 msgstr "Dårlige verter"
 
-msgid "Bandwidth limits for GnutellaNet traffic"
+#, fuzzy
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr "Båndbreddebegrensninger for GnutellaNet-trafikk"
 
 msgid "Bandwidth limits for HTTP traffic"
@@ -4952,44 +5140,40 @@ msgstr "Laging:"
 msgid "Globally drop results..."
 msgstr "Slipp resultater globalt . . ."
 
-msgid "Gnet connections"
-msgstr "Gnet-forbindelser"
+#, fuzzy
+msgid "Gnutella TTL settings"
+msgstr "GnutellaNet TTL-innstillinger"
 
 #, fuzzy
 msgid "Gnutella _leaf traffic stats"
 msgstr "Gnet b_ladstatistikk"
 
+#, fuzzy
+msgid "Gnutella display"
+msgstr "GnutellaNet-visning"
+
+#, fuzzy
+msgid "Gnutella message size limits"
+msgstr "Størrelsesbegrensninger på GnutellaNet-meldinger"
+
 msgid "Gnutella network mode"
 msgstr "Nettverksmodus for Gnutella"
 
-msgid "GnutellaNet TTL settings"
-msgstr "GnutellaNet TTL-innstillinger"
-
-msgid "GnutellaNet display"
-msgstr "GnutellaNet-visning"
-
-msgid "GnutellaNet message size limits"
-msgstr "Størrelsesbegrensninger på GnutellaNet-meldinger"
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "GnutellaNet-tidsavbrudd (alle verdier i sekunder)"
-
-msgid "GnutellaNet traffic"
-msgstr "GnutellaNet-trafikk"
-
-msgid "GnutellaNet"
+#, fuzzy
+msgid "Gnutella peers"
 msgstr "GnutellaNet"
 
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"Gtk-Gnutella avsluttes.\n"
-"Sender farvelmeldinger.\n"
-"\n"
-"Gjenstående elegansetid:"
+#, fuzzy
+msgid "Gnutella timeouts (all values in seconds)"
+msgstr "GnutellaNet-tidsavbrudd (alle verdier i sekunder)"
+
+#, fuzzy
+msgid "Gnutella traffic"
+msgstr "GnutellaNet-trafikk"
+
+#, fuzzy
+msgid "Gnutella"
+msgstr "GnutellaNet"
 
 msgid "HTTP traffic"
 msgstr "HTTP-trafikk"
@@ -5527,6 +5711,9 @@ msgstr "Minste tidsavbrudd for gjenprøving"
 msgid "Revert"
 msgstr "Gå tilbake"
 
+msgid "Richard Eckart"
+msgstr "Richard Eckart"
+
 msgid "Rules"
 msgstr "Regler"
 
@@ -5591,17 +5778,69 @@ msgstr "Tjener"
 msgid "Settings"
 msgstr "Vis innstillinger"
 
+#, fuzzy
+msgid "Show Search_bar"
+msgstr "Vis søke_linje"
+
+#, fuzzy
+msgid "Show Status_bar"
+msgstr "Vis _statuslinje"
+
+#, fuzzy
+msgid "Show _Connections"
+msgstr "Vis _tilkoblinger"
+
+#, fuzzy
+msgid "Show _Downloads"
+msgstr "Vis ne_dlastinger"
+
+#, fuzzy
+msgid "Show _Menubar"
+msgstr "Vis _sidelinje"
+
+#, fuzzy
+msgid "Show _Sidebar"
+msgstr "Vis _sidelinje"
+
+#, fuzzy
+msgid "Show _Uploads"
+msgstr "Vis _opplastinger"
+
 msgid "Show _bytes"
 msgstr "Vis _byte"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Vis _bekreftingsvindu ved forlating av gtk-gnutella"
 
+#, fuzzy
+msgid "Show _inbound Gnutella traffic"
+msgstr "GnutellaNet-trafikk"
+
+#, fuzzy
+msgid "Show _inbound HTTP traffic"
+msgstr "Vis _innkommende Gnet-trafikk"
+
+#, fuzzy
+msgid "Show _inbound leaf traffic"
+msgstr "Vis _innkommende Gnet-trafikk"
+
 msgid "Show _last"
 msgstr "Vis _siste"
 
 msgid "Show _metric units"
 msgstr "Vis _metriske måleenheter"
+
+#, fuzzy
+msgid "Show _outbound Gnutella traffic"
+msgstr "GnutellaNet-trafikk"
+
+#, fuzzy
+msgid "Show _outbound leaf traffic"
+msgstr "Vis _utgående Gnet-trafikk"
+
+#, fuzzy
+msgid "Show _outbound HTTP traffic"
+msgstr "Vis _utgående Gnet-trafikk"
 
 msgid "Show _percentages"
 msgstr "Vis _prosenter"
@@ -6084,8 +6323,23 @@ msgstr "fra _noder innen et"
 msgid "from the same host"
 msgstr "fra samme verten"
 
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella avsluttes.\n"
+"Sender farvelmeldinger.\n"
+"\n"
+"Gjenstående elegansetid:"
+
 msgid "gtk-gnutella shutdown"
 msgstr "Avslutting av gtk-gnutella"
+
+#, fuzzy
+msgid "gtk-gnutella"
+msgstr "Om gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: avslutte?"
@@ -6137,46 +6391,6 @@ msgstr "sekunder"
 
 msgid "set"
 msgstr "valgt"
-
-msgid "show Gnet _incoming traffic"
-msgstr "Vis _innkommende Gnet-trafikk"
-
-msgid "show Gnet _outgoing traffic"
-msgstr "Vis _utgående Gnet-trafikk"
-
-msgid "show HTTP _incoming traffic"
-msgstr "Vis _innkommende HTTP-trafikk"
-
-msgid "show HTTP _outgoing traffic"
-msgstr "Vis _utgående HTTP-trafikk"
-
-msgid "show Search_bar"
-msgstr "Vis søke_linje"
-
-msgid "show _Connections"
-msgstr "Vis _tilkoblinger"
-
-msgid "show _Downloads"
-msgstr "Vis ne_dlastinger"
-
-#, fuzzy
-msgid "show _Menubar"
-msgstr "Vis _sidelinje"
-
-msgid "show _Sidebar"
-msgstr "Vis _sidelinje"
-
-msgid "show _Statusbar"
-msgstr "Vis _statuslinje"
-
-msgid "show _Uploads"
-msgstr "Vis _opplastinger"
-
-msgid "show leaf _incoming traffic"
-msgstr "Vis _innkommende bladtrafikk"
-
-msgid "show leaf _outgoing traffic"
-msgstr "Vis _utgående bladtrafikk"
 
 #, fuzzy
 msgid "unavailable"
@@ -6250,27 +6464,24 @@ msgstr "Kopier til utklippstavlen"
 msgid "_Remove filter"
 msgstr "Fje_rn filter"
 
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella avsluttes.\n"
-"Sender farvelmeldinger.\n"
-"\n"
-"Gjenstående elegansetid:"
-
 msgid "_Close"
 msgstr "_Lukk"
 
 #, fuzzy
-msgid "show _Peers"
+msgid "Show _Statusbar"
+msgstr "Vis _statuslinje"
+
+#, fuzzy
+msgid "Show _Peers"
 msgstr "Vis _sidelinje"
 
 #, fuzzy
 msgid "Gnutella _traffic stats"
 msgstr "_Trafikkstatistikk for Gnet"
+
+#, fuzzy
+msgid "_Auto-hide leaf traffic stats"
+msgstr "Skjul bl_adstatistikk automatisk"
 
 msgid "_Search"
 msgstr "_Søk"
@@ -6925,6 +7136,38 @@ msgstr "Sender KØ, kobler tilbake . . ."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
 
+#~ msgid "Stopped data (EOF) <download_sink_read>"
+#~ msgstr "Stoppet data (slutt på fil) <download_sink_read>"
+
+#~ msgid "("
+#~ msgstr "("
+
+#~ msgid "Gnet connections"
+#~ msgstr "Gnet-forbindelser"
+
+#~ msgid ""
+#~ "Gtk-Gnutella is shutting down.\n"
+#~ "Sending bye messages to peers.\n"
+#~ "\n"
+#~ "Grace time remaining:"
+#~ msgstr ""
+#~ "Gtk-Gnutella avsluttes.\n"
+#~ "Sender farvelmeldinger.\n"
+#~ "\n"
+#~ "Gjenstående elegansetid:"
+
+#~ msgid "show HTTP _incoming traffic"
+#~ msgstr "Vis _innkommende HTTP-trafikk"
+
+#~ msgid "show HTTP _outgoing traffic"
+#~ msgstr "Vis _utgående HTTP-trafikk"
+
+#~ msgid "show leaf _incoming traffic"
+#~ msgstr "Vis _innkommende bladtrafikk"
+
+#~ msgid "show leaf _outgoing traffic"
+#~ msgstr "Vis _utgående bladtrafikk"
+
 #~ msgid "Queued (slot %u/%u) ETA: %s"
 #~ msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
 
@@ -6959,17 +7202,11 @@ msgstr "Sendte KØ, venter på hoder . . ."
 #~ msgid "Jeroen Asselman"
 #~ msgstr "Jeroen Asselman"
 
-#~ msgid "Restart this search"
-#~ msgstr "Start søket på nytt"
-
 #~ msgid "Resu_me this search"
 #~ msgstr "_Fortsett dette søket"
 
 #~ msgid "Resume this search"
 #~ msgstr "Fortsett dette søket"
-
-#~ msgid "Richard Eckart"
-#~ msgstr "Richard Eckart"
 
 #~ msgid "Select"
 #~ msgstr "Velg"
@@ -6991,10 +7228,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 
 #~ msgid "_Stop this search"
 #~ msgstr "_Stopp dette søket"
-
-#, fuzzy
-#~ msgid "gtk-gnutella"
-#~ msgstr "Om gtk-gnutella"
 
 #~ msgid "[stopped]"
 #~ msgstr "[stoppet]"
@@ -7115,9 +7348,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 
 #~ msgid "KiB"
 #~ msgstr "KiB"
-
-#~ msgid "Download selected files"
-#~ msgstr "Last ned valgte filer"
 
 #~ msgid "_Close this search"
 #~ msgstr "_Lukk dette søket"

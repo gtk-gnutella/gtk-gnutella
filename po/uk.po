@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -41,6 +41,10 @@ msgstr "Тайм-аут"
 msgid "Requeued due to timeout"
 msgstr ""
 
+#, fuzzy
+msgid "Requeued due to file removal"
+msgstr "Поставлено в чергу через зміну інформації про файл"
+
 msgid "Requeued by file info change"
 msgstr "Поставлено в чергу через зміну інформації про файл"
 
@@ -51,11 +55,21 @@ msgstr "Відкладено (перевірка SHA1)"
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
+#, c-format
+msgid "Ignoring requested (%s)"
+msgstr ""
+
 msgid "Paused"
+msgstr ""
+
+msgid "Nothing more to get"
 msgstr ""
 
 msgid "Waiting for a free chunk"
 msgstr "Чекаєм на вільний кусок (chunk)"
+
+msgid "No more gaps to fill"
+msgstr ""
 
 #, fuzzy
 msgid "Download queue is frozen"
@@ -68,8 +82,18 @@ msgstr "Немає слоту для скачування"
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "З'єднання провалилось (більше немає описів файла)"
 
+msgid "Connection failed"
+msgstr "З'єднання не відбулось"
+
+#, fuzzy
+msgid "Push route lost"
+msgstr "Шлях втрачено"
+
 msgid "Ignoring Push flag"
 msgstr "Ігноруєм Push прапорець"
+
+msgid "Can't reach host (Push or Direct)"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "No direct connection yet (%u retry)"
@@ -101,11 +125,29 @@ msgstr ""
 msgid "Has already enough active sources"
 msgstr ""
 
+msgid "download_start() failed"
+msgstr ""
+
 msgid "Stopped (Index changed)"
 msgstr "Зупинено (Індекс змінився)"
 
+#, fuzzy
+msgid "Duplicate download"
+msgstr "показувати _Звантаження"
+
 msgid "Explicitly requeued"
 msgstr "Потрібне роз'яснення"
+
+#, fuzzy
+msgid "Failed (Header line too large)"
+msgstr "Провалилось (Помилка: %s)"
+
+#, c-format
+msgid "Failed (%s)"
+msgstr ""
+
+msgid "Failed (Input buffer full)"
+msgstr ""
 
 #, c-format
 msgid "Stopped (%s)"
@@ -125,12 +167,34 @@ msgstr "З'єднання не підтримувалось (not kept-alive) (EO
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Can't check resume data: %s"
+msgstr "Не можливо зберегти дані: %s"
+
+#, fuzzy, c-format
+msgid "Can't stat opened file: %s"
+msgstr "Не можливо зберегти дані: %s"
+
 msgid "Stopped (Output file size changed)"
 msgstr "Зупинено (Змінився розмір кінцевого файла)"
+
+#, fuzzy, c-format
+msgid "Can't read resume data: %s"
+msgstr "Не можливо зберегти дані: %s"
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
 
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Не можливо зберегти дані: %s"
+
+msgid "Partial write to file"
+msgstr ""
 
 msgid "Requeued after trimmed data"
 msgstr ""
@@ -138,16 +202,36 @@ msgstr ""
 msgid "Chunk done, connection closed"
 msgstr "Кусок закінчено, з'єднання закрито"
 
+msgid "Giving priority to THEX"
+msgstr ""
+
 msgid "Requeued by competing download"
 msgstr ""
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Незвичайний статус HTTP (protocol desync?)"
 
+#, fuzzy
+msgid "Weird HTTP status"
+msgstr "Незвичайний статус HTTP (protocol desync?)"
+
+#, fuzzy
+msgid "Download was a duplicate"
+msgstr "Скачано"
+
+msgid "Filesize mismatch"
+msgstr ""
+
+msgid "No URN on server (required)"
+msgstr ""
+
 msgid "No URN on server, waiting for overlap"
 msgstr ""
 
 msgid "No URN on server to validate"
+msgstr ""
+
+msgid "URN mismatch detected"
 msgstr ""
 
 msgid "URN fileinfo mismatch"
@@ -156,13 +240,45 @@ msgstr ""
 msgid "Discovered dup SHA1"
 msgstr ""
 
-msgid "Stopped data (EOF) <download_sink_read>"
+msgid "More data to sink than expected"
+msgstr ""
+
+#, fuzzy
+msgid "Stopped data (EOF)"
+msgstr "Зупинено (%s)"
+
+#, fuzzy, c-format
+msgid "Stopped data (%s)"
+msgstr "Зупинено (%s)"
+
+msgid "Timeout reading HTTP status"
+msgstr ""
+
+msgid "Timeout reading headers"
+msgstr ""
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
 msgstr ""
 
 msgid "Spammer detected"
 msgstr ""
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 msgid "Partial file on server, waiting"
+msgstr ""
+
+#, c-format
+msgid "%sRequested range unavailable yet"
 msgstr ""
 
 msgid "Queued"
@@ -176,10 +292,71 @@ msgstr ""
 msgid ", ETA: %s"
 msgstr ""
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+msgid "Total/served sizes mismatch"
+msgstr ""
+
+msgid "Range start mismatch"
+msgstr ""
+
+msgid "Range end too large"
+msgstr ""
+
+msgid "Range mismatch"
+msgstr ""
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+#, fuzzy
+msgid "Search already closed"
+msgstr "Пошук додано"
+
+#, fuzzy
+msgid "THEX download aborted"
+msgstr "Скачано"
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, c-format
+msgid "Cannot write into file: %s"
+msgstr ""
+
 msgid "Stopped (Read buffer full)"
 msgstr "Зупинено (Буфер зчитування заповнений)"
 
+msgid "Failed (Completed?)"
+msgstr ""
+
+msgid "Could not send whole HTTP request"
+msgstr ""
+
+#, c-format
+msgid "Write failed: %s"
+msgstr ""
+
+msgid "Malformed push reply"
+msgstr ""
+
 msgid "SHA1 mismatch detected"
+msgstr ""
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
 msgstr ""
 
 #, c-format
@@ -188,6 +365,9 @@ msgstr ""
 
 #, c-format
 msgid "<THEX data for %s>"
+msgstr ""
+
+msgid "Browse search closed"
 msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -333,6 +513,9 @@ msgstr ""
 msgid "Ancient query format"
 msgstr ""
 
+msgid "Blank Servent ID"
+msgstr ""
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr ""
@@ -444,14 +627,7 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#, c-format
-msgid "Failed (%s)"
-msgstr ""
-
 msgid "Failed (Input Exception)"
-msgstr ""
-
-msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -544,14 +720,7 @@ msgstr "Помилка зчитування"
 msgid "Got EOF"
 msgstr ""
 
-msgid "Connection failed"
-msgstr "З'єднання не відбулось"
-
 msgid "Write failed (Input Exception)"
-msgstr ""
-
-#, c-format
-msgid "Write failed: %s"
 msgstr ""
 
 #, c-format
@@ -3561,6 +3730,10 @@ msgstr "Завершено"
 msgid "All"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "regex error: %s"
+msgstr "Провалилось (Помилка: %s)"
+
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
@@ -3585,7 +3758,7 @@ msgstr ""
 msgid "is exactly"
 msgstr ""
 
-msgid "Builtin targets (not editable)"
+msgid "Built-in targets"
 msgstr ""
 
 msgid "Global filters"
@@ -3743,16 +3916,16 @@ msgstr ""
 msgid "(invalid)"
 msgstr ""
 
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr ""
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -3948,16 +4121,13 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
-msgid "%v/%u Gnet nodes"
+msgid "%v/%u Gnutella peers"
 msgstr ""
 
 msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
-msgstr ""
-
-msgid "("
 msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
@@ -4099,7 +4269,7 @@ msgstr ""
 msgid "Bad hosts"
 msgstr ""
 
-msgid "Bandwidth limits for GnutellaNet traffic"
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr ""
 
 msgid "Bandwidth limits for HTTP traffic"
@@ -4510,45 +4680,39 @@ msgstr ""
 msgid "Globally drop results..."
 msgstr ""
 
-msgid "Gnet connections"
-msgstr "Gnet з'єднання"
+#, fuzzy
+msgid "Gnutella TTL settings"
+msgstr "Загальна статистика"
 
 #, fuzzy
 msgid "Gnutella _leaf traffic stats"
 msgstr "статистика Gnet трафіка"
 
+#, fuzzy
+msgid "Gnutella display"
+msgstr "Загальна статистика"
+
+#, fuzzy
+msgid "Gnutella message size limits"
+msgstr "Загальна статистика"
+
 msgid "Gnutella network mode"
 msgstr ""
 
-msgid "GnutellaNet TTL settings"
-msgstr ""
+#, fuzzy
+msgid "Gnutella peers"
+msgstr "Загальна статистика"
 
-msgid "GnutellaNet display"
-msgstr ""
-
-msgid "GnutellaNet message size limits"
-msgstr ""
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr ""
-
-msgid "GnutellaNet traffic"
-msgstr "GnutellaNet трафік"
-
-msgid "GnutellaNet"
+msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
 #, fuzzy
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella закривається. \n"
-"Надсилаю 'бувай' до peers. \n"
-"\n"
-"Часу на 'відстрочку' залишилось:"
+msgid "Gnutella traffic"
+msgstr "GnutellaNet трафік"
+
+#, fuzzy
+msgid "Gnutella"
+msgstr "GnutellaNet трафік"
 
 msgid "HTTP traffic"
 msgstr "HTTP трафік"
@@ -5069,6 +5233,9 @@ msgstr ""
 msgid "Revert"
 msgstr ""
 
+msgid "Richard Eckart"
+msgstr ""
+
 msgid "Rules"
 msgstr ""
 
@@ -5132,17 +5299,69 @@ msgstr ""
 msgid "Settings"
 msgstr "Налаштування IP"
 
+#, fuzzy
+msgid "Show Search_bar"
+msgstr "показувати _Панель статусу"
+
+#, fuzzy
+msgid "Show Status_bar"
+msgstr "показувати _Панель статусу"
+
+#, fuzzy
+msgid "Show _Connections"
+msgstr "показувати _З'єднання"
+
+#, fuzzy
+msgid "Show _Downloads"
+msgstr "показувати _Звантаження"
+
+#, fuzzy
+msgid "Show _Menubar"
+msgstr "показувати _Панель статусу"
+
+#, fuzzy
+msgid "Show _Sidebar"
+msgstr "показувати _Панель статусу"
+
+#, fuzzy
+msgid "Show _Uploads"
+msgstr "показувати _Завантаження"
+
 msgid "Show _bytes"
 msgstr ""
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr ""
 
+#, fuzzy
+msgid "Show _inbound Gnutella traffic"
+msgstr "GnutellaNet трафік"
+
+#, fuzzy
+msgid "Show _inbound HTTP traffic"
+msgstr "показувати вхідний Gnet трафік"
+
+#, fuzzy
+msgid "Show _inbound leaf traffic"
+msgstr "показувати вхідний Gnet трафік"
+
 msgid "Show _last"
 msgstr ""
 
 msgid "Show _metric units"
 msgstr ""
+
+#, fuzzy
+msgid "Show _outbound Gnutella traffic"
+msgstr "GnutellaNet трафік"
+
+#, fuzzy
+msgid "Show _outbound leaf traffic"
+msgstr "показувати вихідний Gnet трафік"
+
+#, fuzzy
+msgid "Show _outbound HTTP traffic"
+msgstr "показувати вихідний Gnet трафік"
 
 msgid "Show _percentages"
 msgstr ""
@@ -5589,8 +5808,23 @@ msgstr ""
 msgid "from the same host"
 msgstr ""
 
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella закривається. \n"
+"Надсилаю 'бувай' до peers. \n"
+"\n"
+"Часу на 'відстрочку' залишилось:"
+
 msgid "gtk-gnutella shutdown"
 msgstr ""
+
+msgid "gtk-gnutella"
+msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Вийти?"
@@ -5643,54 +5877,6 @@ msgstr ""
 
 msgid "set"
 msgstr ""
-
-#, fuzzy
-msgid "show Gnet _incoming traffic"
-msgstr "показувати вхідний Gnet трафік"
-
-#, fuzzy
-msgid "show Gnet _outgoing traffic"
-msgstr "показувати вихідний Gnet трафік"
-
-#, fuzzy
-msgid "show HTTP _incoming traffic"
-msgstr "показувати вхідний HTTP трафік"
-
-#, fuzzy
-msgid "show HTTP _outgoing traffic"
-msgstr "показувати вихідний HTTP трафік"
-
-#, fuzzy
-msgid "show Search_bar"
-msgstr "показувати _Панель статусу"
-
-msgid "show _Connections"
-msgstr "показувати _З'єднання"
-
-msgid "show _Downloads"
-msgstr "показувати _Звантаження"
-
-#, fuzzy
-msgid "show _Menubar"
-msgstr "показувати _Панель статусу"
-
-#, fuzzy
-msgid "show _Sidebar"
-msgstr "показувати _Панель статусу"
-
-msgid "show _Statusbar"
-msgstr "показувати _Панель статусу"
-
-msgid "show _Uploads"
-msgstr "показувати _Завантаження"
-
-#, fuzzy
-msgid "show leaf _incoming traffic"
-msgstr "показувати вхідний Gnet трафік"
-
-#, fuzzy
-msgid "show leaf _outgoing traffic"
-msgstr "показувати вихідний Gnet трафік"
 
 msgid "unavailable"
 msgstr ""
@@ -5765,27 +5951,23 @@ msgstr ""
 msgid "_Remove filter"
 msgstr "Назва файла:"
 
-#, fuzzy
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella закривається. \n"
-"Надсилаю 'бувай' до peers. \n"
-"\n"
-"Часу на 'відстрочку' залишилось:"
-
 msgid "_Close"
 msgstr "_Закрити"
 
 #, fuzzy
-msgid "show _Peers"
+msgid "Show _Statusbar"
+msgstr "показувати _Панель статусу"
+
+#, fuzzy
+msgid "Show _Peers"
 msgstr "показувати _Панель статусу"
 
 #, fuzzy
 msgid "Gnutella _traffic stats"
+msgstr "статистика Gnet трафіка"
+
+#, fuzzy
+msgid "_Auto-hide leaf traffic stats"
 msgstr "статистика Gnet трафіка"
 
 msgid "_Search"
@@ -6432,15 +6614,43 @@ msgstr ""
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
 
+#~ msgid "Gnet connections"
+#~ msgstr "Gnet з'єднання"
+
+#, fuzzy
+#~ msgid ""
+#~ "Gtk-Gnutella is shutting down.\n"
+#~ "Sending bye messages to peers.\n"
+#~ "\n"
+#~ "Grace time remaining:"
+#~ msgstr ""
+#~ "gtk-gnutella закривається. \n"
+#~ "Надсилаю 'бувай' до peers. \n"
+#~ "\n"
+#~ "Часу на 'відстрочку' залишилось:"
+
+#, fuzzy
+#~ msgid "show HTTP _incoming traffic"
+#~ msgstr "показувати вхідний HTTP трафік"
+
+#, fuzzy
+#~ msgid "show HTTP _outgoing traffic"
+#~ msgstr "показувати вихідний HTTP трафік"
+
+#, fuzzy
+#~ msgid "show leaf _incoming traffic"
+#~ msgstr "показувати вхідний Gnet трафік"
+
+#, fuzzy
+#~ msgid "show leaf _outgoing traffic"
+#~ msgstr "показувати вихідний Gnet трафік"
+
 #, fuzzy
 #~ msgid "Queued (slot %u/%u) ETA: %s"
 #~ msgstr "Поставлено в чергу (слот %d/%d) ETA: %s"
 
 #~ msgid "File"
 #~ msgstr "Файл"
-
-#~ msgid "gtk-gnutella"
-#~ msgstr "gtk-gnutella"
 
 #~ msgid "no size"
 #~ msgstr "немає розміру"
@@ -6472,10 +6682,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "[time]"
 #~ msgstr "Назва файла:"
-
-#, fuzzy
-#~ msgid "_GnutellaNet"
-#~ msgstr "GnutellaNet трафік"
 
 #, fuzzy
 #~ msgid "_Downloads"
@@ -6512,10 +6718,6 @@ msgstr ""
 
 #~ msgid "Filename:"
 #~ msgstr "Назва файла:"
-
-#, fuzzy
-#~ msgid "Gnutella stats"
-#~ msgstr "Загальна статистика"
 
 #~ msgid "Protocol is not supported"
 #~ msgstr "Протокол не підтримується"

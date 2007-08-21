@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -41,6 +41,10 @@ msgstr ""
 msgid "Requeued due to timeout"
 msgstr "Riaccodato per timeout"
 
+#, fuzzy
+msgid "Requeued due to file removal"
+msgstr "Riaccodato per timeout"
+
 msgid "Requeued by file info change"
 msgstr "Riaccodato in seguito a cambiamento delle informazioni"
 
@@ -51,12 +55,22 @@ msgstr "Sospeso (verifica SHA1)"
 msgid " at %s - rescheduled for %s%s"
 msgstr " alle %s - riprogrammato per le %s"
 
+#, fuzzy, c-format
+msgid "Ignoring requested (%s)"
+msgstr "Invio richiesta (%u%%)"
+
 #, fuzzy
 msgid "Paused"
 msgstr "Passivo"
 
+msgid "Nothing more to get"
+msgstr ""
+
 msgid "Waiting for a free chunk"
 msgstr "In attesa di un posto libero"
+
+msgid "No more gaps to fill"
+msgstr ""
 
 msgid "Download queue is frozen"
 msgstr ""
@@ -67,8 +81,18 @@ msgstr "Nessun posto di scaricamento (avvia)"
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "Connessione fallita (Mancanza di descrizioni dei file?)"
 
+msgid "Connection failed"
+msgstr "Connessione fallita"
+
+#, fuzzy
+msgid "Push route lost"
+msgstr "Perso instradamento"
+
 msgid "Ignoring Push flag"
 msgstr "Ignoro flag spinta"
+
+msgid "Can't reach host (Push or Direct)"
+msgstr ""
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -103,11 +127,30 @@ msgstr "Numero massimo risultati di consultazione host"
 msgid "Has already enough active sources"
 msgstr "Sorgenti inattive"
 
+#, fuzzy
+msgid "download_start() failed"
+msgstr "Scarica i file selezionati"
+
 msgid "Stopped (Index changed)"
 msgstr "Fermato (indice cambiato)"
 
+#, fuzzy
+msgid "Duplicate download"
+msgstr "%u scaricamento di %u"
+
 msgid "Explicitly requeued"
 msgstr "Riaccodato esplicitamente"
+
+#, fuzzy
+msgid "Failed (Header line too large)"
+msgstr "Fallito (raga dei titoli troppo lunga)"
+
+#, c-format
+msgid "Failed (%s)"
+msgstr "Fallito (%s)"
+
+msgid "Failed (Input buffer full)"
+msgstr "Fallito (contenitore ingresso pieno)"
 
 #, c-format
 msgid "Stopped (%s)"
@@ -127,12 +170,34 @@ msgstr "Connessione non mantenuta attiva (EOF)"
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
+#, fuzzy, c-format
+msgid "Can't check resume data: %s"
+msgstr "Non posso salvare i dati: %s"
+
+#, fuzzy, c-format
+msgid "Can't stat opened file: %s"
+msgstr "Non posso salvare i dati: %s"
+
 msgid "Stopped (Output file size changed)"
 msgstr "Fermato (dimensione del file di output cambiata)"
+
+#, fuzzy, c-format
+msgid "Can't read resume data: %s"
+msgstr "Non posso salvare i dati: %s"
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
 
 #, c-format
 msgid "Can't save data: %s"
 msgstr "Non posso salvare i dati: %s"
+
+msgid "Partial write to file"
+msgstr ""
 
 msgid "Requeued after trimmed data"
 msgstr "Riaccodato dopo regolazione dei dati"
@@ -140,11 +205,30 @@ msgstr "Riaccodato dopo regolazione dei dati"
 msgid "Chunk done, connection closed"
 msgstr "Pezzo fatto, connessione chiusa"
 
+msgid "Giving priority to THEX"
+msgstr ""
+
 msgid "Requeued by competing download"
 msgstr "Riaccodato per scaricamento concorrente"
 
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Stato HTTP misterioso (de-sincronizzazione protocollo?)"
+
+#, fuzzy
+msgid "Weird HTTP status"
+msgstr "Stato HTTP misterioso (de-sincronizzazione protocollo?)"
+
+#, fuzzy
+msgid "Download was a duplicate"
+msgstr "_Scarica selezionato"
+
+#, fuzzy
+msgid "Filesize mismatch"
+msgstr "Errore nelle informazioni del file dell'URN"
+
+#, fuzzy
+msgid "No URN on server (required)"
+msgstr "Nessun URN sul server da convalidare"
 
 msgid "No URN on server, waiting for overlap"
 msgstr "Nessun URN sul server, attesa di sovrascrittura"
@@ -152,21 +236,58 @@ msgstr "Nessun URN sul server, attesa di sovrascrittura"
 msgid "No URN on server to validate"
 msgstr "Nessun URN sul server da convalidare"
 
+#, fuzzy
+msgid "URN mismatch detected"
+msgstr "Rilevato errore SHA1"
+
 msgid "URN fileinfo mismatch"
 msgstr "Errore nelle informazioni del file dell'URN"
 
 msgid "Discovered dup SHA1"
 msgstr "Riscontrata duplicazione SHA1"
 
+msgid "More data to sink than expected"
+msgstr ""
+
 #, fuzzy
-msgid "Stopped data (EOF) <download_sink_read>"
-msgstr "Dati fermati (EOF)"
+msgid "Stopped data (EOF)"
+msgstr "Arrestati (%s)"
+
+#, fuzzy, c-format
+msgid "Stopped data (%s)"
+msgstr "Arrestati (%s)"
+
+#, fuzzy
+msgid "Timeout reading HTTP status"
+msgstr "Non posso inviare lo stato HTTP completo"
+
+#, fuzzy
+msgid "Timeout reading headers"
+msgstr "Lettura titoli"
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
+msgstr ""
 
 msgid "Spammer detected"
 msgstr "Rilevato spammer"
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 msgid "Partial file on server, waiting"
 msgstr "File parziale sul server, attesa"
+
+#, c-format
+msgid "%sRequested range unavailable yet"
+msgstr ""
 
 msgid "Queued"
 msgstr "Accodati"
@@ -179,11 +300,77 @@ msgstr " (posizione %d"
 msgid ", ETA: %s"
 msgstr ""
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+msgid "Total/served sizes mismatch"
+msgstr ""
+
+#, fuzzy
+msgid "Range start mismatch"
+msgstr "Riavvia questa ricerca"
+
+msgid "Range end too large"
+msgstr ""
+
+#, fuzzy
+msgid "Range mismatch"
+msgstr "Errore nelle informazioni del file dell'URN"
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+#, fuzzy
+msgid "Search already closed"
+msgstr "Aggiunta ricerca"
+
+#, fuzzy
+msgid "THEX download aborted"
+msgstr "Scaricati:"
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Cannot write into file: %s"
+msgstr "Scrittura fallita : %s"
+
 msgid "Stopped (Read buffer full)"
 msgstr "Arrestato (contenitore lettura pieno)"
 
+#, fuzzy
+msgid "Failed (Completed?)"
+msgstr "Completati"
+
+#, fuzzy
+msgid "Could not send whole HTTP request"
+msgstr "Non posso inviare lo stato HTTP completo"
+
+#, c-format
+msgid "Write failed: %s"
+msgstr "Scrittura fallita : %s"
+
+#, fuzzy
+msgid "Malformed push reply"
+msgstr "Tentativo di query malformata"
+
 msgid "SHA1 mismatch detected"
 msgstr "Rilevato errore SHA1"
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
+msgstr ""
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -192,6 +379,10 @@ msgstr "<Sfoglia host %s>"
 #, c-format
 msgid "<THEX data for %s>"
 msgstr ""
+
+#, fuzzy
+msgid "Browse search closed"
+msgstr "Mostra elenco ricerca"
 
 #, fuzzy
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -337,6 +528,10 @@ msgstr "Risultati ricerca"
 msgid "Ancient query format"
 msgstr ""
 
+#, fuzzy
+msgid "Blank Servent ID"
+msgstr "ID server:"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Spegnimento (%s)"
@@ -448,15 +643,8 @@ msgstr "Fallito (non è possibile inviare %s atomicamente)"
 msgid "Failed (Header line too long)"
 msgstr "Fallito (raga dei titoli troppo lunga)"
 
-#, c-format
-msgid "Failed (%s)"
-msgstr "Fallito (%s)"
-
 msgid "Failed (Input Exception)"
 msgstr "Fallito (eccezione input)"
-
-msgid "Failed (Input buffer full)"
-msgstr "Fallito (contenitore ingresso pieno)"
 
 #, c-format
 msgid "Failed (Input error: %s)"
@@ -554,15 +742,8 @@ msgstr "Errore di lettura"
 msgid "Got EOF"
 msgstr ""
 
-msgid "Connection failed"
-msgstr "Connessione fallita"
-
 msgid "Write failed (Input Exception)"
 msgstr "Scrittura fallita (eccezione in ingresso)"
-
-#, c-format
-msgid "Write failed: %s"
-msgstr "Scrittura fallita : %s"
 
 #, c-format
 msgid "Looking for UDP host cache %s"
@@ -4142,6 +4323,10 @@ msgid "All"
 msgstr ""
 
 #, fuzzy, c-format
+msgid "regex error: %s"
+msgstr "Errore lettura: %s"
+
+#, fuzzy, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
 msgstr[0] "Selezionato %u scaricamento di %u accodati corrispondenti a \"%s\"."
@@ -4166,7 +4351,8 @@ msgstr "corrisponde al modello di espressione regolare"
 msgid "is exactly"
 msgstr "è esattamente"
 
-msgid "Builtin targets (not editable)"
+#, fuzzy
+msgid "Built-in targets"
 msgstr "Destinatari builtin (non modificabili)"
 
 msgid "Global filters"
@@ -4326,16 +4512,16 @@ msgid "(invalid)"
 msgstr "(invalido)"
 
 #, fuzzy
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr "Attivi"
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -4531,7 +4717,8 @@ msgstr " registrato, "
 msgid " with sources"
 msgstr " con i sorgenti"
 
-msgid "%v/%u Gnet nodes"
+#, fuzzy
+msgid "%v/%u Gnutella peers"
 msgstr "%v/%u nodi Gnet"
 
 msgid "%v/%u downloads"
@@ -4539,9 +4726,6 @@ msgstr "%v/%u scaricamenti"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u caricamenti"
-
-msgid "("
-msgstr ""
 
 #, fuzzy
 msgid "(Disable: 0, Random: 1)"
@@ -4701,7 +4885,8 @@ msgstr "Media attività di questo server:"
 msgid "Bad hosts"
 msgstr "Host sbagliati"
 
-msgid "Bandwidth limits for GnutellaNet traffic"
+#, fuzzy
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr "Limite di banda per il traffico della rete Gnutella"
 
 msgid "Bandwidth limits for HTTP traffic"
@@ -5129,45 +5314,40 @@ msgstr "Generazione:"
 msgid "Globally drop results..."
 msgstr "Rilascia i risultati globalmente..."
 
-msgid "Gnet connections"
-msgstr "Connessioni Gnet"
+#, fuzzy
+msgid "Gnutella TTL settings"
+msgstr "Impostazioni TTL di GnutellaNet"
 
 #, fuzzy
 msgid "Gnutella _leaf traffic stats"
 msgstr "Statistiche traffico _foglia Gnet"
 
+#, fuzzy
+msgid "Gnutella display"
+msgstr "Statistiche Gnutella"
+
+#, fuzzy
+msgid "Gnutella message size limits"
+msgstr "Limiti dimensioni messaggi rete Gnutella"
+
 msgid "Gnutella network mode"
 msgstr "Modalità rete Gnutella"
 
-msgid "GnutellaNet TTL settings"
-msgstr "Impostazioni TTL di GnutellaNet"
-
-msgid "GnutellaNet display"
-msgstr ""
-
-msgid "GnutellaNet message size limits"
-msgstr "Limiti dimensioni messaggi rete Gnutella"
-
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr "Timeout della rete Gnutella (tutti i valori sono in secondi)"
-
-msgid "GnutellaNet traffic"
-msgstr "Traffico GnutellaNet"
-
-msgid "GnutellaNet"
+#, fuzzy
+msgid "Gnutella peers"
 msgstr "Rete Gnutella"
 
 #, fuzzy
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella sta per spegnersi.\n"
-"Invio messaggio di saluto ai peers.\n"
-"\n"
-"Tempo rimasto:"
+msgid "Gnutella timeouts (all values in seconds)"
+msgstr "Timeout della rete Gnutella (tutti i valori sono in secondi)"
+
+#, fuzzy
+msgid "Gnutella traffic"
+msgstr "Traffico GnutellaNet"
+
+#, fuzzy
+msgid "Gnutella"
+msgstr "Rete Gnutella"
 
 msgid "HTTP traffic"
 msgstr "Traffico HTTP"
@@ -5711,6 +5891,9 @@ msgstr "Ritardo minimo timeout"
 msgid "Revert"
 msgstr "Ripristina"
 
+msgid "Richard Eckart"
+msgstr ""
+
 msgid "Rules"
 msgstr "Regole"
 
@@ -5777,11 +5960,51 @@ msgstr ""
 msgid "Settings"
 msgstr "Mostra impostazioni"
 
+#, fuzzy
+msgid "Show Search_bar"
+msgstr "mostra _barra ricerca"
+
+#, fuzzy
+msgid "Show Status_bar"
+msgstr "mostra barra dello _stato"
+
+#, fuzzy
+msgid "Show _Connections"
+msgstr "mostra co_nnessioni"
+
+#, fuzzy
+msgid "Show _Downloads"
+msgstr "mostra _scaricamenti"
+
+#, fuzzy
+msgid "Show _Menubar"
+msgstr "mostra barra _laterale"
+
+#, fuzzy
+msgid "Show _Sidebar"
+msgstr "mostra barra _laterale"
+
+#, fuzzy
+msgid "Show _Uploads"
+msgstr "mostra _caricamenti"
+
 msgid "Show _bytes"
 msgstr "Mostra _byte"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "Mostra un dialogo di _conferma quando chiudi gtk-gnutella"
+
+#, fuzzy
+msgid "Show _inbound Gnutella traffic"
+msgstr "Traffico GnutellaNet"
+
+#, fuzzy
+msgid "Show _inbound HTTP traffic"
+msgstr "mostra traffico Gnet in _ingresso"
+
+#, fuzzy
+msgid "Show _inbound leaf traffic"
+msgstr "mostra traffico Gnet in _ingresso"
 
 msgid "Show _last"
 msgstr "Mostra le _ultime"
@@ -5789,6 +6012,18 @@ msgstr "Mostra le _ultime"
 #, fuzzy
 msgid "Show _metric units"
 msgstr "Mostra _percentuali"
+
+#, fuzzy
+msgid "Show _outbound Gnutella traffic"
+msgstr "Traffico GnutellaNet"
+
+#, fuzzy
+msgid "Show _outbound leaf traffic"
+msgstr "mostra traffico Gnet in _uscita"
+
+#, fuzzy
+msgid "Show _outbound HTTP traffic"
+msgstr "mostra traffico Gnet in _uscita"
 
 msgid "Show _percentages"
 msgstr "Mostra _percentuali"
@@ -6275,8 +6510,24 @@ msgstr "da _nodi entro un raggio di salto di"
 msgid "from the same host"
 msgstr "dallo stesso host"
 
+#, fuzzy
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+"gtk-gnutella sta per spegnersi.\n"
+"Invio messaggio di saluto ai peers.\n"
+"\n"
+"Tempo rimasto:"
+
 msgid "gtk-gnutella shutdown"
 msgstr "spegnimento gtk-gnutella"
+
+#, fuzzy
+msgid "gtk-gnutella"
+msgstr "A proposito di gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Esco?"
@@ -6328,46 +6579,6 @@ msgstr "secondi"
 
 msgid "set"
 msgstr "impostato"
-
-msgid "show Gnet _incoming traffic"
-msgstr "mostra traffico Gnet in _ingresso"
-
-msgid "show Gnet _outgoing traffic"
-msgstr "mostra traffico Gnet in _uscita"
-
-msgid "show HTTP _incoming traffic"
-msgstr "mostra traffico HTTP in _ingresso"
-
-msgid "show HTTP _outgoing traffic"
-msgstr "mostra traffico HTTP in _uscita"
-
-msgid "show Search_bar"
-msgstr "mostra _barra ricerca"
-
-msgid "show _Connections"
-msgstr "mostra co_nnessioni"
-
-msgid "show _Downloads"
-msgstr "mostra _scaricamenti"
-
-#, fuzzy
-msgid "show _Menubar"
-msgstr "mostra barra _laterale"
-
-msgid "show _Sidebar"
-msgstr "mostra barra _laterale"
-
-msgid "show _Statusbar"
-msgstr "mostra barra dello _stato"
-
-msgid "show _Uploads"
-msgstr "mostra _caricamenti"
-
-msgid "show leaf _incoming traffic"
-msgstr "mostra traffico foglia in _ingresso"
-
-msgid "show leaf _outgoing traffic"
-msgstr "mostra traffico foglia in _uscita"
 
 #, fuzzy
 msgid "unavailable"
@@ -6443,28 +6654,24 @@ msgstr "Copia negli appunti"
 msgid "_Remove filter"
 msgstr "_Rimuovi il filtro"
 
-#, fuzzy
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-"gtk-gnutella sta per spegnersi.\n"
-"Invio messaggio di saluto ai peers.\n"
-"\n"
-"Tempo rimasto:"
-
 msgid "_Close"
 msgstr "Chiudi"
 
 #, fuzzy
-msgid "show _Peers"
+msgid "Show _Statusbar"
+msgstr "mostra barra dello _stato"
+
+#, fuzzy
+msgid "Show _Peers"
 msgstr "mostra barra _laterale"
 
 #, fuzzy
 msgid "Gnutella _traffic stats"
 msgstr "Statistiche del _traffico Gnet"
+
+#, fuzzy
+msgid "_Auto-hide leaf traffic stats"
+msgstr "_auto-nascondi statistiche traffico foglia"
 
 msgid "_Search"
 msgstr "_Cerca"
@@ -7136,6 +7343,37 @@ msgstr "Invio coda, riconnessione..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
 
+#, fuzzy
+#~ msgid "Stopped data (EOF) <download_sink_read>"
+#~ msgstr "Dati fermati (EOF)"
+
+#~ msgid "Gnet connections"
+#~ msgstr "Connessioni Gnet"
+
+#, fuzzy
+#~ msgid ""
+#~ "Gtk-Gnutella is shutting down.\n"
+#~ "Sending bye messages to peers.\n"
+#~ "\n"
+#~ "Grace time remaining:"
+#~ msgstr ""
+#~ "gtk-gnutella sta per spegnersi.\n"
+#~ "Invio messaggio di saluto ai peers.\n"
+#~ "\n"
+#~ "Tempo rimasto:"
+
+#~ msgid "show HTTP _incoming traffic"
+#~ msgstr "mostra traffico HTTP in _ingresso"
+
+#~ msgid "show HTTP _outgoing traffic"
+#~ msgstr "mostra traffico HTTP in _uscita"
+
+#~ msgid "show leaf _incoming traffic"
+#~ msgstr "mostra traffico foglia in _ingresso"
+
+#~ msgid "show leaf _outgoing traffic"
+#~ msgstr "mostra traffico foglia in _uscita"
+
 #~ msgid "Queued (slot %u/%u) ETA: %s"
 #~ msgstr "Accodato (posizione %u/%u) ETA: %s"
 
@@ -7162,9 +7400,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 #~ msgid "Failed"
 #~ msgstr "Fallito"
 
-#~ msgid "Restart this search"
-#~ msgstr "Riavvia questa ricerca"
-
 #, fuzzy
 #~ msgid "Resu_me this search"
 #~ msgstr "Riprendi questa ricerca"
@@ -7189,10 +7424,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 #, fuzzy
 #~ msgid "_Stop this search"
 #~ msgstr "Arresta questa ricerca"
-
-#, fuzzy
-#~ msgid "gtk-gnutella"
-#~ msgstr "A proposito di gtk-gnutella"
 
 #~ msgid "[stopped]"
 #~ msgstr "[arrestata]"
@@ -7290,9 +7521,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 #, fuzzy
 #~ msgid "[time]"
 #~ msgstr "Attività"
-
-#~ msgid "Download selected files"
-#~ msgstr "Scarica i file selezionati"
 
 #, fuzzy
 #~ msgid "_Close this search"
@@ -7431,9 +7659,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 
 #~ msgid "Frequently Asked Questions:"
 #~ msgstr "Domande frequenti:"
-
-#~ msgid "Gnutella stats"
-#~ msgstr "Statistiche Gnutella"
 
 #~ msgid "Stats"
 #~ msgstr "Statistiche"

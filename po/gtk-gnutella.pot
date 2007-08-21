@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-20 04:43+0900\n"
+"POT-Creation-Date: 2007-08-21 12:47+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,6 +36,9 @@ msgstr ""
 msgid "Requeued due to timeout"
 msgstr ""
 
+msgid "Requeued due to file removal"
+msgstr ""
+
 msgid "Requeued by file info change"
 msgstr ""
 
@@ -46,10 +49,20 @@ msgstr ""
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
 
+#, c-format
+msgid "Ignoring requested (%s)"
+msgstr ""
+
 msgid "Paused"
 msgstr ""
 
+msgid "Nothing more to get"
+msgstr ""
+
 msgid "Waiting for a free chunk"
+msgstr ""
+
+msgid "No more gaps to fill"
 msgstr ""
 
 msgid "Download queue is frozen"
@@ -61,7 +74,16 @@ msgstr ""
 msgid "Connection failed (Out of file descriptors?)"
 msgstr ""
 
+msgid "Connection failed"
+msgstr ""
+
+msgid "Push route lost"
+msgstr ""
+
 msgid "Ignoring Push flag"
+msgstr ""
+
+msgid "Can't reach host (Push or Direct)"
 msgstr ""
 
 #, c-format
@@ -94,10 +116,26 @@ msgstr ""
 msgid "Has already enough active sources"
 msgstr ""
 
+msgid "download_start() failed"
+msgstr ""
+
 msgid "Stopped (Index changed)"
 msgstr ""
 
+msgid "Duplicate download"
+msgstr ""
+
 msgid "Explicitly requeued"
+msgstr ""
+
+msgid "Failed (Header line too large)"
+msgstr ""
+
+#, c-format
+msgid "Failed (%s)"
+msgstr ""
+
+msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -118,11 +156,33 @@ msgstr ""
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
+#, c-format
+msgid "Can't check resume data: %s"
+msgstr ""
+
+#, c-format
+msgid "Can't stat opened file: %s"
+msgstr ""
+
 msgid "Stopped (Output file size changed)"
 msgstr ""
 
 #, c-format
+msgid "Can't read resume data: %s"
+msgstr ""
+
+msgid "Short read on resume data"
+msgstr ""
+
+#, c-format
+msgid "Resuming data mismatch @ %s"
+msgstr ""
+
+#, c-format
 msgid "Can't save data: %s"
+msgstr ""
+
+msgid "Partial write to file"
 msgstr ""
 
 msgid "Requeued after trimmed data"
@@ -131,10 +191,25 @@ msgstr ""
 msgid "Chunk done, connection closed"
 msgstr ""
 
+msgid "Giving priority to THEX"
+msgstr ""
+
 msgid "Requeued by competing download"
 msgstr ""
 
 msgid "Weird HTTP status (protocol desync?)"
+msgstr ""
+
+msgid "Weird HTTP status"
+msgstr ""
+
+msgid "Download was a duplicate"
+msgstr ""
+
+msgid "Filesize mismatch"
+msgstr ""
+
+msgid "No URN on server (required)"
 msgstr ""
 
 msgid "No URN on server, waiting for overlap"
@@ -143,19 +218,53 @@ msgstr ""
 msgid "No URN on server to validate"
 msgstr ""
 
+msgid "URN mismatch detected"
+msgstr ""
+
 msgid "URN fileinfo mismatch"
 msgstr ""
 
 msgid "Discovered dup SHA1"
 msgstr ""
 
-msgid "Stopped data (EOF) <download_sink_read>"
+msgid "More data to sink than expected"
+msgstr ""
+
+msgid "Stopped data (EOF)"
+msgstr ""
+
+#, c-format
+msgid "Stopped data (%s)"
+msgstr ""
+
+msgid "Timeout reading HTTP status"
+msgstr ""
+
+msgid "Timeout reading headers"
+msgstr ""
+
+#, c-format
+msgid "No support for Content-Encoding (%s)"
 msgstr ""
 
 msgid "Spammer detected"
 msgstr ""
 
+msgid "Partial file, bad HTTP keep-alive support"
+msgstr ""
+
+#, c-format
+msgid "Partial file, too much data to sink (%s bytes)"
+msgstr ""
+
+msgid "Partial file, no suitable range found yet"
+msgstr ""
+
 msgid "Partial file on server, waiting"
+msgstr ""
+
+#, c-format
+msgid "%sRequested range unavailable yet"
 msgstr ""
 
 msgid "Queued"
@@ -169,10 +278,69 @@ msgstr ""
 msgid ", ETA: %s"
 msgstr ""
 
+msgid "Server did not supply identification"
+msgstr ""
+
+msgid "Unparseable Content-Length"
+msgstr ""
+
+msgid "Total/served sizes mismatch"
+msgstr ""
+
+msgid "Range start mismatch"
+msgstr ""
+
+msgid "Range end too large"
+msgstr ""
+
+msgid "Range mismatch"
+msgstr ""
+
+msgid "Weird server-side chunk shrinking"
+msgstr ""
+
+msgid "Content-Length mismatch"
+msgstr ""
+
+msgid "No Content-Length header"
+msgstr ""
+
+msgid "Search already closed"
+msgstr ""
+
+msgid "THEX download aborted"
+msgstr ""
+
+msgid "Cannot resume: file gone"
+msgstr ""
+
+#, c-format
+msgid "Cannot write into file: %s"
+msgstr ""
+
 msgid "Stopped (Read buffer full)"
 msgstr ""
 
+msgid "Failed (Completed?)"
+msgstr ""
+
+msgid "Could not send whole HTTP request"
+msgstr ""
+
+#, c-format
+msgid "Write failed: %s"
+msgstr ""
+
+msgid "Malformed push reply"
+msgstr ""
+
 msgid "SHA1 mismatch detected"
+msgstr ""
+
+msgid ", inbound"
+msgstr ""
+
+msgid ", outbound"
 msgstr ""
 
 #, c-format
@@ -181,6 +349,9 @@ msgstr ""
 
 #, c-format
 msgid "<THEX data for %s>"
+msgstr ""
+
+msgid "Browse search closed"
 msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
@@ -323,6 +494,9 @@ msgstr ""
 msgid "Ancient query format"
 msgstr ""
 
+msgid "Blank Servent ID"
+msgstr ""
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr ""
@@ -434,14 +608,7 @@ msgstr ""
 msgid "Failed (Header line too long)"
 msgstr ""
 
-#, c-format
-msgid "Failed (%s)"
-msgstr ""
-
 msgid "Failed (Input Exception)"
-msgstr ""
-
-msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
@@ -534,14 +701,7 @@ msgstr ""
 msgid "Got EOF"
 msgstr ""
 
-msgid "Connection failed"
-msgstr ""
-
 msgid "Write failed (Input Exception)"
-msgstr ""
-
-#, c-format
-msgid "Write failed: %s"
 msgstr ""
 
 #, c-format
@@ -3529,6 +3689,10 @@ msgid "All"
 msgstr ""
 
 #, c-format
+msgid "regex error: %s"
+msgstr ""
+
+#, c-format
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
 msgstr[0] ""
@@ -3552,7 +3716,7 @@ msgstr ""
 msgid "is exactly"
 msgstr ""
 
-msgid "Builtin targets (not editable)"
+msgid "Built-in targets"
 msgstr ""
 
 msgid "Global filters"
@@ -3710,16 +3874,16 @@ msgstr ""
 msgid "(invalid)"
 msgstr ""
 
-msgid "<Archives>"
+msgid "<Archive>"
 msgstr ""
 
 msgid "<Audio>"
 msgstr ""
 
-msgid "<Literature>"
+msgid "<Image>"
 msgstr ""
 
-msgid "<Image>"
+msgid "<Literature>"
 msgstr ""
 
 msgid "<Video>"
@@ -3915,16 +4079,13 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
-msgid "%v/%u Gnet nodes"
+msgid "%v/%u Gnutella peers"
 msgstr ""
 
 msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
-msgstr ""
-
-msgid "("
 msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
@@ -4066,7 +4227,7 @@ msgstr ""
 msgid "Bad hosts"
 msgstr ""
 
-msgid "Bandwidth limits for GnutellaNet traffic"
+msgid "Bandwidth limits for Gnutella traffic"
 msgstr ""
 
 msgid "Bandwidth limits for HTTP traffic"
@@ -4472,38 +4633,31 @@ msgstr ""
 msgid "Globally drop results..."
 msgstr ""
 
-msgid "Gnet connections"
+msgid "Gnutella TTL settings"
 msgstr ""
 
 msgid "Gnutella _leaf traffic stats"
 msgstr ""
 
+msgid "Gnutella display"
+msgstr ""
+
+msgid "Gnutella message size limits"
+msgstr ""
+
 msgid "Gnutella network mode"
 msgstr ""
 
-msgid "GnutellaNet TTL settings"
+msgid "Gnutella peers"
 msgstr ""
 
-msgid "GnutellaNet display"
+msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
-msgid "GnutellaNet message size limits"
+msgid "Gnutella traffic"
 msgstr ""
 
-msgid "GnutellaNet timeouts (all values in seconds)"
-msgstr ""
-
-msgid "GnutellaNet traffic"
-msgstr ""
-
-msgid "GnutellaNet"
-msgstr ""
-
-msgid ""
-"Gtk-Gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
+msgid "Gnutella"
 msgstr ""
 
 msgid "HTTP traffic"
@@ -5020,6 +5174,9 @@ msgstr ""
 msgid "Revert"
 msgstr ""
 
+msgid "Richard Eckart"
+msgstr ""
+
 msgid "Rules"
 msgstr ""
 
@@ -5080,16 +5237,55 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+msgid "Show Search_bar"
+msgstr ""
+
+msgid "Show Status_bar"
+msgstr ""
+
+msgid "Show _Connections"
+msgstr ""
+
+msgid "Show _Downloads"
+msgstr ""
+
+msgid "Show _Menubar"
+msgstr ""
+
+msgid "Show _Sidebar"
+msgstr ""
+
+msgid "Show _Uploads"
+msgstr ""
+
 msgid "Show _bytes"
 msgstr ""
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr ""
 
+msgid "Show _inbound Gnutella traffic"
+msgstr ""
+
+msgid "Show _inbound HTTP traffic"
+msgstr ""
+
+msgid "Show _inbound leaf traffic"
+msgstr ""
+
 msgid "Show _last"
 msgstr ""
 
 msgid "Show _metric units"
+msgstr ""
+
+msgid "Show _outbound Gnutella traffic"
+msgstr ""
+
+msgid "Show _outbound leaf traffic"
+msgstr ""
+
+msgid "Show _outbound HTTP traffic"
 msgstr ""
 
 msgid "Show _percentages"
@@ -5528,7 +5724,17 @@ msgstr ""
 msgid "from the same host"
 msgstr ""
 
+msgid ""
+"gtk-gnutella is shutting down.\n"
+"Sending bye messages to peers.\n"
+"\n"
+"Grace time remaining:"
+msgstr ""
+
 msgid "gtk-gnutella shutdown"
+msgstr ""
+
+msgid "gtk-gnutella"
 msgstr ""
 
 msgid "gtk-gnutella: Quit?"
@@ -5580,45 +5786,6 @@ msgid "secs"
 msgstr ""
 
 msgid "set"
-msgstr ""
-
-msgid "show Gnet _incoming traffic"
-msgstr ""
-
-msgid "show Gnet _outgoing traffic"
-msgstr ""
-
-msgid "show HTTP _incoming traffic"
-msgstr ""
-
-msgid "show HTTP _outgoing traffic"
-msgstr ""
-
-msgid "show Search_bar"
-msgstr ""
-
-msgid "show _Connections"
-msgstr ""
-
-msgid "show _Downloads"
-msgstr ""
-
-msgid "show _Menubar"
-msgstr ""
-
-msgid "show _Sidebar"
-msgstr ""
-
-msgid "show _Statusbar"
-msgstr ""
-
-msgid "show _Uploads"
-msgstr ""
-
-msgid "show leaf _incoming traffic"
-msgstr ""
-
-msgid "show leaf _outgoing traffic"
 msgstr ""
 
 msgid "unavailable"
@@ -5692,20 +5859,19 @@ msgstr ""
 msgid "_Remove filter"
 msgstr ""
 
-msgid ""
-"gtk-gnutella is shutting down.\n"
-"Sending bye messages to peers.\n"
-"\n"
-"Grace time remaining:"
-msgstr ""
-
 msgid "_Close"
 msgstr ""
 
-msgid "show _Peers"
+msgid "Show _Statusbar"
+msgstr ""
+
+msgid "Show _Peers"
 msgstr ""
 
 msgid "Gnutella _traffic stats"
+msgstr ""
+
+msgid "_Auto-hide leaf traffic stats"
 msgstr ""
 
 msgid "_Search"
