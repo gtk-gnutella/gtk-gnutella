@@ -1667,7 +1667,7 @@ create_main_window (void)
   gtk_widget_set_name (menu_view_menu, "menu_view_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_view), menu_view_menu);
 
-  menu_searchbar_visible = gtk_check_menu_item_new_with_mnemonic (_("show Search_bar"));
+  menu_searchbar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show Search_bar"));
   gtk_widget_set_name (menu_searchbar_visible, "menu_searchbar_visible");
   gtk_widget_show (menu_searchbar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_searchbar_visible);
@@ -1675,7 +1675,7 @@ create_main_window (void)
                               GDK_F2, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
-  menu_sidebar_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Sidebar"));
+  menu_sidebar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Sidebar"));
   gtk_widget_set_name (menu_sidebar_visible, "menu_sidebar_visible");
   gtk_widget_show (menu_sidebar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_sidebar_visible);
@@ -1683,7 +1683,7 @@ create_main_window (void)
                               GDK_F8, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
-  menu_menubar_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Menubar"));
+  menu_menubar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Menubar"));
   gtk_widget_set_name (menu_menubar_visible, "menu_menubar_visible");
   gtk_widget_show (menu_menubar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_menubar_visible);
@@ -1691,7 +1691,7 @@ create_main_window (void)
                               GDK_F9, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
-  menu_statusbar_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Statusbar"));
+  menu_statusbar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Statusbar"));
   gtk_widget_set_name (menu_statusbar_visible, "menu_statusbar_visible");
   gtk_widget_show (menu_statusbar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_statusbar_visible);
@@ -1712,19 +1712,19 @@ create_main_window (void)
   gtk_widget_set_name (connection_counters1_menu, "connection_counters1_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (connection_counters1), connection_counters1_menu);
 
-  menu_downloads_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Downloads"));
+  menu_downloads_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Downloads"));
   gtk_widget_set_name (menu_downloads_visible, "menu_downloads_visible");
   gtk_widget_show (menu_downloads_visible);
   gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_downloads_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_downloads_visible), TRUE);
 
-  menu_uploads_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Uploads"));
+  menu_uploads_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Uploads"));
   gtk_widget_set_name (menu_uploads_visible, "menu_uploads_visible");
   gtk_widget_show (menu_uploads_visible);
   gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_uploads_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_uploads_visible), TRUE);
 
-  menu_connections_visible = gtk_check_menu_item_new_with_mnemonic (_("show _Peers"));
+  menu_connections_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Peers"));
   gtk_widget_set_name (menu_connections_visible, "menu_connections_visible");
   gtk_widget_show (menu_connections_visible);
   gtk_container_add (GTK_CONTAINER (connection_counters1_menu), menu_connections_visible);
@@ -1739,13 +1739,13 @@ create_main_window (void)
   gtk_widget_set_name (menu_http_stats_visible_menu, "menu_http_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_http_stats_visible), menu_http_stats_visible_menu);
 
-  menu_bws_in_visible = gtk_check_menu_item_new_with_mnemonic (_("show HTTP _incoming traffic"));
+  menu_bws_in_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _inbound HTTP traffic"));
   gtk_widget_set_name (menu_bws_in_visible, "menu_bws_in_visible");
   gtk_widget_show (menu_bws_in_visible);
   gtk_container_add (GTK_CONTAINER (menu_http_stats_visible_menu), menu_bws_in_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_in_visible), TRUE);
 
-  menu_bws_out_visible = gtk_check_menu_item_new_with_mnemonic (_("show HTTP _outgoing traffic"));
+  menu_bws_out_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _outbound HTTP traffic"));
   gtk_widget_set_name (menu_bws_out_visible, "menu_bws_out_visible");
   gtk_widget_show (menu_bws_out_visible);
   gtk_container_add (GTK_CONTAINER (menu_http_stats_visible_menu), menu_bws_out_visible);
@@ -1760,13 +1760,13 @@ create_main_window (void)
   gtk_widget_set_name (menu_gnet_stats_visible_menu, "menu_gnet_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_stats_visible), menu_gnet_stats_visible_menu);
 
-  menu_bws_gin_visible = gtk_check_menu_item_new_with_mnemonic (_("show Gnet _incoming traffic"));
+  menu_bws_gin_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _inbound Gnutella traffic"));
   gtk_widget_set_name (menu_bws_gin_visible, "menu_bws_gin_visible");
   gtk_widget_show (menu_bws_gin_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gin_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gin_visible), TRUE);
 
-  menu_bws_gout_visible = gtk_check_menu_item_new_with_mnemonic (_("show Gnet _outgoing traffic"));
+  menu_bws_gout_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _outbound Gnutella traffic"));
   gtk_widget_set_name (menu_bws_gout_visible, "menu_bws_gout_visible");
   gtk_widget_show (menu_bws_gout_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gout_visible);
@@ -1781,17 +1781,17 @@ create_main_window (void)
   gtk_widget_set_name (menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
 
-  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_mnemonic (_("_auto-hide leaf traffic stats"));
+  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_mnemonic (_("_Auto-hide leaf traffic stats"));
   gtk_widget_set_name (menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
   gtk_widget_show (menu_autohide_bws_gleaf);
   gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_autohide_bws_gleaf);
 
-  menu_bws_glin_visible = gtk_check_menu_item_new_with_mnemonic (_("show leaf _incoming traffic"));
+  menu_bws_glin_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _inbound leaf traffic"));
   gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
   gtk_widget_show (menu_bws_glin_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glin_visible);
 
-  menu_bws_glout_visible = gtk_check_menu_item_new_with_mnemonic (_("show leaf _outgoing traffic"));
+  menu_bws_glout_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _outbound leaf traffic"));
   gtk_widget_set_name (menu_bws_glout_visible, "menu_bws_glout_visible");
   gtk_widget_show (menu_bws_glout_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glout_visible);
@@ -1996,7 +1996,7 @@ create_main_window (void)
   gtk_widget_set_name (eventbox8, "eventbox8");
   gtk_widget_show (eventbox8);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox8, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox8, _("Gnet connections"), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox8, _("Gnutella peers"), NULL);
 
   image131 = create_pixmap (main_window, "smallserver.xpm");
   gtk_widget_set_name (image131, "image131");
@@ -2110,7 +2110,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, progressbar_bws_gout, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_gout, GDK_BUTTON_PRESS_MASK);
 
-  label278 = gtk_label_new (_("GnutellaNet traffic"));
+  label278 = gtk_label_new (_("Gnutella traffic"));
   gtk_widget_set_name (label278, "label278");
   gtk_widget_show (label278);
   gtk_frame_set_label_widget (GTK_FRAME (frame_bws_ginout), label278);
@@ -9714,7 +9714,7 @@ create_dlg_prefs_gnet_tab (void)
 
   dlg_prefs_gnet_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_gnet_tab, "dlg_prefs_gnet_tab");
-  gtk_window_set_title (GTK_WINDOW (dlg_prefs_gnet_tab), _("GnutellaNet"));
+  gtk_window_set_title (GTK_WINDOW (dlg_prefs_gnet_tab), _("Gnutella"));
   gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_gnet_tab), 600, 400);
 
   scrolledwindow40 = gtk_scrolled_window_new (NULL, NULL);
@@ -10443,7 +10443,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_incoming_connecting_timeout), TRUE);
 
-  label294 = gtk_label_new (_("GnutellaNet timeouts (all values in seconds)"));
+  label294 = gtk_label_new (_("Gnutella timeouts (all values in seconds)"));
   gtk_widget_set_name (label294, "label294");
   gtk_widget_show (label294);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_timeout), label294);
@@ -10568,7 +10568,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox9294), label160, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label160), GTK_JUSTIFY_CENTER);
 
-  label295 = gtk_label_new (_("GnutellaNet TTL settings"));
+  label295 = gtk_label_new (_("Gnutella TTL settings"));
   gtk_widget_set_name (label295, "label295");
   gtk_widget_show (label295);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_ttl), label295);
@@ -10952,7 +10952,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label781), 0, 0.5);
 
-  label775 = gtk_label_new (_("GnutellaNet message size limits"));
+  label775 = gtk_label_new (_("Gnutella message size limits"));
   gtk_widget_set_name (label775, "label775");
   gtk_widget_show (label775);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_message_size), label775);
@@ -11566,7 +11566,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (label578);
   gtk_frame_set_label_widget (GTK_FRAME (frame79), label578);
 
-  label290 = gtk_label_new_with_mnemonic (_("Bandwidth limits for GnutellaNet traffic"));
+  label290 = gtk_label_new_with_mnemonic (_("Bandwidth limits for Gnutella traffic"));
   gtk_widget_set_name (label290, "label290");
   gtk_widget_show (label290);
   gtk_frame_set_label_widget (GTK_FRAME (frame20), label290);
@@ -14320,7 +14320,7 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label747 = gtk_label_new (_("GnutellaNet display"));
+  label747 = gtk_label_new (_("Gnutella display"));
   gtk_widget_set_name (label747, "label747");
   gtk_widget_show (label747);
   gtk_frame_set_label_widget (GTK_FRAME (frame94), label747);

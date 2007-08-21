@@ -2345,7 +2345,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkCheckMenuItem" id="menu_searchbar_visible">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">show Search_bar</property>
+		      <property name="label" translatable="yes">Show Search_bar</property>
 		      <property name="use_underline">True</property>
 		      <property name="active">False</property>
 		      <signal name="activate" handler="on_menu_searchbar_visible_activate" last_modification_time="Thu, 10 Nov 2005 22:37:12 GMT"/>
@@ -2356,7 +2356,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkCheckMenuItem" id="menu_sidebar_visible">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">show _Sidebar</property>
+		      <property name="label" translatable="yes">Show _Sidebar</property>
 		      <property name="use_underline">True</property>
 		      <property name="active">False</property>
 		      <signal name="activate" handler="on_menu_sidebar_visible_activate" last_modification_time="Tue, 08 Nov 2005 21:45:12 GMT"/>
@@ -2367,7 +2367,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkCheckMenuItem" id="menu_menubar_visible">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">show _Menubar</property>
+		      <property name="label" translatable="yes">Show _Menubar</property>
 		      <property name="use_underline">True</property>
 		      <property name="active">False</property>
 		      <signal name="activate" handler="on_menu_menubar_visible_activate" last_modification_time="Sat, 28 Jul 2007 01:40:21 GMT"/>
@@ -2378,7 +2378,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkCheckMenuItem" id="menu_statusbar_visible">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">show _Statusbar</property>
+		      <property name="label" translatable="yes">Show _Statusbar</property>
 		      <property name="use_underline">True</property>
 		      <property name="active">True</property>
 		      <signal name="activate" handler="on_menu_statusbar_visible_activate"/>
@@ -2403,7 +2403,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_downloads_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show _Downloads</property>
+			      <property name="label" translatable="yes">Show _Downloads</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_downloads_visible_activate"/>
@@ -2413,7 +2413,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_uploads_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show _Uploads</property>
+			      <property name="label" translatable="yes">Show _Uploads</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_uploads_visible_activate"/>
@@ -2423,7 +2423,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_connections_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show _Peers</property>
+			      <property name="label" translatable="yes">Show _Peers</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_connections_visible_activate"/>
@@ -2446,7 +2446,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_in_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show HTTP _incoming traffic</property>
+			      <property name="label" translatable="yes">Show _inbound HTTP traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_bws_in_visible_activate"/>
@@ -2456,7 +2456,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_out_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show HTTP _outgoing traffic</property>
+			      <property name="label" translatable="yes">Show _outbound HTTP traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_bws_out_visible_activate"/>
@@ -2479,7 +2479,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_gin_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show Gnet _incoming traffic</property>
+			      <property name="label" translatable="yes">Show _inbound Gnutella traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_bws_gin_visible_activate"/>
@@ -2489,7 +2489,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_gout_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show Gnet _outgoing traffic</property>
+			      <property name="label" translatable="yes">Show _outbound Gnutella traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">True</property>
 			      <signal name="activate" handler="on_menu_bws_gout_visible_activate"/>
@@ -2512,7 +2512,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_autohide_bws_gleaf">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">_auto-hide leaf traffic stats</property>
+			      <property name="label" translatable="yes">_Auto-hide leaf traffic stats</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">False</property>
 			      <signal name="activate" handler="on_menu_autohide_bws_gleaf_activate" last_modification_time="Wed, 24 Dec 2003 15:46:39 GMT"/>
@@ -2522,7 +2522,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_glin_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show leaf _incoming traffic</property>
+			      <property name="label" translatable="yes">Show _inbound leaf traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">False</property>
 			      <signal name="activate" handler="on_menu_bws_glin_visible_activate" last_modification_time="Thu, 06 Mar 2003 15:30:21 GMT"/>
@@ -2532,7 +2532,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkCheckMenuItem" id="menu_bws_glout_visible">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">show leaf _outgoing traffic</property>
+			      <property name="label" translatable="yes">Show _outbound leaf traffic</property>
 			      <property name="use_underline">True</property>
 			      <property name="active">False</property>
 			      <signal name="activate" handler="on_menu_bws_glout_visible_activate" last_modification_time="Thu, 06 Mar 2003 15:30:21 GMT"/>
@@ -2971,7 +2971,7 @@ http://maxmind.com/</property>
 			      <child>
 				<widget class="GtkEventBox" id="eventbox8">
 				  <property name="visible">True</property>
-				  <property name="tooltip" translatable="yes">Gnet connections</property>
+				  <property name="tooltip" translatable="yes">Gnutella peers</property>
 				  <property name="visible_window">True</property>
 				  <property name="above_child">False</property>
 
@@ -3265,7 +3265,7 @@ http://maxmind.com/</property>
 		      <child>
 			<widget class="GtkLabel" id="label278">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">GnutellaNet traffic</property>
+			  <property name="label" translatable="yes">Gnutella traffic</property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -17745,7 +17745,7 @@ http://maxmind.com/</property>
 
 <widget class="GtkWindow" id="dlg_prefs_gnet_tab">
   <property name="visible">True</property>
-  <property name="title" translatable="yes">GnutellaNet</property>
+  <property name="title" translatable="yes">Gnutella</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
@@ -19687,7 +19687,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label294">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">GnutellaNet timeouts (all values in seconds)</property>
+		      <property name="label" translatable="yes">Gnutella timeouts (all values in seconds)</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -20047,7 +20047,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label295">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">GnutellaNet TTL settings</property>
+		      <property name="label" translatable="yes">Gnutella TTL settings</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -21179,7 +21179,7 @@ message</property>
 		  <child>
 		    <widget class="GtkLabel" id="label775">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">GnutellaNet message size limits</property>
+		      <property name="label" translatable="yes">Gnutella message size limits</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22133,7 +22133,7 @@ message</property>
 		  <child>
 		    <widget class="GtkLabel" id="label290">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Bandwidth limits for GnutellaNet traffic</property>
+		      <property name="label" translatable="yes">Bandwidth limits for Gnutella traffic</property>
 		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -27967,7 +27967,7 @@ message</property>
 		  <child>
 		    <widget class="GtkLabel" id="label747">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">GnutellaNet display</property>
+		      <property name="label" translatable="yes">Gnutella display</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>

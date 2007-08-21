@@ -139,7 +139,7 @@
 	      <handler>on_menu_searchbar_visible_activate</handler>
 	      <last_modification_time>Thu, 10 Nov 2005 23:12:22 GMT</last_modification_time>
 	    </signal>
-	    <label>show Search_bar</label>
+	    <label>Show Search_bar</label>
 	    <active>True</active>
 	    <always_show_toggle>True</always_show_toggle>
 	  </widget>
@@ -157,7 +157,7 @@
 	      <handler>on_menu_sidebar_visible_activate</handler>
 	      <last_modification_time>Tue, 08 Nov 2005 23:29:27 GMT</last_modification_time>
 	    </signal>
-	    <label>show _Sidebar</label>
+	    <label>Show _Sidebar</label>
 	    <active>False</active>
 	    <always_show_toggle>True</always_show_toggle>
 	  </widget>
@@ -175,7 +175,7 @@
 	      <handler>on_menu_menubar_visible_activate</handler>
 	      <last_modification_time>Sat, 28 Jul 2007 01:59:22 GMT</last_modification_time>
 	    </signal>
-	    <label>show _Menubar</label>
+	    <label>Show _Menubar</label>
 	    <active>False</active>
 	    <always_show_toggle>True</always_show_toggle>
 	  </widget>
@@ -193,7 +193,7 @@
 	      <handler>on_menu_statusbar_visible_activate</handler>
 	      <last_modification_time>Sun, 24 Mar 2002 19:11:12 GMT</last_modification_time>
 	    </signal>
-	    <label>show _Statusbar</label>
+	    <label>Show Status_bar</label>
 	    <active>True</active>
 	    <always_show_toggle>True</always_show_toggle>
 	  </widget>
@@ -227,7 +227,7 @@
 		  <handler>on_menu_downloads_visible_activate</handler>
 		  <last_modification_time>Thu, 04 Apr 2002 21:17:20 GMT</last_modification_time>
 		</signal>
-		<label>show _Downloads</label>
+		<label>Show _Downloads</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -245,7 +245,7 @@
 		  <handler>on_menu_uploads_visible_activate</handler>
 		  <last_modification_time>Thu, 04 Apr 2002 21:17:20 GMT</last_modification_time>
 		</signal>
-		<label>show _Uploads</label>
+		<label>Show _Uploads</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -263,7 +263,7 @@
 		  <handler>on_menu_connections_visible_activate</handler>
 		  <last_modification_time>Thu, 04 Apr 2002 21:17:20 GMT</last_modification_time>
 		</signal>
-		<label>show _Connections</label>
+		<label>Show _Connections</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -288,7 +288,7 @@
 		  <handler>on_menu_bws_in_visible_activate</handler>
 		  <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		</signal>
-		<label>show HTTP _incoming traffic</label>
+		<label>Show _inbound HTTP traffic</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -301,7 +301,7 @@
 		  <handler>on_menu_bws_out_visible_activate</handler>
 		  <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		</signal>
-		<label>show HTTP _outgoing traffic</label>
+		<label>Show _outgoing HTTP traffic</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -326,7 +326,7 @@
 		  <handler>on_menu_bws_gin_visible_activate</handler>
 		  <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		</signal>
-		<label>show Gnet _incoming traffic</label>
+		<label>Show _inbound Gnutella traffic</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -339,7 +339,7 @@
 		  <handler>on_menu_bws_gout_visible_activate</handler>
 		  <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		</signal>
-		<label>show Gnet _outgoing traffic</label>
+		<label>Show _outbound Gnutella traffic</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -377,7 +377,7 @@
 		  <handler>on_menu_bws_glin_visible_activate</handler>
 		  <last_modification_time>Thu, 06 Mar 2003 01:43:18 GMT</last_modification_time>
 		</signal>
-		<label>show leaf _incoming traffic</label>
+		<label>Show _inbound leaf traffic</label>
 		<active>False</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -390,7 +390,7 @@
 		  <handler>on_menu_bws_glout_visible_activate</handler>
 		  <last_modification_time>Thu, 06 Mar 2003 01:43:18 GMT</last_modification_time>
 		</signal>
-		<label>show leaf _outgoing traffic</label>
+		<label>Show _outbound leaf traffic</label>
 		<active>False</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>
@@ -739,7 +739,7 @@
 		<widget>
 		  <class>GtkEventBox</class>
 		  <name>eventbox6</name>
-		  <tooltip>Gnet connections</tooltip>
+		  <tooltip>Gnutella peers</tooltip>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -768,7 +768,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>%v/%u Gnet nodes</format>
+		  <format>%v/%u Gnutella peers</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -966,7 +966,7 @@
 	  <widget>
 	    <class>GtkFrame</class>
 	    <name>frame_bws_ginout</name>
-	    <label>GnutellaNet traffic</label>
+	    <label>Gnutella traffic</label>
 	    <label_xalign>0.5</label_xalign>
 	    <shadow_type>GTK_SHADOW_OUT</shadow_type>
 	    <child>
@@ -15999,7 +15999,7 @@ http://maxmind.com/</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_gnet_timeout</name>
-	      <label>GnutellaNet timeouts (all values in seconds)</label>
+	      <label>Gnutella timeouts (all values in seconds)</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -16274,7 +16274,7 @@ http://maxmind.com/</label>
 	      <widget>
 		<class>GtkFrame</class>
 		<name>frame_expert_gnet_ttl</name>
-		<label>GnutellaNet TTL settings</label>
+		<label>Gnutella TTL settings</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 
@@ -17354,7 +17354,7 @@ http://maxmind.com/</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_gnet_message_size</name>
-	      <label>GnutellaNet message size limits</label>
+	      <label>Gnutella message size limits</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -17727,7 +17727,7 @@ allowed</label>
 	<class>GtkLabel</class>
 	<child_name>Notebook:tab</child_name>
 	<name>label683</name>
-	<label>GnutellaNet</label>
+	<label>Gnutella</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
@@ -18111,7 +18111,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame20</name>
-	      <label>Bandwidth limits for GnutellaNet traffic</label>
+	      <label>Bandwidth limits for Gnutella traffic</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -22964,7 +22964,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame84</name>
-	      <label>GnutellaNet display</label>
+	      <label>Gnutella display</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>

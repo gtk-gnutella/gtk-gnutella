@@ -702,7 +702,7 @@ create_main_window (void)
 
   menu_searchbar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_searchbar_visible)->child),
-                                   _("show Search_bar"));
+                                   _("Show Search_bar"));
   gtk_widget_add_accelerator (menu_searchbar_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_searchbar_visible, "menu_searchbar_visible");
@@ -719,7 +719,7 @@ create_main_window (void)
 
   menu_sidebar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_sidebar_visible)->child),
-                                   _("show _Sidebar"));
+                                   _("Show _Sidebar"));
   gtk_widget_add_accelerator (menu_sidebar_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_sidebar_visible, "menu_sidebar_visible");
@@ -735,7 +735,7 @@ create_main_window (void)
 
   menu_menubar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_menubar_visible)->child),
-                                   _("show _Menubar"));
+                                   _("Show _Menubar"));
   gtk_widget_add_accelerator (menu_menubar_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_menubar_visible, "menu_menubar_visible");
@@ -751,7 +751,7 @@ create_main_window (void)
 
   menu_statusbar_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_statusbar_visible)->child),
-                                   _("show _Statusbar"));
+                                   _("Show Status_bar"));
   gtk_widget_add_accelerator (menu_statusbar_visible, "activate_item", menu_view_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_statusbar_visible, "menu_statusbar_visible");
@@ -793,7 +793,7 @@ create_main_window (void)
 
   menu_downloads_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_downloads_visible)->child),
-                                   _("show _Downloads"));
+                                   _("Show _Downloads"));
   gtk_widget_add_accelerator (menu_downloads_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_downloads_visible, "menu_downloads_visible");
@@ -810,7 +810,7 @@ create_main_window (void)
 
   menu_uploads_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_uploads_visible)->child),
-                                   _("show _Uploads"));
+                                   _("Show _Uploads"));
   gtk_widget_add_accelerator (menu_uploads_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_uploads_visible, "menu_uploads_visible");
@@ -827,7 +827,7 @@ create_main_window (void)
 
   menu_connections_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_connections_visible)->child),
-                                   _("show _Connections"));
+                                   _("Show _Connections"));
   gtk_widget_add_accelerator (menu_connections_visible, "activate_item", connection_counters1_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_connections_visible, "menu_connections_visible");
@@ -864,7 +864,7 @@ create_main_window (void)
 
   menu_bws_in_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_in_visible)->child),
-                                   _("show HTTP _incoming traffic"));
+                                   _("Show _inbound HTTP traffic"));
   gtk_widget_add_accelerator (menu_bws_in_visible, "activate_item", menu_http_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_in_visible, "menu_bws_in_visible");
@@ -878,7 +878,7 @@ create_main_window (void)
 
   menu_bws_out_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_out_visible)->child),
-                                   _("show HTTP _outgoing traffic"));
+                                   _("Show _outgoing HTTP traffic"));
   gtk_widget_add_accelerator (menu_bws_out_visible, "activate_item", menu_http_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_out_visible, "menu_bws_out_visible");
@@ -912,7 +912,7 @@ create_main_window (void)
 
   menu_bws_gin_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_gin_visible)->child),
-                                   _("show Gnet _incoming traffic"));
+                                   _("Show _inbound Gnutella traffic"));
   gtk_widget_add_accelerator (menu_bws_gin_visible, "activate_item", menu_gnet_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_gin_visible, "menu_bws_gin_visible");
@@ -926,7 +926,7 @@ create_main_window (void)
 
   menu_bws_gout_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_gout_visible)->child),
-                                   _("show Gnet _outgoing traffic"));
+                                   _("Show _outbound Gnutella traffic"));
   gtk_widget_add_accelerator (menu_bws_gout_visible, "activate_item", menu_gnet_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_gout_visible, "menu_bws_gout_visible");
@@ -973,7 +973,7 @@ create_main_window (void)
 
   menu_bws_glin_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_glin_visible)->child),
-                                   _("show leaf _incoming traffic"));
+                                   _("Show _inbound leaf traffic"));
   gtk_widget_add_accelerator (menu_bws_glin_visible, "activate_item", menu_gnet_leaf_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
@@ -986,7 +986,7 @@ create_main_window (void)
 
   menu_bws_glout_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_glout_visible)->child),
-                                   _("show leaf _outgoing traffic"));
+                                   _("Show _outbound leaf traffic"));
   gtk_widget_add_accelerator (menu_bws_glout_visible, "activate_item", menu_gnet_leaf_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_glout_visible, "menu_bws_glout_visible");
@@ -1284,7 +1284,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox6);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox6, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox6, _("Gnet connections"), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox6, _("Gnutella peers"), NULL);
 
   pixmap1 = create_pixmap (main_window, "smallserver.xpm");
   gtk_widget_set_name (pixmap1, "pixmap1");
@@ -1303,7 +1303,7 @@ create_main_window (void)
   gtk_widget_show (progressbar_connections);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), progressbar_connections, TRUE, TRUE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_connections), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), _("%v/%u Gnet nodes"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), _("%v/%u Gnutella peers"));
 
   hbox_stats_uploads = gtk_hbox_new (FALSE, 1);
   gtk_widget_set_name (hbox_stats_uploads, "hbox_stats_uploads");
@@ -1419,7 +1419,7 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_out), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_out), _("out"));
 
-  frame_bws_ginout = gtk_frame_new (_("GnutellaNet traffic"));
+  frame_bws_ginout = gtk_frame_new (_("Gnutella traffic"));
   gtk_widget_set_name (frame_bws_ginout, "frame_bws_ginout");
   gtk_widget_ref (frame_bws_ginout);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_bws_ginout", frame_bws_ginout,
@@ -12025,7 +12025,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_search_queue_size, 59, -2);
 
-  frame_expert_gnet_timeout = gtk_frame_new (_("GnutellaNet timeouts (all values in seconds)"));
+  frame_expert_gnet_timeout = gtk_frame_new (_("Gnutella timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   gtk_widget_ref (frame_expert_gnet_timeout);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_timeout", frame_expert_gnet_timeout,
@@ -12152,7 +12152,7 @@ create_dlg_prefs (void)
   gtk_widget_show (alignment26);
   gtk_box_pack_start (GTK_BOX (vbox25), alignment26, FALSE, TRUE, 0);
 
-  frame_expert_gnet_ttl = gtk_frame_new (_("GnutellaNet TTL settings"));
+  frame_expert_gnet_ttl = gtk_frame_new (_("Gnutella TTL settings"));
   gtk_widget_set_name (frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
   gtk_widget_ref (frame_expert_gnet_ttl);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_ttl", frame_expert_gnet_ttl,
@@ -12640,7 +12640,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_hops_random_factor), TRUE);
 
-  frame_expert_gnet_message_size = gtk_frame_new (_("GnutellaNet message size limits"));
+  frame_expert_gnet_message_size = gtk_frame_new (_("Gnutella message size limits"));
   gtk_widget_set_name (frame_expert_gnet_message_size, "frame_expert_gnet_message_size");
   gtk_widget_ref (frame_expert_gnet_message_size);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_message_size", frame_expert_gnet_message_size,
@@ -12791,7 +12791,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label683 = gtk_label_new (_("GnutellaNet"));
+  label683 = gtk_label_new (_("Gnutella"));
   gtk_widget_set_name (label683, "label683");
   gtk_widget_ref (label683);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label683", label683,
@@ -13031,7 +13031,7 @@ create_dlg_prefs (void)
   gtk_misc_set_alignment (GTK_MISC (label_input_bw_limit), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_input_bw_limit), 5, 0);
 
-  frame20 = gtk_frame_new (_("Bandwidth limits for GnutellaNet traffic"));
+  frame20 = gtk_frame_new (_("Bandwidth limits for Gnutella traffic"));
   gtk_widget_set_name (frame20, "frame20");
   gtk_widget_ref (frame20);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame20", frame20,
@@ -15639,7 +15639,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  frame84 = gtk_frame_new (_("GnutellaNet display"));
+  frame84 = gtk_frame_new (_("Gnutella display"));
   gtk_widget_set_name (frame84, "frame84");
   gtk_widget_ref (frame84);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame84", frame84,
