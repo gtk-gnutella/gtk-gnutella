@@ -301,7 +301,7 @@
 		  <handler>on_menu_bws_out_visible_activate</handler>
 		  <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		</signal>
-		<label>Show _outgoing HTTP traffic</label>
+		<label>Show _outbound HTTP traffic</label>
 		<active>True</active>
 		<always_show_toggle>True</always_show_toggle>
 	      </widget>

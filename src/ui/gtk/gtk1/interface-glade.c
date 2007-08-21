@@ -878,7 +878,7 @@ create_main_window (void)
 
   menu_bws_out_visible = gtk_check_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_bws_out_visible)->child),
-                                   _("Show _outgoing HTTP traffic"));
+                                   _("Show _outbound HTTP traffic"));
   gtk_widget_add_accelerator (menu_bws_out_visible, "activate_item", menu_http_stats_visible_menu_accels,
                               tmp_key, 0, 0);
   gtk_widget_set_name (menu_bws_out_visible, "menu_bws_out_visible");
