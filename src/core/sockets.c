@@ -2132,7 +2132,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	addr_len = sizeof addr;
 	memset(&addr, 0, addr_len);
-	fd = accept(s->file_desc, socket_addr_get_sockaddr(&addr), &addr_len);
+	fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
 	if (fd < 0) {
 		/*
 		 * If we ran out of file descriptors, try to reclaim one from the
@@ -2145,8 +2145,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		) {
 			addr_len = sizeof addr;
 			memset(&addr, 0, addr_len);
-			fd = accept(s->file_desc,
-					socket_addr_get_sockaddr(&addr), &addr_len);
+			fd = accept(s->file_desc, (struct sockaddr *) &addr, &addr_len);
 		}
 
 		if (fd < 0) {
