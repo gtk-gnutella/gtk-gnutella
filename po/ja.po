@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-08-21 12:47+0900\n"
-"PO-Revision-Date: 2007-08-20 04:45+0900\n"
+"PO-Revision-Date: 2007-08-21 13:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -104,9 +104,8 @@ msgstr "タイムアウト"
 msgid "Requeued due to timeout"
 msgstr "キューに戻されました (タイムアウト)"
 
-#, fuzzy
 msgid "Requeued due to file removal"
-msgstr "キューに戻されました (タイムアウト)"
+msgstr "キューに戻されました (ファイル削除)"
 
 msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
@@ -119,9 +118,9 @@ msgstr "一時休止 (SHA1確認中)"
 msgid " at %s - rescheduled for %s%s"
 msgstr " (現在時: %s - 再予定時: %s%s)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Ignoring requested (%s)"
-msgstr "リクエストを送信しています (%u%%)"
+msgstr "リクエストを無視しています (%s)"
 
 msgid "Paused"
 msgstr "一時停止中"
@@ -148,15 +147,14 @@ msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 msgid "Connection failed"
 msgstr "接続に失敗しました"
 
-#, fuzzy
 msgid "Push route lost"
-msgstr "経路を喪失"
+msgstr "PUSH経路を喪失"
 
 msgid "Ignoring Push flag"
-msgstr "PUSH フラッグを無視します"
+msgstr "PUSHフラッグを無視します"
 
 msgid "Can't reach host (Push or Direct)"
-msgstr ""
+msgstr "ホストに到達できません (PUSHまたは直接)"
 
 #, c-format
 msgid "No direct connection yet (%u retry)"
@@ -188,19 +186,17 @@ msgid "Has already enough active sources"
 msgstr "既に十分な送信元があります。"
 
 msgid "download_start() failed"
-msgstr ""
+msgstr "download_start() に失敗しました"
 
 msgid "Stopped (Index changed)"
 msgstr "中断されました (インデックスが変更されました)"
 
-#, fuzzy
 msgid "Duplicate download"
-msgstr "%u 件のダウンロード"
+msgstr "ダウンロードをコピーしました"
 
 msgid "Explicitly requeued"
 msgstr "キューに戻されました (利用者によって戻されました)"
 
-#, fuzzy
 msgid "Failed (Header line too large)"
 msgstr "失敗しました (ヘッダ行が長すぎます)"
 
@@ -229,27 +225,27 @@ msgstr "接続が Keep-Alive ではありません (EOF)"
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr "中断されました (EOF) <err_header_read_eof>"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't check resume data: %s"
-msgstr "データを保存できません: %s"
+msgstr "再開するためのデータを確認できません: %s"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't stat opened file: %s"
-msgstr "データを保存できません: %s"
+msgstr "開いているファイルを確認できません: %s"
 
 msgid "Stopped (Output file size changed)"
 msgstr "中断されました (出力ファイルのサイズが変更されました)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't read resume data: %s"
-msgstr "データを保存できません: %s"
+msgstr "再開するためのデータを読み込めません: %s"
 
 msgid "Short read on resume data"
 msgstr ""
 
 #, c-format
 msgid "Resuming data mismatch @ %s"
-msgstr ""
+msgstr "%s付近で発生したデータの不一致を解消しています"
 
 #, c-format
 msgid "Can't save data: %s"
@@ -273,31 +269,26 @@ msgstr "キューに戻されました (ダウンロードが競合していま�
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "変なHTTPステータス (プロトコルの同期が破損した可能性があります)"
 
-#, fuzzy
 msgid "Weird HTTP status"
-msgstr "変なHTTPステータス (プロトコルの同期が破損した可能性があります)"
+msgstr "変なHTTPステータス"
 
-#, fuzzy
 msgid "Download was a duplicate"
-msgstr "ダウンロード(_D)"
+msgstr "ダウンロードはコピーされました"
 
-#, fuzzy
 msgid "Filesize mismatch"
-msgstr "ファイルサイズの不一致"
+msgstr "ファイルサイズが一致しません"
 
-#, fuzzy
 msgid "No URN on server (required)"
-msgstr "相手側に検証するための URN がありません"
+msgstr "相手側にURNがありません (必須)"
 
 msgid "No URN on server, waiting for overlap"
 msgstr "相手側にURNがありません、オーバーラップ待受中"
 
 msgid "No URN on server to validate"
-msgstr "相手側に検証するための URN がありません"
+msgstr "相手側に検証するためのURNがありません"
 
-#, fuzzy
 msgid "URN mismatch detected"
-msgstr "SHA1が合致していません"
+msgstr "URNの不一致が検出されました"
 
 msgid "URN fileinfo mismatch"
 msgstr "URNファイル情報が合致しません"
@@ -308,21 +299,18 @@ msgstr "重複するSHA1を発見しました"
 msgid "More data to sink than expected"
 msgstr ""
 
-#, fuzzy
 msgid "Stopped data (EOF)"
-msgstr "中断されました (%s)"
+msgstr "データの転送が中断されました (EOF)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Stopped data (%s)"
-msgstr "中断されました (%s)"
+msgstr "データの転送が中断されました (%s)"
 
-#, fuzzy
 msgid "Timeout reading HTTP status"
-msgstr "全 HTTP ステータスを送信できません"
+msgstr "タイムアウト (HTTPステータスの読み込み)"
 
-#, fuzzy
 msgid "Timeout reading headers"
-msgstr "へッダを読込んでいます"
+msgstr "タイムアウト (へッダの読み込み)"
 
 #, c-format
 msgid "No support for Content-Encoding (%s)"
@@ -360,7 +348,7 @@ msgid ", ETA: %s"
 msgstr ", 予定時間: %s"
 
 msgid "Server did not supply identification"
-msgstr ""
+msgstr "サーバが識別子を送信しませんでした"
 
 msgid "Unparseable Content-Length"
 msgstr ""
@@ -370,46 +358,42 @@ msgid "Total/served sizes mismatch"
 msgstr "ファイルサイズの不一致"
 
 msgid "Range start mismatch"
-msgstr ""
+msgstr "取得範囲の開始位置が一致しません"
 
-#, fuzzy
 msgid "Range end too large"
-msgstr "遥かに大き過ぎる"
+msgstr "取得範囲の終了位置が遠すぎます"
 
-#, fuzzy
 msgid "Range mismatch"
-msgstr "URNファイル情報が合致しません"
+msgstr "取得範囲が一致しません"
 
 msgid "Weird server-side chunk shrinking"
 msgstr ""
 
 msgid "Content-Length mismatch"
-msgstr ""
+msgstr "コンテンツの長さが一致しません"
 
 msgid "No Content-Length header"
-msgstr ""
+msgstr "コンテンツの長さを示すヘッダーがありません"
 
-#, fuzzy
 msgid "Search already closed"
-msgstr "検索が追加されました"
+msgstr "検索は既に閉じられています"
 
-#, fuzzy
 msgid "THEX download aborted"
-msgstr "ダウンロードが追加されました"
+msgstr "THEXダウンロードが異常終了しました"
 
 msgid "Cannot resume: file gone"
-msgstr ""
+msgstr "再開できません: ファイルが無くなっています"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot write into file: %s"
-msgstr "書込み失敗: %s"
+msgstr "ファイルに書き込めません: %s"
 
 msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
 
 #, fuzzy
 msgid "Failed (Completed?)"
-msgstr "完了しました"
+msgstr "失敗しました"
 
 #, fuzzy
 msgid "Could not send whole HTTP request"
@@ -417,14 +401,14 @@ msgstr "全 HTTP ステータスを送信できません"
 
 #, c-format
 msgid "Write failed: %s"
-msgstr "書込み失敗: %s"
+msgstr "書き込みに失敗しました: %s"
 
 #, fuzzy
 msgid "Malformed push reply"
 msgstr "変な検索クエリーヒット"
 
 msgid "SHA1 mismatch detected"
-msgstr "SHA1が合致していません"
+msgstr "SHA1の不一致が検出されました"
 
 msgid ", inbound"
 msgstr ""
@@ -596,9 +580,8 @@ msgstr "自分自身の検索結果数"
 msgid "Ancient query format"
 msgstr "古いクエリー形式"
 
-#, fuzzy
 msgid "Blank Servent ID"
-msgstr "サーバントID"
+msgstr "空のサーバントID"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -1484,8 +1467,8 @@ msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
 msgstr ""
-"失敗したダウンロード (HTTPエラー、リジュームの失敗、書込みエラー、他...) を自"
-"動消去します。"
+"失敗したダウンロード (HTTPエラー、再開失敗、書込みエラー、他...) を自動消去し"
+"ます。"
 
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
@@ -4270,9 +4253,9 @@ msgstr "不完全"
 msgid "All"
 msgstr "全て"
 
-#, fuzzy, c-format
+#, c-format
 msgid "regex error: %s"
-msgstr "読込エラー: %s"
+msgstr "正規表現エラー: %s"
 
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
@@ -4297,9 +4280,8 @@ msgstr "正規表現に一致する"
 msgid "is exactly"
 msgstr "これで正確に一致する"
 
-#, fuzzy
 msgid "Built-in targets"
-msgstr "組込ターゲット (編集不可)"
+msgstr "組込ターゲット"
 
 msgid "Global filters"
 msgstr "全体フィルター"
@@ -4468,7 +4450,6 @@ msgstr "(無効化)"
 msgid "(invalid)"
 msgstr "(無効)"
 
-#, fuzzy
 msgid "<Archive>"
 msgstr "<アーカイブ>"
 
@@ -4702,9 +4683,8 @@ msgstr " 件が登録済, "
 msgid " with sources"
 msgstr " 件が送信元有り"
 
-#, fuzzy
 msgid "%v/%u Gnutella peers"
-msgstr "%v/%u 基のGnetピア"
+msgstr "%v/%u 基のGnutellaピア"
 
 msgid "%v/%u downloads"
 msgstr "%v/%u 件のダウンロード"
@@ -4870,9 +4850,8 @@ msgstr "このサーバントの平均稼働時間:"
 msgid "Bad hosts"
 msgstr "不正なホスト"
 
-#, fuzzy
 msgid "Bandwidth limits for Gnutella traffic"
-msgstr "Gnetトラフィックの帯域幅制限"
+msgstr "Gnutellaトラフィックの帯域幅制限"
 
 msgid "Bandwidth limits for HTTP traffic"
 msgstr "HTTPトラフィックの帯域幅制限"
@@ -5301,20 +5280,18 @@ msgstr "生成:"
 msgid "Globally drop results..."
 msgstr "検索結果を永久に破棄..."
 
-# NOTE: `GnutellaNet' may be redundant
-#, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "TTL (Time-To-Live) の設定"
 
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella _leaf traffic stats"
-msgstr "Gnutellaリーフトラフィック統計(_L)"
+msgstr "リーフトラフィック統計(_L)"
 
-#, fuzzy
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella display"
-msgstr "Gnutellaネットの詳細表示"
+msgstr "詳細表示"
 
-# NOTE: `GnutellaNet' may be redundant
-#, fuzzy
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella message size limits"
 msgstr "メッセージサイズの制限"
 
@@ -5322,22 +5299,20 @@ msgstr "メッセージサイズの制限"
 msgid "Gnutella network mode"
 msgstr "ネットワークモード"
 
-#, fuzzy
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella peers"
-msgstr "Gnutellaネット"
+msgstr "ピア"
 
-# NOTE: `GnutellaNet' may be redundant
-#, fuzzy
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella timeouts (all values in seconds)"
 msgstr "タイムアウト (全て秒単位)"
 
-#, fuzzy
+# NOTE: `Gnutella' may be redundant
 msgid "Gnutella traffic"
-msgstr "Gnetトラフィック"
+msgstr "トラフィック"
 
-#, fuzzy
 msgid "Gnutella"
-msgstr "Gnutellaネット"
+msgstr "Gnutella"
 
 msgid "HTTP traffic"
 msgstr "HTTPトラフィック"
@@ -5890,7 +5865,7 @@ msgid "Revert"
 msgstr "戻す"
 
 msgid "Richard Eckart"
-msgstr ""
+msgstr "Richard Eckart"
 
 # MERGEBLE:
 msgid "Rules"
@@ -5955,51 +5930,41 @@ msgstr "サーバー"
 msgid "Settings"
 msgstr "設定"
 
-#, fuzzy
 msgid "Show Search_bar"
 msgstr "検索バー(_B)"
 
-#, fuzzy
 msgid "Show Status_bar"
-msgstr "ステータスバー(_S)"
+msgstr "ステータスバー(_B)"
 
-#, fuzzy
 msgid "Show _Connections"
 msgstr "接続(_C)"
 
-#, fuzzy
 msgid "Show _Downloads"
 msgstr "ダウンロード(_D)"
 
-#, fuzzy
 msgid "Show _Menubar"
 msgstr "メニューバー(_M)"
 
-#, fuzzy
 msgid "Show _Sidebar"
 msgstr "サイドバー(_S)"
 
-#, fuzzy
 msgid "Show _Uploads"
 msgstr "アップロード(_U)"
 
 msgid "Show _bytes"
-msgstr "バイト数を表示(_B)"
+msgstr "バイト数(_B)"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr "終了の際に確認ダイアログを表示する(_C)"
 
-#, fuzzy
 msgid "Show _inbound Gnutella traffic"
-msgstr "Gnetトラフィック"
+msgstr "内へのGnutellaトラフィック(_I)"
 
-#, fuzzy
 msgid "Show _inbound HTTP traffic"
-msgstr "内へのGnetトラフィック(_I)"
+msgstr "内へのHTTPトラフィック(_I)"
 
-#, fuzzy
 msgid "Show _inbound leaf traffic"
-msgstr "内へのGnetトラフィック(_I)"
+msgstr "内へのリーフトラフィック(_I)"
 
 # NOTE: this string is used as follows
 #
@@ -6011,17 +5976,14 @@ msgstr "最新(_L)"
 msgid "Show _metric units"
 msgstr "計測単位を表示する(_M)"
 
-#, fuzzy
 msgid "Show _outbound Gnutella traffic"
-msgstr "Gnetトラフィック"
+msgstr "外へのGnutellaトラフィック(_O)"
 
-#, fuzzy
 msgid "Show _outbound leaf traffic"
-msgstr "外へのGnetトラフィック(_O)"
+msgstr "外へのリーフトラフィック(_O)"
 
-#, fuzzy
 msgid "Show _outbound HTTP traffic"
-msgstr "外へのGnetトラフィック(_O)"
+msgstr "外へのHTTPトラフィック(_O)"
 
 msgid "Show _percentages"
 msgstr "割合を表示(_P)"
@@ -6523,9 +6485,8 @@ msgstr ""
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutellaの停止"
 
-#, fuzzy
 msgid "gtk-gnutella"
-msgstr "gtk-gnutellaについて"
+msgstr "gtk-gnutella"
 
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: 終了しますか？"
@@ -6684,11 +6645,9 @@ msgstr "フィルターを削除(_R)"
 msgid "_Close"
 msgstr "閉じる(_C)"
 
-#, fuzzy
 msgid "Show _Statusbar"
 msgstr "ステータスバー(_S)"
 
-#, fuzzy
 msgid "Show _Peers"
 msgstr "ピア(_P)"
 
@@ -7115,6 +7074,7 @@ msgstr "検索一覧を表示する"
 msgid "Extension"
 msgstr "拡張子"
 
+# XXX: Putting the word 'p0wnage' here is highly misleading.
 msgid "Owned"
 msgstr "取得状況"
 
@@ -7194,10 +7154,10 @@ msgid "N2R URI"
 msgstr "N2R URI"
 
 msgid "Push URL"
-msgstr "プッシュURL"
+msgstr "PUSH URL"
 
 msgid "Classic URL"
-msgstr "従来のURL"
+msgstr "URL"
 
 msgid "Support for this protocol is not yet implemented"
 msgstr "このプロトコルはまだ実装されていません"
