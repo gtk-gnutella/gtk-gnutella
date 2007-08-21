@@ -2243,7 +2243,7 @@ download_remove_file(struct download *d, gboolean reset)
 
 		if (DOWNLOAD_IS_RUNNING(dl)) {
 			download_stop(dl, GTA_DL_TIMEOUT_WAIT, no_reason);
-			download_queue(dl, "Requeued due to file removal");
+			download_queue(dl, _("Requeued due to file removal"));
 		}
 	}
 }
@@ -3635,7 +3635,7 @@ download_ignore_requested(struct download *d)
 		s_reason = ignore_reason_to_string(reason);
 		g_assert(s_reason);
 		
-		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)", s_reason);
+		download_stop(d, GTA_DL_ERROR, _("Ignoring requested (%s)"), s_reason);
 
 		/*
 		 * If we're ignoring this file, make sure we don't keep any
@@ -3788,7 +3788,7 @@ download_start_prepare_running(struct download *d)
 	 */
 
 	if (FILE_INFO_COMPLETE(fi)) {
-		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
+		download_stop(d, GTA_DL_ERROR, _("Nothing more to get"));
 		download_verify_sha1(d);
 		return FALSE;
 	}
@@ -3881,7 +3881,7 @@ download_pick_chunk(struct download *d)
 		download_queue_delay(d, 10, _("Waiting for a free chunk"));
 		return FALSE;
 	case DL_CHUNK_DONE:
-		download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
+		download_stop(d, GTA_DL_ERROR, _("No more gaps to fill"));
 		queue_remove_downloads_with_file(d->file_info, d);
 		return FALSE;
 	}
@@ -4130,7 +4130,7 @@ download_start(struct download *d, gboolean check_allowed)
 				fi_src_info_changed(d);
 			}
 
-			download_unavailable(d, GTA_DL_ERROR, "Connection failed");
+			download_unavailable(d, GTA_DL_ERROR, _("Connection failed"));
 			return;
 		}
 
@@ -4407,7 +4407,7 @@ download_push(struct download *d, gboolean on_timeout)
 		 */
 
 		if (!host_is_valid(download_addr(d), download_port(d))) {
-			download_unavailable(d, GTA_DL_ERROR, "Push route lost");
+			download_unavailable(d, GTA_DL_ERROR, _("Push route lost"));
 			download_remove_all_from_peer(
 				download_guid(d), download_addr(d), download_port(d), TRUE);
 		} else {
@@ -4452,7 +4452,7 @@ attempt_retry:
 			 */
 
 			download_unavailable(d, GTA_DL_ERROR,
-				"Can't reach host (Push or Direct)");
+				_("Can't reach host (Push or Direct)"));
 			download_remove_all_from_peer(
 				download_guid(d), download_addr(d), download_port(d), TRUE);
 		} else
@@ -4860,7 +4860,7 @@ create_download(
 	} else if (download_has_enough_active_sources(d)) {
 		reason = _("Has already enough active sources");
 	} else {
-		reason = "download_start() failed";
+		reason = _("download_start() failed");
 		download_start(d, FALSE);		/* Start the download immediately */
 	}
 
@@ -5559,7 +5559,7 @@ download_resume(struct download *d)
 	) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
 		download_move_to_list(d, DL_LIST_RUNNING);
-		download_stop(d, GTA_DL_ERROR, "Duplicate");
+		download_stop(d, GTA_DL_ERROR, _("Duplicate download"));
 		return;
 	}
 
@@ -5789,21 +5789,21 @@ static void
 err_line_too_long(gpointer o)
 {
 	download_stop(cast_to_download(o), GTA_DL_ERROR,
-		"Failed (Header line too large)");
+		_("Failed (Header line too large)"));
 }
 
 static void
 err_header_error(gpointer o, gint error)
 {
 	download_stop(cast_to_download(o), GTA_DL_ERROR,
-		"Failed (%s)", header_strerror(error));
+		_("Failed (%s)"), header_strerror(error));
 }
 
 static void
 err_input_buffer_full(gpointer o)
 {
 	download_stop(cast_to_download(o), GTA_DL_ERROR,
-		"Failed (Input buffer full)");
+		_("Failed (Input buffer full)"));
 }
 
 static void
@@ -6056,7 +6056,7 @@ download_overlap_check(struct download *d)
 			const gchar *error = g_strerror(errno);
 			g_message("cannot check resuming for \"%s\": %s",
 				filepath_basename(fi->pathname), error);
-			download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s",
+			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
 				error);
 		}
 	}
@@ -6072,7 +6072,8 @@ download_overlap_check(struct download *d)
 			/* Should never happen */
 			const gchar *error = g_strerror(errno);
 			g_message("cannot stat opened \"%s\": %s", fi->pathname, error);
-			download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
+			download_stop(d, GTA_DL_ERROR, _("Can't stat opened file: %s"),
+				error);
 			goto out;
 		}
 
@@ -6103,13 +6104,14 @@ download_overlap_check(struct download *d)
 			const gchar *error = g_strerror(errno);
 			g_message("cannot read resuming data for \"%s\": %s",
 					fi->pathname, error);
-			download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
+			download_stop(d, GTA_DL_ERROR, _("Can't read resume data: %s"),
+				error);
 			goto out;
 		} else if ((size_t) r != d->overlap_size) {
 			g_message(
 				"short read (%u instead of %u bytes) on resuming data for "
 				"\"%s\"", (guint) r, (guint) d->overlap_size, fi->pathname);
-			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
+			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
 			goto out;
 		}
 	}
@@ -6133,7 +6135,7 @@ download_overlap_check(struct download *d)
 
 		if (GNET_PROPERTY(dl_remove_file_on_mismatch)) {
 			download_bad_source(d);	/* Until proven otherwise if we resume it */
-			download_queue(d, "Resuming data mismatch @ %s",
+			download_queue(d, _("Resuming data mismatch @ %s"),
 				uint64_to_string(d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 			goto out;
@@ -6167,11 +6169,11 @@ download_overlap_check(struct download *d)
 
 		if (random_value(99) >= 50)
 			download_stop(d, GTA_DL_ERROR,
-				"Resuming data mismatch @ %s",
+				_("Resuming data mismatch @ %s"),
 				uint64_to_string(d->skip - d->overlap_size));
 		else
 			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-				"Resuming data mismatch @ %s",
+				_("Resuming data mismatch @ %s"),
 				uint64_to_string(d->skip - d->overlap_size));
 		goto out;
 	}
@@ -6341,7 +6343,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 
 		if (may_stop)
 			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-				"Partial write to file");
+				_("Partial write to file"));
 
 		return FALSE;
 	}
@@ -6393,7 +6395,7 @@ download_continue(struct download *d, gboolean trimmed)
 		download_queue(cd, _("Chunk done, connection closed"));
 	} else if (DL_F_FETCH_TTH == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & cd->flags)){
 		cd->flags |= DL_F_GOT_TTH;
-		download_queue(cd, "Giving priority to THEX");
+		download_queue(cd, _("Giving priority to THEX"));
 	} else if (download_start_prepare(cd)) {
 		cd->keep_alive = TRUE;			/* Was reset by _prepare() */
 		download_send_request(cd);		/* Will pick up new range */
@@ -6761,7 +6763,7 @@ download_check_status(struct download *d, getline_t *line, gint code)
 			download_queue(d, _("Weird HTTP status (protocol desync?)"));
 		} else {
 			download_bad_source(d);
-			download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
+			download_stop(d, GTA_DL_ERROR, _("Weird HTTP status"));
 		}
 		return FALSE;
 	}
@@ -6823,7 +6825,7 @@ download_convert_to_urires(struct download *d)
 
 	if (xd != NULL && xd != d) {
 		download_check(xd);
-		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
+		download_stop(d, GTA_DL_ERROR, _("Download was a duplicate"));
 		return FALSE;
 	}
 
@@ -7139,7 +7141,7 @@ content_range_check(struct download *d, header_t *header)
 		return TRUE;
 	
 	download_bad_source(d);
-	download_stop(d, GTA_DL_ERROR, "Filesize mismatch");
+	download_stop(d, GTA_DL_ERROR, _("Filesize mismatch"));
 	return FALSE;
 }
 
@@ -7220,7 +7222,8 @@ handle_content_urn(struct download *d, header_t *header)
 			if (GNET_PROPERTY(download_require_urn)) {
 				/* They want strictness */
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "No URN on server (required)");
+				download_stop(d, GTA_DL_ERROR,
+					_("No URN on server (required)"));
 				return FALSE;
 			}
 			if (GNET_PROPERTY(download_overlap_range) >= DOWNLOAD_MIN_OVERLAP) {
@@ -7228,7 +7231,8 @@ handle_content_urn(struct download *d, header_t *header)
 					return TRUE;
 
 				if (d->overlap_size == 0) {
-					download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
+					download_queue_delay(d,
+						GNET_PROPERTY(download_retry_busy_delay),
 						_("No URN on server, waiting for overlap"));
 					return FALSE;
 				}
@@ -7250,7 +7254,7 @@ handle_content_urn(struct download *d, header_t *header)
 
 	if (d->sha1 && !sha1_eq(&sha1, d->sha1)) {
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
+		download_stop(d, GTA_DL_ERROR, _("URN mismatch detected"));
 		return FALSE;
 	}
 
@@ -7267,8 +7271,7 @@ handle_content_urn(struct download *d, header_t *header)
 		 */
 
 		if (d->file_info->sha1 != d->sha1) {
-			g_message("discovered SHA1 %s on the fly for %s "
-				"(fileinfo has %s)",
+			g_message("discovered SHA1 %s on the fly for %s (fileinfo has %s)",
 				sha1_base32(d->sha1), download_basename(d),
 				d->file_info->sha1 ? "another" : "none");
 
@@ -7482,7 +7485,7 @@ download_sink(struct download *d)
 		g_message("got more data to sink than expected from %s <%s>",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
-		download_stop(d, GTA_DL_ERROR, "More data to sink than expected");
+		download_stop(d, GTA_DL_ERROR, _("More data to sink than expected"));
 		return;
 	}
 
@@ -7525,13 +7528,14 @@ download_sink_read(gpointer data, gint unused_source,
 	if (0 == r) {
 		socket_eof(s);
 		download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-			_("Stopped data (EOF) <download_sink_read>"));
+			_("Stopped data (EOF)"));
 	} else if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
-				download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-					"Stopped data (%s)", g_strerror(errno));
+				download_queue_delay(d,
+					GNET_PROPERTY(download_retry_busy_delay),
+					_("Stopped data (%s)"), g_strerror(errno));
 			else
 				download_stop(d, GTA_DL_ERROR,
 					_("Failed (Read error: %s)"), g_strerror(errno));
@@ -7698,7 +7702,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (!ok && s->getline == NULL) {
 		download_queue_delay(d, GNET_PROPERTY(download_retry_refused_delay),
-			"Timeout reading HTTP status");
+			_("Timeout reading HTTP status"));
 		return;
 	}
 
@@ -7720,7 +7724,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (!ok && getline_length(s->getline) == 0) {
 		download_queue_delay(d, GNET_PROPERTY(download_retry_refused_delay),
-			"Timeout reading headers");
+			_("Timeout reading headers"));
 		return;
 	}
 
@@ -7802,7 +7806,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		} else {
 			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR,
-				"No support for Content-Encoding (%s)", buf);
+				_("No support for Content-Encoding (%s)"), buf);
 			return;
 		}
 	} else {
@@ -8040,7 +8044,7 @@ http_version_nofix:
 						download_vendor_str(d));
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
-						"Partial file, bad HTTP keep-alive support");
+						_("Partial file, bad HTTP keep-alive support"));
 					return;
 				}
 
@@ -8065,7 +8069,7 @@ http_version_nofix:
 
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
-						"Partial file, too much data to sink (%s bytes)",
+						_("Partial file, too much data to sink (%s bytes)"),
 						uint64_to_string(d->sinkleft));
 					return;
 				}
@@ -8083,7 +8087,7 @@ http_version_nofix:
 						download_vendor_str(d));
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
-						"Partial file, no suitable range found yet");
+						_("Partial file, no suitable range found yet"));
 					return;
 				}
 
@@ -8202,7 +8206,7 @@ http_version_nofix:
 			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : GNET_PROPERTY(download_retry_timeout_delay),
-				"%sRequested range unavailable yet", short_read);
+				_("%sRequested range unavailable yet"), short_read);
 			return;
 		case 503:				/* Busy */
 			/* FALL THROUGH */
@@ -8400,7 +8404,8 @@ http_version_nofix:
 		download_vendor(d) == NULL
 	) {
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, "Server did not supply identification");
+		download_stop(d, GTA_DL_ERROR,
+			_("Server did not supply identification"));
 		return;
 	}
 
@@ -8434,7 +8439,7 @@ http_version_nofix:
 
 		if (error) {
 			download_bad_source(d);
-			download_stop(d, GTA_DL_ERROR, "Unparseable Content-Length");
+			download_stop(d, GTA_DL_ERROR, _("Unparseable Content-Length"));
 			return;
 		} else if (
 			HTTP_CONTENT_ENCODING_IDENTITY == content_encoding &&
@@ -8485,7 +8490,8 @@ http_version_nofix:
 						uint64_to_string2(total));
 
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "Total/served sizes mismatch");
+				download_stop(d, GTA_DL_ERROR,
+					_("Total/served sizes mismatch"));
 				return;
 			}
 
@@ -8501,7 +8507,7 @@ http_version_nofix:
 						uint64_to_string2(start));
 
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
+				download_stop(d, GTA_DL_ERROR, _("Range start mismatch"));
 				return;
 			}
 			if (total != fi->size) {
@@ -8515,7 +8521,7 @@ http_version_nofix:
                         uint64_to_string(fi->size), uint64_to_string2(total));
                 }
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "Filesize mismatch");
+				download_stop(d, GTA_DL_ERROR, _("Filesize mismatch"));
 				return;
 			}
 			if (end > d->range_end - 1) {
@@ -8530,7 +8536,7 @@ http_version_nofix:
 						uint64_to_string2(end));
                 }
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "Range end too large");
+				download_stop(d, GTA_DL_ERROR, _("Range end too large"));
 				return;
 			}
 			if (
@@ -8559,7 +8565,7 @@ http_version_nofix:
 					uint64_to_string(d->skip),
 					uint64_to_string2(d->range_end - 1),
 					got);
-				download_stop(d, GTA_DL_ERROR, "Range mismatch");
+				download_stop(d, GTA_DL_ERROR, _("Range mismatch"));
 				return;
 			}
 			if (end < d->range_end - 1) {
@@ -8582,7 +8588,7 @@ http_version_nofix:
 
 				if (d->skip >= end + 1) {
 					download_stop(d, GTA_DL_ERROR,
-						"Weird server-side chunk shrinking");
+						_("Weird server-side chunk shrinking"));
 					return;
 				}
 
@@ -8628,7 +8634,7 @@ http_version_nofix:
 			download_vendor_str(d),
 			uint64_to_string2(check_content_range));
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
+		download_stop(d, GTA_DL_ERROR, _("Content-Length mismatch"));
 		return;
 	}
 
@@ -8645,7 +8651,7 @@ http_version_nofix:
 		if (ua && GNET_PROPERTY(download_debug))
 			g_message("server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
+		download_stop(d, GTA_DL_ERROR, _("No Content-Length header"));
 		return;
 	}
 
@@ -8686,7 +8692,7 @@ http_version_nofix:
 			!browse_host_dl_receive(d->browse, &host, &d->socket->wio,
 				download_vendor_str(d), flags)
 		) {
-			download_stop(d, GTA_DL_ERROR, "Search already closed");
+			download_stop(d, GTA_DL_ERROR, _("Search already closed"));
 			return;
 		}
 
@@ -8707,7 +8713,7 @@ http_version_nofix:
 		}
 
 		if (!thex_download_receive(d->thex, &host, &d->socket->wio, flags)) {
-			download_stop(d, GTA_DL_ERROR, "THEX download aborted");
+			download_stop(d, GTA_DL_ERROR, _("THEX download aborted"));
 			return;
 		}
 
@@ -8820,7 +8826,7 @@ http_version_nofix:
 			return;
 		}
 	} else if (!fi->use_swarming && d->skip) {
-		download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
+		download_stop(d, GTA_DL_ERROR, _("Cannot resume: file gone"));
 		return;
 	} else {
 		gint fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
@@ -8829,7 +8835,8 @@ http_version_nofix:
 		}
 		if (!d->out_file) {
 			const gchar *error = g_strerror(errno);
-			download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
+			download_stop(d, GTA_DL_ERROR, _("Cannot write into file: %s"),
+				error);
 			return;
 		}
 	}
@@ -8900,7 +8907,7 @@ download_read(struct download *d, pmsg_t *mb)
 		g_assert(d->pos <= fi->size);
 
 		if (d->pos == fi->size) {
-			download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
+			download_stop(d, GTA_DL_ERROR, _("Failed (Completed?)"));
 			goto error;
 		}
 	}
@@ -9013,6 +9020,8 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(d->status == GTA_DL_REQ_SENDING);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		const gchar *msg = _("Could not send whole HTTP request");
+
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
 		 * error or we'd lose the PARQ ID, and the download entry.  If the
@@ -9021,15 +9030,14 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		 *		--RAM, 14/07/2003
 		 */
 
-		const gchar msg[] = "Could not send whole HTTP request";
-
 		socket_eof(s);
 
-		if (d->parq_dl)
-			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay), msg);
-		else
-			download_stop(d, GTA_DL_ERROR, msg);
-
+		if (d->parq_dl) {
+			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
+				"%s", msg);
+		} else {
+			download_stop(d, GTA_DL_ERROR, "%s", msg);
+		}
 		return;
 	}
 
@@ -9042,13 +9050,12 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
 
-		static const gchar msg[] = "Write failed: %s";
-
 		if (d->parq_dl) {
 			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-				msg, g_strerror(errno));
+				_("Write failed: %s"), g_strerror(errno));
 		} else {
-			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
+			download_stop(d, GTA_DL_ERROR,
+				_("Write failed: %s"), g_strerror(errno));
 		}
 		return;
 	} else if (sent < rw) {
@@ -9428,10 +9435,10 @@ picked:
 
 		if (d->parq_dl) {
 			download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
-				"Write failed: %s", g_strerror(errno));
+				_("Write failed: %s"), g_strerror(errno));
 		} else {
 			download_stop(d, GTA_DL_ERROR,
-				"Write failed: %s", g_strerror(errno));
+				_("Write failed: %s"), g_strerror(errno));
 		}
 		return;
 	} else if ((size_t) sent < rw) {
@@ -9500,7 +9507,7 @@ download_push_ready(struct download *d, getline_t *empty)
 		g_message("file \"%s\": push reply was not followed by an empty line",
 			download_basename(d));
 		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
-		download_stop(d, GTA_DL_ERROR, "Malformed push reply");
+		download_stop(d, GTA_DL_ERROR, _("Malformed push reply"));
 		return;
 	}
 
@@ -11356,7 +11363,7 @@ download_build_url(const struct download *d)
 const gchar *
 download_get_hostname(const struct download *d)
 {
-	static gchar buf[MAX_HOSTLEN + UINT16_DEC_BUFLEN + sizeof ": (E)"];
+	static gchar buf[MAX_HOSTLEN + 1024];
 	gboolean encrypted, inbound, outbound;
 	host_addr_t addr;
 	guint port;
@@ -11383,8 +11390,8 @@ download_get_hostname(const struct download *d)
 
 	concat_strings(buf, sizeof buf,
 		host_addr_port_to_string(addr, port),
-		inbound ? ", inbound" : "",
-		outbound ? ", outbound" : "",
+		inbound ? _(", inbound") : "",
+		outbound ? _(", outbound") : "",
 		encrypted ? ", TLS" : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
@@ -11646,7 +11653,7 @@ download_abort_browse_host(struct download *d, gnet_search_t sh)
 	}
 
 	if (!DOWNLOAD_IS_STOPPED(d))
-		download_stop(d, GTA_DL_ERROR, "Browse search closed");
+		download_stop(d, GTA_DL_ERROR, _("Browse search closed"));
 
 	file_info_changed(d->file_info);		/* Update status! */
 }

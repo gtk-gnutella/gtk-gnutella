@@ -1921,7 +1921,8 @@ fi_gui_regex_error(regex_t *expr, int error)
 	g_return_if_fail(expr);
 
 	regerror(error, expr, buf, sizeof buf);
-   	statusbar_gui_warning(15, "regex error: %s", lazy_locale_to_ui_string(buf));
+   	statusbar_gui_warning(15, _("regex error: %s"),
+		lazy_locale_to_ui_string(buf));
 }
 
 static int
