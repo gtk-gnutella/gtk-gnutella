@@ -634,10 +634,9 @@ file_info_fd_store_binary(fileinfo_t *fi,
 	 * Don't flush unless required or some delay occurred since last flush.
 	 */
 
-	if (force || fi->stamp - fi->last_flush >= FI_STORE_DELAY)
-		fi->last_flush = fi->stamp;
-	else
+	if (!force && delta_time(fi->stamp, fi->last_flush) < FI_STORE_DELAY)
 		return;
+	fi->last_flush = fi->stamp;
 
 	TBUF_INIT_WRITE();
 	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
