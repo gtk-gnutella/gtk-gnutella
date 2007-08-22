@@ -1093,3 +1093,8 @@
 # ZIP spam
 64.40.117.192/26
 
+# These are either DDoS victims or arbitrary padding addresses, they are
+# most-likely not source of the spam
+122.154.192.11
+123.154.192.11
+
