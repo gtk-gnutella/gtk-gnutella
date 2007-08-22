@@ -31,6 +31,22 @@
 
 #include "lib/misc.h"
 
+/**
+ * Notebook tabs in the downloads page.
+ */
+enum nb_downloads_page {
+	nb_downloads_page_active,
+	nb_downloads_page_queued,
+	nb_downloads_page_paused,
+	nb_downloads_page_incomplete,
+	nb_downloads_page_orphaned,
+	nb_downloads_page_finished,
+	nb_downloads_page_seeding,
+	nb_downloads_page_all,
+
+	nb_downloads_page_num
+};
+
 /* Widget signal callbacks */
 
 void on_entry_downloads_filter_regex_activate(GtkEditable *, void *user_data);
@@ -149,3 +165,4 @@ GSList *fi_gui_get_selected_files(gboolean unselect);
 GSList *fi_gui_get_selected_sources(gboolean unselect);
 
 #endif /* _gtk_downloads_common_h_ */
+/* vi: set ts=4 sw=4 cindent: */

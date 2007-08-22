@@ -99,14 +99,10 @@ void guc_download_fallback_to_push(struct download *, gboolean on_timeout,
 		gboolean user_request);
 gint guc_download_remove_all_from_peer(const gchar *guid,
 		const host_addr_t addr, guint16 port, gboolean unavailable);
-gint guc_download_remove_all_named(const gchar *name);
-gint guc_download_remove_all_with_sha1(const struct sha1 *);
-void guc_download_remove_file(struct download *d, gboolean reset);
 gboolean guc_download_file_exists(const struct download *);
 void guc_download_requeue(struct download *);
-void guc_download_start(struct download *, gboolean check_allowed);
+void guc_download_start(struct download *);
 void guc_download_pause(struct download *);
-gboolean guc_download_remove(struct download *);
 void guc_download_abort(struct download *);
 void guc_download_resume(struct download *);
 void guc_download_freeze_queue(void);

@@ -600,6 +600,7 @@ update_popup_downloads_start_now(void)
 	case nb_downloads_page_active:
 	case nb_downloads_page_finished:
 	case nb_downloads_page_seeding:
+	case nb_downloads_page_orphaned:
 		sensitive = FALSE;
 		break;
 	case nb_downloads_page_queued:
@@ -631,6 +632,7 @@ update_popup_downloads_queue(void)
 	case nb_downloads_page_queued:
 	case nb_downloads_page_finished:
 	case nb_downloads_page_seeding:
+	case nb_downloads_page_orphaned:
 		sensitive = FALSE;
 		break;
 	case nb_downloads_page_num:
@@ -650,6 +652,7 @@ update_popup_downloads_resume(void)
 	case nb_downloads_page_queued:
 	case nb_downloads_page_paused:
 	case nb_downloads_page_incomplete:
+	case nb_downloads_page_orphaned:
 	case nb_downloads_page_all:
 		sensitive = TRUE;
 		break;
@@ -675,6 +678,7 @@ update_popup_downloads_pause(void)
 	case nb_downloads_page_active:
 	case nb_downloads_page_queued:
 	case nb_downloads_page_incomplete:
+	case nb_downloads_page_orphaned:
 	case nb_downloads_page_all:
 		sensitive = TRUE;
 		break;
@@ -765,7 +769,7 @@ downloads_gui_update_popup_sources(void)
 }
 
 static inline struct download *
-selected_files_foreach_first(struct fileinfo_data *file)
+file_sources_foreach_first(struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
 
@@ -774,7 +778,7 @@ selected_files_foreach_first(struct fileinfo_data *file)
 }
 
 static inline struct download *
-selected_files_foreach_next(struct fileinfo_data *file, struct download *cur)
+file_sources_foreach_next(struct fileinfo_data *file, struct download *cur)
 {
 	g_return_val_if_fail(file, NULL);
 	g_return_val_if_fail(cur, NULL);
@@ -783,17 +787,19 @@ selected_files_foreach_next(struct fileinfo_data *file, struct download *cur)
 	return file->sources ? hash_list_previous(file->sources, cur) : NULL;
 }
 
-#define SELECTED_FILES_FOREACH_SOURCE_START(item) \
-SELECTED_FILES_FOREACH_START(file_) { \
-	struct download *item, *next_; \
-	next_ = selected_files_foreach_first(file_); \
-	while (next_) { \
-		item = next_; \
-		next_ = selected_files_foreach_next(file_, next_); \
+static void
+selected_files_foreach_source(void (*func)(struct download *))
+{
+	SELECTED_FILES_FOREACH_START(file) {
+		struct download *source, *next;
 
-#define SELECTED_FILES_FOREACH_SOURCE_END \
-	} \
-} SELECTED_FILES_FOREACH_END
+		next = file_sources_foreach_first(file);
+		while (NULL != (source = next)) {
+			next = file_sources_foreach_next(file, next);
+			(*func)(source);
+		}
+	} SELECTED_FILES_FOREACH_END
+}
 
 void
 on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
@@ -801,10 +807,36 @@ on_popup_downloads_start_now_activate(GtkMenuItem *unused_menuitem,
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
-	SELECTED_FILES_FOREACH_SOURCE_START(d) {
-		guc_download_start(d, TRUE);
-	} SELECTED_FILES_FOREACH_SOURCE_END
+
+	selected_files_foreach_source(guc_download_start);	
+}
+
+static void
+fi_gui_pause(struct fileinfo_data *file)
+{
+	struct download *source, *next;
+
+	guc_fi_pause(file->handle);
+	next = file_sources_foreach_first(file);
+	while (next) {
+		source = next;
+		next = file_sources_foreach_next(file, next);
+		guc_download_pause(source);
+	}
+}
+
+static void
+fi_gui_resume(struct fileinfo_data *file)
+{
+	struct download *source, *next;
+
+	guc_fi_resume(file->handle);
+	next = file_sources_foreach_first(file);
+	while (next) {
+		source = next;
+		next = file_sources_foreach_next(file, next);
+		guc_download_resume(source);
+	}
 }
 
 void
@@ -815,12 +847,8 @@ on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	SELECTED_FILES_FOREACH_START(file) {
-		guc_fi_pause(file->handle);
+		fi_gui_pause(file);
 	} SELECTED_FILES_FOREACH_END
-
-	SELECTED_FILES_FOREACH_SOURCE_START(d) {
-		guc_download_pause(d);
-	} SELECTED_FILES_FOREACH_SOURCE_END
 }
 
 void
@@ -831,12 +859,8 @@ on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	SELECTED_FILES_FOREACH_START(file) {
-		guc_fi_resume(file->handle);
+		fi_gui_resume(file);
 	} SELECTED_FILES_FOREACH_END
-
-	SELECTED_FILES_FOREACH_SOURCE_START(d) {
-		guc_download_resume(d);
-	} SELECTED_FILES_FOREACH_SOURCE_END
 }
 
 void
@@ -846,9 +870,7 @@ on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	SELECTED_FILES_FOREACH_SOURCE_START(d) {
-		guc_download_requeue(d);
-	} SELECTED_FILES_FOREACH_SOURCE_END
+	selected_files_foreach_source(guc_download_requeue);
 }
 
 static void
@@ -916,7 +938,7 @@ on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 	
 	SELECTED_SOURCES_FOREACH_START(d) {
-		guc_download_start(d, TRUE);
+		guc_download_start(d);
 	} SELECTED_SOURCES_FOREACH_END
 }
 
@@ -1087,6 +1109,8 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 		return file->paused;
 	case nb_downloads_page_incomplete:
 		return file->done != file->size || 0 == file->size;
+	case nb_downloads_page_orphaned:
+		return 0 == file->life_count;
 	case nb_downloads_page_all:
 		return TRUE;
 	case nb_downloads_page_num:
@@ -1879,6 +1903,7 @@ notebook_downloads_init(void)
 		case nb_downloads_page_queued: 		title = _("Queued"); break;
 		case nb_downloads_page_paused: 		title = _("Paused"); break;
 		case nb_downloads_page_incomplete: 	title = _("Incomplete"); break;
+		case nb_downloads_page_orphaned: 	title = _("Orphaned"); break;
 		case nb_downloads_page_finished: 	title = _("Finished"); break;
 		case nb_downloads_page_seeding: 	title = _("Seeding"); break;
 		case nb_downloads_page_all: 		title = _("All"); break;

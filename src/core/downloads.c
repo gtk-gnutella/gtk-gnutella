@@ -1063,178 +1063,6 @@ buffers_strip_trailing(struct download *d, size_t amount)
 
 /* ----------------------------------------- */
 
-/**
- * Download heartbeat timer.
- */
-void
-download_timer(time_t now)
-{
-	struct download *next;
-
-	next = hash_list_head(sl_unqueued);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		g_assert(dl_server_valid(d->server));
-
-		next = hash_list_next(sl_unqueued, next);
-
-		switch (d->status) {
-		time_delta_t timeout;
-		case GTA_DL_RECEIVING:
-		case GTA_DL_IGNORING:
-			/*
-			 * Update the global average reception rate periodically.
-			 */
-
-			{
-				fileinfo_t *fi = d->file_info;
-				time_delta_t delta = delta_time(now, fi->recv_last_time);
-
-				g_assert(fi->recvcount > 0);
-
-				if (delta > IO_AVG_RATE) {
-					fi->recv_last_rate = fi->recv_amount / delta;
-					fi->recv_amount = 0;
-					fi->recv_last_time = now;
-					file_info_changed(fi);
-				}
-			}
-			/* FALL THROUGH */
-
-		case GTA_DL_ACTIVE_QUEUED:
-		case GTA_DL_HEADERS:
-		case GTA_DL_PUSH_SENT:
-		case GTA_DL_CONNECTING:
-		case GTA_DL_REQ_SENDING:
-		case GTA_DL_REQ_SENT:
-		case GTA_DL_FALLBACK:
-		case GTA_DL_SINKING:
-
-			if (!GNET_PROPERTY(is_inet_connected)) {
-				download_queue(d, _("No longer connected"));
-				break;
-			}
-
-			switch (d->status) {
-			case GTA_DL_ACTIVE_QUEUED:
- 				timeout = get_parq_dl_retry_delay(d);
- 				break;
-			case GTA_DL_PUSH_SENT:
-			case GTA_DL_FALLBACK:
-				timeout = GNET_PROPERTY(download_push_sent_timeout);
-				break;
-			case GTA_DL_CONNECTING:
-			case GTA_DL_REQ_SENT:
-			case GTA_DL_HEADERS:
-				timeout = GNET_PROPERTY(download_connecting_timeout);
-				break;
-			default:
-				timeout = GNET_PROPERTY(download_connected_timeout);
-				break;
-			}
-
-			if (delta_time(now, d->last_update) > timeout) {
-				if (DOWNLOAD_IS_ACTIVE(d))
-					d->data_timeouts++;
-
-				/*
-				 * When the 'timeout' has expired, first check whether the
-				 * download was activly queued. If so, tell parq to retry the
-				 * download in which case the HTTP connection wasn't closed
-				 *   --JA 31 jan 2003
-				 */
-				if (d->status == GTA_DL_ACTIVE_QUEUED)
-					parq_download_retry_active_queued(d);
-				else if (
-					d->status == GTA_DL_CONNECTING &&
-					!(GNET_PROPERTY(is_firewalled) ||
-						GNET_PROPERTY(send_pushes))
-				) {
-					download_fallback_to_push(d, TRUE, FALSE);
-				} else if (d->status == GTA_DL_HEADERS)
-					download_incomplete_header(d);
-				else {
-					if (d->retries++ < GNET_PROPERTY(download_max_retries))
-						download_retry(d);
-					else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
-						download_unavailable(d, GTA_DL_ERROR,
-							_("Too many data timeouts"));
-					} else {
-						/*
-						 * Host is down, probably.  Abort all other downloads
-						 * queued for that host as well.
-						 */
-
-						download_unavailable(d, GTA_DL_ERROR, _("Timeout"));
-						download_remove_all_from_peer(
-							download_guid(d), download_addr(d),
-							download_port(d), TRUE);
-					}
-				}
-			} else if (now != d->last_gui_update) {
-				fi_src_status_changed(d);
-			}
-			break;
-		case GTA_DL_TIMEOUT_WAIT:
-			if (!GNET_PROPERTY(is_inet_connected)) {
-				download_queue(d, _("No longer connected"));
-				break;
-			}
-
-			if (
-				delta_time(now, d->last_update) >
-					(time_delta_t) d->timeout_delay
-			)
-				download_start(d, TRUE);
-			else {
-				/* Move the download back to the waiting queue.
-				 * It will be rescheduled automatically later.
-				 */
-				download_queue_delay(d,
-					GNET_PROPERTY(download_retry_timeout_delay),
-				    _("Requeued due to timeout"));
-				fi_src_status_changed(d);
-			}
-			break;
-		case GTA_DL_VERIFYING:
-		case GTA_DL_MOVING:
-			fi_src_status_changed(d);
-			break;
-		case GTA_DL_COMPLETED:
-		case GTA_DL_ABORTED:
-		case GTA_DL_ERROR:
-		case GTA_DL_VERIFY_WAIT:
-		case GTA_DL_VERIFIED:
-		case GTA_DL_MOVE_WAIT:
-		case GTA_DL_DONE:
-		case GTA_DL_REMOVED:
-			break;
-		case GTA_DL_PASSIVE_QUEUED:
-		case GTA_DL_QUEUED:
-			g_error("found queued download in sl_unqueued list: \"%s\"",
-				download_pathname(d));
-			break;
-		case GTA_DL_INVALID:
-			g_assert_not_reached();
-		}
-	}
-
-	download_clear_stopped(
-		GNET_PROPERTY(clear_complete_downloads),
-		GNET_PROPERTY(clear_failed_downloads),
-		GNET_PROPERTY(clear_unavailable_downloads),
-		GNET_PROPERTY(clear_finished_downloads),
-		FALSE);
-
-	download_free_removed();
-
-	/* Dequeuing */
-	if (GNET_PROPERTY(is_inet_connected))
-		download_pickup_queued();
-}
-
 /* ----------------------------------------- */
 
 /**
@@ -2328,143 +2156,6 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 }
 
 /**
- * Invalidate improper fileinfo for the download, and get new one.
- *
- * This usually happens when we discover the SHA1 of the file on the remote
- * server, and see that it does not match the one for the associated file on
- * disk, as described in `file_info'.
- */
-static void
-download_info_reget(struct download *d)
-{
-	fileinfo_t *fi;
-	gboolean file_size_known;
-
-	download_check(d);
-	
-	fi = d->file_info;
-	g_assert(fi);
-	g_assert(fi->lifecount > 0);
-	g_assert(fi->lifecount <= fi->refcount);
-
-	if (fi->flags & FI_F_TRANSIENT)
-		return;
-
-	/*
-	 * The GUI uses d->file_info internally, so the download must be
-	 * removed from it before changing the d->file_info.
-	 */
-
-	downloads_with_name_dec(download_basename(d));	/* File name can change! */
-	file_info_clear_download(d, TRUE);			/* `d' might be running */
-	file_size_known = fi->file_size_known;		/* This should not change */
-
-	fi->lifecount--;
-	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
-
-	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
-			d->file_size, d->sha1, file_size_known);
-
-	g_return_if_fail(fi);
-
-	file_info_add_source(fi, d);
-	fi->lifecount++;
-
-	d->flags &= ~(DL_F_SUSPENDED | DL_F_PAUSED);
-	if (fi->flags & FI_F_SUSPEND)
-		d->flags |= DL_F_SUSPENDED;
-	if (fi->flags & FI_F_PAUSED)
-		d->flags |= DL_F_PAUSED;
-
-	downloads_with_name_inc(download_basename(d));
-}
-
-/**
- * Mark all downloads that point to the file_info struct as "suspended" if
- * `suspend' is TRUE, or clear that mark if FALSE.
- */
-static void
-queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
-{
-	struct download *next;
-
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		next = hash_list_next(sl_downloads, next);
-
-		switch (d->status) {
-		case GTA_DL_REMOVED:
-		case GTA_DL_COMPLETED:
-		case GTA_DL_VERIFY_WAIT:
-		case GTA_DL_VERIFYING:
-		case GTA_DL_VERIFIED:
-		case GTA_DL_MOVE_WAIT:
-		case GTA_DL_MOVING:
-			continue;
-		case GTA_DL_DONE:		/* We want to be able to "un-suspend" */
-			break;
-		default:
-			break;
-		}
-
-		if (d->file_info != fi)
-			continue;
-
-		if (suspend) {
-			if (DOWNLOAD_IS_RUNNING(d))
-				download_queue(d, _("Suspended (SHA1 checking)"));
-			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
-		} else
-			d->flags &= ~DL_F_SUSPENDED;
-	}
-
-	if (suspend)
-		fi->flags |= FI_F_SUSPEND;
-	else
-		fi->flags &= ~FI_F_SUSPEND;
-}
-
-/**
- * Removes all downloads that point to the file_info struct.
- * If `skip' is non-NULL, that download is skipped.
- */
-static void
-queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
-{
-	struct download *next;
-
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		next = hash_list_next(sl_downloads, next);
-
-		switch (d->status) {
-		case GTA_DL_REMOVED:
-		case GTA_DL_COMPLETED:
-		case GTA_DL_VERIFY_WAIT:
-		case GTA_DL_VERIFYING:
-		case GTA_DL_VERIFIED:
-		case GTA_DL_MOVE_WAIT:
-		case GTA_DL_MOVING:
-		case GTA_DL_DONE:
-			continue;
-		default:
-			break;
-		}
-
-		if (d->file_info != fi || d == skip)
-			continue;
-
-		download_remove(d);
-	}
-}
-
-/**
  * Remove all downloads to a given peer from the download queue
  * and abort all connections to peer in the active download list.
  *
@@ -2545,94 +2236,6 @@ download_remove_all_from_peer(const gchar *guid,
 }
 
 /**
- * Remove all downloads with a given name from the download queue
- * and abort all connections to peer in the active download list.
- *
- * @returns the number of removed downloads.
- */
-gint
-download_remove_all_named(const gchar *name)
-{
-	struct download *next;
-	gint n = 0;
-
-	g_return_val_if_fail(name, 0);
-
-	/*
-	 * Abort all requested downloads, and mark their fileinfo as "discard"
-	 * so that we reclaim it when the last reference is gone: if we came
-	 * here, it means they are no longer interested in that file, so it's
-	 * no use to keep it around for "alternate" source location matching.
-	 *		--RAM, 05/11/2002
-	 */
-
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		next = hash_list_next(sl_downloads, next);
-
-		if (GTA_DL_REMOVED == d->status || 0 != strcmp(name, d->file_name))
-			continue;
-
-		file_info_set_discard(d->file_info, TRUE);
-		download_abort(d);
-		n++;
-	}
-
-	return n;
-}
-
-/**
- * remove all downloads with a given sha1 hash from the download queue
- * and abort all conenctions to peer in the active download list.
- *
- * @returns the number of removed downloads.
- *
- * @note
- * If sha1 is NULL, we do not clear all download with sha1==NULL but
- * abort instead.
- */
-gint
-download_remove_all_with_sha1(const struct sha1 *sha1)
-{
-	struct download *next;
-	gint n = 0;
-
-	g_return_val_if_fail(sha1 != NULL, 0);
-
-	/*
-	 * Abort all requested downloads, and mark their fileinfo as "discard"
-	 * so that we reclaim it when the last reference is gone: if we came
-	 * here, it means they are no longer interested in that file, so it's
-	 * no use to keep it around for "alternate" source location matching.
-	 *		--RAM, 05/11/2002
-	 */
-
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		next = hash_list_next(sl_downloads, next);
-
-		if (
-			GTA_DL_REMOVED == d->status ||
-			NULL == d->file_info->sha1 ||
-			0 != memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE)
-		)
-			continue;
-
-		file_info_set_discard(d->file_info, TRUE);
-		download_abort(d);
-		n++;
-	}
-
-	return n;
-}
-
-/**
  * Remove all THEX downloads for a given sha1.
  */
 static void
@@ -2702,84 +2305,6 @@ download_set_sha1(struct download *d, const struct sha1 *sha1)
 	atom_sha1_change(&d->sha1, sha1);
 	if (DL_LIST_INVALID != d->list_idx) {
 		server_sha1_count_inc(d->server, d);
-	}
-}
-
-/*
- * GUI operations
- */
-
-/**
- * [GUI] Remove stopped downloads.
- * complete == TRUE:    removes DONE | COMPLETED
- * failed == TRUE:      removes ERROR | ABORTED without `unavailable' set
- * unavailable == TRUE: removes ERROR | ABORTED with `unavailable' set
- * now == TRUE:         remove immediately, else remove only downloads
- *                      idle since at least "entry_removal_timeout" seconds
- */
-void
-download_clear_stopped(gboolean complete,
-	gboolean failed, gboolean unavailable, gboolean finished,
-	gboolean now)
-{
-	struct download *next;
-
-	next = hash_list_head(sl_unqueued);
-	while (next) {
-		struct download *d = next;
-
-		download_check(d);
-		next = hash_list_next(sl_unqueued, next);
-
-		switch (d->status) {
-		case GTA_DL_ERROR:
-		case GTA_DL_ABORTED:
-			if (
-				!(failed && !d->unavailable) &&
-				!(unavailable && d->unavailable)
-			) {
-				continue;
-			}
-			break;
-		case GTA_DL_COMPLETED:
-		case GTA_DL_DONE:
-			if (!complete) {
-				continue;
-			}
-			break;
-		case GTA_DL_VERIFIED:
-			if (!(now || finished)) {
-				/* We don't want clear "finished" downloads automagically
-				 * because it would make it difficult to notice them in the
-				 * GUI. */
-				continue;
-			}
-		default:
-			continue;
-		}
-
-		if (
-			!now &&
-			delta_time(tm_time(), d->last_update) <
-				(time_delta_t) GNET_PROPERTY(entry_removal_timeout)
-		) {
-			continue;
-		}
-
-		if (
-			finished &&
-			FILE_INFO_FINISHED(d->file_info) &&
-			!(FI_F_SEEDING & d->file_info->flags)
-		) {
-			file_info_purge(d->file_info);
-			continue;
-		}
-		
-		if (d->flags & DL_F_TRANSIENT) {
-			file_info_purge(d->file_info);
-		} else {
-			download_remove(d);
-		}
 	}
 }
 
@@ -3600,6 +3125,239 @@ download_list_send_head_ping(list_t *list)
 }
 
 /**
+ * Invalidate improper fileinfo for the download, and get new one.
+ *
+ * This usually happens when we discover the SHA1 of the file on the remote
+ * server, and see that it does not match the one for the associated file on
+ * disk, as described in `file_info'.
+ */
+static void
+download_info_reget(struct download *d)
+{
+	fileinfo_t *fi;
+	gboolean file_size_known;
+
+	download_check(d);
+	
+	fi = d->file_info;
+	g_assert(fi);
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
+
+	if (fi->flags & FI_F_TRANSIENT)
+		return;
+
+	downloads_with_name_dec(download_basename(d));	/* File name can change! */
+	file_info_clear_download(d, TRUE);			/* `d' might be running */
+	file_size_known = fi->file_size_known;		/* This should not change */
+
+	fi->lifecount--;
+	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
+
+	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
+			d->file_size, d->sha1, file_size_known);
+
+	g_return_if_fail(fi);
+
+	file_info_add_source(fi, d);
+	fi->lifecount++;
+
+	d->flags &= ~(DL_F_SUSPENDED | DL_F_PAUSED);
+	if (fi->flags & FI_F_SUSPEND)
+		d->flags |= DL_F_SUSPENDED;
+	if (fi->flags & FI_F_PAUSED)
+		d->flags |= DL_F_PAUSED;
+
+	downloads_with_name_inc(download_basename(d));
+}
+
+/**
+ * Mark all downloads that point to the file_info struct as "suspended" if
+ * `suspend' is TRUE, or clear that mark if FALSE.
+ */
+static void
+queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_downloads);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		next = hash_list_next(sl_downloads, next);
+
+		switch (d->status) {
+		case GTA_DL_REMOVED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_MOVING:
+			continue;
+		case GTA_DL_DONE:		/* We want to be able to "un-suspend" */
+			break;
+		default:
+			break;
+		}
+
+		if (d->file_info != fi)
+			continue;
+
+		if (suspend) {
+			if (DOWNLOAD_IS_RUNNING(d))
+				download_queue(d, _("Suspended (SHA1 checking)"));
+			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
+		} else
+			d->flags &= ~DL_F_SUSPENDED;
+	}
+
+	if (suspend)
+		fi->flags |= FI_F_SUSPEND;
+	else
+		fi->flags &= ~FI_F_SUSPEND;
+}
+
+/**
+ * Freeing a download cannot be done simply, because it might happen when
+ * we are traversing the `sl_downloads' or `sl_unqueued' lists.
+ *
+ * Therefore download_free() marks the download as "removed" and frees some
+ * of the memory used, but does not reclaim the download structure yet, nor
+ * does it remove it from the lists.
+ *
+ * The "freed" download is marked GTA_DL_REMOVED and is put into the
+ * `sl_removed' list where it will be reclaimed later on via
+ * download_free_removed().
+ */
+gboolean
+download_remove(struct download *d)
+{
+	download_check(d);
+	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
+
+	/*
+	 * Make sure download is not used by a background task
+	 * 		-- JA 25/10/2003
+	 */
+	if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
+		return FALSE;
+
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_assert(GNET_PROPERTY(dl_queue_count) > 0);
+
+		gnet_prop_decr_guint32(PROP_DL_QUEUE_COUNT);
+		if (d->flags & DL_F_REPLIED) {
+			g_assert(GNET_PROPERTY(dl_qalive_count) > 0);
+			gnet_prop_decr_guint32(PROP_DL_QALIVE_COUNT);
+		}
+	}
+
+	/*
+	 * Abort running download (which will decrement the lifecount), otherwise
+	 * make sure we decrement it here (e.g. if the download was queued).
+	 */
+
+	if (DOWNLOAD_IS_RUNNING(d)) {
+		download_stop(d, GTA_DL_ABORTED, no_reason);
+	} else if (DOWNLOAD_IS_STOPPED(d)) {
+		/* nothing, lifecount already decremented */
+	} else {
+		g_assert(d->file_info->lifecount > 0);
+		d->file_info->lifecount--;
+	}
+
+	g_assert(d->io_opaque == NULL);
+	g_assert(d->buffers == NULL);
+
+	if (d->browse) {
+		g_assert(d->flags & DL_F_BROWSE);
+		browse_host_dl_free(&d->browse);
+	}
+	if (d->thex) {
+		g_assert(d->flags & DL_F_THEX);
+		thex_download_free(&d->thex);
+	}
+
+	if (d->push)
+		download_push_remove(d);
+
+	download_set_sha1(d, NULL);
+
+	if (d->ranges) {
+		http_range_free(d->ranges);
+		d->ranges = NULL;
+	}
+
+	if (d->req) {
+		http_buffer_free(d->req);
+		d->req = NULL;
+	}
+
+	/*
+	 * Let parq remove and free its allocated memory
+	 *			-- JA, 18/4/2003
+	 */
+	parq_dl_remove(d);
+
+	download_remove_from_server(d, FALSE);
+	d->status = GTA_DL_REMOVED;
+
+	atom_str_free_null(&d->file_name);
+	atom_str_free_null(&d->escaped_name);
+	atom_str_free_null(&d->uri);
+
+	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
+	d->file_info = NULL;
+
+	download_check(d);
+	sl_removed = g_slist_prepend(sl_removed, d);
+
+	/* download structure will be freed in download_free_removed() */
+	return TRUE;
+}
+
+
+/**
+ * Removes all downloads that point to the file_info struct.
+ * If `skip' is non-NULL, that download is skipped.
+ */
+static void
+queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_downloads);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		next = hash_list_next(sl_downloads, next);
+
+		switch (d->status) {
+		case GTA_DL_REMOVED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_MOVING:
+		case GTA_DL_DONE:
+			continue;
+		default:
+			break;
+		}
+
+		if (d->file_info != fi || d == skip)
+			continue;
+
+		download_remove(d);
+	}
+}
+
+
+/**
  * Check whether download should be ignored, and stop it immediately if it is.
  *
  * @returns whether download was stopped (i.e. if it must be ignored).
@@ -4013,15 +3771,11 @@ download_connect(struct download *d)
 /**
  * (Re)start a stopped or queued download.
  */
-void
+static void
 download_start(struct download *d, gboolean check_allowed)
 {
 	download_check(d);
-	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
-
-	d->flags &= ~DL_F_PAUSED;
-	file_info_resume(d->file_info);
 
 	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
 	g_return_if_fail(!DOWNLOAD_IS_MOVING(d));
@@ -4038,7 +3792,6 @@ download_start(struct download *d, gboolean check_allowed)
 	g_return_if_fail(d->file_info->lifecount > 0);
 	g_return_if_fail(d->file_info->lifecount <= d->file_info->refcount);
 	g_return_if_fail(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
-	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
 
 	if (download_queue_is_frozen()) {
 		if (!DOWNLOAD_IS_QUEUED(d)) {
@@ -4150,29 +3903,40 @@ download_start(struct download *d, gboolean check_allowed)
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
-/**
- * Pause a download.
- */
 void
-download_pause(struct download *d)
+download_request_start(struct download *d)
 {
 	download_check(d);
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
 
+	d->flags &= ~DL_F_PAUSED;
+	file_info_resume(d->file_info);
+
+	download_start(d, TRUE);
+}
+
+/**
+ * Pause a download.
+ */
+static void
+download_pause(struct download *d)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+
 	if (FILE_INFO_FINISHED(d->file_info))
 		return;
-
-	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
-
-	d->flags |= DL_F_PAUSED;
-	file_info_pause(d->file_info);
 
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
 
-	if (!DOWNLOAD_IS_QUEUED(d)) {
+	d->flags |= DL_F_PAUSED;
+	file_info_pause(d->file_info);
 
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		fi_src_status_changed(d);
+	} else {
 		if (DOWNLOAD_IS_STOPPED(d)) {
 			d->file_info->lifecount++;
 		}
@@ -4180,10 +3944,22 @@ download_pause(struct download *d)
 	}
 }
 
+void
+download_request_pause(struct download *d)
+{
+	download_check(d);
+	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
+
+	if (!FILE_INFO_FINISHED(d->file_info)) {
+		download_pause(d);
+	}
+}
+
 /**
  * Pick up new downloads from the queue as needed.
- */
-void
+*/
+static void
 download_pickup_queued(void)
 {
 	time_t now = tm_time();
@@ -5382,105 +5158,6 @@ download_free_removed(void)
 	sl_removed_servers = NULL;
 }
 
-/**
- * Freeing a download cannot be done simply, because it might happen when
- * we are traversing the `sl_downloads' or `sl_unqueued' lists.
- *
- * Therefore download_free() marks the download as "removed" and frees some
- * of the memory used, but does not reclaim the download structure yet, nor
- * does it remove it from the lists.
- *
- * The "freed" download is marked GTA_DL_REMOVED and is put into the
- * `sl_removed' list where it will be reclaimed later on via
- * download_free_removed().
- */
-gboolean
-download_remove(struct download *d)
-{
-	download_check(d);
-	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
-
-	/*
-	 * Make sure download is not used by a background task
-	 * 		-- JA 25/10/2003
-	 */
-	if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
-		return FALSE;
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_assert(GNET_PROPERTY(dl_queue_count) > 0);
-
-		gnet_prop_decr_guint32(PROP_DL_QUEUE_COUNT);
-		if (d->flags & DL_F_REPLIED) {
-			g_assert(GNET_PROPERTY(dl_qalive_count) > 0);
-			gnet_prop_decr_guint32(PROP_DL_QALIVE_COUNT);
-		}
-	}
-
-	/*
-	 * Abort running download (which will decrement the lifecount), otherwise
-	 * make sure we decrement it here (e.g. if the download was queued).
-	 */
-
-	if (DOWNLOAD_IS_RUNNING(d)) {
-		download_stop(d, GTA_DL_ABORTED, no_reason);
-	} else if (DOWNLOAD_IS_STOPPED(d)) {
-		/* nothing, lifecount already decremented */
-	} else {
-		g_assert(d->file_info->lifecount > 0);
-		d->file_info->lifecount--;
-	}
-
-	g_assert(d->io_opaque == NULL);
-	g_assert(d->buffers == NULL);
-
-	if (d->browse) {
-		g_assert(d->flags & DL_F_BROWSE);
-		browse_host_dl_free(&d->browse);
-	}
-	if (d->thex) {
-		g_assert(d->flags & DL_F_THEX);
-		thex_download_free(&d->thex);
-	}
-
-	if (d->push)
-		download_push_remove(d);
-
-	download_set_sha1(d, NULL);
-
-	if (d->ranges) {
-		http_range_free(d->ranges);
-		d->ranges = NULL;
-	}
-
-	if (d->req) {
-		http_buffer_free(d->req);
-		d->req = NULL;
-	}
-
-	/*
-	 * Let parq remove and free its allocated memory
-	 *			-- JA, 18/4/2003
-	 */
-	parq_dl_remove(d);
-
-	download_remove_from_server(d, FALSE);
-	d->status = GTA_DL_REMOVED;
-
-	atom_str_free_null(&d->file_name);
-	atom_str_free_null(&d->escaped_name);
-	atom_str_free_null(&d->uri);
-
-	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
-	d->file_info = NULL;
-
-	download_check(d);
-	sl_removed = g_slist_prepend(sl_removed, d);
-
-	/* download structure will be freed in download_free_removed() */
-	return TRUE;
-}
-
 /* ----------------------------------------- */
 
 /**
@@ -5513,6 +5190,7 @@ void
 download_abort(struct download *d)
 {
 	download_check(d);
+	file_info_check(d->file_info);
 
 	if (d->file_info->lifecount > 0)
 		download_forget(d, FALSE);
@@ -5529,16 +5207,20 @@ download_abort(struct download *d)
 }
 
 void
-download_resume(struct download *d)
+download_request_abort(struct download *d)
 {
 	download_check(d);
 	g_return_if_fail(d->file_info);
 	file_info_check(d->file_info);
 
-	d->flags &= ~DL_F_PAUSED;
-	file_info_resume(d->file_info);
-	
-	g_return_if_fail(!(FI_F_SEEDING & d->file_info->flags));
+	download_abort(d);
+}
+
+static void
+download_resume(struct download *d)
+{
+	download_check(d);
+	file_info_check(d->file_info);
 
 	if (
 		FILE_INFO_FINISHED(d->file_info) ||
@@ -5566,11 +5248,42 @@ download_resume(struct download *d)
 	download_start(d, TRUE);
 }
 
+void
+download_request_resume(struct download *d)
+{
+	download_check(d);
+	g_return_if_fail(d->file_info);
+	file_info_check(d->file_info);
+
+	if (!FILE_INFO_FINISHED(d->file_info)) {
+		d->flags &= ~DL_F_PAUSED;
+		file_info_resume(d->file_info);
+		download_resume(d);
+	}
+}
+
 /**
  * Explicitly re-enqueue potentially stopped download.
  */
-void
+static void
 download_requeue(struct download *d)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+
+	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
+	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
+	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
+
+	if (DOWNLOAD_IS_STOPPED(d))
+		d->file_info->lifecount++;
+
+	g_return_if_fail(d->file_info->lifecount > 0);
+	download_queue(d, _("Explicitly requeued"));
+}
+
+void
+download_request_requeue(struct download *d)
 {
 	download_check(d);
 	g_return_if_fail(d->file_info);
@@ -5578,16 +5291,12 @@ download_requeue(struct download *d)
 
 	if (FILE_INFO_FINISHED(d->file_info))
 		return;
-
-	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
+	if (DOWNLOAD_IS_QUEUED(d))
+		return;
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
 
-	if (DOWNLOAD_IS_STOPPED(d))
-		d->file_info->lifecount++;
-
-	g_return_if_fail(d->file_info->lifecount > 0);
-	download_queue(d, _("Explicitly requeued"));
+	download_requeue(d);
 }
 
 /**
@@ -11178,6 +10887,8 @@ download_close(void)
 	download_freeze_queue();
 	download_free_removed();
 
+	file_info_store();		/* Must BEFORE we remove downloads */
+
 	while (NULL != (d = hash_list_head(sl_downloads))) {
 		download_check(d);
 
@@ -11245,8 +10956,6 @@ download_close(void)
 		hash_list_remove(sl_downloads, d);
 		download_free(&d);
 	}
-
-	file_info_store();		/* Now that pending data was flushed */
 
 	/*
 	 * FIXME:
@@ -11983,6 +11692,258 @@ download_is_stalled(struct download *d)
 {
 	return delta_time(tm_time(), d->last_update) > DOWNLOAD_STALLED;
 }
+
+/*
+ * GUI operations
+ */
+
+/**
+ * [GUI] Remove stopped downloads.
+ * complete == TRUE:    removes DONE | COMPLETED
+ * failed == TRUE:      removes ERROR | ABORTED without `unavailable' set
+ * unavailable == TRUE: removes ERROR | ABORTED with `unavailable' set
+ * now == TRUE:         remove immediately, else remove only downloads
+ *                      idle since at least "entry_removal_timeout" seconds
+ */
+void
+download_clear_stopped(gboolean complete,
+	gboolean failed, gboolean unavailable, gboolean finished,
+	gboolean now)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_unqueued);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		next = hash_list_next(sl_unqueued, next);
+
+		switch (d->status) {
+		case GTA_DL_ERROR:
+		case GTA_DL_ABORTED:
+			if (
+				!(failed && !d->unavailable) &&
+				!(unavailable && d->unavailable)
+			) {
+				continue;
+			}
+			break;
+		case GTA_DL_COMPLETED:
+		case GTA_DL_DONE:
+			if (!complete) {
+				continue;
+			}
+			break;
+		case GTA_DL_VERIFIED:
+			if (!(now || finished)) {
+				/* We don't want clear "finished" downloads automagically
+				 * because it would make it difficult to notice them in the
+				 * GUI. */
+				continue;
+			}
+		default:
+			continue;
+		}
+
+		if (
+			!now &&
+			delta_time(tm_time(), d->last_update) <
+				(time_delta_t) GNET_PROPERTY(entry_removal_timeout)
+		) {
+			continue;
+		}
+
+		if (
+			finished &&
+			FILE_INFO_FINISHED(d->file_info) &&
+			!(FI_F_SEEDING & d->file_info->flags)
+		) {
+			file_info_purge(d->file_info);
+			continue;
+		}
+		
+		if (d->flags & DL_F_TRANSIENT) {
+			file_info_purge(d->file_info);
+		} else {
+			download_remove(d);
+		}
+	}
+}
+
+
+/**
+ * Download heartbeat timer.
+ */
+void
+download_timer(time_t now)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_unqueued);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		g_assert(dl_server_valid(d->server));
+
+		next = hash_list_next(sl_unqueued, next);
+
+		switch (d->status) {
+		time_delta_t timeout;
+		case GTA_DL_RECEIVING:
+		case GTA_DL_IGNORING:
+			/*
+			 * Update the global average reception rate periodically.
+			 */
+
+			{
+				fileinfo_t *fi = d->file_info;
+				time_delta_t delta = delta_time(now, fi->recv_last_time);
+
+				g_assert(fi->recvcount > 0);
+
+				if (delta > IO_AVG_RATE) {
+					fi->recv_last_rate = fi->recv_amount / delta;
+					fi->recv_amount = 0;
+					fi->recv_last_time = now;
+					file_info_changed(fi);
+				}
+			}
+			/* FALL THROUGH */
+
+		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_HEADERS:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_CONNECTING:
+		case GTA_DL_REQ_SENDING:
+		case GTA_DL_REQ_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:
+
+			if (!GNET_PROPERTY(is_inet_connected)) {
+				download_queue(d, _("No longer connected"));
+				break;
+			}
+
+			switch (d->status) {
+			case GTA_DL_ACTIVE_QUEUED:
+ 				timeout = get_parq_dl_retry_delay(d);
+ 				break;
+			case GTA_DL_PUSH_SENT:
+			case GTA_DL_FALLBACK:
+				timeout = GNET_PROPERTY(download_push_sent_timeout);
+				break;
+			case GTA_DL_CONNECTING:
+			case GTA_DL_REQ_SENT:
+			case GTA_DL_HEADERS:
+				timeout = GNET_PROPERTY(download_connecting_timeout);
+				break;
+			default:
+				timeout = GNET_PROPERTY(download_connected_timeout);
+				break;
+			}
+
+			if (delta_time(now, d->last_update) > timeout) {
+				if (DOWNLOAD_IS_ACTIVE(d))
+					d->data_timeouts++;
+
+				/*
+				 * When the 'timeout' has expired, first check whether the
+				 * download was activly queued. If so, tell parq to retry the
+				 * download in which case the HTTP connection wasn't closed
+				 *   --JA 31 jan 2003
+				 */
+				if (d->status == GTA_DL_ACTIVE_QUEUED)
+					parq_download_retry_active_queued(d);
+				else if (
+					d->status == GTA_DL_CONNECTING &&
+					!(GNET_PROPERTY(is_firewalled) ||
+						GNET_PROPERTY(send_pushes))
+				) {
+					download_fallback_to_push(d, TRUE, FALSE);
+				} else if (d->status == GTA_DL_HEADERS)
+					download_incomplete_header(d);
+				else {
+					if (d->retries++ < GNET_PROPERTY(download_max_retries))
+						download_retry(d);
+					else if (d->data_timeouts > DOWNLOAD_DATA_TIMEOUT) {
+						download_unavailable(d, GTA_DL_ERROR,
+							_("Too many data timeouts"));
+					} else {
+						/*
+						 * Host is down, probably.  Abort all other downloads
+						 * queued for that host as well.
+						 */
+
+						download_unavailable(d, GTA_DL_ERROR, _("Timeout"));
+						download_remove_all_from_peer(
+							download_guid(d), download_addr(d),
+							download_port(d), TRUE);
+					}
+				}
+			} else if (now != d->last_gui_update) {
+				fi_src_status_changed(d);
+			}
+			break;
+		case GTA_DL_TIMEOUT_WAIT:
+			if (!GNET_PROPERTY(is_inet_connected)) {
+				download_queue(d, _("No longer connected"));
+				break;
+			}
+
+			if (
+				delta_time(now, d->last_update) >
+					(time_delta_t) d->timeout_delay
+			)
+				download_start(d, TRUE);
+			else {
+				/* Move the download back to the waiting queue.
+				 * It will be rescheduled automatically later.
+				 */
+				download_queue_delay(d,
+					GNET_PROPERTY(download_retry_timeout_delay),
+				    _("Requeued due to timeout"));
+				fi_src_status_changed(d);
+			}
+			break;
+		case GTA_DL_VERIFYING:
+		case GTA_DL_MOVING:
+			fi_src_status_changed(d);
+			break;
+		case GTA_DL_COMPLETED:
+		case GTA_DL_ABORTED:
+		case GTA_DL_ERROR:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_DONE:
+		case GTA_DL_REMOVED:
+			break;
+		case GTA_DL_PASSIVE_QUEUED:
+		case GTA_DL_QUEUED:
+			g_error("found queued download in sl_unqueued list: \"%s\"",
+				download_pathname(d));
+			break;
+		case GTA_DL_INVALID:
+			g_assert_not_reached();
+		}
+	}
+
+	download_clear_stopped(
+		GNET_PROPERTY(clear_complete_downloads),
+		GNET_PROPERTY(clear_failed_downloads),
+		GNET_PROPERTY(clear_unavailable_downloads),
+		GNET_PROPERTY(clear_finished_downloads),
+		FALSE);
+
+	download_free_removed();
+
+	/* Dequeuing */
+	if (GNET_PROPERTY(is_inet_connected))
+		download_pickup_queued();
+}
+
 
 /*
  * Local Variables:

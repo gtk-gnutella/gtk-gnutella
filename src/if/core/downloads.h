@@ -413,16 +413,15 @@ gint download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 gint download_remove_all_from_peer(const gchar *guid,
 		host_addr_t addr, guint16 port, gboolean unavailable);
-gint download_remove_all_named(const gchar *name);
-gint download_remove_all_with_sha1(const struct sha1 *);
 void download_remove_file(struct download *, gboolean reset);
 gboolean download_file_exists(const struct download *);
-void download_requeue(struct download *);
-void download_start(struct download *, gboolean);
-void download_pause(struct download *);
-gboolean download_remove(struct download *);
-void download_abort(struct download *);
-void download_resume(struct download *);
+
+void download_request_requeue(struct download *);
+void download_request_start(struct download *);
+void download_request_pause(struct download *);
+gboolean download_request_remove(struct download *);
+void download_request_abort(struct download *);
+void download_request_resume(struct download *);
 
 void download_freeze_queue(void);
 void download_thaw_queue(void);

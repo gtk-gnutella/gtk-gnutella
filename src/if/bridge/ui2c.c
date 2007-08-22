@@ -134,24 +134,6 @@ guc_download_remove_all_from_peer(const gchar *guid, const host_addr_t addr,
 	return download_remove_all_from_peer(guid, addr, port, unavailable);
 }
 
-gint
-guc_download_remove_all_named(const gchar *name)
-{
-	return download_remove_all_named(name);
-}
-
-gint
-guc_download_remove_all_with_sha1(const struct sha1 *sha1)
-{
-	return download_remove_all_with_sha1(sha1);
-}
-
-void
-guc_download_remove_file(struct download *d, gboolean reset)
-{
-	download_remove_file(d, reset);
-}
-
 gboolean
 guc_download_file_exists(const struct download *d)
 {
@@ -161,37 +143,31 @@ guc_download_file_exists(const struct download *d)
 void
 guc_download_requeue(struct download *d)
 {
-	download_requeue(d);
+	download_request_requeue(d);
 }
 
 void
-guc_download_start(struct download *d, gboolean check_allowed)
+guc_download_start(struct download *d)
 {
-	download_start(d, check_allowed);
+	download_request_start(d);
 }
 
 void
 guc_download_pause(struct download *d)
 {
-	download_pause(d);
-}
-
-gboolean
-guc_download_remove(struct download *d)
-{
-	return download_remove(d);
+	download_request_pause(d);
 }
 
 void
 guc_download_abort(struct download *d)
 {
-	download_abort(d);
+	download_request_abort(d);
 }
 
 void
 guc_download_resume(struct download *d)
 {
-	download_resume(d);
+	download_request_resume(d);
 }
 
 void

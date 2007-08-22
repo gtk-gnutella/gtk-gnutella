@@ -64,7 +64,6 @@ void download_stop_v(struct download *d, download_status_t new_status,
     const gchar * reason, va_list ap);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
-void download_pickup_queued(void);
 void download_forget(struct download *, gboolean unavailable);
 gboolean download_start_prepare(struct download *d);
 gboolean download_start_prepare_running(struct download *d);
@@ -115,6 +114,9 @@ void download_maybe_finished(struct download *d);
 
 gboolean download_handle_http(const gchar *url);
 gboolean download_is_stalled(struct download *d);
+
+gboolean download_remove(struct download *d);
+void download_abort(struct download *d);
 
 #endif /* _core_downloads_h_ */
 
