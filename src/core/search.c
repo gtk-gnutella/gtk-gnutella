@@ -1433,7 +1433,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		if (
 			!host_addr_equal(n->addr, rs->addr) &&
-			!is_private_addr(rs->addr)
+			!host_addr_is_routable(rs->addr)
 		)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 	}
@@ -1452,7 +1452,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	if (browse) {
 		rs->status |= ST_BROWSE;
-		if (is_private_addr(rs->addr)) {
+		if (!host_addr_is_routable(rs->addr)) {
 			/*
 			 * Sometimes peers report a private IP address in the results
 			 * even though they're TCP connectible.
@@ -1462,9 +1462,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	/* Check for valid IP addresses (unroutable => turn push on) */
-	if (is_private_addr(rs->addr))
+	if (!host_addr_is_routable(rs->addr)) {
 		rs->status |= ST_FIREWALL;
-	else if (rs->port == 0 || bogons_check(rs->addr)) {
+	} else if (rs->port == 0 || bogons_check(rs->addr)) {
         if (GNET_PROPERTY(dbg) || GNET_PROPERTY(search_debug)) {
             g_warning("query hit advertising bogus IP %s",
 				host_addr_port_to_string(rs->addr, rs->port));
@@ -2208,7 +2208,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
 		!guid_eq(rs->guid, blank_guid) &&	/* Not the blank GUID */
 		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
-		!is_private_addr(rs->addr)			/* Address not private */
+		host_addr_is_routable(rs->addr)
 	) {
 		if (
 			(is_host_addr(n->gnet_qhit_addr) &&
