@@ -3089,6 +3089,7 @@ static void
 download_send_head_ping(struct download *d)
 {
 	time_t now = tm_time();
+	time_delta_t delay;
 
 	download_check(d);
 	file_info_check(d->file_info);
@@ -3110,8 +3111,17 @@ download_send_head_ping(struct download *d)
 	)
 		return;
 
-	if (delta_time(now, d->head_ping_sent) < DOWNLOAD_PING_DELAY)
+	/*
+	 * Increase the ping delay quadratically with the number of alive sources.
+	 */
+	delay = d->file_info->lifecount / 256;
+	delay = MIN(delay, 512);
+	delay *= delay;
+	delay = MAX(DOWNLOAD_PING_DELAY, delay);
+
+	if (delta_time(now, d->head_ping_sent) < delay)
 		return;
+
 
 	if (d->always_push) {
 		GSList *sl;
