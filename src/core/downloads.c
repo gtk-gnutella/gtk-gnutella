@@ -1945,7 +1945,7 @@ download_actively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_ACTIVE_QUEUED;
-        d->file_info->aqueued_count ++;
+        d->file_info->aqueued_count++;
         d->file_info->dirty = TRUE;
 
 		g_assert(GNET_PROPERTY(dl_aqueued_count) < INT_MAX);
@@ -1959,7 +1959,7 @@ download_actively_queued(struct download *d, gboolean queued)
 
 		d->flags &= ~DL_F_ACTIVE_QUEUED;
 		g_assert(d->file_info->aqueued_count > 0);
-        d->file_info->aqueued_count --;
+        d->file_info->aqueued_count--;
         d->file_info->dirty = TRUE;
 	}
 
