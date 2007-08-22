@@ -3259,19 +3259,49 @@ parq_upload_request(struct upload *u)
 		 */
 		u->status = GTA_UL_QUEUED;
 	} else {
+		gboolean queueable;
 		guint max_slot = parq_upload_active_size +
 			GNET_PROPERTY(max_uploads) / 2;
+		guint max_fd_used =
+			GNET_PROPERTY(max_downloads) +
+			GNET_PROPERTY(max_uploads) + 
+			(GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
+				GNET_PROPERTY(max_ultrapeers) :
+				(GNET_PROPERTY(max_connections) + GNET_PROPERTY(max_leaves))
+			);
 
 		/* Active queue requests which are either a push request and at a
 		 * reasonable position. Or if the request is at a position which
 		 * might actually get an upload slot soon
+		 *
+		 * The "queueable" variable makes sure that the total amount of file
+		 * descriptors available for this process is larger than the maximum
+		 * amout of file descriptors we can use.  This is not accounting ALL
+		 * the possible connections we can make, hence the "4/5" corrective
+		 * factor.
+		 *
+		 * Since "max_downloads" is rarely going to be fully utilized, we
+		 * correct the numbers if we see it is much bigger than the current
+		 * usage.
 		 */
+
+		if (GNET_PROPERTY(max_downloads) >= 3 *
+			(GNET_PROPERTY(dl_running_count) + GNET_PROPERTY(dl_active_count))
+		)
+			max_fd_used -= GNET_PROPERTY(max_downloads) / 2;
+
+		queueable = GNET_PROPERTY(sys_nofile) * 4 / 5 >
+			max_fd_used + (MIN_UPLOAD_AQUEUED * GNET_PROPERTY(max_uploads));
+
 		if (
 			(u->push && parq_ul->relative_position <= max_slot) ||
-			(parq_ul->queue->active_queued_cnt < MIN_UPLOAD_AQUEUED &&
-			parq_ul->relative_position <= GNET_PROPERTY(max_uploads) * 2) ||
-			parq_ul->relative_position <=
-				GNET_PROPERTY(max_uploads) + MIN_UPLOAD_AQUEUED
+			(queueable && (
+				(parq_ul->queue->active_queued_cnt < MIN_UPLOAD_AQUEUED &&
+				parq_ul->relative_position <= GNET_PROPERTY(max_uploads) * 2) ||
+				parq_ul->relative_position <=
+					UNSIGNED(free_upload_slots(parq_ul->queue)) +
+					MIN_UPLOAD_AQUEUED
+			))
 		) {
 			if (parq_ul->minor > 0 || parq_ul->major > 0) {
 				u->status = GTA_UL_QUEUED;
