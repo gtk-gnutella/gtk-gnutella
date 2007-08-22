@@ -5395,8 +5395,8 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->uploaded		  = fi->uploaded;
     s->recv_last_rate = fi->recv_last_rate;
     s->size           = fi->size;
-    s->aqueued_count  = fi->aqueued_count;
-    s->pqueued_count  = fi->pqueued_count;
+    s->active_queued  = fi->active_queued;
+    s->passive_queued = fi->passive_queued;
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 
@@ -6205,10 +6205,10 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		return buf;
     } else if (0 == status->lifecount) {
 		return _("No sources");
-    } else if (status->aqueued_count || status->pqueued_count) {
+    } else if (status->active_queued || status->passive_queued) {
         gm_snprintf(buf, sizeof buf,
             _("Queued (%u active, %u passive)"),
-            status->aqueued_count, status->pqueued_count);
+            status->active_queued, status->passive_queued);
 		return buf;
     } else if (status->paused) {
         return _("Paused");
