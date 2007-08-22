@@ -161,6 +161,19 @@ static gboolean download_dirty = FALSE;
 static void download_store(void);
 static void download_retrieve(void);
 
+static void
+download_set_status(struct download *d, download_status_t status)
+{
+	download_check(d);
+
+	if (status == d->status)
+		return;
+	d->status = status;
+
+	g_return_if_fail(d->file_info);
+	fi_src_status_changed(d);
+}
+
 const gchar *
 download_pathname(const struct download *d)
 {
@@ -1939,7 +1952,7 @@ download_actively_queued(struct download *d, gboolean queued)
 	download_check(d);
 
 	if (queued) {
-		d->status = GTA_DL_ACTIVE_QUEUED;
+		download_set_status(d, GTA_DL_ACTIVE_QUEUED);
 
 		if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
 			return;
@@ -2777,13 +2790,12 @@ download_stop_v(struct download *d, download_status_t new_status,
 
 	/* Register the new status, and update the GUI if needed */
 
-	d->status = new_status;
+	download_set_status(d, new_status);
 	d->last_update = tm_time();
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT) {
 		d->retries = 0;		/* If they retry, go over whole cycle again */
 	}
-	fi_src_status_changed(d);
 
 	if (store_queue) {
 		download_dirty = TRUE;		/* Refresh list, in case we crash */
@@ -2899,7 +2911,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 */
 
 	d->remove_msg = fmt ? d->error_str: NULL;
-	d->status = d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED;
+	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
 
 	g_assert(d->socket == NULL);
 
@@ -2912,7 +2924,6 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (d->flags & DL_F_REPLIED) {
 		gnet_prop_incr_guint32(PROP_DL_QALIVE_COUNT);
 	}
-	fi_src_status_changed(d);
 }
 
 /**
@@ -3304,7 +3315,7 @@ download_remove(struct download *d)
 	parq_dl_remove(d);
 
 	download_remove_from_server(d, FALSE);
-	d->status = GTA_DL_REMOVED;
+	download_set_status(d, GTA_DL_REMOVED);
 
 	atom_str_free_null(&d->file_name);
 	atom_str_free_null(&d->escaped_name);
@@ -3448,7 +3459,7 @@ download_unqueue(struct download *d)
 		gnet_prop_decr_guint32(PROP_DL_QALIVE_COUNT);
 	}
 
-	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
+	download_set_status(d, GTA_DL_CONNECTING);/* Allow download to be stopped */
 }
 
 /**
@@ -3480,7 +3491,8 @@ download_start_prepare_running(struct download *d)
 	g_assert(d->list_idx == DL_LIST_RUNNING);
 	g_assert(fi->lifecount > 0);
 
-	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
+	/* Most common state if we succeed */
+	download_set_status(d, GTA_DL_CONNECTING);
 
 	/*
 	 * If we were asked to ignore this download, abort now.
@@ -3850,7 +3862,7 @@ download_start(struct download *d, gboolean check_allowed)
 		host_is_valid(download_addr(d), download_port(d))
 	) {
 		/* Direct download */
-		d->status = GTA_DL_CONNECTING;
+		download_set_status(d, GTA_DL_CONNECTING);
 		d->socket = download_connect(d);
 
 		if (!d->socket) {
@@ -3892,7 +3904,7 @@ download_start(struct download *d, gboolean check_allowed)
 		d->socket->resource.download = d;
 		d->socket->pos = 0;
 	} else {					/* We have to send a push request */
-		d->status = GTA_DL_PUSH_SENT;
+		download_set_status(d, GTA_DL_PUSH_SENT);
 
 		g_assert(d->socket == NULL);
 
@@ -3900,8 +3912,6 @@ download_start(struct download *d, gboolean check_allowed)
 	}
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-
-	fi_src_status_changed(d);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
@@ -4334,11 +4344,7 @@ download_fallback_to_push(struct download *d,
 
 	file_object_release(&d->out_file);
 
-	if (user_request)
-		d->status = GTA_DL_PUSH_SENT;
-	else
-		d->status = GTA_DL_FALLBACK;
-
+	download_set_status(d, user_request ? GTA_DL_PUSH_SENT : GTA_DL_FALLBACK);
 	d->last_update = tm_time();		/* Reset timeout if we send the push */
 	download_push(d, on_timeout);
 
@@ -4780,7 +4786,7 @@ download_clone(struct download *d)
 	cd->escaped_name = atom_str_get(d->escaped_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
-	cd->status = GTA_DL_CONNECTING;
+	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
@@ -5241,7 +5247,8 @@ download_resume(struct download *d)
 		has_same_download(d->file_name, d->sha1, d->file_size,
 			download_guid(d), download_addr(d), download_port(d))
 	) {
-		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
+		/* So we may call download_stop */
+		download_set_status(d, GTA_DL_CONNECTING);
 		download_move_to_list(d, DL_LIST_RUNNING);
 		download_stop(d, GTA_DL_ERROR, _("Duplicate download"));
 		return;
@@ -5631,9 +5638,8 @@ download_start_reading(gpointer o)
 	 * Update status and GUI, timestamp start of header reading.
 	 */
 
-	d->status = GTA_DL_HEADERS;
+	download_set_status(d, GTA_DL_HEADERS);
 	d->last_update = tm_time();			/* Starting reading */
-	fi_src_status_changed(d);
 }
 
 static void
@@ -5694,7 +5700,7 @@ download_can_ignore(struct download *d)
 	 */
 
 	(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
-	d->status = GTA_DL_IGNORING;
+	download_set_status(d, GTA_DL_IGNORING);
 
 	if (GNET_PROPERTY(download_debug) > 1)
 		g_message("will be ignoring next %s bytes of data for \"%s\"",
@@ -7211,7 +7217,7 @@ download_sink(struct download *d)
 	if (d->sinkleft == 0) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
-		d->status = GTA_DL_CONNECTING;
+		download_set_status(d, GTA_DL_CONNECTING);
 		download_send_request(d);
 	}
 }
@@ -7293,7 +7299,7 @@ download_mark_active(struct download *d)
 
 	fi = d->file_info;
 	d->start_date = tm_time();
-	d->status = GTA_DL_RECEIVING;
+	download_set_status(d, GTA_DL_RECEIVING);
 
 	if (fi->recvcount == 0) {		/* First source to begin receiving */
 		fi->recv_last_time = d->start_date;
@@ -7667,7 +7673,7 @@ http_version_nofix:
 					return;
 
 				} /* Download not active queued, continue as normal */
-				d->status = GTA_DL_HEADERS;
+				download_set_status(d, GTA_DL_HEADERS);
 			}
 		} /* ack_code was not 503 */
 	}
@@ -7816,7 +7822,7 @@ http_version_nofix:
 					g_assert(s->gdk_tag == 0);
 					g_assert(d->bio == NULL);
 
-					d->status = GTA_DL_SINKING;
+					download_set_status(d, GTA_DL_SINKING);
 
 					d->bio = bsched_source_add(BSCHED_BWS_IN, &s->wio,
 						BIO_F_READ, download_sink_read, d);
@@ -7824,7 +7830,6 @@ http_version_nofix:
 					if (s->pos > 0) {
 						download_sink(d);
 					}
-					fi_src_status_changed(d);
 				}
 			} else {
 				/* Host might support queueing. If so, retrieve queue status */
@@ -8447,7 +8452,7 @@ http_version_nofix:
 
 	if (d->flags & DL_F_PREFIX_HEAD) {
 		d->flags &= ~DL_F_PREFIX_HEAD;
-		d->status = GTA_DL_CONNECTING;
+		download_set_status(d, GTA_DL_CONNECTING);
 		file_info_clear_download(d, TRUE);
 		download_send_request(d);
 		return;
@@ -8691,10 +8696,8 @@ download_request_sent(struct download *d)
 	download_check(d);
 
 	d->last_update = tm_time();
-	d->status = GTA_DL_REQ_SENT;
+	download_set_status(d, GTA_DL_REQ_SENT);
 	tm_now(&d->header_sent);
-
-	fi_src_status_changed(d);
 
 	/*
 	 * Now prepare to read the status line and the headers.
@@ -8915,9 +8918,8 @@ picked:
 	 * Tell GUI about the selected range, and that we're sending.
 	 */
 
-	d->status = GTA_DL_REQ_SENDING;
 	d->last_update = tm_time();
-	fi_src_status_changed(d);
+	download_set_status(d, GTA_DL_REQ_SENDING);
 
 	/*
 	 * Build the HTTP request.
@@ -9362,8 +9364,8 @@ select_push_download(GSList *servers)
 			g_assert(d->socket == NULL);
 
 			if (download_start_prepare(d)) {
-				d->status = GTA_DL_CONNECTING;
-				fi_src_status_changed(d);
+				download_set_status(d, GTA_DL_CONNECTING);
+
 				gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 				gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
 					count_running_downloads());
@@ -10195,7 +10197,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 
-	d->status = GTA_DL_MOVING;
+	download_set_status(d, GTA_DL_MOVING);
 	fi = d->file_info;
 
 	/*
@@ -10254,9 +10256,8 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	 * Have to move the file asynchronously.
 	 */
 
-	d->status = GTA_DL_MOVE_WAIT;
+	download_set_status(d, GTA_DL_MOVE_WAIT);
 	move_queue(d, dir, common_dir ? ext : "");
-	fi_src_status_changed(d);
 
 	goto cleanup;
 
@@ -10287,10 +10288,8 @@ download_move_start(struct download *d)
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVE_WAIT);
 
-	d->status = GTA_DL_MOVING;
 	d->file_info->copied = 0;
-
-	fi_src_status_changed(d);	
+	download_set_status(d, GTA_DL_MOVING);
 }
 
 /**
@@ -10317,11 +10316,12 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 	download_check(d);
 	g_assert(d->status == GTA_DL_MOVING);
 
-	d->status = GTA_DL_DONE;
-	d->last_update = tm_time();
 	fi = d->file_info;
 	fi->copy_elapsed = elapsed;
 	fi->copied = fi->size;
+
+	d->last_update = tm_time();
+	download_set_status(d, GTA_DL_DONE);
 
 	/*
 	 * File was unlinked by rename() if we were on the same filesystem,
@@ -10383,7 +10383,7 @@ download_move_error(struct download *d)
 	if (NULL == dest || -1 == rename(fi->pathname, dest)) {
 		g_message("Could not rename \"%s\" as \"%s\": %s",
 			fi->pathname, dest, g_strerror(errno));
-		d->status = GTA_DL_DONE;
+		download_set_status(d, GTA_DL_DONE);
 	} else {
 		g_message("Completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, dest, 0);
@@ -10405,10 +10405,8 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	d->status = GTA_DL_VERIFYING;
 	d->file_info->cha1_hashed = 0;
-
-	fi_src_status_changed(d);	
+	download_set_status(d, GTA_DL_VERIFYING);
 }
 
 /**
@@ -10448,8 +10446,7 @@ download_verify_sha1_done(struct download *d,
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
 	file_info_changed(fi);
 
-	d->status = GTA_DL_VERIFIED;
-	fi_src_status_changed(d);	
+	download_set_status(d, GTA_DL_VERIFIED);
 
 	ignore_add_sha1(name, fi->cha1);
 
@@ -10488,7 +10485,7 @@ download_verify_sha1_error(struct download *d)
 			fi->pathname, name);
     }
 
-	d->status = GTA_DL_VERIFIED;
+	download_set_status(d, GTA_DL_VERIFIED);
 	fi->cha1_hashed = fi->size;
 	file_info_changed(fi);
 
@@ -10556,7 +10553,7 @@ download_verify_sha1(struct download *d)
 	 * anyway, so start verifying its SHA1.
 	 */
 
-	d->status = GTA_DL_VERIFY_WAIT;
+	download_set_status(d, GTA_DL_VERIFY_WAIT);
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
@@ -10579,8 +10576,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	d->status = GTA_DL_VERIFYING;
-	fi_src_status_changed(d);
+	download_set_status(d, GTA_DL_VERIFYING);
 }
 
 /**
@@ -10619,7 +10615,7 @@ download_verify_tigertree_done(struct download *d,
 		g_message("TTH matches (file=\"%s\")",
 			filepath_basename(fi->pathname));
 
-		d->status = GTA_DL_VERIFIED;
+		download_set_status(d, GTA_DL_VERIFIED);
 		file_info_changed(fi);
 	} else {
 		filesize_t offset, slice_size;
@@ -10628,7 +10624,7 @@ download_verify_tigertree_done(struct download *d,
 		g_message("TTH mismatch (file=\"%s\")",
 			filepath_basename(fi->pathname));
 
-		d->status = GTA_DL_COMPLETED;
+		download_set_status(d, GTA_DL_COMPLETED);
 
 		slice_size = fi->tigertree.slice_size;
 		g_message("filesize=%s, slice_size=%s",
@@ -10660,7 +10656,6 @@ download_verify_tigertree_done(struct download *d,
 		}
 		queue_suspend_downloads_with_file(fi, FALSE);
 	}
-	fi_src_status_changed(d);
 }
 
 /**
@@ -10725,7 +10720,7 @@ download_verify_tigertree(struct download *d)
 	 * anyway, so start verifying its TTH.
 	 */
 
-	d->status = GTA_DL_VERIFY_WAIT;
+	download_set_status(d, GTA_DL_VERIFY_WAIT);
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
@@ -10817,7 +10812,8 @@ download_resume_bg_tasks(void)
 			 * which happens before download_move() is called.
 			 */
 
-			d->status = GTA_DL_VERIFIED;		/* Does not mean good SHA1 */
+			/* GTA_DL_VERIFIED does NOT mean good SHA1 */
+			download_set_status(d, GTA_DL_VERIFIED);
 			queue_suspend_downloads_with_file(fi, TRUE);
 
 			if (has_good_sha1(d))
