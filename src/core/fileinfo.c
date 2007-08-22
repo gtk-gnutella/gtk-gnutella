@@ -2393,6 +2393,7 @@ file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
 		shared_file_unref(&fi->sf);
 		fi->flags &= ~FI_F_SEEDING;
 		file_info_changed(fi);
+		fileinfo_dirty = TRUE;
 	}
 }
 
@@ -2415,6 +2416,7 @@ file_info_pause(fileinfo_t *fi)
 	if (!(FI_F_PAUSED & fi->flags)) {
 		fi->flags |= FI_F_PAUSED;
 		file_info_changed(fi);
+		fileinfo_dirty = TRUE;
 	}
 }
 
