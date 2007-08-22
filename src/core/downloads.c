@@ -166,9 +166,10 @@ download_is_alive(const struct download *d)
 {
 	download_check(d);
 
-	g_return_val_if_fail(GTA_DL_INVALID != d->status, FALSE);
-
 	switch (d->status) {
+	case GTA_DL_INVALID:
+		/* This is the initial status... */
+		return TRUE;
 	case GTA_DL_ACTIVE_QUEUED:
 	case GTA_DL_CONNECTING:
 	case GTA_DL_HEADERS:
@@ -194,8 +195,6 @@ download_is_alive(const struct download *d)
 	case GTA_DL_VERIFY_WAIT:
 	case GTA_DL_REMOVED:
 		return FALSE;
-	case GTA_DL_INVALID:
-		break;
 	}
 	g_assert_not_reached();
 	return FALSE;
@@ -204,13 +203,26 @@ download_is_alive(const struct download *d)
 static void
 download_set_status(struct download *d, download_status_t status)
 {
+	gboolean was_alive, is_alive;
+
 	download_check(d);
 
 	if (status == d->status)
 		return;
+
+	was_alive = download_is_alive(d);
 	d->status = status;
 
 	g_return_if_fail(d->file_info);
+
+	is_alive = download_is_alive(d);
+	if (is_alive != was_alive) {
+		fileinfo_t *fi = d->file_info;
+
+		g_assert(fi->refcount >= fi->lifecount);
+		fi->lifecount += is_alive ? 1 : -1;
+		g_assert(fi->refcount >= fi->lifecount);
+	}
 	fi_src_status_changed(d);
 }
 
@@ -1997,8 +2009,6 @@ download_actively_queued(struct download *d, gboolean queued)
 		if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
 			return;
 
-		fi_src_status_changed(d);				/* Status changed */
-
 		d->flags |= DL_F_ACTIVE_QUEUED;
         d->file_info->aqueued_count++;
         d->file_info->dirty = TRUE;
@@ -2176,27 +2186,9 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 			break;
 		}
 
-		if (is_running)
+		if (is_running) {
 			download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
-
-		switch (d->status) {
-		case GTA_DL_COMPLETED:
-		case GTA_DL_ABORTED:
-		case GTA_DL_ERROR:
-		case GTA_DL_VERIFY_WAIT:
-		case GTA_DL_VERIFYING:
-		case GTA_DL_VERIFIED:
-		case GTA_DL_MOVE_WAIT:
-		case GTA_DL_MOVING:
-		case GTA_DL_DONE:
-			break;
-		default:
-			g_assert(old_fi->lifecount > 0);
-			old_fi->lifecount--;
-			new_fi->lifecount++;
-			break;
 		}
-
 		g_assert(old_fi->refcount > 0);
 		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
 		file_info_add_source(new_fi, d);
@@ -2736,9 +2728,6 @@ download_stop_v(struct download *d, download_status_t new_status,
 		/* FALL THROUGH */
 	case GTA_DL_ABORTED:
 	case GTA_DL_ERROR:
-		g_assert(d->file_info->lifecount <= d->file_info->refcount);
-		g_assert(d->file_info->lifecount > 0);
-		d->file_info->lifecount--;
 		break;
 	default:
 		break;
@@ -3204,7 +3193,6 @@ download_info_reget(struct download *d)
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 	file_size_known = fi->file_size_known;		/* This should not change */
 
-	fi->lifecount--;
 	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
@@ -3213,7 +3201,6 @@ download_info_reget(struct download *d)
 	g_return_if_fail(fi);
 
 	file_info_add_source(fi, d);
-	fi->lifecount++;
 
 	d->flags &= ~(DL_F_SUSPENDED | DL_F_PAUSED);
 	if (fi->flags & FI_F_SUSPEND)
@@ -3314,12 +3301,7 @@ download_remove(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_stop(d, GTA_DL_ABORTED, no_reason);
-	} else if (DOWNLOAD_IS_STOPPED(d)) {
-		/* nothing, lifecount already decremented */
-	} else {
-		g_assert(d->file_info->lifecount > 0);
-		d->file_info->lifecount--;
-	}
+	}	
 
 	g_assert(d->io_opaque == NULL);
 	g_assert(d->buffers == NULL);
@@ -3983,15 +3965,11 @@ download_pause(struct download *d)
 	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
 		return;
 
-	d->flags |= DL_F_PAUSED;
 	file_info_pause(d->file_info);
+	d->flags |= DL_F_PAUSED;
+	fi_src_status_changed(d);
 
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		fi_src_status_changed(d);
-	} else {
-		if (DOWNLOAD_IS_STOPPED(d)) {
-			d->file_info->lifecount++;
-		}
+	if (!DOWNLOAD_IS_QUEUED(d)) {
 		download_queue(d, _("Paused"));
 	}
 }
@@ -4611,7 +4589,6 @@ create_download(
 	if (fi->flags & FI_F_PAUSED)
 		d->flags |= DL_F_PAUSED;
 
-	fi->lifecount++;
 	if (stamp == MAGIC_TIME)			/* Download recreated at startup */
 		file_info_add_source(fi, d);	/* Preserve original "ntime" */
 	else
@@ -4819,7 +4796,6 @@ download_clone(struct download *d)
 	cd->bio = NULL;						/* Recreated on each transfer */
 	cd->out_file = NULL;				/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
-	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
@@ -5281,7 +5257,6 @@ download_resume(struct download *d)
 	}
 
 	g_return_if_fail(d->list_idx == DL_LIST_STOPPED);
-	d->file_info->lifecount++;
 
 	if (
 		has_same_download(d->file_name, d->sha1, d->file_size,
@@ -5323,9 +5298,6 @@ download_requeue(struct download *d)
 	g_return_if_fail(!FILE_INFO_FINISHED(d->file_info));
 	g_return_if_fail(!DOWNLOAD_IS_QUEUED(d));
 	g_return_if_fail(!DOWNLOAD_IS_VERIFYING(d));
-
-	if (DOWNLOAD_IS_STOPPED(d))
-		d->file_info->lifecount++;
 
 	g_return_if_fail(d->file_info->lifecount > 0);
 	download_queue(d, _("Explicitly requeued"));
@@ -7358,7 +7330,6 @@ download_mark_active(struct download *d)
 	 */
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-	fi_src_status_changed(d);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 
 	/*
@@ -10200,7 +10171,6 @@ download_moved_with_bad_sha1(struct download *d)
 		g_message("SHA1 mismatch for \"%s\", will be restarting download",
 			download_basename(d));
 
-		d->file_info->lifecount++;				/* Reactivate download */
 		file_info_reset(d->file_info);
 		download_queue(d, _("SHA1 mismatch detected"));
 	}
@@ -10598,7 +10568,6 @@ download_verify_sha1(struct download *d)
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
 	g_assert(inserted); /* There should be no duplicates */
-	fi_src_status_changed(d);
 }
 
 
@@ -10765,7 +10734,6 @@ download_verify_tigertree(struct download *d)
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
 		download_verify_tigertree_callback, d);
-	fi_src_status_changed(d);
 }
 
 /**
@@ -10864,8 +10832,6 @@ download_resume_bg_tasks(void)
 			if (!(fi->flags & FI_F_SEEDING))
 				to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
-
-		fi_src_status_changed(d);
 	}
 
 	/*
@@ -11942,7 +11908,6 @@ download_timer(time_t now)
 				download_queue_delay(d,
 					GNET_PROPERTY(download_retry_timeout_delay),
 				    _("Requeued due to timeout"));
-				fi_src_status_changed(d);
 			}
 			break;
 		case GTA_DL_VERIFYING:

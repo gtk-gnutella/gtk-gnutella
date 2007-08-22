@@ -1061,13 +1061,6 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	dl->server->parq_version.minor = 0;
 
 	/*
-	 * Revitalize download, if stopped (aborted, error).
-	 */
-
-	if (dl->list_idx == DL_LIST_STOPPED)
-		dl->file_info->lifecount++;
-
-	/*
 	 * Send the request on the connection the server opened.
 	 *
 	 * NB: if this is the initial QUEUE request we get after being relaunched,

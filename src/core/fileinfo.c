@@ -5544,6 +5544,11 @@ file_info_add_source(fileinfo_t *fi, struct download *d)
 	d->src_handle_valid = TRUE;
 	fi->sources = g_slist_prepend(fi->sources, d);
 
+	if (download_is_alive(d)) {
+		g_assert(fi->refcount > fi->lifecount);
+		fi->lifecount++;
+	}
+
 	if (1 == fi->refcount) {
 		g_assert(GNET_PROPERTY(fi_with_source_count)
 				< GNET_PROPERTY(fi_all_count));
@@ -5566,6 +5571,7 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, gboolean discard)
 	g_assert(NULL != d->file_info);
 	g_assert(d->src_handle_valid);
 	g_assert(fi->refcount > 0);
+	g_assert(fi->refcount >= fi->lifecount);
 	g_assert(fi->hashed);
 
 	src_event_trigger(d, EV_SRC_REMOVED);
@@ -5573,6 +5579,9 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, gboolean discard)
 	idtable_free_id(src_handle_map, d->src_handle);
 	d->src_handle_valid = FALSE;
 
+	if (download_is_alive(d)) {
+		fi->lifecount--;
+	}
 	fi->refcount--;
 	fi->dirty_status = TRUE;
 	d->file_info = NULL;
