@@ -2010,7 +2010,7 @@ download_actively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_ACTIVE_QUEUED;
-        d->file_info->aqueued_count++;
+        d->file_info->active_queued++;
         d->file_info->dirty = TRUE;
 
 		g_assert(GNET_PROPERTY(dl_aqueued_count) < INT_MAX);
@@ -2023,8 +2023,8 @@ download_actively_queued(struct download *d, gboolean queued)
 		gnet_prop_decr_guint32(PROP_DL_AQUEUED_COUNT);
 
 		d->flags &= ~DL_F_ACTIVE_QUEUED;
-		g_assert(d->file_info->aqueued_count > 0);
-        d->file_info->aqueued_count--;
+		g_assert(d->file_info->active_queued > 0);
+        d->file_info->active_queued--;
         d->file_info->dirty = TRUE;
 	}
 
@@ -2044,7 +2044,7 @@ download_passively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_PASSIVE_QUEUED;
-		d->file_info->pqueued_count++;
+		d->file_info->passive_queued++;
 		d->file_info->dirty = TRUE;
 
 		g_assert(GNET_PROPERTY(dl_pqueued_count) < INT_MAX);
@@ -2057,8 +2057,8 @@ download_passively_queued(struct download *d, gboolean queued)
 		gnet_prop_decr_guint32(PROP_DL_PQUEUED_COUNT);
 
 		d->flags &= ~DL_F_PASSIVE_QUEUED;
-		g_assert(d->file_info->pqueued_count > 0);
-		d->file_info->pqueued_count--;
+		g_assert(d->file_info->passive_queued > 0);
+		d->file_info->passive_queued--;
 		d->file_info->dirty = TRUE;
 	}
 

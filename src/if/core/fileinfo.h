@@ -70,22 +70,24 @@ typedef struct gnet_fi_info {
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
+	filesize_t  size;
+	filesize_t  done;
+	
+	filesize_t  uploaded;
+	filesize_t  sha1_hashed;
+	filesize_t	copied;
+
 	guint32  	recvcount;
 	guint32  	refcount;
 	guint32  	lifecount;
-	filesize_t  size;
-	filesize_t  done;
-	filesize_t  uploaded;
 	guint32  	recv_last_rate;
-	guint32  	aqueued_count;
-	guint32  	pqueued_count;
+	guint32  	active_queued;
+	guint32  	passive_queued;
 
 	/*
 	 * The following are set only when file has been completely downloaded.
 	 */
 
-	filesize_t  sha1_hashed;
-	filesize_t	copied;
 	gboolean	has_sha1;
 	gboolean	sha1_matched;
 	gboolean	paused;
@@ -139,8 +141,8 @@ typedef struct dl_file_info {
 	gboolean dirty;			/**< Does it need saving? */
 	gboolean dirty_status;  /**< Notify about status change on next interval */
 	gboolean hashed;		/**< In hash tables? */
-	guint32  aqueued_count; /**< Actively queued sources */
-	guint32  pqueued_count; /**< Passively queued sources */
+	guint32  active_queued; /**< Actively queued sources */
+	guint32  passive_queued;/**< Passively queued sources */
 
 	/*
 	 * The following group is used to compute the aggregated reception rate.

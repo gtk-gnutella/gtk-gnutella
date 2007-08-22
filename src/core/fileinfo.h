@@ -134,7 +134,7 @@ void fi_src_status_changed(struct download *);
 static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32
 fi_alive_count(const fileinfo_t *fi)
 {
-	return fi->aqueued_count + fi->pqueued_count + fi->recvcount;
+	return fi->active_queued + fi->passive_queued + fi->recvcount;
 }
 
 #endif /* _core_fileinfo_h_ */

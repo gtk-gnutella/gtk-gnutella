@@ -1159,8 +1159,8 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 
 	file->recv_rate = status.recv_last_rate;
 	file->recv_count = status.recvcount;
-	file->actively_queued = status.aqueued_count;
-	file->passively_queued = status.pqueued_count;
+	file->actively_queued = status.active_queued;
+	file->passively_queued = status.passive_queued;
 	file->life_count = status.lifecount;
 
 	file->uploaded = status.uploaded;
