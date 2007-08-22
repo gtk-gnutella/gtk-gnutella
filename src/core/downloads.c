@@ -1944,6 +1944,8 @@ download_actively_queued(struct download *d, gboolean queued)
 		if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
 			return;
 
+		fi_src_status_changed(d);				/* Status changed */
+
 		d->flags |= DL_F_ACTIVE_QUEUED;
         d->file_info->aqueued_count++;
         d->file_info->dirty = TRUE;
@@ -1962,7 +1964,7 @@ download_actively_queued(struct download *d, gboolean queued)
         d->file_info->aqueued_count--;
         d->file_info->dirty = TRUE;
 	}
-	fi_src_status_changed(d);
+
 	file_info_changed(d->file_info);
 }
 
@@ -2790,6 +2792,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		download_push_remove(d);
 	}
 	file_info_clear_download(d, FALSE);
+	file_info_changed(d->file_info);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
 	download_actively_queued(d, FALSE);
 
