@@ -1962,7 +1962,7 @@ download_actively_queued(struct download *d, gboolean queued)
         d->file_info->aqueued_count--;
         d->file_info->dirty = TRUE;
 	}
-
+	fi_src_status_changed(d);
 	file_info_changed(d->file_info);
 }
 
@@ -2792,7 +2792,6 @@ download_stop_v(struct download *d, download_status_t new_status,
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
 	download_actively_queued(d, FALSE);
-	file_info_changed(d->file_info);		/* Update status! */
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
