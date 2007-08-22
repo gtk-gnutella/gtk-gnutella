@@ -3893,20 +3893,38 @@ void
 file_info_update(struct download *d, filesize_t from, filesize_t to,
 		enum dl_chunk_status status)
 {
+	struct dl_file_chunk *fc, *nfc, *prevfc;
 	GSList *fclist;
-	int n;
-	fileinfo_t *fi = d->file_info;
-	struct dl_file_chunk *fc, *nfc;
-	struct dl_file_chunk *prevfc;
+	fileinfo_t *fi;
 	gboolean found = FALSE;
-	int againcount = 0;
-	gboolean need_merging = DL_CHUNK_DONE != status;
-	struct download *newval = DL_CHUNK_EMPTY == status ? NULL : d;
+	int n, againcount = 0;
+	gboolean need_merging;
+	struct download *newval;
 
+	download_check(d);
+	fi = d->file_info;
 	file_info_check(fi);
 	g_assert(fi->refcount > 0);
-	g_assert(fi->lifecount > 0);
 	g_assert(from < to);
+
+	switch (status) {
+	case DL_CHUNK_DONE:
+		need_merging = FALSE;
+		newval = d;
+		goto status_ok;
+	case DL_CHUNK_BUSY:
+		need_merging = TRUE;
+		newval = d;
+		g_assert(fi->lifecount > 0);
+		goto status_ok;
+	case DL_CHUNK_EMPTY:
+		need_merging = TRUE;
+		newval = NULL;
+		goto status_ok;
+	}
+	g_assert_not_reached();
+
+status_ok:
 
 	/*
 	 * If file size is not known yet, the chunk list will be empty.
