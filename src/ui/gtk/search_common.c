@@ -3623,7 +3623,23 @@ search_gui_set_details(const record_t *rc)
 		G_FREE_NULL(url);
 	}
 
-	if (!(ST_LOCAL & rs->status)) {
+	if (ST_LOCAL & rs->status) {
+		const gchar *display_path;
+		gchar *url;
+
+		display_path = lazy_filename_to_ui_string(rc->tag);
+		if (0 == strcmp(display_path, rc->tag)) {
+			/* Only show the pathname if its encoding matches the
+			 * the UI encoding. Otherwise, drag & drop would result
+			 * in different string than the actual pathname.
+			 */
+			search_gui_append_detail(_("Pathname"), display_path);
+		}
+
+		url = url_from_absolute_path(rc->tag);
+		search_gui_append_detail(_("File URL"), url);
+		G_FREE_NULL(url);
+	} else {
 		search_gui_append_detail(_("Host information"), NULL);
 
 		search_gui_append_detail(_("Hostname"), rs->hostname);
@@ -3644,43 +3660,22 @@ search_gui_set_details(const record_t *rc)
 			search_gui_append_detail(_("Push-proxies"), hosts);
 			G_FREE_NULL(hosts);
 		}
-	}
 
-	if (!((ST_BROWSE | ST_LOCAL) & rs->status)) {
 		search_gui_append_detail(_("Packet information"), NULL);
 
 		search_gui_append_detail(_("Route"), search_gui_get_route(rs));
+		if (!(ST_BROWSE & rs->status)) {
+			search_gui_append_detail(_("Protocol"),
+				ST_UDP & rs->status ? "UDP" : "TCP");
 
-		search_gui_append_detail(_("Protocol"),
-			ST_UDP & rs->status ? "UDP" : "TCP");
+			search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
+			search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
 
-		search_gui_append_detail(_("Hops"), uint32_to_string(rs->hops));
-		search_gui_append_detail(_("TTL"), uint32_to_string(rs->ttl));
-
-		search_gui_append_detail(_("Received"),
-			timestamp_to_string(rs->stamp));
-
-		search_gui_append_detail(_("Query"),
+			search_gui_append_detail(_("Query"),
 				lazy_unknown_to_utf8_normalized(EMPTY_STRING(rs->query),
 					UNI_NORM_GUI, NULL));
-	}
-
-	if (ST_LOCAL & rs->status) {
-		const gchar *display_path;
-		gchar *url;
-
-		display_path = lazy_filename_to_ui_string(rc->tag);
-		if (0 == strcmp(display_path, rc->tag)) {
-			/* Only show the pathname if its encoding matches the
-			 * the UI encoding. Otherwise, drag & drop would result
-			 * in different string than the actual pathname.
-			 */
-			search_gui_append_detail(_("Pathname"), display_path);
 		}
-
-		url = url_from_absolute_path(rc->tag);
-		search_gui_append_detail(_("File URL"), url);
-		G_FREE_NULL(url);
+		search_gui_append_detail(_("Received"), timestamp_to_string(rs->stamp));
 	}
 
 	if (GUI_PROPERTY(expert_mode)) {
