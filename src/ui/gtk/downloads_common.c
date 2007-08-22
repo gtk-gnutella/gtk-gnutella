@@ -1110,7 +1110,7 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 	case nb_downloads_page_incomplete:
 		return file->done != file->size || 0 == file->size;
 	case nb_downloads_page_orphaned:
-		return 0 == file->life_count;
+		return 0 == file->life_count && file->done != file->size;
 	case nb_downloads_page_all:
 		return TRUE;
 	case nb_downloads_page_num:
