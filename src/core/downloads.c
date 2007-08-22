@@ -161,6 +161,46 @@ static gboolean download_dirty = FALSE;
 static void download_store(void);
 static void download_retrieve(void);
 
+gboolean
+download_is_alive(const struct download *d)
+{
+	download_check(d);
+
+	g_return_val_if_fail(GTA_DL_INVALID != d->status, FALSE);
+
+	switch (d->status) {
+	case GTA_DL_ACTIVE_QUEUED:
+	case GTA_DL_CONNECTING:
+	case GTA_DL_HEADERS:
+	case GTA_DL_IGNORING:
+	case GTA_DL_PASSIVE_QUEUED:
+	case GTA_DL_PUSH_SENT:
+	case GTA_DL_FALLBACK:
+	case GTA_DL_QUEUED:
+	case GTA_DL_RECEIVING:
+	case GTA_DL_REQ_SENDING:
+	case GTA_DL_REQ_SENT:
+	case GTA_DL_SINKING:
+	case GTA_DL_TIMEOUT_WAIT:
+		return TRUE;
+	case GTA_DL_ABORTED:
+	case GTA_DL_COMPLETED:
+	case GTA_DL_DONE:
+	case GTA_DL_ERROR:
+	case GTA_DL_MOVE_WAIT:
+	case GTA_DL_MOVING:
+	case GTA_DL_VERIFIED:
+	case GTA_DL_VERIFYING:
+	case GTA_DL_VERIFY_WAIT:
+	case GTA_DL_REMOVED:
+		return FALSE;
+	case GTA_DL_INVALID:
+		break;
+	}
+	g_assert_not_reached();
+	return FALSE;
+}
+
 static void
 download_set_status(struct download *d, download_status_t status)
 {
