@@ -994,6 +994,7 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	gboolean was_waiting = FALSE;
 
 	(void) unused_cq;
+	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 
 	dq->results_ev = NULL;	/* Indicates callback fired */
