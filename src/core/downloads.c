@@ -4454,7 +4454,7 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 	g_return_val_if_fail(
-		NULL == sha1 || NULL == file_info || file_info->sha1 == sha1,
+		NULL == sha1 || NULL == file_info || sha1_eq(file_info->sha1, sha1),
 		NULL);
 
 #if 0 /* This is helpful when you have a transparent proxy running */
