@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/url.h"
+#include "lib/url_factory.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -3586,15 +3587,9 @@ search_gui_set_details(const record_t *rc)
 #endif
 
 	if (rc->sha1) {
-		static const gchar base_url[] = "http://bitzi.com/lookup/";
-		gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
-
-		search_gui_append_detail(_("External metadata"), NULL);
-
-		concat_strings(buf, sizeof buf,
-			base_url, sha1_base32(rc->sha1),
-			(void *)0);
-		search_gui_append_detail(_("Bitzi URL"), buf);
+		search_gui_append_detail(_("External metadata"), NULL);	/* Separator */
+		search_gui_append_detail(_("Bitzi URL"),
+			url_for_bitzi_lookup(rc->sha1));
 	}
 
 	/*
@@ -3603,22 +3598,8 @@ search_gui_set_details(const record_t *rc)
 	 */
 
 	if (rc->sha1) {
-		const gchar *filename;
-		gchar *url, *escaped;
-
-		filename = filepath_basename(rc->utf8_name);
-		escaped = url_escape(filename);
-		url = g_strconcat("http://match.sharemonkey.com/",
-				"?cid=25",	/* Campaign ID of gtk-gnutella */
-				"&n=", escaped,
-				"&s=", filesize_to_string(rc->size),
-				"&sha1=", sha1_base32(rc->sha1),
-				(void *)0);
-		search_gui_append_detail(_("ShareMonkey URL"), url);
-		if (filename != escaped) {
-			G_FREE_NULL(escaped);
-		}
-		G_FREE_NULL(url);
+		search_gui_append_detail(_("ShareMonkey URL"),
+			url_for_sharemonkey_lookup(rc->sha1, rc->utf8_name, rc->size));
 	}
 
 	if (ST_LOCAL & rs->status) {
