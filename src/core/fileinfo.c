@@ -2600,6 +2600,7 @@ file_info_got_tigertree(fileinfo_t *fi,
 		num_blocks = (num_blocks + 1) / 2;
 		fi->tigertree.slice_size *= 2;
 	}
+	fi->dirty = TRUE;
 }
 
 /**
