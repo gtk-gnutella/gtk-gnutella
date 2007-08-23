@@ -3590,14 +3590,12 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("External metadata"), NULL);	/* Separator */
 		search_gui_append_detail(_("Bitzi URL"),
 			url_for_bitzi_lookup(rc->sha1));
-	}
 
-	/*
-	 * Show them the ShareMonkey URL if we have a SHA1.
-	 * This URL can be used to get commercial information about a file.
-	 */
+		/*
+		 * Show them the ShareMonkey URL if we have a SHA1.
+		 * This URL can be used to get commercial information about a file.
+		 */
 
-	if (rc->sha1) {
 		search_gui_append_detail(_("ShareMonkey URL"),
 			url_for_sharemonkey_lookup(rc->sha1, rc->utf8_name, rc->size));
 	}
