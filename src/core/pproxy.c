@@ -1136,7 +1136,7 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	const gchar *verb, const gchar *path, const gchar *unused_host,
 	guint16 unused_port)
 {
-	gchar addr_buf[128];
+	gchar addr_v4_buf[128];
 	gchar addr_v6_buf[128];
 	host_addr_t addr;
 	gboolean has_ipv4 = FALSE;
@@ -1147,10 +1147,10 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	g_assert(len <= INT_MAX);
 
 	addr = listen_addr();
-	addr_buf[0] = '\0';
+	addr_v4_buf[0] = '\0';
 	if (is_host_addr(addr)) {
 		has_ipv4 = TRUE;
-		concat_strings(addr_buf, sizeof addr_buf,
+		concat_strings(addr_v4_buf, sizeof addr_v4_buf,
 			"X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1164,7 +1164,7 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 		 * address, use the X-Node header instead. If they don't support
 		 * IPv6 we lose anyway.
 		 */
-		concat_strings(addr_buf, sizeof addr_buf,
+		concat_strings(addr_v6_buf, sizeof addr_v6_buf,
 			has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1182,7 +1182,7 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 		"\r\n",
 		verb, path, version_string,
 		tok_version(),
-		addr_buf,
+		addr_v4_buf,
 		addr_v6_buf);
 }
 
