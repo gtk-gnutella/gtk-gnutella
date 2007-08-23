@@ -117,6 +117,7 @@ RCSID("$Id$")
 #define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
 #define DOWNLOAD_MAX_HEADER_EOF	5		/**< Max # of EOF in headers we allow */
 #define DOWNLOAD_DATA_TIMEOUT	5		/**< Max # of data timeouts we allow */
+#define DOWNLOAD_ALT_LOC_SIZE	1024	/**< Max size for alt locs */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -9119,7 +9120,7 @@ picked:
 			 * We have HEAD Pings and the alt-loc management isn't the
 			 * greatest, thus keep the HTTP overhead at reasonable limit.
 			 */
-			altloc_size = MIN(altloc_size, 1024);
+			altloc_size = MIN(altloc_size, DOWNLOAD_ALT_LOC_SIZE);
 
 			/*
 			 * Emit X-Alt: and possibly X-Nalt: headers.
