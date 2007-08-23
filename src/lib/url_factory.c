@@ -50,12 +50,12 @@ static gchar tmp[2048];
  * @return pointer to static data containing the bitzi URL
  */
 const gchar *
-url_for_bitzi_lookup(const struct sha1 *k)
+url_for_bitzi_lookup(const struct sha1 *sha1)
 {
 	static const gchar base_url[] = "http://bitzi.com/lookup/";
 	static gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
 
-	concat_strings(buf, sizeof buf, base_url, sha1_base32(k), (void *) 0);
+	concat_strings(buf, sizeof buf, base_url, sha1_base32(sha1), (void *) 0);
 
 	return buf;
 }
@@ -67,10 +67,10 @@ url_for_bitzi_lookup(const struct sha1 *k)
  */
 const gchar *
 url_for_sharemonkey_lookup(
-	const struct sha1 *k, const gchar *filename, filesize_t size)
+	const struct sha1 *sha1, const gchar *filename, filesize_t size)
 {
 	static const gchar base_url[] = "http://match.sharemonkey.com/?";
-	static const gchar campain[] = "cid=25";
+	static const gchar campaign[] = "cid=25";
 	const gchar *file_basename;
 	gchar *escaped;
 
@@ -78,10 +78,10 @@ url_for_sharemonkey_lookup(
 	escaped = url_escape(file_basename);
 
 	concat_strings(tmp, sizeof tmp,
-		base_url, campain,
+		base_url, campaign,
 		"&n=", escaped,
 		"&s=", filesize_to_string(size),
-		"&sha=", sha1_base32(k),
+		"&sha=", sha1_base32(sha1),
 		(void *) 0);
 
 	if (escaped != file_basename)

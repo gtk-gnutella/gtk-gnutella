@@ -40,9 +40,9 @@
 
 struct sha1;
 
-const gchar * url_for_bitzi_lookup(const struct sha1 *k);
+const gchar * url_for_bitzi_lookup(const struct sha1 *sha1);
 const gchar * url_for_sharemonkey_lookup(
-	const struct sha1 *k, const gchar *filename, filesize_t size);
+	const struct sha1 *sha1, const gchar *filename, filesize_t size);
 
 #endif	/* _url_factory_h_ */
 
