@@ -852,13 +852,17 @@ show_popup_menu(widget_popup_menu_cb handler)
 
 	menu = (*handler)();
 	if (menu) {
+		int button;
+		
 		/*
 		 * NOTE: Use 0 as button here even though 3 was probably pressed
 		 * (right-click) because under Gtk+ 1.2 the popup will otherwise
-		 * immediately disappear on button release.
+		 * immediately disappear on button release if we use 3. Button 1
+		 * does not work well for Gtk+ 2.x, thus use 0 then.
 		 */
+		button = GTK_CHECK_VERSION(2,0,0) ? 0 : 1;
 		gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
-			0, gtk_get_current_event_time());
+			button, gtk_get_current_event_time());
 		return TRUE;
 	} else {
 		return FALSE;
