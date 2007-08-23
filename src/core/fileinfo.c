@@ -2999,6 +2999,11 @@ file_info_retrieve(void)
 			if (dfi && dfi->guid != fi->guid)		/* They're atoms... */
 				upgraded = TRUE;
 
+			/*
+			 * NOTE: The tigertree data is only stored in the trailer, not
+			 * in the common "fileinfo" file. Therefore, it MUST be fetched
+			 * from "dfi".
+			 */
 			if (dfi && dfi->tigertree.leaves && NULL == fi->tigertree.leaves) {
 				file_info_got_tigertree(fi,
 					dfi->tigertree.leaves, dfi->tigertree.num_leaves);
