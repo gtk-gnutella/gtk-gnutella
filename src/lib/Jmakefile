@@ -78,6 +78,7 @@ LSRC = \
 	tigertree.c \
 	tm.c \
 	url.c \
+	url_factory.c \
 	urn.c \
 	utf8.c \
 	vendors.c \
