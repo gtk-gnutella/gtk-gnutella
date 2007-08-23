@@ -889,6 +889,8 @@ parq_download_add_header(
 	gchar *buf, size_t len, size_t *rw, struct download *d)
 {
 	gboolean has_ipv4 = FALSE;
+	host_addr_t addr;
+	guint16 port;
 
 	g_assert(d != NULL);
 	g_assert(rw != NULL);
@@ -921,17 +923,24 @@ parq_download_add_header(
 	if (GNET_PROPERTY(is_firewalled))
 		return;
 	
-	if (host_is_valid(listen_addr(), socket_listen_port())) {
+	port = socket_listen_port();
+	if (0 == port)
+		return;
+
+	addr = listen_addr();
+	if (is_host_addr(addr)) {
 		has_ipv4 = TRUE;
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
-			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
+			  host_addr_port_to_string(addr, port));
 	}
-	if (host_is_valid(listen_addr6(), socket_listen_port())) {
+
+	addr = listen_addr6();
+	if (is_host_addr(addr)) {
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 		  	  "%s%s\r\n",
 			  has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
-			  host_addr_port_to_string(listen_addr(), socket_listen_port()));
+			  host_addr_port_to_string(addr, port));
 	}
 }
 
