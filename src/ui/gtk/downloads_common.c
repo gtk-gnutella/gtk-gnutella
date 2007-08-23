@@ -214,7 +214,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	}
 
 	if (info->sha1) {
-		fi_gui_append_detail(_("URLs"), NULL);
+		fi_gui_append_detail(_("External metadata"), NULL);	/* Separator */
 		fi_gui_append_detail(_("Bitzi URL"), url_for_bitzi_lookup(info->sha1));
 		fi_gui_append_detail(_("ShareMonkey URL"),
 			url_for_sharemonkey_lookup(info->sha1, info->filename, info->size));
