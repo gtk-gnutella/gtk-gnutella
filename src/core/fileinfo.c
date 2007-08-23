@@ -4131,10 +4131,9 @@ again:
 	if (fi->flags & FI_F_TRANSIENT)
 		goto done;
 
-	if (DL_CHUNK_DONE == status)
-		file_info_fd_store_binary(d->file_info, d->out_file, FALSE);
-	else if (fi->dirty)
+	if (fi->dirty || DL_CHUNK_DONE == status) {
 		file_info_store_binary(d->file_info);
+	}
 
 done:
 	file_info_changed(fi);
