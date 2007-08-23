@@ -55,6 +55,8 @@ url_for_bitzi_lookup(const struct sha1 *sha1)
 	static const gchar base_url[] = "http://bitzi.com/lookup/";
 	static gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
 
+	g_assert(sha1);
+
 	concat_strings(buf, sizeof buf, base_url, sha1_base32(sha1), (void *) 0);
 
 	return buf;
@@ -73,6 +75,9 @@ url_for_sharemonkey_lookup(
 	static const gchar campaign[] = "cid=25";
 	const gchar *file_basename;
 	gchar *escaped;
+
+	g_assert(sha1);
+	g_assert(filename);
 
 	file_basename = filepath_basename(filename);
 	escaped = url_escape(file_basename);
