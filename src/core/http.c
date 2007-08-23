@@ -663,7 +663,7 @@ http_url_parse(const gchar *url, guint16 *port, const gchar **host,
 	}
 
 	if (GNET_PROPERTY(http_debug) > 4) {
-		g_message("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
+		g_message("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"",
 			url, *host, (unsigned) *port, *path);
 	}
 
