@@ -56,7 +56,7 @@ void file_info_scandir(const gchar *dir);
 gint file_info_has_trailer(const gchar *path);
 void file_info_retrieve(void);
 void file_info_store(void);
-void file_info_store_binary(fileinfo_t *fi);
+void file_info_store_binary(fileinfo_t *fi, gboolean force);
 void file_info_store_if_dirty(void);
 void file_info_set_discard(fileinfo_t *fi, gboolean state);
 enum dl_chunk_status file_info_find_hole(

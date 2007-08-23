@@ -153,7 +153,7 @@ enum dl_file_info_field {
 	NUM_FILE_INFO_FIELDS
 };
 
-#define FI_STORE_DELAY		10	/**< Max delay (secs) for flushing fileinfo */
+#define FI_STORE_DELAY		60	/**< Max delay (secs) for flushing fileinfo */
 #define FI_TRAILER_INT		6	/**< Amount of guint32 in the trailer */
 
 /**
@@ -621,22 +621,13 @@ file_info_check_chunklist(const fileinfo_t *fi, gboolean assertion)
  * have elapsed since last flush to disk.
  */
 static void
-file_info_fd_store_binary(fileinfo_t *fi,
-	const struct file_object *fo, gboolean force)
+file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 {
 	const GSList *fclist, *sl;
 	guint32 checksum = 0;
 	guint32 length;
 
 	g_assert(fo);
-
-	/*
-	 * Don't flush unless required or some delay occurred since last flush.
-	 */
-
-	if (!force && delta_time(fi->stamp, fi->last_flush) < FI_STORE_DELAY)
-		return;
-	fi->last_flush = fi->stamp;
 
 	TBUF_INIT_WRITE();
 	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
@@ -730,11 +721,20 @@ file_info_fd_store_binary(fileinfo_t *fi,
  * output file, if it exists.
  */
 void
-file_info_store_binary(fileinfo_t *fi)
+file_info_store_binary(fileinfo_t *fi, gboolean force)
 {
 	struct file_object *fo;
 
 	g_assert(!(fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING)));
+
+	/*
+	 * Don't flush unless required or some delay occurred since last flush.
+	 */
+
+	fi->stamp = tm_time();
+	if (!force && delta_time(fi->stamp, fi->last_flush) < FI_STORE_DELAY)
+		return;
+	fi->last_flush = fi->stamp;
 
 	/*
 	 * We don't create the file if it does not already exist.  That way,
@@ -750,8 +750,7 @@ file_info_store_binary(fileinfo_t *fi)
 		}
 	}
 	if (fo) {
-		fi->stamp = tm_time();
-		file_info_fd_store_binary(fi, fo, TRUE);	/* Force flush */
+		file_info_fd_store_binary(fi, fo);
 		file_object_release(&fo);
 	}
 }
@@ -1848,8 +1847,9 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
 		return;
 
-	if (fi->use_swarming && fi->dirty)
-		file_info_store_binary(fi);
+	if (fi->use_swarming && fi->dirty) {
+		file_info_store_binary(fi, FALSE);
+	}
 
 	/*
 	 * Keep entries for incomplete or not even started downloads so that the
@@ -3004,7 +3004,7 @@ file_info_retrieve(void)
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s\"", fi->pathname);
 					upgraded = FALSE;			/* No need to flush twice */
-					file_info_store_binary(fi);			/* Create metainfo */
+					file_info_store_binary(fi, TRUE);	/* Create metainfo */
 				} else {
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
 					if (fi->done > 0) {
@@ -3024,7 +3024,7 @@ file_info_retrieve(void)
 				fi_free(dfi);
 				dfi = NULL;
 				upgraded = FALSE;				/* No need to flush twice */
-				file_info_store_binary(fi);		/* Resync metainfo */
+				file_info_store_binary(fi, TRUE);/* Resync metainfo */
 			} else {
 				g_assert(dfi->generation == fi->generation);
 				fi_free(dfi);
@@ -3052,7 +3052,7 @@ file_info_retrieve(void)
 
 			if (upgraded) {
 				g_warning("flushing upgraded metainfo in \"%s\"", fi->pathname);
-				file_info_store_binary(fi);		/* Resync metainfo */
+				file_info_store_binary(fi, TRUE);		/* Resync metainfo */
 			}
 
 			file_info_merge_adjacent(fi);
@@ -4131,8 +4131,8 @@ again:
 	if (fi->flags & FI_F_TRANSIENT)
 		goto done;
 
-	if (fi->dirty || DL_CHUNK_DONE == status) {
-		file_info_store_binary(d->file_info);
+	if (fi->dirty) {
+		file_info_store_binary(d->file_info, FALSE);
 	}
 
 done:

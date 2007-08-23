@@ -10458,7 +10458,7 @@ download_verify_sha1_done(struct download *d,
 	fi->cha1 = atom_sha1_get(sha1);
 	fi->cha1_elapsed = elapsed;
 	fi->cha1_hashed = fi->size;
-	file_info_store_binary(fi);		/* Resync with computed SHA1 */
+	file_info_store_binary(fi, TRUE);		/* Resync with computed SHA1 */
 	file_info_changed(fi);
 
 	download_set_status(d, GTA_DL_VERIFIED);
