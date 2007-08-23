@@ -40,20 +40,19 @@ RCSID("$Id$")
 #include "url_factory.h"
 #include "misc.h"
 #include "url.h"
-#include "override.h"		/* Must be the last header included */
 
-static gchar tmp[2048];
+#include "override.h"		/* Must be the last header included */
 
 /**
  * Create a Bitzi lookup URL based on the SHA1.
  *
- * @return pointer to static data containing the bitzi URL
+ * @return pointer to static data containing the bitzi URL, NULL on error.
  */
-const gchar *
+const char *
 url_for_bitzi_lookup(const struct sha1 *sha1)
 {
-	static const gchar base_url[] = "http://bitzi.com/lookup/";
-	static gchar buf[sizeof base_url + SHA1_BASE32_SIZE];
+	static const char base_url[] = "http://bitzi.com/lookup/";
+	static char buf[sizeof base_url + SHA1_BASE32_SIZE];
 
 	g_return_val_if_fail(sha1, NULL);
 
@@ -65,16 +64,17 @@ url_for_bitzi_lookup(const struct sha1 *sha1)
 /**
  * Create a ShareMonkey lookup URL.
  *
- * @return pointer to static data containing the ShareMonkey URL
+ * @return pointer to static data containing the ShareMonkey URL, NULL on error.
  */
-const gchar *
+const char *
 url_for_sharemonkey_lookup(
-	const struct sha1 *sha1, const gchar *filename, filesize_t size)
+	const struct sha1 *sha1, const char *filename, filesize_t size)
 {
-	static const gchar base_url[] = "http://match.sharemonkey.com/?";
-	static const gchar campaign[] = "cid=25";
-	const gchar *file_basename;
-	gchar *escaped;
+	static const char base_url[] = "http://match.sharemonkey.com/?";
+	static const char campaign[] = "cid=25";
+	static char url[2048];
+	const char *file_basename;
+	char *escaped;
 
 	g_return_val_if_fail(sha1, NULL);
 	g_return_val_if_fail(filename, NULL);
@@ -82,7 +82,7 @@ url_for_sharemonkey_lookup(
 	file_basename = filepath_basename(filename);
 	escaped = url_escape(file_basename);
 
-	concat_strings(tmp, sizeof tmp,
+	concat_strings(url, sizeof url,
 		base_url, campaign,
 		"&n=", escaped,
 		"&s=", filesize_to_string(size),
@@ -92,7 +92,7 @@ url_for_sharemonkey_lookup(
 	if (escaped != file_basename)
 		G_FREE_NULL(escaped);
 
-	return tmp;
+	return url;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
