@@ -1445,6 +1445,7 @@ search_gui_check_alt_locs(record_t *rc)
 					blank_guid,
 					NULL,	/* hostname */
 					rc->sha1,
+					NULL,	/* TTH */
 					rc->results_set->stamp,
 					NULL,	/* fileinfo */
 					NULL,	/* proxies */
@@ -1482,6 +1483,7 @@ search_gui_download(record_t *rc)
 		rs->guid,
 		rs->hostname,
 		rc->sha1,
+		NULL,	/* TTH */
 		rs->stamp,
 		NULL,	/* fileinfo */
 		rs->proxies,

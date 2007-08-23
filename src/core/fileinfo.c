@@ -5168,6 +5168,7 @@ file_info_try_to_swarm_with(
 		blank_guid,
 		NULL,	/* hostname */
 		sha1,
+		NULL,	/* TTH */
 		tm_time(),
 		fi,
 		NULL,	/* proxies */

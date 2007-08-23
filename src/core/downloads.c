@@ -4440,6 +4440,7 @@ create_download(
 	const gchar *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
+	const struct tth *tth,
 	time_t stamp,
 	fileinfo_t *file_info,
 	const gnet_host_vec_t *proxies,
@@ -4454,9 +4455,13 @@ create_download(
 	fileinfo_t *fi;
 
 	g_assert(host_addr_initialized(addr));
-	g_return_val_if_fail(
-		NULL == sha1 || NULL == file_info || sha1_eq(file_info->sha1, sha1),
-		NULL);
+
+	if (file_info) {
+		g_return_val_if_fail(!sha1 || sha1_eq(file_info->sha1, sha1), NULL);
+		if (file_info->tth) {
+			g_return_val_if_fail(!tth || tth_eq(file_info->tth, tth), NULL);
+		}
+	}
 
 #if 0 /* This is helpful when you have a transparent proxy running */
 		/* XXX make that configurable from the GUI --RAM, 2005-08-15 */
@@ -4537,6 +4542,15 @@ create_download(
 	if (NULL == fi || (FI_F_SEEDING & fi->flags)) {
 		atom_str_free_null(&file_name);
 		return NULL;
+	}
+
+	if (tth) {
+		if (NULL == fi->tth) {
+			file_info_got_tth(fi, tth);
+		} else if (!tth_eq(tth, fi->tth)) {
+			atom_str_free_null(&file_name);
+			return NULL;
+		}
 	}
 
 	/*
@@ -4703,6 +4717,7 @@ download_auto_new(const gchar *file_name,
 	const gchar *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
+	const struct tth *tth,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
@@ -4753,6 +4768,7 @@ download_auto_new(const gchar *file_name,
 		guid,
 		hostname,
 		sha1,
+		tth,
 		stamp,
 		fi,
 		proxies,
@@ -4955,6 +4971,7 @@ struct download_request {
 	const gchar *hostname;
 	const gchar *filename;
 	const struct sha1 *sha1;
+	const struct tth *tth;
 	const gchar *uri;
 	const gchar *parq_id;
 	gnet_host_vec_t *proxies;
@@ -4975,6 +4992,7 @@ download_request_new(
 	const gchar *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
+	const struct tth *tth,
 	time_t stamp,
 	fileinfo_t *fi,
 	guint32 flags,
@@ -4997,6 +5015,7 @@ download_request_new(
 	req->guid = guid ? atom_guid_get(guid) : NULL;
 	req->hostname = hostname ? atom_str_get(hostname) : NULL;
 	req->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
+	req->tth = tth ? atom_tth_get(tth) : NULL;
 	req->stamp = stamp;
 	if (fi) {
 		req->fi = fi;
@@ -5022,6 +5041,7 @@ download_request_free(struct download_request **req_ptr)
 	*req_ptr = NULL;
 	atom_str_free_null(&req->uri);
 	atom_sha1_free_null(&req->sha1);
+	atom_tth_free_null(&req->tth);
 	atom_str_free_null(&req->hostname);
 	atom_str_free_null(&req->filename);
 	atom_str_free_null(&req->parq_id);
@@ -5060,6 +5080,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 			req->guid,
 			req->hostname,
 			req->sha1,
+			req->tth,
 			req->stamp,
 			req->fi,
 			NULL,
@@ -5094,6 +5115,7 @@ download_new(const gchar *filename,
 	const gchar *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
+	const struct tth *tth,
 	time_t stamp,
 	fileinfo_t *fi,
 	const gnet_host_vec_t *proxies,
@@ -5111,6 +5133,7 @@ download_new(const gchar *filename,
 				guid,
 				hostname,
 				sha1,
+				tth,
 				stamp,
 				fi,
 				flags,
@@ -5121,7 +5144,7 @@ download_new(const gchar *filename,
 		return TRUE;
 	}
 	return NULL != create_download(filename, uri, size, addr,
-					port, guid, hostname, sha1, stamp,
+					port, guid, hostname, sha1, tth, stamp,
 					fi, proxies, flags, parq_id, TRUE);
 }
 
@@ -5133,7 +5156,11 @@ void
 download_orphan_new(const gchar *filename, filesize_t size,
 	const struct sha1 *sha1, fileinfo_t *fi)
 {
-	time_t ntime = fi->ntime;
+	time_t ntime;
+   
+	file_info_check(fi);
+
+	ntime = fi->ntime;
 	(void) create_download(filename,
 			NULL,	/* uri */
 		   	size,
@@ -5142,6 +5169,7 @@ download_orphan_new(const gchar *filename, filesize_t size,
 			NULL,	/* GUID */
 			NULL,	/* hostname*/
 			sha1,
+			NULL,	/* TTH */
 			tm_time(),
 			fi,
 			NULL,	/* proxies */
@@ -10106,7 +10134,7 @@ download_retrieve_old(FILE *f)
 
 		d = create_download(d_name, NULL, d_size, d_addr,
 				d_port, d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
-				1, NULL, NULL, flags, parq_id, TRUE);
+				NULL, 1, NULL, NULL, flags, parq_id, TRUE);
 
 		if (d == NULL) {
 			if (GNET_PROPERTY(download_debug))
@@ -11207,7 +11235,9 @@ download_browse_start(const gchar *hostname,
 
 	d = create_download(filepath_basename(fi->pathname), "/",
 			0, addr, port, guid, hostname,
-			NULL, tm_time(), fi, proxies, flags, NULL, FALSE);
+			NULL, /* SHA-1 */
+			NULL, /* TTH */
+			tm_time(), fi, proxies, flags, NULL, FALSE);
 
 	if (d) {
 		gnet_host_t host;
@@ -11338,6 +11368,7 @@ download_thex_start(const gchar *uri,
 			guid,
 			hostname,
 			NULL,		/* SHA-1 */
+			NULL,		/* TTH */
 			tm_time(),
 			fi,
 			proxies,
@@ -11584,6 +11615,7 @@ download_handle_magnet(const gchar *url)
 				guid,
 				ms->hostname,
 				res->sha1,
+				res->tth,
 				tm_time(),
 				NULL,
 				proxy,
@@ -11616,6 +11648,7 @@ download_handle_magnet(const gchar *url)
 				blank_guid,
 				NULL,	/* hostname */
 				res->sha1,
+				res->tth,
 				tm_time(),
 				NULL,	/* proxy */
 				NULL,	/* fileinfo */

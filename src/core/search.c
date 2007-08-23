@@ -3264,6 +3264,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 				blank_guid,
 				NULL,	/* hostname */
 				rc->sha1,
+				NULL,	/* TTH */
 				rs->stamp,
 				fi,
 				NULL,	/* proxies */
@@ -3344,6 +3345,7 @@ search_check_results_set(gnet_results_set_t *rs)
 				rs->guid,
 			   	rs->hostname,
 				rc->sha1,
+				NULL,	/* TTH */
 				rs->stamp,
 				fi,
 				rs->proxies,
