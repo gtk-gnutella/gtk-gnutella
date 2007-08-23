@@ -5415,21 +5415,15 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 	s->finished		  = 0 != FILE_INFO_FINISHED(fi);
+	s->complete		  = 0 != FILE_INFO_COMPLETE(fi);
 
-	s->copied 		  = 0;
-	s->sha1_hashed    = FALSE;
-	s->sha1_matched   = FALSE;
+	s->copied 		  = s->complete ? fi->copied : 0;
+	s->has_sha1 	  = NULL != fi->sha1;
+	s->sha1_hashed    = s->complete && s->has_sha1 && 0 != fi->cha1_hashed;
+	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
 
-	if (FILE_INFO_COMPLETE(fi)) {
-		s->has_sha1 = fi->sha1 != NULL;
-		if (fi->sha1) {
-			s->sha1_hashed = 0 != fi->cha1_hashed;
-			s->sha1_matched = fi->sha1 == fi->cha1;		/* Atoms... */
-		}
-		if (fi->copied) {
-			s->copied = fi->copied;
-		}
-	}
+	s->verifying	  = s->complete && !s->finished &&
+						s->has_sha1 && !s->sha1_hashed;
 }
 
 /**
@@ -6182,39 +6176,38 @@ file_info_status_to_string(const gnet_fi_status_t *status)
         gm_snprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
 		return buf;
-    } else if (status->size && status->done == status->size) {
+    } else if (status->seeding) {
+		return _("Seeding");
+    } else if (status->verifying) {
+		if (status->sha1_hashed > 0) {
+			gm_snprintf(buf, sizeof buf,
+					"%s %s (%.1f%%)", _("Computing SHA1"),
+					short_size(status->sha1_hashed,
+						GNET_PROPERTY(display_metric_units)),
+					(1.0 * status->sha1_hashed / status->size) * 100.0);
+			return buf;
+		} else {
+			return _("Waiting for SHA1 check");
+		}
+ 	} else if (status->complete) {
 		static gchar msg_sha1[1024], msg_copy[1024];
 
+		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			if (status->sha1_hashed == status->size) {
-				gm_snprintf(msg_sha1, sizeof msg_sha1, "SHA1 %s",
+			gm_snprintf(msg_sha1, sizeof msg_sha1, "SHA1 %s",
 					status->sha1_matched ? _("OK") : _("failed"));
-			} else if (status->sha1_hashed == 0) {
-				gm_snprintf(msg_sha1, sizeof msg_sha1,
-						"%s", _("Waiting for SHA1 check"));
-			} else {
-				gm_snprintf(msg_sha1, sizeof msg_sha1,
-						"%s %s (%.1f%%)", _("Computing SHA1"),
-						short_size(status->sha1_hashed,
-							GNET_PROPERTY(display_metric_units)),
-						(1.0 * status->sha1_hashed / status->size) * 100.0);
-			}
-		} else {
-			msg_sha1[0] = '\0';
 		}
 
+		msg_copy[0] = '\0';
 		if (status->copied > 0 && status->copied < status->size) {
 			gm_snprintf(msg_copy, sizeof msg_copy,
 				"; %s %s (%.1f%%)", _("Moving"),
 				short_size(status->copied,
 					GNET_PROPERTY(display_metric_units)),
 				(1.0 * status->copied / status->size) * 100.0);
-		} else {
-			msg_copy[0] = '\0';
 		}
 
-		concat_strings(buf, sizeof buf,
-			status->seeding ? _("Seeding") : _("Finished"),
+		concat_strings(buf, sizeof buf, _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
 			(void *) 0);
