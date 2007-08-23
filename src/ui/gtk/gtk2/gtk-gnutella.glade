@@ -163,7 +163,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2176">
+	<widget class="GtkImage" id="image2224">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -183,7 +183,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2177">
+	<widget class="GtkImage" id="image2225">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -203,7 +203,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2178">
+	<widget class="GtkImage" id="image2226">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-zoom-in</property>
 	  <property name="icon_size">1</property>
@@ -223,117 +223,13 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2179">
+	<widget class="GtkImage" id="image2227">
 	  <property name="visible">True</property>
 	  <property name="pixbuf">magnet.16x16.png</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
 	  <property name="xpad">0</property>
 	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkSeparatorMenuItem" id="separator20">
-      <property name="visible">True</property>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_drop">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Drop results...</property>
-      <property name="use_underline">True</property>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image2180">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-delete</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-
-      <child>
-	<widget class="GtkMenu" id="popup_search_drop_menu">
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_name">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with the same name</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_sha1">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with the same urn:sha1</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_host">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">from the same host</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_drop_global">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Globally drop results...</property>
-      <property name="use_underline">True</property>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image2181">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-delete</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-
-      <child>
-	<widget class="GtkMenu" id="popup_search_drop_global_menu">
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_name_global">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with the same name</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_sha1_global">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">with the same urn:sha1</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
-
-	  <child>
-	    <widget class="GtkMenuItem" id="popup_search_drop_host_global">
-	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">from the same host</property>
-	      <property name="use_underline">True</property>
-	    </widget>
-	  </child>
 	</widget>
       </child>
     </widget>
@@ -352,7 +248,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2182">
+	<widget class="GtkImage" id="image2228">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -372,7 +268,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2183">
+	<widget class="GtkImage" id="image2229">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-media-forward</property>
 	  <property name="icon_size">1</property>
@@ -392,7 +288,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2184">
+	<widget class="GtkImage" id="image2230">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -418,7 +314,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2185">
+	<widget class="GtkImage" id="image2231">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -438,7 +334,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2186">
+	<widget class="GtkImage" id="image2232">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -464,7 +360,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image2187">
+	<widget class="GtkImage" id="image2233">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-properties</property>
 	  <property name="icon_size">1</property>
@@ -485,7 +381,7 @@
 	      <property name="use_underline">True</property>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image2188">
+		<widget class="GtkImage" id="image2234">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-index</property>
 		  <property name="icon_size">1</property>
@@ -505,7 +401,7 @@
 	      <property name="use_underline">True</property>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image2189">
+		<widget class="GtkImage" id="image2235">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-preferences</property>
 		  <property name="icon_size">1</property>
@@ -525,7 +421,7 @@
 	      <property name="use_underline">True</property>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image2190">
+		<widget class="GtkImage" id="image2236">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-media-record</property>
 		  <property name="icon_size">1</property>

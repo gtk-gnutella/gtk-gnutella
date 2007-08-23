@@ -148,12 +148,6 @@ void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 gboolean on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
 			void *user_data);
 
-void on_popup_search_drop_name_activate(GtkMenuItem *, void *user_data);
-void on_popup_search_drop_sha1_activate(GtkMenuItem *, void *user_data);
-void on_popup_search_drop_host_activate(GtkMenuItem *, void *user_data);
-void on_popup_search_drop_name_global_activate(GtkMenuItem *, void *user_data);
-void on_popup_search_drop_sha1_global_activate(GtkMenuItem *, void *user_data);
-void on_popup_search_drop_host_global_activate(GtkMenuItem *, void *user_data);
 void on_popup_search_metadata_activate(GtkMenuItem *, void *user_data);
 void on_popup_search_copy_magnet_activate(GtkMenuItem *, void *user_data);
 

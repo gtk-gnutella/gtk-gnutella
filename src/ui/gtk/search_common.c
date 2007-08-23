@@ -3253,8 +3253,6 @@ search_gui_refresh_popup(void)
 		const gchar *name;
 		gboolean local;
 	} menu[] = {
-		{	"popup_search_drop",		FALSE },
-		{	"popup_search_drop_global", FALSE },
 		{	"popup_search_metadata",	TRUE },
 		{	"popup_search_browse_host",	FALSE },
 		{	"popup_search_download",	FALSE },
@@ -4027,12 +4025,6 @@ search_gui_signals_init(void)
 	ON_ACTIVATE(toggle_tabs);
 
 	/* TODO: Code not merged yet */
-	ON_ACTIVATE(drop_name);
-	ON_ACTIVATE(drop_sha1);
-	ON_ACTIVATE(drop_host);
-	ON_ACTIVATE(drop_host_global);
-	ON_ACTIVATE(drop_name_global);
-	ON_ACTIVATE(drop_sha1_global);
 	ON_ACTIVATE(metadata);
 	ON_ACTIVATE(copy_magnet);
 
