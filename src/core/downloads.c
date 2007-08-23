@@ -9072,8 +9072,7 @@ picked:
 	 */
 
 	if (sha1 != NULL) {
-		gint wmesh;
-		gint sha1_room;
+		size_t sha1_room, wmesh;
 
 		/*
 		 * Leave room for the urn:sha1: possibly, plus final 2 * "\r\n".
@@ -9090,10 +9089,10 @@ picked:
 		 * them.  Use minimal HTTP with those.
 		 */
 
-		if (d->server->attrs & DLS_A_MINIMAL_HTTP)
+		if (d->server->attrs & DLS_A_MINIMAL_HTTP) {
 			wmesh = 0;
-		else {
-			gint altloc_size = sizeof(dl_tmp) - (rw + sha1_room);
+		} else {
+			size_t altloc_size = sizeof(dl_tmp) - (rw + sha1_room);
 			fileinfo_t *file_info = d->file_info;
 
 			/*
@@ -9117,6 +9116,12 @@ picked:
 			}
 
 			/*
+			 * We have HEAD Pings and the alt-loc management isn't the
+			 * greatest, thus keep the HTTP overhead at reasonable limit.
+			 */
+			altloc_size = MIN(altloc_size, 1024);
+
+			/*
 			 * Emit X-Alt: and possibly X-Nalt: headers.
 			 */
 
@@ -9126,7 +9131,7 @@ picked:
 				file_info, TRUE);
 			rw += wmesh;
 
-			d->last_dmesh = (guint32) tm_time();
+			d->last_dmesh = tm_time();
 		}
 
 		/*

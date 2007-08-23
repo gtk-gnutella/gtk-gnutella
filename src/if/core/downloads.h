@@ -214,7 +214,7 @@ struct download {
 	const struct sha1 *sha1;	/**< Known SHA1 (binary atom), NULL if none */
 	const gchar *uri;			/**< Uri if not dealing with regular gnutella
 								 **< file download */
-	guint32 last_dmesh;			/**< Time when last download mesh was sent */
+	time_t last_dmesh;			/**< Time when last download mesh was sent */
 
 	GSList *ranges;				/**< PFSP -- known list of ranges, or NULL */
 	filesize_t ranges_size;		/**< PFSP -- size of remotely available data */
