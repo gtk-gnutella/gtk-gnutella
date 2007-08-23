@@ -52,8 +52,6 @@ extern const gboolean gui_property_variable_download_filter_regex_case;
 extern const gboolean gui_property_variable_search_hide_downloaded;
 extern const guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS];
 extern const gboolean gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS];
-extern const guint32  gui_property_variable_dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUMNS];
-extern const gboolean gui_property_variable_dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS];
 extern const guint32  gui_property_variable_file_info_col_widths[FILEINFO_VISIBLE_COLUMNS];
 extern const gboolean gui_property_variable_file_info_col_visible[FILEINFO_VISIBLE_COLUMNS];
 extern const guint32  gui_property_variable_sources_col_widths[SOURCES_VISIBLE_COLUMNS];

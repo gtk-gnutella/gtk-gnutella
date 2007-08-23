@@ -67,6 +67,8 @@ struct fileinfo_data {
 	filesize_t done;
 	filesize_t uploaded;
 
+	time_t	   created;
+
 	gnet_fi_t handle;
 
 	unsigned actively_queued;
@@ -184,12 +186,9 @@ fi_gui_set_details(const struct fileinfo_data *file)
     info = guc_fi_get_info(file->handle);
 	g_return_if_fail(info);
 
-	fi_gui_append_detail(_("Filename"),
-		lazy_filename_to_ui_string(info->filename));
-	fi_gui_append_detail(_("Size"),
-		nice_size(info->size, show_metric_units()));
-	fi_gui_append_detail(_("Created"),
-		timestamp_to_string(info->ctime));
+	fi_gui_append_detail(_("Filename"), file->filename);
+	fi_gui_append_detail(_("Size"), nice_size(file->size, show_metric_units()));
+	fi_gui_append_detail(_("Created"), timestamp_to_string(file->created));
 
 	fi_gui_append_detail(_("SHA-1"),
 		info->sha1
@@ -1163,6 +1162,7 @@ fi_gui_file_set_filename(struct fileinfo_data *file)
     g_return_if_fail(info);
 
 	file->filename = atom_str_get(lazy_filename_to_ui_string(info->filename));
+	file->created = info->ctime;
 	guc_fi_free_info(info);
 	fi_gui_file_update_matched(file);
 }
@@ -1670,6 +1670,9 @@ fileinfo_data_cmp(const struct fileinfo_data *a, const struct fileinfo_data *b,
 			}
 		}
 		break;
+	case c_fi_created:
+		ret = delta_time(a->created, b->created);
+		break;
 	case c_fi_num:
 		g_assert_not_reached();
 	}
@@ -1769,6 +1772,9 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 			text = buf;
 		}
 		break;
+	case c_fi_created:
+		text = timestamp_to_string(file->created);
+		break;
 	case c_fi_num:
 		g_assert_not_reached();
 	}
@@ -1817,6 +1823,7 @@ fi_gui_files_column_title(int column)
 	case c_fi_done:		return _("Downloaded");
 	case c_fi_uploaded:	return _("Uploaded");
 	case c_fi_sources:	return _("Sources");
+	case c_fi_created:	return _("Created");
 	case c_fi_status:	return _("Status");
 	case c_fi_num:		break;
 	}
@@ -1838,6 +1845,7 @@ fi_gui_files_column_justify_right(int column)
 	case c_fi_done:		return TRUE;
 	case c_fi_uploaded:	return TRUE;
 	case c_fi_sources:	return FALSE;
+	case c_fi_created:	return FALSE;
 	case c_fi_status:	return FALSE;
 	case c_fi_num:		break;
 	}

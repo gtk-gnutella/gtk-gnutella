@@ -108,22 +108,6 @@ enum c_src {
 	c_src_num
 };
 
-/*
- * Queue table columns.
- */
-
-enum {
-    c_queue_filename,
-    c_queue_host,
-    c_queue_loc,
-    c_queue_size,
-    c_queue_server,
-    c_queue_status,
-
-#define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_num)
-	c_queue_num
-};
-
 /**
  * Fileinfo table columns.
  */
@@ -136,6 +120,7 @@ enum c_fi {
 	c_fi_done,
 	c_fi_uploaded,
 	c_fi_sources,
+	c_fi_created,
 	c_fi_status,
 
 #define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_num)
