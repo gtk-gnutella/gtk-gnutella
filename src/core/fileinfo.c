@@ -2999,6 +2999,11 @@ file_info_retrieve(void)
 			if (dfi && dfi->guid != fi->guid)		/* They're atoms... */
 				upgraded = TRUE;
 
+			if (dfi && dfi->tigertree.leaves && NULL == fi->tigertree.leaves) {
+				file_info_got_tigertree(fi,
+					dfi->tigertree.leaves, dfi->tigertree.num_leaves);
+			}
+
 			if (NULL == dfi) {
 				if (is_regular(fi->pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
