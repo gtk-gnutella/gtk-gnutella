@@ -67,6 +67,9 @@ typedef struct gnet_fi_info {
 	const struct tth *tth;		/**< TTH (binary) of the file or NULL */
 	GSList *aliases;			/**< List of aliases (NULL if none) */
 	filesize_t  size;
+	filesize_t	tth_slice_size;
+	size_t 		tth_num_leaves;
+	time_t		ctime;
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {

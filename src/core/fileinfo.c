@@ -5331,6 +5331,10 @@ fi_get_info(gnet_fi_t fih)
 	info->size = fi->size;
 	info->aliases = NULL;
 
+	info->tth_slice_size = fi->tigertree.slice_size;
+	info->tth_num_leaves = fi->tigertree.num_leaves;
+	info->ctime		  	 = fi->ctime;
+
 	if (fi->alias) {
 		GSList *sl;
 
@@ -5397,6 +5401,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
     s->active_queued  = fi->active_queued;
     s->passive_queued = fi->passive_queued;
+
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 	s->finished		  = 0 != FILE_INFO_FINISHED(fi);

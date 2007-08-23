@@ -188,14 +188,32 @@ fi_gui_set_details(const struct fileinfo_data *file)
 		lazy_filename_to_ui_string(info->filename));
 	fi_gui_append_detail(_("Size"),
 		nice_size(info->size, show_metric_units()));
+	fi_gui_append_detail(_("Created"),
+		timestamp_to_string(info->ctime));
+
 	fi_gui_append_detail(_("SHA-1"),
-		info->sha1 ? sha1_to_urn_string(info->sha1) : NULL);
+		info->sha1
+			? sha1_to_urn_string(info->sha1)
+			: _("Not available"));
+
 	fi_gui_append_detail(_("Bitprint"),
 		info->sha1 && info->tth
 			? bitprint_to_urn_string(info->sha1, info->tth)
-			: NULL);
+			: _("Not available"));
 
-    guc_fi_free_info(info);
+	if (info->tth_num_leaves > 0) {
+		char buf[1024];
+
+		gm_snprintf(buf, sizeof buf,
+			_("%lu leaf hashes providing a granularity of %s"),
+			(unsigned long) info->tth_num_leaves,
+			nice_size(info->tth_slice_size, show_metric_units()));
+   		fi_gui_append_detail(_("Tigertree"), buf);
+	} else {
+   		fi_gui_append_detail(_("Tigertree"), _("Not available"));
+	}
+
+ 	guc_fi_free_info(info);
 }
 
 const char *
