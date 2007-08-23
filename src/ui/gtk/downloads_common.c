@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/url_factory.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
@@ -210,6 +211,13 @@ fi_gui_set_details(const struct fileinfo_data *file)
    		fi_gui_append_detail(_("Tigertree"), buf);
 	} else {
    		fi_gui_append_detail(_("Tigertree"), _("Not available"));
+	}
+
+	if (info->sha1) {
+		fi_gui_append_detail(_("URLs"), NULL);
+		fi_gui_append_detail(_("Bitzi URL"), url_for_bitzi_lookup(info->sha1));
+		fi_gui_append_detail(_("ShareMonkey URL"),
+			url_for_sharemonkey_lookup(info->sha1, info->filename, info->size));
 	}
 
  	guc_fi_free_info(info);
