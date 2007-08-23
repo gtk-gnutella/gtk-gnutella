@@ -421,46 +421,6 @@ search_cb_collect_ctree_data(GtkCTree *ctree,
 	return g_slist_reverse(data_list);
 }
 
-static void
-add_filter(struct filter *filter, GFunc filter_add_func, GCompareFunc cfn)
-{
-    GList *node_list;
-    GSList *data_list = NULL;
-    search_t *search;
-
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-
-    gtk_clist_freeze(GTK_CLIST(search->tree));
-
-	node_list = g_list_copy(GTK_CLIST(search->tree)->selection);
-	data_list = search_cb_collect_ctree_data(GTK_CTREE(search->tree),
-					node_list, cfn);
-
-    g_slist_foreach(data_list, filter_add_func, filter);
-
-    gtk_clist_thaw(GTK_CLIST(search->tree));
-	g_slist_free(data_list);
-	g_list_free(node_list);
-}
-
-static void
-search_add_filter(GFunc filter_add_func, GCompareFunc cfn)
-{
-    search_t *search;
-	
-    search = search_gui_get_current_search();
-    g_assert(search != NULL);
-	
-	add_filter(search->filter, filter_add_func, cfn);
-}
-
-static void
-global_add_filter(GFunc filter_add_func, GCompareFunc cfn)
-{
-	add_filter(filter_get_global_pre(), filter_add_func, cfn);
-}
-
 /**
  * Queue a bitzi queries from the search context menu
  */
