@@ -51,11 +51,11 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static GSList *sl_whitelist = NULL;
+static GSList *sl_whitelist;
 
 static const gchar whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
-static gchar *whitelist_path = NULL;
+static gchar *whitelist_path;
 
 static guint
 addr_default_mask(const host_addr_t addr)
@@ -319,7 +319,10 @@ whitelist_connect(void)
         if (node_is_connected(item->addr, item->port, TRUE))
             continue;
 
-        if (delta_time(now, item->last_try) > WHITELIST_RETRY_DELAY) {
+        if (
+			!item->last_try ||
+			delta_time(now, item->last_try) > WHITELIST_RETRY_DELAY
+		) {
             item->last_try = now;
             node_add(item->addr, item->port, 0);
             num++;
