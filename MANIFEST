@@ -602,6 +602,8 @@ src/lib/tm.c
 src/lib/tm.h
 src/lib/url.c
 src/lib/url.h
+src/lib/url_factory.c
+src/lib/url_factory.h
 src/lib/urn.c
 src/lib/urn.h
 src/lib/utf8.c
