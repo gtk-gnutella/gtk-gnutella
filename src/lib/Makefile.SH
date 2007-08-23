@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 13646 2007-05-14 19:29:41Z rmanfredi $
+# $X-Id: Jmakefile 14666 2007-08-23 17:25:38Z rmanfredi $
 
 LSRC = \
 	socket.c \
@@ -134,6 +134,7 @@ LSRC = \
 	tigertree.c \
 	tm.c \
 	url.c \
+	url_factory.c \
 	urn.c \
 	utf8.c \
 	vendors.c \
@@ -195,6 +196,7 @@ LOBJ = \
 	tigertree.o \
 	tm.o \
 	url.o \
+	url_factory.o \
 	urn.o \
 	utf8.o \
 	vendors.o \
