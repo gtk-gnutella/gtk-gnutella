@@ -84,14 +84,16 @@ typedef struct gnet_fi_status {
 	guint32  	active_queued;
 	guint32  	passive_queued;
 
+	unsigned	paused:1;
+
 	/*
 	 * The following are set only when file has been completely downloaded.
 	 */
 
-	gboolean	has_sha1;
-	gboolean	sha1_matched;
-	gboolean	paused;
-	gboolean	seeding;
+	unsigned	has_sha1:1;
+	unsigned 	sha1_matched:1;
+	unsigned	seeding:1;
+	unsigned	finished:1;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {

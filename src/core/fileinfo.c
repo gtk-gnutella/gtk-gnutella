@@ -5399,19 +5399,21 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->passive_queued = fi->passive_queued;
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
+	s->finished		  = 0 != FILE_INFO_FINISHED(fi);
 
 	s->copied 		  = 0;
 	s->sha1_hashed    = FALSE;
 	s->sha1_matched   = FALSE;
 
-	if (fi->done == fi->size) {
+	if (FILE_INFO_COMPLETE(fi)) {
 		s->has_sha1 = fi->sha1 != NULL;
 		if (fi->sha1) {
-			s->sha1_hashed = fi->cha1_hashed;
+			s->sha1_hashed = 0 != fi->cha1_hashed;
 			s->sha1_matched = fi->sha1 == fi->cha1;		/* Atoms... */
 		}
-		if (fi->copied)
+		if (fi->copied) {
 			s->copied = fi->copied;
+		}
 	}
 }
 

@@ -78,6 +78,7 @@ struct fileinfo_data {
 	unsigned paused:1;
 	unsigned hashed:1;
 	unsigned seeding:1;
+	unsigned finished:1;
 
 	unsigned matched:1;
 
@@ -1102,15 +1103,15 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 		return 0 == file->recv_count
 			&& (file->actively_queued || file->passively_queued);
 	case nb_downloads_page_finished:
-		return file->size && file->done == file->size;
+		return file->finished;
 	case nb_downloads_page_seeding:
 		return file->seeding;
 	case nb_downloads_page_paused:
 		return file->paused;
 	case nb_downloads_page_incomplete:
-		return file->done != file->size || 0 == file->size;
+		return !file->finished;
 	case nb_downloads_page_orphaned:
-		return 0 == file->life_count && file->done != file->size;
+		return 0 == file->life_count && !file->finished;
 	case nb_downloads_page_all:
 		return TRUE;
 	case nb_downloads_page_num:
@@ -1171,6 +1172,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->paused = 0 != status.paused;
 	file->hashed = 0 != status.sha1_hashed;
 	file->seeding = 0 != status.seeding;
+	file->finished = 0 != status.finished;
 
 	G_FREE_NULL(file->status);	
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
