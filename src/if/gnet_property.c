@@ -1227,7 +1227,7 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[28].name = "upload_bandwith_min_percentage";
+    gnet_property->props[28].name = "ul_usage_min_percentage";
     gnet_property->props[28].desc = _("Unless this percentage or more of the upload bandwidth is used, allow additional upload slots.");
     gnet_property->props[28].ev_changed = event_new("ul_usage_min_percentage_changed");
     gnet_property->props[28].save = TRUE;
@@ -2583,7 +2583,7 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[97].name = "upload_bandwith_usage_enabled";
+    gnet_property->props[97].name = "bw_ul_usage_enabled";
     gnet_property->props[97].desc = _("Enable dynamic upload slots allocation.");
     gnet_property->props[97].ev_changed = event_new("bw_ul_usage_enabled_changed");
     gnet_property->props[97].save = TRUE;

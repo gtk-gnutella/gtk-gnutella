@@ -332,7 +332,6 @@ prop = {
 
 prop = {
     name = "ul_usage_min_percentage";
-    cfgvar = "upload_bandwith_min_percentage";
     desc = "Unless this percentage or more of the upload bandwidth is used, "
            "allow additional upload slots.";
     type = guint32;
@@ -1114,7 +1113,6 @@ prop = {
 
 prop = {
     name = "bw_ul_usage_enabled";
-    cfgvar = "upload_bandwith_usage_enabled";
     desc = "Enable dynamic upload slots allocation.";
     type = boolean;
     data = {
