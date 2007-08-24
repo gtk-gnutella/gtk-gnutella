@@ -5417,14 +5417,12 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);
 	s->finished		  = 0 != FILE_INFO_FINISHED(fi);
 	s->complete		  = 0 != FILE_INFO_COMPLETE(fi);
+	s->has_sha1 	  = NULL != fi->sha1;
+	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
+	s->verifying	  = s->complete && !s->finished && s->has_sha1 && !fi->cha1;
 
 	s->copied 		  = s->complete ? fi->copied : 0;
-	s->has_sha1 	  = NULL != fi->sha1;
-	s->sha1_hashed    = s->complete && s->has_sha1 && 0 != fi->cha1_hashed;
-	s->sha1_matched   = s->complete && s->has_sha1 && fi->sha1 == fi->cha1;
-
-	s->verifying	  = s->complete && !s->finished &&
-						s->has_sha1 && !s->sha1_hashed;
+	s->sha1_hashed    = s->complete ? fi->cha1_hashed : 0;
 }
 
 /**
