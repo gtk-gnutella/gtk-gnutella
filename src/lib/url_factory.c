@@ -86,7 +86,7 @@ url_for_sharemonkey_lookup(
 		base_url, campaign,
 		"&n=", escaped,
 		"&s=", filesize_to_string(size),
-		"&sha=", sha1_base32(sha1),
+		"&sha1=", sha1_base32(sha1),
 		(void *) 0);
 
 	if (escaped != file_basename)
