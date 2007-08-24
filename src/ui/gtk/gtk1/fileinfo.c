@@ -607,10 +607,10 @@ fi_gui_init(void)
 		gui_main_window_lookup("clist_download_sources"));
 
 	{
-		GtkCList *clist;
-		
-		clist = GTK_CLIST(gui_main_window_lookup("clist_download_details"));
+		GtkCList *clist = clist_download_details;
+
 		gtk_clist_set_selection_mode(clist, GTK_SELECTION_EXTENDED);
+		gtk_clist_set_column_auto_resize(clist, 0, TRUE);
 		gui_signal_connect(clist,
 			"key-press-event", on_details_key_press_event, NULL);
 
@@ -625,11 +625,8 @@ fi_gui_init(void)
 	}
 
 	{
-		GtkCList *clist;
+		GtkCList *clist = clist_download_sources;
 		unsigned i;
-
-		clist = GTK_CLIST(gui_main_window_lookup("clist_download_sources"));
-		clist_download_sources = clist;
 
 		clist_restore_widths(clist, PROP_SOURCES_COL_WIDTHS);
 		gtk_clist_column_titles_passive(clist);
