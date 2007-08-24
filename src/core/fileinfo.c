@@ -754,6 +754,58 @@ file_info_store_binary(fileinfo_t *fi, gboolean force)
 		file_object_release(&fo);
 	}
 }
+
+void
+file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_check(fi);
+	
+	g_return_if_fail(tth);
+	g_return_if_fail(NULL == fi->tth);
+	fi->tth = atom_tth_get(tth);
+}
+
+static void
+fi_tigertree_free(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
+
+	if (fi->tigertree.leaves) {
+		wfree(fi->tigertree.leaves,
+				fi->tigertree.num_leaves * sizeof fi->tigertree.leaves[0]);
+		fi->tigertree.slice_size = 0;
+		fi->tigertree.num_leaves = 0;
+		fi->tigertree.leaves = NULL;
+	}
+}
+
+void
+file_info_got_tigertree(fileinfo_t *fi,
+	const struct tth *leaves, size_t num_leaves)
+{
+	filesize_t num_blocks;
+
+	file_info_check(fi);
+	
+	g_return_if_fail(leaves);
+	g_return_if_fail(num_leaves > 0);
+	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
+	g_return_if_fail(fi->file_size_known);
+
+	fi_tigertree_free(fi);
+	fi->tigertree.leaves = wcopy(leaves, num_leaves * sizeof leaves[0]);
+	fi->tigertree.num_leaves = num_leaves;
+
+	fi->tigertree.slice_size = TTH_BLOCKSIZE;
+	num_blocks = tt_block_count(fi->size);
+	while (num_blocks > fi->tigertree.num_leaves) {
+		num_blocks = (num_blocks + 1) / 2;
+		fi->tigertree.slice_size *= 2;
+	}
+	fi->dirty = TRUE;
+}
+
 /**
  * Record that the fileinfo trailer has been stripped.
  */
@@ -772,6 +824,8 @@ file_info_strip_trailer(fileinfo_t *fi, const gchar *pathname)
 	file_info_check(fi);
 	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
 	
+	fi_tigertree_free(fi);
+
 	if (-1 == truncate(pathname, fi->size)) {
 		if (ENOENT == errno) {
 			file_info_mark_stripped(fi);
@@ -853,21 +907,6 @@ file_info_chunklist_free(fileinfo_t *fi)
 	}
 	g_slist_free(fi->chunklist);
 	fi->chunklist = NULL;
-}
-
-static void
-fi_tigertree_free(fileinfo_t *fi)
-{
-	file_info_check(fi);
-	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
-
-	if (fi->tigertree.leaves) {
-		wfree(fi->tigertree.leaves,
-				fi->tigertree.num_leaves * sizeof fi->tigertree.leaves[0]);
-		fi->tigertree.slice_size = 0;
-		fi->tigertree.num_leaves = 0;
-		fi->tigertree.leaves = NULL;
-	}
 }
 
 /**
@@ -2565,42 +2604,6 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	}
 
 	return TRUE;
-}
-
-void
-file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
-{
-	file_info_check(fi);
-	
-	g_return_if_fail(tth);
-	g_return_if_fail(NULL == fi->tth);
-	fi->tth = atom_tth_get(tth);
-}
-
-void
-file_info_got_tigertree(fileinfo_t *fi,
-	const struct tth *leaves, size_t num_leaves)
-{
-	filesize_t num_blocks;
-
-	file_info_check(fi);
-	
-	g_return_if_fail(leaves);
-	g_return_if_fail(num_leaves > 0);
-	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
-	g_return_if_fail(fi->file_size_known);
-
-	fi_tigertree_free(fi);
-	fi->tigertree.leaves = wcopy(leaves, num_leaves * sizeof leaves[0]);
-	fi->tigertree.num_leaves = num_leaves;
-
-	fi->tigertree.slice_size = TTH_BLOCKSIZE;
-	num_blocks = tt_block_count(fi->size);
-	while (num_blocks > fi->tigertree.num_leaves) {
-		num_blocks = (num_blocks + 1) / 2;
-		fi->tigertree.slice_size *= 2;
-	}
-	fi->dirty = TRUE;
 }
 
 /**
