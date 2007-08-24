@@ -1160,7 +1160,7 @@ cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
 	addr = listen_addr6();
 	addr_v6_buf[0] = '\0';
 	if (is_host_addr(addr)) {
-		/* Older clients only node X-Node, so if we don't have an IPv4
+		/* Older clients only know X-Node, so if we don't have an IPv4
 		 * address, use the X-Node header instead. If they don't support
 		 * IPv6 we lose anyway.
 		 */
