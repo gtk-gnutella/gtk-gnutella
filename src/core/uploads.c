@@ -3211,14 +3211,10 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 			u->is_followup = FALSE;
 		}
 
-		if (parq_upload_queue_full(u)) {
-			upload_error_remove(u, 503, "Queue full");
-			return;
-		}
-
 		u->parq_ul = parq_upload_get(u, header, replaced_stalling);
 		if (u->parq_ul == NULL) {
 			upload_error_remove(u, 503,
+				parq_upload_queue_full(u) ? "Queue full" :
 				"Another connection is still active");
 			return;
 		}
