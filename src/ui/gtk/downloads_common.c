@@ -1600,10 +1600,10 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 	unsigned v;
 
 	v = file->progress; /* NOTE: 0...10000, keep the following above! */
-	v |= (unsigned) file->life_count > 0								<< 16;
+	v |= (unsigned) (file->life_count > 0)								<< 16;
 	v |= (unsigned) file->paused										<< 17;
 	v |= (unsigned) (file->actively_queued || file->passively_queued)	<< 18;
-	v |= (unsigned) file->recv_count > 0 								<< 19;
+	v |= (unsigned) (file->recv_count > 0) 								<< 19;
 	v |= (unsigned) file->complete										<< 20;
 	v |= (unsigned) file->finished										<< 21;
 	v |= (unsigned) file->seeding										<< 22;
