@@ -259,8 +259,8 @@ prop = {
 
 prop = {
     name = "listen_port";
-    desc = "Local TCP port gtk-gnutella is listening on. Your ISP may "
-			"block or choke traffic on TCP port 6346 so it would be a "
+    desc = "Local TCP port gtk-gnutella is listening on. ISPs often "
+			"block or throttle traffic on TCP port 6346 so it is a "
 			"good idea to change it to something in the range of "
 			"1024-65535.  Don't forget to update your firewall port "
 			"forwarding / opening, as necessary.  Note that by default, "

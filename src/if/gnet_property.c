@@ -1125,7 +1125,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[22].name = "listen_port";
-    gnet_property->props[22].desc = _("Local TCP port gtk-gnutella is listening on. Your ISP may block or choke traffic on TCP port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
+    gnet_property->props[22].desc = _("Local TCP port gtk-gnutella is listening on. ISPs often block or throttle traffic on TCP port 6346 so it is a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
     gnet_property->props[22].ev_changed = event_new("listen_port_changed");
     gnet_property->props[22].save = TRUE;
     gnet_property->props[22].vector_size = 1;
