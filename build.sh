@@ -7,6 +7,9 @@
 # Bail out on unexpected errors
 set -e
 
+# This is not interactive
+exec </dev/null
+
 build_bindir=
 build_configure_only=
 build_datadir=
