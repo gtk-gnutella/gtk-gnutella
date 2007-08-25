@@ -2537,15 +2537,19 @@ get_file_to_upload_from_urn(struct upload *u, header_t *header,
 
 	upload_collect_locations(u, &sha1, header);
 
-	sf = shared_file_by_sha1(&sha1);
-
 	/*
-	 * Try to compute a suitable filename for the SHA1 digest.
-	 * If we are sharing the file, then we have its filename.  Otherwise,
-	 * it may be some file we were sharing via PFS and which has been
-	 * completed, in which case we know about it via the "ignore database".
-	 *		--RAM, 2005-08-01
+	 * Note: if the file was fully completed and is being seeded, then
+	 * "sf" will not be NULL and we'll get a proper filename in the traces
+	 * and in the GUI.
+	 *
+	 * However, if the file is purged (i.e. no longer seeded), or if we
+	 * restart GTKG, we won't be able to associate a filename with a SHA1
+	 * N2R request.  We use the information stored in the "done.sha1" file
+	 * to be able to map the SHA1 back to a filename.
+	 *		--RAM, 2005-08-01, 2007-08-25
 	 */
+
+	sf = shared_file_by_sha1(&sha1);
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
 		const gchar *filename;
