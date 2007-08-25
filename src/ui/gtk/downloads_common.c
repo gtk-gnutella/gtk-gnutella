@@ -79,9 +79,9 @@ struct fileinfo_data {
 	unsigned recv_rate;
 
 	unsigned paused:1;
-	unsigned hashed:1;
-	unsigned seeding:1;
+	unsigned complete:1;
 	unsigned finished:1;
+	unsigned seeding:1;
 
 	unsigned matched:1;
 
@@ -1196,9 +1196,9 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->progress = file->size ? filesize_per_10000(file->size, file->done) : 0;
 
 	file->paused = 0 != status.paused;
-	file->hashed = 0 != status.sha1_hashed;
-	file->seeding = 0 != status.seeding;
+	file->complete = 0 != status.complete;
 	file->finished = 0 != status.finished;
+	file->seeding = 0 != status.seeding;
 
 	G_FREE_NULL(file->status);	
 	file->status = g_strdup(guc_file_info_status_to_string(&status));
@@ -1599,26 +1599,14 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 {
 	unsigned v;
 
-	/*
-	 * Progress is computed in 10000s and must stay < 2^10 = 1024 for
-	 * the sorting value computation. Hence it's put back in 1000s.
-	 */
-
-	v = file->progress / 10;		/* Back under 1024 */
-	v |= file->seeding
-			? (1 << 16) : 0;
-	v |= file->hashed
-			? (1 << 15) : 0;
-	v |= file->size > 0 && file->size == file->done
-			? (1 << 14) : 0;
-	v |= file->recv_count > 0
-			? (1 << 13) : 0;
-	v |= (file->actively_queued || file->passively_queued)
-			? (1 << 12) : 0;
-	v |= file->paused
-			? (1 << 11) : 0;
-	v |= file->life_count > 0
-			? (1 << 10) : 0;
+	v = file->progress; /* NOTE: 0...10000, keep the following above! */
+	v |= (unsigned) file->life_count > 0								<< 16;
+	v |= (unsigned) file->paused										<< 17;
+	v |= (unsigned) (file->actively_queued || file->passively_queued)	<< 18;
+	v |= (unsigned) file->recv_count > 0 								<< 19;
+	v |= (unsigned) file->complete										<< 20;
+	v |= (unsigned) file->finished										<< 21;
+	v |= (unsigned) file->seeding										<< 22;
 	return v;
 }
 
