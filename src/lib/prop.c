@@ -27,6 +27,7 @@
 
 RCSID("$Id$")
 
+#include "getdate.h"
 #include "prop.h"
 #include "file.h"
 #include "misc.h"
@@ -101,59 +102,12 @@ prop_parse_timestamp(const gchar *name,
 	if (*ep != '-') {
 		t = u;	/* For backwards-compatibility accept raw numeric timestamps */
 	} else {
-		static const struct tm zero_tm;
-		struct tm tm;
-
-		t = 0;
-		tm = zero_tm;
-		tm.tm_year = u - 1900;
-
-		/* Parse an ISO 8601 date of the variant YYYY-MM-DD HH:MM:SS */
-		if (!error && *ep == '-') {
-			guint16 v;
-			
-			str = &ep[1];
-			v = parse_uint16(str, &ep, 10, &error);
-			if (!error && (v < 1 || v > 12))
-				error = ERANGE;
-			else
-				tm.tm_mon = v - 1; 
+		t = date2time(str, tm_time());
+		if ((time_t)-1 == t) {
+			error = EINVAL;
 		}
-		if (!error && *ep == '-') {
-			guint16 v;
-
-			str = &ep[1];
-			v = parse_uint16(str, &ep, 10, &error);
-			if (!error && (v < 1 || v > 31))
-				error = ERANGE;
-			else
-				tm.tm_mday = v;
-		}
-		if (!error && (is_ascii_blank(*ep) || *ep == 'T')) {
-			str = skip_ascii_blanks(ep);
-			if (str[0] == 'T')
-				str++;
-			tm.tm_hour = parse_uint16(str, &ep, 10, &error);
-			if (!error && tm.tm_hour > 23)
-				error = ERANGE;
-		}
-		if (!error && *ep == ':') {
-			str = &ep[1];
-			tm.tm_min = parse_uint16(str, &ep, 10, &error);
-			if (!error && tm.tm_min > 59)
-				error = ERANGE;
-		}
-		if (!error && *ep == ':') {
-			str = &ep[1];
-			tm.tm_sec = parse_uint16(str, &ep, 10, &error);
-			if (!error && tm.tm_sec > 61)
-				error = ERANGE;
-		}
-		if (!error) {
-			errno = 0;
-			if ((time_t) -1 == (t = mktime(&tm)))
-				error = errno ? errno : EINVAL;
-		}
+		ep = strchr(str, ',');
+		ep = ep ? ep : strchr(str, '\0');
 	}
 	
 	if (!error && vec)
@@ -1718,7 +1672,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 				if (t != p->data.timestamp.def[i])
 					defaultvalue = FALSE;
 
-				timestamp_to_string_buf(t, sbuf, sizeof sbuf);
+				timestamp_utc_to_string_buf(t, sbuf, sizeof sbuf);
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1728,11 +1682,13 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		case PROP_TYPE_STRING:
 			val = g_strdup(*p->data.string.value);
 			if (
-				(val == NULL && *p->data.string.def != NULL) ||
-				(val != NULL && *p->data.string.def == NULL) ||
+				val != *p->data.string.def &&
+				NULL != val &&
+				NULL != *p->data.string.def &&
 				0 != strcmp(val, *p->data.string.def)
-			)
+			) {
 				defaultvalue = FALSE;
+			}
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_IP:
