@@ -578,7 +578,6 @@ slow_main_timer(time_t now)
 	prune_page_cache();
 
 	node_slow_timer(now);
-	ignore_timer(now);
 }
 
 /**
