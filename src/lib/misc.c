@@ -1731,6 +1731,25 @@ base32_tth(const gchar *base32)
 }
 
 /**
+ * Convert time to ISO 8601 date plus time, e.g. "2002-06-09 14:54:42Z".
+ *
+ * @return The length of the created string.
+ */
+size_t
+timestamp_utc_to_string_buf(time_t date, gchar *dst, size_t size)
+{
+	const struct tm *tm = localtime(&date);
+	size_t len;
+
+	g_assert(size > 0);
+	tm = gmtime(&date);
+	len = strftime(dst, size, "%Y-%m-%d %H:%M:%SZ", tm);
+	dst[len] = '\0';		/* Be really sure */
+
+	return len;
+}
+
+/**
  * Convert time to an ISO 8601 timestamp, e.g. "2002-06-09T14:54:42Z".
  *
  * @return pointer to static data.
@@ -1739,13 +1758,7 @@ const gchar *
 timestamp_utc_to_string(time_t date)
 {
 	static gchar buf[80];
-	const struct tm *tm;
-	size_t len;
-
-	tm = gmtime(&date);
-	len = strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%SZ", tm);
-	buf[len] = '\0';		/* Be really sure */
-
+	timestamp_utc_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
 
