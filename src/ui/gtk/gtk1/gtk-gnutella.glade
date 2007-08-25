@@ -7709,12 +7709,6 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>separator13</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
     <name>separator14</name>
     <right_justify>False</right_justify>
   </widget>

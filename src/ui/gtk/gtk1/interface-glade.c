@@ -5770,7 +5770,6 @@ create_popup_search (void)
   GtkWidget *popup_search_metadata;
   GtkWidget *popup_search_browse_host;
   GtkWidget *popup_search_copy_magnet;
-  GtkWidget *separator13;
   GtkWidget *separator14;
   GtkWidget *popup_search_stop;
   GtkWidget *popup_search_resume;
@@ -5822,15 +5821,6 @@ create_popup_search (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_copy_magnet);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_copy_magnet);
-
-  separator13 = gtk_menu_item_new ();
-  gtk_widget_set_name (separator13, "separator13");
-  gtk_widget_ref (separator13);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator13", separator13,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (separator13);
-  gtk_container_add (GTK_CONTAINER (popup_search), separator13);
-  gtk_widget_set_sensitive (separator13, FALSE);
 
   separator14 = gtk_menu_item_new ();
   gtk_widget_set_name (separator14, "separator14");
