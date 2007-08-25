@@ -38,15 +38,16 @@ struct download;
  */
 
 enum {
-	FI_F_SUSPEND	= 1 << 0,	/**< Marked "suspended" new downloads */
-	FI_F_DISCARD	= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
-	FI_F_TRANSIENT	= 1 << 2,	/**< Don't persist to disk */
-	FI_F_MARK		= 1 << 3,	/**< Marked during traversal */
-	FI_F_PAUSED		= 1 << 4,	/**< Paused by user */
-	FI_F_SEEDING	= 1 << 5,	/**< Seeding after successful download */
-	FI_F_STRIPPED	= 1 << 6,	/**< Fileinfo trailler has been stripped */
-	FI_F_FETCH_TTH	= 1 << 7,	/**< Tigertree data is being downloaded */
-	FI_F_UNLINKED	= 1 << 8	/**< Removed from disk */
+	FI_F_SUSPEND		= 1 << 0,	/**< Marked "suspended" new downloads */
+	FI_F_DISCARD		= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
+	FI_F_TRANSIENT		= 1 << 2,	/**< Don't persist to disk */
+	FI_F_MARK			= 1 << 3,	/**< Marked during traversal */
+	FI_F_PAUSED			= 1 << 4,	/**< Paused by user */
+	FI_F_SEEDING		= 1 << 5,	/**< Seeding after successful download */
+	FI_F_STRIPPED		= 1 << 6,	/**< Fileinfo trailler has been stripped */
+	FI_F_FETCH_TTH		= 1 << 7,	/**< Tigertree data is being downloaded */
+	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
+	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
 };
 
 /**
@@ -178,6 +179,20 @@ file_info_check(const fileinfo_t *fi)
 	g_assert(fi->refcount >= 0);
 	g_assert(fi->pathname);
 	g_assert(is_absolute_path(fi->pathname));
+}
+
+static inline void
+fi_mark_bad_bitprint(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	fi->flags |= FI_F_BAD_BITPRINT;
+}
+
+static inline gboolean
+fi_has_bad_bitprint(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	return (fi->flags & FI_F_BAD_BITPRINT) ? TRUE : FALSE;
 }
 
 static inline gboolean

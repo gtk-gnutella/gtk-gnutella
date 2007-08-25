@@ -10200,11 +10200,14 @@ download_moved_with_bad_sha1(struct download *d)
 	queue_suspend_downloads_with_file(d->file_info, FALSE);
 
 	/*
-	 * If it was a faked download, we cannot resume.
+	 * If it was a faked download or has a bad bitprint, we cannot resume.
 	 */
 
-	if (is_faked_download(d)) {
-		g_message("SHA1 mismatch for \"%s\", and cannot restart download",
+	if (d->file_info && fi_has_bad_bitprint(d->file_info)) {
+		g_warning("SHA1 mismatch for \"%s\" but TTH was good, cannot restart",
+			download_basename(d));
+	} else if (is_faked_download(d)) {
+		g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
 			download_basename(d));
 	} else {
 		g_message("SHA1 mismatch for \"%s\", will be restarting download",
@@ -10513,10 +10516,11 @@ download_verify_sha1_done(struct download *d,
 }
 
 /**
- * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
+ * When a SHA1 or TTH system error occurs during verification, we can't
+ * determine whether the SHA1 or TTH is good or bad.
  */
 static void
-download_verify_sha1_error(struct download *d)
+download_verify_status_unknown(struct download *d, const gchar *what)
 {
 	fileinfo_t *fi;
 	const gchar *name;
@@ -10528,11 +10532,12 @@ download_verify_sha1_error(struct download *d)
 	name = file_info_readable_filename(fi);
 
 	if (0 == strcmp(filepath_basename(fi->pathname), name))
-		g_message("error while verifying SHA1 for \"%s\"", fi->pathname);
+		g_message("error while verifying %s for \"%s\"", what, fi->pathname);
 	else {
-		g_message("error while verifying SHA1 for \"%s\" (aka \"%s\")",
-			fi->pathname, name);
+		g_message("error while verifying %s for \"%s\" (aka \"%s\")",
+			what, fi->pathname, name);
     }
+
 
 	download_set_status(d, GTA_DL_VERIFIED);
 	fi->cha1_hashed = fi->size;
@@ -10542,6 +10547,15 @@ download_verify_sha1_error(struct download *d)
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, GNET_PROPERTY(move_file_path), DL_UNKN_EXT);
 	fi_src_status_changed(d);	
+}
+
+/**
+ * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
+ */
+static void
+download_verify_sha1_error(struct download *d)
+{
+	download_verify_status_unknown(d, "SHA1");
 }
 
 static gboolean
@@ -10664,7 +10678,20 @@ download_verify_tigertree_done(struct download *d,
 			filepath_basename(fi->pathname));
 
 		download_set_status(d, GTA_DL_VERIFIED);
-		file_info_changed(fi);
+
+		/*
+		 * FIXME:
+		 * This is far from perfect: if we come here, the SHA1 checking
+		 * was a mismatch, yet the TTH was good. We ought to flag this
+		 * bitprint (combination of SHA1 and TTH) as invalid before retrying.
+		 * But currently, what we do is move the download to the "bad" dir
+		 * and we leave it there, stopping the download.
+		 *		--RAM, 2007-08-25
+		 */
+
+		fi_mark_bad_bitprint(fi);
+		download_move(d, GNET_PROPERTY(bad_file_path), DL_BAD_EXT);
+		/* Will go to download_moved_with_bad_sha1() upon completion */
 	} else {
 		filesize_t offset, slice_size;
 		size_t i;
@@ -10712,13 +10739,7 @@ download_verify_tigertree_done(struct download *d,
 static void
 download_verify_tigertree_error(struct download *d)
 {
-	fileinfo_t *fi;
-
-	download_check(d);
-	g_assert(d->status == GTA_DL_VERIFYING);
-
-	fi = d->file_info;
-	file_info_changed(fi);
+	download_verify_status_unknown(d, "TTH");
 }
 
 static gboolean
