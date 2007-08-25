@@ -9396,8 +9396,10 @@ create_dlg_quit (void)
   GtkWidget *frame51;
   GtkWidget *label295;
   GtkWidget *dialog_action_area1;
-  GtkWidget *button_really_quit;
+  guint button_abort_quit_key;
   GtkWidget *button_abort_quit;
+  guint button_really_quit_key;
+  GtkWidget *button_really_quit;
   GtkAccelGroup *accel_group;
 
   accel_group = gtk_accel_group_new ();
@@ -9440,19 +9442,11 @@ create_dlg_quit (void)
   gtk_widget_show (dialog_action_area1);
   gtk_container_set_border_width (GTK_CONTAINER (dialog_action_area1), 10);
 
-  button_really_quit = gtk_button_new_with_label (_("Yes"));
-  gtk_widget_set_name (button_really_quit, "button_really_quit");
-  gtk_widget_ref (button_really_quit);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_quit), "button_really_quit", button_really_quit,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_really_quit);
-  gtk_box_pack_start (GTK_BOX (dialog_action_area1), button_really_quit, TRUE, TRUE, 0);
-  GTK_WIDGET_SET_FLAGS (button_really_quit, GTK_CAN_DEFAULT);
-  gtk_widget_add_accelerator (button_really_quit, "clicked", accel_group,
-                              GDK_y, GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
-
-  button_abort_quit = gtk_button_new_with_label (_("No, take me back!"));
+  button_abort_quit = gtk_button_new_with_label ("");
+  button_abort_quit_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_abort_quit)->child),
+                                   _("_Cancel"));
+  gtk_widget_add_accelerator (button_abort_quit, "clicked", accel_group,
+                              button_abort_quit_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_set_name (button_abort_quit, "button_abort_quit");
   gtk_widget_ref (button_abort_quit);
   gtk_object_set_data_full (GTK_OBJECT (dlg_quit), "button_abort_quit", button_abort_quit,
@@ -9464,14 +9458,30 @@ create_dlg_quit (void)
                               GDK_n, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
+  button_really_quit = gtk_button_new_with_label ("");
+  button_really_quit_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_really_quit)->child),
+                                   _("_Quit"));
+  gtk_widget_add_accelerator (button_really_quit, "clicked", accel_group,
+                              button_really_quit_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (button_really_quit, "button_really_quit");
+  gtk_widget_ref (button_really_quit);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_quit), "button_really_quit", button_really_quit,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_really_quit);
+  gtk_box_pack_start (GTK_BOX (dialog_action_area1), button_really_quit, TRUE, TRUE, 0);
+  GTK_WIDGET_SET_FLAGS (button_really_quit, GTK_CAN_DEFAULT);
+  gtk_widget_add_accelerator (button_really_quit, "clicked", accel_group,
+                              GDK_y, GDK_CONTROL_MASK,
+                              GTK_ACCEL_VISIBLE);
+
   gtk_signal_connect (GTK_OBJECT (dlg_quit), "delete_event",
                       GTK_SIGNAL_FUNC (on_dlg_quit_delete_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_really_quit), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_really_quit_clicked),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_abort_quit), "clicked",
                       GTK_SIGNAL_FUNC (on_button_abort_quit_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_really_quit), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_really_quit_clicked),
                       NULL);
 
   gtk_widget_grab_default (button_abort_quit);
