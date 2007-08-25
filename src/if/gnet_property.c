@@ -670,6 +670,12 @@ static const guint32  gnet_property_variable_browse_host_max_results_default = 1
 gchar   gnet_property_variable_session_id[GUID_RAW_SIZE];
 static const gchar   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
 
+time_t  gnet_property_variable_latest_svn_release_date     = 0;
+static const time_t  gnet_property_variable_latest_svn_release_date_default = 0;
+guint32  gnet_property_variable_latest_svn_release_revision     = 0;
+static const guint32  gnet_property_variable_latest_svn_release_revision_default = 0;
+gchar   *gnet_property_variable_latest_svn_release_signature     = "";
+static const gchar   *gnet_property_variable_latest_svn_release_signature_default = "";
 
 static prop_set_t *gnet_property;
 
@@ -6389,6 +6395,67 @@ gnet_prop_init(void) {
     /* Type specific data: */
     gnet_property->props[299].type               = PROP_TYPE_STORAGE;
     gnet_property->props[299].data.storage.value = gnet_property_variable_session_id;
+
+
+    /*
+     * PROP_LATEST_SVN_RELEASE_DATE:
+     *
+     * General data:
+     */
+    gnet_property->props[300].name = "latest_svn_release_date";
+    gnet_property->props[300].desc = _("Date of the latest SVN release.");
+    gnet_property->props[300].ev_changed = event_new("latest_svn_release_date_changed");
+    gnet_property->props[300].save = TRUE;
+    gnet_property->props[300].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[300].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[300].data.timestamp.def   = (void *) &gnet_property_variable_latest_svn_release_date_default;
+    gnet_property->props[300].data.timestamp.value = (void *) &gnet_property_variable_latest_svn_release_date;
+    gnet_property->props[300].data.timestamp.choices = NULL;
+    gnet_property->props[300].data.timestamp.max   = (time_t) ((1U << 31) - 1);
+    gnet_property->props[300].data.timestamp.min   = 0x0000000000000000;
+
+
+    /*
+     * PROP_LATEST_SVN_RELEASE_REVISION:
+     *
+     * General data:
+     */
+    gnet_property->props[301].name = "latest_svn_release_revision";
+    gnet_property->props[301].desc = _("Revision of the latest SVN release.");
+    gnet_property->props[301].ev_changed = event_new("latest_svn_release_revision_changed");
+    gnet_property->props[301].save = TRUE;
+    gnet_property->props[301].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[301].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[301].data.guint32.def   = (void *) &gnet_property_variable_latest_svn_release_revision_default;
+    gnet_property->props[301].data.guint32.value = (void *) &gnet_property_variable_latest_svn_release_revision;
+    gnet_property->props[301].data.guint32.choices = NULL;
+    gnet_property->props[301].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[301].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LATEST_SVN_RELEASE_SIGNATURE:
+     *
+     * General data:
+     */
+    gnet_property->props[302].name = "latest_svn_release_signature";
+    gnet_property->props[302].desc = _("Signature of the latest SVN release notification.");
+    gnet_property->props[302].ev_changed = event_new("latest_svn_release_signature_changed");
+    gnet_property->props[302].save = TRUE;
+    gnet_property->props[302].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[302].type               = PROP_TYPE_STRING;
+    gnet_property->props[302].data.string.def    = (void *) &gnet_property_variable_latest_svn_release_signature_default;
+    gnet_property->props[302].data.string.value  = (void *) &gnet_property_variable_latest_svn_release_signature;
+    if (gnet_property->props[302].data.string.def) {
+        *gnet_property->props[302].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[302].data.string.def));
+    }
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

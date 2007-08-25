@@ -36,6 +36,7 @@ RCSID("$Id$")
 
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
 #endif /* HAS_GNUTLS */
 
 #include "tls_common.h"
@@ -45,6 +46,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 #include "if/core/settings.h"
 
+#include "lib/array.h"
 #include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
@@ -912,6 +914,86 @@ tls_version_string(void)
 	return buf;
 }
 
+static gnutls_x509_crt_t
+svn_release_notify_certificate(void)
+{
+	static const char certificate[] =
+"-----BEGIN CERTIFICATE-----\n"
+"MIIBKTCB1qADAgECAgEAMAsGCSqGSIb3DQEBBTAAMB4XDTA3MDgyNTA0MjIxMVoX\n"
+"DTA4MDgyNDA0MjIxNVowADBZMAsGCSqGSIb3DQEBAQNKADBHAkCpadMxWZWWzcV7\n"
+"Mu66wzBuQ8AkanGspm7ImdRKOlo55V3uBlSob9N/GFlzZ9kG6kS169wgdK2vNQwR\n"
+"5jOMeIMbAgMBAAGjQDA+MAwGA1UdEwEB/wQCMAAwDwYDVR0PAQH/BAUDAweAADAd\n"
+"BgNVHQ4EFgQU8pP/Zgh/K6N0zVHMEs2VIWZNjUIwCwYJKoZIhvcNAQEFA0EAO6ld\n"
+"1NFx0QRBCHE+BUaCX3tuRC0a7HRq8UEqhcKgW7Xk3nkGUNXTcSSo7wu+jpePUsw8\n"
+"njFhJCXeDIcR7jzNCA==\n"
+"-----END CERTIFICATE-----\n";
+	static gboolean initialized;
+	static gnutls_x509_crt_t cert;
+
+	if (!initialized) {
+		gnutls_datum_t cert_data;
+		int error;
+
+		initialized = TRUE;
+		error = gnutls_x509_crt_init(&cert);
+		if (error) {
+			g_warning("gnutls_x509_crt_init() failed: %s",
+					gnutls_strerror(error));
+			cert = NULL;
+			return NULL;
+		}
+
+		cert_data.data = (void *) certificate;
+		cert_data.size = CONST_STRLEN(certificate);
+		error = gnutls_x509_crt_import(cert, &cert_data, GNUTLS_X509_FMT_PEM);
+		if (error) {
+			g_warning("gnutls_x509_crt_import() failed: %s",
+					gnutls_strerror(error));
+			gnutls_x509_crt_deinit(cert);
+			cert = NULL;
+			return NULL;
+		}
+	}
+	return cert; 
+}
+
+gboolean
+svn_release_notification_can_verify(void)
+{
+	return NULL != svn_release_notify_certificate();
+}
+
+/**
+ * Verifies "data" against "signature".
+ *
+ * @return TRUE if the signature matches.
+ */
+gboolean
+svn_release_notification_verify(guint32 revision, time_t date,
+	const struct array *signature)
+{
+	gnutls_datum_t input, sig;
+	gnutls_x509_crt_t cert;
+	char rev[12], data[64];
+
+	g_return_val_if_fail(signature, FALSE);
+
+	cert = svn_release_notify_certificate();
+	g_return_val_if_fail(cert, FALSE);
+
+	uint32_to_string_buf(revision, rev, sizeof rev);
+	input.data = (void *) data;
+	input.size = concat_strings(data, sizeof data,
+					"r", rev,
+					"@", uint32_to_string(date),
+					(void *) 0);
+
+	sig.data = (void *) signature->data;
+	sig.size = signature->size;
+
+	return 1 == gnutls_x509_crt_verify_data(cert, 0, &input, &sig);
+}
+
 #else	/* !HAS_GNUTLS*/
 
 enum tls_handshake_result
@@ -945,6 +1027,21 @@ const char *
 tls_version_string(void)
 {
 	return NULL;
+}
+
+gboolean
+svn_release_notification_can_verify(void)
+{
+	return FALSE;
+}
+
+gboolean
+svn_release_notification_verify(guint32 revision, time_t date,
+	const struct array *signature)
+{
+	g_return_val_if_fail(data, FALSE);
+	g_return_val_if_fail(signature, FALSE);
+	return FALSE;
 }
 
 #endif	/* HAS_GNUTLS */

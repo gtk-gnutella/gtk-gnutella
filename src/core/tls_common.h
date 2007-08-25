@@ -59,5 +59,11 @@ void tls_wio_link(struct wrap_io *wio);
 void tls_global_init(void);
 const gchar *tls_version_string(void);
 
+struct array;
+
+gboolean svn_release_notification_can_verify(void);
+gboolean svn_release_notification_verify(guint32 revision, time_t date,
+	const struct array *signature);
+
 #endif /* _core_tls_common_h_ */
 /* vi: set ts=4 sw=4 cindent: */

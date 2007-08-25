@@ -64,10 +64,12 @@ RCSID("$Id$")
 #include "uploads.h"
 #include "vmsg.h"
 
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/array.h"
 #include "lib/atoms.h"
+#include "lib/base16.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
@@ -81,6 +83,8 @@ RCSID("$Id$")
 static gchar v_tmp[4128];	/**< Large enough for a payload of 4K */
 static gnutella_header_t *v_tmp_header = (void *) v_tmp;
 static gnutella_vendor_t *v_tmp_data = (void *) &v_tmp[GTA_HEADER_SIZE];
+
+#define VMSG_PAYLOAD_MAX ((sizeof v_tmp) - GTA_HEADER_SIZE)
 
 static GHashTable *ht_vmsg;
 
@@ -1567,6 +1571,158 @@ handle_node_info_ans(struct gnutella_node *n,
 	(void) payload;
 }
 
+static struct {
+	size_t size;
+	char data[256];
+} svn_release_signature;
+
+static gboolean
+latest_svn_release_changed(property_t prop)
+{
+	struct array signature;
+	guint32 revision;
+	time_t date;
+	size_t hex_length;
+	char *hex;
+
+	(void) prop;
+
+	if (!svn_release_notification_can_verify())
+		goto failure;
+
+	hex = gnet_prop_get_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, NULL, 0);
+	if (NULL == hex)
+		goto failure;
+	
+	hex_length = strlen(hex);
+	if (0 == hex_length || hex_length / 2 >= sizeof svn_release_signature.data)
+		goto failure;
+
+	svn_release_signature.size = base16_decode(svn_release_signature.data,
+								sizeof svn_release_signature.data,
+								hex, hex_length);
+
+	revision = GNET_PROPERTY(latest_svn_release_revision);
+	date = GNET_PROPERTY(latest_svn_release_date);
+	signature = array_init(svn_release_signature.data,
+					svn_release_signature.size);
+
+	if (!svn_release_notification_verify(revision, date, &signature))
+		goto failure;
+
+	g_message("SVN release notify signature is valid: r%u (%s)",
+		revision, timestamp_to_string(date));
+
+	return FALSE;
+
+failure:
+	svn_release_signature.size = 0;
+	return FALSE;
+}
+
+static gboolean
+svn_release_signature_is_valid(void)
+{
+	static gboolean initialized;
+
+	if (!initialized) {
+		initialized = TRUE;
+		
+		gnet_prop_add_prop_changed_listener(PROP_LATEST_SVN_RELEASE_REVISION,
+			latest_svn_release_changed, FALSE);
+		gnet_prop_add_prop_changed_listener(PROP_LATEST_SVN_RELEASE_DATE,
+			latest_svn_release_changed, FALSE);
+		gnet_prop_add_prop_changed_listener(PROP_LATEST_SVN_RELEASE_SIGNATURE,
+			latest_svn_release_changed, TRUE);
+	}
+	return svn_release_signature.size > 0;
+}
+
+static void
+vmsg_send_svn_release_notify(struct gnutella_node *n)
+{
+	const char *muid;
+	guint32 msgsize;
+	guint32 paysize;
+	char *payload;
+
+	g_return_if_fail(!NODE_IS_UDP(n));	
+
+	if (!(NODE_A_CAN_SVN_NOTIFY & n->attrs))
+		return;
+
+	if (!svn_release_signature_is_valid())
+		return;
+
+	if (n->svn_release_revision >= GNET_PROPERTY(latest_svn_release_revision))
+		return;
+
+	n->svn_release_revision = GNET_PROPERTY(latest_svn_release_revision);
+	
+	payload = vmsg_fill_type(v_tmp_data, T_GTKG, 24, 1);
+	poke_be32(&payload[0], GNET_PROPERTY(latest_svn_release_revision));
+	poke_be32(&payload[4], GNET_PROPERTY(latest_svn_release_date));
+	memcpy(&payload[8], svn_release_signature.data, svn_release_signature.size);
+	paysize = 8 + svn_release_signature.size;
+
+	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
+	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
+	muid = gnutella_header_get_muid(v_tmp_header);
+	vmsg_send_data(n, v_tmp, msgsize);
+}
+
+static void
+handle_svn_release_notify(struct gnutella_node *n,
+	const struct vmsg *vmsg, const gchar *payload, size_t size)
+{
+	struct array signature;
+	guint32 revision;
+	time_t date;
+
+	if (NODE_IS_UDP(n))
+		return;
+	
+	if (VMSG_CHECK_SIZE(n, vmsg, size, 16))
+		return;
+
+	if (!svn_release_notification_can_verify())
+		return;
+
+	signature = array_init(&payload[8], size - 8);
+
+	revision = peek_be32(&payload[0]);
+	date = peek_be32(&payload[4]);
+
+	if (revision <= GNET_PROPERTY(latest_svn_release_revision))
+		return;
+
+	n->svn_release_revision = revision;
+
+	if (svn_release_notification_verify(revision, date, &signature)) {
+		size_t hex_length;
+		char *hex;
+
+		hex_length = signature.size * 2;
+		hex = g_malloc(hex_length + 1);
+		base16_encode(hex, hex_length, signature.data, signature.size);
+		hex[hex_length] = '\0';
+		
+		gnet_prop_set_guint32_val(PROP_LATEST_SVN_RELEASE_REVISION, revision);
+		gnet_prop_set_timestamp_val(PROP_LATEST_SVN_RELEASE_DATE, date);
+		gnet_prop_set_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex);
+		G_FREE_NULL(hex);
+	} else {
+		g_message("BAD %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+			vmsg->name,
+			vmsg->version,
+			node_addr(n),
+			NODE_IS_UDP(n) ? "UDP" : "TCP",
+			gnutella_header_get_ttl(n->header),
+			gnutella_header_get_hops(n->header),
+			(unsigned long) size);
+	}
+}
+
 enum {
 	VMSG_HEAD_F_TLS			= 1 << 0,	/* HEAD Pong v2; TLS capable */
 
@@ -2732,6 +2888,11 @@ handle_messages_supported(struct gnutella_node *n,
 	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
 		return;
 
+	/* Accept this only once */
+	if (NODE_F_VMSG_SUPPORT & n->flags)
+		return;
+	n->flags |= NODE_F_VMSG_SUPPORT;
+
 	count = peek_le16(payload);
 
 	if (GNET_PROPERTY(vmsg_debug))
@@ -2802,6 +2963,13 @@ handle_messages_supported(struct gnutella_node *n,
 
 		if (vm.handler == handle_head_ping)
 			n->attrs |= NODE_A_CAN_HEAD;
+
+		if (vm.handler == handle_svn_release_notify)
+			n->attrs |= NODE_A_CAN_SVN_NOTIFY;
+	}
+
+	if (n->attrs & NODE_A_CAN_SVN_NOTIFY) {
+		vmsg_send_svn_release_notify(n);
 	}
 }
 
@@ -2824,6 +2992,9 @@ static const struct vmsg vmsg_map[] = {
 	{ T_GTKG, 21,  1, handle_proxy_cancel,			"Push-Proxy Cancel" },
 	{ T_GTKG, 22,  1, handle_node_info_req,			"Node Info Request" },
 	{ T_GTKG, 23,  1, handle_node_info_ans,			"Node Info Reply" },
+#ifdef HAS_GNUTLS
+	{ T_GTKG, 24,  1, handle_svn_release_notify,	"SVN Release Notify" },
+#endif	/* HAS_GNUTLS */
 	{ T_LIME,  5,  1, handle_udp_crawler_ping,		"UDP Crawler Ping" },
 	{ T_LIME, 11,  2, handle_oob_reply_ack,			"OOB Reply ACK" },
 	{ T_LIME, 11,  3, handle_oob_reply_ack,			"OOB Reply ACK" },
@@ -2945,6 +3116,7 @@ vmsg_init(void)
 	head_pings = hash_list_new(guid_hash, guid_eq);
 	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
 					head_ping_timer, NULL);
+
 }
 
 void

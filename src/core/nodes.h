@@ -224,6 +224,8 @@ typedef struct gnutella_node {
 	host_addr_t gnet_qhit_addr;	/**< When != 0, last IP we got in query hit */
 	const gchar *guid;			/**< GUID of node (atom) seen on the network */
 
+	guint32 svn_release_revision;	/**< Latest SVN release known by the node */
+
 	guint32 n_ping_throttle;  /**< Number of pings we throttled */
 	guint32 n_ping_accepted;  /**< Number of pings we accepted */
 	guint32 n_ping_special;	  /**< Number of special pings we received */
@@ -296,7 +298,8 @@ enum {
 	NODE_F_FORCE		= 1 << 23,	/**< Connection is forced */
 	NODE_F_NO_OOB_PROXY	= 1 << 24,	/**< Do not OOB proxy the leaf */
 	NODE_F_TLS			= 1 << 25,	/**< TLS-tunneled */
-	NODE_F_CAN_TLS		= 1 << 26	/**< Indicated support for TLS */
+	NODE_F_CAN_TLS		= 1 << 26,	/**< Indicated support for TLS */
+	NODE_F_VMSG_SUPPORT	= 1 << 27	/**< Indicated which VMSGs are supported */
 };
 
 /*
@@ -326,7 +329,8 @@ enum {
 	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
 	NODE_A_CAN_ULTRA	= 1 << 19,	/**< Node is ultra capable */
 	NODE_A_CAN_INFLATE	= 1 << 20,	/**< Node capable of inflating */
-	NODE_A_CAN_HEAD		= 1 << 21	/**< Supports HEAD ping (vendor message) */
+	NODE_A_CAN_HEAD		= 1 << 21,	/**< Supports HEAD ping (vendor message) */
+	NODE_A_CAN_SVN_NOTIFY =	1 << 22	/**< Supports SVN release notifications */
 };
  
 /*

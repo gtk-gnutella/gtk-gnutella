@@ -3456,4 +3456,31 @@ prop = {
     vector_size = GUID_RAW_SIZE;
 };
 
+prop = {
+	name = "latest_svn_release_date";
+	desc = "Date of the latest SVN release.";
+	type = timestamp;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "latest_svn_release_revision";
+	desc = "Revision of the latest SVN release.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+    name = "latest_svn_release_signature";
+    desc = "Signature of the latest SVN release notification.";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
 /* vi: set ts=4: */
