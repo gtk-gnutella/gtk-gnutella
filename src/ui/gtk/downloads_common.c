@@ -1766,9 +1766,9 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		break;
 	case c_fi_progress:
 		if (file->done && file->size) {
-			static char buf[256];
+			static char buf[16];
 
-			gm_snprintf(buf, sizeof buf, "%u.%u",
+			gm_snprintf(buf, sizeof buf, "%u.%02u",
 				file->progress / 100, file->progress % 100);
 			text = buf;
 		}
