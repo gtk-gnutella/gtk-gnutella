@@ -922,22 +922,6 @@ EOM
 	;;
 esac
 
-: Sanity checks
-case "$fastread$alldone" in
-yescont|yesexit) ;;
-*)
-	case "$extractsh" in
-	true) ;;
-	*)
-		if test ! -t 0; then
-			echo "Say 'sh Configure', not 'sh <Configure'"
-			exit 1
-		fi
-		;;
-	esac
-	;;
-esac
-
 exec 4>&1
 case "$silent" in
 true) exec 1>/dev/null;;
