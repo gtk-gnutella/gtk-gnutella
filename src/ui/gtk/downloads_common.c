@@ -1732,12 +1732,12 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		break;
 	case c_fi_size:
 		text = 0 != file->size
-				? compact_size(file->size, show_metric_units())
+				? short_size(file->size, show_metric_units())
 				: "?";
 		break;
 	case c_fi_uploaded:
 		text = file->uploaded > 0
-				? compact_size(file->uploaded, show_metric_units())
+				? short_size(file->uploaded, show_metric_units())
 				: "-";
 		break;
 	case c_fi_sources:
