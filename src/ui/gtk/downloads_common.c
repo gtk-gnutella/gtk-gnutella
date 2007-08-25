@@ -1599,7 +1599,12 @@ fileinfo_numeric_status(const struct fileinfo_data *file)
 {
 	unsigned v;
 
-	v = file->progress;
+	/*
+	 * Progress is computed in 10000s and must stay < 2^10 = 1024 for
+	 * the sorting value computation. Hence it's put back in 1000s.
+	 */
+
+	v = file->progress / 10;		/* Back under 1024 */
 	v |= file->seeding
 			? (1 << 16) : 0;
 	v |= file->hashed
