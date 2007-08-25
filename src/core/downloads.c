@@ -10546,7 +10546,6 @@ download_verify_status_unknown(struct download *d, const gchar *what)
 	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, GNET_PROPERTY(move_file_path), DL_UNKN_EXT);
-	fi_src_status_changed(d);	
 }
 
 /**
