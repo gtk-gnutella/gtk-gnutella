@@ -3946,6 +3946,7 @@ search_gui_timer(time_t now)
 			search_gui_update_counters(search);
 		}
 		search_gui_update_status(current_search);
+		search_gui_refresh_popup();
 	}
 	if (store_searches_requested && !store_searches_disabled) {
 		store_searches_requested = FALSE;
