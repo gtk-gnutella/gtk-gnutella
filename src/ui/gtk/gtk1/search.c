@@ -1384,125 +1384,91 @@ search_gui_remove_result(struct search *search, GtkCTreeNode *node)
 	search_gui_unref_record(rc);
 }
 
-
-/**
- * Create downloads for all the search results selected in the ctree.
- *
- * @returns the amount of downloads actually created, and the amount of
- * items in the selection within `selected'.
- */
-static unsigned
-download_selection_of_ctree(struct search *search, unsigned *selected)
+static gboolean
+search_resort_required(struct search *search, GtkCTreeNode *node)
 {
-	gui_record_t *grc;
-	record_t *rc;
-	GList *sel_list;
-    gboolean remove_downloaded;
-	gboolean resort = FALSE;
-	guint created = 0;
-	guint count = 0;
-	GtkCTreeNode *node;
 	GtkCTreeRow *row;
-	GtkCTree *ctree;
 
-	*selected = 0;
-	g_return_val_if_fail(search, 0);
-	g_return_val_if_fail(search->tree, 0);
-
-	ctree = GTK_CTREE(search->tree);
-
-    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
-		&remove_downloaded);
-
-	/* Selection list changes after we process each selected node, so we have to
-	 * "re-get" it each iteration.
+	/* Check if we should re-sort after we remove the download.
+	 * Re-sorting for every remove is too laggy and unnecessary.  If the
+	 * search is not sorted by count we don't re-sort.  If the
+	 * node is a parent we re-sort if the next node to be removed is not
+	 * it's first child.  If the node is a child, we re-sort if the next
+	 * node to be removed is not the next sibling.  Finally, we re-sort
+	 * if the last child of a tree is selected.
+	 *
+	 * This assumes that the selection list will be in order, otherwise
+	 * it will re-sort on every remove in a tree (although it won't
+	 * re-sort for parent nodes with no children).
+	 *
+	 * We need to check this before we actually remove the node.
+	 *
+	 * Finally it should only be necessary to determine once
+	 * during the walk wether we need to resort and resort at the end.
+	 *     -- Richard, 17/04/2004
 	 */
-	for (
-		sel_list = GTK_CLIST(ctree)->selection;
-		sel_list != NULL;
-		sel_list = GTK_CLIST(ctree)->selection
-	) {
-		node = sel_list->data;
-		if (NULL == node)
-			break;
 
-		count++;
+	if (c_sr_count != search->sort_col)
+		return FALSE;
 
-		grc = gtk_ctree_node_get_row_data(ctree, node);
-		rc = grc->shared_record;
+	row = GTK_CTREE_ROW(node);
 
-        if (!rc) {
-			g_warning("download_selection_of_ctree(): row has NULL data");
-			continue;
-        }
-
-		search_gui_download(rc);
-		created++;
-
-        if (remove_downloaded) {
-			/* Check if we should re-sort after we remove the download.
-			 * Re-sorting for every remove is too laggy and unnecessary.  If the
-			 * search is not sorted by count we don't re-sort.  If the
-			 * node is a parent we re-sort if the next node to be removed is not
-		     * it's first child.  If the node is a child, we re-sort if the next
-			 * node to be removed is not the next sibling.  Finally, we re-sort
-			 * if the last child of a tree is selected.
-			 *
-		     * This assumes that the selection list will be in order, otherwise
-			 * it will re-sort on every remove in a tree (although it won't
-			 * re-sort for parent nodes with no children).
-			 *
-			 * We need to check this before we actually remove the node.
-             *
-             * Finally it should only be necessary to determine once
-             * during the walk wether we need to resort and resort at the end.
-             *     -- Richard, 17/04/2004
-			 */
-
-			if (!resort && c_sr_count == search->sort_col) {
-				row = GTK_CTREE_ROW(node);
-
-				if (NULL == row->parent) {
-					/* If it's a parent and the first child is not selected */
-					if (NULL != row->children) {
-						if (NULL == sel_list->next)
-							resort = TRUE;
-						else if (sel_list->next->data != row->children)
-								resort = TRUE;
-					}
-				} else {
-					/* If it's a child and the next sibling is not selected */
-					if (NULL != row->sibling) {
-						if (NULL == sel_list->next)
-							resort = TRUE;
-						else if (sel_list->next->data != row->sibling)
-								resort = TRUE;
-					}
-
-					/* If it's a child and it has no sibling */
-					if (NULL == row->sibling)
-						resort = TRUE;
-				}
-			}
-
-			search_gui_remove_result(search, node);
+#if 0
+	if (NULL == row->parent) {
+		/* If it's a parent and the first child is not selected */
+		if (NULL != row->children) {
+			return NULL == sel_list->next ||
+				sel_list->next->data != row->children;
+		}
+	} else {
+		/* If it's a child and the next sibling is not selected */
+		if (NULL != row->sibling) {
+			return NULL == sel_list->next ||
+				sel_list->next->data != row->sibling;
 		} else {
-            /* make it visibile that we already selected this for download */
-            gtk_ctree_node_set_foreground(ctree, node,
-                &gtk_widget_get_style(
-                    GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
-			gtk_ctree_unselect(ctree, node);
-        }
+			/* If it's a child and it has no sibling */
+			return TRUE;
+		}
+	}
+	return FALSE;
+#endif
+
+	return TRUE;
+}
+
+/*
+ * Collects all selected nodes. If a selected node is a parent and not expanded,
+ * all its children are included as well.
+ */
+static GSList *
+selection_of_ctree(GtkCTree *ctree)
+{
+	GSList *nodes = NULL;
+	GList *iter;
+	
+	iter = GTK_CLIST(ctree)->selection;
+	for (/* NOTHING */; NULL != iter; iter = g_list_next(iter)) {
+		GtkCTreeNode *node;
+
+		node = iter->data;
+		g_assert(node);
+
+		nodes = g_slist_prepend(nodes, node);
+
+		if (!GTK_CTREE_ROW(node)->expanded) {
+			GtkCTreeNode *child;
+
+			for (
+				child = GTK_CTREE_ROW(node)->children;
+				NULL != child;
+				child = GTK_CTREE_NODE_SIBLING(child)
+			) {
+				nodes = g_slist_prepend(nodes, child);
+			}
+		}
 	}
 
-	if (resort) {
-		search_gui_sort_column(search, search->sort_col);
-	}
-
-	gtk_clist_unselect_all(GTK_CLIST(ctree));
-
-	*selected = count;
-	return created;
+	return g_slist_reverse(nodes);
 }
 
 /**
@@ -1513,97 +1479,113 @@ download_selection_of_ctree(struct search *search, unsigned *selected)
 static guint
 discard_selection_of_ctree(struct search *search)
 {
-	gui_record_t *grc;
-	record_t *rc;
-	GList *sel_list;
-	gboolean resort = FALSE;
-	guint discarded = 0;
-	GtkCTreeNode *node;
-	GtkCTreeRow *row;
+	GSList *selection, *iter;
 	GtkCTree *ctree;
+	gboolean resort = FALSE;
+	guint n = 0;
 
 	g_return_val_if_fail(search, 0);
 	g_return_val_if_fail(search->tree, 0);
 
 	ctree = GTK_CTREE(search->tree);
+	gtk_clist_freeze(GTK_CLIST(ctree));
+	
+	gtk_signal_handler_block_by_func(GTK_OBJECT(ctree),
+		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
 
-	/* Selection list changes after we process each selected node, so we have to
-	 * "re-get" it each iteration.
-	 */
-	for (
-		sel_list = GTK_CLIST(ctree)->selection;
-		sel_list != NULL;
-		sel_list = GTK_CLIST(ctree)->selection
-	) {
-		node = sel_list->data;
-		if (NULL == node)
-			break;
+	selection = selection_of_ctree(ctree);
+	gtk_clist_unselect_all(GTK_CLIST(ctree));
+
+	/* Normalize the selection by selecting all children of collapsed nodes. */
+	for (iter = selection; NULL != iter; iter = g_slist_next(iter)) {
+		GtkCTreeNode *node;
+
+		node = iter->data;
+		g_assert(node);
+		gtk_ctree_select(ctree, node);
+	}
+	g_slist_free(selection);
+	selection = NULL;
+
+	while (GTK_CLIST(ctree)->selection) {
+		GtkCTreeNode *node;
+		gui_record_t *grc;
+
+		node = GTK_CLIST(ctree)->selection->data;
+		g_assert(node);
+		gtk_ctree_unselect(ctree, node);
 
 		grc = gtk_ctree_node_get_row_data(ctree, node);
-		rc = grc->shared_record;
+		g_assert(grc);
 
-        if (!rc) {
-			g_warning("discard_selection_of_ctree(): row has NULL data");
-			continue;
-        }
-
-		discarded++;
-
-		/* Check if we should re-sort after we remove the entry.
-		 * Re-sorting for every remove is too laggy and unnecessary.  If the
-		 * search is not sorted by count we don't re-sort.  If the
-		 * node is a parent we re-sort if the next node to be removed is not
-         * it's first child.  If the node is a child, we re-sort if the next
-		 * node to be removed is not the next sibling.  Finally, we re-sort
-		 * if the last child of a tree is selected.
-		 *
-		 * This assumes that the selection list will be in order, otherwise
-		 * it will re-sort on every remove in a tree (although it won't
-		 * re-sort for parent nodes with no children).
-		 *
-		 * We need to check this before we actually remove the node.
-         *
-         * Finally it should only be necessary to determine once
-         * during the walk wether we need to resort and resort at the end.
-         *     -- Richard, 17/04/2004
-		 */
-
-		if (!resort && c_sr_count == search->sort_col) {
-			row = GTK_CTREE_ROW(node);
-
-			if (NULL == row->parent) {
-				/* If it's a parent and the first child is not selected */
-				if (NULL != row->children) {
-					if (NULL == sel_list->next)
-						resort = TRUE;
-					else if (sel_list->next->data != row->children)
-							resort = TRUE;
-				}
-			} else {
-				/* If it's a child and the next sibling is not selected */
-				if (NULL != row->sibling) {
-					if (NULL == sel_list->next)
-						resort = TRUE;
-					else if (sel_list->next->data != row->sibling)
-							resort = TRUE;
-				}
-
-				/* If it's a child and it has no sibling */
-				if (NULL == row->sibling)
-					resort = TRUE;
-			}
-		}
-
+		resort = resort || search_resort_required(search, node);
 		search_gui_remove_result(search, node);
+		n++;
 	}
 
 	if (resort) {
 		search_gui_sort_column(search, search->sort_col);
 	}
 
-	gtk_clist_unselect_all(GTK_CLIST(ctree));
+	gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
+		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
 
-	return discarded;
+	gtk_clist_thaw(GTK_CLIST(ctree));
+	return n;
+}
+
+/**
+ * Create downloads for all the search results selected in the ctree.
+ *
+ * @returns the amount of downloads actually created, and the amount of
+ * items in the selection within `selected'.
+ */
+static unsigned
+download_selection_of_ctree(struct search *search)
+{
+	GSList *selection, *iter;
+	GtkCTree *ctree;
+    gboolean remove_downloaded;
+	guint n = 0;
+
+	g_return_val_if_fail(search, 0);
+	g_return_val_if_fail(search->tree, 0);
+
+    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
+		&remove_downloaded);
+
+	ctree = GTK_CTREE(search->tree);
+	gtk_clist_freeze(GTK_CLIST(ctree));
+	selection = selection_of_ctree(ctree);
+
+	for (iter = selection; NULL != iter; iter = g_slist_next(iter)) {
+		GtkCTreeNode *node;
+		gui_record_t *grc;
+
+		node = iter->data;
+		g_assert(node);
+
+		grc = gtk_ctree_node_get_row_data(ctree, node);
+		g_assert(grc);
+
+		search_gui_download(grc->shared_record);
+		n++;
+
+        if (!remove_downloaded) {
+            /* make it visibile that we already selected this for download */
+            gtk_ctree_node_set_foreground(ctree, node,
+				gui_color_get(GUI_COLOR_DOWNLOADING));
+        }
+	}
+	g_slist_free(selection);
+	selection = NULL;
+
+	if (remove_downloaded) {
+		discard_selection_of_ctree(search);
+	}
+	gtk_clist_thaw(GTK_CLIST(ctree));
+
+	return n;
 }
 
 /**
@@ -1612,21 +1594,16 @@ discard_selection_of_ctree(struct search *search)
 void
 search_gui_download_files(struct search *search)
 {
-	unsigned selected, created;
-	char buf[1024];
+	unsigned created;
 
 	g_return_if_fail(search);
 
-	created = download_selection_of_ctree(search, &selected);
+	created = download_selection_of_ctree(search);
 	gtk_clist_unselect_all(GTK_CLIST(search->tree));
 
-	gm_snprintf(buf, sizeof buf,
+	statusbar_gui_message(15,
 		NG_("Created %u download", "Created %u downloads", created),
 		created);
-	statusbar_gui_message(15,
-		NG_("%s from the %u selected item", "%s from the %u selected items",
-			selected),
-		buf, selected);
 }
 
 /**

@@ -172,58 +172,6 @@ search_gui_get_record(GtkCTree *ctree, GtkCTreeNode *node)
 }
 
 /**
- * Autoselects all searches matching given node in given tree, if the
- * unexpanded root of the tree is selected.  Otherwise, select only the
- * node on which they clicked.
- *
- * @return the amount of entries selected.
- */
-static gint
-search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
-{
-    guint32 sel_sources = 0;
-
-	g_return_val_if_fail(ctree, 0);
-	g_return_val_if_fail(node, 0);
-
-	gtk_signal_handler_block_by_func(GTK_OBJECT(ctree),
-		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
-
-	/*
-	 * If the selected node is expanded, select it only.
-	 */
-
-	gtk_ctree_select(ctree, node);
-	sel_sources++;		/* We already selected the parent (folded) node */
-
-	if (!GTK_CTREE_ROW(node)->expanded) {
-		GtkCTreeNode *child;
-
-		/*
-		 * Node is not expanded.  Select all its children.
-		 */
-
-		for (
-			child = GTK_CTREE_ROW(node)->children;
-			child != NULL;
-			child = GTK_CTREE_NODE_SIBLING(child)
-		) {
-			gtk_ctree_select(ctree, child);
-			sel_sources++;
-		}
-
-		if (sel_sources > 1)
-			statusbar_gui_message(15,
-				"auto selected %d sources by urn:sha1", sel_sources);
-	}
-
-	gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
-		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row), NULL);
-
-	return sel_sources;
-}
-
-/**
  *	Sort search according to selected column
  */
 void
@@ -263,13 +211,6 @@ static cevent_t *row_selected_ev;
 
 #define ROW_SELECT_TIMEOUT	100 /* milliseconds */
 
-static gint
-gui_record_cmp(gconstpointer p, gconstpointer q)
-{
-	const gui_record_t *a = p, *b = q;
-	return a->shared_record != b->shared_record;
-}
-
 static void
 row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
 {
@@ -284,16 +225,6 @@ row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
 	if (search) {
     	search_gui_refresh_popup();
 		search_gui_refresh_details(selected_record);
-		if (selected_record) {
-			GtkCTreeNode *node;
-			gui_record_t grc;
-			
-			grc.shared_record = selected_record;
-        	node = gtk_ctree_find_by_row_data_custom(GTK_CTREE(search->tree),
-					gtk_ctree_node_nth(GTK_CTREE(search->tree), 0),
-					&grc, gui_record_cmp);
-			search_cb_autoselect(GTK_CTREE(search->tree), GTK_CTREE_NODE(node));
-		}
 	} else {
 		search_gui_clear_details();
 	}
