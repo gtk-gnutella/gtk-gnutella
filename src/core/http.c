@@ -2214,7 +2214,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	guint http_major = 0, http_minor = 0;
 
 	if (GNET_PROPERTY(http_debug) > 2) {
-		g_message("----Got HTTP reply from %s:\n",
+		g_message("----Got HTTP reply from %s:",
 			host_addr_to_string(s->addr));
 		g_message("%s", status);
 		header_dump(header, stderr);
