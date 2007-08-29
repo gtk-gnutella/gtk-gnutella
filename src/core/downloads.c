@@ -3288,12 +3288,14 @@ download_remove(struct download *d)
 	download_check(d);
 	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
 
-	/*
-	 * Make sure download is not used by a background task
-	 * 		-- JA 25/10/2003
-	 */
-	if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
-		return FALSE;
+	if (!download_shutdown) {
+		/*
+		 * Make sure download is not used by a background task
+		 * 		-- JA 25/10/2003
+		 */
+		if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
+			return FALSE;
+	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_assert(GNET_PROPERTY(dl_queue_count) > 0);
