@@ -10951,7 +10951,7 @@ download_resume_bg_tasks(void)
 }
 
 static void
-download_abort_all(void)
+download_remove_all(void)
 {
 	struct download *next;
 
@@ -10962,7 +10962,10 @@ download_abort_all(void)
 		download_check(d);
 		next = hash_list_next(sl_downloads, next);
 
-		download_abort(d);
+		if (d->status == GTA_DL_REMOVED)
+			continue;
+
+		download_remove(d);
 	}
 }
 
@@ -10985,8 +10988,8 @@ download_close(void)
 	 */
 	download_shutdown = TRUE;
 
-	download_abort_all();
 	download_clear_stopped(TRUE, TRUE, TRUE, TRUE, TRUE);
+	download_remove_all();
 	download_free_removed();
 
 	hash_list_free(&sl_downloads);
