@@ -159,6 +159,8 @@ static gboolean download_flush(
 	struct download *d, gboolean *trimmed, gboolean may_stop);
 
 static gboolean download_dirty = FALSE;
+static gboolean download_shutdown = FALSE;
+
 static void download_store(void);
 static void download_retrieve(void);
 
@@ -268,8 +270,8 @@ download_host_info(const struct download *d)
  * amount of downloads scheduled with that name.
  */
 
-static GHashTable *dl_by_host = NULL;
-static GHashTable *dl_count_by_name = NULL;
+static GHashTable *dl_by_host;
+static GHashTable *dl_count_by_name;
 
 #define DHASH_SIZE	(1UL << 10)	/**< Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
@@ -291,7 +293,7 @@ static struct {
  * GUID, which is possible, in which case we simply supersede the old entry.
  */
 
-static GHashTable *dl_by_addr = NULL;
+static GHashTable *dl_by_addr;
 
 /**
  * Keys in the `dl_by_addr' table.
@@ -2089,6 +2091,9 @@ download_remove_file(struct download *d, gboolean reset)
 	struct download *next;
 
 	download_check(d);
+
+	if (download_shutdown)
+		return;
 
 	fi = d->file_info;
 	file_info_unlink(fi);
@@ -9825,9 +9830,13 @@ download_store_magnets(void)
 static void
 download_store(void)
 {
-	if (!retrieving) {
-		download_store_magnets();
-	}
+	if (retrieving)
+		return;
+
+	if (download_shutdown)
+		return;
+
+	download_store_magnets();
 }
 
 /**
@@ -9840,6 +9849,9 @@ download_store(void)
 void
 download_store_if_dirty(void)
 {
+	if (download_shutdown)
+		return;
+
 	if (download_dirty) {
 		download_store();
 		file_info_store_if_dirty();
@@ -10936,107 +10948,56 @@ download_resume_bg_tasks(void)
 	}
 }
 
+static void
+download_abort_all(void)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_downloads);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		next = hash_list_next(sl_downloads, next);
+
+		download_abort(d);
+	}
+}
+
 /**
  * Terminating processing, cleanup data structures.
  */
 void
 download_close(void)
 {
-	struct download *d;
-
 	gcu_download_gui_updates_freeze();
 
 	download_store();			/* Save latest copy */
 	download_freeze_queue();
-	download_free_removed();
-
 	file_info_store();		/* Must BEFORE we remove downloads */
 
-	while (NULL != (d = hash_list_head(sl_downloads))) {
-		download_check(d);
-
-		if (d->buffers) {
-			if (d->buffers->held > 0) {
-				download_flush(d, NULL, FALSE);
-				if (d->buffers->held > 0) {
-					buffers_discard(d);
-				}
-			}
-			buffers_free(d);
-		}
-		if (d->push) {
-			download_push_remove(d);
-		}
-		if (d->browse) {
-			browse_host_dl_close(d->browse);
-			browse_host_dl_free(&d->browse);
-			d->bio = NULL;		/* Was a copy via browse_host_io_source() */
-		}
-		if (d->thex) {
-			const struct sha1 *sha1;
-			fileinfo_t *fi;
-
-			sha1 = thex_download_get_sha1(d->thex);
-			fi = file_info_by_sha1(sha1);
-			if (fi) {
-				fi->flags &= ~FI_F_FETCH_TTH;
-			}
-			thex_download_close(d->thex);
-			thex_download_free(&d->thex);
-			d->bio = NULL;		/* Was a copy via thex_download_io_source() */
-		}
-		if (d->io_opaque) {
-			io_free(d->io_opaque);
-			d->io_opaque = NULL;
-		}
-		if (d->bio) {
-			bsched_source_remove(d->bio);
-			d->bio = NULL;
-		}
-		socket_free_null(&d->socket);
-		download_set_sha1(d, NULL);
-		if (d->ranges) {
-			http_range_free(d->ranges);
-			d->ranges = NULL;
-		}
-		if (d->req) {
-			http_buffer_free(d->req);
-			d->req = NULL;
-		}
-		if (d->cproxy) {
-			cproxy_free(d->cproxy);
-			d->cproxy = NULL;
-		}
-
-		file_info_remove_source(d->file_info, d, TRUE);
-		parq_dl_remove(d);
-		download_remove_from_server(d, TRUE);
-		atom_str_free_null(&d->escaped_name);
-		atom_str_free_null(&d->file_name);
-		atom_str_free_null(&d->uri);
-		file_object_release(&d->out_file);	/* Close output file */
-
-		hash_list_remove(sl_downloads, d);
-		download_free(&d);
-	}
-
 	/*
-	 * FIXME:
-	 * It would be much cleaner if all downloads would be properly freed
-	 * by calling download_free because thier handles would then be
-	 * freed and we can assert that the src_handle_map is empty when
-	 * src_close is called. (see src_close)
-	 * -- Richard, 24 Mar 2003
+	 * This flag is set because certain operations must be avoided from now on
+	 * like storing the downloads or removing files. While we abort all
+	 * downloads, nothing what we do from here on is meant to persist.
 	 */
+	download_shutdown = TRUE;
+
+	download_abort_all();
+	download_clear_stopped(TRUE, TRUE, TRUE, TRUE, TRUE);
+	download_free_removed();
 
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
 
-	/* XXX free & check other hash tables as well.
-	 * dl_by_addr, dl_by_host
-	 */
+	g_hash_table_destroy(dl_by_host);
+	dl_by_host = NULL;
 
-	gcu_download_gui_updates_thaw();
+	g_hash_table_destroy(dl_by_addr);
+	dl_by_addr = NULL;
+
+	g_hash_table_destroy(dl_count_by_name);
+	dl_count_by_name = NULL;
 }
 
 static gchar *
