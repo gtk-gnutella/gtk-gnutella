@@ -3163,17 +3163,6 @@ search_results(gnutella_node_t *n, gint *results)
 final_cleanup:
 	g_slist_free(selected_searches);
 
-	if (
-		drop_it &&
-		gnutella_header_get_hops(&n->header) == 1 &&
-		!NODE_IS_UDP(n)
-	) {
-		n->n_weird++;
-		if (GNET_PROPERTY(search_debug) > 1)
-			g_warning("[weird #%d] dropped %s from %s (%s)",
-			n->n_weird, gmsg_infostr(&n->header), node_addr(n), node_vendor(n));
-	}
-
 	return drop_it || !forward_it;
 }
 
