@@ -6715,6 +6715,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		tt_good_depth(download_filesize(d)) > 0
 	) {
 		guint32 cflags = 0;
+		gnet_host_vec_t *proxies;
 
 		/*
 		 * Remember that we fetched tigertree data from this one, so
@@ -6727,15 +6728,19 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 			cflags |= SOCK_F_PUSH;
 		}
 		uri = g_strndup(value, uri_end - value);
+		proxies = gnet_host_vec_from_list(d->server->proxies);
+
 		if (
 			download_thex_start(uri, d->sha1, tth, download_filesize(d),
-			NULL, download_addr(d), download_port(d), download_guid(d),
-			NULL, cflags)
+				NULL, download_addr(d), download_port(d), download_guid(d),
+				proxies, cflags)
 		) {
 			/* Mark the fileinfo to avoid downloading the tigertree
 			 * data from more than one source at a time. */
 			d->file_info->flags |= FI_F_FETCH_TTH;
 		}
+
+		gnet_host_vec_free(&proxies);
 		G_FREE_NULL(uri);
 	}
 }
