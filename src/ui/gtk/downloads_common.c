@@ -227,7 +227,7 @@ const char *
 downloads_gui_status_string(const struct download *d)
 {
 	static char tmpstr[4096];
-	const char *status = NULL;
+	const char *status = "";
 	time_t now = tm_time();
 	const fileinfo_t *fi;
 	size_t rw;
@@ -572,9 +572,11 @@ downloads_gui_status_string(const struct download *d)
 		}
 		status = tmpstr;
 		break;
-	default:
-		rw = gm_snprintf(tmpstr, sizeof tmpstr, "UNKNOWN STATUS %u", d->status);
-		status = tmpstr;
+	case GTA_DL_INVALID:
+		/* This is not really invalid... it's the initial state. */
+		break;
+	case GTA_DL_REMOVED:
+		break;
 	}
 
 	return status;
