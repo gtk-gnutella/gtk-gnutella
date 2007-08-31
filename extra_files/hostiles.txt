@@ -267,8 +267,8 @@
 85.88.2.192/26 
 85.88.9.0/26
 # leaseweb/ocom
-85.17.155.4
-85.17.167.134
+85.17.155.0/24
+85.17.167.0/24
 # Jironimo at Versatel; dynamic range
 83.135.71.235
 83.135.89.16
@@ -921,7 +921,7 @@
 # -> my-freemusic dot info
 # -> myaffiliateads dot com
 # -> allcoolmusic dot com
-69.89.16.0/20
+69.89.16.0/22
 209.172.32.0/19
 216.251.32.0/20
 
