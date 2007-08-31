@@ -6523,18 +6523,8 @@ download_check_status(struct download *d, getline_t *line, gint code)
 				MIN(getline_length(line), 80));
 		}
 
-		/*
-		 * Don't abort the download if we're already on a persistent
-		 * connection: the server might have goofed, or we have a bug.
-		 * What we read was probably still data coming through.
-		 */
-
-		if (d->keep_alive) {
-			download_queue(d, _("Weird HTTP status (protocol desync?)"));
-		} else {
-			download_bad_source(d);
-			download_stop(d, GTA_DL_ERROR, _("Weird HTTP status"));
-		}
+		download_bad_source(d);
+		download_stop(d, GTA_DL_ERROR, _("Weird HTTP status"));
 		return FALSE;
 	}
 
