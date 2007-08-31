@@ -252,6 +252,75 @@ gnet_host_vec_create(gnet_host_t *hvec, gint hcnt)
 	return vec;
 }
 
+gnet_host_vec_t *
+gnet_host_vec_from_list(const GSList *list)
+{
+	const GSList *iter;
+	gnet_host_vec_t *vec;
+	guint n_ipv6 = 0, n_ipv4 = 0, hcnt;
+
+	hcnt = 0;
+	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
+		const gnet_host_t *host = iter->data;
+
+		switch (gnet_host_get_net(host)) {
+		case NET_TYPE_IPV4:
+			n_ipv4++;
+			hcnt++;
+			break;
+		case NET_TYPE_IPV6:
+			n_ipv6++;
+			hcnt++;
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			break;
+		}
+	}
+	if (0 == hcnt)
+		return NULL;
+
+	vec = gnet_host_vec_alloc();
+	vec->n_ipv4 = MIN(n_ipv4, 255);
+	vec->n_ipv6 = MIN(n_ipv6, 255);
+
+	if (vec->n_ipv4 > 0) {
+		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof *vec->hvec_v4);
+	}
+	if (vec->n_ipv6 > 0) {
+		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof *vec->hvec_v6);
+	}
+
+	n_ipv4 = 0;
+	n_ipv6 = 0;
+
+	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
+		const gnet_host_t *host = iter->data;
+		host_addr_t addr = gnet_host_get_addr(host);
+		guint16 port = gnet_host_get_port(host);
+		
+		switch (gnet_host_get_net(host)) {
+		case NET_TYPE_IPV4:
+			if (n_ipv4 < vec->n_ipv4) {
+				gchar *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
+				poke_be32(&dest[0], host_addr_ipv4(addr));
+				poke_le16(&dest[4], port);
+			}
+		case NET_TYPE_IPV6:
+			if (n_ipv6 < vec->n_ipv6) {
+				gchar *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
+				memcpy(dest, host_addr_ipv6(&addr), 16);
+				poke_le16(&dest[16], port);
+			}
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			break;
+		}
+	}
+	return vec;
+}
+
 /***
  *** Host periodic timer.
  ***/
