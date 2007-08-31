@@ -2178,10 +2178,12 @@ upload_http_version(struct upload *u, const gchar *request, size_t len)
  * @return TRUE if OK, FALSE otherwise with the upload removed.
  */
 static gboolean
-upload_file_present(struct shared_file *sf)
+upload_file_present(struct upload *u, struct shared_file *sf)
 {
 	fileinfo_t *fi;
 	struct stat sb;
+
+	upload_check(u);
 
 	fi = shared_file_fileinfo(sf);
 	if (stat(shared_file_path(sf), &sb))
@@ -2215,7 +2217,16 @@ failure:
 	 */
 
 	if (fi) {
+		struct dl_file_info *current_fi = u->file_info;
+		/*
+		 * Ensure we do NOT kill the current upload through upload_stop_all().
+		 * The current upload "u" will be stopped anyway after we return FALSE.
+		 *		--RAM, 2007-08-31
+		 */
+
+		u->file_info = NULL;
 		file_info_upload_stop(fi, "File was modified");
+		u->file_info = current_fi;
 	}
 	return FALSE;
 }
@@ -2463,7 +2474,7 @@ get_file_to_upload_from_index(struct upload *u, header_t *header,
 			sf = sfn;
 	}
 
-	if (NULL == sf || !upload_file_present(sf)) {
+	if (NULL == sf || !upload_file_present(u, sf)) {
 		goto not_found;
 	}
 
@@ -2572,7 +2583,7 @@ get_file_to_upload_from_urn(struct upload *u, header_t *header,
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_error_remove(u, 503, "SHA1 is being recomputed");
 		return -1;
-	} else if (!upload_file_present(sf)) {
+	} else if (!upload_file_present(u, sf)) {
 		goto not_found;
 	}
 
