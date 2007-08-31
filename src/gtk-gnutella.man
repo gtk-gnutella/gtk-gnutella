@@ -50,7 +50,7 @@ can be used to redirect log output in this case.
 This option can be used to force the main window of the GUI to a
 certain location on your screen and/or give it certain dimensions.
 
-For example, the following would position the window in the lower left
+For example, the following would position the window in the lower right
 corner with a width of 800 pixels and a height of 600 pixels:
 
     gtk-gnutella --geometry 800x600-0-0
@@ -170,8 +170,8 @@ effect immediately, unless you type text instead of using the spin buttons.
 .TP
 .I $GTK_GNUTELLA_DIR/config_gnet
 .RS
-Per-user configuration file, for Gnet. This can be edited when the program
-is not running, but it is best to use the GUI to change configuration
+Per-user configuration file, for core settings. This can be edited when the
+program is not running, but it is best to use the GUI to change configuration
 variables.
 .B gtk-gnutella
 saves this file every time the program is exited normally.
