@@ -6675,28 +6675,28 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	endptr = skip_ascii_spaces(&endptr[1]);
 	if (strlen(endptr) < TTH_BASE32_SIZE) {
-		g_message("X-Thex-Uri header has no root hash (%s)",
-			download_host_info(d));
+		g_message("X-Thex-Uri header has no root hash for %s from %s",
+			download_basename(d), download_host_info(d));
 		return;
 	}
 
 	tth = base32_tth(endptr);
 	if (NULL == tth) {
-		g_message("X-Thex-Uri header has no root hash (%s)",
-			download_host_info(d));
+		g_message("X-Thex-Uri header has no root hash for %s from %s",
+			download_basename(d), download_host_info(d));
 		return;
 	}
 
 	if (d->file_info->tth) {
 		if (!tth_eq(tth, d->file_info->tth)) {
-			g_warning("X-Thex-Uri causes TTH mismatch (%s)",
-				download_host_info(d));
+			g_warning("X-Thex-Uri causes TTH mismatch for %s from %s",
+				download_basename(d), download_host_info(d));
 			return;
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Discovered TTH (%s) from %s", tth_base32(tth),
-				download_host_info(d));
+			g_message("Discovered TTH (%s) for %s from %s", tth_base32(tth),
+				download_basename(d), download_host_info(d));
 		}
 		file_info_got_tth(d->file_info, tth);
 	}
