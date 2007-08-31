@@ -6163,7 +6163,10 @@ download_continue(struct download *d, gboolean trimmed)
 		download_queue(cd, _("Requeued after trimmed data"));
 	} else if (!cd->keep_alive) {
 		download_queue(cd, _("Chunk done, connection closed"));
-	} else if (DL_F_FETCH_TTH == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & cd->flags)){
+	} else if (
+		GNET_PROPERTY(max_host_downloads) == 1 &&
+		DL_F_FETCH_TTH == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & cd->flags)
+	) {
 		cd->flags |= DL_F_GOT_TTH;
 		download_queue(cd, _("Giving priority to THEX"));
 	} else if (download_start_prepare(cd)) {
