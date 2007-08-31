@@ -976,38 +976,30 @@ gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
 }
 
 /**
- * Check whether query message starting at `msg' is flagged
- * for OOB hit delivery.
- */
-gboolean
-gmsg_is_oob_query(gconstpointer msg)
-{
-	gconstpointer data = (const gchar *) msg + GTA_HEADER_SIZE;
-	guint16 req_speed;
-
-	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
-
-	req_speed = peek_le16(data);
-
-	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
-		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
-}
-
-/**
  * Check whether query message split between header and data is flagged
  * for OOB hit delivery.
  */
 gboolean
 gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
 {
-	guint16 req_speed;
+	const guint16 mask = QUERY_F_MARK | QUERY_F_OOB_REPLY;
+	guint16 flags;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(head));
 
-	req_speed = peek_le16(data);
+	flags = peek_be16(data);
+	return (flags & mask) == mask;
+}
 
-	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
-		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
+/**
+ * Check whether query message starting at `msg' is flagged
+ * for OOB hit delivery.
+ */
+gboolean
+gmsg_is_oob_query(gconstpointer msg)
+{
+	const char *data = msg;
+	return gmsg_split_is_oob_query(&data[0], &data[GTA_HEADER_SIZE]);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

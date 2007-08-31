@@ -2252,7 +2252,7 @@ build_search_msg(search_ctrl_t *sch)
 		guint64 align8;
 	} msg;
 	size_t size;
-	guint16 speed;
+	guint16 flags;
 	gboolean is_sha1_search;
 	struct sha1 sha1;
 
@@ -2301,17 +2301,17 @@ build_search_msg(search_ctrl_t *sch)
 	 * Starting today (06/07/2003), we're using marked speed fields and
 	 * ignore the speed they specify in the searches from the GUI. --RAM
 	 *
-	 * Starting 2005-08-20, we specify QUERY_SPEED_XML because
+	 * Starting 2005-08-20, we specify QUERY_F_XML because
 	 * we show XML in hits within the GUI.  We don't yet parse it, but at
 	 * least they can read it.
 	 */
 
-	speed = QUERY_SPEED_MARK;			/* Indicates: special speed field */
+	flags = QUERY_F_MARK;			/* Indicates: special speed field */
 	if (GNET_PROPERTY(is_firewalled))
-		speed |= QUERY_SPEED_FIREWALLED;
-	speed |= QUERY_SPEED_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
-	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
-	speed |= QUERY_SPEED_XML;			/* GTKG can read XML in hits */
+		flags |= QUERY_F_FIREWALLED;
+	flags |= QUERY_F_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
+	flags |= QUERY_F_GGEP_H;		/* GTKG understands GGEP "H" in hits */
+	flags |= QUERY_F_XML;			/* GTKG can read XML in hits */
 
 	/*
 	 * We need special processing for OOB queries since the GUID has to be
@@ -2333,10 +2333,10 @@ build_search_msg(search_ctrl_t *sch)
 			&addr, &port);
 
 		if (is_my_address_and_port(addr, port))
-			speed |= QUERY_SPEED_OOB_REPLY;
+			flags |= QUERY_F_OOB_REPLY;
 	}
 
-	gnutella_msg_search_set_speed(&msg.data, speed);
+	gnutella_msg_search_set_flags(&msg.data, flags);
 	
 	/*
 	 * Are we dealing with an URN search?
@@ -2382,7 +2382,7 @@ build_search_msg(search_ctrl_t *sch)
 		}
 	}
 
-	if (QUERY_SPEED_OOB_REPLY & speed) {
+	if (QUERY_F_OOB_REPLY & flags) {
 		ggep_stream_t gs;
 
 		if (is_sha1_search) {
@@ -4610,18 +4610,18 @@ compact_query(gchar *search)
 void
 query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
 {
-	guint16 speed;
+	guint16 flags;
 
-	speed = peek_le16(data) & ~QUERY_SPEED_OOB_REPLY;
-	poke_le16(data, speed);
+	flags = peek_be16(data) & ~QUERY_F_OOB_REPLY;
+	poke_be16(data, flags);
 
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_message(
-			"QUERY %s from node %s <%s>: removed OOB delivery (speed = 0x%x)",
+			"QUERY %s from node %s <%s>: removed OOB delivery (flags = 0x%x)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-				node_addr(n), node_vendor(n), speed);
+				node_addr(n), node_vendor(n), flags);
 }
 
 /**
@@ -4630,16 +4630,16 @@ query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
 void
 query_set_oob_flag(const gnutella_node_t *n, gchar *data)
 {
-	guint16 speed;
+	guint16 flags;
 
-	speed = peek_le16(data) | QUERY_SPEED_OOB_REPLY | QUERY_SPEED_MARK;
-	poke_le16(data, speed);
+	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK;
+	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
 		g_message(
-			"QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)",
+			"QUERY %s from node %s <%s>: set OOB delivery (flags = 0x%x)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_addr(n), node_vendor(n), speed);
+			node_addr(n), node_vendor(n), flags);
 }
 
 
@@ -4698,9 +4698,9 @@ search_request_preprocess(struct gnutella_node *n)
 	search_request_listener_emit(QUERY_STRING, search, n->addr, n->port);
 
 	/*
-	 * Special processing for the "connection speed" field of queries.
+	 * Special processing for the "query flags" field of queries.
 	 *
-	 * Unless bit 15 is set, process as a speed.
+	 * Unless bit 15 is set, process as a speed indicator.
 	 * Otherwise if bit 15 is set:
 	 *
 	 * 1. If the firewall bit (bit 14) is set, the remote servent is firewalled.
@@ -4716,12 +4716,12 @@ search_request_preprocess(struct gnutella_node *n)
 	 *		--RAM, 16/07/2003
 	 *
 	 * Starting today (06/07/2003), we ignore the connection speed overall
-	 * if it's not marked with the QUERY_SPEED_MARK flag to indicate new
+	 * if it's not marked with the QUERY_F_MARK flag to indicate new
 	 * interpretation. --RAM
 	 */
 
 	flags = peek_le16(n->data);
-	if (!(flags & QUERY_SPEED_MARK)) {
+	if (!(flags & QUERY_F_MARK)) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
 	}
@@ -5085,7 +5085,7 @@ search_request_preprocess(struct gnutella_node *n)
 			atom_str_get(stmp_1), GINT_TO_POINTER(1));
 	}
 
-	oob = 0 != (flags & QUERY_SPEED_OOB_REPLY);
+	oob = 0 != (flags & QUERY_F_OOB_REPLY);
 
 	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
@@ -5116,7 +5116,7 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 	}
 
-	if (0 != (flags & QUERY_SPEED_GGEP_H)) {
+	if (0 != (flags & QUERY_F_GGEP_H)) {
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 	}
 
@@ -5194,7 +5194,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 	if (
 		oob &&
-		(flags & QUERY_SPEED_FIREWALLED) &&
+		(flags & QUERY_F_FIREWALLED) &&
 		NODE_IS_LEAF(n)
 	) {
 		query_strip_oob_flag(n, n->data);
@@ -5393,7 +5393,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 	search_len < 5 &&
 		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
-	oob = 0 != (flags & QUERY_SPEED_OOB_REPLY);
+	oob = 0 != (flags & QUERY_F_OOB_REPLY);
 
 	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
 	if (
@@ -5422,7 +5422,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		0 != (flags & QUERY_SPEED_FIREWALLED) &&
+		0 != (flags & QUERY_F_FIREWALLED) &&
 		GNET_PROPERTY(is_firewalled)
 	) {
 		return FALSE;			/* Both servents are firewalled */
@@ -5516,7 +5516,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (qctx->found) {
 			gboolean ggep_h, should_oob;
 
-			ggep_h = 0 != (flags & QUERY_SPEED_GGEP_H);
+			ggep_h = 0 != (flags & QUERY_F_GGEP_H);
 			should_oob = oob &&
 							GNET_PROPERTY(process_oob_queries) && 
 							GNET_PROPERTY(recv_solicited_udp) && 

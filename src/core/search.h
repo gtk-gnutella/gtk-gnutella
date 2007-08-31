@@ -41,16 +41,16 @@
 #include "nodes.h"
 
 /*
- * Special marking of the "connection speed" field in queries.
+ * Query flags used in queries (big-endian); formerly used as "speed" indicator.
  */
 
-#define QUERY_SPEED_MARK		0x0080	/**< Field is special: not a speed */
-#define QUERY_SPEED_FIREWALLED	0x0040	/**< Issuing servent is firewalled */
-#define QUERY_SPEED_XML			0x0020	/**< Supports XML in result set */
-#define QUERY_SPEED_LEAF_GUIDED	0x0010	/**< Leaf-guided query */
-#define QUERY_SPEED_GGEP_H		0x0008	/**< Recipient understands GGEP "H" */
-#define QUERY_SPEED_OOB_REPLY	0x0004	/**< Out-of-band reply possible */
-#define QUERY_SPEED_FW_TO_FW	0x0002	/**< Can do fw to fw transfers */
+#define QUERY_F_MARK		0x8000	/**< Field is special: not a speed */
+#define QUERY_F_FIREWALLED	0x4000	/**< Issuing servent is firewalled */
+#define QUERY_F_XML			0x2000	/**< Supports XML in result set */
+#define QUERY_F_LEAF_GUIDED	0x1000	/**< Leaf-guided query */
+#define QUERY_F_GGEP_H		0x0800	/**< Recipient understands GGEP "H" */
+#define QUERY_F_OOB_REPLY	0x0400	/**< Out-of-band reply possible */
+#define QUERY_F_FW_TO_FW	0x0200	/**< Can do fw to fw transfers */
 /**
  * NOTE: At this point all of the bits are exhausted. 0x0001 is not available
  * 		 because the next 9 bits are not available for flags.

@@ -1640,28 +1640,29 @@ dq_common_init(dquery_t *dq)
 	}
 
 	if (GNET_PROPERTY(dq_debug)) {
-		const gchar *start = pmsg_start(dq->mb);
-		guint16 req_speed;
+		gconstpointer packet;
+		guint16 flags;
 
-		req_speed = peek_le16(&start[GTA_HEADER_SIZE]);
+		packet = pmsg_start(dq->mb);
+		flags = gnutella_msg_search_get_flags(packet);
 
 		g_message("DQ[%d] created for node #%s: TTL=%d max_results=%d "
 			"guidance=%s routing=%s "
-			"MUID=%s%s%s q=\"%s\" speed=0x%x (%s%s%s%s%s%s%s)",
+			"MUID=%s%s%s q=\"%s\" flags=0x%x (%s%s%s%s%s%s%s)",
 			dq->qid, node_id_to_string(dq->node_id), dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
 			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
 			guid_hex_str(gnutella_header_get_muid(head)),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
-			gnutella_msg_search_get_text(start), req_speed,
-			(req_speed & QUERY_SPEED_MARK) ? "MARKED" : "",
-			(req_speed & QUERY_SPEED_FIREWALLED) ? " FW" : "",
-			(req_speed & QUERY_SPEED_XML) ? " XML" : "",
-			(req_speed & QUERY_SPEED_LEAF_GUIDED) ? " GUIDED" : "",
-			(req_speed & QUERY_SPEED_GGEP_H) ? " GGEP_H" : "",
-			(req_speed & QUERY_SPEED_OOB_REPLY) ? " OOB" : "",
-			(req_speed & QUERY_SPEED_FW_TO_FW) ? " FW2FW" : ""
+			gnutella_msg_search_get_text(packet), flags,
+			(flags & QUERY_F_MARK) ? "MARKED" : "",
+			(flags & QUERY_F_FIREWALLED) ? " FW" : "",
+			(flags & QUERY_F_XML) ? " XML" : "",
+			(flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+			(flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+			(flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+			(flags & QUERY_F_FW_TO_FW) ? " FW2FW" : ""
 		);
 	}
 }
@@ -1673,8 +1674,8 @@ void
 dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	dquery_t *dq;
-	guint16 req_speed;
-	gboolean tagged_speed;
+	guint16 flags;
+	gboolean flags_valid;
 	const gchar *leaf_muid;
 
 	/* Query from leaf node */
@@ -1684,8 +1685,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq = walloc0(sizeof(*dq));
 	dq->magic = DQUERY_MAGIC;
 
-	req_speed = peek_le16(n->data);
-	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
+	flags = peek_be16(n->data);
+	flags_valid = 0 != (flags & QUERY_F_MARK);
 
 	/*
 	 * Determine whether this query will be leaf-guided.
@@ -1701,7 +1702,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	 */
 
 	if (
-		(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ||
+		(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ||
 		NODE_LEAF_GUIDE(n)
 	)
 		dq->flags |= DQ_F_LEAF_GUIDED;
@@ -1735,27 +1736,27 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 				g_message("DQ node #%s %s <%s> OOB-proxying query \"%s\" (%s)",
 					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
 					n->data + 2,
-					(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
+					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
 						"guided" : "unguided"
 				);
 
 			oob_proxy_create(n);
 			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
-		} else if (tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY)) {
+		} else if (flags_valid && (flags & QUERY_F_OOB_REPLY)) {
 			/*
 			 * Running without UDP support, or UDP-firewalled...
 			 * Must remove the OOB flag so that results be routed back.
 			 */
 
 			query_strip_oob_flag(n, n->data);
-			req_speed = peek_le16(n->data);	/* Refresh our cache */
+			flags = peek_be16(n->data);	/* Refresh our cache */
 
 			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
 					"DQ node #%s %s <%s> stripped OOB on query \"%s\" (%s)",
 					node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
 					n->data + 2,
-					(tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED)) ?
+					(flags_valid && (flags & QUERY_F_LEAF_GUIDED)) ?
 						"guided" : "unguided"
 				);
 		}
@@ -1767,7 +1768,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (
 		NULL != oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header)) ||	
-		(tagged_speed && !(req_speed && QUERY_SPEED_OOB_REPLY))
+		(flags_valid && !(flags && QUERY_F_OOB_REPLY))
 	)
 		dq->flags |= DQ_F_ROUTING_HITS;
 
@@ -1781,8 +1782,8 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(gnutella_header_get_ttl(&n->header), DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
-	if (tagged_speed)
-		dq->query_flags = req_speed;
+	if (flags_valid)
+		dq->query_flags = flags;
 
 	leaf_muid = oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header));
 	if (leaf_muid != NULL)
@@ -1792,7 +1793,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		g_message("DQ node #%s %s <%s> (%s leaf-guidance) %s%squeries \"%s\"",
 			node_id_to_string(NODE_ID(n)), node_addr(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
-			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
+			flags_valid && (flags & QUERY_F_OOB_REPLY) ? "OOB-" : "",
 			oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 				? "proxied " : "",
 			gnutella_msg_search_get_text(pmsg_start(dq->mb)));
@@ -1936,11 +1937,11 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
 		!oob &&
 		((
 			(status & ST_FIREWALL) &&
-			(dq->query_flags & (QUERY_SPEED_FIREWALLED|QUERY_SPEED_FW_TO_FW))
-				== QUERY_SPEED_FIREWALLED
+			(dq->query_flags & (QUERY_F_FIREWALLED|QUERY_F_FW_TO_FW))
+				== QUERY_F_FIREWALLED
 		) || (
 			(status & (ST_FIREWALL|ST_FW2FW)) == ST_FIREWALL &&
-			(dq->query_flags & QUERY_SPEED_FIREWALLED)
+			(dq->query_flags & QUERY_F_FIREWALLED)
 		))
 	) {
 		if (GNET_PROPERTY(dq_debug) > 19) {

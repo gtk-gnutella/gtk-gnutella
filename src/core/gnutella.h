@@ -291,15 +291,22 @@ gnutella_msg_search_header(gnutella_msg_search_t *msg)
 }
 
 static inline void
-gnutella_msg_search_set_speed(gnutella_msg_search_t *msg, guint16 speed)
+gnutella_msg_search_set_flags(gnutella_msg_search_t *msg, guint16 flags)
 {
 	guint8 *u8 = (void *) msg;
-	poke_le16(&u8[GTA_HEADER_SIZE], speed);
+	poke_be16(&u8[GTA_HEADER_SIZE], flags);
+}
+
+static inline guint16
+gnutella_msg_search_get_flags(const void *data)
+{
+	const guint8 *u8 = data;
+	return peek_be16(&u8[GTA_HEADER_SIZE + 0]);
 }
 
 /*
  * Compute start of search string (which is NUL terminated) in query.
- * The "+2" skips the "speed" field in the query.
+ * The "+2" skips the "flags" field in the query.
  */
 static inline const gchar *
 gnutella_msg_search_get_text(const void *data)
