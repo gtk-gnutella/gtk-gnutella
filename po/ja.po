@@ -75,8 +75,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
-"PO-Revision-Date: 2007-08-21 13:32+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
+"PO-Revision-Date: 2007-09-02 00:10+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -91,32 +91,19 @@ msgstr "%s%s%s%s%s フレーム/秒, %s kb/秒"
 msgid "times|x"
 msgstr "回"
 
-msgid "No longer connected"
-msgstr "もう接続していません"
-
-msgid "Too many data timeouts"
-msgstr "データ転送のタイムアウトが多すぎます"
-
-# FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timed out?)
-msgid "Timeout"
-msgstr "タイムアウト"
-
-msgid "Requeued due to timeout"
-msgstr "キューに戻されました (タイムアウト)"
-
 msgid "Requeued due to file removal"
 msgstr "キューに戻されました (ファイル削除)"
 
 msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "一時休止 (SHA1確認中)"
-
 # NOTE: both `s' show localized timestamp
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr " (現在時: %s - 再予定時: %s%s)"
+
+msgid "Suspended (SHA1 checking)"
+msgstr "一時休止 (SHA1確認中)"
 
 #, c-format
 msgid "Ignoring requested (%s)"
@@ -266,9 +253,6 @@ msgstr ""
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (ダウンロードが競合しています)"
 
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "変なHTTPステータス (プロトコルの同期が破損した可能性があります)"
-
 msgid "Weird HTTP status"
 msgstr "変なHTTPステータス"
 
@@ -314,7 +298,7 @@ msgstr "タイムアウト (へッダの読み込み)"
 
 #, c-format
 msgid "No support for Content-Encoding (%s)"
-msgstr ""
+msgstr "Content-Encoding (%s) はサポートされていません"
 
 msgid "Spammer detected"
 msgstr "迷惑ファイル送信者を検知しました"
@@ -334,7 +318,7 @@ msgstr "相手側の部分ファイルを待受中"
 
 #, c-format
 msgid "%sRequested range unavailable yet"
-msgstr ""
+msgstr "%sまだリクエスト範囲を取得できる状況にありません"
 
 msgid "Queued"
 msgstr "待機中"
@@ -351,11 +335,10 @@ msgid "Server did not supply identification"
 msgstr "サーバが識別子を送信しませんでした"
 
 msgid "Unparseable Content-Length"
-msgstr ""
+msgstr "解析できない Content-Length です"
 
-#, fuzzy
 msgid "Total/served sizes mismatch"
-msgstr "ファイルサイズの不一致"
+msgstr ""
 
 msgid "Range start mismatch"
 msgstr "取得範囲の開始位置が一致しません"
@@ -391,21 +374,18 @@ msgstr "ファイルに書き込めません: %s"
 msgid "Stopped (Read buffer full)"
 msgstr "中断されました (読込バッファが一杯です)"
 
-#, fuzzy
 msgid "Failed (Completed?)"
-msgstr "失敗しました"
+msgstr "失敗しました (あるいは完了しました)"
 
-#, fuzzy
 msgid "Could not send whole HTTP request"
-msgstr "全 HTTP ステータスを送信できません"
+msgstr "HTTPリクエスト全体を送信できません"
 
 #, c-format
 msgid "Write failed: %s"
 msgstr "書き込みに失敗しました: %s"
 
-#, fuzzy
 msgid "Malformed push reply"
-msgstr "変な検索クエリーヒット"
+msgstr ""
 
 msgid "SHA1 mismatch detected"
 msgstr "SHA1の不一致が検出されました"
@@ -424,16 +404,44 @@ msgstr "<ホスト %s の参照>"
 msgid "<THEX data for %s>"
 msgstr "<%s のTHEXデータ>"
 
-#, fuzzy
 msgid "Browse search closed"
-msgstr "検索一覧を表示する"
+msgstr ""
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
 
+msgid "No longer connected"
+msgstr "もう接続していません"
+
+msgid "Too many data timeouts"
+msgstr "データ転送のタイムアウトが多すぎます"
+
+# FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timed out?)
+msgid "Timeout"
+msgstr "タイムアウト"
+
+msgid "Requeued due to timeout"
+msgstr "キューに戻されました (タイムアウト)"
+
 #, c-format
 msgid "Downloading (TR: %s)"
 msgstr "ダウンロード中 (残り時間: %s)"
+
+# XXX: #  #  # ####### #######
+#      #  #  #    #    #
+#      #  #  #    #    #
+#      #  #  #    #    #####
+#      #  #  #    #    #
+#       #####     #    #
+#
+msgid "Seeding"
+msgstr "シード中"
+
+msgid "Computing SHA1"
+msgstr "SHA1を算出しています"
+
+msgid "Waiting for SHA1 check"
+msgstr "SHA1の確認を待っています"
 
 msgid "OK"
 msgstr "OK"
@@ -449,18 +457,8 @@ msgstr "OK"
 msgid "failed"
 msgstr "失敗した時"
 
-msgid "Waiting for SHA1 check"
-msgstr "SHA1 確認を待っています"
-
-msgid "Computing SHA1"
-msgstr "SHA1 を算出しています"
-
 msgid "Moving"
 msgstr "移動しています"
-
-# XXX: WTF
-msgid "Seeding"
-msgstr "シード中"
 
 msgid "Finished"
 msgstr "完了"
@@ -841,7 +839,7 @@ msgid "Queued (slot %d, ETA: %s)"
 msgstr "待機中 (スロット %d, 予定時間: %s)"
 
 msgid "Cannot send whole HTTP status"
-msgstr "全 HTTP ステータスを送信できません"
+msgstr "HTTPステータス全体を送信できません"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -943,10 +941,10 @@ msgid "leaf node"
 msgstr "リーフ"
 
 msgid "Indicates whether the hostcache file is being read."
-msgstr "ホストキャッシュファイルが読込めるかどうかを示します。"
+msgstr "ホストのキャッシュファイルは読み込める状態にあります。"
 
 msgid "Indicates whether the ultracache file is being read."
-msgstr "ウルトラキャッシュファイルが読込めるかどうかを示します。"
+msgstr "ウルトラピアのキャッシュファイルは読み込める状態にあります。"
 
 msgid ""
 "Indicates that gtk-gnutella finds the version you run very VERY old.  You "
@@ -1061,11 +1059,11 @@ msgid "Average servent uptime."
 msgstr "サーバントの平均稼動時間です。"
 
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "gtk-gnutella が利用するローカル TCP ポートです。加入するプロバイダが TCP "
 "6346 番ポートのトラフィックを遮断したり絞り込むかもしれませんので、1024-"
@@ -1177,7 +1175,7 @@ msgid ""
 "get the whole HTTP request."
 msgstr ""
 "PUSH の最中に接続が全く確立されずにアップロードがタイムアウトするまでの秒数で"
-"す。これは全ての HTTP リクエストを取得するために待つ最長時間でもあります。"
+"す。これはHTTPリクエスト全体を取得するために待つ最長時間でもあります。"
 
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted."
@@ -1810,16 +1808,16 @@ msgstr ""
 "マッチ処理を行います。"
 
 msgid "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise."
-msgstr "現在、TCP に関してファイアウォール内にあるかどうかを表します。"
+msgstr "現在、TCP に関してファイアウォール内にあります。"
 
 msgid "Whether gtk-gnutella thinks it's connected to the Internet."
-msgstr "インターネットに接続しているかどうか表します。"
+msgstr "インターネットに接続しています。"
 
 msgid "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise."
-msgstr "現在、UDP に関してファイアウォール内にあるかどうかを表します。"
+msgstr "現在、UDP に関してファイアウォール内にあります。"
 
 msgid "Whether gtk-gnutella determined it could receive solicited UDP."
-msgstr "要請された UDP を受取れるのを確定したかどうか表します。"
+msgstr "UDP によるリクエストを受信できます。"
 
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
@@ -1841,24 +1839,23 @@ msgstr ""
 
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background."
-msgstr "gtk-gnutella のライブラリーを再構築しているかどうかを表します。"
+msgstr "gtk-gnutella のライブラリーを再構築しています。"
 
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
-msgstr "共有ファイルの SHA1 を算出しているかどうかを表します。"
+msgstr "共有ファイルの SHA1 を算出しています。"
 
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
-msgstr "ダウンロードされたファイルの SHA1 を検証しているかどうかを表します。"
+msgstr "ダウンロードされたファイルの SHA1 を検証しています。"
 
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background."
 msgstr ""
-"異なるファイルシステム間でのファイル移動 (あるいはコピー) を行っているかどう"
-"かを表します。"
+"異なるファイルシステム間でのファイル移動 (あるいはコピー) を行っています。"
 
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
@@ -2047,9 +2044,9 @@ msgid ""
 "resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
 "widespread, this is the easiest option."
 msgstr ""
-"リジュームのミスマッチを起こしたり、スクラッチから再実行する時はいつでもファ"
-"イルを自動的に削除するようにするかどうかを選びます。タイガー木ハッシュが普及"
-"するまでは、これが最も安全な選択枝となります。"
+"ダウンロードの再開時にデータが一致しなかったり、始めから再ダウンロードしよう"
+"とする時は、常にファイルを自動的に削除するようにします。TigerTreeハッシュが普"
+"及するまではこれが最も安全な選択枝となります。"
 
 msgid ""
 "The amount of bytes which gtk-gnutella will strip off the already downloaded "
@@ -2080,8 +2077,8 @@ msgid ""
 "Whether gtk-gnutella should advertise the hostname of your server to "
 "downloaders and in query hits."
 msgstr ""
-"あなたのサーバーのホスト名を、ダウンローダーや検索クエリーヒットで知らせるか"
-"どうかを選択します。"
+"あなたのサーバーのホスト名を、ダウンローダーや検索クエリーヒットで知らせま"
+"す。"
 
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
@@ -2198,9 +2195,7 @@ msgstr ""
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
-msgstr ""
-"「シェル」制御インターフェイス経由での gtk-gnutella への接続を許可するかどう"
-"かを選択します。"
+msgstr "「シェル」制御インターフェイス経由で gtk-gnutella への接続を行います。"
 
 msgid ""
 "Amount of seconds until an idle remote shell session gets disconnected. If "
@@ -2224,10 +2219,10 @@ msgid ""
 "counter."
 msgstr ""
 "TTL (Time-To-Live) およびホップを数えたり、重複を破棄する事で、検索クエリーを"
-"活発にチェックすべきかどうかを選択します。これはリーフモードとして動作してい"
-"ず、ホップ数が 0 より大きい検索クエリーにのみ適用されます。つまり、すぐ隣から"
-"来る検索クエリーには適用されません。破棄された検索クエリーは「メッセージス"
-"ロットル」カウンターに数えられます。"
+"頻繁にチェックします。これはリーフモードとして動作しておらず、ホップ数が 0 よ"
+"り大きい検索クエリーにのみ適用されます。つまり、すぐ近くにあるピアから来る検"
+"索クエリーには適用されません。破棄された検索クエリーは「メッセージスロット"
+"ル」カウンターに数えられます。"
 
 msgid ""
 "Half the duration during which gtk-gnutella should remember the recently "
@@ -2370,11 +2365,10 @@ msgid ""
 "received via TCP.  It is safe to leave this set, which is the default "
 "behavior."
 msgstr ""
-"UDP を TCP の補間に使用するかどうかを選択します。有効にすると、TCP に設定され"
-"たものと同じポートで UDP トラフィックも利用するようになり、まるで TCP 経由で"
-"受信したかのように、ほぼ同じやり方で内部 Gnutella トラフィックを処理するよう"
-"になります。これは標準の振る舞いですので、そのままに設定しておいても安全で"
-"す。"
+"TCP の補間に UDP を使用します。有効にすると、TCP に設定されたものと同じポート"
+"で UDP トラフィックも利用するようになり、まるで TCP 経由で受信したかのよう"
+"に、ほぼ同じやり方で内部 Gnutella トラフィックを処理するようになります。これ"
+"は標準の振る舞いですので、そのままに設定しておいても安全です。"
 
 msgid ""
 "Whether gtk-gnutella should honor the request for out-of-band delivery of "
@@ -2386,12 +2380,12 @@ msgid ""
 "emitted traffic and honors the bandwidth limitations."
 msgstr ""
 "UDP サポートが有効にされた場合、gtk-gnutella が UDP 経由の検索クエリーヒット"
-"の帯域外 (Out-Of-Band) 配送の要求を遵守するかどうかを選択します。あなたのノー"
-"ドが UDP トラフィックの起元になってしまうので、これを有効にするために転送ポー"
-"トの追加が必要になるべきではありません。したがって、仮装ファイアウォールに"
-"よって開けられた一時的な UDP ポートへ送信された返答を受信することができます。"
-"あなたのピアが発生するトラフィックの大半を管理できて、帯域幅の制限を遵守する"
-"限り安全だと思われるため、標準では有効になります。"
+"の帯域外 (Out-Of-Band) 配送の要求をします。あなたのノードが UDP トラフィック"
+"の起元になってしまうので、これを有効にするために転送ポートの追加が必要になる"
+"べきではありません。したがって、仮装ファイアウォールによって開けられた一時的"
+"な UDP ポートへ送信された返答を受信することができます。あなたのピアが発生する"
+"トラフィックの大半を管理できて、帯域幅の制限を遵守する限り安全だと思われるた"
+"め、標準では有効になります。"
 
 msgid ""
 "Whether gtk-gnutella should send queries requesting out-of-band delivery of "
@@ -2403,12 +2397,12 @@ msgid ""
 "controlled relaying node, limiting the results you can get."
 msgstr ""
 "UDP 経由で検索クエリーヒットの帯域外 (Out-Of-Band) 配送を要求しながら検索クエ"
-"リーを送信するかどうかを選択します。この設定は UDP がファイアウォールで遮られ"
-"ている場合には無視されます、つまり要望のない UDP トラフィックは受信できませ"
-"ん。まず UDP へ対応する事が必要になります。これは大量の UDP の返答を受け付け"
-"てしまいかねませんので、この機能を無効にしても構いません。これを無効にする"
-"と、あなたのヒットは Gnutella ネットワークを通り抜けるようになり、あなたが得"
-"られる結果を制限しならが、フロー調整する中継ピアに破棄されます。"
+"リーを送信します。この設定は UDP がファイアウォールで遮られている場合には無視"
+"されます、つまり要望のない UDP トラフィックは受信できません。まず UDP へ対応"
+"する事が必要になります。これは大量の UDP の返答を受け付けてしまいかねませんの"
+"で、この機能を無効にしても構いません。これを無効にすると、あなたのヒットは "
+"Gnutella ネットワークを通り抜けるようになり、あなたが得られる結果を制限しなら"
+"が、フロー調整する中継ピアに破棄されます。"
 
 msgid ""
 "Whether gtk-gnutella should, when running as ultrapeer, act as proxy for "
@@ -2420,20 +2414,20 @@ msgid ""
 "messages and lowering the efficiency of the search network."
 msgstr ""
 "ウルトラピアとして動作している時に、検索クエリーヒットの帯域外 (Out-Of-Band) "
-"配送を要求していないリーフ検索クエリーに対してプロキシサーバーとして振る舞う"
-"かどうかを選択します: gtk-gnutella は遠隔ピアからのヒットを催促して、適切な"
-"リーフに転送します。これは各リーフに対して有利に働きますが、あなたのウルトラ"
-"ピアに折り返される UDP トラフィックの大渋滞を引き起こす可能性があります。これ"
-"を無効にすると、あなたに接続している全てのウルトラピアがこのヒットを中継しな"
-"ければいけなくなり、その他の問合わせメッセージを破棄して検索ネットワークの効"
-"率を下げてしまうかもしれません。"
+"配送を要求していないリーフ検索クエリーに対してプロキシサーバーとして振る舞い"
+"ます: gtk-gnutella は遠隔ピアからのヒットを催促して、適切なリーフに転送しま"
+"す。これは各リーフに対して有利に働きますが、あなたのウルトラピアに折り返され"
+"る UDP トラフィックの大渋滞を引き起こす可能性があります。これを無効にすると、"
+"あなたに接続している全てのウルトラピアがこのヒットを中継しなければいけなくな"
+"り、その他の問合わせメッセージを破棄して検索ネットワークの効率を下げてしまう"
+"かもしれません。"
 
 msgid ""
 "Whether uploads are frequently stalling, indicating that the bandwidth is "
 "saturated.  Avoid running as an ultra-node under those conditions."
 msgstr ""
-"アップロードが頻繁に停滞、帯域幅が飽和しているしている事を示すかどうかを表し"
-"ます。このような条件下ではウルトラピアとして動作する事を避けます。"
+"アップロードが頻繁に停滞しており、帯域幅が飽和している事を表します。このよう"
+"な条件下ではウルトラピアとして使用するのを避けてください。"
 
 msgid ""
 "If set to TRUE, the global hostiles.txt is used as well as the private "
@@ -2587,12 +2581,12 @@ msgid "Number of THEX file requests fully served in this session."
 msgstr "このセッション中に完全に送信されたTHEX参照リクエストの回数です。"
 
 msgid "Debug level for Tigertree-related code."
-msgstr "Tigertree関連コードのデバッグレベルです。"
+msgstr "TigerTree関連コードのデバッグレベルです。"
 
 msgid ""
 "Whether gtk-gnutella is currently computing TTH of shared files in the "
 "background."
-msgstr "共有ファイルのTTHを算出しているかどうかを表します。"
+msgstr "共有ファイルのTTHを算出しています。"
 
 msgid "Maximum number of results to show in any search."
 msgstr "検索で表示する検索結果の最大数です。"
@@ -2603,6 +2597,15 @@ msgstr "ホスト参照リクエストで表示する最大数です。"
 msgid "The current Session ID."
 msgstr "現在のセッションIDです。"
 
+msgid "Date of the latest SVN release."
+msgstr "最新のSVNリリースの日付です。"
+
+msgid "Revision of the latest SVN release."
+msgstr "最新のSVNリリースのリビジョンです。"
+
+msgid "Signature of the latest SVN release notification."
+msgstr "最新のSVNリリース通知の署名です。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -2610,7 +2613,7 @@ msgid "by words"
 msgstr "単語に分けて表示"
 
 msgid "by whole query"
-msgstr "完全なクエリーで表示"
+msgstr "クエリー全体を表示"
 
 msgid "by router"
 msgstr "隣接ピアからのクエリーを表示"
@@ -2719,12 +2722,6 @@ msgstr "ピア・テーブルの表示欄の幅です。"
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "ピア・ペインでどの欄を表示するのかを指定します。"
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr "待機中のダウンロードのテーブルの表示欄の幅です。"
-
-msgid "Which columns are visible in the queued downloads table."
-msgstr "待機中のダウンロードのテーブルでどの欄を表示するのかを指定します。"
 
 msgid "Widths of the columns in the file info table."
 msgstr "ファイル情報テーブルの表示欄の幅です。"
@@ -2954,11 +2951,10 @@ msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
 msgstr ""
-"ピアの稼動時間を表示するかどうか (全てのピア情報が表示される訳ではありませ"
-"ん) を選択します。"
+"ピアの稼動時間を表示します (全てのピア情報が表示される訳ではありません)。"
 
 msgid "Whether the handshaking version number should be displayed."
-msgstr "ハンドシェーキング・バージョン番号を表示するかどうかを選択します。"
+msgstr "ハンドシェーキング・バージョン番号を表示します。"
 
 msgid ""
 "Whether detailed traffic information should be shown for the node.  When "
@@ -2966,9 +2962,9 @@ msgid ""
 "When disabled, only TX and RX message counts are displayed, followed by the "
 "message queue info."
 msgstr ""
-"ピアの詳しいトラフィック情報を表示するかどうかを選択します。有効にすると、ど"
-"の情報を表示するかをカスタマイズする事もできるようになります。無効にすると、"
-"メッセージキュー情報の後に送信と受信メッセージの回数のみが表示されます。"
+"ピアの詳しいトラフィック情報を表示します。有効にすると、どの情報を表示するか"
+"をカスタマイズする事もできるようになります。無効にすると、メッセージキュー情"
+"報の後に送信と受信メッセージの回数のみが表示されます。"
 
 msgid "Whether TX traffic compression ratio should be displayed."
 msgstr "送信トラフィックの圧縮比を表示するかどうかを選択します。"
@@ -4090,11 +4086,33 @@ msgstr "他のデータはありません"
 msgid "Filename"
 msgstr "ファイル名"
 
+msgid "Created"
+msgstr "作成日"
+
 msgid "SHA-1"
 msgstr "SHA-1"
 
+msgid "Not available"
+msgstr "利用できません"
+
 msgid "Bitprint"
 msgstr "Bitprint"
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr "%luのリーフピアからハッシュが提供されています。粒度は%s"
+
+msgid "Tigertree"
+msgstr "TigerTree"
+
+msgid "External metadata"
+msgstr "外部メタデータ"
+
+msgid "Bitzi URL"
+msgstr "Bitzi URL"
+
+msgid "ShareMonkey URL"
+msgstr "ShareMonkey URL"
 
 #, c-format
 msgid " (slot %u"
@@ -4249,6 +4267,9 @@ msgstr "アクティブ"
 
 msgid "Incomplete"
 msgstr "不完全"
+
+msgid "Orphaned"
+msgstr "孤立"
 
 msgid "All"
 msgstr "全て"
@@ -6601,12 +6622,6 @@ msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "%u 件のダウンロードを作成しました。"
 
-# NOTE: see above and below
-#, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] "選択した %2$u 個のアイテムから %1$s"
-
 # NOTE: this string is used as follows
 #
 # 'Discarded 0 results from the 0 selected items'
@@ -6654,7 +6669,6 @@ msgstr "ピア(_P)"
 msgid "Gnutella _traffic stats"
 msgstr "Gnutellaトラフィック統計(_T)"
 
-#, fuzzy
 msgid "_Auto-hide leaf traffic stats"
 msgstr "自動的に隠す(_A)"
 
@@ -7087,9 +7101,6 @@ msgstr "多分"
 msgid "Source"
 msgstr "送信元"
 
-msgid "Created"
-msgstr "作成日"
-
 msgid "Alt-Locs"
 msgstr "別の送信元"
 
@@ -7099,14 +7110,11 @@ msgstr "ローマ字表記"
 msgid "Index"
 msgstr "インデックス"
 
-msgid "External metadata"
-msgstr "外部メタデータ"
+msgid "Pathname"
+msgstr "パス名"
 
-msgid "Bitzi URL"
-msgstr "Bitzi URL"
-
-msgid "ShareMonkey URL"
-msgstr "ShareMonkey URL"
+msgid "File URL"
+msgstr "ファイルURL"
 
 msgid "Host information"
 msgstr "ホスト情報"
@@ -7140,12 +7148,6 @@ msgstr "プロトコル"
 
 msgid "TTL"
 msgstr "TTL"
-
-msgid "Pathname"
-msgstr "パス名"
-
-msgid "File URL"
-msgstr "ファイルURL"
 
 msgid "URLs"
 msgstr "URL"
