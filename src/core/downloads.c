@@ -2877,26 +2877,9 @@ download_unavailable(struct download *d, download_status_t new_status,
 	va_end(args);
 }
 
-/**
- * The vectorized (message-wise) version of download_queue().
- */
 static void
-download_queue_v(struct download *d, const gchar *fmt, va_list ap)
+download_queue_set_status(struct download *d, const gchar *fmt, va_list ap)
 {
-	download_check(d);
-	file_info_check(d->file_info);
-	g_assert(!DOWNLOAD_IS_QUEUED(d));
-	g_assert(d->file_info->refcount > 0);
-	g_assert(d->file_info->lifecount <= d->file_info->refcount);
-	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
-
-	/*
-	 * Put a download in the queue :
-	 * - it's a new download, but we have reached the max number of
-	 *	running downloads
-	 * - the user requested it with the popup menu "Move back to the queue"
-	 */
-
 	if (fmt) {
 		size_t len;
 		gchar event[80], resched[80], pfs[40];
@@ -2930,6 +2913,22 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 			lazy_locale_to_ui_string(event),
 			lazy_locale_to_ui_string2(resched), pfs);
 	}
+}
+
+/**
+ * The vectorized (message-wise) version of download_queue().
+ */
+static void
+download_queue_v(struct download *d, const gchar *fmt, va_list ap)
+{
+	download_check(d);
+	file_info_check(d->file_info);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_assert(d->file_info->refcount > 0);
+	g_assert(d->file_info->lifecount <= d->file_info->refcount);
+	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
+	download_queue_set_status(d, fmt, ap);
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);
