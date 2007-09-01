@@ -95,7 +95,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-#define READ_BUF_SIZE	4096		/**< Read buffer size, if no sendfile(2) */
+#define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
 #define BW_OUT_MIN		256			/**< Minimum bandwidth to enable uploads */
 #define IO_PRE_STALL	30			/**< Pre-stalling warning */
 #define IO_STALLED		60			/**< Stalling condition */
