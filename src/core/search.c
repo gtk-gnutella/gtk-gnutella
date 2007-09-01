@@ -4720,7 +4720,7 @@ search_request_preprocess(struct gnutella_node *n)
 	 * interpretation. --RAM
 	 */
 
-	flags = peek_le16(n->data);
+	flags = peek_be16(n->data);
 	if (!(flags & QUERY_F_MARK)) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
@@ -5275,7 +5275,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	/* NOTE: search_request_preprocess() has already handled this query. */
 
-	flags = peek_le16(n->data);
+	flags = peek_be16(n->data);
 	search = n->data + 2;	/* skip flags */
 	search_len = clamp_strlen(search, n->size - 2);
 
