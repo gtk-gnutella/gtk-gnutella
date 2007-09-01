@@ -72,6 +72,13 @@ tls_socket_get_session(struct gnutella_socket *s)
 	return s->tls.ctx->session;
 }
 
+static inline size_t
+tls_adjust_send_size(struct gnutella_socket *s, size_t size)
+{
+	size_t max_size = gnutls_record_get_max_size(tls_socket_get_session(s));
+	return MIN(size, max_size);
+}
+
 #ifdef XXX_CUSTOM_PUSH_PULL
 static inline void
 tls_transport_debug(const char *op, int fd, size_t size, ssize_t ret)
@@ -544,7 +551,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		len = 0;
 	} else {
 		p = buf;
-		len = size;
+		len = tls_adjust_send_size(s, size);
 		g_assert(NULL != p && len > 0);
 	}
 
@@ -578,8 +585,9 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_warning("tls_write(): gnutls_record_send() failed: "
-					"host=%s error=\"%s\"",
+					"host=%s snarf=%lu error=\"%s\"",
 					host_addr_port_to_string(s->addr, s->port),
+					(unsigned long) s->tls.snarf,
 					gnutls_strerror(ret));
 			}
 			errno = EIO;
@@ -587,6 +595,7 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 		}
 	} else {
 		if (0 != s->tls.snarf) {
+			g_assert(s->tls.snarf >= (size_t) ret);
 			s->tls.snarf -= ret;
 			errno = VAL_EAGAIN;
 			ret = -1;
@@ -740,8 +749,9 @@ tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 		size_t len;
 
 		p = iov[i].iov_base;
-		len = iov[i].iov_len;
+		len = tls_adjust_send_size(s, iov[i].iov_len);
 		g_assert(NULL != p && len > 0);
+
 		ret = gnutls_record_send(tls_socket_get_session(s), p, len);
 		if (ret < 0) {
 			switch (ret) {
@@ -815,8 +825,9 @@ tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 		char *p;
 
 		p = iov[i].iov_base;
-		len = iov[i].iov_len;
+		len = tls_adjust_send_size(s, iov[i].iov_len);
 		g_assert(NULL != p && len > 0);
+
 		ret = gnutls_record_recv(tls_socket_get_session(s), p, len);
 		if (ret <= 0) {
 			break;
