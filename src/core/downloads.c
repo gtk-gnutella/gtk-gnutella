@@ -252,7 +252,7 @@ download_host_info(const struct download *d)
 	host_addr_port_to_string_buf(download_addr(d), download_port(d),
 		host, sizeof host);
 	concat_strings(info, sizeof info,
-		host, "<", host, " \'", download_vendor_str(d), "\'>",
+		"<", host, " \'", download_vendor_str(d), "\'>",
 		(void *) 0);
 	return info;
 }
