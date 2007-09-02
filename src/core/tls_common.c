@@ -974,6 +974,25 @@ svn_release_notification_can_verify(void)
 	return NULL != svn_release_notify_certificate();
 }
 
+static gboolean
+verify_signature(gnutls_x509_crt_t cert,
+	const struct array *input, const struct array *signature)
+{
+	gnutls_datum_t data, sig;
+
+	g_return_val_if_fail(cert, FALSE);
+	g_return_val_if_fail(input, FALSE);
+	g_return_val_if_fail(signature, FALSE);
+
+	data.data = (void *) input->data;
+	data.size = input->size;
+
+	sig.data = (void *) signature->data;
+	sig.size = signature->size;
+
+	return 1 == gnutls_x509_crt_verify_data(cert, 0, &data, &sig);
+}
+
 /**
  * Verifies "data" against "signature".
  *
@@ -983,14 +1002,8 @@ gboolean
 svn_release_notification_verify(guint32 revision, time_t date,
 	const struct array *signature)
 {
-	gnutls_datum_t input, sig;
-	gnutls_x509_crt_t cert;
 	char rev[12], data[64];
-
-	g_return_val_if_fail(signature, FALSE);
-
-	cert = svn_release_notify_certificate();
-	g_return_val_if_fail(cert, FALSE);
+	struct array input;
 
 	uint32_to_string_buf(revision, rev, sizeof rev);
 	input.data = (void *) data;
@@ -999,10 +1012,8 @@ svn_release_notification_verify(guint32 revision, time_t date,
 					"@", uint32_to_string(date),
 					(void *) 0);
 
-	sig.data = (void *) signature->data;
-	sig.size = signature->size;
-
-	return 1 == gnutls_x509_crt_verify_data(cert, 0, &input, &sig);
+	return verify_signature(svn_release_notify_certificate(),
+				&input, signature);
 }
 
 #else	/* !HAS_GNUTLS*/
@@ -1050,8 +1061,9 @@ gboolean
 svn_release_notification_verify(guint32 revision, time_t date,
 	const struct array *signature)
 {
-	g_return_val_if_fail(data, FALSE);
 	g_return_val_if_fail(signature, FALSE);
+	(void) revision;
+	(void) date;
 	return FALSE;
 }
 
