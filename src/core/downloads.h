@@ -88,7 +88,7 @@ gboolean is_faked_download(const struct download *d);
 
 struct download *download_find_waiting_unparq(const host_addr_t addr,
 					guint16 port);
-void download_set_socket_rx_size(gint rx_size);
+void download_set_socket_rx_size(unsigned rx_size);
 
 void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);

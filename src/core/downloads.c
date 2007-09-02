@@ -2320,11 +2320,9 @@ download_remove_all_thex(const struct sha1 *sha1)
  * downloads.
  */
 void
-download_set_socket_rx_size(gint rx_size)
+download_set_socket_rx_size(unsigned rx_size)
 {
 	struct download *next;
-
-	g_assert(rx_size > 0);
 
 	/* This is called from settings_init() before download_init() */
 	if (NULL == sl_downloads)
