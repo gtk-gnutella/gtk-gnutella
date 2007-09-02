@@ -1559,6 +1559,11 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 			 * There can be multiple shared files with the same SHA-1.
 			 * Only the first found is inserted into the tree.
 			 */
+			if (GNET_PROPERTY(share_debug) > 0) {
+				g_message("\"%s\" is a duplicate of \"%s\"",
+					shared_file_path(sf),
+					shared_file_path(current));
+			}
 		} else {
 			g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
 		}
