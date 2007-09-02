@@ -5144,6 +5144,11 @@ search_request_preprocess(struct gnutella_node *n)
 			goto drop;		/* Drop the message! */
 		}
 
+		if (is_my_address_and_port(addr, port)) {
+			gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
+			goto drop;
+		}
+
 		/*
 		 * If it's a neighbouring query, make sure the IP for results
 		 * matches what we know about the listening IP for the node.
@@ -5164,7 +5169,7 @@ search_request_preprocess(struct gnutella_node *n)
 					node_addr(n), node_vendor(n),
 					host_addr_port_to_string(addr, port), node_gnet_addr(n));
 
-			goto drop;		/* Drop the message! */
+			goto drop;
 		}
 
 		/*
