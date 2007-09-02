@@ -2534,6 +2534,20 @@ socket_set_accept_filters(struct gnutella_socket *s)
 }
 
 
+static inline void
+socket_set_fastack(struct gnutella_socket *s)
+{
+	socket_check(s);
+	g_return_if_fail(s->file_desc >= 0);
+	
+	if (SOCK_F_TCP & s->flags) {
+#ifdef TCP_FASTACK
+		static const int on = 1;
+		setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on);
+#endif	/* TCP_FASTACK */
+	}
+}
+
 /*
  * Sockets creation
  */
@@ -2619,6 +2633,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	set_close_on_exec(s->file_desc);
 	socket_set_linger(s->file_desc);
 	socket_tos_normal(s);
+	socket_set_fastack(s);
 
 	return 0;
 }
@@ -3124,6 +3139,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	}
 
 	socket_set_accept_filters(s);
+	socket_set_fastack(s);
 
 	/* Get the port of the socket, if needed */
 
