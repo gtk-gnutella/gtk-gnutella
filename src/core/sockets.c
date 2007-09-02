@@ -1292,50 +1292,6 @@ socket_destroy(struct gnutella_socket *s, const gchar *reason)
 	socket_free_null(&s);
 }
 
-struct socket_linger {
-	guint tag;	/* Holds the result of inputevt_add() */
-};
-
-static void
-socket_linger_cb(gpointer data, gint fd, inputevt_cond_t unused_cond)
-{
-	struct socket_linger *ctx = data;
-
-	(void) unused_cond;
-	g_assert(fd >= 0);
-	g_assert(NULL != data);
-	g_assert(0 != ctx->tag);
-
-	if (close(fd)) {
-		gint e = errno;
-
-		if (!is_temporary_error(e))
-			g_warning("close(%d) failed: %s", fd, g_strerror(e));
-
-		/* remove the handler in case of EBADF because it would
-		 * cause looping otherwise */
-		if (EBADF != e)
-			return;
-	} else {
-		g_message("socket_linger_cb: close() succeeded");
-	}
-
-	inputevt_remove(ctx->tag);
-	wfree(ctx, sizeof *ctx);
-}
-
-static void
-socket_linger_close(gint fd)
-{
-	struct socket_linger *ctx;
-
-	g_assert(fd >= 0);
-
-	ctx = walloc(sizeof *ctx);
-	ctx->tag = inputevt_add(fd, INPUT_EVENT_RX, socket_linger_cb, ctx);
-	g_assert(0 != ctx->tag);
-}
-
 /**
  * Dispose of socket, closing connection, removing input callback, and
  * reclaiming attached getline buffer.
@@ -1389,13 +1345,8 @@ socket_free(struct gnutella_socket *s)
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (close(s->file_desc)) {
-			gint e = errno;
-
-			if (!is_temporary_error(e))
-				g_warning("close(%d) failed: %s", s->file_desc, g_strerror(e));
-
-			if (EBADF != e) /* just in case, as it would cause looping */
-				socket_linger_close(s->file_desc);
+			g_warning("socket_free: close(%d) failed: %s",
+				s->file_desc, g_strerror(errno));
 		}
 		s->file_desc = -1;
 	}
@@ -2505,7 +2456,7 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 }
 
 static inline void
-socket_set_linger(gint fd)
+socket_set_linger(int fd)
 {
 	g_assert(fd >= 0);
 
@@ -2514,7 +2465,7 @@ socket_set_linger(gint fd)
 
 #ifdef TCP_LINGER2
 	{
-		gint timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
+		int timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
 
 		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout))
 			g_warning("setsockopt() for TCP_LINGER2 failed: %s",
