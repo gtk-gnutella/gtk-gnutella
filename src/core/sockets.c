@@ -1386,9 +1386,7 @@ socket_free(struct gnutella_socket *s)
 #endif	/* HAS_GNUTLS */
 
 	if (s->file_desc != -1) {
-		if (s->corked) {
-			socket_cork(s, FALSE);
-		}
+		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (close(s->file_desc)) {
 			gint e = errno;
@@ -3337,9 +3335,11 @@ socket_cork(struct gnutella_socket *s, gboolean on)
 	gint arg = on ? 1 : 0;
 
 	socket_check(s);
-	if (!(SOCK_F_TCP & s->flags)) {
+	if (!(SOCK_F_TCP & s->flags))
 		return;
-	}
+
+	if (s->corked == on)
+		return;
 
 	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
 		if (ECONNRESET != errno) {
