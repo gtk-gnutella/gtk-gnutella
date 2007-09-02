@@ -2338,7 +2338,7 @@ download_set_socket_rx_size(gint rx_size)
 		next = hash_list_next(sl_downloads, next);
 
 		if (d->socket != NULL)
-			sock_recv_buf(d->socket, rx_size, TRUE);
+			socket_recv_buf(d->socket, rx_size, TRUE);
 	}
 }
 
@@ -7380,7 +7380,7 @@ download_mark_active(struct download *d)
 		struct gnutella_socket *s = d->socket;
 
 		socket_tos_lowdelay(s);
-		sock_recv_buf(s, GNET_PROPERTY(download_rx_size) * 1024, TRUE);
+		socket_recv_buf(s, GNET_PROPERTY(download_rx_size) * 1024, TRUE);
 	}
 
 	/*
@@ -9253,7 +9253,7 @@ download_connected(struct download *d)
 	socket_check(d->socket);
 
 	d->flags |= DL_F_INITIAL;
-	sock_nodelay(d->socket, TRUE);
+	socket_nodelay(d->socket, TRUE);
 	download_send_request(d);
 }
 

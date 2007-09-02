@@ -499,8 +499,8 @@ ban_force(struct gnutella_socket *s)
 	 * Shrink socket buffers.
 	 */
 
-	sock_send_buf(s, SOCK_BUFFER, TRUE);
-	sock_recv_buf(s, SOCK_BUFFER, TRUE);
+	socket_send_buf(s, SOCK_BUFFER, TRUE);
+	socket_recv_buf(s, SOCK_BUFFER, TRUE);
 
 	/*
 	 * Let the kernel discard incoming data; SHUT_WR or SHUT_RDWR

@@ -1386,9 +1386,10 @@ socket_free(struct gnutella_socket *s)
 #endif	/* HAS_GNUTLS */
 
 	if (s->file_desc != -1) {
-		if (s->corked)
-			sock_cork(s, FALSE);
-		sock_tx_shutdown(s);
+		if (s->corked) {
+			socket_cork(s, FALSE);
+		}
+		socket_tx_shutdown(s);
 		if (close(s->file_desc)) {
 			gint e = errno;
 
@@ -3297,7 +3298,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 	 * datagrams if we are not able to read them during some time.
 	 */
 
-	sock_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
+	socket_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
 
 	return s;
 }
@@ -3324,7 +3325,7 @@ socket_omit_token(struct gnutella_socket *s)
  * it's about 1500 bytes.
  */
 void
-sock_cork(struct gnutella_socket *s, gboolean on)
+socket_cork(struct gnutella_socket *s, gboolean on)
 #if defined(TCP_CORK) || defined(TCP_NOPUSH)
 {
 	static const gint option =
@@ -3364,12 +3365,12 @@ sock_cork(struct gnutella_socket *s, gboolean on)
 #endif /* TCP_CORK || TCP_NOPUSH */
 
 /*
- * Internal routine for sock_send_buf() and sock_recv_buf().
+ * Internal routine for socket_send_buf() and socket_recv_buf().
  * Set send/receive buffer to specified size, and warn if it cannot be done.
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 static void
-sock_set_intern(gint fd, gint option, gint size,
+socket_set_intern(gint fd, gint option, gint size,
 	const gchar *type, gboolean shrink)
 {
 	gint old_len = 0;
@@ -3420,11 +3421,11 @@ sock_set_intern(gint fd, gint option, gint size,
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!s->was_shutdown);
-	sock_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
+	socket_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
 /**
@@ -3432,18 +3433,18 @@ sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!s->was_shutdown);
-	sock_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
+	socket_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
 /**
  * Turn TCP_NODELAY on or off on the socket.
  */
 void
-sock_nodelay(struct gnutella_socket *s, gboolean on)
+socket_nodelay(struct gnutella_socket *s, gboolean on)
 {
 	gint arg = on ? 1 : 0;
 
@@ -3464,7 +3465,7 @@ sock_nodelay(struct gnutella_socket *s, gboolean on)
  * Shutdown the TX side of the socket.
  */
 void
-sock_tx_shutdown(struct gnutella_socket *s)
+socket_tx_shutdown(struct gnutella_socket *s)
 {
 	socket_check(s);
 	g_assert(s->file_desc >= 0);

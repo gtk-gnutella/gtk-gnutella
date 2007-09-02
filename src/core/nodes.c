@@ -1357,7 +1357,7 @@ node_set_socket_rx_size(gint rx_size)
 
 		if (n->socket) {
 			socket_check(n->socket);
-			sock_recv_buf(n->socket, rx_size, TRUE);
+			socket_recv_buf(n->socket, rx_size, TRUE);
 		}
 	}
 }
@@ -2539,7 +2539,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
-	sock_send_buf(n->socket, sendbuf_len, FALSE);
+	socket_send_buf(n->socket, sendbuf_len, FALSE);
 	gmsg_split_sendto_one(n, &head, reason_fmt, len + sizeof(head));
 
 	/*
@@ -2567,7 +2567,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
 				code, n->error_str, node_addr(n), node_vendor(n));
 
-			sock_tx_shutdown(n->socket);
+			socket_tx_shutdown(n->socket);
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (GNET_PROPERTY(node_debug))
@@ -3576,10 +3576,10 @@ node_is_now_connected(struct gnutella_node *n)
 	 * flow control early.  Use their setup for the receive buffer.
 	 */
 
-	sock_send_buf(n->socket, NODE_IS_LEAF(n) ?
+	socket_send_buf(n->socket, NODE_IS_LEAF(n) ?
 		NODE_SEND_LEAF_BUFSIZE : NODE_SEND_BUFSIZE, TRUE);
 
-	sock_recv_buf(n->socket, GNET_PROPERTY(node_rx_size) * 1024, TRUE);
+	socket_recv_buf(n->socket, GNET_PROPERTY(node_rx_size) * 1024, TRUE);
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
@@ -7298,7 +7298,7 @@ node_flushq(struct gnutella_node *n)
 	if (n->flags & NODE_F_NODELAY)		/* Already done */
 		return;
 
-	sock_nodelay(n->socket, TRUE);
+	socket_nodelay(n->socket, TRUE);
 	n->flags |= NODE_F_NODELAY;
 }
 
@@ -7311,7 +7311,7 @@ node_unflushq(struct gnutella_node *n)
 	if (!(n->flags & NODE_F_NODELAY))		/* Already done */
 		return;
 
-	sock_nodelay(n->socket, FALSE);
+	socket_nodelay(n->socket, FALSE);
 	n->flags &= ~NODE_F_NODELAY;
 }
 
@@ -7418,7 +7418,7 @@ node_bye_sent(struct gnutella_node *n)
 
 	n->flags &= ~NODE_F_BYE_SENT;
 
-	sock_tx_shutdown(n->socket);
+	socket_tx_shutdown(n->socket);
 	node_shutdown_mode(n, BYE_GRACE_DELAY);
 }
 

@@ -192,7 +192,7 @@ socket_uses_tls(const struct gnutella_socket *s)
 #endif	/* HAS_GNUTLS */
 
 static inline gboolean
-sock_is_corked(const struct gnutella_socket *s)
+socket_is_corked(const struct gnutella_socket *s)
 {
 	return s->corked;
 }
@@ -237,11 +237,11 @@ void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);
 void socket_evt_clear(struct gnutella_socket *s);
 
-void sock_cork(struct gnutella_socket *s, gboolean on);
-void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
-void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
-void sock_nodelay(struct gnutella_socket *s, gboolean on);
-void sock_tx_shutdown(struct gnutella_socket *s);
+void socket_cork(struct gnutella_socket *s, gboolean on);
+void socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
+void socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
+void socket_nodelay(struct gnutella_socket *s, gboolean on);
+void socket_tx_shutdown(struct gnutella_socket *s);
 void socket_tos_default(const struct gnutella_socket *s);
 void socket_tos_throughput(const struct gnutella_socket *s);
 void socket_tos_lowdelay(const struct gnutella_socket *s);

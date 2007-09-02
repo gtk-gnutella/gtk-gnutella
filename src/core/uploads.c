@@ -527,12 +527,12 @@ upload_timer(time_t now)
 
 				if (
 					!skip && stalled <= stall_thresh() &&
-					!sock_is_corked(u->socket)
+					!socket_is_corked(u->socket)
 				) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
 						"re-enabling TCP_CORK on connection to %s (%s)",
 						host_addr_to_string(u->addr), upload_vendor_str(u));
-					sock_cork(u->socket, TRUE);
+					socket_cork(u->socket, TRUE);
 					socket_tos_throughput(u->socket);
 				}
 
@@ -566,12 +566,12 @@ upload_timer(time_t now)
 			to_remove = g_slist_prepend(to_remove, u);
 		} else if (UPLOAD_IS_SENDING(u)) {
 			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
-				if (sock_is_corked(u->socket)) {
+				if (socket_is_corked(u->socket)) {
 					if (GNET_PROPERTY(upload_debug)) g_warning(
 						"connection to %s (%s) may be stalled, "
 						"disabling TCP_CORK",
 						host_addr_to_string(u->addr), upload_vendor_str(u));
-					sock_cork(u->socket, FALSE);
+					socket_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
 				u->flags |= UPLOAD_F_EARLY_STALL;
@@ -3520,7 +3520,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	g_assert(u->bio == NULL);
 
 	/* TODO: Add a property for this */
-	sock_send_buf(u->socket, 64 * 1024, FALSE);
+	socket_send_buf(u->socket, 64 * 1024, FALSE);
 
 	u->reqnum++;
 	u->bio = bsched_source_add(BSCHED_BWS_OUT, &u->socket->wio,
@@ -3626,7 +3626,7 @@ upload_set_tos(struct upload *u)
 	known_for_stalling = NULL != aging_lookup(stalling_uploads, &u->addr);
 
 	if (stalled <= stall_thresh() && !known_for_stalling) {
-		sock_cork(u->socket, TRUE);
+		socket_cork(u->socket, TRUE);
 		socket_tos_throughput(u->socket);
 	} else {
 		socket_tos_normal(u->socket);	/* Make sure ACKs come back faster */
@@ -3634,7 +3634,7 @@ upload_set_tos(struct upload *u)
 		 * I think this is just bad. --cbiere, 2006-11-20
 		 */
 #if 0
-		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
+		socket_send_buf(s, UP_SEND_BUFSIZE, TRUE);	/* Shrink TX buffer */
 #endif
 	}
 }
@@ -4183,7 +4183,7 @@ upload_request(struct upload *u, header_t *header)
 			u->io_opaque = NULL;
 
 			/* TODO: Add a property for this */
-			sock_send_buf(u->socket, 64 * 1024, FALSE);
+			socket_send_buf(u->socket, 64 * 1024, FALSE);
 
 			gnet_host_set(&peer, u->socket->addr, u->socket->port);
 			if (u->browse_host) {
