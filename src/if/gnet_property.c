@@ -4836,8 +4836,8 @@ gnet_prop_init(void) {
     gnet_property->props[216].data.guint32.def   = (void *) &gnet_property_variable_download_rx_size_default;
     gnet_property->props[216].data.guint32.value = (void *) &gnet_property_variable_download_rx_size;
     gnet_property->props[216].data.guint32.choices = NULL;
-    gnet_property->props[216].data.guint32.max   = 128;
-    gnet_property->props[216].data.guint32.min   = 2;
+    gnet_property->props[216].data.guint32.max   = 1024;
+    gnet_property->props[216].data.guint32.min   = 0;
 
 
     /*
@@ -4857,7 +4857,7 @@ gnet_prop_init(void) {
     gnet_property->props[217].data.guint32.value = (void *) &gnet_property_variable_node_rx_size;
     gnet_property->props[217].data.guint32.choices = NULL;
     gnet_property->props[217].data.guint32.max   = 128;
-    gnet_property->props[217].data.guint32.min   = 2;
+    gnet_property->props[217].data.guint32.min   = 0;
 
 
     /*

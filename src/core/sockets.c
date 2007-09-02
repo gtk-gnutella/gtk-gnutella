@@ -1434,6 +1434,7 @@ socket_tls_setup(struct gnutella_socket *s)
 			goto destroy;
 		}
 		s->tls.stage = SOCK_TLS_INITIALIZED;
+		socket_nodelay(s, TRUE);
 	}
 
 	if (s->tls.stage < SOCK_TLS_ESTABLISHED) {
@@ -2664,7 +2665,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
 
 	socket_set_nonblocking(s->file_desc);
-	set_close_on_exec(fd);
+	set_close_on_exec(s->file_desc);
 	socket_set_linger(s->file_desc);
 	socket_tos_normal(s);
 
@@ -3368,16 +3369,21 @@ socket_cork(struct gnutella_socket *s, gboolean on)
  * Internal routine for socket_send_buf() and socket_recv_buf().
  * Set send/receive buffer to specified size, and warn if it cannot be done.
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
+ * If `size' is zero, the request is ignored. This is useful to stick to the
+ * system's default buffer sizes.
  */
 static void
-socket_set_intern(gint fd, gint option, gint size,
-	const gchar *type, gboolean shrink)
+socket_set_intern(int fd, int option, unsigned size,
+	const char *type, gboolean shrink)
 {
-	gint old_len = 0;
-	gint new_len = 0;
+	unsigned old_len = 0;
+	unsigned new_len = 0;
 	socklen_t len;
 
-	size = (size + 1) & ~0x1;	/* Must be even, round to upper boundary */
+	if (0 == size)
+		return;
+
+	size = (size + 1) & ~0x1U;	/* Must be even, round to upper boundary */
 
 	len = sizeof(old_len);
 	if (-1 == getsockopt(fd, SOL_SOCKET, option, &old_len, &len))
@@ -3392,13 +3398,13 @@ socket_set_intern(gint fd, gint option, gint size,
 	if (!shrink && old_len >= size) {
 		if (GNET_PROPERTY(socket_debug) > 5)
 			g_message(
-				"socket %s buffer on fd #%d NOT shrank to %d bytes (is %d)",
+				"socket %s buffer on fd #%d NOT shrank to %u bytes (is %u)",
 				type, fd, size, old_len);
 		return;
 	}
 
 	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
-		g_warning("cannot set new %s buffer length to %d on fd #%d: %s",
+		g_warning("cannot set new %s buffer length to %u on fd #%d: %s",
 			type, size, fd, g_strerror(errno));
 
 	len = sizeof(new_len);
@@ -3411,7 +3417,7 @@ socket_set_intern(gint fd, gint option, gint size,
 #endif
 
 	if (GNET_PROPERTY(socket_debug) > 5)
-		g_message("socket %s buffer on fd #%d: %d -> %d bytes (now %d) %s",
+		g_message("socket %s buffer on fd #%d: %u -> %u bytes (now %u) %s",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 }
