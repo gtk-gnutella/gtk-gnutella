@@ -1563,20 +1563,19 @@ search_gui_retrieve_searches(void)
 const gchar *
 search_gui_get_route(const struct results_set *rs)
 {
+	static gchar addr_buf[128];
+	size_t n;
+		
 	results_set_check(rs);
 	
-	if ((ST_LOCAL | ST_BROWSE) & rs->status) {
+	if (ST_LOCAL & rs->status)
 		return NULL;
-	} else {
-		static gchar addr_buf[128];
-		size_t n;
-		
-		n = host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
-		if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
-			g_strlcpy(&addr_buf[n], "+", sizeof addr_buf - n);
-		}
-		return addr_buf;
+
+	n = host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+	if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
+		g_strlcpy(&addr_buf[n], "+", sizeof addr_buf - n);
 	}
+	return addr_buf;
 }
 
 static enum gui_color
