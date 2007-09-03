@@ -1101,7 +1101,21 @@ and they cost money.  In order to get around this, many networks use
 these private networks and a gateway connects them to the outside.
 The gateway will have at least two IP addresses.  You can find the
 external IP address by visiting a web sight like <ulink
-url="http://www.hostip.info/"/>.</para>
+url="http://www.portforward.com/english/routers/port_forwarding/routerindex.htm"/>.
+This URL also contains instructions on how to configure most routers
+to forward ports.</para>
+
+<para> A critical item to know is the port used by gtk-gnutella.  It
+can be found using the <guimenuitem>Preferences</guimenuitem> item
+from the <guimenu>File</guimenu> menu or by pressing
+<keysym>Control-p</keysym>.  The port is the "listen port" in the
+"network" tab.  The ip address and port are also in the status bar
+separated by a colon.  Finally, you can find the port with a shell
+command. </para>
+
+<para><informalexample><programlisting>
+grep listen_port ~/.gtk-gnutella/config_gnet
+</programlisting></informalexample></para>
 
 <para>The gateway will use <emphasis>network address
 translation</emphasis> or <emphasis role="bold">NAT</emphasis> for
@@ -1109,9 +1123,7 @@ short.  There are two types of NAT, source and destination NAT or
 simply SNAT and DNAT.  DNAT is the appropriate technology to get
 gtk-gnutella working inside a translated network.  Often NAT is
 combined with port blocking, more commonly known as firewalling.
-Changing the port that gtk-gnutella uses can avoid port blocking.  The
-port gtk-gnutella uses can be changed via the
-"Settings->Preferences->Network" menu.</para>
+Changing the port that gtk-gnutella uses can avoid port blocking.</para>
 
 <para> If your gateway uses iptables, it maybe as simple as adding a
 few rules to forward gtk-gnutella traffic on the gateway. </para>
