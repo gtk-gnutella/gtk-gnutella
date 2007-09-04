@@ -4179,6 +4179,8 @@ parq_store(gpointer data, gpointer file_ptr)
 		return;
 
 	expire = delta_time(parq_ul->expire, now);
+	if (expire <= 0)
+		return;
 
 	g_assert(NULL != f);
 	if (GNET_PROPERTY(parq_debug) > 5)
