@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -27,19 +27,6 @@ msgstr ""
 msgid "times|x"
 msgstr "Futási idő"
 
-msgid "No longer connected"
-msgstr "Már nincs kapcsolatban"
-
-msgid "Too many data timeouts"
-msgstr ""
-
-msgid "Timeout"
-msgstr "Türelmi idő"
-
-#, fuzzy
-msgid "Requeued due to timeout"
-msgstr "Adatokat igazítva újra sorbaállítva"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Adatokat igazítva újra sorbaállítva"
@@ -47,12 +34,12 @@ msgstr "Adatokat igazítva újra sorbaállítva"
 msgid "Requeued by file info change"
 msgstr "Fájl infó változás miatt újra sorban áll"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Felfüggesztve (SHA1 ellenőrzés)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Felfüggesztve (SHA1 ellenőrzés)"
 
 #, fuzzy, c-format
 msgid "Ignoring requested (%s)"
@@ -209,9 +196,6 @@ msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -386,9 +370,34 @@ msgstr "Keresőlista"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+msgid "No longer connected"
+msgstr "Már nincs kapcsolatban"
+
+msgid "Too many data timeouts"
+msgstr ""
+
+msgid "Timeout"
+msgstr "Türelmi idő"
+
+#, fuzzy
+msgid "Requeued due to timeout"
+msgstr "Adatokat igazítva újra sorbaállítva"
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Letöltés (%.1f k/s)"
+
+#, fuzzy
+msgid "Seeding"
+msgstr "Nyomás elküldése"
+
+#, fuzzy
+msgid "Computing SHA1"
+msgstr "SHA1 számítása (%.02f%%)"
+
+#, fuzzy
+msgid "Waiting for SHA1 check"
+msgstr "SHA1 ellenőrzésre várakozás…"
 
 msgid "OK"
 msgstr "JÓ"
@@ -398,20 +407,8 @@ msgid "failed"
 msgstr "Sikertelen"
 
 #, fuzzy
-msgid "Waiting for SHA1 check"
-msgstr "SHA1 ellenőrzésre várakozás…"
-
-#, fuzzy
-msgid "Computing SHA1"
-msgstr "SHA1 számítása (%.02f%%)"
-
-#, fuzzy
 msgid "Moving"
 msgstr "Eltávolítás"
-
-#, fuzzy
-msgid "Seeding"
-msgstr "Nyomás elküldése"
 
 msgid "Finished"
 msgstr "Befejezve"
@@ -1039,11 +1036,11 @@ msgstr "A kiszolgáló átlagos futási ideje másodpercben"
 
 #, fuzzy
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "Helyi kapu, amelyen a gtk-gnutella várja a bejövő kapcsolatokat. Az ön "
 "internet-szolgáltatója akadályozhatja/megállíthatja a forgalmat a 6346-os "
@@ -2624,6 +2621,15 @@ msgstr "A legtöbb eredmény, amely valamely keresésből ered"
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 #, fuzzy
 msgid "disable"
 msgstr "biztos"
@@ -2752,14 +2758,6 @@ msgstr "Az oszlopok szélessége a pontok táblán"
 #, fuzzy
 msgid "Which columns are visible in the nodes pane."
 msgstr "Mely oszlopok láthatóak a csomóponti táblán"
-
-#, fuzzy
-msgid "Widths of the columns in the queued downloads table."
-msgstr "Az oszlopok szélessége a sorba állt letöltések táblán"
-
-#, fuzzy
-msgid "Which columns are visible in the queued downloads table."
-msgstr "Mely oszlopok láthatóak a sorbaállt letöltések táblán"
 
 #, fuzzy
 msgid "Widths of the columns in the file info table."
@@ -4190,10 +4188,34 @@ msgid "Filename"
 msgstr "Fájlnév"
 
 #, fuzzy
+msgid "Created"
+msgstr "Befejezve"
+
+#, fuzzy
 msgid "SHA-1"
 msgstr "SHA1:"
 
+#, fuzzy
+msgid "Not available"
+msgstr "Nem elérhető"
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -4350,6 +4372,9 @@ msgstr "aktív"
 #, fuzzy
 msgid "Incomplete"
 msgstr "Kész"
+
+msgid "Orphaned"
+msgstr ""
 
 msgid "All"
 msgstr ""
@@ -6735,11 +6760,6 @@ msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "%v/%u letöltés"
 
-#, fuzzy, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] "Tájékoztató a kijelölt fájlról"
-
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
@@ -7212,10 +7232,6 @@ msgstr ""
 msgid "Source"
 msgstr "Forrás"
 
-#, fuzzy
-msgid "Created"
-msgstr "Befejezve"
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -7226,14 +7242,13 @@ msgstr ""
 msgid "Index"
 msgstr "Index:"
 
-msgid "External metadata"
-msgstr ""
+#, fuzzy
+msgid "Pathname"
+msgstr "Gazdatár"
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
-msgstr ""
+#, fuzzy
+msgid "File URL"
+msgstr "Fájl"
 
 #, fuzzy
 msgid "Host information"
@@ -7275,14 +7290,6 @@ msgstr ""
 
 msgid "TTL"
 msgstr ""
-
-#, fuzzy
-msgid "Pathname"
-msgstr "Gazdatár"
-
-#, fuzzy
-msgid "File URL"
-msgstr "Fájl"
 
 msgid "URLs"
 msgstr ""
@@ -7466,6 +7473,22 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
+
+#, fuzzy
+#~ msgid "%s from the %u selected item"
+#~ msgid_plural "%s from the %u selected items"
+#~ msgstr[0] "Tájékoztató a kijelölt fájlról"
+
+#, fuzzy
+#~ msgid "Widths of the columns in the queued downloads table."
+#~ msgstr "Az oszlopok szélessége a sorba állt letöltések táblán"
+
+#, fuzzy
+#~ msgid "Which columns are visible in the queued downloads table."
+#~ msgstr "Mely oszlopok láthatóak a sorbaállt letöltések táblán"
 
 #, fuzzy
 #~ msgid "Gnet connections"

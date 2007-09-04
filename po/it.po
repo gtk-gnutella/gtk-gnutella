@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -28,19 +28,6 @@ msgstr ""
 msgid "times|x"
 msgstr "Attività"
 
-msgid "No longer connected"
-msgstr "Disconnesso"
-
-#, fuzzy
-msgid "Too many data timeouts"
-msgstr "Troppi tentativi (%u volte)"
-
-msgid "Timeout"
-msgstr ""
-
-msgid "Requeued due to timeout"
-msgstr "Riaccodato per timeout"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Riaccodato per timeout"
@@ -48,12 +35,12 @@ msgstr "Riaccodato per timeout"
 msgid "Requeued by file info change"
 msgstr "Riaccodato in seguito a cambiamento delle informazioni"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Sospeso (verifica SHA1)"
-
 #, fuzzy, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr " alle %s - riprogrammato per le %s"
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Sospeso (verifica SHA1)"
 
 #, fuzzy, c-format
 msgid "Ignoring requested (%s)"
@@ -210,9 +197,6 @@ msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "Riaccodato per scaricamento concorrente"
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "Stato HTTP misterioso (de-sincronizzazione protocollo?)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -388,9 +372,32 @@ msgstr "Mostra elenco ricerca"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Dati fermati (EOF)"
 
+msgid "No longer connected"
+msgstr "Disconnesso"
+
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Troppi tentativi (%u volte)"
+
+msgid "Timeout"
+msgstr ""
+
+msgid "Requeued due to timeout"
+msgstr "Riaccodato per timeout"
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Scaricamento (%s)  TR: %s"
+
+#, fuzzy
+msgid "Seeding"
+msgstr "Invio spinta"
+
+msgid "Computing SHA1"
+msgstr "Calcolo SHA1"
+
+msgid "Waiting for SHA1 check"
+msgstr "In attesa del controllo SHA1"
 
 msgid "OK"
 msgstr ""
@@ -398,18 +405,8 @@ msgstr ""
 msgid "failed"
 msgstr "fallito"
 
-msgid "Waiting for SHA1 check"
-msgstr "In attesa del controllo SHA1"
-
-msgid "Computing SHA1"
-msgstr "Calcolo SHA1"
-
 msgid "Moving"
 msgstr "Spostamento"
-
-#, fuzzy
-msgid "Seeding"
-msgstr "Invio spinta"
 
 msgid "Finished"
 msgstr "Termina"
@@ -1015,12 +1012,13 @@ msgstr "Ora di avvio del server."
 msgid "Average servent uptime."
 msgstr "Media tempo di funzionamento del server."
 
+#, fuzzy
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "La porta locale su cui gtk-gnutella è in ascolto. L'ISP può bloccare o "
 "fermare il traffico sulla porta TCP 6346 e quindi può essere una buona idea "
@@ -2636,6 +2634,15 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -2756,12 +2763,6 @@ msgstr "Larghezza delle colonne nella tabella dei nodi."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Quali colonne sono visibili nel pannello dei nodi."
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr "Larghezza delle colonne nella tabella degli scaricamenti in coda."
-
-msgid "Which columns are visible in the queued downloads table."
-msgstr "Quali colonne sono visibili nella tabella degli scaricamenti in coda."
 
 msgid "Widths of the columns in the file info table."
 msgstr "Larghezza delle colonne nella tabella di informazioni del file."
@@ -4161,10 +4162,34 @@ msgstr ""
 msgid "Filename"
 msgstr "Nome del file"
 
+#, fuzzy
+msgid "Created"
+msgstr "Completati"
+
 msgid "SHA-1"
 msgstr ""
 
+#, fuzzy
+msgid "Not available"
+msgstr "Non disponibile"
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -4318,6 +4343,9 @@ msgstr "Attivi"
 #, fuzzy
 msgid "Incomplete"
 msgstr "Completo"
+
+msgid "Orphaned"
+msgstr ""
 
 msgid "All"
 msgstr ""
@@ -6617,12 +6645,6 @@ msgstr[0] "Creato %u scaricamento"
 msgstr[1] "Creati %u scaricamenti"
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] "%s da %u elemento selezionato"
-msgstr[1] "%s da %u elementi selezionati"
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Scartato %u risultato"
@@ -7081,10 +7103,6 @@ msgstr ""
 msgid "Source"
 msgstr "Sorgenti"
 
-#, fuzzy
-msgid "Created"
-msgstr "Completati"
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -7096,14 +7114,13 @@ msgstr "Martinica"
 msgid "Index"
 msgstr "Indice:"
 
-msgid "External metadata"
-msgstr ""
+#, fuzzy
+msgid "Pathname"
+msgstr "Cache host"
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
-msgstr ""
+#, fuzzy
+msgid "File URL"
+msgstr "File"
 
 #, fuzzy
 msgid "Host information"
@@ -7146,14 +7163,6 @@ msgstr "Mostra pr_otocollo"
 
 msgid "TTL"
 msgstr ""
-
-#, fuzzy
-msgid "Pathname"
-msgstr "Cache host"
-
-#, fuzzy
-msgid "File URL"
-msgstr "File"
 
 msgid "URLs"
 msgstr ""
@@ -7342,6 +7351,21 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "Stato HTTP misterioso (de-sincronizzazione protocollo?)"
+
+#~ msgid "%s from the %u selected item"
+#~ msgid_plural "%s from the %u selected items"
+#~ msgstr[0] "%s da %u elemento selezionato"
+#~ msgstr[1] "%s da %u elementi selezionati"
+
+#~ msgid "Widths of the columns in the queued downloads table."
+#~ msgstr "Larghezza delle colonne nella tabella degli scaricamenti in coda."
+
+#~ msgid "Which columns are visible in the queued downloads table."
+#~ msgstr ""
+#~ "Quali colonne sono visibili nella tabella degli scaricamenti in coda."
 
 #, fuzzy
 #~ msgid "Stopped data (EOF) <download_sink_read>"

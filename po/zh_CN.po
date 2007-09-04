@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -26,20 +26,6 @@ msgstr ""
 msgid "times|x"
 msgstr ""
 
-msgid "No longer connected"
-msgstr "已断开"
-
-#, fuzzy
-msgid "Too many data timeouts"
-msgstr "尝试次数过多 (%d 次)"
-
-msgid "Timeout"
-msgstr "超时"
-
-#, fuzzy
-msgid "Requeued due to timeout"
-msgstr "一段数据后重新排队"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "一段数据后重新排队"
@@ -47,12 +33,12 @@ msgstr "一段数据后重新排队"
 msgid "Requeued by file info change"
 msgstr "因文件信息改变后而请求"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "已挂起 (正在核实SHA1)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
+
+msgid "Suspended (SHA1 checking)"
+msgstr "已挂起 (正在核实SHA1)"
 
 #, c-format
 msgid "Ignoring requested (%s)"
@@ -213,9 +199,6 @@ msgstr ""
 #, fuzzy
 msgid "Requeued by competing download"
 msgstr "由于竞争下载重新排队"
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "HTTP状态异常(协议不同步？)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -392,9 +375,33 @@ msgstr "显示搜索列表"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "中止的数据 (EOF)"
 
+msgid "No longer connected"
+msgstr "已断开"
+
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "尝试次数过多 (%d 次)"
+
+msgid "Timeout"
+msgstr "超时"
+
+#, fuzzy
+msgid "Requeued due to timeout"
+msgstr "一段数据后重新排队"
+
 #, c-format
 msgid "Downloading (TR: %s)"
 msgstr ""
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Computing SHA1"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for SHA1 check"
+msgstr "等待一个自由的块"
 
 msgid "OK"
 msgstr ""
@@ -403,18 +410,8 @@ msgid "failed"
 msgstr ""
 
 #, fuzzy
-msgid "Waiting for SHA1 check"
-msgstr "等待一个自由的块"
-
-msgid "Computing SHA1"
-msgstr ""
-
-#, fuzzy
 msgid "Moving"
 msgstr "正删除"
-
-msgid "Seeding"
-msgstr ""
 
 msgid "Finished"
 msgstr ""
@@ -1003,12 +1000,13 @@ msgstr "servent开始时的时间戳。"
 msgid "Average servent uptime."
 msgstr "servent的平均在线时间。"
 
+#, fuzzy
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "gtk-gnutall侦听的本地TCP端口。你的ISP可能会封掉或者阻塞TCP端口6346，所以建议"
 "你在1024-65535之间随意选择端口号。别忘了修改你的防火墙以放行该端口。请注意，"
@@ -2279,6 +2277,15 @@ msgstr "自动重试等待的最大秒数"
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2391,12 +2398,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
@@ -3698,10 +3699,32 @@ msgstr ""
 msgid "Filename"
 msgstr ""
 
+msgid "Created"
+msgstr ""
+
 msgid "SHA-1"
 msgstr ""
 
+msgid "Not available"
+msgstr ""
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -3853,6 +3876,9 @@ msgid "Active"
 msgstr "%u 个活动"
 
 msgid "Incomplete"
+msgstr ""
+
+msgid "Orphaned"
 msgstr ""
 
 msgid "All"
@@ -6077,11 +6103,6 @@ msgid_plural "Created %u downloads"
 msgstr[0] ""
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] ""
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
@@ -6521,9 +6542,6 @@ msgstr ""
 msgid "Source"
 msgstr "%u 个源"
 
-msgid "Created"
-msgstr ""
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -6533,14 +6551,13 @@ msgstr ""
 msgid "Index"
 msgstr ""
 
-msgid "External metadata"
-msgstr ""
+#, fuzzy
+msgid "Pathname"
+msgstr "主机(_o)："
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
-msgstr ""
+#, fuzzy
+msgid "File URL"
+msgstr "文件"
 
 msgid "Host information"
 msgstr ""
@@ -6579,14 +6596,6 @@ msgstr ""
 
 msgid "TTL"
 msgstr ""
-
-#, fuzzy
-msgid "Pathname"
-msgstr "主机(_o)："
-
-#, fuzzy
-msgid "File URL"
-msgstr "文件"
 
 msgid "URLs"
 msgstr ""
@@ -6768,6 +6777,9 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "HTTP状态异常(协议不同步？)"
 
 #, fuzzy
 #~ msgid "Stopped data (EOF) <download_sink_read>"

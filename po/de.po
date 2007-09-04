@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -27,18 +27,6 @@ msgstr ""
 msgid "times|x"
 msgstr "x"
 
-msgid "No longer connected"
-msgstr "Nicht mehr verbunden"
-
-msgid "Too many data timeouts"
-msgstr "Zuviele Zeitüberschreitungen"
-
-msgid "Timeout"
-msgstr "Timeout"
-
-msgid "Requeued due to timeout"
-msgstr "Wegen Timeout in Warteschlange gestellt"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Wegen Timeout in Warteschlange gestellt"
@@ -46,12 +34,12 @@ msgstr "Wegen Timeout in Warteschlange gestellt"
 msgid "Requeued by file info change"
 msgstr "Wegen Dateiinfoänderung in Warteschlage gestellt"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Gestoppt (SHA1 wird überprüft)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr "[%s] nächster Versuch: %s%s"
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Gestoppt (SHA1 wird überprüft)"
 
 #, fuzzy, c-format
 msgid "Ignoring requested (%s)"
@@ -204,9 +192,6 @@ msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "Wegen konkurrierendem Download in Warteschlange gestellt"
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "Seltsamer HTTP-Status (Protokoll nicht mehr synchron?)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -380,9 +365,30 @@ msgstr "Suchliste anzeigen"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+msgid "No longer connected"
+msgstr "Nicht mehr verbunden"
+
+msgid "Too many data timeouts"
+msgstr "Zuviele Zeitüberschreitungen"
+
+msgid "Timeout"
+msgstr "Timeout"
+
+msgid "Requeued due to timeout"
+msgstr "Wegen Timeout in Warteschlange gestellt"
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Lade herunter (%s) TR: %s"
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Computing SHA1"
+msgstr "Berechne SHA1"
+
+msgid "Waiting for SHA1 check"
+msgstr "Warte auf SHA1-Überprüfung..."
 
 msgid "OK"
 msgstr "OK"
@@ -390,17 +396,8 @@ msgstr "OK"
 msgid "failed"
 msgstr "fehlgeschlagen"
 
-msgid "Waiting for SHA1 check"
-msgstr "Warte auf SHA1-Überprüfung..."
-
-msgid "Computing SHA1"
-msgstr "Berechne SHA1"
-
 msgid "Moving"
 msgstr "Verschiebe"
-
-msgid "Seeding"
-msgstr ""
 
 msgid "Finished"
 msgstr "Fertig"
@@ -986,12 +983,13 @@ msgstr "Zeitpunkt des Programmstarts."
 msgid "Average servent uptime."
 msgstr "Mittlere Servent-Laufzeit."
 
+#, fuzzy
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "Lokaler TCP-Port für eingehende Verbindungen. Dein Provider blockiert oder "
 "begrenzt möglicherweise den Verkehr auf Port 6346, deshalb sollte ein "
@@ -2478,6 +2476,15 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr "deaktiviert"
 
@@ -2593,12 +2600,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
@@ -3934,11 +3935,34 @@ msgstr ""
 msgid "Filename"
 msgstr "Dateiname"
 
+msgid "Created"
+msgstr "Angelegt"
+
 msgid "SHA-1"
 msgstr "SHA-1"
 
+#, fuzzy
+msgid "Not available"
+msgstr "Keine Hilfe verfügbar"
+
 msgid "Bitprint"
 msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr "Bitzi-URL"
+
+msgid "ShareMonkey URL"
+msgstr "ShareMonkey-URL"
 
 #, c-format
 msgid " (slot %u"
@@ -4090,6 +4114,9 @@ msgstr "Aktiv"
 #, fuzzy
 msgid "Incomplete"
 msgstr "Fertig"
+
+msgid "Orphaned"
+msgstr ""
 
 msgid "All"
 msgstr ""
@@ -6329,12 +6356,6 @@ msgstr[0] "%u Download gestartet"
 msgstr[1] "%u Downloads gestartet"
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] "%s von %u ausgewählten Datei"
-msgstr[1] "%s von %u ausgewählten Dateien"
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u Treffer verworfen"
@@ -6784,9 +6805,6 @@ msgstr "vielleicht"
 msgid "Source"
 msgstr "Quelle"
 
-msgid "Created"
-msgstr "Angelegt"
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -6796,14 +6814,11 @@ msgstr ""
 msgid "Index"
 msgstr "Index"
 
-msgid "External metadata"
-msgstr ""
+msgid "Pathname"
+msgstr "Pfadname"
 
-msgid "Bitzi URL"
-msgstr "Bitzi-URL"
-
-msgid "ShareMonkey URL"
-msgstr "ShareMonkey-URL"
+msgid "File URL"
+msgstr "File-URL"
 
 #, fuzzy
 msgid "Host information"
@@ -6839,12 +6854,6 @@ msgstr "Protokoll"
 
 msgid "TTL"
 msgstr ""
-
-msgid "Pathname"
-msgstr "Pfadname"
-
-msgid "File URL"
-msgstr "File-URL"
 
 msgid "URLs"
 msgstr ""
@@ -7031,6 +7040,14 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "Seltsamer HTTP-Status (Protokoll nicht mehr synchron?)"
+
+#~ msgid "%s from the %u selected item"
+#~ msgid_plural "%s from the %u selected items"
+#~ msgstr[0] "%s von %u ausgewählten Datei"
+#~ msgstr[1] "%s von %u ausgewählten Dateien"
 
 #~ msgid "Gnet connections"
 #~ msgstr "Gnet-Verbindungen"

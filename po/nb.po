@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -28,18 +28,6 @@ msgstr "%s%s%s%s%s fps, %s kbps"
 msgid "times|x"
 msgstr "x"
 
-msgid "No longer connected"
-msgstr "Ikke lenger tilkoblet"
-
-msgid "Too many data timeouts"
-msgstr "For mange tidsavbrudd for data"
-
-msgid "Timeout"
-msgstr "Tidsavbrudd"
-
-msgid "Requeued due to timeout"
-msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
@@ -47,12 +35,12 @@ msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
 msgid "Requeued by file info change"
 msgstr "Lagt i kø på nytt grunnet endret filinformasjon"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Suspendert (SHA1-kontrollering)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr " på %s - planlagt på nytt for %s%s"
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Suspendert (SHA1-kontrollering)"
 
 #, fuzzy, c-format
 msgid "Ignoring requested (%s)"
@@ -206,9 +194,6 @@ msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "Lagt i kø på nytt av konkurrerende nedlasting"
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "Rar HTTP-status (desynkronisert protokoll?)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -385,9 +370,30 @@ msgstr "Vis søkeliste"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Stoppet data (slutt på fil) <download_got_eof>"
 
+msgid "No longer connected"
+msgstr "Ikke lenger tilkoblet"
+
+msgid "Too many data timeouts"
+msgstr "For mange tidsavbrudd for data"
+
+msgid "Timeout"
+msgstr "Tidsavbrudd"
+
+msgid "Requeued due to timeout"
+msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Laster ned (%s)  Tid igjen: %s"
+
+msgid "Seeding"
+msgstr "Deler"
+
+msgid "Computing SHA1"
+msgstr "Kalkulerer SHA1"
+
+msgid "Waiting for SHA1 check"
+msgstr "Venter på SHA1-kontroll"
 
 msgid "OK"
 msgstr "OK"
@@ -395,17 +401,8 @@ msgstr "OK"
 msgid "failed"
 msgstr "feilet"
 
-msgid "Waiting for SHA1 check"
-msgstr "Venter på SHA1-kontroll"
-
-msgid "Computing SHA1"
-msgstr "Kalkulerer SHA1"
-
 msgid "Moving"
 msgstr "Flytter"
-
-msgid "Seeding"
-msgstr "Deler"
 
 msgid "Finished"
 msgstr "Ferdig"
@@ -990,12 +987,13 @@ msgstr "Tidsstempel fra når tjenenten ble startet."
 msgid "Average servent uptime."
 msgstr "Gjennomsnittlig tjenent-oppetid."
 
+#, fuzzy
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 "Den lokale TCP-porten gtk-gnutella lytter på. Noen internettleverandøren "
 "blokkerer eller kveler trafikk på TCP-porten 6346, så det er lurt å endre "
@@ -2557,6 +2555,15 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr "slå av"
 
@@ -2677,12 +2684,6 @@ msgstr "Bredden på kolonnene i nodetabellen."
 
 msgid "Which columns are visible in the nodes pane."
 msgstr "Hvilke kolonner som er synlige i noderuten."
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr "Bredden på kolonnene i tabellen over nedlastinger i kø."
-
-msgid "Which columns are visible in the queued downloads table."
-msgstr "Hvilke kolonner som er synlige i tabellen over nedlastinger i kø."
 
 msgid "Widths of the columns in the file info table."
 msgstr "Bredden på kolonnene i filinformasjonstabellen."
@@ -4000,11 +4001,34 @@ msgstr "Ikke andre data"
 msgid "Filename"
 msgstr "Filnavn"
 
+msgid "Created"
+msgstr "Opprettet"
+
 msgid "SHA-1"
 msgstr "SHA-1"
 
+#, fuzzy
+msgid "Not available"
+msgstr "Ingen hjelp tilgjengelig"
+
 msgid "Bitprint"
 msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr "Bitzi-URL"
+
+msgid "ShareMonkey URL"
+msgstr "ShareMonkey-URL"
 
 #, c-format
 msgid " (slot %u"
@@ -4156,6 +4180,10 @@ msgstr "Aktiv"
 #, fuzzy
 msgid "Incomplete"
 msgstr "Fullført"
+
+#, fuzzy
+msgid "Orphaned"
+msgstr "Eid"
 
 msgid "All"
 msgstr ""
@@ -6427,12 +6455,6 @@ msgstr[0] "Laget %u nedlasting"
 msgstr[1] "Laget %u nedlastinger"
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] "%s fra det %u valgte elementet"
-msgstr[1] "%s fra de %u valgte elementene"
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "Overså %u resultat"
@@ -6882,9 +6904,6 @@ msgstr "Kanskje"
 msgid "Source"
 msgstr "Kilde"
 
-msgid "Created"
-msgstr "Opprettet"
-
 msgid "Alt-Locs"
 msgstr "Alt-låser"
 
@@ -6895,14 +6914,11 @@ msgstr "Martinique"
 msgid "Index"
 msgstr "Indeks"
 
-msgid "External metadata"
-msgstr ""
+msgid "Pathname"
+msgstr "Stinavn"
 
-msgid "Bitzi URL"
-msgstr "Bitzi-URL"
-
-msgid "ShareMonkey URL"
-msgstr "ShareMonkey-URL"
+msgid "File URL"
+msgstr "Fil-URL"
 
 #, fuzzy
 msgid "Host information"
@@ -6938,12 +6954,6 @@ msgstr "Protokoll"
 
 msgid "TTL"
 msgstr "TTL"
-
-msgid "Pathname"
-msgstr "Stinavn"
-
-msgid "File URL"
-msgstr "Fil-URL"
 
 msgid "URLs"
 msgstr ""
@@ -7135,6 +7145,20 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "Rar HTTP-status (desynkronisert protokoll?)"
+
+#~ msgid "%s from the %u selected item"
+#~ msgid_plural "%s from the %u selected items"
+#~ msgstr[0] "%s fra det %u valgte elementet"
+#~ msgstr[1] "%s fra de %u valgte elementene"
+
+#~ msgid "Widths of the columns in the queued downloads table."
+#~ msgstr "Bredden på kolonnene i tabellen over nedlastinger i kø."
+
+#~ msgid "Which columns are visible in the queued downloads table."
+#~ msgstr "Hvilke kolonner som er synlige i tabellen over nedlastinger i kø."
 
 #~ msgid "Stopped data (EOF) <download_sink_read>"
 #~ msgstr "Stoppet data (slutt på fil) <download_sink_read>"

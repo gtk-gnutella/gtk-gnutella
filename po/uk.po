@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -28,19 +28,6 @@ msgstr ""
 msgid "times|x"
 msgstr ""
 
-msgid "No longer connected"
-msgstr "Роз'єднано"
-
-#, fuzzy
-msgid "Too many data timeouts"
-msgstr "Забагато спроб (%d раз(а)(ів))"
-
-msgid "Timeout"
-msgstr "Тайм-аут"
-
-msgid "Requeued due to timeout"
-msgstr ""
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Поставлено в чергу через зміну інформації про файл"
@@ -48,12 +35,12 @@ msgstr "Поставлено в чергу через зміну інформа�
 msgid "Requeued by file info change"
 msgstr "Поставлено в чергу через зміну інформації про файл"
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Відкладено (перевірка SHA1)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Відкладено (перевірка SHA1)"
 
 #, c-format
 msgid "Ignoring requested (%s)"
@@ -207,9 +194,6 @@ msgstr ""
 
 msgid "Requeued by competing download"
 msgstr ""
-
-msgid "Weird HTTP status (protocol desync?)"
-msgstr "Незвичайний статус HTTP (protocol desync?)"
 
 #, fuzzy
 msgid "Weird HTTP status"
@@ -373,9 +357,32 @@ msgstr ""
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+msgid "No longer connected"
+msgstr "Роз'єднано"
+
+#, fuzzy
+msgid "Too many data timeouts"
+msgstr "Забагато спроб (%d раз(а)(ів))"
+
+msgid "Timeout"
+msgstr "Тайм-аут"
+
+msgid "Requeued due to timeout"
+msgstr ""
+
 #, c-format
 msgid "Downloading (TR: %s)"
 msgstr ""
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Computing SHA1"
+msgstr ""
+
+#, fuzzy
+msgid "Waiting for SHA1 check"
+msgstr "Чекаєм на вільний кусок (chunk)"
 
 msgid "OK"
 msgstr ""
@@ -384,17 +391,7 @@ msgstr ""
 msgid "failed"
 msgstr "файл"
 
-#, fuzzy
-msgid "Waiting for SHA1 check"
-msgstr "Чекаєм на вільний кусок (chunk)"
-
-msgid "Computing SHA1"
-msgstr ""
-
 msgid "Moving"
-msgstr ""
-
-msgid "Seeding"
 msgstr ""
 
 msgid "Finished"
@@ -957,11 +954,11 @@ msgid "Average servent uptime."
 msgstr ""
 
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
@@ -2149,6 +2146,15 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2260,12 +2266,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
@@ -3570,10 +3570,33 @@ msgstr ""
 msgid "Filename"
 msgstr ""
 
+#, fuzzy
+msgid "Created"
+msgstr "З'єднано"
+
 msgid "SHA-1"
 msgstr ""
 
+msgid "Not available"
+msgstr ""
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -3726,6 +3749,9 @@ msgstr ""
 #, fuzzy
 msgid "Incomplete"
 msgstr "Завершено"
+
+msgid "Orphaned"
+msgstr ""
 
 msgid "All"
 msgstr ""
@@ -5913,12 +5939,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
@@ -6359,10 +6379,6 @@ msgstr ""
 msgid "Source"
 msgstr "Джерела"
 
-#, fuzzy
-msgid "Created"
-msgstr "З'єднано"
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -6373,14 +6389,13 @@ msgstr ""
 msgid "Index"
 msgstr "вузол"
 
-msgid "External metadata"
-msgstr ""
+#, fuzzy
+msgid "Pathname"
+msgstr "Хост"
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
-msgstr ""
+#, fuzzy
+msgid "File URL"
+msgstr "Файл"
 
 #, fuzzy
 msgid "Host information"
@@ -6420,14 +6435,6 @@ msgstr ""
 
 msgid "TTL"
 msgstr ""
-
-#, fuzzy
-msgid "Pathname"
-msgstr "Хост"
-
-#, fuzzy
-msgid "File URL"
-msgstr "Файл"
 
 msgid "URLs"
 msgstr ""
@@ -6613,6 +6620,9 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#~ msgid "Weird HTTP status (protocol desync?)"
+#~ msgstr "Незвичайний статус HTTP (protocol desync?)"
 
 #~ msgid "Gnet connections"
 #~ msgstr "Gnet з'єднання"

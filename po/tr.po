@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-01 22:57+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -27,18 +27,6 @@ msgstr ""
 msgid "times|x"
 msgstr ""
 
-msgid "No longer connected"
-msgstr "Bağlantı koptu"
-
-msgid "Too many data timeouts"
-msgstr ""
-
-msgid "Timeout"
-msgstr "Zaman aşımı"
-
-msgid "Requeued due to timeout"
-msgstr "Zaman aşımı yüzünden kuyruğa alındı"
-
 #, fuzzy
 msgid "Requeued due to file removal"
 msgstr "Zaman aşımı yüzünden kuyruğa alındı"
@@ -46,12 +34,12 @@ msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 msgid "Requeued by file info change"
 msgstr ""
 
-msgid "Suspended (SHA1 checking)"
-msgstr "Askıya alındı (SHA1 kontrolü)"
-
 #, c-format
 msgid " at %s - rescheduled for %s%s"
 msgstr ""
+
+msgid "Suspended (SHA1 checking)"
+msgstr "Askıya alındı (SHA1 kontrolü)"
 
 #, fuzzy, c-format
 msgid "Ignoring requested (%s)"
@@ -200,9 +188,6 @@ msgid "Giving priority to THEX"
 msgstr ""
 
 msgid "Requeued by competing download"
-msgstr ""
-
-msgid "Weird HTTP status (protocol desync?)"
 msgstr ""
 
 msgid "Weird HTTP status"
@@ -372,9 +357,31 @@ msgstr "<Kişiye Gözat %s>"
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+msgid "No longer connected"
+msgstr "Bağlantı koptu"
+
+msgid "Too many data timeouts"
+msgstr ""
+
+msgid "Timeout"
+msgstr "Zaman aşımı"
+
+msgid "Requeued due to timeout"
+msgstr "Zaman aşımı yüzünden kuyruğa alındı"
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "İndirme ayarları"
+
+#, fuzzy
+msgid "Seeding"
+msgstr "Hız:"
+
+msgid "Computing SHA1"
+msgstr ""
+
+msgid "Waiting for SHA1 check"
+msgstr ""
 
 msgid "OK"
 msgstr "Tamam"
@@ -382,18 +389,8 @@ msgstr "Tamam"
 msgid "failed"
 msgstr "başarısız"
 
-msgid "Waiting for SHA1 check"
-msgstr ""
-
-msgid "Computing SHA1"
-msgstr ""
-
 msgid "Moving"
 msgstr "Taşınıyor"
-
-#, fuzzy
-msgid "Seeding"
-msgstr "Hız:"
 
 msgid "Finished"
 msgstr "Bitti"
@@ -956,11 +953,11 @@ msgid "Average servent uptime."
 msgstr ""
 
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
@@ -2148,6 +2145,15 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2260,12 +2266,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
@@ -3564,10 +3564,33 @@ msgid "Filename"
 msgstr "Dosya adı"
 
 #, fuzzy
+msgid "Created"
+msgstr "Tamamlandı"
+
+#, fuzzy
 msgid "SHA-1"
 msgstr "SHA1:"
 
+msgid "Not available"
+msgstr ""
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -3721,6 +3744,9 @@ msgstr "Aktif"
 #, fuzzy
 msgid "Incomplete"
 msgstr "Tamamlandı"
+
+msgid "Orphaned"
+msgstr ""
 
 msgid "All"
 msgstr ""
@@ -5898,11 +5924,6 @@ msgid_plural "Created %u downloads"
 msgstr[0] ""
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] ""
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
@@ -6332,10 +6353,6 @@ msgstr ""
 msgid "Source"
 msgstr "Kaynaklar"
 
-#, fuzzy
-msgid "Created"
-msgstr "Tamamlandı"
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -6346,14 +6363,13 @@ msgstr ""
 msgid "Index"
 msgstr "İçerik:"
 
-msgid "External metadata"
-msgstr ""
+#, fuzzy
+msgid "Pathname"
+msgstr "IP Önbelleği"
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
-msgstr ""
+#, fuzzy
+msgid "File URL"
+msgstr "Dosya"
 
 #, fuzzy
 msgid "Host information"
@@ -6395,14 +6411,6 @@ msgstr ""
 
 msgid "TTL"
 msgstr ""
-
-#, fuzzy
-msgid "Pathname"
-msgstr "IP Önbelleği"
-
-#, fuzzy
-msgid "File URL"
-msgstr "Dosya"
 
 msgid "URLs"
 msgstr ""
