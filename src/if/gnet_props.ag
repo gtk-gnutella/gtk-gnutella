@@ -417,7 +417,7 @@ prop = {
            "timed out.";
     type = guint32;
     data = {
-        default = 1200;
+        default = 120;
         min     = 15;
         max     = 100000;
     };
@@ -441,7 +441,7 @@ prop = {
            "refused' response from a host.";
     type = guint32;
     data = {
-        default = 1800;
+        default = 180;
         min     = 15;
         max     = 100000;
     };
