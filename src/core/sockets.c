@@ -2651,7 +2651,13 @@ socket_connect_prepare(struct gnutella_socket *s,
 	set_close_on_exec(s->file_desc);
 	socket_set_linger(s->file_desc);
 	socket_tos_normal(s);
-	socket_set_fastack(s);
+
+	/*
+	 * Fast ACKs is mainly useful for downloads.
+	 */
+
+	if (s->type == SOCK_TYPE_DOWNLOAD || s->type == SOCK_TYPE_HTTP)
+		socket_set_fastack(s);
 
 	return 0;
 }
