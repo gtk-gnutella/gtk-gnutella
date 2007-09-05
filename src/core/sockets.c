@@ -2536,8 +2536,12 @@ socket_set_accept_filters(struct gnutella_socket *s)
 #endif /* SO_ACCEPTFILTER */
 }
 
-
-static inline void
+/**
+ * Enable quick ACK sending at the TCP level, if supported on this platform.
+ * This can really increase the reception of data as data packets are
+ * immediately acknowledged to the sender.
+ */
+void
 socket_set_fastack(struct gnutella_socket *s)
 {
 	static const int on = 1;

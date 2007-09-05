@@ -9184,9 +9184,18 @@ picked:
 
 	/*
 	 * Send the HTTP Request
+	 *
+	 * We re-enable fast ACKs (if supported) each time we send a new request
+	 * as the setting can be reverted internally by TCP on some platforms.
+	 * As tcp(7) says on linux:
+	 *
+	 * "Subsequent operation of the TCP protocol will once again enter/leave
+	 *  quickack mode depending on internal protocol processing and factors
+	 *  such as delayed ack timeouts occurring and data transfer."
 	 */
 
 	socket_tos_normal(s);
+	socket_set_fastack(s);		/* Re-enable fast ACKs at the TCP level */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, dl_tmp, rw);
 	if ((ssize_t) -1 == sent) {

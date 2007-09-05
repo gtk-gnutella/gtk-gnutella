@@ -246,6 +246,7 @@ void socket_tos_default(const struct gnutella_socket *s);
 void socket_tos_throughput(const struct gnutella_socket *s);
 void socket_tos_lowdelay(const struct gnutella_socket *s);
 void socket_tos_normal(const struct gnutella_socket *s);
+void socket_set_fastack(struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
 gboolean socket_omit_token(struct gnutella_socket *s);
