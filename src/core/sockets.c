@@ -2548,9 +2548,6 @@ socket_set_fastack(struct gnutella_socket *s)
 	if (!(SOCK_F_TCP & s->flags))
 		return;
 
-	if (SOCK_TYPE_DOWNLOAD != s->type)
-		return;
-
 #if defined(TCP_FASTACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
 		g_message("Could not set TCP_FASTACK (fd=%d): %s",
