@@ -2536,12 +2536,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 #endif /* SO_ACCEPTFILTER */
 }
 
-/**
- * Enable quick ACK sending at the TCP level, if supported on this platform.
- * This can really increase the reception of data as data packets are
- * immediately acknowledged to the sender.
- */
-void
+static void
 socket_set_fastack(struct gnutella_socket *s)
 {
 	static const int on = 1;
@@ -2552,19 +2547,38 @@ socket_set_fastack(struct gnutella_socket *s)
 	if (!(SOCK_F_TCP & s->flags))
 		return;
 
+	(void) on;
 #if defined(TCP_FASTACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
 		g_message("Could not set TCP_FASTACK (fd=%d): %s",
 			s->file_desc, g_strerror(errno));
 	}
-#elif defined(TCP_QUICKACK)
+#endif /* TCP_FASTACK */
+}
+
+/**
+ * Enable quick ACK sending at the TCP level, if supported on this platform.
+ * This can really increase the reception of data as data packets are
+ * immediately acknowledged to the sender.
+ */
+void
+socket_set_quickack(struct gnutella_socket *s)
+{
+	static const int on = 1;
+
+	socket_check(s);
+	g_return_if_fail(s->file_desc >= 0);
+
+	if (!(SOCK_F_TCP & s->flags))
+		return;
+
+	(void) on;
+#if defined(TCP_QUICKACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, &on, sizeof on)) {
 		g_message("Could not set TCP_QUICKACK (fd=%d): %s",
 			s->file_desc, g_strerror(errno));
 	}
-#else
-	(void) on;
-#endif /* TCP_FASTACK */
+#endif	/* TCP_QUICKACK*/
 }
 
 /*
@@ -2657,8 +2671,14 @@ socket_connect_prepare(struct gnutella_socket *s,
 	 * Fast ACKs is mainly useful for downloads.
 	 */
 
-	if (s->type == SOCK_TYPE_DOWNLOAD || s->type == SOCK_TYPE_HTTP)
+	switch (s->type) {
+	case SOCK_TYPE_DOWNLOAD:
+	case SOCK_TYPE_HTTP:
 		socket_set_fastack(s);
+		socket_set_quickack(s);
+	default:
+		break;
+	}
 
 	return 0;
 }

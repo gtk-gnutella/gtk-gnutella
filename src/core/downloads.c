@@ -9195,7 +9195,7 @@ picked:
 	 */
 
 	socket_tos_normal(s);
-	socket_set_fastack(s);		/* Re-enable fast ACKs at the TCP level */
+	socket_set_quickack(s);		/* Re-enable quick ACKs at the TCP level */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, dl_tmp, rw);
 	if ((ssize_t) -1 == sent) {
