@@ -2540,23 +2540,30 @@ socket_set_accept_filters(struct gnutella_socket *s)
 static inline void
 socket_set_fastack(struct gnutella_socket *s)
 {
+	static const int on = 1;
+
 	socket_check(s);
 	g_return_if_fail(s->file_desc >= 0);
 	
-#if defined(TCP_FASTACK) || defined(TCP_QUICKACK)
-	if ((SOCK_F_TCP & s->flags) && s->type == SOCK_TYPE_DOWNLOAD) {
-		static const int on = 1;
-		static const gint option =
-#ifdef TCP_FASTACK
-		TCP_FASTACK;
-#else	/* !TCP_FASTACK*/
-		TCP_QUICKACK;
-#endif /* TCP_FASTACK */
+	if (!(SOCK_F_TCP & s->flags))
+		return;
 
-		setsockopt(s->file_desc, sol_tcp(), option, &on, sizeof on);
+	if (SOCK_TYPE_DOWNLOAD != s->type)
+		return;
 
+#if defined(TCP_FASTACK)
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
+		g_message("Could not set TCP_FASTACK (fd=%d): %s",
+			s->file_desc, g_strerror(errno));
 	}
-#endif /* TCP_FASTACK || TCP_QUICKACK */
+#elif defined(TCP_QUICKACK)
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, &on, sizeof on)) {
+		g_message("Could not set TCP_QUICKACK (fd=%d): %s",
+			s->file_desc, g_strerror(errno));
+	}
+#else
+	(void) on;
+#endif /* TCP_FASTACK */
 }
 
 /*
