@@ -2213,9 +2213,12 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 #if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
 static inline const struct cmsghdr *
-cmsg_nxthdr(const struct msghdr *msg, const struct cmsghdr *cmsg)
+cmsg_nxthdr(const struct msghdr *msg_, const struct cmsghdr *cmsg_)
 {
-	return CMSG_NXTHDR((struct msghdr *) msg, (struct cmsghdr *) cmsg);
+	struct msghdr *msg = (struct msghdr *) msg_;
+	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_;
+    
+	return CMSG_NXTHDR(msg, cmsg);
 }
 #endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
@@ -2540,12 +2543,20 @@ socket_set_fastack(struct gnutella_socket *s)
 	socket_check(s);
 	g_return_if_fail(s->file_desc >= 0);
 	
-	if (SOCK_F_TCP & s->flags) {
-#ifdef TCP_FASTACK
+#if defined(TCP_FASTACK) || defined(TCP_QUICKACK)
+	if ((SOCK_F_TCP & s->flags) && s->type == SOCK_TYPE_DOWNLOAD) {
 		static const int on = 1;
-		setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on);
-#endif	/* TCP_FASTACK */
+		static const gint option =
+#ifdef TCP_FASTACK
+		TCP_FASTACK;
+#else	/* !TCP_FASTACK*/
+		TCP_QUICKACK;
+#endif /* TCP_FASTACK */
+
+		setsockopt(s->file_desc, sol_tcp(), option, &on, sizeof on);
+
 	}
+#endif /* TCP_FASTACK || TCP_QUICKACK */
 }
 
 /*
@@ -3139,7 +3150,6 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	}
 
 	socket_set_accept_filters(s);
-	socket_set_fastack(s);
 
 	/* Get the port of the socket, if needed */
 
