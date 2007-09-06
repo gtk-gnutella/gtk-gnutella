@@ -1138,7 +1138,7 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 	case nb_downloads_page_incomplete:
 		return !file->finished;
 	case nb_downloads_page_orphaned:
-		return 0 == file->life_count && !file->finished;
+		return 0 == file->life_count && !file->complete;
 	case nb_downloads_page_all:
 		return TRUE;
 	case nb_downloads_page_num:
