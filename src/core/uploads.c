@@ -3519,8 +3519,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	g_assert(u->socket->gdk_tag == 0);
 	g_assert(u->bio == NULL);
 
-	/* TODO: Add a property for this */
-	socket_send_buf(u->socket, 64 * 1024, FALSE);
+	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
 
 	u->reqnum++;
 	u->bio = bsched_source_add(BSCHED_BWS_OUT, &u->socket->wio,
@@ -4182,8 +4181,8 @@ upload_request(struct upload *u, header_t *header)
 			io_free(u->io_opaque);
 			u->io_opaque = NULL;
 
-			/* TODO: Add a property for this */
-			socket_send_buf(u->socket, 64 * 1024, FALSE);
+			socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024,
+				FALSE);
 
 			gnet_host_set(&peer, u->socket->addr, u->socket->port);
 			if (u->browse_host) {

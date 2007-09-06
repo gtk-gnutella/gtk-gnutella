@@ -264,6 +264,7 @@ extern const guint32  gnet_property_variable_reserve_gtkg_nodes;
 extern const guint32  gnet_property_variable_unique_nodes;
 extern const guint32  gnet_property_variable_download_rx_size;
 extern const guint32  gnet_property_variable_node_rx_size;
+extern const guint32  gnet_property_variable_upload_tx_size;
 extern const guint32  gnet_property_variable_dl_http_latency;
 extern const time_t  gnet_property_variable_node_last_ultra_check;
 extern const time_t  gnet_property_variable_node_last_ultra_leaf_switch;

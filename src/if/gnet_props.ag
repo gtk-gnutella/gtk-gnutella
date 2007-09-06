@@ -2512,7 +2512,8 @@ prop = {
 
 prop = {
 	name = "download_rx_size";
-	desc = "Size of the RX socket buffer to be used for downloads, in kbytes. "
+	desc = "Size of the RX socket buffer to be used for downloads, "
+        "in kibibytes. "
 		"If you wish to avoid Gnutella downloads using up all your "
 		"bandwidth, set it to a low value (default is 64K, which is fine). "
 		"If you don't mind sucking up all the available bandwidth, "
@@ -2538,6 +2539,17 @@ prop = {
 		default = 16;
 		min = 0;
 		max = 128;
+	};
+};
+
+prop = {
+	name = "upload_tx_size";
+	desc = "Size of the TX socket buffer to be used for uploads, in kibibytes.";
+	type = guint32;
+	data = {
+		default = 64;
+		min = 0;
+		max = 1024;
 	};
 };
 
