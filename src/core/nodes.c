@@ -835,8 +835,7 @@ node_slow_timer(time_t now)
 	}
 
 	/*
-	 * If we're running as an ultra node (whether automaatically promoted
-	 * or configured explicitly to run as such) and we have seen no leaf
+	 * If we're running as an ultra node in auto mode and we have seen no leaf
 	 * node connection for some time, then we're a bad node: we're taking
 	 * an ultranode slot in a high outdegree network with a low TTL and
 	 * are therefore harming the propagation of queries to leaf nodes,
@@ -846,6 +845,7 @@ node_slow_timer(time_t now)
 	 */
 
 	if (
+		GNET_PROPERTY(configured_peermode) == NODE_P_AUTO &&
 		GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
 		no_leaves_connected != 0 &&
 		delta_time(now, no_leaves_connected) > NODE_UP_NO_LEAF_MAX
