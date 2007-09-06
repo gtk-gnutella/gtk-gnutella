@@ -1101,3 +1101,7 @@
 122.154.192.11
 123.154.192.11
 
+# GnuShare (GSHR); peers send immediate 503 HTTP response before request
+# hosted by Southern Light, LLC
+69.85.192.0/18
+
