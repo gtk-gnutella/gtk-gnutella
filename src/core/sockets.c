@@ -2562,10 +2562,8 @@ socket_set_fastack(struct gnutella_socket *s)
  * immediately acknowledged to the sender.
  */
 void
-socket_set_quickack(struct gnutella_socket *s)
+socket_set_quickack(struct gnutella_socket *s, int on)
 {
-	static const int on = 1;
-
 	socket_check(s);
 	g_return_if_fail(s->file_desc >= 0);
 
@@ -2675,8 +2673,9 @@ socket_connect_prepare(struct gnutella_socket *s,
 	case SOCK_TYPE_DOWNLOAD:
 	case SOCK_TYPE_HTTP:
 		socket_set_fastack(s);
-		socket_set_quickack(s);
+		socket_set_quickack(s, TRUE);
 	default:
+		socket_set_quickack(s, FALSE);
 		break;
 	}
 
