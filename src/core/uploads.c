@@ -1074,7 +1074,8 @@ upload_send_http_status(struct upload *u,
 	upload_check(u);
 	g_assert(msg);
 
-	socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
+	if (u->keep_alive)
+		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
 
 	return http_send_status(u->socket, code, keep_alive,
 				u->hev, u->hevcnt, "%s", msg);
