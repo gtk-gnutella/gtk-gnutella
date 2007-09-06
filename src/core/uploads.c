@@ -1073,10 +1073,13 @@ upload_send_http_status(struct upload *u,
 {
 	upload_check(u);
 	g_assert(msg);
-	
+
+	socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
+
 	return http_send_status(u->socket, code, keep_alive,
 				u->hev, u->hevcnt, "%s", msg);
 }
+
 /**
  * This routine is called by http_send_status() to generate the
  * X-Host line (added to the HTTP status) into `buf'.
