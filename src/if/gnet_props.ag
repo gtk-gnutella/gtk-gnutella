@@ -1038,7 +1038,7 @@ prop = {
 
 prop = {
     name = "stop_host_get";
-    desc = "For development use: don't add new hosts to the hostcatcher.";
+    desc = "For development use: don't add new hosts to the host cache.";
     type = boolean;
     data = {
         default = FALSE;
@@ -1421,7 +1421,7 @@ prop = {
 
 prop = {
     name = "max_hosts_cached";
-    desc = "Maximum number of hosts in the regular node catcher.";
+    desc = "Maximum number of hosts in the regular node cache.";
     type = guint32;
     data = {
         default = 10000;
@@ -1432,7 +1432,7 @@ prop = {
 
 prop = {
     name = "max_ultra_hosts_cached";
-    desc = "Maximum number of hosts in the ultra node catcher.";
+    desc = "Maximum number of hosts in the ultra node cache.";
     type = guint32;
     data = {
         default = 10000;
@@ -3497,7 +3497,7 @@ prop = {
 
 prop = {
     name = "tls_cache_max_hosts";
-    desc = "Maximum number of hosts in the TLS node catcher.";
+    desc = "Maximum number of hosts in the TLS node cache.";
     type = guint32;
     data = {
         default = 10000;

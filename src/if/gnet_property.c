@@ -2477,7 +2477,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[90].name = "stop_host_get";
-    gnet_property->props[90].desc = _("For development use: don't add new hosts to the hostcatcher.");
+    gnet_property->props[90].desc = _("For development use: don't add new hosts to the host cache.");
     gnet_property->props[90].ev_changed = event_new("stop_host_get_changed");
     gnet_property->props[90].save = TRUE;
     gnet_property->props[90].vector_size = 1;
@@ -3100,7 +3100,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[125].name = "max_hosts_cached";
-    gnet_property->props[125].desc = _("Maximum number of hosts in the regular node catcher.");
+    gnet_property->props[125].desc = _("Maximum number of hosts in the regular node cache.");
     gnet_property->props[125].ev_changed = event_new("max_hosts_cached_changed");
     gnet_property->props[125].save = TRUE;
     gnet_property->props[125].vector_size = 1;
@@ -3120,7 +3120,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[126].name = "max_ultra_hosts_cached";
-    gnet_property->props[126].desc = _("Maximum number of hosts in the ultra node catcher.");
+    gnet_property->props[126].desc = _("Maximum number of hosts in the ultra node cache.");
     gnet_property->props[126].ev_changed = event_new("max_ultra_hosts_cached_changed");
     gnet_property->props[126].save = TRUE;
     gnet_property->props[126].vector_size = 1;
@@ -6490,7 +6490,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[304].name = "tls_cache_max_hosts";
-    gnet_property->props[304].desc = _("Maximum number of hosts in the TLS node catcher.");
+    gnet_property->props[304].desc = _("Maximum number of hosts in the TLS node cache.");
     gnet_property->props[304].ev_changed = event_new("tls_cache_max_hosts_changed");
     gnet_property->props[304].save = TRUE;
     gnet_property->props[304].vector_size = 1;
