@@ -68,8 +68,24 @@ struct io_header {
 	io_done_cb_t process_header;	/**< Called when all headers are read */
 	io_start_cb_t header_read_start;/**< Called when reading first byte */
 	GString *text;					/**< Full header text */
+	guint read_bytes;				/**< Amount of bytes read */
 	gint flags;
 };
+
+/**
+ * Internal consistency checks.
+ */
+static void
+io_check(const gpointer opaque)
+{
+	struct io_header *ih = opaque;
+
+	g_assert(ih);
+	g_assert(ih->io_opaque);
+	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
+	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
+	g_assert(*ih->io_opaque == opaque);
+}
 
 /**
  * Free the opaque I/O data.
@@ -79,12 +95,7 @@ io_free(gpointer opaque)
 {
 	struct io_header *ih = opaque;
 
-	g_assert(ih);
-	g_assert(ih->io_opaque);
-	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
-	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
-	g_assert(*ih->io_opaque == opaque);
-
+	io_check(opaque);
 	*ih->io_opaque = NULL;
 
 	if (ih->header)
@@ -101,15 +112,11 @@ io_free(gpointer opaque)
  * Fetch header structure from opaque I/O data.
  */
 struct header *
-io_header(gpointer opaque)
+io_header(const gpointer opaque)
 {
 	struct io_header *ih = opaque;
 
-	g_assert(ih);
-	g_assert(ih->io_opaque);
-	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
-	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
-	g_assert(*ih->io_opaque == opaque);
+	io_check(opaque);
 
 	return ih->header;
 }
@@ -118,15 +125,11 @@ io_header(gpointer opaque)
  * Fetch getline structure from opaque I/O data.
  */
 struct getline *
-io_getline(gpointer opaque)
+io_getline(const gpointer opaque)
 {
 	struct io_header *ih = opaque;
 
-	g_assert(ih);
-	g_assert(ih->io_opaque);
-	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
-	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
-	g_assert(*ih->io_opaque == opaque);
+	io_check(opaque);
 
 	return ih->getline;
 }
@@ -138,19 +141,28 @@ io_getline(gpointer opaque)
  * The returned data will be freed when io_free() is called.
  */
 gchar *
-io_gettext(gpointer opaque)
+io_gettext(const gpointer opaque)
 {
 	struct io_header *ih = opaque;
 
-	g_assert(ih);
-	g_assert(ih->io_opaque);
-	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
-	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
-	g_assert(*ih->io_opaque == opaque);
+	io_check(opaque);
 	g_assert(ih->flags & IO_SAVE_HEADER);	/* They must have requested this */
 	g_assert(ih->text);
 
 	return ih->text->str;
+}
+
+/**
+ * How many bytes we received so far during header parsing.
+ */
+guint
+io_get_read_bytes(const gpointer opaque)
+{
+	struct io_header *ih = opaque;
+
+	io_check(opaque);
+
+	return ih->read_bytes;
 }
 
 /**
@@ -405,6 +417,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 */
 
 	s->pos += r;
+	ih->read_bytes += r;
 
 	io_header_parse(ih);
 }
@@ -458,6 +471,7 @@ io_get_header(
 	ih->header_read_start = start;
 	ih->header = (flags & IO_SINGLE_LINE) ? NULL : header_make();
 	ih->text = (flags & IO_SAVE_HEADER) ? g_string_sized_new(DFLT_SIZE) : NULL;
+	ih->read_bytes = 0;
 
 	/*
 	 * Associate the structure with the resource.
@@ -500,7 +514,7 @@ io_continue_header(
 {
 	struct io_header *ih = opaque;
 
-	g_assert(ih);
+	io_check(opaque);
 	g_assert(ih->flags & IO_3_WAY);
 	g_assert(!(flags & IO_3_WAY));
 
@@ -530,6 +544,7 @@ io_continue_header(
 	ih->flags = flags;
 	ih->process_header = done;
 	ih->header_read_start = start;
+	ih->read_bytes = 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

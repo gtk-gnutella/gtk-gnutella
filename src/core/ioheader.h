@@ -66,36 +66,37 @@ typedef void (*io_start_cb_t)(gpointer resource);
  * Parsing flags.
  */
 
-#define IO_HEAD_ONLY		0x00000001	/**< No data expected after EOH */
-#define IO_SAVE_FIRST		0x00000002	/**< Save 1st line in socket's getline */
-#define IO_SINGLE_LINE		0x00000004	/**< Get one line only, then process */
-#define IO_3_WAY			0x00000008	/**< In 3-way handshaking */
-#define IO_SAVE_HEADER		0x00000010	/**< Save header text for later perusal */
+#define IO_HEAD_ONLY	0x00000001	/**< No data expected after EOH */
+#define IO_SAVE_FIRST	0x00000002	/**< Save 1st line in socket's getline */
+#define IO_SINGLE_LINE	0x00000004	/**< Get one line only, then process */
+#define IO_3_WAY		0x00000008	/**< In 3-way handshaking */
+#define IO_SAVE_HEADER	0x00000010	/**< Save header text for later perusal */
 
 /*
  * Public interface
  */
 
-void io_free(gpointer opaque);
-struct header *io_header(gpointer opaque);
-struct getline *io_getline(gpointer opaque);
-gchar *io_gettext(gpointer opaque);
+void io_free(const gpointer opaque);
+struct header *io_header(const gpointer opaque);
+struct getline *io_getline(const gpointer opaque);
+gchar *io_gettext(const gpointer opaque);
+guint io_get_read_bytes(const gpointer opaque);
 
 void io_get_header(
-	gpointer resource,				/**< Resource for which we're reading headers */
-	gpointer *io_opaque,			/**< Field address in resource's structure */
-	bsched_bws_t bws,				/**< B/w scheduler from which we read */
-	struct gnutella_socket *s,		/**< Socket from which we're reading */
-	gint flags,						/**< I/O parsing flags */
-	io_done_cb_t done,				/**< Mandatory: final callback when all done */
-	io_start_cb_t start,			/**< Optional: called when reading 1st byte */
-	const struct io_error *error);	/**< Mandatory: error callbacks for resource */
+	gpointer resource,			/**< Resource for which we're reading headers */
+	gpointer *io_opaque,		/**< Field address in resource's structure */
+	bsched_bws_t bws,			/**< B/w scheduler from which we read */
+	struct gnutella_socket *s,	/**< Socket from which we're reading */
+	gint flags,					/**< I/O parsing flags */
+	io_done_cb_t done,			/**< Mandatory: final callback when all done */
+	io_start_cb_t start,		/**< Optional: called when reading 1st byte */
+	const struct io_error *error);	/**< Mandatory: error callbacks */
 
 void io_continue_header(
-	gpointer opaque,				/**< Existing header parsing context */
-	gint flags,						/**< New I/O parsing flags */
-	io_done_cb_t done,				/**< Mandatory: final callback when all done */
-	io_start_cb_t start);			/**< Optional: called when reading 1st byte */
+	gpointer opaque,			/**< Existing header parsing context */
+	gint flags,					/**< New I/O parsing flags */
+	io_done_cb_t done,			/**< Mandatory: final callback when all done */
+	io_start_cb_t start);		/**< Optional: called when reading 1st byte */
 
 #endif	/* _core_ioheader_h_ */
 
