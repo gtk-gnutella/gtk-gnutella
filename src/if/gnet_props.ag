@@ -3495,4 +3495,26 @@ prop = {
     };
 };
 
+prop = {
+    name = "tls_cache_max_hosts";
+    desc = "Maximum number of hosts in the TLS node catcher.";
+    type = guint32;
+    data = {
+        default = 10000;
+        min     = 100;
+        max     = 50000;
+    };
+};
+
+prop = {
+    name = "tls_cache_max_time";
+    desc = "Maximum time before removing hosts from the TLS cache.";
+    type = guint32;
+    data = {
+        default = 43200;
+        min     = 14400;
+        max     = 691200;
+    };
+};
+
 /* vi: set ts=4: */

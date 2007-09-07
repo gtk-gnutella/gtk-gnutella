@@ -678,6 +678,10 @@ guint32  gnet_property_variable_latest_svn_release_revision     = 0;
 static const guint32  gnet_property_variable_latest_svn_release_revision_default = 0;
 gchar   *gnet_property_variable_latest_svn_release_signature     = "";
 static const gchar   *gnet_property_variable_latest_svn_release_signature_default = "";
+guint32  gnet_property_variable_tls_cache_max_hosts     = 10000;
+static const guint32  gnet_property_variable_tls_cache_max_hosts_default = 10000;
+guint32  gnet_property_variable_tls_cache_max_time     = 43200;
+static const guint32  gnet_property_variable_tls_cache_max_time_default = 43200;
 
 static prop_set_t *gnet_property;
 
@@ -6478,6 +6482,46 @@ gnet_prop_init(void) {
         *gnet_property->props[303].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[303].data.string.def));
     }
+
+
+    /*
+     * PROP_TLS_CACHE_MAX_HOSTS:
+     *
+     * General data:
+     */
+    gnet_property->props[304].name = "tls_cache_max_hosts";
+    gnet_property->props[304].desc = _("Maximum number of hosts in the TLS node catcher.");
+    gnet_property->props[304].ev_changed = event_new("tls_cache_max_hosts_changed");
+    gnet_property->props[304].save = TRUE;
+    gnet_property->props[304].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[304].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[304].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_hosts_default;
+    gnet_property->props[304].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_hosts;
+    gnet_property->props[304].data.guint32.choices = NULL;
+    gnet_property->props[304].data.guint32.max   = 50000;
+    gnet_property->props[304].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_TLS_CACHE_MAX_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[305].name = "tls_cache_max_time";
+    gnet_property->props[305].desc = _("Maximum time before removing hosts from the TLS cache.");
+    gnet_property->props[305].ev_changed = event_new("tls_cache_max_time_changed");
+    gnet_property->props[305].save = TRUE;
+    gnet_property->props[305].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[305].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[305].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_time_default;
+    gnet_property->props[305].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_time;
+    gnet_property->props[305].data.guint32.choices = NULL;
+    gnet_property->props[305].data.guint32.max   = 691200;
+    gnet_property->props[305].data.guint32.min   = 14400;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

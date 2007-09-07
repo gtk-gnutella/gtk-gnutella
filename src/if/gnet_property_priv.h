@@ -350,6 +350,8 @@ extern const gchar    gnet_property_variable_session_id[GUID_RAW_SIZE];
 extern const time_t  gnet_property_variable_latest_svn_release_date;
 extern const guint32  gnet_property_variable_latest_svn_release_revision;
 extern const gchar   *gnet_property_variable_latest_svn_release_signature;
+extern const guint32  gnet_property_variable_tls_cache_max_hosts;
+extern const guint32  gnet_property_variable_tls_cache_max_time;
 
 
 prop_set_t *gnet_prop_init(void);

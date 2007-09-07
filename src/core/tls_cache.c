@@ -54,14 +54,11 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const time_delta_t tls_cache_max_time = 12 * 3600;
-static const size_t tls_cache_max_items = 10000;
-
 static gboolean
 tls_cache_item_expired(time_t seen, time_t now)
 {
 	time_delta_t d = delta_time(now, seen);
-	return d < 0 || d > tls_cache_max_time;
+	return d < 0 || d > (time_delta_t) GNET_PROPERTY(tls_cache_max_time);
 }
 
 static hash_list_t *tls_hosts;
@@ -210,7 +207,7 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 	hash_list_append(tls_hosts, key);
 
 	/* Remove the oldest host once we hit a reasonable limit */
-	if (hash_list_length(tls_hosts) > tls_cache_max_items) {
+	if (hash_list_length(tls_hosts) > GNET_PROPERTY(tls_cache_max_hosts)) {
 		tls_cache_remove_oldest();
 	} else {
 		item = hash_list_head(tls_hosts);
