@@ -6747,7 +6747,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 				download_basename(d), download_host_info(d));
 			return;
 		}
-	} else {
+	} else if (GNET_PROPERTY(tth_auto_discovery)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_message("Discovered TTH (%s) for %s from %s", tth_base32(tth),
 				download_basename(d), download_host_info(d));
@@ -6756,6 +6756,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	}
 
 	if (
+		d->file_info->tth &&
 		0 == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & d->flags) &&
 		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
 		0 == d->file_info->tigertree.num_leaves &&

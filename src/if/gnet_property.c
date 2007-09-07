@@ -682,6 +682,8 @@ guint32  gnet_property_variable_tls_cache_max_hosts     = 10000;
 static const guint32  gnet_property_variable_tls_cache_max_hosts_default = 10000;
 guint32  gnet_property_variable_tls_cache_max_time     = 43200;
 static const guint32  gnet_property_variable_tls_cache_max_time_default = 43200;
+gboolean gnet_property_variable_tth_auto_discovery     = TRUE;
+static const gboolean gnet_property_variable_tth_auto_discovery_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6522,6 +6524,23 @@ gnet_prop_init(void) {
     gnet_property->props[305].data.guint32.choices = NULL;
     gnet_property->props[305].data.guint32.max   = 691200;
     gnet_property->props[305].data.guint32.min   = 14400;
+
+
+    /*
+     * PROP_TTH_AUTO_DISCOVERY:
+     *
+     * General data:
+     */
+    gnet_property->props[306].name = "tth_auto_discovery";
+    gnet_property->props[306].desc = _("If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link.");
+    gnet_property->props[306].ev_changed = event_new("tth_auto_discovery_changed");
+    gnet_property->props[306].save = TRUE;
+    gnet_property->props[306].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[306].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[306].data.boolean.def   = (void *) &gnet_property_variable_tth_auto_discovery_default;
+    gnet_property->props[306].data.boolean.value = (void *) &gnet_property_variable_tth_auto_discovery;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

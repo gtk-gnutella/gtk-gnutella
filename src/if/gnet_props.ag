@@ -3517,4 +3517,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "tth_auto_discovery";
+    desc = "If set to TRUE the tigertree root hash (TTH) can be discovered "
+		"on the fly. Otherwise, the TTH is only accepted if provided by the "
+        "user, for example, by a magnet link.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */
