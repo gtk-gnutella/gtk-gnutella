@@ -3802,10 +3802,8 @@ download_connect(struct download *d)
 		tls = SOCK_F_TLS;
 
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-			g_message("forcing TLS connection for \"%s\" at %s (%s)",
-				download_basename(d),
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d));
+			g_message("forcing TLS connection for \"%s\" at %s",
+				download_basename(d), download_host_info(d));
 	}
 
 	/*
@@ -5609,10 +5607,8 @@ err_header_read_error(gpointer o, gint error)
 			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-				g_message("will try to reach server \"%s\" at %s with TLS",
-					download_vendor_str(d),
-					host_addr_port_to_string(
-						download_addr(d), download_port(d)));
+				g_message("will try to reach server %s with TLS",
+					download_host_info(d));
 
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 				_("Stopped, will retry with TLS (%s)"), g_strerror(error));
@@ -5643,8 +5639,8 @@ err_header_read_eof(gpointer o)
 	struct download *d = cast_to_download(o);
 	header_t *header = io_header(d->io_opaque);
 
-	if (header_num_lines(header) == 0) {
 #ifdef HAS_GNUTLS
+	if (io_get_read_bytes(d->io_opaque) == 0) {
 		/*
 		 * Maybe we should try to initiate a TLS connection if we have not
 		 * done so already?
@@ -5662,8 +5658,10 @@ err_header_read_eof(gpointer o)
 					host_addr_port_to_string(
 						download_addr(d), download_port(d)));
 		}
+	}
 #endif	/* HAS_GNUTLS */
 
+	if (header_num_lines(header) == 0) {
 		if (!(d->flags & DL_F_TRY_TLS)) {
 			/*
 			 * Maybe we sent HTTP header continuations and the server does not
