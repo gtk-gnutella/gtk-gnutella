@@ -260,7 +260,9 @@ enum {
 	DL_F_THEX			= 1 << 17,	/**< THEX download */
 	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
 	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
-	DL_F_GOT_TTH		= 1 << 20	/**< Tigertree fetching finished */
+	DL_F_GOT_TTH		= 1 << 20,	/**< Tigertree fetching finished */
+	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
+	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 };
 
 /*
@@ -275,7 +277,7 @@ enum {
 	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
 	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
 	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
-	DLS_A_FOOBAR		= 1 << 8	/**< Server is foobar */
+	DLS_A_FOOBAR		= 1 << 8,	/**< Server is foobar */
 };
 
 /*

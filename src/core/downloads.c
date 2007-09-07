@@ -3781,6 +3781,7 @@ download_connect(struct download *d)
 {
 	struct dl_server *server;
 	guint16 port;
+	guint32 tls = 0;
 
 	download_check(d);
 
@@ -3790,6 +3791,22 @@ download_connect(struct download *d)
 	port = download_port(d);
 
 	d->flags &= ~DL_F_DNS_LOOKUP;
+
+	/*
+	 * If they have requested that the next connection attempt be done
+	 * via TLS, force a TLS connection.
+	 */
+
+	if (d->flags & DL_F_TRY_TLS) {
+		d->flags &= ~DL_F_TRY_TLS;
+		tls = SOCK_F_TLS;
+
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
+			g_message("forcing TLS connection for \"%s\" at %s (%s)",
+				download_basename(d),
+				host_addr_port_to_string(download_addr(d), download_port(d)),
+				download_vendor_str(d));
+	}
 
 	/*
 	 * If there is a fully qualified domain name, look it up for possible
@@ -3808,10 +3825,10 @@ download_connect(struct download *d)
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
 		server->dns_lookup = tm_time();
 		return socket_connect_by_name(
-			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags);
+			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags | tls);
 	} else
 		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
-				d->cflags);
+				d->cflags | tls);
 }
 
 /**
@@ -5582,6 +5599,26 @@ err_header_read_error(gpointer o, gint error)
 	download_check(d);
 
 	if (error == ECONNRESET) {
+#ifdef HAS_GNUTLS
+		/*
+		 * Maybe we should try to initiate a TLS connection if we have not
+		 * done so already?
+		 */
+
+		if (!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS)) {
+			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
+
+			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
+				g_message("will try to reach server \"%s\" at %s with TLS",
+					download_vendor_str(d),
+					host_addr_port_to_string(
+						download_addr(d), download_port(d)));
+
+			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
+				_("Stopped, will retry with TLS (%s)"), g_strerror(error));
+
+		} else
+#endif	/* HAS_GNUTLS */
 		if (d->retries < GNET_PROPERTY(download_max_retries)) {
 			d->retries++;
 
@@ -5607,14 +5644,36 @@ err_header_read_eof(gpointer o)
 	header_t *header = io_header(d->io_opaque);
 
 	if (header_num_lines(header) == 0) {
+#ifdef HAS_GNUTLS
 		/*
-		 * Maybe we sent HTTP header continuations and the server does not
-		 * understand them, breaking the connection on "invalid" request.
-		 * Use minimalist HTTP then when talking to this server!
+		 * Maybe we should try to initiate a TLS connection if we have not
+		 * done so already?
 		 */
 
-		d->server->attrs |= DLS_A_MINIMAL_HTTP;
-		d->header_read_eof++;		/* Will count twice: no header is bad */
+		if (
+			!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS) &&
+			!d->keep_alive
+		) {
+			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
+
+			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
+				g_message("will try to reach server \"%s\" at %s with TLS",
+					download_vendor_str(d),
+					host_addr_port_to_string(
+						download_addr(d), download_port(d)));
+		}
+#endif	/* HAS_GNUTLS */
+
+		if (!(d->flags & DL_F_TRY_TLS)) {
+			/*
+			 * Maybe we sent HTTP header continuations and the server does not
+			 * understand them, breaking the connection on "invalid" request.
+			 * Use minimalist HTTP then when talking to this server!
+			 */
+
+			d->server->attrs |= DLS_A_MINIMAL_HTTP;
+			d->header_read_eof++;		/* Will count twice: no header is bad */
+		}
 	} else {
 		/*
 		 * As some header lines were read, we could at least try to get the
