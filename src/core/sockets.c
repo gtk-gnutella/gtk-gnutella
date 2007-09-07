@@ -2849,7 +2849,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	}
 
 	addr = addrs[random_raw() % n];
-	can_tls = tls_cache_lookup(addr, s->port);
+	can_tls = 0 != (SOCK_F_TLS & s->flags) || tls_cache_lookup(addr, s->port);
 
 	if (
 		s->net != host_addr_net(addr) ||
