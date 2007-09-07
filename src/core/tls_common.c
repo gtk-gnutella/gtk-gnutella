@@ -291,7 +291,7 @@ tls_handshake(struct gnutella_socket *s)
 		}
 		break;
 	default:
-		if (do_warn) {
+		if (do_warn && GNET_PROPERTY(tls_debug)) {
 			g_warning("gnutls_handshake() failed: host=%s (%s) error=\"%s\"",
 				host_addr_port_to_string(s->addr, s->port),
 				SOCK_CONN_INCOMING == s->direction ? "incoming" : "outgoing",
