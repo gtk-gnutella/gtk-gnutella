@@ -5638,6 +5638,20 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, gboolean discard)
 }
 
 /**
+ * Get a copy of the sources list for a fileinfo. The items have the
+ * "struct download *".
+ *
+ * @return A copy of the sources list.
+ */
+GSList *
+file_info_get_sources(const fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	return g_slist_copy(fi->sources);
+}
+
+/**
  * Remove non-referenced fileinfo and reclaim its data structures.
  */
 void

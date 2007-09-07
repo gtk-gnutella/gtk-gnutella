@@ -2077,6 +2077,53 @@ download_file_exists(const struct download *d)
 	return -1 != stat(download_pathname(d), &sb) && S_ISREG(sb.st_mode);
 }
 
+static void
+download_requeue_all_active(const fileinfo_t *fi)
+{
+	GSList *sources, *iter;
+
+	file_info_check(fi);
+
+	sources = file_info_get_sources(fi);
+
+	/*
+	 * Requeue all the active downloads that were referencing that file.
+	 */
+
+	for (iter = sources; iter; iter = g_slist_next(iter)) {
+		struct download *d = iter->data;
+
+		download_check(d);
+
+		/*
+		 * An actively queued download is counted as running, but for our
+		 * purposes here, it does not matter: we're not in the process of
+		 * requesting the file.  Likewise for other special states that are
+		 * counted as running but are harmless here.
+		 *		--RAM, 17/05/2003
+		 */
+
+		switch (d->status) {
+		case GTA_DL_REMOVED:
+		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:	/* Will only make one request afterwards */
+		case GTA_DL_CONNECTING:
+			continue;
+		default:
+			break;		/* go on */
+		}
+
+		if (DOWNLOAD_IS_RUNNING(d)) {
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
+			download_queue(d, _("Requeued due to file removal"));
+		}
+	}
+
+	g_slist_free(sources);
+}
+
 /**
  * Remove temporary download file.
  *
@@ -2089,7 +2136,6 @@ void
 download_remove_file(struct download *d, gboolean reset)
 {
 	fileinfo_t *fi;
-	struct download *next;
 
 	download_check(d);
 
@@ -2098,50 +2144,10 @@ download_remove_file(struct download *d, gboolean reset)
 
 	fi = d->file_info;
 	file_info_unlink(fi);
-	if (reset)
+	if (reset) {
 		file_info_reset(fi);
-
-	/*
-	 * Requeue all the active downloads that were referencing that file.
-	 */
-
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *dl = next;
-
-		download_check(dl);
-		next = hash_list_next(sl_downloads, next);
-
-		if (dl->status == GTA_DL_REMOVED)
-			continue;
-
-		if (dl->file_info != fi)
-			continue;
-
-		/*
-		 * An actively queued download is counted as running, but for our
-		 * purposes here, it does not matter: we're not in the process of
-		 * requesting the file.  Likewise for other special states that are
-		 * counted as running but are harmless here.
-		 *		--RAM, 17/05/2003
-		 */
-
-		switch (dl->status) {
-		case GTA_DL_ACTIVE_QUEUED:
-		case GTA_DL_PUSH_SENT:
-		case GTA_DL_FALLBACK:
-		case GTA_DL_SINKING:		/* Will only make one request afterwards */
-		case GTA_DL_CONNECTING:
-			continue;
-		default:
-			break;		/* go on */
-		}
-
-		if (DOWNLOAD_IS_RUNNING(dl)) {
-			download_stop(dl, GTA_DL_TIMEOUT_WAIT, no_reason);
-			download_queue(dl, _("Requeued due to file removal"));
-		}
 	}
+	download_requeue_all_active(fi);
 }
 
 /**
