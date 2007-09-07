@@ -1259,7 +1259,7 @@ socket_destroy(struct gnutella_socket *s, const gchar *reason)
 		break;
 	case SOCK_TYPE_DOWNLOAD:
 		if (s->resource.download) {
-			download_stop(s->resource.download, GTA_DL_ERROR, "%s", reason);
+			download_queue(s->resource.download, "%s", reason);
 			return;
 		}
 		break;
