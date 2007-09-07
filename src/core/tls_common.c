@@ -925,7 +925,7 @@ tls_version_string(void)
 	return buf;
 }
 
-static gnutls_x509_crt_t
+static gnutls_x509_crt
 svn_release_notify_certificate(void)
 {
 	static const char certificate[] =
@@ -939,10 +939,10 @@ svn_release_notify_certificate(void)
 "njFhJCXeDIcR7jzNCA==\n"
 "-----END CERTIFICATE-----\n";
 	static gboolean initialized;
-	static gnutls_x509_crt_t cert;
+	static gnutls_x509_crt cert;
 
 	if (!initialized) {
-		gnutls_datum_t cert_data;
+		gnutls_datum cert_data;
 		int error;
 
 		initialized = TRUE;
@@ -975,10 +975,10 @@ svn_release_notification_can_verify(void)
 }
 
 static gboolean
-verify_signature(gnutls_x509_crt_t cert,
+verify_signature(gnutls_x509_crt cert,
 	const struct array *input, const struct array *signature)
 {
-	gnutls_datum_t data, sig;
+	gnutls_datum data, sig;
 
 	g_return_val_if_fail(cert, FALSE);
 	g_return_val_if_fail(input, FALSE);
