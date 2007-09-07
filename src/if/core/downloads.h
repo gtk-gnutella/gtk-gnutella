@@ -133,7 +133,7 @@ typedef enum {
     GTA_DL_ACTIVE_QUEUED,	/**< Actively queued */
     GTA_DL_PASSIVE_QUEUED,	/**< Passively queued */
     GTA_DL_REQ_SENDING,		/**< Sending HTTP request */
-	GTA_DL_IGNORING,		/**< Ignoring received data on resuming mismatch */
+	GTA_DL_IGNORING			/**< Ignoring received data on resuming mismatch */
 } download_status_t;
 
 typedef struct download download_t;
@@ -142,8 +142,8 @@ struct bio_source;
 struct http_buffer;
 
 enum dl_bufmode {
-	DL_BUF_READING = 0,
-	DL_BUF_WRITING,
+	DL_BUF_READING,
+	DL_BUF_WRITING
 };
 
 /**
@@ -240,44 +240,44 @@ struct download {
  */
 
 enum {
-	DL_F_URIRES			= 1 << 0,	/**< We sent a "/uri-res/N2R?" request */
-	DL_F_PUSH_IGN		= 1 << 1,	/**< Trying to ignore push flag */
-	DL_F_OVERLAPPED		= 1 << 2,	/**< We went through overlap checking */
-	DL_F_REPLIED		= 1 << 3,	/**< Servent replied to last request */
-	DL_F_CHUNK_CHOSEN	= 1 << 4,	/**< Retrying with specific chunk */
-	DL_F_SHRUNK_REPLY	= 1 << 5,	/**< Server sending less than we asked */
-	DL_F_SUNK_DATA		= 1 << 6,	/**< Whether we previously sunk data */
-	DL_F_ACTIVE_QUEUED	= 1 << 7,	/**< Download is actively queued */
-	DL_F_PASSIVE_QUEUED	= 1 << 8,	/**< Download is passively queued */
-	DL_F_DNS_LOOKUP		= 1 << 9,	/**< Attempted DNS lookup */
-	DL_F_BROWSE			= 1 << 10,	/**< Browse host type (requests "/") */
-	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
-	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
-	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
-	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
-	DL_F_INITIAL		= 1 << 15,	/**< First request on this connection */
-	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
-	DL_F_THEX			= 1 << 17,	/**< THEX download */
-	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
-	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
-	DL_F_GOT_TTH		= 1 << 20,	/**< Tigertree fetching finished */
-	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
+	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
+	DL_F_GOT_TTH		= 1 << 20,	/**< Tigertree fetching finished */
+	DL_F_FETCH_TTH		= 1 << 19,	/**< Tigertree data is being fetched */
+	DL_F_UDP_PUSH		= 1 << 18,	/**< UDP push already attempted */
+	DL_F_THEX			= 1 << 17,	/**< THEX download */
+	DL_F_PAUSED			= 1 << 16,	/**< Paused by user */
+	DL_F_INITIAL		= 1 << 15,	/**< First request on this connection */
+	DL_F_PREFIX_HEAD	= 1 << 14,	/**< Sent HEAD request before GET */
+	DL_F_MARK			= 1 << 13,	/**< Marked in traversal */
+	DL_F_SUSPENDED		= 1 << 12,	/**< Suspended, do not schedule */
+	DL_F_TRANSIENT		= 1 << 11,	/**< Transient, don't persist */
+	DL_F_BROWSE			= 1 << 10,	/**< Browse host type (requests "/") */
+	DL_F_DNS_LOOKUP		= 1 << 9,	/**< Attempted DNS lookup */
+	DL_F_PASSIVE_QUEUED	= 1 << 8,	/**< Download is passively queued */
+	DL_F_ACTIVE_QUEUED	= 1 << 7,	/**< Download is actively queued */
+	DL_F_SUNK_DATA		= 1 << 6,	/**< Whether we previously sunk data */
+	DL_F_SHRUNK_REPLY	= 1 << 5,	/**< Server sending less than we asked */
+	DL_F_CHUNK_CHOSEN	= 1 << 4,	/**< Retrying with specific chunk */
+	DL_F_REPLIED		= 1 << 3,	/**< Servent replied to last request */
+	DL_F_OVERLAPPED		= 1 << 2,	/**< We went through overlap checking */
+	DL_F_PUSH_IGN		= 1 << 1,	/**< Trying to ignore push flag */
+	DL_F_URIRES			= 1 << 0	/**< We sent a "/uri-res/N2R?" request */
 };
 
 /*
  * Server attributes.
  */
 enum {
-	DLS_A_UNUSED_1		= 1 << 0,	/**< UNUSED */
-	DLS_A_PUSH_IGN		= 1 << 1,	/**< Ignore pushes, connect directly */
-	DLS_A_UNUSED_2		= 1 << 2,	/**< UNUSED */
-	DLS_A_NO_HTTP_1_1	= 1 << 3,	/**< Server does NOT support HTTP/1.1 */
-	DLS_A_MINIMAL_HTTP	= 1 << 4,	/**< Use minimalist HTTP with server */
-	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
-	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
-	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
 	DLS_A_FOOBAR		= 1 << 8,	/**< Server is foobar */
+	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
+	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
+	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
+	DLS_A_MINIMAL_HTTP	= 1 << 4,	/**< Use minimalist HTTP with server */
+	DLS_A_NO_HTTP_1_1	= 1 << 3,	/**< Server does NOT support HTTP/1.1 */
+	DLS_A_UNUSED_2		= 1 << 2,	/**< UNUSED */
+	DLS_A_PUSH_IGN		= 1 << 1,	/**< Ignore pushes, connect directly */
+	DLS_A_UNUSED_1		= 1 << 0	/**< UNUSED */
 };
 
 /*
