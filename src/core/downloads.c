@@ -118,6 +118,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_HEADER_EOF	5		/**< Max # of EOF in headers we allow */
 #define DOWNLOAD_DATA_TIMEOUT	5		/**< Max # of data timeouts we allow */
 #define DOWNLOAD_ALT_LOC_SIZE	1024	/**< Max size for alt locs */
+#define DOWNLOAD_BAN_DELAY		360		/**< Retry time when suspecting ban */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -5638,6 +5639,7 @@ err_header_read_eof(gpointer o)
 {
 	struct download *d = cast_to_download(o);
 	header_t *header = io_header(d->io_opaque);
+	guint32 delay = GNET_PROPERTY(download_retry_stopped_delay);
 
 #ifdef HAS_GNUTLS
 	if (io_get_read_bytes(d->io_opaque) == 0) {
@@ -5693,6 +5695,7 @@ err_header_read_eof(gpointer o)
 		d->server->attrs |= DLS_A_BANNING;		/* Probably... */
 		ban_record(download_addr(d), "IP probably denying uploads");
 		upload_kill_addr(download_addr(d));
+		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
 		if (GNET_PROPERTY(download_debug))
 			g_message("server \"%s\" at %s might be banning us (too many EOF)",
@@ -5702,7 +5705,7 @@ err_header_read_eof(gpointer o)
 
 	if (d->retries < GNET_PROPERTY(download_max_retries)) {
 		d->retries++;
-		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
+		download_queue_delay(d, delay,
 			d->keep_alive ? _("Connection not kept-alive (EOF)") :
 			_("Stopped (EOF) <err_header_read_eof>"));
 	} else
