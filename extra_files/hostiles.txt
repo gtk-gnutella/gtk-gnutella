@@ -975,8 +975,9 @@
 67.19.151.0/28
 
 # MOV pr0n spam; giFt-based; fake LimeWire; xxx-marks dot com
+# Also mediaprovider.info; "Top of Charts" DRM WMA spam
 69.64.69.0/24
-64.40.113.70
+64.40.113.0/24
 208.71.114.0/28
 
 # Rogers Cable Inc. KTGC KTGC-HSI; semi-dynamic; probably stable for long
