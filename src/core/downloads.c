@@ -2907,9 +2907,9 @@ download_queue_set_status(struct download *d, const gchar *fmt, va_list ap)
 				d->ranges_size * 100.0 / d->file_info->size);
 
 		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
-			_(" at %s - rescheduled for %s%s"),
+			_(" at %s - rescheduled for %s%s #%u"),
 			lazy_locale_to_ui_string(event),
-			lazy_locale_to_ui_string2(resched), pfs);
+			lazy_locale_to_ui_string2(resched), pfs, d->retries);
 	}
 }
 
