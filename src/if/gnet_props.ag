@@ -1391,7 +1391,7 @@ prop = {
     data = {
         default = 0;
         min     = 0;
-        max     = 999999;
+        max     = INT_MAX;
     };
 };
 

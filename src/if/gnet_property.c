@@ -3052,7 +3052,7 @@ gnet_prop_init(void) {
     gnet_property->props[122].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_catcher_default;
     gnet_property->props[122].data.guint32.value = (void *) &gnet_property_variable_hosts_in_catcher;
     gnet_property->props[122].data.guint32.choices = NULL;
-    gnet_property->props[122].data.guint32.max   = 999999;
+    gnet_property->props[122].data.guint32.max   = INT_MAX;
     gnet_property->props[122].data.guint32.min   = 0;
 
 
