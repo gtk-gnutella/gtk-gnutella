@@ -3312,8 +3312,6 @@ parq_upload_request(struct upload *u)
 			else
 				parq_ul->active_queued = FALSE;
 			break;
-		default:
-			g_error("unexpected fd_avail_status %d", fds);
 		}
 
 		if (!parq_ul->active_queued) {
@@ -3387,8 +3385,6 @@ parq_upload_request(struct upload *u)
 			queueable = FALSE;
 			activeable = FALSE;
 			break;
-		default:
-			g_error("unexpected fd_avail_status %d", fds);
 		}
 
 		if (
