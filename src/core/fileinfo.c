@@ -1504,6 +1504,8 @@ static void
 fi_tigertree_check(fileinfo_t *fi)
 {
 	if (fi->tigertree.leaves) {
+		unsigned good_depth, min_depth;
+		size_t num_leaves;
 		struct tth root;
 
 		if (NULL == fi->tth) {
@@ -1511,9 +1513,14 @@ fi_tigertree_check(fileinfo_t *fi)
 			goto discard;
 		}
 
+		good_depth = tt_good_depth(fi->size);
+		min_depth = good_depth - (good_depth > 0);
+		num_leaves = fi->tigertree.num_leaves;
+
 		if (
 			fi->file_size_known &&
-			fi->tigertree.num_leaves != tt_good_node_count(fi->size)
+			num_leaves != tt_node_count_at_depth(fi->size, good_depth) &&
+			num_leaves != tt_node_count_at_depth(fi->size, min_depth)
 		) {
 			g_warning("Trailer contains tigertree with invalid leaf count");
 			goto discard;

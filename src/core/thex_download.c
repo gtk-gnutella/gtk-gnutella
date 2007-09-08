@@ -283,7 +283,7 @@ thex_download_handle_xml(struct thex_download *ctx,
   
 	node = find_element_by_name(hashtree->children, "serializedtree");
 	if (node) {
-		unsigned depth, good_depth;
+		unsigned depth, good_depth, min_depth;
 		char *value;
 		int error;
 		
@@ -316,10 +316,13 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (error)
 			goto finish;
 
+		/* Shareaza use a fixed depth of 9, allow one level less like others */
 		good_depth = tt_good_depth(ctx->filesize);
-		if (depth < good_depth) {
-			g_message("Tree depth (%u) is below the \"good\" depth (%u)",
-				depth, good_depth);
+		min_depth = good_depth - (good_depth > 0);
+
+		if (depth < min_depth) {
+			g_message("Tree depth (%u) is below the acceptable depth (%u)",
+				depth, min_depth);
 			goto finish;
 		}
 		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
@@ -379,8 +382,8 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	}
 
 	if (n_nodes < start + n_leaves) {
-		g_message("Hashtree has too few nodes (nodes=%u, depth=%u)",
-			(unsigned) n_nodes, ctx->depth);
+		g_message("Hashtree has too few nodes (filesize=%s nodes=%u depth=%u)",
+			filesize_to_string(ctx->filesize), (unsigned) n_nodes, ctx->depth);
 		goto finish;
 	}
 	
