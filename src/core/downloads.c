@@ -2829,10 +2829,6 @@ download_stop_v(struct download *d, download_status_t new_status,
 	download_set_status(d, new_status);
 	d->last_update = tm_time();
 
-	if (d->status != GTA_DL_TIMEOUT_WAIT) {
-		d->retries = 0;		/* If they retry, go over whole cycle again */
-	}
-
 	if (store_queue) {
 		download_dirty = TRUE;		/* Refresh list, in case we crash */
 	}
@@ -7608,9 +7604,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (ack_message)
 		ack_message = lazy_ack_message_to_ui_string(ack_message);
 
-	if (ok)
+	if (ok) {
 		d->header_read_eof = 0;	/* Reset counter: we got full headers */
-	d->retries = 0;				/* Retry successful, we managed to connect */
+	}
 	d->flags |= DL_F_REPLIED;
 
 	addr = download_addr(d);
