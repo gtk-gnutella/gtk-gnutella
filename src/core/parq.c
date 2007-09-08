@@ -98,7 +98,6 @@ static GHashTable *dl_all_parq_by_id = NULL;
 
 static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
-
 /**
  * parq_upload_active_size is the maximum number of active upload slots
  * per queue.
@@ -260,9 +259,29 @@ struct parq_dl_queued {
 	gchar *id;				/**< PARQ Queue ID, +1 for trailing NUL */
 };
 
+/**
+ * File descriptor availability status, for fd_avail_status().
+ */
+enum fd_avail_status {
+	FD_AVAIL_GREEN = 0,		/**< We have enough fd to operate */
+	FD_AVAIL_YELLOW = 1,	/**< Warning, we have to steal from banning fd */
+	FD_AVAIL_RED = 2		/**< Critical, we ran out of fd */
+};
+
 /***
  ***  Generic non PARQ specific functions
  ***/
+
+static enum fd_avail_status
+fd_avail_status(void)
+{
+	if (GNET_PROPERTY(file_descriptor_runout))
+		return FD_AVAIL_RED;
+	else if (GNET_PROPERTY(file_descriptor_shortage))
+		return FD_AVAIL_YELLOW;
+	else
+		return FD_AVAIL_GREEN;
+}
 
 /**
  * Get header version.
@@ -3255,13 +3274,66 @@ parq_upload_request(struct upload *u)
 	 * Check whether we should actively queue this upload.
 	 */
 	if (parq_ul->active_queued) {
+		enum fd_avail_status fds = fd_avail_status();
+
 		/*
 		 * Status is changed by upload_request(), so we must make sure
-		 * we reset the status to "actively queued".
+		 * we reset the status to "actively queued" if we want to keep
+		 * this connection actively queued.
+		 *
+		 * When we're running out of file descriptors, we severely limit
+		 * the amount of actively queued entries and can turn active queueing
+		 * into passive queuing.  This should not hurt PARQ-aware peers, unless
+		 * they contacted us via a PUSH, in which case we need to be nicer.
+		 *		--RAM, 2007-09-08
 		 */
-		u->status = GTA_UL_QUEUED;
+
+		switch (fds) {
+		case FD_AVAIL_GREEN:
+			u->status = GTA_UL_QUEUED;		/* Maintain active queuing */
+			break;
+		case FD_AVAIL_YELLOW:
+			if (parq_ul->flags & PARQ_UL_FROZEN)
+				parq_ul->active_queued = FALSE;
+			else if (u->push)
+				u->status = GTA_UL_QUEUED;	/* Only for pushed uploads */
+			else
+				parq_ul->active_queued = FALSE;
+			break;
+		case FD_AVAIL_RED:
+			/* Maintain connection only if almost certain to yield slot soon */
+			if (parq_ul->flags & PARQ_UL_FROZEN)
+				parq_ul->active_queued = FALSE;
+			else if (
+				parq_ul->relative_position <=
+				1 + UNSIGNED(free_upload_slots(parq_ul->queue)) / 2
+			)
+				u->status = GTA_UL_QUEUED;	/* Maintain active queuing */
+			else
+				parq_ul->active_queued = FALSE;
+			break;
+		default:
+			g_error("unexpected fd_avail_status %d", fds);
+		}
+
+		if (!parq_ul->active_queued) {
+			parq_ul->by_addr->active_queued--;
+			parq_ul->queue->active_queued_cnt--;
+
+			if (GNET_PROPERTY(parq_debug))
+				g_message("PARQ UL: [#%d] [%s] "
+					"fd_avail=%d, position=%d, push=%s, frozen=%s => "
+					"switching from active to passive for %s (%s)",
+					parq_ul->queue->num, guid_hex_str(parq_ul->id),
+					fds, parq_ul->relative_position, u->push ? "y" : "n",
+					(parq_ul->flags & PARQ_UL_FROZEN) ? "y" : "n",
+					host_addr_port_to_string(u->socket->addr, u->socket->port),
+					upload_vendor_str(u));
+		}
 	} else {
+		enum fd_avail_status fds = fd_avail_status();
 		gboolean queueable;
+		gboolean activeable = TRUE;
 		guint max_slot = parq_upload_active_size +
 			GNET_PROPERTY(max_uploads) / 2;
 		guint max_fd_used =
@@ -3295,6 +3367,30 @@ parq_upload_request(struct upload *u)
 		queueable = GNET_PROPERTY(sys_nofile) * 4 / 5 >
 			max_fd_used + (MIN_UPLOAD_AQUEUED * GNET_PROPERTY(max_uploads));
 
+		/*
+		 * Disable active queueing when under a fd shortage, excepted for
+		 * pushed uploads where we still allow them, unless there's a clear
+		 * runout in which case we allow them only if they're likely to be
+		 * scheduled soon.
+		 *		--RAM, 2007-09-08
+		 */
+
+		switch (fds) {
+		case FD_AVAIL_GREEN:
+			break;
+		case FD_AVAIL_YELLOW:
+			queueable = FALSE;
+			activeable = FALSE;
+			break;
+		case FD_AVAIL_RED:
+			max_slot = 1 + UNSIGNED(free_upload_slots(parq_ul->queue)) / 2;
+			queueable = FALSE;
+			activeable = FALSE;
+			break;
+		default:
+			g_error("unexpected fd_avail_status %d", fds);
+		}
+
 		if (
 			(u->push && parq_ul->relative_position <= max_slot) ||
 			(queueable && (
@@ -3305,7 +3401,18 @@ parq_upload_request(struct upload *u)
 					MIN_UPLOAD_AQUEUED
 			))
 		) {
-			if (parq_ul->minor > 0 || parq_ul->major > 0) {
+			if ((parq_ul->flags & PARQ_UL_FROZEN) && !activeable) {
+				if (GNET_PROPERTY(parq_debug))
+					g_message("PARQ UL: [#%d] [%s] "
+						"fd_avail=%d, push=%s, frozen=%s => "
+						"denying active queueing for %s (%s)",
+						parq_ul->queue->num, guid_hex_str(parq_ul->id),
+						fds, u->push ? "y" : "n",
+						(parq_ul->flags & PARQ_UL_FROZEN) ? "y" : "n",
+						host_addr_port_to_string(
+							u->socket->addr, u->socket->port),
+						upload_vendor_str(u));
+			} else if (parq_ul->minor > 0 || parq_ul->major > 0) {
 				u->status = GTA_UL_QUEUED;
 				parq_ul->active_queued = TRUE;
 				parq_ul->by_addr->active_queued++;
