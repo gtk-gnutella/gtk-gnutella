@@ -50,6 +50,8 @@ RCSID("$Id$")
 #include "thex.h"
 #include "thex_download.h"
 
+#include "if/gnet_property_priv.h"
+
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/tigertree.h"
@@ -215,14 +217,16 @@ verify_element(xmlNode *node, const char *prop, const char *expect)
 	
 	value = STRTRACK(xml_get_string(node, prop));
   	if (NULL == value) {
-    	g_message("Couldn't find property \"%s\" of node \"%s\"",
-			prop, node->name);
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Couldn't find property \"%s\" of node \"%s\"",
+				prop, node->name);
 		goto finish;
 	}
 	if (0 != strcmp(value, expect)) {
-		g_message("Property %s/%s doesn't match expected value \"%s\", "
-			"got \"%s\"",
-			node->name, prop, expect, value);
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Property %s/%s doesn't match expected value \"%s\", "
+				"got \"%s\"",
+				node->name, prop, expect, value);
 		goto finish;
 	}
 	success = TRUE;
@@ -242,20 +246,23 @@ thex_download_handle_xml(struct thex_download *ctx,
 	gboolean success = FALSE;
 
 	if (size <= 0) {
-		g_message("XML record has no data");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("XML record has no data");
 		goto finish;
 	}
 	
 	doc = xmlReadMemory(data, size, "noname.xml", NULL, 0);
 	if (NULL == doc) {
-		g_message("Cannot parse XML record");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Cannot parse XML record");
 		goto finish;
 	}
 	root = xmlDocGetRootElement(doc);
 	
   	hashtree = find_element_by_name(root, "hashtree");
 	if (NULL == hashtree) {
-		g_message("Couldn't find hashtree element");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Couldn't find hashtree element");
 		goto finish;
 	}
 	
@@ -266,7 +273,8 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (!verify_element(node, "segmentsize", THEX_SEGMENT_SIZE))
 			goto finish;
 	} else {
-		g_message("Couldn't find hashtree/file element");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Couldn't find hashtree/file element");
 		goto finish;
 	}
 
@@ -277,7 +285,8 @@ thex_download_handle_xml(struct thex_download *ctx,
 		if (!verify_element(node, "outputsize", THEX_HASH_SIZE))
 			goto finish;
 	} else {
-		g_message("Couldn't find hashtree/digest element");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Couldn't find hashtree/digest element");
     	goto finish;
 	}
   
@@ -292,8 +301,9 @@ thex_download_handle_xml(struct thex_download *ctx,
 
 		value = STRTRACK(xml_get_string(node, "uri"));
 		if (NULL == value) {
-			g_message("Couldn't find property \"uri\" of node \"%s\"",
-				node->name);
+			if (GNET_PROPERTY(tigertree_debug))
+				g_message("Couldn't find property \"uri\" of node \"%s\"",
+					node->name);
 			goto finish;
 		}
 		hashtree_id = g_strdup(value);
@@ -301,8 +311,9 @@ thex_download_handle_xml(struct thex_download *ctx,
 
 		value = STRTRACK(xml_get_string(node, "depth"));
 		if (NULL == value) {
-			g_message("Couldn't find property \"depth\" of node \"%s\"",
-				node->name);
+			if (GNET_PROPERTY(tigertree_debug))
+				g_message("Couldn't find property \"depth\" of node \"%s\"",
+					node->name);
 			goto finish;
 		}
 		
@@ -321,13 +332,15 @@ thex_download_handle_xml(struct thex_download *ctx,
 		min_depth = good_depth - (good_depth > 0);
 
 		if (depth < min_depth) {
-			g_message("Tree depth (%u) is below the acceptable depth (%u)",
-				depth, min_depth);
+			if (GNET_PROPERTY(tigertree_debug))
+				g_message("Tree depth (%u) is below the acceptable depth (%u)",
+					depth, min_depth);
 			goto finish;
 		}
 		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
 	} else {
-		g_message("Couldn't find hashtree/serializedtree element");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Couldn't find hashtree/serializedtree element");
 		goto finish;
 	}
 
@@ -354,20 +367,24 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	struct tth tth;
 
 	if (size <= 0) {
-		g_message("Hashtree record has no data");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Hashtree record has no data");
 		goto finish;
 	}
 	if (size < TTH_RAW_SIZE) {
-		g_message("Hashtree record is too small");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Hashtree record is too small");
 		goto finish;
 	}
 	if (size % TTH_RAW_SIZE) {
-		g_message("Hashtree has bad size");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Hashtree has bad size");
 		goto finish;
 	}
 	memcpy(tth.data, data, TTH_RAW_SIZE);
 	if (!tth_eq(&tth, ctx->tth)) {
-		g_message("Hashtree has different root hash %s", tth_base32(&tth));
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Hashtree has different root hash %s", tth_base32(&tth));
 		goto finish;
 	}
 
@@ -382,8 +399,11 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	}
 
 	if (n_nodes < start + n_leaves) {
-		g_message("Hashtree has too few nodes (filesize=%s nodes=%u depth=%u)",
-			filesize_to_string(ctx->filesize), (unsigned) n_nodes, ctx->depth);
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message(
+				"Hashtree has too few nodes (filesize=%s nodes=%u depth=%u)",
+				filesize_to_string(ctx->filesize),
+				(unsigned) n_nodes, ctx->depth);
 		goto finish;
 	}
 	
@@ -392,7 +412,8 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 
 	tth = tt_root_hash(leaves, n_leaves);
 	if (!tth_eq(&tth, ctx->tth)) {
-		g_message("Hashtree does not match root hash %s", tth_base32(&tth));
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Hashtree does not match root hash %s", tth_base32(&tth));
 		goto finish;
 	}
 
@@ -436,11 +457,12 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 		return record;
 	}
 
-	g_message("Could not find record (type=\"%s\", id=%s%s%s)",
-		type,
-		id ? "\"" : "",
-		id ? id : "<none>",
-		id ? "\"" : "");
+	if (GNET_PROPERTY(tigertree_debug))
+		g_message("Could not find record (type=\"%s\", id=%s%s%s)",
+			type,
+			id ? "\"" : "",
+			id ? id : "<none>",
+			id ? "\"" : "");
 
 	return NULL;
 }
@@ -485,7 +507,8 @@ thex_download_finished(struct thex_download *ctx)
 			goto finish;
 
 	} else {
-		g_message("Could not parse DIME records");
+		if (GNET_PROPERTY(tigertree_debug))
+			g_message("Could not parse DIME records");
 		goto finish;
 	}
 	success = TRUE;
