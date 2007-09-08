@@ -92,6 +92,7 @@
 #include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
+#include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
@@ -6983,6 +6984,7 @@ handle_content_urn(struct download *d, header_t *header)
 {
 	gboolean found_sha1 = FALSE;
 	struct sha1 sha1;
+	struct tth tth;
 	gchar *buf;
 
 	download_check(d);
@@ -7075,14 +7077,31 @@ handle_content_urn(struct download *d, header_t *header)
 		return TRUE;		/* Nothing to check against, continue */
 	}
 
-	found_sha1 = dmesh_collect_sha1(buf, &sha1);
-
-	if (!found_sha1)
-		return TRUE;
+	found_sha1 = urn_get_bitprint(buf, strlen(buf), &sha1, &tth);
+	if (found_sha1) {
+		if (d->file_info->tth) {
+			if (!tth_eq(&tth, d->file_info->tth)) {
+				download_bad_source(d);
+				download_stop(d, GTA_DL_ERROR, _("TTH mismatch detected"));
+				return FALSE;
+			}
+		} else if (GNET_PROPERTY(tth_auto_discovery)) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				g_message("Discovered TTH (%s) for %s from %s",
+					tth_base32(&tth),
+					download_basename(d), download_host_info(d));
+			}
+			file_info_got_tth(d->file_info, &tth);
+		}
+	} else {
+		found_sha1 = dmesh_collect_sha1(buf, &sha1);
+		if (!found_sha1)
+			return TRUE;
+	}
 
 	if (d->sha1 && !sha1_eq(&sha1, d->sha1)) {
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, _("URN mismatch detected"));
+		download_stop(d, GTA_DL_ERROR, _("SHA-1 mismatch detected"));
 		return FALSE;
 	}
 
