@@ -6576,7 +6576,7 @@ download_check_status(struct download *d, getline_t *line, gint code)
 {
 	download_check(d);
 
-	if (-1 == code) {
+	if (code < 0) {
 		g_message("weird HTTP acknowledgment status line from %s (%s)",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			download_vendor_str(d));
@@ -6588,9 +6588,17 @@ download_check_status(struct download *d, getline_t *line, gint code)
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, _("Weird HTTP status"));
 		return FALSE;
+	} else {
+		/* Reset the retry counter only if we get a positive response code */
+		switch (code) {
+		case 200:	/* Okay */
+		case 206:	/* Partial Content */
+		case 503:	/* Busy */
+			d->retries = 0;
+			break;
+		}
+		return TRUE;
 	}
-
-	return TRUE;
 }
 
 /**
