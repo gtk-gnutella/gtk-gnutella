@@ -240,6 +240,7 @@ struct download {
  */
 
 enum {
+	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
 	DL_F_TRY_TLS		= 1 << 21,	/**< Try to initiate a TLS connection */
 	DL_F_GOT_TTH		= 1 << 20,	/**< Tigertree fetching finished */
@@ -275,9 +276,9 @@ enum {
 	DLS_A_BANNING		= 1 << 5,	/**< Server might be banning us */
 	DLS_A_MINIMAL_HTTP	= 1 << 4,	/**< Use minimalist HTTP with server */
 	DLS_A_NO_HTTP_1_1	= 1 << 3,	/**< Server does NOT support HTTP/1.1 */
-	DLS_A_UNUSED_2		= 1 << 2,	/**< UNUSED */
+	DLS_A_FAKE_G2		= 1 << 2,	/**< Fake a G2 server */
 	DLS_A_PUSH_IGN		= 1 << 1,	/**< Ignore pushes, connect directly */
-	DLS_A_UNUSED_1		= 1 << 0	/**< UNUSED */
+	DLS_A_FAKED_VENDOR	= 1 << 0	/**< Server's vendor was faked */
 };
 
 /*

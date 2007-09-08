@@ -116,7 +116,7 @@ RCSID("$Id$")
 #define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
 #define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
 #define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
-#define DOWNLOAD_MAX_HEADER_EOF	5		/**< Max # of EOF in headers we allow */
+#define DOWNLOAD_MAX_HEADER_EOF	3		/**< Max # of EOF in headers we allow */
 #define DOWNLOAD_DATA_TIMEOUT	5		/**< Max # of data timeouts we allow */
 #define DOWNLOAD_ALT_LOC_SIZE	1024	/**< Max size for alt locs */
 #define DOWNLOAD_BAN_DELAY		360		/**< Retry time when suspecting ban */
@@ -165,6 +165,12 @@ static gboolean download_shutdown = FALSE;
 
 static void download_store(void);
 static void download_retrieve(void);
+
+static const char *
+download_g2_version(void)
+{
+	return "Shareaza 2.1.0.0";
+}
 
 gboolean
 download_is_alive(const struct download *d)
@@ -2932,17 +2938,24 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	download_queue_set_status(d, fmt, ap);
 
+	if (GNET_PROPERTY(download_debug))
+		g_message("re-queuing download \"%s\" at %s: %s",
+			download_basename(d), download_host_info(d),
+			fmt ? d->error_str : "<no reason>");
+
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);
 	} else {
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 	}
+
 	/*
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
 
 	d->remove_msg = fmt ? d->error_str: NULL;
 	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
+	fi_src_status_changed(d);
 
 	g_assert(d->socket == NULL);
 
@@ -4180,6 +4193,11 @@ download_push(struct download *d, gboolean on_timeout)
 
 	download_check(d);
 
+	if (GNET_PROPERTY(download_debug) > 2)
+		g_message("download_push timeout=%s for \"%s\" at %s",
+			on_timeout ? "y" : "n",
+			download_basename(d), download_host_info(d));
+
 	if (
 		(d->flags & DL_F_PUSH_IGN) ||
 		(d->server->attrs & DLS_A_PUSH_IGN) ||
@@ -4337,6 +4355,12 @@ download_fallback_to_push(struct download *d,
 {
 	g_return_if_fail(d);
 	download_check(d);
+
+	if (GNET_PROPERTY(download_debug) > 2)
+		g_message("download_fallback_to_push "
+			"timeout=%s, user=%s for \"%s\" at %s",
+			on_timeout ? "y" : "n", user_request ? "y" : "n",
+			download_basename(d), download_host_info(d));
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (!d->push) {
@@ -5658,8 +5682,8 @@ err_header_read_eof(gpointer o)
 			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-				g_message("will try to reach server \"%s\" with TLS",
-					download_host_info(d));
+				g_message("will try to reach server %s with TLS for \"%s\"",
+					download_host_info(d), download_basename(d));
 		}
 	}
 #endif	/* HAS_GNUTLS */
@@ -5699,8 +5723,39 @@ err_header_read_eof(gpointer o)
 		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
 		if (GNET_PROPERTY(download_debug))
-			g_message("server \"%s\" might be banning us (too many EOF)",
-				download_host_info(d));
+			g_message("server %s might be banning us (too many EOF for \"%s\")",
+				download_host_info(d), download_basename(d));
+
+		/*
+		 * This is a bet: the Shareaza folks changed their strategy. So do we.
+		 */
+
+		if (d->flags & DL_F_FAKE_G2) {
+			if (d->header_read_eof >= DOWNLOAD_MAX_HEADER_EOF + 5) {
+				if (GNET_PROPERTY(download_debug))
+					g_message("server %s didn't respond to G2 faking for \"%s\"",
+						download_host_info(d), download_basename(d));
+
+				d->server->attrs &= ~DLS_A_FAKE_G2;
+				d->flags &= ~DL_F_FAKE_G2;
+				if (d->server->attrs & DLS_A_FAKED_VENDOR) {
+					atom_str_free_null(&d->server->vendor);
+					d->server->attrs &= ~DLS_A_FAKED_VENDOR;
+				}
+			}
+		} else {
+			d->server->attrs |= DLS_A_FAKE_G2;
+			d->flags |= DL_F_FAKE_G2;
+
+			if (GNET_PROPERTY(download_debug))
+				g_message("will now attempt G2 faking at server %s for \"%s\"",
+					download_host_info(d), download_basename(d));
+
+			if (d->server->vendor == NULL) {
+				d->server->attrs |= DLS_A_FAKED_VENDOR;
+				d->server->vendor = atom_str_get("Shareaza?");
+			}
+		}
 	}
 
 	if (d->retries < GNET_PROPERTY(download_max_retries)) {
@@ -6552,8 +6607,10 @@ download_get_server_name(struct download *d, header_t *header)
 			vendor = NULL;
 		}
 	
-		if (vendor)	
+		if (vendor) {
 			server->vendor = atom_str_get(lazy_iso8859_1_to_utf8(vendor));
+			server->attrs &= ~DLS_A_FAKED_VENDOR;
+		}
 		if (wbuf) {
 			wfree(wbuf, size);
 			wbuf = NULL;
@@ -7568,6 +7625,14 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		g_message("----");
 	}
 
+	if (d->flags & DL_F_FAKE_G2) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("server %s responded well to G2 faking for \"%s\"",
+				download_host_info(d), download_basename(d));
+
+		d->flags &= ~DL_F_FAKE_G2;
+	}
+
 	/*
 	 * If we did not get any status code at all, re-enqueue immediately.
 	 */
@@ -8130,6 +8195,7 @@ http_version_nofix:
 
 			d->server->attrs &= ~DLS_A_BANNING;
 			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
+			d->server->attrs &= ~DLS_A_FAKE_G2;
 
 			if (was_banning) {
 				fi_src_info_changed(d);
@@ -8142,6 +8208,7 @@ http_version_nofix:
 				break;
 			case 403:
 				if (is_strprefix(ack_message, "Network Disabled")) {
+					d->server->attrs |= DLS_A_FAKE_G2;
 					hold = MAX(delay, 320);				/* To be safe */
 				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
@@ -9074,8 +9141,12 @@ picked:
 		d->server->hostname
 			? d->server->hostname
 			: host_addr_port_to_string(download_addr(d), download_port(d)),
-		(d->server->attrs & DLS_A_BANNING) ?
-			download_vendor_str(d) : version_string);
+		(d->server->attrs & DLS_A_FAKE_G2) ?
+			download_g2_version() : version_string);
+
+	if (d->server->attrs & DLS_A_FAKE_G2)
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"X-Features: g2/1.0\r\n");
 
 	if (!(d->server->attrs & DLS_A_BANNING)) {
 		header_features_generate(FEATURES_DOWNLOADS,
@@ -9100,9 +9171,10 @@ picked:
 				"Accept: application/dime\r\n");
 	}
 
-	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"Accept-Encoding: deflate\r\n");
-	
+	if (!(d->server->attrs & DLS_A_FAKE_G2))
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"Accept-Encoding: deflate\r\n");
+
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
@@ -9290,11 +9362,12 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_debug) > 2) {
-		g_message("----Sent Request (%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
+		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
+			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(guint) rw, (gint) rw, dl_tmp);
 	}
@@ -11180,6 +11253,9 @@ download_get_hostname(const struct download *d)
 		inbound ? _(", inbound") : "",
 		outbound ? _(", outbound") : "",
 		encrypted ? ", TLS" : "",
+		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
+		(d->server->attrs & DLS_A_FAKE_G2) ? _(", g2") : "",
+		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
 		d->server->hostname ? ")" : "",

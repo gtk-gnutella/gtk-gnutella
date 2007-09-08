@@ -314,6 +314,12 @@ parq_get_x_queue_1_0_header(void)
 	return "X-Queue: 1.0";
 }
 
+static const gchar *
+parq_get_x_queue_legacy_header(void)
+{
+	return "X-Queue: 0.1";
+}
+
 /**
  * Get header value.
  *
@@ -917,8 +923,9 @@ parq_download_add_header(
 	g_assert(UNSIGNED(*rw) <= INT_MAX);
 	g_assert(len >= *rw);
 
-	*rw += gm_snprintf(&buf[*rw], len - *rw,
-				"%s\r\n", parq_get_x_queue_1_0_header());
+	*rw += gm_snprintf(&buf[*rw], len - *rw, "%s\r\n",
+		(d->server->attrs & DLS_A_FAKE_G2) ?
+			parq_get_x_queue_legacy_header() : parq_get_x_queue_1_0_header());
 
 	/*
 	 * Only add X-Queued header if server really supports X-Queue: 1.x. Don't
@@ -939,7 +946,7 @@ parq_download_add_header(
 	 * we're claiming is "valid".
 	 */
 
-	if (GNET_PROPERTY(is_firewalled))
+	if (GNET_PROPERTY(is_firewalled) || (d->server->attrs & DLS_A_FAKE_G2))
 		return;
 	
 	port = socket_listen_port();
