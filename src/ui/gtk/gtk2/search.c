@@ -497,7 +497,7 @@ search_gui_clear_search(search_t *search)
 static void
 search_gui_disable_sort(struct search *search)
 {
-	if (search) {
+	if (search && search->sort) {
 #ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
 		GtkTreeModel *model;
 		GtkTreeSortable *sortable;
@@ -520,6 +520,7 @@ search_gui_enable_sort(struct search *search)
 	g_return_if_fail(search);
 
 	if (
+		search->sort &&
 		SORT_NONE != search->sort_order &&
 		UNSIGNED(search->sort_col) < SEARCH_RESULTS_VISIBLE_COLUMNS
 	) {
