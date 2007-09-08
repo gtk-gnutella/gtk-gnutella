@@ -353,6 +353,7 @@ extern const gchar   *gnet_property_variable_latest_svn_release_signature;
 extern const guint32  gnet_property_variable_tls_cache_max_hosts;
 extern const guint32  gnet_property_variable_tls_cache_max_time;
 extern const gboolean gnet_property_variable_tth_auto_discovery;
+extern const gboolean gnet_property_variable_enable_hackarounds;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -3528,4 +3528,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "enable_hackarounds";
+    desc = "If set to TRUE, gtk-gnutella will turn on some hacks which, "
+		"unfortunately, have to exist at all.  The aim is to improve the "
+		"overall downloading experience.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

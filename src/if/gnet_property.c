@@ -684,6 +684,8 @@ guint32  gnet_property_variable_tls_cache_max_time     = 43200;
 static const guint32  gnet_property_variable_tls_cache_max_time_default = 43200;
 gboolean gnet_property_variable_tth_auto_discovery     = TRUE;
 static const gboolean gnet_property_variable_tth_auto_discovery_default = TRUE;
+gboolean gnet_property_variable_enable_hackarounds     = FALSE;
+static const gboolean gnet_property_variable_enable_hackarounds_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -6541,6 +6543,23 @@ gnet_prop_init(void) {
     gnet_property->props[306].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[306].data.boolean.def   = (void *) &gnet_property_variable_tth_auto_discovery_default;
     gnet_property->props[306].data.boolean.value = (void *) &gnet_property_variable_tth_auto_discovery;
+
+
+    /*
+     * PROP_ENABLE_HACKAROUNDS:
+     *
+     * General data:
+     */
+    gnet_property->props[307].name = "enable_hackarounds";
+    gnet_property->props[307].desc = _("If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience.");
+    gnet_property->props[307].ev_changed = event_new("enable_hackarounds_changed");
+    gnet_property->props[307].save = TRUE;
+    gnet_property->props[307].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[307].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[307].data.boolean.def   = (void *) &gnet_property_variable_enable_hackarounds_default;
+    gnet_property->props[307].data.boolean.value = (void *) &gnet_property_variable_enable_hackarounds;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
