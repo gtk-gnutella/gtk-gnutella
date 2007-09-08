@@ -5743,7 +5743,7 @@ err_header_read_eof(gpointer o)
 					d->server->attrs &= ~DLS_A_FAKED_VENDOR;
 				}
 			}
-		} else {
+		} else if (GNET_PROPERTY(enable_hackarounds)) {
 			d->server->attrs |= DLS_A_FAKE_G2;
 			d->flags |= DL_F_FAKE_G2;
 
@@ -8208,7 +8208,9 @@ http_version_nofix:
 				break;
 			case 403:
 				if (is_strprefix(ack_message, "Network Disabled")) {
-					d->server->attrs |= DLS_A_FAKE_G2;
+					if (GNET_PROPERTY(enable_hackarounds)) {
+						d->server->attrs |= DLS_A_FAKE_G2;
+					}
 					hold = MAX(delay, 320);				/* To be safe */
 				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
