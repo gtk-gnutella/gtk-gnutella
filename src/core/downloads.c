@@ -6711,20 +6711,20 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
 		return;
 
-	value = header_get(header, "X-Thex-Uri");
+	value = header_get(header, "X-Thex-URI");
 	if (NULL == value)
 		return;
 
 	endptr = strchr(value, ';');
 	if (NULL == endptr) {
-		g_message("X-Thex-Uri header has no root hash (%s)",
+		g_message("X-Thex-URI header has no root hash (%s)",
 			download_host_info(d));
 		return;
 	}
 
 	uri_end = endptr;
 	if (uri_end == value || '/' != value[0]) {
-		g_message("X-Thex-Uri header has no valid URI (%s)",
+		g_message("X-Thex-URI header has no valid URI (%s)",
 			download_host_info(d));
 		return;
 	}
@@ -6736,21 +6736,21 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 
 	endptr = skip_ascii_spaces(&endptr[1]);
 	if (strlen(endptr) < TTH_BASE32_SIZE) {
-		g_message("X-Thex-Uri header has no root hash for %s from %s",
+		g_message("X-Thex-URI header has no root hash for %s from %s",
 			download_basename(d), download_host_info(d));
 		return;
 	}
 
 	tth = base32_tth(endptr);
 	if (NULL == tth) {
-		g_message("X-Thex-Uri header has no root hash for %s from %s",
+		g_message("X-Thex-URI header has no root hash for %s from %s",
 			download_basename(d), download_host_info(d));
 		return;
 	}
 
 	if (d->file_info->tth) {
 		if (!tth_eq(tth, d->file_info->tth)) {
-			g_warning("X-Thex-Uri causes TTH mismatch for %s from %s",
+			g_warning("X-Thex-URI causes TTH mismatch for %s from %s",
 				download_basename(d), download_host_info(d));
 			return;
 		}
