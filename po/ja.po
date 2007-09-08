@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2007-09-09 05:05+0900\n"
-"PO-Revision-Date: 2007-09-02 00:10+0900\n"
+"PO-Revision-Date: 2007-09-09 05:42+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -98,9 +98,9 @@ msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
 
 # NOTE: both `s' show localized timestamp
-#, fuzzy, c-format
+#, c-format
 msgid " at %s - rescheduled for %s%s #%u"
-msgstr " (現在時: %s - 再予定時: %s%s)"
+msgstr " (現在時: %s - 再予定時: %s%s #%u)"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1確認中)"
@@ -113,7 +113,7 @@ msgid "Paused"
 msgstr "一時停止中"
 
 msgid "Nothing more to get"
-msgstr ""
+msgstr "これ以上取得するデータはありません"
 
 msgid "Waiting for a free chunk"
 msgstr "空きチャンクを待受中"
@@ -196,11 +196,11 @@ msgstr "失敗しました (入力バッファが一杯です)"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
-msgstr ""
+msgstr "切断されました、TLSでの再接続を試みます (%s)"
 
 #, c-format
 msgid "Stopped (%s)"
-msgstr "中断されました (%s)"
+msgstr "切断されました (%s)"
 
 #, c-format
 msgid "Too many attempts (%u times)"
@@ -252,7 +252,7 @@ msgid "Chunk done, connection closed"
 msgstr "チャンクの取得完了、接続を切ります"
 
 msgid "Giving priority to THEX"
-msgstr ""
+msgstr "THEXを優先させています"
 
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (ダウンロードが競合しています)"
@@ -275,16 +275,14 @@ msgstr "相手側にURNがありません、オーバーラップ待受中"
 msgid "No URN on server to validate"
 msgstr "相手側に検証するためのURNがありません"
 
-#, fuzzy
 msgid "TTH mismatch detected"
-msgstr "SHA1の不一致が検出されました"
+msgstr "TTHが一致しません"
 
-#, fuzzy
 msgid "SHA-1 mismatch detected"
-msgstr "SHA1の不一致が検出されました"
+msgstr "SHA1が一致しません"
 
 msgid "URN fileinfo mismatch"
-msgstr "URNファイル情報が合致しません"
+msgstr "URNファイル情報が一致しません"
 
 msgid "Discovered dup SHA1"
 msgstr "重複するSHA1を発見しました"
@@ -310,17 +308,17 @@ msgid "No support for Content-Encoding (%s)"
 msgstr "Content-Encoding (%s) はサポートされていません"
 
 msgid "Spammer detected"
-msgstr "迷惑ファイル送信者を検知しました"
+msgstr "迷惑ファイル送信者を発見しました"
 
 msgid "Partial file, bad HTTP keep-alive support"
-msgstr ""
+msgstr "部分ファイル、不正なHTTP Keep-Aliveサポート"
 
 #, c-format
 msgid "Partial file, too much data to sink (%s bytes)"
 msgstr ""
 
 msgid "Partial file, no suitable range found yet"
-msgstr ""
+msgstr "部分ファイル、適切な取得範囲が見つかっていません"
 
 msgid "Partial file on server, waiting"
 msgstr "相手側の部分ファイルを待受中"
@@ -347,7 +345,7 @@ msgid "Unparseable Content-Length"
 msgstr "解析できない Content-Length です"
 
 msgid "Total/served sizes mismatch"
-msgstr ""
+msgstr "合計/提供したサイズが一致しません"
 
 msgid "Range start mismatch"
 msgstr "取得範囲の開始位置が一致しません"
@@ -397,7 +395,7 @@ msgid "Malformed push reply"
 msgstr ""
 
 msgid "SHA1 mismatch detected"
-msgstr "SHA1の不一致が検出されました"
+msgstr "SHA1が一致しません"
 
 msgid ", inbound"
 msgstr ""
@@ -414,7 +412,7 @@ msgid "<THEX data for %s>"
 msgstr "<%s のTHEXデータ>"
 
 msgid "Browse search closed"
-msgstr ""
+msgstr "ブラウズ検索が閉じられました"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "データ転送が中断されました (EOF) <download_got_eof>"
@@ -423,7 +421,7 @@ msgid "No longer connected"
 msgstr "もう接続していません"
 
 msgid "Too many data timeouts"
-msgstr "データ転送のタイムアウトが多すぎます"
+msgstr "データ転送時のタイムアウトが多発しています"
 
 # FIXME: separation (src/core/downloads.c, src/core/nodes.c: Timeout -> Timed out?)
 msgid "Timeout"
@@ -1436,9 +1434,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "開発用: 経路情報です。"
 
-#, fuzzy
 msgid "For development use: don't add new hosts to the host cache."
-msgstr "開発用: ホストキャッチャーへ新規ホストを追加しません。"
+msgstr "開発用: 新規ホストをホストキャッシュへ追加しません。"
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
 msgstr "ピア内への HTTP トラフィックの帯域幅を制限します。"
@@ -1574,13 +1571,11 @@ msgstr "ウルトラピアキャッシュの現在のホスト数です。"
 msgid "Current number of hosts in bad node caches."
 msgstr "不正ピアキャッシュの現在のホスト数です。"
 
-#, fuzzy
 msgid "Maximum number of hosts in the regular node cache."
-msgstr "通常ピアキャッチャーの最大ホスト数です。"
+msgstr "リーフピアのキャッシュの最大ホスト数です。"
 
-#, fuzzy
 msgid "Maximum number of hosts in the ultra node cache."
-msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
+msgstr "ウルトラピアのキャッシュの最大ホスト数です。"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
 msgstr "「使用中」、「不安定」、「タイムアウト」リストの最大ホスト数です。"
@@ -2100,7 +2095,6 @@ msgstr "gtk-gnutella ピア用に予約する接続数の割合です。"
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "他のベンダーが占有できるスロットの最大割合です。"
 
-#, fuzzy
 msgid ""
 "Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
@@ -2109,12 +2103,12 @@ msgid ""
 "greater value. Remember: the smaller the value, the more you will be able to "
 "precisely control the incoming rate."
 msgstr ""
-"ダウンロードに使用される受信ソケットバッファの大きさをキロバイトで指定しま"
-"す。ダウンロードで全ての帯域幅を使いきってしまうのを避けたければ、低い値 (標"
-"準では 64 キロバイトで、これが良好です) に設定して下さい。利用可能な帯域幅を"
-"全て使いきっても構わないのなら、接続の待ち時間を増やしつつ、この値を大きくし"
-"て下さい。この値を低くすればする程、入力レートをきちんと管理できるようになり"
-"ます"
+"ダウンロードに使用されるRX(受信)ソケットバッファの大きさをキロバイトで指定し"
+"ます。Gnutellaネットワークが全ての帯域幅を使いきってしまうのを避けたければ、"
+"低い値 (標準では 64 キロバイトで、これが良好です) に設定してください。利用可"
+"能な帯域幅を全て使いきっても構わないのでしたら、接続遅延時間を長くしながら、"
+"この値を大きくしてください。この値を低くすればする程、受信速度をより正確に管"
+"理できるようになります。"
 
 msgid ""
 "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
@@ -2128,6 +2122,8 @@ msgstr ""
 
 msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
 msgstr ""
+"アップロードに使用されるTX(送信)ソケットバッファの大きさをキロバイトで指定し"
+"ます。"
 
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
@@ -2622,19 +2618,20 @@ msgstr "最新のSVNリリースのリビジョンです。"
 msgid "Signature of the latest SVN release notification."
 msgstr "最新のSVNリリース通知の署名です。"
 
-#, fuzzy
 msgid "Maximum number of hosts in the TLS node cache."
-msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
+msgstr "TLSピアのキャッシュの最大ホスト数です。"
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the TLS cache."
-msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
+msgstr "TLSキャッシュからホストを除外するまでの最長時間です。"
 
 msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
+"有効にすると、即座にTigerTreeルートハッシュ(TTH)が見つけられます。無効にした"
+"場合は、例えばマグネットリンクのように、他の利用者から提供された時にのみTTHを"
+"受け付けます。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -7014,7 +7011,7 @@ msgid "No search"
 msgstr "検索無し"
 
 msgid "The search has been stopped"
-msgstr "この検索は中断されています"
+msgstr "この検索は中止されています"
 
 msgid "Passive search"
 msgstr "受動検索"
