@@ -185,6 +185,7 @@ void
 tls_cache_insert_intern(const struct tls_cache_item *item)
 {
 	gconstpointer key;
+	int removed;
 
 	g_return_if_fail(item);
 
@@ -207,13 +208,18 @@ tls_cache_insert_intern(const struct tls_cache_item *item)
 	hash_list_append(tls_hosts, key);
 
 	/* Remove the oldest host once we hit a reasonable limit */
-	if (hash_list_length(tls_hosts) > GNET_PROPERTY(tls_cache_max_hosts)) {
+	removed = 0;
+	while (hash_list_length(tls_hosts) > GNET_PROPERTY(tls_cache_max_hosts)) {
 		tls_cache_remove_oldest();
-	} else {
-		item = hash_list_head(tls_hosts);
-		if (item && tls_cache_item_expired(item->seen, tm_time())) {
-			tls_cache_remove_oldest();
-		}
+
+		/* If the limit was lowered drastically avoid doing too much work */
+		if (++removed >= 512)
+			break;
+	}
+	
+	item = hash_list_head(tls_hosts);
+	if (item && tls_cache_item_expired(item->seen, tm_time())) {
+		tls_cache_remove_oldest();
 	}
 }
 
