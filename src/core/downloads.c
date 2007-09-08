@@ -5657,10 +5657,8 @@ err_header_read_eof(gpointer o)
 			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-				g_message("will try to reach server \"%s\" at %s with TLS",
-					download_vendor_str(d),
-					host_addr_port_to_string(
-						download_addr(d), download_port(d)));
+				g_message("will try to reach server \"%s\" with TLS",
+					download_host_info(d));
 		}
 	}
 #endif	/* HAS_GNUTLS */
@@ -5700,9 +5698,8 @@ err_header_read_eof(gpointer o)
 		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
 		if (GNET_PROPERTY(download_debug))
-			g_message("server \"%s\" at %s might be banning us (too many EOF)",
-				download_vendor_str(d),
-				host_addr_port_to_string(download_addr(d), download_port(d)));
+			g_message("server \"%s\" might be banning us (too many EOF)",
+				download_host_info(d));
 	}
 
 	if (d->retries < GNET_PROPERTY(download_max_retries)) {
@@ -6065,9 +6062,8 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		filesize_t extra = b->held - (d->range_end - d->pos);
 
 		if (GNET_PROPERTY(download_debug)) g_message(
-			"server %s (%s) gave us %s more byte%s than requested for \"%s\"",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d), uint64_to_string(extra),
+			"server %s gave us %s more byte%s than requested for \"%s\"",
+			download_host_info(d), uint64_to_string(extra),
 			extra == 1 ? "" : "s", download_basename(d));
 
 		buffers_check_held(d);
@@ -6577,9 +6573,9 @@ download_check_status(struct download *d, getline_t *line, gint code)
 	download_check(d);
 
 	if (code < 0) {
-		g_message("weird HTTP acknowledgment status line from %s (%s)",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d));
+		g_message("weird HTTP acknowledgment status line from %s",
+			download_host_info(d));
+
 		if (GNET_PROPERTY(download_debug)) {
 			dump_hex(stderr, "Status Line", getline_str(line),
 				MIN(getline_length(line), 80));
@@ -6689,10 +6685,8 @@ extract_retry_after(struct download *d, const header_t *header)
 		time_t retry = date2time(buf, now);
 
 		if ((time_t) -1 == retry) {
-			g_warning("cannot parse Retry-After \"%s\" sent by %s <%s>",
-				buf,
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d));
+			g_warning("cannot parse Retry-After \"%s\" sent by %s",
+				buf, download_host_info(d));
 			return 0;
 		}
 
@@ -6822,10 +6816,8 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 		time_t their = date2time(buf, tm_time());
 
 		if ((time_t) -1 == their)
-			g_warning("cannot parse Date \"%s\" sent by %s <%s>",
-				buf,
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d));
+			g_warning("cannot parse Date \"%s\" sent by %s",
+				buf, download_host_info(d));
 		else {
 			tm_t delta;
 			time_t correction;
@@ -7226,9 +7218,8 @@ check_push_proxies(struct download *d, header_t *header)
 
 
 		if (is_private_addr(addr)) {
-			g_message("host %s [%s] sent a private IP address as Push-Proxy.",
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d));
+			g_message("host %s sent a private IP address as Push-Proxy.",
+				download_host_info(d));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
 			gnet_host_set(host, addr, port);
@@ -7318,9 +7309,8 @@ download_sink(struct download *d)
 	g_assert(d->flags & DL_F_SUNK_DATA);
 
 	if (s->pos > d->sinkleft) {
-		g_message("got more data to sink than expected from %s <%s>",
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d));
+		g_message("got more data to sink than expected from %s",
+			download_host_info(d));
 		download_stop(d, GTA_DL_ERROR, _("More data to sink than expected"));
 		return;
 	}
@@ -7692,15 +7682,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			http_major = 1;
 			http_minor = 1;
 			if (GNET_PROPERTY(download_debug)) g_message(
-				"assuming \"HTTP/1.1 %d\" for %s <%s>", ack_code,
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d));
+				"assuming \"HTTP/1.1 %d\" for %s", ack_code,
+				download_host_info(d));
 		} else if (GNET_PROPERTY(download_debug)) {
 			g_message(
-				"no HTTP version nor Content-Length given by "
-				"%s <%s> (status %d)",
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_vendor_str(d), ack_code);
+				"no HTTP version nor Content-Length given by %s (status %d)",
+				download_host_info(d), ack_code);
 		}
 		/* FALL THROUGH */
 	}
@@ -7873,10 +7860,8 @@ http_version_nofix:
 
 				if (buf == NULL) {
 					g_message("No Content-Length with keep-alive reply "
-						"%u \"%s\" from %s <%s>", ack_code, ack_message,
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-						download_vendor_str(d));
+						"%u \"%s\" from %s", ack_code, ack_message,
+						download_host_info(d));
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
 						_("Partial file, bad HTTP keep-alive support"));
@@ -7885,22 +7870,17 @@ http_version_nofix:
 
 				v = parse_uint64(buf, NULL, 10, &error);
 				if (error) {
-					g_message( "Cannot parse Content-Length header from "
-						"%s <%s>: \"%s\"",
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-						download_vendor_str(d),
-						buf);
+					g_message("Cannot parse Content-Length header from %s: "
+						"\"%s\"",
+						download_host_info(d), buf);
 				}
 				d->sinkleft = v;
 
 				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
 					g_message("Too much data to sink (%s bytes) on reply "
-						"%u \"%s\" from %s <%s>",
+						"%u \"%s\" from %s",
 						uint64_to_string(d->sinkleft), ack_code, ack_message,
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-						download_vendor_str(d));
+						download_host_info(d));
 
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
@@ -7915,11 +7895,8 @@ http_version_nofix:
 				 */
 
 				if (d->flags & DL_F_SUNK_DATA) {
-					g_message("Would have to sink twice during session "
-						"from %s <%s>",
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-						download_vendor_str(d));
+					g_message("Would have to sink twice during session from %s",
+						download_host_info(d));
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
 						_("Partial file, no suitable range found yet"));
@@ -8159,10 +8136,8 @@ http_version_nofix:
 				d->server->attrs |= DLS_A_MINIMAL_HTTP;
 
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("server \"%s\" at %s might be banning us",
-						download_vendor_str(d),
-						host_addr_port_to_string(download_addr(d),
-							download_port(d)));
+					g_message("server %s might be banning us",
+						download_host_info(d));
 				}
 
 				if (hold)
@@ -8314,12 +8289,10 @@ http_version_nofix:
 			if (check_content_range > total) {
                 if (GNET_PROPERTY(download_debug))
                     g_message(
-						"file \"%s\" on %s (%s): total size mismatch: got %s, "
+						"file \"%s\" on %s: total size mismatch: got %s, "
 						"for a served content of %s",
                         download_basename(d),
-                        host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-                        download_vendor_str(d),
+                        download_host_info(d),
                         uint64_to_string(check_content_range),
 						uint64_to_string2(total));
 
@@ -8331,12 +8304,10 @@ http_version_nofix:
 
 			if (start != d->skip - d->overlap_size) {
                 if (GNET_PROPERTY(download_debug))
-                    g_message("file \"%s\" on %s (%s): start byte mismatch: "
+                    g_message("file \"%s\" on %s: start byte mismatch: "
 						"wanted %s, got %s",
                         download_basename(d),
-                        host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-                        download_vendor_str(d),
+                        download_host_info(d),
                         uint64_to_string(d->skip - d->overlap_size),
 						uint64_to_string2(start));
 
@@ -8346,12 +8317,9 @@ http_version_nofix:
 			}
 			if (total != fi->size) {
                 if (GNET_PROPERTY(download_debug)) {
-                        g_message("file \"%s\" on %s (%s): file size mismatch:"
+                        g_message("file \"%s\" on %s: file size mismatch:"
 						" expected %s, got %s",
-                        download_basename(d),
-                        host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-                        download_vendor_str(d),
+                        download_basename(d), download_host_info(d),
                         uint64_to_string(fi->size), uint64_to_string2(total));
                 }
 				download_bad_source(d);
@@ -8360,12 +8328,9 @@ http_version_nofix:
 			}
 			if (end > d->range_end - 1) {
                 if (GNET_PROPERTY(download_debug)) {
-                    g_message("file \"%s\" on %s (%s): end byte too large: "
+                    g_message("file \"%s\" on %s: end byte too large: "
 						"expected %s, got %s",
-                        download_basename(d),
-                        host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-                        download_vendor_str(d),
+                        download_basename(d), download_host_info(d),
                         uint64_to_string(d->range_end - 1),
 						uint64_to_string2(end));
                 }
@@ -8390,12 +8355,10 @@ http_version_nofix:
 				 * 		http://sf.net/mailarchive/message.php?msg_id=10454795
 				 */
 
-				g_message("file \"%s\" on %s (%s): "
+				g_message("file \"%s\" on %s: "
 					"Range mismatch: wanted %s - %s, %s",
 					download_basename(d),
-					host_addr_port_to_string(download_addr(d),
-						download_port(d)),
-					download_vendor_str(d),
+					download_host_info(d),
 					uint64_to_string(d->skip),
 					uint64_to_string2(d->range_end - 1),
 					got);
@@ -8405,12 +8368,10 @@ http_version_nofix:
 			if (end < d->range_end - 1) {
                 if (GNET_PROPERTY(download_debug))
                     g_message(
-						"file \"%s\" on %s (%s): end byte short: wanted %s, "
+						"file \"%s\" on %s: end byte short: wanted %s, "
 						"got %s (continuing anyway)",
                         download_basename(d),
-                        host_addr_port_to_string(download_addr(d),
-							download_port(d)),
-                        download_vendor_str(d),
+                        download_host_info(d),
                         uint64_to_string(d->range_end - 1),
 						uint64_to_string2(end));
 
@@ -8447,11 +8408,8 @@ http_version_nofix:
 			check_content_range = 0;		/* We validated the served range */
 		} else {
             if (GNET_PROPERTY(download_debug)) {
-                g_message("file \"%s\" on %s (%s): malformed Content-Range: %s",
-					download_basename(d),
-					host_addr_port_to_string(download_addr(d),
-						download_port(d)),
-					download_vendor_str(d), buf);
+                g_message("file \"%s\" on %s: malformed Content-Range: %s",
+					download_basename(d), download_host_info(d), buf);
             }
         }
 	}
@@ -8462,11 +8420,9 @@ http_version_nofix:
 	 */
 
 	if (check_content_range != 0) {
-		g_message("file \"%s\": expected content of %s, server %s (%s) said %s",
+		g_message("file \"%s\": expected content of %s, server %s said %s",
 			download_basename(d), uint64_to_string(requested_size),
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d),
-			uint64_to_string2(check_content_range));
+			download_host_info(d), uint64_to_string2(check_content_range));
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, _("Content-Length mismatch"));
 		return;
@@ -9419,11 +9375,9 @@ select_push_download(GSList *servers)
 
 			if (d->socket == NULL) {
 				if (GNET_PROPERTY(download_debug) > 1) g_message(
-					"GIV: selected active download \"%s\" from %s at %s <%s>",
+					"GIV: selected active download \"%s\" from %s at %s",
 					download_basename(d), guid_hex_str(server->key->guid),
-					host_addr_port_to_string(download_addr(d),
-						download_port(d)),
-					download_vendor_str(d));
+					download_host_info(d));
 				found = 1;		/* Found in running list */
 			}
 		}
@@ -9466,11 +9420,9 @@ select_push_download(GSList *servers)
 				continue;
 
 			if (GNET_PROPERTY(download_debug) > 2) g_message(
-				"GIV: will try alternate download \"%s\" from %s at %s <%s>",
+				"GIV: will try alternate download \"%s\" from %s at %s",
 				download_basename(d), guid_hex_str(server->key->guid),
-				host_addr_port_to_string(download_addr(d),
-					download_port(d)),
-				download_vendor_str(d));
+				download_host_info(d));
 
 			g_assert(d->socket == NULL);
 
@@ -9503,11 +9455,9 @@ select_push_download(GSList *servers)
 					count_running_downloads());
 
 				if (GNET_PROPERTY(download_debug) > 1) g_message("GIV: "
-					"selected alternate download \"%s\" from %s at %s <%s>",
+					"selected alternate download \"%s\" from %s at %s",
 					download_basename(d), guid_hex_str(server->key->guid),
-					host_addr_port_to_string(download_addr(d),
-						download_port(d)),
-					download_vendor_str(d));
+					download_host_info(d));
 
 				found = 2;			/* Found in waiting list */
 				break;
@@ -9714,9 +9664,8 @@ download_push_ack(struct gnutella_socket *s)
 	}
 
 	if (GNET_PROPERTY(download_debug))
-		g_message("mapped GIV \"%s\" to \"%s\" from %s <%s>",
-			giv, download_basename(d), host_addr_to_string(s->addr),
-			download_vendor_str(d));
+		g_message("mapped GIV \"%s\" to \"%s\" from %s",
+			giv, download_basename(d), download_host_info(d));
 
 	if (d->io_opaque) {
 		g_warning("d->io_opaque is already set!");
