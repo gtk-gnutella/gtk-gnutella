@@ -2421,7 +2421,7 @@ prop = {
 		"to/from them.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
