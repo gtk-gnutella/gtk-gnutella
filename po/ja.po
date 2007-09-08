@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-01 22:57+0900\n"
+"POT-Creation-Date: 2007-09-09 05:05+0900\n"
 "PO-Revision-Date: 2007-09-02 00:10+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -98,8 +98,8 @@ msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
 
 # NOTE: both `s' show localized timestamp
-#, c-format
-msgid " at %s - rescheduled for %s%s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s #%u"
 msgstr " (現在時: %s - 再予定時: %s%s)"
 
 msgid "Suspended (SHA1 checking)"
@@ -195,6 +195,10 @@ msgid "Failed (Input buffer full)"
 msgstr "失敗しました (入力バッファが一杯です)"
 
 #, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
 msgid "Stopped (%s)"
 msgstr "中断されました (%s)"
 
@@ -271,8 +275,13 @@ msgstr "相手側にURNがありません、オーバーラップ待受中"
 msgid "No URN on server to validate"
 msgstr "相手側に検証するためのURNがありません"
 
-msgid "URN mismatch detected"
-msgstr "URNの不一致が検出されました"
+#, fuzzy
+msgid "TTH mismatch detected"
+msgstr "SHA1の不一致が検出されました"
+
+#, fuzzy
+msgid "SHA-1 mismatch detected"
+msgstr "SHA1の不一致が検出されました"
 
 msgid "URN fileinfo mismatch"
 msgstr "URNファイル情報が合致しません"
@@ -1427,7 +1436,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "開発用: 経路情報です。"
 
-msgid "For development use: don't add new hosts to the hostcatcher."
+#, fuzzy
+msgid "For development use: don't add new hosts to the host cache."
 msgstr "開発用: ホストキャッチャーへ新規ホストを追加しません。"
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
@@ -1564,10 +1574,12 @@ msgstr "ウルトラピアキャッシュの現在のホスト数です。"
 msgid "Current number of hosts in bad node caches."
 msgstr "不正ピアキャッシュの現在のホスト数です。"
 
-msgid "Maximum number of hosts in the regular node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the regular node cache."
 msgstr "通常ピアキャッチャーの最大ホスト数です。"
 
-msgid "Maximum number of hosts in the ultra node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the ultra node cache."
 msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -2088,8 +2100,9 @@ msgstr "gtk-gnutella ピア用に予約する接続数の割合です。"
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "他のベンダーが占有できるスロットの最大割合です。"
 
+#, fuzzy
 msgid ""
-"Size of the RX socket buffer to be used for downloads, in kbytes. If you "
+"Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
@@ -2112,6 +2125,9 @@ msgstr ""
 "ピアに使用される受信ソケットバッファの大きさをキロバイトで表します。速読しな"
 "いのなら、この値を低くすればする程、遠隔到達点の TCP/IP レベルでのフロー制御"
 "の速度が向上します。(ピア内への帯域幅を制限するとそのようになります)"
+
+msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
+msgstr ""
 
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
@@ -2605,6 +2621,20 @@ msgstr "最新のSVNリリースのリビジョンです。"
 
 msgid "Signature of the latest SVN release notification."
 msgstr "最新のSVNリリース通知の署名です。"
+
+#, fuzzy
+msgid "Maximum number of hosts in the TLS node cache."
+msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the TLS cache."
+msgstr "ウルトラピアキャッチャーの最大ホスト数です。"
+
+msgid ""
+"If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
+"Otherwise, the TTH is only accepted if provided by the user, for example, by "
+"a magnet link."
+msgstr ""
 
 msgid "disable"
 msgstr "表示しない"

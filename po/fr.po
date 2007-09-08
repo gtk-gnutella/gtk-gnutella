@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-04 21:25+0900\n"
+"POT-Creation-Date: 2007-09-09 05:05+0900\n"
 "PO-Revision-Date: 2007-09-01 17:37+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -34,8 +34,8 @@ msgstr "Remis dans la file pour suppression de fichier"
 msgid "Requeued by file info change"
 msgstr "Remis dans la file pour changement d'info du fichier"
 
-#, c-format
-msgid " at %s - rescheduled for %s%s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s #%u"
 msgstr " à %s - replanifié pour %s%s"
 
 msgid "Suspended (SHA1 checking)"
@@ -131,6 +131,10 @@ msgid "Failed (Input buffer full)"
 msgstr "Echec (Tampon d'entrée plein)"
 
 #, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
 msgid "Stopped (%s)"
 msgstr "Stoppé (%s)"
 
@@ -207,8 +211,13 @@ msgstr "Pas d'URN sur le serveur, attente de chevauchement"
 msgid "No URN on server to validate"
 msgstr "Pas d'URN sur le serveur pour valider"
 
-msgid "URN mismatch detected"
-msgstr "Disparité URN détectée"
+#, fuzzy
+msgid "TTH mismatch detected"
+msgstr "Disparité SHA1 détectée"
+
+#, fuzzy
+msgid "SHA-1 mismatch detected"
+msgstr "Disparité SHA1 détectée"
 
 msgid "URN fileinfo mismatch"
 msgstr "Disparité dans l'info. de fichier URN"
@@ -1369,7 +1378,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "Pour l'utilisation en développement: propriétés de voie."
 
-msgid "For development use: don't add new hosts to the hostcatcher."
+#, fuzzy
+msgid "For development use: don't add new hosts to the host cache."
 msgstr ""
 "Pour l'utilisation en développement: ne pas ajouter de nouveaux hôtes dans "
 "la liste."
@@ -1512,10 +1522,12 @@ msgstr "Nombre actuel d'hôtes dans la liste des noeuds ultra."
 msgid "Current number of hosts in bad node caches."
 msgstr "Nombre actuel d'hôtes dans la liste des mauvais noeuds."
 
-msgid "Maximum number of hosts in the regular node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the regular node cache."
 msgstr "Nombre maximum d'hôtes dans la liste des noeuds réguliers."
 
-msgid "Maximum number of hosts in the ultra node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the ultra node cache."
 msgstr "Nombre maximum d'hôtes dans la liste des noeuds ultra."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -2065,8 +2077,9 @@ msgstr ""
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Pourcentage maximum de créneaux qu'un vendeur peut occuper."
 
+#, fuzzy
 msgid ""
-"Size of the RX socket buffer to be used for downloads, in kbytes. If you "
+"Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
@@ -2091,6 +2104,9 @@ msgstr ""
 "petite est la valeur, plus rapidement le serveur distant va faire du "
 "contrôle de flux au niveau TCP/IP si vous ne lisez pas assez vite, ce qui "
 "est la cas si vous limitez la bande passante entrante."
+
+msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
+msgstr ""
 
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
@@ -2607,6 +2623,20 @@ msgstr "Révision de la dernière version SVN."
 
 msgid "Signature of the latest SVN release notification."
 msgstr "Signature de la dernière notification de version SVN."
+
+#, fuzzy
+msgid "Maximum number of hosts in the TLS node cache."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds ultra."
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the TLS cache."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds ultra."
+
+msgid ""
+"If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
+"Otherwise, the TTH is only accepted if provided by the user, for example, by "
+"a magnet link."
+msgstr ""
 
 msgid "disable"
 msgstr "désactiver"
@@ -7170,3 +7200,6 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "URN mismatch detected"
+#~ msgstr "Disparité URN détectée"

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-01 22:57+0900\n"
+"POT-Creation-Date: 2007-09-09 05:05+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -35,8 +35,8 @@ msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
 msgid "Requeued by file info change"
 msgstr "Lagt i kø på nytt grunnet endret filinformasjon"
 
-#, c-format
-msgid " at %s - rescheduled for %s%s"
+#, fuzzy, c-format
+msgid " at %s - rescheduled for %s%s #%u"
 msgstr " på %s - planlagt på nytt for %s%s"
 
 msgid "Suspended (SHA1 checking)"
@@ -137,6 +137,10 @@ msgid "Failed (Input buffer full)"
 msgstr "Feilet (Inndatahurtigminnet er fullt)"
 
 #, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
 msgid "Stopped (%s)"
 msgstr "Stoppet (%s)"
 
@@ -218,7 +222,11 @@ msgid "No URN on server to validate"
 msgstr "Ingen URN på tjeneren å validere"
 
 #, fuzzy
-msgid "URN mismatch detected"
+msgid "TTH mismatch detected"
+msgstr "Fant upassende SHA1"
+
+#, fuzzy
+msgid "SHA-1 mismatch detected"
 msgstr "Fant upassende SHA1"
 
 msgid "URN fileinfo mismatch"
@@ -1372,7 +1380,8 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr "For utviklere: spor verdier."
 
-msgid "For development use: don't add new hosts to the hostcatcher."
+#, fuzzy
+msgid "For development use: don't add new hosts to the host cache."
 msgstr "For utviklere: ikke legg til nye verter i vertshurtigminnet."
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
@@ -1511,10 +1520,12 @@ msgstr "Gjeldende antall verter i ultranodehurtigminne."
 msgid "Current number of hosts in bad node caches."
 msgstr "Antal verter i hurtigminnet for dårlige noder."
 
-msgid "Maximum number of hosts in the regular node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the regular node cache."
 msgstr "Høyeste antall verter i den normale nodefangeren."
 
-msgid "Maximum number of hosts in the ultra node catcher."
+#, fuzzy
+msgid "Maximum number of hosts in the ultra node cache."
 msgstr "Høyeste antall verter i ultranodefangeren."
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -2039,8 +2050,9 @@ msgstr ""
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Høyeste prosentdel av plassene en selger kan bruke."
 
+#, fuzzy
 msgid ""
-"Size of the RX socket buffer to be used for downloads, in kbytes. If you "
+"Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
@@ -2064,6 +2076,9 @@ msgstr ""
 "lavere verdien er, jo raskere vil den andre enden flytkontrollere på TCP/IP-"
 "nivå hvis du ikke leser raskt nok, noe som skjer hvis du begrenser den "
 "innkommende båndbredden."
+
+msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
+msgstr ""
 
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
@@ -2562,6 +2577,20 @@ msgid "Revision of the latest SVN release."
 msgstr ""
 
 msgid "Signature of the latest SVN release notification."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the TLS node cache."
+msgstr "Høyeste antall verter i ultranodefangeren."
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the TLS cache."
+msgstr "Høyeste antall verter i ultranodefangeren."
+
+msgid ""
+"If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
+"Otherwise, the TTH is only accepted if provided by the user, for example, by "
+"a magnet link."
 msgstr ""
 
 msgid "disable"
@@ -7145,6 +7174,10 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#, fuzzy
+#~ msgid "URN mismatch detected"
+#~ msgstr "Fant upassende SHA1"
 
 #~ msgid "Weird HTTP status (protocol desync?)"
 #~ msgstr "Rar HTTP-status (desynkronisert protokoll?)"

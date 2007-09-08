@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-08-21 12:47+0900\n"
+"POT-Creation-Date: 2007-09-09 05:05+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -24,29 +24,17 @@ msgstr ""
 msgid "times|x"
 msgstr ""
 
-msgid "No longer connected"
-msgstr ""
-
-msgid "Too many data timeouts"
-msgstr ""
-
-msgid "Timeout"
-msgstr ""
-
-msgid "Requeued due to timeout"
-msgstr ""
-
 msgid "Requeued due to file removal"
 msgstr ""
 
 msgid "Requeued by file info change"
 msgstr ""
 
-msgid "Suspended (SHA1 checking)"
+#, c-format
+msgid " at %s - rescheduled for %s%s #%u"
 msgstr ""
 
-#, c-format
-msgid " at %s - rescheduled for %s%s"
+msgid "Suspended (SHA1 checking)"
 msgstr ""
 
 #, c-format
@@ -139,6 +127,10 @@ msgid "Failed (Input buffer full)"
 msgstr ""
 
 #, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
 msgid "Stopped (%s)"
 msgstr ""
 
@@ -197,9 +189,6 @@ msgstr ""
 msgid "Requeued by competing download"
 msgstr ""
 
-msgid "Weird HTTP status (protocol desync?)"
-msgstr ""
-
 msgid "Weird HTTP status"
 msgstr ""
 
@@ -218,7 +207,10 @@ msgstr ""
 msgid "No URN on server to validate"
 msgstr ""
 
-msgid "URN mismatch detected"
+msgid "TTH mismatch detected"
+msgstr ""
+
+msgid "SHA-1 mismatch detected"
 msgstr ""
 
 msgid "URN fileinfo mismatch"
@@ -357,8 +349,29 @@ msgstr ""
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr ""
 
+msgid "No longer connected"
+msgstr ""
+
+msgid "Too many data timeouts"
+msgstr ""
+
+msgid "Timeout"
+msgstr ""
+
+msgid "Requeued due to timeout"
+msgstr ""
+
 #, c-format
 msgid "Downloading (TR: %s)"
+msgstr ""
+
+msgid "Seeding"
+msgstr ""
+
+msgid "Computing SHA1"
+msgstr ""
+
+msgid "Waiting for SHA1 check"
 msgstr ""
 
 msgid "OK"
@@ -367,16 +380,7 @@ msgstr ""
 msgid "failed"
 msgstr ""
 
-msgid "Waiting for SHA1 check"
-msgstr ""
-
-msgid "Computing SHA1"
-msgstr ""
-
 msgid "Moving"
-msgstr ""
-
-msgid "Seeding"
 msgstr ""
 
 msgid "Finished"
@@ -938,11 +942,11 @@ msgid "Average servent uptime."
 msgstr ""
 
 msgid ""
-"Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
-"traffic on TCP port 6346 so it would be a good idea to change it to "
-"something in the range of 1024-65535.  Don't forget to update your firewall "
-"port forwarding / opening, as necessary.  Note that by default, the TCP port "
-"6346 is not used to guard against undue censorship."
+"Local TCP port gtk-gnutella is listening on. ISPs often block or throttle "
+"traffic on TCP port 6346 so it is a good idea to change it to something in "
+"the range of 1024-65535.  Don't forget to update your firewall port "
+"forwarding / opening, as necessary.  Note that by default, the TCP port 6346 "
+"is not used to guard against undue censorship."
 msgstr ""
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
@@ -1227,7 +1231,7 @@ msgstr ""
 msgid "For development use: track properties."
 msgstr ""
 
-msgid "For development use: don't add new hosts to the hostcatcher."
+msgid "For development use: don't add new hosts to the host cache."
 msgstr ""
 
 msgid "Enable bandwidth limitation for incoming HTTP traffic."
@@ -1347,10 +1351,10 @@ msgstr ""
 msgid "Current number of hosts in bad node caches."
 msgstr ""
 
-msgid "Maximum number of hosts in the regular node catcher."
+msgid "Maximum number of hosts in the regular node cache."
 msgstr ""
 
-msgid "Maximum number of hosts in the ultra node catcher."
+msgid "Maximum number of hosts in the ultra node cache."
 msgstr ""
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -1750,7 +1754,7 @@ msgid "Maximum percentage of slots a vendor can occupy."
 msgstr ""
 
 msgid ""
-"Size of the RX socket buffer to be used for downloads, in kbytes. If you "
+"Size of the RX socket buffer to be used for downloads, in kibibytes. If you "
 "wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
 "low value (default is 64K, which is fine). If you don't mind sucking up all "
 "the available bandwidth, increasing your connection latency, set it to a "
@@ -1763,6 +1767,9 @@ msgid ""
 "value, the faster the remote end will flow-control at the TCP/IP level if "
 "you don't read quickly enough, which would be the case if you limit the "
 "incoming bandwidth."
+msgstr ""
+
+msgid "Size of the TX socket buffer to be used for uploads, in kibibytes."
 msgstr ""
 
 msgid ""
@@ -2130,6 +2137,27 @@ msgstr ""
 msgid "The current Session ID."
 msgstr ""
 
+msgid "Date of the latest SVN release."
+msgstr ""
+
+msgid "Revision of the latest SVN release."
+msgstr ""
+
+msgid "Signature of the latest SVN release notification."
+msgstr ""
+
+msgid "Maximum number of hosts in the TLS node cache."
+msgstr ""
+
+msgid "Maximum time before removing hosts from the TLS cache."
+msgstr ""
+
+msgid ""
+"If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
+"Otherwise, the TTH is only accepted if provided by the user, for example, by "
+"a magnet link."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2241,12 +2269,6 @@ msgid "Widths of the columns in the nodes table."
 msgstr ""
 
 msgid "Which columns are visible in the nodes pane."
-msgstr ""
-
-msgid "Widths of the columns in the queued downloads table."
-msgstr ""
-
-msgid "Which columns are visible in the queued downloads table."
 msgstr ""
 
 msgid "Widths of the columns in the file info table."
@@ -3532,10 +3554,32 @@ msgstr ""
 msgid "Filename"
 msgstr ""
 
+msgid "Created"
+msgstr ""
+
 msgid "SHA-1"
 msgstr ""
 
+msgid "Not available"
+msgstr ""
+
 msgid "Bitprint"
+msgstr ""
+
+#, c-format
+msgid "%lu leaf hashes providing a granularity of %s"
+msgstr ""
+
+msgid "Tigertree"
+msgstr ""
+
+msgid "External metadata"
+msgstr ""
+
+msgid "Bitzi URL"
+msgstr ""
+
+msgid "ShareMonkey URL"
 msgstr ""
 
 #, c-format
@@ -3683,6 +3727,9 @@ msgid "Active"
 msgstr ""
 
 msgid "Incomplete"
+msgstr ""
+
+msgid "Orphaned"
 msgstr ""
 
 msgid "All"
@@ -5822,12 +5869,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, c-format
-msgid "%s from the %u selected item"
-msgid_plural "%s from the %u selected items"
-msgstr[0] ""
-msgstr[1] ""
-
-#, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] ""
@@ -6257,9 +6298,6 @@ msgstr ""
 msgid "Source"
 msgstr ""
 
-msgid "Created"
-msgstr ""
-
 msgid "Alt-Locs"
 msgstr ""
 
@@ -6269,13 +6307,10 @@ msgstr ""
 msgid "Index"
 msgstr ""
 
-msgid "External metadata"
+msgid "Pathname"
 msgstr ""
 
-msgid "Bitzi URL"
-msgstr ""
-
-msgid "ShareMonkey URL"
+msgid "File URL"
 msgstr ""
 
 msgid "Host information"
@@ -6309,12 +6344,6 @@ msgid "Protocol"
 msgstr ""
 
 msgid "TTL"
-msgstr ""
-
-msgid "Pathname"
-msgstr ""
-
-msgid "File URL"
 msgstr ""
 
 msgid "URLs"
