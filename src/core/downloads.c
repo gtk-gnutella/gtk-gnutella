@@ -70,6 +70,7 @@
 #include "udp.h"
 #include "rx_inflate.h"
 #include "vmsg.h"
+#include "g2_cache.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1458,7 +1459,7 @@ get_server(
 	if (server) {
 		if (server->attrs & DLS_A_REMOVED)
 			server_undelete(server);
-		goto done;
+		goto allocated;
 	}
 
 	key.guid = deconstify_gchar(guid);
@@ -1479,10 +1480,13 @@ get_server(
 		if (!allocate)
 			return NULL;
 		server = allocate_server(guid, addr, port);
+
+	allocated:
+		if (g2_cache_lookup(addr, port))
+			server->attrs |= DLS_A_FAKE_G2 | DLS_A_BANNING | DLS_A_MINIMAL_HTTP;
 		/* FALL THROUGH */
 	}
 
-done:
 	g_assert(dl_server_valid(server));
 	return server;
 }
@@ -2936,18 +2940,18 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
+	if (DOWNLOAD_IS_RUNNING(d)) {
+		download_retry(d);
+	} else {
+		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
+	}
+
 	download_queue_set_status(d, fmt, ap);
 
 	if (GNET_PROPERTY(download_debug))
 		g_message("re-queuing download \"%s\" at %s: %s",
 			download_basename(d), download_host_info(d),
 			fmt ? d->error_str : "<no reason>");
-
-	if (DOWNLOAD_IS_RUNNING(d)) {
-		download_retry(d);
-	} else {
-		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
-	}
 
 	/*
 	 * Since download stop can change "d->remove_msg", update it now.
@@ -7590,7 +7594,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar short_read[80];
 	guint delay;
 	guint hold = 0;
-	gboolean refusing;
 
 	download_check(d);
 	
@@ -7625,14 +7628,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		g_message("----");
 	}
 
-	if (d->flags & DL_F_FAKE_G2) {
-		if (GNET_PROPERTY(download_debug))
-			g_message("server %s responded well to G2 faking for \"%s\"",
-				download_host_info(d), download_basename(d));
-
-		d->flags &= ~DL_F_FAKE_G2;
-	}
-
 	/*
 	 * If we did not get any status code at all, re-enqueue immediately.
 	 */
@@ -7641,6 +7636,15 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		download_queue_delay(d, GNET_PROPERTY(download_retry_refused_delay),
 			_("Timeout reading headers"));
 		return;
+	}
+
+	if (d->flags & DL_F_FAKE_G2) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("server %s responded well to G2 faking for \"%s\"",
+				download_host_info(d), download_basename(d));
+
+		d->flags &= ~DL_F_FAKE_G2;
+		g2_cache_insert(download_addr(d), download_port(d));
 	}
 
 	/*
@@ -8031,6 +8035,9 @@ http_version_nofix:
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
+		if (d->server->attrs & DLS_A_FAKE_G2)
+			g2_cache_insert(download_addr(d), download_port(d));
+
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1 && NULL == d->uri) {
 			dmesh_add_good_alternate(d->sha1, addr, port);
@@ -8110,8 +8117,22 @@ http_version_nofix:
 				_("%sRequested range unavailable yet"), short_read);
 			return;
 		case 503:				/* Busy */
+			/*
+			 * These Shareaza morons started using 503 instead of 403.
+			 * Now we need to handle that specially because it's not really
+			 * a "busy" indication.
+			 */
+			if (
+				is_strprefix(download_vendor_str(d), "Shareaza") &&
+				is_strprefix(ack_message, "Service Unavailable")
+			) {
+				goto refused;	/* Sorry, contorted logic */
+			}
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
+			if (d->server->attrs & DLS_A_FAKE_G2)
+				g2_cache_insert(download_addr(d), download_port(d));
+
 			/* Update mesh */
 			if (!d->always_push && d->sha1 && NULL == d->uri) {
 				dmesh_add_good_alternate(d->sha1, addr, port);
@@ -8175,6 +8196,7 @@ http_version_nofix:
 			break;
 		}
 
+	refused:
 		download_bad_source(d);
 
 		/*
@@ -8212,12 +8234,20 @@ http_version_nofix:
 						d->server->attrs |= DLS_A_FAKE_G2;
 					}
 					hold = MAX(delay, 320);				/* To be safe */
+					g2_cache_insert(download_addr(d), download_port(d));
 				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
 				break;
 			case 404:
 				if (is_strprefix(ack_message, "Please Share"))
 					d->server->attrs |= DLS_A_BANNING;	/* Shareaza 1.8.0.0- */
+				break;
+			case 503:	/* Shareaza >= 2.2.3.0 misunderstands everything */
+				hold = MAX(delay, 7260);			/* To be safe */
+				if (GNET_PROPERTY(enable_hackarounds))
+					d->server->attrs |= DLS_A_FAKE_G2;
+				g2_cache_insert(download_addr(d), download_port(d));
+				d->server->attrs |= DLS_A_BANNING;	/* Surely if we came here */
 				break;
 			}
 
@@ -8230,19 +8260,9 @@ http_version_nofix:
 				d->server->attrs |= DLS_A_MINIMAL_HTTP;
 
 				if (GNET_PROPERTY(download_debug)) {
-					g_message("server %s might be banning us",
-						download_host_info(d));
+					g_message("server %s might be banning us with \"%d %s\"",
+						download_host_info(d), ack_code, ack_message);
 				}
-
-				if (hold)
-					download_queue_hold(d, hold,
-						"%sHTTP %u %s", short_read, ack_code, ack_message);
-				else
-					download_queue_delay(d,
-						delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
-						"%sHTTP %u %s", short_read, ack_code, ack_message);
-
-				return;
 			}
 		}
 
@@ -8251,29 +8271,28 @@ http_version_nofix:
 		 * amout of time and kill all their running uploads.
 		 */
 
-		refusing = FALSE;
-
 		switch (ack_code) {
 		case 401:
-			refusing = TRUE;
-			break;
 		case 403:
 		case 404:
-			/*
-			 * By only selecting servers that are banning us, we are not
-			 * banning gtk-gnutella clients that could be refusing us because
-			 * we're too old.  But this is fair, as the user is told about
-			 * his revision being too old and decided not to act.
-			 *		--RAM, 13/07/2003
-			 */
-			if (d->server->attrs & DLS_A_BANNING)
-				refusing = TRUE;
+		case 503:	/* Couretesy of Shareaza */
+			if (d->server->attrs & DLS_A_BANNING) {
+				ban_record(download_addr(d), "IP denying uploads");
+				upload_kill_addr(download_addr(d));
+			}
 			break;
 		}
 
-		if (refusing) {
-			ban_record(download_addr(d), "IP denying uploads");
-			upload_kill_addr(download_addr(d));
+		if (d->server->attrs & DLS_A_BANNING) {
+			if (hold)
+				download_queue_hold(d, hold,
+					"%sHTTP %u %s", short_read, ack_code, ack_message);
+			else
+				download_queue_delay(d,
+					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
+					"%sHTTP %u %s", short_read, ack_code, ack_message);
+
+			return;
 		}
 
 		download_stop(d, GTA_DL_ERROR,

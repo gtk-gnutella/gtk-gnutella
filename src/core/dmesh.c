@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "fileinfo.h"
 #include "settings.h"
 #include "hosts.h"
+#include "g2_cache.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -1369,6 +1370,9 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
 			continue;
 
+		if (g2_cache_lookup(dme->url.addr, dme->url.port))
+			continue;			/* Don't pollute with G2-only entries */
+
 		g_assert(i < MAX_ENTRIES);
 		selected[i++] = dme;
 	}
@@ -1673,6 +1677,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 		if (dme->url.idx != URN_INDEX)
 			continue;
+
+		if (g2_cache_lookup(dme->url.addr, dme->url.port))
+			continue;			/* Don't pollute with G2-only entries */
 
 		g_assert(i < MAX_ENTRIES);
 

@@ -51,6 +51,7 @@
 #include "core/features.h"
 #include "core/fileinfo.h"
 #include "core/file_object.h"
+#include "core/g2_cache.h"
 #include "core/geo_ip.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
@@ -503,6 +504,7 @@ gtk_gnutella_exit(gint n)
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	tls_cache_close();
+	g2_cache_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
 	atoms_close();
@@ -1331,6 +1333,7 @@ main(int argc, char **argv)
 	settings_init();
 	tls_global_init();
 	tls_cache_init();
+	g2_cache_init();
 	hostiles_init();
 	spam_init();
 	bogons_init();
