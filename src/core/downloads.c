@@ -2887,9 +2887,10 @@ download_unavailable(struct download *d, download_status_t new_status,
 }
 
 static void
-download_queue_update_status(struct download *d, size_t len)
+download_queue_update_status(struct download *d)
 {
-	gchar event[80], resched[80], pfs[40];
+	char event[80], resched[80], pfs[40], *buf;
+	size_t size;
 	time_t rescheduled;
 
 	/*
@@ -2912,7 +2913,10 @@ download_queue_update_status(struct download *d, size_t len)
 		gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
 			d->ranges_size * 100.0 / d->file_info->size);
 
-	gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
+	buf = &d->error_str[strlen(d->error_str)];
+	size = sizeof d->error_str - strlen(d->error_str);
+
+	gm_snprintf(buf, size,
 		_(" at %s - rescheduled for %s%s #%u"),
 		lazy_locale_to_ui_string(event),
 		lazy_locale_to_ui_string2(resched), pfs, d->retries);
@@ -2924,7 +2928,7 @@ download_queue_update_status(struct download *d, size_t len)
 static void
 download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 {
-	size_t len = 0;
+	size_t len;
 
 	download_check(d);
 	file_info_check(d->file_info);
@@ -2943,8 +2947,11 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 *		--RAM, 2007-09-09
 	 */
 
-	if (fmt)
+	if (fmt) {
 		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
+	} else {
+		len = g_strlcpy(d->error_str, "", sizeof d->error_str);
+	}
 
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);
@@ -2952,7 +2959,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 	}
 
-	download_queue_update_status(d, len);
+	download_queue_update_status(d);
 
 	if (GNET_PROPERTY(download_debug))
 		g_message("re-queuing download \"%s\" at %s: %s",
