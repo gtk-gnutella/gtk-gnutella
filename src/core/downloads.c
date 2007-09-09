@@ -5734,17 +5734,23 @@ err_header_read_eof(gpointer o)
 		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
 		if (GNET_PROPERTY(download_debug))
-			g_message("server %s might be banning us (too many EOF for \"%s\")",
+			g_message(
+				"server %s might be banning us (too many EOF for \"%s\")",
 				download_host_info(d), download_basename(d));
 
 		/*
-		 * This is a bet: the Shareaza folks changed their strategy. So do we.
+		 * This is a bet: the Shareaza folks changed their strategy.
 		 */
 
 		if (d->flags & DL_F_FAKE_G2) {
-			if (d->header_read_eof >= DOWNLOAD_MAX_HEADER_EOF + 5) {
+			delay += 120 * (d->header_read_eof - DOWNLOAD_MAX_HEADER_EOF);
+			if (
+				d->header_read_eof >= DOWNLOAD_MAX_HEADER_EOF + 5 &&
+				!(d->server->attrs & DLS_A_G2_ONLY)
+			) {
 				if (GNET_PROPERTY(download_debug))
-					g_message("server %s didn't respond to G2 faking for \"%s\"",
+					g_message(
+						"server %s didn't respond to G2 faking for \"%s\"",
 						download_host_info(d), download_basename(d));
 
 				d->server->attrs &= ~DLS_A_FAKE_G2;
