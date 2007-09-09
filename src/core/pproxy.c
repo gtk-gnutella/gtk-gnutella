@@ -543,11 +543,10 @@ build_push(guint8 ttl, guint8 hops, const gchar *guid,
 
 	ggep_stream_init(&gs, p, size);
 
-#ifdef HAS_GNUTLS
-	supports_tls = supports_tls
-		|| is_my_address_and_port(addr_v4, port)
-		|| is_my_address_and_port(addr_v6, port);
-#endif /* HAS_GNUTLS */
+	if (!supports_tls && tls_enabled()) {
+		supports_tls = is_my_address_and_port(addr_v4, port)
+			|| is_my_address_and_port(addr_v6, port);
+	}
 	
 	if (supports_tls) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0)) {
@@ -1217,9 +1216,7 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 
 	concat_strings(path, sizeof path,
 		"/gnutella/push-proxy?ServerId=", guid_base32_str(guid),
-#ifdef HAS_GNUTLS
-		"&tls=true",
-#endif /* HAS_GNUTLS */
+		tls_enabled() ? "&tls=true" : "",
 		(void *) 0);
 
 	/*

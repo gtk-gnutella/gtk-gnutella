@@ -5542,12 +5542,6 @@ send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
 static gboolean
 download_send_push_request(struct download *d)
 {
-	static const gboolean supports_tls =
-#ifdef HAS_GNUTLS
-		TRUE;
-#else
-		FALSE;
-#endif /* HAS_GNUTLS */
 	struct array packet;
 	guint16 port;
 
@@ -5559,7 +5553,7 @@ download_send_push_request(struct download *d)
 
 	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
-				d->record_index, supports_tls);
+				d->record_index, tls_enabled());
 
 	if (packet.data) {
 		GSList *nodes;

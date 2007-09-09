@@ -189,10 +189,8 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
 		spp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF ? 0x0 : 0x1;
-#ifdef HAS_GNUTLS
-		spp |= 0x02;
-#endif	/* HAS_GNUTLS */
-		
+		spp |= tls_enabled() ? 0x02 : 0;
+
 		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 		g_assert(ok);
 
@@ -614,9 +612,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
 
-#ifdef HAS_GNUTLS
-	local_meta.flags |= PONG_META_HAS_TLS;
-#endif	/* HAS_GNUTLS */
+	local_meta.flags |= tls_enabled() ? PONG_META_HAS_TLS : 0;
 
 	send_pong(n, control, flags, 0,
 		MIN(gnutella_header_get_hops(&n->header) + 1U, GNET_PROPERTY(max_ttl)),

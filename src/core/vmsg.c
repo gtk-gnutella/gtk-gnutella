@@ -1876,11 +1876,7 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 		if (!ggep_stream_pack(&gs, GGEP_NAME(V), "GTKG", 4, 0))
 			goto failure;
 
-		caps = 0;
-#ifdef HAS_GNUTLS
-		caps |= VMSG_HEAD_F_TLS;
-#endif	/* HAS_GNUTLS */
-
+		caps = tls_enabled() ? VMSG_HEAD_F_TLS : 0;
 		if (!ggep_stream_pack(&gs, GGEP_NAME(F), &caps, sizeof caps, 0))
 			goto failure;
 

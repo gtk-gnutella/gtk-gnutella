@@ -516,12 +516,12 @@ flush_match(void)
 		}
 	}
 
-#ifdef HAS_GNUTLS
-	if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
-		g_warning("could not write GGEP \"TLS\" extension into query hit");
-	if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
-		g_warning("could not write GGEP \"GTKG.TLS\" extension into query hit");
-#endif /* HAS_GNUTLS */
+	if (tls_enabled()) {
+		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
+			g_warning("could not write GGEP \"TLS\" extension into QHIT");
+		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
+			g_warning("could not write GGEP \"GTKG.TLS\" extension into QHIT");
+	}
 
 
 	/*
