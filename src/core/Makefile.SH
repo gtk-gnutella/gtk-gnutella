@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 14435 2007-08-13 10:26:25Z rmanfredi $
+# $X-Id: Jmakefile 14847 2007-09-09 12:50:21Z rmanfredi $
 
 SRC = \
 	alive.c \
@@ -101,6 +101,7 @@ SRC = \
 	features.c \
 	fileinfo.c \
 	file_object.c \
+	g2_cache.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -188,6 +189,7 @@ OBJ = \
 	features.o \
 	fileinfo.o \
 	file_object.o \
+	g2_cache.o \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \
