@@ -2888,41 +2888,35 @@ download_unavailable(struct download *d, download_status_t new_status,
 }
 
 static void
-download_queue_set_status(struct download *d, const gchar *fmt, va_list ap)
+download_queue_update_status(struct download *d, size_t len)
 {
-	if (fmt) {
-		size_t len;
-		gchar event[80], resched[80], pfs[40];
-		time_t rescheduled;
+	gchar event[80], resched[80], pfs[40];
+	time_t rescheduled;
 
-		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
-		/* d->remove_msg updated below */
+	/*
+	 * Rescheduling time is the largest of `retry_after' (absolute) and
+	 * `timeout_delay' secs after `last_update'.
+	 * See download_pickup_queued() for details on how this is handled.
+	 *		--RAM, 2007-05-06
+	 */
 
-		/*
-		 * Rescheduling time is the largest of `retry_after' (absolute) and
-		 * `timeout_delay' secs after `last_update'.
-		 * See download_pickup_queued() for details on how this is handled.
-		 *		--RAM, 2007-05-06
-		 */
+	rescheduled = d->last_update + d->timeout_delay;
+	rescheduled = MAX(rescheduled, d->retry_after);
 
-		rescheduled = d->last_update + d->timeout_delay;
-		rescheduled = MAX(rescheduled, d->retry_after);
+	/* Append times of event/reschedule */
+	time_locale_to_string_buf(tm_time(), event, sizeof event);
+	time_locale_to_string_buf(rescheduled, resched, sizeof resched);
 
-		/* Append times of event/reschedule */
-		time_locale_to_string_buf(tm_time(), event, sizeof event);
-		time_locale_to_string_buf(rescheduled, resched, sizeof resched);
+	/* Append PFS indication */
+	pfs[0] = '\0';
+	if (d->ranges != NULL)
+		gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
+			d->ranges_size * 100.0 / d->file_info->size);
 
-		/* Append PFS indication */
-		pfs[0] = '\0';
-		if (d->ranges != NULL)
-			gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
-				d->ranges_size * 100.0 / d->file_info->size);
-
-		gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
-			_(" at %s - rescheduled for %s%s #%u"),
-			lazy_locale_to_ui_string(event),
-			lazy_locale_to_ui_string2(resched), pfs, d->retries);
-	}
+	gm_snprintf(&d->error_str[len], sizeof d->error_str - len,
+		_(" at %s - rescheduled for %s%s #%u"),
+		lazy_locale_to_ui_string(event),
+		lazy_locale_to_ui_string2(resched), pfs, d->retries);
 }
 
 /**
@@ -2931,6 +2925,8 @@ download_queue_set_status(struct download *d, const gchar *fmt, va_list ap)
 static void
 download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 {
+	size_t len = 0;
+
 	download_check(d);
 	file_info_check(d->file_info);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
@@ -2938,13 +2934,26 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	g_assert(d->file_info->lifecount <= d->file_info->refcount);
 	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
+	/*
+	 * We must use the arguments before possibly calling download_retry(),
+	 * as the extracted HTTP status lies in the socket's buffer that will
+	 * be freed then.
+	 *
+	 * But we'll only know the exact rescheduling information after
+	 * download_retry() has been called, so we must split the work.
+	 *		--RAM, 2007-09-09
+	 */
+
+	if (fmt)
+		len = gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
+
 	if (DOWNLOAD_IS_RUNNING(d)) {
 		download_retry(d);
 	} else {
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 	}
 
-	download_queue_set_status(d, fmt, ap);
+	download_queue_update_status(d, len);
 
 	if (GNET_PROPERTY(download_debug))
 		g_message("re-queuing download \"%s\" at %s: %s",
