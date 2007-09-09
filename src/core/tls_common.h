@@ -56,6 +56,7 @@ void tls_bye(tls_context_t ctx, gboolean is_incoming);
 void tls_free(tls_context_t *ctx_ptr);
 void tls_wio_link(struct wrap_io *wio);
 
+gboolean tls_enabled(void);
 void tls_global_init(void);
 const gchar *tls_version_string(void);
 

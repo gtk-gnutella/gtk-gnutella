@@ -925,6 +925,12 @@ tls_version_string(void)
 	return buf;
 }
 
+gboolean
+tls_enabled(void)
+{
+	return TRUE;
+}
+
 static gnutls_x509_crt
 svn_release_notify_certificate(void)
 {
@@ -1049,6 +1055,12 @@ const char *
 tls_version_string(void)
 {
 	return NULL;
+}
+
+gboolean
+tls_enabled(void)
+{
+	return FALSE;
 }
 
 gboolean
