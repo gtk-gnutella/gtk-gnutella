@@ -1,7 +1,6 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006, Christian Biere
  * Copyright (c) 2007, Raphael Manfredi
  *
  *----------------------------------------------------------------------
@@ -48,7 +47,6 @@
  * hosts which explicitly forbid sharing with Gnutella servents must not have
  * their addresses propagated in the Gnutella mesh.
  *
- * @author Christian Biere
  * @author Raphael Manfredi
  * @date 2006-2007
  */
