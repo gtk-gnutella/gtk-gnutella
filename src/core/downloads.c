@@ -7880,8 +7880,7 @@ http_version_nofix:
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 
 	delay = extract_retry_after(d, header);
-	delay = MAX(1, delay);
-	d->retry_after = time_advance(tm_time(), delay);
+	d->retry_after = time_advance(tm_time(), MAX(1, delay));
 	d->timeout_delay = 0;			/* We managed to connect */
 
 	/*
