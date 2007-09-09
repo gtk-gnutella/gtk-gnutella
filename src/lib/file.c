@@ -161,15 +161,16 @@ open_read(
 		}
 	}
 
-	if (in) {
-		if (common_dbg > 0)
+	if (common_dbg > 0) {
+		if (in) {
 			g_message("[%s] retrieving from \"%s\"%s", what, path, instead);
-	} else if (instead == instead_str) {
-		g_warning("[%s] unable to retrieve: tried %d alternate location%s",
-			what, fvcnt, fvcnt == 1 ? "" : "s");
-    } else {
-		g_warning("[%s] unable to retrieve: no alternate locations known",
-			what);
+		} else if (instead == instead_str) {
+			g_message("[%s] unable to retrieve: tried %d alternate location%s",
+				what, fvcnt, fvcnt == 1 ? "" : "s");
+		} else {
+			g_message("[%s] unable to retrieve: no alternate locations known",
+				what);
+		}
 	}
 
 out:
