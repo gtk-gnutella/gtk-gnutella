@@ -3535,7 +3535,7 @@ prop = {
 		"overall downloading experience.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
