@@ -1598,6 +1598,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			fi->done * 100 / fi->size > MIN_PFSP_PCT
 		) && upload_is_enabled()
 	) {
+		static const char tls_hex[] = "tls=8";	/* Only us at index zero */
 		size_t url_len;
 		struct dmesh_entry ourselves;
 		time_t now = tm_time();
@@ -1614,9 +1615,12 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		url_len = dmesh_entry_compact(&ourselves, url, sizeof url);
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
-		if (!header_fmt_value_fits(fmt, url_len, maxslen))
+		if (!header_fmt_value_fits(fmt, url_len + strlen(tls_hex), maxslen))
 			goto nomore;
 
+		if (tls_enabled()) {
+			header_fmt_append_value(fmt, tls_hex);
+		}
 		header_fmt_append_value(fmt, url);
 		added = TRUE;
 	}
