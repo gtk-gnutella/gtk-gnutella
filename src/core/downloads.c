@@ -128,7 +128,6 @@ static hash_list_t *sl_downloads;	/**< All downloads (queued + unqueued) */
 static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
 static GSList *sl_removed;			/**< Removed downloads only */
 static GSList *sl_removed_servers;	/**< Removed servers only */
-static gchar dl_tmp[4096];
 
 static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -6886,7 +6885,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
  * Look for a Date: header in the reply and use it to update our skew.
  */
 static void
-check_date(const header_t *header, const host_addr_t addr, struct download *d)
+check_date(struct download *d, const header_t *header)
 {
 	const gchar *buf;
 
@@ -6918,7 +6917,7 @@ check_date(const header_t *header, const host_addr_t addr, struct download *d)
 			tm_sub(&delta, &d->header_sent);
 			correction = (time_t) (tm2f(&delta) / 2.0);
 
-			clock_update(their + correction, correction + 1, addr);
+			clock_update(their + correction, correction + 1, download_addr(d));
 		}
 	}
 }
@@ -7579,6 +7578,101 @@ is_dumb_spammer(const gchar *user_agent)
 	return FALSE;
 }
 
+static gboolean
+xalt_detect_tls_support(struct download *d, header_t *header)
+{
+	const gchar *tls_hex, *next;
+	size_t host_index = 0;
+	gboolean found = FALSE;
+
+	download_check(d);
+
+	next = header_get(header, "X-Alt");
+	while (NULL != next) {
+		const gchar *start, *endptr, *p;
+		host_addr_t addr;
+		guint16 port;
+		gboolean ok;
+
+		p = next;
+		start = skip_ascii_blanks(p);
+		if ('\0' == *start)
+			break;
+
+		next = strpbrk(start, ",;");
+		if (next) {
+			next++;
+		}
+
+		if (NULL == tls_hex && (tls_hex = is_strcaseprefix(start, "tls=")))
+			continue;
+
+		/*
+		 * There could be a GUID here if the host is not directly connectible
+		 * but we ignore this apparently.
+		 */	
+		ok = string_to_host_addr(start, &endptr, &addr);
+		if (ok && ':' == *endptr) {
+			gint error;
+
+			port = parse_uint16(&endptr[1], &endptr, 10, &error);
+			ok = !error && port > 0;
+		} else {
+			port = GTA_PORT;
+		}
+		if (!ok)
+			continue;
+
+		if (
+			port == download_port(d) &&
+			host_addr_equal(addr, download_addr(d))
+		) {
+			found = TRUE;
+			break;
+		}
+		host_index++;
+	}
+
+	if (found) {
+		size_t i = 0;
+
+		/*
+		 * We parse something like "tls_hex=4cbd040533a2" whereas
+		 * each nibble refers to the next 4 hosts in the list.
+		 * The MSB refers to the first of these, the LSB to the last.
+		 */
+		while (tls_hex && is_ascii_xdigit(tls_hex[0])) {
+			int nibble, mask;
+
+			nibble = hex2int_inline(*tls_hex++);
+			for (mask = 0x8; 0 != mask; mask >>= 1, i++) {
+				if (i == host_index)
+					return 0 != (nibble & mask);
+			}
+		}
+	}
+	
+	return FALSE;
+}
+
+static void
+download_detect_tls_support(
+		struct download *d, header_t *header)
+{
+	download_check(d);
+
+	if (d->got_giv)
+		return;
+
+	if (
+		header_get_feature("tls", header, NULL, NULL) ||
+		xalt_detect_tls_support(d, header)
+	) {
+		tls_cache_insert(download_addr(d), download_port(d));
+	}
+}
+
+
 /**
  * Called to initiate the download once all the HTTP headers have been read.
  * If `ok' is false, we timed out reading the header, and have therefore
@@ -7599,8 +7693,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gboolean is_chunked;
 	http_content_encoding_t content_encoding;
 	filesize_t check_content_range = 0, requested_size;
-	host_addr_t addr;	
-	guint16 port;
 	guint http_major = 0, http_minor = 0;
 	gboolean is_followup;
 	fileinfo_t *fi;
@@ -7716,14 +7808,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	}
 	d->flags |= DL_F_REPLIED;
 
-	addr = download_addr(d);
-	port = download_port(d);
+	download_detect_tls_support(d, header);
 
-	if (!d->got_giv && header_get_feature("tls", header, NULL, NULL)) {
-		tls_cache_insert(addr, port);
-	}
-
-	check_date(header, addr, d);	/* Update clock skew if we have a Date: */
+	/* Update clock skew if we have a Date: */
+	check_date(d, header);
 
 	buf = header_get(header, "Transfer-Encoding");
 	if (buf) {
@@ -7882,7 +7970,8 @@ http_version_nofix:
 
 					/* Update mesh */
 					if (!d->always_push && d->sha1 && NULL == d->uri) {
-						dmesh_add_good_alternate(d->sha1, addr, port);
+						dmesh_add_good_alternate(d->sha1,
+							download_addr(d), download_port(d));
 					}
 					return;
 
@@ -7937,7 +8026,8 @@ http_version_nofix:
 
 			/* Update mesh -- we're about to return */
 			if (!d->always_push && d->sha1 && NULL == d->uri) {
-				dmesh_add_good_alternate(d->sha1, addr, port);
+				dmesh_add_good_alternate(d->sha1,
+					download_addr(d), download_port(d));
 			}
 
 			if (!download_start_prepare_running(d))
@@ -8054,7 +8144,8 @@ http_version_nofix:
 
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1 && NULL == d->uri) {
-			dmesh_add_good_alternate(d->sha1, addr, port);
+			dmesh_add_good_alternate(d->sha1,
+				download_addr(d), download_port(d));
 		}
 
 		download_passively_queued(d, FALSE);
@@ -8115,7 +8206,8 @@ http_version_nofix:
 			return;
 #else
 			if (d->sha1 && NULL == d->uri) {
-				dmesh_good_mark(d->sha1, addr, port, FALSE);
+				dmesh_good_mark(d->sha1, download_addr(d), download_port(d),
+					FALSE);
 			}
 			break;
 #endif
@@ -8149,7 +8241,8 @@ http_version_nofix:
 
 			/* Update mesh */
 			if (!d->always_push && d->sha1 && NULL == d->uri) {
-				dmesh_add_good_alternate(d->sha1, addr, port);
+				dmesh_add_good_alternate(d->sha1,
+					download_addr(d), download_port(d));
 			}
 
 			/*
@@ -9020,24 +9113,25 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 void
 download_send_request(struct download *d)
 {
-	struct gnutella_socket *s = d->socket;
+	struct gnutella_socket *s;
+	const struct sha1 *sha1;
+	const char *method;
+	char request_buf[4096];
 	fileinfo_t *fi;
 	size_t rw;
 	ssize_t sent;
-	const gchar *method;
-	const struct sha1 *sha1;
 
 	download_check(d);
-
-	fi = d->file_info;
-
-	g_assert(fi);
-	g_assert(fi->lifecount > 0);
-	g_assert(fi->lifecount <= fi->refcount);
-
-	if (!s)
+	s = d->socket;
+	if (NULL == s) {
 		g_error("download_send_request(): no socket for \"%s\"",
 			download_basename(d));
+	}
+	
+	fi = d->file_info;
+	file_info_check(fi);
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
 
 	/*
 	 * If we have a hostname for this server, check the IP address of the
@@ -9148,19 +9242,19 @@ picked:
 		gchar *escaped_uri;
 
 		escaped_uri = url_fix_escape(d->uri);
-		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
+		rw = gm_snprintf(request_buf, sizeof request_buf,
 				"%s %s HTTP/1.1\r\n", method, escaped_uri);
 		if (escaped_uri != d->uri) {
 			G_FREE_NULL(escaped_uri);
 		}
 	} else if (sha1) {
-		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
+		rw = gm_snprintf(request_buf, sizeof request_buf,
 				"%s /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 				method, sha1_base32(sha1));
 	} else {
 		gchar *escaped = url_escape(d->file_name);
 
-		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
+		rw = gm_snprintf(request_buf, sizeof request_buf,
 				"%s /get/%lu/%s HTTP/1.1\r\n",
 				method, (gulong) d->record_index, escaped);
 
@@ -9178,7 +9272,7 @@ picked:
 		return;
 	}
 
-	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
 		d->server->hostname
@@ -9187,38 +9281,38 @@ picked:
 			version_string);
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 			"X-Features: g2/1.0\r\n");
 	} else {
 		header_features_generate(FEATURES_DOWNLOADS,
-			dl_tmp, sizeof(dl_tmp), &rw);
+			request_buf, sizeof request_buf, &rw);
 
 		/*
 		 * If we request the file by a custom URI it's most likely
 		 * not a Gnutella peer, unless it's a THEX request.
 		 */
 		if (!d->uri || (d->flags & DL_F_THEX)) {
-			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 					"X-Token: %s\r\n", tok_version());
 		}
 	}
 
 	if (d->flags & DL_F_BROWSE) {
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 				"Accept: application/x-gnutella-packets\r\n");
 	}
 	if (d->flags & DL_F_THEX) {
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 				"Accept: application/dime\r\n");
 	}
 
-	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 			"Accept-Encoding: deflate\r\n");
 
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
-	parq_download_add_header(dl_tmp, sizeof(dl_tmp), &rw, d);
+	parq_download_add_header(request_buf, sizeof request_buf, &rw, d);
 
 	/*
 	 * If server is known to NOT support keepalives, then request only
@@ -9244,7 +9338,7 @@ picked:
 
 			d->range_end = d->skip + d->size;
 
-			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 				"Range: bytes=%s-%s\r\n",
 				uint64_to_string(start), uint64_to_string2(d->range_end - 1));
 		}
@@ -9252,14 +9346,14 @@ picked:
 		/* Request only a lower-bounded range, if needed */
 
 		if (d->skip > d->overlap_size)
-			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 				"Range: bytes=%s-\r\n",
 				uint64_to_string(d->skip - d->overlap_size));
 	}
 
 	fi_src_info_changed(d);		/* Now that we know d->range_end */
 
-	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
+	g_assert(rw + 3U < sizeof request_buf);	/* Should not have filled yet! */
 
 	/*
 	 * In any case, if we know a SHA1, we need to send it over.  If the server
@@ -9287,9 +9381,13 @@ picked:
 		if (d->server->attrs & DLS_A_MINIMAL_HTTP) {
 			wmesh = 0;
 		} else {
-			size_t altloc_size = sizeof(dl_tmp) - (rw + sha1_room);
 			fileinfo_t *file_info = d->file_info;
+			size_t altloc_size;
 
+			altloc_size = sizeof request_buf;
+			altloc_size -= MIN(altloc_size, rw);
+			altloc_size -= MIN(altloc_size, sha1_room);
+			
 			/*
 			 * If we're short on HTTP output bandwidth, limit the size of
 			 * the alt-locs we send and don't provide our fileinfo, so that
@@ -9321,7 +9419,7 @@ picked:
 			 */
 
 			wmesh = dmesh_alternate_location(sha1,
-				&dl_tmp[rw], altloc_size,
+				&request_buf[rw], altloc_size,
 				download_addr(d), d->last_dmesh, download_vendor(d),
 				file_info, TRUE);
 			rw += wmesh;
@@ -9338,13 +9436,13 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
 				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 				sha1_base32(sha1));
 		}
 	}
 
-	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
+	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
 
 	/*
 	 * Send the HTTP Request
@@ -9361,7 +9459,7 @@ picked:
 	socket_tos_normal(s);
 	socket_set_quickack(s, TRUE);	/* Re-enable quick ACKs at the TCP level */
 
-	sent = bws_write(BSCHED_BWS_OUT, &s->wio, dl_tmp, rw);
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, request_buf, rw);
 	if ((ssize_t) -1 == sent) {
 		/*
 		 * If download is queued with PARQ, don't stop the download on a write
@@ -9391,7 +9489,7 @@ picked:
 
 		g_assert(d->req == NULL);
 
-		d->req = http_buffer_alloc(dl_tmp, rw, sent);
+		d->req = http_buffer_alloc(request_buf, rw, sent);
 
 		/*
 		 * Install the writing callback.
@@ -9409,7 +9507,7 @@ picked:
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			(guint) rw, (gint) rw, dl_tmp);
+			(guint) rw, (gint) rw, request_buf);
 	}
 
 	download_request_sent(d);
@@ -10090,6 +10188,7 @@ download_retrieve_magnets(FILE *f)
 static void
 download_retrieve_old(FILE *f)
 {
+	char dl_tmp[4096];
 	filesize_t d_size = 0;	/* The d_ vars are what we deserialize */
 	guint64 size64;
 	gint error;
@@ -10127,7 +10226,7 @@ download_retrieve_old(FILE *f)
 	d_name = NULL;
 	flags = 0;
 
-	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, f)) { /* Room for trailing NUL */
+	while (fgets(dl_tmp, sizeof dl_tmp, f)) {
 		line++;
 
 		if (dl_tmp[0] == '#' && allow_comments)
