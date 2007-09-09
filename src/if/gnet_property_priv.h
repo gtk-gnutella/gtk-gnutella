@@ -354,6 +354,9 @@ extern const guint32  gnet_property_variable_tls_cache_max_hosts;
 extern const guint32  gnet_property_variable_tls_cache_max_time;
 extern const gboolean gnet_property_variable_tth_auto_discovery;
 extern const gboolean gnet_property_variable_enable_hackarounds;
+extern const guint32  gnet_property_variable_g2_cache_max_hosts;
+extern const guint32  gnet_property_variable_g2_cache_max_time;
+extern const guint32  gnet_property_variable_g2_debug;
 
 
 prop_set_t *gnet_prop_init(void);

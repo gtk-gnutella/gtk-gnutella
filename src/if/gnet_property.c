@@ -686,6 +686,12 @@ gboolean gnet_property_variable_tth_auto_discovery     = TRUE;
 static const gboolean gnet_property_variable_tth_auto_discovery_default = TRUE;
 gboolean gnet_property_variable_enable_hackarounds     = FALSE;
 static const gboolean gnet_property_variable_enable_hackarounds_default = FALSE;
+guint32  gnet_property_variable_g2_cache_max_hosts     = 10000;
+static const guint32  gnet_property_variable_g2_cache_max_hosts_default = 10000;
+guint32  gnet_property_variable_g2_cache_max_time     = 43200;
+static const guint32  gnet_property_variable_g2_cache_max_time_default = 43200;
+guint32  gnet_property_variable_g2_debug     = 0;
+static const guint32  gnet_property_variable_g2_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -6560,6 +6566,66 @@ gnet_prop_init(void) {
     gnet_property->props[307].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[307].data.boolean.def   = (void *) &gnet_property_variable_enable_hackarounds_default;
     gnet_property->props[307].data.boolean.value = (void *) &gnet_property_variable_enable_hackarounds;
+
+
+    /*
+     * PROP_G2_CACHE_MAX_HOSTS:
+     *
+     * General data:
+     */
+    gnet_property->props[308].name = "g2_cache_max_hosts";
+    gnet_property->props[308].desc = _("Maximum number of hosts in the G2 node cache.");
+    gnet_property->props[308].ev_changed = event_new("g2_cache_max_hosts_changed");
+    gnet_property->props[308].save = TRUE;
+    gnet_property->props[308].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[308].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[308].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_hosts_default;
+    gnet_property->props[308].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_hosts;
+    gnet_property->props[308].data.guint32.choices = NULL;
+    gnet_property->props[308].data.guint32.max   = 50000;
+    gnet_property->props[308].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_G2_CACHE_MAX_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[309].name = "g2_cache_max_time";
+    gnet_property->props[309].desc = _("Maximum time before removing hosts from the G2 cache.");
+    gnet_property->props[309].ev_changed = event_new("g2_cache_max_time_changed");
+    gnet_property->props[309].save = TRUE;
+    gnet_property->props[309].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[309].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[309].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_time_default;
+    gnet_property->props[309].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_time;
+    gnet_property->props[309].data.guint32.choices = NULL;
+    gnet_property->props[309].data.guint32.max   = 691200;
+    gnet_property->props[309].data.guint32.min   = 14400;
+
+
+    /*
+     * PROP_G2_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[310].name = "g2_debug";
+    gnet_property->props[310].desc = _("Debug level for management of G2-only hosts.");
+    gnet_property->props[310].ev_changed = event_new("g2_debug_changed");
+    gnet_property->props[310].save = TRUE;
+    gnet_property->props[310].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[310].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[310].data.guint32.def   = (void *) &gnet_property_variable_g2_debug_default;
+    gnet_property->props[310].data.guint32.value = (void *) &gnet_property_variable_g2_debug;
+    gnet_property->props[310].data.guint32.choices = NULL;
+    gnet_property->props[310].data.guint32.max   = 20;
+    gnet_property->props[310].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
