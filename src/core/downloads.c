@@ -7592,6 +7592,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar short_read[80];
 	guint delay;
 	guint hold = 0;
+	guint fixed_ack_code;
 
 	download_check(d);
 	
@@ -8197,6 +8198,7 @@ http_version_nofix:
 
 	refused:
 		download_bad_source(d);
+		fixed_ack_code = ack_code;
 
 		/*
 		 * Check whether server is banning us based on our user-agent.
@@ -8240,10 +8242,13 @@ http_version_nofix:
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
 				break;
 			case 404:
-				if (is_strprefix(ack_message, "Please Share"))
+				if (is_strprefix(ack_message, "Please Share")) {
 					d->server->attrs |= DLS_A_BANNING;	/* Shareaza 1.8.0.0- */
+					fixed_ack_code = 403;			/* Fix their error */
+				}
 				break;
 			case 503:	/* Shareaza >= 2.2.3.0 misunderstands everything */
+				fixed_ack_code = 403;				/* Fix their error */
 				hold = MAX(delay, 7260);			/* To be safe */
 				if (GNET_PROPERTY(enable_hackarounds))
 					d->server->attrs |= DLS_A_FAKE_G2;
@@ -8273,16 +8278,16 @@ http_version_nofix:
 		 * amout of time and kill all their running uploads.
 		 */
 
-		switch (ack_code) {
+		switch (fixed_ack_code) {
 		case 401:
 		case 403:
-		case 404:
-		case 503:	/* Couretesy of Shareaza */
 			if (d->server->attrs & DLS_A_BANNING) {
 				ban_record(download_addr(d), "IP denying uploads");
 				upload_kill_addr(download_addr(d));
 			}
 			break;
+		default:
+			goto genuine_error;
 		}
 
 		if (d->server->attrs & DLS_A_BANNING) {
@@ -8297,6 +8302,7 @@ http_version_nofix:
 			return;
 		}
 
+	genuine_error:
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %u %s", short_read, ack_code, ack_message);
 		return;
