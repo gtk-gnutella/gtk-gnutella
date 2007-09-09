@@ -6642,7 +6642,7 @@ download_get_server_name(struct download *d, header_t *header)
  * @return TRUE if we can continue.
  */
 static gboolean
-download_check_status(struct download *d, getline_t *line, gint code)
+download_check_status(struct download *d, header_t *header, gint code)
 {
 	download_check(d);
 
@@ -6651,8 +6651,8 @@ download_check_status(struct download *d, getline_t *line, gint code)
 			download_host_info(d));
 
 		if (GNET_PROPERTY(download_debug)) {
-			dump_hex(stderr, "Status Line", getline_str(line),
-				MIN(getline_length(line), 80));
+			dump_hex(stderr, "Status Line", getline_str(d->socket->getline),
+				MIN(getline_length(d->socket->getline), 80));
 		}
 
 		download_bad_source(d);
@@ -6661,9 +6661,11 @@ download_check_status(struct download *d, getline_t *line, gint code)
 	} else {
 		/* Reset the retry counter only if we get a positive response code */
 		switch (code) {
+		case 503:	/* Busy */
+			if (extract_retry_after(d, header) <= 0)
+				break;
 		case 200:	/* Okay */
 		case 206:	/* Partial Content */
-		case 503:	/* Busy */
 			d->retries = 0;
 			break;
 		}
@@ -7797,7 +7799,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	ack_code = http_status_parse(status, "HTTP",
 		&ack_message, &http_major, &http_minor);
 
-	if (!download_check_status(d, s->getline, ack_code))
+	if (!download_check_status(d, header, ack_code))
 		return;
 
 	if (ack_message)
