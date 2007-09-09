@@ -1477,7 +1477,7 @@ get_server(
 
 	allocated:
 		if (g2_cache_lookup(addr, port)) {
-			server->attrs |= DLS_A_G2_ONLY | DLS_A_BANNING | DLS_A_MINIMAL_HTTP;
+			server->attrs |= DLS_A_G2_ONLY | DLS_A_MINIMAL_HTTP;
 			if (GNET_PROPERTY(enable_hackarounds)) {
 				server->attrs |= DLS_A_FAKE_G2;
 			}
@@ -9172,11 +9172,10 @@ picked:
 			: host_addr_port_to_string(download_addr(d), download_port(d)),
 			version_string);
 
-	if (d->server->attrs & DLS_A_FAKE_G2)
+	if (d->server->attrs & DLS_A_FAKE_G2) {
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			"X-Features: g2/1.0\r\n");
-
-	if (!(d->server->attrs & DLS_A_BANNING)) {
+	} else {
 		header_features_generate(FEATURES_DOWNLOADS,
 			dl_tmp, sizeof(dl_tmp), &rw);
 
@@ -9199,9 +9198,8 @@ picked:
 				"Accept: application/dime\r\n");
 	}
 
-	if (!(d->server->attrs & DLS_A_FAKE_G2))
-		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-				"Accept-Encoding: deflate\r\n");
+	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"Accept-Encoding: deflate\r\n");
 
 	/*
 	 * Add X-Queue / X-Queued information into the header
