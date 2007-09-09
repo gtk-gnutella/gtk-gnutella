@@ -11283,7 +11283,7 @@ download_get_hostname(const struct download *d)
 		outbound ? _(", outbound") : "",
 		encrypted ? ", TLS" : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
-		(d->server->attrs & DLS_A_G2_ONLY) ? _(", g2") : "",
+		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) ? _(", g2") : "",
 		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",
