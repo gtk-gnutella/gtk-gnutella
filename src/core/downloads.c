@@ -167,12 +167,6 @@ static gboolean download_shutdown = FALSE;
 static void download_store(void);
 static void download_retrieve(void);
 
-static const char *
-download_g2_version(void)
-{
-	return "Shareaza 2.1.0.0";
-}
-
 gboolean
 download_is_alive(const struct download *d)
 {
@@ -9170,8 +9164,7 @@ picked:
 		d->server->hostname
 			? d->server->hostname
 			: host_addr_port_to_string(download_addr(d), download_port(d)),
-		(d->server->attrs & DLS_A_FAKE_G2) ?
-			download_g2_version() : version_string);
+			version_string);
 
 	if (d->server->attrs & DLS_A_FAKE_G2)
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
