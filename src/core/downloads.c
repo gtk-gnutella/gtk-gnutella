@@ -1482,8 +1482,12 @@ get_server(
 		server = allocate_server(guid, addr, port);
 
 	allocated:
-		if (g2_cache_lookup(addr, port))
-			server->attrs |= DLS_A_FAKE_G2 | DLS_A_BANNING | DLS_A_MINIMAL_HTTP;
+		if (g2_cache_lookup(addr, port)) {
+			server->attrs |= DLS_A_G2_ONLY | DLS_A_BANNING | DLS_A_MINIMAL_HTTP;
+			if (GNET_PROPERTY(enable_hackarounds)) {
+				server->attrs |= DLS_A_FAKE_G2;
+			}
+		}
 		/* FALL THROUGH */
 	}
 
@@ -7644,6 +7648,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_host_info(d), download_basename(d));
 
 		d->flags &= ~DL_F_FAKE_G2;
+		d->server->attrs |= DLS_A_G2_ONLY;
 		g2_cache_insert(download_addr(d), download_port(d));
 	}
 
@@ -8035,7 +8040,7 @@ http_version_nofix:
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
-		if (d->server->attrs & DLS_A_FAKE_G2)
+		if (d->server->attrs & DLS_A_G2_ONLY)
 			g2_cache_insert(download_addr(d), download_port(d));
 
 		/* OK -- Update mesh */
@@ -8130,7 +8135,7 @@ http_version_nofix:
 			}
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
-			if (d->server->attrs & DLS_A_FAKE_G2)
+			if (d->server->attrs & DLS_A_G2_ONLY)
 				g2_cache_insert(download_addr(d), download_port(d));
 
 			/* Update mesh */
@@ -8218,6 +8223,7 @@ http_version_nofix:
 			d->server->attrs &= ~DLS_A_BANNING;
 			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
 			d->server->attrs &= ~DLS_A_FAKE_G2;
+			d->server->attrs &= ~DLS_A_G2_ONLY;
 
 			if (was_banning) {
 				fi_src_info_changed(d);
@@ -8233,6 +8239,7 @@ http_version_nofix:
 					if (GNET_PROPERTY(enable_hackarounds)) {
 						d->server->attrs |= DLS_A_FAKE_G2;
 					}
+					d->server->attrs |= DLS_A_G2_ONLY;
 					hold = MAX(delay, 320);				/* To be safe */
 					g2_cache_insert(download_addr(d), download_port(d));
 				}
@@ -8246,6 +8253,7 @@ http_version_nofix:
 				hold = MAX(delay, 7260);			/* To be safe */
 				if (GNET_PROPERTY(enable_hackarounds))
 					d->server->attrs |= DLS_A_FAKE_G2;
+				d->server->attrs |= DLS_A_G2_ONLY;
 				g2_cache_insert(download_addr(d), download_port(d));
 				d->server->attrs |= DLS_A_BANNING;	/* Surely if we came here */
 				break;
@@ -11275,7 +11283,7 @@ download_get_hostname(const struct download *d)
 		outbound ? _(", outbound") : "",
 		encrypted ? ", TLS" : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
-		(d->server->attrs & DLS_A_FAKE_G2) ? _(", g2") : "",
+		(d->server->attrs & DLS_A_G2_ONLY) ? _(", g2") : "",
 		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",
 		d->server->hostname ? ", (" : "",
 		d->server->hostname ? d->server->hostname : "",

@@ -270,6 +270,7 @@ enum {
  * Server attributes.
  */
 enum {
+	DLS_A_G2_ONLY		= 1 << 9,	/**< Server is "G2" only */
 	DLS_A_FOOBAR		= 1 << 8,	/**< Server is foobar */
 	DLS_A_REMOVED		= 1 << 7,	/**< Server marked for removal */
 	DLS_A_DNS_LOOKUP	= 1 << 6,	/**< Perform DNS lookup if possible */
