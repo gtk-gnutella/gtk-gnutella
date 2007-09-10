@@ -299,7 +299,6 @@ thex_download_handle_xml(struct thex_download *ctx,
   
 	node = find_element_by_name(hashtree->children, "serializedtree");
 	if (node) {
-		unsigned depth, good_depth, min_depth;
 		char *value;
 		int error;
 		
@@ -326,28 +325,16 @@ thex_download_handle_xml(struct thex_download *ctx,
 			goto finish;
 		}
 		
-		depth = parse_uint16(value, NULL, 10, &error);
-		error |= depth > tt_full_depth(ctx->filesize);
+		ctx->depth = parse_uint16(value, NULL, 10, &error);
+		error |= ctx->depth > tt_full_depth(ctx->filesize);
 		if (error) {
+			ctx->depth = 0;
 			g_message("Bad value for \"depth\" of node \"%s\": \"%s\"",
 				node->name, value);
 		}
 		xml_string_free(&value);
 		if (error)
 			goto finish;
-
-		/* Shareaza use a fixed depth of 9, allow one level less like others */
-		good_depth = tt_good_depth(ctx->filesize);
-		min_depth = good_depth - (good_depth > 0);
-
-		if (depth < min_depth) {
-			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("Tree depth (%u) is below the acceptable depth (%u)",
-					depth, min_depth);
-			}
-			goto finish;
-		}
-		ctx->depth = MIN(depth, TTH_MAX_DEPTH);
 	} else {
 		if (GNET_PROPERTY(tigertree_debug))
 			g_message("Couldn't find hashtree/serializedtree element");
@@ -373,6 +360,7 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 {
 	gboolean success = FALSE;
 	size_t n_nodes, n_leaves, n, start;
+	unsigned good_depth, min_depth;
 	const struct tth *leaves;
 	struct tth tth;
 
@@ -402,8 +390,35 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 		goto finish;
 	}
 
-	n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
 	n_nodes = size / TTH_RAW_SIZE;
+	n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
+
+	/* Shareaza use a fixed depth of 9, allow one level less like others */
+	good_depth = tt_good_depth(ctx->filesize);
+	min_depth = good_depth - (good_depth > 0);
+
+	ctx->depth = MIN(ctx->depth, good_depth);
+	if (n_nodes < n_leaves * 2 - 1) {
+		ctx->depth = good_depth;
+		n = tt_node_count_at_depth(ctx->filesize, ctx->depth);
+		n = n * 2 - 1; /* All nodes, not just leaves */
+		while (n > n_nodes) {
+			n = (n + 1) / 2;
+			ctx->depth--;
+		}
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_message("Calculated depth of hashtree: %u", ctx->depth);
+		}
+		n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
+	}
+
+	if (ctx->depth < min_depth) {
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_message("Tree depth (%u) is below the acceptable depth (%u)",
+				ctx->depth, min_depth);
+		}
+		goto finish;
+	}
 
 	start = 0;
 	n = n_leaves;
@@ -414,10 +429,12 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 
 	if (n_nodes < start + n_leaves) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message(
-				"Hashtree has too few nodes (filesize=%s nodes=%u depth=%u)",
+			g_message("Hashtree has too few nodes "
+				"(filesize=%s depth=%u nodes=%lu expected=%lu)",
 				filesize_to_string(ctx->filesize),
-				(unsigned) n_nodes, ctx->depth);
+				ctx->depth,
+				(unsigned long) n_nodes,
+				(unsigned long) n_leaves * 2 - 1);
 		}
 		goto finish;
 	}
@@ -536,13 +553,17 @@ thex_download_finished(struct thex_download *ctx)
 		hashtree_id = thex_download_handle_xml(ctx, data, size);
 		if (NULL == hashtree_id) {
 			if (GNET_PROPERTY(tigertree_debug)) {
+				g_message("Could not determine hashtree ID");
 				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
 			}
-			goto finish;
+			/* Bug workaround:
+			 * Try without an ID. GnucDNA 1.1.1.4 sends truncated XML with
+			 * a missing closing tag.
+			 */
 		}
 
 		record = dime_find_record(records, THEX_TREE_TYPE, hashtree_id);
-		if (NULL == record) {
+		if (NULL == record && NULL != hashtree_id) {
 			/* Bug workaround:
 			 * Ignore the ID and fetch the first record with a matching
 			 * type. BearShare 5.2 prepends a bogus double-quote to the ID.
@@ -560,6 +581,7 @@ thex_download_finished(struct thex_download *ctx)
 
 		data = dime_record_data(record);
 		size = dime_record_data_length(record);
+
 		if (!thex_download_handle_hashtree(ctx, data, size))
 			goto finish;
 
