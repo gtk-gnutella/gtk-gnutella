@@ -4053,6 +4053,16 @@ download_pick_followup(struct download *d)
 
 	download_check(d);
 
+	/*
+	 * Cannot enable this until GTKG can properly manage switching of
+	 * resources as a server.  Also, how can we detect whether a server will
+	 * support such a switching?  Some legacy servents may not, and legacy
+	 * GTKG certainly won't.
+	 *		--RAM, 2007-09-10
+	 */
+	if (is_strprefix(download_vendor_str(d), "gtk-gnutella/"))
+		return d;
+
 	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -6359,14 +6369,6 @@ download_continue(struct download *d, gboolean trimmed)
 		return;
 	}
 
-	/*
-	 * Cannot enable this until GTKG can properly manage switching of
-	 * resources as a server.  Also, how can we detect whether a server will
-	 * support such a switching?  Some legacy servents may not, and legacy
-	 * GTKG certainly won't.
-	 *		--RAM, 2007-09-10
-	 */
-#if 0
 	next = download_pick_followup(cd);
 	if (cd != next) {
 		next->socket = cd->socket;
@@ -6376,9 +6378,6 @@ download_continue(struct download *d, gboolean trimmed)
 	} else {
 		next = cd;
 	}
-#else
-	next = cd;		/* For now */
-#endif
 
 	if (download_start_prepare(next)) {
 		next->keep_alive = TRUE;			/* Was reset by _prepare() */
