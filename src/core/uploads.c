@@ -3339,21 +3339,11 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	}
 
 	/*
-	 * Ensure that a given persistent connection never requests more than
-	 * the total file length.  Add 10% to account for partial overlapping
-	 * ranges.
+	 * Keep track of the amount they requested, for possible greed limit
+	 * someday.
 	 */
 
 	u->total_requested += range_end - range_skip + 1;
-
-	if (!u->head_only && (u->total_requested / 11) * 10 > u->file_size) {
-		if (GNET_PROPERTY(upload_debug)) g_warning(
-				"host %s (%s) requesting more than there is to %u (%s)",
-				host_addr_to_string(u->socket->addr), upload_vendor_str(u),
-				u->file_index, u->name);
-		upload_error_remove(u, 400, "Requesting Too Much");
-		return;
-	}
 
 	g_assert(NULL == u->file);		/* File opened each time */
 
