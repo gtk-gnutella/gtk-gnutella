@@ -6663,8 +6663,10 @@ download_check_status(struct download *d, header_t *header, gint code)
 		/* Reset the retry counter only if we get a positive response code */
 		switch (code) {
 		case 503:	/* Busy */
-			if (extract_retry_after(d, header) <= 0)
+			if (extract_retry_after(d, header) <= 0) {
+				d->server->attrs |= DLS_A_FOOBAR;
 				break;
+			}
 		case 200:	/* Okay */
 		case 206:	/* Partial Content */
 			d->retries = 0;
@@ -7584,7 +7586,7 @@ is_dumb_spammer(const gchar *user_agent)
 static gboolean
 xalt_detect_tls_support(struct download *d, header_t *header)
 {
-	const gchar *tls_hex, *next;
+	const gchar *tls_hex = NULL, *next;
 	size_t host_index = 0;
 	gboolean found = FALSE;
 
