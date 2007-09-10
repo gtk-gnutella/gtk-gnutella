@@ -4077,26 +4077,21 @@ download_pick_followup(struct download *d)
 		if (delta_time(now, cur->retry_after) < 0)
 			break;	/* List is sorted */
 
-		if (d) {
-			if ((NULL != d->thex) == (NULL != cur->thex)) {
-				/*
-				 * Pick the download with the most progress. Otherwise
-				 * we easily end up with dozens of partials from the
-				 * the server.
-				 */
+		if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
+			/*
+			 * Pick the download with the most progress. Otherwise
+			 * we easily end up with dozens of partials from the
+			 * the server.
+			 */
 
-				if (
-					download_total_progress(d)
-						>= download_total_progress(cur)
-				) {
-					continue;
-				}
-			}
-
-			/* Give priority to THEX downloads */
-			if (d->thex && NULL == cur->thex)
+			if (download_total_progress(d) >= download_total_progress(cur))
 				continue;
 		}
+
+		/* Give priority to THEX downloads */
+		if ((DL_F_THEX & d->flags) > (DL_F_THEX & cur->flags))
+			continue;
+
 		d = cur;
 	}
 	list_iter_free(&iter);
