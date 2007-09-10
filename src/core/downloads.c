@@ -4045,6 +4045,10 @@ download_request_pause(struct download *d)
 	}
 }
 
+/**
+ * Pick-up another source from this server, for the next HTTP request.
+ * We may very well request another file we want on this server.
+ */
 static struct download *
 download_pick_followup(struct download *d)
 {
@@ -4060,8 +4064,15 @@ download_pick_followup(struct download *d)
 	 * GTKG certainly won't.
 	 *		--RAM, 2007-09-10
 	 */
-	if (is_strprefix(download_vendor_str(d), "gtk-gnutella/"))
-		return d;
+
+	if (is_strprefix(download_vendor_str(d), "gtk-gnutella/")) {
+		version_t ver;
+
+		if (!version_fill(download_vendor_str(d), &ver) || ver.build < 14884)
+			return d;
+
+		/* FALL-THROUGH: this version won't choke on resource switching. */
+	}
 
 	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
 	while (list_iter_has_next(iter)) {
