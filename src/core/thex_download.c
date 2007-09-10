@@ -477,11 +477,6 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 		record = iter->data;
 		g_assert(record);
 		
-		if (GNET_PROPERTY(tigertree_debug)) {
-			dump_hex(stderr, "THEX data",
-				dime_record_type(record), dime_record_type_length(record));
-		}
-
 		if (dime_record_type_length(record) != type_length)
 			continue;
 		if (0 != ascii_strncasecmp(dime_record_type(record), type, type_length))
