@@ -4045,6 +4045,65 @@ download_request_pause(struct download *d)
 	}
 }
 
+static struct download *
+download_pick_followup(struct download *d)
+{
+	time_t now = tm_time();
+	list_iter_t *iter;
+
+	download_check(d);
+
+	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
+			continue;
+
+		if (download_has_enough_active_sources(cur))
+			continue;
+
+		if (
+			delta_time(now, cur->last_update) <=
+			(time_delta_t) cur->timeout_delay
+		) {
+			continue;
+		}
+
+		/* Note that we skip over paused and suspended downloads */
+		if (delta_time(now, cur->retry_after) < 0)
+			break;	/* List is sorted */
+
+		if (d) {
+			if ((NULL != d->thex) == (NULL != cur->thex)) {
+				/*
+				 * Pick the download with the most progress. Otherwise
+				 * we easily end up with dozens of partials from the
+				 * the server.
+				 */
+
+				if (
+					download_total_progress(d)
+						>= download_total_progress(cur)
+				) {
+					continue;
+				}
+			}
+
+			/* Give priority to THEX downloads */
+			if (d->thex && NULL == cur->thex)
+				continue;
+		}
+		d = cur;
+	}
+	list_iter_free(&iter);
+
+	return d;
+}
+
 /**
  * Pick up new downloads from the queue as needed.
 */
@@ -4865,8 +4924,13 @@ download_clone(struct download *d)
 
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
-	g_assert(d->buffers != NULL);
-	g_assert(d->buffers->held == 0);		/* All data flushed */
+
+	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
+		g_assert(NULL == d->buffers);
+	} else {
+		g_assert(d->buffers);
+		g_assert(d->buffers->held == 0);		/* All data flushed */
+	}
 
 	fi = d->file_info;
 
@@ -4920,6 +4984,9 @@ download_clone(struct download *d)
 	 */
 
 	cd->buffers = NULL;		/* Allocated at each new request */
+
+	cd->thex = NULL;
+	cd->browse = NULL;
 
 	/*
 	 * The following have been copied and appropriated by the cloned download.
@@ -5657,7 +5724,7 @@ err_header_read_error(gpointer o, gint error)
 		if (d->retries < GNET_PROPERTY(download_max_retries)) {
 			d->retries++;
 
-			if (DL_F_INITIAL & d->flags) {
+			if (0 == d->served_reqs) {
 				d->server->attrs |= DLS_A_FOOBAR;
 			}
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
@@ -6268,6 +6335,7 @@ static void
 download_continue(struct download *d, gboolean trimmed)
 {
 	struct download *cd;					/* Cloned download */
+	struct download *next = NULL;
 
 	/*
 	 * Since a download structure is associated with a GUI line entry, we
@@ -6289,17 +6357,26 @@ download_continue(struct download *d, gboolean trimmed)
 
 	if (trimmed) {
 		download_queue(cd, _("Requeued after trimmed data"));
-	} else if (!cd->keep_alive) {
+		return;
+	}
+	if (!cd->keep_alive) {
 		download_queue(cd, _("Chunk done, connection closed"));
-	} else if (
-		GNET_PROPERTY(max_host_downloads) == 1 &&
-		DL_F_FETCH_TTH == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & cd->flags)
-	) {
-		cd->flags |= DL_F_GOT_TTH;
-		download_queue(cd, _("Giving priority to THEX"));
-	} else if (download_start_prepare(cd)) {
-		cd->keep_alive = TRUE;			/* Was reset by _prepare() */
-		download_send_request(cd);		/* Will pick up new range */
+		return;
+	}
+
+	next = download_pick_followup(cd);
+	if (cd != next) {
+		next->socket = cd->socket;
+		next->socket->resource.download = next;
+		cd->socket = NULL;
+		download_queue(cd, _("Switching to \"%s\""), download_basename(next));
+	} else {
+		next = cd;
+	}
+
+	if (download_start_prepare(next)) {
+		next->keep_alive = TRUE;			/* Was reset by _prepare() */
+		download_send_request(next);		/* Will pick up new range */
 	}
 }
 
@@ -6461,17 +6538,6 @@ download_write_data(struct download *d)
 	return DOWNLOAD_IS_RUNNING(d);
 
 	/*
-	 * Requested chunk is done.
-	 */
-
-partial_done:
-	g_assert(d->pos == d->range_end);
-	g_assert(fi->use_swarming);
-
-	download_continue(d, trimmed);
-	return FALSE;	/* No error really, but this download has been stopped */
-
-	/*
 	 * We have completed the download of the requested file.
 	 */
 
@@ -6481,6 +6547,17 @@ done:
 
 	gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
 	return FALSE;
+
+	/*
+	 * Requested chunk is done.
+	 */
+
+partial_done:
+	g_assert(d->pos == d->range_end);
+	g_assert(fi->use_swarming);
+
+	download_continue(d, trimmed);
+	return FALSE;	/* No error really, but this download has been stopped */
 }
 
 /**
@@ -6663,7 +6740,11 @@ download_check_status(struct download *d, header_t *header, gint code)
 		/* Reset the retry counter only if we get a positive response code */
 		switch (code) {
 		case 503:	/* Busy */
-			if (extract_retry_after(d, header) <= 0) {
+			if (
+				0 == d->served_reqs &&
+				NULL == header_get(header, "X-Queue") &&
+				extract_retry_after(d, header) <= 0
+			) {
 				d->server->attrs |= DLS_A_FOOBAR;
 				break;
 			}
@@ -7708,7 +7789,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	download_check(d);
 	
-	d->flags &= ~DL_F_INITIAL;
 	is_followup = d->keep_alive;
 	s = d->socket;
 	fi = d->file_info;
@@ -8696,7 +8776,9 @@ http_version_nofix:
 	 * Handle browse-host requests specially: there's no file to save to.
 	 */
 
-	if (d->flags & DL_F_BROWSE) {
+	if (d->flags & DL_F_PREFIX_HEAD) {
+		/* Ignore the rest */	
+	} else if (d->flags & DL_F_BROWSE) {
 		gnet_host_t host;
 		guint32 flags = 0;
 
@@ -8759,8 +8841,10 @@ http_version_nofix:
 
 	if (d->flags & DL_F_PREFIX_HEAD) {
 		d->flags &= ~DL_F_PREFIX_HEAD;
+		d->served_reqs++;
 		download_set_status(d, GTA_DL_CONNECTING);
 		file_info_clear_download(d, TRUE);
+		s->pos = 0;
 		download_send_request(d);
 		return;
 	}
@@ -9233,10 +9317,7 @@ picked:
 	 * Build the HTTP request.
 	 */
 
-	if (
-		(DLS_A_FOOBAR & d->server->attrs) &&
-		DL_F_INITIAL == ((DL_F_BROWSE | DL_F_INITIAL) & d->flags)
-	) {
+	if ((DLS_A_FOOBAR & d->server->attrs) && 0 == d->served_reqs) {
 		d->flags |= DL_F_PREFIX_HEAD;
 		method = "HEAD";
 	} else {
@@ -11568,7 +11649,11 @@ download_thex_done(struct download *d)
 	cancel_all = TRUE;
 
 finish:
-	download_stop(d, GTA_DL_COMPLETED, no_reason);
+	if (d->keep_alive && GTA_DL_COMPLETED == d->status) {
+		download_continue(d, FALSE);
+	} else {
+		download_stop(d, GTA_DL_COMPLETED, no_reason);
+	}
 	if (cancel_all) {
 		download_remove_all_thex(sha1);
 	}
