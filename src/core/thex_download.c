@@ -513,6 +513,9 @@ thex_download_finished(struct thex_download *ctx)
 
 	ctx->finished = TRUE;
 
+	g_assert(ctx->pos <= ctx->data_size);
+	ctx->data_size = ctx->pos;	/* Amount which is actually valid */
+
 	records = dime_parse_records(ctx->data, ctx->data_size);
 	if (records) {
 		const struct dime_record *record;
@@ -556,6 +559,7 @@ thex_download_finished(struct thex_download *ctx)
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_message("Could not parse DIME records");
+			dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
 		}
 		goto finish;
 	}
