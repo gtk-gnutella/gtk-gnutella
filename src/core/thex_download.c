@@ -542,6 +542,13 @@ thex_download_finished(struct thex_download *ctx)
 		}
 
 		record = dime_find_record(records, THEX_TREE_TYPE, hashtree_id);
+		if (NULL == record) {
+			/* Bug workaround:
+			 * Ignore the ID and fetch the first record with a matching
+			 * type. BearShare 5.2 prepends a bogus double-quote to the ID.
+			 */
+			record = dime_find_record(records, THEX_TREE_TYPE, NULL);
+		}
 		G_FREE_NULL(hashtree_id);
 
 		if (NULL == record) {
