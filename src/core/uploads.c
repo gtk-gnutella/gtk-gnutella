@@ -3165,24 +3165,6 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	}
 
 	/*
-	 * A follow-up request must be for the same file, since the slot is
-	 * allocated on the basis of one file.  We compare SHA1s if available,
-	 * otherwise indices, in case the library has been rebuilt.
-	 */
-
-	if (
-		u->is_followup &&
-		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->file_index
-	) {
-		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"host %s sent initial request for %u (%s), now requesting %u (%s)",
-			host_addr_to_string(u->socket->addr),
-			u->file_index, u->name, idx, shared_file_name_nfc(u->sf));
-		upload_error_remove(u, 400, "Change of Resource Forbidden");
-		return;
-	}
-
-	/*
 	 * If the requested range was determined to be unavailable, signal it
 	 * to them.  Break the connection if it was a HEAD request, but allow
 	 * them an extra request if the last one was for a valid range.
