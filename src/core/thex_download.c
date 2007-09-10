@@ -441,6 +441,23 @@ finish:
 	return success;
 }
 
+static void
+thex_dump_dime_records(const GSList *records)
+{
+	const GSList *iter;
+
+	for (iter = records; NULL != iter; iter = g_slist_next(iter)) {
+		const struct dime_record *record;
+
+		record = iter->data;
+		g_assert(record);
+		dump_hex(stderr, "THEX DIME record type",
+			dime_record_type(record), dime_record_type_length(record));
+		dump_hex(stderr, "THEX DIME record ID",
+			dime_record_id(record), dime_record_id_length(record));
+	}
+}
+
 static const struct dime_record *
 dime_find_record(const GSList *records, const char *type, const char *id)
 {
@@ -459,6 +476,11 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 		
 		record = iter->data;
 		g_assert(record);
+		
+		if (GNET_PROPERTY(tigertree_debug)) {
+			dump_hex(stderr, "THEX data",
+				dime_record_type(record), dime_record_type_length(record));
+		}
 
 		if (dime_record_type_length(record) != type_length)
 			continue;
@@ -479,7 +501,9 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 			id ? "\"" : "",
 			id ? id : "<none>",
 			id ? "\"" : "");
+		thex_dump_dime_records(records);
 	}
+
 	return NULL;
 }
 
@@ -502,20 +526,32 @@ thex_download_finished(struct thex_download *ctx)
 		size_t size;
 		
 		record = dime_find_record(records, "text/xml", NULL);
-		if (NULL == record)
+		if (NULL == record) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+			}
 			goto finish;
+		}
 
 		data = dime_record_data(record);
 		size = dime_record_data_length(record);
 		hashtree_id = thex_download_handle_xml(ctx, data, size);
-		if (NULL == hashtree_id)
+		if (NULL == hashtree_id) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+			}
 			goto finish;
+		}
 
 		record = dime_find_record(records, THEX_TREE_TYPE, hashtree_id);
 		G_FREE_NULL(hashtree_id);
 
-		if (NULL == record)
+		if (NULL == record) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+			}
 			goto finish;
+		}
 
 		data = dime_record_data(record);
 		size = dime_record_data_length(record);
