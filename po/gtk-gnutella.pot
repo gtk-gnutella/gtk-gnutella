@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -183,7 +183,8 @@ msgstr ""
 msgid "Chunk done, connection closed"
 msgstr ""
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -333,6 +334,15 @@ msgid ", inbound"
 msgstr ""
 
 msgid ", outbound"
+msgstr ""
+
+msgid ", banning"
+msgstr ""
+
+msgid ", g2"
+msgstr ""
+
+msgid ", vendor?"
 msgstr ""
 
 #, c-format
@@ -2156,6 +2166,21 @@ msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
+msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr ""
+
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr ""
+
+msgid "Debug level for management of G2-only hosts."
 msgstr ""
 
 msgid "disable"

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2007-07-06 19:43+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team:  <nb@li.org>\n"
@@ -193,7 +193,8 @@ msgstr "Lagt i kø på nytt etter trimmet data"
 msgid "Chunk done, connection closed"
 msgstr "Biten er ferdig, forbindelse lukket"
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -362,6 +363,18 @@ msgstr ""
 
 msgid ", outbound"
 msgstr ""
+
+#, fuzzy
+msgid ", banning"
+msgstr "Bannlysing"
+
+#, fuzzy
+msgid ", g2"
+msgstr ", "
+
+#, fuzzy
+msgid ", vendor?"
+msgstr "Program"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2592,6 +2605,24 @@ msgid ""
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr "Høyeste antall verter i ultranodefangeren."
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr "Høyeste antall verter i ultranodefangeren."
+
+#, fuzzy
+msgid "Debug level for management of G2-only hosts."
+msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
 
 msgid "disable"
 msgstr "slå av"
@@ -7174,398 +7205,3 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
-
-#, fuzzy
-#~ msgid "URN mismatch detected"
-#~ msgstr "Fant upassende SHA1"
-
-#~ msgid "Weird HTTP status (protocol desync?)"
-#~ msgstr "Rar HTTP-status (desynkronisert protokoll?)"
-
-#~ msgid "%s from the %u selected item"
-#~ msgid_plural "%s from the %u selected items"
-#~ msgstr[0] "%s fra det %u valgte elementet"
-#~ msgstr[1] "%s fra de %u valgte elementene"
-
-#~ msgid "Widths of the columns in the queued downloads table."
-#~ msgstr "Bredden på kolonnene i tabellen over nedlastinger i kø."
-
-#~ msgid "Which columns are visible in the queued downloads table."
-#~ msgstr "Hvilke kolonner som er synlige i tabellen over nedlastinger i kø."
-
-#~ msgid "Stopped data (EOF) <download_sink_read>"
-#~ msgstr "Stoppet data (slutt på fil) <download_sink_read>"
-
-#~ msgid "("
-#~ msgstr "("
-
-#~ msgid "Gnet connections"
-#~ msgstr "Gnet-forbindelser"
-
-#~ msgid ""
-#~ "Gtk-Gnutella is shutting down.\n"
-#~ "Sending bye messages to peers.\n"
-#~ "\n"
-#~ "Grace time remaining:"
-#~ msgstr ""
-#~ "Gtk-Gnutella avsluttes.\n"
-#~ "Sender farvelmeldinger.\n"
-#~ "\n"
-#~ "Gjenstående elegansetid:"
-
-#~ msgid "show HTTP _incoming traffic"
-#~ msgstr "Vis _innkommende HTTP-trafikk"
-
-#~ msgid "show HTTP _outgoing traffic"
-#~ msgstr "Vis _utgående HTTP-trafikk"
-
-#~ msgid "show leaf _incoming traffic"
-#~ msgstr "Vis _innkommende bladtrafikk"
-
-#~ msgid "show leaf _outgoing traffic"
-#~ msgstr "Vis _utgående bladtrafikk"
-
-#~ msgid "Queued (slot %u/%u) ETA: %s"
-#~ msgstr "Lagt i kø (plass %u/%u) tid igjen: %s"
-
-#~ msgid "File"
-#~ msgstr "FIl"
-
-#~ msgid "Widths of the columns in the active downloads table."
-#~ msgstr "Bredden på kolonnene i tabellen over aktive nedlastinger."
-
-#~ msgid "Which columns are visible in the active downloads table."
-#~ msgstr "Hvilke kolonner som er synlige i tabellen over aktive nedlastinger."
-
-#~ msgid "Shutdown sequence initiated."
-#~ msgstr "Startet avsluttingsprosedyren."
-
-#~ msgid "Auto clear stopped downloads"
-#~ msgstr "FJern stoppede nedlastinger automatisk"
-
-#~ msgid "Bitzi Metadata"
-#~ msgstr "Bitzi-metadata"
-
-#, fuzzy
-#~ msgid "Close this search"
-#~ msgstr "_Lukk dette søket"
-
-#~ msgid "Duplicate this search"
-#~ msgstr "Dupliser dette søket"
-
-#~ msgid "Failed"
-#~ msgstr "Feilet"
-
-#~ msgid "Jeroen Asselman"
-#~ msgstr "Jeroen Asselman"
-
-#~ msgid "Resu_me this search"
-#~ msgstr "_Fortsett dette søket"
-
-#~ msgid "Resume this search"
-#~ msgstr "Fortsett dette søket"
-
-#~ msgid "Select"
-#~ msgstr "Velg"
-
-#~ msgid "Stop this search"
-#~ msgstr "Stopp dette søket"
-
-#~ msgid "Vidar Madsen"
-#~ msgstr "Vidar Madsen"
-
-#~ msgid "Yann Grossel"
-#~ msgstr "Yann Grossel"
-
-#~ msgid "_Duplicate this search"
-#~ msgstr "_Dupliser dette søket"
-
-#~ msgid "_Restart this search"
-#~ msgstr "Sta_rt søket på nytt"
-
-#~ msgid "_Stop this search"
-#~ msgstr "_Stopp dette søket"
-
-#~ msgid "[stopped]"
-#~ msgstr "[stoppet]"
-
-#~ msgid "no size"
-#~ msgstr "ingen størrelse"
-
-#~ msgid "%u host"
-#~ msgid_plural "%u hosts"
-#~ msgstr[0] "%u vert"
-#~ msgstr[1] "%u verter"
-
-#~ msgid " retry in %ds"
-#~ msgstr " prøver på nytt om %ds"
-
-#~ msgid "Sending request (%d%%)"
-#~ msgstr "Sender forespørsel (%d%%)"
-
-#~ msgid " [%d/%d] TR: %s"
-#~ msgstr " [%d/%d] Igjen: %s"
-
-#~ msgid "(%s)  [%d/%d]  TR:  %s"
-#~ msgstr "(%s)  [%d/%d]  Igjen:  %s"
-
-#~ msgid "(%s)  [%d/%d]  TR:  -"
-#~ msgstr "(%s)  [%d/%d]  Igjen:  -"
-
-#~ msgid "Removed %u download"
-#~ msgid_plural "Removed %u downloads"
-#~ msgstr[0] "Fjernet %u nedlasting"
-#~ msgstr[1] "Fjernet %u nedlastinger"
-
-#~ msgid "Selected %u of %u queued download matching \"%s\"."
-#~ msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-#~ msgstr[0] "Valgte %u av %u nedlasting i kø som passer til «%s»."
-#~ msgstr[1] "Valgte %u av %u nedlastinger i kø som passer til «%s»."
-
-#~ msgid "_Purge selected"
-#~ msgstr "_Fjern valgte"
-
-#, fuzzy
-#~ msgid "[with source count]"
-#~ msgstr " med kilder"
-
-#~ msgid "Abort all selected downloads"
-#~ msgstr "Avbryt alle merkede nedlastinger"
-
-#~ msgid "_Abort selected"
-#~ msgstr "_Avbryt valgte"
-
-#~ msgid "Resume all selected downloads"
-#~ msgstr "Fortsett med de valgte nedlastingene"
-
-#~ msgid "_Resume selected"
-#~ msgstr "Fo_rtsett valgte"
-
-#, fuzzy
-#~ msgid "[running]"
-#~ msgstr "Bannlysing"
-
-#~ msgid ")"
-#~ msgstr ")"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "%u nedlasting"
-
-#~ msgid "Queue"
-#~ msgstr "Kø"
-
-#, fuzzy
-#~ msgid "[BH qhits served]"
-#~ msgstr "[BH qtreff]"
-
-#~ msgid "%v/%u (%P%%)"
-#~ msgstr "%v/%u (%P%%)"
-
-#~ msgid "Abort all..."
-#~ msgstr "Abryt alt . . ."
-
-#~ msgid "Remove file"
-#~ msgstr "Fjern fil"
-
-#, fuzzy
-#~ msgid "[Add/Remove]"
-#~ msgstr "Fjern"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "Filnavn"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "IP-adresse/maske"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "Filer"
-
-#, fuzzy
-#~ msgid "[SHA1]"
-#~ msgstr "SHA1:"
-
-#, fuzzy
-#~ msgid "[Flags]"
-#~ msgstr "Flagg"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "Statistikk"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "Oppetid"
-
-#~ msgid "Raphael Manfredi"
-#~ msgstr "Raphael Manfredi"
-
-#~ msgid "KiB"
-#~ msgstr "KiB"
-
-#~ msgid "_Close this search"
-#~ msgstr "_Lukk dette søket"
-
-#~ msgid "Display Navigation Tree."
-#~ msgstr "Vis navigeringstre."
-
-#~ msgid "Display toolbar."
-#~ msgstr "Vis verktøylinje."
-
-#~ msgid "Queued (%d active, %d passive)"
-#~ msgstr "I kø (%d aktiv, %d passiv)"
-
-#~ msgid "Alternate filenames"
-#~ msgstr "Alternative filnavn"
-
-#~ msgid "Download settings"
-#~ msgstr "Nedlastingsinnstillinger"
-
-#~ msgid "Monitor"
-#~ msgstr "Overvåker"
-
-#~ msgid "_Keyboard shortcuts"
-#~ msgstr "T_astatursnarveier"
-
-#~ msgid ""
-#~ "Erases all selected files as far as they are incomplete and discontinues "
-#~ "the download of the selected files."
-#~ msgstr ""
-#~ "Sletter de valgte filene så lenge de er uferdige og stopper nedlastingen "
-#~ "av dem."
-
-#~ msgid "This is an interim property while Tigertree support is unfinished."
-#~ msgstr ""
-#~ "Dette er en midlertidig innstilling mens Tigertree-støtten ikke er ferdig."
-
-#~ msgid "Size of the menu in the sidebar."
-#~ msgstr "Størrelsen på menyen i sidelinjen."
-
-#~ msgid "<none>"
-#~ msgstr "<ingen>"
-
-#~ msgid "_GnutellaNet"
-#~ msgstr "_GnutellaNet"
-
-#~ msgid "_Stats"
-#~ msgstr "_Statistikk"
-
-#~ msgid "_Hostcache"
-#~ msgstr "Vert_hurtigminne"
-
-#~ msgid "_Uploads"
-#~ msgstr "_Opplastinger"
-
-#~ msgid "_History"
-#~ msgstr "_Historikk"
-
-#~ msgid "_Downloads"
-#~ msgstr "Ne_dlastinger"
-
-#~ msgid "_Files"
-#~ msgstr "_Filer"
-
-#~ msgid "_Active"
-#~ msgstr "_Aktiv"
-
-#~ msgid "_Queue"
-#~ msgstr "_Kø"
-
-#~ msgid "_Results"
-#~ msgstr "_Resultater"
-
-#~ msgid "_Monitor"
-#~ msgstr "_Overvåker"
-
-#~ msgid "S_tats"
-#~ msgstr "S_tatistikk"
-
-#~ msgid "show _Toolbar"
-#~ msgstr "Vis verk_tøylinje"
-
-#~ msgid "show _Navigation Tree"
-#~ msgstr "Vis _navigeringstre"
-
-#~ msgid "Navigator"
-#~ msgstr "Navigerer"
-
-#~ msgid "GnutellaNet connections"
-#~ msgstr "GnutellaNet-forbindelser"
-
-#~ msgid "Message/flow control stats"
-#~ msgstr "Statistikk for meldinger/flytkontroll"
-
-#~ msgid "Hostcache statistics"
-#~ msgstr "Statistikk for verthurtigminne"
-
-#~ msgid "Files to get"
-#~ msgstr "Filer å hente"
-
-#~ msgid "Filename:"
-#~ msgstr "Filnavn:"
-
-#~ msgid "Active sources"
-#~ msgstr "Aktive kilder"
-
-#~ msgid "Inactive sources"
-#~ msgstr "Inaktive kilder"
-
-#~ msgid "Search results"
-#~ msgstr "Søkeresultater"
-
-#~ msgid "Index:"
-#~ msgstr "Indeks:"
-
-#~ msgid "Source:"
-#~ msgstr "Kilde:"
-
-#~ msgid "Received:"
-#~ msgstr "Mottatt:"
-
-#~ msgid "Query:"
-#~ msgstr "Spørring:"
-
-#~ msgid "Speed:"
-#~ msgstr "Fart:"
-
-#~ msgid "Servent ID:"
-#~ msgstr "Tjenent-ID:"
-
-#~ msgid "XML data:"
-#~ msgstr "XML-data:"
-
-#~ msgid "Engouh UDP support"
-#~ msgstr "Nok UDP-støtte"
-
-#~ msgid "Read-ahead buffer"
-#~ msgstr "Les foran-hurtigminne"
-
-#~ msgid "Use fu_zzy matching"
-#~ msgstr "Bruk _uklar treffing"
-
-#~ msgid "Fuzzy threshold"
-#~ msgstr "Uklarhetsgrense"
-
-#~ msgid "_Apply fuzzy filter on download mesh entries"
-#~ msgstr "Bruk ukl_art filter på oppføringer i nedlastingsmasken"
-
-#~ msgid "gtk-gnutella - Frequently Asked Questions"
-#~ msgstr "gtk-gnutella: Ofte stitle spørsmål"
-
-#~ msgid "Frequently Asked Questions:"
-#~ msgstr "Ofte stitle spørsmål:"
-
-#~ msgid "Gnutella stats"
-#~ msgstr "Gnutella-statistikk"
-
-#~ msgid "History"
-#~ msgstr "Historikk"
-
-#~ msgid "Failed to create the search"
-#~ msgstr "Klarte ikke lage søket"
-
-#~ msgid "This is an interim property."
-#~ msgstr "Dette er en midlertidig innstilling."

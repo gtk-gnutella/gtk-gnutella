@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -197,7 +197,8 @@ msgstr "一段数据后重新排队"
 msgid "Chunk done, connection closed"
 msgstr "块下载完毕，连接关闭"
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 #, fuzzy
@@ -365,6 +366,16 @@ msgid ", inbound"
 msgstr ""
 
 msgid ", outbound"
+msgstr ""
+
+#, fuzzy
+msgid ", banning"
+msgstr "禁止中"
+
+msgid ", g2"
+msgstr ""
+
+msgid ", vendor?"
 msgstr ""
 
 #, fuzzy, c-format
@@ -2313,6 +2324,24 @@ msgid ""
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr "超级节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr "超级节点捕捉器中的最大主机数量"
+
+#, fuzzy
+msgid "Debug level for management of G2-only hosts."
+msgstr "用于下载的debug级别。"
 
 msgid "disable"
 msgstr ""
@@ -6805,203 +6834,3 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
-
-#, fuzzy
-#~ msgid "URN mismatch detected"
-#~ msgstr "检测到SHA不匹配"
-
-#~ msgid "Weird HTTP status (protocol desync?)"
-#~ msgstr "HTTP状态异常(协议不同步？)"
-
-#, fuzzy
-#~ msgid "Stopped data (EOF) <download_sink_read>"
-#~ msgstr "中止的数据 (EOF)"
-
-#, fuzzy
-#~ msgid ""
-#~ "Gtk-Gnutella is shutting down.\n"
-#~ "Sending bye messages to peers.\n"
-#~ "\n"
-#~ "Grace time remaining:"
-#~ msgstr ""
-#~ "gtk-gnutella正在关闭。\n"
-#~ "正在对peers发送bye消息。\n"
-#~ "\n"
-#~ "请稍候："
-
-#, fuzzy
-#~ msgid "Queued (slot %u/%u) ETA: %s"
-#~ msgstr "ETA排队(插口%1$d/%2$d)：%3$s"
-
-#, fuzzy
-#~ msgid "Close this search"
-#~ msgstr "关闭该搜索"
-
-#, fuzzy
-#~ msgid "Resu_me this search"
-#~ msgstr "关闭该搜索"
-
-#, fuzzy
-#~ msgid "_Duplicate this search"
-#~ msgstr "关闭该搜索"
-
-#, fuzzy
-#~ msgid "_Stop this search"
-#~ msgstr "关闭该搜索"
-
-#, fuzzy
-#~ msgid "[stopped]"
-#~ msgstr "[停止]"
-
-#, fuzzy
-#~ msgid "Removed %u download"
-#~ msgid_plural "Removed %u downloads"
-#~ msgstr[0] "下载 %1$u/%2$u"
-
-#, fuzzy
-#~ msgid "[running]"
-#~ msgstr "禁止中"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "下载 %1$u/%2$u"
-
-#~ msgid "Queue"
-#~ msgstr "队列"
-
-#, fuzzy
-#~ msgid "[Add/Remove]"
-#~ msgstr "添加/替换"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "#|文件名"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "IP 地址"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "文件"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "#|状态"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "%u 个活动"
-
-#, fuzzy
-#~ msgid "_Close this search"
-#~ msgstr "关闭该搜索"
-
-#, fuzzy
-#~ msgid "_Stats"
-#~ msgstr "#|状态"
-
-#, fuzzy
-#~ msgid "_History"
-#~ msgstr "历史"
-
-#, fuzzy
-#~ msgid "_Files"
-#~ msgstr "文件"
-
-#, fuzzy
-#~ msgid "_Active"
-#~ msgstr "%u 个活动"
-
-#, fuzzy
-#~ msgid "_Queue"
-#~ msgstr "队列"
-
-#, fuzzy
-#~ msgid "S_tats"
-#~ msgstr "#|状态"
-
-#, fuzzy
-#~ msgid "Query:"
-#~ msgstr "变形的查询命中"
-
-#~ msgid "XML data:"
-#~ msgstr "XML 数据："
-
-#~ msgid "Unknown parameter"
-#~ msgstr "未知的参数"
-
-#~ msgid "normal node"
-#~ msgstr "正常的节点"
-
-#, fuzzy
-#~ msgid "Completed (%s) %s%s"
-#~ msgstr "完成 (%1$s) %2$s"
-
-#~ msgid "Out of memory"
-#~ msgstr "内存溢出"
-
-#~ msgid "Browse Host Enabled"
-#~ msgstr "允许浏览主机"
-
-#~ msgid "Hide settings"
-#~ msgstr "隐藏设置"
-
-#, fuzzy
-#~ msgid ""
-#~ "Check this button if you want to use Gtk-Gnutella on your Local Area "
-#~ "Network. RFC1918 will be ignored."
-#~ msgstr "如果你在LAN中使用gtk-gnutella，请勾选此按钮。RFC1918将被忽略。"
-
-#~ msgid "Got %d host from %s"
-#~ msgid_plural "Got %d hosts from %s"
-#~ msgstr[0] "从%2$s获取到%1$d个主机"
-
-#~ msgid "Connecting to web cache %s"
-#~ msgstr "正在连接网页缓存%s"
-
-#~ msgid "Updated web cache "
-#~ msgstr "更新网络缓存"
-
-#~ msgid "Type not supported"
-#~ msgstr "不支持的类型"
-
-#~ msgid "leaf"
-#~ msgstr "叶节点"
-
-#, fuzzy
-#~ msgid "ultrapeer"
-#~ msgstr "超点"
-
-#~ msgid "Verbosity of GWebCache related debug messages."
-#~ msgstr "与debug信息有关的GWebCache冗余"
-
-#, fuzzy
-#~ msgid "[Gnet Stats]"
-#~ msgstr "Gnutella RX 缓冲(_G)："
-
-#, fuzzy
-#~ msgid "[Upload Stats]"
-#~ msgstr "已上传数据："
-
-#, fuzzy
-#~ msgid "[Downloads]"
-#~ msgstr "已下载数据："
-
-#, fuzzy
-#~ msgid "[Queue]"
-#~ msgstr "队列"
-
-#, fuzzy
-#~ msgid "[Search]"
-#~ msgstr "搜索 (_S)"
-
-#~ msgid "Edit filters"
-#~ msgstr "编辑过滤器"
-
-#, fuzzy
-#~ msgid "Force local _IP to"
-#~ msgstr "指定本地IP为(_I)"
-
-#~ msgid "New/replace"
-#~ msgstr "新建/替换"

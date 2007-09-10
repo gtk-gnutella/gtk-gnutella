@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2007-09-01 17:37+0200\n"
 "Last-Translator: FlashCode <flashcode@flashtux.org>\n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -187,8 +187,9 @@ msgstr "Remis dans la file après épuration des données"
 msgid "Chunk done, connection closed"
 msgstr "Bloc fini, connexion terminée"
 
-msgid "Giving priority to THEX"
-msgstr "Gain de priorité à THEX"
+#, c-format
+msgid "Switching to \"%s\""
+msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "Remis dans la file à cause de téléchargements concurrents"
@@ -340,6 +341,18 @@ msgstr ", entrant"
 
 msgid ", outbound"
 msgstr ", sortant"
+
+#, fuzzy
+msgid ", banning"
+msgstr "Bannissement"
+
+#, fuzzy
+msgid ", g2"
+msgstr ", "
+
+#, fuzzy
+msgid ", vendor?"
+msgstr "Vendeur"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2637,6 +2650,24 @@ msgid ""
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds ultra."
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr "Nombre maximum d'hôtes dans la liste des noeuds ultra."
+
+#, fuzzy
+msgid "Debug level for management of G2-only hosts."
+msgstr "Niveau de débugage pour le maillage du téléchargement."
 
 msgid "disable"
 msgstr "désactiver"
@@ -7200,6 +7231,3 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
-
-#~ msgid "URN mismatch detected"
-#~ msgstr "Disparité URN détectée"

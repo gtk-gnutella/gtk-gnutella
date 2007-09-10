@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -193,7 +193,8 @@ msgstr ""
 msgid "Chunk done, connection closed"
 msgstr "Кусок закінчено, з'єднання закрито"
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -349,6 +350,16 @@ msgstr ""
 
 msgid ", outbound"
 msgstr ""
+
+msgid ", banning"
+msgstr ""
+
+msgid ", g2"
+msgstr ""
+
+#, fuzzy
+msgid ", vendor?"
+msgstr "Версія"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2175,6 +2186,21 @@ msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
+msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr ""
+
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr ""
+
+msgid "Debug level for management of G2-only hosts."
 msgstr ""
 
 msgid "disable"
@@ -6642,166 +6668,3 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
-
-#~ msgid "Weird HTTP status (protocol desync?)"
-#~ msgstr "Незвичайний статус HTTP (protocol desync?)"
-
-#~ msgid "Gnet connections"
-#~ msgstr "Gnet з'єднання"
-
-#, fuzzy
-#~ msgid ""
-#~ "Gtk-Gnutella is shutting down.\n"
-#~ "Sending bye messages to peers.\n"
-#~ "\n"
-#~ "Grace time remaining:"
-#~ msgstr ""
-#~ "gtk-gnutella закривається. \n"
-#~ "Надсилаю 'бувай' до peers. \n"
-#~ "\n"
-#~ "Часу на 'відстрочку' залишилось:"
-
-#, fuzzy
-#~ msgid "show HTTP _incoming traffic"
-#~ msgstr "показувати вхідний HTTP трафік"
-
-#, fuzzy
-#~ msgid "show HTTP _outgoing traffic"
-#~ msgstr "показувати вихідний HTTP трафік"
-
-#, fuzzy
-#~ msgid "show leaf _incoming traffic"
-#~ msgstr "показувати вхідний Gnet трафік"
-
-#, fuzzy
-#~ msgid "show leaf _outgoing traffic"
-#~ msgstr "показувати вихідний Gnet трафік"
-
-#, fuzzy
-#~ msgid "Queued (slot %u/%u) ETA: %s"
-#~ msgstr "Поставлено в чергу (слот %d/%d) ETA: %s"
-
-#~ msgid "File"
-#~ msgstr "Файл"
-
-#~ msgid "no size"
-#~ msgstr "немає розміру"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "показувати _Звантаження"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "Назва файла:"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "Нестабільна IP адреса"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "Файли"
-
-#, fuzzy
-#~ msgid "[Flags]"
-#~ msgstr "Прапорці"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "_Установки"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "Назва файла:"
-
-#, fuzzy
-#~ msgid "_Downloads"
-#~ msgstr "показувати _Звантаження"
-
-#, fuzzy
-#~ msgid "_Files"
-#~ msgstr "Файли"
-
-#, fuzzy
-#~ msgid "_Queue"
-#~ msgstr "Поставлено в чергу"
-
-#~ msgid "_Monitor"
-#~ msgstr "Монітор"
-
-#~ msgid "S_tats"
-#~ msgstr "Статистика"
-
-#~ msgid "show _Toolbar"
-#~ msgstr "показувати _Панель інструментів"
-
-#~ msgid "show _Navigation Tree"
-#~ msgstr "показувати дерево навігації"
-
-#~ msgid "Navigator"
-#~ msgstr "Наігатор"
-
-#~ msgid "GnutellaNet connections"
-#~ msgstr "GnutellaNet з'єднання"
-
-#~ msgid "Files to get"
-#~ msgstr "Файли які треба скачати"
-
-#~ msgid "Filename:"
-#~ msgstr "Назва файла:"
-
-#~ msgid "Protocol is not supported"
-#~ msgstr "Протокол не підтримується"
-
-#~ msgid "Unknown parameter"
-#~ msgstr "Невідомий параметр"
-
-#~ msgid "normal node"
-#~ msgstr "звичайний вузол"
-
-#~ msgid "Type not supported"
-#~ msgstr "Тип не підтримується"
-
-#~ msgid "leaf"
-#~ msgstr "гілка"
-
-#~ msgid "ultrapeer"
-#~ msgstr "ультрапір"
-
-#~ msgid "Flow control"
-#~ msgstr "Контроль потоку"
-
-#, fuzzy
-#~ msgid "[Gnet Stats]"
-#~ msgstr "Загальна статистика"
-
-#, fuzzy
-#~ msgid "[Uploads]"
-#~ msgstr "показувати _Завантаження"
-
-#, fuzzy
-#~ msgid "[Upload Stats]"
-#~ msgstr "показувати _Завантаження"
-
-#, fuzzy
-#~ msgid "[Downloads]"
-#~ msgstr "показувати _Звантаження"
-
-#, fuzzy
-#~ msgid "[Queue]"
-#~ msgstr "Поставлено в чергу"
-
-#, fuzzy
-#~ msgid "[Search]"
-#~ msgstr "Пошук"
-
-#, fuzzy
-#~ msgid "[Monitor]"
-#~ msgstr "Монітор"
-
-#~ msgid "Antarctica (the territory South of 60 deg S)"
-#~ msgstr "Пінгвіни і геологи"
-
-#~ msgid "Poland, Polish People's Republic"
-#~ msgstr "Пшеки"

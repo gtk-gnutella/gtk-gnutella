@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -188,7 +188,8 @@ msgstr ""
 msgid "Chunk done, connection closed"
 msgstr ""
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -348,6 +349,17 @@ msgstr ""
 
 msgid ", outbound"
 msgstr ""
+
+msgid ", banning"
+msgstr ""
+
+#, fuzzy
+msgid ", g2"
+msgstr ","
+
+#, fuzzy
+msgid ", vendor?"
+msgstr "Sağlayıcı:"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2174,6 +2186,21 @@ msgid ""
 "If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. "
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
+msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr ""
+
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr ""
+
+msgid "Debug level for management of G2-only hosts."
 msgstr ""
 
 msgid "disable"
@@ -6613,211 +6640,3 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
-
-#~ msgid "File"
-#~ msgstr "Dosya"
-
-#, fuzzy
-#~ msgid "Close this search"
-#~ msgstr "Bu aramayı kapat"
-
-#~ msgid "Failed"
-#~ msgstr "Başarısız"
-
-#, fuzzy
-#~ msgid "Resu_me this search"
-#~ msgstr "Aramayı devam ettir"
-
-#~ msgid "Resume this search"
-#~ msgstr "Aramayı devam ettir"
-
-#~ msgid "Select"
-#~ msgstr "Seç"
-
-#~ msgid "Stop this search"
-#~ msgstr "Aramayı durdur"
-
-#, fuzzy
-#~ msgid "_Duplicate this search"
-#~ msgstr "Bu aramayı kapat"
-
-#, fuzzy
-#~ msgid "_Restart this search"
-#~ msgstr "Aramayı baştan başlat"
-
-#, fuzzy
-#~ msgid "_Stop this search"
-#~ msgstr "Aramayı durdur"
-
-#~ msgid "no size"
-#~ msgstr "boyut yok"
-
-#~ msgid "Removed %u download"
-#~ msgid_plural "Removed %u downloads"
-#~ msgstr[0] "%u indirme silindi"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "indirmeler"
-
-#~ msgid "Queue"
-#~ msgstr "Kuyruk"
-
-#~ msgid "Abort all..."
-#~ msgstr "Hepsini iptal et..."
-
-#~ msgid "Remove file"
-#~ msgstr "Dosyayı kaldır"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "Dosya adı"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "Dosyalar"
-
-#, fuzzy
-#~ msgid "[SHA1]"
-#~ msgstr "SHA1:"
-
-#, fuzzy
-#~ msgid "[Flags]"
-#~ msgstr "Göndermeler"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "İstatistikler"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "Aktif"
-
-#, fuzzy
-#~ msgid "_Close this search"
-#~ msgstr "Bu aramayı kapat"
-
-#~ msgid "Monitor"
-#~ msgstr "İzle"
-
-#~ msgid "_Keyboard shortcuts"
-#~ msgstr "Klavye kısa_yolları"
-
-#~ msgid "<none>"
-#~ msgstr "<hiçbiri>"
-
-#~ msgid "_Stats"
-#~ msgstr "İs_tatistikler"
-
-#~ msgid "_Hostcache"
-#~ msgstr "_IP Önbelleği"
-
-#~ msgid "_Uploads"
-#~ msgstr "_Göndermeler"
-
-#~ msgid "_History"
-#~ msgstr "_Geçmiş"
-
-#~ msgid "_Files"
-#~ msgstr "_Dosyalar"
-
-#~ msgid "_Active"
-#~ msgstr "_Aktif"
-
-#~ msgid "_Queue"
-#~ msgstr "_Kuyruk"
-
-#~ msgid "_Results"
-#~ msgstr "_Sonuçlar"
-
-#~ msgid "_Monitor"
-#~ msgstr "İ_zleme"
-
-#~ msgid "S_tats"
-#~ msgstr "İs_tatistikler"
-
-#~ msgid "Navigator"
-#~ msgstr "Gezgin"
-
-#~ msgid "Hostcache statistics"
-#~ msgstr "IP Önbelleği istatistikleri"
-
-#~ msgid "Files to get"
-#~ msgstr "Alınacak dosyalar"
-
-#~ msgid "Filename:"
-#~ msgstr "Dosya adı:"
-
-#~ msgid "SHA1:"
-#~ msgstr "SHA1:"
-
-#~ msgid "Search results"
-#~ msgstr "Arama sonuçları"
-
-#~ msgid "Index:"
-#~ msgstr "İçerik:"
-
-#~ msgid "Source:"
-#~ msgstr "Kaynak:"
-
-#~ msgid "Received:"
-#~ msgstr "Alınan:"
-
-#~ msgid "Speed:"
-#~ msgstr "Hız:"
-
-#~ msgid "XML data:"
-#~ msgstr "XML bilgisi:"
-
-#~ msgid "History"
-#~ msgstr "Geçmiş"
-
-#, fuzzy
-#~ msgid "Completed (%s) %s%s"
-#~ msgstr "Tamamlandı"
-
-#~ msgid "Out of memory"
-#~ msgstr "Bellek yetersiz"
-
-#~ msgid "Hide settings"
-#~ msgstr "Ayarları sakla"
-
-#~ msgid "Retry in %ds"
-#~ msgstr "%ds sonra yeniden dene"
-
-#~ msgid "leaf"
-#~ msgstr "yaprak"
-
-#~ msgid "Flow control"
-#~ msgstr "Akış kontrolü"
-
-#, fuzzy
-#~ msgid "[Gnet Stats]"
-#~ msgstr "Gnutella istatistikleri"
-
-#, fuzzy
-#~ msgid "[Hostcache]"
-#~ msgstr "IP Önbelleği"
-
-#, fuzzy
-#~ msgid "[Upload Stats]"
-#~ msgstr "Göndermeler"
-
-#, fuzzy
-#~ msgid "[Downloads]"
-#~ msgstr "İndirmeler"
-
-#, fuzzy
-#~ msgid "[Queue]"
-#~ msgstr "Kuyruk"
-
-#, fuzzy
-#~ msgid "[Search]"
-#~ msgstr "Arama"
-
-#, fuzzy
-#~ msgid "[Monitor]"
-#~ msgstr "İzle"
-
-#~ msgid "Edit filters"
-#~ msgstr "Filtreleri düzenle"

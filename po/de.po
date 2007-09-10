@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2005-11-16 18:18+0900\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -191,7 +191,8 @@ msgstr "Wegen fehlenden Daten in Warteschlange gestellt"
 msgid "Chunk done, connection closed"
 msgstr "Stück heruntergeladen, Verbindung beendet"
 
-msgid "Giving priority to THEX"
+#, c-format
+msgid "Switching to \"%s\""
 msgstr ""
 
 msgid "Requeued by competing download"
@@ -356,6 +357,17 @@ msgid ", inbound"
 msgstr ""
 
 msgid ", outbound"
+msgstr ""
+
+#, fuzzy
+msgid ", banning"
+msgstr "Verbannen"
+
+#, fuzzy
+msgid ", g2"
+msgstr ", "
+
+msgid ", vendor?"
 msgstr ""
 
 #, c-format
@@ -2513,6 +2525,24 @@ msgid ""
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+
+#, fuzzy
+msgid "Debug level for management of G2-only hosts."
+msgstr "Debug-Level für Download-Mesh-Management."
 
 msgid "disable"
 msgstr "deaktiviert"
@@ -7069,297 +7099,3 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
-
-#, fuzzy
-#~ msgid "URN mismatch detected"
-#~ msgstr "SHA1-Prüfsummenfehler"
-
-#~ msgid "Weird HTTP status (protocol desync?)"
-#~ msgstr "Seltsamer HTTP-Status (Protokoll nicht mehr synchron?)"
-
-#~ msgid "%s from the %u selected item"
-#~ msgid_plural "%s from the %u selected items"
-#~ msgstr[0] "%s von %u ausgewählten Datei"
-#~ msgstr[1] "%s von %u ausgewählten Dateien"
-
-#~ msgid "Gnet connections"
-#~ msgstr "Gnet-Verbindungen"
-
-#~ msgid ""
-#~ "Gtk-Gnutella is shutting down.\n"
-#~ "Sending bye messages to peers.\n"
-#~ "\n"
-#~ "Grace time remaining:"
-#~ msgstr ""
-#~ "gtk-gnutella wird beendet.\n"
-#~ "Versende Bye-Nachrichten.\n"
-#~ "\n"
-#~ "Verbleibende Zeit:"
-
-#~ msgid "show HTTP _incoming traffic"
-#~ msgstr "e_ingehenden HTTP-Verkehr anzeigen"
-
-#~ msgid "show HTTP _outgoing traffic"
-#~ msgstr "_ausgehenden HTTP-Verkehr anzeigen"
-
-#~ msgid "show leaf _incoming traffic"
-#~ msgstr "e_ingehenden Leaf-Verkehr anzeigen"
-
-#~ msgid "show leaf _outgoing traffic"
-#~ msgstr "_ausgehenden Leaf-Verkehr anzeigen"
-
-#~ msgid "File"
-#~ msgstr "Datei"
-
-#~ msgid "Auto clear stopped downloads"
-#~ msgstr "Angehaltene Downloads automatisch entfernen"
-
-#~ msgid "Bitzi Metadata"
-#~ msgstr "Meta-Daten bei bitzi.com anfragen"
-
-#, fuzzy
-#~ msgid "Close this search"
-#~ msgstr "Suche beenden"
-
-#~ msgid "Duplicate this search"
-#~ msgstr "Diese Suche duplizieren"
-
-#~ msgid "Failed"
-#~ msgstr "Fehlgeschlagen"
-
-#~ msgid "Resu_me this search"
-#~ msgstr "Suche wiederaufnehmen"
-
-#~ msgid "Resume this search"
-#~ msgstr "Diese Suche wiederaufnehmen"
-
-#~ msgid "Select"
-#~ msgstr "Wähle aus"
-
-#~ msgid "Stop this search"
-#~ msgstr "Diese Suche abbrechen"
-
-#~ msgid "_Duplicate this search"
-#~ msgstr "Suche duplizieren"
-
-#~ msgid "_Restart this search"
-#~ msgstr "Suche neustarten"
-
-#~ msgid "_Stop this search"
-#~ msgstr "Suche anhalten"
-
-#~ msgid "[stopped]"
-#~ msgstr "[angehalten]"
-
-#~ msgid "no size"
-#~ msgstr "Falsche Größe"
-
-#~ msgid "%u host"
-#~ msgid_plural "%u hosts"
-#~ msgstr[0] "%u Host"
-#~ msgstr[1] "%u Hosts"
-
-#~ msgid "Sending request (%d%%)"
-#~ msgstr "Sende Anfrage (%d%%)"
-
-#~ msgid "Removed %u download"
-#~ msgid_plural "Removed %u downloads"
-#~ msgstr[0] "%u Download entfernt"
-#~ msgstr[1] "%u Downloads entfernt"
-
-#~ msgid "Selected %u of %u queued download matching \"%s\"."
-#~ msgid_plural "Selected %u of %u queued downloads matching \"%s\"."
-#~ msgstr[0] "%u von %u wartenden Download passend auf \"%s\" ausgewählt."
-#~ msgstr[1] "%u von %u wartenden Downloads passend auf \"%s\" ausgewählt."
-
-#~ msgid "_Purge selected"
-#~ msgstr "Ausgewählte entfernen"
-
-#, fuzzy
-#~ msgid "[with source count]"
-#~ msgstr " mit Quellen"
-
-#~ msgid "Abort all selected downloads"
-#~ msgstr "Alle selektierten abbrechen"
-
-#~ msgid "_Abort selected"
-#~ msgstr "Ausgewählte  ab_bbrechen"
-
-#~ msgid "Resume all selected downloads"
-#~ msgstr "Alle ausgewählten erneut starten"
-
-#, fuzzy
-#~ msgid "[running]"
-#~ msgstr "Verbannen"
-
-#, fuzzy
-#~ msgid "[queued downloads]"
-#~ msgstr "%u Download"
-
-#~ msgid "Queue"
-#~ msgstr "Warteschlange"
-
-#~ msgid "%v/%u (%P%%)"
-#~ msgstr "%v/%u (%P%%)"
-
-#~ msgid "Abort all..."
-#~ msgstr "Alles abbrechen..."
-
-#~ msgid "Remove file"
-#~ msgstr "Datei löschen"
-
-#, fuzzy
-#~ msgid "[Add/Remove]"
-#~ msgstr "Entfernen"
-
-#, fuzzy
-#~ msgid "[Filename]"
-#~ msgstr "Dateiname"
-
-#, fuzzy
-#~ msgid "[IP address]"
-#~ msgstr "IP-Adresse/Maske"
-
-#, fuzzy
-#~ msgid "[Filesize]"
-#~ msgstr "Dateien"
-
-#, fuzzy
-#~ msgid "[SHA1]"
-#~ msgstr "SHA-1"
-
-#, fuzzy
-#~ msgid "[Flags]"
-#~ msgstr "Flags"
-
-#, fuzzy
-#~ msgid "[State]"
-#~ msgstr "Statistiken"
-
-#, fuzzy
-#~ msgid "[time]"
-#~ msgstr "Uptime"
-
-#~ msgid "_Close this search"
-#~ msgstr "Suche beenden"
-
-#~ msgid "Display toolbar."
-#~ msgstr "Werkzeugleiste anzeigen"
-
-#~ msgid "Queued (%d active, %d passive)"
-#~ msgstr "In Warteschlange (%d aktiv, %d passiv)"
-
-#~ msgid "Alternate filenames"
-#~ msgstr "Alternative Dateinamen"
-
-#~ msgid "Download settings"
-#~ msgstr "Download-Einstellungen"
-
-#~ msgid "Monitor"
-#~ msgstr "Monitor"
-
-#~ msgid "<none>"
-#~ msgstr "<keine>"
-
-#~ msgid "_Stats"
-#~ msgstr "_Statistiken"
-
-#~ msgid "_Hostcache"
-#~ msgstr "_Host-Cache"
-
-#~ msgid "_Uploads"
-#~ msgstr "_Uploads"
-
-#~ msgid "_History"
-#~ msgstr "_Historie"
-
-#~ msgid "_Downloads"
-#~ msgstr "_Downloads"
-
-#~ msgid "_Files"
-#~ msgstr "_Dateien"
-
-#~ msgid "_Active"
-#~ msgstr "_Aktiv"
-
-#~ msgid "_Queue"
-#~ msgstr "_Warteschlange"
-
-#~ msgid "_Results"
-#~ msgstr "_Ergebnisse"
-
-#~ msgid "_Monitor"
-#~ msgstr "_Monitor"
-
-#~ msgid "S_tats"
-#~ msgstr "S_tatistiken"
-
-#~ msgid "show _Toolbar"
-#~ msgstr "_Werkzeugleiste anzeigen"
-
-#~ msgid "show _Navigation Tree"
-#~ msgstr "_Navigationsbaum anzeigen"
-
-#~ msgid "Navigator"
-#~ msgstr "Navigator"
-
-#~ msgid "GnutellaNet connections"
-#~ msgstr "GnutellaNet-Verbindungen"
-
-#~ msgid "Message/flow control stats"
-#~ msgstr "Nachricht-/Flusskontroll-Statistik"
-
-#~ msgid "Hostcache statistics"
-#~ msgstr "Host-Cache-Statistik"
-
-#~ msgid "Filename:"
-#~ msgstr "Dateiname:"
-
-#~ msgid "Active sources"
-#~ msgstr "Aktive Quellen"
-
-#~ msgid "Inactive sources"
-#~ msgstr "Inaktive Quellen"
-
-#~ msgid "Search results"
-#~ msgstr "Suchergebnisse"
-
-#~ msgid "Index:"
-#~ msgstr "Index:"
-
-#~ msgid "Source:"
-#~ msgstr "Quelle:"
-
-#~ msgid "Received:"
-#~ msgstr "Empfangen"
-
-#~ msgid "Query:"
-#~ msgstr "Suchterm:"
-
-#~ msgid "Speed:"
-#~ msgstr "Geschw."
-
-#~ msgid "XML data:"
-#~ msgstr "XML-Anhang:"
-
-#, fuzzy
-#~ msgid "Engouh UDP support"
-#~ msgstr "Ausreichende UDP-Funktion"
-
-#~ msgid "Use fu_zzy matching"
-#~ msgstr "Unscharfen _Vergleich benutzen"
-
-#~ msgid "Fuzzy threshold"
-#~ msgstr "Unscharfe Grenze"
-
-#~ msgid "gtk-gnutella - Frequently Asked Questions"
-#~ msgstr "gtk-gnutella - Häufig gestellte Fragen"
-
-#~ msgid "Frequently Asked Questions:"
-#~ msgstr "Häufig gestellte Fragen:"
-
-#~ msgid "History"
-#~ msgstr "Historie"
-
-#~ msgid "Failed to create the search"
-#~ msgstr "Suche konnte nicht gestartet werden"

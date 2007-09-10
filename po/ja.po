@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-09 05:05+0900\n"
+"POT-Creation-Date: 2007-09-10 21:33+0900\n"
 "PO-Revision-Date: 2007-09-09 05:42+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -251,8 +251,9 @@ msgstr "キューに戻されました (データ整理後)"
 msgid "Chunk done, connection closed"
 msgstr "チャンクの取得完了、接続を切ります"
 
-msgid "Giving priority to THEX"
-msgstr "THEXを優先させています"
+#, c-format
+msgid "Switching to \"%s\""
+msgstr ""
 
 msgid "Requeued by competing download"
 msgstr "キューに戻されました (ダウンロードが競合しています)"
@@ -402,6 +403,19 @@ msgstr ""
 
 msgid ", outbound"
 msgstr ""
+
+#, fuzzy
+msgid ", banning"
+msgstr "禁止処理"
+
+# NOTE: it shouldn't be translated, you can simply copy & paste
+#, fuzzy
+msgid ", g2"
+msgstr ", "
+
+#, fuzzy
+msgid ", vendor?"
+msgstr "ベンダー"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2632,6 +2646,24 @@ msgstr ""
 "有効にすると、即座にTigerTreeルートハッシュ(TTH)が見つけられます。無効にした"
 "場合は、例えばマグネットリンクのように、他の利用者から提供された時にのみTTHを"
 "受け付けます。"
+
+msgid ""
+"If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
+"have to exist at all.  The aim is to improve the overall downloading "
+"experience."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of hosts in the G2 node cache."
+msgstr "TLSピアのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Maximum time before removing hosts from the G2 cache."
+msgstr "TLSキャッシュからホストを除外するまでの最長時間です。"
+
+#, fuzzy
+msgid "Debug level for management of G2-only hosts."
+msgstr "ダウンロード・メッシュ管理のデバッグレベルです。"
 
 msgid "disable"
 msgstr "表示しない"
