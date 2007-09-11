@@ -3572,4 +3572,16 @@ prop = {
     };
 };
 
+prop = {
+    name = "dl_resource_switching";
+    desc = "Whether GTKG can switch among the several files waiting to be "
+		"downloaded from a given server, when making a follow-up HTTP "
+		"request.  Turn it off only if you witness problems with a "
+		"particular servent you're downloading from.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

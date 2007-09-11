@@ -692,6 +692,8 @@ guint32  gnet_property_variable_g2_cache_max_time     = 43200;
 static const guint32  gnet_property_variable_g2_cache_max_time_default = 43200;
 guint32  gnet_property_variable_g2_debug     = 0;
 static const guint32  gnet_property_variable_g2_debug_default = 0;
+gboolean gnet_property_variable_dl_resource_switching     = TRUE;
+static const gboolean gnet_property_variable_dl_resource_switching_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6626,6 +6628,23 @@ gnet_prop_init(void) {
     gnet_property->props[310].data.guint32.choices = NULL;
     gnet_property->props[310].data.guint32.max   = 20;
     gnet_property->props[310].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_DL_RESOURCE_SWITCHING:
+     *
+     * General data:
+     */
+    gnet_property->props[311].name = "dl_resource_switching";
+    gnet_property->props[311].desc = _("Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from.");
+    gnet_property->props[311].ev_changed = event_new("dl_resource_switching_changed");
+    gnet_property->props[311].save = TRUE;
+    gnet_property->props[311].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[311].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[311].data.boolean.def   = (void *) &gnet_property_variable_dl_resource_switching_default;
+    gnet_property->props[311].data.boolean.value = (void *) &gnet_property_variable_dl_resource_switching;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
