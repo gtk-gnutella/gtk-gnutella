@@ -1329,7 +1329,7 @@ socket_free(struct gnutella_socket *s)
 
 #ifdef HAS_GNUTLS
 	if (s->tls.ctx) {
-		if (s->file_desc != -1 && SOCK_TLS_ESTABLISHED == s->tls.stage) {
+		if (s->file_desc != -1 && socket_uses_tls(s)) {
 			gboolean is_incoming = SOCK_CONN_INCOMING == s->direction;
 
 			if (!is_incoming) {
