@@ -5719,13 +5719,15 @@ err_header_read_error(gpointer o, gint error)
 	download_check(d);
 
 	if (error == ECONNRESET) {
-#ifdef HAS_GNUTLS
 		/*
 		 * Maybe we should try to initiate a TLS connection if we have not
 		 * done so already?
 		 */
 
-		if (!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS)) {
+		if (
+			tls_enabled() &&
+			!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS)
+		) {
 			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
 
 			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
@@ -5735,9 +5737,7 @@ err_header_read_error(gpointer o, gint error)
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
 				_("Stopped, will retry with TLS (%s)"), g_strerror(error));
 
-		} else
-#endif	/* HAS_GNUTLS */
-		if (d->retries < GNET_PROPERTY(download_max_retries)) {
+		} else if (d->retries < GNET_PROPERTY(download_max_retries)) {
 			d->retries++;
 
 			if (0 == d->served_reqs) {
@@ -5762,8 +5762,12 @@ err_header_read_eof(gpointer o)
 	header_t *header = io_header(d->io_opaque);
 	guint32 delay = GNET_PROPERTY(download_retry_stopped_delay);
 
-#ifdef HAS_GNUTLS
-	if (io_get_read_bytes(d->io_opaque) == 0) {
+	/*
+	 * If we get no output at all from the remote peer (i.e. the connection
+	 * is closed immediately), retry with TLS, if supported locally.
+	 */
+
+	if (tls_enabled() && io_get_read_bytes(d->io_opaque) == 0) {
 		/*
 		 * Maybe we should try to initiate a TLS connection if we have not
 		 * done so already?
@@ -5780,7 +5784,11 @@ err_header_read_eof(gpointer o)
 					download_host_info(d), download_basename(d));
 		}
 	}
-#endif	/* HAS_GNUTLS */
+
+	/*
+	 * Note: zero HTTP header line is different from zero output as we
+	 * can get at least the HTTP status line.
+	 */
 
 	if (header_num_lines(header) == 0) {
 		if (!(d->flags & DL_F_TRY_TLS)) {
