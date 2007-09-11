@@ -1687,7 +1687,7 @@ prop = {
     data = {
         default =
           "aac;avi;"
-		  "bin;bz2;"
+		  "bin;bz2;7z;"
 		  "cue;"
 		  "deb;divx;doc;"
 		  "flac;flc;fli;"
