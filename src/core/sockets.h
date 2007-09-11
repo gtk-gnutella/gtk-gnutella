@@ -182,7 +182,7 @@ static inline gboolean
 socket_uses_tls(const struct gnutella_socket *s)
 #ifdef HAS_GNUTLS
 {
-	return s->tls.enabled && s->tls.stage >= SOCK_TLS_ESTABLISHED;
+	return s->tls.enabled && s->tls.stage == SOCK_TLS_ESTABLISHED;
 }
 #else
 {
