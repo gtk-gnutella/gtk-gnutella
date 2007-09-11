@@ -1978,6 +1978,8 @@ socket_addr_getpeername(socket_addr_t *p_addr, int fd)
 	int error = 0;
 
 	len = sizeof sin4;
+	memset(&sin4, 0, sizeof sin4);
+	sin4.sin_family = AF_INET;
 	if (-1 != getpeername(fd, cast_to_gpointer(&sin4), &len)) {
 		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
 		port = sin4.sin_port;
@@ -1989,6 +1991,8 @@ socket_addr_getpeername(socket_addr_t *p_addr, int fd)
 		struct sockaddr_in6 sin6;
 
 		len = sizeof sin6;
+		memset(&sin6, 0, sizeof sin6);
+		sin6.sin6_family = AF_INET6;
 		if (-1 != getpeername(fd, cast_to_gpointer(&sin6), &len)) {
 			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
 			port = sin6.sin6_port;
