@@ -4057,6 +4057,9 @@ download_pick_followup(struct download *d)
 
 	download_check(d);
 
+	if (!GNET_PROPERTY(dl_resource_switching))
+		return d;
+
 	/*
 	 * Cannot enable this until GTKG can properly manage switching of
 	 * resources as a server.  Also, how can we detect whether a server will
