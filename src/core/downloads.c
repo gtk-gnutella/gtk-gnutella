@@ -6814,8 +6814,13 @@ download_check_status(struct download *d, header_t *header, gint code)
 			dump_hex(stderr, "Status Line", getline_str(d->socket->getline),
 				MIN(getline_length(d->socket->getline), 80));
 		}
-
-		download_bad_source(d);
+		if (0 == d->served_reqs) {
+			/*
+			 * If this wasn't the initial request, it's probably an issue
+			 * with keep-alive connections.
+			 */
+			download_bad_source(d);
+		}
 		download_stop(d, GTA_DL_ERROR, _("Weird HTTP status"));
 		return FALSE;
 	} else {
