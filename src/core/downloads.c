@@ -6423,6 +6423,19 @@ download_continue(struct download *d, gboolean trimmed)
 	s->resource.download = NULL;
 	cd->socket = NULL;
 
+	/*
+	 * NOTE: Resetting s->pos was missing in download_request() for THEX
+	 *       and browse downloads causing a "Weird HTTP status". Keep this
+	 *       a warning instead of an assertion for now until it has seen
+	 *       some testing. 2007-09-12
+	 */
+	if (s->pos > 0) {
+		/* This should have already been fed it to the RX stack. */
+		g_warning("download_continue(): Clearing socket buffer of %s",
+			download_host_info(d));
+	}
+	s->pos = 0;
+
 	if (!can_continue) {
 		download_stop(cd, GTA_DL_COMPLETED, no_reason);
 	}
@@ -8932,11 +8945,14 @@ http_version_nofix:
 	 	 */
 
 		if (s->pos > 0) {
-			fi->recv_amount += s->pos;
+			size_t size = s->pos;
+
+			s->pos = 0;
+			fi->recv_amount += size;
 			if (d->flags & DL_F_BROWSE) {
-				browse_host_dl_write(d->browse, s->buf, s->pos);
+				browse_host_dl_write(d->browse, s->buf, size);
 			} else if (d->flags & DL_F_THEX) {
-				thex_download_write(d->thex, s->buf, s->pos);
+				thex_download_write(d->thex, s->buf, size);
 			}
 		}
 		return;
