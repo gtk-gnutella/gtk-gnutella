@@ -618,9 +618,17 @@ download_update_timeout_delay(struct download *d)
 	 * we finally get a successful connection.
 	 */
 
-	if (d->timeout_delay == 0)
+	if (d->timeout_delay == 0) {
+		/* If we come here from download_continue(), don't set the delay
+		 * because the follow-up request may finish instantly and we would
+		 * ignore this download on the same connection just because our
+		 * careful timeout has not expired yet.
+		 */
+		if (d->keep_alive && DOWNLOAD_IS_RUNNING(d))
+			return;
+
 		d->timeout_delay = GNET_PROPERTY(download_retry_timeout_min);
-	else {
+	} else {
 		d->timeout_delay *= 2;
 		if (d->start_date) {
 			/* We forgive a little while the download is working */
@@ -2301,9 +2309,13 @@ download_remove_all_from_peer(const gchar *guid,
 
 /**
  * Remove all THEX downloads for a given sha1.
+ *
+ * @param sha1 The SHA-1 of the file to which this THEX download belongs.
+ * @param skip If not NULL, the given download is skipped. Usually the
+ *             THEX download which just finished and which we still need.
  */
 static void
-download_remove_all_thex(const struct sha1 *sha1)
+download_remove_all_thex(const struct sha1 *sha1, const struct download *skip)
 {
 	struct download *next;
 
@@ -2319,6 +2331,9 @@ download_remove_all_thex(const struct sha1 *sha1)
 
 		download_check(d);
 		next = hash_list_next(sl_downloads, next);
+
+		if (d == skip)
+			continue;
 
 		if (d->thex) {
 			const struct sha1 *d_sha1 = thex_download_get_sha1(d->thex);
@@ -4101,20 +4116,22 @@ download_pick_followup(struct download *d)
 		if (delta_time(now, cur->retry_after) < 0)
 			break;	/* List is sorted */
 
-		if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
-			/*
-			 * Pick the download with the most progress. Otherwise
-			 * we easily end up with dozens of partials from the
-			 * the server.
-			 */
+		if (!FILE_INFO_COMPLETE(d->file_info)) {
+			if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
+				/*
+				 * Pick the download with the most progress. Otherwise
+				 * we easily end up with dozens of partials from the
+				 * the server.
+				 */
 
-			if (download_total_progress(d) >= download_total_progress(cur))
+				if (download_total_progress(d) >= download_total_progress(cur))
+					continue;
+			}
+
+			/* Give priority to THEX downloads */
+			if ((DL_F_THEX & d->flags) > (DL_F_THEX & cur->flags))
 				continue;
 		}
-
-		/* Give priority to THEX downloads */
-		if ((DL_F_THEX & d->flags) > (DL_F_THEX & cur->flags))
-			continue;
 
 		d = cur;
 	}
@@ -6361,8 +6378,18 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 static void
 download_continue(struct download *d, gboolean trimmed)
 {
-	struct download *cd;					/* Cloned download */
-	struct download *next = NULL;
+	struct download *cd, *next = NULL;
+	struct gnutella_socket *s;
+	gboolean can_continue;
+
+	download_check(d);
+
+	/*
+	 * Determine whether we can use this download for a follow-up request if
+	 * download_pick_followup() finds no better candidate.
+	 */
+	can_continue = GTA_DL_RECEIVING == d->status &&
+		!FILE_INFO_COMPLETE(d->file_info);
 
 	/*
 	 * Since a download structure is associated with a GUI line entry, we
@@ -6391,17 +6418,32 @@ download_continue(struct download *d, gboolean trimmed)
 		return;
 	}
 
+	/* Steal the socket because download_stop() would free it. */
+	s = cd->socket;
+	s->resource.download = NULL;
+	cd->socket = NULL;
+
+	if (!can_continue) {
+		download_stop(cd, GTA_DL_COMPLETED, no_reason);
+	}
 	next = download_pick_followup(cd);
 	if (cd != next) {
-		next->socket = cd->socket;
+		next->socket = s;
 		next->socket->resource.download = next;
-		cd->socket = NULL;
-		download_queue(cd, _("Switching to \"%s\""), download_basename(next));
-	} else {
+		if (can_continue) {
+			download_queue(cd, _("Switching to \"%s\""),
+				download_basename(next));
+		}
+	} else if (can_continue) {
 		next = cd;
+		next->socket = s;
+		next->socket->resource.download = next;
+	} else {
+		socket_free_null(&s);
+		next = NULL;
 	}
 
-	if (download_start_prepare(next)) {
+	if (next && download_start_prepare(next)) {
 		next->keep_alive = TRUE;			/* Was reset by _prepare() */
 		download_send_request(next);		/* Will pick up new range */
 	}
@@ -6569,7 +6611,7 @@ download_write_data(struct download *d)
 	 */
 
 done:
-	download_stop(d, GTA_DL_COMPLETED, no_reason);
+	download_continue(d, trimmed);
 	download_verify_sha1(d);
 
 	gnet_prop_incr_guint32(PROP_TOTAL_DOWNLOADS);
@@ -10891,7 +10933,7 @@ download_verify_sha1_done(struct download *d,
 	ignore_add_sha1(name, fi->cha1);
 
 	if (has_good_sha1(d)) {
-		download_remove_all_thex(sha1);
+		download_remove_all_thex(sha1, NULL);
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, GNET_PROPERTY(move_file_path), DL_OK_EXT);
@@ -11633,12 +11675,6 @@ download_thex_done(struct download *d)
 	sha1 = thex_download_get_sha1(d->thex);
 	g_return_if_fail(sha1);
 
-	/*
-	 * download_stop() causes d->thex to release the sha1 but we still need it
-	 * for download_remove_all_thex().
-	 */
-	sha1 = atom_sha1_get(sha1);
-
 	if (!thex_download_finished(d->thex)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_message("Discarding tigertree data from %s: Bad THEX data",
@@ -11676,15 +11712,9 @@ download_thex_done(struct download *d)
 	cancel_all = TRUE;
 
 finish:
-	if (d->keep_alive && GTA_DL_COMPLETED == d->status) {
-		download_continue(d, FALSE);
-	} else {
-		download_stop(d, GTA_DL_COMPLETED, no_reason);
-	}
 	if (cancel_all) {
-		download_remove_all_thex(sha1);
+		download_remove_all_thex(sha1, d);
 	}
-	atom_sha1_free_null(&sha1);
 }
 	
 /**
@@ -11802,13 +11832,12 @@ download_got_eof(struct download *d)
 	fi = d->file_info;
 	file_info_check(fi);
 
-	if (!fi->file_size_known)
+	if (!fi->file_size_known || FILE_INFO_COMPLETE(fi)) {
 		download_rx_done(d);
-	else if (FILE_INFO_COMPLETE(fi))
-		download_rx_done(d);
-	else
+	} else {
 		download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
 			_("Stopped data (EOF) <download_got_eof>"));
+	}
 }
 
 /**
@@ -11834,9 +11863,7 @@ download_rx_done(struct download *d)
 	if (d->thex) {
 		download_thex_done(d);
 	}
-	if (!DOWNLOAD_IS_STOPPED(d)) {
-		download_stop(d, GTA_DL_COMPLETED, no_reason);
-	}
+	download_continue(d, FALSE);
 	if (!(d->flags & DL_F_TRANSIENT) && fi->file_size_known) {
 		download_verify_sha1(d);
 	}
