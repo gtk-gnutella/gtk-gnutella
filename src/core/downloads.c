@@ -8520,7 +8520,9 @@ http_version_nofix:
 					hold = MAX(delay, 320);				/* To be safe */
 					g2_cache_insert(download_addr(d), download_port(d));
 				}
-				d->server->attrs |= DLS_A_BANNING;		/* Probably */
+				if (!(d->flags & DL_F_BROWSE)) {
+					d->server->attrs |= DLS_A_BANNING;		/* Probably */
+				}
 				break;
 			case 404:
 				if (is_strprefix(ack_message, "Please Share")) {
