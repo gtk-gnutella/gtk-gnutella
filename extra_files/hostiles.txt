@@ -266,7 +266,8 @@
 81.209.165.73
 85.88.2.192/26 
 85.88.9.0/26
-# absolut-models dot com; screamsavers dot org; free-drm-encoder dot com
+# absolut-models dot com; screamsavers dot org; free-drm-encoder dot com;
+# pimp-my-penis dot com
 87.106.28.91
 # leaseweb/ocom
 85.17.155.0/24
@@ -1108,4 +1109,8 @@
 
 # line-age dot net; HTML redirect spam
 64.182.56.121
+
+# Thousands of infected ZIP/RAR/EXE; also bigger files; LimeWire, Phex, Shareaza
+66.79.171.0/27
+66.109.24.0/28
 
