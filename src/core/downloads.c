@@ -6814,7 +6814,6 @@ download_check_status(struct download *d, header_t *header, gint code)
 				NULL == header_get(header, "X-Queue") &&
 				extract_retry_after(d, header) <= 0
 			) {
-				d->server->attrs |= DLS_A_FOOBAR;
 				break;
 			}
 		case 200:	/* Okay */
@@ -7951,6 +7950,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	ack_code = http_status_parse(status, "HTTP",
 		&ack_message, &http_major, &http_minor);
 
+	if (0 == d->served_reqs && http_major < 1) {
+		d->server->attrs |= DLS_A_FOOBAR;
+	}
 	if (!download_check_status(d, header, ack_code))
 		return;
 
