@@ -1114,6 +1114,7 @@
 # Michael Buck; Toronto, Ontario, M6L1B7, CA
 66.79.171.0/27
 # Organization: Viva; Contact: tibetemperor at gmail dot com
-66.109.24.0/28
+66.109.21.128/28
 66.109.23.16/28
+66.109.24.0/28
 
