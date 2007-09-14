@@ -702,7 +702,6 @@
 64.248.219.98
 64.248.219.196
 66.134.169.213
-66.160.133.149
 
 # These are probably completely bogus but block them anyway as these are
 # returned by those GUID switchers
