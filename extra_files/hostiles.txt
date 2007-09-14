@@ -127,15 +127,14 @@
 # Professional bots: "LimeWire/4.9.11 1.4 GiB 462 files"; purpose unknown
 # The same ranges seem to contain bots which emit buzzword spam for
 # audio files which are not downloadable but also executables.
+# Most of these ranges belong to Hurricane Electric.
 64.71.160.0/27
 64.71.162.64/27
 64.71.164.128/27
 64.71.178.160/27
-65.19.134.160/27
-65.19.142.32/27
-65.19.154.160/27
-65.19.176.32/27
-66.160.128.0/24
+65.19.128.0/18
+66.160.128.0/18
+66.160.192.0/20
 66.220.2.128/25
 66.220.3.192/27
 66.220.6.64/27
