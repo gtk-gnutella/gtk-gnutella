@@ -7968,7 +7968,11 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	ack_code = http_status_parse(status, "HTTP",
 		&ack_message, &http_major, &http_minor);
 
-	if (0 == d->served_reqs && http_major < 1) {
+	if (
+		0 == d->served_reqs &&
+		http_major < 1 &&
+	    (ack_code < 200 || ack_code >= 400)
+	) {
 		d->server->attrs |= DLS_A_FOOBAR;
 	}
 	if (!download_check_status(d, header, ack_code))
