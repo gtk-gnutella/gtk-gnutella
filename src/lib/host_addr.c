@@ -460,19 +460,16 @@ host_addr_port_to_string2(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
-const gchar *
-host_port_to_string(const gchar *hostname, host_addr_t addr, guint16 port)
+const char *
+host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
 {
-	static gchar buf[MAX_HOSTLEN + 32];
+	static char buf[MAX_HOSTLEN + 32];
 
 	if (hostname) {
-		gchar port_buf[UINT32_DEC_BUFLEN];
+		char port_buf[UINT32_DEC_BUFLEN];
 
 		uint32_to_string_buf(port, port_buf, sizeof port_buf);
-		strncpy(buf, hostname, MAX_HOSTLEN);
-		buf[MAX_HOSTLEN] = '\0';
-		strncat(buf, ":", sizeof buf);
-		strncat(buf, port_buf, sizeof buf);
+		concat_strings(buf, sizeof buf, hostname, ":", port_buf, (void *) 0);
 	} else {
 		host_addr_port_to_string_buf(addr, port, buf, sizeof buf);
 	}
