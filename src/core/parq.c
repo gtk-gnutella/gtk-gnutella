@@ -76,6 +76,7 @@ RCSID("$Id$")
 #define GUARDING_TIME		45		/**< Time we keep a slot after disconnect */
 #define MIN_LIFE_TIME		60		/**< Grace time past retry-after */
 #define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
+#define QUEUE_DEAD_SCAN		60		/**< Scan the "dead" queue every 60 secs. */
 #define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
 
@@ -206,8 +207,7 @@ struct parq_ul_queued {
 								 ban a client. */
 
 	time_t last_queue_sent;	/**< When we last sent the QUEUE */
-	time_t send_next_queue; /**< When will we send the next QUEUE */
-
+	time_t send_next_queue;	/**< When to send the next QUEUE */
 	guint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
 	guint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
 
@@ -1989,6 +1989,15 @@ parq_upload_find(const struct upload *u)
 }
 
 /**
+ * Compute the time at which we should send the next QUEUE callback for
+ * a given entry.
+ */
+static time_t parq_upload_next_queue(time_t last, struct parq_ul_queued *uq)
+{
+	return time_advance(last, QUEUE_PERIOD * (1 + (uq->queue_sent - 1) / 2.0));
+}
+
+/**
  * Sends a QUEUE to a parq enabled client.
  */
 static void
@@ -2002,8 +2011,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 
 	parq_ul->last_queue_sent = now;		/* We tried... */
 	parq_ul->queue_sent++;
-	parq_ul->send_next_queue = 
-		time_advance(now, QUEUE_PERIOD * (1 + (parq_ul->queue_sent - 1) / 2.0));
+	parq_ul->send_next_queue = parq_upload_next_queue(now, parq_ul);
 	parq_ul->by_addr->last_queue_sent = now;
 
 	if (GNET_PROPERTY(parq_debug))
@@ -2024,6 +2032,7 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
 			parq_ul->queue_sent,
 			host_addr_port_to_string(parq_ul->addr, parq_ul->port));
+		parq_ul->flags &= ~PARQ_UL_QUEUE;
 		return;
 	}
 
@@ -2033,12 +2042,29 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	u->name = atom_str_get(parq_ul->name);
 
 	/* TODO: Create an PARQ pointer in the download structure, so we don't need
-	 * to lookup the ID again, which we don't at the moment */
+	 * to lookup the ID again, which we don't have at the moment */
 	parq_upload_update_addr_and_name(parq_ul, u);
 	upload_fire_upload_info_changed(u);
 
 	/* Verify created upload entry */
-	g_assert(parq_upload_find(u) != NULL);
+	g_assert(parq_upload_find(u) == parq_ul);
+}
+
+/**
+ * Invoked when we did not succeed in connecting to the remote server
+ * to send the QUEUE callback.
+ */
+static void
+parq_upload_send_queue_failed(struct parq_ul_queued *uq)
+{
+	g_assert(uq);
+
+	uq->flags &= ~PARQ_UL_QUEUE;
+
+	if (GNET_PROPERTY(parq_debug) > 3) {
+		g_message("PARQ UL: QUEUE callback not sent: could not connect to %s",
+			host_addr_to_string(uq->by_addr->addr));
+	}
 }
 
 /**
@@ -2099,32 +2125,15 @@ parq_del_banned_source(const host_addr_t addr)
 	banned = NULL;
 }
 
-
 /**
- * Removes any PARQ uploads which show no activity.
+ * Cleanup banned uploading IPs.
  */
-void
-parq_upload_timer(time_t now)
+static void
+parq_cleanup_banned(time_t now)
 {
-	static guint print_q_size = 0;
-	static guint startup_delay = 0;
-	GList *queues, *dl;
+	GList *dl;
 	GSList *sl, *to_remove = NULL;
-	guint	queue_selected = 0;
-	gboolean rebuilding = FALSE;
 
-	/*
-	 * Don't do anything with parq during the first 10 seconds. Looks like
-	 * PROP_LIBRARY_REBUILDING is not set yet immediatly at the first time, so
-	 * there may be some other things not set properly yet neither.
-	 */
-	if (startup_delay < 10) {
-		startup_delay++;
-		return;
-	}
-
-
-	/* PARQ ip banning timer */
 	for (dl = parq_banned_sources ; dl != NULL; dl = g_list_next(dl)) {
 		struct parq_banned *banned = dl->data;
 
@@ -2143,84 +2152,215 @@ parq_upload_timer(time_t now)
 	}
 
 	g_slist_free(to_remove);
-	to_remove = NULL;
+}
+
+/**
+ * Periodic timer called to scan the "dead" list and see whether we
+ * should send a QUEUE callback.
+ */
+static void
+parq_dead_timer(time_t now, struct parq_ul_queue *q)
+{
+	GList *dl;
+	static time_t last_dead_scan = 0;
+
+	if (
+		GNET_PROPERTY(max_uploads) > 0 ||	/* Sharing disabled */
+		delta_time(now, last_dead_scan) < QUEUE_DEAD_SCAN
+	)
+		return;
+
+	for (dl = q->by_date_dead; dl != NULL; dl = g_list_next(dl)) {
+		struct parq_ul_queued *uq = dl->data;
+
+		g_assert(uq != NULL);
+
+		/* Entry can't have a slot, and we know it expired! */
+
+		if (
+			!(uq->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
+			delta_time(uq->send_next_queue, now) < 0 &&
+			uq->queue_sent < MAX_QUEUE &&
+			uq->queue_refused < MAX_QUEUE_REFUSED &&
+			!ban_is_banned(uq->remote_addr) &&
+			parq_still_sharing(uq)
+		)
+			parq_upload_register_send_queue(uq);
+	}
+}
+
+/**
+ * Periodic scanning of the alive queued entries.
+ *
+ * @param now		current time
+ * @param q			the queue to scan
+ * @param rlp		holds pointer to the single list of items to remove
+ */
+static void
+parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
+{
+	GSList *to_remove = *rlp;
+	GList *dl;
+
+	for (dl = q->by_rel_pos; dl != NULL; dl = g_list_next(dl)) {
+		struct parq_ul_queued *uq = dl->data;
+
+		g_assert(uq != NULL);
+
+		if (
+			uq->expire <= now &&
+			!uq->has_slot &&
+			!(uq->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
+			delta_time(uq->send_next_queue, now) < 0 &&
+			uq->queue_sent < MAX_QUEUE &&
+			uq->queue_refused < MAX_QUEUE_REFUSED &&
+			GNET_PROPERTY(max_uploads) > 0 &&
+			!ban_is_banned(uq->remote_addr) &&
+			parq_still_sharing(uq)
+		)
+			parq_upload_register_send_queue(uq);
+
+		if (
+			uq->is_alive &&
+			delta_time(now, uq->expire) > PARQ_GRACE_TIME &&
+			!uq->has_slot &&
+			!(uq->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
+		) {
+			if (GNET_PROPERTY(parq_debug) > 3)
+				g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+					"Timeout: %s %s '%s'",
+					uq->queue->num,
+					ul_parqs_cnt,
+					uq->position,
+					uq->relative_position,
+					uq->queue->by_position_length,
+					guid_hex_str(uq->id),
+					host_addr_to_string(uq->remote_addr),
+					uq->name);
+
+
+			/*
+			 * Mark for removal. Can't remove now as we are still using the
+			 * ul_parq_by_position linked list. (prepend is probably the
+			 * fastest function
+			 */
+			to_remove = g_slist_prepend(to_remove, uq);
+		}
+	}
+
+	*rlp = to_remove;
+}
+
+/*
+ * Send out QUEUE callbacks for all the entries registered.
+ */
+static void
+parq_upload_send_queue_callbacks(time_t now)
+{
+	GList *queue_cmd_remove = NULL;
+	GList *queue_cmd_list = NULL;
+
+	if (
+		GNET_PROPERTY(library_rebuilding) ||
+		ul_parq_queue == NULL ||
+		0 == GNET_PROPERTY(max_uploads)
+	)
+		return;
+
+	queue_cmd_list = ul_parq_queue;
+	do {
+		struct parq_ul_queued *parq_ul = queue_cmd_list->data;
+		gboolean has_timedout;
+
+		has_timedout = delta_time(now, parq_ul->by_addr->last_queue_sent)
+				>= (time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
+				&& delta_time(parq_ul->by_addr->last_queue_sent,
+						parq_ul->by_addr->last_queue_connected) > 0;
+
+		/*
+		 * If a previous QUEUE command could not connect to this IP during
+		 * this timeframe, we can safely ignore all QUEUE commands for this
+		 * IP now.
+		 */
+		if (
+			has_timedout &&
+			delta_time(parq_ul->send_next_queue, now) < 0
+		) {
+
+			if (GNET_PROPERTY(parq_debug) > 3) {
+				g_message("PARQ UL: Removing QUEUE command due to other "
+					"failed QUEUE command for ip: %s",
+					host_addr_to_string(parq_ul->by_addr->addr));
+			}
+			parq_ul->last_queue_sent = parq_ul->by_addr->last_queue_sent;
+			goto next;
+		}
+
+		/*
+		 * Don't send queue if the current IP has another pending connecting
+		 * QUEUE.
+		 */
+		if (has_timedout) {
+			if (GNET_PROPERTY(parq_debug) > 3) {
+				g_message("PARQ UL: Not sending QUEUE command due to "
+					"another pending QUEUE command for ip: %s",
+					host_addr_to_string(parq_ul->by_addr->addr));
+			}
+		} else
+			parq_upload_send_queue(parq_ul);
+
+	next:
+		queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
+		parq_ul->flags &= ~PARQ_UL_QUEUE;
+	} while (
+		GNET_PROPERTY(ul_registered) < MAX_UPLOADS &&
+		(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
+		bws_can_connect(SOCK_TYPE_UPLOAD)
+	);
+
+	while (g_list_first(queue_cmd_remove) != NULL) {
+		ul_parq_queue =
+			g_list_remove(ul_parq_queue, queue_cmd_remove->data);
+		queue_cmd_remove =
+			g_list_remove(queue_cmd_remove, queue_cmd_remove->data);
+	}
+}
+
+/**
+ * Removes any PARQ uploads which show no activity.
+ */
+void
+parq_upload_timer(time_t now)
+{
+	static guint print_q_size = 0;
+	static guint startup_delay = 0;
+	GList *queues;
+	GSList *sl, *to_remove = NULL;
+	guint	queue_selected = 0;
+
+	/*
+	 * Don't do anything with parq during the first 10 seconds. Looks like
+	 * PROP_LIBRARY_REBUILDING is not set yet immediatly at the first time, so
+	 * there may be some other things not set properly yet neither.
+	 */
+	if (startup_delay < 10) {
+		startup_delay++;
+		return;
+	}
+
+	parq_cleanup_banned(now);		/* PARQ ip banning timer */
+
+	/*
+	 * Scan the queues.
+	 */
 
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = queues->data;
 
 		queue_selected++;
 
-		/*
-		 * Infrequently scan the dead uploads as well to send QUEUE.
-		 * NB: if max_uploads == 0, they disabled sharing: don't send QUEUE.
-		 */
-
-		if ((now % 60) == 0 && GNET_PROPERTY(max_uploads) > 0) {
-			for (dl = queue->by_date_dead; dl != NULL; dl = g_list_next(dl)) {
-				struct parq_ul_queued *parq_ul = dl->data;
-
-				g_assert(parq_ul != NULL);
-
-				/* Entry can't have a slot, and we know it expired! */
-
-				if (
-					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-					delta_time(parq_ul->send_next_queue, now) < 0 &&
-					parq_ul->queue_sent < MAX_QUEUE &&
-					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
-					!ban_is_banned(parq_ul->remote_addr) &&
-					parq_still_sharing(parq_ul)
-				)
-					parq_upload_register_send_queue(parq_ul);
-			}
-		}
-
-		for (dl = queue->by_rel_pos; dl != NULL; dl = g_list_next(dl)) {
-			struct parq_ul_queued *parq_ul = dl->data;
-
-			g_assert(parq_ul != NULL);
-
-
-			if (
-				parq_ul->expire <= now &&
-				!parq_ul->has_slot &&
-				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
-				delta_time(parq_ul->send_next_queue, now) < 0 &&
-				parq_ul->queue_sent < MAX_QUEUE &&
-				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
-				GNET_PROPERTY(max_uploads) > 0 &&
-				!ban_is_banned(parq_ul->remote_addr) &&
-				parq_still_sharing(parq_ul)
-			)
-				parq_upload_register_send_queue(parq_ul);
-
-			if (
-				parq_ul->is_alive &&
-				delta_time(now, parq_ul->expire) > PARQ_GRACE_TIME &&
-				!parq_ul->has_slot &&
-				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
-			) {
-				if (GNET_PROPERTY(parq_debug) > 3)
-					g_message("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-						"Timeout: %s %s '%s'",
-						parq_ul->queue->num,
-						ul_parqs_cnt,
-						parq_ul->position,
-						parq_ul->relative_position,
-						parq_ul->queue->by_position_length,
-						guid_hex_str(parq_ul->id),
-						host_addr_to_string(parq_ul->remote_addr),
-						parq_ul->name);
-
-
-				/*
-			 	 * Mark for removal. Can't remove now as we are still using the
-			 	 * ul_parq_by_position linked list. (prepend is probably the
-				 * fastest function
-			 	 */
-				to_remove = g_slist_prepend(to_remove, parq_ul);
-			}
-		}
+		parq_dead_timer(now, queue);	/* Send QUEUE if possible */
+		parq_upload_queue_timer(now, queue, &to_remove);
 
 		/*
 		 * Mark queue as inactive when there are less uploads slots available.
@@ -2228,6 +2368,9 @@ parq_upload_timer(time_t now)
 		queue->active = queue_selected <= GNET_PROPERTY(max_uploads);
 	}
 
+	/*
+	 * Sort out dead entries.
+	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct parq_ul_queued *parq_ul = sl->data;
@@ -2241,7 +2384,7 @@ parq_upload_timer(time_t now)
 
 		if (enable_real_passive && parq_still_sharing(parq_ul)) {
 			parq_ul->queue->by_date_dead =
-			g_list_append(parq_ul->queue->by_date_dead, parq_ul);
+				g_list_append(parq_ul->queue->by_date_dead, parq_ul);
 		} else
 			parq_upload_free(sl->data);
 	}
@@ -2301,81 +2444,7 @@ parq_upload_timer(time_t now)
 		}
 	}
 
-	/*
-	 * Send one QUEUE command at a time, until we have MAX_UPLOADS uploads
-	 * NB: if max_uploads is 0, then they disabled sharing: don't send QUEUE.
-	 */
-
-	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
-
-	if (
-		!rebuilding &&
-		ul_parq_queue != NULL &&
-		GNET_PROPERTY(max_uploads) > 0
-	) {
-		GList *queue_cmd_remove = NULL;
-		GList *queue_cmd_list = NULL;
-
-		queue_cmd_list = ul_parq_queue;
-		do {
-			struct parq_ul_queued *parq_ul = queue_cmd_list->data;
-			gboolean has_timeout;
-
-			has_timeout = delta_time(now, parq_ul->by_addr->last_queue_sent)
-					>= (time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
-					&& delta_time(parq_ul->by_addr->last_queue_sent,
-							parq_ul->by_addr->last_queue_connected) > 0;
-
-			/*
-			 * If a previous QUEUE command could not connect to this IP during
-			 * this timeframe, we can safely ignore all QUEUE commands for this
-			 * IP now.
-			 */
-			if (
-				has_timeout &&
-				delta_time(parq_ul->send_next_queue, now) < 0
-			) {
-
-				if (GNET_PROPERTY(parq_debug) > 3) {
-					g_message("PARQ UL: Removing QUEUE command due to other "
-						"failed QUEUE command for ip: %s",
-						host_addr_to_string(parq_ul->by_addr->addr));
-				}
-				parq_ul->last_queue_sent = parq_ul->by_addr->last_queue_sent;
-				queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
-				parq_ul->flags &= ~PARQ_UL_QUEUE;
-				continue;
-			}
-
-			/*
-			 * Don't send queue if the current IP has another pending connecting
-			 * QUEUE.
-			 */
-			if (has_timeout) {
-				if (GNET_PROPERTY(parq_debug) > 3) {
-					g_message("PARQ UL: Not sending QUEUE command due to "
-						"another pending QUEUE command for ip: %s",
-						host_addr_to_string(parq_ul->by_addr->addr));
-				}
-				continue;
-			}
-
-			parq_upload_send_queue(parq_ul);
-			queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
-			parq_ul->flags &= ~PARQ_UL_QUEUE;
-		} while (
-			GNET_PROPERTY(ul_registered) < MAX_UPLOADS &&
-			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
-			bws_can_connect(SOCK_TYPE_UPLOAD)
-		);
-
-		while (g_list_first(queue_cmd_remove) != NULL) {
-			ul_parq_queue =
-				g_list_remove(ul_parq_queue, queue_cmd_remove->data);
-			queue_cmd_remove =
-				g_list_remove(queue_cmd_remove, queue_cmd_remove->data);
-		}
-	}
+	parq_upload_send_queue_callbacks(now);
 }
 
 /**
@@ -3583,6 +3652,14 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 	parq_ul = parq_upload_find(u);
 
 	/*
+	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
+	 * attempting to connect to the remote server.
+	 */
+
+	if (parq_ul && u->status == GTA_UL_QUEUE)
+		parq_upload_send_queue_failed(parq_ul);
+
+	/*
 	 * If we can't find the PARQ entry, this is probably a cloned upload.
 	 *
 	 * If the upload mismatches, then it's probably an error like "Already
@@ -4280,7 +4357,7 @@ parq_store(gpointer data, gpointer file_ptr)
 	FILE *f = file_ptr;
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = data;
-	gchar snq_buf[TIMESTAMP_BUF_LEN];
+	gchar last_buf[TIMESTAMP_BUF_LEN];
 	gchar enter_buf[TIMESTAMP_BUF_LEN];
 	gint expire;
 
@@ -4305,7 +4382,7 @@ parq_store(gpointer data, gpointer file_ptr)
 			  parq_ul->name);
 
 	timestamp_to_string_buf(parq_ul->enter, enter_buf, sizeof enter_buf);
-	timestamp_to_string_buf(parq_ul->send_next_queue, snq_buf, sizeof snq_buf);
+	timestamp_to_string_buf(parq_ul->last_queue_sent, last_buf, sizeof last_buf);
 	
 	/*
 	 * Save all needed parq information. The ip and port information gathered
@@ -4321,7 +4398,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		  "SIZE: %s\n"
 		  "IP: %s\n"
 		  "QUEUESSENT: %d\n"
-		  "SENDNEXTQUEUE: %s\n"
+		  "LASTQUEUE: %s\n"
 		  ,
 		  parq_ul->queue->num,
 		  parq_ul->position,
@@ -4331,7 +4408,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		  uint64_to_string(parq_ul->file_size),
 		  host_addr_to_string(parq_ul->remote_addr),
 		  parq_ul->queue_sent,
-		  snq_buf
+		  last_buf
 		  );
 
 	if (parq_ul->sha1) {
@@ -4398,7 +4475,7 @@ typedef enum {
 	PARQ_TAG_XIP,
 	PARQ_TAG_XPORT,
 	PARQ_TAG_QUEUESSENT,
-	PARQ_TAG_SENDNEXTQUEUE,
+	PARQ_TAG_LASTQUEUE,
 
 	NUM_PARQ_TAGS
 } parq_tag_t;
@@ -4414,11 +4491,11 @@ static const struct parq_tag {
 	PARQ_TAG(EXPIRE),
 	PARQ_TAG(ID),
 	PARQ_TAG(IP),
+	PARQ_TAG(LASTQUEUE),
 	PARQ_TAG(NAME),
 	PARQ_TAG(POS),
 	PARQ_TAG(QUEUE),
 	PARQ_TAG(QUEUESSENT),
-	PARQ_TAG(SENDNEXTQUEUE),
 	PARQ_TAG(SHA1),
 	PARQ_TAG(SIZE),
 	PARQ_TAG(XIP),
@@ -4462,7 +4539,7 @@ typedef struct {
 	time_t entered;
 	gint expire;
 	gint xport;
-	time_t send_next_queue;
+	time_t last_queue_sent;
 	gint queue_sent;
 	gchar name[1024];
 	gchar id[GUID_RAW_SIZE];
@@ -4487,6 +4564,7 @@ parq_upload_load_queue(void)
 	gint error;
 	const gchar *endptr;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_PARQ_TAGS)];
+	gboolean resync = FALSE;
 
 	file_path_set(fp, settings_config_dir(), file_parq_file);
 	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
@@ -4525,7 +4603,13 @@ parq_upload_load_queue(void)
 		*nl = '\0';
 
 		/* Skip comments and empty lines */
-		if (*line == '#' || *line == '\0')
+		if (*line == '#' || *line == '\0') {
+			resync = FALSE;
+			continue;
+		}
+
+		/* In resync mode, wait for a comment or blank line */
+		if (resync)
 			continue;
 
 		colon = strchr(line, ':');
@@ -4658,13 +4742,13 @@ parq_upload_load_queue(void)
 			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
 			entry.queue_sent = v;
 			break;
-		case PARQ_TAG_SENDNEXTQUEUE:
+		case PARQ_TAG_LASTQUEUE:
 			{
 				time_t t;
 				
 				t = date2time(value, now);
 				damaged |= t == (time_t) -1;
-				entry.send_next_queue = t; 
+				entry.last_queue_sent = t; 
 			}
 			break;
 		case PARQ_TAG_NAME:
@@ -4674,7 +4758,7 @@ parq_upload_load_queue(void)
 			) {
 				damaged = TRUE;
 			} else {
-				/* Expect next parq entry */
+				/* Expect next parq entry, this is the final tag */
 				next = TRUE;
 			}
 			break;
@@ -4691,7 +4775,16 @@ parq_upload_load_queue(void)
 			g_warning("Damaged PARQ entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
 				line_no, tag_name, value);
-			break;
+
+			/* Reset state, discard current record */
+			next = FALSE;
+			entry = zero_entry;
+			bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
+
+			/* Will resync on next blank line */
+			resync = TRUE;
+
+			continue;
 		}
 
 		if (next) {
@@ -4722,8 +4815,10 @@ parq_upload_load_queue(void)
 			parq_ul->addr = entry.x_addr;
 			parq_ul->port = entry.xport;
 			parq_ul->sha1 = entry.sha1;
-			parq_ul->send_next_queue = entry.send_next_queue;
+			parq_ul->last_queue_sent = entry.last_queue_sent;
 			parq_ul->queue_sent = entry.queue_sent;
+			parq_ul->send_next_queue =
+				parq_upload_next_queue(entry.last_queue_sent, parq_ul);
 
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
