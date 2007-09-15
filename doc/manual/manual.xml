@@ -1062,6 +1062,7 @@ participating.  This makes the estimates unreliable. </para>
 <chapter id="NETWORKING">
 <title>Networking</title>
 
+<section><title>NAT and firewalling.</title>
 <para> This section only addresses IPv4.  Some background on the
 Internet Protocol is needed.  Most likely if you are having networking
 problems, you are on a private network.  These addresses are found in
@@ -1145,6 +1146,43 @@ iptables -t nat -A PREROUTING -i $EXTIF -p tcp --dport $port -j DNAT --to $gtkg
 <para><emphasis role="bold">NOTE:</emphasis> Many consumer firewall
 products refer to DNAT as "DMZ".  This is the wrong nomenclature, but
 it maybe what you want. </para>
+</section>
+
+<section id="ENCRYPT-SHAPING">
+<title>ISP filtering and shaping Gnutella traffic</title>
+
+<para>
+Many ISPs have been known to filter or shape peer-to-peer traffic.
+The <ulink url="http://www.azureuswiki.com/index.php/Bad_ISPs">
+Azureus wiki </ulink> gives an extensive list of ISPs known to filter
+or shape BitTorrent traffic.  As can be seen from <ulink
+url="http://www.gnutellaforums.com/connection-problems/33712-isps-known-block-filter-p2p-specifically-limewire.html">
+this discussion </ulink> many of the same ISPs are shaping Gnutella traffic.
+</para>
+
+<para>
+gtk-gnutella was the first Gnutella client to provide encryption to
+prevent traffic filtering and shaping of Gnutella traffic.  If you
+have an ISP that you <emphasis role="bold">know</emphasis> is
+detecting Gnutella traffic, you can set the
+<emphasis>tls_enforce</emphasis> parameter.  The
+<emphasis>tls_enforce</emphasis> parameter is set from the "Debugging"
+tab of the Preferences dialog (control-P).  Type
+<emphasis>tls_enforce</emphasis> in the "Property pattern" and click
+on the value "FALSE" and change it to "TRUE".  Some ISPs even shape
+all encrypted traffic.  gtk-gnutella may still work, but traffic will
+be slowed.
+</para>
+
+<para>
+If your ISP is not shaping traffic, there is no need to set the
+<emphasis>tls_enforce</emphasis> parameter.  gtk-gnutella will detect
+if other servents with to use encrypted connections.  gtk-gnutella
+must be compile to use the GnuTLS libraries for the encryption to
+work.
+</para>
+
+</section>
 
 </chapter>
 
@@ -1451,7 +1489,7 @@ Juha K. Kallio
 
 </part>
 
-<glossary><title>Glossary</title>
+<glossary id="GLOSSARY"><title>Glossary</title>
 
 <para>
 
