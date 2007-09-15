@@ -4390,26 +4390,32 @@ parq_store(gpointer data, gpointer file_ptr)
 	 * The lifetime is saved as a relative value.
 	 */
 	fprintf(f,
-		  "QUEUE: %d\n"
-		  "POS: %d\n"
-		  "ENTERED: %s\n"
-		  "EXPIRE: %d\n"
-		  "ID: %s\n"
-		  "SIZE: %s\n"
-		  "IP: %s\n"
-		  "QUEUESSENT: %d\n"
-		  "LASTQUEUE: %s\n"
-		  ,
-		  parq_ul->queue->num,
-		  parq_ul->position,
-		  enter_buf,
-		  expire,
-		  guid_hex_str(parq_ul->id),
-		  uint64_to_string(parq_ul->file_size),
-		  host_addr_to_string(parq_ul->remote_addr),
-		  parq_ul->queue_sent,
-		  last_buf
-		  );
+		"QUEUE: %d\n"
+		"POS: %d\n"
+		"ENTERED: %s\n"
+		"EXPIRE: %d\n"
+		"ID: %s\n"
+		"SIZE: %s\n"
+		"IP: %s\n"
+		,
+		parq_ul->queue->num,
+		parq_ul->position,
+		enter_buf,
+		expire,
+		guid_hex_str(parq_ul->id),
+		uint64_to_string(parq_ul->file_size),
+		host_addr_to_string(parq_ul->remote_addr)
+	);
+
+	if (parq_ul->queue_sent) {
+		fprintf(f,
+			"QUEUESSENT: %d\n"
+			"LASTQUEUE: %s\n"
+			,
+			parq_ul->queue_sent,
+			last_buf
+		);
+	}
 
 	if (parq_ul->sha1) {
 		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
@@ -4633,9 +4639,9 @@ parq_upload_load_queue(void)
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
 		if (PARQ_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning("parq_upload_load_queue(): "
-				"duplicate tag \"%s\" in entry in line %u",
+				"ignoring duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
-			break;
+			continue;
 		}
 
 		switch (tag) {
