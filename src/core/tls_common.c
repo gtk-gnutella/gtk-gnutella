@@ -76,6 +76,7 @@ static inline size_t
 tls_adjust_send_size(struct gnutella_socket *s, size_t size)
 {
 	size_t max_size = gnutls_record_get_max_size(tls_socket_get_session(s));
+	g_assert(max_size > 0);
 	return MIN(size, max_size);
 }
 
@@ -532,40 +533,30 @@ tls_global_init(void)
 }
 
 static ssize_t
-tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
-	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
-	const char *p;
-	size_t len;
 	ssize_t ret;
 
-	g_assert(size <= INT_MAX);
-	g_assert(s != NULL);
-	g_assert(buf != NULL);
+	g_assert((0 == s->tls.snarf) ^ (NULL == buf));
+	g_assert((0 == s->tls.snarf) ^ (0 == size));
 
-	g_assert(socket_uses_tls(s));
-
-	if (0 != s->tls.snarf) {
-		p = NULL;
-		len = 0;
-	} else {
-		p = buf;
-		len = tls_adjust_send_size(s, size);
-		g_assert(NULL != p && len > 0);
-	}
-
-	ret = gnutls_record_send(tls_socket_get_session(s), p, len);
+	size = tls_adjust_send_size(s, size);
+	ret = gnutls_record_send(tls_socket_get_session(s), buf, size);
 	if (ret < 0) {
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			cond = gnutls_record_get_direction(tls_socket_get_session(s))
-					? INPUT_EVENT_WX : INPUT_EVENT_RX;
+			if (s->gdk_tag) {
+				inputevt_cond_t cond;
 
+				cond = gnutls_record_get_direction(tls_socket_get_session(s))
+							? INPUT_EVENT_WX : INPUT_EVENT_RX;
+				tls_socket_evt_change(s, cond);
+			}
 			if (0 == s->tls.snarf) {
-				s->tls.snarf = len;
-				ret = len;
+				s->tls.snarf = size;
+				ret = size;
 			} else {
 				errno = VAL_EAGAIN;
 				ret = -1;
@@ -594,17 +585,61 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 			ret = -1;
 		}
 	} else {
-		if (0 != s->tls.snarf) {
+
+		if (s->tls.snarf) {
 			g_assert(s->tls.snarf >= (size_t) ret);
 			s->tls.snarf -= ret;
-			errno = VAL_EAGAIN;
-			ret = -1;
+			if (0 == s->tls.snarf) {
+				ret = 0;
+			} else {
+				errno = VAL_EAGAIN;
+				return -1;
+			}
 		}
 	}
 
-	if (s->gdk_tag && cond)
-		tls_socket_evt_change(s, cond);
+	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
+	return ret;
+}
 
+static int
+tls_flush(struct wrap_io *wio)
+{
+	struct gnutella_socket *s = wio->ctx;
+
+	socket_check(s);
+
+	if (s->tls.snarf) {
+		if (GNET_PROPERTY(tls_debug)) {
+			g_message("tls_flush: snarf=%lu host=%s",
+					(gulong) s->tls.snarf,
+					host_addr_port_to_string(s->addr, s->port));
+		}
+		if (tls_write_intern(wio, NULL, 0))
+			return -1;
+		g_assert(0 == s->tls.snarf);
+	}
+	return 0;
+}
+
+
+static ssize_t
+tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+{
+	struct gnutella_socket *s = wio->ctx;
+	ssize_t ret;
+
+	g_assert(size > 0);
+	g_assert(size <= INT_MAX);
+	g_assert(s != NULL);
+	g_assert(buf != NULL);
+
+	g_assert(socket_uses_tls(s));
+
+	ret = tls_flush(wio);
+	if (0 == ret) {
+		ret = tls_write_intern(wio, buf, size);
+	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -622,11 +657,11 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 
 	g_assert(socket_uses_tls(s));
 
-	if (s->wio.flush(&s->wio) < 0) {
-		if (!is_temporary_error(errno)) {
+	if (tls_flush(wio) && !is_temporary_error(errno)) {
+		if (GNET_PROPERTY(tls_debug)) {
 			g_warning("tls_read: flush error: %s", g_strerror(errno));
-			return -1;
 		}
+		return -1;
 	}
 
 	ret = gnutls_record_recv(tls_socket_get_session(s), buf, size);
@@ -660,227 +695,62 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		ret = -1;
 	}
 
-	if (s->gdk_tag && cond)
+	if (s->gdk_tag && cond) {
 		tls_socket_evt_change(s, cond);
-
+	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
-}
-
-static int
-tls_flush(struct wrap_io *wio)
-{
-	struct gnutella_socket *s = wio->ctx;
-	ssize_t ret;
-
-	socket_check(s);
-
-	if (0 == s->tls.snarf)
-		return 0;
-
-	if (GNET_PROPERTY(tls_debug)) {
-		g_message("tls_flush: snarf=%lu", (gulong) s->tls.snarf);
-	}
-	ret = tls_write(wio, "", 0);
-	g_assert((ssize_t)-1 == ret);
-	return (s->tls.snarf > 0 || VAL_EAGAIN != errno) ? -1 : 0;
 }
 
 static ssize_t
 tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
-	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
-	ssize_t ret, written;
+	ssize_t ret, done;
 	int i;
 
 	g_assert(socket_uses_tls(s));
 	g_assert(iovcnt > 0);
 
-	if (0 != s->tls.snarf) {
-		ret = gnutls_record_send(tls_socket_get_session(s), NULL, 0);
-		if (ret > 0) {
-			g_assert((ssize_t) s->tls.snarf >= ret);
-			s->tls.snarf -= ret;
-			if (0 != s->tls.snarf) {
-				errno = VAL_EAGAIN;
-				ret = -1;
-				goto done;
-			}
-		} else {
-			switch (ret) {
-			case 0:
-				ret = 0;
-				goto done;
-			case GNUTLS_E_INTERRUPTED:
-			case GNUTLS_E_AGAIN:
-				cond = gnutls_record_get_direction(tls_socket_get_session(s))
-						? INPUT_EVENT_WX : INPUT_EVENT_RX;
-				errno = VAL_EAGAIN;
-				break;
-			case GNUTLS_E_PULL_ERROR:
-			case GNUTLS_E_PUSH_ERROR:
-				if (GNET_PROPERTY(tls_debug)) {
-					g_message("tls_writev() failed: "
-						"host=%s errno=\"%s\"",
-						host_addr_port_to_string(s->addr, s->port),
-						g_strerror(errno));
-				}
-				errno = EIO;
-				break;
-			default:
-				if (GNET_PROPERTY(tls_debug)) {
-					g_warning("tls_writev(): gnutls_record_send() failed: "
-						"host=%s error=\"%s\"",
-						host_addr_port_to_string(s->addr, s->port),
-						gnutls_strerror(ret));
-				}
-				errno = EIO;
-			}
-			ret = -1;
-			goto done;
-		}
-	}
+	done = 0;
+	ret = 0;
+	for (i = 0; i < iovcnt; i++) {
+		const size_t size = iov[i].iov_len;
 
-	ret = -2;	/* Shut the compiler: iovcnt could still be 0 */
-	written = 0;
-	for (i = 0; i < iovcnt; ++i) {
-		char *p;
-		size_t len;
-
-		p = iov[i].iov_base;
-		len = tls_adjust_send_size(s, iov[i].iov_len);
-		g_assert(NULL != p && len > 0);
-
-		ret = gnutls_record_send(tls_socket_get_session(s), p, len);
-		if (ret < 0) {
-			switch (ret) {
-			case GNUTLS_E_INTERRUPTED:
-			case GNUTLS_E_AGAIN:
-				cond = gnutls_record_get_direction(tls_socket_get_session(s))
-						? INPUT_EVENT_WX : INPUT_EVENT_RX;
-				s->tls.snarf = len;
-				ret = written + len;
-				break;
-			case GNUTLS_E_PULL_ERROR:
-			case GNUTLS_E_PUSH_ERROR:
-				if (GNET_PROPERTY(tls_debug)) {
-					g_message("tls_writev() failed: "
-						"host=%s errno=\"%s\"",
-						host_addr_port_to_string(s->addr, s->port),
-						g_strerror(errno));
-				}
-				ret = -1;
-				break;
-			default:
-				if (GNET_PROPERTY(tls_debug)) {
-					g_warning("gnutls_record_send() failed: "
-						"host=%s error=\"%s\"",
-						host_addr_port_to_string(s->addr, s->port),
-						gnutls_strerror(ret));
-				}
-				errno = EIO;
-				ret = -1;
-			}
+		ret = tls_write(wio, iov[i].iov_base, size);
+		if ((ssize_t) -1 == ret)
 			break;
-		} else if (0 == ret) {
-			ret = written;
+		done += (size_t) ret;
+		if (size != (size_t) ret)
 			break;
-		} else {
-			written += ret;
-			ret = written;
-		}
 	}
-
-done:
-	if (s->gdk_tag && cond)
-		tls_socket_evt_change(s, cond);
-
-	g_assert((ssize_t) -1 == ret || ret >= 0);
-	return ret;
+	return done > 0 ? done : ret;
 }
 
 static ssize_t
 tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
-	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
-	size_t rcvd = 0;
-	ssize_t ret;
+	ssize_t ret, done;
 	int i;
 
 	g_assert(socket_uses_tls(s));
 	g_assert(iovcnt > 0);
 
-	if (s->wio.flush(&s->wio) < 0) {
-		if (!is_temporary_error(errno)) {
-			g_warning("tls_read: flush error: %s", g_strerror(errno));
-			return -1;
-		}
+	done = 0;
+	ret = 0;
+	for (i = 0; i < iovcnt; i++) {
+		const size_t size = iov[i].iov_len;
+
+		ret = tls_read(wio, iov[i].iov_base, size);
+		if ((ssize_t) -1 == ret)
+			break;
+		done += (size_t) ret;
+		if (size != (size_t) ret)
+			break;
 	}
 
-	ret = 0;	/* Shut the compiler: iovcnt could still be 0 */
-	for (i = 0; i < iovcnt; ++i) {
-		size_t len;
-		char *p;
-
-		p = iov[i].iov_base;
-		len = tls_adjust_send_size(s, iov[i].iov_len);
-		g_assert(NULL != p && len > 0);
-
-		ret = gnutls_record_recv(tls_socket_get_session(s), p, len);
-		if (ret <= 0) {
-			break;
-		}
-		rcvd += ret;
-		if ((size_t) ret != len) {
-			break;
-		}
-	}
-
-	if (ret < 0) {
-		switch (ret) {
-		case GNUTLS_E_INTERRUPTED:
-		case GNUTLS_E_AGAIN:
-			cond = gnutls_record_get_direction(tls_socket_get_session(s))
-					? INPUT_EVENT_WX : INPUT_EVENT_RX;
-			if (rcvd > 0) {
-				ret = rcvd;
-			} else {
-				errno = VAL_EAGAIN;
-				ret = -1;
-			}
-			break;
-		case GNUTLS_E_PULL_ERROR:
-		case GNUTLS_E_PUSH_ERROR:
-			if (GNET_PROPERTY(tls_debug)) {
-				g_message("tls_readv(): socket_tls_readv() failed: "
-					"host=%s errno=\"%s\"",
-					host_addr_port_to_string(s->addr, s->port),
-					g_strerror(errno));
-			}
-			errno = EIO;
-			ret = -1;
-			break;
-		default:
-			if (GNET_PROPERTY(tls_debug)) {
-				g_warning("tls_readv(): gnutls_record_recv() failed: "
-					"host=%s error=\"%s\"",
-					host_addr_port_to_string(s->addr, s->port),
-					gnutls_strerror(ret));
-			}
-			errno = EIO;
-			ret = -1;
-		}
-	} else {
-		ret = rcvd;
-	}
-
-	if (s->gdk_tag && cond)
-		tls_socket_evt_change(s, cond);
-
-	g_assert((ssize_t) -1 == ret || ret >= 0);
-	return ret;
+	return done > 0 ? done : ret;
 }
 
 static ssize_t
