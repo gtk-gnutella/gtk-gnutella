@@ -4637,12 +4637,13 @@ parq_upload_load_queue(void)
 
 		tag = parq_string_to_tag(tag_name);
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
-		if (PARQ_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
+		if (PARQ_TAG_UNKNOWN != tag && bit_array_get(tag_used, tag)) {
 			g_warning("parq_upload_load_queue(): "
 				"ignoring duplicate tag \"%s\" in entry in line %u",
 				tag_name, line_no);
 			continue;
 		}
+		bit_array_set(tag_used, tag);
 
 		switch (tag) {
 		case PARQ_TAG_IP:
