@@ -98,6 +98,7 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "g6.6dns.org:1337" },
+	{ "cornflake.sirinet.net:2000" },
 	{ "guruz.udp-host-cache.com:6666" },
 	{ "secondary.udp-host-cache.com:9999" },
 	{ "uhc.udp-host-cache.com:9999" },
