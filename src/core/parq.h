@@ -111,5 +111,6 @@ void parq_upload_send_queue_conf(struct upload *);
 gboolean parq_ul_id_sent(const struct upload *);
 
 time_t parq_banned_source_expire(const host_addr_t);
+gboolean parq_is_enabled(void);
 
 #endif /* _core_parq_h_ */

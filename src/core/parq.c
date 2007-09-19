@@ -95,7 +95,7 @@ RCSID("$Id$")
  */
 #define PARQ_UL_LARGE_SIZE (600 * MEBI)
 
-static GHashTable *dl_all_parq_by_id = NULL;
+static GHashTable *dl_all_parq_by_id;
 
 static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
@@ -111,12 +111,12 @@ static guint parq_upload_active_size = 20;
 static guint parq_upload_ban_window = 600;
 static const gchar file_parq_file[] = "parq";
 
-static GList *ul_parqs = NULL;			/**< List of all queued uploads */
-static gint ul_parqs_cnt = 0;			/**< Amount of queues */
-static GList *ul_parq_queue = NULL;		/**< To whom we need to send a QUEUE */
-static GHashTable *ul_all_parq_by_addr_and_name = NULL;
-static GHashTable *ul_all_parq_by_addr = NULL;
-static GHashTable *ul_all_parq_by_id = NULL;
+static GList *ul_parqs;			/**< List of all queued uploads */
+static gint ul_parqs_cnt;			/**< Amount of queues */
+static GList *ul_parq_queue;		/**< To whom we need to send a QUEUE */
+static GHashTable *ul_all_parq_by_addr_and_name;
+static GHashTable *ul_all_parq_by_addr;
+static GHashTable *ul_all_parq_by_id;
 
 /**
  * If enable_real_passive is TRUE, a dead upload is only marked dead,
@@ -126,8 +126,8 @@ static GHashTable *ul_all_parq_by_id = NULL;
 static gboolean enable_real_passive = TRUE;
 
 
-static GHashTable *ht_banned_source = NULL;
-static GList *parq_banned_sources = NULL;
+static GHashTable *ht_banned_source;
+static GList *parq_banned_sources;
 
 struct parq_banned {
 	host_addr_t addr;
@@ -136,7 +136,8 @@ struct parq_banned {
 };
 
 
-static gboolean parq_shutdown = FALSE;
+static gboolean parq_shutdown;
+static gboolean parq_initialized;
 
 /**
  * Holds status of current queue.
@@ -2161,8 +2162,8 @@ parq_cleanup_banned(time_t now)
 static void
 parq_dead_timer(time_t now, struct parq_ul_queue *q)
 {
+	static time_t last_dead_scan;
 	GList *dl;
-	static time_t last_dead_scan = 0;
 
 	if (
 		GNET_PROPERTY(max_uploads) > 0 ||	/* Sharing disabled */
@@ -2332,11 +2333,14 @@ parq_upload_send_queue_callbacks(time_t now)
 void
 parq_upload_timer(time_t now)
 {
-	static guint print_q_size = 0;
-	static guint startup_delay = 0;
+	static guint print_q_size;
+	static guint startup_delay;
 	GList *queues;
 	GSList *sl, *to_remove = NULL;
 	guint	queue_selected = 0;
+
+	if (!parq_is_enabled())
+		return;
 
 	/*
 	 * Don't do anything with parq during the first 10 seconds. Looks like
@@ -4875,12 +4879,20 @@ parq_banned_source_expire(const host_addr_t addr)
 	return banned ? banned->expire : 0;
 }
 
+gboolean
+parq_is_enabled(void)
+{
+	return parq_initialized;
+}
+
 /**
  * Initialises the upload queue for PARQ.
  */
 void
 parq_init(void)
 {
+	if (!GNET_PROPERTY(parq_enabled))
+		return;
 
 #define bs_nop(x)	(x)
 
@@ -4910,6 +4922,7 @@ parq_init(void)
 	g_assert(ht_banned_source != NULL);
 
 	parq_upload_load_queue();
+	parq_initialized = TRUE;
 }
 
 /**
@@ -4922,6 +4935,9 @@ parq_close(void)
 	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
 
 	parq_shutdown = TRUE;
+
+	if (!parq_initialized)
+		return;
 
 	parq_upload_save_queue();
 
@@ -4990,7 +5006,6 @@ parq_close(void)
 
 	g_hash_table_destroy(ht_banned_source);
 	g_list_free(parq_banned_sources);
-
 }
 
 /* vi: set ts=4 sw=4 cindent: */
