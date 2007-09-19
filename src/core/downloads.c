@@ -3403,7 +3403,6 @@ download_remove(struct download *d)
 	download_set_status(d, GTA_DL_REMOVED);
 
 	atom_str_free_null(&d->file_name);
-	atom_str_free_null(&d->escaped_name);
 	atom_str_free_null(&d->uri);
 
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
@@ -4542,20 +4541,6 @@ download_fallback_to_push(struct download *d,
 	fi_src_status_changed(d);
 }
 
-static const gchar *
-download_escape_name(const gchar *name)
-{
-	const gchar *atom;
-	gchar *escaped;
-		
-	escaped = url_escape_cntrl(name);
-	atom = atom_str_get(escaped);
-	if (name != escaped) {
-		G_FREE_NULL(escaped);
-	}
-	return atom;
-}
-
 static guint32
 get_index_from_uri(const gchar *uri)
 {
@@ -4743,7 +4728,6 @@ create_download(
 
 	d->list_idx = DL_LIST_INVALID;
 	d->file_name = file_name;
-	d->escaped_name = download_escape_name(d->file_name);
 	d->uri = uri ? atom_str_get(uri) : NULL;
 	d->file_size = size;
 
@@ -4993,7 +4977,6 @@ download_clone(struct download *d)
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
-	cd->escaped_name = atom_str_get(d->escaped_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
 	download_set_status(cd, GTA_DL_CONNECTING);
@@ -6726,10 +6709,8 @@ download_moved_permanently(struct download *d, header_t *header)
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
 		atom_str_free_null(&d->file_name);
-		atom_str_free_null(&d->escaped_name);
 
 		d->file_name = deconstify_gchar(info.name);		/* Already an atom */
-		d->escaped_name = download_escape_name(info.name);
 	} else
 		atom_str_free_null(&info.name);
 

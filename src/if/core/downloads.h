@@ -180,7 +180,6 @@ struct download {
 	struct dl_file_info *file_info;
 	guint32 record_index;		/**< Index of the file on the Gnutella server */
 	const gchar *file_name;		/**< Name of the file on the Gnutella server */
-	const gchar *escaped_name;	/**< As file_name, with control chars escaped */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
 
 	filesize_t size;			/**< Total size of the next request, in bytes */
