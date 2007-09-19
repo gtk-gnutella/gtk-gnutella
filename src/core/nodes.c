@@ -5598,12 +5598,25 @@ static void
 err_header_read_error(gpointer obj, gint error)
 {
 	struct gnutella_node *n = cast_to_node(obj);
+	host_addr_t addr = n->addr;
+	guint16 port = n->port;
+	guint32 flags = n->flags;
+	gboolean retry;
  
-	if (ECONNRESET == error && GTA_NODE_HELLO_SENT == n->status) {
-        hcache_add(HCACHE_TIMEOUT, n->addr, 0, "connection reset");
-		node_send_udp_ping(n);
-	}
+	retry = ECONNRESET == error &&
+			GTA_NODE_HELLO_SENT == n->status &&
+			!(SOCK_F_TLS & flags) &&
+			!socket_with_tls(n->socket) &&
+			tls_enabled();
+
 	node_remove(n, _("Failed (Input error: %s)"), g_strerror(error));
+
+	if (retry) {
+		node_add(addr, port, SOCK_F_TLS | flags);
+	} else {
+		udp_send_ping(NULL, addr, port, TRUE);
+        hcache_add(HCACHE_TIMEOUT, addr, 0, "connection reset");
+	}
 }
 
 static void
