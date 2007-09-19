@@ -1417,7 +1417,6 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	ssize_t r;
 	size_t parsed;
 	const gchar *first, *endptr;
-	time_t banlimit;
 
 	(void) source;
 
@@ -1564,7 +1563,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (is_strprefix(first, "QUEUE ")) {
+	if (parq_is_enabled() && is_strprefix(first, "QUEUE ")) {
 		parq_download_queue_ack(s);
 		return;
 	}
@@ -1618,18 +1617,23 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		g_assert_not_reached();
 	}
 
-	/*
-	 * Check for PARQ banning.
-	 * 		-- JA, 29/07/2003
-	 */
+	if (parq_is_enabled()) {
+		time_t banlimit;
+		/*
+		 * Check for PARQ banning.
+		 * 		-- JA, 29/07/2003
+		 */
 
-	banlimit = parq_banned_source_expire(s->addr);
-	if (banlimit) {
-		if (GNET_PROPERTY(socket_debug))
-			g_warning("[sockets] PARQ has banned host %s until %s",
-				host_addr_to_string(s->addr), timestamp_to_string(banlimit));
-		ban_force(s);
-		goto cleanup;
+		banlimit = parq_banned_source_expire(s->addr);
+		if (banlimit) {
+			if (GNET_PROPERTY(socket_debug)) {
+				g_warning("[sockets] PARQ has banned host %s until %s",
+					host_addr_to_string(s->addr),
+					timestamp_to_string(banlimit));
+			}
+			ban_force(s);
+			goto cleanup;
+		}
 	}
 
 	/*
