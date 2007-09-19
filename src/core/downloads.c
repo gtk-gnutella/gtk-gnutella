@@ -11076,10 +11076,11 @@ download_verify_sha1(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 	g_assert(!(FI_F_SUSPEND & d->file_info->flags));
 
-	if (d->flags & DL_F_TRANSIENT) {
-		file_info_changed(d->file_info);		/* Update status! */
+	if (FI_F_SUSPEND & d->file_info->flags)	/* Already verifying */
 		return;
-	}
+
+	if (DL_F_TRANSIENT & d->flags)	/* Nothing to verify */
+		return;
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
@@ -11905,9 +11906,7 @@ download_rx_done(struct download *d)
 		download_thex_done(d);
 	}
 	download_continue(d, FALSE);
-	if (!(d->flags & DL_F_TRANSIENT) && fi->file_size_known) {
-		download_verify_sha1(d);
-	}
+	download_verify_sha1(d);
 }
 
 /**
