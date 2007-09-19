@@ -11050,17 +11050,16 @@ download_verify_sha1(struct download *d)
 
 	download_check(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
-	g_assert(!FILE_INFO_FINISHED(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(!DOWNLOAD_IS_VERIFYING(d));
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
-	g_assert(!(FI_F_SUSPEND & d->file_info->flags));
-
-	if (FI_F_SUSPEND & d->file_info->flags)	/* Already verifying */
-		return;
 
 	if (DL_F_TRANSIENT & d->flags)	/* Nothing to verify */
+		return;
+
+	g_assert(!FILE_INFO_FINISHED(d->file_info));
+	if (FI_F_SUSPEND & d->file_info->flags)	/* Already verifying */
 		return;
 
 	/*
