@@ -5600,12 +5600,11 @@ err_header_read_error(gpointer obj, gint error)
 	struct gnutella_node *n = cast_to_node(obj);
 	host_addr_t addr = n->addr;
 	guint16 port = n->port;
-	guint32 flags = n->flags;
+	guint32 flags = n->socket->flags & (SOCK_F_FORCE | SOCK_F_TLS);
 	gboolean retry;
  
 	retry = ECONNRESET == error &&
 			GTA_NODE_HELLO_SENT == n->status &&
-			!(SOCK_F_TLS & flags) &&
 			!socket_with_tls(n->socket) &&
 			tls_enabled();
 
