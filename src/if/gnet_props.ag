@@ -3584,4 +3584,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "parq_enabled";
+    desc = "If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. "
+		"Do not disable unless you know what you are doing.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

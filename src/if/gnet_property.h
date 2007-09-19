@@ -348,6 +348,7 @@ typedef enum {
     PROP_G2_CACHE_MAX_TIME,
     PROP_G2_DEBUG,
     PROP_DL_RESOURCE_SWITCHING,
+    PROP_PARQ_ENABLED,
     GNET_PROPERTY_END
 } gnet_property_t;
 

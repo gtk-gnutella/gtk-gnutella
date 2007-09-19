@@ -694,6 +694,8 @@ guint32  gnet_property_variable_g2_debug     = 0;
 static const guint32  gnet_property_variable_g2_debug_default = 0;
 gboolean gnet_property_variable_dl_resource_switching     = TRUE;
 static const gboolean gnet_property_variable_dl_resource_switching_default = TRUE;
+gboolean gnet_property_variable_parq_enabled     = TRUE;
+static const gboolean gnet_property_variable_parq_enabled_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6645,6 +6647,23 @@ gnet_prop_init(void) {
     gnet_property->props[311].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[311].data.boolean.def   = (void *) &gnet_property_variable_dl_resource_switching_default;
     gnet_property->props[311].data.boolean.value = (void *) &gnet_property_variable_dl_resource_switching;
+
+
+    /*
+     * PROP_PARQ_ENABLED:
+     *
+     * General data:
+     */
+    gnet_property->props[312].name = "parq_enabled";
+    gnet_property->props[312].desc = _("If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not disable unless you know what you are doing.");
+    gnet_property->props[312].ev_changed = event_new("parq_enabled_changed");
+    gnet_property->props[312].save = TRUE;
+    gnet_property->props[312].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[312].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[312].data.boolean.def   = (void *) &gnet_property_variable_parq_enabled_default;
+    gnet_property->props[312].data.boolean.value = (void *) &gnet_property_variable_parq_enabled;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
