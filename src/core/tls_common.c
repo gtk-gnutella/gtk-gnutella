@@ -306,10 +306,10 @@ tls_handshake(struct gnutella_socket *s)
  * Initiates a new TLS session.
  *
  * @param is_incoming Whether this is an incoming connection.
- * @return The session pointer on success; NULL on failure.
+ * @return 0 on success, -1 on error.
  */
-tls_context_t
-tls_init(const struct gnutella_socket *s)
+int
+tls_init(struct gnutella_socket *s)
 {
 	static const int cipher_list[] = {
 		GNUTLS_CIPHER_AES_256_CBC,
@@ -350,6 +350,7 @@ tls_init(const struct gnutella_socket *s)
 
 	ctx = walloc0(sizeof *ctx);
 	ctx->s = s;
+	s->tls.ctx = ctx;
 
 	if (SOCK_CONN_INCOMING == s->direction) {
 
@@ -420,58 +421,19 @@ tls_init(const struct gnutella_socket *s)
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 #endif /* XXX_CUSTOM_PUSH_PULL */
-	return ctx;
+	return 0;
 
 failure:
-	tls_free(&ctx);
-	return NULL;
+	return -1;
 }
 
 void
-tls_bye(tls_context_t ctx, gboolean is_incoming)
-{
-	int ret;
-	
-	g_return_if_fail(ctx);
-	g_return_if_fail(ctx->session);
-
-	ret = gnutls_bye(ctx->session,
-			is_incoming ? GNUTLS_SHUT_WR : GNUTLS_SHUT_RDWR);
-	if (ret < 0) {
-		switch (ret) {
-		case GNUTLS_E_INTERRUPTED:
-		case GNUTLS_E_AGAIN:
-			break;
-		case GNUTLS_E_PULL_ERROR:
-		case GNUTLS_E_PUSH_ERROR:
-			if (GNET_PROPERTY(tls_debug)) {
-				switch (errno) {
-				case EPIPE:
-				case ECONNRESET:
-					if (GNET_PROPERTY(tls_debug) < 2)
-						break;
-				default:
-					g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
-						host_addr_port_to_string(ctx->s->addr, ctx->s->port),
-						g_strerror(errno));
-				}
-			}
-			break;
-		default:
-			g_warning("gnutls_bye() failed: host=%s error=\"%s\"",
-				host_addr_port_to_string(ctx->s->addr, ctx->s->port),
-				gnutls_strerror(ret));
-		}
-	}
-}
-
-void
-tls_free(tls_context_t *ctx_ptr)
+tls_free(struct gnutella_socket *s)
 {
 	tls_context_t ctx;
 
-	g_assert(ctx_ptr);
-	ctx = *ctx_ptr;
+	socket_check(s);
+	ctx = s->tls.ctx;
 	if (ctx) {
 		if (ctx->session) {
 			gnutls_deinit(ctx->session);
@@ -485,7 +447,7 @@ tls_free(tls_context_t *ctx_ptr)
 			ctx->client_cred = NULL;
 		}
 		wfree(ctx, sizeof *ctx);
-		*ctx_ptr = NULL;
+		s->tls.ctx = NULL;
 	}
 }
 
@@ -547,13 +509,6 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			if (s->gdk_tag) {
-				inputevt_cond_t cond;
-
-				cond = gnutls_record_get_direction(tls_socket_get_session(s))
-							? INPUT_EVENT_WX : INPUT_EVENT_RX;
-				tls_socket_evt_change(s, cond);
-			}
 			if (0 == s->tls.snarf) {
 				s->tls.snarf = size;
 				ret = size;
@@ -598,6 +553,10 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 		}
 	}
 
+	if (s->gdk_tag && s->tls.snarf) {
+		tls_socket_evt_change(s, INPUT_EVENT_WX);
+	}
+
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -639,6 +598,9 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	ret = tls_flush(wio);
 	if (0 == ret) {
 		ret = tls_write_intern(wio, buf, size);
+		if (s->gdk_tag) {
+			tls_socket_evt_change(s, INPUT_EVENT_WX);
+		}
 	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
@@ -647,7 +609,6 @@ tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 static ssize_t
 tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
-	inputevt_cond_t cond = 0;
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
 
@@ -669,8 +630,6 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		switch (ret) {
 		case GNUTLS_E_INTERRUPTED:
 		case GNUTLS_E_AGAIN:
-			cond = gnutls_record_get_direction(tls_socket_get_session(s))
-					? INPUT_EVENT_WX : INPUT_EVENT_RX;
 			errno = VAL_EAGAIN;
 			break;
 		case GNUTLS_E_PULL_ERROR:
@@ -695,8 +654,8 @@ tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		ret = -1;
 	}
 
-	if (s->gdk_tag && cond) {
-		tls_socket_evt_change(s, cond);
+	if (s->gdk_tag && 0 == s->tls.snarf) {
+		tls_socket_evt_change(s, INPUT_EVENT_RX);
 	}
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
@@ -766,15 +725,61 @@ tls_no_sendto(struct wrap_io *unused_wio, const gnet_host_t *unused_to,
 }
 
 void
-tls_wio_link(struct wrap_io *wio)
+tls_wio_link(struct gnutella_socket *s)
 {
-	g_assert(wio);	
-	wio->write = tls_write;
-	wio->read = tls_read;
-	wio->writev = tls_writev;
-	wio->readv = tls_readv;
-	wio->sendto = tls_no_sendto;
-	wio->flush = tls_flush;
+	socket_check(s);
+
+	s->wio.write = tls_write;
+	s->wio.read = tls_read;
+	s->wio.writev = tls_writev;
+	s->wio.readv = tls_readv;
+	s->wio.sendto = tls_no_sendto;
+	s->wio.flush = tls_flush;
+}
+
+void
+tls_bye(struct gnutella_socket *s)
+{
+	int ret;
+	
+	socket_check(s);
+	g_return_if_fail(s->tls.ctx);
+	g_return_if_fail(s->tls.ctx->session);
+
+	if (tls_flush(&s->wio) && GNET_PROPERTY(tls_debug)) {
+		g_warning("tls_bye: tls_flush() failed");
+	}
+
+	ret = gnutls_bye(s->tls.ctx->session,
+			SOCK_CONN_INCOMING != s->direction
+				? GNUTLS_SHUT_WR : GNUTLS_SHUT_RDWR);
+
+	if (ret < 0) {
+		switch (ret) {
+		case GNUTLS_E_INTERRUPTED:
+		case GNUTLS_E_AGAIN:
+			break;
+		case GNUTLS_E_PULL_ERROR:
+		case GNUTLS_E_PUSH_ERROR:
+			if (GNET_PROPERTY(tls_debug)) {
+				switch (errno) {
+				case EPIPE:
+				case ECONNRESET:
+					if (GNET_PROPERTY(tls_debug) < 2)
+						break;
+				default:
+					g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
+						host_addr_port_to_string(s->addr, s->port),
+						g_strerror(errno));
+				}
+			}
+			break;
+		default:
+			g_warning("gnutls_bye() failed: host=%s error=\"%s\"",
+				host_addr_port_to_string(s->addr, s->port),
+				gnutls_strerror(ret));
+		}
+	}
 }
 
 const char *
@@ -901,17 +906,32 @@ tls_handshake(struct gnutella_socket *s)
 	return TLS_HANDSHAKE_FINISHED;
 }
 
-tls_context_t 
-tls_init(const struct gnutella_socket *s)
+int
+tls_init(struct gnutella_socket *s)
 {
-	(void) s;
-	return NULL;
+	socket_check(s);
+	g_assert_not_reached();
+	return -1;
 }
 
 void
-tls_wio_link(struct wrap_io *wio)
+tls_free(struct gnutella_socket *s)
 {
-	(void) wio;
+	socket_check(s);
+	g_assert_not_reached();
+}
+
+void
+tls_bye(struct gnutella_socket *s)
+{
+	socket_check(s);
+	g_assert_not_reached();
+}
+
+void
+tls_wio_link(struct gnutella_socket *s)
+{
+	socket_check(s);
 	g_assert_not_reached();
 }
 

@@ -84,8 +84,8 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifndef SHUT_WR
-/* XXX: This should be handled by Configure because SHUT_* are sometimes
- *		enums instead of macro definitions.
+/* FIXME: This should be handled by Configure because SHUT_* are sometimes
+ *		  enums instead of macro definitions.
  */
 #define SHUT_WR 1					/**< Shutdown TX side */
 #endif
@@ -229,16 +229,14 @@ socket_evt_set(struct gnutella_socket *s,
 
 	fd = socket_evt_fd(s);
 
-#ifdef HAS_GNUTLS
 	s->tls.cb_cond = cond;
 	s->tls.cb_handler = handler;
 	s->tls.cb_data = data;
 
-	if (GNET_PROPERTY(tls_debug) > 4)
+	if (GNET_PROPERTY(tls_debug) > 4) {
 		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
 			fd, inputevt_cond_to_string(cond), handler);
-#endif /* HAS_GNUTLS */
-
+	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
 	
@@ -258,7 +256,6 @@ socket_evt_clear(struct gnutella_socket *s)
 	socket_check(s);
 
 	if (s->gdk_tag) {
-#ifdef HAS_GNUTLS
 		if (GNET_PROPERTY(tls_debug) > 4) {
 			gint fd = socket_evt_fd(s);
 			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
@@ -268,7 +265,7 @@ socket_evt_clear(struct gnutella_socket *s)
 		s->tls.cb_cond = 0;
 		s->tls.cb_handler = NULL;
 		s->tls.cb_data = NULL;
-#endif /* HAS_GNUTLS */
+
 		inputevt_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 	}
@@ -612,7 +609,7 @@ send_socks4(struct gnutella_socket *s)
 		length = sizeof *req;
 	}
 
-	/* XXX: Shouldn't this use the configured username instead? */
+	/* FIXME: Shouldn't this use the configured username instead? */
 	/* Determine the current username */
 	{
 		const struct passwd *user;
@@ -1327,19 +1324,15 @@ socket_free(struct gnutella_socket *s)
 		s->getline = NULL;
 	}
 
-#ifdef HAS_GNUTLS
-	if (s->tls.ctx) {
+	if (socket_with_tls(s)) {
 		if (s->file_desc != -1 && socket_uses_tls(s)) {
-			gboolean is_incoming = SOCK_CONN_INCOMING == s->direction;
-
-			if (!is_incoming) {
+			if (SOCK_CONN_INCOMING != s->direction) {
 				tls_cache_insert(s->addr, s->port);
 			}
-			tls_bye(s->tls.ctx, is_incoming);
+			tls_bye(s);
 		}
-		tls_free(&s->tls.ctx);
+		tls_free(s);
 	}
-#endif	/* HAS_GNUTLS */
 
 	if (s->file_desc != -1) {
 		socket_cork(s, FALSE);
@@ -1373,17 +1366,13 @@ socket_free_null(struct gnutella_socket **s_ptr)
  */
 static gboolean
 socket_tls_setup(struct gnutella_socket *s)
-#ifdef HAS_GNUTLS
 {
-	if (!s->tls.enabled) {
+	if (!s->tls.enabled)
 		return 0;
-	}
 
 	if (s->tls.stage < SOCK_TLS_INITIALIZED) {
-		s->tls.ctx = tls_init(s);
-		if (!s->tls.ctx) {
+		if (tls_init(s))
 			goto destroy;
-		}
 		s->tls.stage = SOCK_TLS_INITIALIZED;
 		socket_nodelay(s, TRUE);
 	}
@@ -1412,12 +1401,6 @@ destroy:
 	errno = EIO;
 	return -1;
 }
-#else	/* HAVE_GNUTLS */
-{
-	(void) s;
-	return 0;
-}
-#endif	/* HAVE_GNUTLS */
 
 /**
  * Used for incoming connections, for outgoing too??
@@ -1445,8 +1428,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(0 == s->pos);		/* We read a line, then leave this callback */
 
-#ifdef HAS_GNUTLS
-	if (s->direction == SOCK_CONN_INCOMING) {
+	if (
+		s->direction == SOCK_CONN_INCOMING &&
+		s->tls.enabled
+	) {
 		if (s->tls.enabled && s->tls.stage < SOCK_TLS_INITIALIZED) {
 			ssize_t ret;
 			guchar c;
@@ -1482,7 +1467,6 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			return;
 		}
 	}
-#endif /* HAS_GNUTLS */
 
 	socket_alloc_buffer(s);
 
@@ -2153,7 +2137,6 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 			host_addr_port_to_string(t->addr, t->port));
 	}
 
-#ifdef HAS_GNUTLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
 	t->tls.stage = SOCK_TLS_NONE;
 	t->tls.ctx = NULL;
@@ -2163,8 +2146,7 @@ socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 		g_message("Incoming connection from %s",
 			host_addr_port_to_string(t->addr, t->port));
 	}
-#endif	/* HAS_GNUTLS */
-        
+
 	socket_wio_link(t);
 
 	t->flags |= SOCK_F_ESTABLISHED;
@@ -2589,6 +2571,9 @@ socket_connect_prepare(struct gnutella_socket *s,
 
 	socket_check(s);
 
+	/* Filter out flags which we cannot accept */
+	flags &= (SOCK_F_TLS | SOCK_F_FORCE);
+
 	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(addr)) {
 		g_warning("Not connecting to hostile host %s",
 			host_addr_to_string(addr));
@@ -2640,13 +2625,12 @@ socket_connect_prepare(struct gnutella_socket *s,
 	s->port = port;
 	s->flags |= SOCK_F_TCP | flags;
 
-#ifdef HAS_GNUTLS
-	s->tls.enabled = GNET_PROPERTY(tls_enforce) || (SOCK_F_TLS & flags);
+	s->tls.enabled = tls_enabled() &&
+		(GNET_PROPERTY(tls_enforce) || (SOCK_F_TLS & flags));
 	s->tls.stage = SOCK_TLS_NONE;
 	s->tls.ctx = NULL;
 	s->tls.snarf = 0;
-#endif	/* HAS_GNUTLS */
-        
+
 	socket_wio_link(s);
 
 	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof enable);
@@ -3127,9 +3111,7 @@ socket_local_listen(const gchar *pathname)
 		return NULL;
 	}
 
-#ifdef HAS_GNUTLS
-	s->tls.enabled = TRUE;
-#endif /* HAS_GNUTLS */
+	s->tls.enabled = tls_enabled();
 
 	socket_enable_accept(s);
 	return s;
@@ -3193,9 +3175,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 		s->local_port = socket_addr_get_port(&addr);
 	}
 
-#ifdef HAS_GNUTLS
-	s->tls.enabled = TRUE;
-#endif /* HAS_GNUTLS */
+	s->tls.enabled = tls_enabled();
 
 	socket_enable_accept(s);
 	return s;
@@ -3392,7 +3372,7 @@ socket_set_intern(int fd, int option, unsigned size,
 		g_warning("cannot read old %s buffer length on fd #%d: %s",
 			type, fd, g_strerror(errno));
 
-/* XXX needs to add metaconfig test */
+/* FIXME: needs to add metaconfig test */
 #ifdef LINUX_SYSTEM
 	old_len >>= 1;		/* Linux returns twice the real amount */
 #endif
@@ -3662,7 +3642,7 @@ socket_wio_link(struct gnutella_socket *s)
 		s->wio.readv = socket_no_readv;
 		s->wio.sendto = socket_no_sendto;
 	} else if (socket_uses_tls(s)) {
-		tls_wio_link(&s->wio);
+		tls_wio_link(s);
 	} else {
 		g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 		s->wio.write = socket_plain_write;

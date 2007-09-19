@@ -123,9 +123,7 @@ struct gnutella_socket {
 
 	struct wrap_io wio;		/**< Wrapped IO object */
 
-#ifdef HAS_GNUTLS
 	struct socket_tls_ctx tls;
-#endif /* HAS_GNUTLS */
 
 	union {
 		struct gnutella_node *node;
@@ -167,29 +165,15 @@ extern struct gnutella_socket *s_local_listen;
 
 static inline gboolean
 socket_with_tls(const struct gnutella_socket *s)
-#ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_INITIALIZED;
 }
-#else
-{
-	(void) s;
-	return FALSE;
-}
-#endif	/* HAS_GNUTLS */
 
 static inline gboolean
 socket_uses_tls(const struct gnutella_socket *s)
-#ifdef HAS_GNUTLS
 {
 	return s->tls.enabled && s->tls.stage == SOCK_TLS_ESTABLISHED;
 }
-#else
-{
-	(void) s;
-	return FALSE;
-}
-#endif	/* HAS_GNUTLS */
 
 static inline gboolean
 socket_is_corked(const struct gnutella_socket *s)

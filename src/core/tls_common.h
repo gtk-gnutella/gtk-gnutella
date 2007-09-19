@@ -50,11 +50,11 @@ struct tls_context;
 
 typedef struct tls_context *tls_context_t;
 
-tls_context_t tls_init(const struct gnutella_socket *s);
-enum tls_handshake_result tls_handshake(struct gnutella_socket *s);
-void tls_bye(tls_context_t ctx, gboolean is_incoming);
-void tls_free(tls_context_t *ctx_ptr);
-void tls_wio_link(struct wrap_io *wio);
+int tls_init(struct gnutella_socket *);
+enum tls_handshake_result tls_handshake(struct gnutella_socket *);
+void tls_bye(struct gnutella_socket *);
+void tls_free(struct gnutella_socket *);
+void tls_wio_link(struct gnutella_socket *);
 
 gboolean tls_enabled(void);
 void tls_global_init(void);
