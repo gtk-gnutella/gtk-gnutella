@@ -1097,7 +1097,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			if (status & 0x08) rs->status |= ST_UPLOADED;
 			if (status & 0x20) rs->status |= ST_GGEP;
 			rs->status |= ST_PARSED_TRAILER;
-		} else if (rs->status  & ST_KNOWN_VENDOR) {
+		} else if (rs->status & ST_KNOWN_VENDOR) {
 			if (GNET_PROPERTY(search_debug) > 1)
 				g_warning("vendor %s changed # of open data bytes to %d",
 						vendor, open_size);
