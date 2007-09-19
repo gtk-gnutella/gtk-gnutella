@@ -356,8 +356,7 @@ verify_next_file(struct verify *ctx)
 
 				fd = file_open(item->pathname, O_RDONLY);
 				if (fd >= 0) {
-					ctx->file = file_object_new(fd, item->pathname,
-							O_RDONLY);
+					ctx->file = file_object_new(fd, item->pathname, O_RDONLY);
 				}
 			}
 			if (NULL == ctx->file) {
