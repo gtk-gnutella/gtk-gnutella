@@ -2100,16 +2100,16 @@ download_requeue_all_active(const fileinfo_t *fi)
 
 	file_info_check(fi);
 
-	sources = file_info_get_sources(fi);
-
 	/*
 	 * Requeue all the active downloads that were referencing that file.
 	 */
 
+	sources = file_info_get_sources(fi);
 	for (iter = sources; iter; iter = g_slist_next(iter)) {
 		struct download *d = iter->data;
 
 		download_check(d);
+		g_assert(d->file_info == fi);
 
 		/*
 		 * An actively queued download is counted as running, but for our
@@ -2136,8 +2136,8 @@ download_requeue_all_active(const fileinfo_t *fi)
 			download_queue(d, _("Requeued due to file removal"));
 		}
 	}
-
 	g_slist_free(sources);
+	sources = NULL;
 }
 
 /**
@@ -2175,20 +2175,20 @@ download_remove_file(struct download *d, gboolean reset)
 void
 download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 {
-	struct download *next;
+	GSList *sources, *iter;
 
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
+	file_info_check(old_fi);
+	file_info_check(new_fi);
+
+	sources = file_info_get_sources(old_fi);
+	for (iter = sources; iter; iter = g_slist_next(iter)) {
+		struct download *d = iter->data;
 		gboolean is_running;
 
 		download_check(d);
-		next = hash_list_next(sl_downloads, next);
+		g_assert(d->file_info == old_fi);
 
 		if (d->status == GTA_DL_REMOVED)
-			continue;
-
-		if (d->file_info != old_fi)
 			continue;
 
 		is_running = DOWNLOAD_IS_RUNNING(d);
@@ -2225,6 +2225,8 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 		if (is_running)
 			download_queue(d, _("Requeued by file info change"));
 	}
+	g_slist_free(sources);
+	sources = NULL;
 }
 
 /**
@@ -3275,14 +3277,16 @@ download_info_reget(struct download *d)
 static void
 queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 {
-	struct download *next;
+	GSList *sources, *iter;
 
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
+	file_info_check(fi);
+
+	sources = file_info_get_sources(fi);
+	for (iter = sources; iter; iter = g_slist_next(iter)) {
+		struct download *d = iter->data;
 
 		download_check(d);
-		next = hash_list_next(sl_downloads, next);
+		g_assert(d->file_info == fi);
 
 		switch (d->status) {
 		case GTA_DL_REMOVED:
@@ -3299,16 +3303,16 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 			break;
 		}
 
-		if (d->file_info != fi)
-			continue;
-
 		if (suspend) {
 			if (DOWNLOAD_IS_RUNNING(d))
 				download_queue(d, _("Suspended (SHA1 checking)"));
 			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
-		} else
+		} else {
 			d->flags &= ~DL_F_SUSPENDED;
+		}
 	}
+	g_slist_free(sources);
+	sources = NULL;
 
 	if (suspend)
 		fi->flags |= FI_F_SUSPEND;
@@ -3420,14 +3424,19 @@ download_remove(struct download *d)
 static void
 queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 {
-	struct download *next;
+	GSList *sources, *iter;
 
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
+	file_info_check(fi);
+
+	sources = file_info_get_sources(fi);
+	for (iter = sources; iter; iter = g_slist_next(iter)) {
+		struct download *d = iter->data;
 
 		download_check(d);
-		next = hash_list_next(sl_downloads, next);
+		g_assert(d->file_info == fi);
+
+		if (d == skip)
+			continue;
 
 		switch (d->status) {
 		case GTA_DL_REMOVED:
@@ -3443,11 +3452,10 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 			break;
 		}
 
-		if (d->file_info != fi || d == skip)
-			continue;
-
 		download_remove(d);
 	}
+	g_slist_free(sources);
+	sources = NULL;
 }
 
 
@@ -11023,6 +11031,8 @@ download_verify_sha1_callback(const struct verify *ctx,
 	struct download *d = user_data;
 
 	download_check(d);
+	g_assert(!FILE_INFO_FINISHED(d->file_info));
+
 	switch (status) {
 	case VERIFY_START:
 		gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, TRUE);
@@ -11059,10 +11069,12 @@ download_verify_sha1(struct download *d)
 
 	download_check(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	g_assert(!FILE_INFO_FINISHED(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(!DOWNLOAD_IS_VERIFYING(d));
 	g_assert(!(d->flags & DL_F_SUSPENDED));
 	g_assert(d->list_idx == DL_LIST_STOPPED);
+	g_assert(!(FI_F_SUSPEND & d->file_info->flags));
 
 	if (d->flags & DL_F_TRANSIENT) {
 		file_info_changed(d->file_info);		/* Update status! */
