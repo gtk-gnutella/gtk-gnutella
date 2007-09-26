@@ -577,6 +577,8 @@
 
 # MOV spammer; adds dozens hundreds of fake alt-locs; links to p2pblast com
 # LimeWire-based
+# Some of these point to dfw4.preemo.org; preemo.org is registered to
+# Daniel Kerr
 63.246.133.22
 69.41.171.128/26
 69.41.173.31
@@ -585,10 +587,14 @@
 72.36.210.200/29
 72.36.216.48/29
 72.36.217.176/29
+75.126.78.240/30
 194.126.193.8/30
 207.150.184.52/31
 207.150.184.36/31
 208.101.51.32/28
+208.101.46.168
+# preemo.org
+207.150.179.72/31
 
 # Mutella-0.4.5 on port 6351 and others;
 # Zipped DRM WMV spam and dialer
