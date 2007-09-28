@@ -37,6 +37,7 @@ RCSID("$Id$")
 
 #include "misc.h"
 #include "walloc.h"
+#include "lib/sorted_array.h"
 
 #include "override.h"		/* Must be the last header included */
 

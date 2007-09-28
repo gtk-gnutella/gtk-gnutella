@@ -101,7 +101,7 @@ hash_item_free(hash_table_t *ht, hash_item_t *item)
   ht->free_list = item;
 }
 
-void
+static void
 hash_table_new_intern(hash_table_t *ht, size_t num_bins)
 {
   size_t i;
@@ -245,7 +245,7 @@ hash_table_clear(hash_table_t *ht)
   ht->free_list = NULL;
 }
 
-void
+static void
 hash_table_resize_helper(void *key, void *value, void *data)
 {
   gboolean ok;
@@ -277,6 +277,7 @@ hash_table_resize(hash_table_t *ht)
   }
 }
 
+#if 0 /* UNUSED */
 void
 hash_table_status(const hash_table_t *ht)
 {
@@ -291,6 +292,7 @@ hash_table_status(const hash_table_t *ht)
       (unsigned long) ht->num_bins,
       (unsigned long) ht->bin_fill);
 }
+#endif /* UNUSED */
 
 /**
  * Adds a new item to the hash_table. If the hash_table already contains an

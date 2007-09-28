@@ -36,6 +36,7 @@
 
 #include "common.h"
 #include "vmm.h"
+#include "lib/getphysmemsize.h"
 
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>

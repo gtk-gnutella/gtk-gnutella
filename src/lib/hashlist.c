@@ -598,6 +598,7 @@ hash_list_iter_previous(hash_list_iter_t *iter)
 	}
 }
 
+#if 0 /* UNUSED */
 /**
  * Checks whether there is a previous item in the iterator.
  */
@@ -608,6 +609,7 @@ hash_list_has_iter_previous(const hash_list_iter_t *iter)
 
 	return NULL != iter->prev;
 }
+#endif /* UNUSED */
 
 /**
  * Release the iterator once we're done with it.

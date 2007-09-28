@@ -44,6 +44,7 @@ RCSID("$Id$")
 
 #include "lib/misc.h"
 #include "lib/vmm.h"
+#include "lib/crash.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 

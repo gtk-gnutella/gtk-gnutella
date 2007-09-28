@@ -605,7 +605,7 @@ string_to_host_addr_port(const gchar *str, const gchar **endptr,
 	return ret;
 }
 
-void
+static void
 gethostbyname_error(const gchar *host)
 {
 #if defined(HAS_HSTRERROR)

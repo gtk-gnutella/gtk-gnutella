@@ -233,7 +233,7 @@ adns_cache_free_entry(adns_cache_t *cache, guint i)
 /**
  * Frees all memory allocated by the cache and returns NULL.
  */
-void
+static void
 adns_cache_free(adns_cache_t *cache)
 {
 	guint i;

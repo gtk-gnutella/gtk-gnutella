@@ -186,7 +186,7 @@ utf8_name_to_cd(const gchar *name)
 /**
  * Determine the name of the source charset of a converter.
  */
-const gchar *
+static const gchar *
 utf8_cd_to_name(enum utf8_cd id)
 {
 	guint i = (guint) id;
@@ -235,7 +235,7 @@ locale_is_utf8(void)
 	return is_utf8;
 }
 
-const gchar *
+static const gchar *
 primary_filename_charset(void)
 {
 	const struct conv_to_utf8 *t;
@@ -564,7 +564,7 @@ utf32_is_normalization_special(guint32 uc)
  * the caller will raise a warning, and this function will silently just
  * set `retlen' to 0 and return zero.
  */
-guint32
+static guint32
 utf8_decode_char(const gchar *s, gint len, guint *retlen, gboolean warn)
 {
 	guint32 v = *s;
@@ -928,7 +928,8 @@ utf8_char_count(const gchar *src)
 	return n;
 }
 
-size_t
+#if 0 /* UNUSED */
+static size_t
 utf8_data_char_count(const gchar *src, size_t len)
 {
 	const gchar *s;
@@ -941,6 +942,7 @@ utf8_data_char_count(const gchar *src, size_t len)
 
 	return n;
 }
+#endif /* UNUSED */
 
 /**
  * Works exactly like strlcpy() but preserves a valid UTF-8 encoding, if
@@ -1032,6 +1034,7 @@ utf8_strcpy_max(gchar *dst, size_t dst_size, const gchar *src, size_t max_chars)
 	return s - src;
 }
 
+#if 0 /* UNUSED */
 /**
  * Encodes a single UTF-32 character as UTF-16 into a buffer.
  * See also RFC 2781.
@@ -1041,7 +1044,7 @@ utf8_strcpy_max(gchar *dst, size_t dst_size, const gchar *src, size_t max_chars)
  * @returns 0 if the unicode character is invalid. Otherwise, the
  *          amount of UTF-16 characters is returned i.e., 1 or 2.
  */
-gint
+static gint
 utf16_encode_char(guint32 uc, guint16 *dst)
 {
 	g_assert(dst != NULL);
@@ -1057,6 +1060,7 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 	}
 	return 0;
 }
+#endif /* UNUSED */
 
 /**
  * Convert UTF-8 string to ISO-8859-1 inplace.  If `space' is TRUE, all
@@ -1188,7 +1192,7 @@ static const char *codesets[] = {
  * @returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
-const gchar *
+static const gchar *
 get_iconv_charset_alias(const gchar *cs)
 {
 	const gchar *start = codesets[0], *first_end = NULL;
@@ -1269,7 +1273,7 @@ locale_get_language(void)
 	return Q_("locale_get_language|en");
 }
 
-struct conv_to_utf8 *
+static struct conv_to_utf8 *
 conv_to_utf8_new(const gchar *cs)
 {
 	struct conv_to_utf8 *t;
@@ -1293,7 +1297,7 @@ conv_to_utf8_new(const gchar *cs)
  * 			used character sets. The first is the one that should be
  *			used when creating files.
  */
-GSList *
+static GSList *
 get_filename_charsets(const gchar *locale)
 {
 	const gchar *s, *next;
@@ -1857,7 +1861,7 @@ ascii_enforce(gchar *dst, size_t size, const gchar *src)
 	return d - dst;
 }
 
-gchar *
+static gchar *
 hyper_utf8_enforce(gchar *dst, size_t dst_size, const gchar *src)
 {
 	size_t n;
@@ -1876,7 +1880,7 @@ hyper_utf8_enforce(gchar *dst, size_t dst_size, const gchar *src)
 	return dst;
 }
 
-gchar *
+static gchar *
 hyper_ascii_enforce(gchar *dst, size_t dst_size, const gchar *src)
 {
 	size_t n;
@@ -2045,7 +2049,7 @@ koi8_is_cyrillic_char(guchar c)
 	return c >= 0xC0;
 }
 
-gboolean
+static gboolean
 looks_like_koi8(const gchar *src)
 {
 	const gchar *s = src;
@@ -2090,7 +2094,7 @@ iso8859_6_is_valid_char(guchar c)
 			);
 }
 
-gboolean
+static gboolean
 looks_like_iso8859_6(const gchar *src)
 {
 	const gchar *s;
@@ -2113,7 +2117,7 @@ iso8859_7_is_greek_char(guchar c)
 	return c >= 0xB0; /* Ignore 0xFF here */
 }
 
-gboolean
+static gboolean
 looks_like_iso8859_7(const gchar *src)
 {
 	const gchar *s;
@@ -2148,7 +2152,7 @@ iso8859_8_is_valid_char(guchar c)
 			);
 }
 
-gboolean
+static gboolean
 looks_like_iso8859_8(const gchar *src)
 {
 	const gchar *s;
@@ -2175,7 +2179,7 @@ looks_like_iso8859_8(const gchar *src)
  * - JIS X 0208:1997        "[\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC]"
  * - Half width Katakana    "[\xA0-\xDF]"
  */	  
-gboolean
+static gboolean
 looks_like_sjis(const gchar *src)
 {
 	const gchar *s;
@@ -2193,7 +2197,7 @@ looks_like_sjis(const gchar *src)
 	return '\0' == c && n > 0 && (s - src) / n < 2;
 }
 
-gboolean
+static gboolean
 iso8859_is_valid_string(const gchar *src)
 {
 	while (iso8859_is_valid_char(*src))
@@ -2605,7 +2609,7 @@ LAZY_CONVERT(locale_to_ui_string2, (const gchar *src), (src))
  * @returns		the length in characters of completely converted
  *				string.
  */
-size_t
+static size_t
 utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 {
 	const gchar *s = in;
@@ -2697,7 +2701,7 @@ utf32_to_utf8(const guint32 *src, gchar *dst, size_t size)
  *
  * @returns		the length in bytes of completely converted string.
  */
-size_t
+static size_t
 utf32_to_utf8_inplace(guint32 *buf)
 {
 	const guint32 *src = buf;
@@ -2720,7 +2724,7 @@ utf32_to_utf8_inplace(guint32 *buf)
 /**
  * The equivalent of g_strdup() for UTF-32 strings.
  */
-guint32 *
+static guint32 *
 utf32_strdup(const guint32 *s)
 {
 	guint32 *p;
@@ -2735,7 +2739,7 @@ utf32_strdup(const guint32 *s)
 	return p;
 }
 
-gint64
+static gint64
 utf32_strcmp(const guint32 *s1, const guint32 *s2)
 {
 	guint32 uc;
@@ -2852,7 +2856,7 @@ utf32_lowercase(guint32 uc)
  *
  * @return the lowercase variant of ``uc'' or ``uc'' itself.
  */
-const guint32 *
+static const guint32 *
 utf32_special_folding(guint32 uc)
 {
 #define GET_ITEM(i) (utf32_special_folding_lut[(i)].uc)
@@ -2923,10 +2927,11 @@ utf32_next_starter(const guint32 *s)
 }
 
 
+#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-32 string is in canonical order.
  */
-gboolean
+static gboolean
 utf32_canonical_sorted(const guint32 *src)
 {
 	guint32 uc;
@@ -2940,6 +2945,7 @@ utf32_canonical_sorted(const guint32 *src)
 
 	return TRUE;
 }
+#endif /* UNUSED */
 
 static inline gboolean
 utf32_is_decomposed_char(guint32 uc, gboolean nfkd)
@@ -2953,10 +2959,11 @@ utf32_is_decomposed_char(guint32 uc, gboolean nfkd)
 	}
 }
 
+#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-32 string is decomposed.
  */
-gboolean
+static gboolean
 utf32_is_decomposed(const guint32 *src, gboolean nfkd)
 {
 	guint32 uc;
@@ -2972,11 +2979,12 @@ utf32_is_decomposed(const guint32 *src, gboolean nfkd)
 
 	return TRUE;
 }
+#endif /* UNUSED */
 
 /**
  * Puts an UTF-32 string into canonical order.
  */
-guint32 *
+static guint32 *
 utf32_sort_canonical(guint32 *src)
 {
 	guint32 *s = src, *stable = src, uc;
@@ -3024,10 +3032,11 @@ utf32_sort_canonical(guint32 *src)
 	return src;
 }
 
+#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-8 encoded string is decomposed.
  */
-gboolean
+static gboolean
 utf8_is_decomposed(const gchar *src, gboolean nfkd)
 {
 	guint prev, cc;
@@ -3058,11 +3067,12 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 
 	return TRUE;
 }
+#endif /* UNUSED */
 
 /**
  * Checks whether an UTF-8 encoded string is in canonical order.
  */
-gboolean
+static gboolean
 utf8_canonical_sorted(const gchar *src)
 {
 	guint prev, cc;
@@ -3094,7 +3104,7 @@ utf8_canonical_sorted(const gchar *src)
 /**
  * Puts an UTF-8 encoded string into canonical order.
  */
-gchar *
+static gchar *
 utf8_sort_canonical(gchar *src)
 {
 	guint32 *buf32, *d, a[1024];
@@ -3558,11 +3568,12 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 	return p - out;
 }
 
+#if 0 /* UNUSED */
 /**
  * Decomposes (NFD) an UTF-32 encoded string.
  *
  */
-size_t
+static size_t
 utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 {
 	return utf32_decompose(in, out, size, FALSE);
@@ -3572,11 +3583,12 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
  * Decomposes (NFKD) an UTF-32 encoded string.
  *
  */
-size_t
+static size_t
 utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size)
 {
 	return utf32_decompose(in, out, size, TRUE);
 }
+#endif /* UNUSED */
 
 typedef guint32 (* utf32_remap_func)(guint32 uc);
 
@@ -3666,6 +3678,7 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 	return new_len;
 }
 
+#if 0 /* UNUSED */
 /**
  * Copies the UTF-32 string ``src'' to ``dst'' remapping all characters
  * using ``remap''.
@@ -3723,7 +3736,7 @@ utf32_remap(guint32 *dst, const guint32 *src, size_t size,
  * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
-size_t
+static size_t
 utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
 {
 	g_assert(dst != NULL);
@@ -3732,7 +3745,6 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
 
 	return utf32_remap(dst, src, size, utf32_lowercase);
 }
-
 /**
  * Copies ``src'' to ``dst'' converting all characters to uppercase. If
  * the string is as long as ``size'' or larger, the string in ``dst'' will
@@ -3745,7 +3757,7 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
  * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
-size_t
+static size_t
 utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 {
 	g_assert(size == 0 || dst != NULL);
@@ -3754,6 +3766,7 @@ utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 
 	return utf32_remap(dst, src, size, utf32_uppercase);
 }
+#endif /* UNUSED */
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to lowercase. If
@@ -3852,7 +3865,7 @@ utf8_strupper_copy(const gchar *src)
 	return dst;
 }
 
-size_t
+static size_t
 utf32_case_fold_char(guint32 uc, guint32 *dst, size_t size)
 {
 	const guint32 *folded;
@@ -3872,7 +3885,7 @@ utf32_case_fold_char(guint32 uc, guint32 *dst, size_t size)
 	return length;
 }
 
-size_t
+static size_t
 utf32_case_fold(const guint32 * const src0, guint32 * const dst0,
 	const size_t size)
 {
@@ -4067,7 +4080,7 @@ utf32_filter_char(guint32 uc, gboolean *space, gboolean last)
  * @param size the number of characters (not bytes!) dst can hold.
  * @return The length of the output string.
  */
-size_t
+static size_t
 utf32_filter(const guint32 *src, guint32 *dst, size_t size)
 {
 	const guint32 *s;
@@ -4110,7 +4123,7 @@ utf32_filter(const guint32 *src, guint32 *dst, size_t size)
  * @param size the number of characters (not bytes!) dst can hold.
  * @return The length of the output string.
  */
-size_t
+static size_t
 utf32_split_blocks(const guint32 *src, guint32 *dst, size_t size)
 {
 	const guint32 *s;
@@ -4524,7 +4537,7 @@ locale_is_latin(void)
  * @return	the length in characters (not bytes!) of the possibly
  *			modified string.
  */
-size_t
+static size_t
 utf32_compose(guint32 *src)
 {
 	guint32 *s, *p, *end, uc;
@@ -4586,7 +4599,7 @@ utf32_compose(guint32 *src)
 
 /**
  */
-guint32 *
+static guint32 *
 utf32_normalize(const guint32 *src, uni_norm_t norm)
 {
 	guint32 buf[1024], *dst;
@@ -4708,7 +4721,7 @@ utf8_normalize(const gchar *src, uni_norm_t norm)
 /**
  * Apply the NFKD/NFC algo to have nomalized keywords
  */
-guint32 *
+static guint32 *
 utf32_canonize(const guint32 *src0)
 {
 	guint32 *dst, *src;
@@ -4938,7 +4951,7 @@ unicode_compose_init(void)
 	unicode_compose_init_passed = TRUE;
 }
 
-const gchar *
+static const gchar *
 utf8_latinize_char(const guint32 uc)
 {
 #define GET_ITEM(i) (jap_tab[(i)].uc)
@@ -4956,7 +4969,7 @@ utf8_latinize_char(const guint32 uc)
 	return NULL;
 }
 
-const gchar *
+static const gchar *
 utf8_latinize_chars(const guint32 uc, const guint32 next, gboolean *used_next)
 {
 	if (next >= 0x3083 && next <= 0x3087) {

@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "tm.h"
 #include "walloc.h"
 #include "utf8.h"
+#include "lib/misc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -64,7 +65,7 @@ RCSID("$Id$")
 static const char hex_alphabet[] = "0123456789ABCDEF";
 const char hex_alphabet_lower[] = "0123456789abcdef";
 
-#ifndef HAS_STRLCPY
+#if !defined(HAS_STRLCPY) && !defined(USE_GLIB2)
 size_t
 strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
@@ -90,7 +91,7 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 }
 #endif /* HAS_STRLCPY */
 
-#ifndef HAS_STRLCAT
+#if !defined(HAS_STRLCAT) && !defined(USE_GLIB2)
 size_t
 strlcat(gchar *dst, const gchar *src, size_t dst_size)
 {
@@ -1135,7 +1136,7 @@ compact_rate(guint64 rate, gboolean metric)
 	return buf;
 }
 
-size_t
+static size_t
 short_rate_to_string_buf(guint64 rate, gboolean metric, gchar *dst, size_t size)
 {
 	short_value(dst, size, rate, metric);
@@ -1365,7 +1366,7 @@ hex2int(guchar c)
  * @param c the decimal ASCII character to convert.
  * @return "0..9" for valid decimal ASCII characters.
  */
-gint
+static gint
 dec2int(guchar c)
 {
 	gint ret;
@@ -1384,7 +1385,7 @@ dec2int(guchar c)
  * @param c the decimal ASCII character to convert.
  * @return "0..36" for valid decimal ASCII characters.
  */
-gint
+static gint
 alnum2int(guchar c)
 {
 	gint ret;

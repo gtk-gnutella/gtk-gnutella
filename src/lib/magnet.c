@@ -499,7 +499,7 @@ magnet_source_new(void)
 	return wcopy(&zero_source, sizeof zero_source);
 }
 
-void
+static void
 magnet_add_source(struct magnet_resource *res, struct magnet_source *s)
 {
 	g_return_if_fail(res);
@@ -666,7 +666,7 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	*gs_ptr = gs;
 }
 
-gchar *
+static gchar *
 magnet_source_to_string(struct magnet_source *s)
 {
 	gchar *url;
