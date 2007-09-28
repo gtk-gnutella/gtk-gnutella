@@ -38,7 +38,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-const char *
+#if 0 /* UNUSED */
+static const char *
 get_download_status_string(const struct download *d)
 {
 	download_check(d);
@@ -71,6 +72,7 @@ get_download_status_string(const struct download *d)
 	}
 	return "unknown";
 }
+#endif /* UNUSED */
 
 static void
 print_download_info(gnet_fi_t handle, void *udata)
