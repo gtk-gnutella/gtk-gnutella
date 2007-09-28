@@ -141,7 +141,7 @@ socket_free_buffer(struct gnutella_socket *s)
 	}
 }
 
-void
+static void
 socket_dealloc(struct gnutella_socket **s_ptr)
 {
 	struct gnutella_socket *s;
@@ -156,7 +156,7 @@ socket_dealloc(struct gnutella_socket **s_ptr)
 	}
 }
 
-host_addr_t
+static host_addr_t
 socket_ipv6_trt_map(const host_addr_t addr)
 {
 	if (
@@ -2908,7 +2908,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
  *
  * @return The new file descriptor of socket or -1 on failure.
  */
-gint
+static gint
 socket_create_and_bind(const host_addr_t bind_addr,
 	const guint16 port, const int type)
 {

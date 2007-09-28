@@ -108,7 +108,7 @@ struct browse_host_upload {
 	gpointer cb_arg;		/**< Callback argument */
 };
 
-struct browse_host_upload *
+static struct browse_host_upload *
 cast_to_browse_host_upload(struct special_upload *p)
 {
 	return (void *) p;
@@ -460,7 +460,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 /**
  * Write data to the TX stack.
  */
-ssize_t
+static ssize_t
 browse_host_write(struct special_upload *ctx, gconstpointer data, size_t size)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
@@ -514,7 +514,7 @@ browse_host_flush(struct special_upload *ctx,
  *
  * @return An initialized browse host context.
  */
-void
+static void
 browse_host_close(struct special_upload *ctx, gboolean fully_served)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);

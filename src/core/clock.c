@@ -121,7 +121,7 @@ val_destroy(cqueue_t *unused_cq, gpointer obj)
 /**
  * Create a value for the `used' table.
  */
-struct used_val *
+static struct used_val *
 val_create(const host_addr_t addr, gint precision)
 {
 	struct used_val *v = walloc(sizeof *v);

@@ -183,7 +183,7 @@ bio_check(const bio_source_t * const bio)
  * @param `bandwidth' is the expected bandwidth in bytes per second.
  * @param `period' is the scheduling period in ms.
  */
-bsched_t *
+static bsched_t *
 bsched_make(const gchar *name, gint type, guint32 mode,
 	gint bandwidth, gint period)
 {

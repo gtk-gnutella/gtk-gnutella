@@ -128,7 +128,7 @@ verify_file_check(const struct verify_file * const item)
 	g_assert(VERIFY_FILE_MAGIC == item->magic);
 }
 
-struct verify_file *
+static struct verify_file *
 verify_file_new(const char *pathname, filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
 {
@@ -149,7 +149,7 @@ verify_file_new(const char *pathname, filesize_t offset, filesize_t amount,
 	return item;
 }
 
-void
+static void
 verify_file_free(struct verify_file **ptr)
 {
 	struct verify_file *item = *ptr;

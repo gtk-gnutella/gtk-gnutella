@@ -90,7 +90,7 @@ struct thex_upload {
 	enum thex_state state;
 };
 
-struct thex_upload *
+static struct thex_upload *
 cast_to_thex_upload(struct special_upload *p)
 {
 	return (void *) p;
@@ -306,7 +306,7 @@ error:
 /**
  * Write data to the TX stack.
  */
-ssize_t
+static ssize_t
 thex_upload_write(struct special_upload *special_upload,
 	gconstpointer data, size_t size)
 {
@@ -361,7 +361,7 @@ thex_upload_flush(struct special_upload *special_upload,
  *
  * @return An initialized THEX upload context.
  */
-void
+static void
 thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);

@@ -245,7 +245,7 @@ download_basename(const struct download *d)
 	return filepath_basename(download_pathname(d));
 }
 
-const char *
+static const char *
 download_host_info(const struct download *d)
 {
 	static char info[256];
@@ -6633,13 +6633,14 @@ partial_done:
 	return FALSE;	/* No error really, but this download has been stopped */
 }
 
+#if 0 /* UNUSED */
 /**
  * Refresh IP:port, download index and name, by looking at the new location
  * in the header ("Location:").
  *
  * @returns TRUE if we managed to parse the new location.
  */
-gboolean
+static gboolean
 download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
@@ -6724,6 +6725,7 @@ download_moved_permanently(struct download *d, header_t *header)
 
 	return TRUE;
 }
+#endif /* UNUSED */
 
 /**
  * Extract server name from headers.
@@ -10167,7 +10169,7 @@ static const gchar download_file[] = "downloads";
 static const gchar file_what[] = "downloads"; /**< What is persisted to file */
 static gboolean retrieving = FALSE;
 
-gchar *
+static gchar *
 download_build_magnet(const struct download *d)
 {
 	const fileinfo_t *fi;

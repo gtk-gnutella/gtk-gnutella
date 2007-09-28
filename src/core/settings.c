@@ -522,7 +522,7 @@ settings_home_dir(void)
 /**
  * Gets the IPC directory.
  */
-const gchar *
+static const gchar *
 settings_ipc_dir(void)
 {
 	static const gchar *path;

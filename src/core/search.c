@@ -904,7 +904,7 @@ ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port,
 	return ora;
 }
 
-void
+static void
 ora_free(struct ora **ora_ptr)
 {
 	struct ora *ora;
@@ -2243,7 +2243,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  * @returns NULL if we cannot build a suitable message (bad query string
  * containing only whitespaces, for instance).
  */
-gnutella_msg_search_t *
+static gnutella_msg_search_t *
 build_search_msg(search_ctrl_t *sch)
 {
 	static union {

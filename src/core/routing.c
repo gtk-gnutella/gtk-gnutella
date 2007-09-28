@@ -560,7 +560,7 @@ get_next_entry(void)
  *
  * @return the new location of the revitalized entry
  */
-void
+static void
 revitalize_entry(struct message *entry, gboolean force)
 {
 	struct message **relocated;

@@ -181,7 +181,7 @@ tls_cache_remove_oldest(void)
 	}
 }
 
-void
+static void
 tls_cache_insert_intern(const struct tls_cache_item *item)
 {
 	gconstpointer key;
@@ -239,7 +239,7 @@ tls_cache_insert(const host_addr_t addr, guint16 port)
 	tls_cache_store_periodically(now);
 }
 
-struct tls_cache_item *
+static struct tls_cache_item *
 tls_cache_lookup_intern(const host_addr_t addr, guint16 port)
 {
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {

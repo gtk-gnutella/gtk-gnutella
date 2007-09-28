@@ -907,6 +907,7 @@ handle_push_request(struct gnutella_node *n)
 		file_index, file_name, show_banning, flags);
 }
 
+#if 0 /* UNUSED */
 void
 upload_real_remove(void)
 {
@@ -916,6 +917,7 @@ upload_real_remove(void)
 	 * XXX failed uploads immediately.	--RAM, 24/12/2001
 	 */
 }
+#endif /* UNUSED */
 
 static void
 upload_free_resources(struct upload *u)
@@ -3679,7 +3681,7 @@ remove_trailing_http_tag(gchar *request)
 	}
 }
 
-guint64
+static guint64
 get_content_length(header_t *header)
 {
 	const gchar *value;
@@ -3697,7 +3699,7 @@ get_content_length(header_t *header)
 	return length;
 }
 
-void
+static void
 upload_handle_connection_header(struct upload *u, header_t *header)
 {
 	const gchar *buf;

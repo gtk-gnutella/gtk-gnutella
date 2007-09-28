@@ -529,7 +529,7 @@ shared_file_by_name(const gchar *filename)
 /**
  * Returns the MIME content type string.
  */
-const gchar *
+static const gchar *
 share_mime_type_to_string(enum share_mime_type type)
 {
 	static const gchar *names[] = {
@@ -544,7 +544,7 @@ share_mime_type_to_string(enum share_mime_type type)
 	return names[i];
 }
 
-enum share_mime_type
+static enum share_mime_type
 share_mime_type_from_extension(const gchar *extension)
 {
 	static const struct {
@@ -637,7 +637,7 @@ share_mime_type_from_extension(const gchar *extension)
 	return SHARE_M_APPLICATION_BINARY;
 }
 
-enum share_mime_type
+static enum share_mime_type
 share_mime_type_from_filename(const gchar *filename)
 {
 	const gchar *extension;

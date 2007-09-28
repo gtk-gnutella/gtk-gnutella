@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "tx.h"
 #include "gnet_stats.h"
 #include "hosts.h"
+#include "core/mq_udp.h"
 
 #include "lib/walloc.h"
 

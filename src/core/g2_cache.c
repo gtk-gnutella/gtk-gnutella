@@ -199,7 +199,7 @@ g2_cache_remove_oldest(void)
 	}
 }
 
-void
+static void
 g2_cache_insert_intern(const struct g2_cache_item *item)
 {
 	gconstpointer key;
@@ -257,7 +257,7 @@ g2_cache_insert(const host_addr_t addr, guint16 port)
 	g2_cache_store_periodically(now);
 }
 
-struct g2_cache_item *
+static struct g2_cache_item *
 g2_cache_lookup_intern(const host_addr_t addr, guint16 port)
 {
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {

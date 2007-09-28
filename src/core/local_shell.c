@@ -82,6 +82,7 @@ RCSID("$Id$");
 
 #include "lib/misc.h"
 #include "lib/socket.h"
+#include "core/local_shell.h"
 
 #include "lib/override.h"
 

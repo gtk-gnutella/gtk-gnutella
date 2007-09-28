@@ -360,7 +360,7 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 	udp_ping_expire(FALSE);
 }
 
-gboolean
+static gboolean
 udp_ping_register(const gchar *muid)
 {
 	static gboolean initialized;

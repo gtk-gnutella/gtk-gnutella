@@ -625,7 +625,7 @@ parq_dl_remove(struct download *d)
  * Remove the memory used by the ID string, and removes it from
  * various lists
  */
-void
+static void
 parq_dl_del_id(struct download *d)
 {
 	struct parq_dl_queued *parq_dl;
@@ -1487,7 +1487,7 @@ parq_upload_free(struct parq_ul_queued *parq_ul)
  *
  * @return the recommended retry delay.
  */
-guint32
+static guint32
 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = PARQ_TIMER_BY_POS +
@@ -2075,7 +2075,7 @@ parq_upload_send_queue_failed(struct parq_ul_queued *uq)
  * only make it in this list when they ignore our delay Retry-After header
  * twice.
  */
-void
+static void
 parq_add_banned_source(const host_addr_t addr, time_t delay)
 {
 	time_t now = tm_time();
@@ -2106,7 +2106,7 @@ parq_add_banned_source(const host_addr_t addr, time_t delay)
 /**
  * Removes a banned ip from the parq banned list.
  */
-void
+static void
 parq_del_banned_source(const host_addr_t addr)
 {
 	struct parq_banned *banned = NULL;
@@ -2495,14 +2495,16 @@ parq_upload_queued(struct upload *u)
 	return parq_upload_lookup_position(u) != (guint) -1;
 }
 
+#if 0 /* UNUSED */
 /**
  * Get parq structure at specified position.
  */
-struct parq_ul_queued *
+static struct parq_ul_queued *
 parq_upload_get_at(struct parq_ul_queue *queue, int position)
 {
 	return g_list_nth_data(queue->by_rel_pos, position - 1);
 }
+#endif /* UNUSED */
 
 /**
  * @return TRUE if the current upload will finish quickly enough and 

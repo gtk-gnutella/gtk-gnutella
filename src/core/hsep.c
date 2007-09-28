@@ -937,6 +937,7 @@ hsep_close(void)
 	event_destroy(hsep_global_table_changed_event);
 }
 
+#if 0 /* UNUSED */
 /**
  * Checks whether the global HSEP table has changed since the
  * specified point in time. Returns TRUE if this is the case,
@@ -948,6 +949,7 @@ hsep_has_global_table_changed(time_t since)
 {
 	return delta_time(hsep_last_global_table_change, since) > 0;
 }
+#endif /* UNUSED */
 
 /**
  * Gets a HSEP-compatible triple for all non-HSEP nodes.

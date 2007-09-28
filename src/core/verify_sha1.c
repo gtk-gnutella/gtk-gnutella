@@ -42,6 +42,8 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/sha1.h"
 
+#include "core/verify_sha1.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static struct {
