@@ -2645,7 +2645,6 @@ node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
             if (
 				n->status != GTA_NODE_REMOVING &&
 				n->status != GTA_NODE_SHUTDOWN &&
-				n->port == port &&
 				host_addr_equal(n->addr, addr)
 			) {
 				return TRUE;
