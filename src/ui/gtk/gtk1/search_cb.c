@@ -300,6 +300,7 @@ search_gui_browse_selected(void)
 		return;
 	}
 
+	search_gui_option_menu_searches_freeze();
 	for (l = selected; l != NULL; l = g_list_next(l)) {
 		GtkCTreeNode *node = l->data;
 		gui_record_t *grc;
@@ -324,6 +325,7 @@ search_gui_browse_selected(void)
 				rs->hostname, rs->addr, rs->port,
 				rs->guid, rs->proxies, flags);
 	}
+	search_gui_option_menu_searches_thaw();
 }
 
 /**

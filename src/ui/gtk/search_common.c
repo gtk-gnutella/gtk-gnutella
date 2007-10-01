@@ -233,12 +233,17 @@ option_menu_searches(void)
 	return GTK_OPTION_MENU(widget);
 }
 
-void
+static unsigned option_menu_searches_frozen;
+
+static void
 search_gui_option_menu_searches_update(void)
 {
 	GtkMenu *menu;
 	const GList *iter;
 	guint idx = 0, n = 0;
+
+	if (option_menu_searches_frozen)
+		return;
 
 	menu = GTK_MENU(gtk_menu_new());
 
@@ -304,9 +309,26 @@ search_gui_option_menu_searches_update(void)
 static void
 search_gui_option_menu_searches_select(const search_t *search)
 {
-	if (search) {
+	if (search && !option_menu_searches_frozen) {
 		option_menu_select_item_by_data(option_menu_searches(), search);
 	}
+}
+
+void
+search_gui_option_menu_searches_freeze(void)
+{
+	option_menu_searches_frozen++;
+}
+
+void
+search_gui_option_menu_searches_thaw(void)
+{
+	g_return_if_fail(option_menu_searches_frozen > 0);
+	if (--option_menu_searches_frozen > 0)
+		return;
+	
+	search_gui_option_menu_searches_update();
+	search_gui_option_menu_searches_select(current_search);
 }
 
 static void
@@ -485,7 +507,7 @@ search_gui_clear_results(void)
 
 /**
  * Remove the search from the list of searches and free all
- * associated ressources (including filter and gui stuff).
+ * associated resources (including filter and gui stuff).
  */
 static void
 search_gui_close_search(search_t *search)
@@ -3123,9 +3145,11 @@ on_popup_search_list_close_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	searches = search_gui_get_selected_searches();
+	search_gui_option_menu_searches_freeze();
 	for (sl = searches; sl; sl = g_slist_next(sl)) {
 		search_gui_close_search(sl->data);
 	}
+	search_gui_option_menu_searches_thaw();
 	g_slist_free(searches);
 }
 
@@ -4126,7 +4150,10 @@ search_gui_common_init(void)
 	search_gui_signals_init();
 
 	search_gui_option_menu_searches_update();
+	search_gui_option_menu_searches_freeze();
 	search_gui_retrieve_searches();
+	search_gui_option_menu_searches_thaw();
+
     guc_search_got_results_listener_add(search_gui_got_results);
     guc_search_status_change_listener_add(search_gui_status_change);
 
@@ -4146,9 +4173,11 @@ search_gui_shutdown(void)
 	search_gui_real_store_searches();
 	store_searches_disabled = TRUE;
 
+	search_gui_option_menu_searches_freeze();
     while (search_gui_get_searches()) {
         search_gui_close_search(search_gui_get_searches()->data);
 	}
+	search_gui_option_menu_searches_thaw();
 
 	zdestroy(rs_zone);
 	rs_zone = NULL;

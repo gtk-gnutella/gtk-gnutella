@@ -179,6 +179,9 @@ char *search_gui_get_local_file_url(GtkWidget *);
 char *search_gui_details_get_text(GtkWidget *);
 GtkWidget *search_gui_create_tree(void);
 
+void search_gui_option_menu_searches_thaw(void);
+void search_gui_option_menu_searches_freeze(void);
+
 gboolean search_gui_is_enabled(const struct search *);
 
 void search_gui_download(record_t *);

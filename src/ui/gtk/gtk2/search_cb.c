@@ -319,11 +319,14 @@ search_gui_browse_selected(void)
 	if (search) {
     	GSList *sl;
 
+
 		sl = tree_selection_collect_data(
 				gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree)),
 				search_gui_get_record,
 				gui_record_host_eq);
+		search_gui_option_menu_searches_freeze();
 		g_slist_foreach(sl, search_gui_browse_selected_helper, NULL);
+		search_gui_option_menu_searches_thaw();
 		g_slist_free(sl);
 	}
 }
