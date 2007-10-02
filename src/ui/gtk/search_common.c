@@ -2060,7 +2060,7 @@ search_gui_flush(time_t now, gboolean force)
 	results_set_t *rs;
 	tm_t t0, t1, dt;
 
-	if (force) {
+	if (!force) {
 		guint32 period;
 
 		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
@@ -4179,6 +4179,11 @@ search_gui_shutdown(void)
 	}
 	search_gui_option_menu_searches_thaw();
 
+	
+	/* Discard pending accumulated search results */
+    search_gui_flush(tm_time(), TRUE);
+	slist_free(&accumulated_rs);
+
 	zdestroy(rs_zone);
 	rs_zone = NULL;
 	zdestroy(rc_zone);
@@ -4186,10 +4191,6 @@ search_gui_shutdown(void)
 
     g_list_free(list_search_history);
     list_search_history = NULL;
-	
-	/* Discard pending accumulated search results */
-    search_gui_flush(tm_time(), TRUE);
-	slist_free(&accumulated_rs);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
