@@ -4169,6 +4169,9 @@ download_pickup_queued(void)
 		GList *l;
 		gint last_change;
 
+		if (download_queue_is_frozen())
+			break;
+
 		if (count_running_downloads() >= GNET_PROPERTY(max_downloads))
 			break;
 
