@@ -393,16 +393,24 @@ search_gui_update_status_label(const struct search *search)
  * Update the label string showing search stats.
  */
 static void
-search_gui_update_items_label(const struct search *sch)
+search_gui_update_items_label(const struct search *search)
 {
-    if (sch) {
+	if (search != current_search)
+		return;
+
+    if (search) {
 		gtk_label_printf(label_items_found, _("%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
 			" Hits: %u (%u TCP, %u UDP)"),
-			sch->items, NG_("item", "items", sch->items),
-			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
-			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
-			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
+			search->items, NG_("item", "items", search->items),
+			search->skipped,
+			search->ignored,
+			search->hidden,
+			search->auto_downloaded,
+			search->duplicates, NG_("dupe", "dupes", search->duplicates),
+			search->tcp_qhits + search->udp_qhits,
+			search->tcp_qhits,
+			search->udp_qhits);
     } else {
        gtk_label_printf(label_items_found, "%s", _("No search"));
 	}
