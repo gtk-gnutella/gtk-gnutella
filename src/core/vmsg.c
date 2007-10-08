@@ -1612,11 +1612,13 @@ latest_svn_release_changed(property_t prop)
 
 	g_message("SVN release notify signature is valid: r%u (%s)",
 		revision, timestamp_to_string(date));
-
-	return FALSE;
+	goto finish;
 
 failure:
 	svn_release_signature.size = 0;
+
+finish:
+	G_FREE_NULL(hex);
 	return FALSE;
 }
 
