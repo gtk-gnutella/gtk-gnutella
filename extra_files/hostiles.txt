@@ -107,9 +107,10 @@
 # Macrovision has SmokeBlowers there; they poll GWebCaches etc. pp.
 # There are certainly non-hostile hosts but it's not worth or possible to
 # differ.
-38.112.0.0/12
-38.100.0.0/16
-
+38.96.0.0/11
+# MediaDefender
+#38.107.160.0/21
+ 
 64.15.0.0/16
 66.186.39.0/26
 
