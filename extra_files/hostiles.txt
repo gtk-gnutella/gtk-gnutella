@@ -1087,3 +1087,9 @@
 # p2pads dot com; MOV; pr0n spam
 8.17.0.0/24
 
+# "Darkstar Management"; fake wma/mp3/m4a; switches qhit address
+78.129.136.192/27
+# same as above; probably belong together
+64.62.210.0/24
+64.62.214.0/24
+
