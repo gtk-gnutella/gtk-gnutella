@@ -1798,9 +1798,13 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					{
 						time_t stamp;
 
-						rs->status |= ST_HAS_CT;
 						ret = ggept_ct_extract(e, &stamp);
-						if (GGEP_OK == ret) {
+						if (
+							GGEP_OK == ret &&
+							0x45185160 != stamp &&
+							0x45186D80 != stamp
+						) {
+							rs->status |= ST_HAS_CT;
 							rc->create_time = stamp;
 						} else {
 							if (
@@ -2206,7 +2210,6 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	if (
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
-		!guid_eq(rs->guid, blank_guid) &&	/* Not the blank GUID */
 		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
 		host_addr_is_routable(rs->addr)
 	) {
