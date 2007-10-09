@@ -1579,46 +1579,35 @@ static struct {
 static gboolean
 latest_svn_release_changed(property_t prop)
 {
-	struct array signature;
-	guint32 revision;
-	time_t date;
-	size_t hex_length;
-	char *hex;
+	char data[sizeof svn_release_signature.data], hex[sizeof data * 2 + 1];
+	size_t data_length, hex_length;
 
 	(void) prop;
 
-	if (!svn_release_notification_can_verify())
-		goto failure;
-
-	hex = gnet_prop_get_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, NULL, 0);
-	if (NULL == hex)
-		goto failure;
-	
-	hex_length = strlen(hex);
-	if (0 == hex_length || hex_length / 2 >= sizeof svn_release_signature.data)
-		goto failure;
-
-	svn_release_signature.size = base16_decode(svn_release_signature.data,
-								sizeof svn_release_signature.data,
-								hex, hex_length);
-
-	revision = GNET_PROPERTY(latest_svn_release_revision);
-	date = GNET_PROPERTY(latest_svn_release_date);
-	signature = array_init(svn_release_signature.data,
-					svn_release_signature.size);
-
-	if (!svn_release_notification_verify(revision, date, &signature))
-		goto failure;
-
-	g_message("SVN release notify signature is valid: r%u (%s)",
-		revision, timestamp_to_string(date));
-	goto finish;
-
-failure:
 	svn_release_signature.size = 0;
+	if (!svn_release_notification_can_verify())
+		return FALSE;
 
-finish:
-	G_FREE_NULL(hex);
+	gnet_prop_get_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex, sizeof hex);
+	hex_length = strlen(hex);
+	if (hex_length > 0 && hex_length / 2 < sizeof data) {
+		struct array signature;
+		guint32 revision;
+		time_t date;
+
+		data_length = base16_decode(data, sizeof data, hex, hex_length);
+		revision = GNET_PROPERTY(latest_svn_release_revision);
+		date = GNET_PROPERTY(latest_svn_release_date);
+		signature = array_init(data, data_length);
+
+		if (svn_release_notification_verify(revision, date, &signature)) {
+			g_message("SVN release notify signature is valid: r%u (%s)",
+				revision, timestamp_to_string(date));
+
+			memcpy(svn_release_signature.data, data, data_length);
+			svn_release_signature.size = data_length;
+		}
+	}
 	return FALSE;
 }
 
@@ -2939,31 +2928,26 @@ handle_messages_supported(struct gnutella_node *n,
 		if (
 			vm.handler == handle_qstat_req ||
 			vm.handler == handle_qstat_answer
-		)
+		) {
 			node_set_leaf_guidance(NODE_ID(n), TRUE);
-
-		/*
-		 * Time synchronization support.
-		 */
-
-		if (
+		} else if (
 			vm.handler == handle_time_sync_req ||
 			vm.handler == handle_time_sync_reply
-		)
+		) {
+			/*
+			 * Time synchronization support.
+			 */
 			node_can_tsync(n);
-
-		/*
-		 * UDP-crawling support.
-		 */
-
-		if (vm.handler == handle_udp_crawler_ping)
+		} else if (vm.handler == handle_udp_crawler_ping) {
+			/*
+			 * UDP-crawling support.
+			 */
 			n->attrs |= NODE_A_CRAWLABLE;
-
-		if (vm.handler == handle_head_ping)
+		} else if (vm.handler == handle_head_ping) {
 			n->attrs |= NODE_A_CAN_HEAD;
-
-		if (vm.handler == handle_svn_release_notify)
+		} else if (vm.handler == handle_svn_release_notify) {
 			n->attrs |= NODE_A_CAN_SVN_NOTIFY;
+		}
 	}
 
 	if (n->attrs & NODE_A_CAN_SVN_NOTIFY) {
