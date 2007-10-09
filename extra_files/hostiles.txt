@@ -317,7 +317,7 @@
 38.99.0.0/16
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
-38.101.225.0/24
+#38.101.225.0/24
 63.216.80.0/24
 74.205.125.0/24
 205.177.5.0/24
@@ -1097,4 +1097,9 @@
 # MOV pr0n spam; torrentvideos dot com; Yourbrain Media Inc.
 216.169.106.242
 216.169.106.250
+
+# Tiversa; 144 Emeryville Dr, Cranberry, PA, 16066, US, tiversa@nauticom.net
+# uses earShare; aggressively searching for leaked corporate data and
+# terrorists (yrly)
+72.22.25.0/27
 
