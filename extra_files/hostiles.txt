@@ -314,7 +314,7 @@
 #38.99.20.0/23
 # WMA spam
 #38.99.253.0/24
-38.99.0.0/16
+#38.99.0.0/16
 
 # WMA-DRM spam; DRM URL links to intentmediaworks; giFT-based
 #38.101.225.0/24
@@ -329,7 +329,7 @@
 209.9.79.0/24
 
 # WMV spammer with over-sensitive buzzword sensor; fake LimeWire; giFT-based
-38.96.5.128/26
+#38.96.5.128/26
 
 # Gnucleus-based DRM WMV spammer hosted by GoDaddy
 #68.178.200.89
