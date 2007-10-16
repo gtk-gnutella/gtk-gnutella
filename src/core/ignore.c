@@ -62,12 +62,18 @@ static GHashTable *by_sha1;			/**< SHA1s to ignore */
 static GHashTable *by_namesize;		/**< By filename + filesize */
 
 /*
- * Create done_sha1 and done_namesize files which we don't monitor
+ * We expect the initial ignore_sha1 file to be in the startup directory.
+ * We'll monitor it and reload it should it change during our runtime.
+ *
+ * We also create done_sha1 and done_namesize files which we don't monitor
  * since we're appending to them (we only read them on startup).
  */
 
+static const gchar ignore_sha1[]     = "ignore.sha1";
 static const gchar done_sha1[]       = "done.sha1";
 static const gchar done_namesize[]   = "done.namesize";
+
+static time_t ignore_sha1_mtime;
 
 static FILE *sha1_out = NULL;
 static FILE *namesize_out = NULL;
@@ -138,7 +144,9 @@ ignore_init(void)
 	by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 	by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
 
+	ignore_sha1_load(ignore_sha1, &ignore_sha1_mtime);
 	ignore_sha1_load(done_sha1, NULL);
+
 	ignore_namesize_load(done_namesize, NULL);
 
 	sha1_out = open_append(done_sha1);
@@ -410,6 +418,32 @@ ignore_add_filesize(const gchar *file, filesize_t size)
 		 */
 		fprintf(namesize_out, "%s %s\n", uint64_to_string(size), file);
 		fflush(namesize_out);
+	}
+}
+
+/**
+ * Called periodically to check the file timestamps.
+ *
+ * If files are newer, they are reloaded, but the previously recorded
+ * ignores are NOT forgotten.  Therefore, we can ONLY append new ignores.
+ */
+void
+ignore_timer(time_t unused_now)
+{
+	FILE *f;
+	time_t stamp;
+
+	(void) unused_now;
+
+	f = open_read_stamp(ignore_sha1, &stamp);
+	if (f != NULL) {
+		if (stamp > ignore_sha1_mtime) {
+			ignore_sha1_mtime = stamp;
+			if (GNET_PROPERTY(dbg))
+				printf("RELOAD %s\n", ignore_sha1);
+			sha1_parse(f, ignore_sha1);
+		}
+		fclose(f);
 	}
 }
 
