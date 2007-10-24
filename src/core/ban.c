@@ -40,7 +40,6 @@ RCSID("$Id$")
 #include "ban.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
 #include "token.h"
-#include "version.h"		/* For version_is_too_old() */
 #include "whitelist.h"
 
 #include "lib/atoms.h"
@@ -630,7 +629,6 @@ ban_close(void)
  */
 static const gchar harmful[] = "Harmful version banned, upgrade required";
 static const gchar refused[] = "Connection refused";
-static const gchar too_old[] = "Outdated version, please upgrade";
 
 /**
  * Check whether servent identified by its vendor string should be banned.
@@ -681,9 +679,6 @@ ban_vendor(const gchar *vendor)
 			if (is_strprefix(gtkg_version, versions[i]))
 				return harmful;
 		}
-
-		if (version_is_too_old(vendor))
-			return too_old;
 
 		return NULL;
 	}
