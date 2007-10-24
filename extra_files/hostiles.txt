@@ -333,7 +333,6 @@
 
 # Gnucleus-based DRM WMV spammer hosted by GoDaddy
 #68.178.200.89
-#68.178.225.162
 
 # Spams DRM WMV files with license URL pointing to 68.178.225.162; filenames
 # are bogus but are neither random nor matching the query. Examples are
@@ -358,7 +357,7 @@
 61.152.171.139
 60.28.222.171
 # DRM license server
-68.178.225.162
+#68.178.225.162
 # DRM License server used by DRM WMV spam; ETE LLC; Shanghai
 216.93.188.80/30
 
