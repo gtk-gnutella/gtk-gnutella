@@ -726,9 +726,7 @@ version_init(void)
 
 	if (
 		tok_is_ancient(now) ||
-		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN ||
-		(our_version.tag &&
-			delta_time(now, our_version.timestamp) > VERSION_UNSTABLE_WARN)
+		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN
 	) {
 		*deconstify_gboolean(&GNET_PROPERTY(ancient_version)) = TRUE;
 	}
@@ -769,18 +767,12 @@ version_ancient_warn(void)
 		return;
 	}
 
-	if (our_version.tag && elapsed > VERSION_UNSTABLE_WARN) {
-		g_warning("unstable version of gtk-gnutella is aging, please upgrade!");
-        gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
-		return;
-	}
-
 	/*
 	 * Check whether we're nearing ancient version status, to warn them
 	 * beforehand that the version will become old soon.
 	 */
 
-	lifetime = our_version.tag ? VERSION_UNSTABLE_WARN : VERSION_ANCIENT_WARN;
+	lifetime = VERSION_ANCIENT_WARN;
 	remain = delta_time(lifetime, elapsed);
 
 	g_assert(remain >= 0);		/* None of the checks above have fired */
@@ -811,31 +803,6 @@ version_ancient_warn(void)
         gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
 			remain / SECS_PER_DAY);
 	}
-}
-
-/**
- * Check the timestamp in the GTKG version string and returns TRUE if it
- * is too old or could not be parsed, FALSE if OK.
- */
-gboolean
-version_is_too_old(const gchar *vendor)
-{
-	version_t ver;
-	time_t now = tm_time();
-	gint d;
-
-	version_stamp(vendor, &ver);		/* Fills ver->timestamp */
-	d = delta_time(now, ver.timestamp);
-	if (d > VERSION_ANCIENT_BAN)
-		return TRUE;
-
-	if (!version_parse(vendor, &ver))	/* Fills ver->tag */
-		return TRUE;					/* Unable to parse */
-
-	if (ver.tag && d > VERSION_UNSTABLE_BAN)
-		return TRUE;
-
-	return FALSE;
 }
 
 /**

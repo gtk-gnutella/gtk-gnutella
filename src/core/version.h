@@ -61,9 +61,6 @@ typedef struct version {
 #define VERSION_ANCIENT_WARN	(86400*365)		/**< 1 year */
 #define VERSION_ANCIENT_BAN		(86400*365)		/**< 1 year */
 
-#define VERSION_UNSTABLE_WARN	(86400*60)		/**< 2 months - 60 days */
-#define VERSION_UNSTABLE_BAN	(86400*90)		/**< 3 months - 90 days */
-
 #define VERSION_ANCIENT_REMIND	(86400*30)		/**< 30 days */
 #define VERSION_ANCIENT_GRACE	(86400*20)		/**< 20 days */
 
@@ -75,7 +72,6 @@ void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
 gboolean version_check(const gchar *str, const gchar *token, const host_addr_t);
-gboolean version_is_too_old(const gchar *vendor);
 gint version_cmp(const version_t *a, const version_t *b);
 gint version_build_cmp(const version_t *a, const version_t *b);
 gboolean version_fill(const gchar *version, version_t *vs);
