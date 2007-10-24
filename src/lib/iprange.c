@@ -211,7 +211,7 @@ iprange_net_collision(const void *p, const void *q)
 		ip_to_string(a->ip), a->mask,
 		host_addr_to_string(host_addr_get_ipv4(b->ip)), b->mask);
 
-	return a->mask > b->mask ? 1 : -1;
+	return a->mask < b->mask ? 1 : -1;
 }
 
 /**
