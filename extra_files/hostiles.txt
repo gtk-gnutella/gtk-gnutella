@@ -335,9 +335,6 @@
 #68.178.200.89
 #68.178.225.162
 
-# DRM License server used by DRM WMV spam
-216.93.188.81
-
 # Spams DRM WMV files with license URL pointing to 68.178.225.162; filenames
 # are bogus but are neither random nor matching the query. Examples are
 # "basketball*wmv", "flytrain*wmv", "landing*wmv" etc. with variations in the
@@ -360,6 +357,10 @@
 61.129.251.204
 61.152.171.139
 60.28.222.171
+# DRM license server
+68.178.225.162
+# DRM License server used by DRM WMV spam; ETE LLC; Shanghai
+216.93.188.80/30
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
@@ -375,7 +376,7 @@
 209.190.22.86
 209.190.122.186
 222.73.219.128
-222.73.218.0/27
+222.73.218.0/24
 
 # DRM WMV spammer; license URL links to 209.190.122.186
 #68.178.144.112
@@ -910,9 +911,10 @@
 67.159.44.0/24
 66.90.101.0/24
 
-# LimeWire; security violations; hosted at RapidSwitch
+# LimeWire; security violations; hosted at RapidSwitch and United Layer
 83.142.224.128/25
-87.117.230.128/25
+87.117.230.0/23
+207.7.135.0/24
 
 # MOV pr0n spam; viralnetworkads dot com
 64.56.67.0/26
@@ -1102,4 +1104,14 @@
 # uses earShare; aggressively searching for leaked corporate data and
 # terrorists (yrly)
 72.22.25.0/27
+
+# JunGroup; TV ads; avi/mov/mpg
+74.208.26.207
+# Gnoozle
+74.208.44.183
+74.208.96.120
+72.167.38.22
+72.167.42.22
+72.167.45.155
+72.167.45.163
 
