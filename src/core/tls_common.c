@@ -136,7 +136,9 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 	g_assert(s);
 	g_assert(socket_with_tls(s));	/* No USES yet, may not have handshaked */
 	g_assert(INPUT_EVENT_EXCEPTION != cond);
-	g_assert(0 != s->gdk_tag);
+
+	if (0 == s->gdk_tag)
+		return;
 
 	if (cond != s->tls.cb_cond) {
 		int saved_errno = errno;
@@ -266,7 +268,8 @@ tls_handshake(struct gnutella_socket *s)
 		if (GNET_PROPERTY(tls_debug)) {
 			g_message("TLS handshake succeeded");
 		}
-		tls_socket_evt_change(s, INPUT_EVENT_W);
+		tls_socket_evt_change(s, SOCK_CONN_INCOMING == s->direction
+									? INPUT_EVENT_R : INPUT_EVENT_W);
 		if (GNET_PROPERTY(tls_debug)) {
 			tls_print_session_info(s->addr, s->port, session);
 		}
@@ -527,7 +530,8 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 			}
 			errno = EIO;
 			ret = -1;
-			break;
+			goto finish;
+
 		default:
 			if (GNET_PROPERTY(tls_debug)) {
 				g_warning("tls_write(): gnutls_record_send() failed: "
@@ -538,25 +542,24 @@ tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 			}
 			errno = EIO;
 			ret = -1;
+			goto finish;
 		}
 	} else {
 
 		if (s->tls.snarf) {
 			g_assert(s->tls.snarf >= (size_t) ret);
 			s->tls.snarf -= ret;
-			if (0 == s->tls.snarf) {
-				ret = 0;
-			} else {
-				errno = VAL_EAGAIN;
-				return -1;
-			}
+			errno = VAL_EAGAIN;
+			ret = -1;
+			goto finish;
 		}
 	}
 
-	if (s->gdk_tag && s->tls.snarf) {
+	if (s->tls.snarf) {
 		tls_socket_evt_change(s, INPUT_EVENT_WX);
 	}
 
+finish:
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -574,9 +577,9 @@ tls_flush(struct wrap_io *wio)
 					(gulong) s->tls.snarf,
 					host_addr_port_to_string(s->addr, s->port));
 		}
-		if (tls_write_intern(wio, NULL, 0))
+		(void ) tls_write_intern(wio, NULL, 0);
+		if (s->tls.snarf)
 			return -1;
-		g_assert(0 == s->tls.snarf);
 	}
 	return 0;
 }
@@ -768,16 +771,20 @@ tls_bye(struct gnutella_socket *s)
 					if (GNET_PROPERTY(tls_debug) < 2)
 						break;
 				default:
-					g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
-						host_addr_port_to_string(s->addr, s->port),
-						g_strerror(errno));
+					if (GNET_PROPERTY(tls_debug)) {
+						g_message("gnutls_bye() failed: host=%s errno=\"%s\"",
+							host_addr_port_to_string(s->addr, s->port),
+							g_strerror(errno));
+					}
 				}
 			}
 			break;
 		default:
-			g_warning("gnutls_bye() failed: host=%s error=\"%s\"",
-				host_addr_port_to_string(s->addr, s->port),
-				gnutls_strerror(ret));
+			if (GNET_PROPERTY(tls_debug)) {
+				g_warning("gnutls_bye() failed: host=%s error=\"%s\"",
+					host_addr_port_to_string(s->addr, s->port),
+					gnutls_strerror(ret));
+			}
 		}
 	}
 }
