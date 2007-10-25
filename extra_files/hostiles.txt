@@ -1114,3 +1114,7 @@
 72.167.45.155
 72.167.45.163
 
+# LimeWire; QuickTime AVI files; peertracking dot com
+193.53.4.0/24
+69.50.130.219
+
