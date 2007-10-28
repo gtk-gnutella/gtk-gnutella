@@ -11161,7 +11161,12 @@ download_verify_tigertree_done(struct download *d,
 		g_message("filesize=%s, slice_size=%s",
 			filesize_to_string(download_filesize(d)),
 			uint64_to_string(fi->tigertree.slice_size));
-		
+
+		/* Reset result of the SHA-1 calculation */
+		atom_sha1_free_null(&fi->cha1);
+		fi->cha1_elapsed = 0;
+		fi->cha1_hashed = 0;
+
 		offset = 0;
 		for (i = 0; i < num_leaves; i++) {
 			gboolean match;
