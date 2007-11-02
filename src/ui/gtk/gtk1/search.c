@@ -1823,8 +1823,8 @@ search_gui_set_search_list_color(const struct search *search, int row)
 		fg = &style->fg[GTK_STATE_ACTIVE];
 		bg = &style->bg[GTK_STATE_ACTIVE];
 	} else if (search_gui_is_enabled(search)) {
-		fg = NULL;
-		bg = NULL;
+		fg = &style->fg[GTK_STATE_NORMAL];
+		bg = &style->bg[GTK_STATE_NORMAL];
 	} else {
 		fg = &style->fg[GTK_STATE_INSENSITIVE];
 		bg = &style->bg[GTK_STATE_INSENSITIVE];
