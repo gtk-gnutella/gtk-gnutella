@@ -1473,7 +1473,7 @@ EOS
 cat <<'EOSC' >>trygcc
 case "$cc" in
 '') ;;
-*)  $rm -f try try.*
+*)  $rm -rf try try.*
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
   (void) argc;
@@ -1522,7 +1522,7 @@ EOM
             fi
         fi
     fi
-    $rm -f try try.*
+    $rm -rf try try.*
     ;;
 esac
 EOSC
@@ -1534,7 +1534,7 @@ EOS
 cat <<'EOSC' >>checkcc
 case "$cc" in        
 '') ;;
-*)  $rm -f try try.*              
+*)  $rm -rf try try.*              
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
   (void) argc;
@@ -1556,7 +1556,7 @@ I cannot continue any further, aborting.
 EOM
         exit 1
     fi
-    $rm -f try try.*
+    $rm -rf try try.*
     ;;
 esac
 EOSC
@@ -2443,7 +2443,7 @@ then
 else
 	gccversion=''
 fi
-$rm -f try try.*
+$rm -rf try try.*
 case "$gccversion" in
 1*) cpp=`./loc gcc-cpp $cpp $pth` ;;
 esac
@@ -2492,7 +2492,7 @@ case "$gccversion" in
        sed '1,/^#include <\.\.\.>/d;/^End of search list/,$d;s/^ //'` ; do
        locincpth=`echo $locincpth | sed s!$incdir!!`
     done
-    $rm -f try try.*
+    $rm -rf try try.*
 esac
 
 : decide how portable to be
@@ -3319,7 +3319,8 @@ y)
 	;;
 n) echo "OK, that should do.";;
 esac
-$rm -f try try.* core
+$rm -f core
+$rm -rf try try.*
 
 : see whether the program compiles and links
 trylink='
@@ -3338,7 +3339,7 @@ while :; do
 	fi;
 	shift;
 done;
-$rm -f try try.c;
+$rm -rf try try.*;
 '
 
 : see if gettext exists
@@ -4805,7 +4806,8 @@ else
 	gnulibc_version=''
 	echo "You are not using the GNU C Library"
 fi
-$rm -f try try.* glibc.ver
+$rm -rf try try.*
+$rm -f glibc.ver
 set d_gnulibc
 eval $setvar
 
@@ -6056,7 +6058,7 @@ EOC
 	then
 		val="$define"
 	fi
-	$rm -f try try.c
+	$rm -rf try try.*
 fi
 
 set d_regparm
@@ -6636,7 +6638,7 @@ else
 fi
 set d_volatile
 eval $setvar
-$rm -f try.*
+$rm -rf try try.*
 
 : see if vsnprintf exists
 $cat >try.c <<EOC
@@ -6748,7 +6750,7 @@ esac
 rp="Doubles must be aligned on a how-many-byte boundary?"
 . ./myread
 alignbytes="$ans"
-$rm -f try.c try
+$rm -rf try try.*
 
 : how do we catenate cpp tokens here?
 echo " "
@@ -6881,7 +6883,8 @@ EOCP
 	;;
 *) echo "Using $hint value $o_nonblock.";;
 esac
-$rm -f try try.* .out core
+$rm -f .out core
+$rm -rf try try.*
 
 echo " "
 echo "Let's see what value errno gets from read() on a $o_nonblock file..." >&4
@@ -7008,7 +7011,8 @@ EOCP
 	esac
 	;;
 esac
-$rm -f try try.* .out core head.c mtry
+$rm -f .out core head.c mtry
+$rm -rf try try.*
 
 : derive which glade to use based on the configured GTK+
 echo " "
@@ -7086,7 +7090,7 @@ then
 else 
   ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi
-$rm -f try try.c
+$rm -rf try try.*
 
 : how can we find information about GTK?
 d_gtk="$undef"
@@ -7208,7 +7212,7 @@ then
 else 
   ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi
-$rm -f try try.c
+$rm -rf try try.*
 ;;
 esac
 
@@ -7292,7 +7296,8 @@ EOS
 		either=' either'
 		$rm -f try*.ls
 	done
-	$rm -rf foo d tryinst try try*.ls try.*
+	$rm -rf foo d tryinst try*.ls
+	$rm -rf try try.*
 	case "$dflt" in
 	'')
 		echo "Hopefully, $package comes with its own install script!"
@@ -7920,7 +7925,8 @@ case "$voidflags" in
 	voidflags="$ans"
 	;;
 esac
-$rm -f try.* .out flags
+$rm -f .out flags
+$rm -rf try try.*
 
 : determine compiler compiler
 echo " "
@@ -8364,7 +8370,7 @@ case "$flags" in
 	echo "We'll include <sys/time.h>." >&4;;
 *) i_systime="$undef";;
 esac
-$rm -f try.c try
+$rm -rf try try.*
 
 : see if sys/types.h has to be included
 set sys/types.h i_systypes
