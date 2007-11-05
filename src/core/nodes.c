@@ -8879,8 +8879,7 @@ node_connected_back(struct gnutella_socket *s)
 
 /**
  * Remove push proxy indication for the node, i.e. we're no longer acting
- * as its push-proxy from now on.  If `discard' is true, get rid of the
- * GUID and route information.
+ * as its push-proxy from now on.
  */
 void
 node_proxying_remove(gnutella_node_t *n)
