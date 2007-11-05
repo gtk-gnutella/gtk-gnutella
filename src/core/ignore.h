@@ -53,6 +53,7 @@ enum ignore_val {
 
 struct sha1;
 
+void ignore_timer(time_t now);
 enum ignore_val ignore_is_requested(
 	const gchar *file, filesize_t size, const struct sha1 *sha1);
 const gchar *ignore_reason_to_string(enum ignore_val);
