@@ -5453,7 +5453,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		-- RAM, 2007-11-05
 	 */
 
-	if (!(flags & QUERY_F_FIREWALLED) && node_guid(n))
+	if (!(flags & QUERY_F_FIREWALLED) && node_guid(n) && NODE_IS_LEAF(n))
 		node_proxying_remove(n);	/* This leaf node is no longer firewalled */
 
 	if (!skip_file_search || exv_sha1cnt > 0) {
