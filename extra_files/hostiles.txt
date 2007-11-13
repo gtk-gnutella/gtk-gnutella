@@ -657,10 +657,6 @@
 207.234.131.147
 207.234.131.148
 
-# United Layer, Inc.
-# hellum pohellum, hurricane electric, rapidswitch
-207.7.128.0/19
-
 # Macrovision Corporation, Inc. - Smokeblower Networks
 # Extremely oversensitive buzzword spammers returning bogus results
 64.92.224.0/19
@@ -918,6 +914,7 @@
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
 83.142.224.128/25
 87.117.230.0/23
+# hellum pohellum
 207.7.135.0/24
 
 # MOV pr0n spam; viralnetworkads dot com
