@@ -20,3 +20,9 @@ NAME ^(FREE|WARNING|URGENT|GET A FREE|[.]).*-----------------------------------
 ADDED 2007-01-09
 END
 
+# Malware
+NAME ^Secured Downloading of .* with [nN]ew Secured.*zip$
+SIZE 9000000-13000000
+ADDED 2007-11-19
+END
+
