@@ -117,14 +117,14 @@ static struct {
 	const enum gui_color id;
 	GdkColor color;
 } colors[] = {
-	{ "#000000",	GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },
-	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },
-	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },
-	{ "#7F7F7F",	GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } },
-	{ "#001F7F",	GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } },
-	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },
-	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },
-	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },
+	{ "#000000",	GUI_COLOR_DEFAULT,		{ 0, 0, 0, 0 } },	/* black */
+	{ "#326732",	GUI_COLOR_DOWNLOADING,	{ 0, 0, 0, 0 } },	/* dark green */
+	{ "#5F007F",	GUI_COLOR_HOSTILE,		{ 0, 0, 0, 0 } },	/* indigo */
+	{ "#7F7F7F",	GUI_COLOR_IGNORED,		{ 0, 0, 0, 0 } },	/* gray */
+	{ "#001F7F",	GUI_COLOR_MARKED, 		{ 0, 0, 0, 0 } },	/* blue */
+	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },	/* flashy red */
+	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },	/* dark red */
+	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },	/* marroon */
 };
 
 GdkColor *
