@@ -204,6 +204,7 @@
 64.27.0.0/19
 216.240.128.48/28
 216.240.128.64/30
+216.240.134.0/24
 217.115.128.48/29
 
 # isaveclub.com AKA esaveclub.com AKA edirectclub.com
@@ -912,7 +913,7 @@
 66.90.101.0/24
 
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
-78.129.137.0/17
+78.129.137.0/24
 83.142.224.128/25
 87.117.230.0/23
 # hellum pohellum
