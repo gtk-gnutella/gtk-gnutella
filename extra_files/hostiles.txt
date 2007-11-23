@@ -912,6 +912,7 @@
 66.90.101.0/24
 
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
+78.129.137.0/17
 83.142.224.128/25
 87.117.230.0/23
 # hellum pohellum
@@ -1119,4 +1120,7 @@
 # LimeWire; QuickTime AVI files; peertracking dot com
 193.53.4.0/24
 69.50.130.219
+
+# Dubious range of peers using diverse LimeWire versions
+72.172.88.0/24
 
