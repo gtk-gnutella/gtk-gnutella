@@ -1088,8 +1088,8 @@
 # Phex; shares thousands of infected RAR/ZIP/EXE keygens and warez
 64.34.69.2
 
-# p2pads dot com; MOV; pr0n spam
-8.17.0.0/24
+# p2pads dot com; MOV; pr0n spam; hosted by Easy Online Solutions
+8.17.0.0/23
 
 # "Darkstar Management"; fake wma/mp3/m4a; switches qhit address
 78.129.136.192/26
