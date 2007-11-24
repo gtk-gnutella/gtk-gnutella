@@ -2686,8 +2686,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(ha)) {
 		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
-		socket_destroy(s, "Not connecting to hostile host");
-		return -1;
+		goto failure;	/* Not connecting to hostile host */
 	}
 
 	s->addr = ha;
@@ -2748,18 +2747,12 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 				g_warning("Proxy isn't properly configured (%s:%u)",
 					GNET_PROPERTY(proxy_hostname), GNET_PROPERTY(proxy_port));
 			}
-			socket_destroy(s, "Check the proxy configuration");
-			return -1;
+			goto failure;	/* Check the proxy configuration */
 		}
 
 		g_warning("Unable to connect to %s: (%s)",
 			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
-
-		if (s->adns & SOCK_ADNS_PENDING)
-			s->adns_msg = "Connection failed";
-		else
-			socket_destroy(s, _("Connection failed"));
-		return -1;
+		goto failure;
 	}
 
 	s->local_port = socket_local_port(s);
@@ -2772,6 +2765,13 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	socket_evt_set(s, INPUT_EVENT_WX, socket_connected, s);
 	return 0;
+
+failure:
+	
+	if (!(s->adns & SOCK_ADNS_PENDING)) {
+		socket_destroy(s, _("Connection failed"));
+	}
+	return -1;
 }
 
 /**
@@ -2823,12 +2823,10 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 	socket_check(s);
 	g_assert(addrs);
 
-	s->adns &= ~SOCK_ADNS_PENDING;
-
 	if (n < 1 || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
-		return;
+		goto finish;
 	}
 
 	addr = addrs[random_raw() % n];
@@ -2849,14 +2847,20 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 		}
 		if (socket_connect_prepare(s, addr, s->port, s->type, s->flags)) {
 			s->adns |= SOCK_ADNS_FAILED;
-			return;
+			s->adns_msg = "Could not resolve address";
+			goto finish;
 		}
 	}
 
+	/* SOCK_ADNS_PENDING is still set to prevent socket_destroy() on error */
 	if (socket_connect_finalize(s, addr)) {
 		s->adns |= SOCK_ADNS_FAILED;
-		return;
+		s->adns_msg = "Connection failed";
+		goto finish;
 	}
+
+finish:
+	s->adns &= ~SOCK_ADNS_PENDING;
 }
 
 /**
@@ -2886,7 +2890,7 @@ socket_connect_by_name(const gchar *host, guint16 port,
 	s->adns |= SOCK_ADNS_PENDING;
 	if (
 		!adns_resolve(host, settings_dns_net(),
-			&socket_connect_by_name_helper, s)
+			socket_connect_by_name_helper, s)
 		&& (s->adns & SOCK_ADNS_FAILED)
 	) {
 		/*	socket_connect_by_name_helper() was already invoked! */
