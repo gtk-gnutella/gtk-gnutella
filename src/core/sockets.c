@@ -2864,7 +2864,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 
 finish:
 	s->adns &= ~SOCK_ADNS_PENDING;
-	if (s->adns & (SOCK_ADNS_ASYNC | SOCK_ADNS_FAILED)) {
+	if ((s->adns & SOCK_ADNS_ASYNC) && (s->adns & SOCK_ADNS_FAILED)) {
 		socket_destroy(s, s->adns_msg);
 	}
 }
