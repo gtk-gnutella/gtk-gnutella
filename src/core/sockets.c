@@ -93,9 +93,12 @@ RCSID("$Id$")
 #define RQST_LINE_LENGTH	256	/**< Reasonable estimate for request line */
 #define SOCK_UDP_RECV_BUF	131072	/**< 128K - Large to avoid loosing dgrams */
 
-#define SOCK_ADNS_PENDING	0x01	/**< Don't free() the socket too early */
-#define SOCK_ADNS_FAILED	0x02	/**< Signals error in the ADNS callback */
-#define SOCK_ADNS_BADNAME	0x04	/**< Signals bad host name */
+enum {
+	SOCK_ADNS_PENDING	= 1 << 0,	/**< Don't free() the socket too early */
+	SOCK_ADNS_FAILED	= 1 << 1,	/**< Signals error in the ADNS callback */
+	SOCK_ADNS_BADNAME	= 1 << 2,	/**< Signals bad host name */
+	SOCK_ADNS_ASYNC		= 1 << 3	/**< Signals async resolution */
+};
 
 struct gnutella_socket *s_tcp_listen = NULL;
 struct gnutella_socket *s_tcp_listen6 = NULL;
@@ -2861,6 +2864,9 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 
 finish:
 	s->adns &= ~SOCK_ADNS_PENDING;
+	if (s->adns & (SOCK_ADNS_ASYNC | SOCK_ADNS_FAILED)) {
+		socket_destroy(s, s->adns_msg);
+	}
 }
 
 /**
@@ -2887,12 +2893,12 @@ socket_connect_by_name(const gchar *host, guint16 port,
 		return NULL;
 	}
 
-	s->adns |= SOCK_ADNS_PENDING;
+	s->adns = SOCK_ADNS_PENDING;
 	if (
-		!adns_resolve(host, settings_dns_net(),
-			socket_connect_by_name_helper, s)
-		&& (s->adns & SOCK_ADNS_FAILED)
+		adns_resolve(host, settings_dns_net(), socket_connect_by_name_helper, s)
 	) {
+		s->adns |= SOCK_ADNS_ASYNC;
+	} else if (s->adns & SOCK_ADNS_FAILED) {
 		/*	socket_connect_by_name_helper() was already invoked! */
 		if (GNET_PROPERTY(socket_debug) > 0)
 			g_warning("socket_connect_by_name: "
