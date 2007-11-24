@@ -1744,7 +1744,10 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
-			socket_destroy(s, "TLS handshake failed");
+			if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
+				download_fallback_to_push(s->resource.download, FALSE, FALSE);
+			else
+				socket_destroy(s, "TLS handshake failed");
 		}
 		return;
 	}
