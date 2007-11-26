@@ -239,10 +239,11 @@
 # weasel.net, diverse GWebCache spamming/trashing
 66.68.124.56
 
-# Generic spammer, results don't even match query
+# Generic spammer, results don't even match query; Gnoozle
 70.85.111.0/24
 70.86.48.0/24
 70.86.75.0/24
+70.86.86.152/29
 
 # DRM WMV spammer; giFT-based
 70.84.168.80/28
