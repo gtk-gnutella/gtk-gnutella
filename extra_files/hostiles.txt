@@ -243,6 +243,7 @@
 70.85.111.0/24
 70.86.48.0/24
 70.86.75.0/24
+70.86.31.152/29
 70.86.86.152/29
 
 # DRM WMV spammer; giFT-based
@@ -576,7 +577,7 @@
 # pr0n spammer with ancient LimeWire 2.3.3 Pro; results have no SHA-1
 # oversensitive buzzword sensor; standard port
 63.246.140.0/24
-66.232.96.0/24
+66.232.96.0/23
 66.232.99.0/24
 
 # MOV spammer; adds dozens hundreds of fake alt-locs; links to p2pblast com
@@ -1041,7 +1042,7 @@
 
 # MOV; pr0n spam
 69.59.21.192/26
-76.76.8.192/26
+76.76.8.128/25
 
 # HTM files; LimeWire; links to amateur dot himegimi dot jp
 125.0.151.116
