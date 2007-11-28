@@ -5474,7 +5474,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				degree,
 				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
-				GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
+				GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 	 				"X-Requeries: False\r\n" : "",
 	 			token ? "X-Token: " : "",
 				token ? token : "",
@@ -7210,7 +7210,7 @@ node_init_outgoing(struct gnutella_node *n)
 			degree,
 			GNET_PROPERTY(current_peermode) == NODE_P_ULTRA ?
 				"X-Dynamic-Querying: 0.1\r\n" : "",
-			GNET_PROPERTY(current_peermode) == NODE_P_LEAF ?
+			GNET_PROPERTY(current_peermode) != NODE_P_NORMAL ?
 				"X-Requeries: False\r\n" : ""
 		);
 
