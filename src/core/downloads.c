@@ -8784,8 +8784,12 @@ http_version_nofix:
 				 */
 
 				if (d->skip >= end + 1) {
-					download_stop(d, GTA_DL_ERROR,
-						_("Weird server-side chunk shrinking"));
+					/* NOTE: This is not an error, the source just does not
+					 *       have the full range yet and offered a sub-range.
+					 *		 Even gtk-gnutella peers do this. Maybe the above
+					 *		 should be (d->skip - d->overlap)?
+					 */
+					download_queue(d, _("Weird server-side chunk shrinking"));
 					return;
 				}
 
