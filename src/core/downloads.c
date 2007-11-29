@@ -8625,11 +8625,17 @@ http_version_nofix:
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
 	 */
+	/*
+	 * Ignore Content-Length completely if Content-Range is present to
+	 * avoid issues with HTTP servers with hacked on resuming which send
+	 * inconsistent headers.
+	 *		--cbiere, 2007-11-29
+	 */
 
 	requested_size = d->range_end - d->skip + d->overlap_size;
 
 	buf = header_get(header, "Content-Length"); /* Mandatory */
-	if (buf) {
+	if (buf && NULL == header_get(header, "Content-Range")) {
 		filesize_t content_size;
 		gint error;
 
