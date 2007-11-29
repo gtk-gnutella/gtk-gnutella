@@ -429,31 +429,38 @@ following table gives a description of what the different colors mean.
   <entry>The default color representing a normal search result.   </entry>
 </row>
 <row>
-  <entry>Dark red       </entry>
+  <entry><?dbhtml bgcolor="#7f0000"?><?dbfo 
+   bgcolor="#7f0000"?>Dark red       </entry>
   <entry>This result is most definitely spam.  These results may never be displayed depending on your configuration.   </entry>
 </row>
 <row>
-  <entry>Bright red  </entry>
+  <entry><?dbhtml bgcolor="#FC000D"?><?dbfo 
+   bgcolor="#FC000D"?>Bright red  </entry>
   <entry>The result is probably spam.  </entry>
 </row>
 <row>
-  <entry>Blue  </entry>
+  <entry><?dbhtml bgcolor="#001F7F"?><?dbfo 
+   bgcolor="#001F7F"?>Blue  </entry>
   <entry>A user filter has marked this result.  </entry>
 </row>
 <row>
-  <entry>Green  </entry>
+  <entry><?dbhtml bgcolor="#326732"?><?dbfo 
+   bgcolor="#326732"?>Green  </entry>
   <entry>The file is currently being downloaded.  </entry>
 </row>
 <row>
-  <entry>Gray  </entry>
+  <entry><?dbhtml bgcolor="#7F7F7F"?><?dbfo 
+   bgcolor="#7F7F7F"?>Gray  </entry>
   <entry>This result was ignored.  </entry>
 </row>
 <row>
-  <entry>Indigo  </entry>
+  <entry><?dbhtml bgcolor="#5F007F"?><?dbfo 
+   bgcolor="#5F007F"?>Indigo  </entry>
   <entry>The result came from a hostile host.  </entry>
 </row>
 <row>
-  <entry>Marroon  </entry>
+  <entry>Marroon <?dbhtml bgcolor="#7E5029"?><?dbfo 
+   bgcolor="#7E5029"?> </entry>
   <entry>These result were unrequested and delivered via OOB.  They are possibly spam. </entry>
 </row>
 </tbody></tgroup></informaltable>
@@ -480,7 +487,7 @@ links.  You need to have a script like the one below, </para>
 <para><informalexample><programlisting>
 #! /bin/sh
 
-# $Id$
+# Id: magnet-handler.sh 14334 2007-08-06 13:11:29Z cbiere 
 
 # The following two options should be set in FireFox/Mozilla.
 # Enter &quot;about:config&quot; in the address bar.
