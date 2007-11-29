@@ -410,6 +410,54 @@ special notations.
 
 </para>
 
+<para>
+
+Results are categorized by color in the search result list.  The
+following table gives a description of what the different colors mean.
+
+<informaltable>
+<tgroup cols='2'>
+
+<thead> <row>
+  <entry>Text Color  </entry>
+  <entry>Description </entry>
+ </row>
+</thead>
+<tbody>
+<row>
+  <entry>Black         </entry>
+  <entry>The default color representing a normal search result.   </entry>
+</row>
+<row>
+  <entry>Dark red       </entry>
+  <entry>This result is most definitely spam.  These results may never be displayed depending on your configuration.   </entry>
+</row>
+<row>
+  <entry>Bright red  </entry>
+  <entry>The result is probably spam.  </entry>
+</row>
+<row>
+  <entry>Blue  </entry>
+  <entry>A user filter has marked this result.  </entry>
+</row>
+<row>
+  <entry>Green  </entry>
+  <entry>The file is currently being downloaded.  </entry>
+</row>
+<row>
+  <entry>Gray  </entry>
+  <entry>This result was ignored.  </entry>
+</row>
+<row>
+  <entry>Indigo  </entry>
+  <entry>The result came from a hostile host.  </entry>
+</row>
+<row>
+  <entry>Marroon  </entry>
+  <entry>These result were unrequested and delivered via OOB.  They are possibly spam. </entry>
+</row>
+</tbody></tgroup></informaltable>
+</para>
 </section>
 
 <section id="BITZI"> <title>Bitzi and Magnet links</title>
