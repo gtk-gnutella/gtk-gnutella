@@ -481,7 +481,7 @@
 72.11.143.0/26
 72.11.158.0/29
 72.11.158.128/27
-76.76.8.128/28
+76.76.8.0/23
 216.144.227.64/26
 216.144.235.64/26
 
@@ -982,6 +982,7 @@
 66.90.78.0/24
 69.72.161.0/24
 208.98.50.0/24
+195.242.153.0/24
 
 # LimeWire/4.13.4; GUID switchers
 68.239.124.60
@@ -1039,10 +1040,6 @@
 # Fake LimeWire; ZIP spam; "BitTorrent downloader" etc.
 83.133.126.189
 83.133.127.117
-
-# MOV; pr0n spam
-69.59.21.192/26
-76.76.8.128/25
 
 # HTM files; LimeWire; links to amateur dot himegimi dot jp
 125.0.151.116
@@ -1109,6 +1106,7 @@
 # uses earShare; aggressively searching for leaked corporate data and
 # terrorists (yrly)
 72.22.25.0/27
+72.22.23.0/24
 
 # JunGroup; TV ads; avi/mov/mpg
 74.208.26.207
