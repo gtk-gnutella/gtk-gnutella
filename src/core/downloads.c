@@ -328,6 +328,43 @@ count_running_on_server(const struct dl_server *server)
 	return server_list_length(server, DL_LIST_RUNNING);
 }
 
+static void
+download_repair(struct download *d, const char *reason)
+{
+	download_check(d);
+
+	/*
+	 * Maybe we should try to initiate a TLS connection if we have not
+	 * done so already?
+	 */
+
+	if (
+		tls_enabled() &&
+		!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS)
+	) {
+		d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
+
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
+			g_message("will try to reach server %s with TLS",
+					download_host_info(d));
+
+		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
+				_("Stopped, will retry with TLS (%s)"), reason);
+
+	} else if (d->retries < GNET_PROPERTY(download_max_retries)) {
+		d->retries++;
+
+		if (0 == d->served_reqs) {
+			d->server->attrs |= DLS_A_FOOBAR;
+		}
+		download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
+				_("Stopped (%s)"), reason);
+	} else {
+		download_unavailable(d, GTA_DL_ERROR,
+			_("Too many attempts (%u times)"), d->retries);
+	}
+}
+
 #define MAGIC_TIME	1		/**< For recreation upon startup */
 
 /***
@@ -338,11 +375,14 @@ static G_GNUC_PRINTF(2, 3) void
 download_rx_error(gpointer o, const gchar *reason, ...)
 {
 	struct download *d = o;
+	char msg[1024];
 	va_list args;
 
 	download_check(d);
+
 	va_start(args, reason);
-	download_stop_v(d, GTA_DL_ERROR, reason, args);
+	gm_vsnprintf(msg, sizeof msg, reason, args);
+	download_repair(d, msg);
 	va_end(args);
 }
 
@@ -5731,42 +5771,7 @@ err_header_read_error(gpointer o, gint error)
 	struct download *d = cast_to_download(o);
 
 	download_check(d);
-
-	if (error == ECONNRESET) {
-		/*
-		 * Maybe we should try to initiate a TLS connection if we have not
-		 * done so already?
-		 */
-
-		if (
-			tls_enabled() &&
-			!socket_with_tls(d->socket) && !(d->flags & DL_F_TRIED_TLS)
-		) {
-			d->flags |= DL_F_TRIED_TLS | DL_F_TRY_TLS;
-
-			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(tls_debug))
-				g_message("will try to reach server %s with TLS",
-					download_host_info(d));
-
-			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
-				_("Stopped, will retry with TLS (%s)"), g_strerror(error));
-
-		} else if (d->retries < GNET_PROPERTY(download_max_retries)) {
-			d->retries++;
-
-			if (0 == d->served_reqs) {
-				d->server->attrs |= DLS_A_FOOBAR;
-			}
-			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
-				_("Stopped (%s)"), g_strerror(error));
-		} else {
-			download_unavailable(d, GTA_DL_ERROR,
-				_("Too many attempts (%u times)"), d->retries);
-		}
-	} else {
-		download_stop(d, GTA_DL_ERROR, _("Failed (Read error: %s)"),
-			g_strerror(error));
-	}
+	download_repair(d, g_strerror(error));
 }
 
 static void
