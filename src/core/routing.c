@@ -714,7 +714,6 @@ routing_init(void)
 {
     gchar guid_buf[GUID_RAW_SIZE];
 	guint32 i;
-	gboolean need_guid = TRUE;
 
 	/*
 	 * Make sure it segfaults if we try to access it, but it must be
@@ -741,39 +740,13 @@ routing_init(void)
 			atom_guid_get(g), GUINT_TO_POINTER(1));
 	}
 
-	/*
-	 * Only generate a new GUID for this servent if all entries are 0.
-	 * The empty initialization happens in config_init(), but it can be
-	 * overridden by the GUID read from the configuration file
-	 * (persistent GUID).
-	 *		--RAM, 08/03/2002
-	 */
-
-    gnet_prop_get_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
-
-	/* The last byte (#15) is a marker */
-	for (i = 0; i < GUID_RAW_SIZE - 1; i++) {
-		if (guid_buf[i]) {
-			need_guid = FALSE;
-			break;
-		}
-	}
-
-	if (!guid_is_gtkg(guid_buf, NULL, NULL, NULL))
-		need_guid = TRUE;
-
-retry:
-	if (need_guid) {
+	/* The Servent GUID is not persistent. A new is generated each session. */
+	do {
 		guid_random_muid(guid_buf);
-	}
-	/*
-	 * If by extraordinary, we have generated a banned GUID, retry.
-	 */
-
-	if (is_banned_push(guid_buf)) {
-		need_guid = TRUE;
-		goto retry;
-	}
+		/*
+		 * If by extraordinary, we have generated a banned GUID, retry.
+		 */
+	} while (is_banned_push(guid_buf));
 
     gnet_prop_set_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
 	g_assert(guid_is_gtkg(guid_buf, NULL, NULL, NULL));
