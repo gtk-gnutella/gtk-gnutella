@@ -928,8 +928,7 @@ utf8_char_count(const gchar *src)
 	return n;
 }
 
-#if 0 /* UNUSED */
-static size_t
+size_t
 utf8_data_char_count(const gchar *src, size_t len)
 {
 	const gchar *s;
@@ -942,7 +941,6 @@ utf8_data_char_count(const gchar *src, size_t len)
 
 	return n;
 }
-#endif /* UNUSED */
 
 /**
  * Works exactly like strlcpy() but preserves a valid UTF-8 encoding, if
@@ -1034,7 +1032,6 @@ utf8_strcpy_max(gchar *dst, size_t dst_size, const gchar *src, size_t max_chars)
 	return s - src;
 }
 
-#if 0 /* UNUSED */
 /**
  * Encodes a single UTF-32 character as UTF-16 into a buffer.
  * See also RFC 2781.
@@ -1044,7 +1041,7 @@ utf8_strcpy_max(gchar *dst, size_t dst_size, const gchar *src, size_t max_chars)
  * @returns 0 if the unicode character is invalid. Otherwise, the
  *          amount of UTF-16 characters is returned i.e., 1 or 2.
  */
-static gint
+gint
 utf16_encode_char(guint32 uc, guint16 *dst)
 {
 	g_assert(dst != NULL);
@@ -1060,7 +1057,6 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 	}
 	return 0;
 }
-#endif /* UNUSED */
 
 /**
  * Convert UTF-8 string to ISO-8859-1 inplace.  If `space' is TRUE, all
@@ -1569,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 14178 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15032 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -2927,11 +2923,10 @@ utf32_next_starter(const guint32 *s)
 }
 
 
-#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-32 string is in canonical order.
  */
-static gboolean
+gboolean
 utf32_canonical_sorted(const guint32 *src)
 {
 	guint32 uc;
@@ -2945,7 +2940,6 @@ utf32_canonical_sorted(const guint32 *src)
 
 	return TRUE;
 }
-#endif /* UNUSED */
 
 static inline gboolean
 utf32_is_decomposed_char(guint32 uc, gboolean nfkd)
@@ -2959,11 +2953,10 @@ utf32_is_decomposed_char(guint32 uc, gboolean nfkd)
 	}
 }
 
-#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-32 string is decomposed.
  */
-static gboolean
+gboolean
 utf32_is_decomposed(const guint32 *src, gboolean nfkd)
 {
 	guint32 uc;
@@ -2979,7 +2972,6 @@ utf32_is_decomposed(const guint32 *src, gboolean nfkd)
 
 	return TRUE;
 }
-#endif /* UNUSED */
 
 /**
  * Puts an UTF-32 string into canonical order.
@@ -3032,11 +3024,10 @@ utf32_sort_canonical(guint32 *src)
 	return src;
 }
 
-#if 0 /* UNUSED */
 /**
  * Checks whether an UTF-8 encoded string is decomposed.
  */
-static gboolean
+gboolean
 utf8_is_decomposed(const gchar *src, gboolean nfkd)
 {
 	guint prev, cc;
@@ -3067,7 +3058,6 @@ utf8_is_decomposed(const gchar *src, gboolean nfkd)
 
 	return TRUE;
 }
-#endif /* UNUSED */
 
 /**
  * Checks whether an UTF-8 encoded string is in canonical order.
@@ -3568,12 +3558,11 @@ utf32_decompose(const guint32 *in, guint32 *out, size_t size, gboolean nfkd)
 	return p - out;
 }
 
-#if 0 /* UNUSED */
 /**
  * Decomposes (NFD) an UTF-32 encoded string.
  *
  */
-static size_t
+size_t
 utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 {
 	return utf32_decompose(in, out, size, FALSE);
@@ -3583,12 +3572,11 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
  * Decomposes (NFKD) an UTF-32 encoded string.
  *
  */
-static size_t
+size_t
 utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size)
 {
 	return utf32_decompose(in, out, size, TRUE);
 }
-#endif /* UNUSED */
 
 typedef guint32 (* utf32_remap_func)(guint32 uc);
 
@@ -3678,7 +3666,6 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf32_remap_func remap)
 	return new_len;
 }
 
-#if 0 /* UNUSED */
 /**
  * Copies the UTF-32 string ``src'' to ``dst'' remapping all characters
  * using ``remap''.
@@ -3736,7 +3723,7 @@ utf32_remap(guint32 *dst, const guint32 *src, size_t size,
  * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
-static size_t
+size_t
 utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
 {
 	g_assert(dst != NULL);
@@ -3757,7 +3744,7 @@ utf32_strlower(guint32 *dst, const guint32 *src, size_t size)
  * @param size the size of dst in bytes
  * @return the length in characters of the converted string ``src''.
  */
-static size_t
+size_t
 utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 {
 	g_assert(size == 0 || dst != NULL);
@@ -3766,7 +3753,6 @@ utf32_strupper(guint32 *dst, const guint32 *src, size_t size)
 
 	return utf32_remap(dst, src, size, utf32_uppercase);
 }
-#endif /* UNUSED */
 
 /**
  * Copies ``src'' to ``dst'' converting all characters to lowercase. If
@@ -5482,7 +5468,8 @@ regression_utf8_decoder(void)
 }
 #endif /* TEST_UTF8_DECODER */
 
-#if 0
+#undef UNICODE_VERSUS_GLIB_REGRESSION
+#ifdef UNICODE_VERSUS_GLIB_REGRESSION
 /**
  * The following checks are broken as GLib does not implement Unicode 4.1.0
  * at the moment. --cbiere, 2005-08-02

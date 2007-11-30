@@ -38,15 +38,6 @@
 
 #include "common.h"
 
-
-#if 0  /* xxxUSE_ICU */
-#include "unicode/uchar.h"
-#include "unicode/ustring.h"
-#include "unicode/utypes.h"
-#include "unicode/ustdio.h"
-#include "unicode/unorm.h"
-#endif
-
 typedef enum {
 	UNI_NORM_NFC = 0,
 	UNI_NORM_NFKC,
@@ -84,6 +75,7 @@ gboolean is_ascii_string(const gchar *str);
 gboolean utf8_is_valid_string(const gchar *s);
 gboolean utf8_is_valid_data(const gchar *s, size_t n);
 size_t utf8_char_count(const gchar *s);
+size_t utf8_data_char_count(const gchar *src, size_t len);
 size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 size_t utf8_strcpy_max(gchar *dst, size_t dst_size,
 			const gchar *src, size_t max_chars);
@@ -96,10 +88,17 @@ size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
 gchar *utf8_strupper_copy(const gchar *src);
 gchar *utf8_canonize(const gchar *src);
 gchar *utf8_normalize(const gchar *src, uni_norm_t norm);
+gboolean utf8_is_decomposed(const gchar *src, gboolean nfkd);
 
 guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, gchar *buf, size_t size);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 guint32 utf32_lowercase(guint32 uc);
+gboolean utf32_canonical_sorted(const guint32 *src);
+gboolean utf32_is_decomposed(const guint32 *src, gboolean nfkd);
+size_t utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size);
+size_t utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size);
+size_t utf32_strlower(guint32 *dst, const guint32 *src, size_t size);
+size_t utf32_strupper(guint32 *dst, const guint32 *src, size_t size);
 
 /**
  * This is a highly specialized function (read: don't use it if you don't
@@ -373,27 +372,9 @@ gboolean locale_is_utf8(void);
 gboolean utf8_can_latinize(const gchar *src);
 size_t utf8_latinize(gchar *dst, size_t dst_size, const gchar *src);
 
-#if 0  /* xxxUSE_ICU */
-
-#define UNICODE_CANONIZE(x) \
-	(icu_enabled() ? unicode_canonize(x) : utf8_canonize(x))
-
-int locale_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
-int utf8_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
-int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout);
-
-int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen);
-int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen);
-int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen);
-int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen);
-int unicode_filters(const UChar *source, gint32 len, UChar *result);
-gchar* unicode_canonize(const gchar *in);
-
-#else /* !xxxUSE_ICU */
+gint utf16_encode_char(guint32 uc, guint16 *dst);
 
 #define UNICODE_CANONIZE(x) utf8_canonize(x)
-
-#endif	/* xxxUSE_ICU */
 
 #endif	/* _utf8_h_ */
 
