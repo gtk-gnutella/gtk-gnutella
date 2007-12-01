@@ -290,7 +290,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	g_object_set(cell,
 		"text", text,
 		"foreground-gdk", gui_color_get(data->color),
-		"background-gdk", (void *) 0,
+		"background-gdk", gui_color_get(GUI_COLOR_BACKGROUND),
 		(void *) 0);
 }
 
@@ -1196,6 +1196,7 @@ search_list_tree_view_init(void)
 void
 search_gui_init(void)
 {
+	gtk_rc_parse_string("style \"treeview\" { GtkTreeView::allow-rules = 0 }");
 	search_list_tree_view_init();
 	search_details_treeview_init();
 	search_gui_common_init();
@@ -1358,12 +1359,9 @@ search_gui_update_list_label(const struct search *search)
 		return;
 
 	style = gtk_widget_get_style(GTK_WIDGET(tv));
-	if (search_gui_get_current_search() == search) {
-		fg = &style->fg[GTK_STATE_ACTIVE];
-		bg = &style->bg[GTK_STATE_ACTIVE];
-	} else if (search_gui_is_enabled(search)) {
-		fg = &style->fg[GTK_STATE_NORMAL];
-		bg = &style->bg[GTK_STATE_NORMAL];
+	if (search_gui_is_enabled(search)) {
+		fg = NULL;
+		bg = NULL;
 	} else {
 		fg = &style->fg[GTK_STATE_INSENSITIVE];
 		bg = &style->bg[GTK_STATE_INSENSITIVE];
@@ -1582,7 +1580,7 @@ search_gui_create_tree(void)
 	gui_signal_connect(tv,
 		"cursor-changed", on_tree_view_search_results_select_row, tv);
     gui_signal_connect(tv, "leave-notify-event", on_leave_notify, NULL);
-
+	
 	return GTK_WIDGET(tv);
 }
 

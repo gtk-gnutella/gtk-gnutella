@@ -1247,6 +1247,8 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 	}
 
 	gtk_ctree_node_set_foreground(ctree, node, gui_color_get(color));
+	gtk_ctree_node_set_background(ctree, node,
+		gui_color_get(GUI_COLOR_BACKGROUND));
 }
 
 /**
@@ -1819,12 +1821,9 @@ search_gui_set_search_list_color(const struct search *search, int row)
 	GdkColor *fg, *bg;
 
 	style = gtk_widget_get_style(GTK_WIDGET(clist_search()));
-	if (search_gui_get_current_search() == search) {
+	if (search_gui_is_enabled(search)) {
 		fg = &style->fg[GTK_STATE_ACTIVE];
 		bg = &style->bg[GTK_STATE_ACTIVE];
-	} else if (search_gui_is_enabled(search)) {
-		fg = &style->fg[GTK_STATE_NORMAL];
-		bg = &style->bg[GTK_STATE_NORMAL];
 	} else {
 		fg = &style->fg[GTK_STATE_INSENSITIVE];
 		bg = &style->bg[GTK_STATE_INSENSITIVE];

@@ -125,6 +125,7 @@ static struct {
 	{ "#FC000D",	GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } },	/* flashy red */
 	{ "#7f0000",	GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } },	/* dark red */
 	{ "#7E5029",	GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } },	/* marroon */
+	{ "#FFFFFF",	GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } },	/* white */
 };
 
 GdkColor *
