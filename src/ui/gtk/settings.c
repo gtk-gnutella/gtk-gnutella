@@ -332,6 +332,7 @@ update_entry_duration(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
+    guint32 value = 0;
 
     if (!top)
         return FALSE;
@@ -344,8 +345,8 @@ update_entry_duration(property_t prop)
         return FALSE;
     }
 
-    gtk_entry_set_text(GTK_ENTRY(w),
-		short_time(*stub->guint32.get(prop, NULL, 0, 0)));
+	stub->guint32.get(prop, &value, 0, 1);
+    gtk_entry_set_text(GTK_ENTRY(w), short_time(value));
 
     return FALSE;
 }
@@ -357,6 +358,7 @@ update_size_entry(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
+	guint64 value = 0;
 
     if (!top)
         return FALSE;
@@ -369,9 +371,8 @@ update_size_entry(property_t prop)
         return FALSE;
     }
 
-    gtk_entry_set_text(GTK_ENTRY(w),
-		short_kb_size(*stub->guint64.get(prop, NULL, 0, 0),
-			show_metric_units()));
+	stub->guint64.get(prop, &value, 0, 1);
+    gtk_entry_set_text(GTK_ENTRY(w), short_kb_size(value, show_metric_units()));
 
     return FALSE;
 }

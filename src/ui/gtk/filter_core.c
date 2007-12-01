@@ -566,13 +566,13 @@ filter_new_text_rule(const gchar *match, gint type,
 
 		if (err) {
 			gchar regbuf[1000];
-			regerror(err, re, regbuf, sizeof(regbuf));
 
-			g_warning(
-                "problem in regular expression: %s"
+			regerror(err, re, regbuf, sizeof(regbuf));
+			g_warning("problem in regular expression: %s"
 				"; falling back to substring match", buf);
 
 			r->u.text.type = RULE_TEXT_SUBSTR;
+			regfree(re);
             G_FREE_NULL(re);
 		} else {
 			r->u.text.u.re = re;
@@ -580,9 +580,9 @@ filter_new_text_rule(const gchar *match, gint type,
 	}
 
 	/* no "else" because REGEXP can fall back here */
-	if (r->u.text.type == RULE_TEXT_SUBSTR)
+	if (r->u.text.type == RULE_TEXT_SUBSTR) {
 		r->u.text.u.pattern = pattern_compile(buf);
-
+	}
     G_FREE_NULL(buf);
 
     return r;
@@ -1422,7 +1422,7 @@ filter_free_rule(rule_t *r)
             break;
         case RULE_TEXT_REGEXP:
             regfree(r->u.text.u.re);
-            r->u.text.u.re = NULL;
+            G_FREE_NULL(r->u.text.u.re);
             break;
         case RULE_TEXT_PREFIX:
         case RULE_TEXT_SUFFIX:
