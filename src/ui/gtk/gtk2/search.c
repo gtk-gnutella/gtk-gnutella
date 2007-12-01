@@ -1196,7 +1196,10 @@ search_list_tree_view_init(void)
 void
 search_gui_init(void)
 {
-	gtk_rc_parse_string("style \"treeview\" { GtkTreeView::allow-rules = 0 }");
+	gtk_rc_parse_string(
+		"style \"treeview\" { GtkTreeView::allow-rules = 0 }\n"
+		"class \"GtkTreeView\" style \"treeview\"\n"
+	);
 	search_list_tree_view_init();
 	search_details_treeview_init();
 	search_gui_common_init();
