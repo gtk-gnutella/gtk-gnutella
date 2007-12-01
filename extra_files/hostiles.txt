@@ -632,6 +632,7 @@
 58.165.231.210
 68.202.111.69
 71.193.218.50
+72.45.42.174
 
 # nocusnetworks AKA discoverynetworks; giFT-based; multiple almost identical
 # MOV files linking to nocusnetworks
