@@ -428,7 +428,7 @@ tls_init(struct gnutella_socket *s)
 	return 0;
 
 failure:
-	tls_free(ctx->session);
+	tls_free(s);
 	return -1;
 }
 
