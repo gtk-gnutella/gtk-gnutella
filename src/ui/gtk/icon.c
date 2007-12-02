@@ -402,6 +402,8 @@ status_icon_enable(void)
 
 	icon_pixbuf = create_pixbuf("icon.16x16.xpm");
 	status_icon = gtk_status_icon_new_from_pixbuf(icon_pixbuf);
+	g_object_unref(icon_pixbuf);
+
 	gtk_status_icon_set_tooltip(status_icon,
 		_("gtk-gnutella: Click to minimize/restore"));
 	gtk_status_icon_set_visible(status_icon, TRUE);
@@ -525,6 +527,7 @@ icon_init(void)
     pixmap = (GtkPixmap *) create_pixmap(gui_main_window(), "icon.xpm");
     gtk_pixmap_get(pixmap, &icon_map, &icon_mask);
     gdk_window_set_icon(gui_main_window()->window, NULL, icon_map, icon_mask);
+	g_object_unref(pixmap);
 }
 
 void
