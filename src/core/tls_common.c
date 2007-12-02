@@ -357,16 +357,16 @@ tls_init(struct gnutella_socket *s)
 
 	if (SOCK_CONN_INCOMING == s->direction) {
 
+		if (gnutls_init(&ctx->session, GNUTLS_SERVER)) {
+			g_warning("gnutls_init() failed");
+			ctx->session = NULL;
+			goto failure;
+		}
 		if (gnutls_anon_allocate_server_credentials(&ctx->server_cred)) {
 			g_warning("gnutls_anon_allocate_server_credentials() failed");
 			goto failure;
 		}
 		gnutls_anon_set_server_dh_params(ctx->server_cred, get_dh_params());
-
-		if (gnutls_init(&ctx->session, GNUTLS_SERVER)) {
-			g_warning("gnutls_init() failed");
-			goto failure;
-		}
 		gnutls_dh_set_prime_bits(ctx->session, TLS_DH_BITS);
 
 		if (gnutls_credentials_set(ctx->session,
@@ -374,7 +374,6 @@ tls_init(struct gnutella_socket *s)
 			g_warning("gnutls_credentials_set() failed");
 			goto failure;
 		}
-
 		if (server_cert_cred) {
 			if (gnutls_credentials_set(ctx->session,
 					GNUTLS_CRD_CERTIFICATE, server_cert_cred)) {
@@ -383,12 +382,13 @@ tls_init(struct gnutella_socket *s)
 			}
 		}
 	} else {
-		if (gnutls_anon_allocate_client_credentials(&ctx->client_cred)) {
-			g_warning("gnutls_anon_allocate_client_credentials() failed");
-			goto failure;
-		}
 		if (gnutls_init(&ctx->session, GNUTLS_CLIENT)) {
 			g_warning("gnutls_init() failed");
+			ctx->session = NULL;
+			goto failure;
+		}
+		if (gnutls_anon_allocate_client_credentials(&ctx->client_cred)) {
+			g_warning("gnutls_anon_allocate_client_credentials() failed");
 			goto failure;
 		}
 		if (gnutls_credentials_set(ctx->session,
@@ -424,9 +424,11 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
 #endif /* XXX_CUSTOM_PUSH_PULL */
+
 	return 0;
 
 failure:
+	tls_free(ctx->session);
 	return -1;
 }
 
