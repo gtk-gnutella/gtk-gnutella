@@ -361,6 +361,8 @@
 61.129.251.204
 61.152.171.139
 60.28.222.171
+# Chinese DRM-WMA spammer; Gnucleus
+60.190.223.126
 # DRM license server
 #68.178.225.162
 # DRM License server used by DRM WMV spam; ETE LLC; Shanghai
@@ -1126,4 +1128,5 @@
 
 # Dubious range of peers using diverse LimeWire versions
 72.172.88.0/24
+
 
