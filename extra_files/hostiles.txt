@@ -1129,4 +1129,6 @@
 # Dubious range of peers using diverse LimeWire versions
 72.172.88.0/24
 
+# MPG pr0n spam; hotyounglatinas dot com
+74.222.12.0/24
 
