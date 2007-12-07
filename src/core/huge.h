@@ -65,6 +65,8 @@ gboolean huge_update_hashes(struct shared_file *sf,
 gboolean huge_improbable_sha1(const gchar *buf, size_t len);
 gboolean huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 	gconstpointer header);
+gboolean huge_tth_extract32(const gchar *buf, size_t len, struct tth *tth,
+	gconstpointer header);
 void huge_collect_locations(const struct sha1 *sha1, struct header *header);
 
 #endif	/* _core_huge_h_ */

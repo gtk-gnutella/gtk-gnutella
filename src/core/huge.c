@@ -778,16 +778,49 @@ huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
 bad:
 	if (GNET_PROPERTY(dbg)) {
 		if (is_printable(buf, len)) {
-			g_warning("%s has bad SHA1 (len=%d): %.*s",
-				gmsg_infostr(header), (gint) len, (gint) len, buf);
+			g_warning("%s has bad SHA1 (len=%u): %.*s",
+				gmsg_infostr(header),
+				(unsigned) len,
+				(int) MIN(len, (size_t) INT_MAX),
+				buf);
 		} else {
-			g_warning("%s has bad SHA1 (len=%d)",
-					gmsg_infostr(header), (gint) len);
+			g_warning("%s has bad SHA1 (len=%u)",
+				gmsg_infostr(header), (unsigned) len);
 			if (len)
 				dump_hex(stderr, "Base32 SHA1", buf, len);
 		}
 	}
 
+	return FALSE;
+}
+
+gboolean
+huge_tth_extract32(const gchar *buf, size_t len, struct tth *tth,
+	gconstpointer header)
+{
+	if (len != TTH_BASE32_SIZE)
+		goto bad;
+
+	if (TTH_RAW_SIZE != base32_decode(tth->data, sizeof tth->data, buf, len))
+		goto bad;
+
+	return TRUE;
+
+bad:
+	if (GNET_PROPERTY(dbg)) {
+		if (is_printable(buf, len)) {
+			g_warning("%s has bad TTH (len=%u): %.*s",
+				gmsg_infostr(header),
+				(unsigned) len,
+				(int) MIN(len, (size_t) INT_MAX),
+				buf);
+		} else {
+			g_warning("%s has bad TTH (len=%u",
+				gmsg_infostr(header), (unsigned) len);
+			if (len)
+				dump_hex(stderr, "Base32 TTH", buf, len);
+		}
+	}
 	return FALSE;
 }
 
