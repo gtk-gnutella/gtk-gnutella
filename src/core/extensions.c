@@ -147,6 +147,7 @@ static const struct rwtable urntable[] =
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
 	{ "sha1",			EXT_T_URN_SHA1 },
+	{ "ttroot",			EXT_T_URN_TTH },
 };
 
 /** GGEP extension table (sorted) */

@@ -68,6 +68,7 @@ typedef enum ext_token {
 	EXT_T_UNKNOWN = 0,		/**< Unknown */
 	EXT_T_URN_BITPRINT,		/**< urn:bitprint: */
 	EXT_T_URN_SHA1,			/**< urn:sha1: */
+	EXT_T_URN_TTH,			/**< urn:ttroot: */
 	EXT_T_URN_EMPTY,		/**< urn: */
 	EXT_T_URN_BAD,			/**< urn */
 	EXT_T_XML,				/**< XML payload */

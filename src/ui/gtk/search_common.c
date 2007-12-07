@@ -712,6 +712,7 @@ search_gui_free_record(record_t *rc)
 	atom_str_free_null(&rc->xml);
 	atom_str_free_null(&rc->info);
 	atom_sha1_free_null(&rc->sha1);
+	atom_tth_free_null(&rc->tth);
 	search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
 	rc->magic = 0;
@@ -1050,6 +1051,9 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
     rc->file_index = r->file_index;
 	if (r->sha1) {
     	rc->sha1 = atom_sha1_get(r->sha1);
+	}
+	if (r->tth) {
+    	rc->tth = atom_tth_get(r->tth);
 	}
 	if (r->xml) {
     	rc->xml = atom_str_get(r->xml);
@@ -1476,7 +1480,7 @@ search_gui_check_alt_locs(record_t *rc)
 					blank_guid,
 					NULL,	/* hostname */
 					rc->sha1,
-					NULL,	/* TTH */
+					rc->tth,
 					rc->results_set->stamp,
 					NULL,	/* fileinfo */
 					NULL,	/* proxies */
@@ -1514,7 +1518,7 @@ search_gui_download(record_t *rc)
 		rs->guid,
 		rs->hostname,
 		rc->sha1,
-		NULL,	/* TTH */
+		rc->tth,
 		rs->stamp,
 		NULL,	/* fileinfo */
 		rs->proxies,
@@ -3578,6 +3582,8 @@ search_gui_set_details(const record_t *rc)
 	search_gui_append_detail(_("Size"), search_gui_nice_size(rc));
 	search_gui_append_detail(_("SHA-1"),
 		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
+	search_gui_append_detail(_("TTH"),
+		rc->tth ? tth_to_urn_string(rc->tth) : NULL);
 	search_gui_append_detail(_("Owned"),
 		(SR_OWNED   & rc->flags) ? _("owned") :
 		(SR_PARTIAL & rc->flags) ? _("partial") :
@@ -3697,7 +3703,7 @@ search_gui_set_details(const record_t *rc)
 
 			url = g_strconcat("http://",
 					host_addr_port_to_string(rs->addr, rs->port),
-					"/uri-res/N2R?urn:sha1:", sha1_base32(rc->sha1),
+					"/uri-res/N2R?", bitprint_to_urn_string(rc->sha1, rc->tth),
 					(void *)0);
 			search_gui_append_detail(_("N2R URI"), url);
 			G_FREE_NULL(url);
@@ -3722,7 +3728,7 @@ search_gui_set_details(const record_t *rc)
 			url = g_strconcat("push://",
 					guid_to_string(rs->guid), ":",
 					host_addr_port_to_string(addr, port),
-					"/uri-res/N2R?urn:sha1:", sha1_base32(rc->sha1),
+					"/uri-res/N2R?", bitprint_to_urn_string(rc->sha1, rc->tth),
 					(void *)0);
 			search_gui_append_detail(_("Push URL"), url);
 			G_FREE_NULL(url);

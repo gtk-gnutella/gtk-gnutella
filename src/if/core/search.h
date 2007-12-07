@@ -200,6 +200,7 @@ enum {
 typedef struct gnet_record {
 	const gchar  *name;			/**< File name */
 	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
+	const struct tth *tth;		/**< TTH URN (binary form, atom) */
 	const gchar  *tag;			/**< Optional tag data string (atom) */
 	const gchar  *xml;			/**< Optional XML data string (atom) */
 	const gchar  *path;			/**< Optional path (atom) */

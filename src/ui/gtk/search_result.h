@@ -93,6 +93,7 @@ typedef struct record {
 	const char *utf8_name;		/**< Path/Filename converted to UTF-8 (atom) */
 	const char *charset;		/**< Detected charset of name (static const) */
 	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
+	const struct tth *tth;		/**< TTH URN (binary form, atom) */
 	const char *xml;			/**< Optional XML data string (atom) */
 	const char *tag;			/**< Optional tag data string (atom) */
 	const char *info;			/**< Short version of tag (atom) */

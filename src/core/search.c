@@ -686,6 +686,7 @@ search_free_record(gnet_record_t *rc)
 	atom_str_free_null(&rc->xml);
 	atom_str_free_null(&rc->path);
 	atom_sha1_free_null(&rc->sha1);
+	atom_tth_free_null(&rc->tth);
 	search_free_alt_locs(rc);
 	zfree(rc_zone, rc);
 }
@@ -1585,6 +1586,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
 				struct sha1 sha1_digest;
+				struct tth tth_digest;
 				ggept_status_t ret;
 				gint paylen;
 				const gchar *payload;
@@ -1592,6 +1594,21 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				switch (e->ext_token) {
 				case EXT_T_URN_BITPRINT:	/* first 32 chars is the SHA1 */
 					seen_bitprint = TRUE;
+					paylen = ext_paylen(e);
+					if (paylen >= BITPRINT_BASE32_SIZE) {
+						paylen = MIN(paylen, TTH_BASE32_SIZE);
+						if (
+							huge_tth_extract32(
+								ext_payload(e) + SHA1_BASE32_SIZE + 1,
+								paylen, &tth_digest, &n->header)
+						) {
+							atom_tth_change(&rc->tth, &tth_digest);
+						} else {
+							if (GNET_PROPERTY(search_debug) > 0) {
+								g_message("huge_tth_extract32() failed");
+							}
+						}
+					}
 					/* FALLTHROUGH */
 				case EXT_T_URN_SHA1:		/* SHA1 URN, the HUGE way */
 					has_hash = TRUE;
@@ -1603,26 +1620,35 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						huge_sha1_extract32(ext_payload(e),
 								paylen, &sha1_digest, &n->header)
 					) {
-						gboolean is_spam;
-						
 						count_sha1(&sha1_digest);
-						is_spam = spam_sha1_check(&sha1_digest);
-						if (is_spam) {
+						if (spam_sha1_check(&sha1_digest)) {
 							rs->status |= ST_URN_SPAM;
+							set_flags(rc->flags, SR_SPAM);
 						}
 						if (rc->sha1 != NULL) {
 							multiple_sha1 = TRUE;
 							atom_sha1_free(rc->sha1);
 						}
 						rc->sha1 = atom_sha1_get(&sha1_digest);
-						if (is_spam) {
-							set_flags(rc->flags, SR_SPAM);
-						}
 					} else {
 						if (GNET_PROPERTY(search_debug) > 0) {
 							g_message("huge_sha1_extract32() failed");
 						}
 						sha1_errors++;
+					}
+					break;
+				case EXT_T_URN_TTH:	/* TTH URN (urn:ttroot) */
+					paylen = ext_paylen(e);
+					paylen = MIN(paylen, TTH_BASE32_SIZE);
+					if (
+						huge_tth_extract32(ext_payload(e),
+							paylen, &tth_digest, &n->header)
+					) {
+						atom_tth_change(&rc->tth, &tth_digest);
+					} else {
+						if (GNET_PROPERTY(search_debug) > 0) {
+							g_message("huge_tth_extract32() failed");
+						}
 					}
 					break;
 				case EXT_T_GGEP_u:		/* HUGE URN, without leading urn: */
@@ -1644,14 +1670,11 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						buf[paylen] = '\0';
 
 						if (urn_get_sha1_no_prefix(buf, &sha1_digest)) {
-							gboolean is_spam;
-							
 							count_sha1(&sha1_digest);
-							is_spam = spam_sha1_check(&sha1_digest);
-							if (is_spam) {
+							if (spam_sha1_check(&sha1_digest)) {
 								rs->status |= ST_URN_SPAM;
+								set_flags(rc->flags, SR_SPAM);
 							}
-
 							if (huge_improbable_sha1(sha1_digest.data,
 									sizeof sha1_digest.data)
 							) {
@@ -1665,8 +1688,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 									atom_sha1_free(rc->sha1);
 								}
 								rc->sha1 = atom_sha1_get(&sha1_digest);
-								if (is_spam)
-									set_flags(rc->flags, SR_SPAM);
 							}
 						} else {
 							if (GNET_PROPERTY(search_debug) > 0) {
@@ -1680,15 +1701,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 					ret = ggept_h_sha1_extract(e, &sha1_digest);
 					if (ret == GGEP_OK) {
-						gboolean is_spam;
-						
 						has_hash = TRUE;
 						count_sha1(&sha1_digest);
-						is_spam = spam_sha1_check(&sha1_digest);
-						if (is_spam) {
+						if (spam_sha1_check(&sha1_digest)) {
 							rs->status |= ST_URN_SPAM;
+							set_flags(rc->flags, SR_SPAM);
 						}
-
 						if (huge_improbable_sha1(sha1_digest.data,
 								sizeof sha1_digest.data)
 						) {
@@ -1702,8 +1720,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 								atom_sha1_free(rc->sha1);
 							}
 							rc->sha1 = atom_sha1_get(&sha1_digest);
-							if (is_spam)
-								set_flags(rc->flags, SR_SPAM);
 						}
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
@@ -3256,7 +3272,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 				blank_guid,
 				NULL,	/* hostname */
 				rc->sha1,
-				NULL,	/* TTH */
+				rc->tth,
 				rs->stamp,
 				fi,
 				NULL,	/* proxies */
@@ -3337,7 +3353,7 @@ search_check_results_set(gnet_results_set_t *rs)
 				rs->guid,
 			   	rs->hostname,
 				rc->sha1,
-				NULL,	/* TTH */
+				rc->tth,
 				rs->stamp,
 				fi,
 				rs->proxies,
@@ -3937,7 +3953,6 @@ search_oob_pending_results(
 			gmsg_log_bad(n, "unexpected OOB hit indication");
 
 		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
-
 		return;
 	}
 
@@ -4152,6 +4167,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 */
 
 		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
+		rc->tth = atom_tth_get(shared_file_tth(sf));
 		hcnt = dmesh_fill_alternate(rc->sha1, hvec, G_N_ELEMENTS(hvec));
 
 		/*
