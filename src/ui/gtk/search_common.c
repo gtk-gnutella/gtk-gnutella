@@ -2763,12 +2763,6 @@ search_gui_new_search_full(const gchar *query_str,
 	search->scrolled_window = search_gui_create_scrolled_window();
 	search->tree = search_gui_create_tree();
 
-	gtk_container_add(GTK_CONTAINER(search->scrolled_window), search->tree);
-	gtk_widget_show_all(search->scrolled_window);
-	gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
-	gtk_notebook_append_page(notebook_search_results,
-		search->scrolled_window, NULL);
-
 	search_gui_init_tree(search);
 	search_gui_start_massive_update(search);
 	gtk_widget_hide(search->tree);
@@ -2777,6 +2771,12 @@ search_gui_new_search_full(const gchar *query_str,
 	if (search_gui_is_local(search)) {
 		drag_attach(search->tree, search_gui_get_local_file_url);
 	}
+
+	gtk_container_add(GTK_CONTAINER(search->scrolled_window), search->tree);
+	gtk_widget_show_all(search->scrolled_window);
+	gtk_object_set_user_data(GTK_OBJECT(search->scrolled_window), search);
+	gtk_notebook_append_page(notebook_search_results,
+		search->scrolled_window, NULL);
 
 	is_only_search = NULL == list_searches;
 	list_searches = g_list_append(list_searches, search);
