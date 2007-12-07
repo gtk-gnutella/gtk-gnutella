@@ -1579,8 +1579,8 @@ base32_to_guid(const gchar *base32)
  *             truncated.
  * @return dst.
  */
-gchar *
-sha1_to_base32_buf(const struct sha1 *sha1, gchar *dst, size_t size)
+char *
+sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
 {
 	g_assert(sha1);
 	if (size > 0) {
@@ -1618,9 +1618,9 @@ sha1_to_string(const struct sha1 sha1)
  * @return The SHA-1 converted to an URN string.
  */
 size_t
-sha1_to_urn_string_buf(const struct sha1 *sha1, gchar *dst, size_t size)
+sha1_to_urn_string_buf(const struct sha1 *sha1, char *dst, size_t size)
 {
-	static const gchar prefix[] = "urn:sha1:";
+	static const char prefix[] = "urn:sha1:";
 	size_t n;
 
 	g_assert(sha1);
@@ -1635,26 +1635,26 @@ sha1_to_urn_string_buf(const struct sha1 *sha1, gchar *dst, size_t size)
 	return CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1;
 }
 
-const gchar *
+const char *
 sha1_to_urn_string(const struct sha1 *sha1)
 {
-	static gchar buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+	static char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
 
 	g_assert(sha1);
 	sha1_to_urn_string_buf(sha1, buf, sizeof buf);
 	return buf;
 }
 
-const gchar *
+const char *
 bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 {
 	g_assert(sha1);
 
 	if (tth) {
-		static const gchar prefix[] = "urn:bitprint:";
-		static gchar buf[CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE + 1];
-		const gchar * const end = &buf[sizeof buf];
-		gchar *p = buf;
+		static const char prefix[] = "urn:bitprint:";
+		static char buf[CONST_STRLEN(prefix) + BITPRINT_BASE32_SIZE + 1];
+		const char * const end = &buf[sizeof buf];
+		char *p = buf;
 
 		memcpy(p, prefix, CONST_STRLEN(prefix));
 		p += CONST_STRLEN(prefix);
@@ -1670,7 +1670,7 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 		
 		return buf;
 	} else {
-		static gchar buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
+		static char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
 
 		sha1_to_urn_string_buf(sha1, buf, sizeof buf);
 		return buf;
@@ -1686,7 +1686,7 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
  *			validly base32 encoded SHA1.
  */
 const struct sha1 *
-base32_sha1(const gchar *base32)
+base32_sha1(const char *base32)
 {
 	static struct sha1 sha1;
 	size_t len;
@@ -1701,10 +1701,10 @@ base32_sha1(const gchar *base32)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 tth_base32(const struct tth *tth)
 {
-	static gchar buf[TTH_BASE32_SIZE + 1];
+	static char buf[TTH_BASE32_SIZE + 1];
 
 	g_assert(tth);
 	base32_encode(buf, sizeof buf, tth->data, sizeof tth->data);
@@ -1721,7 +1721,7 @@ tth_base32(const struct tth *tth)
  *			validly base32 encoded TTH.
  */
 const struct tth *
-base32_tth(const gchar *base32)
+base32_tth(const char *base32)
 {
 	static struct tth tth;
 	size_t len;
@@ -1729,6 +1729,60 @@ base32_tth(const gchar *base32)
 	g_assert(base32);
 	len = base32_decode(tth.data, sizeof tth.data, base32, TTH_BASE32_SIZE);
 	return TTH_RAW_SIZE == len ? &tth : NULL;
+}
+
+/**
+ * Convert binary TTH into a base32 string.
+ *
+ * @param dst The destination buffer for the string.
+ * @param size The size of "dst" in bytes; should be larger than
+ *             TTH_BASE32_SIZE, otherwise the resulting string will be
+ *             truncated.
+ * @return dst.
+ */
+char *
+tth_to_base32_buf(const struct tth *tth, char *dst, size_t size)
+{
+	g_assert(tth);
+	if (size > 0) {
+		base32_encode(dst, size, tth->data, sizeof tth->data);
+		dst[size - 1] = '\0';
+	}
+	return dst;
+}
+
+/**
+ * Convert binary TTH into a urn:ttroot:<base32> string.
+ *
+ * @param tth A binary TTH.
+ * @return The TTH converted to an URN string.
+ */
+size_t
+tth_to_urn_string_buf(const struct tth *tth, char *dst, size_t size)
+{
+	static const char prefix[] = "urn:ttroot:";
+	size_t n;
+
+	g_assert(tth);
+
+	n = MIN(size, CONST_STRLEN(prefix));
+	memcpy(dst, prefix, n);
+	size -= n;
+	if (size > 0) {
+		n = MIN(size, (TTH_BASE32_SIZE + 1));
+		tth_to_base32_buf(tth, &dst[CONST_STRLEN(prefix)], n);
+	}
+	return CONST_STRLEN(prefix) + TTH_BASE32_SIZE + 1;
+}
+
+const char *
+tth_to_urn_string(const struct tth *tth)
+{
+	static char buf[CONST_STRLEN("urn:ttroot:") + TTH_BASE32_SIZE + 1];
+
+	g_assert(tth);
+	tth_to_urn_string_buf(tth, buf, sizeof buf);
+	return buf;
 }
 
 /**

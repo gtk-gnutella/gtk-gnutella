@@ -466,15 +466,15 @@ short_string_t short_rate_get_string(guint64 rate, gboolean metric);
  * SHA1<->base32 string conversion
  */
 typedef struct sha1 {
-	gchar data[SHA1_RAW_SIZE];
+	char data[SHA1_RAW_SIZE];
 } sha1_t;
 
-const gchar *sha1_to_string(const struct sha1 sha1);
-const gchar *sha1_to_urn_string(const struct sha1 *sha1);
-size_t sha1_to_urn_string_buf(const struct sha1 *sha1, gchar *dst, size_t size);
-gchar *sha1_to_base32_buf(const struct sha1 *sha1, gchar *dst, size_t size);
-const gchar *sha1_base32(const struct sha1 *sha1);
-const struct sha1 *base32_sha1(const gchar *base32);
+const char *sha1_to_string(const struct sha1 sha1);
+const char *sha1_to_urn_string(const struct sha1 *);
+size_t sha1_to_urn_string_buf(const struct sha1 *, char *dst, size_t size);
+char *sha1_to_base32_buf(const struct sha1 *, char *dst, size_t size);
+const char *sha1_base32(const struct sha1 *);
+const struct sha1 *base32_sha1(const char *base32);
 
 static inline int
 sha1_cmp(const struct sha1 *a, const struct sha1 *b)
@@ -486,14 +486,17 @@ sha1_cmp(const struct sha1 *a, const struct sha1 *b)
  * TTH <-> base32 string conversion
  */
 typedef struct tth {
-	gchar data[TTH_RAW_SIZE];
+	char data[TTH_RAW_SIZE];
 } tth_t;
 
-const gchar *tth_base32(const struct tth *tth);
-const struct tth *base32_tth(const gchar *base32);
+const char *tth_base32(const struct tth *);
+const struct tth *base32_tth(const char *base32);
+const char *tth_to_urn_string(const struct tth *);
+size_t tth_to_urn_string_buf(const struct tth *, char *dst, size_t size);
+char *tth_to_base32_buf(const struct tth *, char *dst, size_t size);
 
 
-const gchar *bitprint_to_urn_string(const struct sha1 *, const struct tth *);
+const char *bitprint_to_urn_string(const struct sha1 *, const struct tth *);
 
 /*
  * GUID<->hex string conversion
