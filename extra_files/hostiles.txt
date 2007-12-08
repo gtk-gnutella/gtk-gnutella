@@ -1139,3 +1139,7 @@
 74.222.8.0/24
 74.222.12.0/23
 
+# (Probably fake) LimeWire/4.10.9; sends no QRP; insanely high file count
+# Likely a sniffer
+66.246.248.226
+
