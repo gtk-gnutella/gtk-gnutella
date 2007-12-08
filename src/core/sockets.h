@@ -108,9 +108,7 @@ struct gnutella_socket {
 	enum socket_direction direction;
 	enum socket_type type;
 	enum net_type net;
-	gboolean omit_token;	/**< TRUE if the connection needs no token */
-	gboolean corked;
-	gboolean was_shutdown;	/**< Set if shutdown() was used */
+
 	gint adns;				/**< status of ADNS resolution */
 	const gchar *adns_msg;	/**< ADNS error message */
 
@@ -178,7 +176,7 @@ socket_uses_tls(const struct gnutella_socket *s)
 static inline gboolean
 socket_is_corked(const struct gnutella_socket *s)
 {
-	return s->corked;
+	return 0 != (SOCK_F_CORKED & s->flags);
 }
 
 /**

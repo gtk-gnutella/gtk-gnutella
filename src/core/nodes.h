@@ -281,25 +281,24 @@ enum {
 	NODE_F_WRITABLE		= 1 << 6,	/**< Node is writable */
 	NODE_F_READABLE		= 1 << 7,	/**< Node is readable, process queries */
 	NODE_F_BYE_SENT		= 1 << 8,	/**< Bye message was queued */
-	NODE_F_NODELAY		= 1 << 9,	/**< TCP_NODELAY was activated */
-	NODE_F_NOREAD		= 1 << 10,	/**< Prevent further reading from node */
-	NODE_F_EOF_WAIT		= 1 << 11,	/**< At final shutdown, waiting EOF */
-	NODE_F_CLOSING		= 1 << 12,	/**< Initiated bye or shutdown */
-	NODE_F_ULTRA		= 1 << 13,	/**< Is one of our ultra nodes */
-	NODE_F_LEAF			= 1 << 14,	/**< Is one of our leaves */
-	NODE_F_CRAWLER		= 1 << 15,	/**< Is a Gnutella Crawler */
-	NODE_F_FAKE_NAME	= 1 << 16,	/**< Was unable to validate GTKG name */
-	NODE_F_PROXY		= 1 << 17,	/**< Sent a push-proxy request to it */
-	NODE_F_PROXIED		= 1 << 18,	/**< We are push-proxy for that node */
-	NODE_F_QRP_SENT		= 1 << 19,	/**< Undergone 1 complete QRP sending */
-	NODE_F_TSYNC_WAIT	= 1 << 20,	/**< Time sync pending via TCP */
-	NODE_F_TSYNC_TCP	= 1 << 21,	/**< No replies via UDP, use TCP */
-	NODE_F_GTKG			= 1 << 22,	/**< Node is another gtk-gnutella */
-	NODE_F_FORCE		= 1 << 23,	/**< Connection is forced */
-	NODE_F_NO_OOB_PROXY	= 1 << 24,	/**< Do not OOB proxy the leaf */
-	NODE_F_TLS			= 1 << 25,	/**< TLS-tunneled */
-	NODE_F_CAN_TLS		= 1 << 26,	/**< Indicated support for TLS */
-	NODE_F_VMSG_SUPPORT	= 1 << 27	/**< Indicated which VMSGs are supported */
+	NODE_F_NOREAD		= 1 << 9,	/**< Prevent further reading from node */
+	NODE_F_EOF_WAIT		= 1 << 10,	/**< At final shutdown, waiting EOF */
+	NODE_F_CLOSING		= 1 << 11,	/**< Initiated bye or shutdown */
+	NODE_F_ULTRA		= 1 << 12,	/**< Is one of our ultra nodes */
+	NODE_F_LEAF			= 1 << 13,	/**< Is one of our leaves */
+	NODE_F_CRAWLER		= 1 << 14,	/**< Is a Gnutella Crawler */
+	NODE_F_FAKE_NAME	= 1 << 15,	/**< Was unable to validate GTKG name */
+	NODE_F_PROXY		= 1 << 16,	/**< Sent a push-proxy request to it */
+	NODE_F_PROXIED		= 1 << 17,	/**< We are push-proxy for that node */
+	NODE_F_QRP_SENT		= 1 << 18,	/**< Undergone 1 complete QRP sending */
+	NODE_F_TSYNC_WAIT	= 1 << 19,	/**< Time sync pending via TCP */
+	NODE_F_TSYNC_TCP	= 1 << 20,	/**< No replies via UDP, use TCP */
+	NODE_F_GTKG			= 1 << 21,	/**< Node is another gtk-gnutella */
+	NODE_F_FORCE		= 1 << 22,	/**< Connection is forced */
+	NODE_F_NO_OOB_PROXY	= 1 << 23,	/**< Do not OOB proxy the leaf */
+	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
+	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
+	NODE_F_VMSG_SUPPORT	= 1 << 26	/**< Indicated which VMSGs are supported */
 };
 
 /*

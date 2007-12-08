@@ -57,6 +57,10 @@ enum {
 	SOCK_F_FORCE		= (1UL << 2),  /**< Bypass usual restrictions */
 	SOCK_F_TLS			= (1UL << 3),  /**< Request a TLS connection */
 	SOCK_F_PUSH			= (1UL << 4),  /**< Use a Gnutella PUSH */
+	SOCK_F_NODELAY		= (1UL << 5),  /**< Set if TCP_NODELAY is enabled */
+	SOCK_F_CORKED		= (1UL << 6),  /**< Set if TCP_CORK is enabled */
+	SOCK_F_SHUTDOWN		= (1UL << 7),  /**< Set if shutdown() was called */
+	SOCK_F_OMIT_TOKEN	= (1UL << 8),  /**< If set X-Token header is omitted */
 	SOCK_F_LOCAL		= (1UL << 29), /**< Is a local socket */
 	SOCK_F_UDP			= (1UL << 30), /**< Is a UDP socket */
 	SOCK_F_TCP			= (1UL << 31)  /**< Is a TCP socket */

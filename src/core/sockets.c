@@ -3305,14 +3305,14 @@ void
 socket_disable_token(struct gnutella_socket *s)
 {
 	socket_check(s);
-	s->omit_token = TRUE;
+	s->flags |= SOCK_F_OMIT_TOKEN;
 }
 
 gboolean
 socket_omit_token(struct gnutella_socket *s)
 {
 	socket_check(s);
-	return s->omit_token;
+	return 0 != (s->flags & SOCK_F_OMIT_TOKEN);
 }
 
 /**
@@ -3326,28 +3326,30 @@ void
 socket_cork(struct gnutella_socket *s, gboolean on)
 #if defined(TCP_CORK) || defined(TCP_NOPUSH)
 {
-	static const gint option =
+	static const int option =
 #if defined(TCP_CORK)
 		TCP_CORK;
 #else	/* !TCP_CORK*/
 		TCP_NOPUSH;
 #endif /* TCP_CORK */
-	gint arg = on ? 1 : 0;
+	int arg = on ? 1 : 0;
 
 	socket_check(s);
+
 	if (!(SOCK_F_TCP & s->flags))
 		return;
 
-	if (s->corked == on)
+	if (!(s->flags & SOCK_F_CORKED) == !on)
 		return;
 
-	if (-1 == setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
+	if (setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
 		if (ECONNRESET != errno) {
 			g_warning("unable to %s TCP_CORK on fd#%d: %s",
 				on ? "set" : "clear", s->file_desc, g_strerror(errno));
 		}
 	} else {
-		s->corked = on;
+		s->flags &= ~SOCK_F_CORKED;
+		s->flags |= on ? SOCK_F_CORKED : 0;
 	}
 }
 #else
@@ -3429,7 +3431,7 @@ void
 socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	socket_check(s);
-	g_return_if_fail(!s->was_shutdown);
+	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
 	socket_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
@@ -3441,7 +3443,7 @@ void
 socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	socket_check(s);
-	g_return_if_fail(!s->was_shutdown);
+	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
 	socket_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
@@ -3451,18 +3453,27 @@ socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 void
 socket_nodelay(struct gnutella_socket *s, gboolean on)
 {
-	gint arg = on ? 1 : 0;
+	int arg = on ? 1 : 0;
 
 	socket_check(s);
-	if (!(SOCK_F_TCP & s->flags)) {
+
+	if (!(SOCK_F_TCP & s->flags))
 		return;
-	}
-	if (
-		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)
-	) {
+
+	/*
+	 * Some systems don't like enabling TCP_NODELAY if it's already enabled and
+	 * checking may also save a system call.
+	 */
+	if (!(SOCK_F_NODELAY & s->flags) == !on)
+		return;
+
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)) {
 		if (errno != ECONNRESET)
 			g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
 				on ? "set" : "clear", s->file_desc, g_strerror(errno));
+	} else {
+		s->flags &= ~SOCK_F_NODELAY;
+		s->flags |= on ? SOCK_F_NODELAY : 0;
 	}
 }
 
@@ -3475,7 +3486,7 @@ socket_tx_shutdown(struct gnutella_socket *s)
 	socket_check(s);
 	g_assert(s->file_desc >= 0);
 
-	if (s->was_shutdown)
+	if (s->flags & SOCK_F_SHUTDOWN)
 		return;
 
 	/* EINVAL and ENOTCONN may occur if connect() didn't succeed */
@@ -3487,7 +3498,7 @@ socket_tx_shutdown(struct gnutella_socket *s)
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
 	}
-	s->was_shutdown = TRUE;
+	s->flags |= SOCK_F_SHUTDOWN;
 }
 
 static int

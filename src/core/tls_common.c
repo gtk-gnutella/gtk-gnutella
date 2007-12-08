@@ -751,6 +751,9 @@ tls_bye(struct gnutella_socket *s)
 	g_return_if_fail(s->tls.ctx);
 	g_return_if_fail(s->tls.ctx->session);
 
+	if ((SOCK_F_EOF | SOCK_F_SHUTDOWN) & s->flags)
+		return;
+
 	if (tls_flush(&s->wio) && GNET_PROPERTY(tls_debug)) {
 		g_warning("tls_bye: tls_flush() failed");
 	}
