@@ -60,8 +60,8 @@ RCSID("$Id$")
 ggept_status_t
 ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
 {
-	const gchar *payload;
-	gint tlen;
+	const char *payload;
+	size_t tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_H);
@@ -73,10 +73,6 @@ ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
 	 */
 
 	tlen = ext_paylen(exv);
-
-	if (tlen == -1)
-		return GGEP_NOT_FOUND;			/* Don't know what this is */
-
 	if (tlen <= 1)
 		return GGEP_INVALID;			/* Can't be a valid "H" payload */
 
@@ -86,7 +82,7 @@ ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
 		if (tlen != (SHA1_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
 	} else if (payload[0] == GGEP_H_BITPRINT) {
-		if (tlen != (SHA1_RAW_SIZE + TTH_RAW_SIZE + 1))
+		if (tlen != (BITPRINT_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
 	} else
 		return GGEP_NOT_FOUND;
@@ -96,6 +92,36 @@ ggept_h_sha1_extract(extvec_t *exv, struct sha1 *sha1)
 	return GGEP_OK;
 }
 
+/**
+ * Extract the TTH hash of the "H" extension into the supplied buffer.
+ *
+ * @returns extraction status: only when GGEP_OK is returned will we have
+ * the TTH in 'tth'.
+ */
+ggept_status_t
+ggept_h_tth_extract(extvec_t *exv, struct tth *tth)
+{
+	const char *payload;
+	size_t tlen;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_H);
+
+	tlen = ext_paylen(exv);
+	if (tlen <= 1)
+		return GGEP_INVALID;			/* Can't be a valid "H" payload */
+
+	payload = ext_payload(exv);
+	if (payload[0] != GGEP_H_BITPRINT)
+		return GGEP_NOT_FOUND;
+	
+	if (tlen != (BITPRINT_RAW_SIZE + 1))
+		return GGEP_INVALID;			/* Size is not right */
+
+	memcpy(tth->data, &payload[1 + SHA1_RAW_SIZE], TTH_RAW_SIZE);
+
+	return GGEP_OK;
+}
 /**
  * Extract payload information from "GTKGV1" into `info'.
  */
