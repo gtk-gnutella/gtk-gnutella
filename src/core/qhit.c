@@ -177,9 +177,8 @@ found_write(gconstpointer data, size_t length)
 	g_assert(length <= INT_MAX);
 	g_assert(!f->open);
 
-	if (length > sizeof f->data - f->pos) {
+	if (length > sizeof f->data - f->pos)
 		return FALSE;
-	}
 
 	g_assert(f->pos < sizeof f->data);
 	memcpy(&f->data[f->pos], data, length);
@@ -648,16 +647,20 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (sha1_available && !found_ggep_h()) {
-		static const gchar urnsha1[] = "urn:sha1:";
-		const gchar *b32 = sha1_base32(shared_file_sha1(sf));
+		const struct sha1 * const sha1 = shared_file_sha1(sf);
+		const struct tth * const tth = shared_file_tth(sf);
 
 		/* Good old way: ASCII URN */
-		if (!found_write(urnsha1, CONST_STRLEN(urnsha1)))
-			return FALSE;
-		if (!found_write(b32, SHA1_BASE32_SIZE))
+		if (!found_write(sha1_to_urn_string(sha1), SHA1_URN_LENGTH))
 			return FALSE;
 		if (!found_write("\x1c", 1))
 			return FALSE;
+		if (tth) {
+			if (!found_write(tth_to_urn_string(tth), TTH_URN_LENGTH))
+				return FALSE;
+			if (!found_write("\x1c", 1))
+				return FALSE;
+		}
 	}
 
 	/*
@@ -670,16 +673,19 @@ add_file(const struct shared_file *sf)
 
 	/*
 	 * Emit the SHA1 as GGEP "H" if they said they understand it.
+	 * Modern way: GGEP "H" for binary URN
 	 */
 
 	if (sha1_available && found_ggep_h()) {
-		/* Modern way: GGEP "H" for binary URN */
-		guint8 type = GGEP_H_SHA1;
+		const struct sha1 * const sha1 = shared_file_sha1(sf);
+		const struct tth * const tth = shared_file_tth(sf);
+		const guint8 type = tth ? GGEP_H_BITPRINT : GGEP_H_SHA1;
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(H), GGEP_W_COBS) &&
 			ggep_stream_write(&gs, &type, 1) &&
-			ggep_stream_write(&gs, shared_file_sha1(sf), SHA1_RAW_SIZE) &&
+			ggep_stream_write(&gs, sha1->data, SHA1_RAW_SIZE) &&
+			(tth ? ggep_stream_write(&gs, tth->data, TTH_RAW_SIZE) : TRUE) &&
 			ggep_stream_end(&gs);
 
 		if (!ok)
