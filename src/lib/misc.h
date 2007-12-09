@@ -469,6 +469,8 @@ typedef struct sha1 {
 	char data[SHA1_RAW_SIZE];
 } sha1_t;
 
+#define SHA1_URN_LENGTH	(CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE)
+
 const char *sha1_to_string(const struct sha1 sha1);
 const char *sha1_to_urn_string(const struct sha1 *);
 size_t sha1_to_urn_string_buf(const struct sha1 *, char *dst, size_t size);
@@ -488,6 +490,8 @@ sha1_cmp(const struct sha1 *a, const struct sha1 *b)
 typedef struct tth {
 	char data[TTH_RAW_SIZE];
 } tth_t;
+
+#define TTH_URN_LENGTH	(CONST_STRLEN("urn:ttroot:") + TTH_BASE32_SIZE)
 
 const char *tth_base32(const struct tth *);
 const struct tth *base32_tth(const char *base32);
