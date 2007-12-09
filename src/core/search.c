@@ -1703,6 +1703,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
 						count_sha1(&sha1_digest);
+						if (GGEP_OK == ggept_h_tth_extract(e, &tth_digest)) {
+							atom_tth_change(&rc->tth, &tth_digest);
+						}
 						if (spam_sha1_check(&sha1_digest)) {
 							rs->status |= ST_URN_SPAM;
 							set_flags(rc->flags, SR_SPAM);
