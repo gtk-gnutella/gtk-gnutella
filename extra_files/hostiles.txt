@@ -362,6 +362,7 @@
 61.152.171.139
 60.28.222.171
 # Chinese DRM-WMA spammer; Gnucleus
+60.190.222.219
 60.190.223.126
 # DRM license server
 #68.178.225.162
