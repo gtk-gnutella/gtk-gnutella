@@ -1086,7 +1086,8 @@
 216.14.80.0/20
 
 # Query-Cache-0.1; fake Ultrapeer; sniffing?
-208.53.147.39
+# ZIP/MPG spammer; uses different source address
+208.53.147.0/24
 
 # Horny/Sexy/hentai/(uncensored)/new + $query + .zip; LimeWire; Adware
 69.42.82.116
