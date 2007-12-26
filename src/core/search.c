@@ -1625,11 +1625,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							rs->status |= ST_URN_SPAM;
 							set_flags(rc->flags, SR_SPAM);
 						}
-						if (rc->sha1 != NULL) {
-							multiple_sha1 = TRUE;
-							atom_sha1_free(rc->sha1);
-						}
-						rc->sha1 = atom_sha1_get(&sha1_digest);
+						multiple_sha1 |= NULL != rc->sha1;
+						atom_sha1_change(&rc->sha1, &sha1_digest);
 					} else {
 						if (GNET_PROPERTY(search_debug) > 0) {
 							g_message("huge_sha1_extract32() failed");
@@ -1683,11 +1680,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 								}
 								sha1_errors++;
 							} else {
-								if (rc->sha1 != NULL) {
-									multiple_sha1 = TRUE;
-									atom_sha1_free(rc->sha1);
-								}
-								rc->sha1 = atom_sha1_get(&sha1_digest);
+								multiple_sha1 |= NULL != rc->sha1;
+								atom_sha1_change(&rc->sha1, &sha1_digest);
 							}
 						} else {
 							if (GNET_PROPERTY(search_debug) > 0) {
@@ -1718,11 +1712,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							}
 							sha1_errors++;
 						} else {
-							if (rc->sha1 != NULL) {
-								multiple_sha1 = TRUE;
-								atom_sha1_free(rc->sha1);
-							}
-							rc->sha1 = atom_sha1_get(&sha1_digest);
+							multiple_sha1 |= NULL != rc->sha1;
+							atom_sha1_change(&rc->sha1, &sha1_digest);
 						}
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
@@ -4169,8 +4160,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 * SHA1 is available, look at the known alternate locations we have.
 		 */
 
-		rc->sha1 = atom_sha1_get(shared_file_sha1(sf));
-		rc->tth = atom_tth_get(shared_file_tth(sf));
+		atom_sha1_change(&rc->sha1, shared_file_sha1(sf));
+		atom_tth_change(&rc->tth, shared_file_tth(sf));
 		hcnt = dmesh_fill_alternate(rc->sha1, hvec, G_N_ELEMENTS(hvec));
 
 		/*
