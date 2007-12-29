@@ -1152,3 +1152,7 @@
 # MOV; pr0n spam
 72.22.198.0/27
 
+# demonspeed.no-ip.info; LimeWire;
+# spreads Trojan.Win32.VB.bdb as 94kB ZIP files
+76.105.110.27
+
