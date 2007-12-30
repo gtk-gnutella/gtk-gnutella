@@ -1156,8 +1156,10 @@
 # spreads Trojan.Win32.VB.bdb as 94kB ZIP files
 76.105.110.27
 
-# fake LimeWire/4.10.9; probably sniffing
+# fake LimeWire/4.10.9; probably sniffing; no QRP
+# static range of Time Warner Telecom
 66.194.155.0/24
+66.193.224.0/24
 
 # LimeWire/4.0.5 (probably fake); security violations
 129.47.128.0/26
