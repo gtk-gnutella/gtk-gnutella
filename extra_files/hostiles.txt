@@ -1167,3 +1167,8 @@
 # LimeWire/4.12.5; security violations
 71.6.153.192/26
 
+# MOV spam servers; LimeWire; s dot clubillusions dot com
+# Southwestern Bell Internet; static range;
+66.137.190.0/26
+
+
