@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15032 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15076 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -4958,40 +4958,56 @@ utf8_latinize_char(const guint32 uc)
 static const gchar *
 utf8_latinize_chars(const guint32 uc, const guint32 next, gboolean *used_next)
 {
-	if (next >= 0x3083 && next <= 0x3087) {
-		static const gchar map[] =
-			"kya\0"  "kyu\0"  "kyo\0"
-			"sha\0"  "shu\0"  "sho\0"
-			"cha\0"  "chu\0"  "cho\0"
-			"nya\0"  "nyu\0"  "nyo\0"
-			"hya\0"  "hyu\0"  "hyo\0"
-			"mya\0"  "myu\0"  "myo\0"
-			"rya\0"  "ryu\0"  "ryo\0"
-			"gya\0"  "gyu\0"  "gyo\0"
-			"ja\0\0" "ju\0\0" "jo\0\0"
-			"bya\0"  "byu\0"  "byo\0"
-			"pya\0"  "pyu\0"  "pyo\0";
-		guint row, column;
+	switch (next) {
+	/* Hiragana combines */
+	case 0x3083:	/* ya */
+	case 0x3084:	/* YA */
+	case 0x3085:	/* yu */
+	case 0x3086:	/* YU */
+	case 0x3087:	/* yo */
+	case 0x3088:	/* YO */
+	/* Katakana combines */
+	case 0x30E3:	/* ya */
+	case 0x30E4:	/* YA */
+	case 0x30E5:	/* yu */
+	case 0x30E6:	/* YU */
+	case 0x30E7:	/* yo */
+	case 0x30E8:	/* YO */
+		{
+			static const char map[] =
+				"kya\0"  "kyu\0"  "kyo\0"	/* 0 */
+				"sha\0"  "shu\0"  "sho\0"	/* 1 */
+				"cha\0"  "chu\0"  "cho\0"	/* 2 */
+				"nya\0"  "nyu\0"  "nyo\0"	/* 3 */
+				"hya\0"  "hyu\0"  "hyo\0"	/* 4 */
+				"mya\0"  "myu\0"  "myo\0"	/* 5 */
+				"rya\0"  "ryu\0"  "ryo\0"	/* 6 */
+				"gya\0"  "gyu\0"  "gyo\0"	/* 7 */
+				"ja\0\0" "ju\0\0" "jo\0\0"	/* 8 */
+				"bya\0"  "byu\0"  "byo\0"	/* 9 */
+				"pya\0"  "pyu\0"  "pyo\0";	/* A */
+			unsigned offset;
 
-		STATIC_ASSERT(sizeof map >= 11 * 4);
-		switch (uc){
-		case 0x304D: row =  0; break; /* ky */
-		case 0x3057: row =  1; break; /* sh */
-		case 0x3061: row =  2; break; /* ch */
-		case 0x306B: row =  3; break; /* ny */
-		case 0x3072: row =  4; break; /* hy */
-		case 0x307F: row =  5; break; /* my */
-		case 0x308A: row =  6; break; /* ry */
-		case 0x304E: row =  7; break; /* gy */
-		case 0x3058: row =  8; break; /* j  */
-		case 0x3073: row =  9; break; /* by */
-		case 0x3074: row = 10; break; /* py */
-		default:
-			goto finish;
+			STATIC_ASSERT(sizeof map >= 12 * 4);
+
+			switch (uc){
+			case 0x304D: case 0x30AD: offset =  0 * 12; break; /* ky */
+			case 0x3057: case 0x30B7: offset =  1 * 12; break; /* sh */
+			case 0x3061: case 0x30C1: offset =  2 * 12; break; /* ch */
+			case 0x306B: case 0x30CB: offset =  3 * 12; break; /* ny */
+			case 0x3072: case 0x30D2: offset =  4 * 12; break; /* hy */
+			case 0x307F: case 0x30DF: offset =  5 * 12; break; /* my */
+			case 0x308A: case 0x30EA: offset =  6 * 12; break; /* ry */
+			case 0x304E: case 0x30AE: offset =  7 * 12; break; /* gy */
+			case 0x3058: case 0x30B8: offset =  8 * 12; break; /* j  */
+			case 0x3073: case 0x30D3: offset =  9 * 12; break; /* by */
+			case 0x3074: case 0x30D4: offset = 10 * 12; break; /* py */
+			default:	 goto finish;
+			}
+			offset += (next - ((next & 0x30E0) | 3)) / 2;
+			*used_next = TRUE;
+			return &map[offset];
 		}
-		column = (next - 0x3083) / 2;
-		*used_next = TRUE;
-		return &map[row * 3 + column];
 	}
 
 finish:
@@ -5057,7 +5073,7 @@ utf8_latinize(gchar *dst, const size_t dst_size, const gchar *src)
 		if (!uc)
 			break;
 
-		next = utf8_decode_char_fast(s, &next_len);
+		next = utf8_decode_char_fast(&s[retlen], &next_len);
 		r = utf8_latinize_chars(uc, next, &used_next);
 		if (r) {
 			r_len = strlen(r);
