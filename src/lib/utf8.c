@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15076 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15077 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -4988,7 +4988,7 @@ utf8_latinize_chars(const guint32 uc, const guint32 next, gboolean *used_next)
 				"pya\0"  "pyu\0"  "pyo\0";	/* A */
 			unsigned offset;
 
-			STATIC_ASSERT(sizeof map >= 12 * 4);
+			STATIC_ASSERT(sizeof map == 12 * 11 + 1);
 
 			switch (uc){
 			case 0x304D: case 0x30AD: offset =  0 * 12; break; /* ky */
