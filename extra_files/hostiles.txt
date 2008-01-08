@@ -360,6 +360,7 @@
 61.129.70.59
 61.129.251.204
 61.152.171.139
+60.12.182.0/28
 60.28.222.171
 # Chinese DRM-WMA spammer; Gnucleus
 60.190.222.219
@@ -1171,4 +1172,7 @@
 # Southwestern Bell Internet; static range;
 66.137.190.0/26
 
+# ideaFoundry at theplanet dot com range; MOV pr0n spam; BearShare;
+# viralnetworkads
+70.85.203.0/28
 
