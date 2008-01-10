@@ -1689,7 +1689,7 @@ prop = {
           "aac;avi;"
 		  "bin;bz2;7z;"
 		  "cue;"
-		  "deb;divx;doc;"
+		  "deb;divx;"
 		  "flac;flc;fli;"
 		  "gif;gz;"
 		  "ifo;iso;it;"
