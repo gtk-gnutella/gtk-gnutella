@@ -99,6 +99,7 @@ static const struct {
 #else	/* !USE_LOCAL_UHC */
 	{ "g6.6dns.org:1337" },
 	{ "cornflake.sirinet.net:2000" },
+	{ "void.ghostwhitecrab.de:443" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
