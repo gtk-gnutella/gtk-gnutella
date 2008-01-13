@@ -134,24 +134,25 @@ search_gui_details_get_text(GtkWidget *widget)
 	}
 }
 
-/* Display XML data from the result if any */
+/* Display Bitzi data for the result if any */
 static void
-search_set_xml_metadata(const record_t *rc)
+search_set_xml(GtkWidget *widget, const char *xml)
 {
 	GtkTextBuffer *txt;
-	gchar *xml_txt;
-		
-	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
-					gui_main_window_lookup("textview_result_info_xml")));
+	char *xml_txt;
+
+	g_return_if_fail(widget);
+
+	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
 	
 	/*
 	 * Character set detection usually fails here because XML
 	 * is mostly ASCII so that the thresholds are not reached.
 	 */
-	if (rc->xml) {
-		gchar *s = unknown_to_utf8_normalized(rc->xml, UNI_NORM_GUI, NULL);
+	if (xml) {
+		char *s = unknown_to_utf8_normalized(xml, UNI_NORM_GUI, NULL);
 		xml_txt = search_xml_indent(s);
-		if (rc->xml != s) {
+		if (xml != s) {
 			G_FREE_NULL(s);
 		}
 	} else {
@@ -159,6 +160,33 @@ search_set_xml_metadata(const record_t *rc)
 	}
 	gtk_text_buffer_set_text(txt, EMPTY_STRING(xml_txt), -1);
 	G_FREE_NULL(xml_txt);
+}
+
+/* Display Bitzi data for the result if any */
+static void
+search_set_bitzi_metadata(const record_t *rc)
+{
+	const char *xml;
+
+	if (rc && NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
+		xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
+		if (!xml) {
+			xml = _("Not in database");
+		}
+	} else {
+		xml = NULL;
+	}
+	search_set_xml(gui_main_window_lookup("textview_result_info_bitzi"), xml);
+}
+
+/* Display XML data from the result if any */
+static void
+search_set_xml_metadata(const record_t *rc)
+{
+	const char *xml;
+
+	xml = rc ? rc->xml : NULL;
+	search_set_xml(gui_main_window_lookup("textview_result_info_xml"), rc->xml);
 }
 
 static GtkTreeView *treeview_search_details;
@@ -200,6 +228,7 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
 	g_object_thaw_notify(G_OBJECT(treeview_search_details));
 	search_set_xml_metadata(rc);
+	search_set_bitzi_metadata(rc);
 }
 
 static void

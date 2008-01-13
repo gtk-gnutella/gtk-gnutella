@@ -183,6 +183,7 @@ bitzi_destroy(bitzi_data_t *data)
 	atom_sha1_free_null(&data->sha1);
 	atom_str_free_null(&data->mime_type);
 	atom_str_free_null(&data->mime_desc);
+	xml_free_null(&data->ticket);
 
 	if (GNET_PROPERTY(bitzi_debug)) {
 		g_message("bitzi_destroy: freeing data");
@@ -615,9 +616,16 @@ process_meta_data(bitzi_request_t *request)
 		goto finish;
 	}
 
-	if (bitzi_cache_add(data) && bitzi_cache_file) {
-		xmlDocDump(bitzi_cache_file, doc);
-		fputs("\n", bitzi_cache_file);
+	if (bitzi_cache_add(data)) {
+		xmlChar *text;
+
+		xmlDocDumpMemory(doc, &text, NULL);
+		data->ticket = xmlChar_to_gchar(text); 
+
+		if (bitzi_cache_file) {
+			xmlDocDump(bitzi_cache_file, doc);
+			fputs("\n", bitzi_cache_file);
+		}
 	}
 
 	if (request->filesize && request->filesize != data->size) {
@@ -847,7 +855,7 @@ bitzi_has_cached_ticket(const struct sha1 *sha1)
 bitzi_data_t *
 bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 {
-	bitzi_data_t *data = NULL;
+	bitzi_data_t *data;
 	bitzi_request_t	*request;
 
 	g_return_val_if_fail(NULL != sha1, NULL);
@@ -866,9 +874,11 @@ bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 			gcu_bitzi_result(data);
 		}
 	} else {
+		static const bitzi_request_t zero_request;
 		size_t len;
 
 		request = walloc(sizeof *request);
+		*request = zero_request;
 
 		/*
 		 * build the bitzi url
@@ -891,6 +901,15 @@ bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 	}
 
 	return data;
+}
+
+const char *
+bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
+{
+	bitzi_data_t *data;
+	
+	data = bitzi_query_by_sha1(sha1, filesize);
+	return data ? data->ticket : NULL;
 }
 
 static void
@@ -968,8 +987,12 @@ bitzi_load_cache(void)
 				break;
 
 			if (eot) {
+				static const bitzi_request_t zero_request;
+
 				/* new pseudo request */
 				request = walloc(sizeof *request);
+				*request = zero_request;
+
 				request->sha1 = NULL;
 				request->filesize = 0;
 

@@ -60,6 +60,7 @@ typedef struct bitzi_data {
 	const struct sha1 *sha1;	/**< pointer to SHA-1 atom */
 	const gchar	*mime_type;		/**< mime type (string atom) */
 	const gchar	*mime_desc;		/**< mime details (fps, bitrate etc) (string atom) */
+	char *ticket;				/**< The ticket as text */
 	filesize_t	size;			/**< size of file */
 	bitzi_fj_t	judgement;
 	gfloat		goodness;
@@ -80,6 +81,7 @@ typedef struct bitzi_data {
 
 gboolean bitzi_has_cached_ticket(const struct sha1 *sha1);
 bitzi_data_t *bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize);
+const char *bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize);
 
 #endif /* CORE_SOURCES */
 

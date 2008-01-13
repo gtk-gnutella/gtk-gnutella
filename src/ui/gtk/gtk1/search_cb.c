@@ -86,26 +86,51 @@ search_gui_details_get_text(GtkWidget *widget)
  *** Private functions
  ***/
 
+static void
+search_set_xml(GtkWidget *widget, const char *xml)
+{
+	GtkText *text;
+	char *indented;
+
+	g_return_if_fail(widget);
+
+	text = GTK_TEXT(widget);
+	gtk_text_freeze(text);
+	gtk_text_set_point(text, 0);
+	gtk_text_forward_delete(text, gtk_text_get_length(text));
+	indented = xml ? search_xml_indent(xml) : NULL;
+	gtk_text_set_point(text, 0);
+	gtk_text_insert(text, NULL, NULL, NULL,
+		indented ? lazy_utf8_to_ui_string(indented) : "", (-1));
+	G_FREE_NULL(indented);
+	gtk_text_thaw(text);
+}
+
 /* Display XML data from the result if any */
 static void
 search_set_xml_metadata(const record_t *rc)
 {
-	GtkText *xml;
+	const char *xml;
 
-	xml = GTK_TEXT(gui_main_window_lookup("text_result_info_xml"));
-	gtk_text_freeze(xml);
-	gtk_text_set_point(xml, 0);
-	gtk_text_forward_delete(xml, gtk_text_get_length(xml));
-	if (rc) {
-		gchar *text;
-	
-		text = rc->xml ? search_xml_indent(rc->xml) : NULL;
-		gtk_text_set_point(xml, 0);
-		gtk_text_insert(xml, NULL, NULL, NULL,
-			text ? lazy_utf8_to_ui_string(text) : "", (-1));
-		G_FREE_NULL(text);
+	xml = rc ? rc->xml : NULL;
+	search_set_xml(gui_main_window_lookup("text_result_info_xml"), xml);
+}
+
+/* Display Bitzi data for the result if any */
+static void
+search_set_bitzi_metadata(const record_t *rc)
+{
+	const char *xml;
+
+	if (rc && NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
+		xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
+		if (!xml) {
+			xml = _("Not in database");
+		}
+	} else {
+		xml = NULL;
 	}
-	gtk_text_thaw(xml);
+	search_set_xml(gui_main_window_lookup("text_result_info_bitzi"), xml);
 }
 
 static GtkCList *clist_search_details;
@@ -150,6 +175,7 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
     gtk_clist_thaw(clist_search_details);
 	search_set_xml_metadata(rc);
+	search_set_bitzi_metadata(rc);
 }
 
 record_t *

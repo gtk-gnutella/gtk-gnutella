@@ -2050,7 +2050,7 @@
 		      <class>GtkLabel</class>
 		      <child_name>Notebook:tab</child_name>
 		      <name>label788</name>
-		      <label>Information about selected file</label>
+		      <label>Details</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
@@ -2081,6 +2081,36 @@
 		      <child_name>Notebook:tab</child_name>
 		      <name>label793</name>
 		      <label>XML Metadata</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		    </widget>
+
+		    <widget>
+		      <class>GtkScrolledWindow</class>
+		      <name>scrolledwindow4972</name>
+		      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+		      <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+		      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+		      <widget>
+			<class>GtkText</class>
+			<name>text_result_info_bitzi</name>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text></text>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <child_name>Notebook:tab</child_name>
+		      <name>label8010</name>
+		      <label>Bitzi Metadata</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>

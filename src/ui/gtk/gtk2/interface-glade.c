@@ -3493,6 +3493,9 @@ create_main_window_search_tab (void)
   GtkWidget *scrolledwindow83;
   GtkWidget *textview_result_info_xml;
   GtkWidget *label1015;
+  GtkWidget *scrolledwindow900;
+  GtkWidget *textview_result_info_bitzi;
+  GtkWidget *label1029;
   GtkWidget *table78;
   GtkWidget *label993;
   GtkWidget *alignment136;
@@ -3710,6 +3713,25 @@ create_main_window_search_tab (void)
   gtk_widget_show (label1015);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 1), label1015);
 
+  scrolledwindow900 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow900, "scrolledwindow900");
+  gtk_widget_show (scrolledwindow900);
+  gtk_container_add (GTK_CONTAINER (notebook1), scrolledwindow900);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow900), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow900), GTK_SHADOW_ETCHED_IN);
+
+  textview_result_info_bitzi = gtk_text_view_new ();
+  gtk_widget_set_name (textview_result_info_bitzi, "textview_result_info_bitzi");
+  gtk_widget_show (textview_result_info_bitzi);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow900), textview_result_info_bitzi);
+  gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_result_info_bitzi), FALSE);
+  gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview_result_info_bitzi), FALSE);
+
+  label1029 = gtk_label_new (_("Bitzi Metadata"));
+  gtk_widget_set_name (label1029, "label1029");
+  gtk_widget_show (label1029);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 2), label1029);
+
   table78 = gtk_table_new (5, 4, FALSE);
   gtk_widget_set_name (table78, "table78");
   gtk_widget_show (table78);
@@ -3820,7 +3842,7 @@ create_main_window_search_tab (void)
   label1011 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label1011, "label1011");
   gtk_widget_show (label1011);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 2), label1011);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 3), label1011);
 
   hbox215 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox215, "hbox215");
@@ -3987,6 +4009,9 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, scrolledwindow83, "scrolledwindow83");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, textview_result_info_xml, "textview_result_info_xml");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label1015, "label1015");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, scrolledwindow900, "scrolledwindow900");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, textview_result_info_bitzi, "textview_result_info_bitzi");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label1029, "label1029");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, table78, "table78");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label993, "label993");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment136, "alignment136");

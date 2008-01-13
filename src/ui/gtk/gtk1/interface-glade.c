@@ -186,6 +186,9 @@ create_main_window (void)
   GtkWidget *scrolledwindow491;
   GtkWidget *text_result_info_xml;
   GtkWidget *label793;
+  GtkWidget *scrolledwindow4972;
+  GtkWidget *text_result_info_bitzi;
+  GtkWidget *label8010;
   GtkWidget *table68;
   guint checkbutton_search_hide_downloaded_key;
   GtkWidget *checkbutton_search_hide_downloaded;
@@ -2050,7 +2053,7 @@ create_main_window (void)
   gtk_widget_show (label795);
   gtk_clist_set_column_widget (GTK_CLIST (clist_search_details), 1, label795);
 
-  label788 = gtk_label_new (_("Information about selected file"));
+  label788 = gtk_label_new (_("Details"));
   gtk_widget_set_name (label788, "label788");
   gtk_widget_ref (label788);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label788", label788,
@@ -2082,6 +2085,31 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label793);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 1), label793);
+
+  scrolledwindow4972 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow4972, "scrolledwindow4972");
+  gtk_widget_ref (scrolledwindow4972);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow4972", scrolledwindow4972,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow4972);
+  gtk_container_add (GTK_CONTAINER (notebook4), scrolledwindow4972);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow4972), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+
+  text_result_info_bitzi = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (text_result_info_bitzi, "text_result_info_bitzi");
+  gtk_widget_ref (text_result_info_bitzi);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "text_result_info_bitzi", text_result_info_bitzi,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (text_result_info_bitzi);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow4972), text_result_info_bitzi);
+
+  label8010 = gtk_label_new (_("Bitzi Metadata"));
+  gtk_widget_set_name (label8010, "label8010");
+  gtk_widget_ref (label8010);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8010", label8010,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8010);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 2), label8010);
 
   table68 = gtk_table_new (5, 4, FALSE);
   gtk_widget_set_name (table68, "table68");
@@ -2256,7 +2284,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label789", label789,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label789);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 2), label789);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 3), label789);
 
   hbox147 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox147, "hbox147");

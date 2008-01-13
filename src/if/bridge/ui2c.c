@@ -83,6 +83,12 @@ guc_query_bitzi_by_sha1(const struct sha1 *sha1, filesize_t filesize)
     bitzi_query_by_sha1(sha1, filesize);
 }
 
+const char *
+guc_bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
+{
+    return bitzi_ticket_by_sha1(sha1, filesize);
+}
+
 gboolean
 guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
 {
