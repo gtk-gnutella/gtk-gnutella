@@ -2850,6 +2850,7 @@ search_xml_indent(const gchar *text)
 	has_cdata = FALSE;
 
 	for (;;) {
+		gboolean had_cdata;
 
 		p = q;
 		/*
@@ -2873,7 +2874,17 @@ search_xml_indent(const gchar *text)
 		is_end = '/' == p[1];
 		is_start = !(is_special || is_end);
 		is_singleton = is_start && '>' == *q && '/' == q[-1];
+		had_cdata = has_cdata;
 		has_cdata = FALSE;
+
+		if (is_end && depth > 0) {
+			depth--;
+		}
+		if (p != text && !(is_end && had_cdata)) {
+			gs = g_string_append_c(gs, '\n');
+			for (i = 0; i < depth; i++)
+				gs = g_string_append_c(gs, '\t');
+		}
 
 		quoted = FALSE;
 		for (q = p; '\0' != *q; q++) {
@@ -2904,14 +2915,6 @@ search_xml_indent(const gchar *text)
 			const char *next = strchr(q, '<');
 			has_cdata = next && '/' == next[1];
 			depth++;
-		}
-		if (is_end && depth > 0) {
-			depth--;
-		}
-		if (!(is_start && has_cdata)) {
-			gs = g_string_append_c(gs, '\n');
-			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
 		}
 	}
 
