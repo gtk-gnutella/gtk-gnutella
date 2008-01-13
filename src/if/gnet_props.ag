@@ -1700,7 +1700,7 @@ prop = {
 		  "qt;"
 		  "pdf;png;ps;"
 		  "ram;rar;rm;rom;rpm;"
-		  "s3m;shn;sid;smc;smd;srt;stm;"
+		  "s3m;shn;sid;smc;smd;spx;srt;stm;"
 		  "tar;tbz2;tgz;torrent;txt;"
 		  "vob;voc;vqf;"
 		  "wav;"
