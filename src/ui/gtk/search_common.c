@@ -2832,27 +2832,35 @@ search_gui_synchronize_search_list(search_gui_synchronize_list_cb func,
  * @return a newly allocated string.
  */
 gchar *
-search_xml_indent(const gchar *s)
+search_xml_indent(const gchar *text)
 {
 	const gchar *p, *q;
+	gboolean quoted, is_special, is_end, is_start, is_singleton, has_cdata;
 	guint i, depth = 0;
 	GString *gs;
 
 	gs = g_string_new("");
+	q = text;
 
-	q = s;
+	quoted = FALSE;
+	is_special = FALSE;
+	is_end = FALSE;
+	is_start = FALSE;
+	is_singleton = FALSE;
+	has_cdata = FALSE;
+
 	for (;;) {
 
-		q = skip_ascii_spaces(q);
-
-		/* Find the start of the tag */
-		p = strchr(q, '<');
-		if (!p)
-			p = strchr(q, '\0');
-
-		/* Append the text between the previous and the current tag, if any */
-		if (p != q)
-			gs = g_string_append_len(gs, q, p - q);
+		p = q;
+		/*
+		 * Find the start of the tag and append the text between the
+		 * previous and the current tag.
+		 */
+		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
+			if (is_ascii_space(*p) && is_ascii_space(p[1]))
+				continue;
+			gs = g_string_append_c(gs, is_ascii_space(*p) ? ' ' : *p);
+		}
 		if ('\0' == *p)
 			break;
 
@@ -2861,32 +2869,50 @@ search_xml_indent(const gchar *s)
 		if (!q)
 			q = strchr(p, '\0');
 
-		if (p[1] != '/') {
-			/* Something like <start> */
+		is_special = '?' == p[1] || '!' == p[1];
+		is_end = '/' == p[1];
+		is_start = !(is_special || is_end);
+		is_singleton = is_start && '>' == *q && '/' == q[-1];
+		has_cdata = FALSE;
 
-			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
-			gs = g_string_append_len(gs, p, (q - p) + 1);
+		quoted = FALSE;
+		for (q = p; '\0' != *q; q++) {
+			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
+				continue;
 
-			/* Check for tags like <tag/> */
-			if ('/' != *(q - 1)) {
-				depth++;
+			if (is_ascii_space(*q)) {
+				if (quoted || is_special) {
+					gs = g_string_append_c(gs, ' ');
+				} else {
+					gs = g_string_append(gs, "\n");
+					for (i = 0; i < depth + 1; i++)
+						gs = g_string_append_c(gs, '\t');
+				}
+				continue;
 			}
-		} else {
-			/* Something like </end> */
 
-			if (depth > 0) {
-				depth--;
+			gs = g_string_append_c(gs, *q);
+			
+			if ('"' == *q) {
+				quoted ^= TRUE;
+			} else if ('>' == *q) {
+				q++;
+				break;
 			}
-
-			for (i = 0; i < depth; i++)
-				gs = g_string_append_c(gs, '\t');
-			gs = g_string_append_len(gs, p, (q - p) + 1);
 		}
-		gs = g_string_append(gs, "\n");
-
-		if ('>' == *q)
-			q++;
+		if (is_start && !is_singleton) {
+			const char *next = strchr(q, '<');
+			has_cdata = next && '/' == next[1];
+			depth++;
+		}
+		if (is_end && depth > 0) {
+			depth--;
+		}
+		if (!(is_start && has_cdata)) {
+			gs = g_string_append_c(gs, '\n');
+			for (i = 0; i < depth; i++)
+				gs = g_string_append_c(gs, '\t');
+		}
 	}
 
 	return gm_string_finalize(gs);
