@@ -759,7 +759,8 @@ is_action_url_spam(const gchar *data, size_t size)
 		p = compat_memmem(data, size, schema, CONST_STRLEN(schema));
 		if (p) {
 			static const gchar action[] = " action=\"http://";
-			size -= p - data - CONST_STRLEN(schema);
+			size -= p - data;
+			size -= CONST_STRLEN(schema);
 			if (compat_memmem(p, size, action, CONST_STRLEN(action)))
 				return TRUE;
 		}
