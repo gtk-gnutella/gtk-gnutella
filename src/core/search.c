@@ -749,18 +749,19 @@ search_record_new(void)
  * @return TRUE if spam was detected, FALSE if it looks alright.
  */
 static gboolean
-is_action_url_spam(const gchar *data, size_t size)
+is_action_url_spam(const char * const data, size_t size)
 {
 	if (size > 0) {
-		static const gchar schema[] = "http://www.limewire.com/schemas/";
-		const gchar *p;
+		static const char schema[] = "http://www.limewire.com/schemas/";
+		const char *p;
 
 		g_assert(data);
 		p = compat_memmem(data, size, schema, CONST_STRLEN(schema));
 		if (p) {
-			static const gchar action[] = " action=\"http://";
+			static const char action[] = " action=\"http://";
+
+			p += CONST_STRLEN(schema);
 			size -= p - data;
-			size -= CONST_STRLEN(schema);
 			if (compat_memmem(p, size, action, CONST_STRLEN(action)))
 				return TRUE;
 		}
