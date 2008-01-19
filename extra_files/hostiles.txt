@@ -1109,6 +1109,8 @@
 # MOV pr0n spam; torrentvideos dot com; Yourbrain Media Inc.
 216.169.106.242
 216.169.106.250
+# MOV pr0n spam; LimeWire; generated names; Yourbrain Media Inc.
+209.9.11.0/26
 
 # Tiversa; 144 Emeryville Dr, Cranberry, PA, 16066, US, tiversa@nauticom.net
 # uses earShare; aggressively searching for leaked corporate data and
