@@ -1179,3 +1179,10 @@
 # viralnetworkads
 70.85.203.0/28
 
+# FrostWire
+# "View $keyword with the ultimate player.zip"
+# "Download $keyword with the fastest BitTorrent downloader.zip"
+82.80.4.242
+79.182.142.95
+80.48.113.243
+
