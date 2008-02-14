@@ -907,6 +907,12 @@
 212.179.18.0/24
 212.179.64.0/24
 212.179.133.0/24
+# FrostWire
+# "View $keyword with the ultimate player.zip"
+# "Download $keyword with the fastest BitTorrent downloader.zip"
+79.182.142.95
+80.48.113.243
+82.80.4.242
 
 # *_ShareAccelerator.zip; 
 # urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
@@ -1179,10 +1185,6 @@
 # viralnetworkads
 70.85.203.0/28
 
-# FrostWire
-# "View $keyword with the ultimate player.zip"
-# "Download $keyword with the fastest BitTorrent downloader.zip"
-82.80.4.242
-79.182.142.95
-80.48.113.243
+# MOV; pr0n spam; LimeWire
+63.217.112.0/24
 
