@@ -158,6 +158,9 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 		g_return_if_fail(tth_eq(tth, &root));
 	}
 
+	if (1 == n_leaves)
+		return;
+
 	fd = tth_cache_file_create(tth);
 	if (fd >= 0) {
 		size_t size;
@@ -168,10 +171,10 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 		size = TTH_RAW_SIZE * n_leaves;
 		ret = write(fd, leaves, size);
 		if ((ssize_t) -1 == ret) {
-			g_warning("tth_cache_insert(): writev() failed: %s",
+			g_warning("tth_cache_insert(): write() failed: %s",
 				g_strerror(errno));
 		} else if ((size_t) ret != size) {
-			g_warning("tth_cache_insert(): incomplete writev()");
+			g_warning("tth_cache_insert(): incomplete write()");
 		}
 		close(fd);
 	}
