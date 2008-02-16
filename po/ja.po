@@ -2,9 +2,9 @@
 #
 # Japanese translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2007 Raphaël Manfredi.
+# Copyright (C) 2001-2008 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2007.
+# Daichi Kawahata <daichik@users.sourceforge.net>, 2004-2008.
 #
 # 対訳一覧:
 #
@@ -75,8 +75,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.5u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-10 21:33+0900\n"
-"PO-Revision-Date: 2007-09-09 05:42+0900\n"
+"POT-Creation-Date: 2008-02-16 13:04+0900\n"
+"PO-Revision-Date: 2008-02-16 14:15+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -90,6 +90,18 @@ msgstr "%s%s%s%s%s フレーム/秒, %s kb/秒"
 
 msgid "times|x"
 msgstr "回"
+
+#, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr "切断されました、TLSでの再接続を試みます (%s)"
+
+#, c-format
+msgid "Stopped (%s)"
+msgstr "切断されました (%s)"
+
+#, c-format
+msgid "Too many attempts (%u times)"
+msgstr "要求回数が多すぎます (%u 回)"
 
 msgid "Requeued due to file removal"
 msgstr "キューに戻されました (ファイル削除)"
@@ -194,22 +206,6 @@ msgstr "失敗しました (%s)"
 msgid "Failed (Input buffer full)"
 msgstr "失敗しました (入力バッファが一杯です)"
 
-#, c-format
-msgid "Stopped, will retry with TLS (%s)"
-msgstr "切断されました、TLSでの再接続を試みます (%s)"
-
-#, c-format
-msgid "Stopped (%s)"
-msgstr "切断されました (%s)"
-
-#, c-format
-msgid "Too many attempts (%u times)"
-msgstr "要求回数が多すぎます (%u 回)"
-
-#, c-format
-msgid "Failed (Read error: %s)"
-msgstr "失敗しました (読込エラー: %s)"
-
 msgid "Connection not kept-alive (EOF)"
 msgstr "接続が Keep-Alive ではありません (EOF)"
 
@@ -297,6 +293,10 @@ msgstr "データの転送が中断されました (EOF)"
 #, c-format
 msgid "Stopped data (%s)"
 msgstr "データの転送が中断されました (%s)"
+
+#, c-format
+msgid "Failed (Read error: %s)"
+msgstr "失敗しました (読込エラー: %s)"
 
 msgid "Timeout reading HTTP status"
 msgstr "タイムアウト (HTTPステータスの読み込み)"
@@ -404,18 +404,15 @@ msgstr ""
 msgid ", outbound"
 msgstr ""
 
-#, fuzzy
 msgid ", banning"
-msgstr "禁止処理"
+msgstr ", 禁止処理"
 
 # NOTE: it shouldn't be translated, you can simply copy & paste
-#, fuzzy
 msgid ", g2"
-msgstr ", "
+msgstr ", g2"
 
-#, fuzzy
 msgid ", vendor?"
-msgstr "ベンダー"
+msgstr ", ベンダー?"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -2653,17 +2650,26 @@ msgid ""
 "experience."
 msgstr ""
 
-#, fuzzy
 msgid "Maximum number of hosts in the G2 node cache."
-msgstr "TLSピアのキャッシュの最大ホスト数です。"
+msgstr "G2ノードのキャッシュの最大ホスト数です。"
 
-#, fuzzy
 msgid "Maximum time before removing hosts from the G2 cache."
-msgstr "TLSキャッシュからホストを除外するまでの最長時間です。"
+msgstr "G2キャッシュからホストを除外するまでの最長時間です。"
 
 #, fuzzy
 msgid "Debug level for management of G2-only hosts."
 msgstr "ダウンロード・メッシュ管理のデバッグレベルです。"
+
+msgid ""
+"Whether GTKG can switch among the several files waiting to be downloaded "
+"from a given server, when making a follow-up HTTP request.  Turn it off only "
+"if you witness problems with a particular servent you're downloading from."
+msgstr ""
+
+msgid ""
+"If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
+"disable unless you know what you are doing."
+msgstr ""
 
 msgid "disable"
 msgstr "表示しない"
@@ -6813,6 +6819,9 @@ msgstr "[BH qhits]"
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
 
+msgid "Bitzi Metadata"
+msgstr "Bitziメタデータ"
+
 msgid "_Clear results"
 msgstr "結果を消去(_C)"
 
@@ -7146,6 +7155,9 @@ msgstr "検索一覧を表示する"
 
 msgid "Extension"
 msgstr "拡張子"
+
+msgid "TTH"
+msgstr "TTH"
 
 # XXX: Putting the word 'p0wnage' here is highly misleading.
 msgid "Owned"
