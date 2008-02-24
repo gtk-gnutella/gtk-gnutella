@@ -1088,9 +1088,11 @@
 # Jonas Goldman, viljoen_johan06@yahoo.com
 206.71.56.32/27
 
-# MoveClicks/PULLTHEPLUG TECHNOLOGIES; MOV/JPG/WMA spam; Gnucleus
+# MoveClicks/PULLTHEPLUG TECHNOLOGIES/Revelation Networks;
+# MOV/JPG/WMA spam; Gnucleus and LimeWire
 205.139.208.0/22
 205.139.213.0/24
+208.54.240.0/20
 216.14.80.0/20
 
 # Query-Cache-0.1; fake Ultrapeer; sniffing?
