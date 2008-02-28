@@ -3402,8 +3402,7 @@ node_is_now_connected(struct gnutella_node *n)
 		gnet_prop_incr_guint32(PROP_NODE_NORMAL_COUNT);
 		break;
 	case NODE_P_ULTRA:
-		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
-			GNET_PROPERTY(node_ultra_count) + 1);
+		gnet_prop_incr_guint32(PROP_NODE_ULTRA_COUNT);
 		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
