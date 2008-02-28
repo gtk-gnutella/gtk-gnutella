@@ -283,8 +283,8 @@ prop_def_choice_t gnet_property_variable_proxy_protocol_choices[] = {
     {N_("SOCKS v5"), PROXY_SOCKSV5},
     {NULL, 0}
 };
-guint32  gnet_property_variable_network_protocol     = NET_USE_IPV4;
-static const guint32  gnet_property_variable_network_protocol_default = NET_USE_IPV4;
+guint32  gnet_property_variable_network_protocol     = NET_USE_BOTH;
+static const guint32  gnet_property_variable_network_protocol_default = NET_USE_BOTH;
 prop_def_choice_t gnet_property_variable_network_protocol_choices[] = { 
     {N_("IPv4 only"), NET_USE_IPV4},
     {N_("IPv6 only"), NET_USE_IPV6},
