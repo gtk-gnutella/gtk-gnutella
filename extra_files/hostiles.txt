@@ -283,11 +283,6 @@
 # Jironimo at Versatel; dynamic range
 83.135.71.235
 83.135.89.16
-87.122.145.255
-87.122.147.144
-87.122.149.179
-87.122.154.230
-87.122.158.23
 89.246.28.253
 89.246.50.198
 # same at Deutsche Telekom AG
@@ -1192,4 +1187,10 @@
 
 # MOV; pr0n spam; LimeWire
 63.217.112.0/24
+
+# LimeWire (probably fake); security violations
+209.237.241.0/27
+216.240.133.223
+216.240.133.226/31
+
 
