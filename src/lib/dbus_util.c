@@ -128,7 +128,9 @@ dbus_util_send_message(const char *signal_name, const char *text)
 		/* Send the message */
 		dbus_connection_send(bus, message, NULL);
 
+#if 0
 		g_message("Sent D-BUS signal '%s': %s", signal_name, text);
+#endif
 
 		/* Free the message */
 		dbus_message_unref(message);
