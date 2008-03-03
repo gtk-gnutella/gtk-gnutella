@@ -1194,3 +1194,27 @@
 216.240.133.226/31
 69.59.21.0/24
 
+# JPEG pr0n spam;
+# waaw dot de
+# sexy-diva dot de
+# affaire dot us dot tt
+# woow dot de dot tt
+# boo dot tp dot de
+# yuka dot de dot tt
+# akyuk dot de dot vu
+# xdate dot de dot tt
+# megagays dot de dot tp
+#Name:         Yueksel Akdag
+#Address:      Hattinger Str. 905
+#Pcode:        44879
+#City:         Bochum
+#Country:      DE
+82.165.80.37
+#88.77.244.51
+
+# MOV/MPG/WMV pr0n spam
+64.46.44.180/31
+
+# MOV/PDF pron spam
+216.150.78.0/24
+
