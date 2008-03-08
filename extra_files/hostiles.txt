@@ -1140,7 +1140,7 @@
 69.50.130.219
 
 # Dubious range of peers using diverse LimeWire versions
-72.172.88.0/24
+72.172.88.0/23
 
 # MPG pr0n spam; hotyounglatinas dot com and others
 64.56.66.160/29
