@@ -97,8 +97,8 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "g6.6dns.org:1337" },
-	{ "cornflake.sirinet.net:2000" },
+	{ "g6.dns6.org:1337" },
+	{ "void.ghostwhitecrab.de:9999" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
