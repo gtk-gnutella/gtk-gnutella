@@ -607,6 +607,14 @@ hcache_add_internal(hcache_type_t type, time_t added,
 			return FALSE;
 	}
 
+	/* HACK ALERT: BS is totally dominating the peer address cache for
+	 * unknown reasons. Apparently it is locked to ports around 6346. The
+	 * hack below prevents use and spread of these peers except when
+	 * running out of addresses.
+	 */
+	if (port >= 6346 && port <= 6350 && !host_low_on_pongs)
+		return FALSE;
+
 	if (is_my_address_and_port(addr, port)) {
         stats[HCACHE_LOCAL_INSTANCE]++;
 		return FALSE;
