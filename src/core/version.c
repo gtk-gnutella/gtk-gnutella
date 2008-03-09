@@ -65,27 +65,6 @@ static version_t last_dev_version;
 static guint8 version_code;
 
 /**
- * Compare the given timestamp against the date 2007-03-22. We don't
- * care about the exact date here so there might be some offset of a few
- * hours with respect to the timezone or daylight saving.
- *
- * @param now A timestamp.
- * @return TRUE if 2007-03-22 is still in the future, FALSE otherwise.
- */
-static gboolean
-before_2007_03_22(time_t now)
-{
-	static gboolean initialized;
-	static time_t x;
-
-	if (!initialized) {
-		initialized = TRUE;
-		x = date2time("2007-03-22", tm_time());
-	}
-	return delta_time(now, x) < 0;
-}
-
-/**
  * Get version string.
  */
 const gchar *
@@ -300,25 +279,6 @@ version_parse(const gchar *str, version_t *ver)
 			return FALSE;
 	} else
 		ver->build = 0;
-
-	/*
-	 * Legacy support: until 2007-03-22, we look at the build revision
-	 * number in the user-agent string if we did not get it so far.
-	 * We expect to find something like "(2006-02-22; r3456"
-	 *
-	 * Remove this code after 2007-03-22!
-	 */
-
-	if (0 == ver->build) {	/* Useless after 2007-03-22 normally */
-		const gchar *p;
-
-		p = strchr(str, '(');		/* ')' for vi */
-		if (p)
-			p = strchr(p, ';');		/* Move past date */
-
-		if (p && NULL != (p = is_strprefix(p, "; r")))
-			ver->build = (guint32) atoi(p);
-	}
 
 	if (GNET_PROPERTY(dbg) > 6)
 		version_dump(str, ver, "#");
@@ -621,7 +581,6 @@ version_build_string(void)
 	static gchar buf[128];
 
 	if (!initialized) {
-		time_t now = tm_time_exact();
 		const gchar *sysname = "Unknown";
 		const gchar *machine = NULL;
 
@@ -640,28 +599,13 @@ version_build_string(void)
 		}
 #endif /* HAS_UNAME */
 
-		/*
-		 * Until 2007-03-22, we generate the version string using "r<build#>"
-		 * in the optional part.  After that date, the revision format is
-		 * expanded to include the build number right into the string.
-		 */
-
-		if (before_2007_03_22(now))				/* before 2007-03-22 */
-			gm_snprintf(buf, sizeof buf,
-					"gtk-gnutella/%s (%s; r%u; %s; %s%s%s)",
-					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build(),
-					gtk_gnutella_interface(),
-					sysname,
-					machine && machine[0] ? " " : "",
-					machine ? machine : "");
-		else								/* after 2007-03-22 */
-			gm_snprintf(buf, sizeof buf,
-					"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
-					GTA_VERSION_NUMBER, main_get_build(),
-					GTA_RELEASE, gtk_gnutella_interface(),
-					sysname,
-					machine && machine[0] ? " " : "",
-					machine ? machine : "");
+		gm_snprintf(buf, sizeof buf,
+			"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
+			GTA_VERSION_NUMBER, main_get_build(),
+			GTA_RELEASE, gtk_gnutella_interface(),
+			sysname,
+			machine && machine[0] ? " " : "",
+			machine ? machine : "");
 	}
 	return buf;
 }
@@ -691,14 +635,9 @@ version_init(void)
 	{
 		gchar buf[128];
 
-		if (before_2007_03_22(now))				/* before 2007-03-22 */
-			gm_snprintf(buf, sizeof(buf),
-					"gtk-gnutella/%s (%s; r%u)",
-					GTA_VERSION_NUMBER, GTA_RELEASE, main_get_build());
-		else
-			gm_snprintf(buf, sizeof(buf),
-					"gtk-gnutella/%s-%u (%s)",
-					GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
+		gm_snprintf(buf, sizeof(buf),
+			"gtk-gnutella/%s-%u (%s)",
+			GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
 
 		version_short_string = atom_str_get(buf);
 	}
