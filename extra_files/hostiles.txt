@@ -926,7 +926,7 @@
 
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
 78.129.137.0/24
-78.129.149.0/24
+78.129.148.0/23
 78.129.150.0/23
 83.142.224.128/25
 87.117.230.0/23
@@ -1191,8 +1191,7 @@
 
 # LimeWire (probably fake); security violations
 209.237.241.0/27
-216.240.133.223
-216.240.133.226/31
+216.240.133.192/26
 69.59.21.0/24
 
 # JPEG pr0n spam;
@@ -1218,4 +1217,7 @@
 
 # MOV/PDF pron spam
 216.150.78.0/24
+
+# security violations; LimeWire/4.12.8; Hurricane Electric
+65.49.32.0/19
 
