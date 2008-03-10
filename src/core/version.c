@@ -225,7 +225,7 @@ version_parse(const gchar *str, version_t *ver)
 	 * where the '-3404' introduces the build number.
 	 */
 
-	if (NULL == (v = is_strprefix(str, "gtk-gnutella/")))
+	if (NULL == (v = is_strprefix(str, GTA_PRODUCT_NAME "/")))
 		return FALSE;
 
 	/*
@@ -600,7 +600,7 @@ version_build_string(void)
 #endif /* HAS_UNAME */
 
 		gm_snprintf(buf, sizeof buf,
-			"gtk-gnutella/%s-%u (%s; %s; %s%s%s)",
+			GTA_PRODUCT_NAME "/%s-%u (%s; %s; %s%s%s)",
 			GTA_VERSION_NUMBER, main_get_build(),
 			GTA_RELEASE, gtk_gnutella_interface(),
 			sysname,
@@ -636,7 +636,7 @@ version_init(void)
 		gchar buf[128];
 
 		gm_snprintf(buf, sizeof(buf),
-			"gtk-gnutella/%s-%u (%s)",
+			GTA_PRODUCT_NAME "/%s-%u (%s)",
 			GTA_VERSION_NUMBER, main_get_build(), GTA_RELEASE);
 
 		version_short_string = atom_str_get(buf);

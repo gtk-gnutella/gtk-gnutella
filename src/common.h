@@ -42,12 +42,13 @@
  * Constants
  */
 
+#define GTA_PRODUCT_NAME "typhoon"	/**< Normally "gtk-gnutella" */
 #define GTA_VERSION 0				/**< major version */
 #define GTA_SUBVERSION 96			/**< minor version */
 #define GTA_PATCHLEVEL 5			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2008-03-09"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2008-03-10"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
