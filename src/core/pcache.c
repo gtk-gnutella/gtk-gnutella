@@ -890,14 +890,10 @@ free_cached_pong(struct cached_pong *cp)
  * Fills `addr' and `port' with the pong value and return TRUE if we
  * got a pong.  Otherwise return FALSE.
  *
- * XXX This routine is no longer called anywhere.  This means GTKG is no
- * XXX longer processing hosts returned in pongs, and these never make it
- * XXX to the host cache.  Hosts are cached by parsing headers, mostly, and
- * XXX recent pongs are no longer used to accelerate the connection process.
+ * XXX This routine is no longer called anywhere.
  * XXX Need to think about whether we should just remove this pcache recent
- * XXX pong caching alltogether, including the sending of "pings" to other
- * XXX nodes (since we no longer care about the returned pongs) and whether
- * XXX relying solely on the host cache to initiate connections is sufficient.
+ * XXX pong caching alltogether, or whether we need to keep it for the pong
+ * XXX demultiplexing logic?
  * XXX		--RAM, 2008-03-11
  */
 gboolean
