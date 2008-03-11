@@ -4911,8 +4911,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (!field) field = header_get(head, "Listen-Ip");
 
 		if (field && string_to_host_addr_port(field, NULL, &addr, &port)) {
-			if (n->attrs & NODE_A_ULTRA)
+			if (n->attrs & NODE_A_ULTRA) {
 				pcache_pong_fake(n, addr, port);	/* Might have free slots */
+			}
 
 			/*
 			 * Since we have the node's IP:port, record it now and mark the
@@ -4921,16 +4922,19 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 18/03/2002.
 			 */
 
+			n->gnet_port = port;
 			if (host_addr_equal(addr, n->addr)) {
                 node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 
 				n->gnet_addr = addr;			/* Signals: we know the port */
-				n->gnet_port = port;
 				n->gnet_pong_addr = addr;		/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
 
                 node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
 			}
+			/* FIXME: What about LAN connections? Should we blindly accept
+			 * 		  the reported external address?
+			 */
 		}
 	}
 
