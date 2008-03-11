@@ -910,7 +910,11 @@
 # "Download $keyword with the fastest BitTorrent downloader.zip"
 79.182.142.95
 80.48.113.243
-82.80.4.242
+82.80.4.0/24
+82.80.233.0/24
+# texas holdem/poker ZIP spam; LimeWire
+212.199.153.0/27
+84.108.229.222
 
 # *_ShareAccelerator.zip; 
 # urn:sha1:ORKMW4AIZ6ERTDIZERO263GYCCTHRWX2;
