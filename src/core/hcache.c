@@ -755,7 +755,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
     hcache_update_low_on_pongs();
 
     if (GNET_PROPERTY(dbg) > 8) {
-        printf("Added %s %s (%s)\n", what, gnet_host_to_string(host),
+        g_message("Added %s %s (%s)", what, gnet_host_to_string(host),
             (type == HCACHE_FRESH_ANY || type == HCACHE_VALID_ANY) ?
                 (host_low_on_pongs ? "LOW" : "OK") : "");
     }
@@ -1061,7 +1061,6 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 	hostcache_t *hc = NULL;
 	GHashTable *seen_host = g_hash_table_new(host_hash, host_eq);
 	hash_list_iter_t *iter;
-	gnet_host_t *h;
 
     switch (type) {
     case HOST_ANY:
@@ -1078,41 +1077,17 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
         g_error("hcache_get_caught: unknown host type: %d", type);
 
 	/*
-	 * First try to fill from our recent pongs, as they are more fresh
-	 * and therefore more likely to be connectible.
-	 */
-
-	for (i = 0; i < hcount; i++) {
-		gnet_host_t host;
-		host_addr_t addr;
-		guint16 port;
-
-		if (!pcache_get_recent(type, &addr, &port))
-			break;
-
-		gnet_host_set(&host, addr, port);
-		if (g_hash_table_lookup(seen_host, &host))
-			break;
-
-		hosts[i] = host;		/* struct copy */
-
-		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
-	}
-
-	if (i == hcount)
-		goto done;
-
-	/*
 	 * Not enough fresh pongs, get some from our reserve.
 	 */
 
 	iter = hash_list_iterator_tail(hc->hostlist);
+	for (i = 0; i < hcount; i++) {
+		gnet_host_t *h;
 
-	for (
-        h = hash_list_iter_previous(iter);
-        i < hcount && h != NULL;
-        i++, h = hash_list_iter_previous(iter)
-    ) {
+		h = hash_list_iter_previous(iter);
+		if (NULL == h)
+			break;
+
 		if (g_hash_table_lookup(seen_host, h))
 			continue;
 
@@ -1120,10 +1095,7 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 
 		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
-
 	hash_list_iter_release(&iter);
-
-done:
 	g_hash_table_destroy(seen_host);	/* Keys point directly into vector */
 
 	return i;				/* Amount of hosts we filled */
@@ -1139,10 +1111,6 @@ gboolean
 hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 {
 	gnet_host_t *h;
-	static int alternate = 0;
-	host_addr_t first_addr;
-	guint16 first_port;
-	gboolean got_recent;
 	hostcache_t *hc = NULL;
 	hash_list_iter_t *iter;
 
@@ -1159,23 +1127,6 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 
 	if (!hc)
         g_error("hcache_get_caught: unknown host type: %d", type);
-
-	if (alternate++ & 1) {
-		/* Iterate through all recent pongs */
-
-		*addr = zero_host_addr;
-		got_recent = pcache_get_recent(type, &first_addr, &first_port);
-
-		while (got_recent) {
-			if (host_addr_equal(*addr, first_addr) && *port == first_port)
-				break;
-
-			if (host_is_nearby(*addr))
-				return TRUE;
-
-			got_recent = pcache_get_recent(type, addr, port);
-		}
-	}
 
 	/* iterate through whole list */
 
@@ -1205,7 +1156,6 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
 gboolean
 hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 {
-	static guint alternate = 0;
 	hostcache_t *hc = NULL;
 	extern guint32 number_local_networks;
 	gnet_host_t *h;
@@ -1247,13 +1197,6 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
 		number_local_networks &&
 		hcache_find_nearby(type, addr, port)
 	)
-		return TRUE;
-
-	/*
-	 * Try the recent pong cache when `alternate' is odd.
-	 */
-
-	if (alternate++ & 0x1 && pcache_get_recent(type, addr, port))
 		return TRUE;
 
 	h = hash_list_head(hc->hostlist);
