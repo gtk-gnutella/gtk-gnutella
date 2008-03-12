@@ -1225,3 +1225,7 @@
 # security violations; LimeWire/4.12.8; Hurricane Electric
 65.49.32.0/19
 
+# MOV pr0n spam; adultfriendfinder dot com; URLs point to 72.22.198.0/27
+# LimeWire
+66.216.7.0/24
+
