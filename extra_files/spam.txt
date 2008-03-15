@@ -27,7 +27,13 @@ ADDED 2007-11-19
 END
 
 # RAZA/WMA spam
-NAME ^[*].*wma$
-ADDED 2008-01-16 
+NAME ^[*].*[wW][mM][aA]$
+ADDED 2008-01-16
+END
+
+# Virus fall-out; too small for a ZIP file (truncated)
+NAME [.][zZ][iI][pP]$
+SIZE 0-64
+ADDED 2008-03-15
 END
 
