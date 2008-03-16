@@ -402,7 +402,9 @@
 204.11.222.0/23
 
 # Aggressivly connecting; getting disconnected due to security violations
-# Yes, this is Cisco Systems.
+# Yes, this was Cisco Systems. Now officially Skyrider:
+# Ed Kozel, CEO of SkyRider, had worked for Cisco Systems and Yahoo!
+# James Kelly, Chief Financial Officer, worked in Cisco's Finance group.
 128.108.0.0/16
 # Emits "WEIRD" results; not downloadable; bogus alt-locs; urn:none:; primary
 # address is always at port 80 at its own /24.
