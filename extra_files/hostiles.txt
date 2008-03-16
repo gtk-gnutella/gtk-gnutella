@@ -1229,3 +1229,7 @@
 # LimeWire
 66.216.7.0/24
 
+# Security violations; LimeWire
+65.98.59.242
+87.236.194.79
+
