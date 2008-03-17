@@ -807,9 +807,11 @@
 67.15.66.64/28
 208.122.192.0/24
 208.122.194.0/24
+208.122.196.0/23
 208.122.213.0/24
 208.122.215.0/24
 208.122.216.0/24
+208.122.217.0/24
 216.7.183.192/26
 216.17.100.0/24
 
@@ -1190,4 +1192,9 @@
 # BT69; "Booth / 1.0"; MOV pr0n spam
 # Hosted at Intranet Services CALPOP-INTRA1
 216.240.128.212/30
+
+
+# NationalNat; DRM hoster; see natnetdrm dot com
+# Hosts peertracking dot com and others
+66.115.128.0/18
 
