@@ -806,12 +806,12 @@
 65.38.171.0/24
 67.15.66.64/28
 208.122.192.0/24
-208.122.194.0/24
+208.122.194.0/23
 208.122.196.0/23
+208.122.209.0/24
 208.122.213.0/24
 208.122.215.0/24
-208.122.216.0/24
-208.122.217.0/24
+208.122.216.0/23
 216.7.183.192/26
 216.17.100.0/24
 
@@ -927,9 +927,8 @@
 # Gnucleus 1.8.4.0; seems spam with adware or trojans
 209.85.52.192/26
 
-# MOV pr0n spam; 21-plus dot com
-64.89.16.0/23
-64.89.27.0/24
+# MOV pr0n spam; 21-plus dot com; range owned by ClickMAN LLC
+64.89.16.0/20
 
 # Respond with non-existing files; server listen but send no reply;
 # standard port
@@ -1091,7 +1090,6 @@
 
 # LimeWire; QuickTime AVI files; peertracking dot com
 193.53.4.0/24
-69.50.130.219
 
 # Dubious range of peers using diverse LimeWire versions
 # "Smart Start" (MediaDefender?)
@@ -1139,6 +1137,7 @@
 # ideaFoundry at theplanet dot com range; MOV pr0n spam; BearShare;
 # viralnetworkads
 70.85.203.0/28
+70.85.229.96/28
 
 # MOV; pr0n spam; LimeWire
 63.217.112.0/24
@@ -1193,8 +1192,11 @@
 # Hosted at Intranet Services CALPOP-INTRA1
 216.240.128.212/30
 
-
 # NationalNat; DRM hoster; see natnetdrm dot com
 # Hosts peertracking dot com and others
 66.115.128.0/18
+69.50.128.0/20
+
+# distributednetworkads dot com; Distributed Network Content LLC
+70.84.109.80/28
 
