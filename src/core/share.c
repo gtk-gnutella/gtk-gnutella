@@ -622,6 +622,7 @@ share_mime_type_from_extension(const gchar *extension)
 		{ "tif",		SHARE_M_IMAGE_TIFF },
 		{ "tiff",		SHARE_M_IMAGE_TIFF },
 		{ "torrent",	SHARE_M_APPLICATION_BITTORRENT },
+		{ "bittorrent",	SHARE_M_APPLICATION_BITTORRENT },
 		{ "txt",		SHARE_M_TEXT_PLAIN },
 		{ "wav",		SHARE_M_AUDIO_WAVE },
 		{ "xhtml",		SHARE_M_TEXT_XHTML },
