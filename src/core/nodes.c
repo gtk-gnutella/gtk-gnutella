@@ -6112,7 +6112,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
     if (
 		(GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
-	 	 GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)) ||
+	 	 GNET_PROPERTY(node_ultra_count) > GNET_PROPERTY(max_ultrapeers)) ||
 		(GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
 		 GNET_PROPERTY(node_ultra_count) + GNET_PROPERTY(node_normal_count)
 		 	>= GNET_PROPERTY(max_connections))
