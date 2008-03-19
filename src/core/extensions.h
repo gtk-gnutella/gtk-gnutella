@@ -102,6 +102,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_P,			/**< Push alt-locs in HEAD Pongs */
 	EXT_T_GGEP_PATH,		/**< Shared file path, in query hits */
 	EXT_T_GGEP_PHC,			/**< Packed HostCaches, in pongs (UHC) */
+	EXT_T_GGEP_PR,			/**< Partial Result, in queries and hits */
 	EXT_T_GGEP_PUSH,		/**< Push proxy info, in query hits */
 	EXT_T_GGEP_PUSH_TLS,	/**< TLS-capability bitmap for GGEP PUSH */
 	EXT_T_GGEP_Q,			/**< Queue status in HEAD Pongs */
