@@ -78,6 +78,7 @@
 
 # ServerBeach (Peer 1 network)
 64.34.160.0/19
+66.135.32.0/19
 
 # Sound Control Media Protection, Ltd.
 # Professional bots: "LimeWire/4.9.11 1.4 GiB 462 files"; purpose unknown
@@ -515,8 +516,7 @@
 # end with .wm instead of .wma or .wmv.
 82.208.41.192/29
 83.148.8.19
-87.236.194.75
-87.236.194.76/31
+87.236.194.72/29
 212.47.3.250
 
 # pr0n MOV spammer with fake LimeWire; giFT-based
@@ -1180,7 +1180,6 @@
 
 # Security violations; LimeWire
 65.98.59.242
-87.236.194.79
 
 # Media Force
 4.43.96.0/24
