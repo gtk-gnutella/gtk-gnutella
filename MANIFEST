@@ -17,6 +17,7 @@ U/modified/Loc.U
 U/modified/Myinit.U
 U/modified/prototype.U
 U/new/Alpha_mieee.U
+U/new/GCC_pipe.U
 U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/d_bindtxtcode.U
@@ -24,6 +25,7 @@ U/new/d_built_popcount.U
 U/new/d_closefrom.U
 U/new/d_deflate.U
 U/new/d_devpoll.U
+U/new/d_dirent_d_type.U
 U/new/d_epoll.U
 U/new/d_fast_assert.U
 U/new/d_getaddrinfo.U
@@ -42,14 +44,18 @@ U/new/d_iptos.U
 U/new/d_ipv6.U
 U/new/d_kevent_udata.U
 U/new/d_kqueue.U
+U/new/d_locale_charset.U
 U/new/d_madvise.U
 U/new/d_msg_flags.U
 U/new/d_nls.U
+U/new/d_posix_fadvise.U
 U/new/d_posix_memalign.U
 U/new/d_random.U
+U/new/d_regparm.U
 U/new/d_sa_interrupt.U
 U/new/d_sendfile.U
 U/new/d_setproctitle.U
+U/new/d_sockaddr_in_sin_len.U
 U/new/d_socker_get.U
 U/new/d_srandom.U
 U/new/d_strcasestr.U
