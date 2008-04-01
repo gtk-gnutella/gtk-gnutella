@@ -56,7 +56,7 @@ Release steps
 
 5. Update and commit debian/changelog. Generate the timestamp as follows:
 
-	LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
+	TZ=UTC LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
 6. Drink a coffee.
 
