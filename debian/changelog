@@ -1,3 +1,9 @@
+gtk-gnutella (0.96.5-0) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Christian Biere <christianbiere@gmx.de>  Tue,  1 Apr 2008 21:05:33 +0000
+
 gtk-gnutella (0.96.5~unstable) unstable; urgency=low
 
   * Unstable release for testing

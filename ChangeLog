@@ -1,3 +1,39 @@
+# v 0.96.5   2007-04-01  [stable]
+
+Bug Fixes:
+
+ - #1870957: Wrong sign could cause out-of-bounds read and potentially a crash.
+ - Firewalled status was not re-verified after a port change if the previously
+   used port was open.
+ - Fixed issue that caused the local peer cache to degenerate.
+
+Improvements:
+
+ - Client-side support for tigertree hashes (TTH/THEX).
+ - Replaced navigation tree by tabs.
+ - Redesigned download user-interface to make it more accessible.
+ - Added some selectable pre-defined search filters.
+ - Bitzi tickets are displayed in full raw indented XML.
+ - Display Bitzi and ShareMonkey URLs as search result details.
+ - Topless mode is available at run-time via command-line switch.
+ - Added default shared filename extensions:
+   .7z, .bittorrent, .oga, .ogv, .spx, .tbz2
+ - Removed default shared filename extensions: .doc
+ - Updated translations: Japanese, Norwegian Bokmal, French.
+
+Under the hood:
+
+ - Changed default to dual use of IPv4 and IPv6 instead of IPv4-only.
+ - Support the "as" (Alternate Source) key in magnet links.
+ - Eszett is finally normalized to "ss" in search queries.
+ - Avoid display updates for elements not currently visible.
+ - Take full advantage of persistent HTTP connections to fetch multiple
+   files from the same peer through over the same connection if scheduling
+   permits.
+ - Improved TLS support and blocking detection.
+ - Updated list of hostile IP adress ranges, bogons, Geo-IP data,
+   spam patterns and spam samples.
+
 # v 0.96.4   2007-07-07  [stable]
 
 Bug Fixes:

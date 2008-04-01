@@ -207,6 +207,31 @@ static const gchar *keys_096_4[] = {
 	"a2d0 b172 becb 8516 8f17 b2f4 80e2 4488",
 };
 
+static const gchar *keys_096_5[] = {
+	"29af ab9b fc6b 58b7 9031 cf87 f7cc 3c63",
+	"5dee 3d3f efb1 ac8d 27f4 2fa9 b1c3 705b",
+	"117f 9530 1881 6432 ecf4 780e dbfc 45c9",
+	"4b00 06d3 7e49 563b cc0a 3ace bb1d 3f35",
+	"6a73 45a2 b30a 2096 c2a4 971c 68a7 5d87",
+	"f88e 3f5c d07d e76c 0e1b a94c c93f b40f",
+	"40b3 d33c f3c8 06e7 c565 7736 0408 9265",
+	"9d43 7091 3bad 0f2d 1554 72d4 c7ec b505",
+	"a519 2d25 0f9d 11ca a1cd 3d87 cb5d cb9d",
+	"acab b860 7c78 6989 1c9e 2314 c917 dc48",
+	"027b 7e7e e566 fb10 d799 e2fd f807 5279",
+	"e069 951d 3c2a accf d119 bd4e 0755 e59c",
+	"8e4e cd64 d147 597a 32bd d977 6b38 40d3",
+	"ee12 9716 e9f7 74f2 bec3 c7fb 915d 11e4",
+	"2882 6581 cb85 c261 3c10 af8e 8eec 5761",
+	"92ca 01b0 e81c 6ee5 9b8f ae1e 7d57 422b",
+	"8eac 6012 99ac 2157 4bf5 df1c 074b 9110",
+	"133a 694a b768 3034 693b 57ad 06ab d4e7",
+	"477c faed 3a17 d265 7916 79cc 691d c50f",
+	"f271 3f09 2b26 095b b4f3 5893 f86d 7814",
+	"ecf3 0cb2 261b 3bd1 5f22 c2f5 4e90 d1d6",
+	"1f2f 4d01 aee4 8a3b 04c7 b1a7 7557 1d7e",
+};
+
 /**
  * Describes the keys to use depending on the version.
  */
@@ -239,6 +264,10 @@ struct tokkey {
 	{
 		{ 0, 96, 4, '\0', 0, 0, 1183775000 },		/* 2007-07-07 */
 		keys_096_4, G_N_ELEMENTS(keys_096_4),
+	},
+	{
+		{ 0, 96, 5, '\0', 0, 0, 1207083000 },		/* 2008-04-01 */
+		keys_096_5, G_N_ELEMENTS(keys_096_5),
 	},
 };
 

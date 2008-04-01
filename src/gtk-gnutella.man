@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk-gnutella.man | less -s
 .\"
-.TH GTK-GNUTELLA 1 "Jul 2006" Version "0.96.4"
+.TH GTK-GNUTELLA 1 "Apr 2008" Version "0.96.5"
 .SH NAME
 gtk-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -115,6 +115,9 @@ over the Internet.
 .B "\-\-version"
 Show the user-agent string used on the Gnutella network which also
 holds the version information.
+.TP
+.B "\-\-topless"
+Starts gtk-gnutella without the graphical user-interface.
 .SH GETTING STARTED
 When
 .I gtk-gnutella
