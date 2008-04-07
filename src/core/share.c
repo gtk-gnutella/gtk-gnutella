@@ -551,10 +551,11 @@ share_mime_type_from_extension(const gchar *extension)
 		const gchar *extension;
 		enum share_mime_type type;
 	} tab[] = {
-		/* Keep this sorted! */
+		/* NOTE: Keep this sorted! */
 		{ "aac",		SHARE_M_AUDIO_MP4 },
 		{ "avi",		SHARE_M_VIDEO_MSVIDEO },
 		{ "bat",		SHARE_M_APPLICATION_DOSEXEC },
+		{ "bittorrent",	SHARE_M_APPLICATION_BITTORRENT },
 		{ "bmp",		SHARE_M_IMAGE_BMP },
 		{ "bz2",		SHARE_M_APPLICATION_BZIP2 },
 		{ "c",			SHARE_M_TEXT_C },
@@ -598,8 +599,8 @@ share_mime_type_from_extension(const gchar *extension)
 		{ "mpg",		SHARE_M_VIDEO_MPEG },
 		{ "oga",		SHARE_M_AUDIO_OGG },
 		{ "ogg",		SHARE_M_APPLICATION_OGG },
-		{ "ogv",		SHARE_M_VIDEO_OGG },
 		{ "ogm",		SHARE_M_VIDEO_OGM },
+		{ "ogv",		SHARE_M_VIDEO_OGG },
 		{ "pdf",		SHARE_M_APPLICATION_PDF },
 		{ "pif",		SHARE_M_APPLICATION_DOSEXEC },
 		{ "pl",			SHARE_M_TEXT_PERL },
@@ -622,7 +623,6 @@ share_mime_type_from_extension(const gchar *extension)
 		{ "tif",		SHARE_M_IMAGE_TIFF },
 		{ "tiff",		SHARE_M_IMAGE_TIFF },
 		{ "torrent",	SHARE_M_APPLICATION_BITTORRENT },
-		{ "bittorrent",	SHARE_M_APPLICATION_BITTORRENT },
 		{ "txt",		SHARE_M_TEXT_PLAIN },
 		{ "wav",		SHARE_M_AUDIO_WAVE },
 		{ "xhtml",		SHARE_M_TEXT_XHTML },
