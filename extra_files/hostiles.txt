@@ -1199,3 +1199,8 @@
 # distributednetworkads dot com; Distributed Network Content LLC
 70.84.109.80/28
 
+# giFT; dmsws dot com; CodeZone inc.; Jean Lajoie (probably fake);
+# generated PDFs containing a pseudo chat log with URLs that link
+# to Azoogle spam ads
+75.126.23.186
+
