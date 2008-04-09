@@ -1202,5 +1202,9 @@
 # giFT; dmsws dot com; CodeZone inc.; Jean Lajoie (probably fake);
 # generated PDFs containing a pseudo chat log with URLs that link
 # to Azoogle spam ads
-75.126.23.186
+75.126.23.184/29
+
+# LimeWire; zipped ASF; points to seonomad dot com which is registered
+# to Daniel Boyd; http://www.linkedin.com/in/dboyd
+75.125.12.112/28
 
