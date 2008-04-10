@@ -1059,6 +1059,50 @@ dir_entry_mode(const struct dirent *dir_entry)
 }
 
 /**
+ * Check whether the given directory is one which should never be shared.
+ * This is not meant to be exhaustive but test for common configuration
+ * mistakes.
+ */
+static gboolean
+directory_is_unshareable(const char *dir)
+{
+	g_assert(dir);
+
+	/* Explicitly checking is_same_file() for TRUE to ignore errors (-1)
+	 * probably caused by non-existing files or missing permission.
+	 */
+	if (TRUE == is_same_file(dir, "/")) {
+		g_warning("Refusing to share root directory: %s", dir);
+		return TRUE;
+	}
+
+	if (TRUE == is_same_file(dir, settings_home_dir())) {
+		g_warning("Refusing to share home directory: %s", dir);
+		return TRUE;
+	}
+
+	if (TRUE == is_same_file(dir, settings_config_dir())) {
+		g_warning("Refusing to share directory for configuration data: %s",
+			dir);
+		return TRUE;
+	}
+
+	if (TRUE == is_same_file(dir, GNET_PROPERTY(save_file_path))) {
+		g_warning("Refusing to share directory for incomplete files: %s",
+			dir);
+		return TRUE;
+	}
+
+	if (TRUE == is_same_file(dir, GNET_PROPERTY(bad_file_path))) {
+		g_warning("Refusing to share directory for corrupted files: %s",
+			dir);
+		return TRUE;
+	}
+
+	return FALSE;	/* No objection */
+}
+
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
@@ -1081,6 +1125,9 @@ recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
 	g_return_if_fail('\0' != dir[0]);
 	g_return_if_fail(is_absolute_path(base_dir));
 	g_return_if_fail(is_absolute_path(dir));
+
+	if (directory_is_unshareable(dir))
+		return;
 
 	if (!(directory = opendir(dir))) {
 		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
