@@ -850,6 +850,31 @@ is_symlink(const gchar *pathname)
 #endif /* HAS_LSTAT */
 
 /**
+ * Tests whether the two given pathnames point to same file using stat().
+ * @param pathname_a A pathname.
+ * @param pathname_b A pathname.
+ * @return -1 on error, errno will be set by either stat() call.
+ *          FALSE if the device number and file serial number are different.
+ *          TRUE if the device number and file serial number are different.
+ */
+int
+is_same_file(const char *pathname_a, const char *pathname_b)
+{
+	struct stat sb_a, sb_b;
+
+	g_assert(pathname_a);
+	g_assert(pathname_b);
+
+	if (stat(pathname_a, &sb_a))
+		return -1;
+
+	if (stat(pathname_b, &sb_b))
+		return -1;
+
+	return sb_a.st_dev == sb_b.st_dev && sb_a.st_ino == sb_b.st_ino;
+}
+
+/**
  * A wrapper around lseek() for handling filesize_t to off_t conversion.
  *
  * @param fd A valid file descriptor.

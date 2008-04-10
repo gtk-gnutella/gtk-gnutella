@@ -523,6 +523,7 @@ gboolean is_absolute_path(const char *pathname);
 gboolean is_directory(const gchar *pathname);
 gboolean is_regular(const gchar *pathname);
 gboolean is_symlink(const gchar *pathname);
+int is_same_file(const char *, const char *);
 gboolean file_exists(const gchar *pathname);
 gboolean file_does_not_exist(const gchar *pathname);
 guint32 next_pow2(guint32 n);
