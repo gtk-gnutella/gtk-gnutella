@@ -865,6 +865,10 @@ is_same_file(const char *pathname_a, const char *pathname_b)
 	g_assert(pathname_a);
 	g_assert(pathname_b);
 
+	/* May no exist but points clearly to the same file */
+	if (0 == strcmp(pathname_a, pathname_b))
+		return TRUE;
+
 	if (stat(pathname_a, &sb_a))
 		return -1;
 
