@@ -11801,8 +11801,11 @@ download_thex_start(const gchar *uri,
 	{
 		gchar *dname;
 
+		fi = file_info_by_sha1(sha1);
+		
 		dname = g_strdup_printf(_("<THEX data for %s>"),
-					bitprint_to_urn_string(sha1, tth));
+					fi ? filepath_basename(fi->pathname)
+					   : bitprint_to_urn_string(sha1, tth));
 
 		fi = file_info_get_transient(dname);
 		G_FREE_NULL(dname);
