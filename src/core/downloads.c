@@ -10754,8 +10754,8 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	 * source, unless the good/bad directories are identical.
 	 */
 
-	common_dir = 0 == strcmp(GNET_PROPERTY(move_file_path),
-						GNET_PROPERTY(bad_file_path));
+	common_dir = is_same_file(GNET_PROPERTY(move_file_path),
+					GNET_PROPERTY(bad_file_path));
 
 	dest = file_info_unique_filename(dir, name, common_dir ? ext : "");
 	if (NULL == dest)
