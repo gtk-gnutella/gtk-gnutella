@@ -146,7 +146,7 @@
 66.90.103.0/24
 67.19.77.0/24
 67.19.221.0/24
-67.159.5.0/24
+#67.159.5.0/24
 208.53.138.0/24
 208.53.158.0/25
 208.53.159.0/24
@@ -469,8 +469,8 @@
 # Content-Length: 524288
 # X-Gnutella-Content-URN: urn:sha1:K4JPX22BKXHMEQOJR3FNCUF2DSSK2SHQ
 #
-67.159.21.0/27
-67.159.52.0/24
+#67.159.21.0/27
+#67.159.52.0/24
 
 # .exe spam from fake LimeWire; does not match query at all; giFT-based;
 # spam is ubiquitous and shows up in *every single* search;
@@ -875,7 +875,7 @@
 # urn:sha1:JQOOOH5FRXFVR7DOLHFP7PPMAASMFDY6
 #
 # hosted at FDC Servers.net; LimeWire
-67.159.44.0/24
+#67.159.44.0/24
 66.90.101.0/24
 
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
@@ -1207,4 +1207,22 @@
 # LimeWire; zipped ASF; points to seonomad dot com which is registered
 # to Daniel Boyd; http://www.linkedin.com/in/dboyd
 75.125.12.112/28
+
+# FDCservers.net range assigned to:
+# Guru Bilisim Hizmetleri
+# 154 Sokak No
+# 35000 Izmir
+# Turkey
+# Spam files have these names:
+# * using the Best Ultimate Player.zip
+# * Share Accelerator.zip
+# * using emule multimedia toolbar.zip
+# * Faster with BitTorrent downloader.zip
+# * web hottest videos personal.exe
+#67.159.26.48
+
+# FDCservers.net; LimeWire currently bans their whole range; this is overkill
+# but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
+# point in not banning this range as well.
+67.159.0.0/18
 
