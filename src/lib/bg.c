@@ -81,7 +81,7 @@ struct bgtask {
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
 	gint stepcnt;			/**< Amount of steps in the `stepvec' array */
 	gpointer ucontext;		/**< User context */
-	time_t ctime;			/**< Creation time */
+	time_t created;			/**< Creation time */
 	gint wtime;				/**< Wall-clock run time sofar, in ms */
 	bgclean_cb_t uctx_free;	/**< Free routine for context */
 	bgdone_cb_t done_cb;	/**< Called when done */

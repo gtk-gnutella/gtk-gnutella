@@ -121,6 +121,7 @@ enum c_fi {
 	c_fi_uploaded,
 	c_fi_sources,
 	c_fi_created,
+	c_fi_modified,
 	c_fi_status,
 
 #define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_num)

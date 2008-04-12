@@ -122,7 +122,7 @@ struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
 	cevent_t *cq_ev;		/**< Scheduled callout event */
 	const struct sha1 *sha1;/**< The SHA1, if any */
-	time_t ctime;			/**< Last time we saw this banned URL */
+	time_t created;			/**< Last time we saw this banned URL */
 };
 
 typedef void (*dmesh_add_cb)(
@@ -336,7 +336,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 
 		dmb = walloc(sizeof *dmb);
 		dmb->info = ui;
-		dmb->ctime = stamp;
+		dmb->created = stamp;
 		dmb->cq_ev = cq_insert(callout_queue,
 			lifetime * 1000, dmesh_ban_expire, dmb);
 		dmb->sha1 = NULL;
@@ -370,8 +370,8 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 					atom_sha1_get(sha1), by_addr);
 		}
 	}
-	else if (delta_time(dmb->ctime, stamp) < 0) {
-		dmb->ctime = stamp;
+	else if (delta_time(dmb->created, stamp) < 0) {
+		dmb->created = stamp;
 		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
 	}
 }
@@ -1538,7 +1538,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			if (info->idx != URN_INDEX)
 				continue;
 
-			if (delta_time(banned->ctime, last_sent) > 0) {
+			if (delta_time(banned->created, last_sent) > 0) {
 				const gchar *value;
 
 				value = host_addr_port_to_string(info->addr, info->port);
@@ -2460,7 +2460,7 @@ dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
 	g_assert(key == dmb->info);
 
 	fprintf(out, "%lu %s\n",
-		(gulong) dmb->ctime, dmesh_urlinfo_to_string(dmb->info));
+		(gulong) dmb->created, dmesh_urlinfo_to_string(dmb->info));
 }
 
 /**

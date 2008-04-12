@@ -87,7 +87,7 @@ static const gfloat decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 struct addr_info {
 	gfloat counter;				/**< Counts connection, decayed linearily */
 	host_addr_t addr;			/**< IP address */
-	time_t ctime;				/**< When did last connection occur? */
+	time_t created;				/**< When did last connection occur? */
 	cevent_t *cq_ev;			/**< Scheduled callout event */
 	gint ban_delay;				/**< Banning delay, in seconds */
 	gint ban_count;				/**< Amount of time we banned this source */
@@ -109,7 +109,7 @@ ipf_make(const host_addr_t addr, time_t now)
 
 	ipf->counter = 1.0;
 	ipf->addr = addr;
-	ipf->ctime = now;
+	ipf->created = now;
 	ipf->ban_delay = 0;
 	ipf->ban_count = 0;
 	ipf->ban_msg = NULL;
@@ -188,8 +188,8 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	 * and applying the linear decay coefficient.
 	 */
 
-	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
-	ipf->ctime = now;
+	ipf->counter -= delta_time(now, ipf->created) * decay_coeff;
+	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 2)
 		g_message("lifting BAN for %s (%s), counter = %.3f",
@@ -267,7 +267,7 @@ ban_allow(const host_addr_t addr)
 	 * and applying the linear decay coefficient.
 	 */
 
-	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
+	ipf->counter -= delta_time(now, ipf->created) * decay_coeff;
 
 	if (ipf->counter < 0.0)
 		ipf->counter = 0.0;
@@ -280,7 +280,7 @@ ban_allow(const host_addr_t addr)
 	 */
 
 	ipf->counter += 1.0;
-	ipf->ctime = now;
+	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 4)
 		g_message("BAN %s, counter = %.3f (%s)",

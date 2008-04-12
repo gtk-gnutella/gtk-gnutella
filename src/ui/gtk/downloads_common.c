@@ -69,6 +69,7 @@ struct fileinfo_data {
 	filesize_t uploaded;
 
 	time_t	   created;
+	time_t	   modified;
 
 	gnet_fi_t handle;
 
@@ -192,6 +193,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	fi_gui_append_detail(_("Filename"), file->filename);
 	fi_gui_append_detail(_("Size"), nice_size(file->size, show_metric_units()));
 	fi_gui_append_detail(_("Created"), timestamp_to_string(file->created));
+	fi_gui_append_detail(_("Modified"), timestamp_to_string(file->modified));
 
 	fi_gui_append_detail(_("SHA-1"),
 		info->sha1
@@ -1175,7 +1177,7 @@ fi_gui_file_set_filename(struct fileinfo_data *file)
     g_return_if_fail(info);
 
 	file->filename = atom_str_get(lazy_filename_to_ui_string(info->filename));
-	file->created = info->ctime;
+	file->created = info->created;
 	guc_fi_free_info(info);
 	fi_gui_file_update_matched(file);
 }
@@ -1198,6 +1200,7 @@ fi_gui_file_fill_status(struct fileinfo_data *file)
 	file->uploaded = status.uploaded;
 	file->size = status.size;
 	file->done = status.done;
+	file->modified = status.modified;
 	file->progress = file->size ? filesize_per_10000(file->size, file->done) : 0;
 
 	file->paused = 0 != status.paused;
@@ -1679,6 +1682,9 @@ fileinfo_data_cmp(const struct fileinfo_data *a, const struct fileinfo_data *b,
 	case c_fi_created:
 		ret = delta_time(a->created, b->created);
 		break;
+	case c_fi_modified:
+		ret = delta_time(a->modified, b->modified);
+		break;
 	case c_fi_num:
 		g_assert_not_reached();
 	}
@@ -1781,6 +1787,9 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 	case c_fi_created:
 		text = timestamp_to_string(file->created);
 		break;
+	case c_fi_modified:
+		text = file->modified ? timestamp_to_string(file->modified) : "-";
+		break;
 	case c_fi_num:
 		g_assert_not_reached();
 	}
@@ -1830,6 +1839,7 @@ fi_gui_files_column_title(int column)
 	case c_fi_uploaded:	return _("Uploaded");
 	case c_fi_sources:	return _("Sources");
 	case c_fi_created:	return _("Created");
+	case c_fi_modified:	return _("Modified");
 	case c_fi_status:	return _("Status");
 	case c_fi_num:		break;
 	}
@@ -1852,6 +1862,7 @@ fi_gui_files_column_justify_right(int column)
 	case c_fi_uploaded:	return TRUE;
 	case c_fi_sources:	return FALSE;
 	case c_fi_created:	return FALSE;
+	case c_fi_modified:	return FALSE;
 	case c_fi_status:	return FALSE;
 	case c_fi_num:		break;
 	}

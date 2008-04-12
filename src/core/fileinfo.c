@@ -636,7 +636,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 	 * Emit leading binary fields.
 	 */
 
-	WRITE_UINT32(fi->ctime, &checksum);	/* Introduced at: version 4 */
+	WRITE_UINT32(fi->created, &checksum);	/* Introduced at: version 4 */
 	WRITE_UINT32(fi->ntime, &checksum);			/* version 4 */
 	WRITE_CHAR(fi->file_size_known, &checksum);	/* Introduced at: version 5 */
 
@@ -1079,7 +1079,8 @@ fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
  * @returns TRUE if the trailer is "validated", FALSE otherwise.
  */
 static gboolean
-file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
+file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
+	const gchar *name)
 {
 	ssize_t r;
 	fi_magic_t magic;
@@ -1095,6 +1096,10 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 	if (-1 == fstat(fd, &buf)) {
 		g_warning("error fstat()ing \"%s\": %s", name, g_strerror(errno));
 		return FALSE;
+	}
+
+	if (sb) {
+		*sb = buf;
 	}
 
 	if (!S_ISREG(buf.st_mode)) {
@@ -1196,7 +1201,7 @@ file_info_has_trailer(const gchar *path)
 	if (fd < 0)
 		return -1;
 
-	valid = file_info_get_trailer(fd, &trailer, path);
+	valid = file_info_get_trailer(fd, &trailer, NULL, path);
 	close(fd);
 
 	return valid ? 1 : 0;
@@ -1469,13 +1474,13 @@ fi_upgrade_older_version(fileinfo_t *fi)
 	 * Ensure proper timestamps for creation and update times.
 	 */
 
-	if (0 == fi->ctime) {
-		fi->ctime = tm_time();
+	if (0 == fi->created) {
+		fi->created = tm_time();
 		upgraded = TRUE;
 	}
 
 	if (0 == fi->ntime) {
-		fi->ntime = fi->ctime;
+		fi->ntime = fi->created;
 		upgraded = TRUE;
 	}
 
@@ -1557,6 +1562,7 @@ file_info_retrieve_binary(const gchar *pathname)
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
+	struct stat sb;
 	gboolean t64;
 	GSList *chunklist = NULL;
 
@@ -1575,7 +1581,7 @@ G_STMT_START {				\
 		return NULL;
 	}
 
-	if (!file_info_get_trailer(fd, &trailer, pathname)) {
+	if (!file_info_get_trailer(fd, &trailer, &sb, pathname)) {
 		BAILOUT("could not find trailer");
 		/* NOT REACHED */
 	}
@@ -1626,6 +1632,7 @@ G_STMT_START {				\
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
 	fi->seen_on_network = NULL;
+	fi->modified = sb.st_mtime;
 
 	/*
 	 * Read leading binary fields.
@@ -1636,7 +1643,7 @@ G_STMT_START {				\
 
 		if (!READ_UINT32(&val, &checksum))
 			goto eof;
-		fi->ctime = val;
+		fi->created = val;
 		if (!READ_UINT32(&val, &checksum))
 			goto eof;
 		fi->ntime = val;
@@ -1806,12 +1813,12 @@ G_STMT_START {				\
 	}
 
 	/*
-	 * Pre-v4 (32-bit) trailers lacked the ctime and ntime fields.
+	 * Pre-v4 (32-bit) trailers lacked the created and ntime fields.
 	 * Pre-v5 (32-bit) trailers lacked the fskn (file size known) indication.
 	 */
 
 	if (version < 4)
-		fi->ntime = fi->ctime = tm_time();
+		fi->ntime = fi->created = tm_time();
 
 	if (version < 5)
 		fi->file_size_known = TRUE;
@@ -1948,7 +1955,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	fprintf(f, "PAUS %u\n", (FI_F_PAUSED & fi->flags) ? 1 : 0);
 	fprintf(f, "DONE %s\n", uint64_to_string(fi->done));
 	fprintf(f, "TIME %s\n", uint64_to_string(fi->stamp));
-	fprintf(f, "CTIM %s\n", uint64_to_string(fi->ctime));
+	fprintf(f, "CTIM %s\n", uint64_to_string(fi->created));
 	fprintf(f, "NTIM %s\n", uint64_to_string(fi->ntime));
 	fprintf(f, "SWRM %u\n", fi->use_swarming ? 1 : 0);
 
@@ -3019,6 +3026,10 @@ file_info_retrieve(void)
 					dfi->tigertree.leaves, dfi->tigertree.num_leaves);
 			}
 
+			if (dfi) {
+				fi->modified = dfi->modified;
+			}
+
 			if (NULL == dfi) {
 				if (is_regular(fi->pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
@@ -3227,7 +3238,7 @@ file_info_retrieve(void)
 		case FI_TAG_CTIM:
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep;
-			fi->ctime = v;
+			fi->created = v;
 			break;
 		case FI_TAG_NTIM:
 			v = parse_uint64(value, &ep, 10, &error);
@@ -3444,7 +3455,8 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 	fi->file_size_known = file_size_known;
 	fi->done = 0;
 	fi->use_swarming = GNET_PROPERTY(use_swarming) && file_size_known;
-	fi->ctime = tm_time();
+	fi->created = tm_time();
+	fi->modified = fi->created;
 	fi->seen_on_network = NULL;
 
 	if (-1 != stat(fi->pathname, &st) && S_ISREG(st.st_mode)) {
@@ -3458,6 +3470,7 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
 		fc->status = DL_CHUNK_DONE;
+		fi->modified = st.st_mtime;
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
 	}
@@ -3493,7 +3506,8 @@ file_info_get_transient(const gchar *name)
 	fi->file_size_known = FALSE;
 	fi->done = 0;
 	fi->use_swarming = FALSE;
-	fi->ctime = tm_time();
+	fi->created = tm_time();
+	fi->modified = fi->created;
 	fi->seen_on_network = NULL;
 	fi->dirty = TRUE;
 
@@ -3967,8 +3981,10 @@ status_ok:
 
 	fi->stamp = tm_time();
 
-	if (DL_CHUNK_DONE == status)
+	if (DL_CHUNK_DONE == status) {
+		fi->modified = fi->stamp;
 		fi->dirty = TRUE;
+	}
 
 again:
 
@@ -5354,7 +5370,7 @@ fi_get_info(gnet_fi_t fih)
 
 	info->tth_slice_size = fi->tigertree.slice_size;
 	info->tth_num_leaves = fi->tigertree.num_leaves;
-	info->ctime		  	 = fi->ctime;
+	info->created		 = fi->created;
 
 	if (fi->alias) {
 		GSList *sl;
@@ -5422,6 +5438,7 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
     s->active_queued  = fi->active_queued;
     s->passive_queued = fi->passive_queued;
+	s->modified		  =	fi->modified;
 
 	s->paused		  = 0 != (FI_F_PAUSED & fi->flags);
 	s->seeding		  = 0 != (FI_F_SEEDING & fi->flags);

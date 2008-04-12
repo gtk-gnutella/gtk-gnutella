@@ -75,7 +75,7 @@ prop = {
     type = guint32;
     vector_size = FILEINFO_VISIBLE_COLUMNS;
     data = {
-        default = "{ 240, 80, 80, 80, 80, 80, 80, 80, 80 }";
+        default = "{ 240, 80, 80, 80, 80, 80, 80, 80, 80, 80 }";
     };
 };
 
@@ -85,7 +85,7 @@ prop = {
     type = boolean;
     vector_size = FILEINFO_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
 

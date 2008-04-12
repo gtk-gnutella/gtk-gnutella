@@ -70,7 +70,7 @@ typedef struct gnet_fi_info {
 	filesize_t  size;
 	filesize_t	tth_slice_size;
 	size_t 		tth_num_leaves;
-	time_t		ctime;
+	time_t		created;
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
@@ -80,6 +80,8 @@ typedef struct gnet_fi_status {
 	filesize_t  uploaded;
 	filesize_t  sha1_hashed;
 	filesize_t	copied;
+
+	time_t		modified;
 
 	guint32  	recvcount;
 	guint32  	refcount;
@@ -133,7 +135,8 @@ typedef struct dl_file_info {
 	GSList *sources;        /**< list of sources (struct download *) */
 	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */
 	time_t stamp;			/**< Time stamp */
-	time_t ctime;			/**< Creation time stamp */
+	time_t created;			/**< Creation time stamp */
+	time_t modified;		/**< Modification time stamp */
 	time_t ntime;			/**< Last time a new source was added */
 	time_t last_flush;		/**< When last flush to disk occurred */
 	time_t last_dmesh;		/**< When last dmesh query was used */
