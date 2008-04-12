@@ -51,16 +51,16 @@ END
 
 NAME using.(the.Best.Ultimate.Player|emule.multimedia.toolbar)[.]zip$
 SIZE 1000000-4000000
-DATE 2008-04-12
+ADDED 2008-04-12
 END
 
 NAME (Faster.with.BitTorrent.downloader|Share.Accelerator)[.]zip$
 SIZE 1000000-4000000
-DATE 2008-04-12
+ADDED 2008-04-12
 END
 
 NAME web.hottest.videos.personal.player.exe$
 SIZE 1000000-2000000
-DATE 2008-04-12
+ADDED 2008-04-12
 END
 
