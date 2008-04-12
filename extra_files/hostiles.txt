@@ -206,7 +206,6 @@
 # DRM WMV spammer; giFT-based
 70.84.168.80/28
 70.85.234.0/28
-74.52.0.0/17
 69.93.107.0/24
 
 # Generic pr0n spammer, adds search term to filenames (mostly WMVs)
@@ -312,7 +311,7 @@
 61.129.70.59
 61.129.251.204
 61.152.171.139
-61.152.175.62
+61.152.175.63
 60.12.182.0/28
 60.28.222.171
 # Chinese DRM-WMA spammer; Gnucleus
@@ -1227,4 +1226,8 @@
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
 67.159.0.0/18
+# ThePlanet.com Internet Services, Inc.; same as above applies
+74.52.0.0/14
+# Peer 1 Network Inc.; same as above applies
+76.74.128.0/17
 
