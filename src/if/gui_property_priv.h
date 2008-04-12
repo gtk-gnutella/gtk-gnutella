@@ -47,8 +47,6 @@
 
 extern const gboolean gui_property_variable_monitor_enabled;
 extern const guint32  gui_property_variable_monitor_max_items;
-extern const gboolean gui_property_variable_download_select_regex_case;
-extern const gboolean gui_property_variable_download_filter_regex_case;
 extern const gboolean gui_property_variable_search_hide_downloaded;
 extern const guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS];
 extern const gboolean gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS];

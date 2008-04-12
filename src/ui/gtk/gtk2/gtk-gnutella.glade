@@ -29032,10 +29032,10 @@ message</property>
 				    <widget class="GtkTable" id="table115">
 				      <property name="visible">True</property>
 				      <property name="n_rows">2</property>
-				      <property name="n_columns">3</property>
+				      <property name="n_columns">4</property>
 				      <property name="homogeneous">False</property>
 				      <property name="row_spacing">0</property>
-				      <property name="column_spacing">0</property>
+				      <property name="column_spacing">4</property>
 
 				      <child>
 					<widget class="GtkLabel" id="label334">
@@ -29150,12 +29150,59 @@ message</property>
 					  <property name="active">False</property>
 					  <property name="inconsistent">False</property>
 					  <property name="draw_indicator">True</property>
+					  <signal name="toggled" handler="on_checkbutton_downloads_select_regex_case_toggled" last_modification_time="Sat, 12 Apr 2008 17:25:44 GMT"/>
 					</widget>
 					<packing>
 					  <property name="left_attach">2</property>
 					  <property name="right_attach">3</property>
 					  <property name="top_attach">0</property>
 					  <property name="bottom_attach">1</property>
+					  <property name="x_options">fill</property>
+					  <property name="y_options"></property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkCheckButton" id="checkbutton_downloads_select_regex_invert">
+					  <property name="visible">True</property>
+					  <property name="can_focus">True</property>
+					  <property name="label" translatable="yes">invert</property>
+					  <property name="use_underline">True</property>
+					  <property name="relief">GTK_RELIEF_NORMAL</property>
+					  <property name="focus_on_click">True</property>
+					  <property name="active">False</property>
+					  <property name="inconsistent">False</property>
+					  <property name="draw_indicator">True</property>
+					  <signal name="toggled" handler="on_checkbutton_downloads_select_regex_invert_toggled" last_modification_time="Sat, 12 Apr 2008 17:30:26 GMT"/>
+					</widget>
+					<packing>
+					  <property name="left_attach">3</property>
+					  <property name="right_attach">4</property>
+					  <property name="top_attach">0</property>
+					  <property name="bottom_attach">1</property>
+					  <property name="y_options"></property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkCheckButton" id="checkbutton_downloads_filter_regex_invert">
+					  <property name="visible">True</property>
+					  <property name="can_focus">True</property>
+					  <property name="label" translatable="yes">invert</property>
+					  <property name="use_underline">True</property>
+					  <property name="relief">GTK_RELIEF_NORMAL</property>
+					  <property name="focus_on_click">True</property>
+					  <property name="active">False</property>
+					  <property name="inconsistent">False</property>
+					  <property name="draw_indicator">True</property>
+					  <signal name="toggled" handler="on_checkbutton_downloads_filter_regex_invert_toggled" last_modification_time="Sat, 12 Apr 2008 17:30:03 GMT"/>
+					</widget>
+					<packing>
+					  <property name="left_attach">3</property>
+					  <property name="right_attach">4</property>
+					  <property name="top_attach">1</property>
+					  <property name="bottom_attach">2</property>
+					  <property name="x_options">fill</property>
 					  <property name="y_options"></property>
 					</packing>
 				      </child>
@@ -29171,12 +29218,14 @@ message</property>
 					  <property name="active">False</property>
 					  <property name="inconsistent">False</property>
 					  <property name="draw_indicator">True</property>
+					  <signal name="toggled" handler="on_checkbutton_downloads_filter_regex_case_toggled" last_modification_time="Sat, 12 Apr 2008 17:26:12 GMT"/>
 					</widget>
 					<packing>
 					  <property name="left_attach">2</property>
 					  <property name="right_attach">3</property>
 					  <property name="top_attach">1</property>
 					  <property name="bottom_attach">2</property>
+					  <property name="x_options">fill</property>
 					  <property name="y_options"></property>
 					</packing>
 				      </child>

@@ -14718,6 +14718,8 @@ create_main_window_downloads_tab (void)
   GtkWidget *entry_downloads_filter_regex;
   GtkWidget *entry_downloads_select_regex;
   GtkWidget *checkbutton_downloads_select_regex_case;
+  GtkWidget *checkbutton_downloads_select_regex_invert;
+  GtkWidget *checkbutton_downloads_filter_regex_invert;
   GtkWidget *checkbutton_downloads_filter_regex_case;
   GtkWidget *hbox9343;
   GtkWidget *button_downloads_clear_stopped;
@@ -14969,10 +14971,11 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (vbox154);
   gtk_container_add (GTK_CONTAINER (frame147), vbox154);
 
-  table115 = gtk_table_new (2, 3, FALSE);
+  table115 = gtk_table_new (2, 4, FALSE);
   gtk_widget_set_name (table115, "table115");
   gtk_widget_show (table115);
   gtk_box_pack_start (GTK_BOX (vbox154), table115, FALSE, TRUE, 0);
+  gtk_table_set_col_spacings (GTK_TABLE (table115), 4);
 
   label334 = gtk_label_new (_("Select files by regex"));
   gtk_widget_set_name (label334, "label334");
@@ -15010,14 +15013,28 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (checkbutton_downloads_select_regex_case, "checkbutton_downloads_select_regex_case");
   gtk_widget_show (checkbutton_downloads_select_regex_case);
   gtk_table_attach (GTK_TABLE (table115), checkbutton_downloads_select_regex_case, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_select_regex_invert = gtk_check_button_new_with_mnemonic (_("invert"));
+  gtk_widget_set_name (checkbutton_downloads_select_regex_invert, "checkbutton_downloads_select_regex_invert");
+  gtk_widget_show (checkbutton_downloads_select_regex_invert);
+  gtk_table_attach (GTK_TABLE (table115), checkbutton_downloads_select_regex_invert, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_filter_regex_invert = gtk_check_button_new_with_mnemonic (_("invert"));
+  gtk_widget_set_name (checkbutton_downloads_filter_regex_invert, "checkbutton_downloads_filter_regex_invert");
+  gtk_widget_show (checkbutton_downloads_filter_regex_invert);
+  gtk_table_attach (GTK_TABLE (table115), checkbutton_downloads_filter_regex_invert, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   checkbutton_downloads_filter_regex_case = gtk_check_button_new_with_mnemonic (_("case-sensitive"));
   gtk_widget_set_name (checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
   gtk_widget_show (checkbutton_downloads_filter_regex_case);
   gtk_table_attach (GTK_TABLE (table115), checkbutton_downloads_filter_regex_case, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   hbox9343 = gtk_hbox_new (FALSE, 0);
@@ -15450,6 +15467,18 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) entry_downloads_select_regex, "activate",
                     G_CALLBACK (on_entry_downloads_select_regex_activate),
                     NULL);
+  g_signal_connect ((gpointer) checkbutton_downloads_select_regex_case, "toggled",
+                    G_CALLBACK (on_checkbutton_downloads_select_regex_case_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) checkbutton_downloads_select_regex_invert, "toggled",
+                    G_CALLBACK (on_checkbutton_downloads_select_regex_invert_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) checkbutton_downloads_filter_regex_invert, "toggled",
+                    G_CALLBACK (on_checkbutton_downloads_filter_regex_invert_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) checkbutton_downloads_filter_regex_case, "toggled",
+                    G_CALLBACK (on_checkbutton_downloads_filter_regex_case_toggled),
+                    NULL);
   g_signal_connect ((gpointer) button_downloads_clear_stopped, "clicked",
                     G_CALLBACK (on_button_downloads_clear_stopped_clicked),
                     NULL);
@@ -15491,6 +15520,8 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_downloads_filter_regex, "entry_downloads_filter_regex");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_downloads_select_regex, "entry_downloads_select_regex");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_select_regex_case, "checkbutton_downloads_select_regex_case");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_select_regex_invert, "checkbutton_downloads_select_regex_invert");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_filter_regex_invert, "checkbutton_downloads_filter_regex_invert");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9343, "hbox9343");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_clear_stopped, "button_downloads_clear_stopped");

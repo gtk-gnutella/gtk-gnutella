@@ -264,11 +264,13 @@ create_main_window (void)
   GtkWidget *vbox144;
   GtkWidget *table99;
   GtkWidget *label149;
-  GtkWidget *entry_downloads_select_regex;
-  GtkWidget *checkbutton_downloads_select_regex_case;
   GtkWidget *label8006;
-  GtkWidget *entry_downloads_filter_regex;
   GtkWidget *checkbutton_downloads_filter_regex_case;
+  GtkWidget *checkbutton_downloads_select_regex_invert;
+  GtkWidget *checkbutton_downloads_filter_regex_invert;
+  GtkWidget *checkbutton_downloads_select_regex_case;
+  GtkWidget *entry_downloads_select_regex;
+  GtkWidget *entry_downloads_filter_regex;
   GtkWidget *hbox86;
   GtkWidget *button_downloads_clear_stopped;
   GtkWidget *label7995;
@@ -2740,7 +2742,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame152), vbox144);
   gtk_container_set_border_width (GTK_CONTAINER (vbox144), 2);
 
-  table99 = gtk_table_new (2, 3, FALSE);
+  table99 = gtk_table_new (2, 4, FALSE);
   gtk_widget_set_name (table99, "table99");
   gtk_widget_ref (table99);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table99", table99,
@@ -2760,13 +2762,44 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label149), 7.45058e-09, 0.5);
 
-  entry_downloads_select_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_downloads_select_regex, "entry_downloads_select_regex");
-  gtk_widget_ref (entry_downloads_select_regex);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_downloads_select_regex", entry_downloads_select_regex,
+  label8006 = gtk_label_new (_("Filter files by regex"));
+  gtk_widget_set_name (label8006, "label8006");
+  gtk_widget_ref (label8006);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8006", label8006,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_downloads_select_regex);
-  gtk_table_attach (GTK_TABLE (table99), entry_downloads_select_regex, 1, 2, 0, 1,
+  gtk_widget_show (label8006);
+  gtk_table_attach (GTK_TABLE (table99), label8006, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8006), 7.45058e-09, 0.5);
+
+  checkbutton_downloads_filter_regex_case = gtk_check_button_new_with_label (_("case-sensitive"));
+  gtk_widget_set_name (checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
+  gtk_widget_ref (checkbutton_downloads_filter_regex_case);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_filter_regex_case", checkbutton_downloads_filter_regex_case,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_filter_regex_case);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_downloads_filter_regex_case, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_select_regex_invert = gtk_check_button_new_with_label (_("invert"));
+  gtk_widget_set_name (checkbutton_downloads_select_regex_invert, "checkbutton_downloads_select_regex_invert");
+  gtk_widget_ref (checkbutton_downloads_select_regex_invert);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_select_regex_invert", checkbutton_downloads_select_regex_invert,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_select_regex_invert);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_downloads_select_regex_invert, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_filter_regex_invert = gtk_check_button_new_with_label (_("invert"));
+  gtk_widget_set_name (checkbutton_downloads_filter_regex_invert, "checkbutton_downloads_filter_regex_invert");
+  gtk_widget_ref (checkbutton_downloads_filter_regex_invert);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_filter_regex_invert", checkbutton_downloads_filter_regex_invert,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_filter_regex_invert);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_downloads_filter_regex_invert, 3, 4, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -2780,16 +2813,15 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label8006 = gtk_label_new (_("Filter files by regex"));
-  gtk_widget_set_name (label8006, "label8006");
-  gtk_widget_ref (label8006);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8006", label8006,
+  entry_downloads_select_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_downloads_select_regex, "entry_downloads_select_regex");
+  gtk_widget_ref (entry_downloads_select_regex);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_downloads_select_regex", entry_downloads_select_regex,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label8006);
-  gtk_table_attach (GTK_TABLE (table99), label8006, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
+  gtk_widget_show (entry_downloads_select_regex);
+  gtk_table_attach (GTK_TABLE (table99), entry_downloads_select_regex, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label8006), 7.45058e-09, 0.5);
 
   entry_downloads_filter_regex = gtk_entry_new ();
   gtk_widget_set_name (entry_downloads_filter_regex, "entry_downloads_filter_regex");
@@ -2799,16 +2831,6 @@ create_main_window (void)
   gtk_widget_show (entry_downloads_filter_regex);
   gtk_table_attach (GTK_TABLE (table99), entry_downloads_filter_regex, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_downloads_filter_regex_case = gtk_check_button_new_with_label (_("case-sensitive"));
-  gtk_widget_set_name (checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
-  gtk_widget_ref (checkbutton_downloads_filter_regex_case);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_filter_regex_case", checkbutton_downloads_filter_regex_case,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_filter_regex_case);
-  gtk_table_attach (GTK_TABLE (table99), checkbutton_downloads_filter_regex_case, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   hbox86 = gtk_hbox_new (FALSE, 0);
@@ -5597,6 +5619,18 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "expose_event",
                       GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_expose_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_filter_regex_case), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_filter_regex_case_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_select_regex_invert), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_select_regex_invert_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_filter_regex_invert), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_filter_regex_invert_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_select_regex_case), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_select_regex_case_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_downloads_select_regex), "activate",
                       GTK_SIGNAL_FUNC (on_entry_downloads_select_regex_activate),

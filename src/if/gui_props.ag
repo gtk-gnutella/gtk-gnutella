@@ -38,24 +38,6 @@ prop = {
 };
 
 prop = {
-    name = "download_select_regex_case";
-    desc = "Select downloads by regex case-sensitive.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "download_filter_regex_case";
-    desc = "Filter downloads by regex case-sensitive.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "search_hide_downloaded";
     desc = "Whether to hide hits that have been considered "
 		"for auto-downloading based on the SHA1 or your filters.";

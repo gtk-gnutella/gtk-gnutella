@@ -50,7 +50,16 @@ enum nb_downloads_page {
 /* Widget signal callbacks */
 
 void on_entry_downloads_filter_regex_activate(GtkEditable *, void *user_data);
+void on_checkbutton_downloads_filter_regex_case_toggled(GtkToggleButton *,
+		void *user_data);
+void on_checkbutton_downloads_filter_regex_invert_toggled(GtkToggleButton *,
+		void *user_data);
+
 void on_entry_downloads_select_regex_activate(GtkEditable *, void *user_data);
+void on_checkbutton_downloads_select_regex_case_toggled(GtkToggleButton *,
+		void *user_data);
+void on_checkbutton_downloads_select_regex_invert_toggled(GtkToggleButton *,
+		void *user_data);
 
 void on_button_downloads_clear_stopped_clicked(GtkButton *, void *user_data);
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *, void *user_data);

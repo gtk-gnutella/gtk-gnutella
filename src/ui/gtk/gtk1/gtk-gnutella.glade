@@ -3104,7 +3104,7 @@
 			    <class>GtkTable</class>
 			    <name>table99</name>
 			    <rows>2</rows>
-			    <columns>3</columns>
+			    <columns>4</columns>
 			    <homogeneous>False</homogeneous>
 			    <row_spacing>0</row_spacing>
 			    <column_spacing>2</column_spacing>
@@ -3127,6 +3127,144 @@
 			      <child>
 				<left_attach>0</left_attach>
 				<right_attach>1</right_attach>
+				<top_attach>0</top_attach>
+				<bottom_attach>1</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label8006</name>
+			      <label>Filter files by regex</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>7.45058e-09</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<left_attach>0</left_attach>
+				<right_attach>1</right_attach>
+				<top_attach>1</top_attach>
+				<bottom_attach>2</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_downloads_filter_regex_case</name>
+			      <can_focus>True</can_focus>
+			      <signal>
+				<name>toggled</name>
+				<handler>on_checkbutton_downloads_filter_regex_case_toggled</handler>
+				<last_modification_time>Sat, 12 Apr 2008 20:26:25 GMT</last_modification_time>
+			      </signal>
+			      <label>case-sensitive</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>2</left_attach>
+				<right_attach>3</right_attach>
+				<top_attach>1</top_attach>
+				<bottom_attach>2</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_downloads_select_regex_invert</name>
+			      <can_focus>True</can_focus>
+			      <signal>
+				<name>toggled</name>
+				<handler>on_checkbutton_downloads_select_regex_invert_toggled</handler>
+				<last_modification_time>Sat, 12 Apr 2008 20:25:52 GMT</last_modification_time>
+			      </signal>
+			      <label>invert</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>3</left_attach>
+				<right_attach>4</right_attach>
+				<top_attach>0</top_attach>
+				<bottom_attach>1</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>True</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_downloads_filter_regex_invert</name>
+			      <can_focus>True</can_focus>
+			      <signal>
+				<name>toggled</name>
+				<handler>on_checkbutton_downloads_filter_regex_invert_toggled</handler>
+				<last_modification_time>Sat, 12 Apr 2008 20:25:45 GMT</last_modification_time>
+			      </signal>
+			      <label>invert</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>3</left_attach>
+				<right_attach>4</right_attach>
+				<top_attach>1</top_attach>
+				<bottom_attach>2</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>True</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_downloads_select_regex_case</name>
+			      <can_focus>True</can_focus>
+			      <signal>
+				<name>toggled</name>
+				<handler>on_checkbutton_downloads_select_regex_case_toggled</handler>
+				<last_modification_time>Sat, 12 Apr 2008 20:26:20 GMT</last_modification_time>
+			      </signal>
+			      <label>case-sensitive</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>2</left_attach>
+				<right_attach>3</right_attach>
 				<top_attach>0</top_attach>
 				<bottom_attach>1</bottom_attach>
 				<xpad>0</xpad>
@@ -3170,55 +3308,6 @@
 			    </widget>
 
 			    <widget>
-			      <class>GtkCheckButton</class>
-			      <name>checkbutton_downloads_select_regex_case</name>
-			      <can_focus>True</can_focus>
-			      <label>case-sensitive</label>
-			      <active>False</active>
-			      <draw_indicator>True</draw_indicator>
-			      <child>
-				<left_attach>2</left_attach>
-				<right_attach>3</right_attach>
-				<top_attach>0</top_attach>
-				<bottom_attach>1</bottom_attach>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<xexpand>False</xexpand>
-				<yexpand>False</yexpand>
-				<xshrink>False</xshrink>
-				<yshrink>False</yshrink>
-				<xfill>True</xfill>
-				<yfill>False</yfill>
-			      </child>
-			    </widget>
-
-			    <widget>
-			      <class>GtkLabel</class>
-			      <name>label8006</name>
-			      <label>Filter files by regex</label>
-			      <justify>GTK_JUSTIFY_CENTER</justify>
-			      <wrap>False</wrap>
-			      <xalign>7.45058e-09</xalign>
-			      <yalign>0.5</yalign>
-			      <xpad>0</xpad>
-			      <ypad>0</ypad>
-			      <child>
-				<left_attach>0</left_attach>
-				<right_attach>1</right_attach>
-				<top_attach>1</top_attach>
-				<bottom_attach>2</bottom_attach>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<xexpand>False</xexpand>
-				<yexpand>False</yexpand>
-				<xshrink>False</xshrink>
-				<yshrink>False</yshrink>
-				<xfill>True</xfill>
-				<yfill>False</yfill>
-			      </child>
-			    </widget>
-
-			    <widget>
 			      <class>GtkEntry</class>
 			      <name>entry_downloads_filter_regex</name>
 			      <can_focus>True</can_focus>
@@ -3239,29 +3328,6 @@
 				<xpad>0</xpad>
 				<ypad>0</ypad>
 				<xexpand>True</xexpand>
-				<yexpand>False</yexpand>
-				<xshrink>False</xshrink>
-				<yshrink>False</yshrink>
-				<xfill>True</xfill>
-				<yfill>False</yfill>
-			      </child>
-			    </widget>
-
-			    <widget>
-			      <class>GtkCheckButton</class>
-			      <name>checkbutton_downloads_filter_regex_case</name>
-			      <can_focus>True</can_focus>
-			      <label>case-sensitive</label>
-			      <active>False</active>
-			      <draw_indicator>True</draw_indicator>
-			      <child>
-				<left_attach>2</left_attach>
-				<right_attach>3</right_attach>
-				<top_attach>1</top_attach>
-				<bottom_attach>2</bottom_attach>
-				<xpad>0</xpad>
-				<ypad>0</ypad>
-				<xexpand>False</xexpand>
 				<yexpand>False</yexpand>
 				<xshrink>False</xshrink>
 				<yshrink>False</yshrink>

@@ -101,6 +101,8 @@ static gboolean update_download_clear_needed;
 static gboolean download_gui_visible;
 
 static regex_t *filter_regex;
+static gboolean filter_regex_invert;
+static gboolean filter_regex_case_sensitive;
 
 /**
  * Remember that we need to check for cleared downloads at the next
@@ -1153,8 +1155,9 @@ fi_gui_file_update_matched(struct fileinfo_data *file)
 {
 	g_return_if_fail(file);
 
-	file->matched = !filter_regex
-		|| 0 == regexec(filter_regex, file->filename, 0, NULL, 0);
+	file->matched = !filter_regex ||
+		((0 != filter_regex_invert) ^
+		 (0 == regexec(filter_regex, file->filename, 0, NULL, 0)));
 }
 
 /**
@@ -1966,6 +1969,7 @@ notebook_downloads_init(void)
 
 struct select_by_regex {
 	regex_t expr;
+	gboolean invert;
 	unsigned matches, total_nodes;
 };
 
@@ -1994,14 +1998,16 @@ fi_gui_select_by_regex_helper(struct fileinfo_data *file, void *user_data)
 	ctx->total_nodes++;
 
 	ret = regexec(&ctx->expr, fi_gui_file_get_filename(file), 0, NULL, 0);
-	if (0 == ret) {
-		ctx->matches++;
-		fi_gui_file_select(file);
-	} else if (REG_NOMATCH != ret) {
+	if (0 != ret && REG_NOMATCH != ret) {
 		fi_gui_regex_error(&ctx->expr, ret);
 		fi_gui_files_unselect_all();
 		ctx->matches = 0;
 		return TRUE;	/* stop */
+	}
+
+	if ((0 == ret) ^ (0 != ctx->invert)) {
+		ctx->matches++;
+		fi_gui_file_select(file);
 	}
 	return FALSE;
 }
@@ -2010,6 +2016,7 @@ static void
 fi_gui_select_by_regex(const char *regex)
 {
 	struct select_by_regex ctx;
+	gboolean case_sensitive;
     int ret, flags;
 
 	ctx.matches = 0;
@@ -2019,8 +2026,15 @@ fi_gui_select_by_regex(const char *regex)
 	if (NULL == regex || '\0' == regex[0])
 		return;
 
+	ctx.invert = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
+				"checkbutton_downloads_select_regex_invert")));
+	case_sensitive = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
+				"checkbutton_downloads_select_regex_case")));
+
 	flags = REG_EXTENDED | REG_NOSUB;
-   	flags |= GUI_PROPERTY(download_select_regex_case) ? 0 : REG_ICASE;
+   	flags |= case_sensitive ? 0 : REG_ICASE;
     ret = regcomp(&ctx.expr, regex, flags);
    	if (ret) {
 		fi_gui_regex_error(&ctx.expr, ret);
@@ -2056,6 +2070,25 @@ on_entry_downloads_select_regex_activate(GtkEditable *editable,
 	G_FREE_NULL(regex);
 }
 
+void
+on_checkbutton_downloads_select_regex_case_toggled(
+	GtkToggleButton *unused_button, void *user_data)
+{
+	(void) unused_button;
+	on_entry_downloads_select_regex_activate(
+		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_select_regex")),
+		user_data);
+}
+
+void
+on_checkbutton_downloads_select_regex_invert_toggled(
+	GtkToggleButton *unused_button, void *user_data)
+{
+	(void) unused_button;
+	on_entry_downloads_select_regex_activate(
+		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_select_regex")),
+		user_data);
+}
 
 static void
 fi_handles_filter(void *key, void *value, void *unused_udata)
@@ -2095,16 +2128,11 @@ fi_gui_filter_by_regex(const char *expr)
 	g_return_if_fail(fi_handles);
 
 	filter_regex_clear();
-	if (
-		expr &&
-	   	0 != strcmp(expr, "") &&
-	   	0 != strcmp(expr, ".") &&
-	   	0 != strcmp(expr, ".*")
-	) {
+	if (expr && 0 != strcmp(expr, "")) {
 		int ret, flags;
-		
+	
 		flags = REG_EXTENDED | REG_NOSUB;
-   		flags |= GUI_PROPERTY(download_filter_regex_case) ? 0 : REG_ICASE;
+		flags |= filter_regex_case_sensitive ? 0 : REG_ICASE;
 		filter_regex = g_malloc(sizeof *filter_regex);
     	ret = regcomp(filter_regex, expr, flags);
 		if (ret) {
@@ -2131,6 +2159,32 @@ on_entry_downloads_filter_regex_activate(GtkEditable *editable,
 
 	fi_gui_filter_by_regex(regex);
 	G_FREE_NULL(regex);
+}
+
+void
+on_checkbutton_downloads_filter_regex_case_toggled(
+	GtkToggleButton *unused_button, void *user_data)
+{
+	(void) unused_button;
+	filter_regex_case_sensitive = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
+				"checkbutton_downloads_filter_regex_case")));
+	on_entry_downloads_filter_regex_activate(
+		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_filter_regex")),
+		user_data);
+}
+
+void
+on_checkbutton_downloads_filter_regex_invert_toggled(
+	GtkToggleButton *unused_button, void *user_data)
+{
+	(void) unused_button;
+	filter_regex_invert = gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
+				"checkbutton_downloads_filter_regex_invert")));
+	on_entry_downloads_filter_regex_activate(
+		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_filter_regex")),
+		user_data);
 }
 
 void
