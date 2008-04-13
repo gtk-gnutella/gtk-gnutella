@@ -190,7 +190,7 @@ upload_stats_gui_update(const struct ul_stats *us)
 	gtk_clist_set_text(clist, row, c_us_attempts, tmpstr);
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->complete);
 	gtk_clist_set_text(clist, row, c_us_complete, tmpstr);
-	s->norm = (gfloat) s->bytes_sent / (gfloat) s->size;
+	s->norm = 1.0 * s->bytes_sent / s->size;
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", s->norm);
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
 
