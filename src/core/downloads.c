@@ -6943,12 +6943,16 @@ extract_retry_after(struct download *d, const header_t *header)
 	return delay;
 }
 
+/*
+ * A standard X-Thex-URI header has the following form:
+ * X-Thex-URI: <relative URI with an absolute path>;<TTH without prefix>
+ */
 static void
 download_handle_thex_uri_header(struct download *d, header_t *header)
 {
-	const char *value, *endptr, *uri_end;
-	const struct tth *tth;
-	gchar *uri;
+	const char *uri_start, *endptr;
+	size_t uri_length;
+	struct tth tth;
 
 	g_return_if_fail(d);
 	g_return_if_fail(header);
@@ -6956,49 +6960,71 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
 		return;
 
-	value = header_get(header, "X-Thex-URI");
-	if (NULL == value)
-		return;
-
-	endptr = strchr(value, ';');
-	if (NULL == endptr) {
-		g_message("X-Thex-URI header has no root hash (%s)",
-			download_host_info(d));
-		return;
-	}
-
-	uri_end = endptr;
-	if (uri_end == value || '/' != value[0]) {
+	uri_start = header_get(header, "X-Thex-URI");
+	if (NULL == uri_start || '/' != uri_start[0]) {
 		g_message("X-Thex-URI header has no valid URI (%s)",
 			download_host_info(d));
 		return;
 	}
-	uri_end--;	/* skip trailing semi-colon */
-	while (uri_end != value && is_ascii_space(uri_end[0])) {
-		uri_end--;	/* skip trailing spaces */
-	}
-	uri_end++;
 
-	endptr = skip_ascii_spaces(&endptr[1]);
-	if (strlen(endptr) < TTH_BASE32_SIZE) {
-		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("X-Thex-URI header has no root hash for %s from %s",
-				download_basename(d), download_host_info(d));
-		}
-		return;
-	}
+	endptr = strchr(uri_start, ';');
+	if (endptr) {
+		const struct tth *tth_ptr;
+		const char *urn;
 
-	tth = base32_tth(endptr);
-	if (NULL == tth) {
-		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("X-Thex-URI header has no root hash for %s from %s",
-				download_basename(d), download_host_info(d));
+		urn = skip_ascii_spaces(&endptr[1]);
+		if (strlen(urn) < TTH_BASE32_SIZE) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				g_message("X-Thex-URI header has no root hash for %s from %s",
+						download_basename(d), download_host_info(d));
+			}
+			return;
 		}
-		return;
+		tth_ptr = base32_tth(urn);
+		if (NULL == tth_ptr) {
+			if (GNET_PROPERTY(tigertree_debug)) {
+				g_message("X-Thex-URI header has no root hash for %s from %s",
+						download_basename(d), download_host_info(d));
+			}
+			return;
+		}
+		tth = *tth_ptr;
+
+		while (endptr != uri_start) {
+		   	if (!is_ascii_space(endptr[0]) && ';' != endptr[0])
+				break;
+			endptr--;	/* skip trailing spaces */
+		}
+		uri_length = &endptr[1] - uri_start;
+	} else {
+		const char *content_urn;
+		struct sha1 sha1;
+
+		uri_length = strlen(uri_start);
+
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_message("X-Thex-URI header has no root hash (%s): \"%s\"",
+				download_host_info(d), uri_start);
+		}
+		/*
+		 * Non-standard X-Thex-URI header; treat the URI as opaque and
+		 * accept it as long as peer indicates a TTH
+		 */
+		content_urn = header_get(header, "X-Content-URN");
+		if (!content_urn) {
+			g_message("Missing root hash and missing X-Content-URN (%s)",
+				download_host_info(d));
+			return;
+		}
+		if (!urn_get_bitprint(content_urn, strlen(content_urn), &sha1, &tth)) {
+			g_message("Missing root hash and bad X-Content-URN (%s)",
+				download_host_info(d));
+			return;
+		}
 	}
 
 	if (d->file_info->tth) {
-		if (!tth_eq(tth, d->file_info->tth)) {
+		if (!tth_eq(&tth, d->file_info->tth)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
 				g_warning("X-Thex-URI causes TTH mismatch for %s from %s",
 					download_basename(d), download_host_info(d));
@@ -7007,10 +7033,10 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		}
 	} else if (GNET_PROPERTY(tth_auto_discovery)) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Discovered TTH (%s) for %s from %s", tth_base32(tth),
+			g_message("Discovered TTH (%s) for %s from %s", tth_base32(&tth),
 				download_basename(d), download_host_info(d));
 		}
-		file_info_got_tth(d->file_info, tth);
+		file_info_got_tth(d->file_info, &tth);
 	}
 
 	if (
@@ -7022,6 +7048,9 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	) {
 		guint32 cflags = 0;
 		gnet_host_vec_t *proxies;
+		char *uri;
+
+		uri = g_strndup(uri_start, uri_length);
 
 		/*
 		 * Remember that we fetched tigertree data from this one, so
@@ -7033,13 +7062,12 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		if (d->always_push && DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 			cflags |= SOCK_F_PUSH;
 		}
-		uri = g_strndup(value, uri_end - value);
 		proxies = gnet_host_vec_from_list(d->server->proxies);
 
 		if (
-			download_thex_start(uri, d->sha1, tth, download_filesize(d),
-				NULL, download_addr(d), download_port(d), download_guid(d),
-				proxies, cflags)
+			download_thex_start(uri, d->sha1, d->file_info->tth,
+				download_filesize(d), NULL, download_addr(d), download_port(d),
+				download_guid(d), proxies, cflags)
 		) {
 			/* Mark the fileinfo to avoid downloading the tigertree
 			 * data from more than one source at a time. */
