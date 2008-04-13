@@ -91,7 +91,7 @@ clist_ul_stats(void)
  * This is me, dreaming of gtk 2.0...
  */
 static gint
-ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
+ul_find_row_by_upload(const struct ul_stats *us)
 {
     GtkCList *clist = clist_ul_stats();
 	gint i;
@@ -100,20 +100,8 @@ ul_find_row_by_upload(const gchar *name, guint64 size, struct ul_stats **s)
 	 * blame gtk/glib, not me...
 	 */
 	for (i = 0; i < ul_rows; i++) {
-		gchar *filename;
-		struct ul_stats *us;
-
-		us = gtk_clist_get_row_data(clist, i);
-
-		if (us->size != size)
-			continue;
-
-		gtk_clist_get_text(clist, i, c_us_filename, &filename);
-
-		if (0 == strcmp(filename, name)) {
-			*s = us;
+		if (gtk_clist_get_row_data(clist, i) == us)
 			return i;
-		}
 	}
 	return -1;
 }
@@ -175,23 +163,21 @@ upload_stats_gui_update(const struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	gint row;
-	struct ul_stats *s;
 	static gchar tmpstr[16];
 
 	/* find this file in the clist_ul_stats */
-	row = ul_find_row_by_upload(us->filename, us->size, &s);
+	row = ul_find_row_by_upload(us);
 	if (-1 == row) {
 		g_assert_not_reached();
 		return;
 	}
 
 	/* set attempt cell contents */
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->attempts);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", us->attempts);
 	gtk_clist_set_text(clist, row, c_us_attempts, tmpstr);
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", s->complete);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", us->complete);
 	gtk_clist_set_text(clist, row, c_us_complete, tmpstr);
-	s->norm = 1.0 * s->bytes_sent / s->size;
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", s->norm);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", us->norm);
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
 
 	/* FIXME: use auto-sort? */
