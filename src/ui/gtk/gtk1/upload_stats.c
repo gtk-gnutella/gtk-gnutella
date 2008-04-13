@@ -71,11 +71,6 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/* Private variables */
-static gint ul_rows = 0;
-
-/* Private functions */
-
 static GtkCList *
 clist_ul_stats(void)
 {
@@ -87,23 +82,54 @@ clist_ul_stats(void)
 	return clist;
 }
 
-/**
- * This is me, dreaming of gtk 2.0...
- */
-static gint
-ul_find_row_by_upload(const struct ul_stats *us)
+static inline void
+ul_stats_set_user_data(struct ul_stats *us, void *user_data)
 {
-    GtkCList *clist = clist_ul_stats();
-	gint i;
+	us->user_data = user_data;
+}
 
-	/* go through the clist_ul_stats, looking for the file...
-	 * blame gtk/glib, not me...
-	 */
-	for (i = 0; i < ul_rows; i++) {
-		if (gtk_clist_get_row_data(clist, i) == us)
-			return i;
+static inline void *
+ul_stats_get_user_data(const struct ul_stats *us)
+{
+	return us->user_data;
+}
+
+static inline void
+ul_stats_set_row(struct ul_stats *us, int row)
+{
+	ul_stats_set_user_data(us, int_to_pointer(row));
+}
+
+static inline int
+ul_stats_get_row(const struct ul_stats *us)
+{
+	return pointer_to_int(ul_stats_get_user_data(us));
+}
+
+static void
+ul_stats_invalidate(struct ul_stats *us)
+{
+	ul_stats_set_row(us, -1);
+}
+
+static void
+on_clist_ul_stats_row_moved(int dst, void *user_data)
+{
+	struct ul_stats *us = user_data;
+	int src = ul_stats_get_row(us);
+
+	if (src != dst) {
+		ul_stats_set_row(us, dst);
 	}
-	return -1;
+}
+
+static void
+on_clist_ul_stats_row_removed(void *data)
+{
+	struct ul_stats *us = data;
+
+	ul_stats_invalidate(us);
+	clist_sync_rows(clist_ul_stats(), on_clist_ul_stats_row_moved);
 }
 
 /* Public functions */
@@ -121,7 +147,7 @@ upload_stats_gui_shutdown(void)
 }
 
 void
-upload_stats_gui_add(const struct ul_stats *us)
+upload_stats_gui_add(struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	const gchar *rowdata[5];
@@ -143,14 +169,16 @@ upload_stats_gui_add(const struct ul_stats *us)
 	rowdata[c_us_complete] = complete_tmp;
 	rowdata[c_us_norm] = norm_tmp;
 
-    row = gtk_clist_insert(clist, 0, deconstify_gpointer(rowdata));
-	ul_rows++;
+    row = gtk_clist_append(clist, deconstify_gpointer(rowdata));
+	g_return_if_fail(row >= 0);
 
-	gtk_clist_set_row_data_full(clist, row, deconstify_gpointer(us), NULL);
+	ul_stats_set_row(us, row);
+	gtk_clist_set_row_data_full(clist, row, us, on_clist_ul_stats_row_removed);
 
     /* FIXME: should use auto_sort? */
 	if (0 == clist->freeze_count) {
 		gtk_clist_sort(clist);
+		clist_sync_rows(clist, on_clist_ul_stats_row_moved);
 	}
 }
 
@@ -162,15 +190,12 @@ void
 upload_stats_gui_update(const struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
-	gint row;
 	static gchar tmpstr[16];
+	int row;
 
 	/* find this file in the clist_ul_stats */
-	row = ul_find_row_by_upload(us);
-	if (-1 == row) {
-		g_assert_not_reached();
-		return;
-	}
+	row = ul_stats_get_row(us);
+	g_return_if_fail(row >= 0);
 
 	/* set attempt cell contents */
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", us->attempts);
@@ -183,6 +208,7 @@ upload_stats_gui_update(const struct ul_stats *us)
 	/* FIXME: use auto-sort? */
 	if (0 == clist->freeze_count) {
 		gtk_clist_sort(clist);
+		clist_sync_rows(clist, on_clist_ul_stats_row_moved);
 	}
 }
 
@@ -190,7 +216,6 @@ void
 upload_stats_gui_clear_all(void)
 {
 	gtk_clist_clear(clist_ul_stats());
-	ul_rows = 0;
 }
 
 void
@@ -208,6 +233,7 @@ upload_stats_gui_thaw(void)
 	gtk_clist_thaw(clist);
 	if (0 == clist->freeze_count) {
 		gtk_clist_sort(clist);
+		clist_sync_rows(clist, on_clist_ul_stats_row_moved);
 	}
 }
 

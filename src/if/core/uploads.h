@@ -127,6 +127,7 @@ struct ul_stats {
 	guint32 complete;
 	guint64 bytes_sent;
 	gdouble norm;		/**< bytes sent / file size */
+	void *user_data;
 };
 
 /*

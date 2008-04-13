@@ -140,7 +140,7 @@ gcu_search_gui_new_search(const gchar *query, flag_t flags)
 
 /*	upload interface functions (CORE -> UI)*/
 void
-gcu_upload_stats_gui_add(const struct ul_stats *s)
+gcu_upload_stats_gui_add(struct ul_stats *s)
 {
 	if (!running_topless) {
 		upload_stats_gui_add(s);

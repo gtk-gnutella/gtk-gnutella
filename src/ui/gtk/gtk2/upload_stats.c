@@ -378,7 +378,7 @@ upload_stats_gui_init_intern(gboolean intern)
  *
  */
 void
-upload_stats_gui_add(const struct ul_stats *us)
+upload_stats_gui_add(struct ul_stats *us)
 {
 	struct upload_data *data;
     GtkListStore *store;
