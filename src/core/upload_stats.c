@@ -126,7 +126,7 @@ upload_stats_add(const gchar *filename,
 	s->size = size;
 	s->attempts = attempts;
 	s->complete = complete;
-	s->norm = size > 0 ? (gfloat) ul_bytes / (gfloat) size : 0;
+	s->norm = size > 0 ? 1.0 * ul_bytes / size : 0.0;
 	s->bytes_sent = ul_bytes;
 
 	if (!upload_stats_list) {
@@ -358,7 +358,7 @@ upload_stats_file_add(const gchar *name, filesize_t size,
 		upload_stats_add(name, size, 1, comp, sent);
 	} else {
 		s->bytes_sent += sent;
-		s->norm = (gfloat) s->bytes_sent / (gfloat) s->size;
+		s->norm = 1.0 * s->bytes_sent / s->size;
 		s->complete += comp;
 		gcu_upload_stats_gui_update(s);
 	}
