@@ -51,6 +51,12 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Define this macro to enable consistency checks for the row cache.
+ * This will affect performance negatively O(1) -> O(n).
+ */
+#undef FILEINFO_C_ROW_CACHE_REGRESSION
+
 static GtkCList *clist_download_files;
 static GtkCList *clist_download_sources;
 static GtkCList *clist_download_aliases;
@@ -85,7 +91,7 @@ get_fileinfo_data(int row)
 	g_assert(file);
 	g_assert(row == fileinfo_data_get_row(file));
 
-#if 1
+#ifdef FILEINFO_C_ROW_CACHE_REGRESSION
 	{
 		struct fileinfo_data *x;
 
@@ -95,7 +101,7 @@ get_fileinfo_data(int row)
 		x = gtk_clist_get_row_data(clist_download_files, row);
    		g_assert(x == file);
 	}
-#endif
+#endif	/* FILEINFO_C_ROW_CACHE_REGRESSION */
 
 	return file;
 }
@@ -255,7 +261,7 @@ get_source(int row)
 	d = g_hash_table_lookup(source_rows, int_to_pointer(row));
 	g_assert(pointer_to_int(g_hash_table_lookup(fi_sources, d)) == row);
 
-#if 1
+#ifdef FILEINFO_C_ROW_CACHE_REGRESSION
 	{
 		struct download *x;
 
@@ -265,7 +271,7 @@ get_source(int row)
 		x = gtk_clist_get_row_data(clist_download_sources, row);
    		g_assert(x == d);
 	}
-#endif
+#endif	/* FILEINFO_C_ROW_CACHE_REGRESSION */
 
 	download_check(d);
 	return d;
