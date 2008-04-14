@@ -193,7 +193,8 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	fi_gui_append_detail(_("Filename"), file->filename);
 	fi_gui_append_detail(_("Size"), nice_size(file->size, show_metric_units()));
 	fi_gui_append_detail(_("Created"), timestamp_to_string(file->created));
-	fi_gui_append_detail(_("Modified"), timestamp_to_string(file->modified));
+	fi_gui_append_detail(_("Modified"),
+		file->modified ? timestamp_to_string(file->modified) : "-");
 
 	fi_gui_append_detail(_("SHA-1"),
 		info->sha1
