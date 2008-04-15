@@ -6961,9 +6961,14 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		return;
 
 	uri_start = header_get(header, "X-Thex-URI");
-	if (NULL == uri_start || '/' != uri_start[0]) {
-		g_message("X-Thex-URI header has no valid URI (%s)",
-			download_host_info(d));
+	if (NULL == uri_start)
+		return;
+	
+	if ('/' != uri_start[0]) {
+		if (GNET_PROPERTY(tigertree_debug)) {
+			g_message("X-Thex-URI header has no valid URI (%s): \"%s\"",
+				download_host_info(d), uri_start);
+		}
 		return;
 	}
 
