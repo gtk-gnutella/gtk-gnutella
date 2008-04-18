@@ -148,7 +148,7 @@ gcu_upload_stats_gui_add(struct ul_stats *s)
 }
 
 void
-gcu_upload_stats_gui_update(const struct ul_stats *s)
+gcu_upload_stats_gui_update(struct ul_stats *s)
 {
 	if (!running_topless) {
 		upload_stats_gui_update(s);

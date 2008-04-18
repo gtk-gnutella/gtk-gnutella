@@ -66,6 +66,7 @@ RCSID("$Id$")
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
+#include "if/ui/gtk/upload_stats.h"
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
@@ -432,7 +433,7 @@ upload_stats_gui_thaw(void)
  *
  */
 void
-upload_stats_gui_update(const struct ul_stats *us)
+upload_stats_gui_update(struct ul_stats *us)
 {
 	GtkListStore *store;
 	struct upload_data *data;

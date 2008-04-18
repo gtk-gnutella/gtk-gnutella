@@ -61,6 +61,8 @@ RCSID("$Id$")
 
 #include "gtk/gui.h"
 
+#include "if/ui/gtk/upload_stats.h"
+
 #include "gtk/columns.h"
 #include "gtk/misc.h"
 #include "gtk/settings.h"
@@ -187,7 +189,7 @@ upload_stats_gui_add(struct ul_stats *us)
  * Called when a row of the upload stats should be updated
  */
 void
-upload_stats_gui_update(const struct ul_stats *us)
+upload_stats_gui_update(struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
 	static gchar tmpstr[16];
