@@ -551,8 +551,8 @@
 72.36.210.200/29
 72.36.216.48/29
 72.36.217.176/29
-75.126.77.28/30
-75.126.78.240/30
+#75.126.77.28/30
+#75.126.78.240/30
 194.126.193.8/30
 207.150.184.52/31
 207.150.184.36/31
@@ -1203,11 +1203,12 @@
 # giFT; dmsws dot com; CodeZone inc.; Jean Lajoie (probably fake);
 # generated PDFs containing a pseudo chat log with URLs that link
 # to Azoogle spam ads
-75.126.23.184/29
+#75.126.23.184/29
 
 # LimeWire; zipped ASF; points to seonomad dot com which is registered
 # to Daniel Boyd; http://www.linkedin.com/in/dboyd
 75.125.12.112/28
+#74.55.29.150
 
 # FDCservers.net range assigned to:
 # Guru Bilisim Hizmetleri
@@ -1230,4 +1231,6 @@
 74.52.0.0/14
 # Peer 1 Network Inc.; same as above applies
 76.74.128.0/17
+# SoftLayer Technologies Inc.; see above
+75.126.0.0/16
 
