@@ -1234,3 +1234,6 @@
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
 
+# Thousands of RARs containing Adware/Trojans; FrostWire
+66.187.104.6
+
