@@ -4445,6 +4445,8 @@ list_clone_shift(fileinfo_t *fi)
 
 	{
 		const struct dl_file_chunk *fc;
+		const GSList *iter;
+		filesize_t last_chunk_offset;
 
 		/*
 		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
@@ -4463,19 +4465,30 @@ list_clone_shift(fileinfo_t *fi)
 			return fi->chunklist;
 
 		/*
-		 * Check whether the last chunk is at least "pfsp_first_chunk" bytes
-		 * long.  If not, force the offset, changing its default value of "0"
-		 * to something that will guarantee we will download the tail bytes
-		 * from the remote party, if available.
+		 * Scan for the first gap within the last "pfsp_first_chunk" bytes
+		 * and set "offset" to the start of it, to download the trailing chunk
+		 * if available.
 		 */
 
-		fc = g_slist_last(fi->chunklist)->data;	/* Last chunk */
+		last_chunk_offset = fi->size > GNET_PROPERTY(pfsp_first_chunk)
+			? fi->size - GNET_PROPERTY(pfsp_first_chunk)
+			: 0;
 
-		if (
-			DL_CHUNK_DONE != fc->status ||
-			fc->from > fi->size - GNET_PROPERTY(pfsp_first_chunk)
-		)
-			offset = fi->size - GNET_PROPERTY(pfsp_first_chunk);
+		for (iter = fi->chunklist; NULL != iter; iter = g_slist_next(iter)) {
+			fc = iter->data;
+			dl_file_chunk_check(fc);
+
+			if (DL_CHUNK_DONE == fc->status)
+				continue;
+
+			if (fc->from < last_chunk_offset && fc->to <= last_chunk_offset)
+				continue;
+
+			offset = fc->from < last_chunk_offset
+				? last_chunk_offset
+				: fc->from;
+			break;
+		}
 	}
 
 	/*
