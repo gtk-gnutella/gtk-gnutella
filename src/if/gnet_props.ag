@@ -3605,4 +3605,31 @@ prop = {
     };
 };
 
+prop = {
+    name = "pfsp_last_chunk";
+    desc = "When partial file sharing (PFSP) is enabled, gtk-gnutella will "
+			"strive to download chunks in a random order, to maximize the "
+			"spreading of the file in the network.  However, this may make "
+			"pre-viewing of the file impossible as some file formats make "
+			"use of a trailer to hold meta-information or seeking indices. "
+			"GTKG will attempt to download the specified amount of data at "
+			"the tail of the file as soon as possible.  Set it to 0 to "
+			"disable any tail-downloading preference.";
+    type = guint32;
+    data = {
+        default = 524288; /* 512 KiB */
+    };
+};
+
+prop = {
+    name = "beautify_filenames";
+    desc = "Whether GTKG should post-process filenames to remove consecutive "
+		"'_' in the name, or extra '_' surrounding punctuation for instance, "
+		"to make the name prettier.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

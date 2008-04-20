@@ -360,6 +360,8 @@ extern const guint32  gnet_property_variable_g2_cache_max_time;
 extern const guint32  gnet_property_variable_g2_debug;
 extern const gboolean gnet_property_variable_dl_resource_switching;
 extern const gboolean gnet_property_variable_parq_enabled;
+extern const guint32  gnet_property_variable_pfsp_last_chunk;
+extern const gboolean gnet_property_variable_beautify_filenames;
 
 
 prop_set_t *gnet_prop_init(void);

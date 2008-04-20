@@ -698,6 +698,10 @@ gboolean gnet_property_variable_dl_resource_switching     = TRUE;
 static const gboolean gnet_property_variable_dl_resource_switching_default = TRUE;
 gboolean gnet_property_variable_parq_enabled     = TRUE;
 static const gboolean gnet_property_variable_parq_enabled_default = TRUE;
+guint32  gnet_property_variable_pfsp_last_chunk     = 524288;
+static const guint32  gnet_property_variable_pfsp_last_chunk_default = 524288;
+gboolean gnet_property_variable_beautify_filenames     = TRUE;
+static const gboolean gnet_property_variable_beautify_filenames_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6683,6 +6687,43 @@ gnet_prop_init(void) {
     gnet_property->props[313].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[313].data.boolean.def   = (void *) &gnet_property_variable_parq_enabled_default;
     gnet_property->props[313].data.boolean.value = (void *) &gnet_property_variable_parq_enabled;
+
+
+    /*
+     * PROP_PFSP_LAST_CHUNK:
+     *
+     * General data:
+     */
+    gnet_property->props[314].name = "pfsp_last_chunk";
+    gnet_property->props[314].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this may make pre-viewing of the file impossible as some file formats make use of a trailer to hold meta-information or seeking indices. GTKG will attempt to download the specified amount of data at the tail of the file as soon as possible.  Set it to 0 to disable any tail-downloading preference.");
+    gnet_property->props[314].ev_changed = event_new("pfsp_last_chunk_changed");
+    gnet_property->props[314].save = TRUE;
+    gnet_property->props[314].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[314].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[314].data.guint32.def   = (void *) &gnet_property_variable_pfsp_last_chunk_default;
+    gnet_property->props[314].data.guint32.value = (void *) &gnet_property_variable_pfsp_last_chunk;
+    gnet_property->props[314].data.guint32.choices = NULL;
+    gnet_property->props[314].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[314].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_BEAUTIFY_FILENAMES:
+     *
+     * General data:
+     */
+    gnet_property->props[315].name = "beautify_filenames";
+    gnet_property->props[315].desc = _("Whether GTKG should post-process filenames to remove consecutive '_' in the name, or extra '_' surrounding punctuation for instance, to make the name prettier.");
+    gnet_property->props[315].ev_changed = event_new("beautify_filenames_changed");
+    gnet_property->props[315].save = TRUE;
+    gnet_property->props[315].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[315].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[315].data.boolean.def   = (void *) &gnet_property_variable_beautify_filenames_default;
+    gnet_property->props[315].data.boolean.value = (void *) &gnet_property_variable_beautify_filenames;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
