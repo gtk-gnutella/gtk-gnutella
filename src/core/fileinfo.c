@@ -4443,7 +4443,7 @@ list_clone_shift(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	{
+	if (GNET_PROPERTY(pfsp_first_chunk) > 0) {
 		const struct dl_file_chunk *fc;
 		const GSList *iter;
 		filesize_t last_chunk_offset;
