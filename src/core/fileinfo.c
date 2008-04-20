@@ -4423,14 +4423,19 @@ get_random_offset(const filesize_t size)
 
 /**
  * Clone fileinfo's chunk list, shifting the origin of the list to a randomly
- * selected offset within the file.  If the first chunk is not completed
- * or not at least `pfsp_first_chunk' bytes long, the original list is
- * returned.
+ * selected offset within the file.
+ *
+ * If the first chunk is not completed or not at least "pfsp_first_chunk" bytes
+ * long, the original list is returned.
+ *
+ * We also strive to get the latest "pfsp_first_chunk" bytes of the file as
+ * well, since some file formats store important information at the tail of
+ * the file as well, so we put the latest chunks at the head of the list.
  */
 static GSList *
 list_clone_shift(fileinfo_t *fi)
 {
-	filesize_t offset;
+	filesize_t offset = 0;
 	GSList *clone;
 	GSList *sl;
 	GSList *tail;
@@ -4440,6 +4445,13 @@ list_clone_shift(fileinfo_t *fi)
 
 	{
 		const struct dl_file_chunk *fc;
+
+		/*
+		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
+		 * long.  If not, return original chunk list so that we select
+		 * the first chunk (if available remotely, naturally, but that will
+		 * be checked later by our caller).
+		 */
 		
 		fc = fi->chunklist->data;		/* First chunk */
 		dl_file_chunk_check(fc);
@@ -4449,10 +4461,31 @@ list_clone_shift(fileinfo_t *fi)
 			fc->to < GNET_PROPERTY(pfsp_first_chunk)
 		)
 			return fi->chunklist;
+
+		/*
+		 * Check whether the last chunk is at least "pfsp_first_chunk" bytes
+		 * long.  If not, force the offset, changing its default value of "0"
+		 * to something that will guarantee we will download the tail bytes
+		 * from the remote party, if available.
+		 */
+
+		fc = g_slist_last(fi->chunklist)->data;	/* Last chunk */
+
+		if (
+			DL_CHUNK_DONE != fc->status ||
+			fc->from > fi->size - GNET_PROPERTY(pfsp_first_chunk)
+		)
+			offset = fi->size - GNET_PROPERTY(pfsp_first_chunk);
 	}
 
-	offset = get_random_offset(fi->size);
-	
+	/*
+	 * Only choose a random offset if the default value of "0" was not
+	 * forced to something else above.
+	 */
+
+	if (0 == offset)
+		offset = get_random_offset(fi->size);
+
 	/*
 	 * First pass: clone the list starting at the first chunk whose start is
 	 * after the offset.
