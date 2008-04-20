@@ -1821,9 +1821,12 @@ search_gui_set_search_list_color(const struct search *search, int row)
 	GdkColor *fg, *bg;
 
 	style = gtk_widget_get_style(GTK_WIDGET(clist_search()));
-	if (search_gui_is_enabled(search)) {
+	if (search->unseen_items > 0) {
 		fg = &style->fg[GTK_STATE_ACTIVE];
 		bg = &style->bg[GTK_STATE_ACTIVE];
+	} else if (search_gui_is_enabled(search)) {
+		fg = NULL;
+		bg = NULL;
 	} else {
 		fg = &style->fg[GTK_STATE_INSENSITIVE];
 		bg = &style->bg[GTK_STATE_INSENSITIVE];
