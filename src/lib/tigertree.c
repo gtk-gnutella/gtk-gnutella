@@ -88,7 +88,8 @@ RCSID("$Id$")
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 
-/* size of input to each non-leaf hash-tree node, not counting node 0x01 prefix */
+/* size of input to each non-leaf hash-tree node, not counting the node
+ * 0x01 prefix */
 #define TTH_NODESIZE	(TIGERSIZE * 2)
 
 /* default size of interim values stack, in TIGERSIZE
@@ -122,6 +123,23 @@ filesize_t
 tt_block_count(filesize_t filesize)
 {
 	return (filesize / TTH_BLOCKSIZE) + ((filesize % TTH_BLOCKSIZE) ? 1 : 0);
+}
+
+/**
+ * Compute the depth of a tree given the number of leaf blocks.
+ */
+unsigned
+tt_depth(size_t leaves)
+{
+	unsigned depth = 0;
+	size_t n = leaves;
+
+	while (n > 1) {
+		n = (n + 1) / 2;
+		depth++;
+	}
+
+	return depth;
 }
 
 unsigned
