@@ -700,8 +700,8 @@ gboolean gnet_property_variable_parq_enabled     = TRUE;
 static const gboolean gnet_property_variable_parq_enabled_default = TRUE;
 guint32  gnet_property_variable_pfsp_last_chunk     = 524288;
 static const guint32  gnet_property_variable_pfsp_last_chunk_default = 524288;
-gboolean gnet_property_variable_beautify_filenames     = TRUE;
-static const gboolean gnet_property_variable_beautify_filenames_default = TRUE;
+gboolean gnet_property_variable_beautify_filenames     = FALSE;
+static const gboolean gnet_property_variable_beautify_filenames_default = FALSE;
 
 static prop_set_t *gnet_property;
 

@@ -3628,7 +3628,7 @@ prop = {
 		"to make the name prettier.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
