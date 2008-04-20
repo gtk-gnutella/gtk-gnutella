@@ -624,7 +624,7 @@ gm_sanitize_filename(const gchar *filename,
 				|| is_ascii_cntrl(c)
 				|| G_DIR_SEPARATOR == c
 				|| '/' == c 
-				|| (0 == i && '.' == c)
+				|| (0 == i && ('.' == c || '-' == c))
 				|| (no_spaces && is_ascii_space(c))
 				|| (no_evil && NULL != strchr(evil, c))
 		   ) {
@@ -635,6 +635,7 @@ gm_sanitize_filename(const gchar *filename,
 		}
 	}
 
+#if 0
 	/*
 	 * Strip any leading "-" as it may cause problems when using shell commands,
 	 * since "-" introduces options usually and it's not always possible to
@@ -701,6 +702,7 @@ gm_sanitize_filename(const gchar *filename,
 			q = g_strdup("{empty}");
 		}
 	}
+#endif	/* disabled */
 
 	return q ? q : deconstify_gchar(s);
 }
