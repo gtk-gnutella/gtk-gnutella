@@ -597,6 +597,7 @@ gm_sanitize_filename(const gchar *filename,
 {
 	const gchar *s;
 	gchar *q;
+	size_t len = 0;
 
 	g_assert(filename);
 
@@ -616,7 +617,8 @@ gm_sanitize_filename(const gchar *filename,
 		size_t i;
 		guchar c;
 		
-		for (i = 0; '\0' != (c = s[i]); ++i) {
+		for (i = 0; '\0' != (c = s[i]); i++) {
+			len++;
 			if (
 				c < 32
 				|| is_ascii_cntrl(c)
@@ -630,6 +632,73 @@ gm_sanitize_filename(const gchar *filename,
 					q = g_strdup(s);
 				q[i] = '_';
 			}
+		}
+	}
+
+	/*
+	 * Strip any leading "-" as it may cause problems when using shell commands,
+	 * since "-" introduces options usually and it's not always possible to
+	 * say "./" in front of a filename when using shell globs.
+	 */
+
+	if ('-' == s[0]) {
+		if (!q)
+			q = g_strdup(s);
+
+		g_assert('-' == q[0]);
+
+		/* Let the loop below handle it... */
+	}
+
+	/*
+	 * If we sanitized the string, remove consecutive "_" in the filename
+	 * and strip all leading "_" as well as any "_" that precedes or
+	 * follows a punctuation char.
+	 *
+	 * Also remove any leading "-" or "." in the filenames.
+	 *
+	 * Finally, ensure the filename is not completely empty, as this is
+	 * awkward to manipulate from a shell.
+	 */
+
+	if (q) {
+		gboolean modified = TRUE;
+
+		while (modified) {
+			static const gchar punct[] = "_-+=.,<>{}[]";	/* 1st MUST be _ */
+			static const gchar strip[] = "_-.";
+			size_t i;
+			guchar c;
+
+			modified = FALSE;
+
+			for (i = 0; '\0' != (c = q[i]); i++) {
+				g_assert(i < len);
+				if (c == '_' && i + 1 < len && NULL != strchr(punct, q[i+1])) {
+					/* A "_" followed by a punctuation character, srip it */
+					memmove(&q[i], &q[i+1], len-- - i);
+					modified = TRUE;
+					i--;		/* Stay at same position since we look ahead */
+				} else if (
+					NULL != strchr(&punct[1], c) && i+1 < len && q[i+1] == '_'
+				) {
+					/* A punctuation character followed by "_", strip the "_" */
+					memmove(&q[i+1], &q[i+2], len-- - i - 1);
+					modified = TRUE;
+					i--;		/* Stay at same position since we look ahead */
+				}
+			}
+
+			while (q[0] && NULL != strchr(strip, q[0])) {
+				g_assert(len);
+				memmove(q, &q[1], len--);		/* Accounts for final NUL */
+				modified = TRUE;
+			}
+		}
+
+		if ('\0' ==  q[0]) {
+			g_free(q);
+			q = g_strdup("{empty}");
 		}
 	}
 
