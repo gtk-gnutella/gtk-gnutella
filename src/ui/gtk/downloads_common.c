@@ -210,8 +210,9 @@ fi_gui_set_details(const struct fileinfo_data *file)
 		char buf[1024];
 
 		gm_snprintf(buf, sizeof buf,
-			_("%lu leaf hashes providing a granularity of %s"),
+			_("%lu leaf hashes (depth = %u) providing a granularity of %s"),
 			(unsigned long) info->tth_num_leaves,
+			info->tth_depth,
 			nice_size(info->tth_slice_size, show_metric_units()));
    		fi_gui_append_detail(_("Tigertree"), buf);
 	} else {

@@ -69,6 +69,7 @@ typedef struct gnet_fi_info {
 	GSList *aliases;			/**< List of aliases (NULL if none) */
 	filesize_t  size;
 	filesize_t	tth_slice_size;
+	unsigned int tth_depth;
 	size_t 		tth_num_leaves;
 	time_t		created;
 } gnet_fi_info_t;

@@ -5434,6 +5434,7 @@ fi_get_info(gnet_fi_t fih)
 	info->tth_slice_size = fi->tigertree.slice_size;
 	info->tth_num_leaves = fi->tigertree.num_leaves;
 	info->created		 = fi->created;
+	info->tth_depth      = tt_depth(fi->tigertree.num_leaves);
 
 	if (fi->alias) {
 		GSList *sl;
