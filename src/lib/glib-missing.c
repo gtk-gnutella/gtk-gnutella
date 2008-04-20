@@ -597,7 +597,6 @@ gm_sanitize_filename(const gchar *filename,
 {
 	const gchar *s;
 	gchar *q;
-	size_t len = 0;
 
 	g_assert(filename);
 
@@ -618,7 +617,6 @@ gm_sanitize_filename(const gchar *filename,
 		guchar c;
 		
 		for (i = 0; '\0' != (c = s[i]); i++) {
-			len++;
 			if (
 				c < 32
 				|| is_ascii_cntrl(c)
@@ -664,6 +662,7 @@ gm_sanitize_filename(const gchar *filename,
 
 	if (q) {
 		gboolean modified = TRUE;
+		size_t len = strlen(q);
 
 		while (modified) {
 			static const gchar punct[] = "_-+=.,<>{}[]";	/* 1st MUST be _ */
