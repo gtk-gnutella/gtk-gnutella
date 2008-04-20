@@ -725,6 +725,7 @@ fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
 void
 fi_gui_files_freeze(void)
 {
+	gtk_clist_freeze(clist_download_details);
 	gtk_clist_freeze(clist_download_files);
 	gtk_clist_freeze(clist_download_sources);
 }
@@ -732,6 +733,7 @@ fi_gui_files_freeze(void)
 void
 fi_gui_files_thaw(void)
 {
+	gtk_clist_thaw(clist_download_details);
 	gtk_clist_thaw(clist_download_files);
 	gtk_clist_thaw(clist_download_sources);
 }

@@ -852,6 +852,7 @@ void
 fi_gui_files_freeze(void)
 {
 
+	g_object_freeze_notify(G_OBJECT(treeview_download_details));
 	g_object_freeze_notify(G_OBJECT(treeview_download_files));
 	g_object_freeze_notify(G_OBJECT(treeview_download_sources));
 	g_object_freeze_notify(G_OBJECT(store_files));
@@ -867,6 +868,7 @@ fi_gui_files_thaw(void)
 
 	g_object_thaw_notify(G_OBJECT(store_files));
 	g_object_thaw_notify(G_OBJECT(store_sources));
+	g_object_thaw_notify(G_OBJECT(treeview_download_details));
 	g_object_thaw_notify(G_OBJECT(treeview_download_files));
 	g_object_thaw_notify(G_OBJECT(treeview_download_sources));
 }
