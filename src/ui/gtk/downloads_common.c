@@ -210,7 +210,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 		char buf[1024];
 
 		gm_snprintf(buf, sizeof buf,
-			_("%lu leaf hashes (depth = %u) providing a granularity of %s"),
+			_("leaf hashes: %lu depth: %u granularity: %s"),
 			(unsigned long) info->tth_num_leaves,
 			info->tth_depth,
 			nice_size(info->tth_slice_size, show_metric_units()));
