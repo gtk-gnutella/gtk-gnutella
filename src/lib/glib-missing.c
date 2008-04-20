@@ -694,17 +694,13 @@ gm_beautify_filename(const gchar *filename)
 		q[j++] = c;
 	}
 
-	g_assert(j <= len + 1);
+	g_assert(j <= len);
 	q[j] = '\0';
 
 	/* Ensure we have no empty name */
 	if (j == 0) {
-		if (len < sizeof empty)
-			q = g_realloc(q, sizeof empty);
-		j = sizeof(empty) - 1;
-		strncpy(q, empty, j);
-
-		return q;
+		G_FREE_NULL(q);
+		return g_strdup(empty);
 	}
 
 	/*
@@ -714,7 +710,7 @@ gm_beautify_filename(const gchar *filename)
 	 * string "{empty}." to it.
 	 */
 
-	if (NULL == strchr(q, '.') && j < len + 1 && '.' == filename[len - j]) {
+	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
 		gchar *r = g_strconcat(empty, ".", q, (void *) 0);
 		g_free(q);
 
