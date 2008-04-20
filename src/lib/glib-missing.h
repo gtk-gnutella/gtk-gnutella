@@ -89,6 +89,7 @@ const gchar *gm_getproctitle(void);
 void gm_setproctitle(const gchar *title);
 gchar *gm_sanitize_filename(const gchar *filename,
 	gboolean no_spaces, gboolean no_evil);
+gchar *gm_beautify_filename(const gchar *filename);
 
 static inline void
 gm_hash_table_insert_const(GHashTable *ht,

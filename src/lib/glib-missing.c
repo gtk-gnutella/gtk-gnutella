@@ -633,77 +633,95 @@ gm_sanitize_filename(const gchar *filename,
 		}
 	}
 
-#if 0
-	/*
-	 * Strip any leading "-" as it may cause problems when using shell commands,
-	 * since "-" introduces options usually and it's not always possible to
-	 * say "./" in front of a filename when using shell globs.
-	 */
-
-	if ('-' == s[0]) {
-		if (!q)
-			q = g_strdup(s);
-
-		g_assert('-' == q[0]);
-
-		/* Let the loop below handle it... */
-	}
-
-	/*
-	 * If we sanitized the string, remove consecutive "_" in the filename
-	 * and strip all leading "_" as well as any "_" that precedes or
-	 * follows a punctuation char.
-	 *
-	 * Also remove any leading "-" or "." in the filenames.
-	 *
-	 * Finally, ensure the filename is not completely empty, as this is
-	 * awkward to manipulate from a shell.
-	 */
-
-	if (q) {
-		gboolean modified = TRUE;
-		size_t len = strlen(q);
-
-		while (modified) {
-			static const gchar punct[] = "_-+=.,<>{}[]";	/* 1st MUST be _ */
-			static const gchar strip[] = "_-.";
-			size_t i;
-			guchar c;
-
-			modified = FALSE;
-
-			for (i = 0; '\0' != (c = q[i]); i++) {
-				g_assert(i < len);
-				if (c == '_' && i + 1 < len && NULL != strchr(punct, q[i+1])) {
-					/* A "_" followed by a punctuation character, srip it */
-					memmove(&q[i], &q[i+1], len-- - i);
-					modified = TRUE;
-					i--;		/* Stay at same position since we look ahead */
-				} else if (
-					NULL != strchr(&punct[1], c) && i+1 < len && q[i+1] == '_'
-				) {
-					/* A punctuation character followed by "_", strip the "_" */
-					memmove(&q[i+1], &q[i+2], len-- - i - 1);
-					modified = TRUE;
-					i--;		/* Stay at same position since we look ahead */
-				}
-			}
-
-			while (q[0] && NULL != strchr(strip, q[0])) {
-				g_assert(len);
-				memmove(q, &q[1], len--);		/* Accounts for final NUL */
-				modified = TRUE;
-			}
-		}
-
-		if ('\0' ==  q[0]) {
-			g_free(q);
-			q = g_strdup("{empty}");
-		}
-	}
-#endif	/* disabled */
-
 	return q ? q : deconstify_gchar(s);
+}
+
+/**
+ * Make filename prettier, by removing leading "_", making sure the filename
+ * does not start with "-" or ".", and stripping consecutive "_" or "_" that
+ * surround a punctuation character.
+ *
+ * Finally, ensure the filename is not completely empty, as this is
+ * awkward to manipulate from a shell.
+ *
+ * @param filename	the filename to beautify
+ *
+ * @returns a newly allocated string holding the beautified filename, even if
+ * it is a mere copy of the original.
+ */
+gchar *
+gm_beautify_filename(const gchar *filename)
+{
+	const gchar *s;
+	gchar *q;
+	guchar c;
+	size_t len;
+	size_t j = 0;
+	static const gchar punct[] = "_-+=.,<>{}[]";	/* 1st MUST be '_' */
+	static const gchar strip[] = "_-.";
+	static const gchar empty[] = "{empty}";
+
+	g_assert(filename);
+
+	s = filename;
+	len = strlen(filename);
+	q = g_malloc(len + 1);		/* Trailing NUL */
+
+	while ((c = *s++)) {
+		guchar d;
+
+		/* Beautified filename cannot start with stripped characters */
+		if (j == 0) {
+			if (NULL == strchr(strip, c))
+				q[j++] = c;
+			continue;
+		}
+
+		g_assert(j > 0);
+
+		d = q[j - 1];		/* Last char we've kept in beautified name */
+
+		/* A "_" followed by a punctuation character, strip the "_" */
+		if (d == '_' && NULL != strchr(punct, c)) {
+			q[j - 1] = c;
+			continue;
+		}
+
+		/* A punctuation character followed by "_", ignore that "_" */
+		if (NULL != strchr(&punct[1], d) && c == '_')
+			continue;
+
+		q[j++] = c;
+	}
+
+	g_assert(j <= len + 1);
+	q[j] = '\0';
+
+	/* Ensure we have no empty name */
+	if (j == 0) {
+		if (len < sizeof empty)
+			q = g_realloc(q, sizeof empty);
+		j = sizeof(empty) - 1;
+		strncpy(q, empty, j);
+
+		return q;
+	}
+
+	/*
+	 * If there was an extension following stripped chars (e.g. "_.ext"),
+	 * then the filename kept will become "ext" (we assume a valid extension
+	 * cannot contain "escaped" chars).  In which case we will prepend the
+	 * string "{empty}." to it.
+	 */
+
+	if (NULL == strchr(q, '.') && j < len + 1 && '.' == filename[len - j]) {
+		gchar *r = g_strconcat(empty, ".", q, (void *) 0);
+		g_free(q);
+
+		return r;
+	}
+
+	return q;
 }
 
 /**
