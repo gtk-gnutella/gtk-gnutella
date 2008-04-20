@@ -138,6 +138,12 @@ on_clist_ul_stats_row_removed(void *data)
 void
 upload_stats_gui_init(void)
 {
+	enum c_us i;
+
+	for (i = 0; i < c_us_num; i++) {
+		gtk_clist_set_column_justification(clist_ul_stats(), i,
+			c_us_filename == i ? GTK_JUSTIFY_LEFT : GTK_JUSTIFY_RIGHT);
+	}
 	clist_restore_widths(clist_ul_stats(), PROP_UL_STATS_COL_WIDTHS);
     gtk_clist_set_compare_func(clist_ul_stats(), compare_ul_norm);
 }
