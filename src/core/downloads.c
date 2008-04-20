@@ -4683,16 +4683,19 @@ create_download(
 	{
 		const gchar *orig_name;
 		gchar *s;
+		gchar *b;
 		
 		orig_name = file_name;
-		s = gm_sanitize_filename(orig_name, FALSE, FALSE);
+		b = s = gm_sanitize_filename(orig_name, FALSE, FALSE);
+
+		if (GNET_PROPERTY(beautify_filenames))
+			b = gm_beautify_filename(s);
 
 		/* An empty filename would create a corrupt download entry */
-    	file_name = atom_str_get('\0' != s[0] ? s : "noname");
+    	file_name = atom_str_get('\0' != b[0] ? b : "noname");
 
-		if (orig_name != s) {
-			G_FREE_NULL(s);
-		}
+		if (b != s)			G_FREE_NULL(b);
+		if (orig_name != s) G_FREE_NULL(s);
 	}
 
 	/*

@@ -3145,11 +3145,16 @@ file_info_retrieve(void)
 		case FI_TAG_NAME:
 			if (GNET_PROPERTY(convert_old_filenames)) {
 				gchar *s;
+				gchar *b;
 
-				s = gm_sanitize_filename(value,
+				b = s = gm_sanitize_filename(value,
 						GNET_PROPERTY(convert_spaces),
 						GNET_PROPERTY(convert_evil_chars));
-				filename = atom_str_get(s);
+
+				if (GNET_PROPERTY(beautify_filenames))
+					b = gm_beautify_filename(s);
+
+				filename = atom_str_get(b);
 				if (s != value) {
 
 					if (0 != strcmp(s, value)) {
@@ -3164,9 +3169,10 @@ file_info_retrieve(void)
 
 						old_filename = atom_str_get(value);
 					}
-
-					G_FREE_NULL(s);
 				}
+
+				if (b != s)		G_FREE_NULL(b);
+				if (value != s) G_FREE_NULL(s);
 			} else {
 				filename = atom_str_get(value);
 			}
@@ -3188,8 +3194,12 @@ file_info_retrieve(void)
 					NULL_STRING(fi->pathname));
 			} else {
 				gchar *s;
+				gchar *b;
 
-				s = gm_sanitize_filename(value, FALSE, FALSE);
+				b = s = gm_sanitize_filename(value, FALSE, FALSE);
+
+				if (GNET_PROPERTY(beautify_filenames))
+					b = gm_beautify_filename(s);
 
 				/* The alias is only temporarily added to fi->alias, the list
 				 * of aliases has to be re-constructed with fi_alias()
@@ -3199,14 +3209,15 @@ file_info_retrieve(void)
 				 * The list should be reversed once it's complete.
 				 */
 				fi->alias = g_slist_prepend(fi->alias,
-								deconstify_gchar(atom_str_get(s)));
+								deconstify_gchar(atom_str_get(b)));
 				if (s != value) {
 					if (strcmp(s, value)) {
 						g_warning("fileinfo database contained an "
 							"unsanitized alias: \"%s\" -> \"%s\"", value, s);
 					}
-					G_FREE_NULL(s);
 				}
+				if (b != s)		G_FREE_NULL(b);
+				if (s != value)	G_FREE_NULL(s);
 			}
 			break;
 		case FI_TAG_GENR:
@@ -3382,35 +3393,37 @@ file_info_unique_filename(const gchar *path, const gchar *file,
 static const gchar *
 file_info_new_outname(const gchar *dir, const gchar *name)
 {
-	gchar *uniq, *to_free = NULL;
+	gchar *uniq = NULL;
+	const gchar *filename = name;
+	gchar *b;
+	gchar *s;
 
 	g_assert(dir);
 	g_assert(name);
 	g_assert(is_absolute_path(dir));
 
-	{
-		gchar *s;
+	b = s = gm_sanitize_filename(name,
+			GNET_PROPERTY(convert_spaces),
+			GNET_PROPERTY(convert_evil_chars));
 
-		s = gm_sanitize_filename(name,
-				GNET_PROPERTY(convert_spaces),
-				GNET_PROPERTY(convert_evil_chars));
-		if (name != s) {
-			to_free = s;
-			name = s;
-		}
-	}
+	if (name != s)
+		filename = s;
 
-	if ('\0' == name[0]) {
+	if (GNET_PROPERTY(beautify_filenames))
+		filename = b = gm_beautify_filename(s);
+
+	if ('\0' == filename[0]) {
 		/* Don't allow empty names */
-		name = "noname";
+		filename = "noname";
 	}
 
 	/*
-	 * If `name' (sanitized form) is not taken yet, it will do.
+	 * If `filename' (sanitized form) is not taken yet, it will do.
 	 */
 
-	uniq = file_info_unique_filename(dir, name, "");
-	G_FREE_NULL(to_free);
+	uniq = file_info_unique_filename(dir, filename, "");
+	if (b != s)		G_FREE_NULL(b);
+	if (name != s)	G_FREE_NULL(s);
 
 	if (uniq) {
 		const gchar *pathname;
