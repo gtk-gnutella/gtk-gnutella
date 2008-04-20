@@ -569,6 +569,8 @@ create_main_window (void)
   GtkWidget *image_shav;
   GtkWidget *eventbox_image_tth;
   GtkWidget *image_tth;
+  GtkWidget *eventbox_image_tthv;
+  GtkWidget *image_tthv;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
   GtkWidget *eventbox_image_firewall;
@@ -5320,6 +5322,23 @@ create_main_window (void)
   gtk_widget_show (image_tth);
   gtk_container_add (GTK_CONTAINER (eventbox_image_tth), image_tth);
   gtk_misc_set_padding (GTK_MISC (image_tth), 1, 0);
+
+  eventbox_image_tthv = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_tthv, "eventbox_image_tthv");
+  gtk_widget_ref (eventbox_image_tthv);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_tthv", eventbox_image_tthv,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_tthv);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_tthv, TRUE, TRUE, 0);
+
+  image_tthv = create_pixmap (main_window, "booktthv.xpm");
+  gtk_widget_set_name (image_tthv, "image_tthv");
+  gtk_widget_ref (image_tthv);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_tthv", image_tthv,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_tthv);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_tthv), image_tthv);
+  gtk_misc_set_padding (GTK_MISC (image_tthv), 1, 0);
 
   eventbox_image_lib = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
