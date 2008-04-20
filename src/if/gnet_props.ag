@@ -3439,6 +3439,17 @@ prop = {
 };
 
 prop = {
+    name = "tth_verifying";
+    desc = "Whether gtk-gnutella is currently verifying the TTH of downloaded "
+           "files in the background.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "search_max_results";
     desc = "Maximum number of results to show in any search.";
     type = guint32;

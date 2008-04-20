@@ -665,6 +665,8 @@ guint32  gnet_property_variable_tigertree_debug     = 0;
 static const guint32  gnet_property_variable_tigertree_debug_default = 0;
 gboolean gnet_property_variable_tth_rebuilding     = FALSE;
 static const gboolean gnet_property_variable_tth_rebuilding_default = FALSE;
+gboolean gnet_property_variable_tth_verifying     = FALSE;
+static const gboolean gnet_property_variable_tth_verifying_default = FALSE;
 guint32  gnet_property_variable_search_max_results     = 1000;
 static const guint32  gnet_property_variable_search_max_results_default = 1000;
 guint32  gnet_property_variable_browse_host_max_results     = 10000;
@@ -6382,23 +6384,40 @@ gnet_prop_init(void) {
 
 
     /*
+     * PROP_TTH_VERIFYING:
+     *
+     * General data:
+     */
+    gnet_property->props[298].name = "tth_verifying";
+    gnet_property->props[298].desc = _("Whether gtk-gnutella is currently verifying the TTH of downloaded files in the background.");
+    gnet_property->props[298].ev_changed = event_new("tth_verifying_changed");
+    gnet_property->props[298].save = FALSE;
+    gnet_property->props[298].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[298].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[298].data.boolean.def   = (void *) &gnet_property_variable_tth_verifying_default;
+    gnet_property->props[298].data.boolean.value = (void *) &gnet_property_variable_tth_verifying;
+
+
+    /*
      * PROP_SEARCH_MAX_RESULTS:
      *
      * General data:
      */
-    gnet_property->props[298].name = "search_max_results";
-    gnet_property->props[298].desc = _("Maximum number of results to show in any search.");
-    gnet_property->props[298].ev_changed = event_new("search_max_results_changed");
-    gnet_property->props[298].save = TRUE;
-    gnet_property->props[298].vector_size = 1;
+    gnet_property->props[299].name = "search_max_results";
+    gnet_property->props[299].desc = _("Maximum number of results to show in any search.");
+    gnet_property->props[299].ev_changed = event_new("search_max_results_changed");
+    gnet_property->props[299].save = TRUE;
+    gnet_property->props[299].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[298].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[298].data.guint32.def   = (void *) &gnet_property_variable_search_max_results_default;
-    gnet_property->props[298].data.guint32.value = (void *) &gnet_property_variable_search_max_results;
-    gnet_property->props[298].data.guint32.choices = NULL;
-    gnet_property->props[298].data.guint32.max   = 100000;
-    gnet_property->props[298].data.guint32.min   = 10;
+    gnet_property->props[299].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[299].data.guint32.def   = (void *) &gnet_property_variable_search_max_results_default;
+    gnet_property->props[299].data.guint32.value = (void *) &gnet_property_variable_search_max_results;
+    gnet_property->props[299].data.guint32.choices = NULL;
+    gnet_property->props[299].data.guint32.max   = 100000;
+    gnet_property->props[299].data.guint32.min   = 10;
 
 
     /*
@@ -6406,19 +6425,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[299].name = "browse_host_max_results";
-    gnet_property->props[299].desc = _("Maximum number of results to show in a browse_host request.");
-    gnet_property->props[299].ev_changed = event_new("browse_host_max_results_changed");
-    gnet_property->props[299].save = TRUE;
-    gnet_property->props[299].vector_size = 1;
+    gnet_property->props[300].name = "browse_host_max_results";
+    gnet_property->props[300].desc = _("Maximum number of results to show in a browse_host request.");
+    gnet_property->props[300].ev_changed = event_new("browse_host_max_results_changed");
+    gnet_property->props[300].save = TRUE;
+    gnet_property->props[300].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[299].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[299].data.guint32.def   = (void *) &gnet_property_variable_browse_host_max_results_default;
-    gnet_property->props[299].data.guint32.value = (void *) &gnet_property_variable_browse_host_max_results;
-    gnet_property->props[299].data.guint32.choices = NULL;
-    gnet_property->props[299].data.guint32.max   = 500000;
-    gnet_property->props[299].data.guint32.min   = 100;
+    gnet_property->props[300].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[300].data.guint32.def   = (void *) &gnet_property_variable_browse_host_max_results_default;
+    gnet_property->props[300].data.guint32.value = (void *) &gnet_property_variable_browse_host_max_results;
+    gnet_property->props[300].data.guint32.choices = NULL;
+    gnet_property->props[300].data.guint32.max   = 500000;
+    gnet_property->props[300].data.guint32.min   = 100;
 
 
     /*
@@ -6426,15 +6445,15 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[300].name = "session_id";
-    gnet_property->props[300].desc = _("The current Session ID.");
-    gnet_property->props[300].ev_changed = event_new("session_id_changed");
-    gnet_property->props[300].save = FALSE;
-    gnet_property->props[300].vector_size = GUID_RAW_SIZE;
+    gnet_property->props[301].name = "session_id";
+    gnet_property->props[301].desc = _("The current Session ID.");
+    gnet_property->props[301].ev_changed = event_new("session_id_changed");
+    gnet_property->props[301].save = FALSE;
+    gnet_property->props[301].vector_size = GUID_RAW_SIZE;
 
     /* Type specific data: */
-    gnet_property->props[300].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[300].data.storage.value = gnet_property_variable_session_id;
+    gnet_property->props[301].type               = PROP_TYPE_STORAGE;
+    gnet_property->props[301].data.storage.value = gnet_property_variable_session_id;
 
 
     /*
@@ -6442,19 +6461,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[301].name = "latest_svn_release_date";
-    gnet_property->props[301].desc = _("Date of the latest SVN release.");
-    gnet_property->props[301].ev_changed = event_new("latest_svn_release_date_changed");
-    gnet_property->props[301].save = TRUE;
-    gnet_property->props[301].vector_size = 1;
+    gnet_property->props[302].name = "latest_svn_release_date";
+    gnet_property->props[302].desc = _("Date of the latest SVN release.");
+    gnet_property->props[302].ev_changed = event_new("latest_svn_release_date_changed");
+    gnet_property->props[302].save = TRUE;
+    gnet_property->props[302].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[301].type               = PROP_TYPE_TIMESTAMP;
-    gnet_property->props[301].data.timestamp.def   = (void *) &gnet_property_variable_latest_svn_release_date_default;
-    gnet_property->props[301].data.timestamp.value = (void *) &gnet_property_variable_latest_svn_release_date;
-    gnet_property->props[301].data.timestamp.choices = NULL;
-    gnet_property->props[301].data.timestamp.max   = (time_t) ((1U << 31) - 1);
-    gnet_property->props[301].data.timestamp.min   = 0x0000000000000000;
+    gnet_property->props[302].type               = PROP_TYPE_TIMESTAMP;
+    gnet_property->props[302].data.timestamp.def   = (void *) &gnet_property_variable_latest_svn_release_date_default;
+    gnet_property->props[302].data.timestamp.value = (void *) &gnet_property_variable_latest_svn_release_date;
+    gnet_property->props[302].data.timestamp.choices = NULL;
+    gnet_property->props[302].data.timestamp.max   = (time_t) ((1U << 31) - 1);
+    gnet_property->props[302].data.timestamp.min   = 0x0000000000000000;
 
 
     /*
@@ -6462,19 +6481,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[302].name = "latest_svn_release_revision";
-    gnet_property->props[302].desc = _("Revision of the latest SVN release.");
-    gnet_property->props[302].ev_changed = event_new("latest_svn_release_revision_changed");
-    gnet_property->props[302].save = TRUE;
-    gnet_property->props[302].vector_size = 1;
+    gnet_property->props[303].name = "latest_svn_release_revision";
+    gnet_property->props[303].desc = _("Revision of the latest SVN release.");
+    gnet_property->props[303].ev_changed = event_new("latest_svn_release_revision_changed");
+    gnet_property->props[303].save = TRUE;
+    gnet_property->props[303].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[302].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[302].data.guint32.def   = (void *) &gnet_property_variable_latest_svn_release_revision_default;
-    gnet_property->props[302].data.guint32.value = (void *) &gnet_property_variable_latest_svn_release_revision;
-    gnet_property->props[302].data.guint32.choices = NULL;
-    gnet_property->props[302].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[302].data.guint32.min   = 0x00000000;
+    gnet_property->props[303].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[303].data.guint32.def   = (void *) &gnet_property_variable_latest_svn_release_revision_default;
+    gnet_property->props[303].data.guint32.value = (void *) &gnet_property_variable_latest_svn_release_revision;
+    gnet_property->props[303].data.guint32.choices = NULL;
+    gnet_property->props[303].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[303].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -6482,19 +6501,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[303].name = "latest_svn_release_signature";
-    gnet_property->props[303].desc = _("Signature of the latest SVN release notification.");
-    gnet_property->props[303].ev_changed = event_new("latest_svn_release_signature_changed");
-    gnet_property->props[303].save = TRUE;
-    gnet_property->props[303].vector_size = 1;
+    gnet_property->props[304].name = "latest_svn_release_signature";
+    gnet_property->props[304].desc = _("Signature of the latest SVN release notification.");
+    gnet_property->props[304].ev_changed = event_new("latest_svn_release_signature_changed");
+    gnet_property->props[304].save = TRUE;
+    gnet_property->props[304].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[303].type               = PROP_TYPE_STRING;
-    gnet_property->props[303].data.string.def    = (void *) &gnet_property_variable_latest_svn_release_signature_default;
-    gnet_property->props[303].data.string.value  = (void *) &gnet_property_variable_latest_svn_release_signature;
-    if (gnet_property->props[303].data.string.def) {
-        *gnet_property->props[303].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[303].data.string.def));
+    gnet_property->props[304].type               = PROP_TYPE_STRING;
+    gnet_property->props[304].data.string.def    = (void *) &gnet_property_variable_latest_svn_release_signature_default;
+    gnet_property->props[304].data.string.value  = (void *) &gnet_property_variable_latest_svn_release_signature;
+    if (gnet_property->props[304].data.string.def) {
+        *gnet_property->props[304].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[304].data.string.def));
     }
 
 
@@ -6503,19 +6522,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[304].name = "tls_cache_max_hosts";
-    gnet_property->props[304].desc = _("Maximum number of hosts in the TLS node cache.");
-    gnet_property->props[304].ev_changed = event_new("tls_cache_max_hosts_changed");
-    gnet_property->props[304].save = TRUE;
-    gnet_property->props[304].vector_size = 1;
+    gnet_property->props[305].name = "tls_cache_max_hosts";
+    gnet_property->props[305].desc = _("Maximum number of hosts in the TLS node cache.");
+    gnet_property->props[305].ev_changed = event_new("tls_cache_max_hosts_changed");
+    gnet_property->props[305].save = TRUE;
+    gnet_property->props[305].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[304].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[304].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_hosts_default;
-    gnet_property->props[304].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_hosts;
-    gnet_property->props[304].data.guint32.choices = NULL;
-    gnet_property->props[304].data.guint32.max   = 50000;
-    gnet_property->props[304].data.guint32.min   = 100;
+    gnet_property->props[305].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[305].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_hosts_default;
+    gnet_property->props[305].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_hosts;
+    gnet_property->props[305].data.guint32.choices = NULL;
+    gnet_property->props[305].data.guint32.max   = 50000;
+    gnet_property->props[305].data.guint32.min   = 100;
 
 
     /*
@@ -6523,19 +6542,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[305].name = "tls_cache_max_time";
-    gnet_property->props[305].desc = _("Maximum time before removing hosts from the TLS cache.");
-    gnet_property->props[305].ev_changed = event_new("tls_cache_max_time_changed");
-    gnet_property->props[305].save = TRUE;
-    gnet_property->props[305].vector_size = 1;
+    gnet_property->props[306].name = "tls_cache_max_time";
+    gnet_property->props[306].desc = _("Maximum time before removing hosts from the TLS cache.");
+    gnet_property->props[306].ev_changed = event_new("tls_cache_max_time_changed");
+    gnet_property->props[306].save = TRUE;
+    gnet_property->props[306].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[305].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[305].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_time_default;
-    gnet_property->props[305].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_time;
-    gnet_property->props[305].data.guint32.choices = NULL;
-    gnet_property->props[305].data.guint32.max   = 691200;
-    gnet_property->props[305].data.guint32.min   = 14400;
+    gnet_property->props[306].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[306].data.guint32.def   = (void *) &gnet_property_variable_tls_cache_max_time_default;
+    gnet_property->props[306].data.guint32.value = (void *) &gnet_property_variable_tls_cache_max_time;
+    gnet_property->props[306].data.guint32.choices = NULL;
+    gnet_property->props[306].data.guint32.max   = 691200;
+    gnet_property->props[306].data.guint32.min   = 14400;
 
 
     /*
@@ -6543,16 +6562,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[306].name = "tth_auto_discovery";
-    gnet_property->props[306].desc = _("If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link.");
-    gnet_property->props[306].ev_changed = event_new("tth_auto_discovery_changed");
-    gnet_property->props[306].save = TRUE;
-    gnet_property->props[306].vector_size = 1;
+    gnet_property->props[307].name = "tth_auto_discovery";
+    gnet_property->props[307].desc = _("If set to TRUE the tigertree root hash (TTH) can be discovered on the fly. Otherwise, the TTH is only accepted if provided by the user, for example, by a magnet link.");
+    gnet_property->props[307].ev_changed = event_new("tth_auto_discovery_changed");
+    gnet_property->props[307].save = TRUE;
+    gnet_property->props[307].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[306].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[306].data.boolean.def   = (void *) &gnet_property_variable_tth_auto_discovery_default;
-    gnet_property->props[306].data.boolean.value = (void *) &gnet_property_variable_tth_auto_discovery;
+    gnet_property->props[307].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[307].data.boolean.def   = (void *) &gnet_property_variable_tth_auto_discovery_default;
+    gnet_property->props[307].data.boolean.value = (void *) &gnet_property_variable_tth_auto_discovery;
 
 
     /*
@@ -6560,16 +6579,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[307].name = "enable_hackarounds";
-    gnet_property->props[307].desc = _("If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience.");
-    gnet_property->props[307].ev_changed = event_new("enable_hackarounds_changed");
-    gnet_property->props[307].save = TRUE;
-    gnet_property->props[307].vector_size = 1;
+    gnet_property->props[308].name = "enable_hackarounds";
+    gnet_property->props[308].desc = _("If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, have to exist at all.  The aim is to improve the overall downloading experience.");
+    gnet_property->props[308].ev_changed = event_new("enable_hackarounds_changed");
+    gnet_property->props[308].save = TRUE;
+    gnet_property->props[308].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[307].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[307].data.boolean.def   = (void *) &gnet_property_variable_enable_hackarounds_default;
-    gnet_property->props[307].data.boolean.value = (void *) &gnet_property_variable_enable_hackarounds;
+    gnet_property->props[308].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[308].data.boolean.def   = (void *) &gnet_property_variable_enable_hackarounds_default;
+    gnet_property->props[308].data.boolean.value = (void *) &gnet_property_variable_enable_hackarounds;
 
 
     /*
@@ -6577,19 +6596,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[308].name = "g2_cache_max_hosts";
-    gnet_property->props[308].desc = _("Maximum number of hosts in the G2 node cache.");
-    gnet_property->props[308].ev_changed = event_new("g2_cache_max_hosts_changed");
-    gnet_property->props[308].save = TRUE;
-    gnet_property->props[308].vector_size = 1;
+    gnet_property->props[309].name = "g2_cache_max_hosts";
+    gnet_property->props[309].desc = _("Maximum number of hosts in the G2 node cache.");
+    gnet_property->props[309].ev_changed = event_new("g2_cache_max_hosts_changed");
+    gnet_property->props[309].save = TRUE;
+    gnet_property->props[309].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[308].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[308].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_hosts_default;
-    gnet_property->props[308].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_hosts;
-    gnet_property->props[308].data.guint32.choices = NULL;
-    gnet_property->props[308].data.guint32.max   = 50000;
-    gnet_property->props[308].data.guint32.min   = 100;
+    gnet_property->props[309].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[309].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_hosts_default;
+    gnet_property->props[309].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_hosts;
+    gnet_property->props[309].data.guint32.choices = NULL;
+    gnet_property->props[309].data.guint32.max   = 50000;
+    gnet_property->props[309].data.guint32.min   = 100;
 
 
     /*
@@ -6597,19 +6616,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[309].name = "g2_cache_max_time";
-    gnet_property->props[309].desc = _("Maximum time before removing hosts from the G2 cache.");
-    gnet_property->props[309].ev_changed = event_new("g2_cache_max_time_changed");
-    gnet_property->props[309].save = TRUE;
-    gnet_property->props[309].vector_size = 1;
+    gnet_property->props[310].name = "g2_cache_max_time";
+    gnet_property->props[310].desc = _("Maximum time before removing hosts from the G2 cache.");
+    gnet_property->props[310].ev_changed = event_new("g2_cache_max_time_changed");
+    gnet_property->props[310].save = TRUE;
+    gnet_property->props[310].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[309].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[309].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_time_default;
-    gnet_property->props[309].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_time;
-    gnet_property->props[309].data.guint32.choices = NULL;
-    gnet_property->props[309].data.guint32.max   = 691200;
-    gnet_property->props[309].data.guint32.min   = 14400;
+    gnet_property->props[310].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[310].data.guint32.def   = (void *) &gnet_property_variable_g2_cache_max_time_default;
+    gnet_property->props[310].data.guint32.value = (void *) &gnet_property_variable_g2_cache_max_time;
+    gnet_property->props[310].data.guint32.choices = NULL;
+    gnet_property->props[310].data.guint32.max   = 691200;
+    gnet_property->props[310].data.guint32.min   = 14400;
 
 
     /*
@@ -6617,19 +6636,19 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[310].name = "g2_debug";
-    gnet_property->props[310].desc = _("Debug level for management of G2-only hosts.");
-    gnet_property->props[310].ev_changed = event_new("g2_debug_changed");
-    gnet_property->props[310].save = TRUE;
-    gnet_property->props[310].vector_size = 1;
+    gnet_property->props[311].name = "g2_debug";
+    gnet_property->props[311].desc = _("Debug level for management of G2-only hosts.");
+    gnet_property->props[311].ev_changed = event_new("g2_debug_changed");
+    gnet_property->props[311].save = TRUE;
+    gnet_property->props[311].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[310].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[310].data.guint32.def   = (void *) &gnet_property_variable_g2_debug_default;
-    gnet_property->props[310].data.guint32.value = (void *) &gnet_property_variable_g2_debug;
-    gnet_property->props[310].data.guint32.choices = NULL;
-    gnet_property->props[310].data.guint32.max   = 20;
-    gnet_property->props[310].data.guint32.min   = 0;
+    gnet_property->props[311].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[311].data.guint32.def   = (void *) &gnet_property_variable_g2_debug_default;
+    gnet_property->props[311].data.guint32.value = (void *) &gnet_property_variable_g2_debug;
+    gnet_property->props[311].data.guint32.choices = NULL;
+    gnet_property->props[311].data.guint32.max   = 20;
+    gnet_property->props[311].data.guint32.min   = 0;
 
 
     /*
@@ -6637,16 +6656,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[311].name = "dl_resource_switching";
-    gnet_property->props[311].desc = _("Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from.");
-    gnet_property->props[311].ev_changed = event_new("dl_resource_switching_changed");
-    gnet_property->props[311].save = TRUE;
-    gnet_property->props[311].vector_size = 1;
+    gnet_property->props[312].name = "dl_resource_switching";
+    gnet_property->props[312].desc = _("Whether GTKG can switch among the several files waiting to be downloaded from a given server, when making a follow-up HTTP request.  Turn it off only if you witness problems with a particular servent you're downloading from.");
+    gnet_property->props[312].ev_changed = event_new("dl_resource_switching_changed");
+    gnet_property->props[312].save = TRUE;
+    gnet_property->props[312].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[311].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[311].data.boolean.def   = (void *) &gnet_property_variable_dl_resource_switching_default;
-    gnet_property->props[311].data.boolean.value = (void *) &gnet_property_variable_dl_resource_switching;
+    gnet_property->props[312].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[312].data.boolean.def   = (void *) &gnet_property_variable_dl_resource_switching_default;
+    gnet_property->props[312].data.boolean.value = (void *) &gnet_property_variable_dl_resource_switching;
 
 
     /*
@@ -6654,16 +6673,16 @@ gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[312].name = "parq_enabled";
-    gnet_property->props[312].desc = _("If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not disable unless you know what you are doing.");
-    gnet_property->props[312].ev_changed = event_new("parq_enabled_changed");
-    gnet_property->props[312].save = TRUE;
-    gnet_property->props[312].vector_size = 1;
+    gnet_property->props[313].name = "parq_enabled";
+    gnet_property->props[313].desc = _("If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not disable unless you know what you are doing.");
+    gnet_property->props[313].ev_changed = event_new("parq_enabled_changed");
+    gnet_property->props[313].save = TRUE;
+    gnet_property->props[313].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[312].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[312].data.boolean.def   = (void *) &gnet_property_variable_parq_enabled_default;
-    gnet_property->props[312].data.boolean.value = (void *) &gnet_property_variable_parq_enabled;
+    gnet_property->props[313].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[313].data.boolean.def   = (void *) &gnet_property_variable_parq_enabled_default;
+    gnet_property->props[313].data.boolean.value = (void *) &gnet_property_variable_parq_enabled;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

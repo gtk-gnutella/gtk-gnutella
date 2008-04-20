@@ -11260,17 +11260,20 @@ download_verify_tigertree_callback(const struct verify *ctx,
 	download_check(d);
 	switch (status) {
 	case VERIFY_START:
+		gnet_prop_set_boolean_val(PROP_TTH_VERIFYING, TRUE);
 		download_verify_tigertree_start(d);
 		return TRUE;
 	case VERIFY_PROGRESS:
 		download_verify_tigertree_progress(d, verify_hashed(ctx));
 		return TRUE;
 	case VERIFY_DONE:
+		gnet_prop_set_boolean_val(PROP_TTH_VERIFYING, FALSE);
 		download_verify_tigertree_done(d,
 			verify_tth_digest(ctx), verify_elapsed(ctx),
 			verify_tth_leaves(ctx), verify_tth_leave_count(ctx));
 		return TRUE;
 	case VERIFY_ERROR:
+		gnet_prop_set_boolean_val(PROP_TTH_VERIFYING, FALSE);
 		download_verify_tigertree_error(d);
 		return TRUE;
 	case VERIFY_SHUTDOWN:
