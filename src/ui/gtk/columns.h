@@ -84,7 +84,7 @@ enum {
  * Upload stats columns.
  */
 
-enum {
+enum c_us {
     c_us_filename,
     c_us_size,
     c_us_attempts,
