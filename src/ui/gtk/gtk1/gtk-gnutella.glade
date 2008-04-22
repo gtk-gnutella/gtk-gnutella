@@ -622,7 +622,7 @@
 		    <label>Search</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1207,10 +1207,10 @@
 		    <class>GtkLabel</class>
 		    <child_name>CList:title</child_name>
 		    <name>label14b</name>
-		    <label>Loc</label>
+		    <label>Country</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1223,7 +1223,7 @@
 		    <label>Flags</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1236,7 +1236,7 @@
 		    <label>User-Agent</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1246,10 +1246,10 @@
 		    <class>GtkLabel</class>
 		    <child_name>CList:title</child_name>
 		    <name>label_node_proto</name>
-		    <label>Ver</label>
+		    <label>Version</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1262,7 +1262,7 @@
 		    <label>Connected time</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1275,7 +1275,7 @@
 		    <label>Uptime</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1288,7 +1288,7 @@
 		    <label>Info</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -1713,7 +1713,7 @@
 		      <label>GUID:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -1897,7 +1897,7 @@
 		    <label></label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>5</xpad>
 		    <ypad>0</ypad>
@@ -2270,7 +2270,7 @@
 		      <widget>
 			<class>GtkAlignment</class>
 			<name>alignment38</name>
-			<xalign>7.45058e-09</xalign>
+			<xalign>0</xalign>
 			<yalign>0.5</yalign>
 			<xscale>0.15</xscale>
 			<yscale>1</yscale>
@@ -2311,7 +2311,7 @@
 		      <widget>
 			<class>GtkAlignment</class>
 			<name>alignment27</name>
-			<xalign>7.45058e-09</xalign>
+			<xalign>0</xalign>
 			<yalign>0.5</yalign>
 			<xscale>0.15</xscale>
 			<yscale>1</yscale>
@@ -2500,7 +2500,7 @@
 		    <label></label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>5</xpad>
 		    <ypad>0</ypad>
@@ -3120,7 +3120,7 @@
 			      <label>Select files by regex</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
-			      <xalign>7.45058e-09</xalign>
+			      <xalign>0</xalign>
 			      <yalign>0.5</yalign>
 			      <xpad>0</xpad>
 			      <ypad>0</ypad>
@@ -3146,7 +3146,7 @@
 			      <label>Filter files by regex</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
-			      <xalign>7.45058e-09</xalign>
+			      <xalign>0</xalign>
 			      <yalign>0.5</yalign>
 			      <xpad>0</xpad>
 			      <ypad>0</ypad>
@@ -3400,7 +3400,7 @@
 			  <widget>
 			    <class>GtkAlignment</class>
 			    <name>alignment32</name>
-			    <xalign>7.45058e-09</xalign>
+			    <xalign>0</xalign>
 			    <yalign>0.5</yalign>
 			    <xscale>0</xscale>
 			    <yscale>1</yscale>
@@ -3553,7 +3553,7 @@
 				<label>Max. downloads from single host</label>
 				<justify>GTK_JUSTIFY_CENTER</justify>
 				<wrap>False</wrap>
-				<xalign>7.45058e-09</xalign>
+				<xalign>0</xalign>
 				<yalign>0.5</yalign>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
@@ -3579,7 +3579,7 @@
 				<label>Max. simultaneous downloads</label>
 				<justify>GTK_JUSTIFY_CENTER</justify>
 				<wrap>False</wrap>
-				<xalign>7.45058e-09</xalign>
+				<xalign>0</xalign>
 				<yalign>0.5</yalign>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
@@ -3605,7 +3605,7 @@
 				<label>Max. simultaneous downloads per file</label>
 				<justify>GTK_JUSTIFY_CENTER</justify>
 				<wrap>False</wrap>
-				<xalign>7.45058e-09</xalign>
+				<xalign>0</xalign>
 				<yalign>0.5</yalign>
 				<xpad>0</xpad>
 				<ypad>0</ypad>
@@ -4339,7 +4339,7 @@
 		  <label>Filename</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4352,7 +4352,7 @@
 		  <label>Host</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4362,10 +4362,10 @@
 		  <class>GtkLabel</class>
 		  <child_name>CList:title</child_name>
 		  <name>label73b</name>
-		  <label>Loc</label>
+		  <label>Country</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4378,7 +4378,7 @@
 		  <label>Size</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4391,7 +4391,7 @@
 		  <label>Range</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4404,7 +4404,7 @@
 		  <label>User-Agent</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4417,7 +4417,7 @@
 		  <label>Progress</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4430,7 +4430,7 @@
 		  <label>Status</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -4752,7 +4752,7 @@
 			<label>Type</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
-			<xalign>7.45058e-09</xalign>
+			<xalign>0</xalign>
 			<yalign>0.5</yalign>
 			<xpad>0</xpad>
 			<ypad>0</ypad>
@@ -4803,7 +4803,7 @@
 			<label>Reason</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
-			<xalign>7.45058e-09</xalign>
+			<xalign>0</xalign>
 			<yalign>0.5</yalign>
 			<xpad>0</xpad>
 			<ypad>0</ypad>
@@ -5189,7 +5189,7 @@
 		      <label>Type</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -5509,7 +5509,7 @@
 		      <label>Uploaded:</label>
 		      <justify>GTK_JUSTIFY_LEFT</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -5535,7 +5535,7 @@
 		      <label>Downloaded:</label>
 		      <justify>GTK_JUSTIFY_LEFT</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -6059,7 +6059,7 @@
 		  <label>Search</label>
 		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6110,7 +6110,7 @@
 		  <last_modification_time>Thu, 07 Mar 2002 20:33:23 GMT</last_modification_time>
 		</signal>
 		<columns>5</columns>
-		<column_widths>134,41,60,67,67</column_widths>
+		<column_widths>304,41,60,67,240</column_widths>
 		<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
 		<show_titles>True</show_titles>
 		<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -6122,7 +6122,7 @@
 		  <label>Filename</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6135,7 +6135,7 @@
 		  <label>Size</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6148,7 +6148,7 @@
 		  <label>Attempts</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6161,7 +6161,7 @@
 		  <label>Complete</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6174,7 +6174,7 @@
 		  <label>Normalized</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -6584,7 +6584,7 @@
 		      <label>Regular hosts</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -7001,7 +7001,7 @@
 		  <label>Search Term</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -7988,6 +7988,24 @@
       <last_modification_time>Thu, 17 Nov 2005 20:18:47 GMT</last_modification_time>
     </signal>
     <label>Browse Host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator30</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_uploads_config_cols</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_uploads_config_cols_activate</handler>
+      <last_modification_time>Tue, 22 Apr 2008 20:48:04 GMT</last_modification_time>
+    </signal>
+    <label>Configure columns</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>
@@ -9815,7 +9833,7 @@ for all filters</label>
 		    <class>GtkAlignment</class>
 		    <name>alignment24</name>
 		    <xalign>0.5</xalign>
-		    <yalign>7.45058e-09</yalign>
+		    <yalign>0</yalign>
 		    <xscale>1</xscale>
 		    <yscale>1</yscale>
 		    <child>
@@ -11231,7 +11249,7 @@ for all filters</label>
 			  <class>GtkAlignment</class>
 			  <name>alignment23</name>
 			  <xalign>0</xalign>
-			  <yalign>7.45058e-09</yalign>
+			  <yalign>0</yalign>
 			  <xscale>1</xscale>
 			  <yscale>0</yscale>
 
@@ -13163,7 +13181,7 @@ http://maxmind.com/</label>
 		    <label>(Disable: 0, Random: 1)</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -13473,7 +13491,7 @@ http://maxmind.com/</label>
 		    <label>H_ost:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -13681,7 +13699,7 @@ http://maxmind.com/</label>
 		    <label>_Username</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -13708,7 +13726,7 @@ http://maxmind.com/</label>
 		    <label>Pass_word</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -14588,7 +14606,7 @@ http://maxmind.com/</label>
 		<widget>
 		  <class>GtkAlignment</class>
 		  <name>alignment30</name>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xscale>0</xscale>
 		  <yscale>1</yscale>
@@ -14682,7 +14700,7 @@ http://maxmind.com/</label>
 		    <widget>
 		      <class>GtkAlignment</class>
 		      <name>alignment34</name>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xscale>0</xscale>
 		      <yscale>1</yscale>
@@ -15626,7 +15644,7 @@ http://maxmind.com/</label>
 		<widget>
 		  <class>GtkAlignment</class>
 		  <name>alignment31</name>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xscale>0</xscale>
 		  <yscale>1</yscale>
@@ -15651,7 +15669,7 @@ http://maxmind.com/</label>
 		      <label>Limit search _results to </label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -15712,7 +15730,7 @@ http://maxmind.com/</label>
 		      <label>items</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -16335,7 +16353,7 @@ http://maxmind.com/</label>
 		    <label>Max _TTL</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -16362,7 +16380,7 @@ http://maxmind.com/</label>
 		    <label>M_y TTL</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -17899,7 +17917,7 @@ allowed</label>
 		      <label>Total input bandwidth limit:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -17951,7 +17969,7 @@ allowed</label>
 		      <label>Total output bandwidth limit:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -18003,7 +18021,7 @@ allowed</label>
 		      <label>Measured HTTP latency:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
+		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -18819,7 +18837,7 @@ allowed</label>
 		  <label>Report an upload connection _speed of</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -18880,7 +18898,7 @@ allowed</label>
 		  <label>kbps to peers</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -19262,7 +19280,7 @@ allowed</label>
 		  <label>_Overlap when resuming</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -19289,7 +19307,7 @@ allowed</label>
 		  <label>Maximum number of _retries</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -19384,7 +19402,7 @@ allowed</label>
 		  <label>bytes</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
@@ -20218,7 +20236,7 @@ allowed</label>
 		    <label>bytes</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -20244,7 +20262,7 @@ allowed</label>
 		    <label>bytes</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -20663,7 +20681,7 @@ allowed</label>
 		    <label>Files scanned</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -23024,7 +23042,7 @@ allowed</label>
 		<widget>
 		  <class>GtkAlignment</class>
 		  <name>alignment33</name>
-		  <xalign>7.45058e-09</xalign>
+		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xscale>0</xscale>
 		  <yscale>1</yscale>
@@ -23757,7 +23775,7 @@ allowed</label>
 		    <label>&lt;no property selected&gt;</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
@@ -23791,7 +23809,7 @@ allowed</label>
 		    <label>&lt;no property selected&gt;</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
+		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>4</xpad>
 		    <ypad>0</ypad>

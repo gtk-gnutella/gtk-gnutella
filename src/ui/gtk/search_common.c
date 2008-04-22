@@ -4092,7 +4092,7 @@ search_gui_column_title(int column)
 	case c_sr_charset:	return _("Encoding");
 	case c_sr_size:		return _("Size");
 	case c_sr_count:	return _("#");
-	case c_sr_loc:		return _("Loc");
+	case c_sr_loc:		return _("Country");
 	case c_sr_meta:		return _("Metadata");
 	case c_sr_vendor:	return _("Vendor");
 	case c_sr_info:		return _("Info");

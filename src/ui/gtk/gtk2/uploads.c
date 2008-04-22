@@ -73,7 +73,7 @@ static void uploads_gui_add_upload(gnet_upload_info_t *u);
 static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
 	N_("Host"),
-	N_("Loc"),
+	N_("Country"),
 	N_("Size"),
 	N_("Range"),
 	N_("User-Agent"),

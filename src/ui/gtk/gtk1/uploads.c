@@ -446,6 +446,25 @@ uploads_gui_timer(time_t now)
 	}
 }
 
+static const char *
+uploads_gui_column_title(int column)
+{
+	switch ((enum c_gnet) column) {
+	case c_ul_filename:	return _("Filename");
+	case c_ul_host:		return _("Host");
+	case c_ul_loc:		return _("Country");
+	case c_ul_size:		return _("Size");
+	case c_ul_range:	return _("Range");
+	case c_ul_agent:	return _("User-Agent");
+	case c_ul_progress:	return _("Progress");
+	case c_ul_status:	return _("Status");
+	case c_ul_num:
+		break;
+	}
+	g_assert_not_reached();
+	return NULL;
+}
+
 /***
  *** Public functions
  ***/
@@ -454,11 +473,16 @@ void
 uploads_gui_init(void)
 {
 	GtkCList *clist;
+	unsigned i;
 
 	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
     gtk_clist_set_column_justification(clist, c_ul_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(clist, c_ul_progress, GTK_JUSTIFY_RIGHT);
 	gtk_clist_column_titles_passive(clist);
+	for (i = 0; i < c_ul_num; i++) {
+    	gtk_clist_set_column_name(clist, i, uploads_gui_column_title(i));
+	}
+	clist_restore_visibility(clist, PROP_UPLOADS_COL_VISIBLE);
 	clist_restore_widths(clist, PROP_UPLOADS_COL_WIDTHS);
 
     guc_upload_add_upload_added_listener(upload_added);
@@ -474,8 +498,11 @@ uploads_gui_init(void)
 void
 uploads_gui_shutdown(void)
 {
-	clist_restore_widths(GTK_CLIST(gui_main_window_lookup("clist_uploads")),
-		PROP_UPLOADS_COL_WIDTHS);
+	GtkCList *clist;
+
+	clist = GTK_CLIST(gui_main_window_lookup("clist_uploads"));
+	clist_save_visibility(clist, PROP_UPLOADS_COL_VISIBLE);
+	clist_save_widths(clist, PROP_UPLOADS_COL_WIDTHS);
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
     guc_upload_remove_upload_info_changed_listener(upload_info_changed);

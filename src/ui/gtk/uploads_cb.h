@@ -36,21 +36,16 @@ void on_button_uploads_kill_clicked(GtkButton *, gpointer);
 void on_button_uploads_remove_clicked(GtkButton *, gpointer);
 void on_button_uploads_clear_completed_clicked(GtkButton *, gpointer);
 
-void on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata);
+void on_popup_uploads_browse_host_activate(GtkMenuItem *, gpointer);
+void on_popup_uploads_config_cols_activate(GtkMenuItem *, gpointer);
 
 #ifdef USE_GTK1
-void on_clist_uploads_click_column(GtkCList *, gint, gpointer);
 void on_clist_uploads_select_row(GtkCList *, gint, gint, GdkEvent *, gpointer);
 void on_clist_uploads_unselect_row(GtkCList *, gint, gint, GdkEvent *,
 	gpointer);
 gboolean on_clist_uploads_button_press_event(GtkWidget *, GdkEventButton *,
 	gpointer);
-void on_popup_uploads_title_activate (GtkMenuItem *, gpointer);
 #endif /* USE_GTK1 */
 
-#ifdef USE_GTK2
-void on_popup_uploads_config_cols_activate(GtkMenuItem *, gpointer);
-#endif /* USE_GTK2 */
 
 #endif /* _gtk_uploads_cb_h_ */

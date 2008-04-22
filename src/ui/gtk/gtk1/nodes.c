@@ -255,7 +255,7 @@ nodes_gui_column_title(int column)
     case c_gnet_loc:		return _("Country");
 	case c_gnet_flags:		return _("Flags");
 	case c_gnet_user_agent:	return _("User-Agent");
-	case c_gnet_version:	return _("Ver");
+	case c_gnet_version:	return _("Version");
 	case c_gnet_connected:	return _("Connected time");
 	case c_gnet_uptime:		return _("Uptime");
 	case c_gnet_info:		return _("Status");

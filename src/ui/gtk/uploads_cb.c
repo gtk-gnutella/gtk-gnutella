@@ -143,21 +143,10 @@ gboolean
 on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
-	gint row, col;
-    GtkCList *clist_uploads = GTK_CLIST
-        (gui_main_window_lookup("clist_uploads"));
-
 	(void) unused_widget;
 	(void) unused_udata;
 
     if (event->button != 3)
-		return FALSE;
-
-    if (GTK_CLIST(clist_uploads)->selection == NULL)
-        return FALSE;
-
-	if (!gtk_clist_get_selection_info
-		(GTK_CLIST(clist_uploads), event->x, event->y, &row, &col))
 		return FALSE;
 
     gtk_menu_popup(GTK_MENU(gui_popup_uploads()), NULL, NULL, NULL, NULL,
@@ -185,6 +174,19 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	g_slist_foreach(sl, browse_uploading_host, NULL);
 	g_slist_free(sl);
 }
+
+void
+on_popup_uploads_config_cols_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+    GtkWidget *cc;
+
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+    cc = gtk_column_chooser_new(gui_main_window_lookup("clist_uploads"));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, GDK_CURRENT_TIME);
+}
 #endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
@@ -198,7 +200,7 @@ on_popup_uploads_config_cols_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     cc = gtk_column_chooser_new(gui_main_window_lookup("treeview_uploads"));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 0, GDK_CURRENT_TIME);
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, GDK_CURRENT_TIME);
 }
 
 static void
