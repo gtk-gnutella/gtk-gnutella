@@ -552,7 +552,6 @@ share_mime_type_from_extension(const gchar *extension)
 		enum share_mime_type type;
 	} tab[] = {
 		/* NOTE: Keep this sorted! */
-		{ "SH",			SHARE_M_APPLICATION_SH },
 		{ "aac",		SHARE_M_AUDIO_MP4 },
 		{ "ai",			SHARE_M_APPLICATION_POSTSCRIPT },
 		{ "asc",		SHARE_M_TEXT_PLAIN },
