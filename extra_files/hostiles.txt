@@ -381,9 +381,9 @@
 #68.178.206.62
 #68.178.242.167
 #68.178.250.209
-72.167.34.231
-72.167.34.232
-208.109.0.0/16
+#72.167.34.231
+#72.167.34.232
+#208.109.0.0/16
 216.69.164.211
 
 # lowth.com; www.lowth.com is a CNAME for lowth.no-ip.com
@@ -1084,10 +1084,10 @@
 # Gnoozle
 74.208.44.183
 74.208.96.120
-72.167.38.22
-72.167.42.22
-72.167.45.155
-72.167.45.163
+#72.167.38.22
+#72.167.42.22
+#72.167.45.155
+#72.167.45.163
 
 # LimeWire; QuickTime AVI files; peertracking dot com
 193.53.4.0/24
@@ -1229,6 +1229,18 @@
 # * web hottest videos personal.exe
 #67.159.26.48
 
+# texas holdem/poker ZIP/RAR spam; BearShare
+#208.109.20.31
+#208.109.222.169
+#72.167.115.73
+#72.167.140.136
+#72.167.146.47
+#72.167.30.175
+#72.167.62.174
+#72.167.62.177
+#72.167.62.202
+#72.167.62.94
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
@@ -1239,5 +1251,6 @@
 76.74.128.0/17
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
-
+# GoDaddy.com, Inc.; see above
+72.167.0.0/17
 
