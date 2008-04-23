@@ -1209,6 +1209,12 @@
 # to Daniel Boyd; http://www.linkedin.com/in/dboyd
 75.125.12.112/28
 #74.55.29.150
+# Thousands of RARs containing Adware/Trojans; filenames have hyphen instead
+# of spaces or underscores; files point to seonomad
+# FrostWire
+66.187.104.6
+# Same as above but self-compiled LimeWire
+69.64.92.76
 
 # FDCservers.net range assigned to:
 # Guru Bilisim Hizmetleri
@@ -1234,10 +1240,4 @@
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
 
-# Thousands of RARs containing Adware/Trojans; filenames have hyphen instead
-# of spaces or underscores
-# FrostWire
-66.187.104.6
-# Same as above but self-compiled LimeWire
-69.64.92.75
 
