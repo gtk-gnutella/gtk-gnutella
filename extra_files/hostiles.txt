@@ -1234,6 +1234,10 @@
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
 
-# Thousands of RARs containing Adware/Trojans; FrostWire
+# Thousands of RARs containing Adware/Trojans; filenames have hyphen instead
+# of spaces or underscores
+# FrostWire
 66.187.104.6
+# Same as above but self-compiled LimeWire
+69.64.92.75
 
