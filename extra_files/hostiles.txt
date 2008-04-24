@@ -1241,6 +1241,10 @@
 #72.167.62.202
 #72.167.62.94
 
+# RAR/ZIP keygen/crack spam
+# Assigned to: David Posada, Toronto, Ontario, M6LMB7, CA
+#205.209.161.210
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
@@ -1253,4 +1257,6 @@
 75.126.0.0/16
 # GoDaddy.com, Inc.; see above
 72.167.0.0/17
+# Managed Solutions Group, Inc.; see above
+205.209.128.0/18
 
