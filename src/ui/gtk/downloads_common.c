@@ -185,6 +185,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 {
     gnet_fi_info_t *info;
 
+	g_return_if_fail(file);
 	fi_gui_clear_details();
 
     info = guc_fi_get_info(file->handle);
@@ -1276,6 +1277,17 @@ fi_gui_file_get_file_url_at_cursor(GtkWidget *unused_widget)
 	return file ? fi_gui_file_get_file_url(file) : NULL;
 }
 
+static struct fileinfo_data *
+fi_gui_file_by_handle(gnet_fi_t handle)
+{
+	struct fileinfo_data *file;
+
+	file = g_hash_table_lookup(fi_handles, uint_to_pointer(handle));
+	g_return_val_if_fail(file, NULL);
+	g_assert(handle == file->handle);
+	return file;
+}
+
 static void
 fi_gui_fi_added(gnet_fi_t handle)
 {
@@ -1318,15 +1330,14 @@ fi_gui_fi_removed(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
 	void *key;
-	
-	key = uint_to_pointer(handle);
-	file = g_hash_table_lookup(fi_handles, key);
+
+	file = fi_gui_file_by_handle(handle);
 	g_return_if_fail(file);
-	g_return_if_fail(handle == file->handle);
 
 	if (last_shown_valid && handle == last_shown) {
 		fi_gui_clear_info();
 	}
+	key = uint_to_pointer(handle);
 	g_hash_table_remove(fi_handles, key);
 	g_hash_table_remove(fi_updates, key);
 	g_assert(NULL == file->sources);
@@ -1353,17 +1364,13 @@ fi_gui_set_aliases(struct fileinfo_data *file)
 static struct fileinfo_data *
 fi_gui_source_get_file(const struct download *d)
 {
-	struct fileinfo_data *file;
 	const fileinfo_t *fi;
 
 	download_check(d);
 	fi = d->file_info;
 	g_return_val_if_fail(fi, NULL);
 
-	file = g_hash_table_lookup(fi_handles, uint_to_pointer(fi->fi_handle));
-	g_return_val_if_fail(file, NULL);
-	g_assert(fi->fi_handle == file->handle);
-	return file;
+	return fi_gui_file_by_handle(fi->fi_handle);
 }
 
 /**
@@ -1478,11 +1485,8 @@ fi_gui_show_info(struct fileinfo_data *file)
 static void
 fi_gui_files_details_update(void)
 {
-	struct fileinfo_data *file;
-
-	file = fi_gui_get_file_at_cursor();
-	if (file) {
-		fi_gui_set_details(file);
+	if (last_shown_valid) {
+		fi_gui_set_details(fi_gui_file_by_handle(last_shown));
 	}
 }
 
@@ -1506,7 +1510,7 @@ fi_gui_file_update(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
 
-	file = g_hash_table_lookup(fi_handles, uint_to_pointer(handle));
+	file = fi_gui_file_by_handle(handle);
 	g_return_if_fail(file);
 
 	fi_gui_file_fill_status(file);
@@ -1908,6 +1912,7 @@ notebook_downloads_init_page(GtkNotebook *notebook, int page_num)
 	gtk_widget_show_all(GTK_WIDGET(container));
 
 	downloads_gui_update_popup_downloads();
+	fi_gui_files_details_update();
 }
 
 static void
