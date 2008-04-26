@@ -1475,17 +1475,6 @@ fi_gui_show_info(struct fileinfo_data *file)
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
-static void
-fi_gui_files_details_update(void)
-{
-	struct fileinfo_data *file;
-
-	file = fi_gui_get_file_at_cursor();
-	if (file) {
-		fi_gui_set_details(file);
-	}
-}
-
 void
 fi_gui_files_cursor_update(void)
 {
@@ -1562,7 +1551,6 @@ fi_gui_update_display(void)
 	fi_gui_files_freeze();
 	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
 	g_hash_table_foreach_remove(src_updates, fi_gui_source_update_queued, NULL);
-	fi_gui_files_details_update();
 	fi_gui_files_thaw();
 }
 
