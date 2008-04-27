@@ -509,7 +509,8 @@ share_mime_type_to_string(enum share_mime_type type)
 	size_t i;
 	
 	STATIC_ASSERT(SHARE_M_NUM == G_N_ELEMENTS(names));
-	i = (size_t) type < G_N_ELEMENTS(names) ? type : SHARE_M_APPLICATION_BINARY;
+	i = (size_t) type < G_N_ELEMENTS(names)
+			? type : SHARE_M_APPLICATION_OCTET_STREAM;
 	return names[i];
 }
 
@@ -656,7 +657,7 @@ share_mime_type_from_extension(const char *extension)
 #undef FOUND
 #undef GET_KEY
 	}
-	return SHARE_M_APPLICATION_BINARY;
+	return SHARE_M_APPLICATION_OCTET_STREAM;
 }
 
 static void
@@ -679,7 +680,7 @@ share_mime_type_from_filename(const char *filename)
 {
 	const char *extension;
 	
-	g_return_val_if_fail(filename, SHARE_M_APPLICATION_BINARY);
+	g_return_val_if_fail(filename, SHARE_M_APPLICATION_OCTET_STREAM);
 	extension = strrchr(filename, '.');
 	return share_mime_type_from_extension(extension ? &extension[1] : NULL);
 }
