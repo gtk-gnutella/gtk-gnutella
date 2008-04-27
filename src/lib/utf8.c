@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15077 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15267 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -2499,12 +2499,21 @@ locale_to_ui_string2(const gchar *src)
 static gchar *
 filename_to_ui_string(const gchar *src)
 {
+	char *name_utf8;
+
 	g_assert(src);
 
+	name_utf8 = filename_to_utf8_normalized(src, UNI_NORM_GUI);
 	if (ui_uses_utf8_encoding()) {
-		return filename_to_utf8_normalized(src, UNI_NORM_GUI);
+		return name_utf8;
 	} else {
-		return deconstify_gchar(src);
+		char *name_locale;
+
+		name_locale = utf8_to_locale(name_utf8);
+		if (name_utf8 != src && name_utf8 != name_locale) {
+			G_FREE_NULL(name_utf8);
+		}
+		return name_locale;
 	}
 }
 
