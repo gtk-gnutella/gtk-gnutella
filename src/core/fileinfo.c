@@ -6051,7 +6051,12 @@ file_info_build_magnet(gnet_fi_t handle)
 	file_info_check(fi);
 
 	magnet = magnet_resource_new();
-	magnet_set_display_name(magnet, filepath_basename(fi->pathname));
+
+	/* The filename used for the magnet must be UTF-8 encoded */
+	magnet_set_display_name(magnet,
+		lazy_filename_to_utf8_normalized(filepath_basename(fi->pathname),
+			UNI_NORM_NETWORK));
+
 	if (fi->sha1) {
 		magnet_set_sha1(magnet, fi->sha1);
 	}

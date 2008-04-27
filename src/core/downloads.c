@@ -7034,8 +7034,10 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 	if (d->file_info->tth) {
 		if (!tth_eq(&tth, d->file_info->tth)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_warning("X-Thex-URI causes TTH mismatch for %s from %s",
-					download_basename(d), download_host_info(d));
+				g_warning(
+				  "X-Thex-URI causes TTH (%s) mismatch for %s from %s: \"%s\"",
+					tth_base32(d->file_info->tth),
+					download_basename(d), download_host_info(d), uri_start);
 			}
 			return;
 		}
@@ -10238,18 +10240,14 @@ download_build_magnet(const struct download *d)
 	if (dl_url) {
 		struct magnet_resource *magnet;
 		const struct sha1 *sha1;
-		const char *parq_id, *name;
-		char *name_utf8;
+		const char *parq_id;
 	
 		magnet = magnet_resource_new();
 
 		/* The filename used for the magnet must be UTF-8 encoded */
-		name = filepath_basename(fi->pathname);
-		name_utf8 = filename_to_utf8_normalized(name, UNI_NORM_NETWORK);
-		magnet_set_display_name(magnet, name_utf8);
-		if (name_utf8 != name) {
-			G_FREE_NULL(name_utf8);
-		}
+		magnet_set_display_name(magnet,
+			lazy_filename_to_utf8_normalized(filepath_basename(fi->pathname),
+				UNI_NORM_NETWORK));
 
 		sha1 = download_get_sha1(d);
 		if (sha1 && d->uri) {
