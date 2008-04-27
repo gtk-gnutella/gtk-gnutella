@@ -7051,8 +7051,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		d->file_info->tth &&
 		0 == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & d->flags) &&
 		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
-		0 == d->file_info->tigertree.num_leaves &&
-		tt_good_depth(download_filesize(d)) > 0
+		tt_good_depth(download_filesize(d)) > tt_depth(d->file_info->tigertree.num_leaves)
 	) {
 		guint32 cflags = 0;
 		gnet_host_vec_t *proxies;
@@ -10239,10 +10238,19 @@ download_build_magnet(const struct download *d)
 	if (dl_url) {
 		struct magnet_resource *magnet;
 		const struct sha1 *sha1;
-		const gchar *parq_id;
+		const char *parq_id, *name;
+		char *name_utf8;
 	
 		magnet = magnet_resource_new();
-		magnet_set_display_name(magnet, filepath_basename(fi->pathname));
+
+		/* The filename used for the magnet must be UTF-8 encoded */
+		name = filepath_basename(fi->pathname);
+		name_utf8 = filename_to_utf8_normalized(name, UNI_NORM_NETWORK);
+		magnet_set_display_name(magnet, name_utf8);
+		if (name_utf8 != name) {
+			G_FREE_NULL(name_utf8);
+		}
+
 		sha1 = download_get_sha1(d);
 		if (sha1 && d->uri) {
 			/* Don't set for N2R URLs, the SHA-1 can be derived from it */
