@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15267 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15268 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -2504,7 +2504,7 @@ filename_to_ui_string(const gchar *src)
 	g_assert(src);
 
 	name_utf8 = filename_to_utf8_normalized(src, UNI_NORM_GUI);
-	if (ui_uses_utf8_encoding()) {
+	if (ui_uses_utf8_encoding() || locale_is_utf8()) {
 		return name_utf8;
 	} else {
 		char *name_locale;
