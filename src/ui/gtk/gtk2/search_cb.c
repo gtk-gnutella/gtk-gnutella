@@ -144,6 +144,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	g_return_if_fail(widget);
 
 	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+	g_return_if_fail(txt);
 	
 	/*
 	 * Character set detection usually fails here because XML
@@ -163,18 +164,20 @@ search_set_xml(GtkWidget *widget, const char *xml)
 }
 
 /* Display Bitzi data for the result if any */
-static void
-search_set_bitzi_metadata(const record_t *rc)
+void
+search_gui_set_bitzi_metadata(const record_t *rc)
 {
-	const char *xml;
+	const char *xml = NULL;
 
-	if (rc && NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
-		xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
-		if (!xml) {
-			xml = _("Not in database");
+	if (rc) {
+		record_check(rc);
+
+		if (NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
+			xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
+			if (!xml) {
+				xml = _("Not in database");
+			}
 		}
-	} else {
-		xml = NULL;
 	}
 	search_set_xml(gui_main_window_lookup("textview_result_info_bitzi"), xml);
 }
@@ -228,7 +231,7 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
 	g_object_thaw_notify(G_OBJECT(treeview_search_details));
 	search_set_xml_metadata(rc);
-	search_set_bitzi_metadata(rc);
+	search_gui_set_bitzi_metadata(rc);
 }
 
 static void
@@ -310,9 +313,9 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
     gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
-	if (bitzi_debug)
+	if (bitzi_debug) {
 		g_message("on_search_meta_data_active: called");
-
+	}
 	search_gui_request_bitzi_data(search_gui_get_current_search());
 }
 

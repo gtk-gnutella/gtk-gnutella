@@ -189,7 +189,9 @@ void search_gui_download(record_t *);
 const char *search_gui_nice_size(const record_t *);
 const char *search_gui_get_vendor(const struct results_set *);
 
+gboolean search_gui_item_is_inspected(const record_t *);
 void search_gui_set_details(const record_t *);
+void search_gui_set_bitzi_metadata(const record_t *);
 void search_gui_clear_details(void);
 void search_gui_append_detail(const char *title, const char *value);
 const char *search_new_error_to_string(enum search_new_result);

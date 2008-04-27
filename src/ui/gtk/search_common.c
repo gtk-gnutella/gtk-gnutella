@@ -95,7 +95,7 @@ static GtkLabel *label_search_expiry;
 static gboolean store_searches_requested;
 static gboolean store_searches_disabled;
 
-#define TAB_UPDATE_TIME	5		/**< Update search tabs after 5 seconds */
+static record_t *search_details_record;
 
 /**
  * Human readable translation of servent trailer open flags.
@@ -3592,6 +3592,24 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 	return gm_string_finalize(gs);
 }
 
+gboolean
+search_gui_item_is_inspected(const record_t *rc)
+{
+	record_check(rc);
+
+	if (NULL == search_details_record || NULL == rc)
+		return FALSE;
+
+	record_check(search_details_record);
+
+	return rc == search_details_record ||
+		(
+		 	NULL != rc->sha1 &&
+			rc->sha1 == search_details_record->sha1 &&
+			rc->size == search_details_record->size
+		);
+}
+
 void
 search_gui_set_details(const record_t *rc)
 {
@@ -3599,11 +3617,19 @@ search_gui_set_details(const record_t *rc)
 
 	search_gui_clear_details();
 
+	if (search_details_record) {
+		search_gui_unref_record(search_details_record);
+		search_details_record = NULL;
+	}
+
 	if (NULL == rc)
 		return;
 
 	record_check(rc);
 	rs = rc->results_set;
+
+	search_details_record = deconstify_gpointer(rc);
+	search_gui_ref_record(search_details_record);
 
 	search_gui_append_detail(_("Filename"),
 		lazy_utf8_to_ui_string(rc->utf8_name));
@@ -4223,10 +4249,11 @@ search_gui_shutdown(void)
 	}
 	search_gui_option_menu_searches_thaw();
 
-	
 	/* Discard pending accumulated search results */
     search_gui_flush(tm_time(), TRUE);
 	slist_free(&accumulated_rs);
+
+	search_gui_set_details(NULL);
 
 	zdestroy(rs_zone);
 	rs_zone = NULL;

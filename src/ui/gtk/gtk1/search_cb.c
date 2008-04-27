@@ -117,8 +117,8 @@ search_set_xml_metadata(const record_t *rc)
 }
 
 /* Display Bitzi data for the result if any */
-static void
-search_set_bitzi_metadata(const record_t *rc)
+void
+search_gui_set_bitzi_metadata(const record_t *rc)
 {
 	const char *xml;
 
@@ -175,7 +175,7 @@ search_gui_refresh_details(const record_t *rc)
 	search_gui_set_details(rc);
     gtk_clist_thaw(clist_search_details);
 	search_set_xml_metadata(rc);
-	search_set_bitzi_metadata(rc);
+	search_gui_set_bitzi_metadata(rc);
 }
 
 record_t *

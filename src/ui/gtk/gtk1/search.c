@@ -1912,9 +1912,18 @@ search_gui_metadata_update(const bitzi_data_t *data)
     	GtkCTreeNode *parent;
 
 		parent = find_parent_with_sha1(search, data->sha1);
-		if (parent)
+		if (parent) {
+			gui_record_t *grc;
+			record_t *record;
+
 			gtk_ctree_node_set_text(ctree, parent,
 					c_sr_meta, text ? text : _("Not in database"));
+			grc = gtk_ctree_node_get_row_data(ctree, parent);
+			record = grc->shared_record;
+			if (search_gui_item_is_inspected(record)) {
+				search_gui_set_bitzi_metadata(record);
+			}
+		}
 	}
 
 	G_FREE_NULL(text);

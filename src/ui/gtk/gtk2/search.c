@@ -1547,6 +1547,9 @@ search_gui_metadata_update(const bitzi_data_t *data)
 			GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
 			atom_str_change(&rd->meta, text ? text : _("Not in database"));
 			search_gui_data_changed(gtk_tree_view_get_model(tv), rd);
+			if (search_gui_item_is_inspected(rd->record)) {
+				search_gui_set_bitzi_metadata(rd->record);
+			}
 		}
 	}
 
