@@ -60,7 +60,7 @@ RCSID("$Id$")
 #include "lib/override.h"	/* Must be the last header included */
 
 #define THEX_DOWNLOAD_DEFAULT_SIZE	4096	/* Default data buffer size */
-#define THEX_DOWNLOAD_MAX_SIZE		(64 * 1024)
+#define THEX_DOWNLOAD_MAX_SIZE		(256 * 1024)	/* 256 KiB */
 
 struct thex_download {
 	gpointer owner;					/**< Download owning us */
