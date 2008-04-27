@@ -192,28 +192,39 @@ search_set_xml_metadata(const record_t *rc)
 	search_set_xml(gui_main_window_lookup("textview_result_info_xml"), rc->xml);
 }
 
-static GtkTreeView *treeview_search_details;
+static GtkTreeView *
+search_gui_treeview_search_details(void)
+{
+	static GtkTreeView *tv;
+
+	if (NULL == tv) {
+		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_details"));
+	}
+	return tv;
+}
 
 void
 search_gui_clear_details(void)
 {
-	GtkTreeModel *model;
+	GtkTreeView *tv;
 
-	g_return_if_fail(treeview_search_details);
+	tv = search_gui_treeview_search_details();
+	g_return_if_fail(tv);
 
-	model = gtk_tree_view_get_model(treeview_search_details);
-	gtk_list_store_clear(GTK_LIST_STORE(model));
+	gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(tv)));
 }
 
 void
 search_gui_append_detail(const gchar *title, const gchar *value)
 {
 	GtkTreeModel *model;
+	GtkTreeView *tv;
 	GtkTreeIter iter;
 
-	g_return_if_fail(treeview_search_details);
+	tv = search_gui_treeview_search_details();
+	g_return_if_fail(tv);
 
-	model = gtk_tree_view_get_model(treeview_search_details);
+	model = gtk_tree_view_get_model(tv);
 	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
 }
@@ -221,15 +232,14 @@ search_gui_append_detail(const gchar *title, const gchar *value)
 static void
 search_gui_refresh_details(const record_t *rc)
 {
-	if (NULL == treeview_search_details) {
-		static const gchar name[] = "treeview_search_details";
-		treeview_search_details = GTK_TREE_VIEW(gui_main_window_lookup(name));
-	}
-	g_return_if_fail(treeview_search_details);
+	GtkTreeView *tv;
 
-	g_object_freeze_notify(G_OBJECT(treeview_search_details));
+	tv = search_gui_treeview_search_details();
+	g_return_if_fail(tv);
+
+	g_object_freeze_notify(G_OBJECT(tv));
 	search_gui_set_details(rc);
-	g_object_thaw_notify(G_OBJECT(treeview_search_details));
+	g_object_thaw_notify(G_OBJECT(tv));
 	search_set_xml_metadata(rc);
 	search_gui_set_bitzi_metadata(rc);
 }
