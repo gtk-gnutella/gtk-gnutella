@@ -360,7 +360,7 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 {
 	gboolean success = FALSE;
 	size_t n_nodes, n_leaves, n, start;
-	unsigned good_depth, min_depth;
+	unsigned good_depth;
 	const struct tth *leaves;
 	struct tth tth;
 
@@ -395,7 +395,6 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 
 	/* Shareaza use a fixed depth of 9, allow one level less like others */
 	good_depth = tt_good_depth(ctx->filesize);
-	min_depth = good_depth - (good_depth > 0);
 
 	ctx->depth = MIN(ctx->depth, good_depth);
 	if (n_nodes < n_leaves * 2 - 1) {
@@ -412,12 +411,11 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 		n_leaves = tt_node_count_at_depth(ctx->filesize, ctx->depth);
 	}
 
-	if (ctx->depth < min_depth) {
+	if (ctx->depth < good_depth) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_message("Tree depth (%u) is below the acceptable depth (%u)",
-				ctx->depth, min_depth);
+			g_message("Tree depth (%u) is below the good depth (%u)",
+				ctx->depth, good_depth);
 		}
-		goto finish;
 	}
 
 	start = 0;
