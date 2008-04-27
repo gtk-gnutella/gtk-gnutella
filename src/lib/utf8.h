@@ -338,8 +338,9 @@ const gchar *lazy_locale_to_ui_string2(const gchar *src);
 
 const gchar *lazy_filename_to_ui_string(const gchar *src);
 
-const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t norm);
-const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
+const gchar *lazy_filename_to_utf8_normalized(const gchar *str, uni_norm_t);
+const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t);
+const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t,
 				const gchar **charset_ptr);
 
 const gchar *lazy_unknown_to_ui_string(const gchar *src);

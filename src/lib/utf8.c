@@ -1565,7 +1565,7 @@ locale_init(void)
 	 * Skip utf8_regression_checks() if the current revision is known
 	 * to be alright.
 	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15268 ")) {
+	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15269 ")) {
 		utf8_regression_checks();
 	}
 #endif	/* !OFFICIAL_BUILD */
@@ -2569,6 +2569,8 @@ LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
 LAZY_CONVERT(filename_to_ui_string, (const gchar *src), (src))
+LAZY_CONVERT(filename_to_utf8_normalized,
+		(const gchar *src, uni_norm_t norm), (src, norm))
 LAZY_CONVERT(unknown_to_ui_string, (const gchar *src), (src))
 
 /*
