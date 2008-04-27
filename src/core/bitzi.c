@@ -908,8 +908,8 @@ bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 {
 	bitzi_data_t *data;
 	
-	data = bitzi_query_by_sha1(sha1, filesize);
-	return data ? data->ticket : NULL;
+	data = bitzi_query_cache_by_sha1(sha1);
+	return data && (!filesize || data->size == filesize) ? data->ticket : NULL;
 }
 
 static void
