@@ -1207,7 +1207,6 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 	if (*ctx_ptr) {
 		struct recursive_scan *ctx = *ctx_ptr;
 
-		g_message("%s", __func__);
 		recursive_scan_check(ctx);
 
 		if (ctx->task) {
