@@ -199,6 +199,16 @@ verify_failure(struct verify *ctx)
 }
 
 static void
+verify_shutdown(struct verify *ctx)
+{
+	verify_check(ctx);
+
+	ctx->status = VERIFY_SHUTDOWN;
+	(void) ctx->callback(ctx, ctx->status, ctx->user_data);
+	ctx->status = VERIFY_INVALID;
+}
+
+static void
 verify_done(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -304,6 +314,9 @@ verify_free(struct verify **ptr)
 		if (ctx->task) {
 			bg_task_cancel(ctx->task);
 			ctx->task = NULL;
+		}
+		if (VERIFY_INVALID != ctx->status) {
+			verify_shutdown(ctx);
 		}
 		if (ctx->files_to_hash) {
 			struct verify_file *item;
