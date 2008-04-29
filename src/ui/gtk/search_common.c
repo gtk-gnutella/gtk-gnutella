@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
+#include "lib/mime_type.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -3634,6 +3635,8 @@ search_gui_set_details(const record_t *rc)
 		lazy_utf8_to_ui_string(rc->utf8_name));
 	search_gui_append_detail(_("Extension"), rc->ext);
 	search_gui_append_detail(_("Size"), search_gui_nice_size(rc));
+	search_gui_append_detail(_("MIME type"),
+		mime_type_to_string(mime_type_from_extension(rc->ext)));
 	search_gui_append_detail(_("SHA-1"),
 		rc->sha1 ? sha1_to_urn_string(rc->sha1) : NULL);
 	search_gui_append_detail(_("TTH"),
