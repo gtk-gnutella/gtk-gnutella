@@ -72,7 +72,6 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 			n = MIN(n, sizeof host_buf);
 			g_strlcpy(host_buf, host, n);
 			host = host_buf;
-			g_message("host=\"%s\"", host);
 			port_str = endptr;
 		}
 		break;
