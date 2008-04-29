@@ -89,8 +89,6 @@ struct query_hashvec;
 void share_init(void);
 void share_close(void);
 
-const gchar *share_mime_type(enum mime_type type);
-
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_by_name(const gchar *filename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
@@ -126,7 +124,7 @@ size_t shared_file_name_nfc_len(const shared_file_t *sf);
 size_t shared_file_name_canonic_len(const shared_file_t *sf);
 guint32 shared_file_flags(const shared_file_t *sf);
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
-const gchar *shared_file_content_type(const shared_file_t *sf);
+const gchar *shared_file_mime_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 
 void shared_files_match(const gchar *search_term,

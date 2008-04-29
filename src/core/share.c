@@ -1807,7 +1807,7 @@ shared_file_fileinfo(const shared_file_t *sf)
 }
 
 const gchar *
-shared_file_content_type(const shared_file_t *sf)
+shared_file_mime_type(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return mime_type_to_string(sf->mime_type);

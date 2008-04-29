@@ -1367,7 +1367,7 @@ upload_http_content_type_add(gchar *buf, size_t size,
 
 	shared_file_check(u->sf);
 	len = concat_strings(buf, size,
-			"Content-Type: ", shared_file_content_type(u->sf), "\r\n",
+			"Content-Type: ", shared_file_mime_type(u->sf), "\r\n",
 			(void *) 0);
 	return len < size ? len : 0;
 }
