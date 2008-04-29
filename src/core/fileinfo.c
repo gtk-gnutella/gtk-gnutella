@@ -1510,7 +1510,6 @@ fi_tigertree_check(fileinfo_t *fi)
 {
 	if (fi->tigertree.leaves) {
 		unsigned depth;
-		size_t num_leaves;
 		struct tth root;
 
 		if (NULL == fi->tth) {
