@@ -53,9 +53,10 @@
 #include "if/core/sockets.h"
 
 #include "lib/atoms.h"
-#include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/mime_type.h"
+#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
@@ -212,6 +213,9 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_sr_ext:
 		text = data->record->ext;
+		break;
+	case c_sr_mime:
+		text = mime_type_to_string(mime_type_from_extension(data->record->ext));
 		break;
 	case c_sr_meta:
 		text = data->meta;
@@ -721,6 +725,16 @@ search_gui_cmp_ext(const struct result_data *a, const struct result_data *b)
 }
 
 static int
+search_gui_cmp_mime(const struct result_data *a, const struct result_data *b)
+{
+	enum mime_type mt_a, mt_b;
+
+	mt_a = mime_type_from_extension(a->record->ext);
+	mt_b = mime_type_from_extension(b->record->ext);
+	return CMP(mt_a, mt_b);
+}
+
+static int
 search_gui_cmp_meta(const struct result_data *a, const struct result_data *b)
 {
 	return search_gui_cmp_strings(a->meta, b->meta);
@@ -810,6 +824,7 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 	switch (column) {
 	case c_sr_filename: ret = search_gui_cmp_filename(a, b); break;
 	case c_sr_ext:		ret = search_gui_cmp_ext(a, b); break;
+	case c_sr_mime:		ret = search_gui_cmp_mime(a, b); break;
 	case c_sr_meta:		ret = search_gui_cmp_meta(a, b); break;
 	case c_sr_vendor:	ret = search_gui_cmp_vendor(a, b); break;
 	case c_sr_info:		ret = search_gui_cmp_info(a, b); break;

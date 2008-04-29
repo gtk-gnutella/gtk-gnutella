@@ -136,6 +136,7 @@ enum c_sr_columns {
 	c_sr_ext,
     c_sr_charset,
     c_sr_size,
+	c_sr_mime,
 	c_sr_count,
     c_sr_loc,
     c_sr_meta,	/**< meta-data info column */

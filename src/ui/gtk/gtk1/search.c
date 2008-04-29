@@ -59,12 +59,14 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/mime_type.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static gchar tmpstr[4096];
@@ -319,6 +321,17 @@ search_gui_compare_records(gint sort_col,
         case c_sr_ext:
             result = strcmp(EMPTY_STRING(r1->ext), EMPTY_STRING(r2->ext));
             break;
+
+		
+        case c_sr_mime:
+			{
+				enum mime_type mt1, mt2;
+
+				mt1 = mime_type_from_extension(r1->ext);
+				mt2 = mime_type_from_extension(r2->ext);
+				result = CMP(mt1, mt2);
+			}
+			break;
 
         case c_sr_charset:
             result = strcmp(EMPTY_STRING(r1->charset),
@@ -1006,6 +1019,9 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				break;
 	 		case c_sr_ext:
 				text = rc->ext;
+				break;
+			case c_sr_mime:
+				text = mime_type_to_string(mime_type_from_extension(rc->ext));
 				break;
 			case c_sr_charset:
 				if (!(ST_LOCAL & rs->status))
