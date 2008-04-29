@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "if/bridge/c2ui.h"
 
 #include "lib/atoms.h"
+#include "lib/bg.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/hashlist.h"
@@ -134,6 +135,8 @@ static GSList *shared_files = NULL;
 static struct shared_file **file_table = NULL;
 static search_table_t *search_table;
 static GHashTable *file_basenames = NULL;
+
+static struct recursive_scan *recursive_scan_context;
 
 /**
  * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
@@ -1028,9 +1031,9 @@ share_scan_add_file(const gchar *relative_path,
 	g_assert(name && G_DIR_SEPARATOR == name[0]);
 	name++;						/* Start of file name */
 
-	if (GNET_PROPERTY(share_debug) > 5)
-		g_message("recurse_scan: pathname=\"%s\"", pathname);
-
+	if (GNET_PROPERTY(share_debug) > 5) {
+		g_message("share_scan_add_file: pathname=\"%s\"", pathname);
+	}
 	sf = shared_file_alloc();
 	sf->file_path = atom_str_get(pathname);
 	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
@@ -1136,182 +1139,120 @@ directory_is_unshareable(const char *dir)
 	return FALSE;	/* No objection */
 }
 
-/**
- * The directories that are given as shared will be completly transversed
- * including all files and directories. An entry of "/" would search the
- * the whole file system.
- *
- * @param basedir The top-level directory to scan.
- * @param dir The current directory to scan recursively; either the same as
- *			  base_dir or a sub-directory thereof.
- */
-static void
-recurse_scan_intern(const gchar * const base_dir, const gchar * const dir)
+#define RECURSE_MS_PER_STEP	50	/**< Max. time to spent (in milliseconds) */
+#define RECURSE_RUNS_PER_STEP 250 /**< Upper limit; guard against bad clock */
+
+enum recursive_scan_magic { RECURSIVE_SCAN_MAGIC = 0x16926d87U };
+
+struct recursive_scan {
+	enum recursive_scan_magic magic;	/**< Magic number. */
+	struct bgtask *task;
+	DIR *directory;
+	const char *base_dir;		/* string atom */
+	const char *current_dir;	/* string atom */
+	const char *relative_path;	/* string atom */
+	slist_t *base_dirs;			/* list of string atoms */
+	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
+	slist_t *shared_files;		/* list of struct shared_file */
+};
+
+static inline void
+recursive_scan_check(const struct recursive_scan * const ctx)
 {
-	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
-	struct dirent *dir_entry;
-	GSList *directories = NULL;
-	const gchar *dir_name;
-	tm_t start;
+	g_assert(ctx);
+	g_assert(RECURSIVE_SCAN_MAGIC == ctx->magic);
+	g_assert(ctx->base_dirs);
+	g_assert(ctx->sub_dirs);
+	g_assert(ctx->shared_files);
+}
 
-	tm_now_exact(&start);
+static struct recursive_scan *
+recursive_scan_new(const GSList *base_dirs)
+{
+	static const struct recursive_scan zero_ctx;
+	struct recursive_scan *ctx;
+	const GSList *iter;
 
-	g_return_if_fail('\0' != dir[0]);
-	g_return_if_fail(is_absolute_path(base_dir));
-	g_return_if_fail(is_absolute_path(dir));
-
-	if (directory_is_unshareable(dir))
-		return;
-
-	if (!(directory = opendir(dir))) {
-		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
-		return;
+	ctx = walloc(sizeof *ctx);
+	*ctx = zero_ctx;
+	ctx->magic = RECURSIVE_SCAN_MAGIC;
+	ctx->base_dirs = slist_new();
+	ctx->sub_dirs = slist_new();
+	ctx->shared_files = slist_new();
+	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
+		const char *dir = atom_str_get(iter->data);
+		slist_append(ctx->base_dirs, deconstify_gchar(dir));
 	}
+	return ctx;
+}
 
-	/* Get relative path if required */
-	if (GNET_PROPERTY(search_results_expose_relative_paths)) {
-		dir_name = get_relative_path(base_dir, dir);
-	} else {
-		dir_name = NULL;
-	}
+static void
+recursive_scan_closedir(struct recursive_scan *ctx)
+{
+	recursive_scan_check(ctx);
 
-	while ((dir_entry = readdir(directory))) {
-		gchar *fullpath;
-		struct stat sb;
-
-		if (dir_entry->d_name[0] == '.') {
-			/* Hidden file, or "." or ".." */
-			continue;
-		}
-
-		sb.st_mode = dir_entry_mode(dir_entry);
-		if (
-			S_ISLNK(sb.st_mode) &&
-			GNET_PROPERTY(scan_ignore_symlink_dirs) &&
-			GNET_PROPERTY(scan_ignore_symlink_regfiles)
-		) {
-			continue;
-		}
-
-		if (
-			S_ISREG(sb.st_mode) &&
-			!shared_file_valid_extension(dir_entry->d_name)
-		) {
-			continue;
-		}
-
-		fullpath = make_pathname(dir, dir_entry->d_name);
-		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
-			if (stat(fullpath, &sb)) {
-				g_warning("stat() failed %s: %s", fullpath, g_strerror(errno));
-				goto next;
-			}
-		} else if (!S_ISLNK(sb.st_mode)) {
-			if (lstat(fullpath, &sb)) {
-				g_warning("lstat() failed %s: %s", fullpath, g_strerror(errno));
-				goto next;
-			}
-
-			if (
-				S_ISLNK(sb.st_mode) &&
-				GNET_PROPERTY(scan_ignore_symlink_dirs) &&
-				GNET_PROPERTY(scan_ignore_symlink_regfiles)
-			) {
-				/* We check this again because dir_entry_mode() does not
-				 * work everywhere. */
-				goto next;
-			}
-		}
-
-		/* Get info on the symlinked file */
-		if (S_ISLNK(sb.st_mode)) {
-			if (stat(fullpath, &sb)) {
-				g_warning("Broken symlink %s: %s",
-					fullpath, g_strerror(errno));
-				goto next;
-			}
-			
-			/*
-			 * For symlinks, we check whether we are supposed to process
-			 * symlinks for that type of entry, then either proceed or skip the
-			 * entry.
-			 */
-
-			if (
-				S_ISDIR(sb.st_mode) &&
-				GNET_PROPERTY(scan_ignore_symlink_dirs)
-			)
-				goto next;
-			if (
-				S_ISREG(sb.st_mode) &&
-				GNET_PROPERTY(scan_ignore_symlink_regfiles)
-			)
-				goto next;
-		}
-		
-		if (S_ISDIR(sb.st_mode)) {
-			/* If a directory, add to list for later processing */
-			directories = g_slist_prepend(directories, fullpath);
-			fullpath = NULL;
-		} else if (S_ISREG(sb.st_mode)) {
-			shared_file_t *sf;
-
-			sf = share_scan_add_file(dir_name, fullpath, &sb);
-			if (sf) {
-				files_scanned++;
-				bytes_scanned += sf->file_size; 
-				st_insert_item(search_table, sf->name_canonic, sf);
-				shared_files = g_slist_prepend(shared_files,
-									shared_file_ref(sf));
-			}
-		}
-
-	next:
-		G_FREE_NULL(fullpath);
-
-		/*
-		 * gcu_gtk_main_flush() processes all pending GUI events.
-		 * I'm setting it to trigger anytime the elapsed exceeds 50ms.
-	     * This should keep the GUI responsive, even if we hit a 
-		 * directory with a large number of files to process.
-         */
-
-		{
-			tm_t current, elapsed;
-
-			tm_now_exact(&current);
-			tm_elapsed(&elapsed, &current, &start);
-			if (tm2ms(&elapsed) > 49) {
-				start = current;
-				gcu_gtk_main_flush();
-			}
-		}
-	}
- 
-	gcu_gui_update_files_scanned();	/* Interim view */
-	/* Execute this at least once per directory processed */
-	gcu_gtk_main_flush();
-
-	atom_str_free_null(&dir_name);
-	closedir(directory);
-	directory = NULL;
-
-	if (directories) {
-		GSList *sl;
-
-		for (sl = directories; sl; sl = g_slist_next(sl)) {
-			recurse_scan_intern(base_dir, sl->data);
-			G_FREE_NULL(sl->data);
-		}
-		g_slist_free(directories);
-		directories = NULL;
+	atom_str_free_null(&ctx->relative_path);
+	atom_str_free_null(&ctx->current_dir);
+	if (ctx->directory) {
+		closedir(ctx->directory);
+		ctx->directory = NULL;
 	}
 }
 
 static void
-recurse_scan(const gchar *base_dir)
+recursive_scan_free(struct recursive_scan **ctx_ptr)
 {
-	recurse_scan_intern(base_dir, base_dir);
+	g_assert(ctx_ptr);
+
+	if (*ctx_ptr) {
+		struct recursive_scan *ctx = *ctx_ptr;
+
+		g_message("%s", __func__);
+		recursive_scan_check(ctx);
+
+		if (ctx->task) {
+			bg_task_cancel(ctx->task);
+			g_assert(NULL == ctx->task);
+		}
+
+		recursive_scan_closedir(ctx);
+
+		while (slist_length(ctx->base_dirs) > 0) {
+			const char *dir = slist_shift(ctx->base_dirs);
+			atom_str_free(dir);
+		}
+		slist_free(&ctx->base_dirs);
+
+		while (slist_length(ctx->sub_dirs) > 0) {
+			char *dir = slist_shift(ctx->sub_dirs);
+			G_FREE_NULL(dir);
+		}
+		slist_free(&ctx->sub_dirs);
+
+		while (slist_length(ctx->shared_files) > 0) {
+			struct shared_file *sf = slist_shift(ctx->shared_files);
+			shared_file_check(sf);
+			shared_file_unref(&sf);
+		}
+		slist_free(&ctx->shared_files);
+
+		atom_str_free_null(&ctx->base_dir);
+
+		ctx->magic = 0;
+		wfree(ctx, sizeof *ctx);
+		*ctx_ptr = NULL;
+	}
+}
+
+static void
+recursive_scan_context_free(void *data)
+{
+	struct recursive_scan *ctx = data;
+	
+	recursive_scan_check(ctx);
+
+	/* If we're called, the task is being terminated */
+	ctx->task = NULL;
 }
 
 /**
@@ -1362,79 +1303,56 @@ shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
 }
 
 /**
- * Perform scanning of the shared directories to build up the list of
- * shared files.
+ * NOTE: This step is a rather big atomic block. Ideally, it should be broken
+ * down in smaller steps to avoid temporary unresponsiveness. However, compared
+ * to the time it takes to scan files, especially on slower disks, this
+ * finishing step is neglible even for thousands of shared files.
  */
-void
-share_scan(void)
+static void
+recursive_scan_finish(struct recursive_scan *ctx)
 {
-	GSList *dirs;
 	GSList *sl;
-	guint32 i;
-	static gboolean in_share_scan = FALSE;
-	time_t started;
-	glong elapsed;
+	time_delta_t elapsed;
+	size_t i;
+
+	recursive_scan_check(ctx);
 
 	/*
-	 * We normally disable the "Rescan" button, so we should not enter here
-	 * twice.  Nonetheless, the events can be stacked, and since we call
-	 * the main loop whilst scanning, we could re-enter here.
-	 *
-	 *		--RAM, 05/06/2002 (added after the above indeed happened)
+	 * Done scanning for the files. Now process them.
 	 */
 
-	if (in_share_scan)
-		return;
-	else
-		in_share_scan = TRUE;
-
-	started = tm_time();
-
-	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, started);
-
-	files_scanned = 0;
-	bytes_scanned = 0;
+	elapsed = delta_time(tm_time_exact(),
+				GNET_PROPERTY(library_rescan_started));
+	elapsed = MAX(0, elapsed);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
 
 	reinit_sha1_table();
 	share_free();
 
 	g_assert(file_basenames == NULL);
+	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	g_assert(search_table);
 	st_create(search_table);
-	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
 
-	/*
-	 * Clone the `shared_dirs' list so that we don't behave strangely
-	 * should they update the list of shared directories in the GUI
-	 * whilst we're recursing!
-	 *		--RAM, 30/01/2003
-	 */
+	files_scanned = slist_length(ctx->shared_files);
+	bytes_scanned = 0;
 
-	for (dirs = NULL, sl = shared_dirs; sl; sl = g_slist_next(sl))
-		dirs = g_slist_prepend(dirs, deconstify_gchar(atom_str_get(sl->data)));
+	g_assert(shared_files == NULL);
 
-	dirs = g_slist_reverse(dirs);
+	while (slist_length(ctx->shared_files) > 0) {
+		struct shared_file *sf = slist_shift(ctx->shared_files);
 
-	/* Recurse on the cloned list... */
-	for (sl = dirs; sl; sl = g_slist_next(sl)) {
-		const gchar *path = sl->data;
-		/* ...since this updates the GUI! */
-		recurse_scan(path);
-		atom_str_free_null(&path);
+		shared_file_check(sf);
+		bytes_scanned += sf->file_size;
+		st_insert_item(search_table, sf->name_canonic, sf);
+		shared_files = g_slist_prepend(shared_files, sf);
 	}
-	g_slist_free(dirs);
-	dirs = NULL;
 
-	/*
-	 * Done scanning for the files. Now process them.
-	 */
-	
 	/* Compact the search table */
 	st_compact(search_table);
 
-	g_assert(files_scanned == g_slist_length(shared_files));
 	file_table = g_malloc0((files_scanned + 1) * sizeof *file_table);
 
 	/*
@@ -1468,6 +1386,8 @@ share_scan(void)
 	for (i = 0; i < files_scanned; i++) {
 		struct shared_file *sf;
 		guint val;
+
+		/* FIXME: Must be handled in the background */
 
 	   	sf = file_table[i];
 		if (!sf)
@@ -1505,23 +1425,14 @@ share_scan(void)
 		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
 			GUINT_TO_POINTER(val));
 		sf->flags |= SHARE_F_BASENAME;
-
-		if (0 == (i & 0x7ff))
-			gcu_gtk_main_flush();
 	}
 	gcu_gui_update_files_scanned();		/* Final view */
-
-	elapsed = delta_time(tm_time(), started);
-	elapsed = MAX(0, elapsed);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
-	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
 
 	/*
 	 * Query routing table update.
 	 */
 
-	started = tm_time();
-	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, started);
+	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, tm_time_exact());
 
 	qrp_prepare_computation();
 
@@ -1529,20 +1440,237 @@ share_scan(void)
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		struct shared_file *sf = sl->data;
 
+		/* FIXME: Must be handled in the background */
 		shared_file_check(sf);
 		qrp_add_file(sf);
-		if (0 == (i++ & 0x7ff))
-			gcu_gtk_main_flush();
 	}
 
 	qrp_finalize_computation();
 
-	elapsed = delta_time(tm_time(), started);
+	elapsed = delta_time(tm_time(), GNET_PROPERTY(qrp_indexing_started));
 	elapsed = MAX(0, elapsed);
 	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
 
-	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
+}
+
+static void
+recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
+{
+	recursive_scan_check(ctx);
+	g_assert(NULL == ctx->directory);
+	g_assert(NULL == ctx->relative_path);
+	g_assert(NULL == ctx->current_dir);
+
+	g_return_if_fail('\0' != dir[0]);
+	g_return_if_fail(is_absolute_path(ctx->base_dir));
+	g_return_if_fail(is_absolute_path(dir));
+
+	if (directory_is_unshareable(dir))
+		return;
+
+	if (!(ctx->directory = opendir(dir))) {
+		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
+		return;
+	}
+
+	/* Get relative path if required */
+	if (GNET_PROPERTY(search_results_expose_relative_paths)) {
+		ctx->relative_path = get_relative_path(ctx->base_dir, dir);
+	} else {
+		ctx->relative_path = NULL;
+	}
+	ctx->current_dir = atom_str_get(dir);
+}
+
+static void
+recursive_scan_readdir(struct recursive_scan *ctx)
+{
+	char *fullpath = NULL;
+	struct dirent *dir_entry;
+
+	recursive_scan_check(ctx);
+	g_assert(ctx->directory);
+
+	dir_entry = readdir(ctx->directory);
+	if (dir_entry) {
+		struct stat sb;
+
+		if (dir_entry->d_name[0] == '.') {
+			/* Hidden file, or "." or ".." */
+			goto finish;
+		}
+
+		sb.st_mode = dir_entry_mode(dir_entry);
+		if (
+			S_ISLNK(sb.st_mode) &&
+			GNET_PROPERTY(scan_ignore_symlink_dirs) &&
+			GNET_PROPERTY(scan_ignore_symlink_regfiles)
+		) {
+			goto finish;
+		}
+
+		if (
+			S_ISREG(sb.st_mode) &&
+			!shared_file_valid_extension(dir_entry->d_name)
+		) {
+			goto finish;
+		}
+
+		fullpath = make_pathname(ctx->current_dir, dir_entry->d_name);
+		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
+			if (stat(fullpath, &sb)) {
+				g_warning("stat() failed %s: %s", fullpath, g_strerror(errno));
+				goto finish;
+			}
+		} else if (!S_ISLNK(sb.st_mode)) {
+			if (lstat(fullpath, &sb)) {
+				g_warning("lstat() failed %s: %s", fullpath, g_strerror(errno));
+				goto finish;
+			}
+
+			if (
+				S_ISLNK(sb.st_mode) &&
+				GNET_PROPERTY(scan_ignore_symlink_dirs) &&
+				GNET_PROPERTY(scan_ignore_symlink_regfiles)
+			) {
+				/* We check this again because dir_entry_mode() does not
+				 * work everywhere. */
+				goto finish;
+			}
+		}
+
+		/* Get info on the symlinked file */
+		if (S_ISLNK(sb.st_mode)) {
+			if (stat(fullpath, &sb)) {
+				g_warning("Broken symlink %s: %s",
+					fullpath, g_strerror(errno));
+				goto finish;
+			}
+			
+			/*
+			 * For symlinks, we check whether we are supposed to process
+			 * symlinks for that type of entry, then either proceed or skip the
+			 * entry.
+			 */
+
+			if (
+				S_ISDIR(sb.st_mode) &&
+				GNET_PROPERTY(scan_ignore_symlink_dirs)
+			)
+				goto finish;
+			if (
+				S_ISREG(sb.st_mode) &&
+				GNET_PROPERTY(scan_ignore_symlink_regfiles)
+			)
+				goto finish;
+		}
+		
+		if (S_ISDIR(sb.st_mode)) {
+			/* If a directory, add to list for later processing */
+			slist_prepend(ctx->sub_dirs, fullpath);
+			fullpath = NULL;
+		} else if (S_ISREG(sb.st_mode)) {
+			shared_file_t *sf;
+
+			sf = share_scan_add_file(ctx->relative_path, fullpath, &sb);
+			if (sf) {
+				slist_append(ctx->shared_files, shared_file_ref(sf));
+			}
+		}
+	} else {
+		recursive_scan_closedir(ctx);
+	}
+
+finish:
+	G_FREE_NULL(fullpath);
+}
+
+/**
+ * @return TRUE if finished.
+ */
+static gboolean 
+recursive_scan_next_dir(struct recursive_scan *ctx)
+{
+	recursive_scan_check(ctx);
+
+	if (ctx->directory) {
+		recursive_scan_readdir(ctx);
+		return FALSE;
+	} else if (slist_length(ctx->sub_dirs) > 0) {
+		char *dir;
+	   
+		dir = slist_shift(ctx->sub_dirs);
+		recursive_scan_opendir(ctx, dir);
+		G_FREE_NULL(dir);
+		return FALSE;
+	} else if (slist_length(ctx->base_dirs) > 0) {
+		atom_str_free_null(&ctx->base_dir);
+		ctx->base_dir = slist_shift(ctx->base_dirs);
+		recursive_scan_opendir(ctx, ctx->base_dir);
+		return FALSE;
+	} else {
+		atom_str_free_null(&ctx->base_dir);
+		return TRUE;
+	}
+}
+
+static bgret_t
+recursive_scan_step_compute(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	unsigned i = 0;
+	tm_t t0;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	bg_task_ticks_used(bt, 0);
+	tm_now_exact(&t0);
+
+	do {
+		tm_t t1, elapsed;
+
+		if (recursive_scan_next_dir(ctx)) {
+			recursive_scan_finish(ctx);
+			return BGR_DONE;
+		}
+		tm_now_exact(&t1);
+		tm_elapsed(&elapsed, &t1, &t0);
+		if (tm2ms(&elapsed) > RECURSE_MS_PER_STEP)
+			break;
+	} while (++i < RECURSE_RUNS_PER_STEP);
+
+	return BGR_MORE;
+}
+
+static void
+recursive_scan_create_task(struct recursive_scan *ctx)
+{
+	recursive_scan_check(ctx);
+
+	if (NULL == ctx->task) {
+		static const bgstep_cb_t step[] = { recursive_scan_step_compute };
+
+		ctx->task = bg_task_create("recursive scan",
+							step, G_N_ELEMENTS(step),
+			  				ctx, recursive_scan_context_free,
+							NULL, NULL);
+	}
+}
+
+/**
+ * Perform scanning of the shared directories to build up the list of
+ * shared files.
+ */
+void
+share_scan(void)
+{
+	recursive_scan_free(&recursive_scan_context);
+	recursive_scan_context = recursive_scan_new(shared_dirs);
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_STARTED, tm_time_exact());
+	recursive_scan_create_task(recursive_scan_context);
 }
 
 /**
@@ -1577,6 +1705,7 @@ share_special_close(void)
 void
 share_close(void)
 {
+	recursive_scan_free(&recursive_scan_context);
 	share_special_close();
 	free_extensions();
 	share_free();
@@ -1742,7 +1871,7 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 
 	if (
 			sf->mtime != buf.st_mtime ||
-			sf->file_size != (filesize_t) buf.st_size
+			sf->file_size + (off_t) 0 != buf.st_size + (filesize_t) 0
 	) {
 		g_warning("shared file #%d \"%s\" changed, recomputing SHA1",
 			sf->file_index, sf->file_path);

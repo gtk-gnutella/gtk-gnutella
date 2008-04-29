@@ -31,6 +31,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
+#include "if/bridge/ui2c.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -44,16 +45,9 @@ shell_exec_rescan(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (GNET_PROPERTY(library_rebuilding)) {
-		shell_set_msg(sh, _("The library is currently being rebuilt."));
-		return REPLY_ERROR;
-	} else if (shell_request_library_rescan()) {
-		shell_set_msg(sh, _("A rescan has already been scheduled"));
-		return REPLY_ERROR;
-	} else {
-		shell_write(sh, "100-Scheduling library rescan\n");
-		return REPLY_READY;
-	}
+	guc_share_scan();
+	shell_write(sh, "100-Started library rescan\n");
+	return REPLY_READY;
 }
 
 const char *

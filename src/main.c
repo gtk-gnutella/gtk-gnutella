@@ -758,9 +758,7 @@ static gboolean
 scan_files_once(gpointer p)
 {
 	(void) p;
-	guc_allow_rescan_dir(FALSE);
 	share_scan();
-	guc_allow_rescan_dir(TRUE);
 
 	return FALSE;
 }

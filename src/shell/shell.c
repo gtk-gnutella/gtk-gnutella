@@ -30,11 +30,11 @@ RCSID("$Id$")
 #include "shell.h"
 #include "cmd.h"
 
+#include "core/pmsg.h"
 #include "core/settings.h"
 #include "core/sockets.h"
 #include "core/version.h"
 
-#include "if/bridge/ui2c.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/file.h"
@@ -51,14 +51,6 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static GSList *sl_shells;
-
-/*
- * guc_share_scan() causes dispatching of I/O events, so we must not call
- * it whilst in an event callback (all commands are) because if the shell
- * connection dies, the shell context will no longer be valid. Therefore,
- * we just record the request and call guc_share_scan() from shell_timer().
- */
-static gboolean library_rescan_requested;
 
 enum shell_magic {
 	SHELL_MAGIC = 0xb3f3e711U
@@ -199,14 +191,6 @@ shell_toggle_interactive(struct gnutella_shell *sh)
 		shell_write_welcome(sh);
 	}
 	return sh->interactive;
-}
-
-gboolean
-shell_request_library_rescan(void)
-{
-	gboolean previous = library_rescan_requested;
-	library_rescan_requested = TRUE;
-	return previous;
 }
 
 /**
@@ -861,11 +845,6 @@ shell_timer(time_t now)
 			shell_destroy(sh);
 		}
 		g_slist_free(to_remove);
-	}
-
-	if (library_rescan_requested) {
-		library_rescan_requested = FALSE;
-		guc_share_scan();	/* This can take several seconds */
 	}
 }
 

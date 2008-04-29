@@ -447,9 +447,7 @@ on_button_config_rescan_dir_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-	gui_allow_rescan_dir(FALSE);
 	guc_share_scan();
-	gui_allow_rescan_dir(TRUE);
 }
 
 
