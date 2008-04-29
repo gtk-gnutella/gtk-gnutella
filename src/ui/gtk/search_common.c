@@ -2434,6 +2434,7 @@ static gboolean
 search_gui_handle_local(const gchar *query, const gchar **error_str)
 {
 	gboolean success, rebuilding;
+	search_t *search;
 	const gchar *text;
 
 	clear_error_str(&error_str);
@@ -2442,25 +2443,23 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 	text = is_strcaseprefix(query, "local:");
 	g_return_val_if_fail(text, FALSE);
 
-    gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
+	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 	if (rebuilding) {
-		*error_str = _("The library is currently being rebuilt.");
-		success = FALSE;	
-	} else { 
-		search_t *search;
-
-		success = search_gui_new_search_full(text, tm_time(), 0, 0,
-			 		GUI_PROPERTY(search_sort_default_column),
-					GUI_PROPERTY(search_sort_default_order),
-			 		SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
-					&search);
-		if (success && search) {
-          	search_gui_start_massive_update(search);
-			success = guc_search_locally(search->search_handle, text);
-          	search_gui_end_massive_update(search);
-		}
-		*error_str = NULL;
+		statusbar_gui_message(5,
+			_("Still scanning for shared file, results may be inconclusive."));
 	}
+
+	success = search_gui_new_search_full(text, tm_time(), 0, 0,
+			GUI_PROPERTY(search_sort_default_column),
+			GUI_PROPERTY(search_sort_default_order),
+			SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
+			&search);
+	if (success && search) {
+		search_gui_start_massive_update(search);
+		success = guc_search_locally(search->search_handle, text);
+		search_gui_end_massive_update(search);
+	}
+	*error_str = NULL;
 
 	return success;
 }
