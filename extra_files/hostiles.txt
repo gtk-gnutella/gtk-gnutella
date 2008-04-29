@@ -899,7 +899,7 @@
 
 # MOV pr0n spam; giFt-based; fake LimeWire; xxx-marks dot com
 # Also mediaprovider.info; "Top of Charts" DRM WMA spam
-69.64.69.0/24
+#69.64.69.0/24
 64.40.113.0/24
 208.71.114.0/28
 
@@ -1214,7 +1214,9 @@
 # FrostWire
 66.187.104.6
 # Same as above but self-compiled LimeWire
-69.64.92.76
+#69.64.92.76
+#69.64.92.106/31
+
 
 # FDCservers.net range assigned to:
 # Guru Bilisim Hizmetleri
@@ -1241,7 +1243,7 @@
 #72.167.62.202
 #72.167.62.94
 
-# RAR/ZIP keygen/crack spam
+# RAR/ZIP keygen/crack spam; BearShare
 # Assigned to: David Posada, Toronto, Ontario, M6LMB7, CA
 #205.209.161.210
 
@@ -1259,4 +1261,6 @@
 72.167.0.0/17
 # Managed Solutions Group, Inc.; see above
 205.209.128.0/18
+# Abacus America Inc.; see above
+69.64.64.0/19
 
