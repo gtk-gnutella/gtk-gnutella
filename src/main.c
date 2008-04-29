@@ -107,6 +107,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
+#include "lib/mime_type.h"
 #include "lib/pattern.h"
 #include "lib/socket.h"
 #include "lib/tiger.h"
@@ -1319,6 +1320,7 @@ main(int argc, char **argv)
 	iso3166_init();
 	dbus_util_init();
 	vendor_init();
+	mime_type_init();
 
 	if (!running_topless) {
 		main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);

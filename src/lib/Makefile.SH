@@ -120,6 +120,7 @@ LSRC = \
 	list.c \
 	magnet.c \
 	malloc.c \
+	mime_type.c \
 	misc.c \
 	options.c \
 	pagetable.c \
@@ -182,6 +183,7 @@ LOBJ = \
 	list.o \
 	magnet.o \
 	malloc.o \
+	mime_type.o \
 	misc.o \
 	options.o \
 	pagetable.o \

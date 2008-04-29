@@ -43,6 +43,8 @@
 
 #include "matching.h"
 
+#include "lib/mime_type.h"
+
 #include "if/core/share.h"
 #include "if/core/fileinfo.h"
 
@@ -58,18 +60,6 @@ enum {
 	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
 	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
 	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
-};
-
-/**
- * Known MIME content types
- */
-
-enum share_mime_type {
-#define MIME_TYPE(id, name) id,
-#include "mime_types.h"
-#undef MIME_TYPE
-
-	SHARE_M_NUM
 };
 
 #define SHARE_REBUILDING shared_file_dummy()
@@ -99,7 +89,7 @@ struct query_hashvec;
 void share_init(void);
 void share_close(void);
 
-const gchar *share_mime_type(enum share_mime_type type);
+const gchar *share_mime_type(enum mime_type type);
 
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_by_name(const gchar *filename);
