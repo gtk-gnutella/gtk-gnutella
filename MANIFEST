@@ -334,7 +334,6 @@ src/core/local_shell.c
 src/core/local_shell.h
 src/core/matching.c
 src/core/matching.h
-src/core/mime_types.h
 src/core/move.c
 src/core/move.h
 src/core/mq.c
@@ -578,6 +577,7 @@ src/lib/magnet.c
 src/lib/magnet.h
 src/lib/malloc.c
 src/lib/malloc.h
+src/lib/mime_types.h
 src/lib/misc.c
 src/lib/misc.h
 src/lib/options.c
