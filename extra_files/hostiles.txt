@@ -1180,6 +1180,7 @@
 66.216.7.0/24
 
 # Security violations; LimeWire; spoofing source address in query hits
+# ASF spam points to fastmp3player dot com
 65.98.59.242
 65.98.61.242
 
@@ -1267,3 +1268,8 @@
 69.64.64.0/19
 # FortressITX; see above
 65.98.0.0/17
+# Trident Mediguard; see above
+# dozens of LimeWire peers sharing fake files like MP3s with proper tags
+# but only white noise
+91.189.104.0/21
+
