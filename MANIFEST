@@ -577,6 +577,8 @@ src/lib/magnet.c
 src/lib/magnet.h
 src/lib/malloc.c
 src/lib/malloc.h
+src/lib/mime_type.c
+src/lib/mime_type.h
 src/lib/mime_types.h
 src/lib/misc.c
 src/lib/misc.h
