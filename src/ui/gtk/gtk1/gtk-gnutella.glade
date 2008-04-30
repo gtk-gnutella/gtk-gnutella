@@ -19175,7 +19175,7 @@ allowed</label>
 	      <widget>
 		<class>GtkTable</class>
 		<name>table94</name>
-		<rows>3</rows>
+		<rows>4</rows>
 		<columns>1</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>0</row_spacing>
@@ -19232,6 +19232,29 @@ allowed</label>
 		  <name>checkbutton_config_convert_old_filenames</name>
 		  <can_focus>True</can_focus>
 		  <label>Apply above conversions, upon startup, to existing files in the downloading directory</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>3</top_attach>
+		    <bottom_attach>4</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_beautify_filenames</name>
+		  <can_focus>True</can_focus>
+		  <label>Beautify filenames by removing needless underscores</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -21033,7 +21056,7 @@ allowed</label>
 		<class>GtkTable</class>
 		<name>table65</name>
 		<border_width>2</border_width>
-		<rows>1</rows>
+		<rows>2</rows>
 		<columns>5</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
@@ -21160,10 +21183,10 @@ allowed</label>
 		  <wrap>False</wrap>
 		  <value>1</value>
 		  <lower>0</lower>
-		  <upper>100</upper>
+		  <upper>1e+06</upper>
 		  <step>1</step>
-		  <page>10</page>
-		  <page_size>10</page_size>
+		  <page>1024</page>
+		  <page_size>1024</page_size>
 		  <child>
 		    <left_attach>4</left_attach>
 		    <right_attach>5</right_attach>
@@ -21172,6 +21195,64 @@ allowed</label>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>True</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>label8011</name>
+		  <label>Last chunk size</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkSpinButton</class>
+		  <name>spinbutton_pfsp_last_chunk</name>
+		  <can_focus>True</can_focus>
+		  <climb_rate>1</climb_rate>
+		  <digits>0</digits>
+		  <numeric>False</numeric>
+		  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		  <snap>False</snap>
+		  <wrap>False</wrap>
+		  <value>1</value>
+		  <lower>0</lower>
+		  <upper>1e+06</upper>
+		  <step>1</step>
+		  <page>1024</page>
+		  <page_size>1024</page_size>
+		  <child>
+		    <left_attach>2</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
 		    <yexpand>False</yexpand>
 		    <xshrink>False</xshrink>
 		    <yshrink>False</yshrink>

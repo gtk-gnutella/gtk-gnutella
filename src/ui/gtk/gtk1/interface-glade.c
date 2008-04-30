@@ -10008,6 +10008,7 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_convert_spaces;
   GtkWidget *checkbutton_config_convert_evil_chars;
   GtkWidget *checkbutton_config_convert_old_filenames;
+  GtkWidget *checkbutton_config_beautify_filenames;
   GtkWidget *frame16;
   GtkWidget *table46;
   guint label171_key;
@@ -10141,6 +10142,9 @@ create_dlg_prefs (void)
   GtkWidget *label770;
   GtkObject *spinbutton_pfsp_minimum_filesize_adj;
   GtkWidget *spinbutton_pfsp_minimum_filesize;
+  GtkWidget *label8011;
+  GtkObject *spinbutton_pfsp_last_chunk_adj;
+  GtkWidget *spinbutton_pfsp_last_chunk;
   GtkWidget *frame140;
   GtkWidget *table96;
   GtkWidget *label753;
@@ -13609,7 +13613,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame136);
   gtk_box_pack_start (GTK_BOX (vbox38), frame136, TRUE, TRUE, 0);
 
-  table94 = gtk_table_new (3, 1, FALSE);
+  table94 = gtk_table_new (4, 1, FALSE);
   gtk_widget_set_name (table94, "table94");
   gtk_widget_ref (table94);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table94", table94,
@@ -13643,7 +13647,17 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_convert_old_filenames", checkbutton_config_convert_old_filenames,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_convert_old_filenames);
-  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_convert_old_filenames, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_convert_old_filenames, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_beautify_filenames = gtk_check_button_new_with_label (_("Beautify filenames by removing needless underscores"));
+  gtk_widget_set_name (checkbutton_config_beautify_filenames, "checkbutton_config_beautify_filenames");
+  gtk_widget_ref (checkbutton_config_beautify_filenames);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_beautify_filenames", checkbutton_config_beautify_filenames,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_beautify_filenames);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_beautify_filenames, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -14573,7 +14587,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_partial_file_sharing);
   gtk_box_pack_start (GTK_BOX (vbox40), frame_partial_file_sharing, FALSE, TRUE, 0);
 
-  table65 = gtk_table_new (1, 5, FALSE);
+  table65 = gtk_table_new (2, 5, FALSE);
   gtk_widget_set_name (table65, "table65");
   gtk_widget_ref (table65);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table65", table65,
@@ -14634,7 +14648,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label770), 0, 0.5);
 
-  spinbutton_pfsp_minimum_filesize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_pfsp_minimum_filesize_adj = gtk_adjustment_new (1, 0, 1e+06, 1, 1024, 1024);
   spinbutton_pfsp_minimum_filesize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_minimum_filesize_adj), 1, 0);
   gtk_widget_set_name (spinbutton_pfsp_minimum_filesize, "spinbutton_pfsp_minimum_filesize");
   gtk_widget_ref (spinbutton_pfsp_minimum_filesize);
@@ -14643,6 +14657,28 @@ create_dlg_prefs (void)
   gtk_widget_show (spinbutton_pfsp_minimum_filesize);
   gtk_table_attach (GTK_TABLE (table65), spinbutton_pfsp_minimum_filesize, 4, 5, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label8011 = gtk_label_new (_("Last chunk size"));
+  gtk_widget_set_name (label8011, "label8011");
+  gtk_widget_ref (label8011);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8011", label8011,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8011);
+  gtk_table_attach (GTK_TABLE (table65), label8011, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8011), 0, 0.5);
+
+  spinbutton_pfsp_last_chunk_adj = gtk_adjustment_new (1, 0, 1e+06, 1, 1024, 1024);
+  spinbutton_pfsp_last_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_last_chunk_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_pfsp_last_chunk, "spinbutton_pfsp_last_chunk");
+  gtk_widget_ref (spinbutton_pfsp_last_chunk);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_pfsp_last_chunk", spinbutton_pfsp_last_chunk,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_pfsp_last_chunk);
+  gtk_table_attach (GTK_TABLE (table65), spinbutton_pfsp_last_chunk, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   frame140 = gtk_frame_new (_("Queuing details"));

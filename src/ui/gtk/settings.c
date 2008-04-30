@@ -3256,6 +3256,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_PFSP_LAST_CHUNK,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_pfsp_last_chunk",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_PFSP_MINIMUM_FILESIZE,
         update_spinbutton,
         TRUE,
@@ -5091,6 +5099,14 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_config_convert_old_filenames",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_BEAUTIFY_FILENAMES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_beautify_filenames",
         FREQ_UPDATES, 0
     ),
 #ifdef USE_GTK1
