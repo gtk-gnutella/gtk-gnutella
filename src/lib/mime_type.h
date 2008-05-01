@@ -46,7 +46,7 @@
 
 enum mime_type {
 #define MIME_TYPE(id, name) MIME_TYPE_ ## id,
-#include "mime_types.h"
+#include "lib/mime_types.h"
 #undef MIME_TYPE
 
 	MIME_TYPE_NUM
