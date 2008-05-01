@@ -1181,8 +1181,8 @@
 
 # Security violations; LimeWire; spoofing source address in query hits
 # ASF spam points to fastmp3player dot com
-65.98.59.242
-65.98.61.242
+#65.98.59.242
+#65.98.61.242
 
 # Media Force
 4.43.96.0/24
