@@ -948,9 +948,6 @@ directory_is_unshareable(const char *dir)
 	return FALSE;	/* No objection */
 }
 
-#define RECURSE_MS_PER_STEP	50	/**< Max. time to spent (in milliseconds) */
-#define RECURSE_RUNS_PER_STEP 250 /**< Upper limit; guard against bad clock */
-
 enum recursive_scan_magic { RECURSIVE_SCAN_MAGIC = 0x16926d87U };
 
 struct recursive_scan {
@@ -1008,6 +1005,14 @@ recursive_scan_closedir(struct recursive_scan *ctx)
 	}
 }
 
+static void recursive_sf_unref(gpointer o)
+{
+	struct shared_file *sf = o;
+
+	shared_file_check(sf);
+	shared_file_unref(&sf);
+}
+
 static void
 recursive_scan_free(struct recursive_scan **ctx_ptr)
 {
@@ -1025,24 +1030,9 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 
 		recursive_scan_closedir(ctx);
 
-		while (slist_length(ctx->base_dirs) > 0) {
-			const char *dir = slist_shift(ctx->base_dirs);
-			atom_str_free(dir);
-		}
-		slist_free(&ctx->base_dirs);
-
-		while (slist_length(ctx->sub_dirs) > 0) {
-			char *dir = slist_shift(ctx->sub_dirs);
-			G_FREE_NULL(dir);
-		}
-		slist_free(&ctx->sub_dirs);
-
-		while (slist_length(ctx->shared_files) > 0) {
-			struct shared_file *sf = slist_shift(ctx->shared_files);
-			shared_file_check(sf);
-			shared_file_unref(&sf);
-		}
-		slist_free(&ctx->shared_files);
+		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
+		slist_free_all(&ctx->sub_dirs, g_free);
+		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 
 		atom_str_free_null(&ctx->base_dir);
 
@@ -1061,6 +1051,7 @@ recursive_scan_context_free(void *data)
 
 	/* If we're called, the task is being terminated */
 	ctx->task = NULL;
+	recursive_scan_free(&ctx);
 }
 
 /**
@@ -1427,27 +1418,18 @@ static bgret_t
 recursive_scan_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
-	unsigned i = 0;
-	tm_t t0;
+	int i = 0;
 
 	recursive_scan_check(ctx);
 	(void) ticks;
-
-	bg_task_ticks_used(bt, 0);
-	tm_now_exact(&t0);
+	(void) bt;
 
 	do {
-		tm_t t1, elapsed;
-
 		if (recursive_scan_next_dir(ctx)) {
 			recursive_scan_finish(ctx);
 			return BGR_DONE;
 		}
-		tm_now_exact(&t1);
-		tm_elapsed(&elapsed, &t1, &t0);
-		if (tm2ms(&elapsed) > RECURSE_MS_PER_STEP)
-			break;
-	} while (++i < RECURSE_RUNS_PER_STEP);
+	} while (++i < ticks);
 
 	return BGR_MORE;
 }
