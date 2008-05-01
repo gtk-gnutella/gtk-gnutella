@@ -73,7 +73,6 @@ int verify_enqueue(struct verify *, int high_priority,
 enum verify_status verify_status(const struct verify *);
 filesize_t verify_hashed(const struct verify *);
 guint verify_elapsed(const struct verify *);
-void verify_cancel(const struct verify *);
 
 #endif	/* _core_verify_h_ */
 
