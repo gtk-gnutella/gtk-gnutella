@@ -575,4 +575,28 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
 	slist_regression(slist);
 }
 
+/**
+ * Dispose of all the items remaining in the list, applying the supplied free
+ * function on all the items, then freeing the slist_t container.
+ */
+void
+slist_free_all(slist_t **slist_ptr, slist_destroy_t freecb)
+{
+	slist_t *slist;
+
+	g_assert(slist_ptr);
+	g_assert(freecb);
+
+	slist = *slist_ptr;
+	slist_check(slist);
+
+	while (slist_length(slist) > 0) {
+		gpointer item = slist_shift(slist);
+		if (item)
+			freecb(item);
+	}
+
+	slist_free(slist_ptr);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
