@@ -159,7 +159,7 @@ d_free(gpointer ctx)
 		close(md->wd);
 		md->wd = -1;
 	}
-	g_free(md->buffer);
+	G_FREE_NULL(md->buffer);
 	md->magic = 0;
 	wfree(md, sizeof(*md));
 }
