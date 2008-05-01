@@ -6372,7 +6372,7 @@ static void
 node_dump_disable(void)
 {
 	if (dump.slist) {
-		pmsg_slist_free(&dump.slist);
+		slist_free_all(&dump.slist, (slist_destroy_cb) pmsg_free);
 		dump.fill = 0;
 	}
 	if (dump.fd >= 0) {

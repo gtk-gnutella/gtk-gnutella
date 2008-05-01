@@ -286,7 +286,6 @@ mq_free(mqueue_t *q)
 {
 	GList *l;
 	gint n;
-	pmsg_t *mb;
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
@@ -304,10 +303,7 @@ mq_free(mqueue_t *q)
 
 	cq_cancel(callout_queue, &q->swift_ev);
 	g_list_free(q->qhead);
-
-	while ((mb = slist_shift(q->qwait)))
-		pmsg_free(mb);
-	slist_free(&q->qwait);
+	slist_free_all(&q->qwait, (slist_destroy_cb) pmsg_free);
 
 	q->qhead = NULL;
 	q->magic = 0;
