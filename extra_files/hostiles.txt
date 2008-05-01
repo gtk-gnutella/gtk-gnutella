@@ -1257,6 +1257,9 @@
 # Shareaza; RAR malware spam; 1.2 MB
 #208.53.183.171
 
+# HTML spam with fake SHA-1; fake LimeWire (actually GDNA or RAZA)
+78.140.133.99
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
