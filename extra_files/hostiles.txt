@@ -147,9 +147,9 @@
 67.19.77.0/24
 67.19.221.0/24
 #67.159.5.0/24
-208.53.138.0/24
-208.53.158.0/25
-208.53.159.0/24
+#208.53.138.0/24
+#208.53.158.0/25
+#208.53.159.0/24
 208.98.11.0/28
 208.98.23.192/26
 208.98.49.128/25
@@ -1049,7 +1049,7 @@
 
 # Query-Cache-0.1; fake Ultrapeer; sniffing?
 # ZIP/MPG spammer; uses different source address
-208.53.147.0/24
+#208.53.147.0/24
 
 # Horny/Sexy/hentai/(uncensored)/new + $query + .zip; LimeWire; Adware
 69.42.82.116
@@ -1250,10 +1250,18 @@
 # Assigned to: David Posada, Toronto, Ontario, M6LMB7, CA
 #205.209.161.210
 
+# LimeWire (Cabos); (avi|mp3|mpg|rar|zip).exe; 13-60 MB
+211.3.131.216
+219.98.196.89
+
+# Shareaza; RAR malware spam; 1.2 MB
+#208.53.183.171
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
 67.159.0.0/18
+208.53.128.0/18
 # ThePlanet.com Internet Services, Inc.; same as above applies
 74.52.0.0/14
 # Peer 1 Network Inc.; same as above applies
