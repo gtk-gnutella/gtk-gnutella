@@ -153,6 +153,7 @@ static const struct {
 	{ "sitx",		MIME_TYPE_APPLICATION_SIT },
 	{ "snd",		MIME_TYPE_AUDIO_BASIC },
 	{ "spx",		MIME_TYPE_AUDIO_SPEEX },
+	{ "srt",		MIME_TYPE_TEXT_PLAIN },
 	{ "sty",		MIME_TYPE_APPLICATION_TEX },
 	{ "t",			MIME_TYPE_APPLICATION_TROFF },
 	{ "tar",		MIME_TYPE_APPLICATION_TAR },
