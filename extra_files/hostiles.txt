@@ -1272,4 +1272,6 @@
 # dozens of LimeWire peers sharing fake files like MP3s with proper tags
 # but only white noise
 91.189.104.0/21
+82.138.70.128/26
+82.138.81.0/24
 
