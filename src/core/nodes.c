@@ -6371,10 +6371,9 @@ static struct {
 static void
 node_dump_disable(void)
 {
-	if (dump.slist) {
-		slist_free_all(&dump.slist, (slist_destroy_cb) pmsg_free);
-		dump.fill = 0;
-	}
+	pmsg_slist_free(&dump.slist);
+	dump.fill = 0;
+
 	if (dump.fd >= 0) {
 		close(dump.fd);
 		dump.fd = -1;

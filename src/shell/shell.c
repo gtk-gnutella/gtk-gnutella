@@ -124,7 +124,7 @@ static void
 shell_discard_output(struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	slist_free_all(&sh->output, (slist_destroy_cb) pmsg_free);
+	pmsg_slist_free(&sh->output);
 }
 
 /**

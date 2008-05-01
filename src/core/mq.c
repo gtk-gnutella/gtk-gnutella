@@ -303,7 +303,7 @@ mq_free(mqueue_t *q)
 
 	cq_cancel(callout_queue, &q->swift_ev);
 	g_list_free(q->qhead);
-	slist_free_all(&q->qwait, (slist_destroy_cb) pmsg_free);
+	pmsg_slist_free(&q->qwait);
 
 	q->qhead = NULL;
 	q->magic = 0;

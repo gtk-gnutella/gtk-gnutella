@@ -182,6 +182,12 @@ struct iovec *pmsg_slist_to_iovec(slist_t *slist,
 void pmsg_slist_discard(slist_t *slist, size_t n_bytes);
 void pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes);
 
+static inline void
+pmsg_slist_free(slist_t **slist_ptr)
+{
+	slist_free_all(slist_ptr, (slist_destroy_cb) pmsg_free);
+}
+
 #endif	/* _core_pmsg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
