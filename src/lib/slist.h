@@ -32,7 +32,7 @@
 typedef struct slist_iter slist_iter_t;
 typedef struct slist slist_t;
 
-typedef void (*slist_destroy_t)(gpointer data);
+typedef void (*slist_destroy_cb)(gpointer data);
 
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);

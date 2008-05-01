@@ -580,7 +580,7 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
  * function on all the items, then freeing the slist_t container.
  */
 void
-slist_free_all(slist_t **slist_ptr, slist_destroy_t freecb)
+slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb)
 {
 	slist_t *slist;
 
