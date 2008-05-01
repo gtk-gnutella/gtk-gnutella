@@ -575,10 +575,10 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
 	slist_regression(slist);
 }
 
-static void freecb_wrapper(gpointer data, gpointer user_data)
+static inline void
+freecb_wrapper(gpointer data, slist_destroy_cb freecb)
 {
-	slist_destroy_cb freecb = user_data;
-	freecb(data);
+	(*freecb)(data);
 }
 
 /**
@@ -588,19 +588,16 @@ static void freecb_wrapper(gpointer data, gpointer user_data)
 void
 slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb)
 {
-	slist_t *slist;
-
 	g_assert(slist_ptr);
 	g_assert(freecb);
 
-	slist = *slist_ptr;
+	if (*slist_ptr) {
+		slist_t *slist = *slist_ptr;
 
-	if (NULL == slist)
-		return;
-
-	slist_check(slist);
-	g_slist_foreach(slist->head, freecb_wrapper, freecb);
-	slist_free(slist_ptr);
+		slist_check(slist);
+		G_SLIST_FOREACH_WITH_DATA(slist->head, freecb_wrapper, freecb);
+		slist_free(slist_ptr);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
