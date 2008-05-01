@@ -59,6 +59,6 @@ gboolean slist_iter_has_next(const slist_iter_t *iter);
 gpointer slist_iter_next(slist_iter_t *iter);
 gpointer slist_iter_current(const slist_iter_t *iter);
 void slist_iter_remove(slist_iter_t *iter);
-void slist_free_all(slist_t **slist_ptr, slist_destroy_t freecb);
+void slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb);
 
 #endif	/* _slist_h_ */
