@@ -1051,7 +1051,7 @@ recursive_scan_context_free(void *data)
 
 	/* If we're called, the task is being terminated */
 	ctx->task = NULL;
-	recursive_scan_free(&ctx);
+	/* XXX need to free context cleanly */
 }
 
 /**

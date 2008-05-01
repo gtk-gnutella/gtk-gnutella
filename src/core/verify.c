@@ -341,7 +341,7 @@ verify_context_free(void *data)
 	verify_check(ctx);
 	/* If we're called, the task is being terminated */
 	ctx->task = NULL;
-	verify_free(&ctx);
+	/* XXX need to free context cleanly */
 }
 
 static void
