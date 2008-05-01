@@ -340,8 +340,15 @@ verify_context_free(void *data)
 	
 	verify_check(ctx);
 	/* If we're called, the task is being terminated */
+
+	/*
+	 * There's nothing to free here.  We're managing the overall context
+	 * ourselves, and this overall context is given as the task's context.
+	 * We just need to record the fact that the task has been terminated
+	 * here so verify_free() does not try to cancel it.
+	 */
+
 	ctx->task = NULL;
-	/* XXX need to free context cleanly */
 }
 
 static void
