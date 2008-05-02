@@ -1154,7 +1154,7 @@ recursive_scan_finish(struct recursive_scan *ctx)
 		bytes_scanned += sf->file_size;
 		st_insert_item(search_table, sf->name_canonic, sf);
 		shared_files = g_slist_prepend(shared_files, sf);
-		upload_stats_normalize_filename(sf);
+		upload_stats_enforce_local_filename(sf);
 	}
 
 	/* Compact the search table */

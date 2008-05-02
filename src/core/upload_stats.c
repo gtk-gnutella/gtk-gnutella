@@ -378,7 +378,7 @@ upload_stats_flush_if_dirty(void)
  * renamed and shared.
  */
 void
-upload_stats_normalize_filename(const struct shared_file *sf)
+upload_stats_enforce_local_filename(const struct shared_file *sf)
 {
 	struct ul_stats *s;
 	const struct sha1 *sha1;

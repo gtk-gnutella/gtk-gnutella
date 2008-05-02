@@ -49,7 +49,7 @@ void upload_stats_file_requested(const struct shared_file *sf);
 void upload_stats_flush_if_dirty(void);
 void upload_stats_load_history(const gchar *ul_history_file_name);
 void upload_stats_prune_nonexistent(void);
-void upload_stats_normalize_filename(const struct shared_file *sf);
+void upload_stats_enforce_local_filename(const struct shared_file *sf);
 
 #endif /* _core_upload_stats_h_ */
 /* vi: set ts=4 sw=4 cindent: */
