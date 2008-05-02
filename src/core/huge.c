@@ -490,6 +490,13 @@ huge_need_sha1(struct shared_file *sf)
 	shared_file_check(sf);
 
 	/*
+	 * After a rescan, there might be files in the queue which are
+	 * no longer shared.
+	 */
+	if (!(SHARE_F_INDEXED & shared_file_flags(sf)))
+		return FALSE;
+
+	/*
 	 * XXX HACK ALERT
 	 *
 	 * We need to be careful here, because each time the library is rescanned,

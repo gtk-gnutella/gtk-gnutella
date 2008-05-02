@@ -154,6 +154,13 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
+		if (!(SHARE_F_INDEXED & shared_file_flags(sf))) {
+			/*
+			 * After a rescan, there might be files in the queue which are
+			 * no longer shared.
+			 */
+			return FALSE;
+		}
 		if (
 			shared_file_tth(sf) &&
 			tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
