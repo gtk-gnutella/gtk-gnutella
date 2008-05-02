@@ -71,6 +71,7 @@ RCSID("$Id$")
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkCList *
@@ -171,7 +172,7 @@ upload_stats_gui_add(struct ul_stats *us)
 	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
 	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
 
-	rowdata[c_us_filename] = us->filename;
+	rowdata[c_us_filename] = lazy_filename_to_ui_string(us->filename);
 	rowdata[c_us_size] = size_tmp;
 	rowdata[c_us_attempts] = attempts_tmp;
 	rowdata[c_us_complete] = complete_tmp;
@@ -184,6 +185,30 @@ upload_stats_gui_add(struct ul_stats *us)
 	gtk_clist_set_row_data_full(clist, row, us, on_clist_ul_stats_row_removed);
 
     /* FIXME: should use auto_sort? */
+	if (0 == clist->freeze_count) {
+		gtk_clist_sort(clist);
+		clist_sync_rows(clist, on_clist_ul_stats_row_moved);
+	}
+}
+
+
+/**
+ * Called when the filename of a row of the upload stats should be updated
+ */
+void
+upload_stats_gui_update_name(struct ul_stats *us)
+{
+	GtkCList *clist = clist_ul_stats();
+	int row;
+
+	/* find this file in the clist_ul_stats */
+	row = ul_stats_get_row(us);
+	g_return_if_fail(row >= 0);
+
+	gtk_clist_set_text(clist, row, c_us_filename,
+		lazy_filename_to_ui_string(us->filename));
+
+	/* FIXME: use auto-sort? */
 	if (0 == clist->freeze_count) {
 		gtk_clist_sort(clist);
 		clist_sync_rows(clist, on_clist_ul_stats_row_moved);

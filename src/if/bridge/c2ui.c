@@ -54,6 +54,7 @@
 
 #define upload_stats_gui_add(s) ((void) s)
 #define upload_stats_gui_update(s) ((void) s)
+#define upload_stats_gui_update_name(s) ((void) s)
 #define	upload_stats_gui_clear_all()
 #define upload_stats_gui_thaw()
 #define upload_stats_gui_freeze()
@@ -144,6 +145,14 @@ gcu_upload_stats_gui_add(struct ul_stats *s)
 {
 	if (!running_topless) {
 		upload_stats_gui_add(s);
+	}
+}
+
+void
+gcu_upload_stats_gui_update_name(struct ul_stats *s)
+{
+	if (!running_topless) {
+		upload_stats_gui_update_name(s);
 	}
 }
 

@@ -71,6 +71,7 @@ void gcu_statusbar_message(const gchar *message);
 /* upload interface functions */
 void gcu_upload_stats_gui_add(struct ul_stats *);
 void gcu_upload_stats_gui_update(struct ul_stats *);
+void gcu_upload_stats_gui_update_name(struct ul_stats *);
 void gcu_upload_stats_gui_clear_all(void);
 void gcu_upload_stats_gui_freeze(void);
 void gcu_upload_stats_gui_thaw(void);

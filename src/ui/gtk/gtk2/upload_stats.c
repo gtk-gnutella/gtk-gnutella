@@ -426,11 +426,16 @@ upload_stats_gui_thaw(void)
 }
 
 /**
+ * Update the filename in the statistics for a given file.
+ */
+void
+upload_stats_gui_update_name(struct ul_stats *us)
+{
+	upload_stats_gui_update(us);
+}
+
+/**
  * Update the visible statistics for a given file.
- *
- * @param name The filename whose upload statistics should be updated.
- * @param size The size of that file.
- *
  */
 void
 upload_stats_gui_update(struct ul_stats *us)

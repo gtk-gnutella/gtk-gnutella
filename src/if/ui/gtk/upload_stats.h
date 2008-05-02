@@ -40,6 +40,7 @@ void upload_stats_gui_init(void);
 void upload_stats_gui_clear_all(void);
 void upload_stats_gui_add(struct ul_stats *);
 void upload_stats_gui_update(struct ul_stats *);
+void upload_stats_gui_update_name(struct ul_stats *);
 void upload_stats_gui_freeze(void);
 void upload_stats_gui_thaw(void);
 

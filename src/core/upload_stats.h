@@ -45,9 +45,11 @@ void upload_stats_close(void);
 void upload_stats_file_aborted(const struct shared_file *sf, filesize_t done);
 void upload_stats_file_begin(const struct shared_file *sf);
 void upload_stats_file_complete(const struct shared_file *sf, filesize_t done);
+void upload_stats_file_requested(const struct shared_file *sf);
 void upload_stats_flush_if_dirty(void);
 void upload_stats_load_history(const gchar *ul_history_file_name);
 void upload_stats_prune_nonexistent(void);
+void upload_stats_normalize_filename(const struct shared_file *sf);
 
 #endif /* _core_upload_stats_h_ */
 /* vi: set ts=4 sw=4 cindent: */

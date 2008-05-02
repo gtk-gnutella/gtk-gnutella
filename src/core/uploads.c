@@ -3036,7 +3036,9 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	upload_check(u);
 	g_assert(u->sf);
-	
+
+	upload_stats_file_requested(u->sf);
+
 	idx = shared_file_index(u->sf);
 	sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
 
