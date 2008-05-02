@@ -172,7 +172,7 @@ upload_stats_gui_add(struct ul_stats *us)
 	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
 	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
 
-	rowdata[c_us_filename] = lazy_filename_to_ui_string(us->filename);
+	rowdata[c_us_filename] = lazy_utf8_to_ui_string(us->filename);
 	rowdata[c_us_size] = size_tmp;
 	rowdata[c_us_attempts] = attempts_tmp;
 	rowdata[c_us_complete] = complete_tmp;
