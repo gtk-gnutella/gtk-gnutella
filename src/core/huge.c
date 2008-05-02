@@ -558,7 +558,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
 		return huge_need_sha1(sf);
 	case VERIFY_PROGRESS:
-		return TRUE;
+		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
 	case VERIFY_DONE:
 		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
 		/* FALL THROUGH */

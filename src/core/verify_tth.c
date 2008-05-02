@@ -174,7 +174,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		return TRUE;
+		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
