@@ -125,10 +125,10 @@ struct ul_stats {
 	filesize_t size;
 	guint32 attempts;
 	guint32 complete;
-	guint64 bytes_sent;
-	gdouble norm;		/**< bytes sent / file size */
 	time_t rtime;		/**< time of last request */
 	time_t dtime;		/**< time of last downloaded bytes */
+	guint64 bytes_sent;
+	gdouble norm;		/**< bytes sent / file size */
 	const struct sha1 *sha1;	/**< SHA1 of file (atom), if known, or NULL */
 	void *user_data;	/**< Used by the GUI side to store context */
 };
