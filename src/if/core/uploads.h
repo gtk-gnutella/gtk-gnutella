@@ -121,7 +121,7 @@ typedef struct gnet_upload_info {
 	((u)->status == GTA_UL_HEADERS || (u)->status == GTA_UL_WAITING)
 
 struct ul_stats {
-	const gchar  *filename;	/**< Atom */
+	const gchar  *filename;	/**< Atom, UTF-8 (from sf->name_nfc) */
 	filesize_t size;
 	guint32 attempts;
 	guint32 complete;
