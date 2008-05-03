@@ -96,7 +96,8 @@ compare_ul_complete(GtkCList *clist, const void * ptr1, const void * ptr2)
 	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
 	int ret;
 	ret = CMP(us1->complete, us2->complete);
-	return ret ? ret : compare_ul_attempts(clist, ptr1, ptr2);
+	/* Avoid double recursion through compare_ul_attempts() -- inline it here */
+	return ret ? ret : CMP(us1->attempts, us2->attempts);
 }
 
 /**
