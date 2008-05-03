@@ -416,8 +416,7 @@ search_store_xml(void)
      */
     root = xmlNewDocNode(doc, NULL, string_to_xmlChar("Searches"), NULL);
     xmlDocSetRootElement(doc, root);
-	/* Discard the newline of the ctime string */
-    xml_prop_printf(root, "Time", "%24.24s", ctime(&now));
+    xml_prop_printf(root, "Time", "%s", timestamp_to_string(now));
     xml_prop_printf(root, "Version", "%s", GTA_VERSION_NUMBER);
 
     /*
