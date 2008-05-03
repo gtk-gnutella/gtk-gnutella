@@ -100,7 +100,8 @@ prop_parse_timestamp(const gchar *name,
 			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
 	}
 	if (*ep != '-') {
-		t = u;	/* For backwards-compatibility accept raw numeric timestamps */
+		t = MIN(u + (time_t) 0, TIME_T_MAX + (guint64) 0);
+		/* For backwards-compatibility accept raw numeric timestamps */
 	} else {
 		t = date2time(str, tm_time());
 		if ((time_t)-1 == t) {
