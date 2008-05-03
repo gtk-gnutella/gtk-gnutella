@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -187,94 +188,102 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 
 	/* open file for reading */
 	upload_stats_file = file_fopen_missing(ul_history_file_name, "r");
-
 	if (upload_stats_file == NULL)
 		goto done;
 
 	/* parse, insert names into ul_stats_clist */
 	while (fgets(line, sizeof(line), upload_stats_file)) {
-		gulong attempt, complete;
-		gulong ulbytes_high, ulbytes_low;	/* Portability reasons */
-		time_t rtime, dtime;
-		guint64 ulbytes;
-		struct sha1 sha1;
-		gboolean has_sha1;
-		filesize_t size;
-		gchar *name_end;
+		static const struct ul_stats zero_item;
+		struct ul_stats item;
+		struct sha1 sha1_buf;
+		const char *p;
 		size_t i;
 
 		lineno++;
 		if (line[0] == '#' || line[0] == '\n')
 			continue;
 
-		name_end = strchr(line, '\t');
-		if (NULL == name_end)
+		p = strchr(line, '\t');
+		if (NULL == p)
 			goto corrupted;
-		*name_end++ = '\0';		/* line is now the URL-escaped file name */
 
-		/* The line below is for retarded compilers only */
-		size = attempt = complete = ulbytes_high = ulbytes_low = 0;
-		rtime = dtime = 0;
-		has_sha1 = FALSE;
+		line[p - line] = '\0';		/* line is now the URL-escaped file name */
+		p++;
+
+		/* URL-unescape in-place */
+		if (!url_unescape(line, TRUE))
+			goto corrupted;
+
+		item = zero_item;
+		item.filename = line;
 
 		for (i = 0; i < 8; i++) {
 			guint64 v;
-			gint error;
+			int error;
 			const gchar *endptr;
 
-			name_end = skip_ascii_spaces(name_end);
+			p = skip_ascii_spaces(p);
 
 			/* SVN versions up to 15322 had only 6 fields in the history */
-			if (5 == i && '\0' == *name_end)
+			if (5 == i && '\0' == *p)
 				break;
 
-			if (7 == i) {
+			switch (i) {
+			case 7:
 				/* We have a SHA1 or '*' if none known */
-				if ('*' != *name_end) {
-					size_t len = clamp_strlen(name_end, SHA1_BASE32_SIZE);
-					has_sha1 = parse_base32_sha1(name_end, len, &sha1);
+				if ('*' != *p) {
+					size_t len = clamp_strlen(p, SHA1_BASE32_SIZE);
+					
+					error = !parse_base32_sha1(p, len, &sha1_buf);
+					item.sha1 = error ? NULL : &sha1_buf;
+				} else {
+					error = FALSE;
 				}
-			} else {
-				v = parse_uint64(name_end, &endptr, 10, &error);
-				name_end = deconstify_gchar(endptr);
+				p = skip_ascii_non_spaces(p);
+				v = 0;
+				break;
+			default:
+				v = parse_uint64(p, &endptr, 10, &error);
+				p = deconstify_gchar(endptr);
 			}
 
 			if (error || !is_ascii_space(*endptr))
 				goto corrupted;
 
 			switch (i) {
-			case 0: size = v; break;
-			case 1: attempt = v; break;
-			case 2: complete = v; break;
-			case 3: ulbytes_high = v; break;
-			case 4: ulbytes_low = v; break;
-			case 5: rtime = (time_t) v; break;		/* Don't mind overflows */
-			case 6: dtime = (time_t) v; break;		/* Idem */
-			case 7: break;							/* Already stored above */
+			case 0: item.size = v; break;
+			case 1: item.attempts = v; break;
+			case 2: item.complete = v; break;
+			case 3: item.bytes_sent |= ((guint64) (guint32) v) << 32; break;
+			case 4: item.bytes_sent |= (guint32) v; break;
+			case 5: item.rtime = MIN(v + (time_t) 0, TIME_T_MAX + (guint64) 0);
+			case 6: item.dtime = MIN(v + (time_t) 0, TIME_T_MAX + (guint64) 0); 
+			case 7: break;	/* Already stored above */
 			default:
 				g_assert_not_reached();
 				goto corrupted;
 			}
 		}
 
-		ulbytes = (((guint64) ulbytes_high) << 32) | ulbytes_low;
+		/* 
+		 * We store the filenames UTF-8 encoded but the file might have been
+		 * edited or corrupted.
+		 */
+		item.filename = lazy_unknown_to_utf8_normalized(item.filename,
+							UNI_NORM_NFC, NULL);
 
-		/* URL-unescape in-place */
-		if (!url_unescape(line, TRUE))
-			goto corrupted;
-
-		if (upload_stats_find(has_sha1 ? &sha1 : NULL, line, size)) {
+		if (upload_stats_find(item.sha1, item.filename, item.size)) {
 			g_warning("upload_stats_load_history():"
 				" Ignoring line %u due to duplicate file.", lineno);
 		} else {
-			upload_stats_add(line, size, attempt, complete, ulbytes,
-				rtime, dtime, has_sha1 ? &sha1 : NULL);
+			upload_stats_add(item.filename, item.size,
+				item.attempts, item.complete, item.bytes_sent,
+				item.rtime, item.dtime, item.sha1);
 		}
-
 		continue;
 
 	corrupted:
-		g_warning("upload statistics file corrupted at line %d.\n", lineno);
+		g_warning("upload statistics file corrupted at line %u.", lineno);
 	}
 
 	/* close file */
@@ -290,17 +299,26 @@ upload_stats_dump_item(gpointer p, gpointer user_data)
 {
 	FILE *out = user_data;
 	struct ul_stats *s = p;
-	gchar *escaped;
+	char rtime_buf[TIME_T_DEC_BUFLEN];
+	char dtime_buf[TIME_T_DEC_BUFLEN];
+	char *escaped;
 
 	g_assert(NULL != s);
 
 	escaped = url_escape_cntrl(s->filename);
-	fprintf(out, "%s\t%s\t%u\t%u\t%lu\t%lu\t%u\t%u\t%s\n", escaped,
-		uint64_to_string(s->size), s->attempts, s->complete,
-			(gulong) (s->bytes_sent >> 32),
-			(gulong) (s->bytes_sent & 0xffffffff),
-			(unsigned) s->rtime, (unsigned) s->dtime,
-			s->sha1 ? sha1_base32(s->sha1) : "*");
+	time_t_to_string_buf(s->rtime, rtime_buf, sizeof rtime_buf);
+	time_t_to_string_buf(s->dtime, dtime_buf, sizeof dtime_buf);
+
+	fprintf(out, "%s\t%s\t%u\t%u\t%lu\t%lu\t%s\t%s\t%s\n",
+		escaped,
+		uint64_to_string(s->size),
+		s->attempts,
+		s->complete,
+		(unsigned long) (s->bytes_sent >> 32),
+		(unsigned long) (s->bytes_sent & 0xffffffff),
+		rtime_buf,
+		dtime_buf,
+		s->sha1 ? sha1_base32(s->sha1) : "*");
 
 	if (escaped != s->filename) {		/* File had escaped chars */
 		G_FREE_NULL(escaped);
@@ -327,7 +345,7 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 	fprintf(out,
 		"# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n"
 		"#\n"
-		"# Upload statistics saved on %s"
+		"# Upload statistics saved on %s\n"
 		"#\n"
 		"\n"
 		"#\n"
@@ -338,7 +356,7 @@ upload_stats_dump_history(const gchar *ul_history_file_name)
 		"#        <TAB> SHA1 (\"*\" if unknown)\n"
 		"#\n"
 		"\n",
-		ctime(&now));
+		timestamp_to_string(now));
 
 	/*
 	 * Don't check this sooner so that the file is cleared, if the user
@@ -406,8 +424,7 @@ upload_stats_enforce_local_filename(const struct shared_file *sf)
 	 */
 
 	hash_list_remove(upload_stats_list, s);
-	atom_str_free(s->filename);
-	s->filename = atom_str_get(name);
+	atom_str_change(&s->filename, name);
 	hash_list_append(upload_stats_list, s);
 
 	gcu_upload_stats_gui_update_name(s);
