@@ -90,6 +90,8 @@ enum c_us {
     c_us_attempts,
     c_us_complete,
     c_us_norm,
+	c_us_rtime,
+	c_us_dtime,
 
 #define UPLOAD_STATS_GUI_VISIBLE_COLUMNS ((guint) c_us_num)
 	c_us_num

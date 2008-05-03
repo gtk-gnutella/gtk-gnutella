@@ -6109,8 +6109,8 @@
 		  <handler>on_clist_ul_stats_click_column</handler>
 		  <last_modification_time>Thu, 07 Mar 2002 20:33:23 GMT</last_modification_time>
 		</signal>
-		<columns>5</columns>
-		<column_widths>304,41,60,67,240</column_widths>
+		<columns>7</columns>
+		<column_widths>304,41,60,67,80,80,80</column_widths>
 		<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
 		<show_titles>True</show_titles>
 		<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -6120,7 +6120,7 @@
 		  <child_name>CList:title</child_name>
 		  <name>ul_stats_label2</name>
 		  <label>Filename</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
@@ -6133,7 +6133,7 @@
 		  <child_name>CList:title</child_name>
 		  <name>ul_stats_size</name>
 		  <label>Size</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
@@ -6146,7 +6146,7 @@
 		  <child_name>CList:title</child_name>
 		  <name>ul_stats_label3</name>
 		  <label>Attempts</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
@@ -6159,7 +6159,7 @@
 		  <child_name>CList:title</child_name>
 		  <name>ul_stats_label4</name>
 		  <label>Complete</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
@@ -6172,7 +6172,33 @@
 		  <child_name>CList:title</child_name>
 		  <name>ul_stats_label5</name>
 		  <label>Normalized</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
+		  <wrap>False</wrap>
+		  <xalign>0</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>ul_stats_label6</name>
+		  <label>Last Request</label>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
+		  <wrap>False</wrap>
+		  <xalign>0</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>ul_stats_label7</name>
+		  <label>Last Upload</label>
+		  <justify>GTK_JUSTIFY_LEFT</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>

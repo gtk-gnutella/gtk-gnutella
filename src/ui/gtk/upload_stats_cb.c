@@ -57,7 +57,7 @@ RCSID("$Id$")
 
 void
 on_button_ul_stats_clear_all_clicked(GtkButton *unused_button,
-	gpointer unused_data)
+	void *unused_data)
 {
 	(void) unused_button;
 	(void) unused_data;
@@ -66,7 +66,7 @@ on_button_ul_stats_clear_all_clicked(GtkButton *unused_button,
 
 void
 on_button_ul_stats_clear_deleted_clicked(GtkButton *unused_button,
-	gpointer unused_data)
+	void *unused_data)
 {
 	(void) unused_button;
 	(void) unused_data;
@@ -75,86 +75,85 @@ on_button_ul_stats_clear_deleted_clicked(GtkButton *unused_button,
 
 
 #ifdef USE_GTK1
-static gint
-compare_ul_size(GtkCList *unused_clist, gconstpointer ptr1, gconstpointer ptr2)
+static int
+compare_ul_size(GtkCList *unused_clist, const void * ptr1, const void * ptr2)
 {
-	guint32 s1;
-	guint32 s2;
-
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
 	(void) unused_clist;
-	s1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->size;
-	s2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->size;
-
-	return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
+	return CMP(us1->size, us2->size);
 }
+
+static int compare_ul_attempts(GtkCList *, const void *, const void *);
 
 /**
  * First by complete, then by attempts.
  */
-static gint
-compare_ul_complete(GtkCList *unused_clist,
-	gconstpointer ptr1, gconstpointer ptr2)
+static int
+compare_ul_complete(GtkCList *clist, const void * ptr1, const void * ptr2)
 {
-	guint32 a1 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr2)->data)->complete;
-
-	(void) unused_clist;
-	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) :
-		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
+	int ret;
+	ret = CMP(us1->complete, us2->complete);
+	return ret ? ret : compare_ul_attempts(clist, ptr1, ptr2);
 }
 
 /**
  * First by normalized, then by complete.
  */
-gint
-compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
+int
+compare_ul_norm(GtkCList *clist, const void * ptr1, const void * ptr2)
 {
-	gfloat n1;
-	gfloat n2;
-
-	n1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->norm;
-	n2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->norm;
-
-	return (n1 != n2) ? ((n1 > n2) ? 1 : -1) :
-		compare_ul_complete(clist, ptr1, ptr2);
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
+	int ret;
+	ret = CMP(us1->norm, us2->norm);
+	return ret ? ret : compare_ul_complete(clist, ptr1, ptr2);
 }
 
 /**
  * First by attempts, then by complete.
  */
-static gint
-compare_ul_attempts(GtkCList *unused_clist,
-	gconstpointer ptr1, gconstpointer ptr2)
+static int
+compare_ul_attempts(GtkCList *clist, const void * ptr1, const void * ptr2)
 {
-	guint32 a1 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((const struct ul_stats *)
-		((const GtkCListRow *) ptr2)->data)->complete;
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
+	int ret;
+	ret = CMP(us1->attempts, us2->attempts);
+	return ret ? ret : compare_ul_complete(clist, ptr1, ptr2);
+}
 
+static int
+compare_ul_rtime(GtkCList *unused_clist, const void * ptr1, const void * ptr2)
+{
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
 	(void) unused_clist;
-	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) :
-		(c1 == c2) ? 0 : (c1 > c2) ? 1 : -1;
+	return CMP(us1->rtime, us2->rtime);
+}
+
+static int
+compare_ul_dtime(GtkCList *unused_clist, const void * ptr1, const void * ptr2)
+{
+	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
+	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
+	(void) unused_clist;
+	return CMP(us1->dtime, us2->dtime);
 }
 
 void
-on_clist_ul_stats_click_column(GtkCList *clist, gint column,
-	gpointer unused_udata)
+on_clist_ul_stats_click_column(GtkCList *clist, int column, void *unused_udata)
 {
-	static gint ul_sort_column = 2;
-	static gint ul_sort_order = GTK_SORT_DESCENDING;
+	static int ul_sort_column = 2;
+	static int ul_sort_order = GTK_SORT_DESCENDING;
+
+	g_return_if_fail(column >= 0);
+	g_return_if_fail(column < c_us_num);
 
 	(void) unused_udata;
-	switch (column) {
+	switch ((enum c_us) column) {
 	case c_us_filename:
 		gtk_clist_set_compare_func(clist, NULL);
 		break;
@@ -170,7 +169,13 @@ on_clist_ul_stats_click_column(GtkCList *clist, gint column,
 	case c_us_norm:
 		gtk_clist_set_compare_func(clist, compare_ul_norm);
 		break;
-	default:
+	case c_us_rtime:
+		gtk_clist_set_compare_func(clist, compare_ul_rtime);
+		break;
+	case c_us_dtime:
+		gtk_clist_set_compare_func(clist, compare_ul_dtime);
+		break;
+	case c_us_num:
 		g_assert_not_reached();
 	}
 
@@ -190,7 +195,7 @@ on_clist_ul_stats_click_column(GtkCList *clist, gint column,
 #ifdef USE_GTK2
 void
 on_popup_upload_stats_config_cols_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata)
+	void *unused_udata)
 {
     GtkWidget *cc;
 

@@ -142,8 +142,20 @@ upload_stats_gui_init(void)
 	enum c_us i;
 
 	for (i = 0; i < c_us_num; i++) {
+		gboolean justify_left;
+
+		switch (i) {
+		case c_us_filename: justify_left = TRUE; break;
+		case c_us_size:		justify_left = FALSE; break;
+		case c_us_attempts: justify_left = FALSE; break;
+		case c_us_complete: justify_left = FALSE; break;
+		case c_us_norm:		justify_left = FALSE; break;
+		case c_us_rtime:	justify_left = TRUE; break;
+		case c_us_dtime:	justify_left = TRUE; break;
+		case c_us_num:		g_assert_not_reached();
+		}
 		gtk_clist_set_column_justification(clist_ul_stats(), i,
-			c_us_filename == i ? GTK_JUSTIFY_LEFT : GTK_JUSTIFY_RIGHT);
+			justify_left ? GTK_JUSTIFY_LEFT : GTK_JUSTIFY_RIGHT);
 	}
 	clist_restore_widths(clist_ul_stats(), PROP_UL_STATS_COL_WIDTHS);
     gtk_clist_set_compare_func(clist_ul_stats(), compare_ul_norm);
@@ -159,24 +171,45 @@ void
 upload_stats_gui_add(struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
-	const gchar *rowdata[5];
-	gint row;
-	gchar size_tmp[16];
-	gchar attempts_tmp[16];
-	gchar complete_tmp[16];
-	gchar norm_tmp[16];
+	const gchar *rowdata[c_us_num];
+	enum c_us i;
+	int row;
+	char size_tmp[16];
+	char attempts_tmp[16];
+	char complete_tmp[16];
+	char norm_tmp[16];
+	char rtime_tmp[64];
+	char dtime_tmp[64];
 
 	g_strlcpy(size_tmp, short_size(us->size, show_metric_units()),
 		sizeof size_tmp);
 	gm_snprintf(attempts_tmp, sizeof attempts_tmp, "%u", us->attempts);
 	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
 	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
+	if (us->rtime) {
+		timestamp_to_string_buf(us->rtime, rtime_tmp, sizeof rtime_tmp);
+	} else {
+		rtime_tmp[0] = '\0';
+	}
+	if (us->dtime) {
+		timestamp_to_string_buf(us->dtime, dtime_tmp, sizeof dtime_tmp);
+	} else {
+		dtime_tmp[0] = '\0';
+	}
 
-	rowdata[c_us_filename] = lazy_utf8_to_ui_string(us->filename);
-	rowdata[c_us_size] = size_tmp;
-	rowdata[c_us_attempts] = attempts_tmp;
-	rowdata[c_us_complete] = complete_tmp;
-	rowdata[c_us_norm] = norm_tmp;
+	for (i = 0; i < c_us_num; i++)
+	switch (i) {
+	case c_us_filename:
+		rowdata[i] = lazy_utf8_to_ui_string(us->filename);
+		break;
+	case c_us_size: 	rowdata[i] = size_tmp; break;
+	case c_us_attempts: rowdata[i] = attempts_tmp; break;
+	case c_us_complete: rowdata[i] = complete_tmp; break;
+	case c_us_norm: 	rowdata[i] = norm_tmp; break;
+	case c_us_rtime: 	rowdata[i] = rtime_tmp; break;
+	case c_us_dtime: 	rowdata[i] = dtime_tmp; break;
+	case c_us_num:		g_assert_not_reached();
+	}
 
     row = gtk_clist_append(clist, deconstify_gpointer(rowdata));
 	g_return_if_fail(row >= 0);
@@ -206,7 +239,7 @@ upload_stats_gui_update_name(struct ul_stats *us)
 	g_return_if_fail(row >= 0);
 
 	gtk_clist_set_text(clist, row, c_us_filename,
-		lazy_filename_to_ui_string(us->filename));
+		lazy_utf8_to_ui_string(us->filename));
 
 	/* FIXME: use auto-sort? */
 	if (0 == clist->freeze_count) {
@@ -223,20 +256,43 @@ void
 upload_stats_gui_update(struct ul_stats *us)
 {
 	GtkCList *clist = clist_ul_stats();
-	static gchar tmpstr[16];
+	enum c_us i;
 	int row;
 
-	/* find this file in the clist_ul_stats */
 	row = ul_stats_get_row(us);
 	g_return_if_fail(row >= 0);
 
-	/* set attempt cell contents */
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", us->attempts);
-	gtk_clist_set_text(clist, row, c_us_attempts, tmpstr);
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%d", us->complete);
-	gtk_clist_set_text(clist, row, c_us_complete, tmpstr);
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", us->norm);
-	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
+	for (i = 0; i < c_us_num; i++) {
+		const char *text;
+		char tmpstr[16];
+
+		switch (i) {
+		case c_us_filename:
+		case c_us_size:
+			/* Never updated, only initialized */
+			continue;
+		case c_us_attempts:
+			text = uint64_to_string(us->attempts);
+			break;
+		case c_us_complete:
+			text = uint64_to_string(us->complete);
+			break;
+		case c_us_norm:
+			gm_snprintf(tmpstr, sizeof tmpstr, "%.3f", us->norm);
+			text = tmpstr;
+			break;
+		case c_us_rtime:
+			text = us->rtime ? timestamp_to_string(us->rtime) : "";
+			break;
+		case c_us_dtime:
+			text = us->dtime ? timestamp_to_string(us->dtime) : "";
+			break;
+		case c_us_num:
+			text = NULL;
+			g_assert_not_reached();
+		}
+		gtk_clist_set_text(clist, row, i, text);
+	}
 
 	/* FIXME: use auto-sort? */
 	if (0 == clist->freeze_count) {

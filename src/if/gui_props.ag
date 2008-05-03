@@ -153,7 +153,7 @@ prop = {
     type = guint32;
     vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
     data = {
-        default = "{ 200, 80, 80, 80, 80 }";
+        default = "{ 200, 80, 80, 80, 80, 80, 80 }";
     };
 };
 
@@ -163,7 +163,7 @@ prop = {
     type = boolean;
     vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
 

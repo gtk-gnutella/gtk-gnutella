@@ -469,6 +469,8 @@ create_main_window (void)
   GtkWidget *ul_stats_label3;
   GtkWidget *ul_stats_label4;
   GtkWidget *ul_stats_label5;
+  GtkWidget *ul_stats_label6;
+  GtkWidget *ul_stats_label7;
   GtkWidget *ul_stats_hbox2;
   GtkWidget *button_ul_stats_clear_deleted;
   GtkWidget *button_ul_stats_clear_all;
@@ -4490,7 +4492,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox19), ul_stats_scrolledwindow, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (ul_stats_scrolledwindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_ul_stats = gtk_clist_new (5);
+  clist_ul_stats = gtk_clist_new (7);
   gtk_widget_set_name (clist_ul_stats, "clist_ul_stats");
   gtk_widget_ref (clist_ul_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_ul_stats", clist_ul_stats,
@@ -4501,7 +4503,9 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 1, 41);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 2, 60);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 3, 67);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 4, 240);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 4, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 5, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 6, 80);
   gtk_clist_column_titles_show (GTK_CLIST (clist_ul_stats));
 
   ul_stats_label2 = gtk_label_new (_("Filename"));
@@ -4511,6 +4515,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label2);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 0, ul_stats_label2);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label2), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (ul_stats_label2), 0, 0.5);
 
   ul_stats_size = gtk_label_new (_("Size"));
@@ -4520,6 +4525,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_size);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 1, ul_stats_size);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_size), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (ul_stats_size), 0, 0.5);
 
   ul_stats_label3 = gtk_label_new (_("Attempts"));
@@ -4529,6 +4535,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label3);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 2, ul_stats_label3);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label3), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (ul_stats_label3), 0, 0.5);
 
   ul_stats_label4 = gtk_label_new (_("Complete"));
@@ -4538,6 +4545,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label4);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 3, ul_stats_label4);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label4), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (ul_stats_label4), 0, 0.5);
 
   ul_stats_label5 = gtk_label_new (_("Normalized"));
@@ -4547,7 +4555,28 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label5);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 4, ul_stats_label5);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label5), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (ul_stats_label5), 0, 0.5);
+
+  ul_stats_label6 = gtk_label_new (_("Last Request"));
+  gtk_widget_set_name (ul_stats_label6, "ul_stats_label6");
+  gtk_widget_ref (ul_stats_label6);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "ul_stats_label6", ul_stats_label6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (ul_stats_label6);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 5, ul_stats_label6);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label6), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (ul_stats_label6), 0, 0.5);
+
+  ul_stats_label7 = gtk_label_new (_("Last Upload"));
+  gtk_widget_set_name (ul_stats_label7, "ul_stats_label7");
+  gtk_widget_ref (ul_stats_label7);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "ul_stats_label7", ul_stats_label7,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (ul_stats_label7);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 6, ul_stats_label7);
+  gtk_label_set_justify (GTK_LABEL (ul_stats_label7), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (ul_stats_label7), 0, 0.5);
 
   ul_stats_hbox2 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (ul_stats_hbox2, "ul_stats_hbox2");

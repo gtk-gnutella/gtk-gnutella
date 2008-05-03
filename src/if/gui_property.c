@@ -68,10 +68,10 @@ guint32  gui_property_variable_search_results_col_widths[SEARCH_RESULTS_VISIBLE_
 static const guint32  gui_property_variable_search_results_col_widths_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40, 40};
 guint32  gui_property_variable_search_stats_col_widths[3]     = { 200, 80, 80 };
 static const guint32  gui_property_variable_search_stats_col_widths_default[3] = { 200, 80, 80 };
-guint32  gui_property_variable_ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80 };
-static const guint32  gui_property_variable_ul_stats_col_widths_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80 };
-gboolean gui_property_variable_ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1 };
-static const gboolean gui_property_variable_ul_stats_col_visible_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1 };
+guint32  gui_property_variable_ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80, 80, 80 };
+static const guint32  gui_property_variable_ul_stats_col_widths_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80, 80, 80 };
+gboolean gui_property_variable_ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
+static const gboolean gui_property_variable_ul_stats_col_visible_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
 guint32  gui_property_variable_uploads_col_widths[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 200, 120, 36, 80, 80, 80, 80 };
 static const guint32  gui_property_variable_uploads_col_widths_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 200, 120, 36, 80, 80, 80, 80 };
 gboolean gui_property_variable_uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };

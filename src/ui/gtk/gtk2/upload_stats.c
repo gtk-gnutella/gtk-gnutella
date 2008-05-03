@@ -125,7 +125,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 	value = zero_value;
 	gtk_tree_model_get_value(model, iter, 0, &value);
 	data = g_value_get_pointer(&value);
-	switch (GPOINTER_TO_UINT(udata)) {
+	switch ((enum c_us) GPOINTER_TO_UINT(udata)) {
 	case c_us_filename:
 		text = data->filename;
 		break;
@@ -133,17 +133,23 @@ cell_renderer_func(GtkTreeViewColumn *column,
 		text = short_size(data->us->size, show_metric_units());
 		break;
 	case c_us_attempts:
-		gm_snprintf(buf, sizeof buf, "%u", data->us->attempts);
-		text = buf;
+		text = uint64_to_string(data->us->attempts);
 		break;
 	case c_us_complete:
-		gm_snprintf(buf, sizeof buf, "%u", data->us->complete);
-		text = buf;
+		text = uint64_to_string(data->us->attempts);
 		break;
 	case c_us_norm:
 		gm_snprintf(buf, sizeof buf, "%1.3f", data->us->norm);
 		text = buf;
 		break;
+	case c_us_rtime:
+		text = data->us->rtime ? timestamp_to_string(data->us->rtime) : NULL;
+		break;
+	case c_us_dtime:
+		text = data->us->dtime ? timestamp_to_string(data->us->dtime) : NULL;
+		break;
+	case c_us_num:
+		g_assert_not_reached();
 	}
 	g_object_set(cell, "text", text, (void *) 0);
 }
@@ -300,6 +306,31 @@ upload_stats_gui_cmp_complete(
 	return CMP(d1->us->complete, d2->us->complete);
 }
 
+static gint
+upload_stats_gui_cmp_rtime(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->rtime, d2->us->rtime);
+}
+
+static gint
+upload_stats_gui_cmp_dtime(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer unused_udata)
+{
+	const struct upload_data *d1, *d2;
+
+	(void) unused_udata;
+	
+	d1 = get_upload_data(model, a);
+	d2 = get_upload_data(model, b);
+	return CMP(d1->us->dtime, d2->us->dtime);
+}
 
 /**
  * Initialize the upload statistics GUI.
@@ -323,6 +354,8 @@ upload_stats_gui_init_intern(gboolean intern)
 		{ c_us_attempts, N_("Attempts"),   1.0, upload_stats_gui_cmp_attempts },
 		{ c_us_complete, N_("Complete"),   1.0, upload_stats_gui_cmp_complete },
     	{ c_us_norm, 	 N_("Normalized"), 1.0, upload_stats_gui_cmp_norm },
+    	{ c_us_rtime, 	 N_("Last Request"), 0.0, upload_stats_gui_cmp_rtime },
+    	{ c_us_dtime, 	 N_("Last Upload"), 0.0, upload_stats_gui_cmp_dtime },
 	};
 	static gboolean initialized = FALSE;
 	GtkTreeModel *model;
