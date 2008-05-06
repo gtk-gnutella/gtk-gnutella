@@ -1240,7 +1240,9 @@ int
 main(int argc, char **argv)
 {
 	if (compat_is_superuser()) {
-		fprintf(stderr, "Never ever run this as root!\n");
+		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
+		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
+		fprintf(stderr, "where 'username' stands for a regular user name.\n");
 		exit(EXIT_FAILURE);
 	}
 
