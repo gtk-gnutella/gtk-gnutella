@@ -9,9 +9,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.5u\n"
+"Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-10 21:33+0900\n"
+"POT-Creation-Date: 2008-05-06 22:44+0900\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -27,6 +27,18 @@ msgstr ""
 
 msgid "times|x"
 msgstr ""
+
+#, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
+msgid "Stopped (%s)"
+msgstr "Зупинено (%s)"
+
+#, fuzzy, c-format
+msgid "Too many attempts (%u times)"
+msgstr "Забагато спроб (%d раз(а)(ів))"
 
 #, fuzzy
 msgid "Requeued due to file removal"
@@ -136,22 +148,6 @@ msgstr ""
 msgid "Failed (Input buffer full)"
 msgstr ""
 
-#, c-format
-msgid "Stopped, will retry with TLS (%s)"
-msgstr ""
-
-#, c-format
-msgid "Stopped (%s)"
-msgstr "Зупинено (%s)"
-
-#, fuzzy, c-format
-msgid "Too many attempts (%u times)"
-msgstr "Забагато спроб (%d раз(а)(ів))"
-
-#, c-format
-msgid "Failed (Read error: %s)"
-msgstr "Провалилось (Помилка: %s)"
-
 msgid "Connection not kept-alive (EOF)"
 msgstr "З'єднання не підтримувалось (not kept-alive) (EOF)"
 
@@ -242,6 +238,10 @@ msgstr "Зупинено (%s)"
 #, fuzzy, c-format
 msgid "Stopped data (%s)"
 msgstr "Зупинено (%s)"
+
+#, c-format
+msgid "Failed (Read error: %s)"
+msgstr "Провалилось (Помилка: %s)"
 
 msgid "Timeout reading HTTP status"
 msgstr ""
@@ -2158,6 +2158,11 @@ msgid ""
 "background."
 msgstr ""
 
+msgid ""
+"Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
+"the background."
+msgstr ""
+
 msgid "Maximum number of results to show in any search."
 msgstr ""
 
@@ -2201,6 +2206,33 @@ msgid "Maximum time before removing hosts from the G2 cache."
 msgstr ""
 
 msgid "Debug level for management of G2-only hosts."
+msgstr ""
+
+msgid ""
+"Whether GTKG can switch among the several files waiting to be downloaded "
+"from a given server, when making a follow-up HTTP request.  Turn it off only "
+"if you witness problems with a particular servent you're downloading from."
+msgstr ""
+
+msgid ""
+"If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
+"disable unless you know what you are doing."
+msgstr ""
+
+msgid ""
+"When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
+"download chunks in a random order, to maximize the spreading of the file in "
+"the network.  However, this may make pre-viewing of the file impossible as "
+"some file formats make use of a trailer to hold meta-information or seeking "
+"indices. GTKG will attempt to download the specified amount of data at the "
+"tail of the file as soon as possible.  Set it to 0 to disable any tail-"
+"downloading preference."
+msgstr ""
+
+msgid ""
+"Whether GTKG should post-process filenames to remove consecutive '_' in the "
+"name, or extra '_' surrounding punctuation for instance, to make the name "
+"prettier."
 msgstr ""
 
 msgid "disable"
@@ -2297,12 +2329,6 @@ msgid "Search monitor enabled."
 msgstr ""
 
 msgid "Maximum number of queries visible in search monitor."
-msgstr ""
-
-msgid "Select downloads by regex case-sensitive."
-msgstr ""
-
-msgid "Filter downloads by regex case-sensitive."
 msgstr ""
 
 msgid ""
@@ -3540,12 +3566,6 @@ msgstr ""
 msgid "Good bye"
 msgstr "До побачення"
 
-msgid "The library is currently being rebuilt."
-msgstr ""
-
-msgid "A rescan has already been scheduled"
-msgstr ""
-
 #, fuzzy
 msgid "Query string missing"
 msgstr "Властивість відсутня"
@@ -3622,6 +3642,9 @@ msgstr ""
 msgid "Created"
 msgstr "З'єднано"
 
+msgid "Modified"
+msgstr ""
+
 msgid "SHA-1"
 msgstr ""
 
@@ -3632,7 +3655,7 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "%lu leaf hashes providing a granularity of %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
@@ -4195,6 +4218,9 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
+msgid "%v/%u (%P%%)"
+msgstr ""
+
 msgid "%v/%u Gnutella peers"
 msgstr ""
 
@@ -4202,6 +4228,9 @@ msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
+msgstr ""
+
+msgid "("
 msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
@@ -4273,26 +4302,6 @@ msgstr ""
 msgid "Add"
 msgstr "Додати"
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-
 msgid "Aliases"
 msgstr ""
 
@@ -4355,7 +4364,13 @@ msgstr ""
 msgid "Banning"
 msgstr ""
 
+msgid "Beautify filenames by removing needless underscores"
+msgstr ""
+
 msgid "Bind to this address"
+msgstr ""
+
+msgid "Bitzi Metadata"
 msgstr ""
 
 msgid "Bitzi metadata"
@@ -4606,9 +4621,6 @@ msgstr ""
 msgid "Downloads"
 msgstr ""
 
-msgid "Drop results..."
-msgstr ""
-
 msgid "Dropped"
 msgstr ""
 
@@ -4751,9 +4763,6 @@ msgstr ""
 msgid "Generation:"
 msgstr ""
 
-msgid "Globally drop results..."
-msgstr ""
-
 #, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "Загальна статистика"
@@ -4868,7 +4877,7 @@ msgstr ""
 msgid "Info"
 msgstr "Інфо"
 
-msgid "Information about selected file"
+msgid "Jeroen Asselman"
 msgstr ""
 
 msgid "Join the users or developers mailing lists."
@@ -4880,10 +4889,19 @@ msgstr ""
 msgid "Keywords:"
 msgstr ""
 
+msgid "KiB"
+msgstr ""
+
+msgid "KiB/s"
+msgstr ""
+
 msgid "Large enough uptime"
 msgstr ""
 
 msgid "Last check"
+msgstr ""
+
+msgid "Last chunk size"
 msgstr ""
 
 msgid "Last scan initiated on:"
@@ -4912,9 +4930,6 @@ msgstr ""
 
 msgid "Limit search _results to "
 msgstr ""
-
-msgid "Loc"
-msgstr "Країна"
 
 msgid "Local networks"
 msgstr ""
@@ -5055,9 +5070,6 @@ msgstr ""
 
 msgid "New"
 msgstr "Новий"
-
-msgid "No, take me back!"
-msgstr "Ні, я хочу назад"
 
 msgid "Normalized"
 msgstr ""
@@ -5214,6 +5226,9 @@ msgid "RX wire bytes"
 msgstr ""
 
 msgid "Range"
+msgstr ""
+
+msgid "Raphael Manfredi"
 msgstr ""
 
 msgid "Ratio of tolerable duplicate messages per _node"
@@ -5430,11 +5445,11 @@ msgid "Show _outbound Gnutella traffic"
 msgstr "GnutellaNet трафік"
 
 #, fuzzy
-msgid "Show _outbound leaf traffic"
+msgid "Show _outbound HTTP traffic"
 msgstr "показувати вихідний Gnet трафік"
 
 #, fuzzy
-msgid "Show _outbound HTTP traffic"
+msgid "Show _outbound leaf traffic"
 msgstr "показувати вихідний Gnet трафік"
 
 msgid "Show _percentages"
@@ -5475,6 +5490,9 @@ msgid "Slots:"
 msgstr ""
 
 msgid "Socket receive buffer size"
+msgstr ""
+
+msgid "Somebody tell me a sensible tooltip for this."
 msgstr ""
 
 msgid "Source quality"
@@ -5653,8 +5671,11 @@ msgstr "Програма користувача"
 msgid "Value"
 msgstr ""
 
-msgid "Ver"
-msgstr "Версія"
+msgid "Version"
+msgstr ""
+
+msgid "Vidar Madsen"
+msgstr ""
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr ""
@@ -5677,8 +5698,8 @@ msgstr ""
 msgid "XML Metadata"
 msgstr ""
 
-msgid "Yes"
-msgstr "Так"
+msgid "Yann Grossel"
+msgstr ""
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -5725,6 +5746,10 @@ msgstr ""
 
 msgid "_Browse"
 msgstr ""
+
+#, fuzzy
+msgid "_Cancel"
+msgstr "Україна"
 
 msgid "_Compute upload connection speed"
 msgstr ""
@@ -5879,9 +5904,6 @@ msgstr ""
 msgid "from _nodes within a"
 msgstr ""
 
-msgid "from the same host"
-msgstr ""
-
 #, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
@@ -5916,6 +5938,9 @@ msgid "in"
 msgstr ""
 
 msgid "invert condition"
+msgstr ""
+
+msgid "invert"
 msgstr ""
 
 msgid "items"
@@ -5963,12 +5988,6 @@ msgstr ""
 
 msgid "uploads"
 msgstr "завантаження"
-
-msgid "with the same name"
-msgstr ""
-
-msgid "with the same urn:sha1"
-msgstr ""
 
 #, fuzzy
 msgid "owned"
@@ -6070,9 +6089,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr ""
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr ""
-
 msgid "Served "
 msgstr ""
 
@@ -6161,9 +6177,6 @@ msgstr ""
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
-msgid "KiB/s"
-msgstr ""
-
 msgid "attempts"
 msgstr ""
 
@@ -6183,9 +6196,6 @@ msgid "_Clear completed"
 msgstr ""
 
 msgid ", "
-msgstr ""
-
-msgid "Version"
 msgstr ""
 
 msgid "Peer:"
@@ -6224,6 +6234,13 @@ msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Last Request"
+msgstr ""
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "Завантажено"
 
 msgid "Done"
 msgstr "Виконано"
@@ -6388,6 +6405,9 @@ msgstr "Протокол не підтримується"
 msgid "The given SHA-1 is not correctly encoded."
 msgstr "Протокол не підтримується"
 
+msgid "Still scanning for shared file, results may be inconclusive."
+msgstr ""
+
 msgid "Missing port number"
 msgstr ""
 
@@ -6414,11 +6434,20 @@ msgstr ""
 msgid "Extension"
 msgstr ""
 
+msgid "MIME type"
+msgstr ""
+
+msgid "TTH"
+msgstr ""
+
 msgid "Owned"
 msgstr ""
 
 msgid "No"
 msgstr ""
+
+msgid "Yes"
+msgstr "Так"
 
 msgid "Maybe"
 msgstr ""

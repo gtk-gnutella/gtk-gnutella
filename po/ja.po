@@ -73,9 +73,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.5u\n"
+"Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-02-16 13:04+0900\n"
+"POT-Creation-Date: 2008-05-06 22:44+0900\n"
 "PO-Revision-Date: 2008-02-16 14:15+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -2611,6 +2611,12 @@ msgid ""
 "background."
 msgstr "共有ファイルのTTHを算出しています。"
 
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
+"the background."
+msgstr "ダウンロードされたファイルの SHA1 を検証しています。"
+
 msgid "Maximum number of results to show in any search."
 msgstr "検索で表示する検索結果の最大数です。"
 
@@ -2669,6 +2675,29 @@ msgstr ""
 msgid ""
 "If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
 "disable unless you know what you are doing."
+msgstr ""
+
+#, fuzzy
+msgid ""
+"When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
+"download chunks in a random order, to maximize the spreading of the file in "
+"the network.  However, this may make pre-viewing of the file impossible as "
+"some file formats make use of a trailer to hold meta-information or seeking "
+"indices. GTKG will attempt to download the specified amount of data at the "
+"tail of the file as soon as possible.  Set it to 0 to disable any tail-"
+"downloading preference."
+msgstr ""
+"部分ファイル共有プロトコル (PFSP - Partial File Sharing Protocol ) が使用され"
+"ると、順序に捕らわれずにチャンクをダウンロードしたり、ネットワーク内でのファ"
+"イルの取得範囲を最大化されるようになります。しかし、これはファイルの監視(ファ"
+"イルタイプ、プレビュー等)を不可能にしてしまいます。ここには、ファイルの先頭で"
+"連続してダウンロードされるデータの最初のチャンクの大きさをバイトで設定して下"
+"さい。大き過ぎる値は設定しないで下さい。"
+
+msgid ""
+"Whether GTKG should post-process filenames to remove consecutive '_' in the "
+"name, or extra '_' surrounding punctuation for instance, to make the name "
+"prettier."
 msgstr ""
 
 msgid "disable"
@@ -2768,12 +2797,6 @@ msgstr "あなたのピアを通過する検索クエリーをチェックしま
 
 msgid "Maximum number of queries visible in search monitor."
 msgstr "検索モニターに表示する検索クエリーの最大数です。"
-
-msgid "Select downloads by regex case-sensitive."
-msgstr "正規表現 (大・小文字を区別) に一致するダウンロードを選択します。"
-
-msgid "Filter downloads by regex case-sensitive."
-msgstr "正規表現 (大・小文字を区別) に一致するダウンロードを振り分けます。"
 
 msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
@@ -4027,12 +4050,6 @@ msgstr "合致するプロパティがありません。"
 msgid "Good bye"
 msgstr "Good Bye"
 
-msgid "The library is currently being rebuilt."
-msgstr "現在ライブラリの再構築中です。"
-
-msgid "A rescan has already been scheduled"
-msgstr "再スキャンの実行は既に予定されています"
-
 msgid "Query string missing"
 msgstr "検索クエリー文字列がありません"
 
@@ -4154,6 +4171,9 @@ msgstr "ファイル名"
 msgid "Created"
 msgstr "作成日"
 
+msgid "Modified"
+msgstr ""
+
 msgid "SHA-1"
 msgstr "SHA-1"
 
@@ -4163,8 +4183,8 @@ msgstr "利用できません"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "%lu leaf hashes providing a granularity of %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr "%luのリーフピアからハッシュが提供されています。粒度は%s"
 
 msgid "Tigertree"
@@ -4769,6 +4789,10 @@ msgstr " 件が登録済, "
 msgid " with sources"
 msgstr " 件が送信元有り"
 
+#, fuzzy
+msgid "%v/%u (%P%%)"
+msgstr "%u/%u 基のホスト (%u%%)"
+
 msgid "%v/%u Gnutella peers"
 msgstr "%v/%u 基のGnutellaピア"
 
@@ -4777,6 +4801,9 @@ msgstr "%v/%u 件のダウンロード"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u 件のアップロード"
+
+msgid "("
+msgstr ""
 
 msgid "(Disable: 0, Random: 1)"
 msgstr "(無効: 0, ランダム: 1)"
@@ -4851,34 +4878,6 @@ msgstr "状態ルールの追加"
 msgid "Add"
 msgstr "追加"
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-"選択したファイル名に一致する「表示しない」ルールを (振り分け前) 全体フィル"
-"ターに追加します。"
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-"選択したファイル名に一致する \"表示しない\" ルールを検索フィルターに追加しま"
-"す。"
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-"選択したファイルの URN:SHA1 に一致する「表示しない」ルールを (振り分け前) 全"
-"体フィルターに追加します。"
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-"選択したファイルの URN:SHA1 に一致する \"表示しない\" ルールを検索フィルター"
-"に追加します。"
-
 msgid "Aliases"
 msgstr "別名"
 
@@ -4948,8 +4947,14 @@ msgstr "帯域幅"
 msgid "Banning"
 msgstr "禁止処理"
 
+msgid "Beautify filenames by removing needless underscores"
+msgstr ""
+
 msgid "Bind to this address"
 msgstr "このアドレスにバインドする"
+
+msgid "Bitzi Metadata"
+msgstr "Bitziメタデータ"
 
 msgid "Bitzi metadata"
 msgstr "Bitziメタデータ"
@@ -5209,9 +5214,6 @@ msgstr "多数の送信元からのダウンロード (Swarming)"
 msgid "Downloads"
 msgstr "ダウンロード"
 
-msgid "Drop results..."
-msgstr "検索結果を破棄..."
-
 msgid "Dropped"
 msgstr "破棄"
 
@@ -5363,9 +5365,6 @@ msgstr "生成検索クエリー数"
 msgid "Generation:"
 msgstr "生成:"
 
-msgid "Globally drop results..."
-msgstr "検索結果を永久に破棄..."
-
 msgid "Gnutella TTL settings"
 msgstr "TTL (Time-To-Live) の設定"
 
@@ -5479,8 +5478,8 @@ msgstr "索引作成の開始時間:"
 msgid "Info"
 msgstr "情報"
 
-msgid "Information about selected file"
-msgstr "ファイルに関する情報"
+msgid "Jeroen Asselman"
+msgstr ""
 
 msgid "Join the users or developers mailing lists."
 msgstr "users または developers メーリングリストへ参加して下さい。"
@@ -5491,11 +5490,22 @@ msgstr "ダウンロード中/未完成なファイルをここに保管"
 msgid "Keywords:"
 msgstr "キーワード:"
 
+#, fuzzy
+msgid "KiB"
+msgstr "KiB/秒"
+
+msgid "KiB/s"
+msgstr "KiB/秒"
+
 msgid "Large enough uptime"
 msgstr "充分な稼動時間がある"
 
 msgid "Last check"
 msgstr "最後の確認時間"
+
+#, fuzzy
+msgid "Last chunk size"
+msgstr "先頭のチャンクサイズ(_S)"
 
 msgid "Last scan initiated on:"
 msgstr "最終スキャン開始時間:"
@@ -5523,9 +5533,6 @@ msgstr "ライブラリーの大きさ"
 
 msgid "Limit search _results to "
 msgstr "検索結果の上限(_R) "
-
-msgid "Loc"
-msgstr "場所"
 
 msgid "Local networks"
 msgstr "ローカルネット"
@@ -5672,9 +5679,6 @@ msgstr "PUSH リクエストを送らない"
 
 msgid "New"
 msgstr "新規"
-
-msgid "No, take me back!"
-msgstr "いいえ、止めます！"
 
 msgid "Normalized"
 msgstr "正規値"
@@ -5841,6 +5845,9 @@ msgstr "RX (受信) 伝送バイト数"
 
 msgid "Range"
 msgstr "取得範囲"
+
+msgid "Raphael Manfredi"
+msgstr ""
 
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "ピアにつき受容可能な重複メッセージ比率(_N)"
@@ -6065,11 +6072,11 @@ msgstr "計測単位を表示する(_M)"
 msgid "Show _outbound Gnutella traffic"
 msgstr "外へのGnutellaトラフィック(_O)"
 
-msgid "Show _outbound leaf traffic"
-msgstr "外へのリーフトラフィック(_O)"
-
 msgid "Show _outbound HTTP traffic"
 msgstr "外へのHTTPトラフィック(_O)"
+
+msgid "Show _outbound leaf traffic"
+msgstr "外へのリーフトラフィック(_O)"
 
 msgid "Show _percentages"
 msgstr "割合を表示(_P)"
@@ -6117,6 +6124,9 @@ msgstr "スロット:"
 
 msgid "Socket receive buffer size"
 msgstr "ソケット受信バッファサイズ"
+
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "相応しいツールチップを教えてください。"
 
 msgid "Source quality"
 msgstr "送信元の品質"
@@ -6304,8 +6314,11 @@ msgstr "エージェント"
 msgid "Value"
 msgstr "値"
 
-msgid "Ver"
+msgid "Version"
 msgstr "バージョン"
+
+msgid "Vidar Madsen"
+msgstr ""
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "http://gtk-gnutella.sourceforge.net を訪ねてみて下さい。"
@@ -6328,8 +6341,8 @@ msgstr "書込バッファサイズ"
 msgid "XML Metadata"
 msgstr "XMLメタデータ"
 
-msgid "Yes"
-msgstr "はい"
+msgid "Yann Grossel"
+msgstr ""
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -6396,6 +6409,11 @@ msgstr "フォルダを追加(_A)"
 
 msgid "_Browse"
 msgstr "参照(_B)"
+
+# FIXME: should be accelerated
+#, fuzzy
+msgid "_Cancel"
+msgstr "キャンセル"
 
 msgid "_Compute upload connection speed"
 msgstr "アップロード接続速度を算出する(_C)"
@@ -6554,9 +6572,6 @@ msgstr "有効にする"
 msgid "from _nodes within a"
 msgstr "ピア(_N)"
 
-msgid "from the same host"
-msgstr "同じホストから"
-
 msgid ""
 "gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -6595,6 +6610,11 @@ msgstr "(平均) で内へ"
 
 msgid "invert condition"
 msgstr "条件を逆転"
+
+# FIXME: should be accelerated
+#, fuzzy
+msgid "invert"
+msgstr "戻す"
 
 msgid "items"
 msgstr "個のアイテム"
@@ -6660,12 +6680,6 @@ msgstr "×"
 
 msgid "uploads"
 msgstr "アップロード"
-
-msgid "with the same name"
-msgstr "同じ名前で"
-
-msgid "with the same urn:sha1"
-msgstr "同じURN:SHA1で"
 
 msgid "owned"
 msgstr "取得済"
@@ -6787,9 +6801,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr "アドレス/ポート:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "相応しいツールチップを教えてください。"
-
 # NOTE: this string is used as follows
 #
 # 'Served 0 HTML and 0 Gnutella browse requests'
@@ -6818,9 +6829,6 @@ msgstr "[BH qhits]"
 
 msgid "Current _search:"
 msgstr "現在の検索(_S):"
-
-msgid "Bitzi Metadata"
-msgstr "Bitziメタデータ"
 
 msgid "_Clear results"
 msgstr "結果を消去(_C)"
@@ -6893,9 +6901,6 @@ msgstr "秒"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "ベンダーが占有できる接続スロットの最大割合です。"
 
-msgid "KiB/s"
-msgstr "KiB/秒"
-
 msgid "attempts"
 msgstr "回"
 
@@ -6917,9 +6922,6 @@ msgstr "完了したものを消去(_C)"
 # NOTE: it shouldn't be translated, you can simply copy & paste
 msgid ", "
 msgstr ", "
-
-msgid "Version"
-msgstr "バージョン"
 
 msgid "Peer:"
 msgstr "ピア:"
@@ -6956,6 +6958,14 @@ msgstr "大きさ:"
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u 件の検索クエリー"
+
+#, fuzzy
+msgid "Last Request"
+msgstr "最後の切替時間"
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "アップロード"
 
 # FIXME:
 msgid "Done"
@@ -7129,6 +7139,9 @@ msgstr "このタイプのURNには対応しません。"
 msgid "The given SHA-1 is not correctly encoded."
 msgstr "指定されたSHA-1は正しくエンコードされていません。"
 
+msgid "Still scanning for shared file, results may be inconclusive."
+msgstr ""
+
 msgid "Missing port number"
 msgstr "ポート番号が指定されていません。"
 
@@ -7156,6 +7169,9 @@ msgstr "検索一覧を表示する"
 msgid "Extension"
 msgstr "拡張子"
 
+msgid "MIME type"
+msgstr ""
+
 msgid "TTH"
 msgstr "TTH"
 
@@ -7165,6 +7181,9 @@ msgstr "取得状況"
 
 msgid "No"
 msgstr "いいえ"
+
+msgid "Yes"
+msgstr "はい"
 
 msgid "Maybe"
 msgstr "多分"

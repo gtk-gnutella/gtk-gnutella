@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.5u\n"
+"Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-10 21:33+0900\n"
+"POT-Creation-Date: 2008-05-06 22:44+0900\n"
 "PO-Revision-Date: 2005-11-20 10:33+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -26,6 +26,18 @@ msgstr ""
 
 msgid "times|x"
 msgstr "x"
+
+#, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
+msgid "Stopped (%s)"
+msgstr "Gestopt (%s)"
+
+#, c-format
+msgid "Too many attempts (%u times)"
+msgstr "Teveel pogingen (%u keer)"
 
 #, fuzzy
 msgid "Requeued due to file removal"
@@ -140,22 +152,6 @@ msgstr "Gefaalt (%s)"
 msgid "Failed (Input buffer full)"
 msgstr "Mislukt (Invoer buffer vol)"
 
-#, c-format
-msgid "Stopped, will retry with TLS (%s)"
-msgstr ""
-
-#, c-format
-msgid "Stopped (%s)"
-msgstr "Gestopt (%s)"
-
-#, c-format
-msgid "Too many attempts (%u times)"
-msgstr "Teveel pogingen (%u keer)"
-
-#, c-format
-msgid "Failed (Read error: %s)"
-msgstr "Gefaalt (Leesfout: %s)"
-
 msgid "Connection not kept-alive (EOF)"
 msgstr "Connectie bleef niet leven (EOF)"
 
@@ -250,6 +246,10 @@ msgstr "Gestopt (%s)"
 #, fuzzy, c-format
 msgid "Stopped data (%s)"
 msgstr "Gestopt (%s)"
+
+#, c-format
+msgid "Failed (Read error: %s)"
+msgstr "Gefaalt (Leesfout: %s)"
 
 #, fuzzy
 msgid "Timeout reading HTTP status"
@@ -2658,6 +2658,14 @@ msgstr ""
 "Of gtk-gnutella momenteel in de achtergrond bezig is met het berekenen van "
 "de SHA1 waarden van de gedeelde bestanden."
 
+#, fuzzy
+msgid ""
+"Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
+"the background."
+msgstr ""
+"Of gtk-gnutella momenteel in de achtergrond bezig is met het verifiëren van "
+"de SHA1 waarde van een afgeronde download."
+
 msgid "Maximum number of results to show in any search."
 msgstr ""
 "Het maximum aantal resultaten dat weergegeven mag worden bij een "
@@ -2712,6 +2720,41 @@ msgstr "Maximum aantal hosts in de ultra node catcher."
 #, fuzzy
 msgid "Debug level for management of G2-only hosts."
 msgstr "Debug level voor de download mesh beheer."
+
+msgid ""
+"Whether GTKG can switch among the several files waiting to be downloaded "
+"from a given server, when making a follow-up HTTP request.  Turn it off only "
+"if you witness problems with a particular servent you're downloading from."
+msgstr ""
+
+msgid ""
+"If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
+"disable unless you know what you are doing."
+msgstr ""
+
+#, fuzzy
+msgid ""
+"When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
+"download chunks in a random order, to maximize the spreading of the file in "
+"the network.  However, this may make pre-viewing of the file impossible as "
+"some file formats make use of a trailer to hold meta-information or seeking "
+"indices. GTKG will attempt to download the specified amount of data at the "
+"tail of the file as soon as possible.  Set it to 0 to disable any tail-"
+"downloading preference."
+msgstr ""
+"Zodra 'gedeeltelijke bestanden delen' (PFSP) is ingeschakeld zal gtk-"
+"gnutella proberen om in willekeurige volgorde fragmenten te downloaden zodat "
+"een bestand zoveel mogelijk over het netwerk verspreid. Dit maakt het "
+"beoordelen van een bestand (bestandstype, pre-view, etc...) echter "
+"onmogelijk. Stel hier de grootte in van het eerste fragment van het begin "
+"van het bestand dat als in geheel gedownload moet worden. Stel dit niet te "
+"groot in."
+
+msgid ""
+"Whether GTKG should post-process filenames to remove consecutive '_' in the "
+"name, or extra '_' surrounding punctuation for instance, to make the name "
+"prettier."
+msgstr ""
 
 msgid "disable"
 msgstr "uitschakelen"
@@ -2809,18 +2852,6 @@ msgstr "Zoek monitor geactiveerd."
 msgid "Maximum number of queries visible in search monitor."
 msgstr ""
 "Maximum aantal zoek opdrachten die zichtbaar zullen zijn in de zoek monitor."
-
-#, fuzzy
-msgid "Select downloads by regex case-sensitive."
-msgstr ""
-"Maak een selectie uit de wachtrij op basis van reguliere "
-"hoofdlettergevoelige expressie"
-
-#, fuzzy
-msgid "Filter downloads by regex case-sensitive."
-msgstr ""
-"Selecteer uit de download lijst op basis van een reguliere hoofdletter "
-"gevoelige expressie "
 
 msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
@@ -4170,12 +4201,6 @@ msgstr ""
 msgid "Good bye"
 msgstr "Tot ziens"
 
-msgid "The library is currently being rebuilt."
-msgstr ""
-
-msgid "A rescan has already been scheduled"
-msgstr ""
-
 msgid "Query string missing"
 msgstr "Zoek text mist"
 
@@ -4251,6 +4276,9 @@ msgstr "Bestandsnaam"
 msgid "Created"
 msgstr "Afgerond"
 
+msgid "Modified"
+msgstr ""
+
 #, fuzzy
 msgid "SHA-1"
 msgstr "SHA1:"
@@ -4263,7 +4291,7 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "%lu leaf hashes providing a granularity of %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
@@ -4843,6 +4871,10 @@ msgid " with sources"
 msgstr " met bronnen"
 
 #, fuzzy
+msgid "%v/%u (%P%%)"
+msgstr "%u/%u host (%u%%)"
+
+#, fuzzy
 msgid "%v/%u Gnutella peers"
 msgstr "%v/%u Gnet nodes"
 
@@ -4851,6 +4883,9 @@ msgstr "%v/%u downloads"
 
 msgid "%v/%u uploads"
 msgstr "%v/%u uploads"
+
+msgid "("
+msgstr ""
 
 #, fuzzy
 msgid "(Disable: 0, Random: 1)"
@@ -4930,34 +4965,6 @@ msgstr "Voeg regel toe"
 msgid "Add"
 msgstr "Voeg toe"
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-"Voegt een \"niet weergeven\" regel toe aan het algemene eerste filter als de "
-"naam overeenkomt."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-"Voegt een \"niet weergeven\" regel toe aan het zoek filter als de naam "
-"overeenkomt"
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-"Voegt een \"niet weergeven\" regel toe aan het algemene eerste filter als de "
-"urn:sha1 overeenkomt."
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-"Voegt een \"niet weergeven\" regel toe aan het zoek filter als de urn:sha1 "
-"overeenkomt"
-
 msgid "Aliases"
 msgstr "Alias"
 
@@ -5024,9 +5031,16 @@ msgstr "Bandbreedte"
 msgid "Banning"
 msgstr "Bannen"
 
+msgid "Beautify filenames by removing needless underscores"
+msgstr ""
+
 #, fuzzy
 msgid "Bind to this address"
 msgstr "Fout antwoord adres."
+
+#, fuzzy
+msgid "Bitzi Metadata"
+msgstr "Bitzi Metadata"
 
 #, fuzzy
 msgid "Bitzi metadata"
@@ -5286,9 +5300,6 @@ msgstr "Download van meerdere bronnen tegelijk (zwermen)"
 msgid "Downloads"
 msgstr "Downloads"
 
-msgid "Drop results..."
-msgstr "Resultaten laten vervallen..."
-
 msgid "Dropped"
 msgstr "Verwijderd"
 
@@ -5437,9 +5448,6 @@ msgstr "Gegenereerde zoekopdrachten"
 msgid "Generation:"
 msgstr "Generatie:"
 
-msgid "Globally drop results..."
-msgstr "Algemeen verwijderen..."
-
 #, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "GnutellaNet TTL instellingen"
@@ -5557,8 +5565,8 @@ msgstr "Indexeren is gestart op:"
 msgid "Info"
 msgstr "Informatie"
 
-msgid "Information about selected file"
-msgstr "Informatie over het geselecteerde bestand"
+msgid "Jeroen Asselman"
+msgstr ""
 
 msgid "Join the users or developers mailing lists."
 msgstr "Kom bij de gebruikers of de ontwikkelaars mailing lijsten."
@@ -5569,11 +5577,22 @@ msgstr "Bewaar bestanden die momenteel gedownload worden en incompleet zijn in"
 msgid "Keywords:"
 msgstr "Sleutelwoorden:"
 
+#, fuzzy
+msgid "KiB"
+msgstr "KiB/s"
+
+msgid "KiB/s"
+msgstr "KiB/s"
+
 msgid "Large enough uptime"
 msgstr "Voldoende lange uptime"
 
 msgid "Last check"
 msgstr "Laatste controle"
+
+#, fuzzy
+msgid "Last chunk size"
+msgstr "Eerste stuk grootte"
 
 msgid "Last scan initiated on:"
 msgstr "Laatste scan gestart op:"
@@ -5601,9 +5620,6 @@ msgstr "Bibliotheek grootte"
 
 msgid "Limit search _results to "
 msgstr "Limiteer zoek resultaten op"
-
-msgid "Loc"
-msgstr "Lok"
 
 msgid "Local networks"
 msgstr "Lokale netwerken"
@@ -5752,9 +5768,6 @@ msgstr "Verstuur nooit een push verzoek"
 
 msgid "New"
 msgstr "Nieuw"
-
-msgid "No, take me back!"
-msgstr "Nee, breng me terug!"
 
 msgid "Normalized"
 msgstr "Genormaliseerd"
@@ -5922,6 +5935,9 @@ msgstr "RX draad bytes"
 
 msgid "Range"
 msgstr "Bereik"
+
+msgid "Raphael Manfredi"
+msgstr ""
 
 msgid "Ratio of tolerable duplicate messages per _node"
 msgstr "Percentage acceptabele gedupliceerde berichten per node"
@@ -6150,11 +6166,11 @@ msgid "Show _outbound Gnutella traffic"
 msgstr "GnutellaNet verkeer"
 
 #, fuzzy
-msgid "Show _outbound leaf traffic"
+msgid "Show _outbound HTTP traffic"
 msgstr "toon uitgaand Gnet verkeer"
 
 #, fuzzy
-msgid "Show _outbound HTTP traffic"
+msgid "Show _outbound leaf traffic"
 msgstr "toon uitgaand Gnet verkeer"
 
 msgid "Show _percentages"
@@ -6205,6 +6221,9 @@ msgstr "Sloten:"
 
 msgid "Socket receive buffer size"
 msgstr "Buffergrootte voor de ontvangst \"socket\""
+
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr "Is er een toepasselijke tooltip voor deze?"
 
 msgid "Source quality"
 msgstr "Kwaliteit van een bron"
@@ -6395,8 +6414,11 @@ msgstr "User-Agent"
 msgid "Value"
 msgstr "Waarde"
 
-msgid "Ver"
-msgstr "Ver"
+msgid "Version"
+msgstr "Versie"
+
+msgid "Vidar Madsen"
+msgstr ""
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
 msgstr "Bezoek http://gtk-gnutella.sourceforge.net/."
@@ -6420,8 +6442,8 @@ msgstr "Schrijf buffer grootte"
 msgid "XML Metadata"
 msgstr "Metagegevens"
 
-msgid "Yes"
-msgstr "Ja"
+msgid "Yann Grossel"
+msgstr ""
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -6490,6 +6512,10 @@ msgstr "Directory toevoegen"
 
 msgid "_Browse"
 msgstr "_Bladeren"
+
+#, fuzzy
+msgid "_Cancel"
+msgstr "Annuleren"
 
 msgid "_Compute upload connection speed"
 msgstr "Bereken upload verbindingssnelheid"
@@ -6642,9 +6668,6 @@ msgstr "geactiveerd"
 msgid "from _nodes within a"
 msgstr "van _nodes binnen een"
 
-msgid "from the same host"
-msgstr "van dezelfde host"
-
 #, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
@@ -6680,6 +6703,10 @@ msgstr "inkomend"
 
 msgid "invert condition"
 msgstr "inverteer voorwaarde"
+
+#, fuzzy
+msgid "invert"
+msgstr "Ongedaan maken"
 
 msgid "items"
 msgstr "items"
@@ -6726,12 +6753,6 @@ msgstr "niet zetten"
 
 msgid "uploads"
 msgstr "uploads"
-
-msgid "with the same name"
-msgstr "met dezelfde naam"
-
-msgid "with the same urn:sha1"
-msgstr "met dezelfde urn:sha1"
 
 #, fuzzy
 msgid "owned"
@@ -6838,9 +6859,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr "Adres/Poort:"
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr "Is er een toepasselijke tooltip voor deze?"
-
 msgid "Served "
 msgstr "Geserveerd"
 
@@ -6934,9 +6952,6 @@ msgstr "s"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Maximum percentage verbindingen dat een leverancier kan bezetten."
 
-msgid "KiB/s"
-msgstr "KiB/s"
-
 msgid "attempts"
 msgstr "pogingen"
 
@@ -6958,9 +6973,6 @@ msgstr "Verwijder afgeronde"
 
 msgid ", "
 msgstr ",."
-
-msgid "Version"
-msgstr "Versie"
 
 msgid "Peer:"
 msgstr "Peer:"
@@ -6998,6 +7010,14 @@ msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u term geteld"
 msgstr[1] "%u termen geteld"
+
+#, fuzzy
+msgid "Last Request"
+msgstr "Laatste omschakeling"
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "Uploads"
 
 msgid "Done"
 msgstr "Gereed"
@@ -7172,6 +7192,9 @@ msgstr "Type wordt niet ondersteund"
 msgid "The given SHA-1 is not correctly encoded."
 msgstr "Type wordt niet ondersteund"
 
+msgid "Still scanning for shared file, results may be inconclusive."
+msgstr ""
+
 msgid "Missing port number"
 msgstr ""
 
@@ -7199,11 +7222,20 @@ msgstr "Geef zoek lijst weer"
 msgid "Extension"
 msgstr "Extenties"
 
+msgid "MIME type"
+msgstr ""
+
+msgid "TTH"
+msgstr ""
+
 msgid "Owned"
 msgstr ""
 
 msgid "No"
 msgstr "Nee"
+
+msgid "Yes"
+msgstr "Ja"
 
 #, fuzzy
 msgid "Maybe"

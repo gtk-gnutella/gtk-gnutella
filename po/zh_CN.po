@@ -8,9 +8,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.5u\n"
+"Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2007-09-10 21:33+0900\n"
+"POT-Creation-Date: 2008-05-06 22:44+0900\n"
 "PO-Revision-Date: 2005-09-11 21:49+0900\n"
 "Last-Translator: Wu Xiaoguang <wxgnj@yahoo.com.cn>\n"
 "Language-Team: Chinese (Simplified) <i18n-translation@lists.linux.net.cn>\n"
@@ -25,6 +25,18 @@ msgstr ""
 
 msgid "times|x"
 msgstr ""
+
+#, c-format
+msgid "Stopped, will retry with TLS (%s)"
+msgstr ""
+
+#, c-format
+msgid "Stopped (%s)"
+msgstr "已停止 (%s)"
+
+#, fuzzy, c-format
+msgid "Too many attempts (%u times)"
+msgstr "尝试次数过多 (%d 次)"
 
 #, fuzzy
 msgid "Requeued due to file removal"
@@ -137,22 +149,6 @@ msgstr "失败 (%s)"
 msgid "Failed (Input buffer full)"
 msgstr "失败 (输入缓冲满了)"
 
-#, c-format
-msgid "Stopped, will retry with TLS (%s)"
-msgstr ""
-
-#, c-format
-msgid "Stopped (%s)"
-msgstr "已停止 (%s)"
-
-#, fuzzy, c-format
-msgid "Too many attempts (%u times)"
-msgstr "尝试次数过多 (%d 次)"
-
-#, c-format
-msgid "Failed (Read error: %s)"
-msgstr "失败 (读取错误:%s)"
-
 #, fuzzy
 msgid "Connection not kept-alive (EOF)"
 msgstr "连接未保持活动 (EOF)"
@@ -251,6 +247,10 @@ msgstr "已停止 (%s)"
 #, fuzzy, c-format
 msgid "Stopped data (%s)"
 msgstr "已停止 (%s)"
+
+#, c-format
+msgid "Failed (Read error: %s)"
+msgstr "失败 (读取错误:%s)"
 
 #, fuzzy
 msgid "Timeout reading HTTP status"
@@ -2292,6 +2292,11 @@ msgid ""
 "background."
 msgstr ""
 
+msgid ""
+"Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
+"the background."
+msgstr ""
+
 msgid "Maximum number of results to show in any search."
 msgstr ""
 
@@ -2342,6 +2347,33 @@ msgstr "超级节点捕捉器中的最大主机数量"
 #, fuzzy
 msgid "Debug level for management of G2-only hosts."
 msgstr "用于下载的debug级别。"
+
+msgid ""
+"Whether GTKG can switch among the several files waiting to be downloaded "
+"from a given server, when making a follow-up HTTP request.  Turn it off only "
+"if you witness problems with a particular servent you're downloading from."
+msgstr ""
+
+msgid ""
+"If set to TRUE, PARQ (Passive/Active Remote Queuing) is enabled. Do not "
+"disable unless you know what you are doing."
+msgstr ""
+
+msgid ""
+"When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
+"download chunks in a random order, to maximize the spreading of the file in "
+"the network.  However, this may make pre-viewing of the file impossible as "
+"some file formats make use of a trailer to hold meta-information or seeking "
+"indices. GTKG will attempt to download the specified amount of data at the "
+"tail of the file as soon as possible.  Set it to 0 to disable any tail-"
+"downloading preference."
+msgstr ""
+
+msgid ""
+"Whether GTKG should post-process filenames to remove consecutive '_' in the "
+"name, or extra '_' surrounding punctuation for instance, to make the name "
+"prettier."
+msgstr ""
 
 msgid "disable"
 msgstr ""
@@ -2438,12 +2470,6 @@ msgid "Search monitor enabled."
 msgstr ""
 
 msgid "Maximum number of queries visible in search monitor."
-msgstr ""
-
-msgid "Select downloads by regex case-sensitive."
-msgstr ""
-
-msgid "Filter downloads by regex case-sensitive."
 msgstr ""
 
 msgid ""
@@ -3679,12 +3705,6 @@ msgstr ""
 msgid "Good bye"
 msgstr "再见"
 
-msgid "The library is currently being rebuilt."
-msgstr ""
-
-msgid "A rescan has already been scheduled"
-msgstr ""
-
 msgid "Query string missing"
 msgstr "查询字符串丢失"
 
@@ -3759,6 +3779,9 @@ msgstr ""
 msgid "Created"
 msgstr ""
 
+msgid "Modified"
+msgstr ""
+
 msgid "SHA-1"
 msgstr ""
 
@@ -3769,7 +3792,7 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "%lu leaf hashes providing a granularity of %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s"
 msgstr ""
 
 msgid "Tigertree"
@@ -4330,6 +4353,9 @@ msgstr ""
 msgid " with sources"
 msgstr ""
 
+msgid "%v/%u (%P%%)"
+msgstr ""
+
 msgid "%v/%u Gnutella peers"
 msgstr ""
 
@@ -4337,6 +4363,9 @@ msgid "%v/%u downloads"
 msgstr ""
 
 msgid "%v/%u uploads"
+msgstr ""
+
+msgid "("
 msgstr ""
 
 #, fuzzy
@@ -4413,26 +4442,6 @@ msgstr "增加状态规则"
 msgid "Add"
 msgstr ""
 
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the global "
-"pre-filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files names to the search "
-"filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"global pre-filter."
-msgstr ""
-
-msgid ""
-"Adds \"don't display\" rules matching the selected files urn:sha1 to the "
-"search filter."
-msgstr ""
-
 msgid "Aliases"
 msgstr ""
 
@@ -4498,9 +4507,16 @@ msgstr ""
 msgid "Banning"
 msgstr "禁止中"
 
+msgid "Beautify filenames by removing needless underscores"
+msgstr ""
+
 #, fuzzy
 msgid "Bind to this address"
 msgstr "返回地址错误"
+
+#, fuzzy
+msgid "Bitzi Metadata"
+msgstr "XML 数据："
 
 #, fuzzy
 msgid "Bitzi metadata"
@@ -4759,9 +4775,6 @@ msgstr ""
 msgid "Downloads"
 msgstr ""
 
-msgid "Drop results..."
-msgstr ""
-
 msgid "Dropped"
 msgstr ""
 
@@ -4908,9 +4921,6 @@ msgstr ""
 msgid "Generation:"
 msgstr ""
 
-msgid "Globally drop results..."
-msgstr ""
-
 #, fuzzy
 msgid "Gnutella TTL settings"
 msgstr "GnutellaNet TTL 设置"
@@ -5028,7 +5038,7 @@ msgstr ""
 msgid "Info"
 msgstr ""
 
-msgid "Information about selected file"
+msgid "Jeroen Asselman"
 msgstr ""
 
 msgid "Join the users or developers mailing lists."
@@ -5040,11 +5050,21 @@ msgstr ""
 msgid "Keywords:"
 msgstr "关键字："
 
+msgid "KiB"
+msgstr ""
+
+msgid "KiB/s"
+msgstr ""
+
 msgid "Large enough uptime"
 msgstr "足够长的在线时间"
 
 msgid "Last check"
 msgstr "最近核实"
+
+#, fuzzy
+msgid "Last chunk size"
+msgstr "最小体积："
 
 msgid "Last scan initiated on:"
 msgstr ""
@@ -5074,9 +5094,6 @@ msgstr ""
 
 msgid "Limit search _results to "
 msgstr "将搜索结果限制为(_r)"
-
-msgid "Loc"
-msgstr ""
 
 msgid "Local networks"
 msgstr "本地网络"
@@ -5223,9 +5240,6 @@ msgstr ""
 
 msgid "New"
 msgstr ""
-
-msgid "No, take me back!"
-msgstr "不是，我要返回！"
 
 msgid "Normalized"
 msgstr ""
@@ -5385,6 +5399,9 @@ msgid "RX wire bytes"
 msgstr ""
 
 msgid "Range"
+msgstr ""
+
+msgid "Raphael Manfredi"
 msgstr ""
 
 msgid "Ratio of tolerable duplicate messages per _node"
@@ -5600,10 +5617,10 @@ msgstr "显示搜索列表"
 msgid "Show _outbound Gnutella traffic"
 msgstr "Gnutella RX 缓冲(_G)："
 
-msgid "Show _outbound leaf traffic"
+msgid "Show _outbound HTTP traffic"
 msgstr ""
 
-msgid "Show _outbound HTTP traffic"
+msgid "Show _outbound leaf traffic"
 msgstr ""
 
 msgid "Show _percentages"
@@ -5645,6 +5662,9 @@ msgstr ""
 
 msgid "Socket receive buffer size"
 msgstr "套接字接收到了缓冲大小"
+
+msgid "Somebody tell me a sensible tooltip for this."
+msgstr ""
 
 msgid "Source quality"
 msgstr ""
@@ -5827,7 +5847,10 @@ msgstr ""
 msgid "Value"
 msgstr "值"
 
-msgid "Ver"
+msgid "Version"
+msgstr ""
+
+msgid "Vidar Madsen"
 msgstr ""
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
@@ -5853,8 +5876,8 @@ msgstr "套接字接收到了缓冲大小"
 msgid "XML Metadata"
 msgstr "XML 数据："
 
-msgid "Yes"
-msgstr "是"
+msgid "Yann Grossel"
+msgstr ""
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -5901,6 +5924,10 @@ msgstr ""
 
 msgid "_Browse"
 msgstr ""
+
+#, fuzzy
+msgid "_Cancel"
+msgstr "取消"
 
 msgid "_Compute upload connection speed"
 msgstr ""
@@ -6053,9 +6080,6 @@ msgstr ""
 msgid "from _nodes within a"
 msgstr "节点带有一个(_n)"
 
-msgid "from the same host"
-msgstr ""
-
 #, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
@@ -6092,6 +6116,10 @@ msgstr ""
 
 msgid "invert condition"
 msgstr "反转条件"
+
+#, fuzzy
+msgid "invert"
+msgstr "恢复"
 
 msgid "items"
 msgstr "项目"
@@ -6137,12 +6165,6 @@ msgid "unset"
 msgstr "未设置"
 
 msgid "uploads"
-msgstr ""
-
-msgid "with the same name"
-msgstr ""
-
-msgid "with the same urn:sha1"
 msgstr ""
 
 msgid "owned"
@@ -6242,9 +6264,6 @@ msgstr ""
 msgid "Address/Port:"
 msgstr "地址/端口："
 
-msgid "Somebody tell me a sensible tooltip for this."
-msgstr ""
-
 msgid "Served "
 msgstr ""
 
@@ -6335,9 +6354,6 @@ msgstr ""
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
-msgid "KiB/s"
-msgstr ""
-
 #, fuzzy
 msgid "attempts"
 msgstr "项目"
@@ -6360,9 +6376,6 @@ msgid "_Clear completed"
 msgstr ""
 
 msgid ", "
-msgstr ""
-
-msgid "Version"
 msgstr ""
 
 msgid "Peer:"
@@ -6400,6 +6413,14 @@ msgstr ""
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] ""
+
+#, fuzzy
+msgid "Last Request"
+msgstr "最近切换"
+
+#, fuzzy
+msgid "Last Upload"
+msgstr "已上传数据："
 
 msgid "Done"
 msgstr ""
@@ -6560,6 +6581,9 @@ msgstr "不支持的类型"
 msgid "The given SHA-1 is not correctly encoded."
 msgstr "不支持的类型"
 
+msgid "Still scanning for shared file, results may be inconclusive."
+msgstr ""
+
 msgid "Missing port number"
 msgstr ""
 
@@ -6586,11 +6610,20 @@ msgstr "显示搜索列表"
 msgid "Extension"
 msgstr ""
 
+msgid "MIME type"
+msgstr ""
+
+msgid "TTH"
+msgstr ""
+
 msgid "Owned"
 msgstr ""
 
 msgid "No"
 msgstr "否"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "Maybe"
 msgstr ""
