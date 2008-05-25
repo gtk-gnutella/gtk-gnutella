@@ -1219,6 +1219,7 @@
 #69.64.92.76
 #69.64.92.105
 #69.64.92.106/31
+#216.55.136.45
 #216.55.155.39
 #216.55.154.169
 
@@ -1263,6 +1264,11 @@
 
 # WakeNet; 3wplayer dot com
 67.15.107.160/27
+
+# Onkea Interactive Ltd; pr0n spam
+# ranges hosted by vanoppen.biz LLC
+74.85.92.0/25
+208.76.153.128/27
 
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
