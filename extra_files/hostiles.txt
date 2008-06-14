@@ -259,7 +259,7 @@
 63.246.153.64/28
 64.40.98.106
 # drmspace.com, 66103.vidlock.com
-216.55.178.0/24
+#216.55.178.0/24
 # vidlock.com
 216.255.180.114
 217.116.225.250
@@ -1222,6 +1222,10 @@
 #216.55.136.45
 #216.55.155.39
 #216.55.154.169
+# Momentum Solutions THTI-MOMENTUM (NET-69-77-188-0-1)
+#69.77.188.198
+69.77.188.0/24
+
 
 # FDCservers.net range assigned to:
 # Guru Bilisim Hizmetleri
