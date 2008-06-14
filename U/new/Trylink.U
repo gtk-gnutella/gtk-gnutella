@@ -1,0 +1,50 @@
+?RCS: $Id$
+?RCS:
+?RCS: Copyright (c) 1991-1997, 2004-2006, Raphael Manfredi
+?RCS: 
+?RCS: You may redistribute only under the terms of the Artistic Licence,
+?RCS: as specified in the README file that comes with the distribution.
+?RCS: You may reuse parts of this distribution only within the terms of
+?RCS: that same Artistic Licence; a copy of which may be found at the root
+?RCS: of the source tree for dist 4.0.
+?X:
+?X: This unit tries to compile and link a test program.
+?X:
+?X: To use it, put the program to compile in try.c, then say:
+?X: set d_func
+?X: eval $trylink
+?X:
+?MAKE:Trylink: Whoa Oldconfig rm test +cc +ccflags +ldflags
+?MAKE:	-pick add $@ %<
+?T:file
+?LINT:define trylink
+?V:trylink
+?S:trylink:
+?S:	This shell variable is used internally by Configure to check
+?S:	wether a given function is defined or not. A typical use is:
+?S:		set d_func
+?S:		eval $trylink
+?S:	That will print a message, saying wether function was found or
+?S:	not and set d_func accordingly.
+?S:.
+?T:var
+: see whether the try.c file compiles and links
+trylink='
+var=$1;
+shift;
+eval "$var=\$undef";
+file=trylink.log;
+cat try.c >> "$file";
+while :; do
+	if $cc $ccflags -o try try.c $ldflags $1 >> "$file" 2>&1; then
+		eval "$var=\$define";
+		break;
+	fi;
+	if $test $# -lt 1; then
+		break;
+	fi;
+	shift;
+done;
+$rm -f try try.c;
+'
+

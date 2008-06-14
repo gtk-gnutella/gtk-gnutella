@@ -610,6 +610,7 @@ const gchar *uint64_to_string2(guint64 v);
 const gchar *off_t_to_string(off_t v);
 const gchar *time_t_to_string(time_t v);
 const gchar *filesize_to_string(filesize_t v);
+const gchar *filesize_to_string2(filesize_t v);
 gint parse_major_minor(const gchar *src, gchar const **endptr,
 	guint *major, guint *minor);
 gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
@@ -636,6 +637,7 @@ gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 gchar *normalize_dir_separators(const gchar *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
+filesize_t fs_free_space(const char *path);
 
 static inline guint
 pointer_hash_func(const void *p)

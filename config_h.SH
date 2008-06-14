@@ -652,6 +652,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_srandom HAS_SRANDOM		/**/
 
+/* HAS_STATFS:
+ *	This symbol, if defined, indicates that the Linux statfs() system call
+ *	is available to get filesystem statistics.
+ */
+#$d_statfs HAS_STATFS		/**/
+
+/* HAS_STATVFS:
+ *	This symbol, if defined, indicates that the POSIX statvfs() system call
+ *	is available to get filesystem statistics.
+ */
+#$d_statvfs HAS_STATVFS		/**/
+
 /* HAS_STRLCAT:
  *	This symbol, if defined, indicates that the strlcat routine is
  *	available.
@@ -736,6 +748,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_syssendfile I_SYS_SENDFILE		/**/
 
+/* I_SYS_STATVFS:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/statvfs.h> to get the struct statvfs definition for the
+ *	statvfs() system call.
+ */
+#$i_sysstatvfs I_SYS_STATVFS		/**/
+
 /* I_SYS_SYSCTL:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/sysctl.h>.
@@ -747,6 +766,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *    include <sys/utsname.h>.
  */
 #$i_sysutsname I_SYS_UTSNAME         /**/
+
+/* I_SYS_VFS:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/vfs.h> to get the struct statfs definition for the
+ *	statfs() system call.
+ */
+#$i_sysvfs I_SYS_VFS		/**/
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization

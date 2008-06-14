@@ -3481,6 +3481,19 @@ filesize_to_string(filesize_t v)
 }
 
 const gchar *
+filesize_to_string2(filesize_t v)
+{
+	static gchar buf[UINT64_DEC_BUFLEN];
+	size_t n;
+
+	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
+	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const gchar *
 off_t_to_string(off_t v)
 {
 	static gchar buf[OFF_T_DEC_BUFLEN];
@@ -4274,6 +4287,36 @@ get_non_stdio_fd(int fd)
 		errno = saved_errno;
 	}
 	return fd;
+}
+
+/**
+ * Return the free space in bytes available currently in the filesystem
+ * mounted under the given directory.
+ */
+filesize_t
+fs_free_space(const char *path)
+{
+	filesize_t free_space = MAX_INT_VAL(filesize_t);
+#if defined(HAS_STATVFS)
+	/* statvfs() is a POSIX.1-2001 system call */
+	struct statvfs buf;
+
+	if (-1 == statvfs(path, &buf)) {
+		g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
+	} else {
+		free_space = buf.f_bavail * buf.f_bsize;
+	}
+#elif defined(HAS_STATFS)
+	/* statfs() is deprecated but older Linux systems may not have statvfs() */
+	struct statfs buf;
+
+	if (-1 == statfs(path, &buf)) {
+		g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
+	} else {
+		free_space = buf.f_bavail * buf.f_bsize;
+#endif	/* HAS_STATVFS || HAS_STATFS */
+
+	return free_space;
 }
 
 void

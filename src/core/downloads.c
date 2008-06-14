@@ -10754,6 +10754,7 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	gchar *dest = NULL;
 	gboolean common_dir;
 	const gchar *name;
+	filesize_t free_space;
 
 	download_check(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
@@ -10813,6 +10814,31 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 
 	if (errno != EXDEV)
 		goto error;
+
+	/*
+	 * The file has to be moved across file systems.  Try to look whether
+	 * we have enough space on the other filesystem before attempting a move.
+	 *
+	 * This is not bullet proof as there is obviously a huge race condition
+	 * possible here, but it can prevent useless copying if we know for sure
+	 * there is not enough free space currently.  Also, NFS in linux 2.6.x
+	 * has a terrible bug that will slow down the NFS server needlessly if
+	 * there is not enough free space to copy the file.  And whilst this
+	 * happens, GTKG freezes which is bad.
+	 *		--RAM, 2008-06-14
+	 */
+
+	free_space = fs_free_space(dir);
+	if (download_filesize(d) > free_space) {
+		g_message("Not enough free space in %s (need %s, has %s): "
+			"renaming \"%s\" locally with %s",
+			dir,
+			filesize_to_string(download_filesize(d)),
+			filesize_to_string2(free_space),
+			fi->pathname, ext);
+		download_move_error(d);
+		goto cleanup;
+	}
 
 	/*
 	 * Have to move the file asynchronously.

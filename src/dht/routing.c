@@ -274,6 +274,10 @@ dht_add(kuid_t *id, host_addr_t addr, guint16 port)
 	struct kbucket *kb;
 	struct knode *kn;
 
+	/*
+	 * Find bucket where the node will be stored.
+	 */
+
 	kb = dht_find_bucket(id);
 	g_assert(kb != NULL);
 

@@ -1,0 +1,32 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_statvfs: Trylink cat
+?MAKE:	-pick add $@ %<
+?S:d_statvfs:
+?S:	This variable conditionally defines the HAS_STATVFS symbol, which
+?S:	indicates to the C program that the statvfs() system call is available.
+?S:.
+?C:HAS_STATVFS:
+?C:	This symbol, if defined, indicates that the POSIX statvfs() system call
+?C:	is available to get filesystem statistics.
+?C:.
+?H:#$d_statvfs HAS_STATVFS		/**/
+?H:.
+?LINT:set d_statvfs
+: see if statvfs exists
+$cat >try.c <<EOC
+#include <sys/statvfs.h>
+int main(void)
+{
+	static int ret;
+	static char *p;
+	static struct statvfs buf;
+	ret |= statvfs(p, &buf);
+	return ret ? 0 : 1;
+}
+EOC
+set d_statvfs 
+eval $trylink
+

@@ -20,6 +20,7 @@ U/new/Alpha_mieee.U
 U/new/GCC_pipe.U
 U/new/Largefile.U
 U/new/Sendfile64.U
+U/new/Trylink.U
 U/new/d_bindtxtcode.U
 U/new/d_built_popcount.U
 U/new/d_closefrom.U
@@ -58,6 +59,8 @@ U/new/d_setproctitle.U
 U/new/d_sockaddr_in_sin_len.U
 U/new/d_socker_get.U
 U/new/d_srandom.U
+U/new/d_statfs.U
+U/new/d_statvfs.U
 U/new/d_strcasestr.U
 U/new/d_strlcat.U
 U/new/d_strlcpy.U
@@ -74,8 +77,10 @@ U/new/i_netdb.U
 U/new/i_netif.U
 U/new/i_niip.U
 U/new/i_syssendfile.U
+U/new/i_sysstatvfs.U
 U/new/i_syssysctl.U
 U/new/i_sysutsname.U
+U/new/i_sysvfs.U
 U/new/i_zlib.U
 U/new/locale.U
 U/new/msgmerge_update.U
