@@ -73,13 +73,13 @@ RCSID("$Id$")
  * upper layers until we have some room to send them.
  */
 
-#define CHUNK_DIGITS	4		/* At most that many digits in hexa */
+#define CHUNK_DIGITS 16 /* At most that many digits in hexa; 64-bit */
 
 /*
  * Private attributes for the link.
  */
 struct attr {
-	gchar head[CHUNK_DIGITS+5];	/**< Chunk header: hexa size + 2CRLF + NUL */
+	char head[CHUNK_DIGITS + 5];/**< Chunk header: hexa size + 2CRLF + NUL */
 	ssize_t head_len;			/**< Length of chunk header */
 	ssize_t head_remain;		/**< Amount of unwritten header data */
 	ssize_t data_remain;		/**< Data required to complete chunk */
@@ -141,7 +141,7 @@ static ssize_t
 chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 {
 	struct attr *attr = tx->opaque;
-	gint hlen = 0;
+	size_t hlen = 0;
 
 	g_assert(0 == attr->data_remain);
 	g_assert(0 == attr->head_remain);
