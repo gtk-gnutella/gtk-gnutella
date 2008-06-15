@@ -4,17 +4,17 @@
 .\" Integrated by RAM at version 0.18 within debian/ for Debian packaging
 .\" Integrated by RAM at version 0.93 within mainstream
 .\" Process this file with
-.\"    groff -man -Tascii gtk-gnutella.man
+.\"    groff -man -Tascii gtk\-gnutella.man
 .\" or simply:
-.\"    nroff -man gtk-gnutella.man | less -s
+.\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK-GNUTELLA 1 "Apr 2008" Version "0.96.5"
+.TH GTK\\-GNUTELLA 1 "Apr 2008" Version "0.96.5"
 .SH NAME
-gtk-gnutella \- A Gnutella client for Gtk+
+gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
-.B gtk-gnutella
+.B gtk\-gnutella
 .SH DESCRIPTION
-.I gtk-gnutella
+.I gtk\-gnutella
 is a GTK+ Gnutella client for Unix. It supports both searching and
 sharing with the 0.6 version of the gnutella protocol and includes
 support for numerous protocol improvements and additions that have
@@ -23,23 +23,23 @@ been added to the Gnutella network since.
 .TP
 .B "\-\-daemonize"
 This options causes 
-.I gtk-gnutella
+.I gtk\-gnutella
 to become a daemon. It detaches from the terminal (if started from
 one) and forks itself into the background. It also changes it working
 directory to the root directory i.e., "/" so that it doesn't block a
 mount point for example. This is mainly meant for headless mode but
 you can also use it if the Gtk+ GUI is enabled. 
 
-For example, if you do not start gtk-gnutella from a terminal but from
+For example, if you do not start gtk\-gnutella from a terminal but from
 a window manager menu, there's little reason to not daemonize
-gtk-gnutella. Thus you might want to add the --daemonize option in
+gtk\-gnutella. Thus you might want to add the \-\-daemonize option in
 this case. 
 
 Please note that when 
-.I gtk-gnutella
+.I gtk\-gnutella
 is started as a daemon all output which is normally send to the
 standard output and standard error output (usually your terminal or a
-common log file such as ~/.xsession-errors), is sent to
+common log file such as ~/.xsession\-errors), is sent to
 /dev/null. The options 
 .B "\-\-log\-stderr"
 and
@@ -53,7 +53,7 @@ certain location on your screen and/or give it certain dimensions.
 For example, the following would position the window in the lower right
 corner with a width of 800 pixels and a height of 600 pixels:
 
-    gtk-gnutella --geometry 800x600-0-0
+    gtk\-gnutella \-\-geometry 800x600\-0\-0
 
 Note that none of this can be guaranteed, your window manager has the
 last word on this. This option is a traditional command-line switch
@@ -66,39 +66,39 @@ Show a summary of all supported options.
 These options allow you to log everything which is written to stderr
 respectively stdout to some files. A typical use would look like this:
 
-   gtk-gnutella --daemonize  \\
-        --log-stderr ~/logs/gtkg.stderr \\
-        --log-stdout ~/logs/gtkg.stdout
+   gtk\-gnutella \-\-daemonize  \\
+        \-\-log\-stderr ~/logs/gtkg.stderr \\
+        \-\-log\-stdout ~/logs/gtkg.stdout
 
 Redirecting these log messages also works without 
 .B "\-\-daemonize."
 Of course, log files can become large and you might want to archive
 them.  Therefore, you can sent 
-.I gtk-gnutella
+.I gtk\-gnutella
 a SIGHUP signal. 
-.I gtk-gnutella 
+.I gtk\-gnutella 
 will catch the signal and reopen these log files.
 .TP
 .B "\-\-ping"
 This option allows you to check whether 
-.I gtk-gnutella
+.I gtk\-gnutella
 is currently running. This option returns with a success code when 
-.I gtk-gnutella
+.I gtk\-gnutella
 is already running, and with a failure code when it is not.
 
 This allows you to use the following code to start 
-.I gtk-gnutella 
+.I gtk\-gnutella 
 from a cron job or window manager menu and avoid starting it twice:
 
-    gtk-gnutella --ping || gtk-gnutella
+    gtk\-gnutella \-\-ping || gtk\-gnutella
 .TP
 .B "\-\-shell"
 When this option is used to connect to an already running 
-.I gtk-gnutella
+.I gtk\-gnutella
 process over a local unix domain socket. This socket is located at
 "$GTK_GNUTELLA_DIR/ipc/socket", thus normally
-"~/.gtk-gnutella/ipc/socket". The socket is only accessible by the
-user running gtk-gnutella which is enforced by filesystem
+"~/.gtk\-gnutella/ipc/socket". The socket is only accessible by the
+user running gtk\-gnutella which is enforced by filesystem
 permissions. The socket is in a dedicated directory because apparently
 not all systems honor the access permissions on sockets as seen
 through the filesystem.
@@ -117,10 +117,10 @@ Show the user-agent string used on the Gnutella network which also
 holds the version information.
 .TP
 .B "\-\-topless"
-Starts gtk-gnutella without the graphical user-interface.
+Starts gtk\-gnutella without the graphical user-interface.
 .SH GETTING STARTED
 When
-.I gtk-gnutella
+.I gtk\-gnutella
 is first started, it will attempt to connect to a well-known hosts
 server for some hosts to connect to. If you know a host you want to
 connect to, you can enter it in the box on the GnutellaNet tab and
@@ -145,7 +145,7 @@ It is possible to apply filtering to search results using the filter
 editor. Click on "Edit filters" to access the editor. Use of the
 filtering editor goes beyond the scope of this man page, but there is
 a tutorial on this topic on the 
-.I gtk-gnutella
+.I gtk\-gnutella
 homepage.
 .PP
 When you find a file that you want to download, select the file in the
@@ -176,7 +176,7 @@ effect immediately, unless you type text instead of using the spin buttons.
 Per-user configuration file, for core settings. This can be edited when the
 program is not running, but it is best to use the GUI to change configuration
 variables.
-.B gtk-gnutella
+.B gtk\-gnutella
 saves this file every time the program is exited normally.
 .RE
 .TP
@@ -199,14 +199,14 @@ This is where temporarily banned download mesh entries are stored.
 .I $GTK_GNUTELLA_DIR/done.namesize
 .RS
 This file holds the name and size of files completely downloaded by
-.B gtk-gnutella
+.B gtk\-gnutella
 and which will now be ignored.
 .RE
 .TP
 .I $GTK_GNUTELLA_DIR/done.sha1
 .RS
 This file holds the SHA1 of files completely downloaded by
-.B gtk-gnutella
+.B gtk\-gnutella
 and which will now be ignored.
 .RE
 .TP
@@ -219,7 +219,7 @@ This is where the download queue is persisted.  Only the direct downloads
 .I $GTK_GNUTELLA_DIR/hosts
 .RS
 This is the host cache. This is saved by
-.B gtk-gnutella
+.B gtk\-gnutella
 on exit and should not be edited by hand.
 .RE
 .TP
@@ -238,7 +238,7 @@ This is where the cache of all the computed SHA1 is stored.
 This file keeps track of the upload statistics.
 .RE
 .SH ENVIRONMENT
-.I gtk-gnutella
+.I gtk\-gnutella
 searches
 .B GTK_GNUTELLA_DIR
 for configuration files. If this variable is not set,
@@ -246,14 +246,14 @@ for configuration files. If this variable is not set,
 is used instead. If 
 .B HOME
 is not set, then no configuration information will be saved when
-.I gtk-gnutella
+.I gtk\-gnutella
 exits.
 .SH MAILING LISTS
 There are a couple of mailing lists for
-.I gtk-gnutella.
+.I gtk\-gnutella.
 See http://sourceforge.net/mail/?group_id=4467 for more info.
 .SH BUGS
-.I gtk-gnutella
+.I gtk\-gnutella
 is beta-quality software, and still has bugs and incomplete or missing
 features.  But which software doesn't for its authors?
 .PP
@@ -261,20 +261,20 @@ There are probably other missing features that should
 be listed here.
 .PP
 A list of known bugs might be available at the
-.I gtk-gnutella
+.I gtk\-gnutella
 web site (see below.)
 .SH "SEE ALSO"
-Additional information about gtk-gnutella and the latest version are
+Additional information about gtk\-gnutella and the latest version are
 available at
-.B http://gtk-gnutella.sourceforge.net/
+.B http://gtk\-gnutella.sourceforge.net/
 .PP
 Additional information about gnutella is available at
-.B  http://www.the-gdf.org/
+.B  http://www.the\\-gdf.org/
 .B  http://www.infoanarchy.org/en/Gnutella
-.B  http://rfc-gnutella.sourceforge.net/
+.B  http://rfc\\-gnutella.sourceforge.net/
 .SH AUTHORS
 Yann Grossel wrote the original
-.B gtk-gnutella .
+.B gtk\-gnutella .
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 and project leader (since version 0.14, released early September 2001).
@@ -287,12 +287,12 @@ For a full list of contributors, open the "About" menu.
 Brian St. Pierre <bstpierre@bstpierre.org> wrote the initial version
 of this manpage.
 .SH COPYRIGHT
-.I gtk-gnutella
+.I gtk\-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
 by other contributors 2000-2006.
 .PP
 License to use and copy
-.I gtk-gnutella
+.I gtk\-gnutella
 is given under the terms of the GNU General Public
 License (GPL), version 2. Please see the file COPYING in the
 distribution for complete information.
