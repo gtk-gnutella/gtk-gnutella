@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jun 15 22:19:47 CEST 2008 [metaconfig 3.5-25]
+# Generated on Sun Jun 15 22:31:56 CEST 2008 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6347,20 +6347,27 @@ eval $trylink
 set sys/mount.h i_sysmount
 eval $inhdr
 
+: see if this is a sys/param system
+set sys/param.h i_sysparam
+eval $inhdr
+
 : see if this is a sys/vfs system
 set sys/vfs.h i_sysvfs
 eval $inhdr
 
 : see if statfs exists
 $cat >try.c <<EOC
-#$i_sysvfs I_SYS_VFS
-#ifdef I_SYS_VFS
-#include <sys/vfs.h>
+#$i_sysparam I_SYS_PARAM
+#ifdef I_SYS_PARAM
+#include <sys/param.h>
 #endif
 #$i_sysmount I_SYS_MOUNT
 #ifdef I_SYS_MOUNT
-#include <sys/param.h>
 #include <sys/mount.h>
+#endif
+#$i_sysvfs I_SYS_VFS
+#ifdef I_SYS_VFS
+#include <sys/vfs.h>
 #endif
 int main(void)
 {
@@ -8371,10 +8378,6 @@ case "$i_string" in
 "$undef") strings=`./findhdr strings.h`;;
 *)	  strings=`./findhdr string.h`;;
 esac
-
-: see if this is a sys/param system
-set sys/param.h i_sysparam
-eval $inhdr
 
 : see if this is a sys/sendfile system
 set sys/sendfile.h i_syssendfile
