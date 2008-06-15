@@ -472,6 +472,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define	P(args) ()
 #endif
 
+/* HAS_ARC4RANDOM:
+ *	This symbol, if defined, indicates that the arc4random routine is
+ *	available.
+ */
+#$d_arc4random HAS_ARC4RANDOM		/**/
+
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.

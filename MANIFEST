@@ -21,6 +21,7 @@ U/new/GCC_pipe.U
 U/new/Largefile.U
 U/new/Sendfile64.U
 U/new/Trylink.U
+U/new/d_arc4random.U
 U/new/d_bindtxtcode.U
 U/new/d_built_popcount.U
 U/new/d_closefrom.U
