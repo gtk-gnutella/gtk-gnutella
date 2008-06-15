@@ -61,23 +61,31 @@ filesize_t
 fs_free_space(const char *path)
 {
 	filesize_t free_space = MAX_INT_VAL(filesize_t);
-#if defined(HAS_STATVFS)
-	/* statvfs() is a POSIX.1-2001 system call */
-	struct statvfs buf;
 
-	if (-1 == statvfs(path, &buf)) {
-		g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
-	} else {
-		free_space = buf.f_bavail * buf.f_bsize;
+	(void) path;
+
+#if defined(HAS_STATVFS)
+	{
+		/* statvfs() is a POSIX.1-2001 system call */
+		struct statvfs buf;
+
+		if (-1 == statvfs(path, &buf)) {
+			g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
+		} else {
+			free_space = buf.f_bavail * buf.f_bsize;
+		}
 	}
 #elif defined(HAS_STATFS)
-	/* statfs() is deprecated but older Linux systems may not have statvfs() */
-	struct statfs buf;
+	{
+		/* statfs() is deprecated but older systems may not have statvfs() */
+		struct statfs buf;
 
-	if (-1 == statfs(path, &buf)) {
-		g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
-	} else {
-		free_space = buf.f_bavail * buf.f_bsize;
+		if (-1 == statfs(path, &buf)) {
+			g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
+		} else {
+			free_space = buf.f_bavail * buf.f_bsize;
+		}
+	}
 #endif	/* HAS_STATVFS || HAS_STATFS */
 
 	return free_space;
