@@ -52,7 +52,8 @@
 
 #include "common.h"
 
-#include "vmm.h"
+#include "lib/fs_free_space.h"
+#include "lib/vmm.h"
 
 #define SIZE_FIELD_MAX 64		/**< Max size of sprintf-ed size quantity */
 #define GUID_RAW_SIZE		16	/**< Binary representation of 128 bits */
@@ -638,7 +639,6 @@ gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 gchar *normalize_dir_separators(const gchar *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
-filesize_t fs_free_space(const char *path);
 
 static inline guint
 pointer_hash_func(const void *p)
