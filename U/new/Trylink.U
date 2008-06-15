@@ -11,33 +11,39 @@
 ?X: This unit tries to compile and link a test program.
 ?X:
 ?X: To use it, put the program to compile in try.c, then say:
-?X: set d_func
+?X: set d_func [optional cc flags to try in sequence]
 ?X: eval $trylink
 ?X:
-?MAKE:Trylink: Whoa Oldconfig rm test +cc +ccflags +ldflags
+?X: A log of all attempts is kept in the trylink.log file, within the UU
+?X: directory (where Configure runs).  This directory is only cleaned-up
+?X: at the end of the Configure run, so do not supply -e to Configure in order
+?X: to stop after the production of the config.sh file.
+?X:
+?MAKE:Trylink: Setvar Oldconfig cat rm test +cc +ccflags +ldflags
 ?MAKE:	-pick add $@ %<
-?T:file
 ?LINT:define trylink
 ?V:trylink
 ?S:trylink:
 ?S:	This shell variable is used internally by Configure to check
 ?S:	wether a given function is defined or not. A typical use is:
-?S:		set d_func
+?S:		create try.c
+?S:		set d_func [optional cc flags to try in sequence]
 ?S:		eval $trylink
 ?S:	That will print a message, saying wether function was found or
 ?S:	not and set d_func accordingly.
 ?S:.
-?T:var
+?T:var file val
 : see whether the try.c file compiles and links
 trylink='
 var=$1;
 shift;
-eval "$var=\$undef";
+val=$undef;
 file=trylink.log;
-cat try.c >> "$file";
+echo "--- $var ---" >> "$file";
+$cat try.c >> "$file";
 while :; do
 	if $cc $ccflags -o try try.c $ldflags $1 >> "$file" 2>&1; then
-		eval "$var=\$define";
+		val=$define;
 		break;
 	fi;
 	if $test $# -lt 1; then
@@ -46,5 +52,7 @@ while :; do
 	shift;
 done;
 $rm -rf try try.*;
+echo "==> $var=$val" >> "$file";
+set $var; eval $setvar;
 '
 

@@ -59,4 +59,6 @@ EOC
 	esac
 	;;
 esac
+?X: trylink could "Whoa there" if we do not reset this variable
+result=''
 
