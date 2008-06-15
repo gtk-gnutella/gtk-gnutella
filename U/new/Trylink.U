@@ -32,23 +32,26 @@
 ?S:	That will print a message, saying wether function was found or
 ?S:	not and set d_func accordingly.
 ?S:.
-?T:var file val
+?T:var file val nparams
 : see whether the try.c file compiles and links
 trylink='
 var=$1;
 shift;
 val=$undef;
 file=trylink.log;
+nparams=$#;
 echo "--- $var ---" >> "$file";
 $cat try.c >> "$file";
 while :; do
 	if $cc $ccflags -o try try.c $ldflags $1 >> "$file" 2>&1; then
+		case "$nparams" in 0) ;; *) echo "==> OK with \"$1\"" >> "$file";; esac;
 		val=$define;
 		break;
 	fi;
 	if $test $# -lt 1; then
 		break;
 	fi;
+	echo "==> FAILED with \"$1\"" >> "$file";
 	shift;
 done;
 $rm -rf try try.*;
