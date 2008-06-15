@@ -544,6 +544,8 @@ src/lib/file.c
 src/lib/file.h
 src/lib/fragcheck.c
 src/lib/fragcheck.h
+src/lib/fs_free_space.c
+src/lib/fs_free_space.h
 src/lib/getdate.c
 src/lib/getdate.h
 src/lib/getdate.y

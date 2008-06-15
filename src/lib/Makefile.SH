@@ -103,6 +103,7 @@ LSRC = \
 	fifo.c \
 	file.c \
 	fragcheck.c \
+	fs_free_space.c \
 	getdate.c \
 	getline.c \
 	getphysmemsize.c \
@@ -166,6 +167,7 @@ LOBJ = \
 	fifo.o \
 	file.o \
 	fragcheck.o \
+	fs_free_space.o \
 	getdate.o \
 	getline.o \
 	getphysmemsize.o \

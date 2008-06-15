@@ -47,6 +47,7 @@ LSRC = \
 	fifo.c \
 	file.c \
 	fragcheck.c \
+	fs_free_space.c \
 	getdate.c \
 	getline.c \
 	getphysmemsize.c \
