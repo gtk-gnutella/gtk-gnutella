@@ -28,7 +28,7 @@ int main(void)
   static struct timespec ts;
   static unsigned long filter;
   static int kq, fd;
-  unsigned long flags;
+  static unsigned long flags;
   filter |= EVFILT_READ;
   filter |= EVFILT_WRITE;
   filter |= EVFILT_SIGNAL;
