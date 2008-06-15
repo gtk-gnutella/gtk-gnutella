@@ -90,11 +90,13 @@ static int compare_ul_attempts(GtkCList *, const void *, const void *);
  * First by complete, then by attempts.
  */
 static int
-compare_ul_complete(GtkCList *clist, const void * ptr1, const void * ptr2)
+compare_ul_complete(GtkCList *unused_clist,
+	const void * ptr1, const void * ptr2)
 {
 	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
 	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
 	int ret;
+	(void) unused_clist;
 	ret = CMP(us1->complete, us2->complete);
 	/* Avoid double recursion through compare_ul_attempts() -- inline it here */
 	return ret ? ret : CMP(us1->attempts, us2->attempts);
