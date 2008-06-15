@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jun 15 22:00:34 CEST 2008 [metaconfig 3.5-25]
+# Generated on Sun Jun 15 22:19:47 CEST 2008 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6354,9 +6354,12 @@ eval $inhdr
 : see if statfs exists
 $cat >try.c <<EOC
 #$i_sysvfs I_SYS_VFS
+#ifdef I_SYS_VFS
 #include <sys/vfs.h>
 #endif
 #$i_sysmount I_SYS_MOUNT
+#ifdef I_SYS_MOUNT
+#include <sys/param.h>
 #include <sys/mount.h>
 #endif
 int main(void)
