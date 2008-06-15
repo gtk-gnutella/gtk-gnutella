@@ -45,6 +45,6 @@ while :; do
 	fi;
 	shift;
 done;
-$rm -f try try.c;
+$rm -rf try try.*;
 '
 
