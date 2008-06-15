@@ -1,0 +1,33 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_arc4random: Trylink cat i_stdlib
+?MAKE:	-pick add $@ %<
+?S:d_arc4random:
+?S:	This variable conditionally defines the HAS_ARC4RANDOM symbol, which
+?S:	indicates to the C program that the arc4random() routine is available.
+?S:.
+?C:HAS_ARC4RANDOM:
+?C:	This symbol, if defined, indicates that the arc4random routine is
+?C:	available.
+?C:.
+?H:#$d_arc4random HAS_ARC4RANDOM		/**/
+?H:.
+?LINT:set d_arc4random
+: see if arc4random exists
+$cat >try.c <<EOC
+#$i_stdlib I_STDLIB
+#ifdef I_STDLIB
+#include <stdlib.h>
+#endif
+int main(void)
+{
+	static unsigned long ret;
+	ret |= arc4random();
+	return 0 != ret;
+}
+EOC
+set d_arc4random
+eval $trylink
+
