@@ -1,0 +1,30 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?RCS: $Log$
+?RCS: Revision 1.1  2003/08/09 23:12:04  rmanfredi
+?RCS: New units for gtk-gnutella.
+?RCS:
+?RCS: Revision 3.0.1.1  1994/08/29  16:22:43  ram
+?RCS: patch32: created
+?RCS:
+?MAKE:i_sysmount: Inhdr
+?MAKE:	-pick add $@ %<
+?S:i_sysmount:
+?S:	This variable conditionally defines the I_SYS_MOUNT symbol, and
+?S:	indicates whether a C program should include <sys/mount.h> to be able
+?S:	to issue the statfs() call to get filesystem statistics.
+?S:.
+?C:I_SYS_MOUNT:
+?C:	This symbol, if defined, indicates to the C program that it should
+?C:	include <sys/mount.h> to get the struct statfs definition for the
+?C:	statfs() system call.
+?C:.
+?H:#$i_sysmount I_SYS_MOUNT		/**/
+?H:.
+?LINT:set i_sysmount
+: see if this is a sys/mount system
+set sys/mount.h i_sysmount
+eval $inhdr
+

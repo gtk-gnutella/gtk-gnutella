@@ -42,12 +42,22 @@ RCSID("$Id$")
  * 	 which are conflicting with identifiers in the GUI code. Therefore,
  *	 these are only included here.
  */
-#ifdef I_SYS_STATVFS
+#if defined(HAS_STATVFS)
+
+#if defined(I_SYS_STATVFS)
 #include <sys/statvfs.h>
 #endif
+
+#elif defined(HAS_STATFS)
+
 #ifdef I_SYS_VFS
 #include <sys/vfs.h>
 #endif
+#ifdef I_SYS_MOUNT
+#include <sys/mount.h>
+#endif
+
+#endif	/* HAS_STATFS */
 
 #include "lib/fs_free_space.h"
 

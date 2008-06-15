@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_statfs: Trylink cat
+?MAKE:d_statfs: Trylink cat i_sysmount i_sysvfs
 ?MAKE:	-pick add $@ %<
 ?S:d_statfs:
 ?S:	This variable conditionally defines the HAS_STATFS symbol, which
@@ -17,7 +17,12 @@
 ?LINT:set d_statfs
 : see if statfs exists
 $cat >try.c <<EOC
+#$i_sysvfs I_SYS_VFS
 #include <sys/vfs.h>
+#endif
+#$i_sysmount I_SYS_MOUNT
+#include <sys/mount.h>
+#endif
 int main(void)
 {
 	static int ret;

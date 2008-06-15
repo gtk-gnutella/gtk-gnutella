@@ -748,6 +748,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_niip I_NETINET_IP	/**/
 
+/* I_SYS_MOUNT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/mount.h> to get the struct statfs definition for the
+ *	statfs() system call.
+ */
+#$i_sysmount I_SYS_MOUNT		/**/
+
 /* I_SYS_SENDFILE:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/sendfile.h>.
