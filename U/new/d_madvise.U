@@ -26,7 +26,7 @@ int main(void)
 {
 	static int ret;
 	static void *p;
-	size_t len;
+	size_t len = 1024;
 	ret |= madvise(p, len, 1);
 	return ret ? 0 : 1;
 }
