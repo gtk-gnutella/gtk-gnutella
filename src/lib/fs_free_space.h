@@ -39,6 +39,7 @@
 #include "common.h"
 
 filesize_t fs_free_space(const char *);
+double fs_free_space_pct(const char *);
 
 #endif /* _fs_free_space_h_ */
 

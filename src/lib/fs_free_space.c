@@ -60,17 +60,25 @@ RCSID("$Id$")
 #endif	/* HAS_STATFS */
 
 #include "lib/fs_free_space.h"
-
 #include "override.h"			/* Must be the last header included */
 
+struct fs_info {
+	filesize_t free_space;
+	filesize_t total_space;
+};
+
 /**
- * Return the free space in bytes available currently in the filesystem
- * mounted under the given directory.
+ * Get information about the filesystem mounted under the given directory
+ * by filling the fs_info structure.
  */
-filesize_t
-fs_free_space(const char *path)
+static void
+get_fs_info(const char *path, struct fs_info *fsi)
 {
 	filesize_t free_space = MAX_INT_VAL(filesize_t);
+	filesize_t total_space = MAX_INT_VAL(filesize_t);
+
+	g_assert(path);
+	g_assert(fsi);
 
 	(void) path;
 
@@ -83,6 +91,7 @@ fs_free_space(const char *path)
 			g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
+			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_frsize;
 		}
 	}
 #elif defined(HAS_STATFS)
@@ -94,11 +103,44 @@ fs_free_space(const char *path)
 			g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
 		} else {
 			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
+			total_space = ((filesize_t) 0 + buf.f_blocks) * buf.f_bsize;
 		}
 	}
 #endif	/* HAS_STATVFS || HAS_STATFS */
 
-	return free_space;
+	fsi->free_space = free_space;
+	fsi->total_space = total_space;
+}
+
+/**
+ * Return the free space in bytes available currently in the filesystem
+ * mounted under the given directory.
+ */
+filesize_t
+fs_free_space(const char *path)
+{
+	struct fs_info buf;
+
+	get_fs_info(path, &buf);
+
+	return buf.free_space;
+}
+
+/**
+ * Return the free space available currently in the filesystem mounted
+ * under the given directory in percentage of the total space.
+ */
+double
+fs_free_space_pct(const char *path)
+{
+	struct fs_info buf;
+
+	get_fs_info(path, &buf);
+
+	if (buf.total_space == 0 || buf.total_space < buf.free_space)
+		return 100.0;		/* Something is wrong */
+
+	return buf.free_space * 100.0 / buf.total_space;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
