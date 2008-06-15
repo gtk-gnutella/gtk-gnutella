@@ -564,7 +564,7 @@ hcache_request_slot(hcache_type_t type)
 
 	return limit > 0
 		&& left > 0
-		&& ((left > limit / 2) || (random_raw() % limit < left));
+		&& ((left > limit / 2) || (random_u32() % limit < left));
 }
 
 /**
@@ -642,7 +642,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		port >= 6346 &&
 		port <= 6350 &&
 		!host_low_on_pongs &&
-		random_raw() % 256 > 31
+		random_u32() % 256 > 31
 	) {
 		return FALSE;
 	}

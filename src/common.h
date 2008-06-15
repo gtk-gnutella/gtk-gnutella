@@ -225,13 +225,6 @@ struct passwd
 #include <sys/mman.h>
 #endif
 
-#ifdef I_SYS_STATVFS
-#include <sys/statvfs.h>
-#endif
-#ifdef I_SYS_VFS
-#include <sys/vfs.h>
-#endif
-
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *) -1)
 #endif	/* !MMAP_FAILED */

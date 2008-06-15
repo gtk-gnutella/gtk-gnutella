@@ -408,7 +408,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 		return;
 	}
 
-	uhc_ctx.addr = addrs[random_raw() % n];
+	uhc_ctx.addr = addrs[random_u32() % n];
 	
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_message("BOOT UDP host cache \"%s\" resolved to %s",

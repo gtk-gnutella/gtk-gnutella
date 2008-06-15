@@ -52,15 +52,13 @@ RCSID("$Id$")
 
 #include "override.h"			/* Must be the last header included */
 
-#if !defined(HAS_SRANDOM) || !defined(HAS_RANDOM)
-#define srandom(x)	srand(x)
-#define random()	rand()
-#define RANDOM_MASK				0xffffffff
-#define RANDOM_MAXV				RAND_MAX
-#else
-#define RANDOM_MASK				0x7fffffff
-#define RANDOM_MAXV				RANDOM_MASK
-#endif
+#if !defined(HAS_ARC4RANDOM) && (!defined(HAS_SRANDOM) || !defined(HAS_RANDOM))
+#error "No sufficient PRNG functions available."
+/*
+ * srandom() and random() are available as open-source implementations. Use
+ * that or a stronger PRNG but do NOT use crappy toys like srand()/rand()!
+ */
+#endif	/* HAS_SRANDOM && HAS_RANDOM */
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
 const char hex_alphabet_lower[] = "0123456789abcdef";
@@ -2123,23 +2121,65 @@ force_range(gfloat val, gfloat min, gfloat max)
 		val;
 }
 
+#ifdef HAS_ARC4RANDOM
+/**
+ * @return random value between 0 and (2**32)-1. All 32 bit are random.
+ */
+guint32
+random_u32(void)
+{
+	return arc4random();
+}
+#else	/* !HAS_ARC4RANDOM */
+/* rotates a 32-bit value by 16 bit */
+static inline guint32
+uint32_rot16(guint32 value)
+{
+	return (value << 16) | (value >> 16);
+}
+
+/**
+ * @return random value between 0 and (2**32)-1. All 32 bit are random.
+ */
+guint32
+random_u32(void)
+{
+	/*
+	 * random() returns only values between 0 and (2**31)-1, so the
+	 * MSB is always zero. Therefore mix two random values to get
+	 * full 32 random bits.
+	 */
+	return uint32_rot16(random()) ^ random();
+}
+#endif	/* HAS_ARC4RANDOM */
+
 /**
  * @return random value between (0..max).
  */
 guint32
 random_value(guint32 max)
 {
-	return (guint32)
-		((max + 1.0) * (random() & RANDOM_MASK) / (RANDOM_MAXV + 1.0));
+	return (guint32) ((max + 1.0) * random_u32() / ((guint32) -1 + 1.0));
 }
 
 /**
- * @return random value between (0..RAND_MAX).
+ * Fills buffer 'dst' with 'size' bytes of random data.
  */
-guint32
-random_raw(void)
+void
+random_bytes(void *dst, size_t size)
 {
-	return (guint32) random() & RANDOM_MASK;
+	char *p = dst;
+
+	while (size > 4) {
+		const guint32 value = random_u32();
+		memcpy(p, &value, 4);
+		p += 4;
+		size -= 4;
+	}
+	if (size > 0) {
+		const guint32 value = random_u32();
+		memcpy(p, &value, size);
+	}
 }
 
 static void
@@ -2234,23 +2274,12 @@ random_init(void)
 			fclose(f);
 	}
 
-	/*
-	 * Add timing entropy.
-	 */
-
-	{
-		gdouble u, s;
-	   	
-		sha1_feed_double(&ctx, tm_cputime(&u, &s));
-		sha1_feed_double(&ctx, u);
-		sha1_feed_double(&ctx, s);
-	}
-
 	/* Add some host/user dependent noise */
 	sha1_feed_ulong(&ctx, getuid());
 	sha1_feed_ulong(&ctx, getgid());
 	sha1_feed_ulong(&ctx, getpid());
 	sha1_feed_ulong(&ctx, getppid());
+	sha1_feed_ulong(&ctx, compat_max_fd());
 
 	sha1_feed_string(&ctx, __DATE__);
 	sha1_feed_string(&ctx, __TIME__);
@@ -2276,6 +2305,12 @@ random_init(void)
 	if (-1 != stat("..", &buf)) {
 		SHA1Input(&ctx, &buf, sizeof buf);
 	}
+	if (-1 != fstat(STDIN_FILENO, &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	}
+	if (-1 != fstat(STDOUT_FILENO, &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	}
 
 #ifdef HAS_UNAME
 	{
@@ -2297,6 +2332,30 @@ random_init(void)
 		for (i = 0; NULL != environ[i]; i++) {
 			sha1_feed_string(&ctx, environ[i]);
 		}
+	}
+
+	sha1_feed_string(&ctx, ttyname(STDIN_FILENO));
+
+#if defined(HAS_GETRUSAGE)
+	{
+		struct rusage usage;
+
+		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
+			SHA1Input(&ctx, &usage, sizeof usage);
+		}
+	}
+#endif	/* HAS_GETRUSAGE */
+
+	/*
+	 * Add timing entropy.
+	 */
+
+	{
+		gdouble u, s;
+	   	
+		sha1_feed_double(&ctx, tm_cputime(&u, &s));
+		sha1_feed_double(&ctx, u);
+		sha1_feed_double(&ctx, s);
 	}
 
 	tm_now_exact(&end);
@@ -2637,13 +2696,7 @@ ascii_strcasecmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 void
 guid_random_fill(gchar *xuid)
 {
-	gint i;
-	guint32 v;
-
-	for (i = 0; i < GUID_RAW_SIZE; i++) {
-		v = random_raw();
-		xuid[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
-	}
+	random_bytes(xuid, GUID_RAW_SIZE);
 }
 
 /**
@@ -2840,7 +2893,7 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 
 	for (i = 0; i < 100; i++) {
 		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%x%s%s",
-			name_buf, (unsigned) random_raw(), mid_buf, ext_buf);
+			name_buf, (unsigned) random_u32(), mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
 		if (pathname)
@@ -4082,7 +4135,7 @@ cpu_noise(void)
 	SHA1Context ctx;
 	guint32 r, i;
 	
-	r = random_raw();
+	r = random_u32();
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
 
@@ -4287,36 +4340,6 @@ get_non_stdio_fd(int fd)
 		errno = saved_errno;
 	}
 	return fd;
-}
-
-/**
- * Return the free space in bytes available currently in the filesystem
- * mounted under the given directory.
- */
-filesize_t
-fs_free_space(const char *path)
-{
-	filesize_t free_space = MAX_INT_VAL(filesize_t);
-#if defined(HAS_STATVFS)
-	/* statvfs() is a POSIX.1-2001 system call */
-	struct statvfs buf;
-
-	if (-1 == statvfs(path, &buf)) {
-		g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
-	} else {
-		free_space = buf.f_bavail * buf.f_bsize;
-	}
-#elif defined(HAS_STATFS)
-	/* statfs() is deprecated but older Linux systems may not have statvfs() */
-	struct statfs buf;
-
-	if (-1 == statfs(path, &buf)) {
-		g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
-	} else {
-		free_space = buf.f_bavail * buf.f_bsize;
-#endif	/* HAS_STATVFS || HAS_STATFS */
-
-	return free_space;
 }
 
 void

@@ -57,7 +57,7 @@ idtable_new(void)
 
 	tbl = walloc(sizeof *tbl);
 	*tbl = zero_idtable;
-	tbl->last_id = (random_raw() & IDTABLE_MASK) + IDTABLE_BASE;
+	tbl->last_id = (random_u32() & IDTABLE_MASK) + IDTABLE_BASE;
 	tbl->ht = g_hash_table_new(NULL, NULL);
 	return tbl;
 }

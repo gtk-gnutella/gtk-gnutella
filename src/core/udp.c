@@ -386,7 +386,7 @@ udp_ping_register(const gchar *muid)
 	if (length >= UDP_PING_MAX) {
 		return FALSE;
 	} else if (length > (UDP_PING_MAX / 4) * 3) {
-		if ((random_raw() % UDP_PING_MAX) < length)
+		if ((random_u32() % UDP_PING_MAX) < length)
 			return FALSE;
 	}
 

@@ -4413,11 +4413,7 @@ get_random_offset(const filesize_t size)
 
 	offset = 0;
 	if (size > 1) {
-		guint i;
-		
-		for (i = 0; i < sizeof(offset); i++) {
-			offset ^= (filesize_t) random_raw() << (i * CHAR_BIT);
-		}
+		random_bytes(&offset, sizeof offset);
 		offset %= size - 1;
 	}
 

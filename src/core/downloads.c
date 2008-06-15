@@ -4884,7 +4884,7 @@ create_download(
 
 	if (GTA_DL_INVALID == d->status) {
 		/* Ensure it has a time for status display */
-		d->retry_after = time_advance(tm_time(), (random_raw() % 4) + 1);
+		d->retry_after = time_advance(tm_time(), (random_u32() % 4) + 1);
 		download_queue(d, "%s", reason);
 	}
 
@@ -5271,7 +5271,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 	g_assert(req);
 
 	if (n > 0) {
-		size_t i = random_raw() % n;
+		size_t i = random_u32() % n;
 
 		/**
 		 * @todo TODO: All resolved addresses should be attempted.

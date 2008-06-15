@@ -2501,7 +2501,7 @@ search_gui_browse_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
 	g_assert(req);
 
 	if (n > 0) {
-		size_t i = random_raw() % n;
+		size_t i = random_u32() % n;
 
 		search_gui_new_browse_host(req->host, addrs[i], req->port,
 			NULL, NULL, req->flags);

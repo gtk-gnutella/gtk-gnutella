@@ -2038,7 +2038,7 @@ head_ping_register_intern(const gchar *muid,
 	if (length >= HEAD_PING_MAX) {
 		return NULL;
 	} else if (length > (HEAD_PING_MAX / 4) * 3) {
-		if ((random_raw() % HEAD_PING_MAX) < length)
+		if ((random_u32() % HEAD_PING_MAX) < length)
 			return NULL;
 	}
 

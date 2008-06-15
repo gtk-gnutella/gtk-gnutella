@@ -3914,7 +3914,7 @@ search_oob_pending_results(
 	g_assert(hits > 0);
 
 	if (secure) {
-		token = random_raw();
+		token = random_u32();
 		token_opaque = array_init(&token, sizeof token);
 	} else {
 		token = 0;

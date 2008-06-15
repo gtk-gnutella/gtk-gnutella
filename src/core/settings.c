@@ -393,11 +393,9 @@ settings_init_session_id(void)
 	SHA1Context ctx;
 	struct sha1 digest;
 	guint32 noise[64];
-	size_t size, i;
+	size_t size;
 
-	for (i = 0; i < G_N_ELEMENTS(noise); i++) {
-		noise[i] = random_raw();
-	}
+	random_bytes(noise, sizeof noise);
 	SHA1Reset(&ctx);
 	SHA1Input(&ctx, &noise, sizeof noise);
 	SHA1Result(&ctx, &digest);

@@ -676,11 +676,8 @@ shell_auth_cookie(void)
 	if (!initialized) {
 		SHA1Context ctx;
 		guint32 noise[64];
-		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(noise); i++) {
-			noise[i] = random_raw();
-		}
+		random_bytes(noise, sizeof noise);
 		SHA1Reset(&ctx);
 		SHA1Input(&ctx, &noise, sizeof noise);
 		SHA1Result(&ctx, &cookie);

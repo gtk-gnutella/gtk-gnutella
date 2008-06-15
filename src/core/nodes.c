@@ -6006,7 +6006,7 @@ node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
 	g_assert(data->port);
 
 	if (n > 0) {
-		size_t i = random_raw() % n;
+		size_t i = random_u32() % n;
 		node_add(addrs[i], data->port, data->flags);
 	}
 	wfree(data, sizeof *data);

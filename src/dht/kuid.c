@@ -57,13 +57,7 @@ kuid_init(void)
 void
 kuid_random_fill(kuid_t *kuid)
 {
-	gint i;
-	guint32 v;
-
-	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		v = random_raw();
-		kuid->v[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
-	}
+	random_bytes(kuid->v, KUID_RAW_SIZE);
 }
 
 /**

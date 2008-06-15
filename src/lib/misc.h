@@ -552,7 +552,8 @@ is_pow2(guint32 value)
  */
 void random_init(void);
 guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
-guint32 random_raw(void) WARN_UNUSED_RESULT;
+guint32 random_u32(void) WARN_UNUSED_RESULT;
+void random_bytes(void *dst, size_t size);
 void guid_random_fill(gchar *xuid);
 
 /*
