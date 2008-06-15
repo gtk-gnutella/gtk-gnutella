@@ -72,7 +72,7 @@ fs_free_space(const char *path)
 		if (-1 == statvfs(path, &buf)) {
 			g_warning("statvfs(\"%s\") failed: %s", path, g_strerror(errno));
 		} else {
-			free_space = buf.f_bavail * buf.f_bsize;
+			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
 		}
 	}
 #elif defined(HAS_STATFS)
@@ -83,7 +83,7 @@ fs_free_space(const char *path)
 		if (-1 == statfs(path, &buf)) {
 			g_warning("statfs(\"%s\") failed: %s", path, g_strerror(errno));
 		} else {
-			free_space = buf.f_bavail * buf.f_bsize;
+			free_space = ((filesize_t) 0 + buf.f_bavail) * buf.f_bsize;
 		}
 	}
 #endif	/* HAS_STATVFS || HAS_STATFS */
