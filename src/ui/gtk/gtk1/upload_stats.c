@@ -142,7 +142,7 @@ upload_stats_gui_init(void)
 	enum c_us i;
 
 	for (i = 0; i < c_us_num; i++) {
-		gboolean justify_left;
+		gboolean justify_left = FALSE;
 
 		switch (i) {
 		case c_us_filename: justify_left = TRUE; break;
@@ -263,7 +263,7 @@ upload_stats_gui_update(struct ul_stats *us)
 	g_return_if_fail(row >= 0);
 
 	for (i = 0; i < c_us_num; i++) {
-		const char *text;
+		const char *text = NULL;
 		char tmpstr[16];
 
 		switch (i) {
