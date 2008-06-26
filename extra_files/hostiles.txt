@@ -1274,6 +1274,9 @@
 74.85.92.0/25
 208.76.153.128/27
 
+# LimeWire/4.12.8; security violations
+67.221.175.0/24
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
