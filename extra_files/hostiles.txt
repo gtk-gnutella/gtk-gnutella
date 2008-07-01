@@ -1289,6 +1289,9 @@
 # LimeWire/4.16.6; security violations
 64.32.4.192/26
 
+# LimeWire/4.16.6 (potentially fake); port 20001; all kinds of massive spam
+66.45.226.48/28
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
