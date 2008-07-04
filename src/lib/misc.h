@@ -518,6 +518,11 @@ gchar *guid_base32_str(const gchar *guid);
 gchar *base32_to_guid(const gchar *base32);
 
 /*
+ * Generic binary to hexadecimal conversion.
+ */
+size_t bin_to_hex_buf(const gchar *data, size_t len, gchar *dst, size_t size);
+
+/*
  * Tests
  */
 gboolean is_absolute_path(const char *pathname);

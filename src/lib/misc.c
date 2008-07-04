@@ -1279,17 +1279,27 @@ short_uptime(time_delta_t uptime)
 	return b;
 }
 
+/**
+ * Convert binary data into a hexadecimal string.
+ *
+ * @param data		the data to convert
+ * @paran len		length of the binary data supplied
+ * @param dst		destination buffer, where to put the result
+ * @param size		size of the destination buffer
+ *
+ * @return the length of the hexadecimal string generated.
+ */
 size_t
-guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
+bin_to_hex_buf(const gchar *data, size_t len, gchar *dst, size_t size)
 {
 	gchar *p = dst;
 
 	if (size > 0) {
 		size = (size - 1) / 2;
-		size = MIN(size, GUID_RAW_SIZE);
+		size = MIN(size, len);
 
 		while (size-- > 0) {
-			guchar c = peek_u8(guid++);
+			guchar c = peek_u8(data++);
 			*p++ = hex_alphabet_lower[c >> 4];
 			*p++ = hex_alphabet_lower[c & 0x0f];
 		}
@@ -1298,6 +1308,18 @@ guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
 	return p - dst;
 }
 
+/**
+ * Convert GUID to hexadecimal string in the supplied buffer.
+ */
+size_t
+guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
+{
+	return bin_to_hex_buf(guid, GUID_RAW_SIZE, dst, size);
+}
+
+/**
+ * @return hexadecimal string representing given GUID, in static buffer.
+ */
 const gchar *
 guid_to_string(const gchar *guid)
 {
@@ -1310,7 +1332,7 @@ guid_to_string(const gchar *guid)
 }
 
 /**
- * @return hexadecimal string representing given GUID.
+ * @return hexadecimal string representing given GUID, in static buffer.
  */
 const gchar *
 guid_hex_str(const gchar *guid)
