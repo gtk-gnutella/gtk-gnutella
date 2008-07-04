@@ -35,6 +35,8 @@ typedef struct hash_list hash_list_t;
 hash_list_t *hash_list_new(GHashFunc hash_func, GEqualFunc eq_func);
 void hash_list_free(hash_list_t **hl_ptr);
 gpointer hash_list_remove(hash_list_t *hl, gconstpointer key);
+gpointer hash_list_remove_head(hash_list_t *hl);
+gpointer hash_list_remove_tail(hash_list_t *hl);
 gpointer hash_list_shift(hash_list_t *hl);
 void hash_list_append(hash_list_t *hl, gconstpointer key);
 void hash_list_prepend(hash_list_t *hl, gconstpointer key);

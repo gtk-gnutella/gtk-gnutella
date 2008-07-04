@@ -335,7 +335,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 
 /**
  * Remove `data' from the list.
- * @return The data that associated with the given key.
+ * @return The data that was associated with the given key.
  */
 gpointer
 hash_list_remove(hash_list_t *hl, gconstpointer key)
@@ -347,6 +347,32 @@ hash_list_remove(hash_list_t *hl, gconstpointer key)
 
 	item = g_hash_table_lookup(hl->ht, key);
 	return item ? hash_list_remove_item(hl, item) : NULL;
+}
+
+/**
+ * Remove head item from the list.
+ * @return The data that was stored there.
+ */
+gpointer
+hash_list_remove_head(hash_list_t *hl)
+{
+	if (NULL == hl->head)
+		return NULL;
+
+	return hash_list_remove_item(hl, hl->head->data);
+}
+
+/**
+ * Remove tail item from the list.
+ * @return The data that was stored there.
+ */
+gpointer
+hash_list_remove_tail(hash_list_t *hl)
+{
+	if (NULL == hl->tail)
+		return NULL;
+
+	return hash_list_remove_item(hl, hl->tail->data);
 }
 
 gpointer
