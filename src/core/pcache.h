@@ -57,12 +57,17 @@ typedef struct pong_meta {
 	host_addr_t sender_addr;	/**< For GGEP "IP" */
 	guint16 sender_port;  		/**< For GGEP "IP" */
 
-	guint32 daily_uptime; /**< Node's daily uptime, from GGEP "DU" */
-	guint8 up_slots;      /**< Free UP slots, from GGEP "UP" */
-	guint8 leaf_slots;    /**< Free leaf slots, from GGEP "UP" */
-	guint8 version_up;    /**< Ultrapeer version protocol, from GGEP "UP" */
-	guint8 version_ua;    /**< Servent version, from GGEP "VC" */
-	guint8 flags;	      /**< Validation flags */
+	guint32 daily_uptime;	/**< Node's daily uptime, from GGEP "DU" */
+	guint8 up_slots;		/**< Free UP slots, from GGEP "UP" */
+	guint8 leaf_slots;		/**< Free leaf slots, from GGEP "UP" */
+	guint8 version_up;		/**< Ultrapeer version protocol, from GGEP "UP" */
+	guint8 version_ua;		/**< Servent version, from GGEP "VC" */
+
+	guint8 dht_major;    	/**< DHT major version, from GGEP "DHT" */
+	guint8 dht_minor;    	/**< DHT minor version, from GGEP "DHT" */
+	guint8 dht_flags;    	/**< DHT flags, from GGEP "DHT" */
+
+	guint8 flags;			/**< Validation flags */
 } pong_meta_t;
 
 enum {
@@ -72,7 +77,8 @@ enum {
 	PONG_META_HAS_LOC	= (1 << 3), /**< The "LOC" fields are valid */
 	PONG_META_HAS_DU	= (1 << 4), /**< The "DU" fields are valid */
 	PONG_META_HAS_IPV6	= (1 << 5), /**< The "IPV6" fields are valid */
-	PONG_META_HAS_TLS	= (1 << 6)  /**< The "TLS" fields are valid */
+	PONG_META_HAS_TLS	= (1 << 6), /**< The "TLS" fields are valid */
+	PONG_META_HAS_DHT	= (1 << 7), /**< The "DHT" fields are valid */
 };
 
 /**

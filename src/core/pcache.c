@@ -274,7 +274,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	ggep_stream_init(&gs, ggep, sizeof msg_pong.buf - sizeof *pong);
 
 	/*
-	 * First, start with metadata about our host.
+	 * First, start with metadata about the host.
 	 */
 
 	if (meta != NULL) {
@@ -330,6 +330,16 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		if (meta->flags & PONG_META_HAS_TLS) {
 			ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0);
+		}
+
+		if (meta->flags & PONG_META_HAS_DHT) {
+			gboolean ok;
+
+			ok = ggep_stream_begin(&gs, GGEP_NAME(DHT), 0) &&
+			ggep_stream_write(&gs, &meta->dht_major, 1) &&
+			ggep_stream_write(&gs, &meta->dht_minor, 1) &&
+			ggep_stream_write(&gs, &meta->dht_flags, 1) &&
+			ggep_stream_end(&gs);
 		}
 	}
 
@@ -1727,6 +1737,22 @@ pong_extract_metadata(struct gnutella_node *n)
 		case EXT_T_GGEP_TLS:
 			ALLOCATE(TLS);
 			break;
+		case EXT_T_GGEP_DHT:
+			/*
+			 * Host is part of the DHT.
+			 * Indicates version information and operating flags.
+			 */
+
+			paylen = ext_paylen(e);
+
+			if (paylen >= 3) {
+				payload = ext_payload(e);
+				ALLOCATE(DHT);
+				meta->dht_major = payload[0];
+				meta->dht_minor = payload[1];
+				meta->dht_flags = payload[2];
+			}
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
@@ -1964,6 +1990,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	host_addr_t ipv4_addr;
 	host_addr_t ipv6_addr;
 	gboolean supports_tls;
+	gboolean supports_dht;
 	guint16 port;
 	gint i;
 
@@ -1976,6 +2003,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 	ipv6_addr = zero_host_addr;
 	supports_tls = FALSE;
+	supports_dht = FALSE;
 	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
@@ -2006,6 +2034,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		case EXT_T_GGEP_TLS:
 		case EXT_T_GGEP_GTKG_TLS:
 			supports_tls = TRUE;
+			break;
+		case EXT_T_GGEP_DHT:
+			supports_dht = TRUE;
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
@@ -2040,6 +2071,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			host_add(addr, port, TRUE);
 			if (supports_tls) {
 				tls_cache_insert(addr, port);
+			}
+			if (supports_dht) {
+				/* XXX later */
 			}
 		}
 	}

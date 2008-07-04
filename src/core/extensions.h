@@ -82,6 +82,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_BH,			/**< Browseable host indication */
 	EXT_T_GGEP_C,			/**< Result Code in HEAD Pongs */
 	EXT_T_GGEP_CT,			/**< Resource creation time */
+	EXT_T_GGEP_DHT,			/**< DHT version and flags, in pongs */
 	EXT_T_GGEP_DU,			/**< Daily Uptime */
 	EXT_T_GGEP_F,			/**< Flags in HEAD Pongs */
 	EXT_T_GGEP_FW,			/**< Firewalled-to-Firewalled protocol version */
