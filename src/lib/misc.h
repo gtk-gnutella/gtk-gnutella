@@ -607,6 +607,7 @@ guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
 guint64 parse_uint64(const gchar *, gchar const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
+size_t int32_to_string_buf(gint32 v, gchar *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, gchar *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
 size_t off_t_to_string_buf(off_t v, gchar *dst, size_t size);

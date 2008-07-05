@@ -3416,6 +3416,33 @@ reverse_strlcpy(gchar * const dst, size_t size,
 }
 
 size_t
+int32_to_string_buf(gint32 v, gchar *dst, size_t size)
+{
+	gchar buf[UINT32_DEC_BUFLEN + 1];
+	gchar *p;
+	guint32 w;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+
+	if (v < 0) {
+		w = -v;
+		*p++ = '-';
+	} else
+		w = v;
+
+	for (/* NOTHING */; /* NOTHING */; w /= 10) {
+		*p++ = dec_digit(w % 10);
+		if (w < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 {
 	gchar buf[UINT32_DEC_BUFLEN];
