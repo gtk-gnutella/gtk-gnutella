@@ -122,6 +122,7 @@ gnet_stats_init(void)
 		case GTA_MSG_QRP:            m = MSG_QRP; break;
 		case GTA_MSG_HSEP_DATA:		 m = MSG_HSEP; break;
 		case GTA_MSG_BYE:      		 m = MSG_BYE; break;
+		case GTA_MSG_DHT:      		 m = MSG_DHT; break;
 		}
 		stats_lut[i] = m;
 	}

@@ -41,6 +41,7 @@ enum gta_msg {
 	GTA_MSG_STANDARD				= 0x32,	/**< Standard vendor-specific */
 	GTA_MSG_PUSH_REQUEST			= 0x40,
 	GTA_MSG_RUDP					= 0x41,
+	GTA_MSG_DHT						= 0x44, /**< DHT message encapsulation */
 	GTA_MSG_SEARCH					= 0x80,
 	GTA_MSG_SEARCH_RESULTS			= 0x81,
 	GTA_MSG_HSEP_DATA 				= 0xcd

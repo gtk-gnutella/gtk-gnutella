@@ -177,6 +177,7 @@ gmsg_init(void)
 		case GTA_MSG_QRP:            w = 6; s = "QRP"; break;
 		case GTA_MSG_HSEP_DATA:      		s = "HSEP"; break;
 		case GTA_MSG_BYE:      		 w = 7; s = "BYE"; break;
+		case GTA_MSG_DHT:   		 		s = "DHT"; break;
 		}
 		msg_name[i] = s;
 		msg_weight[i] = w;

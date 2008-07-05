@@ -771,6 +771,7 @@ routing_init(void)
 		case GTA_MSG_QRP:            s = "QRP  "; break;
 		case GTA_MSG_HSEP_DATA:      s = "HSEP "; break;
 		case GTA_MSG_BYE:      		 s = "Bye  "; break;
+		case GTA_MSG_DHT:      		 s = "DHT  "; break;
 		}
 		debug_msg[i] = s;
 	}

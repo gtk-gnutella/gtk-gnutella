@@ -57,6 +57,7 @@ msg_type_str(gint value)
 		N_("Push"),
 		N_("Query"),
 		N_("Query hit"),
+		N_("DHT"),
 		N_("Total"),
 	};
 

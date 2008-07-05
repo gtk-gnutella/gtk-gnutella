@@ -45,6 +45,7 @@ enum {
 	MSG_PUSH_REQUEST,
 	MSG_SEARCH,
 	MSG_SEARCH_RESULTS,
+	MSG_DHT,
 	MSG_TOTAL,     /**< always counted (for all the above types) */
 	
 	MSG_TYPE_COUNT /**< number of known message types */
