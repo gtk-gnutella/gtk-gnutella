@@ -427,6 +427,8 @@ static size_t uint64_len(gconstpointer v);
 static const gchar *uint64_str(gconstpointer v);
 static size_t filesize_len(gconstpointer v);
 static const gchar *filesize_str(gconstpointer v);
+static size_t uint32_len(gconstpointer v);
+static const gchar *uint32_str(gconstpointer v);
 
 /**
  * The set of all atom types we know about.
@@ -439,6 +441,7 @@ static table_desc_t atoms[] = {
 	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
 	{ "filesize",
 		NULL, filesize_hash, filesize_eq, filesize_len, filesize_str},  /* 5 */
+	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
 };
 
 static GHashTable *ht_all_atoms;
@@ -656,6 +659,17 @@ filesize_len(gconstpointer unused_v)
 }
 
 /**
+ * @return length of a 32-bit integer.
+ */
+static size_t
+uint32_len(gconstpointer unused_v)
+{
+	(void) unused_v;
+	return sizeof(guint32);
+}
+
+
+/**
  * @return printable form of a 64-bit integer, as pointer to static data.
  */
 static const gchar *
@@ -725,6 +739,40 @@ filesize_hash(gconstpointer p)
 	return v ^ (v >> 32);
 }
 
+/**
+ * Test two 32-bit integers for equality.
+ *
+ * @return whether both referenced 32-bit integers are equal.
+ */
+gint
+uint32_eq(gconstpointer a, gconstpointer b)
+{
+	return *(const guint32 *) a == *(const guint32 *) b;
+}
+
+/**
+ * Calculate the 32-bit hash of a 32-bit integer
+ *
+ * @return the 32-bit hash value for the referenced 32-bit integer.
+ */
+guint
+uint32_hash(gconstpointer p)
+{
+	guint32 v = *(const guint32 *) p;
+	return v;
+}
+
+/**
+ * @return printable form of a 32-bit integer, as pointer to static data.
+ */
+static const gchar *
+uint32_str(gconstpointer v)
+{
+	static gchar buf[UINT32_DEC_BUFLEN];
+
+	uint32_to_string_buf(*(const guint32 *) v, buf, sizeof buf);
+	return buf;
+}
 
 /**
  * Initialize atom structures.

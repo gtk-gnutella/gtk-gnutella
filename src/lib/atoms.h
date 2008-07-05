@@ -47,8 +47,9 @@ enum atom_type {
 	ATOM_GUID,		/**< GUIDs (binary, 16 bytes) */
 	ATOM_SHA1,		/**< SHA1 (binary, 20 bytes) */
 	ATOM_TTH,		/**< TTH (binary, 24 bytes) */
-	ATOM_UINT64,	/**< integers (binary, 8 bytes) */
+	ATOM_UINT64,	/**< unsigned 64-bit integers (binary, 8 bytes) */
 	ATOM_FILESIZE,	/**< filesize_t (binary) */
+	ATOM_UINT32,	/**< unsigned 32-bit integers (binary, 4 bytes) */
 
 	NUM_ATOM_TYPES
 };
@@ -78,6 +79,9 @@ void atom_free(enum atom_type type, gconstpointer key);
 
 #define atom_uint64_get(k)	atom_get_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
 #define atom_uint64_free(k)	atom_free_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
+
+#define atom_uint32_get(k)	atom_get_track(ATOM_UINT32, (k), _WHERE_, __LINE__)
+#define atom_uint32_free(k)	atom_free_track(ATOM_UINT32, (k), _WHERE_, __LINE__)
 
 #define atom_filesize_get(k) \
 	atom_get_track(ATOM_FILESIZE, (k), _WHERE_, __LINE__)
@@ -163,6 +167,18 @@ atom_filesize_free(const filesize_t *k)
 	return atom_free(ATOM_FILESIZE, k);
 }
 
+static inline const guint32 *
+atom_uint32_get(const guint32 *k)
+{
+	return atom_get(ATOM_UINT32, k);
+}
+
+static inline void
+atom_uint32_free(const guint32 *k)
+{
+	return atom_free(ATOM_UINT32, k);
+}
+
 #endif	/* TRACK_ATOMS */
 
 /*
@@ -186,6 +202,8 @@ gint guid_eq(gconstpointer a, gconstpointer b);
 guint uint64_hash(gconstpointer key);
 gint uint64_eq(gconstpointer a, gconstpointer b);
 guint binary_hash(const guchar *key, guint len);
+guint uint32_hash(gconstpointer key);
+gint uint32_eq(gconstpointer a, gconstpointer b);
 
 #ifdef TRACK_ATOMS
 gconstpointer atom_get_track(enum atom_type, gconstpointer key,
@@ -218,6 +236,7 @@ GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
 GENERATE_ATOM_FREE_NULL(str, gchar *)
 GENERATE_ATOM_FREE_NULL(tth, struct tth *)
 GENERATE_ATOM_FREE_NULL(uint64, guint64 *)
+GENERATE_ATOM_FREE_NULL(uint32, guint32 *)
 #undef GENERATE_ATOM_FREE_NULL
 
 /**
@@ -241,6 +260,7 @@ GENERATE_ATOM_CHANGE(sha1, struct sha1 *)
 GENERATE_ATOM_CHANGE(str, gchar *)
 GENERATE_ATOM_CHANGE(tth, struct tth *)
 GENERATE_ATOM_CHANGE(uint64, guint64 *)
+GENERATE_ATOM_CHANGE(uint32, guint32 *)
 #undef GENERATE_ATOM_CHANGE
 
 #endif	/* _atoms_h_ */
