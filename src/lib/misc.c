@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "atoms.h"
+#include "base16.h"
 #include "base32.h"
 #include "endian.h"
 #include "eval.h"
@@ -1292,20 +1293,15 @@ short_uptime(time_delta_t uptime)
 size_t
 bin_to_hex_buf(const gchar *data, size_t len, gchar *dst, size_t size)
 {
-	gchar *p = dst;
+	size_t retval;
 
 	if (size > 0) {
-		size = (size - 1) / 2;
-		size = MIN(size, len);
-
-		while (size-- > 0) {
-			guchar c = peek_u8(data++);
-			*p++ = hex_alphabet_lower[c >> 4];
-			*p++ = hex_alphabet_lower[c & 0x0f];
-		}
-		*p = '\0';
+		retval = base16_encode(dst, size, data, len);
+		dst[retval] = '\0';
+	} else {
+		retval = 0;
 	}
-	return p - dst;
+	return retval;
 }
 
 /**
@@ -3416,29 +3412,28 @@ reverse_strlcpy(gchar * const dst, size_t size,
 }
 
 size_t
-int32_to_string_buf(gint32 v, gchar *dst, size_t size)
+int32_to_string_buf(gint32 v, char *dst, size_t size)
 {
-	gchar buf[UINT32_DEC_BUFLEN + 1];
-	gchar *p;
-	guint32 w;
+	char buf[UINT32_DEC_BUFLEN + 1];
+	char *p;
+	gboolean neg;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
 
 	p = buf;
+	neg = v < 0;
 
-	if (v < 0) {
-		w = -v;
+	do {
+		int d = v % 10;
+
+		v /= 10;
+		*p++ = dec_digit(neg ? -d : d);
+	} while (0 != v);
+
+	if (neg) {
 		*p++ = '-';
-	} else
-		w = v;
-
-	for (/* NOTHING */; /* NOTHING */; w /= 10) {
-		*p++ = dec_digit(w % 10);
-		if (w < 10)
-			break;
 	}
-
 	return reverse_strlcpy(dst, size, buf, p - buf);
 }
 
