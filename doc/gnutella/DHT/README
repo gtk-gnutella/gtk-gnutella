@@ -1,0 +1,7 @@
+This folder contains the specification documents that LimeWire
+has published, extracted from their Wiki site.  It is not necessarily
+reflecting what gtk-gnutella is implementing, especially when the
+prose is referring to Java classes.
+
+Also there are lots of incomplete information in the original
+specs that will need to be clarified.

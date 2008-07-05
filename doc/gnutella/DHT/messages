@@ -1,0 +1,276 @@
+[Extracted this text version from LimeWire's wiki on 2008-07-05]
+
+****** The Mojito Message Format ******
+***** The Basic Types *****
+**** OpCode ****
+ ______________________________________
+|OpCode|Name_______________|Description|
+|0x01__|PING_REQUEST_______|___________|
+|0x02__|PING_RESPONSE______|___________|
+|0x03__|STORE_REQUEST______|___________|
+|0x04__|STORE_RESPONSE_____|___________|
+|0x05__|FIND_NODE_REQUEST__|___________|
+|0x06__|FIND_NODE_RESPONSE_|___________|
+|0x07__|FIND_VALUE_REQUEST_|___________|
+|0x08__|FIND_VALUE_RESPONSE|___________|
+|0x09__|STATS_REQUEST______|Deprecated_|
+|0x0A__|STATS_RESPONSE_____|Deprecated_|
+
+**** StatusCode ****
+ _______________________________________________________________________
+|Byte|Name_______|Description___________________________________________|
+|0-1_|Code_______|The_status_code_______________________________________|
+|2-3_|Length_____|Length_of_description_________________________________|
+|4-__|Description|An_UTF-8_encoded_String_that_describes_the_status_code|
+
+**** Vendor ****
+
+The Vendor Code is a 32bit value where each of the four bytes is ideally chosen
+from the ASCII ranges a-z, A-Z and 0-9. Vendor codes are case sensitive!
+ ___________________________________________________________________________
+|Vendor_Code_|Description___________________________________________________|
+|    LIME    |LIME and all deviations of LIME like lime or LiMe are reserved|
+|(0x4c494d45)|for_LimeWire_LLC______________________________________________|
+
+**** Version ****
+
+Version is a 16bit value where the MSB is the major and the LSB is the minor
+version number.
+ _________________________________________________________
+|Byte|Name_________|Description___________________________|
+|0___|Major_Version|The_major_version_number_(major.minor)|
+|1___|Minor_Version|The_minor_version_number_(major.minor)|
+
+**** MessageID ****
+
+MessageID is a 128bit random number that is used to identify Messages uniquely.
+Requesting Nodes generate a MessageID for each request they're issuing and
+responding Nodes must echo the unaltered MessageID in their responses.
+
+**** KUID ****
+
+A Kademlia Unique Identifier (KUID) is a 160bit unique identifier. You may use
+a SHA1 hash as a KUID or a 160bit random number. KUIDs are used for Node IDs as
+well as identifiers for Key-Value Tuples. As for Node IDs it's important to
+understand that the generated IDs must be globally unique and totally random.
+Marking, tagging and whatsoever of Node IDs is absolutely prohibited!
+
+**** Socket Address ****
+
+A Socket Address is simply an IP:Port tupel.
+ ____________________________________________________________________
+|Byte|Name______|Description_________________________________________|
+|0___|Length____|Length_of_the_IP_Address._It's_4_for_IPv4_addresses.|
+|1-4_|IP_Address|The_IPv4_address____________________________________|
+|5-6_|Port______|The_Port_number_____________________________________|
+ ____________________________________________________________________
+|Byte_|Name______|Description________________________________________|
+|0____|Length____|Length_of_the_IP_Address._It's_16_for_IPv6_addesses|
+|1-16_|IP_Address|The_IPv6_address___________________________________|
+|17-18|Port______|The_port_number____________________________________|
+
+**** BigInteger ****
+ _________________________________________________
+|Byte|Name______|Description______________________|
+|0___|Length____|Length_of_the_BigInteger_in_Bytes|
+|1-__|BigInteger|_________________________________|
+
+**** SecurityToken ****
+QueryKeys
+TEA
+ ______________________________________________________________
+|Byte|Name_________|Description________________________________|
+|0___|Length_______|Length_of_SecurityToken_(currently_4_bytes)|
+|1-__|SecurityToken|The_SecurityToken__________________________|
+
+**** Contact ****
+
+A Contact is holding all information of a DHT Node that is required to contact
+it.
+ ____________________________________________________________________
+|Byte_______|Name_____________________|Description___________________|
+|0-3________|Vendor___________________|The_Vendor_code_of_the_Contact|
+|4-5________|Version__________________|The_Version_of_the_Contact____|
+|6-25_______|KUID_____________________|The_Node_ID_of_the_Contact____|
+|26-32/26-44|SocketAddress_(IPv4/IPv6)|The_IP:Port_of_the_Contact____|
+
+**** DHTValueType ****
+
+The Value Type is a 32bit value where each of the four bytes is ideally chosen
+from the ASCII ranges a-z, A-Z and 0-9 but it's not a requirement. Value types
+are case sensitive!
+ _____________________________________________________________________________
+|ValueType___|Description_____________________________________________________|
+|   BINARY   |An arbitrarily binary value. The data structure is undefined and|
+|(0x00000000)|should be treated as such. Do not use it without having a damn  |
+|____________|good_reason!____________________________________________________|
+|    LIME    |LIME and all deviations of LIME like lime or LiMe are reserved  |
+|(0x4c494d45)|for_LimeWire_LLC._______________________________________________|
+|    TEXT    |A text-based value type.                                        |
+|(0x54455854)|________________________________________________________________|
+|    ANY     |ANY can only be used for requesting; it can't be used as an     |
+|(0x2a2a2a2a)|actual_value_type.______________________________________________|
+|    TEST    |A TEST value is like BINARY an arbitrarily value. Use it for    |
+|(0x54455354)|testing!________________________________________________________|
+
+**** DHTValue ****
+
+A DHTValue is essentially a triple of the creator of the given DHTValue, the
+key which is a KUID and the actual value.
+ _________________________________________________________________________
+|Byte_|Name________|Description___________________________________________|
+|0-32 |Contact     |The creator (with an IPv4 address in this case) of the|
+|_____|____________|DHTValue______________________________________________|
+|33-52|KUID________|The_key_of_the_DHTValue_______________________________|
+|53-56|DHTValueType|The_type_of_the_DHTValue______________________________|
+|57-58|Version_____|Version_of_the_Value__________________________________|
+|59-60|Length______|The_length_of_the_DHTValue____________________________|
+|61-__|Value_______|The_actual_value______________________________________|
+
+***** The Message Format *****
+
+On an abstract level and as shown in the following paragraphs the Mojito
+Message Format looks as follows.
+ ________________________
+|Header__|Body___________|
+|61_Bytes|Variable_Length|
+
+**** Message Header ****
+
+*** Mojito+Gnutella ***
+
+Mojito is using a slightly modified version of the Gnutella Standard_Message
+Architecture as its Message format. This allows us to share the Gnutella UDP
+Socket with Mojito which has the advantage that an user behind a NAT Router has
+to open/forward only one Port (talking in terms of a Gnutella+Mojito Hybrid
+Client).
+ _____________________________________________________________________________
+|0|_____15|________16___|17_|_18_|19|____________22|23|______________________n|
+|___GUID__|             |TTL|Hops|                 |         Payload          |
+|         |F_DHT_MESSAGE|   |     Length of Payload|(Mojito Header Continued +|
+|MessageID|             |Version | (Little-Endian) |         Payload)         |
+|_________|_____________|___|____|_________________|__________________________|
+
+The combined Message Header looks as follows.
+ _____________________________________________________________________________
+|Byte_|Name____________________|Description___________________________________|
+|     |                        |An unique message identifier. Nodes that      |
+|0-15 |MessageID               |respond to requests must echo the MessageID in|
+|_____|________________________|their_response_Message._______________________|
+|16___|F_DHT_MESSAGE_(0x44/'D')|A_hard-coded_value____________________________|
+|17-18|Version_________________|The_version_of_the_Message____________________|
+|19-22|Length                  |The length of the Gnutella payload in Little- |
+|_____|________________________|Endian________________________________________|
+|23___|OpCode__________________|The_type_of_the_Message_______________________|
+|24-56|Contact                 |The Node that created the Message (which has, |
+|_____|________________________|in_this_case,_an_IPv4_address)________________|
+|57___|Contact's_Instance_ID___|The_Instance_ID_______________________________|
+|58___|Contact's_Flags_________|A_bit_field_for_various_Flags_________________|
+|     |                        |Length of extended Header. It's currently     |
+|59-60|Extended Length         |unused and set to 0 (i.e. there's no extended |
+|_____|________________________|header)_______________________________________|
+
+** Flags **
+ _____________________________________________________________________________
+|Bit____|Name______|Description_______________________________________________|
+|7_(MSB)|__________|__________________________________________________________|
+|6______|__________|__________________________________________________________|
+|5______|__________|__________________________________________________________|
+|4______|__________|__________________________________________________________|
+|3______|__________|__________________________________________________________|
+|2______|__________|__________________________________________________________|
+|       |          |The shutdown flag (if set) indicates that the remote Node |
+|       |          |is going to shutdown and you may mark it immediately as   |
+|1      |SHUTDOWN  |dead in your RouteTable (and don't return it in           |
+|       |          |FIND_NODE+FIND_VALUE responses). You shouldn't delete it  |
+|_______|__________|from_the_RouteTable_though_as_it_may_comes_back_soon!_____|
+|       |          |The firewalled flag (if set) indicates that the remote    |
+|0 (LSB)|FIREWALLED|Host is firewalled. If a Host says it's firewalled then DO|
+|_______|__________|NOT_add_it_to_your_RouteTable.____________________________|
+
+**** Message Body ****
+
+*** Ping Request ***
+
+Ping requests have no payload.
+
+*** Ping Response ***
+ _______________________________________________________________________
+|Name________________________|Description_______________________________|
+|Requester's_external_address|The_requester's_external_IP:Port__________|
+|Estimated_DHT_size__________|The_DHT_size_as_estimated_by_the_responder|
+
+Algorithm to estimate the DHT_size. Sorry code only for now but the basic idea
+is to measure the density of the k-closest Nodes to the local Node ID and
+lookup ID respectively (the algorithm works relative to the lookup ID). The
+following paper might be also useful: DIPSEA:_A_Modular_Distributed_Hash_Table.
+
+*** Store Request ***
+ ________________________________________________________________
+|Name_________________|Description_______________________________|
+|SecurityToken________|__________________________________________|
+|Count_(Unsigned_Byte)|The_number_of_DHTValue(s)_that_will_follow|
+|DHTValue_0___________|__________________________________________|
+|DHTValue_1___________|__________________________________________|
+|...__________________|__________________________________________|
+
+*** Store Response ***
+ __________________________________________________________________________
+|Name_________________|Description_________________________________________|
+|Count_(Unsigned_Byte)|The_number_of_StoreStatusCodes_that_will_follow_____|
+|StoreStatusCode 0    |The StoreStatusCode whether or not the DHTValue with|
+|_____________________|the_given_KUID_was_stored___________________________|
+|StoreStatusCode_1____|____________________________________________________|
+|...__________________|____________________________________________________|
+
+*** StoreStatusCode ***
+ ___________________________________________________
+|Name_________|Description__________________________|
+|Primary_Key__|The_Primary_Key______________________|
+|Secondary_Key|The_Secondary_Key____________________|
+|Status_Code__|The_StatusCode_of_the_STORE_operation|
+
+*** Defined StatusCodes ***
+ ____________________________________________
+|Code|Name_|Description______________________|
+|0x01|OK___|The_value_was_stored_successfully|
+|0x02|ERROR|The_value_couldn't_be_stored_____|
+
+*** Find Node Request ***
+ _______________________________________________________
+|Name_______|Description________________________________|
+|Target_KUID|The_KUID_(Node_ID_or_Key)_we're_looking_for|
+
+*** Find Node Response ***
+ _______________________________________________________________
+|Name_________________|Description______________________________|
+|SecurityToken________|_________________________________________|
+|Count_(Unsigned_Byte)|The_number_of_Contact(s)_that_will_follow|
+|Contact_0____________|_________________________________________|
+|Contact_1____________|_________________________________________|
+|...__________________|_________________________________________|
+
+*** Find Value Request ***
+ ___________________________________________________________________________
+|Name_________________|Description__________________________________________|
+|Target_KUID__________|The_DHTValue_key_we're_looking_for___________________|
+|Count_(Unsigned_Byte)|The_number_of_Secondary_keys_(KUIDs)_that_will_follow|
+|Secondary_keys_0_____|_____________________________________________________|
+|Secondary_keys_1_____|_____________________________________________________|
+|...__________________|_____________________________________________________|
+|DHTValueType_________|Can_be_BINARY,_LIME,_TEXT,_TEST,_ANY_________________|
+
+*** Find Value Response ***
+ _________________________________________________________________________
+|Name______________________|Description___________________________________|
+|Request_Load_(32bit_float)|IEEE_754_single-precision_floating-point______|
+|Count_(Unsigned_Byte)_____|The_number_of_DHTValue(s)_that_will_follow____|
+|DHTValue_0________________|______________________________________________|
+|DHTValue_1________________|______________________________________________|
+|..._______________________|______________________________________________|
+|Count (Unsigned Byte)     |The number of Secondary keys (KUIDs) that will|
+|__________________________|follow________________________________________|
+|Secondary_keys_0__________|______________________________________________|
+|Secondary_keys_1__________|______________________________________________|
+|..._______________________|______________________________________________|
+
