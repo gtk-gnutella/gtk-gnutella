@@ -1273,6 +1273,8 @@
 
 # HTML spam with fake SHA-1; fake LimeWire (actually GDNA or RAZA)
 78.140.133.99
+# HTML redirect spam
+78.140.133.22
 
 # WakeNet; 3wplayer dot com
 67.15.107.160/27
