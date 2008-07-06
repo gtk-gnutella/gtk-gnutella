@@ -76,6 +76,12 @@ void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
 
 void g_mem_set_vtable(GMemVTable *vtable);
 gboolean g_mem_is_system_malloc(void);
+
+typedef int (*GCompareDataFunc)
+	(gconstpointer a, gconstpointer b, gpointer user_data);
+
+GList *g_list_sort_with_data(
+	GList *l, GCompareDataFunc cmp, gpointer user_data);
 #endif
 
 gchar *gm_string_finalize(GString *gs);

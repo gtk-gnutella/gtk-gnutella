@@ -812,4 +812,81 @@ gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data)
 	g_hash_table_foreach(ht, gm_hash_table_foreach_keys_helper, &hp);
 }
 
+#ifdef USE_GLIB1
+/*
+ * glib1 is missing g_list_sort_with_data().
+ *
+ * The following (adapted) code is:
+ *
+ * Copyright (C) 1995-1997  Peter Mattis, Spencer Kimball and Josh MacDonald
+ *
+ * and was taken out of the glist.c file from glib 2.16.
+ */
+
+/**
+ * Internal merging sort for g_list_sort_with_data().
+ */
+static GList *
+g_list_sort_merge(
+	GList *l1, GList *l2, GCompareDataFunc compare_func, gpointer user_data)
+{
+	GList list, *l, *lprev;
+
+	l = &list; 
+	lprev = NULL;
+
+	while (l1 && l2) {
+		int cmp = (*compare_func)(l1->data, l2->data, user_data);
+
+		if (cmp <= 0) {
+			l->next = l1;
+			l1 = l1->next;
+		} else {
+			l->next = l2;
+			l2 = l2->next;
+		}
+		l = l->next;
+		l->prev = lprev; 
+		lprev = l;
+	}
+	l->next = l1 ? l1 : l2;
+	l->next->prev = l;
+
+	return list.next;
+}
+
+/**
+ * Like g_list_sort(), but the comparison function takes a user data argument.
+ *
+ * @return the new head of list
+ */
+GList *
+g_list_sort_with_data(
+	GList *list, GCompareDataFunc compare_func, gpointer user_data)
+{
+	GList *l1, *l2;
+  
+	if (!list) 
+		return NULL;
+	if (!list->next) 
+		return list;
+  
+	l1 = list; 
+	l2 = list->next;
+
+	while ((l2 = l2->next)) {
+		if (NULL == (l2 = l2->next)) 
+			break;
+		l1 = l1->next;
+	}
+	l2 = l1->next; 
+	l1->next = NULL; 
+
+	return g_list_sort_merge(
+		g_list_sort_with_data(list, compare_func, user_data),
+		g_list_sort_with_data(l2, compare_func, user_data),
+		compare_func, user_data);
+}
+#endif	/* USE_GLIB1 */
+
 /* vi: set ts=4 sw=4 cindent: */
