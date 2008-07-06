@@ -49,6 +49,7 @@ gpointer hash_list_tail(const hash_list_t *hl);
 gpointer hash_list_next(hash_list_t *hl, gconstpointer key);
 gpointer hash_list_previous(hash_list_t *hl, gconstpointer key);
 guint hash_list_length(const hash_list_t *hl);
+GList *hash_list_list(hash_list_t *hl);
 
 hash_list_iter_t *hash_list_iterator(hash_list_t *hl);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *hl);

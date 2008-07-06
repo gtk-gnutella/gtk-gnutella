@@ -518,6 +518,21 @@ hash_list_length(const hash_list_t *hl)
 }
 
 /**
+ * Extract the list of items so that the caller can iterate at will over
+ * it as sort it.  The caller must dispose of that list via g_list_free().
+ * The underlying data is not copied so it must NOT be freed.
+ *
+ * @returns a shallow copy of the underlying list.
+ */
+GList *
+hash_list_list(hash_list_t *hl)
+{
+	hash_list_check(hl);
+
+	return g_list_copy(hl->head);
+}
+
+/**
  * Get an iterator on the list, positionned before first item.
  * Get items with hash_list_iter_next().
  */
