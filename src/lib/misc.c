@@ -2250,6 +2250,15 @@ random_init(void)
 	SHA1Input(&ctx, &start, sizeof start);
 
 	/*
+	 * Random data on the stack.
+	 *
+	 * Yes, this is uninitialized memory read, and no, it is not a problem:
+	 * it is a feature!
+	 */
+
+	SHA1Input(&ctx, &buf, sizeof buf);
+
+	/*
 	 * If we have a /dev/urandom character device, use it.
 	 * Otherwise, launch ps and grab its output.
 	 */
@@ -2257,7 +2266,6 @@ random_init(void)
 	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 		f = fopen("/dev/urandom", "r");
 		is_pipe = FALSE;
-		SHA1Input(&ctx, &buf, sizeof buf);
 	} else if (-1 != access("/bin/ps", X_OK)) {
 		f = popen("/bin/ps -ef", "r");
 	} else if (-1 != access("/usr/bin/ps", X_OK)) {
@@ -2399,6 +2407,29 @@ random_init(void)
 		initstate(seed, cast_to_gchar_ptr(state), sizeof state);
 	}
 #endif /* HAS_INITSTATE */
+
+	/*
+	 * Randomly ask for a few random bytes so that even if the same seed
+	 * is selected by two peers, the first random values they generate
+	 * will differ.  This matters when the first thing they will do is
+	 * generate a GUID or a KUID...
+	 *
+	 * This adds roughly 8 bits of additional salt to the 32-bit seed since
+	 * it can compute at most 22*20 = 440 random numbers, that amount being
+	 * random (based on the SHA1 noise we have already computed).
+	 */
+
+	{
+		int i;
+		guint32 count = 0;
+
+		for (i = 0; i < SHA1_RAW_SIZE; i++) {
+			int j = (guchar) digest.data[i] % 23;
+
+			while (j-- > 0)
+				count += random_u32();		/* Avoid compiler warnings */
+		}
+	}
 }
 
 /**
