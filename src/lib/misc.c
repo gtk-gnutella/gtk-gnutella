@@ -2250,15 +2250,6 @@ random_init(void)
 	SHA1Input(&ctx, &start, sizeof start);
 
 	/*
-	 * Random data on the stack.
-	 *
-	 * Yes, this is uninitialized memory read, and no, it is not a problem:
-	 * it is a feature!
-	 */
-
-	SHA1Input(&ctx, &buf, sizeof buf);
-
-	/*
 	 * If we have a /dev/urandom character device, use it.
 	 * Otherwise, launch ps and grab its output.
 	 */
@@ -2266,6 +2257,7 @@ random_init(void)
 	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
 		f = fopen("/dev/urandom", "r");
 		is_pipe = FALSE;
+		SHA1Input(&ctx, &buf, sizeof buf);
 	} else if (-1 != access("/bin/ps", X_OK)) {
 		f = popen("/bin/ps -ef", "r");
 	} else if (-1 != access("/usr/bin/ps", X_OK)) {
