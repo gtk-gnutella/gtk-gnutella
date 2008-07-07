@@ -1736,17 +1736,6 @@ pong_extract_metadata(struct gnutella_node *n)
 			break;
 		case EXT_T_GGEP_TLS:
 			ALLOCATE(TLS);
-			{
-				guint16 port = peek_le16(&n->data[0]); /* very transparent */
-				host_addr_t addr = host_addr_peek_ipv4(&n->data[2]); /* also very readable */
-				/*
-				 * This poisons the TLS cache with arbitrary fake peer addresses. It is
-				 * useful to flood the TLS cache to push out good verified peers. Likewise
-				 * peers that don't support TLS will no longer be accessible if some
-				 * arbitrary peer falsely claim they do.
-				 */
-				tls_cache_insert(addr, port);
-			}
 			break;
 		case EXT_T_GGEP_DHT:
 			/*
