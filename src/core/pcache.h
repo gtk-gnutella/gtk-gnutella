@@ -79,6 +79,8 @@ enum {
 	PONG_META_HAS_IPV6	= (1 << 5), /**< The "IPV6" fields are valid */
 	PONG_META_HAS_TLS	= (1 << 6), /**< The "TLS" fields are valid */
 	PONG_META_HAS_DHT	= (1 << 7), /**< The "DHT" fields are valid */
+
+	PONG_META_HAS_END
 };
 
 /**
