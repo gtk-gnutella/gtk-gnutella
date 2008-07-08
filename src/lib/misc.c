@@ -2370,10 +2370,25 @@ random_init(void)
 
 	{
 		gdouble u, s;
-	   	
+		tm_t before, after, elapsed;
+		gdouble starget;
+
 		sha1_feed_double(&ctx, tm_cputime(&u, &s));
 		sha1_feed_double(&ctx, u);
 		sha1_feed_double(&ctx, s);
+
+		tm_now_exact(&before);
+#ifdef HAS_USLEEP
+		usleep(250 * 1000);		/* 250 ms */
+		starget = 0.25;
+#else
+		sleep(1);
+		starget = 1.0;
+#endif
+		tm_now_exact(&after);
+		tm_elapsed(&elapsed, &after, &before);
+		starget -= tm2f(&elapsed);
+		sha1_feed_double(&ctx, starget);
 	}
 
 	tm_now_exact(&end);

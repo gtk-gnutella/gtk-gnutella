@@ -247,6 +247,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_times HAS_TIMES		/**/
 
+/* HAS_USLEEP:
+ *	This symbol, if defined, indicates that the usleep routine is
+ *	available to let the process sleep on a sub-second accuracy.
+ */
+#$d_usleep HAS_USLEEP		/**/
+
 /* HASVOLATILE:
  *	This symbol, if defined, indicates that this C compiler knows about
  *	the volatile declaration.
