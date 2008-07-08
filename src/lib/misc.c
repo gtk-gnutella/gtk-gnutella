@@ -49,7 +49,9 @@ RCSID("$Id$")
 #include "tm.h"
 #include "walloc.h"
 #include "utf8.h"
+
 #include "lib/misc.h"
+#include "lib/fs_free_space.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -2274,12 +2276,15 @@ random_init(void)
 		 * Compute the SHA1 of the output (either ps or /dev/urandom).
 		 */
 
+		SHA1Input(&ctx, f, sizeof *f);		/* Initial state */
+
 		for (;;) {
 			guint8 data[1024];
 			gint r;
 			gint len = is_pipe ? sizeof(data) : 128;
 
 			r = fread(data, 1, len, f);
+			SHA1Input(&ctx, f, sizeof *f);	/* Changes as we read */
 			if (r)
 				SHA1Input(&ctx, data, r);
 			if (r < len || !is_pipe)		/* Read once from /dev/urandom */
@@ -2323,12 +2328,18 @@ random_init(void)
 	if (-1 != stat("..", &buf)) {
 		SHA1Input(&ctx, &buf, sizeof buf);
 	}
+	if (-1 != stat("/", &buf)) {
+		SHA1Input(&ctx, &buf, sizeof buf);
+	}
 	if (-1 != fstat(STDIN_FILENO, &buf)) {
 		SHA1Input(&ctx, &buf, sizeof buf);
 	}
 	if (-1 != fstat(STDOUT_FILENO, &buf)) {
 		SHA1Input(&ctx, &buf, sizeof buf);
 	}
+
+	sha1_feed_double(&ctx, fs_free_space_pct(eval_subst("~")));
+	sha1_feed_double(&ctx, fs_free_space_pct("/"));
 
 #ifdef HAS_UNAME
 	{
@@ -2342,6 +2353,7 @@ random_init(void)
 	
 	sha1_feed_pointer(&ctx, &ctx);
 	sha1_feed_pointer(&ctx, &random_init);
+	sha1_feed_pointer(&ctx, sbrk(0));
 
 	{
 		extern char **environ;
