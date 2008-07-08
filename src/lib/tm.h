@@ -48,7 +48,7 @@
 /**
  * tm2f
  *
- * Convert timeval description into floating point representatiion.
+ * Convert timeval description into floating point representation.
  */
 #define tm2f(t)		((double) (t)->tv_sec + (t)->tv_usec / 1000000.0)
 
