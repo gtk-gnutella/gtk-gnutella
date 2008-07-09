@@ -504,11 +504,11 @@ pdata_new(int len)
 
 	g_assert(len > 0);
 
-	arena = g_malloc(len + EMBEDDED_OFFSET);
-
+	arena = walloc(len + EMBEDDED_OFFSET);
 	db = pdata_allocb(arena, len + EMBEDDED_OFFSET, NULL, 0);
 
 	g_assert((size_t) len == pdata_len(db));
+	g_assert(db->d_arena == db->d_embedded);
 
 	return db;
 }
@@ -518,6 +518,8 @@ pdata_new(int len)
  *
  * The optional `freecb' structure supplies the free routine callback to be
  * used to free the arena, with freearg as additional argument.
+ * If no free routine is specified (i.e. NULL given as `freecb'), then the
+ * arena will be freed with wfree(buf, len) when the data buffer is reclaimed.
  */
 pdata_t *
 pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
@@ -545,7 +547,9 @@ pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
  * Create an external (arena not embedded) data buffer out of existing arena.
  *
  * The optional `freecb' structure supplies the free routine callback to be
- * used to free the arena, with freearg as additional argument.
+ * used to free the arena, with freearg as additional argument.  If the free
+ * routine is NULL, then the external arena will be freed with g_free() when
+ * the data buffer is reclaimed.
  */
 pdata_t *
 pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
@@ -604,7 +608,7 @@ pdata_free(pdata_t *db)
 			G_FREE_NULL(db->d_arena);
 			wfree(db, sizeof(*db));
 		} else {
-			G_FREE_NULL(db);
+			wfree(db, pdata_len(db) + EMBEDDED_OFFSET);
 		}
 	}
 }

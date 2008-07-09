@@ -112,6 +112,9 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 
 #define pmsg_check(x,y)		((x)->m_check ? (x)->m_check((x), (y)) : TRUE)
 
+/* Available room for pmsg_write() calls */
+#define pmsg_available(x)	((x)->m_data->d_end - (x)->m_wptr)
+
 /*
  * Message priorities.
  */
