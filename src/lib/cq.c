@@ -341,7 +341,9 @@ cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 /**
  * Cancel a recorded timeout.
  *
- * They give us the opaque handle we returned via cq_insert().
+ * They give us a pointer to the opaque handle we returned via cq_insert().
+ * If the de-referenced value is NULL, it is assumed the event has already
+ * fired and therefore there is nothing to cancel.
  *
  * @note
  * This routine is also used internally to remove an expired event from
