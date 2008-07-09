@@ -23,6 +23,14 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * @author Richard Eckart
+ * @date 2001
+ */
+
 #include "common.h"
 
 RCSID("$Id$")
