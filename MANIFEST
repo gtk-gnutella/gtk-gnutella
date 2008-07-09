@@ -536,6 +536,8 @@ src/lib/crc.h
 src/lib/dbus_util.c
 src/lib/dbus_util.h
 src/lib/endian.h
+src/lib/entropy.c
+src/lib/entropy.h
 src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c

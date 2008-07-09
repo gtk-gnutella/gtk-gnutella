@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -69,7 +69,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 14666 2007-08-23 17:25:38Z rmanfredi $
+# $X-Id: Jmakefile 15397 2008-07-09 00:31:16Z cbiere $
 
 LSRC = \
 	socket.c \
@@ -98,6 +98,7 @@ LSRC = \
 	crash.c \
 	crc.c \
 	dbus_util.c \
+	entropy.c \
 	eval.c \
 	event.c \
 	fast_assert.c \
@@ -163,6 +164,7 @@ LOBJ = \
 	crash.o \
 	crc.o \
 	dbus_util.o \
+	entropy.o \
 	eval.o \
 	event.o \
 	fast_assert.o \

@@ -42,6 +42,7 @@ LSRC = \
 	crash.c \
 	crc.c \
 	dbus_util.c \
+	entropy.c \
 	eval.c \
 	event.c \
 	fast_assert.c \

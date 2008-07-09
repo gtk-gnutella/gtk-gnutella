@@ -1,7 +1,8 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2008, Raphael Manfredi
+ * Copyright (c) 2003-2008, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +31,9 @@
  * Miscellaneous functions.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2008
+ * @author Christian Biere
+ * @date 2003-2008
  */
 
 #include "common.h"
@@ -41,7 +44,7 @@ RCSID("$Id$")
 #include "base16.h"
 #include "base32.h"
 #include "endian.h"
-#include "eval.h"
+#include "entropy.h"
 #include "html_entities.h"
 #include "misc.h"
 #include "glib-missing.h"
@@ -49,10 +52,6 @@ RCSID("$Id$")
 #include "tm.h"
 #include "walloc.h"
 #include "utf8.h"
-
-#include "lib/misc.h"
-#include "lib/compat_sleep_ms.h"
-#include "lib/fs_free_space.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -2203,212 +2202,17 @@ random_bytes(void *dst, size_t size)
 	}
 }
 
-static void
-sha1_feed_ulong(SHA1Context *ctx, gulong value)
-{
-	SHA1Input(ctx, &value, sizeof value);
-}
-
-static void
-sha1_feed_double(SHA1Context *ctx, gdouble value)
-{
-	SHA1Input(ctx, &value, sizeof value);
-}
-
-static void
-sha1_feed_pointer(SHA1Context *ctx, gconstpointer p)
-{
-	SHA1Input(ctx, &p, sizeof p);
-}
-
-static void
-sha1_feed_string(SHA1Context *ctx, const gchar *s)
-{
-	if (s) {
-		SHA1Input(ctx, s, strlen(s));
-	}
-}
-
 /**
  * Initialize random number generator.
  */
 void
 random_init(void)
 {
-	struct stat buf;
-	FILE *f = NULL;
-	SHA1Context ctx;
-	tm_t start, end;
 	guint32 seed;
 	struct sha1 digest;
-	gboolean is_pipe = TRUE;
 
-	/*
-	 * Get random entropy from the system.
-	 */
-
-	tm_now_exact(&start);
-
-	SHA1Reset(&ctx);
-	SHA1Input(&ctx, &start, sizeof start);
-
-	/*
-	 * If we have a /dev/urandom character device, use it.
-	 * Otherwise, launch ps and grab its output.
-	 */
-
-	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
-		f = fopen("/dev/urandom", "r");
-		is_pipe = FALSE;
-		SHA1Input(&ctx, &buf, sizeof buf);
-	} else if (-1 != access("/bin/ps", X_OK)) {
-		f = popen("/bin/ps -ef", "r");
-	} else if (-1 != access("/usr/bin/ps", X_OK)) {
-		f = popen("/usr/bin/ps -ef", "r");
-	} else if (-1 != access("/usr/ucb/ps", X_OK)) {
-		f = popen("/usr/ucb/ps aux", "r");
-	}
-
-	if (f == NULL)
-		g_warning("was unable to %s on your system",
-			is_pipe ? "find the ps command" : "open /dev/urandom");
-	else {
-		/*
-		 * Compute the SHA1 of the output (either ps or /dev/urandom).
-		 */
-
-		SHA1Input(&ctx, f, sizeof *f);		/* Initial state */
-
-		for (;;) {
-			guint8 data[1024];
-			gint r;
-			gint len = is_pipe ? sizeof(data) : 128;
-
-			r = fread(data, 1, len, f);
-			SHA1Input(&ctx, f, sizeof *f);	/* Changes as we read */
-			if (r)
-				SHA1Input(&ctx, data, r);
-			if (r < len || !is_pipe)		/* Read once from /dev/urandom */
-				break;
-		}
-
-		if (is_pipe)
-			pclose(f);
-		else
-			fclose(f);
-	}
-
-	/* Add some host/user dependent noise */
-	sha1_feed_ulong(&ctx, getuid());
-	sha1_feed_ulong(&ctx, getgid());
-	sha1_feed_ulong(&ctx, getpid());
-	sha1_feed_ulong(&ctx, getppid());
-	sha1_feed_ulong(&ctx, compat_max_fd());
-
-	sha1_feed_string(&ctx, __DATE__);
-	sha1_feed_string(&ctx, __TIME__);
-	sha1_feed_string(&ctx, "$Id$");
-
-#if GLIB_CHECK_VERSION(2,6,0)
-	/*
-	 * These functions cannot be used with an unpatched GLib 1.2 on some
-	 * systems as they trigger a bug in GLib causing a crash.  On Darwin
-	 * there's still a problem before GLib 2.6 due to a bug in Darwin though.
-	 */
-	sha1_feed_string(&ctx, g_get_user_name());
-	sha1_feed_string(&ctx, g_get_real_name());
-#endif	/* GLib >= 2.0 */
-
-	sha1_feed_string(&ctx, eval_subst("~"));
-	if (-1 != stat(eval_subst("~"), &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat(".", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat("..", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != stat("/", &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != fstat(STDIN_FILENO, &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-	if (-1 != fstat(STDOUT_FILENO, &buf)) {
-		SHA1Input(&ctx, &buf, sizeof buf);
-	}
-
-	sha1_feed_double(&ctx, fs_free_space_pct(eval_subst("~")));
-	sha1_feed_double(&ctx, fs_free_space_pct("/"));
-
-#ifdef HAS_UNAME
-	{
-		struct utsname un;
-		
-		if (-1 != uname(&un)) {
-			SHA1Input(&ctx, &un, sizeof un);
-		}
-	}
-#endif	/* HAS_UNAME */
-	
-	sha1_feed_pointer(&ctx, &ctx);
-	sha1_feed_pointer(&ctx, &random_init);
-	sha1_feed_pointer(&ctx, sbrk(0));
-
-	{
-		extern char **environ;
-		size_t i;
-
-		for (i = 0; NULL != environ[i]; i++) {
-			sha1_feed_string(&ctx, environ[i]);
-		}
-	}
-
-	sha1_feed_string(&ctx, ttyname(STDIN_FILENO));
-
-#if defined(HAS_GETRUSAGE)
-	{
-		struct rusage usage;
-
-		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
-			SHA1Input(&ctx, &usage, sizeof usage);
-		}
-	}
-#endif	/* HAS_GETRUSAGE */
-
-	/*
-	 * Add timing entropy.
-	 */
-
-	{
-		gdouble u, s;
-		tm_t before, after, elapsed;
-
-		sha1_feed_double(&ctx, tm_cputime(&u, &s));
-		sha1_feed_double(&ctx, u);
-		sha1_feed_double(&ctx, s);
-
-		tm_now_exact(&before);
-		compat_sleep_ms(250);	/* 250 ms */
-		tm_now_exact(&after);
-		tm_elapsed(&elapsed, &after, &before);
-		sha1_feed_double(&ctx, 0.25 - tm2f(&elapsed));
-	}
-
-	tm_now_exact(&end);
-	SHA1Input(&ctx, &end, sizeof end);
-
-	/*
-	 * Reduce SHA1 to a single guint32.
-	 */
-
-	SHA1Result(&ctx, &digest);
-	seed = sha1_hash(&digest);
-
-	/*
-	 * Finally, can initialize the random number generator.
-	 */
+	entropy_collect(&digest);
+	seed = sha1_hash(&digest);	/* Reduces 160 bits to 32 */
 
 	srandom(seed);	/* Just in case initstate() enables the alarm device */
 
