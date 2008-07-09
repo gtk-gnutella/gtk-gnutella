@@ -86,6 +86,7 @@ entropy_collect(struct sha1 *digest)
 	SHA1Context ctx;
 	tm_t start, end;
 	gboolean is_pipe = TRUE;
+	jmp_buf env;
 
 	/*
 	 * Get random entropy from the system.
@@ -142,6 +143,16 @@ entropy_collect(struct sha1 *digest)
 			fclose(f);
 	}
 
+	/*
+	 * Add local CPU state noise.
+	 */
+
+	if (setjmp(env)) {
+		/* We will never longjmp() back here */
+		g_assert_not_reached();
+	}
+	SHA1Input(&ctx, env, sizeof env);
+
 	/* Add some host/user dependent noise */
 	sha1_feed_ulong(&ctx, getuid());
 	sha1_feed_ulong(&ctx, getgid());
@@ -151,7 +162,8 @@ entropy_collect(struct sha1 *digest)
 
 	sha1_feed_string(&ctx, __DATE__);
 	sha1_feed_string(&ctx, __TIME__);
-	sha1_feed_string(&ctx, "$Id$");
+	sha1_feed_string(&ctx,
+		"$Id$");
 
 #if GLIB_CHECK_VERSION(2,6,0)
 	/*
