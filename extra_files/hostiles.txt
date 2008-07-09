@@ -1095,6 +1095,8 @@
 #72.167.42.22
 #72.167.45.155
 #72.167.45.163
+# Fake Shareaza/2.2.5 with TLS; range belongs to ThePlanet.com
+75.125.180.176/28
 
 # LimeWire; QuickTime AVI files; peertracking dot com
 193.53.4.0/24
