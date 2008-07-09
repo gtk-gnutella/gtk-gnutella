@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "utf8.h"
 
 #include "lib/misc.h"
+#include "lib/compat_sleep_ms.h"
 #include "lib/fs_free_space.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -2383,24 +2384,16 @@ random_init(void)
 	{
 		gdouble u, s;
 		tm_t before, after, elapsed;
-		gdouble starget;
 
 		sha1_feed_double(&ctx, tm_cputime(&u, &s));
 		sha1_feed_double(&ctx, u);
 		sha1_feed_double(&ctx, s);
 
 		tm_now_exact(&before);
-#ifdef HAS_USLEEP
-		usleep(250 * 1000);		/* 250 ms */
-		starget = 0.25;
-#else
-		sleep(1);
-		starget = 1.0;
-#endif
+		compat_sleep_ms(250);	/* 250 ms */
 		tm_now_exact(&after);
 		tm_elapsed(&elapsed, &after, &before);
-		starget -= tm2f(&elapsed);
-		sha1_feed_double(&ctx, starget);
+		sha1_feed_double(&ctx, 0.25 - tm2f(&elapsed));
 	}
 
 	tm_now_exact(&end);

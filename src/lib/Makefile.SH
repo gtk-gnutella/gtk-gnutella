@@ -93,6 +93,7 @@ LSRC = \
 	base64.c \
 	bg.c \
 	cobs.c \
+	compat_sleep_ms.c \
 	cq.c \
 	crash.c \
 	crc.c \
@@ -157,6 +158,7 @@ LOBJ = \
 	base64.o \
 	bg.o \
 	cobs.o \
+	compat_sleep_ms.o \
 	cq.o \
 	crash.o \
 	crc.o \

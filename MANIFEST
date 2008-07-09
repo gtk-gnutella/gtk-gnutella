@@ -525,6 +525,8 @@ src/lib/bg.h
 src/lib/bit_array.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/compat_sleep_ms.c
+src/lib/compat_sleep_ms.h
 src/lib/cq.c
 src/lib/cq.h
 src/lib/crash.c

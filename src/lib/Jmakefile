@@ -37,6 +37,7 @@ LSRC = \
 	base64.c \
 	bg.c \
 	cobs.c \
+	compat_sleep_ms.c \
 	cq.c \
 	crash.c \
 	crc.c \
