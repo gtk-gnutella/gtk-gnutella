@@ -1715,7 +1715,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 			if (
 				map_len < min_map_size &&
-				map_start + min_map_size > map_start
+				MAX_INT_VAL(off_t) - map_start >= min_map_size
 			) {
 				map_len = min_map_size;
 			}
