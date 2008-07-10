@@ -1098,7 +1098,11 @@
 # Fake Shareaza/2.2.5 with TLS; probably LimeWire
 # ranges belongs to ThePlanet.com; assigned to Jun Group
 75.125.180.176/28
-174.133.206.152/29
+#174.133.206.152/29
+#174.133.206.170
+#174.133.211.10
+#174.133.218.218
+174.133.128.0/17
 
 # LimeWire; QuickTime AVI files; peertracking dot com
 193.53.4.0/24
