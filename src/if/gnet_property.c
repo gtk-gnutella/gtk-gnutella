@@ -371,8 +371,8 @@ static const guint32  gnet_property_variable_total_uploads_default = 0;
 gchar   gnet_property_variable_servent_guid[GUID_RAW_SIZE];
 static const gchar   gnet_property_variable_servent_guid_default[GUID_RAW_SIZE];
 
-gchar   gnet_property_variable_servent_kuid[KUID_RAW_SIZE];
-static const gchar   gnet_property_variable_servent_kuid_default[KUID_RAW_SIZE];
+gchar   gnet_property_variable_kuid[KUID_RAW_SIZE];
+static const gchar   gnet_property_variable_kuid_default[KUID_RAW_SIZE];
 
 gboolean gnet_property_variable_use_swarming     = TRUE;
 static const gboolean gnet_property_variable_use_swarming_default = TRUE;
@@ -702,6 +702,8 @@ guint32  gnet_property_variable_pfsp_last_chunk     = 524288;
 static const guint32  gnet_property_variable_pfsp_last_chunk_default = 524288;
 gboolean gnet_property_variable_beautify_filenames     = FALSE;
 static const gboolean gnet_property_variable_beautify_filenames_default = FALSE;
+gboolean gnet_property_variable_enable_dht     = FALSE;
+static const gboolean gnet_property_variable_enable_dht_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -3808,19 +3810,19 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_SERVENT_KUID:
+     * PROP_KUID:
      *
      * General data:
      */
-    gnet_property->props[160].name = "servent_kuid";
+    gnet_property->props[160].name = "kuid";
     gnet_property->props[160].desc = _("Kademlia Unique IDentifier of this node in the DHT.");
-    gnet_property->props[160].ev_changed = event_new("servent_kuid_changed");
+    gnet_property->props[160].ev_changed = event_new("kuid_changed");
     gnet_property->props[160].save = TRUE;
     gnet_property->props[160].vector_size = KUID_RAW_SIZE;
 
     /* Type specific data: */
     gnet_property->props[160].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[160].data.storage.value = gnet_property_variable_servent_kuid;
+    gnet_property->props[160].data.storage.value = gnet_property_variable_kuid;
 
 
     /*
@@ -6724,6 +6726,23 @@ gnet_prop_init(void) {
     gnet_property->props[315].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[315].data.boolean.def   = (void *) &gnet_property_variable_beautify_filenames_default;
     gnet_property->props[315].data.boolean.value = (void *) &gnet_property_variable_beautify_filenames;
+
+
+    /*
+     * PROP_ENABLE_DHT:
+     *
+     * General data:
+     */
+    gnet_property->props[316].name = "enable_dht";
+    gnet_property->props[316].desc = _("Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows you to resolve magnet: URIs and to easily locate alternate locations for files and push-proxies for firewalled hosts. It requires UDP support.");
+    gnet_property->props[316].ev_changed = event_new("enable_dht_changed");
+    gnet_property->props[316].save = TRUE;
+    gnet_property->props[316].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[316].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[316].data.boolean.def   = (void *) &gnet_property_variable_enable_dht_default;
+    gnet_property->props[316].data.boolean.value = (void *) &gnet_property_variable_enable_dht;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

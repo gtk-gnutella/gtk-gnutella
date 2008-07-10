@@ -206,7 +206,7 @@ extern const guint32  gnet_property_variable_ul_quick_running;
 extern const guint32  gnet_property_variable_ul_registered;
 extern const guint32  gnet_property_variable_total_uploads;
 extern const gchar    gnet_property_variable_servent_guid[GUID_RAW_SIZE];
-extern const gchar    gnet_property_variable_servent_kuid[KUID_RAW_SIZE];
+extern const gchar    gnet_property_variable_kuid[KUID_RAW_SIZE];
 extern const gboolean gnet_property_variable_use_swarming;
 extern const gboolean gnet_property_variable_use_aggressive_swarming;
 extern const guint32  gnet_property_variable_dl_minchunksize;
@@ -362,6 +362,7 @@ extern const gboolean gnet_property_variable_dl_resource_switching;
 extern const gboolean gnet_property_variable_parq_enabled;
 extern const guint32  gnet_property_variable_pfsp_last_chunk;
 extern const gboolean gnet_property_variable_beautify_filenames;
+extern const gboolean gnet_property_variable_enable_dht;
 
 
 prop_set_t *gnet_prop_init(void);
