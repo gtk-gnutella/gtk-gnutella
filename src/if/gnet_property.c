@@ -371,8 +371,8 @@ static const guint32  gnet_property_variable_total_uploads_default = 0;
 gchar   gnet_property_variable_servent_guid[GUID_RAW_SIZE];
 static const gchar   gnet_property_variable_servent_guid_default[GUID_RAW_SIZE];
 
-gchar   gnet_property_variable_servent_kuid[KUID_RAW_SIZE];
-static const gchar   gnet_property_variable_servent_kuid_default[KUID_RAW_SIZE];
+gchar   gnet_property_variable_kuid[KUID_RAW_SIZE];
+static const gchar   gnet_property_variable_kuid_default[KUID_RAW_SIZE];
 
 gboolean gnet_property_variable_use_swarming     = TRUE;
 static const gboolean gnet_property_variable_use_swarming_default = TRUE;
@@ -3810,19 +3810,19 @@ gnet_prop_init(void) {
 
 
     /*
-     * PROP_SERVENT_KUID:
+     * PROP_KUID:
      *
      * General data:
      */
-    gnet_property->props[160].name = "servent_kuid";
+    gnet_property->props[160].name = "kuid";
     gnet_property->props[160].desc = _("Kademlia Unique IDentifier of this node in the DHT.");
-    gnet_property->props[160].ev_changed = event_new("servent_kuid_changed");
+    gnet_property->props[160].ev_changed = event_new("kuid_changed");
     gnet_property->props[160].save = TRUE;
     gnet_property->props[160].vector_size = KUID_RAW_SIZE;
 
     /* Type specific data: */
     gnet_property->props[160].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[160].data.storage.value = gnet_property_variable_servent_kuid;
+    gnet_property->props[160].data.storage.value = gnet_property_variable_kuid;
 
 
     /*

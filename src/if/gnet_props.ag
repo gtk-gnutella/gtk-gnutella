@@ -1857,7 +1857,7 @@ prop = {
 };
 
 prop = {
-    name = "servent_kuid";
+    name = "kuid";
     desc = "Kademlia Unique IDentifier of this node in the DHT.";
     type = storage;
     vector_size = KUID_RAW_SIZE;
