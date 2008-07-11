@@ -1,0 +1,31 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_nanosleep: Trylink cat
+?MAKE:	-pick add $@ %<
+?S:d_nanosleep:
+?S:	This variable conditionally defines the HAS_NANOSLEEP symbol, which
+?S:	indicates to the C program that the nanosleep() system call is available.
+?S:.
+?C:HAS_NANOSLEEP:
+?C:	This symbol, if defined, indicates that the nanosleep() system call
+?C:	is available.
+?C:.
+?H:#$d_nanosleep HAS_NANOSLEEP		/**/
+?H:.
+?LINT:set d_nanosleep
+: see if nanosleep exists
+$cat >try.c <<EOC
+#include <time.h>
+int main(void)
+{
+	static int ret;
+	static struct timespec request, remain;
+	ret |= nanosleep(&request, &remain);
+	return ret ? 0 : 1;
+}
+EOC
+set d_nanosleep 
+eval $trylink
+
