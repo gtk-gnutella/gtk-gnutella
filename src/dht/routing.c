@@ -114,7 +114,7 @@ dht_route_init(void)
 	 * overridden by the KUID read from the configuration file.
 	 */
 
-	gnet_prop_get_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
+	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
 		if (buf.v[i]) {
@@ -126,7 +126,7 @@ dht_route_init(void)
 	if (need_kuid) {
 		if (GNET_PROPERTY(dht_debug)) g_message("generating new DHT node ID");
 		kuid_random_fill(&buf);
-		gnet_prop_set_storage(PROP_SERVENT_KUID, buf.v, sizeof buf.v);
+		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
 	}
 
 	our_kuid = kuid_get_atom(&buf);
