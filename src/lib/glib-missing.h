@@ -82,6 +82,8 @@ typedef int (*GCompareDataFunc)
 
 GList *g_list_sort_with_data(
 	GList *l, GCompareDataFunc cmp, gpointer user_data);
+
+#define g_string_printf		g_string_sprintf
 #endif
 
 gchar *gm_string_finalize(GString *gs);
