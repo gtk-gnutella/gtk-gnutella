@@ -55,6 +55,7 @@ hash_list_iter_t *hash_list_iterator(hash_list_t *hl);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *hl);
 void hash_list_iter_release(hash_list_iter_t **iter_ptr);
 gboolean hash_list_iter_has_next(const hash_list_iter_t *i);
+gboolean hash_list_iter_has_previous(const hash_list_iter_t *iter);
 gpointer hash_list_iter_next(hash_list_iter_t *i);
 gpointer hash_list_iter_previous(hash_list_iter_t *i);
 gpointer hash_list_iter_follower(hash_list_iter_t *i);
