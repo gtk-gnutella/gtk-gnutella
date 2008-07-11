@@ -668,15 +668,10 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  */
 #define RCSID(x) \
 static KEEP_FUNCTION inline const char *	\
-get_rcsid(void)	\
+get_rcsid_string(void)	\
 {	\
 	static const char rcsid[] = "@(#) " x;	\
-	const char *s = rcsid;	\
-	while (*s != '\0') {	\
-		if (*s++ == '$')	\
-			break;	\
-	}	\
-	return s;	\
+	return rcsid;	\
 }
 
 #include "casts.h"

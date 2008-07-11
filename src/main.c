@@ -458,7 +458,7 @@ gtk_gnutella_exit(gint n)
 		if (!running_topless) {
 			main_gui_shutdown_tick(exit_grace - d);
 		}
-		sleep(1);
+		compat_sleep_ms(50);
 	}
 
 	bitzi_close();

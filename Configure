@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Jul  9 02:06:02 CEST 2008 [metaconfig 3.5-25]
+# Generated on Fri Jul 11 17:35:19 CEST 2008 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -315,6 +315,7 @@ d_memalign=''
 d_memcpy=''
 d_mmap=''
 d_msghdr_msg_flags=''
+d_nanosleep=''
 d_nls=''
 d_open3=''
 d_poll=''
@@ -5859,6 +5860,20 @@ EOC
 set d_msghdr_msg_flags
 eval $trylink
 
+: see if nanosleep exists
+$cat >try.c <<EOC
+#include <time.h>
+int main(void)
+{
+	static int ret;
+	static struct timespec request, remain;
+	ret |= nanosleep(&request, &remain);
+	return ret ? 0 : 1;
+}
+EOC
+set d_nanosleep 
+eval $trylink
+
 : Locate the flags for 'open()'
 echo " "
 $cat >open3.c <<'EOCP'
@@ -8982,6 +8997,7 @@ d_memalign='$d_memalign'
 d_memcpy='$d_memcpy'
 d_mmap='$d_mmap'
 d_msghdr_msg_flags='$d_msghdr_msg_flags'
+d_nanosleep='$d_nanosleep'
 d_nls='$d_nls'
 d_official='$d_official'
 d_open3='$d_open3'

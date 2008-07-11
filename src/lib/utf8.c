@@ -1560,14 +1560,8 @@ locale_init(void)
 
 	unicode_compose_init();
 
-#ifndef OFFICIAL_BUILD
-	/*
-	 * Skip utf8_regression_checks() if the current revision is known
-	 * to be alright.
-	 */
-	if (!is_strprefix(get_rcsid(), "Id: utf8.c 15269 ")) {
-		utf8_regression_checks();
-	}
+#if 0 && !defined(OFFICIAL_BUILD)
+	utf8_regression_checks();
 #endif	/* !OFFICIAL_BUILD */
 
 	locale_init_passed = TRUE;

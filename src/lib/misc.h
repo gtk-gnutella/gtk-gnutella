@@ -52,6 +52,7 @@
 
 #include "common.h"
 
+#include "lib/compat_sleep_ms.h"
 #include "lib/fs_free_space.h"
 #include "lib/vmm.h"
 
