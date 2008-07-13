@@ -54,19 +54,20 @@ typedef guint64 cq_time_t;		/**< Virtual time for callout queue */
 
 extern cqueue_t *callout_queue;	/* Single global instance */
 
-gdouble callout_queue_coverage(gint old_ticks);
+gdouble callout_queue_coverage(int old_ticks);
 
 void cq_init(void);
 void cq_close(void);
 
 cqueue_t *cq_make(cq_time_t now);
 void cq_free(cqueue_t *cq);
-cevent_t *cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg);
+cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg);
 void cq_expire(cqueue_t *cq, cevent_t *ev);
 void cq_cancel(cqueue_t *cq, cevent_t **handle_ptr);
-void cq_resched(cqueue_t *cq, cevent_t *handle, gint delay);
-void cq_clock(cqueue_t *cq, gint elapsed);
-gint cq_ticks(cqueue_t *cq);
+void cq_resched(cqueue_t *cq, cevent_t *handle, int delay);
+void cq_clock(cqueue_t *cq, int elapsed);
+int cq_ticks(cqueue_t *cq);
+int cq_count(const cqueue_t *cq);
 
 #endif	/* _cq_h_ */
 

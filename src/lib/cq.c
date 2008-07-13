@@ -100,9 +100,9 @@ struct cqueue {
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	cq_time_t cq_time;			/**< "current time" */
 	enum cqueue_magic cq_magic;
-	gint cq_ticks;				/**< Number of cq_clock() calls processed */
-	gint cq_items;				/**< Amount of recorded events */
-	gint cq_last_bucket;		/**< Last bucket slot we were at */
+	int cq_ticks;				/**< Number of cq_clock() calls processed */
+	int cq_items;				/**< Amount of recorded events */
+	int cq_last_bucket;			/**< Last bucket slot we were at */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
 };
 
@@ -161,7 +161,7 @@ cq_free(cqueue_t *cq)
 {
 	cevent_t *ev;
 	cevent_t *ev_next;
-	gint i;
+	int i;
 	struct chash *ch;
 
 	cqueue_check(cq);
@@ -175,6 +175,24 @@ cq_free(cqueue_t *cq)
 
 	G_FREE_NULL(cq->cq_hash);
 	G_FREE_NULL(cq);
+}
+
+/**
+ * @return the amount of items held in the callout queue.
+ */
+int
+cq_count(const cqueue_t *cq)
+{
+	return cq->cq_items;
+}
+
+/**
+ * @return the amount of ticks processed by the callout queue.
+ */
+int
+cq_ticks(cqueue_t *cq)
+{
+	return cq->cq_ticks;
 }
 
 /**
@@ -318,7 +336,7 @@ ev_unlink(cqueue_t *cq, cevent_t *ev)
  * @returns the handle, or NULL on error.
  */
 cevent_t *
-cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
+cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg)
 {
 	cevent_t *ev;				/* Event to insert */
 
@@ -372,7 +390,7 @@ cq_cancel(cqueue_t *cq, cevent_t **handle_ptr)
  * expired, i.e. that the event has not triggered yet.
  */
 void
-cq_resched(cqueue_t *cq, cevent_t *ev, gint delay)
+cq_resched(cqueue_t *cq, cevent_t *ev, int delay)
 {
 	cqueue_check(cq);
 	cevent_check(ev);
@@ -439,10 +457,10 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
  * For gtk-gnutella, the time unit is the millisecond.
  */
 void
-cq_clock(cqueue_t *cq, gint elapsed)
+cq_clock(cqueue_t *cq, int elapsed)
 {
-	gint bucket;
-	gint last_bucket;
+	int bucket;
+	int last_bucket;
 	struct chash *ch;
 	cevent_t *ev;
 	cq_time_t now;
@@ -524,7 +542,7 @@ callout_timer(gpointer unused_p)
 {
 	static tm_t last_period;
 	GTimeVal tv;
-	gint delay;
+	int delay;
 
 	(void) unused_p;
 	tm_now_exact(&tv);
@@ -559,15 +577,9 @@ callout_timer(gpointer unused_p)
  * @param old_ticks	the previous amount of processed ticks
  */
 gdouble
-callout_queue_coverage(gint old_ticks)
+callout_queue_coverage(int old_ticks)
 {
 	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
-}
-
-gint
-cq_ticks(cqueue_t *cq)
-{
-	return cq->cq_ticks;
 }
 
 /**
