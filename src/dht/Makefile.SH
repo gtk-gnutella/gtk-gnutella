@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -66,7 +66,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,16 +81,20 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	kmsg.c \
 	knode.c \
 	kuid.c \
 	routing.c \
-	rpc.c
+	rpc.c \
+	tea.c
 
 OBJ = \
+	kmsg.o \
 	knode.o \
 	kuid.o \
 	routing.o \
-	rpc.o 
+	rpc.o \
+	tea.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)

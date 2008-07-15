@@ -110,6 +110,8 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "dht/kmsg.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define CONNECT_PONGS_COUNT		10	  /**< Amoung of pongs to send */
@@ -4272,8 +4274,11 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				return FALSE;
 			}
 
-			ultra_max = GNET_PROPERTY(max_connections) > GNET_PROPERTY(normal_connections)
-				? GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections) : 0;
+			ultra_max = GNET_PROPERTY(max_connections) >
+				GNET_PROPERTY(normal_connections) ?
+				GNET_PROPERTY(max_connections) -
+					GNET_PROPERTY(normal_connections) :
+				0;
 
 			if (GNET_PROPERTY(node_ultra_count) >= ultra_max)
 				(void) node_remove_useless_ultra(NULL);
@@ -7083,6 +7088,17 @@ node_udp_process(struct gnutella_socket *s)
 	}
 
 	/*
+	 * DHT messages now leave the Gnutella processing path.
+	 */
+
+	if (GTA_MSG_DHT == gnutella_header_get_function(&n->header)) {
+		kmsg_received(cast_to_gpointer(s->buf), s->pos, s->addr, s->port);
+		return;
+	}
+
+	/*
+	 * Continuing here only with Gnutella traffic.
+	 *
 	 * If payload is deflated, inflate it before processing.
 	 */
 

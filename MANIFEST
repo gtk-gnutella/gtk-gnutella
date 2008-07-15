@@ -448,6 +448,8 @@ src/core/whitelist.c
 src/core/whitelist.h
 src/dht/Jmakefile
 src/dht/Makefile.SH
+src/dht/kmsg.c
+src/dht/kmsg.h
 src/dht/knode.c
 src/dht/knode.h
 src/dht/kuid.c
@@ -456,6 +458,8 @@ src/dht/routing.c
 src/dht/routing.h
 src/dht/rpc.c
 src/dht/rpc.h
+src/dht/tea.c
+src/dht/tea.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH
@@ -489,6 +493,7 @@ src/if/core/upload_stats.h
 src/if/core/uploads.h
 src/if/core/version.h
 src/if/core/wrap.h
+src/if/dht/kademlia.h
 src/if/gnet_property.c
 src/if/gnet_property.h
 src/if/gnet_property_priv.h
@@ -524,6 +529,8 @@ src/lib/base64.h
 src/lib/bg.c
 src/lib/bg.h
 src/lib/bit_array.h
+src/lib/bstr.c
+src/lib/bstr.h
 src/lib/cobs.c
 src/lib/cobs.h
 src/lib/compat_sleep_ms.c

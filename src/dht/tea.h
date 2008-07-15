@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,32 +23,48 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Tiny Encryption Algorithm.
+ *
+ * @author Raphael Manfredi
+ * @date 2008
+ */
 
-SRC = \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	routing.c \
-	rpc.c \
-	tea.c
+#ifndef _dht_tea_h_
+#define _dht_tea_h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#define TEA_KEY_SIZE	16
+#define TEA_BLOCK_SIZE	8
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/**
+ * A TEA key is 128-bit wide.
+ *
+ * However, due to collisions, it is actually equivalent to 3 other keys so
+ * it has only 126 bits of entropy.
+ */
+typedef struct tea_key {
+	guchar v[TEA_BLOCK_SIZE];
+} tea_key_t;
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+/**
+ * A TEA cipher block is 64-bit wide.
+ */
+typedef struct tea_block {
+	guchar v[TEA_BLOCK_SIZE];
+} tea_block_t;
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+/*
+ * Public interface.
+ */
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+guint32 tea_squeeze_block_to_uint32(const tea_block_t *value);
+void tea_encrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
+void tea_decrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
+void tea_test(void);
 
+#endif	/* _dht_tea_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

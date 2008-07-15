@@ -153,7 +153,6 @@ pmsg_check_consistency(const pmsg_t * const mb)
 void pmsg_init(void);
 void pmsg_close(void);
 
-gint pmsg_size(const pmsg_t *mb);
 pmsg_t *pmsg_new(gint prio, gconstpointer buf, gint len);
 pmsg_t * pmsg_new_extend(
 	gint prio, gconstpointer buf, gint len,
@@ -189,6 +188,129 @@ static inline void
 pmsg_slist_free(slist_t **slist_ptr)
 {
 	slist_free_all(slist_ptr, (slist_destroy_cb) pmsg_free);
+}
+
+/**
+ * Compute message's size.
+ */
+static inline int
+pmsg_size(const pmsg_t *mb)
+{
+	/*
+	 * Not a macro because of foreseen addition of an m_cont field to link
+ 	 * additional message blocks (auto-extension of messages on pmsg_write).
+	 */
+
+	return mb->m_wptr - mb->m_rptr;
+}
+
+/***
+ *** Convenience routines to contruct messages directly in the arena
+ *** block to avoid extra memory copies.
+ ***
+ *** The only drawback currently is that the arena must be properly sized
+ *** in advance as message blocks are not auto-extensible (for now).
+ ***
+ *** In all these routines, the message must be the only reference to the
+ *** underlying data, i.e. it must still be in the process of being constructed
+ *** before being passed to a queue (at which time it should no longer be
+ *** referenced).
+ ***/
+
+/**
+ * Move the write pointer to the desired offset within the message.
+ * Can be used to skip the header part of the built message.
+ */
+static inline void
+pmsg_seek(pmsg_t *mb, off_t offset)
+{
+	g_assert(offset >= 0 && offset < pmsg_size(mb));
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+
+	mb->m_wptr = mb->m_data->d_arena + offset;
+}
+
+/**
+ * Write a single byte.
+ */
+static inline void
+pmsg_write_u8(pmsg_t *mb, guint8 val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 1);
+
+	*(guint8 *) mb->m_wptr++ = val;
+}
+
+/**
+ * Write a 16-bit value in big-endian format.
+ */
+static inline void
+pmsg_write_be16(pmsg_t *mb, guint16 val)
+{
+	guchar *p = (guchar *) mb->m_wptr;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 2);
+
+	*p++ = (val >> 8) & 0xff;
+	*p++ = val & 0xff;
+
+	mb->m_wptr += 2;
+}
+
+/**
+ * Write a 16-bit value in little-endian format.
+ */
+static inline void
+pmsg_write_le16(pmsg_t *mb, guint16 val)
+{
+	guchar *p = (guchar *) mb->m_wptr;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 2);
+
+	*p++ = val & 0xff;
+	*p++ = (val >> 8) & 0xff;
+
+	mb->m_wptr += 2;
+}
+/**
+ * Write a 32-bit value in big-endian format.
+ */
+static inline void
+pmsg_write_be32(pmsg_t *mb, guint32 val)
+{
+	guchar *p = (guchar *) mb->m_wptr;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 2);
+
+	*p++ = (val >> 24) & 0xff;
+	*p++ = (val >> 16) & 0xff;
+	*p++ = (val >> 8) & 0xff;
+	*p++ = val & 0xff;
+
+	mb->m_wptr += 4;
+}
+
+/**
+ * Write a 32-bit value in little-endian format.
+ */
+static inline void
+pmsg_write_le32(pmsg_t *mb, guint32 val)
+{
+	guchar *p = (guchar *) mb->m_wptr;
+
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 2);
+
+	*p++ = val & 0xff;
+	*p++ = (val >> 8) & 0xff;
+	*p++ = (val >> 16) & 0xff;
+	*p++ = (val >> 24) & 0xff;
+
+	mb->m_wptr += 4;
 }
 
 #endif	/* _core_pmsg_h_ */

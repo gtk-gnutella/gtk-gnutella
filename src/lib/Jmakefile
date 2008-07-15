@@ -36,6 +36,7 @@ LSRC = \
 	base32.c \
 	base64.c \
 	bg.c \
+	bstr.c \
 	cobs.c \
 	compat_sleep_ms.c \
 	cq.c \
@@ -72,6 +73,7 @@ LSRC = \
 	options.c \
 	pagetable.c \
 	palloc.c \
+	patricia.c \
 	pattern.c \
 	prop.c \
 	sha1.c \

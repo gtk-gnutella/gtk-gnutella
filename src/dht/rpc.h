@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
+ * Copyright (c) 2006-2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Kademlia Remote Procedure Call management.
  *
  * @author Raphael Manfredi
- * @date 2006
+ * @date 2006-2008
  */
 
 #ifndef _dht_rpc_h_
@@ -38,18 +38,18 @@
 
 #include "common.h"
 #include "knode.h"
-#include "kuid.h"
 
-#include "if/core/hosts.h"
 #include "if/core/guid.h"
 
 #define DHT_RPC_MAXDELAY	30000	/* 30 secs max to get a reply */
+#define DHT_RPC_MINDELAY	5000	/* 5 secs min to get a reply */
 
 /**
  * RPC operations.
  */
 enum dht_rpc_op {
 	DHT_RPC_PING = 0,		/**< ping remote node */
+	DHT_RPC_FIND_NODE,		/**< lookup for KUID */
 };
 
 /**
@@ -57,14 +57,22 @@ enum dht_rpc_op {
  */
 enum dht_rpc_ret {
 	DHT_RPC_TIMEOUT = 0,	/**< timed out */
-	DHT_RPC_PONG,			/**< pong from remote node */
+	DHT_RPC_REPLY,			/**< reply from host */
 };
+
+struct gnutella_node;
 
 /**
  * An RPC callback.
+ *
+ * We provide both the knode that replied and the "gnutella node" which
+ * contains the IP:port from which the UDP message came and which should be
+ * used should we have anything to send back to the host.
  */
 typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
-	const kuid_t *kuid, const gnet_host_t *host,
+	const knode_t *kn,
+	const struct gnutella_node *n,
+	guint8 function,
 	const gchar *payload, size_t len, gpointer arg);
 
 /*
@@ -74,10 +82,16 @@ typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 void dht_rpc_init(void);
 void dht_rpc_close(void);
 
-void dht_rpc_answer(const guid_t *guid, const kuid_t *kuid,
-	const gnet_host_t *host, gconstpointer payload, size_t len, gpointer arg);
+gboolean dht_rpc_answer(const guid_t *muid, knode_t *kn,
+	const struct gnutella_node *n,
+	guint8 function,
+	gconstpointer payload, size_t len);
 
 void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
+void dht_verify_node(knode_t *kn, knode_t *new);
+void dht_rpc_find_node(
+	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg);
 
 #endif /* _dht_rpc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

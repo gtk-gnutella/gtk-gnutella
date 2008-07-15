@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
+ * Copyright (c) 2006-2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * A Kademlia node.
  *
  * @author Raphael Manfredi
- * @date 2006
+ * @date 2006-2008
  */
 
 #include "common.h"
@@ -38,27 +38,212 @@
 RCSID("$Id$")
 
 #include "knode.h"
+#include "kuid.h"
+
+#include "if/gnet_property_priv.h"
+
+#include "if/dht/kademlia.h"
 
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
+#include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
+
+/**
+ * Hashing of knodes,
+ */
+unsigned int
+knode_hash(gconstpointer key)
+{
+	const knode_t *kn = key;
+
+	return sha1_hash(kn->id);
+}
+
+/**
+ * Equality of knodes.
+ */
+int
+knode_eq(gconstpointer a, gconstpointer b)
+{
+	const knode_t *k1 = a;
+	const knode_t *k2 = b;
+
+	return k1->id == k2->id;		/* We know IDs are atoms */
+}
 
 /**
  * Allocate new Kademlia node.
  */
 knode_t *
-knode_new(kuid_t *id, host_addr_t addr, guint16 port)
+knode_new(
+	const gchar *id, guint8 flags,
+	host_addr_t addr, guint16 port, vendor_code_t vcode,
+	guint8 major, guint8 minor)
 {
 	knode_t *kn;
 
 	kn = walloc0(sizeof *kn);
-	kn->id = kuid_get_atom(id);
+	kn->id = kuid_get_atom((kuid_t *) id);
+	kn->vcode = vcode;
 	kn->refcnt = 1;
 	kn->addr = addr;
 	kn->port = port;
+	kn->major = major;
+	kn->minor = minor;
 	kn->status = KNODE_UNKNOWN;
 
+	if (flags & KDA_MSG_F_FIREWALLED)
+		kn->flags |= KNODE_F_FIREWALLED;
+
+	if (flags & KDA_MSG_F_SHUTDOWNING)
+		kn->flags |= KNODE_F_SHUTDOWNING;
+
 	return kn;
+}
+
+/**
+ * Can the node which timed-out in the past be considered again as the
+ * target of an RPC, and therefore returned in k-closest lookups?
+ */
+gboolean
+knode_can_recontact(const knode_t *kn)
+{
+	time_t grace;
+	time_delta_t elapsed;
+
+	g_assert(kn);
+
+	if (!kn->rpc_timeouts)
+		return TRUE;				/* Timeout condition was cleared */
+
+	if (kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
+		return FALSE;
+
+	/*
+	 * The grace period we want is 4 seconds times 2^timeouts, so the it
+	 * ends up being 2^(timeouts + 2).
+	 */
+
+	grace = 1 << (kn->rpc_timeouts + 2);
+	elapsed = delta_time(tm_time(), kn->last_sent);
+
+	return elapsed > grace;
+}
+
+/**
+ * Set or update the security token for the node.
+ *
+ * Data is copied, the original can be discarded.
+ *
+ * If len == 0, the security token is cleared and the node marked as not
+ * requiring any token for storing values.
+ */
+void
+knode_set_token(knode_t *kn, const void *token, size_t len)
+{
+	g_assert(kn);
+	g_assert(token);
+	g_assert(len < 256);
+
+	if (len && kn->token_len == len && 0 == memcmp(kn->token, token, len))
+		return;			/* No change in token */
+
+	if (kn->token)
+		wfree(kn->token, kn->token_len);
+
+	if (len) {
+		kn->token = walloc(len);
+		kn->token_len = len;
+		memcpy(kn->token, token, len);
+		kn->flags &= ~KNODE_F_NO_TOKEN;
+	} else {
+		kn->token = NULL;
+		kn->token_len = 0;
+		kn->flags |= KNODE_F_NO_TOKEN;
+	}
+}
+
+/**
+ * Give a string representation of the node status.
+ */
+const gchar *
+knode_status_to_string(knode_status_t status)
+{
+	switch (status) {
+	case KNODE_GOOD:
+		return "good";
+	case KNODE_STALE:
+		return "stale";
+	case KNODE_PENDING:
+		return "pending";
+	case KNODE_UNKNOWN:
+		return "unknown";
+	}
+
+	return "???";
+}
+
+/**
+ * Change node's vendor code.
+ */
+void
+knode_change_vendor(knode_t *kn, vendor_code_t vcode)
+{
+	if (GNET_PROPERTY(dht_debug)) {
+		static gchar temp[1 + sizeof vcode];
+		strncpy(temp,
+			vendor_code_str(ntohl(kn->vcode.be32)), sizeof temp);
+
+		g_warning("DHT node %s at %s changed vendor from %s to %s",
+			kuid_to_hex_string(kn->id),
+			host_addr_port_to_string(kn->addr, kn->port),
+			temp, vendor_code_str(ntohl(vcode.be32)));
+	}
+
+	kn->vcode = vcode;
+}
+
+/**
+ * Change node's version
+ */
+void
+knode_change_version(knode_t *kn, guint8 major, guint8 minor)
+{
+	if (GNET_PROPERTY(dht_debug))
+		g_warning("DHT node %s at %s changed from v%u.%u to v%u.%u",
+			kuid_to_hex_string(kn->id),
+			host_addr_port_to_string(kn->addr, kn->port),
+			kn->major, kn->minor, major, minor);
+
+	kn->major = major;
+	kn->minor = minor;
+}
+
+/**
+ * Pretty-printing of node information for logs.
+ * @return pointer to static data
+ *
+ * @attention
+ * NB: uses vendor_code_str() internally which returns pointer to
+ * string buf.  Do not use in the same argument list as this routine.
+ */
+const gchar *
+knode_to_string(const knode_t *kn)
+{
+	static char buf[120];
+	char host_buf[HOST_ADDR_BUFLEN];
+
+	host_addr_to_string_buf(kn->addr, host_buf, sizeof host_buf);
+
+	gm_snprintf(buf, sizeof buf,
+		"%s:%u (%s v%u.%u) [%s]",
+		host_buf, kn->port,
+		vendor_code_str(ntohl(kn->vcode.be32)),
+		kn->major, kn->minor, kuid_to_hex_string2(kn->id));
+
+	return buf;
 }
 
 /**
@@ -70,6 +255,8 @@ knode_dispose(knode_t *kn)
 	g_assert(kn->refcnt == 0);
 
 	kuid_atom_free(kn->id);
+	if (kn->token)
+		wfree(kn->token, kn->token_len);
 	wfree(kn, sizeof *kn);
 }
 

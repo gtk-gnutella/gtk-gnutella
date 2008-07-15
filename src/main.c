@@ -93,9 +93,11 @@
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
+#include "dht/kmsg.h"
 #include "dht/kuid.h"
 #include "dht/routing.h"
 #include "dht/rpc.h"
+#include "dht/tea.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -108,6 +110,7 @@
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
+#include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/socket.h"
 #include "lib/tiger.h"
@@ -392,6 +395,7 @@ gtk_gnutella_exit(gint n)
 	DO(http_close);
 	DO(uhc_close);
 	DO(move_close);
+	DO(dht_route_close);
 
 	/*
 	 * When coming from atexit(), there is a sense of urgency.
@@ -461,9 +465,8 @@ gtk_gnutella_exit(gint n)
 		compat_sleep_ms(50);
 	}
 
-	bitzi_close();
 	dht_rpc_close();
-	dht_route_close();
+	bitzi_close();
 	ntp_close();
 	sq_close();
 	dh_close();
@@ -560,6 +563,7 @@ slow_main_timer(time_t now)
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
+		dht_update_size_estimate();
 		break;
 	case 3:
 		file_info_store_if_dirty();
@@ -567,10 +571,13 @@ slow_main_timer(time_t now)
 	case 4:
 		hcache_store_if_dirty(HOST_ULTRA);
 		break;
+	case 5:
+		dht_route_store_if_dirty();
+		break;
 	default:
 		g_assert_not_reached();
 	}
-	i = (i + 1) % 5;
+	i = (i + 1) % 6;
 
 	download_store_if_dirty();		/* Important, so always attempt it */
 	settings_save_if_dirty();		/* Nice to have, and file is small */
@@ -621,6 +628,10 @@ check_cpu_usage(void)
 
 	coverage = callout_queue_coverage(ticks);
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
+
+	if (debugging(0))
+		g_message("CQ: callout queue holds %d items and processed %d ticks",
+			cq_count(callout_queue), cq_ticks(callout_queue));
 
 	/*
 	 * Correct the percentage of CPU that would have been actually used
@@ -1313,6 +1324,8 @@ main(int argc, char **argv)
 	tiger_check();
 	tt_check();
 	random_init();
+	tea_test();
+	patricia_test();
 	locale_init();
 	adns_init();
 	file_object_init();
@@ -1379,6 +1392,7 @@ main(int argc, char **argv)
 	file_info_init_post();
 
 	kuid_init();			/* DHT */
+	kmsg_init();
 	dht_route_init();
 	dht_rpc_init();
 

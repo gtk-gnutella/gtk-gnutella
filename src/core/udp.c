@@ -144,6 +144,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH_RESULTS:
 	case GTA_MSG_RUDP:
+	case GTA_MSG_DHT:
 		return TRUE;
 	case GTA_MSG_SEARCH:
 		msg = "Queries not yet processed from UDP";
@@ -177,6 +178,39 @@ log:
 }
 
 /**
+ * Check whether we got a valid NTP reply.
+ */
+static gboolean
+is_ntp_reply(struct gnutella_socket *s)
+{
+	host_addr_t addr;
+	gboolean got_reply = FALSE;
+	
+	if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
+		addr = s->addr;
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		got_reply = 0x7f000001 == host_addr_ipv4(addr); /* 127.0.0.1:123 */
+		break;
+	case NET_TYPE_IPV6:
+		/* Only the loopback address (::1) qualifies as private */
+		got_reply = is_private_addr(addr); /* [::1]:123 */
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	if (got_reply) {
+		g_message("NTP detected at %s", host_addr_to_string(addr));
+		ntp_got_reply(s);
+	}
+
+	return got_reply;
+}
+
+/**
  * Notification from the socket layer that we got a new datagram.
  *
  * If `truncated' is true, then the message was too large for the
@@ -191,32 +225,8 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 * If reply comes from the NTP port, notify that they're running NTP.
 	 */
 
-	if (NTP_PORT == s->port) {
-		host_addr_t addr;
-		gboolean got_reply = FALSE;
-		
-		if (!host_addr_convert(s->addr, &addr, NET_TYPE_IPV4))
-			addr = s->addr;
-
-		switch (host_addr_net(addr)) {
-		case NET_TYPE_IPV4:
-			got_reply = 0x7f000001 == host_addr_ipv4(addr); /* 127.0.0.1:123 */
-			break;
-		case NET_TYPE_IPV6:
-			/* Only the loopback address (::1) qualifies as private */
-			got_reply = is_private_addr(addr); /* [::1]:123 */
-			break;
-		case NET_TYPE_LOCAL:
-		case NET_TYPE_NONE:
-			g_assert_not_reached();
-		}
-		if (got_reply) {
-			g_message("NTP detected at %s", host_addr_to_string(addr));
-			ntp_got_reply(s);
-			return;
-		}
-		/* FALL THROUGH -- reply did not come from localhost */
-	}
+	if (NTP_PORT == s->port && is_ntp_reply(s))
+		return;
 
 	/*
 	 * This must be regular Gnutella traffic then.

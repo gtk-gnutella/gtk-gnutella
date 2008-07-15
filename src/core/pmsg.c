@@ -107,17 +107,6 @@ pmsg_close(void)
 }
 
 /**
- * Compute message's size.
- */
-int
-pmsg_size(const pmsg_t *mb)
-{
-	pmsg_check_consistency(mb);
-
-	return mb->m_wptr - mb->m_rptr;
-}
-
-/**
  * Fill newly created message block.
  *
  * @return the message block given as argument.

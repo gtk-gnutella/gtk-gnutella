@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
+ * Copyright (c) 2006-2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Kademlia nodes.
  *
  * @author Raphael Manfredi
- * @date 2006
+ * @date 2006-2008
  */
 
 #ifndef _dht_knode_h_
@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "kuid.h"
+#include "lib/vendors.h"
 #include "lib/host_addr.h"
 
 struct kbucket;
@@ -58,28 +59,54 @@ typedef enum knode_status {
  */
 typedef struct knode {
 	kuid_t *id;					/**< KUID of the node (atom) */
-	struct kbucket *bucket;		/**< Bucket currently holding the node */
+	void *token;				/**< The security token (NULL if unknown) */
 	time_t last_seen;			/**< Last seen message from that node */
+	time_t last_sent;			/**< Last sent RPC to that node */
+	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gint refcnt;				/**< Reference count */
 	guint32 rtt;				/**< Round-trip time in milliseconds */
 	guint32 flags;				/**< Operating flags */
 	host_addr_t addr;			/**< IP of the node */
-	guint16 port;				/**< Port of the node */
 	knode_status_t status;		/**< Node status (good, stale, pending) */
+	guint16 port;				/**< Port of the node */
+	guchar rpc_timeouts;		/**< Amount of consecutive RPC timeouts */
+	guint8 major;				/**< Major version */
+	guint8 minor;				/**< Minor version */
+	guint8 token_len;			/**< Length of security token */
 } knode_t;
+
+#define KNODE_MAX_TIMEOUTS	5			/**< Max is 5 timeouts in a row */
 
 /**
  * Node flags.
  */
 
 #define KNODE_F_VERIFYING	(1 << 0)	/**< Verifying node address */
+#define KNODE_F_ALIVE		(1 << 1)	/**< Got traffic from node */
+#define KNODE_F_PINGING		(1 << 2)	/**< Pinging for alive-ness */
+/* XXX above flag not used yet -- needed? */
+#define KNODE_F_FIREWALLED	(1 << 3)	/**< Must not keep in routing table */
+#define KNODE_F_FOREIGN_IP	(1 << 4)	/**< Got packet from different IP */
+#define KNODE_F_NO_TOKEN	(1 << 5)	/**< No security token for storing */
+#define KNODE_F_SHUTDOWNING	(1 << 6)	/**< Host said it was shutdowning */
 
 /*
  * Public interface.
  */
 
-knode_t *knode_new(kuid_t *id, host_addr_t addr, guint16 port);
+knode_t *knode_new(
+	const gchar *id, guint8 flags,
+	host_addr_t addr, guint16 port, vendor_code_t vcode,
+	guint8 major, guint8 minor);
 void knode_free(knode_t *kn);
+unsigned int knode_hash(gconstpointer key);
+int knode_eq(gconstpointer a, gconstpointer b);
+const gchar * knode_status_to_string(knode_status_t status);
+void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
+void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
+const gchar *knode_to_string(const knode_t *kn);
+void knode_set_token(knode_t *kn, const void *token, size_t len);
+gboolean knode_can_recontact(const knode_t *kn);
 
 /**
  * Add one reference to a Kademlia node.
@@ -93,3 +120,4 @@ knode_t *knode_refcnt_inc(knode_t *kn)
 
 #endif /* _dht_knode_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

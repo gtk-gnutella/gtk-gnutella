@@ -92,6 +92,7 @@ LSRC = \
 	base32.c \
 	base64.c \
 	bg.c \
+	bstr.c \
 	cobs.c \
 	compat_sleep_ms.c \
 	cq.c \
@@ -128,6 +129,7 @@ LSRC = \
 	options.c \
 	pagetable.c \
 	palloc.c \
+	patricia.c \
 	pattern.c \
 	prop.c \
 	sha1.c \
@@ -158,6 +160,7 @@ LOBJ = \
 	base32.o \
 	base64.o \
 	bg.o \
+	bstr.o \
 	cobs.o \
 	compat_sleep_ms.o \
 	cq.o \
@@ -194,6 +197,7 @@ LOBJ = \
 	options.o \
 	pagetable.o \
 	palloc.o \
+	patricia.o \
 	pattern.o \
 	prop.o \
 	sha1.o \

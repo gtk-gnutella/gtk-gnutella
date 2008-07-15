@@ -53,6 +53,8 @@
 #include "sockets.h"
 #include "upload_stats.h"
 
+#include "dht/routing.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"		/* For debugging() */
@@ -1121,6 +1123,21 @@ enable_udp_changed(property_t prop)
 }
 
 static gboolean
+enable_dht_changed(property_t prop)
+{
+	gboolean enabled;
+	
+    gnet_prop_get_boolean_val(prop, &enabled);
+	if (enabled) {
+		dht_initialize();
+	} else {
+		dht_route_close();
+	}
+
+	return FALSE;
+}
+
+static gboolean
 enable_local_socket_changed(property_t prop)
 {
 	gboolean enabled;
@@ -2044,6 +2061,11 @@ static prop_map_t property_map[] = {
 		PROP_ENABLE_UDP,
 		enable_udp_changed,
 		FALSE,				/* UDP socket inited via listen_port_changed() */
+	},
+	{
+		PROP_ENABLE_DHT,
+		enable_dht_changed,
+		FALSE,
 	},
 	{
 		PROP_ENABLE_LOCAL_SOCKET,
