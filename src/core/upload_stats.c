@@ -134,11 +134,11 @@ upload_stats_find(const struct sha1 *sha1, const gchar *name, guint64 size)
 			g_assert(NULL == s->sha1);	/* Only possible when SHA1 unknown */
 
 			s->sha1 = atom_sha1_get(sha1);
-			gm_hash_table_insert_const(upload_stats_by_sha1, sha1, s);
+			gm_hash_table_insert_const(upload_stats_by_sha1, s->sha1, s);
 		}
 	}
 
-	/* We garantee the SHA1 is present in the record if known */
+	/* We guarantee the SHA1 is present in the record if known */
 	g_assert(!(s && sha1) || s->sha1);
 
 	return s;
