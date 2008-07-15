@@ -91,8 +91,6 @@ kuid_random_fill(kuid_t *kuid)
 		kuid->v[i] = accum & 0xff;
 		carry = (accum & 0x100) == 0x100;
 	}
-
-	g_message("final KUID is: %s", kuid_to_hex_string(kuid));
 }
 
 /**
