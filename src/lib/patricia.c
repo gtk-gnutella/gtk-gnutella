@@ -175,8 +175,8 @@ struct patricia_node {
 	} u;
 	guint8 bit;						/**< Bit to test for choosing "z" or "o" */
 	guint8 last_kbit;				/**< Last bit # in key (7 if 8-bit key) */
-	gboolean leaf;					/**< Is a leaf node */
-	gboolean has_embedded_data;		/**< Non-leaf node has data */
+	guint8 leaf;					/**< Is a leaf node */
+	guint8 has_embedded_data;		/**< Non-leaf node has data */
 };
 
 /**
@@ -424,18 +424,18 @@ common_leading_bits(
 	bytes = cbits >> 3;
 
 	for (i = 0; i < bytes; i++) {
-		guint8 xor = *p1++ ^ *p2++;
-		if (xor)
-			return i * 8 + 7 - highest_bit_set(xor);
+		guint8 diff = *p1++ ^ *p2++;
+		if (diff)
+			return i * 8 + 7 - highest_bit_set(diff);
 	}
 
 	bits = cbits & 0x7;
 
 	if (bits != 0) {
 		guint8 mask = ~((1 << (8 - bits)) - 1);
-		guint8 xor = (*p1 & mask) ^ (*p2 & mask);
-		if (xor)
-			return bytes * 8 + 7 - highest_bit_set(xor);
+		guint8 diff = (*p1 & mask) ^ (*p2 & mask);
+		if (diff)
+			return bytes * 8 + 7 - highest_bit_set(diff);
 	}
 
 	return cbits;		/* All the bits we compared matched */
@@ -471,9 +471,9 @@ key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
 		guint8 mask = ~((1 << (8 - bits)) - 1);
 		const guint8 *p1 = k1;
 		const guint8 *p2 = k2;
-		guint8 xor = (p1[bytes] & mask) ^ (p2[bytes] & mask);
+		guint8 diff = (p1[bytes] & mask) ^ (p2[bytes] & mask);
 
-		return 0 == xor;
+		return 0 == diff;
 	}
 
 	return TRUE;
