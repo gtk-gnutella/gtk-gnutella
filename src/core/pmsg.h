@@ -38,6 +38,7 @@
 
 #include "common.h"
 
+#include "lib/endian.h"
 #include "lib/slist.h"
 
 /**
@@ -248,15 +249,10 @@ pmsg_write_u8(pmsg_t *mb, guint8 val)
 static inline void
 pmsg_write_be16(pmsg_t *mb, guint16 val)
 {
-	guchar *p = (guchar *) mb->m_wptr;
-
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 2);
 
-	*p++ = (val >> 8) & 0xff;
-	*p++ = val & 0xff;
-
-	mb->m_wptr += 2;
+	mb->m_wptr = poke_be16(mb->m_wptr, val);
 }
 
 /**
@@ -265,33 +261,22 @@ pmsg_write_be16(pmsg_t *mb, guint16 val)
 static inline void
 pmsg_write_le16(pmsg_t *mb, guint16 val)
 {
-	guchar *p = (guchar *) mb->m_wptr;
-
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 2);
 
-	*p++ = val & 0xff;
-	*p++ = (val >> 8) & 0xff;
-
-	mb->m_wptr += 2;
+	mb->m_wptr = poke_le16(mb->m_wptr, val);
 }
+
 /**
  * Write a 32-bit value in big-endian format.
  */
 static inline void
 pmsg_write_be32(pmsg_t *mb, guint32 val)
 {
-	guchar *p = (guchar *) mb->m_wptr;
-
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
-	g_assert(pmsg_available(mb) >= 2);
+	g_assert(pmsg_available(mb) >= 4);
 
-	*p++ = (val >> 24) & 0xff;
-	*p++ = (val >> 16) & 0xff;
-	*p++ = (val >> 8) & 0xff;
-	*p++ = val & 0xff;
-
-	mb->m_wptr += 4;
+	mb->m_wptr = poke_be32(mb->m_wptr, val);
 }
 
 /**
@@ -300,17 +285,10 @@ pmsg_write_be32(pmsg_t *mb, guint32 val)
 static inline void
 pmsg_write_le32(pmsg_t *mb, guint32 val)
 {
-	guchar *p = (guchar *) mb->m_wptr;
-
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
-	g_assert(pmsg_available(mb) >= 2);
+	g_assert(pmsg_available(mb) >= 4);
 
-	*p++ = val & 0xff;
-	*p++ = (val >> 8) & 0xff;
-	*p++ = (val >> 16) & 0xff;
-	*p++ = (val >> 24) & 0xff;
-
-	mb->m_wptr += 4;
+	mb->m_wptr = poke_le32(mb->m_wptr, val);
 }
 
 #endif	/* _core_pmsg_h_ */
