@@ -66,6 +66,14 @@ gboolean patricia_lookup_extended(
 	gpointer *keyptr, gpointer *valptr);
 void patricia_foreach(const patricia_t *pt, patricia_cb_t cb, gpointer u);
 size_t patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u);
+gboolean patricia_lookup_best(
+	const patricia_t *pt, gconstpointer key, size_t keybits,
+	gpointer *keyptr, size_t *lenptr, gpointer *valptr);
+gpointer patricia_closest(
+	const patricia_t *pt, gconstpointer key, size_t keybits);
+gboolean patricia_closest_extended(
+	const patricia_t *pt, gconstpointer key, size_t keybits,
+	gpointer *keyptr, gpointer *valptr);
 
 void patricia_test(void);
 
