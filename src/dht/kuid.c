@@ -61,10 +61,7 @@ kuid_init(void)
 void
 kuid_random_fill(kuid_t *kuid)
 {
-	int i;
 	struct sha1 entropy;
-	gboolean carry;
-	guint8 *edata = (guint8 *) &entropy.data[SHA1_RAW_SIZE - 1];
 
 	/*
 	 * Entropy collection is slow but we generate our KUID only at startup
@@ -81,16 +78,17 @@ kuid_random_fill(kuid_t *kuid)
 
 	/*
 	 * Combine the two random numbers by adding them.
+	 *
+	 * It's slightly better than XOR-ing the two since the propagation
+	 * of the carry bit diffuses the randomness (entropy remains the same).
+	 *
+	 * The cast below is safe due to C's structural equivalence between the
+	 * sha1 and kuid structures, guaranteed by the static assertion.
 	 */
 
-	for (carry = FALSE, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
-		guint16 accum = *edata--;
+	STATIC_ASSERT(SHA1_RAW_SIZE == KUID_RAW_SIZE);
 
-		if (carry) accum++;
-		accum += kuid->v[i];
-		kuid->v[i] = accum & 0xff;
-		carry = (accum & 0x100) == 0x100;
-	}
+	(void) kuid_add(kuid, (kuid_t *) &entropy);
 }
 
 /**
@@ -270,14 +268,11 @@ kuid_zero(kuid_t *res)
 void
 kuid_set32(kuid_t *res, guint32 val)
 {
-	struct kuid32 {
-		guint32 v[KUID_RAW_SIZE / 4];
-	} *tmp;
-
 	kuid_zero(res);
 
-	tmp = (struct kuid32 *) res;
-	poke_be32(&tmp->v[KUID_RAW_SIZE / 4 - 1], val);
+	STATIC_ASSERT(KUID_RAW_SIZE >= 4);
+
+	poke_be32(&res->v[KUID_RAW_SIZE - 4], val);
 }
 
 /**
@@ -295,6 +290,8 @@ kuid_set_nth_bit(kuid_t *res, int n)
 
 	byte = KUID_RAW_SIZE - (n / 8) - 1;
 	mask = 1 << (n % 8);
+
+	g_assert(byte >= 0 && byte < KUID_RAW_SIZE);
 
 	res->v[byte] |= mask;
 }
@@ -375,14 +372,9 @@ kuid_to_double(const kuid_t *value)
 	int i;
 	double v = 0.0;
 	double p;
-	struct kuid32 {
-		guint32 v[KUID_RAW_SIZE / 4];
-	} *tmp;
 
-	tmp = (struct kuid32 *) value;
-
-	for (i = KUID_RAW_SIZE / 4 - 1, p = 0.0; i >= 0; i--, p += 32.0) {
-		v += pow(2.0, p) * peek_be32(&tmp->v[i]);
+	for (i = KUID_RAW_SIZE - 4, p = 0.0; i >= 0; i -= 4, p += 32.0) {
+		v += pow(2.0, p) * peek_be32(&value->v[i]);
 	}
 
 	return v;
