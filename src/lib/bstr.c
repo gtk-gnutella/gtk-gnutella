@@ -171,8 +171,8 @@ error_eos(bstr_t *bs, ssize_t expected, const gchar *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		g_string_printf(bs->error,
-			"%s: end of stream reached at offset %d; expected %s more byte%s",
-			where, bs->end - bs->start,
+			"%s: end of stream reached at offset %lu; expected %s more byte%s",
+			where, (unsigned long) (bs->end - bs->start),
 			expected ? off_t_to_string((off_t) expected) : "some",
 			expected == 1 ? "" : "s");
 	}
@@ -190,8 +190,9 @@ invalid_len(bstr_t *bs, size_t len, const gchar *what, const gchar *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		g_string_printf(bs->error,
-			"%s: invalid %s length %u at offset %d",
-			where, what, len, bs->rptr - bs->start);
+			"%s: invalid %s length %lu at offset %lu",
+			where, what, (unsigned long ) len,
+			(unsigned long) (bs->rptr - bs->start));
 	}
 
 	return bs->ok = FALSE;
@@ -208,8 +209,9 @@ invalid_len_max(
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		g_string_printf(bs->error,
-			"%s: invalid %s length %u (max is %u) at offset %d",
-			where, what, len, max, bs->rptr - bs->start);
+			"%s: invalid %s length %lu (max is %lu) at offset %lu",
+			where, what, (unsigned long) len, (unsigned long) max,
+			(unsigned long) (bs->rptr - bs->start));
 	}
 
 	return bs->ok = FALSE;

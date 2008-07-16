@@ -304,8 +304,8 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%d bytes) to %s",
-			kmsg_infostr(header), pmsg_size(mb),
+		g_message("DHT sending back %s (%lu bytes) to %s",
+			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_send_mb(n, mb);
@@ -366,9 +366,9 @@ k_send_find_node_response(
 	 */
 
 	if (GNET_PROPERTY(dht_debug > 3))
-		g_message("DHT sending back %s (%d bytes) with %d contact%s to %s",
-			kmsg_infostr(header), pmsg_size(mb),
-			klen, klen == 1 ? "" : "s",
+		g_message("DHT sending back %s (%lu bytes) with %lu contact%s to %s",
+			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+			(unsigned long) klen, klen == 1 ? "" : "s",
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_send_mb(n, mb);
@@ -385,8 +385,8 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	warn_no_header_extension(kn, header, extlen);
 
 	if (len && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT unhandled PING payload (%u byte%s) from %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn));
+		g_warning("DHT unhandled PING payload (%lu byte%s) from %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia Ping payload", payload, len);
 	}
 
@@ -440,10 +440,10 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		) {
 			if (GNET_PROPERTY(dht_debug))
 				g_message(
-					"DHT node %s at %s reported new IP address for us: %s:%u",
+					"DHT node %s at %s reported new IP address for us: %s",
 					knode_to_string(kn),
 					host_addr_port_to_string(n->addr, n->port),
-					host_addr_to_string(addr), port);
+					host_addr_port_to_string2(addr, port));
 
 			settings_addr_changed(addr, n->addr);
 		}
@@ -484,8 +484,8 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 
 error:
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT unhandled PONG payload (%u byte%s) from %s: %s: %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn),
+		g_warning("DHT unhandled PONG payload (%lu byte%s) from %s: %s: %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
 			reason, bstr_error(bs));
 
 	bstr_destroy(bs);
@@ -506,8 +506,8 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	warn_no_header_extension(kn, header, extlen);
 
 	if (len != KUID_RAW_SIZE && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT bad FIND_NODE payload (%u byte%s) from %s",
-			len, len == 1 ? "" : "s", knode_to_string(kn));
+		g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
 		return;
 	}
