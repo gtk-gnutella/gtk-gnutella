@@ -57,6 +57,7 @@ void patricia_destroy(patricia_t *pt);
 size_t patricia_count(const patricia_t *pt);
 void patricia_insert(
 	patricia_t *pt, gconstpointer key, size_t keybits, gconstpointer value);
+gboolean patricia_remove(patricia_t *pt, gconstpointer key, size_t keybits);
 gboolean patricia_contains(
 	const patricia_t *pt, gconstpointer key, size_t keybits);
 gpointer patricia_lookup(

@@ -648,43 +648,81 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 	if (pt->root == NULL)
 		return NULL;
 
-	for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
-		const struct patricia_node *child;
+	/*
+	 * If the key size is the maximum, then we can implement a faster search
+	 * because we have less to check at each level: the item cannot be held
+	 * as embedded data, only in leaf nodes.
+	 */
 
-		g_assert(pn);
+	if (keybits == pt->maxbits) {
+		/* Quicker version */
+		for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
+			const struct patricia_node *child;
 
-		/*
-		 * If we have exactly the same amount of bits and the node contains
-		 * an embedded data, stop.
-		 */
+			g_assert(pn);
 
-		if (keybits == pn->bit && pn->has_embedded_data)
-			return key_eq(key, embedded_item_key(pn), keybits) ? pn : NULL;
+			/*
+			 * If we reach a leaf node, compare the key with the value.
+			 */
 
-		/*
-		 * If we reach a leaf node, compare the key with the value.
-		 */
+			if (pn->leaf) {
+				if (leaf_item_keybits(pn) != keybits)
+					return NULL;
+				return key_eq(key, leaf_item_key(pn), keybits) ? pn : NULL;
+			}
 
-		if (pn->leaf) {
-			if (leaf_item_keybits(pn) != keybits)
+			child = node_matches(pn, key, keybits) ?
+				child_one(pn) : child_zero(pn);
+
+			if (child == NULL)
 				return NULL;
-			return key_eq(key, leaf_item_key(pn), keybits) ? pn : NULL;
+
+			g_assert(child->leaf || child->bit > pn->bit);
+
+			pn = child;
 		}
+	} else {
+		/* Slower version: more tests */
+		for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
+			const struct patricia_node *child;
 
-		/*
-		 * Stop if we have less bits in the key than the first bit to test.
-		 */
+			g_assert(pn);
 
-		if (keybits == 0 || keybits - 1 < pn->bit)
-			return NULL;
+			/*
+			 * If we have exactly the same amount of bits and the node contains
+			 * an embedded data, stop.
+			 */
 
-		child = node_matches(pn, key, keybits) ? child_one(pn) : child_zero(pn);
-		if (child == NULL)
-			return NULL;
+			if (keybits == pn->bit && pn->has_embedded_data)
+				return key_eq(key, embedded_item_key(pn), keybits) ? pn : NULL;
 
-		g_assert(child->leaf || child->bit > pn->bit);
+			/*
+			 * If we reach a leaf node, compare the key with the value.
+			 */
 
-		pn = child;
+			if (pn->leaf) {
+				if (leaf_item_keybits(pn) != keybits)
+					return NULL;
+				return key_eq(key, leaf_item_key(pn), keybits) ? pn : NULL;
+			}
+
+			/*
+			 * Stop if we have less bits in the key than the first bit to test.
+			 */
+
+			if (keybits == 0 || keybits - 1 < pn->bit)
+				return NULL;
+
+			child = node_matches(pn, key, keybits) ?
+				child_one(pn) : child_zero(pn);
+
+			if (child == NULL)
+				return NULL;
+
+			g_assert(child->leaf || child->bit > pn->bit);
+
+			pn = child;
+		}
 	}
 
 	g_assert_not_reached();
@@ -826,7 +864,7 @@ match_closest(const patricia_t *pt, gconstpointer key, size_t keybits)
 		if (pn->leaf)
 			return pn;			/* We found the closest node */
 
-		g_assert(!pn->has_embedded_data);
+		g_assert(!pn->has_embedded_data);	/* No key shorter than maxbits */
 
 		child = node_matches(pn, key, keybits) ? child_one(pn) : child_zero(pn);
 
@@ -1283,6 +1321,10 @@ patricia_insert(patricia_t *pt,
 
 	pn = match_best(pt, key, keybits);
 	common_bits = matched_bits(pn, key, keybits, &prefix);
+
+	/*
+	 * Insert at the right position, relative to the found node.
+	 */
 
 	if (common_bits == keybits && keybits >= node_prefix_bits(pn)) {
 		/* All bits from key matched: found node where insertion can be done */
@@ -1748,6 +1790,8 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 		remove_node(pt, pn);
 		sl = g_slist_next(sl);
 	}
+
+	g_slist_free(ctx.sl);
 
 	return ctx.removed;
 }
