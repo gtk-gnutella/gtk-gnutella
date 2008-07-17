@@ -196,7 +196,7 @@ dht_rpc_answer(const guid_t *muid,
 	gconstpointer payload, size_t len)
 {
 	struct rpc_cb *rcb;
-	tm_t now, elapsed;
+	tm_t now;
 
 	rcb = g_hash_table_lookup(pending, muid);
 	if (!rcb)
@@ -216,9 +216,8 @@ dht_rpc_answer(const guid_t *muid,
 
 	tm_now_exact(&now);
 	kn->rpc_timeouts = 0;
-	tm_elapsed(&elapsed, &now, &rcb->start);
 
-	kn->rtt += (tm2ms(&elapsed) >> 1) - (kn->rtt >> 1);
+	kn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (kn->rtt >> 1);
 
 	cq_cancel(callout_queue, &rcb->timeout);
 

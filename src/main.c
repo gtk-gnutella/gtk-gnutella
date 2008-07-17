@@ -321,7 +321,6 @@ log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
 	gdouble sys;
 	gdouble total;
 	tm_t cur_time;
-	tm_t elapsed_time;
 	gdouble elapsed;
 
 	tm_now_exact(&cur_time);
@@ -339,8 +338,7 @@ log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
 		total -= v;
 	}
 
-	tm_elapsed(&elapsed_time, &cur_time, since_time);
-	elapsed = tm2f(&elapsed_time);
+	elapsed = tm_elapsed_f(&cur_time, since_time);
 	*since_time = cur_time;
 
 	g_message("average CPU used: %.3f%% over %.2f secs",
@@ -606,7 +604,6 @@ check_cpu_usage(void)
 	static gint load_avg = 0;		/* 100 * cpu% for integer arithmetic */
 	static gint avg = 0;			/* cpu% */
 	tm_t cur_tm;
-	tm_t elapsed_tm;
 	gint load = 0;
 	gdouble cpu;
 	gdouble elapsed;
@@ -619,9 +616,8 @@ check_cpu_usage(void)
 
 	tm_now_exact(&cur_tm);
 	cpu = tm_cputime(NULL, NULL);
-	tm_elapsed(&elapsed_tm, &cur_tm, &last_tm);
 
-	elapsed = tm2f(&elapsed_tm);
+	elapsed = tm_elapsed_f(&cur_tm, &last_tm);
 	elapsed = MAX(elapsed, 0.000001);	/* Prevent division by zero */
 	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed;
 	cpu_percent = MIN(cpu_percent, 100.0);

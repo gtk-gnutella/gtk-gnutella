@@ -466,7 +466,7 @@ static void
 check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
 {
 	struct dvpoll dvp; 
-	tm_t before, after, elapsed;
+	tm_t before, after;
 	time_delta_t d;
 	gint ret, timeout_ms;
 
@@ -494,8 +494,7 @@ check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
 		g_warning("check_dev_poll(): ioctl() failed: %s", g_strerror(errno));
 	}
 	tm_now_exact(&after);
-	tm_elapsed(&elapsed, &after, &before);
-	d = tm2ms(&elapsed);
+	d = tm_elapsed_ms(&after, &before);
 	if (d >= timeout_ms || ret > 0) {
 		timeout_ms = 0;
 	} else {

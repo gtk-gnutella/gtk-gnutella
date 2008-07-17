@@ -2072,7 +2072,7 @@ search_gui_flush(time_t now, gboolean force)
     static time_t last;
     GSList *frozen = NULL, *sl;
 	results_set_t *rs;
-	tm_t t0, t1, dt;
+	tm_t t0, t1;
 
 	if (!force) {
 		guint32 period;
@@ -2161,8 +2161,8 @@ search_gui_flush(time_t now, gboolean force)
 
 	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
-		tm_elapsed(&dt, &t1, &t0);
-		g_message("dispatching results took %lu ms", (gulong) tm2ms(&dt));
+		g_message("dispatching results took %lu ms",
+			(gulong) tm_elapsed_ms(&t1, &t0));
 	}
 
 	search_gui_flush_queues();

@@ -237,7 +237,7 @@ entropy_collect(struct sha1 *digest)
 
 	{
 		gdouble u, s;
-		tm_t before, after, elapsed;
+		tm_t before, after;
 
 		sha1_feed_double(&ctx, tm_cputime(&u, &s));
 		sha1_feed_double(&ctx, u);
@@ -246,8 +246,7 @@ entropy_collect(struct sha1 *digest)
 		tm_now_exact(&before);
 		compat_sleep_ms(250);	/* 250 ms */
 		tm_now_exact(&after);
-		tm_elapsed(&elapsed, &after, &before);
-		sha1_feed_double(&ctx, 0.25 - tm2f(&elapsed));
+		sha1_feed_double(&ctx, 0.25 - tm_elapsed_f(&after, &before));
 	}
 
 	tm_now_exact(&end);

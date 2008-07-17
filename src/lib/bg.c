@@ -211,7 +211,7 @@ bg_sched_pick(void)
 static void
 bg_task_suspend(struct bgtask *bt)
 {
-	tm_t end, delta;
+	tm_t end;
 	time_delta_t elapsed;
 
 	bg_task_check(bt);
@@ -225,8 +225,7 @@ bg_task_suspend(struct bgtask *bt)
 	 */
 
 	tm_now_exact(&end);
-	tm_elapsed(&delta, &end, &bt->start);
-	elapsed = tm2us(&delta); 
+	elapsed = tm_elapsed_us(&end, &bt->start); 
 
 	/*
 	 * Compensate any clock adjustment by reusing the previous value we

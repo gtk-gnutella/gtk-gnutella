@@ -1130,12 +1130,11 @@ rudp_foreach_pending(gpointer data, gpointer unused_udata)
 	
 	mb = con->out.buffers[con->out.rd];
 	if (mb) {
-		tm_t now, elapsed;
+		tm_t now;
 		
 		tm_now(&now);
-		tm_elapsed(&elapsed, &now, &con->out.last_event);
 
-		if (tm2ms(&elapsed) > 1000) {
+		if (tm_elapsed_ms(&now, &con->out.last_event) > 1000) {
 			rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
 		}
 	}

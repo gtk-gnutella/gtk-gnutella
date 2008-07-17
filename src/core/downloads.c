@@ -5914,7 +5914,6 @@ download_start_reading(gpointer o)
 {
 	struct download *d = cast_to_download(o);
 	tm_t now;
-	tm_t elapsed;
 	guint32 latency;
 
 	/*
@@ -5923,10 +5922,9 @@ download_start_reading(gpointer o)
 	 */
 
 	tm_now(&now);
-	tm_elapsed(&elapsed, &now, &d->header_sent);
 
 	gnet_prop_get_guint32_val(PROP_DL_HTTP_LATENCY, &latency);
-	latency += (tm2ms(&elapsed) >> 2) - (latency >> 2);
+	latency += (tm_elapsed_ms(&now, &d->header_sent) >> 2) - (latency >> 2);
 	gnet_prop_set_guint32_val(PROP_DL_HTTP_LATENCY, latency);
 
 	/*
