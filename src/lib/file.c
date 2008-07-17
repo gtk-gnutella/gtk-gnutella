@@ -38,11 +38,10 @@
 RCSID("$Id$")
 
 #include "file.h"
+#include "debug.h"
 #include "misc.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
-
-static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static const gchar orig_ext[] = "orig";
 static const gchar new_ext[] = "new";

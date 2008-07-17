@@ -43,14 +43,13 @@ RCSID("$Id$")
 
 #include "eval.h"
 #include "atoms.h"
+#include "debug.h"
 #include "glib-missing.h"
 #include "misc.h"			/* For g_strlcpy() */
 
 #include "override.h"		/* Must be the last header included */
 
 #define MAX_STRING	1024	/**< Max length for substitution */
-
-static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static GHashTable *constants;
 static const gchar *home;	/* string atom */

@@ -64,6 +64,7 @@
 
 #include "lib/bit_array.h"
 #include "lib/cq.h"
+#include "lib/debug.h"
 #include "lib/file.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
@@ -1576,13 +1577,13 @@ node_online_mode_changed(property_t prop)
 }
 
 static gboolean
-lib_debug_changed(property_t unused_prop)
+lib_debug_changed(property_t prop)
 {
-	(void) unused_prop;
-/* XXX -- common_dbg is no longer a property! --RAM */
-#if 0
-	gnet_prop_get_guint32_val(prop, &common_dbg);
-#endif
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_library_debug(val);
+
     return FALSE;
 }
 

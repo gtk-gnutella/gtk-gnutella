@@ -543,6 +543,8 @@ src/lib/crc.c
 src/lib/crc.h
 src/lib/dbus_util.c
 src/lib/dbus_util.h
+src/lib/debug.c
+src/lib/debug.h
 src/lib/endian.h
 src/lib/entropy.c
 src/lib/entropy.h
@@ -598,6 +600,8 @@ src/lib/magnet.c
 src/lib/magnet.h
 src/lib/malloc.c
 src/lib/malloc.h
+src/lib/map.c
+src/lib/map.h
 src/lib/mime_type.c
 src/lib/mime_type.h
 src/lib/mime_types.h

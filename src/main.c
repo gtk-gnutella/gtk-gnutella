@@ -104,11 +104,13 @@
 #include "lib/cq.h"
 #include "lib/crash.h"
 #include "lib/crc.h"
+#include "lib/debug.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
+#include "lib/map.h"
 #include "lib/mime_type.h"
 #include "lib/patricia.h"
 #include "lib/pattern.h"
@@ -1344,6 +1346,8 @@ main(int argc, char **argv)
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	settings_init();
+	set_library_debug(GNET_PROPERTY(lib_debug));
+	map_test();				/* after settings_init() */
 	tls_global_init();
 	tls_cache_init();
 	g2_cache_init();
@@ -1357,9 +1361,10 @@ main(int argc, char **argv)
 	verify_tth_init();
 	move_init();
 	ignore_init();
-	file_info_init();
 	pattern_init();
 	word_vec_init();
+
+	file_info_init();
 	host_init();
 	pmsg_init();
 	gmsg_init();

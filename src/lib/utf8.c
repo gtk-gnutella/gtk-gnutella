@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "utf8_tables.h"
 
 #include "utf8.h"
+#include "debug.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
@@ -88,8 +89,6 @@ ui_uses_utf8_encoding(void)
 	return FALSE;
 #endif /* USE_GTK2 */
 }
-
-static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 static void unicode_compose_init(void);
 

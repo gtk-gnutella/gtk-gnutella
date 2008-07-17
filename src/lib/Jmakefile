@@ -43,6 +43,7 @@ LSRC = \
 	crash.c \
 	crc.c \
 	dbus_util.c \
+	debug.c \
 	entropy.c \
 	eval.c \
 	event.c \
@@ -68,6 +69,7 @@ LSRC = \
 	list.c \
 	magnet.c \
 	malloc.c \
+	map.c \
 	mime_type.c \
 	misc.c \
 	options.c \

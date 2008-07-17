@@ -99,6 +99,7 @@ LSRC = \
 	crash.c \
 	crc.c \
 	dbus_util.c \
+	debug.c \
 	entropy.c \
 	eval.c \
 	event.c \
@@ -124,6 +125,7 @@ LSRC = \
 	list.c \
 	magnet.c \
 	malloc.c \
+	map.c \
 	mime_type.c \
 	misc.c \
 	options.c \
@@ -167,6 +169,7 @@ LOBJ = \
 	crash.o \
 	crc.o \
 	dbus_util.o \
+	debug.o \
 	entropy.o \
 	eval.o \
 	event.o \
@@ -192,6 +195,7 @@ LOBJ = \
 	list.o \
 	magnet.o \
 	malloc.o \
+	map.o \
 	mime_type.o \
 	misc.o \
 	options.o \

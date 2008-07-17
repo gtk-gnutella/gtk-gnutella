@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "adns.h"
 #include "atoms.h"
+#include "debug.h"
 #include "inputevt.h"
 #include "misc.h"
 #include "glib-missing.h"
@@ -47,8 +48,6 @@ RCSID("$Id$")
 #include "socket.h"
 
 #include "override.h"		/* Must be the last header included */
-
-static guint32 common_dbg = 0;	/**< @bug XXX need to init lib's props --RAM */
 
 /* private data types */
 

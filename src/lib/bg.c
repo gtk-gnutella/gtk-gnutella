@@ -42,6 +42,7 @@
 RCSID("$Id$")
 
 #include "bg.h"
+#include "debug.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
@@ -56,8 +57,6 @@ enum bgtask_magic {
 #define MAX_LIFE		350000			/**< In useconds, MUST be << 1 sec */
 #define MIN_LIFE		40000			/**< Min lifetime per task, in usecs */
 #define DELTA_FACTOR	4				/**< Max variations are 400% */
-
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 
 /**
  * Internal representation of a user-defined task.

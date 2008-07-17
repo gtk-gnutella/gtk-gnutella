@@ -29,6 +29,7 @@ RCSID("$Id$")
 
 #include "getdate.h"
 #include "prop.h"
+#include "debug.h"
 #include "file.h"
 #include "misc.h"
 #include "glib-missing.h"
@@ -37,7 +38,6 @@ RCSID("$Id$")
 
 #define debug track_props
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
-static guint32 common_dbg = 0;	/**< XXX -- need to init lib's props --RAM */
 
 const struct {
 	const gchar *name; 
