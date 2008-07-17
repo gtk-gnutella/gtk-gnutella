@@ -1189,7 +1189,9 @@ handle_arguments(int argc, char **argv)
 #endif	/* USE_TOPLESS */
 	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
-		
+#ifndef OFFICIAL_BUILD
+		printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
+#endif
 		printf("GLib %u.%u.%u",
 			glib_major_version, glib_minor_version, glib_micro_version);
 		if (
