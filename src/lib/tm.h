@@ -173,4 +173,16 @@ tm_elapsed_ms(const tm_t *t1, const tm_t *t0)
 	return tm2ms(&elapsed);
 }
 
+/**
+ * Computes the elapsed time (t1 - t0) and return duration in microseconds.
+ */
+static inline time_delta_t
+tm_elapsed_us(const tm_t *t1, const tm_t *t0)
+{
+	tm_t elapsed;
+
+	tm_elapsed(&elapsed, t1, t0);
+	return tm2us(&elapsed);
+}
+
 #endif /* _tm_h_ */
