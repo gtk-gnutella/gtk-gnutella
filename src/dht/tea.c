@@ -138,6 +138,9 @@ tea_test(void)
 	tea_block_t decrypted;
 	int i;
 
+	STATIC_ASSERT(sizeof(key.v) == TEA_KEY_SIZE);
+	STATIC_ASSERT(sizeof(value.v) == TEA_BLOCK_SIZE);
+
 	for (i = 0; i < 10; i++) {
 		int j;
 		gboolean randomized = FALSE;

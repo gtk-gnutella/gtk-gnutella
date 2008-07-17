@@ -46,7 +46,7 @@
  * it has only 126 bits of entropy.
  */
 typedef struct tea_key {
-	guchar v[TEA_BLOCK_SIZE];
+	guchar v[TEA_KEY_SIZE];
 } tea_key_t;
 
 /**
