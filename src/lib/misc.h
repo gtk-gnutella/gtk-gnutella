@@ -52,9 +52,10 @@
 
 #include "common.h"
 
-#include "lib/compat_sleep_ms.h"
-#include "lib/fs_free_space.h"
-#include "lib/vmm.h"
+#include "compat_sleep_ms.h"
+#include "fs_free_space.h"
+#include "tm.h"
+#include "vmm.h"
 
 #define SIZE_FIELD_MAX 64		/**< Max size of sprintf-ed size quantity */
 #define GUID_RAW_SIZE		16	/**< Binary representation of 128 bits */
@@ -378,67 +379,6 @@ size_t timestamp_utc_to_string_buf(time_t date, gchar *dst, size_t size);
 size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
 
 short_string_t timestamp_get_string(time_t date);
-
-/*
- * We use the direct difference of time_t values instead of difftime()
- * for performance. Just in case there is any system which requires difftime()
- * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
- */
-#if defined(USE_DIFFTIME)
-typedef gint64 time_delta_t;
-
-static inline time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return difftime(t1, t0);
-}
-#else	/* !USE_DIFFTIME */
-typedef time_t time_delta_t;
-
-static inline time_delta_t
-delta_time(time_t t1, time_t t0)
-{
-	return t1 - t0;
-}
-
-static inline void
-time_t_check(void)
-{
-	/* If time_t is not a signed integer type, we cannot calculate properly
-	 * with the raw values. Define USE_DIFFTIME, if this check fails.*/
-	STATIC_ASSERT((time_t) -1 < 0);
-}
-#endif /* USE_DIFFTIME*/
-
-/**
- * Advances the given timestamp by delta using saturation arithmetic.
- * @param t the timestamp to advance.
- * @param delta the amount of seconds to advance.
- * @return the advanced timestamp or TIME_T_MAX.
- */
-static inline time_t
-time_advance(time_t t, gulong delta)
-{
-	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
-	 * would be cleaner but give a confusing interface. Jumping 136
-	 * years in time should be enough for everyone. Most systems
-	 * don't allow us to advance a time_t beyond 2038 anyway.
-	 */
-
-	do {
-		glong d;
-
-		d = MIN(delta, (gulong) LONG_MAX);
-		if (d >= TIME_T_MAX - t) {
-			t = TIME_T_MAX;
-			break;
-		}
-		t += d;
-		delta -= d;
-	} while (delta > 0);
-
-	return t;
-}
 
 /*
  * Time string conversions
