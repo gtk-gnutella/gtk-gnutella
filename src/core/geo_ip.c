@@ -307,7 +307,7 @@ gip_retrieve(void)
 }
 
 /**
- * Called on startup. Loads the bogons.txt into memory.
+ * Called on startup. Loads the geo-ip.txt file into memory.
  */
 void
 gip_init(void)
