@@ -113,7 +113,7 @@ cqueue_check(const struct cqueue * const cq)
 	g_assert(CQUEUE_MAGIC == cq->cq_magic);
 }
 
-#define HASH_SIZE	1024			/**< Hash list size, must be power of 2 */
+#define HASH_SIZE	2048		/**< Hash list size, must be a power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
 
 /*
