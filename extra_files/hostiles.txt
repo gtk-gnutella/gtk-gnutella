@@ -1304,6 +1304,19 @@
 # LimeWire/4.16.6 (potentially fake); port 20001; all kinds of massive spam
 66.45.226.48/28
 
+# coolpixhost redirect spam; HTML, DRM-ASF
+# multiple peers at ports above 41000
+# pretends to be just routing but is actual source
+# Both ranges are assigned to:
+# Street-Address: Krasnogvardejskaja st. 38-35
+# City: Zaporozhye
+# Postal-Code: 69002
+# Country-Code: UA
+#76.164.220.26
+76.164.220.24/29
+#76.164.200.74
+76.164.200.72/29
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
