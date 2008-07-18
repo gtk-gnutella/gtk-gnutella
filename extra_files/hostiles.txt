@@ -1316,6 +1316,8 @@
 76.164.220.24/29
 #76.164.200.74
 76.164.200.72/29
+# same as above but subrange of webair
+74.206.224.0/28
 
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
