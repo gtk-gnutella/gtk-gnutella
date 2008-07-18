@@ -216,6 +216,7 @@ struct patricia {
 	size_t nodes;					/**< Total amount of nodes used */
 	size_t embedded;				/**< Nodes holding embedded data */
 	guint stamp;					/**< Stamp to protect iterators */
+	gint refcnt;					/**< Reference count */
 };
 
 /**
@@ -238,6 +239,7 @@ patricia_create(size_t maxbits)
 	pt->count = pt->nodes = pt->embedded = 0;
 	pt->maxbits = maxbits;
 	pt->stamp = 0;
+	pt->refcnt = 1;
 
 	return pt;
 }
@@ -295,6 +297,15 @@ set_parent(struct patricia_node *pn, struct patricia_node *parent)
 	}
 
 	g_assert(parent_node(pn) == parent);
+}
+
+/**
+ * Convert key size in bits to key size in bytes.
+ */
+static inline size_t
+bits2bytes(size_t keybits)
+{
+	return (keybits >> 3) + ((keybits & 0x7) ? 1 : 0);
 }
 
 /**
@@ -729,6 +740,52 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 }
 
 /**
+ * Find the leftmost node in the tree, or the rightmost depending on
+ * the boolean parameter.
+ *
+ * @param root			the root node of the tree
+ * @param leftmost		whether we should follow the left side of branches
+ *
+ * @return the deepest node on the left side or the right side of the tree
+ * spanned by the given root.
+ */
+static const struct patricia_node *
+find_deepest(const struct patricia_node *root, gboolean leftmost)
+{
+	const struct patricia_node *pn;
+	int i;
+
+	if (NULL == root)
+		return NULL;
+
+	for (pn = root, i = 0; i <= PATRICIA_MAXBITS; i++) {
+		const struct patricia_node *child;
+
+		g_assert(pn);
+
+		if (pn->leaf)
+			return pn;
+
+		/*
+		 * Stick to the general orientation (leftmost or rightmost)
+		 * unless there is only one child for the node (possible only
+		 * when there is attached embedded data for the node).
+		 */
+
+		child = leftmost ? child_zero(pn) : child_one(pn);
+		if (child == NULL)
+			child = leftmost ? child_one(pn) : child_zero(pn);
+
+		g_assert(child);
+		g_assert(child->leaf || child->bit > pn->bit);
+
+		pn = child;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Look in the tree for a node which holds data that is a best match for
  * the key.  All the bits of the key in the found data key must match the
  * corresponding leading part of the key, but it does not mean it is an
@@ -823,6 +880,66 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
 }
 
 /**
+ * Look in the tree for the node containing a key which shares the most/smallest
+ * amount of bits with the search key, albeit not necessarily in a consecutive
+ * way. This is the closest or furthest node in the tree to the search key,
+ * under the XOR metric.
+ *
+ * @attention
+ * This call is restricted to PATRICIA trees holding a set of keys with
+ * the same size: the maximum allowed in the tree.
+ *
+ * @param pt		the PATRICIA tree, for assertion on keybits
+ * @param root		the
+ * @param key		the key we're looking for
+ * @param keybits	the amount of significant bits in the key
+ * @param closest	whether to look for the closest or furthest node
+ *
+ * @return the node which is the furthest match, or NULL if none was found
+ * under the given root node.
+ */
+static const struct patricia_node *
+find_closest(const patricia_t *pt, const struct patricia_node *root,
+	gconstpointer key, size_t keybits, gboolean closest)
+{
+	const struct patricia_node *pn;
+	int i;
+
+	g_assert(pt);
+	g_assert(key);
+	g_assert(keybits == pt->maxbits);
+	g_assert(pt->embedded == 0);		/* All keys must have the same size */
+
+	/*
+	 * Because all keys have the same size, we know the PATRICIA tree cannot
+	 * hold any embedded data in non-leaf nodes, and each non-leaf node has
+	 * exactly two children or it would not exist.
+	 */
+
+	for (pn = root, i = 0; i <= PATRICIA_MAXBITS; i++) {
+		const struct patricia_node *child;
+		gboolean matches;
+
+		g_assert(pn);
+
+		if (pn->leaf)
+			return pn;						/* We found the closest node */
+
+		g_assert(!pn->has_embedded_data);	/* No key shorter than maxbits */
+
+		matches = node_matches(pn, key, keybits);
+		child = (matches != closest) ? child_zero(pn) : child_one(pn);
+
+		g_assert(child);		/* Must have two children */
+		g_assert(child->leaf || child->bit > pn->bit);
+
+		pn = child;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Look in the tree for the node containing a key which shares the largest
  * amount of bits with the search key, albeit not necessarily in a consecutive
  * way. This is the "closest" node in the tree to the search key, under the
@@ -842,39 +959,7 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
 static const struct patricia_node *
 match_closest(const patricia_t *pt, gconstpointer key, size_t keybits)
 {
-	const struct patricia_node *pn;
-	int i;
-
-	g_assert(pt);
-	g_assert(key);
-	g_assert(keybits == pt->maxbits);
-	g_assert(pt->embedded == 0);		/* All keys must have the same size */
-
-	/*
-	 * Because all keys have the same size, we know the PATRICIA tree cannot
-	 * hold any embedded data in non-leaf nodes, and each non-leaf node has
-	 * exactly two children or it would not exist.
-	 */
-
-	for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
-		const struct patricia_node *child;
-
-		g_assert(pn);
-
-		if (pn->leaf)
-			return pn;			/* We found the closest node */
-
-		g_assert(!pn->has_embedded_data);	/* No key shorter than maxbits */
-
-		child = node_matches(pn, key, keybits) ? child_one(pn) : child_zero(pn);
-
-		g_assert(child);		/* Must have two children */
-		g_assert(child->leaf || child->bit > pn->bit);
-
-		pn = child;
-	}
-
-	g_assert_not_reached();
+	return find_closest(pt, pt->root, key, keybits, TRUE);
 }
 
 /**
@@ -1679,6 +1764,9 @@ patricia_destroy(patricia_t *pt)
 {
 	g_assert(pt);
 
+	if (--pt->refcnt > 0)
+		return;			/* Still referenced by something internally */
+
 	traverse(pt, traverse_remove_node, pt, NULL, NULL);
 	g_assert(pt->nodes == 0);
 
@@ -1794,6 +1882,320 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 	g_slist_free(ctx.sl);
 
 	return ctx.removed;
+}
+
+/***
+ *** PATRICIA iterators.
+ ***/
+
+enum patricia_iter_type {
+	PATRICIA_ITER_TREE	= 1,		/**< "lexicographic" traversal */
+	PATRICIA_ITER_XOR,				/**< "xor metric" traversal */
+};
+
+/**
+ * A PATRICIA iterator.
+ */
+struct patricia_iter {
+	enum patricia_iter_type type;		/**< Type of iterator */
+	patricia_t *pt;						/**< The PATRICIA tree */
+	const struct patricia_node *last;	/**< Last visited node */
+	const struct patricia_node *next;	/**< Cached next node to visit */
+	gpointer key;					/**< Target key, in metric iterators */
+	size_t keybits;					/**< Size of key, in metric iterators */
+	guint stamp;					/**< Tree stamp at iterator creation */
+	gboolean knows_next;			/**< Whether we determined the next node */
+	gboolean forward;				/**< Whether iterator is moving forward */
+};
+
+/**
+ * Common iterator field initialization.
+ */
+static patricia_iter_t *
+common_iter_init(patricia_iter_t *iter, patricia_t *pt, gboolean forward)
+{
+	iter->pt = pt;
+	iter->last = NULL;
+	iter->stamp = pt->stamp;
+	iter->knows_next = TRUE;
+	iter->forward = forward;
+	pt->refcnt++;
+
+	return iter;
+}
+
+/**
+ * Create a PATRICIA tree iterator.
+ *
+ * @param pt		the PATRICIA tree
+ * @param forward	whether iteration should move forward or backwards
+ */
+patricia_iter_t *
+patricia_tree_iterator(patricia_t *pt, gboolean forward)
+{
+	struct patricia_iter *iter;
+
+	g_assert(pt);
+
+	iter = walloc0(sizeof *iter);
+
+	iter->type = PATRICIA_ITER_TREE;
+	iter->next = find_deepest(pt->root, forward);
+
+	return common_iter_init(iter, pt, forward);
+}
+
+/**
+ * Create a PATRICIA metric iterator, starting for the closest (resp. furthest)
+ * location relative to the supplied key if forward is TRUE (resp. FALSE).
+ *
+ * In other words, when forward is TRUE, the distance to the target will
+ * increase at each step, whereas it will decrease at each step if forward
+ * is FALSE.
+ *
+ * @param pt		the PATRICIA tree
+ * @param key		initial key for iterator initialization
+ * @param keybits	size of key in bits
+ * @param forward	whether iteration should move forward or backwards
+ *
+ * @attention
+ * This iterator is restricted to PATRICIA trees holding constant-width
+ * keys only.
+ *
+ * A copy of the key is made and is released in patricia_iterator_release().
+ */
+patricia_iter_t *
+patricia_metric_iterator(patricia_t *pt,
+	gconstpointer key, size_t keybits, gboolean forward)
+{
+	struct patricia_iter *iter;
+	size_t keybytes = bits2bytes(keybits);
+
+	g_assert(pt);
+	g_assert(keybits == pt->maxbits);
+	g_assert(pt->embedded == 0);
+
+	iter = walloc(sizeof *iter);
+
+	iter->type = PATRICIA_ITER_XOR;
+	iter->next = find_closest(pt, pt->root, key, keybits, forward);
+	iter->key = walloc(keybytes);
+	memcpy(iter->key, key, keybytes);
+	iter->keybits = keybits;
+
+	return common_iter_init(iter, pt, forward);
+}
+
+/**
+ * Compute the next tree node in a lexicographic traversal (forward or
+ * backwards).
+ */
+static const struct patricia_node *
+next_tree_node(const struct patricia_node *prev, gboolean forward)
+{
+	const struct patricia_node *pn;
+	int i;
+
+	g_assert(prev);
+
+	for (pn = prev, i = 0; i <= PATRICIA_MAXBITS; i++) {
+		const struct patricia_node *parent = parent_node(pn);
+		const struct patricia_node *next = NULL;
+
+		if (!parent)
+			return NULL;
+		else if (forward && parent->u.children.z == pn)
+			next = parent->u.children.o;
+		else if (!forward && parent->u.children.o == pn)
+			next = parent->u.children.z;
+
+		if (next)
+			return find_deepest(next, forward);
+
+		/*
+		 * Embedded data processed only when both children have been
+		 * traversed by the iterator.
+		 */
+
+		if (parent->has_embedded_data)
+			return parent;
+
+		pn = parent;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compute the next tree node in a metric traversal (forward meaning moving
+ * away from the original key, backwards meaning moving towards it).
+ */
+static const struct patricia_node *
+next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
+	gpointer key, size_t keybits, gboolean forward)
+{
+	const struct patricia_node *pn;
+	int i;
+
+	g_assert(prev);
+
+	for (pn = prev, i = 0; i <= PATRICIA_MAXBITS; i++) {
+		const struct patricia_node *parent = parent_node(pn);
+
+		if (!parent) {
+			return NULL;
+		} else {
+			gboolean matches = node_matches(parent, key, keybits);
+			const struct patricia_node *next = NULL;
+
+			g_assert(!parent->has_embedded_data);
+
+			/*
+			 * Go visit the sibling tree if we haven't yet, otherwise
+			 * we'll move up and make the same test in the parent node.
+			 */
+
+			if ((forward == matches) && parent->u.children.o == pn)
+				next = parent->u.children.z;
+			else if (forward != matches && parent->u.children.z == pn)
+				next = parent->u.children.o;
+
+			if (next) {
+				g_assert(parent_node(next) == parent);
+				return find_closest(pt, next, key, keybits, forward);
+			}
+		}
+
+		g_assert(parent->bit < node_prefix_bits(pn));
+
+		pn = parent;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compute next item for the iterator, given the previous one.
+ */
+static const struct patricia_node *
+next_item(patricia_iter_t *iter, const struct patricia_node *prev)
+{
+	const struct patricia_node *next = NULL;
+
+	switch (iter->type) {
+	case PATRICIA_ITER_TREE:
+		next = next_tree_node(prev, iter->forward);
+		break;
+	case PATRICIA_ITER_XOR:
+		next = next_metric_node(iter->pt, prev,
+			iter->key, iter->keybits, iter->forward);
+		break;
+	}
+
+	g_assert(next == NULL || node_has_data(next));
+
+	return next;
+}
+
+/**
+ * Do we have a next item to iterate to?
+ *
+ * This routine computes the next item as a side effect, if not already
+ * done.  It can be called several times with no further side effect,
+ * until patricia_iter_next() is called to actually consume the next item.
+ */
+gboolean
+patricia_iter_has_next(patricia_iter_t *iter)
+{
+	if (!iter->knows_next) {
+		g_assert(iter->stamp == iter->pt->stamp);
+		g_assert(iter->last != NULL);
+		iter->next = next_item(iter, iter->last);
+		iter->knows_next = TRUE;
+	}
+
+	return iter->next != NULL;
+}
+
+/**
+ * Iterate on the next value, returning the data held there, or NULL if
+ * we reached the end of the iterator.
+ *
+ * @attention
+ * NULL is a valid value in PATRICIA trees.  Therefore, one should call
+ * patricia_iter_has_next() before to make sure there is indeed a next
+ * value, instead of relying on patricia_iter_next() to return NULL to
+ * signify the end of the iteration...
+ */
+gpointer
+patricia_iter_next_value(patricia_iter_t *iter)
+{
+	gboolean has_next;
+
+	has_next = iter->knows_next ?
+		iter->next != NULL : patricia_iter_has_next(iter);
+
+	g_assert(iter->stamp == iter->pt->stamp);
+
+	if (!has_next)
+		return NULL;
+
+	iter->last = iter->next;
+	iter->knows_next = FALSE;
+
+	return deconstify_gpointer(node_value(iter->last));
+}
+
+/**
+ * Iterate on the next item, returning the key/value held there through
+ * supplied non-NULL pointers.
+ *
+ * @return TRUE if we advanced to the next item, FALSE if we reached the
+ * end of the iteration.
+ */
+gboolean
+patricia_iter_next(patricia_iter_t *iter,
+	gpointer *key, size_t *keybits, gpointer *value)
+{
+	gboolean has_next;
+
+	has_next = iter->knows_next ?
+		iter->next != NULL : patricia_iter_has_next(iter);
+
+	if (!has_next)
+		return FALSE;
+
+	iter->last = iter->next;
+	iter->knows_next = FALSE;
+
+	if (key)     *key     = deconstify_gpointer(node_key(iter->last));
+	if (keybits) *keybits = node_keybits(iter->last);
+	if (value)   *value   = deconstify_gpointer(node_value(iter->last));
+
+	return TRUE;
+}
+
+/**
+ * Release PATRICIA iterator, nullify iterator variable.
+ */
+void
+patricia_iterator_release(patricia_iter_t **iter_ptr)
+{
+	patricia_iter_t *iter;
+
+	g_assert(iter_ptr);
+
+	iter = *iter_ptr;
+
+	if (iter) {
+		patricia_destroy(iter->pt);
+		if (iter->type == PATRICIA_ITER_XOR) {
+			wfree(iter->key, bits2bytes(iter->keybits));
+			iter->key = NULL;
+		}
+		wfree(iter, sizeof *iter);
+		*iter_ptr = NULL;
+	}
 }
 
 /***
@@ -1945,7 +2347,7 @@ patricia_test(void)
 		g_assert(key == &data[i]);
 	}
 
-	/* iterating to count items... */
+	/* iterating to count items, first with patricia_foreach()... */
 
 	{
 		struct counter ctx;
@@ -1955,6 +2357,60 @@ patricia_test(void)
 		patricia_foreach(pt, count_items, &ctx);
 		g_assert(ctx.items == patricia_count(pt));
 		g_assert(ctx.even_keys == even);
+	}
+
+	/* iterating to count items, secondly with lexicographic traversal... */
+
+	{
+		patricia_iter_t *iter;
+		size_t count = 0;
+		size_t even_keys = 0;
+		gpointer key;
+
+		iter = patricia_tree_iterator(pt, TRUE);
+		while (patricia_iter_next(iter, &key, NULL, NULL)) {
+			guint8 *k = key;
+			count++;
+			if (!(k[3] & 0x1))
+				even_keys++;
+		}
+		patricia_iterator_release(&iter);
+
+		g_assert(count == patricia_count(pt));
+		g_assert(even_keys == even);
+	}
+
+	/* iterating to count items, thirdly with reverse metric traversal... */
+
+	{
+		patricia_iter_t *iter;
+		size_t count = 0;
+		size_t even_keys = 0;
+		gpointer key;
+		guint32 distance;
+		guint32 previous_distance;
+		gboolean first = TRUE;
+		size_t idx = random_value(G_N_ELEMENTS(keys) - 1);
+
+		iter = patricia_metric_iterator(pt, &data[idx], 32, FALSE);
+		while (patricia_iter_next(iter, &key, NULL, NULL)) {
+			guint8 *k = key;
+			count++;
+			if (!(k[3] & 0x1))
+				even_keys++;
+			if (first) {
+				previous_distance = peek_be32(key) ^ peek_be32(&data[idx]);
+				first = FALSE;
+			} else {
+				distance = peek_be32(key) ^ peek_be32(&data[idx]);
+				g_assert(distance < previous_distance);
+				previous_distance = distance;
+			}
+		}
+		patricia_iterator_release(&iter);
+
+		g_assert(count == patricia_count(pt));
+		g_assert(even_keys == even);
 	}
 
 	/* removing odd keys... */

@@ -43,6 +43,9 @@
 struct patricia;
 typedef struct patricia patricia_t;
 
+struct patricia_iter;
+typedef struct patricia_iter patricia_iter_t;
+
 typedef void (*patricia_cb_t)(
 	gpointer key, size_t keybits, gpointer value, gpointer u);
 typedef gboolean (*patricia_cbr_t)(
@@ -75,6 +78,15 @@ gpointer patricia_closest(
 gboolean patricia_closest_extended(
 	const patricia_t *pt, gconstpointer key, size_t keybits,
 	gpointer *keyptr, gpointer *valptr);
+
+patricia_iter_t *patricia_tree_iterator(patricia_t *pt, gboolean forward);
+patricia_iter_t *patricia_metric_iterator(patricia_t *pt,
+	gconstpointer key, size_t keybits, gboolean forward);
+gboolean patricia_iter_has_next(patricia_iter_t *iter);
+gpointer patricia_iter_next_value(patricia_iter_t *iter);
+gboolean patricia_iter_next(patricia_iter_t *iter,
+	gpointer *key, size_t *keybits, gpointer *value);
+void patricia_iterator_release(patricia_iter_t **iter_ptr);
 
 void patricia_test(void);
 
