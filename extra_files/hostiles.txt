@@ -1098,6 +1098,7 @@
 # Fake Shareaza/2.2.5 with TLS; probably LimeWire
 # ranges belongs to ThePlanet.com; assigned to Jun Group
 75.125.180.176/28
+75.125.129.128/29
 #174.133.206.152/29
 #174.133.206.170
 #174.133.211.10
