@@ -111,6 +111,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_SO,			/**< Secure OOB */
 	EXT_T_GGEP_T,			/**< Same as ALT_TLS but for HEAD Pongs */
 	EXT_T_GGEP_TLS,			/**< Supports TLS */
+	EXT_T_GGEP_TT,			/**< Tigertree root hash (TTH); binary */
 	EXT_T_GGEP_UA,			/**< User-Agent string */
 	EXT_T_GGEP_UDPHC,		/**< UDP HostCache, in pongs (UHC) */
 	EXT_T_GGEP_UP,			/**< UltraPeer information */

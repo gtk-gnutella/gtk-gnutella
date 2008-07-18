@@ -1653,6 +1653,18 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						}
 					}
 					break;
+				case EXT_T_GGEP_TT:	/* TTH (binary) */
+					paylen = ext_paylen(e);
+					paylen = MIN(paylen, TTH_RAW_SIZE);
+					if (TTH_RAW_SIZE == paylen) {
+						memcpy(tth_digest.data, ext_payload(e), TTH_RAW_SIZE);
+						atom_tth_change(&rc->tth, &tth_digest);
+					} else {
+						if (GNET_PROPERTY(search_debug) > 0) {
+							g_message("GGEP \"TTH\" has wrong size");
+						}
+					}
+					break;
 				case EXT_T_GGEP_u:		/* HUGE URN, without leading urn: */
 					paylen = ext_paylen(e);
 					payload = ext_payload(e);

@@ -191,6 +191,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Same as ALT_TLS but for HEAD Pongs */
 	GGEP_ID(TLS),		/**< TLS support indication */
+	GGEP_ID(TT),		/**< Tigertree root hash (TTH); binary */
 	GGEP_ID(UA),		/**< User-Agent string */
 	GGEP_ID(UDPHC),		/**< Is an UDP hostcache (UHC) , in pongs */
 	GGEP_ID(UP),		/**< Ultrapeer information about free slots */

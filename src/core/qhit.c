@@ -648,19 +648,12 @@ add_file(const struct shared_file *sf)
 
 	if (sha1_available && !found_ggep_h()) {
 		const struct sha1 * const sha1 = shared_file_sha1(sf);
-		const struct tth * const tth = shared_file_tth(sf);
 
 		/* Good old way: ASCII URN */
 		if (!found_write(sha1_to_urn_string(sha1), SHA1_URN_LENGTH))
 			return FALSE;
 		if (!found_write("\x1c", 1))
 			return FALSE;
-		if (tth) {
-			if (!found_write(tth_to_urn_string(tth), TTH_URN_LENGTH))
-				return FALSE;
-			if (!found_write("\x1c", 1))
-				return FALSE;
-		}
 	}
 
 	/*
@@ -672,8 +665,8 @@ add_file(const struct shared_file *sf)
 	ggep_stream_init(&gs, start, left);
 
 	/*
-	 * Emit the SHA1 as GGEP "H" if they said they understand it.
-	 * Modern way: GGEP "H" for binary URN
+	 * Emit the SHA1 as GGEP "H" if they said they understand it. The modern
+	 * way is GGEP "H" for binary URN but only gtk-gnutella implements it.
 	 */
 
 	if (sha1_available && found_ggep_h()) {
@@ -690,6 +683,22 @@ add_file(const struct shared_file *sf)
 
 		if (!ok)
 			g_warning("could not write GGEP \"H\" extension in query hit");
+	}
+
+	/*
+	 * First LimeWire emitted TTHs as plain text urn:ttroot:<base32 TTH>.
+	 * Now they are still unaware of GGEP "H" but emit GGEP "TT" with the
+	 * hash in binary form.
+	 */
+	if (sha1_available && !found_ggep_h()) {
+		const struct tth * const tth = shared_file_tth(sf);
+
+		if (tth) {
+			ok = ggep_stream_pack(&gs,
+						GGEP_NAME(TT), tth->data, TTH_RAW_SIZE, GGEP_W_COBS);
+			if (!ok)
+				g_warning("could not write GGEP \"TT\" extension in query hit");
+		}
 	}
 
 	/*
