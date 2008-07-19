@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup dht
+ * @ingroup lib
  * @file
  *
  * Tiny Encryption Algorithm.
@@ -42,10 +42,10 @@ RCSID("$Id$")
 
 #include "tea.h"
 
-#include "lib/endian.h"
-#include "lib/misc.h"			/* For tests only */
+#include "endian.h"
+#include "misc.h"			/* For tests only */
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 #define TEA_ROUNDS		32
 #define TEA_CONSTANT	0x9e3779b9		/* A key schedule constant */

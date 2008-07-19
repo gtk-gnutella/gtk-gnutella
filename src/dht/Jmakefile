@@ -32,8 +32,7 @@ SRC = \
 	knode.c \
 	kuid.c \
 	routing.c \
-	rpc.c \
-	tea.c
+	rpc.c
 
 OBJ = \
 |expand f!$(SRC)!

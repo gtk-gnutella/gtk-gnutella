@@ -82,6 +82,7 @@ LSRC = \
 	slist.c \
 	sorted_array.c \
 	stats.c \
+	tea.c \
 	tiger.c \
 	tigertree.c \
 	tm.c \

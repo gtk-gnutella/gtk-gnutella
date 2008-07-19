@@ -458,8 +458,6 @@ src/dht/routing.c
 src/dht/routing.h
 src/dht/rpc.c
 src/dht/rpc.h
-src/dht/tea.c
-src/dht/tea.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH
@@ -631,6 +629,8 @@ src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/stats.c
 src/lib/stats.h
+src/lib/tea.c
+src/lib/tea.h
 src/lib/tiger.c
 src/lib/tiger.h
 src/lib/tiger_sboxes.h

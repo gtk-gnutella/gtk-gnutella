@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup dht
+ * @ingroup lib
  * @file
  *
  * Tiny Encryption Algorithm.
@@ -33,8 +33,8 @@
  * @date 2008
  */
 
-#ifndef _dht_tea_h_
-#define _dht_tea_h_
+#ifndef _tea_h_
+#define _tea_h_
 
 #define TEA_KEY_SIZE	16
 #define TEA_BLOCK_SIZE	8
@@ -65,6 +65,6 @@ void tea_encrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
 void tea_decrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
 void tea_test(void);
 
-#endif	/* _dht_tea_h_ */
+#endif	/* _tea_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

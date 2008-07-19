@@ -85,16 +85,14 @@ SRC = \
 	knode.c \
 	kuid.c \
 	routing.c \
-	rpc.c \
-	tea.c
+	rpc.c
 
 OBJ = \
 	kmsg.o \
 	knode.o \
 	kuid.o \
 	routing.o \
-	rpc.o \
-	tea.o 
+	rpc.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)

@@ -138,6 +138,7 @@ LSRC = \
 	slist.c \
 	sorted_array.c \
 	stats.c \
+	tea.c \
 	tiger.c \
 	tigertree.c \
 	tm.c \
@@ -208,6 +209,7 @@ LOBJ = \
 	slist.o \
 	sorted_array.o \
 	stats.o \
+	tea.o \
 	tiger.o \
 	tigertree.o \
 	tm.o \
