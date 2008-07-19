@@ -2388,7 +2388,7 @@ patricia_test(void)
 		size_t even_keys = 0;
 		gpointer key;
 		guint32 distance;
-		guint32 previous_distance;
+		guint32 previous_distance = 0;
 		gboolean first = TRUE;
 		size_t idx = random_value(G_N_ELEMENTS(keys) - 1);
 
