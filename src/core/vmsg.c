@@ -80,11 +80,12 @@ RCSID("$Id$")
 
 #include "lib/override.h"	/* Must be the last header included */
 
-static gchar v_tmp[4128];	/**< Large enough for a payload of 4K */
+static gchar v_tmp[4128];	/**< Large enough for a payload of 4 KiB */
 static gnutella_header_t *v_tmp_header = (void *) v_tmp;
 static gnutella_vendor_t *v_tmp_data = (void *) &v_tmp[GTA_HEADER_SIZE];
 
-#define VMSG_PAYLOAD_MAX ((sizeof v_tmp) - GTA_HEADER_SIZE)
+/* Available payload space minus the bytes used by headers */
+#define VMSG_PAYLOAD_MAX ((sizeof v_tmp) - GTA_HEADER_SIZE - sizeof(gnutella_vendor_t))
 
 static GHashTable *ht_vmsg;
 
@@ -396,7 +397,7 @@ handle_features_supported(struct gnutella_node *n,
 				node_addr(n), node_vendor(n),
 				feature, version);
 
-		if (0 == strcmp(feature, "TLS!")) {
+		if (0 != version && 0 == strcmp(feature, "TLS!")) {
 			node_supports_tls(n);
 		}
 	}
@@ -2728,12 +2729,17 @@ handle_head_pong_v2(const struct head_ping_source *source,
 					array_init(ext_payload(e), ext_paylen(e)));
 			}
 			break;
+		case EXT_T_GGEP_T:	/* TLS-capability bitmap for "A" */
+		case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for "ALT" */
+			/* FIXME: Handle this */	
+			break;
 		default:
 			if (GNET_PROPERTY(vmsg_debug)) {
 				const char *name = ext_ggep_id_str(e);
 
 				if (name[0]) {
-					g_message("HEAD Pong carries unhandled GGEP \"%s\"", name);
+					g_message("HEAD Pong carries unhandled GGEP \"%s\" (%lu byte)",
+						name, (unsigned long) ext_paylen(e));
 				} else {
 					g_message("HEAD Pong carries unknown extra payload");
 				}
@@ -3038,38 +3044,76 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	gmsg_sendto_one(n, v_tmp, msgsize);
 }
 
-void
-vmsg_send_features_supported(struct gnutella_node *n)
-{
-	static const struct {
-		char name[4];
-		guint16 version;
-	} features[] = {
-#ifdef HAS_GNUTLS
-		{ "TLS!",	1 },
-#endif	/* HAS_GNUTLS */
-		{ "HSEP",	1 },
-	};
-	guint32 paysize;
-	guint32 msgsize;
-	gchar *payload;
-	guint i;
+struct vmsg_features {
+	char *data;		/* Buffer where to store the message payload */
+	size_t size;	/* size in bytes of the above mentioned buffer */
+	size_t pos;		/* current byte position in the buffer */
+};
 
-	payload = vmsg_fill_type(v_tmp_data, T_0000, 10, 0);
+static void
+vmsg_features_reset(struct vmsg_features *vmf, char *data, size_t size)
+{
+	g_assert(vmf);
+	g_assert(data);
+	g_assert(size >= 2);
+
+	vmf->data = data;
+	vmf->size = size;
+	poke_le16(&vmf->data[0], 0);
+	vmf->pos = 2;
+}
+
+static size_t
+vmsg_features_get_length(const struct vmsg_features *vmf)
+{
+	g_assert(vmf);
+	g_assert(vmf->pos <= vmf->size);
+
+	return vmf->pos;
+}
+
+static void
+vmsg_features_add(struct vmsg_features *vmf, const char *name, guint16 version)
+{
+	guint16 num_features;
+
+	g_assert(vmf);
+	g_assert(vmf->pos >= 2);
+	g_assert(vmf->pos <= vmf->size);
+	g_return_if_fail(vmf->size - vmf->pos >= 6);
+	g_return_if_fail(name);
+	g_return_if_fail(4 == strlen(name));
 
 	/*
 	 * First 2 bytes is the number of entries in the vector.
 	 */
+	num_features = peek_le16(&vmf->data[0]) + 1;
+	poke_le16(&vmf->data[0], num_features);
 
-	payload = poke_le16(payload, G_N_ELEMENTS(features));
-	paysize = 2 + G_N_ELEMENTS(features) * 6;
+	memcpy(&vmf->data[vmf->pos], name, 4);
+	poke_le16(&vmf->data[vmf->pos + 4], version);
+	vmf->pos += 6;
+}
 
-	for (i = 0; i < G_N_ELEMENTS(features); i++) {
-		memcpy(payload, features[i].name, 4);
-		payload += 4;
-		payload = poke_le16(payload, features[i].version);
+void
+vmsg_send_features_supported(struct gnutella_node *n)
+{
+	struct vmsg_features vmf;
+	guint32 paysize;
+	guint32 msgsize;
+	gchar *payload;
+
+	payload = vmsg_fill_type(v_tmp_data, T_0000, 10, 0);
+	vmsg_features_reset(&vmf, payload, VMSG_PAYLOAD_MAX);
+
+	vmsg_features_add(&vmf, "HSEP", 1);
+	vmsg_features_add(&vmf, "F2FT", 0); /* No support for NAT-to-NAT */
+	vmsg_features_add(&vmf, "TCPI", GNET_PROPERTY(is_firewalled) ? 1 : 0);
+	if (tls_enabled()) {
+		vmsg_features_add(&vmf, "TLS!", 1);
 	}
 
+	paysize = vmsg_features_get_length(&vmf);
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gmsg_sendto_one(n, v_tmp, msgsize);
 }
