@@ -353,6 +353,7 @@ typedef enum {
     PROP_PFSP_LAST_CHUNK,
     PROP_BEAUTIFY_FILENAMES,
     PROP_ENABLE_DHT,
+    PROP_CQ_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -363,6 +363,7 @@ extern const gboolean gnet_property_variable_parq_enabled;
 extern const guint32  gnet_property_variable_pfsp_last_chunk;
 extern const gboolean gnet_property_variable_beautify_filenames;
 extern const gboolean gnet_property_variable_enable_dht;
+extern const guint32  gnet_property_variable_cq_debug;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -627,9 +627,10 @@ check_cpu_usage(void)
 	coverage = callout_queue_coverage(ticks);
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
-	if (debugging(0))
+	if (GNET_PROPERTY(cq_debug)) {
 		g_message("CQ: callout queue holds %d items and processed %d ticks",
 			cq_count(callout_queue), cq_ticks(callout_queue));
+	}
 
 	/*
 	 * Correct the percentage of CPU that would have been actually used
