@@ -3108,7 +3108,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 
 	vmsg_features_add(&vmf, "HSEP", 1);
 	vmsg_features_add(&vmf, "F2FT", 0); /* No support for NAT-to-NAT */
-	vmsg_features_add(&vmf, "TCPI", GNET_PROPERTY(is_firewalled) ? 1 : 0);
+	vmsg_features_add(&vmf, "TCPI", GNET_PROPERTY(is_firewalled) ? 0 : 1);
 	if (tls_enabled()) {
 		vmsg_features_add(&vmf, "TLS!", 1);
 	}
