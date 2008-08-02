@@ -44,7 +44,7 @@ RCSID("$Id$")
 
 static const struct vendor {
     guint32 code;
-    const gchar *name;
+    const char *name;
 } vendor_map[] = {
 	/* This array MUST be sorted, because it is searched dichotomically */
 
@@ -130,7 +130,7 @@ static const struct vendor {
  *
  * @returns vendor string if found, NULL otherwise.
  */
-static const gchar *
+static const char *
 find_vendor(guint32 code)
 {
 #define GET_KEY(i) (vendor_map[(i)].code)
@@ -164,29 +164,46 @@ is_vendor_known(vendor_code_t code)
  *
  * @param code A 4-letter Gnutella vendor ID in host-endian order thus
  *        after peek_be32() or ntohl().
+ * @param buf  The destination buffer to hold the string.
+ * @param size The size of buf in bytes.
+ *
+ * @return Length of the resulting string before potential truncation.
+ */
+size_t
+vendor_code_to_string_buf(guint32 code, char *buf, size_t size)
+{
+    if (code == 0) {
+		return g_strlcpy(buf, "null", size);
+	} else {
+		char temp[5];
+		size_t i;
+
+		poke_be32(&temp[0], code);
+
+		for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
+			if (!is_ascii_print(temp[i]))
+				temp[i] = '.';
+		}
+		temp[4] = '\0';
+		return g_strlcpy(buf, temp, size);
+	}
+}
+
+/**
+ * Make up a printable version of the vendor code.
+ *
+ * @param code A 4-letter Gnutella vendor ID in host-endian order thus
+ *        after peek_be32() or ntohl().
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 vendor_code_str(guint32 code)
 {
-	static gchar temp[1 + sizeof code];
-    guint i;
+	static char buf[5];
 
-	STATIC_ASSERT(5 == G_N_ELEMENTS(temp));
-
-    if (code == 0)
-		return "null";
-
-	poke_be32(&temp[0], code);
-	for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
-		if (!is_ascii_print(temp[i]))
-			temp[i] = '.';
-	}
-
-	temp[4] = '\0';
-
-	return temp;
+	vendor_code_to_string_buf(code, buf, sizeof buf);
+	return buf;
 }
 
 /**
