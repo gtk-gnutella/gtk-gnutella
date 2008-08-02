@@ -192,14 +192,16 @@ void
 knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 {
 	if (GNET_PROPERTY(dht_debug)) {
-		static gchar temp[1 + sizeof vcode];
-		strncpy(temp,
-			vendor_code_str(ntohl(kn->vcode.be32)), sizeof temp);
+		char vc_old[VENDOR_CODE_BUFLEN];
+		char vc_new[VENDOR_CODE_BUFLEN];
+
+		vendor_code_to_string_buf(ntohl(kn->vcode.be32), vc_old, sizeof vc_old);
+		vendor_code_to_string_buf(ntohl(vcode.be32), vc_new, sizeof vc_new);
 
 		g_warning("DHT node %s at %s changed vendor from %s to %s",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
-			temp, vendor_code_str(ntohl(vcode.be32)));
+			vc_old, vc_new);
 	}
 
 	kn->vcode = vcode;
@@ -229,13 +231,13 @@ static const gchar *
 knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
+	char vc_buf[VENDOR_CODE_BUFLEN];
 
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
+	vendor_code_to_string_buf(ntohl(kn->vcode.be32), vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
 		"%s (%s v%u.%u) [%s]",
-		host_buf,
-		vendor_code_str(ntohl(kn->vcode.be32)),
-		kn->major, kn->minor, kuid_to_hex_string2(kn->id));
+		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id));
 
 	return buf;
 }
@@ -243,10 +245,6 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 /**
  * Pretty-printing of node information for logs.
  * @return pointer to static data
- *
- * @attention
- * NB: uses vendor_code_str() internally which returns pointer to
- * string buf.  Do not use in the same argument list as this routine.
  */
 const gchar *
 knode_to_string(const knode_t *kn)
