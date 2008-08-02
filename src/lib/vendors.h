@@ -132,6 +132,9 @@
  */
 #define VENDOR_CODE_CMP(a, b) CMP(a, b)
 
+/* Buffer size required to hold a vendor code as NUL-terminated string */
+#define VENDOR_CODE_BUFLEN 5
+
 typedef struct vendor_code {
 	guint32 be32;	/**< Always big-endian order; for convenient '=' and '!=' */
 } vendor_code_t;
