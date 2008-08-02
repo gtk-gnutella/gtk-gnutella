@@ -7051,7 +7051,8 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		d->file_info->tth &&
 		0 == ((DL_F_FETCH_TTH | DL_F_GOT_TTH) & d->flags) &&
 		0 == (FI_F_FETCH_TTH & d->file_info->flags) &&
-		tt_good_depth(download_filesize(d)) > tt_depth(d->file_info->tigertree.num_leaves)
+		tt_good_depth(download_filesize(d)) >
+			tt_depth(d->file_info->tigertree.num_leaves)
 	) {
 		guint32 cflags = 0;
 		gnet_host_vec_t *proxies;
