@@ -70,8 +70,11 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/base16.h"
+#include "lib/bit_array.h"
 #include "lib/cq.h"
 #include "lib/file.h"
+#include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/walloc.h"
@@ -152,6 +155,7 @@ static const gchar dht_route_file[] = "dht_nodes";
 static const gchar dht_route_what[] = "the DHT routing table";
 
 static void bucket_alive_check(cqueue_t *cq, gpointer obj);
+static void dht_route_retrieve(void);
 
 /**
  * Get our KUID.
@@ -386,7 +390,7 @@ dht_initialize(void)
 	stats.leaves++;
 	stats.other_size = hash_list_new(other_size_hash, other_size_eq);
 
-	/* XXX load the routing table (if DHT enabled only) */
+	dht_route_retrieve();
 }
 
 /**
@@ -1857,8 +1861,6 @@ dht_fill_closest(
 	return added;
 }
 
-/*  XXX need routine to restore the routing table */
-
 /**
  * Write node information to file.
  */
@@ -2019,6 +2021,239 @@ dht_route_close(void)
 		hash_list_foreach(stats.other_size, other_size_free_cb, NULL);
 		hash_list_free(&stats.other_size);
 	}
+}
+
+/***
+ *** Parsing of persisted DHT routing table.
+ ***/
+
+typedef enum {
+	DHT_ROUTE_TAG_UNKNOWN = 0,
+
+	DHT_ROUTE_TAG_KUID,
+	DHT_ROUTE_TAG_VNDR,
+	DHT_ROUTE_TAG_VERS,
+	DHT_ROUTE_TAG_HOST,
+	DHT_ROUTE_TAG_SEEN,
+	DHT_ROUTE_TAG_END,
+
+	DHT_ROUTE_TAG_MAX
+} dht_route_tag_t;
+
+/* Amount of valid route tags, excluding the unknown placeholder tag */
+#define NUM_DHT_ROUTE_TAGS	(DHT_ROUTE_TAG_MAX - 1)
+
+static const struct dht_route_tag {
+	dht_route_tag_t tag;
+	const char *str;
+} dht_route_tag_map[] = {
+	/* Must be sorted alphabetically for dichotomic search */
+
+#define DHT_ROUTE_TAG(x)	{ CAT2(DHT_ROUTE_TAG_,x), #x }
+
+	DHT_ROUTE_TAG(END),
+	DHT_ROUTE_TAG(HOST),
+	DHT_ROUTE_TAG(KUID),
+	DHT_ROUTE_TAG(SEEN),
+	DHT_ROUTE_TAG(VERS),
+	DHT_ROUTE_TAG(VNDR),
+
+	/* Above line intentionally left blank (for "!}sort" in vi) */
+#undef DHT_ROUTE_TAG
+};
+
+static dht_route_tag_t
+dht_route_string_to_tag(const char *s)
+{
+	STATIC_ASSERT(G_N_ELEMENTS(dht_route_tag_map) == NUM_DHT_ROUTE_TAGS);
+
+#define GET_ITEM(i)		dht_route_tag_map[i].str
+#define FOUND(i) G_STMT_START {				\
+	return dht_route_tag_map[i].tag;		\
+	/* NOTREACHED */						\
+} G_STMT_END
+
+	/* Perform a binary search to find ``s'' */
+	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(dht_route_tag_map), strcmp,
+		GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+
+	return DHT_ROUTE_TAG_UNKNOWN;
+}
+
+/**
+ * Load persisted routing table from file.
+ */
+static void
+dht_route_parse(FILE *f)
+{
+	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_DHT_ROUTE_TAGS + 1)];
+	char line[1024];
+	guint line_no = 0;
+	gboolean done = FALSE;
+
+	g_return_if_fail(f);
+
+	bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
+
+	while (fgets(line, sizeof line, f)) {
+		const char *tag_name, *value;
+		char *sp, *nl;
+		dht_route_tag_t tag;
+		gboolean damaged = FALSE;
+		/* Variables filled for each entry */
+		host_addr_t addr;
+		guint16 port;
+		kuid_t kuid;
+		vendor_code_t vcode;
+		time_t seen;
+		guint32 major, minor;
+
+		line_no++;
+
+		nl = strchr(line, '\n');
+		if (!nl) {
+			/*
+			 * Line was too long or the file was corrupted or manually
+			 * edited without consideration for the advertised format.
+			 */
+
+			g_warning("dht_route_parse(): "
+				"line too long or missing newline in line %u", line_no);
+			break;
+		}
+		*nl = '\0';		/* Terminate string properly */
+
+		/* Skip comments and empty lines */
+
+		if (*line == '#' || *line == '\0')
+			continue;
+
+		sp = strchr(line, ' ');		/* End of tag, normally */
+		if (sp) {
+			*sp = '\0';
+			value = &sp[1];
+		} else {
+			value = strchr(line, '\0');		/* Tag without a value */
+		}
+		tag_name = line;
+
+		tag = dht_route_string_to_tag(tag_name);
+		g_assert((gint) tag >= 0 && tag <= NUM_DHT_ROUTE_TAGS);
+
+		if (tag != DHT_ROUTE_TAG_UNKNOWN && !bit_array_flip(tag_used, tag)) {
+			g_warning("dht_route_parse(): "
+				"duplicate tag \"%s\" within entry at line %u",
+				tag_name, line_no);
+			damaged = TRUE;
+		}
+
+		switch (tag) {
+		case DHT_ROUTE_TAG_KUID:
+			if (
+				KUID_RAW_SIZE * 2 != strlen(value) ||
+				KUID_RAW_SIZE != base16_decode((char *) kuid.v, sizeof kuid.v,
+					value, KUID_RAW_SIZE * 2)
+			)
+				damaged = TRUE;
+			break;
+		case DHT_ROUTE_TAG_VNDR:
+			if (4 == strlen(value))
+				vcode.be32 = peek_be32(value);
+			else
+				damaged = TRUE;
+			break;
+		case DHT_ROUTE_TAG_VERS:
+			if (0 != parse_major_minor(value, NULL, &major, &minor))
+				damaged = TRUE;
+			else if (major > 256 || minor > 256)
+				damaged = TRUE;
+			break;
+		case DHT_ROUTE_TAG_HOST:
+			if (!string_to_host_addr_port(value, NULL, &addr, &port))
+				damaged = TRUE;
+			break;
+		case DHT_ROUTE_TAG_SEEN:
+			seen = date2time(value, tm_time());
+			if ((time_t) -1 == seen)
+				damaged = TRUE;
+			break;
+		case DHT_ROUTE_TAG_END:
+			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_KUID)) {
+				g_warning("dht_route_parse(): missing KUID tag near line %u",
+					line_no);
+				damaged = TRUE;
+			}
+			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VNDR)) {
+				g_warning("dht_route_parse(): missing VNDR tag near line %u",
+					line_no);
+				damaged = TRUE;
+			}
+			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VERS)) {
+				g_warning("dht_route_parse(): missing VERS tag near line %u",
+					line_no);
+				damaged = TRUE;
+			}
+			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_HOST)) {
+				g_warning("dht_route_parse(): missing HOST tag near line %u",
+					line_no);
+				damaged = TRUE;
+			}
+			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_SEEN)) {
+				g_warning("dht_route_parse(): missing SEEN tag near line %u",
+					line_no);
+				damaged = TRUE;
+			}
+			done = TRUE;
+			break;
+		case DHT_ROUTE_TAG_UNKNOWN:
+			/* Silently ignore */
+			break;
+		case DHT_ROUTE_TAG_MAX:
+			g_assert_not_reached();
+			break;
+		}
+
+		if (damaged) {
+			g_warning("damaged DHT route entry at line %u, aborting", line_no);
+			break;
+		}
+
+		if (done) {
+			knode_t *kn;
+
+			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+			dht_add_node(kn);
+			knode_free(kn);
+
+			/* Reset state */
+			done = FALSE;
+			bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
+		}
+	}
+}
+
+static const gchar node_file[] = "dht_nodes";
+static const gchar file_what[] = "DHT nodes";
+
+/**
+ * Retrieve previous routing table from ~/.gtk-gnutella/dht_nodes.
+ */
+static void
+dht_route_retrieve(void)
+{
+	file_path_t fp[1];
+	FILE *f;
+
+	file_path_set(fp, settings_config_dir(), node_file);
+	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));
+
+	if (f)
+		dht_route_parse(f);
+
+	fclose(f);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
