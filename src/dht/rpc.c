@@ -54,6 +54,12 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
+ * Flags for rpc_call_prepare().
+ */
+
+#define RPC_CALL_NO_VERIFY		(1 << 0)	/**< Don't verify KUID on reply */
+
+/**
  * An RPC callback descriptor.
  */
 struct rpc_cb {
@@ -61,6 +67,7 @@ struct rpc_cb {
 	tm_t start;					/**< The time at which we initiated the RPC */
 	guid_t *muid;				/**< MUID of the message sent (atom) */
 	knode_t *kn;				/**< Remote node to which RPC was sent */
+	guint32 flags;				/**< Control flags */
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
 	gpointer arg;				/**< Additional opaque argument */
 	cevent_t *timeout;			/**< Callout queue timeout event */
@@ -68,6 +75,20 @@ struct rpc_cb {
 };
 
 static GHashTable *pending = NULL;		/**< Pending RPC (GUID -> rpc_cb) */
+
+/**
+ * RPC operation to string, for logs.
+ */
+static const char *
+op_to_string(enum dht_rpc_op op)
+{
+	switch (op) {
+	case DHT_RPC_PING:		return "PING";
+	case DHT_RPC_FIND_NODE:	return "FIND_NODE";
+	}
+
+	return "UNKNOWN";
+}
 
 /**
  * Initialize the RPC layer.
@@ -127,7 +148,6 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 	g_assert(rcb->timeout != NULL);
 
 	rcb->timeout = NULL;
-
 	dht_node_timed_out(rcb->kn);
 
 	if (rcb->cb)
@@ -146,6 +166,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  * @param op			the RPC operation we're preparing
  * @param kn			the node we're contacting
  * @param delay			the timeout delay, in milliseconds.
+ * @param flags			control flags
  * @param cb			the callback to invoke when reply arrives or on timeout
  * @param arg			additional opaque callback argument
  *
@@ -153,7 +174,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  */
 static const guid_t *
 rpc_call_prepare(
-	enum dht_rpc_op op, knode_t *kn, int delay,
+	enum dht_rpc_op op, knode_t *kn, int delay, guint32 flags,
 	dht_rpc_cb_t cb, gpointer arg)
 {
 	struct rpc_cb *rcb = walloc(sizeof *rcb);
@@ -163,6 +184,7 @@ rpc_call_prepare(
 
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
+	rcb->flags = flags;
 	rcb->muid = (guid_t *) atom_guid_get(muid);
 	rcb->addr = kn->addr;
 	rcb->timeout = cq_insert(callout_queue, delay, rpc_timed_out, rcb);
@@ -202,11 +224,37 @@ dht_rpc_answer(const guid_t *muid,
 	if (!rcb)
 		return FALSE;
 
+	cq_cancel(callout_queue, &rcb->timeout);
+
 	/* 
-	 * XXX verify that the node who replied indeed bears the same KUID
-	 * XXX that we think it has.  If not, we have a KUID collision and
-	 * XXX our routing table is stale.  Fix it!
+	 * Verify that the node who replied indeed bears the same KUID as we
+	 * think it has.  When the RPC_CALL_NO_VERIFY flag is set, it means
+	 * the registered callback will perform this kind of verification itself.
 	 */
+
+	if (!(rcb->flags & RPC_CALL_NO_VERIFY) && !kuid_eq(kn->id, rcb->kn->id)) {
+		/*
+		 * Our routing table is stale: the node to which we sent the RPC bears
+		 * a KUID different from the one we thought it would.  The node we
+		 * had in our routing table is therefore gone.
+		 *
+		 * Remove the original node from the routing table and do not handle
+		 * the reply.
+		 */
+
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT sent %s RPC %s to %s but got reply from %s",
+				op_to_string(rcb->op),
+				guid_to_string((gchar *) rcb->muid->v),
+				knode_to_string(rcb->kn),
+				knode_to_string2(kn));
+		}
+
+		dht_remove_node(rcb->kn);			/* Discard obsolete entry */
+		rpc_timed_out(callout_queue, rcb);	/* Invoke user callback if any */
+
+		return FALSE;	/* RPC was sent to wrong node, ignore */
+	}
 
 	/*
 	 * Exponential moving average for RTT is computed on the last n=3 terms.
@@ -218,8 +266,6 @@ dht_rpc_answer(const guid_t *muid,
 	kn->rpc_timeouts = 0;
 
 	kn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (kn->rtt >> 1);
-
-	cq_cancel(callout_queue, &rcb->timeout);
 
 	/*
 	 * If the node was stale, move it back to the "good" list.
@@ -242,16 +288,30 @@ dht_rpc_answer(const guid_t *muid,
  * Ping remote node.
  *
  * @param kn	the node to ping
+ * @param flags	control flags
+ * @param cb	the (optional) callback when reply arrives or on timeout
+ * @param arg	additional opaque callback argument
+ */
+static void
+dht_rpc_ping_extended(knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg)
+{
+	const guid_t *muid;
+
+	muid = rpc_call_prepare(DHT_RPC_PING, kn, rpc_delay(kn), flags, cb, arg);
+	kmsg_send_ping(kn, muid);
+}
+
+/**
+ * Ping remote node.
+ *
+ * @param kn	the node to ping
  * @param cb	the (optional) callback when reply arrives or on timeout
  * @param arg	additional opaque callback argument
  */
 void
 dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
 {
-	const guid_t *muid;
-
-	muid = rpc_call_prepare(DHT_RPC_PING, kn, rpc_delay(kn), cb, arg);
-	kmsg_send_ping(kn, muid);
+	dht_rpc_ping_extended(kn, 0, cb, arg);
 }
 
 /**
@@ -267,7 +327,7 @@ dht_rpc_find_node(knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg)
 {
 	const guid_t *muid;
 
-	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), cb, arg);
+	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), 0, cb, arg);
 	kmsg_send_find_node(kn, id, muid);
 }
 
@@ -356,7 +416,13 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	av->old = knode_refcnt_inc(kn);
 	av->new = new;
 
-	dht_rpc_ping(kn, dht_addr_verify_cb, av);
+	/*
+	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification
+	 * of the address of the replying node ourselves in the callback because
+	 * the "new" node bears the same KUID as the "old" one.
+	 */
+
+	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_addr_verify_cb, av);
 }
 
 /**

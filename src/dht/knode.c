@@ -222,6 +222,25 @@ knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 }
 
 /**
+ * Pretty-printing of node information for logs into the supplied buffers.
+ * @return the buffer where printing was done.
+ */
+static const gchar *
+knode_to_string_buf(const knode_t *kn,
+	char buf[], size_t len, char host[], size_t hlen)
+{
+	host_addr_to_string_buf(kn->addr, host, hlen);
+
+	gm_snprintf(buf, len,
+		"%s:%u (%s v%u.%u) [%s]",
+		host, kn->port,
+		vendor_code_str(ntohl(kn->vcode.be32)),
+		kn->major, kn->minor, kuid_to_hex_string2(kn->id));
+
+	return buf;
+}
+
+/**
  * Pretty-printing of node information for logs.
  * @return pointer to static data
  *
@@ -235,15 +254,20 @@ knode_to_string(const knode_t *kn)
 	static char buf[120];
 	char host_buf[HOST_ADDR_BUFLEN];
 
-	host_addr_to_string_buf(kn->addr, host_buf, sizeof host_buf);
+	return knode_to_string_buf(kn, buf, sizeof buf, host_buf, sizeof host_buf);
+}
 
-	gm_snprintf(buf, sizeof buf,
-		"%s:%u (%s v%u.%u) [%s]",
-		host_buf, kn->port,
-		vendor_code_str(ntohl(kn->vcode.be32)),
-		kn->major, kn->minor, kuid_to_hex_string2(kn->id));
+/**
+ * Second version of knode_to_string() when two different nodes need to be
+ * pretty-printed in the same statement.
+ */
+const gchar *
+knode_to_string2(const knode_t *kn)
+{
+	static char buf[120];
+	char host_buf[HOST_ADDR_BUFLEN];
 
-	return buf;
+	return knode_to_string_buf(kn, buf, sizeof buf, host_buf, sizeof host_buf);
 }
 
 /**

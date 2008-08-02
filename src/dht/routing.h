@@ -85,7 +85,6 @@ void dht_initialize(void);
 
 void dht_route_init(void);
 void dht_route_close(void);
-void dht_add_node(knode_t *kn);
 void dht_traffic_from(knode_t *kn);
 void dht_set_node_status(knode_t *kn, knode_status_t new);
 void dht_update_size_estimate(void);

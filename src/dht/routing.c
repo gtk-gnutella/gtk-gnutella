@@ -82,10 +82,11 @@ RCSID("$Id$")
 /**
  * Period for aliveness checks.
  *
- * Every such period, our bucket and those that do belong to our closest
- * tree are checked to make sure we have at least KDA_ALPHA alive contacts.
+ * Every period, we make sure our "good" contacts are still alive and
+ * check whether the "stale" contacts can be permanently dropped.
  */
-#define ALIVENESS_PERIOD		(10*60*1000)	/* 10 minutes in ms */
+#define ALIVENESS_PERIOD		(10*60)		/* 10 minutes */
+#define ALIVENESS_PERIOD_MS		(ALIVENESS_PERIOD * 1000)
 
 /*
  * K-bucket node information, accessed through the "kbucket" structure.
@@ -322,7 +323,7 @@ install_alive_check(struct kbucket *kb)
 	g_assert(is_leaf(kb));
 
 	kb->nodes->aliveness =
-		cq_insert(callout_queue, ALIVENESS_PERIOD, bucket_alive_check, kb);
+		cq_insert(callout_queue, ALIVENESS_PERIOD_MS, bucket_alive_check, kb);
 }
 
 /**
@@ -1067,11 +1068,10 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 		if (was_good)
 			promote_pending_node(kb);
+		knode_free(kn);
 	} else {
 		g_assert(NULL == g_hash_table_lookup(kb->nodes->all, kn->id));
 	}
-
-	knode_free(kn);
 }
 
 /**
@@ -1261,7 +1261,7 @@ dht_traffic_from(knode_t *node)
 /**
  * Add node to the table.
  */
-void
+static void
 dht_add_node(knode_t *node)
 {
 	record_node(node, FALSE);
@@ -1335,34 +1335,25 @@ dht_node_timed_out(knode_t *kn)
 }
 
 /**
- * Periodic check of KDA_ALPHA live contacts in the "good" list and all
- * the "stale" contacts that can be recontacted.
+ * Periodic check of live contacts in the "good" list and all the "stale"
+ * contacts that can be recontacted.
  */
 static void
 bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
-	int count = 0;
+	time_t now = tm_time();
 
 	(void) unused_cq;
 
 	g_assert(is_leaf(kb));
 
 	/*
-	 * If bucket is still within our closest subtree, re-instantiate
-	 * the periodic callback.  Otherwise the callback is permanently
-	 * disabled and we return immediately.
+	 * Re-instantiate the periodic callback for next time.
 	 */
 
-	if (is_among_our_closest(kb)) {
-		install_alive_check(kb);
-	} else {
-		g_assert(!kb->ours);
-
-		kb->nodes->aliveness = NULL;
-		return;
-	}
+	install_alive_check(kb);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT starting alive check on k-bucket %s (depth %d, %s ours)",
@@ -1370,12 +1361,17 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 			kb->ours ? "is" : "not");
 
 	/*
-	 * Ping only the first KDA_ALPHA good contacts.
+	 * Ping only the good contacts from which we haven't heard since the
+	 * last check.
 	 */
 
 	iter = hash_list_iterator(kb->nodes->good);
-	while (count++ < KDA_ALPHA && hash_list_iter_has_next(iter)) {
+	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
+
+		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
+			break;		/* List is sorted: least recently seen at the head */
+
 		dht_rpc_ping(kn, NULL, NULL);
 	}
 	hash_list_iter_release(&iter);
@@ -1669,7 +1665,7 @@ fill_closest_in_bucket(
 	 * If we can determine that we do not have enough good nodes in the bucket
 	 * to fill the vector, use also the stale nodes for which the "grace"
 	 * period since the timeout has passed. Finally, also consider "pending"
-	 * nodes if we really miss nodes (exclusing shutdowning ones).
+	 * nodes if we really miss nodes (excluding shutdowning ones).
 	 */
 
 	nodes = hash_list_list(kb->nodes->good);

@@ -105,6 +105,7 @@ const gchar * knode_status_to_string(knode_status_t status);
 void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
 void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
 const gchar *knode_to_string(const knode_t *kn);
+const gchar *knode_to_string2(const knode_t *kn);
 void knode_set_token(knode_t *kn, const void *token, size_t len);
 gboolean knode_can_recontact(const knode_t *kn);
 

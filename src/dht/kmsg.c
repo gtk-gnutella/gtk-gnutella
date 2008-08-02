@@ -682,16 +682,18 @@ void kmsg_received(
 
 	if (!host_is_valid(kaddr, kport)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT bad contact address %s",
-				host_addr_port_to_string(kaddr, kport));
+			g_warning("DHT bad contact address %s (%s v%u.%u)",
+				host_addr_port_to_string(kaddr, kport),
+				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
 		reason = "bad contact address";
 		goto drop;
 	}
 
 	if (hostiles_check(kaddr)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT hostile contact address %s",
-				host_addr_to_string(kaddr));
+			g_warning("DHT hostile contact address %s (%s v%u.%u)",
+				host_addr_to_string(kaddr),
+				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
 		reason = "hostile contact address";
 		goto drop;
 	}
@@ -708,11 +710,12 @@ void kmsg_received(
 
 	if (NULL == kn) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT traffic from new %s%snode %s at %s",
+			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
 				kuid_to_hex_string(kn->id),
-				host_addr_port_to_string(kaddr, kport));
+				host_addr_port_to_string(kaddr, kport),
+				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
 
 		kn = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
