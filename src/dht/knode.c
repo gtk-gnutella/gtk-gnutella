@@ -182,7 +182,7 @@ knode_status_to_string(knode_status_t status)
 		return "unknown";
 	}
 
-	return "???";
+	return "ERROR";
 }
 
 /**
@@ -226,14 +226,14 @@ knode_change_version(knode_t *kn, guint8 major, guint8 minor)
  * @return the buffer where printing was done.
  */
 static const gchar *
-knode_to_string_buf(const knode_t *kn,
-	char buf[], size_t len, char host[], size_t hlen)
+knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
-	host_addr_to_string_buf(kn->addr, host, hlen);
+	char host_buf[HOST_ADDR_PORT_BUFLEN];
 
+	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	gm_snprintf(buf, len,
-		"%s:%u (%s v%u.%u) [%s]",
-		host, kn->port,
+		"%s (%s v%u.%u) [%s]",
+		host_buf,
 		vendor_code_str(ntohl(kn->vcode.be32)),
 		kn->major, kn->minor, kuid_to_hex_string2(kn->id));
 
@@ -252,9 +252,8 @@ const gchar *
 knode_to_string(const knode_t *kn)
 {
 	static char buf[120];
-	char host_buf[HOST_ADDR_BUFLEN];
 
-	return knode_to_string_buf(kn, buf, sizeof buf, host_buf, sizeof host_buf);
+	return knode_to_string_buf(kn, buf, sizeof buf);
 }
 
 /**
@@ -265,9 +264,8 @@ const gchar *
 knode_to_string2(const knode_t *kn)
 {
 	static char buf[120];
-	char host_buf[HOST_ADDR_BUFLEN];
 
-	return knode_to_string_buf(kn, buf, sizeof buf, host_buf, sizeof host_buf);
+	return knode_to_string_buf(kn, buf, sizeof buf);
 }
 
 /**
