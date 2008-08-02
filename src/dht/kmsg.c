@@ -144,16 +144,19 @@ warn_no_header_extension(const knode_t *kn,
  *
  * @param header	the Kademlia header structure to fill
  * @param op		the Kademlia message function we're building
+ * @param major		major version of the message
+ * @param minor		minor version of the message
  * @param muid		the MUID to use
  *
  * @attention
  * The length is not filled in the Kademlia header.
  */
 static void
-kmsg_build_header(kademlia_header_t *header, guint8 op, const guid_t *muid)
+kmsg_build_header(kademlia_header_t *header,
+	guint8 op, guint8 major, guint8 minor, const guid_t *muid)
 {
 	kademlia_header_set_muid(header, muid);
-	kademlia_header_set_dht(header);
+	kademlia_header_set_dht(header, major, minor);
 	kademlia_header_set_function(header, op);
 	kademlia_header_set_contact_kuid(header, get_our_kuid()->v);
 	kademlia_header_set_contact_vendor(header, T_GTKG);
@@ -177,12 +180,15 @@ kmsg_build_header(kademlia_header_t *header, guint8 op, const guid_t *muid)
  *
  * @param mb		the message block (Kademlia header at the start)
  * @param op		the Kademlia message function we're building
+ * @param major		major version of the message
+ * @param minor		minor version of the message
  * @param muid		the MUID to use
  */
 static void
-kmsg_build_header_pmsg(pmsg_t *mb, guint8 op, const guid_t *muid)
+kmsg_build_header_pmsg(pmsg_t *mb,
+	guint8 op, guint8 major, guint8 minor, const guid_t *muid)
 {
-	kmsg_build_header((void *) pmsg_start(mb), op, muid);
+	kmsg_build_header((void *) pmsg_start(mb), op, major, minor, muid);
 	kademlia_header_set_size(pmsg_start(mb), pmsg_size(mb) - KDA_HEADER_SIZE);
 }
 
@@ -282,7 +288,8 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + 40);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
-	kmsg_build_header(header, KDA_MSG_PING_RESPONSE, muid);	/* size unknown */
+	/* Size unknown yet */
+	kmsg_build_header(header, KDA_MSG_PING_RESPONSE, 0, 0, muid);
 
 	/* Insert requester's external address */
 
@@ -342,7 +349,7 @@ k_send_find_node_response(
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + 906);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
-	kmsg_build_header(header, KDA_MSG_FIND_NODE_RESPONSE, muid);
+	kmsg_build_header(header, KDA_MSG_FIND_NODE_RESPONSE, 0, 0, muid);
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 
@@ -544,7 +551,7 @@ kmsg_send_ping(knode_t *kn, const guid_t *muid)
 	pmsg_t *mb;
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE);
-	kmsg_build_header_pmsg(mb, KDA_MSG_PING_REQUEST, muid);
+	kmsg_build_header_pmsg(mb, KDA_MSG_PING_REQUEST, 0, 0, muid);
 	kmsg_send_mb(kn, mb);
 }
 
@@ -557,7 +564,7 @@ kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid)
 	pmsg_t *mb;
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + KUID_RAW_SIZE);
-	kmsg_build_header_pmsg(mb, KDA_MSG_FIND_NODE_REQUEST, muid);
+	kmsg_build_header_pmsg(mb, KDA_MSG_FIND_NODE_REQUEST, 0, 0, muid);
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	pmsg_write(mb, id->v, KUID_RAW_SIZE);
 	g_assert(0 == pmsg_available(mb));

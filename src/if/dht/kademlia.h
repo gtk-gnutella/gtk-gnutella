@@ -231,17 +231,17 @@ kademlia_header_set_muid(kademlia_header_t *header, const guid_t *muid)
 
 /*
  * Byte 16: always set to 0x44 ('D' in ASCII)
- * Byte 17: version major
- * Byte 18: version minor
+ * Byte 17: version major of message
+ * Byte 18: version minor of message
  */
 
 static inline void
-kademlia_header_set_dht(kademlia_header_t *header)
+kademlia_header_set_dht(kademlia_header_t *header, guint8 major, guint8 minor)
 {
 	guint8 *u8 = (void *) header;
 	u8[16] = 0x44;
-	u8[17] = KDA_VERSION_MAJOR;
-	u8[18] = KDA_VERSION_MINOR;
+	u8[17] = major;
+	u8[18] = minor;
 }
 
 static inline guint8
