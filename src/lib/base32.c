@@ -78,6 +78,16 @@ static const char base32_alphabet[32] = {
 	'Y', 'Z', '2', '3', '4', '5', '6', '7'
 };
 
+/**
+ * Encode in base32 `len' bytes of `data' into the buffer `dst'.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination
+ * @param data		start of data to encode
+ * @param len		amount of bytes to encode
+ *
+ * @return the amount of bytes generated into the destination.
+ */
 size_t
 base32_encode(char *dst, size_t size, const void *data, size_t len)
 {
@@ -164,6 +174,16 @@ ascii_tolower(int c)
 
 static char base32_map[(unsigned char) -1];
 
+/**
+ * Decode a base32 encoding of `len' bytes of `data' into the buffer `dst'.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination
+ * @param data		start of data to decode
+ * @param len		amount of encoded data to decode
+ *
+ * @return the amount of bytes decoded into the destination.
+ */
 size_t
 base32_decode(char *dst, size_t size, const void *data, size_t len)
 {

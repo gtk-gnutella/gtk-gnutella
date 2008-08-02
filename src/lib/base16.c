@@ -66,6 +66,16 @@
 
 static const char base16_alphabet[] = "0123456789abcdef";
 
+/**
+ * Encode in base16 `len' bytes of `data' into the buffer `dst'.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination
+ * @param data		start of data to encode
+ * @param len		amount of bytes to encode
+ *
+ * @return the amount of bytes generated into the destination.
+ */
 size_t
 base16_encode(char *dst, size_t size, const void *data, size_t len)
 {
@@ -86,6 +96,16 @@ base16_encode(char *dst, size_t size, const void *data, size_t len)
   return q - dst;
 }
 
+/**
+ * Decode a base16 encoding of `len' bytes of `data' into the buffer `dst'.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination
+ * @param data		start of data to decode
+ * @param len		amount of encoded data to decode
+ *
+ * @return the amount of bytes decoded into the destination.
+ */
 size_t
 base16_decode(char *dst, size_t size, const void *data, size_t len)
 {
