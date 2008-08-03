@@ -2317,9 +2317,6 @@ remove_odd_key(gpointer key, size_t keybits, gpointer uv, gpointer uu)
 	return (p[3] & 0x1) ? TRUE : FALSE;
 }
 
-/**
- * Perform unit tests of PATRICIA trees.
- */
 static void
 test_keys(guint32 keys[], size_t nkeys)
 {
@@ -2449,6 +2446,12 @@ test_keys(guint32 keys[], size_t nkeys)
 		guint32 previous_distance = 0;
 		gboolean first = TRUE;
 		size_t idx = random_value(nkeys - 1);
+		gpointer furthest;
+		gboolean found;
+
+		found = patricia_furthest_extended(pt, &data[idx], 32, &furthest, NULL);
+
+		g_assert(found);		/* Since we have at least 1 item in tree */
 
 		iter = patricia_metric_iterator(pt, &data[idx], 32, FALSE);
 		while (patricia_iter_next(iter, &key, NULL, NULL)) {
@@ -2459,6 +2462,7 @@ test_keys(guint32 keys[], size_t nkeys)
 			if (first) {
 				previous_distance = peek_be32(key) ^ peek_be32(&data[idx]);
 				first = FALSE;
+				g_assert(0 == memcmp(furthest, key, 4));
 			} else {
 				distance = peek_be32(key) ^ peek_be32(&data[idx]);
 				g_assert(distance < previous_distance);
