@@ -1762,6 +1762,68 @@ patricia_remove(patricia_t *pt, gconstpointer key, size_t keybits)
 }
 
 /**
+ * Common implementation for patricia_remove_closest() and
+ * patricia_remove_furthest().
+ */
+static gboolean
+remove_closest(
+	patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
+{
+	struct patricia_node *pn;
+
+	pn = deconstify_gpointer(match_closest(pt, key, keybits, closest));
+
+	if (NULL == pn)
+		return FALSE;
+
+	remove_node(pt, pn);
+
+	return TRUE;
+}
+
+/**
+ * Remove the key which is the closest to the one specified.
+ *
+ * @param pt		the PATRICIA tree
+ * @param key		pointer to the start of the key bits
+ * @param keybits	amount of bits to consider in the key
+ *
+ * @attention
+ * This call is restricted to trees where all the keys inserted have the
+ * same length, and that length must be the maximum length specified at the
+ * creation of the tree.
+ *
+ * @return TRUE if the key was found and removed from the PATRICIA tree,
+ * which is always the case unless the tree was empty.
+ */
+gboolean
+patricia_remove_closest(patricia_t *pt, gconstpointer key, size_t keybits)
+{
+	return remove_closest(pt, key, keybits, TRUE);
+}
+
+/**
+ * Remove the key which is the furthest to the one specified.
+ *
+ * @param pt		the PATRICIA tree
+ * @param key		pointer to the start of the key bits
+ * @param keybits	amount of bits to consider in the key
+ *
+ * @attention
+ * This call is restricted to trees where all the keys inserted have the
+ * same length, and that length must be the maximum length specified at the
+ * creation of the tree.
+ *
+ * @return TRUE if the key was found and removed from the PATRICIA tree,
+ * which is always the case unless the tree was empty.
+ */
+gboolean
+patricia_remove_furthest(patricia_t *pt, gconstpointer key, size_t keybits)
+{
+	return remove_closest(pt, key, keybits, FALSE);
+}
+
+/**
  * Callback for nodes in traverse().
  */
 typedef void (*node_cb_t)(struct patricia_node *pn, gpointer un);
@@ -2007,7 +2069,7 @@ common_iter_init(patricia_iter_t *iter, patricia_t *pt, gboolean forward)
 }
 
 /**
- * Create a PATRICIA tree iterator.
+ * Create a PATRICIA tree iterator (lexicographic order, aka depth-first).
  *
  * @param pt		the PATRICIA tree
  * @param forward	whether iteration should move forward or backwards
@@ -2473,6 +2535,16 @@ test_keys(guint32 keys[], size_t nkeys)
 
 		g_assert(count == patricia_count(pt));
 		g_assert(even_keys == even);
+
+		/* remove the furthest node. the first one we traversed above */
+
+		found = patricia_remove_furthest(pt, &data[idx], 32);
+
+		g_assert(found);		/* Since we have at least 1 item in tree */
+		g_assert(count - 1 == patricia_count(pt));
+		g_assert(!patricia_contains(pt, furthest, 32));
+
+		patricia_insert(pt, furthest, 32, NULL);	/* Key expected below */
 	}
 
 	/* removing odd keys... */
