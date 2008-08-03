@@ -1228,7 +1228,7 @@ insert_below(
 		if (old_keybits == diffbit) {
 			struct patricia_parent *ext = walloc(sizeof *ext);
 
-			g_assert(keybits < pt->maxbits);
+			g_assert(old_keybits < pt->maxbits);
 
 			ext->parent = pn->p.parent;
 			ext->key = old_key;
@@ -2320,74 +2320,50 @@ remove_odd_key(gpointer key, size_t keybits, gpointer uv, gpointer uu)
 /**
  * Perform unit tests of PATRICIA trees.
  */
-void
-patricia_test(void)
+static void
+test_keys(guint32 keys[], size_t nkeys)
 {
 	size_t i;
-	static guint32 keys[] = {
-		0x00800000U,
-		0x00800001U,
-		0x00810001U,
-		0x00830001U,
-		0x00820001U,
-		0x01111111U,
-		0x00000000U,
-		0x00000001U,
-		0x00000011U,
-		0x00000111U,
-		0x00001111U,
-		0x00011111U,
-		0x00111111U,
-		0x11111111U,
-		0x31111111U,
-		0x32111111U,
-		0x33111111U,
-		0x80111111U,
-		0x83111111U,
-		0xa0000000U,
-		0xc0000000U,
-		0x40111111U,
-	};
-	guint32 *data = g_malloc(G_N_ELEMENTS(keys) * sizeof(guint32));
+	guint32 *data = g_malloc(nkeys * sizeof(guint32));
 	patricia_t *pt = patricia_create(32);
 	guint32 *p = data;
 	size_t even;
 
 	/* count even keys... */
 
-	for (even = 0, i = 0; i <  G_N_ELEMENTS(keys); i++) {
+	for (even = 0, i = 0; i <  nkeys; i++) {
 		if (!(keys[i] & 0x1))
 			even++;
 	}
 
 	/* prepare keys in memory (big-endian format)... */
 
-	for (i = 0, p = data; i <  G_N_ELEMENTS(keys); i++, p++) {
+	for (i = 0, p = data; i <  nkeys; i++, p++) {
 		poke_be32(p, keys[i]);
 	}
 
 	/* inserting keys... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		g_assert(!patricia_contains(pt, &data[i], 32));
 		patricia_insert(pt, &data[i], 32, NULL);
 		g_assert(pt->count == i + 1);
 		g_assert(patricia_contains(pt, &data[i], 32));
 	}
 
-	g_assert(pt->count == G_N_ELEMENTS(keys));
+	g_assert(pt->count == nkeys);
 	g_assert(pt->embedded == 0);
 
 	/* re-inserting keys... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		patricia_insert(pt, &data[i], 32, NULL);
-		g_assert(pt->count == G_N_ELEMENTS(keys));
+		g_assert(pt->count == nkeys);
 	}
 
 	/* lookup for closest entries to random keys, then remove them... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		gpointer key;
 		gboolean found;
 		gchar target[4];
@@ -2407,20 +2383,20 @@ patricia_test(void)
 
 	/* inserting keys in reverse order... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
-		size_t idx = G_N_ELEMENTS(keys)-1 - i;
+	for (i = 0; i < nkeys; i++) {
+		size_t idx = nkeys - 1 - i;
 		g_assert(!patricia_contains(pt, &data[idx], 32));
 		patricia_insert(pt, &data[idx], 32, NULL);
 		g_assert(pt->count == i + 1);
 		g_assert(patricia_contains(pt, &data[idx], 32));
 	}
 
-	g_assert(patricia_count(pt) == G_N_ELEMENTS(keys));
+	g_assert(patricia_count(pt) == nkeys);
 	g_assert(pt->embedded == 0);
 
 	/* lookup for closest entries that exist... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		gpointer key;
 		gboolean found;
 
@@ -2472,7 +2448,7 @@ patricia_test(void)
 		guint32 distance;
 		guint32 previous_distance = 0;
 		gboolean first = TRUE;
-		size_t idx = random_value(G_N_ELEMENTS(keys) - 1);
+		size_t idx = random_value(nkeys - 1);
 
 		iter = patricia_metric_iterator(pt, &data[idx], 32, FALSE);
 		while (patricia_iter_next(iter, &key, NULL, NULL)) {
@@ -2498,12 +2474,12 @@ patricia_test(void)
 	/* removing odd keys... */
 
 	i = patricia_foreach_remove(pt, remove_odd_key, NULL);
-	g_assert(i == G_N_ELEMENTS(keys) - even);
+	g_assert(i == nkeys - even);
 	g_assert(patricia_count(pt) == even);
 
 	/* removing remaining keys in order... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		if (patricia_contains(pt, &data[i], 32)) {
 			gboolean removed = patricia_remove(pt, &data[i], 32);
 			g_assert(removed);
@@ -2516,14 +2492,14 @@ patricia_test(void)
 	g_assert(pt->nodes == 0);
 	g_assert(pt->embedded == 0);
 
-	for (i = 0, p = data; i <  G_N_ELEMENTS(keys); i++, p++) {
+	for (i = 0, p = data; i <  nkeys; i++, p++) {
 		size_t bitsize = 1 + highest_bit_set(keys[i]);
 		poke_be32(p, keys[i] << (32 - bitsize));
 	}
 
 	/* inserting keys of variable size... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		size_t bitsize = 1 + highest_bit_set(keys[i]);
 		g_assert(!patricia_contains(pt, &data[i], bitsize));
 		patricia_insert(pt, &data[i], bitsize, NULL);
@@ -2531,12 +2507,12 @@ patricia_test(void)
 		g_assert(patricia_contains(pt, &data[i], bitsize));
 	}
 
-	g_assert(pt->count == G_N_ELEMENTS(keys));
+	g_assert(pt->count == nkeys);
 	g_assert(pt->embedded != 0);
 
 	/* removing keys of variable size... */
 
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 0; i < nkeys; i++) {
 		gboolean removed;
 		size_t bitsize = 1 + highest_bit_set(keys[i]);
 
@@ -2544,7 +2520,7 @@ patricia_test(void)
 		removed = patricia_remove(pt, &data[i], bitsize);
 		g_assert(removed);
 		g_assert(!patricia_contains(pt, &data[i], bitsize));
-		g_assert(patricia_count(pt) == G_N_ELEMENTS(keys) - i - 1);
+		g_assert(patricia_count(pt) == nkeys - i - 1);
 	}
 
 	g_assert(patricia_count(pt) == 0);
@@ -2552,7 +2528,68 @@ patricia_test(void)
 	g_assert(pt->nodes == 0);
 	g_assert(pt->embedded == 0);
 
+	g_free(data);
+}
+
+/**
+ * Perform unit tests of PATRICIA trees.
+ */
+void
+patricia_test(void)
+{
+	size_t i;
+	static guint32 keys[] = {
+		0x00800000U,
+		0x00800001U,
+		0x00810001U,
+		0x00830001U,
+		0x00820001U,
+		0x01111111U,
+		0x00000000U,
+		0x00000001U,
+		0x00000011U,
+		0x00000111U,
+		0x00001111U,
+		0x00011111U,
+		0x00111111U,
+		0x11111111U,
+		0x31111111U,
+		0x32111111U,
+		0x33111111U,
+		0x80111111U,
+		0x83111111U,
+		0xa0000000U,
+		0xc0000000U,
+		0x40111111U,
+	};
+	patricia_t *pt = patricia_create(32);
+
+	test_keys(keys, G_N_ELEMENTS(keys));
+
+	keys[0] = 0x1U;		/* Ensure 1 embedded data at least */
+
+	patricia_insert(pt, &keys[0], 32, NULL);
+
+	for (i = 1; i < G_N_ELEMENTS(keys); i++) {
+		int j;
+
+		for (j = 0; j < 10; j++) {
+			random_bytes(&keys[i], sizeof keys[i]);
+			if (!patricia_contains(pt, &keys[i], 32) && keys[i] != 0)
+				break;
+		}
+
+		if (j == 10)
+			g_error("bad luck with random numbers");
+
+		patricia_insert(pt, &keys[i], 32, NULL);
+	}
+
+	test_keys(keys, G_N_ELEMENTS(keys));
+
 	/* all tests passed */
+
+	patricia_destroy(pt);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
