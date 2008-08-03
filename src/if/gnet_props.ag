@@ -3646,7 +3646,16 @@ prop = {
 
 prop = {
     name = "cq_debug";
-    desc = "Debug level for callout queue.";
+    desc = "Debug level for the callout queue.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dht_lookup_debug";
+    desc = "Debug level for DHT node lookups.";
     type = guint32;
     data = {
         default = 0;

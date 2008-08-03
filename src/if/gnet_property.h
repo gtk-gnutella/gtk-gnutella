@@ -354,6 +354,7 @@ typedef enum {
     PROP_BEAUTIFY_FILENAMES,
     PROP_ENABLE_DHT,
     PROP_CQ_DEBUG,
+    PROP_DHT_LOOKUP_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
