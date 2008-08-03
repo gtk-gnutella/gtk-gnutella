@@ -78,6 +78,11 @@ gpointer patricia_closest(
 gboolean patricia_closest_extended(
 	const patricia_t *pt, gconstpointer key, size_t keybits,
 	gpointer *keyptr, gpointer *valptr);
+gpointer patricia_furthest(
+	const patricia_t *pt, gconstpointer key, size_t keybits);
+gboolean patricia_furthest_extended(
+	const patricia_t *pt, gconstpointer key, size_t keybits,
+	gpointer *keyptr, gpointer *valptr);
 
 patricia_iter_t *patricia_tree_iterator(patricia_t *pt, gboolean forward);
 patricia_iter_t *patricia_metric_iterator(patricia_t *pt,

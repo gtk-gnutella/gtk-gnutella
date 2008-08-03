@@ -945,6 +945,9 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
  * way. This is the "closest" node in the tree to the search key, under the
  * XOR metric.
  *
+ * When `closest' is FALSE, the match is actually inverted, i.e. we find
+ * the furthest node in the tree.
+ *
  * @attention
  * This call is restricted to PATRICIA trees holding a set of keys with
  * the same size: the maximum allowed in the tree.
@@ -952,14 +955,16 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
  * @param pt		the PATRICIA tree
  * @param key		the key we're looking for
  * @param keybits	the amount of significant bits in the key
+ * @param closest	whether to look for the closest or furthest node
  *
  * @return the node which is the closest match, or NULL if not found (i.e.
  * the PATRICIA tree was empty).
  */
 static const struct patricia_node *
-match_closest(const patricia_t *pt, gconstpointer key, size_t keybits)
+match_closest(
+	const patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
 {
-	return find_closest(pt, pt->root, key, keybits, TRUE);
+	return find_closest(pt, pt->root, key, keybits, closest);
 }
 
 /**
@@ -1545,6 +1550,52 @@ patricia_lookup_best(
 }
 
 /**
+ * Common implementation for patricia_closest() and patricia_furthest().
+ */
+static gpointer
+lookup_closest(
+	const patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
+{
+	const struct patricia_node *pn = match_closest(pt, key, keybits, closest);
+
+	if (NULL == pn) {
+		g_assert(0 == patricia_count(pt));
+		return NULL;
+	}
+
+	g_assert(node_has_data(pn));
+
+	return deconstify_gpointer(node_value(pn));
+}
+
+/**
+ * Common implementation for patricia_closest_extended() and
+ * patricia_furthest_extended().
+ */
+static gboolean
+lookup_closest_extended(
+	const patricia_t *pt, gconstpointer key, size_t keybits,
+	gpointer *keyptr, gpointer *valptr, gboolean closest)
+{
+	const struct patricia_node *pn = match_closest(pt, key, keybits, closest);
+
+	if (NULL == pn) {
+		g_assert(0 == patricia_count(pt));
+		return FALSE;
+	}
+
+	g_assert(node_has_data(pn));
+	g_assert(node_keybits(pn) == pt->maxbits);
+
+	if (keyptr)
+		*keyptr = deconstify_gpointer(node_key(pn));
+	if (valptr)
+		*valptr = deconstify_gpointer(node_value(pn));
+
+	return TRUE;
+}
+
+/**
  * Fetch value from the PATRICIA tree attached to an item which is the
  * closest to the specified lookup key, under the XOR distance.
  *
@@ -1569,16 +1620,7 @@ patricia_lookup_best(
 gpointer
 patricia_closest(const patricia_t *pt, gconstpointer key, size_t keybits)
 {
-	const struct patricia_node *pn = match_closest(pt, key, keybits);
-
-	if (NULL == pn) {
-		g_assert(0 == patricia_count(pt));
-		return NULL;
-	}
-
-	g_assert(node_has_data(pn));
-
-	return deconstify_gpointer(node_value(pn));
+	return lookup_closest(pt, key, keybits, TRUE);
 }
 
 /**
@@ -1605,22 +1647,62 @@ patricia_closest_extended(
 	const patricia_t *pt, gconstpointer key, size_t keybits,
 	gpointer *keyptr, gpointer *valptr)
 {
-	const struct patricia_node *pn = match_closest(pt, key, keybits);
+	return lookup_closest_extended(pt, key, keybits, keyptr, valptr, TRUE);
+}
 
-	if (NULL == pn) {
-		g_assert(0 == patricia_count(pt));
-		return FALSE;
-	}
+/**
+ * Fetch value from the PATRICIA tree attached to an item which is the
+ * furthest to the specified lookup key, under the XOR distance.
+ *
+ * @attention
+ * NOTE: Since NULL is a valid value for storage, one cannot distinguish
+ * from the returned value whether the data is NULL or the key was not
+ * found, unless one knows that NULL values are not inserted.
+ * However, this call is guaranteed to return a value if the tree is not
+ * empty, so a NULL would be a value unless the PATRICIA tree was empty.
+ *
+ * @attention
+ * This call is restricted to trees where all the keys inserted have the
+ * same length, and that length must be the maximum length specified at the
+ * creation of the tree.
+ *
+ * @param pt		the PATRICIA tree
+ * @param key		the key we're looking for
+ * @param keybits	size of key in bits
+ *
+ * @return the value for the key, or NULL if not found.
+ */
+gpointer
+patricia_furthest(const patricia_t *pt, gconstpointer key, size_t keybits)
+{
+	return lookup_closest(pt, key, keybits, FALSE);
+}
 
-	g_assert(node_has_data(pn));
-	g_assert(node_keybits(pn) == pt->maxbits);
-
-	if (keyptr)
-		*keyptr = deconstify_gpointer(node_key(pn));
-	if (valptr)
-		*valptr = deconstify_gpointer(node_value(pn));
-
-	return TRUE;
+/**
+ * Same a patricia_furthest(), only a boolean indication of whether an item
+ * was found is given, and the actual key that was deemed the furthest is
+ * also returned.  This is useful when the values do not point back to the
+ * keys used for inserting them.
+ *
+ * @attention
+ * This call is restricted to trees where all the keys inserted have the
+ * same length, and that length must be the maximum length specified at the
+ * creation of the tree.
+ *
+ * @param pt		the PATRICIA tree
+ * @param key		the key we're looking for
+ * @param keybits	size of key in bits
+ * @param keyptr	if non-NULL, where the original key pointer is written
+ * @param valptr	if non-NULL, where the original value pointer is written
+ *
+ * @return whether the key was found and keyptr/valueptr written back.
+ */
+gboolean
+patricia_furthest_extended(
+	const patricia_t *pt, gconstpointer key, size_t keybits,
+	gpointer *keyptr, gpointer *valptr)
+{
+	return lookup_closest_extended(pt, key, keybits, keyptr, valptr, FALSE);
 }
 
 /**
