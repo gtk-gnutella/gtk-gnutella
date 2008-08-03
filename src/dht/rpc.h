@@ -75,6 +75,12 @@ typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 	guint8 function,
 	const gchar *payload, size_t len, gpointer arg);
 
+/**
+ * RPC call control flags.
+ */
+
+#define RPC_CALL_NO_VERIFY		(1 << 0)	/**< Don't verify KUID on reply */
+
 /*
  * Public interface.
  */
@@ -88,7 +94,8 @@ gboolean dht_rpc_answer(const guid_t *muid, knode_t *kn,
 	gconstpointer payload, size_t len);
 
 void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
-void dht_verify_node(knode_t *kn, knode_t *new);
+void dht_rpc_ping_extended(
+	knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg);
 void dht_rpc_find_node(
 	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg);
 

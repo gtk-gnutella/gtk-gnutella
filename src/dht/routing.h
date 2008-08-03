@@ -95,13 +95,14 @@ int dht_fill_closest(
 	const kuid_t *id, knode_t **kvec, int kcnt,
 	gboolean refcnt, const kuid_t *exclude);
 knode_t *dht_find_node(const gchar *kuid);
-void dht_replace_node(knode_t *old, knode_t *new);
 void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);
 void dht_node_timed_out(knode_t *kn);
 
 void dht_route_store(void);
 void dht_route_store_if_dirty(void);
+
+void dht_verify_node(knode_t *kn, knode_t *new);
 
 #endif /* _dht_routing_h_ */
 

@@ -1295,7 +1295,7 @@ dht_find_node(const gchar *kuid)
 /**
  * Replace old node with new node entry in the DHT routing table.
  */
-void
+static void
 dht_replace_node(knode_t *old, knode_t *new)
 {
 	struct kbucket *kb;
@@ -2021,6 +2021,104 @@ dht_route_close(void)
 		hash_list_foreach(stats.other_size, other_size_free_cb, NULL);
 		hash_list_free(&stats.other_size);
 	}
+}
+
+/***
+ *** RPC calls for routing table management.
+ ***/
+
+/**
+ * Structure used to keep the context of nodes that are verified: whenever
+ * we get a duplicate KUID from an alien address, we verify the old address
+ * and keep the new node around: if the old does not answer, we replace the
+ * entry by the new one, otherwise we discard the new.
+ */
+struct addr_verify {
+	knode_t *old;
+	knode_t *new;
+};
+
+/**
+ * RPC callback for the address verification.
+ *
+ * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
+ * @param kn			the replying node
+ * @param function		the type of message we got (0 on TIMEOUT)
+ * @param payload		the payload we got
+ * @param len			the length of the payload
+ * @param arg			user-defined callback parameter
+ */
+static void
+dht_addr_verify_cb(
+	enum dht_rpc_ret type,
+	const knode_t *kn,
+	const struct gnutella_node *unused_n,
+	guint8 unused_function,
+	const gchar *unused_payload, size_t unused_len, gpointer arg)
+{
+	struct addr_verify *av = arg;
+
+	(void) unused_n;
+	(void) unused_function;
+	(void) unused_payload;
+	(void) unused_len;
+
+	if (type == DHT_RPC_TIMEOUT || !kuid_eq(av->old->id, kn->id)) {
+		/*
+		 * Timeout, or the host that we probed no longer bears the KUID
+		 * we had in our records for it.  Discard the old and keep the new,
+		 * unless it is firewalled.
+		 */
+
+		if (av->new->flags & KNODE_F_FIREWALLED)
+			dht_remove_node(av->old);
+		else
+			dht_replace_node(av->old, av->new);
+	} else {
+		av->old->flags &= ~KNODE_F_VERIFYING;	/* got reply from proper host */
+	}
+
+	knode_free(av->old);
+	knode_free(av->new);
+	wfree(av, sizeof *av);
+}
+
+/**
+ * Verify the node address when we get a conflicting one.
+ *
+ * It is possible that the address of the node changed, so we send a PING to
+ * the old address we had decide whether it is the case (no reply or another
+ * KUID will come back), or whether the new node we found has a duplicate KUID
+ * (maybe intentionally).
+ */
+void
+dht_verify_node(knode_t *kn, knode_t *new)
+{
+	struct addr_verify *av;
+
+	g_assert(new->refcnt == 1);
+	g_assert(new->status == KNODE_UNKNOWN);
+	g_assert(!(kn->flags & KNODE_F_VERIFYING));
+
+	av = walloc(sizeof *av);
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT node %s was at %s, now %s -- verifying",
+			kuid_to_hex_string(kn->id),
+			host_addr_port_to_string(kn->addr, kn->port),
+			host_addr_port_to_string2(new->addr, new->port));
+
+	kn->flags |= KNODE_F_VERIFYING;
+	av->old = knode_refcnt_inc(kn);
+	av->new = new;
+
+	/*
+	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification
+	 * of the address of the replying node ourselves in the callback because
+	 * the "new" node bears the same KUID as the "old" one.
+	 */
+
+	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_addr_verify_cb, av);
 }
 
 /***
