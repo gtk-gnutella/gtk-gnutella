@@ -112,6 +112,39 @@ map_create_patricia(size_t keybits)
 }
 
 /**
+ * Create a map out of an existing hash table.
+ * Use map_release() to discard the map encapsulation.
+ */
+map_t *
+map_create_from_hash(GHashTable *ht)
+{
+	map_t *m;
+
+	m = walloc(sizeof *m);
+	m->type = MAP_HASH;
+	m->u.h.ht = ht;
+
+	return m;
+}
+
+/**
+ * Create a map out of an existing PATRICIA tree.
+ * Use map_release() to discard the map encapsulation.
+ */
+map_t *
+map_create_from_patricia(patricia_t *pt)
+{
+	map_t *m;
+
+	m = walloc(sizeof *m);
+	m->type = MAP_PATRICIA;
+	m->u.p.pt = pt;
+	m->u.p.keybits = patricia_max_keybits(pt);
+
+	return m;
+}
+
+/**
  * Insert a key/value pair in the map.
  */
 void
@@ -307,6 +340,34 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 		g_assert_not_reached();
 	}
 	return 0;
+}
+
+/**
+ * Release the map encapsulation, returning the underlying implementation
+ * object (will need to be cast back to the proper type for perusal).
+ */
+gpointer
+map_release(map_t *m)
+{
+	gpointer implementation = NULL;
+
+	g_assert(m);
+
+	switch (m->type) {
+	case MAP_HASH:
+		implementation = m->u.h.ht;
+		break;
+	case MAP_PATRICIA:
+		implementation = m->u.p.pt;
+		break;
+	case MAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	m->type = MAP_MAXTYPE;
+	wfree(m, sizeof *m);
+
+	return implementation;
 }
 
 /**

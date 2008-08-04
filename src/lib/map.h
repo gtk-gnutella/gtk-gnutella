@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "glib-missing.h"
+#include "patricia.h"
 
 struct map;
 typedef struct map map_t;
@@ -52,6 +53,8 @@ typedef gboolean (*map_cbr_t)(gpointer key, gpointer value, gpointer u);
 
 map_t *map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func);
 map_t *map_create_patricia(size_t keybits);
+map_t *map_create_from_hash(GHashTable *ht);
+map_t *map_create_from_patricia(patricia_t *pt);
 
 /**
  * Public map interface.
@@ -63,6 +66,7 @@ gpointer map_lookup(const map_t *m, gconstpointer key);
 gboolean map_lookup_extended(const map_t *m, gconstpointer key,
 	gpointer *okey, gpointer *oval);
 gboolean map_contains(const map_t *m, gconstpointer key);
+gpointer map_release(map_t *m);
 void map_destroy(map_t *m);
 
 void map_foreach(const map_t *m, map_cb_t cb, gpointer u);
