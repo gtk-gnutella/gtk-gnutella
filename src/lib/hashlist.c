@@ -671,6 +671,8 @@ hash_list_iter_release(hash_list_iter_t **iter_ptr)
 
 /**
  * Check whether hashlist contains the `data'.
+ * If `orig_key_ptr' is not NULL and the key exists, a pointer to
+ * the stored key is written to it.
  */
 gboolean
 hash_list_contains(hash_list_t *hl, gconstpointer key,

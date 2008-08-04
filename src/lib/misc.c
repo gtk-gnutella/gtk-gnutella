@@ -2003,7 +2003,7 @@ timestamp_rfc822_to_string_buf(time_t date, gchar *buf, size_t size)
 	 * did not seem to force that routine to emit English.  Let's do it
 	 * ourselves.
 	 *
-	 * We also used to reply on strftime()'s "%z" to compute the GMT offset,
+	 * We also used to rely on strftime()'s "%z" to compute the GMT offset,
 	 * but this is GNU-specific.
 	 */
 
