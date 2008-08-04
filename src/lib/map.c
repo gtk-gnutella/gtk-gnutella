@@ -343,26 +343,38 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 }
 
 /**
+ * Returns the underlying map implementation.
+ */
+gpointer
+map_implementation(map_t *m)
+{
+	g_assert(m);
+
+	switch (m->type) {
+	case MAP_HASH:
+		return m->u.h.ht;
+	case MAP_PATRICIA:
+		return m->u.p.pt;
+	case MAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return NULL;
+}
+
+
+/**
  * Release the map encapsulation, returning the underlying implementation
  * object (will need to be cast back to the proper type for perusal).
  */
 gpointer
 map_release(map_t *m)
 {
-	gpointer implementation = NULL;
+	gpointer implementation;
 
 	g_assert(m);
 
-	switch (m->type) {
-	case MAP_HASH:
-		implementation = m->u.h.ht;
-		break;
-	case MAP_PATRICIA:
-		implementation = m->u.p.pt;
-		break;
-	case MAP_MAXTYPE:
-		g_assert_not_reached();
-	}
+	implementation = map_implementation(m);
 
 	m->type = MAP_MAXTYPE;
 	wfree(m, sizeof *m);

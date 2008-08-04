@@ -66,6 +66,7 @@ gpointer map_lookup(const map_t *m, gconstpointer key);
 gboolean map_lookup_extended(const map_t *m, gconstpointer key,
 	gpointer *okey, gpointer *oval);
 gboolean map_contains(const map_t *m, gconstpointer key);
+gpointer map_implementation(map_t *m);
 gpointer map_release(map_t *m);
 void map_destroy(map_t *m);
 
