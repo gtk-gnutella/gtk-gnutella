@@ -256,6 +256,17 @@ patricia_count(const patricia_t *pt)
 }
 
 /**
+ * Returns the maximum key size in bits.
+ */
+size_t
+patricia_max_keybits(const patricia_t *pt)
+{
+	g_assert(pt);
+
+	return pt->maxbits;
+}
+
+/**
  * Allocate a new PATRICIA node.
  */
 static struct patricia_node *

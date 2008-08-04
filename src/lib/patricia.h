@@ -58,6 +58,7 @@ typedef gboolean (*patricia_cbr_t)(
 patricia_t *patricia_create(size_t maxbits);
 void patricia_destroy(patricia_t *pt);
 size_t patricia_count(const patricia_t *pt);
+size_t patricia_max_keybits(const patricia_t *pt);
 void patricia_insert(
 	patricia_t *pt, gconstpointer key, size_t keybits, gconstpointer value);
 gboolean patricia_remove(patricia_t *pt, gconstpointer key, size_t keybits);
