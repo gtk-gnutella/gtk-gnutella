@@ -2208,7 +2208,6 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
  *
  * @param pt		the PATRICIA tree
  * @param key		initial key for iterator initialization
- * @param keybits	size of key in bits
  * @param forward	whether iteration should move forward or backwards
  *
  * @attention
@@ -2218,23 +2217,21 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
  * A copy of the key is made and is released in patricia_iterator_release().
  */
 patricia_iter_t *
-patricia_metric_iterator(patricia_t *pt,
-	gconstpointer key, size_t keybits, gboolean forward)
+patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 {
 	struct patricia_iter *iter;
-	size_t keybytes = bits2bytes(keybits);
+	size_t keybytes = bits2bytes(pt->maxbits);
 
 	g_assert(pt);
-	g_assert(keybits == pt->maxbits);
 	g_assert(pt->embedded == 0);
 
 	iter = walloc(sizeof *iter);
 
 	iter->type = PATRICIA_ITER_XOR;
-	iter->next = find_closest(pt, pt->root, key, keybits, forward);
+	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
 	iter->key = walloc(keybytes);
 	memcpy(iter->key, key, keybytes);
-	iter->keybits = keybits;
+	iter->keybits = pt->maxbits;
 
 	return common_iter_init(iter, pt, forward);
 }
@@ -2624,7 +2621,7 @@ test_keys(guint32 keys[], size_t nkeys)
 
 		g_assert(found);		/* Since we have at least 1 item in tree */
 
-		iter = patricia_metric_iterator(pt, &data[idx], 32, FALSE);
+		iter = patricia_metric_iterator(pt, &data[idx], FALSE);
 		while (patricia_iter_next(iter, &key, NULL, NULL)) {
 			guint8 *k = key;
 			count++;
