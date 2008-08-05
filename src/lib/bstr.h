@@ -63,6 +63,7 @@ void bstr_clear_error(bstr_t *bs);
 void bstr_destroy(bstr_t *bs);
 const char *bstr_error(const bstr_t *bs);
 
+gboolean bstr_read(bstr_t *bs, void *buf, size_t count);
 gboolean bstr_read_u8(bstr_t *bs, guint8 *pv);
 gboolean bstr_read_le16(bstr_t *bs, guint16 *pv);
 gboolean bstr_read_be16(bstr_t *bs, guint16 *pv);

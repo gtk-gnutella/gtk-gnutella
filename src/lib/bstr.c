@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "bstr.h"
 #include "casts.h"
+#include "endian.h"
 #include "glib-missing.h"
 #include "host_addr.h"
 #include "misc.h"
@@ -224,15 +225,37 @@ invalid_len_max(
 static gboolean
 expect(bstr_t *bs, ssize_t expected, const char *where)
 {
+	g_assert(expected > 0);
+
 	if (!bs->ok)
 		return FALSE;
 
 	if (bs->end - bs->rptr >= expected)
 		return TRUE;
 
-	g_assert(expected > 0);
-
 	return error_eos(bs, expected, where);
+}
+
+/**
+ * Read specified amount of bytes into buffer.
+ *
+ * @param bs	the binary stream
+ * @param buf	where to write read data
+ * @param count	amount of data to read
+ * 
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read(bstr_t *bs, void *buf, size_t count)
+{
+	g_assert((ssize_t) count > 0);
+
+	if (!expect(bs, count, "bstr_read"))
+		return FALSE;
+
+	memcpy(buf, bs->rptr, count);
+	bs->rptr += count;
+	return TRUE;
 }
 
 /**
@@ -264,13 +287,11 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
 gboolean
 bstr_read_le16(bstr_t *bs, guint16 *pv)
 {
-	guint16 v;
-
 	if (!expect(bs, 2, "bstr_read_le16"))
 		return FALSE;
 
-	v = *(guint8 *) bs->rptr++;
-	*pv = v | (guint16) (*(guint8 *) bs->rptr++) << 8;
+	*pv = peek_le16(bs->rptr);
+	bs->rptr += 2;
 	return TRUE;
 }
 
@@ -285,13 +306,11 @@ bstr_read_le16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_be16(bstr_t *bs, guint16 *pv)
 {
-	guint16 v;
-
 	if (!expect(bs, 2, "bstr_read_be16"))
 		return FALSE;
 
-	v = (guint16) (*(guint8 *) bs->rptr++) << 8;
-	*pv = v | *(guint8 *) bs->rptr++;
+	*pv = peek_be16(bs->rptr);
+	bs->rptr += 2;
 	return TRUE;
 }
 
@@ -306,15 +325,11 @@ bstr_read_be16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_le32(bstr_t *bs, guint16 *pv)
 {
-	guint32 v;
-
 	if (!expect(bs, 4, "bstr_read_le32"))
 		return FALSE;
 
-	v = *(guint8 *) bs->rptr++;
-	v |= (guint32) (*(guint8 *) bs->rptr++) << 8;
-	v |= (guint32) (*(guint8 *) bs->rptr++) << 16;
-	*pv = v | (guint32) (*(guint8 *) bs->rptr++) << 24;
+	*pv = peek_le32(bs->rptr);
+	bs->rptr += 4;
 	return TRUE;
 }
 
@@ -329,15 +344,11 @@ bstr_read_le32(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_be32(bstr_t *bs, guint32 *pv)
 {
-	guint32 v;
-
 	if (!expect(bs, 4, "bstr_read_be32"))
 		return FALSE;
 
-	v = (guint32) (*(guint8 *) bs->rptr++) << 24;
-	v |= (guint32) (*(guint8 *) bs->rptr++) << 16;
-	v |= (guint32) (*(guint8 *) bs->rptr++) << 8;
-	*pv = v | *(guint8 *) bs->rptr++;
+	*pv = peek_be32(bs->rptr);
+	bs->rptr += 4;
 	return TRUE;
 }
 
@@ -366,7 +377,7 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 	if (len != 4 && len != 16)
 		return invalid_len(bs, len, "IP address", where);
 
-	if (!expect(bs, (ssize_t) len, where))
+	if (!expect(bs, len, where))
 		return FALSE;
 
 	switch (len) {
