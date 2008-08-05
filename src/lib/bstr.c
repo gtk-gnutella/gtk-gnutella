@@ -237,6 +237,15 @@ expect(bstr_t *bs, ssize_t expected, const char *where)
 }
 
 /**
+ * @return amount of unread data.
+ */
+size_t
+bstr_unread_size(const bstr_t *bs)
+{
+	return bs->end - bs->rptr;
+}
+
+/**
  * Read specified amount of bytes into buffer.
  *
  * @param bs	the binary stream
