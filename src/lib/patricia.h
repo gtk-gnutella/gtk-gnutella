@@ -97,6 +97,8 @@ gboolean patricia_furthest_extended(
 patricia_iter_t *patricia_tree_iterator(patricia_t *pt, gboolean forward);
 patricia_iter_t *patricia_metric_iterator(patricia_t *pt,
 	gconstpointer key, gboolean forward);
+patricia_iter_t *patricia_metric_iterator_lazy(
+	patricia_t *pt, gconstpointer key, gboolean forward);
 gboolean patricia_iter_has_next(patricia_iter_t *iter);
 gpointer patricia_iter_next_value(patricia_iter_t *iter);
 gboolean patricia_iter_next(patricia_iter_t *iter,

@@ -2144,6 +2144,7 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 enum patricia_iter_type {
 	PATRICIA_ITER_TREE	= 1,		/**< "lexicographic" traversal */
 	PATRICIA_ITER_XOR,				/**< "xor metric" traversal */
+	PATRICIA_ITER_XOR_LAZY,			/**< idem, key not copied */
 };
 
 /**
@@ -2231,6 +2232,30 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
 	iter->key = walloc(keybytes);
 	memcpy(iter->key, key, keybytes);
+	iter->keybits = pt->maxbits;
+
+	return common_iter_init(iter, pt, forward);
+}
+
+/**
+ * Same as atricia_metric_iterator() but the initial key is not copied.
+ * It must therefore remain allocated until the iterator is released, which
+ * is usually the case when the iteration is done within a single routine.
+ */
+patricia_iter_t *
+patricia_metric_iterator_lazy(
+	patricia_t *pt, gconstpointer key, gboolean forward)
+{
+	struct patricia_iter *iter;
+
+	g_assert(pt);
+	g_assert(pt->embedded == 0);
+
+	iter = walloc(sizeof *iter);
+
+	iter->type = PATRICIA_ITER_XOR_LAZY;
+	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
+	iter->key = deconstify_gpointer(key);
 	iter->keybits = pt->maxbits;
 
 	return common_iter_init(iter, pt, forward);
@@ -2337,6 +2362,7 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 		next = next_tree_node(prev, iter->forward);
 		break;
 	case PATRICIA_ITER_XOR:
+	case PATRICIA_ITER_XOR_LAZY:
 		next = next_metric_node(iter->pt, prev,
 			iter->key, iter->keybits, iter->forward);
 		break;
