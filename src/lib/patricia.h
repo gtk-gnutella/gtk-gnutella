@@ -59,18 +59,25 @@ patricia_t *patricia_create(size_t maxbits);
 void patricia_destroy(patricia_t *pt);
 size_t patricia_count(const patricia_t *pt);
 size_t patricia_max_keybits(const patricia_t *pt);
-void patricia_insert(
+void patricia_insert(patricia_t *pt, gconstpointer key, gconstpointer value);
+void patricia_insert_k(
 	patricia_t *pt, gconstpointer key, size_t keybits, gconstpointer value);
-gboolean patricia_remove(patricia_t *pt, gconstpointer key, size_t keybits);
+gboolean patricia_remove(patricia_t *pt, gconstpointer key);
+gboolean patricia_remove_k(patricia_t *pt, gconstpointer key, size_t keybits);
 gboolean patricia_remove_closest(
 	patricia_t *pt, gconstpointer key, size_t keybits);
 gboolean patricia_remove_furthest(
 	patricia_t *pt, gconstpointer key, size_t keybits);
-gboolean patricia_contains(
+gboolean patricia_contains(const patricia_t *pt, gconstpointer key);
+gboolean patricia_contains_k(
 	const patricia_t *pt, gconstpointer key, size_t keybits);
-gpointer patricia_lookup(
+gpointer patricia_lookup(const patricia_t *pt, gconstpointer key);
+gpointer patricia_lookup_k(
 	const patricia_t *pt, gconstpointer key, size_t keybits);
 gboolean patricia_lookup_extended(
+	const patricia_t *pt, gconstpointer key,
+	gpointer *keyptr, gpointer *valptr);
+gboolean patricia_lookup_extended_k(
 	const patricia_t *pt, gconstpointer key, size_t keybits,
 	gpointer *keyptr, gpointer *valptr);
 void patricia_foreach(const patricia_t *pt, patricia_cb_t cb, gpointer u);
@@ -78,15 +85,13 @@ size_t patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u);
 gboolean patricia_lookup_best(
 	const patricia_t *pt, gconstpointer key, size_t keybits,
 	gpointer *keyptr, size_t *lenptr, gpointer *valptr);
-gpointer patricia_closest(
-	const patricia_t *pt, gconstpointer key, size_t keybits);
+gpointer patricia_closest(const patricia_t *pt, gconstpointer key);
 gboolean patricia_closest_extended(
-	const patricia_t *pt, gconstpointer key, size_t keybits,
+	const patricia_t *pt, gconstpointer key,
 	gpointer *keyptr, gpointer *valptr);
-gpointer patricia_furthest(
-	const patricia_t *pt, gconstpointer key, size_t keybits);
+gpointer patricia_furthest(const patricia_t *pt, gconstpointer key);
 gboolean patricia_furthest_extended(
-	const patricia_t *pt, gconstpointer key, size_t keybits,
+	const patricia_t *pt, gconstpointer key,
 	gpointer *keyptr, gpointer *valptr);
 
 patricia_iter_t *patricia_tree_iterator(patricia_t *pt, gboolean forward);

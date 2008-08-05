@@ -62,12 +62,11 @@ enum map_type {
  */
 struct map {
 	union {
-		struct hash {
+		struct {
 			GHashTable *ht;
 		} h;
-		struct patricia {
+		struct {
 			patricia_t *pt;
-			size_t keybits;
 		} p;
 	} u;
 	enum map_type type;
@@ -106,7 +105,6 @@ map_create_patricia(size_t keybits)
 	m = walloc(sizeof *m);
 	m->type = MAP_PATRICIA;
 	m->u.p.pt = patricia_create(keybits);
-	m->u.p.keybits = keybits;
 
 	return m;
 }
@@ -139,7 +137,6 @@ map_create_from_patricia(patricia_t *pt)
 	m = walloc(sizeof *m);
 	m->type = MAP_PATRICIA;
 	m->u.p.pt = pt;
-	m->u.p.keybits = patricia_max_keybits(pt);
 
 	return m;
 }
@@ -157,7 +154,7 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 		gm_hash_table_insert_const(m->u.h.ht, key, value);
 		break;
 	case MAP_PATRICIA:
-		patricia_insert(m->u.p.pt, key, m->u.p.keybits, value);
+		patricia_insert(m->u.p.pt, key, value);
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -177,7 +174,7 @@ map_remove(const map_t *m, gconstpointer key)
 		g_hash_table_remove(m->u.h.ht, key);
 		break;
 	case MAP_PATRICIA:
-		(void) patricia_remove(m->u.p.pt, key, m->u.p.keybits);
+		(void) patricia_remove(m->u.p.pt, key);
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -196,7 +193,7 @@ map_contains(const map_t *m, gconstpointer key)
 	case MAP_HASH:
 		return NULL != g_hash_table_lookup(m->u.h.ht, key);
 	case MAP_PATRICIA:
-		return patricia_contains(m->u.p.pt, key, m->u.p.keybits);
+		return patricia_contains(m->u.p.pt, key);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -215,7 +212,7 @@ map_lookup(const map_t *m, gconstpointer key)
 	case MAP_HASH:
 		return g_hash_table_lookup(m->u.h.ht, key);
 	case MAP_PATRICIA:
-		return patricia_lookup(m->u.p.pt, key, m->u.p.keybits);
+		return patricia_lookup(m->u.p.pt, key);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -235,8 +232,7 @@ map_lookup_extended(const map_t *m, gconstpointer key,
 	case MAP_HASH:
 		return g_hash_table_lookup_extended(m->u.h.ht, key, okey, oval);
 	case MAP_PATRICIA:
-		return patricia_lookup_extended(m->u.p.pt, key, m->u.p.keybits,
-			okey, oval);
+		return patricia_lookup_extended(m->u.p.pt, key, okey, oval);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
