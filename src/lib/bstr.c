@@ -447,13 +447,14 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, gpointer ptr, guint8 *pr)
 	if (len > max)
 		return invalid_len_max(bs, len, max, "array size", where);
 
-	if (!expect(bs, len, where))
-		return FALSE;
+	if (len) {
+		if (!expect(bs, len, where))
+			return FALSE;
 
-	if (len)
 		memcpy(ptr, bs->rptr, len);
+		bs->rptr += len;
+	}
 
-	bs->rptr += len;
 	*pr = len;
 
 	return TRUE;
