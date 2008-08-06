@@ -249,7 +249,7 @@ serialize_contact(pmsg_t *mb, const knode_t *kn)
 	pmsg_write_u8(mb, kn->minor);
 	pmsg_write(mb, kn->id->v, KUID_RAW_SIZE);
 	serialize_addr(mb, kn->addr);
-	pmsg_write_le16(mb, kn->port);
+	pmsg_write_be16(mb, kn->port);		/* Port is big-endian in Kademlia */
 }
 
 /**
@@ -296,7 +296,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	serialize_addr(mb, n->addr);
-	pmsg_write_le16(mb, n->port);
+	pmsg_write_be16(mb, n->port);		/* Port is big-endian in Kademlia */
 
 	/*
 	 * Insert estimated DHT size as a "BigInteger": we serialize the

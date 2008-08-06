@@ -196,7 +196,7 @@ static inline guint16
 kademlia_ipv4_contact_get_port(const void *contact)
 {
 	const guint8 *u8 = contact;
-	return peek_le16(&u8[31]);
+	return peek_be16(&u8[31]);		/* Ports are big-endian in Kademlia */
 }
 
 static inline void
@@ -206,7 +206,7 @@ kademlia_ipv4_contact_set_addr_port(
 	guint8 *u8 = contact;
 	u8[26] = 4;
 	poke_be32(&u8[27], addr);
-	poke_le16(&u8[31], port);
+	poke_be16(&u8[31], port);	/* Watch out: standard, unlike Gnutella... */
 }
 
 /***
@@ -457,21 +457,21 @@ kademlia_header_set_contact_flags(kademlia_header_t *header, guint8 flags)
 }
 
 /*
- * Bytes 59-60: length of option extended header (assuming little-endian)
+ * Bytes 59-60: length of option extended header (assuming big-endian)
  */
 
 static inline guint16
 kademlia_header_get_extended_length(const void *header)
 {
 	const guint8 *u8 = header;
-	return peek_le16(&u8[59]);
+	return peek_be16(&u8[59]);
 }
 
 static inline void
 kademlia_header_set_extended_length(kademlia_header_t *header, guint16 len)
 {
 	guint8 *u8 = (void *) header;
-	poke_le16(&u8[59], len);
+	poke_be16(&u8[59], len);
 }
 
 /*

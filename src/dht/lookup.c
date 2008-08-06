@@ -687,7 +687,7 @@ deserialize_contact(bstr_t *bs)
 	bstr_read_u8(bs, &minor);
 	bstr_read(bs, kuid.v, KUID_RAW_SIZE);
 	bstr_read_packed_ipv4_or_ipv6_addr(bs, &addr);
-	bstr_read_le16(bs, &port);
+	bstr_read_be16(bs, &port);		/* Port is big-endian in Kademlia */
 
 	if (bstr_has_error(bs))
 		return NULL;
