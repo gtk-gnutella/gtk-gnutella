@@ -1520,7 +1520,7 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 	 * Launch refresh.
 	 */
 
-	lookup_bucket_refresh(&id, bucket_refresh_status, kb);
+	(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
 }
 
 /**
@@ -2282,7 +2282,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	(void) unused_arg;
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT bootstrapping of our own ID %s completed: %s",
+		g_message("DHT bootstrapping via our own ID %s completed: %s",
 			kuid_to_hex_string(kuid),
 			lookup_strerror(error));
 
@@ -2327,7 +2327,7 @@ dht_bootstrap_cb(
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT bootstrap succeeded with %s", knode_to_string(kn));
+		g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
 	bootstrapping = TRUE;
 	
@@ -2337,8 +2337,13 @@ dht_bootstrap_cb(
 	 * to our ID.
 	 */
 
-	(void) lookup_find_node(our_kuid, NULL, bootstrap_status, NULL);
-	
+	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT bootstrapping impossible: routing table empty");
+
+		bootstrapping = TRUE;
+	}
+
 	/* XXX set DHT property status to "bootstrapping" -- red icon */
 	/* XXX "bootstrapping" and "dht_bootstrapped" should be GNET props */
 }
