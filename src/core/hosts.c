@@ -334,7 +334,7 @@ gnet_host_vec_from_list(const GSList *list)
 void
 host_timer(void)
 {
-	static gint called = 0;
+	static unsigned called = 0;
     guint count;
 	gint missing;
 	host_addr_t addr;
@@ -419,8 +419,8 @@ host_timer(void)
 			 * sufficiently fresh hosts and we keep getting connection failures.
 			 */
 
-			attempts = (attempts + 1) % HOST_PINGING_PERIOD;
-			if (0 == attempts)
+			attempts++;
+			if (0 == attempts % HOST_PINGING_PERIOD)
 				ping_all_neighbours();
 
             /*
