@@ -294,6 +294,7 @@ installdirs-data-yes:
 # Define this as empty until I found a useful application.
 installcheck:
 
+deinstall:: uninstall
 uninstall: uninstall-exec uninstall-data
 uninstall-exec:
 uninstall-data-no:
