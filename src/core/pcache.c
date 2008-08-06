@@ -61,6 +61,8 @@ RCSID("$Id$")
 #include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
 
+#include "dht/routing.h"
+
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
@@ -1147,8 +1149,8 @@ pcache_close(void)
  * older client if and only if at least OLD_PING_PERIOD seconds have
  * elapsed since our last ping, as determined by `next_ping'.
  */
-static void
-ping_all_neighbours(time_t now)
+void
+ping_all_neighbours(void)
 {
 	const GSList *sl;
 	GSList *may_ping = NULL;
@@ -1156,6 +1158,10 @@ ping_all_neighbours(time_t now)
 	gint ping_cnt = 0;
 	gint selected = 0;
 	gint left;
+	time_t now = tm_time();
+
+	if (GNET_PROPERTY(pcache_debug))
+		g_message("PCACHE attempting to ping all neighbours");
 
 	/*
 	 * Because nowadays the network has a higher outdegree for ultrapeers,
@@ -1208,6 +1214,11 @@ ping_all_neighbours(time_t now)
 		if (!(n->attrs & NODE_A_PONG_CACHING))
 			n->next_ping = time_advance(now, OLD_PING_PERIOD);
 
+		if (GNET_PROPERTY(pcache_debug))
+			g_message("PCACHE pinging \"%s\" %s",
+				(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
+				host_addr_port_to_string(n->addr, n->port));
+
 		send_ping(n, GNET_PROPERTY(my_ttl));
 	}
 
@@ -1226,7 +1237,7 @@ pcache_possibly_expired(time_t now)
 		pcache_expire();
 		pcache_expire_time = time_advance(now,
 							cache_lifespan(GNET_PROPERTY(current_peermode)));
-		ping_all_neighbours(now);
+		ping_all_neighbours();
 	}
 }
 
@@ -2073,7 +2084,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 				tls_cache_insert(addr, port);
 			}
 			if (supports_dht) {
-				/* XXX later */
+				dht_bootstrap_if_needed(addr, port);
 			}
 		}
 	}
@@ -2328,6 +2339,14 @@ pcache_pong_received(struct gnutella_node *n)
 		pong_random_leaf(cp,
 			CACHE_HOP_IDX(gnutella_header_get_hops(&n->header)),
 			MAX(1, gnutella_header_get_ttl(&n->header)));
+
+	/*
+	 * If host indicates DHT support, use that address for bootstrapping,
+	 * if necessary.
+	 */
+
+	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_DHT))
+		dht_bootstrap_if_needed(addr, port);
 }
 
 /**

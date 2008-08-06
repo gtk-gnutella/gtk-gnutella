@@ -105,6 +105,7 @@ void pcache_pong_fake(struct gnutella_node *n,
 	const host_addr_t addr, guint16 port);
 gboolean pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port);
 void pcache_clear_recent(host_type_t type);
+void ping_all_neighbours(void);
 
 #endif /* _core_pcache_h_ */
 /* vi: set ts=4 sw=4 cindent: */

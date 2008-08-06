@@ -449,6 +449,9 @@ uhc_get_hosts(void)
 	if (!udp_active())
 		return;
 
+	if (GNET_PROPERTY(bootstrap_debug))
+		g_message("BOOT will be contacting an UHC");
+
 	/*
 	 * Reset context.
 	 */

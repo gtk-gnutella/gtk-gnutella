@@ -54,11 +54,14 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
-gboolean host_low_on_pongs = FALSE;			/**< True when less than 12% full */
+#define HOST_PINGING_PERIOD		30		/**< Try pinging every so many calls */
+
+gboolean host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;
 
@@ -404,10 +407,20 @@ host_timer(void)
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
             guint fan, max_pool, to_add;
+			static int attempts = 0;
 
             max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
             fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_nodes;
             to_add = GNET_PROPERTY(is_inet_connected) ? fan : (guint) missing;
+
+			/*
+			 * Every so many calls, attempt to ping all our neighbours to
+			 * get fresh pongs, in case our host cache is not containing
+			 * sufficiently fresh hosts and we keep getting connection failures.
+			 */
+
+			if (0 == ++attempts % HOST_PINGING_PERIOD)
+				ping_all_neighbours();
 
             /*
              * Make sure that we never use more connections then the
@@ -417,9 +430,9 @@ host_timer(void)
                 to_add = max_pool - count;
 
             if (GNET_PROPERTY(dbg) > 10) {
-                g_message("host_timer - connecting - add: %d fan:%d  miss:%d "
-                     "max_hosts:%d   count:%d   extra:%d",
-					 to_add, fan, missing, max_nodes, count,
+                g_message("host_timer - connecting #%d - "
+					"add: %d fan:%d miss:%d max_hosts:%d count:%d extra:%d",
+					 attempts, to_add, fan, missing, max_nodes, count,
 					 GNET_PROPERTY(quick_connect_pool_size));
             }
 
@@ -431,7 +444,15 @@ host_timer(void)
 				}
 			}
 
-			if (missing > 0) {
+			/*
+			 * Avoid nodes being stuck helplessly due to completely
+			 * stale caches.  If we have been there exactly HOST_PINGING_PERIOD
+			 * times and we still have no valid connection, ping a UHC.
+			 */
+
+			if (
+				missing > 0 || (HOST_PINGING_PERIOD == attempts && 0 == count)
+			) {
 				if (!uhc_is_waiting()) {
 					uhc_get_hosts();	/* Get from UDP pong caches */
 				} else if (GNET_PROPERTY(bootstrap_debug) > 2)
