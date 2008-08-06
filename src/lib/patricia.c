@@ -921,6 +921,9 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
 	g_assert(keybits == pt->maxbits);
 	g_assert(pt->embedded == 0);		/* All keys must have the same size */
 
+	if (root == NULL)
+		return NULL;
+
 	/*
 	 * Because all keys have the same size, we know the PATRICIA tree cannot
 	 * hold any embedded data in non-leaf nodes, and each non-leaf node has
