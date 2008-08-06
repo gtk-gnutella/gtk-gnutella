@@ -59,7 +59,7 @@ RCSID("$Id$")
 
 #include "lib/override.h"	/* Must be the last header included */
 
-#define HOST_PINGING_PERIOD		30		/**< Try pinging every so many calls */
+#define HOST_PINGING_PERIOD		30		/**< Try pinging every 30 seconds */
 
 gboolean host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 
@@ -324,6 +324,31 @@ gnet_host_vec_from_list(const GSList *list)
 	return vec;
 }
 
+/*
+ * Avoid nodes being stuck helplessly due to completely stale caches.
+ * @return TRUE if an UHC may be contact, FALSE if it's not permissable.
+ */
+static gboolean
+host_cache_allow_bypass(void)
+{
+	static time_t last_try;
+
+	if (node_count() > 0)
+		return FALSE;
+
+	/* Wait at least 2 minutes after starting up */
+	if (delta_time(tm_time(), GNET_PROPERTY(start_stamp)) < 2 * 60)
+		return FALSE;
+
+	/* Allow again after 12 hours, useful after unexpected network outtage or
+	 * downtime */
+	if (last_try && delta_time(tm_time(), last_try) < 12 * 3600)
+		return FALSE;
+
+	last_try = tm_time();
+	return TRUE;
+}
+
 /***
  *** Host periodic timer.
  ***/
@@ -334,7 +359,6 @@ gnet_host_vec_from_list(const GSList *list)
 void
 host_timer(void)
 {
-	static unsigned called = 0;
     guint count;
 	gint missing;
 	host_addr_t addr;
@@ -356,11 +380,12 @@ host_timer(void)
 	 * Also, we don't connect each time we are called.
 	 */
 
-	if (!GNET_PROPERTY(is_inet_connected) && missing) {
-		if (0 == (called++ & 0xf))		/* Once every 16 attempts */
-			missing = 1;
-		else
-			missing = 0;			/* Don't connect this run */
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		static time_t last_try;
+
+		if (last_try && delta_time(tm_time(), last_try) < 20)
+			return;
+		last_try = tm_time();
 	}
 
 	/*
@@ -406,7 +431,7 @@ host_timer(void)
 
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
-			static unsigned attempts;
+			static time_t last_try;
             unsigned fan, max_pool, to_add;
 
             max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
@@ -419,9 +444,10 @@ host_timer(void)
 			 * sufficiently fresh hosts and we keep getting connection failures.
 			 */
 
-			attempts++;
-			if (0 == attempts % HOST_PINGING_PERIOD)
+			if (0 == last_try || delta_time(tm_time(), last_try) >= HOST_PINGING_PERIOD) {
 				ping_all_neighbours();
+				last_try = tm_time();
+			}
 
             /*
              * Make sure that we never use more connections then the
@@ -431,9 +457,9 @@ host_timer(void)
                 to_add = max_pool - count;
 
             if (GNET_PROPERTY(dbg) > 10) {
-                g_message("host_timer - connecting #%d - "
+                g_message("host_timer - connecting - "
 					"add: %d fan:%d miss:%d max_hosts:%d count:%d extra:%d",
-					 attempts, to_add, fan, missing, max_nodes, count,
+					 to_add, fan, missing, max_nodes, count,
 					 GNET_PROPERTY(quick_connect_pool_size));
             }
 
@@ -445,15 +471,7 @@ host_timer(void)
 				}
 			}
 
-			/*
-			 * Avoid nodes being stuck helplessly due to completely
-			 * stale caches.  If we have been there exactly HOST_PINGING_PERIOD
-			 * times and we still have no valid connection, ping a UHC.
-			 */
-
-			if (
-				missing > 0 || (HOST_PINGING_PERIOD == attempts && 0 == count)
-			) {
+			if (missing > 0 || host_cache_allow_bypass()) {
 				if (!uhc_is_waiting()) {
 					uhc_get_hosts();	/* Get from UDP pong caches */
 				} else if (GNET_PROPERTY(bootstrap_debug) > 2)
