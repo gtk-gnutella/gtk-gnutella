@@ -246,6 +246,26 @@ bstr_unread_size(const bstr_t *bs)
 }
 
 /**
+ * Skip specified amount of bytes.
+ *
+ * @param bs	the binary stream
+ * @param count	amount of data to skip over
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_skip(bstr_t *bs, size_t count)
+{
+	g_assert((ssize_t) count > 0);
+
+	if (!expect(bs, count, "bstr_skip"))
+		return FALSE;
+
+	bs->rptr += count;
+	return TRUE;
+}
+
+/**
  * Read specified amount of bytes into buffer.
  *
  * @param bs	the binary stream
