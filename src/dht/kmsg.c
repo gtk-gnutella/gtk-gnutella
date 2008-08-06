@@ -475,7 +475,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 			goto error;
 		}
 
-		g_assert(bytes > 0 && bytes <= KUID_RAW_SIZE);
+		g_assert(bytes <= KUID_RAW_SIZE);
 
 		memmove(&estimated.v[KUID_RAW_SIZE - bytes], estimated.v, bytes);
 		memset(&estimated.v[0], 0, KUID_RAW_SIZE - bytes);
@@ -759,7 +759,7 @@ void kmsg_received(
 			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
-				kuid_to_hex_string(kn->id),
+				kuid_to_hex_string((kuid_t *) id),
 				host_addr_port_to_string(kaddr, kport),
 				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
 
@@ -900,7 +900,7 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
 
-	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s %u.%u]",
+	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u]",
 		kmsg_name(kademlia_header_get_function(msg)),
 		kademlia_header_get_extended_length(msg) ? "(+)" : "",
 		size, size == 1 ? "" : "s",
