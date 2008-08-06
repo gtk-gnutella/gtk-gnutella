@@ -124,7 +124,12 @@ rpc_delay(const knode_t *kn)
 	if (kn->rpc_timeouts)
 		timeout = 1 << (kn->rpc_timeouts + 8);
 
-	timeout += 3 * kn->rtt;
+	if (kn->rtt)
+		timeout += 3 * kn->rtt;
+	else
+		timeout = DHT_RPC_FIRSTDELAY;
+
+	STATIC_ASSERT(DHT_RPC_FIRSTDELAY <= DHT_RPC_MAXDELAY);
 
 	return MIN(timeout, DHT_RPC_MAXDELAY);
 }
