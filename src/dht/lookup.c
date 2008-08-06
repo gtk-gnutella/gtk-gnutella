@@ -1320,8 +1320,10 @@ lookup_find_node(
 	nl->amount = KDA_K;
 	nl->u.fn.ok = ok;
 
-	if (!lookup_load_shortlist(nl))
+	if (!lookup_load_shortlist(nl)) {
+		lookup_free(nl, TRUE);
 		return NULL;
+	}
 
 	lookup_iterate(nl);
 	return nl;
@@ -1356,8 +1358,10 @@ lookup_find_value(
 	nl->amount = 1;
 	nl->u.fv.ok = ok;
 
-	if (!lookup_load_shortlist(nl))
+	if (!lookup_load_shortlist(nl)) {
+		lookup_free(nl, TRUE);
 		return NULL;
+	}
 
 	lookup_iterate(nl);
 	return nl;
@@ -1385,8 +1389,10 @@ lookup_bucket_refresh(
 	nl = lookup_create(kuid, LOOKUP_REFRESH, done, arg);
 	nl->amount = KDA_K;
 
-	if (!lookup_load_shortlist(nl))
+	if (!lookup_load_shortlist(nl)) {
+		lookup_free(nl, TRUE);
 		return NULL;
+	}
 
 	lookup_iterate(nl);
 	return nl;
