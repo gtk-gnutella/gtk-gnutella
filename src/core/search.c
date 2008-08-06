@@ -1064,7 +1064,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (!trailer || trailer_size < 7)
 		return FALSE;
 
-	vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
+	vendor = vendor_get_name(rs->vcode.u32);
 	open_size = trailer[4];
 	open_parsing_size = trailer[4];
 	enabler_mask = trailer[5];
@@ -1081,7 +1081,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		open_parsing_size = 2;		/* We ignore XML data size */
 	}
 
-	if (T_NAPS == peek_be32(&rs->vcode.be32)) {	
+	if (T_NAPS == rs->vcode.u32) {	
 		/*
 		 * NapShare has a one-byte only flag: no enabler, just setters.
 		 *		--RAM, 17/12/2001
@@ -1947,8 +1947,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			trailer = s;
 
 		if (trailer) {
-			memcpy(&rs->vcode.be32, trailer, 4);
-			vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
+			rs->vcode.u32 = peek_be32(trailer);
+			vendor = vendor_get_name(rs->vcode.u32);
 			if (vendor != NULL && is_vendor_known(rs->vcode)) {
 				rs->status |= ST_KNOWN_VENDOR;
 			}
@@ -2089,7 +2089,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-	if (T_LIME == peek_be32(&rs->vcode.be32) && !(ST_HAS_CT & rs->status)) {	
+	if (T_LIME == rs->vcode.u32 && !(ST_HAS_CT & rs->status)) {	
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 */
@@ -2148,7 +2148,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
-    vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
+    vendor = vendor_get_name(rs->vcode.u32);
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
@@ -2170,13 +2170,13 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (vendor == NULL)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
 
-		if (n->vcode.be32 != 0 && vendor == NULL) {
+		if (n->vcode.u32 != T_0000 && vendor == NULL) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
-				"node %s (%s) had tag %4.4s in its query hits, "
+				"node %s (%s) had tag \"%s\" in its query hits, "
 				"now has none in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				cast_to_gchar_ptr(&n->vcode.be32),
+				vendor_code_to_string(n->vcode.u32),
 				gmsg_infostr(&n->header));
 		}
 	}
@@ -2188,19 +2188,24 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	if (vendor != NULL) {
 		STATIC_ASSERT(sizeof n->vcode == sizeof rs->vcode);
 
-		if (n->vcode.be32 != 0 && n->vcode.be32 != rs->vcode.be32) {
+		if (n->vcode.u32 != T_0000 && n->vcode.u32 != rs->vcode.u32) {
+			char vc_old[VENDOR_CODE_BUFLEN];
+			char vc_new[VENDOR_CODE_BUFLEN];
+
 			n->n_weird++;
+			vendor_code_to_string_buf(n->vcode.u32, vc_old, sizeof vc_old);
+			vendor_code_to_string_buf(rs->vcode.u32, vc_new, sizeof vc_new);
+
 			if (GNET_PROPERTY(search_debug) > 1) g_warning("[weird #%d] "
 				"node %s (%s) moved from tag %4.4s to %4.4s in %s",
 				n->n_weird, node_addr(n), node_vendor(n),
-				cast_to_gchar_ptr(&n->vcode.be32),
-				cast_to_gchar_ptr(&rs->vcode.be32),
-				gmsg_infostr(&n->header));
+				vc_old, vc_new, gmsg_infostr(&n->header));
 		}
 
 		n->vcode = rs->vcode;
-	} else
-		n->vcode.be32 = 0;
+	} else {
+		n->vcode.u32 = T_0000;
+	}
 
 	/*
 	 * Save node's GUID.
@@ -3296,7 +3301,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-    	const gchar *vendor = vendor_get_name(peek_be32(&rs->vcode.be32));
+    	const gchar *vendor = vendor_get_name(rs->vcode.u32);
 		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
@@ -4265,7 +4270,7 @@ search_locally(gnet_search_t sh, const gchar *query)
 	rs->last_hop = zero_host_addr;
 	rs->country = ISO3166_INVALID;
 	rs->guid = atom_guid_get(GNET_PROPERTY(servent_guid));
-	poke_be32(&rs->vcode.be32, T_GTKG);
+	rs->vcode.u32 = T_GTKG;
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
 	if (GNET_PROPERTY(is_firewalled))

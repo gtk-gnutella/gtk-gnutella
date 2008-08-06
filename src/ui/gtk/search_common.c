@@ -1123,7 +1123,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     rs->status = r_set->status;
     rs->speed = r_set->speed;
 	rs->stamp = r_set->stamp;
-    rs->vendor = peek_be32(&r_set->vcode.be32);
+    rs->vendor = r_set->vcode.u32;
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 	rs->query = r_set->query ? atom_str_get(r_set->query) : NULL;

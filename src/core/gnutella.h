@@ -596,10 +596,7 @@ static inline guint32
 gnutella_vendor_get_code(const void *data)
 {
 	const guint8 *u8 = data;
-	guint32 code;
-	/* Keep the big-endian byte order */
-	memcpy(&code, &u8[0], 4);
-	return code;
+	return peek_be32(&u8[0]);
 }
 
 static inline void

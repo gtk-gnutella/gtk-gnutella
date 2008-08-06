@@ -153,10 +153,10 @@ find_vendor(guint32 code)
 gboolean
 is_vendor_known(vendor_code_t code)
 {
-    if (code.be32 == 0)
+    if (code.u32 == T_0000)
         return FALSE;
 
-	return find_vendor(ntohl(code.be32)) != NULL;
+	return find_vendor(code.u32) != NULL;
 }
 
 /**
@@ -198,7 +198,7 @@ vendor_code_to_string_buf(guint32 code, char *buf, size_t size)
  * @return pointer to static data.
  */
 const char *
-vendor_code_str(guint32 code)
+vendor_code_to_string(guint32 code)
 {
 	static char buf[5];
 
@@ -244,7 +244,7 @@ void
 vendor_init(void)
 {
 	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,
-		VENDOR_CODE_CMP, vendor_code_str);
+		VENDOR_CODE_CMP, vendor_code_to_string);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

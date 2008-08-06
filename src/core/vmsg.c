@@ -142,7 +142,7 @@ find_message(struct vmsg *vmsg_ptr,
 {
 	struct vmsg key, *value;
 
-	key.vendor = ntohl(vc.be32);
+	key.vendor = vc.u32;
 	key.id = id;
 
 	value = g_hash_table_lookup(ht_vmsg, &key);
@@ -175,16 +175,16 @@ vmsg_infostr(gconstpointer data, size_t size)
 	if (size < sizeof vc)
 		return "????";
 
-	vc.be32 = gnutella_vendor_get_code(data);
+	vc.u32 = gnutella_vendor_get_code(data);
 	id = gnutella_vendor_get_selector_id(data);
 	version = gnutella_vendor_get_version(data);
 
 	if (!find_message(&vmsg, vc, id, version))
 		gm_snprintf(msg, sizeof msg , "%s/%uv%u",
-			vendor_code_str(ntohl(vc.be32)), id, version);
+			vendor_code_to_string(vc.u32), id, version);
 	else
 		gm_snprintf(msg, sizeof msg, "%s/%uv%u '%s'",
-			vendor_code_str(ntohl(vc.be32)), id, version, vmsg.name);
+			vendor_code_to_string(vc.u32), id, version, vmsg.name);
 
 	return msg;
 }
@@ -234,7 +234,7 @@ vmsg_handle(struct gnutella_node *n)
 		return;
 	}
 
-	vc.be32 = gnutella_vendor_get_code(v);
+	vc.u32 = gnutella_vendor_get_code(v);
 	id = gnutella_vendor_get_selector_id(v);
 	version = gnutella_vendor_get_version(v);
 
@@ -243,7 +243,7 @@ vmsg_handle(struct gnutella_node *n)
 	if (GNET_PROPERTY(vmsg_debug) > 4)
 		g_message("VMSG %s \"%s\": %s/%uv%u from %s",
 			gmsg_infostr(&n->header), found ? vmsg.name : "UNKNOWN",
-			vendor_code_str(ntohl(vc.be32)), id, version,
+			vendor_code_to_string(vc.u32), id, version,
 			host_addr_port_to_string(n->addr, n->port));
 
 	/*
@@ -339,7 +339,7 @@ vmsg_bad_payload(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(dbg) || GNET_PROPERTY(vmsg_debug))
 		gmsg_log_bad(n, "Bad payload size %lu for %s/%dv%d (%s), expected %lu",
-			(gulong) size, vendor_code_str(vmsg->vendor), vmsg->id,
+			(gulong) size, vendor_code_to_string(vmsg->vendor), vmsg->id,
 			vmsg->version, vmsg->name, (gulong) expected);
 
 	return TRUE;	/* bad */
@@ -362,7 +362,7 @@ handle_features_supported(struct gnutella_node *n,
 
 	if (NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u over UDP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -852,7 +852,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 		 */
 
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -876,7 +876,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 	if (hits == 0) {
 		if (GNET_PROPERTY(vmsg_debug)) {
 			g_warning("no results advertised in %s/%uv%u from %s",
-				vendor_code_str(vmsg->vendor),
+				vendor_code_to_string(vmsg->vendor),
 				vmsg->id, vmsg->version, node_addr(n));
 		}
 		goto not_handling;
@@ -892,7 +892,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 not_handling:
 	if (GNET_PROPERTY(vmsg_debug)) {
 		g_warning("not handling %s/%uv%u from %s",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 	}
 }
@@ -984,7 +984,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1006,7 +1006,7 @@ handle_oob_proxy_veto(struct gnutella_node *n,
 {
 	if (NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -1311,7 +1311,7 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 
 	if (!NODE_IS_UDP(n)) {
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_str(vmsg->vendor),
+			vendor_code_to_string(vmsg->vendor),
 			vmsg->id, vmsg->version, node_addr(n));
 		return;
 	}
@@ -2554,7 +2554,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 
 	p = &payload[2];
 	if (endptr - p >= 4) {
-		vendor = vendor_code_str(peek_be32(p));
+		vendor = vendor_code_to_string(peek_be32(p));
 		p += 4;
 		if (p != endptr) {
 			queue = peek_u8(p);
@@ -2710,7 +2710,7 @@ handle_head_pong_v2(const struct head_ping_source *source,
 					g_warning("GGEP \"V\" payload too short");
 				}
 			} else {
-				vendor = vendor_code_str(peek_be32(ext_payload(e)));
+				vendor = vendor_code_to_string(peek_be32(ext_payload(e)));
 			}
 			break;
 		case EXT_T_GGEP_Q:
@@ -2900,7 +2900,7 @@ handle_messages_supported(struct gnutella_node *n,
 		vendor_code_t vendor;
 		guint16 id, version;
 
-		memcpy(&vendor.be32, &description[0], 4);
+		vendor.u32 = peek_be32(&description[0]);
 		id = peek_le16(&description[4]);
 		version = peek_le16(&description[6]);
 		description += 8;
@@ -2909,13 +2909,13 @@ handle_messages_supported(struct gnutella_node *n,
 			if (GNET_PROPERTY(vmsg_debug) > 1)
 				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
 					node_addr(n), node_vendor(n),
-					vendor_code_str(ntohl(vendor.be32)), id, version);
+					vendor_code_to_string(vendor.u32), id, version);
 			continue;
 		}
 
 		if (GNET_PROPERTY(vmsg_debug) > 2)
 			g_message("VMSG ...%s/%dv%d",
-				vendor_code_str(ntohl(vendor.be32)), id, version);
+				vendor_code_to_string(vendor.u32), id, version);
 
 		/*
 		 * Look for leaf-guided dynamic query support.

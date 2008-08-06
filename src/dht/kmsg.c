@@ -244,7 +244,7 @@ serialize_size_estimate(pmsg_t *mb)
 static void
 serialize_contact(pmsg_t *mb, const knode_t *kn)
 {
-	pmsg_write_be32(mb, kn->vcode.be32);
+	pmsg_write_be32(mb, kn->vcode.u32);
 	pmsg_write_u8(mb, kn->major);
 	pmsg_write_u8(mb, kn->minor);
 	pmsg_write(mb, kn->id->v, KUID_RAW_SIZE);
@@ -715,7 +715,7 @@ void kmsg_received(
 	 * Get contact information.
 	 */
 
-	vcode.be32 = kademlia_header_get_contact_vendor(header);
+	vcode.u32 = kademlia_header_get_contact_vendor(header);
 	kmajor = kademlia_header_get_contact_major_version(header);
 	kminor = kademlia_header_get_contact_minor_version(header);
 	id = kademlia_header_get_contact_kuid(header);
@@ -730,7 +730,7 @@ void kmsg_received(
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT bad contact address %s (%s v%u.%u)",
 				host_addr_port_to_string(kaddr, kport),
-				vendor_code_str(vcode.be32), kmajor, kminor);
+				vendor_code_to_string(vcode.u32), kmajor, kminor);
 		reason = "bad contact address";
 		goto drop;
 	}
@@ -739,7 +739,7 @@ void kmsg_received(
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT hostile contact address %s (%s v%u.%u)",
 				host_addr_to_string(kaddr),
-				vendor_code_str(vcode.be32), kmajor, kminor);
+				vendor_code_to_string(vcode.u32), kmajor, kminor);
 		reason = "hostile contact address";
 		goto drop;
 	}
@@ -761,7 +761,7 @@ void kmsg_received(
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
 				kuid_to_hex_string((kuid_t *) id),
 				host_addr_port_to_string(kaddr, kport),
-				vendor_code_str(vcode.be32), kmajor, kminor);
+				vendor_code_to_string(vcode.u32), kmajor, kminor);
 
 		kn = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
@@ -786,7 +786,7 @@ void kmsg_received(
 
 			knode_refcnt_inc(kn);		/* Node existed in routing table */
 
-			if (kn->vcode.be32 != vcode.be32)
+			if (kn->vcode.u32 != vcode.u32)
 				knode_change_vendor(kn, vcode);
 
 			if (kn->major != kmajor || kn->minor != kminor)
@@ -904,7 +904,7 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 		kmsg_name(kademlia_header_get_function(msg)),
 		kademlia_header_get_extended_length(msg) ? "(+)" : "",
 		size, size == 1 ? "" : "s",
-		vendor_code_str(kademlia_header_get_contact_vendor(msg)),
+		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
 		kademlia_header_get_minor_version(msg));
 }

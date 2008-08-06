@@ -2015,7 +2015,7 @@ write_node(const knode_t *kn, FILE *f)
 {
 	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\nSEEN %s\nEND\n\n",
 		kuid_to_hex_string(kn->id),
-		vendor_code_str(kn->vcode.be32),
+		vendor_code_to_string(kn->vcode.u32),
 		kn->major, kn->minor,
 		host_addr_port_to_string(kn->addr, kn->port),
 		timestamp_to_string(kn->last_seen));
@@ -2380,7 +2380,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 	 * by the callback.
 	 */
 
-	vc.be32 = T_0000;
+	vc.u32 = T_0000;
 	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
 
 	/*
@@ -2544,7 +2544,7 @@ dht_route_parse(FILE *f)
 			break;
 		case DHT_ROUTE_TAG_VNDR:
 			if (4 == strlen(value))
-				vcode.be32 = peek_be32(value);
+				vcode.u32 = peek_be32(value);
 			else
 				damaged = TRUE;
 			break;

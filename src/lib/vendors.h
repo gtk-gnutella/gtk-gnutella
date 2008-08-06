@@ -136,10 +136,10 @@
 #define VENDOR_CODE_BUFLEN 5
 
 typedef struct vendor_code {
-	guint32 be32;	/**< Always big-endian order; for convenient '=' and '!=' */
+	guint32 u32;	/**< Always host-endian order */
 } vendor_code_t;
 
-const char *vendor_code_str(guint32);
+const char *vendor_code_to_string(guint32);
 size_t vendor_code_to_string_buf(guint32, char *, size_t);
 const char *vendor_get_name(guint32);
 gboolean is_vendor_known(vendor_code_t);
