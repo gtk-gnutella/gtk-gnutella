@@ -264,7 +264,7 @@ pmsg_write_offset(pmsg_t *mb)
 static inline void
 pmsg_seek(pmsg_t *mb, pmsg_offset_t offset)
 {
-	g_assert(offset < pmsg_phys_len(mb));
+	g_assert(offset <= pmsg_phys_len(mb));
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
 	mb->m_wptr = mb->m_data->d_arena + offset;
