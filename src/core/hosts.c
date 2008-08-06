@@ -420,7 +420,8 @@ host_timer(void)
 			 */
 
 			attempts++;
-			if (0 == attempts % HOST_PINGING_PERIOD)
+			attempts %= HOST_PINGING_PERIOD;
+			if (0 == attempts)
 				ping_all_neighbours();
 
             /*
