@@ -501,8 +501,9 @@ timeit(
 	elapsed = tm_elapsed_f(&end, &start);
 
 	if (verbose)
-		g_message("%s (%u items, %u loop%s): %lf s (average: %lf s)", what,
-			count, iter, iter == 1 ? "" : "s", elapsed, elapsed / iter);
+		g_message("%s (%lu items, %u loop%s): %lf s (average: %lf s)", what,
+			(unsigned long) count, iter, iter == 1 ? "" : "s",
+			elapsed, elapsed / iter);
 
 	return elapsed;
 }
@@ -554,8 +555,8 @@ void map_test()
 			1, "map PATRICIA reloading", verbose);
 
 		if (verbose)
-			g_message("PATRICIA insertion %s than hash with %u items",
-				ptime < htime ? "faster" : "slower", count);
+			g_message("PATRICIA insertion %s than hash with %lu items",
+				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
 			faster[INSERT_IDX]++;
@@ -567,8 +568,8 @@ void map_test()
 			LOOPS, "map PATRICIA contains", verbose);
 
 		if (verbose)
-			g_message("PATRICIA contains %s than hash with %u items",
-				ptime < htime ? "faster" : "slower", count);
+			g_message("PATRICIA contains %s than hash with %lu items",
+				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
 			faster[CONTAINS_IDX]++;
@@ -580,8 +581,8 @@ void map_test()
 			1, "map PATRICIA remove", verbose);
 
 		if (verbose)
-			g_message("PATRICIA remove %s than hash with %u items",
-				ptime < htime ? "faster" : "slower", count);
+			g_message("PATRICIA remove %s than hash with %lu items",
+				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
 			faster[REMOVE_IDX]++;
