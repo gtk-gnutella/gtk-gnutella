@@ -406,8 +406,8 @@ host_timer(void)
 
     if (!GNET_PROPERTY(stop_host_get)) {
         if (missing > 0) {
-            guint fan, max_pool, to_add;
-			static int attempts = 0;
+			static unsigned attempts;
+            unsigned fan, max_pool, to_add;
 
             max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
             fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_nodes;
@@ -419,7 +419,8 @@ host_timer(void)
 			 * sufficiently fresh hosts and we keep getting connection failures.
 			 */
 
-			if (0 == ++attempts % HOST_PINGING_PERIOD)
+			attempts = (attempts + 1) % HOST_PINGING_PERIOD;
+			if (0 == attempts)
 				ping_all_neighbours();
 
             /*
