@@ -96,7 +96,6 @@
 #include "dht/kmsg.h"
 #include "dht/kuid.h"
 #include "dht/routing.h"
-#include "dht/rpc.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -465,7 +464,6 @@ gtk_gnutella_exit(gint n)
 		compat_sleep_ms(50);
 	}
 
-	dht_rpc_close();
 	bitzi_close();
 	ntp_close();
 	sq_close();
@@ -1398,7 +1396,6 @@ main(int argc, char **argv)
 	kuid_init();			/* DHT */
 	kmsg_init();
 	dht_route_init();
-	dht_rpc_init();
 
 	if (!running_topless) {
 		main_gui_init();
