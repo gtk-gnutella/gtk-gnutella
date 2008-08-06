@@ -192,7 +192,7 @@ pmsg_slist_free(slist_t **slist_ptr)
 }
 
 /**
- * Compute message's size.
+ * Compute message's size (what remains to be read).
  */
 static inline int
 pmsg_size(const pmsg_t *mb)
@@ -203,6 +203,20 @@ pmsg_size(const pmsg_t *mb)
 	 */
 
 	return mb->m_wptr - mb->m_rptr;
+}
+
+/**
+ * Compute message's written size, regardless of where the read pointer is.
+ */
+static inline int
+pmsg_written_size(const pmsg_t *mb)
+{
+	/*
+	 * Not a macro because of foreseen addition of an m_cont field to link
+ 	 * additional message blocks (auto-extension of messages on pmsg_write).
+	 */
+
+	return mb->m_wptr - mb->m_data->d_arena;
 }
 
 /***
@@ -219,13 +233,36 @@ pmsg_size(const pmsg_t *mb)
  ***/
 
 /**
+ * Current write pointer offset.
+ */
+static inline off_t
+pmsg_write_offset(pmsg_t *mb)
+{
+	/*
+	 * Same as pmsg_written_size() but returns an off_t for consistency
+	 * with pmsg_seek().
+	 */
+
+	return mb->m_wptr - mb->m_data->d_arena;
+}
+
+/**
  * Move the write pointer to the desired offset within the message.
  * Can be used to skip the header part of the built message.
+ *
+ * @attention
+ * WARNING: when moving back and forth, one must remember the maximum offset
+ * and seek back to it as there is no bookeeping of that information within
+ * the message.  It is the current write pointer that determines the value
+ * of pmsg_size()...  Use pmsg_write_offset() to know the current offset.
+ *
+ * When moving forward only (to skip already built parts), there is no need
+ * to worry as the end of the written data will always be accurate.
  */
 static inline void
 pmsg_seek(pmsg_t *mb, off_t offset)
 {
-	g_assert(offset >= 0 && offset < pmsg_size(mb));
+	g_assert(offset >= 0 && offset < pmsg_phys_len(mb));
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
 	mb->m_wptr = mb->m_data->d_arena + offset;
