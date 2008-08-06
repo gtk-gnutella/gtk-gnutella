@@ -2317,7 +2317,7 @@ dht_bootstrap_cb(
 	(void) unused_len;
 	(void) unused_arg;
 
-	if (DHT_RPC_TIMEOUT == type)
+	if (DHT_RPC_TIMEOUT == type || bootstrapping)
 		return;
 
 	/*
