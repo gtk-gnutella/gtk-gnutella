@@ -232,14 +232,16 @@ pmsg_written_size(const pmsg_t *mb)
  *** referenced).
  ***/
 
+typedef size_t pmsg_offset_t;
+
 /**
  * Current write pointer offset.
  */
-static inline off_t
+static inline pmsg_offset_t
 pmsg_write_offset(pmsg_t *mb)
 {
 	/*
-	 * Same as pmsg_written_size() but returns an off_t for consistency
+	 * Same as pmsg_written_size() but returns an pmsg_offset_t for consistency
 	 * with pmsg_seek().
 	 */
 
@@ -260,9 +262,9 @@ pmsg_write_offset(pmsg_t *mb)
  * to worry as the end of the written data will always be accurate.
  */
 static inline void
-pmsg_seek(pmsg_t *mb, off_t offset)
+pmsg_seek(pmsg_t *mb, pmsg_offset_t offset)
 {
-	g_assert(offset >= 0 && offset < pmsg_phys_len(mb));
+	g_assert(offset < pmsg_phys_len(mb));
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
 	mb->m_wptr = mb->m_data->d_arena + offset;
