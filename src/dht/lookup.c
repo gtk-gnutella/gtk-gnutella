@@ -393,6 +393,8 @@ lookup_expired(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	lookup_check(nl);
 
+	nl->expire_ev = NULL;
+
 	if (LOOKUP_NODE != nl->type || 0 == patricia_count(nl->path)) {
 		lookup_abort(nl, LOOKUP_E_EXPIRED);
 		return;
