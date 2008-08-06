@@ -2015,7 +2015,7 @@ write_node(const knode_t *kn, FILE *f)
 {
 	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\nSEEN %s\nEND\n\n",
 		kuid_to_hex_string(kn->id),
-		vendor_code_str(ntohl(kn->vcode.be32)),
+		vendor_code_str(kn->vcode.be32),
 		kn->major, kn->minor,
 		host_addr_port_to_string(kn->addr, kn->port),
 		timestamp_to_string(kn->last_seen));

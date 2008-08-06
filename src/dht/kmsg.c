@@ -730,7 +730,7 @@ void kmsg_received(
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT bad contact address %s (%s v%u.%u)",
 				host_addr_port_to_string(kaddr, kport),
-				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
+				vendor_code_str(vcode.be32), kmajor, kminor);
 		reason = "bad contact address";
 		goto drop;
 	}
@@ -739,7 +739,7 @@ void kmsg_received(
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT hostile contact address %s (%s v%u.%u)",
 				host_addr_to_string(kaddr),
-				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
+				vendor_code_str(vcode.be32), kmajor, kminor);
 		reason = "hostile contact address";
 		goto drop;
 	}
@@ -761,7 +761,7 @@ void kmsg_received(
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
 				kuid_to_hex_string((kuid_t *) id),
 				host_addr_port_to_string(kaddr, kport),
-				vendor_code_str(ntohl(vcode.be32)), kmajor, kminor);
+				vendor_code_str(vcode.be32), kmajor, kminor);
 
 		kn = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))

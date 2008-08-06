@@ -196,8 +196,8 @@ knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 		char vc_old[VENDOR_CODE_BUFLEN];
 		char vc_new[VENDOR_CODE_BUFLEN];
 
-		vendor_code_to_string_buf(ntohl(kn->vcode.be32), vc_old, sizeof vc_old);
-		vendor_code_to_string_buf(ntohl(vcode.be32), vc_new, sizeof vc_new);
+		vendor_code_to_string_buf(kn->vcode.be32, vc_old, sizeof vc_old);
+		vendor_code_to_string_buf(vcode.be32, vc_new, sizeof vc_new);
 
 		g_warning("DHT node %s at %s changed vendor from %s to %s",
 			kuid_to_hex_string(kn->id),
@@ -235,7 +235,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	char vc_buf[VENDOR_CODE_BUFLEN];
 
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
-	vendor_code_to_string_buf(ntohl(kn->vcode.be32), vc_buf, sizeof vc_buf);
+	vendor_code_to_string_buf(kn->vcode.be32), vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
 		"%s (%s v%u.%u) [%s]",
 		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id));
