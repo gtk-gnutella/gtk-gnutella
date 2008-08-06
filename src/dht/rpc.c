@@ -97,9 +97,10 @@ dht_rpc_init(void)
  * Free the callback waiting indication.
  */
 static void
-rpc_cb_free(struct rpc_cb *rcb)
+rpc_cb_free(struct rpc_cb *rcb, gboolean can_remove)
 {
-	g_hash_table_remove(pending, rcb->muid);
+	if (can_remove)
+		g_hash_table_remove(pending, rcb->muid);
 	atom_guid_free((gchar *) rcb->muid);
 	knode_free(rcb->kn);
 	cq_cancel(callout_queue, &rcb->timeout);
@@ -150,7 +151,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 
-	rpc_cb_free(rcb);
+	rpc_cb_free(rcb, TRUE);
 }
 
 /**
@@ -211,7 +212,7 @@ dht_rpc_cancel(const guid_t *muid)
 	if (!rcb)
 		return FALSE;
 
-	rpc_cb_free(rcb);
+	rpc_cb_free(rcb, TRUE);
 	return TRUE;
 }
 
@@ -299,7 +300,7 @@ dht_rpc_answer(const guid_t *muid,
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_REPLY, rcb->kn, n, function, payload, len, rcb->arg);
 
-	rpc_cb_free(rcb);
+	rpc_cb_free(rcb, TRUE);
 	return TRUE;
 }
 
@@ -363,7 +364,7 @@ rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 	(void) unused_key;
 	(void) unused_x;
 
-	rpc_cb_free(val);
+	rpc_cb_free(val, FALSE);	/* Do NOT remove item from the hash */
 }
 
 /**
