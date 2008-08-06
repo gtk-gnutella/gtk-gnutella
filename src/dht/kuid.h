@@ -38,7 +38,8 @@
 
 #include "common.h"
 
-#define KUID_RAW_SIZE	20
+#define KUID_RAW_SIZE		20
+#define KUID_RAW_BITSIZE	(KUID_RAW_SIZE * 8)
 
 typedef struct kuid {
 	guchar v[KUID_RAW_SIZE];

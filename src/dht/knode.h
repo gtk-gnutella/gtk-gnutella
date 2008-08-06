@@ -54,10 +54,15 @@ typedef enum knode_status {
 	KNODE_UNKNOWN,				/**< Unknown status yet */
 } knode_status_t;
 
+typedef enum {
+	KNODE_MAGIC = 0x247c8d05U
+} knode_magic_t;
+
 /**
  * A Kademlia node.
  */
 typedef struct knode {
+	knode_magic_t magic;
 	kuid_t *id;					/**< KUID of the node (atom) */
 	void *token;				/**< The security token (NULL if unknown) */
 	time_t last_seen;			/**< Last seen message from that node */
@@ -113,10 +118,14 @@ gboolean knode_can_recontact(const knode_t *kn);
  * Add one reference to a Kademlia node.
  */
 static inline
-knode_t *knode_refcnt_inc(knode_t *kn)
+knode_t *knode_refcnt_inc(const knode_t *kn)
 {
-	kn->refcnt++;
-	return kn;
+	knode_t *knm = deconstify_gpointer(kn);
+
+	g_assert(KNODE_MAGIC == kn->magic);
+
+	knm->refcnt++;
+	return knm;
 }
 
 #endif /* _dht_knode_h_ */

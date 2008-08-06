@@ -73,7 +73,7 @@ typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
 struct kmsg {
 	guint8 function;
 	kmsg_handler_t handler;
-	const gchar *name;
+	const char *name;
 };
 
 static const struct kmsg kmsg_map[];
@@ -164,7 +164,7 @@ kmsg_build_header(kademlia_header_t *header,
 		KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
 	kademlia_header_set_contact_addr_port(header,
 		host_addr_ipv4(listen_addr()), socket_listen_port());
-	kademlia_header_set_contact_instance(header, 0);	/* XXX What's this? */
+	kademlia_header_set_contact_instance(header, 1);	/* XXX What's this? */
 	kademlia_header_set_contact_flags(header,
 		KDA_MSG_F_FIREWALLED);							/* XXX for now */
 	kademlia_header_set_extended_length(header, 0);
@@ -189,7 +189,8 @@ kmsg_build_header_pmsg(pmsg_t *mb,
 	guint8 op, guint8 major, guint8 minor, const guid_t *muid)
 {
 	kmsg_build_header((void *) pmsg_start(mb), op, major, minor, muid);
-	kademlia_header_set_size(pmsg_start(mb), pmsg_size(mb) - KDA_HEADER_SIZE);
+	kademlia_header_set_size(pmsg_start(mb),
+		pmsg_phys_len(mb) - KDA_HEADER_SIZE);
 }
 
 /**
@@ -408,7 +409,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header, guint8 extlen,
 	const void *payload, size_t len)
 {
-	gchar *reason;
+	char *reason;
 	bstr_t *bs;
 
 	warn_no_header_extension(kn, header, extlen);
@@ -531,12 +532,44 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 }
 
 /**
+ * Handle node lookup answers (FIND_NODE_RESPONSE and FIND_VALUE_RESPONSE).
+ */
+static void
+k_handle_lookup(knode_t *kn, struct gnutella_node *n,
+	const kademlia_header_t *header, guint8 extlen,
+	const void *payload, size_t len)
+{
+	guint8 function = kademlia_header_get_function(header);
+
+	warn_no_header_extension(kn, header, extlen);
+
+	if (
+		!dht_rpc_answer(kademlia_header_get_muid(header), kn, n,
+			function, payload, len)
+	) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT ignoring unexpected %s from %s",
+				kmsg_name(function), knode_to_string(kn));
+		return;
+	}
+
+	/* Nothing to do here -- everything is handled by RPC callbacks */
+}
+
+/**
  * Send message to the Kademlia node.
  */
 static void
 kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(kn->addr, kn->port);
+
+	if (GNET_PROPERTY(dht_debug) > 19) {
+		int len = pmsg_size(mb);
+		g_message("DHT sending %s (%d bytes) to %s",
+			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn));
+		dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
+	}
 
 	kn->last_sent = tm_time();
 	udp_send_mb(n, mb);
@@ -551,19 +584,32 @@ kmsg_send_ping(knode_t *kn, const guid_t *muid)
 	pmsg_t *mb;
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE);
+	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	kmsg_build_header_pmsg(mb, KDA_MSG_PING_REQUEST, 0, 0, muid);
+	g_assert(0 == pmsg_available(mb));
 	kmsg_send_mb(kn, mb);
 }
 
 /**
  * Send find_node(id) message to node.
+ *
+ * @param kn		the node to whom the message should be sent
+ * @param id		the ID we wish to look for
+ * @param muid		the message ID to use
+ * @param mfree		(optional) message free routine to use
+ * @param marg		the argument to supply to the message free routine
  */
 void
-kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid)
+kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
+	pmsg_free_t mfree, gpointer marg)
 {
 	pmsg_t *mb;
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + KUID_RAW_SIZE);
+	mb = mfree ?
+		pmsg_new_extend(PMSG_P_DATA, NULL,
+			KDA_HEADER_SIZE + KUID_RAW_SIZE, mfree, marg) :
+		pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + KUID_RAW_SIZE);
+
 	kmsg_build_header_pmsg(mb, KDA_MSG_FIND_NODE_REQUEST, 0, 0, muid);
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	pmsg_write(mb, id->v, KUID_RAW_SIZE);
@@ -592,7 +638,7 @@ void kmsg_received(
 	host_addr_t addr, guint16 port)
 {
 	const kademlia_header_t *header = deconstify_gpointer(data);
-	gchar *reason;
+	char *reason;
 	guint8 major;
 	guint8 minor;
 	knode_t *kn;
@@ -601,7 +647,7 @@ void kmsg_received(
 	vendor_code_t vcode;
 	guint8 kmajor;
 	guint8 kminor;
-	const gchar *id;
+	const char *id;
 	guint8 flags;
 	guint16 extended_length;
 	struct gnutella_node *n;
@@ -789,7 +835,7 @@ void kmsg_received(
 	n = node_udp_get_addr_port(addr, port);
 
 	kmsg_handle(kn, n, header, extended_length,
-		(gchar *) header + extended_length + KDA_HEADER_SIZE,
+		(char *) header + extended_length + KDA_HEADER_SIZE,
 		len - KDA_HEADER_SIZE - extended_length);
 
 	knode_free(kn);		/* Will free only if not still referenced */
@@ -812,9 +858,9 @@ static const struct kmsg kmsg_map[] = {
 	{ KDA_MSG_STORE_REQUEST,		NULL,					"STORE"			},
 	{ KDA_MSG_STORE_RESPONSE,		NULL,					"STORE_ACK"		},
 	{ KDA_MSG_FIND_NODE_REQUEST,	k_handle_find_node,		"FIND_NODE"		},
-	{ KDA_MSG_FIND_NODE_RESPONSE,	NULL,					"FOUND_NODE"	},
+	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_lookup,		"FOUND_NODE"	},
 	{ KDA_MSG_FIND_VALUE_REQUEST,	NULL,					"GET_VALUE"		},
-	{ KDA_MSG_FIND_VALUE_RESPONSE,	NULL,					"VALUE"			},
+	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_lookup,		"VALUE"			},
 	{ KDA_MSG_STATS_REQUEST,		NULL,					"STATS"			},
 	{ KDA_MSG_STATS_RESPONSE,		NULL,					"STATS_ACK" 	},
 };
@@ -840,7 +886,7 @@ kmsg_find(guint8 function)
 /**
  * Convert message function number into name.
  */
-const gchar *
+const char *
 kmsg_name(guint function)
 {
 	if (function >= G_N_ELEMENTS(kmsg_map) - 1)
@@ -850,7 +896,7 @@ kmsg_name(guint function)
 }
 
 static size_t
-kmsg_infostr_to_buf(gconstpointer msg, gchar *buf, size_t buf_size)
+kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
 
@@ -873,10 +919,10 @@ kmsg_infostr_to_buf(gconstpointer msg, gchar *buf, size_t buf_size)
  *
  * A "(+)" sign indicates an extended Kademlia header.
  */
-const gchar *
+const char *
 kmsg_infostr(gconstpointer msg)
 {
-	static gchar buf[80];
+	static char buf[80];
 	kmsg_infostr_to_buf(msg, buf, sizeof buf);
 	return buf;
 }

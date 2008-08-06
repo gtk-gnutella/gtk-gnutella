@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "kuid.h"
 #include "knode.h"
 #include "rpc.h"
+#include "lookup.h"
 
 #include "core/settings.h"
 
@@ -91,6 +92,15 @@ RCSID("$Id$")
 #define ALIVENESS_PERIOD		(10*60)		/* 10 minutes */
 #define ALIVENESS_PERIOD_MS		(ALIVENESS_PERIOD * 1000)
 
+/**
+ * Period for bucket refreshes.
+ *
+ * Every period, a random ID falling in the bucket is generated and a
+ * lookup is launched for that ID.
+ */
+#define REFRESH_PERIOD			(60*60)		/* 1 hour */
+#define REFRESH_PERIOD_MS		(REFRESH_PERIOD * 1000)
+
 /*
  * K-bucket node information, accessed through the "kbucket" structure.
  */
@@ -101,7 +111,8 @@ struct kbnodes {
 	GHashTable *all;			/**< All nodes in one of the lists */
 	GHashTable *c_class;		/**< Counts class-C networks in bucket */
 	cevent_t *aliveness;		/**< Periodic aliveness checks */
-	time_t last_refresh;		/**< Last time bucket was refreshed */
+	cevent_t *refresh;			/**< Periodic bucket refresh */
+	time_t last_lookup;			/**< Last time node lookup was performed */
 };
 
 /**
@@ -150,11 +161,14 @@ struct other_size {
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
 static kuid_t *our_kuid;			/**< Our own KUID (atom) */
 static struct kstats stats;			/**< Statistics on the routing table */
+static gboolean bootstrapping;		/**< Whether we are bootstrapping */
 
 static const gchar dht_route_file[] = "dht_nodes";
 static const gchar dht_route_what[] = "the DHT routing table";
+static const kuid_t kuid_null;
 
 static void bucket_alive_check(cqueue_t *cq, gpointer obj);
+static void bucket_refresh(cqueue_t *cq, gpointer obj);
 static void dht_route_retrieve(void);
 
 /**
@@ -214,7 +228,7 @@ allocate_node_lists(struct kbucket *kb)
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->pending = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->c_class = g_hash_table_new(uint32_hash, uint32_eq);
-	kb->nodes->last_refresh = 0;
+	kb->nodes->last_lookup = 0;
 	kb->nodes->aliveness = NULL;
 }
 
@@ -302,6 +316,7 @@ free_node_lists(struct kbucket *kb)
 			knodes->c_class = NULL;
 		}
 		cq_cancel(callout_queue, &knodes->aliveness);
+		cq_cancel(callout_queue, &knodes->refresh);
 		wfree(knodes, sizeof *knodes);
 		kb->nodes = NULL;
 	}
@@ -328,6 +343,18 @@ install_alive_check(struct kbucket *kb)
 
 	kb->nodes->aliveness =
 		cq_insert(callout_queue, ALIVENESS_PERIOD_MS, bucket_alive_check, kb);
+}
+
+/**
+ * Install periodic refreshing of bucket.
+ */
+static void
+install_bucket_refresh(struct kbucket *kb)
+{
+	g_assert(is_leaf(kb));
+
+	kb->nodes->refresh =
+		cq_insert(callout_queue, REFRESH_PERIOD_MS, bucket_refresh, kb);
 }
 
 /**
@@ -385,12 +412,15 @@ dht_initialize(void)
 	root->ours = TRUE;
 	allocate_node_lists(root);
 	install_alive_check(root);
+	install_bucket_refresh(root);
 
 	stats.buckets++;
 	stats.leaves++;
 	stats.other_size = hash_list_new(other_size_hash, other_size_eq);
 
 	dht_route_retrieve();
+	dht_rpc_init();
+	lookup_init();
 }
 
 /**
@@ -860,7 +890,7 @@ dht_split_bucket(struct kbucket *kb)
 	one->prefix = kb->prefix;
 	one->depth = kb->depth + 1;
 	allocate_node_lists(one);
-	one->nodes->last_refresh = kb->nodes->last_refresh;
+	one->nodes->last_lookup = kb->nodes->last_lookup;
 
 	zero = walloc0(sizeof *zero);
 	zero->parent = kb;
@@ -868,17 +898,12 @@ dht_split_bucket(struct kbucket *kb)
 	zero->prefix = kb->prefix;
 	zero->depth = kb->depth + 1;
 	allocate_node_lists(zero);
-	zero->nodes->last_refresh = kb->nodes->last_refresh;
+	zero->nodes->last_lookup = kb->nodes->last_lookup;
 
-	/*
-	 * If parent was within our tree, the children buckets are "close"
-	 * and need to continue to be periodically checked for alive contacts.
-	 */
-
-	if (kb->ours) {
-		install_alive_check(kb->zero);
-		install_alive_check(kb->one);
-	}
+	install_alive_check(kb->zero);
+	install_bucket_refresh(kb->zero);
+	install_alive_check(kb->one);
+	install_bucket_refresh(kb->one);
 
 	/*
 	 * See which one of our two children is within our tree.
@@ -1326,6 +1351,38 @@ dht_remove_node(knode_t *kn)
 }
 
 /**
+ * Remove timeouting node from the bucket.
+ *
+ * Contrary to dht_remove_node(), we're careful not to evict the node
+ * if the bucket holds less than k good entries.  Indeed, if the timeouts
+ * are due to the network being disconnected, careless removal would totally
+ * empty the routing table.
+ */
+static void
+dht_remove_timeouting_node(knode_t *kn)
+{
+	struct kbucket *kb;
+
+	kb = dht_find_bucket(kn->id);
+
+	if (NULL == g_hash_table_lookup(kb->nodes->all, kn->id))
+		return;			/* Node not held in routing table */
+
+	dht_set_node_status(kn, KNODE_STALE);
+
+	/*
+	 * If bucket is full, remove the stale node, otherwise keep it around
+	 * and cap it RPC timeout count to the upper threshold to avoid undue
+	 * timeouts the next time an RPC is sent to the node.
+	 */
+
+	if (hash_list_length(kb->nodes->good) >= K_BUCKET_GOOD)
+		dht_remove_node_from_bucket(kn, kb);
+	else
+		kn->rpc_timeouts = KNODE_MAX_TIMEOUTS;
+}
+
+/**
  * An RPC to the node timed out.
  * Can be called for a node that is no longer part of the routing table.
  */
@@ -1333,7 +1390,7 @@ void
 dht_node_timed_out(knode_t *kn)
 {
 	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
-		dht_remove_node(kn);
+		dht_remove_timeouting_node(kn);
 	else
 		dht_set_node_status(kn, KNODE_STALE);
 }
@@ -1391,6 +1448,79 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 			dht_rpc_ping(kn, NULL, NULL);
 	}
 	hash_list_iter_release(&iter);
+}
+
+/**
+ * Notification callback of bucket refreshes.
+ */
+static void
+bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+{
+	struct kbucket *kb = arg;
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
+		g_message("DHT bucket refresh with %s "
+			"for %s k-bucket %s (depth %d, %s ours) completed: %s",
+			kuid_to_hex_string(kuid),
+			is_leaf(kb) ? "leaf" : "split",
+			kuid_to_hex_string2(&kb->prefix), kb->depth,
+			kb->ours ? "is" : "not",
+			lookup_strerror(error));
+	}
+}
+
+/**
+ * Periodic bucket refresh.
+ */
+static void
+bucket_refresh(cqueue_t *unused_cq, gpointer obj)
+{
+	struct kbucket *kb = obj;
+	kuid_t id;
+	int bits;
+	int i;
+
+	(void) unused_cq;
+
+	g_assert(is_leaf(kb));
+
+	/*
+	 * Re-instantiate the periodic callback for next time.
+	 */
+
+	install_bucket_refresh(kb);
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT initiating refresh of k-bucket %s (depth %d, %s ours)",
+			kuid_to_hex_string(&kb->prefix), kb->depth,
+			kb->ours ? "is" : "not");
+
+	/*
+	 * Generate a random KUID falling within this bucket's range.
+	 */
+
+	random_bytes(id.v, KUID_RAW_SIZE);
+	bits = kb->depth;
+
+	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
+		if (bits >= 8) {
+			id.v[i] = kb->prefix.v[i];
+		} else {
+			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
+			id.v[i] = (kb->prefix.v[i] & mask) | (id.v[i] & ~mask);
+		}
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT selected random KUID is %s", kuid_to_hex_string(&id));
+
+	g_assert(dht_find_bucket(&id) == kb);
+
+	/*
+	 * Launch refresh.
+	 */
+
+	lookup_bucket_refresh(&id, bucket_refresh_status, kb);
 }
 
 /**
@@ -1862,6 +1992,22 @@ dht_fill_closest(
 }
 
 /**
+ * Invoked when a lookup is performed on the ID, so that we may update
+ * the time of the last refresh in the ID's bucket.
+ */
+void
+dht_lookup_notify(const kuid_t *id)
+{
+	struct kbucket *kb;
+
+	g_assert(id);
+
+	kb = dht_find_bucket(id);
+	kb->nodes->last_lookup = tm_time();
+	cq_resched(callout_queue, kb->nodes->refresh, REFRESH_PERIOD_MS);
+}
+
+/**
  * Write node information to file.
  */
 static void
@@ -1964,8 +2110,6 @@ dht_route_store_if_dirty(void)
 		dht_route_store();
 }
 
-/* XXX install periodic bucket refresh */
-
 /**
  * Free bucket node.
  */
@@ -2011,6 +2155,14 @@ dht_route_close(void)
 {
 	dht_route_store();
 
+	/*
+	 * Since we're shutting down the route table, we also need to shut down
+	 * the RPC and lookups, which rely on the routing table.
+	 */
+
+	lookup_close();
+	dht_rpc_close();
+
 	recursively_free_bucket(root);
 	root = NULL;
 	if (our_kuid) {
@@ -2053,7 +2205,7 @@ dht_addr_verify_cb(
 	enum dht_rpc_ret type,
 	const knode_t *kn,
 	const struct gnutella_node *unused_n,
-	guint8 unused_function,
+	kda_msg_t unused_function,
 	const gchar *unused_payload, size_t unused_len, gpointer arg)
 {
 	struct addr_verify *av = arg;
@@ -2119,6 +2271,134 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	 */
 
 	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_addr_verify_cb, av);
+}
+
+/**
+ * Notification callback of lookup of our own ID during DHT bootstrapping.
+ */
+static void
+bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
+{
+	(void) unused_arg;
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT bootstrapping of our own ID %s completed: %s",
+			kuid_to_hex_string(kuid),
+			lookup_strerror(error));
+
+	bootstrapping = FALSE;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT was %s bootstrapped",
+			dht_bootstrapped() ? "successfully" : "not fully");
+}
+
+/**
+ * RPC callback for the bootstrapping PING.
+ *
+ * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
+ * @param kn			the replying node
+ * @param function		the type of message we got (0 on TIMEOUT)
+ * @param payload		the payload we got
+ * @param len			the length of the payload
+ * @param arg			user-defined callback parameter
+ */
+static void
+dht_bootstrap_cb(
+	enum dht_rpc_ret type,
+	const knode_t *kn,
+	const struct gnutella_node *unused_n,
+	kda_msg_t unused_function,
+	const gchar *unused_payload, size_t unused_len, gpointer unused_arg)
+{
+	(void) unused_n;
+	(void) unused_function;
+	(void) unused_payload;
+	(void) unused_len;
+	(void) unused_arg;
+
+	if (DHT_RPC_TIMEOUT == type)
+		return;
+
+	/*
+	 * We're looking for a valid reply to our PING, which is the case if we
+	 * get a message back bearing the proper MUID of the PING: we know the
+	 * Kademlia node who sent us the message is alive.
+	 */
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT bootstrap succeeded with %s", knode_to_string(kn));
+
+	bootstrapping = TRUE;
+	
+	/*
+	 * Lookup our own ID, discarding results as all we want is the side
+	 * effect of filling up our routing table with the k-closest nodes
+	 * to our ID.
+	 */
+
+	(void) lookup_find_node(our_kuid, NULL, bootstrap_status, NULL);
+	
+	/* XXX set DHT property status to "bootstrapping" -- red icon */
+	/* XXX "bootstrapping" and "dht_bootstrapped" should be GNET props */
+}
+
+/**
+ * Send a bootstrapping Kademlia PING to specified host.
+ *
+ * We're not even sure the address we have here is that of a valid node,
+ * but getting back a valid Kademlia PONG will be enough for us to launch
+ * the bootstrapping as we will know one good node!
+ */
+static void
+dht_bootstrap(host_addr_t addr, guint16 port)
+{
+	knode_t *kn;
+	vendor_code_t vc;
+
+	/*
+	 * We can be called only until we have been fully bootstrapped, but we
+	 * must not continue to attempt bootstrapping from other nodes if we
+	 * are already in the process of looking up our own node ID.
+	 */
+
+	if (bootstrapping)
+		return;				/* Hopefully we'll be bootstrapped soon */
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT attempting bootstrap from %s",
+			host_addr_port_to_string(addr, port));
+
+	/*
+	 * Build a fake Kademlia node, with an zero KUID.  This node will never
+	 * be inserted in the routing table as such and will only be referenced
+	 * by the callback.
+	 */
+
+	vc.be32 = T_0000;
+	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
+
+	/*
+	 * We do not want the RPC layer to verify the KUID of the replying host
+	 * since we don't even have a valid KUID for the remote host yet!
+	 * Hence the use of the RPC_CALL_NO_VERIFY control flag.
+	 */
+
+	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_bootstrap_cb, NULL);
+
+	knode_free(kn);		/* Only referenced by the RPC layer now */
+}
+
+/**
+ * Bootstrap the DHT from the supplied address, if needed.
+ */
+void
+dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
+{
+	if (!dht_enabled() || dht_bootstrapped())
+		return;
+
+	dht_bootstrap(addr, port);
 }
 
 /***
@@ -2205,7 +2485,7 @@ dht_route_parse(FILE *f)
 		host_addr_t addr;
 		guint16 port;
 		kuid_t kuid;
-		vendor_code_t vcode;
+		vendor_code_t vcode = { 0 };
 		time_t seen;
 		guint32 major, minor;
 
@@ -2348,10 +2628,10 @@ dht_route_retrieve(void)
 	file_path_set(fp, settings_config_dir(), node_file);
 	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));
 
-	if (f)
+	if (f) {
 		dht_route_parse(f);
-
-	fclose(f);
+		fclose(f);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

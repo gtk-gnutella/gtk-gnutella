@@ -34,7 +34,7 @@
  * Constants
  */
 
-enum kda_msg {
+typedef enum kda_msg {
 	KDA_MSG_PING_REQUEST			= 0x01,
 	KDA_MSG_PING_RESPONSE			= 0x02,
 	KDA_MSG_STORE_REQUEST			= 0x03,
@@ -45,7 +45,7 @@ enum kda_msg {
 	KDA_MSG_FIND_VALUE_RESPONSE		= 0x08,
 	KDA_MSG_STATS_REQUEST			= 0x09,	/**< DEPRECATED, UNSUPPORTED */
 	KDA_MSG_STATS_RESPONSE			= 0x0a,	/**< DEPRECATED, UNSUPPORTED */
-};
+} kda_msg_t;
 
 #define KDA_MSG_MAX_ID				  0x0a
 

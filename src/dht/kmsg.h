@@ -43,6 +43,8 @@
 #include "if/core/guid.h"
 #include "if/dht/kademlia.h"
 
+#include "core/pmsg.h"
+
 #include "lib/host_addr.h"
 
 /*
@@ -54,10 +56,11 @@ void kmsg_received(
 	gconstpointer data, size_t len, host_addr_t addr, guint16 port);
 
 void kmsg_send_ping(knode_t *kn, const guid_t *muid);
-void kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid);
+void kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
+	pmsg_free_t mfree, gpointer marg);
 
-const gchar *kmsg_infostr(gconstpointer msg);
-const gchar *kmsg_name(guint function);
+const char *kmsg_infostr(gconstpointer msg);
+const char *kmsg_name(guint function);
 
 /*
  * Inlined routines.

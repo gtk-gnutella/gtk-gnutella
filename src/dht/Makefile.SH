@@ -84,6 +84,7 @@ SRC = \
 	kmsg.c \
 	knode.c \
 	kuid.c \
+	lookup.c \
 	routing.c \
 	rpc.c
 
@@ -91,6 +92,7 @@ OBJ = \
 	kmsg.o \
 	knode.o \
 	kuid.o \
+	lookup.o \
 	routing.o \
 	rpc.o 
 

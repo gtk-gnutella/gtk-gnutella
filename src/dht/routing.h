@@ -50,7 +50,7 @@
 #define K_BUCKET_STALE		KDA_K	/* Keep k possibly "stale" contacts */
 #define K_BUCKET_PENDING	KDA_K	/* Keep k pending contacts (replacement) */
 
-#define K_BUCKET_MAX_DEPTH	(KUID_RAW_SIZE * 8 - 1)
+#define K_BUCKET_MAX_DEPTH	(KUID_RAW_BITSIZE - 1)
 
 /**
  * How many sub-divisions of a bucket can happen.
@@ -102,7 +102,9 @@ void dht_node_timed_out(knode_t *kn);
 void dht_route_store(void);
 void dht_route_store_if_dirty(void);
 
+void dht_lookup_notify(const kuid_t *id);
 void dht_verify_node(knode_t *kn, knode_t *new);
+void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
 
 #endif /* _dht_routing_h_ */
 

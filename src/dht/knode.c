@@ -85,6 +85,7 @@ knode_new(
 	knode_t *kn;
 
 	kn = walloc0(sizeof *kn);
+	kn->magic = KNODE_MAGIC;
 	kn->id = kuid_get_atom((kuid_t *) id);
 	kn->vcode = vcode;
 	kn->refcnt = 1;
@@ -287,6 +288,9 @@ knode_dispose(knode_t *kn)
 void
 knode_free(knode_t *kn)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(kn->refcnt > 0);
+
 	if (--kn->refcnt)
 		return;
 

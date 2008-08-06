@@ -39,7 +39,10 @@
 #include "common.h"
 #include "knode.h"
 
+#include "if/dht/kademlia.h"
 #include "if/core/guid.h"
+
+#include "core/pmsg.h"
 
 #define DHT_RPC_MAXDELAY	30000	/* 30 secs max to get a reply */
 #define DHT_RPC_MINDELAY	5000	/* 5 secs min to get a reply */
@@ -72,7 +75,7 @@ struct gnutella_node;
 typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 	const knode_t *kn,
 	const struct gnutella_node *n,
-	guint8 function,
+	kda_msg_t function,
 	const gchar *payload, size_t len, gpointer arg);
 
 /**
@@ -90,14 +93,16 @@ void dht_rpc_close(void);
 
 gboolean dht_rpc_answer(const guid_t *muid, knode_t *kn,
 	const struct gnutella_node *n,
-	guint8 function,
+	kda_msg_t function,
 	gconstpointer payload, size_t len);
 
+gboolean dht_rpc_cancel(const guid_t *muid);
 void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
 void dht_rpc_ping_extended(
 	knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg);
 void dht_rpc_find_node(
-	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg);
+	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg,
+	pmsg_free_t mfree, gpointer marg);
 
 #endif /* _dht_rpc_h_ */
 

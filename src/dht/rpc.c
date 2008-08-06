@@ -139,8 +139,6 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
-	g_assert(rcb->timeout != NULL);
-
 	rcb->timeout = NULL;
 	dht_node_timed_out(rcb->kn);
 
@@ -192,6 +190,27 @@ rpc_call_prepare(
 }
 
 /**
+ * Cancel an RPC.
+ *
+ * The callback will never be invoked and the MUID is cleared.  It will be
+ * as if the RPC message had never been sent.
+ *
+ * @return whether we found the MUID to cancel.
+ */
+gboolean
+dht_rpc_cancel(const guid_t *muid)
+{
+	struct rpc_cb *rcb;
+
+	rcb = g_hash_table_lookup(pending, muid);
+	if (!rcb)
+		return FALSE;
+
+	rpc_cb_free(rcb);
+	return TRUE;
+}
+
+/**
  * Notification that an RPC answer message was received.
  *
  * @param muid		the MUID of the message
@@ -208,7 +227,7 @@ gboolean
 dht_rpc_answer(const guid_t *muid,
 	knode_t *kn,
 	const struct gnutella_node *n,
-	guint8 function,
+	kda_msg_t function,
 	gconstpointer payload, size_t len)
 {
 	struct rpc_cb *rcb;
@@ -315,14 +334,18 @@ dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
  * @param id	the KUID to look for
  * @param cb	the (optional) callback when reply arrives or on timeout
  * @param arg	additional opaque callback argument
+ * @param mfree	the (optional) message free routine to use
+ * @param marg	the argument to supply to the message free routine
  */
 void
-dht_rpc_find_node(knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg)
+dht_rpc_find_node(knode_t *kn, const kuid_t *id,
+	dht_rpc_cb_t cb, gpointer arg,
+	pmsg_free_t mfree, gpointer marg)
 {
 	const guid_t *muid;
 
 	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), 0, cb, arg);
-	kmsg_send_find_node(kn, id, muid);
+	kmsg_send_find_node(kn, id, muid, mfree, marg);
 }
 
 /**
