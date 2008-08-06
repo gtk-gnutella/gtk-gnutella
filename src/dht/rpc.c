@@ -294,6 +294,7 @@ dht_rpc_answer(const guid_t *muid,
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_REPLY, rcb->kn, n, function, payload, len, rcb->arg);
 
+	rpc_cb_free(rcb);
 	return TRUE;
 }
 
@@ -368,6 +369,7 @@ dht_rpc_close(void)
 {
 	g_hash_table_foreach(pending, rpc_free_kv, NULL);
 	g_hash_table_destroy(pending);
+	pending = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
