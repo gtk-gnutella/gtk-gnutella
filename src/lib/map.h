@@ -55,6 +55,8 @@ map_t *map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func);
 map_t *map_create_patricia(size_t keybits);
 map_t *map_create_from_hash(GHashTable *ht);
 map_t *map_create_from_patricia(patricia_t *pt);
+gpointer map_switch_to_hash(map_t *m, GHashTable *ht);
+gpointer map_switch_to_patricia(map_t *m, patricia_t *pt);
 
 /**
  * Public map interface.

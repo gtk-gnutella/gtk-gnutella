@@ -118,6 +118,8 @@ map_create_from_hash(GHashTable *ht)
 {
 	map_t *m;
 
+	g_assert(ht);
+
 	m = walloc(sizeof *m);
 	m->type = MAP_HASH;
 	m->u.h.ht = ht;
@@ -134,11 +136,51 @@ map_create_from_patricia(patricia_t *pt)
 {
 	map_t *m;
 
+	g_assert(pt);
+
 	m = walloc(sizeof *m);
 	m->type = MAP_PATRICIA;
 	m->u.p.pt = pt;
 
 	return m;
+}
+
+/**
+ * Switch the implementation of an existing map to a hash table.
+ * Returns the previous implementation.
+ */
+gpointer
+map_switch_to_hash(map_t *m, GHashTable *ht)
+{
+	gpointer implementation;
+
+	g_assert(m);
+	g_assert(ht);
+
+	implementation = map_implementation(m);
+	m->type = MAP_HASH;
+	m->u.h.ht = ht;
+
+	return implementation;
+}
+
+/**
+ * Switch the implementation of an existing map to a PATRICIA tree.
+ * Returns the previous implementation.
+ */
+gpointer
+map_switch_to_patricia(map_t *m, patricia_t *pt)
+{
+	gpointer implementation;
+
+	g_assert(m);
+	g_assert(pt);
+
+	implementation = map_implementation(m);
+	m->type = MAP_PATRICIA;
+	m->u.p.pt = pt;
+
+	return implementation;
 }
 
 /**
