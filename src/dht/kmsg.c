@@ -758,7 +758,7 @@ void kmsg_received(
 
 	kn = dht_find_node(id);
 
-	g_assert(kn == NULL || !(kn->flags & KDA_MSG_F_FIREWALLED));
+	g_assert(kn == NULL || !(kn->flags & KNODE_F_FIREWALLED));
 
 	if (NULL == kn) {
 		if (GNET_PROPERTY(dht_debug))
