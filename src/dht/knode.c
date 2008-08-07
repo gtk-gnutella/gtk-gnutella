@@ -140,39 +140,6 @@ knode_can_recontact(const knode_t *kn)
 }
 
 /**
- * Set or update the security token for the node.
- *
- * Data is copied, the original can be discarded.
- *
- * If len == 0, the security token is cleared and the node marked as not
- * requiring any token for storing values.
- */
-void
-knode_set_token(knode_t *kn, const void *token, size_t len)
-{
-	g_assert(kn);
-	g_assert(token);
-	g_assert(len < 256);
-
-	if (len && kn->token_len == len && 0 == memcmp(kn->token, token, len))
-		return;			/* No change in token */
-
-	if (kn->token)
-		wfree(kn->token, kn->token_len);
-
-	if (len) {
-		kn->token = walloc(len);
-		kn->token_len = len;
-		memcpy(kn->token, token, len);
-		kn->flags &= ~KNODE_F_NO_TOKEN;
-	} else {
-		kn->token = NULL;
-		kn->token_len = 0;
-		kn->flags |= KNODE_F_NO_TOKEN;
-	}
-}
-
-/**
  * Give a string representation of the node status.
  */
 const gchar *
@@ -249,8 +216,9 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s (%s v%u.%u) [%s]",
-		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id));
+		"%s (%s v%u.%u) [%s] ref=%d",
+		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
+		kn->refcnt);
 
 	return buf;
 }
@@ -289,8 +257,6 @@ knode_dispose(knode_t *kn)
 	g_assert(kn->refcnt == 0);
 
 	kuid_atom_free(kn->id);
-	if (kn->token)
-		wfree(kn->token, kn->token_len);
 	wfree(kn, sizeof *kn);
 }
 
