@@ -900,13 +900,16 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
 
-	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u]",
+	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
 		kademlia_header_get_extended_length(msg) ? "(+)" : "",
 		size, size == 1 ? "" : "s",
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
-		kademlia_header_get_minor_version(msg));
+		kademlia_header_get_minor_version(msg),
+		host_addr_port_to_string(
+			host_addr_get_ipv4(kademlia_header_get_contact_addr(msg)),
+			kademlia_header_get_contact_port(msg)));
 }
 
 /**
