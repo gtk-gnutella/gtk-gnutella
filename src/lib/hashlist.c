@@ -527,9 +527,18 @@ hash_list_length(const hash_list_t *hl)
 GList *
 hash_list_list(hash_list_t *hl)
 {
+	GList *l = NULL;
+	GList *lc = NULL;
+
 	hash_list_check(hl);
 
-	return g_list_copy(hl->head);
+	for (l = hl->tail; l; l = g_list_previous(l)) {
+		struct hash_list_item *item = l->data;
+
+		lc = g_list_prepend(lc, deconstify_gpointer(item->orig_key));
+	}
+
+	return lc;
 }
 
 /**
