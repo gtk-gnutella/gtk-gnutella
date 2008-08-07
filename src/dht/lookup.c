@@ -682,7 +682,7 @@ deserialize_contact(bstr_t *bs)
 	vendor_code_t vcode;
 	guint8 major, minor;
 
-	bstr_read_be32(bs, &vcode.be32);
+	bstr_read_be32(bs, &vcode.u32);
 	bstr_read_u8(bs, &major);
 	bstr_read_u8(bs, &minor);
 	bstr_read(bs, kuid.v, KUID_RAW_SIZE);
