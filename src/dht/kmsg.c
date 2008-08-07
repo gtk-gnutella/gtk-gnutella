@@ -98,9 +98,13 @@ kmsg_handle(knode_t *kn,
 	guint8 function;
 	const struct kmsg *km;
 
-	if (GNET_PROPERTY(dht_debug > 3))
+	if (GNET_PROPERTY(dht_debug > 3)) {
 		g_message("DHT got %s from %s",
 			kmsg_infostr(header), knode_to_string(kn));
+		if (len && GNET_PROPERTY(dht_debug > 19))
+			dump_hex(stderr, "UDP payload", payload, len);
+		
+	}
 
 	function = kademlia_header_get_function(header);
 	km = kmsg_find(function);
@@ -564,10 +568,12 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(kn->addr, kn->port);
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	if (GNET_PROPERTY(dht_debug) > 19) {
 		int len = pmsg_size(mb);
-		g_message("DHT sending %s (%d bytes) to %s",
-			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn));
+		g_message("DHT sending %s (%d bytes) to %s, RTT=%u",
+			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn), kn->rtt);
 		dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
 	}
 
@@ -767,6 +773,15 @@ void kmsg_received(
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT traffic from known %s %s%snode %s at %s (%s v%u.%u)",
+				knode_status_to_string(kn->status),
+				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
+				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
+				kuid_to_hex_string((kuid_t *) id),
+				host_addr_port_to_string(kaddr, kport),
+				vendor_code_to_string(vcode.u32), kmajor, kminor);
+
 		/*
 		 * Make sure the IP has not changed for the node.
 		 * Otherwise, request an address verification if none is already
@@ -774,6 +789,13 @@ void kmsg_received(
 		 */
 
 		if (!host_addr_equal(kaddr, kn->addr) || kport != kn->port) {
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT new IP for %s (now at %s) -- %s verification",
+					knode_to_string(kn),
+					host_addr_port_to_string(kaddr, kport),
+					(kn->flags & KNODE_F_VERIFYING) ?
+						"already under" : "initiating");
+
 			if (!(kn->flags & KNODE_F_VERIFYING)) {
 				knode_t *new;
 
