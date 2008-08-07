@@ -58,16 +58,20 @@ Marking, tagging and whatsoever of Node IDs is absolutely prohibited!
 **** Socket Address ****
 
 A Socket Address is simply an IP:Port tupel.
+
+WARNING: contrary to Gnutella's conventions, the DHT messages hold the port
+number in big-endian format, which is the standard practice for network
+message but can be confusing here in Gnutella's context.
  ____________________________________________________________________
 |Byte|Name______|Description_________________________________________|
 |0___|Length____|Length_of_the_IP_Address._It's_4_for_IPv4_addresses.|
 |1-4_|IP_Address|The_IPv4_address____________________________________|
-|5-6_|Port______|The_Port_number_____________________________________|
+|5-6_|Port______|The_Port_number_(big-endian)________________________|
  ____________________________________________________________________
 |Byte_|Name______|Description________________________________________|
 |0____|Length____|Length_of_the_IP_Address._It's_16_for_IPv6_addesses|
 |1-16_|IP_Address|The_IPv6_address___________________________________|
-|17-18|Port______|The_port_number____________________________________|
+|17-18|Port______|The_port_number_(big-endian)_______________________|
 
 **** BigInteger ****
  _________________________________________________
