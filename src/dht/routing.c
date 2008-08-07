@@ -522,11 +522,27 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			dht_bootstrapped() ? "successfully" : "not fully");
 
 	/*
-	 * To complete the bootstrap, we need to refresh all the buckets.
+	 * To complete the bootstrap, we need to refresh all the buckets we
+	 * have so far.
+	 *
+	 * XXX Actually we need to refresh all the k-buckets that precede ours,
+	 * XXX even if the initial lookups have not split them.  But this will
+	 * XXX be for later, the current code will do for now.
+	 *		--RAM, 2008-08-07
 	 */
 
-	if (dht_bootstrapped())
+	if (dht_bootstrapped()) {
 		recursively_apply(root, dht_leaf_bucket_refresh, NULL);
+	} else {
+		kuid_t id;
+
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT continuing bootstrap with random KUID is %s",
+				kuid_to_hex_string(&id));
+
+		bootstrapping =
+			NULL != lookup_find_node(&id, NULL, bootstrap_status, NULL);
+	}
 }
 
 /**
@@ -876,7 +892,7 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 		int count = GPOINTER_TO_INT(val);
 		count += pmone;
 
-		g_assert(net == GPOINTER_TO_UINT(key));
+		g_assert(net == *(guint32 *) key);
 
 		if (count) {
 			g_assert(count > 0);
@@ -1277,6 +1293,12 @@ promote_pending_node(struct kbucket *kb)
 		hash_list_iter_release(&iter);
 
 		if (selected) {
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT promoting %s node %s at %s to the good list",
+					knode_status_to_string(selected->status),
+					kuid_to_hex_string(selected->id),
+					host_addr_port_to_string(selected->addr, selected->port));
+
 			hash_list_remove(kb->nodes->pending, selected);
 			list_update_stats(KNODE_PENDING, -1);
 
@@ -1300,6 +1322,8 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
+
+	check_leaf_bucket_consistency(kb);
 
 	if (NULL == g_hash_table_lookup(kb->nodes->all, kn->id))
 		goto done;
@@ -1348,9 +1372,6 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(new != KNODE_UNKNOWN);
 
-	if (kn->status == new)
-		return;					/* Already has this status, nothing to do */
-
 	kb = dht_find_bucket(kn->id);
 
 	g_assert(kb);
@@ -1359,6 +1380,14 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
 	in_table = NULL != tkn;
+
+	/*
+	 * We're updating a node from the routing table without changing its
+	 * status: we have nothing to do.
+	 */
+
+	if (tkn == kn && kn->status == new)
+		return;
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT node %s at %s (%s in table) moving from %s to %s",
@@ -1379,10 +1408,10 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 * to possibly skip it if.
 	 */
 
-	kn->status = new;
-
-	if (!in_table)
+	if (!in_table) {
+		kn->status = new;
 		return;
+	}
 
 	/*
 	 * Due to the way nodes are inserted in the routing table (upon
@@ -1409,11 +1438,15 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 * Update the twin node held in the routing table.
 	 */
 
+	check_leaf_bucket_consistency(kb);
+
 	old = tkn->status;
 	hl = list_for(kb, old);
-	hash_list_remove(hl, tkn);
+	if (!hash_list_remove(hl, tkn))
+		g_error("node %s not in its routing table list", knode_to_string(tkn));
 	list_update_stats(old, -1);
 
+	kn->status = new;
 	tkn->status = new;
 	hl = list_for(kb, new);
 	maxsize = list_maxsize_for(new);
@@ -1423,6 +1456,13 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		g_hash_table_remove(kb->nodes->all, removed->id);
 		list_update_stats(new, -1);
 		c_class_update_count(removed, kb, -1);
+
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT dropped %s node %s at %s from routing table",
+				knode_status_to_string(removed->status),
+				kuid_to_hex_string(removed->id),
+				host_addr_port_to_string(removed->addr, removed->port));
+
 		knode_free(removed);
 	}
 
@@ -1719,10 +1759,8 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
-	kb->nodes->refresh = NULL;
-
-	dht_bucket_refresh(kb);
 	install_bucket_refresh(kb);		/* Re-instantiate for next time */
+	dht_bucket_refresh(kb);
 }
 
 /**
