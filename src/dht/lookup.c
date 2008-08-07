@@ -1165,12 +1165,21 @@ lookup_rpc_cb(
 	}
 
 	/*
+	 * If we get a reply from an RPC issued at a previous hop, only
+	 * iterate if we have no more RPC pending.
+	 */
+
+	if (rpi->hop != nl->hops)
+		goto iterate_check;
+
+	/*
+	 * We got an RPC reply for the latest hop (most recently sent).
+	 *
 	 * If we have seen no improvements in the closest node and we have
 	 * the requested amount of closest neighbours, we can end the lookup.
 	 */
 
 	if (
-		rpi->hop == nl->hops &&				/* Was one of most recent RPCs */
 		nl->closest == nl->prev_closest &&
 		lookup_closest_ok(nl)
 	) {
@@ -1180,6 +1189,11 @@ lookup_rpc_cb(
 		lookup_completed(nl);
 		goto cleanup;
 	}
+
+	/*
+	 * Loose parallelism: iterate as soon as one of the "alpha" RPCs from
+	 * the previous hop has returned.
+	 */
 
 	lookup_iterate(nl);
 	goto cleanup;
