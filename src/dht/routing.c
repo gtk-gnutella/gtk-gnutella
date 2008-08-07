@@ -333,10 +333,21 @@ is_leaf(const struct kbucket *kb)
 static void
 install_alive_check(struct kbucket *kb)
 {
+	int delay = ALIVENESS_PERIOD_MS;
+	int adj;
+
 	g_assert(is_leaf(kb));
 
+	/*
+	 * Adjust delay randomly by +/- 5% to avoid callbacks firing at the
+	 * same time for all the buckets.
+	 */
+
+	adj = ALIVENESS_PERIOD_MS / 10;
+	adj = adj / 2 - random_value(adj);
+
 	kb->nodes->aliveness =
-		cq_insert(callout_queue, ALIVENESS_PERIOD_MS, bucket_alive_check, kb);
+		cq_insert(callout_queue, delay + adj, bucket_alive_check, kb);
 }
 
 /**
@@ -359,10 +370,21 @@ install_bucket_refresh(struct kbucket *kb)
 
 	if (elapsed >= REFRESH_PERIOD)
 		kb->nodes->refresh = cq_insert(callout_queue, 1, bucket_refresh, kb);
-	else
+	else {
+		int delay = REFRESH_PERIOD_MS - elapsed * 1000;
+		int adj;
+
+		/*
+		 * Adjust delay randomly by +/- 5% to avoid callbacks firing at the
+		 * same time for all the buckets.
+		 */
+
+		adj = delay / 10;
+		adj = adj / 2 - random_value(adj);
+
 		kb->nodes->refresh =
-			cq_insert(callout_queue, REFRESH_PERIOD_MS - elapsed * 1000,
-			bucket_refresh, kb);
+			cq_insert(callout_queue, delay + adj, bucket_refresh, kb);
+	}
 }
 
 /**
@@ -1123,13 +1145,25 @@ dht_split_bucket(struct kbucket *kb)
 	one->prefix.v[byte] |= mask;	/* This is "one", prefix for "zero" is 0 */
 
 	if (our_kuid->v[byte] & mask) {
-		one->ours = TRUE;
-		if (kb->ours)
+		if (kb->ours) {
+			one->ours = TRUE;
 			zero->split_depth = kb->depth + 1;
+		}
 	} else {
-		zero->ours = TRUE;
-		if (kb->ours)
+		if (kb->ours) {
+			zero->ours = TRUE;
 			one->split_depth = kb->depth + 1;
+		}
+	}
+
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_message("DHT split byte=%d mask=0x%x", byte, mask);
+		g_message("DHT split \"zero\" k-bucket is %s (depth %d, %s ours)",
+			kuid_to_hex_string(&zero->prefix), zero->depth,
+			zero->ours ? "is" : "not");
+		g_message("DHT split \"one\" k-bucket is %s (depth %d, %s ours)",
+			kuid_to_hex_string(&one->prefix), one->depth,
+			one->ours ? "is" : "not");
 	}
 
 	/*
