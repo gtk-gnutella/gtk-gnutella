@@ -58,6 +58,8 @@ knode_hash(gconstpointer key)
 {
 	const knode_t *kn = key;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	return sha1_hash(kn->id);
 }
 
@@ -69,6 +71,9 @@ knode_eq(gconstpointer a, gconstpointer b)
 {
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
+
+	g_assert(KNODE_MAGIC == k1->magic);
+	g_assert(KNODE_MAGIC == k2->magic);
 
 	return k1->id == k2->id;		/* We know IDs are atoms */
 }
@@ -115,6 +120,7 @@ knode_can_recontact(const knode_t *kn)
 	time_delta_t elapsed;
 
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	if (!kn->rpc_timeouts)
 		return TRUE;				/* Timeout condition was cleared */
@@ -192,12 +198,14 @@ knode_status_to_string(knode_status_t status)
 void
 knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	if (GNET_PROPERTY(dht_debug)) {
 		char vc_old[VENDOR_CODE_BUFLEN];
 		char vc_new[VENDOR_CODE_BUFLEN];
 
-		vendor_code_to_string_buf(kn->vcode.be32, vc_old, sizeof vc_old);
-		vendor_code_to_string_buf(vcode.be32, vc_new, sizeof vc_new);
+		vendor_code_to_string_buf(kn->vcode.u32, vc_old, sizeof vc_old);
+		vendor_code_to_string_buf(vcode.u32, vc_new, sizeof vc_new);
 
 		g_warning("DHT node %s at %s changed vendor from %s to %s",
 			kuid_to_hex_string(kn->id),
@@ -214,6 +222,8 @@ knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 void
 knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT node %s at %s changed from v%u.%u to v%u.%u",
 			kuid_to_hex_string(kn->id),
@@ -234,8 +244,10 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
 	char vc_buf[VENDOR_CODE_BUFLEN];
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
-	vendor_code_to_string_buf(kn->vcode.be32, vc_buf, sizeof vc_buf);
+	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
 		"%s (%s v%u.%u) [%s]",
 		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id));
@@ -273,6 +285,7 @@ knode_to_string2(const knode_t *kn)
 static void
 knode_dispose(knode_t *kn)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kn->refcnt == 0);
 
 	kuid_atom_free(kn->id);
