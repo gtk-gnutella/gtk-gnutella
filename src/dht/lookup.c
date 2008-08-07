@@ -460,7 +460,7 @@ struct pmsg_info;
 struct rpc_info {
 	nlookup_t *nl;		/**< The node lookup structure for which we sent it */
 	guint32 lid;		/**< ID of the node lookup, to spot outdated replies */
-	guint8 hop;			/**< The hop count when we sent it */
+	guint32 hop;		/**< The hop count when we sent it */
 	struct pmsg_info *pmi;	/**< In case the RPC times out */
 };
 
@@ -635,6 +635,16 @@ lookup_completed(nlookup_t *nl)
 {
 	lookup_check(nl);
 
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		size_t path_len = patricia_count(nl->path);
+		knode_t *closest = patricia_closest(nl->path, nl->kuid);
+
+		g_message("DHT LOOKUP[%d] path holds %lu item%s, closest is %s",
+			nl->lid, (gulong) path_len,
+			1 == path_len ? "" : "s",
+			closest ? knode_to_string(closest) : "unknown");
+	}
+
 	if (LOOKUP_VALUE == nl->type)
 		lookup_value_not_found(nl);
 	else
@@ -757,6 +767,34 @@ deserialize_contact(bstr_t *bs)
 }
 
 /**
+ * Log lookup status when debugging.
+ */
+static void
+log_status(nlookup_t *nl)
+{
+	tm_t now;
+
+	lookup_check(nl);
+
+	tm_now_exact(&now);
+
+	g_message("DHT LOOKUP[%d] %s lookup status for %s at hop %u after %lf secs",
+		nl->lid, kuid_to_hex_string(nl->kuid),
+		lookup_type_to_string(nl->type), nl->hops,
+		tm_elapsed_f(&now, &nl->start));
+	g_message("DHT LOOKUP[%d] messages pending=%d, sent=%d, dropped=%d",
+		nl->lid, nl->msg_pending, nl->msg_sent, nl->msg_dropped);
+	g_message("DHT LOOKUP[%d] RPC "
+		"pending=%d (latest=%d), timeouts=%d, bad=%d, replies=%d",
+		nl->lid, nl->rpc_pending, nl->rpc_latest_pending, nl->rpc_timeouts,
+		nl->rpc_bad, nl->rpc_replies);
+	g_message("DHT LOOKUP[%d] B/W incoming=%d bytes, outgoing=%d bytes",
+		nl->lid, nl->bw_incoming, nl->bw_outgoing);
+	g_message("DHT LOOKUP[%d] current closest node: %s",
+		nl->lid, knode_to_string(nl->closest));
+}
+
+/**
  * Got a FIND_NODE RPC reply from node.
  *
  * @param nl		current lookup
@@ -779,6 +817,10 @@ lookup_handle_reply(
 	guint8 contacts;
 
 	lookup_check(nl);
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] handling reply from %s",
+			nl->lid, knode_to_string(kn));
 
 	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
 
@@ -877,14 +919,18 @@ lookup_handle_reply(
 		 * Add the contact to the shortlist.
 		 */
 
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			g_message("DHT LOOKUP[%d] adding contact #%d to shortlist: %s",
+				nl->lid, n, knode_to_string(cn));
+
 		lookup_shortlist_add(nl, cn);
 		knode_free(cn);
 		continue;
 
 	skip:
-		if (GNET_PROPERTY(dht_lookup_debug))
-			g_message("DHT LOOKUP[%d] ignoring contact #%d given by %s: %s",
-				nl->lid, n, knode_to_string(kn), msg);
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			g_message("DHT LOOKUP[%d] ignoring contact #%d: %s",
+				nl->lid, n, msg);
 
 		knode_free(cn);
 	}
@@ -957,8 +1003,12 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 	 * of the lookup object and the unique lookup ID.
 	 */
 
-	if (!lookup_is_alive(nl, pmi->lid))
+	if (!lookup_is_alive(nl, pmi->lid)) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 3)
+			g_message("DHT LOOKUP[%d] late UDP message %s",
+				pmi->lid, pmsg_was_sent(mb) ? "sending" : "dropping");
 		goto cleanup;
+	}
 
 	lookup_check(nl);
 
@@ -988,6 +1038,10 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 	} else {
 		knode_t *kn = pmi->kn;
 		guid_t *muid;
+
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] message at hop %u dropped by UDP queue",
+				nl->lid, pmi->rpi->hop);
 
 		/*
 		 * Message was not sent and dropped by the queue.
@@ -1067,12 +1121,25 @@ lookup_rpc_cb(
 	 * and the unique lookup ID.
 	 */
 
-	if (!lookup_is_alive(nl, rpi->lid))
+	if (!lookup_is_alive(nl, rpi->lid)) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 3)
+			g_message("DHT LOOKUP[%d] late RPC %s from %s",
+				rpi->lid, type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
+				knode_to_string(kn));
 		goto cleanup;
+	}
 
 	lookup_check(nl);
 
 	g_assert(nl->rpc_pending > 0);
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] at hop %u, handling RPC %s from hop %u",
+			nl->lid, nl->hops, type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
+			rpi->hop);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		log_status(nl);
 
 	if (rpi->hop == nl->hops) {
 		g_assert(nl->rpc_latest_pending > 0);
@@ -1184,9 +1251,17 @@ lookup_rpc_cb(
 		lookup_closest_ok(nl)
 	) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			g_message("DHT LOOKUP[%d] ending due to no improvement", nl->lid);
+			g_message("DHT LOOKUP[%d] %s due to no improvement",
+				nl->lid, 0 == nl->rpc_latest_pending ? "ending" : "waiting");
 
-		lookup_completed(nl);
+		/*
+		 * End only when we got all the replies from the latest hop, in case
+		 * we get improvements from the others.
+		 */
+
+		if (0 == nl->rpc_latest_pending)
+			lookup_completed(nl);
+
 		goto cleanup;
 	}
 
@@ -1203,8 +1278,12 @@ iterate_check:
 	 * Check whether we need to iterate to the next set of hosts.
 	 */
 
-	if (0 == nl->rpc_pending)
+	if (0 == nl->rpc_pending) {
 		lookup_iterate(nl);
+	} else {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] not iterating (pending RPC)", nl->lid);
+	}
 
 	/* FALL THROUGH */
 
@@ -1285,38 +1364,6 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
 }
 
 /**
- * Log lookup status when debugging.
- */
-static void
-log_status(nlookup_t *nl)
-{
-	tm_t now;
-
-	lookup_check(nl);
-
-	tm_now_exact(&now);
-
-	g_message("DHT LOOKUP[%d] %s lookup status for %s at hop %u after %lf secs",
-		nl->lid, kuid_to_hex_string(nl->kuid),
-		lookup_type_to_string(nl->type), nl->hops,
-		tm_elapsed_f(&now, &nl->start));
-	g_message("DHT LOOKUP[%d] messages pending=%d, sent=%d, dropped=%d",
-		nl->lid, nl->msg_pending, nl->msg_sent, nl->msg_dropped);
-	g_message("DHT LOOKUP[%d] RPC "
-		"pending=%d (latest=%d), timeouts=%d, bad=%d, replies=%d",
-		nl->lid, nl->rpc_pending, nl->rpc_latest_pending, nl->rpc_timeouts,
-		nl->rpc_bad, nl->rpc_replies);
-	g_message("DHT LOOKUP[%d] B/W incoming=%d bytes, outgoing=%d bytes",
-		nl->lid, nl->bw_incoming, nl->bw_outgoing);
-	g_message("DHT LOOKUP[%d] current closest node: %s",
-		nl->lid, knode_to_string(nl->closest));
-
-	log_patricia_dump(nl, nl->shortlist, "shortlist");
-	log_patricia_dump(nl, nl->path, "path");
-	log_patricia_dump(nl, nl->ball, "ball");
-}
-
-/**
  * Iterate the lookup, once we have determined we must send more probes.
  */
 static void
@@ -1333,8 +1380,17 @@ lookup_iterate(nlookup_t *nl)
 	nl->rpc_latest_pending = 0;
 	nl->prev_closest = nl->closest;
 
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] iterating to hop %u", nl->lid, nl->hops);
+
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		log_status(nl);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 4) {
+		log_patricia_dump(nl, nl->shortlist, "shortlist");
+		log_patricia_dump(nl, nl->path, "path");
+		log_patricia_dump(nl, nl->ball, "ball");
+	}
 
 	/*
 	 * Select the KDA_ALPHA closest nodes from the shortlist and send them
