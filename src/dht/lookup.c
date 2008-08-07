@@ -1402,6 +1402,12 @@ lookup_load_shortlist(nlookup_t *nl)
 
 	wfree(kvec, KDA_K * sizeof(knode_t *));
 
+	if (0 == contactable && GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] cancelling %s lookup for %s: "
+			"no contactable shortlist",
+			nl->lid, lookup_type_to_string(nl->type),
+			kuid_to_hex_string(nl->kuid));
+
 	return contactable > 0;		/* Proceed only if we have at least one node */
 }
 
