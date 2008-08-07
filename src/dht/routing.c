@@ -651,6 +651,9 @@ recursive_list_count(struct kbucket *kb, knode_status_t status)
 	if (kb->nodes)
 		return list_count(kb, status);
 
+	g_assert(kb->zero != NULL);
+	g_assert(kb->one != NULL);
+
 	return
 		recursive_list_count(kb->zero, status) +
 		recursive_list_count(kb->one, status);
@@ -844,10 +847,12 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 static inline struct kbucket *
 sibling_of(const struct kbucket *kb)
 {
-	if (!kb->parent)
+	struct kbucket *parent = kb->parent;
+
+	if (!parent)
 		return deconstify_gpointer(kb);		/* Root is its own sibling */
 
-	return (kb->parent->one == kb) ? kb->zero : kb->one;
+	return (parent->one == kb) ? parent->zero : parent->one;
 }
 
 /**
@@ -1731,6 +1736,8 @@ dht_update_size_estimate(void)
 	 */
 
 	our_sibling = sibling_of(our_kb);
+	g_assert(our_sibling != NULL);
+
 	count = recursive_list_count(our_sibling, KNODE_GOOD) +
 		recursive_list_count(our_sibling, KNODE_PENDING);
 
