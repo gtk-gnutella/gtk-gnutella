@@ -965,13 +965,14 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 {
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->all != NULL);
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
-#define ADD_KNODE(l)									\
-G_STMT_START {											\
-	hash_list_append(kb->nodes->l, kn);					\
-	g_hash_table_insert(kb->nodes->all, kn->id, kn);	\
-	c_class_update_count(kn, kb, +1);					\
+#define ADD_KNODE(l)										\
+G_STMT_START {												\
+	hash_list_append(kb->nodes->l, knode_refcnt_inc(kn));	\
+	g_hash_table_insert(kb->nodes->all, kn->id, kn);		\
+	c_class_update_count(kn, kb, +1);						\
 } G_STMT_END
 
 	/*
@@ -1055,6 +1056,8 @@ promote_pending_node(struct kbucket *kb)
 		iter = hash_list_iterator_tail(kb->nodes->pending);
 		while (hash_list_iter_has_previous(iter)) {
 			knode_t *kn = hash_list_iter_previous(iter);
+
+			g_assert(KNODE_MAGIC == kn->magic);
 
 			if (!(kn->flags & KNODE_F_SHUTDOWNING)) {
 				selected = kn;
@@ -1203,20 +1206,7 @@ dht_record_activity(knode_t *kn)
 	g_assert(is_leaf(kb));
 	hl = list_for(kb, kn->status);
 
-	/*
-	 * If the bucket has an "aliveness" checking configured, it is
-	 * in our closest subtree (or was not so long ago) and therefore we
-	 * will issue periodic pings to all the stale nodes, moving them back
-	 * to the good list when a proper pong is received.
-	 *
-	 * For other buckets, if the node is stale and there is room in the good
-	 * list, move it there.
-	 *
-	 * All other nodes are moved at the tail of their list to signal activity.
-	 */
-
 	if (
-		NULL == kb->nodes->aliveness &&
 		kn->status == KNODE_STALE &&
 		hash_list_length(kb->nodes->good) < K_BUCKET_GOOD
 	) {
@@ -1430,6 +1420,8 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
 
+		g_assert(KNODE_MAGIC == kn->magic);
+
 		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
 			break;		/* List is sorted: least recently seen at the head */
 
@@ -1444,6 +1436,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	iter = hash_list_iterator(kb->nodes->stale);
 	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
+
+		g_assert(KNODE_MAGIC == kn->magic);
+
 		if (knode_can_recontact(kn))
 			dht_rpc_ping(kn, NULL, NULL);
 	}
@@ -1815,6 +1810,8 @@ fill_closest_in_bucket(
 		for (l2 = nodes; l2; l2 = g_list_next(l2)) {
 			knode_t *kn = l2->data;
 
+			g_assert(KNODE_MAGIC == kn->magic);
+
 			if (kuid_eq(kn->id, exclude)) {
 				nodes = g_list_remove(nodes, kn);
 				available--;
@@ -1829,15 +1826,17 @@ fill_closest_in_bucket(
 		while (stale) {
 			knode_t *kn = stale->data;
 
+			g_assert(KNODE_MAGIC == kn->magic);
+
 			if (
-				knode_can_recontact(stale->data) &&
+				knode_can_recontact(kn) &&
 				(!exclude || !kuid_eq(kn->id, exclude))
 			) {
-				nodes = g_list_prepend(nodes, stale->data);
+				nodes = g_list_prepend(nodes, kn);
 				available++;
 			}
 
-			stale = g_list_remove(stale, stale->data);
+			stale = g_list_remove(stale, kn);
 		}
 	}
 
@@ -1847,6 +1846,8 @@ fill_closest_in_bucket(
 		while (pending) {
 			knode_t *kn = pending->data;
 
+			g_assert(KNODE_MAGIC == kn->magic);
+
 			if (
 				!(kn->flags & KNODE_F_SHUTDOWNING) &&
 				(!exclude || !kuid_eq(kn->id, exclude))
@@ -1855,7 +1856,7 @@ fill_closest_in_bucket(
 				available++;
 			}
 
-			pending = g_list_remove(pending, pending->data);
+			pending = g_list_remove(pending, kn);
 		}
 	}
 
@@ -2013,6 +2014,8 @@ dht_lookup_notify(const kuid_t *id)
 static void
 write_node(const knode_t *kn, FILE *f)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\nSEEN %s\nEND\n\n",
 		kuid_to_hex_string(kn->id),
 		vendor_code_to_string(kn->vcode.u32),
