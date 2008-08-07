@@ -170,6 +170,7 @@ static const kuid_t kuid_null;
 static void bucket_alive_check(cqueue_t *cq, gpointer obj);
 static void bucket_refresh(cqueue_t *cq, gpointer obj);
 static void dht_route_retrieve(void);
+static struct kbucket *dht_find_bucket(const kuid_t *id);
 
 /**
  * Get our KUID.
@@ -351,10 +352,39 @@ install_alive_check(struct kbucket *kb)
 static void
 install_bucket_refresh(struct kbucket *kb)
 {
+	time_delta_t elapsed;
+
 	g_assert(is_leaf(kb));
 
-	kb->nodes->refresh =
-		cq_insert(callout_queue, REFRESH_PERIOD_MS, bucket_refresh, kb);
+	/*
+	 * After a bucket split, each child inherits from its parent's last lookup
+	 * time.  We can therefore schedule the bucket refresh earlier if no
+	 * lookups were done recently.
+	 */
+
+	elapsed = delta_time(tm_time(), kb->nodes->last_lookup);
+
+	if (elapsed >= REFRESH_PERIOD)
+		kb->nodes->refresh = cq_insert(callout_queue, 1, bucket_refresh, kb);
+	else
+		kb->nodes->refresh =
+			cq_insert(callout_queue, REFRESH_PERIOD_MS - elapsed * 1000,
+			bucket_refresh, kb);
+}
+
+/**
+ * Recursively perform action on the bucket.
+ */
+static void
+recursively_apply(
+	struct kbucket *r, void (*f)(struct kbucket *kb, gpointer u), gpointer u)
+{
+	if (r == NULL)
+		return;
+
+	recursively_apply(r->one, f, u);
+	recursively_apply(r->zero, f, u);
+	(*f)(r, u);
 }
 
 /**
@@ -397,6 +427,82 @@ dht_allocate_new_kuid_if_needed(void)
 }
 
 /**
+ * Notification callback of bucket refreshes.
+ */
+static void
+bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+{
+	struct kbucket *kb = arg;
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
+		g_message("DHT bucket refresh with %s "
+			"for %s k-bucket %s (depth %d, %s ours) completed: %s",
+			kuid_to_hex_string(kuid),
+			is_leaf(kb) ? "leaf" : "split",
+			kuid_to_hex_string2(&kb->prefix), kb->depth,
+			kb->ours ? "is" : "not",
+			lookup_strerror(error));
+	}
+}
+
+/**
+ * Issue a bucket refresh.
+ */
+static void
+dht_bucket_refresh(struct kbucket *kb)
+{
+	kuid_t id;
+	int bits;
+	int i;
+
+	g_assert(is_leaf(kb));
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT initiating refresh of k-bucket %s (depth %d, %s ours)",
+			kuid_to_hex_string(&kb->prefix), kb->depth,
+			kb->ours ? "is" : "not");
+
+	/*
+	 * Generate a random KUID falling within this bucket's range.
+	 */
+
+	random_bytes(id.v, KUID_RAW_SIZE);
+	bits = kb->depth;
+
+	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
+		if (bits >= 8) {
+			id.v[i] = kb->prefix.v[i];
+		} else {
+			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
+			id.v[i] = (kb->prefix.v[i] & mask) | (id.v[i] & ~mask);
+		}
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT selected random KUID is %s", kuid_to_hex_string(&id));
+
+	g_assert(dht_find_bucket(&id) == kb);
+
+	/*
+	 * Launch refresh.
+	 */
+
+	(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
+}
+
+/**
+ * Issue a leaf bucket refresh.
+ */
+static void
+dht_leaf_bucket_refresh(struct kbucket *kb, gpointer unused_u)
+{
+	(void) unused_u;
+
+	if (is_leaf(kb))
+		dht_bucket_refresh(kb);
+}
+
+/**
  * Notification callback of lookup of our own ID during DHT bootstrapping.
  */
 static void
@@ -414,6 +520,13 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT was %s bootstrapped",
 			dht_bootstrapped() ? "successfully" : "not fully");
+
+	/*
+	 * To complete the bootstrap, we need to refresh all the buckets.
+	 */
+
+	if (dht_bootstrapped())
+		recursively_apply(root, dht_leaf_bucket_refresh, NULL);
 }
 
 /**
@@ -1317,13 +1430,14 @@ dht_record_activity(knode_t *kn)
 	kn->last_seen = tm_time();
 	kn->flags |= KNODE_F_ALIVE;
 
+	kb = dht_find_bucket(kn->id);
+	g_assert(is_leaf(kb));
+
 	if (kn->status == KNODE_UNKNOWN) {
 		g_assert(NULL == g_hash_table_lookup(kb->nodes->all, kn->id));
 		return;
 	}
 
-	kb = dht_find_bucket(kn->id);
-	g_assert(is_leaf(kb));
 	hl = list_for(kb, kn->status);
 
 	g_assert(NULL != g_hash_table_lookup(kb->nodes->all, kn->id));
@@ -1569,76 +1683,21 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 }
 
 /**
- * Notification callback of bucket refreshes.
- */
-static void
-bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
-{
-	struct kbucket *kb = arg;
-
-	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
-		g_message("DHT bucket refresh with %s "
-			"for %s k-bucket %s (depth %d, %s ours) completed: %s",
-			kuid_to_hex_string(kuid),
-			is_leaf(kb) ? "leaf" : "split",
-			kuid_to_hex_string2(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not",
-			lookup_strerror(error));
-	}
-}
-
-/**
  * Periodic bucket refresh.
  */
 static void
 bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 {
 	struct kbucket *kb = obj;
-	kuid_t id;
-	int bits;
-	int i;
-
-	(void) unused_cq;
 
 	g_assert(is_leaf(kb));
 
-	/*
-	 * Re-instantiate the periodic callback for next time.
-	 */
+	(void) unused_cq;
 
-	install_bucket_refresh(kb);
+	kb->nodes->refresh = NULL;
 
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initiating refresh of k-bucket %s (depth %d, %s ours)",
-			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not");
-
-	/*
-	 * Generate a random KUID falling within this bucket's range.
-	 */
-
-	random_bytes(id.v, KUID_RAW_SIZE);
-	bits = kb->depth;
-
-	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
-		if (bits >= 8) {
-			id.v[i] = kb->prefix.v[i];
-		} else {
-			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
-			id.v[i] = (kb->prefix.v[i] & mask) | (id.v[i] & ~mask);
-		}
-	}
-
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT selected random KUID is %s", kuid_to_hex_string(&id));
-
-	g_assert(dht_find_bucket(&id) == kb);
-
-	/*
-	 * Launch refresh.
-	 */
-
-	(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
+	dht_bucket_refresh(kb);
+	install_bucket_refresh(kb);		/* Re-instantiate for next time */
 }
 
 /**
@@ -2242,24 +2301,12 @@ dht_route_store_if_dirty(void)
  * Free bucket node.
  */
 static void
-dht_free_bucket(struct kbucket *kb)
+dht_free_bucket(struct kbucket *kb, gpointer unused_u)
 {
+	(void) unused_u;
+
 	free_node_lists(kb);
 	wfree(kb, sizeof *kb);
-}
-
-/**
- * Recursively free all the buckets under
- */
-static void
-recursively_free_bucket(struct kbucket *r)
-{
-	if (r == NULL)
-		return;
-
-	recursively_free_bucket(r->one);
-	recursively_free_bucket(r->zero);
-	dht_free_bucket(r);
 }
 
 /**
@@ -2291,7 +2338,7 @@ dht_route_close(void)
 	lookup_close();
 	dht_rpc_close();
 
-	recursively_free_bucket(root);
+	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
 	if (our_kuid) {
 		kuid_atom_free(our_kuid);
