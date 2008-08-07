@@ -1274,6 +1274,14 @@
 # Assigned to: David Posada, Toronto, Ontario, M6LMB7, CA
 #205.209.161.210
 
+
+# iWeb Dedicated CL2 IWEB-CL-T082-02SH (NET-67-205-103-128-1)
+# unrequested OOB results; EXE/ZIP; MLdonkey (fakes LIME)
+# $query + Web hottest videos personal player.exe
+# Download $query Faster with BitTorrent downloader.zip
+# Download $query securely with new Secured Browser.zip
+67.205.103.128/27
+
 # LimeWire (Cabos); (avi|mp3|mpg|rar|zip).exe; 13-60 MB
 211.3.131.216
 219.98.196.89
