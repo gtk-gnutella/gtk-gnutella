@@ -251,8 +251,6 @@ knode_refcnt_dec(gpointer knode, gpointer unused_data)
 static void
 free_node_hashlist(hash_list_t *hl)
 {
-	guint count;
-
 	g_assert(hl != NULL);
 
 	hash_list_foreach(hl, knode_refcnt_dec, NULL);
