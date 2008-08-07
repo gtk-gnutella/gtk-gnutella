@@ -385,6 +385,19 @@ lookup_free_value(lookup_val_t *val)
 }
 
 /**
+ * Log final statistics.
+ */
+static void
+log_final_stats(nlookup_t *nl)
+{
+	tm_now_exact(&nl->end);
+
+	g_message("DHT LOOKUP[%d] %lf secs, hops=%u, in=%d bytes, out=%d bytes",
+		nl->lid, tm_elapsed_f(&nl->end, &nl->start), nl->hops,
+		nl->bw_incoming, nl->bw_outgoing);
+}
+
+/**
  * Abort lookup with error.
  *
  * @param nl		the lookup to abort
@@ -398,6 +411,9 @@ lookup_abort(nlookup_t *nl, lookup_error_t error)
 		g_message("DHT LOOKUP[%d] aborting %s lookup for %s: %s",
 			nl->lid, lookup_type_to_string(nl->type),
 			kuid_to_hex_string(nl->kuid), lookup_strerror(error));
+
+	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
+		log_final_stats(nl);
 
 	if (nl->err)
 		(*nl->err)(nl->kuid, error, nl->arg);
@@ -547,6 +563,9 @@ lookup_terminate(nlookup_t *nl)
 			nl->lid, lookup_type_to_string(nl->type),
 			kuid_to_hex_string(nl->kuid));
 
+	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
+		log_final_stats(nl);
+
 	if (LOOKUP_NODE == nl->type) {
 		if (nl->u.fn.ok) {
 			lookup_rs_t *rs = lookup_create_results(nl);
@@ -573,6 +592,9 @@ lookup_value_found(nlookup_t *nl, const char *payload, size_t len)
 		g_message("DHT LOOKUP[%d] terminating %s lookup for %s",
 			nl->lid, lookup_type_to_string(nl->type),
 			kuid_to_hex_string(nl->kuid));
+
+	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
+		log_final_stats(nl);
 
 	/* XXX parse payload to extract value(s) */
 
@@ -1036,7 +1058,7 @@ lookup_rpc_cb(
 	struct rpc_info *rpi = arg;
 	nlookup_t *nl = rpi->nl;
 
-	lookup_check(nl);
+	(void) unused_n;
 
 	/*
 	 * It is possible that whilst the RPC was in transit, the lookup was
@@ -1048,7 +1070,7 @@ lookup_rpc_cb(
 	if (!lookup_is_alive(nl, rpi->lid))
 		goto cleanup;
 
-	(void) unused_n;
+	lookup_check(nl);
 
 	g_assert(nl->rpc_pending > 0);
 
