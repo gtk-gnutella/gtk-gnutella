@@ -1130,7 +1130,7 @@ enable_dht_changed(property_t prop)
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
-		dht_initialize();
+		dht_initialize(TRUE);
 	} else {
 		dht_route_close();
 	}

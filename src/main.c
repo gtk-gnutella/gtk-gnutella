@@ -1428,6 +1428,8 @@ main(int argc, char **argv)
 	(void) tm_time_exact();
 	bsched_enable_all();
 	version_ancient_warn();
+	if (dht_enabled())
+		dht_attempt_bootstrap();
 
 	if (running_topless) {
 		topless_main_run();

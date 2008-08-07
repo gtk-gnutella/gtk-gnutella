@@ -397,11 +397,60 @@ dht_allocate_new_kuid_if_needed(void)
 }
 
 /**
+ * Notification callback of lookup of our own ID during DHT bootstrapping.
+ */
+static void
+bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
+{
+	(void) unused_arg;
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT bootstrapping via our own ID %s completed: %s",
+			kuid_to_hex_string(kuid),
+			lookup_strerror(error));
+
+	bootstrapping = FALSE;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT was %s bootstrapped",
+			dht_bootstrapped() ? "successfully" : "not fully");
+}
+
+/**
+ * Attempt DHT bootstrapping.
+ */
+void
+dht_attempt_bootstrap(void)
+{
+	bootstrapping = TRUE;
+	
+	/*
+	 * Lookup our own ID, discarding results as all we want is the side
+	 * effect of filling up our routing table with the k-closest nodes
+	 * to our ID.
+	 */
+
+	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT bootstrapping impossible: routing table empty");
+
+		bootstrapping = FALSE;
+	}
+
+	/* XXX set DHT property status to "bootstrapping" -- red icon */
+	/* XXX "bootstrapping" and "dht_bootstrapped" should be GNET props */
+}
+
+/**
  * Runtime (re)-initialization of the DHT.
  */
 void
-dht_initialize(void)
+dht_initialize(gboolean post_init)
 {
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT initializing (%s init)",
+			post_init ? "post" : "first");
+
 	dht_allocate_new_kuid_if_needed();
 
 	/*
@@ -421,6 +470,9 @@ dht_initialize(void)
 	dht_route_retrieve();
 	dht_rpc_init();
 	lookup_init();
+
+	if (post_init)
+		dht_attempt_bootstrap();
 }
 
 /**
@@ -441,7 +493,7 @@ dht_route_init(void)
 		return;
 	}
 
-	dht_initialize();
+	dht_initialize(FALSE);		/* Do not attempt bootstrap yet */
 }
 
 /**
@@ -726,6 +778,27 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 }
 
 /**
+ * Assert consistent lists in bucket.
+ */
+static void
+check_leaf_bucket_consistency(struct kbucket *kb)
+{
+	guint total;
+	guint good;
+	guint stale;
+	guint pending;
+
+	g_assert(is_leaf(kb));
+
+	total = g_hash_table_size(kb->nodes->all);
+	good = hash_list_length(kb->nodes->good);
+	stale = hash_list_length(kb->nodes->stale);
+	pending = hash_list_length(kb->nodes->pending);
+
+	g_assert(good + stale + pending == total);
+}
+
+/**
  * Context for split_among()
  */
 struct node_balance {
@@ -747,11 +820,19 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 	struct kbucket *target;
 	hash_list_t *hl;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
+
+	if (GNET_PROPERTY(dht_debug) > 1)
+		g_message("DHT splitting %s to bucket \"%s\" (depth %d, %s ours)",
+			knode_to_string(kn), target == nb->one ? "one" : "zero",
+			target->depth, target->ours ? "is" : "not");
+
 	hl = list_for(target, kn->status);
 
 	g_assert(hash_list_length(hl) < list_maxsize_for(kn->status));
-		
+
 	hash_list_append(hl, knode_refcnt_inc(kn));
 	g_hash_table_insert(target->nodes->all, kn->id, kn);
 	c_class_update_count(kn, target, +1);
@@ -939,6 +1020,8 @@ dht_split_bucket(struct kbucket *kb)
 	g_assert(NULL == kb->nodes);	/* No longer a leaf node */
 	g_assert(kb->one);
 	g_assert(kb->zero);
+	check_leaf_bucket_consistency(kb->one);
+	check_leaf_bucket_consistency(kb->zero);
 
 	/*
 	 * Update statistics.
@@ -973,6 +1056,12 @@ G_STMT_START {												\
 	hash_list_append(kb->nodes->l, knode_refcnt_inc(kn));	\
 	g_hash_table_insert(kb->nodes->all, kn->id, kn);		\
 	c_class_update_count(kn, kb, +1);						\
+	if (GNET_PROPERTY(dht_debug) > 2)						\
+		g_message("DHT added %s node %s to k-bucket %s (depth %d, %s ours)", \
+			knode_status_to_string(kn->status),				\
+			knode_to_string(kn),							\
+			kuid_to_hex_string(&kb->prefix), kb->depth,		\
+			kb->ours ? "is" : "not");						\
 } G_STMT_END
 
 	/*
@@ -984,14 +1073,14 @@ G_STMT_START {												\
 		kn->status = KNODE_GOOD;
 		ADD_KNODE(good);
 		stats.good++;
-		return;
+		goto done;
 	}
 
 	/*
 	 * The bucket is full with good entries, split it first if possible.
 	 */
 
-	if (is_splitable(kb)) {
+	while (is_splitable(kb)) {
 		int byte;
 		guchar mask;
 
@@ -1004,7 +1093,7 @@ G_STMT_START {												\
 			kn->status = KNODE_GOOD;
 			ADD_KNODE(good);
 			stats.good++;
-			return;
+			goto done;
 		}
 	}
 
@@ -1025,6 +1114,9 @@ G_STMT_START {												\
 	}
 
 #undef ADD_KNODE
+
+done:
+	check_leaf_bucket_consistency(kb);
 }
 
 /**
@@ -1087,8 +1179,12 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	gboolean was_good;
 
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
+
+	if (NULL == g_hash_table_lookup(kb->nodes->all, kn->id))
+		goto done;
 
 	was_good = KNODE_GOOD == kn->status;
 	hl = list_for(kb, kn->status);
@@ -1100,10 +1196,20 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 		if (was_good)
 			promote_pending_node(kb);
+
+		if (GNET_PROPERTY(dht_debug) > 2)
+			g_message("DHT removed %s node %s from k-bucket %s "
+				"(depth %d, %s ours)",
+				knode_status_to_string(kn->status),
+				knode_to_string(kn),
+				kuid_to_hex_string(&kb->prefix), kb->depth,
+				kb->ours ? "is" : "not");
+
 		knode_free(kn);
-	} else {
-		g_assert(NULL == g_hash_table_lookup(kb->nodes->all, kn->id));
 	}
+
+done:
+	check_leaf_bucket_consistency(kb);
 }
 
 /**
@@ -1120,6 +1226,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	knode_status_t old;
 
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(new != KNODE_UNKNOWN);
 
 	if (kn->status == new)
@@ -1157,6 +1264,8 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		return;
 	}
 
+	g_assert(kn->status != KNODE_UNKNOWN);	/* Since it is in the table */
+
 	old = kn->status;
 	hl = list_for(kb, old);
 	hash_list_remove(hl, kn);
@@ -1184,8 +1293,9 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	if (old == KNODE_GOOD)
 		promote_pending_node(kb);
-}
 
+	check_leaf_bucket_consistency(kb);
+}
 
 /**
  * Record activity of a node stored in the k-bucket.
@@ -1196,15 +1306,22 @@ dht_record_activity(knode_t *kn)
 	hash_list_t *hl;
 	struct kbucket *kb;
 
+	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	kn->last_seen = tm_time();
 	kn->flags |= KNODE_F_ALIVE;
 
-	if (kn->status == KNODE_UNKNOWN)
+	if (kn->status == KNODE_UNKNOWN) {
+		g_assert(NULL == g_hash_table_lookup(kb->nodes->all, kn->id));
 		return;
+	}
 
 	kb = dht_find_bucket(kn->id);
 	g_assert(is_leaf(kb));
 	hl = list_for(kb, kn->status);
+
+	g_assert(NULL != g_hash_table_lookup(kb->nodes->all, kn->id));
 
 	if (
 		kn->status == KNODE_STALE &&
@@ -1228,6 +1345,7 @@ record_node(knode_t *kn, gboolean traffic)
 	struct kbucket *kb;
 
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	/*
 	 * Find bucket where the node will be stored.
@@ -2277,26 +2395,6 @@ dht_verify_node(knode_t *kn, knode_t *new)
 }
 
 /**
- * Notification callback of lookup of our own ID during DHT bootstrapping.
- */
-static void
-bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
-{
-	(void) unused_arg;
-
-	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT bootstrapping via our own ID %s completed: %s",
-			kuid_to_hex_string(kuid),
-			lookup_strerror(error));
-
-	bootstrapping = FALSE;
-
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT was %s bootstrapped",
-			dht_bootstrapped() ? "successfully" : "not fully");
-}
-
-/**
  * RPC callback for the bootstrapping PING.
  *
  * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
@@ -2332,23 +2430,7 @@ dht_bootstrap_cb(
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
-	bootstrapping = TRUE;
-	
-	/*
-	 * Lookup our own ID, discarding results as all we want is the side
-	 * effect of filling up our routing table with the k-closest nodes
-	 * to our ID.
-	 */
-
-	if (!lookup_find_node(our_kuid, NULL, bootstrap_status, NULL)) {
-		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT bootstrapping impossible: routing table empty");
-
-		bootstrapping = TRUE;
-	}
-
-	/* XXX set DHT property status to "bootstrapping" -- red icon */
-	/* XXX "bootstrapping" and "dht_bootstrapped" should be GNET props */
+	dht_attempt_bootstrap();
 }
 
 /**
@@ -2479,6 +2561,13 @@ dht_route_parse(FILE *f)
 	char line[1024];
 	guint line_no = 0;
 	gboolean done = FALSE;
+	/* Variables filled for each entry */
+	host_addr_t addr;
+	guint16 port;
+	kuid_t kuid;
+	vendor_code_t vcode = { 0 };
+	time_t seen;
+	guint32 major, minor;
 
 	g_return_if_fail(f);
 
@@ -2489,13 +2578,6 @@ dht_route_parse(FILE *f)
 		char *sp, *nl;
 		dht_route_tag_t tag;
 		gboolean damaged = FALSE;
-		/* Variables filled for each entry */
-		host_addr_t addr;
-		guint16 port;
-		kuid_t kuid;
-		vendor_code_t vcode = { 0 };
-		time_t seen;
-		guint32 major, minor;
 
 		line_no++;
 

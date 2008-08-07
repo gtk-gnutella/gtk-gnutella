@@ -81,7 +81,7 @@ kuid_t *get_our_kuid(void);
 gboolean dht_bootstrapped(void);
 gboolean dht_enabled(void);
 void dht_allocate_new_kuid_if_needed(void);
-void dht_initialize(void);
+void dht_initialize(gboolean post_init);
 
 void dht_route_init(void);
 void dht_route_close(void);
@@ -105,6 +105,7 @@ void dht_route_store_if_dirty(void);
 void dht_lookup_notify(const kuid_t *id);
 void dht_verify_node(knode_t *kn, knode_t *new);
 void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
+void dht_attempt_bootstrap(void);
 
 #endif /* _dht_routing_h_ */
 
