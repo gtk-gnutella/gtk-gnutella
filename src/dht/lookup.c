@@ -1135,7 +1135,7 @@ lookup_rpc_cb(
 	 * Update the closest node ever seen.
 	 */
 
-	{
+	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
 		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0)
