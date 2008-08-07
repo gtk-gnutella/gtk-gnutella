@@ -1342,6 +1342,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	struct kbucket *kb;
 	gboolean in_table;
 	knode_status_t old;
+	knode_t *tkn;
 
 	g_assert(kn);
 	g_assert(KNODE_MAGIC == kn->magic);
@@ -1356,13 +1357,14 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	g_assert(kb->nodes);
 	g_assert(kb->nodes->all);
 
-	in_table = NULL != g_hash_table_lookup(kb->nodes->all, kn->id);
+	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
+	in_table = NULL != tkn;
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT node %s at %s (%s in table) moving from %s to %s",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
-			in_table ? "is" : "not",
+			in_table ? (tkn == kn ? "is" : "copy") : "not",
 			knode_status_to_string(kn->status),
 			knode_status_to_string(new));
 
@@ -1377,19 +1379,42 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 * to possibly skip it if.
 	 */
 
-	if (!in_table) {
-		kn->status = new;
+	kn->status = new;
+
+	if (!in_table)
 		return;
+
+	/*
+	 * Due to the way nodes are inserted in the routing table (upon
+	 * incoming traffic reception), it is possible to have instances of
+	 * the node lying in lookups and a copy in the routing table.
+	 *
+	 * Update the status in both if they are pointing to the same location.
+	 * Otherwise it may be a case of KUID collision that we can't resolve
+	 * at this level.
+	 */
+
+	if (tkn != kn) {
+		if (!host_addr_equal(tkn->addr, kn->addr) || tkn->port != kn->port) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT collision on node %s (also at %s)",
+					knode_to_string(tkn),
+					host_addr_port_to_string(kn->addr, kn->port));
+
+			return;
+		}
 	}
 
-	g_assert(kn->status != KNODE_UNKNOWN);	/* Since it is in the table */
+	/*
+	 * Update the twin node held in the routing table.
+	 */
 
-	old = kn->status;
+	old = tkn->status;
 	hl = list_for(kb, old);
-	hash_list_remove(hl, kn);
+	hash_list_remove(hl, tkn);
 	list_update_stats(old, -1);
 
-	kn->status = new;
+	tkn->status = new;
 	hl = list_for(kb, new);
 	maxsize = list_maxsize_for(new);
 
@@ -1401,7 +1426,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		knode_free(removed);
 	}
 
-	hash_list_append(hl, kn);
+	hash_list_append(hl, tkn);
 	list_update_stats(new, +1);
 
 	/*
