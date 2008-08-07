@@ -255,11 +255,6 @@ free_node_hashlist(hash_list_t *hl)
 
 	g_assert(hl != NULL);
 
-	count = hash_list_length(hl);
-
-	if (count)
-		g_warning("DHT freeing hashlist with %u items at %s", count, _WHERE_);
-
 	hash_list_foreach(hl, knode_refcnt_dec, NULL);
 	hash_list_free(&hl);
 }
