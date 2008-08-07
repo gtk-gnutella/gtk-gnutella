@@ -1349,6 +1349,7 @@ static void
 dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 {
 	hash_list_t *hl;
+	knode_t *tkn;
 	gboolean was_good;
 
 	g_assert(kn);
@@ -1358,16 +1359,39 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 	check_leaf_bucket_consistency(kb);
 
-	if (NULL == g_hash_table_lookup(kb->nodes->all, kn->id))
+	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
+
+	if (NULL == tkn)
 		goto done;
 
-	was_good = KNODE_GOOD == kn->status;
-	hl = list_for(kb, kn->status);
+	/*
+	 * See dht_set_node_status() for comments about tkn and kn being
+	 * possible twins.
+	 */
 
-	if (hash_list_remove(hl, kn)) {
-		g_hash_table_remove(kb->nodes->all, kn->id);
-		list_update_stats(kn->status, -1);
-		c_class_update_count(kn, kb, -1);
+	if (tkn != kn) {
+		if (!host_addr_equal(tkn->addr, kn->addr) || tkn->port != kn->port) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT collision on node %s (also at %s)",
+					knode_to_string(tkn),
+					host_addr_port_to_string(kn->addr, kn->port));
+
+			return;
+		}
+	}
+
+	/*
+	 * From now on, only work on "tkn" which is known to be in the
+	 * routing table.
+	 */
+
+	was_good = KNODE_GOOD == tkn->status;
+	hl = list_for(kb, tkn->status);
+
+	if (hash_list_remove(hl, tkn)) {
+		g_hash_table_remove(kb->nodes->all, tkn->id);
+		list_update_stats(tkn->status, -1);
+		c_class_update_count(tkn, kb, -1);
 
 		if (was_good)
 			promote_pending_node(kb);
@@ -1375,12 +1399,12 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 		if (GNET_PROPERTY(dht_debug) > 2)
 			g_message("DHT removed %s node %s from k-bucket %s "
 				"(depth %d, %s ours)",
-				knode_status_to_string(kn->status),
-				knode_to_string(kn),
+				knode_status_to_string(tkn->status),
+				knode_to_string(tkn),
 				kuid_to_hex_string(&kb->prefix), kb->depth,
 				kb->ours ? "is" : "not");
 
-		knode_free(kn);
+		knode_free(tkn);
 	}
 
 done:
