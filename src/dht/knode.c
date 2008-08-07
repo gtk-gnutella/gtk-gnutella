@@ -216,9 +216,9 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s (%s v%u.%u) [%s] ref=%d",
+		"%s (%s v%u.%u) [%s] \"%s\", ref=%d",
 		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
-		kn->refcnt);
+		knode_status_to_string(kn->status), kn->refcnt);
 
 	return buf;
 }
