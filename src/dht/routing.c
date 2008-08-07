@@ -128,7 +128,7 @@ struct kbucket {
 	struct kbucket *one;		/**< Child node for "1" prefix */
 	struct kbnodes *nodes;		/**< Node information, in leaf k-buckets */
 	guchar depth;				/**< Depth in tree (meaningful bits) */
-	guchar split_depth;			/**< Depth at which we left the our space */
+	guchar split_depth;			/**< Depth at which we left our space */
 	gboolean ours;				/**< Whether our KUID falls in that bucket */
 };
 
@@ -1110,15 +1110,17 @@ dht_split_bucket(struct kbucket *kb)
 	g_assert(is_leaf(kb));
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT splitting k-bucket %s (depth %d, %s ours)",
+		g_message("DHT splitting k-bucket %s (depth %d, %s ours, %s subtree)",
 			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not");
+			kb->ours ? "is" : "not",
+			is_among_our_closest(kb) ? "closest" : "further");
 
 	one = walloc0(sizeof *one);
 	one->parent = kb;
 	kb->one = one;
 	one->prefix = kb->prefix;
 	one->depth = kb->depth + 1;
+	one->split_depth = kb->split_depth;
 	allocate_node_lists(one);
 	one->nodes->last_lookup = kb->nodes->last_lookup;
 
@@ -1127,6 +1129,7 @@ dht_split_bucket(struct kbucket *kb)
 	kb->zero = zero;
 	zero->prefix = kb->prefix;
 	zero->depth = kb->depth + 1;
+	zero->split_depth = kb->split_depth;
 	allocate_node_lists(zero);
 	zero->nodes->last_lookup = kb->nodes->last_lookup;
 
@@ -1147,17 +1150,20 @@ dht_split_bucket(struct kbucket *kb)
 	if (our_kuid->v[byte] & mask) {
 		if (kb->ours) {
 			one->ours = TRUE;
-			zero->split_depth = kb->depth + 1;
+			zero->split_depth = zero->depth;
 		}
 	} else {
 		if (kb->ours) {
 			zero->ours = TRUE;
-			one->split_depth = kb->depth + 1;
+			one->split_depth = one->depth;
 		}
 	}
 
 	if (GNET_PROPERTY(dht_debug) > 2) {
-		g_message("DHT split byte=%d mask=0x%x", byte, mask);
+		const char *tag;
+		tag = kb->split_depth ? "left our tree at" : "in our tree since";
+		g_message("DHT split byte=%d mask=0x%x, %s depth %d",
+			byte, mask, tag, kb->split_depth);
 		g_message("DHT split \"zero\" k-bucket is %s (depth %d, %s ours)",
 			kuid_to_hex_string(&zero->prefix), zero->depth,
 			zero->ours ? "is" : "not");
