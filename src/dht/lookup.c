@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "lookup.h"
 #include "kuid.h"
+#include "kmsg.h"
 #include "routing.h"
 #include "rpc.h"
 
@@ -88,6 +89,15 @@ typedef enum {
 } lookup_type_t;
 
 /**
+ * Parallelism modes.
+ */
+enum parallelism {
+	LOOKUP_STRICT = 1,			/**< Strict parallelism */
+	LOOKUP_BOUNDED,				/**< Bounded parallelism */
+	LOOKUP_LOOSE,				/**< Loose parallelism */
+};
+
+/**
  * A Kademlia node lookup.
  */
 struct nlookup {
@@ -112,6 +122,7 @@ struct nlookup {
 	lookup_cb_err_t err;		/**< Error callback */
 	gpointer arg;				/**< Common callback opaque argument */
 	lookup_type_t type;			/**< Type of lookup (NODE or VALUE) */
+	enum parallelism mode;		/**< Parallelism mode */
 	guint32 lid;				/**< Lookup ID (unique to this object) */
 	int initial_shortlist_cnt;	/**< Size of shortlist at the beginning */
 	int initial_contactable;	/**< Amount of contactable nodes initially */
@@ -179,6 +190,23 @@ lookup_type_to_string(lookup_type_t type)
 	case LOOKUP_VALUE:		what = "value"; break;
 	case LOOKUP_NODE:		what = "node"; break;
 	case LOOKUP_REFRESH:	what = "refresh"; break;
+	}
+
+	return what;
+}
+
+/**
+ * @return human-readable parallelism mode
+ */
+static const char *
+lookup_parallelism_mode_to_string(enum parallelism mode)
+{
+	const char *what = "unknown";
+
+	switch (mode) {
+	case LOOKUP_STRICT:		what = "strict"; break;
+	case LOOKUP_BOUNDED:	what = "bounded"; break;
+	case LOOKUP_LOOSE:		what = "loose"; break;
 	}
 
 	return what;
@@ -1035,13 +1063,19 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 		map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 		if (nl->udp_drops > 0)
 			nl->udp_drops--;
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 18)
+			g_message("DHT LOOKUP[%d] sent %s (%d bytes) to %s, RTT=%u",
+				nl->lid, kmsg_infostr(pmsg_start(mb)), 
+				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
 	} else {
 		knode_t *kn = pmi->kn;
 		guid_t *muid;
 
 		if (GNET_PROPERTY(dht_lookup_debug))
-			g_message("DHT LOOKUP[%d] message at hop %u dropped by UDP queue",
-				nl->lid, pmi->rpi->hop);
+			g_message("DHT LOOKUP[%d] message at hop %u to %s "
+				"dropped by UDP queue",
+				nl->lid, pmi->rpi->hop, knode_to_string(kn));
 
 		/*
 		 * Message was not sent and dropped by the queue.
@@ -1084,6 +1118,10 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 				lookup_abort(nl, LOOKUP_E_UDP_CLOGGED);
 			else
 				lookup_iterate(nl);
+		} else {
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message("DHT LOOKUP[%d] not iterating (has %d RPC%s pending)",
+					nl->lid, nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
 		}
 	}
 
@@ -1227,8 +1265,13 @@ lookup_rpc_cb(
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
-		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0)
+		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
 			nl->closest = closest;
+
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message("DHT LOOKUP[%d] new closest %s",
+					nl->lid, knode_to_string(closest));
+		}
 	}
 
 	/*
@@ -1268,9 +1311,30 @@ lookup_rpc_cb(
 	/*
 	 * Loose parallelism: iterate as soon as one of the "alpha" RPCs from
 	 * the previous hop has returned.
+	 *
+	 * Strict parallelism: iterate when all RPCs have come back.
+	 *
+	 * Bounded parallelism: make sure we have only "alpha" RPCs pending.
+	 *
+	 * From here we only distinguish between loose/bounded and strict.
+	 * It is up to lookup_iterate() to determine, in the case of bounded
+	 * parallelism, how many requests to send.
 	 */
 
-	lookup_iterate(nl);
+	switch (nl->mode) {
+	case LOOKUP_STRICT:
+		if (0 != nl->rpc_pending) {
+			g_message("DHT LOOKUP[%d] not iterating yet (strict parallelism)",
+				nl->lid);
+			break;
+		}
+		/* FALL THROUGH */
+	case LOOKUP_BOUNDED:
+	case LOOKUP_LOOSE:
+		lookup_iterate(nl);
+		break;
+	}
+
 	goto cleanup;
 
 iterate_check:
@@ -1373,15 +1437,34 @@ lookup_iterate(nlookup_t *nl)
 	GSList *to_remove = NULL;
 	GSList *sl;
 	int i = 0;
+	int alpha = KDA_ALPHA;
 
 	lookup_check(nl);
+
+	/*
+	 * Enforce bounded parallelism here.
+	 */
+
+	if (LOOKUP_BOUNDED == nl->mode) {
+		alpha -= nl->rpc_pending;
+
+		if (alpha <= 0) {
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message("DHT LOOKUP[%d] not iterating yet (%d RPC pending)",
+					nl->lid, nl->rpc_pending);
+			return;
+		}
+	}
 
 	nl->hops++;
 	nl->rpc_latest_pending = 0;
 	nl->prev_closest = nl->closest;
 
 	if (GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT LOOKUP[%d] iterating to hop %u", nl->lid, nl->hops);
+		g_message("DHT LOOKUP[%d] iterating to hop %u "
+			"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
+			nl->lid, nl->hops, lookup_parallelism_mode_to_string(nl->mode),
+			alpha, 1 == alpha ? "" : "s", nl->rpc_pending);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		log_status(nl);
@@ -1393,13 +1476,13 @@ lookup_iterate(nlookup_t *nl)
 	}
 
 	/*
-	 * Select the KDA_ALPHA closest nodes from the shortlist and send them
+	 * Select the alpha closest nodes from the shortlist and send them
 	 * the proper message (either FIND_NODE or FIND_VALUE).
 	 */
 
 	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
 
-	while (i < KDA_ALPHA && patricia_iter_has_next(iter)) {
+	while (i < alpha && patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
 
 		if (!knode_can_recontact(kn))
@@ -1429,6 +1512,11 @@ lookup_iterate(nlookup_t *nl)
 	/*
 	 * If we did not send anything, we're done with the lookup as there are
 	 * no more nodes to query.
+	 *
+	 * FIXME: check that shortlist is really empty: we could have stale nodes
+	 * still that cannot be recontacted yet.  Install waiting timer and resume,
+	 * taking care of the expiration time (waiting timer must fire before
+	 * expiration).
 	 */
 
 	if (0 == i) {
@@ -1564,6 +1652,7 @@ lookup_find_node(
 	nl = lookup_create(kuid, LOOKUP_NODE, error, arg);
 	nl->amount = KDA_K;
 	nl->u.fn.ok = ok;
+	nl->mode = LOOKUP_LOOSE;
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl, TRUE);
@@ -1602,6 +1691,7 @@ lookup_find_value(
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
 	nl->amount = 1;
 	nl->u.fv.ok = ok;
+	nl->mode = LOOKUP_STRICT;
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl, TRUE);
@@ -1633,6 +1723,7 @@ lookup_bucket_refresh(
 
 	nl = lookup_create(kuid, LOOKUP_REFRESH, done, arg);
 	nl->amount = KDA_K;
+	nl->mode = LOOKUP_BOUNDED;
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl, TRUE);
