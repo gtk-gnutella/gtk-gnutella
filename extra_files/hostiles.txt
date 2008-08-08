@@ -1097,9 +1097,11 @@
 #72.167.45.163
 # Fake Shareaza/2.2.5 with TLS; probably LimeWire
 # ranges belongs to ThePlanet.com; assigned to Jun Group
-75.125.180.176/28
-75.125.129.128/29
-75.125.129.152/29
+#75.125.180.176/28
+#75.125.129.128/29
+#75.125.129.152/29
+#75.125.63.144/28
+
 #174.133.206.152/29
 #174.133.206.170
 #174.133.211.10
@@ -1226,7 +1228,7 @@
 
 # LimeWire; zipped ASF; points to seonomad dot com which is registered
 # to Daniel Boyd; http://www.linkedin.com/in/dboyd
-75.125.12.112/28
+#75.125.12.112/28
 #74.55.29.150
 # Thousands of RARs containing Adware/Trojans; filenames have hyphen instead
 # of spaces or underscores; files point to seonomad
@@ -1335,6 +1337,7 @@
 208.53.128.0/18
 # ThePlanet.com Internet Services, Inc.; same as above applies
 74.52.0.0/14
+75.125.0.0/16
 # Peer 1 Network Inc.; same as above applies
 76.74.128.0/17
 # SoftLayer Technologies Inc.; see above
