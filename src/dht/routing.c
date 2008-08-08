@@ -158,10 +158,23 @@ struct other_size {
 	kuid_t size;				/**< Its own size estimate */
 };
 
+/**
+ * Bootstrapping steps
+ */
+enum bootsteps {
+	BOOT_NONE = 0,				/**< Not bootstrapped yet */
+	BOOT_SEEDED,				/**< Seeded with one address */
+	BOOT_OWN,					/**< Looking for own KUID */
+	BOOT_COMPLETING,			/**< Completing further bucket bootstraps */
+	BOOT_COMPLETED,				/**< Fully bootstrapped */
+};
+
+static gboolean bootstrapping;		/**< Whether we are bootstrapping */
+static enum bootsteps boot_status;	/**< Booting status */
+
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
 static kuid_t *our_kuid;			/**< Our own KUID (atom) */
 static struct kstats stats;			/**< Statistics on the routing table */
-static gboolean bootstrapping;		/**< Whether we are bootstrapping */
 
 static const gchar dht_route_file[] = "dht_nodes";
 static const gchar dht_route_what[] = "the DHT routing table";
@@ -467,10 +480,21 @@ static void
 dht_bucket_refresh(struct kbucket *kb)
 {
 	kuid_t id;
-	int bits;
-	int i;
 
 	g_assert(is_leaf(kb));
+
+	/*
+	 * If we are not completely bootstrapped, do not launch the refresh.
+	 */
+
+	if (boot_status != BOOT_COMPLETED) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT denying refresh of k-bucket %s (depth %d, %s ours)",
+				kuid_to_hex_string(&kb->prefix), kb->depth,
+				kb->ours ? "is" : "not");
+
+		return;
+	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT initiating refresh of k-bucket %s (depth %d, %s ours)",
@@ -481,17 +505,7 @@ dht_bucket_refresh(struct kbucket *kb)
 	 * Generate a random KUID falling within this bucket's range.
 	 */
 
-	random_bytes(id.v, KUID_RAW_SIZE);
-	bits = kb->depth;
-
-	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
-		if (bits >= 8) {
-			id.v[i] = kb->prefix.v[i];
-		} else {
-			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
-			id.v[i] = (kb->prefix.v[i] & mask) | (id.v[i] & ~mask);
-		}
-	}
+	kuid_random_within(&id, &kb->prefix, kb->depth);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT selected random KUID is %s", kuid_to_hex_string(&id));
@@ -506,15 +520,101 @@ dht_bucket_refresh(struct kbucket *kb)
 }
 
 /**
- * Issue a leaf bucket refresh.
+ * Structure used to control bootstrap completion.
+ */
+struct bootstrap {
+	kuid_t id;			/**< Random ID to look up */
+	kuid_t current;		/**< Current prefix */
+	int bits;			/**< Meaningful prefix, in bits */
+};
+
+static void bootstrap_completion_status(
+	const kuid_t *kuid, lookup_error_t error, gpointer arg);
+
+/**
+ * Iterative bootstrap step.
  */
 static void
-dht_leaf_bucket_refresh(struct kbucket *kb, gpointer unused_u)
+completion_iterate(struct bootstrap *b)
 {
-	(void) unused_u;
+	kuid_flip_nth_leading_bit(&b->current, b->bits - 1);
+	kuid_random_within(&b->id, &b->current, b->bits);
 
-	if (is_leaf(kb))
-		dht_bucket_refresh(kb);
+	if (!lookup_find_node(&b->id, NULL, bootstrap_completion_status, b)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT unable to complete bootstrapping");
+		
+		wfree(b, sizeof *b);
+		return;
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_warning("DHT completing bootstrap with KUID %s (%d leading bit%s)",
+			kuid_to_hex_string(&b->id), b->bits, 1 == b->bits ? "" : "s");
+}
+
+/**
+ * Notification callback of lookup of our own ID during DHT bootstrapping.
+ */
+static void
+bootstrap_completion_status(
+	const kuid_t *kuid, lookup_error_t error, gpointer arg)
+{
+	struct bootstrap *b = arg;
+
+	/*
+	 * XXX Handle disabling of DHT whilst we are busy looking.
+	 * XXX This applies to other lookup callbacks as well.
+	 */
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT bootstrap with ID %s (%d bit%s) done: %s",
+			kuid_to_hex_string(kuid), b->bits, 1 == b->bits ? "" : "s",
+			lookup_strerror(error));
+
+	/*
+	 * If we were looking for just one bit, we're done.
+	 */
+
+	if (1 == b->bits) {
+		wfree(b, sizeof *b);
+
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT now completely bootstrapped");
+
+		boot_status = BOOT_COMPLETED;
+		/* XXX set property */
+
+		return;
+	}
+
+	b->bits--;
+	completion_iterate(b);
+}
+
+/**
+ * Complete the bootstrapping of the routing table by requesting IDs
+ * futher and further away from ours.
+ *
+ * To avoid a sudden burst of activity, we're doing that iteratively, waiting
+ * for the previous lookup to complete before launching the next one.
+ */
+static void
+dht_complete_bootstrap(void)
+{
+	struct bootstrap *b;
+	struct kbucket *ours;
+
+	ours = dht_find_bucket(our_kuid);
+
+	g_assert(ours->depth);
+
+	b = walloc(sizeof *b);
+	b->current = ours->prefix;		/* Struct copy */
+	b->bits = ours->depth;
+
+	boot_status = BOOT_COMPLETING;
+	completion_iterate(b);
 }
 
 /**
@@ -537,23 +637,20 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 			dht_bootstrapped() ? "successfully" : "not fully");
 
 	/*
-	 * To complete the bootstrap, we need to refresh all the buckets we
-	 * have so far.
-	 *
-	 * XXX Actually we need to refresh all the k-buckets that precede ours,
-	 * XXX even if the initial lookups have not split them.  But this will
-	 * XXX be for later, the current code will do for now.
-	 *		--RAM, 2008-08-07
+	 * To complete the bootstrap, we need to get a better knowledge of all the
+	 * buckets futher away than ours.
 	 */
 
-	if (dht_bootstrapped()) {
-		recursively_apply(root, dht_leaf_bucket_refresh, NULL);
-	} else {
+	if (dht_bootstrapped())
+		dht_complete_bootstrap();
+	else {
 		kuid_t id;
 
+		random_bytes(id.v, KUID_RAW_SIZE);
+
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT continuing bootstrap with random KUID is %s",
-				kuid_to_hex_string(&id));
+			g_message("DHT improving bootstrap with random KUID is %s",
+			kuid_to_hex_string(&id));
 
 		bootstrapping =
 			NULL != lookup_find_node(&id, NULL, bootstrap_status, NULL);
@@ -567,7 +664,7 @@ void
 dht_attempt_bootstrap(void)
 {
 	bootstrapping = TRUE;
-	
+
 	/*
 	 * Lookup our own ID, discarding results as all we want is the side
 	 * effect of filling up our routing table with the k-closest nodes
@@ -581,8 +678,9 @@ dht_attempt_bootstrap(void)
 		bootstrapping = FALSE;
 	}
 
+	boot_status = BOOT_OWN;
+
 	/* XXX set DHT property status to "bootstrapping" -- red icon */
-	/* XXX "bootstrapping" and "dht_bootstrapped" should be GNET props */
 }
 
 /**
@@ -611,7 +709,15 @@ dht_initialize(gboolean post_init)
 	stats.leaves++;
 	stats.other_size = hash_list_new(other_size_hash, other_size_eq);
 
+	g_assert(0 == stats.good);
+
+	boot_status = BOOT_NONE;
+
 	dht_route_retrieve();
+
+	if (stats.good)
+		boot_status = BOOT_SEEDED;
+
 	dht_rpc_init();
 	lookup_init();
 
@@ -1795,7 +1901,13 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
-	install_bucket_refresh(kb);		/* Re-instantiate for next time */
+	/*
+	 * Re-instantiate for next time
+	 */
+
+	kb->nodes->last_lookup = tm_time();
+	install_bucket_refresh(kb);
+
 	dht_bucket_refresh(kb);
 }
 
@@ -2439,6 +2551,8 @@ dht_route_close(void)
 		hash_list_foreach(stats.other_size, other_size_free_cb, NULL);
 		hash_list_free(&stats.other_size);
 	}
+
+	memset(&stats, 0, sizeof stats);		/* Clear all stats */
 }
 
 /***
@@ -2609,6 +2723,7 @@ dht_bootstrap_cb(
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
 
+	boot_status = BOOT_SEEDED;
 	dht_attempt_bootstrap();
 }
 
