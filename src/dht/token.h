@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2006-2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,33 +23,38 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Security tokens.
+ *
+ * @author Raphael Manfredi
+ * @date 2006-2008
+ */
 
-SRC = \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	lookup.c \
-	routing.c \
-	rpc.c \
-	token.c
+#ifndef _dht_token_h_
+#define _dht_token_h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "common.h"
+#include "lib/host_addr.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+#define TOKEN_RAW_SIZE		4
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+typedef struct {
+	guchar v[TOKEN_RAW_SIZE];
+} token_t;
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+/*
+ * Public interface.
+ */
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+void token_init(void);
+void token_close(void);
 
+void token_generate(token_t *tok, host_addr_t addr, guint16 port);
+gboolean token_is_valid(const token_t *tok, host_addr_t addr, guint16 port);
+
+#endif /* _dht_token_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

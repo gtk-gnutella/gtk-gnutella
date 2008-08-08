@@ -86,7 +86,8 @@ SRC = \
 	kuid.c \
 	lookup.c \
 	routing.c \
-	rpc.c
+	rpc.c \
+	token.c
 
 OBJ = \
 	kmsg.o \
@@ -94,7 +95,8 @@ OBJ = \
 	kuid.o \
 	lookup.o \
 	routing.o \
-	rpc.o 
+	rpc.o \
+	token.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
