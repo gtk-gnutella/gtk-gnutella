@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "knode.h"
 #include "rpc.h"
 #include "lookup.h"
+#include "token.h"
 
 #include "core/settings.h"
 
@@ -731,6 +732,7 @@ dht_initialize(gboolean post_init)
 
 	dht_rpc_init();
 	lookup_init();
+	token_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -2559,6 +2561,7 @@ dht_route_close(void)
 
 	lookup_close();
 	dht_rpc_close();
+	token_close();
 
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;

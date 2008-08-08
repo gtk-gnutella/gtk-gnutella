@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "knode.h"
 #include "rpc.h"
 #include "routing.h"
+#include "token.h"
 
 #include "core/hosts.h"
 #include "core/hostiles.h"
@@ -334,6 +335,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 static void
 k_send_find_node_response(
 	struct gnutella_node *n,
+	const knode_t *kn,
 	knode_t **kvec, size_t klen, const guid_t *muid)
 {
 	pmsg_t *mb;
@@ -361,9 +363,20 @@ k_send_find_node_response(
 	/*
 	 * Write security token, which they will have to give us back
 	 * if they want to store something at our node.
+	 *
+	 * We don't use the addr/port from the gnutella_node in case they
+	 * are firewalled: the port could have changed the next time they
+	 * contact us, whereas addr/port given in the contact part of the
+	 * header should be stable.
 	 */
 
-	pmsg_write_u8(mb, 0);		/* XXX no security token yet */
+	{
+		token_t tok;
+
+		token_generate(&tok, kn->addr, kn->port);
+		pmsg_write_u8(mb, TOKEN_RAW_SIZE);
+		pmsg_write(mb, tok.v, TOKEN_RAW_SIZE);
+	}
 
 	/*
 	 * Write contact vector.
@@ -532,7 +545,8 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	g_assert(len == KUID_RAW_SIZE);
 
 	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
-	k_send_find_node_response(n, kvec, cnt, kademlia_header_get_muid(header));
+	k_send_find_node_response(n,
+		kn, kvec, cnt, kademlia_header_get_muid(header));
 }
 
 /**
