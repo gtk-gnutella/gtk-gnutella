@@ -191,6 +191,52 @@ kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits)
 }
 
 /**
+ * Generate a new random KUID that falls within the specified prefix.
+ *
+ * @param dest		where to write the generated KUID
+ * @param prefix	the KUID prefix to keep
+ * @param bits		amount of significant leading prefix bits
+ */
+void
+kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits)
+{
+	int i;
+
+	random_bytes(dest->v, KUID_RAW_SIZE);
+
+	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
+		if (bits >= 8) {
+			dest->v[i] = prefix->v[i];
+		} else {
+			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
+			dest->v[i] = (prefix->v[i] & mask) | (dest->v[i] & ~mask);
+		}
+	}
+}
+
+/**
+ * Flip the nth leading bit of a kuid, leaving others unchanged.
+ */
+void
+kuid_flip_nth_leading_bit(kuid_t *res, int n)
+{
+	int byte;
+	guchar mask;
+
+	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
+
+	byte = n >> 3;
+	mask = 0x80 >> (n & 0x7);
+
+	g_assert(byte >= 0 && byte < KUID_RAW_SIZE);
+
+	if (res->v[byte] & mask)
+		res->v[byte] &= ~mask;		/* Bit was set, clear it */
+	else
+		res->v[byte] |= mask;		/* Bit was cleared, set it */
+}
+
+/**
  * Convert a KUID to a base32 string.
  *
  * @return pointer to static data.
@@ -284,7 +330,7 @@ kuid_set_nth_bit(kuid_t *res, int n)
 	int byte;
 	guchar mask;
 
-	g_assert(n >=0 && n <= 159);
+	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
 	kuid_zero(res);
 

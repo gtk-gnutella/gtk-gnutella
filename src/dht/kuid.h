@@ -69,6 +69,8 @@ const gchar *kuid_to_string(const kuid_t *kuid);
 const gchar *kuid_to_hex_string(const kuid_t *kuid);
 const gchar *kuid_to_hex_string2(const kuid_t *kuid);
 gboolean kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits);
+void kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits);
+void kuid_flip_nth_leading_bit(kuid_t *res, int n);
 
 kuid_t *kuid_get_atom(const kuid_t *id);
 void kuid_atom_free(const kuid_t *k);
