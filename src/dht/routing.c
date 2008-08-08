@@ -2251,13 +2251,15 @@ dht_fill_closest(
 
 	for (/* empty */; kb->depth && kcnt; kb = kb->parent) {
 		struct kbucket *sibling = sibling_of(kb);
+		int more;
 
 		g_assert(sibling->parent == kb->parent);
 		g_assert(sibling != kb);
 
-		added = recursively_fill_closest_from(id, sibling, kvec, kcnt, exclude);
-		kvec += added;
-		kcnt -= added;
+		more = recursively_fill_closest_from(id, sibling, kvec, kcnt, exclude);
+		kvec += more;
+		kcnt -= more;
+		added += more;
 
 		g_assert(kcnt >= 0);
 	}
