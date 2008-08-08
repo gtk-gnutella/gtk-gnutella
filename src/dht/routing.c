@@ -2695,7 +2695,7 @@ dht_verify_node(knode_t *kn, knode_t *new)
 
 	kn->flags |= KNODE_F_VERIFYING;
 	av->old = knode_refcnt_inc(kn);
-	av->new = new;
+	av->new = knode_refcnt_inc(new);
 
 	/*
 	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification
