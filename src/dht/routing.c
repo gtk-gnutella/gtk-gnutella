@@ -1667,27 +1667,6 @@ dht_find_node(const gchar *kuid)
 }
 
 /**
- * Replace old node with new node entry in the DHT routing table.
- */
-static void
-dht_replace_node(knode_t *old, knode_t *new)
-{
-	struct kbucket *kb;
-
-	g_assert(old);
-	g_assert(new);
-	g_assert(old != new);
-	g_assert(kuid_eq(old->id, new->id));
-
-	kb = dht_find_bucket(old->id);
-
-	g_assert(kb);
-
-	dht_remove_node_from_bucket(old, kb);
-	dht_add_node_to_bucket(new, kb, TRUE);
-}
-
-/**
  * Remove node from the DHT routing table, if present.
  */
 void
@@ -2517,12 +2496,46 @@ dht_addr_verify_cb(
 		 * unless it is firewalled.
 		 */
 
-		if (av->new->flags & KNODE_F_FIREWALLED)
-			dht_remove_node(av->old);
-		else
-			dht_replace_node(av->old, av->new);
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT verification failed for node %s: %s",
+				knode_to_string(av->old),
+				type == DHT_RPC_TIMEOUT ?
+					"ping timed out" : "replied with a foreign KUID");
+
+		dht_remove_node(av->old);
+
+		if (!(av->new->flags & KNODE_F_FIREWALLED)) {
+			knode_t *tkn;
+
+			tkn = dht_find_node(av->new->id);
+
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT verification keeping new node %s",
+					knode_to_string(av->new));
+
+			if (NULL == tkn)
+				dht_add_node(av->new);
+			else if (
+				!host_addr_equal(tkn->addr, av->new->addr) ||
+				tkn->port != av->new->port
+			) {
+				if (GNET_PROPERTY(dht_debug))
+					g_warning(
+						"DHT verification collision on node %s (also at %s)",
+						knode_to_string(av->new),
+						host_addr_port_to_string(tkn->addr, tkn->port));
+			} else {
+				if (GNET_PROPERTY(dht_debug))
+					g_warning("DHT verification found existing new node %s",
+						knode_to_string(tkn));
+			}
+		}
 	} else {
 		av->old->flags &= ~KNODE_F_VERIFYING;	/* got reply from proper host */
+
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT verification OK, keeping old node %s",
+				knode_to_string(av->old));
 	}
 
 	knode_free(av->old);
