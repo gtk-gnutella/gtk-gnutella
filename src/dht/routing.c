@@ -1557,7 +1557,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),
 			in_table ? (tkn == kn ? "is" : "copy") : "not",
-			knode_status_to_string(kn->status),
+			knode_status_to_string(((tkn && tkn != kn) ? tkn : kn)->status),
 			knode_status_to_string(new));
 
 	/*
