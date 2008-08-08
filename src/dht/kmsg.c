@@ -531,7 +531,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	g_assert(len == KUID_RAW_SIZE);
 
-	cnt = dht_fill_closest(id, kvec, KDA_K, FALSE, kn->id);
+	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
 	k_send_find_node_response(n, kvec, cnt, kademlia_header_get_muid(header));
 }
 

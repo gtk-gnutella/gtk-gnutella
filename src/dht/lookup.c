@@ -1543,7 +1543,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	lookup_check(nl);
 
 	kvec = walloc(KDA_K * sizeof(knode_t *));
-	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, FALSE, NULL);
+	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL);
 
 	for (i = 0; i < kcnt; i++) {
 		knode_t *kn = kvec[i];

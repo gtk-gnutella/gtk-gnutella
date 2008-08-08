@@ -1837,7 +1837,7 @@ dht_update_size_estimate(void)
 	 *
 	 * However, until the root bucket is split, we really cannot say
 	 * whether there are only a few hosts or whether we have too recently
-	 * joined the hash table.
+	 * joined the DHT.
 	 */
 
 	STATIC_ASSERT(K_BUCKET_GOOD > 0);
@@ -2054,7 +2054,6 @@ distance_to(gconstpointer a, gconstpointer b, gpointer user_data)
  * @param kb		the bucket used
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
- * @param refcnt	whether entries in the vector should be ref-counted
  * @param exclude	the KUID to exclude (NULL if no exclusion)
  *
  * @return the amount of entries filled in the vector.
@@ -2062,7 +2061,7 @@ distance_to(gconstpointer a, gconstpointer b, gpointer user_data)
 static int
 fill_closest_in_bucket(
 	const kuid_t *id, struct kbucket *kb,
-	knode_t **kvec, int kcnt, gboolean refcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude)
 {
 	GList *nodes;
 	GList *l;
@@ -2151,7 +2150,7 @@ fill_closest_in_bucket(
 	nodes = g_list_sort_with_data(nodes, distance_to, deconstify_gpointer(id));
 
 	for (added = 0, l = nodes; l && kcnt; l = g_list_next(l)) {
-		*kvec++ = refcnt ? knode_refcnt_inc(l->data) : l->data;
+		*kvec++ = l->data;
 		kcnt--;
 		added++;
 	}
@@ -2170,7 +2169,6 @@ fill_closest_in_bucket(
  * @param kb		the bucket from which we recurse
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
- * @param refcnt	whether entries in the vector should be ref-counted
  * @param exclude	the KUID to exclude (NULL if no exclusion)
  *
  * @return the amount of entries filled in the vector.
@@ -2179,7 +2177,7 @@ static int
 recursively_fill_closest_from(
 	const kuid_t *id,
 	struct kbucket *kb,
-	knode_t **kvec, int kcnt, gboolean refcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude)
 {
 	int byte;
 	guchar mask;
@@ -2190,7 +2188,7 @@ recursively_fill_closest_from(
 	g_assert(kb);
 
 	if (is_leaf(kb))
-		return fill_closest_in_bucket(id, kb, kvec, kcnt, refcnt, exclude);
+		return fill_closest_in_bucket(id, kb, kvec, kcnt, exclude);
 
 	kuid_position(kb->depth, &byte, &mask);
 
@@ -2202,12 +2200,11 @@ recursively_fill_closest_from(
 		closest = kb->zero;
 	}
 
-	added = recursively_fill_closest_from(id, closest,
-		kvec, kcnt, refcnt, exclude);
+	added = recursively_fill_closest_from(id, closest, kvec, kcnt, exclude);
 
 	if (added < kcnt)
 		added += recursively_fill_closest_from(id, sibling_of(closest),
-			kvec + added, kcnt - added, refcnt, exclude);
+			kvec + added, kcnt - added, exclude);
 
 	return added;
 }
@@ -2216,15 +2213,9 @@ recursively_fill_closest_from(
  * Fill the supplied vector `kvec' whose size is `kcnt' with the knodes
  * that are the closest neighbours in the Kademlia space from a given KUID.
  *
- * If the caller will consume the returned nodes locally, it can set `refcnt'
- * to false to avoid any reference counting.  Otherwise, all the nodes returned
- * must be referenced to prevent them from being freed whilst used: indeed,
- * we return pointers to the nodes from the routing table, not copies.
- *
  * @param id		the KUID for which we're finding the closest neighbours
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
- * @param refcnt	whether entries in the vector should be ref-counted
  * @param exclude	the KUID to exclude (NULL if no exclusion)
  *
  * @return the amount of entries filled in the vector.
@@ -2232,7 +2223,7 @@ recursively_fill_closest_from(
 int
 dht_fill_closest(
 	const kuid_t *id,
-	knode_t **kvec, int kcnt, gboolean refcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude)
 {
 	struct kbucket *kb;
 	int added;
@@ -2246,7 +2237,7 @@ dht_fill_closest(
 	 */
 
 	kb = dht_find_bucket(id);
-	added = fill_closest_in_bucket(id, kb, kvec, kcnt, refcnt, exclude);
+	added = fill_closest_in_bucket(id, kb, kvec, kcnt, exclude);
 	kvec += added;
 	kcnt -= added;
 
@@ -2264,8 +2255,7 @@ dht_fill_closest(
 		g_assert(sibling->parent == kb->parent);
 		g_assert(sibling != kb);
 
-		added = recursively_fill_closest_from(
-			id, sibling, kvec, kcnt, refcnt, exclude);
+		added = recursively_fill_closest_from(id, sibling, kvec, kcnt, exclude);
 		kvec += added;
 		kcnt -= added;
 
