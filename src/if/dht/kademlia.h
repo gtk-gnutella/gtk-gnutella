@@ -78,6 +78,7 @@ enum kda_val {
 
 #define KDA_ALPHA		3		/**< degree of concurrency */
 #define KDA_K			20		/**< size of k-buckets */
+#define KDA_B			4		/**< extra depth for bucket splits */
 
 /*
  * Header flags (on 8 bits).

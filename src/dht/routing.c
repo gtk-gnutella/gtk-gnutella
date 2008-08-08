@@ -1651,7 +1651,7 @@ dht_add_node(knode_t *node)
  * @return the pointer to the found node, or NULL if not present.
  */
 knode_t *
-dht_find_node(const gchar *kuid)
+dht_find_node(const char *kuid)
 {
 	struct kbucket *kb;
 	kuid_t id;
@@ -2497,7 +2497,7 @@ dht_addr_verify_cb(
 		if (!(av->new->flags & KNODE_F_FIREWALLED)) {
 			knode_t *tkn;
 
-			tkn = dht_find_node(av->new->id);
+			tkn = dht_find_node((char *) av->new->id);
 
 			if (GNET_PROPERTY(dht_debug))
 				g_warning("DHT verification keeping new node %s",

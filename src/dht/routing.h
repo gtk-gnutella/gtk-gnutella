@@ -63,7 +63,7 @@
  * subdivided by b-1 levels, thereby increase the size of the routing table
  * but buying us a more rapid convergence in remote ID spaces.
  */
-#define K_BUCKET_SUBDIVIDE	5		/* Faster convergence => larger table */
+#define K_BUCKET_SUBDIVIDE	(KDA_B)	/* Faster convergence => larger table */
 
 /**
  * Maximum number of nodes from a class C network that can be in a k-bucket.
