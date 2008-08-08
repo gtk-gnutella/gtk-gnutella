@@ -99,7 +99,7 @@ RCSID("$Id$")
  * lookup is launched for that ID.
  */
 #define REFRESH_PERIOD			(60*60)		/* 1 hour */
-#define REFRESH_PERIOD_MS		(REFRESH_PERIOD * 1000)
+#define OUR_REFRESH_PERIOD		(15*60)		/* 15 minutes */
 
 /*
  * K-bucket node information, accessed through the "kbucket" structure.
@@ -369,9 +369,20 @@ install_alive_check(struct kbucket *kb)
 static void
 install_bucket_refresh(struct kbucket *kb)
 {
+	int period = REFRESH_PERIOD;
 	time_delta_t elapsed;
 
 	g_assert(is_leaf(kb));
+
+	/*
+	 * Our bucket must be refreshed more often, so that we always have a
+	 * complete view of our closest subtree.
+	 */
+
+	STATIC_ASSERT(OUR_REFRESH_PERIOD < REFRESH_PERIOD);
+
+	if (kb->ours)
+		period = OUR_REFRESH_PERIOD;
 
 	/*
 	 * After a bucket split, each child inherits from its parent's last lookup
@@ -381,10 +392,10 @@ install_bucket_refresh(struct kbucket *kb)
 
 	elapsed = delta_time(tm_time(), kb->nodes->last_lookup);
 
-	if (elapsed >= REFRESH_PERIOD)
+	if (elapsed >= period)
 		kb->nodes->refresh = cq_insert(callout_queue, 1, bucket_refresh, kb);
 	else {
-		int delay = REFRESH_PERIOD_MS - elapsed * 1000;
+		int delay = (period - elapsed) * 1000;
 		int adj;
 
 		/*
@@ -1239,11 +1250,6 @@ dht_split_bucket(struct kbucket *kb)
 	allocate_node_lists(zero);
 	zero->nodes->last_lookup = kb->nodes->last_lookup;
 
-	install_alive_check(kb->zero);
-	install_bucket_refresh(kb->zero);
-	install_alive_check(kb->one);
-	install_bucket_refresh(kb->one);
-
 	/*
 	 * See which one of our two children is within our tree.
 	 */
@@ -1264,6 +1270,16 @@ dht_split_bucket(struct kbucket *kb)
 			one->split_depth = one->depth;
 		}
 	}
+
+	/*
+	 * Install period timers for children once it is known which of the
+	 * buckets is becoming ours.
+	 */
+
+	install_alive_check(kb->zero);
+	install_bucket_refresh(kb->zero);
+	install_alive_check(kb->one);
+	install_bucket_refresh(kb->one);
 
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		const char *tag;
@@ -2386,13 +2402,16 @@ dht_fill_closest(
 void
 dht_lookup_notify(const kuid_t *id)
 {
+	int period;
 	struct kbucket *kb;
 
 	g_assert(id);
 
 	kb = dht_find_bucket(id);
 	kb->nodes->last_lookup = tm_time();
-	cq_resched(callout_queue, kb->nodes->refresh, REFRESH_PERIOD_MS);
+	period = kb->ours ? OUR_REFRESH_PERIOD : REFRESH_PERIOD;
+	
+	cq_resched(callout_queue, kb->nodes->refresh, period * 1000);
 }
 
 /**
