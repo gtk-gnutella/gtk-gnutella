@@ -1,0 +1,27 @@
+This version of sdbm merely has all the dbm_* names translated to sdbm_*
+so that we can link ndbm and sdbm into the same executable.  (It also has
+the bad() macro redefined to allow a zero-length key.)
+
+
+Fri Apr 15 10:15:30 EDT 1994.
+
+Additional portability/configuration changes for libsdbm by Andy Dougherty
+doughera@lafayette.edu.
+
+
+Mon Mar 22 03:24:47 PST 1999.
+
+sdbm_exists added to the library by Russ Allbery <rra@stanford.edu>.
+
+
+Fri Aug  8 18:29:39 CEST 2008
+
+Taken out of the Perl 5.10.0 distribution in /ext/SDBM_File/sdbm by
+Raphael Manfredi <Raphael_Manfredi@pobox.com> and slightly adapted
+for inclusion in gtk-gnutella.
+
+The file sdbm.h was heavily edited to remove perl-isms, and the sdbm.c
+file changed slightly to add gtk-gnutella-isms.
+
+The standalone C programs do not compile as-is but were left to keep the
+integrity of the original sdbm distribution.
