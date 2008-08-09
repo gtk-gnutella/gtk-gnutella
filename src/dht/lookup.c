@@ -1192,6 +1192,8 @@ lookup_rpc_cb(
 		goto iterate_check;
 	}
 
+	g_assert(NULL == rpi->pmi);		/* Since message has been sent */
+
 	/*
 	 * We got a reply from the remote node.
 	 * Ensure it is of the correct type.
@@ -1259,7 +1261,8 @@ lookup_rpc_cb(
 	}
 
 	/*
-	 * Update the closest node ever seen.
+	 * Update the closest node ever seen (not necessarily successfully
+	 * contacted).
 	 */
 
 	if (patricia_count(nl->shortlist)) {
