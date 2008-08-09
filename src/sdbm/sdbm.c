@@ -132,7 +132,7 @@ sdbm_prep(char *dirname, char *pagname, int flags, int mode)
 		}
 		(void) close(db->pagf);
 	}
-	wree((char *) db, sizeof *db);
+	wfree((char *) db, sizeof *db);
 	return (DBM *) NULL;
 }
 
