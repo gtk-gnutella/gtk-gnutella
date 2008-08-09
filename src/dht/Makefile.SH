@@ -81,6 +81,7 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	keys.c \
 	kmsg.c \
 	knode.c \
 	kuid.c \
@@ -90,6 +91,7 @@ SRC = \
 	token.c
 
 OBJ = \
+	keys.o \
 	kmsg.o \
 	knode.o \
 	kuid.o \

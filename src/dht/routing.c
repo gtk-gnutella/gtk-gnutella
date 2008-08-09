@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "rpc.h"
 #include "lookup.h"
 #include "token.h"
+#include "keys.h"
 
 #include "core/settings.h"
 
@@ -733,6 +734,7 @@ dht_initialize(gboolean post_init)
 	dht_rpc_init();
 	lookup_init();
 	token_init();
+	keys_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -2559,6 +2561,7 @@ dht_route_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	keys_close();
 	lookup_close();
 	dht_rpc_close();
 	token_close();

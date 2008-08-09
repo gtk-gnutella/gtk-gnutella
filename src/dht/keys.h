@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,34 +23,26 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * Local key management.
+ *
+ * @author Raphael Manfredi
+ * @date 2008
+ */
 
-SRC = \
-	keys.c \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	lookup.c \
-	routing.c \
-	rpc.c \
-	token.c
+#ifndef _dht_keys_h_
+#define _dht_keys h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+/*
+ * Public interface.
+ */
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+void keys_init(void);
+void keys_close(void);
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+#endif /* _dht_keys_h_ */
 
-IF = ../if
-GNET_PROPS = gnet_property.h
-
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
-
+/* vi: set ts=4 sw=4 cindent: */

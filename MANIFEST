@@ -448,6 +448,8 @@ src/core/whitelist.c
 src/core/whitelist.h
 src/dht/Jmakefile
 src/dht/Makefile.SH
+src/dht/keys.c
+src/dht/keys.h
 src/dht/kmsg.c
 src/dht/kmsg.h
 src/dht/knode.c
