@@ -482,56 +482,6 @@ node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
 }
 
 /**
- * Determine how many leading bits the two keys have in common.
- *
- * @param k1		the first key
- * @param k1bits	size of the first key in bits
- * @param k2		the second key
- * @param k2bits	size of the second key in bits
- *
- * @return the number of common leading bits, which is at most
- * min(k1bits, k2bits) if everything matches.
- */
-static size_t
-common_leading_bits(
-	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits)
-{
-	const guint8 *p1 = k1;
-	const guint8 *p2 = k2;
-	size_t cbits;			/* Total amount of bits to compare */
-	size_t bytes;			/* Amount of bytes to compare */
-	size_t bits;			/* Remaining bits in last byte */
-	size_t i;
-
-	g_assert(k1);
-	g_assert(k2);
-
-	cbits = MIN(k1bits, k2bits);
-
-	if (k1 == k2 || !cbits)
-		return cbits;
-
-	bytes = cbits >> 3;
-
-	for (i = 0; i < bytes; i++) {
-		guint8 diff = *p1++ ^ *p2++;
-		if (diff)
-			return i * 8 + 7 - highest_bit_set(diff);
-	}
-
-	bits = cbits & 0x7;
-
-	if (bits != 0) {
-		guint8 mask = ~((1 << (8 - bits)) - 1);
-		guint8 diff = (*p1 & mask) ^ (*p2 & mask);
-		if (diff)
-			return bytes * 8 + 7 - highest_bit_set(diff);
-	}
-
-	return cbits;		/* All the bits we compared matched */
-}
-
-/**
  * Determine whether two keys of equal size are equal.
  *
  * @param k1		the first key
