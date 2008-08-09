@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,13 +30,12 @@
  * Security tokens.
  *
  * @author Raphael Manfredi
- * @date 2006-2008
+ * @date 2008
  */
 
 #ifndef _dht_token_h_
 #define _dht_token_h_
 
-#include "common.h"
 #include "lib/host_addr.h"
 
 #define TOKEN_RAW_SIZE		4
