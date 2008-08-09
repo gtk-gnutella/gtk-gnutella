@@ -365,6 +365,8 @@ extern const gboolean gnet_property_variable_beautify_filenames;
 extern const gboolean gnet_property_variable_enable_dht;
 extern const guint32  gnet_property_variable_cq_debug;
 extern const guint32  gnet_property_variable_dht_lookup_debug;
+extern const guint32  gnet_property_variable_dht_storage_debug;
+extern const guint32  gnet_property_variable_dht_publish_debug;
 
 
 prop_set_t *gnet_prop_init(void);

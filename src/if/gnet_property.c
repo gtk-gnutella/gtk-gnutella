@@ -708,6 +708,10 @@ guint32  gnet_property_variable_cq_debug     = 0;
 static const guint32  gnet_property_variable_cq_debug_default = 0;
 guint32  gnet_property_variable_dht_lookup_debug     = 0;
 static const guint32  gnet_property_variable_dht_lookup_debug_default = 0;
+guint32  gnet_property_variable_dht_storage_debug     = 0;
+static const guint32  gnet_property_variable_dht_storage_debug_default = 0;
+guint32  gnet_property_variable_dht_publish_debug     = 0;
+static const guint32  gnet_property_variable_dht_publish_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -6787,6 +6791,46 @@ gnet_prop_init(void) {
     gnet_property->props[318].data.guint32.choices = NULL;
     gnet_property->props[318].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[318].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DHT_STORAGE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[319].name = "dht_storage_debug";
+    gnet_property->props[319].desc = _("Debug level for DHT key/value storage.");
+    gnet_property->props[319].ev_changed = event_new("dht_storage_debug_changed");
+    gnet_property->props[319].save = TRUE;
+    gnet_property->props[319].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[319].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[319].data.guint32.def   = (void *) &gnet_property_variable_dht_storage_debug_default;
+    gnet_property->props[319].data.guint32.value = (void *) &gnet_property_variable_dht_storage_debug;
+    gnet_property->props[319].data.guint32.choices = NULL;
+    gnet_property->props[319].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[319].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DHT_PUBLISH_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[320].name = "dht_publish_debug";
+    gnet_property->props[320].desc = _("Debug level for DHT key/value publishing.");
+    gnet_property->props[320].ev_changed = event_new("dht_publish_debug_changed");
+    gnet_property->props[320].save = TRUE;
+    gnet_property->props[320].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[320].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[320].data.guint32.def   = (void *) &gnet_property_variable_dht_publish_debug_default;
+    gnet_property->props[320].data.guint32.value = (void *) &gnet_property_variable_dht_publish_debug;
+    gnet_property->props[320].data.guint32.choices = NULL;
+    gnet_property->props[320].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[320].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

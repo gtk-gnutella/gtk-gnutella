@@ -3662,4 +3662,22 @@ prop = {
     };
 };
 
+prop = {
+    name = "dht_storage_debug";
+    desc = "Debug level for DHT key/value storage.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dht_publish_debug";
+    desc = "Debug level for DHT key/value publishing.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */
