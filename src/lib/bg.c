@@ -255,8 +255,8 @@ bg_task_suspend(struct bgtask *bt)
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
 		if (common_dbg > 4)
-			g_message("BGTASK \"%s\" total=%d msecs, elapsed=%lu, ticks=%d, "
-				"used=%d, tick_cost=%f usecs (was %f)",
+			g_message("BGTASK \"%s\" total=%d msecs, elapsed=%lu usecs, "
+				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
 				bt->name, bt->wtime, (gulong)elapsed, bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
 

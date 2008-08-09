@@ -473,6 +473,7 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct verify *ctx = data;
 	int i = ticks;
+	int used = 0;		/* Amount used for CPU-intensive tasks */
 
 	verify_check(ctx);
 	(void) ticks;
@@ -484,11 +485,22 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 		}
 		if (ctx->file) {
 			verify_update(ctx);
+			used++;
 		}
 		if (NULL == ctx->file && 0 == hash_list_length(ctx->files_to_hash))
 			break;
 	}
-	
+
+	/*
+	 * If we don't use all our ticks, we need to tell the scheduler
+	 * otherwise the average tick cost will be wrong and when we start
+	 * using all our ticks, the whole process could "freeze" during several
+	 * seconds, if not minutes!
+	 */
+
+	if (ticks != used)
+		bg_task_ticks_used(bt, used);
+
 	if (ctx->file || hash_list_length(ctx->files_to_hash) > 0) {
 		return BGR_MORE;
 	} else {
