@@ -49,16 +49,38 @@ RCSID("$Id$")
 
 #define TEA_ROUNDS		32
 #define TEA_CONSTANT	0x9e3779b9		/* A key schedule constant */
+#define TEA_BLOCK_SIZE	8
 
 /**
- * Squeeze a 64-bit TEA block to a 32-bit value.
+ * A TEA cipher block is 64-bit wide.
+ */
+typedef struct tea_block {
+	guchar v[TEA_BLOCK_SIZE];
+} tea_block_t;
+
+/**
+ * Squeeze buffer to a 32-bit value.
+ * Buffer length must be a multiple of 4.
  */
 guint32
-tea_squeeze_block_to_uint32(const tea_block_t *value)
+tea_squeeze(gpointer buf, size_t len)
 {
-	/* XOR the two 32-bit quantities together */
+	char *p;
+	size_t remain;
+	guint32 result = 0;
 
-	return peek_le32(&value->v[0]) ^ peek_le32(&value->v[4]);
+	g_assert(0 == (len & 0x03));		/* multiple of 4 bytes */
+
+	for (remain = len, p = buf; remain >= 4; remain -= 4, p += 4) {
+		guint32 val;
+
+		val = peek_le32(p);
+		result ^= val;
+	}
+
+	g_assert(0 == remain);
+
+	return result;
 }
 
 /**
@@ -68,8 +90,8 @@ tea_squeeze_block_to_uint32(const tea_block_t *value)
  * @param key	the encryption key
  * @param value	the value to encrypt
  */
-void
-tea_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
+static void
+t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
 	guint32 v0, v1, sum = 0;
 	int i;
@@ -101,8 +123,8 @@ tea_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
  * @param value	the value to decrypt
  *
  */
-void
-tea_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
+static void
+t_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
 	guint32 v0, v1, sum = 0xC6EF3720;
 	int i;
@@ -127,6 +149,70 @@ tea_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 }
 
 /**
+ * Perform buffer encryption or decryption.
+ */
+static void
+perform(
+	void (*op)(tea_block_t *, const tea_key_t *, const tea_block_t *),
+	const tea_key_t *key,
+	gpointer dest, gconstpointer buf, size_t len)
+{
+	size_t remain;
+	const char *in = buf;
+	char *out = dest;
+	size_t offset = 0;
+
+	g_assert(0 == (len & 0x07));		/* multiple of 8 bytes */
+
+	STATIC_ASSERT(0 == (TEA_BLOCK_SIZE & 0x07));
+
+	for (remain = len; remain >= TEA_BLOCK_SIZE; remain -= TEA_BLOCK_SIZE) {
+		tea_block_t *tin;
+		tea_block_t *tout;
+
+		tin = (tea_block_t *) &in[offset];
+		tout = (tea_block_t *) &out[offset];
+		offset += TEA_BLOCK_SIZE;
+
+		(*op)(tout, key, tin);
+	}
+
+	g_assert(0 == remain);
+}
+
+/**
+ * Encrypt buffer into destination using supplied key.
+ *
+ * @param key		the encryption key
+ * @param dest		detination buffer
+ * @param buf		input buffer
+ * @param len		length of both destination and input
+ *
+ * Length must be a multiple of 8 bytes.
+ */
+void tea_encrypt(const tea_key_t *key,
+	gpointer dest, gconstpointer buf, size_t len)
+{
+	perform(t_encrypt, key, dest, buf, len);
+}
+
+/**
+ * Decrupt buffer into destination.
+ *
+ * @param key		the decryption key
+ * @param dest		detination buffer
+ * @param buf		input buffer
+ * @param len		length of both destination and input
+ *
+ * Length must be a multiple of 8 bytes.
+ */
+void tea_decrypt(const tea_key_t *key,
+	gpointer dest, gconstpointer buf, size_t len)
+{
+	perform(t_decrypt, key, dest, buf, len);
+}
+
+/**
  * Test implementation.
  */
 void
@@ -137,6 +223,9 @@ tea_test(void)
 	tea_block_t encrypted;
 	tea_block_t decrypted;
 	int i;
+	char in[80];
+	char out[80];
+	char recovered[80];
 
 	STATIC_ASSERT(sizeof(key.v) == TEA_KEY_SIZE);
 	STATIC_ASSERT(sizeof(value.v) == TEA_BLOCK_SIZE);
@@ -149,7 +238,7 @@ tea_test(void)
 			random_bytes(key.v, TEA_KEY_SIZE);
 			random_bytes(value.v, TEA_BLOCK_SIZE);
 
-			tea_encrypt(&encrypted, &key, &value);
+			t_encrypt(&encrypted, &key, &value);
 			if (0 != memcmp(value.v, encrypted.v, TEA_BLOCK_SIZE)) {
 				randomized = TRUE;
 				break;
@@ -159,12 +248,23 @@ tea_test(void)
 		if (!randomized)
 			g_error("no luck with random numbers in tea_test()");
 
-		tea_decrypt(&decrypted, &key, &encrypted);
+		t_decrypt(&decrypted, &key, &encrypted);
 		if (0 != memcmp(value.v, decrypted.v, TEA_BLOCK_SIZE)) {
 			g_error("TEA implementation tests FAILED");
 			return;
 		}
 	}
+
+	STATIC_ASSERT(sizeof in == sizeof out);
+	STATIC_ASSERT(sizeof in == sizeof recovered);
+
+	random_bytes(key.v, TEA_KEY_SIZE);
+	random_bytes(in, sizeof in);
+	tea_encrypt(&key, out, in, sizeof in);
+	tea_decrypt(&key, recovered, out, sizeof out);
+
+	if (0 != memcmp(in, recovered, sizeof in))
+		g_error("TEA implementation tests FAILED");
 }
 
 /* vi: set ts=4 sw=4 cindent: */

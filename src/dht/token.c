@@ -88,11 +88,9 @@ token_is_valid(const token_t *tok, host_addr_t addr, guint16 port)
 void
 token_generate(token_t *tok, host_addr_t addr, guint16 port)
 {
-	tea_block_t block;			/* 8 bytes */
-	tea_block_t enc;
-	guchar *p = block.v;
-
-	STATIC_ASSERT(sizeof(enc.v) >= 8);
+	char block[8];
+	char enc[8];
+	char *p = block;
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
@@ -115,12 +113,13 @@ token_generate(token_t *tok, host_addr_t addr, guint16 port)
 	p = poke_be16(p, port);
 	p = poke_be16(p, 0);		/* Filler */
 
-	g_assert(p == &block.v[8]);
+	g_assert(p == &block[8]);
 
 	STATIC_ASSERT(sizeof(tok->v) == sizeof(guint32));
+	STATIC_ASSERT(sizeof(block) == sizeof(enc));
 
-	tea_encrypt(&enc, &keys[0], &block);
-	poke_be32(tok->v, peek_be32(&enc.v[0]) ^ peek_be32(&enc.v[4]));
+	tea_encrypt(&keys[0], enc, block, sizeof block);
+	poke_be32(tok->v, tea_squeeze(enc, sizeof enc));
 }
 
 /**

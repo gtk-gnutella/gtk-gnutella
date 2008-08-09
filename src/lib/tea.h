@@ -37,7 +37,6 @@
 #define _tea_h_
 
 #define TEA_KEY_SIZE	16
-#define TEA_BLOCK_SIZE	8
 
 /**
  * A TEA key is 128-bit wide.
@@ -49,20 +48,17 @@ typedef struct tea_key {
 	guchar v[TEA_KEY_SIZE];
 } tea_key_t;
 
-/**
- * A TEA cipher block is 64-bit wide.
- */
-typedef struct tea_block {
-	guchar v[TEA_BLOCK_SIZE];
-} tea_block_t;
-
 /*
  * Public interface.
  */
 
-guint32 tea_squeeze_block_to_uint32(const tea_block_t *value);
-void tea_encrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
-void tea_decrypt(tea_block_t *, const tea_key_t *, const tea_block_t *);
+guint32 tea_squeeze(gpointer buf, size_t len);
+
+void tea_encrypt(const tea_key_t *key,
+	gpointer dest, gconstpointer buf, size_t len);
+void tea_decrypt(const tea_key_t *key,
+	gpointer dest, gconstpointer buf, size_t len);
+
 void tea_test(void);
 
 #endif	/* _tea_h_ */
