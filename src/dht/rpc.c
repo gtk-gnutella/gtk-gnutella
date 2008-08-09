@@ -175,11 +175,29 @@ rpc_call_prepare(
 	enum dht_rpc_op op, knode_t *kn, int delay, guint32 flags,
 	dht_rpc_cb_t cb, gpointer arg)
 {
-	struct rpc_cb *rcb = walloc(sizeof *rcb);
+	int i;
+	struct rpc_cb *rcb;
 	gchar muid[GUID_RAW_SIZE];
 
-	guid_random_muid(muid);
+	/*
+	 * Generate a new random MUID for the RPC.
+	 */
 
+	for (i = 0; i < 100; i++) {
+		guid_random_muid(muid);
+
+		if (NULL == g_hash_table_lookup(pending, muid))
+			break;
+	}
+
+	if (100 == i)
+		g_error("bad luck with random number generator");
+
+	/*
+	 * Create and fill the RPC control block.
+	 */
+
+	rcb = walloc(sizeof *rcb);
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
 	rcb->flags = flags;
