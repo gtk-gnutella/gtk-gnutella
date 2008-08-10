@@ -37,7 +37,6 @@
 
 RCSID("$Id$")
 
-#include "pmsg.h"
 #include "hosts.h"				/* For host_ip() */
 #include "rx.h"
 #include "rx_chunk.h"
@@ -46,6 +45,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/misc.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 

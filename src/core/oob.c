@@ -42,7 +42,6 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "share.h"
 #include "guid.h"
-#include "pmsg.h"
 #include "mq.h"
 #include "mq_udp.h"
 #include "vmsg.h"
@@ -55,6 +54,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 

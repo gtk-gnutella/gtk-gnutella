@@ -38,7 +38,7 @@
 
 #include "common.h" 
 
-#include "pmsg.h"
+#include "lib/pmsg.h"
 #include "if/core/hosts.h"
 
 struct rxdriver;

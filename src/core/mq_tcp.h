@@ -39,7 +39,7 @@
 #include "common.h"
 
 #include "mq.h"
-#include "pmsg.h"
+#include "lib/pmsg.h"
 
 struct txdriver;
 

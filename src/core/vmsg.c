@@ -53,7 +53,6 @@ RCSID("$Id$")
 #include "mq_udp.h"
 #include "nodes.h"
 #include "oob.h"
-#include "pmsg.h"
 #include "routing.h"		/* For message_set_muid() */
 #include "search.h"
 #include "settings.h"		/* For listen_addr() */
@@ -73,6 +72,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/vendors.h"

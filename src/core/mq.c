@@ -39,12 +39,12 @@ RCSID("$Id$")
 
 #include "nodes.h"
 #include "mq.h"
-#include "pmsg.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
 
 #include "lib/cq.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"

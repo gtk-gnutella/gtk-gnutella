@@ -30,7 +30,6 @@ RCSID("$Id$")
 #include "shell.h"
 #include "cmd.h"
 
-#include "core/pmsg.h"
 #include "core/settings.h"
 #include "core/sockets.h"
 #include "core/version.h"
@@ -42,6 +41,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
 #include "lib/misc.h"
+#include "lib/pmsg.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
 #include "lib/tm.h"

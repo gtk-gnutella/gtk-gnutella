@@ -38,12 +38,12 @@
 RCSID("$Id$")
 
 #include "rxbuf.h"
-#include "pmsg.h"
 
 #include "if/gnet_property_priv.h"
 
 #include "lib/misc.h"
 #include "lib/palloc.h"
+#include "lib/pmsg.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /*

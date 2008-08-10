@@ -37,7 +37,7 @@
 #define _core_rxbuf_h_
 
 #include "common.h"
-#include "pmsg.h"
+#include "lib/pmsg.h"
 
 /*
  * Public interface

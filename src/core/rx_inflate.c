@@ -40,12 +40,12 @@ RCSID("$Id$")
 #include <zlib.h>
 
 #include "hosts.h"
-#include "pmsg.h"
 #include "rx.h"
 #include "rx_inflate.h"
 #include "rxbuf.h"
 
 #include "lib/walloc.h"
+#include "lib/pmsg.h"
 #include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */
 

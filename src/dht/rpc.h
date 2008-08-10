@@ -42,7 +42,7 @@
 #include "if/dht/kademlia.h"
 #include "if/core/guid.h"
 
-#include "core/pmsg.h"
+#include "lib/pmsg.h"
 
 #define DHT_RPC_MAXDELAY	30000	/* 30 secs max to get a reply */
 #define DHT_RPC_MINDELAY	5000	/* 5 secs min to get a reply */

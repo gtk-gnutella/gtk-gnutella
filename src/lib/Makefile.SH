@@ -98,6 +98,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dbm.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \
@@ -133,6 +134,7 @@ LSRC = \
 	palloc.c \
 	patricia.c \
 	pattern.c \
+	pmsg.c \
 	prop.c \
 	sha1.c \
 	slist.c \
@@ -169,6 +171,7 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	dbm.o \
 	dbus_util.o \
 	debug.o \
 	entropy.o \
@@ -204,6 +207,7 @@ LOBJ = \
 	palloc.o \
 	patricia.o \
 	pattern.o \
+	pmsg.o \
 	prop.o \
 	sha1.o \
 	slist.o \

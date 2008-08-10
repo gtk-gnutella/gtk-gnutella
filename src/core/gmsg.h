@@ -39,11 +39,11 @@
 #include "common.h"
 
 #include "gnutella.h"
-#include "pmsg.h"
 
 #include "if/core/search.h"
 
 #include "lib/endian.h"
+#include "lib/pmsg.h"
 
 struct gnutella_node;
 struct route_dest;

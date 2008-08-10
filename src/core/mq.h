@@ -39,10 +39,10 @@
 #include "common.h"
 
 #include "gnutella.h"
-#include "pmsg.h"
 #include "tx.h"
 
 #include "lib/cq.h"
+#include "lib/pmsg.h"
 #include "lib/slist.h"
 
 typedef struct mqueue mqueue_t;

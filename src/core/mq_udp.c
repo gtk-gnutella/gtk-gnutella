@@ -40,13 +40,13 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "mq.h"
 #include "mq_tcp.h"
-#include "pmsg.h"
 #include "gmsg.h"
 #include "tx.h"
 #include "gnet_stats.h"
 #include "hosts.h"
-#include "core/mq_udp.h"
+#include "mq_udp.h"
 
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"

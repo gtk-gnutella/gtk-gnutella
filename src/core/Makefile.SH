@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -69,7 +69,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -130,7 +130,6 @@ SRC = \
 	oob_proxy.c \
 	parq.c \
 	pcache.c \
-	pmsg.c \
 	pproxy.c \
 	qhit.c \
 	qrp.c \
@@ -218,7 +217,6 @@ OBJ = \
 	oob_proxy.o \
 	parq.o \
 	pcache.o \
-	pmsg.o \
 	pproxy.o \
 	qhit.o \
 	qrp.o \

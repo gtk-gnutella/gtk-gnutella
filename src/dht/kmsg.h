@@ -43,8 +43,7 @@
 #include "if/core/guid.h"
 #include "if/dht/kademlia.h"
 
-#include "core/pmsg.h"
-
+#include "lib/pmsg.h"
 #include "lib/host_addr.h"
 
 /*

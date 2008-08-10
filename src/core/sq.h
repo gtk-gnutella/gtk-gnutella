@@ -39,9 +39,9 @@
 #define _core_sq_h_
 
 #include "common.h"
-#include "pmsg.h"
 #include "qrp.h"
 
+#include "lib/pmsg.h"
 #include "if/core/search.h"
 
 /**

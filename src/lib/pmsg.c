@@ -38,10 +38,9 @@
 RCSID("$Id$")
 
 #include "pmsg.h"
-
-#include "lib/zalloc.h"
-#include "lib/walloc.h"
-#include "lib/override.h"			/* Must be the last header included */
+#include "zalloc.h"
+#include "walloc.h"
+#include "override.h"			/* Must be the last header included */
 
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((gulong) (a)) > 100L)

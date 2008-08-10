@@ -49,7 +49,6 @@
 RCSID("$Id$")
 
 #include "sq.h"					/* search_queue structures */
-#include "pmsg.h"
 #include "nodes.h"
 #include "search.h"
 #include "dq.h"
@@ -57,6 +56,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */

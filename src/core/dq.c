@@ -44,7 +44,6 @@ RCSID("$Id$")
 #include "dq.h"
 #include "mq.h"
 #include "gmsg.h"
-#include "pmsg.h"
 #include "gmsg.h"
 #include "nodes.h"
 #include "gnet_stats.h"
@@ -65,6 +64,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 

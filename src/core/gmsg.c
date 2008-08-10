@@ -40,7 +40,6 @@ RCSID("$Id$")
 #include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
 
 #include "gmsg.h"
-#include "pmsg.h"
 #include "nodes.h"
 #include "sq.h"
 #include "mq.h"
@@ -53,6 +52,7 @@ RCSID("$Id$")
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */

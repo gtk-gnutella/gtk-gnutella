@@ -48,7 +48,6 @@ RCSID("$Id$")
 #include "core/udp.h"
 #include "core/nodes.h"
 #include "core/guid.h"
-#include "core/pmsg.h"
 #include "core/sockets.h"
 #include "core/settings.h"
 
@@ -60,6 +59,7 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/pmsg.h"
 #include "lib/vendors.h"
 
 #include "lib/override.h"		/* Must be the last header included */

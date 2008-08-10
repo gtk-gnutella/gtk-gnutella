@@ -45,7 +45,6 @@ RCSID("$Id$")
 #include "bsched.h"
 #include "dime.h"
 #include "downloads.h"
-#include "pmsg.h"
 #include "rx_inflate.h"
 #include "thex.h"
 #include "thex_download.h"
@@ -54,6 +53,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/pmsg.h"
 #include "lib/tigertree.h"
 #include "lib/walloc.h"
 

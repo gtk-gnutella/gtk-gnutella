@@ -116,6 +116,15 @@ struct keyinfo {
 };
 
 /**
+ * Information about a key that is stored to disk and not kept in memory.
+ * The structure is serialized first, not written as-is.
+ */
+struct keydata {
+	guint8 values;				/**< Amount of values stored */
+	kuid_t keys[MAX_VALUES];	/**< Secondary keys */
+};
+
+/**
  * Table holding information about all the keys we're storing.
  */
 static GHashTable *keys;		/**< KUID => struct keyinfo */

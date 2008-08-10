@@ -38,7 +38,8 @@
 
 #include "common.h"
 
-#include "pmsg.h"
+#include "lib/pmsg.h"
+
 #include "qrp.h"
 #include "search.h"
 

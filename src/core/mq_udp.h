@@ -38,7 +38,7 @@
 
 #include "common.h"
 #include "mq.h"
-#include "pmsg.h"
+#include "lib/pmsg.h"
 #include "if/core/hosts.h"		/* For gnet_host_t */
 
 /*

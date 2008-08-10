@@ -39,7 +39,6 @@ RCSID("$Id$")
 
 #include "gnutella.h"
 #include "nodes.h"
-#include "pmsg.h"
 #include "udp.h"
 #include "sockets.h"
 
@@ -49,6 +48,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
+#include "lib/pmsg.h"
 #include "lib/inputevt.h"
 #include "lib/walloc.h"
 

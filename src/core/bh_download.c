@@ -39,13 +39,13 @@ RCSID("$Id$")
 
 #include "bh_download.h"
 #include "downloads.h"
-#include "pmsg.h"
 #include "bsched.h"
 #include "gnet_stats.h"
 #include "rx_inflate.h"
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 

@@ -33,13 +33,13 @@
  * @date 2002-2003
  */
 
-#ifndef _core_pmsg_h_
-#define _core_pmsg_h_
+#ifndef _pmsg_h_
+#define _pmsg_h_
 
 #include "common.h"
 
-#include "lib/endian.h"
-#include "lib/slist.h"
+#include "endian.h"
+#include "slist.h"
 
 /**
  * A data buffer, can be shared by several message blocks.
@@ -330,6 +330,6 @@ pmsg_write_le32(pmsg_t *mb, guint32 val)
 	mb->m_wptr = poke_le32(mb->m_wptr, val);
 }
 
-#endif	/* _core_pmsg_h_ */
+#endif	/* _pmsg_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -42,6 +42,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dbm.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \
@@ -77,6 +78,7 @@ LSRC = \
 	palloc.c \
 	patricia.c \
 	pattern.c \
+	pmsg.c \
 	prop.c \
 	sha1.c \
 	slist.c \

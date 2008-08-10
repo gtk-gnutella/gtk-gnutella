@@ -74,7 +74,6 @@ SRC = \
 	oob_proxy.c \
 	parq.c \
 	pcache.c \
-	pmsg.c \
 	pproxy.c \
 	qhit.c \
 	qrp.c \

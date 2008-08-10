@@ -46,7 +46,6 @@ RCSID("$Id$")
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
-#include "core/pmsg.h"
 #include "core/hosts.h"
 #include "core/hostiles.h"
 
@@ -56,6 +55,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
+#include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
