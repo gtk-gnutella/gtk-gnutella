@@ -164,6 +164,8 @@ zalloc(zone_t *zone)
 {
 	gchar **blk;		/**< Allocated block */
 
+	/* NB: this routine must be as fast as possible. No assertions */
+
 	/*
 	 * Grab first available free block and update free list pointer. If we
 	 * succeed in getting a block, we are done so return immediately.
@@ -478,6 +480,7 @@ zdestroy(zone_t *zone)
 	 * are gone.
 	 */
 
+	g_assert(zone);
 	g_assert(zone->zn_refcnt > 0);
 
 	if (zone->zn_refcnt-- > 1)
