@@ -64,9 +64,35 @@ struct bstr {
  * Internal operating flags start at bit 16.
  */
 
+#define BSTR_F_PRIVATE	0xffff0000	/**< Mask for private flags */
 #define BSTR_F_EOS		(1 << 16)	/**< End of stream reached */
+#define BSTR_F_PENDING	(1 << 17)	/**< Pending reset, stream invalid */
 
 static gboolean error_eos(bstr_t *bs, ssize_t expected, const gchar *where);
+
+/**
+ * Reset the stream.
+ */
+static void
+reset_stream(bstr_t *bs, gconstpointer arena, size_t len, guint32 flags)
+{
+	bs->ok = TRUE;
+	bs->flags = flags;
+	bs->rptr = deconstify_gpointer(arena);
+	bs->start = bs->rptr;
+	bs->end = bs->start + len;
+	bs->error = NULL;
+}
+
+/**
+ * Mark stream unusable.
+ */
+static void
+mark_unusable(bstr_t *bs)
+{
+	bs->ok = FALSE;
+	bs->flags |= BSTR_F_PENDING;
+}
 
 /**
  * Create a new memory stream to parse given arena
@@ -75,7 +101,8 @@ static gboolean error_eos(bstr_t *bs, ssize_t expected, const gchar *where);
  * @param len		total length of the arena to parse
  * @param flags		configuration flags
  *
- * @return a stream descriptor that must be freed with bstr_close().
+ * @return a stream descriptor that must be freed with bstr_destroy(), or
+ * which can be reused through bstr_close() and bstr_reset() at will.
  */
 bstr_t *
 bstr_open(gconstpointer arena, size_t len, guint32 flags)
@@ -83,19 +110,68 @@ bstr_open(gconstpointer arena, size_t len, guint32 flags)
 	bstr_t *bs;
 
 	g_assert(arena);
+	g_assert(0 == (flags & BSTR_F_PRIVATE));
 
 	bs = walloc(sizeof *bs);
-	bs->ok = TRUE;
-	bs->flags = flags;
-	bs->rptr = deconstify_gpointer(arena);
-	bs->start = bs->rptr;
-	bs->end = bs->start + len;
-	bs->error = NULL;
+	reset_stream(bs, arena, len, flags);
 
 	if (len == 0)
 		error_eos(bs, 0, "bstr_open");
 
 	return bs;
+}
+
+/**
+ * Reset an already used stream or something created through bstr_create()
+ * to use it on another arena, with possibly different operating flags.
+ *
+ * @param arena		the base of the memory arena
+ * @param len		total length of the arena to parse
+ * @param flags		configuration flags
+ */
+void
+bstr_reset(bstr_t *bs, gconstpointer arena, size_t len, guint32 flags)
+{
+	g_assert(arena);
+	g_assert(0 == (flags & BSTR_F_PRIVATE));
+
+	reset_stream(bs, arena, len, flags);
+
+	if (len == 0)
+		error_eos(bs, 0, "bstr_reset");
+}
+
+/**
+ * Create the stream, but make it unusable until a bstr_reset() has
+ * been done.
+ *
+ * @return a stream descriptor that must be freed with bstr_destroy(), or
+ * which can be reused through bstr_close() and bstr_reset() at will.
+ */
+bstr_t *
+bstr_create(void)
+{
+	bstr_t *bs;
+
+	bs = walloc0(sizeof *bs);
+	mark_unusable(bs);
+
+	return bs;
+}
+
+/**
+ * Close memory stream.
+ * Stream can then be freed by bstr_destroy() or reused via bstr_reset().
+ */
+void
+bstr_close(bstr_t *bs)
+{
+	if (bs->error) {
+		g_string_free(bs->error, TRUE);
+		bs->error = NULL;
+	}
+
+	mark_unusable(bs);
 }
 
 /**
@@ -117,6 +193,13 @@ void
 bstr_clear_error(bstr_t *bs)
 {
 	if (bs->ok)
+		return;
+
+	/*
+	 * Do not clear errors on a stream that is pending resetting.
+	 */
+
+	if (bs->flags & BSTR_F_PENDING)
 		return;
 
 	bs->ok = TRUE;
@@ -142,6 +225,8 @@ bstr_error(const bstr_t *bs)
 {
 	if (bs->ok)
 		return "";
+	else if (bs->flags & BSTR_F_PENDING)
+		return "stream waiting for a reset";
 	else if (bs->flags & BSTR_F_ERROR)
 		return bs->error->str;
 	else if (bs->flags & BSTR_F_EOS)

@@ -58,6 +58,9 @@ typedef struct bstr bstr_t;
  */
 
 bstr_t *bstr_open(gconstpointer arena, size_t len, guint32 flags);
+bstr_t *bstr_create(void);
+void bstr_close(bstr_t *bs);
+void bstr_reset(bstr_t *bs, gconstpointer arena, size_t len, guint32 flags);
 gboolean bstr_has_error(const bstr_t *bs);
 void bstr_clear_error(bstr_t *bs);
 void bstr_destroy(bstr_t *bs);
