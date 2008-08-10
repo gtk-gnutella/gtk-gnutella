@@ -106,6 +106,21 @@ pmsg_close(void)
 }
 
 /**
+ * Reset message block, discarding all the data buffered and restoring the
+ * state it had after creation.  Upon return, it can be used as if a brand
+ * new message block had been created.
+ */
+void
+pmsg_reset(pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+
+	mb->m_rptr = mb->m_wptr = mb->m_data->d_arena;	/* Empty buffer */
+	mb->m_prio &= ~PMSG_PF_SENT;				/* Clear "sent" indication */
+	mb->m_check = NULL;							/* Clear "pre-send" checks */
+}
+
+/**
  * Fill newly created message block.
  *
  * @return the message block given as argument.
