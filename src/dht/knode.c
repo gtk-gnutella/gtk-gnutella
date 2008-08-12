@@ -41,8 +41,10 @@ RCSID("$Id$")
 #include "kuid.h"
 
 #include "if/gnet_property_priv.h"
-
 #include "if/dht/kademlia.h"
+
+#include "core/hosts.h"
+#include "core/hostiles.h"
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
@@ -199,6 +201,23 @@ knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 
 	kn->major = major;
 	kn->minor = minor;
+}
+
+/**
+ * @return whether host can be kept as a valid contact
+ */
+gboolean
+knode_is_usable(const knode_t *kn)
+{
+	g_assert(KNODE_MAGIC == kn->magic);
+
+	if (!host_is_valid(kn->addr, kn->port))
+		return FALSE;
+
+	if (hostiles_check(kn->addr))
+		return FALSE;
+
+	return TRUE;
 }
 
 /**

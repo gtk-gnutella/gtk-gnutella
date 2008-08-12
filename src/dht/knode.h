@@ -109,6 +109,7 @@ void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
 const gchar *knode_to_string(const knode_t *kn);
 const gchar *knode_to_string2(const knode_t *kn);
 gboolean knode_can_recontact(const knode_t *kn);
+gboolean knode_is_usable(const knode_t *kn);
 
 /**
  * Add one reference to a Kademlia node.
