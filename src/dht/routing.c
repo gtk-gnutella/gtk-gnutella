@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include <math.h>
 
 #include "routing.h"
+#include "acct.h"
 #include "kuid.h"
 #include "knode.h"
 #include "rpc.h"
@@ -243,7 +244,7 @@ allocate_node_lists(struct kbucket *kb)
 	kb->nodes->good = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->pending = hash_list_new(knode_hash, knode_eq);
-	kb->nodes->c_class = g_hash_table_new(uint32_hash, uint32_eq);
+	kb->nodes->c_class = acct_net_create();
 	kb->nodes->last_lookup = 0;
 	kb->nodes->aliveness = NULL;
 }
@@ -270,20 +271,6 @@ free_node_hashlist(hash_list_t *hl)
 
 	hash_list_foreach(hl, knode_refcnt_dec, NULL);
 	hash_list_free(&hl);
-}
-
-/**
- * Hash table iterator callback
- */
-static void
-c_class_free_kv(gpointer key, gpointer unused_val, gpointer unused_x)
-{
-	const guint32 *net = key;
-
-	(void) unused_val;
-	(void) unused_x;
-
-	atom_uint32_free(net);
 }
 
 /**
@@ -319,11 +306,7 @@ free_node_lists(struct kbucket *kb)
 			g_hash_table_destroy(knodes->all);
 			knodes->all = NULL;
 		}
-		if (knodes->c_class != NULL) {
-			g_hash_table_foreach(knodes->c_class, c_class_free_kv, NULL);
-			g_hash_table_destroy(knodes->c_class);
-			knodes->c_class = NULL;
-		}
+		acct_net_free(&knodes->c_class);
 		cq_cancel(callout_queue, &knodes->aliveness);
 		cq_cancel(callout_queue, &knodes->refresh);
 		wfree(knodes, sizeof *knodes);
@@ -735,6 +718,7 @@ dht_initialize(gboolean post_init)
 	lookup_init();
 	token_init();
 	keys_init();
+	values_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -977,10 +961,8 @@ list_update_stats(knode_status_t status, int delta)
 static int
 c_class_get_count(knode_t *kn, struct kbucket *kb)
 {
-	guint32 net;
-	gpointer val;
-
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->c_class);
@@ -988,10 +970,7 @@ c_class_get_count(knode_t *kn, struct kbucket *kb)
 	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
 		return 0;
 
-	net = host_addr_ipv4(kn->addr) & C_MASK;
-	val = g_hash_table_lookup(kb->nodes->c_class, &net);
-
-	return GPOINTER_TO_INT(val);
+	return acct_net_get(kb->nodes->c_class, kn->addr, NET_CLASS_C_MASK);
 }
 
 /**
@@ -1005,13 +984,8 @@ c_class_get_count(knode_t *kn, struct kbucket *kb)
 static void
 c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 {
-	guint32 net;
-	gpointer key;
-	gpointer val;
-	gboolean found;
-	GHashTable *ht;
-
 	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->c_class);
@@ -1020,29 +994,7 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 	if (host_addr_net(kn->addr) != NET_TYPE_IPV4)
 		return;
 
-	ht = kb->nodes->c_class;
-	net = host_addr_ipv4(kn->addr) & C_MASK;
-	found = g_hash_table_lookup_extended(ht, &net, &key, &val);
-
-	if (found) {
-		int count = GPOINTER_TO_INT(val);
-		count += pmone;
-
-		g_assert(net == *(guint32 *) key);
-
-		if (count) {
-			g_assert(count > 0);
-			g_hash_table_insert(ht, key, GINT_TO_POINTER(count));
-		} else {
-			g_hash_table_remove(ht, key);
-			atom_uint32_free(key);
-		}
-	} else {
-		g_assert(pmone == 1);
-
-		key = (gpointer) atom_uint32_get(&net);
-		g_hash_table_insert(ht, key, GINT_TO_POINTER(1));
-	}
+	acct_net_update(kb->nodes->c_class, kn->addr, NET_CLASS_C_MASK, pmone);
 }
 
 /**
@@ -2561,6 +2513,7 @@ dht_route_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	values_close();
 	keys_close();
 	lookup_close();
 	dht_rpc_close();
