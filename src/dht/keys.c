@@ -38,7 +38,7 @@
  * This helps us determine whether we're the ideal target, a replica or a
  * cache node for a given key.
  *
- * This in turns governs how we republish things: we do it slightly "early" if
+ * This in turns governs how we replicate things: we do it slightly "early" if
  * we're the ideal target, to be the first among our k-closest.  And we try
  * to replicate what we think is cached information (outside our k-ball) a
  * little "late" (hoping that the legitimate replica of the key will do it
@@ -447,6 +447,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 			secondary_count, 1 == secondary_count ? "" : "s");
 
 	*loadptr = ki->request_load;
+	ki->requests++;
 
 	kd = get_keydata(id);
 	if (kd == NULL)				/* DB failure */
@@ -471,8 +472,9 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		g_assert(kuid_eq(v->id, id));
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT FETCH key %s via secondary key: %s",
-				kuid_to_hex_string(id), dht_value_to_string(v));
+			g_message("DHT FETCH key %s via secondary key %s has matching %s",
+				kuid_to_hex_string(id), kuid_to_hex_string2(secondary[i]),
+				dht_value_to_string(v));
 
 		*vvec++ = v;
 		vcnt--;
@@ -622,6 +624,20 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
 			(gulong) keys_count, 1 == keys_count ? "" : "s");
 	}
 
+}
+
+/**
+ * Is a key ID within the range of our k-ball?
+ */
+gboolean
+keys_within_kball(const kuid_t *id)
+{
+	size_t common_bits;
+
+	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
+			get_our_kuid(), KUID_RAW_BITSIZE);
+
+	return common_bits >= kball.furthest_bits;
 }
 
 /**

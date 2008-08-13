@@ -55,6 +55,7 @@ void keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey);
 int keys_get(const kuid_t *id, dht_value_type_t type,
 	kuid_t **secondary, int secondary_count, dht_value_t **valvec, int valcnt,
 	float *loadptr);
+gboolean keys_within_kball(const kuid_t *id);
 
 #endif /* _dht_keys_h_ */
 
