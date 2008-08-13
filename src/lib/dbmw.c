@@ -443,8 +443,9 @@ dbmw_write_nocache(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 {
 	g_assert(dw);
 	g_assert(key);
-	g_assert(value);
 	g_assert(length <= dw->value_size);
+	g_assert(length || value == NULL);
+	g_assert(length == 0 || value);
 
 	(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard any cached data */
 	write_immediately(dw, key, value, length);
@@ -465,8 +466,9 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 
 	g_assert(dw);
 	g_assert(key);
-	g_assert(value);
 	g_assert(length <= dw->value_size);
+	g_assert(length || value == NULL);
+	g_assert(length == 0 || value);
 
 	dw->w_access++;
 
