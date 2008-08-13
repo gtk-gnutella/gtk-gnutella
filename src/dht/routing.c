@@ -1823,6 +1823,8 @@ dht_remove_timeouting_node(knode_t *kn)
 void
 dht_node_timed_out(knode_t *kn)
 {
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
 		dht_remove_timeouting_node(kn);
 	else
@@ -2094,6 +2096,9 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 	struct other_size *os;
 	gconstpointer key;
 	struct other_size *data;
+
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(size);
 
 	os = walloc(sizeof *os);
 	os->id = kuid_get_atom(kn->id);
@@ -2601,6 +2606,8 @@ dht_addr_verify_cb(
 	(void) unused_payload;
 	(void) unused_len;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	if (type == DHT_RPC_TIMEOUT || !kuid_eq(av->old->id, kn->id)) {
 		/*
 		 * Timeout, or the host that we probed no longer bears the KUID
@@ -2668,6 +2675,8 @@ dht_verify_node(knode_t *kn, knode_t *new)
 {
 	struct addr_verify *av;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(KNODE_MAGIC == new->magic);
 	g_assert(new->refcnt == 1);
 	g_assert(new->status == KNODE_UNKNOWN);
 	g_assert(!(kn->flags & KNODE_F_VERIFYING));

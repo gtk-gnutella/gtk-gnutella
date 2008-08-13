@@ -117,6 +117,8 @@ rpc_delay(const knode_t *kn)
 {
 	int timeout = DHT_RPC_MINDELAY;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	/*
 	 * If we already have seen timeouts for this host, use additional
 	 * timeout of 256ms * 2^timeouts. As 256 = 2^8, this is 2^(timeouts+8).
@@ -178,6 +180,8 @@ rpc_call_prepare(
 	int i;
 	struct rpc_cb *rcb;
 	gchar muid[GUID_RAW_SIZE];
+
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	/*
 	 * Generate a new random MUID for the RPC.
@@ -257,6 +261,8 @@ dht_rpc_answer(const guid_t *muid,
 	struct rpc_cb *rcb;
 	tm_t now;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	rcb = g_hash_table_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
@@ -335,6 +341,8 @@ dht_rpc_ping_extended(knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg)
 {
 	const guid_t *muid;
 
+	g_assert(KNODE_MAGIC == kn->magic);
+
 	muid = rpc_call_prepare(DHT_RPC_PING, kn, rpc_delay(kn), flags, cb, arg);
 	kmsg_send_ping(kn, muid);
 }
@@ -368,6 +376,8 @@ dht_rpc_find_node(knode_t *kn, const kuid_t *id,
 	pmsg_free_t mfree, gpointer marg)
 {
 	const guid_t *muid;
+
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), 0, cb, arg);
 	kmsg_send_find_node(kn, id, muid, mfree, marg);
