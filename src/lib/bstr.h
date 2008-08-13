@@ -67,13 +67,17 @@ void bstr_destroy(bstr_t *bs);
 const char *bstr_error(const bstr_t *bs);
 
 size_t bstr_unread_size(const bstr_t *bs);
+gpointer bstr_read_base(const bstr_t *bs);
 gboolean bstr_skip(bstr_t *bs, size_t count);
 gboolean bstr_read(bstr_t *bs, void *buf, size_t count);
 gboolean bstr_read_u8(bstr_t *bs, guint8 *pv);
+gboolean bstr_read_boolean(bstr_t *bs, gboolean *pv);
 gboolean bstr_read_le16(bstr_t *bs, guint16 *pv);
 gboolean bstr_read_be16(bstr_t *bs, guint16 *pv);
 gboolean bstr_read_le32(bstr_t *bs, guint16 *pv);
 gboolean bstr_read_be32(bstr_t *bs, guint32 *pv);
+gboolean bstr_read_time(bstr_t *bs, time_t *pv);
+gboolean bstr_read_float_be(bstr_t *bs, float *pv);
 gboolean bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha);
 gboolean bstr_read_packed_array_u8(bstr_t *bs,
 	size_t max, gpointer ptr, guint8 *pr);

@@ -224,7 +224,7 @@ const char *
 bstr_error(const bstr_t *bs)
 {
 	if (bs->ok)
-		return "";
+		return "OK";
 	else if (bs->flags & BSTR_F_PENDING)
 		return "stream waiting for a reset";
 	else if (bs->flags & BSTR_F_ERROR)
@@ -331,6 +331,15 @@ bstr_unread_size(const bstr_t *bs)
 }
 
 /**
+ * @return current reading position.
+ */
+gpointer
+bstr_read_base(const bstr_t *bs)
+{
+	return bs->rptr;
+}
+
+/**
  * Skip specified amount of bytes.
  *
  * @param bs	the binary stream
@@ -387,6 +396,23 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
 		return FALSE;
 
 	*pv = *(guint8 *) bs->rptr++;
+	return TRUE;
+}
+
+/**
+ * Read a boolean.
+ *
+ * @param bs	the binary stream
+ * @param pv	where to write the value
+ *
+ * @return TRUE if OK.
+ */
+gboolean bstr_read_boolean(bstr_t *bs, gboolean *pv)
+{
+	if (!expect(bs, 1, "bstr_read_boolean"))
+		return FALSE;
+
+	*pv = *(guint8 *) bs->rptr++ ? TRUE : FALSE;
 	return TRUE;
 }
 
@@ -463,6 +489,61 @@ bstr_read_be32(bstr_t *bs, guint32 *pv)
 
 	*pv = peek_be32(bs->rptr);
 	bs->rptr += 4;
+	return TRUE;
+}
+
+/**
+ * Read time.
+ *
+ * @param bs	the binary stream
+ * @param pv	where to write the value
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read_time(bstr_t *bs, time_t *pv)
+{
+	if (!expect(bs, 4, "bstr_read_time"))
+		return FALSE;
+
+	*pv = (time_t) peek_be32(bs->rptr);
+	bs->rptr += 4;
+	return TRUE;
+}
+
+/**
+ * Read big-endian float.
+ *
+ * @param bs	the binary stream
+ * @param pv	where to write the value
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read_float_be(bstr_t *bs, float *pv)
+{
+	if (!expect(bs, 4, "bstr_read_float"))
+		return FALSE;
+
+	STATIC_ASSERT(sizeof(float) == 4);
+
+	/* XXX needs metaconfig check */
+	/* XXX assumes integer byte order is float byte order (true on i386) */
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(pv, bs->rptr, 4);
+	bs->rptr += 4;
+#else
+	{
+		guint8 tmp[4];
+
+		tmp[3] = *(guint8 *) bs->rptr++;
+		tmp[2] = *(guint8 *) bs->rptr++;
+		tmp[1] = *(guint8 *) bs->rptr++;
+		tmp[0] = *(guint8 *) bs->rptr++;
+		memcpy(pv, tmp, 4);
+	}
+#endif
+
 	return TRUE;
 }
 
