@@ -1368,7 +1368,7 @@ void kmsg_received(
 	 * Check contact's address, if host not flagged as "firewalled".
 	 */
 
-	if (!(flags & KNODE_F_FIREWALLED)) {
+	if (!(flags & KDA_MSG_F_FIREWALLED)) {
 		if (!host_is_valid(kaddr, kport)) {
 			if (GNET_PROPERTY(dht_debug))
 				g_warning("DHT bad contact address %s (%s v%u.%u), "
@@ -1376,7 +1376,7 @@ void kmsg_received(
 					host_addr_port_to_string(kaddr, kport),
 					vendor_code_to_string(vcode.u32), kmajor, kminor);
 
-			flags |= KNODE_F_FIREWALLED;
+			flags |= KDA_MSG_F_FIREWALLED;
 		}
 	}
 
