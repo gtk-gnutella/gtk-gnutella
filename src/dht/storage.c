@@ -63,7 +63,8 @@ static const char * const store_errstr[] = {
 	"Analyzed value did not validate",		/**< STORE_SC_BAD_VALUE */
 	"Improper value type",					/**< STORE_SC_BAD_TYPE */
 	"Storage quota for creator reached",	/**< STORE_SC_QUOTA */
-	"Republished data is different",		/**< STORE_SC_DATA_MISMATCH */
+	"Replicated data is different",			/**< STORE_SC_DATA_MISMATCH */
+	"Invalid security token",				/**< STORE_SC_BAD_TOKEN */
 };
 
 /**
