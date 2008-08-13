@@ -446,6 +446,8 @@ src/core/whitelist.c
 src/core/whitelist.h
 src/dht/Jmakefile
 src/dht/Makefile.SH
+src/dht/acct.c
+src/dht/acct.h
 src/dht/keys.c
 src/dht/keys.h
 src/dht/kmsg.c
@@ -462,6 +464,10 @@ src/dht/rpc.c
 src/dht/rpc.h
 src/dht/token.c
 src/dht/token.h
+src/dht/values.c
+src/dht/values.h
+src/dht/storage.c
+src/dht/storage.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH
@@ -543,6 +549,10 @@ src/lib/crash.c
 src/lib/crash.h
 src/lib/crc.c
 src/lib/crc.h
+src/lib/dbmap.c
+src/lib/dbmap.h
+src/lib/dbmw.c
+src/lib/dbmw.h
 src/lib/dbus_util.c
 src/lib/dbus_util.h
 src/lib/debug.c

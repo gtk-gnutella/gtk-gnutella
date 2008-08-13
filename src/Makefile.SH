@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -83,7 +83,7 @@ XML2_CFLAGS =  $xmlcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -138,7 +138,7 @@ undef)
 	;;
 esac
 $spitshell >>Makefile <<'!NO!SUBS!'
-	-ldht -lcore -Llib -lshared \
+	-ldht -lcore -Llib -lshared -Lsdbm -lsdbm -lshared \
 	$(GTK_LDFLAGS) $(XML2_LDFLAGS) $(DBUS_LDFLAGS) $(GNUTLS_LDFLAGS) \
 	$(SOCKER_LDFLAGS)
 
@@ -171,6 +171,13 @@ dht/libdht.a: .FORCE
 	@echo "Continuing in $(CURRENT)..."
 
 gtk-gnutella:  dht/libdht.a
+
+sdbm/libsdbm.a: .FORCE
+	@echo "Checking "libsdbm.a" in "sdbm"..."
+	cd sdbm; $(MAKE) libsdbm.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  sdbm/libsdbm.a
 !NO!SUBS!
 case "$d_headless" in
 undef)
