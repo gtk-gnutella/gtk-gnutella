@@ -28,6 +28,7 @@
 ;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	acct.c \
 	keys.c \
 	kmsg.c \
 	knode.c \
@@ -35,7 +36,9 @@ SRC = \
 	lookup.c \
 	routing.c \
 	rpc.c \
-	token.c
+	token.c \
+	values.c \
+	storage.c
 
 OBJ = \
 |expand f!$(SRC)!

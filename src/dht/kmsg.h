@@ -43,6 +43,7 @@
 #include "if/core/guid.h"
 #include "if/dht/kademlia.h"
 
+#include "lib/bstr.h"
 #include "lib/pmsg.h"
 #include "lib/host_addr.h"
 
@@ -60,6 +61,8 @@ void kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
 
 const char *kmsg_infostr(gconstpointer msg);
 const char *kmsg_name(guint function);
+
+knode_t *kmsg_deserialize_contact(bstr_t *bs);
 
 /*
  * Inlined routines.

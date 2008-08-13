@@ -42,6 +42,8 @@ RCSID("$Id$")
 #include "rpc.h"
 #include "routing.h"
 #include "token.h"
+#include "keys.h"
+#include "values.h"
 
 #include "core/hosts.h"
 #include "core/hostiles.h"
@@ -61,6 +63,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/pmsg.h"
 #include "lib/vendors.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -138,8 +141,30 @@ warn_no_header_extension(const knode_t *kn,
 		g_warning("DHT unhandled extended header (%u byte%s) in %s from %s",
 			extlen, extlen == 1 ? "" : "s", kmsg_name(function),
 			knode_to_string(kn));
-		dump_hex(stderr, "Kademlia extra header",
-			kademlia_header_end(header), extlen);
+		if (GNET_PROPERTY(dht_debug) > 15)
+			dump_hex(stderr, "Kademlia extra header",
+				kademlia_header_end(header), extlen);
+	}
+}
+
+/**
+ * Let them know when there is unparsed data at the end of the message.
+ */
+static void
+warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
+	bstr_t *bs)
+{
+	size_t unparsed = bstr_unread_size(bs);
+
+	if (unparsed && GNET_PROPERTY(dht_debug)) {
+		guint8 function = kademlia_header_get_function(header);
+		g_warning("DHT message %s from %s "
+			"has %lu byte%s of unparsed trailing data (ignored)",
+			kmsg_name(function), knode_to_string(kn),
+			(gulong) unparsed, 1 == unparsed ? "" : "s");
+		if (GNET_PROPERTY(dht_debug) > 15)
+			dump_hex(stderr, "Unparsed trailing data",
+				bstr_read_base(bs), unparsed);
 	}
 }
 
@@ -171,7 +196,7 @@ kmsg_build_header(kademlia_header_t *header,
 		host_addr_ipv4(listen_addr()), socket_listen_port());
 	kademlia_header_set_contact_instance(header, 1);	/* XXX What's this? */
 	kademlia_header_set_contact_flags(header,
-		KDA_MSG_F_FIREWALLED);							/* XXX for now */
+		0);	/* KDA_MSG_F_FIREWALLED);					XXX for TESTING */
 	kademlia_header_set_extended_length(header, 0);
 
 	g_assert(kademlia_header_constants_ok(header));
@@ -196,30 +221,6 @@ kmsg_build_header_pmsg(pmsg_t *mb,
 	kmsg_build_header((void *) pmsg_start(mb), op, major, minor, muid);
 	kademlia_header_set_size(pmsg_start(mb),
 		pmsg_phys_len(mb) - KDA_HEADER_SIZE);
-}
-
-/**
- * Serialize host address in supplied message buffer.
- */
-static void
-serialize_addr(pmsg_t *mb, const host_addr_t addr)
-{
-	g_assert(pmsg_available(mb) >= 17);
-
-	switch (host_addr_net(addr)) {
-	case NET_TYPE_IPV4:
-		pmsg_write_u8(mb, 4);
-		pmsg_write_be32(mb, host_addr_ipv4(addr));
-		break;
-	case NET_TYPE_IPV6:
-		pmsg_write_u8(mb, 16);
-		pmsg_write(mb, host_addr_ipv6(&addr), 16);
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		g_error("unexpected address for incoming DHT message: %s",
-			host_addr_to_string(addr));
-	}
 }
 
 /**
@@ -253,7 +254,7 @@ serialize_contact(pmsg_t *mb, const knode_t *kn)
 	pmsg_write_u8(mb, kn->major);
 	pmsg_write_u8(mb, kn->minor);
 	pmsg_write(mb, kn->id->v, KUID_RAW_SIZE);
-	serialize_addr(mb, kn->addr);
+	pmsg_write_ipv4_or_ipv6_addr(mb, kn->addr);
 	pmsg_write_be16(mb, kn->port);		/* Port is big-endian in Kademlia */
 }
 
@@ -271,6 +272,83 @@ serialize_contact_vector(pmsg_t *mb, knode_t **kvec, size_t klen)
 
 	for (i = 0; i < klen; i++)
 		serialize_contact(mb, kvec[i]);
+}
+
+/**
+ * Deserialize a contact.
+ *
+ * @return the deserialized node, or NULL if an error occured.
+ */
+knode_t *
+kmsg_deserialize_contact(bstr_t *bs)
+{
+	kuid_t kuid;
+	host_addr_t addr;
+	guint16 port;
+	vendor_code_t vcode;
+	guint8 major, minor;
+
+	bstr_read_be32(bs, &vcode.u32);
+	bstr_read_u8(bs, &major);
+	bstr_read_u8(bs, &minor);
+	bstr_read(bs, kuid.v, KUID_RAW_SIZE);
+	bstr_read_packed_ipv4_or_ipv6_addr(bs, &addr);
+	bstr_read_be16(bs, &port);		/* Port is big-endian in Kademlia */
+
+	if (bstr_has_error(bs))
+		return NULL;
+
+	return knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+}
+
+/**
+ * Deserialize a DHT value.
+ *
+ * @return the deserialized DHT value, or NULL if an error occurred.
+ */
+static dht_value_t *
+deserialize_dht_value(bstr_t *bs)
+{
+	dht_value_t *dv;
+	kuid_t id;
+	knode_t *creator;
+	guint8 major, minor;
+	guint16 length;
+	gpointer data = NULL;
+	guint32 type;
+
+	creator = kmsg_deserialize_contact(bs);
+	if (!creator)
+		return NULL;
+
+	bstr_read(bs, id.v, KUID_RAW_SIZE);
+	bstr_read_be32(bs, &type);
+	bstr_read_u8(bs, &major);
+	bstr_read_u8(bs, &minor);
+	bstr_read_be16(bs, &length);
+
+	if (bstr_has_error(bs))
+		goto error;
+
+	if (length <= VALUE_MAX_LEN) {
+		data = walloc(length);
+		bstr_read(bs, data, length);
+	} else {
+		bstr_skip(bs, length);
+	}
+
+	if (bstr_has_error(bs))
+		goto error;
+
+	dv = dht_value_make(creator, &id, type, major, minor, data, length);
+	knode_free(creator);
+	return dv;
+
+error:
+	knode_free(creator);
+	if (data)
+		wfree(data, length);
+	return NULL;
 }
 
 /**
@@ -300,7 +378,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
 	/* Insert requester's external address */
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
-	serialize_addr(mb, n->addr);
+	pmsg_write_ipv4_or_ipv6_addr(mb, n->addr);
 	pmsg_write_be16(mb, n->port);		/* Port is big-endian in Kademlia */
 
 	/*
@@ -328,6 +406,7 @@ k_send_pong(struct gnutella_node *n, const guid_t *muid)
  * Send back response to find_node(id).
  *
  * @param n			where to send the response to
+ * @param kn		the node who sent the request
  * @param kvec		base of knode vector
  * @param klen		amount of entries filled in vector
  * @param muid		MUID to use in response
@@ -397,6 +476,235 @@ k_send_find_node_response(
 			host_addr_port_to_string(n->addr, n->port));
 
 	udp_send_mb(n, mb);
+}
+
+/**
+ * Send back response to find_value(id).
+ *
+ * @param n			where to send the response to
+ * @param kn		the node who sent the request
+ * @param vvec		base of DHT value vector
+ * @param vlen		amount of entries filled in vector
+ * @param load		the EMA of the # of requests / minute for the key
+ * @param muid		MUID to use in response
+ */
+static void
+k_send_find_value_response(
+	struct gnutella_node *n,
+	const knode_t *unused_kn,
+	dht_value_t **vvec, size_t vlen, float load, const guid_t *muid)
+{
+	pmsg_t *mb;
+	kademlia_header_t *header;
+	pmsg_offset_t value_count;
+	size_t i;
+	int values = 0, secondaries = 0;	/* For logging only */
+
+	(void) unused_kn;
+
+	g_assert(vlen <= MAX_VALUES_PER_KEY);
+
+	/*
+	 * Response payload:
+	 *
+	 * Request load: 32-bit float
+	 * Value count: 1 byte
+	 * At most MAX_VALUES_PER_KEY values (variable size): a DHT value
+	 * has 61 bytes of header + the length of the data.
+	 * Secondary key count: 1 byte
+	 * At most MAX_VALUES_PER_KEY secondary keys (20 bytes each).
+	 *
+	 * We limit the total message size to 1 KiB and therefore need to
+	 * decide at each step whether to expand the DHT value or switch
+	 * to emitting secondary keys.
+	 *
+	 * To emit n secondary keys, we need 20n + 1 bytes of payload.
+	 */
+
+	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
+
+	header = (kademlia_header_t *) pmsg_start(mb);
+	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
+
+	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
+	pmsg_write_float_be(mb, load);
+
+	value_count = pmsg_write_offset(mb);	/* We'll come back later */
+	pmsg_write_u8(mb, vlen);				/* We may need to fix that */
+
+	for (i = 0; i < vlen; i++) {
+		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
+		dht_value_t *v = vvec[i];
+		size_t value_size = 61 + v->length;	/* See assert below */
+
+		g_assert((size_t) pmsg_available(mb) >= secondary_size);
+
+		if (value_size + secondary_size > (size_t) pmsg_available(mb)) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT after sending %d DHT values, will send %d keys",
+					i, vlen - i);
+			break;
+		}
+
+		/* That's the specs and the 61 above depends on the following... */
+		g_assert(NET_TYPE_IPV4 == host_addr_net(v->creator->addr));
+
+		/* DHT value header */
+		serialize_contact(mb, v->creator);
+		pmsg_write(mb, v->id, KUID_RAW_SIZE);
+		pmsg_write_be32(mb, v->type);
+		pmsg_write_u8(mb, v->major);
+		pmsg_write_u8(mb, v->minor);
+		pmsg_write_be16(mb, v->length);
+
+		/* DHT value data */
+		if (v->length)
+			pmsg_write(mb, v->data, v->length);
+
+		values++;
+	}
+
+	/*
+	 * If we had to break off above, we need to go back and fix the
+	 * amount of DHT values.
+	 */
+
+	if (i < vlen) {
+		size_t remain = vlen - i;
+		pmsg_offset_t cur = pmsg_write_offset(mb);
+		pmsg_seek(mb, value_count);
+		pmsg_write_u8(mb, i);	/* Go back and patch amount of values */
+		pmsg_seek(mb, cur);		/* Critical: must go back to end */
+
+		/*
+		 * Write the remaining values as secondary keys only.
+		 */
+
+		pmsg_write_u8(mb, remain);
+		for (/* empty */; i < vlen; i++) {
+			dht_value_t *v = vvec[i];
+			pmsg_write(mb, v->creator->id, KUID_RAW_SIZE);
+			secondaries++;
+		}
+	}
+
+	g_assert(values + secondaries == (int) vlen);	/* Sanity check */
+
+	kademlia_header_set_size(header, pmsg_size(mb) - KDA_HEADER_SIZE);
+
+	/*
+	 * Send the message...
+	 */
+
+	if (GNET_PROPERTY(dht_debug > 3))
+		g_message("DHT sending back %s (%lu bytes) with "
+			"%d value%s and %d secondary key%s to %s",
+			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+			values, values == 1 ? "" : "s",
+			secondaries, secondaries == 1 ? "" : "s",
+			host_addr_port_to_string(n->addr, n->port));
+
+	udp_send_mb(n, mb);
+}
+
+/**
+ * Send back response to store requests.
+ *
+ * @param n			where to send the response to
+ * @param kn		the node who sent the request
+ * @param vec		base of DHT value vector to store
+ * @param vlen		amount of values in vector
+ * @param muid		MUID to use in response
+ */
+static void
+k_send_store_response(
+	struct gnutella_node *n,
+	const knode_t *kn,
+	dht_value_t **vec, guint8 vlen, const guid_t *muid)
+{
+	pmsg_t *mb;
+	kademlia_header_t *header;
+	guint16 *status;
+	int i;
+
+	status = walloc(vlen * sizeof(guint16));
+
+	for (i = 0; i < vlen; i++)
+		status[i] = values_store(kn, vec[i]);
+
+	/*
+	 * The architected store response message v0.0 is Cretinus Maximus.
+	 * Limit the total size to 1KiB, whatever happens.
+	 */
+
+	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
+
+	header = (kademlia_header_t *) pmsg_start(mb);
+	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
+
+	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
+
+	/*
+	 * To write a status code for a value, we need:
+	 *
+	 * The primary key: 20 bytes
+	 * The secondary key (KUID of creator): 20 bytes
+	 * The status code: 4 bytes (we provide no descriptions)
+	 *
+	 * That's 44 bytes.  If we have less than 44 bytes left, stop
+	 * sending them the status.
+	 *
+	 * Wouldn't it be smarter to send back only a vector of status, in
+	 * the order of the values received in the STORE request and
+	 * let the other side attach each status to each value?
+	 *
+	 * FIXME: for now, GTKG complies with the v0.0 specs, but this
+	 * will need to be fixed.	--RAM, 2008-08-11
+	 */
+
+	pmsg_write_u8(mb, vlen);	/* We'll come back to patch this if needed */
+
+	for (i = 0; i < vlen; i++) {
+		if (pmsg_available(mb) < 44)
+			break;
+
+		/* Serialize status */
+		pmsg_write(mb, vec[i]->id->v, KUID_RAW_SIZE);
+		pmsg_write(mb, vec[i]->creator->id->v, KUID_RAW_SIZE);
+		pmsg_write_be16(mb, status[i]);
+		pmsg_write_be16(mb, 0);		/* Aren't we verbose enough already? */
+	}
+
+	if (i < vlen) {
+		pmsg_offset_t cur = pmsg_write_offset(mb);
+		pmsg_seek(mb, KDA_HEADER_SIZE);
+		pmsg_write_u8(mb, i);	/* Go back and patch amount of results */
+		pmsg_seek(mb, cur);		/* Critical: must go back to end */
+
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT sending back only %d out of %u statuses to %s",
+				i, vlen, knode_to_string(kn));
+	}
+
+	kademlia_header_set_size(header, pmsg_size(mb) - KDA_HEADER_SIZE);
+
+	/*
+	 * Send the message...
+	 */
+
+	if (GNET_PROPERTY(dht_debug > 3))
+		g_message("DHT sending back %s (%lu bytes) with %d status%s to %s",
+			kmsg_infostr(header), (unsigned long) pmsg_size(mb),
+			i, i == 1 ? "" : "es",
+			host_addr_port_to_string(n->addr, n->port));
+
+	udp_send_mb(n, mb);
+
+	/*
+	 * Cleanup.
+	 */
+
+	wfree(status, vlen * sizeof(guint16));
 }
 
 /**
@@ -504,6 +812,8 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		dht_record_size_estimate(kn, &estimated);
 	}
 
+	warn_unparsed_trailer(kn, header, bs);
+
 	bstr_destroy(bs);
 	return;
 
@@ -547,6 +857,263 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
 	k_send_find_node_response(n,
 		kn, kvec, cnt, kademlia_header_get_muid(header));
+}
+
+/**
+ * Handle store requests.
+ */
+static void
+k_handle_store(knode_t *kn, struct gnutella_node *n,
+	const kademlia_header_t *header, guint8 extlen,
+	const void *payload, size_t len)
+{
+	gboolean valid_token = FALSE;
+	bstr_t *bs;
+	char *reason;
+	guint8 values;
+	int i = 0;
+	char msg[80];
+	dht_value_t **vec = NULL;
+
+	warn_no_header_extension(kn, header, extlen);
+
+	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
+	
+	/*
+	 * Decompile first field: security token.
+	 */
+
+	{
+		token_t security;
+		guint8 token_len;
+
+		if (!bstr_read_u8(bs, &token_len)) {
+			reason = "could not read security token length";
+			goto error;
+		}
+
+		if (sizeof(security.v) == (size_t) token_len)
+			bstr_read(bs, security.v, sizeof(security.v));
+		else
+			bstr_skip(bs, token_len);
+
+		if (bstr_has_error(bs)) {
+			reason = "could not parse security token";
+			goto error;
+		}
+
+		if (
+			sizeof(security.v) == (size_t) token_len &&
+			token_is_valid(&security, kn->addr, kn->port)
+		)
+			valid_token = TRUE;
+	}
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT STORE %s security token from %s",
+			valid_token ? "valid" : "invalid", knode_to_string(kn));
+
+	if (!bstr_read_u8(bs, &values)) {
+		reason = "could not read amount of values";
+		goto error;
+	}
+
+	if (0 == values) {
+		reason = "zero values";
+		goto error;
+	}
+
+	if (!valid_token && GNET_PROPERTY(dht_debug)) {
+		g_warning("DHT STORE ignoring the %u values supplied by %s",
+			values, knode_to_string(kn));
+		reason = "invalid security token";
+		goto error;
+	}
+
+	/*
+	 * Decompile remaining fields: values to store.
+	 */
+
+	vec = walloc(values * sizeof *vec);
+
+	for (i = 0; i < values; i++) {
+		dht_value_t *v = deserialize_dht_value(bs);
+
+		if (NULL == v) {
+			gm_snprintf(msg, sizeof msg,
+				"could not read value #%d/%u", i, values);
+			reason = msg;
+			goto error;
+		}
+
+		vec[i] = v;
+	}
+
+	warn_unparsed_trailer(kn, header, bs);
+
+	/*
+	 * Now that we know the message is correctly formed, handle the
+	 * store request.
+	 */
+
+	g_assert(i == values);
+
+	k_send_store_response(n, kn, vec, values, kademlia_header_get_muid(header));
+
+	goto cleanup;
+
+error:
+	if (GNET_PROPERTY(dht_debug))
+		g_warning("DHT unhandled STORE payload (%lu byte%s) from %s: %s: %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			reason, bstr_error(bs));
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (vec) {
+		int j;
+
+		for (j = 0; j < i; j++)
+			dht_value_free(vec[j]);
+
+		wfree(vec, values * sizeof *vec);
+	}
+
+	bstr_destroy(bs);
+}
+
+/**
+ * Handle find_value(id) requests.
+ */
+static void
+k_handle_find_value(knode_t *kn, struct gnutella_node *n,
+	const kademlia_header_t *header, guint8 extlen,
+	const void *payload, size_t len)
+{
+	kuid_t *id = (kuid_t *) payload;
+	bstr_t *bs;
+	guint8 count;
+	kuid_t **secondary = NULL;
+	const char *reason;
+	char msg[80];
+	dht_value_type_t type;
+	dht_value_t *vvec[MAX_VALUES_PER_KEY];
+	int vcnt = 0;
+	float load;
+
+	warn_no_header_extension(kn, header, extlen);
+
+	/*
+	 * Must have at least the KUID to locate.
+	 */
+
+	if (len < KUID_RAW_SIZE && GNET_PROPERTY(dht_debug)) {
+		g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+		dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
+		return;
+	}
+
+	/*
+	 * If we don't hold the key, reply as we would for a FIND_NODE.
+	 */
+
+	if (!keys_exists(id)) {
+		knode_t *kvec[KDA_K];
+		int cnt;
+
+		cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
+		k_send_find_node_response(n,
+			kn, kvec, cnt, kademlia_header_get_muid(header));
+
+		return;
+	}
+
+	/*
+	 * We hold the key, so we need to parse the payload in more
+	 * details to know what exactly they are looking for.
+	 */
+
+	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
+
+	bstr_skip(bs, KUID_RAW_SIZE);	/* We know the KUID is there */
+
+	if (!bstr_read_u8(bs, &count)) {
+		reason = "could not read amount of secondary keys";
+		goto error;
+	}
+
+	/*
+	 * If there are secondary keys, grab them.
+	 */
+
+	if (count) {
+		int i;
+
+		secondary = walloc0(count * sizeof(secondary[0]));
+
+		for (i = 0; i < count; i++) {
+			if (!bstr_read(bs, secondary[i]->v, KUID_RAW_SIZE)) {
+				gm_snprintf(msg, sizeof msg,
+					"could not read secondary key #%d/%u", i, count);
+				reason = msg;
+				goto error;
+			}
+		}
+	}
+
+	/*
+	 * Final item: DHT value type.
+	 */
+
+	if (!bstr_read_be32(bs, &type)) {
+		reason = "could not read DHT value type";
+		goto error;
+	}
+
+	warn_unparsed_trailer(kn, header, bs);
+
+	/*
+	 * Perform the value lookup.
+	 */
+
+	vcnt = keys_get(id, type, secondary, count,
+		vvec, G_N_ELEMENTS(vvec), &load);
+
+	k_send_find_value_response(n,
+		kn, vvec, vcnt, load, kademlia_header_get_muid(header));
+
+	goto cleanup;
+
+error:
+	if (GNET_PROPERTY(dht_debug))
+		g_warning(
+			"DHT unhandled FIND_VALUE payload (%lu byte%s) from %s: %s: %s",
+			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			reason, bstr_error(bs));
+
+	/* FALL THROUGH */
+
+cleanup:
+
+	if (secondary) {
+		int i;
+		for (i = 0; i < count; i++) {
+			if (!secondary[i])
+				break;
+			kuid_atom_free(secondary[i]);
+		}
+		wfree(secondary, count * sizeof(secondary[0]));
+	}
+
+	if (vcnt) {
+		int i;
+		for (i = 0; i < vcnt; i++)
+			dht_value_free(vvec[i]);
+	}
+
+	bstr_destroy(bs);
 }
 
 /**
@@ -891,11 +1458,11 @@ static const struct kmsg kmsg_map[] = {
 	{ 0x00,							NULL,					"invalid"		},
 	{ KDA_MSG_PING_REQUEST,			k_handle_ping,			"PING"			},
 	{ KDA_MSG_PING_RESPONSE,		k_handle_pong,			"PONG"			},
-	{ KDA_MSG_STORE_REQUEST,		NULL,					"STORE"			},
+	{ KDA_MSG_STORE_REQUEST,		k_handle_store,			"STORE"			},
 	{ KDA_MSG_STORE_RESPONSE,		NULL,					"STORE_ACK"		},
 	{ KDA_MSG_FIND_NODE_REQUEST,	k_handle_find_node,		"FIND_NODE"		},
 	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_lookup,		"FOUND_NODE"	},
-	{ KDA_MSG_FIND_VALUE_REQUEST,	NULL,					"GET_VALUE"		},
+	{ KDA_MSG_FIND_VALUE_REQUEST,	k_handle_find_value,	"FIND_VALUE"	},
 	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_lookup,		"VALUE"			},
 	{ KDA_MSG_STATS_REQUEST,		NULL,					"STATS"			},
 	{ KDA_MSG_STATS_RESPONSE,		NULL,					"STATS_ACK" 	},
@@ -935,6 +1502,12 @@ static size_t
 kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
+	char host[HOST_ADDR_PORT_BUFLEN];
+
+	host_addr_port_to_string_buf(
+			host_addr_get_ipv4(kademlia_header_get_contact_addr(msg)),
+			kademlia_header_get_contact_port(msg),
+			host, sizeof host);
 
 	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
@@ -943,9 +1516,7 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),
 		kademlia_header_get_major_version(msg),
 		kademlia_header_get_minor_version(msg),
-		host_addr_port_to_string(
-			host_addr_get_ipv4(kademlia_header_get_contact_addr(msg)),
-			kademlia_header_get_contact_port(msg)));
+		host);
 }
 
 /**

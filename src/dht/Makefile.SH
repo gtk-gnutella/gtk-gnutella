@@ -81,6 +81,7 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	acct.c \
 	keys.c \
 	kmsg.c \
 	knode.c \
@@ -88,9 +89,12 @@ SRC = \
 	lookup.c \
 	routing.c \
 	rpc.c \
-	token.c
+	token.c \
+	values.c \
+	storage.c
 
 OBJ = \
+	acct.o \
 	keys.o \
 	kmsg.o \
 	knode.o \
@@ -98,7 +102,9 @@ OBJ = \
 	lookup.o \
 	routing.o \
 	rpc.o \
-	token.o 
+	token.o \
+	values.o \
+	storage.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
