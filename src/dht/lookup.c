@@ -46,9 +46,6 @@ RCSID("$Id$")
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
-#include "core/hosts.h"
-#include "core/hostiles.h"
-
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/hashlist.h"
@@ -680,21 +677,6 @@ lookup_completed(nlookup_t *nl)
 }
 
 /**
- * @return whether host can be kept as a valid lookup contact
- */
-static gboolean
-lookup_host_is_usable(host_addr_t addr, guint16 port)
-{
-	if (!host_is_valid(addr, port))
-		return FALSE;
-
-	if (hostiles_check(addr))
-		return FALSE;
-
-	return TRUE;
-}
-
-/**
  * Add node to the shortlist.
  */
 static void
@@ -765,33 +747,6 @@ lookup_closest_ok(nlookup_t *nl)
 
 	patricia_iterator_release(&iter);
 	return enough;
-}
-
-/**
- * Deserialize a contact.
- *
- * @return the deserialized node, or NULL if an error occured.
- */
-static knode_t *
-deserialize_contact(bstr_t *bs)
-{
-	kuid_t kuid;
-	host_addr_t addr;
-	guint16 port;
-	vendor_code_t vcode;
-	guint8 major, minor;
-
-	bstr_read_be32(bs, &vcode.u32);
-	bstr_read_u8(bs, &major);
-	bstr_read_u8(bs, &minor);
-	bstr_read(bs, kuid.v, KUID_RAW_SIZE);
-	bstr_read_packed_ipv4_or_ipv6_addr(bs, &addr);
-	bstr_read_be16(bs, &port);		/* Port is big-endian in Kademlia */
-
-	if (bstr_has_error(bs))
-		return NULL;
-
-	return knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
 }
 
 /**
@@ -897,7 +852,7 @@ lookup_handle_reply(
 	}
 
 	while (contacts--) {
-		knode_t *cn = deserialize_contact(bs);
+		knode_t *cn = kmsg_deserialize_contact(bs);
 
 		n++;
 
@@ -907,7 +862,7 @@ lookup_handle_reply(
 			goto bad;
 		}
 
-		if (!lookup_host_is_usable(cn->addr, cn->port)) {
+		if (!knode_is_usable(cn)) {
 			gm_snprintf(msg, sizeof msg,
 				"%s has unusable address", knode_to_string(cn));
 			goto skip;
@@ -972,9 +927,9 @@ lookup_handle_reply(
 	if (bstr_unread_size(bs) && GNET_PROPERTY(dht_debug)) {
 		size_t unparsed = bstr_unread_size(bs);
 		g_warning("DHT the FIND_NODE_RESPONSE payload (%lu byte%s) "
-			"from %s has %d byte%s of unparsed trailing data (ignored)",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 unparsed, 1 == unparsed ? "" : "s");
+			"from %s has %lu byte%s of unparsed trailing data (ignored)",
+			 (gulong) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 (gulong) unparsed, 1 == unparsed ? "" : "s");
 	}
 
 	/*
