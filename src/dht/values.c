@@ -258,6 +258,7 @@ dht_value_make(const knode_t *creator,
 	dht_value_t *v;
 
 	g_assert(length <= VALUE_MAX_LEN || NULL == data);
+	g_assert(length || NULL == data);
 
 	v = walloc(sizeof *v);
 	v->creator = knode_refcnt_inc(creator);
@@ -282,7 +283,7 @@ dht_value_free(dht_value_t *v)
 	knode_free(deconstify_gpointer(v->creator));
 	kuid_atom_free(v->id);
 	if (v->data) {
-		g_assert(v->length <= VALUE_MAX_LEN);
+		g_assert(v->length && v->length <= VALUE_MAX_LEN);
 		wfree(deconstify_gpointer(v->data), v->length);
 	}
 
@@ -500,7 +501,7 @@ validate_new_acceptable(const dht_value_t *v)
 }
 
 /**
- * Publish or republish value in our local data store.
+ * Publish or replicate value in our local data store.
  *
  * @return store status code that will be relayed back to the remote node.
  */
@@ -515,7 +516,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 	/*
 	 * Look whether we already hold this value (in which case it would
-	 * be a republish).
+	 * be a replication or a republishing from original creator).
 	 */
 
 	dbkey = keys_has(v->id, v->creator->id);
@@ -679,11 +680,12 @@ mismatch:
  *
  * @param kn		the node who sent out the STORE request
  * @param v			the DHT value to store
+ * @param token		whether a valid token was provided
  *
  * @return store status code that will be relayed back to the remote node.
  */
 guint16
-values_store(const knode_t *kn, const dht_value_t *v)
+values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 {
 	guint16 status = STORE_SC_OK;
 
@@ -703,6 +705,18 @@ values_store(const knode_t *kn, const dht_value_t *v)
 		/* v->data can be NULL if DHT value is larger than our maximum */
 		if (v->data && GNET_PROPERTY(dht_storage_debug) > 15)
 			dump_hex(stderr, "Value payload", v->data, v->length);
+	}
+
+	/*
+	 * If we haven't got a valid token, report error.
+	 *
+	 * We come thus far with invalid tokens only to get consistent debugging
+	 * traces.
+	 */
+
+	if (!token) {
+		status = STORE_SC_BAD_TOKEN;
+		goto done;
 	}
 
 	/*

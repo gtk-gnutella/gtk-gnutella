@@ -98,7 +98,7 @@ size_t dht_value_type_to_string_buf(guint32 type, char *buf, size_t size);
 const char *dht_value_type_to_string(guint32 type);
 const char *dht_value_to_string(const dht_value_t *v);
 
-guint16 values_store(const knode_t *kn, const dht_value_t *v);
+guint16 values_store(const knode_t *kn, const dht_value_t *v, gboolean token);
 dht_value_t *values_get(guint64 dbkey, dht_value_type_t type);
 
 #endif /* _dht_values_h_ */

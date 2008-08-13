@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "token.h"
 #include "keys.h"
 #include "values.h"
+#include "storage.h"
 
 #include "core/hosts.h"
 #include "core/hostiles.h"
@@ -196,7 +197,7 @@ kmsg_build_header(kademlia_header_t *header,
 		host_addr_ipv4(listen_addr()), socket_listen_port());
 	kademlia_header_set_contact_instance(header, 1);	/* XXX What's this? */
 	kademlia_header_set_contact_flags(header,
-		0);	/* KDA_MSG_F_FIREWALLED);					XXX for TESTING */
+		GNET_PROPERTY(is_udp_firewalled) ? KDA_MSG_F_FIREWALLED : 0);
 	kademlia_header_set_extended_length(header, 0);
 
 	g_assert(kademlia_header_constants_ok(header));
@@ -330,7 +331,7 @@ deserialize_dht_value(bstr_t *bs)
 	if (bstr_has_error(bs))
 		goto error;
 
-	if (length <= VALUE_MAX_LEN) {
+	if (length && length <= VALUE_MAX_LEN) {
 		data = walloc(length);
 		bstr_read(bs, data, length);
 	} else {
@@ -524,7 +525,7 @@ k_send_find_value_response(
 	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
-	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
+	kmsg_build_header(header, KDA_MSG_FIND_VALUE_RESPONSE, 0, 0, muid);
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	pmsg_write_float_be(mb, load);
@@ -610,17 +611,20 @@ k_send_find_value_response(
 /**
  * Send back response to store requests.
  *
- * @param n			where to send the response to
- * @param kn		the node who sent the request
- * @param vec		base of DHT value vector to store
- * @param vlen		amount of values in vector
- * @param muid		MUID to use in response
+ * @param n				where to send the response to
+ * @param kn			the node who sent the request
+ * @param vec			base of DHT value vector to store
+ * @param vlen			amount of values in vector
+ * @param valid_token	whether security token was valid
+ * @param muid			MUID to use in response
  */
 static void
 k_send_store_response(
 	struct gnutella_node *n,
 	const knode_t *kn,
-	dht_value_t **vec, guint8 vlen, const guid_t *muid)
+	dht_value_t **vec, guint8 vlen,
+	gboolean valid_token,
+	const guid_t *muid)
 {
 	pmsg_t *mb;
 	kademlia_header_t *header;
@@ -630,7 +634,7 @@ k_send_store_response(
 	status = walloc(vlen * sizeof(guint16));
 
 	for (i = 0; i < vlen; i++)
-		status[i] = values_store(kn, vec[i]);
+		status[i] = values_store(kn, vec[i], valid_token);
 
 	/*
 	 * The architected store response message v0.0 is Cretinus Maximus.
@@ -851,7 +855,6 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 		g_message("DHT node %s looking for %s",
 			knode_to_string(kn), kuid_to_hex_string(id));
 
-
 	g_assert(len == KUID_RAW_SIZE);
 
 	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
@@ -923,11 +926,29 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 		goto error;
 	}
 
-	if (!valid_token && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT STORE ignoring the %u values supplied by %s",
-			values, knode_to_string(kn));
-		reason = "invalid security token";
-		goto error;
+	/*
+	 * If the security token is invalid but the the node's ID falls
+	 * within our k-ball, it is one of our k-closest and we must be nicer
+	 * than just ignoring it: we will decompile 1 DHT value, then send
+	 * back an error stating the security token was invalid.
+	 */
+
+	if (!valid_token) {
+		gboolean in_kball = keys_within_kball(kn->id);
+		int ignored = in_kball ? values - 1 : values;
+
+		if (ignored && GNET_PROPERTY(dht_debug))
+			g_warning("DHT STORE ignoring the %u %svalue%s supplied by %s %s",
+				ignored, in_kball ? "additional" : "", 1 == ignored ? "" : "s",
+				in_kball ? "k-closest" : "foreigner",
+				knode_to_string(kn));
+
+		if (in_kball) {
+			values = 1;
+		} else {
+			reason = "invalid security token";
+			goto error;
+		}
 	}
 
 	/*
@@ -949,7 +970,14 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 		vec[i] = v;
 	}
 
-	warn_unparsed_trailer(kn, header, bs);
+	/*
+	 * If token is invalid, we have adjusted the amount of values above
+	 * (the node is within our k-ball or we would have aborted already).
+	 * Hence avoid spurious warnings.
+	 */
+
+	if (valid_token)
+		warn_unparsed_trailer(kn, header, bs);
 
 	/*
 	 * Now that we know the message is correctly formed, handle the
@@ -958,7 +986,8 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 	g_assert(i == values);
 
-	k_send_store_response(n, kn, vec, values, kademlia_header_get_muid(header));
+	k_send_store_response(n, kn, vec, values, valid_token,
+		kademlia_header_get_muid(header));
 
 	goto cleanup;
 
@@ -1005,15 +1034,31 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	warn_no_header_extension(kn, header, extlen);
 
 	/*
-	 * Must have at least the KUID to locate.
+	 * Must have at least the KUID to locate, and 4 bytes at the end
+	 * to hold the DHT value type.
 	 */
 
-	if (len < KUID_RAW_SIZE && GNET_PROPERTY(dht_debug)) {
+	if (len < KUID_RAW_SIZE + 4 && GNET_PROPERTY(dht_debug)) {
 		g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
 		return;
 	}
+
+	/*
+	 * Peek at the DHT value type early for logging.
+	 */
+
+	{
+		const char *p = payload;
+		type = peek_be32(&p[len - 4]);
+	}
+
+	if (GNET_PROPERTY(dht_debug > 3))
+		g_message("DHT FETCH node %s looking for %s value %s (%s)",
+			knode_to_string(kn),
+			dht_value_type_to_string(type),
+			kuid_to_hex_string(id), kuid_to_string(id));
 
 	/*
 	 * If we don't hold the key, reply as we would for a FIND_NODE.
@@ -1022,6 +1067,10 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	if (!keys_exists(id)) {
 		knode_t *kvec[KDA_K];
 		int cnt;
+
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
+			g_message("DHT FETCH %s not found (%s)",
+				kuid_to_hex_string(id), kuid_to_string(id));
 
 		cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
 		k_send_find_node_response(n,
@@ -1064,7 +1113,9 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	}
 
 	/*
-	 * Final item: DHT value type.
+	 * Final item: DHT value type, we already read it initially by peeking,
+	 * we read it again to make sure the stream contains at least 4 bytes,
+	 * and no more than 4 bytes...
 	 */
 
 	if (!bstr_read_be32(bs, &type)) {
@@ -1072,7 +1123,10 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 		goto error;
 	}
 
-	warn_unparsed_trailer(kn, header, bs);
+	if (bstr_unread_size(bs)) {
+		reason = "expected end of payload after DHT value type";
+		goto error;
+	}
 
 	/*
 	 * Perform the value lookup.
@@ -1308,19 +1362,29 @@ void kmsg_received(
 	id = kademlia_header_get_contact_kuid(header);
 	kaddr = host_addr_get_ipv4(kademlia_header_get_contact_addr(header));
 	kport = kademlia_header_get_contact_port(header);
+	flags = kademlia_header_get_contact_flags(header);
 
 	/*
-	 * Check contact's address.
+	 * Check contact's address, if host not flagged as "firewalled".
 	 */
 
-	if (!host_is_valid(kaddr, kport)) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT bad contact address %s (%s v%u.%u)",
-				host_addr_port_to_string(kaddr, kport),
-				vendor_code_to_string(vcode.u32), kmajor, kminor);
-		reason = "bad contact address";
-		goto drop;
+	if (!(flags & KNODE_F_FIREWALLED)) {
+		if (!host_is_valid(kaddr, kport)) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT bad contact address %s (%s v%u.%u), "
+					"forcing \"firewalled\" flag",
+					host_addr_port_to_string(kaddr, kport),
+					vendor_code_to_string(vcode.u32), kmajor, kminor);
+
+			flags |= KNODE_F_FIREWALLED;
+		}
 	}
+
+	/*
+	 * Even if they are "firewalled", drop the message if contact address
+	 * is deemed hostile.  There's no reason a good firewalled host would
+	 * pick this address to appear in the contact.
+	 */
 
 	if (hostiles_check(kaddr)) {
 		if (GNET_PROPERTY(dht_debug))
@@ -1330,8 +1394,6 @@ void kmsg_received(
 		reason = "hostile contact address";
 		goto drop;
 	}
-
-	flags = kademlia_header_get_contact_flags(header);
 
 	/*
 	 * See whether we already have this node in the routing table.
@@ -1426,7 +1488,7 @@ void kmsg_received(
 	 * The gnutella_node structure keeps track of the origin of the UDP message.
 	 */
 
-	if (!host_addr_equal(addr, kaddr)) {
+	if (!(kn->flags & KNODE_F_FIREWALLED) && !host_addr_equal(addr, kaddr)) {
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT contact address is %s but message came from %s",
 				host_addr_port_to_string(kaddr, kport),
