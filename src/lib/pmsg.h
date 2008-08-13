@@ -39,6 +39,7 @@
 #include "common.h"
 
 #include "endian.h"
+#include "host_addr.h"
 #include "slist.h"
 
 /**
@@ -330,6 +331,85 @@ pmsg_write_le32(pmsg_t *mb, guint32 val)
 
 	mb->m_wptr = poke_le32(mb->m_wptr, val);
 }
+
+/**
+ * Write a 64-bit value in big-endian format.
+ */
+static inline void
+pmsg_write_be64(pmsg_t *mb, guint64 val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 8);
+
+	mb->m_wptr = poke_be64(mb->m_wptr, val);
+}
+
+/**
+ * Write a 64-bit value in little-endian format.
+ */
+static inline void
+pmsg_write_le64(pmsg_t *mb, guint64 val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 8);
+
+	mb->m_wptr = poke_le64(mb->m_wptr, val);
+}
+
+/**
+ * Write time_t.
+ */
+static inline void
+pmsg_write_time(pmsg_t *mb, time_t val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 4);
+
+	mb->m_wptr = poke_be32(mb->m_wptr, (guint32) val);
+}
+
+/**
+ * Write gboolean.
+ */
+static inline void
+pmsg_write_boolean(pmsg_t *mb, gboolean val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 1);
+
+	*(guint8 *) mb->m_wptr++ = val ? 1 : 0;
+}
+
+/**
+ * Write float in big-endian.
+ */
+static inline void
+pmsg_write_float_be(pmsg_t *mb, float val)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 4);
+
+	STATIC_ASSERT(sizeof(float) == 4);
+
+	/* XXX needs metaconfig check */
+	/* XXX assumes integer byte order is float byte order (true on i386) */
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(mb->m_wptr, &val, 4);
+	mb->m_wptr += 4;
+#else
+	{
+		guint8 tmp[4];
+		memcpy(tmp, &val, 4);
+
+		*(guint8 *) mb->m_wptr++ = tmp[3];
+		*(guint8 *) mb->m_wptr++ = tmp[2];
+		*(guint8 *) mb->m_wptr++ = tmp[1];
+		*(guint8 *) mb->m_wptr++ = tmp[0];
+	}
+#endif
+}
+
+void pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr);
 
 #endif	/* _pmsg_h_ */
 

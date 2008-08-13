@@ -747,4 +747,29 @@ pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes)
 	}
 }
 
+/**
+ * Write an IPv4 or IPv6 address.
+ */
+void
+pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr)
+{
+	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
+	g_assert(pmsg_available(mb) >= 17);
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		pmsg_write_u8(mb, 4);
+		pmsg_write_be32(mb, host_addr_ipv4(addr));
+		break;
+	case NET_TYPE_IPV6:
+		pmsg_write_u8(mb, 16);
+		pmsg_write(mb, host_addr_ipv6(&addr), 16);
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_error("unexpected address in pmsg_write_ipv4_or_ipv6_addr(): %s",
+			host_addr_to_string(addr));
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */
