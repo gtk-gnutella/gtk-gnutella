@@ -763,9 +763,11 @@ keys_close(void)
 	storage_delete(db_keydata, db_keybase);
 	db_keydata = NULL;
 
-	patricia_foreach(keys, keys_free_kv, NULL);
-	patricia_destroy(keys);
-	keys = NULL;
+	if (keys) {
+		patricia_foreach(keys, keys_free_kv, NULL);
+		patricia_destroy(keys);
+		keys = NULL;
+	}
 
 	if (kball.furthest)
 		kuid_atom_free(kball.furthest);
