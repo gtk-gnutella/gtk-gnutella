@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 15557 2008-08-10 08:00:42Z rmanfredi $
+# $X-Id: Jmakefile 15558 2008-08-10 08:35:11Z rmanfredi $
 
 LSRC = \
 	socket.c \
@@ -98,6 +98,8 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dbmap.c \
+	dbmw.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \
@@ -170,6 +172,8 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	dbmap.o \
+	dbmw.o \
 	dbus_util.o \
 	debug.o \
 	entropy.o \

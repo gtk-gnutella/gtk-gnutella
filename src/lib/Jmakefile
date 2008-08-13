@@ -42,6 +42,8 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	dbmap.c \
+	dbmw.c \
 	dbus_util.c \
 	debug.c \
 	entropy.c \
