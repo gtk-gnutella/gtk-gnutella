@@ -110,6 +110,7 @@ const gchar *knode_to_string(const knode_t *kn);
 const gchar *knode_to_string2(const knode_t *kn);
 gboolean knode_can_recontact(const knode_t *kn);
 gboolean knode_is_usable(const knode_t *kn);
+const gchar *knode_to_string_buf(const knode_t *kn, char buf[], size_t len);
 
 /**
  * Add one reference to a Kademlia node.

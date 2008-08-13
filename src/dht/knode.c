@@ -224,7 +224,7 @@ knode_is_usable(const knode_t *kn)
  * Pretty-printing of node information for logs into the supplied buffers.
  * @return the buffer where printing was done.
  */
-static const gchar *
+const gchar *
 knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
