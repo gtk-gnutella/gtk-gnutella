@@ -452,7 +452,7 @@ k_send_find_node_response(
 	{
 		token_t tok;
 
-		token_generate(&tok, kn->addr, kn->port);
+		token_generate(&tok, kn);
 		pmsg_write_u8(mb, TOKEN_RAW_SIZE);
 		pmsg_write(mb, tok.v, TOKEN_RAW_SIZE);
 	}
@@ -904,7 +904,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 		if (
 			sizeof(security.v) == (size_t) token_len &&
-			token_is_valid(&security, kn->addr, kn->port)
+			token_is_valid(&security, kn)
 		)
 			valid_token = TRUE;
 	}

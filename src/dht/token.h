@@ -36,7 +36,7 @@
 #ifndef _dht_token_h_
 #define _dht_token_h_
 
-#include "lib/host_addr.h"
+#include "knode.h"
 
 #define TOKEN_RAW_SIZE		4
 
@@ -51,8 +51,8 @@ typedef struct {
 void token_init(void);
 void token_close(void);
 
-void token_generate(token_t *tok, host_addr_t addr, guint16 port);
-gboolean token_is_valid(const token_t *tok, host_addr_t addr, guint16 port);
+void token_generate(token_t *tok, const knode_t *kn);
+gboolean token_is_valid(const token_t *tok, const knode_t *kn);
 
 #endif /* _dht_token_h_ */
 

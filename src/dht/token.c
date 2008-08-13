@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "token.h"
+#include "knode.h"
 
 #include "lib/atoms.h"			/* For binary_hash() */
 #include "lib/cq.h"
@@ -47,46 +48,18 @@ RCSID("$Id$")
 #include "lib/tea.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define T_KEYS				2			/* Amount of keys we manage */
-#define T_REFRESH_PERIOD_MS	(600*1000)	/* 10 minutes in ms */
+#define T_KEYS				2		/* Amount of keys we manage */
+#define T_FW_PORT			65535	/* Port used for firewalled nodes */
+#define T_REFRESH_PERIOD_MS	(60*60*1000)	/* 1 hour in ms */
 
 static tea_key_t keys[T_KEYS];		/**< Rotating set of keys */
 static cevent_t *rotate_ev;			/**< Rotate event */
 
-/*
- * Is specified token still valid for this host?
- */
-gboolean
-token_is_valid(const token_t *tok, host_addr_t addr, guint16 port)
-{
-	size_t i;
-
-	STATIC_ASSERT(sizeof(tok->v) == TOKEN_RAW_SIZE);
-
-	/*
-	 * We can't decrypt, we just generate a new token with the set of
-	 * keys and say the token is valid if it matches with the one we're
-	 * generating.
-	 *
-	 * We try the most recent key first as it is the most likely to succeed.
-	 */
-
-	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
-		token_t gen;
-
-		token_generate(&gen, addr, port);
-		if (0 == memcmp(gen.v, tok->v, TOKEN_RAW_SIZE))
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
 /**
  * Create a 4-byte security token from host address and port.
  */
-void
-token_generate(token_t *tok, host_addr_t addr, guint16 port)
+static void
+generate(token_t *tok, host_addr_t addr, guint16 port)
 {
 	char block[8];
 	char enc[8];
@@ -120,6 +93,65 @@ token_generate(token_t *tok, host_addr_t addr, guint16 port)
 
 	tea_encrypt(&keys[0], enc, block, sizeof block);
 	poke_be32(tok->v, tea_squeeze(enc, sizeof enc));
+}
+
+/**
+ * Create a 4-byte security token for remote Kademlia node.
+ */
+void
+token_generate(token_t *tok, const knode_t *kn)
+{
+	g_assert(KNODE_MAGIC == kn->magic);
+
+	/*
+	 * If node is firewalled and uses NAT, the UDP port used will likely be
+	 * different each time.  Substitute a constant port in that case.
+	 */
+
+	generate(tok, kn->addr,
+		(kn->flags & KNODE_F_FIREWALLED) ? T_FW_PORT : kn->port);
+}
+
+/*
+ * Is specified token still valid for this Kademlia node?
+ */
+gboolean
+token_is_valid(const token_t *tok, const knode_t *kn)
+{
+	size_t i;
+
+	STATIC_ASSERT(sizeof(tok->v) == TOKEN_RAW_SIZE);
+
+	/*
+ 	 * The lifetime of security tokens is T_KEYS * T_REFRESH_PERIOD_MS
+	 * and it must be greater than 1 hour since this is the period for
+	 * Kademlia republishing, hence bucket refreshes from closest neighbours
+	 * or node lookups...
+	 *
+	 * LW nodes seem to cache the security token somehow because I've seen
+	 * STORE from closest node failing to provide the proper token when the
+	 * lifetime of the token was only of 20 minutes.  Be nice.
+	 */
+
+	STATIC_ASSERT(T_REFRESH_PERIOD_MS / 1000 * T_KEYS >= 3600);
+
+	/*
+	 * We can't decrypt, we just generate a new token with the set of
+	 * keys and say the token is valid if it matches with the one we're
+	 * generating.
+	 *
+	 * We try the most recent key first as it is the most likely to succeed.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(keys); i++) {
+		token_t gen;
+
+		token_generate(&gen, kn);
+		if (0 == memcmp(gen.v, tok->v, TOKEN_RAW_SIZE))
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
