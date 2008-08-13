@@ -1586,19 +1586,47 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	hl = list_for(kb, new);
 	maxsize = list_maxsize_for(new);
 
+	/*
+	 * Make room in the targeted list if it is full already.
+	 */
+
 	while (hash_list_length(hl) >= maxsize) {
 		knode_t *removed = hash_list_remove_head(hl);
-		g_hash_table_remove(kb->nodes->all, removed->id);
+
+		/*
+		 * If removing node from the "good" list, attempt to put it back
+		 * to the "pending" list to avoid dropping a good node alltogether.
+		 */
+
 		list_update_stats(new, -1);
-		c_class_update_count(removed, kb, -1);
 
-		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT dropped %s node %s at %s from routing table",
-				knode_status_to_string(removed->status),
-				kuid_to_hex_string(removed->id),
-				host_addr_port_to_string(removed->addr, removed->port));
+		if (
+			KNODE_GOOD == removed->status &&
+			hash_list_length(kb->nodes->pending) < K_BUCKET_PENDING
+		) {
+			g_assert(new != KNODE_PENDING);
 
-		knode_free(removed);
+			removed->status = KNODE_PENDING;
+			hash_list_append(kb->nodes->pending, removed);
+			list_update_stats(KNODE_PENDING, +1);
+
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT switched %s node %s at %s to pending list",
+					knode_status_to_string(new),
+					kuid_to_hex_string(removed->id),
+					host_addr_port_to_string(removed->addr, removed->port));
+		} else {
+			g_hash_table_remove(kb->nodes->all, removed->id);
+			c_class_update_count(removed, kb, -1);
+
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT dropped %s node %s at %s from routing table",
+					knode_status_to_string(removed->status),
+					kuid_to_hex_string(removed->id),
+					host_addr_port_to_string(removed->addr, removed->port));
+
+			knode_free(removed);
+		}
 	}
 
 	hash_list_append(hl, tkn);
