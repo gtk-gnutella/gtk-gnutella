@@ -125,7 +125,7 @@ token_is_valid(const token_t *tok, const knode_t *kn)
 	/*
  	 * The lifetime of security tokens is T_KEYS * T_REFRESH_PERIOD_MS
 	 * and it must be greater than 1 hour since this is the period for
-	 * Kademlia republishing, hence bucket refreshes from closest neighbours
+	 * Kademlia replication, hence bucket refreshes from closest neighbours
 	 * or node lookups...
 	 *
 	 * LW nodes seem to cache the security token somehow because I've seen
