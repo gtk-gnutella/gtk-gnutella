@@ -262,6 +262,25 @@ map_lookup(const map_t *m, gconstpointer key)
 }
 
 /**
+ * @return amount of items held in map.
+ */
+size_t
+map_count(const map_t *m)
+{
+	g_assert(m);
+
+	switch (m->type) {
+	case MAP_HASH:
+		return g_hash_table_size(m->u.h.ht);
+	case MAP_PATRICIA:
+		return patricia_count(m->u.p.pt);
+	case MAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+	return 0;
+}
+
+/**
  * Extended lookup of a key in the map, returning both key/value pointers.
  */
 gboolean
