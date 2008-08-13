@@ -343,14 +343,15 @@ bstr_read_base(const bstr_t *bs)
  * Skip specified amount of bytes.
  *
  * @param bs	the binary stream
- * @param count	amount of data to skip over
+ * @param count	amount of data to skip over (can be 0 for a NOP)
  *
  * @return TRUE if OK.
  */
 gboolean
 bstr_skip(bstr_t *bs, size_t count)
 {
-	g_assert((ssize_t) count > 0);
+	if (!count)
+		return TRUE;
 
 	if (!expect(bs, count, "bstr_skip"))
 		return FALSE;
