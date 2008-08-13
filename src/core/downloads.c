@@ -6059,7 +6059,7 @@ download_overlap_check(struct download *d)
 
 	fo = file_object_open(fi->pathname, O_RDONLY);
 	if (!fo) {
-		gint fd = file_open(fi->pathname, O_RDONLY);
+		gint fd = file_open(fi->pathname, O_RDONLY, 0);
 		if (fd >= 0) {
 			fo = file_object_new(fd, fi->pathname, O_RDONLY);
 		} else {

@@ -3354,19 +3354,19 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	/* Open the file for reading. */
 	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
 	if (!u->file) {
-		gint fd, accmode;
+		gint fd, flags;
 
 		/* If this is a partial file, we open it with O_RDWR so that
 		 * the file descriptor can be shared with download operations
 		 * for the same file. */
 		if (NULL == u->file_info || (u->file_info->flags & FI_F_SEEDING)) {
-			accmode = O_RDONLY;
+			flags = O_RDONLY;
 		} else {
-			accmode = O_RDWR;
+			flags = O_RDWR;
 		}
-		fd = file_open(shared_file_path(u->sf), accmode);
+		fd = file_open(shared_file_path(u->sf), flags, 0);
 		if (fd >= 0) {
-			u->file = file_object_new(fd, shared_file_path(u->sf), accmode);
+			u->file = file_object_new(fd, shared_file_path(u->sf), flags);
 		}
 	}
 	if (!u->file) {

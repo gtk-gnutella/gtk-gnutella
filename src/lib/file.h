@@ -64,7 +64,7 @@ gboolean file_config_close(FILE *out, const file_path_t *fv);
 void file_config_preamble(FILE *out, const gchar *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 
-gint file_open(const gchar *path, gint flags);
+gint file_open(const gchar *path, gint flags, gint mode);
 gint file_open_missing(const gchar *path, gint flags);
 gint file_create(const gchar *path, gint flags, gint mode);
 gint file_create_missing(const gchar *path, gint flags, gint mode);

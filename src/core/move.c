@@ -195,7 +195,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
 
 	md->d = we->d;
-	md->rd = file_open(download_pathname(d), O_RDONLY);
+	md->rd = file_open(download_pathname(d), O_RDONLY, 0);
 
 	if (md->rd == -1) {
 		md->error = errno;
