@@ -742,6 +742,36 @@ guint filesize_per_1000(filesize_t size, filesize_t part);
 guint filesize_per_10000(filesize_t size, filesize_t part);
 
 /*
+ * NOTE: ssize_t is NOT the signed variant of size_t and casting values blindly
+ * to ssize_t may cause integer overflows.  Larger values, especially SIZE_MAX
+ * (size_t)-1 may be the result of errors or wrap arounds during calculations.
+ * Therefore in places where memory objects larger than half of the address
+ * space are unreasonable, the following two functions are useful to check for
+ * such conditions.
+ */
+
+/*
+ * Check whether a signed representation of size would be non-negative.
+ * @return TRUE if size is equal to zero or larger and smaller than
+ *         SIZE_MAX / 2.
+ */
+static inline gboolean
+size_is_non_negative(size_t size)
+{
+	return size <= ((size_t) -1) / 2;
+}
+
+/**
+ * Check whether a signed representation of size would be positive.
+ * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.
+ */
+static inline gboolean
+size_is_positive(size_t size)
+{
+	return size_is_non_negative(size - 1);
+}
+
+/*
  * CIDR split of IP range.
  */
 

@@ -372,7 +372,7 @@ bstr_skip(bstr_t *bs, size_t count)
 gboolean
 bstr_read(bstr_t *bs, void *buf, size_t count)
 {
-	g_assert((ssize_t) count > 0);
+	g_assert(size_is_positive(count));
 
 	if (!expect(bs, count, "bstr_read"))
 		return FALSE;

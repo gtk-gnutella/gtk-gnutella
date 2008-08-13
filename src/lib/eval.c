@@ -196,7 +196,7 @@ eval_subst(const gchar *str)
 				memmove(start, &start[1], len - (start - buf));
 				len--;
 
-				g_assert((ssize_t) len >= 0);
+				g_assert(size_is_non_negative(len));
 			}
 			break;
 		case '$':
@@ -208,7 +208,7 @@ eval_subst(const gchar *str)
 				memmove(start, after, len + 1 - (after - buf));
 				len -= after - start;		/* Also removing leading '$' */
 
-				g_assert((ssize_t) len >= 0);
+				g_assert(size_is_non_negative(len));
 			}
 			break;
 		}

@@ -392,7 +392,7 @@ magnet_parse(const gchar *url, const gchar **error_str)
 			size_t name_len;
 
 			name_len = endptr - p;
-			g_assert((ssize_t) name_len > 0);
+			g_assert(size_is_positive(name_len));
 
 			if (name_len < sizeof name) {  /* Ignore overlong key */
 				strncat(name, p, name_len);

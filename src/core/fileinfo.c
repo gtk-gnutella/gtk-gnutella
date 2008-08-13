@@ -1139,7 +1139,7 @@ file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
 	 * the minimum number of bytes needed.
 	 *		-- JA 12/02/2004
 	 */
-	if (r < (ssize_t) sizeof tr)
+	if (r < 0 || (size_t) r < sizeof tr)
 		return FALSE;
 
 	filesize_hi = 0;

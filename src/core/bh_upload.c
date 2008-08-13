@@ -131,7 +131,8 @@ browse_host_read_data(struct browse_host_upload *bh, gchar *dest, size_t *size)
 	size_t len;
 
 	g_assert(NULL != size);
-	g_assert((ssize_t) bh->b_offset >= 0 && bh->b_offset <= bh->b_size);
+	g_assert(size_is_non_negative(bh->b_offset));
+	g_assert(bh->b_offset <= bh->b_size);
 	g_assert(bh->b_data != NULL);
 	g_assert(*size <= INT_MAX);
 

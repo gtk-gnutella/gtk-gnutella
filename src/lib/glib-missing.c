@@ -400,7 +400,7 @@ gm_vsnprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
 
 	g_return_val_if_fail(dst != NULL, 0);
 	g_return_val_if_fail(fmt != NULL, 0);
-	g_return_val_if_fail((ssize_t) size > 0, 0);
+	g_return_val_if_fail(size_is_positive(size), 0);
 	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
 
 	len = buf_vprintf(dst, size, fmt, args);
@@ -434,7 +434,7 @@ gm_snprintf(gchar *dst, size_t size, const gchar *fmt, ...)
 
 	g_return_val_if_fail(dst != NULL, 0);
 	g_return_val_if_fail(fmt != NULL, 0);
-	g_return_val_if_fail((ssize_t) size > 0, 0);
+	g_return_val_if_fail(size_is_positive(size), 0);
 	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
 
 	va_start(args, fmt);
