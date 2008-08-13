@@ -58,9 +58,13 @@ SetSubdirs(el en ja)
 ;# Update the bogons and GeoIp databases
 ;#
 
-update:
+update: update_bogons update_geoip
+
+update_bogons:
 	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
+
+update_geoip:
 	rm -f GeoIPCountryCSV.zip
 	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
 	rm -f GeoIPCountryWhois.csv

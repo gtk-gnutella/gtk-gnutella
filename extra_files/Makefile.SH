@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5 PL0]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-25]
 : $X-Id: Jmake.tmpl 8 2006-08-25 22:27:18Z rmanfredi $
 
 case $CONFIG in
@@ -56,12 +56,12 @@ SUBDIRS = el en ja
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 8 2006-08-25 22:27:18Z rmanfredi $
+# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 12791 2007-02-06 22:52:39Z cbiere $
+# $X-Id: Jmakefile 14063 2007-07-07 04:09:57Z cbiere $
 
 all::
 
@@ -145,9 +145,13 @@ local_deinstall::
 # Update the bogons and GeoIp databases
 #
 
-update:
+update: update_bogons update_geoip
+
+update_bogons:
 	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
+
+update_geoip:
 	rm -f GeoIPCountryCSV.zip
 	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
 	rm -f GeoIPCountryWhois.csv
