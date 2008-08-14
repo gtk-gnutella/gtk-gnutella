@@ -60,6 +60,7 @@ RCSID("$Id$")
 
 #include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
+#include "if/dht/kademlia.h"
 
 #include "dht/routing.h"
 
@@ -2341,11 +2342,14 @@ pcache_pong_received(struct gnutella_node *n)
 			MAX(1, gnutella_header_get_ttl(&n->header)));
 
 	/*
-	 * If host indicates DHT support, use that address for bootstrapping,
-	 * if necessary.
+	 * If host indicates DHT support for non-firewalled node, use that
+	 * address for bootstrapping, if necessary.
 	 */
 
-	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_DHT))
+	if (
+		cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_DHT) &&
+		!(cp->meta->dht_flags & KDA_MSG_F_FIREWALLED)
+	)
 		dht_bootstrap_if_needed(addr, port);
 }
 
