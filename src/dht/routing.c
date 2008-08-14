@@ -1691,7 +1691,6 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		g_error("node %s not in its routing table list", knode_to_string(tkn));
 	list_update_stats(old, -1);
 
-	kn->status = new;
 	tkn->status = new;
 	hl = list_for(kb, new);
 	maxsize = list_maxsize_for(new);
