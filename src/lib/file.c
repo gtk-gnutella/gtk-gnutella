@@ -530,4 +530,21 @@ file_set_nonblocking(gint fd)
 		fcntl(fd, F_SETFL, flags);
 }
 
+/**
+ * Closes the file and sets the descriptor to -1. Does nothing if
+ * the descriptor is already -1.
+ * @param fd_ptr Must point to a non-negative file descriptor or -1.
+ */
+void
+file_close(int *fd_ptr)
+{
+	g_assert(fd_ptr);
+	g_assert(*fd_ptr >= -1);
+
+	if (-1 != *fd_ptr) {
+		close(*fd_ptr);
+		*fd_ptr = -1;
+	}
+}
+
 /* vi: set ts=4: */
