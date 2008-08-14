@@ -1440,7 +1440,7 @@ void kmsg_received(
 			||
 			/* Node firewalled, source IP address changed */
 			((flags & KDA_MSG_F_FIREWALLED) &&
-				!host_addr_equal(kn->addr, n->addr))
+				!host_addr_equal(kn->addr, addr))
 		) {
 			if (GNET_PROPERTY(dht_debug))
 				g_message("DHT new IP for %s (now at %s) -- %s verification",
