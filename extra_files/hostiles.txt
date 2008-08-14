@@ -1303,6 +1303,8 @@
 # ranges hosted by vanoppen.biz LLC
 74.85.92.0/25
 208.76.153.128/27
+# hosted by hostnoc.net
+64.191.56.32/28
 
 # LimeWire/4.12.8; security violations
 67.221.175.0/24
