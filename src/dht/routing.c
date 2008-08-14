@@ -206,6 +206,113 @@ is_leaf(const struct kbucket *kb)
 }
 
 /**
+ * Get the sibling of a k-bucket.
+ */
+static inline struct kbucket *
+sibling_of(const struct kbucket *kb)
+{
+	struct kbucket *parent = kb->parent;
+
+	if (!parent)
+		return deconstify_gpointer(kb);		/* Root is its own sibling */
+
+	return (parent->one == kb) ? parent->zero : parent->one;
+}
+
+/**
+ * Is the bucket under the tree spanned by the parent?
+ */
+static gboolean
+is_under(const struct kbucket *kb, const struct kbucket *parent)
+{
+	if (parent->depth >= kb->depth)
+		return FALSE;
+
+	return kuid_match_nth(&kb->prefix, &parent->prefix, parent->depth);
+}
+
+/**
+ * Is the bucket in our closest subtree?
+ */
+static gboolean
+is_among_our_closest(const struct kbucket *kb)
+{
+	struct kbucket *kours;
+
+	g_assert(kb);
+
+	kours = dht_find_bucket(our_kuid);
+
+	g_assert(kours);
+
+	if (NULL == kours->parent) {
+		g_assert(kours == root);	/* Must be the sole instance */
+		g_assert(kb == root);
+		g_assert(kb->ours);
+
+		return TRUE;
+	}
+
+	g_assert(kours->parent);
+
+	if (is_under(kb, kours->parent)) {
+		struct kbucket *sibling;
+
+		/*
+		 * The bucket we're trying to split is under the same tree as the
+		 * parent of the leaf that would hold our node.
+		 */
+
+		if (kb->depth == kours->depth)
+			return TRUE;		/* This is the sibling of our bucket */
+
+		/*
+		 * See whether it is the bucket or its sibling that has a prefix
+		 * which is closer to our KUID: we can split only the closest one.
+		 */
+
+		sibling = sibling_of(kb);
+
+		switch (kuid_cmp3(our_kuid, &kb->prefix, &sibling->prefix)) {
+		case -1:	/* kb is the closest to our KUID */
+			return TRUE;
+		case +1:	/* the sibling is the closest to our KUID */
+			break;
+		default:
+			g_assert_not_reached();	/* Not possible, siblings are different */
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Is the k-bucket splitable?
+ */
+static gboolean
+is_splitable(const struct kbucket *kb)
+{
+	g_assert(is_leaf(kb));
+
+	if (kb->depth >= K_BUCKET_MAX_DEPTH)
+		return FALSE;		/* Reached the bottom of the tree */
+
+	if (kb->ours)
+		return TRUE;		/* We can always split our own bucket */
+
+	if (kb->depth + 1 - kb->split_depth < K_BUCKET_SUBDIVIDE)
+		return TRUE;		/* Extra subdivision for faster convergence */
+
+	/*
+	 * Now the tricky part: that of the closest subtree surrounding our node.
+	 * Since we want a perfect knowledge of all the nodes surrounding us,
+	 * we shall split buckets that are not in our space but are "close" to us.
+	 */
+
+	return is_among_our_closest(kb);
+}
+
+/**
  * Is the DHT "bootstrapped"?
  */
 gboolean
@@ -409,6 +516,26 @@ other_size_free(struct other_size *os)
 
 	kuid_atom_free_null(&os->id);
 	wfree(os, sizeof *os);
+}
+
+/**
+ * Short description of a k-bucket for logs.
+ * @return pointer to static data
+ */
+static char *
+kbucket_to_string(const struct kbucket *kb)
+{
+	static char buf[80];
+	char kuid[KUID_RAW_SIZE * 2 + 1];
+
+	g_assert(kb);
+
+	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
+
+	gm_snprintf(buf, sizeof buf, "k-bucket %s (depth %d%s)",
+		kuid, kb->depth, kb->ours ? ", ours" : "");
+
+	return buf;
 }
 
 /**
@@ -665,11 +792,9 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
 		g_message("DHT bucket refresh with %s "
-			"for %s k-bucket %s (depth %d, %s ours) completed: %s",
+			"for %s %s completed: %s",
 			kuid_to_hex_string(kuid),
-			is_leaf(kb) ? "leaf" : "split",
-			kuid_to_hex_string2(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not",
+			is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
 			lookup_strerror(error));
 	}
 }
@@ -690,17 +815,14 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	if (boot_status != BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT denying refresh of k-bucket %s (depth %d, %s ours)",
-				kuid_to_hex_string(&kb->prefix), kb->depth,
-				kb->ours ? "is" : "not");
+			g_warning("DHT not fully bootstrapped, denying refresh of %s",
+				kbucket_to_string(kb));
 
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initiating refresh of k-bucket %s (depth %d, %s ours)",
-			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not");
+		g_message("DHT initiating refresh of %s", kbucket_to_string(kb));
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1116,113 +1238,6 @@ check_leaf_bucket_consistency(const struct kbucket *kb)
 }
 
 /**
- * Get the sibling of a k-bucket.
- */
-static inline struct kbucket *
-sibling_of(const struct kbucket *kb)
-{
-	struct kbucket *parent = kb->parent;
-
-	if (!parent)
-		return deconstify_gpointer(kb);		/* Root is its own sibling */
-
-	return (parent->one == kb) ? parent->zero : parent->one;
-}
-
-/**
- * Is the bucket under the tree spanned by the parent?
- */
-static gboolean
-is_under(const struct kbucket *kb, const struct kbucket *parent)
-{
-	if (parent->depth >= kb->depth)
-		return FALSE;
-
-	return kuid_match_nth(&kb->prefix, &parent->prefix, parent->depth);
-}
-
-/**
- * Is the bucket in our closest subtree?
- */
-static gboolean
-is_among_our_closest(const struct kbucket *kb)
-{
-	struct kbucket *kours;
-
-	g_assert(kb);
-
-	kours = dht_find_bucket(our_kuid);
-
-	g_assert(kours);
-
-	if (NULL == kours->parent) {
-		g_assert(kours == root);	/* Must be the sole instance */
-		g_assert(kb == root);
-		g_assert(kb->ours);
-
-		return TRUE;
-	}
-
-	g_assert(kours->parent);
-
-	if (is_under(kb, kours->parent)) {
-		struct kbucket *sibling;
-
-		/*
-		 * The bucket we're trying to split is under the same tree as the
-		 * parent of the leaf that would hold our node.
-		 */
-
-		if (kb->depth == kours->depth)
-			return TRUE;		/* This is the sibling of our bucket */
-
-		/*
-		 * See whether it is the bucket or its sibling that has a prefix
-		 * which is closer to our KUID: we can split only the closest one.
-		 */
-
-		sibling = sibling_of(kb);
-
-		switch (kuid_cmp3(our_kuid, &kb->prefix, &sibling->prefix)) {
-		case -1:	/* kb is the closest to our KUID */
-			return TRUE;
-		case +1:	/* the sibling is the closest to our KUID */
-			break;
-		default:
-			g_assert_not_reached();	/* Not possible, siblings are different */
-		}
-	}
-
-	return FALSE;
-}
-
-/**
- * Is the k-bucket splitable?
- */
-static gboolean
-is_splitable(const struct kbucket *kb)
-{
-	g_assert(is_leaf(kb));
-
-	if (kb->depth >= K_BUCKET_MAX_DEPTH)
-		return FALSE;		/* Reached the bottom of the tree */
-
-	if (kb->ours)
-		return TRUE;		/* We can always split our own bucket */
-
-	if (kb->depth + 1 - kb->split_depth < K_BUCKET_SUBDIVIDE)
-		return TRUE;		/* Extra subdivision for faster convergence */
-
-	/*
-	 * Now the tricky part: that of the closest subtree surrounding our node.
-	 * Since we want a perfect knowledge of all the nodes surrounding us,
-	 * we shall split buckets that are not in our space but are "close" to us.
-	 */
-
-	return is_among_our_closest(kb);
-}
-
-/**
  * Context for split_among()
  */
 struct node_balance {
@@ -1304,9 +1319,8 @@ dht_split_bucket(struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT splitting k-bucket %s (depth %d, %s ours, %s subtree)",
-			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not",
+		g_message("DHT splitting %s from %s subtree)",
+			kbucket_to_string(kb),
 			is_among_our_closest(kb) ? "closest" : "further");
 
 	kb->one = one = allocate_child(kb);
@@ -1407,10 +1421,8 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
 	stats.dirty = TRUE;
 
 	if (GNET_PROPERTY(dht_debug) > 2)
-		g_message("DHT added new node %s to k-bucket %s (depth %d, %s ours)",
-			knode_to_string(kn),
-			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not");
+		g_message("DHT added new node %s to %s",
+			knode_to_string(kn), kbucket_to_string(kb));
 
 	check_leaf_list_consistency(kb, hl, new);
 }
@@ -1598,12 +1610,9 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 			promote_pending_node(kb);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
-			g_message("DHT removed %s node %s from k-bucket %s "
-				"(depth %d, %s ours)",
+			g_message("DHT removed %s node %s from %s",
 				knode_status_to_string(tkn->status),
-				knode_to_string(tkn),
-				kuid_to_hex_string(&kb->prefix), kb->depth,
-				kb->ours ? "is" : "not");
+				knode_to_string(tkn), kbucket_to_string(kb));
 
 		forget_node(tkn);
 	}
@@ -1836,17 +1845,24 @@ record_node(knode_t *kn, gboolean traffic)
 
 	if (c_class_get_count(kn, kb) >= K_BUCKET_MAX_IN_NET) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT rejecting new %s at %s: too many hosts from same "
-				"class C net in bucket %s (depth %d)",
+			g_message("DHT rejecting new node %s at %s: "
+				"too many hosts from same class-C network in %s",
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
-				kuid_to_hex_string2(&kb->prefix), kb->depth);
+				kbucket_to_string(kb));
 		return;
 	}
 
-	dht_add_node_to_bucket(kn, kb, traffic);
+	/*
+	 * Call dht_record_activity() before attempting to add node to have
+	 * nicer logs: the "alive" flag will have been set when we stringify
+	 * the knode in the logs...
+	 */
+
 	if (traffic)
 		dht_record_activity(kn);
+
+	dht_add_node_to_bucket(kn, kb, traffic);
 }
 
 /**
@@ -1969,9 +1985,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	install_alive_check(kb);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT starting alive check on k-bucket %s (depth %d, %s ours)",
-			kuid_to_hex_string(&kb->prefix), kb->depth,
-			kb->ours ? "is" : "not");
+		g_message("DHT starting alive check on %s (good: %u, stale: %u)",
+			kbucket_to_string(kb),
+			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE));
 
 	/*
 	 * Ping only the good contacts from which we haven't heard since the
