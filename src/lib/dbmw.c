@@ -321,6 +321,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 
 	g_assert(!hash_list_contains(dw->keys, key, NULL));
 	g_assert(!map_contains(dw->values, key));
+	g_assert(!filled || (!filled->len == !filled->data));
 
 	saved_key = walloc(dw->key_size);
 	memcpy(saved_key, key, dw->key_size);
@@ -391,6 +392,8 @@ fill_entry(struct cached *entry, gpointer value, size_t length)
 	}
 
 	entry->dirty = TRUE;
+
+	g_assert(!entry->len == !entry->data);
 }
 
 /**
@@ -656,8 +659,10 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	struct cached *entry = value;
 
 	g_assert(!entry->dirty);
+	g_assert(!entry->len == !entry->data);
 
-	wfree(entry->data, entry->len);
+	if (entry->len)
+		wfree(entry->data, entry->len);
 	wfree(key, dw->key_size);
 }
 
