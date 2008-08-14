@@ -91,6 +91,7 @@ RCSID("$Id$")
 #include "file_object.h"
 
 #include "lib/atoms.h"
+#include "lib/compat_pio.h"
 #include "lib/file.h"
 #include "lib/iovec.h"
 #include "lib/misc.h"
@@ -446,30 +447,11 @@ file_object_revoke(const char * const pathname)
  */
 ssize_t
 file_object_pwrite(const struct file_object * const fo,
-	const void * const data, const size_t size, const filesize_t pos)
-#ifdef HAS_PWRITE
+	const void * const data, const size_t size, const filesize_t offset)
 {
-	off_t offset;
-
 	file_object_check(fo);
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
-		errno = EINVAL;
-		return -1;
-	} else {
-		return pwrite(fo->fd, data, size, offset);
-	}
+	return compat_pwrite(fo->fd, data, size, offset);
 }
-#else	/* !HAS_PWRITE */
-{
-	struct iovec iov;
-
-	file_object_check(fo);
-	iov = iov_get(deconstify_gpointer(data), size);
-	return file_object_pwritev(fo, &iov, 1, pos);
-}
-#endif	/* HAS_PWRITE */
-
 
 /**
  * Write the given data to a file object at the given offset.
@@ -484,51 +466,14 @@ file_object_pwrite(const struct file_object * const fo,
  */
 ssize_t
 file_object_pwritev(const struct file_object * const fo,
-	const struct iovec * const iov, const int iov_cnt, const filesize_t pos)
-#ifdef HAS_PWRITEV
+	const struct iovec * const iov, const int iov_cnt, const filesize_t offset)
 {
-	off_t offset;
-
 	file_object_check(fo);
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
-		errno = EINVAL;
-		return -1;
-	} else {
-		return pwritev(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
-	}
+	return compat_pwritev(fo->fd, iov, iov_cnt, offset);
 }
-#else	/* !HAS_PWRITEV */
-{
-	ssize_t ret;
-
-	file_object_check(fo);
-	g_assert(iov);
-	g_assert(iov_cnt > 0);
-
-#ifdef HAS_PWRITE
-	if (1 == iov_cnt) {
-		return file_object_pwrite(fo, iov->iov_base, iov->iov_len, pos);
-	}
-#endif /* HAS_PWRITE */
-	
-	if (0 != seek_to_filepos(fo->fd, pos)) {
-		int saved_errno = errno;
-
-		g_warning("failed to seek at offset %s (%s) for \"%s\" ",
-			uint64_to_string(pos), g_strerror(errno), fo->pathname);
-
-		errno = saved_errno;
-		ret = -1;
-	} else {
-		ret = writev(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-	}
-	return ret;
-}
-#endif	/* HAS_PWRITEV */
 
 /**
  * Read data from the file object from the given offset.
@@ -543,30 +488,11 @@ file_object_pwritev(const struct file_object * const fo,
  */
 ssize_t
 file_object_pread(const struct file_object * const fo,
-	void * const data, const size_t size, const filesize_t pos)
-#ifdef HAS_PREAD
+	void * const data, const size_t size, const filesize_t offset)
 {
-	off_t offset;
-
 	file_object_check(fo);
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
-		errno = EINVAL;
-		return -1;
-	} else {
-		return pread(fo->fd, data, size, offset);
-	}
+	return compat_pread(fo->fd, data, size, offset);
 }
-#else	/* !HAS_PREAD */
-{
-	struct iovec iov;
-
-	file_object_check(fo);
-	iov = iov_get(data, size);
-	return file_object_preadv(fo, &iov, 1, pos);
-}
-#endif	/* HAS_PREAD */
-
 
 /**
  * Read data from a file object from the given offset.
@@ -581,52 +507,14 @@ file_object_pread(const struct file_object * const fo,
  */
 ssize_t
 file_object_preadv(const struct file_object * const fo,
-	struct iovec * const iov, const int iov_cnt, const filesize_t pos)
-#ifdef HAS_PREADV
+	struct iovec * const iov, const int iov_cnt, const filesize_t offset)
 {
-	off_t offset;
-
 	file_object_check(fo);
 	g_assert(iov);
 	g_assert(iov_cnt > 0);
 
-	offset = filesize_to_off_t(pos);
-	if ((off_t) -1 == offset) {
-		errno = EINVAL;
-		return -1;
-	} else {
-		return preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
-	}
+	return compat_preadv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT), offset);
 }
-#else	/* !HAS_PREADV */
-{
-	ssize_t ret;
-
-	file_object_check(fo);
-	g_assert(iov);
-	g_assert(iov_cnt > 0);
-
-#ifdef HAS_PREAD
-	if (1 == iov_cnt) {
-		return file_object_pread(fo, iov->iov_base, iov->iov_len, pos);
-	}
-#endif /* HAS_PREAD */
-
-	if (0 != seek_to_filepos(fo->fd, pos)) {
-		int saved_errno = errno;
-
-		g_warning("failed to seek at offset %s (%s) for \"%s\" ",
-			uint64_to_string(pos), g_strerror(errno), fo->pathname);
-
-		errno = saved_errno;
-		ret = -1;
-	} else {
-		ret = readv(fo->fd, iov, MIN(iov_cnt, MAX_IOV_COUNT));
-	}
-	return ret;
-}
-#endif	/* HAS_PREADV */
-
 
 /**
  * Get the file descriptor associated with a file object. This should
