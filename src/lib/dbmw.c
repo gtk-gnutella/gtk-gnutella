@@ -146,7 +146,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	g_assert(key_size);
 	g_assert(value_size);
-	g_assert(key_size + value_size < PAIRMAX);	/* SDBM constraint */
+	g_assert(sdbm_is_storable(key_size, value_size));	/* SDBM constraint */
 	g_assert((pack != NULL) == (unpack != NULL));
 	g_assert(dm);
 	g_assert(dbmap_key_size(dm) == key_size);

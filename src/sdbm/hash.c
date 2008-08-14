@@ -19,16 +19,16 @@
  *      65587   even better. 
  */
 long
-sdbm_hash(register char *str, register int len)
+sdbm_hash(const char *s, int len)
 {
-	register unsigned long n = 0;
+	unsigned long n = 0;
 
-#ifdef DUFF
-
-#define HASHC	n = *str++ + 65599 * n
+#define HASHC	n = (unsigned char) *s++ + 65599UL * n
 
 	if (len > 0) {
-		register int loop = (len + 8 - 1) >> 3;
+#ifdef DUFF
+
+		int loop = ((unsigned int) len + 8 - 1) >> 3;
 
 		switch(len & (8 - 1)) {
 		case 0:	do {
@@ -36,13 +36,14 @@ sdbm_hash(register char *str, register int len)
 		case 6:	HASHC;	case 5:	HASHC;
 		case 4:	HASHC;	case 3:	HASHC;
 		case 2:	HASHC;	case 1:	HASHC;
-			} while (--loop);
+			} while (--loop > 0);
 		}
 
-	}
 #else
-	while (len--)
-		n = *str++ + 65599 * n;
+		do {
+			HASHC;
+		} while (--len > 0);
 #endif
+	}
 	return n;
 }

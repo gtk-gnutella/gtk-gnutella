@@ -8,43 +8,18 @@
 #ifndef _sdbm_h_
 #define _sdbm_h_
 
-#define DBLKSIZ 4096
-#define PBLKSIZ 1024
-#define PAIRMAX 1008			/* arbitrary on PBLKSIZ-N */
-#define SPLTMAX	10			/* maximum allowed splits */
+#define DBM_DBLKSIZ 4096
+#define DBM_PBLKSIZ 1024
+#define DBM_PAIRMAX 1008		/* arbitrary on PBLKSIZ-N */
+#define DBM_SPLTMAX	10		/* maximum allowed splits */
 					/* for a single insertion */
-#define DIRFEXT	".dir"
-#define PAGFEXT	".pag"
+#define DBM_DIRFEXT	".dir"
+#define DBM_PAGFEXT	".pag"
 
-typedef struct {
-	int dirf;		       /* directory file descriptor */
-	int pagf;		       /* page file descriptor */
-	int flags;		       /* status/error flags, see below */
-	long maxbno;		       /* size of dirfile in bits */
-	long curbit;		       /* current bit number */
-	long hmask;		       /* current hash mask */
-	long blkptr;		       /* current block for nextkey */
-	int keyptr;		       /* current key for nextkey */
-	long blkno;		       /* current page to read/write */
-	long pagbno;		       /* current page in pagbuf */
-	char pagbuf[PBLKSIZ];	       /* page file block buffer */
-	long dirbno;		       /* current block in dirbuf */
-	char dirbuf[DBLKSIZ];	       /* directory file block buffer */
-} DBM;
+typedef struct DBM DBM;
 
 #define DBM_RDONLY	0x1	       /* data base open read-only */
 #define DBM_IOERR	0x2	       /* data base I/O error */
-
-/*
- * utility macros
- */
-#define sdbm_rdonly(db)		((db)->flags & DBM_RDONLY)
-#define sdbm_error(db)		((db)->flags & DBM_IOERR)
-
-#define sdbm_clearerr(db)	((db)->flags &= ~DBM_IOERR)  /* ouch */
-
-#define sdbm_dirfno(db)	((db)->dirf)
-#define sdbm_pagfno(db)	((db)->pagf)
 
 typedef struct {
 	char *dptr;
@@ -52,12 +27,6 @@ typedef struct {
 } datum;
 
 extern const datum nullitem;
-
-#if defined(__STDC__) || defined(__cplusplus) || defined(CAN_PROTOTYPE)
-#define proto(p) p
-#else
-#define proto(p) ()
-#endif
 
 /*
  * flags to sdbm_store
@@ -68,20 +37,25 @@ extern const datum nullitem;
 /*
  * ndbm interface
  */
-extern DBM *sdbm_open(char *, int, int);
-extern void sdbm_close(DBM *);
-extern datum sdbm_fetch(DBM *, datum);
-extern int sdbm_delete(DBM *, datum);
-extern int sdbm_store(DBM *, datum, datum, int);
-extern datum sdbm_firstkey(DBM *);
-extern datum sdbm_nextkey(DBM *);
-extern int sdbm_exists(DBM *, datum);
+DBM *sdbm_open(const char *, int, int);
+void sdbm_close(DBM *);
+datum sdbm_fetch(DBM *, datum);
+int sdbm_delete(DBM *, datum);
+int sdbm_store(DBM *, datum, datum, int);
+datum sdbm_firstkey(DBM *);
+datum sdbm_nextkey(DBM *);
+int sdbm_exists(DBM *, datum);
 
 /*
  * other
  */
-extern DBM *sdbm_prep(char *, char *, int, int);
-extern long sdbm_hash(char *, int);
+DBM *sdbm_prep(const char *, const char *, int, int);
+long sdbm_hash(const char *, int);
+int sdbm_rdonly(DBM *);
+int sdbm_error(DBM *);
+void sdbm_clearerr(DBM *);
+int sdbm_dirfno(DBM *);
+int sdbm_pagfno(DBM *);
+int sdbm_is_storable(size_t, size_t);
 
-#endif
-
+#endif /* _sdbm_h_ */

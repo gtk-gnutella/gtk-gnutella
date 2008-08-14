@@ -598,7 +598,8 @@ dbmap_free_all_keys(const dbmap_t *dm, GSList *keys)
 	g_slist_free(keys);
 }
 
-static void unlink_sdbm(const char *file)
+static void
+unlink_sdbm(const char *file)
 {
 	if (-1 == unlink(file))
 		g_warning("cannot unlink SDBM file %s: %s", file, g_strerror(errno));
@@ -613,8 +614,8 @@ dbmap_unlink_sdbm(const char *base)
 	char *dir_file;
 	char *pag_file;
 
-	dir_file = g_strconcat(base, DIRFEXT, NULL);
-	pag_file = g_strconcat(base, PAGFEXT, NULL);
+	dir_file = g_strconcat(base, DBM_DIRFEXT, NULL);
+	pag_file = g_strconcat(base, DBM_PAGFEXT, NULL);
 
 	unlink_sdbm(dir_file);
 	unlink_sdbm(pag_file);
