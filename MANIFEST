@@ -541,6 +541,8 @@ src/lib/bstr.c
 src/lib/bstr.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/compat_pio.c
+src/lib/compat_pio.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
 src/lib/cq.c

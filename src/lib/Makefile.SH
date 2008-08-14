@@ -94,6 +94,7 @@ LSRC = \
 	bg.c \
 	bstr.c \
 	cobs.c \
+	compat_pio.c \
 	compat_sleep_ms.c \
 	cq.c \
 	crash.c \
@@ -168,6 +169,7 @@ LOBJ = \
 	bg.o \
 	bstr.o \
 	cobs.o \
+	compat_pio.o \
 	compat_sleep_ms.o \
 	cq.o \
 	crash.o \
