@@ -800,7 +800,7 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 }
 
 /**
- * Issue a bucket refresh.
+ * Issue a bucket refresh, if needed.
  */
 static void
 dht_bucket_refresh(struct kbucket *kb)
@@ -817,7 +817,20 @@ dht_bucket_refresh(struct kbucket *kb)
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT not fully bootstrapped, denying refresh of %s",
 				kbucket_to_string(kb));
+		return;
+	}
 
+	/*
+	 * If we are a full non-splitable bucket, we will gain nothing by issueing
+	 * a node lookup: if we get more hosts, they will not replace the good
+	 * ones we have, and the bucket will not get split.  Save bandwidth and
+	 * rely on periodic aliveness checks to spot stale nodes..
+	 */
+
+	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT denying refresh of non-splitable full %s",
+				kbucket_to_string(kb));
 		return;
 	}
 
