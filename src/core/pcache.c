@@ -625,6 +625,19 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
 
+	/*
+	 * If the DHT is up and running and we're not firewalled, send an
+	 * indication.  These tagged pongs are used by hosts to bootstrap
+	 * their DHT routing table and join.
+	 */
+
+	if (!GNET_PROPERTY(is_udp_firewalled) && dht_bootstrapped()) {
+		local_meta.dht_major = KDA_VERSION_MAJOR;
+		local_meta.dht_minor = KDA_VERSION_MINOR;
+		local_meta.dht_flags = 0;	/* We don't send if firewalled */
+		local_meta.flags |= PONG_META_HAS_DHT;
+	}
+
 	local_meta.flags |= tls_enabled() ? PONG_META_HAS_TLS : 0;
 
 	send_pong(n, control, flags, 0,
