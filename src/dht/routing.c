@@ -226,7 +226,7 @@ other_size_free(struct other_size *os)
 {
 	g_assert(os);
 
-	kuid_atom_free(os->id);
+	kuid_atom_free_null(&os->id);
 	wfree(os, sizeof *os);
 }
 
@@ -2554,10 +2554,7 @@ dht_route_close(void)
 
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
-	if (our_kuid) {
-		kuid_atom_free(our_kuid);
-		our_kuid = NULL;
-	}
+	kuid_atom_free_null(&our_kuid);
 	if (stats.other_size) {
 		hash_list_foreach(stats.other_size, other_size_free_cb, NULL);
 		hash_list_free(&stats.other_size);

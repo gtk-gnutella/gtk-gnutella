@@ -68,7 +68,7 @@ typedef enum {
  */
 typedef struct {
 	const knode_t *creator;	/**< The creator of the value */
-	const kuid_t *id;		/**< The key of the value (atom) */
+	kuid_t *id;				/**< The key of the value (atom) */
 	dht_value_type_t type;	/**< Type of values */
 	guint8 major;			/**< Value's major version */
 	guint8 minor;			/**< Value's minor version */

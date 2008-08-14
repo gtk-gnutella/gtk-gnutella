@@ -667,13 +667,8 @@ keys_update_kball(void)
 		size_t fbits;
 		size_t cbits;
 
-		if (kball.furthest)
-			kuid_atom_free(kball.furthest);
-		kball.furthest = kuid_get_atom(furthest->id);
-
-		if (kball.closest)
-			kuid_atom_free(kball.closest);
-		kball.closest = kuid_get_atom(closest->id);
+		kuid_atom_change(&kball.furthest, furthest->id);
+		kuid_atom_change(&kball.closest, closest->id);
 
 		fbits = common_leading_bits(kball.furthest, KUID_RAW_BITSIZE,
 			our_kuid, KUID_RAW_BITSIZE);
@@ -750,7 +745,7 @@ keys_free_kv(gpointer u_key, size_t u_size, gpointer val, gpointer u_x)
 
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
-	kuid_atom_free(ki->kuid);
+	kuid_atom_free_null(&ki->kuid);
 	wfree(ki, sizeof *ki);
 }
 
@@ -769,12 +764,8 @@ keys_close(void)
 		keys = NULL;
 	}
 
-	if (kball.furthest)
-		kuid_atom_free(kball.furthest);
-	kball.furthest = NULL;
-	if (kball.closest)
-		kuid_atom_free(kball.closest);
-	kball.closest = NULL;
+	kuid_atom_free_null(&kball.furthest);
+	kuid_atom_free_null(&kball.closest);
 
 	cq_cancel(callout_queue, &load_ev);
 	cq_cancel(callout_queue, &kball_ev);

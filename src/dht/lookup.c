@@ -280,7 +280,7 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 	patricia_foreach(nl->ball, free_knode_pt, NULL);
 
 	cq_cancel(callout_queue, &nl->expire_ev);
-	kuid_atom_free(nl->kuid);
+	kuid_atom_free_null(&nl->kuid);
 	patricia_destroy(nl->shortlist);
 	map_destroy(nl->queried);
 	patricia_destroy(nl->path);

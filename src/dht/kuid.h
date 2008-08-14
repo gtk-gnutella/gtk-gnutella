@@ -74,6 +74,21 @@ void kuid_flip_nth_leading_bit(kuid_t *res, int n);
 
 kuid_t *kuid_get_atom(const kuid_t *id);
 void kuid_atom_free(const kuid_t *k);
+static inline void
+kuid_atom_free_null(struct kuid **k_ptr)
+{
+	if (*k_ptr) {
+		kuid_atom_free(*k_ptr);
+		*k_ptr = NULL;
+	}
+}
+static inline void
+kuid_atom_change(struct kuid **atom_ptr, const struct kuid *value)
+{
+	void *atom = value ? kuid_get_atom(value) : NULL;
+	kuid_atom_free_null(atom_ptr);
+	*atom_ptr = atom;
+}
 
 void kuid_zero(kuid_t *res);
 void kuid_set32(kuid_t *res, guint32 val);

@@ -281,7 +281,7 @@ dht_value_free(dht_value_t *v)
 	g_assert(v);
 
 	knode_free(deconstify_gpointer(v->creator));
-	kuid_atom_free(v->id);
+	kuid_atom_free_null(&v->id);
 	if (v->data) {
 		g_assert(v->length && v->length <= VALUE_MAX_LEN);
 		wfree(deconstify_gpointer(v->data), v->length);

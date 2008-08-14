@@ -275,7 +275,7 @@ knode_dispose(knode_t *kn)
 	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kn->refcnt == 0);
 
-	kuid_atom_free(kn->id);
+	kuid_atom_free_null(&kn->id);
 	wfree(kn, sizeof *kn);
 }
 

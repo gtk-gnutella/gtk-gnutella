@@ -1156,7 +1156,7 @@ cleanup:
 		for (i = 0; i < count; i++) {
 			if (!secondary[i])
 				break;
-			kuid_atom_free(secondary[i]);
+			kuid_atom_free_null(&secondary[i]);
 		}
 		wfree(secondary, count * sizeof(secondary[0]));
 	}
