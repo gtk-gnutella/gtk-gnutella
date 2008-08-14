@@ -199,5 +199,35 @@ poke_le64(gpointer p, guint64 v)
 	return &q[sizeof v];
 }
 
+static inline gpointer
+poke_float_be32(gpointer p, float v)
+{
+	guint32 tmp;
+
+	STATIC_ASSERT(sizeof(float) == 4);
+
+	/* XXX needs metaconfig check */
+	/* XXX assumes integer byte order is float byte order (true on i386) */
+	/* XXX IEC 60559/IEEE 754 floating point single-precision (32-bit) */
+	memcpy(&tmp, &v, 4);
+	return poke_be32(p, tmp);
+}
+
+static inline float
+peek_float_be32(gconstpointer p)
+{
+	guint32 tmp;
+	float v;
+
+	STATIC_ASSERT(sizeof(float) == 4);
+
+	/* XXX needs metaconfig check */
+	/* XXX assumes integer byte order is float byte order (true on i386) */
+	/* XXX IEC 60559/IEEE 754 floating point single-precision (32-bit) */
+	tmp = peek_be32(p);
+	memcpy(&v, &tmp, 4);
+	return v;
+}
+
 #endif /* _endian_h_ */
 /* vi: set ts=4 sw=4 cindent: */

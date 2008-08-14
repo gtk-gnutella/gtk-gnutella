@@ -389,24 +389,7 @@ pmsg_write_float_be(pmsg_t *mb, float val)
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 4);
 
-	STATIC_ASSERT(sizeof(float) == 4);
-
-	/* XXX needs metaconfig check */
-	/* XXX assumes integer byte order is float byte order (true on i386) */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-	memcpy(mb->m_wptr, &val, 4);
-	mb->m_wptr += 4;
-#else
-	{
-		guint8 tmp[4];
-		memcpy(tmp, &val, 4);
-
-		*(guint8 *) mb->m_wptr++ = tmp[3];
-		*(guint8 *) mb->m_wptr++ = tmp[2];
-		*(guint8 *) mb->m_wptr++ = tmp[1];
-		*(guint8 *) mb->m_wptr++ = tmp[0];
-	}
-#endif
+	mb->m_wptr = poke_float_be32(mb->m_wptr, val);
 }
 
 void pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr);

@@ -408,7 +408,8 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean bstr_read_boolean(bstr_t *bs, gboolean *pv)
+gboolean
+bstr_read_boolean(bstr_t *bs, gboolean *pv)
 {
 	if (!expect(bs, 1, "bstr_read_boolean"))
 		return FALSE;
@@ -526,24 +527,8 @@ bstr_read_float_be(bstr_t *bs, float *pv)
 	if (!expect(bs, 4, "bstr_read_float"))
 		return FALSE;
 
-	STATIC_ASSERT(sizeof(float) == 4);
-
-	/* XXX needs metaconfig check */
-	/* XXX assumes integer byte order is float byte order (true on i386) */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
-	memcpy(pv, bs->rptr, 4);
+	*pv = peek_float_be32(bs->rptr);
 	bs->rptr += 4;
-#else
-	{
-		guint8 tmp[4];
-
-		tmp[3] = *(guint8 *) bs->rptr++;
-		tmp[2] = *(guint8 *) bs->rptr++;
-		tmp[1] = *(guint8 *) bs->rptr++;
-		tmp[0] = *(guint8 *) bs->rptr++;
-		memcpy(pv, tmp, 4);
-	}
-#endif
 
 	return TRUE;
 }
