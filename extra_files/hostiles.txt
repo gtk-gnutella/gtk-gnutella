@@ -1332,6 +1332,14 @@
 #74.206.224.0/28
 74.206.224.0/19
 
+# Barton Media network
+# Stabu iela 59/16, Riga, Latvia
+# LimeWire; port 20002
+# emits damaged(?) results with filename "wsvsmkepa" (1.8 GB)
+# * bittorrent download.zip
+# * [wyzo].zip
+69.10.33.232/29
+
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
 # point in not banning this range as well.
