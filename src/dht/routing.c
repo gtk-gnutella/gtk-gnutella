@@ -188,6 +188,160 @@ static void bucket_refresh(cqueue_t *cq, gpointer obj);
 static void dht_route_retrieve(void);
 static struct kbucket *dht_find_bucket(const kuid_t *id);
 
+/*
+ * Define DEBUGGING only to enable more costly run-time assertions which
+ * make all hash list insertions O(n), basically.
+ */
+#undef DEBUGGING
+
+/**
+ * Is bucket a leaf?
+ */
+static gboolean
+is_leaf(const struct kbucket *kb)
+{
+	g_assert(kb);
+
+	return kb->nodes && NULL == kb->zero && NULL == kb->one;
+}
+
+/**
+ * Compute the hash list storing nodes with a given status.
+ */
+static inline hash_list_t *
+list_for(const struct kbucket *kb, knode_status_t status)
+{
+	g_assert(kb);
+	g_assert(kb->nodes);
+
+	switch (status) {
+	case KNODE_GOOD:
+		return kb->nodes->good;
+	case KNODE_STALE:
+		return kb->nodes->stale;
+	case KNODE_PENDING:
+		return kb->nodes->pending;
+	case KNODE_UNKNOWN:
+		g_error("invalid state passed to list_for()");
+	}
+
+	/* NOTREACHED */
+	return NULL;
+}
+
+/**
+ * Compute how many nodes the leaf k-bucket contains for the given status.
+ */
+static guint
+list_count(const struct kbucket *kb, knode_status_t status)
+{
+	hash_list_t *hl;
+
+	g_assert(kb);
+	g_assert(is_leaf(kb));
+
+	hl = list_for(kb, status);
+
+	return hash_list_length(hl);
+}
+
+/**
+ * Compute how mnay nodes are held with a given status under all the leaves
+ * of the k-bucket.
+ */
+static guint
+recursive_list_count(const struct kbucket *kb, knode_status_t status)
+{
+	if (kb->nodes)
+		return list_count(kb, status);
+
+	g_assert(kb->zero != NULL);
+	g_assert(kb->one != NULL);
+
+	return
+		recursive_list_count(kb->zero, status) +
+		recursive_list_count(kb->one, status);
+}
+
+/**
+ * Maximum size allowed for the lists of a given status.
+ */
+static inline size_t
+list_maxsize_for(knode_status_t status)
+{
+	switch (status) {
+	case KNODE_GOOD:
+		return K_BUCKET_GOOD;
+	case KNODE_STALE:
+		return K_BUCKET_STALE;
+	case KNODE_PENDING:
+		return K_BUCKET_PENDING;
+	case KNODE_UNKNOWN:
+		g_error("invalid state passed to list_maxsize_for()");
+	}
+
+	/* NOTREACHED */
+	return 0;
+}
+
+/**
+ * Update statistics for status change.
+ */
+static inline void
+list_update_stats(knode_status_t status, int delta)
+{
+	switch (status) {
+	case KNODE_GOOD:
+		stats.good += delta;
+		if (delta)
+			stats.dirty = TRUE;
+		break;
+	case KNODE_STALE:
+		stats.stale += delta;
+		break;
+	case KNODE_PENDING:
+		stats.pending += delta;
+		break;
+	case KNODE_UNKNOWN:
+		g_error("invalid state passed to list_update_stats()");
+	}
+
+	/* NOTREACHED */
+}
+
+#ifdef DEBUGGING
+/**
+ * Check bucket list consistency.
+ */
+static void
+check_leaf_list_consistency(
+	const struct kbucket *kb, hash_list_t *hl, knode_status_t status)
+{
+	GList *nodes;
+	GList *l;
+	guint count = 0;
+
+	g_assert(kb->nodes);
+	g_assert(list_for(kb, status) == hl);
+
+	nodes = hash_list_list(hl);
+
+	for (l = nodes; l; l = g_list_next(l)) {
+		knode_t *kn = l->data;
+
+		g_assert(KNODE_MAGIC == kn->magic);
+		g_assert(kn->status == status);
+		count++;
+	}
+
+	g_assert(count == hash_list_length(hl));
+
+	g_list_free(nodes);
+}
+#else
+#define check_leaf_list_consistency(a, b, c)
+#endif	/* DEBUGGING */
+
 /**
  * Get our KUID.
  */
@@ -237,6 +391,7 @@ static void
 allocate_node_lists(struct kbucket *kb)
 {
 	g_assert(kb);
+	g_assert(kb->nodes == NULL);
 
 	kb->nodes = walloc(sizeof *kb->nodes);
 
@@ -247,17 +402,52 @@ allocate_node_lists(struct kbucket *kb)
 	kb->nodes->c_class = acct_net_create();
 	kb->nodes->last_lookup = 0;
 	kb->nodes->aliveness = NULL;
+	kb->nodes->refresh = NULL;
+}
+
+/**
+ * Forget node previously held in the routing table.
+ *
+ * Used to reset the status before freeing the node, to be able to assert
+ * that no node from the routing table can be freed outside this file.
+ */
+static void
+forget_node(knode_t *kn)
+{
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(kn->status != KNODE_UNKNOWN);
+	g_assert(kn->refcnt > 0);
+
+	kn->flags &= ~KNODE_F_ALIVE;
+	kn->status = KNODE_UNKNOWN;
+	knode_free(kn);
 }
 
 /**
  * Hash list iterator callback.
  */
 static void
-knode_refcnt_dec(gpointer knode, gpointer unused_data)
+forget_hashlist_node(gpointer knode, gpointer unused_data)
 {
 	knode_t *kn = knode;
 
 	(void) unused_data;
+
+	/*
+	 * We do not use forget_node() here because freeing of a bucket's hash
+	 * list can only happen at two well-defined times: after a bucket split
+	 * (to release the parent node) or when the DHT is shutting down.
+	 *
+	 * In both cases (and surely in the first one), it can happen that the
+	 * nodes are still referenced somewhere else, and still need to be
+	 * ref-uncounted, leaving all other attributes as-is.  Unless the node
+	 * is going to be disposed of, at which time we must force the status
+	 * to KNODE_UNKNOWN for knode_dispose().
+	 */
+
+	if (1 == kn->refcnt)
+		kn->status = KNODE_UNKNOWN;
+
 	knode_free(kn);
 }
 
@@ -269,7 +459,7 @@ free_node_hashlist(hash_list_t *hl)
 {
 	g_assert(hl != NULL);
 
-	hash_list_foreach(hl, knode_refcnt_dec, NULL);
+	hash_list_foreach(hl, forget_hashlist_node, NULL);
 	hash_list_free(&hl);
 }
 
@@ -284,45 +474,33 @@ free_node_lists(struct kbucket *kb)
 	if (kb->nodes) {
 		struct kbnodes *knodes = kb->nodes;
 
-		if (knodes->good != NULL) {
-			free_node_hashlist(knodes->good);
-			knodes->good = NULL;
-		}
-		if (knodes->stale != NULL) {
-			free_node_hashlist(knodes->stale);
-			knodes->stale = NULL;
-		}
-		if (knodes->pending != NULL) {
-			free_node_hashlist(knodes->pending);
-			knodes->pending = NULL;
-		}
-		if (knodes->all != NULL) {
-			/*
-			 * All the nodes listed in that table were actually also held in
-			 * one of the above hash lists.  Since we expect those lists to
-			 * all be empty, it means this table should also be empty.
-			 */
+		check_leaf_list_consistency(kb, knodes->good, KNODE_GOOD);
+		check_leaf_list_consistency(kb, knodes->stale, KNODE_STALE);
+		check_leaf_list_consistency(kb, knodes->pending, KNODE_PENDING);
 
-			g_hash_table_destroy(knodes->all);
-			knodes->all = NULL;
-		}
+		/* These cannot be NULL when kb->nodes is allocated */
+		free_node_hashlist(knodes->good);
+		free_node_hashlist(knodes->stale);
+		free_node_hashlist(knodes->pending);
+		knodes->good = knodes->stale = knodes->pending = NULL;
+
+		g_assert(knodes->all != NULL);
+
+		/*
+		 * All the nodes listed in that table were actually also held in
+		 * one of the above hash lists.  Since we expect those lists to
+		 * all be empty, it means this table is now referencing freed objects.
+		 */
+
+		g_hash_table_destroy(knodes->all);
+		knodes->all = NULL;
+
 		acct_net_free(&knodes->c_class);
 		cq_cancel(callout_queue, &knodes->aliveness);
 		cq_cancel(callout_queue, &knodes->refresh);
 		wfree(knodes, sizeof *knodes);
 		kb->nodes = NULL;
 	}
-}
-
-/**
- * Is bucket a leaf?
- */
-static gboolean
-is_leaf(const struct kbucket *kb)
-{
-	g_assert(kb);
-
-	return kb->nodes && NULL == kb->zero && NULL == kb->one;
 }
 
 /**
@@ -851,110 +1029,6 @@ found:
 }
 
 /**
- * Compute the hash list storing nodes with a given status.
- */
-static inline hash_list_t *
-list_for(struct kbucket *kb, knode_status_t status)
-{
-	g_assert(kb);
-	g_assert(kb->nodes);
-
-	switch (status) {
-	case KNODE_GOOD:
-		return kb->nodes->good;
-	case KNODE_STALE:
-		return kb->nodes->stale;
-	case KNODE_PENDING:
-		return kb->nodes->pending;
-	case KNODE_UNKNOWN:
-		g_error("invalid state passed to list_for()");
-	}
-
-	/* NOTREACHED */
-	return NULL;
-}
-
-/**
- * Compute how many nodes the leaf k-bucket contains for the given status.
- */
-static guint
-list_count(struct kbucket *kb, knode_status_t status)
-{
-	hash_list_t *hl;
-
-	g_assert(kb);
-	g_assert(is_leaf(kb));
-
-	hl = list_for(kb, status);
-
-	return hash_list_length(hl);
-}
-
-/**
- * Compute how mnay nodes are held with a given status under all the leaves
- * of the k-bucket.
- */
-static guint
-recursive_list_count(struct kbucket *kb, knode_status_t status)
-{
-	if (kb->nodes)
-		return list_count(kb, status);
-
-	g_assert(kb->zero != NULL);
-	g_assert(kb->one != NULL);
-
-	return
-		recursive_list_count(kb->zero, status) +
-		recursive_list_count(kb->one, status);
-}
-
-/**
- * Maximum size allowed for the lists of a given status.
- */
-static inline size_t
-list_maxsize_for(knode_status_t status)
-{
-	switch (status) {
-	case KNODE_GOOD:
-		return K_BUCKET_GOOD;
-	case KNODE_STALE:
-		return K_BUCKET_STALE;
-	case KNODE_PENDING:
-		return K_BUCKET_PENDING;
-	case KNODE_UNKNOWN:
-		g_error("invalid state passed to list_maxsize_for()");
-	}
-
-	/* NOTREACHED */
-	return 0;
-}
-
-/**
- * Update statistics for status change.
- */
-static inline void
-list_update_stats(knode_status_t status, int delta)
-{
-	switch (status) {
-	case KNODE_GOOD:
-		stats.good += delta;
-		if (delta)
-			stats.dirty = TRUE;
-		break;
-	case KNODE_STALE:
-		stats.stale += delta;
-		break;
-	case KNODE_PENDING:
-		stats.pending += delta;
-		break;
-	case KNODE_UNKNOWN:
-		g_error("invalid state passed to list_update_stats()");
-	}
-
-	/* NOTREACHED */
-}
-
-/**
  * Get number of class C networks identical to that of the node which are
  * already held in the k-bucket in any of the lists (good, pending, stale).
  */
@@ -998,10 +1072,22 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 }
 
 /**
+ * Total amount of nodes held in bucket (all lists).
+ */
+static guint
+bucket_count(const struct kbucket *kb)
+{
+	g_assert(kb->nodes);
+	g_assert(kb->nodes->all);
+
+	return g_hash_table_size(kb->nodes->all);
+}
+
+/**
  * Assert consistent lists in bucket.
  */
 static void
-check_leaf_bucket_consistency(struct kbucket *kb)
+check_leaf_bucket_consistency(const struct kbucket *kb)
 {
 	guint total;
 	guint good;
@@ -1010,52 +1096,16 @@ check_leaf_bucket_consistency(struct kbucket *kb)
 
 	g_assert(is_leaf(kb));
 
-	total = g_hash_table_size(kb->nodes->all);
+	total = bucket_count(kb);
 	good = hash_list_length(kb->nodes->good);
 	stale = hash_list_length(kb->nodes->stale);
 	pending = hash_list_length(kb->nodes->pending);
 
 	g_assert(good + stale + pending == total);
-}
 
-/**
- * Context for split_among()
- */
-struct node_balance {
-	struct kbucket *zero;
-	struct kbucket *one;
-	int byte;
-	guchar mask;
-};
-
-/**
- * Hash table iterator for bucket splitting.
- */
-static void
-split_among(gpointer key, gpointer value, gpointer user_data)
-{
-	kuid_t *id = key;
-	knode_t *kn = value;
-	struct node_balance *nb = user_data;
-	struct kbucket *target;
-	hash_list_t *hl;
-
-	g_assert(KNODE_MAGIC == kn->magic);
-
-	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
-
-	if (GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT splitting %s to bucket \"%s\" (depth %d, %s ours)",
-			knode_to_string(kn), target == nb->one ? "one" : "zero",
-			target->depth, target->ours ? "is" : "not");
-
-	hl = list_for(target, kn->status);
-
-	g_assert(hash_list_length(hl) < list_maxsize_for(kn->status));
-
-	hash_list_append(hl, knode_refcnt_inc(kn));
-	g_hash_table_insert(target->nodes->all, kn->id, kn);
-	c_class_update_count(kn, target, +1);
+	check_leaf_list_consistency(kb, kb->nodes->good, KNODE_GOOD);
+	check_leaf_list_consistency(kb, kb->nodes->stale, KNODE_STALE);
+	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 }
 
 /**
@@ -1166,13 +1216,74 @@ is_splitable(const struct kbucket *kb)
 }
 
 /**
+ * Context for split_among()
+ */
+struct node_balance {
+	struct kbucket *zero;
+	struct kbucket *one;
+	int byte;
+	guchar mask;
+};
+
+/**
+ * Hash table iterator for bucket splitting.
+ */
+static void
+split_among(gpointer key, gpointer value, gpointer user_data)
+{
+	kuid_t *id = key;
+	knode_t *kn = value;
+	struct node_balance *nb = user_data;
+	struct kbucket *target;
+	hash_list_t *hl;
+
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(id == kn->id);
+
+	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
+
+	if (GNET_PROPERTY(dht_debug) > 1)
+		g_message("DHT splitting %s to bucket \"%s\" (depth %d, %s ours)",
+			knode_to_string(kn), target == nb->one ? "one" : "zero",
+			target->depth, target->ours ? "is" : "not");
+
+	hl = list_for(target, kn->status);
+
+	g_assert(hash_list_length(hl) < list_maxsize_for(kn->status));
+
+	hash_list_append(hl, knode_refcnt_inc(kn));
+	g_hash_table_insert(target->nodes->all, kn->id, kn);
+	c_class_update_count(kn, target, +1);
+
+	check_leaf_list_consistency(target, hl, kn->status);
+}
+
+/**
+ * Allocate new child for bucket.
+ */
+static struct kbucket *
+allocate_child(struct kbucket *parent)
+{
+	struct kbucket *child;
+
+	child = walloc0(sizeof *child);
+	child->parent = parent;
+	child->prefix = parent->prefix;
+	child->depth = parent->depth + 1;
+	child->split_depth = parent->split_depth;
+	allocate_node_lists(child);
+	child->nodes->last_lookup = parent->nodes->last_lookup;
+
+	return child;
+}
+
+/**
  * Split k-bucket, dispatching the nodes it contains to the "zero" and "one"
  * children depending on their KUID bit at this depth.
  */
 static void
 dht_split_bucket(struct kbucket *kb)
 {
-	kuid_t buf;
 	struct kbucket *one, *zero;
 	int byte;
 	guchar mask;
@@ -1181,6 +1292,9 @@ dht_split_bucket(struct kbucket *kb)
 	g_assert(kb);
 	g_assert(kb->depth < K_BUCKET_MAX_DEPTH);
 	g_assert(is_leaf(kb));
+	check_leaf_list_consistency(kb, kb->nodes->good, KNODE_GOOD);
+	check_leaf_list_consistency(kb, kb->nodes->stale, KNODE_STALE);
+	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT splitting k-bucket %s (depth %d, %s ours, %s subtree)",
@@ -1188,29 +1302,13 @@ dht_split_bucket(struct kbucket *kb)
 			kb->ours ? "is" : "not",
 			is_among_our_closest(kb) ? "closest" : "further");
 
-	one = walloc0(sizeof *one);
-	one->parent = kb;
-	kb->one = one;
-	one->prefix = kb->prefix;
-	one->depth = kb->depth + 1;
-	one->split_depth = kb->split_depth;
-	allocate_node_lists(one);
-	one->nodes->last_lookup = kb->nodes->last_lookup;
-
-	zero = walloc0(sizeof *zero);
-	zero->parent = kb;
-	kb->zero = zero;
-	zero->prefix = kb->prefix;
-	zero->depth = kb->depth + 1;
-	zero->split_depth = kb->split_depth;
-	allocate_node_lists(zero);
-	zero->nodes->last_lookup = kb->nodes->last_lookup;
+	kb->one = one = allocate_child(kb);
+	kb->zero = zero = allocate_child(kb);
 
 	/*
 	 * See which one of our two children is within our tree.
 	 */
 
-	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 	kuid_position(kb->depth, &byte, &mask);
 
 	one->prefix.v[byte] |= mask;	/* This is "one", prefix for "zero" is 0 */
@@ -1260,6 +1358,9 @@ dht_split_bucket(struct kbucket *kb)
 	balance.mask = mask;
 
 	g_hash_table_foreach(kb->nodes->all, split_among, &balance);
+
+	g_assert(bucket_count(kb) == bucket_count(zero) + bucket_count(one));
+
 	free_node_lists(kb);			/* Parent bucket is now empty */
 
 	g_assert(NULL == kb->nodes);	/* No longer a leaf node */
@@ -1277,7 +1378,34 @@ dht_split_bucket(struct kbucket *kb)
 
 	if (stats.max_depth < kb->depth + 1)
 		stats.max_depth = kb->depth + 1;
+}
 
+/**
+ * Add node to k-bucket with proper status.
+ */
+static void
+add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
+{
+	hash_list_t *hl = list_for(kb, new);
+
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(KNODE_UNKNOWN == kn->status);
+	g_assert(hash_list_length(hl) < list_maxsize_for(new));
+	g_assert(new != KNODE_UNKNOWN);
+
+	kn->status = new;
+	hash_list_append(hl, knode_refcnt_inc(kn));
+	g_hash_table_insert(kb->nodes->all, kn->id, kn);
+	c_class_update_count(kn, kb, +1);
+	stats.dirty = TRUE;
+
+	if (GNET_PROPERTY(dht_debug) > 2)
+		g_message("DHT added new node %s to k-bucket %s (depth %d, %s ours)",
+			knode_to_string(kn),
+			kuid_to_hex_string(&kb->prefix), kb->depth,
+			kb->ours ? "is" : "not");
+
+	check_leaf_list_consistency(kb, hl, new);
 }
 
 /**
@@ -1296,27 +1424,13 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
-#define ADD_KNODE(l)										\
-G_STMT_START {												\
-	hash_list_append(kb->nodes->l, knode_refcnt_inc(kn));	\
-	g_hash_table_insert(kb->nodes->all, kn->id, kn);		\
-	c_class_update_count(kn, kb, +1);						\
-	if (GNET_PROPERTY(dht_debug) > 2)						\
-		g_message("DHT added %s node %s to k-bucket %s (depth %d, %s ours)", \
-			knode_status_to_string(kn->status),				\
-			knode_to_string(kn),							\
-			kuid_to_hex_string(&kb->prefix), kb->depth,		\
-			kb->ours ? "is" : "not");						\
-} G_STMT_END
-
 	/*
 	 * Not enough good entries for the bucket, add at tail of list
 	 * (most recently seen).
 	 */
 
 	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
-		kn->status = KNODE_GOOD;
-		ADD_KNODE(good);
+		add_node(kb, kn, KNODE_GOOD);
 		stats.good++;
 		goto done;
 	}
@@ -1335,8 +1449,7 @@ G_STMT_START {												\
 		kb = (kn->id->v[byte] & mask) ? kb->one : kb->zero;
 
 		if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
-			kn->status = KNODE_GOOD;
-			ADD_KNODE(good);
+			add_node(kb, kn, KNODE_GOOD);
 			stats.good++;
 			goto done;
 		}
@@ -1353,8 +1466,7 @@ G_STMT_START {												\
 	 */
 
 	if (traffic && hash_list_length(kb->nodes->pending) < K_BUCKET_PENDING) {
-		kn->status = KNODE_PENDING;
-		ADD_KNODE(pending);
+		add_node(kb, kn, KNODE_PENDING);
 		stats.pending++;
 	}
 
@@ -1383,6 +1495,7 @@ promote_pending_node(struct kbucket *kb)
 
 	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 		knode_t *selected = NULL;
+		time_t now = tm_time();
 
 		/*
 		 * Only promote a node that we know is not shutdowning.
@@ -1395,8 +1508,12 @@ promote_pending_node(struct kbucket *kb)
 			knode_t *kn = hash_list_iter_previous(iter);
 
 			g_assert(KNODE_MAGIC == kn->magic);
+			g_assert(KNODE_PENDING == kn->status);
 
-			if (!(kn->flags & KNODE_F_SHUTDOWNING)) {
+			if (
+				!(kn->flags & KNODE_F_SHUTDOWNING) &&
+				delta_time(now, kn->last_seen) < ALIVENESS_PERIOD
+			) {
 				selected = kn;
 				break;
 			}
@@ -1440,7 +1557,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
 
 	if (NULL == tkn)
-		goto done;
+		return;
 
 	/*
 	 * See dht_set_node_status() for comments about tkn and kn being
@@ -1482,10 +1599,9 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 				kuid_to_hex_string(&kb->prefix), kb->depth,
 				kb->ours ? "is" : "not");
 
-		knode_free(tkn);
+		forget_node(tkn);
 	}
 
-done:
 	check_leaf_bucket_consistency(kb);
 }
 
@@ -1534,17 +1650,11 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 
 	/*
 	 * If the node has been removed from the routing table already,
-	 * just update the status in memory and return.  That node should
-	 * get removed when the caller removes its reference.
-	 *
-	 * NOTE: It is possible for the node to still be referenced more than
-	 * once though, if it was selected for several RPCs.  When iterating
-	 * on a list of selected nodes, RPCs must check the status of the node
-	 * to possibly skip it if.
+	 * do NOT update the status, rather make sure it is still "unknown".
 	 */
 
 	if (!in_table) {
-		kn->status = new;
+		g_assert(kn->status == KNODE_UNKNOWN);
 		return;
 	}
 
@@ -1593,6 +1703,10 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	while (hash_list_length(hl) >= maxsize) {
 		knode_t *removed = hash_list_remove_head(hl);
 
+		g_assert(KNODE_MAGIC == removed->magic);
+		g_assert(removed->status == new);
+		g_assert(removed != tkn);
+
 		/*
 		 * If removing node from the "good" list, attempt to put it back
 		 * to the "pending" list to avoid dropping a good node alltogether.
@@ -1625,7 +1739,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 					kuid_to_hex_string(removed->id),
 					host_addr_port_to_string(removed->addr, removed->port));
 
-			knode_free(removed);
+			forget_node(removed);
 		}
 	}
 
@@ -1867,6 +1981,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		knode_t *kn = hash_list_iter_next(iter);
 
 		g_assert(KNODE_MAGIC == kn->magic);
+		g_assert(KNODE_GOOD == kn->status);
 
 		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
 			break;		/* List is sorted: least recently seen at the head */
@@ -2172,15 +2287,17 @@ distance_to(gconstpointer a, gconstpointer b, gpointer user_data)
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
  * @param exclude	the KUID to exclude (NULL if no exclusion)
+ * @param alive		whether we want only know-to-be-alive nodes
  *
  * @return the amount of entries filled in the vector.
  */
 static int
 fill_closest_in_bucket(
 	const kuid_t *id, struct kbucket *kb,
-	knode_t **kvec, int kcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
 {
-	GList *nodes;
+	GList *nodes = NULL;
+	GList *good;
 	GList *l;
 	int added;
 	int available = 0;
@@ -2193,30 +2310,27 @@ fill_closest_in_bucket(
 	 * If we can determine that we do not have enough good nodes in the bucket
 	 * to fill the vector, use also the stale nodes for which the "grace"
 	 * period since the timeout has passed. Finally, also consider "pending"
-	 * nodes if we really miss nodes (excluding shutdowning ones).
+	 * nodes if we really miss nodes (excluding shutdowning ones), provided
+	 * we got traffic from them recently (defined by the aliveness period).
 	 */
 
-	nodes = hash_list_list(kb->nodes->good);
-	available = hash_list_length(kb->nodes->good);
+	good = hash_list_list(kb->nodes->good);
 
-	/*
-	 * Exclude a KUID if asked.  It can appear once at most in the list!
-	 */
+	while (good) {
+		knode_t *kn = good->data;
 
-	if (exclude && nodes) {
-		GList *l2;
+		g_assert(KNODE_MAGIC == kn->magic);
+		g_assert(KNODE_GOOD == kn->status);
 
-		for (l2 = nodes; l2; l2 = g_list_next(l2)) {
-			knode_t *kn = l2->data;
-
-			g_assert(KNODE_MAGIC == kn->magic);
-
-			if (kuid_eq(kn->id, exclude)) {
-				nodes = g_list_remove(nodes, kn);
-				available--;
-				break;
-			}
+		if (
+			(!exclude || !kuid_eq(kn->id, exclude)) &&
+			(!alive || (kn->flags & KNODE_F_ALIVE))
+		) {
+			nodes = g_list_prepend(nodes, kn);
+			available++;
 		}
+
+		good = g_list_remove(good, kn);
 	}
 
 	if (available < kcnt) {
@@ -2226,10 +2340,12 @@ fill_closest_in_bucket(
 			knode_t *kn = stale->data;
 
 			g_assert(KNODE_MAGIC == kn->magic);
+			g_assert(KNODE_STALE == kn->status);
 
 			if (
 				knode_can_recontact(kn) &&
-				(!exclude || !kuid_eq(kn->id, exclude))
+				(!exclude || !kuid_eq(kn->id, exclude)) &&
+				(!alive || (kn->flags & KNODE_F_ALIVE))
 			) {
 				nodes = g_list_prepend(nodes, kn);
 				available++;
@@ -2241,15 +2357,18 @@ fill_closest_in_bucket(
 
 	if (available < kcnt) {
 		GList *pending = hash_list_list(kb->nodes->pending);
+		time_t now = tm_time();
 
 		while (pending) {
 			knode_t *kn = pending->data;
 
 			g_assert(KNODE_MAGIC == kn->magic);
+			g_assert(KNODE_PENDING == kn->status);
 
 			if (
 				!(kn->flags & KNODE_F_SHUTDOWNING) &&
-				(!exclude || !kuid_eq(kn->id, exclude))
+				(!exclude || !kuid_eq(kn->id, exclude)) &&
+				(!alive || delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
 			) {
 				nodes = g_list_prepend(nodes, kn);
 				available++;
@@ -2287,6 +2406,7 @@ fill_closest_in_bucket(
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
  * @param exclude	the KUID to exclude (NULL if no exclusion)
+ * @param alive		whether we want only know-to-be-alive nodes
  *
  * @return the amount of entries filled in the vector.
  */
@@ -2294,7 +2414,7 @@ static int
 recursively_fill_closest_from(
 	const kuid_t *id,
 	struct kbucket *kb,
-	knode_t **kvec, int kcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
 {
 	int byte;
 	guchar mask;
@@ -2305,7 +2425,7 @@ recursively_fill_closest_from(
 	g_assert(kb);
 
 	if (is_leaf(kb))
-		return fill_closest_in_bucket(id, kb, kvec, kcnt, exclude);
+		return fill_closest_in_bucket(id, kb, kvec, kcnt, exclude, alive);
 
 	kuid_position(kb->depth, &byte, &mask);
 
@@ -2317,11 +2437,12 @@ recursively_fill_closest_from(
 		closest = kb->zero;
 	}
 
-	added = recursively_fill_closest_from(id, closest, kvec, kcnt, exclude);
+	added = recursively_fill_closest_from(
+		id, closest, kvec, kcnt, exclude, alive);
 
 	if (added < kcnt)
 		added += recursively_fill_closest_from(id, sibling_of(closest),
-			kvec + added, kcnt - added, exclude);
+			kvec + added, kcnt - added, exclude, alive);
 
 	return added;
 }
@@ -2334,16 +2455,18 @@ recursively_fill_closest_from(
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
  * @param exclude	the KUID to exclude (NULL if no exclusion)
- *
+ * @param alive		whether we want only know-to-be-alive nodes
  * @return the amount of entries filled in the vector.
  */
 int
 dht_fill_closest(
 	const kuid_t *id,
-	knode_t **kvec, int kcnt, const kuid_t *exclude)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
 {
 	struct kbucket *kb;
 	int added;
+	int wanted = kcnt;			/* Remember for tracing only */
+	knode_t **base = kvec;		/* Idem */
 
 	g_assert(id);
 	g_assert(kcnt > 0);
@@ -2354,7 +2477,7 @@ dht_fill_closest(
 	 */
 
 	kb = dht_find_bucket(id);
-	added = fill_closest_in_bucket(id, kb, kvec, kcnt, exclude);
+	added = fill_closest_in_bucket(id, kb, kvec, kcnt, exclude, alive);
 	kvec += added;
 	kcnt -= added;
 
@@ -2373,12 +2496,28 @@ dht_fill_closest(
 		g_assert(sibling->parent == kb->parent);
 		g_assert(sibling != kb);
 
-		more = recursively_fill_closest_from(id, sibling, kvec, kcnt, exclude);
+		more = recursively_fill_closest_from(
+			id, sibling, kvec, kcnt, exclude, alive);
 		kvec += more;
 		kcnt -= more;
 		added += more;
 
 		g_assert(kcnt >= 0);
+	}
+
+	if (GNET_PROPERTY(dht_debug) > 15) {
+		g_message("DHT found %d/%d %s nodes (excluding %s) closest to %s",
+			added, wanted, alive ? "alive" : "known",
+			exclude ? kuid_to_hex_string(exclude) : "nothing",
+			kuid_to_hex_string2(id));
+
+		if (GNET_PROPERTY(dht_debug) > 19) {
+			int i;
+
+			for (i = 0; i < added; i++) {
+				g_message("DHT closest[%d]: %s", i, knode_to_string(base[i]));
+			}
+		}
 	}
 
 	return added;

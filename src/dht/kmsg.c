@@ -522,6 +522,8 @@ k_send_find_value_response(
 	 * To emit n secondary keys, we need 20n + 1 bytes of payload.
 	 */
 
+	STATIC_ASSERT(KDA_HEADER_SIZE + 61 + VALUE_MAX_LEN + 6 < 1024);
+
 	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
@@ -857,7 +859,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	g_assert(len == KUID_RAW_SIZE);
 
-	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
+	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
 	k_send_find_node_response(n,
 		kn, kvec, cnt, kademlia_header_get_muid(header));
 }
@@ -1072,7 +1074,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 			g_message("DHT FETCH %s not found (%s)",
 				kuid_to_hex_string(id), kuid_to_string(id));
 
-		cnt = dht_fill_closest(id, kvec, KDA_K, kn->id);
+		cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
 		k_send_find_node_response(n,
 			kn, kvec, cnt, kademlia_header_get_muid(header));
 
@@ -1431,7 +1433,15 @@ void kmsg_received(
 		 * pending for the node.
 		 */
 
-		if (!host_addr_equal(kaddr, kn->addr) || kport != kn->port) {
+		if (
+			/* Node not firewalled, contact address changed */
+			(!(flags & KDA_MSG_F_FIREWALLED) &&
+				(!host_addr_equal(kaddr, kn->addr) || kport != kn->port))
+			||
+			/* Node firewalled, source IP address changed */
+			((flags & KDA_MSG_F_FIREWALLED) &&
+				!host_addr_equal(kn->addr, n->addr))
+		) {
 			if (GNET_PROPERTY(dht_debug))
 				g_message("DHT new IP for %s (now at %s) -- %s verification",
 					knode_to_string(kn),
@@ -1439,7 +1449,9 @@ void kmsg_received(
 					(kn->flags & KNODE_F_VERIFYING) ?
 						"already under" : "initiating");
 
-			if (!(kn->flags & KNODE_F_VERIFYING)) {
+			if (kn->flags & KNODE_F_VERIFYING) {
+				knode_refcnt_inc(kn);	/* Node existed in routing table */
+			} else {
 				knode_t *new;
 
 				new = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
@@ -1447,7 +1459,11 @@ void kmsg_received(
 				kn = new;				/* Speaking to new node for now */
 			}
 		} else {
-			/* Node bears same address as before */
+			/*
+			 * Node bears same address as before or is now firewalled (but
+			 * messages still come from the address we knew about -- node
+			 * will be removed from table shortly).
+			 */
 
 			knode_refcnt_inc(kn);		/* Node existed in routing table */
 

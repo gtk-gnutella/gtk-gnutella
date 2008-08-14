@@ -48,10 +48,11 @@ struct kbucket;
  * Status of a Kademlis node.
  */
 typedef enum knode_status {
-	KNODE_GOOD = 0,				/**< Good node, known to be alive */
+	KNODE_UNKNOWN = 0,			/**< Unknown status, not in routing table  */
+	/* Following codes indicate node is present in the routing table */
+	KNODE_GOOD,					/**< Good node, known to be alive */
 	KNODE_STALE,				/**< Possibly stale node, verifying */
 	KNODE_PENDING,				/**< Node pending addition or discarding */
-	KNODE_UNKNOWN,				/**< Unknown status yet */
 } knode_status_t;
 
 typedef enum {
@@ -86,11 +87,9 @@ typedef struct knode {
 
 #define KNODE_F_VERIFYING	(1 << 0)	/**< Verifying node address */
 #define KNODE_F_ALIVE		(1 << 1)	/**< Got traffic from node */
-#define KNODE_F_PINGING		(1 << 2)	/**< Pinging for alive-ness */
-/* XXX above flag not used yet -- needed? */
-#define KNODE_F_FIREWALLED	(1 << 3)	/**< Must not keep in routing table */
-#define KNODE_F_FOREIGN_IP	(1 << 4)	/**< Got packet from different IP */
-#define KNODE_F_SHUTDOWNING	(1 << 5)	/**< Host said it was shutdowning */
+#define KNODE_F_FIREWALLED	(1 << 2)	/**< Must not keep in routing table */
+#define KNODE_F_FOREIGN_IP	(1 << 3)	/**< Got packet from different IP */
+#define KNODE_F_SHUTDOWNING	(1 << 4)	/**< Host said it was shutdowning */
 
 /*
  * Public interface.
@@ -121,6 +120,7 @@ knode_t *knode_refcnt_inc(const knode_t *kn)
 	knode_t *knm = deconstify_gpointer(kn);
 
 	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(kn->refcnt > 0);
 
 	knm->refcnt++;
 	return knm;

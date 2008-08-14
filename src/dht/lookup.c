@@ -683,6 +683,8 @@ static void
 lookup_shortlist_add(nlookup_t *nl, knode_t *kn)
 {
 	lookup_check(nl);
+	g_assert(!map_contains(nl->queried, kn->id));
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	patricia_insert(nl->shortlist, kn->id, knode_refcnt_inc(kn));
 
@@ -800,6 +802,7 @@ lookup_handle_reply(
 	guint8 contacts;
 
 	lookup_check(nl);
+	g_assert(KNODE_MAGIC == kn->magic);
 
 	if (GNET_PROPERTY(dht_lookup_debug))
 		g_message("DHT LOOKUP[%d] handling reply from %s",
@@ -1501,7 +1504,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	lookup_check(nl);
 
 	kvec = walloc(KDA_K * sizeof(knode_t *));
-	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL);
+	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL, FALSE);
 
 	for (i = 0; i < kcnt; i++) {
 		knode_t *kn = kvec[i];

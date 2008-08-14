@@ -235,9 +235,11 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s (%s v%u.%u) [%s] \"%s\", ref=%d",
+		"%s (%s v%u.%u) [%s] \"%s\", ref=%d%s",
 		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
-		knode_status_to_string(kn->status), kn->refcnt);
+		knode_status_to_string(kn->status), kn->refcnt,
+		(kn->status != KNODE_UNKNOWN && !(kn->flags & KNODE_F_ALIVE)) ?
+			" zombie" : "");
 
 	return buf;
 }
@@ -274,6 +276,18 @@ knode_dispose(knode_t *kn)
 {
 	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(kn->refcnt == 0);
+
+	/*
+	 * If the status is not KNODE_UNKNOWN, then the node is still held in
+	 * the routing table and therefore must not be freed.  If it is, then
+	 * it means someone has forgotten to knode_refcnt_inc() somewhere...
+	 */
+
+	if (kn->status != KNODE_UNKNOWN) {
+		g_error("attempting to free node still held in routing table: %s",
+			knode_to_string(kn));
+		g_assert_not_reached();
+	}
 
 	kuid_atom_free_null(&kn->id);
 	wfree(kn, sizeof *kn);

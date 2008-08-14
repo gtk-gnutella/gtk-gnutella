@@ -653,7 +653,7 @@ keys_update_kball(void)
 	int i;
 
 	kvec = walloc(KDA_K * sizeof(knode_t *));
-	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL);
+	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
 	pt = patricia_create(KUID_RAW_BITSIZE);
 
 	for (i = 0; i < kcnt; i++) {

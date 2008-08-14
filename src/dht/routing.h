@@ -92,7 +92,7 @@ void dht_record_size_estimate(knode_t *kn, kuid_t *size);
 const kuid_t *dht_get_size_estimate(void);
 double dht_size(void);
 int dht_fill_closest(const kuid_t *id,
-	knode_t **kvec, int kcnt, const kuid_t *exclude);
+	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive);
 knode_t *dht_find_node(const gchar *kuid);
 void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);
