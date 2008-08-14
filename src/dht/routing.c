@@ -206,6 +206,33 @@ is_leaf(const struct kbucket *kb)
 }
 
 /**
+ * Is the DHT "bootstrapped"?
+ */
+gboolean
+dht_bootstrapped(void)
+{
+	return BOOT_COMPLETED == boot_status;
+}
+
+/**
+ * Is the DHT "seeded"?
+ */
+static gboolean
+dht_seeded(void)
+{
+	return root && !is_leaf(root);		/* We know more than "k" hosts */
+}
+
+/**
+ * Is the DHT enabled?
+ */
+gboolean
+dht_enabled(void)
+{
+	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht);
+}
+
+/**
  * Compute the hash list storing nodes with a given status.
  */
 static inline hash_list_t *
@@ -807,15 +834,15 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	bootstrapping = FALSE;
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT was %s bootstrapped",
-			dht_bootstrapped() ? "successfully" : "not fully");
+		g_message("DHT bootstrapping was %s seeded",
+			dht_seeded() ? "successfully" : "not fully");
 
 	/*
 	 * To complete the bootstrap, we need to get a better knowledge of all the
 	 * buckets futher away than ours.
 	 */
 
-	if (dht_bootstrapped())
+	if (dht_seeded())
 		dht_complete_bootstrap();
 	else {
 		kuid_t id;
@@ -921,24 +948,6 @@ dht_route_init(void)
 	}
 
 	dht_initialize(FALSE);		/* Do not attempt bootstrap yet */
-}
-
-/**
- * Is the DHT "bootstrapped"?
- */
-gboolean
-dht_bootstrapped(void)
-{
-	return root && !is_leaf(root);		/* We know more than "k" hosts */
-}
-
-/**
- * Is the DHT enabled?
- */
-gboolean
-dht_enabled(void)
-{
-	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht);
 }
 
 /**
@@ -2929,7 +2938,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 void
 dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
 {
-	if (!dht_enabled() || dht_bootstrapped())
+	if (!dht_enabled() || dht_seeded())
 		return;
 
 	dht_bootstrap(addr, port);
