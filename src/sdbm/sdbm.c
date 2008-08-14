@@ -482,7 +482,7 @@ getpage(DBM *db, long int hash)
 	while (dbit < db->maxbno && getdbit(db, dbit))
 		dbit = 2 * dbit + ((hash & (1 << hbit++)) ? 2 : 1);
 
-	debug(("dbit: %d...", dbit));
+	debug(("dbit: %ld...", dbit));
 
 	db->curbit = dbit;
 	db->hmask = masks[hbit];
@@ -504,7 +504,7 @@ getpage(DBM *db, long int hash)
 			return 0;
 		db->pagbno = pagb;
 
-		debug(("pag read: %d\n", pagb));
+		debug(("pag read: %ld\n", pagb));
 	}
 	return 1;
 }
