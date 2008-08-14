@@ -311,9 +311,11 @@
 61.129.51.0/24
 61.129.70.59
 61.129.251.204
-61.152.171.139
-61.152.175.63
-61.152.116.39
+#61.152.171.139
+#61.152.175.63
+#61.152.116.39
+#61.152.116.53
+61.152.0.0/16
 60.12.182.0/28
 60.28.222.171
 69.64.47.131
@@ -1291,10 +1293,12 @@
 # Shareaza; RAR malware spam; 1.2 MB
 #208.53.183.171
 
-# HTML spam with fake SHA-1; fake LimeWire (actually GDNA or RAZA)
-78.140.133.99
-# HTML redirect spam
-78.140.133.22
+# LimeWire/4.10.9 (maybe fake or reverse proxy); port 6669
+# *.BestQualiti.htm
+# * KeyGen All Version.zip
+78.140.133.0/24
+93.174.93.149
+213.174.141.173
 
 # WakeNet; 3wplayer dot com
 67.15.107.160/27
@@ -1372,4 +1376,6 @@
 130.117.115.128/25
 # ASSERTIVENET; see above
 66.154.96.0/19
+
+
 
