@@ -386,7 +386,7 @@ fill_entry(struct cached *entry, gpointer value, size_t length)
 
 		entry->data = arena;
 		entry->len = length;
-	} else if (value != entry->data) {
+	} else if (value != entry->data && length) {
 		memcpy(entry->data, value, length);
 	}
 
@@ -568,9 +568,14 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	} else {
 		g_assert(dw->value_size >= dval.len);
 
-		entry->data = walloc(dval.len);
-		entry->len = dval.len;
-		memcpy(entry->data, dval.data, dval.len);
+		if (dval.len) {
+			entry->data = walloc(dval.len);
+			entry->len = dval.len;
+			memcpy(entry->data, dval.data, dval.len);
+		} else {
+			entry->data = NULL;
+			entry->len = 0;
+		}
 
 		if (lenptr)
 			*lenptr = dval.len;
