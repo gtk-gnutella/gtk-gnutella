@@ -3147,6 +3147,7 @@ dht_route_parse(FILE *f)
 			knode_t *tkn;
 
 			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+			kn->last_seen = seen;
 			if ((tkn = dht_find_node((char *) kn->id)))
 				g_warning("DHT ignoring persisted dup %s (has %s already)",
 					knode_to_string(kn), knode_to_string2(tkn));
