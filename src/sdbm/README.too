@@ -25,3 +25,30 @@ file changed slightly to add gtk-gnutella-isms.
 
 The standalone C programs do not compile as-is but were left to keep the
 integrity of the original sdbm distribution.
+
+Thu Aug 14 09:29:46 CEST 2008
+
+Christian Biere brought up SDBM distribution to gtk-gnutella standards.
+
+ * Prefixed all public SDBM macros with "DBM_".
+ * Removed "register" keyword.
+ * Removed unnecessary "(void)" in front of function calls.
+ * struct DBM:
+   * Keep implementation details hidden in sdbm.c.
+   * Sorted members by size for compactness.
+   * Allocate extra buffers for pagbuf and dirbuf
+     because the code expects these to be aligned
+     for "short int".
+ * Replaced macros by (static inline) functions where possible.
+ * Removed comma-operator. This should be reserved to macros
+   or the like where it may be necessary and not used to save
+   lines or look fancy.
+ * sdbm_store(): val.dptr must be a valid pointer and non-NULL
+   because the internal code uses memcpy() etc. without further
+   checks.
+ * Added sdbm_is_storable() to avoid integer overflows when
+   calculating the required space.
+ * sdbm_open():
+   * Compose the filenames properly.
+   * Additional file type and size checks.
+
