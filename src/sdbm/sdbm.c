@@ -13,6 +13,7 @@
 #include "tune.h"
 #include "pair.h"
 
+#include "lib/compat_pio.h"
 #include "lib/file.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -244,23 +245,22 @@ sdbm_delete(DBM *db, datum key)
 		errno = EPERM;
 		return -1;
 	}
-	if (getpage(db, exhash(key))) {
-		if (!delpair(db->pagbuf, key))
-			return -1;
+	if (!getpage(db, exhash(key))) {
+		ioerr(db);
+		return -1;
+	}
+	if (!delpair(db->pagbuf, key))
+		return -1;
 /*
  * update the page file
  */
-		if (lseek(db->pagf, OFF_PAG(db->pagbno), SEEK_SET) < 0
-		    || write(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0) {
-			ioerr(db);
-			return -1;
-		}
-
-		return 0;
+	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+		OFF_PAG(db->pagbno)) < 0
+	) {
+		ioerr(db);
+		return -1;
 	}
-
-	ioerr(db);
-	return -1;
+	return 0;
 }
 
 int
@@ -290,44 +290,46 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	}
 	need = key.dsize + val.dsize;
 
-	if (getpage(db, (hash = exhash(key)))) {
+	hash = exhash(key);
+	if (!getpage(db, hash)) {
+		ioerr(db);
+		return -1;
+	}
 /*
  * if we need to replace, delete the key/data pair
  * first. If it is not there, ignore.
  */
-		if (flags == DBM_REPLACE)
-			delpair(db->pagbuf, key);
+	if (flags == DBM_REPLACE)
+		delpair(db->pagbuf, key);
 #ifdef SEEDUPS
-		else if (duppair(db->pagbuf, key))
-			return 1;
+	else if (duppair(db->pagbuf, key))
+		return 1;
 #endif
 /*
  * if we do not have enough room, we have to split.
  */
-		if (!fitpair(db->pagbuf, need))
-			if (!makroom(db, hash, need)) {
-				ioerr(db);
-				return -1;
-			}
+	if (!fitpair(db->pagbuf, need)
+		&& !makroom(db, hash, need)
+	) {
+		ioerr(db);
+		return -1;
+	}
 /*
  * we have enough room or split is successful. insert the key,
  * and update the page file.
  */
-		putpair(db->pagbuf, key, val);
+	putpair(db->pagbuf, key, val);
 
-		if (lseek(db->pagf, OFF_PAG(db->pagbno), SEEK_SET) < 0
-		    || write(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0) {
-			ioerr(db);
-			return -1;
-		}
-	/*
-	 * success
-	 */
-		return 0;
+	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+		OFF_PAG(db->pagbno)) < 0
+	) {
+		ioerr(db);
+		return -1;
 	}
-
-	ioerr(db);
-	return -1;
+/*
+ * success
+ */
+	return 0;
 }
 
 /*
@@ -383,15 +385,17 @@ makroom(DBM *db, long int hash, size_t need)
 		}
 #endif
 		if (hash & (db->hmask + 1)) {
-			if (lseek(db->pagf, OFF_PAG(db->pagbno), SEEK_SET) < 0
-			    || write(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0)
+			if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+				OFF_PAG(db->pagbno)) < 0)
 				return 0;
+
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
-		}
-		else if (lseek(db->pagf, OFF_PAG(newp), SEEK_SET) < 0
-			 || write(db->pagf, New, DBM_PBLKSIZ) < 0)
+		} else if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ,
+				OFF_PAG(newp)) < 0
+		) {
 			return 0;
+		}
 
 		if (!setdbit(db, db->curbit))
 			return 0;
@@ -410,8 +414,8 @@ makroom(DBM *db, long int hash, size_t need)
 			((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
 
-		if (lseek(db->pagf, OFF_PAG(db->pagbno), SEEK_SET) < 0
-		    || write(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0)
+		if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+			OFF_PAG(db->pagbno)) < 0)
 			return 0;
 
 	} while (--smax);
@@ -440,8 +444,9 @@ sdbm_firstkey(DBM *db)
 /*
  * start at page 0
  */
-	if (lseek(db->pagf, OFF_PAG(0), SEEK_SET) < 0
-	    || read(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0) {
+	if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+		OFF_PAG(0)) < 0
+	) {
 		ioerr(db);
 		return nullitem;
 	}
@@ -492,14 +497,35 @@ getpage(DBM *db, long int hash)
  * note: here, we assume a "hole" is read as 0s.
  * if not, must zero pagbuf first.
  */
-		if (lseek(db->pagf, OFF_PAG(pagb), SEEK_SET) < 0
-		    || read(db->pagf, db->pagbuf, DBM_PBLKSIZ) < 0)
+		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+			OFF_PAG(pagb)) < 0)
 			return 0;
 		if (!chkpage(db->pagbuf))
 			return 0;
 		db->pagbno = pagb;
 
 		debug(("pag read: %d\n", pagb));
+	}
+	return 1;
+}
+
+static int
+fetch_dirbuf(DBM *db, long dirb)
+{
+	if (dirb != db->dirbno) {
+		ssize_t got;
+
+		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ,
+			OFF_DIR(dirb));
+		if (got < 0)
+			return 0;
+
+		if (0 == got) {
+			memset(db->dirbuf, 0, DBM_DBLKSIZ);
+		}
+		db->dirbno = dirb;
+
+		debug(("dir read: %ld\n", dirb));
 	}
 	return 1;
 }
@@ -513,17 +539,8 @@ getdbit(DBM *db, long int dbit)
 	c = dbit / BYTESIZ;
 	dirb = c / DBM_DBLKSIZ;
 
-	if (dirb != db->dirbno) {
-		int got;
-		if (lseek(db->dirf, OFF_DIR(dirb), SEEK_SET) < 0
-		    || (got=read(db->dirf, db->dirbuf, DBM_DBLKSIZ)) < 0)
-			return 0;
-		if (got==0) 
-			memset(db->dirbuf,0,DBM_DBLKSIZ);
-		db->dirbno = dirb;
-
-		debug(("dir read: %d\n", dirb));
-	}
+	if (!fetch_dirbuf(db, dirb))
+		return 0;
 
 	return db->dirbuf[c % DBM_DBLKSIZ] & (1 << dbit % BYTESIZ);
 }
@@ -537,17 +554,8 @@ setdbit(DBM *db, long int dbit)
 	c = dbit / BYTESIZ;
 	dirb = c / DBM_DBLKSIZ;
 
-	if (dirb != db->dirbno) {
-		int got;
-		if (lseek(db->dirf, OFF_DIR(dirb), SEEK_SET) < 0
-		    || (got=read(db->dirf, db->dirbuf, DBM_DBLKSIZ)) < 0)
-			return 0;
-		if (got==0) 
-			memset(db->dirbuf,0,DBM_DBLKSIZ);
-		db->dirbno = dirb;
-
-		debug(("dir read: %d\n", dirb));
-	}
+	if (!fetch_dirbuf(db, dirb))
+		return 0;
 
 	db->dirbuf[c % DBM_DBLKSIZ] |= (1 << dbit % BYTESIZ);
 
@@ -559,8 +567,8 @@ setdbit(DBM *db, long int dbit)
 		db->maxbno=OFF_DIR((dirb+1))*BYTESIZ;
 #endif
 
-	if (lseek(db->dirf, OFF_DIR(dirb), SEEK_SET) < 0
-	    || write(db->dirf, db->dirbuf, DBM_DBLKSIZ) < 0)
+	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ,
+		OFF_DIR(dirb)) < 0)
 		return 0;
 
 	return 1;
@@ -586,11 +594,11 @@ getnext(DBM *db)
  * file, we will have to seek.
  */
 		db->keyptr = 0;
-		if (db->pagbno != db->blkptr++)
-			if (lseek(db->pagf, OFF_PAG(db->blkptr), SEEK_SET) < 0)
-				break;
+		db->blkptr++;
 		db->pagbno = db->blkptr;
-		if (read(db->pagf, db->pagbuf, DBM_PBLKSIZ) <= 0)
+
+		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
+			OFF_PAG(db->pagbno)) <= 0)
 			break;
 		if (!chkpage(db->pagbuf))
 			break;
