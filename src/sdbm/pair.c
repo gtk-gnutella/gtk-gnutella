@@ -22,7 +22,7 @@ exhash(const datum item)
 /* 
  * forward 
  */
-static int seepair (char *, int, char *, int);
+static int seepair (const char *, int, const char *, size_t);
 
 /*
  * page format:
@@ -45,18 +45,19 @@ static int seepair (char *, int, char *, int);
  */
 
 int
-fitpair(char *pag, int need)
+fitpair(const char *pag, size_t need)
 {
 	int n;
 	int off;
-	int nfree;
-	short *ino = (short *) pag;
+	size_t nfree;
+	const short *ino = (const short *) pag;
 
 	off = ((n = ino[0]) > 0) ? ino[n] : DBM_PBLKSIZ;
 	nfree = off - (n + 1) * sizeof(short);
 	need += 2 * sizeof(short);
 
-	debug(("free %d need %d\n", nfree, need));
+	debug(("free %lu need %lu\n",
+		(unsigned long) nfree, (unsigned long) need));
 
 	return need <= nfree;
 }
@@ -93,7 +94,7 @@ getpair(char *pag, datum key)
 	int i;
 	int n;
 	datum val;
-	short *ino = (short *) pag;
+	const short *ino = (const short *) pag;
 
 	if ((n = ino[0]) == 0)
 		return nullitem;
@@ -107,9 +108,9 @@ getpair(char *pag, datum key)
 }
 
 int
-exipair(char *pag, datum key)
+exipair(const char *pag, datum key)
 {
-	short *ino = (short *) pag;
+	const short *ino = (const short *) pag;
 
 	if (ino[0] == 0)
 		return 0;
@@ -119,9 +120,9 @@ exipair(char *pag, datum key)
 
 #ifdef SEEDUPS
 int
-duppair(char *pag, datum key)
+duppair(const char *pag, datum key)
 {
-	short *ino = (short *) pag;
+	const short *ino = (const short *) pag;
 	return ino[0] > 0 && seepair(pag, ino[0], key.dptr, key.dsize) > 0;
 }
 #endif
@@ -131,7 +132,7 @@ getnkey(char *pag, int num)
 {
 	datum key;
 	int off;
-	short *ino = (short *) pag;
+	const short *ino = (const short *) pag;
 
 	num = num * 2 - 1;
 	if (ino[0] == 0 || num > ino[0])
@@ -218,11 +219,11 @@ delpair(char *pag, datum key)
  * return 0 if not found.
  */
 static int
-seepair(char *pag, int n, char *key, int siz)
+seepair(const char *pag, int n, const char *key, size_t siz)
 {
 	int i;
-	int off = DBM_PBLKSIZ;
-	short *ino = (short *) pag;
+	size_t off = DBM_PBLKSIZ;
+	const short *ino = (const short *) pag;
 
 	for (i = 1; i < n; i += 2) {
 		if (siz == off - ino[i] && 0 == memcmp(key, pag + ino[i], siz))
@@ -240,8 +241,8 @@ splpage(char *pag, char *New, long int sbit)
 
 	int n;
 	int off = DBM_PBLKSIZ;
-	char cur[DBM_PBLKSIZ];
-	short *ino = (short *) cur;
+	short cur[DBM_PBLKSIZ / sizeof(short)];
+	short *ino = cur;
 
 	memcpy(cur, pag, DBM_PBLKSIZ);
 	memset(pag, 0, DBM_PBLKSIZ);
@@ -249,9 +250,9 @@ splpage(char *pag, char *New, long int sbit)
 
 	n = ino[0];
 	for (ino++; n > 0; ino += 2) {
-		key.dptr = cur + ino[0]; 
+		key.dptr = (char *) cur + ino[0]; 
 		key.dsize = off - ino[0];
-		val.dptr = cur + ino[1];
+		val.dptr = (char *) cur + ino[1];
 		val.dsize = ino[0] - ino[1];
 /*
  * select the page pointer (by looking at sbit) and insert
@@ -262,7 +263,7 @@ splpage(char *pag, char *New, long int sbit)
 		n -= 2;
 	}
 
-	debug(("%d split %d/%d\n", ((short *) cur)[0] / 2, 
+	debug(("%d split %d/%d\n", cur[0] / 2, 
 	       ((short *) New)[0] / 2,
 	       ((short *) pag)[0] / 2));
 }
@@ -274,11 +275,11 @@ splpage(char *pag, char *New, long int sbit)
  * this could be made more rigorous.
  */
 int
-chkpage(char *pag)
+chkpage(const char *pag)
 {
 	int n;
 	int off;
-	short *ino = (short *) pag;
+	const short *ino = (const short *) pag;
 
 	if ((n = ino[0]) < 0 || n > (int) (DBM_PBLKSIZ / sizeof(short)))
 		return 0;

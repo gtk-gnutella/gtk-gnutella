@@ -19,7 +19,7 @@
  *      65587   even better. 
  */
 long
-sdbm_hash(const char *s, int len)
+sdbm_hash(const char *s, size_t len)
 {
 	unsigned long n = 0;
 
@@ -27,8 +27,7 @@ sdbm_hash(const char *s, int len)
 
 	if (len > 0) {
 #ifdef DUFF
-
-		int loop = ((unsigned int) len + 8 - 1) >> 3;
+		size_t loop = (len + 8 - 1) >> 3;
 
 		switch(len & (8 - 1)) {
 		case 0:	do {

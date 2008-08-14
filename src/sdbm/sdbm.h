@@ -23,7 +23,7 @@ typedef struct DBM DBM;
 
 typedef struct {
 	char *dptr;
-	int dsize;
+	size_t dsize;
 } datum;
 
 extern const datum nullitem;
@@ -50,7 +50,7 @@ int sdbm_exists(DBM *, datum);
  * other
  */
 DBM *sdbm_prep(const char *, const char *, int, int);
-long sdbm_hash(const char *, int);
+long sdbm_hash(const char *, size_t);
 int sdbm_rdonly(DBM *);
 int sdbm_error(DBM *);
 void sdbm_clearerr(DBM *);

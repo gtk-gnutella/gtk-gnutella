@@ -42,12 +42,12 @@ static int getdbit (DBM *, long);
 static int setdbit (DBM *, long);
 static int getpage (DBM *, long);
 static datum getnext (DBM *);
-static int makroom (DBM *, long, int);
+static int makroom (DBM *, long, size_t);
 
 static inline int
 bad(const datum item)
 {
-	return NULL == item.dptr || item.dsize < 0;
+	return NULL == item.dptr || item.dsize > DBM_PAIRMAX;
 }
 
 static inline int
@@ -266,7 +266,7 @@ sdbm_delete(DBM *db, datum key)
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
-	int need;
+	size_t need;
 	long hash;
 
 	if (0 == val.dsize) {
@@ -336,16 +336,12 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
  * giving up.
  */
 static int
-makroom(DBM *db, long int hash, int need)
+makroom(DBM *db, long int hash, size_t need)
 {
 	long newp;
-	char twin[DBM_PBLKSIZ];
-#if defined(DOSISH) || defined(WIN32)
-	char zer[DBM_PBLKSIZ];
-	long oldtail;
-#endif
+	short twin[DBM_PBLKSIZ / sizeof(short)];
 	char *pag = db->pagbuf;
-	char *New = twin;
+	char *New = (char *) twin;
 	int smax = DBM_SPLTMAX;
 
 	do {
@@ -368,19 +364,22 @@ makroom(DBM *db, long int hash, int need)
  */
 
 #if defined(DOSISH) || defined(WIN32)
-		/*
-		 * Fill hole with 0 if made it.
-		 * (hole is NOT read as 0)
-		 */
-		oldtail = lseek(db->pagf, 0L, SEEK_END);
-		memset(zer, 0, DBM_PBLKSIZ);
-		while (OFF_PAG(newp) > oldtail) {
-			if (lseek(db->pagf, 0L, SEEK_END) < 0 ||
-			    write(db->pagf, zer, DBM_PBLKSIZ) < 0) {
+		{
+			static const char zer[DBM_PBLKSIZ];
+			long oldtail;
 
-				return 0;
+			/*
+			 * Fill hole with 0 if made it.
+			 * (hole is NOT read as 0)
+			 */
+			oldtail = lseek(db->pagf, 0L, SEEK_END);
+			while (OFF_PAG(newp) > oldtail) {
+				if (lseek(db->pagf, 0L, SEEK_END) < 0 ||
+				    write(db->pagf, zer, DBM_PBLKSIZ) < 0) {
+					return 0;
+				}
+				oldtail += DBM_PBLKSIZ;
 			}
-			oldtail += DBM_PBLKSIZ;
 		}
 #endif
 		if (hash & (db->hmask + 1)) {

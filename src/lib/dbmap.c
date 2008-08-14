@@ -269,9 +269,9 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = (int) dm->key_size;
+			dkey.dsize = dm->key_size;
 			dval.dptr = deconstify_gpointer(value.data);
-			dval.dsize = (int) value.len;
+			dval.dsize = value.len;
 
 			/*
 			 * To avoid running an "exists" before, we attempt insertion
@@ -336,7 +336,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = (int) dm->key_size;
+			dkey.dsize = dm->key_size;
 
 			errno = dm->error = 0;
 			ret = sdbm_delete(dm->u.s.sdbm, dkey);
@@ -372,7 +372,7 @@ dbmap_contains(dbmap_t *dm, gconstpointer key)
 			int ret;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = (int) dm->key_size;
+			dkey.dsize = dm->key_size;
 
 			dm->error = errno = 0;
 			ret = sdbm_exists(dm->u.s.sdbm, dkey);
@@ -419,7 +419,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 			datum value;
 
 			dkey.dptr = deconstify_gpointer(key);
-			dkey.dsize = (int) dm->key_size;
+			dkey.dsize = dm->key_size;
 
 			errno = dm->error = 0;
 			value = sdbm_fetch(dm->u.s.sdbm, dkey);
@@ -427,7 +427,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 			if (errno)
 				dm->error = errno;
 			result.data = value.dptr;
-			result.len = (size_t) value.dsize;
+			result.len = value.dsize;
 		}
 		break;
 	case DBMAP_MAXTYPE:
@@ -569,7 +569,7 @@ dbmap_all_keys(const dbmap_t *dm)
 			) {
 				gpointer kdup;
 
-				g_assert(dm->key_size == (size_t) key.dsize);
+				g_assert(dm->key_size == key.dsize);
 
 				kdup = walloc(dm->key_size);
 				memcpy(kdup, key.dptr, key.dsize);
