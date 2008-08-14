@@ -2416,7 +2416,7 @@ write_node(const knode_t *kn, FILE *f)
 		vendor_code_to_string(kn->vcode.u32),
 		kn->major, kn->minor,
 		host_addr_port_to_string(kn->addr, kn->port),
-		timestamp_to_string(kn->last_seen));
+		timestamp_utc_to_string(kn->last_seen));
 }
 
 /**

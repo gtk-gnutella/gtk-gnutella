@@ -127,7 +127,7 @@ tls_cache_dump(FILE *f)
 		
 		item = hash_list_iter_next(iter);
 		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
-			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
+			gnet_host_to_string(&item->host), timestamp_utc_to_string(item->seen));
 	}
 	hash_list_iter_release(&iter);
 }
