@@ -9,7 +9,7 @@ sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_fetch, sdbm_store, sdbm_delete, sdb
 .sp
 typedef struct {
 	char *dptr;
-	int dsize;
+	size_t dsize;
 } datum;
 .sp
 datum nullitem = { NULL, 0 };
@@ -32,7 +32,7 @@ datum sdbm_firstkey(\s-1DBM\s0 *db)
 .sp
 datum sdbm_nextkey(\s-1DBM\s0 *db)
 .sp
-long sdbm_hash(char *string, int len)
+long sdbm_hash(char *string, size_t len)
 .sp
 int sdbm_rdonly(\s-1DBM\s0 *db)
 int sdbm_error(\s-1DBM\s0 *db)
