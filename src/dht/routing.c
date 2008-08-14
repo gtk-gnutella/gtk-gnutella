@@ -2708,6 +2708,7 @@ dht_route_close(void)
 	}
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
+	boot_status = BOOT_NONE;
 }
 
 /***
