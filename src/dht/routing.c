@@ -356,7 +356,7 @@ check_leaf_list_consistency(
 	for (l = nodes; l; l = g_list_next(l)) {
 		knode_t *kn = l->data;
 
-		g_assert(KNODE_MAGIC == kn->magic);
+		knode_check(kn);
 		g_assert(kn->status == status);
 		count++;
 	}
@@ -441,7 +441,7 @@ allocate_node_lists(struct kbucket *kb)
 static void
 forget_node(knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kn->status != KNODE_UNKNOWN);
 	g_assert(kn->refcnt > 0);
 
@@ -1044,8 +1044,7 @@ found:
 static int
 c_class_get_count(knode_t *kn, struct kbucket *kb)
 {
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->c_class);
@@ -1067,8 +1066,7 @@ c_class_get_count(knode_t *kn, struct kbucket *kb)
 static void
 c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 {
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->c_class);
@@ -1246,7 +1244,7 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 	struct kbucket *target;
 	hash_list_t *hl;
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(id == kn->id);
 
 	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
@@ -1397,7 +1395,7 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
 {
 	hash_list_t *hl = list_for(kb, new);
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(KNODE_UNKNOWN == kn->status);
 	g_assert(hash_list_length(hl) < list_maxsize_for(new));
 	g_assert(new != KNODE_UNKNOWN);
@@ -1428,9 +1426,9 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
 static void
 dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 {
+	knode_check(kn);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->all != NULL);
-	g_assert(KNODE_MAGIC == kn->magic);
 	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
 	/*
@@ -1516,7 +1514,7 @@ promote_pending_node(struct kbucket *kb)
 		while (hash_list_iter_has_previous(iter)) {
 			knode_t *kn = hash_list_iter_previous(iter);
 
-			g_assert(KNODE_MAGIC == kn->magic);
+			knode_check(kn);
 			g_assert(KNODE_PENDING == kn->status);
 
 			if (
@@ -1556,8 +1554,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	knode_t *tkn;
 	gboolean was_good;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kb);
 	g_assert(is_leaf(kb));
 
@@ -1628,8 +1625,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	knode_status_t old;
 	knode_t *tkn;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(new != KNODE_UNKNOWN);
 
 	kb = dht_find_bucket(kn->id);
@@ -1711,7 +1707,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	while (hash_list_length(hl) >= maxsize) {
 		knode_t *removed = hash_list_remove_head(hl);
 
-		g_assert(KNODE_MAGIC == removed->magic);
+		knode_check(removed);
 		g_assert(removed->status == new);
 		g_assert(removed != tkn);
 
@@ -1774,8 +1770,7 @@ dht_record_activity(knode_t *kn)
 	hash_list_t *hl;
 	struct kbucket *kb;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	kn->last_seen = tm_time();
 	kn->flags |= KNODE_F_ALIVE;
@@ -1813,8 +1808,7 @@ record_node(knode_t *kn, gboolean traffic)
 {
 	struct kbucket *kb;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	/*
 	 * Find bucket where the node will be stored.
@@ -1945,7 +1939,7 @@ dht_remove_timeouting_node(knode_t *kn)
 void
 dht_node_timed_out(knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (++kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
 		dht_remove_timeouting_node(kn);
@@ -1988,7 +1982,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
 
-		g_assert(KNODE_MAGIC == kn->magic);
+		knode_check(kn);
 		g_assert(KNODE_GOOD == kn->status);
 
 		if (delta_time(now, kn->last_seen) < ALIVENESS_PERIOD)
@@ -2006,7 +2000,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	while (hash_list_iter_has_next(iter)) {
 		knode_t *kn = hash_list_iter_next(iter);
 
-		g_assert(KNODE_MAGIC == kn->magic);
+		knode_check(kn);
 
 		if (knode_can_recontact(kn))
 			dht_rpc_ping(kn, NULL, NULL);
@@ -2220,7 +2214,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 	gconstpointer key;
 	struct other_size *data;
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(size);
 
 	os = walloc(sizeof *os);
@@ -2327,7 +2321,7 @@ fill_closest_in_bucket(
 	while (good) {
 		knode_t *kn = good->data;
 
-		g_assert(KNODE_MAGIC == kn->magic);
+		knode_check(kn);
 		g_assert(KNODE_GOOD == kn->status);
 
 		if (
@@ -2347,7 +2341,7 @@ fill_closest_in_bucket(
 		while (stale) {
 			knode_t *kn = stale->data;
 
-			g_assert(KNODE_MAGIC == kn->magic);
+			knode_check(kn);
 			g_assert(KNODE_STALE == kn->status);
 
 			if (
@@ -2370,7 +2364,7 @@ fill_closest_in_bucket(
 		while (pending) {
 			knode_t *kn = pending->data;
 
-			g_assert(KNODE_MAGIC == kn->magic);
+			knode_check(kn);
 			g_assert(KNODE_PENDING == kn->status);
 
 			if (
@@ -2556,7 +2550,7 @@ dht_lookup_notify(const kuid_t *id)
 static void
 write_node(const knode_t *kn, FILE *f)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	fprintf(f, "KUID %s\nVNDR %s\nVERS %u.%u\nHOST %s\nSEEN %s\nEND\n\n",
 		kuid_to_hex_string(kn->id),
@@ -2751,7 +2745,7 @@ dht_addr_verify_cb(
 	(void) unused_payload;
 	(void) unused_len;
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (type == DHT_RPC_TIMEOUT || !kuid_eq(av->old->id, kn->id)) {
 		/*
@@ -2820,8 +2814,8 @@ dht_verify_node(knode_t *kn, knode_t *new)
 {
 	struct addr_verify *av;
 
-	g_assert(KNODE_MAGIC == kn->magic);
-	g_assert(KNODE_MAGIC == new->magic);
+	knode_check(kn);
+	knode_check(new);
 	g_assert(new->refcnt == 1);
 	g_assert(new->status == KNODE_UNKNOWN);
 	g_assert(!(kn->flags & KNODE_F_VERIFYING));

@@ -1205,7 +1205,7 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(kn->addr, kn->port);
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (GNET_PROPERTY(dht_debug) > 19) {
 		int len = pmsg_size(mb);

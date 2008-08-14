@@ -111,6 +111,13 @@ gboolean knode_can_recontact(const knode_t *kn);
 gboolean knode_is_usable(const knode_t *kn);
 const gchar *knode_to_string_buf(const knode_t *kn, char buf[], size_t len);
 
+static inline
+void knode_check(const knode_t *kn)
+{
+	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
+}
+
 /**
  * Add one reference to a Kademlia node.
  */
@@ -119,7 +126,7 @@ knode_t *knode_refcnt_inc(const knode_t *kn)
 {
 	knode_t *knm = deconstify_gpointer(kn);
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kn->refcnt > 0);
 
 	knm->refcnt++;

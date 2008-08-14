@@ -684,7 +684,7 @@ lookup_shortlist_add(nlookup_t *nl, knode_t *kn)
 {
 	lookup_check(nl);
 	g_assert(!map_contains(nl->queried, kn->id));
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	patricia_insert(nl->shortlist, kn->id, knode_refcnt_inc(kn));
 
@@ -703,8 +703,7 @@ static void
 lookup_shortlist_remove(nlookup_t *nl, knode_t *kn)
 {
 	lookup_check(nl);
-
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (patricia_remove(nl->shortlist, kn->id))
 		knode_free(kn);
@@ -802,7 +801,7 @@ lookup_handle_reply(
 	guint8 contacts;
 
 	lookup_check(nl);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (GNET_PROPERTY(dht_lookup_debug))
 		g_message("DHT LOOKUP[%d] handling reply from %s",
@@ -1377,7 +1376,7 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
 	while (patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
 
-		g_assert(KNODE_MAGIC == kn->magic);
+		knode_check(kn);
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 4)
 			g_message("DHT LOOKUP[%d] %s[%d]: %s", nl->lid, what, i,

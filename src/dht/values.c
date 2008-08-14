@@ -689,8 +689,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 {
 	guint16 status = STORE_SC_OK;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(v);
 
 	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);

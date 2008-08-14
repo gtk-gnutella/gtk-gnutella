@@ -101,7 +101,7 @@ generate(token_t *tok, host_addr_t addr, guint16 port)
 void
 token_generate(token_t *tok, const knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	/*
 	 * If node is firewalled and uses NAT, the UDP port used will likely be

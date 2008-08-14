@@ -60,7 +60,7 @@ knode_hash(gconstpointer key)
 {
 	const knode_t *kn = key;
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	return sha1_hash(kn->id);
 }
@@ -74,8 +74,8 @@ knode_eq(gconstpointer a, gconstpointer b)
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
 
-	g_assert(KNODE_MAGIC == k1->magic);
-	g_assert(KNODE_MAGIC == k2->magic);
+	knode_check(k1);
+	knode_check(k2);
 
 	return k1->id == k2->id;		/* We know IDs are atoms */
 }
@@ -121,8 +121,7 @@ knode_can_recontact(const knode_t *kn)
 	time_t grace;
 	time_delta_t elapsed;
 
-	g_assert(kn);
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (!kn->rpc_timeouts)
 		return TRUE;				/* Timeout condition was cleared */
@@ -167,7 +166,7 @@ knode_status_to_string(knode_status_t status)
 void
 knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		char vc_old[VENDOR_CODE_BUFLEN];
@@ -191,7 +190,7 @@ knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 void
 knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT node %s at %s changed from v%u.%u to v%u.%u",
@@ -209,7 +208,7 @@ knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 gboolean
 knode_is_usable(const knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	if (!host_is_valid(kn->addr, kn->port))
 		return FALSE;
@@ -230,7 +229,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
 	char vc_buf[VENDOR_CODE_BUFLEN];
 
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
@@ -274,7 +273,7 @@ knode_to_string2(const knode_t *kn)
 static void
 knode_dispose(knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kn->refcnt == 0);
 
 	/*
@@ -300,7 +299,7 @@ knode_dispose(knode_t *kn)
 void
 knode_free(knode_t *kn)
 {
-	g_assert(KNODE_MAGIC == kn->magic);
+	knode_check(kn);
 	g_assert(kn->refcnt > 0);
 
 	if (--kn->refcnt)
