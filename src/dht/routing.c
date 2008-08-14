@@ -850,9 +850,16 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	/*
 	 * Launch refresh.
+	 *
+	 * We're more aggressive for our k-bucket because we do not want to
+	 * end the lookup when we have k items in our path: we really want
+	 * to find the closest node we can.
 	 */
 
-	(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
+	if (kb->ours)
+		(void) lookup_find_node(&id, NULL, bucket_refresh_status, kb);
+	else
+		(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
 }
 
 /**
