@@ -1293,7 +1293,7 @@ short_uptime(time_delta_t uptime)
  * @return the length of the hexadecimal string generated.
  */
 size_t
-bin_to_hex_buf(const gchar *data, size_t len, gchar *dst, size_t size)
+bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size)
 {
 	size_t retval;
 

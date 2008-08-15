@@ -461,7 +461,7 @@ gchar *base32_to_guid(const gchar *base32);
 /*
  * Generic binary to hexadecimal conversion.
  */
-size_t bin_to_hex_buf(const gchar *data, size_t len, gchar *dst, size_t size);
+size_t bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size);
 
 /*
  * Tests

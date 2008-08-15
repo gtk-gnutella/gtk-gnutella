@@ -346,7 +346,7 @@ dht_value_to_string(const dht_value_t *v)
 	char kuid[KUID_RAW_SIZE * 2 + 1];
 	char type[5];
 
-	bin_to_hex_buf((gchar *) v->id, KUID_RAW_SIZE, kuid, sizeof kuid);
+	bin_to_hex_buf(v->id, KUID_RAW_SIZE, kuid, sizeof kuid);
 	knode_to_string_buf(v->creator, knode, sizeof knode);
 	dht_value_type_to_string_buf(v->type, type, sizeof type);
 
