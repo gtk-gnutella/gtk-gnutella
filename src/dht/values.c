@@ -335,6 +335,20 @@ dht_value_type_to_string(guint32 type)
 }
 
 /**
+ * Make up a printable version of the DHT value type.
+ *
+ * @return pointer to static data
+ */
+const char *
+dht_value_type_to_string2(guint32 type)
+{
+	static char buf[5];
+
+	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	return buf;
+}
+
+/**
  * Make up a printable representation of a DHT value.
  *
  * @return pointer to static data
@@ -844,6 +858,8 @@ values_close(void)
 	storage_delete(db_valuedata, db_valbase);
 	storage_delete(db_rawdata, db_rawbase);
 	db_valuedata = db_rawdata = NULL;
+	acct_net_free(&values_per_ip);
+	acct_net_free(&values_per_class_c);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
