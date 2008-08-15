@@ -1006,7 +1006,7 @@ cleanup:
 		int j;
 
 		for (j = 0; j < i; j++)
-			dht_value_free(vec[j]);
+			dht_value_free(vec[j], TRUE);
 
 		wfree(vec, values * sizeof *vec);
 	}
@@ -1170,7 +1170,7 @@ cleanup:
 	if (vcnt) {
 		int i;
 		for (i = 0; i < vcnt; i++)
-			dht_value_free(vvec[i]);
+			dht_value_free(vvec[i], TRUE);
 	}
 
 	bstr_destroy(bs);

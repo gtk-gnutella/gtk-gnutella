@@ -273,16 +273,17 @@ dht_value_make(const knode_t *creator,
 }
 
 /**
- * Free DHT value.
+ * Free DHT value, optionally freeing the data as well.
  */
 void
-dht_value_free(dht_value_t *v)
+dht_value_free(dht_value_t *v, gboolean free_data)
 {
 	g_assert(v);
 
 	knode_free(deconstify_gpointer(v->creator));
 	kuid_atom_free_null(&v->id);
-	if (v->data) {
+
+	if (free_data && v->data) {
 		g_assert(v->length && v->length <= VALUE_MAX_LEN);
 		wfree(deconstify_gpointer(v->data), v->length);
 	}
