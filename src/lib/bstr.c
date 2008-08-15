@@ -351,7 +351,7 @@ bstr_read_base(const bstr_t *bs)
 gboolean
 bstr_skip(bstr_t *bs, size_t count)
 {
-	g_assert(size_is_positive(count));
+	g_assert(size_is_non_negative(count));
 
 	if (!count)
 		return TRUE;
