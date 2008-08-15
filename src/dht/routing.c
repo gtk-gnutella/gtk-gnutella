@@ -170,6 +170,8 @@ enum bootsteps {
 	BOOT_OWN,					/**< Looking for own KUID */
 	BOOT_COMPLETING,			/**< Completing further bucket bootstraps */
 	BOOT_COMPLETED,				/**< Fully bootstrapped */
+
+	BOOT_MAX_VALUE
 };
 
 static gboolean bootstrapping;		/**< Whether we are bootstrapping */
@@ -193,6 +195,28 @@ static struct kbucket *dht_find_bucket(const kuid_t *id);
  * make all hash list insertions O(n), basically.
  */
 #undef DEBUGGING
+
+static const char * const boot_status_str[] = {
+	"not bootstrapped yet",			/**< BOOT_NONE */
+	"seeded with some hosts",		/**< BOOT_SEEDED */
+	"looking for our KUID",			/**< BOOT_OWN */
+	"completing bucket bootstrap",	/**< BOOT_COMPLETING */
+	"completely bootstrapped",		/**< BOOT_COMPLETING */
+};
+
+/**
+ * Provide human-readable boot status.
+ */
+static const char *
+boot_status_to_string(enum bootsteps status)
+{
+	STATIC_ASSERT(BOOT_MAX_VALUE == G_N_ELEMENTS(boot_status_str));
+
+	if (status >= G_N_ELEMENTS(boot_status_str))
+		return "invalid boot status";
+
+	return boot_status_str[status];
+}
 
 /**
  * Is bucket a leaf?
@@ -829,13 +853,14 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT denying refresh of non-splitable full %s",
+			g_message("DHT denying refresh of non-splitable full %s",
 				kbucket_to_string(kb));
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initiating refresh of %s", kbucket_to_string(kb));
+		g_message("DHT initiating refresh of %ssplitable %s",
+			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb));
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1006,6 +1031,13 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 void
 dht_attempt_bootstrap(void)
 {
+	/*
+	 * If we are already completely bootstrapped, ignore.
+	 */
+
+	if (BOOT_COMPLETED == boot_status)
+		return;
+
 	bootstrapping = TRUE;
 
 	/*
@@ -1057,9 +1089,6 @@ dht_initialize(gboolean post_init)
 	boot_status = BOOT_NONE;
 
 	dht_route_retrieve();
-
-	if (stats.good)
-		boot_status = BOOT_SEEDED;
 
 	dht_rpc_init();
 	lookup_init();
@@ -1798,6 +1827,7 @@ dht_record_activity(knode_t *kn)
 {
 	hash_list_t *hl;
 	struct kbucket *kb;
+	guint good_length;
 
 	knode_check(kn);
 
@@ -1818,18 +1848,21 @@ dht_record_activity(knode_t *kn)
 
 	/*
 	 * If the "good" list is not full, try promoting the node to it.
-	 * If we have stale nodes, we wait to bring them back but when they
-	 * are all gone, we directly move pending nodes to the good list.
+	 * If the sum of good and stale nodes is not sufficient to fill the
+	 * good list, we also set the node status to good.
 	 */
 
 	if (
 		kn->status != KNODE_GOOD &&
-		hash_list_length(kb->nodes->good) < K_BUCKET_GOOD
+		(good_length = hash_list_length(kb->nodes->good)) < K_BUCKET_GOOD
 	) {
-		if (hash_list_length(kb->nodes->stale)) {
-			if (kn->status == KNODE_STALE)
+		guint stale_length = hash_list_length(kb->nodes->stale);
+
+		if (stale_length + good_length >= K_BUCKET_GOOD) {
+			if (kn->status == KNODE_STALE) {
 				dht_set_node_status(kn, KNODE_GOOD);
 				return;
+			}
 		} else {
 			dht_set_node_status(kn, KNODE_GOOD);
 			return;
@@ -1978,6 +2011,8 @@ dht_remove_timeouting_node(knode_t *kn)
 	 * and cap it RPC timeout count to the upper threshold to avoid undue
 	 * timeouts the next time an RPC is sent to the node.
 	 */
+
+	STATIC_ASSERT(KNODE_MAX_TIMEOUTS > 0);
 
 	if (hash_list_length(kb->nodes->good) >= K_BUCKET_GOOD)
 		dht_remove_node_from_bucket(kn, kb);
@@ -3064,6 +3099,8 @@ dht_route_parse(FILE *f)
 	char line[1024];
 	guint line_no = 0;
 	gboolean done = FALSE;
+	time_delta_t most_recent = REFRESH_PERIOD;
+	time_t now = tm_time();
 	/* Variables filled for each entry */
 	host_addr_t addr;
 	guint16 port;
@@ -3195,9 +3232,28 @@ dht_route_parse(FILE *f)
 		if (done) {
 			knode_t *kn;
 			knode_t *tkn;
+			time_delta_t delta;
 
 			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
 			kn->last_seen = seen;
+
+			/*
+			 * Remember the delta at which we most recently saw a node.
+			 */
+
+			delta = delta_time(now, seen);
+			if (delta >= 0 && delta < most_recent)
+				most_recent = delta;
+
+			/*
+			 * Add node to routing table.  If the KUID has changed since
+			 * the last time the routing table was saved (e.g. they are
+			 * importing a persisted file from another instance), then bucket
+			 * splits will not occur in the same way and some nodes will be
+			 * discarded.  It does not matter much, we should have enough
+			 * good hosts to attempt a bootstrap.
+			 */
+
 			if ((tkn = dht_find_node((char *) kn->id)))
 				g_warning("DHT ignoring persisted dup %s (has %s already)",
 					knode_to_string(kn), knode_to_string2(tkn));
@@ -3210,6 +3266,20 @@ dht_route_parse(FILE *f)
 			bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
 		}
 	}
+
+	/*
+	 * If the delta is smaller than half the bucket refresh period, we
+	 * can consider the table as being bootstrapped: they are restarting
+	 * after an update, for instance.
+	 */
+
+	if (dht_seeded())
+		boot_status =
+			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT after retrieval we are %s",
+			boot_status_to_string(boot_status));
 }
 
 static const gchar node_file[] = "dht_nodes";
