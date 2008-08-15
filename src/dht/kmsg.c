@@ -1105,12 +1105,16 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 		secondary = walloc0(count * sizeof(secondary[0]));
 
 		for (i = 0; i < count; i++) {
-			if (!bstr_read(bs, secondary[i]->v, KUID_RAW_SIZE)) {
+			kuid_t sec_id;
+
+			if (!bstr_read(bs, sec_id.v, KUID_RAW_SIZE)) {
 				gm_snprintf(msg, sizeof msg,
 					"could not read secondary key #%d/%u", i, count);
 				reason = msg;
 				goto error;
 			}
+
+			secondary[i] = kuid_get_atom(&sec_id);
 		}
 	}
 
