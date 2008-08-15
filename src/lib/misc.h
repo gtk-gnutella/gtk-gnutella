@@ -772,6 +772,42 @@ size_is_positive(size_t size)
 }
 
 /*
+ * Calculate the sum of a and b but saturate towards SIZE_MAX.
+ * @return SIZE_MAX if a + b > SIZE_MAX, otherwise a + b.
+ */
+static inline size_t
+size_saturate_add(size_t a, size_t b)
+{
+	if (G_UNLIKELY(SIZE_MAX - a < b))
+		return SIZE_MAX;
+	return a + b;
+}
+
+/*
+ * Calculate the product of a and b but saturate towards SIZE_MAX.
+ * @return SIZE_MAX if a * b > SIZE_MAX, otherwise a * b.
+ */
+static inline size_t
+size_saturate_mult(size_t a, size_t b)
+{
+	if (G_UNLIKELY(0 != a && SIZE_MAX / a < b))
+		return SIZE_MAX;
+	return a * b;
+}
+
+/*
+ * Calculate the difference between a and b but saturate towards zero.
+ * @return zero if a < b, otherwise a - b.
+ */
+static inline size_t
+size_saturate_sub(size_t a, size_t b)
+{
+	if (G_UNLIKELY(a < b))
+		return 0;
+	return a - b;
+}
+
+/*
  * CIDR split of IP range.
  */
 
