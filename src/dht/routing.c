@@ -1339,7 +1339,7 @@ dht_split_bucket(struct kbucket *kb)
 	check_leaf_list_consistency(kb, kb->nodes->pending, KNODE_PENDING);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT splitting %s from %s subtree)",
+		g_message("DHT splitting %s from %s subtree",
 			kbucket_to_string(kb),
 			is_among_our_closest(kb) ? "closest" : "further");
 
@@ -1816,14 +1816,31 @@ dht_record_activity(knode_t *kn)
 
 	g_assert(NULL != g_hash_table_lookup(kb->nodes->all, kn->id));
 
+	/*
+	 * If the "good" list is not full, try promoting the node to it.
+	 * If we have stale nodes, we wait to bring them back but when they
+	 * are all gone, we directly move pending nodes to the good list.
+	 */
+
 	if (
-		kn->status == KNODE_STALE &&
+		kn->status != KNODE_GOOD &&
 		hash_list_length(kb->nodes->good) < K_BUCKET_GOOD
 	) {
-		dht_set_node_status(kn, KNODE_GOOD);
-	} else {
-		hash_list_moveto_tail(hl, kn);
+		if (hash_list_length(kb->nodes->stale)) {
+			if (kn->status == KNODE_STALE)
+				dht_set_node_status(kn, KNODE_GOOD);
+				return;
+		} else {
+			dht_set_node_status(kn, KNODE_GOOD);
+			return;
+		}
 	}
+
+	/*
+	 * LRU list handling: move node at the end of its list.
+	 */
+
+	hash_list_moveto_tail(hl, kn);
 }
 
 /**
@@ -2005,9 +2022,11 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	install_alive_check(kb);
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT starting alive check on %s (good: %u, stale: %u)",
+		g_message("DHT starting alive check on %s "
+			"(good: %u, stale: %u, pending: %u)",
 			kbucket_to_string(kb),
-			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE));
+			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+			list_count(kb, KNODE_PENDING));
 
 	/*
 	 * Ping only the good contacts from which we haven't heard since the
