@@ -396,10 +396,10 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
-		g_message("DHT STORE %s key %s now holds %d/%d value%s, new creator %s",
+		g_message("DHT STORE %s key %s now holds %d/%d value%s",
 			&new_kd == kd ? "new" : "existing",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
-			1 == ki->values ? "" : "s", kuid_to_hex_string2(creator_id));
+			1 == ki->values ? "" : "s");
 }
 
 /**
