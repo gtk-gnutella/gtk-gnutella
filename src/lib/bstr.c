@@ -310,6 +310,7 @@ invalid_len_max(
 static gboolean
 expect(bstr_t *bs, ssize_t expected, const char *where)
 {
+	g_assert(bs);
 	g_assert(expected > 0);
 
 	if (!bs->ok)
@@ -350,6 +351,8 @@ bstr_read_base(const bstr_t *bs)
 gboolean
 bstr_skip(bstr_t *bs, size_t count)
 {
+	g_assert(size_is_positive(count));
+
 	if (!count)
 		return TRUE;
 
@@ -373,6 +376,7 @@ gboolean
 bstr_read(bstr_t *bs, void *buf, size_t count)
 {
 	g_assert(size_is_positive(count));
+	g_assert(buf);
 
 	if (!expect(bs, count, "bstr_read"))
 		return FALSE;
@@ -393,6 +397,8 @@ bstr_read(bstr_t *bs, void *buf, size_t count)
 gboolean
 bstr_read_u8(bstr_t *bs, guint8 *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 1, "bstr_read_u8"))
 		return FALSE;
 
@@ -411,6 +417,8 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
 gboolean
 bstr_read_boolean(bstr_t *bs, gboolean *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 1, "bstr_read_boolean"))
 		return FALSE;
 
@@ -429,6 +437,8 @@ bstr_read_boolean(bstr_t *bs, gboolean *pv)
 gboolean
 bstr_read_le16(bstr_t *bs, guint16 *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 2, "bstr_read_le16"))
 		return FALSE;
 
@@ -448,6 +458,8 @@ bstr_read_le16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_be16(bstr_t *bs, guint16 *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 2, "bstr_read_be16"))
 		return FALSE;
 
@@ -467,6 +479,8 @@ bstr_read_be16(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_le32(bstr_t *bs, guint16 *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 4, "bstr_read_le32"))
 		return FALSE;
 
@@ -486,6 +500,8 @@ bstr_read_le32(bstr_t *bs, guint16 *pv)
 gboolean
 bstr_read_be32(bstr_t *bs, guint32 *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 4, "bstr_read_be32"))
 		return FALSE;
 
@@ -505,6 +521,8 @@ bstr_read_be32(bstr_t *bs, guint32 *pv)
 gboolean
 bstr_read_time(bstr_t *bs, time_t *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 4, "bstr_read_time"))
 		return FALSE;
 
@@ -524,6 +542,8 @@ bstr_read_time(bstr_t *bs, time_t *pv)
 gboolean
 bstr_read_float_be(bstr_t *bs, float *pv)
 {
+	g_assert(pv);
+
 	if (!expect(bs, 4, "bstr_read_float"))
 		return FALSE;
 
@@ -549,6 +569,8 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char *where = "bstr_read_packed_ipv4_or_ipv6_addr";
 	guint8 len;
+
+	g_assert(ha);
 
 	if (!expect(bs, 1, where))
 		return FALSE;
@@ -590,6 +612,9 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, gpointer ptr, guint8 *pr)
 {
 	static const char *where = "bstr_read_packed_array_u8";
 	guint8 len;
+
+	g_assert(ptr);
+	g_assert(pr);
 
 	if (!expect(bs, 1, where))
 		return FALSE;
