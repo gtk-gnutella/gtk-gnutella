@@ -3119,7 +3119,6 @@ dht_route_parse(FILE *f)
 		const char *tag_name, *value;
 		char *sp, *nl;
 		dht_route_tag_t tag;
-		gboolean damaged = FALSE;
 
 		line_no++;
 
@@ -3157,7 +3156,7 @@ dht_route_parse(FILE *f)
 			g_warning("dht_route_parse(): "
 				"duplicate tag \"%s\" within entry at line %u",
 				tag_name, line_no);
-			damaged = TRUE;
+			goto damaged;
 		}
 
 		switch (tag) {
@@ -3167,54 +3166,54 @@ dht_route_parse(FILE *f)
 				KUID_RAW_SIZE != base16_decode((char *) kuid.v, sizeof kuid.v,
 					value, KUID_RAW_SIZE * 2)
 			)
-				damaged = TRUE;
+				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_VNDR:
 			if (4 == strlen(value))
 				vcode.u32 = peek_be32(value);
 			else
-				damaged = TRUE;
+				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_VERS:
 			if (0 != parse_major_minor(value, NULL, &major, &minor))
-				damaged = TRUE;
+				goto damaged;
 			else if (major > 256 || minor > 256)
-				damaged = TRUE;
+				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_HOST:
 			if (!string_to_host_addr_port(value, NULL, &addr, &port))
-				damaged = TRUE;
+				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_SEEN:
 			seen = date2time(value, tm_time());
 			if ((time_t) -1 == seen)
-				damaged = TRUE;
+				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_END:
 			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_KUID)) {
 				g_warning("dht_route_parse(): missing KUID tag near line %u",
 					line_no);
-				damaged = TRUE;
+				goto damaged;
 			}
 			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VNDR)) {
 				g_warning("dht_route_parse(): missing VNDR tag near line %u",
 					line_no);
-				damaged = TRUE;
+				goto damaged;
 			}
 			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_VERS)) {
 				g_warning("dht_route_parse(): missing VERS tag near line %u",
 					line_no);
-				damaged = TRUE;
+				goto damaged;
 			}
 			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_HOST)) {
 				g_warning("dht_route_parse(): missing HOST tag near line %u",
 					line_no);
-				damaged = TRUE;
+				goto damaged;
 			}
 			if (!bit_array_get(tag_used, DHT_ROUTE_TAG_SEEN)) {
 				g_warning("dht_route_parse(): missing SEEN tag near line %u",
 					line_no);
-				damaged = TRUE;
+				goto damaged;
 			}
 			done = TRUE;
 			break;
@@ -3223,11 +3222,6 @@ dht_route_parse(FILE *f)
 			break;
 		case DHT_ROUTE_TAG_MAX:
 			g_assert_not_reached();
-			break;
-		}
-
-		if (damaged) {
-			g_warning("damaged DHT route entry at line %u, aborting", line_no);
 			break;
 		}
 
@@ -3267,6 +3261,11 @@ dht_route_parse(FILE *f)
 			done = FALSE;
 			bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
 		}
+		continue;
+
+	damaged:
+		g_warning("damaged DHT route entry at line %u, aborting", line_no);
+		break;
 	}
 
 	/*
