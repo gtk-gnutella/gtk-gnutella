@@ -53,7 +53,7 @@
 #define STORE_SC_BAD_VALUE		9U	/**< Analyzed value did not validate */
 #define STORE_SC_BAD_TYPE		10U	/**< Improper value type */
 #define STORE_SC_QUOTA			11U /**< Storage quota for creator reached */
-#define STORE_SC_DATA_MISMATCH	12U /**< Republished data is different */
+#define STORE_SC_DATA_MISMATCH	12U /**< Replicated data is different */
 #define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
 
 /*
