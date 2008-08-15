@@ -479,7 +479,8 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 	if (entry) {
 		fill_entry(entry, value, length);
 		hash_list_moveto_tail(dw->keys, key);
-		dw->w_hits++;
+		if (entry->dirty)
+			dw->w_hits++;
 	} else if (dw->max_cached > 1) {
 		entry = allocate_entry(dw, key, NULL);
 		fill_entry(entry, value, length);
