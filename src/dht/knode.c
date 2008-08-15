@@ -126,11 +126,8 @@ knode_can_recontact(const knode_t *kn)
 	if (!kn->rpc_timeouts)
 		return TRUE;				/* Timeout condition was cleared */
 
-	if (kn->rpc_timeouts >= KNODE_MAX_TIMEOUTS)
-		return FALSE;
-
 	/*
-	 * The grace period we want is 4 seconds times 2^timeouts, so the it
+	 * The grace period we want is 4 seconds times 2^timeouts, so it
 	 * ends up being 2^(timeouts + 2).
 	 */
 
