@@ -210,12 +210,14 @@ static const char * const boot_status_str[] = {
 static const char *
 boot_status_to_string(enum bootsteps status)
 {
+	size_t i = status;
+
 	STATIC_ASSERT(BOOT_MAX_VALUE == G_N_ELEMENTS(boot_status_str));
 
-	if (status >= G_N_ELEMENTS(boot_status_str))
+	if (i >= G_N_ELEMENTS(boot_status_str))
 		return "invalid boot status";
 
-	return boot_status_str[status];
+	return boot_status_str[i];
 }
 
 /**
@@ -3106,7 +3108,7 @@ dht_route_parse(FILE *f)
 	guint16 port;
 	kuid_t kuid;
 	vendor_code_t vcode = { 0 };
-	time_t seen;
+	time_t seen = (time_t) -1;
 	guint32 major, minor;
 
 	g_return_if_fail(f);
