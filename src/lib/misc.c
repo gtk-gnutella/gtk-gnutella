@@ -131,10 +131,11 @@ strlcat(gchar *dst, const gchar *src, size_t dst_size)
  * @return the sum of the lengths of all passed strings.
  */
 size_t
-concat_strings(gchar *dst, size_t size, const gchar *s, ...)
+concat_strings(char *dst, size_t size, const char *s, ...)
 {
 	va_list ap;
-	gchar *p = dst;
+	char *p = dst;
+	size_t ret = 0;
 
 	g_assert(0 == size || NULL != dst);
 
@@ -148,24 +149,25 @@ concat_strings(gchar *dst, size_t size, const gchar *s, ...)
 			size_t len;
 
 			len = g_strlcpy(p, s, size);
-			s = va_arg(ap, const gchar *);
-			p += len;
-			if (len >= size) {
-				size = 0;
+			ret = size_saturate_add(ret, len);
+			s = va_arg(ap, const char *);
+			size = size_saturate_sub(size, len);
+			if (0 == size)
 				break;
-			}
-			size -= len;
+
+			p += len;
 		}
 	}
 
 	while (NULL != s) {
-		p += strlen(s);
-		s = va_arg(ap, const gchar *);
+		ret = size_saturate_add(ret, strlen(s));
+		s = va_arg(ap, const char *);
 	}
 
 	va_end(ap);
 
-	return p - dst;
+	g_assert(ret < SIZE_MAX);
+	return ret;
 }
 
 /**
@@ -193,11 +195,13 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 	VA_COPY(ap2, ap);
 
 	for (s = first, size = 1; NULL != s; /* NOTHING */) {
-		size += strlen(s);
+		size = size_saturate_add(size, strlen(s));
 		s = va_arg(ap, const gchar *);
 	}
 
 	va_end(ap);
+
+	g_assert(size < SIZE_MAX);
 
 	if (dst_ptr) {
 		gchar *p;
