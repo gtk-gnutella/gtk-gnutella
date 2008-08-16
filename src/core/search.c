@@ -1187,7 +1187,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_GGEP_GTKGV1:
-				{
+				if (NULL != rs->version) {
+					g_warning("%s has multiple GGEP \"GTKGV1\" (ignoring)",
+							gmsg_infostr(&n->header));
+				} else {
 					struct ggep_gtkgv1 vi;
 
 					ret = ggept_gtkgv1_extract(e, &vi);
@@ -1219,15 +1222,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_GGEP_PUSH:
-				if (rs->proxies != NULL) {
+				if (NULL != rs->proxies) {
 					g_warning("%s has multiple GGEP \"PUSH\" (ignoring)",
 							gmsg_infostr(&n->header));
-					break;
-				}
-				rs->status |= ST_PUSH_PROXY;
-				{
+				} else {
 					gnet_host_vec_t *hvec = NULL;
 
+					rs->status |= ST_PUSH_PROXY;
 					ret = ggept_push_extract(e, &hvec);
 					if (ret == GGEP_OK) {
 						rs->proxies = hvec;
@@ -1244,7 +1245,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_GGEP_HNAME:
-				{
+				if (NULL != rs->hostname) {
+					g_warning("%s has multiple GGEP \"HNAME\" (ignoring)",
+							gmsg_infostr(&n->header));
+				} else {
 					gchar hostname[256];
 
 					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
@@ -1275,7 +1279,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 						size_t len;
 						gchar buf[4096];
 
-						len = MIN((size_t) paylen, sizeof buf - 1);
+						len = MIN(paylen, sizeof buf - 1);
 						memcpy(buf, ext_payload(e), len);
 						buf[len] = '\0';
 						if (utf8_is_valid_string(buf)) {
