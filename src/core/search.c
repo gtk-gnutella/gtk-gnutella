@@ -94,15 +94,6 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#ifdef USE_GTK2
-#ifndef g_hash_table_freeze
-#define g_hash_table_freeze(x)	/**< The function is deprecated: does nothing */
-#endif
-#ifndef g_hash_table_thaw
-#define g_hash_table_thaw(x)	/**< The function is deprecated: does nothing */
-#endif
-#endif
-
 #define MIN_SEARCH_TERM_BYTES 3		/* in bytes! */
 #define MAX_SEARCH_TERM_BYTES 200	/* in bytes; reserve some for GGEP etc. */
 
@@ -313,179 +304,6 @@ search_drop_handle(gnet_search_t n)
 static void search_check_results_set(gnet_results_set_t *rs);
 
 /***
- *** Counters
- ***/
-
-static GHashTable *ht_sha1;
-static GHashTable *ht_host;
-
-#if !GLIB_CHECK_VERSION(2, 0, 0)
-#undef SEARCH_STATS_COUNTERS
-#endif
-
-#ifdef SEARCH_STATS_COUNTERS
-static GList *top_sha1;
-static GList *top_host;
-
-struct item_count {
-	gpointer p;
-	guint n;
-};
-
-static GList *
-stats_update(GList *top, gpointer key, guint n)
-{
-	GList *l;
-	struct item_count *item = NULL;
-	guint last_n = 0;
-
-	for (l = top; l != NULL; l = g_list_next(l)) {
-		struct item_count *ic = l->data;
-
-		if (ic->p == key) {
-			item = ic;
-			ic->n = n;
-			if (last_n >= n || l == top)
-				return top;
-
-			top = g_list_delete_link(top, l);
-			break;
-		}
-		last_n = ic->n;
-	}
-
-	if (!item) {
-		if (g_list_length(top) < 25) {
-			item = g_malloc(sizeof *item);
-		} else if (n > last_n) {
-			l = g_list_last(top);
-			item = l->data;
-			top = g_list_delete_link(top, l);
-		} else {
-			return top;
-		}
-		item->p = key;
-		item->n = n;
-	}
-
-	for (l = top; l != NULL; l = g_list_next(l)) {
-		struct item_count *ic = l->data;
-
-		if (ic->n <= n)
-			break;
-	}
-	top = g_list_insert_before(top, l, item);
-
-	return top;
-}
-
-static void
-free_sha1(gpointer sha1)
-{
-	g_assert(sha1 != NULL);
-	atom_sha1_free(sha1);
-}
-
-static void
-count_sha1(const struct sha1 *sha1)
-{
-	static guint calls;
-	gpointer key, value;
-	guint n;
-
-	if (spam_sha1_check(sha1))
-		return;
-
-	if (!ht_sha1) {
-		ht_sha1 = g_hash_table_new_full(NULL, NULL, free_sha1, NULL);
-		if (top_sha1) {
-			GList *l;
-
-			g_message("SHA1 ranking:");
-			for (l = top_sha1; l != NULL; l = g_list_next(l)) {
-				struct item_count *ic = l->data;
-
-				ic->p = atom_sha1_get(ic->p);
-				g_hash_table_insert(ht_sha1, ic->p, GUINT_TO_POINTER(ic->n));
-				g_message("%8u %s", ic->n, sha1_base32(ic->p));
-			}
-		}
-	}
-
-	key = atom_sha1_get(sha1);
-	if (g_hash_table_lookup_extended(ht_sha1, key, NULL, &value)) {
-		n = GPOINTER_TO_UINT(value) + 1;
-	} else {
-		n = 1;
-	}
-
-	g_hash_table_insert(ht_sha1, key, GUINT_TO_POINTER(n));
-	top_sha1 = stats_update(top_sha1, key, n);
-	if (++calls > 1000) {
-		GList *l;
-
-		for (l = top_sha1; l != NULL; l = g_list_next(l)) {
-			struct item_count *ic = l->data;
-
-			ic->p = atom_sha1_get(ic->p);
-		}
-		g_hash_table_destroy(ht_sha1);
-		ht_sha1 = NULL;
-		calls = 0;
-	}
-}
-
-static void
-count_host(host_addr_t addr)
-{
-	static guint calls;
-	gpointer key, value;
-	guint n;
-
-	if (
-		NET_TYPE_IPV4 != host_addr_net(addr) ||
-		is_private_addr(addr) ||
-		bogons_check(addr)
-	)
-		return;
-
-	if (!ht_host) {
-		ht_host = g_hash_table_new(pointer_hash_func, NULL);
-		if (top_host) {
-			GList *l;
-
-			g_message("Host ranking:");
-			for (l = top_host; l != NULL; l = g_list_next(l)) {
-				struct item_count *ic = l->data;
-
-				g_hash_table_insert(ht_host, ic->p, GUINT_TO_POINTER(ic->n));
-				g_message("%8d %s", ic->n,
-					host_addr_to_string(
-						host_addr_get_ipv4(GPOINTER_TO_UINT(ic->p))));
-			}
-		}
-	}
-
-	key = GUINT_TO_POINTER(host_addr_ipv4(addr));
-	if (g_hash_table_lookup_extended(ht_host, key, NULL, &value))
-		n = GPOINTER_TO_UINT(value) + 1;
-	else
-		n = 1;
-
-	g_hash_table_insert(ht_host, key, GUINT_TO_POINTER(n));
-	top_host = stats_update(top_host, key, n);
-	if (++calls > 1000) {
-		g_hash_table_destroy(ht_host);
-		ht_host = NULL;
-		calls = 0;
-	}
-}
-#else
-#define count_sha1(x) G_STMT_START { } G_STMT_END
-#define count_host(x) G_STMT_START { } G_STMT_END 
-#endif /* SEARCH_STATS_COUNTERS */
-
-/***
  *** Callbacks (private and public)
  ***/
 
@@ -595,13 +413,11 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 	const GSList *sl;
 	struct gnutella_node *n;
 
-	g_hash_table_freeze(sch->sent_nodes);
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		n = sl->data;
 		if (NODE_IS_WRITABLE(n))
 			mark_search_sent_to_node(sch, n);
 	}
-	g_hash_table_thaw(sch->sent_nodes);
 }
 
 /***
@@ -1445,8 +1261,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 	}
 
-	count_host(rs->addr);
-
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
@@ -1629,7 +1443,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						huge_sha1_extract32(ext_payload(e),
 								paylen, &sha1_digest, &n->header)
 					) {
-						count_sha1(&sha1_digest);
 						if (spam_sha1_check(&sha1_digest)) {
 							rs->status |= ST_URN_SPAM;
 							set_flags(rc->flags, SR_SPAM);
@@ -1688,7 +1501,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						buf[paylen] = '\0';
 
 						if (urn_get_sha1_no_prefix(buf, &sha1_digest)) {
-							count_sha1(&sha1_digest);
 							if (spam_sha1_check(&sha1_digest)) {
 								rs->status |= ST_URN_SPAM;
 								set_flags(rc->flags, SR_SPAM);
@@ -1717,7 +1529,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					ret = ggept_h_sha1_extract(e, &sha1_digest);
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
-						count_sha1(&sha1_digest);
 						if (GGEP_OK == ggept_h_tth_extract(e, &tth_digest)) {
 							atom_tth_change(&rc->tth, &tth_digest);
 						}
@@ -2942,15 +2753,6 @@ search_shutdown(void)
     }
 
     g_assert(idtable_ids(search_handle_map) == 0);
-
-	if (ht_sha1) {
-		g_hash_table_destroy(ht_sha1);
-		ht_sha1 = NULL;
-	}
-	if (ht_host) {
-		g_hash_table_destroy(ht_host);
-		ht_host = NULL;
-	}
 
 	g_hash_table_destroy(searches);
 	searches = NULL;
