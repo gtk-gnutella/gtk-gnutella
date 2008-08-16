@@ -758,7 +758,7 @@ guint filesize_per_10000(filesize_t size, filesize_t part);
 static inline gboolean
 size_is_non_negative(size_t size)
 {
-	return size <= ((size_t) -1) / 2;
+	return size <= SIZE_MAX / 2;
 }
 
 /**
@@ -778,9 +778,10 @@ size_is_positive(size_t size)
 static inline size_t
 size_saturate_add(size_t a, size_t b)
 {
-	if (G_UNLIKELY(SIZE_MAX - a < b))
+	size_t ret = a + b;
+	if (G_UNLIKELY(ret < a))
 		return SIZE_MAX;
-	return a + b;
+	return ret;
 }
 
 /*
