@@ -1293,10 +1293,15 @@
 #208.53.183.171
 
 # LimeWire/4.10.9 (maybe fake or reverse proxy); port 6669
+# These respond to any HEAD request with arbitrary URNs
+# but otherwise just time out
 # *.BestQualiti.htm
 # * KeyGen All Version.zip
 78.140.133.0/24
-93.174.93.148/31
+# hosted by ECATEL
+#93.174.93.148/31
+#93.174.93.81
+93.174.93.0/24
 213.174.141.173
 
 # WakeNet; 3wplayer dot com
