@@ -818,9 +818,11 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug)) {
 		g_message("DHT bucket refresh with %s "
-			"for %s %s completed: %s",
+			"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
 			kuid_to_hex_string(kuid),
 			is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
+			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+			list_count(kb, KNODE_PENDING),
 			lookup_strerror(error));
 	}
 }
@@ -861,8 +863,12 @@ dht_bucket_refresh(struct kbucket *kb)
 	}
 
 	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initiating refresh of %ssplitable %s",
-			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb));
+		g_message("DHT initiating refresh of %ssplitable %s "
+			"(good: %u, stale: %u, pending: %u)",
+			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb),
+			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
+			list_count(kb, KNODE_PENDING));
+
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1540,8 +1546,6 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 		stats.pending++;
 	}
 
-#undef ADD_KNODE
-
 done:
 	check_leaf_bucket_consistency(kb);
 }
@@ -1565,11 +1569,13 @@ promote_pending_node(struct kbucket *kb)
 
 	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 		knode_t *selected = NULL;
-		time_t now = tm_time();
 
 		/*
 		 * Only promote a node that we know is not shutdowning.
 		 * It will become unavailable soon.
+		 *
+		 * We iterate from the tail of the list, which is where most recently
+		 * seen nodes lie.
 		 */
 
 		hash_list_iter_t *iter;
@@ -1580,10 +1586,7 @@ promote_pending_node(struct kbucket *kb)
 			knode_check(kn);
 			g_assert(KNODE_PENDING == kn->status);
 
-			if (
-				!(kn->flags & KNODE_F_SHUTDOWNING) &&
-				delta_time(now, kn->last_seen) < ALIVENESS_PERIOD
-			) {
+			if (!(kn->flags & KNODE_F_SHUTDOWNING)) {
 				selected = kn;
 				break;
 			}
@@ -1592,10 +1595,11 @@ promote_pending_node(struct kbucket *kb)
 
 		if (selected) {
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT promoting %s node %s at %s to the good list",
+				g_message("DHT promoting %s node %s at %s to good in %s",
 					knode_status_to_string(selected->status),
 					kuid_to_hex_string(selected->id),
-					host_addr_port_to_string(selected->addr, selected->port));
+					host_addr_port_to_string(selected->addr, selected->port),
+					kbucket_to_string(kb));
 
 			hash_list_remove(kb->nodes->pending, selected);
 			list_update_stats(KNODE_PENDING, -1);
@@ -1789,19 +1793,21 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			list_update_stats(KNODE_PENDING, +1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT switched %s node %s at %s to pending list",
+				g_message("DHT switched %s node %s at %s to pending in %s",
 					knode_status_to_string(new),
 					kuid_to_hex_string(removed->id),
-					host_addr_port_to_string(removed->addr, removed->port));
+					host_addr_port_to_string(removed->addr, removed->port),
+					kbucket_to_string(kb));
 		} else {
 			g_hash_table_remove(kb->nodes->all, removed->id);
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT dropped %s node %s at %s from routing table",
+				g_message("DHT dropped %s node %s at %s from %s",
 					knode_status_to_string(removed->status),
 					kuid_to_hex_string(removed->id),
-					host_addr_port_to_string(removed->addr, removed->port));
+					host_addr_port_to_string(removed->addr, removed->port),
+					kbucket_to_string(kb));
 
 			forget_node(removed);
 		}
@@ -2863,9 +2869,10 @@ dht_addr_verify_cb(
 				g_warning("DHT verification keeping new node %s",
 					knode_to_string(av->new));
 
-			if (NULL == tkn)
+			if (NULL == tkn) {
+				av->new->flags |= KNODE_F_ALIVE;	/* Got traffic earlier! */
 				dht_add_node(av->new);
-			else if (
+			} else if (
 				!host_addr_equal(tkn->addr, av->new->addr) ||
 				tkn->port != av->new->port
 			) {
