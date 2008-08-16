@@ -406,6 +406,15 @@ list_count(const struct kbucket *kb, knode_status_t status)
 }
 
 /**
+ * Same as list_count() but returns 0 if the bucket is not a leaf.
+ */
+static guint
+safe_list_count(const struct kbucket *kb, knode_status_t status)
+{
+	return is_leaf(kb) ? list_count(kb, status) : 0;
+}
+
+/**
  * Compute how mnay nodes are held with a given status under all the leaves
  * of the k-bucket.
  */
@@ -821,8 +830,8 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 			"for %s %s (good: %u, stale: %u, pending: %u) completed: %s",
 			kuid_to_hex_string(kuid),
 			is_leaf(kb) ? "leaf" : "split", kbucket_to_string(kb),
-			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
-			list_count(kb, KNODE_PENDING),
+			safe_list_count(kb, KNODE_GOOD), safe_list_count(kb, KNODE_STALE),
+			safe_list_count(kb, KNODE_PENDING),
 			lookup_strerror(error));
 	}
 }
