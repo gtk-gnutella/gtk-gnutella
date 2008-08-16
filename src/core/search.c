@@ -1755,11 +1755,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 	if (s < endptr) {
-		guint32 tlen = endptr - s;			/* Trailer length, starts at `s' */
-		guchar *x = (guchar *) s;
+		size_t trailer_len = endptr - s;			/* Trailer length, starts at `s' */
 
-		if ((gint) tlen >= 5 && x[4] + 5 <= (gint) tlen)
-			trailer = s;
+		if (trailer_len >= 5) {
+			unsigned open_data_size = peek_u8(&s[4]);
+
+			if (trailer_len - 5 >= open_data_size)
+				trailer = s;
+		}
 
 		if (trailer) {
 			rs->vcode.u32 = peek_be32(trailer);
@@ -1770,15 +1773,17 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		} else {
 			if (GNET_PROPERTY(search_debug)) {
 				g_warning(
-					"UNKNOWN %u-byte trailer at offset %u in %s from %s "
+					"UNKNOWN %lu-byte trailer at offset %lu in %s from %s "
 					"(%u/%u records parsed)",
-					(unsigned) tlen, (unsigned) (s - n->data), gmsg_infostr(&n->header),
+					(unsigned long) trailer_len,
+					(unsigned long) (s - n->data),
+					gmsg_infostr(&n->header),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
 			if (GNET_PROPERTY(search_debug) > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
 					n->data, n->size);
-				dump_hex(stderr, "UNKNOWN trailer part", s, tlen);
+				dump_hex(stderr, "UNKNOWN trailer part", s, trailer_len);
 			}
 		}
 	}
