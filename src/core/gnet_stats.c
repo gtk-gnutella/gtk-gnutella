@@ -355,22 +355,25 @@ gnet_stats_count_flowc(gconstpointer head)
 	guint t;
 	guint i;
 	guint16 size = gmsg_size(head);
+	guint8 function = gnutella_header_get_function(head);
+	guint8 ttl = gnutella_header_get_ttl(head);
+	guint8 hops = gnutella_header_get_hops(head);
 
-#if 0
-	g_message("FLOWC function=%d ttl=%d hops=%d", h->function, h->ttl, h->hops);
-#endif
+	if (GNET_PROPERTY(node_debug) > 3)
+		g_message("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
 
-	t = stats_lut[gnutella_header_get_function(head)];
+	t = stats_lut[function];
 
-	i = MIN(gnutella_header_get_hops(head), STATS_FLOWC_COLUMNS - 1);
+	i = MIN(hops, STATS_FLOWC_COLUMNS - 1);
 	gnet_stats.pkg.flowc_hops[i][t]++;
 	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
 	gnet_stats.byte.flowc_hops[i][t] += size;
 	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
 
-	i = MIN(gnutella_header_get_ttl(head), STATS_FLOWC_COLUMNS - 1);
+	i = MIN(ttl, STATS_FLOWC_COLUMNS - 1);
 
-	g_assert(i != 0);			/* Cannot send a message with TTL=0 */
+	/* Cannot send a message with TTL=0 (DHT messages are not Gnutella) */
+	g_assert(function == GTA_MSG_DHT || i != 0);
 
 	gnet_stats.pkg.flowc_ttl[i][t]++;
 	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
