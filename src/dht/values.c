@@ -516,6 +516,30 @@ validate_new_acceptable(const dht_value_t *v)
 }
 
 /**
+ * Record valuedata information extracted from creator and DHT value.
+ *
+ * @param vd		the valuedata structure to fill
+ * @param cn		the creator node
+ * @param v			the DHT value we're going to store
+ */
+static void
+fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
+{
+	vd->publish = tm_time();
+	vd->replicated = 0;
+	vd->expire = 0;					/* XXX compute proper TTL */
+	vd->vcode = cn->vcode;			/* struct copy */
+	vd->addr = cn->addr;			/* struct copy */
+	vd->port = cn->port;
+	vd->major = cn->major;
+	vd->minor = cn->minor;
+	vd->type = v->type;
+	vd->value_major = v->major;
+	vd->value_minor = v->minor;
+	vd->length = v->length;
+}
+
+/**
  * Publish or replicate value in our local data store.
  *
  * @return store status code that will be relayed back to the remote node.
@@ -560,19 +584,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		keys_add_value(v->id, cn->id, dbkey);
 
 		vd->id = *v->id;				/* struct copy */
-		vd->publish = tm_time();
-		vd->replicated = 0;
-		vd->expire = 0;					/* XXX compute proper TTL */
 		vd->cid = *cn->id;				/* struct copy */
-		vd->vcode = cn->vcode;			/* struct copy */
-		vd->addr = cn->addr;			/* struct copy */
-		vd->port = cn->port;
-		vd->major = cn->major;
-		vd->minor = cn->minor;
-		vd->type = v->type;
-		vd->value_major = v->major;
-		vd->value_minor = v->minor;
-		vd->length = v->length;
+		fill_valuedata(vd, cn, v);
 
 		values_managed++;
 		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
@@ -622,10 +635,11 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 			/*
 			 * They cannot change vendor codes without at least changing
-			 * their KUID...
+			 * their KUID...  This check can of course only be conducted
+			 * when we had an original value already, not second-hand info.
 			 */
 
-			if (vd->vcode.u32 != cn->vcode.u32) {
+			if (vd->original && vd->vcode.u32 != cn->vcode.u32) {
 				what = "creator's vendor code";
 				goto mismatch;
 			}
@@ -635,18 +649,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 					"with %s", vd->length, dht_value_type_to_string(vd->type),
 					dht_value_to_string(v));
 
-			vd->publish = tm_time();
-			vd->replicated = 0;
-			vd->expire = 0;					/* XXX compute proper TTL */
 			vd->original = TRUE;
-			vd->addr = cn->addr;			/* struct copy */
-			vd->port = cn->port;
-			vd->major = cn->major;
-			vd->minor = cn->minor;
-			vd->length = v->length;
-			vd->type = v->type;
-			vd->value_major = v->major;
-			vd->value_minor = v->minor;
+			fill_valuedata(vd, cn, v);
 		}
 	}
 
