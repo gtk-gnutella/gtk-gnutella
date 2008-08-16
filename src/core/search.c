@@ -1185,9 +1185,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
 	GString *info;
-	gint sha1_errors = 0;
-	gint alt_errors = 0;
-	gint alt_without_hash = 0;
+	unsigned sha1_errors = 0;
+	unsigned alt_errors = 0;
+	unsigned alt_without_hash = 0;
 	gchar *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_ggep_alt = FALSE;
@@ -1770,9 +1770,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		} else {
 			if (GNET_PROPERTY(search_debug)) {
 				g_warning(
-					"UNKNOWN %d-byte trailer at offset %d in %s from %s "
+					"UNKNOWN %u-byte trailer at offset %u in %s from %s "
 					"(%u/%u records parsed)",
-					(gint) tlen, (gint) (s - n->data), gmsg_infostr(&n->header),
+					(unsigned) tlen, (unsigned) (s - n->data), gmsg_infostr(&n->header),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
 			if (GNET_PROPERTY(search_debug) > 1) {
@@ -1824,7 +1824,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (sha1_errors) {
 		if (GNET_PROPERTY(search_debug)) g_warning(
 				"%s from %s (via \"%s\" at %s) "
-				"had %d SHA1 error%s over %u record%s",
+				"had %u SHA1 error%s over %u record%s",
 				gmsg_infostr(&n->header), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				sha1_errors, sha1_errors == 1 ? "" : "s",
@@ -1841,7 +1841,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (alt_errors && GNET_PROPERTY(search_debug)) {
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
-				"had %d ALT error%s over %u record%s",
+				"had %u ALT error%s over %u record%s",
 				gmsg_infostr(&n->header), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				alt_errors, alt_errors == 1 ? "" : "s",
@@ -1851,7 +1851,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (alt_without_hash && GNET_PROPERTY(search_debug)) {
 		g_warning(
 				"%s from %s (via \"%s\" at %s) "
-				"had %d ALT extension%s with no hash over %u record%s",
+				"had %u ALT extension%s with no hash over %u record%s",
 				gmsg_infostr(&n->header), vendor ? vendor : "????",
 				node_vendor(n), node_addr(n),
 				alt_without_hash, alt_without_hash == 1 ? "" : "s",
@@ -2534,7 +2534,7 @@ static void
 update_one_reissue_timeout(search_ctrl_t *sch)
 {
 	guint32 max_items;
-	gint percent;
+	unsigned percent;
 	gfloat factor;
 	guint32 tm;
 
@@ -3073,7 +3073,7 @@ static void
 search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
-	gint ignored = 0;
+	unsigned ignored = 0;
 	gint i;
 
 	g_assert(alt != NULL);
@@ -3108,7 +3108,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 
 	if (ignored) {
     	const gchar *vendor = vendor_get_name(rs->vcode.u32);
-		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
+		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
 			vendor ? vendor : "????");
@@ -3325,25 +3325,22 @@ search_new_muid(gboolean initial)
 static gboolean
 search_expired(const search_ctrl_t *sch)
 {
-	gboolean expired;
 	time_t ct;
 	guint lt;
 
 	g_assert(sch);
 	
 	ct = sch->create_time;			/* In local (kernel) time */
-	lt = 3600 * sch->lifetime;
+	lt = 3600U * sch->lifetime;
 
 	if (lt) {
-		gint d;
+		time_delta_t d;
 
 		d = delta_time(tm_time(), ct);
 		d = MAX(0, d);
-		expired = (guint) d >= lt;
-	} else
-		expired = FALSE;
-
-	return expired;
+		return UNSIGNED(d) >= lt;
+	}
+	return FALSE;
 }
 
 /**
@@ -3734,7 +3731,7 @@ search_oob_pending_results(
 	struct array token_opaque;
 	guint32 token;
 	guint32 kept;
-	gint ask;
+	unsigned ask;
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
@@ -3814,7 +3811,7 @@ search_oob_pending_results(
 	 */
 
 	ask = MIN(hits, 254);
-	ask = MIN((guint) ask, GNET_PROPERTY(search_max_items));
+	ask = MIN(ask, GNET_PROPERTY(search_max_items));
 	g_assert(ask < 255);
 
 	/*
@@ -4522,7 +4519,7 @@ search_request_preprocess(struct gnutella_node *n)
 	if (search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(share_debug))
-			g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
+			g_warning("query (hops=%u, ttl=%u) had no NUL (%d byte%s)",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				n->size - 2,
@@ -4861,9 +4858,9 @@ search_request_preprocess(struct gnutella_node *n)
 
 		if (delta_time(now, (time_t) 0) - seen < threshold) {
 			if (GNET_PROPERTY(share_debug)) g_warning(
-				"node %s (%s) re-queried \"%s\" after %d secs",
+				"node %s (%s) re-queried \"%s\" after %u secs",
 				node_addr(n), node_vendor(n), query,
-				(gint) delta_time(now, seen));
+				(unsigned) delta_time(now, seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			goto drop;		/* Drop the message! */
 		}
@@ -4872,7 +4869,7 @@ search_request_preprocess(struct gnutella_node *n)
 			atom = atom_str_get(query);
 
 		gm_hash_table_insert_const(n->qseen, atom,
-			GINT_TO_POINTER((gint) delta_time(now, (time_t) 0)));
+			GUINT_TO_POINTER((unsigned) delta_time(now, (time_t) 0)));
 	}
 	record_query_string(gnutella_header_get_muid(&n->header), search);
 
@@ -4893,11 +4890,11 @@ search_request_preprocess(struct gnutella_node *n)
 		 */
 
 		if (last_sha1_digest == NULL)
-			gm_snprintf(stmp_1, sizeof(stmp_1), "%d/%d%s",
+			gm_snprintf(stmp_1, sizeof(stmp_1), "%u/%u%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header), search);
 		else
-			gm_snprintf(stmp_1, sizeof(stmp_1), "%d/%durn:sha1:%s",
+			gm_snprintf(stmp_1, sizeof(stmp_1), "%u/%uurn:sha1:%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sha1_base32(last_sha1_digest));
@@ -4910,7 +4907,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 		if (found != NULL) {
 			if (GNET_PROPERTY(share_debug)) g_warning(
-				"dropping query \"%s%s\" (hops=%d, TTL=%d) "
+				"dropping query \"%s%s\" (hops=%u, TTL=%u) "
 				"already seen recently from %s (%s)",
 				last_sha1_digest == NULL ? "" : "urn:sha1:",
 				last_sha1_digest == NULL ?
@@ -5360,10 +5357,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 								exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&exv_sha1[i].sha1));
 				}
-				g_message("\tflags=0x%04x ttl=%d hops=%d",
+				g_message("\tflags=0x%04x ttl=%u hops=%u",
 						(guint) flags,
-						(gint) gnutella_header_get_ttl(&n->header),
-						(gint) gnutella_header_get_hops(&n->header));
+						gnutella_header_get_ttl(&n->header),
+						gnutella_header_get_hops(&n->header));
 			}
 		}
 
