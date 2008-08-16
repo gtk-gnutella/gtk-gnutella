@@ -585,6 +585,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 * management is wrong and we messed up severely somewhere.
 		 */
 
+		g_assert(vd);						/* XXX handle DB failures */
 		g_assert(kuid_eq(&vd->id, v->id));				/* Primary key */
 		g_assert(kuid_eq(&vd->cid, v->creator->id));	/* Secondary key */
 
@@ -614,7 +615,9 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			}
 			check_data = TRUE;
 		} else {
-			if (!validate_creator(kn, v->creator))
+			const knode_t *cn = v->creator;
+
+			if (!validate_creator(kn, cn))
 				return STORE_SC_BAD_CREATOR;
 
 			/*
@@ -622,15 +625,28 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			 * their KUID...
 			 */
 
-			if (vd->vcode.u32 != v->creator->vcode.u32) {
+			if (vd->vcode.u32 != cn->vcode.u32) {
 				what = "creator's vendor code";
 				goto mismatch;
 			}
+
+			if (GNET_PROPERTY(dht_storage_debug) > 1)
+				g_message("DHT STORE creator superseding old %u-byte %s value "
+					"with %s", vd->length, dht_value_type_to_string(vd->type),
+					dht_value_to_string(v));
 
 			vd->publish = tm_time();
 			vd->replicated = 0;
 			vd->expire = 0;					/* XXX compute proper TTL */
 			vd->original = TRUE;
+			vd->addr = cn->addr;			/* struct copy */
+			vd->port = cn->port;
+			vd->major = cn->major;
+			vd->minor = cn->minor;
+			vd->length = v->length;
+			vd->type = v->type;
+			vd->value_major = v->major;
+			vd->value_minor = v->minor;
 		}
 	}
 
@@ -644,6 +660,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
 
+		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
 
@@ -666,6 +683,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		/*
 		 * We got either new data or something republished by the creator.
 		 */
+
+		g_assert(v->length == vd->length);	/* Ensured by preceding code */
 
 		dbmw_write(db_rawdata, &dbkey, deconstify_gpointer(v->data), v->length);
 	}
@@ -813,6 +832,7 @@ values_get(guint64 dbkey, dht_value_type_t type)
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
 
+		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
 
 		vdata = walloc(length);
