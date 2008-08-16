@@ -1193,7 +1193,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
-	gint multiple_alt = 0;
+	gboolean multiple_alt = FALSE;
 	const gchar *vendor = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
@@ -1571,7 +1571,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					break;
 				case EXT_T_GGEP_ALT:		/* Alternate locations */
 					if (hvec != NULL) {		/* Already saw one for record! */
-						multiple_alt++;
+						multiple_alt = TRUE;
 						break;
 					}
 					ret = ggept_alt_extract(e, &hvec);
