@@ -217,6 +217,23 @@ knode_is_usable(const knode_t *kn)
 }
 
 /**
+ * @return whether host's address is a valid DHT value creator.
+ */
+gboolean
+knode_addr_is_usable(const knode_t *kn)
+{
+	knode_check(kn);
+
+	if (!host_addr_is_valid(kn->addr))
+		return FALSE;
+
+	if (hostiles_check(kn->addr))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Pretty-printing of node information for logs into the supplied buffers.
  *
  * IP address is followed by '*' if the contact's address/port was patched.

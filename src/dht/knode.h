@@ -54,6 +54,7 @@ void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
 void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
 gboolean knode_can_recontact(const knode_t *kn);
 gboolean knode_is_usable(const knode_t *kn);
+gboolean knode_addr_is_usable(const knode_t *kn);
 
 #endif /* _dht_knode_h_ */
 
