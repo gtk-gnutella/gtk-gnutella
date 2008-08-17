@@ -44,10 +44,13 @@
  */
 typedef enum {
 	DHT_VT_BINARY	= 0x00000000,
+	DHT_VT_ALOC		= VALUE_TYPE_CODE('A','L','O','C'),
 	DHT_VT_GTKG		= VALUE_TYPE_CODE('G','T','K','G'),
 	DHT_VT_LIME		= VALUE_TYPE_CODE('L','I','M','E'),
-	DHT_VT_TEXT		= VALUE_TYPE_CODE('T','E','X','T'),
+	DHT_VT_PROX		= VALUE_TYPE_CODE('P','R','O','X'),
 	DHT_VT_TEST		= VALUE_TYPE_CODE('T','E','S','T'),
+	DHT_VT_TEXT		= VALUE_TYPE_CODE('T','E','X','T'),
+
 	DHT_VT_ANY		= VALUE_TYPE_CODE('*','*','*','*'),
 } dht_value_type_t;
 
