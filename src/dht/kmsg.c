@@ -1013,6 +1013,30 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			goto error;
 		}
 
+		/*
+		 * Special handling of dumb LimeWire firewalled nodes who cannot seem
+		 * to be able to figure out their outgoing address and which use
+		 * a private one: if we already patched the sender of the message,
+		 * look whether the creator of the value is also the sender, and
+		 * patch its addr:port as well.
+		 *
+		 * We do this at the lowest possible level so that upper layers do not
+		 * need to bother.
+		 */
+
+		if ((kn->flags & KNODE_F_PCONTACT) && kuid_eq(kn->id, v->creator->id)) {
+			knode_t *cn = deconstify_gpointer(v->creator);
+
+			if (GNET_PROPERTY(dht_storage_debug))
+				g_warning(
+					"DHT patching creator's IP %s:%u to match sender's %s",
+					host_addr_to_string(cn->addr), cn->port,
+					host_addr_port_to_string(kn->addr, kn->port));
+
+			cn->addr = kn->addr;
+			cn->port = kn->port;
+		}
+
 		vec[i] = v;
 	}
 
@@ -1464,16 +1488,14 @@ void kmsg_received(
 	 * Check contact's address, if host not flagged as "firewalled".
 	 */
 
-	if (!(flags & KDA_MSG_F_FIREWALLED)) {
-		if (!host_is_valid(kaddr, kport)) {
-			if (GNET_PROPERTY(dht_debug))
-				g_warning("DHT bad contact address %s (%s v%u.%u), "
-					"forcing \"firewalled\" flag",
-					host_addr_port_to_string(kaddr, kport),
-					vendor_code_to_string(vcode.u32), kmajor, kminor);
+	if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT bad contact address %s (%s v%u.%u), "
+				"forcing \"firewalled\" flag",
+				host_addr_port_to_string(kaddr, kport),
+				vendor_code_to_string(vcode.u32), kmajor, kminor);
 
-			flags |= KDA_MSG_F_FIREWALLED;
-		}
+		flags |= KDA_MSG_F_FIREWALLED;
 	}
 
 	/*
@@ -1605,6 +1627,23 @@ void kmsg_received(
 				host_addr_to_string(addr));
 
 		kn->flags |= KNODE_F_FOREIGN_IP;
+	}
+
+	/*
+	 * If host is firewalled, ignore private host address in the Kademlia
+	 * header and use the addr/port from the UDP datagram.
+	 */
+
+	if ((kn->flags & KNODE_F_FIREWALLED) && !host_addr_is_routable(kaddr)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT non-routable contact address in firewalled node %s "
+				"replaced by UDP source %s:%u",
+				host_addr_port_to_string(kaddr, kport),
+				host_addr_to_string(addr), port);
+
+		kn->addr = addr;
+		kn->port = port;
+		kn->flags |= KNODE_F_PCONTACT;
 	}
 
 	n = node_udp_get_addr_port(addr, port);

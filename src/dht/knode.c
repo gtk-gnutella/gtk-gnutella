@@ -218,6 +218,16 @@ knode_is_usable(const knode_t *kn)
 
 /**
  * Pretty-printing of node information for logs into the supplied buffers.
+ *
+ * IP address is followed by '*' if the contact's address/port was patched.
+ * IP address is followed by '?' if the UDP message came from another IP
+ *
+ * A "zombie" node is a node retrieved from the persisted routing table that
+ * is not alive.  Normally, only alive hosts from which we get traffic are
+ * added, but here we have an instance that is not alive -- a zombie.
+ *
+ * A firewalled node is indicated by a trailing "fw" indication.
+ *
  * @return the buffer where printing was done.
  */
 const gchar *
@@ -231,11 +241,15 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s (%s v%u.%u) [%s] \"%s\", ref=%d%s",
-		host_buf, vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
+		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s",
+		host_buf,
+		(kn->flags & KNODE_F_PCONTACT) ? "*" : "",
+		(kn->flags & KNODE_F_FOREIGN_IP) ? "?" : "",
+		vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
 		knode_status_to_string(kn->status), kn->refcnt,
 		(kn->status != KNODE_UNKNOWN && !(kn->flags & KNODE_F_ALIVE)) ?
-			" zombie" : "");
+			" zombie" : "",
+		(kn->flags & KNODE_F_FIREWALLED) ? " fw" : "");
 
 	return buf;
 }

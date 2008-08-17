@@ -2872,7 +2872,11 @@ dht_addr_verify_cb(
 
 		dht_remove_node(av->old);
 
-		if (!(av->new->flags & KNODE_F_FIREWALLED)) {
+		if (av->new->flags & KNODE_F_FIREWALLED) {
+			if (GNET_PROPERTY(dht_debug))
+				g_warning("DHT verification ignoring firewalled new node %s",
+					knode_to_string(av->new));
+		} else {
 			knode_t *tkn;
 
 			tkn = dht_find_node((char *) av->new->id);
