@@ -776,9 +776,12 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 
 	/*
 	 * Check for unusable addresses.
+	 *
+	 * We don't use knode_is_usable() because we do allow port = 0 here.
+	 * This is used to indicate firewalled hosts, usually.
 	 */
 
-	if (!knode_is_usable(v->creator)) {
+	if (!knode_addr_is_usable(v->creator)) {
 		status = STORE_SC_BAD_CREATOR;
 		goto done;
 	}
