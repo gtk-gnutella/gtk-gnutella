@@ -1035,6 +1035,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 			cn->addr = kn->addr;
 			cn->port = kn->port;
+			cn->flags |= KNODE_F_PCONTACT;
 		}
 
 		vec[i] = v;
