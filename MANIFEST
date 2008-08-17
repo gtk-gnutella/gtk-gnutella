@@ -502,6 +502,9 @@ src/if/core/uploads.h
 src/if/core/version.h
 src/if/core/wrap.h
 src/if/dht/kademlia.h
+src/if/dht/knode.h
+src/if/dht/kuid.h
+src/if/dht/value.h
 src/if/gnet_property.c
 src/if/gnet_property.h
 src/if/gnet_property_priv.h
