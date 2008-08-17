@@ -247,7 +247,7 @@ deserialize_valuedata(bstr_t *bs, gpointer valptr, size_t len)
  * @param type			the DHT value type code
  * @param major			the data format major version
  * @param minor			the data format minor version
- * @param data			walloc()'ed data, or NULL if length > VALUE_MAX_LEN
+ * @param data			walloc()'ed data, or NULL if length > DHT_VALUE_MAX_LEN
  * @param length		length of the data, as read from network
  */
 dht_value_t *
@@ -257,7 +257,7 @@ dht_value_make(const knode_t *creator,
 {
 	dht_value_t *v;
 
-	g_assert(length <= VALUE_MAX_LEN || NULL == data);
+	g_assert(length <= DHT_VALUE_MAX_LEN || NULL == data);
 	g_assert(length || NULL == data);
 
 	v = walloc(sizeof *v);
@@ -284,7 +284,7 @@ dht_value_free(dht_value_t *v, gboolean free_data)
 	kuid_atom_free_null(&v->id);
 
 	if (free_data && v->data) {
-		g_assert(v->length && v->length <= VALUE_MAX_LEN);
+		g_assert(v->length && v->length <= DHT_VALUE_MAX_LEN);
 		wfree(deconstify_gpointer(v->data), v->length);
 	}
 
@@ -760,7 +760,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 	 * Reject too large a value.
 	 */
 
-	if (v->length >= VALUE_MAX_LEN) {
+	if (v->length >= DHT_VALUE_MAX_LEN) {
 		status = STORE_SC_TOO_LARGE;
 		goto done;
 	}
@@ -865,7 +865,7 @@ values_init(void)
 		1, uint64_hash, uint64_eq);
 
 	db_rawdata = storage_create(db_rawwhat, db_rawbase,
-		sizeof(guint64), VALUE_MAX_LEN,
+		sizeof(guint64), DHT_VALUE_MAX_LEN,
 		NULL, NULL,
 		1, uint64_hash, uint64_eq);
 

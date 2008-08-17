@@ -28,8 +28,8 @@
 
 #include "common.h"
 
-#include "if/dht/kuid.h"
-#include "if/dht/knode.h"
+#include "kuid.h"
+#include "knode.h"
 
 #define VALUE_TYPE_CODE(a,b,c,d) (	\
 	((guint32) (a) << 24) | \

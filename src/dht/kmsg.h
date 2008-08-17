@@ -38,7 +38,11 @@
 
 #include "common.h"
 
+#include "if/dht/kmsg.h"
+
 #include "knode.h"
+#include "kuid.h"
+#include "values.h"
 
 #include "if/core/guid.h"
 #include "if/dht/kademlia.h"
@@ -51,32 +55,15 @@
  * Public interface.
  */
 
-void kmsg_init(void);
-void kmsg_received(
-	gconstpointer data, size_t len, host_addr_t addr, guint16 port);
-
 void kmsg_send_ping(knode_t *kn, const guid_t *muid);
 void kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
 	pmsg_free_t mfree, gpointer marg);
-
-const char *kmsg_infostr(gconstpointer msg);
-const char *kmsg_name(guint function);
+void kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
+	kuid_t **skeys, int scnt,
+	const guid_t *muid, pmsg_free_t mfree, gpointer marg);
 
 knode_t *kmsg_deserialize_contact(bstr_t *bs);
-
-/*
- * Inlined routines.
- */
-
-/**
- * Returns the size (16-bit quantity) of a Kademlia payload.
- */
-static inline guint16
-kmsg_size(gconstpointer msg)
-{
-	return kademlia_header_get_size(msg) -
-		kademlia_header_get_extended_length(msg);
-}
+dht_value_t *kmsg_deserialize_dht_value(bstr_t *bs);
 
 #endif	/* _dht_kmsg_h_ */
 

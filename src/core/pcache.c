@@ -61,8 +61,7 @@ RCSID("$Id$")
 #include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
-
-#include "dht/routing.h"
+#include "if/dht/dht.h"
 
 #include "lib/aging.h"
 #include "lib/atoms.h"

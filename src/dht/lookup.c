@@ -94,6 +94,22 @@ enum parallelism {
 	LOOKUP_LOOSE,				/**< Loose parallelism */
 };
 
+struct nlookup;
+
+/**
+ * Additional context for find_value lookups, when we have to iterate
+ * to grab secondary keys in results.
+ */
+struct fvalue {
+	struct nlookup *nl;			/**< Parent "find value" request */
+	dht_value_t **vvec;			/**< Read expanded DHT values */
+	kuid_t **skeys;				/**< Read secondary keys (KUID atoms) */
+	float load;					/**< Reported request load on key */
+	int vcnt;					/**< Amount of DHT values in vector */
+	int scnt;					/**< Amount of secondary keys in vector */
+	int vsize;					/**< Total size of vvec (can be > vcnt) */
+};
+
 /**
  * A Kademlia node lookup.
  */
@@ -110,10 +126,12 @@ struct nlookup {
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
 	union {
 		struct {
-			lookup_cb_ok_t ok;	/**< OK callback for "find node" */
+			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
 		} fn;
 		struct {
-			lookup_cbv_ok_t ok;	/**< OK callback for "find value" */
+			lookup_cbv_ok_t ok;		/**< OK callback for "find value" */
+			dht_value_type_t vtype;	/**< Type of value they want */
+			struct fvalue *fv;		/**< The subordinate "find value" task */
 		} fv;
 	} u;
 	lookup_cb_err_t err;		/**< Error callback */
@@ -272,6 +290,10 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 {
 
 	lookup_check(nl);
+	
+	if (LOOKUP_VALUE == nl->type && nl->u.fv.fv) {
+		/* XXX */
+	}
 
 	map_foreach(nl->tokens, free_token, NULL);
 	patricia_foreach(nl->shortlist, free_knode_pt, NULL);
@@ -381,32 +403,59 @@ lookup_free_results(lookup_rs_t *rs)
 }
 
 /**
- * Create value result.
+ * Create value results.
+ *
+ * @param load		reported request load on key
+ * @param vvec		vector of DHT values
+ * @param vcnt		amount of filled entries in vvec
+ *
+ * @attention
+ * Frees all the values held in `vvec' but NOT the vector itself
  */
-static lookup_val_t *
-lookup_create_value(gconstpointer value, size_t len)
+static lookup_val_rs_t *
+lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 {
-	lookup_val_t *v;
+	lookup_val_rs_t *rs;
+	int i;
 
-	v = walloc(sizeof *v);
-	v->value = walloc(len);
-	v->value_len = len;
-	memcpy(deconstify_gpointer(v->value), value, len);
+	g_assert(vcnt > 0);
+	g_assert(vvec);
 
-	return v;
+	rs = walloc(sizeof *rs);
+	rs->load = load;
+	rs->records = walloc(vcnt * sizeof(lookup_val_rc_t));
+	rs->count = (size_t) vcnt;
+
+	for (i = 0; i < vcnt; i++) {
+		dht_value_t *v = vvec[i];
+		lookup_val_rc_t *rc = &rs->records[i];
+
+		rc->data = v->data;
+		rc->length = (size_t) v->length;
+		rc->addr = v->creator->addr;
+		rc->type = v->type;
+		rc->port = v->creator->port;
+		rc->major = v->major;
+		rc->minor = v->minor;
+
+		dht_value_free(v, FALSE);	/* Data now pointed at by record */
+	}
+
+	return rs;
 }
 
 /**
  * Free value result.
  */
 void
-lookup_free_value(lookup_val_t *val)
+lookup_free_value_results(lookup_val_rs_t *rs)
 {
-	g_assert(val);
+	g_assert(rs);
+	g_assert(rs->count);
+	g_assert(rs->records);
 
-	wfree(deconstify_gpointer(val->value), val->value_len);
-	val->value = NULL;
-	wfree(val, sizeof *val);
+	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
+	wfree(rs, sizeof *rs);
 }
 
 /**
@@ -605,34 +654,290 @@ lookup_terminate(nlookup_t *nl)
 }
 
 /**
- * Terminate the value lookup successfully.
+ * Terminate the value lookup, notify caller of results.
+ *
+ * @param nl		current lookup
+ * @param load		reported request load on key
+ * @param vvec		vector of DHT values
+ * @param vcnt		amount of filled entries in vvec
+ * @param vsize		allocated size of vvec
+ *
+ * @attention
+ * Vector memory is freed by this routine, but upon return the lookup
+ * object is destroyed and must no longer be used anyway.
  */
 static void
-lookup_value_found(nlookup_t *nl, const char *payload, size_t len)
+lookup_value_terminate(nlookup_t *nl,
+	float load, dht_value_t **vvec, int vcnt, int vsize)
 {
+	lookup_val_rs_t *rs;
+	lookup_check(nl);
+	g_assert(LOOKUP_VALUE == nl->type);
+	g_assert(nl->u.fv.ok);
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] terminating %s lookup (%s) for %s",
+			nl->lid, lookup_type_to_string(nl->type),
+			dht_value_type_to_string(nl->u.fv.vtype),
+			kuid_to_hex_string(nl->kuid));
+
+	/* XXX don't forget to STORE the values at the closest node in the path */
+	/* XXX initiate parallel stores for the 'n' values with a refcounted
+	 * XXX array of kuids present in the lookup path, with the tokens...
+	 */
+
+	/*
+	 * Items in vector are freed by lookup_create_value_results(), but
+	 * not the vector itself.
+	 */
+
+	rs = lookup_create_value_results(load, vvec, vcnt);
+	wfree(vvec, vsize * sizeof *vvec);
+
+	(*nl->u.fv.ok)(nl->kuid, rs, nl->arg);
+
+	lookup_free(nl, TRUE);
+}
+
+/**
+ * We found one node storing the value.
+ *
+ * The last node
+ *
+ * @param nl		current lookup
+ * @param kn		the node who replied with a value
+ * @param payload	base of the reply payload
+ * @param len		length of payload
+ *
+ * @return TRUE if the value was sucessfully extracted (with the lookup having
+ * been possibly terminated) , FALSE if we had problems parsing the message,
+ * in which case the calling code will continue to lookup for a valid value.
+ */
+static gboolean
+lookup_value_found(nlookup_t *nl, const knode_t *kn,
+	const char *payload, size_t len)
+{
+	bstr_t *bs;
+	float load;
+	const char *reason;
+	char msg[120];
+	guint8 expanded;				/* Amount of expanded DHT values we got */
+	guint8 seckeys;					/* Amount of secondary keys we got */
+	dht_value_t **vvec = NULL;		/* Read expanded DHT values */
+	int vcnt = 0;					/* Amount of DHT values in vector */
+	kuid_t **skeys = NULL;			/* Read secondary keys */
+	int scnt = 0;					/* Amount of secondary keys in vector */
+	dht_value_type_t type;
+	int i;
+
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
 
+	type = nl->u.fv.vtype;
+
 	if (GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT LOOKUP[%d] terminating %s lookup for %s",
-			nl->lid, lookup_type_to_string(nl->type),
-			kuid_to_hex_string(nl->kuid));
+		g_message("DHT LOOKUP[%d] got value for %s %s from %s",
+			nl->lid, dht_value_type_to_string(type),
+			kuid_to_hex_string(nl->kuid), knode_to_string(kn));
 
 	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
 		log_final_stats(nl);
 
-	/* XXX parse payload to extract value(s) */
+	/*
+	 * Parse payload to extract value(s).
+	 */
 
-	if (nl->u.fv.ok) {
-		lookup_val_t *val = lookup_create_value(payload, len); /* XXX fix it! */
-		(*nl->u.fv.ok)(nl->kuid, val, nl->arg);
-	} else if (nl->err) {
-		(*nl->err)(nl->kuid, LOOKUP_E_OK, nl->arg);
+	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
+
+	if (!bstr_read_float_be(bs, &load)) {
+		reason = "could not read request load";
+		goto bad;
 	}
 
-	/* XXX don't forget to STORE the value at the closest node in the path */
+	if (!bstr_read_u8(bs, &expanded)) {
+		reason = "could not read value count";
+		goto bad;
+	}
 
-	lookup_free(nl, TRUE);
+	if (expanded)
+		vvec = walloc(expanded * sizeof *vvec);
+
+	for (i = 0; i < expanded; i++) {
+		dht_value_t *v = kmsg_deserialize_dht_value(bs);
+
+		if (NULL == v) {
+			gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+				i + 1, expanded);
+			reason = msg;
+			goto bad;
+		}
+
+		if (type != DHT_VT_ANY && type != v->type) {
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_warning("DHT LOOKUP[%d] "
+					"requested type %s but got %s value %d/%u from %s",
+					nl->lid, dht_value_type_to_string(type),
+					dht_value_type_to_string2(v->type), i + 1, expanded,
+					knode_to_string(kn));
+
+			dht_value_free(v, TRUE);
+			continue;
+		}
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			g_message("DHT LOOKUP[%d] value %d/%u is %s",
+				nl->lid, i + 1, expanded, dht_value_to_string(v));
+
+		vvec[i] = v;
+		vcnt++;
+	}
+
+	/*
+	 * Look at secondary keys.
+	 */
+
+	if (!bstr_read_u8(bs, &seckeys)) {
+		reason = "could not read secondary key count";
+		goto bad;
+	}
+
+	if (seckeys)
+		skeys = walloc(seckeys * sizeof *skeys);
+
+	for (i = 0; i < seckeys; i++) {
+		kuid_t tmp;
+
+		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
+			gm_snprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+				i + 1, seckeys);
+			reason = msg;
+			goto bad;
+		}
+
+		skeys[i] = kuid_get_atom(&tmp);
+		scnt++;
+	}
+
+	g_assert(seckeys == scnt);
+
+	/*
+	 * After parsing all the values we must be at the end of the payload.
+	 * If not, it means either the format of the message changed or the
+	 * advertised amount of values was wrong.
+	 */
+
+	if (bstr_unread_size(bs) && GNET_PROPERTY(dht_lookup_debug)) {
+		size_t unparsed = bstr_unread_size(bs);
+		g_warning("DHT LOOKUP[%d] the FIND_VALUE_RESPONSE payload (%lu byte%s) "
+			"from %s has %lu byte%s of unparsed trailing data (ignored)",
+			 nl->lid,
+			 (gulong) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 (gulong) unparsed, 1 == unparsed ? "" : "s");
+	}
+
+	/*
+	 * If we have nothing (no values and no secondary keys), the remote
+	 * node mistakenly sent back a response where it should have sent
+	 * more nodes for us to query.
+	 *
+	 * The second check is there to trap cases where we have to discard
+	 * reported values not matching the type of data we asked for.
+	 */
+
+	if (0 == expanded + seckeys) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] empty FIND_VALUE_RESPONSE from %s",
+				nl->lid, knode_to_string(kn));
+		goto ignore;
+	}
+
+	if (0 == vcnt + seckeys) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] "
+				"no values of type %s in FIND_VALUE_RESPONSE from %s",
+				nl->lid, dht_value_type_to_string(type), knode_to_string(kn));
+		goto ignore;
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] "
+			"got %d value%s of type %s and %d secondary key%s from %s",
+			nl->lid, vcnt, 1 == vcnt ? "" : "s",
+			dht_value_type_to_string(type),
+			scnt, 1 == scnt ? "" : "s", knode_to_string(kn));
+
+	bstr_destroy(bs);
+
+	/*
+	 * If we have a mix of expanded results (possibly none at all) and
+	 * secondary keys.  We need to asynchronously request the secondary
+	 * keys before we can present the results to the querying party.
+	 */
+
+	if (seckeys) {
+		struct fvalue *fv = walloc(sizeof *fv);
+
+		fv->nl = nl;
+		fv->vvec = vvec;
+		fv->skeys = skeys;
+		fv->load = load;
+		fv->vcnt = vcnt;
+		fv->scnt = scnt;
+		fv->vsize = expanded;
+
+		cq_cancel(callout_queue, &nl->expire_ev);
+		/* XXX install new subtask expiration timeout */
+
+		/* XXX launch new iterative async request child of nl */
+	
+		return TRUE;
+	}
+
+	/*
+	 * If we got only expanded results and no secondary keys, we are done.
+	 * Freeing of the DHT values will be done by lookup_value_terminate().
+	 */
+
+	g_assert(expanded);
+	g_assert(vcnt > 0);
+	g_assert(vvec);
+	g_assert(NULL == skeys);
+
+	lookup_value_terminate(nl, load, vvec, vcnt, expanded);
+	return TRUE;
+
+bad:
+	/*
+	 * The message was badly formed.
+	 */
+
+	if (GNET_PROPERTY(dht_debug))
+		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
+			"from %s: %s: %s",
+			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 reason, bstr_error(bs));
+
+	/* FALL THROUGH */
+
+ignore:
+	/*
+	 * Ignore the well-formed message that did not contain any value.
+	 */
+
+	if (vvec) {
+		for (i = 0; i < vcnt; i++)
+			dht_value_free(vvec[i], TRUE);
+		wfree(vvec, expanded * sizeof *vvec);
+	}
+
+	if (skeys) {
+		for (i = 0; i < scnt; i++)
+			kuid_atom_free(skeys[i]);
+		wfree(skeys, seckeys * sizeof *skeys);
+	}
+
+	bstr_destroy(bs);
+	return FALSE;
 }
 
 /**
@@ -926,10 +1231,11 @@ lookup_handle_reply(
 	 * advertised amount of contacts was wrong.
 	 */
 
-	if (bstr_unread_size(bs) && GNET_PROPERTY(dht_debug)) {
+	if (bstr_unread_size(bs) && GNET_PROPERTY(dht_lookup_debug)) {
 		size_t unparsed = bstr_unread_size(bs);
-		g_warning("DHT the FIND_NODE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT LOOKUP[%d] the FIND_NODE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
+			 nl->lid,
 			 (gulong) len, len == 1 ? "" : "s", knode_to_string(kn),
 			 (gulong) unparsed, 1 == unparsed ? "" : "s");
 	}
@@ -1161,8 +1467,10 @@ lookup_rpc_cb(
 	switch (nl->type) {
 	case LOOKUP_VALUE:
 		if (function == KDA_MSG_FIND_VALUE_RESPONSE) {
-			lookup_value_found(nl, payload, len);
-			return;
+			if (lookup_value_found(nl, kn, payload, len))
+				return;
+			nl->rpc_bad++;
+			goto iterate_check;
 		}
 		/* FALL THROUGH */
 	case LOOKUP_NODE:
@@ -1350,7 +1658,8 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 			lookup_rpc_cb, rpi, lookup_pmsg_free, pmi);
 		break;
 	case LOOKUP_VALUE:
-		/* XXX */
+		dht_rpc_find_value(kn, nl->kuid, nl->u.fv.vtype, NULL, 0,
+			lookup_rpc_cb, rpi, lookup_pmsg_free, pmi);
 		break;
 	}
 }
@@ -1627,6 +1936,7 @@ lookup_find_node(
  * Launch a "find value" lookup.
  *
  * @param kuid		the KUID of the value we're looking for
+ * @param type		the type of values we're interested in
  * @param cb_ok		callback to invoke when value is found
  * @param cb_err	callback to invoke on error
  * @param arg		additional user data to propagate to callbacks
@@ -1636,22 +1946,19 @@ lookup_find_node(
  */
 nlookup_t *
 lookup_find_value(
-	const kuid_t *kuid, lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	const kuid_t *kuid, dht_value_type_t type,
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
 {
 	nlookup_t *nl;
 
-	/* XXX also need the "DHTValueType" we're looking for */
-
-	/* XXX secondary keys will be handled differently as the request can be
-	 * XXX sent directly to the replying node -- need another call.
-	 */
-
 	g_assert(kuid);
+	g_assert(ok);		/* Pointless to request a value without this */
 
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
 	nl->amount = 1;
 	nl->u.fv.ok = ok;
-	nl->mode = LOOKUP_STRICT;
+	nl->u.fv.vtype = type;
+	nl->mode = LOOKUP_STRICT;	/* Converge optimally but slowly */
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl, TRUE);

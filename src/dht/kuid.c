@@ -48,14 +48,6 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
- * Initialize KUID management.
- */
-void
-kuid_init(void)
-{
-}
-
-/**
  * Generate a truly random KUID within given `kuid'.
  */
 void

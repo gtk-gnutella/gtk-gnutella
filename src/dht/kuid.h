@@ -36,30 +36,12 @@
 #ifndef _dht_kuid_h_
 #define _dht_kuid_h_
 
-#include "common.h"
-
-#define KUID_RAW_SIZE		20
-#define KUID_RAW_BITSIZE	(KUID_RAW_SIZE * 8)
-
-typedef struct kuid {
-	guchar v[KUID_RAW_SIZE];
-} kuid_t;
-
-/**
- * Copy other KUID into destination.
- */
-static inline void
-kuid_copy(kuid_t *dest, const kuid_t *other)
-{
-	memmove(dest->v, other->v, KUID_RAW_SIZE);
-}
-
+#include "if/dht/kuid.h"
 
 /*
  * Public interface.
  */
 
-void kuid_init(void);
 void kuid_random_fill(kuid_t *kuid);
 void kuid_from_buf(kuid_t *dest, const gchar *id);
 int kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
@@ -71,24 +53,6 @@ const gchar *kuid_to_hex_string2(const kuid_t *kuid);
 gboolean kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits);
 void kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits);
 void kuid_flip_nth_leading_bit(kuid_t *res, int n);
-
-kuid_t *kuid_get_atom(const kuid_t *id);
-void kuid_atom_free(const kuid_t *k);
-static inline void
-kuid_atom_free_null(struct kuid **k_ptr)
-{
-	if (*k_ptr) {
-		kuid_atom_free(*k_ptr);
-		*k_ptr = NULL;
-	}
-}
-static inline void
-kuid_atom_change(struct kuid **atom_ptr, const struct kuid *value)
-{
-	void *atom = value ? kuid_get_atom(value) : NULL;
-	kuid_atom_free_null(atom_ptr);
-	*atom_ptr = atom;
-}
 
 void kuid_zero(kuid_t *res);
 void kuid_set32(kuid_t *res, guint32 val);

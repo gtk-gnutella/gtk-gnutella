@@ -852,8 +852,10 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	if (boot_status != BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT not fully bootstrapped, denying refresh of %s",
-				kbucket_to_string(kb));
+			g_warning("DHT not fully bootstrapped, denying refresh of %s "
+				"(good: %u, stale: %u, pending: %u)",
+				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
+				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
 		return;
 	}
 
@@ -866,8 +868,10 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT denying refresh of non-splitable full %s",
-				kbucket_to_string(kb));
+			g_message("DHT denying refresh of non-splitable full %s "
+				"(good: %u, stale: %u, pending: %u)",
+				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
+				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
 		return;
 	}
 
@@ -877,7 +881,6 @@ dht_bucket_refresh(struct kbucket *kb)
 			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb),
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 			list_count(kb, KNODE_PENDING));
-
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1118,10 +1121,10 @@ dht_initialize(gboolean post_init)
 }
 
 /**
- * Initialize routing table management.
+ * Initialize the whole DHT management.
  */
 void
-dht_route_init(void)
+dht_init(void)
 {
 	/*
 	 * If the DHT is disabled at startup time, clear the KUID.
@@ -2782,10 +2785,10 @@ other_size_free_cb(gpointer other_size, gpointer unused_data)
 }
 
 /**
- * Shutdown routing table at exit time.
+ * Shutdown the DHT.
  */
 void
-dht_route_close(void)
+dht_close(void)
 {
 	dht_route_store();
 

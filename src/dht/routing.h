@@ -42,6 +42,7 @@
 #include "knode.h"
 
 #include "if/dht/kademlia.h"
+#include "if/dht/dht.h"
 
 #include "lib/host_addr.h"
 #include "lib/vendors.h"
@@ -78,16 +79,10 @@
 
 kuid_t *get_our_kuid(void);
 
-gboolean dht_bootstrapped(void);
-gboolean dht_enabled(void);
 void dht_allocate_new_kuid_if_needed(void);
-void dht_initialize(gboolean post_init);
 
-void dht_route_init(void);
-void dht_route_close(void);
 void dht_traffic_from(knode_t *kn);
 void dht_set_node_status(knode_t *kn, knode_status_t new);
-void dht_update_size_estimate(void);
 void dht_record_size_estimate(knode_t *kn, kuid_t *size);
 const kuid_t *dht_get_size_estimate(void);
 double dht_size(void);
@@ -99,12 +94,9 @@ void dht_record_activity(knode_t *kn);
 void dht_node_timed_out(knode_t *kn);
 
 void dht_route_store(void);
-void dht_route_store_if_dirty(void);
 
 void dht_lookup_notify(const kuid_t *id);
 void dht_verify_node(knode_t *kn, knode_t *new);
-void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
-void dht_attempt_bootstrap(void);
 
 #endif /* _dht_routing_h_ */
 

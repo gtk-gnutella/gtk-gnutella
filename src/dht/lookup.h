@@ -37,6 +37,7 @@
 #define _dht_lookup_h_
 
 #include "knode.h"
+#include "values.h"
 
 struct nlookup;
 typedef struct nlookup nlookup_t;
@@ -77,13 +78,26 @@ typedef struct lookup_result {
 } lookup_rs_t;
 
 /**
- * Value lookup result.
+ * Value lookup result record.
+ */
+typedef struct lookup_value_rc {
+	gconstpointer data;			/**< The data payload */
+	size_t length;				/**< Length of value, in bytes */
+	host_addr_t addr;			/**< Address of creator */
+	dht_value_type_t type;		/**< Type of value */
+	guint16 port;				/**< Port of creator */
+	guint8 major;				/**< Major version of value */
+	guint8 minor;				/**< Minor version of value */
+} lookup_val_rc_t;
+
+/**
+ * Value lookup result set.
  */
 typedef struct lookup_value {
-	/* XXX add secondary keys, value type, etc... */
-	gconstpointer value;		/**< The value we got */
-	size_t value_len;			/**< Length of value, in bytes */
-} lookup_val_t;
+	lookup_val_rc_t *records;	/**< Array of records */
+	size_t count;				/**< Amount of records in array */
+	float load;					/**< Reported request load on key */
+} lookup_val_rs_t;
 
 /**
  * Node lookup callback invoked when OK.
@@ -103,7 +117,7 @@ typedef void (*lookup_cb_ok_t)(
  * @param arg		additional callback opaque argument
  */
 typedef void (*lookup_cbv_ok_t)(
-	const kuid_t *kuid, const lookup_val_t *value, gpointer arg);
+	const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg);
 
 /**
  * Lookup callback invoked on error (both for value lookups and node lookups).
@@ -126,14 +140,14 @@ const char *lookup_strerror(lookup_error_t error);
 
 nlookup_t *lookup_bucket_refresh(const kuid_t *kuid,
 	lookup_cb_err_t done, gpointer arg);
-nlookup_t *lookup_find_value(const kuid_t *kuid,
+nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
 nlookup_t *lookup_find_node(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
 void lookup_cancel(nlookup_t *nl, gboolean callback);
 void lookup_free_results(lookup_rs_t *rs);
-void lookup_free_value(lookup_val_t *val);
+void lookup_free_value_results(lookup_val_rs_t *rs);
 
 #endif	/* _dht_lookup_h_ */
 

@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "core/settings.h"
 
 #include "if/dht/kademlia.h"
+#include "if/dht/value.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -67,6 +68,9 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define MAX_VALUE_RESPONSE_SIZE	1024	/**< Max message size for VALUE */
+#define MAX_STORE_RESPONSE_SIZE	1024	/**< Max message size for STORE acks */
 
 typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header,
@@ -307,8 +311,8 @@ kmsg_deserialize_contact(bstr_t *bs)
  *
  * @return the deserialized DHT value, or NULL if an error occurred.
  */
-static dht_value_t *
-deserialize_dht_value(bstr_t *bs)
+dht_value_t *
+kmsg_deserialize_dht_value(bstr_t *bs)
 {
 	dht_value_t *dv;
 	kuid_t id;
@@ -331,7 +335,7 @@ deserialize_dht_value(bstr_t *bs)
 	if (bstr_has_error(bs))
 		goto error;
 
-	if (length && length <= VALUE_MAX_LEN) {
+	if (length && length <= DHT_VALUE_MAX_LEN) {
 		data = walloc(length);
 		bstr_read(bs, data, length);
 	} else {
@@ -480,6 +484,21 @@ k_send_find_node_response(
 }
 
 /**
+ * qsort() callback to compare two DHT values on a length basis.
+ */
+static gint
+dht_value_cmp(const void *a, const void *b)
+{
+	const dht_value_t * const *pa = a;
+	const dht_value_t * const *pb = b;
+	const dht_value_t *va = *pa;
+	const dht_value_t *vb = *pb;
+
+	return va->length == vb->length ? 0 :
+		va->length < vb->length ? -1 : +1;
+}
+
+/**
  * Send back response to find_value(id).
  *
  * @param n			where to send the response to
@@ -515,16 +534,22 @@ k_send_find_value_response(
 	 * Secondary key count: 1 byte
 	 * At most MAX_VALUES_PER_KEY secondary keys (20 bytes each).
 	 *
-	 * We limit the total message size to 1 KiB and therefore need to
-	 * decide at each step whether to expand the DHT value or switch
-	 * to emitting secondary keys.
+	 * We limit the total message size to MAX_VALUE_RESPONSE_SIZE and
+	 * therefore need to decide at each step whether to expand the DHT
+	 * value or switch to emitting secondary keys.
 	 *
 	 * To emit n secondary keys, we need 20n + 1 bytes of payload.
+	 *
+	 * The assertion below makes sure that, with our limited message size
+	 * and given the maximum amount of values per key and the maximum size
+	 * of a value, we can always send at least 1 expanded value and all
+	 * the remaining secondary keys in a single message.
 	 */
 
-	STATIC_ASSERT(KDA_HEADER_SIZE + 61 + VALUE_MAX_LEN + 6 < 1024);
+	STATIC_ASSERT(KDA_HEADER_SIZE + 61 + DHT_VALUE_MAX_LEN + 6 +
+		(MAX_VALUES_PER_KEY - 1) * KUID_RAW_SIZE < MAX_VALUE_RESPONSE_SIZE);
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
+	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_VALUE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_FIND_VALUE_RESPONSE, 0, 0, muid);
@@ -535,6 +560,16 @@ k_send_find_value_response(
 	value_count = pmsg_write_offset(mb);	/* We'll come back later */
 	pmsg_write_u8(mb, vlen);				/* We may need to fix that */
 
+	/*
+	 * Sort values by increasing data size, so that we may expand as many
+	 * as possible and emit as few secondary keys as possible: that way, the
+	 * remote host will have to send less messages to retrieve the remaining
+	 * keys (we expect 1 message per secondary key, normally, as they cannot
+	 * know how large the values are).
+	 */
+
+	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
 		dht_value_t *v = vvec[i];
@@ -543,9 +578,9 @@ k_send_find_value_response(
 		g_assert((size_t) pmsg_available(mb) >= secondary_size);
 
 		if (value_size + secondary_size > (size_t) pmsg_available(mb)) {
-			if (GNET_PROPERTY(dht_debug))
-				g_warning("DHT after sending %d DHT values, will send %d keys",
-					i, vlen - i);
+			if (GNET_PROPERTY(dht_debug) > 3)
+				g_warning("DHT after sending %d DHT values, will send %d key%s",
+					i, vlen - i, (1 == vlen - i) ? "" : "s");
 			break;
 		}
 
@@ -565,6 +600,10 @@ k_send_find_value_response(
 			pmsg_write(mb, v->data, v->length);
 
 		values++;
+
+		if (GNET_PROPERTY(dht_debug) > 4)
+			g_warning("DHT packed value %d/%lu: %s", values, (gulong) vlen,
+				dht_value_to_string(v));
 	}
 
 	/*
@@ -588,6 +627,11 @@ k_send_find_value_response(
 			dht_value_t *v = vvec[i];
 			pmsg_write(mb, v->creator->id, KUID_RAW_SIZE);
 			secondaries++;
+
+			if (GNET_PROPERTY(dht_debug) > 4)
+				g_warning("DHT packed secondary key %d/%lu for %s",
+					secondaries, (gulong) remain,
+					dht_value_to_string(v));
 		}
 	}
 
@@ -640,10 +684,10 @@ k_send_store_response(
 
 	/*
 	 * The architected store response message v0.0 is Cretinus Maximus.
-	 * Limit the total size to 1KiB, whatever happens.
+	 * Limit the total size to MAX_STORE_RESPONSE_SIZE, whatever happens.
 	 */
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, 1024);
+	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_STORE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
@@ -688,7 +732,7 @@ k_send_store_response(
 		pmsg_seek(mb, cur);		/* Critical: must go back to end */
 
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT sending back only %d out of %u statuses to %s",
+			g_warning("DHT sending back only %d out of %u STORE statuses to %s",
 				i, vlen, knode_to_string(kn));
 	}
 
@@ -960,7 +1004,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	vec = walloc(values * sizeof *vec);
 
 	for (i = 0; i < values; i++) {
-		dht_value_t *v = deserialize_dht_value(bs);
+		dht_value_t *v = kmsg_deserialize_dht_value(bs);
 
 		if (NULL == v) {
 			gm_snprintf(msg, sizeof msg,
@@ -1211,11 +1255,12 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 
 	knode_check(kn);
 
-	if (GNET_PROPERTY(dht_debug) > 19) {
+	if (GNET_PROPERTY(dht_debug) > 3) {
 		int len = pmsg_size(mb);
 		g_message("DHT sending %s (%d bytes) to %s, RTT=%u",
 			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn), kn->rtt);
-		dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
+		if (GNET_PROPERTY(dht_debug) > 19)
+			dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
 	}
 
 	kn->last_sent = tm_time();
@@ -1251,15 +1296,60 @@ kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
 	pmsg_free_t mfree, gpointer marg)
 {
 	pmsg_t *mb;
+	int msize = KDA_HEADER_SIZE + KUID_RAW_SIZE;
 
 	mb = mfree ?
-		pmsg_new_extend(PMSG_P_DATA, NULL,
-			KDA_HEADER_SIZE + KUID_RAW_SIZE, mfree, marg) :
-		pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + KUID_RAW_SIZE);
+		pmsg_new_extend(PMSG_P_DATA, NULL, msize, mfree, marg) :
+		pmsg_new(PMSG_P_DATA, NULL, msize);
 
 	kmsg_build_header_pmsg(mb, KDA_MSG_FIND_NODE_REQUEST, 0, 0, muid);
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 	pmsg_write(mb, id->v, KUID_RAW_SIZE);
+	g_assert(0 == pmsg_available(mb));
+	kmsg_send_mb(kn, mb);
+}
+
+/**
+ * Send find_value(id,type) message to node.
+ *
+ * @param kn		the node to whom the message should be sent
+ * @param id		the ID we wish to look for
+ * @param type		the value type we're looking for
+ * @param skeys		(optional) array of secondary keys to request
+ * @param scnt		amount of secondary keys suplied in `skeys'
+ * @param muid		the message ID to use
+ * @param mfree		(optional) message free routine to use
+ * @param marg		the argument to supply to the message free routine
+ */
+void
+kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
+	kuid_t **skeys, int scnt,
+	const guid_t *muid, pmsg_free_t mfree, gpointer marg)
+{
+	pmsg_t *mb;
+	int msize;
+	int i;
+
+	g_assert(skeys == NULL || scnt > 0);
+	g_assert(scnt >= 0 && scnt < 256);
+
+	/* Header + target KUID + count + array-of-sec-keys + type */
+	msize = KDA_HEADER_SIZE + KUID_RAW_SIZE + 1 +
+		scnt * KUID_RAW_SIZE + 4;
+
+	mb = mfree ?
+		pmsg_new_extend(PMSG_P_DATA, NULL, msize, mfree, marg) :
+		pmsg_new(PMSG_P_DATA, NULL, msize);
+
+	kmsg_build_header_pmsg(mb, KDA_MSG_FIND_VALUE_REQUEST, 0, 0, muid);
+	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
+	pmsg_write(mb, id->v, KUID_RAW_SIZE);
+	pmsg_write_u8(mb, scnt);
+
+	for (i = 0; i < scnt; i++)
+		pmsg_write(mb, skeys[i]->v, KUID_RAW_SIZE);
+
+	pmsg_write_be32(mb, type);
 	g_assert(0 == pmsg_available(mb));
 	kmsg_send_mb(kn, mb);
 }

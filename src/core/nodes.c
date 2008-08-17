@@ -109,8 +109,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
-
-#include "dht/kmsg.h"
+#include "if/dht/kmsg.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 

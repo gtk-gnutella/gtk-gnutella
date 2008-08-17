@@ -384,6 +384,36 @@ dht_rpc_find_node(knode_t *kn, const kuid_t *id,
 }
 
 /**
+ * Find specified DHT value.
+ *
+ * @param kn	the node to contact
+ * @param id	the KUID of the value to look for
+ * @param type	the type of value to look for
+ * @param skeys	(optional) array of secondary keys to request
+ * @param scnt	amount of entries in the skeys array
+ * @param cb	the (optional) callback when reply arrives or on timeout
+ * @param arg	additional opaque callback argument
+ * @param mfree	the (optional) message free routine to use
+ * @param marg	the argument to supply to the message free routine
+ */
+void
+dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
+	kuid_t **skeys, int scnt,
+	dht_rpc_cb_t cb, gpointer arg,
+	pmsg_free_t mfree, gpointer marg)
+{
+	const guid_t *muid;
+
+	g_assert(scnt >= 0);
+	g_assert((skeys != NULL) == (scnt > 0));
+
+	knode_check(kn);
+
+	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), 0, cb, arg);
+	kmsg_send_find_value(kn, id, type, skeys, scnt, muid, mfree, marg);
+}
+
+/**
  * Free the RPC callback descriptor held in the hash table at shutdown time.
  */
 static void

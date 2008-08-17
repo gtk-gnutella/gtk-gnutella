@@ -93,9 +93,8 @@
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
-#include "dht/kmsg.h"
-#include "dht/kuid.h"
-#include "dht/routing.h"
+#include "if/dht/kmsg.h"
+#include "if/dht/dht.h"
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
@@ -394,7 +393,7 @@ gtk_gnutella_exit(gint n)
 	DO(http_close);
 	DO(uhc_close);
 	DO(move_close);
-	DO(dht_route_close);
+	DO(dht_close);
 
 	/*
 	 * When coming from atexit(), there is a sense of urgency.
@@ -1393,9 +1392,8 @@ main(int argc, char **argv)
 	sq_init();
 	file_info_init_post();
 
-	kuid_init();			/* DHT */
-	kmsg_init();
-	dht_route_init();
+	kmsg_init();			/* DHT */
+	dht_init();
 
 	if (!running_topless) {
 		main_gui_init();

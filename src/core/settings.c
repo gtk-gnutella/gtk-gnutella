@@ -53,12 +53,11 @@
 #include "sockets.h"
 #include "upload_stats.h"
 
-#include "dht/routing.h"
-
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"		/* For debugging() */
 #include "if/core/net_stats.h"
+#include "if/dht/dht.h"
 
 #include "if/bridge/c2ui.h"
 
@@ -1132,7 +1131,7 @@ enable_dht_changed(property_t prop)
 	if (enabled) {
 		dht_initialize(TRUE);
 	} else {
-		dht_route_close();
+		dht_close();
 	}
 
 	return FALSE;

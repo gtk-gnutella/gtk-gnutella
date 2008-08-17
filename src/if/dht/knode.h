@@ -28,7 +28,7 @@
 
 #include "common.h"
 
-#include "if/dht/kuid.h"
+#include "kuid.h"
 #include "lib/vendors.h"
 #include "lib/host_addr.h"
 

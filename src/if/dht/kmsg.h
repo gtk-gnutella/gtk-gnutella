@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,38 +23,38 @@
  *----------------------------------------------------------------------
  */
 
-/**
- * @ingroup dht
- * @file
- *
- * Kademlia nodes.
- *
- * @author Raphael Manfredi
- * @date 2006-2008
- */
+#ifndef _if_dht_kmsg_h_
+#define _if_dht_kmsg_h_
 
-#ifndef _dht_knode_h_
-#define _dht_knode_h_
-
-#include "common.h"
-
-#include "if/dht/knode.h"
-
-#define KNODE_MAX_TIMEOUTS	5			/**< Max is 5 timeouts in a row */
+#include "kademlia.h"
+#include "lib/host_addr.h"
 
 /*
  * Public interface.
  */
 
-knode_t *knode_new(
-	const gchar *id, guint8 flags,
-	host_addr_t addr, guint16 port, vendor_code_t vcode,
-	guint8 major, guint8 minor);
-void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
-void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
-gboolean knode_can_recontact(const knode_t *kn);
-gboolean knode_is_usable(const knode_t *kn);
+void kmsg_init(void);
+void kmsg_received(
+	gconstpointer data, size_t len, host_addr_t addr, guint16 port);
 
-#endif /* _dht_knode_h_ */
+const char *kmsg_infostr(gconstpointer msg);
+const char *kmsg_name(guint function);
+
+/*
+ * Inlined routines.
+ */
+
+/**
+ * Returns the size (16-bit quantity) of a Kademlia payload.
+ */
+static inline guint16
+kmsg_size(gconstpointer msg)
+{
+	return kademlia_header_get_size(msg) -
+		kademlia_header_get_extended_length(msg);
+}
+
+#endif /* _if_dht_kmsg_h */
 
 /* vi: set ts=4 sw=4 cindent: */
+

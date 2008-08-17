@@ -501,7 +501,9 @@ src/if/core/upload_stats.h
 src/if/core/uploads.h
 src/if/core/version.h
 src/if/core/wrap.h
+src/if/dht/dht.h
 src/if/dht/kademlia.h
+src/if/dht/kmsg.h
 src/if/dht/knode.h
 src/if/dht/kuid.h
 src/if/dht/value.h

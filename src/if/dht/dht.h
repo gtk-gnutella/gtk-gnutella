@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,38 +23,27 @@
  *----------------------------------------------------------------------
  */
 
-/**
- * @ingroup dht
- * @file
- *
- * Kademlia nodes.
- *
- * @author Raphael Manfredi
- * @date 2006-2008
- */
+#ifndef _if_dht_dht_h_
+#define _if_dht_dht_h_
 
-#ifndef _dht_knode_h_
-#define _dht_knode_h_
-
-#include "common.h"
-
-#include "if/dht/knode.h"
-
-#define KNODE_MAX_TIMEOUTS	5			/**< Max is 5 timeouts in a row */
+#include "lib/host_addr.h"
 
 /*
  * Public interface.
  */
 
-knode_t *knode_new(
-	const gchar *id, guint8 flags,
-	host_addr_t addr, guint16 port, vendor_code_t vcode,
-	guint8 major, guint8 minor);
-void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
-void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
-gboolean knode_can_recontact(const knode_t *kn);
-gboolean knode_is_usable(const knode_t *kn);
+void dht_init(void);
+void dht_close(void);
+void dht_initialize(gboolean post_init);
+gboolean dht_bootstrapped(void);
+gboolean dht_enabled(void);
 
-#endif /* _dht_knode_h_ */
+void dht_route_store_if_dirty(void);
+void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
+void dht_attempt_bootstrap(void);
+void dht_update_size_estimate(void);
+
+#endif /* _if_dht_dht_h */
 
 /* vi: set ts=4 sw=4 cindent: */
+
