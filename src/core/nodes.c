@@ -8676,6 +8676,7 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 	if (NULL == node)
 		return FALSE;
 
+	status->is_pseudo = node == udp_node || node == udp6_node;
     status->status     = node->status;
 
 	status->connect_date = node->connect_date;

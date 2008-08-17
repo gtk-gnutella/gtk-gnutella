@@ -92,7 +92,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 			if (!GUI_PROPERTY(node_show_detailed_info)) {
 				gm_snprintf(gui_tmp, sizeof(gui_tmp),
-					"TX=%d RX=%d Q=%d,%d%% %s",
+					"TX=%u RX=%u Q=%u,%u%% %s",
 					n->sent, n->received,
 					n->mqueue_count, n->mqueue_percent_used,
 					n->in_tx_swift_control ? " [SW]" :
@@ -102,11 +102,11 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (n->tx_compressed && GUI_PROPERTY(show_gnet_info_txc))
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
-					(gint) n->sent, (gint) (n->tx_compression_ratio * 100));
+				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%u,%u%%",
+						n->sent, (unsigned) (n->tx_compression_ratio * 100));
 			else
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d",
-							(gint) n->sent);
+				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%u",
+						n->sent);
 
 			if (
 				GUI_PROPERTY(show_gnet_info_tx_speed) ||
@@ -134,11 +134,11 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 			if (n->rx_compressed && GUI_PROPERTY(show_gnet_info_rxc))
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RXc=%d,%d%%",
-					(gint) n->received, (gint) (n->rx_compression_ratio * 100));
+					" RXc=%u,%u%%",
+					n->received, (unsigned) (n->rx_compression_ratio * 100));
 			else
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RX=%d", (gint) n->received);
+					" RX=%u", n->received);
 
 			if (
 				GUI_PROPERTY(show_gnet_info_rx_speed) ||
@@ -177,12 +177,12 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (GUI_PROPERTY(show_gnet_info_gen_queries)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"Gen=%d", n->squeue_sent);
+						"Gen=%u", n->squeue_sent);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_sq_queries)) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%sQ=%d", is_first ? "" : ", ", n->squeue_count);
+						"%sQ=%u", is_first ? "" : ", ", n->squeue_count);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_tx_queries)) {
@@ -280,7 +280,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (n->qrt_slots != 0)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						" QRT(%s, g=%d, f=%d%%, t=%d%%, e=%d%%)",
+						" QRT(%s, g=%u, f=%u%%, t=%u%%, e=%u%%)",
 						compact_size(n->qrt_slots, show_metric_units()),
 						n->qrt_generation,
 						n->qrt_fill_ratio, n->qrt_pass_throw,
@@ -295,31 +295,34 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 			if (GUI_PROPERTY(show_gnet_info_rt)) {
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" RT(avg=%d, last=%d", n->rt_avg, n->rt_last);	/* ) */
+				" RT(avg=%u, last=%u", n->rt_avg, n->rt_last);	/* ) */
 				if (n->tcp_rtt)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						", tcp=%d", n->tcp_rtt);
+						", tcp=%u", n->tcp_rtt);
 				if (n->udp_rtt)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						", udp=%d", n->udp_rtt);
+						", udp=%u", n->udp_rtt);
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* ( */ ")");
 			}
 
 			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" Q=%d,%d%% %s",
+				" Q=%u,%u%% %s",
 				n->mqueue_count, n->mqueue_percent_used,
 				n->in_tx_swift_control ? " [SW]" :
 				n->in_tx_flow_control ? " [FC]" : "");
 			a = gui_tmp;
-		} else
+		} else if (n->is_pseudo) {
+			a = _("No UDP traffic yet");
+		} else {
 			a = _("Connected");
+		}
 		break;
 
 	case GTA_NODE_SHUTDOWN:
 		{
 			gm_snprintf(gui_tmp, sizeof(gui_tmp),
-				_("Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"),
+				_("Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"),
 				n->message, n->shutdown_remain, n->received,
 				n->mqueue_count, n->mqueue_percent_used);
 			a = gui_tmp;

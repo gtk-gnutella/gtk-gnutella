@@ -212,6 +212,7 @@ typedef struct gnet_node_status {
 	guint32 gnet_files_count;	/**< Amount of files shared */
 	guint32 gnet_kbytes_count;	/**< Size of the library, in Kbytes */
 	gboolean gnet_info_known;	/**< Whether previous two values are known */
+	gboolean is_pseudo;			/**< TRUE if it's the pseudo UDP node */
 
 	guint32  sent;				/**< Number of sent packets */
 	guint32  received;			/**< Number of received packets */
@@ -225,10 +226,10 @@ typedef struct gnet_node_status {
 	guint32  n_spam;			/**< Number of messages rated as spam */
 	guint32  n_evil;			/**< Number of messages with evil filenames */
 
-    gint     squeue_sent;
-    gint     squeue_count;
-    gint     mqueue_count;
-    gint     mqueue_percent_used;
+    guint     squeue_sent;
+    guint     squeue_count;
+    guint     mqueue_count;
+    guint     mqueue_percent_used;
     gboolean in_tx_flow_control;
     gboolean in_tx_swift_control;
 
@@ -236,16 +237,16 @@ typedef struct gnet_node_status {
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	gint32   tx_given;			/**< Bytes fed to the TX stack (from top) */
-	gint32   tx_deflated;		/**< Bytes deflated by the TX stack */
-	gint32   tx_written;		/**< Bytes written by the TX stack */
+	guint32   tx_given;			/**< Bytes fed to the TX stack (from top) */
+	guint32   tx_deflated;		/**< Bytes deflated by the TX stack */
+	guint32   tx_written;		/**< Bytes written by the TX stack */
     gboolean tx_compressed;     /**< Is TX traffic compressed */
     gfloat   tx_compression_ratio; /**< TX compression ratio */
     guint32  tx_bps;			/**< TX traffic rate */
 
-	gint32   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
-	gint32   rx_inflated;		/**< Bytes inflated by the RX stack */
-	gint32   rx_read;			/**< Bytes read from the RX stack */
+	guint32   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	guint32   rx_inflated;		/**< Bytes inflated by the RX stack */
+	guint32   rx_read;			/**< Bytes read from the RX stack */
     gboolean rx_compressed;     /**< Is RX traffic compressed */
     gfloat   rx_compression_ratio;/**< RX compression ratio */
     gfloat   rx_bps;			/**< RX traffic rate */
@@ -261,10 +262,10 @@ typedef struct gnet_node_status {
 	guint32 rx_qhits;		/**< Total amount of hits received */
 	guint32 tx_qhits;		/**< Total amount of hits sent */
 
-	gint qrt_slots;			/**< Amount of slots in leaf's QRT */
-	gint qrt_generation;	/**< Generation number */
-	gint qrt_fill_ratio;	/**< % of filling */
-	gint qrt_pass_throw;	/**< Query limiter pass throw when table filled */
+	guint qrt_slots;			/**< Amount of slots in leaf's QRT */
+	guint qrt_generation;	/**< Generation number */
+	guint qrt_fill_ratio;	/**< % of filling */
+	guint qrt_pass_throw;	/**< Query limiter pass throw when table filled */
 
 	guint32  rt_avg;			/**< Average ping/pong roundtrip time */
 	guint32  rt_last;			/**< Last ping/pong roundtrip time */
@@ -272,7 +273,7 @@ typedef struct gnet_node_status {
 	guint32 tcp_rtt;			/**< RTT in ms over TCP */
 	guint32 udp_rtt;			/**< RTT in ms over UDP */
 
-    gint     shutdown_remain;   /**< Number of seconds before shutdown */
+    guint     shutdown_remain;   /**< Number of seconds before shutdown */
     gchar    message[128];		/**< Additional information */
 } gnet_node_status_t;
 
