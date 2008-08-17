@@ -517,10 +517,10 @@ gnet_host_to_string(const struct gnutella_host *h)
 }
 
 /**
- * Check whether host's address is acceptable: routable and not bogus.
+ * Check whether host's address is usable: routable and not bogus.
  */
 gboolean
-host_addr_is_valid(const host_addr_t addr)
+host_address_is_usable(const host_addr_t addr)
 {
 	if (!host_addr_is_routable(addr))
 		return FALSE;
@@ -543,7 +543,7 @@ host_is_valid(const host_addr_t addr, guint16 port)
 	if (!port_is_valid(port))
 		return FALSE;
 
-	return host_addr_is_valid(addr);
+	return host_address_is_usable(addr);
 }
 
 /**

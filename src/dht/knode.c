@@ -224,7 +224,7 @@ knode_addr_is_usable(const knode_t *kn)
 {
 	knode_check(kn);
 
-	if (!host_addr_is_valid(kn->addr))
+	if (!host_address_is_usable(kn->addr))
 		return FALSE;
 
 	if (hostiles_check(kn->addr))

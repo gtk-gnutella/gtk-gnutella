@@ -3257,9 +3257,6 @@ dht_route_parse(FILE *f)
 			knode_t *tkn;
 			time_delta_t delta;
 
-			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
-			kn->last_seen = seen;
-
 			/*
 			 * Remember the delta at which we most recently saw a node.
 			 */
@@ -3268,6 +3265,9 @@ dht_route_parse(FILE *f)
 			if (delta >= 0 && delta < most_recent)
 				most_recent = delta;
 
+			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+			kn->last_seen = seen;
+
 			/*
 			 * Add node to routing table.  If the KUID has changed since
 			 * the last time the routing table was saved (e.g. they are
@@ -3275,13 +3275,21 @@ dht_route_parse(FILE *f)
 			 * splits will not occur in the same way and some nodes will be
 			 * discarded.  It does not matter much, we should have enough
 			 * good hosts to attempt a bootstrap.
+			 *
+			 * Since they shutdown, the bogons or hostile database could
+			 * have changed.  Revalidate addresses.
 			 */
 
-			if ((tkn = dht_find_node((char *) kn->id)))
+			if (!knode_is_usable(kn)) {
+				g_warning("DHT ignoring persisted unusable %s",
+					knode_to_string(kn));
+			} else if ((tkn = dht_find_node((char *) kn->id))) {
 				g_warning("DHT ignoring persisted dup %s (has %s already)",
 					knode_to_string(kn), knode_to_string2(tkn));
-			else
+			} else {
 				dht_add_node(kn);
+			}
+
 			knode_free(kn);
 
 			/* Reset state */
