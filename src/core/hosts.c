@@ -517,6 +517,21 @@ gnet_host_to_string(const struct gnutella_host *h)
 }
 
 /**
+ * Check whether host's address is acceptable: routable and not bogus.
+ */
+gboolean
+host_addr_is_valid(const host_addr_t addr)
+{
+	if (!host_addr_is_routable(addr))
+		return FALSE;
+
+	if (bogons_check(addr))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Check whether host is connectible.
  *
  * i.e. that it has a valid port and that its IP address is not private
@@ -528,13 +543,7 @@ host_is_valid(const host_addr_t addr, guint16 port)
 	if (!port_is_valid(port))
 		return FALSE;
 
-	if (!host_addr_is_routable(addr))
-		return FALSE;
-
-	if (bogons_check(addr))
-		return FALSE;
-
-	return TRUE;
+	return host_addr_is_valid(addr);
 }
 
 /**

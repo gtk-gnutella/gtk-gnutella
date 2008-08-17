@@ -53,6 +53,7 @@ const gchar *gnet_host_to_string(const gnet_host_t *h);
 void parse_netmasks(const gchar *value);
 gboolean host_is_nearby(const host_addr_t addr);
 gboolean host_is_valid(const host_addr_t addr, guint16 port);
+gboolean host_addr_is_valid(const host_addr_t addr);
 
 guint host_hash(gconstpointer key);
 gint host_eq(gconstpointer v1, gconstpointer v2);
