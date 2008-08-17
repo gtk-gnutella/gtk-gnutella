@@ -1922,8 +1922,12 @@ record_node(knode_t *kn, gboolean traffic)
 	 * Make sure we never insert ourselves.
 	 */
 
-	if (kb->ours && kuid_eq(kn->id, our_kuid))
+	if (kb->ours && kuid_eq(kn->id, our_kuid)) {
+		if (GNET_PROPERTY(dht_debug))
+			g_warning("DHT rejecting colliding node %s: bears our KUID",
+				knode_to_string(kn));
 		return;
+	}
 
 	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
 
