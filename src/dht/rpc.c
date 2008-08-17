@@ -77,8 +77,9 @@ static const char *
 op_to_string(enum dht_rpc_op op)
 {
 	switch (op) {
-	case DHT_RPC_PING:		return "PING";
-	case DHT_RPC_FIND_NODE:	return "FIND_NODE";
+	case DHT_RPC_PING:			return "PING";
+	case DHT_RPC_FIND_NODE:		return "FIND_NODE";
+	case DHT_RPC_FIND_VALUE:	return "FIND_VALUE";
 	}
 
 	return "UNKNOWN";
@@ -409,7 +410,7 @@ dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 
 	knode_check(kn);
 
-	muid = rpc_call_prepare(DHT_RPC_FIND_NODE, kn, rpc_delay(kn), 0, cb, arg);
+	muid = rpc_call_prepare(DHT_RPC_FIND_VALUE, kn, rpc_delay(kn), 0, cb, arg);
 	kmsg_send_find_value(kn, id, type, skeys, scnt, muid, mfree, marg);
 }
 

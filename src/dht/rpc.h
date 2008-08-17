@@ -54,7 +54,8 @@
  */
 enum dht_rpc_op {
 	DHT_RPC_PING = 0,		/**< ping remote node */
-	DHT_RPC_FIND_NODE,		/**< lookup for KUID */
+	DHT_RPC_FIND_NODE,		/**< lookup for node KUID */
+	DHT_RPC_FIND_VALUE,		/**< lookup for value KUID */
 };
 
 /**
