@@ -36,6 +36,8 @@
 #ifndef _dht_lookup_h_
 #define _dht_lookup_h_
 
+#include "if/dht/lookup.h"
+
 #include "knode.h"
 #include "values.h"
 
@@ -43,18 +45,13 @@ struct nlookup;
 typedef struct nlookup nlookup_t;
 
 /**
- * Lookup error codes.
+ * Lookup types.
  */
 typedef enum {
-	LOOKUP_E_OK = 0,			/**< No error */
-	LOOKUP_E_CANCELLED,			/**< Lookup cancelled by user */
-	LOOKUP_E_UDP_CLOGGED,		/**< Outgoing UDP traffic clogged */
-	LOOKUP_E_NO_REPLY,			/**< Lack of RPC replies */
-	LOOKUP_E_NOT_FOUND,			/**< Value not found */
-	LOOKUP_E_EXPIRED,			/**< Lookup expired */
-
-	LOOKUP_E_MAX				/**< Amount of error codes defined */
-} lookup_error_t;
+	LOOKUP_NODE = 1,			/**< Node lookup */
+	LOOKUP_VALUE,				/**< Value lookup */
+	LOOKUP_REFRESH,				/**< Refresh lookup */
+} lookup_type_t;
 
 /**
  * Node lookup result record.
@@ -78,28 +75,6 @@ typedef struct lookup_result {
 } lookup_rs_t;
 
 /**
- * Value lookup result record.
- */
-typedef struct lookup_value_rc {
-	gconstpointer data;			/**< The data payload */
-	size_t length;				/**< Length of value, in bytes */
-	host_addr_t addr;			/**< Address of creator */
-	dht_value_type_t type;		/**< Type of value */
-	guint16 port;				/**< Port of creator */
-	guint8 major;				/**< Major version of value */
-	guint8 minor;				/**< Minor version of value */
-} lookup_val_rc_t;
-
-/**
- * Value lookup result set.
- */
-typedef struct lookup_value {
-	lookup_val_rc_t *records;	/**< Array of records */
-	size_t count;				/**< Amount of records in array */
-	float load;					/**< Reported request load on key */
-} lookup_val_rs_t;
-
-/**
  * Node lookup callback invoked when OK.
  *
  * @param kuid		the KUID that was looked for
@@ -109,34 +84,12 @@ typedef struct lookup_value {
 typedef void (*lookup_cb_ok_t)(
 	const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg);
 
-/**
- * Value lookup callback invoked when OK.
- *
- * @param kuid		the KUID that was looked for
- * @param rs		the result set
- * @param arg		additional callback opaque argument
- */
-typedef void (*lookup_cbv_ok_t)(
-	const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg);
-
-/**
- * Lookup callback invoked on error (both for value lookups and node lookups).
- *
- * @param kuid		the KUID that was looked for
- * @param error		the error code
- * @param arg		additional callback opaque argument
- */
-typedef void (*lookup_cb_err_t)(
-	const kuid_t *kuid, lookup_error_t error, gpointer arg);
-
 /*
  * Public interface.
  */
 
 void lookup_init(void);
 void lookup_close(void);
-
-const char *lookup_strerror(lookup_error_t error);
 
 nlookup_t *lookup_bucket_refresh(const kuid_t *kuid,
 	lookup_cb_err_t done, gpointer arg);
@@ -147,7 +100,6 @@ nlookup_t *lookup_find_node(const kuid_t *kuid,
 
 void lookup_cancel(nlookup_t *nl, gboolean callback);
 void lookup_free_results(lookup_rs_t *rs);
-void lookup_free_value_results(lookup_val_rs_t *rs);
 
 #endif	/* _dht_lookup_h_ */
 

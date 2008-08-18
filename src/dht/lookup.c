@@ -81,15 +81,6 @@ typedef enum {
 } nlookup_magic_t;
 
 /**
- * Lookup types.
- */
-typedef enum {
-	LOOKUP_NODE = 1,			/**< Node lookup */
-	LOOKUP_VALUE,				/**< Value lookup */
-	LOOKUP_REFRESH,				/**< Refresh lookup */
-} lookup_type_t;
-
-/**
  * Parallelism modes.
  */
 enum parallelism {

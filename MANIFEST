@@ -462,12 +462,14 @@ src/dht/routing.c
 src/dht/routing.h
 src/dht/rpc.c
 src/dht/rpc.h
-src/dht/token.c
-src/dht/token.h
-src/dht/values.c
-src/dht/values.h
 src/dht/storage.c
 src/dht/storage.h
+src/dht/token.c
+src/dht/token.h
+src/dht/ulq.c
+src/dht/ulq.h
+src/dht/values.c
+src/dht/values.h
 src/gtk-gnutella.man
 src/if/Jmakefile
 src/if/Makefile.SH
@@ -506,6 +508,7 @@ src/if/dht/kademlia.h
 src/if/dht/kmsg.h
 src/if/dht/knode.h
 src/if/dht/kuid.h
+src/if/dht/lookup.h
 src/if/dht/value.h
 src/if/gnet_property.c
 src/if/gnet_property.h

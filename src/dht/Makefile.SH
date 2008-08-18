@@ -91,7 +91,8 @@ SRC = \
 	rpc.c \
 	token.c \
 	values.c \
-	storage.c
+	storage.c \
+	ulq.c
 
 OBJ = \
 	acct.o \
@@ -104,7 +105,8 @@ OBJ = \
 	rpc.o \
 	token.o \
 	values.o \
-	storage.o 
+	storage.o \
+	ulq.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)

@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2006, Raphael Manfredi
- *
- * Jmakefile for the DHT part.
+ * Copyright (c) 2008, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,38 +23,32 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
+/**
+ * @ingroup dht
+ * @file
+ *
+ * User lookup queue.
+ *
+ * @author Raphael Manfredi
+ * @date 2008
+ */
 
-SRC = \
-	acct.c \
-	keys.c \
-	kmsg.c \
-	knode.c \
-	kuid.c \
-	lookup.c \
-	routing.c \
-	rpc.c \
-	token.c \
-	values.c \
-	storage.c \
-	ulq.c
+#ifndef _dht_ulq_h_
+#define _dht_ulq_h_
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "kuid.h"
+#include "lookup.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+/*
+ * Public interface.
+ */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+void ulq_init(void);
+void ulq_close(void);
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+void ulq_find_node(const kuid_t *kuid,
+	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(dht, $(SRC), $(OBJ))
-DependTarget()
+#endif /* _dht_ulq_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */
