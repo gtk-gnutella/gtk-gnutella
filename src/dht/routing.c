@@ -2458,8 +2458,14 @@ fill_closest_in_bucket(
 			knode_check(kn);
 			g_assert(KNODE_STALE == kn->status);
 
+			/*
+			 * Limit to stale nodes that can be recontacted and which
+			 * have only 1 timeout recorded.  Others are likely to be
+			 * really dead or changed their IP address.
+			 */
+
 			if (
-				knode_can_recontact(kn) &&
+				knode_can_recontact(kn) && 1 == kn->rpc_timeouts &&
 				(!exclude || !kuid_eq(kn->id, exclude)) &&
 				(!alive || (kn->flags & KNODE_F_ALIVE))
 			) {
@@ -2961,6 +2967,83 @@ dht_verify_node(knode_t *kn, knode_t *new)
 }
 
 /**
+ * RPC callback for the random PING.
+ *
+ * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
+ * @param kn			the replying node
+ * @param function		the type of message we got (0 on TIMEOUT)
+ * @param payload		the payload we got
+ * @param len			the length of the payload
+ * @param arg			user-defined callback parameter
+ */
+static void
+dht_ping_cb(
+	enum dht_rpc_ret type,
+	const knode_t *kn,
+	const struct gnutella_node *unused_n,
+	kda_msg_t unused_function,
+	const gchar *unused_payload, size_t unused_len, gpointer unused_arg)
+{
+	(void) unused_n;
+	(void) unused_function;
+	(void) unused_payload;
+	(void) unused_len;
+	(void) unused_arg;
+
+	if (DHT_RPC_TIMEOUT == type)
+		return;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT reply from randomly pinged %s",
+			host_addr_port_to_string(kn->addr, kn->port));
+}
+
+/*
+ * Send a DHT Ping to the supplied address, randomly and not more than one
+ * every minute.
+ */
+static void
+dht_ping(host_addr_t addr, guint16 port)
+{
+	knode_t *kn;
+	vendor_code_t vc;
+	static time_t last_sent = 0;
+	time_t now = tm_time();
+
+	/*
+	 * The idea is to prevent the formation of DHT islands by using another
+	 * channel (Gnutella) to propagate hosts participating to the DHT.
+	 * Not more than one random ping per minute though.
+	 */
+
+	if (delta_time(now, last_sent) < 60 || (random_u32() % 100) >= 10)
+		return;
+
+	last_sent = now;
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT randomly pinging host %s",
+			host_addr_port_to_string(addr, port));
+
+	/*
+	 * Build a fake Kademlia node, with an zero KUID.  This node will never
+	 * be inserted in the routing table as such and will only be referenced
+	 * by the callback.
+	 */
+
+	vc.u32 = T_0000;
+	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
+
+	/*
+	 * We do not want the RPC layer to verify the KUID of the replying host
+	 * since we don't even have a valid KUID for the remote host yet!
+	 * Hence the use of the RPC_CALL_NO_VERIFY control flag.
+	 */
+
+	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_ping_cb, NULL);
+}
+
+/**
  * RPC callback for the bootstrapping PING.
  *
  * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
@@ -3047,15 +3130,21 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 }
 
 /**
- * Bootstrap the DHT from the supplied address, if needed.
+ * Called when we get a Gnutella pong marked with a GGEP "DHT" extension.
+ *
+ * Bootstrap the DHT from the supplied address, if needed, otherwise
+ * randomly attempt to ping the node.
  */
 void
 dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
 {
-	if (!dht_enabled() || dht_seeded())
+	if (!dht_enabled())
 		return;
 
-	dht_bootstrap(addr, port);
+	if (dht_seeded())
+		dht_ping(addr, port);
+	else
+		dht_bootstrap(addr, port);
 }
 
 /***
