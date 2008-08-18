@@ -65,7 +65,7 @@ typedef struct pong_meta {
 
 	guint8 dht_major;    	/**< DHT major version, from GGEP "DHT" */
 	guint8 dht_minor;    	/**< DHT minor version, from GGEP "DHT" */
-	guint8 dht_flags;    	/**< DHT flags, from GGEP "DHT" */
+	guint8 dht_mode;    	/**< DHT mode, from GGEP "DHT" */
 
 	guint8 flags;			/**< Validation flags */
 } pong_meta_t;

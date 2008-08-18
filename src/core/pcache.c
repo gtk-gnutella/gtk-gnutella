@@ -340,7 +340,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ok = ggep_stream_begin(&gs, GGEP_NAME(DHT), 0) &&
 			ggep_stream_write(&gs, &meta->dht_major, 1) &&
 			ggep_stream_write(&gs, &meta->dht_minor, 1) &&
-			ggep_stream_write(&gs, &meta->dht_flags, 1) &&
+			ggep_stream_write(&gs, &meta->dht_mode, 1) &&
 			ggep_stream_end(&gs);
 		}
 	}
@@ -633,7 +633,7 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	if (!GNET_PROPERTY(is_udp_firewalled) && dht_bootstrapped()) {
 		local_meta.dht_major = KDA_VERSION_MAJOR;
 		local_meta.dht_minor = KDA_VERSION_MINOR;
-		local_meta.dht_flags = 0;	/* We don't send if firewalled */
+		local_meta.dht_mode = DHT_MODE_ACTIVE;	/* XXX Active mode */
 		local_meta.flags |= PONG_META_HAS_DHT;
 	}
 
@@ -1774,7 +1774,7 @@ pong_extract_metadata(struct gnutella_node *n)
 				ALLOCATE(DHT);
 				meta->dht_major = payload[0];
 				meta->dht_minor = payload[1];
-				meta->dht_flags = payload[2];
+				meta->dht_mode = payload[2];
 			}
 			break;
 		default:
@@ -2060,7 +2060,16 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			supports_tls = TRUE;
 			break;
 		case EXT_T_GGEP_DHT:
-			supports_dht = TRUE;
+			if (ext_paylen(e) >= 3) {
+				guint8 mode;
+
+				payload = ext_payload(e);
+				mode = payload[2];
+
+				/* We want to ping active DHT nodes only */
+				if (mode == DHT_MODE_ACTIVE)
+					supports_dht = TRUE;
+			}
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
@@ -2360,7 +2369,7 @@ pcache_pong_received(struct gnutella_node *n)
 
 	if (
 		cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_DHT) &&
-		!(cp->meta->dht_flags & KDA_MSG_F_FIREWALLED)
+		cp->meta->dht_mode == DHT_MODE_ACTIVE
 	)
 		dht_bootstrap_if_needed(addr, port);
 }
