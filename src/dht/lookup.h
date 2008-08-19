@@ -27,7 +27,7 @@
  * @ingroup dht
  * @file
  *
- * Kademlia node lookups.
+ * Kademlia node/value lookups.
  *
  * @author Raphael Manfredi
  * @date 2008

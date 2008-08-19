@@ -27,7 +27,7 @@
  * @ingroup dht
  * @file
  *
- * Kademlia node lookups.
+ * Kademlia node/value lookups.
  *
  * @author Raphael Manfredi
  * @date 2008
@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "kmsg.h"
 #include "routing.h"
 #include "rpc.h"
+#include "keys.h"
 
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
@@ -193,6 +194,7 @@ lookup_strerror(lookup_error_t error)
 	case LOOKUP_E_NO_REPLY:		return "Lack of RPC replies";
 	case LOOKUP_E_NOT_FOUND:	return "Value not found";
 	case LOOKUP_E_EXPIRED:		return "Lookup expired";
+	case LOOKUP_E_EMPTY_ROUTE:	return "Empty DHT routing table";
 	case LOOKUP_E_MAX:
 		break;
 	}
@@ -668,6 +670,7 @@ lookup_terminate(nlookup_t *nl)
  * @param vvec		vector of DHT values
  * @param vcnt		amount of filled entries in vvec
  * @param vsize		allocated size of vvec
+ * @param local		true if values were collected locally
  *
  * @attention
  * Vector memory is freed by this routine, and upon return the lookup
@@ -675,7 +678,7 @@ lookup_terminate(nlookup_t *nl)
  */
 static void
 lookup_value_terminate(nlookup_t *nl,
-	float load, dht_value_t **vvec, int vcnt, int vsize)
+	float load, dht_value_t **vvec, int vcnt, int vsize, gboolean local)
 {
 	lookup_val_rs_t *rs;
 	lookup_check(nl);
@@ -691,10 +694,14 @@ lookup_value_terminate(nlookup_t *nl,
 			kuid_to_hex_string(nl->kuid),
 			vcnt, 1 == vcnt ? "" : "s");
 
-	/* XXX don't forget to STORE the values at the closest node in the path */
-	/* XXX initiate parallel stores for the 'n' values with a refcounted
-	 * XXX array of kuids present in the lookup path, with the tokens...
-	 */
+
+	if (!local) {
+		/*
+		 * XXX don't forget to STORE the values at the closest node in the
+		 * XXX path, i.e. the last node that did not return any value.
+		 * XXX initiate single iterative store for the 'n' values.
+		 */
+	}
 
 	/*
 	 * Items in vector are freed by lookup_create_value_results(), but
@@ -702,7 +709,14 @@ lookup_value_terminate(nlookup_t *nl,
 	 */
 
 	rs = lookup_create_value_results(load, vvec, vcnt);
-	wfree(vvec, vsize * sizeof *vvec);
+
+	/*
+	 * If values were collected locally, then it was done in a buffer
+	 * on the stack and we must not free it.
+	 */
+
+	if (!local)
+		wfree(vvec, vsize * sizeof *vvec);
 
 	(*nl->u.fv.ok)(nl->kuid, rs, nl->arg);
 
@@ -780,7 +794,7 @@ lookup_value_done(nlookup_t *nl)
 	vsize = fv->vsize;
 
 	lookup_value_free(nl, FALSE);
-	lookup_value_terminate(nl, load, vvec, vcnt, vsize);
+	lookup_value_terminate(nl, load, vvec, vcnt, vsize, FALSE);
 }
 
 /**
@@ -1029,7 +1043,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	g_assert(vvec);
 	g_assert(NULL == skeys);
 
-	lookup_value_terminate(nl, load, vvec, vcnt, expanded);
+	lookup_value_terminate(nl, load, vvec, vcnt, expanded, FALSE);
 	return TRUE;
 
 bad:
@@ -2060,6 +2074,50 @@ lookup_find_node(
 }
 
 /**
+ * Check whether looked-up key is held locally.
+ *
+ * We are called from the "periodic event" stack, therefore asynchronously
+ * to the creation of the value lookup.  Hence it is safe to invoke
+ * callbacks, if needed.
+ */
+static void
+lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
+{
+	nlookup_t *nl = obj;
+
+	(void) unused_cq;
+
+	lookup_check(nl);
+	g_assert(LOOKUP_VALUE == nl->type);
+
+	if (NULL == nlookups)
+		return;				/* Shutdown occurred before we were scheduled */
+
+	if (keys_exists(nl->kuid)) {
+		dht_value_t *vvec[MAX_VALUES_PER_KEY];
+		int vcnt = 0;
+		float load;
+
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] key %s found locally, getting %s values",
+				nl->lid, kuid_to_string(nl->kuid),
+				dht_value_type_to_string(nl->u.fv.vtype));
+
+		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
+			vvec, G_N_ELEMENTS(vvec), &load);
+
+		if (vcnt) {
+			lookup_value_terminate(nl,
+				load, vvec, vcnt, G_N_ELEMENTS(vvec), TRUE);
+		} else {
+			lookup_abort(nl, LOOKUP_E_NOT_FOUND);
+		}
+	} else {
+		lookup_iterate(nl);		/* Key not held here, look for it on the net */
+	}
+}
+
+/**
  * Launch a "find value" lookup.
  *
  * @param kuid		the KUID of the value we're looking for
@@ -2092,7 +2150,14 @@ lookup_find_value(
 		return NULL;
 	}
 
-	lookup_iterate(nl);
+	/*
+	 * We need to check whether our node already holds the key they
+	 * are looking for.  However, we cannot synchronously call the callbacks.
+	 * Therefore, defer the startup a little.
+	 */
+
+	cq_insert(callout_queue, 1, lookup_value_check_here, nl);
+
 	return nl;
 }
 
