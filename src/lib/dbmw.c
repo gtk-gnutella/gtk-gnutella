@@ -70,8 +70,9 @@ struct dbmw {
 	size_t max_cached;			/**< Max amount of items to cache */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
-	gboolean ioerr;				/**< Had I/O error */
 	int error;					/**< Last errno value */
+	gboolean ioerr;				/**< Had I/O error */
+	gboolean count_needs_sync;	/**< Whether we need to sync to get count */
 };
 
 /**
@@ -116,7 +117,9 @@ dbmw_map_type(const dbmw_t *dw)
 size_t
 dbmw_count(dbmw_t *dw)
 {
-	dbmw_sync(dw);				/* Must write pending new items first */
+	if (dw->count_needs_sync)
+		dbmw_sync(dw);				/* Must write pending new items first */
+
 	return dbmap_count(dw->dm);
 }
 
@@ -416,6 +419,7 @@ void
 dbmw_sync(dbmw_t *dw)
 {
 	map_foreach(dw->values, flush_dirty, dw);
+	dw->count_needs_sync = FALSE;
 }
 
 /**
@@ -484,6 +488,7 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 	} else if (dw->max_cached > 1) {
 		entry = allocate_entry(dw, key, NULL);
 		fill_entry(entry, value, length);
+		dw->count_needs_sync = TRUE;	/* Does not know whether key exists */
 	} else { 
 		write_immediately(dw, key, value, length);
 	}
