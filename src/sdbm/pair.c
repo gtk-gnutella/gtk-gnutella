@@ -70,21 +70,27 @@ putpair(char *pag, datum key, datum val)
 	short *ino = (short *) pag;
 
 	off = ((n = ino[0]) > 0) ? ino[n] : DBM_PBLKSIZ;
-/*
- * enter the key first
- */
+
+	/*
+	 * enter the key first
+	 */
+
 	off -= key.dsize;
 	memcpy(pag + off, key.dptr, key.dsize);
 	ino[n + 1] = off;
-/*
- * now the data
- */
+
+	/*
+	 * now the data
+	 */
+
 	off -= val.dsize;
 	memcpy(pag + off, val.dptr, val.dsize);
 	ino[n + 2] = off;
-/*
- * adjust item count
- */
+
+	/*
+	 * adjust item count
+	 */
+
 	ino[0] += 2;
 }
 
@@ -158,13 +164,15 @@ delpair(char *pag, datum key)
 
 	if ((i = seepair(pag, n, key.dptr, key.dsize)) == 0)
 		return 0;
-/*
- * found the key. if it is the last entry
- * [i.e. i == n - 1] we just adjust the entry count.
- * hard case: move all data down onto the deleted pair,
- * shift offsets onto deleted offsets, and adjust them.
- * [note: 0 < i < n]
- */
+
+	/*
+	 * found the key. if it is the last entry
+	 * [i.e. i == n - 1] we just adjust the entry count.
+	 * hard case: move all data down onto the deleted pair,
+	 * shift offsets onto deleted offsets, and adjust them.
+	 * [note: 0 < i < n]
+	 */
+
 	if (i < n - 1) {
 		int m;
 		char *dst = pag + (i == 1 ? DBM_PBLKSIZ : ino[i - 1]);
@@ -172,9 +180,11 @@ delpair(char *pag, datum key)
 		int   zoo = dst - src;
 
 		debug(("free-up %d ", zoo));
-/*
- * shift data/keys down
- */
+
+		/*
+		 * shift data/keys down
+		 */
+
 		m = ino[i + 1] - ino[n];
 #ifdef DUFF
 #define MOVB 	*--dst = *--src
@@ -201,9 +211,11 @@ delpair(char *pag, datum key)
 			*--dst = *--src;
 #endif
 #endif
-/*
- * adjust offset index up
- */
+
+		/*
+		 * adjust offset index up
+		 */
+
 		while (i < n - 1) {
 			ino[i] = ino[i + 2] + zoo;
 			i++;
@@ -254,9 +266,11 @@ splpage(char *pag, char *New, long int sbit)
 		key.dsize = off - ino[0];
 		val.dptr = (char *) cur + ino[1];
 		val.dsize = ino[0] - ino[1];
-/*
- * select the page pointer (by looking at sbit) and insert
- */
+
+		/*
+		 * select the page pointer (by looking at sbit) and insert
+		 */
+
 		putpair((exhash(key) & sbit) ? New : pag, key, val);
 
 		off = ino[1];
@@ -296,3 +310,5 @@ chkpage(const char *pag)
 	}
 	return 1;
 }
+
+/* vi: set ts=4 sw=4 cindent: */

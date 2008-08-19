@@ -26,6 +26,7 @@ file changed slightly to add gtk-gnutella-isms.
 The standalone C programs do not compile as-is but were left to keep the
 integrity of the original sdbm distribution.
 
+
 Thu Aug 14 09:29:46 CEST 2008
 
 Christian Biere brought up SDBM distribution to gtk-gnutella standards.
@@ -51,4 +52,14 @@ Christian Biere brought up SDBM distribution to gtk-gnutella standards.
  * sdbm_open():
    * Compose the filenames properly.
    * Additional file type and size checks.
+
+
+Thu Aug 14 09:29:46 CEST 2008
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Fixed bug in getnext(), which flagged an I/O error when iterating over
+  an empty database.
+* Indented all comments within a function to match general gtk-gnutella style.
+* Added trailing vi comments for VIM.
 

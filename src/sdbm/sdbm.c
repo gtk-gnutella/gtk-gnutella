@@ -144,46 +144,51 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 		return NULL;
 	}
 
-/*
- * adjust user flags so that WRONLY becomes RDWR, 
- * as required by this package. Also set our internal
- * flag for RDONLY if needed.
- */
+	/*
+	 * adjust user flags so that WRONLY becomes RDWR, 
+	 * as required by this package. Also set our internal
+	 * flag for RDONLY if needed.
+	 */
+
 	if (flags & O_WRONLY)
 		flags = (flags & ~O_WRONLY) | O_RDWR;
 	else if (!(flags & O_RDWR))
 		db->flags = DBM_RDONLY;
-/*
- * open the files in sequence, and stat the dirfile.
- * If we fail anywhere, undo everything, return NULL.
- */
+
+	/*
+	 * open the files in sequence, and stat the dirfile.
+	 * If we fail anywhere, undo everything, return NULL.
+	 */
+
 #if defined(O_BINARY)
 	flags |= O_BINARY;
 #endif
 	if ((db->pagf = file_open(pagname, flags, mode)) > -1) {
 		if ((db->dirf = file_open(dirname, flags, mode)) > -1) {
-/*
- * need the dirfile size to establish max bit number.
- */
-			if (fstat(db->dirf, &dstat) == 0
-			  && S_ISREG(dstat.st_mode)
-			  && dstat.st_size >= 0
-			  && dstat.st_size < (off_t) 0 + (LONG_MAX / BYTESIZ)
+
+			/*
+			 * need the dirfile size to establish max bit number.
+			 */
+
+			if (
+				fstat(db->dirf, &dstat) == 0
+				&& S_ISREG(dstat.st_mode)
+				&& dstat.st_size >= 0
+				&& dstat.st_size < (off_t) 0 + (LONG_MAX / BYTESIZ)
 			) {
-/*
- * zero size: either a fresh database, or one with a single,
- * unsplit data page: dirpage is all zeros.
- */
+				/*
+				 * zero size: either a fresh database, or one with a single,
+				 * unsplit data page: dirpage is all zeros.
+				 */
+
 				db->dirbno = (!dstat.st_size) ? 0 : -1;
 				db->pagbno = -1;
 				db->maxbno = dstat.st_size * BYTESIZ;
 
 				memset(db->pagbuf, 0, DBM_PBLKSIZ);
 				memset(db->dirbuf, 0, DBM_DBLKSIZ);
-			/*
-			 * success
-			 */
-				return db;
+
+				return db;		/* Success */
 			}
 		}
 	}
@@ -251,9 +256,11 @@ sdbm_delete(DBM *db, datum key)
 	}
 	if (!delpair(db->pagbuf, key))
 		return -1;
-/*
- * update the page file
- */
+
+	/*
+	 * update the page file
+	 */
+
 	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
 		OFF_PAG(db->pagbno)) < 0
 	) {
@@ -281,9 +288,10 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 		return -1;
 	}
 
-/*
- * is the pair too big (or too small) for this database ?
- */
+	/*
+	 * is the pair too big (or too small) for this database ?
+	 */
+
 	if (!sdbm_is_storable(key.dsize, val.dsize)) {
 		errno = EINVAL;
 		return -1;
@@ -295,29 +303,35 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 		ioerr(db);
 		return -1;
 	}
-/*
- * if we need to replace, delete the key/data pair
- * first. If it is not there, ignore.
- */
+
+	/*
+	 * if we need to replace, delete the key/data pair
+	 * first. If it is not there, ignore.
+	 */
+
 	if (flags == DBM_REPLACE)
 		delpair(db->pagbuf, key);
 #ifdef SEEDUPS
 	else if (duppair(db->pagbuf, key))
 		return 1;
 #endif
-/*
- * if we do not have enough room, we have to split.
- */
+
+	/*
+	 * if we do not have enough room, we have to split.
+	 */
+
 	if (!fitpair(db->pagbuf, need)
 		&& !makroom(db, hash, need)
 	) {
 		ioerr(db);
 		return -1;
 	}
-/*
- * we have enough room or split is successful. insert the key,
- * and update the page file.
- */
+
+	/*
+	 * we have enough room or split is successful. insert the key,
+	 * and update the page file.
+	 */
+
 	putpair(db->pagbuf, key, val);
 
 	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
@@ -326,10 +340,8 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 		ioerr(db);
 		return -1;
 	}
-/*
- * success
- */
-	return 0;
+
+	return 0;		/* Success */
 }
 
 /*
@@ -347,23 +359,26 @@ makroom(DBM *db, long int hash, size_t need)
 	int smax = DBM_SPLTMAX;
 
 	do {
-/*
- * split the current page
- */
+		/*
+		 * split the current page
+		 */
+
 		splpage(pag, New, db->hmask + 1);
-/*
- * address of the new page
- */
+
+		/*
+		 * address of the new page
+		 */
+
 		newp = (hash & db->hmask) | (db->hmask + 1);
 
-/*
- * write delay, read avoidence/cache shuffle:
- * select the page for incoming pair: if key is to go to the new page,
- * write out the previous one, and copy the new one over, thus making
- * it the current page. If not, simply write the new page, and we are
- * still looking at the page of interest. current page is not updated
- * here, as sdbm_store will do so, after it inserts the incoming pair.
- */
+		/*
+		 * write delay, read avoidence/cache shuffle:
+		 * select the page for incoming pair: if key is to go to the new page,
+		 * write out the previous one, and copy the new one over, thus making
+		 * it the current page. If not, simply write the new page, and we are
+		 * still looking at the page of interest. current page is not updated
+		 * here, as sdbm_store will do so, after it inserts the incoming pair.
+		 */
 
 #if defined(DOSISH) || defined(WIN32)
 		{
@@ -374,6 +389,7 @@ makroom(DBM *db, long int hash, size_t need)
 			 * Fill hole with 0 if made it.
 			 * (hole is NOT read as 0)
 			 */
+
 			oldtail = lseek(db->pagf, 0L, SEEK_END);
 			while (OFF_PAG(newp) > oldtail) {
 				if (lseek(db->pagf, 0L, SEEK_END) < 0 ||
@@ -399,17 +415,21 @@ makroom(DBM *db, long int hash, size_t need)
 
 		if (!setdbit(db, db->curbit))
 			return 0;
-/*
- * see if we have enough room now
- */
+
+		/*
+		 * see if we have enough room now
+		 */
+
 		if (fitpair(pag, need))
 			return 1;
-/*
- * try again... update curbit and hmask as getpage would have
- * done. because of our update of the current page, we do not
- * need to read in anything. BUT we have to write the current
- * [deferred] page out, as the window of failure is too great.
- */
+
+		/*
+		 * try again... update curbit and hmask as getpage would have
+		 * done. because of our update of the current page, we do not
+		 * need to read in anything. BUT we have to write the current
+		 * [deferred] page out, as the window of failure is too great.
+		 */
+
 		db->curbit = 2 * db->curbit +
 			((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
@@ -419,15 +439,15 @@ makroom(DBM *db, long int hash, size_t need)
 			return 0;
 
 	} while (--smax);
-/*
- * if we are here, this is real bad news. After DBM_SPLTMAX splits,
- * we still cannot fit the key. say goodnight.
- */
-#ifdef BADMESS
-	write(2, "sdbm: cannot insert after DBM_SPLTMAX attempts.\n", 44);
-#endif
-	return 0;
 
+	/*
+	 * if we are here, this is real bad news. After DBM_SPLTMAX splits,
+	 * we still cannot fit the key. say goodnight.
+	 */
+
+	g_warning("sdbm: cannot insert after DBM_SPLTMAX attempts.");
+
+	return 0;
 }
 
 /*
@@ -441,12 +461,12 @@ sdbm_firstkey(DBM *db)
 		errno = EINVAL;
 		return nullitem;
 	}
-/*
- * start at page 0
- */
-	if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-		OFF_PAG(0)) < 0
-	) {
+
+	/*
+	 * start at page 0
+	 */
+
+	if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(0)) < 0) {
 		ioerr(db);
 		return nullitem;
 	}
@@ -488,17 +508,19 @@ getpage(DBM *db, long int hash)
 	db->hmask = masks[hbit];
 
 	pagb = hash & db->hmask;
-/*
- * see if the block we need is already in memory.
- * note: this lookaside cache has about 10% hit rate.
- */
+
+	/*
+	 * see if the block we need is already in memory.
+	 * note: this lookaside cache has about 10% hit rate.
+	 */
+
 	if (pagb != db->pagbno) { 
-/*
- * note: here, we assume a "hole" is read as 0s.
- * if not, must zero pagbuf first.
- */
-		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-			OFF_PAG(pagb)) < 0)
+		/*
+		 * note: here, we assume a "hole" is read as 0s.
+		 * if not, must zero pagbuf first.
+		 */
+
+		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagb)) < 0)
 			return 0;
 		if (!chkpage(db->pagbuf))
 			return 0;
@@ -515,8 +537,7 @@ fetch_dirbuf(DBM *db, long dirb)
 	if (dirb != db->dirbno) {
 		ssize_t got;
 
-		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ,
-			OFF_DIR(dirb));
+		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if (got < 0)
 			return 0;
 
@@ -584,21 +605,28 @@ getnext(DBM *db)
 	datum key;
 
 	for (;;) {
+		ssize_t got;
+
 		db->keyptr++;
 		key = getnkey(db->pagbuf, db->keyptr);
 		if (key.dptr != NULL)
 			return key;
-/*
- * we either run out, or there is nothing on this page..
- * try the next one... If we lost our position on the
- * file, we will have to seek.
- */
+
+		/*
+		 * we either run out, or there is nothing on this page..
+		 * try the next one... If we lost our position on the
+		 * file, we will have to seek.
+		 */
+
 		db->keyptr = 0;
 		db->blkptr++;
 		db->pagbno = db->blkptr;
 
-		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-			OFF_PAG(db->pagbno)) <= 0)
+		got = compat_pread(
+			db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(db->pagbno));
+		if (0 == got)
+			return nullitem;
+		if (got < 0)
 			break;
 		if (!chkpage(db->pagbuf))
 			break;
@@ -644,3 +672,4 @@ sdbm_is_storable(size_t key_size, size_t value_size)
 	return key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

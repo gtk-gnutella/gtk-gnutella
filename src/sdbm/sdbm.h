@@ -59,3 +59,5 @@ int sdbm_pagfno(DBM *);
 int sdbm_is_storable(size_t, size_t);
 
 #endif /* _sdbm_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */
