@@ -55,7 +55,10 @@ RCSID("$Id$")
 #include "kuid.h"
 #include "lookup.h"
 
+#include "if/gnet_property_priv.h"
+
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/fifo.h"
 #include "lib/slist.h"
 #include "lib/walloc.h"
@@ -91,7 +94,9 @@ struct ulq_item {
 	gpointer arg;					/**< Common callback opaque argument */
 };
 
-static struct ulq *ulq;
+static struct ulq *ulq;				/**< The user lookup queue */
+
+static void ulq_needs_servicing(void);
 
 /**
  * Allocate new ulq item.
@@ -124,12 +129,159 @@ free_ulq_item(struct ulq_item *ui)
 }
 
 /**
+ * Lookup is completed.
+ */
+static void
+ulq_completed(struct ulq_item *ui)
+{
+	g_assert(ui);
+	g_assert(ulq->running > 0);
+
+	ulq->running--;
+	slist_remove(ulq->launched, ui);
+	free_ulq_item(ui);
+
+	ulq_needs_servicing();	/* Check for more work to do */
+}
+
+/**
+ * Intercepting "error" callback.
+ */
+static void
+ulq_error_cb(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+{
+	struct ulq_item *ui = arg;
+
+	g_assert(LOOKUP_VALUE == ui->type || LOOKUP_NODE == ui->type);
+	g_assert(ui->kuid == kuid);		/* Atoms */
+
+	(*ui->err)(ui->kuid, error, ui->arg);
+	ulq_completed(ui);
+}
+
+/**
+ * Intercepting "value found" callback.
+ */
+static void
+ulq_value_found_cb(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
+{
+	struct ulq_item *ui = arg;
+
+	g_assert(LOOKUP_VALUE == ui->type);
+	g_assert(ui->kuid == kuid);		/* Atoms */
+
+	(*ui->u.fv.ok)(ui->kuid, rs, ui->arg);
+	ulq_completed(ui);
+}
+
+/**
+ * Intercepting "node found" callback.
+ */
+static void
+ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
+{
+	struct ulq_item *ui = arg;
+
+	g_assert(LOOKUP_NODE == ui->type);
+	g_assert(ui->kuid == kuid);		/* Atoms */
+
+	(*ui->u.fn.ok)(ui->kuid, rs, ui->arg);
+	ulq_completed(ui);
+}
+
+/**
+ * Launch an enqueued lookup.
+ */
+static void
+ulq_launch(void)
+{
+	nlookup_t *nl;
+
+	struct ulq_item *ui;
+
+	g_assert(fifo_count(ulq->q));
+
+	ui = fifo_remove(ulq->q);
+
+	g_assert(ui);
+
+	/*
+	 * We trap the ok and error callbacks so as to be notified when the
+	 * lookup has completed.
+	 */
+
+	switch (ui->type) {
+	case LOOKUP_VALUE:
+		nl = lookup_find_value(ui->kuid, ui->u.fv.vtype,
+			ulq_value_found_cb, ulq_error_cb, ui);
+		break;
+	case LOOKUP_NODE:
+		nl = lookup_find_node(ui->kuid, ulq_node_found_cb, ulq_error_cb, ui);
+		break;
+	case LOOKUP_REFRESH:
+		g_assert_not_reached();
+	}
+
+	if (nl) {
+		slist_append(ulq->launched, ui);
+		ulq->running++;
+	} else {
+		/*
+		 * We know the only cause for a lookup not starting is that the
+		 * initial shortlist is empty.  Since here we are called asynchronously
+		 * with respect to the initial lookup launch, it is safe to invoke
+		 * the error callback.
+		 */
+
+		(*ui->err)(ui->kuid, LOOKUP_E_EMPTY_ROUTE, ui->arg);
+		free_ulq_item(ui);
+	}
+}
+
+/**
  * Service the lookup queue.
+ *
+ * This call is scheduled on the "periodic event" stack, asynchronously, to
+ * avoid problems when error callbacks are triggered because a lookup cannot
+ * be launched.
  */
 static void
 ulq_service(void)
 {
-	/* XXX */
+	if (NULL == ulq)
+		return;
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		g_message("DHT ULQ service on entry: has %d running and %d pending",
+			ulq->running, fifo_count(ulq->q));
+
+	while (fifo_count(ulq->q) && ulq->running < ULQ_MAX_RUNNING)
+		ulq_launch();
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		g_message("DHT ULQ service at exit: has %d running and %d pending",
+			ulq->running, fifo_count(ulq->q));
+}
+
+/**
+ * Callout queue callback to perform queue servicing.
+ */
+static void
+ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
+{
+	(void) unused_cq;
+	(void) unused_obj;
+
+	ulq_service();
+}
+
+/**
+ * Schedule asynchronous queue servicing.
+ */
+static void
+ulq_needs_servicing(void)
+{
+	cq_insert(callout_queue, 1, ulq_do_service, NULL);
 }
 
 /**
@@ -151,7 +303,7 @@ ulq_find_node(const kuid_t *kuid,
 	ui->u.fn.ok = ok;
 
 	fifo_put(ulq->q, ui);
-	ulq_service();
+	ulq_needs_servicing();
 }
 
 /**
@@ -171,7 +323,7 @@ ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	ui->u.fv.vtype = type;
 
 	fifo_put(ulq->q, ui);
-	ulq_service();
+	ulq_needs_servicing();
 }
 
 /**
