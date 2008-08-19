@@ -65,6 +65,7 @@ static const char * const store_errstr[] = {
 	"Storage quota for creator reached",	/**< STORE_SC_QUOTA */
 	"Replicated data is different",			/**< STORE_SC_DATA_MISMATCH */
 	"Invalid security token",				/**< STORE_SC_BAD_TOKEN */
+	"Value has already expired",			/**< STORE_SC_EXPIRED */
 };
 
 /**
@@ -106,7 +107,7 @@ storage_create(const char *name, const char *base,
 	dbmw_t *dw;
 
 	path = make_pathname(settings_config_dir(), base);
-	dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR, 0600, 0);
+	dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR, 0600);
 
 	if (!dm) {
 		g_warning("cannot create SDBM in %s for %s: %s",

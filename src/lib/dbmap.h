@@ -64,10 +64,9 @@ typedef struct dbmap_datum {
  */
 
 dbmap_t *dbmap_create_hash(size_t ks, GHashFunc hashf, GEqualFunc key_eqf);
-dbmap_t * dbmap_create_sdbm(
-	size_t ks, char *path, int flags, int mode, size_t count);
+dbmap_t * dbmap_create_sdbm(size_t ks, char *path, int flags, int mode);
 dbmap_t *dbmap_create_from_map(size_t ks, map_t *map);
-dbmap_t *dbmap_create_from_sdbm(size_t ks, DBM *sdbm, size_t count);
+dbmap_t *dbmap_create_from_sdbm(size_t ks, DBM *sdbm);
 
 /**
  * Public DB map interface.
@@ -97,6 +96,7 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
 /**
  * Other helper routines.
  */
+size_t dbmap_count_keys_sdbm(DBM *sdbm);
 void dbmap_unlink_sdbm(const char *base);
 
 #endif	/* _dbmap_h_ */

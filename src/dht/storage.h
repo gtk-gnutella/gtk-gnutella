@@ -55,6 +55,7 @@
 #define STORE_SC_QUOTA			11U /**< Storage quota for creator reached */
 #define STORE_SC_DATA_MISMATCH	12U /**< Replicated data is different */
 #define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
+#define STORE_SC_EXPIRED		14U	/**< Value has already expired */
 
 /*
  * Public interface.

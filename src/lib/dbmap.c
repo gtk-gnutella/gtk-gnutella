@@ -156,16 +156,11 @@ dbmap_create_hash(size_t key_size, GHashFunc hash_func, GEqualFunc key_eq_func)
  * @param path		path of the SDBM database
  * @param flags		opening flags
  * @param mode		file permissions
- * @param count		amount of data already stored
- *
- * NB: count is needed in case the opening flags do not contain O_TRUNC.
- * It is up to caller to determine beforehand how many items are held in
- * the SDBM base.
  *
  * @return the opened database, or NULL if an error occurred during opening.
  */
 dbmap_t *
-dbmap_create_sdbm(size_t ksize, char *path, int flags, int mode, size_t count)
+dbmap_create_sdbm(size_t ksize, char *path, int flags, int mode)
 {
 	dbmap_t *dm;
 
@@ -175,13 +170,14 @@ dbmap_create_sdbm(size_t ksize, char *path, int flags, int mode, size_t count)
 	dm = walloc0(sizeof *dm);
 	dm->type = DBMAP_SDBM;
 	dm->key_size = ksize;
-	dm->count = count;
 	dm->u.s.sdbm = sdbm_open(path, flags, mode);
 
 	if (!dm->u.s.sdbm) {
 		wfree(dm, sizeof *dm);
 		return NULL;
 	}
+
+	dm->count = dbmap_count_keys_sdbm(dm->u.s.sdbm);
 
 	return dm;
 }
@@ -216,10 +212,9 @@ dbmap_create_from_map(size_t key_size, map_t *map)
  *
  * @param key_size	expected constant key length of map
  * @param sdbm		the already created SDBM handle (DB may contain data)
- * @param count		amount of data already stored
  */
 dbmap_t *
-dbmap_create_from_sdbm(size_t key_size, DBM *sdbm, size_t count)
+dbmap_create_from_sdbm(size_t key_size, DBM *sdbm)
 {
 	dbmap_t *dm;
 
@@ -229,7 +224,7 @@ dbmap_create_from_sdbm(size_t key_size, DBM *sdbm, size_t count)
 	dm = walloc0(sizeof *dm);
 	dm->type = DBMAP_SDBM;
 	dm->key_size = key_size;
-	dm->count = count;
+	dm->count = dbmap_count_keys_sdbm(sdbm);
 	dm->u.s.sdbm = sdbm;
 
 	return dm;
@@ -562,9 +557,10 @@ dbmap_all_keys(const dbmap_t *dm)
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
 
+			errno = 0;
 			for (
 				key = sdbm_firstkey(sdbm);
-				key.dptr;
+				key.dptr && !sdbm_error(sdbm);
 				key = sdbm_nextkey(sdbm)
 			) {
 				gpointer kdup;
@@ -574,6 +570,11 @@ dbmap_all_keys(const dbmap_t *dm)
 				kdup = walloc(dm->key_size);
 				memcpy(kdup, key.dptr, key.dsize);
 				sl = g_slist_prepend(sl, kdup);
+			}
+			if (sdbm_error(sdbm)) {
+				dbmap_t *dmw = deconstify_gpointer(dm);
+				dmw->ioerr = TRUE;
+				dmw->error = errno;
 			}
 		}
 		break;
@@ -603,6 +604,26 @@ unlink_sdbm(const char *file)
 {
 	if (-1 == unlink(file))
 		g_warning("cannot unlink SDBM file %s: %s", file, g_strerror(errno));
+}
+
+/**
+ * Helper routine to count keys in an opened SDBM database.
+ */
+size_t
+dbmap_count_keys_sdbm(DBM *sdbm)
+{
+	datum key;
+	size_t count = 0;
+
+	for (key = sdbm_firstkey(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
+		count++;
+
+	if (sdbm_error(sdbm)) {
+		g_warning("SDBM I/O error after key count, clearing");
+		sdbm_clearerr(sdbm);
+	}
+
+	return count;
 }
 
 /**
