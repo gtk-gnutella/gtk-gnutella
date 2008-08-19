@@ -91,6 +91,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_GTKG_TLS,	/**< GTKG TLS support indication */
 	/* watch out, below is off-order */
 	EXT_T_GGEP_GTKGV1,		/**< GTKG version indication #1 */
+	/* keep remaining sorted */
 	EXT_T_GGEP_GUE,			/**< GUESS support */
 	EXT_T_GGEP_H,			/**< GGEP binary hash value */
 	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits */
@@ -118,6 +119,12 @@ typedef enum ext_token {
 	EXT_T_GGEP_V,			/**< Vendor Code in HEAD Pongs */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_VMSG,		/**< Array of vendor message codes supported */
+	EXT_T_GGEP_client_id,	/**< "client-id" in ALOC v0.0 (i.e. GUID) */
+	EXT_T_GGEP_firewalled,	/**< Firewalled status in ALOC v0.0 */
+	EXT_T_GGEP_length,		/**< File length in ALOC v0.1 */
+	EXT_T_GGEP_port,		/**< Servent's Port in ALOC v0.0 */
+	EXT_T_GGEP_tls,			/**< Servent TLS support indication in ALOC v0.1 */
+	EXT_T_GGEP_ttroot,		/**< TTH root in ALOC v0.1 */
 	EXT_T_GGEP_u,			/**< HUGE URN in ASCII */
 
 	EXT_T_TOKEN_COUNT
