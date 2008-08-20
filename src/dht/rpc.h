@@ -45,9 +45,9 @@
 
 #include "lib/pmsg.h"
 
-#define DHT_RPC_MAXDELAY	30000	/* 30 secs max to get a reply */
+#define DHT_RPC_MAXDELAY	20000	/* 20 secs max to get a reply */
 #define DHT_RPC_MINDELAY	5000	/* 5 secs min to get a reply */
-#define DHT_RPC_FIRSTDELAY	20000	/* 20 secs the first time */
+#define DHT_RPC_FIRSTDELAY	10000	/* 10 secs the first time */
 
 /**
  * RPC operations.
