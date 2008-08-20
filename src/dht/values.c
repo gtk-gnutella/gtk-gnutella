@@ -428,6 +428,10 @@ validate_creator(const knode_t *sender, const knode_t *creator)
 		what = "port number";
 		goto mismatch;
 	}
+	if (sender->flags & KNODE_F_FOREIGN_IP) {
+		what = "source IP mismatch";
+		goto mismatch;
+	}
 
 	return TRUE;
 
@@ -464,6 +468,23 @@ validate_new_acceptable(const dht_value_t *v)
 		return STORE_SC_EXHAUSTED;
 
 	/*
+	 * Check key status: full and loaded attributes.
+	 */
+
+	{
+		gboolean full;
+		gboolean loaded;
+
+		keys_get_status(v->id, &full, &loaded);
+		if (full && loaded)
+			return STORE_SC_FULL_LOADED;
+		else if (full)
+			return STORE_SC_FULL;
+		else if (loaded)
+			return STORE_SC_LOADED;
+	}
+
+	/*
 	 * Check creator quotas.
 	 */
 
@@ -495,23 +516,6 @@ validate_new_acceptable(const dht_value_t *v)
 			return STORE_SC_QUOTA;
 	}
 
-	/*
-	 * Check key status: full and loaded attributes.
-	 */
-
-	{
-		gboolean full;
-		gboolean loaded;
-
-		keys_get_status(v->id, &full, &loaded);
-		if (full && loaded)
-			return STORE_SC_FULL_LOADED;
-		else if (full)
-			return STORE_SC_FULL;
-		else if (loaded)
-			return STORE_SC_LOADED;
-	}
-
 	return STORE_SC_OK;
 }
 
@@ -540,6 +544,86 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 }
 
 /**
+ * Remove a value from our local data store.
+ *
+ * A "remove" operation happens when a STORE request comes for data
+ * with a length of 0 bytes.  It can only be done by the creator of the
+ * value, naturally.
+ *
+ * If the value is found under the key (we don't care about its type), it
+ * is removed.  Otherwise nothing happens and all is well since we do not
+ * hold the value...
+ *
+ * @return store status code that will be relayed back to the remote node.
+ */
+static guint16
+values_remove(const knode_t *kn, const dht_value_t *v)
+{
+	const knode_t *cn = v->creator;
+	const char *reason = NULL;
+	guint64 dbkey;
+
+	if (!kuid_eq(kn->id, cn->id)) {
+		reason = "not from creator";
+		goto done;
+	}
+
+	if (!validate_creator(kn, cn)) {
+		reason = "invalid creator";
+		goto done;
+	}
+
+	dbkey = keys_has(v->id, v->creator->id, FALSE);
+	if (0 == dbkey) {
+		reason = "value not found";
+		goto done;
+	}
+
+	/*
+	 * If we reach this point, we hold the value and we made sure it is
+	 * its creator who is asking for its removal.
+	 */
+
+	if (GNET_PROPERTY(dht_storage_debug) > 1) {
+		struct valuedata *vd;
+
+		vd = get_valuedata(dbkey);
+
+		g_assert(vd);							/* XXX handle DB failures */
+		g_assert(kuid_eq(&vd->id, v->id));		/* Primary key */
+		g_assert(kuid_eq(&vd->cid, cn->id));	/* Secondary key */
+
+		g_message("DHT STORE creator deleting %u-byte %s value",
+			vd->length, dht_value_type_to_string(vd->type));
+	}
+
+	g_assert(values_managed > 0);
+
+	values_managed--;
+	acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, -1);
+	acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, -1);
+
+	dbmw_delete(db_rawdata, &dbkey);
+	dbmw_delete(db_valuedata, &dbkey);
+
+	keys_remove_value(v->id, cn->id, dbkey);
+
+done:
+	if (reason && GNET_PROPERTY(dht_storage_debug) > 1)
+		g_message("DHT STORE refusing deletion of %s: %s",
+			dht_value_to_string(v), reason);
+
+	/*
+	 * I've seen LimeWire nodes re-iterate the removal requests when something
+	 * other than STORE_SC_OK is returned.  Removal is special anyway in that
+	 * the requestor is going to be helpless if we return an error.  So let
+	 * them believe everything is fine even if it wasn't.
+	 */
+
+	return STORE_SC_OK;		/* Always succeeds */
+}
+
+/**
  * Publish or replicate value in our local data store.
  *
  * @return store status code that will be relayed back to the remote node.
@@ -558,7 +642,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 	 * be a replication or a republishing from original creator).
 	 */
 
-	dbkey = keys_has(v->id, v->creator->id);
+	dbkey = keys_has(v->id, v->creator->id, TRUE);
 
 	if (0 == dbkey) {
 		const knode_t *cn = v->creator;
@@ -787,10 +871,10 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 	}
 
 	/*
-	 * We can attempt to store the value.
+	 * We can attempt to publish/remove the value.
 	 */
 
-	status = values_publish(kn, v);
+	status =  0 == v->length ? values_remove(kn, v) : values_publish(kn, v);
 
 	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);
 

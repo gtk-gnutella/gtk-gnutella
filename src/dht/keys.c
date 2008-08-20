@@ -92,7 +92,8 @@ RCSID("$Id$")
 
 #define LOAD_PERIOD		60		/**< 1 minute: counts requests/min */
 #define LOAD_SMOOTH		0.25f	/**< EMA smoothing factor for load */
-#define LOAD_THRESH		5.0		/**< Above that and we're "loaded" */
+#define LOAD_GET_THRESH	5.0		/**< Above that and we're "loaded" */
+#define LOAD_STO_THRESH	8.0		/**< Above that and we're "loaded" */
 #define KBALL_PERIOD	(10*60)	/**< Update k-ball info every 10 minutes */
 #define KBALL_FIRST		60		/**< First k-ball update after 1 minute */
 
@@ -117,8 +118,10 @@ enum keyinfo_magic {
 struct keyinfo {
 	enum keyinfo_magic magic;
 	kuid_t *kuid;				/**< The key (atom) */
-	float request_load;			/**< EMA of # of requests per period */
-	guint32 requests;			/**< Amount of requests received in period */
+	float get_req_load;			/**< EMA of # of (read) requests per period */
+	float store_req_load;		/**< EMA of # of (store) requests per period */
+	guint32 get_requests;		/**< # of get requests received in period */
+	guint32 store_requests;		/**< # of store requests received in period */
 	guint8 common_bits;			/**< Leading bits shared with our KUID */
 	guint8 values;				/**< Amount of values stored under key */
 };
@@ -192,12 +195,18 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE key %s holds %d/%d value%s, load avg = %.2f (%s)",
+		g_message("DHT STORE key %s holds %d/%d value%s, "
+			"load avg: get = %.2f (%s), store = %.2f (%s)",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
-			1 == ki->values ? "" : "s", ki->request_load,
-			ki->request_load >= LOAD_THRESH ? "LOADED" : "OK");
+			1 == ki->values ? "" : "s", ki->get_req_load,
+			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
+			ki->store_req_load,
+			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK");
 
-	if (ki->request_load >= LOAD_THRESH)
+	if (
+		ki->get_req_load >= LOAD_GET_THRESH ||
+		ki->store_req_load >= LOAD_STO_THRESH
+	)
 		*loaded = TRUE;
 
 	if (ki->values >= MAX_VALUES)
@@ -235,6 +244,35 @@ get_keydata(const kuid_t *id)
  * @param kd		keydata for the primary key
  * @param skey		secondary key to locate
  *
+ * @return index of the key in the creators array if found, -1 otherwise
+ */
+static int
+lookup_secondary_idx(const struct keydata *kd, const kuid_t *skey)
+{
+	g_assert(kd);
+	g_assert(skey);
+
+#define GET_ITEM(i)		&kd->creators[i]
+#define FOUND(i) G_STMT_START {		\
+	return i;						\
+	/* NOTREACHED */				\
+} G_STMT_END
+
+	/* Perform a binary search to find the index where "skey" lies */
+	BINARY_SEARCH(const kuid_t *, skey, kd->values, kuid_cmp, GET_ITEM, FOUND);
+
+#undef FOUND
+#undef GET_ITEM
+
+	return -1;		/* Not found */
+}
+
+/**
+ * Find secondary key in the set of values held for the key.
+ *
+ * @param kd		keydata for the primary key
+ * @param skey		secondary key to locate
+ *
  * @return 64-bit DB key for the value if found, 0 if key was not found.
  */
 static guint64
@@ -261,11 +299,15 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 /**
  * Check whether key already holds data from the creator.
  *
+ * @param id		the primary key
+ * @param cid		the secondary key (creator's id)
+ * @param store		whether to increment the store request count
+ *
  * @return 64-bit DB key for the value if it does, 0 if key either does not
  * exist yet or does not hold data from the creator.
  */
 guint64
-keys_has(const kuid_t *id, const kuid_t *creator_id)
+keys_has(const kuid_t *id, const kuid_t *cid, gboolean store)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
@@ -275,20 +317,87 @@ keys_has(const kuid_t *id, const kuid_t *creator_id)
 	if (ki == NULL)
 		return 0;
 
+	if (store)
+		ki->store_requests++;
+
 	kd = get_keydata(id);
 	if (kd == NULL)
 		return 0;
 
 	g_assert(ki->values == kd->values);
 
-	dbkey = lookup_secondary(kd, creator_id);
+	dbkey = lookup_secondary(kd, cid);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 15)
 		g_message("DHT lookup secondary for %s/%s => dbkey %s",
-			kuid_to_hex_string(id), kuid_to_hex_string2(creator_id),
+			kuid_to_hex_string(id), kuid_to_hex_string2(cid),
 			uint64_to_string(dbkey));
 
 	return dbkey;
+}
+
+/**
+ * Remove value from a key, discarding the association between the creator ID
+ * and the 64-bit DB key.
+ *
+ * The keys is known to hold the value already.
+ *
+ * @param id		the primary key
+ * @param cid		the secondary key (creator's ID)
+ * @param dbkey		the 64-bit DB key (informational, for assertions)
+ */
+void
+keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
+{
+	struct keyinfo *ki;
+	struct keydata *kd;
+	int idx;
+
+	ki = patricia_lookup(keys, id);
+
+	g_assert(ki);
+
+	kd = get_keydata(id);
+
+	g_assert(kd);			/* XXX need proper error management */
+
+	g_assert(kd->values);
+	g_assert(kd->values == ki->values);
+	g_assert(kd->values < MAX_VALUES);
+
+	idx = lookup_secondary_idx(kd, cid);
+
+	g_assert(idx >= 0 && idx < kd->values);
+	g_assert(dbkey == kd->dbkeys[idx]);
+
+	/*
+	 * If at least a value remains, we keep the key around.
+	 */
+
+	if (kd->values > 1) {
+		if (idx < kd->values - 1) {
+			memmove(&kd->creators[idx], &kd->creators[idx+1],
+				sizeof(kd->creators[0]) * (kd->values - idx - 1));
+			memmove(&kd->dbkeys[idx], &kd->dbkeys[idx+1],
+				sizeof(kd->dbkeys[0]) * (kd->values - idx - 1));
+		}
+		kd->values--;
+		ki->values--;
+		dbmw_write(db_keydata, id, kd, sizeof *kd);
+
+		if (GNET_PROPERTY(dht_storage_debug) > 1)
+			g_message("DHT STORE key %s now holds only %d/%d value%s",
+				kuid_to_hex_string(id), ki->values, MAX_VALUES,
+				1 == ki->values ? "" : "s");
+	} else {
+		patricia_remove(keys, id);
+		kuid_atom_free_null(&ki->kuid);
+		wfree(ki, sizeof *ki);
+		dbmw_delete(db_keydata, id);
+
+		if (GNET_PROPERTY(dht_storage_debug) > 1)
+			g_message("DHT STORE key %s is now gone", kuid_to_hex_string(id));
+	}
 }
 
 /**
@@ -297,7 +406,7 @@ keys_has(const kuid_t *id, const kuid_t *creator_id)
  * stored.
  */
 void
-keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
+keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
@@ -320,14 +429,16 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
 			g_message("DHT STORE new key %s (%lu common bit%s) with creator %s",
 				kuid_to_hex_string(id), (gulong) common, 1 == common ? "" : "s",
-				kuid_to_hex_string2(creator_id));
+				kuid_to_hex_string2(cid));
 
 		ki = walloc(sizeof *ki);
 
 		ki->magic = KEYINFO_MAGIC;
 		ki->kuid = kuid_get_atom(id);
-		ki->request_load = 0;
-		ki->requests = 0;
+		ki->get_req_load = 0.0;
+		ki->get_requests = 0;
+		ki->store_req_load = 0.0;
+		ki->store_requests = 0;
 		ki->common_bits = common & 0xff;
 		ki->values = 0;						/* will be incremented below */
 
@@ -335,7 +446,7 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 
 		kd = &new_kd;
 		kd->values = 0;						/* will be incremented below */
-		kd->creators[0] = *creator_id;		/* struct copy */
+		kd->creators[0] = *cid;				/* struct copy */
 		kd->dbkeys[0] = dbkey;
 
 	} else {
@@ -355,7 +466,7 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 				"has new creator %s",
 				kuid_to_hex_string(id), (gulong) ki->common_bits,
 				1 == ki->common_bits ? "" : "s",
-				kuid_to_hex_string2(creator_id));
+				kuid_to_hex_string2(cid));
 
 		/*
 		 * Insert KUID of creator in array, which must be kept sorted.
@@ -364,13 +475,13 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 
 		while (low <= high) {
 			int mid = low + (high - low) / 2;
-			int c = kuid_cmp(&kd->creators[mid], creator_id);
+			int c = kuid_cmp(&kd->creators[mid], cid);
 
 			g_assert(mid >= 0 && mid < ki->values);
 
 			if (0 == c)
 				g_error("new creator KUID %s must not already be present",
-					kuid_to_hex_string(creator_id));
+					kuid_to_hex_string(cid));
 			else if (c < 0)
 				low = mid + 1;
 			else
@@ -386,7 +497,7 @@ keys_add_value(const kuid_t *id, const kuid_t *creator_id, guint64 dbkey)
 				sizeof(kd->dbkeys[0]) * (kd->values - low));
 		}
 
-		kd->creators[low] = *creator_id;		/* struct copy */
+		kd->creators[low] = *cid;			/* struct copy */
 		kd->dbkeys[low] = dbkey;
 	}
 
@@ -442,12 +553,12 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	if (GNET_PROPERTY(dht_storage_debug) > 5)
 		g_message("DHT FETCH key %s (load = %.2f, current reqs = %u) type %s"
 			" with %d secondary key%s",
-			kuid_to_hex_string(id), ki->request_load, ki->requests,
+			kuid_to_hex_string(id), ki->get_req_load, ki->get_requests,
 			dht_value_type_to_string(type),
 			secondary_count, 1 == secondary_count ? "" : "s");
 
-	*loadptr = ki->request_load;
-	ki->requests++;
+	*loadptr = ki->get_req_load;
+	ki->get_requests++;
 
 	kd = get_keydata(id);
 	if (kd == NULL)				/* DB failure */
@@ -592,9 +703,13 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
-	ki->request_load = LOAD_SMOOTH * ki->requests +
-		(1 - LOAD_SMOOTH) * ki->request_load;
-	ki->requests = 0;
+	ki->get_req_load = LOAD_SMOOTH * ki->get_requests +
+		(1 - LOAD_SMOOTH) * ki->get_req_load;
+	ki->get_requests = 0;
+
+	ki->store_req_load = LOAD_SMOOTH * ki->store_requests +
+		(1 - LOAD_SMOOTH) * ki->store_req_load;
+	ki->store_requests = 0;
 
 	ctx->values += ki->values;		/* For sanity checks */
 }
