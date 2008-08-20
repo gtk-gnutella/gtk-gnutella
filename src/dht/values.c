@@ -450,6 +450,29 @@ wrong:
 	return FALSE;
 }
 
+/*
+ * Check key status: full and loaded attributes.
+ *
+ * @return error code, STORE_SC_OK meaning we are neither full nor loaded.
+ */
+static guint16
+validate_load(const dht_value_t *v)
+{
+	gboolean full;
+	gboolean loaded;
+
+	keys_get_status(v->id, &full, &loaded);
+
+	if (full && loaded)
+		return STORE_SC_FULL_LOADED;
+	else if (full)
+		return STORE_SC_FULL;
+	else if (loaded)
+		return STORE_SC_LOADED;
+	else
+		return STORE_SC_OK;
+}
+
 /**
  * Validate that we can accept a new value for the key with that creator.
  *
@@ -468,20 +491,14 @@ validate_new_acceptable(const dht_value_t *v)
 		return STORE_SC_EXHAUSTED;
 
 	/*
-	 * Check key status: full and loaded attributes.
+	 * Check key load.
 	 */
 
 	{
-		gboolean full;
-		gboolean loaded;
+		guint16 status = validate_load(v);
 
-		keys_get_status(v->id, &full, &loaded);
-		if (full && loaded)
-			return STORE_SC_FULL_LOADED;
-		else if (full)
-			return STORE_SC_FULL;
-		else if (loaded)
-			return STORE_SC_LOADED;
+		if (status != STORE_SC_OK)
+			return status;
 	}
 
 	/*
@@ -675,6 +692,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
 		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
 	} else {
+		gboolean is_original = kuid_eq(kn->id, v->creator->id);
+
 		vd = get_valuedata(dbkey);
 
 		/*
@@ -694,7 +713,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 * We make sure data is consistent with what we have.
 		 */
 
-		if (!kuid_eq(kn->id, v->creator->id)) {
+		if (!is_original) {
 			if (v->type != vd->type) {
 				what = "DHT value type";
 				goto mismatch;
