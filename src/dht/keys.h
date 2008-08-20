@@ -49,6 +49,7 @@ void keys_init(void);
 void keys_close(void);
 
 gboolean keys_exists(const kuid_t *key);
+gboolean keys_is_store_loaded(const kuid_t *id);
 void keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded);
 guint64 keys_has(const kuid_t *id, const kuid_t *cid, gboolean store);
 void keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey);

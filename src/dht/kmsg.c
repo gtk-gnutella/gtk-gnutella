@@ -903,6 +903,25 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 
 	g_assert(len == KUID_RAW_SIZE);
 
+	/*
+	 * If we're getting too much STORE request for this key, do not reply
+	 * to the FIND_NODE message which will cause further STORE and further
+	 * negative acknowledgements, wasting bandwidth.  Just drop the request
+	 * on the floor, too bad for the remote node.
+	 *
+	 * We're going to appear as "stale" for the remote party, but we'll
+	 * reply to its pings and to other requests for less busy keys...
+	 */
+
+	if (keys_is_store_loaded(id)) {
+		if (GNET_PROPERTY(dht_debug > 2))
+			g_message("DHT key %s getting too many STORE, "
+				"ignoring FIND_NODE from %s",
+				kuid_to_hex_string(id), knode_to_string(kn));
+
+		return;
+	}
+
 	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
 	k_send_find_node_response(n,
 		kn, kvec, cnt, kademlia_header_get_muid(header));

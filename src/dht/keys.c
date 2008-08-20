@@ -174,6 +174,22 @@ keys_exists(const kuid_t *key)
 }
 
 /**
+ * @return whether key is "store-loaded", i.e. if we are getting too many
+ * STORE requests for it.
+ */
+gboolean
+keys_is_store_loaded(const kuid_t *id)
+{
+	struct keyinfo *ki;
+
+	g_assert(id);
+
+	ki = patricia_lookup(keys, id);
+
+	return ki && ki->store_req_load >= LOAD_STO_THRESH;
+}
+
+/**
  * Get key status (full and loaded boolean attributes).
  */
 void
