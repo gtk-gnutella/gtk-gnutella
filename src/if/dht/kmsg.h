@@ -33,9 +33,12 @@
  * Public interface.
  */
 
+struct gnutella_node;
+
 void kmsg_init(void);
-void kmsg_received(
-	gconstpointer data, size_t len, host_addr_t addr, guint16 port);
+void kmsg_received(gconstpointer data, size_t len,
+	host_addr_t addr, guint16 port,
+	struct gnutella_node *n);
 
 const char *kmsg_infostr(gconstpointer msg);
 const char *kmsg_name(guint function);
