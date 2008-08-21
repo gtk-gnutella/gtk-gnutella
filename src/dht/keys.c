@@ -120,8 +120,8 @@ struct keyinfo {
 	kuid_t *kuid;				/**< The key (atom) */
 	float get_req_load;			/**< EMA of # of (read) requests per period */
 	float store_req_load;		/**< EMA of # of (store) requests per period */
-	guint32 get_requests;		/**< # of get requests received in period */
-	guint32 store_requests;		/**< # of store requests received in period */
+	int get_requests;			/**< # of get requests received in period */
+	int store_requests;			/**< # of store requests received in period */
 	guint8 common_bits;			/**< Leading bits shared with our KUID */
 	guint8 values;				/**< Amount of values stored under key */
 };
@@ -185,8 +185,26 @@ keys_is_store_loaded(const kuid_t *id)
 	g_assert(id);
 
 	ki = patricia_lookup(keys, id);
+	if (ki == NULL)
+		return FALSE;
 
-	return ki && ki->store_req_load >= LOAD_STO_THRESH;
+	if (ki->store_req_load >= LOAD_STO_THRESH)
+		return TRUE;
+
+	/*
+	 * Look whether the current amount of store requests is sufficient to
+	 * bring the EMA above the threshold at the next update.
+	 */
+
+	if (ki->store_requests) {
+		float limit = LOAD_STO_THRESH / LOAD_SMOOTH -
+			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->store_req_load;
+
+		if (ki->store_requests > (int) limit)
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -212,18 +230,26 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	if (GNET_PROPERTY(dht_storage_debug))
 		g_message("DHT STORE key %s holds %d/%d value%s, "
-			"load avg: get = %.2f (%s), store = %.2f (%s)",
+			"load avg: get = %.2f [%s], store = %.2f [%s]",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s", ki->get_req_load,
 			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
 			ki->store_req_load,
 			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK");
 
-	if (
-		ki->get_req_load >= LOAD_GET_THRESH ||
-		ki->store_req_load >= LOAD_STO_THRESH
-	)
+	if (ki->get_req_load >= LOAD_GET_THRESH) {
 		*loaded = TRUE;
+	} else if (ki->get_requests) {
+		float limit = LOAD_GET_THRESH / LOAD_SMOOTH -
+			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->get_req_load;
+
+		/*
+		 * Look whether the current amount of get requests is sufficient to
+		 * bring the EMA above the threshold at the next update.
+		 */
+		if (ki->get_requests > (int) limit)
+			*loaded = TRUE;
+	}
 
 	if (ki->values >= MAX_VALUES)
 		*full = TRUE;
@@ -379,7 +405,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 
 	g_assert(kd->values);
 	g_assert(kd->values == ki->values);
-	g_assert(kd->values < MAX_VALUES);
+	g_assert(kd->values <= MAX_VALUES);
 
 	idx = lookup_secondary_idx(kd, cid);
 
