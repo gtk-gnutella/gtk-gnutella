@@ -517,9 +517,11 @@ keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 
 		while (low <= high) {
 			int mid = low + (high - low) / 2;
-			int c = kuid_cmp(&kd->creators[mid], cid);
+			int c;
 
 			g_assert(mid >= 0 && mid < ki->values);
+
+			c = kuid_cmp(&kd->creators[mid], cid);
 
 			if (0 == c)
 				g_error("new creator KUID %s must not already be present",
