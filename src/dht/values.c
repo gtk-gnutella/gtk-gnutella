@@ -610,8 +610,10 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 		g_assert(kuid_eq(&vd->id, v->id));		/* Primary key */
 		g_assert(kuid_eq(&vd->cid, cn->id));	/* Secondary key */
 
-		g_message("DHT STORE creator deleting %u-byte %s value",
-			vd->length, dht_value_type_to_string(vd->type));
+		g_message("DHT STORE creator %s deleting %u-byte %s value %s",
+			kuid_to_hex_string(cn->id), vd->length,
+			dht_value_type_to_string(vd->type),
+			kuid_to_hex_string2(v->id));
 	}
 
 	g_assert(values_managed > 0);
