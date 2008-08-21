@@ -120,8 +120,8 @@ struct keyinfo {
 	kuid_t *kuid;				/**< The key (atom) */
 	float get_req_load;			/**< EMA of # of (read) requests per period */
 	float store_req_load;		/**< EMA of # of (store) requests per period */
-	int get_requests;			/**< # of get requests received in period */
-	int store_requests;			/**< # of store requests received in period */
+	guint32 get_requests;		/**< # of get requests received in period */
+	guint32 store_requests;		/**< # of store requests received in period */
 	guint8 common_bits;			/**< Leading bits shared with our KUID */
 	guint8 values;				/**< Amount of values stored under key */
 };
@@ -200,7 +200,7 @@ keys_is_store_loaded(const kuid_t *id)
 		float limit = LOAD_STO_THRESH / LOAD_SMOOTH -
 			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->store_req_load;
 
-		if (ki->store_requests > (int) limit)
+		if ((float) ki->store_requests > limit)
 			return TRUE;
 	}
 
@@ -247,7 +247,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 		 * Look whether the current amount of get requests is sufficient to
 		 * bring the EMA above the threshold at the next update.
 		 */
-		if (ki->get_requests > (int) limit)
+		if ((float) ki->get_requests > limit)
 			*loaded = TRUE;
 	}
 
