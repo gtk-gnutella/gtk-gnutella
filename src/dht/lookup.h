@@ -99,7 +99,7 @@ nlookup_t *lookup_find_node(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
 void lookup_cancel(nlookup_t *nl, gboolean callback);
-void lookup_free_results(lookup_rs_t *rs);
+void lookup_free_results(const lookup_rs_t *rs);
 
 #endif	/* _dht_lookup_h_ */
 

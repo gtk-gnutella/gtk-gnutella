@@ -431,8 +431,9 @@ lookup_create_results(nlookup_t *nl)
  * Free node lookup results.
  */
 void
-lookup_free_results(lookup_rs_t *rs)
+lookup_free_results(const lookup_rs_t *results)
 {
+	lookup_rs_t *rs = deconstify_gpointer(results);
 	size_t i;
 
 	g_assert(rs);
