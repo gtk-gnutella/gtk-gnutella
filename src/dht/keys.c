@@ -247,6 +247,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 		 * Look whether the current amount of get requests is sufficient to
 		 * bring the EMA above the threshold at the next update.
 		 */
+
 		if (1.0 * ki->get_requests > limit)
 			*loaded = TRUE;
 	}
