@@ -94,6 +94,9 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULTS */
 		N_("Ancient query format"),			 /**< MSG_DROP_ANCIENT_QUERY */
 		N_("Blank Servent ID"),				 /**< MSG_DROP_BLANK_SERVENT_ID */
+		N_("DHT Invalid security token"),	 /**< MSG_DROP_DHT_INVALID_TOKEN */
+		N_("DHT Too many STORE requests"),	 /**< MSG_DROP_DHT_TOO_MANY_STORE */
+		N_("DHT Malformed message"),		 /**< MSG_DROP_DHT_UNPARSEABLE */
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(msg_drop_reasons) == MSG_DROP_REASON_COUNT);

@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "values.h"
 #include "storage.h"
 
+#include "core/gnet_stats.h"
 #include "core/hosts.h"
 #include "core/hostiles.h"
 #include "core/udp.h"
@@ -868,6 +869,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 	return;
 
 error:
+	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled PONG payload (%lu byte%s) from %s: %s: %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
@@ -894,6 +896,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 		g_warning("DHT bad FIND_NODE payload (%lu byte%s) from %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
+		gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
 		return;
 	}
 
@@ -919,6 +922,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 				"ignoring FIND_NODE from %s",
 				kuid_to_hex_string(id), knode_to_string(kn));
 
+		gnet_stats_count_dropped(n, MSG_DROP_DHT_TOO_MANY_STORE);
 		return;
 	}
 
@@ -1012,7 +1016,8 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			values = 1;
 		} else {
 			reason = "invalid security token";
-			goto error;
+			gnet_stats_count_dropped(n, MSG_DROP_DHT_INVALID_TOKEN);
+			goto invalid_token;
 		}
 	}
 
@@ -1082,6 +1087,10 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	goto cleanup;
 
 error:
+	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
+	/* FALL THROUGH */
+
+invalid_token:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT unhandled STORE payload (%lu byte%s) from %s: %s: %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
@@ -1132,6 +1141,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 		g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
 		dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
+		gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
 		return;
 	}
 
@@ -1235,6 +1245,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	goto cleanup;
 
 error:
+	gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
 	if (GNET_PROPERTY(dht_debug))
 		g_warning(
 			"DHT unhandled FIND_VALUE payload (%lu byte%s) from %s: %s: %s",
@@ -1413,10 +1424,12 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
  * @param len		total length of the message (header + data)
  * @param addr		address from which we received the datagram
  * @param port		port from which we received the datagram
+ * @param n			the UDP Gnutella node, for some core function calls
  */
 void kmsg_received(
 	gconstpointer data, size_t len,
-	host_addr_t addr, guint16 port)
+	host_addr_t addr, guint16 port,
+	struct gnutella_node *n)
 {
 	const kademlia_header_t *header = deconstify_gpointer(data);
 	char *reason;
@@ -1431,7 +1444,6 @@ void kmsg_received(
 	const char *id;
 	guint8 flags;
 	guint16 extended_length;
-	struct gnutella_node *n;
 
 	/*
 	 * If DHT is not enabled, drop the message now.
@@ -1665,8 +1677,6 @@ void kmsg_received(
 		kn->port = port;
 		kn->flags |= KNODE_F_PCONTACT;
 	}
-
-	n = node_udp_get_addr_port(addr, port);
 
 	kmsg_handle(kn, n, header, extended_length,
 		(char *) header + extended_length + KDA_HEADER_SIZE,

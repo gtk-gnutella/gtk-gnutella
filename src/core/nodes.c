@@ -7091,7 +7091,7 @@ node_udp_process(struct gnutella_socket *s)
 	 */
 
 	if (GTA_MSG_DHT == gnutella_header_get_function(&n->header)) {
-		kmsg_received(cast_to_gpointer(s->buf), s->pos, s->addr, s->port);
+		kmsg_received(cast_to_gpointer(s->buf), s->pos, s->addr, s->port, n);
 		return;
 	}
 
