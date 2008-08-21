@@ -200,7 +200,7 @@ keys_is_store_loaded(const kuid_t *id)
 		float limit = LOAD_STO_THRESH / LOAD_SMOOTH -
 			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->store_req_load;
 
-		if ((float) ki->store_requests > limit)
+		if (1.0 * ki->store_requests > limit)
 			return TRUE;
 	}
 
@@ -247,7 +247,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 		 * Look whether the current amount of get requests is sufficient to
 		 * bring the EMA above the threshold at the next update.
 		 */
-		if ((float) ki->get_requests > limit)
+		if (1.0 * ki->get_requests > limit)
 			*loaded = TRUE;
 	}
 
