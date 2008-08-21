@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 #define NL_MAX_LIFETIME		120000	/* 2 minutes, in ms */
+#define NL_MAX_FETCHTIME	45000	/* 45 secs, in ms */
 #define NL_MAX_UDP_DROPS	10		/* Threshold to abort lookups */
 #define NL_VAL_MAX_RETRY	3		/* Max RPC retries to fetch sec keys */
 #define NL_VAL_DELAY		2000	/* 2 seconds, in ms */
@@ -76,6 +77,8 @@ static void lookup_iterate(nlookup_t *nl);
 static void lookup_terminate(nlookup_t *nl);
 static void lookup_value_free(nlookup_t *nl, gboolean free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
+static void lookup_value_expired(cqueue_t *unused_cq, gpointer obj);
+static void lookup_value_delay(nlookup_t *nl);
 
 typedef enum {
 	NLOOKUP_MAGIC = 0xabb8100cU
@@ -93,21 +96,33 @@ enum parallelism {
 struct nlookup;
 
 /**
+ * Context for fetching secondary keys.
+ */
+struct seckeys {
+	knode_t *kn;				/**< The node holding the secondary keys */
+	kuid_t **skeys;				/**< Read secondary keys (KUID atoms) */
+	int scnt;					/**< Amount of secondary keys in vector */
+	int next_skey;				/**< Index of next skey to fetch */
+};
+
+/**
  * Additional context for find_value lookups, when we have to iterate
  * to grab secondary keys in results.
  */
 struct fvalue {
 	dht_value_t **vvec;			/**< Read expanded DHT values */
-	kuid_t **skeys;				/**< Read secondary keys (KUID atoms) */
-	knode_t *kn;				/**< The node holding the secondary keys */
-	float load;					/**< Reported request load on key */
-	tm_t start;					/**< Start time */
 	cevent_t *delay_ev;			/**< Delay event for retries */
+	GSList *seckeys;			/**< List of "struct seckeys *" */
+	map_t *seen;				/**< Secondary keys for which we have values */
+	float load;					/**< Reported request load on key (summed) */
+	tm_t start;					/**< Start time */
 	int vcnt;					/**< Amount of DHT values in vector */
-	int scnt;					/**< Amount of secondary keys in vector */
-	int next_skey;				/**< Index of next skey to fetch */
 	int vsize;					/**< Total size of vvec (can be > vcnt) */
 	int rpc_timeouts;			/**< RPC timeouts for fetch by sec key */
+	int rpc_pending;			/**< Amount of RPC pending */
+	int msg_pending;			/**< Amount of messages pending */
+	int nodes;					/**< Amount of nodes that sent back a value */
+	gboolean waited;			/**< Did we wait for other RPCs to come back? */
 };
 
 /**
@@ -173,12 +188,37 @@ lookup_check(const nlookup_t *nl)
 	g_assert(NLOOKUP_MAGIC == nl->magic);
 }
 
+/**
+ * Is the lookup in the "fetch extra value" mode?
+ *
+ * This is the mode a value lookup enters when it gets results with secondary
+ * keys, or not all the pending RPCs have replied yet.
+ */
+static inline gboolean
+lookup_is_fetching(const nlookup_t *nl)
+{
+	return LOOKUP_VALUE == nl->type && NULL != nl->u.fv.fv;
+}
+
 static inline void
 lookup_value_check(const nlookup_t *nl)
 {
 	lookup_check(nl);
-	g_assert(LOOKUP_VALUE == nl->type);
-	g_assert(nl->u.fv.fv != NULL);
+	g_assert(lookup_is_fetching(nl));
+}
+
+static inline struct fvalue *
+lookup_fv(const nlookup_t *nl)
+{
+	g_assert(nl && LOOKUP_VALUE == nl->type);
+	return nl->u.fv.fv;
+}
+
+static inline struct seckeys *
+lookup_sk(const struct fvalue *fv)
+{
+	g_assert(fv->seckeys);
+	return fv->seckeys->data;
 }
 
 /**
@@ -300,7 +340,7 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 
 	lookup_check(nl);
 	
-	if (LOOKUP_VALUE == nl->type && nl->u.fv.fv)
+	if (lookup_is_fetching(nl))
 		lookup_value_free(nl, TRUE);
 
 	map_foreach(nl->tokens, free_token, NULL);
@@ -456,8 +496,10 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
  * Free value result.
  */
 void
-lookup_free_value_results(lookup_val_rs_t *rs)
+lookup_free_value_results(const lookup_val_rs_t *results)
 {
+	lookup_val_rs_t *rs = deconstify_gpointer(results);
+
 	g_assert(rs);
 	g_assert(rs->count);
 	g_assert(rs->records);
@@ -544,6 +586,7 @@ struct rpc_info {
 	guint32 lid;		/**< ID of the node lookup, to spot outdated replies */
 	guint32 hop;		/**< The hop count when we sent it */
 	struct pmsg_info *pmi;	/**< In case the RPC times out */
+	gboolean fetch_value;	/**< Signals the "fetch extra value" phase */
 };
 
 /**
@@ -724,6 +767,231 @@ lookup_value_terminate(nlookup_t *nl,
 }
 
 /**
+ * Create secondary key extraction state.
+ */
+static struct seckeys *
+seckeys_create(kuid_t **svec, int scnt, const knode_t *kn)
+{
+	struct seckeys *sk;
+
+	g_assert(svec);
+	g_assert(scnt);
+	knode_check(kn);
+
+	sk = walloc(sizeof *sk);
+	sk->skeys = svec;
+	sk->kn = knode_refcnt_inc(kn);
+	sk->scnt = scnt;
+	sk->next_skey = 0;
+
+	return sk;
+}
+
+/**
+ * Free secondary key extraction state.
+ */
+static void
+seckeys_free(struct seckeys *sk)
+{
+	int i;
+
+	g_assert(sk);
+
+	for (i = 0; i < sk->scnt; i++) {
+		kuid_t *id = sk->skeys[i];
+		kuid_atom_free(id);
+	}
+
+	knode_free(sk->kn);
+	wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
+}
+
+/**
+ * Instlal timeout for secondary key fetching.
+ */
+static void
+lookup_value_install_timer(nlookup_t *nl)
+{
+	lookup_value_check(nl);
+
+	cq_cancel(callout_queue, &nl->expire_ev);
+	nl->expire_ev = cq_insert(callout_queue,
+		NL_MAX_FETCHTIME, lookup_value_expired, nl);
+}
+
+/**
+ * Create and initialize the "fvalue" structure for "extra value" fetching.
+ *
+ * @param nl		the value lookup
+ * @param load		reported request load in the node that replied
+ * @param vvec		vector of expanded DHT values we collected
+ * @param vcnt		amount of values in the vector
+ * @param vsize		size of the vector (count of allocated slots)
+ * @param skeys		(optional) vector of secondary keys (atoms)
+ * @param scnt		amount of secondary keys held in the skeys vector
+ * @param kn		Kademlia node where we can fetch secondary keys from
+ */
+static void
+lookup_value_create(nlookup_t *nl, float load,
+	dht_value_t **vvec, int vcnt, int vsize,
+	kuid_t **skeys, int scnt, const knode_t *kn)
+{
+	struct fvalue *fv;
+	int expected = scnt + vcnt;		/* Total values expected */
+	int i;
+
+	lookup_check(nl);
+	g_assert(LOOKUP_VALUE == nl->type);
+	g_assert(nl->u.fv.fv == NULL);
+	g_assert(scnt == 0 || skeys);
+	g_assert(vsize == 0 || vvec);
+	g_assert(expected > 0);
+
+	if (expected > vsize) {
+		vvec = vvec ?
+			wrealloc(vvec, vsize * sizeof *vvec, expected * sizeof *vvec) :
+			walloc(expected * sizeof *vvec);
+	}
+
+	fv = walloc0(sizeof *fv);
+	nl->u.fv.fv = fv;
+
+	if (skeys) {
+		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
+		fv->seckeys = g_slist_append(NULL, sk);
+	}
+
+	fv->vvec = vvec;
+	fv->load = load;
+	fv->vcnt = vcnt;
+	fv->vsize = MAX(expected, vsize);
+	fv->delay_ev = NULL;
+	fv->seen = map_create_patricia(KUID_RAW_BITSIZE);
+	fv->nodes = 1;
+	tm_now_exact(&fv->start);
+
+	/*
+	 * All values' secondary keys are remembered to avoid duplicates.
+	 */
+
+	for (i = 0; i < fv->vcnt; i++) {
+		dht_value_t *v = fv->vvec[i];
+		map_insert(fv->seen, v->id, v);
+	}
+
+	g_assert(lookup_is_fetching(nl));
+
+	lookup_value_install_timer(nl);
+}
+
+/**
+ * Count amount of secondary keys that still need to be fetched.
+ */
+static int
+lookup_value_remaining_seckeys(const struct fvalue *fv)
+{
+	GSList *sl;
+	int remain = 0;
+
+	GM_SLIST_FOREACH(fv->seckeys, sl) {
+		struct seckeys *sk = sl->data;
+		remain += sk->scnt - sk->next_skey;
+	}
+
+	return remain;
+}
+
+/**
+ * Merge new expanded DHT values and secondary keys into the already existing
+ * set of values.
+ *
+ * @param nl		the value lookup
+ * @param load		reported request load in the node that replied
+ * @param vvec		vector of expanded DHT values we collected
+ * @param vcnt		amount of values in the vector
+ * @param vsize		size of the vector (count of allocated slots)
+ * @param skeys		(optional) vector of secondary keys (atoms)
+ * @param scnt		amount of secondary keys held in the skeys vector
+ * @param kn		Kademlia node where we can fetch secondary keys from
+ *
+ * @attention
+ * Both vvec and skeys are now owned by the routine and must be considered as
+ * freed by the calling routing.
+ */
+static void
+lookup_value_append(nlookup_t *nl, float load,
+	dht_value_t **vvec, int vcnt, int vsize,
+	kuid_t **skeys, int scnt, const knode_t *kn)
+{
+	struct fvalue *fv;
+	int i;
+	int remain;
+	int needed;
+	int added = scnt + vcnt;		/* Total values added */
+
+	lookup_value_check(nl);
+	g_assert(scnt == 0 || skeys);
+
+	fv = lookup_fv(nl);
+	g_assert(fv->vsize >= fv->vcnt);
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] "
+			"merging %d value%s and %d secondary key%s from %s",
+			nl->lid, vcnt, 1 == vcnt ? "" : "s",
+			scnt, 1 == scnt ? "" : "s", knode_to_string(kn));
+
+	/*
+	 * Make room in the global DHT value vector to be able to hold all
+	 * the values, assuming no duplicates.
+	 */
+
+	remain = lookup_value_remaining_seckeys(fv);
+	needed = remain + added;
+
+	g_assert(remain <= fv->vsize - fv->vcnt);
+
+	if (needed > fv->vsize) {
+		fv->vvec = wrealloc(fv->vvec,
+			fv->vsize * sizeof fv->vvec[0], needed * sizeof fv->vvec[0]);
+		fv->vsize = needed;
+	}
+
+	/*
+	 * Add expanded values, if not already present.
+	 */
+
+	for (i = 0; i < vcnt; i++) {
+		dht_value_t *v = vvec[i];
+
+		if (!map_contains(fv->seen, v->id)) {
+			g_assert(fv->vcnt < fv->vsize);
+			fv->vvec[fv->vcnt++] = v;
+			map_insert(fv->seen, v->id, v);
+		} else {
+			if (GNET_PROPERTY(dht_lookup_debug) > 2)
+				g_message("DHT LOOKUP[%d] ignoring duplicate value %s",
+					nl->lid, dht_value_to_string(v));
+		}
+	}
+
+	wfree(vvec, vsize * sizeof vvec[0]);
+
+	/*
+	 * If there are secondary keys to grab, record the vector and the
+	 * node to fetch them from.
+	 */
+
+	if (skeys) {
+		struct seckeys *sk = seckeys_create(skeys, scnt, kn);
+		fv->seckeys = g_slist_append(fv->seckeys, sk);
+	}
+
+	fv->load += load;
+	fv->nodes++;
+}
+
+/**
  * Release memory used by the "fvalue" structure in value lookups.
  *
  * Unless free_vvec is TRUE, this does NOT release the value vector,
@@ -736,15 +1004,13 @@ lookup_value_terminate(nlookup_t *nl,
 static void
 lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 {
+	GSList *sl;
 	struct fvalue *fv;
 	int i;
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
-
-	g_assert(fv->skeys);
-	g_assert(fv->scnt > 0);
+	fv = lookup_fv(nl);
 
 	if (free_vvec) {
 		for (i = 0; i < fv->vcnt; i++)
@@ -753,11 +1019,21 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 		wfree(fv->vvec, fv->vsize * sizeof fv->vvec[0]);
 	}
 
-	for (i = 0; i < fv->scnt; i++)
-		kuid_atom_free(fv->skeys[i]);
+	GM_SLIST_FOREACH(fv->seckeys, sl) {
+		struct seckeys *sk = sl->data;
 
-	wfree(fv->skeys, fv->scnt * sizeof fv->skeys[0]);
-	knode_free(fv->kn);
+		g_assert(sk->skeys);
+		g_assert(sk->scnt > 0);
+
+		for (i = 0; i < sk->scnt; i++)
+			kuid_atom_free(sk->skeys[i]);
+		wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
+		knode_free(sk->kn);
+		wfree(sk, sizeof *sk);
+	}
+
+	g_slist_free(fv->seckeys);
+	map_destroy(fv->seen);
 	cq_cancel(callout_queue, &fv->delay_ev);
 	wfree(fv, sizeof *fv);
 
@@ -765,12 +1041,14 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 }
 
 /**
- * We're done with the secondary key extraction.
+ * We're done with the secondary key extraction from the current node.
+ * Either move to the next node or terminate.
  */
 static void
 lookup_value_done(nlookup_t *nl)
 {
 	struct fvalue *fv;
+	struct seckeys *sk;
 	dht_value_t **vvec;
 	float load;
 	int vcnt;
@@ -778,17 +1056,69 @@ lookup_value_done(nlookup_t *nl)
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
+	sk = lookup_sk(fv);
 
-	if (GNET_PROPERTY(dht_lookup_debug)) {
+	g_assert(fv->nodes > 0);
+
+	if (sk && GNET_PROPERTY(dht_lookup_debug)) {
 		tm_t now;
 
 		tm_now_exact(&now);
 		g_message("DHT LOOKUP[%d] %lf secs, ending secondary key fetch from %s",
-			nl->lid, tm_elapsed_f(&now, &fv->start), knode_to_string(fv->kn));
+			nl->lid, tm_elapsed_f(&now, &fv->start), knode_to_string(sk->kn));
 	}
 
-	load = fv->load;
+	/*
+	 * If there are other nodes from which we need to fetch secondary keys,
+	 * iterate, otherwise we're done.
+	 */
+
+	if (sk) {
+		fv->seckeys = g_slist_remove(fv->seckeys, sk);
+		seckeys_free(sk);
+
+		if (fv->seckeys) {
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				sk = fv->seckeys->data;
+
+				g_message("DHT LOOKUP[%d] "
+					"now fetching %d secondary key%s from %s",
+					nl->lid, sk->scnt, 1 == sk->scnt ? "" : "s",
+					knode_to_string(sk->kn));
+			}
+
+			fv->rpc_timeouts = 0;
+			lookup_value_install_timer(nl);
+			lookup_value_iterate(nl);
+			return;
+		}
+	}
+
+	/*
+	 * If we have still some pending FIND_VALUE RPCs, wait for them by
+	 * delaying another iteration, unless we have already done that in
+	 * which case we can finish: they will probably time out then.
+	 */
+
+	if (!fv->waited && nl->rpc_pending > 0) {
+		fv->waited = TRUE;
+		lookup_value_delay(nl);
+
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] "
+				"giving a chance to %d pending FIND_VALUE RPC%s",
+				nl->lid, nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+
+		return;
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT LOOKUP[%d] "
+			"ending value fetch with %d pending FIND_VALUE RPC%s",
+			nl->lid, nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+
+	load = fv->load / fv->nodes;
 	vvec = fv->vvec;
 	vcnt = fv->vcnt;
 	vsize = fv->vsize;
@@ -810,11 +1140,11 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
 	lookup_value_check(nl);
 
 	nl->expire_ev = NULL;
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		tm_t now;
-		int remain = fv->scnt - fv->next_skey;
+		int remain = lookup_value_remaining_seckeys(fv);
 
 		tm_now_exact(&now);
 		g_assert(remain > 0);
@@ -842,7 +1172,8 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
  *
  * @return TRUE if the value was sucessfully extracted (with the lookup having
  * been possibly terminated) , FALSE if we had problems parsing the message,
- * in which case the calling code will continue to lookup for a valid value.
+ * in which case the calling code will continue to lookup for a valid value
+ * if needed.
  */
 static gboolean
 lookup_value_found(nlookup_t *nl, const knode_t *kn,
@@ -1000,50 +1331,47 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	bstr_destroy(bs);
 
 	/*
-	 * If we have a mix of expanded results (possibly none at all) and
-	 * secondary keys.  We need to asynchronously request the secondary
-	 * keys before we can present the results to the querying party.
-	 */
-
-	if (seckeys) {
-		struct fvalue *fv = walloc(sizeof *fv);
-		int expected = scnt + vcnt;		/* Total values expected */
-
-		if (expected > expanded)
-			vvec = wrealloc(vvec,
-				expanded * sizeof *vvec, expected * sizeof *vvec);
-
-		fv->vvec = vvec;
-		fv->skeys = skeys;
-		fv->load = load;
-		fv->vcnt = vcnt;
-		fv->scnt = scnt;
-		fv->vsize = MAX(expected, expanded);
-		fv->next_skey = 0;
-		fv->kn = knode_refcnt_inc(kn);
-		fv->delay_ev = NULL;
-		tm_now_exact(&fv->start);
-
-		cq_cancel(callout_queue, &nl->expire_ev);
-		nl->expire_ev = cq_insert(callout_queue,
-			NL_MAX_LIFETIME, lookup_value_expired, nl);
-
-		lookup_value_iterate(nl);
-	
-		return TRUE;
-	}
-
-	/*
-	 * If we got only expanded results and no secondary keys, we are done.
+	 * It is possible all the last "alpha" requests we sent out looking for
+	 * a value finally yield back some results.  We want to benefit from
+	 * this by attempting to collect the maximum amount of values, in case
+	 * not all nodes store the same values (which will naturally happen for
+	 * popular keys but may also happen when churning caused a node to hold
+	 * less values presently than his neighbours).
+	 *
+	 * We handle this thusly:
+	 *
+	 * - The first node returning values creates a "fvalue" structure
+	 *   in the lookup which will be used to drive the "extra value fetching"
+	 *   phase (in case there are secondary keys returned) and collect all
+	 *   the expanded values returned.
+	 *
+	 * - Subsequent values returned are simply appended to the already
+	 *   collected values, and when secondary keys are also returned, the
+	 *   set of secondary keys and the node who replied are appended to
+	 *   the list of nodes to further iteratively query.
+	 *
+	 * Special case (which should occur relatively often):
+	 *
+	 * If we got our first result with only expanded values and no secondary
+	 * keys, and there are no more pending RPCs, we are done.
 	 * Freeing of the DHT values will be done by lookup_value_terminate().
 	 */
 
-	g_assert(expanded);
-	g_assert(vcnt > 0);
-	g_assert(vvec);
-	g_assert(NULL == skeys);
+	if (0 == nl->rpc_pending && 0 == seckeys && !lookup_is_fetching(nl)) {
+		g_assert(expanded);
+		g_assert(vcnt > 0);
+		g_assert(vvec);
+		g_assert(NULL == skeys);
 
-	lookup_value_terminate(nl, load, vvec, vcnt, expanded, FALSE);
+		lookup_value_terminate(nl, load, vvec, vcnt, expanded, FALSE);
+		return TRUE;
+	} else if (lookup_is_fetching(nl)) {
+		lookup_value_append(nl, load, vvec, vcnt, expanded, skeys, scnt, kn);
+	} else {
+		lookup_value_create(nl, load, vvec, vcnt, expanded, skeys, scnt, kn);
+	}
+
+	lookup_value_iterate(nl);
 	return TRUE;
 
 bad:
@@ -1612,6 +1940,13 @@ lookup_rpc_cb(
 				return;
 			nl->rpc_bad++;
 			goto iterate_check;
+		} else if (lookup_is_fetching(nl)) {
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message("DHT LOOKUP[%d] ignoring late RPC %s from hop %u",
+					nl->lid, type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
+					rpi->hop);
+
+			goto cleanup;	/* We have already begun to fetch extra values */
 		}
 		/* FALL THROUGH */
 	case LOOKUP_NODE:
@@ -1749,7 +2084,15 @@ lookup_rpc_cb(
 iterate_check:
 	/*
 	 * Check whether we need to iterate to the next set of hosts.
+	 *
+	 * When handling value lookups: if we already got a value reply then we
+	 * have entered the "fetch extra value" phase (or the lookup would have
+	 * been terminated).  Check that we are still in lookup phase before
+	 * deciding to iterate.
 	 */
+
+	if (lookup_is_fetching(nl))
+		goto cleanup;
 
 	if (0 == nl->rpc_pending) {
 		lookup_iterate(nl);
@@ -2205,7 +2548,7 @@ lookup_value_delay_expired(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
 	fv->delay_ev = NULL;
 
 	lookup_value_iterate(nl);
@@ -2221,7 +2564,7 @@ lookup_value_delay(nlookup_t *nl)
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
 
 	g_assert(fv->delay_ev == NULL);
 
@@ -2238,6 +2581,7 @@ lookup_value_pmsg_free(pmsg_t *mb, gpointer arg)
 {
 	struct pmsg_info *pmi = arg;
 	nlookup_t *nl = pmi->nl;
+	struct fvalue *fv;
 
 	g_assert(pmsg_is_extended(mb));
 
@@ -2257,8 +2601,10 @@ lookup_value_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	lookup_value_check(nl);
 
-	g_assert(nl->msg_pending > 0);
-	nl->msg_pending--;
+	fv = lookup_fv(nl);
+
+	g_assert(fv->msg_pending > 0);
+	fv->msg_pending--;
 
 	/*
 	 * If the RPC callback triggered before the UDP message queue could
@@ -2269,7 +2615,7 @@ lookup_value_pmsg_free(pmsg_t *mb, gpointer arg)
 	if (pmi->rpc_done)
 		goto cleanup;
 
-	g_assert(nl->rpc_pending > 0);
+	g_assert(fv->rpc_pending > 0);
 	pmi->rpi->pmi = NULL;			/* Break x-ref as message was processed */
 
 	if (pmsg_was_sent(mb)) {
@@ -2301,7 +2647,7 @@ lookup_value_pmsg_free(pmsg_t *mb, gpointer arg)
 		g_assert(pmsg_written_size(mb) > GUID_RAW_SIZE);
 
 		muid = (guid_t *) pmsg_start(mb);
-		nl->rpc_pending--;
+		fv->rpc_pending--;
 		nl->udp_drops++;
 		dht_rpc_cancel(muid);
 		lookup_rpi_free(pmi->rpi);	/* Cancel does not invoke RPC callback */
@@ -2340,13 +2686,15 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 	guint8 expanded;				/* Amount of expanded DHT values we got */
 	dht_value_type_t type;
 	struct fvalue *fv;
-	knode_t *kn;
+	struct seckeys *sk;
+	const knode_t *kn;
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
+	sk = lookup_sk(fv);
 	type = nl->u.fv.vtype;
-	kn = fv->kn;
+	kn = sk->kn;
 
 	if (GNET_PROPERTY(dht_lookup_debug))
 		g_message("DHT LOOKUP[%d] got value for %s %s from %s",
@@ -2397,7 +2745,7 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_message("DHT LOOKUP[%d] (remote load = %.2f) "
 			"value for secondary key #%u is %s",
-			nl->lid, load, fv->next_skey + 1, dht_value_to_string(v));
+			nl->lid, load, sk->next_skey + 1, dht_value_to_string(v));
 
 	g_assert(fv->vcnt < fv->vsize);
 
@@ -2446,6 +2794,7 @@ lookup_value_rpc_cb(
 	struct rpc_info *rpi = arg;
 	nlookup_t *nl = rpi->nl;
 	struct fvalue *fv;
+	struct seckeys *sk;
 
 	(void) unused_n;
 
@@ -2464,16 +2813,17 @@ lookup_value_rpc_cb(
 		goto cleanup;
 	}
 
-	lookup_check(nl);
-	fv = nl->u.fv.fv;
+	lookup_value_check(nl);
+	fv = lookup_fv(nl);
+	sk = lookup_sk(fv);
 
-	g_assert(nl->rpc_pending > 0);
+	g_assert(fv->rpc_pending > 0);
 
 	if (GNET_PROPERTY(dht_lookup_debug))
 		g_message("DHT LOOKUP[%d] handling RPC %s for secondary key #%u",
 			nl->lid, type == DHT_RPC_TIMEOUT ? "timeout" : "reply", rpi->hop);
 
-	nl->rpc_pending--;
+	fv->rpc_pending--;
 
 	if (type == DHT_RPC_TIMEOUT) {
 		nl->rpc_timeouts++;
@@ -2483,7 +2833,7 @@ lookup_value_rpc_cb(
 	}
 
 	g_assert(NULL == rpi->pmi);		/* Since message has been sent */
-	g_assert(kn == fv->kn);			/* We always send to the same node now */
+	g_assert(kn == sk->kn);			/* We always send to the same node now */
 
 	/*
 	 * We got a reply from the remote node.
@@ -2515,7 +2865,7 @@ lookup_value_rpc_cb(
 
 iterate:
 
-	fv->next_skey++;				/* Request next key if any */
+	sk->next_skey++;				/* Request next key if any */
 	lookup_value_iterate(nl);
 	goto cleanup;
 
@@ -2545,12 +2895,14 @@ lookup_value_send(nlookup_t *nl)
 	struct rpc_info *rpi;
 	struct pmsg_info *pmi;
 	struct fvalue *fv;
+	struct seckeys *sk;
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
-	rpi = lookup_rpi_alloc(nl, fv->next_skey + 1);	/* Use hop to count keys */
-	pmi = lookup_pmi_alloc(nl, fv->kn, rpi);
+	fv = lookup_fv(nl);
+	sk = lookup_sk(fv);
+	rpi = lookup_rpi_alloc(nl, sk->next_skey + 1);	/* Use hop to count keys */
+	pmi = lookup_pmi_alloc(nl, sk->kn, rpi);
 
 	/*
 	 * For the horrible case where the RPC would time out before the UDP
@@ -2560,13 +2912,13 @@ lookup_value_send(nlookup_t *nl)
 	rpi->pmi = pmi;
 
 	/*
-	 * Increate message pending variables before sending, as the callback
+	 * Increase message pending variables before sending, as the callback
 	 * for message freeing can be synchronous with the call if the UDP queue
 	 * is empty.
 	 */
 
-	nl->msg_pending++;
-	nl->rpc_pending++;
+	fv->msg_pending++;
+	fv->rpc_pending++;
 
 	/*
 	 * We request only 1 key at a time, in case the values are larger than
@@ -2574,8 +2926,8 @@ lookup_value_send(nlookup_t *nl)
 	 * partial results.
 	 */
 
-	dht_rpc_find_value(fv->kn, nl->kuid, nl->u.fv.vtype,
-		&fv->skeys[fv->next_skey], 1,
+	dht_rpc_find_value(sk->kn, nl->kuid, nl->u.fv.vtype,
+		&sk->skeys[sk->next_skey], 1,
 		lookup_value_rpc_cb, rpi, lookup_value_pmsg_free, pmi);
 }
 
@@ -2587,17 +2939,26 @@ static void
 lookup_value_iterate(nlookup_t *nl)
 {
 	struct fvalue *fv;
+	struct seckeys *sk;
 
 	lookup_value_check(nl);
 
-	fv = nl->u.fv.fv;
+	fv = lookup_fv(nl);
+	sk = lookup_sk(fv);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		g_message("DHT LOOKUP[%d] "
+			"iterating in value fetch mode with %d node%s, %s secondary keys",
+			nl->lid, fv->nodes, 1 == fv->nodes ? "" : "s",
+			sk ? "with" : "without");
 
 	/*
-	 * When we have requested all the secondary keys, we're done.
+	 * When we have requested all the secondary keys, we're done for
+	 * that node.
 	 */
 
-	if (fv->next_skey >= fv->scnt) {
-		lookup_value_done(nl);
+	if (sk == NULL || sk->next_skey >= sk->scnt) {
+		lookup_value_done(nl);			/* Possibly move to the next node */
 		return;
 	}
 
@@ -2606,8 +2967,8 @@ lookup_value_iterate(nlookup_t *nl)
 
 		tm_now_exact(&now);
 		g_message("DHT LOOKUP[%d] %lf secs, asking secondary key %d/%d from %s",
-			nl->lid, tm_elapsed_f(&now, &fv->start), fv->next_skey + 1,
-			fv->scnt, knode_to_string(fv->kn));
+			nl->lid, tm_elapsed_f(&now, &fv->start), sk->next_skey + 1,
+			sk->scnt, knode_to_string(sk->kn));
 	}
 
 	lookup_value_send(nl);
