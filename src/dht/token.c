@@ -50,7 +50,7 @@ RCSID("$Id$")
 
 #define T_KEYS				2		/* Amount of keys we manage */
 #define T_FW_PORT			65535	/* Port used for firewalled nodes */
-#define T_REFRESH_PERIOD_MS	(60*60*1000)	/* 1 hour in ms */
+#define T_REFRESH_PERIOD_MS	(31*60*1000)	/* 31 minutes in ms */
 
 static tea_key_t keys[T_KEYS];		/**< Rotating set of keys */
 static cevent_t *rotate_ev;			/**< Rotate event */
