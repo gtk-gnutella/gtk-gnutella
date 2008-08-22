@@ -214,13 +214,17 @@ ulq_launch(void)
 	case LOOKUP_VALUE:
 		nl = lookup_find_value(ui->kuid, ui->u.fv.vtype,
 			ulq_value_found_cb, ulq_error_cb, ui);
-		break;
+		goto initialized;
 	case LOOKUP_NODE:
 		nl = lookup_find_node(ui->kuid, ulq_node_found_cb, ulq_error_cb, ui);
-		break;
+		goto initialized;
 	case LOOKUP_REFRESH:
-		g_assert_not_reached();
+		break;
 	}
+	nl = NULL;
+	g_assert_not_reached();
+
+initialized:
 
 	if (nl) {
 		slist_append(ulq->launched, ui);
