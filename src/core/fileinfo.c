@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "namesize.h"
 #include "http.h"					/* For http_range_t */
+#include "gdht.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -73,6 +74,8 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/glib-missing.h"
 
+#include "if/dht/dht.h"
+
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
@@ -81,6 +84,7 @@ RCSID("$Id$")
 #define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
 /**< Max field length we accept to save */
 #define FI_MAX_FIELD_LEN	(TTH_RAW_SIZE * TTH_MAX_LEAVES)
+#define FI_DHT_PERIOD		(1*3600)	/**< Requery period for DHT: 1 hour */
 
 enum dl_file_chunk_magic {
 	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
@@ -569,6 +573,16 @@ dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
 		wfree(fc, sizeof *fc);
 		*fc_ptr = NULL;
 	}
+}
+
+/**
+ * Given a fileinfo GUID, return the fileinfo_t associated with it, or NULL
+ * if it does not exist.
+ */
+fileinfo_t *
+file_info_by_guid(guid_t *guid)
+{
+	return g_hash_table_lookup(fi_by_guid, guid);
 }
 
 /**
@@ -5760,10 +5774,49 @@ fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 	file_info_changed(fi);
 }
 
+/**
+ * Called every second by the main timer.
+ */
 void
 file_info_timer(void)
 {
 	g_hash_table_foreach(fi_by_outname, fi_notify_helper, NULL);
+}
+
+/**
+ * Query the DHT if we have no known sources and we haven't queried the
+ * DHT for a while for this file.
+ */
+static void
+fi_dht_check(gpointer unused_key, gpointer value, gpointer unused_udata)
+{
+    fileinfo_t *fi = value;
+
+	(void) unused_key;
+	(void) unused_udata;
+
+	file_info_check(fi);
+
+	if (fi->lifecount > 0)
+		return;
+
+	if (delta_time(tm_time(), fi->last_dht_query) < FI_DHT_PERIOD)
+		return;
+
+	fi->last_dht_query = tm_time();
+	gdht_find_sha1(fi);
+}
+
+/**
+ * Slower timer called every few minutes (about 6).
+ */
+void
+file_info_slow_timer(void)
+{
+	if (!dht_bootstrapped())
+		return;
+
+	g_hash_table_foreach(fi_by_outname, fi_dht_check, NULL);
 }
 
 /**

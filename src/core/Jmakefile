@@ -46,6 +46,7 @@ SRC = \
 	fileinfo.c \
 	file_object.c \
 	g2_cache.c \
+	gdht.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \

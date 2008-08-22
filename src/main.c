@@ -52,6 +52,7 @@
 #include "core/fileinfo.h"
 #include "core/file_object.h"
 #include "core/g2_cache.h"
+#include "core/gdht.h"
 #include "core/geo_ip.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
@@ -465,6 +466,7 @@ gtk_gnutella_exit(gint n)
 
 	bitzi_close();
 	ntp_close();
+	gdht_close();
 	sq_close();
 	dh_close();
 	dq_close();
@@ -564,6 +566,7 @@ slow_main_timer(time_t now)
 		break;
 	case 3:
 		file_info_store_if_dirty();
+		file_info_slow_timer();
 		break;
 	case 4:
 		hcache_store_if_dirty(HOST_ULTRA);
@@ -1390,6 +1393,7 @@ main(int argc, char **argv)
 	dh_init();
 	bitzi_init();
 	sq_init();
+	gdht_init();
 	file_info_init_post();
 
 	kmsg_init();			/* DHT */

@@ -39,6 +39,7 @@
 #include "common.h"
 #include "share.h"						/* For shared_file_t */
 #include "if/core/fileinfo.h"
+#include "if/core/guid.h"
 
 /*
  * Shared core constants
@@ -94,11 +95,13 @@ void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
 void file_info_remove_source(
     fileinfo_t *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
+void file_info_slow_timer(void);
 void file_info_unlink(fileinfo_t *fi);
 void file_info_upload_stop(fileinfo_t *fi, const gchar *reason);
 void file_info_pause(fileinfo_t *);
 void file_info_resume(fileinfo_t *);
 void file_info_changed(fileinfo_t *);
+fileinfo_t *file_info_by_guid(guid_t *guid);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
 gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);

@@ -141,6 +141,7 @@ typedef struct dl_file_info {
 	time_t ntime;			/**< Last time a new source was added */
 	time_t last_flush;		/**< When last flush to disk occurred */
 	time_t last_dmesh;		/**< When last dmesh query was used */
+	time_t last_dht_query;	/**< Last time when SHA1 DHT query was made */
 	filesize_t done;		/**< Total number of bytes completed (flushed) */
 	filesize_t buffered;	/**< Amount of buffered data (unflushed) */
 	filesize_t uploaded;	/**< Amount of bytes uploaded */

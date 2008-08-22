@@ -102,6 +102,7 @@ SRC = \
 	fileinfo.c \
 	file_object.c \
 	g2_cache.c \
+	gdht.c \
 	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
@@ -189,6 +190,7 @@ OBJ = \
 	fileinfo.o \
 	file_object.o \
 	g2_cache.o \
+	gdht.o \
 	geo_ip.o \
 	ggep.o \
 	ggep_type.o \

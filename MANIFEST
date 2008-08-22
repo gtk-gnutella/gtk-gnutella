@@ -307,6 +307,8 @@ src/core/fileinfo.c
 src/core/fileinfo.h
 src/core/g2_cache.c
 src/core/g2_cache.h
+src/core/gdht.c
+src/core/gdht.h
 src/core/geo_ip.c
 src/core/geo_ip.h
 src/core/ggep.c
