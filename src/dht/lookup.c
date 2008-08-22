@@ -1819,8 +1819,8 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 		 */
 
 		nl->msg_dropped++;
-		lookup_shortlist_add(nl, kn);
 		map_remove(nl->queried, kn->id);	/* We did not send the message */
+		lookup_shortlist_add(nl, kn);
 		knode_free(kn);						/* Referenced in nl->queried */
 
 		/*
