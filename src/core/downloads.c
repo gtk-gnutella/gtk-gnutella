@@ -4752,6 +4752,14 @@ create_download(
 	}
 
 	/*
+	 * If given an unspecified IPv4 address, then we're done.
+	 * This usually happens when handling a magnet: with no source.
+	 */
+
+	if (host_addr_equal(addr, ipv4_unspecified))
+		return NULL;
+
+	/*
 	 * Initialize download.
 	 */
 
