@@ -196,7 +196,6 @@ static void
 ulq_launch(void)
 {
 	nlookup_t *nl;
-
 	struct ulq_item *ui;
 
 	g_assert(fifo_count(ulq->q));
