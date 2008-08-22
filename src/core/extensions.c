@@ -164,6 +164,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(C),			/**< Result Code in HEAD Pongs */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DHT),		/**< DHT version and flags, in pongs */
+	GGEP_ID(DHTIPP),	/**< DHT nodes in packed IP:Port format (pongs) */
 	GGEP_ID(DU),		/**< Average servent uptime */
 	GGEP_ID(F),			/**< Flags in HEAD Pongs */
 	GGEP_ID(FW),		/**< Firewalled-to-Firewalled protocol version */
