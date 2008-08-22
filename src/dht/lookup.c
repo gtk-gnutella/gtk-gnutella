@@ -738,6 +738,8 @@ lookup_value_terminate(nlookup_t *nl,
 			kuid_to_hex_string(nl->kuid),
 			vcnt, 1 == vcnt ? "" : "s");
 
+	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
+		log_final_stats(nl);
 
 	if (!local) {
 		/*
@@ -1203,9 +1205,6 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		g_message("DHT LOOKUP[%d] got value for %s %s from %s",
 			nl->lid, dht_value_type_to_string(type),
 			kuid_to_hex_string(nl->kuid), knode_to_string(kn));
-
-	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
-		log_final_stats(nl);
 
 	/*
 	 * Parse payload to extract value(s).
@@ -2455,6 +2454,7 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 			lookup_value_terminate(nl,
 				load, vvec, vcnt, G_N_ELEMENTS(vvec), TRUE);
 		} else {
+			/* Key is here but not holding the type of data they want */
 			lookup_abort(nl, LOOKUP_E_NOT_FOUND);
 		}
 	} else {
