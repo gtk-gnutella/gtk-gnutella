@@ -67,6 +67,7 @@ RCSID("$Id$")
 #include "lookup.h"
 #include "token.h"
 #include "keys.h"
+#include "ulq.h"
 
 #include "core/settings.h"
 
@@ -1112,6 +1113,7 @@ dht_initialize(gboolean post_init)
 
 	dht_rpc_init();
 	lookup_init();
+	ulq_init();
 	token_init();
 	keys_init();
 	values_init();
@@ -2809,6 +2811,7 @@ dht_close(void)
 
 	values_close();
 	keys_close();
+	ulq_close();
 	lookup_close();
 	dht_rpc_close();
 	token_close();
