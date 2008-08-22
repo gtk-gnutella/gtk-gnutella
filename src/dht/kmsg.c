@@ -304,7 +304,7 @@ kmsg_deserialize_contact(bstr_t *bs)
 	if (bstr_has_error(bs))
 		return NULL;
 
-	return knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+	return knode_new(&kuid, 0, addr, port, vcode, major, minor);
 }
 
 /**
@@ -1441,7 +1441,7 @@ void kmsg_received(
 	vendor_code_t vcode;
 	guint8 kmajor;
 	guint8 kminor;
-	const char *id;
+	const kuid_t *id;
 	guint8 flags;
 	guint16 extended_length;
 
@@ -1511,7 +1511,7 @@ void kmsg_received(
 	vcode.u32 = kademlia_header_get_contact_vendor(header);
 	kmajor = kademlia_header_get_contact_major_version(header);
 	kminor = kademlia_header_get_contact_minor_version(header);
-	id = kademlia_header_get_contact_kuid(header);
+	id = (const kuid_t *) kademlia_header_get_contact_kuid(header);
 	kaddr = host_addr_get_ipv4(kademlia_header_get_contact_addr(header));
 	kport = kademlia_header_get_contact_port(header);
 	flags = kademlia_header_get_contact_flags(header);
@@ -1558,7 +1558,7 @@ void kmsg_received(
 			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
-				kuid_to_hex_string((kuid_t *) id),
+				kuid_to_hex_string(id),
 				host_addr_port_to_string(kaddr, kport),
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
 
@@ -1571,7 +1571,7 @@ void kmsg_received(
 				knode_status_to_string(kn->status),
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
-				kuid_to_hex_string((kuid_t *) id),
+				kuid_to_hex_string(id),
 				host_addr_port_to_string(kaddr, kport),
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
 

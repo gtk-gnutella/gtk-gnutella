@@ -2001,13 +2001,11 @@ dht_add_node(knode_t *node)
  * @return the pointer to the found node, or NULL if not present.
  */
 knode_t *
-dht_find_node(const char *kuid)
+dht_find_node(const kuid_t *kuid)
 {
 	struct kbucket *kb;
-	kuid_t id;
 
-	kuid_from_buf(&id, kuid);		/* Avoid cast: memory align problems */
-	kb = dht_find_bucket(&id);		/* Bucket where KUID must be stored */
+	kb = dht_find_bucket(kuid);		/* Bucket where KUID must be stored */
 
 	g_assert(kb != NULL);
 	g_assert(kb->nodes != NULL);
@@ -2908,7 +2906,7 @@ dht_addr_verify_cb(
 		} else {
 			knode_t *tkn;
 
-			tkn = dht_find_node((char *) av->new->id);
+			tkn = dht_find_node(av->new->id);
 
 			if (GNET_PROPERTY(dht_debug))
 				g_warning("DHT verification keeping new node %s",
@@ -3051,7 +3049,7 @@ dht_ping(host_addr_t addr, guint16 port)
 	 */
 
 	vc.u32 = T_0000;
-	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
+	kn = knode_new(&kuid_null, 0, addr, port, vc, 0, 0);
 
 	/*
 	 * We do not want the RPC layer to verify the KUID of the replying host
@@ -3070,7 +3068,7 @@ dht_probe(host_addr_t addr, guint16 port)
 {
 	knode_t *kn;
 	vendor_code_t vc;
-	guid_t *muid;
+	guid_t muid;
 
 	/*
 	 * Build a fake Kademlia node, with an zero KUID.  This node will never
@@ -3082,9 +3080,9 @@ dht_probe(host_addr_t addr, guint16 port)
 	 */
 
 	vc.u32 = T_0000;
-	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
-	guid_random_muid((char *) muid);
-	kmsg_send_ping(kn, muid);
+	kn = knode_new(&kuid_null, 0, addr, port, vc, 0, 0);
+	guid_random_muid(cast_to_gpointer(&muid));
+	kmsg_send_ping(kn, &muid);
 	knode_free(kn);
 }
 
@@ -3370,7 +3368,7 @@ dht_route_parse(FILE *f)
 			if (delta >= 0 && delta < most_recent)
 				most_recent = delta;
 
-			kn = knode_new((char *) kuid.v, 0, addr, port, vcode, major, minor);
+			kn = knode_new(&kuid, 0, addr, port, vcode, major, minor);
 			kn->last_seen = seen;
 
 			/*
@@ -3388,7 +3386,7 @@ dht_route_parse(FILE *f)
 			if (!knode_is_usable(kn)) {
 				g_warning("DHT ignoring persisted unusable %s",
 					knode_to_string(kn));
-			} else if ((tkn = dht_find_node((char *) kn->id))) {
+			} else if ((tkn = dht_find_node(kn->id))) {
 				g_warning("DHT ignoring persisted dup %s (has %s already)",
 					knode_to_string(kn), knode_to_string2(tkn));
 			} else {

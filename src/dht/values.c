@@ -951,7 +951,7 @@ values_get(guint64 dbkey, dht_value_type_t type)
 		memcpy(vdata, data, length);
 	}
 
-	creator = knode_new((char *) &vd->cid, 0, vd->addr, vd->port, vd->vcode,
+	creator = knode_new(&vd->cid, 0, vd->addr, vd->port, vd->vcode,
 		vd->major, vd->minor);
 
 	v = dht_value_make(creator, &vd->id, vd->type,

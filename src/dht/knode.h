@@ -47,7 +47,7 @@
  */
 
 knode_t *knode_new(
-	const gchar *id, guint8 flags,
+	const kuid_t *id, guint8 flags,
 	host_addr_t addr, guint16 port, vendor_code_t vcode,
 	guint8 major, guint8 minor);
 void knode_change_vendor(knode_t *kn, vendor_code_t vcode);

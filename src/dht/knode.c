@@ -85,7 +85,7 @@ knode_eq(gconstpointer a, gconstpointer b)
  */
 knode_t *
 knode_new(
-	const gchar *id, guint8 flags,
+	const kuid_t *id, guint8 flags,
 	host_addr_t addr, guint16 port, vendor_code_t vcode,
 	guint8 major, guint8 minor)
 {
@@ -93,7 +93,7 @@ knode_new(
 
 	kn = walloc0(sizeof *kn);
 	kn->magic = KNODE_MAGIC;
-	kn->id = kuid_get_atom((kuid_t *) id);
+	kn->id = kuid_get_atom(id);
 	kn->vcode = vcode;
 	kn->refcnt = 1;
 	kn->addr = addr;
