@@ -328,16 +328,18 @@ ggep_vlint_decode(const gchar *data, size_t len)
 }
 
 /**
- * Extract filesize length into `filesize' from GGEP "LF" extension.
+ * Extract filesize length into `filesize' from extension encoded in variable-
+ * length little endian with leading zeroes stripped.
+ *
+ * This is the format used by the payload of GGEP "LF" for instance.
  */
 ggept_status_t
-ggept_lf_extract(extvec_t *exv, guint64 *filesize)
+ggept_filesize_extract(extvec_t *exv, guint64 *filesize)
 {
 	guint64 fs;
 	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
-	g_assert(exv->ext_token == EXT_T_GGEP_LF);
 
 	len = ext_paylen(exv);
 	if (len < 1 || len > 8) {
@@ -384,14 +386,18 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
 
 
 /**
- * Encode `filesize' for the GGEP "LF" extension into `data'.
+ * Encode `filesize' in variable-length little endian, with leading zeroes
+ * stripped, into `data'.
  *
- * @param filesize The filesize to encode.
- * @param data A buffer of at least 8 bytes.
- * @return the amount of chars written.
+ * This is used in extensions such as GGEP "LF" which carry the file length.
+ *
+ * @param filesize	The filesize to encode.
+ * @param data		A buffer of at least 8 bytes.
+ *
+ * @return the amount of bytes written.
  */
 guint
-ggept_lf_encode(guint64 filesize, gchar *data)
+ggept_filesize_encode(guint64 filesize, gchar *data)
 {
 	return ggep_vlint_encode(filesize, data);
 }

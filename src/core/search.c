@@ -1597,7 +1597,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					{
 						guint64 fs;
 
-					   	ret = ggept_lf_extract(e, &fs);
+					   	ret = ggept_filesize_extract(e, &fs);
 						if (ret == GGEP_OK) {
 							rc->size = fs;
 						} else {
