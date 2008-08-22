@@ -212,6 +212,13 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 			g_assert(ok);
 		}
 
+		/*
+		 * If DHT is not seeded yet, ask for more hosts through "DHTIPP".
+		 */
+
+		if (dht_enabled() && !dht_seeded())
+			ggep_stream_pack(&gs, GGEP_NAME(DHTIPP), NULL, 0, 0);
+
 		sz += ggep_stream_close(&gs);
 	}
 
@@ -2031,7 +2038,8 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
-	 * the GGEP "IPP" extension, containing a packed set of IP:port.
+	 * the GGEP "IPP" or "DHTIPP" extensions, containing a packed set
+	 * of IP:port.
 	 */
 
 	for (i = 0; i < n->extcount; i++) {
@@ -2041,6 +2049,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_IPP:
+		case EXT_T_GGEP_DHTIPP:
 			paylen = ext_paylen(e);
 			payload = ext_payload(e);
 
@@ -2049,7 +2058,16 @@ pcache_udp_pong_received(struct gnutella_node *n)
 					gmsg_infostr(&n->header), ext_ggep_id_str(e),
 					paylen, paylen == 1 ? "" : "s");
 			} else {
-				uhc_ipp_extract(n, payload, paylen); 
+				switch (e->ext_token) {
+				case EXT_T_GGEP_IPP:
+					uhc_ipp_extract(n, payload, paylen); 
+					break;
+				case EXT_T_GGEP_DHTIPP:
+					dht_ipp_extract(n, payload, paylen); 
+					break;
+				default:
+					g_assert_not_reached();
+				}
 			}
 			break;
 		case EXT_T_GGEP_GTKG_IPV6:

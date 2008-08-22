@@ -72,6 +72,7 @@ RCSID("$Id$")
 
 #include "core/settings.h"
 #include "core/guid.h"
+#include "core/nodes.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -353,7 +354,7 @@ dht_bootstrapped(void)
 /**
  * Is the DHT "seeded"?
  */
-static gboolean
+gboolean
 dht_seeded(void)
 {
 	return root && !is_leaf(root);		/* We know more than "k" hosts */
@@ -3063,7 +3064,7 @@ dht_ping(host_addr_t addr, guint16 port)
 /**
  * Send a DHT ping as a probe, hoping the pong reply will help us bootstrap.
  */
-void
+static void
 dht_probe(host_addr_t addr, guint16 port)
 {
 	knode_t *kn;
@@ -3081,7 +3082,7 @@ dht_probe(host_addr_t addr, guint16 port)
 
 	vc.u32 = T_0000;
 	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
-	guid_random_muid(muid);
+	guid_random_muid((char *) muid);
 	kmsg_send_ping(kn, muid);
 	knode_free(kn);
 }
@@ -3128,6 +3129,37 @@ dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
 		dht_ping(addr, port);
 	else
 		dht_bootstrap(addr, port);
+}
+
+/**
+ * Collect packed IP:port DHT hosts from "DHTIPP" we get in a pong.
+ */
+void
+dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen)
+{
+	int i, cnt;
+
+	g_assert(0 == paylen % 6);
+
+	cnt = paylen / 6;
+
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
+		g_message("extracting %d DHT host%s in DHTIPP pong from %s",
+			cnt, cnt == 1 ? "" : "s", node_addr(n));
+
+	for (i = 0; i < cnt; i++) {
+		host_addr_t ha;
+		guint16 port;
+
+		ha = host_addr_peek_ipv4(&payload[i * 6]);
+		port = peek_le16(&payload[i * 6 + 4]);
+
+		if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_message("BOOT collected DHT node %s from DHTIPP pong from %s",
+				host_addr_to_string(ha), node_addr(n));
+
+		dht_probe(ha, port);
+	}
 }
 
 /***

@@ -39,11 +39,16 @@ typedef enum {
  * Public interface.
  */
 
+struct gnutella_node;
+
 void dht_init(void);
 void dht_close(void);
 void dht_initialize(gboolean post_init);
+gboolean dht_seeded(void);
 gboolean dht_bootstrapped(void);
 gboolean dht_enabled(void);
+void dht_ipp_extract(
+	const struct gnutella_node *n, const char *payload, int paylen);
 
 void dht_route_store_if_dirty(void);
 void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
