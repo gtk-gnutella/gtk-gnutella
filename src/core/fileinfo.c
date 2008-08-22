@@ -5797,7 +5797,7 @@ fi_dht_check(gpointer unused_key, gpointer value, gpointer unused_udata)
 
 	file_info_check(fi);
 
-	if (fi->lifecount > 0)
+	if (fi->lifecount > 0 || NULL == fi->sha1)
 		return;
 
 	if (delta_time(tm_time(), fi->last_dht_query) < FI_DHT_PERIOD)
