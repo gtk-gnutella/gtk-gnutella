@@ -366,17 +366,17 @@ gdht_find_sha1(const fileinfo_t *fi)
 
 	if (g_hash_table_lookup(sha1_lookups, slk->id)) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			g_warning("DHT already has pending search for %s: SHA1 of %s (%s)",
+			g_warning("DHT already has pending search for %s (%s) for %s",
 				kuid_to_hex_string(slk->id),
-				fi->pathname, kuid_to_string(slk->id));
+				kuid_to_string(slk->id), fi->pathname);
 
 		gdht_free_sha1_lookup(slk, FALSE);
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug))
-		g_message("DHT will be searching ALOC for %s: SHA1 of %s (%s)",
-			kuid_to_hex_string(slk->id), fi->pathname, kuid_to_string(slk->id));
+		g_message("DHT will be searching ALOC for %s (%s) for %s",
+			kuid_to_hex_string(slk->id), kuid_to_string(slk->id), fi->pathname);
 
 	g_hash_table_insert(sha1_lookups, slk->id, slk);
 	ulq_find_value(slk->id, DHT_VT_ALOC, 
