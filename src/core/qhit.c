@@ -234,7 +234,8 @@ found_set_header(void)
 			connect_speed = 0;
 		}
 	}
-	connect_speed /= MAX(1, GNET_PROPERTY(max_uploads));	/* Upload speed expected per slot */
+	/* Upload speed expected per slot */
+	connect_speed /= MAX(1, GNET_PROPERTY(max_uploads));
 
 	gnutella_msg_search_results_set_host_port(msg, socket_listen_port());
 	gnutella_msg_search_results_set_host_ip(msg, host_addr_ipv4(listen_addr()));
@@ -710,7 +711,7 @@ add_file(const struct shared_file *sf)
 		gchar buf[sizeof(guint64)];
 		gint len;
 
-		len = ggept_lf_encode(shared_file_size(sf), buf);
+		len = ggept_filesize_encode(shared_file_size(sf), buf);
 
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
