@@ -1793,7 +1793,6 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		nl->msg_sent++;
 		nl->bw_outgoing += pmsg_written_size(mb);
-		map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 		if (nl->udp_drops > 0)
 			nl->udp_drops--;
 
@@ -1822,6 +1821,8 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		nl->msg_dropped++;
 		lookup_shortlist_add(nl, kn);
+		map_remove(nl->queried, kn->id);	/* We did not send the message */
+		knode_free(kn);						/* Referenced in nl->queried */
 
 		/*
 		 * Cancel the RPC, since the message was never sent out...
@@ -2117,8 +2118,6 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	struct rpc_info *rpi = lookup_rpi_alloc(nl, nl->hops);
 	struct pmsg_info *pmi = lookup_pmi_alloc(nl, kn, rpi);
 
-	g_assert(!map_contains(nl->queried, kn->id));
-
 	/*
 	 * For the horrible case where the RPC would time out before the UDP
 	 * message gets sent or is discarded on the way out, cross-ref the two.
@@ -2135,6 +2134,8 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	nl->msg_pending++;
 	nl->rpc_pending++;
 	nl->rpc_latest_pending++;
+
+	map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
 
 	switch (nl->type) {
 	case LOOKUP_NODE:
@@ -2242,7 +2243,9 @@ lookup_iterate(nlookup_t *nl)
 		if (!knode_can_recontact(kn))
 			continue;
 
-		lookup_send(nl, kn);
+		if (!map_contains(nl->queried, kn->id))
+			lookup_send(nl, kn);
+
 		to_remove = g_slist_prepend(to_remove, kn);
 		i++;
 	}
