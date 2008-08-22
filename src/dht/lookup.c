@@ -217,8 +217,7 @@ lookup_fv(const nlookup_t *nl)
 static inline struct seckeys *
 lookup_sk(const struct fvalue *fv)
 {
-	g_assert(fv->seckeys);
-	return fv->seckeys->data;
+	return fv->seckeys ? fv->seckeys->data : NULL;
 }
 
 /**
