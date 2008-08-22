@@ -976,7 +976,8 @@ lookup_value_append(nlookup_t *nl, float load,
 		}
 	}
 
-	wfree(vvec, vsize * sizeof vvec[0]);
+	if (vvec)
+		wfree(vvec, vsize * sizeof vvec[0]);
 
 	/*
 	 * If there are secondary keys to grab, record the vector and the
@@ -1223,7 +1224,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (expanded)
-		vvec = walloc(expanded * sizeof *vvec);
+		vvec = walloc(expanded * sizeof vvec[0]);
 
 	for (i = 0; i < expanded; i++) {
 		dht_value_t *v = kmsg_deserialize_dht_value(bs);
@@ -1265,7 +1266,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (seckeys)
-		skeys = walloc(seckeys * sizeof *skeys);
+		skeys = walloc(seckeys * sizeof skeys[0]);
 
 	for (i = 0; i < seckeys; i++) {
 		kuid_t tmp;
@@ -1420,7 +1421,7 @@ lookup_value_not_found(nlookup_t *nl)
 
 	if (patricia_contains(nl->path, nl->kuid))
 		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
-	else if (nl->rpc_replies < nl->initial_contactable)
+	else if (nl->rpc_replies < MIN(KDA_ALPHA, nl->initial_contactable))
 		lookup_abort(nl, LOOKUP_E_NO_REPLY);
 	else
 		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
@@ -2484,7 +2485,7 @@ lookup_find_value(
 	g_assert(ok);		/* Pointless to request a value without this */
 
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
-	nl->amount = 1;
+	nl->amount = KDA_K / 4;		/* We want to locate 1/4th of the k-closest */
 	nl->u.fv.ok = ok;
 	nl->u.fv.vtype = type;
 	nl->mode = LOOKUP_STRICT;	/* Converge optimally but slowly */
@@ -2833,6 +2834,15 @@ lookup_value_rpc_cb(
 		goto retry_check;
 	}
 
+	if (kn != sk->kn || rpi->hop != sk->next_skey + 1U) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] ignoring extra reply from %s (key #%u), "
+				"waiting reply for key #%d from %s",
+				nl->lid, knode_to_string(kn), rpi->hop, sk->next_skey + 1,
+				knode_to_string2(sk->kn));
+		goto cleanup;
+	}
+
 	g_assert(NULL == rpi->pmi);		/* Since message has been sent */
 	g_assert(kn == sk->kn);			/* We always send to the same node now */
 
@@ -2956,12 +2966,30 @@ lookup_value_iterate(nlookup_t *nl)
 	/*
 	 * When we have requested all the secondary keys, we're done for
 	 * that node.
+	 *
+	 * Otherwise, select a secondary key for which we haven't got an
+	 * expanded value already.
 	 */
 
-	if (sk == NULL || sk->next_skey >= sk->scnt) {
-		lookup_value_done(nl);			/* Possibly move to the next node */
-		return;
+	if (sk == NULL)
+		goto done;
+
+	while (sk->next_skey < sk->scnt) {
+		kuid_t *sid = sk->skeys[sk->next_skey];
+
+		if (!map_contains(fv->seen, sid))
+			break;
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			g_message("DHT LOOKUP[%d] "
+				"skipping already retrieved secondary key %s",
+				nl->lid, kuid_to_hex_string(sid));
+
+		sk->next_skey++;
 	}
+
+	if (sk->next_skey >= sk->scnt)
+		goto done;
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		tm_t now;
@@ -2973,6 +3001,10 @@ lookup_value_iterate(nlookup_t *nl)
 	}
 
 	lookup_value_send(nl);
+	return;
+
+done:
+	lookup_value_done(nl);			/* Possibly move to the next node */
 }
 
 /**
