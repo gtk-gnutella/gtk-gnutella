@@ -2189,6 +2189,7 @@ lookup_iterate(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
 	GSList *to_remove = NULL;
+	GSList *to_send = NULL;
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
@@ -2242,14 +2243,30 @@ lookup_iterate(nlookup_t *nl)
 		if (!knode_can_recontact(kn))
 			continue;
 
-		if (!map_contains(nl->queried, kn->id))
-			lookup_send(nl, kn);
+		if (!map_contains(nl->queried, kn->id)) {
+			i++;
+			to_send = g_slist_prepend(to_send, kn);
+		}
 
 		to_remove = g_slist_prepend(to_remove, kn);
-		i++;
 	}
 
 	patricia_iterator_release(&iter);
+
+	/*
+	 * Send the messages to the recorded nodes.  We need to do that outside
+	 * of the iterator because sending can alter the PATRICIA tree
+	 * synchronously, e.g. if the message is immediately dropped by the
+	 * UDP queue.
+	 */
+
+	GM_SLIST_FOREACH(to_send, sl) {
+		knode_t *kn = sl->data;
+
+		lookup_send(nl, kn);
+	}
+
+	g_slist_free(to_send);
 
 	/*
 	 * Remove the nodes to which we sent a message.
@@ -2257,7 +2274,7 @@ lookup_iterate(nlookup_t *nl)
 
 	g_assert(0 == i || to_remove != NULL);
 
-	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(to_remove, sl) {
 		knode_t *kn = sl->data;
 
 		lookup_shortlist_remove(nl, kn);
