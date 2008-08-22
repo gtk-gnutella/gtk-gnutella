@@ -1075,9 +1075,10 @@ dht_attempt_bootstrap(void)
 			g_message("DHT bootstrapping impossible: routing table empty");
 
 		bootstrapping = FALSE;
+		boot_status = BOOT_NONE;
+	} else {
+		boot_status = BOOT_OWN;
 	}
-
-	boot_status = BOOT_OWN;
 
 	/* XXX set DHT property status to "bootstrapping" -- red icon */
 }
