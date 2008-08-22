@@ -147,11 +147,12 @@ urn_get_tth(const gchar *buf, size_t size, struct tth *tth)
 	if (NULL == p) {
 		return FALSE;
 	}
-	if ('/' == *p++) {
+	if ('/' == *p) {
 		/* RAZA puts a slash after "tiger" */
 		if (size < CONST_STRLEN(prefix) + 2 /* "/:" */ + TTH_BASE32_SIZE){
 			return FALSE;
 		}
+		p++;
 	}
 	if (':' != *p++) {
 		return FALSE;
