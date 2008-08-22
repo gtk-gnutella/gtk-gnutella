@@ -68,8 +68,10 @@ RCSID("$Id$")
 #include "token.h"
 #include "keys.h"
 #include "ulq.h"
+#include "kmsg.h"
 
 #include "core/settings.h"
+#include "core/guid.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1965,9 +1967,21 @@ record_node(knode_t *kn, gboolean traffic)
  * Record traffic from node.
  */
 void
-dht_traffic_from(knode_t *node)
+dht_traffic_from(knode_t *kn)
 {
-	record_node(node, TRUE);
+	record_node(kn, TRUE);
+
+	/*
+	 * If not bootstrapped yet, we just got our seed.
+	 */
+
+	if (BOOT_NONE == boot_status) {
+		if (GNET_PROPERTY(dht_debug))
+			g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
+
+		boot_status = BOOT_SEEDED;
+		dht_attempt_bootstrap();
+	}
 }
 
 /**
@@ -3047,43 +3061,29 @@ dht_ping(host_addr_t addr, guint16 port)
 }
 
 /**
- * RPC callback for the bootstrapping PING.
- *
- * @param type			DHT_RPC_REPLY or DHT_RPC_TIMEOUT
- * @param kn			the replying node
- * @param function		the type of message we got (0 on TIMEOUT)
- * @param payload		the payload we got
- * @param len			the length of the payload
- * @param arg			user-defined callback parameter
+ * Send a DHT ping as a probe, hoping the pong reply will help us bootstrap.
  */
-static void
-dht_bootstrap_cb(
-	enum dht_rpc_ret type,
-	const knode_t *kn,
-	const struct gnutella_node *unused_n,
-	kda_msg_t unused_function,
-	const gchar *unused_payload, size_t unused_len, gpointer unused_arg)
+void
+dht_probe(host_addr_t addr, guint16 port)
 {
-	(void) unused_n;
-	(void) unused_function;
-	(void) unused_payload;
-	(void) unused_len;
-	(void) unused_arg;
-
-	if (DHT_RPC_TIMEOUT == type || bootstrapping)
-		return;
+	knode_t *kn;
+	vendor_code_t vc;
+	guid_t *muid;
 
 	/*
-	 * We're looking for a valid reply to our PING, which is the case if we
-	 * get a message back bearing the proper MUID of the PING: we know the
-	 * Kademlia node who sent us the message is alive.
+	 * Build a fake Kademlia node, with an zero KUID.  This node will never
+	 * be inserted in the routing table as such and will only be referenced
+	 * by the callback.
+	 *
+	 * Send it a ping and wait for a reply.  When (if) it comes, it will
+	 * seed the routing table and we will attempt the bootstrap.
 	 */
 
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT got a bootstrap seed with %s", knode_to_string(kn));
-
-	boot_status = BOOT_SEEDED;
-	dht_attempt_bootstrap();
+	vc.u32 = T_0000;
+	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
+	guid_random_muid(muid);
+	kmsg_send_ping(kn, muid);
+	knode_free(kn);
 }
 
 /**
@@ -3096,9 +3096,6 @@ dht_bootstrap_cb(
 static void
 dht_bootstrap(host_addr_t addr, guint16 port)
 {
-	knode_t *kn;
-	vendor_code_t vc;
-
 	/*
 	 * We can be called only until we have been fully bootstrapped, but we
 	 * must not continue to attempt bootstrapping from other nodes if we
@@ -3112,24 +3109,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
 		g_message("DHT attempting bootstrap from %s",
 			host_addr_port_to_string(addr, port));
 
-	/*
-	 * Build a fake Kademlia node, with an zero KUID.  This node will never
-	 * be inserted in the routing table as such and will only be referenced
-	 * by the callback.
-	 */
-
-	vc.u32 = T_0000;
-	kn = knode_new((const char *) kuid_null.v, 0, addr, port, vc, 0, 0);
-
-	/*
-	 * We do not want the RPC layer to verify the KUID of the replying host
-	 * since we don't even have a valid KUID for the remote host yet!
-	 * Hence the use of the RPC_CALL_NO_VERIFY control flag.
-	 */
-
-	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_bootstrap_cb, NULL);
-
-	knode_free(kn);		/* Only referenced by the RPC layer now */
+	dht_probe(addr, port);
 }
 
 /**

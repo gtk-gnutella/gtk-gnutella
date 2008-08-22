@@ -92,6 +92,7 @@ knode_t *dht_find_node(const gchar *kuid);
 void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);
 void dht_node_timed_out(knode_t *kn);
+void dht_probe(host_addr_t addr, guint16 port);
 
 void dht_route_store(void);
 
