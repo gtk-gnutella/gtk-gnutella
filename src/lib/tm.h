@@ -114,6 +114,8 @@ time_t_check(void)
 }
 #endif /* USE_DIFFTIME*/
 
+#define TIME_DELTA_T_MAX	MAX_INT_VAL(time_delta_t)
+
 /**
  * Advances the given timestamp by delta using saturation arithmetic.
  * @param t the timestamp to advance.
@@ -130,7 +132,7 @@ time_advance(time_t t, gulong delta)
 	 */
 
 	do {
-		glong d;
+		long d;
 
 		d = MIN(delta, (gulong) LONG_MAX);
 		if (d >= TIME_T_MAX - t) {
@@ -142,6 +144,27 @@ time_advance(time_t t, gulong delta)
 	} while (delta > 0);
 
 	return t;
+}
+
+/**
+ * Add delta to a time_delta_t, saturating towards TIME_DELTA_T_MAX.
+ */
+static inline time_delta_t
+time_delta_add(time_delta_t td, gulong delta)
+{
+	do {
+		long d;
+
+		d = MIN(delta, (gulong) LONG_MAX);
+		if (d >= TIME_DELTA_T_MAX - td) {
+			td = TIME_DELTA_T_MAX;
+			break;
+		}
+		td += d;
+		delta -= d;
+	} while (delta > 0);
+
+	return td;
 }
 
 /*

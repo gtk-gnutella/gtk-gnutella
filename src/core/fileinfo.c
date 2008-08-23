@@ -5818,9 +5818,12 @@ fi_dht_query(fileinfo_t *fi)
 	 * An actively queued source counts twice as much as a passive.
 	 */
 
-	retry_period += FI_DHT_SOURCE_DELAY * (fi->lifecount - fi->recvcount) +
-		FI_DHT_QUEUED_DELAY * (2 * fi->active_queued + fi->passive_queued) +
-		FI_DHT_RECV_DELAY * fi->recvcount;
+	retry_period = time_delta_add(retry_period,
+		FI_DHT_SOURCE_DELAY * (fi->lifecount - fi->recvcount));
+	retry_period = time_delta_add(retry_period,
+		FI_DHT_QUEUED_DELAY * (2 * fi->active_queued + fi->passive_queued));
+	retry_period = time_delta_add(retry_period,
+		FI_DHT_RECV_DELAY * fi->recvcount);
 
 	if (delta_time(tm_time(), fi->last_dht_query) < retry_period)
 		return;
