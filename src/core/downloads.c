@@ -12157,18 +12157,12 @@ download_handle_magnet(const gchar *url)
 			n_downloads++;
 		}
 
-		if (!res->sources && res->sha1 && res->display_name) {
-			gchar query[128];
-			
-			concat_strings(query, sizeof query,
-				"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
-
+		if (!res->sources && res->sha1) {
 			/*
-			 * When we know the urn:sha1: and a proper name, we reserve
-			 * a download immediately so that it starts as soon as a
-			 * source is found. Don't do this for a plain "urn:sha1:"
-			 * though as the user might not have an idea what the search
-			 * is supposed to find.
+			 * When we know the urn:sha1: we reserve a download immediately
+			 * for the side effect of creating a proper fileinfo for this
+			 * SHA1.  Then we immediately query the DHT for that SHA1 and
+			 * the download will start as soon as we find a source.
 			 */
 
 			download_new(filename,
@@ -12187,6 +12181,7 @@ download_handle_magnet(const gchar *url)
 				NULL);	/* PARQ ID */
 
 			n_downloads++;
+			file_info_dht_query(res->sha1);
 		}
 
 		G_FREE_NULL(filename);

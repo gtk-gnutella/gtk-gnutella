@@ -5784,17 +5784,11 @@ file_info_timer(void)
 }
 
 /**
- * Query the DHT if we have no known sources and we haven't queried the
- * DHT for a while for this file.
+ * Query the DHT for a SHA1 search if needed and appropriate.
  */
 static void
-fi_dht_check(gpointer unused_key, gpointer value, gpointer unused_udata)
+fi_dht_query(fileinfo_t *fi)
 {
-    fileinfo_t *fi = value;
-
-	(void) unused_key;
-	(void) unused_udata;
-
 	file_info_check(fi);
 
 	if (fi->lifecount > 0 || NULL == fi->sha1 || FILE_INFO_FINISHED(fi))
@@ -5808,6 +5802,36 @@ fi_dht_check(gpointer unused_key, gpointer value, gpointer unused_udata)
 
 	fi->last_dht_query = tm_time();
 	gdht_find_sha1(fi);
+}
+
+/**
+ * Hash table iterator to launch DHT queries.
+ */
+static void
+fi_dht_check(gpointer unused_key, gpointer value, gpointer unused_udata)
+{
+    fileinfo_t *fi = value;
+
+	(void) unused_key;
+	(void) unused_udata;
+
+	fi_dht_query(fi);
+}
+
+/**
+ * Initiate a SHA1 query in the DHT immediately, without waiting for periodic
+ * monitoring of sourceless fileinfos.
+ */
+void
+file_info_dht_query(const sha1_t *sha1)
+{
+	fileinfo_t *fi;
+
+	g_assert(sha1);
+
+	fi = file_info_by_sha1(sha1);
+	if (fi)
+		fi_dht_query(fi);
 }
 
 /**

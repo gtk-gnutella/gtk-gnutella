@@ -4149,7 +4149,9 @@ done:
 	return !error;
 }
 
-
+/**
+ * Handle magnet searches, launching Gnutella searches as appropriate.
+ */
 guint
 search_handle_magnet(const gchar *url)
 {

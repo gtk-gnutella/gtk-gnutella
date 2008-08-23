@@ -102,6 +102,7 @@ void file_info_pause(fileinfo_t *);
 void file_info_resume(fileinfo_t *);
 void file_info_changed(fileinfo_t *);
 fileinfo_t *file_info_by_guid(guid_t *guid);
+void file_info_dht_query(const sha1_t *sha1);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
 gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);
