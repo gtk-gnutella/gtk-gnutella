@@ -394,6 +394,10 @@ bsched_config_steal_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
 }
 
+/*
+ * This is called BEFORE settings_init(), bandwidth values are the default
+ * values, not the configured ones.
+ */
 void
 bsched_early_init(void)
 {
@@ -416,7 +420,7 @@ bsched_early_init(void)
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
+		BS_T_STREAM, BS_F_READ, BS_BW_MAX, 1000);
 
 	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
@@ -458,11 +462,29 @@ bsched_early_init(void)
 }
 
 /**
+ * Configure schedules with actual limits set by the user.
+ */
+static void
+bsched_correct_init(void)
+{
+	bsched_set_bandwidth(BSCHED_BWS_OUT, GNET_PROPERTY(bw_http_out));
+	bsched_set_bandwidth(BSCHED_BWS_GOUT, GNET_PROPERTY(bw_gnet_out) / 2);
+	bsched_set_bandwidth(BSCHED_BWS_GOUT_UDP, GNET_PROPERTY(bw_gnet_out) / 2);
+	bsched_set_bandwidth(BSCHED_BWS_GLOUT, GNET_PROPERTY(bw_gnet_lout));
+	bsched_set_bandwidth(BSCHED_BWS_IN, GNET_PROPERTY(bw_http_in));
+	bsched_set_bandwidth(BSCHED_BWS_GIN, GNET_PROPERTY(bw_gnet_in));
+	bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, BS_BW_MAX);
+	bsched_set_bandwidth(BSCHED_BWS_GLIN, GNET_PROPERTY(bw_gnet_lin));
+}
+
+/**
  * Initialize global bandwidth schedulers.
  */
 void
 bsched_init(void)
 {
+	bsched_correct_init();	/* Fix badnwidth using user-configured values */
+
 	/*
 	 * We always steal bandwidth between TCP and UDP gnet, since we
 	 * forcefully split the allocated bandwidth evenly between the
@@ -1019,6 +1041,10 @@ bsched_set_bandwidth(bsched_bws_t bws, gint bandwidth)
 
 	g_assert(bandwidth >= 0);
 	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+
+	if (GNET_PROPERTY(dbg))
+		g_message("bsched_set_bandwidth: using %.2f KiB/s for %s",
+			(double) bandwidth / bs->period, bs->name);
 
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = (gint) (bandwidth / 1000.0 * bs->period);
