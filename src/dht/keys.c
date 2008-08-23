@@ -76,6 +76,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "core/gnet_stats.h"
 
 #include "lib/atoms.h"
 #include "lib/bstr.h"
@@ -440,6 +441,8 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 
 		if (GNET_PROPERTY(dht_storage_debug) > 1)
 			g_message("DHT STORE key %s is now gone", kuid_to_hex_string(id));
+
+		gnet_stats_update_general(GNR_DHT_KEYS_HELD, -1);
 	}
 }
 
@@ -492,6 +495,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 		kd->creators[0] = *cid;				/* struct copy */
 		kd->dbkeys[0] = dbkey;
 
+		gnet_stats_update_general(GNR_DHT_KEYS_HELD, +1);
 	} else {
 		int low = 0;
 		int high = ki->values - 1;

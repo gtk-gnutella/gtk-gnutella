@@ -333,6 +333,14 @@ gnet_stats_count_general(gnr_stats_t type, guint32 x)
 }
 
 void
+gnet_stats_update_general(gnr_stats_t type, int delta)
+{
+	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
+
+    gnet_stats.general[type] += delta;
+}
+
+void
 gnet_stats_count_dropped_nosize(
 	const gnutella_node_t *n, msg_drop_reason_t reason)
 {

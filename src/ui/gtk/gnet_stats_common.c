@@ -137,6 +137,8 @@ general_type_str(gint value)
 		N_("Compressed UDP messages enqueued"),
 		N_("Compressed UDP messages received"),
 		N_("Uncompressed UDP messages due to no gain"),
+		N_("DHT keys held"),
+		N_("DHT values held"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);

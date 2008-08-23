@@ -138,6 +138,8 @@ typedef enum {
 	GNR_UDP_TX_COMPRESSED,
 	GNR_UDP_RX_COMPRESSED,
 	GNR_UDP_LARGER_HENCE_NOT_COMPRESSED,
+	GNR_DHT_KEYS_HELD,
+	GNR_DHT_VALUES_HELD,
 	
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;

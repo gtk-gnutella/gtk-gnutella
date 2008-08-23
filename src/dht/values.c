@@ -76,6 +76,8 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "core/gnet_stats.h"
+
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/dbmap.h"
@@ -621,6 +623,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	values_managed--;
 	acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, -1);
 	acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, -1);
+	gnet_stats_update_general(GNR_DHT_VALUES_HELD, -1);
 
 	dbmw_delete(db_rawdata, &dbkey);
 	dbmw_delete(db_valuedata, &dbkey);
@@ -693,6 +696,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		values_managed++;
 		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
 		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
+		gnet_stats_update_general(GNR_DHT_VALUES_HELD, +1);
 	} else {
 		gboolean is_original = kuid_eq(kn->id, v->creator->id);
 
