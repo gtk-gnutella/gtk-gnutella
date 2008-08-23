@@ -594,20 +594,27 @@ dl_server_retry_cmp(gconstpointer p, gconstpointer q)
 	return CMP(a->retry_after, b->retry_after);
 }
 
+static gboolean
+is_blank_guid(const char *guid)
+{
+	size_t i;
+
+	g_assert(guid);
+
+	for (i = 0; i < GUID_RAW_SIZE; i++)
+		if (guid[i])
+			return FALSE;
+
+	return TRUE;
+}
+
 /**
  * @returns whether download has a blank (fake) GUID.
  */
 static gboolean
 has_blank_guid(const struct download *d)
 {
-	const gchar *g = download_guid(d);
-	guint i;
-
-	for (i = 0; i < GUID_RAW_SIZE; i++)
-		if (g[i])
-			return FALSE;
-
-	return TRUE;
+	return is_blank_guid(download_guid(d));
 }
 
 gboolean
@@ -3446,7 +3453,6 @@ download_remove(struct download *d)
 	atom_str_free_null(&d->uri);
 
 	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
-	d->file_info = NULL;
 
 	download_check(d);
 	sl_removed = g_slist_prepend(sl_removed, d);
@@ -4752,12 +4758,13 @@ create_download(
 	}
 
 	/*
-	 * If given an unspecified IPv4 address, then we're done.
 	 * This usually happens when handling a magnet: with no source.
 	 */
 
-	if (host_addr_equal(addr, ipv4_unspecified))
+	if ((0 == port || !is_host_addr(addr)) && is_blank_guid(guid)) {
+		atom_str_free_null(&file_name);
 		return NULL;
+	}
 
 	/*
 	 * Initialize download.
