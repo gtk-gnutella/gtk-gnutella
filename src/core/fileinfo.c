@@ -5829,6 +5829,9 @@ file_info_dht_query(const sha1_t *sha1)
 
 	g_assert(sha1);
 
+	if (!dht_bootstrapped())
+		return;
+
 	fi = file_info_by_sha1(sha1);
 	if (fi)
 		fi_dht_query(fi);
