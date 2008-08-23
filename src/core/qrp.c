@@ -1276,24 +1276,6 @@ qrp_add_file(struct shared_file *sf)
 	}
 
 	word_vec_free(wovec, wocnt);
-
-	/*
-	 * If we have a SHA1 for this file, add it to the table as well.
-	 */
-
-	if (sha1_hash_available(sf)) {
-		gchar key[256];
-
-		sha1_to_urn_string_buf(shared_file_sha1(sf), key, sizeof key);
-		if (NULL == g_hash_table_lookup(ht_seen_words, key)) {
-			gpointer p;
-			size_t n;
-
-			n = 1 + strlen(key);
-			p = wcopy(key, n);
-			g_hash_table_insert(ht_seen_words, p, (gpointer) n);
-		}
-	}
 }
 
 /*
@@ -1335,45 +1317,36 @@ unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 {
 	struct unique_substrings *u = udata;
 	const gchar *word = key;
+	gchar *s;
+	size_t len, size, i;
+
 	(void) unused_value;
 
 	/*
-	 * Special-case urn:sha1 entries: we insert them as a whole!
+	 * Add all unique (i.e. not already seen) substrings from word, all
+	 * anchored at the start, whose length range from 3 to the word length.
 	 */
 
-	if (is_strcaseprefix(word, "urn:sha1:")) {
-		insert_substr(u, word);
-	}  else {
-		gchar *s;
-		size_t len, size;
+	len = strlen(word);
+	size = len + 1;
+	s = wcopy(word, size);
 
+	for (i = 0; i <= QRP_MAX_CUT_CHARS; i++) {
+		insert_substr(u, s);
 
-		/*
-		 * Add all unique (i.e. not already seen) substrings from word, all
-		 * anchored at the start, whose length range from 3 to the word length.
-		 */
+		while (len > QRP_MIN_WORD_LENGTH) {
+			guint retlen;
 
-		len = strlen(word);
-		size = len + 1;
-		s = wcopy(word, size);
-
-		for (;;) {
-			insert_substr(u, s);
-			
-			while (len > QRP_MIN_WORD_LENGTH) {
-				guint retlen;
-
-				len--;
-				if (utf8_decode_char_fast(&s[len], &retlen)) {
-					s[len] = '\0';				/* Truncate word */
-					break;
-				}
-			}
-			if (len <= QRP_MIN_WORD_LENGTH)
+			len--;
+			if (utf8_decode_char_fast(&s[len], &retlen)) {
+				s[len] = '\0';				/* Truncate word */
 				break;
+			}
 		}
-		WFREE_NULL(s, size);
+		if (len <= QRP_MIN_WORD_LENGTH)
+			break;
 	}
+	WFREE_NULL(s, size);
 }
 
 /**
