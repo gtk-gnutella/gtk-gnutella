@@ -224,6 +224,11 @@ poke_le64(gpointer p, guint64 v)
 #endif
 
 #ifdef FLOAT_USES_IEEE754
+/*
+ * The following routines assume integer byte order is float byte order.
+ * Handles IEC 60559/IEEE 754 floating point single-precision (32-bit).
+ */
+
 static inline gpointer
 poke_float_be32(gpointer p, float v)
 {
@@ -231,9 +236,6 @@ poke_float_be32(gpointer p, float v)
 
 	STATIC_ASSERT(sizeof(float) == 4);
 
-	/* XXX needs metaconfig check */
-	/* XXX assumes integer byte order is float byte order (true on i386) */
-	/* XXX IEC 60559/IEEE 754 floating point single-precision (32-bit) */
 	memcpy(&tmp, &v, 4);
 	return poke_be32(p, tmp);
 }
@@ -246,9 +248,6 @@ peek_float_be32(gconstpointer p)
 
 	STATIC_ASSERT(sizeof(float) == 4);
 
-	/* XXX needs metaconfig check */
-	/* XXX assumes integer byte order is float byte order (true on i386) */
-	/* XXX IEC 60559/IEEE 754 floating point single-precision (32-bit) */
 	tmp = peek_be32(p);
 	memcpy(&v, &tmp, 4);
 	return v;
