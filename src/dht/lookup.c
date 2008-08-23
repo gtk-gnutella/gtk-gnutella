@@ -961,7 +961,7 @@ lookup_value_append(nlookup_t *nl, float load,
 	 */
 
 	remain = lookup_value_remaining_seckeys(fv);
-	needed = remain + added;
+	needed = remain + added + fv->vcnt;
 
 	g_assert(remain <= fv->vsize - fv->vcnt);
 
@@ -1320,14 +1320,14 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 	if (0 == expanded + seckeys) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			g_message("DHT LOOKUP[%d] empty FIND_VALUE_RESPONSE from %s",
+			g_warning("DHT LOOKUP[%d] empty FIND_VALUE_RESPONSE from %s",
 				nl->lid, knode_to_string(kn));
 		goto ignore;
 	}
 
 	if (0 == vcnt + seckeys) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			g_message("DHT LOOKUP[%d] "
+			g_warning("DHT LOOKUP[%d] "
 				"no values of type %s in FIND_VALUE_RESPONSE from %s",
 				nl->lid, dht_value_type_to_string(type), knode_to_string(kn));
 		goto ignore;
@@ -1840,7 +1840,7 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 			nl->flags |= NL_F_UDP_DROP;			/* Caller must stop sending */
 
 			if (GNET_PROPERTY(dht_lookup_debug))
-				g_message("DHT LOOKUP[%d] sychronous UDP drop", nl->lid);
+				g_message("DHT LOOKUP[%d] synchronous UDP drop", nl->lid);
 		}
 
 		/*
@@ -3050,6 +3050,13 @@ lookup_value_iterate(nlookup_t *nl)
 
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);
+
+	if (fv->rpc_pending > 0) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			g_message("DHT LOOKUP[%d] not iterating (%d pending value RPC%s)",
+				fv->rpc_pending, 1 == fv->rpc_pending ? "" : "s");
+		return;
+	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_message("DHT LOOKUP[%d] "
