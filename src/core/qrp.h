@@ -38,7 +38,8 @@
 
 #include "common.h"
 
-#define QRP_MIN_WORD_LENGTH		3	/**< Minimal word length */
+#define QRP_MIN_WORD_LENGTH		3	/**< Minimum word length */
+#define QRP_MAX_CUT_CHARS		5	/**< Maximum truncations  */
 #define QRP_HVEC_MAX	128 	/**< Max: 128 unique words / URNs! */
 
 /*
