@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/base32.h"
 #include "lib/endian.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -154,6 +155,8 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	int exvcnt;
 	int i;
 	gboolean firewalled = FALSE;
+	struct tth tth;
+	gboolean has_tth = FALSE;
 	guid_t guid;
 	guint16 port = 0;
 	gboolean tls = FALSE;
@@ -200,7 +203,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			tls = TRUE;
 			break;
 		case EXT_T_GGEP_ttroot:
-			/* XXX ignored for now */
+			if (sizeof(tth.data) == ext_paylen(e)) {
+				memcpy(tth.data, ext_payload(e), sizeof(tth.data));
+				has_tth = TRUE;
+			}
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
@@ -263,6 +269,25 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 				"we have size=%lu, ALOC says %lu",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname, (gulong) fi->size, (gulong) filesize);
+		return;
+	}
+
+	/**
+	 * Check the TTH root if we have one.
+	 */
+
+	if (has_tth && fi->tth && !tth_eq(&tth, fi->tth)) {
+		if (GNET_PROPERTY(download_debug)) {
+			char buf[TTH_BASE32_SIZE + 1];
+
+			base32_encode(buf, sizeof buf, tth.data, sizeof tth.data);
+
+			g_warning("discarding %s from %s for %s: "
+				"we have TTH root %s, ALOC says %s",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				fi->pathname, tth_base32(fi->tth), buf);
+		}
+		return;
 	}
 
 	/*
@@ -283,12 +308,12 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		fi->size,
 		rc->addr, port,
 		(char *) guid.v,
-		NULL,		/* hostname */
+		NULL,					/* hostname */
 		fi->sha1,
-		NULL,		/* tth */
+		has_tth ? &tth : NULL,
 		tm_time(),
 		deconstify_gpointer(fi),
-		NULL,		/* proxies */
+		NULL,					/* proxies */
 		flags);
 }
 
