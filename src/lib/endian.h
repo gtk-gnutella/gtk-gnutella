@@ -199,6 +199,31 @@ poke_le64(gpointer p, guint64 v)
 	return &q[sizeof v];
 }
 
+
+/*
+ * The list of architectures is taken from xdr_float.c of
+ * SUN's XDR implementation.
+ */
+#if \
+	defined(__alpha__) || \
+	defined(__hppa__) || \
+	defined(__i386__) || \
+	defined(__ia64__) || \
+	defined(__ns32k__) || \
+	defined(__powerpc__) || \
+	defined(__sh__) || \
+	defined(__sparc__) || \
+   	defined(__m68k__) || \
+    defined(__arm__) || \
+    defined(__mips__) || \
+    defined(__x86_64__)
+#define FLOAT_USES_IEEE754
+#else
+#undef FLOAT_USES_IEEE754
+#error "This architecture may be unsupported. float must use IEEE 754."
+#endif
+
+#ifdef FLOAT_USES_IEEE754
 static inline gpointer
 poke_float_be32(gpointer p, float v)
 {
@@ -228,6 +253,7 @@ peek_float_be32(gconstpointer p)
 	memcpy(&v, &tmp, 4);
 	return v;
 }
+#endif	/* FLOAT_USES_IEEE754 */
 
 #endif /* _endian_h_ */
 /* vi: set ts=4 sw=4 cindent: */
