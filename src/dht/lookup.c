@@ -63,6 +63,7 @@ RCSID("$Id$")
 #define NL_MAX_FETCHTIME	45000	/* 45 secs, in ms */
 #define NL_MAX_UDP_DROPS	10		/* Threshold to abort lookups */
 #define NL_VAL_MAX_RETRY	3		/* Max RPC retries to fetch sec keys */
+#define NL_FIND_DELAY		5000	/* 5 seconds, in ms */
 #define NL_VAL_DELAY		2000	/* 2 seconds, in ms */
 
 /**
@@ -139,6 +140,7 @@ struct nlookup {
 	patricia_t *path;			/**< Lookup path followed */
 	patricia_t *ball;			/**< The k-closest nodes we've found so far */
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
+	cevent_t *delay_ev;			/**< Delay event for retries */
 	union {
 		struct {
 			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
@@ -171,7 +173,15 @@ struct nlookup {
 	tm_t start;					/**< Start time */
 	tm_t end;					/**< End time */
 	guint32 hops;				/**< Amount of hops in lookup so far */
+	guint32 flags;				/**< Operating flags */
 };
+
+/**
+ * Operating flags for lookups.
+ */
+#define NL_F_SENDING		(1 << 0)	/**< Currently sending new requests */
+#define NL_F_UDP_DROP		(1 << 1)	/**< UDP message was dropped  */
+#define NL_F_DELAYED		(1 << 2)	/** Iteration has been delayed */
 
 /**
  * Security tokens.
@@ -349,6 +359,7 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 	patricia_foreach(nl->ball, free_knode_pt, NULL);
 
 	cq_cancel(callout_queue, &nl->expire_ev);
+	cq_cancel(callout_queue, &nl->delay_ev);
 	kuid_atom_free_null(&nl->kuid);
 	patricia_destroy(nl->shortlist);
 	map_destroy(nl->queried);
@@ -809,7 +820,7 @@ seckeys_free(struct seckeys *sk)
 }
 
 /**
- * Instlal timeout for secondary key fetching.
+ * Install timeout for secondary key fetching.
  */
 static void
 lookup_value_install_timer(nlookup_t *nl)
@@ -817,6 +828,7 @@ lookup_value_install_timer(nlookup_t *nl)
 	lookup_value_check(nl);
 
 	cq_cancel(callout_queue, &nl->expire_ev);
+	cq_cancel(callout_queue, &nl->delay_ev);
 	nl->expire_ev = cq_insert(callout_queue,
 		NL_MAX_FETCHTIME, lookup_value_expired, nl);
 }
@@ -1813,15 +1825,23 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * We put the node back in the shortlist so that we may try again
 		 * later, if necessary.
 		 *
-		 * It is safe to do this here as message dropping from the UDP queue
-		 * cannot be synchronous with the sending of the message (where we're
-		 * iterating on the shortlist, precisely...).
+		 * It is safe to do this here as long as message dropping from the
+		 * UDP queue is not synchronous with the sending of the message
+		 * (where we're iterating on the shortlist, precisely...).
 		 */
 
 		nl->msg_dropped++;
-		map_remove(nl->queried, kn->id);	/* We did not send the message */
-		lookup_shortlist_add(nl, kn);
-		knode_free(kn);						/* Referenced in nl->queried */
+
+		if (!(nl->flags & NL_F_SENDING)) {
+			map_remove(nl->queried, kn->id);	/* Did not send the message */
+			lookup_shortlist_add(nl, kn);
+			knode_free(kn);						/* Referenced in nl->queried */
+		} else {
+			nl->flags |= NL_F_UDP_DROP;			/* Caller must stop sending */
+
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message("DHT LOOKUP[%d] sychronous UDP drop", nl->lid);
+		}
 
 		/*
 		 * Cancel the RPC, since the message was never sent out...
@@ -1847,10 +1867,17 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 		 */
 
 		if (0 == nl->rpc_pending) {
-			if (nl->udp_drops >= NL_MAX_UDP_DROPS)
-				lookup_abort(nl, LOOKUP_E_UDP_CLOGGED);
-			else
-				lookup_iterate(nl);
+			/*
+			 * Do not abort or iterate if we are currently sending: this
+			 * callback was involved synchronously with the sending operation.
+			 */
+
+			if (!(nl->flags & NL_F_SENDING)) {
+				if (nl->udp_drops >= NL_MAX_UDP_DROPS)
+					lookup_abort(nl, LOOKUP_E_UDP_CLOGGED);
+				else
+					lookup_iterate(nl);
+			}
 		} else {
 			if (GNET_PROPERTY(dht_lookup_debug))
 				g_message("DHT LOOKUP[%d] not iterating (has %d RPC%s pending)",
@@ -2182,6 +2209,38 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
 }
 
 /**
+ * Delay expiration.
+ */
+static void
+lookup_delay_expired(cqueue_t *unused_cq, gpointer obj)
+{
+	nlookup_t *nl = obj;
+
+	(void) unused_cq;
+	lookup_check(nl);
+
+	nl->delay_ev = NULL;
+	nl->flags &= ~NL_F_DELAYED;
+	lookup_iterate(nl);
+}
+
+/**
+ * Delay iterating to let the UDP queue flush.
+ */
+static void
+lookup_delay(nlookup_t *nl)
+{
+	lookup_check(nl);
+
+	g_assert(nl->delay_ev == NULL);
+	g_assert(!(nl->flags & NL_F_DELAYED));
+
+	nl->flags |= NL_F_DELAYED;
+	nl->delay_ev = cq_insert(callout_queue, NL_FIND_DELAY,
+		lookup_delay_expired, nl);
+}
+
+/**
  * Iterate the lookup, once we have determined we must send more probes.
  */
 static void
@@ -2189,12 +2248,23 @@ lookup_iterate(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
 	GSList *to_remove = NULL;
-	GSList *to_send = NULL;
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
 
 	lookup_check(nl);
+
+	/*
+	 * If we were delayed in another "thread" of replies, this call is about
+	 * to be rescheduled once the delay is expired.
+	 */
+
+	if (nl->flags & NL_F_DELAYED) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] not iterating yet (delayed)", nl->lid);
+
+		return;
+	}
 
 	/*
 	 * Enforce bounded parallelism here.
@@ -2237,6 +2307,9 @@ lookup_iterate(nlookup_t *nl)
 
 	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
 
+	nl->flags |= NL_F_SENDING;		/* Protect against synchronous UDP drops */
+	nl->flags &= ~NL_F_UDP_DROP;	/* Clear condition */
+
 	while (i < alpha && patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
 
@@ -2244,29 +2317,17 @@ lookup_iterate(nlookup_t *nl)
 			continue;
 
 		if (!map_contains(nl->queried, kn->id)) {
+			lookup_send(nl, kn);
+			if (nl->flags & NL_F_UDP_DROP)
+				break;				/* Synchronous UDP drop detected */
 			i++;
-			to_send = g_slist_prepend(to_send, kn);
 		}
 
 		to_remove = g_slist_prepend(to_remove, kn);
 	}
 
+	nl->flags &= ~NL_F_SENDING;
 	patricia_iterator_release(&iter);
-
-	/*
-	 * Send the messages to the recorded nodes.  We need to do that outside
-	 * of the iterator because sending can alter the PATRICIA tree
-	 * synchronously, e.g. if the message is immediately dropped by the
-	 * UDP queue.
-	 */
-
-	GM_SLIST_FOREACH(to_send, sl) {
-		knode_t *kn = sl->data;
-
-		lookup_send(nl, kn);
-	}
-
-	g_slist_free(to_send);
 
 	/*
 	 * Remove the nodes to which we sent a message.
@@ -2281,6 +2342,20 @@ lookup_iterate(nlookup_t *nl)
 	}
 
 	g_slist_free(to_remove);
+
+	/*
+	 * If we detected an UDP message dropping and did not send any
+	 * message, wait a little before iterating again to give the UDP
+	 * queue a chance to flush.
+	 */
+
+	if (0 == i && (nl->flags & NL_F_UDP_DROP)) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_message("DHT LOOKUP[%d] giving UDP a chance to flush", nl->lid);
+
+		lookup_delay(nl);
+		return;
+	}
 
 	/*
 	 * If we did not send anything, we're done with the lookup as there are
