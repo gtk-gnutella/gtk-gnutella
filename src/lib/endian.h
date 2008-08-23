@@ -206,17 +206,17 @@ poke_le64(gpointer p, guint64 v)
  */
 #if \
 	defined(__alpha__) || \
+	defined(__arm__) || \
 	defined(__hppa__) || \
 	defined(__i386__) || \
 	defined(__ia64__) || \
+	defined(__m68k__) || \
+	defined(__mips__) || \
 	defined(__ns32k__) || \
 	defined(__powerpc__) || \
 	defined(__sh__) || \
 	defined(__sparc__) || \
-   	defined(__m68k__) || \
-    defined(__arm__) || \
-    defined(__mips__) || \
-    defined(__x86_64__)
+	defined(__x86_64__)
 #define FLOAT_USES_IEEE754
 #else
 #undef FLOAT_USES_IEEE754
