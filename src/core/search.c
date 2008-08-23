@@ -4175,20 +4175,6 @@ search_handle_magnet(const gchar *url)
 			}
 		}
 
-		if (!res->sources && res->sha1) {
-			gchar query[128];
-
-			concat_strings(query, sizeof query,
-					"urn:sha1:", sha1_base32(res->sha1), (void *) 0);
-
-			if (
-				gcu_search_gui_new_search(query,
-					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
-			) {
-				n_searches++;
-			}
-		}
-
 		magnet_resource_free(&res);
 	}
 	return n_searches;
