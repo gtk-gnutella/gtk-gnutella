@@ -3054,7 +3054,7 @@ lookup_value_iterate(nlookup_t *nl)
 	if (fv->rpc_pending > 0) {
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_message("DHT LOOKUP[%d] not iterating (%d pending value RPC%s)",
-				fv->rpc_pending, 1 == fv->rpc_pending ? "" : "s");
+				nl->lid, fv->rpc_pending, 1 == fv->rpc_pending ? "" : "s");
 		return;
 	}
 
