@@ -220,8 +220,11 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	if (port) {
 		if (port != rc->port && GNET_PROPERTY(download_debug))
-			g_warning("%s: port mismatch: creator's was %u, ALOC is %u for %s",
-				value_infostr(rc), rc->port, port, fi->pathname);
+			g_warning("%s: port mismatch: creator's was %u, "
+				"%sALOC is %u for %s",
+				value_infostr(rc), rc->port,
+				firewalled ? "firewalled " : "",
+				port, fi->pathname);
 	} else {
 		port = rc->port;
 	}
