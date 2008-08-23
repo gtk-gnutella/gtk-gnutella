@@ -85,6 +85,10 @@ RCSID("$Id$")
 /**< Max field length we accept to save */
 #define FI_MAX_FIELD_LEN	(TTH_RAW_SIZE * TTH_MAX_LEAVES)
 #define FI_DHT_PERIOD		(1*3600)	/**< Requery period for DHT: 1 hour */
+#define FI_DHT_SOURCE_DELAY	300			/**< Penalty per known source */
+#define FI_DHT_QUEUED_DELAY	150			/**< Penalty per queued source */
+#define FI_DHT_RECV_DELAY	600			/**< Penalty per active source */
+#define FI_DHT_RECV_THRESH	5			/**< No query if that many active */
 
 enum dl_file_chunk_magic {
 	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
@@ -5789,15 +5793,36 @@ file_info_timer(void)
 static void
 fi_dht_query(fileinfo_t *fi)
 {
+	time_delta_t retry_period = FI_DHT_PERIOD;
+
 	file_info_check(fi);
 
-	if (fi->lifecount > 0 || NULL == fi->sha1 || FILE_INFO_FINISHED(fi))
+	if (NULL == fi->sha1 || FILE_INFO_FINISHED(fi))
 		return;
 
 	if (FI_F_PAUSED & fi->flags)
 		return;
 
-	if (delta_time(tm_time(), fi->last_dht_query) < FI_DHT_PERIOD)
+	/*
+	 * If the file is already being actively downloaded from "enough"
+	 * sources, no queries are needed, the download mesh should be correctly
+	 * seeded and sufficient.
+	 */
+
+	if (fi->recvcount >= FI_DHT_RECV_THRESH)
+		return;
+
+	/*
+	 * Even if the file is queued, querying the DHT could be useful.
+	 * However, we don't want to requeue as often when we have sources.
+	 * An actively queued source counts twice as much as a passive.
+	 */
+
+	retry_period += FI_DHT_SOURCE_DELAY * (fi->lifecount - fi->recvcount) +
+		FI_DHT_QUEUED_DELAY * (2 * fi->active_queued + fi->passive_queued) +
+		FI_DHT_RECV_DELAY * fi->recvcount;
+
+	if (delta_time(tm_time(), fi->last_dht_query) < retry_period)
 		return;
 
 	fi->last_dht_query = tm_time();
