@@ -148,7 +148,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 	dbmw_t *dw;
 
 	g_assert(key_size);
-	g_assert(value_size);
+	g_assert(pack == NULL || value_size);
 	g_assert(sdbm_is_storable(key_size, value_size));	/* SDBM constraint */
 	g_assert((pack != NULL) == (unpack != NULL));
 	g_assert(dm);
@@ -685,9 +685,9 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
-			dw->r_hits * 100.0 / dw->r_access,
+			dw->r_hits * 100.0 / MAX(1, dw->r_access),
 			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
-			dw->w_hits * 100.0 / dw->w_access,
+			dw->w_hits * 100.0 / MAX(1, dw->w_access),
 			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
 
 	/*
