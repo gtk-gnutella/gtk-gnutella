@@ -233,9 +233,10 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 		g_message("DHT STORE key %s holds %d/%d value%s, "
 			"load avg: get = %.2f [%s], store = %.2f [%s]",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
-			1 == ki->values ? "" : "s", ki->get_req_load,
+			1 == ki->values ? "" : "s",
+			(int) (ki->get_req_load * 100) / 100.0,
 			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
-			ki->store_req_load,
+			(int) (ki->store_req_load * 100) / 100.0,
 			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK");
 
 	if (ki->get_req_load >= LOAD_GET_THRESH) {
