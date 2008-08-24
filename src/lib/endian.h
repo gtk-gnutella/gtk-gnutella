@@ -214,6 +214,7 @@ poke_le64(gpointer p, guint64 v)
 	defined(__mips__) || \
 	defined(__ns32k__) || \
 	defined(__powerpc__) || \
+	defined(__ppc__) || \
 	defined(__sh__) || \
 	defined(__sparc__) || \
 	defined(__x86_64__)
