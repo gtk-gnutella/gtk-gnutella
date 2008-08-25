@@ -109,32 +109,33 @@ enum bsched_magic {
 
 struct bsched {
 	enum bsched_magic magic;
-	tm_t last_period;				/**< Last time we ran our period */
-	GList *sources;					/**< List of bio_source_t */
-	GSList *stealers;				/**< List of bsched_t stealing bw */
-	gchar *name;					/**< Name, for tracing purposes */
-	gint count;						/**< Amount of sources */
-	gint type;						/**< Scheduling type */
-	gint flags;						/**< Processing flags */
-	gint period;					/**< Fixed scheduling period, in ms */
-	gint min_period;				/**< Minimal period without correction */
-	gint max_period;				/**< Maximal period without correction */
-	gint period_ema;				/**< EMA of period, in ms */
-	gint bw_per_second;				/**< Configure bandwidth in bytes/sec */
-	gint bw_max;					/**< Max bandwidth per period */
-	gint bw_actual;					/**< Bandwidth used so far in period */
-	gint bw_last_period;			/**< Bandwidth used last period */
-	gint bw_last_capped;			/**< Bandwidth capped last period */
-	gint bw_slot;					/**< Basic per-source bandwidth lot */
-	gint bw_ema;					/**< EMA of bandwidth really used */
-	gint bw_stolen;					/**< Amount we stole this period */
-	gint bw_stolen_ema;				/**< EMA of stolen bandwidth */
-	gint bw_delta;					/**< Running diff of actual vs. theoric */
-	gint bw_unwritten;				/**< Data that we could not write */
-	gint bw_capped;					/**< Bandwidth we refused to sources */
-	gint last_used;					/**< Nb of active sources last period */
-	gint current_used;				/**< Nb of active sources this period */
-	gboolean looped;				/**< True when looped once over sources */
+	tm_t last_period;			/**< Last time we ran our period */
+	GList *sources;				/**< List of bio_source_t */
+	GSList *stealers;			/**< List of bsched_t stealing bw */
+	char *name;					/**< Name, for tracing purposes */
+	int count;					/**< Amount of sources */
+	int type;					/**< Scheduling type */
+	int flags;					/**< Processing flags */
+	int period;					/**< Fixed scheduling period, in ms */
+	int min_period;				/**< Minimal period without correction */
+	int max_period;				/**< Maximal period without correction */
+	int period_ema;				/**< EMA of period, in ms */
+	int bw_per_second;			/**< Configure bandwidth in bytes/sec */
+	int bw_max;					/**< Max bandwidth per period */
+	int bw_actual;				/**< Bandwidth used so far in period */
+	int bw_last_period;			/**< Bandwidth used last period */
+	int bw_last_capped;			/**< Bandwidth capped last period */
+	int bw_slot;				/**< Basic per-source bandwidth lot */
+	int bw_ema;					/**< EMA of bandwidth really used */
+	int bw_stolen;				/**< Amount we stole this period */
+	int bw_stolen_ema;			/**< EMA of stolen bandwidth */
+	int bw_delta;				/**< Running diff of actual vs. theoric */
+	int bw_unwritten;			/**< Data that we could not write */
+	int bw_capped;				/**< Bandwidth we refused to sources */
+	int last_used;				/**< Nb of active sources last period */
+	int current_used;			/**< Nb of active sources this period */
+	int bw_urgent;				/**< Urgent b/w required in stealing */
+	gboolean looped;			/**< True when looped once over sources */
 };
 
 /*
@@ -297,6 +298,26 @@ bsched_avg_pct(bsched_bws_t bws)
 	return bsched_avg_bps(bws) * 100 / (1 + bsched_bw_per_second(bws));
 }
 
+int
+bsched_urgent(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	return bs->bw_urgent;
+}
+
+/**
+ * Record urgent bandwidth stealing needs that should be fulfilled to
+ * prevent any TX flow control situation.
+ */
+void
+bsched_set_urgent(bsched_bws_t bws, int amount)
+{
+	bsched_t *bs;
+
+	bs = bsched_get(bws);
+	bs->bw_urgent = amount;
+}
+
 /**
  * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
  * Both must be either reading or writing schedulers.
@@ -420,7 +441,7 @@ bsched_early_init(void)
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
 
 	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
-		BS_T_STREAM, BS_F_READ, BS_BW_MAX, 1000);
+		BS_T_STREAM, BS_F_READ, 0, 1000);
 
 	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
@@ -473,7 +494,7 @@ bsched_correct_init(void)
 	bsched_set_bandwidth(BSCHED_BWS_GLOUT, GNET_PROPERTY(bw_gnet_lout));
 	bsched_set_bandwidth(BSCHED_BWS_IN, GNET_PROPERTY(bw_http_in));
 	bsched_set_bandwidth(BSCHED_BWS_GIN, GNET_PROPERTY(bw_gnet_in));
-	bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, BS_BW_MAX);
+	bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, 0);
 	bsched_set_bandwidth(BSCHED_BWS_GLIN, GNET_PROPERTY(bw_gnet_lin));
 }
 
@@ -2535,10 +2556,10 @@ bsched_stealbeat(bsched_t *bs)
 {
 	GSList *l;
 	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
-	gint all_used_count = 0;		/* Amount of bsched_t that used all b/w */
+	int all_used_count = 0;			/* Amount of bsched_t that used all b/w */
 	guint all_bw_count = 0;			/* Sum of configured bandwidth */
-	gint steal_count = 0;
-	gint underused;
+	int steal_count = 0;
+	int underused;
 
 	bsched_check(bs);
 	g_assert(bs->bw_actual == 0);	/* Heartbeat step must have been done */
@@ -2613,6 +2634,29 @@ bsched_stealbeat(bsched_t *bs)
 			all_used = g_slist_prepend(all_used, xbs);
 			all_used_count++;
 			all_bw_count += xbs->bw_max;
+		}
+
+		/*
+		 * If a stealer has an urgent need for bandwidth, distribute as
+		 * much as we can to it before considering others.  If more than
+		 * one stealer has urgent need, the order in which it is distributed
+		 * is the reverse order in which stealers were added (i.e. the last
+		 * addition is viewed as more prioritary).
+		 */
+
+		if (xbs->bw_urgent > 0) {
+			int amount = MIN(underused, xbs->bw_urgent);
+			xbs->bw_stolen += amount;
+			xbs->bw_urgent -= amount;
+			underused -= amount;
+
+			if (GNET_PROPERTY(dbg) > 4)
+				printf("b/w sched \"%s\" urgently giving %d bytes to \"%s\""
+					" (still wants %d bytes urgently)\n",
+					bs->name, amount, xbs->name, xbs->bw_urgent);
+
+			if (underused <= 0)			/* Nothing left to redistribute */
+				return;
 		}
 	}
 

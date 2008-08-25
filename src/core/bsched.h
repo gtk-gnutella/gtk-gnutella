@@ -68,20 +68,20 @@ void bsched_enable_all(void);
 bio_source_t *bsched_source_add(bsched_bws_t bs, wrap_io_t *wio, guint32 flags,
 	inputevt_handler_t callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
-void bsched_set_bandwidth(bsched_bws_t bs, gint bandwidth);
+void bsched_set_bandwidth(bsched_bws_t bs, int bandwidth);
 bio_source_t *bsched_source_add(bsched_bws_t bs, wrap_io_t *wio, guint32 flags,
 	inputevt_handler_t callback, gpointer arg);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
 ssize_t bio_write(bio_source_t *bio, gconstpointer data, size_t len);
-ssize_t bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
+ssize_t bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt);
 ssize_t bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 	gconstpointer data, size_t len);
-ssize_t bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd,
+ssize_t bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd,
 	off_t *offset, size_t len);
 ssize_t bio_read(bio_source_t *bio, gpointer data, size_t len);
-ssize_t bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt);
+ssize_t bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt);
 ssize_t bws_write(bsched_bws_t bs, wrap_io_t *wio,
 			gconstpointer data, size_t len);
 ssize_t bws_read(bsched_bws_t bs, wrap_io_t *wio, gpointer data, size_t len);
@@ -95,8 +95,8 @@ void bws_sock_connect_failed(enum socket_type type);
 void bws_sock_closed(enum socket_type type, gboolean remote);
 gboolean bws_can_connect(enum socket_type type);
 
-void bws_udp_count_written(gint len);
-void bws_udp_count_read(gint len);
+void bws_udp_count_written(int len);
+void bws_udp_count_read(int len);
 
 gboolean bsched_enough_up_bandwidth(void);
 gboolean bsched_saturated(bsched_bws_t bws);
@@ -105,6 +105,8 @@ gulong bsched_avg_bps(bsched_bws_t bws);
 gulong bsched_pct(bsched_bws_t bws);
 gulong bsched_avg_pct(bsched_bws_t bws);
 gulong bsched_bw_per_second(bsched_bws_t bws);
+int bsched_urgent(bsched_bws_t bws);
+void bsched_set_urgent(bsched_bws_t bws, int amount);
 
 void bsched_config_steal_http_gnet(void);
 void bsched_config_steal_gnet(void);
