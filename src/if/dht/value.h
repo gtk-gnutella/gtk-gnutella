@@ -31,6 +31,8 @@
 #include "kuid.h"
 #include "knode.h"
 
+#include "lib/tm.h"
+
 #define VALUE_TYPE_CODE(a,b,c,d) (	\
 	((guint32) (a) << 24) | \
 	((guint32) (b) << 16) | \
@@ -59,6 +61,14 @@ typedef enum {
 #define DHT_VALUE_MAX_LEN	512		/**< Max value size */
 
 /**
+ * Value expiration time (republishing should occur 1 hour before expiration).
+ */
+
+#define DHT_VALUE_EXPIRE		(13*60*60)	/**< 13 hours */
+#define DHT_VALUE_ALOC_EXPIRE	(13*60*60)	/**< 13 hours for alt-locs */
+#define DHT_VALUE_PROX_EXPIRE	(3*60*60)	/**< 3 hours for push-proxies */
+
+/**
  * A DHT value.
  */
 typedef struct {
@@ -80,6 +90,7 @@ dht_value_t *dht_value_make(const knode_t *creator,
 	guint8 major, guint8 minor, gpointer data, guint16 length);
 void dht_value_free(dht_value_t *v, gboolean free_data);
 size_t dht_value_type_to_string_buf(guint32 type, char *buf, size_t size);
+time_delta_t dht_value_lifetime(dht_value_type_t type);
 const char *dht_value_type_to_string(guint32 type);
 const char *dht_value_type_to_string2(guint32 type);
 const char *dht_value_to_string(const dht_value_t *v);

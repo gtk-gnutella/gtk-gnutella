@@ -64,6 +64,10 @@
 
 RCSID("$Id$")
 
+#ifdef I_MATH
+#include <math.h>	/* For pow() */
+#endif	/* I_MATH */
+
 #include "keys.h"
 #include "kuid.h"
 #include "knode.h"
@@ -121,6 +125,7 @@ struct keyinfo {
 	kuid_t *kuid;				/**< The key (atom) */
 	float get_req_load;			/**< EMA of # of (read) requests per period */
 	float store_req_load;		/**< EMA of # of (store) requests per period */
+	time_t next_expire;			/**< Earliest expiration of a value */
 	guint32 get_requests;		/**< # of get requests received in period */
 	guint32 store_requests;		/**< # of store requests received in period */
 	guint8 common_bits;			/**< Leading bits shared with our KUID */
@@ -161,6 +166,19 @@ static char db_keywhat[] = "DHT key data";
 
 static cevent_t *load_ev;		/**< Event for periodic load update */
 static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
+
+/**
+ * Decimation factor to adjust expiration time depending on the distance
+ * in bits from the furthest node in the k-ball.
+ *
+ * If the external frontier of the k-ball is F and a key has X bits in common
+ * with our KUID, with X < F, then the decimation is 1.5^(F-X).
+ *
+ * The following table pre-computes all the possible powers.
+ */
+static double decimation_factor[KUID_RAW_BITSIZE];
+
+#define KEYS_DECIMATION_BASE 	1.5		/* Base for exponential decimation */
 
 static void keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj);
 static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
@@ -206,58 +224,6 @@ keys_is_store_loaded(const kuid_t *id)
 	}
 
 	return FALSE;
-}
-
-/**
- * Get key status (full and loaded boolean attributes).
- */
-void
-keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
-{
-	struct keyinfo *ki;
-
-	g_assert(id);
-	g_assert(full);
-	g_assert(loaded);
-
-	*full = FALSE;
-	*loaded = FALSE;
-
-	ki = patricia_lookup(keys, id);
-	if (ki == NULL)
-		return;
-
-	g_assert(KEYINFO_MAGIC == ki->magic);
-
-	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE key %s holds %d/%d value%s, "
-			"load avg: get = %.2f [%s], store = %.2f [%s]",
-			kuid_to_hex_string(id), ki->values, MAX_VALUES,
-			1 == ki->values ? "" : "s",
-			(int) (ki->get_req_load * 100) / 100.0,
-			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
-			(int) (ki->store_req_load * 100) / 100.0,
-			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK");
-
-	if (ki->get_req_load >= LOAD_GET_THRESH) {
-		*loaded = TRUE;
-	} else if (ki->get_requests) {
-		float limit = LOAD_GET_THRESH / LOAD_SMOOTH -
-			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->get_req_load;
-
-		/*
-		 * Look whether the current amount of get requests is sufficient to
-		 * bring the EMA above the threshold at the next update.
-		 */
-
-		if (1.0 * ki->get_requests > limit)
-			*loaded = TRUE;
-	}
-
-	if (ki->values >= MAX_VALUES)
-		*full = TRUE;
-
-	return;
 }
 
 /**
@@ -339,6 +305,136 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 #undef GET_ITEM
 
 	return 0;		/* Not found */
+}
+
+/**
+ * See whether we can expire values stored under the key.
+ *
+ * NB: because we update the next expiration time upon value insertion
+ * but do not recompute it upon value removals, it is possible that
+ * we have no values to expire currently.
+ *
+ * This is justified because there are few value removals and this allows
+ * us to not store the expiration time of the associated values in the
+ * keydata.
+ *
+ * @attention
+ * Do NOT use the `ki' parameter upon return, it may have been deleted if
+ * all the values held have expired.
+ *
+ * @return the amount of values expired.
+ */
+static int
+keys_expire_values(struct keyinfo *ki, time_t now)
+{
+	struct keydata *kd;
+	int i;
+	int expired = 0;
+	time_t next_expire = TIME_T_MAX;
+
+	kd = get_keydata(ki->kuid);
+	if (kd == NULL)
+		return 0;				/* XXX DB access error, need better handling */
+
+	g_assert(kd->values == ki->values);
+
+	for (i = 0; i < kd->values; i++) {
+		guint64 dbkey = kd->dbkeys[i];
+		time_t expire;
+
+		if (values_has_expired(dbkey, now, &expire))
+			expired++;
+		else
+			next_expire = MIN(expire, next_expire);
+	}
+
+	if (GNET_PROPERTY(dht_storage_debug))
+		g_message("DHT STORE key %s has %d expired value%s out of %d",
+			kuid_to_hex_string(ki->kuid), expired, 1 == expired ? "" : "s",
+			ki->values);
+
+	if (next_expire != TIME_T_MAX)
+		ki->next_expire = next_expire;	/* Next check, if values remain */
+
+	/*
+	 * Reclaim expired values, which will call keys_remove_value() and may
+	 * end up freeing the ki structure.
+	 */
+
+	values_reclaim_expired();
+
+	return expired;
+}
+
+/**
+ * Get key status (full and loaded boolean attributes).
+ */
+void
+keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
+{
+	struct keyinfo *ki;
+	time_t now;
+	guint8 values;
+
+	g_assert(id);
+	g_assert(full);
+	g_assert(loaded);
+
+	*full = FALSE;
+	*loaded = FALSE;
+
+	ki = patricia_lookup(keys, id);
+	if (ki == NULL)
+		return;
+
+	g_assert(KEYINFO_MAGIC == ki->magic);
+
+	if (GNET_PROPERTY(dht_storage_debug))
+		g_message("DHT STORE key %s holds %d/%d value%s, "
+			"load avg: get = %.2f [%s], store = %.2f [%s], expire = %lu",
+			kuid_to_hex_string(id), ki->values, MAX_VALUES,
+			1 == ki->values ? "" : "s",
+			(int) (ki->get_req_load * 100) / 100.0,
+			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
+			(int) (ki->store_req_load * 100) / 100.0,
+			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK",
+			(gulong) ki->next_expire);
+
+	if (ki->get_req_load >= LOAD_GET_THRESH) {
+		*loaded = TRUE;
+	} else if (ki->get_requests) {
+		float limit = LOAD_GET_THRESH / LOAD_SMOOTH -
+			(1.0 - LOAD_SMOOTH) / LOAD_SMOOTH * ki->get_req_load;
+
+		/*
+		 * Look whether the current amount of get requests is sufficient to
+		 * bring the EMA above the threshold at the next update.
+		 */
+
+		if (1.0 * ki->get_requests > limit)
+			*loaded = TRUE;
+	}
+
+	/*
+	 * Check whether we reached the expiration time of one of the values held.
+	 * Try to expire values before answering.  However, this may delete
+	 * the keyinfo structure if all the values have expired, so we MUST NOT
+	 * try to access `ki' upon return from keys_expire_values().
+	 */
+
+	now = tm_time();
+	values = ki->values;
+
+	if (now >= ki->next_expire) {
+		int expired = keys_expire_values(ki, now);
+		g_assert(expired <= values);
+		values -= expired;
+	}
+
+	/* Do not access `ki' any more -- could be gone */
+
+	if (values >= MAX_VALUES)
+		*full = TRUE;
 }
 
 /**
@@ -448,12 +544,35 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 }
 
 /**
+ * A value held under the key was updated and has a new expiration time.
+ *
+ * @param id		the primary key (existing already)
+ * @param expire	expiration time for the value
+ */
+void
+keys_update_value(const kuid_t *id, time_t expire)
+{
+	struct keyinfo *ki;
+
+	ki = patricia_lookup(keys, id);
+	g_assert(ki != NULL);
+
+	ki->next_expire = MIN(ki->next_expire, expire);
+}
+
+/**
  * Add value to a key, recording the new association between the KUID of the
  * creator (secondary key) and the 64-bit DB key under which the value is
  * stored.
+ *
+ * @param id		the primary key (may not exist yet)
+ * @param cid		the secondary key (creator's ID)
+ * @param dbkey		the 64-bit DB key
+ * @param expire	expiration time for the value
  */
 void
-keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
+keys_add_value(const kuid_t *id, const kuid_t *cid,
+	guint64 dbkey, time_t expire)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
@@ -488,6 +607,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 		ki->store_requests = 0;
 		ki->common_bits = common & 0xff;
 		ki->values = 0;						/* will be incremented below */
+		ki->next_expire = expire;
 
 		patricia_insert(keys, ki->kuid, ki);
 
@@ -549,6 +669,8 @@ keys_add_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 
 		kd->creators[low] = *cid;			/* struct copy */
 		kd->dbkeys[low] = dbkey;
+
+		ki->next_expire = MIN(ki->next_expire, expire);
 	}
 
 	kd->values++;
@@ -667,6 +789,9 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		*vvec++ = v;
 		vcnt--;
 	}
+
+	if (vvec != valvec)
+		gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_HITS, 1);
 
 	return vvec - valvec;
 }
@@ -868,6 +993,33 @@ keys_update_kball(void)
 }
 
 /**
+ * @return key decimation factor for expiration
+ */
+double
+keys_decimation_factor(const kuid_t *key)
+{
+	size_t common;
+	int delta;
+
+	common = common_leading_bits(
+		get_our_kuid(), KUID_RAW_BITSIZE,
+		key, KUID_RAW_BITSIZE);
+
+	/*
+	 * If key falls within our k-ball, no decimation.
+	 */
+
+	if (common >= kball.furthest_bits)
+		return 1.0;
+
+	delta = kball.furthest_bits - common;
+
+	g_assert(delta > 0 && UNSIGNED(delta) < G_N_ELEMENTS(decimation_factor));
+
+	return decimation_factor[delta];
+}
+
+/**
  * Callout queue callback for k-ball updates.
  */
 static void
@@ -886,6 +1038,8 @@ keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj)
 void
 keys_init(void)
 {
+	size_t i;
+
 	keys = patricia_create(KUID_RAW_BITSIZE);
 	install_periodic_load();
 	install_periodic_kball(KBALL_FIRST);
@@ -894,6 +1048,9 @@ keys_init(void)
 		KUID_RAW_SIZE, sizeof(struct keydata),
 		serialize_keydata, deserialize_keydata,
 		1, sha1_hash, sha1_eq);
+
+	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
+		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
 }
 
 /**

@@ -79,9 +79,11 @@ RCSID("$Id$")
 #include "core/gnet_stats.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/bstr.h"
 #include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/misc.h"
 #include "lib/pmsg.h"
@@ -93,6 +95,7 @@ RCSID("$Id$")
 #define MAX_VALUES		65536	/**< Max # of values we accept to manage */
 #define MAX_VALUES_IP	16		/**< Max # of values allowed per IP address */
 #define MAX_VALUES_NET	256		/**< Max # of values allowed per class C net */
+#define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
 
 /**
  * Information about a value that is stored to disk and not kept in memory.
@@ -150,6 +153,12 @@ static GHashTable *values_per_ip;
 static GHashTable *values_per_class_c;
 
 /**
+ * Records expired DB keys that have been identified but not physically
+ * removed yet.
+ */
+static GHashTable *expired;
+
+/**
  * DBM wrapper to store valuedata.
  */
 static dbmw_t *db_valuedata;
@@ -162,6 +171,17 @@ static char db_valwhat[] = "DHT value data";
 static dbmw_t *db_rawdata;
 static char db_rawbase[] = "dht_raw";
 static char db_rawwhat[] = "DHT raw data";
+
+/**
+ * DBM wrapper to remember expired (key, creator_id) tuples.
+ */
+static dbmw_t *db_expired;
+static char db_expbase[] = "dht_expired";
+static char db_expwhat[] = "DHT expired values";
+
+static cevent_t *expire_ev;			/**< Event for periodic value expiration */
+
+static void install_periodic_expire(void);
 
 /**
  * @return amount of values managed.
@@ -294,6 +314,42 @@ dht_value_free(dht_value_t *v, gboolean free_data)
 }
 
 /**
+ * Each value type is given a default lifetime, that can be adjusted down
+ * depending on how close the node and the value's key are.
+ *
+ * Republishing should occur before the expiration.
+ *
+ * @return default value lifetime based on the type.
+ */
+time_delta_t
+dht_value_lifetime(dht_value_type_t type)
+{
+	time_delta_t lifetime;
+
+	switch (type) {
+	case DHT_VT_PROX:
+		lifetime = DHT_VALUE_PROX_EXPIRE;
+		break;
+	case DHT_VT_ALOC:
+		lifetime = DHT_VALUE_ALOC_EXPIRE;
+		break;
+	case DHT_VT_BINARY:
+	case DHT_VT_GTKG:
+	case DHT_VT_LIME:
+	case DHT_VT_TEST:
+	case DHT_VT_TEXT:
+		lifetime = DHT_VALUE_EXPIRE;
+		break;
+	case DHT_VT_ANY:
+		g_error("ANY is not a valid DHT value type");
+		lifetime = 0;		/* For compilers */
+		break;
+	}
+
+	return lifetime;
+}
+
+/**
  * Make up a printable version of the DHT value type.
  *
  * @param type	a 4-letter DHT value type
@@ -376,6 +432,83 @@ dht_value_to_string(const dht_value_t *v)
 }
 
 /**
+ * Hash a pair of KUIDs.
+ */
+static guint
+kuid_pair_hash(gconstpointer key)
+{
+	return binary_hash(key, 2 * KUID_RAW_SIZE);
+}
+
+/**
+ * Test equality of two KUID pairs.
+ */
+static int
+kuid_pair_eq(gconstpointer a, gconstpointer b)
+{
+	return a == b || 0 == memcmp(a, b, 2 * KUID_RAW_SIZE);
+}
+
+/**
+ * Fill buffer with KUID pair.
+ */
+static void
+kuid_pair_fill(char *buf, size_t len, const kuid_t *key, const kuid_t *skey)
+{
+	g_assert(len >= 2 * KUID_RAW_SIZE);
+
+	STATIC_ASSERT(sizeof(key->v) == KUID_RAW_SIZE);
+
+	memcpy(&buf[0], key->v, sizeof(key->v));
+	memcpy(&buf[KUID_RAW_SIZE], skey->v, sizeof(skey->v));
+}
+
+/**
+ * Check whether KUID pair is marked as having expired.
+ *
+ * @param key		primary key
+ * @param skey		secondary key
+ */
+static gboolean
+kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
+{
+	char buf[2 * KUID_RAW_SIZE];
+
+	kuid_pair_fill(buf, sizeof buf, key, skey);
+	return dbmw_exists(db_expired, buf);
+}
+
+/**
+ * Mark KUID pair as having expired.
+ *
+ * @param key		primary key
+ * @param skey		secondary key
+ */
+static void
+kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
+{
+	char buf[2 * KUID_RAW_SIZE];
+
+	kuid_pair_fill(buf, sizeof buf, key, skey);
+	dbmw_write(db_expired, buf, NULL, 0);
+}
+
+/**
+ * Mark KUID pair as having been republished.
+ *
+ * @param key		primary key
+ * @param skey		secondary key
+ */
+static void
+kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
+{
+	char buf[2 * KUID_RAW_SIZE];
+
+	kuid_pair_fill(buf, sizeof buf, key, skey);
+	dbmw_delete(db_expired, buf);
+}
+
+/**
  * Get valuedata from database.
  */
 static struct valuedata *
@@ -391,11 +524,154 @@ get_valuedata(guint64 dbkey)
 			g_warning("DB I/O error, bad things will happen...");
 			return NULL;
 		}
-		g_error("Value under key %s exists but was not found in DB",
+		g_error("Value for DB-key %s supposed to exist but was not found in DB",
 			uint64_to_string(dbkey));
 	}
 
 	return vd;
+}
+
+/**
+ * Delete valuedata from the database.
+ *
+ * @param dbkey			the 64-bit DB key
+ * @param has_expired	whether deletion happens because value expired
+ */
+static void
+delete_valuedata(guint64 dbkey, gboolean has_expired)
+{
+	const struct valuedata *vd;
+
+	vd = get_valuedata(dbkey);
+
+	g_assert(vd);					/* XXX handle I/O errors correctly */
+	g_assert(values_managed > 0);
+
+	values_managed--;
+	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
+	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
+	gnet_stats_count_general(GNR_DHT_VALUES_HELD, -1);
+
+	if (has_expired)
+		kuid_pair_has_expired(&vd->id, &vd->cid);
+
+	keys_remove_value(&vd->id, &vd->cid, dbkey);
+
+	dbmw_delete(db_rawdata, &dbkey);
+	dbmw_delete(db_valuedata, &dbkey);
+}
+
+/**
+ * Hash table iterator callback to reclaim an expired DB key.
+ */
+static gboolean
+reclaim_dbkey(gpointer key, gpointer u_value, gpointer u_data)
+{
+	guint64 *dbatom = key;
+
+	(void) u_value;
+	(void) u_data;
+
+	delete_valuedata(*dbatom, TRUE);
+
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
+		g_message("DHT DB-key %s reclaimed", uint64_to_string(*dbatom));
+
+	atom_uint64_free(dbatom);
+	return TRUE;
+}
+
+/**
+ * Reclaim all expired entries from the database.
+ */
+void
+values_reclaim_expired(void)
+{
+	g_hash_table_foreach_remove(expired, reclaim_dbkey, NULL);
+}
+
+/**
+ *  Callout queue callback for periodic value expiration.
+ */
+static void
+values_periodic_expire(cqueue_t *unused_cq, gpointer unused_obj)
+{
+	(void) unused_cq;
+	(void) unused_obj;
+
+	install_periodic_expire();
+	values_reclaim_expired();
+}
+
+/**
+ * Remember that a value has expired, if we did not already know about it.
+ *
+ * The recorded keys are deleted asynchronously in the background regularily,
+ * to avoid perturbation in the caller's data structures.
+ */
+static void
+values_expire(guint64 dbkey)
+{
+	const guint64 *dbatom;
+
+	if (g_hash_table_lookup(expired, &dbkey))
+		return;
+
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
+		g_message("DHT DB-key %s expired", uint64_to_string(dbkey));
+
+	dbatom = atom_uint64_get(&dbkey);
+	gm_hash_table_insert_const(expired, dbatom, GINT_TO_POINTER(1));
+}
+
+/**
+ * Un-expire a value which was recorded as being expired.
+ *
+ * This can happen when we detect a value has expired and then it is republished
+ * before it could be physically deleted from the database, since deletion
+ * happens asynchronously.
+ */
+static void
+values_unexpire(guint64 dbkey)
+{
+	gpointer key, value;
+	
+	if (g_hash_table_lookup_extended(expired, &dbkey, &key, &value)) {
+		guint64 *dbatom = key;
+
+		g_hash_table_remove(expired, &dbkey);
+		atom_uint64_free(dbatom);
+
+		if (GNET_PROPERTY(dht_storage_debug) > 2)
+			g_message("DHT DB-key %s un-expired", uint64_to_string(dbkey));
+	}
+}
+
+/**
+ * Check whether a value identified by its 64-bit DB key has expired.
+ * If it has, mark it for deletion.
+ *
+ * @return TRUE if value has expired and will be reclaimed the next time
+ * values_reclaim_expired() is called.  If FALSE is returned, the
+ * actual expiration time is returned through `expire', if not NULL.
+ */
+gboolean
+values_has_expired(guint64 dbkey, time_t now, time_t *expire)
+{
+	struct valuedata *vd;
+
+	vd = get_valuedata(dbkey);
+	g_assert(vd);		/* XXX better handling for I/O errors */
+
+	if (now >= vd->expire)  {
+		values_expire(dbkey);
+		return TRUE;
+	}
+
+	if (expire)
+		*expire = vd->expire;
+
+	return FALSE;
 }
 
 /**
@@ -539,6 +815,22 @@ validate_new_acceptable(const dht_value_t *v)
 }
 
 /**
+ * Compute value's expiration time based on the proximity we have with the key,
+ * the status of our k-ball at the time of publication and the type of data.
+ */
+static time_t
+values_expire_time(const kuid_t *key, dht_value_type_t type)
+{
+	time_delta_t lifetime = dht_value_lifetime(type);
+	double decimation = keys_decimation_factor(key);
+
+	g_assert(decimation > 0.0);
+	g_assert(lifetime > 0);
+
+	return time_advance(tm_time(), (gulong) (lifetime / decimation));
+}
+
+/**
  * Record valuedata information extracted from creator and DHT value.
  *
  * @param vd		the valuedata structure to fill
@@ -550,7 +842,7 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 {
 	vd->publish = tm_time();
 	vd->replicated = 0;
-	vd->expire = 0;					/* XXX compute proper TTL */
+	vd->expire = values_expire_time(v->id, v->type);
 	vd->vcode = cn->vcode;			/* struct copy */
 	vd->addr = cn->addr;			/* struct copy */
 	vd->port = cn->port;
@@ -618,17 +910,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 			kuid_to_hex_string2(v->id));
 	}
 
-	g_assert(values_managed > 0);
-
-	values_managed--;
-	acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, -1);
-	acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, -1);
-	gnet_stats_count_general(GNR_DHT_VALUES_HELD, -1);
-
-	dbmw_delete(db_rawdata, &dbkey);
-	dbmw_delete(db_valuedata, &dbkey);
-
-	keys_remove_value(v->id, cn->id, dbkey);
+	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
 
 done:
 	if (reason && GNET_PROPERTY(dht_storage_debug) > 1)
@@ -675,7 +957,12 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			return acceptable;
 
 		vd = &new_vd;
-		dbkey = valueid++;
+
+		/*
+		 * We don't have the value, but if this is not an original, we
+		 * need to check whether we already expired the key tuple (primary,
+		 * secondary) and naturaly refuse the replication in that case.
+		 */
 
 		if (kuid_eq(kn->id, cn->id)) {
 			if (!validate_creator(kn, cn))
@@ -684,14 +971,17 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		} else {
 			if (NET_TYPE_IPV4 != host_addr_net(cn->addr))
 				return STORE_SC_BAD_CREATOR;
+			if (kuid_pair_was_expired(kn->id, cn->id))
+				goto expired;
 			vd->original = FALSE;
 		}
 
-		keys_add_value(v->id, cn->id, dbkey);
-
+		dbkey = valueid++;
 		vd->id = *v->id;				/* struct copy */
 		vd->cid = *cn->id;				/* struct copy */
 		fill_valuedata(vd, cn, v);
+
+		keys_add_value(v->id, cn->id, dbkey, vd->expire);
 
 		values_managed++;
 		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
@@ -760,6 +1050,10 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 			vd->original = TRUE;
 			fill_valuedata(vd, cn, v);
+
+			values_unexpire(dbkey);
+			kuid_pair_was_republished(&vd->id, &vd->cid);
+			keys_update_value(&vd->id, vd->expire);
 		}
 	}
 
@@ -770,6 +1064,9 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 	if (check_data) {
 		size_t length;
 		gpointer data;
+
+		if (values_has_expired(dbkey, tm_time(), NULL))
+			goto expired;
 
 		data = dbmw_read(db_rawdata, &dbkey, &length);
 
@@ -791,7 +1088,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 * and we're done.
 		 */
 
-		vd->replicated = tm_time();			/* XXX only when from k-ball */
+		vd->replicated = tm_time();
 	} else {
 		/*
 		 * We got either new data or something republished by the creator.
@@ -820,6 +1117,15 @@ mismatch:
 	}
 
 	return STORE_SC_DATA_MISMATCH;
+
+expired:
+	gnet_stats_count_general(GNR_DHT_STALE_REPLICATION, 1);
+
+	if (GNET_PROPERTY(dht_storage_debug))
+		g_message("DHT STORE detected replication of expired data %s by %s",
+			dht_value_to_string(v), knode_to_string(kn));
+	
+	return STORE_SC_OK;		/* No error reported, data is stale and must die */
 }
 
 /**
@@ -939,6 +1245,20 @@ values_get(guint64 dbkey, dht_value_type_t type)
 		return NULL;
 
 	/*
+	 * Lazy expiration: when we detect a value has expired, we record
+	 * its DB key in the "expired" table, if not already present.
+	 *
+	 * Value are collected asynchronously every 30 secs.  Until then the
+	 * key will appear as still holding the value, but the value will no
+	 * longer be returned.
+	 */
+
+	if (tm_time() >= vd->expire) {
+		values_expire(dbkey);
+		return NULL;
+	}
+
+	/*
 	 * OK, we have a value and its type matches.  Build the DHT value.
 	 */
 
@@ -965,6 +1285,13 @@ values_get(guint64 dbkey, dht_value_type_t type)
 	return v;
 }
 
+static void
+install_periodic_expire(void)
+{
+	expire_ev = cq_insert(callout_queue, EXPIRE_PERIOD * 1000,
+		values_periodic_expire, NULL);
+}
+
 /**
  * Initialize values management.
  */
@@ -981,8 +1308,27 @@ values_init(void)
 		NULL, NULL,
 		1, uint64_hash, uint64_eq);
 
+	db_expired = storage_create(db_expwhat, db_expbase,
+		2 * KUID_RAW_SIZE, 0,
+		NULL, NULL,
+		1, kuid_pair_hash, kuid_pair_eq);
+
 	values_per_ip = acct_net_create();
 	values_per_class_c = acct_net_create();
+	expired = g_hash_table_new(uint64_hash, uint64_eq);
+
+	install_periodic_expire();
+}
+
+static void
+expired_free_kv(gpointer key, gpointer u_val, gpointer u_data)
+{
+	guint64 *dbkey = key;
+
+	(void) u_val;
+	(void) u_data;
+
+	atom_uint64_free(dbkey);
 }
 
 /**
@@ -993,9 +1339,14 @@ values_close(void)
 {
 	storage_delete(db_valuedata, db_valbase);
 	storage_delete(db_rawdata, db_rawbase);
-	db_valuedata = db_rawdata = NULL;
+	storage_delete(db_expired, db_expbase);
+	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free(&values_per_ip);
 	acct_net_free(&values_per_class_c);
+
+	g_hash_table_foreach(expired, expired_free_kv, NULL);
+	g_hash_table_destroy(expired);
+	cq_cancel(callout_queue, &expire_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

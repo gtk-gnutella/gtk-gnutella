@@ -49,6 +49,8 @@ size_t values_count(void);
 
 guint16 values_store(const knode_t *kn, const dht_value_t *v, gboolean token);
 dht_value_t *values_get(guint64 dbkey, dht_value_type_t type);
+void values_reclaim_expired(void);
+gboolean values_has_expired(guint64 dbkey, time_t now, time_t *expire);
 
 #endif /* _dht_values_h_ */
 
