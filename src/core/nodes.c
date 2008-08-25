@@ -5942,6 +5942,21 @@ node_udp_get_outq(enum net_type net)
 }
 
 /**
+ * Check whether the UDP node is flow-controlled.
+ */
+gboolean
+node_udp_is_flow_controlled(void)
+{
+	if (udp_node && udp_node->outq && mq_is_flow_controlled(udp_node->outq))
+		return TRUE;
+
+	if (udp6_node && udp6_node->outq && mq_is_flow_controlled(udp6_node->outq))
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
  * Get "fake" node for UDP transmission.
  */
 gnutella_node_t *
@@ -7351,6 +7366,15 @@ void
 node_tx_enter_warnzone(struct gnutella_node *n)
 {
     node_fire_node_flags_changed(n);
+
+	/*
+	 * UDP output is critical for proper Gnutella and DHT operations.
+	 * Ask for urgent bandwidth stealing, enough to flush past the
+	 * low watermark.
+	 */
+
+	if (NODE_IS_UDP(n))
+		bsched_set_urgent(BSCHED_BWS_GOUT_UDP, mq_lowat(n->outq));
 }
 
 /**
@@ -7374,6 +7398,16 @@ node_tx_enter_flowc(struct gnutella_node *n)
 		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
 
     node_fire_node_flags_changed(n);
+
+	/*
+	 * UDP output is critical for proper Gnutella and DHT operations.
+	 * Ask for urgent bandwidth stealing, enough to flush past the
+	 * low watermark to clear the flow-control condition quickly.
+	 */
+
+	if (NODE_IS_UDP(n))
+		bsched_set_urgent(BSCHED_BWS_GOUT_UDP,
+			mq_size(n->outq) - mq_lowat(n->outq));
 }
 
 /**
