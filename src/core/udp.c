@@ -233,7 +233,6 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	inet_udp_got_incoming(s->addr);
-	bws_udp_count_read(s->pos);
 
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.
