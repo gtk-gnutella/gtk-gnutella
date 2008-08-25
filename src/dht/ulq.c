@@ -57,6 +57,8 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "core/nodes.h"
+
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
@@ -73,6 +75,7 @@ struct ulq {
 	fifo_t *q;						/**< Queue is a FIFO */
 	slist_t *launched;				/**< Launched lookups */
 	int running;					/**< Amount of launched lookups */
+	gboolean udp_flow_controlled;	/**< Whether UDP was flow-controlled */
 };
 
 /**
@@ -191,8 +194,10 @@ ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 
 /**
  * Launch an enqueued lookup.
+ *
+ * @return whether a lookup was actually launched
  */
-static void
+static gboolean
 ulq_launch(void)
 {
 	nlookup_t *nl;
@@ -239,6 +244,8 @@ initialized:
 		(*ui->err)(ui->kuid, LOOKUP_E_EMPTY_ROUTE, ui->arg);
 		free_ulq_item(ui);
 	}
+
+	return nl != NULL;
 }
 
 /**
@@ -251,19 +258,24 @@ initialized:
 static void
 ulq_service(void)
 {
-	if (NULL == ulq)
-		return;
-
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_message("DHT ULQ service on entry: has %d running and %d pending",
 			ulq->running, fifo_count(ulq->q));
 
-	while (fifo_count(ulq->q) && ulq->running < ULQ_MAX_RUNNING)
-		ulq_launch();
+	while (fifo_count(ulq->q) > 0 && ulq->running < ULQ_MAX_RUNNING) {
+		if (!ulq_launch())
+			continue;
+		if (ulq->udp_flow_controlled)
+			break;
+	}
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+	ulq->udp_flow_controlled = FALSE;
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT ULQ service at exit: has %d running and %d pending",
 			ulq->running, fifo_count(ulq->q));
+
+	g_assert(ulq->running || 0 == fifo_count(ulq->q));	/* Ensures not stuck */
 }
 
 /**
@@ -274,6 +286,26 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 {
 	(void) unused_cq;
 	(void) unused_obj;
+
+	if (NULL == ulq)
+		return;
+
+	/*
+	 * DHT lookups can stress the outgoing UDP queue.
+	 *
+	 * If the UDP queue is flow-controlled, do not add another DHT lookup
+	 * yet: rather wait for 5 more seconds and check again. Also remember
+	 * that we experienced a flow-control situation.
+	 */
+
+	if (node_udp_is_flow_controlled()) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_warning("DHT ULQ deferring servicing: UDP queue flow-controlled");
+
+		ulq->udp_flow_controlled = TRUE;
+		cq_insert(callout_queue, 5*1000, ulq_do_service, NULL);
+		return;
+	}
 
 	ulq_service();
 }
