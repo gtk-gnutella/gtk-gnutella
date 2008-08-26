@@ -27,6 +27,7 @@
 #define _if_dht_dht_h_
 
 #include "lib/host_addr.h"
+#include "if/core/hosts.h"
 
 typedef enum {
 	DHT_MODE_INACTIVE = 0x0,		/**< DHT capable, but not in DHT */
@@ -49,6 +50,7 @@ gboolean dht_bootstrapped(void);
 gboolean dht_enabled(void);
 void dht_ipp_extract(
 	const struct gnutella_node *n, const char *payload, int paylen);
+int dht_fill_random(gnet_host_t *hvec, int hcnt);
 
 void dht_route_store_if_dirty(void);
 void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);

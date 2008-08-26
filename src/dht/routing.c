@@ -85,6 +85,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
+#include "lib/map.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1038,7 +1039,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 	else {
 		kuid_t id;
 
-		random_bytes(id.v, KUID_RAW_SIZE);
+		random_bytes(id.v, sizeof id.v);
 
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT improving bootstrap with random KUID is %s",
@@ -2659,6 +2660,50 @@ dht_fill_closest(
 	}
 
 	return added;
+}
+
+/**
+ * Fill the supplied vector `hvec' whose size is `hcnt' with the addr:port
+ * of random hosts in the routing table.
+ *
+ * @param hvec		base of the "gnet_host_t *" vector
+ * @param hcnt		size of the "gnet_host_t *" vector
+ *
+ * @return the amount of entries filled in the vector.
+ */
+int
+dht_fill_random(gnet_host_t *hvec, int hcnt)
+{
+	int i, j;
+	int maxtry;
+	map_t *seen;
+
+	g_assert(hcnt < MIN_INT_VAL(int) / 2);
+
+	maxtry = hcnt + hcnt;
+	seen = map_create_patricia(KUID_RAW_SIZE);
+
+	for (i = j = 0; i < hcnt && j < maxtry; i++, j++) {
+		kuid_t id;
+		struct kbucket *kb;
+		knode_t *kn;
+		
+		random_bytes(id.v, sizeof id.v);
+		kb = dht_find_bucket(&id);
+		kn = hash_list_tail(list_for(kb, KNODE_GOOD));	/* Recently seen */
+
+		if (NULL == kn || map_contains(seen, &kb->prefix)) {
+			i--;
+			continue;	/* Bad luck: empty list or already seen */
+		}
+
+		gnet_host_set(&hvec[i], kn->addr, kn->port);
+		map_insert(seen, &kb->prefix, NULL);
+	}
+
+	map_destroy(seen);
+
+	return i;			/* Amount filled in vector */
 }
 
 /**
