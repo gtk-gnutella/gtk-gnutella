@@ -478,6 +478,32 @@ keys_has(const kuid_t *id, const kuid_t *cid, gboolean store)
 }
 
 /**
+ * Reclaim key info and data.
+ *
+ * @attention
+ * This is called from a patricia_foreach_remove() iterator callback, hence
+ * we must not remove `ki' from the PATRICIA tree, this will happen as part
+ * of the iteration.  It is perfectly safe to destroy the key and the value
+ * however since the iterator works at the PATRICIA node level.
+ */
+static void
+keys_reclaim(struct keyinfo *ki)
+{
+	g_assert(ki);
+	g_assert(0 == ki->values);
+
+	if (GNET_PROPERTY(dht_storage_debug) > 1)
+		g_message("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
+
+	dbmw_delete(db_keydata, ki->kuid);
+
+	kuid_atom_free_null(&ki->kuid);
+	wfree(ki, sizeof *ki);
+
+	gnet_stats_count_general(GNR_DHT_KEYS_HELD, -1);
+}
+
+/**
  * Remove value from a key, discarding the association between the creator ID
  * and the 64-bit DB key.
  *
@@ -511,36 +537,34 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 	g_assert(idx >= 0 && idx < kd->values);
 	g_assert(dbkey == kd->dbkeys[idx]);
 
+	if (idx < kd->values - 1) {
+		memmove(&kd->creators[idx], &kd->creators[idx+1],
+			sizeof(kd->creators[0]) * (kd->values - idx - 1));
+		memmove(&kd->dbkeys[idx], &kd->dbkeys[idx+1],
+			sizeof(kd->dbkeys[0]) * (kd->values - idx - 1));
+	}
+
 	/*
-	 * If at least a value remains, we keep the key around.
+	 * We do not synchronously delete empty keys.
+	 *
+	 * This lets us optimize the nominal case whereby a key loses all its
+	 * values due to a STORE request causing a lifetime check.  But the
+	 * STORE will precisely insert back another value.
+	 *
+	 * Hence lazy expiration also gives us the opportunity to further exploit
+	 * caching in memory, the keyinfo being hel there as a "cached" value.
+	 *
+	 * Reclaiming of dead keys happens during periodic key load computation.
 	 */
 
-	if (kd->values > 1) {
-		if (idx < kd->values - 1) {
-			memmove(&kd->creators[idx], &kd->creators[idx+1],
-				sizeof(kd->creators[0]) * (kd->values - idx - 1));
-			memmove(&kd->dbkeys[idx], &kd->dbkeys[idx+1],
-				sizeof(kd->dbkeys[0]) * (kd->values - idx - 1));
-		}
-		kd->values--;
-		ki->values--;
-		dbmw_write(db_keydata, id, kd, sizeof *kd);
+	kd->values--;
+	ki->values--;
+	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
-		if (GNET_PROPERTY(dht_storage_debug) > 1)
-			g_message("DHT STORE key %s now holds only %d/%d value%s",
-				kuid_to_hex_string(id), ki->values, MAX_VALUES,
-				1 == ki->values ? "" : "s");
-	} else {
-		patricia_remove(keys, id);
-		kuid_atom_free_null(&ki->kuid);
-		wfree(ki, sizeof *ki);
-		dbmw_delete(db_keydata, id);
-
-		if (GNET_PROPERTY(dht_storage_debug) > 1)
-			g_message("DHT STORE key %s is now gone", kuid_to_hex_string(id));
-
-		gnet_stats_count_general(GNR_DHT_KEYS_HELD, -1);
-	}
+	if (GNET_PROPERTY(dht_storage_debug) > 1)
+		g_message("DHT STORE key %s now holds only %d/%d value%s",
+			kuid_to_hex_string(id), ki->values, MAX_VALUES,
+			1 == ki->values ? "" : "s");
 }
 
 /**
@@ -625,7 +649,6 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 
 		g_assert(kd);			/* XXX need proper error management */
 
-		g_assert(kd->values);
 		g_assert(kd->values == ki->values);
 		g_assert(kd->values < MAX_VALUES);
 
@@ -635,6 +658,16 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				kuid_to_hex_string(id), (gulong) ki->common_bits,
 				1 == ki->common_bits ? "" : "s",
 				kuid_to_hex_string2(cid));
+
+		/*
+		 * Keys are collected asynchronously, so it is possible that
+		 * the key structure still exists, yet holds no values.  If this
+		 * happens, then we win because we spared the useless deletion of
+		 * the key structure to recreate it a little bit later.
+		 */
+
+		if (0 == kd->values)
+			goto empty;
 
 		/*
 		 * Insert KUID of creator in array, which must be kept sorted.
@@ -667,6 +700,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				sizeof(kd->dbkeys[0]) * (kd->values - low));
 		}
 
+	empty:
 		kd->creators[low] = *cid;			/* struct copy */
 		kd->dbkeys[low] = dbkey;
 
@@ -866,8 +900,10 @@ struct load_ctx {
 
 /**
  * PATRICIA iterator to update key's request load.
+ *
+ * @return TRUE if the key item holds no value and must be removed.
  */
-static void
+static gboolean
 keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 {
 	struct keyinfo *ki = val;
@@ -878,6 +914,19 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
+	/*
+	 * If we encounter a dead key, reclaim it.
+	 */
+
+	if (0 == ki->values) {
+		keys_reclaim(ki);
+		return TRUE;			/* Node must be deleted from PATRICIA tree */
+	}
+
+	/*
+	 * Compute EMA of get and store requests.
+	 */
+
 	ki->get_req_load = LOAD_SMOOTH * ki->get_requests +
 		(1 - LOAD_SMOOTH) * ki->get_req_load;
 	ki->get_requests = 0;
@@ -886,11 +935,14 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 		(1 - LOAD_SMOOTH) * ki->store_req_load;
 	ki->store_requests = 0;
 
-	ctx->values += ki->values;		/* For sanity checks */
+	ctx->values += ki->values;	/* For sanity checks */
+
+	return FALSE;				/* Node is kept */
 }
 
 /**
  * Callout queue callback for request load updates.
+ * Also reclaims dead keys holding no values.
  */
 static void
 keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
@@ -903,7 +955,7 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
 	install_periodic_load();
 
 	ctx.values = 0;
-	patricia_foreach(keys, keys_update_load, &ctx);
+	patricia_foreach_remove(keys, keys_update_load, &ctx);
 
 	g_assert(values_count() == ctx.values);
 
