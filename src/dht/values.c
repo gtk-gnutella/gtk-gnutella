@@ -333,16 +333,17 @@ dht_value_lifetime(dht_value_type_t type)
 	case DHT_VT_ALOC:
 		lifetime = DHT_VALUE_ALOC_EXPIRE;
 		break;
+	case DHT_VT_ANY:
+		g_error("ANY is not a valid DHT value type");
+		lifetime = 0;		/* For compilers */
+		break;
 	case DHT_VT_BINARY:
 	case DHT_VT_GTKG:
 	case DHT_VT_LIME:
 	case DHT_VT_TEST:
 	case DHT_VT_TEXT:
+	default:
 		lifetime = DHT_VALUE_EXPIRE;
-		break;
-	case DHT_VT_ANY:
-		g_error("ANY is not a valid DHT value type");
-		lifetime = 0;		/* For compilers */
 		break;
 	}
 
@@ -1122,7 +1123,7 @@ expired:
 	gnet_stats_count_general(GNR_DHT_STALE_REPLICATION, 1);
 
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE detected replication of expired data %s by %s",
+		g_message("DHT STORE detected replication of expired data %s from %s",
 			dht_value_to_string(v), knode_to_string(kn));
 	
 	return STORE_SC_OK;		/* No error reported, data is stale and must die */

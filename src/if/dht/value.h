@@ -33,7 +33,7 @@
 
 #include "lib/tm.h"
 
-#define VALUE_TYPE_CODE(a,b,c,d) (	\
+#define VT_CODE(a,b,c,d) (	\
 	((guint32) (a) << 24) | \
 	((guint32) (b) << 16) | \
 	((guint32) (c) << 8)  | \
@@ -46,17 +46,18 @@
  */
 typedef enum {
 	DHT_VT_BINARY	= 0x00000000,
-	DHT_VT_ALOC		= VALUE_TYPE_CODE('A','L','O','C'),
-	DHT_VT_GTKG		= VALUE_TYPE_CODE('G','T','K','G'),
-	DHT_VT_LIME		= VALUE_TYPE_CODE('L','I','M','E'),
-	DHT_VT_PROX		= VALUE_TYPE_CODE('P','R','O','X'),
-	DHT_VT_TEST		= VALUE_TYPE_CODE('T','E','S','T'),
-	DHT_VT_TEXT		= VALUE_TYPE_CODE('T','E','X','T'),
+	DHT_VT_ALOC		= VT_CODE('A','L','O','C'),	/**< Gnutella alt-loc */
+	DHT_VT_BTAL		= VT_CODE('B','T','A','L'),	/**< Bittorrent alt-loc */
+	DHT_VT_GTKG		= VT_CODE('G','T','K','G'),
+	DHT_VT_LIME		= VT_CODE('L','I','M','E'),
+	DHT_VT_PROX		= VT_CODE('P','R','O','X'),
+	DHT_VT_TEST		= VT_CODE('T','E','S','T'),
+	DHT_VT_TEXT		= VT_CODE('T','E','X','T'),
 
-	DHT_VT_ANY		= VALUE_TYPE_CODE('*','*','*','*'),
+	DHT_VT_ANY		= VT_CODE('*','*','*','*'),
 } dht_value_type_t;
 
-#undef VALUE_TYPE_CODE
+#undef VT_CODE
 
 #define DHT_VALUE_MAX_LEN	512		/**< Max value size */
 
