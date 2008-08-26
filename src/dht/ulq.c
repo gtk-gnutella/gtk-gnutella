@@ -98,6 +98,7 @@ struct ulq_item {
 };
 
 static struct ulq *ulq;				/**< The user lookup queue */
+static cevent_t *service_ev;		/**< Servicing event */
 
 static void ulq_needs_servicing(void);
 
@@ -287,8 +288,9 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (NULL == ulq)
-		return;
+	g_assert(ulq);
+
+	service_ev = NULL;
 
 	/*
 	 * DHT lookups can stress the outgoing UDP queue.
@@ -303,7 +305,8 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 			g_warning("DHT ULQ deferring servicing: UDP queue flow-controlled");
 
 		ulq->udp_flow_controlled = TRUE;
-		cq_insert(callout_queue, 5*1000, ulq_do_service, NULL);
+		if (NULL == service_ev)
+			service_ev = cq_insert(callout_queue, 5*1000, ulq_do_service, NULL);
 		return;
 	}
 
@@ -316,7 +319,8 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 static void
 ulq_needs_servicing(void)
 {
-	cq_insert(callout_queue, 1, ulq_do_service, NULL);
+	if (NULL == service_ev)
+		service_ev = cq_insert(callout_queue, 1, ulq_do_service, NULL);
 }
 
 /**
@@ -371,6 +375,7 @@ ulq_init(void)
 	ulq->q = fifo_make();
 	ulq->launched = slist_new();
 	ulq->running = 0;
+	service_ev = NULL;
 }
 
 /**
@@ -390,6 +395,7 @@ free_fifo_item(gpointer item, gpointer unused_data)
 void
 ulq_close(void)
 {
+	cq_cancel(callout_queue, &service_ev);
 	if (ulq) {
 		fifo_free_all(ulq->q, free_fifo_item, NULL);
 		slist_foreach(ulq->launched, free_fifo_item, NULL);
