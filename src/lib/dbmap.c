@@ -233,7 +233,7 @@ dbmap_create_from_sdbm(size_t key_size, DBM *sdbm)
 /**
  * Insert a key/value pair in the DB map.
  *
- * Return success status.
+ * @return success status.
  */
 gboolean
 dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
@@ -298,8 +298,11 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 
 /**
  * Remove a key from the DB map.
+ *
+ * @return success status (not whether the key was present, rather whether
+ * the key has been physically removed).
  */
-void
+gboolean
 dbmap_remove(dbmap_t *dm, gconstpointer key)
 {
 	g_assert(dm);
@@ -338,7 +341,10 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 			dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
 			if (-1 == ret) {
 				/* Could be that value was not found, errno == 0 then */
-				dm->error = errno;
+				if (errno != 0) {
+					dm->error = errno;
+					return FALSE;
+				}
 			} else {
 				g_assert(dm->count);
 				dm->count--;
@@ -348,6 +354,8 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
 	}
+
+	return TRUE;
 }
 
 /**

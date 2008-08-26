@@ -73,7 +73,7 @@ dbmap_t *dbmap_create_from_sdbm(size_t ks, DBM *sdbm);
  */
 
 gboolean dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value);
-void dbmap_remove(dbmap_t *dm, gconstpointer key);
+gboolean dbmap_remove(dbmap_t *dm, gconstpointer key);
 gboolean dbmap_contains(dbmap_t *dm, gconstpointer key);
 dbmap_datum_t dbmap_lookup(dbmap_t *dm, gconstpointer key);
 gpointer dbmap_implementation(const dbmap_t *dm);
