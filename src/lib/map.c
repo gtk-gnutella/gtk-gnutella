@@ -233,7 +233,10 @@ map_contains(const map_t *m, gconstpointer key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return NULL != g_hash_table_lookup(m->u.h.ht, key);
+		{
+			gpointer k, v;
+			return g_hash_table_lookup_extended(m->u.h.ht, key, &k, &v);
+		}
 	case MAP_PATRICIA:
 		return patricia_contains(m->u.p.pt, key);
 	case MAP_MAXTYPE:
