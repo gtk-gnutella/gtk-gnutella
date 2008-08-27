@@ -317,14 +317,8 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
  * This is justified because there are few value removals and this allows
  * us to not store the expiration time of the associated values in the
  * keydata.
- *
- * @attention
- * Do NOT use the `ki' parameter upon return, it may have been deleted if
- * all the values held have expired.
- *
- * @return the amount of values expired.
  */
-static int
+static void
 keys_expire_values(struct keyinfo *ki, time_t now)
 {
 	struct keydata *kd;
@@ -334,7 +328,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 
 	kd = get_keydata(ki->kuid);
 	if (kd == NULL)
-		return 0;				/* XXX DB access error, need better handling */
+		return;				/* XXX DB access error, need better handling */
 
 	g_assert(kd->values == ki->values);
 
@@ -357,13 +351,13 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 		ki->next_expire = next_expire;	/* Next check, if values remain */
 
 	/*
-	 * Reclaim expired values, which will call keys_remove_value() and may
-	 * end up freeing the ki structure.
+	 * Reclaim expired values, which will call keys_remove_value() for each
+	 * value that has expired.
 	 */
 
 	values_reclaim_expired();
 
-	return expired;
+	g_assert(KEYINFO_MAGIC == ki->magic);	/* Reclaim is asynchronous */
 }
 
 /**
@@ -374,7 +368,6 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 {
 	struct keyinfo *ki;
 	time_t now;
-	guint8 values;
 
 	g_assert(id);
 	g_assert(full);
@@ -417,23 +410,19 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	/*
 	 * Check whether we reached the expiration time of one of the values held.
-	 * Try to expire values before answering.  However, this may delete
-	 * the keyinfo structure if all the values have expired, so we MUST NOT
-	 * try to access `ki' upon return from keys_expire_values().
+	 * Try to expire values before answering.
+	 *
+	 * NB: even if all the values are collected from the key, deletion of the
+	 * `ki' structure will not happen immediately: this is done asynchronously
+	 * to avoid disabling a `ki' within a call chain using it.
 	 */
 
 	now = tm_time();
-	values = ki->values;
 
-	if (now >= ki->next_expire) {
-		int expired = keys_expire_values(ki, now);
-		g_assert(expired <= values);
-		values -= expired;
-	}
+	if (now >= ki->next_expire)
+		keys_expire_values(ki, now);
 
-	/* Do not access `ki' any more -- could be gone */
-
-	if (values >= MAX_VALUES)
+	if (ki->values >= MAX_VALUES)
 		*full = TRUE;
 }
 
@@ -896,6 +885,7 @@ install_periodic_kball(int period)
  */
 struct load_ctx {
 	size_t values;
+	time_t now;
 };
 
 /**
@@ -915,7 +905,16 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
 	/*
-	 * If we encounter a dead key, reclaim it.
+	 * Check for expired values.
+	 */
+
+	if (ctx->now >= ki->next_expire)
+		keys_expire_values(ki, ctx->now);
+
+	/*
+	 * Collection of empty keys happens in a separate check because we also
+	 * call keys_expire_values() when we get a STORE request, so we can
+	 * have empty keys already when we reach this place.
 	 */
 
 	if (0 == ki->values) {
@@ -955,6 +954,7 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
 	install_periodic_load();
 
 	ctx.values = 0;
+	ctx.now = tm_time();
 	patricia_foreach_remove(keys, keys_update_load, &ctx);
 
 	g_assert(values_count() == ctx.values);
