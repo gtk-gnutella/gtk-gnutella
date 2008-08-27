@@ -140,7 +140,9 @@ general_type_str(gint value)
 		N_("DHT keys held"),
 		N_("DHT values held"),
 		N_("DHT local hits on value lookups"),
-		N_("DHT replication of stale data avoided"),
+		N_("DHT replication of stale value avoided"),
+		N_("DHT replication of held values"),
+		N_("DHT republishing of held values"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);

@@ -142,6 +142,8 @@ typedef enum {
 	GNR_DHT_VALUES_HELD,
 	GNR_DHT_FETCH_LOCAL_HITS,
 	GNR_DHT_STALE_REPLICATION,
+	GNR_DHT_REPLICATION,
+	GNR_DHT_REPUBLISH,
 	
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;

@@ -729,7 +729,7 @@ wrong:
 	return FALSE;
 }
 
-/*
+/**
  * Check key status: full and loaded attributes.
  *
  * @return error code, STORE_SC_OK meaning we are neither full nor loaded.
@@ -753,6 +753,44 @@ validate_load(const dht_value_t *v)
 }
 
 /**
+ * Check creator's quota: amount of values held from his IP or from
+ * the class C network derived from the IP.
+ *
+ * @return error code, STORE_SC_OK meaning quotas are not reached yet.
+ */
+static guint16
+validate_quotas(const dht_value_t *v)
+{
+	int count;
+	const knode_t *c = v->creator;
+
+	count = acct_net_get(values_per_class_c, c->addr, NET_CLASS_C_MASK);
+
+	if (GNET_PROPERTY(dht_storage_debug) > 2) {
+		guint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
+
+		g_message("DHT STORE has %d/%d value%s for class C network %s",
+			count, MAX_VALUES_NET, 1 == count ? "" : "s",
+			host_addr_to_string(host_addr_get_ipv4(net)));
+	}
+
+	if (count >= MAX_VALUES_NET)
+		return STORE_SC_QUOTA;
+
+	count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
+
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
+		g_message("DHT STORE has %d/%d value%s for IP %s",
+			count, MAX_VALUES_IP, 1 == count ? "" : "s",
+			host_addr_to_string(c->addr));
+
+	if (count >= MAX_VALUES_IP)
+		return STORE_SC_QUOTA;
+
+	return STORE_SC_OK;
+}
+
+/**
  * Validate that we can accept a new value for the key with that creator.
  *
  * @return error code, STORE_SC_OK meaning we can accept the value, any
@@ -761,6 +799,8 @@ validate_load(const dht_value_t *v)
 static guint16
 validate_new_acceptable(const dht_value_t *v)
 {
+	guint16 status;
+
 	/*
 	 * Check whether we have already reached the maximum amount of values
 	 * that we accept to store within our node.
@@ -769,50 +809,12 @@ validate_new_acceptable(const dht_value_t *v)
 	if (values_managed >= MAX_VALUES)
 		return STORE_SC_EXHAUSTED;
 
-	/*
-	 * Check key load.
-	 */
+	status = validate_load(v);			/* Check key load */
 
-	{
-		guint16 status = validate_load(v);
+	if (STORE_SC_OK == status)
+		status = validate_quotas(v);	/* Check creator's quotas */
 
-		if (status != STORE_SC_OK)
-			return status;
-	}
-
-	/*
-	 * Check creator quotas.
-	 */
-
-	{
-		int count;
-		const knode_t *c = v->creator;
-
-		count = acct_net_get(values_per_class_c, c->addr, NET_CLASS_C_MASK);
-
-		if (GNET_PROPERTY(dht_storage_debug) > 2) {
-			guint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
-
-			g_message("DHT STORE has %d/%d value%s for class C network %s",
-				count, MAX_VALUES_NET, 1 == count ? "" : "s",
-				host_addr_to_string(host_addr_get_ipv4(net)));
-		}
-
-		if (count >= MAX_VALUES_NET)
-			return STORE_SC_QUOTA;
-
-		count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
-
-		if (GNET_PROPERTY(dht_storage_debug) > 2)
-			g_message("DHT STORE has %d/%d value%s for IP %s",
-				count, MAX_VALUES_IP, 1 == count ? "" : "s",
-				host_addr_to_string(c->addr));
-
-		if (count >= MAX_VALUES_IP)
-			return STORE_SC_QUOTA;
-	}
-
-	return STORE_SC_OK;
+	return status;
 }
 
 /**
@@ -841,6 +843,24 @@ values_expire_time(const kuid_t *key, dht_value_type_t type)
 static void
 fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 {
+	/*
+	 * If the IP address of the creator changes during a republishing,
+	 * update the quotas accordingly.  Initially, the address is not
+	 * initialized, and therefore will never be equal to the creator's, hence
+	 * we will enter the if() below at the first publish .
+	 */
+
+	if (!host_addr_equal(vd->addr, cn->addr)) {
+		if (host_addr_initialized(vd->addr)) {
+			/* Republished from a different IP address */
+			acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
+			acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
+		}
+		/* First publish or republishing from a different IP address */
+		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
+		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
+	}
+
 	vd->publish = tm_time();
 	vd->replicated = 0;
 	vd->expire = values_expire_time(v->id, v->type);
@@ -958,6 +978,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			return acceptable;
 
 		vd = &new_vd;
+		memset(&new_vd, 0, sizeof new_vd);
 
 		/*
 		 * We don't have the value, but if this is not an original, we
@@ -985,8 +1006,6 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		keys_add_value(v->id, cn->id, dbkey, vd->expire);
 
 		values_managed++;
-		acct_net_update(values_per_class_c, cn->addr, NET_CLASS_C_MASK, +1);
-		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
 		gnet_stats_count_general(GNR_DHT_VALUES_HELD, +1);
 	} else {
 		gboolean is_original = kuid_eq(kn->id, v->creator->id);
@@ -1055,6 +1074,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			values_unexpire(dbkey);
 			kuid_pair_was_republished(&vd->id, &vd->cid);
 			keys_update_value(&vd->id, vd->expire);
+			gnet_stats_count_general(GNR_DHT_REPUBLISH, 1);
 		}
 	}
 
@@ -1090,6 +1110,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 */
 
 		vd->replicated = tm_time();
+		gnet_stats_count_general(GNR_DHT_REPLICATION, 1);
 	} else {
 		/*
 		 * We got either new data or something republished by the creator.
