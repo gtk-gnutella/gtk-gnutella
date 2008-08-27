@@ -77,11 +77,17 @@ struct dbmw {
 
 /**
  * A cached entry (deserialized value). 
+ *
+ * A clean item found in the DB has dirty=FALSE, absent=FALSE.
+ * A dirty item (new or modified) has dirty=TRUE, absent=FALSE.
+ * An item that does not exist has dirty=FALSE, absent=TRUE.
+ * A deleted item has dirty=TRUE, absent=TRUE.
  */
 struct cached {
 	gpointer data;				/**< Value data */
 	int len;					/**< Length of data */
 	gboolean dirty;				/**< Whether entry is dirty */
+	gboolean absent;			/**< Whether entry is absent from database */
 };
 
 /**
@@ -220,41 +226,59 @@ static void
 write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 {
 	dbmap_datum_t dval;
+	gboolean ok;
 
-	/*
-	 * Serialize value into our reused message block if a serialization
-	 * routine was provided.
-	 */
+	g_assert(value->dirty);
 
-	if (dw->pack) {
-		pmsg_reset(dw->mb);
-		(*dw->pack)(dw->mb, value->data);
-
-		dval.data = pmsg_start(dw->mb);
-		dval.len = pmsg_size(dw->mb);
+	if (value->absent) {
+		/* Key not present, value is null item */
+		dval.data = NULL;
+		dval.len = 0;
 	} else {
-		dval.data = value->data;
-		dval.len = value->len;
+		/*
+		 * Serialize value into our reused message block if a
+		 * serialization routine was provided.
+		 */
+
+		if (dw->pack) {
+			pmsg_reset(dw->mb);
+			(*dw->pack)(dw->mb, value->data);
+
+			dval.data = pmsg_start(dw->mb);
+			dval.len = pmsg_size(dw->mb);
+		} else {
+			dval.data = value->data;
+			dval.len = value->len;
+		}
 	}
 
 	/*
-	 * Store serialized value, clearing dirty bit on success.
+	 * If cached entry is absent, delete the key.
+	 * Otherwise store the serialized value.
+	 *
+	 * Dirty bit is cleared on success.
 	 */
 
 	if (common_dbg > 4)
-		g_message("DBMW \"%s\" flushing dirty value (%d byte%s)",
-			dw->name, dval.len, 1 == dval.len ? "" : "s");
+		g_message("DBMW \"%s\" %s dirty value (%d byte%s)",
+			dw->name, value->absent ? "deleting" : "flushing",
+			dval.len, 1 == dval.len ? "" : "s");
 
-	if (dbmap_insert(dw->dm, key, dval)) {
+	ok = value->absent ?
+		dbmap_remove(dw->dm, key) : dbmap_insert(dw->dm, key, dval);
+
+	if (ok) {
 		value->dirty = FALSE;
 	} else if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW I/O error whilst flushing dirty entry for \"%s\": %s",
-			dw->name, dbmap_strerror(dw->dm));
+		g_warning("DBMW I/O error whilst %s dirty entry for \"%s\": %s",
+			value->absent ? "deleting" : "flushing", dw->name,
+			dbmap_strerror(dw->dm));
 	} else {
-		g_warning("DBMW error whilst flushing dirty entry for \"%s\": %s",
-			dw->name, dbmap_strerror(dw->dm));
+		g_warning("DBMW error whilst %s dirty entry for \"%s\": %s",
+			value->absent ? "deleting" : "flushing", dw->name,
+			dbmap_strerror(dw->dm));
 	}
 }
 
@@ -357,6 +381,8 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 	 * Add entry into cache.
 	 */
 
+	g_assert(entry);
+
 	hash_list_append(dw->keys, saved_key);
 	map_insert(dw->values, saved_key, entry);
 
@@ -364,7 +390,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 }
 
 /**
- * Fill cache entry structure with value data, marking it dirty.
+ * Fill cache entry structure with value data, marking it dirty and present.
  */
 static void
 fill_entry(struct cached *entry, gpointer value, size_t length)
@@ -395,6 +421,7 @@ fill_entry(struct cached *entry, gpointer value, size_t length)
 	}
 
 	entry->dirty = TRUE;
+	entry->absent = FALSE;
 
 	g_assert(!entry->len == !entry->data);
 }
@@ -433,12 +460,14 @@ write_immediately(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 	tmp.data = value;
 	tmp.len = length;
 	tmp.dirty = TRUE;
+	tmp.absent = FALSE;
 
 	write_back(dw, key, &tmp);
 }
 
 /**
- * Write value to the database file immediately, without caching.
+ * Write value to the database file immediately, without caching for write-back
+ * nor for future reading.
  *
  * @param dw		the DBM wrapper
  * @param key		the key (constant-width, determined at open time)
@@ -481,10 +510,12 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
-		fill_entry(entry, value, length);
-		hash_list_moveto_tail(dw->keys, key);
 		if (entry->dirty)
 			dw->w_hits++;
+		else if (entry->absent)
+			dw->count_needs_sync = TRUE;	/* Key exists now */
+		fill_entry(entry, value, length);
+		hash_list_moveto_tail(dw->keys, key);
 	} else if (dw->max_cached > 1) {
 		entry = allocate_entry(dw, key, NULL);
 		fill_entry(entry, value, length);
@@ -548,7 +579,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	 * Value was found, allocate a cache entry object for it.
 	 */
 
-	entry = walloc(sizeof *entry);
+	entry = walloc0(sizeof *entry);
 
 	/*
 	 * Deserialize data if needed.
@@ -618,7 +649,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	entry = map_lookup(dw->values, key);
 	if (entry) {
 		dw->r_hits++;
-		return TRUE;
+		return !entry->absent;
 	}
 
 	ret = dbmap_contains(dw->dm, key);
@@ -631,6 +662,21 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 		return FALSE;
 	}
 
+	/*
+	 * If the maximum value length of the DB is 0, then it is used as a
+	 * "search table" only, meaning there will be no read to get values,
+	 * only existence checks.
+	 *
+	 * Therefore, it makes sense to cache existence checks.  A data read
+	 * will also correctly return a null item from the cache.
+	 */
+
+	if (0 == dw->value_size) {
+		entry = walloc0(sizeof *entry);
+		entry->absent = !ret;
+		(void) allocate_entry(dw, key, entry);
+	}
+
 	return ret;
 }
 
@@ -640,18 +686,48 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 void
 dbmw_delete(dbmw_t *dw, gconstpointer key)
 {
+	struct cached *entry;
+
 	g_assert(dw);
 	g_assert(key);
 
-	(void) remove_entry(dw, key, TRUE, FALSE);	/* Discard any cached data */
+	dw->w_access++;
 
-	dbmap_remove(dw->dm, key);
+	entry = map_lookup(dw->values, key);
+	if (entry) {
+		if (entry->dirty)
+			dw->w_hits++;
+		if (!entry->absent) {
+			dw->count_needs_sync = TRUE;	/* Deferred delete */
+			fill_entry(entry, NULL, 0);
+			entry->absent = TRUE;
+		}
+		hash_list_moveto_tail(dw->keys, key);
+	} else {
+		dbmap_remove(dw->dm, key);
 
-	if (dbmap_has_ioerr(dw->dm)) {
-		dw->ioerr = TRUE;
-		dw->error = errno;
-		g_warning("DBMW I/O error whilst deleting key for \"%s\": %s",
-			dw->name, dbmap_strerror(dw->dm));
+		if (dbmap_has_ioerr(dw->dm)) {
+			dw->ioerr = TRUE;
+			dw->error = errno;
+			g_warning("DBMW I/O error whilst deleting key for \"%s\": %s",
+				dw->name, dbmap_strerror(dw->dm));
+		}
+
+		/*
+		 * If the maximum value length of the DB is 0, then it is used as a
+		 * "search table" only, meaning there will be no read to get values,
+		 * only existence checks.
+		 *
+		 * Therefore, it makes sense to cache that the key is no longer valid.
+		 * Otherwise, possibly pushing a value out of the cache to record
+		 * a deletion is not worth it.
+		 */
+
+		if (0 == dw->value_size) {
+			entry = walloc0(sizeof *entry);
+			entry->absent = TRUE;
+			(void) allocate_entry(dw, key, entry);
+		}
 	}
 }
 
