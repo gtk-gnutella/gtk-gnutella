@@ -348,18 +348,15 @@ static const char *
 ulq_queue_status(void)
 {
 	static char buf[80];
-	size_t i;
-	int offset = 0;
+	size_t i, offset = 0;
 
 	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
 		struct ulq *uq = ulq[i];
 
 		offset += gm_snprintf(&buf[offset], sizeof(buf) - offset,
-			"%s: %d/%d, ", uq->name, uq->running, fifo_count(uq->q));
+			"%s%s: %u/%u", offset > 0 ? ", " : "",
+			uq->name, uq->running, fifo_count(uq->q));
 	}
-
-	if (offset >= 2)
-		buf[offset - 2] = '\0';		/* Remove trailing ", " in string */
 
 	return buf;
 }
