@@ -712,6 +712,10 @@ guint32  gnet_property_variable_dht_storage_debug     = 0;
 static const guint32  gnet_property_variable_dht_storage_debug_default = 0;
 guint32  gnet_property_variable_dht_publish_debug     = 0;
 static const guint32  gnet_property_variable_dht_publish_debug_default = 0;
+guint32  gnet_property_variable_bw_dht_lookup_out     = 2048;
+static const guint32  gnet_property_variable_bw_dht_lookup_out_default = 2048;
+guint32  gnet_property_variable_bw_dht_lookup_in     = 8192;
+static const guint32  gnet_property_variable_bw_dht_lookup_in_default = 8192;
 
 static prop_set_t *gnet_property;
 
@@ -6831,6 +6835,46 @@ gnet_prop_init(void) {
     gnet_property->props[320].data.guint32.choices = NULL;
     gnet_property->props[320].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[320].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_BW_DHT_LOOKUP_OUT:
+     *
+     * General data:
+     */
+    gnet_property->props[321].name = "output_dht_lookup_bandwidth";
+    gnet_property->props[321].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket. Output needs are lower than input.");
+    gnet_property->props[321].ev_changed = event_new("bw_dht_lookup_out_changed");
+    gnet_property->props[321].save = TRUE;
+    gnet_property->props[321].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[321].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[321].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_lookup_out_default;
+    gnet_property->props[321].data.guint32.value = (void *) &gnet_property_variable_bw_dht_lookup_out;
+    gnet_property->props[321].data.guint32.choices = NULL;
+    gnet_property->props[321].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[321].data.guint32.min   = 512;
+
+
+    /*
+     * PROP_BW_DHT_LOOKUP_IN:
+     *
+     * General data:
+     */
+    gnet_property->props[322].name = "input_dht_lookup_bandwidth";
+    gnet_property->props[322].desc = _("Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for limiting concurrent publishing and searching.  Traffic is made on the Gnutella UDP socket and cannot therefore be truly controlled.  Input needs are much larger than output as far as lookups are concerned.");
+    gnet_property->props[322].ev_changed = event_new("bw_dht_lookup_in_changed");
+    gnet_property->props[322].save = TRUE;
+    gnet_property->props[322].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[322].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[322].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_lookup_in_default;
+    gnet_property->props[322].data.guint32.value = (void *) &gnet_property_variable_bw_dht_lookup_in;
+    gnet_property->props[322].data.guint32.choices = NULL;
+    gnet_property->props[322].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[322].data.guint32.min   = 2048;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -208,6 +208,7 @@ prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] =
     {N_("Ping"), MSG_INIT},
     {N_("Pong"), MSG_INIT_RESPONSE},
     {N_("Bye"), MSG_BYE},
+    {N_("DHT"), MSG_DHT},
     {N_("QRP"), MSG_QRP},
     {N_("HSEP"), MSG_HSEP},
     {N_("RUDP"), MSG_RUDP},

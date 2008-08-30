@@ -3680,4 +3680,35 @@ prop = {
     };
 };
 
+prop = {
+    name = "bw_dht_lookup_out";
+    cfgvar = "output_dht_lookup_bandwidth";
+    desc = "Bandwidth hint for DHT user lookups, in bytes/sec. "
+			"This is used both for limiting concurrent publishing and "
+			"searching.  Traffic is made on the Gnutella UDP socket. "
+			"Output needs are lower than input.";
+    type = guint32;
+    data = {
+        default = 2048;
+        min     = 512;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "bw_dht_lookup_in";
+    cfgvar = "input_dht_lookup_bandwidth";
+    desc = "Bandwidth hint for DHT user lookups, in bytes/sec. "
+			"This is used both for limiting concurrent publishing and "
+			"searching.  Traffic is made on the Gnutella UDP socket and "
+			"cannot therefore be truly controlled.  Input needs are much "
+			"larger than output as far as lookups are concerned.";
+    type = guint32;
+    data = {
+        default = 8192;
+        min     = 2048;
+        max     = BS_BW_MAX;
+    };
+};
+
 /* vi: set ts=4: */

@@ -792,6 +792,10 @@ prop = {
 		value = MSG_BYE;
 	};
 	choice = {
+		name = "DHT";
+		value = MSG_DHT;
+	};
+	choice = {
 		name = "QRP";
 		value = MSG_QRP;
 	};
