@@ -64,7 +64,7 @@ RCSID("$Id$")
 #define NL_MAX_UDP_DROPS	10		/* Threshold to abort lookups */
 #define NL_VAL_MAX_RETRY	3		/* Max RPC retries to fetch sec keys */
 #define NL_FIND_DELAY		5000	/* 5 seconds, in ms */
-#define NL_VAL_DELAY		2000	/* 2 seconds, in ms */
+#define NL_VAL_DELAY		1000	/* 1 second, in ms */
 
 /**
  * Table keeping track of all the node lookup objects that we have created
@@ -123,7 +123,6 @@ struct fvalue {
 	int rpc_pending;			/**< Amount of RPC pending */
 	int msg_pending;			/**< Amount of messages pending */
 	int nodes;					/**< Amount of nodes that sent back a value */
-	gboolean waited;			/**< Did we wait for other RPCs to come back? */
 };
 
 /**
@@ -152,6 +151,7 @@ struct nlookup {
 		} fv;
 	} u;
 	lookup_cb_err_t err;		/**< Error callback */
+	lookup_cb_stats_t stats;	/**< Statistics callback */
 	gpointer arg;				/**< Common callback opaque argument */
 	lookup_type_t type;			/**< Type of lookup (NODE or VALUE) */
 	enum parallelism mode;		/**< Parallelism mode */
@@ -520,16 +520,38 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 }
 
 /**
+ * Invoke statistics callback, if added by user.
  * Log final statistics.
  */
 static void
-log_final_stats(nlookup_t *nl)
+lookup_final_stats(nlookup_t *nl)
 {
+	lookup_check(nl);
+
 	tm_now_exact(&nl->end);
 
-	g_message("DHT LOOKUP[%d] %lf secs, hops=%u, in=%d bytes, out=%d bytes",
-		nl->lid, tm_elapsed_f(&nl->end, &nl->start), nl->hops,
-		nl->bw_incoming, nl->bw_outgoing);
+	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
+		g_message("DHT LOOKUP[%d] %lf secs, hops=%u, in=%d bytes, out=%d bytes",
+			nl->lid, tm_elapsed_f(&nl->end, &nl->start), nl->hops,
+			nl->bw_incoming, nl->bw_outgoing);
+
+	/*
+	 * Optional statistics callback, added via lookup_ctrl_stats() after
+	 * successful lookup creation.
+	 */
+
+	if (nl->stats) {
+		struct lookup_stats stats;
+
+		stats.elapsed = tm_elapsed_f(&nl->end, &nl->start);
+		stats.msg_sent = nl->msg_sent;
+		stats.msg_dropped = nl->msg_dropped;
+		stats.rpc_replies = nl->rpc_replies;
+		stats.bw_outgoing = nl->bw_outgoing;
+		stats.bw_incoming = nl->bw_incoming;
+
+		(*nl->stats)(nl->kuid, &stats, nl->arg);
+	}
 }
 
 /**
@@ -547,8 +569,7 @@ lookup_abort(nlookup_t *nl, lookup_error_t error)
 			nl->lid, lookup_type_to_string(nl->type),
 			kuid_to_hex_string(nl->kuid), lookup_strerror(error));
 
-	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
-		log_final_stats(nl);
+	lookup_final_stats(nl);
 
 	if (nl->err)
 		(*nl->err)(nl->kuid, error, nl->arg);
@@ -700,8 +721,7 @@ lookup_terminate(nlookup_t *nl)
 			nl->lid, lookup_type_to_string(nl->type),
 			kuid_to_hex_string(nl->kuid));
 
-	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
-		log_final_stats(nl);
+	lookup_final_stats(nl);
 
 	if (LOOKUP_NODE == nl->type) {
 		if (nl->u.fn.ok) {
@@ -748,8 +768,7 @@ lookup_value_terminate(nlookup_t *nl,
 			kuid_to_hex_string(nl->kuid),
 			vcnt, 1 == vcnt ? "" : "s");
 
-	if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug))
-		log_final_stats(nl);
+	lookup_final_stats(nl);
 
 	if (!local) {
 		/*
@@ -983,7 +1002,7 @@ lookup_value_append(nlookup_t *nl, float load,
 			fv->vvec[fv->vcnt++] = v;
 			map_insert(fv->seen, v->id, v);
 		} else {
-			if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			if (GNET_PROPERTY(dht_lookup_debug) > 1)
 				g_message("DHT LOOKUP[%d] ignoring duplicate value %s",
 					nl->lid, dht_value_to_string(v));
 		}
@@ -1112,18 +1131,18 @@ lookup_value_done(nlookup_t *nl)
 
 	/*
 	 * If we have still some pending FIND_VALUE RPCs, wait for them by
-	 * delaying another iteration, unless we have already done that in
-	 * which case we can finish: they will probably time out then.
+	 * delaying another iteration.
 	 */
 
-	if (!fv->waited && nl->rpc_pending > 0) {
-		fv->waited = TRUE;
-		lookup_value_delay(nl);
-
+	if (nl->rpc_pending > 0) {
 		if (GNET_PROPERTY(dht_lookup_debug) > 1)
 			g_message("DHT LOOKUP[%d] "
-				"giving a chance to %d pending FIND_VALUE RPC%s",
-				nl->lid, nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+				"%sgiving a chance to %d pending FIND_VALUE RPC%s",
+				nl->lid, NULL == fv->delay_ev ? "" : "already ",
+				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+
+		if (NULL == fv->delay_ev)		/* If not already delayed */
+			lookup_value_delay(nl);
 
 		return;
 	}
@@ -2476,6 +2495,20 @@ lookup_cancel(nlookup_t *nl, gboolean callback)
 		(*nl->err)(nl->kuid, LOOKUP_E_CANCELLED, nl->arg);
 
 	lookup_free(nl, TRUE);
+}
+
+/**
+ * Add request for additional statistics reporting at the end of the
+ * lookup.  The callback is invoked BEFORE delivering actual results
+ * or error status.  The additional callback argument is the same as
+ * the one used for delivering results or errors.
+ */
+void
+lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats)
+{
+	lookup_check(nl);
+
+	nl->stats = stats;
 }
 
 /**

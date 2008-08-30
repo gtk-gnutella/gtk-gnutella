@@ -84,6 +84,28 @@ typedef struct lookup_result {
 typedef void (*lookup_cb_ok_t)(
 	const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg);
 
+/**
+ * Lookup statistics.
+ */
+struct lookup_stats {
+	double elapsed;				/**< Elapsed time in seconds */
+	int msg_sent;				/**< Amount of messages sent */
+	int msg_dropped;			/**< Amount of messages dropped */
+	int rpc_replies;			/**< Amount of valid RPC replies */
+	int bw_outgoing;			/**< Amount of outgoing bandwidth used */
+	int bw_incoming;			/**< Amount of incoming bandwidth used */
+};
+
+/**
+ * Node lookup callback invoked to provide statistics upon completion.
+ *
+ * @param kuid		the KUID that was looked for
+ * @param stats		the lookup stats
+ * @param arg		additional callback opaque argument
+ */
+typedef void (*lookup_cb_stats_t)(
+	const kuid_t *kuid, const struct lookup_stats *ls, gpointer arg);
+
 /*
  * Public interface.
  */
@@ -98,6 +120,7 @@ nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
 nlookup_t *lookup_find_node(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
+void lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats);
 void lookup_cancel(nlookup_t *nl, gboolean callback);
 void lookup_free_results(const lookup_rs_t *rs);
 
