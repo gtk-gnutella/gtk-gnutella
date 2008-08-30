@@ -108,7 +108,7 @@ kmsg_handle(knode_t *kn,
 	guint8 function;
 	const struct kmsg *km;
 
-	if (GNET_PROPERTY(dht_debug > 3)) {
+	if (GNET_PROPERTY(dht_debug > 1)) {
 		g_message("DHT got %s from %s",
 			kmsg_infostr(header), knode_to_string(kn));
 		if (len && GNET_PROPERTY(dht_debug > 19))
@@ -1554,7 +1554,7 @@ void kmsg_received(
 	g_assert(kn == NULL || !(kn->flags & KNODE_F_FIREWALLED));
 
 	if (NULL == kn) {
-		if (GNET_PROPERTY(dht_debug))
+		if (GNET_PROPERTY(dht_debug) > 2)
 			g_message("DHT traffic from new %s%snode %s at %s (%s v%u.%u)",
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
 				(flags & KDA_MSG_F_SHUTDOWNING) ? "shutdowning " : "",
@@ -1566,7 +1566,7 @@ void kmsg_received(
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
-		if (GNET_PROPERTY(dht_debug))
+		if (GNET_PROPERTY(dht_debug) > 2)
 			g_message("DHT traffic from known %s %s%snode %s at %s (%s v%u.%u)",
 				knode_status_to_string(kn->status),
 				(flags & KDA_MSG_F_FIREWALLED) ? "firewalled " : "",
