@@ -302,7 +302,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	guint type;
 	gnet_stats_t *stats;
 
-	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[gnutella_header_get_function(&n->header)];
@@ -330,9 +330,10 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 void
 gnet_stats_count_general(gnr_stats_t type, int delta)
 {
-	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
+	size_t i = type;
 
-    gnet_stats.general[type] += delta;
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i] += delta;
 }
 
 void
@@ -341,7 +342,8 @@ gnet_stats_count_dropped_nosize(
 {
 	guint type;
 	gnet_stats_t *stats;
-	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+
+	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 
 	type = stats_lut[gnutella_header_get_function(&n->header)];
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
