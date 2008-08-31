@@ -1141,9 +1141,7 @@ lookup_value_done(nlookup_t *nl)
 				nl->lid, NULL == fv->delay_ev ? "" : "already ",
 				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
 
-		if (NULL == fv->delay_ev)		/* If not already delayed */
-			lookup_value_delay(nl);
-
+		lookup_value_delay(nl);
 		return;
 	}
 
@@ -2684,7 +2682,7 @@ lookup_value_delay_expired(cqueue_t *unused_cq, gpointer obj)
 }
 
 /**
- * Delay retry of secondary key value fetching.
+ * Delay retry of secondary key value fetching if not already done.
  */
 static void
 lookup_value_delay(nlookup_t *nl)
@@ -2695,10 +2693,9 @@ lookup_value_delay(nlookup_t *nl)
 
 	fv = lookup_fv(nl);
 
-	g_assert(fv->delay_ev == NULL);
-
-	fv->delay_ev = cq_insert(callout_queue, NL_VAL_DELAY,
-		lookup_value_delay_expired, nl);
+	if (NULL == fv->delay_ev)
+		fv->delay_ev = cq_insert(callout_queue, NL_VAL_DELAY,
+			lookup_value_delay_expired, nl);
 }
 
 /**
