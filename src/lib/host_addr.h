@@ -122,7 +122,7 @@ static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
 	{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-static const host_addr_t ipv4_loopback = {	/* 0.0.0.0/32 */
+static const host_addr_t ipv4_loopback = {	/* 127.0.0.1/32 */
 	NET_TYPE_IPV4,
 	{ { 0x7f, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
