@@ -200,9 +200,12 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(VC),		/**< Vendor code, in pongs */
 	GGEP_ID(VMSG),		/**< Array of supported vendor message codes */
 	{ "client-id", EXT_T_GGEP_client_id }, /**< GUID in ALOC v0.0 */
+	GGEP_ID(features),	/**< Unknown value, PROX v0.0 */
 	GGEP_ID(firewalled),/**< Firewalled status in ALOC v0.0 */
+	{ "fwt-version", EXT_T_GGEP_fwt_version }, /**< FW2FW version, PROX v0.0 */
 	GGEP_ID(length),	/**< File length in ALOC v0.1 */
 	GGEP_ID(port),		/**< Servent's Port in ALOC v0.0 */
+	GGEP_ID(proxies),	/**< Push proxies in PROX v0.0 */
 	GGEP_ID(tls),		/**< TLS support in ALOC v0.1 */
 	GGEP_ID(ttroot),	/**< TTH root in ALOC v0.1 */
 	GGEP_ID(u),			/**< HUGE URN in ASCII */

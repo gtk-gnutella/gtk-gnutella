@@ -120,10 +120,13 @@ typedef enum ext_token {
 	EXT_T_GGEP_V,			/**< Vendor Code in HEAD Pongs */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_VMSG,		/**< Array of vendor message codes supported */
-	EXT_T_GGEP_client_id,	/**< "client-id" in ALOC v0.0 (i.e. GUID) */
+	EXT_T_GGEP_client_id,	/**< "client-id" in ALOC & PROX v0.0 (i.e. GUID) */
+	EXT_T_GGEP_features,	/**< Unknown value, PROX v0.0 */
 	EXT_T_GGEP_firewalled,	/**< Firewalled status in ALOC v0.0 */
+	EXT_T_GGEP_fwt_version,	/**< Fw-to-fw transfer version, PROX v0.0 */
 	EXT_T_GGEP_length,		/**< File length in ALOC v0.1 */
 	EXT_T_GGEP_port,		/**< Servent's Port in ALOC v0.0 */
+	EXT_T_GGEP_proxies,		/**< Push proxies in PROX v0.0 */
 	EXT_T_GGEP_tls,			/**< Servent TLS support indication in ALOC v0.1 */
 	EXT_T_GGEP_ttroot,		/**< TTH root in ALOC v0.1 */
 	EXT_T_GGEP_u,			/**< HUGE URN in ASCII */
