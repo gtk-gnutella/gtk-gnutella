@@ -279,6 +279,23 @@ guid_is_requery(const gchar *xuid)
 }
 
 /**
+ * Test whether a GUID is blank.
+ */
+gboolean
+guid_is_blank(const gchar *guid)
+{
+	size_t i;
+
+	g_assert(guid);
+
+	for (i = 0; i < GUID_RAW_SIZE; i++)
+		if (guid[i])
+			return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Generate a new random GUID, flagged as GTKG.
  */
 void
