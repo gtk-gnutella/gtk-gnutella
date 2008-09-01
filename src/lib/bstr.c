@@ -554,6 +554,54 @@ bstr_read_float_be(bstr_t *bs, float *pv)
 }
 
 /**
+ * Read ipv4 address.
+ *
+ * @param bs	the binary stream
+ * @param ha	pointer to the host address structure to fill
+ *
+ * @return TRUE if OK
+ */
+gboolean
+bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
+{
+	static const char *where = "bstr_read_ipv4_addr";
+
+	g_assert(ha);
+
+	if (!expect(bs, 4, where))
+		return FALSE;
+
+	*ha = host_addr_peek_ipv4(bs->rptr);
+	bs->rptr += 4;
+
+	return TRUE;
+}
+
+/**
+ * Read ipv6 address.
+ *
+ * @param bs	the binary stream
+ * @param ha	pointer to the host address structure to fill
+ *
+ * @return TRUE if OK
+ */
+gboolean
+bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
+{
+	static const char *where = "bstr_read_ipv6_addr";
+
+	g_assert(ha);
+
+	if (!expect(bs, 16, where))
+		return FALSE;
+
+	*ha = host_addr_peek_ipv6(bs->rptr);
+	bs->rptr += 16;
+
+	return TRUE;
+}
+
+/**
  * Read a packed IP address in the following format:
  *
  * 1 byte for the address length: 4 for IPv4, 16 for IPv6

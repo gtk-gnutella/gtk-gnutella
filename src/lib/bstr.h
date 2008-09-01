@@ -78,6 +78,8 @@ gboolean bstr_read_le32(bstr_t *bs, guint16 *pv);
 gboolean bstr_read_be32(bstr_t *bs, guint32 *pv);
 gboolean bstr_read_time(bstr_t *bs, time_t *pv);
 gboolean bstr_read_float_be(bstr_t *bs, float *pv);
+gboolean bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha);
+gboolean bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha);
 gboolean bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha);
 gboolean bstr_read_packed_array_u8(bstr_t *bs,
 	size_t max, gpointer ptr, guint8 *pr);
