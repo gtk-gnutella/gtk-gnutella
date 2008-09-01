@@ -4198,7 +4198,10 @@ download_start(struct download *d, gboolean check_allowed)
 
 	if (
 		!DOWNLOAD_IS_IN_PUSH_MODE(d) &&
-		host_is_valid(download_addr(d), download_port(d))
+		(
+		 	(SOCK_F_FORCE & d->cflags) ||
+			host_is_valid(download_addr(d), download_port(d))
+		)
 	) {
 		/* Direct download */
 		download_set_status(d, GTA_DL_CONNECTING);
@@ -11974,10 +11977,16 @@ download_browse_start(const gchar *hostname,
 	}
 
 	d = create_download(filepath_basename(fi->pathname), "/",
-			0, addr, port, guid, hostname,
+			0,	/* filesize */
+			addr, port, guid, hostname,
 			NULL, /* SHA-1 */
 			NULL, /* TTH */
-			tm_time(), fi, proxies, flags, NULL, FALSE);
+			tm_time(),
+			fi,
+			proxies,
+			flags,
+			NULL,	/* PARQ ID */
+			FALSE);	/* don't use mesh */
 
 	if (d) {
 		gnet_host_t host;
