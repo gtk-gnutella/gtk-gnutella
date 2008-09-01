@@ -51,25 +51,19 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/bstr.h"
 #include "lib/endian.h"
+#include "lib/sha1.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/**
- * Hash table holding all the pending SHA1 lookups by KUID.
- */
-static GHashTable *sha1_lookups;	/* KUID -> struct sha1_lookup * */
+#define MAX_PROXIES		8		/**< Max push-proxies we collect from a PROX */
 
 /**
- * Convert a SHA1 to the proper Kademlia key for lookups.
- *
- * @return KUID atom for SHA1 lookup
+ * Hash table holding all the pending lookups by KUID.
  */
-static kuid_t *
-kuid_from_sha1(const sha1_t *sha1)
-{
-	return kuid_get_atom((const kuid_t *) sha1);	/* Identity */
-}
+static GHashTable *sha1_lookups;	/* KUID -> struct sha1_lookup * */
+static GHashTable *guid_lookups;	/* KUID -> struct guid_lookup * */
 
 typedef enum {
 	SHA1_LOOKUP_MAGIC = 0x5fd660bfU
@@ -94,20 +88,55 @@ sha1_lookup_check(const struct sha1_lookup *slk)
 	g_assert(SHA1_LOOKUP_MAGIC == slk->magic);
 }
 
-/*
- * Get human-readable DHT value type and version.
- * @return pointer to static data
+typedef enum {
+	GUID_LOOKUP_MAGIC = 0xc65531c7U
+} glk_magic_t;
+
+/**
+ * Context for PROX lookups.
  */
-static const char *
-value_infostr(const lookup_val_rc_t *rc)
+struct guid_lookup {
+	glk_magic_t magic;
+	kuid_t *id;				/**< ID being looked for (atom) */
+	guid_t *guid;			/**< Servent's GUID (atom) */
+	host_addr_t addr;		/**< Servent's address */
+	guint16 port;			/**< Servent's port */
+};
+
+static inline void
+guid_lookup_check(const struct guid_lookup *glk)
 {
-	static char info[60];
+	g_assert(glk);
+	g_assert(GUID_LOOKUP_MAGIC == glk->magic);
+}
 
-	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s)",
-		dht_value_type_to_string(rc->type), rc->major, rc->minor,
-		(gulong) rc->length, 1 == rc->length ? "" : "s");
+/**
+ * Convert a SHA1 to the proper Kademlia key for lookups.
+ *
+ * @return KUID atom for SHA1 lookup: KUID = SHA1.
+ */
+static kuid_t *
+kuid_from_sha1(const sha1_t *sha1)
+{
+	return kuid_get_atom((const kuid_t *) sha1);	/* Identity */
+}
 
-	return info;
+/**
+ * Convert a GUID to the proper Kademlia key for lookups.
+ *
+ * @return KUID atom for GUID lookup: KUID = SHA1(GUID).
+ */
+static kuid_t *
+kuid_from_guid(const char *guid)
+{
+	SHA1Context ctx;
+	struct sha1 digest;
+
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, guid, GUID_RAW_SIZE);
+	SHA1Result(&ctx, &digest);
+
+	return kuid_get_atom((const kuid_t *) &digest);
 }
 
 /**
@@ -122,8 +151,42 @@ gdht_free_sha1_lookup(struct sha1_lookup *slk, gboolean do_remove)
 		g_hash_table_remove(sha1_lookups, slk->id);
 
 	kuid_atom_free(slk->id);
-	atom_guid_free((char *) slk->fi_guid);
+	atom_guid_free(slk->fi_guid->v);
 	wfree(slk, sizeof *slk);
+}
+
+/**
+ * Free GUID lookup context.
+ */
+static void
+gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
+{
+	guid_lookup_check(glk);
+
+	if (do_remove) {
+		download_proxy_dht_lookup_done(glk->guid->v, glk->addr, glk->port);
+		g_hash_table_remove(guid_lookups, glk->id);
+	}
+
+	kuid_atom_free(glk->id);
+	atom_guid_free(glk->guid->v);
+	wfree(glk, sizeof *glk);
+}
+
+/*
+ * Get human-readable DHT value type and version.
+ * @return pointer to static data
+ */
+static const char *
+value_infostr(const lookup_val_rc_t *rc)
+{
+	static char info[60];
+
+	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s)",
+		dht_value_type_to_string(rc->type), rc->major, rc->minor,
+		(gulong) rc->length, 1 == rc->length ? "" : "s");
+
+	return info;
 }
 
 /**
@@ -295,9 +358,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_message("adding %s%ssource %s from DHT ALOC for %s",
+		g_message("adding %s%ssource %s (GUID %s) from DHT ALOC for %s",
 			firewalled ? "firewalled " : "", tls ? "TLS " : "",
-			host_addr_port_to_string(rc->addr, port), fi->pathname);
+			host_addr_port_to_string(rc->addr, port),
+			guid_to_string(guid.v), fi->pathname);
 
 	if (firewalled)
 		flags |= SOCK_F_PUSH;
@@ -355,13 +419,6 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-
-		if (rc->type != DHT_VT_ALOC) {
-			g_warning("skipping non-ALOC record (%s) at %s",
-				dht_value_type_to_string(rc->type), _WHERE_);
-			continue;
-		}
-
 		gdht_handle_aloc(rc, fi);
 	}
 
@@ -412,12 +469,283 @@ gdht_find_sha1(const fileinfo_t *fi)
 }
 
 /**
+ * Callback when GUID lookup is unsuccessful.
+ */
+static void
+gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+{
+	struct guid_lookup *glk = arg;
+
+	guid_lookup_check(glk);
+	g_assert(glk->id == kuid);		/* They are atoms */
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1)
+		g_message("DHT PROX lookup for GUID %s failed: %s",
+			guid_to_string(glk->guid->v), lookup_strerror(error));
+
+	download_no_push_proxies(glk->guid->v, glk->addr, glk->port);
+	gdht_free_guid_lookup(glk, TRUE);
+}
+
+/**
+ * Handle DHT PROX value received to generate a new push-proxy for the servent.
+ */
+static void
+gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
+{
+	extvec_t exv[MAX_EXTVEC];
+	int exvcnt;
+	int i;
+	guid_t guid;
+	guint16 port = 0;
+	gnet_host_t proxies[MAX_PROXIES];
+	int proxy_count = 0;
+
+	g_assert(DHT_VT_PROX == rc->type);
+	guid_lookup_check(glk);
+
+	ext_prepare(exv, MAX_EXTVEC);
+	memset(guid.v, 0, GUID_RAW_SIZE);
+
+	exvcnt = ext_parse(rc->data, rc->length, exv, MAX_EXTVEC);
+
+	for (i = 0; i < exvcnt; i++) {
+		extvec_t *e = &exv[i];
+		guint16 paylen;
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_client_id:
+			if (GUID_RAW_SIZE == ext_paylen(e))
+				memcpy(guid.v, ext_payload(e), GUID_RAW_SIZE);
+			break;
+		case EXT_T_GGEP_features:
+			/* Could not figure out the field's format -- RAM, 2008-09-01 */
+			break;
+		case EXT_T_GGEP_port:
+			if (2 == ext_paylen(e))
+				port = peek_be16(ext_payload(e));
+			break;
+		case EXT_T_GGEP_tls:
+			/* Could not figure out the field's format -- RAM, 2008-09-01 */
+			break;
+		case EXT_T_GGEP_fwt_version:
+			/* Not needed yet as we don't support RUDP -- RAM, 2008-09-01 */
+			break;
+		case EXT_T_GGEP_proxies:
+			{
+				bstr_t *bs = bstr_open(ext_payload(e), ext_paylen(e), 0);
+
+				/*
+				 * Reverse engineered host format is the following:
+				 *
+				 * . 1 byte gives the length of IP + port (6 or 18).
+				 * . IP and port in big endian follow.
+				 */
+
+				while (bstr_unread_size(bs) > 0) {
+					host_addr_t a;
+					guint16 p;
+					guint8 len;
+
+					if (!bstr_read_u8(bs, &len))
+						break;
+
+					if (6 == len) {
+						if (!bstr_read_ipv4_addr(bs, &a))
+							break;
+					} else if (18 == len) {
+						if (!bstr_read_ipv6_addr(bs, &a))
+							break;
+					} else
+						break;
+
+					if (!bstr_read_be16(bs, &p))
+						break;
+
+					/*
+					 * Discard hostile sources.
+					 */
+
+					if (hostiles_check(a)) {
+						if (GNET_PROPERTY(download_debug))
+							g_warning("discarding proxy %s in %s from %s "
+								"for GUID %s: hostile IP",
+								host_addr_port_to_string(a, p),
+								value_infostr(rc),
+								host_addr_port_to_string2(rc->addr, rc->port),
+								guid_to_string(glk->guid->v));
+						continue;
+					} else {
+						if (GNET_PROPERTY(download_debug))
+							g_message("new push-proxy for %s is at %s",
+								guid_to_string(glk->guid->v),
+								host_addr_port_to_string(a, p));
+					}
+
+					gnet_host_set(&proxies[proxy_count++], a, p);
+				}
+
+				bstr_close(bs);
+			}
+			break;
+		default:
+			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
+				paylen = ext_paylen(e);
+				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
+					value_infostr(rc),
+					ext_ggep_id_str(e), paylen, paylen == 1 ? "" : "s");
+			}
+			break;
+		}
+	}
+
+	/*
+	 * If we did not find any proxy, reject the PROX.
+	 */
+
+	if (0 == proxy_count) {
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for GUID %s: no proxies found",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				guid_to_string(glk->guid->v));
+		return;
+	}
+
+	/*
+	 * Check servent's port, if specified.  It should match that of the
+	 * creator.  If not, warn, but trust what is in the PROX.
+	 */
+
+	if (port) {
+		if (port != rc->port && GNET_PROPERTY(download_debug))
+			g_warning("%s: port mismatch: creator's was %u, "
+				"PROX is %u for %s, known as %s here",
+				value_infostr(rc), rc->port,
+				port, host_addr_to_string(rc->addr),
+				host_addr_port_to_string(glk->addr, glk->port));
+	} else {
+		port = rc->port;
+	}
+
+	/*
+	 * If host address is not matching, we're getting push-proxy information
+	 * for another host, unless the old host address is ipv4_unspecified, in
+	 * which case we're facing a retrieved magnet and we did not know the
+	 * IP:port of the host bearing the GUID we've been looking for...
+	 */
+
+	if (!host_addr_equal(glk->addr, rc->addr)) {
+		if (host_addr_equal(glk->addr, ipv4_unspecified)) {
+			download_found_server(glk->guid->v, rc->addr, port);
+		} else {
+			if (GNET_PROPERTY(download_debug))
+				g_warning("discarding %s from %s for GUID %s: servent is at %s",
+					value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+					guid_to_string(glk->guid->v),
+					host_addr_to_string(glk->addr));
+			return;
+		}
+	}
+
+	/*
+	 * Create new push-proxies.
+	 */
+
+	if (GNET_PROPERTY(download_debug) > 0)
+		g_message("adding %d push-prox%s (GUID %s) from DHT PROX for %s (%s)",
+			proxy_count, 1 == proxy_count ? "y" : "ies",
+			guid_to_string(glk->guid->v),
+			host_addr_port_to_string(rc->addr, port),
+			host_addr_port_to_string(glk->addr, glk->port));
+
+	download_add_push_proxies(glk->guid->v, glk->addr, glk->port,
+		proxies, proxy_count);
+}
+
+/**
+ * Callback when GUID lookup is successful.
+ */
+static void
+gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
+{
+	struct guid_lookup *glk = arg;
+	size_t i;
+
+	g_assert(rs);
+	guid_lookup_check(glk);
+	g_assert(glk->id == kuid);		/* They are atoms */
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1)
+		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
+			guid_to_string(glk->guid->v), (gulong) rs->count,
+			1 == rs->count ? "" : "s");
+
+	/*
+	 * Parse PROC results.
+	 */
+
+	for (i = 0; i < rs->count; i++) {
+		lookup_val_rc_t *rc = &rs->records[i];
+		gdht_handle_prox(rc, glk);
+	}
+
+	lookup_free_value_results(rs);
+	gdht_free_guid_lookup(glk, TRUE);
+}
+
+/**
+ * Launch a GUID lookup in the DHT to collect push proxies for a server.
+ */
+void
+gdht_find_guid(const char *guid, const host_addr_t addr, guint16 port)
+{
+	struct guid_lookup *glk;
+
+	g_assert(guid);
+	g_assert(!guid_is_blank(guid));
+	g_assert(host_addr_initialized(addr));
+
+	glk = walloc(sizeof *glk);
+	glk->magic = GUID_LOOKUP_MAGIC;
+	glk->id = kuid_from_guid(guid);
+	glk->guid = (guid_t *) atom_guid_get(guid);
+	glk->addr = addr;
+	glk->port = port;
+
+	/*
+	 * If we have so many queued searches that we did not manage to get
+	 * a previous one completed before it is re-attempted, ignore the new
+	 * request.
+	 */
+
+	if (g_hash_table_lookup(guid_lookups, glk->id)) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_warning("DHT already has pending search for %s (GUID %s) for %s",
+			kuid_to_hex_string(glk->id),
+			guid_to_string(guid), host_addr_port_to_string(addr, port));
+
+		gdht_free_guid_lookup(glk, FALSE);
+		return;
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug))
+		g_message("DHT will be searching PROX for %s (GUID %s) for %s",
+			kuid_to_hex_string(glk->id),
+			guid_to_string(guid), host_addr_port_to_string(addr, port));
+
+	g_hash_table_insert(guid_lookups, glk->id, glk);
+	ulq_find_value(glk->id, DHT_VT_PROX,
+		gdht_guid_found, gdht_guid_not_found, glk);
+}
+
+/**
  * Initialize the Gnutella DHT layer.
  */
 void
 gdht_init(void)
 {
 	sha1_lookups = g_hash_table_new(sha1_hash, sha1_eq);
+	guid_lookups = g_hash_table_new(sha1_hash, sha1_eq);
 }
 
 /**
@@ -435,6 +763,20 @@ free_sha1_lookups_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 }
 
 /**
+ * Hash table iterator to free a struct guid_lookup
+ */
+static void
+free_guid_lookups_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+{
+	struct guid_lookup *glk = val;
+
+	(void) unused_key;
+	(void) unused_x;
+
+	gdht_free_guid_lookup(glk, FALSE);
+}
+
+/**
  * Shutdown the Gnutella DHT layer.
  */
 void
@@ -442,6 +784,9 @@ gdht_close(void)
 {
 	g_hash_table_foreach(sha1_lookups, free_sha1_lookups_kv, NULL);
 	g_hash_table_destroy(sha1_lookups);
+
+	g_hash_table_foreach(guid_lookups, free_guid_lookups_kv, NULL);
+	g_hash_table_destroy(guid_lookups);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

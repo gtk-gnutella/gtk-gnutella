@@ -71,10 +71,13 @@
 #include "rx_inflate.h"
 #include "vmsg.h"
 #include "g2_cache.h"
+#include "gdht.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
+#include "if/core/main.h"
+#include "if/dht/dht.h"
 
 #include "lib/adns.h"
 #include "lib/array.h"
@@ -294,8 +297,14 @@ static struct {
  * one such entry, ever.  If there is more, it means the server changed its
  * GUID, which is possible, in which case we simply supersede the old entry.
  */
-
 static GHashTable *dl_by_addr;
+
+/**
+ * To be able to handle push-proxy lookups from the DHT, we remember servers
+ * by GUID as well.  In case there is a conflict (two hosts bearing the same
+ * GUID), we keep only the first server we see with that GUID.
+ */
+static GHashTable *dl_by_guid;
 
 /**
  * Keys in the `dl_by_addr' table.
@@ -594,27 +603,13 @@ dl_server_retry_cmp(gconstpointer p, gconstpointer q)
 	return CMP(a->retry_after, b->retry_after);
 }
 
-static gboolean
-is_blank_guid(const char *guid)
-{
-	size_t i;
-
-	g_assert(guid);
-
-	for (i = 0; i < GUID_RAW_SIZE; i++)
-		if (guid[i])
-			return FALSE;
-
-	return TRUE;
-}
-
 /**
  * @returns whether download has a blank (fake) GUID.
  */
 static gboolean
 has_blank_guid(const struct download *d)
 {
-	return is_blank_guid(download_guid(d));
+	return guid_is_blank(download_guid(d));
 }
 
 gboolean
@@ -755,6 +750,7 @@ download_init(void)
 {
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
+	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 
 	sl_downloads = hash_list_new(NULL, NULL);
@@ -1360,6 +1356,33 @@ allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
 			g_hash_table_insert(dl_by_addr, ipk, server);
 	}
 
+	/*
+	 * If this is not a blank GUID and there is no such host bearing the
+	 * same GUID already, record it.  Otherwise, warn about the conflicting
+	 * GUID if they are debugging.
+	 */
+
+	if (!guid_is_blank(guid)) {
+		gboolean existed;
+		gpointer x;
+		gpointer value;
+
+		existed = g_hash_table_lookup_extended(dl_by_guid, guid, &x, &value);
+
+		if (existed) {
+			struct dl_server *old = value;
+
+			if (debugging(0))
+				g_warning("GUID collision: %s is used by known %s and new %s",
+					guid_to_string(guid),
+					host_addr_port_to_string(old->key->addr, old->key->port),
+					host_addr_port_to_string2(
+						server->key->addr, server->key->port));
+		} else {
+			gm_hash_table_insert_const(dl_by_guid, server->key->guid, server);
+		}
+	}
+
 	return server;
 }
 
@@ -1395,9 +1418,6 @@ free_server(struct dl_server *server)
 
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
-
-	atom_str_free_null(&server->vendor);
-	atom_guid_free_null(&server->key->guid);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -1448,6 +1468,20 @@ free_server(struct dl_server *server)
 	g_hash_table_destroy(server->sha1_counts);
 	server->sha1_counts = NULL;
 
+	/*
+	 * Given there can be GUID collisions, make sure it is this entry which
+	 * is listed in the `dl_by_guid' table.  Only non-blank GUIDs are stored.
+	 */
+
+	if (
+		!guid_is_blank(server->key->guid) &&
+		g_hash_table_lookup(dl_by_guid, server->key->guid) == server
+	) {
+		g_hash_table_remove(dl_by_guid, server->key->guid);
+	}
+
+	atom_str_free_null(&server->vendor);
+	atom_guid_free_null(&server->key->guid);
 	wfree(server->key, sizeof(struct dl_key));
 	server->magic = 0;
 	wfree(server, sizeof *server);
@@ -1544,10 +1578,12 @@ get_server(
 }
 
 /**
- * The server address changed.
+ * The server address/port changed.
+ * The port can be the same as before but the address is necessarily different.
  */
 static void
-change_server_addr(struct dl_server *server, const host_addr_t new_addr)
+change_server_addr(struct dl_server *server,
+	const host_addr_t new_addr, const guint16 new_port)
 {
 	struct dl_key *key = server->key;
 	struct dl_server *duplicate;
@@ -1587,13 +1623,11 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	free_proxies(server);
 
 	if (GNET_PROPERTY(download_debug)) {
-		gchar buf[128];
-
-		g_strlcpy(buf, host_addr_to_string(new_addr), sizeof buf);
 		g_message("server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
 			server->hostname == NULL ? "NONAME" : server->hostname,
-			key->port, host_addr_to_string(key->addr), buf);
+			key->port, host_addr_port_to_string(key->addr, key->port),
+			host_addr_port_to_string2(new_addr, new_port));
     }
 
 	/*
@@ -1601,6 +1635,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	 */
 
 	key->addr = new_addr;
+	key->port = new_port;
 	server->country = gip_country(new_addr);
 
 	/*
@@ -1610,7 +1645,7 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 	 * foo.example.com which we thought was 5.6.7.8 is at 1.2.3.4...
 	 */
 
-	duplicate = get_server(key->guid, new_addr, key->port, FALSE);
+	duplicate = get_server(key->guid, new_addr, new_port, FALSE);
 
 	if (duplicate != NULL) {
 		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
@@ -1635,13 +1670,18 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		 */
 
 		if (
-			guid_eq(key->guid, blank_guid) &&
-			!guid_eq(duplicate->key->guid, blank_guid)
+			guid_is_blank(key->guid) &&
+			!guid_is_blank(duplicate->key->guid)
 		) {
+			struct dl_server *old;
+
+			old = g_hash_table_lookup(dl_by_guid, duplicate->key->guid);
 			atom_guid_change(&key->guid, duplicate->key->guid);
+			if (duplicate == old)
+				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
 		} else if (
 			!guid_eq(key->guid, duplicate->key->guid) &&
-			!guid_eq(duplicate->key->guid, blank_guid)
+			!guid_is_blank(duplicate->key->guid)
 		) {
 			if (GNET_PROPERTY(download_debug)) g_warning(
 				"found two distinct GUID for <%s> at %s:%u, keeping %s",
@@ -1711,6 +1751,156 @@ change_server_addr(struct dl_server *server, const host_addr_t new_addr)
 		} else
 			g_hash_table_insert(dl_by_addr, ipk, server);
 	}
+
+	/*
+	 * Notify the source information change to all the downloads
+	 * attached to that server.
+	 */
+
+	{
+		size_t i;
+		enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
+
+		for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
+			enum dl_list idx = listnum[i];
+			list_iter_t *iter;
+			
+			iter = list_iter_before_head(server->list[idx]);
+			while (list_iter_has_next(iter)) {
+				struct download *d;
+
+				d = list_iter_next(iter);
+				download_check(d);
+				fi_src_status_changed(d);
+			}
+			list_iter_free(&iter);
+		}
+	}
+}
+
+/**
+ * Found IP:port of firewalled source for which we knew only the GUID.
+ * This happens when retrieving firewalled magnet sources for instance.
+ */
+void
+download_found_server(const char *guid, const host_addr_t addr, guint16 port)
+{
+	struct dl_server *server;
+
+	/*
+	 * XXX Unfortunately, this late discovery of the real IP:port can create
+	 * XXX duplicate downloads.  Imagine we thought this was 0.0.0.0 for some
+	 * XXX GUID and then we get a query hit for the same SHA1 but with a
+	 * XXX proper IP.  Later on when we discover the real IP, we'll create
+	 * XXX a duplicate download because we're changing the server from 0.0.0.0
+	 * XXX to the same IP address.
+	 * XXX		--RAM, 2008-09-01
+	 */
+
+	if (GNET_PROPERTY(download_debug))
+		g_message("discovered GUID %s is for host %s",
+			guid_to_string(guid), host_addr_port_to_string(addr, port));
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+
+	g_assert(dl_server_valid(server));
+
+	if (host_addr_equal(server->key->addr, ipv4_unspecified)) {
+		change_server_addr(server, addr, port);
+	} else {
+		if (GNET_PROPERTY(download_debug))
+			g_message("however GUID %s is already borne by host %s",
+				guid_to_string(guid),
+				host_addr_port_to_string(server->key->addr, server->key->port));
+	}
+}
+
+/**
+ * Add new push-proxies for server held in the `proxies' array.
+ */
+void
+download_add_push_proxies(const char *guid,
+	const host_addr_t addr, guint16 port,
+	gnet_host_t *proxies, int proxy_count)
+{
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
+	int i;
+
+	g_assert(proxies);
+
+	if (server == NULL)
+		return;
+
+	g_assert(dl_server_valid(server));
+
+	/* XXX Must check that hosts do not exist already -- use a hashlist */
+
+	for (i = 0; i < proxy_count; i++) {
+		gnet_host_t *host = walloc(sizeof *host);
+		*host = proxies[i];			/* struct copy */
+		server->proxies = g_slist_prepend(server->proxies, host);
+	}
+
+	server->proxies_stamp = tm_time();
+}
+
+/**
+ * Lookup for push proxies is finished.
+ */
+void
+download_proxy_dht_lookup_done(
+	const char *guid, const host_addr_t addr, guint16 port)
+{
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
+
+	if (server == NULL)
+		return;
+
+	server->attrs &= ~DLS_A_DHT_PROX;
+}
+
+/**
+ * Lookup for push proxies in the DHT failed.
+ */
+void
+download_no_push_proxies(const char *guid, const host_addr_t addr, guint16 port)
+{
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
+
+	if (server == NULL)
+		return;
+
+	/* XXX need to increase retry count for all non-running downloads
+	 * XXX attached to that server*/
+}
+
+/**
+ * Look for more push-proxies in the DHT.
+ *
+ * @return TRUE if we are looking for proxies, FALSE if there is nothing
+ * to query.
+ */
+static gboolean
+server_dht_query(struct download *d)
+{
+	struct dl_server *server = d->server;
+
+	g_assert(dl_server_valid(server));
+
+	if (!dht_enabled())
+		return FALSE;						/* No DHT, cannot look */
+
+	if (!dht_bootstrapped())
+		return TRUE;						/* Wait until bootstrapped */
+
+	if (server->attrs & DLS_A_DHT_PROX)
+		return TRUE;						/* Already querying */
+
+	server->attrs |= DLS_A_DHT_PROX;
+	fi_src_status_changed(d);
+	gdht_find_guid(server->key->guid, server->key->addr, server->key->port);
+
+	return TRUE;
 }
 
 /**
@@ -4413,6 +4603,13 @@ download_push(struct download *d, gboolean on_timeout)
 		return;
 
 	/*
+	 * Look for new push proxies through the DHT.
+	 */
+
+	if (server_dht_query(d))
+		return;
+
+	/*
 	 * Nothing is working, we may be out of reach.  Try to ignore the PUSH
 	 * flag if the address is deemed to be reacheable...
 	 */
@@ -4428,6 +4625,7 @@ download_push(struct download *d, gboolean on_timeout)
 		 */
 
 		if (!host_is_valid(download_addr(d), download_port(d))) {
+			/* XXX YYY revisit with DHT PROX */
 			download_unavailable(d, GTA_DL_ERROR, _("Push route lost"));
 			download_remove_all_from_peer(
 				download_guid(d), download_addr(d), download_port(d), TRUE);
@@ -4471,6 +4669,8 @@ attempt_retry:
 			 * Looks like we won't be able to ever reach this host.
 			 * Abort the download, and remove all the ones for the same host.
 			 */
+
+			/* XXX YYY revisit with DHT PROX */
 
 			download_unavailable(d, GTA_DL_ERROR,
 				_("Can't reach host (Push or Direct)"));
@@ -4761,7 +4961,7 @@ create_download(
 	 * This usually happens when handling a magnet: with no source.
 	 */
 
-	if ((0 == port || !is_host_addr(addr)) && is_blank_guid(guid)) {
+	if (!is_host_addr(addr) && guid_is_blank(guid)) {
 		atom_str_free_null(&file_name);
 		return NULL;
 	}
@@ -4945,7 +5145,7 @@ download_auto_new(const gchar *file_name,
 
 	if (0 == (SOCK_F_PUSH & flags) && !host_is_valid(addr, port)) {
 		/* We cannot send a PUSH without a valid GUID */
-		if (NULL == guid || guid_eq(guid, blank_guid))
+		if (NULL == guid || guid_is_blank(guid))
 			return;
 		flags |= SOCK_F_PUSH;
 	}
@@ -9391,7 +9591,7 @@ download_send_request(struct download *d)
 		NULL != d->server->hostname &&
 		!host_addr_equal(download_addr(d), s->addr)
 	) {
-		change_server_addr(d->server, s->addr);
+		change_server_addr(d->server, s->addr, download_port(d));
 		g_assert(host_addr_equal(download_addr(d), s->addr));
 	}
 
@@ -10168,7 +10368,7 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	if (!host_addr_equal(download_addr(d), s->addr))
-		change_server_addr(d->server, s->addr);
+		change_server_addr(d->server, s->addr, download_port(d));
 
 	g_assert(host_addr_equal(download_addr(d), s->addr));
 
@@ -11543,6 +11743,9 @@ download_close(void)
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
 
+	g_hash_table_destroy(dl_by_guid);
+	dl_by_guid = NULL;
+
 	g_hash_table_destroy(dl_by_host);
 	dl_by_host = NULL;
 
@@ -12118,11 +12321,13 @@ download_handle_magnet(const gchar *url)
 				g_message("Unusable magnet source");
 				continue;
 			}
-			
-			/* Note: We use 0.0.0.0 instead of zero_host_addr because
-			 *       the core would bark when using the latter.
+
+			/*
+			 * Firewalled magnets have a push:// source pointing to the
+			 * first known push proxy.  When retrieving, we lost the
+			 * original IP address of the server, so leave it unspecified.
 			 */
-			
+
 			if (ms->guid) {
 				addr = ipv4_unspecified;
 				port = 0;

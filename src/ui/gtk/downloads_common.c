@@ -352,6 +352,8 @@ downloads_gui_status_string(const struct download *d)
 				}
 
 				status = tmpstr;
+			} else if (d->server->attrs & DLS_A_DHT_PROX) {
+				status = _("Searching for new push-proxies");
 			} else {
 				switch (d->status) {
 				case GTA_DL_PUSH_SENT:
