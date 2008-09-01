@@ -1156,8 +1156,14 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			search_results_are_requested(
 				gnutella_header_get_muid(&n->header), n->addr, n->port, token)
 		) {
-			if (has_token)
+			if (has_token) {
 				rs->status |= ST_GOOD_TOKEN;
+			}
+			/* We can send PUSH requests directly, so treat it like a proxy */
+			if (NULL == rs->proxies) {
+				rs->proxies = gnet_host_vec_alloc();
+			}
+			gnet_host_vec_add(rs->proxies, n->addr, n->port);
 		} else {
 			rs->status |= ST_UNREQUESTED;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
