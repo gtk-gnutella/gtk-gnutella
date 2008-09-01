@@ -542,7 +542,10 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 				 * . IP and port in big endian follow.
 				 */
 
-				while (bstr_unread_size(bs) > 0) {
+				while (
+					bstr_unread_size(bs) > 0 &&
+					UNSIGNED(proxy_count) < G_N_ELEMENTS(proxies)
+				) {
 					host_addr_t a;
 					guint16 p;
 					guint8 len;
@@ -681,7 +684,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 			1 == rs->count ? "" : "s");
 
 	/*
-	 * Parse PROC results.
+	 * Parse PROX results.
 	 */
 
 	for (i = 0; i < rs->count; i++) {
