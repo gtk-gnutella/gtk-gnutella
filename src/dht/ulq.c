@@ -523,12 +523,17 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	 * If the UDP queue is flow-controlled, do not add another DHT lookup
 	 * yet: rather wait for 5 more seconds and check again. Also remember
 	 * that we experienced a flow-control situation.
+	 *
+	 * Moreover, we increase the computed EMA by 25% each time, to not cause
+	 * a sudden release of many lookups when we resume.
 	 */
 
 	if (node_udp_is_flow_controlled()) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT ULQ deferring servicing: UDP queue flow-controlled");
 
+		sched.bw_in_ema += sched.bw_in_ema / 4;
+		sched.bw_out_ema += sched.bw_out_ema / 4;
 		sched.udp_flow_controlled = TRUE;
 		service_ev = cq_insert(callout_queue,
 			ULQ_UDP_DELAY, ulq_do_service, NULL);
