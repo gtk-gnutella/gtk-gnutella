@@ -78,6 +78,7 @@ RCSID("$Id$")
 
 #include "core/gnet_stats.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/bstr.h"

@@ -39,16 +39,17 @@
 
 RCSID("$Id$")
 
-#include "lib/atoms.h"
-#include "lib/glib-missing.h"
-#include "lib/magnet.h"
-#include "lib/tm.h"
-#include "lib/url.h"
-#include "lib/urn.h"
-#include "lib/utf8.h"
-#include "lib/walloc.h"
+#include "ascii.h"
+#include "atoms.h"
+#include "glib-missing.h"
+#include "magnet.h"
+#include "tm.h"
+#include "url.h"
+#include "urn.h"
+#include "utf8.h"
+#include "walloc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 /*
  * Private prototypes;

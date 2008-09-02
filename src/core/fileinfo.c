@@ -61,6 +61,7 @@ RCSID("$Id$")
 #include "gdht.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/base32.h"
 #include "lib/endian.h"
 #include "lib/file.h"

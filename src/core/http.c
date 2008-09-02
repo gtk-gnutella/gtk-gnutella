@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "clock.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/header.h"

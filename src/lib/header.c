@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "header.h"
+#include "ascii.h"
 #include "glib-missing.h"
 #include "misc.h"
 #include "walloc.h"
@@ -218,9 +219,9 @@ hfield_dump(const header_field_t *h, FILE *out)
 static GHashTable *
 header_get_table(header_t *o)
 {
-	if (!o->headers) {
-		o->headers = g_hash_table_new(str_case_hash_func, str_case_eq_func);
-	}
+	if (!o->headers)
+		o->headers = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
+
 	return o->headers;
 }
 

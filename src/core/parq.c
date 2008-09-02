@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"

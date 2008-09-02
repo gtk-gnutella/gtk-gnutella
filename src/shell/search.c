@@ -31,7 +31,7 @@ RCSID("$Id$")
 
 #include "if/bridge/c2ui.h"
 
-#include "lib/misc.h"
+#include "lib/ascii.h"
 #include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */

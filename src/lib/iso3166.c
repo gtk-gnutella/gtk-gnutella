@@ -37,6 +37,7 @@
 
 RCSID("$Id$")
 
+#include "ascii.h"
 #include "atoms.h"
 #include "iso3166.h"
 #include "misc.h"

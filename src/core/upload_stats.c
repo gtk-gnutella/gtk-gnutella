@@ -62,9 +62,9 @@ RCSID("$Id$")
 #include "if/bridge/c2ui.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/hashlist.h"
-#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"

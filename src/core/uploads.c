@@ -78,6 +78,7 @@ RCSID("$Id$")
 
 #include "lib/aging.h"
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/idtable.h"

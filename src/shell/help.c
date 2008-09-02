@@ -29,8 +29,7 @@ RCSID("$Id$")
 
 #include "cmd.h"
 
-#include "lib/misc.h"
-
+#include "lib/ascii.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 struct shell_cmd_help {

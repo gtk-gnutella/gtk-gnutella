@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "vendors.h"
+#include "ascii.h"
 #include "endian.h"
 #include "misc.h"
 #include "override.h"	/* Must be the last header included */

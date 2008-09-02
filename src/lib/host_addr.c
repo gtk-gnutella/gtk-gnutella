@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include <netdb.h>				/* For gethostbyname() */
 #endif /* I_NETDB */
 
+#include "ascii.h"
 #include "atoms.h"				/* For binary_hash */
 #include "host_addr.h"
 #include "misc.h"

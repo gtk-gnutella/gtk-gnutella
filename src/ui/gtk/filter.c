@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
 

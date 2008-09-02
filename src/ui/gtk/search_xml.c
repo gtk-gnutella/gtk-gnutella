@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/ascii.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"

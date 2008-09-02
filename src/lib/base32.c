@@ -65,6 +65,7 @@
 
 #include "common.h"
 #include "base32.h"
+#include "ascii.h"		/* For ascii_toupper() */
 
 /*
  * See RFC 3548 for details about Base 32 encoding:
@@ -158,19 +159,6 @@ base32_encode(char *dst, size_t size, const void *data, size_t len)
 
 	return q - dst;
 }
-
-static inline int
-ascii_toupper(int c)
-{
-	return c >= 97 && c <= 122 ? c - 32 : c;
-}
-
-static inline int
-ascii_tolower(int c)
-{
-	return c >= 65 && c <= 90 ? c + 32 : c;
-}
-
 
 static char base32_map[(unsigned char) -1];
 

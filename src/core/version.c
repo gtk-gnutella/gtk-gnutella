@@ -47,8 +47,8 @@ RCSID("$Id$")
 #include "if/core/main.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/getdate.h"
-#include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"

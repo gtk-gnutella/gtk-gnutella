@@ -42,6 +42,7 @@ RCSID("$Id$")
 #endif
 
 #include "eval.h"
+#include "ascii.h"
 #include "atoms.h"
 #include "debug.h"
 #include "glib-missing.h"

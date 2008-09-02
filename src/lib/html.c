@@ -37,13 +37,14 @@
 
 RCSID("$Id$")
 
-#include "lib/html.h"
-#include "lib/html_entities.h"
-#include "lib/misc.h"
-#include "lib/utf8.h"
-#include "lib/walloc.h"
+#include "ascii.h"
+#include "html.h"
+#include "html_entities.h"
+#include "misc.h"
+#include "utf8.h"
+#include "walloc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 enum html_node_type {
 	HTML_NODE_ROOT,

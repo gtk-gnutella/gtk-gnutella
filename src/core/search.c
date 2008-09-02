@@ -74,6 +74,7 @@ RCSID("$Id$")
 #include "if/bridge/c2ui.h"
 
 #include "lib/array.h"
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
@@ -82,7 +83,6 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/magnet.h"
-#include "lib/misc.h"
 #include "lib/sbool.h"
 #include "lib/tm.h"
 #include "lib/vendors.h"

@@ -536,6 +536,8 @@ src/lib/adns.h
 src/lib/aging.c
 src/lib/aging.h
 src/lib/array.h
+src/lib/ascii.c
+src/lib/ascii.h
 src/lib/atoms.c
 src/lib/atoms.h
 src/lib/base16.c

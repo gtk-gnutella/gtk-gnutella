@@ -39,10 +39,11 @@
 
 RCSID("$Id$")
 
-#include "lib/mime_type.h"
-#include "lib/misc.h"
+#include "ascii.h"
+#include "mime_type.h"
+#include "misc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 static const struct {
 	const char *extension;

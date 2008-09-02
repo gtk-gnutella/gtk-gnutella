@@ -45,9 +45,9 @@ RCSID("$Id$")
 #include "spam.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/base32.h"
 #include "lib/file.h"
-#include "lib/misc.h"
 #include "lib/tm.h"
 
 #include "if/gnet_property_priv.h"

@@ -36,11 +36,11 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/inputevt.h"
-#include "lib/misc.h"
 #include "lib/pmsg.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"

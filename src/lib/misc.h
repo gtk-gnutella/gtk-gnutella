@@ -89,9 +89,6 @@ size_t concat_strings(gchar *dst, size_t size,
 size_t w_concat_strings(gchar **dst,
 	const gchar *first, ...) G_GNUC_NULL_TERMINATED;
 
-gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
-gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
-
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
  * this is just a convenience function.
@@ -106,137 +103,6 @@ hex_digit(guchar x)
 	return hex_alphabet_lower[x & 0xf]; 
 }
 
-/**
- * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
- *
- * @param c the character to convert.
- * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
- */
-static inline gint
-hex2int_inline(guchar c)
-{
-	extern const gint8 *hex2int_tab;
-	return hex2int_tab[c];
-}
-
-/**
- * Converts a decimal char (0-9) to an integer.
- *
- * @param c the character to convert.
- * @return 0..9 for valid decimal ASCII characters, -1 otherwise.
- */
-static inline gint
-dec2int_inline(guchar c)
-{
-	extern const gint8 *dec2int_tab;
-	return dec2int_tab[c];
-}
-
-/**
- * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer.
- *
- * @param c the character to convert.
- * @return 0..9 for valid alphanumeric ASCII characters, -1 otherwise.
- */
-static inline gint
-alnum2int_inline(guchar c)
-{
-	extern const gint8 *alnum2int_tab;
-	return alnum2int_tab[c];
-}
-
-/**
- * ctype-like functions that allow only ASCII characters whereas the locale
- * would allow others. The parameter doesn't have to be casted to (unsigned
- * char) because these functions return false for everything out of [0..127].
- *
- * GLib 2.x has similar macros/functions but defines only a subset.
- */
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_blank(gint c)
-{
-	return c == 32 || c == 9;	/* space, tab */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_cntrl(gint c)
-{
-	return (c >= 0 && c <= 31) || c == 127;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_digit(gint c)
-{
-	return c >= 48 && c <= 57;	/* 0-9 */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_xdigit(gint c)
-{
-	return -1 != hex2int_inline(c) && !(c & ~0x7f);
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_upper(gint c)
-{
-	return c >= 65 && c <= 90;		/* A-Z */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_lower(gint c)
-{
-	return c >= 97 && c <= 122;		/* a-z */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_alpha(gint c)
-{
-	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_alnum(gint c)
-{
-	return -1 != alnum2int_inline(c) && !(c & ~0x7f); /* A-Z, a-z, 0-9 */
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_space(gint c)
-{
-	return c == 32 || (c >= 9 && c <= 13);
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_graph(gint c)
-{
-	return c >= 33 && c <= 126;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_print(gint c)
-{
-	return is_ascii_graph(c) || c == 32;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
-is_ascii_punct(gint c)
-{
-	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gint
-ascii_toupper(gint c)
-{
-	return is_ascii_lower(c) ? c - 32 : c;
-}
-
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gint
-ascii_tolower(gint c)
-{
-	return is_ascii_upper(c) ? c + 32 : c;
-}
-
 #if !GLIB_CHECK_VERSION(2,4,0)
 static inline WARN_UNUSED_RESULT const gchar *
 g_strip_context(const gchar *id, const gchar *val)
@@ -247,63 +113,6 @@ g_strip_context(const gchar *id, const gchar *val)
 	return s ? ++s : val;
 }
 #endif /* GLib < 2.4.0 */
-
-/**
- * Skips over all ASCII space characters starting at ``s''.
- *
- * @return a pointer to the first non-space character starting from s.
- */
-static inline WARN_UNUSED_RESULT gchar *
-skip_ascii_spaces(const gchar *s)
-{
-	while (is_ascii_space(*s))
-		s++;
-
-	return deconstify_gchar(s);
-}
-
-/**
- * Skips over all characters which are not ASCII spaces starting at ``s''.
- *
- * @return a pointer to the first space or NUL character starting from s.
- */
-static inline WARN_UNUSED_RESULT gchar *
-skip_ascii_non_spaces(const gchar *s)
-{
-	while ('\0' != *s && !is_ascii_space(*s))
-		s++;
-
-	return deconstify_gchar(s);
-}
-
-/**
- * Skips over all characters which are ASCII alphanumerical characters
- * starting at ``s''.
- *
- * @return a pointer to the first space or NUL character starting from s.
- */
-static inline WARN_UNUSED_RESULT gchar *
-skip_ascii_alnum(const gchar *s)
-{
-	while (is_ascii_alnum(*s))
-		s++;
-
-	return deconstify_gchar(s);
-}
-
-/**
- * Skips over all ASCII blank characters starting at ``s''.
- *
- * @return A pointer to the first non-blank character starting from s.
- */
-static inline WARN_UNUSED_RESULT gchar *
-skip_ascii_blanks(const gchar *s)
-{
-	while (is_ascii_blank(*s))
-		s++;
-
-	return deconstify_gchar(s);
-}
 
 static inline WARN_UNUSED_RESULT gchar *
 skip_dir_separators(const gchar *s)
@@ -512,10 +321,6 @@ gint hex2int(guchar c);
 gboolean is_printable(const gchar *buf, gint len);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void locale_strlower(gchar *, const gchar *);
-void ascii_strlower(gchar *dst, const gchar *src);
-gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
-gint ascii_strcasecmp_delimit(const gchar *a, const gchar *b,
-		const gchar *delimit);
 size_t filename_shrink(const gchar *filename, gchar *buf, size_t size);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext,
 		gboolean (*name_is_uniq)(const gchar *pathname));
@@ -584,7 +389,6 @@ int get_non_stdio_fd(int fd);
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
-gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 gchar *normalize_dir_separators(const gchar *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
@@ -594,24 +398,6 @@ pointer_hash_func(const void *p)
 {
 	size_t v = (size_t) p;
 	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
-}
-
-static inline guint
-str_case_hash_func(gconstpointer key)
-{
-	const guchar *s = key;
-	gulong c, hash = 0;
-	
-	while ((c = ascii_tolower(*s++))) {
-		hash ^= (hash << 8) | c;
-	}
-	return hash ^ (((guint64) 1048573 * hash) >> 32);
-}
-
-static inline gint
-str_case_eq_func(gconstpointer a, gconstpointer b)
-{
-	return 0 == ascii_strcasecmp(a, b);
 }
 
 /**

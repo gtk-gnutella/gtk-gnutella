@@ -47,7 +47,7 @@ RCSID("$Id$")
 #include "nodes.h"
 
 #include "lib/file.h"
-#include "lib/misc.h"
+#include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/walloc.h"

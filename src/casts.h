@@ -54,6 +54,12 @@ deconstify_gchar(const char *p)
 	return (char *) p;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
+deconstify_char(const char *p)
+{
+	return (char *) p;
+}
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE guint32 *
 deconstify_guint32(const guint32 *p)
 {
@@ -80,6 +86,12 @@ cast_to_gpointer(void *p)
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
 cast_to_gchar_ptr(void *p)
+{
+	return p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
+cast_to_char_ptr(void *p)
 {
 	return p;
 }

@@ -28,9 +28,9 @@
 ;# $Id$
 
 LSRC = \
-	socket.c \
 	adns.c \
 	aging.c \
+	ascii.c \
 	atoms.c \
 	base16.c \
 	base32.c \
@@ -84,6 +84,7 @@ LSRC = \
 	prop.c \
 	sha1.c \
 	slist.c \
+	socket.c \
 	sorted_array.c \
 	stats.c \
 	tea.c \

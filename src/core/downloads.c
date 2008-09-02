@@ -81,6 +81,7 @@
 
 #include "lib/adns.h"
 #include "lib/array.h"
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/dbus_util.h"

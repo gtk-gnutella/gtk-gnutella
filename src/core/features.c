@@ -39,12 +39,12 @@ RCSID("$Id$")
 
 #include "features.h"
 
-#include "lib/walloc.h"
-#include "lib/header.h"
-#include "lib/misc.h"
-#include "lib/glib-missing.h"
-
 #include "if/gnet_property_priv.h"
+
+#include "lib/ascii.h"
+#include "lib/header.h"
+#include "lib/glib-missing.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 

@@ -47,8 +47,8 @@ RCSID("$Id$")
 #include "settings.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/file.h"
-#include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/sorted_array.h"
 #include "lib/watcher.h"

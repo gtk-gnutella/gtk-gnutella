@@ -41,7 +41,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "debug.h"
 #include "inputevt.h"
-#include "misc.h"
+#include "ascii.h"
 #include "glib-missing.h"
 #include "tm.h"
 #include "walloc.h"

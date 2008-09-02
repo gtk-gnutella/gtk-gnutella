@@ -37,6 +37,7 @@
 
 RCSID("$Id$")
 
+#include "ascii.h"
 #include "glib-missing.h"
 #include "host_addr.h"
 #include "url.h"

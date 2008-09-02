@@ -88,6 +88,7 @@ RCSID("$Id$")
 
 #include "lib/adns.h"
 #include "lib/aging.h"
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbus_util.h"
@@ -100,7 +101,6 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/header.h"
 #include "lib/listener.h"
-#include "lib/misc.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -8453,7 +8453,7 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 		 */
 		
 		fix = is_strcaseprefix(vendor, "morph") &&
-				0 != strcmp_delimit(vendor, full, " /");
+				0 != ascii_strcmp_delimit(vendor, full, " /");
 		if (fix)
 			size = w_concat_strings(&wbuf, full, " (", vendor, ")", (void *) 0);
 	}

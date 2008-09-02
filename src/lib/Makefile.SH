@@ -81,12 +81,12 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 15566 2008-08-13 10:44:06Z rmanfredi $
+# $X-Id: Jmakefile 15606 2008-08-14 17:29:37Z cbiere $
 
 LSRC = \
-	socket.c \
 	adns.c \
 	aging.c \
+	ascii.c \
 	atoms.c \
 	base16.c \
 	base32.c \
@@ -140,6 +140,7 @@ LSRC = \
 	prop.c \
 	sha1.c \
 	slist.c \
+	socket.c \
 	sorted_array.c \
 	stats.c \
 	tea.c \
@@ -159,9 +160,9 @@ LSRC = \
 	zlib_util.c
 
 LOBJ = \
-	socket.o \
 	adns.o \
 	aging.o \
+	ascii.o \
 	atoms.o \
 	base16.o \
 	base32.o \
@@ -215,6 +216,7 @@ LOBJ = \
 	prop.o \
 	sha1.o \
 	slist.o \
+	socket.o \
 	sorted_array.o \
 	stats.o \
 	tea.o \

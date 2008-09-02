@@ -62,7 +62,7 @@ RCSID("$Id$")
 #include "downloads.h"
 #include "features.h"
 
-#include "lib/misc.h"
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/getline.h"
 #include "lib/header.h"

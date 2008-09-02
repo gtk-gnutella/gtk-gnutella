@@ -70,6 +70,7 @@ RCSID("$Id$")
 
 #include "lib/socket.h"
 #include "lib/adns.h"
+#include "lib/ascii.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"

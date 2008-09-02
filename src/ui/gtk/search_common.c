@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "if/core/sockets.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base16.h"
 #include "lib/base32.h"

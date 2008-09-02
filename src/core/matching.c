@@ -34,8 +34,8 @@ RCSID("$Id$")
 #include "share.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/pattern.h"
-#include "lib/misc.h"
 #include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"

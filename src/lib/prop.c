@@ -27,6 +27,7 @@
 
 RCSID("$Id$")
 
+#include "ascii.h"
 #include "getdate.h"
 #include "prop.h"
 #include "debug.h"

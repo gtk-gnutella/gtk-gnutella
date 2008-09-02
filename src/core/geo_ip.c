@@ -41,7 +41,7 @@ RCSID("$Id$")
 #include "settings.h"
 
 #include "lib/file.h"
-#include "lib/misc.h"
+#include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"

@@ -55,12 +55,12 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 #include "if/core/sockets.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
-#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"

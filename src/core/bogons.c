@@ -40,8 +40,8 @@ RCSID("$Id$")
 #include "bogons.h"
 #include "settings.h"
 
+#include "lib/ascii.h"
 #include "lib/file.h"
-#include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/walloc.h"

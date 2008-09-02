@@ -48,8 +48,8 @@ RCSID("$Id$")
 #include "if/core/sockets.h"
 #include "if/gui_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/glib-missing.h"
-#include "lib/misc.h"
 
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */

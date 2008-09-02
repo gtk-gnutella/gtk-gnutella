@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "if/bridge/c2ui.h"
 
 #include "lib/atoms.h"
+#include "lib/ascii.h"
 #include "lib/bg.h"
 #include "lib/endian.h"
 #include "lib/file.h"
@@ -532,7 +533,7 @@ parse_extensions(const gchar *str)
 	guint i;
 
 	free_extensions();
-	extensions = g_hash_table_new(str_case_hash_func, str_case_eq_func);
+	extensions = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
 
 	for (i = 0; exts[i]; i++) {
 		gchar c;

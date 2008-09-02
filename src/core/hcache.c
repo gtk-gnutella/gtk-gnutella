@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "pcache.h"
 #include "settings.h"
 
+#include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"

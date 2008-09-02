@@ -54,10 +54,10 @@
 
 #include "common.h"
 
-#include "lib/base16.h"
-#include "lib/misc.h"
+#include "base16.h"
+#include "ascii.h"
 
-#include "lib/override.h" /* Must be the last header included */
+#include "override.h" /* Must be the last header included */
 
 /*
  * See RFC 3548 for details about Base 16 encoding:

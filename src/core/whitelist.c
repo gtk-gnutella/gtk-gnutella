@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "tls_cache.h"
 #include "nodes.h"
 
+#include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/tm.h"

@@ -53,6 +53,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/cq.h"
