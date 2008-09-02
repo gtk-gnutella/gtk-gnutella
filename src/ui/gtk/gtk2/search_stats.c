@@ -55,7 +55,6 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -69,33 +68,89 @@ struct term_counts {
 	guint32 periods;
 };
 
-static guint stat_count = 0;
+static unsigned stat_count;
 
-static GHashTable *stat_hash = NULL;
-static GtkListStore *store_search_stats = NULL;
-static GtkTreeView *treeview_search_stats = NULL;
-static GtkLabel *label_search_stats_count = NULL;
+static GHashTable *stat_hash;
+static GtkListStore *store_search_stats;
+static GtkTreeView *treeview_search_stats;
+static GtkLabel *label_search_stats_count;
+static gboolean search_stats_gui_overload;
 
-static gboolean delete_hash_entry(gpointer key, gpointer val, gpointer data);
-static void empty_hash_table(void);
-static gboolean stats_hash_to_treeview(
-	gpointer key, gpointer value, gpointer userdata);
+#if GTK_CHECK_VERSION(2,6,0)
+static GtkSortType search_stats_sort_order;
+static int search_stats_sort_column;
+#endif	/* Gtk+ >= 2.6.0 */
 
 static gboolean
-delete_hash_entry(gpointer key, gpointer value, gpointer unused_data)
+delete_hash_entry(void *key, void *value, void *unused_data)
 {
-	struct term_counts *val = (struct term_counts *) value;
+	struct term_counts *val = value;
 
 	(void) unused_data;
 
-	/* free the key str (was atomized below) */
-	atom_str_free(key);
+	wfree(key, 1 + strlen(key));
 	wfree(val, sizeof *val);
 	return TRUE;
 }
 
-static gboolean callback_registered = FALSE;
-static gint selected_type = NO_SEARCH_STATS;
+/**
+ * Save Search Stats sort order.
+ */
+static void
+search_stats_gui_sort_save(void)
+{
+#if GTK_CHECK_VERSION(2,6,0)
+	GtkTreeSortable *sortable;
+	GtkSortType order;
+	int column;
+
+	sortable = GTK_TREE_SORTABLE(store_search_stats);
+	if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
+		search_stats_sort_column = column;
+		search_stats_sort_order = order;
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
+	}
+#endif /* Gtk+ >= 2.6.0 */
+}
+
+/**
+ * Re-enable Search Stats sorting and restore sort order.
+ */
+static void
+search_stats_gui_sort_restore(void)
+{
+#if GTK_CHECK_VERSION(2,6,0)
+	if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != search_stats_sort_column) {
+		gtk_tree_sortable_set_sort_column_id(
+			GTK_TREE_SORTABLE(store_search_stats),
+			search_stats_sort_column, search_stats_sort_order);
+	}
+#endif /* Gtk+ >= 2.6.0 */
+}
+
+/*
+ * Disable Search Stats sorting.
+ */
+static void
+search_stats_gui_disable_sort(void)
+{
+#if GTK_CHECK_VERSION(2,6,0)
+	GtkTreeSortable *sortable;
+	GtkSortType order;
+	int column;
+
+	sortable = GTK_TREE_SORTABLE(store_search_stats);
+	if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
+		gtk_tree_sortable_set_sort_column_id(sortable,
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, 
+			GTK_SORT_DESCENDING);
+	}
+#endif /* Gtk+ >= 2.6.0 */
+}
+
+static gboolean callback_registered;
+static int selected_type = NO_SEARCH_STATS;
 
 /***
  *** Private function prototypes
@@ -108,12 +163,11 @@ static void search_stats_tally(const word_vec_t * vec);
  ***/
 
 static void
-search_stats_notify_word(query_type_t type, const gchar *search,
+search_stats_notify_word(query_type_t type, const char *search,
 	 const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t *wovec;
-    guint wocnt;
-    guint i;
+    unsigned wocnt;
 
 	(void) unused_addr;
 	(void) unused_port;
@@ -123,25 +177,30 @@ search_stats_notify_word(query_type_t type, const gchar *search,
 
    	wocnt = word_vec_make(search, &wovec);
 	if (wocnt != 0) {
-		for (i = 0; i < wocnt; i++)
-			search_stats_tally(&wovec[i]);
+    	unsigned i;
 
+		for (i = 0; i < wocnt; i++) {
+			search_stats_tally(&wovec[i]);
+		}
 		word_vec_free(wovec, wocnt);
 	}
 }
 
 static void
-search_stats_notify_whole(query_type_t type, const gchar *search,
+search_stats_notify_whole(query_type_t type, const char *search,
 	const host_addr_t unused_addr, guint16 unused_port)
 {
     word_vec_t wovec;
-	gchar buf[1024];
+	char buf[1024];
 
 	(void) unused_addr;
 	(void) unused_port;
 
-	gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
-        search);
+	concat_strings(buf, sizeof buf, 
+		type == QUERY_SHA1 ? "urn:sha1:" : "[",
+		search,
+		type == QUERY_SHA1 ? "" : "]",
+        (void *) 0);
 
 	wovec.word = buf;
     wovec.len = strlen(wovec.word);
@@ -151,7 +210,7 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 }
 
 static void
-search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
+search_stats_notify_routed(query_type_t unused_type, const char *unused_search,
 	const host_addr_t addr, guint16 port)
 {
     word_vec_t wovec;
@@ -159,7 +218,7 @@ search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
 	(void) unused_type;
 	(void) unused_search;
 
-    wovec.word = deconstify_gchar(host_addr_port_to_string(addr, port));
+    wovec.word = deconstify_char(host_addr_port_to_string(addr, port));
     wovec.len = strlen(wovec.word);
     wovec.amount = 1;
 
@@ -188,11 +247,11 @@ empty_hash_table(void)
  *  - sticks the rest of the search terms in treeview_search_stats
  */
 static gboolean
-stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
+stats_hash_to_treeview(void *key, void *value, void *unused_udata)
 {
 	struct term_counts *val = value;
 	GtkTreeIter iter;
-	gchar *s;
+	char *s;
 
 	(void) unused_udata;
 
@@ -205,7 +264,6 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 		(1.0 * val->total_cnt / (val->periods + 2.0)) * 100 <
 			GUI_PROPERTY(search_stats_delcoef)
 	) {
-		atom_str_free(key);
 		wfree(val, sizeof *val);
 		return TRUE;
 	}
@@ -239,19 +297,13 @@ stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 static void
 search_stats_gui_enable(search_request_listener_t lst)
 {
-/*
- * FIXME: The search stats take too much CPU so that it causes the GUI to
- *        lock up.
- */
-
 	(void) lst;
-
-#if 0
+#if GTK_CHECK_VERSION(2,6,0)
     if (!callback_registered) {
-        guc_share_add_search_request_listener(lst);
+        guc_search_request_listener_add(lst);
         callback_registered = TRUE;
     }
-#endif
+#endif /* Gtk+ >= 2.6.0 */
 }
 
 static void
@@ -265,6 +317,7 @@ search_stats_gui_disable(void)
     }
 
     empty_hash_table();
+	search_stats_gui_disable_sort();
 }
 
 /**
@@ -274,18 +327,20 @@ static void
 search_stats_tally(const word_vec_t *vec)
 {
 	struct term_counts *val;
-	gconstpointer key;
 
 	if (vec->word[1] == '\0' || vec->word[2] == '\0')
 		return;
 
 	val = g_hash_table_lookup(stat_hash, vec->word);
+
 	if (val) {
 		val->period_cnt++;
 	} else {
-		key = atom_str_get(vec->word);
+		const char *key;
+
 		val = walloc0(sizeof *val);
 		val->period_cnt = vec->amount;
+		key = wcopy(vec->word, 1 + strlen(vec->word));
 		gm_hash_table_insert_const(stat_hash, key, val);
 	}
 }
@@ -304,14 +359,17 @@ search_stats_gui_reset(void)
 {
 	empty_hash_table();
 	gtk_list_store_clear(store_search_stats);
+	search_stats_gui_disable_sort();
+	search_stats_gui_overload = FALSE;
 }
 
 void
-search_stats_gui_set_type(gint type)
+search_stats_gui_set_type(int type)
 {
     if (type == selected_type)
         return;
 
+	search_stats_gui_reset();
     search_stats_gui_disable();
     selected_type = type;
 
@@ -335,8 +393,8 @@ search_stats_gui_set_type(gint type)
 
 /* FIXME: merge all `add_column' functions into one */
 static void
-add_column(GtkTreeView *treeview, gint id, gfloat xalign,
-	const gchar *label)
+add_column(GtkTreeView *treeview, int id, float xalign,
+	const char *label)
 {
     GtkTreeViewColumn *column;
     GtkCellRenderer *renderer;
@@ -372,24 +430,60 @@ add_column(GtkTreeView *treeview, gint id, gfloat xalign,
 static void
 search_stats_gui_update_display(void)
 {
+	gboolean sorting_disabled;
+	tm_t start_time, end_time;
+	time_delta_t elapsed;
+
 	stat_count = 0;
-	gtk_list_store_clear(store_search_stats);
 	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
+	gtk_list_store_clear(store_search_stats);
+	
+	/*
+	 * Temporarily disable sorting while inserting the updated table.
+	 * Otherwise, CPU is overloaded with sorting every addition
+	 *  to the hash table. 
+	 */
+	sorting_disabled = FALSE;
+	tm_now_exact(&start_time);
+	if (store_search_stats->sort_column_id >= 0) {
+		sorting_disabled = TRUE;
+		search_stats_gui_sort_save();
+	}
 	/* insert the hash table contents into the sorted treeview */
 	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
 	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
 
-	/* update the counter */
-	gtk_label_printf(GTK_LABEL(label_search_stats_count),
-		NG_("%u term counted", "%u terms counted", stat_count),
-		stat_count);
-}
+	tm_now_exact(&end_time);
+	elapsed = tm_elapsed_ms(&end_time, &start_time);
 
-static gboolean
-search_stats_gui_is_visible(void)
-{
-	return main_gui_window_visible() &&
-		nb_main_page_search_stats == main_gui_notebook_get_page();
+	/*
+	 * Re-enable sorting if previously disabled.
+	 * If too much time has elapsed, leave sorting disabled.
+	 */
+	if (sorting_disabled && elapsed < 100) {
+		search_stats_gui_sort_restore();
+	} else if (!sorting_disabled && elapsed > 200) {
+		/*
+		 * If sorting is disabled, and too much time is still elapsing,
+		 * then the search stats collection will need to be
+		 * discontinued
+		 */
+    	search_stats_gui_reset();
+	    search_stats_gui_disable();
+	    search_stats_gui_overload = TRUE;
+	}
+	
+	if (search_stats_gui_overload) {
+		/* update status bar message */
+		gtk_label_set_text(GTK_LABEL(label_search_stats_count),
+			"Disabling Search Stats due to system load" );
+	} else {
+		/* update the status bar counter */
+		gtk_label_printf(GTK_LABEL(label_search_stats_count),
+			NG_("%u term counted", "%u terms counted", stat_count),
+			stat_count);
+	}
+
 }
 
 static void
@@ -398,10 +492,7 @@ search_stats_gui_timer(time_t now)
 	static time_t last_update;
 	time_delta_t interval = GUI_PROPERTY(search_stats_update_interval);
 
-    if (
-		search_stats_gui_is_visible() &&
-		delta_time(now, last_update) > interval
-	) {
+    if (!last_update || delta_time(now, last_update) > interval) {
     	last_update = now;
 		search_stats_gui_update_display();
 	}
@@ -416,9 +507,9 @@ search_stats_gui_init(void)
 		G_TYPE_ULONG
 	};
 	static const struct {
-		const gint id;
-		const gfloat align;
-		const gchar *title;
+		const int id;
+		const float align;
+		const char *title;
 	} cols[] = {
 		{ 0, 0.0, N_("Search Term") },
 		{ 1, 1.0, N_("This Interval") },
@@ -449,7 +540,7 @@ search_stats_gui_init(void)
 	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
 	tree_view_set_fixed_height_mode(treeview, TRUE);
 
-	stat_hash = g_hash_table_new(NULL, NULL);
+	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
 	main_gui_add_timer(search_stats_gui_timer);
 }
 
