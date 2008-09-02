@@ -497,6 +497,19 @@ search_gui_clear_search(search_t *search)
 	g_assert(0 == g_hash_table_size(search->parents));
 }
 
+static gboolean
+search_gui_is_sorted(struct search *search)
+{
+	GtkTreeModel *model;
+	GtkTreeSortable *sortable;
+
+	g_return_val_if_fail(search, FALSE);
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+	sortable = GTK_TREE_SORTABLE(model);
+	return gtk_tree_sortable_get_sort_column_id(sortable, NULL, NULL);
+}
+
 static void
 search_gui_disable_sort(struct search *search)
 {
@@ -504,8 +517,6 @@ search_gui_disable_sort(struct search *search)
 #if GTK_CHECK_VERSION(2,6,0)
 		GtkTreeModel *model;
 		GtkTreeSortable *sortable;
-
-		g_return_if_fail(search);
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 		sortable = GTK_TREE_SORTABLE(model);
@@ -1765,14 +1776,15 @@ search_gui_flush_queue(search_t *search)
 	if (slist_length(search->queue) > 0) {
 		GtkTreeModel *model;
 		slist_iter_t *iter;
-		guint n = 0;
+		guint max_items;
 
 		search_gui_start_massive_update(search);
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
+		max_items = search_gui_is_sorted(search) ? 100 : 500;
 
 		iter = slist_iter_on_head(search->queue);
-		while (slist_iter_has_item(iter) && n++ < 100) {
+		while (slist_iter_has_item(iter) && max_items-- > 0) {
 			struct result_data *data;
 
 			data = slist_iter_current(iter);
