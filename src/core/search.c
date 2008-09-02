@@ -876,6 +876,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	const gchar *vendor;
 	guint32 token;
 	gboolean has_token;
+	host_addr_t ipv6_addr;
+	gboolean has_ipv6_addr;
 
 	if (!trailer || trailer_size < 7)
 		return FALSE;
@@ -887,6 +889,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	flags_mask = trailer[6];
 	has_token = FALSE;
 	token = 0;
+	has_ipv6_addr = FALSE;
 
 	if (open_size > trailer_size - 4) {
 		if (GNET_PROPERTY(search_debug)) {
@@ -977,19 +980,13 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				}
 				break;
 			case EXT_T_GGEP_GTKG_IPV6:
-				{
-					host_addr_t addr;
-
-					ret = ggept_gtkg_ipv6_extract(e, &addr);
+				if (has_ipv6_addr) {
+					g_warning("%s has multiple GGEP \"GTKG.IPV6\" (ignoring)",
+							gmsg_infostr(&n->header));
+				} else {
+					ret = ggept_gtkg_ipv6_extract(e, &ipv6_addr);
 					if (GGEP_OK == ret) {
-						if (
-							NET_TYPE_IPV4 != GNET_PROPERTY(network_protocol) &&
-							is_host_addr(addr) &&
-							!hostiles_check(rs->addr) &&
-							!hostiles_check(addr)
-						) {
-							rs->addr = addr;
-						}
+						has_ipv6_addr = TRUE;
 					} else if (ret == GGEP_INVALID) {
 						if (
 							GNET_PROPERTY(search_debug) > 3 ||
@@ -1159,7 +1156,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			if (has_token) {
 				rs->status |= ST_GOOD_TOKEN;
 			}
-			/* We can send PUSH requests directly, so treat it like a proxy */
+			/* We can send PUSH requests directly, so add it as push proxy. */
 			if (NULL == rs->proxies) {
 				rs->proxies = gnet_host_vec_alloc();
 			}
@@ -1172,6 +1169,20 @@ search_results_handle_trailer(const gnutella_node_t *n,
                 	host_addr_port_to_string(n->addr, n->port));
 			}
 		}
+	}
+
+	/**
+	 * If the peer has an IPv6 address, we can use that as push proxy, too.
+	 */
+	if (
+		has_ipv6_addr &&
+		is_host_addr(ipv6_addr) &&
+		!hostiles_check(ipv6_addr)
+	) {
+		if (NULL == rs->proxies) {
+			rs->proxies = gnet_host_vec_alloc();
+		}
+		gnet_host_vec_add(rs->proxies, ipv6_addr, n->port);
 	}
 	return FALSE;	/* no errors */
 }
