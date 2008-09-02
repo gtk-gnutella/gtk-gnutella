@@ -1717,6 +1717,7 @@ kmsg_find(guint8 function)
 {
 	const struct kmsg *km;
 
+	/* XXX: Why -1 ?*/
 	if (function == 0 || function >= G_N_ELEMENTS(kmsg_map) - 1)
 		return NULL;
 
@@ -1733,6 +1734,7 @@ kmsg_find(guint8 function)
 const char *
 kmsg_name(guint function)
 {
+	/* XXX: Why -1 ?*/
 	if (function >= G_N_ELEMENTS(kmsg_map) - 1)
 		return "invalid";
 
