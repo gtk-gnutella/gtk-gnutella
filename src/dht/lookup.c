@@ -1867,7 +1867,7 @@ lookup_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		g_assert(pmsg_written_size(mb) > GUID_RAW_SIZE);
 
-		muid = (guid_t *) pmsg_start(mb);
+		muid = cast_to_guid_ptr(pmsg_start(mb));
 		if (pmi->rpi->hop == nl->hops) {
 			g_assert(nl->rpc_latest_pending > 0);
 			nl->rpc_latest_pending--;
@@ -2113,8 +2113,10 @@ lookup_rpc_cb(
 	switch (nl->mode) {
 	case LOOKUP_STRICT:
 		if (0 != nl->rpc_pending) {
-			g_message("DHT LOOKUP[%d] not iterating yet (strict parallelism)",
-				nl->lid);
+			if (GNET_PROPERTY(dht_lookup_debug))
+				g_message(
+					"DHT LOOKUP[%d] not iterating yet (strict parallelism)",
+					nl->lid);
 			break;
 		}
 		/* FALL THROUGH */
@@ -2772,7 +2774,7 @@ lookup_value_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		g_assert(pmsg_written_size(mb) > GUID_RAW_SIZE);
 
-		muid = (guid_t *) pmsg_start(mb);
+		muid = cast_to_guid_ptr(pmsg_start(mb));
 		fv->rpc_pending--;
 		nl->udp_drops++;
 		dht_rpc_cancel(muid);

@@ -34,6 +34,15 @@ typedef struct guid {
 	char v[GUID_RAW_SIZE];
 } guid_t;
 
+/**
+ * No alignment requirements but ptr must point to GUID_RAW_SIZE or more bytes.
+ */
+static inline guid_t *
+cast_to_guid_ptr(char *ptr)
+{
+	return (guid_t *) ptr;
+}
+
 extern const gchar blank_guid[GUID_RAW_SIZE];
 
 gboolean guid_is_blank(const gchar *guid);
