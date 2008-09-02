@@ -287,9 +287,14 @@ udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
 void
 udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
 {
+	if (NULL == n || NULL == n->outq) {
+		pmsg_free(mb);
+		/* emit warnings */
+		g_return_if_fail(n);
+		g_return_if_fail(n->outq);
+		g_assert_not_reached();
+	}
 	g_assert(NODE_IS_UDP(n));
-	g_return_if_fail(n->outq);
-
 	mq_udp_node_putq(n->outq, mb, n);
 }
 
