@@ -47,7 +47,6 @@ RCSID("$Id$")
 #include "lib/compat_pio.h"
 #include "lib/iovec.h"
 #include "lib/misc.h"
-#include "lib/walloc.h"
 
 #include "lib/override.h"       /* Must be the last header included */
 
