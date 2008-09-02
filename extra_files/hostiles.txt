@@ -1305,6 +1305,9 @@
 89.248.172.98
 213.174.141.173
 78.108.178.57
+# v3Servers.net
+# Sogreev Anton, 12 Knez Mihailova, apt. 18, Belgrade, 11000, Serbia
+94.76.192.206/31
 
 # WakeNet; 3wplayer dot com
 67.15.107.160/27
