@@ -1176,13 +1176,14 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	 */
 	if (
 		has_ipv6_addr &&
+		rs->port > 0 &&
 		is_host_addr(ipv6_addr) &&
 		!hostiles_check(ipv6_addr)
 	) {
 		if (NULL == rs->proxies) {
 			rs->proxies = gnet_host_vec_alloc();
 		}
-		gnet_host_vec_add(rs->proxies, ipv6_addr, n->port);
+		gnet_host_vec_add(rs->proxies, ipv6_addr, rs->port);
 	}
 	return FALSE;	/* no errors */
 }
