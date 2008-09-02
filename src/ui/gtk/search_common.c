@@ -364,8 +364,15 @@ search_gui_update_status_label(const struct search *search)
 	} else if (NULL == search) {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
 	} else if (!search_gui_is_enabled(search)) {
-       	gtk_label_printf(label_search_expiry, "%s",
-			_("The search has been stopped"));
+		unsigned queued = search_gui_queue_length(search);
+
+		if (queued > 0) {
+       		gtk_label_printf(label_search_expiry,
+				_("Flushing queue (%u results pending)"), queued);
+		} else {
+			gtk_label_printf(label_search_expiry, "%s",
+				_("The search has been stopped"));
+		}
 	} else if (search_gui_is_passive(search)) {
 		gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
 	} else if (search_gui_is_expired(search)) {

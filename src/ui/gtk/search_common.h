@@ -173,6 +173,7 @@ void search_gui_sort_column(struct search *, int column);
 void search_gui_expand_all(struct search *);
 void search_gui_collapse_all(struct search *);
 void search_gui_flush_queues(void);
+unsigned search_gui_queue_length(const struct search *);
 void search_gui_remove_search(search_t *);
 void search_gui_update_list_label(const struct search *);
 void search_gui_clear_search(struct search *);

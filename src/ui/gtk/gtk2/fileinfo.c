@@ -62,26 +62,26 @@ static GtkListStore *store_aliases;
 static GtkListStore *store_files;
 static GtkListStore *store_sources;
 
-#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+#if GTK_CHECK_VERSION(2,6,0)
 static GtkSortType files_sort_order;
 static int files_sort_column;
 static int files_sort_depth;
-#endif	/* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+#endif	/* Gtk+ => 2.6.0 */
 
 static void
 fi_gui_files_sort_reset(void)
 {
-#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+#if GTK_CHECK_VERSION(2,6,0)
 	files_sort_column = GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID;
 	files_sort_order = GTK_SORT_ASCENDING;
 	files_sort_depth = 0;
-#endif	/* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+#endif	/* Gtk+ => 2.6.0 */
 }
 
 static void
 fi_gui_files_sort_save(void)
 {
-#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+#if GTK_CHECK_VERSION(2,6,0)
 	if (0 == files_sort_depth++) {
 		GtkTreeSortable *sortable;
 		GtkSortType order;
@@ -95,15 +95,15 @@ fi_gui_files_sort_save(void)
 					GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order);
 		}
 	}
-#endif /* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+#endif	/* Gtk+ => 2.6.0 */
 }
 
 static void
 fi_gui_files_sort_restore(void)
 {
-#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+#if GTK_CHECK_VERSION(2,6,0)
 	g_return_if_fail(files_sort_depth > 0);
-	files_sort_depth--
+	files_sort_depth--;
 
 	if (0 == files_sort_depth) {
 		if (GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID != files_sort_column) {
@@ -111,7 +111,7 @@ fi_gui_files_sort_restore(void)
 					files_sort_column, files_sort_order);
 		}
 	}
-#endif /* GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID */
+#endif	/* Gtk+ => 2.6.0 */
 }
 
 static inline void

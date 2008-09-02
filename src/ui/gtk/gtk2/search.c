@@ -501,7 +501,7 @@ static void
 search_gui_disable_sort(struct search *search)
 {
 	if (search && search->sort) {
-#ifdef GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID
+#if GTK_CHECK_VERSION(2,6,0)
 		GtkTreeModel *model;
 		GtkTreeSortable *sortable;
 
@@ -509,7 +509,7 @@ search_gui_disable_sort(struct search *search)
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 		sortable = GTK_TREE_SORTABLE(model);
-		if (gtk_tree_sortable_get_sort_column_id(sortable, NULL)) {
+		if (gtk_tree_sortable_get_sort_column_id(sortable, NULL, NULL)) {
 			gtk_tree_sortable_set_sort_column_id(sortable,
 				GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_DESCENDING);
 		}
@@ -1794,6 +1794,15 @@ search_gui_flush_queues(void)
 	for (/* NOTHING*/; NULL != iter; iter = g_list_next(iter)) {
 		search_gui_flush_queue(iter->data);
 	}
+}
+
+unsigned
+search_gui_queue_length(const struct search *search)
+{
+	g_return_val_if_fail(search, 0);
+	g_return_val_if_fail(search->queue, 0);
+	
+	return slist_length(search->queue);
 }
 
 /* -*- mode: cc-mode; tab-width:4; -*- */

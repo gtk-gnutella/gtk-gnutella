@@ -2082,4 +2082,12 @@ search_gui_flush_queues(void)
 		/* TODO: Implement this */
 }
 
+unsigned
+search_gui_queue_length(const struct search *search)
+{
+	g_return_val_if_fail(search, 0);
+	/* TODO: Implement this */
+	return 0;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
