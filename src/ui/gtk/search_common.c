@@ -1723,7 +1723,7 @@ search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_firewalled);
 
 	flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-	if (ST_LOCAL & rs->status) {
+	if ((ST_LOCAL | ST_BROWSE) & rs->status) {
 		skip_records = FALSE;
 	} else {
 		skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
@@ -2336,7 +2336,8 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 
 		/* Assume the URL was entered by a human; humans don't escape
 		 * URLs except on accident and probably incorrectly. Try to
-		 * correct the escaping but don't touch '?', '&', '=', ':'.
+		 * correct the escaping but don't touch '?', '&', '=', ':',
+		 * '[', ']'.
 		 */
 		escaped_url = url_fix_escape(url);
 
@@ -3951,19 +3952,17 @@ search_gui_magnet_add_source(struct magnet_resource *magnet, record_t *record)
 	
 	rs = record->results_set;
 
-	if (ST_FIREWALL & rs->status) {
-		if (rs->proxies) {
-			gnet_host_t host;
-
-			host = gnet_host_vec_get(rs->proxies, 0);
-			magnet_add_sha1_source(magnet, record->sha1,
-				gnet_host_get_addr(&host), gnet_host_get_port(&host),
-				rs->guid);
-		}
-	} else {
+	if (!(ST_FIREWALL & rs->status)) {
 		magnet_add_sha1_source(magnet, record->sha1, rs->addr, rs->port, NULL);
 	}
+	if (rs->proxies) {
+		gnet_host_t host;
 
+		host = gnet_host_vec_get(rs->proxies, 0);
+		magnet_add_sha1_source(magnet, record->sha1,
+			gnet_host_get_addr(&host), gnet_host_get_port(&host),
+			rs->guid);
+	}
 	if (record->alt_locs) {
 		gint i, n;
 
