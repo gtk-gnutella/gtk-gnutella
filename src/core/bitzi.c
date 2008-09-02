@@ -280,6 +280,7 @@ struct efj_t {
 
 static const struct efj_t enum_fj_table[] = {
 	{ "Unknown",				BITZI_FJ_UNKNOWN },
+	{ "Unrated",				BITZI_FJ_UNRATED },
 	{ "Bitzi lookup failure",	BITZI_FJ_FAILURE },
 	{ "Filesize mismatch",		BITZI_FJ_WRONG_FILESIZE },
 	{ "Dangerous/Misleading",	BITZI_FJ_DANGEROUS_MISLEADING },
@@ -369,6 +370,8 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 				break;
 			}
 		}
+	} else {
+		data->judgement = BITZI_FJ_UNRATED;
 	}
 	xml_free_null(&value);
 

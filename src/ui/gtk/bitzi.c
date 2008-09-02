@@ -52,8 +52,9 @@ RCSID("$Id$")
  * It assumes the enum's are in order.
  */
 
-static const gchar * const bitzi_fj_table[] = {
+static const char * const bitzi_fj_table[] = {
 	N_("Bitzi|Unknown"),				/**< UNKNOWN */
+	N_("Bitzi|Unrated"),				/**< UNRATED */
 	N_("Bitzi|Bitzi lookup failure"),	/**< FAILURE */
 	N_("Bitzi|Filesize mismatch"),		/**< WRONG_FILESIZE */
 	N_("Bitzi|Dangerous/Misleading"),	/**< DANGEROUS_MISLEADING */
@@ -67,7 +68,7 @@ static const gchar * const bitzi_fj_table[] = {
 	N_("Bitzi|Best Version"),			/**< BEST_VERSION*/
 };
 
-const gchar *
+const char *
 bitzi_fj_to_string(bitzi_fj_t fj)
 {
 	STATIC_ASSERT(NUM_BITZI_FJ == G_N_ELEMENTS(bitzi_fj_table));
@@ -98,7 +99,7 @@ bitzi_gui_update(const bitzi_data_t *bitzi_data)
 	search_gui_metadata_update(bitzi_data);
 }
 
-gchar *
+char *
 bitzi_gui_get_metadata(const bitzi_data_t *data)
 {
 	g_assert(data != NULL);
