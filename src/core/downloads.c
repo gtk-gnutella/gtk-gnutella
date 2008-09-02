@@ -139,7 +139,7 @@ static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
 static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
-static gboolean download_send_push_request(struct download *d);
+static gboolean download_send_push_request(struct download *d, gboolean broad);
 static gboolean download_read(struct download *d, pmsg_t *mb);
 static gboolean download_ignore_data(struct download *d, pmsg_t *mb);
 static void download_request(struct download *d, header_t *header, gboolean ok);
@@ -1580,7 +1580,6 @@ get_server(
 
 /**
  * The server address/port changed.
- * The port can be the same as before but the address is necessarily different.
  */
 static void
 change_server_addr(struct dl_server *server,
@@ -1590,7 +1589,6 @@ change_server_addr(struct dl_server *server,
 	struct dl_server *duplicate;
 
 	g_assert(dl_server_valid(server));
-	g_assert(!host_addr_equal(key->addr, new_addr));
 	g_assert(host_addr_initialized(new_addr));
 
 	g_hash_table_remove(dl_by_host, key);
@@ -1798,22 +1796,15 @@ download_found_server(const char *guid, const host_addr_t addr, guint16 port)
 	 * XXX		--RAM, 2008-09-01
 	 */
 
-	if (GNET_PROPERTY(download_debug))
-		g_message("discovered GUID %s is for host %s",
-			guid_to_string(guid), host_addr_port_to_string(addr, port));
-
 	server = g_hash_table_lookup(dl_by_guid, guid);
-
 	g_assert(dl_server_valid(server));
 
-	if (host_addr_equal(server->key->addr, ipv4_unspecified)) {
-		change_server_addr(server, addr, port);
-	} else {
-		if (GNET_PROPERTY(download_debug))
-			g_message("however GUID %s is already borne by host %s",
-				guid_to_string(guid),
-				host_addr_port_to_string(server->key->addr, server->key->port));
-	}
+	if (GNET_PROPERTY(download_debug))
+		g_message("discovered GUID %s is for host %s (was %s)",
+			guid_to_string(guid), host_addr_port_to_string(addr, port),
+			host_addr_port_to_string2(server->key->addr, server->key->port));
+
+	change_server_addr(server, addr, port);
 }
 
 /**
@@ -1821,14 +1812,14 @@ download_found_server(const char *guid, const host_addr_t addr, guint16 port)
  */
 void
 download_add_push_proxies(const char *guid,
-	const host_addr_t addr, guint16 port,
 	gnet_host_t *proxies, int proxy_count)
 {
-	struct dl_server *server = get_server(guid, addr, port, FALSE);
+	struct dl_server *server;
 	int i;
 
 	g_assert(proxies);
 
+	server = g_hash_table_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -1849,30 +1840,50 @@ download_add_push_proxies(const char *guid,
  * Lookup for push proxies is finished.
  */
 void
-download_proxy_dht_lookup_done(
-	const char *guid, const host_addr_t addr, guint16 port)
+download_proxy_dht_lookup_done(const char *guid)
 {
-	struct dl_server *server = get_server(guid, addr, port, FALSE);
+	struct dl_server *server;
 
+	server = g_hash_table_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
 	server->attrs &= ~DLS_A_DHT_PROX;
+
+	/*
+	 * Send a UDP push request to the first download we find waiting
+	 * for a GIV from this server.
+	 */
+
+	if (server->proxies) {
+		list_iter_t *iter;
+		
+		iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
+		while (list_iter_has_next(iter)) {
+			struct download *d = list_iter_next(iter);
+			download_check(d);
+			if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+				download_send_push_request(d, FALSE);	/* UDP only */
+				break;
+			}
+		}
+		list_iter_free(&iter);
+	}
 }
 
 /**
  * Lookup for push proxies in the DHT failed.
  */
 void
-download_no_push_proxies(const char *guid, const host_addr_t addr, guint16 port)
+download_no_push_proxies(const char *guid)
 {
-	struct dl_server *server = get_server(guid, addr, port, FALSE);
+	struct dl_server *server;
 
+	server = g_hash_table_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
-	/* XXX need to increase retry count for all non-running downloads
-	 * XXX attached to that server*/
+	/* XXX any processing required really or can we ditch this callback? */
 }
 
 /**
@@ -1885,6 +1896,7 @@ static gboolean
 server_dht_query(struct download *d)
 {
 	struct dl_server *server = d->server;
+	struct dl_server *known;
 
 	g_assert(dl_server_valid(server));
 
@@ -1894,12 +1906,22 @@ server_dht_query(struct download *d)
 	if (!dht_bootstrapped())
 		return TRUE;						/* Wait until bootstrapped */
 
-	if (server->attrs & DLS_A_DHT_PROX)
+	known = g_hash_table_lookup(dl_by_guid, server->key->guid);
+	g_assert(known);
+
+	if (known != server && GNET_PROPERTY(download_debug))
+		g_warning("query in DHT for GUID %s (%s) done for colliding %s instead",
+			guid_to_string(server->key->guid),
+			host_addr_port_to_string(server->key->addr, server->key->port),
+			host_addr_port_to_string2(known->key->addr, known->key->port));
+
+	if (known->attrs & DLS_A_DHT_PROX)
 		return TRUE;						/* Already querying */
 
-	server->attrs |= DLS_A_DHT_PROX;
-	fi_src_status_changed(d);
-	gdht_find_guid(server->key->guid, server->key->addr, server->key->port);
+	known->attrs |= DLS_A_DHT_PROX;
+	if (server == known)
+		fi_src_status_changed(d);
+	gdht_find_guid(known->key->guid, known->key->addr, known->key->port);
 
 	return TRUE;
 }
@@ -4582,7 +4604,7 @@ download_push(struct download *d, gboolean on_timeout)
 
 	g_assert(d->push);
 
-	if (download_send_push_request(d)) {
+	if (download_send_push_request(d, TRUE)) {
 		/*
 		 * The first time we come here, we simply record we did send UDP
 		 * pushes and return.  Next time, we'll continue below.
@@ -5894,12 +5916,12 @@ send_udp_push(const struct array packet, host_addr_t addr, guint16 port)
  *
  * We're very aggressive: we send a PUSH via UDP to the host itself, as well
  * as all the known push proxies.  We also broadcast to the proper routes
- * on Gnutella.
+ * on Gnutella if `broadcast' is TRUE.
  *
  * @returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
 static gboolean
-download_send_push_request(struct download *d)
+download_send_push_request(struct download *d, gboolean broadcast)
 {
 	struct array packet;
 	guint16 port;
@@ -5915,7 +5937,6 @@ download_send_push_request(struct download *d)
 				d->record_index, tls_enabled());
 
 	if (packet.data) {
-		GSList *nodes;
 		gboolean success = FALSE;
 
 		/* Pure luck: try to reach the remote host directly via UDP... */
@@ -5932,18 +5953,19 @@ download_send_push_request(struct download *d)
 			}
 		}
 
-		nodes = route_towards_guid(download_guid(d));
-		if (nodes) {
-			success = TRUE;
+		if (broadcast) {
+			GSList *nodes = route_towards_guid(download_guid(d));
 
-			/*
-			 * Send the message to all the nodes that can route our request back
-			 * to the source of the query hit.
-			 */
-			gmsg_sendto_all(nodes, packet.data, packet.size);
+			if (nodes) {
+				/*
+				 * Send the message to all the nodes that can route our
+				 * request back to the source of the query hit.
+				 */
 
-			g_slist_free(nodes);
-			nodes = NULL;
+				gmsg_sendto_all(nodes, packet.data, packet.size);
+				g_slist_free(nodes);
+				success = TRUE;
+			}
 		}
 		return success;
 	} else {

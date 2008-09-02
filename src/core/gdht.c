@@ -164,7 +164,7 @@ gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
 	guid_lookup_check(glk);
 
 	if (do_remove) {
-		download_proxy_dht_lookup_done(glk->guid->v, glk->addr, glk->port);
+		download_proxy_dht_lookup_done(glk->guid->v);
 		g_hash_table_remove(guid_lookups, glk->id);
 	}
 
@@ -483,7 +483,7 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 		g_message("DHT PROX lookup for GUID %s failed: %s",
 			guid_to_string(glk->guid->v), lookup_strerror(error));
 
-	download_no_push_proxies(glk->guid->v, glk->addr, glk->port);
+	download_no_push_proxies(glk->guid->v);
 	gdht_free_guid_lookup(glk, TRUE);
 }
 
@@ -632,23 +632,12 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 	/*
 	 * If host address is not matching, we're getting push-proxy information
-	 * for another host, unless the old host address is ipv4_unspecified, in
-	 * which case we're facing a retrieved magnet and we did not know the
-	 * IP:port of the host bearing the GUID we've been looking for...
+	 * for another host, which can mean the host has changed its address
+	 * since we last heard about it.
 	 */
 
-	if (!host_addr_equal(glk->addr, rc->addr)) {
-		if (host_addr_equal(glk->addr, ipv4_unspecified)) {
-			download_found_server(glk->guid->v, rc->addr, port);
-		} else {
-			if (GNET_PROPERTY(download_debug))
-				g_warning("discarding %s from %s for GUID %s: servent is at %s",
-					value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-					guid_to_string(glk->guid->v),
-					host_addr_to_string(glk->addr));
-			return;
-		}
-	}
+	if (!host_addr_equal(glk->addr, rc->addr) || port != glk->port)
+		download_found_server(glk->guid->v, rc->addr, port);
 
 	/*
 	 * Create new push-proxies.
@@ -661,8 +650,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 			host_addr_port_to_string(rc->addr, port),
 			host_addr_port_to_string(glk->addr, glk->port));
 
-	download_add_push_proxies(glk->guid->v, glk->addr, glk->port,
-		proxies, proxy_count);
+	download_add_push_proxies(glk->guid->v, proxies, proxy_count);
 }
 
 /**

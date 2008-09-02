@@ -78,12 +78,9 @@ void download_redirect_to_server(struct download *d,
 void download_actively_queued(struct download *d, gboolean queued);
 
 void download_add_push_proxies(const char *guid,
-	const host_addr_t addr, guint16 port,
 	gnet_host_t *proxies, int proxy_count);
-void download_proxy_dht_lookup_done(const char *guid,
-	const host_addr_t addr, guint16 port);
-void download_no_push_proxies(const char *guid,
-	const host_addr_t addr, guint16 port);
+void download_proxy_dht_lookup_done(const char *guid);
+void download_no_push_proxies(const char *guid);
 void download_found_server(const char *guid,
 	const host_addr_t addr, guint16 port);
 
