@@ -49,6 +49,8 @@ RCSID("$Id$")
 #include "gnet_stats.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/dht/kmsg.h"
+#include "if/dht/kademlia.h"
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
@@ -59,6 +61,7 @@ RCSID("$Id$")
 
 static const gchar *msg_name[256];
 static guint8 msg_weight[256];	/**< For gmsg_cmp() */
+static guint8 kmsg_weight[256];	/**< For gmsg_cmp() */
 
 /**
  * Ensure that the gnutella message header has the correct size,
@@ -159,13 +162,11 @@ gmsg_init(void)
 	gint i;
 
 	for (i = 0; i < 256; i++) {
-		const gchar *s;
-		guint w;
-
-		s = "unknown";
-		w = 0;
+		const gchar *s = "unknown";
+		guint w = 0;
 
 		switch ((enum gta_msg) i) {
+		case GTA_MSG_DHT:            w = 0; s = "DHT"; break;
 		case GTA_MSG_INIT:           w = 1; s = "Ping"; break;
 		case GTA_MSG_INIT_RESPONSE:  w = 3; s = "Pong"; break;
 		case GTA_MSG_SEARCH:         w = 2; s = "Query"; break;
@@ -177,10 +178,39 @@ gmsg_init(void)
 		case GTA_MSG_QRP:            w = 6; s = "QRP"; break;
 		case GTA_MSG_HSEP_DATA:      		s = "HSEP"; break;
 		case GTA_MSG_BYE:      		 w = 7; s = "BYE"; break;
-		case GTA_MSG_DHT:   		 		s = "DHT"; break;
 		}
 		msg_name[i] = s;
 		msg_weight[i] = w;
+	}
+
+	/*
+	 * We need to be able to compare Gnutella and Kademlia messages since
+	 * they can both be found in the same UDP queue.
+	 *
+	 * The messages with a weight of 0 can be dropped quite safely in
+	 * flow-control situations.  See also kmsg_can_drop().
+	 *
+	 * NB: This is defined here and not in the DHT sources to avoid a costly
+	 * function call in gmsg_cmp() and also because respective weights of
+	 * Gnutella and Kademlia messages must be defined with knowledge of each
+	 * other.
+	 */
+
+	for (i = 0; i < 256; i++) {
+		guint w = 0;
+
+		switch ((enum kda_msg) i) {
+		case KDA_MSG_PING_REQUEST:        w = 1; break;
+		case KDA_MSG_PING_RESPONSE:       w = 0; break;
+		case KDA_MSG_STORE_REQUEST:       w = 0; break;
+		case KDA_MSG_STORE_RESPONSE:      w = 3; break;
+		case KDA_MSG_FIND_NODE_REQUEST:   w = 0; break;
+		case KDA_MSG_FIND_NODE_RESPONSE:  w = 0; break;
+		case KDA_MSG_FIND_VALUE_REQUEST:  w = 0; break;
+		case KDA_MSG_FIND_VALUE_RESPONSE: w = 5; break;
+		case KDA_MSG_STATS_REQUEST:       w = 0; break;	/* UNUSED */
+		case KDA_MSG_STATS_RESPONSE:      w = 0; break;	/* UNUSED */
+		}
 	}
 }
 
@@ -782,6 +812,8 @@ gmsg_can_drop(gconstpointer pdu, gint size)
 	case GTA_MSG_SEARCH:
 	case GTA_MSG_INIT_RESPONSE:
 		return TRUE;
+	case GTA_MSG_DHT:
+		return kmsg_can_drop(pdu, size);
 	default:
 		return FALSE;
 	}
@@ -793,13 +825,18 @@ gmsg_can_drop(gconstpointer pdu, gint size)
  * @return algebraic -1/0/+1 depending on relative order.
  */
 gint
-gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
+gmsg_cmp(gconstpointer h1, gconstpointer h2)
 {
-	gconstpointer h1 = pdu1, h2 = pdu2;
 	gint w1, w2;
-	
-	w1 = msg_weight[gnutella_header_get_function(h1)];
-	w2 = msg_weight[gnutella_header_get_function(h2)];
+	guint8 f1, f2;
+
+	f1 = gnutella_header_get_function(h1);
+	f2 = gnutella_header_get_function(h2);
+
+	w1 = (f1 == GTA_MSG_DHT) ?
+		kmsg_weight[kademlia_header_get_function(h1)] :  msg_weight[f1];
+	w2 = (f2 == GTA_MSG_DHT) ?
+		kmsg_weight[kademlia_header_get_function(h2)] :  msg_weight[f2];
 
 	/*
 	 * The more weight a message type has, the more prioritary it is.
@@ -822,7 +859,7 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 	 */
 
 	if (gnutella_header_get_hops(h1) == gnutella_header_get_hops(h2)) {
-		switch (gnutella_header_get_function(h1)) {
+		switch (f1) {
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH_RESULTS:
 			return CMP(gnutella_header_get_ttl(h2),
@@ -831,7 +868,7 @@ gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2)
 			return 0;
 		}
 	} else {
-		switch (gnutella_header_get_function(h1)) {
+		switch (f1) {
 		case GTA_MSG_INIT:
 		case GTA_MSG_SEARCH:
 		case GTA_MSG_QRP:
