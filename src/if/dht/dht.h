@@ -45,6 +45,7 @@ struct gnutella_node;
 void dht_init(void);
 void dht_close(void);
 void dht_initialize(gboolean post_init);
+void dht_reset_kuid(void);
 gboolean dht_seeded(void);
 gboolean dht_bootstrapped(void);
 gboolean dht_enabled(void);

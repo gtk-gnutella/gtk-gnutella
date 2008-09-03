@@ -3711,4 +3711,28 @@ prop = {
     };
 };
 
+prop = {
+	name = "sticky_guid";
+	desc = "Whether the GUID should be kept accross sessions. "
+		"A sticky GUID can be helpful if you are firewalled and share "
+		"files because the downloaders will be able to contact you again "
+		"more easily when you come back online.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+	name = "sticky_kuid";
+	desc = "Whether the KUID should be kept accross sessions. "
+		"A sticky KUID is helpful for the DHT because it promotes routing "
+		"table stability and ensures that closest nodes will keep mutual "
+		"knowledge about each other";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
 /* vi: set ts=4: */

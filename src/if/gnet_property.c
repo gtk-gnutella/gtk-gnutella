@@ -716,6 +716,10 @@ guint32  gnet_property_variable_bw_dht_lookup_out     = 2048;
 static const guint32  gnet_property_variable_bw_dht_lookup_out_default = 2048;
 guint32  gnet_property_variable_bw_dht_lookup_in     = 8192;
 static const guint32  gnet_property_variable_bw_dht_lookup_in_default = 8192;
+gboolean gnet_property_variable_sticky_guid     = TRUE;
+static const gboolean gnet_property_variable_sticky_guid_default = TRUE;
+gboolean gnet_property_variable_sticky_kuid     = TRUE;
+static const gboolean gnet_property_variable_sticky_kuid_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6875,6 +6879,40 @@ gnet_prop_init(void) {
     gnet_property->props[322].data.guint32.choices = NULL;
     gnet_property->props[322].data.guint32.max   = BS_BW_MAX;
     gnet_property->props[322].data.guint32.min   = 2048;
+
+
+    /*
+     * PROP_STICKY_GUID:
+     *
+     * General data:
+     */
+    gnet_property->props[323].name = "sticky_guid";
+    gnet_property->props[323].desc = _("Whether the GUID should be kept accross sessions. A sticky GUID can be helpful if you are firewalled and share files because the downloaders will be able to contact you again more easily when you come back online.");
+    gnet_property->props[323].ev_changed = event_new("sticky_guid_changed");
+    gnet_property->props[323].save = TRUE;
+    gnet_property->props[323].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[323].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[323].data.boolean.def   = (void *) &gnet_property_variable_sticky_guid_default;
+    gnet_property->props[323].data.boolean.value = (void *) &gnet_property_variable_sticky_guid;
+
+
+    /*
+     * PROP_STICKY_KUID:
+     *
+     * General data:
+     */
+    gnet_property->props[324].name = "sticky_kuid";
+    gnet_property->props[324].desc = _("Whether the KUID should be kept accross sessions. A sticky KUID is helpful for the DHT because it promotes routing table stability and ensures that closest nodes will keep mutual knowledge about each other");
+    gnet_property->props[324].ev_changed = event_new("sticky_kuid_changed");
+    gnet_property->props[324].save = TRUE;
+    gnet_property->props[324].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[324].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[324].data.boolean.def   = (void *) &gnet_property_variable_sticky_kuid_default;
+    gnet_property->props[324].data.boolean.value = (void *) &gnet_property_variable_sticky_kuid;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

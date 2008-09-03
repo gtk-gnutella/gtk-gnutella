@@ -369,6 +369,8 @@ extern const guint32  gnet_property_variable_dht_storage_debug;
 extern const guint32  gnet_property_variable_dht_publish_debug;
 extern const guint32  gnet_property_variable_bw_dht_lookup_out;
 extern const guint32  gnet_property_variable_bw_dht_lookup_in;
+extern const gboolean gnet_property_variable_sticky_guid;
+extern const gboolean gnet_property_variable_sticky_kuid;
 
 
 prop_set_t *gnet_prop_init(void);
