@@ -1907,7 +1907,15 @@ server_dht_query(struct download *d)
 		return TRUE;						/* Wait until bootstrapped */
 
 	known = g_hash_table_lookup(dl_by_guid, server->key->guid);
-	g_assert(known);
+
+	/* XXX BUG: if two entries have the same GUID and we free the first server
+	 * XXX which removes the entry from the dl_by_guid, then known can be NULL
+	 * XXX when we handle the second server...
+	 * XXX MUST re-attach everything with the same GUID under the same server.
+	 */
+
+	/* g_assert(known); XXX */
+	g_return_val_if_fail(known, FALSE);		/* XXX temporary */
 
 	if (known != server && GNET_PROPERTY(download_debug))
 		g_warning("query in DHT for GUID %s (%s) done for colliding %s instead",
