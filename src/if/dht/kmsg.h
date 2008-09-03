@@ -39,6 +39,7 @@ void kmsg_init(void);
 void kmsg_received(gconstpointer data, size_t len,
 	host_addr_t addr, guint16 port,
 	struct gnutella_node *n);
+gboolean kmsg_can_drop(gconstpointer pdu, int size);
 
 const char *kmsg_infostr(gconstpointer msg);
 const char *kmsg_name(guint function);

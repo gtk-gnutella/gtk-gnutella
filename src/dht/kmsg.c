@@ -90,6 +90,49 @@ static const struct kmsg kmsg_map[];
 static const struct kmsg *kmsg_find(guint8 function);
 
 /**
+ * Test whether the Kademlia message can be safely dropped.
+ * We're given the whole PDU, not just the payload.
+ *
+ * Dropping of messages only happens when the connection is flow-controlled,
+ * and there's not enough room in the queue.
+ */
+gboolean
+kmsg_can_drop(gconstpointer pdu, int size)
+{
+	if ((size_t) size < KDA_HEADER_SIZE)
+		return TRUE;
+
+	/*
+	 * We can safely discard FIND_NODE, FIND_VALUE and STORE requests
+	 * because we install pmsg free routines that will let us see the
+	 * message was dropped and which can react properly.
+	 *
+	 * We can discard PING_RESPONSE (pongs) to the extent that if we are
+	 * flow-controlled, we're in bad shape anyway, so the remote pinging
+	 * host will see us as "no more alive" for a while.
+	 *
+	 * We can discard FIND_NODE_RESPONSE, with the same risk as appearing
+	 * to be "stale" for the remote party.
+	 *
+	 * We never discard FIND_VALUE_RESPONSE, since they carry DHT values!
+	 */
+
+	switch (kademlia_header_get_function(pdu)) {
+	case KDA_MSG_FIND_NODE_REQUEST:
+	case KDA_MSG_FIND_VALUE_REQUEST:
+	case KDA_MSG_STORE_REQUEST:
+	case KDA_MSG_PING_RESPONSE:
+	case KDA_MSG_FIND_NODE_RESPONSE:
+		return TRUE;
+	case KDA_MSG_PING_REQUEST:
+		/* Drop only if no callback attached: alive pings... */
+		return dht_rpc_cancel_if_no_callback(cast_to_guid_ptr_const(pdu));
+	default:
+		return FALSE;
+	}
+}
+
+/**
  * Handle incoming Kademlia message.
  *
  * @param kn		the Kademlia node from which the message originated
