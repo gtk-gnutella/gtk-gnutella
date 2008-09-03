@@ -44,6 +44,7 @@
 
 void kuid_random_fill(kuid_t *kuid);
 void kuid_from_buf(kuid_t *dest, const gchar *id);
+gboolean kuid_is_blank(const kuid_t *kuid);
 int kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
 int kuid_cmp(const kuid_t *kuid1, const kuid_t *kuid2);
 gboolean kuid_eq(const kuid_t *k1, const kuid_t *k2);

@@ -93,6 +93,24 @@ kuid_from_buf(kuid_t *dest, const gchar *id)
 }
 
 /**
+ * Test whether KUID is blank.
+ */
+gboolean
+kuid_is_blank(const kuid_t *kuid)
+{
+	size_t i;
+
+	g_assert(kuid);
+
+	for (i = 0; i < KUID_RAW_SIZE; i++) {
+		if (kuid->v[i])
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Compare three KUIDs with the XOR distance, to determine whether `kuid1' is
  * closer to `target' than `kuid2'.
  *
