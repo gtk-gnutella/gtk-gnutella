@@ -294,6 +294,7 @@
 # are bogus but are neither random nor matching the query. Examples are
 # "basketball*wmv", "flytrain*wmv", "landing*wmv" etc. with variations in the
 # trailing part like "_full-l", "part-l", "part-s" etc.); usually Gnucleus
+# usually port 40464
 64.182.136.130
 64.151.98.36
 # Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
@@ -316,6 +317,7 @@
 #61.152.116.53
 61.152.0.0/16
 60.12.182.0/28
+60.12.102.9
 60.28.222.171
 69.64.47.131
 # Chinese DRM-WMA spammer; Gnucleus
