@@ -265,7 +265,7 @@ void prop_save_to_file_if_dirty(
     prop_set_t *ps, const gchar *dir, const gchar *filename);
 void prop_save_to_file(
     prop_set_t *ps, const gchar *dir, const gchar *filename);
-void prop_load_from_file(
+gboolean prop_load_from_file(
     prop_set_t *ps, const gchar *dir, const gchar *filename);
 
 /*

@@ -33,9 +33,12 @@ RCSID("$Id$")
 #include "debug.h"
 #include "file.h"
 #include "misc.h"
+#include "sha1.h"
 #include "glib-missing.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
+
+#define PROP_FILE_ID	"_id"
 
 #define debug track_props
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
@@ -1509,6 +1512,28 @@ config_comment(const gchar *s)
 }
 
 /**
+ * Generate a unique token representative of the file on the filesystem,
+ * based on the device ID and inode number.
+ */
+static const char *
+unique_file_token(const struct stat *st)
+{
+	static char buf[SHA1_BASE16_SIZE + 1];		/* Hexadecimal format */
+	SHA1Context ctx;
+	struct sha1 digest;
+
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, &st->st_dev, sizeof st->st_dev);
+	SHA1Input(&ctx, &st->st_ino, sizeof st->st_ino);
+	SHA1Result(&ctx, &digest);
+
+	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
+	buf[SHA1_BASE16_SIZE] = '\0';
+
+	return buf;
+}
+
+/**
  * Like prop_save_to_file(), but only perform when dirty, i.e. when at least
  * one persisted property changed since the last time we saved.
  */
@@ -1740,6 +1765,17 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		g_strfreev(vbuf);
 	}
 
+	/*
+	 * Write a unique token identifying this file, kept accross rename()
+	 * but not if the file is copied.
+	 */
+
+	if (-1 != stat(newfile, &sb)) {
+		const char *id = unique_file_token(&sb);
+		fprintf(config, "# File ID (internal)\n");
+		fprintf(config, "%s = \"%s\"\n\n", PROP_FILE_ID, id);
+	}
+
 	fprintf(config, "### End of configuration file ###\n");
 
 	/*
@@ -1876,7 +1912,18 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 	prop_set_from_string(ps, prop, val, TRUE);
 }
 
-void
+/**
+ * Load properties from file.
+ *
+ * @param ps		the property set associated with the file
+ * @param dir		directory where file lies
+ * @param filename	basename of file to load properties from
+ *
+ * @return FALSE if we have reasons to believe that the property file was
+ * not generated for this instance of gtk-gnutella but copied from another
+ * instance, TRUE otherwise.
+ */
+gboolean
 prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	static const char fmt[] = "Bad line %u in config file, ignored";
@@ -1885,29 +1932,45 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	gchar *path;
 	guint n = 1;
 	struct stat buf;
+	property_t i;
+	GHashTable *by_name;			/* Maps property name to property_t */
 	gboolean truncated = FALSE;
+	gboolean good_id = FALSE;
+	const char *file_id;
 
 	g_assert(dir != NULL);
 	g_assert(filename != NULL);
 	g_assert(ps != NULL);
 
 	if (!is_directory(dir))
-		return;
+		return TRUE;
 
 	path = make_pathname(dir, filename);
 	config = file_fopen(path, "r");
 	if (!config) {
 		G_FREE_NULL(path);
-		return;
+		return TRUE;
 	}
 
-	if (-1 == fstat(fileno(config), &buf))
+	if (-1 == fstat(fileno(config), &buf)) {
 		g_warning("could open but not fstat \"%s\" (fd #%d): %s",
 			path, fileno(config), g_strerror(errno));
-	else
+		file_id = "";
+	} else {
 		ps->mtime = buf.st_mtime;
+		file_id = unique_file_token(&buf);
+	}
 
 	G_FREE_NULL(path);
+
+	/*
+	 * Prapare a hash table of all known property names (case sensitive).
+	 */
+
+	by_name = g_hash_table_new(g_str_hash, g_str_equal);
+
+	for (i = 0; i < ps->size; i++)
+		g_hash_table_insert(by_name, ps->props[i].name, GUINT_TO_POINTER(i));
 
 	/*
 	 * Lines should match the following expression:
@@ -1926,9 +1989,9 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 *
 	 */
 	while (fgets(prop_tmp, sizeof prop_tmp, config)) {
-		property_t i;
 		gchar *s, *k, *v;
 		gint c;
+		gpointer x, idx;
 
 		s = strchr(prop_tmp, '\n');
 		if (!s) {
@@ -1949,7 +2012,9 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		/* Skip leading blanks */
 		s = skip_ascii_blanks(s);
 		c = (guchar) *s;
-		if (!is_ascii_alpha(c))	/* <keyword> must start with a letter */
+
+		/* <keyword> starts with _ or letter  */
+		if (!is_ascii_alpha(c) && c != '_')
 			continue;
 
 		/* Here starts the <keyword> */
@@ -2002,18 +2067,20 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		if (common_dbg > 5)
 			g_message("k=\"%s\", v=\"%s\"", k, v);
 
-		for (i = 0; i < ps->size; i++)
-			if (!ascii_strcasecmp(k, (ps->props[i]).name)) {
-				load_helper(ps, i + ps->offset, v);
-				break;
-			}
-
-		if (i >= ps->size)
-			g_warning("config file, line %u: unknown keyword '%s', ignored",
-				n, k);
+		if (g_hash_table_lookup_extended(by_name, k, &x, &idx))
+			load_helper(ps, GPOINTER_TO_UINT(idx) + ps->offset, v);
+		else if (0 == strcmp(k, PROP_FILE_ID)) {
+			if (0 == strcmp(file_id, v))
+				good_id = TRUE;
+		} else
+			g_warning("\"%s%c%s\", line %u: unknown property '%s' -- ignored",
+				dir, G_DIR_SEPARATOR, filename, n, k);
 	}
 
 	fclose(config);
+	g_hash_table_destroy(by_name);
+
+	return good_id;
 }
 
 property_t
