@@ -99,7 +99,7 @@ static const struct kmsg *kmsg_find(guint8 function);
 gboolean
 kmsg_can_drop(gconstpointer pdu, int size)
 {
-	if ((size_t) size < KDA_HEADER_SIZE)
+	if (UNSIGNED(size) < KDA_HEADER_SIZE)
 		return TRUE;
 
 	/*
@@ -679,7 +679,7 @@ k_send_find_value_response(
 		}
 	}
 
-	g_assert(values + secondaries == (int) vlen);	/* Sanity check */
+	g_assert(UNSIGNED(values + secondaries) == vlen);	/* Sanity check */
 
 	kademlia_header_set_size(header, pmsg_size(mb) - KDA_HEADER_SIZE);
 
@@ -1007,7 +1007,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			goto error;
 		}
 
-		if (sizeof(security.v) == (size_t) token_len)
+		if (sizeof(security.v) == UNSIGNED(token_len))
 			bstr_read(bs, security.v, sizeof(security.v));
 		else
 			bstr_skip(bs, token_len);
@@ -1018,7 +1018,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 		}
 
 		if (
-			sizeof(security.v) == (size_t) token_len &&
+			sizeof(security.v) == UNSIGNED(token_len) &&
 			token_is_valid(&security, kn)
 		)
 			valid_token = TRUE;
@@ -1180,10 +1180,12 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	 * to hold the DHT value type.
 	 */
 
-	if (len < KUID_RAW_SIZE + 4 && GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
-		dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
+	if (len < KUID_RAW_SIZE + 4) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT bad FIND_VALUE payload (%lu byte%s) from %s",
+				(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn));
+			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
+		}
 		gnet_stats_count_dropped(n, MSG_DROP_DHT_UNPARSEABLE);
 		return;
 	}
