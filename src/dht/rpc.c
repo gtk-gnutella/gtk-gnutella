@@ -240,6 +240,29 @@ dht_rpc_cancel(const guid_t *muid)
 }
 
 /**
+ * Cancel an RPC with no callback registered (typically alive pings).
+ * It will be as if the RPC message had never been sent.
+ *
+ * @return whether we found the MUID and it was cancelled.
+ */
+gboolean
+dht_rpc_cancel_if_no_callback(const guid_t *muid)
+{
+	struct rpc_cb *rcb;
+
+	rcb = g_hash_table_lookup(pending, muid);
+	if (!rcb)
+		return FALSE;
+
+	if (NULL == rcb->cb) {
+		rpc_cb_free(rcb, TRUE);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Notification that an RPC answer message was received.
  *
  * @param muid		the MUID of the message

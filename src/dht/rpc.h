@@ -100,6 +100,7 @@ gboolean dht_rpc_answer(const guid_t *muid, knode_t *kn,
 	gconstpointer payload, size_t len);
 
 gboolean dht_rpc_cancel(const guid_t *muid);
+gboolean dht_rpc_cancel_if_no_callback(const guid_t *muid);
 void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
 void dht_rpc_ping_extended(
 	knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg);
