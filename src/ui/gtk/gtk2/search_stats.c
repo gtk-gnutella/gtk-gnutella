@@ -82,7 +82,7 @@ static int search_stats_sort_column;
 #endif	/* Gtk+ >= 2.6.0 */
 
 static gboolean
-delete_hash_entry(void *key, void *value, void *unused_data)
+free_hash_entry(void *key, void *value, void *unused_data)
 {
 	struct term_counts *val = value;
 
@@ -236,7 +236,7 @@ empty_hash_table(void)
 	if (!stat_hash)
 		return;
 
-	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
+	g_hash_table_foreach_remove(stat_hash, free_hash_entry, NULL);
 }
 
 /**
@@ -264,7 +264,7 @@ stats_hash_to_treeview(void *key, void *value, void *unused_udata)
 		(1.0 * val->total_cnt / (val->periods + 2.0)) * 100 <
 			GUI_PROPERTY(search_stats_delcoef)
 	) {
-		wfree(val, sizeof *val);
+		free_hash_entry(key, value, NULL);
 		return TRUE;
 	}
 
@@ -451,7 +451,6 @@ search_stats_gui_update_display(void)
 	}
 	/* insert the hash table contents into the sorted treeview */
 	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
-	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
 
 	tm_now_exact(&end_time);
 	elapsed = tm_elapsed_ms(&end_time, &start_time);
@@ -483,7 +482,7 @@ search_stats_gui_update_display(void)
 			NG_("%u term counted", "%u terms counted", stat_count),
 			stat_count);
 	}
-
+	g_object_thaw_notify(G_OBJECT(treeview_search_stats));
 }
 
 static void
