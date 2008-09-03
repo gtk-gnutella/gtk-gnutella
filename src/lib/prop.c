@@ -1932,8 +1932,6 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	gchar *path;
 	guint n = 1;
 	struct stat buf;
-	property_t i;
-	GHashTable *by_name;			/* Maps property name to property_t */
 	gboolean truncated = FALSE;
 	gboolean good_id = FALSE;
 	const char *file_id;
@@ -1964,15 +1962,6 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	G_FREE_NULL(path);
 
 	/*
-	 * Prapare a hash table of all known property names (case sensitive).
-	 */
-
-	by_name = g_hash_table_new(g_str_hash, g_str_equal);
-
-	for (i = 0; i < ps->size; i++)
-		g_hash_table_insert(by_name, ps->props[i].name, GUINT_TO_POINTER(i));
-
-	/*
 	 * Lines should match the following expression:
 	 *
 	 * ^<keyword>=<value>
@@ -1989,9 +1978,9 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 *
 	 */
 	while (fgets(prop_tmp, sizeof prop_tmp, config)) {
-		gchar *s, *k, *v;
-		gint c;
-		gpointer x, idx;
+		char *s, *k, *v;
+		int c;
+		property_t prop;
 
 		s = strchr(prop_tmp, '\n');
 		if (!s) {
@@ -2067,24 +2056,31 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		if (common_dbg > 5)
 			g_message("k=\"%s\", v=\"%s\"", k, v);
 
-		if (g_hash_table_lookup_extended(by_name, k, &x, &idx))
-			load_helper(ps, GPOINTER_TO_UINT(idx) + ps->offset, v);
-		else if (0 == strcmp(k, PROP_FILE_ID)) {
+		prop = prop_get_by_name(ps, k);
+		if (NO_PROP != prop) {
+			load_helper(ps, prop, v);
+		} else if (0 == strcmp(k, PROP_FILE_ID)) {
 			if (0 == strcmp(file_id, v))
 				good_id = TRUE;
-		} else
+		} else {
 			g_warning("\"%s%c%s\", line %u: unknown property '%s' -- ignored",
 				dir, G_DIR_SEPARATOR, filename, n, k);
+		}
 	}
 
 	fclose(config);
-	g_hash_table_destroy(by_name);
 
 	return good_id;
 }
 
+/**
+ * Maps a property name to a numeric property ID.
+ * @param ps A valid property context.
+ * @parma name A string to look up.
+ * @return The property ID or NO_PROP if the given name maps to none.
+ */
 property_t
-prop_get_by_name(prop_set_t *ps, const gchar *name)
+prop_get_by_name(prop_set_t *ps, const char *name)
 {
 	g_assert(ps != NULL);
 
