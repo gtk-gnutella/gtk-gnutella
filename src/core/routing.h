@@ -58,6 +58,8 @@ struct route_dest {
  * Global Functions
  */
 
+void gnet_reset_guid(void);
+
 void routing_init(void);
 void routing_close(void);
 void message_set_muid(gnutella_header_t *header, guint8 function);

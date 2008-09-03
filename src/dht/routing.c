@@ -790,27 +790,17 @@ void
 dht_allocate_new_kuid_if_needed(void)
 {
 	kuid_t buf;
-	gboolean need_kuid = TRUE;
-	int i;
 
 	/*
-	 * Only generate a new KUID for this servent if all entries are 0.
-	 * The empty initialization happens in config_init(), but it can be
-	 * overridden by the KUID read from the configuration file.
+	 * Only generate a new KUID for this servent if all entries are 0 or
+	 * if they do not want a sticky KUID.
 	 *
 	 * It will not be possible to run a Kademlia node with ID = 0.  That's OK.
 	 */
 
 	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 
-	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		if (buf.v[i]) {
-			need_kuid = FALSE;
-			break;
-		}
-	}
-
-	if (need_kuid) {
+	if (kuid_is_blank(&buf) || !GNET_PROPERTY(sticky_kuid)) {
 		if (GNET_PROPERTY(dht_debug)) g_message("generating new DHT node ID");
 		kuid_random_fill(&buf);
 		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
@@ -1128,6 +1118,17 @@ dht_initialize(gboolean post_init)
 }
 
 /**
+ * Reset this node's KUID.
+ */
+void
+dht_reset_kuid(void)
+{
+	kuid_t buf;
+	kuid_zero(&buf);
+	gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+}
+
+/**
  * Initialize the whole DHT management.
  */
 void
@@ -1139,9 +1140,7 @@ dht_init(void)
 	 */
 
 	if (!GNET_PROPERTY(enable_dht)) {
-		kuid_t buf;
-		kuid_zero(&buf);
-		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+		dht_reset_kuid();
 		return;
 	}
 

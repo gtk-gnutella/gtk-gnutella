@@ -52,6 +52,7 @@
 #include "share.h"
 #include "sockets.h"
 #include "upload_stats.h"
+#include "routing.h"			/* For gnet_reset_guid() */
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -453,8 +454,20 @@ settings_init(void)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Parse the configuration */
-	prop_load_from_file(properties, config_dir, config_file);
+	/*
+	 * Parse the configuration.
+	 *
+	 * Reset the KUID and the GUID if the file was copied from another
+	 * instance to prevent duplicate IDs on the network which are harmful
+	 * for everyone.
+	 */
+
+	if (!prop_load_from_file(properties, config_dir, config_file)) {
+		if (debugging(0))
+			g_warning("config file \"%s\" was copied over", config_file);
+		dht_reset_kuid();
+		gnet_reset_guid();
+	}
 
 	if (debugging(0)) {
 		g_message("detected amount of physical RAM: %s",

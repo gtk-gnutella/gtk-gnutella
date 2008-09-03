@@ -707,6 +707,15 @@ message_hash_func(gconstpointer key)
 }
 
 /**
+ * Reset this node's GUID.
+ */
+void
+gnet_reset_guid(void)
+{
+	gnet_prop_set_storage(PROP_SERVENT_GUID, blank_guid, sizeof blank_guid);
+}
+
+/**
  * Init function.
  */
 void
@@ -740,16 +749,24 @@ routing_init(void)
 			atom_guid_get(g), GUINT_TO_POINTER(1));
 	}
 
-	/* The Servent GUID is not persistent. A new is generated each session. */
-	do {
-		guid_random_muid(guid_buf);
-		/*
-		 * If by extraordinary, we have generated a banned GUID, retry.
-		 */
-	} while (is_banned_push(guid_buf));
+	/*
+	 * If they did not configure a sticky GUID, or if the GUID ia blank,
+	 * configure a new one.
+	 */
 
-    gnet_prop_set_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
-	g_assert(guid_is_gtkg(guid_buf, NULL, NULL, NULL));
+	gnet_prop_get_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
+
+	if (guid_is_blank(guid_buf) || !GNET_PROPERTY(sticky_guid)) {
+		do {
+			guid_random_muid(guid_buf);
+			/*
+			 * If by extraordinary, we have generated a banned GUID, retry.
+			 */
+		} while (is_banned_push(guid_buf));
+
+		gnet_prop_set_storage(PROP_SERVENT_GUID, guid_buf, sizeof(guid_buf));
+		g_assert(guid_is_gtkg(guid_buf, NULL, NULL, NULL));
+	}
 
 	/*
 	 * Initialize message type array for routing logs.
