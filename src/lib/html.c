@@ -404,27 +404,26 @@ static guint32
 parse_named_entity(const struct array entity)
 {
 	size_t i, len;
-	char name[16];
+	char name[16 + 2];
+
+	if (entity.size >= G_N_ELEMENTS(name) - 2)
+		goto error;
 
 	len = 0;
+	name[len++] = '&';
+
 	for (i = 0; i < entity.size; i++) {
 		const unsigned char c = entity.data[i];
 
-		if (len >= G_N_ELEMENTS(name) - 1 || !is_ascii_alnum(c))
+		if (!is_ascii_alnum(c))
 			goto error;
-		name[len] = ascii_toupper(c);
-		len++;
+		name[len++] = c;
 	}
 
-	if (len > 0) {
-		name[len] = '\0';
+	name[len++] = ';';
+	name[len] = '\0';
 
-		for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
-			if (strlen(html_entities[i].name) == len &&
-				0 == ascii_strcasecmp(html_entities[i].name, name))
-				return html_entities[i].uc;
-		}
-	}
+	return html_decode_entity(name, NULL);
 
 error:
 	return -1;
