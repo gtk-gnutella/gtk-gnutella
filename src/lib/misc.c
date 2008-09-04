@@ -3642,28 +3642,92 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 	return d - dst;
 }
 
-guint32
-html_decode_entity(const gchar *src, const gchar **endptr)
+static GHashTable *html_entities_lut;
+
+static void
+html_entities_init(void)
 {
-	guint i;
-	guint32 uc = -1;
+	size_t i;
 
-	if ('&' == src[0]) {
-		for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
-			const gchar *end;
-
-			end = is_strprefix(&src[1], html_entities[i].name);
-			if (end && *end == ';') {
-				uc = html_entities[i].uc;
-				src = end;
-				break;
-			}
-		}
+	html_entities_lut = g_hash_table_new(g_str_hash, g_str_equal);
+	for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
+		gm_hash_table_insert_const(html_entities_lut, html_entities[i].name,
+			uint_to_pointer(html_entities[i].uc));
 	}
+}
+
+/**
+ * Maps an HTML entity to an Unicode codepoint.
+ *
+ * @param src    Should point to the start of an entity "&ENTITY;[...]"
+ * @param endptr If not NULL, it will be set to point either to
+ *		 		 the original string or the next character after
+ *				 the entity.
+ * @return		 On failure (guint32)-1 is returned, on success the
+ *				 Unicode codepoint.
+ */
+guint32
+html_decode_entity(const char * const src, const char **endptr)
+{
+	if ('&' != src[0])
+		goto failure;
+
+	if ('#' == src[1]) {
+		const char *ep, *p;
+		int base, error;
+		guint32 v;
+
+		switch (src[2]) {
+		case 'x':
+		case 'X':
+			base = 16;
+			p = &src[3];
+			break;
+		default:
+			base = 10;
+			p = &src[2];
+		}
+
+		v = parse_uint32(p, &ep, base, &error);
+		if (error || 0x0000 == v || !utf32_is_valid(v) || ';' != *ep)
+			goto failure;
+
+		if (endptr) {
+			*endptr = &ep[1];
+		}
+		return v;
+	} else {
+		char name[16];
+		size_t name_len;
+		const void *value;
+		const char *p;
+
+		/* Avoid strchr() because it would cause O(n^2) with unclosed entities */
+		name_len = 0;
+		for (p = &src[1]; ';' != *p; p++) {
+			if ('\0' == *p)
+				goto failure;
+			name[name_len++] = *p;
+			if (name_len >= sizeof name)
+				goto failure;
+		}
+		name[name_len] = '\0';
+
+		value = g_hash_table_lookup(html_entities_lut, name);
+		if (NULL == value)
+			goto failure;
+
+		if (endptr) {
+			*endptr = &p[1];
+		}
+		return pointer_to_uint(value); 
+	}
+
+failure:
 	if (endptr) {
 		*endptr = src;
 	}
-	return uc;
+	return (guint32) -1;
 }
 
 /**
@@ -4099,6 +4163,7 @@ misc_init(void)
 	hex2int_init();
 	dec2int_init();
 	alnum2int_init();
+	html_entities_init();
 
 	{
 		static const struct {
