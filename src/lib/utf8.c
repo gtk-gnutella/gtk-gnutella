@@ -135,6 +135,7 @@ static GSList *sl_filename_charsets = NULL;
 static iconv_t cd_locale_to_utf8 = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_locale = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
+static iconv_t cd_utf8_to_iso8859_1 = (iconv_t) -1;
 
 
 enum utf8_cd {
@@ -554,6 +555,7 @@ utf32_is_normalization_special(guint32 uc)
 	return FALSE;
 }
 
+#if defined(TEST_UTF8_DECODER)
 /**
  * @returns the character value of the first character in the string `s',
  * which is assumed to be in UTF-8 encoding and no longer than `len'.
@@ -721,20 +723,6 @@ malformed:
 	return 0;
 }
 
-/**
- * This routine is the same as utf8_decode_char() but it is more specialized
- * and is aimed at being fast.  Use it when you don't need warnings and you
- * don't know the length of the string you're reading from.
- *
- * @returns the character value of the first character in the string `s',
- * which is assumed to be in UTF-8 encoding, and ending with a NUL byte.
- * `retlen' will be set to the length, in bytes, of that character.
- *
- * If `s' does not point to a well-formed UTF-8 character, `retlen' is
- * set to 0 and the function returns 0.
- */
-
-#if defined(TEST_UTF8_DECODER)
 /* Slower but correct, keep it around for consistency checks. */
 static guint32
 utf8_decode_char_less_fast(const gchar *s, guint *retlen)
@@ -801,8 +789,20 @@ malformed:
 
 	return 0;
 }
-#endif
+#endif /* TEST_UTF8_DECODER */
 
+/**
+ * This routine is the same as utf8_decode_char() but it is more specialized
+ * and is aimed at being fast.  Use it when you don't need warnings and you
+ * don't know the length of the string you're reading from.
+ *
+ * @returns the character value of the first character in the string `s',
+ * which is assumed to be in UTF-8 encoding, and ending with a NUL byte.
+ * `retlen' will be set to the length, in bytes, of that character.
+ *
+ * If `s' does not point to a well-formed UTF-8 character, `retlen' is
+ * set to 0 and the function returns 0.
+ */
 guint32
 utf8_decode_char_fast(const gchar *s, guint *retlen)
 {
@@ -896,7 +896,6 @@ utf8_is_valid_string(const gchar *src)
  * @return	TRUE if the first `len' bytes of the given string
  *			`s' form valid a UTF-8 string, FALSE otherwise.
  */
-
 gboolean
 utf8_is_valid_data(const gchar *src, size_t len)
 {
@@ -1057,52 +1056,6 @@ utf16_encode_char(guint32 uc, guint16 *dst)
 	}
 	return 0;
 }
-
-/**
- * Convert UTF-8 string to ISO-8859-1 inplace.  If `space' is TRUE, all
- * characters outside the U+0000 .. U+00FF range are turned to space U+0020.
- * Otherwise, we stop at the first out-of-range character.
- *
- * If `len' is 0, the length of the string is computed with strlen().
- *
- * @returns length of decoded string.
- */
-gint
-utf8_to_iso8859(gchar *s, gint len, gboolean space)
-{
-	gchar *x = s;
-	gchar *xw = s;			/* Where we write back ISO-8859 chars */
-	gchar *s_end;
-
-	if (!len)
-		len = strlen(s);
-	s_end = s + len;
-
-	while (x < s_end) {
-		guint clen;
-		guint32 v = utf8_decode_char(x, len, &clen, FALSE);
-
-		if (clen == 0)
-			break;
-
-		g_assert(clen >= 1);
-
-		if (v & 0xffffff00) {	/* Not an ISO-8859-1 character */
-			if (!space)
-				break;
-			v = 0x20;
-		}
-
-		*xw++ = (guchar) v;
-		x += clen;
-		len -= clen;
-	}
-
-	*xw = '\0';
-
-	return xw - s;
-}
-
 
 /* List of known codesets. The first word of each string is the alias to be
  * returned. The words are seperated by whitespaces.
@@ -1459,6 +1412,11 @@ conversion_init(void)
 	}
 
 	cd_utf8_to_filename = cd_from_utf8;
+
+	cd_utf8_to_iso8859_1 = iconv_open("ISO-8859-1", "UTF-8");
+	if ((iconv_t) -1 == cd_utf8_to_iso8859_1) {
+		g_warning("iconv_open(\"%s\", \"UTF-8\") failed.", "ISO-8859-1");
+	}
 
 	/* Initialize filename charsets -> UTF-8 conversion */
 	
@@ -2008,6 +1966,23 @@ iso8859_1_to_utf8(const gchar *src)
 	g_assert(src);
 
 	return convert_to_utf8(utf8_cd_get(UTF8_CD_ISO8859_1), src);
+}
+
+/**
+ * Converts a string from UTF-8 to ISO-8859-1 encoding.
+ *
+ * @param src a NUL-terminated string.
+ * @return a newly allocated ISO-8859-1 encoded string.
+ */
+gchar *
+utf8_to_iso8859_1(const gchar *src)
+{
+	gchar *dst;
+
+	g_assert(src);
+
+	dst = hyper_iconv(cd_utf8_to_iso8859_1, NULL, 0, src, FALSE);
+	return dst ? dst : hyper_ascii_enforce(NULL, 0, src);
 }
 
 #if CHAR_BIT == 8
@@ -2562,6 +2537,7 @@ LAZY_CONVERT(locale_to_utf8, (const gchar *src), (src))
 LAZY_CONVERT(utf8_to_locale, (const gchar *src), (src))
 
 LAZY_CONVERT(iso8859_1_to_utf8, (const gchar *src), (src))
+LAZY_CONVERT(utf8_to_iso8859_1, (const gchar *src), (src))
 LAZY_CONVERT(filename_to_ui_string, (const gchar *src), (src))
 LAZY_CONVERT(filename_to_utf8_normalized,
 		(const gchar *src, uni_norm_t norm), (src, norm))
@@ -5489,7 +5465,6 @@ regression_utf8_decoder(void)
 }
 #endif /* TEST_UTF8_DECODER */
 
-#undef UNICODE_VERSUS_GLIB_REGRESSION
 #ifdef UNICODE_VERSUS_GLIB_REGRESSION
 /**
  * The following checks are broken as GLib does not implement Unicode 4.1.0

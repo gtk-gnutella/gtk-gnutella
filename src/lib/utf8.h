@@ -326,6 +326,7 @@ utf8_encode(guint32 cp, char *buf)
  * need the previous result anymore.
  */
 const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
+const gchar *lazy_utf8_to_iso8859_1(const gchar *src);
 
 const gchar *lazy_ui_string_to_utf8(const gchar *src);
 const gchar *lazy_utf8_to_ui_string(const gchar *src);
@@ -345,6 +346,7 @@ const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t,
 
 const gchar *lazy_unknown_to_ui_string(const gchar *src);
 
+gchar *utf8_to_iso8859_1(const gchar *str);
 gchar *iso8859_1_to_utf8(const gchar *str);
 gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
 
