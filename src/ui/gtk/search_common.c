@@ -2869,6 +2869,17 @@ search_xml_indent(const gchar *text)
 		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
 			if (is_ascii_space(*p) && is_ascii_space(p[1]))
 				continue;
+			if (has_cdata && '&' == *p) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(p, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
+					gs = g_string_append_c(gs, uc);
+					p = endptr - 1;
+					continue;
+				}
+			}
 			gs = g_string_append_c(gs, is_ascii_space(*p) ? ' ' : *p);
 		}
 		if ('\0' == *p)
@@ -2897,6 +2908,7 @@ search_xml_indent(const gchar *text)
 
 		quoted = FALSE;
 		for (q = p; '\0' != *q; q++) {
+
 			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
 				continue;
 
@@ -2909,6 +2921,18 @@ search_xml_indent(const gchar *text)
 						gs = g_string_append_c(gs, '\t');
 				}
 				continue;
+			}
+
+			if (quoted && '&' == *q) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(q, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
+					gs = g_string_append_c(gs, uc);
+					q = endptr - 1;
+					continue;
+				}
 			}
 
 			gs = g_string_append_c(gs, *q);
@@ -3873,30 +3897,27 @@ handle_urn(const gchar *url)
 	return success;
 }
 
-static const struct {
-	const char * const proto;
-	gboolean (* handler)(const gchar *url);
-} proto_handlers[] = {
-	{ "ftp",	handle_not_implemented },
-	{ "http",	handle_url },
-	{ "push",	handle_url },
-	{ "magnet",	handle_magnet },
-	{ "urn",	handle_urn },
-};
-
-
 /* FIXME: We shouldn't try to handle from ourselves without a confirmation
  *        because an URL might have been accidently while dragging it
  *		  around.
  */
 static void
-drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
+drag_data_received(GtkWidget *widget, GdkDragContext *dc,
 	gint unused_x, gint unused_y, GtkSelectionData *data,
 	guint unused_info, guint stamp, gpointer unused_udata)
 {
+	static const struct {
+		const char * const proto;
+		gboolean (* handler)(const gchar *url);
+	} proto_handlers[] = {
+		{ "ftp",	handle_not_implemented },
+		{ "http",	handle_url },
+		{ "push",	handle_url },
+		{ "magnet",	handle_magnet },
+		{ "urn",	handle_urn },
+	};
 	gboolean success = FALSE;
 
-	(void) unused_widget;
 	(void) unused_x;
 	(void) unused_y;
 	(void) unused_info;
@@ -3909,13 +3930,16 @@ drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 		if (GUI_PROPERTY(gui_debug) > 0) {
 			g_message("drag_data_received: text=\"%s\"", text);
 		}
-		for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
-			const char *endptr;
-			
-			endptr = is_strcaseprefix(text, proto_handlers[i].proto);
-			if (endptr && ':' == endptr[0]) {
-				success = proto_handlers[i].handler(text);
-				goto cleanup;
+		
+		if (gui_main_window_lookup("entry_search") != widget) {
+			for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
+				const char *endptr;
+
+				endptr = is_strcaseprefix(text, proto_handlers[i].proto);
+				if (endptr && ':' == endptr[0]) {
+					success = proto_handlers[i].handler(text);
+					goto cleanup;
+				}
 			}
 		}
 		success = search_gui_insert_query(text);
@@ -4024,6 +4048,51 @@ search_gui_get_magnet(search_t *search, record_t *record)
 	url = magnet_to_string(magnet);
 	magnet_resource_free(&magnet);
 	return url;
+}
+
+/* Display Bitzi data for the result if any */
+void
+search_gui_set_bitzi_metadata(const record_t *rc)
+{
+	const char *ticket;
+	char *tmp, *text;
+
+	if (NULL == rc) {
+		search_gui_set_bitzi_metadata_text("");
+		return;
+	}
+
+	record_check(rc);
+
+	if (NULL == rc->sha1) {
+		search_gui_set_bitzi_metadata_text(_("SHA-1 is unknown."));
+		return;
+	}
+
+	if (!guc_bitzi_has_cached_ticket(rc->sha1)) {
+		search_gui_set_bitzi_metadata_text(_("No Bitzi ticket requested yet."));
+		return;
+	}
+
+	ticket = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
+	if (NULL == ticket) {
+		search_gui_set_bitzi_metadata_text(_("Not in Bitzi database."));
+		return;
+	}
+
+	/* This also decodes 8-bit entities */
+	tmp = search_xml_indent(ticket);
+
+	/*
+	 * Bitzi converts all ticket data from ISO-8859-1 to UTF-8, therefore this
+	 * conversion must be reversed to get the original encoding back.
+	 */
+	text = utf8_to_iso8859_1(tmp);
+	G_FREE_NULL(tmp);
+
+	search_gui_set_bitzi_metadata_text(
+		lazy_unknown_to_utf8_normalized(text, UNI_NORM_GUI, NULL));
+	G_FREE_NULL(text);
 }
 
 void

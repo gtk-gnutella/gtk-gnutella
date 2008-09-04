@@ -87,50 +87,43 @@ search_gui_details_get_text(GtkWidget *widget)
  ***/
 
 static void
-search_set_xml(GtkWidget *widget, const char *xml)
+set_text_buffer(GtkWidget *widget, const char *text)
 {
-	GtkText *text;
-	char *indented;
+	GtkText *buffer;
 
 	g_return_if_fail(widget);
+	g_return_if_fail(text);
 
-	text = GTK_TEXT(widget);
-	gtk_text_freeze(text);
-	gtk_text_set_point(text, 0);
-	gtk_text_forward_delete(text, gtk_text_get_length(text));
-	indented = xml ? search_xml_indent(xml) : NULL;
-	gtk_text_set_point(text, 0);
-	gtk_text_insert(text, NULL, NULL, NULL,
-		indented ? lazy_utf8_to_ui_string(indented) : "", (-1));
-	G_FREE_NULL(indented);
-	gtk_text_thaw(text);
+	buffer = GTK_TEXT(widget);
+	g_return_if_fail(buffer);
+
+	gtk_text_freeze(buffer);
+	gtk_text_set_point(buffer, 0);
+	gtk_text_forward_delete(buffer, gtk_text_get_length(buffer));
+	gtk_text_set_point(buffer, 0);
+	gtk_text_insert(buffer, NULL, NULL, NULL,
+		lazy_utf8_to_ui_string(text), (-1));
+	gtk_text_thaw(buffer);
 }
 
 /* Display XML data from the result if any */
 static void
 search_set_xml_metadata(const record_t *rc)
 {
-	const char *xml;
+	char *indented;
 
-	xml = rc ? rc->xml : NULL;
-	search_set_xml(gui_main_window_lookup("text_result_info_xml"), xml);
+	indented = (rc && rc->xml) ? search_xml_indent(rc->xml) : NULL;
+	set_text_buffer(gui_main_window_lookup("text_result_info_xml"),
+		EMPTY_STRING(indented));
+	G_FREE_NULL(indented);
 }
 
-/* Display Bitzi data for the result if any */
 void
-search_gui_set_bitzi_metadata(const record_t *rc)
+search_gui_set_bitzi_metadata_text(const char *text)
 {
-	const char *xml;
+	g_return_if_fail(text);
 
-	if (rc && NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
-		xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
-		if (!xml) {
-			xml = _("Not in database");
-		}
-	} else {
-		xml = NULL;
-	}
-	search_set_xml(gui_main_window_lookup("text_result_info_bitzi"), xml);
+	set_text_buffer(gui_main_window_lookup("text_result_info_bitzi"), text);
 }
 
 static GtkCList *clist_search_details;

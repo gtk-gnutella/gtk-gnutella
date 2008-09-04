@@ -163,23 +163,21 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	G_FREE_NULL(xml_txt);
 }
 
-/* Display Bitzi data for the result if any */
 void
-search_gui_set_bitzi_metadata(const record_t *rc)
+search_gui_set_bitzi_metadata_text(const char *text)
 {
-	const char *xml = NULL;
+	GtkTextBuffer *buffer;
+	GtkWidget *widget;
 
-	if (rc) {
-		record_check(rc);
+	g_return_if_fail(text);
 
-		if (NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
-			xml = guc_bitzi_ticket_by_sha1(rc->sha1, rc->size);
-			if (!xml) {
-				xml = _("Not in database");
-			}
-		}
-	}
-	search_set_xml(gui_main_window_lookup("textview_result_info_bitzi"), xml);
+	widget = gui_main_window_lookup("textview_result_info_bitzi");
+	g_return_if_fail(widget);
+
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget));
+	g_return_if_fail(buffer);
+
+	gtk_text_buffer_set_text(buffer, text, -1);
 }
 
 /* Display XML data from the result if any */
