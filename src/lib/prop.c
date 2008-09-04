@@ -1770,7 +1770,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 	 * but not if the file is copied.
 	 */
 
-	if (-1 != stat(newfile, &sb)) {
+	if (-1 != fstat(fileno(config), &sb)) {
 		const char *id = unique_file_token(&sb);
 		fprintf(config, "# File ID (internal)\n");
 		fprintf(config, "%s = \"%s\"\n\n", PROP_FILE_ID, id);
