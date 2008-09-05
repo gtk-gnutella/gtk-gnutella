@@ -1573,7 +1573,7 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 				"</script>"
 				"</head>"
 				"<body onload=\"main();\">"
-				"<h1>gtk-gnutella</h1>"
+				"<h1>" GTA_PRODUCT_NAME "</h1>"
 				"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
 				"</body>"
 				"</html>"
@@ -3503,8 +3503,10 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
 
 	u->reqnum++;
-	u->bio = bsched_source_add(BSCHED_BWS_OUT, &u->socket->wio,
-				BIO_F_WRITE, upload_writable, u);
+	u->bio = bsched_source_add(
+		host_addr_is_loopback(u->addr)
+			? BSCHED_BWS_LOOPBACK_OUT : BSCHED_BWS_OUT,
+		&u->socket->wio, BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
 	upload_fire_upload_info_changed(u);
 	gnet_prop_incr_guint32(PROP_UL_RUNNING);

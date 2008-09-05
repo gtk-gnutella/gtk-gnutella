@@ -446,6 +446,11 @@ bsched_early_init(void)
 	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
 
+	bws_set[BSCHED_BWS_LOOPBACK_OUT] = bsched_make("loopback out",
+		BS_T_STREAM, BS_F_WRITE, BS_BW_MAX, 1000);
+
+	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
 	bws_list = g_slist_prepend(bws_list, 
@@ -472,6 +477,8 @@ bsched_early_init(void)
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_IN));
 
+	bws_out_list = g_slist_prepend(bws_out_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
 	bws_out_list = g_slist_prepend(bws_out_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
 	bws_out_list = g_slist_prepend(bws_out_list, 
