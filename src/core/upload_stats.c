@@ -83,8 +83,8 @@ ul_stats_eq(gconstpointer p, gconstpointer q)
 {
 	const struct ul_stats *a = p, *b = q;
 
-	/* filename is an atom */
-	return a->filename == b->filename && b->size == b->size;
+	/* pathname is an atom */
+	return a->pathname == b->pathname && b->size == b->size;
 }
 
 static guint
@@ -92,7 +92,7 @@ ul_stats_hash(gconstpointer p)
 {
 	const struct ul_stats *s = p;
   
-	return g_str_hash(s->filename) ^ s->size;
+	return g_str_hash(s->pathname) ^ s->size;
 }
 
 /**
@@ -104,7 +104,7 @@ ul_stats_hash(gconstpointer p)
  * and recorded as such.
  */
 static struct ul_stats *
-upload_stats_find(const struct sha1 *sha1, const gchar *name, guint64 size)
+upload_stats_find(const struct sha1 *sha1, const gchar *pathname, guint64 size)
 {
 	struct ul_stats *s = NULL;
 
@@ -122,12 +122,12 @@ upload_stats_find(const struct sha1 *sha1, const gchar *name, guint64 size)
 		}
 
 		key = zero_stats;
-		key.filename = atom_str_get(name);
+		key.pathname = atom_str_get(pathname);
 		key.size = size;
 
 		if (hash_list_contains(upload_stats_list, &key, &orig_key))
 			s = deconstify_gpointer(orig_key);
-		atom_str_free_null(&key.filename);
+		atom_str_free_null(&key.pathname);
 
 		if (s && sha1) {
 			/* Was missing from the by-SHA1 table? */
@@ -145,8 +145,8 @@ upload_stats_find(const struct sha1 *sha1, const gchar *name, guint64 size)
 }
 
 static void
-upload_stats_add(const gchar *filename,
-	filesize_t size, guint32 attempts, guint32 complete, guint64 ul_bytes,
+upload_stats_add(const gchar *pathname, filesize_t size, const char *name,
+	guint32 attempts, guint32 complete, guint64 ul_bytes,
 	time_t rtime, time_t dtime, const struct sha1 *sha1)
 {
 	static const struct ul_stats zero_stats;
@@ -154,7 +154,8 @@ upload_stats_add(const gchar *filename,
 
 	s = walloc(sizeof *s);
 	*s = zero_stats;
-	s->filename = atom_str_get(filename);
+	s->pathname = atom_str_get(pathname);
+	s->filename = atom_str_get(name);
 	s->size = size;
 	s->attempts = attempts;
 	s->complete = complete;
@@ -215,7 +216,7 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 			goto corrupted;
 
 		item = zero_item;
-		item.filename = line;
+		item.pathname = line;
 
 		for (i = 0; i < 8; i++) {
 			guint64 v;
@@ -269,14 +270,22 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 		 * We store the filenames UTF-8 encoded but the file might have been
 		 * edited or corrupted.
 		 */
-		item.filename = lazy_unknown_to_utf8_normalized(item.filename,
-							UNI_NORM_NFC, NULL);
+		if (is_absolute_path(item.pathname)) {
+			item.filename = lazy_filename_to_utf8_normalized(
+						filepath_basename(item.pathname), UNI_NORM_NFC);
+		} else {
+			item.filename = lazy_unknown_to_utf8_normalized(
+						filepath_basename(item.pathname), UNI_NORM_NFC, NULL);
+		}
 
-		if (upload_stats_find(item.sha1, item.filename, item.size)) {
+		if (upload_stats_find(NULL, item.pathname, item.size)) {
+			g_warning("upload_stats_load_history():"
+				" Ignoring line %u due to duplicate file.", lineno);
+		} else if (upload_stats_find(item.sha1, item.pathname, item.size)) {
 			g_warning("upload_stats_load_history():"
 				" Ignoring line %u due to duplicate file.", lineno);
 		} else {
-			upload_stats_add(item.filename, item.size,
+			upload_stats_add(item.pathname, item.size, item.filename,
 				item.attempts, item.complete, item.bytes_sent,
 				item.rtime, item.dtime, item.sha1);
 		}
@@ -297,15 +306,25 @@ done:
 static void
 upload_stats_dump_item(gpointer p, gpointer user_data)
 {
+	const struct shared_file *sf;
 	FILE *out = user_data;
 	struct ul_stats *s = p;
 	char rtime_buf[TIME_T_DEC_BUFLEN];
 	char dtime_buf[TIME_T_DEC_BUFLEN];
+	const char *pathname;
 	char *escaped;
 
 	g_assert(NULL != s);
 
-	escaped = url_escape_cntrl(s->filename);
+	sf = s->sha1 ? shared_file_by_sha1(s->sha1) : NULL;
+	sf = SHARE_REBUILDING != sf ? sf : NULL;
+	if (sf) {
+		pathname = shared_file_path(sf);
+	} else {
+		pathname = s->pathname;
+	}
+	escaped = url_escape_cntrl(pathname);
+
 	time_t_to_string_buf(s->rtime, rtime_buf, sizeof rtime_buf);
 	time_t_to_string_buf(s->dtime, dtime_buf, sizeof dtime_buf);
 
@@ -320,7 +339,7 @@ upload_stats_dump_item(gpointer p, gpointer user_data)
 		dtime_buf,
 		s->sha1 ? sha1_base32(s->sha1) : "*");
 
-	if (escaped != s->filename) {		/* File had escaped chars */
+	if (escaped != pathname) {		/* File had escaped chars */
 		G_FREE_NULL(escaped);
 	}
 }
@@ -424,6 +443,7 @@ upload_stats_enforce_local_filename(const struct shared_file *sf)
 	 */
 
 	hash_list_remove(upload_stats_list, s);
+	atom_str_change(&s->pathname, shared_file_path(sf));
 	atom_str_change(&s->filename, name);
 	hash_list_append(upload_stats_list, s);
 
@@ -437,21 +457,22 @@ void
 upload_stats_file_begin(const struct shared_file *sf)
 {
 	struct ul_stats *s;
-	const gchar *name;
+	const gchar *pathname;
 	filesize_t size;
 	const struct sha1 *sha1;
 
 	g_return_if_fail(sf);
-	name = shared_file_name_nfc(sf);
+	pathname = shared_file_path(sf);
 	size = shared_file_size(sf);
 	sha1 = sha1_hash_available(sf) ? shared_file_sha1(sf) : NULL;
 
 	/* find this file in the ul_stats_clist */
-	s = upload_stats_find(sha1, name, size);
+	s = upload_stats_find(sha1, pathname, size);
 
 	/* increment the attempted counter */
 	if (NULL == s) {
-		upload_stats_add(name, size, 1, 0, 0, tm_time(), 0, sha1);
+		upload_stats_add(pathname, size, shared_file_name_nfc(sf),
+			1, 0, 0, tm_time(), 0, sha1);
 	} else {
 		s->attempts++;
 		s->rtime = tm_time();
@@ -475,7 +496,7 @@ upload_stats_file_add(
 	const struct shared_file *sf,
 	gint comp, guint64 sent, gboolean update_dtime)
 {
-	const gchar *name = shared_file_name_nfc(sf);
+	const gchar *pathname = shared_file_path(sf);
 	filesize_t size = shared_file_size(sf);
 	struct ul_stats *s;
 	const struct sha1 *sha1;
@@ -485,13 +506,13 @@ upload_stats_file_add(
 	sha1 = sha1_hash_available(sf) ? shared_file_sha1(sf) : NULL;
 
 	/* find this file in the ul_stats_clist */
-	s = upload_stats_find(sha1, name, size);
+	s = upload_stats_find(sha1, pathname, size);
 
 	/* increment the completed counter */
 	if (NULL == s) {
 		/* uh oh, row has since been deleted, add it: 1 attempt */
-		upload_stats_add(name, size, 1, comp, sent, tm_time(), tm_time(),
-			sha1_hash_available(sf) ? shared_file_sha1(sf) : NULL);
+		upload_stats_add(pathname, size, shared_file_name_nfc(sf),
+			1, comp, sent, tm_time(), tm_time(), sha1);
 	} else {
 		s->bytes_sent += sent;
 		s->norm = 1.0 * s->bytes_sent / s->size;
@@ -559,6 +580,7 @@ upload_stats_free_all(void)
 
 		while (NULL != (s = hash_list_head(upload_stats_list))) {
 			hash_list_remove(upload_stats_list, s);
+			atom_str_free_null(&s->pathname);
 			atom_str_free_null(&s->filename);
 			if (s->sha1)
 				g_hash_table_remove(upload_stats_by_sha1, s->sha1);

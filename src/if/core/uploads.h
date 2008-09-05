@@ -121,14 +121,15 @@ typedef struct gnet_upload_info {
 	((u)->status == GTA_UL_HEADERS || (u)->status == GTA_UL_WAITING)
 
 struct ul_stats {
-	const gchar  *filename;	/**< Atom, UTF-8 (from sf->name_nfc) */
+	const char  *pathname;	/**< Atom, (from sf->pathname) */
+	const char  *filename;	/**< Atom, UTF-8 (from sf->name_nfc) */
 	filesize_t size;
 	guint32 attempts;
 	guint32 complete;
 	time_t rtime;		/**< time of last request */
 	time_t dtime;		/**< time of last downloaded bytes */
 	guint64 bytes_sent;
-	gdouble norm;		/**< bytes sent / file size */
+	double norm;		/**< bytes sent / file size */
 	const struct sha1 *sha1;	/**< SHA1 of file (atom), if known, or NULL */
 	void *user_data;	/**< Used by the GUI side to store context */
 };
