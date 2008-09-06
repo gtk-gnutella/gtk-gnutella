@@ -258,7 +258,7 @@ browse_host_read_html(struct special_upload *ctx,
 				const shared_file_t *sf;
 
 				bh->file_index++;
-				sf = shared_file(bh->file_index);
+				sf = shared_file_sorted(bh->file_index);
 				if (!sf) {
 				   	if (bh->file_index > shared_files_scanned())
 						browse_host_next_state(bh, BH_STATE_TRAILER);
@@ -409,7 +409,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 			do {
 				/* Skip holes in indices */
 				bh->file_index++;
-				sf = shared_file(bh->file_index);
+				sf = shared_file_sorted(bh->file_index);
 			} while (NULL == sf && bh->file_index <= shared_files_scanned());
 
 			if (SHARE_REBUILDING == sf || NULL == sf)

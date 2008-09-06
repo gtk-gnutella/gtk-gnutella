@@ -100,6 +100,7 @@ struct shared_file {
 
 	filesize_t file_size;		/**< File size in Bytes */
 	guint32 file_index;			/**< the files index within our local DB */
+	guint32 sort_index;			/**< the index for sorted listings */
 
 	enum mime_type mime_type;	/* MIME type of the file */
 
@@ -127,17 +128,18 @@ static const struct special_file specials[] = {
 /**
  * Maps special names (e.g. "/favicon.ico") to the shared_file_t structure.
  */
-static GHashTable *special_names = NULL;
+static GHashTable *special_names;
 
-static guint64 files_scanned = 0;
-static guint64 bytes_scanned = 0;
+static guint64 files_scanned;
+static guint64 bytes_scanned;
 
-static GHashTable *extensions = NULL;	/* Shared filename extensions */
-static GSList *shared_dirs = NULL;
-static GSList *shared_files = NULL;
-static struct shared_file **file_table = NULL;
+static GHashTable *extensions;	/* Shared filename extensions */
+static GSList *shared_dirs;
+static GSList *shared_files;
+static struct shared_file **file_table;
+static struct shared_file **sorted_file_table;
 static search_table_t *search_table;
-static GHashTable *file_basenames = NULL;
+static GHashTable *file_basenames;
 
 static struct recursive_scan *recursive_scan_context;
 
@@ -225,7 +227,17 @@ shared_file_deindex(shared_file_t *sf)
 		g_assert(SHARE_F_INDEXED & sf->flags);
 		file_table[sf->file_index - 1] = NULL;
 	}
+	if (
+		sorted_file_table &&
+		sf->sort_index > 0 &&
+		sf->sort_index <= files_scanned &&
+		sf == sorted_file_table[sf->sort_index - 1]
+   ) {
+		g_assert(SHARE_F_INDEXED & sf->flags);
+		sorted_file_table[sf->sort_index - 1] = NULL;
+	}
 	sf->file_index = 0;
+	sf->sort_index = 0;
 	sf->flags &= ~SHARE_F_INDEXED;
 }
 
@@ -456,6 +468,25 @@ shared_file(guint idx)
 		return NULL;
 
 	return file_table[idx - 1];
+}
+
+/**
+ * Given a valid index, returns the `struct shared_file' entry describing
+ * the shared file bearing that index if found, NULL if not found (invalid
+ * index) and SHARE_REBUILDING when we're rebuilding the library.
+ */
+shared_file_t *
+shared_file_sorted(guint idx)
+{
+	/* @return shared file info for index `idx', or NULL if none */
+
+	if (sorted_file_table == NULL)			/* Rebuilding the library! */
+		return SHARE_REBUILDING;
+
+	if (idx < 1 || idx > files_scanned)
+		return NULL;
+
+	return sorted_file_table[idx - 1];
 }
 
 /**
@@ -1088,13 +1119,14 @@ share_free(void)
 	shared_files = NULL;
 
 	G_FREE_NULL(file_table);
+	G_FREE_NULL(sorted_file_table);
 }
 
 /**
  * Sort function - shared files by descending mtime. 
  */
-static gint
-shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
+static int
+shared_file_sort_by_mtime(const void *f1, const void *f2)
 {
 	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
 	time_t t1, t2;
@@ -1107,6 +1139,38 @@ shared_file_sort_by_mtime(gconstpointer f1, gconstpointer f2)
 	t1 = (*sf1)->mtime;
 	t2 = (*sf2)->mtime;
 	return CMP(t1, t2);
+}
+
+static inline int
+cmp_strings(const char *a, const char *b)
+{
+	if (a && b) {
+		return a == b ? 0 : strcmp(a, b);
+	} else {
+		return a ? 1 : (b ? -1 : 0);
+	}
+}
+
+/**
+ * Sort function - shared files by descending mtime. 
+ */
+static int
+shared_file_sort_by_name(const void *f1, const void *f2)
+{
+	const shared_file_t * const *sf1 = f1, * const *sf2 = f2;
+	int ret;
+
+	/* We don't use shared_file_check() here because it would be
+	 * the dominating factor for the sorting time. */
+	g_assert(SHARED_FILE_MAGIC == (*sf1)->magic);
+	g_assert(SHARED_FILE_MAGIC == (*sf2)->magic);
+
+	if (GNET_PROPERTY(search_results_expose_relative_paths)) {
+		ret = cmp_strings((*sf1)->relative_path, (*sf2)->relative_path);
+	} else {
+		ret = strcmp((*sf1)->file_path, (*sf2)->file_path);
+	}
+	return 0 != ret ? ret : strcmp((*sf1)->name_nfc, (*sf2)->name_nfc);
 }
 
 /**
@@ -1161,7 +1225,7 @@ recursive_scan_finish(struct recursive_scan *ctx)
 	/* Compact the search table */
 	st_compact(search_table);
 
-	file_table = g_malloc0((files_scanned + 1) * sizeof *file_table);
+	file_table = g_malloc0((files_scanned + 1) * sizeof file_table[0]);
 
 	/*
 	 * We over-allocate the file_table by one entry so that even when they
@@ -1180,7 +1244,7 @@ recursive_scan_finish(struct recursive_scan *ctx)
 		file_table[i++] = sf;
 	}
 
-	/* Sort file list by modification time */
+	/* Sort file list by modification time to get a relatively stable index */
 	qsort(file_table, files_scanned, sizeof file_table[0],
 		shared_file_sort_by_mtime);
 
@@ -1234,6 +1298,23 @@ recursive_scan_finish(struct recursive_scan *ctx)
 			GUINT_TO_POINTER(val));
 		sf->flags |= SHARE_F_BASENAME;
 	}
+
+	sorted_file_table = g_memdup(file_table,
+							(files_scanned + 1) * sizeof file_table[0]);
+	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
+		shared_file_sort_by_name);
+
+	/* Set the sort index used for sorted file listings */
+	for (i = 0; i < files_scanned; i++) {
+		struct shared_file *sf;
+
+	   	sf = sorted_file_table[i];
+		if (!sf)
+			continue;
+		shared_file_check(sf);
+		sf->sort_index = i + 1;
+	}
+
 	gcu_gui_update_files_scanned();		/* Final view */
 
 	/*

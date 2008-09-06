@@ -90,6 +90,7 @@ void share_init(void);
 void share_close(void);
 
 shared_file_t *shared_file(guint idx);
+shared_file_t *shared_file_sorted(guint idx);
 shared_file_t *shared_file_by_name(const gchar *filename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
