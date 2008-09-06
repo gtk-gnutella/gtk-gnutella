@@ -324,7 +324,7 @@ browse_host_dl_receive(
 		struct rx_link_args args;
 
 		args.cb = &browse_rx_link_cb;
-		args.bws = BSCHED_BWS_IN;
+		args.bws = bsched_in_select_by_addr(gnet_host_get_addr(&bc->host));
 		args.wio = wio;
 
 		bc->rx = rx_make(bc, &bc->host, rx_link_get_ops(), &args);

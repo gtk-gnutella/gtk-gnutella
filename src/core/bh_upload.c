@@ -602,7 +602,7 @@ browse_host_open(
 
 		args.cb = link_cb;
 		args.wio = wio;
-		args.bws = BSCHED_BWS_OUT;
+		args.bws = bsched_out_select_by_addr(gnet_host_get_addr(host));
 
 		bh->tx = tx_make(owner, host, tx_link_get_ops(), &args);
 	}

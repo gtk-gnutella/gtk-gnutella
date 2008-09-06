@@ -447,10 +447,12 @@ bsched_early_init(void)
 		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
 
 	bws_set[BSCHED_BWS_LOOPBACK_OUT] = bsched_make("loopback out",
-		BS_T_STREAM, BS_F_WRITE, BS_BW_MAX, 1000);
+		BS_T_STREAM, BS_F_WRITE, 0, 1000);
+	bws_set[BSCHED_BWS_LOOPBACK_IN] = bsched_make("loopback in",
+		BS_T_STREAM, BS_F_READ, 0, 1000);
 
 	bws_list = g_slist_prepend(bws_list, 
-						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
+						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
 	bws_list = g_slist_prepend(bws_list, 
@@ -460,6 +462,8 @@ bsched_early_init(void)
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_IN));
 	bws_list = g_slist_prepend(bws_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_OUT));
+	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLOUT));
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GOUT));
@@ -468,6 +472,8 @@ bsched_early_init(void)
 	bws_list = g_slist_prepend(bws_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_OUT));
 
+	bws_out_list = g_slist_prepend(bws_in_list, 
+						GUINT_TO_POINTER(BSCHED_BWS_LOOPBACK_IN));
 	bws_in_list = g_slist_prepend(bws_in_list, 
 						GUINT_TO_POINTER(BSCHED_BWS_GLIN));
 	bws_in_list = g_slist_prepend(bws_in_list, 
@@ -2869,6 +2875,21 @@ bsched_enough_up_bandwidth(void)
 	}
 
 	return TRUE;
+}
+
+
+bsched_bws_t
+bsched_out_select_by_addr(const host_addr_t addr)
+{
+	return host_addr_is_loopback(addr)
+			? BSCHED_BWS_LOOPBACK_OUT : BSCHED_BWS_OUT;
+}
+
+bsched_bws_t
+bsched_in_select_by_addr(const host_addr_t addr)
+{
+	return host_addr_is_loopback(addr)
+			? BSCHED_BWS_LOOPBACK_IN : BSCHED_BWS_IN;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

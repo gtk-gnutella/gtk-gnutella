@@ -683,7 +683,7 @@ thex_download_receive(struct thex_download *ctx,
 		struct rx_link_args args;
 
 		args.cb = &thex_rx_link_cb;
-		args.bws = BSCHED_BWS_IN;
+		args.bws = bsched_in_select_by_addr(gnet_host_get_addr(&ctx->host));
 		args.wio = wio;
 
 		ctx->rx = rx_make(ctx, &ctx->host, rx_link_get_ops(), &args);

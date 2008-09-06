@@ -39,6 +39,7 @@
 
 RCSID("$Id$")
 
+#include "bsched.h"
 #include "dime.h"
 #include "share.h"
 #include "special_upload.h"
@@ -429,7 +430,7 @@ thex_upload_open(
 
 		args.cb = link_cb;
 		args.wio = wio;
-		args.bws = BSCHED_BWS_OUT;
+		args.bws = bsched_out_select_by_addr(gnet_host_get_addr(host));
 
 		ctx->tx = tx_make(owner, host, tx_link_get_ops(), &args);
 	}

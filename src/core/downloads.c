@@ -8579,7 +8579,8 @@ http_version_nofix:
 
 					download_set_status(d, GTA_DL_SINKING);
 
-					d->bio = bsched_source_add(BSCHED_BWS_IN, &s->wio,
+					d->bio = bsched_source_add(
+						bsched_in_select_by_addr(s->addr), &s->wio,
 						BIO_F_READ, download_sink_read, d);
 
 					if (s->pos > 0) {
@@ -9279,7 +9280,7 @@ http_version_nofix:
 		gnet_host_t host;
 
 		args.cb = &download_rx_link_cb;
-		args.bws = BSCHED_BWS_IN;
+		args.bws = bsched_in_select_by_addr(s->addr);
 		args.wio = &d->socket->wio;
 
 		gnet_host_set(&host, download_addr(d), download_port(d));
@@ -9489,7 +9490,8 @@ download_request_sent(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	io_get_header(d, &d->io_opaque, BSCHED_BWS_IN, d->socket, IO_SAVE_FIRST,
+	io_get_header(d, &d->io_opaque,
+		bsched_in_select_by_addr(d->socket->addr), d->socket, IO_SAVE_FIRST,
 		call_download_request, download_start_reading, &download_io_error);
 }
 
@@ -10413,8 +10415,8 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	g_assert(NULL == d->io_opaque);
-	io_get_header(d, &d->io_opaque, BSCHED_BWS_IN, s, IO_SINGLE_LINE,
-		call_download_push_ready, NULL, &download_io_error);
+	io_get_header(d, &d->io_opaque, bsched_in_select_by_addr(s->addr),
+		s, IO_SINGLE_LINE, call_download_push_ready, NULL, &download_io_error);
 
 	return;
 
@@ -12291,8 +12293,9 @@ download_handle_magnet(const gchar *url)
 {
 	struct magnet_resource *res;
 	guint n_downloads = 0;
+	const char *error_str;
 
-	res = magnet_parse(url, NULL);
+	res = magnet_parse(url, &error_str);
 	if (res) {
 		gchar *filename;	/* strdup */
 		GSList *sl;
@@ -12362,6 +12365,8 @@ download_handle_magnet(const gchar *url)
 				continue;
 			}
 
+			flags = SOCK_F_FORCE;
+
 			/*
 			 * Firewalled magnets have a push:// source pointing to the
 			 * first known push proxy.  When retrieving, we lost the
@@ -12371,14 +12376,13 @@ download_handle_magnet(const gchar *url)
 			if (ms->guid) {
 				addr = ipv4_unspecified;
 				port = 0;
-				flags = SOCK_F_PUSH;
+				flags |= SOCK_F_PUSH;
 				guid = ms->guid;
 				proxy = gnet_host_vec_alloc();
 				gnet_host_vec_add(proxy, ms->addr, ms->port);
 			} else {
 				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 				port = ms->port;
-				flags = 0;
 				guid = blank_guid;
 				proxy = NULL;
 			}
@@ -12432,6 +12436,10 @@ download_handle_magnet(const gchar *url)
 		G_FREE_NULL(filename);
 
 		magnet_resource_free(&res);
+	} else {
+		if (GNET_PROPERTY(download_debug)) {
+			g_warning("magnet_parse() failed: %s", NULL_STRING(error_str));
+		}
 	}
 	return n_downloads;
 }

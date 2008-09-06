@@ -111,6 +111,9 @@ void bsched_set_urgent(bsched_bws_t bws, int amount);
 void bsched_config_steal_http_gnet(void);
 void bsched_config_steal_gnet(void);
 
+bsched_bws_t bsched_out_select_by_addr(const host_addr_t);
+bsched_bws_t bsched_in_select_by_addr(const host_addr_t);
+
 #endif	/* _core_bsched_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

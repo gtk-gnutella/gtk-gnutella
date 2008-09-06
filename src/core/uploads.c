@@ -1975,8 +1975,8 @@ upload_add(struct gnutella_socket *s)
 	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
 
-	io_get_header(u, &u->io_opaque, BSCHED_BWS_IN, s, IO_HEAD_ONLY,
-		call_upload_request, NULL, &upload_io_error);
+	io_get_header(u, &u->io_opaque, bsched_in_select_by_addr(s->addr),
+		s, IO_HEAD_ONLY, call_upload_request, NULL, &upload_io_error);
 }
 
 /**
@@ -2047,8 +2047,8 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 	 * with the one used for direct uploading.
 	 */
 
-	io_get_header(u, &u->io_opaque, BSCHED_BWS_IN, s, IO_SAVE_FIRST,
-		call_upload_request, start_cb, &upload_io_error);
+	io_get_header(u, &u->io_opaque, bsched_in_select_by_addr(s->addr),
+		s, IO_SAVE_FIRST, call_upload_request, start_cb, &upload_io_error);
 }
 
 /**
@@ -2103,7 +2103,7 @@ upload_connect_conf(struct upload *u)
 			(gulong) u->file_index, guid_hex_str(GNET_PROPERTY(servent_guid)));
 
 	s = u->socket;
-	sent = bws_write(BSCHED_BWS_OUT, &s->wio, giv, rw);
+	sent = bws_write(bsched_out_select_by_addr(s->addr), &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
 		if (GNET_PROPERTY(upload_debug) > 1) g_warning(
 			"unable to send back GIV for \"%s\" to %s: %s",
@@ -3503,10 +3503,8 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
 
 	u->reqnum++;
-	u->bio = bsched_source_add(
-		host_addr_is_loopback(u->addr)
-			? BSCHED_BWS_LOOPBACK_OUT : BSCHED_BWS_OUT,
-		&u->socket->wio, BIO_F_WRITE, upload_writable, u);
+	u->bio = bsched_source_add(bsched_out_select_by_addr(u->socket->addr),
+				&u->socket->wio, BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
 	upload_fire_upload_info_changed(u);
 	gnet_prop_incr_guint32(PROP_UL_RUNNING);
