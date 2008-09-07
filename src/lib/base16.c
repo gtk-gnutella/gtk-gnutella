@@ -116,18 +116,17 @@ base16_decode(char *dst, size_t size, const void *data, size_t len)
   len /= 2;
   len = 2 * (size < len ? size : len);
 
-  for (i = 0; i < len; i++) {
-      int c;
+  i = 0;
+  while (i < len) {
+    int high, low;
 
-      c = hex2int_inline(p[i]);
-      if (c < 0) {
-        return (size_t) -1;
-      }
-      if ((i & 1) == 0) {
-        *q = c << 4;
-      } else {
-        *q++ |= c;
-      }
+    high = hex2int_inline(p[i++]);
+    if (high < 0)
+      return (size_t) -1;
+    low = hex2int_inline(p[i++]);
+    if (low < 0)
+      return (size_t) -1;
+    *q++ = (high << 4) | low;
   }
 
   return q - dst;
