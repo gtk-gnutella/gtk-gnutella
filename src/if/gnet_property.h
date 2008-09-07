@@ -361,6 +361,7 @@ typedef enum {
     PROP_BW_DHT_LOOKUP_IN,
     PROP_STICKY_GUID,
     PROP_STICKY_KUID,
+    PROP_DHT_ULQ_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
