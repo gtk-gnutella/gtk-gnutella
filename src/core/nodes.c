@@ -5957,6 +5957,27 @@ node_udp_is_flow_controlled(void)
 }
 
 /**
+ * Check whether additional traffic would cause the UDP node to flow-control.
+ */
+gboolean
+node_udp_would_flow_control(size_t additional)
+{
+	if (
+		udp_node && udp_node->outq &&
+		mq_would_flow_control(udp_node->outq, additional)
+	)
+		return TRUE;
+
+	if (
+		udp6_node && udp6_node->outq &&
+		mq_would_flow_control(udp6_node->outq, additional)
+	)
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
  * Get "fake" node for UDP transmission.
  */
 gnutella_node_t *
