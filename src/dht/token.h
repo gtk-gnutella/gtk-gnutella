@@ -40,9 +40,20 @@
 
 #define TOKEN_RAW_SIZE		4
 
+/**
+ * The security tokens we generate.
+ */
 typedef struct {
 	guchar v[TOKEN_RAW_SIZE];
 } token_t;
+
+/**
+ * Security tokens received from other nodes.
+ */
+typedef struct sec_token {
+	void *v;					/**< Token value (NULL if none) */
+	guint8 length;				/**< Token length (0 if none) */
+} sec_token_t;
 
 /*
  * Public interface.
@@ -53,6 +64,9 @@ void token_close(void);
 
 void token_generate(token_t *tok, const knode_t *kn);
 gboolean token_is_valid(const token_t *tok, const knode_t *kn);
+
+sec_token_t *token_alloc(guint8 length);
+void token_free(sec_token_t *token);
 
 #endif /* _dht_token_h_ */
 

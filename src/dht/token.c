@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/misc.h"
 #include "lib/tea.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define T_KEYS				2		/* Amount of keys we manage */
@@ -172,6 +173,33 @@ token_rotate(cqueue_t *unused_cq, gpointer unused_obj)
 		keys[i + 1] = keys[i];
 
 	random_bytes(&keys[0], sizeof(keys[0]));	/* 0 is most recent key */
+}
+
+/**
+ * Allocate a security token.
+ */
+sec_token_t *
+token_alloc(guint8 length)
+{
+	sec_token_t *token;
+
+	token = walloc(sizeof *token);
+	token->length = length;
+	token->v = length ? walloc(length) : NULL;
+
+	return token;
+}
+
+/**
+ * Free security token.
+ */
+void
+token_free(sec_token_t *token)
+{
+	if (token->v)
+		wfree(token->v, token->length);
+
+	wfree(token, sizeof *token);
 }
 
 /**
