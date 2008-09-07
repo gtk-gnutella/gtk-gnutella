@@ -192,6 +192,111 @@ error:
 	return REPLY_ERROR;
 }
 
+static void
+show_property(struct gnutella_shell *sh,
+	const char *name, const char *value)
+{
+	shell_check(sh);
+	g_return_if_fail(name);
+	g_return_if_fail(value);
+
+	shell_write(sh, name);
+	shell_write(sh, "=");
+	shell_write(sh, value);
+	shell_write(sh, "\n");
+}
+
+static inline const char *
+boolean_to_string(unsigned int v)
+{
+	return v ? "true" : "false";
+}
+
+static enum shell_reply
+shell_exec_download_show(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	fileinfo_t *fi;
+	struct guid guid;
+	const char *id, *property;
+	gnet_fi_status_t status;
+	gnet_fi_info_t *info;
+	int i;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3) {
+		shell_set_msg(sh, "parameter missing");
+		goto error;
+	}
+	id = argv[2];
+
+	if (!hex_to_guid(id, &guid)) {
+		shell_set_msg(sh, "Unparsable ID");
+		goto error;
+	}
+
+	fi = file_info_by_guid(&guid);
+	if (NULL == fi) {
+		shell_set_msg(sh, "Invalid ID");
+		goto error;
+	}
+
+	info = guc_fi_get_info(fi->fi_handle);
+	guc_fi_get_status(fi->fi_handle, &status);
+
+	for (i = 3; i < argc; i++) {
+		property = argv[i];
+
+		if (0 == strcmp(property, "id")) {
+			show_property(sh, property, guid_to_string(info->guid));
+		} else if (0 == strcmp(property, "filename")) {
+			show_property(sh, property, info->filename);
+		} else if (0 == strcmp(property, "pathname")) {
+			show_property(sh, property, fi->pathname);
+		} else if (0 == strcmp(property, "size")) {
+			show_property(sh, property, filesize_to_string(info->size));
+		} else if (0 == strcmp(property, "sha1")) {
+			show_property(sh, property,
+				info->sha1 ? sha1_to_urn_string(info->sha1) : "");
+		} else if (0 == strcmp(property, "tth")) {
+			show_property(sh, property,
+				info->tth ? tth_to_urn_string(info->tth) : "");
+		} else if (0 == strcmp(property, "bitprint")) {
+			show_property(sh, property,
+				(info->sha1 && info->tth)
+					? bitprint_to_urn_string(info->sha1, info->tth) : NULL);
+		} else if (0 == strcmp(property, "created")) {
+			show_property(sh, property,
+				info->created ? timestamp_to_string(info->created) : "");
+		} else if (0 == strcmp(property, "modified")) {
+			show_property(sh, property,
+				status.modified ? timestamp_to_string(status.modified) : "");
+		} else if (0 == strcmp(property, "downloaded")) {
+			show_property(sh, property, filesize_to_string(status.done));
+		} else if (0 == strcmp(property, "uploaded")) {
+			show_property(sh, property, uint64_to_string(status.uploaded));
+		} else if (0 == strcmp(property, "paused")) {
+			show_property(sh, property, boolean_to_string(status.paused));
+		} else if (0 == strcmp(property, "seeding")) {
+			show_property(sh, property, boolean_to_string(status.seeding));
+		} else if (0 == strcmp(property, "verifying")) {
+			show_property(sh, property, boolean_to_string(status.verifying));
+		} else if (0 == strcmp(property, "finished")) {
+			show_property(sh, property, boolean_to_string(status.finished));
+		} else if (0 == strcmp(property, "complete")) {
+			show_property(sh, property, boolean_to_string(status.complete));
+		}
+	}
+	guc_fi_free_info(info);
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
 /**
  * Handles the download command.
  */
@@ -214,6 +319,7 @@ shell_exec_download(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(abort);
 	CMD(pause);
 	CMD(resume);
+	CMD(show);
 #undef CMD
 	
 	shell_set_msg(sh, _("Unknown operation"));
@@ -240,7 +346,8 @@ shell_help_download(int argc, const char *argv[])
 		return NULL;
 	} else {
 		return	"download add URL\n"
-				"download [abort|pause|resume] ID\n";
+				"download [abort|pause|resume] ID\n"
+				"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n";
 	}
 }
 
