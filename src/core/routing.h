@@ -30,6 +30,8 @@
 
 #include "gnutella.h"
 
+struct guid;
+
 /**
  * Route destination types.
  */
@@ -65,13 +67,13 @@ void routing_close(void);
 void message_set_muid(gnutella_header_t *header, guint8 function);
 gboolean route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(struct gnutella_node *);
-void message_add(const gchar *muid, guint8, struct gnutella_node *);
-GSList *route_towards_guid(const gchar *guid);
-gboolean route_exists_for_reply(const gchar *muid, guint8 function);
+void message_add(const struct guid *muid, guint8, struct gnutella_node *);
+GSList *route_towards_guid(const struct guid *guid);
+gboolean route_exists_for_reply(const struct guid *muid, guint8 function);
 
-gboolean route_proxy_add(const gchar *guid, struct gnutella_node *n);
-void route_proxy_remove(const gchar *guid);
-struct gnutella_node *route_proxy_find(const gchar *guid);
+gboolean route_proxy_add(const struct guid *guid, struct gnutella_node *n);
+void route_proxy_remove(const struct guid *guid);
+struct gnutella_node *route_proxy_find(const struct guid *guid);
 
 #endif /* _core_routing_h_ */
 /* vi: set ts=4 sw=4 cindent: */

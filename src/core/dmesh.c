@@ -2280,7 +2280,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 			size,
 			p->addr,
 			p->port,
-			blank_guid,
+			&blank_guid,
 			NULL,	/* hostname */
 			sha1,
 			NULL,	/* TTH */

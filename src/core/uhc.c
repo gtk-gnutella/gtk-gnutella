@@ -77,7 +77,7 @@ static struct uhc_context {
 	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
 	guint16 port;				/**< Port of selected host cache */
-	gchar muid[GUID_RAW_SIZE];	/**< MUID of the ping */
+	struct guid muid;			/**< MUID of the ping */
 } uhc_ctx;
 
 static hash_list_t *uhc_list;	/**< List of ``struct uhc'' */
@@ -352,13 +352,13 @@ uhc_send_ping(void)
 {
 	g_assert(uhc_connecting);
 
-	guid_random_muid(uhc_ctx.muid);	
+	guid_random_muid(&uhc_ctx.muid);	
 
-	if (udp_send_ping(uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
+	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
 		if (GNET_PROPERTY(bootstrap_debug))
 			g_message("BOOT sent UDP SCP ping %s to %s:%u",
-				guid_hex_str(uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
+				guid_hex_str(&uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
 		/*
 		 * Give GUI feedback.
 		 */
@@ -511,7 +511,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	 * check whether we're still in a probing cycle.
 	 */
 
-	if (!guid_eq(uhc_ctx.muid, gnutella_header_get_muid(&n->header)))
+	if (!guid_eq(&uhc_ctx.muid, gnutella_header_get_muid(&n->header)))
 		return;
 
 	if (GNET_PROPERTY(bootstrap_debug)) {

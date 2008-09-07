@@ -43,6 +43,7 @@
 #include "lib/host_addr.h"	/* For host_addr_t */
 
 struct download;
+struct guid;
 
 /**
  * A client push proxy request.
@@ -54,7 +55,7 @@ struct cproxy {
 	host_addr_t addr;		/**< IP of the proxy servent */
 	guint16 port;			/**< Port of the proxy servent */
 	const gchar *server;	/**< Server string */
-	const gchar *guid;		/**< GUID (atom) to which push should be sent */
+	const struct guid *guid;/**< GUID (atom) to which push should be sent */
 	guint32 file_idx;		/**< File index to request */
 	gpointer http_handle;	/**< Asynchronous HTTP request handle */
 	guint32 flags;			/**< Operating flags */

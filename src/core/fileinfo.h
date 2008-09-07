@@ -39,13 +39,14 @@
 #include "common.h"
 #include "share.h"						/* For shared_file_t */
 #include "if/core/fileinfo.h"
-#include "if/core/guid.h"
 
 /*
  * Shared core constants
  */
 
 #define FI_LOW_SRC_COUNT	5			/**< Few sources known if beneath */
+
+struct guid;
 
 /*
  * Public interface.
@@ -101,7 +102,7 @@ void file_info_upload_stop(fileinfo_t *fi, const gchar *reason);
 void file_info_pause(fileinfo_t *);
 void file_info_resume(fileinfo_t *);
 void file_info_changed(fileinfo_t *);
-fileinfo_t *file_info_by_guid(guid_t *guid);
+fileinfo_t *file_info_by_guid(const struct guid *guid);
 void file_info_dht_query(const sha1_t *sha1);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);

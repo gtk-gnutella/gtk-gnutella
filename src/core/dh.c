@@ -142,7 +142,7 @@ dh_table_free(GHashTable **ptr)
  * @returns located record, or NULL if not found.
  */
 static dqhit_t *
-dh_locate(const gchar *muid)
+dh_locate(const struct guid *muid)
 {
 	gboolean found = FALSE;
 	gpointer key;
@@ -171,10 +171,10 @@ dh_locate(const gchar *muid)
  * New record is registered in the current table.
  */
 static dqhit_t *
-dh_create(const gchar *muid)
+dh_create(const struct guid *muid)
 {
 	dqhit_t *dh;
-	const gchar *key;
+	const struct guid *key;
 
 	dh = walloc0(sizeof(*dh));
 	key = atom_guid_get(muid);
@@ -188,7 +188,7 @@ dh_create(const gchar *muid)
  * Called every time we successfully parsed a query hit from the network.
  */
 void
-dh_got_results(const gchar *muid, gint count)
+dh_got_results(const struct guid *muid, gint count)
 {
 	dqhit_t *dh;
 
@@ -236,8 +236,8 @@ dh_timer(time_t now)
 static void
 dh_pmsg_free(pmsg_t *mb, gpointer arg)
 {
-	struct pmsg_info *pmi = (struct pmsg_info *) arg;
-	const gchar *muid;
+	struct pmsg_info *pmi = arg;
+	const struct guid *muid;
 	dqhit_t *dh;
 
 	g_assert(pmsg_is_extended(mb));
@@ -411,7 +411,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 {
 	pmsg_t *mb;
 	struct pmsg_info *pmi;
-	const gchar *muid;
+	const struct guid *muid;
 	dqhit_t *dh;
 	mqueue_t *mq;
 
@@ -500,7 +500,7 @@ drop_throttle:
  * If we had to route hits to the specified node destination, would we?
  */
 gboolean
-dh_would_route(const gchar *muid, gnutella_node_t *dest)
+dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 {
 	dqhit_t *dh;
 

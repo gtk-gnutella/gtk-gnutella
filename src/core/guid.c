@@ -69,7 +69,7 @@ RCSID("$Id$")
 #define HEC_GENERATOR	0x107		/**< x^8 + x^2 + x + 1 */
 #define HEC_GTKG_MASK	0x0c3		/**< HEC GTKG's mask */
 
-const gchar blank_guid[GUID_RAW_SIZE] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+const struct guid blank_guid;
 
 static guint8 syndrome_table[256];
 static guint16 gtkg_version_mark;
@@ -80,11 +80,11 @@ static guint16 gtkg_version_mark;
 static void
 guid_gen_syndrome_table(void)
 {
-	guint i;
-	guint j;
+	unsigned i;
+	unsigned j;
 
 	for (i = 0; i < 256; i++) {
-		guint syn = i;
+		unsigned syn = i;
 		for (j = 0; j < 8; j++) {
 			syn <<= 1;
 			if (syn & 0x80)
@@ -99,7 +99,7 @@ guid_gen_syndrome_table(void)
  * If `rel' is true, we're a release, otherwise we're unstable or a beta.
  */
 static guint16
-guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
+guid_gtkg_encode_version(unsigned major, unsigned minor, gboolean rel)
 {
 	guint8 low;
 	guint8 high;
@@ -129,19 +129,34 @@ guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
 	return (high << 8) | low;
 }
 
+static inline guint8
+calculate_hec(const struct guid *guid, size_t offset)
+{
+	int i;
+	guint8 hec = 0;
+
+	for (i = 0; i < 15; i++)
+		hec = syndrome_table[hec ^ (guint8) guid->v[i + offset]];
+
+	return hec ^ HEC_GTKG_MASK;
+}
+
 /**
  * Compute GUID's HEC over bytes 1..15.
  */
 static guint8
-guid_hec(const gchar *xuid)
+guid_hec(const struct guid *guid)
 {
-	gint i;
-	guint8 hec = 0;
+	return calculate_hec(guid, 1);
+}
 
-	for (i = 1; i < 16; i++)
-		hec = syndrome_table[hec ^ (guchar) xuid[i]];
-
-	return hec ^ HEC_GTKG_MASK;
+/**
+ * Compute GUID's HEC over bytes 0..14.
+ */
+static guint8
+guid_hec_oob(const struct guid *guid)
+{
+	return calculate_hec(guid, 0);
 }
 
 /**
@@ -150,7 +165,7 @@ guid_hec(const gchar *xuid)
 void
 guid_init(void)
 {
-	const gchar *rev = GTA_REVCHAR;	/* Empty string means stable release */
+	const char *rev = GTA_REVCHAR;	/* Empty string means stable release */
 
 	guid_gen_syndrome_table();
 
@@ -170,7 +185,7 @@ guid_init(void)
  * specially to indicate we're modern nodes.
  */
 static void
-guid_flag_modern(gchar *muid)
+guid_flag_modern(struct guid *muid)
 {
 	/*
 	 * We're a "modern" client, meaning we're not Gnutella 0.56.
@@ -180,29 +195,28 @@ guid_flag_modern(gchar *muid)
 	 *				--RAM, 15/09/2001
 	 */
 
-	muid[8] = ~0;
-	muid[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
+	muid->v[8] = 0xff;
+	muid->v[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
 }
 
 /**
- * Flag a GUID/MUID as being from GTKG, by patching `xuid' in place.
+ * Flag a GUID/MUID as being from GTKG, by patching `guid' in place.
  *
  * Bytes 2/3 become the GTKG version mark.
  * Byte 0 becomes the HEC of the remaining 15 bytes.
  */
 static void
-guid_flag_gtkg(gchar *xuid)
+guid_flag_gtkg(struct guid *guid)
 {
-	xuid[2] = gtkg_version_mark >> 8;
-	xuid[3] = gtkg_version_mark & 0xff;
-	xuid[0] = guid_hec(xuid);
+	poke_be16(&guid->v[2], gtkg_version_mark);
+	guid->v[0] = guid_hec(guid);
 }
 
 /**
  * Decode major/minor and release information from the specified two
  * contiguous GUID bytes.
  *
- * @param xuid is the GUID considered
+ * @param guid is the GUID considered
  * @param start is the offset of the markup (2 or 4) in the GUID
  * @param majp is filled with the major version if it's a GTKG markup
  * @param minp is filled with the minor version if it's a GTKG markup
@@ -211,8 +225,8 @@ guid_flag_gtkg(gchar *xuid)
  * @return whether we recognized a GTKG markup.
  */
 static gboolean
-guid_extract_gtkg_info(
-	const guint8 *xuid, gint start, guint8 *majp, guint8 *minp, gboolean *relp)
+guid_extract_gtkg_info(const struct guid *guid, size_t start,
+	guint8 *majp, guint8 *minp, gboolean *relp)
 {
 	guint8 major;
 	guint8 minor;
@@ -220,12 +234,13 @@ guid_extract_gtkg_info(
 	guint16 mark;
 	guint16 xmark;
 
-	major = xuid[start] & 0x0f;
-	minor = xuid[start+1] & 0x7f;
-	release = (xuid[start+1] & 0x80) ? FALSE : TRUE;
+	g_assert(start < GUID_RAW_SIZE - 1);
+	major = guid->v[start] & 0x0f;
+	minor = guid->v[start + 1] & 0x7f;
+	release = (guid->v[start + 1] & 0x80) ? FALSE : TRUE;
 
 	mark = guid_gtkg_encode_version(major, minor, release);
-	xmark = (xuid[start] << 8) | xuid[start+1];
+	xmark = peek_be16(&guid->v[start]);
 
 	if (mark != xmark)
 		return FALSE;
@@ -244,7 +259,7 @@ guid_extract_gtkg_info(
 
 	/*
 	 * We've validated the GUID: the HEC is correct and the version is
-	 * consistently encoded, judging by the highest 4 bits of xuid[4].
+	 * consistently encoded, judging by the highest 4 bits of guid.v[4].
 	 */
 
 	if (majp) *majp = major;
@@ -259,37 +274,36 @@ guid_extract_gtkg_info(
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
 gboolean
-guid_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+guid_is_gtkg(const struct guid *guid,
+	guint8 *majp, guint8 *minp, gboolean *relp)
 {
-	const guint8 *xuid = (const guint8 *) guid;
-
-	if (xuid[0] != guid_hec(guid))
+	if (guid->v[0] != guid_hec(guid))
 		return FALSE;
 
-	return guid_extract_gtkg_info(xuid, 2, majp, minp, relp);
+	return guid_extract_gtkg_info(guid, 2, majp, minp, relp);
 }
 
 /**
  * Test whether a GTKG MUID in a Query is marked as being a retry.
  */
 gboolean
-guid_is_requery(const gchar *xuid)
+guid_is_requery(const struct guid *guid)
 {
-	return (xuid[15] & GUID_REQUERY) ? TRUE : FALSE;
+	return (guid->v[15] & GUID_REQUERY) ? TRUE : FALSE;
 }
 
 /**
  * Test whether a GUID is blank.
  */
 gboolean
-guid_is_blank(const gchar *guid)
+guid_is_blank(const struct guid *guid)
 {
 	size_t i;
 
 	g_assert(guid);
 
 	for (i = 0; i < GUID_RAW_SIZE; i++)
-		if (guid[i])
+		if (guid->v[i])
 			return FALSE;
 
 	return TRUE;
@@ -299,7 +313,7 @@ guid_is_blank(const gchar *guid)
  * Generate a new random GUID, flagged as GTKG.
  */
 void
-guid_random_muid(gchar *muid)
+guid_random_muid(struct guid *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
@@ -309,7 +323,7 @@ guid_random_muid(gchar *muid)
  * Generate a new random (modern) message ID for pings.
  */
 void
-guid_ping_muid(gchar *muid)
+guid_ping_muid(struct guid *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_modern(muid);
@@ -321,30 +335,29 @@ guid_ping_muid(gchar *muid)
  * If `initial' is false, this is a requery.
  */
 void
-guid_query_muid(gchar *muid, gboolean initial)
+guid_query_muid(struct guid *muid, gboolean initial)
 {
 	guid_random_fill(muid);
 
 	if (initial)
-		muid[15] &= ~GUID_REQUERY;
+		muid->v[15] &= ~GUID_REQUERY;
 	else
-		muid[15] |= GUID_REQUERY;
+		muid->v[15] |= GUID_REQUERY;
 
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
 }
 
 /**
- * Flag a MUID for OOB queries as being from GTKG, by patching `xuid' in place.
+ * Flag a MUID for OOB queries as being from GTKG, by patching `guid' in place.
  *
  * Bytes 4/5 become the GTKG version mark.
  * Byte 15 becomes the HEC of the leading 15 bytes.
  */
 static void
-guid_flag_oob_gtkg(gchar *xuid)
+guid_flag_oob_gtkg(struct guid *guid)
 {
-	xuid[4] = gtkg_version_mark >> 8;
-	xuid[5] = gtkg_version_mark & 0xff;
-	xuid[15] = guid_hec(xuid - 1);		/* guid_hec() skips leading byte */
+	poke_be16(&guid->v[4], gtkg_version_mark);
+	guid->v[15] = guid_hec_oob(guid);		/* guid_hec() skips leading byte */
 }
 
 /**
@@ -352,10 +365,9 @@ guid_flag_oob_gtkg(gchar *xuid)
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
 static gboolean
-guid_oob_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+guid_oob_is_gtkg(const struct guid *guid,
+	guint8 *majp, guint8 *minp, gboolean *relp)
 {
-	const guint8 *xuid = (const guint8 *) guid;
-
 	/*
 	 * The HEC for OOB queries is made of the first 15 bytes.  We can offset
 	 * the argument to guid_hec() by 1 because that routine starts at the byte
@@ -365,10 +377,10 @@ guid_oob_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
 	 * therefore it is masked out for comparison purposes.
 	 */
 
-	if ((xuid[15] & ~GUID_REQUERY) != (guid_hec(guid - 1) & ~GUID_REQUERY))
+	if ((guid->v[15] & ~GUID_REQUERY) != (guid_hec_oob(guid) & ~GUID_REQUERY))
 		return FALSE;
 
-	return guid_extract_gtkg_info(xuid, 4, majp, minp, relp);
+	return guid_extract_gtkg_info(guid, 4, majp, minp, relp);
 }
 
 /**
@@ -385,8 +397,8 @@ guid_oob_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
  * @param relp	where the release indicator gets written, if GTKG
  */
 gboolean
-guid_query_muid_is_gtkg(
-	const gchar *guid, gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp)
+guid_query_muid_is_gtkg(const struct guid *guid, gboolean oob,
+	guint8 *majp, guint8 *minp, gboolean *relp)
 {
 	gboolean is_gtkg;
 
@@ -421,7 +433,7 @@ guid_query_muid_is_gtkg(
  * Byte 15 holds an HEC with bit 0 indicating a requery.
  */
 void
-guid_query_oob_muid(gchar *muid, const host_addr_t addr, guint16 port,
+guid_query_oob_muid(struct guid *muid, const host_addr_t addr, guint16 port,
 	gboolean initial)
 {
 	guint32 ip;
@@ -429,15 +441,15 @@ guid_query_oob_muid(gchar *muid, const host_addr_t addr, guint16 port,
 	guid_random_fill(muid);
 
 	ip = host_addr_ipv4(addr); /* @todo TODO: IPv6 */
-	poke_be32(&muid[0], ip);
-	poke_le16(&muid[13], port);
+	poke_be32(&muid->v[0], ip);
+	poke_le16(&muid->v[13], port);
 
 	guid_flag_oob_gtkg(muid);		/* Mark as being from GTKG */
 
 	if (initial)
-		muid[15] &= ~GUID_REQUERY;
+		muid->v[15] &= ~GUID_REQUERY;
 	else
-		muid[15] |= GUID_REQUERY;
+		muid->v[15] |= GUID_REQUERY;
 }
 
 /**
@@ -448,13 +460,14 @@ guid_query_oob_muid(gchar *muid, const host_addr_t addr, guint16 port,
  * Bytes 13 and 14 are the little endian representation of the port.
  */
 void
-guid_oob_get_addr_port(const gchar *guid, host_addr_t *addr, guint16 *port)
+guid_oob_get_addr_port(const struct guid *guid,
+	host_addr_t *addr, guint16 *port)
 {
 	if (addr) {
-		*addr = host_addr_peek_ipv4(&guid[0]); /* @todo TODO: IPv6 */
+		*addr = host_addr_peek_ipv4(&guid->v[0]); /* @todo TODO: IPv6 */
 	}
 	if (port) {
-		*port = peek_le16(&guid[13]);
+		*port = peek_le16(&guid->v[13]);
 	}
 }
 

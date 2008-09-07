@@ -28,6 +28,8 @@
 
 #include "lib/endian.h"
 
+struct guid;
+
 /*
  * Constants
  */
@@ -69,20 +71,20 @@ struct gnutella_header_ {
 
 typedef guint8 gnutella_header_t[GTA_HEADER_SIZE];
 
-static inline gchar *
+static inline struct guid *
 gnutella_header_muid(gnutella_header_t *header)
 {
-	return (gchar *) header;
+	return (struct guid *) header;
 }
 
-static inline const gchar *
+static inline const struct guid *
 gnutella_header_get_muid(const void *data)
 {
 	return data;
 }
 
 static inline void
-gnutella_header_set_muid(gnutella_header_t *header, const gchar *muid)
+gnutella_header_set_muid(gnutella_header_t *header, const struct guid *muid)
 {
 	memcpy(header, muid, 16);
 }

@@ -585,7 +585,7 @@ dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
  * if it does not exist.
  */
 fileinfo_t *
-file_info_by_guid(guid_t *guid)
+file_info_by_guid(const struct guid *guid)
 {
 	return g_hash_table_lookup(fi_by_guid, guid);
 }
@@ -1455,21 +1455,21 @@ file_info_shared_sha1(const struct sha1 *sha1)
  *
  * @return a GUID atom, refcount incremented already.
  */
-static const gchar *
+static const guid_t *
 fi_random_guid_atom(void)
 {
-	gchar xuid[GUID_RAW_SIZE];
-	gint i;
+	struct guid guid;
+	size_t i;
 
 	/*
 	 * Paranoid, in case the random number generator is broken.
 	 */
 
 	for (i = 0; i < 100; i++) {
-		guid_random_fill(xuid);
+		guid_random_fill(&guid);
 
-		if (NULL == g_hash_table_lookup(fi_by_guid, xuid))
-			return atom_guid_get(xuid);
+		if (NULL == g_hash_table_lookup(fi_by_guid, &guid))
+			return atom_guid_get(&guid);
 	}
 
 	g_error("no luck with random number generator");
@@ -1722,7 +1722,7 @@ G_STMT_START {				\
 			break;
 		case FILE_INFO_FIELD_GUID:
 			if (GUID_RAW_SIZE == tmpguint)
-				fi->guid = atom_guid_get(tmp);
+				fi->guid = atom_guid_get(cast_to_guid_ptr_const(tmp));
 			else
 				g_warning("bad length %d for GUID in fileinfo v%u for \"%s\"",
 					tmpguint, version, pathname);
@@ -2125,7 +2125,7 @@ file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 static void
 file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *guid = key;
+	const struct guid *guid = key;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
@@ -2639,18 +2639,18 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
  * Extract GUID from GUID line in the ASCII "fileinfo" summary file
  * and return NULL if none or invalid, the GUID atom otherwise.
  */
-static const gchar *
-extract_guid(const gchar *s)
+static const struct guid *
+extract_guid(const char *s)
 {
-	gchar guid[GUID_RAW_SIZE];
+	struct guid guid;
 
 	if (strlen(s) < GUID_HEX_SIZE)
 		return NULL;
 
-	if (!hex_to_guid(s, guid))
+	if (!hex_to_guid(s, &guid))
 		return NULL;
 
-	return atom_guid_get(guid);
+	return atom_guid_get(&guid);
 }
 
 /**
@@ -5265,7 +5265,7 @@ file_info_try_to_swarm_with(
 		fi->size,
 		addr,
 		port,
-		blank_guid,
+		&blank_guid,
 		NULL,	/* hostname */
 		sha1,
 		NULL,	/* TTH */

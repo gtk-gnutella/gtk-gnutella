@@ -54,7 +54,8 @@ gboolean search_gui_new_search_full(const char *query,
 
 gboolean search_gui_new_browse_host(
 	const char *hostname, struct host_addr addr, guint16 port,
-	const char *guid, const struct gnet_host_vec *proxies, guint32 flags);
+	const struct guid *guid, const struct gnet_host_vec *proxies,
+	guint32 flags);
 
 struct search *search_gui_get_current_search(void);
 void search_gui_store_searches(void);

@@ -70,18 +70,18 @@ gboolean download_start_prepare_running(struct download *d);
 void download_send_request(struct download *);
 void download_connected(struct download *);
 void download_close(void);
-gboolean download_server_nopush(const gchar *guid,
+gboolean download_server_nopush(const struct guid *,
 			const host_addr_t addr, guint16 port);
 void download_free_removed(void);
 void download_redirect_to_server(struct download *d,
 		const host_addr_t addr, guint16 port);
 void download_actively_queued(struct download *d, gboolean queued);
 
-void download_add_push_proxies(const char *guid,
+void download_add_push_proxies(const struct guid *,
 	gnet_host_t *proxies, int proxy_count);
-void download_proxy_dht_lookup_done(const char *guid);
-void download_no_push_proxies(const char *guid);
-void download_found_server(const char *guid,
+void download_proxy_dht_lookup_done(const struct guid *);
+void download_no_push_proxies(const struct guid *);
+void download_found_server(const struct guid *,
 	const host_addr_t addr, guint16 port);
 
 void download_move_start(struct download *d);
@@ -103,13 +103,13 @@ void download_proxy_failed(struct download *d);
 
 struct download * download_browse_start(
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies,
+	const struct guid *, const gnet_host_vec_t *proxies,
 	gnet_search_t search, guint32 flags);
 
 struct download * download_thex_start(const gchar *uri,
 	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies,
+	const struct guid *, const gnet_host_vec_t *proxies,
 	guint32 flags);
 
 void download_abort_browse_host(struct download *d, gnet_search_t sh);

@@ -107,14 +107,14 @@ atom_str_free(const gchar *k)
 	return atom_free(ATOM_STRING, k);
 }
 
-static inline const gchar *
-atom_guid_get(const gchar *k)
+static inline const struct guid *
+atom_guid_get(const struct guid *k)
 {
 	return atom_get(ATOM_GUID, k);
 }
 
 static inline void
-atom_guid_free(const gchar *k)
+atom_guid_free(const struct guid *k)
 {
 	return atom_free(ATOM_GUID, k);
 }
@@ -231,7 +231,7 @@ struct sha1;
 struct tth;
 
 GENERATE_ATOM_FREE_NULL(filesize, filesize_t *)
-GENERATE_ATOM_FREE_NULL(guid, gchar *)
+GENERATE_ATOM_FREE_NULL(guid, struct guid *)
 GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
 GENERATE_ATOM_FREE_NULL(str, gchar *)
 GENERATE_ATOM_FREE_NULL(tth, struct tth *)
@@ -255,7 +255,7 @@ atom_ ## name ## _change(const type *atom_ptr, const type value) \
 }
 
 GENERATE_ATOM_CHANGE(filesize, filesize_t *)
-GENERATE_ATOM_CHANGE(guid, gchar *)
+GENERATE_ATOM_CHANGE(guid, struct guid *)
 GENERATE_ATOM_CHANGE(sha1, struct sha1 *)
 GENERATE_ATOM_CHANGE(str, gchar *)
 GENERATE_ATOM_CHANGE(tth, struct tth *)

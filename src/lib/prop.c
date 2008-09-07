@@ -1147,6 +1147,23 @@ prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, size_t length)
 	return target;
 }
 
+const char *
+prop_get_storage_const(prop_set_t *ps, property_t prop)
+{
+	g_assert(ps != NULL);
+
+	if (!prop_in_range(ps, prop))
+		g_error("prop_get_storage: unknown property %d", prop);
+	if (PROP(ps,prop).type != PROP_TYPE_STORAGE)
+		g_error("Type mismatch getting value for [%s] of type"
+			" %s when %s was expected",
+			PROP(ps,prop).name,
+			prop_type_str[PROP(ps,prop).type].name,
+			prop_type_str[PROP_TYPE_STORAGE].name);
+
+	return PROP(ps,prop).data.storage.value;
+}
+
 void
 prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 {
@@ -1315,7 +1332,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			guint32 val;
 
 			prop_get_guint32(ps, prop, &val, 0, 1);
-			gm_snprintf(s, sizeof(s), "%u", val);
+			uint32_to_string_buf(val, s, sizeof s);
 		}
 		break;
 	case PROP_TYPE_GUINT64:
@@ -1335,12 +1352,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 		}
 		break;
 	case PROP_TYPE_STRING:
-		{
-			gchar *buf = prop_get_string(ps, prop, NULL, 0);
-
-			g_strlcpy(s, buf ? buf : "", sizeof s);
-			G_FREE_NULL(buf);
-		}
+		prop_get_string(ps, prop, s, sizeof s);
 		break;
 	case PROP_TYPE_IP:
 		{
@@ -1380,8 +1392,10 @@ prop_to_string(prop_set_t *ps, property_t prop)
 		}
 		break;
 	case PROP_TYPE_STORAGE:
-		g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
-			PROP(ps,prop).vector_size)), sizeof s);
+		{
+			bin_to_hex_buf(prop_get_storage_const(ps, prop),
+				PROP(ps,prop).vector_size, s, sizeof s);
+		}
 		break;
 	default:
 		s[0] = '\0';
@@ -1440,8 +1454,10 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		}
 		break;
 	case PROP_TYPE_STORAGE:
-		g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
-			PROP(ps,prop).vector_size)), sizeof s);
+		{
+			bin_to_hex_buf(prop_get_storage_const(ps, prop),
+				PROP(ps,prop).vector_size, s, sizeof s);
+		}
 		break;
 	default:
 		s[0] = '\0';
@@ -1733,19 +1749,11 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			break;
 		case PROP_TYPE_STORAGE:
 			{
-				const guchar *data = p->data.storage.value;
+				size_t hex_size = (p->vector_size * 2) + 1;
 
-				val = g_malloc((p->vector_size * 2) + 1);
-
-				for (i = 0; i < p->vector_size; i++) {
-					static const char hex_alphabet_lower[] = "0123456789abcdef";
-					gint c = data[i];
-
-					val[i * 2] = hex_alphabet_lower[c >> 4];
-					val[i * 2 + 1] = hex_alphabet_lower[c & 0x0f];
-				}
-
-				val[i * 2] = '\0';
+				val = g_malloc(hex_size);
+				bin_to_hex_buf(p->data.storage.value, p->vector_size,
+					val, hex_size);
 				quotes = TRUE;
 
 				/* No default values for storage type properties. */

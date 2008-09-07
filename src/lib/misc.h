@@ -256,16 +256,18 @@ const char *bitprint_to_urn_string(const struct sha1 *, const struct tth *);
 /*
  * GUID<->hex string conversion
  */
-const gchar *guid_hex_str(const gchar *guid);
-gboolean hex_to_guid(const gchar *hexguid, gchar *guid);
-size_t guid_to_string_buf(const gchar *guid, gchar *dst, size_t size);
-const gchar *guid_to_string(const gchar *guid);
+struct guid;
+
+const char *guid_hex_str(const struct guid *);
+gboolean hex_to_guid(const char *, struct guid *);
+size_t guid_to_string_buf(const struct guid *, char *, size_t);
+const char *guid_to_string(const struct guid *);
 
 /*
  * GUID<->base32 string conversion
  */
-gchar *guid_base32_str(const gchar *guid);
-gchar *base32_to_guid(const gchar *base32);
+const char *guid_base32_str(const struct guid *);
+const struct guid *base32_to_guid(const char *);
 
 /*
  * Generic binary to hexadecimal conversion.
@@ -310,7 +312,7 @@ void random_init(void);
 guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
 guint32 random_u32(void) WARN_UNUSED_RESULT;
 void random_bytes(void *dst, size_t size);
-void guid_random_fill(gchar *xuid);
+void guid_random_fill(struct guid *);
 
 /*
  * Stuff

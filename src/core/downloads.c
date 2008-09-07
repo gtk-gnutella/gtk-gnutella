@@ -1301,7 +1301,7 @@ remove_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
  * Allocate new server structure.
  */
 static struct dl_server *
-allocate_server(const gchar *guid, const host_addr_t addr, guint16 port)
+allocate_server(const struct guid *guid, const host_addr_t addr, guint16 port)
 {
 	struct dl_key *key;
 	struct dl_server *server;
@@ -1520,8 +1520,8 @@ server_undelete(struct dl_server *server)
  * @returns server, allocated if needed when allocate is TRUE.
  */
 static struct dl_server *
-get_server(
-	const gchar *guid, const host_addr_t addr, guint16 port, gboolean allocate)
+get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
+	gboolean allocate)
 {
 	struct dl_addr ikey;
 	struct dl_key key;
@@ -1545,7 +1545,7 @@ get_server(
 		goto allocated;
 	}
 
-	key.guid = deconstify_gchar(guid);
+	key.guid = deconstify_gpointer(guid);
 	key.addr = addr;
 	key.port = port;
 
@@ -1782,7 +1782,8 @@ change_server_addr(struct dl_server *server,
  * This happens when retrieving firewalled magnet sources for instance.
  */
 void
-download_found_server(const char *guid, const host_addr_t addr, guint16 port)
+download_found_server(const struct guid *guid,
+	const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server;
 
@@ -1811,7 +1812,7 @@ download_found_server(const char *guid, const host_addr_t addr, guint16 port)
  * Add new push-proxies for server held in the `proxies' array.
  */
 void
-download_add_push_proxies(const char *guid,
+download_add_push_proxies(const struct guid *guid,
 	gnet_host_t *proxies, int proxy_count)
 {
 	struct dl_server *server;
@@ -1840,7 +1841,7 @@ download_add_push_proxies(const char *guid,
  * Lookup for push proxies is finished.
  */
 void
-download_proxy_dht_lookup_done(const char *guid)
+download_proxy_dht_lookup_done(const struct guid *guid)
 {
 	struct dl_server *server;
 
@@ -1875,7 +1876,7 @@ download_proxy_dht_lookup_done(const char *guid)
  * Lookup for push proxies in the DHT failed.
  */
 void
-download_no_push_proxies(const char *guid)
+download_no_push_proxies(const struct guid *guid)
 {
 	struct dl_server *server;
 
@@ -1949,7 +1950,8 @@ set_server_hostname(struct dl_server *server, const gchar *hostname)
  * identified by its GUID, IP and port.
  */
 gboolean
-download_server_nopush(const gchar *guid, const host_addr_t addr, guint16 port)
+download_server_nopush(const struct guid *guid,
+		const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
 
@@ -2216,7 +2218,7 @@ server_list_remove_download(struct dl_server *server, enum dl_list idx,
 static struct download *
 has_same_download(
 	const gchar *file, const struct sha1 *sha1, filesize_t size,
-	const gchar *guid, const host_addr_t addr, guint16 port)
+	const struct guid *guid, const host_addr_t addr, guint16 port)
 {
 	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
@@ -2507,7 +2509,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
  * @return the number of removed downloads.
  */
 gint
-download_remove_all_from_peer(const gchar *guid,
+download_remove_all_from_peer(const struct guid *guid,
 	const host_addr_t addr, guint16 port, gboolean unavailable)
 {
 	struct dl_server *server[2];
@@ -2532,7 +2534,7 @@ download_remove_all_from_peer(const gchar *guid,
 	 */
 
 	server[0] = get_server(guid, addr, port, FALSE);
-	server[1] = get_server(blank_guid, addr, port, FALSE);
+	server[1] = get_server(&blank_guid, addr, port, FALSE);
 
 	if (server[1] == server[0])
 		server[1] = NULL;
@@ -2898,7 +2900,7 @@ download_redirect_to_server(struct download *d,
 	const host_addr_t addr, guint16 port)
 {
 	struct dl_server *server;
-	gchar old_guid[GUID_RAW_SIZE];
+	struct guid old_guid;
 	enum dl_list list_idx;
 
 	download_check(d);
@@ -2920,14 +2922,14 @@ download_redirect_to_server(struct download *d,
 
 	list_idx = d->list_idx;			/* Save index, before removal from server */
 
-	memcpy(old_guid, download_guid(d), GUID_RAW_SIZE);
+	old_guid = *download_guid(d);
 	download_remove_from_server(d, TRUE);
 
 	/*
 	 * Associate to server.
 	 */
 
-	server = get_server(old_guid, addr, port, TRUE);
+	server = get_server(&old_guid, addr, port, TRUE);
 	d->server = server;
 	d->server->refcnt++;
 	d->always_push = d->always_push && !has_blank_guid(d);
@@ -4872,7 +4874,7 @@ create_download(
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -4943,7 +4945,7 @@ create_download(
 	 */
 
 	if (NULL == guid) {
-		guid = blank_guid;
+		guid = &blank_guid;
 	}
 	server = get_server(guid, addr, port, TRUE);
 
@@ -5160,7 +5162,7 @@ download_auto_new(const gchar *file_name,
 	filesize_t size,
 	const host_addr_t addr,
    	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -5326,8 +5328,8 @@ download_clone(struct download *d)
  * Search has detected index change in queued download.
  */
 void
-download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
-	guint32 from, guint32 to)
+download_index_changed(const host_addr_t addr, guint16 port,
+	const struct guid *guid, guint32 from, guint32 to)
 {
 	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	guint nfound = 0;
@@ -5420,7 +5422,7 @@ download_index_changed(const host_addr_t addr, guint16 port, const gchar *guid,
 
 struct download_request {
 	host_addr_t addr;
-	const gchar *guid;
+	const struct guid *guid;
 	const gchar *hostname;
 	const gchar *filename;
 	const struct sha1 *sha1;
@@ -5442,7 +5444,7 @@ download_request_new(
 	filesize_t size,
 	host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -5565,7 +5567,7 @@ download_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -10195,7 +10197,7 @@ select_push_download(GSList *servers)
  * Structure used to select servers matching the GUID / IP address criteria.
  */
 struct server_select {
-	const gchar *guid;			/* The GUID that must match */
+	const struct guid *guid;	/* The GUID that must match */
 	host_addr_t addr;			/* The IP address that must match */
 	GSList *servers;			/* List of servers matching criteria */
 	gint count;					/* Amount of servers inserted */
@@ -10235,7 +10237,7 @@ select_matching_servers(gpointer key, gpointer value, gpointer user)
  * @note	It is up to the caller to g_slist_free() the returned list.
  */
 static GSList *
-select_servers(const gchar *guid, const host_addr_t addr, gint *count)
+select_servers(const struct guid *guid, const host_addr_t addr, gint *count)
 {
 	struct server_select ctx;
 
@@ -10299,7 +10301,7 @@ download_push_ack(struct gnutella_socket *s)
 	struct download *d = NULL;
 	const gchar *giv;
 	gchar hex_guid[33];			/* The hexadecimal GUID */
-	gchar guid[GUID_RAW_SIZE];	/* The decoded (binary) GUID */
+	struct guid guid;			/* The decoded (binary) GUID */
 	GSList *servers;			/* Potential targets for the download */
 	gint count;					/* Amount of potential targets found */
 
@@ -10326,7 +10328,7 @@ download_push_ack(struct gnutella_socket *s)
 	 * Look for a recorded download.
 	 */
 
-	if (!hex_to_guid(hex_guid, guid)) {
+	if (!hex_to_guid(hex_guid, &guid)) {
 		g_warning("discarding GIV with malformed GUID %s from %s",
 			hex_guid, host_addr_to_string(s->addr));
 		goto discard;
@@ -10336,7 +10338,7 @@ download_push_ack(struct gnutella_socket *s)
 	 * Identify the targets for this download.
 	 */
 
-	servers = select_servers(guid, s->addr, &count);
+	servers = select_servers(&guid, s->addr, &count);
 
 	switch (count) {
 	case 0:
@@ -10434,7 +10436,7 @@ discard:
 struct download *
 download_find_waiting_unparq(const host_addr_t addr, guint16 port)
 {
-	struct dl_server *server = get_server(blank_guid, addr, port, FALSE);
+	struct dl_server *server = get_server(&blank_guid, addr, port, FALSE);
 	list_iter_t *iter;
 	struct download *d = NULL;
 	gboolean found = FALSE;
@@ -10686,7 +10688,7 @@ download_retrieve_old(FILE *f)
 	gchar d_hostname[256];	/* Server hostname */
 	gint recline;			/* Record line number */
 	guint line;				/* File line number */
-	gchar d_guid[GUID_RAW_SIZE];
+	struct guid d_guid;
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
@@ -10875,7 +10877,7 @@ download_retrieve_old(FILE *f)
 		 * At the last line of the record.
 		 */
 
-		if (!hex_to_guid(d_hexguid, d_guid)) {
+		if (!hex_to_guid(d_hexguid, &d_guid)) {
 			g_message("download_rerieve(): Malformed GUID %s near line #%u",
 				d_hexguid, line);
         }
@@ -10893,7 +10895,7 @@ download_retrieve_old(FILE *f)
 				d_hostname, has_sha1 ? sha1_base32(&sha1) : "<none>");
 
 		d = create_download(d_name, NULL, d_size, d_addr,
-				d_port, d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
+				d_port, &d_guid, d_hostname, has_sha1 ? &sha1 : NULL,
 				NULL, 1, NULL, NULL, flags, parq_id, TRUE);
 
 		if (d == NULL) {
@@ -11991,7 +11993,7 @@ download_something_to_clear(void)
  */
 struct download *
 download_browse_start(const gchar *hostname,
-	host_addr_t addr, guint16 port, const gchar *guid,
+	host_addr_t addr, guint16 port, const struct guid *guid,
 	const gnet_host_vec_t *proxies, gnet_search_t search, guint32 flags)
 {
 	struct download *d;
@@ -12116,7 +12118,7 @@ download_thex_start(const gchar *uri,
 	const gchar *hostname,
 	host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gnet_host_vec_t *proxies,
 	guint32 flags)
 {
@@ -12351,7 +12353,7 @@ download_handle_magnet(const gchar *url)
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
 			gnet_host_vec_t *proxy;
-			const gchar *guid;
+			const struct guid *guid;
 			host_addr_t addr;
 			guint16 port;
 			guint32 flags;
@@ -12383,7 +12385,7 @@ download_handle_magnet(const gchar *url)
 			} else {
 				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 				port = ms->port;
-				guid = blank_guid;
+				guid = &blank_guid;
 				proxy = NULL;
 			}
 
@@ -12419,7 +12421,7 @@ download_handle_magnet(const gchar *url)
 				res->size,
 				ipv4_unspecified,
 				0,		/* port */
-				blank_guid,
+				&blank_guid,
 				NULL,	/* hostname */
 				res->sha1,
 				res->tth,

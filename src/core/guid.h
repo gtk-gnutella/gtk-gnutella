@@ -46,17 +46,17 @@
  */
 
 void guid_init(void);
-gboolean guid_is_gtkg(
-	const gchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp);
-gboolean guid_is_requery(const gchar *xuid);
-void guid_random_muid(gchar *muid);
-void guid_ping_muid(gchar *muid);
-void guid_query_muid(gchar *muid, gboolean initial);
-gboolean guid_query_muid_is_gtkg(const gchar *guid,
+gboolean guid_is_gtkg(const struct guid *xuid,
+	guint8 *majp, guint8 *minp, gboolean *relp);
+gboolean guid_is_requery(const struct guid *xuid);
+void guid_random_muid(struct guid *muid);
+void guid_ping_muid(struct guid *muid);
+void guid_query_muid(struct guid *muid, gboolean initial);
+gboolean guid_query_muid_is_gtkg(const struct guid *guid,
 	gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp);
-void guid_query_oob_muid(
-	gchar *muid, const host_addr_t addr, guint16 port, gboolean initial);
-void guid_oob_get_addr_port(const gchar *guid,
+void guid_query_oob_muid(struct guid *muid,
+	const host_addr_t addr, guint16 port, gboolean initial);
+void guid_oob_get_addr_port(const struct guid *guid,
 	host_addr_t *addr, guint16 *port);
 
 #endif /* _core_guid_h_ */

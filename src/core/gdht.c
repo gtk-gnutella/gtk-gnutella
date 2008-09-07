@@ -77,8 +77,8 @@ typedef enum {
  */
 struct sha1_lookup {
 	slk_magic_t magic;
-	kuid_t *id;				/**< ID being looked for (atom) */
-	guid_t *fi_guid;		/**< GUID of the fileinfo being searched (atom) */
+	const kuid_t *id;		/**< ID being looked for (atom) */
+	const guid_t *fi_guid;	/**< GUID of the fileinfo being searched (atom) */
 };
 
 static inline void
@@ -97,8 +97,8 @@ typedef enum {
  */
 struct guid_lookup {
 	glk_magic_t magic;
-	kuid_t *id;				/**< ID being looked for (atom) */
-	guid_t *guid;			/**< Servent's GUID (atom) */
+	const kuid_t *id;		/**< ID being looked for (atom) */
+	const guid_t *guid;		/**< Servent's GUID (atom) */
 	host_addr_t addr;		/**< Servent's address */
 	guint16 port;			/**< Servent's port */
 };
@@ -126,14 +126,14 @@ kuid_from_sha1(const sha1_t *sha1)
  *
  * @return KUID atom for GUID lookup: KUID = SHA1(GUID).
  */
-static kuid_t *
-kuid_from_guid(const char *guid)
+static const kuid_t *
+kuid_from_guid(const struct guid *guid)
 {
 	SHA1Context ctx;
 	struct sha1 digest;
 
 	SHA1Reset(&ctx);
-	SHA1Input(&ctx, guid, GUID_RAW_SIZE);
+	SHA1Input(&ctx, guid->v, GUID_RAW_SIZE);
 	SHA1Result(&ctx, &digest);
 
 	return kuid_get_atom((const kuid_t *) &digest);
@@ -151,7 +151,7 @@ gdht_free_sha1_lookup(struct sha1_lookup *slk, gboolean do_remove)
 		g_hash_table_remove(sha1_lookups, slk->id);
 
 	kuid_atom_free(slk->id);
-	atom_guid_free(slk->fi_guid->v);
+	atom_guid_free(slk->fi_guid);
 	wfree(slk, sizeof *slk);
 }
 
@@ -164,12 +164,12 @@ gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
 	guid_lookup_check(glk);
 
 	if (do_remove) {
-		download_proxy_dht_lookup_done(glk->guid->v);
+		download_proxy_dht_lookup_done(glk->guid);
 		g_hash_table_remove(guid_lookups, glk->id);
 	}
 
 	kuid_atom_free(glk->id);
-	atom_guid_free(glk->guid->v);
+	atom_guid_free(glk->guid);
 	wfree(glk, sizeof *glk);
 }
 
@@ -361,7 +361,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		g_message("adding %s%ssource %s (GUID %s) from DHT ALOC for %s",
 			firewalled ? "firewalled " : "", tls ? "TLS " : "",
 			host_addr_port_to_string(rc->addr, port),
-			guid_to_string(guid.v), fi->pathname);
+			guid_to_string(&guid), fi->pathname);
 
 	if (firewalled)
 		flags |= SOCK_F_PUSH;
@@ -371,7 +371,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	download_auto_new(filepath_basename(fi->pathname),
 		fi->size,
 		rc->addr, port,
-		(char *) guid.v,
+		&guid,
 		NULL,					/* hostname */
 		fi->sha1,
 		has_tth ? &tth : NULL,
@@ -441,7 +441,7 @@ gdht_find_sha1(const fileinfo_t *fi)
 	slk = walloc(sizeof *slk);
 	slk->magic = SHA1_LOOKUP_MAGIC;
 	slk->id = kuid_from_sha1(fi->sha1);
-	slk->fi_guid = (guid_t *) atom_guid_get(fi->guid);
+	slk->fi_guid = atom_guid_get(fi->guid);
 
 	/*
 	 * If we have so many queued searches that we did not manage to get
@@ -463,7 +463,7 @@ gdht_find_sha1(const fileinfo_t *fi)
 		g_message("DHT will be searching ALOC for %s (%s) for %s",
 			kuid_to_hex_string(slk->id), kuid_to_string(slk->id), fi->pathname);
 
-	g_hash_table_insert(sha1_lookups, slk->id, slk);
+	gm_hash_table_insert_const(sha1_lookups, slk->id, slk);
 	ulq_find_value(slk->id, DHT_VT_ALOC, 
 		gdht_sha1_found, gdht_sha1_not_found, slk);
 }
@@ -481,9 +481,9 @@ gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT PROX lookup for GUID %s failed: %s",
-			guid_to_string(glk->guid->v), lookup_strerror(error));
+			guid_to_string(glk->guid), lookup_strerror(error));
 
-	download_no_push_proxies(glk->guid->v);
+	download_no_push_proxies(glk->guid);
 	gdht_free_guid_lookup(glk, TRUE);
 }
 
@@ -576,12 +576,12 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 								host_addr_port_to_string(a, p),
 								value_infostr(rc),
 								host_addr_port_to_string2(rc->addr, rc->port),
-								guid_to_string(glk->guid->v));
+								guid_to_string(glk->guid));
 						continue;
 					} else {
 						if (GNET_PROPERTY(download_debug))
 							g_message("new push-proxy for %s is at %s",
-								guid_to_string(glk->guid->v),
+								guid_to_string(glk->guid),
 								host_addr_port_to_string(a, p));
 					}
 
@@ -610,7 +610,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for GUID %s: no proxies found",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				guid_to_string(glk->guid->v));
+				guid_to_string(glk->guid));
 		return;
 	}
 
@@ -637,7 +637,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 */
 
 	if (!host_addr_equal(glk->addr, rc->addr) || port != glk->port)
-		download_found_server(glk->guid->v, rc->addr, port);
+		download_found_server(glk->guid, rc->addr, port);
 
 	/*
 	 * Create new push-proxies.
@@ -646,11 +646,11 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	if (GNET_PROPERTY(download_debug) > 0)
 		g_message("adding %d push-prox%s (GUID %s) from DHT PROX for %s (%s)",
 			proxy_count, 1 == proxy_count ? "y" : "ies",
-			guid_to_string(glk->guid->v),
+			guid_to_string(glk->guid),
 			host_addr_port_to_string(rc->addr, port),
 			host_addr_port_to_string(glk->addr, glk->port));
 
-	download_add_push_proxies(glk->guid->v, proxies, proxy_count);
+	download_add_push_proxies(glk->guid, proxies, proxy_count);
 }
 
 /**
@@ -668,7 +668,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
-			guid_to_string(glk->guid->v), (gulong) rs->count,
+			guid_to_string(glk->guid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
 
 	/*
@@ -688,7 +688,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
  * Launch a GUID lookup in the DHT to collect push proxies for a server.
  */
 void
-gdht_find_guid(const char *guid, const host_addr_t addr, guint16 port)
+gdht_find_guid(const struct guid *guid, const host_addr_t addr, guint16 port)
 {
 	struct guid_lookup *glk;
 
@@ -699,7 +699,7 @@ gdht_find_guid(const char *guid, const host_addr_t addr, guint16 port)
 	glk = walloc(sizeof *glk);
 	glk->magic = GUID_LOOKUP_MAGIC;
 	glk->id = kuid_from_guid(guid);
-	glk->guid = (guid_t *) atom_guid_get(guid);
+	glk->guid = atom_guid_get(guid);
 	glk->addr = addr;
 	glk->port = port;
 
@@ -724,7 +724,7 @@ gdht_find_guid(const char *guid, const host_addr_t addr, guint16 port)
 			kuid_to_hex_string(glk->id),
 			guid_to_string(guid), host_addr_port_to_string(addr, port));
 
-	g_hash_table_insert(guid_lookups, glk->id, glk);
+	gm_hash_table_insert_const(guid_lookups, glk->id, glk);
 	ulq_find_value(glk->id, DHT_VT_PROX,
 		gdht_guid_found, gdht_guid_not_found, glk);
 }

@@ -30,6 +30,8 @@
 
 #include "if/core/gnutella.h"
 
+struct guid;
+
 /*
  * Constants
  */
@@ -349,7 +351,7 @@ gnutella_msg_push_request_header(gnutella_msg_push_request_t *msg)
 
 static inline void
 gnutella_msg_push_request_set_guid(gnutella_msg_push_request_t *msg,
-	const gchar *guid)
+	const struct guid *guid)
 {
 	guint8 *u8 = (void *) msg;
 	memcpy(&u8[GTA_HEADER_SIZE], guid, 16);	

@@ -28,6 +28,7 @@
 
 #include "common.h"
 
+#include "if/core/guid.h"
 #include "if/core/hosts.h"
 
 #include "lib/host_addr.h"
@@ -237,16 +238,16 @@ typedef struct gnet_node_status {
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	guint32   tx_given;			/**< Bytes fed to the TX stack (from top) */
-	guint32   tx_deflated;		/**< Bytes deflated by the TX stack */
-	guint32   tx_written;		/**< Bytes written by the TX stack */
+	guint64   tx_given;			/**< Bytes fed to the TX stack (from top) */
+	guint64   tx_deflated;		/**< Bytes deflated by the TX stack */
+	guint64   tx_written;		/**< Bytes written by the TX stack */
     gboolean tx_compressed;     /**< Is TX traffic compressed */
     gfloat   tx_compression_ratio; /**< TX compression ratio */
     guint32  tx_bps;			/**< TX traffic rate */
 
-	guint32   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
-	guint32   rx_inflated;		/**< Bytes inflated by the RX stack */
-	guint32   rx_read;			/**< Bytes read from the RX stack */
+	guint64   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	guint64   rx_inflated;		/**< Bytes inflated by the RX stack */
+	guint64   rx_read;			/**< Bytes read from the RX stack */
     gboolean rx_compressed;     /**< Is RX traffic compressed */
     gfloat   rx_compression_ratio;/**< RX compression ratio */
     gfloat   rx_bps;			/**< RX traffic rate */
@@ -280,7 +281,7 @@ typedef struct gnet_node_status {
 typedef struct gnet_node_info {
     node_id_t node_id;    	/**< Internal node ID */
 
-	gchar gnet_guid[GUID_RAW_SIZE];		/**< Seen on network (can be blank) */
+	struct guid gnet_guid;	/**< Seen on network (can be blank) */
 
     gchar *error_str;       /**< To sprintf() error strings with vars */
 	const gchar *vendor;	/**< Vendor information (always UTF-8) */

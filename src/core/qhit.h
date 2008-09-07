@@ -51,9 +51,9 @@ void qhit_init(void);
 void qhit_close(void);
 
 void qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
-	const gchar *muid, gboolean ggep_h);
+	const struct guid *muid, gboolean ggep_h);
 void qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const gchar *muid, gboolean ggep_h,
+	qhit_process_t cb, gpointer udata, const struct guid *muid, gboolean ggep_h,
 	const struct array *token);
 
 #endif /* _core_qhit_h_ */

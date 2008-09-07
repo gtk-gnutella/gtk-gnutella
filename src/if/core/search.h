@@ -160,7 +160,7 @@ typedef struct gnet_results_set {
 	host_addr_t addr;
 	host_addr_t last_hop;		/**< IP of delivering node */
 
-	const gchar *guid;			/**< Servent's GUID (atom) */
+	const struct guid *guid;	/**< Servent's GUID (atom) */
 	const gchar *hostname;		/**< Optional: server's hostname */
 	const gchar *version;		/**< Version information (atom) */
 	const gchar *query;			/**< Optional: Original query string (atom) */
@@ -279,7 +279,7 @@ void search_update_items(gnet_search_t, guint32 items);
 
 gboolean search_browse(gnet_search_t,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
+	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean search_locally(gnet_search_t sh, const gchar *query);
 guint search_handle_magnet(const gchar *url);
 

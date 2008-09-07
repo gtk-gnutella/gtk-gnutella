@@ -279,7 +279,7 @@ vmsg_fill_header(gnutella_header_t *header, guint32 size, guint32 maxsize)
 	guint32 msize;
 
 	/* Default GUID: all blank */
-	gnutella_header_set_muid(header, blank_guid);
+	gnutella_header_set_muid(header, &blank_guid);
 	gnutella_header_set_function(header, GTA_MSG_VENDOR);
 	gnutella_header_set_ttl(header, 1);
 	gnutella_header_set_hops(header, 0);
@@ -498,7 +498,7 @@ static void
 handle_udp_connect_back(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
-	const gchar *guid;
+	const struct guid *guid;
 	size_t expected_size;
 	guint16 port;
 
@@ -529,7 +529,7 @@ handle_udp_connect_back(struct gnutella_node *n,
 
 	if (vmsg->version == 1) {
 		/* Get GUID from payload */
-		guid = &payload[2];
+		guid = cast_to_guid_ptr_const(&payload[2]);
 	} else {
 		/* Get GUID from MUID */
 		guid = gnutella_header_get_muid(&n->header);
@@ -573,7 +573,8 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
  * The version 2 includes both our IP and port.
  */
 static void
-vmsg_send_proxy_ack(struct gnutella_node *n, const gchar *muid, gint version)
+vmsg_send_proxy_ack(struct gnutella_node *n,
+	const struct guid *muid, gint version)
 {
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
 	guint32 msgsize;
@@ -641,7 +642,7 @@ handle_proxy_req(struct gnutella_node *n,
  * `muid' as the message ID (which is our GUID).
  */
 void
-vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
+vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid)
 {
 	guint32 msgsize;
 
@@ -738,7 +739,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
  * `muid' as the message ID (which is the query ID).
  */
 void
-vmsg_send_qstat_req(struct gnutella_node *n, const gchar *muid)
+vmsg_send_qstat_req(struct gnutella_node *n, const struct guid *muid)
 {
 	guint32 msgsize;
 
@@ -779,7 +780,8 @@ handle_qstat_answer(struct gnutella_node *n,
  * @param hits is the number of hits our filters did not drop.
  */
 void
-vmsg_send_qstat_answer(struct gnutella_node *n, const gchar *muid, guint16 hits)
+vmsg_send_qstat_answer(struct gnutella_node *n,
+	const struct guid *muid, guint16 hits)
 {
 	guint32 msgsize;
 	guint32 paysize = sizeof(guint16);
@@ -823,7 +825,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	guint32 msgsize;
 
 	msgsize = vmsg_fill_header(v_tmp_header, 0, sizeof v_tmp);
-	gnutella_header_set_muid(v_tmp_header, blank_guid);
+	gnutella_header_set_muid(v_tmp_header, &blank_guid);
 	(void) vmsg_fill_type(v_tmp_data, T_GTKG, 21, 1);
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
@@ -905,7 +907,7 @@ not_handling:
  * @param secure TRUE -> secure OOB; FALSE -> normal OOB.
  */
 pmsg_t *
-vmsg_build_oob_reply_ind(const gchar *muid, guint8 hits, gboolean secure)
+vmsg_build_oob_reply_ind(const struct guid *muid, guint8 hits, gboolean secure)
 {
 	guint32 msgsize;
 	guint32 paysize = sizeof(guint8) + sizeof(guint8);
@@ -1029,7 +1031,7 @@ handle_oob_proxy_veto(struct gnutella_node *n,
  */
 void
 vmsg_send_oob_reply_ack(struct gnutella_node *n,
-	const gchar *muid, guint8 want, const struct array *token)
+	const struct guid *muid, guint8 want, const struct array *token)
 {
 	guint32 msgsize;
 	guint32 paysize = sizeof(guint8);
@@ -1097,7 +1099,7 @@ handle_time_sync_reply(struct gnutella_node *n,
 	const struct vmsg *vmsg, const gchar *payload, size_t size)
 {
 	tm_t got, sent, replied, received;
-	const gchar *muid;
+	const struct guid *muid;
 	gboolean ntp;
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, 9))
@@ -1115,15 +1117,15 @@ handle_time_sync_reply(struct gnutella_node *n,
 	STATIC_ASSERT(sizeof(sent) >= 2 * sizeof(guint32));
 
 	muid = gnutella_header_get_muid(&n->header);
-	sent.tv_sec = peek_be32(&muid[0]);
-	sent.tv_usec = peek_be32(&muid[4]);
+	sent.tv_sec = peek_be32(&muid->v[0]);
+	sent.tv_usec = peek_be32(&muid->v[4]);
 
 	/*
 	 * Decompile replied time.
 	 */
 
-	replied.tv_sec = peek_be32(&muid[8]);
-	replied.tv_usec = peek_be32(&muid[12]);
+	replied.tv_sec = peek_be32(&muid->v[8]);
+	replied.tv_usec = peek_be32(&muid->v[12]);
 
 	/*
 	 * Decompile the time at which they got the message.
@@ -1142,7 +1144,7 @@ handle_time_sync_reply(struct gnutella_node *n,
 static gboolean
 vmsg_time_sync_req_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 {
-	gchar *muid = pmsg_start(mb);
+	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
 	tm_t old, now;
 
 	(void) unused_q;
@@ -1153,14 +1155,14 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 	 * Read the old timestamp.
 	 */
 
-	old.tv_sec = peek_be32(&muid[0]);
-	old.tv_usec = peek_be32(&muid[4]);
+	old.tv_sec = peek_be32(&muid->v[0]);
+	old.tv_usec = peek_be32(&muid->v[4]);
 
 	tm_now_exact(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
-	poke_be32(&muid[0], now.tv_sec);
-	poke_be32(&muid[4], now.tv_usec);
+	poke_be32(&muid->v[0], now.tv_sec);
+	poke_be32(&muid->v[4], now.tv_usec);
 
 	/*
 	 * Inform the tsync layer that the "T1" timestamp is not the one
@@ -1192,7 +1194,7 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 	guint32 msgsize;
 	guint32 paysize = sizeof(guint8);
 	gchar *payload;
-	gchar *muid;
+	struct guid *muid;
 	pmsg_t *mb;
 
 	if (!NODE_IS_WRITABLE(n))
@@ -1203,7 +1205,7 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 	*payload = ntp ? 0x1 : 0x0;				/* bit0 indicates NTP */
 
 	mb = gmsg_to_ctrl_pmsg(v_tmp, msgsize);	/* Send as quickly as possible */
-	muid = pmsg_start(mb);
+	muid = cast_to_guid_ptr(pmsg_start(mb));
 
 	/*
 	 * The first 8 bytes of the MUID are used to store the time at which
@@ -1215,8 +1217,8 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 
 	pmsg_set_check(mb, vmsg_time_sync_req_stamp);
 
-	muid = poke_be32(muid, sent->tv_sec);
-	muid = poke_be32(muid, sent->tv_usec);
+	poke_be32(&muid->v[0], sent->tv_sec);
+	poke_be32(&muid->v[4], sent->tv_usec);
 
 	vmsg_send_reply(n, mb);
 }
@@ -1228,7 +1230,7 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 static gboolean
 vmsg_time_sync_reply_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 {
-	gchar *muid = pmsg_start(mb);
+	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
 	tm_t now;
 
 	(void) unused_q;
@@ -1238,8 +1240,8 @@ vmsg_time_sync_reply_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 	tm_now_exact(&now);
 	now.tv_sec = clock_loc2gmt(now.tv_sec);
 
-	poke_be32(&muid[8], now.tv_sec);	/* Second half of MUID */
-	poke_be32(&muid[12], now.tv_usec);
+	poke_be32(&muid->v[8], now.tv_sec);	/* Second half of MUID */
+	poke_be32(&muid->v[12], now.tv_usec);
 
 	return TRUE;
 }
@@ -1626,7 +1628,6 @@ svn_release_signature_is_valid(void)
 static void
 vmsg_send_svn_release_notify(struct gnutella_node *n)
 {
-	const char *muid;
 	guint32 msgsize;
 	guint32 paysize;
 	char *payload;
@@ -1652,7 +1653,6 @@ vmsg_send_svn_release_notify(struct gnutella_node *n)
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
-	muid = gnutella_header_get_muid(v_tmp_header);
 	vmsg_send_data(n, v_tmp, msgsize);
 }
 
@@ -1952,7 +1952,7 @@ struct head_ping_data {
 };
 
 struct head_ping_source {
-	gchar muid[GUID_RAW_SIZE];	/* MUST be at offset zero */
+	struct guid muid;			/* MUST be at offset zero */
 	struct head_ping_data ping;
 	time_t added;				/**< Timestamp of insertion */
 };
@@ -2014,7 +2014,7 @@ head_ping_timer(cqueue_t *cq, gpointer unused_udata)
 }
 
 static struct head_ping_source * 
-head_ping_register_intern(const gchar *muid,
+head_ping_register_intern(const struct guid *muid,
 	const struct sha1 *sha1, const node_id_t node_id)
 {
 	struct head_ping_source *source;
@@ -2044,7 +2044,7 @@ head_ping_register_intern(const gchar *muid,
 	}
 
 	source = walloc(sizeof *source);
-	memcpy(source->muid, muid, GUID_RAW_SIZE);
+	source->muid = *muid;
 	source->added = tm_time();
 	hash_list_append(head_pings, source);
 	
@@ -2062,7 +2062,7 @@ head_ping_register_intern(const gchar *muid,
 }
 
 static gboolean
-head_ping_register_own(const gchar *muid,
+head_ping_register_own(const struct guid *muid,
 	const struct sha1 *sha1, const struct gnutella_node *target)
 {
 	struct head_ping_source *source;
@@ -2087,7 +2087,7 @@ head_ping_register_own(const gchar *muid,
 }
 
 static gboolean
-head_ping_register_forwarded(const gchar *muid,
+head_ping_register_forwarded(const struct guid *muid,
 	const struct sha1 *sha1, const struct gnutella_node *sender)
 {
 	struct head_ping_source *source;
@@ -2112,7 +2112,7 @@ head_ping_register_forwarded(const gchar *muid,
 }
 
 static struct head_ping_source *
-head_ping_is_registered(const gchar *muid)
+head_ping_is_registered(const struct guid *muid)
 {
 	g_assert(muid);
 	g_return_val_if_fail(head_pings, FALSE);
@@ -2136,11 +2136,11 @@ head_ping_is_registered(const gchar *muid)
  */
 void
 vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
-	const gchar *guid)
+	const struct guid *guid)
 {
 	static const gchar urn_prefix[] = "urn:sha1:";
 	struct gnutella_node *n;
-	const gchar *muid;
+	const struct guid *muid;
 	guint32 msgsize;
 	guint32 paysize;
 	gchar *payload;
@@ -2200,7 +2200,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 }
 
 static gboolean
-extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
+extract_guid(const gchar *data, size_t size, struct guid *guid)
 {
 	extvec_t exv[MAX_EXTVEC];
 	gint i, exvcnt;
@@ -2242,7 +2242,7 @@ extract_guid(const gchar *data, size_t size, gchar guid[GUID_RAW_SIZE])
  * @return the target node, or NULL if not found or not capable of handling it.
  */
 static struct gnutella_node *
-head_ping_target_by_guid(const gchar *guid)
+head_ping_target_by_guid(const struct guid *guid)
 {
 	struct gnutella_node *n;
 		
@@ -2269,7 +2269,7 @@ handle_head_ping(struct gnutella_node *n,
 	static const gchar urn_prefix[] = "urn:sha1:";
 	const size_t urn_length = CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE;
 	const size_t expect_size = 1 + urn_length;
-	gchar guid[GUID_RAW_SIZE];
+	struct guid guid;
 	gboolean has_guid = FALSE;
 	struct sha1 sha1;
 	guint8 flags;
@@ -2324,11 +2324,11 @@ handle_head_ping(struct gnutella_node *n,
 		 */
 		p = memchr(&payload[1], GGEP_MAGIC, size - 1);
 		if (p) {
-			has_guid = extract_guid(p, p - &payload[1], guid);
+			has_guid = extract_guid(p, p - &payload[1], &guid);
 		}
 		if (has_guid) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("HEAD Ping carries GUID %s", guid_hex_str(guid));
+				g_message("HEAD Ping carries GUID %s", guid_hex_str(&guid));
 			}
 		} else {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
@@ -2337,7 +2337,7 @@ handle_head_ping(struct gnutella_node *n,
 		}
 	}
 
-	if (has_guid && !guid_eq(guid, GNET_PROPERTY(servent_guid))) {
+	if (has_guid && !guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
 		struct gnutella_node *target;
 
 		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
@@ -2353,10 +2353,10 @@ handle_head_ping(struct gnutella_node *n,
 			return;
 		}
 
-		target = head_ping_target_by_guid(guid);
+		target = head_ping_target_by_guid(&guid);
 		if (target && target != n) {
 			gnutella_header_t header;
-			const gchar *muid;
+			const struct guid *muid;
 
 			memcpy(header, n->header, GTA_HEADER_SIZE);
 			gnutella_header_set_ttl(&header, 1);

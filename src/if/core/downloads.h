@@ -73,8 +73,10 @@ struct vernum {
 	guint minor;
 };
 
+struct guid;
+
 struct dl_key {
-	const gchar *guid;			/**< GUID of server (atom) */
+	const struct guid *guid;	/**< GUID of server (atom) */
 	host_addr_t addr;			/**< IP address of server */
 	guint16 port;				/**< Port of server */
 };
@@ -382,7 +384,7 @@ const gchar *download_basename(const struct download *);
  *        actually needs to be in downloads.h and should be called from
  *        search.h and not from search_gui.h.
  */
-void download_index_changed(const host_addr_t, guint16, const gchar *,
+void download_index_changed(const host_addr_t, guint16, const struct guid *,
 		guint32, guint32);
 
 gboolean download_new(const gchar *filename,
@@ -390,7 +392,7 @@ gboolean download_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -404,7 +406,7 @@ void download_auto_new(const gchar *filename,
  	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -417,7 +419,7 @@ guint download_handle_magnet(const gchar *url);
 gchar *download_build_url(const struct download *);
 gint download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
-gint download_remove_all_from_peer(const gchar *guid,
+gint download_remove_all_from_peer(const struct guid *,
 		host_addr_t addr, guint16 port, gboolean unavailable);
 void download_remove_file(struct download *, gboolean reset);
 gboolean download_file_exists(const struct download *);

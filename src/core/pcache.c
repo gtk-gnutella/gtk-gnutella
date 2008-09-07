@@ -154,7 +154,7 @@ send_ping(struct gnutella_node *n, guint8 ttl)
  * @return pointer to static data, and the size of the message in `size'.
  */
 gnutella_msg_init_t *
-build_ping_msg(const char *muid, guint8 ttl, gboolean uhc, guint32 *size)
+build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 {
 	static union {
 		gnutella_msg_init_t s;
@@ -241,7 +241,7 @@ build_ping_msg(const char *muid, guint8 ttl, gboolean uhc, guint32 *size)
  */
 static gnutella_msg_init_response_t *
 build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
-	guint8 hops, guint8 ttl, const char *muid,
+	guint8 hops, guint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta, enum ping_flag flags,
 	guint32 *size)
 {
@@ -496,7 +496,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 static void
 send_pong(
 	struct gnutella_node *n, gboolean control, enum ping_flag flags,
-	guint8 hops, guint8 ttl, const char *muid,
+	guint8 hops, guint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta)
 {
 	gnutella_msg_init_response_t *r;
@@ -1346,7 +1346,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
 
-	memcpy(n->ping_guid, gnutella_header_get_muid(&n->header), 16);
+	memcpy(&n->ping_guid, gnutella_header_get_muid(&n->header), 16);
 	memset(n->pong_needed, 0, sizeof(n->pong_needed));
 	n->pong_missing = 0;
 
@@ -1439,7 +1439,7 @@ iterate_on_cached_line(
 		g_assert(hops < 255);		/* Because of MAX_CACHE_HOPS */
 
 		send_pong(n, FALSE, PING_F_NONE,
-			hops + 1, ttl, n->ping_guid, &cp->info, cp->meta);
+			hops + 1, ttl, &n->ping_guid, &cp->info, cp->meta);
 
 		n->pong_missing--;
 
@@ -1627,7 +1627,7 @@ pong_all_neighbours_but_one(
 		g_assert(hops < 255);
 
 		send_pong(cn, FALSE, PING_F_NONE,
-			hops + 1, ttl, cn->ping_guid, &cp->info, cp->meta);
+			hops + 1, ttl, &cn->ping_guid, &cp->info, cp->meta);
 
 		if (GNET_PROPERTY(pcache_debug) > 7)
 			printf("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
@@ -1686,7 +1686,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 	 */
 
 	if (leaf != NULL) {
-		send_pong(leaf, FALSE, PING_F_NONE, hops + 1, ttl, leaf->ping_guid,
+		send_pong(leaf, FALSE, PING_F_NONE, hops + 1, ttl, &leaf->ping_guid,
 			&cp->info, cp->meta);
 
 		if (GNET_PROPERTY(pcache_debug) > 7)

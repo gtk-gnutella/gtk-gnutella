@@ -48,6 +48,7 @@
  */
 
 struct gnutella_node;
+struct guid;
 struct query_hashvec;
 
 void dq_init(void);
@@ -55,14 +56,14 @@ void dq_close(void);
 
 void dq_launch_net(struct gnutella_node *n, struct query_hashvec *qhv);
 void dq_node_removed(const node_id_t node_id);
-gboolean dq_got_results(const gchar *muid, guint count, guint32 status);
-gboolean dq_oob_results_ind(const gchar *muid, gint count);
-void dq_oob_results_got(const gchar *muid, guint count);
-void dq_got_query_status(const gchar *muid, const node_id_t node_id,
+gboolean dq_got_results(const struct guid *muid, guint count, guint32 status);
+gboolean dq_oob_results_ind(const struct guid *muid, gint count);
+void dq_oob_results_got(const struct guid *muid, guint count);
+void dq_got_query_status(const struct guid *muid, const node_id_t node_id,
 		guint16 kept);
 void dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv);
 void dq_search_closed(gnet_search_t handle);
-gboolean dq_get_results_wanted(const gchar *muid, guint32 *wanted);
+gboolean dq_get_results_wanted(const struct guid *muid, guint32 *wanted);
 
 #endif	/* _core_dq_h_ */
 

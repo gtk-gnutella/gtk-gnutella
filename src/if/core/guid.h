@@ -49,8 +49,8 @@ cast_to_guid_ptr_const(const char *ptr)
 	return (const guid_t *) ptr;
 }
 
-extern const gchar blank_guid[GUID_RAW_SIZE];
+extern const struct guid blank_guid;
 
-gboolean guid_is_blank(const gchar *guid);
+gboolean guid_is_blank(const struct guid *);
 
 #endif /* _if_core_guid_h_ */

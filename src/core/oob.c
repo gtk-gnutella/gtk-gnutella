@@ -81,7 +81,7 @@ struct oob_results {
 	gint refcount;
 	cevent_t *ev_expire;	/**< Global expiration event */
 	cevent_t *ev_timeout;	/**< Reply waiting timeout */
-	const gchar *muid;		/**< (atom) MUID of the query that generated hits */
+	const struct guid *muid;/**< (atom) MUID of the query that generated hits */
 	GSList *files;			/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	gint count;				/**< Amount of hits to deliver */
@@ -94,7 +94,7 @@ struct oob_results {
  * Indexes all OOB queries by MUID.
  * This hash table records MUID => "struct oob_results"
  */
-static GHashTable *results_by_muid = NULL;
+static GHashTable *results_by_muid;
 
 /**
  * Each servent, as identified by its IP:port, is given a FIFO for queuing
@@ -151,8 +151,8 @@ oob_results_check(const struct oob_results *r)
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const gchar *muid, GSList *files, gint count, gnet_host_t *to,
-	gboolean secure, gboolean ggep_h)
+results_make(const struct guid *muid, GSList *files, gint count,
+	gnet_host_t *to, gboolean secure, gboolean ggep_h)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
@@ -322,7 +322,7 @@ servent_service(cqueue_t *cq, gpointer obj)
 	if (GNET_PROPERTY(udp_debug) > 19)
 		g_message("UDP queuing OOB %s to %s for %s",
 			gmsg_infostr_full(pmsg_start(mb)), gnet_host_to_string(s->host),
-			guid_hex_str(pmsg_start(mb)));
+			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
 
 	/*
 	 * Count enqueued deflated payloads, only when server was marked as
@@ -421,8 +421,8 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
  * @param token		the token for secure OOB
  */
 void
-oob_deliver_hits(struct gnutella_node *n, const gchar *muid, guint8 wanted,
-	const struct array *token)
+oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
+	guint8 wanted, const struct array *token)
 {
 	struct oob_results *r;
 	struct gservent *s;

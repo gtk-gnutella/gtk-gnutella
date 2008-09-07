@@ -313,7 +313,7 @@ pproxy_create(struct gnutella_socket *s)
  */
 static gboolean
 get_params(struct pproxy *pp, const gchar *request,
-	const gchar **guid_atom, guint32 *file_idx, gboolean *supports_tls)
+	const struct guid **guid_atom, guint32 *file_idx, gboolean *supports_tls)
 {
 	static const struct {
 		const gchar *req;
@@ -413,7 +413,7 @@ get_params(struct pproxy *pp, const gchar *request,
 	datalen = strlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
-		gchar *guid;
+		const struct guid *guid;
 
 		/*
 		 * GUID is base32-encoded: valid lengths are 26 (no padding) or 32.
@@ -438,7 +438,7 @@ get_params(struct pproxy *pp, const gchar *request,
 
 		*guid_atom = atom_guid_get(guid);
 	} else if (0 == strcmp(attr, "guid")) {
-		gchar guid[GUID_RAW_SIZE];
+		struct guid guid;
 
 		/*
 		 * GUID in hexadecimal: valid length is 32.
@@ -454,13 +454,13 @@ get_params(struct pproxy *pp, const gchar *request,
 		if (GNET_PROPERTY(push_proxy_debug) > 0)
 			g_message("PUSH-PROXY: decoding %s=%s as hexadecimal", attr, value);
 
-		if (!hex_to_guid(value, guid)) {
+		if (!hex_to_guid(value, &guid)) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"parameter \"%s\" is not valid hexadecimal", attr);
 			goto error;
 		}
 
-		*guid_atom = atom_guid_get(guid);
+		*guid_atom = atom_guid_get(&guid);
 	} else {
 		g_error("unhandled parameter \"%s\"", attr);
 	}
@@ -510,7 +510,7 @@ error:
  *			packet on success, an empty array on failure.
  */
 struct array
-build_push(guint8 ttl, guint8 hops, const gchar *guid,
+build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 	host_addr_t addr_v4, host_addr_t addr_v6, guint16 port,
 	guint32 file_idx, gboolean supports_tls)
 {
@@ -1208,11 +1208,11 @@ cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
  */
 struct cproxy *
 cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
-	const gchar *guid, guint32 file_idx)
+	const struct guid *guid, guint32 file_idx)
 {
 	struct http_async *handle;
 	struct cproxy *cp;
-	gchar path[128];
+	char path[128];
 
 	concat_strings(path, sizeof path,
 		"/gnutella/push-proxy?ServerId=", guid_base32_str(guid),

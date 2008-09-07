@@ -59,7 +59,7 @@ RCSID("$Id$")
 struct rpc_cb {
 	host_addr_t addr;			/**< The host from which we expect a reply */
 	tm_t start;					/**< The time at which we initiated the RPC */
-	guid_t *muid;				/**< MUID of the message sent (atom) */
+	const guid_t *muid;			/**< MUID of the message sent (atom) */
 	knode_t *kn;				/**< Remote node to which RPC was sent */
 	guint32 flags;				/**< Control flags */
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
@@ -102,7 +102,7 @@ rpc_cb_free(struct rpc_cb *rcb, gboolean can_remove)
 {
 	if (can_remove)
 		g_hash_table_remove(pending, rcb->muid);
-	atom_guid_free((gchar *) rcb->muid);
+	atom_guid_free(rcb->muid);
 	knode_free(rcb->kn);
 	cq_cancel(callout_queue, &rcb->timeout);
 	wfree(rcb, sizeof(*rcb));
@@ -180,7 +180,7 @@ rpc_call_prepare(
 {
 	int i;
 	struct rpc_cb *rcb;
-	gchar muid[GUID_RAW_SIZE];
+	struct guid muid;
 
 	knode_check(kn);
 
@@ -189,9 +189,9 @@ rpc_call_prepare(
 	 */
 
 	for (i = 0; i < 100; i++) {
-		guid_random_muid(muid);
+		guid_random_muid(&muid);
 
-		if (NULL == g_hash_table_lookup(pending, muid))
+		if (NULL == g_hash_table_lookup(pending, &muid))
 			break;
 	}
 
@@ -206,14 +206,14 @@ rpc_call_prepare(
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
 	rcb->flags = flags;
-	rcb->muid = (guid_t *) atom_guid_get(muid);
+	rcb->muid = atom_guid_get(&muid);
 	rcb->addr = kn->addr;
 	rcb->timeout = cq_insert(callout_queue, delay, rpc_timed_out, rcb);
 	rcb->cb = cb;
 	rcb->arg = arg;
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
 
-	g_hash_table_insert(pending, rcb->muid, rcb);
+	gm_hash_table_insert_const(pending, rcb->muid, rcb);
 
 	return rcb->muid;
 }
@@ -312,7 +312,7 @@ dht_rpc_answer(const guid_t *muid,
 		if (GNET_PROPERTY(dht_debug)) {
 			g_message("DHT sent %s RPC %s to %s but got reply from %s",
 				op_to_string(rcb->op),
-				guid_to_string((gchar *) rcb->muid->v),
+				guid_to_string(rcb->muid),
 				knode_to_string(rcb->kn),
 				knode_to_string2(kn));
 		}

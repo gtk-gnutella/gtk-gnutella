@@ -51,6 +51,7 @@
  * Public interface.
  */
 
+struct guid;
 struct parq_dl_queued;
 struct parq_ul_queued;
 
@@ -86,7 +87,7 @@ struct parq_ul_queued *parq_upload_get(struct upload *, header_t *,
 gboolean parq_upload_request(struct upload *);
 gboolean parq_upload_request_force(struct upload *, struct parq_ul_queued *);
 guint parq_upload_lookup_position(const struct upload *);
-const gchar * parq_upload_lookup_id(const struct upload *);
+const struct guid *parq_upload_lookup_id(const struct upload *);
 gboolean parq_upload_queue_full(struct upload *);
 guint parq_upload_lookup_size(const struct upload *);
 

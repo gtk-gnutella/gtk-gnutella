@@ -26,6 +26,8 @@
 #ifndef _gtk_search_result_h_
 #define _gtk_search_result_h_
 
+struct guid;
+
 typedef enum {
 	RESULTS_SET_MAGIC = 0xa44eb853U
 } results_set_magic_t;
@@ -48,7 +50,7 @@ typedef struct results_set {
 	results_set_magic_t magic;
 	int num_recs;
 
-	const char *guid;			/**< Servent's GUID (atom) */
+	const struct guid *guid;	/**< Servent's GUID (atom) */
 	const char *version;		/**< Version information (atom) */
 	const char *hostname;		/**< Optional: server's hostname (atom) */
 	const char *query;			/**< Optional: original query (atom) */

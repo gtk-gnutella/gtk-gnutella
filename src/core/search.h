@@ -59,6 +59,7 @@
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
 struct download;
+struct guid;
 
 /*
  * Global Functions
@@ -72,9 +73,9 @@ gboolean search_query_allowed(gnet_search_t sh);
 guint32 search_get_id(gnet_search_t sh, gpointer *search);
 void search_notify_sent(gpointer search, guint32 id, const node_id_t node_id);
 void search_add_kept(gnet_search_t sh, guint32 kept);
-gboolean search_get_kept_results(const gchar *muid, guint32 *kept);
+gboolean search_get_kept_results(const struct guid *muid, guint32 *kept);
 guint32 search_get_kept_results_by_handle(gnet_search_t sh);
-void search_oob_pending_results(gnutella_node_t *n, const gchar *muid,
+void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
 	gint hits, gboolean udp_firewalled, gboolean secure);
 
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
@@ -86,8 +87,8 @@ size_t compact_query(gchar *search);
 void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
 void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
 
-void record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query);
-const gchar *map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE]);
+void record_query_string(const struct guid *muid, const gchar *query);
+const gchar *map_muid_to_query_string(const struct guid *muid);
 
 #endif /* _core_search_h_ */
 

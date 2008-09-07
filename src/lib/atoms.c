@@ -552,7 +552,8 @@ guid_len(gconstpointer unused_guid)
 static const gchar *
 guid_str(gconstpointer v)
 {
-	return guid_hex_str((const gchar *) v);
+	const struct guid *guid = v;
+	return guid_hex_str(guid);
 }
 
 /**

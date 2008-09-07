@@ -134,8 +134,8 @@ guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
 }
 
 gint
-guc_download_remove_all_from_peer(const gchar *guid, const host_addr_t addr,
-	guint16 port, gboolean unavailable)
+guc_download_remove_all_from_peer(const struct guid *guid,
+	const host_addr_t addr, guint16 port, gboolean unavailable)
 {
 	return download_remove_all_from_peer(guid, addr, port, unavailable);
 }
@@ -213,7 +213,7 @@ guc_download_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -244,7 +244,7 @@ guc_download_auto_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -305,7 +305,7 @@ guc_download_something_to_clear(void)
 
 void
 guc_download_index_changed(const host_addr_t addr, guint16 port,
-	const gchar *guid, filesize_t from, filesize_t to)
+	const struct guid *guid, filesize_t from, filesize_t to)
 {
 	download_index_changed(addr, port, guid, from, to);
 }
@@ -750,7 +750,7 @@ guc_search_new(gnet_search_t *ptr, const gchar *query,
 gboolean
 guc_search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
+	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	return search_browse(sh, hostname, addr, port, guid, proxies, flags);
 }

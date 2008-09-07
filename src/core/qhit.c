@@ -85,7 +85,7 @@ struct found_struct {
 	size_t pos;					/**< current write position */
 	size_t files;				/**< amount of file entries */
 	size_t max_size;			/**< max query hit size */
-	const gchar *muid;			/**< the MUID to put in all query hits */
+	const struct guid *muid;	/**< the MUID to put in all query hits */
 	const struct array *token;	/**< Optional secure OOB token */
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
@@ -270,7 +270,7 @@ found_token(void)
 }
 
 static void
-found_init(size_t max_size, const gchar *xuid, gboolean ggep_h,
+found_init(size_t max_size, const struct guid *xuid, gboolean ggep_h,
 	qhit_process_t proc, gpointer udata, const struct array *token)
 {
 	struct found_struct *f = found_get();
@@ -854,7 +854,7 @@ add_file(const struct shared_file *sf)
  * have to be sent out-of-bound
  */
 static void
-found_reset(size_t max_size, const gchar *muid, gboolean ggep_h,
+found_reset(size_t max_size, const struct guid *muid, gboolean ggep_h,
 	qhit_process_t process, gpointer udata, const struct array *token)
 {
 	g_assert(process != NULL);
@@ -874,7 +874,7 @@ found_reset(size_t max_size, const gchar *muid, gboolean ggep_h,
  */
 void
 qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
-	const gchar *muid, gboolean ggep_h)
+	const struct guid *muid, gboolean ggep_h)
 {
 	GSList *sl;
 	gint sent = 0;
@@ -930,7 +930,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
  */
 void
 qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const gchar *muid, gboolean ggep_h,
+	qhit_process_t cb, gpointer udata, const struct guid *muid, gboolean ggep_h,
 	const struct array *token)
 {
 	const GSList *sl;

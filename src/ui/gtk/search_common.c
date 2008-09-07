@@ -1486,7 +1486,7 @@ search_gui_check_alt_locs(record_t *rc)
 					rc->size,
 					addr,
 					port,
-					blank_guid,
+					&blank_guid,
 					NULL,	/* hostname */
 					rc->sha1,
 					rc->tth,
@@ -3089,7 +3089,7 @@ search_gui_new_search_entered(void)
 gboolean
 search_gui_new_browse_host(
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
+	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	gchar *host_and_port;
 	search_t *search;

@@ -38,6 +38,8 @@
 
 #include "if/core/fileinfo.h"
 
+struct guid;
+
 /*
  * Public interface.
  */
@@ -46,7 +48,8 @@ void gdht_init(void);
 void gdht_close(void);
 
 void gdht_find_sha1(const fileinfo_t *fi);
-void gdht_find_guid(const char *guid, const host_addr_t addr, guint16 port);
+void gdht_find_guid(const struct guid *guid,
+		const host_addr_t addr, guint16 port);
 
 #endif	/* _core_gdht_h_ */
 

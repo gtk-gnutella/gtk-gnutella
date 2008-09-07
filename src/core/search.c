@@ -124,7 +124,7 @@ query_muid_map_init(void)
 static gboolean
 query_muid_map_remove_oldest(void)
 {
-	const gchar *old_muid;
+	const struct guid *old_muid;
 
 	old_muid = hash_list_head(query_muids);
 	if (old_muid) {
@@ -176,9 +176,9 @@ query_muid_map_garbage_collect(void)
 }
 
 void
-record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
+record_query_string(const struct guid *muid, const gchar *query)
 {
-	const gchar *key;
+	const struct guid *key;
 	
 	g_assert(muid);
 	g_assert(query);
@@ -206,7 +206,7 @@ record_query_string(const gchar muid[GUID_RAW_SIZE], const gchar *query)
 }
 
 const gchar *
-map_muid_to_query_string(const gchar muid[GUID_RAW_SIZE])
+map_muid_to_query_string(const struct guid *muid)
 {
 	gconstpointer orig_key;
 	
@@ -702,7 +702,7 @@ static hash_list_t *oob_reply_acks;
 static const time_delta_t oob_reply_ack_timeout = 120;
 
 struct ora {
-	const gchar *muid;	/* GUID atom */
+	const struct guid *muid;	/* GUID atom */
 	time_t sent;
 	host_addr_t addr;
 	guint32 token;
@@ -710,7 +710,7 @@ struct ora {
 };
 
 static struct ora *
-ora_alloc(const gchar muid[GUID_RAW_SIZE], const host_addr_t addr, guint16 port,
+ora_alloc(const struct guid *muid, const host_addr_t addr, guint16 port,
 		guint32 token)
 {
 	struct ora *ora;
@@ -759,13 +759,13 @@ ora_eq(gconstpointer v1, gconstpointer v2)
 }
 
 static struct ora *
-ora_lookup(const gchar muid[GUID_RAW_SIZE],
+ora_lookup(const struct guid *muid,
 	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora ora;
 	gconstpointer key;
 
-	ora.muid = deconstify_gchar(muid);
+	ora.muid = muid;
 	ora.sent = 0;
 	ora.addr = addr;
 	ora.port = port;
@@ -821,7 +821,7 @@ oob_reply_acks_close(void)
 }
 
 static void
-oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
+oob_reply_ack_record(const struct guid *muid,
 	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora *ora;
@@ -849,7 +849,7 @@ oob_reply_ack_record(const gchar muid[GUID_RAW_SIZE],
  * @param port	the port from which results come
  */
 static gboolean
-search_results_are_requested(const gchar muid[GUID_RAW_SIZE],
+search_results_are_requested(const struct guid *muid,
 	const host_addr_t addr, guint16 port, guint32 token)
 {
 	struct ora *ora;
@@ -1814,7 +1814,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	/* We now have the GUID of the node */
 
-	rs->guid = atom_guid_get(endptr);
+	rs->guid = atom_guid_get(cast_to_guid_ptr_const(endptr));
 	if (guid_eq(rs->guid, GNET_PROPERTY(servent_guid))) {
         gnet_stats_count_dropped(n, MSG_DROP_OWN_RESULT);
 		goto bad_packet;		
@@ -1826,7 +1826,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;		
 	}
 
-	if (guid_eq(rs->guid, blank_guid)) {
+	if (guid_eq(rs->guid, &blank_guid)) {
 		gnet_stats_count_dropped(n, MSG_DROP_BLANK_SERVENT_ID);
 		goto bad_packet;		
 	}
@@ -2489,7 +2489,7 @@ node_added_callback(gpointer data)
  * the `search_by_muid' table.
  */
 static void
-search_add_new_muid(search_ctrl_t *sch, gchar *muid)
+search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 {
 	guint count;
 
@@ -3114,7 +3114,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 				rc->size,
 				addr,
 				port,
-				blank_guid,
+				&blank_guid,
 				NULL,	/* hostname */
 				rc->sha1,
 				rc->tth,
@@ -3301,14 +3301,14 @@ search_close(gnet_search_t sh)
  *
  * @return a new MUID that can be wfree()'d when done.
  */
-static gchar *
+static struct guid * 
 search_new_muid(gboolean initial)
 {
-	gchar *muid;
+	struct guid *muid;
 	host_addr_t addr;
 	gint i;
 
-	muid = walloc(GUID_RAW_SIZE);
+	muid = walloc(sizeof *muid);
 
 	/*
 	 * Determine whether this is going to be an OOB query, because we have
@@ -3373,7 +3373,7 @@ void
 search_reissue(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
-	gchar *muid;
+	struct guid *muid;
 
 	g_return_if_fail(!sbool_get(sch->frozen));
 
@@ -3658,7 +3658,7 @@ search_start(gnet_search_t sh)
 		 */
 
 		if (sch->muids == NULL) {
-			gchar *muid;
+			struct guid *muid;
 
 			muid = search_new_muid(TRUE);
 			search_add_new_muid(sch, muid);
@@ -3698,7 +3698,7 @@ search_stop(gnet_search_t search_handle)
  * or FALSE if we did not find any search.
  */
 gboolean
-search_get_kept_results(const gchar *muid, guint32 *kept)
+search_get_kept_results(const struct guid *muid, guint32 *kept)
 {
 	search_ctrl_t *sch;
 
@@ -3748,7 +3748,7 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  */
 void
 search_oob_pending_results(
-	gnutella_node_t *n, const gchar *muid, gint hits,
+	gnutella_node_t *n, const struct guid *muid, gint hits,
 	gboolean udp_firewalled, gboolean secure)
 {
 	struct array token_opaque;
@@ -3939,7 +3939,7 @@ search_is_local(gnet_search_t sh)
 gboolean
 search_browse(gnet_search_t sh,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags)
+	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -5125,7 +5125,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean secure_oob = FALSE;
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
-	gchar muid[GUID_RAW_SIZE];
+	struct guid muid;
 
 	/* NOTE: search_request_preprocess() has already handled this query. */
 
@@ -5260,7 +5260,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *		--RAM, 2005-08-28
 	 */
 
-	memcpy(muid, gnutella_header_get_muid(&n->header), GUID_RAW_SIZE);
+	muid = *gnutella_header_get_muid(&n->header);
 
 	if (
 		!oob &&
@@ -5401,7 +5401,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				oob_got_results(n, qctx->files, qctx->found,
 					secure_oob, ggep_h);
 			} else {
-				qhit_send_results(n, qctx->files, qctx->found, muid, ggep_h);
+				qhit_send_results(n, qctx->files, qctx->found, &muid, ggep_h);
 			}
 		}
 

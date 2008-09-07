@@ -41,6 +41,8 @@
 #include "if/core/pproxy.h"
 #include "lib/array.h"
 
+struct guid;
+
 /***
  *** Server side
  ***/
@@ -57,7 +59,7 @@ struct pproxy {
 	host_addr_t addr_v6;	/**< IPv6 of the requesting servent */
 	guint16 port;			/**< Port where GIV should be sent back */
 	const gchar *user_agent;/**< User-Agent string */
-	const gchar *guid;		/**< GUID (atom) to which push should be sent */
+	const struct guid *guid;/**< GUID (atom) to which push should be sent */
 	guint32 file_idx;		/**< File index to request (0 if none supplied) */
 	guint32 flags;
 	gpointer io_opaque;		/**< Opaque I/O callback information */
@@ -76,12 +78,13 @@ void pproxy_close(void);
  ***/
 
 struct cproxy *cproxy_create(struct download *d,
-	const host_addr_t addr, guint16 port, const gchar *guid, guint32 file_idx);
+	const host_addr_t addr, guint16 port, const struct guid *guid,
+	guint32 file_idx);
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 
 struct array build_push(guint8 ttl, guint8 hops,
-	const gchar *guid, host_addr_t addr_v4, host_addr_t addr_v6,
+	const struct guid *guid, host_addr_t addr_v4, host_addr_t addr_v6,
 	guint16 port, guint32 file_idx, gboolean supports_tls);
 
 #endif	/* _core_pproxy_h_ */

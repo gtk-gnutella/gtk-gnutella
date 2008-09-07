@@ -73,8 +73,8 @@ typedef enum oob_proxy_rec_magic {
  */
 struct oob_proxy_rec {
 	oob_proxy_rec_magic_t magic;
-	const gchar *leaf_muid;		/**< Original MUID, set by leaf (atom) */
-	const gchar *proxied_muid;	/**< Proxied MUID (atom) */
+	const struct guid *leaf_muid;/**< Original MUID, set by leaf (atom) */
+	const struct guid *proxied_muid;/**< Proxied MUID (atom) */
 	node_id_t node_id;			/**< The ID of the node leaf */
 	cevent_t *expire_ev;		/**< Expire event, to clear this record */
 };
@@ -115,8 +115,8 @@ static GHashTable *proxied_queries;	/* New MUID => oob_proxy_rec */
  * Allocate new OOB proxy record to keep track of the MUID remapping.
  */
 static struct oob_proxy_rec *
-oob_proxy_rec_make(
-	const gchar *leaf_muid, const gchar *proxied_muid, const node_id_t node_id)
+oob_proxy_rec_make(const struct guid *leaf_muid,
+	const struct guid *proxied_muid, const node_id_t node_id)
 {
 	struct oob_proxy_rec *opr;
 
@@ -170,7 +170,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
 		g_message("OOB proxied query leaf-MUID=%s proxied-MUID=%s expired",
 			guid_hex_str(opr->leaf_muid),
-			data_hex_str(opr->proxied_muid, GUID_RAW_SIZE));
+			data_hex_str(opr->proxied_muid->v, GUID_RAW_SIZE));
 
 	opr->expire_ev = NULL;		/* The timer which just triggered */
 	oob_proxy_rec_free_remove(opr);
@@ -182,7 +182,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 void
 oob_proxy_create(gnutella_node_t *n)
 {
-	gchar proxied_muid[GUID_RAW_SIZE];
+	struct guid proxied_muid;
 	struct oob_proxy_rec *opr;
 	guint32 ip;
 
@@ -196,17 +196,18 @@ oob_proxy_create(gnutella_node_t *n)
 	 */
 
 	ip = host_addr_ipv4(listen_addr()); /* @todo TODO: IPv6 */
-	memcpy(proxied_muid, gnutella_header_get_muid(&n->header), 16);
-	poke_be32(&proxied_muid[0], ip);
-	poke_le16(&proxied_muid[13], socket_listen_port());
+	memcpy(&proxied_muid, gnutella_header_get_muid(&n->header),
+		GUID_RAW_SIZE);
+	poke_be32(&proxied_muid.v[0], ip);
+	poke_le16(&proxied_muid.v[13], socket_listen_port());
 
 	/*
 	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
 	 */
 
 	opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
-			proxied_muid, NODE_ID(n));
-	g_hash_table_insert(proxied_queries, (gchar *) opr->proxied_muid, opr);
+			&proxied_muid, NODE_ID(n));
+	gm_hash_table_insert_const(proxied_queries, opr->proxied_muid, opr);
 
 	opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
 		oob_proxy_rec_destroy, opr);
@@ -216,13 +217,13 @@ oob_proxy_create(gnutella_node_t *n)
 	 */
 
 	query_set_oob_flag(n, n->data);
-	gnutella_header_set_muid(&n->header, proxied_muid);
+	gnutella_header_set_muid(&n->header, &proxied_muid);
 
 	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug)) {
 		g_message("QUERY OOB-proxying query %s from %s <%s> as %s",
-			data_hex_str(opr->leaf_muid, GUID_RAW_SIZE),
+			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
 			node_addr(n), node_vendor(n),
 			guid_hex_str(opr->proxied_muid));
 	}
@@ -244,7 +245,7 @@ oob_proxy_create(gnutella_node_t *n)
  */
 gboolean
 oob_proxy_pending_results(
-	gnutella_node_t *n, const gchar *muid,
+	gnutella_node_t *n, const struct guid *muid,
 	gint hits, gboolean uu_udp_firewalled, const struct array *token)
 {
 	struct oob_proxy_rec *opr;
@@ -471,8 +472,8 @@ oob_proxy_got_results(gnutella_node_t *n, guint results)
  * Check whether MUID is for an OOB-proxied query.
  * @return NULL if the MUID is unknown, otherwise the original leaf MUID.
  */
-const gchar *
-oob_proxy_muid_proxied(const gchar *muid)
+const struct guid *
+oob_proxy_muid_proxied(const struct guid *muid)
 {
 	const struct oob_proxy_rec *opr;
 	

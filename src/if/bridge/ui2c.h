@@ -57,6 +57,8 @@
 /* Property table includes */
 #include "if/gnet_property.h"
 
+struct guid;
+
 /* adns interface functions */
 gboolean guc_adns_resolve(const gchar *hostname,
 			adns_callback_t user_callback, gpointer user_data);
@@ -68,7 +70,7 @@ guc_download_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -83,7 +85,7 @@ guc_download_auto_new(const gchar *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
-	const gchar *guid,
+	const struct guid *guid,
 	const gchar *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
@@ -99,7 +101,7 @@ const gchar *guc_file_info_status_to_string(const gnet_fi_status_t *);
 gint guc_download_get_http_req_percent(const struct download *);
 void guc_download_fallback_to_push(struct download *, gboolean on_timeout,
 		gboolean user_request);
-gint guc_download_remove_all_from_peer(const gchar *guid,
+gint guc_download_remove_all_from_peer(const struct guid *guid,
 		const host_addr_t addr, guint16 port, gboolean unavailable);
 gboolean guc_download_file_exists(const struct download *);
 void guc_download_requeue(struct download *);
@@ -120,7 +122,7 @@ gdouble guc_download_source_progress(const struct download *);
 gdouble guc_download_total_progress(const struct download *);
 gboolean guc_download_something_to_clear(void);
 void guc_download_index_changed(const host_addr_t addr, guint16 port,
-	const gchar *guid, filesize_t from, filesize_t to);
+	const struct guid *guid, filesize_t from, filesize_t to);
 struct download *guc_src_get_download(gnet_src_t src_handle);
 
 void guc_src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
@@ -220,7 +222,7 @@ enum search_new_result guc_search_new(gnet_search_t *ptr, const gchar *query,
 	guint32 reissue_timeout, flag_t flags);
 gboolean guc_search_browse(gnet_search_t,
 	const gchar *hostname, host_addr_t addr, guint16 port,
-	const gchar *guid, const gnet_host_vec_t *proxies, guint32 flags);
+	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
 gboolean guc_search_locally(gnet_search_t, const gchar *query);
 void guc_search_reissue(gnet_search_t);
 void guc_search_close(gnet_search_t);

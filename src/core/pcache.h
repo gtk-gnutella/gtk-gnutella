@@ -87,8 +87,10 @@ enum {
  * Global Functions.
  */
 
-gnutella_msg_init_t *build_ping_msg(
-	const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size);
+struct guid;
+
+gnutella_msg_init_t *build_ping_msg(const struct guid *,
+						guint8 ttl, gboolean uhc, guint32 *size);
 
 /*
  * Public interface.

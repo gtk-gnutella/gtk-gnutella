@@ -116,10 +116,12 @@ enum fi_magic {
 	FI_MAGIC = 0xd99892e7
 };
 
+struct guid;
+
 typedef struct dl_file_info {
 	enum fi_magic magic;	
     gnet_fi_t fi_handle;    /**< Handle */
-	const gchar *guid;		/**< Unique fileinfo ID */
+	const struct guid *guid;/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
 	const gchar *pathname;	/**< Output pathname (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */

@@ -132,7 +132,7 @@ typedef struct dquery {
 	pmsg_t *mb;				/**< The search messsage "template" */
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
 	GHashTable *queried;	/**< Contains node IDs that we queried so far */
-	const gchar *lmuid;		/**< For proxied query: the original leaf MUID */
+	const struct guid *lmuid;/**< For proxied query: the original leaf MUID */
 	guint16 query_flags;	/**< Flags from the marked query speed field */
 	guint8 ttl;				/**< Initial query TTL */
 	guint32 horizon;		/**< Theoretical horizon reached thus far */
@@ -1612,7 +1612,7 @@ dq_common_init(dquery_t *dq)
 		g_warning("conflicting MUID \"%s\" for dynamic query, ignoring.",
 			guid_hex_str(gnutella_header_get_muid(head)));
 	else {
-		const gchar *muid = atom_guid_get(gnutella_header_get_muid(head));
+		const struct guid *muid = atom_guid_get(gnutella_header_get_muid(head));
 		gm_hash_table_insert_const(by_muid, muid, dq);
 	}
 
@@ -1654,7 +1654,7 @@ dq_common_init(dquery_t *dq)
 			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
 			guid_hex_str(gnutella_header_get_muid(head)),
 			dq->lmuid ? " leaf-MUID=" : "",
-			dq->lmuid ? data_hex_str(dq->lmuid, GUID_RAW_SIZE): "",
+			dq->lmuid ? data_hex_str(dq->lmuid->v, GUID_RAW_SIZE): "",
 			gnutella_msg_search_get_text(packet), flags,
 			(flags & QUERY_F_MARK) ? "MARKED" : "",
 			(flags & QUERY_F_FIREWALLED) ? " FW" : "",
@@ -1676,7 +1676,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dquery_t *dq;
 	guint16 flags;
 	gboolean flags_valid;
-	const gchar *leaf_muid;
+	const struct guid *leaf_muid;
 
 	/* Query from leaf node */
 	g_assert(NODE_IS_LEAF(n));
@@ -1907,7 +1907,8 @@ dq_node_removed(const node_id_t node_id)
  * should not forward the results anyway.
  */
 static gboolean
-dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
+dq_count_results(const struct guid *muid,
+	gint count, guint16 status, gboolean oob)
 {
 	dquery_t *dq;
 
@@ -2008,7 +2009,7 @@ dq_count_results(const gchar *muid, gint count, guint16 status, gboolean oob)
  * whether we should forward the results.
  */
 gboolean
-dq_got_results(const gchar *muid, guint count, guint32 status)
+dq_got_results(const struct guid *muid, guint count, guint32 status)
 {
 	return dq_count_results(muid, count, status, FALSE);
 }
@@ -2021,7 +2022,7 @@ dq_got_results(const gchar *muid, guint count, guint32 status)
  * results should not be claimed.
  */
 gboolean
-dq_oob_results_ind(const gchar *muid, gint count)
+dq_oob_results_ind(const struct guid *muid, gint count)
 {
 	return dq_count_results(muid, count, 0, TRUE);
 }
@@ -2033,7 +2034,7 @@ dq_oob_results_ind(const gchar *muid, gint count)
  * were finally claimed and parsed).
  */
 void
-dq_oob_results_got(const gchar *muid, guint count)
+dq_oob_results_got(const struct guid *muid, guint count)
 {
 	dquery_t *dq;
 
@@ -2071,7 +2072,8 @@ dq_oob_results_got(const gchar *muid, guint count)
  * The special value 0xffff is a request to stop the query immediately.
  */
 void
-dq_got_query_status(const gchar *muid, const node_id_t node_id, guint16 kept)
+dq_got_query_status(const struct guid *muid,
+	const node_id_t node_id, guint16 kept)
 {
 	dquery_t *dq;
 
@@ -2215,7 +2217,7 @@ dq_search_closed(gnet_search_t handle)
  * any more, in which case nothing is returned into `wanted'.
  */
 gboolean
-dq_get_results_wanted(const gchar *muid, guint32 *wanted)
+dq_get_results_wanted(const struct guid *muid, guint32 *wanted)
 {
 	dquery_t *dq;
 

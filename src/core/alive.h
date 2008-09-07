@@ -39,6 +39,7 @@
 #include "common.h"
 
 struct gnutella_node;
+struct guid;
 
 /*
  * Public interface.
@@ -47,8 +48,8 @@ struct gnutella_node;
 gpointer alive_make(struct gnutella_node *n, gint max);
 void alive_free(gpointer obj);
 gboolean alive_send_ping(gpointer obj);
-gboolean alive_ack_ping(gpointer obj, const gchar *muid);
-void alive_ack_first(gpointer obj, const gchar *muid);
+gboolean alive_ack_ping(gpointer obj, const struct guid *);
+void alive_ack_first(gpointer obj, const struct guid *);
 void alive_get_roundtrip_ms(gconstpointer obj, guint32 *avg, guint32 *last);
 
 #endif /* _core_alive_h_ */

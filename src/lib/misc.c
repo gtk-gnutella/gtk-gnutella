@@ -54,6 +54,8 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "utf8.h"
 
+#include "if/core/guid.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #if !defined(HAS_ARC4RANDOM) && (!defined(HAS_SRANDOM) || !defined(HAS_RANDOM))
@@ -1303,7 +1305,7 @@ bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size)
 	size_t retval;
 
 	if (size > 0) {
-		retval = base16_encode(dst, size, data, len);
+		retval = base16_encode(dst, size - 1, data, len);
 		dst[retval] = '\0';
 	} else {
 		retval = 0;
@@ -1315,18 +1317,18 @@ bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size)
  * Convert GUID to hexadecimal string in the supplied buffer.
  */
 size_t
-guid_to_string_buf(const gchar *guid, gchar *dst, size_t size)
+guid_to_string_buf(const struct guid *guid, char *dst, size_t size)
 {
-	return bin_to_hex_buf(guid, GUID_RAW_SIZE, dst, size);
+	return bin_to_hex_buf(guid->v, GUID_RAW_SIZE, dst, size);
 }
 
 /**
  * @return hexadecimal string representing given GUID, in static buffer.
  */
-const gchar *
-guid_to_string(const gchar *guid)
+const char *
+guid_to_string(const struct guid *guid)
 {
-	static gchar buf[GUID_HEX_SIZE + 1];
+	static char buf[GUID_HEX_SIZE + 1];
 	size_t ret;
 
 	ret = guid_to_string_buf(guid, buf, sizeof buf);
@@ -1337,10 +1339,10 @@ guid_to_string(const gchar *guid)
 /**
  * @return hexadecimal string representing given GUID, in static buffer.
  */
-const gchar *
-guid_hex_str(const gchar *guid)
+const char *
+guid_hex_str(const struct guid *guid)
 {
-	static gchar buf[GUID_HEX_SIZE + 1];
+	static char buf[GUID_HEX_SIZE + 1];
 	size_t ret;
 
 	ret = guid_to_string_buf(guid, buf, sizeof buf);
@@ -1569,25 +1571,12 @@ alnum2int_init(void)
  * @return TRUE if OK.
  */
 gboolean
-hex_to_guid(const gchar *hexguid, gchar *guid)
+hex_to_guid(const char *hexguid, struct guid *guid)
 {
-	guint i;
-
-	for (i = 0; i < GUID_RAW_SIZE; i++) {
- 		guchar a, b;
-
-		a = *hexguid++;
-		if (!is_ascii_xdigit(a))
-			return FALSE;
-
-		b = *hexguid++;
-		if (!is_ascii_xdigit(b))
-			return FALSE;
-
-		guid[i] = (hex2int_inline(a) << 4) + hex2int_inline(b);
-	}
-
-	return TRUE;
+	size_t ret;
+		
+	ret = base16_decode(guid->v, sizeof guid->v, hexguid, GUID_HEX_SIZE);
+	return GUID_RAW_SIZE == ret;
 }
 
 /**
@@ -1595,10 +1584,10 @@ hex_to_guid(const gchar *hexguid, gchar *guid)
  *
  * @return pointer to static data.
  */
-gchar *
-guid_base32_str(const gchar *guid)
+const char *
+guid_base32_str(const struct guid *guid)
 {
-	static gchar buf[GUID_BASE32_SIZE + 1];
+	static char buf[GUID_BASE32_SIZE + 1];
 	size_t len;
 
 	len = base32_encode(buf, sizeof buf, guid, GUID_RAW_SIZE);
@@ -1612,14 +1601,14 @@ guid_base32_str(const gchar *guid)
  *
  * @return pointer to static data, or NULL if the input was not valid base32.
  */
-gchar *
-base32_to_guid(const gchar *base32)
+const struct guid *
+base32_to_guid(const char *base32)
 {
-	static gchar guid[GUID_RAW_SIZE];
+	static struct guid guid;
 	size_t ret;
 
-	ret = base32_decode(guid, sizeof guid, base32, GUID_BASE32_SIZE);
-	return (size_t) GUID_RAW_SIZE == ret ? guid : NULL;
+	ret = base32_decode(guid.v, sizeof guid.v, base32, GUID_BASE32_SIZE);
+	return (size_t)0 + GUID_RAW_SIZE == ret ? &guid : NULL;
 }
 
 /**
@@ -2419,9 +2408,9 @@ locale_strlower(gchar *dst, const gchar *src)
  * Generate a new random GUID within given `xuid'.
  */
 void
-guid_random_fill(gchar *xuid)
+guid_random_fill(struct guid *guid)
 {
-	random_bytes(xuid, GUID_RAW_SIZE);
+	random_bytes(guid, GUID_RAW_SIZE);
 }
 
 /**
@@ -2638,11 +2627,11 @@ unique_filename(const gchar *path, const gchar *name, const gchar *ext,
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	{
-		gchar xuid[GUID_RAW_SIZE];
+		struct guid guid;
 
-		guid_random_fill(xuid);
+		guid_random_fill(&guid);
 		gm_snprintf(filename_buf, sizeof filename_buf, "%s.%s%s%s",
-			name_buf, guid_hex_str(xuid), mid_buf, ext_buf);
+			name_buf, guid_hex_str(&guid), mid_buf, ext_buf);
 	}
 
 	pathname = unique_pathname(path, filename_buf, name_is_uniq);

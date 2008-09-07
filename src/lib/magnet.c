@@ -49,6 +49,8 @@ RCSID("$Id$")
 #include "utf8.h"
 #include "walloc.h"
 
+#include "if/core/guid.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -222,7 +224,7 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 {
 	struct magnet_source *ms;
 	const gchar *p, *endptr;
-	gchar guid[GUID_RAW_SIZE];
+	struct guid guid;
 
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -234,7 +236,7 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 	if (
 		NULL == endptr ||
 		GUID_HEX_SIZE != (endptr - p) ||
-		!hex_to_guid(p, guid)
+		!hex_to_guid(p, &guid)
 	) {
 		*error_str = "Bad GUID in push source";
 		return NULL;
@@ -243,7 +245,7 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 	p = &endptr[1];
 	ms = magnet_parse_location(p, error_str);
 	if (ms) {
-		ms->guid = atom_guid_get(guid);
+		ms->guid = atom_guid_get(&guid);
 	}
 	return ms;
 }
@@ -524,7 +526,7 @@ magnet_add_source_by_url(struct magnet_resource *res, const gchar *url)
 
 void
 magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
-	const host_addr_t addr, const guint16 port, const gchar *guid)
+	const host_addr_t addr, const guint16 port, const struct guid *guid)
 {
 	struct magnet_source *s;
 

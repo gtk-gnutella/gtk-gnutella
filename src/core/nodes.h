@@ -44,6 +44,8 @@
 
 #include "lib/header.h"
 
+struct guid;
+
 typedef enum {
 	NODE_MAGIC = 0x67f8e02f
 } node_magic_t;
@@ -212,7 +214,7 @@ typedef struct gnutella_node {
 	guint ping_throttle;		/**< Period for accepting new pings (secs) */
 	time_t ping_accept;			/**< Time after which we accept new pings */
 	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
-	gchar ping_guid[GUID_RAW_SIZE];	/**< The GUID of the last accepted ping */
+	struct guid ping_guid;		/**< The GUID of the last accepted ping */
 	guchar pong_needed[MAX_CACHE_HOPS+1];	/**< Pongs needed, by hop value */
 	guchar pong_missing;	/**< Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
 
@@ -222,7 +224,7 @@ typedef struct gnutella_node {
 	guint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
 	host_addr_t gnet_pong_addr;	/**< When != 0, last IP we got in pong */
 	host_addr_t gnet_qhit_addr;	/**< When != 0, last IP we got in query hit */
-	const gchar *guid;			/**< GUID of node (atom) seen on the network */
+	const struct guid *guid;	/**< GUID of node (atom) seen on the network */
 
 	guint32 svn_release_revision;	/**< Latest SVN release known by the node */
 
@@ -237,13 +239,13 @@ typedef struct gnutella_node {
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	gint32 tx_given;			/**< Bytes fed to the TX stack (from top) */
-	gint32 tx_deflated;			/**< Bytes deflated by the TX stack */
-	gint32 tx_written;			/**< Bytes written by the TX stack */
+	guint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	guint64 tx_deflated;		/**< Bytes deflated by the TX stack */
+	guint64 tx_written;			/**< Bytes written by the TX stack */
 
-	gint32 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
-	gint32 rx_inflated;			/**< Bytes inflated by the RX stack */
-	gint32 rx_read;				/**< Bytes read from the RX stack */
+	guint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	guint64 rx_inflated;		/**< Bytes inflated by the RX stack */
+	guint64 rx_read;			/**< Bytes read from the RX stack */
 
 	/*
 	 * Various Gnutella statistics -- RAM, 10/12/2003.
@@ -576,7 +578,7 @@ void node_connected_back(struct gnutella_socket *s);
 void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_proxying_remove(gnutella_node_t *n);
-gboolean node_proxying_add(gnutella_node_t *n, const gchar *guid);
+gboolean node_proxying_add(gnutella_node_t *n, const struct guid *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
 size_t node_http_proxies_add(gchar *buf, size_t size,
@@ -626,14 +628,14 @@ node_check(const struct gnutella_node * const n)
 	g_assert(NODE_MAGIC == n->magic);
 }
 
-static inline const gchar *
+static inline const struct guid *
 node_guid(const struct gnutella_node * const n)
 {
 	return n->guid;
 }
 
-gboolean node_set_guid(struct gnutella_node *n, const gchar *guid);
-struct gnutella_node *node_by_guid(const gchar *guid);
+gboolean node_set_guid(struct gnutella_node *n, const struct guid *guid);
+struct gnutella_node *node_by_guid(const struct guid *guid);
 
 #endif /* _core_nodes_h_ */
 

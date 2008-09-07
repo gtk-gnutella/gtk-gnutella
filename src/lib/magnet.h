@@ -47,7 +47,7 @@ struct magnet_source {
 	const gchar *path;			/* string atom */
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
-	const gchar *guid;			/* GUID atom */
+	const struct guid *guid;	/* GUID atom */
 	host_addr_t addr;
 	guint16 port;
 };
@@ -82,7 +82,7 @@ void magnet_add_search(struct magnet_resource *res, const gchar *search);
 void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
 		const struct sha1 *sha1, const host_addr_t addr, const guint16 port,
-		const gchar *guid);
+		const struct guid *);
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const gchar *parq_id);

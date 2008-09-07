@@ -226,7 +226,7 @@ on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 
 		if (!info->is_pseudo) {
 			search_gui_new_browse_host(NULL, info->gnet_addr, info->gnet_port,
-				info->gnet_guid, NULL, 0);
+				&info->gnet_guid, NULL, 0);
 		}
 		guc_node_free_info(info);
 	}

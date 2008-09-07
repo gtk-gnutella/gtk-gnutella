@@ -303,7 +303,7 @@ udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
  * specified MUID.
  */
 void
-udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
+udp_connect_back(const host_addr_t addr, guint16 port, const struct guid *muid)
 {
 	if (udp_send_ping(muid, addr, port, FALSE)) {
 		if (GNET_PROPERTY(udp_debug) > 19)
@@ -313,8 +313,8 @@ udp_connect_back(const host_addr_t addr, guint16 port, const gchar *muid)
 }
 
 struct udp_ping {
-	gchar muid[GUID_RAW_SIZE];	/* MUST be at offset zero */
-	time_t added;				/**< Timestamp of insertion */
+	struct guid muid;	/* MUST be at offset zero */
+	time_t added;		/**< Timestamp of insertion */
 };
 
 static const time_delta_t UDP_PING_TIMEOUT	    = 30;	/**< seconds */
@@ -375,7 +375,7 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 }
 
 static gboolean
-udp_ping_register(const gchar *muid)
+udp_ping_register(const struct guid *muid)
 {
 	static gboolean initialized;
 	struct udp_ping *ping;
@@ -405,14 +405,14 @@ udp_ping_register(const gchar *muid)
 	}
 
 	ping = walloc(sizeof *ping);
-	memcpy(ping->muid, muid, GUID_RAW_SIZE);
+	ping->muid = *muid;
 	ping->added = tm_time();
 	hash_list_append(udp_pings, ping);
 	return TRUE;
 }
 
 gboolean
-udp_ping_is_registered(const gchar *muid)
+udp_ping_is_registered(const struct guid *muid)
 {
 	g_assert(muid);
 
@@ -432,7 +432,7 @@ udp_ping_is_registered(const gchar *muid)
  * Send a Gnutella ping to the specified host.
  */
 gboolean
-udp_send_ping(const gchar *muid, const host_addr_t addr, guint16 port,
+udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
 	gboolean uhc_ping)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);

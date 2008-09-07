@@ -6552,9 +6552,9 @@ node_parse(struct gnutella_node *node)
 			gnutella_header_get_function(&n->header) == GTA_MSG_INIT &&
 			gnutella_header_get_hops(&n->header) == 0
 		) {
-			const gchar *muid = gnutella_header_get_muid(&n->header);
+			const struct guid *muid = gnutella_header_get_muid(&n->header);
 			
-			if ((guint8) muid[8] == 0xff && (guint8) muid[15] >= 1)
+			if (peek_u8(&muid->v[8]) == 0xff && peek_u8(&muid->v[15]) >= 1)
 				n->attrs |= NODE_A_PONG_CACHING;
 			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
 		}
@@ -8362,7 +8362,7 @@ node_add_rxdrop(gnutella_node_t *n, gint x)
 }
 
 struct gnutella_node *
-node_by_guid(const gchar *guid)
+node_by_guid(const struct guid *guid)
 {
 	struct gnutella_node *n;
 
@@ -8381,7 +8381,7 @@ node_by_guid(const gchar *guid)
  * @return TRUE if any error occured and the GUID was not set.
  */
 gboolean
-node_set_guid(struct gnutella_node *n, const gchar *guid)
+node_set_guid(struct gnutella_node *n, const struct guid *guid)
 {
 	struct gnutella_node *owner;
 
@@ -8396,7 +8396,7 @@ node_set_guid(struct gnutella_node *n, const gchar *guid)
 		goto error;
 	}
 
-	if (guid_eq(guid, blank_guid)) {
+	if (guid_eq(guid, &blank_guid)) {
 		if (GNET_PROPERTY(node_debug) > 0) {
 			g_warning("Node %s (%s) uses blank GUID",
 				node_addr(n), node_vendor(n));
@@ -8619,7 +8619,7 @@ node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 		info->gnet_port = 0;
 	}
 
-	memcpy(info->gnet_guid, node_guid(node) ? node_guid(node) : blank_guid,
+	memcpy(&info->gnet_guid, node_guid(node) ? node_guid(node) : &blank_guid,
 		GUID_RAW_SIZE);
 	return TRUE;
 }
@@ -8942,7 +8942,7 @@ node_proxying_remove(gnutella_node_t *n)
  * @return TRUE if we can act as this node's proxy.
  */
 gboolean
-node_proxying_add(gnutella_node_t *n, const gchar *guid)
+node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 {
 	g_return_val_if_fail(n, FALSE);
 	g_return_val_if_fail(guid, FALSE);
