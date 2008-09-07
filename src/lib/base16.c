@@ -113,10 +113,9 @@ base16_decode(char *dst, size_t size, const void *data, size_t len)
   char *q = dst;
   size_t i;
 
-  if (size < len / 2) {
-    len = size * 2;
-  }
-  
+  len /= 2;
+  len = 2 * (size < len ? size : len);
+
   for (i = 0; i < len; i++) {
       int c;
 
