@@ -342,7 +342,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 			next_expire = MIN(expire, next_expire);
 	}
 
-	if (GNET_PROPERTY(dht_storage_debug))
+	if (GNET_PROPERTY(dht_storage_debug) > 3)
 		g_message("DHT STORE key %s has %d expired value%s out of %d",
 			kuid_to_hex_string(ki->kuid), expired, 1 == expired ? "" : "s",
 			ki->values);
@@ -382,7 +382,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	g_assert(KEYINFO_MAGIC == ki->magic);
 
-	if (GNET_PROPERTY(dht_storage_debug))
+	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_message("DHT STORE key %s holds %d/%d value%s, "
 			"load avg: get = %.2f [%s], store = %.2f [%s], expire = %lu",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
@@ -481,7 +481,7 @@ keys_reclaim(struct keyinfo *ki)
 	g_assert(ki);
 	g_assert(0 == ki->values);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_message("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
 
 	dbmw_delete(db_keydata, ki->kuid);
@@ -550,7 +550,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 	ki->values--;
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_message("DHT STORE key %s now holds only %d/%d value%s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s");
@@ -701,7 +701,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_message("DHT STORE %s key %s now holds %d/%d value%s",
 			&new_kd == kd ? "new" : "existing",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
