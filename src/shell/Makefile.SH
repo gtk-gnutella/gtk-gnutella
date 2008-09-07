@@ -83,6 +83,7 @@ all:: .FORCE_DEPEND
 SRC = \
 	download.c \
 	downloads.c \
+	echo.c \
 	help.c \
 	horizon.c \
 	intr.c \
@@ -105,6 +106,7 @@ SRC = \
 OBJ = \
 	download.o \
 	downloads.o \
+	echo.o \
 	help.o \
 	horizon.o \
 	intr.o \

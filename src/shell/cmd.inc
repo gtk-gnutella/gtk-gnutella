@@ -8,6 +8,7 @@
 
 SHELL_CMD(download)
 SHELL_CMD(downloads)
+SHELL_CMD(echo)
 SHELL_CMD(help)
 SHELL_CMD(horizon)
 SHELL_CMD(intr)

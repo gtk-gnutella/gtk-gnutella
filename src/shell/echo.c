@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2003, Raphael Manfredi
- *
- * Jmakefile for the shell part.
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,46 +23,55 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
+#include "common.h"
 
-SRC = \
-	download.c \
-	downloads.c \
-	echo.c \
-	help.c \
-	horizon.c \
-	intr.c \
-	node.c \
-	nodes.c \
-	offline.c \
-	online.c \
-	print.c \
-	props.c \
-	quit.c \
-	rescan.c \
-	search.c \
-	set.c \
-	shell.c \
-	shutdown.c \
-	status.c \
-	uploads.c \
-	whatis.c
+RCSID("$Id$")
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "cmd.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+#include "lib/override.h"		/* Must be the last header included */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+enum shell_reply
+shell_exec_echo(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	int i, newline = TRUE;
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(shell, $(SRC), $(OBJ))
-DependTarget()
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	i = 1;
+	if (i < argc && 0 == strcmp(argv[i], "-n")) {
+		newline = FALSE;
+		i++;
+	}
+	while (i < argc) {
+		shell_write(sh, argv[i]);
+		if (++i < argc) {
+			shell_write(sh, " ");
+		}
+	}
+
+	if (newline) {
+		shell_write(sh, "\n");
+	}
+	return REPLY_READY;
+}
+
+const char *
+shell_summary_echo(void)
+{
+	return "Print the parameters";
+}
+
+const char *
+shell_help_echo(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return NULL;
+}
+
+/* vi: set ts=4 sw=4 cindent: */
