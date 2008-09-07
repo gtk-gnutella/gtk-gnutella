@@ -81,17 +81,112 @@ error:
 }
 
 static enum shell_reply
-shell_exec_download_abort(struct gnutella_shell *sh, int argc, const char *argv[])
+shell_exec_download_abort(struct gnutella_shell *sh,
+	int argc, const char *argv[])
 {
+	fileinfo_t *fi;
+	struct guid guid;
+	const char *id;
+
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
 	if (argc < 3) {
-		shell_set_msg(sh, _("parameter missing"));
+		shell_set_msg(sh, "parameter missing");
 		goto error;
 	}
-	shell_set_msg(sh, "FIXME: Implement this");
+	id = argv[2];
+
+	if (!hex_to_guid(id, &guid)) {
+		shell_set_msg(sh, "Unparsable ID");
+		goto error;
+	}
+
+	fi = file_info_by_guid(&guid);
+	if (NULL == fi) {
+		shell_set_msg(sh, "Invalid ID");
+		goto error;
+	}
+
+	if (!file_info_purge(fi)) {
+		shell_set_msg(sh, "Aborting failed");
+		goto error;
+	}
+
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_download_pause(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	fileinfo_t *fi;
+	struct guid guid;
+	const char *id;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3) {
+		shell_set_msg(sh, "parameter missing");
+		goto error;
+	}
+	id = argv[2];
+
+	if (!hex_to_guid(id, &guid)) {
+		shell_set_msg(sh, "Unparsable ID");
+		goto error;
+	}
+
+	fi = file_info_by_guid(&guid);
+	if (NULL == fi) {
+		shell_set_msg(sh, "Invalid ID");
+		goto error;
+	}
+
+	file_info_pause(fi);
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_download_resume(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	fileinfo_t *fi;
+	struct guid guid;
+	const char *id;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3) {
+		shell_set_msg(sh, "parameter missing");
+		goto error;
+	}
+	id = argv[2];
+
+	if (!hex_to_guid(id, &guid)) {
+		shell_set_msg(sh, "Unparsable ID");
+		goto error;
+	}
+
+	fi = file_info_by_guid(&guid);
+	if (NULL == fi) {
+		shell_set_msg(sh, "Invalid ID");
+		goto error;
+	}
+
+	file_info_resume(fi);
+	return REPLY_READY;
 
 error:
 	return REPLY_ERROR;
@@ -117,6 +212,8 @@ shell_exec_download(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	CMD(add);
 	CMD(abort);
+	CMD(pause);
+	CMD(resume);
 #undef CMD
 	
 	shell_set_msg(sh, _("Unknown operation"));
@@ -143,7 +240,7 @@ shell_help_download(int argc, const char *argv[])
 		return NULL;
 	} else {
 		return	"download add URL\n"
-				"download abort all\n";
+				"download [abort|pause|resume] ID\n";
 	}
 }
 
