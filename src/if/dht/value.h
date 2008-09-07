@@ -89,6 +89,7 @@ typedef struct {
 dht_value_t *dht_value_make(const knode_t *creator,
 	kuid_t *primary_key, dht_value_type_t type,
 	guint8 major, guint8 minor, gpointer data, guint16 length);
+dht_value_t *dht_value_clone(const dht_value_t *v);
 void dht_value_free(dht_value_t *v, gboolean free_data);
 size_t dht_value_type_to_string_buf(guint32 type, char *buf, size_t size);
 time_delta_t dht_value_lifetime(dht_value_type_t type);

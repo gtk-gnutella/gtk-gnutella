@@ -98,6 +98,8 @@ RCSID("$Id$")
 #define MAX_VALUES_NET	256		/**< Max # of values allowed per class C net */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
 
+#define equiv(p,q)  (!(p) == !(q))
+
 /**
  * Information about a value that is stored to disk and not kept in memory.
  * The structure is serialized first, not written as-is.
@@ -296,12 +298,40 @@ dht_value_make(const knode_t *creator,
 }
 
 /**
+ * Clone a DHT value.
+ */
+dht_value_t *
+dht_value_clone(const dht_value_t *v)
+{
+	dht_value_t *vc;
+
+	g_assert(v);
+	g_assert(equiv(v->length > 0, v->data != NULL));
+
+	vc = walloc(sizeof *vc);
+	vc->creator = knode_refcnt_inc(v->creator);
+	vc->id = kuid_get_atom(v->id);
+	vc->type = v->type;
+	vc->major = v->major;
+	vc->minor = v->minor;
+	vc->length = v->length;
+
+	if (v->data) {
+		vc->data = walloc(v->length);
+		memcpy(deconstify_gpointer(vc->data), v->data, v->length);
+	}
+
+	return vc;
+}
+
+/**
  * Free DHT value, optionally freeing the data as well.
  */
 void
 dht_value_free(dht_value_t *v, gboolean free_data)
 {
 	g_assert(v);
+	g_assert(equiv(v->length > 0, v->data != NULL));
 
 	knode_free(deconstify_gpointer(v->creator));
 	kuid_atom_free_null(&v->id);
@@ -716,14 +746,14 @@ validate_creator(const knode_t *sender, const knode_t *creator)
 	return TRUE;
 
 mismatch:
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug))
 		g_message("DHT STORE %s mismatch between sender %s and creator %s",
 			what, knode_to_string(sender), knode_to_string2(creator));
 
 	return FALSE;
 
 wrong:
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug))
 		g_message("DHT STORE %s: sender %s and creator %s",
 			what, knode_to_string(sender), knode_to_string2(creator));
 
@@ -935,7 +965,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
 
 done:
-	if (reason && GNET_PROPERTY(dht_storage_debug) > 1)
+	if (reason && GNET_PROPERTY(dht_storage_debug))
 		g_message("DHT STORE refusing deletion of %s: %s",
 			dht_value_to_string(v), reason);
 
@@ -1170,7 +1200,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 
 	g_assert(dbmw_count(db_rawdata) == (size_t) values_managed);
 
-	if (GNET_PROPERTY(dht_storage_debug)) {
+	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_message("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
 			v->major, v->minor, v->length, 1 == v->length ? "" : "s",
@@ -1235,7 +1265,7 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 	/* FALL THROUGH */
 
 done:
-	if (GNET_PROPERTY(dht_storage_debug))
+	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_message("DHT STORE status for %s is %u (%s)",
 			kuid_to_hex_string(v->id), status, store_error_to_string(status));
 
