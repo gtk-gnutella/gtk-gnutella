@@ -284,7 +284,7 @@ shell_get_token(const char *s, int *pos)
 	g_assert(-1 == *pos || *pos >= 0);
 
 	if (*pos >= 0) {
-		start = &s[*pos];
+		start = skip_ascii_spaces(&s[*pos]);
 		if (*start == '\0') {
 			*pos = -1;
 		}
@@ -298,11 +298,14 @@ shell_get_token(const char *s, int *pos)
 	end = shell_token_end(start);
 
 	/* update position before removing quotes */
-	*pos = *end == '\0' ? -1 : end - s + 1;
+	switch (*end) {
+	case '\0':	*pos = -1; break;
+	default:	*pos = (end - s) + 1; break;
+	}
 
 	/* don't return enclosing quotes */
 	if (*start == '"' && *end == '"')
-		start ++;
+		start++;
 
 	retval = g_strndup(start, end - start);
 	shell_unescape(retval);
