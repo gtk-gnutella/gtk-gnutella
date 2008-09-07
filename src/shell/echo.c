@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2008, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,6 @@ RCSID("$Id$")
 #include "cmd.h"
 
 #include "lib/override.h"		/* Must be the last header included */
-
 
 enum shell_reply
 shell_exec_echo(struct gnutella_shell *sh, int argc, const char *argv[])
