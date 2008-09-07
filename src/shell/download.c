@@ -297,6 +297,33 @@ error:
 	return REPLY_ERROR;
 }
 
+static void
+print_download_id(gnet_fi_t handle, void *udata)
+{
+	struct gnutella_shell *sh = udata;
+	gnet_fi_info_t *info;
+
+	shell_check(sh);
+
+	info = guc_fi_get_info(handle);
+	g_return_if_fail(info);
+
+	shell_write(sh, guid_to_string(info->guid));
+	shell_write(sh, "\n");	/* Terminate line */
+}
+
+static enum shell_reply
+shell_exec_download_list(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	file_info_foreach(print_download_id, sh);
+	return REPLY_READY;
+}
+
 /**
  * Handles the download command.
  */
@@ -315,8 +342,9 @@ shell_exec_download(struct gnutella_shell *sh, int argc, const char *argv[])
 		return shell_exec_download_ ## name(sh, argc, argv); \
 } G_STMT_END
 
-	CMD(add);
 	CMD(abort);
+	CMD(add);
+	CMD(list);
 	CMD(pause);
 	CMD(resume);
 	CMD(show);
@@ -345,9 +373,11 @@ shell_help_download(int argc, const char *argv[])
 		/* FIXME */
 		return NULL;
 	} else {
-		return	"download add URL\n"
-				"download [abort|pause|resume] ID\n"
-				"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n";
+		return
+		"download add URL\n"
+		"download list\n"
+		"download [abort|pause|resume] ID\n"
+		"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n";
 	}
 }
 
