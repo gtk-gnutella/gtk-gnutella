@@ -146,6 +146,15 @@ shell_destroy(struct gnutella_shell *sh)
 	shell_free(sh);
 }
 
+void
+shell_set_msg(struct gnutella_shell *sh, const char *text)
+{
+	shell_check(sh);
+
+	G_FREE_NULL(sh->msg);
+	sh->msg = g_strdup(text);
+}
+
 static void
 shell_write_msg(struct gnutella_shell *sh)
 {
@@ -154,15 +163,8 @@ shell_write_msg(struct gnutella_shell *sh)
 	if (sh->msg) {
 		shell_write(sh, " ");
 		shell_write(sh, sh->msg);
-		G_FREE_NULL(sh->msg);
+		shell_set_msg(sh, NULL);
 	}
-}
-
-void
-shell_set_msg(struct gnutella_shell *sh, const char *text)
-{
-	shell_check(sh);
-	sh->msg = g_strdup(text);
 }
 
 static void
@@ -407,11 +409,18 @@ shell_exec(struct gnutella_shell *sh, const char *line)
 		handler = shell_cmd_get_handler(argv[0]);
 		if (handler) {
 			reply_code = (*handler)(sh, argc, argv);
-			if (REPLY_ERROR == reply_code && !sh->msg) {
-				shell_set_msg(sh, _("Malformed command"));
-			}
-			if (REPLY_READY == reply_code && !sh->msg) {
-				shell_set_msg(sh, _("OK"));
+			if (NULL == sh->msg) {
+				switch (reply_code) {
+				case REPLY_ERROR:
+					shell_set_msg(sh, _("Malformed command"));
+					break;
+				case REPLY_READY:
+					shell_set_msg(sh, _("OK"));
+					break;
+				case REPLY_NONE:
+				case REPLY_BYE:
+					break;
+				}
 			}
 		} else {
 			shell_set_msg(sh, _("Unknown command"));

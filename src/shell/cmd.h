@@ -38,7 +38,7 @@ enum shell_reply {
 	REPLY_NONE		= 0,
 	REPLY_READY		= 100,
 	REPLY_ERROR		= 400,
-	REPLY_GOOD_BYE	= 900
+	REPLY_BYE		= 900
 };
 
 struct gnutella_shell;

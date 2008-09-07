@@ -55,7 +55,7 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_shutdown(void)
 {
-	return "Terminate gtk-gnutella";
+	return "Terminate " GTA_PRODUCT_NAME;
 }
 
 const char *
@@ -63,7 +63,7 @@ shell_help_shutdown(int argc, const char *argv[])
 {
 	(void) argc;
 	(void) argv;
-	return "Initiates a shutdown of gtk-gnutella.\n"
+	return "Initiates a shutdown of " GTA_PRODUCT_NAME ".\n"
 		"As a side effect the shell connection is closed as well.\n";
 }
 
