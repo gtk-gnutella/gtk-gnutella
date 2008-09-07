@@ -44,6 +44,7 @@ RCSID("$Id$")
 
 #include "lib/cq.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/misc.h"			/* For size_saturate_add() */
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
 
@@ -69,36 +70,37 @@ mq_is_swift_controlled(const struct mqueue *q)
 	return 0 != (q->flags & MQ_SWIFT);
 }
 
-gint
+int
 mq_maxsize(const struct mqueue *q)
 {
 	return q->maxsize;
 }
 
-gint mq_size(const struct mqueue *q)
+int
+mq_size(const struct mqueue *q)
 {
 	return q->size;
 }
 
-gint
+int
 mq_lowat(const struct mqueue *q)
 {
 	return q->lowat;
 }
 
-gint
+int
 mq_hiwat(const struct mqueue *q)
 {
 	return q->hiwat;
 }
 
-gint
+int
 mq_count(const struct mqueue *q)
 {
 	return q->count;
 }
 
-gint
+int
 mq_pending(const struct mqueue *q)
 {
 	return q->size + tx_pending(q->tx_drv);
@@ -114,6 +116,15 @@ struct gnutella_node *
 mq_node(const struct mqueue *q)
 {
 	return q->node;
+}
+
+/**
+ * Would `additional' bytes of traffic cause the queue to enter flow-control?
+ */
+gboolean
+mq_would_flow_control(const struct mqueue *q, size_t additional)
+{
+	return size_saturate_add(q->size, additional) >= UNSIGNED(q->hiwat);
 }
 
 /**
