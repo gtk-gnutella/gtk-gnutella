@@ -62,6 +62,7 @@ RCSID("$Id$")
 #include "lookup.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/dht/kademlia.h"
 
 #include "core/nodes.h"
 
@@ -75,6 +76,8 @@ RCSID("$Id$")
 #define ULQ_MAX_RUNNING		3		/**< Initial amount of concurrent reqs */
 #define ULQ_UDP_DELAY		5000	/**< Delay in ms if UDP flow-controlled */
 #define ULQ_EMA_SHIFT		7		/**< Shifting during EMA computation */
+
+#define vema(x)	((x) >> ULQ_EMA_SHIFT)
 
 enum ulq_magic {
 	ULQ_MAGIC = 0xfc777379U
@@ -117,10 +120,6 @@ struct ulq_item {
 	} u;
 	lookup_cb_err_t err;			/**< Error callback */
 	gpointer arg;					/**< Common callback opaque argument */
-	/* Collected statistics */
-	int bw_in;						/**< Incoming bandwidth used */
-	int bw_out;						/**< Outgoing bandwidth used */
-	guint elapsed;					/**< Elapsed time in ms */
 };
 
 /**
@@ -149,10 +148,14 @@ static struct ulq_sched {
 	int pending;					/**< Total pending lookups */
 	int bw_in_ema;					/**< Slow EMA of incoming b/w per lookup */
 	int bw_out_ema;					/**< Slow EMA of outgoing b/w per lookup */
+	int sz_in_ema;					/**< Slow EMA of incoming message size */
+	int sz_out_ema;					/**< Slow EMA of outgoing message size */
+	int msg_dropped;				/**< Exponentially decaying # of drops */
 	gboolean udp_flow_controlled;	/**< Whether UDP was flow-controlled */
 } sched;
 
 static void ulq_needs_servicing(void);
+static void ulq_delay_servicing(void);
 
 static inline void
 ulq_check(const struct ulq *uq)
@@ -246,10 +249,6 @@ ulq_completed(struct ulq_item *ui)
 	uq = ui->uq;
 	ulq_check(uq);
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT ULQ %s lookup completed in %.3f secs (in=%d, out=%d)",
-			uq->name, ui->elapsed / 1000.0, ui->bw_in, ui->bw_out);
-
 	uq->running--;
 	sched.running--;
 	slist_remove(uq->launched, ui);
@@ -320,23 +319,51 @@ ulq_lookup_stats(const kuid_t *kuid,
 	ulq_item_check(ui);
 	g_assert(ui->kuid == kuid);		/* Atoms */
 
-	ui->bw_in = ls->bw_incoming;
-	ui->bw_out = ls->bw_outgoing;
-	ui->elapsed = ls->elapsed * 1000.0;
-
 	/*
-	 * Update the Slow EMA (n = 31 => sm = 2/(n+1) = 0.0625 = 1/2^4).
+	 * Update the slow EMAs (n = 31 => sm = 2/(n+1) = 0.0625 = 1/2^4).
 	 *
 	 * To avoid loosing too much of the decimals when computing the EMA,
 	 * we shift the values by ULQ_EMA_SHIFT, and of course we need to
 	 * correct the read values later on by the same amount.
 	 */
 
-	avg = (ui->bw_in << ULQ_EMA_SHIFT) / ls->elapsed;
-	sched.bw_in_ema += (avg >> 4) - (sched.bw_in_ema >> 4);
+	if (ls->elapsed) {
+		avg = (ls->bw_incoming << ULQ_EMA_SHIFT) / ls->elapsed;
+		sched.bw_in_ema += (avg >> 4) - (sched.bw_in_ema >> 4);
 
-	avg = (ui->bw_out << ULQ_EMA_SHIFT) / ls->elapsed;
-	sched.bw_out_ema += (avg >> 4) - (sched.bw_out_ema >> 4);
+		avg = (ls->bw_outgoing << ULQ_EMA_SHIFT) / ls->elapsed;
+		sched.bw_out_ema += (avg >> 4) - (sched.bw_out_ema >> 4);
+	}
+
+	if (ls->rpc_replies) {
+		avg = (ls->bw_incoming << ULQ_EMA_SHIFT) / ls->rpc_replies;
+		sched.sz_in_ema += (avg >> 4) - (sched.sz_in_ema >> 4);
+	}
+
+	if (ls->msg_sent) {
+		avg = (ls->bw_outgoing << ULQ_EMA_SHIFT) / ls->msg_sent;
+		sched.sz_out_ema += (avg >> 4) - (sched.sz_out_ema >> 4);
+	}
+
+	/*
+	 * Exponential decay of number of messages dropped.
+	 */
+
+	if (1 == sched.msg_dropped)
+		sched.msg_dropped = 0;
+	sched.msg_dropped += ls->msg_dropped;
+	sched.msg_dropped -= sched.msg_dropped >> 1;	/* Halve the count */
+
+	if (GNET_PROPERTY(dht_ulq_debug) > 1)
+		g_message("DHT ULQ %s lookup completed in %.3f secs (in=%d, out=%d)",
+			ui->uq->name, ls->elapsed, ls->bw_incoming, ls->bw_outgoing);
+
+	if (GNET_PROPERTY(dht_ulq_debug) > 2)
+		g_message("DHT ULQ sched avg: "
+			"bw_in=%d, bw_out=%d, sz_in=%d, sz_out=%d, dropped=%d",
+			vema(sched.bw_in_ema), vema(sched.bw_out_ema),
+			vema(sched.sz_in_ema), vema(sched.sz_out_ema),
+			sched.msg_dropped);
 }
 
 /**
@@ -435,7 +462,7 @@ ulq_service(void)
 {
 	int max;
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+	if (GNET_PROPERTY(dht_ulq_debug) > 2) {
 		g_message("DHT ULQ service on entry: has %d running and %d pending: %s",
 			sched.running, sched.pending, ulq_queue_status());
 	}
@@ -446,20 +473,46 @@ ulq_service(void)
 	 */
 
 	{
-		int in_ema = sched.bw_in_ema >> BIO_EMA_SHIFT;
-		int out_ema = sched.bw_out_ema >> BIO_EMA_SHIFT;
+		int in_ema = vema(sched.bw_in_ema);
+		int out_ema = vema(sched.bw_out_ema);
+		int sz_in_ema = vema(sched.sz_in_ema) * KDA_ALPHA;
+		int sz_out_ema = vema(sched.sz_out_ema) * KDA_ALPHA;
 		int in_limit = ULQ_MAX_RUNNING;
 		int out_limit = ULQ_MAX_RUNNING;
+		int sz_in_limit = ULQ_MAX_RUNNING;
+		int sz_out_limit = ULQ_MAX_RUNNING;
+
+		/*
+		 * The average traffic per request provides a first limit.
+		 */
 
 		if (in_ema)
 			in_limit = 1 + GNET_PROPERTY(bw_dht_lookup_in) / in_ema;
 		if (out_ema)
 			out_limit = 1 + GNET_PROPERTY(bw_dht_lookup_out) / out_ema;
-		max = MIN(out_limit, in_limit);
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 1)
-			g_message("DHT ULQ service: limits in = %d, out = %d",
-				in_limit, out_limit);
+		/*
+		 * Also consider peak traffic.  We're going to send KDA_ALPHA requests
+		 * simultaneously, however replies are not going to come back
+		 * at the same time, which is why we multiply the max bandwidth by 2,
+		 * considering that the KDA_ALPHA replies will come back within 2
+		 * seconds and not just in the same second timeframe.
+		 */
+
+		if (sz_in_ema)
+			sz_in_limit = 1 + GNET_PROPERTY(bw_dht_lookup_in) * 2 / sz_in_ema;
+		if (sz_out_ema)
+			sz_out_limit = 1 + GNET_PROPERTY(bw_dht_lookup_out) / sz_out_ema;
+
+		if (GNET_PROPERTY(dht_ulq_debug) > 1)
+			g_message("DHT ULQ service: limits in = (bw: %d, sz: %d), "
+				"out = (bw: %d, sz: %d)",
+				in_limit, sz_in_limit, out_limit, sz_out_limit);
+
+		in_limit = MIN(in_limit, sz_in_limit);
+		out_limit = MIN(out_limit, sz_out_limit);
+
+		max = MIN(out_limit, in_limit);
 	}
 
 	/*
@@ -470,6 +523,14 @@ ulq_service(void)
 	while (sched.pending > 0 && sched.running < max) {
 		struct ulq *uq;
 		gboolean launched;
+
+		/*
+		 * If the UDP queue would flow-control with the first batch of
+		 * queries, stop launching.
+		 */
+
+		if (node_udp_would_flow_control(KDA_ALPHA * vema(sched.sz_out_ema)))
+			break;
 
 		if (0 == slist_length(sched.runq))
 			ulq_sched_reset();
@@ -489,21 +550,28 @@ ulq_service(void)
 
 		/*
 		 * When the UDP queue was flagged as flow-controlled, only launch one.
+		 * Likewise if we see dropped messages.
 		 */
 
-		if (launched && sched.udp_flow_controlled)
-			goto done;
+		if (launched && (sched.udp_flow_controlled || sched.msg_dropped > 0))
+			break;
 	}
 
-done:
 	sched.udp_flow_controlled = FALSE;
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
+	if (GNET_PROPERTY(dht_ulq_debug) > 1)
 		g_message("DHT ULQ service at exit: "
 			"max %d, has %d running and %d pending: %s",
 			max, sched.running, sched.pending, ulq_queue_status());
 
-	g_assert(sched.running || 0 == sched.pending);	/* Ensures not stuck */
+	/*
+	 * If nothing is running but we still have queries pending, it means we
+	 * could not launch anything because it would trigger an UDP flow control.
+	 * Attempt servicing again after some delay to let the UDP queue flush.
+	 */
+
+	if (0 == sched.running && sched.pending)
+		ulq_delay_servicing();
 }
 
 /**
@@ -529,18 +597,28 @@ ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
 	 */
 
 	if (node_udp_is_flow_controlled()) {
-		if (GNET_PROPERTY(dht_lookup_debug))
+		if (GNET_PROPERTY(dht_ulq_debug))
 			g_warning("DHT ULQ deferring servicing: UDP queue flow-controlled");
 
 		sched.bw_in_ema += sched.bw_in_ema / 4;
 		sched.bw_out_ema += sched.bw_out_ema / 4;
 		sched.udp_flow_controlled = TRUE;
-		service_ev = cq_insert(callout_queue,
-			ULQ_UDP_DELAY, ulq_do_service, NULL);
+		ulq_delay_servicing();
 		return;
 	}
 
 	ulq_service();
+}
+
+/**
+ * Delay servicing.
+ */
+static void
+ulq_delay_servicing(void)
+{
+	if (NULL == service_ev)
+		service_ev = cq_insert(callout_queue,
+			ULQ_UDP_DELAY, ulq_do_service, NULL);
 }
 
 /**
