@@ -56,23 +56,11 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
-		const char *name_1, *name_2;
 		property_t prop;
-		char buf[80];
 	   
 		prop = GPOINTER_TO_UINT(sl->data);
-		name_1 = gnet_prop_name(prop);
-
-		if (g_slist_next(sl)) {
-			sl = g_slist_next(sl);
-			prop = GPOINTER_TO_UINT(sl->data);
-			name_2 = gnet_prop_name(prop);
-		} else {
-			name_2 = "";
-		}
-
-		gm_snprintf(buf, sizeof buf, "%-34.34s  %-34.34s\n", name_1, name_2);
-		shell_write(sh, buf);
+		shell_write(sh, gnet_prop_name(prop));
+		shell_write(sh, "\n");
 	}
 	g_slist_free(props);
 	props = NULL;
