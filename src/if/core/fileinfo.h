@@ -63,10 +63,10 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
-	const gchar *filename;		/**< Name of the file on disk */
+	const struct guid *guid;	/**< Unique fileinfo ID */
+	const char *filename;		/**< Name of the file on disk */
 	const struct sha1 *sha1;	/**< SHA1 (binary) of the file or NULL */
 	const struct tth *tth;		/**< TTH (binary) of the file or NULL */
-	GSList *aliases;			/**< List of aliases (NULL if none) */
 	filesize_t  size;
 	filesize_t	tth_slice_size;
 	unsigned int tth_depth;
@@ -123,7 +123,7 @@ typedef struct dl_file_info {
     gnet_fi_t fi_handle;    /**< Handle */
 	const struct guid *guid;/**< Unique fileinfo ID */
 	guint32 flags;			/**< Operating flags */
-	const gchar *pathname;	/**< Output pathname (atom) */
+	const char *pathname;	/**< Output pathname (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
 	const struct sha1 *sha1;/**< server SHA1 (atom) if known, NULL if not. */
@@ -172,10 +172,10 @@ typedef struct dl_file_info {
 	 * This group of fields is used by the background SHA1 and moving daemons.
 	 */
 
-	guint cha1_elapsed;		/**< Time spent to compute the SHA1 */
 	filesize_t cha1_hashed;	/**< Amount of bytes hashed so far */
-	guint copy_elapsed;		/**< Time spent to copy the file */
 	filesize_t copied;		/**< Amount of bytes copied so far */
+	unsigned cha1_elapsed;	/**< Time spent to compute the SHA1 */
+	unsigned copy_elapsed;	/**< Time spent to copy the file */
 } fileinfo_t;
 
 static inline void
@@ -269,14 +269,14 @@ GSList *fi_get_chunks(gnet_fi_t);
 void fi_free_chunks(GSList *chunks);
 GSList *fi_get_ranges(gnet_fi_t);
 void fi_free_ranges(GSList *ranges);
-gchar **fi_get_aliases(gnet_fi_t fih);
+char **fi_get_aliases(gnet_fi_t fih);
 gboolean fi_purge(gnet_fi_t fih);
 void fi_pause(gnet_fi_t fih);
 void fi_resume(gnet_fi_t fih);
 
-const gchar *file_info_readable_filename(const struct dl_file_info *fi);
-gchar *file_info_build_magnet(gnet_fi_t fih);
-gchar *file_info_get_file_url(gnet_fi_t fih);
+const char *file_info_readable_filename(const struct dl_file_info *fi);
+char *file_info_build_magnet(gnet_fi_t fih);
+char *file_info_get_file_url(gnet_fi_t fih);
 const char *file_info_status_to_string(const gnet_fi_status_t *status);
 
 void fi_increase_uploaded(fileinfo_t *fi, size_t amount);

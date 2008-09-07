@@ -5434,28 +5434,18 @@ fi_get_info(gnet_fi_t fih)
 
     info = walloc(sizeof *info);
 
+    info->guid = atom_guid_get(fi->guid);
     info->filename = atom_str_get(filepath_basename(fi->pathname));
 	sha1 = fi->sha1 ? fi->sha1 : fi->cha1;
     info->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
     info->tth = fi->tth ? atom_tth_get(fi->tth) : NULL;
     info->fi_handle = fi->fi_handle;
 	info->size = fi->size;
-	info->aliases = NULL;
 
 	info->tth_slice_size = fi->tigertree.slice_size;
 	info->tth_num_leaves = fi->tigertree.num_leaves;
 	info->created		 = fi->created;
 	info->tth_depth      = tt_depth(fi->tigertree.num_leaves);
-
-	if (fi->alias) {
-		GSList *sl;
-
-		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
-			const gchar *alias = sl->data;
-			info->aliases = g_slist_prepend(info->aliases,
-								deconstify_gchar(atom_str_get(alias)));
-		}
-	}
 
     return info;
 }
@@ -5466,20 +5456,12 @@ fi_get_info(gnet_fi_t fih)
 void
 fi_free_info(gnet_fi_info_t *info)
 {
-	GSList *sl;
-
     g_assert(NULL != info);
 
+	atom_guid_free_null(&info->guid);
 	atom_str_free_null(&info->filename);
 	atom_sha1_free_null(&info->sha1);
 	atom_tth_free_null(&info->tth);
-
-	for (sl = info->aliases; NULL != sl; sl = g_slist_next(sl)) {
-		const gchar *s = sl->data;
-		atom_str_free_null(&s);
-	}
-	g_slist_free(info->aliases);
-	info->aliases = NULL;
 
     wfree(info, sizeof *info);
 }

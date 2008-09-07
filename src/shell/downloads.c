@@ -38,42 +38,6 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#if 0 /* UNUSED */
-static const char *
-get_download_status_string(const struct download *d)
-{
-	download_check(d);
-
-	switch (d->status) {
-	case GTA_DL_QUEUED:			return "queued";
-	case GTA_DL_CONNECTING:		return "connecting";
-	case GTA_DL_PUSH_SENT:		return "push sent";
-	case GTA_DL_FALLBACK:		return "falling back to push";
-	case GTA_DL_REQ_SENT:		return "request sent";
-	case GTA_DL_HEADERS:		return "receiving headers";
-	case GTA_DL_RECEIVING:		return "receiving";
-	case GTA_DL_COMPLETED:		return "completed";
-	case GTA_DL_ERROR:			return "error";
-	case GTA_DL_ABORTED:		return "aborted";
-	case GTA_DL_TIMEOUT_WAIT:	return "timeout";
-	case GTA_DL_REMOVED:		return "removed";
-	case GTA_DL_VERIFY_WAIT:	return "waiting for verify";
-	case GTA_DL_VERIFYING:		return "verifying";
-	case GTA_DL_VERIFIED:		return "verified";
-	case GTA_DL_MOVE_WAIT:		return "waiting for move";
-	case GTA_DL_MOVING:			return "moving";
-	case GTA_DL_DONE:			return "done";
-	case GTA_DL_SINKING:		return "sinking";
-	case GTA_DL_ACTIVE_QUEUED:	return "actively queued";
-	case GTA_DL_PASSIVE_QUEUED:	return "passively queued";
-	case GTA_DL_REQ_SENDING:	return "sending request";
-	case GTA_DL_IGNORING:		return "ignoring data";
-	case GTA_DL_INVALID:		g_assert_not_reached();
-	}
-	return "unknown";
-}
-#endif /* UNUSED */
-
 static void
 print_download_info(gnet_fi_t handle, void *udata)
 {
@@ -88,10 +52,14 @@ print_download_info(gnet_fi_t handle, void *udata)
 	g_return_if_fail(info);
 	guc_fi_get_status(handle, &status);
 
+	gm_snprintf(buf, sizeof buf, "ID: %s", guid_to_string(info->guid));
+	shell_write(sh, buf);
+	shell_write(sh, "\n");	/* Terminate line */
+
 	gm_snprintf(buf, sizeof buf, "Filename: \"%s\"", info->filename);
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
-	
+
 	gm_snprintf(buf, sizeof buf, "Hash: %s",
 		info->sha1 ? sha1_to_urn_string(info->sha1) : "<none>");
 	shell_write(sh, buf);
@@ -106,13 +74,13 @@ print_download_info(gnet_fi_t handle, void *udata)
 		compact_size(status.size, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
-	
+
 	gm_snprintf(buf, sizeof buf, "Done: %u%% (%s)",
 		filesize_per_100(status.size, status.done),
 		compact_size(status.done, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
-	
+
 	shell_write(sh, "--\n");
 	guc_fi_free_info(info);
 }
