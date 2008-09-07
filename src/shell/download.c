@@ -267,7 +267,7 @@ shell_exec_download_show(struct gnutella_shell *sh,
 		} else if (0 == strcmp(property, "bitprint")) {
 			show_property(sh, property,
 				(info->sha1 && info->tth)
-					? bitprint_to_urn_string(info->sha1, info->tth) : NULL);
+					? bitprint_to_urn_string(info->sha1, info->tth) : "");
 		} else if (0 == strcmp(property, "created")) {
 			show_property(sh, property,
 				info->created ? timestamp_to_string(info->created) : "");
