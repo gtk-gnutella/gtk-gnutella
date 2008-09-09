@@ -2677,7 +2677,7 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 	int maxtry;
 	map_t *seen;
 
-	g_assert(hcnt < MIN_INT_VAL(int) / 2);
+	g_assert(hcnt < MAX_INT_VAL(int) / 2);
 
 	maxtry = hcnt + hcnt;
 	seen = map_create_patricia(KUID_RAW_SIZE);
