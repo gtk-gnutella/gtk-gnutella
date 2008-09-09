@@ -136,7 +136,7 @@ calculate_hec(const struct guid *guid, size_t offset)
 	guint8 hec = 0;
 
 	for (i = 0; i < 15; i++)
-		hec = syndrome_table[hec ^ (guint8) guid->v[i + offset]];
+		hec = syndrome_table[hec ^ peek_u8(&guid->v[i + offset])];
 
 	return hec ^ HEC_GTKG_MASK;
 }
@@ -246,9 +246,9 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
 	guint16 xmark;
 
 	g_assert(start < GUID_RAW_SIZE - 1);
-	major = guid->v[start] & 0x0f;
-	minor = guid->v[start + 1] & 0x7f;
-	release = (guid->v[start + 1] & 0x80) ? FALSE : TRUE;
+	major = peek_u8(&guid->v[start]) & 0x0f;
+	minor = peek_u8(&guid->v[start + 1]) & 0x7f;
+	release = (peek_u8(&guid->v[start + 1]) & 0x80) ? FALSE : TRUE;
 
 	mark = guid_gtkg_encode_version(major, minor, release);
 	xmark = peek_be16(&guid->v[start]);
@@ -288,7 +288,7 @@ gboolean
 guid_is_gtkg(const struct guid *guid,
 	guint8 *majp, guint8 *minp, gboolean *relp)
 {
-	if (guid->v[0] != guid_hec(guid))
+	if (peek_u8(&guid->v[0]) != guid_hec(guid))
 		return FALSE;
 
 	return guid_extract_gtkg_info(guid, 2, majp, minp, relp);
@@ -300,7 +300,7 @@ guid_is_gtkg(const struct guid *guid,
 gboolean
 guid_is_requery(const struct guid *guid)
 {
-	return (guid->v[15] & GUID_REQUERY) ? TRUE : FALSE;
+	return (peek_u8(&guid->v[15]) & GUID_REQUERY) ? TRUE : FALSE;
 }
 
 /**
@@ -348,13 +348,16 @@ guid_ping_muid(struct guid *muid)
 void
 guid_query_muid(struct guid *muid, gboolean initial)
 {
+	guint8 v;
+
 	guid_random_fill(muid);
 
+	v = peek_u8(&muid->v[15]);
 	if (initial)
-		muid->v[15] &= ~GUID_REQUERY;
+		v &= ~GUID_REQUERY;
 	else
-		muid->v[15] |= GUID_REQUERY;
-
+		v |= GUID_REQUERY;
+	muid->v[15] = v;
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
 }
 
@@ -388,7 +391,7 @@ guid_oob_is_gtkg(const struct guid *guid,
 	 * therefore it is masked out for comparison purposes.
 	 */
 
-	if ((guid->v[15] & ~GUID_REQUERY) != (guid_hec_oob(guid) & ~GUID_REQUERY))
+	if ((peek_u8(&guid->v[15]) & ~GUID_REQUERY) != (guid_hec_oob(guid) & ~GUID_REQUERY))
 		return FALSE;
 
 	return guid_extract_gtkg_info(guid, 4, majp, minp, relp);
