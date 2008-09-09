@@ -192,6 +192,47 @@ error:
 	return REPLY_ERROR;
 }
 
+static enum shell_reply
+shell_exec_download_rename(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	fileinfo_t *fi;
+	struct guid guid;
+	const char *id, *filename;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc != 4) {
+		shell_set_msg(sh, "Invalid parameter count");
+		goto error;
+	}
+	id = argv[2];
+	filename = argv[3];
+
+	if (!hex_to_guid(id, &guid)) {
+		shell_set_msg(sh, "Unparsable ID");
+		goto error;
+	}
+
+	fi = file_info_by_guid(&guid);
+	if (NULL == fi) {
+		shell_set_msg(sh, "Invalid ID");
+		goto error;
+	}
+
+	if (!file_info_rename(fi, filename)) {
+		shell_set_msg(sh, "Renaming failed");
+		goto error;
+	}
+
+	return REPLY_READY;
+
+error:
+	return REPLY_ERROR;
+}
+
 static void
 show_property(struct gnutella_shell *sh,
 	const char *name, const char *value)
@@ -288,6 +329,10 @@ shell_exec_download_show(struct gnutella_shell *sh,
 			show_property(sh, property, boolean_to_string(status.finished));
 		} else if (0 == strcmp(property, "complete")) {
 			show_property(sh, property, boolean_to_string(status.complete));
+		} else if (0 == strcmp(property, "magnet")) {
+			char *magnet = file_info_build_magnet(fi->fi_handle);
+			show_property(sh, property, EMPTY_STRING(magnet));
+			G_FREE_NULL(magnet);
 		}
 	}
 	guc_fi_free_info(info);
@@ -347,6 +392,7 @@ shell_exec_download(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(list);
 	CMD(pause);
 	CMD(resume);
+	CMD(rename);
 	CMD(show);
 #undef CMD
 	
@@ -377,7 +423,9 @@ shell_help_download(int argc, const char *argv[])
 		"download add URL\n"
 		"download list\n"
 		"download [abort|pause|resume] ID\n"
-		"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n";
+		"download show ID [filename|size|downloaded|id|paused|sha1|tth]\n"
+		"download rename ID filename\n"
+		;
 	}
 }
 

@@ -3618,7 +3618,9 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
 		}
 		shared_file_set_modification_time(fi->sf, sb.st_mtime);
 	}
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
+	fileinfo_dirty = TRUE;
 }
 
 /**
@@ -6422,6 +6424,59 @@ file_info_status_to_string(const gnet_fi_status_t *status)
     }
 }
 
+/**
+ * Change the basename of a filename and rename it on-disk.
+ * @return TRUE in case of success, FALSE on error.
+ */
+gboolean
+file_info_rename(fileinfo_t *fi, const char *filename)
+{
+	gboolean success = FALSE;
+	char *pathname;
+
+	file_info_check(fi);
+	g_return_val_if_fail(fi->hashed, FALSE);
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(filepath_basename(filename) == filename, FALSE);
+
+	g_return_val_if_fail(!FILE_INFO_COMPLETE(fi), FALSE);
+	g_return_val_if_fail(!(FI_F_TRANSIENT & fi->flags), FALSE);
+	g_return_val_if_fail(!(FI_F_SEEDING & fi->flags), FALSE);
+	g_return_val_if_fail(!(FI_F_STRIPPED & fi->flags), FALSE);
+
+	{
+		char *directory, *name;
+	   
+		directory = filepath_directory(fi->pathname);
+		name = gm_sanitize_filename(filename, FALSE, FALSE);
+		pathname = file_info_unique_filename(directory, name, "");
+		if (name != filename) {
+			G_FREE_NULL(name);
+		}
+		G_FREE_NULL(directory);
+	}
+
+	if (NULL != pathname) {
+		struct stat sb;
+
+		if (stat(fi->pathname, &sb)) {
+			if (ENOENT == errno) {
+				/* Assume file hasn't even been created yet */
+				success = TRUE;
+			}
+		} else if (S_ISREG(sb.st_mode)) {
+			if (0 == rename(fi->pathname, pathname)) {
+				success = TRUE;
+			}
+		}
+		if (success) {
+			file_info_moved(fi, pathname);
+		}
+	}
+
+	G_FREE_NULL(pathname);
+	return success;
+}
 
 /**
  * Initialize fileinfo handling.
@@ -6445,7 +6500,7 @@ file_info_init(void)
 
     fi_events[EV_FI_ADDED]          = event_new("fi_added");
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
-    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
+    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");
 	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
     fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
     fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] =

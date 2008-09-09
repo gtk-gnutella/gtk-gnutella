@@ -117,6 +117,7 @@ fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const gchar *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
+gboolean file_info_rename(fileinfo_t *fi, const char *filename);
 
 typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, gpointer udata);
 void file_info_foreach(file_info_foreach_cb callback, gpointer udata);

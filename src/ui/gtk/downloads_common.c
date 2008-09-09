@@ -1524,6 +1524,17 @@ fi_gui_file_update(gnet_fi_t handle)
 }
 
 static void
+fi_gui_fi_info_changed(gnet_fi_t handle)
+{
+	struct fileinfo_data *file;
+
+	file = fi_gui_file_by_handle(handle);
+	g_return_if_fail(file);
+
+	fi_gui_file_set_filename(file);
+}
+
+static void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
 	void *key = uint_to_pointer(handle);
@@ -2234,6 +2245,8 @@ fi_gui_common_init(void)
 		FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_info_changed, EV_FI_INFO_CHANGED,
+		FREQ_SECS, 0);
 
     guc_src_add_listener(fi_gui_src_added, EV_SRC_ADDED, FREQ_SECS, 0);
     guc_src_add_listener(fi_gui_src_removed, EV_SRC_REMOVED, FREQ_SECS, 0);
