@@ -174,6 +174,17 @@ guid_init(void)
 
 	if (GNET_PROPERTY(dbg))
 		printf("GTKG version mark is 0x%x\n", gtkg_version_mark);
+
+	/*
+	 * Validate that guid_random_muid() correctly marks GUIDs as being GTKG's.
+	 */
+
+	{
+		struct guid guid_buf;
+
+		guid_random_muid(&guid_buf);
+		g_assert(guid_is_gtkg(&guid_buf, NULL, NULL, NULL));
+	}
 }
 
 /**
