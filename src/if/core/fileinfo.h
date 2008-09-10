@@ -273,6 +273,7 @@ char **fi_get_aliases(gnet_fi_t fih);
 gboolean fi_purge(gnet_fi_t fih);
 void fi_pause(gnet_fi_t fih);
 void fi_resume(gnet_fi_t fih);
+gboolean fi_rename(gnet_fi_t fih, const char *);
 
 const char *file_info_readable_filename(const struct dl_file_info *fi);
 char *file_info_build_magnet(gnet_fi_t fih);

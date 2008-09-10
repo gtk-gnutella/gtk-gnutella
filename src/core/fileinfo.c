@@ -5929,6 +5929,12 @@ fi_resume(gnet_fi_t fih)
 	return file_info_resume(file_info_find_by_handle(fih));
 }
 
+gboolean
+fi_rename(gnet_fi_t fih, const char *filename)
+{
+	return file_info_rename(file_info_find_by_handle(fih), filename);
+}
+
 /**
  * Emit an X-Available-Ranges header listing the ranges within the file that
  * we have on disk and we can share as a PFSP-server.  The header is emitted
@@ -6449,13 +6455,18 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 	   
 		directory = filepath_directory(fi->pathname);
 		name = gm_sanitize_filename(filename, FALSE, FALSE);
-		pathname = file_info_unique_filename(directory, name, "");
+
+		if (0 == strcmp(filepath_basename(fi->pathname), name)) {
+			pathname = NULL;
+			success = TRUE;
+		} else {
+			pathname = file_info_unique_filename(directory, name, "");
+		}
 		if (name != filename) {
 			G_FREE_NULL(name);
 		}
 		G_FREE_NULL(directory);
 	}
-
 	if (NULL != pathname) {
 		struct stat sb;
 
@@ -6472,9 +6483,8 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 		if (success) {
 			file_info_moved(fi, pathname);
 		}
+		G_FREE_NULL(pathname);
 	}
-
-	G_FREE_NULL(pathname);
 	return success;
 }
 
