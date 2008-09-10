@@ -748,11 +748,13 @@ fi_gui_clear_details(void)
 }
 
 void
-fi_gui_append_detail(const gchar *name, const gchar *value)
+fi_gui_append_detail(const enum fi_gui_detail unused_id,
+	const gchar *name, const gchar *value)
 {
 	GtkCList *clist = clist_download_details;
  	const gchar *titles[2];
 
+	(void) unused_id;
 	g_return_if_fail(clist);
 	titles[0] = name;
 	titles[1] = EMPTY_STRING(value);

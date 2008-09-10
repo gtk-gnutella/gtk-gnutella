@@ -531,6 +531,33 @@ fi_gui_get_alias(GtkWidget *widget)
 }
 
 static void
+on_cell_edited(GtkCellRendererText *unused_renderer, const char *path_str,
+	const char *text, gpointer data)
+{
+	GtkTreeView *tv = data;
+	GtkTreeModel *model;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	unsigned int id;
+
+	(void) unused_renderer;
+
+	g_return_if_fail(NULL != tv);
+	model = gtk_tree_view_get_model(tv);
+	g_return_if_fail(NULL != model);
+
+	path = gtk_tree_path_new_from_string(path_str);
+	gtk_tree_model_get_iter(model, &iter, path);
+
+	gtk_tree_model_get(model, &iter, 0, &id, (-1));
+	if (FI_GUI_DETAIL_FILENAME == id) {
+		fi_gui_rename(text);
+	}
+
+	gtk_tree_path_free(path);
+}
+
+static void
 fi_gui_details_treeview_init(void)
 {
 	static const struct {
@@ -538,6 +565,7 @@ fi_gui_details_treeview_init(void)
 		gfloat xalign;
 		gboolean editable;
 	} tab[] = {
+		{ "ID",		1.0, FALSE },
 		{ "Item",	1.0, FALSE },
 		{ "Value",	0.0, TRUE },
 	};
@@ -549,8 +577,8 @@ fi_gui_details_treeview_init(void)
 	g_return_if_fail(tv);
 	treeview_download_details = tv;
 
-	model = GTK_TREE_MODEL(
-		gtk_list_store_new(G_N_ELEMENTS(tab), G_TYPE_STRING, G_TYPE_STRING));
+	model = GTK_TREE_MODEL(gtk_list_store_new(G_N_ELEMENTS(tab),
+				G_TYPE_UINT, G_TYPE_STRING, G_TYPE_STRING));
 
 	gtk_tree_view_set_model(tv, model);
 	g_object_unref(model);
@@ -563,12 +591,14 @@ fi_gui_details_treeview_init(void)
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
 			(void *) 0);
+		gui_signal_connect(renderer, "edited", on_cell_edited, tv);
 		column = gtk_tree_view_column_new_with_attributes(tab[i].title,
 					renderer, "text", i, (void *) 0);
 		g_object_set(column,
+			"visible",	i > 0 ? TRUE : FALSE,
 			"min-width", 1,
 			"resizable", TRUE,
-			"sizing", (0 == i)
+			"sizing", 1 == i
 						? GTK_TREE_VIEW_COLUMN_AUTOSIZE
 						: GTK_TREE_VIEW_COLUMN_FIXED,
 			(void *) 0);
@@ -614,6 +644,7 @@ treeview_download_files_init(void)
 			c_fi_progress == i ? gtk_cell_renderer_progress_new() : NULL,
 			render_files);
 	}
+
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 		GTK_SELECTION_MULTIPLE);
 	gtk_tree_view_set_headers_visible(tv, TRUE);
@@ -903,7 +934,8 @@ fi_gui_clear_details(void)
 }
 
 void
-fi_gui_append_detail(const gchar *title, const gchar *value)
+fi_gui_append_detail(const enum fi_gui_detail id,
+	const gchar *title, const gchar *value)
 {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
@@ -912,7 +944,7 @@ fi_gui_append_detail(const gchar *title, const gchar *value)
     model = gtk_tree_view_get_model(treeview_download_details);
 
 	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, title, 1, value, (-1));
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, id, 1, title, 2, value, (-1));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

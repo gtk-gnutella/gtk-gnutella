@@ -191,18 +191,19 @@ fi_gui_set_details(const struct fileinfo_data *file)
     info = guc_fi_get_info(file->handle);
 	g_return_if_fail(info);
 
-	fi_gui_append_detail(_("Filename"), file->filename);
-	fi_gui_append_detail(_("Size"), nice_size(file->size, show_metric_units()));
-	fi_gui_append_detail(_("Created"), timestamp_to_string(file->created));
-	fi_gui_append_detail(_("Modified"),
+	fi_gui_append_detail(FI_GUI_DETAIL_FILENAME, _("Filename"),
+		file->filename);
+	fi_gui_append_detail(FI_GUI_DETAIL_SIZE, _("Size"),
+		nice_size(file->size, show_metric_units()));
+	fi_gui_append_detail(FI_GUI_DETAIL_CREATED, _("Created"),
+		timestamp_to_string(file->created));
+	fi_gui_append_detail(FI_GUI_DETAIL_MODIFIED, _("Modified"),
 		file->modified ? timestamp_to_string(file->modified) : "-");
 
-	fi_gui_append_detail(_("SHA-1"),
-		info->sha1
-			? sha1_to_urn_string(info->sha1)
-			: _("Not available"));
+	fi_gui_append_detail(FI_GUI_DETAIL_SHA1, _("SHA-1"),
+		info->sha1 ? sha1_to_urn_string(info->sha1) : _("Not available"));
 
-	fi_gui_append_detail(_("Bitprint"),
+	fi_gui_append_detail(FI_GUI_DETAIL_BITPRINT, _("Bitprint"),
 		info->sha1 && info->tth
 			? bitprint_to_urn_string(info->sha1, info->tth)
 			: _("Not available"));
@@ -215,15 +216,18 @@ fi_gui_set_details(const struct fileinfo_data *file)
 			(unsigned long) info->tth_num_leaves,
 			info->tth_depth,
 			nice_size(info->tth_slice_size, show_metric_units()));
-   		fi_gui_append_detail(_("Tigertree"), buf);
+   		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"), buf);
 	} else {
-   		fi_gui_append_detail(_("Tigertree"), _("Not available"));
+   		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"),
+			_("Not available"));
 	}
 
 	if (info->sha1) {
-		fi_gui_append_detail(_("External metadata"), NULL);	/* Separator */
-		fi_gui_append_detail(_("Bitzi URL"), url_for_bitzi_lookup(info->sha1));
-		fi_gui_append_detail(_("ShareMonkey URL"),
+		fi_gui_append_detail(FI_GUI_DETAIL_UNSPECIFIED, _("External metadata"),
+			NULL);	/* Separator */
+		fi_gui_append_detail(FI_GUI_DETAIL_BITZI, _("Bitzi URL"),
+			url_for_bitzi_lookup(info->sha1));
+		fi_gui_append_detail(FI_GUI_DETAIL_SHAREMONKEY, _("ShareMonkey URL"),
 			url_for_sharemonkey_lookup(info->sha1, info->filename, info->size));
 	}
 
@@ -1181,7 +1185,8 @@ fi_gui_file_set_filename(struct fileinfo_data *file)
     info = guc_fi_get_info(file->handle);
     g_return_if_fail(info);
 
-	file->filename = atom_str_get(lazy_filename_to_ui_string(info->filename));
+	atom_str_change(&file->filename,
+		lazy_filename_to_ui_string(info->filename));
 	file->created = info->created;
 	guc_fi_free_info(info);
 	fi_gui_file_update_matched(file);
@@ -1523,6 +1528,15 @@ fi_gui_file_update(gnet_fi_t handle)
 	}
 }
 
+gboolean
+fi_gui_rename(const char *filename)
+{
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(last_shown_valid, FALSE);
+
+	return guc_fi_rename(last_shown, filename);
+}
+
 static void
 fi_gui_fi_info_changed(gnet_fi_t handle)
 {
@@ -1532,6 +1546,9 @@ fi_gui_fi_info_changed(gnet_fi_t handle)
 	g_return_if_fail(file);
 
 	fi_gui_file_set_filename(file);
+	if (last_shown_valid && handle == last_shown) {
+		fi_gui_show_info(file);
+	}
 }
 
 static void

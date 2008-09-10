@@ -416,7 +416,6 @@ upload_stats_gui_add(struct ul_stats *us)
 {
 	struct upload_data *data;
     GtkListStore *store;
-	gchar *filename;
 
 	g_assert(us != NULL);
 
@@ -428,10 +427,7 @@ upload_stats_gui_add(struct ul_stats *us)
 	data = walloc(sizeof *data);
 	data->us = us;
 
-	filename = filename_to_utf8_normalized(us->filename, UNI_NORM_GUI);
-	data->filename = atom_str_get(filename);
-	G_FREE_NULL(filename);
-
+	data->filename = atom_str_get(us->filename);
 	gm_hash_table_insert_const(ht_uploads, data->us, data);
 
 	gtk_list_store_append(store, &data->iter);

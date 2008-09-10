@@ -125,6 +125,8 @@ const char *fi_gui_file_get_filename(const struct fileinfo_data *);
 unsigned fi_gui_file_get_progress(const struct fileinfo_data *);
 char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 
+gboolean fi_gui_rename(const char *filename);
+
 unsigned fi_gui_source_get_progress(const struct download *);
 
 const char *fi_gui_files_column_title(int column);
@@ -168,7 +170,20 @@ struct download *fi_gui_get_source_at_cursor(void);
 typedef int (*fi_gui_files_foreach_cb)(struct fileinfo_data *, void *user_data);
 void fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data);
 
-void fi_gui_append_detail(const char *title, const char *value);
+enum fi_gui_detail {
+	FI_GUI_DETAIL_UNSPECIFIED,
+	FI_GUI_DETAIL_FILENAME,
+	FI_GUI_DETAIL_SIZE,
+	FI_GUI_DETAIL_CREATED,
+	FI_GUI_DETAIL_MODIFIED,
+	FI_GUI_DETAIL_SHA1,
+	FI_GUI_DETAIL_BITPRINT,
+	FI_GUI_DETAIL_TIGERTREE,
+	FI_GUI_DETAIL_BITZI,
+	FI_GUI_DETAIL_SHAREMONKEY
+};
+
+void fi_gui_append_detail(enum fi_gui_detail, const char *title, const char *value);
 
 GSList *fi_gui_get_selected_files(gboolean unselect);
 GSList *fi_gui_get_selected_sources(gboolean unselect);

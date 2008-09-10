@@ -379,6 +379,12 @@ guc_fi_resume(gnet_fi_t fih)
 	fi_resume(fih);
 }
 
+gboolean
+guc_fi_rename(gnet_fi_t fih, const char *filename)
+{
+	return fi_rename(fih, filename);
+}
+
 void
 guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval)
