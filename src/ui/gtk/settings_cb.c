@@ -468,6 +468,8 @@ on_cell_edited(GtkCellRendererText *unused_renderer, const gchar *path_str,
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 		dbg_col_value, gnet_prop_to_string(prop),
 		(-1));
+
+	gtk_tree_path_free(path);
 }
 
 static gboolean
