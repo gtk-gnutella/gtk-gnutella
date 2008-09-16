@@ -2055,9 +2055,9 @@ use_netmasks_changed(property_t prop)
 static gboolean
 guid_changed(property_t prop)
 {
-    gchar guid_buf[GUID_RAW_SIZE];
+    struct guid guid_buf;
 
-    gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
+    gnet_prop_get_storage(prop, guid_buf.v, sizeof guid_buf.v);
 
 #ifdef USE_GTK2
 	{
@@ -2066,14 +2066,14 @@ guid_changed(property_t prop)
 
 	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_guid"));
 		concat_strings(buf, sizeof buf,
-			"<tt>", guid_hex_str(guid_buf), "</tt>", (void *) 0);
+			"<tt>", guid_hex_str(&guid_buf), "</tt>", (void *) 0);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
 #else
     gtk_entry_set_text(
         GTK_ENTRY(gui_main_window_lookup("entry_nodes_guid")),
-        guid_hex_str(cast_to_guid_ptr_const(guid_buf)));
+        guid_hex_str(&guid_buf));
 #endif /* USE_GTK2 */
 
     return FALSE;
