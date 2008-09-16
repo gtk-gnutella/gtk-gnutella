@@ -2073,7 +2073,7 @@ guid_changed(property_t prop)
 #else
     gtk_entry_set_text(
         GTK_ENTRY(gui_main_window_lookup("entry_nodes_guid")),
-        guid_hex_str(guid_buf));
+        guid_hex_str(cast_to_guid_ptr_const(guid_buf)));
 #endif /* USE_GTK2 */
 
     return FALSE;
