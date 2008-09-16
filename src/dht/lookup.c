@@ -157,7 +157,6 @@ struct nlookup {
 	lookup_type_t type;			/**< Type of lookup (NODE or VALUE) */
 	enum parallelism mode;		/**< Parallelism mode */
 	guint32 lid;				/**< Lookup ID (unique to this object) */
-	int initial_shortlist_cnt;	/**< Size of shortlist at the beginning */
 	int initial_contactable;	/**< Amount of contactable nodes initially */
 	int amount;					/**< Amount of closest nodes we'd like */
 	int msg_pending;			/**< Amount of messages pending */
@@ -2401,7 +2400,6 @@ lookup_load_shortlist(nlookup_t *nl)
 	}
 
 	nl->closest = patricia_closest(nl->shortlist, nl->kuid);
-	nl->initial_shortlist_cnt = kcnt;
 	nl->initial_contactable = contactable;
 
 	wfree(kvec, KDA_K * sizeof(knode_t *));
@@ -2992,9 +2990,9 @@ retry_check:
 				"too many timeouts", nl->lid);
 
 		lookup_value_done(nl);
+	} else {
+		lookup_value_delay(nl);
 	}
-
-	lookup_value_delay(nl);
 
 	/* FALL THROUGH */
 
