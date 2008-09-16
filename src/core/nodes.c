@@ -3085,7 +3085,7 @@ send_proxy_request(gnutella_node_t *n)
 	g_assert(!is_host_addr(n->proxy_addr));		/* Not proxying us yet */
 
 	n->flags |= NODE_F_PROXY;
-	vmsg_send_proxy_req(n, GNET_PROPERTY(servent_guid));
+	vmsg_send_proxy_req(n, cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid)));
 }
 
 /**

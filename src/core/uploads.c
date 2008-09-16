@@ -2100,7 +2100,8 @@ upload_connect_conf(struct upload *u)
 	 */
 
 	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
-			(gulong) u->file_index, guid_hex_str(GNET_PROPERTY(servent_guid)));
+			(gulong) u->file_index,
+			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
 
 	s = u->socket;
 	sent = bws_write(bsched_out_select_by_addr(s->addr), &s->wio, giv, rw);

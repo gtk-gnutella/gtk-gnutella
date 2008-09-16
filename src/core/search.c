@@ -4095,7 +4095,8 @@ search_locally(gnet_search_t sh, const gchar *query)
 	rs->port = GNET_PROPERTY(listen_port);
 	rs->last_hop = zero_host_addr;
 	rs->country = ISO3166_INVALID;
-	rs->guid = atom_guid_get(GNET_PROPERTY(servent_guid));
+	rs->guid = atom_guid_get(
+		cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid)));
 	rs->vcode.u32 = T_GTKG;
     rs->status |= ST_LOCAL | ST_KNOWN_VENDOR;
 
