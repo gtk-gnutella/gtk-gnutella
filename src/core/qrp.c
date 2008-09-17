@@ -3556,9 +3556,10 @@ qrt_handle_reset(
 	rt->slots = rt->client_slots / qrcv->shrink_factor;
 	rt->bits = highest_bit_set(rt->slots);
 
-	// Populate can route routines based on constant slot sizes.  This
-	// allows pre-computed shift to be optimized for the table under
-	// question.
+	/* Populate 'can_route' routines based on constant slot sizes.
+	 * This allows pre-computed shift to be optimized for the table
+	 * under question.
+	 */
 	switch(rt->bits)
 	{
 		case 14:
