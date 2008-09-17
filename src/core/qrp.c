@@ -141,6 +141,16 @@ struct routing_table {
 	gchar *name;			/**< Name for dumping purposes */
 	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;
+	/**
+	 * Whether this routing table can route the given URN query.
+	 */
+	gboolean (*can_route_urn)(const query_hashvec_t *,
+							  const struct routing_table *rt);
+	/**
+	 * Whether this routing table can route the keyword query.
+	 */
+	gboolean (*can_route)(const query_hashvec_t *,
+						  const struct routing_table *rt);
 };
 
 enum routing_patch_magic {
@@ -176,6 +186,10 @@ void test_hash(void);
 static void qrp_monitor(cqueue_t *cq, gpointer obj);
 
 static cevent_t *monitor_ev;
+
+static gboolean
+qrp_can_route_default(const query_hashvec_t *qhv,
+					  const struct routing_table *rt);
 
 /**
  * Install supplied routing_table as the global `routing_table'.
@@ -507,13 +521,13 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 		/*
 		 * In our compacted table, set bits indicate presence.
 		 * Thus, we need to build the patch quartets as:
-         *
-         *     old bit      new bit      patch
-         *        0            0          0x0     (no change)
-         *        0            1          0xf     (-1, from INFINITY=2 to 1)
-         *        1            0          0x1     (+1, from 1 to INFINITY)
-         *        1            1          0x0     (no change)
-         */
+		 *
+		 *     old bit      new bit      patch
+		 *        0            0          0x0     (no change)
+		 *        0            1          0xf     (-1, from INFINITY=2 to 1)
+		 *        1            0          0x1     (+1, from 1 to INFINITY)
+		 *        1            1          0x0     (no change)
+		 */
 
 		for (v = 0, j = 7; j >= 0; j--) {
 			guint8 mask = 1 << j;
@@ -740,16 +754,18 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
 
 	rt = walloc(sizeof *rt);
 
-	rt->magic = QRP_ROUTE_MAGIC;
-	rt->name = g_strdup(name);
-	rt->arena = (guchar *) arena;
-	rt->slots = slots;
-	rt->generation = generation++;
-	rt->refcnt = 0;
-	rt->infinity = max;
-	rt->compacted = FALSE;
-	rt->digest = NULL;
-	rt->reset = FALSE;
+	rt->magic         = QRP_ROUTE_MAGIC;
+	rt->name          = g_strdup(name);
+	rt->arena         = (guchar *) arena;
+	rt->slots         = slots;
+	rt->generation    = generation++;
+	rt->refcnt        = 0;
+	rt->infinity      = max;
+	rt->compacted     = FALSE;
+	rt->digest        = NULL;
+	rt->reset         = FALSE;
+	rt->can_route_urn = qrp_can_route_default;
+	rt->can_route     = qrp_can_route_default;
 
 	qrt_compact(rt);
 
@@ -3333,6 +3349,110 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, gint len)
 }
 
 /**
+ * A macro that creates functions with fixed slot sizes to determine
+ * if the table contains all key words.  With a parameter of 21, the
+ * name will be qrp_can_route_21.
+ */
+#define CAN_ROUTE(bits)                                               \
+static gboolean                                                       \
+qrp_can_route_##bits(const query_hashvec_t *qhv,                      \
+					 const struct routing_table *rt)                  \
+					                                                  \
+{                                                                     \
+	const guint8 *arena = rt->arena;                                  \
+	const guint   shift = 32 - bits;                                  \
+	guint i;                                                          \
+					                                                  \
+	g_assert(!qhv->has_urn);                                          \
+	g_assert(bits == rt->b##its);                                     \
+					                                                  \
+	for (i = 0; i < qhv->count; i++) {                                \
+		guint32 idx = qhv->vec[i].hashcode >> shift;                  \
+					                                                  \
+		/* ALL the keywords must be present. */                       \
+		if (!RT_SLOT_READ(arena, idx)) {                              \
+			return FALSE;				/* All words did not match */ \
+		}                                                             \
+	}                                                                 \
+	/* All the words matched, so route query!*/                       \
+	return TRUE;                                                      \
+}
+
+/* Create eight QRT lookup routines with fixed shift factors. */
+CAN_ROUTE(14);
+CAN_ROUTE(15);
+CAN_ROUTE(16);
+CAN_ROUTE(17);
+CAN_ROUTE(18);
+CAN_ROUTE(19);
+CAN_ROUTE(20);
+CAN_ROUTE(21);
+
+#undef CAN_ROUTE
+
+/**
+ * A macro that creates functions with fixed slot sizes to determine
+ * if the table contains an URN.  With a parameter of 14, the name
+ * will be qrp_can_route_urn_14.
+ *
+ * @todo: Is URN searched deprecated, with DHT queries?
+ *
+ */
+#define CAN_ROUTE_URN(bits)                                           \
+static gboolean                                                       \
+qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
+					                const struct routing_table *rt)   \
+{                                                                     \
+	const struct query_hash *qh = qhv->vec;                           \
+	const guint8 *arena         = rt->arena;                          \
+	const guint shift           = 32 - bits;                          \
+	guint i;                                                          \
+					                                                  \
+	g_assert(qhv->has_urn);                                           \
+	g_assert(bits == rt->b##its);                                     \
+					                                                  \
+	for (i = 0; i < qhv->count; i++) {                                \
+		guint32 idx = qh[i].hashcode >> shift;                        \
+					                                                  \
+		/*                                                            \
+		 * If there is an entry in the table and the source is an URN,\
+		 * we have to forward the query, as those are OR-ed.          \
+		 * Otherwise, ALL the keywords must be present.               \
+		 *                                                            \
+		 * When facing a SHA1 query, we require that at least one of  \
+		 * the URN matches or we don't forward the query.             \
+		 */                                                           \
+		if (RT_SLOT_READ(arena, idx)) {                               \
+			if (qh[i].source == QUERY_H_URN)	/* URN present */     \
+				return TRUE;					/* Will forward */    \
+			return FALSE;					/* And none matched */    \
+		} else {                                                      \
+			if (qh[i].source == QUERY_H_WORD) {                       \
+				/* We know no URN matched already                     \
+				   because qhv is sorted */                           \
+				return FALSE;	/* All words did not match */         \
+			}                                                         \
+		}                                                             \
+	}                                                                 \
+	/*                                                                \
+	 * We had some URNs and none matched so don't forward.            \
+	 */                                                               \
+	return FALSE;                                                     \
+}
+
+/* Create eight QRT lookup routines (with a URN) with fixed shift
+ * factors. */
+CAN_ROUTE_URN(14);
+CAN_ROUTE_URN(15);
+CAN_ROUTE_URN(16);
+CAN_ROUTE_URN(17);
+CAN_ROUTE_URN(18);
+CAN_ROUTE_URN(19);
+CAN_ROUTE_URN(20);
+CAN_ROUTE_URN(21);
+#undef CAN_ROUTE_URN
+
+/**
  * Handle reception of QRP RESET.
  *
  * @returns TRUE if we handled the message correctly, FALSE if an error
@@ -3435,6 +3555,49 @@ qrt_handle_reset(
 
 	rt->slots = rt->client_slots / qrcv->shrink_factor;
 	rt->bits = highest_bit_set(rt->slots);
+
+	// Populate can route routines based on constant slot sizes.  This
+	// allows pre-computed shift to be optimized for the table under
+	// question.
+	switch(rt->bits)
+	{
+		case 14:
+			rt->can_route_urn = qrp_can_route_urn_14;
+			rt->can_route     = qrp_can_route_14;
+			break;
+		case 15:
+			rt->can_route_urn = qrp_can_route_urn_15;
+			rt->can_route     = qrp_can_route_15;
+			break;
+		case 16:
+			rt->can_route_urn = qrp_can_route_urn_16;
+			rt->can_route     = qrp_can_route_16;
+			break;
+		case 17:
+			rt->can_route_urn = qrp_can_route_urn_17;
+			rt->can_route     = qrp_can_route_17;
+			break;
+		case 18:
+			rt->can_route_urn = qrp_can_route_urn_18;
+			rt->can_route     = qrp_can_route_18;
+			break;
+		case 19:
+			rt->can_route_urn = qrp_can_route_urn_19;
+			rt->can_route     = qrp_can_route_19;
+			break;
+		case 20:
+			rt->can_route_urn = qrp_can_route_urn_20;
+			rt->can_route     = qrp_can_route_20;
+			break;
+		case 21:
+			rt->can_route_urn = qrp_can_route_urn_21;
+			rt->can_route     = qrp_can_route_21;
+			break;
+		default:
+			rt->can_route_urn = qrp_can_route_default;
+			rt->can_route     = qrp_can_route_default;
+			
+	}
 
 	g_assert(is_pow2(rt->slots));
 	g_assert(rt->slots <= MAX_TABLE_SIZE);
@@ -4075,11 +4238,13 @@ qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
  * @param qhv			the query hit vector containing QRP hashes and types
  * @param rt			the routing table of the target node
  *
- * @note thie routine expects the query hash vector to be sorted with URNs
- * coming first and words later.
+ * @note thie routine expects the query hash vector to be sorted with
+ * URNs coming first and words later.  This is a default
+ * implementation.  The macros CAN_ROUTE and CAN_ROUTE_URN expand into
+ * routines that perform the same tests with pre-computed shifts.
  */
 static gboolean
-qrp_can_route(const query_hashvec_t *qhv, const struct routing_table *rt)
+qrp_can_route_default(const query_hashvec_t *qhv, const struct routing_table *rt)
 {
 	const struct query_hash *qh;
 	const guint8 *arena;
@@ -4151,7 +4316,9 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
 	if (rt == NULL)
 		return NODE_IS_LEAF(n) ? FALSE : TRUE;
 
-	return qrp_can_route(qhv, rt);
+	return qhv->has_urn ?
+	   rt->can_route_urn(qhv, rt) :
+	   rt->can_route(qhv, rt);
 }
 
 /**
@@ -4237,7 +4404,9 @@ qrt_build_query_target(
 
 		node_inc_qrp_query(dn);			/* We have a QRT, mark we try routing */
 
-		if (!qrp_can_route(qhvec, rt))
+		if (!(qhvec->has_urn ?
+			  rt->can_route_urn(qhvec, rt) :
+			  rt->can_route(qhvec, rt)))
 			continue;
 
 		if (!is_leaf)
@@ -4267,7 +4436,7 @@ qrt_build_query_target(
 		 *
 		 * Therefore, let only 50% of the queries pass to flow-controlled nodes.
 		 *
-		 * We don't less SHA1 queries through, as the chances they will match
+		 * We don't let SHA1 queries through, as the chances they will match
 		 * are very slim: not all servents include the SHA1 in their QRP, and
 		 * there can be many hashing conflicts, so the fact that it matched
 		 * an entry in the QRP table does not imply there will be a match
