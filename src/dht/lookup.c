@@ -357,7 +357,7 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 	map_destroy(nl->tokens);
 
 	if (can_remove)
-		g_hash_table_remove(nlookups, nl);
+		g_hash_table_remove(nlookups, &nl->lid);
 
 	nl->magic = 0;
 	wfree(nl, sizeof *nl);
@@ -3193,12 +3193,12 @@ lookup_init(void)
  * Hashtable iteration callback to free the nlookup_t object held as the key.
  */
 static void
-free_lookup(gpointer key, gpointer unused_value, gpointer unused_data)
+free_lookup(gpointer key, gpointer value, gpointer unused_data)
 {
-	nlookup_t *nl = key;
+	nlookup_t *nl = value;
 
 	lookup_check(nl);
-	(void) unused_value;
+	g_assert(key == &nl->lid);
 	(void) unused_data;
 
 	lookup_free(nl, FALSE);		/* No removal whilst we iterate! */
