@@ -116,6 +116,10 @@ struct next_up {
 	gint queue_pending;		/**< -1 = unknown, otherwise cached queue size */
 };
 
+struct dquery_id {
+	guint64 value;
+};
+
 typedef enum {
 	DQUERY_MAGIC = 0x53608af3
 } dquery_magic_t;
@@ -125,9 +129,9 @@ typedef enum {
  */
 typedef struct dquery {
 	dquery_magic_t magic;
-	node_id_t node_id;		/**< ID of the node that originated the query */
-	guint32 qid;			/**< Unique query ID, to detect ghosts */
 	guint32 flags;			/**< Operational flags */
+	node_id_t node_id;		/**< ID of the node that originated the query */
+	struct dquery_id qid;	/**< Unique query ID, to detect ghosts */
 	gnet_search_t sh;		/**< Search handle, if node ID = NODE_ID_SELF */
 	pmsg_t *mb;				/**< The search messsage "template" */
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
@@ -216,9 +220,8 @@ static GHashTable *by_leaf_muid;
  * meta-information about it.
  */
 struct pmsg_info {
+	struct dquery_id qid;/**< Query ID of the dynamic query */
 	node_id_t node_id;	/**< The ID of the node we sent it to */
-	dquery_t *dq;		/**< The dynamic query that sent the query */
-	guint32 qid;		/**< Query ID of the dynamic query */
 	guint16 degree;		/**< The advertised degree of the destination node */
 	guint8 ttl;			/**< The TTL used for that query */
 };
@@ -235,8 +238,6 @@ struct pmsg_info {
 #define MAX_TTL			5
 
 static guint32 hosts[MAX_DEGREE][MAX_TTL];	/**< Pre-computed horizon */
-
-static guint32 dyn_query_id = 0;
 
 static void dq_send_next(dquery_t *dq);
 static void dq_terminate(dquery_t *dq);
@@ -393,7 +394,6 @@ dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl, const node_id_t node_id)
 	dquery_check(dq);
 
 	pmi = walloc(sizeof(*pmi));
-	pmi->dq = dq;
 	pmi->qid = dq->qid;
 	pmi->degree = degree;
 	pmi->ttl = ttl;
@@ -418,17 +418,27 @@ dq_pmi_free(struct pmsg_info *pmi)
  * Check whether query bearing the specified ID is still alive and has
  * not been cancelled yet.
  */
-static gboolean
-dq_alive(dquery_t *dq, guint32 qid)
+static dquery_t *
+dq_alive(struct dquery_id qid)
 {
+	dquery_t *dq;
+
 	/* NOTE: dqueries might have been freed already, as dq_pmsg_free()
 	 *		 might still call this function after dq_close().
 	 */
-	if (dqueries && g_hash_table_lookup(dqueries, dq)) {
+	dq = dqueries ? g_hash_table_lookup(dqueries, &qid) : NULL;
+	if (dq) {
 		dquery_check(dq);
-		return dq->qid == qid;		/* In case it reused the same address */
 	}
-	return FALSE;
+	return dq;
+}
+
+static const char *
+dquery_id_to_string(struct dquery_id id)
+{
+	static char buf[UINT64_DEC_BUFLEN];
+	uint64_to_string_buf(id.value, buf, sizeof buf);
+	return buf;
 }
 
 /**
@@ -438,7 +448,7 @@ static void
 dq_pmsg_free(pmsg_t *mb, gpointer arg)
 {
 	struct pmsg_info *pmi = arg;
-	dquery_t *dq = pmi->dq;
+	dquery_t *dq;
 
 	/* NOTE: No dquery_check() because the memory might have been freed
 	 *		 already! See dq_alive and the comment below.
@@ -449,12 +459,11 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 	/*
 	 * It is possible that whilst the message was in the message queue,
 	 * the dynamic query was cancelled.  Therefore, we need to ensure that
-	 * the recorded query is still alive.  We use both the combination of
-	 * a hash table and a unique ID in case the address of an old dquery_t
-	 * object is reused later.
+	 * the recorded query is still alive. 
 	 */
 
-	if (!dq_alive(dq, pmi->qid))
+	dq = dq_alive(pmi->qid);
+	if (NULL == dq)
 		goto cleanup;
 
 	g_assert(dq->pending > 0);
@@ -475,8 +484,9 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		node_id_unref(key);
 
 		if (GNET_PROPERTY(dq_debug) > 19)
-			g_message("DQ[%d] %snode #%s degree=%d dropped message TTL=%d",
-				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
+			g_message("DQ[%s] %snode #%s degree=%d dropped message TTL=%d",
+				dquery_id_to_string(dq->qid),
+				node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
 
 		/*
@@ -500,12 +510,14 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		dq->up_sent++;
 
 		if (GNET_PROPERTY(dq_debug) > 19) {
-			g_message("DQ[%d] %snode #%s degree=%d sent message TTL=%d",
-				dq->qid, node_id_self(dq->node_id) ? "(local) " : "",
+			g_message("DQ[%s] %snode #%s degree=%d sent message TTL=%d",
+				dquery_id_to_string(dq->qid),
+				node_id_self(dq->node_id) ? "(local) " : "",
 				node_id_to_string(pmi->node_id), pmi->degree, pmi->ttl);
-			g_message("DQ[%d] %s(%d secs) queried %d UP%s, "
+			g_message("DQ[%s] %s(%d secs) queried %d UP%s, "
 				"horizon=%d, results=%d",
-				dq->qid, node_id_self(dq->node_id) ? "local " : "",
+				dquery_id_to_string(dq->qid),
+				node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
@@ -803,12 +815,13 @@ dq_free(dquery_t *dq)
 	gint i;
 
 	dquery_check(dq);
-	g_assert(g_hash_table_lookup(dqueries, dq));
+	g_assert(g_hash_table_lookup(dqueries, &dq->qid) == dq);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] %s(%d secs; +%d secs) node #%s ending: "
+		g_message("DQ[%s] %s(%d secs; +%d secs) node #%s ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d",
-			dq->qid, node_id_self(dq->node_id) ? "local " : "",
+			dquery_id_to_string(dq->qid),
+			node_id_self(dq->node_id) ? "local " : "",
 			(gint) (tm_time() - dq->start),
 			(dq->flags & DQ_F_LINGER) ? (gint) (tm_time() - dq->stop) : 0,
 			node_id_to_string(dq->node_id), dq->ttl, dq->up_sent, dq->horizon,
@@ -860,7 +873,7 @@ dq_free(dquery_t *dq)
 	}
 
 	if (!(dq->flags & DQ_F_EXITING))
-		g_hash_table_remove(dqueries, dq);
+		g_hash_table_remove(dqueries, &dq->qid);
 
 	/*
 	 * Remove query from the `by_node_id' table but only if the node ID
@@ -958,7 +971,7 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] expired", dq->qid);
+		g_message("DQ[%s] expired", dquery_id_to_string(dq->qid));
 
 	dq->expire_ev = NULL;	/* Indicates callback fired */
 
@@ -1014,8 +1027,9 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 		dq->stat_timeouts++;
 
 		if (GNET_PROPERTY(dq_debug) > 19)
-			g_message("DQ[%d] (%d secs) timeout #%u waiting for status results",
-				dq->qid, (gint) (tm_time() - dq->start), dq->stat_timeouts);
+			g_message("DQ[%s] (%d secs) timeout #%u waiting for status results",
+				dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
+				dq->stat_timeouts);
 		dq->flags &= ~DQ_F_WAITING;
 
 		if (
@@ -1027,8 +1041,9 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 
 			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
-					"DQ[%d] (%d secs) turned off leaf-guidance for node #%s",
-					dq->qid, (gint) (tm_time() - dq->start),
+					"DQ[%s] (%d secs) turned off leaf-guidance for node #%s",
+					dquery_id_to_string(dq->qid),
+					(gint) (tm_time() - dq->start),
 					node_id_to_string(dq->node_id));
 		}
 
@@ -1045,8 +1060,9 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	if (!(dq->flags & (DQ_F_LEAF_GUIDED|DQ_F_ROUTING_HITS))) {
 		if (GNET_PROPERTY(dq_debug))
 			g_message(
-				"DQ[%d] terminating unguided & unrouted (queried %u UP%s)",
-				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
+				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
+				dquery_id_to_string(dq->qid), dq->up_sent,
+				dq->up_sent == 1 ? "" : "s");
 		dq_terminate(dq);
 		return;
 	}
@@ -1089,16 +1105,16 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 
 	if (n == NULL) {
 		if (GNET_PROPERTY(dq_debug) > 19)
-			g_message("DQ[%d] (%d secs) node #%s appears to be dead",
-				dq->qid, (gint) (tm_time() - dq->start),
+			g_message("DQ[%s] (%d secs) node #%s appears to be dead",
+				dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
 				node_id_to_string(dq->node_id));
 		dq_free(dq);
 		return;
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] (%d secs) requesting node #%s for status (kept=%u)",
-			dq->qid, (gint) (tm_time() - dq->start),
+		g_message("DQ[%s] (%d secs) requesting node #%s for status (kept=%u)",
+			dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
 			node_id_to_string(dq->node_id), dq->kept_results);
 
 	dq->flags |= DQ_F_WAITING;
@@ -1121,8 +1137,8 @@ dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 	timeout = MAX(timeout, DQ_STATUS_TIMEOUT);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] status reply timeout set to %d s", dq->qid,
-			timeout / 1000);
+		g_message("DQ[%s] status reply timeout set to %d s",
+			dquery_id_to_string(dq->qid), timeout / 1000);
 
 	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
 }
@@ -1158,9 +1174,9 @@ dq_terminate(dquery_t *dq)
 	dq->stop = tm_time();
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] (%d secs) node #%s lingering: "
+		g_message("DQ[%s] (%d secs) node #%s lingering: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d",
-			dq->qid, (gint) (tm_time() - dq->start),
+			dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
 			node_id_to_string(dq->node_id),
 			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
@@ -1271,8 +1287,9 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	mb = pmsg_clone_extend(mb, dq_pmsg_free, pmi);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] (%d secs) queuing ttl=%d to #%s %s <%s> Q=%d bytes",
-			dq->qid, (gint) delta_time(tm_time(), dq->start),
+		g_message("DQ[%s] (%d secs) queuing ttl=%d to #%s %s <%s> Q=%d bytes",
+			dquery_id_to_string(dq->qid),
+			(gint) delta_time(tm_time(), dq->start),
 			pmi->ttl, node_id_to_string(NODE_ID(n)),
 			node_addr(n), node_vendor(n), (gint) NODE_MQUEUE_PENDING(n));
 
@@ -1307,7 +1324,8 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminating (no longer an ultra node)", dq->qid);
+			g_message("DQ[%s] terminating (no longer an ultra node)",
+				dquery_id_to_string(dq->qid));
 		goto terminate;
 	}
 
@@ -1320,9 +1338,10 @@ dq_send_next(dquery_t *dq)
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminating "
+			g_message("DQ[%s] terminating "
 				"(UPs=%u, horizon=%u >= %d, %s results=%u >= %u)",
-				dq->qid, dq->up_sent, dq->horizon, DQ_MAX_HORIZON,
+				dquery_id_to_string(dq->qid), dq->up_sent, dq->horizon,
+				DQ_MAX_HORIZON,
 				(dq->flags & DQ_F_GOT_GUIDANCE) ? "guided" : "unguided",
 				results, dq->max_results);
 		goto terminate;
@@ -1338,9 +1357,9 @@ dq_send_next(dquery_t *dq)
 
 	if (dq->results + dq->oob_results > dq->fin_results) {
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminating "
+			g_message("DQ[%s] terminating "
 				"(UPs=%u, seen=%u + OOB=%u >= %u -- %s kept=%u)",
-				dq->qid, dq->up_sent,
+				dquery_id_to_string(dq->qid), dq->up_sent,
 				dq->results, dq->oob_results, dq->fin_results,
 				(dq->flags & DQ_F_GOT_GUIDANCE) ? "guided" : "unguided",
 				results);
@@ -1357,8 +1376,8 @@ dq_send_next(dquery_t *dq)
 			GNET_PROPERTY(max_connections) - GNET_PROPERTY(normal_connections)
 	) {
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminating (queried UPs=%u >= %u)",
-				dq->qid, dq->up_sent,
+			g_message("DQ[%s] terminating (queried UPs=%u >= %u)",
+				dquery_id_to_string(dq->qid), dq->up_sent,
 				GNET_PROPERTY(max_connections) -
 					GNET_PROPERTY(normal_connections));
 		goto terminate;
@@ -1373,8 +1392,8 @@ dq_send_next(dquery_t *dq)
 
 	if (dq->pending >= DQ_MAX_PENDING) {
 		if (GNET_PROPERTY(dq_debug) > 19)
-			g_message("DQ[%d] waiting for %u ms (pending=%u)",
-				dq->qid, dq->result_timeout, dq->pending);
+			g_message("DQ[%s] waiting for %u ms (pending=%u)",
+				dquery_id_to_string(dq->qid), dq->result_timeout, dq->pending);
 		dq->results_ev = cq_insert(callout_queue,
 			dq->result_timeout, dq_results_expired, dq);
 		return;
@@ -1386,8 +1405,8 @@ dq_send_next(dquery_t *dq)
 	g_assert(dq->nv == nv);		/* Saved for next time */
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] still %d UP%s to query (results %sso far: %u)",
-			dq->qid, found, found == 1 ? "" : "s",
+		g_message("DQ[%s] still %d UP%s to query (results %sso far: %u)",
+			dquery_id_to_string(dq->qid), found, found == 1 ? "" : "s",
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0) {
@@ -1421,8 +1440,9 @@ dq_send_next(dquery_t *dq)
 			!qrp_node_can_route(node, dq->qhv)
 		) {
 			if (GNET_PROPERTY(dq_debug) > 19)
-				g_message("DQ[%d] TTL=1, skipping node #%s: can't route query!",
-					dq->qid, node_id_to_string(NODE_ID(node)));
+				g_message("DQ[%s] TTL=1, skipping node #%s: can't route query!",
+					dquery_id_to_string(dq->qid),
+					node_id_to_string(NODE_ID(node)));
 
 			continue;
 		}
@@ -1464,8 +1484,9 @@ dq_send_next(dquery_t *dq)
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1)
-		g_message("DQ[%d] (%d secs) timeout set to %d ms (pending=%d)",
-			dq->qid, (gint) (tm_time() - dq->start), timeout, dq->pending);
+		g_message("DQ[%s] (%d secs) timeout set to %d ms (pending=%d)",
+			dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start), timeout,
+			dq->pending);
 
 	dq->results_ev = cq_insert(callout_queue, timeout, dq_results_expired, dq);
 	return;
@@ -1495,8 +1516,8 @@ dq_send_probe(dquery_t *dq)
 	found = dq_fill_probe_up(dq, nv, ncount);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_message("DQ[%d] found %d UP%s to probe",
-			dq->qid, found, found == 1 ? "" : "s");
+		g_message("DQ[%s] found %d UP%s to probe",
+			dquery_id_to_string(dq->qid), found, found == 1 ? "" : "s");
 
 	/*
 	 * If we don't find any suitable UP holding that content, then
@@ -1552,6 +1573,15 @@ cleanup:
 	wfree(nv, ncount * sizeof nv[0]);
 }
 
+static struct dquery_id
+dquery_id_create(void)
+{
+	static struct dquery_id id;
+	id.value++;
+	g_assert(0 != id.value);
+	return id;
+}
+
 /**
  * Common initialization code for a dynamic query.
  */
@@ -1561,7 +1591,7 @@ dq_common_init(dquery_t *dq)
 	gconstpointer head;
 
 	dquery_check(dq);
-	dq->qid = dyn_query_id++;
+	dq->qid = dquery_id_create();
 	dq->queried = g_hash_table_new(node_id_hash, node_id_eq_func);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = tm_time();
@@ -1577,7 +1607,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the query as being "alive".
 	 */
 
-	g_hash_table_insert(dqueries, dq, GINT_TO_POINTER(1));
+	g_hash_table_insert(dqueries, &dq->qid, dq);
 
 	/*
 	 * If query is not for the local node, insert it in `by_node_id'.
@@ -1646,10 +1676,11 @@ dq_common_init(dquery_t *dq)
 		packet = pmsg_start(dq->mb);
 		flags = gnutella_msg_search_get_flags(packet);
 
-		g_message("DQ[%d] created for node #%s: TTL=%d max_results=%d "
+		g_message("DQ[%s] created for node #%s: TTL=%d max_results=%d "
 			"guidance=%s routing=%s "
 			"MUID=%s%s%s q=\"%s\" flags=0x%x (%s%s%s%s%s%s%s)",
-			dq->qid, node_id_to_string(dq->node_id), dq->ttl, dq->max_results,
+			dquery_id_to_string(dq->qid), node_id_to_string(dq->node_id),
+			dq->ttl, dq->max_results,
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
 			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
 			guid_hex_str(gnutella_header_get_muid(head)),
@@ -1879,8 +1910,8 @@ dq_node_removed(const node_id_t node_id)
 		dquery_check(dq);
 
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminated by node #%s removal (queried %u UP%s)",
-				dq->qid, node_id_to_string(dq->node_id),
+			g_message("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
+				dquery_id_to_string(dq->qid), node_id_to_string(dq->node_id),
 				dq->up_sent, dq->up_sent == 1 ? "" : "s");
 		
 		/* Don't remove query from the table in dq_free() */
@@ -1947,14 +1978,16 @@ dq_count_results(const struct guid *muid,
 	) {
 		if (GNET_PROPERTY(dq_debug) > 19) {
 			if (dq->flags & DQ_F_LINGER)
-				g_message("DQ[%d] %s(%d secs; +%d secs) +%d ignored (firewall)",
-					dq->qid, node_id_self(dq->node_id) ? "local " : "",
+				g_message("DQ[%s] %s(%d secs; +%d secs) +%d ignored (firewall)",
+					dquery_id_to_string(dq->qid),
+					node_id_self(dq->node_id) ? "local " : "",
 					(gint) (tm_time() - dq->start),
 					(gint) (tm_time() - dq->stop),
 					count);
 			else
-				g_message("DQ[%d] %s(%d secs) +%d ignored (firewall)",
-					dq->qid, node_id_self(dq->node_id) ? "local " : "",
+				g_message("DQ[%s] %s(%d secs) +%d ignored (firewall)",
+					dquery_id_to_string(dq->qid),
+					node_id_self(dq->node_id) ? "local " : "",
 					(gint) (tm_time() - dq->start),
 					count);
 		}
@@ -1975,17 +2008,19 @@ dq_count_results(const struct guid *muid,
 		if (node_id_self(dq->node_id))
 			dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 		if (dq->flags & DQ_F_LINGER)
-			g_message("DQ[%d] %s(%d secs; +%d secs) "
+			g_message("DQ[%s] %s(%d secs; +%d secs) "
 				"+%d %slinger_results=%d kept=%d",
-				dq->qid, node_id_self(dq->node_id) ? "local " : "",
+				dquery_id_to_string(dq->qid),
+				node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				(gint) (tm_time() - dq->stop),
 				count, oob ? "OOB " : "",
 				dq->linger_results, dq->kept_results);
 		else
-			g_message("DQ[%d] %s(%d secs) "
+			g_message("DQ[%s] %s(%d secs) "
 				"+%d %sresults=%d new=%d kept=%d oob=%d",
-				dq->qid, node_id_self(dq->node_id) ? "local " : "",
+				dquery_id_to_string(dq->qid),
+				node_id_self(dq->node_id) ? "local " : "",
 				(gint) (tm_time() - dq->start),
 				count, oob ? "OOB " : "",
 				dq->results, dq->new_results, dq->kept_results,
@@ -2108,20 +2143,21 @@ dq_got_query_status(const struct guid *muid,
 
 			if (GNET_PROPERTY(dq_debug) > 19)
 				g_message(
-					"DQ[%d] (%d secs) turned on leaf-guidance for node #%s",
-					dq->qid, (gint) (tm_time() - dq->start),
+					"DQ[%s] (%d secs) turned on leaf-guidance for node #%s",
+					dquery_id_to_string(dq->qid),
+					(gint) (tm_time() - dq->start),
 					node_id_to_string(dq->node_id));
 		}
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 19) {
 		if (dq->flags & DQ_F_LINGER)
-			g_message("DQ[%d] (%d secs; +%d secs) kept_results=%d",
-				dq->qid, (gint) (tm_time() - dq->start),
+			g_message("DQ[%s] (%d secs; +%d secs) kept_results=%d",
+				dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
 				(gint) (tm_time() - dq->stop), dq->kept_results);
 		else
-			g_message("DQ[%d] (%d secs) %ssolicited, kept_results=%d",
-				dq->qid, (gint) (tm_time() - dq->start),
+			g_message("DQ[%s] (%d secs) %ssolicited, kept_results=%d",
+				dquery_id_to_string(dq->qid), (gint) (tm_time() - dq->start),
 				(dq->flags & DQ_F_WAITING) ? "" : "un", dq->kept_results);
 	}
 
@@ -2135,8 +2171,9 @@ dq_got_query_status(const struct guid *muid,
 
 	if (kept == 0xffff) {
 		if (GNET_PROPERTY(dq_debug))
-			g_message("DQ[%d] terminating at user's request (queried %u UP%s)",
-				dq->qid, dq->up_sent, dq->up_sent == 1 ? "" : "s");
+			g_message("DQ[%s] terminating at user's request (queried %u UP%s)",
+				dquery_id_to_string(dq->qid), dq->up_sent,
+				dq->up_sent == 1 ? "" : "s");
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -2172,13 +2209,14 @@ struct cancel_context {
  * -- hash table iterator callback
  */
 static void
-dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
+dq_cancel_local(gpointer key, gpointer value, gpointer udata)
 {
 	struct cancel_context *ctx = udata;
-	dquery_t *dq = key;
+	dquery_t *dq = value;
 
-	(void) unused_value;
 	dquery_check(dq);
+	g_assert(&dq->qid == key);
+
 	if (node_id_self(dq->node_id) && dq->sh == ctx->handle) {
 		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
 	}
@@ -2260,13 +2298,27 @@ dq_get_results_wanted(const struct guid *muid, guint32 *wanted)
 	return TRUE;
 }
 
+static unsigned
+dquery_id_hash(const void *key)
+{
+	const struct dquery_id *id = key;
+	return (unsigned) (id->value >> 32) ^ (unsigned) id->value;
+}
+
+static int
+dquery_id_equal(const void *p, const void *q)
+{
+	const struct dquery_id *a = p, *b = q;
+	return a->value == b->value;
+}
+
 /**
  * Initialize dynamic querying.
  */
 void
 dq_init(void)
 {
-	dqueries = g_hash_table_new(NULL, NULL);
+	dqueries = g_hash_table_new(dquery_id_hash, dquery_id_equal);
 	by_node_id = g_hash_table_new(node_id_hash, node_id_eq_func);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	by_leaf_muid = g_hash_table_new(guid_hash, guid_eq);
@@ -2277,12 +2329,12 @@ dq_init(void)
  * Hashtable iteration callback to free the dquery_t object held as the key.
  */
 static void
-free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
+free_query(gpointer key, gpointer value, gpointer unused_udata)
 {
-	dquery_t *dq = key;
+	dquery_t *dq = value;
 
 	dquery_check(dq);
-	(void) unused_value;
+	g_assert(&dq->qid == key);
 	(void) unused_udata;
 
 	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
