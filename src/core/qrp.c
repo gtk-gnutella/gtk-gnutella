@@ -3418,12 +3418,12 @@ qrp_can_route_##bits(const query_hashvec_t *qhv, \
 					 const struct routing_table *rt) \
  \
 { \
-	const guint8 *arena = rt->arena; \
-	const guint   shift = 32 - bits; \
-	guint i = qhv->count; \
+	const struct query_hash * const vec = qhv->vec; \
+	const guint8 * const arena = rt->arena; \
+	guint8 i = qhv->count; \
  \
 	while (i-- > 0) { \
-		guint32 idx = qhv->vec[i].hashcode >> shift; \
+		guint32 idx = vec[i].hashcode >> (32 - bits); \
 		/* ALL the keywords must be present. */ \
 		if (!RT_SLOT_READ(arena, idx)) \
 			return FALSE; \
