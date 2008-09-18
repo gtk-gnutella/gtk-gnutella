@@ -308,10 +308,40 @@ qrp_hash(const gchar *s, gint bits)
  * @returns the TRUE if there is something present, FALSE otherwise.
  */
 
+
+static inline guint8
+RT_SLOT_READ_div(const guint8 *arena, guint i)
+{
+	static const guint8 mask[] = {
+		0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+	div_t r = div(i, 8);
+	return arena[r.quot] & mask[r.rem];
+}
+
+static inline guint8
+RT_SLOT_READ_lut(const guint8 *arena, guint i)
+{
+	static const guint8 mask[] = {
+		0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+	return arena[i >> 3] & mask[i & 0x7];
+}
+
+static inline guint8
+RT_SLOT_READ_shift(const guint8 *arena, guint i)
+{
+	return arena[i >> 3] & (0x80 >> (i & 0x7));
+}
+
 static inline gboolean
 RT_SLOT_READ(const guint8 *arena, guint i)
 {
-	return 0 != (arena[i >> 3] & (0x80U >> (i & 0x7)));
+	return 0 != RT_SLOT_READ_lut(arena, i);
+}
+
+gboolean
+rt_slot_read(const guint8 *arena, guint i)
+{
+	return RT_SLOT_READ(arena, i);
 }
 
 static inline void
@@ -3353,29 +3383,23 @@ qrt_apply_patch4(struct qrt_receive *qrcv, const guchar *data, gint len)
  * if the table contains all key words.  With a parameter of 21, the
  * name will be qrp_can_route_21.
  */
-#define CAN_ROUTE(bits)                                               \
-static gboolean                                                       \
-qrp_can_route_##bits(const query_hashvec_t *qhv,                      \
-					 const struct routing_table *rt)                  \
-					                                                  \
-{                                                                     \
-	const guint8 *arena = rt->arena;                                  \
-	const guint   shift = 32 - bits;                                  \
-	guint i;                                                          \
-					                                                  \
-	g_assert(!qhv->has_urn);                                          \
-	g_assert(bits == rt->b##its);                                     \
-					                                                  \
-	for (i = 0; i < qhv->count; i++) {                                \
-		guint32 idx = qhv->vec[i].hashcode >> shift;                  \
-					                                                  \
-		/* ALL the keywords must be present. */                       \
-		if (!RT_SLOT_READ(arena, idx)) {                              \
-			return FALSE;				/* All words did not match */ \
-		}                                                             \
-	}                                                                 \
-	/* All the words matched, so route query!*/                       \
-	return TRUE;                                                      \
+#define CAN_ROUTE(bits) \
+static gboolean \
+qrp_can_route_##bits(const query_hashvec_t *qhv, \
+					 const struct routing_table *rt) \
+ \
+{ \
+	const guint8 *arena = rt->arena; \
+	const guint   shift = 32 - bits; \
+	guint i = qhv->count; \
+ \
+	while (i-- > 0) { \
+		guint32 idx = qhv->vec[i].hashcode >> shift; \
+		/* ALL the keywords must be present. */ \
+		if (!RT_SLOT_READ(arena, idx)) \
+			return FALSE; \
+	} \
+	return TRUE; \
 }
 
 /* Create eight QRT lookup routines with fixed shift factors. */
@@ -3407,9 +3431,6 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 	const guint8 *arena         = rt->arena;                          \
 	const guint shift           = 32 - bits;                          \
 	guint i;                                                          \
-					                                                  \
-	g_assert(qhv->has_urn);                                           \
-	g_assert(bits == rt->b##its);                                     \
 					                                                  \
 	for (i = 0; i < qhv->count; i++) {                                \
 		guint32 idx = qh[i].hashcode >> shift;                        \
