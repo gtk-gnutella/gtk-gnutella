@@ -309,33 +309,62 @@ qrp_hash(const gchar *s, gint bits)
  */
 
 
-static inline guint8
+static inline unsigned
 RT_SLOT_READ_div(const guint8 *arena, guint i)
 {
 	static const guint8 mask[] = {
 		0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
 	div_t r = div(i, 8);
-	return arena[r.quot] & mask[r.rem];
+	return 0 != (arena[r.quot] & mask[r.rem]);
 }
 
-static inline guint8
+static inline unsigned
+RT_SLOT_READ_div2(const guint8 *arena, guint i)
+{
+	static const guint8 mask[] = {
+		0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+	unsigned q, r;
+	q = i / 8;
+	r = i % 8;
+	return 0 != (arena[q] & mask[r]);
+}
+
+static inline unsigned
 RT_SLOT_READ_lut(const guint8 *arena, guint i)
 {
 	static const guint8 mask[] = {
 		0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
-	return arena[i >> 3] & mask[i & 0x7];
+	return 0 != (arena[i >> 3] & mask[i & 0x7]);
 }
 
-static inline guint8
-RT_SLOT_READ_shift(const guint8 *arena, guint i)
+static inline unsigned
+RT_SLOT_READ_shift_right(const guint8 *arena, guint i)
 {
-	return arena[i >> 3] & (0x80 >> (i & 0x7));
+	return 0 != (arena[i >> 3] & (0x80U >> (i & 0x7)));
+}
+
+static inline unsigned
+RT_SLOT_READ_shift_left(const guint8 *arena, guint i)
+{
+	return 0 != (arena[i >> 3] & (1U << (~i & 0x7)));
+}
+
+static inline unsigned
+RT_SLOT_READ_and1(const guint8 *arena, guint i)
+{
+	return 1U & (arena[i >> 3] >> (~i & 0x7));
+}
+
+static inline unsigned
+RT_SLOT_READ_and128(const guint8 *arena, guint i)
+{
+	return 0 != (0x80U & (arena[i >> 3] << (i & 0x7)));
 }
 
 static inline gboolean
 RT_SLOT_READ(const guint8 *arena, guint i)
 {
-	return 0 != RT_SLOT_READ_lut(arena, i);
+	return RT_SLOT_READ_and128(arena, i);
 }
 
 gboolean
