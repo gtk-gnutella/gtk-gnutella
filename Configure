@@ -4332,7 +4332,7 @@ case "$d_dbus" in
 		modver=--modversion
 		echo "(I'll use '$dbusconfig' to gather that information.)"
 
-		?X: Make sure we have a good enough version
+		: Make sure we have a good enough version
 		version=`$dbusconfig $modver`
 		case "$version" in
 		'') ;;
