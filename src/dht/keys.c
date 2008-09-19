@@ -1027,10 +1027,12 @@ keys_update_kball(void)
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
 				width, 1 == width ? "" : "s", kball.width);
-			g_message("DHT k-ball closest (%u common bit%s) is %s",
-				cbits, 1 == cbits ? "" : "s", knode_to_string(closest));
-			g_message("DHT k-ball furthest (%u common bit%s) is %s",
-				fbits, 1 == fbits ? "" : "s", knode_to_string(furthest));
+			g_message("DHT k-ball closest (%lu common bit%s) is %s",
+				(unsigned long) cbits, 1 == cbits ? "" : "s",
+				knode_to_string(closest));
+			g_message("DHT k-ball furthest (%lu common bit%s) is %s",
+				(unsigned long) fbits, 1 == fbits ? "" : "s",
+				knode_to_string(furthest));
 		}
 
 		STATIC_ASSERT(KUID_RAW_BITSIZE < 256);

@@ -260,9 +260,9 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 	 */
 
 	if (common_dbg > 4)
-		g_message("DBMW \"%s\" %s dirty value (%d byte%s)",
+		g_message("DBMW \"%s\" %s dirty value (%lu byte%s)",
 			dw->name, value->absent ? "deleting" : "flushing",
-			dval.len, 1 == dval.len ? "" : "s");
+			(unsigned long) dval.len, 1 == dval.len ? "" : "s");
 
 	ok = value->absent ?
 		dbmap_remove(dw->dm, key) : dbmap_insert(dw->dm, key, dval);
