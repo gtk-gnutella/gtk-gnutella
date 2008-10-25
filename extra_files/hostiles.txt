@@ -1221,6 +1221,10 @@
 66.115.128.0/18
 69.50.128.0/20
 
+# NationalNet, Inc.; pr0n spam; MOV/AVI; LimeWire; ports 44999, 14999
+216.201.80.0/24
+216.201.82.0/24
+
 # distributednetworkads dot com; Distributed Network Content LLC
 70.84.109.80/28
 
