@@ -868,7 +868,10 @@
 79.182.142.95
 80.48.113.243
 82.80.4.0/24
-82.80.233.0/24
+#82.80.233.0/24
+# Israel Israel Ashdod Bezeqint-hosting
+# *Tools.exe
+82.80.224.0/20
 # texas holdem/poker ZIP spam; LimeWire
 212.199.153.0/27
 84.108.229.222
