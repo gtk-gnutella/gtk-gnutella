@@ -98,7 +98,6 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "g6.dns6.org:1337" },
-	{ "void.ghostwhitecrab.de:9999" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
