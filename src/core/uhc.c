@@ -98,6 +98,7 @@ static const struct {
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
 	{ "g6.dns6.org:1337" },
+	{ "gwc.chickenkiller.com:8080" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
