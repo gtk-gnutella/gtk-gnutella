@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "hosts.h"
 #include "hostiles.h"
 #include "downloads.h"
+#include "gnet_stats.h"
 
 #include "if/core/guid.h"
 #include "if/dht/lookup.h"
@@ -368,6 +369,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	else if (tls)
 		flags |= SOCK_F_TLS;
 
+	if (0 == fi->lifecount)
+		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
+
 	download_auto_new(filepath_basename(fi->pathname),
 		fi->size,
 		rc->addr, port,
@@ -399,6 +403,8 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 		g_message("DHT ALOC lookup for %s returned %lu value%s",
 			kuid_to_string(kuid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
+
+	gnet_stats_count_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS, 1);
 
 	fi = file_info_by_guid(slk->fi_guid);
 
@@ -670,6 +676,8 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 		g_message("DHT PROX lookup for GUID %s returned %lu value%s",
 			guid_to_string(glk->guid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
+
+	gnet_stats_count_general(GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS, 1);
 
 	/*
 	 * Parse PROX results.

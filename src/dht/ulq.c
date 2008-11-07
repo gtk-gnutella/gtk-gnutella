@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "if/dht/kademlia.h"
 
 #include "core/nodes.h"
+#include "core/gnet_stats.h"
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -435,6 +436,19 @@ initialized:
 		uq->scheduled++;
 		sched.running++;
 		lookup_ctrl_stats(nl, ulq_lookup_stats);
+
+		if (LOOKUP_VALUE == ui->type) {
+			switch (ui->u.fv.vtype) {
+			case DHT_VT_PROX:
+				gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
+				break;
+			case DHT_VT_ALOC:
+				gnet_stats_count_general(GNR_DHT_ALT_LOC_LOOKUPS, 1);
+				break;
+			default:
+				break;
+			}
+		}
 	} else {
 		/*
 		 * We know the only cause for a lookup not starting is that the

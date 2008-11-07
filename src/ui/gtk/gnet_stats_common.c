@@ -143,6 +143,11 @@ general_type_str(gint value)
 		N_("DHT replication of stale value avoided"),
 		N_("DHT replication of held values"),
 		N_("DHT republishing of held values"),
+		N_("DHT alt-loc lookups issued"),
+		N_("DHT push proxy lookups issued"),
+		N_("DHT successful alt-loc lookups"),
+		N_("DHT successful push-proxy lookups"),
+		N_("DHT re-seeding of orphan downloads"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
