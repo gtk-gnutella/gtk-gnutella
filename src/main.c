@@ -422,7 +422,6 @@ gtk_gnutella_exit(gint n)
 	settings_shutdown();
 	oob_shutdown();			/* No longer deliver outstanding OOB hits */
 	socket_shutdown();
-	search_shutdown();
 	bsched_shutdown();
 
 	if (!running_topless) {
@@ -463,6 +462,8 @@ gtk_gnutella_exit(gint n)
 		}
 		compat_sleep_ms(50);
 	}
+
+	search_shutdown();		/* Disable now, since we can get queries above */
 
 	bitzi_close();
 	ntp_close();
