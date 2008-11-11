@@ -5155,10 +5155,10 @@ create_download(
 }
 
 /**
- * Automatic download request.
+ * Common code for automatic download request.
  */
-void
-download_auto_new(const gchar *file_name,
+static void
+download_auto_new_common(const gchar *file_name,
 	filesize_t size,
 	const host_addr_t addr,
    	guint16 port,
@@ -5231,6 +5231,63 @@ abort_download:
 	if (GNET_PROPERTY(download_debug) > 4)
 		g_message("ignoring auto download for \"%s\": %s", file_name, reason);
 	return;
+}
+
+/**
+ * Automatic download request.
+ */
+void
+download_auto_new(const gchar *file_name,
+	filesize_t size,
+	const host_addr_t addr,
+   	guint16 port,
+	const struct guid *guid,
+	const gchar *hostname,
+	const struct sha1 *sha1,
+	const struct tth *tth,
+	time_t stamp,
+	fileinfo_t *fi,
+	gnet_host_vec_t *proxies,
+	guint32 flags)
+{
+	/*
+	 * Even though this routine can be called for sources collected out of
+	 * the download mesh, we know we're seeding an orphan download out of
+	 * query hits when there was no reference on the fileinfo.
+	 */
+
+	if (0 == fi->refcount)
+		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
+
+	download_auto_new_common(
+		file_name, size, addr, port, guid, hostname,
+		sha1, tth, stamp, fi, proxies, flags);
+}
+
+/**
+ * Automatic download request triggered from DHT results.
+ */
+void
+download_dht_auto_new(const gchar *file_name,
+	filesize_t size,
+	const host_addr_t addr,
+   	guint16 port,
+	const struct guid *guid,
+	const struct sha1 *sha1,
+	const struct tth *tth,
+	time_t stamp,
+	fileinfo_t *fi,
+	guint32 flags)
+{
+	if (0 == fi->refcount)
+		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
+
+	download_auto_new_common(
+		file_name, size, addr, port, guid,
+		NULL, /* hostname */
+		sha1, tth, stamp, fi,
+		NULL, /* proxies */
+		flags);
 }
 
 /**

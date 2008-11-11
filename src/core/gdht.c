@@ -369,19 +369,14 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	else if (tls)
 		flags |= SOCK_F_TLS;
 
-	if (0 == fi->lifecount)
-		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
-
-	download_auto_new(filepath_basename(fi->pathname),
+	download_dht_auto_new(filepath_basename(fi->pathname),
 		fi->size,
 		rc->addr, port,
 		&guid,
-		NULL,					/* hostname */
 		fi->sha1,
 		has_tth ? &tth : NULL,
 		tm_time(),
 		deconstify_gpointer(fi),
-		NULL,					/* proxies */
 		flags);
 }
 

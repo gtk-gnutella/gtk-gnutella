@@ -415,6 +415,17 @@ void download_auto_new(const gchar *filename,
 	gnet_host_vec_t *proxies,
 	guint32 flags);
 
+void download_dht_auto_new(const gchar *filename,
+ 	filesize_t size,
+	const host_addr_t addr,
+	guint16 port,
+	const struct guid *guid,
+	const struct sha1 *sha1,
+	const struct tth *tth,
+	time_t stamp,
+	struct dl_file_info *fi,
+	guint32 flags);
+
 guint download_handle_magnet(const gchar *url);
 gchar *download_build_url(const struct download *);
 gint download_get_http_req_percent(const struct download *);
