@@ -5256,7 +5256,7 @@ download_auto_new(const gchar *file_name,
 	 * query hits when there was no reference on the fileinfo.
 	 */
 
-	if (0 == fi->refcount)
+	if (fi && 0 == fi->refcount)
 		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
 
 	download_auto_new_common(
