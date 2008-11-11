@@ -5250,18 +5250,24 @@ download_auto_new(const gchar *file_name,
 	gnet_host_vec_t *proxies,
 	guint32 flags)
 {
+	gboolean was_orphan = fi && 0 == fi->refcount;
+
 	/*
 	 * Even though this routine can be called for sources collected out of
 	 * the download mesh, we know we're seeding an orphan download out of
 	 * query hits when there was no reference on the fileinfo.
 	 */
 
-	if (fi && 0 == fi->refcount)
-		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
-
 	download_auto_new_common(
 		file_name, size, addr, port, guid, hostname,
 		sha1, tth, stamp, fi, proxies, flags);
+
+	/*
+	 * We can ignore sources: need to check for re-seeding upon return only.
+	 */
+
+	if (was_orphan && 0 != fi->refcount)
+		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
 }
 
 /**
@@ -5279,8 +5285,7 @@ download_dht_auto_new(const gchar *file_name,
 	fileinfo_t *fi,
 	guint32 flags)
 {
-	if (0 == fi->refcount)
-		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
+	gboolean was_orphan = fi && 0 == fi->refcount;
 
 	download_auto_new_common(
 		file_name, size, addr, port, guid,
@@ -5288,6 +5293,13 @@ download_dht_auto_new(const gchar *file_name,
 		sha1, tth, stamp, fi,
 		NULL, /* proxies */
 		flags);
+
+	/*
+	 * We can ignore sources: need to check for re-seeding upon return only.
+	 */
+
+	if (was_orphan && 0 != fi->refcount)
+		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
 }
 
 /**
