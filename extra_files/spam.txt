@@ -26,8 +26,8 @@ ADDED 2007-01-09
 END
 
 # Malware
-NAME ^Secured.Downloading.[oO]f.*[wW]ith.[nN]ew.Secured.*zip$
-SIZE 9000000-20000000
+NAME [dD]ownload.*[wW]ith.[nN]ew.Secured.*zip$
+SIZE 1000000-20000000
 ADDED 2007-11-19
 END
 
@@ -50,17 +50,17 @@ ADDED 2008-03-16
 END
 
 NAME using.(the.Best.Ultimate.Player|emule.multimedia.toolbar)[.]zip$
-SIZE 1000000-4000000
+SIZE 1000000-20000000
 ADDED 2008-04-12
 END
 
 NAME (Faster.with.BitTorrent.downloader|Share.Accelerator)[.]zip$
-SIZE 1000000-4000000
+SIZE 1000000-20000000
 ADDED 2008-04-12
 END
 
-NAME web.hottest.videos.personal.player.exe$
-SIZE 1000000-2000000
+NAME [wW]eb.hottest.videos.personal.player.exe$
+SIZE 1000000-20000000
 ADDED 2008-04-12
 END
 
