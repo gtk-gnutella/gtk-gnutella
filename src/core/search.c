@@ -1162,7 +1162,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			}
 			gnet_host_vec_add(rs->proxies, n->addr, n->port);
 		} else {
-			rs->status |= ST_UNREQUESTED;
+			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
 			if (GNET_PROPERTY(search_debug)) {
 				g_message("Received unrequested query hit from %s",
