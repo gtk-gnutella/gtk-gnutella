@@ -97,9 +97,12 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
+	{ "drei.gtkg.net:62666" },
 	{ "g6.dns6.org:1337" },
-	{ "gwc.chickenkiller.com:8080" },
 	{ "gwc.ak-electron.eu:12060" },
+	{ "gwc.chickenkiller.com:8080" },
+	{ "leet.gtkg.org:1337" },
+	{ "tertiary.udp-host-cache.com:9999" },
 	{ "yang.cloud.bishopston.net:33558" },
 	{ "yin.cloud.bishopston.net:33558" },
 #endif	/* USE_LOCAL_UHC */
