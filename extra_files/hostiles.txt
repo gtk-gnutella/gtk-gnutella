@@ -1402,3 +1402,7 @@
 # ASSERTIVENET; see above
 66.154.96.0/19
 
+# $query + MTV.mp3; ASF URL redirect spam
+91.210.56.0/22
+#91.210.58.250/31
+
