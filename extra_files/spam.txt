@@ -49,7 +49,7 @@ SIZE 97600-97699
 ADDED 2008-03-16
 END
 
-NAME using.(the.Best.Ultimate.Player|emule.multimedia.toolbar)[.]zip$
+NAME using.(the.Best.Ultimate.Player|emule.multimedia.toolbar|multimedia.toolbar)[.]zip$
 SIZE 1000000-20000000
 ADDED 2008-04-12
 END
