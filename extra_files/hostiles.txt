@@ -1405,4 +1405,7 @@
 # $query + MTV.mp3; ASF URL redirect spam
 91.210.56.0/22
 #91.210.58.250/31
+# Netherlands Tilburg Infinite Technologies
+# $query + HD.avi; pr0n spam; ASF URL redirect
+94.102.48.0/24
 
