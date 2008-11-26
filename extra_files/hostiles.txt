@@ -1381,6 +1381,7 @@
 76.74.128.0/17
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
+174.36.0.0/15
 # GoDaddy.com, Inc.; see above
 72.167.0.0/17
 # Managed Solutions Group, Inc.; see above
@@ -1412,4 +1413,8 @@
 # Hosting Services, Inc.
 # $query + .mpeg; ASF; peertracking dot com
 67.213.213.240/28
+# SoftLayer Technologies Inc.
+#174.36.1.70
+# Webair Internet Development company, Inc, Recurring International
+77.245.48.0/21
 
