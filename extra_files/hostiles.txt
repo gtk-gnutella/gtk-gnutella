@@ -1417,8 +1417,21 @@
 #174.36.1.70
 # Webair Internet Development company, Inc, Recurring International
 77.245.48.0/21
-
 # Rogers Cable Communications Inc. (Direct Allocation)
 # AVI/EXE/ZIP/RAR; pr0n etc.
 99.236.97.40
+
+# pr0n spam; MPG/MOV/RM
+# SWIFT VENTURES Inc
+#204.13.167.254
+204.13.164.0/22
+#204.15.228.194
+#204.15.230.194
+204.15.224.0/21
+# vanoppen.biz LLC
+#76.191.65.66
+76.191.64.0/18
+# iWeb Technologies Inc.
+#70.38.11.249
+70.38.0.0/17
 
