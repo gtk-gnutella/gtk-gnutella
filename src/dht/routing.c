@@ -46,7 +46,7 @@
  * The particularity of this trie is that we do not create children nodes
  * until a k-bucket is full, and we only split k-bucket to some maximal
  * depth.  The k-bucket which contains this Kademlia node's KUID is fully
- * splitable up to the maximum depth, and so is the tree closests to this
+ * splitable up to the maximum depth, and so is the tree closest to this
  * KUID, as defined in the is_splitable() routine.
  *
  * @author Raphael Manfredi
@@ -69,6 +69,7 @@ RCSID("$Id$")
 #include "keys.h"
 #include "ulq.h"
 #include "kmsg.h"
+#include "publish.h"
 
 #include "core/settings.h"
 #include "core/guid.h"
@@ -1112,6 +1113,10 @@ dht_initialize(gboolean post_init)
 	token_init();
 	keys_init();
 	values_init();
+#if 0
+	/* Not yet */
+	publish_init();
+#endif
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -2679,6 +2684,14 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 
 	g_assert(hcnt < MAX_INT_VAL(int) / 2);
 
+	/*
+	 * If DHT was never initialized or turned off, then the root bucket was
+	 * freed and there is nothing to look for.
+	 */
+
+	if (NULL == root)
+		return 0;
+
 	maxtry = hcnt + hcnt;
 	seen = map_create_patricia(KUID_RAW_SIZE);
 
@@ -2686,7 +2699,7 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 		kuid_t id;
 		struct kbucket *kb;
 		knode_t *kn;
-		
+
 		random_bytes(id.v, sizeof id.v);
 		kb = dht_find_bucket(&id);
 		kn = hash_list_tail(list_for(kb, KNODE_GOOD));	/* Recently seen */
@@ -2867,6 +2880,10 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+#if 0
+	/* Not yet */
+	publish_close();
+#endif
 	values_close();
 	keys_close();
 	ulq_close();
