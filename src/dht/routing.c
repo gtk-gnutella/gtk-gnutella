@@ -69,7 +69,10 @@ RCSID("$Id$")
 #include "keys.h"
 #include "ulq.h"
 #include "kmsg.h"
+#if 0
+/* Not yet */
 #include "publish.h"
+#endif
 
 #include "core/settings.h"
 #include "core/guid.h"
