@@ -623,8 +623,8 @@ k_send_find_value_response(
 
 		if (value_size + secondary_size > (size_t) pmsg_available(mb)) {
 			if (GNET_PROPERTY(dht_debug) > 3)
-				g_warning("DHT after sending %d DHT values, will send %d key%s",
-					i, vlen - i, (1 == vlen - i) ? "" : "s");
+				g_warning("DHT after sending %u DHT values, will send %u key%s",
+					(guint) i, (guint) (vlen - i), (1 == vlen - i) ? "" : "s");
 			break;
 		}
 
