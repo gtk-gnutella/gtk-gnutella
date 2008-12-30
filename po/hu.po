@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -553,6 +553,16 @@ msgstr ""
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "Kiszolgáló-azonosító:"
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "A gui hibajavítási szintje"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -2727,6 +2737,57 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the callout queue."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for DHT node lookups."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for DHT key/value storage."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for DHT key/value publishing."
+msgstr "A gui hibajavítási szintje"
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the DHT user lookup queue."
+msgstr "A gui hibajavítási szintje"
+
 #, fuzzy
 msgid "disable"
 msgstr "biztos"
@@ -2759,6 +2820,9 @@ msgstr "Kop"
 
 msgid "Bye"
 msgstr "Viszlát"
+
+msgid "DHT"
+msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -4108,10 +4172,6 @@ msgid "Download added"
 msgstr "Letöltve"
 
 #, fuzzy
-msgid "parameter missing"
-msgstr "Proxy beállítása"
-
-#, fuzzy
 msgid "Unknown operation"
 msgstr "Ismeretlen hiba"
 
@@ -4225,6 +4285,10 @@ msgstr "Súgó"
 #, fuzzy
 msgid "Bitzi|Unknown"
 msgstr "Ismeretlen"
+
+#, fuzzy
+msgid "Bitzi|Unrated"
+msgstr "Készített"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr ""
@@ -4345,6 +4409,9 @@ msgstr "Kérelem elküldve"
 
 msgid "Reading headers"
 msgstr "Fejlécek olvasása"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr "Visszaállás nyomásra"
@@ -4826,6 +4893,44 @@ msgstr ""
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push proxy lookups issued"
+msgstr "Sikertelen proxy-keresés nyomása"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "A gui hibajavítási szintje"
 
 #, fuzzy
 msgid "node"
@@ -7149,8 +7254,12 @@ msgstr ""
 msgid "Welcome sent"
 msgstr ""
 
+#, fuzzy
+msgid "No UDP traffic yet"
+msgstr "HTTP-forgalom"
+
 #, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr ""
 
 #, fuzzy
@@ -7183,6 +7292,10 @@ msgstr "foglalt"
 
 msgid "No search"
 msgstr "Nincs keresés"
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
+msgstr ""
 
 #, fuzzy
 msgid "The search has been stopped"
@@ -7402,6 +7515,15 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+msgid "Not in Bitzi database."
 msgstr ""
 
 msgid "Encoding"

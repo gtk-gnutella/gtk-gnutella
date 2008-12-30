@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2008-02-16 14:15+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -598,6 +598,16 @@ msgstr "古いクエリー形式"
 
 msgid "Blank Servent ID"
 msgstr "空のサーバントID"
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "変なコマンドです"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -2700,6 +2710,57 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the callout queue."
+msgstr "検索キューのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for DHT node lookups."
+msgstr "HTTP コードのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for DHT key/value storage."
+msgstr "HTTP コードのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for DHT key/value publishing."
+msgstr "メッセージ経路制御のデバッグレベルです。"
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the DHT user lookup queue."
+msgstr "検索キューのデバッグレベルです。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -2729,6 +2790,9 @@ msgstr "Pong"
 
 msgid "Bye"
 msgstr "Bye"
+
+msgid "DHT"
+msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -3973,9 +4037,6 @@ msgstr "ダウンロードは作成されませんでした"
 msgid "Download added"
 msgstr "ダウンロードが追加されました"
 
-msgid "parameter missing"
-msgstr "パラメータがありません"
-
 msgid "Unknown operation"
 msgstr "不明な操作です"
 
@@ -4079,6 +4140,14 @@ msgstr "へルプ: "
 
 msgid "Bitzi|Unknown"
 msgstr "不明"
+
+# NOTE: (from http://bitzi.com/help/judge)
+#
+# You believe others have incorrectly judged the file negatively.
+#
+#, fuzzy
+msgid "Bitzi|Unrated"
+msgstr "過小評価"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr "参照失敗"
@@ -4248,6 +4317,9 @@ msgstr "リクエストを送信しました"
 
 msgid "Reading headers"
 msgstr "へッダを読込んでいます"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr "代わりに PUSH を送信しています"
@@ -4733,6 +4805,44 @@ msgstr "受信した圧縮UDPメッセージ"
 # XXX: wtf
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "有効性が無いため圧縮されないUDPメッセージ"
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push proxy lookups issued"
+msgstr "PUSHプロキシ参照失敗"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "ダウンロードのデバッグレベルです。"
 
 msgid "node"
 msgid_plural "nodes"
@@ -7030,8 +7140,12 @@ msgstr "HELLO送信完了"
 msgid "Welcome sent"
 msgstr "WELCOME送信完了"
 
-#, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+#, fuzzy
+msgid "No UDP traffic yet"
+msgstr "HTTPトラフィック"
+
+#, fuzzy, c-format
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr "閉じています: %s [%d秒後に中止] RX=%d Q=%d,%d%%"
 
 msgid "Removing"
@@ -7060,6 +7174,10 @@ msgstr "偽IP"
 
 msgid "No search"
 msgstr "検索無し"
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
+msgstr ""
 
 msgid "The search has been stopped"
 msgstr "この検索は中止されています"
@@ -7265,6 +7383,16 @@ msgstr "正規化された検索テキストが短すぎます。"
 
 msgid "The URN in the search text is invalid."
 msgstr "検索文字列中のURNが不正です。"
+
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+#, fuzzy
+msgid "Not in Bitzi database."
+msgstr "データベースにありません"
 
 msgid "Encoding"
 msgstr "エンコード方式"

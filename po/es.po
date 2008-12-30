@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -556,6 +556,16 @@ msgstr ""
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "ID del nodo:"
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "Comando malformado"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -2633,6 +2643,57 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the callout queue."
+msgstr "Nivel de depurado para peticiones."
+
+#, fuzzy
+msgid "Debug level for DHT node lookups."
+msgstr "Nivel de depurado para el código HTTP."
+
+#, fuzzy
+msgid "Debug level for DHT key/value storage."
+msgstr "Nivel de depurado para el código HTTP."
+
+#, fuzzy
+msgid "Debug level for DHT key/value publishing."
+msgstr "Nivel de depurado para el código HTTP."
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the DHT user lookup queue."
+msgstr "Nivel de depurado para la interfaz gráfica."
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -2662,6 +2723,9 @@ msgstr "Pong"
 
 msgid "Bye"
 msgstr "Adiós"
+
+msgid "DHT"
+msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -3999,10 +4063,6 @@ msgstr "Ranuras de bajada agotadas"
 msgid "Download added"
 msgstr "Bajados:"
 
-#, fuzzy
-msgid "parameter missing"
-msgstr "Falta la propiedad"
-
 msgid "Unknown operation"
 msgstr "Operación desconocida"
 
@@ -4110,6 +4170,10 @@ msgstr "Ayudai: "
 
 msgid "Bitzi|Unknown"
 msgstr "Desconocido"
+
+#, fuzzy
+msgid "Bitzi|Unrated"
+msgstr "generados"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr ""
@@ -4227,6 +4291,9 @@ msgstr "Petición enviada"
 
 msgid "Reading headers"
 msgstr "Leyendo cabaceras"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr "Plan B: Intentando 'push'"
@@ -4695,6 +4762,43 @@ msgstr "Mensajes UDP Gnutella sin procesar"
 #, fuzzy
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Mensajes UDP Gnutella sin procesar"
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+msgid "DHT push proxy lookups issued"
+msgstr ""
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "Nivel de depurado para las descargas."
 
 msgid "node"
 msgid_plural "nodes"
@@ -6952,8 +7056,12 @@ msgstr "Hola enviado"
 msgid "Welcome sent"
 msgstr "Bienvenido enviado"
 
-#, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+#, fuzzy
+msgid "No UDP traffic yet"
+msgstr "Tráfico HTTP"
+
+#, fuzzy, c-format
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr "Cerrando: %s [Parando en %ds] RX=%d Q=%d,%d%%"
 
 msgid "Removing"
@@ -6982,6 +7090,10 @@ msgstr "erróneo"
 
 msgid "No search"
 msgstr "Ninguna búsqueda"
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
+msgstr ""
 
 #, fuzzy
 msgid "The search has been stopped"
@@ -7212,6 +7324,16 @@ msgstr ""
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+#, fuzzy
+msgid "Not in Bitzi database."
+msgstr "No está en la base de datos"
 
 #, fuzzy
 msgid "Encoding"

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2008-07-05 13:20+0200\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -520,6 +520,16 @@ msgstr "Veraltetes Anfrage-Format"
 msgid "Blank Servent ID"
 msgstr "Leere Servent-ID"
 
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "Fehlerhaftes Kommando"
+
 #, c-format
 msgid "Shutdown (%s)"
 msgstr "Beenden (%s)"
@@ -956,8 +966,10 @@ msgstr ""
 "Begrenze die Anzahl der Uploads auf diese Zahl. Dies gibt auch die Anzahl "
 "der benutzten PARQ-Warteschlangen an. Sollte mindestens 2 sein."
 
-msgid "Don't upload more than this number of files in parallel to a single host."
-msgstr "Begrenze die Anzahl der gleichzeitigen Uploads zu einem Host auf diese Zahl."
+msgid ""
+"Don't upload more than this number of files in parallel to a single host."
+msgstr ""
+"Begrenze die Anzahl der gleichzeitigen Uploads zu einem Host auf diese Zahl."
 
 msgid "Local IPv4 address last determined."
 msgstr "Zuletzt ermittelte lokale IPv4-Adresse."
@@ -993,14 +1005,16 @@ msgstr ""
 "Lokaler TCP-Port für eingehende Verbindungen. Dein Provider blockiert oder "
 "begrenzt möglicherweise den Verkehr auf Port 6346, deshalb sollte ein "
 "anderer Port im Bereich 1024-65535 benutzt werden.  Vergiss nicht, Deine "
-"Firewall für den Port zu öffnen bzw. Port-Forwarding zu aktivieren.  Standardmäßig wird Port 6346 nicht benutzt, um Zensur zu vermeiden."
+"Firewall für den Port zu öffnen bzw. Port-Forwarding zu aktivieren.  "
+"Standardmäßig wird Port 6346 nicht benutzt, um Zensur zu vermeiden."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 "Benutze diese Adresse als Quelladresse, wenn 'Lokale IP setzen' aktiviert "
 "ist."
 
-msgid "Use this IPv6 address as source address if 'force local ip' is activated."
+msgid ""
+"Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr ""
 "Benutze diese IPv6-Adresse als Quelladresse, wenn 'Lokale IP setzen' "
 "aktiviert ist."
@@ -1071,9 +1085,11 @@ msgstr ""
 "(Überlastungsantworten nicht mitgezählt)."
 
 msgid "Delay in seconds before retrying after a connection timed out."
-msgstr "Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen."
+msgstr ""
+"Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen."
 
-msgid "Delay in seconds before retrying after getting a 'busy' response from a host."
+msgid ""
+"Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
 "Dauer in Sekunden nach der erneut versucht wird, eine Verbindung aufzubauen, "
 "wenn ein Host gerade überlastet ist."
@@ -1110,7 +1126,8 @@ msgstr ""
 "keine Verbindung aufgebaut werden konnte. Dies ist auch die maximale "
 "Wartezeit für den Erhalt des HTTP-Requests."
 
-msgid "Number of seconds after which an upload times out if no data is transmitted."
+msgid ""
+"Number of seconds after which an upload times out if no data is transmitted."
 msgstr ""
 "Dauer in Sekunden bevor ein Upload abgebrochen wird, wenn keine Daten "
 "übertragen werden konnten."
@@ -1144,7 +1161,8 @@ msgstr "Maximale Anzahl an Dateideskriptoren für das Bannen von Peers."
 msgid ""
 "Amount of file descriptors currently used for banning, i.e. which are "
 "currently kept open for delayed close."
-msgstr "Derzeitige Anzahl benutzter Dateideskriptoren für das Bannen von Peers."
+msgstr ""
+"Derzeitige Anzahl benutzter Dateideskriptoren für das Bannen von Peers."
 
 msgid "Number of file descriptors we'll actually be using for banning."
 msgstr ""
@@ -1403,12 +1421,15 @@ msgid "Enable to use [forced_local_ip] as local ip."
 msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IP-Adresse benutzt."
 
 msgid "Enable to use [forced_local_ip6] as local ip."
-msgstr "Falls aktiviert, wird [forced_local_ip] als lokale IPv6-Adresse benutzt."
+msgstr ""
+"Falls aktiviert, wird [forced_local_ip] als lokale IPv6-Adresse benutzt."
 
-msgid "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgid ""
+"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
-msgid "If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
+msgid ""
+"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
 msgstr ""
 
 msgid "Try to connect to local networks first."
@@ -1435,7 +1456,8 @@ msgid "Remove files of aborted downloads from disk."
 msgstr "Lösche abgebrochene Downloads von der Platte."
 
 msgid "Use username and password to authenticate to proxy."
-msgstr "Verwende Benutzername und Passwort für die Authentifikation beim Proxy."
+msgstr ""
+"Verwende Benutzername und Passwort für die Authentifikation beim Proxy."
 
 msgid "Username for proxy."
 msgstr "Benutzername für Proxy"
@@ -1461,7 +1483,8 @@ msgstr "Zu verwendende Netzwerkprotokolle"
 msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
 msgstr ""
 
-msgid "The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgid ""
+"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
 msgstr ""
 
 msgid "Current number of hosts in regular node caches."
@@ -1522,7 +1545,8 @@ msgid ""
 "the shaper for leaves is enabled."
 msgstr "Bandbreitenbegrenzung für ausgehenden Leaf-Verkehr in Bytes/s"
 
-msgid "Maximum size of search queries messages we forward to others  (in bytes)."
+msgid ""
+"Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
 "Maximale Größe von Suchanfragepaketen, die wir an andere weiterleiten (in "
 "Bytes)"
@@ -1534,7 +1558,8 @@ msgstr ""
 "Maximal erlaubte Größe von Suchanfragepaketen (in Bytes), ansonsten wird die "
 "Verbindung geschlossen"
 
-msgid "Maximum size of search answers messages we forward to others (in bytes)."
+msgid ""
+"Maximum size of search answers messages we forward to others (in bytes)."
 msgstr ""
 "Maximale Größe von Suchtrefferpaketen, die wir an andere weiterleiten (in "
 "Bytes)"
@@ -1703,7 +1728,8 @@ msgstr ""
 "für Dateien durchsucht werden soll, die wir freigegeben oder bereits in "
 "unserem Mesh haben."
 
-msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
+msgid ""
+"When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 "Wenn aktiviert, müssen die SHA1s von Dateien übereinstimmen, damit sie als "
 "identisch betracht werden. Ansonsten reicht es, wenn Name und Dateigröße "
@@ -1744,7 +1770,8 @@ msgstr ""
 "Benutze Quellen für das erste Stück einer Datei, die keine SHA1-Prüfsumme "
 "bereitstellen. Vorsicht bei der Benutzung."
 
-msgid "Whether gtk-gnutella is currently rebuilding its library in the background."
+msgid ""
+"Whether gtk-gnutella is currently rebuilding its library in the background."
 msgstr "Gibt an, ob gtk-gnutella derzeit die Dateidatenbank neu aufbaut"
 
 msgid ""
@@ -1821,7 +1848,8 @@ msgstr ""
 "werden, sollten 32 Bytes/s an Bandbreite pro Leaf-Peer eingerechnet werden."
 
 msgid "What to do with files that will be ignored for downloading."
-msgstr "Was mit Dateien passieren soll, die für den Download ignoriert werden sollen"
+msgstr ""
+"Was mit Dateien passieren soll, die für den Download ignoriert werden sollen"
 
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
@@ -1872,7 +1900,8 @@ msgstr ""
 "Peers geantwortet wird."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
-msgstr "Wieviele Bytes bisher heruntergeladen wurden, ausschließlich HTTP-Kopfzeilen."
+msgstr ""
+"Wieviele Bytes bisher heruntergeladen wurden, ausschließlich HTTP-Kopfzeilen."
 
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "Bisher hochgeladene Bytes, ohne HTTP-Kopfzeilen."
@@ -1996,7 +2025,8 @@ msgstr ""
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
-msgstr "Prozentsatz der Verbindungen, die für gtk-gnutella reserviert werden sollen."
+msgstr ""
+"Prozentsatz der Verbindungen, die für gtk-gnutella reserviert werden sollen."
 
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr ""
@@ -2048,7 +2078,8 @@ msgstr "Letzter Zeitpunkt des Wechsels zwischen Ultrapeer und Leaf-Peer."
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
-msgstr "Gibt an, ob die derzeitige mittlere Uptime ausreicht, um Ultrapeer zu werden."
+msgstr ""
+"Gibt an, ob die derzeitige mittlere Uptime ausreicht, um Ultrapeer zu werden."
 
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
@@ -2060,7 +2091,8 @@ msgstr ""
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
-msgstr "Gibt an, ob wir die derzeitige Uptime ausreicht, um Ultrapeer zu werden."
+msgstr ""
+"Gibt an, ob wir die derzeitige Uptime ausreicht, um Ultrapeer zu werden."
 
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
@@ -2082,7 +2114,8 @@ msgstr ""
 "werden."
 
 msgid "Whether we meet the memory requirements to become an Ultra node."
-msgstr "Gibt an, ob genügend Speicher zur Verfügung steht, um Ultrapeer zuwerden."
+msgstr ""
+"Gibt an, ob genügend Speicher zur Verfügung steht, um Ultrapeer zuwerden."
 
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr ""
@@ -2195,7 +2228,8 @@ msgid "Time spent computing the QRP table, in seconds."
 msgstr "Zeit für die letzte Generierung der Routingtabelle, in Sekunden."
 
 msgid "Time at which we started computing our QRP patch."
-msgstr "Zeitpunkt des Starts der letzten Berechnung der Routing-Tabellenänderung."
+msgstr ""
+"Zeitpunkt des Starts der letzten Berechnung der Routing-Tabellenänderung."
 
 msgid "Time spent computing the QRP table patch, in seconds."
 msgstr "Zeit für das Berechnen des Routing-Tabellenänderung."
@@ -2222,7 +2256,8 @@ msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "Gesamtgröße des Routing-Tabellen-Patches, in Bytes"
 
 msgid "Final QRP table patch length, after possible compression."
-msgstr "Resultierende Größe des Routing-Tabellen-Patches nach der Komprimierung."
+msgstr ""
+"Resultierende Größe des Routing-Tabellen-Patches nach der Komprimierung."
 
 msgid "QRP table patch compression ratio, in percent, 0 means none."
 msgstr "Kompressionsrate des Routing-Tabellen-patches (0 bedeutet keine)."
@@ -2249,7 +2284,8 @@ msgstr ""
 "zurückgesetzt, wenn wieder genügend Dateideskriptoren zur Verfügung stehen."
 
 msgid "If set, spaces in filenames are replaced with underscores."
-msgstr "Fall aktiviert, werden Leerzeichen in Dateinamen durch Unterstriche ersetzt."
+msgstr ""
+"Fall aktiviert, werden Leerzeichen in Dateinamen durch Unterstriche ersetzt."
 
 msgid ""
 "If set, meta shell characters in filenames are replaced with underscores. "
@@ -2540,6 +2576,57 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the callout queue."
+msgstr "Debug-Level für die Suchanfragen"
+
+#, fuzzy
+msgid "Debug level for DHT node lookups."
+msgstr "Debug-Level für HTTP"
+
+#, fuzzy
+msgid "Debug level for DHT key/value storage."
+msgstr "Debug-Level für HTTP"
+
+#, fuzzy
+msgid "Debug level for DHT key/value publishing."
+msgstr "Debug-Level für HTTP"
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the DHT user lookup queue."
+msgstr "Debug-Level für die Suchanfragen"
+
 msgid "disable"
 msgstr "deaktiviert"
 
@@ -2569,6 +2656,9 @@ msgstr "Pong"
 
 msgid "Bye"
 msgstr "Bye"
+
+msgid "DHT"
+msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -2777,7 +2867,8 @@ msgid "Display outgoing Gnet leaf traffic bandwidth usage."
 msgstr "Bandbreite für ausgehenden Leaf-Verkehr anzeigen"
 
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
-msgstr "Automatisch Leaf-Peer-Anzeige verstecken, wenn nicht im Ultrapeer-Modus"
+msgstr ""
+"Automatisch Leaf-Peer-Anzeige verstecken, wenn nicht im Ultrapeer-Modus"
 
 msgid "Display incoming HTTP traffic bandwidth average."
 msgstr "Mittlere Bandbreite für eingehenden HTTP-Verkehr anzeigen"
@@ -2861,7 +2952,8 @@ msgstr ""
 msgid "Include Gnutella packet header size to the volume."
 msgstr "Paketkopf zum Übertragungsvolumen dazuaddieren"
 
-msgid "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
+msgid ""
+"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
 msgstr ""
 "Prozentsätze anstatt absoluter Werte in den Gnet-Statistiken (Gründe für das "
 "Fallenlassen von Paketen) anzeigen"
@@ -2931,9 +3023,11 @@ msgid "Whether count of received query hits should be displayed."
 msgstr "Gibt an, ob die empfangenen Suchtreffer angezeigt werden sollen."
 
 msgid "Whether count of locally generated queries should be displayed."
-msgstr "Gibt an, ob die lokal generierten Suchanfragen angezeigt werden sollen."
+msgstr ""
+"Gibt an, ob die lokal generierten Suchanfragen angezeigt werden sollen."
 
-msgid "Whether count of local queries pending transmission should be displayed."
+msgid ""
+"Whether count of local queries pending transmission should be displayed."
 msgstr ""
 "Gibt an, ob die lokal generierten Suchanfragen in der "
 "Übertragungswarteschlange angezeigt werden sollen."
@@ -3013,7 +3107,8 @@ msgstr ""
 msgid "Configures the appearance of the toolbar."
 msgstr "Stellt das Aussehen der Werkzeugleiste ein"
 
-msgid "The lifetime of a search. If this time is exceeded, the search is stopped."
+msgid ""
+"The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr ""
 "Die Laufzeit der Suche. Sobald diese Zeit abgelaufen ist, wird die Suche "
 "angehalten."
@@ -3826,10 +3921,6 @@ msgstr "Der Download konnte nicht gestartet werden"
 msgid "Download added"
 msgstr "Download hinzuefügt"
 
-#, fuzzy
-msgid "parameter missing"
-msgstr "Eigenschaft fehlt"
-
 msgid "Unknown operation"
 msgstr "Unbekannte Operation"
 
@@ -3931,6 +4022,10 @@ msgstr "Hilfe:"
 
 msgid "Bitzi|Unknown"
 msgstr "Unbekannt"
+
+#, fuzzy
+msgid "Bitzi|Unrated"
+msgstr "Unterbewertet"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr ""
@@ -4044,6 +4139,9 @@ msgstr "Anfrage gesendet"
 
 msgid "Reading headers"
 msgstr "Lese Kopfzeilen"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr "Falle zu Push zurück"
@@ -4504,6 +4602,44 @@ msgstr ""
 msgid "Uncompressed UDP messages due to no gain"
 msgstr ""
 
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push proxy lookups issued"
+msgstr "Push-Proxy nicht gefunden"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "Debug-Level für Downloads"
+
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "Peers"
@@ -4585,8 +4721,10 @@ msgstr "0 gezählte Begriffe"
 msgid "<no property selected>"
 msgstr ""
 
-msgid "==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr "==> Wir suchen nach Leuten, die zu diesem Programm beitragen möchten. <=="
+msgid ""
+"==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr ""
+"==> Wir suchen nach Leuten, die zu diesem Programm beitragen möchten. <=="
 
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
@@ -4594,7 +4732,8 @@ msgid ""
 msgstr ""
 
 msgid "A passive search matches any search results routed through this node"
-msgstr "Eine passive Suche zeigt alle Suchergebnisse, die durch diesen Peer laufen"
+msgstr ""
+"Eine passive Suche zeigt alle Suchergebnisse, die durch diesen Peer laufen"
 
 msgid "A_ggressive mode"
 msgstr "A_ggressiver Modus"
@@ -6681,8 +6820,12 @@ msgstr "Begrüßung gesendet"
 msgid "Welcome sent"
 msgstr "Willkommen gesendet"
 
+#, fuzzy
+msgid "No UDP traffic yet"
+msgstr "HTTP-Verkehr"
+
 #, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr ""
 
 msgid "Removing"
@@ -6711,6 +6854,10 @@ msgstr ""
 
 msgid "No search"
 msgstr "Keine Suche"
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
+msgstr ""
 
 #, fuzzy
 msgid "The search has been stopped"
@@ -6924,6 +7071,16 @@ msgstr ""
 msgid "The URN in the search text is invalid."
 msgstr ""
 
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+#, fuzzy
+msgid "Not in Bitzi database."
+msgstr "Nicht in Datenbank"
+
 msgid "Encoding"
 msgstr ""
 
@@ -7081,4 +7238,3 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
-

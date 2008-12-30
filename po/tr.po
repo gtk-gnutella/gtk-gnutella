@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2006-10-04 06:09+0300\n"
 "Last-Translator: Uğur Çetin <ugur.jnmbk@gmail.com>\n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -531,6 +531,15 @@ msgstr ""
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "Sunucu"
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+msgid "DHT Malformed message"
+msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -2235,6 +2244,52 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+msgid "Debug level for the callout queue."
+msgstr ""
+
+msgid "Debug level for DHT node lookups."
+msgstr ""
+
+msgid "Debug level for DHT key/value storage."
+msgstr ""
+
+msgid "Debug level for DHT key/value publishing."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+msgid "Debug level for the DHT user lookup queue."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -2263,6 +2318,9 @@ msgid "Pong"
 msgstr ""
 
 msgid "Bye"
+msgstr ""
+
+msgid "DHT"
 msgstr ""
 
 msgid "QRP"
@@ -3486,9 +3544,6 @@ msgstr ""
 msgid "Download added"
 msgstr "İndirilen:"
 
-msgid "parameter missing"
-msgstr ""
-
 #, fuzzy
 msgid "Unknown operation"
 msgstr "Bilinmeyen hata"
@@ -3591,6 +3646,9 @@ msgid "Help: "
 msgstr "Yardım:"
 
 msgid "Bitzi|Unknown"
+msgstr ""
+
+msgid "Bitzi|Unrated"
 msgstr ""
 
 msgid "Bitzi|Bitzi lookup failure"
@@ -3706,6 +3764,9 @@ msgstr "İstek gönderildi"
 
 msgid "Reading headers"
 msgstr "Başlıklar okunuyor"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr ""
@@ -4163,6 +4224,42 @@ msgid "Compressed UDP messages received"
 msgstr ""
 
 msgid "Uncompressed UDP messages due to no gain"
+msgstr ""
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+msgid "DHT push proxy lookups issued"
+msgstr ""
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+msgid "DHT re-seeding of orphan downloads"
 msgstr ""
 
 msgid "node"
@@ -6278,8 +6375,11 @@ msgstr ""
 msgid "Welcome sent"
 msgstr ""
 
+msgid "No UDP traffic yet"
+msgstr ""
+
 #, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr ""
 
 msgid "Removing"
@@ -6307,6 +6407,10 @@ msgid "bogus"
 msgstr ""
 
 msgid "No search"
+msgstr ""
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
 msgstr ""
 
 msgid "The search has been stopped"
@@ -6516,6 +6620,15 @@ msgid "The normalized search text is too short."
 msgstr ""
 
 msgid "The URN in the search text is invalid."
+msgstr ""
+
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+msgid "Not in Bitzi database."
 msgstr ""
 
 msgid "Encoding"

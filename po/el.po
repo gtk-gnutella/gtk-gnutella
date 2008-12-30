@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-05-06 22:44+0900\n"
+"POT-Creation-Date: 2008-12-30 14:40+0900\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -551,6 +551,16 @@ msgstr ""
 #, fuzzy
 msgid "Blank Servent ID"
 msgstr "ID πελάτη:"
+
+msgid "DHT Invalid security token"
+msgstr ""
+
+msgid "DHT Too many STORE requests"
+msgstr ""
+
+#, fuzzy
+msgid "DHT Malformed message"
+msgstr "Παραμορφωμένη εντολή"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -2628,6 +2638,57 @@ msgid ""
 "prettier."
 msgstr ""
 
+msgid ""
+"Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
+"you to resolve magnet: URIs and to easily locate alternate locations for "
+"files and push-proxies for firewalled hosts. It requires UDP support."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the callout queue."
+msgstr "Επίπεδο αποσφαλμάτωσης ερωτημάτων."
+
+#, fuzzy
+msgid "Debug level for DHT node lookups."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
+
+#, fuzzy
+msgid "Debug level for DHT key/value storage."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
+
+#, fuzzy
+msgid "Debug level for DHT key/value publishing."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket. Output needs are lower than input."
+msgstr ""
+
+msgid ""
+"Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
+"limiting concurrent publishing and searching.  Traffic is made on the "
+"Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
+"are much larger than output as far as lookups are concerned."
+msgstr ""
+
+msgid ""
+"Whether the GUID should be kept accross sessions. A sticky GUID can be "
+"helpful if you are firewalled and share files because the downloaders will "
+"be able to contact you again more easily when you come back online."
+msgstr ""
+
+msgid ""
+"Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
+"for the DHT because it promotes routing table stability and ensures that "
+"closest nodes will keep mutual knowledge about each other"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the DHT user lookup queue."
+msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -2657,6 +2718,9 @@ msgstr "Pong"
 
 msgid "Bye"
 msgstr "Αντίο"
+
+msgid "DHT"
+msgstr ""
 
 msgid "QRP"
 msgstr "QRP"
@@ -3993,10 +4057,6 @@ msgstr "Δεν υπάρχει υποδοχή λήψης (δημιουργία)"
 msgid "Download added"
 msgstr "Λήφθηκαν:"
 
-#, fuzzy
-msgid "parameter missing"
-msgstr "Λείπει ιδιότητα"
-
 msgid "Unknown operation"
 msgstr "Άγνωστη διαδικασία"
 
@@ -4104,6 +4164,10 @@ msgstr "Βοήθεια: "
 
 msgid "Bitzi|Unknown"
 msgstr "Άγνωστο"
+
+#, fuzzy
+msgid "Bitzi|Unrated"
+msgstr "Υποτιμημένο"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr ""
@@ -4219,6 +4283,9 @@ msgstr "Αίτημα εστάλη"
 
 msgid "Reading headers"
 msgstr "Ανάγνωση κεφαλίδων"
+
+msgid "Searching for new push-proxies"
+msgstr ""
 
 msgid "Falling back to push"
 msgstr "Επαναφορά ώθησης"
@@ -4685,6 +4752,44 @@ msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
 #, fuzzy
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
+
+msgid "Re-seeding of orphan downloads through query hits"
+msgstr ""
+
+msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT values held"
+msgstr ""
+
+msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT replication of stale value avoided"
+msgstr ""
+
+msgid "DHT replication of held values"
+msgstr ""
+
+msgid "DHT republishing of held values"
+msgstr ""
+
+msgid "DHT alt-loc lookups issued"
+msgstr ""
+
+#, fuzzy
+msgid "DHT push proxy lookups issued"
+msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
+
+msgid "DHT successful alt-loc lookups"
+msgstr ""
+
+msgid "DHT successful push-proxy lookups"
+msgstr ""
+
+#, fuzzy
+msgid "DHT re-seeding of orphan downloads"
+msgstr "Επίπεδο αποσφαλμάτωσης λήψεων."
 
 msgid "node"
 msgid_plural "nodes"
@@ -6919,8 +7024,12 @@ msgstr "Χαιρετισμός εστάλη"
 msgid "Welcome sent"
 msgstr "Καλωσόρισμα εστάλη"
 
-#, c-format
-msgid "Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"
+#, fuzzy
+msgid "No UDP traffic yet"
+msgstr "Κυκλοφορία HTTP"
+
+#, fuzzy, c-format
+msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr "Κλείσιμο: %s [Διακοπή σε %ds] RX=%d Q=%d,%d%%"
 
 msgid "Removing"
@@ -6949,6 +7058,10 @@ msgstr "ψεύτικο"
 
 msgid "No search"
 msgstr "Χωρίς αναζήτηση"
+
+#, c-format
+msgid "Flushing queue (%u results pending)"
+msgstr ""
 
 #, fuzzy
 msgid "The search has been stopped"
@@ -7176,6 +7289,16 @@ msgstr "Το κείμενο κανονικοποιημένης αναζήτησ�
 
 msgid "The URN in the search text is invalid."
 msgstr ""
+
+msgid "SHA-1 is unknown."
+msgstr ""
+
+msgid "No Bitzi ticket requested yet."
+msgstr ""
+
+#, fuzzy
+msgid "Not in Bitzi database."
+msgstr "Όχι στη βάση δεδομένων"
 
 #, fuzzy
 msgid "Encoding"
