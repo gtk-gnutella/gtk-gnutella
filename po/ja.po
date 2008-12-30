@@ -76,7 +76,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2008-12-30 14:40+0900\n"
-"PO-Revision-Date: 2008-02-16 14:15+0900\n"
+"PO-Revision-Date: 2008-12-30 14:55+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -86,18 +86,18 @@ msgstr ""
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
-msgstr "%s%s%s%s%s フレーム/秒, %s kb/秒"
+msgstr "%s%s%s%s%s·フレーム/秒,·%s·kb/秒"
 
 msgid "times|x"
 msgstr "回"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
-msgstr "切断されました、TLSでの再接続を試みます (%s)"
+msgstr "中断されました、TLSでの再接続を試みます (%s)"
 
 #, c-format
 msgid "Stopped (%s)"
-msgstr "切断されました (%s)"
+msgstr "中断されました (%s)"
 
 #, c-format
 msgid "Too many attempts (%u times)"
@@ -2621,11 +2621,10 @@ msgid ""
 "background."
 msgstr "共有ファイルのTTHを算出しています。"
 
-#, fuzzy
 msgid ""
 "Whether gtk-gnutella is currently verifying the TTH of downloaded files in "
 "the background."
-msgstr "ダウンロードされたファイルの SHA1 を検証しています。"
+msgstr "ダウンロードされたファイルの TTH を検証しています。"
 
 msgid "Maximum number of results to show in any search."
 msgstr "検索で表示する検索結果の最大数です。"
@@ -2718,19 +2717,16 @@ msgstr ""
 
 #, fuzzy
 msgid "Debug level for the callout queue."
-msgstr "検索キューのデバッグレベルです。"
+msgstr "検索クエリーのデバッグレベルです。"
 
-#, fuzzy
 msgid "Debug level for DHT node lookups."
-msgstr "HTTP コードのデバッグレベルです。"
+msgstr "DHT ノード参照処理のデバッグレベルです。"
 
-#, fuzzy
 msgid "Debug level for DHT key/value storage."
-msgstr "HTTP コードのデバッグレベルです。"
+msgstr ""
 
-#, fuzzy
 msgid "Debug level for DHT key/value publishing."
-msgstr "メッセージ経路制御のデバッグレベルです。"
+msgstr ""
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
@@ -2757,9 +2753,8 @@ msgid ""
 "closest nodes will keep mutual knowledge about each other"
 msgstr ""
 
-#, fuzzy
 msgid "Debug level for the DHT user lookup queue."
-msgstr "検索キューのデバッグレベルです。"
+msgstr "DHT ユーザー参照キューのデバッグレベルです。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -2792,7 +2787,7 @@ msgid "Bye"
 msgstr "Bye"
 
 msgid "DHT"
-msgstr ""
+msgstr "DHT"
 
 msgid "QRP"
 msgstr "QRP"
@@ -4145,9 +4140,8 @@ msgstr "不明"
 #
 # You believe others have incorrectly judged the file negatively.
 #
-#, fuzzy
 msgid "Bitzi|Unrated"
-msgstr "過小評価"
+msgstr "未評価"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr "参照失敗"
@@ -4899,9 +4893,8 @@ msgstr " 件が登録済, "
 msgid " with sources"
 msgstr " 件が送信元有り"
 
-#, fuzzy
 msgid "%v/%u (%P%%)"
-msgstr "%u/%u 基のホスト (%u%%)"
+msgstr "%v/%u (%P%%)"
 
 msgid "%v/%u Gnutella peers"
 msgstr "%v/%u 基のGnutellaピア"
@@ -5600,9 +5593,8 @@ msgstr "ダウンロード中/未完成なファイルをここに保管"
 msgid "Keywords:"
 msgstr "キーワード:"
 
-#, fuzzy
 msgid "KiB"
-msgstr "KiB/秒"
+msgstr "KiB"
 
 msgid "KiB/s"
 msgstr "KiB/秒"
@@ -5613,9 +5605,8 @@ msgstr "充分な稼動時間がある"
 msgid "Last check"
 msgstr "最後の確認時間"
 
-#, fuzzy
 msgid "Last chunk size"
-msgstr "先頭のチャンクサイズ(_S)"
+msgstr "最新チャンクサイズ"
 
 msgid "Last scan initiated on:"
 msgstr "最終スキャン開始時間:"
@@ -6520,10 +6511,8 @@ msgstr "フォルダを追加(_A)"
 msgid "_Browse"
 msgstr "参照(_B)"
 
-# FIXME: should be accelerated
-#, fuzzy
 msgid "_Cancel"
-msgstr "キャンセル"
+msgstr "キャンセル(_C)"
 
 msgid "_Compute upload connection speed"
 msgstr "アップロード接続速度を算出する(_C)"
@@ -6721,10 +6710,8 @@ msgstr "(平均) で内へ"
 msgid "invert condition"
 msgstr "条件を逆転"
 
-# FIXME: should be accelerated
-#, fuzzy
 msgid "invert"
-msgstr "戻す"
+msgstr "逆転"
 
 msgid "items"
 msgstr "個のアイテム"
@@ -7069,13 +7056,11 @@ msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u 件の検索クエリー"
 
-#, fuzzy
 msgid "Last Request"
-msgstr "最後の切替時間"
+msgstr "最新リクエスト"
 
-#, fuzzy
 msgid "Last Upload"
-msgstr "アップロード"
+msgstr "最新アップロード"
 
 # FIXME:
 msgid "Done"
@@ -7140,13 +7125,12 @@ msgstr "HELLO送信完了"
 msgid "Welcome sent"
 msgstr "WELCOME送信完了"
 
-#, fuzzy
 msgid "No UDP traffic yet"
-msgstr "HTTPトラフィック"
+msgstr "まだUDPトラフィックはありません"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
-msgstr "閉じています: %s [%d秒後に中止] RX=%d Q=%d,%d%%"
+msgstr "閉じています: %s [%u秒後に中止] RX=%u Q=%u,%u%%"
 
 msgid "Removing"
 msgstr "削除中"
@@ -7288,7 +7272,7 @@ msgid "Extension"
 msgstr "拡張子"
 
 msgid "MIME type"
-msgstr ""
+msgstr "MIMEタイプ"
 
 msgid "TTH"
 msgstr "TTH"
@@ -7390,9 +7374,8 @@ msgstr ""
 msgid "No Bitzi ticket requested yet."
 msgstr ""
 
-#, fuzzy
 msgid "Not in Bitzi database."
-msgstr "データベースにありません"
+msgstr "Bitziデータベースにありません"
 
 msgid "Encoding"
 msgstr "エンコード方式"
