@@ -1317,13 +1317,18 @@
 #93.174.93.148/31
 #93.174.93.81
 93.174.93.0/24
+# Blueconnex Networks Ltd
+# LimeWire/4.10.9; port 6669; *CD quality.mp3; ASF with URL redirect
+94.76.192.0/18
+#94.76.208.146
+#94.76.208.148
 89.248.172.98
 213.174.141.173
 78.108.178.57
 # v3Servers.net
 # Sogreev Anton, 12 Knez Mihailova, apt. 18, Belgrade, 11000, Serbia
 #94.76.192.206/31
-94.76.192.0/24
+#94.76.192.0/24
 
 # WakeNet; 3wplayer dot com
 67.15.107.160/27
