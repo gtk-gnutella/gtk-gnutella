@@ -1388,6 +1388,8 @@
 # SoftLayer Technologies Inc.; see above
 75.126.0.0/16
 174.36.0.0/15
+67.228.0.0/16
+208.43.0.0/16
 # GoDaddy.com, Inc.; see above
 72.167.0.0/17
 # Managed Solutions Group, Inc.; see above
@@ -1419,6 +1421,9 @@
 # Hosting Services, Inc.
 # $query + .mpeg; ASF; peertracking dot com
 67.213.213.240/28
+# peertracking dot com; fake AVI pr0n; ASF with URL redirect
+#67.228.193.81/31
+#208.43.146.93
 # SoftLayer Technologies Inc.
 #174.36.1.70
 # Webair Internet Development company, Inc, Recurring International
