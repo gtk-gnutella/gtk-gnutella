@@ -59,29 +59,6 @@ RCSID("$Id$")
  * There can be up to 2^5 = 32 keys per version.
  */
 
-static const gchar *keys_096b[] = {
-	"bea7 69a5 a647 f605 46b0 d155 2ba6 cee7",
-	"68b0 2cf3 2c1a 8ae0 a72d f5c0 e77b bba8",
-	"856e 4221 1470 a903 193e 2cc9 79a5 5337",
-	"59c3 3f96 fbc0 0397 0356 6500 fc72 41b6",
-	"e0f3 9f6c 16d7 4231 cd00 e991 b511 db07",
-	"e765 cc0e 8672 692c cdc6 3b57 f178 cf59",
-	"3120 1d5a ffc2 4ad8 bd4b bb38 bf99 b026",
-	"8b39 85dd af31 86a5 2e7e 0b95 f030 482b",
-	"5107 a6b7 4013 3439 3dae b5b4 e679 a401",
-	"7d65 9e48 ee7e 7078 286b 29e9 e9be 296a",
-	"e82d 1335 53d0 28c1 3423 7b30 6358 de81",
-	"8b27 3698 03a2 6889 3bdd d095 34b6 0629",
-	"b178 7abb 38cd 1084 f861 f1b2 05ab 28bc",
-	"1253 e83d 6ee1 739e d7fe cb08 0527 3b3b",
-	"13cb 0ec4 7784 2bd3 728a 3cbb 7900 c25c",
-	"77da a447 ea85 ca52 4867 abae c992 aca3",
-	"232d 40d4 2d6f 473c 411a 2beb bb1c b72c",
-	"f62d be65 19a3 63c2 3714 e224 bf31 b565",
-	"34b8 c34b aebb 844e 8080 da67 036b 1fbb",
-	"e824 cbee 3b74 9c99 e808 ac6c 079b 1d16",
-};
-
 static const gchar *keys_096[] = {
 	"261c 78d6 fcc5 d96e 2649 061a 4534 29b5",
 	"2629 7de4 8edd 43eb 6c47 2b01 caf1 5e86",
@@ -241,10 +218,6 @@ struct tokkey {
 	guint count;		/**< Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
-	{
-		{ 0, 96, 0, 'b', 0, 0, 1132614000 },		/* 2005-11-22 */
-		keys_096b, G_N_ELEMENTS(keys_096b),
-	},
 	{
 		{ 0, 96, 0, '\0', 0, 0, 1138057200 },		/* 2006-01-24 */
 		keys_096, G_N_ELEMENTS(keys_096),
