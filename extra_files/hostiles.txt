@@ -1418,12 +1418,15 @@
 # $query + HD.avi; pr0n spam; ASF URL redirect
 94.102.48.0/24
 
-# Hosting Services, Inc.
+# Hosting Services, Inc., Chicago
 # $query + .mpeg; ASF; peertracking dot com
-67.213.213.240/28
+67.213.208.0/20
+#67.213.213.240/28
+#67.213.214.0/28
 # peertracking dot com; fake AVI pr0n; ASF with URL redirect
-#67.228.193.81/31
+#67.228.193.80/29
 #208.43.146.93
+#208.43.68.149
 # SoftLayer Technologies Inc.
 #174.36.1.70
 # Webair Internet Development company, Inc, Recurring International
