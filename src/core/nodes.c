@@ -765,6 +765,16 @@ node_slow_timer(time_t now)
 		no_leaves_connected = 0;
 
 	/*
+	 * It is more harmful to the network to run an ancient version as an
+	 * ultra peer, less so as a leaf node.
+	 */
+
+	if (GNET_PROPERTY(current_peermode) != NODE_P_LEAF && tok_is_ancient(now)) {
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
+		return;
+	}
+
+	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
 	 * evaluate our ability to become an ultra node.
 	 *
