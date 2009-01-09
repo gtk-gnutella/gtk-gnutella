@@ -1157,7 +1157,8 @@
 66.193.224.0/24
 
 # LimeWire/4.0.5 (probably fake); security violations
-129.47.128.0/26
+# likely sniffing ultrapeer; no QRP
+129.47.0.0/16
 
 # LimeWire/4.12.5; security violations
 71.6.153.192/26
@@ -1336,6 +1337,9 @@
 # Onkea Interactive Ltd; pr0n spam
 # ranges hosted by vanoppen.biz LLC
 74.85.92.0/25
+#216.243.1.5
+#216.243.1.6
+#216.243.3.124
 208.76.153.128/27
 # hosted by hostnoc.net
 64.191.56.32/28
@@ -1445,6 +1449,7 @@
 # vanoppen.biz LLC
 #76.191.65.66
 76.191.64.0/18
+216.243.0.0/19
 # iWeb Technologies Inc.
 #70.38.11.249
 70.38.0.0/17
