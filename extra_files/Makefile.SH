@@ -61,7 +61,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 15585 2008-08-13 20:26:57Z rmanfredi $
+# $X-Id: Jmakefile 15901 2009-01-16 17:56:49Z rmanfredi $
 
 all::
 
@@ -148,7 +148,8 @@ local_deinstall::
 update: update_bogons update_geoip
 
 update_bogons:
-	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
+# Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
+	: wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
 
 update_geoip:
