@@ -2298,9 +2298,9 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 	clear_error_str(&error_str);
 	res = magnet_parse(url, error_str);
 	if (res) {
-		guint n_downloads, n_searches;
+		unsigned n_downloads, n_searches;
 
-		n_downloads = guc_download_handle_magnet(url);
+		n_downloads = res->display_name ? guc_download_handle_magnet(url) : 0;
 		n_searches = guc_search_handle_magnet(url);
 
 		if (n_downloads > 0 || n_searches > 0) {
