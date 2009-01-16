@@ -4610,6 +4610,9 @@ search_request_preprocess(struct gnutella_node *n)
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 		goto drop;					/* Drop message! */
 	}
+	if (!is_ascii_string(search)) {
+		gnet_stats_count_general(GNR_QUERY_UTF8, 1);
+	}
 
 	/*
 	 * Compact query, if requested and we're going to relay that message.
@@ -4621,9 +4624,6 @@ search_request_preprocess(struct gnutella_node *n)
 		GNET_PROPERTY(current_peermode) != NODE_P_LEAF
 	) {
 		size_t mangled_search_len;
-
-		if (!is_ascii_string(search))
-			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 
 		/*
 		 * Compact the query, offsetting from the start as needed in case
