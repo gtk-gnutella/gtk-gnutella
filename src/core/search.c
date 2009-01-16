@@ -4199,6 +4199,17 @@ search_handle_magnet(const gchar *url)
 				n_searches++;
 			}
 		}
+		if (res->sha1 && NULL == res->display_name) {
+			char urn_buf[64];
+
+			sha1_to_urn_string_buf(res->sha1, urn_buf, sizeof urn_buf);
+			if (
+				gcu_search_gui_new_search(urn_buf,
+					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
+			) {
+				n_searches++;
+			}
+		}
 
 		magnet_resource_free(&res);
 	}
