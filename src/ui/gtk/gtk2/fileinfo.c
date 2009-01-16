@@ -389,7 +389,7 @@ download_details_get_text(GtkWidget *widget)
 		GValue value;
 
 		value = zero_value;
-		gtk_tree_model_get_value(model, &iter, 1, &value);
+		gtk_tree_model_get_value(model, &iter, 2, &value);
 		return g_strdup(g_value_get_string(&value));
 	} else {
 		return NULL;
