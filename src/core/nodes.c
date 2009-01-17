@@ -1057,6 +1057,8 @@ node_timer(time_t now)
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				g_message("Removing %s <%s> due to security violation",
 					node_addr(n), node_vendor(n));
+				ban_record(n->addr,
+					"IP with Gnutella security violations");
 				node_bye_if_writable(n, 412, "Security violation");
 				return;
 			}
