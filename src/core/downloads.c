@@ -1798,6 +1798,14 @@ download_found_server(const struct guid *guid,
 	 */
 
 	server = g_hash_table_lookup(dl_by_guid, guid);
+
+	if (NULL == server) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("discovered GUID %s is for host %s, but server is gone!",
+				guid_to_string(guid), host_addr_port_to_string(addr, port));
+		return;
+	}
+
 	g_assert(dl_server_valid(server));
 
 	if (GNET_PROPERTY(download_debug))
