@@ -49,14 +49,14 @@ struct gnutella_socket;
  * during header processing in case something goes wrong.
  */
 struct io_error {
-	void (*line_too_long)(gpointer resource);
+	void (*line_too_long)(gpointer resource, struct header *header);
 	void (*header_error_tell)(gpointer resource, gint error);	/**< Optional */
 	void (*header_error)(gpointer resource, gint error);
-	void (*input_exception)(gpointer resource);
+	void (*input_exception)(gpointer resource, struct header *header);
 	void (*input_buffer_full)(gpointer resource);
 	void (*header_read_error)(gpointer resource, gint error);
-	void (*header_read_eof)(gpointer resource);
-	void (*header_extra_data)(gpointer resource);
+	void (*header_read_eof)(gpointer resource, struct header *header);
+	void (*header_extra_data)(gpointer resource, struct header *header);
 };
 
 typedef void (*io_done_cb_t)(gpointer resource, struct header *header);

@@ -168,6 +168,8 @@ static gnutella_node_t *browse_node;
 static gchar *payload_inflate_buffer;
 static gint payload_inflate_buffer_len;
 
+static const gchar gtkg_vendor[] = "gtk-gnutella/";
+
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
 static guint32     connected_node_count = 0;
@@ -4773,49 +4775,12 @@ node_query_routing_header(struct gnutella_node *n)
 }
 
 /**
- * This routine is called to process a 0.6+ handshake header.
- *
- * It is either called to process the reply to our sending a 0.6 handshake
- * (outgoing connections) or to parse the initial 0.6 headers (incoming
- * connections).
+ * Extract User-Agent information out of the header.
  */
 static void
-node_process_handshake_header(struct gnutella_node *n, header_t *head)
+node_extract_user_agent(struct gnutella_node *n, header_t *head)
 {
-	static const gchar gtkg_vendor[] = "gtk-gnutella/";
-	static const size_t gnet_response_max = 16 * 1024;
-	gchar *gnet_response;
-	size_t rw;
-	gint sent;
 	const gchar *field;
-	gboolean incoming = (n->flags & NODE_F_INCOMING);
-	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
-	const gchar *compressing = "Content-Encoding: deflate\r\n";
-
-	if (GNET_PROPERTY(node_debug)) {
-		g_message("got %s handshaking headers from node %s:",
-			incoming ? "incoming" : "outgoing",
-			host_addr_to_string(n->addr));
-		if (!incoming)
-			dump_hex(stdout, "Status Line", getline_str(n->socket->getline),
-				MIN(getline_length(n->socket->getline), 80));
-		g_message("------ Header Dump:");
-		header_dump(head, stderr);
-		g_message("------");
-		fflush(stderr);
-	}
-
-	if (in_shutdown) {
-		node_send_error(n, 503, "Servent Shutdown");
-		node_remove(n, _("Servent Shutdown"));
-		return;			/* node_remove() has freed s->getline */
-	}
-
-	/*
-	 * Handle common header fields, non servent-specific.
-	 */
-
-	/* User-Agent -- servent vendor identification */
 
 	field = header_get(head, "User-Agent");
 	if (field) {
@@ -4833,7 +4798,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Spot remote GTKG nodes (even if faked name).
 	 */
 
-	if (n->vendor != NULL) {
+	if (field) {
 		if (
 			is_strprefix(n->vendor, gtkg_vendor) ||
 			(*n->vendor == '!' && is_strprefix(&n->vendor[1], gtkg_vendor))
@@ -4868,6 +4833,51 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			}
 		}
 	}
+}
+
+/**
+ * This routine is called to process a 0.6+ handshake header.
+ *
+ * It is either called to process the reply to our sending a 0.6 handshake
+ * (outgoing connections) or to parse the initial 0.6 headers (incoming
+ * connections).
+ */
+static void
+node_process_handshake_header(struct gnutella_node *n, header_t *head)
+{
+	static const size_t gnet_response_max = 16 * 1024;
+	gchar *gnet_response;
+	size_t rw;
+	gint sent;
+	const gchar *field;
+	gboolean incoming = (n->flags & NODE_F_INCOMING);
+	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
+	const gchar *compressing = "Content-Encoding: deflate\r\n";
+
+	if (GNET_PROPERTY(node_debug)) {
+		g_message("got %s handshaking headers from node %s:",
+			incoming ? "incoming" : "outgoing",
+			host_addr_to_string(n->addr));
+		if (!incoming)
+			dump_hex(stdout, "Status Line", getline_str(n->socket->getline),
+				MIN(getline_length(n->socket->getline), 80));
+		g_message("------ Header Dump:");
+		header_dump(head, stderr);
+		g_message("------");
+		fflush(stderr);
+	}
+
+	if (in_shutdown) {
+		node_send_error(n, 503, "Servent Shutdown");
+		node_remove(n, _("Servent Shutdown"));
+		return;			/* node_remove() has freed s->getline */
+	}
+
+	/*
+	 * Handle common header fields, non servent-specific.
+	 */
+
+	node_extract_user_agent(n, head); 	/* Servent vendor identification */
 
 	/* Pong-Caching -- ping/pong reduction scheme */
 
@@ -5579,10 +5589,13 @@ cast_to_node(gpointer p)
 }
 
 static void
-err_line_too_long(gpointer obj)
+err_line_too_long(gpointer obj, header_t *head)
 {
-	node_send_error(cast_to_node(obj), 413, "Header line too long");
-	node_remove(cast_to_node(obj), _("Failed (Header line too long)"));
+	struct gnutella_node *n = cast_to_node(obj);
+
+	node_extract_user_agent(n, head);
+	node_send_error(n, 413, "Header line too long");
+	node_remove(n, _("Failed (Header line too long)"));
 }
 
 static void
@@ -5598,10 +5611,11 @@ err_header_error(gpointer obj, gint error)
 }
 
 static void
-err_input_exception(gpointer obj)
+err_input_exception(gpointer obj, header_t *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 
+	node_extract_user_agent(n, head);
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
 		_("Sent crawling info") : _("Failed (Input Exception)"));
 }
@@ -5637,9 +5651,11 @@ err_header_read_error(gpointer obj, gint error)
 }
 
 static void
-err_header_read_eof(gpointer obj)
+err_header_read_eof(gpointer obj, struct header *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
+
+	node_extract_user_agent(n, head);
 
 	if (!(n->flags & NODE_F_CRAWLER))
 		node_mark_bad_vendor(n);
@@ -5649,9 +5665,12 @@ err_header_read_eof(gpointer obj)
 }
 
 static void
-err_header_extra_data(gpointer obj)
+err_header_extra_data(gpointer obj, header_t *head)
 {
-	node_remove(cast_to_node(obj), _("Failed (Extra HELLO data)"));
+	struct gnutella_node *n = cast_to_node(obj);
+
+	node_extract_user_agent(n, head);
+	node_remove(n, _("Failed (Extra HELLO data)"));
 }
 
 static struct io_error node_io_error = {

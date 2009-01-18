@@ -881,8 +881,9 @@ PPROXY(gpointer obj)
 }
 
 static void
-err_line_too_long(gpointer obj)
+err_line_too_long(gpointer obj, header_t *unused_head)
 {
+	(void) unused_head;
 	pproxy_error_remove(PPROXY(obj), 413, "Header too large");
 }
 
@@ -899,8 +900,9 @@ err_header_error(gpointer obj, gint error)
 }
 
 static void
-err_input_exception(gpointer obj)
+err_input_exception(gpointer obj, header_t *unused_head)
 {
+	(void) unused_head;
 	pproxy_remove(PPROXY(obj), "Failed (Input Exception)");
 }
 
@@ -917,14 +919,16 @@ err_header_read_error(gpointer obj, gint error)
 }
 
 static void
-err_header_read_eof(gpointer obj)
+err_header_read_eof(gpointer obj, header_t *unused_head)
 {
+	(void) unused_head;
 	pproxy_remove(PPROXY(obj), "Failed (EOF)");
 }
 
 static void
-err_header_extra_data(gpointer obj)
+err_header_extra_data(gpointer obj, header_t *unused_head)
 {
+	(void) unused_head;
 	pproxy_error_remove(PPROXY(obj), 400, "Extra data after HTTP header");
 }
 

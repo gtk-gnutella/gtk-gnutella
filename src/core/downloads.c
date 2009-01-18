@@ -6055,6 +6055,66 @@ download_send_push_request(struct download *d, gboolean broadcast)
 	}
 }
 
+/**
+ * Extract server name from headers.
+ *
+ * @returns whether new server name was found.
+ */
+static gboolean
+download_get_server_name(struct download *d, header_t *header)
+{
+	const gchar *user_agent;
+	gboolean got_new_server = FALSE;
+
+	download_check(d);
+
+	user_agent = header_get(header, "Server");			/* Mandatory */
+	if (!user_agent)
+		user_agent = header_get(header, "User-Agent"); /* Are they confused? */
+
+	if (user_agent) {
+		struct dl_server *server = d->server;
+		const gchar *vendor;
+		gchar *wbuf = NULL;
+		size_t size = 0;
+		gboolean faked;
+	   
+		g_assert(dl_server_valid(server));
+
+		if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
+			socket_disable_token(d->socket);
+		}
+			
+		faked = !version_check(user_agent, header_get(header, "X-Token"),
+					download_addr(d));
+
+		if (server->vendor == NULL) {
+			got_new_server = TRUE;
+			if (faked)
+				size = w_concat_strings(&wbuf, "!", user_agent, (void *) 0);
+			vendor = wbuf ? wbuf : user_agent;
+		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
+			/* Name changed? */
+			got_new_server = TRUE;
+			atom_str_free_null(&server->vendor);
+			vendor = user_agent;
+		} else {
+			vendor = NULL;
+		}
+	
+		if (vendor) {
+			server->vendor = atom_str_get(lazy_iso8859_1_to_utf8(vendor));
+			server->attrs &= ~DLS_A_FAKED_VENDOR;
+		}
+		if (wbuf) {
+			wfree(wbuf, size);
+			wbuf = NULL;
+		}
+	}
+
+	return got_new_server;
+}
+
 /***
  *** I/O header parsing callbacks
  ***/
@@ -6068,10 +6128,12 @@ cast_to_download(gpointer p)
 }
 
 static void
-err_line_too_long(gpointer o)
+err_line_too_long(gpointer o, header_t *head)
 {
-	download_stop(cast_to_download(o), GTA_DL_ERROR,
-		_("Failed (Header line too large)"));
+	struct download *d = cast_to_download(o);
+
+	download_get_server_name(d, head);
+	download_stop(d, GTA_DL_ERROR, _("Failed (Header line too large)"));
 }
 
 static void
@@ -6084,8 +6146,8 @@ err_header_error(gpointer o, gint error)
 static void
 err_input_buffer_full(gpointer o)
 {
-	download_stop(cast_to_download(o), GTA_DL_ERROR,
-		_("Failed (Input buffer full)"));
+	struct download *d = cast_to_download(o);
+	download_stop(d, GTA_DL_ERROR, _("Failed (Input buffer full)"));
 }
 
 static void
@@ -6098,11 +6160,12 @@ err_header_read_error(gpointer o, gint error)
 }
 
 static void
-err_header_read_eof(gpointer o)
+err_header_read_eof(gpointer o, header_t *header)
 {
 	struct download *d = cast_to_download(o);
-	header_t *header = io_header(d->io_opaque);
 	guint32 delay = GNET_PROPERTY(download_retry_stopped_delay);
+
+	download_get_server_name(d, header);
 
 	/*
 	 * If we get no output at all from the remote peer (i.e. the connection
@@ -7055,66 +7118,6 @@ download_moved_permanently(struct download *d, header_t *header)
 	return TRUE;
 }
 #endif /* UNUSED */
-
-/**
- * Extract server name from headers.
- *
- * @returns whether new server name was found.
- */
-static gboolean
-download_get_server_name(struct download *d, header_t *header)
-{
-	const gchar *user_agent;
-	gboolean got_new_server = FALSE;
-
-	download_check(d);
-
-	user_agent = header_get(header, "Server");			/* Mandatory */
-	if (!user_agent)
-		user_agent = header_get(header, "User-Agent"); /* Are they confused? */
-
-	if (user_agent) {
-		struct dl_server *server = d->server;
-		const gchar *vendor;
-		gchar *wbuf = NULL;
-		size_t size = 0;
-		gboolean faked;
-	   
-		g_assert(dl_server_valid(server));
-
-		if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
-			socket_disable_token(d->socket);
-		}
-			
-		faked = !version_check(user_agent, header_get(header, "X-Token"),
-					download_addr(d));
-
-		if (server->vendor == NULL) {
-			got_new_server = TRUE;
-			if (faked)
-				size = w_concat_strings(&wbuf, "!", user_agent, (void *) 0);
-			vendor = wbuf ? wbuf : user_agent;
-		} else if (!faked && 0 != strcmp(server->vendor, user_agent)) {
-			/* Name changed? */
-			got_new_server = TRUE;
-			atom_str_free_null(&server->vendor);
-			vendor = user_agent;
-		} else {
-			vendor = NULL;
-		}
-	
-		if (vendor) {
-			server->vendor = atom_str_get(lazy_iso8859_1_to_utf8(vendor));
-			server->attrs &= ~DLS_A_FAKED_VENDOR;
-		}
-		if (wbuf) {
-			wfree(wbuf, size);
-			wbuf = NULL;
-		}
-	}
-
-	return got_new_server;
-}
 
 /**
  * Check status code from status line.

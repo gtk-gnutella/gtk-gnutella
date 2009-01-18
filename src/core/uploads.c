@@ -1872,14 +1872,64 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 	g_slist_free(to_stop);
 }
 
+/**
+ * Extract User-Agent information out of the HTTP headers.
+ */
+static void
+upload_request_handle_user_agent(struct upload *u, header_t *header)
+{
+	const gchar *user_agent;
+
+	upload_check(u);
+	g_assert(header);
+	
+	user_agent = header_get(header, "User-Agent");
+	if (user_agent == NULL) {
+		/* Maybe they sent a Server: line, thinking they're a server? */
+		user_agent = header_get(header, "Server");
+	}
+	if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
+		socket_disable_token(u->socket);
+	}
+
+	if (u->user_agent == NULL && user_agent != NULL) {
+		const gchar *token;
+		gboolean faked;
+
+		/*
+		 * Extract User-Agent.
+		 *
+		 * X-Token: GTKG token
+		 * User-Agent: whatever
+		 * Server: whatever (in case no User-Agent)
+		 */
+
+		token = header_get(header, "X-Token");
+	   	faked = !version_check(user_agent, token, u->addr);
+		if (faked) {
+			gchar name[1024];
+
+			name[0] = '!';
+			g_strlcpy(&name[1], user_agent, sizeof name - 1);
+			u->user_agent = atom_str_get(name);
+		} else
+			u->user_agent = atom_str_get(user_agent);
+
+		upload_fire_upload_info_changed(u);
+	}
+}
+
 /***
  *** I/O header parsing callbacks.
  ***/
 
 static void
-err_line_too_long(gpointer obj)
+err_line_too_long(gpointer obj, header_t *head)
 {
-	upload_error_remove(cast_to_upload(obj), 413, "Header too large");
+	struct upload *u = cast_to_upload(obj);
+
+	upload_request_handle_user_agent(u, head);
+	upload_error_remove(u, 413, "Header too large");
 }
 
 static void
@@ -1896,9 +1946,12 @@ err_header_error(gpointer obj, gint error)
 }
 
 static void
-err_input_exception(gpointer obj)
+err_input_exception(gpointer obj, header_t *head)
 {
-	upload_remove(cast_to_upload(obj), _("Failed (Input Exception)"));
+	struct upload *u = cast_to_upload(obj);
+
+	upload_request_handle_user_agent(u, head);
+	upload_remove(u, _("Failed (Input Exception)"));
 }
 
 static void
@@ -1915,18 +1968,22 @@ err_header_read_error(gpointer obj, gint error)
 }
 
 static void
-err_header_read_eof(gpointer obj)
+err_header_read_eof(gpointer obj, header_t *head)
 {
 	struct upload *u = cast_to_upload(obj);
+
 	u->error_sent = 999;		/* No need to send anything on EOF condition */
+	upload_request_handle_user_agent(u, head);
 	upload_remove(u, _("Failed (EOF)"));
 }
 
 static void
-err_header_extra_data(gpointer obj)
+err_header_extra_data(gpointer obj, header_t *head)
 {
-	upload_error_remove(cast_to_upload(obj),
-		400, "Extra data after HTTP header");
+	struct upload *u = cast_to_upload(obj);
+
+	upload_request_handle_user_agent(u, head);
+	upload_error_remove(u, 400, "Extra data after HTTP header");
 }
 
 static const struct io_error upload_io_error = {
@@ -3543,49 +3600,6 @@ upload_determine_peer_address(struct upload *u, header_t *header)
 		}
 	}
 }
-
-static void
-upload_request_handle_user_agent(struct upload *u, header_t *header)
-{
-	const gchar *user_agent;
-
-	upload_check(u);
-	g_assert(header);
-	
-	user_agent = header_get(header, "User-Agent");
-	if (user_agent == NULL) {
-		/* Maybe they sent a Server: line, thinking they're a server? */
-		user_agent = header_get(header, "Server");
-	}
-	if (NULL == user_agent || !is_strprefix(user_agent, "gtk-gnutella/")) {
-		socket_disable_token(u->socket);
-	}
-
-	if (u->user_agent == NULL && user_agent != NULL) {
-		const gchar *token;
-		gboolean faked;
-
-		/*
-		 * Extract User-Agent.
-		 *
-		 * X-Token: GTKG token
-		 * User-Agent: whatever
-		 * Server: whatever (in case no User-Agent)
-		 */
-
-		token = header_get(header, "X-Token");
-	   	faked = !version_check(user_agent, token, u->addr);
-		if (faked) {
-			gchar name[1024];
-
-			name[0] = '!';
-			g_strlcpy(&name[1], user_agent, sizeof name - 1);
-			u->user_agent = atom_str_get(name);
-		} else
-			u->user_agent = atom_str_get(user_agent);
-	}
-}
-
 
 static void
 upload_set_tos(struct upload *u)

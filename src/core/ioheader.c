@@ -191,7 +191,7 @@ nextline:
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
 		fprintf(stderr, "------\n");
-		(*ih->error->line_too_long)(ih->resource);
+		(*ih->error->line_too_long)(ih->resource, header);
 		return;
 		/* NOTREACHED */
 	case READ_DONE:
@@ -303,7 +303,7 @@ nextline:
                 host_addr_to_string(s->addr));
             dump_hex(stderr, "Extra Data", s->buf, MIN(s->pos, 512));
         }
-		(*ih->error->header_extra_data)(ih->resource);
+		(*ih->error->header_extra_data)(ih->resource, ih->header);
 		return;
 	}
 
@@ -362,7 +362,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
-		(*ih->error->input_exception)(ih->resource);
+		(*ih->error->input_exception)(ih->resource, ih->header);
 		return;
 	}
 
@@ -400,7 +400,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	r = bws_read(ih->bws, &s->wio, &s->buf[s->pos], count);
 	if (r == 0) {
 		socket_eof(s);
-		(*ih->error->header_read_eof)(ih->resource);
+		(*ih->error->header_read_eof)(ih->resource, ih->header);
 		return;
 	} else if ((ssize_t) -1 == r) {
 	  	if (!is_temporary_error(errno)) {
