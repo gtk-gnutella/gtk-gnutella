@@ -2624,9 +2624,10 @@ http_async_log_error(struct http_async *handle, http_errtype_t type, gpointer v)
  ***/
 
 static void
-err_line_too_long(gpointer obj)
+err_line_too_long(gpointer obj, header_t *unused_head)
 {
 	struct http_async *ha = obj;
+	(void) unused_head;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	http_async_error(ha, HTTP_ASYNC_HEAD2BIG);
 }
@@ -2640,9 +2641,10 @@ err_header_error(gpointer obj, gint error)
 }
 
 static void
-err_input_exception(gpointer obj)
+err_input_exception(gpointer obj, header_t *unused_head)
 {
 	struct http_async *ha = obj;
+	(void) unused_head;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 }
@@ -2664,9 +2666,10 @@ err_header_read_error(gpointer obj, gint error)
 }
 
 static void
-err_header_read_eof(gpointer obj)
+err_header_read_eof(gpointer obj, header_t *unused_head)
 {
 	struct http_async *ha = obj;
+	(void) unused_head;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	http_async_error(ha, HTTP_ASYNC_EOF);
 }
