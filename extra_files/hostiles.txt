@@ -1354,6 +1354,15 @@
 # LimeWire/4.16.6 (potentially fake); port 20001; all kinds of massive spam
 66.45.226.48/28
 
+# gtk-gnutella; 33_gui_*; EXE/RAR/ZIP
+#Ubiquity Server Solutions Los Angeles
+69.147.235.0/24
+#69.147.235.218
+#Josh Sardella c/o Network Operations Center, Inc.; Scranton; PA; US
+66.96.251.0/24
+#66.96.251.31
+#66.96.251.32
+
 # coolpixhost redirect spam; HTML, DRM-ASF
 # multiple peers at ports above 41000
 # pretends to be just routing but is actual source
