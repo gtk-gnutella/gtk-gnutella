@@ -1378,6 +1378,10 @@
 # same as above but subrange of webair
 #74.206.224.0/28
 74.206.224.0/19
+# see above; multiple ranges hosted by R & D Technologies, LLC
+72.46.128.0/19
+# see above; STOP LLC
+216.25.249.0/24
 
 # Barton Media network
 # Stabu iela 59/16, Riga, Latvia
