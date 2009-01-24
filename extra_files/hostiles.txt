@@ -1013,9 +1013,6 @@
 # diversity (faked)
 64.208.52.0/22
 
-# French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
-91.121.67.16
-
 # "Fun Workplace Time Waster", "(US Special Release)" etc. EXE, ZIP, RAR malware/adware
 216.139.213.16/28
 
@@ -1487,3 +1484,17 @@
 #MP3 spam
 #24.72.15.153:5612; 29b8a66512df34716bc170d57e778000
 24.72.15.153
+
+
+# ZIP; malware disguised as crack/keygen etc.
+# LimeWire/@version@
+#74.213.164.36:40224; f5cde7aca53961b3014abf017df84500
+# Momentum Solutions Inc; Ontario; Canada
+74.213.164.0/23
+#91.121.119.17:37538; d127e1ae7fe198d2b75b68c88b4c7c00
+# French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
+#91.121.67.16
+# OVH SAS; France; Paris
+91.121.0.0/17
+
+
