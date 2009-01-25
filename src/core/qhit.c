@@ -60,11 +60,15 @@ RCSID("$Id$")
 #include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
 
-#define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
-#define QHIT_MAX_RESULTS	255		/**< Maximum amount of hits in a query hit */
+/*
+ * NOTE: LimeWire doesn't like more than 10 results per QHIT packet or
+ *       more than 10 alt-locs per QHIT packet.
+ */
+#define QHIT_MAX_RESULTS	10		/**< Maximum amount of hits in a query hit */
 #define QHIT_MAX_ALT		10		/**< Send out 10 alt-locs per entry, max */
 #define QHIT_MAX_PROXIES	5		/**< Send out 5 push-proxies at most */
 #define QHIT_MAX_GGEP		512		/**< Allocated room for trailing GGEP */
+#define QHIT_SIZE_THRESHOLD	2016	/**< Flush query hits larger than this */
 
 /*
  * Minimal trailer length is our code NAME, the open flags, and the GUID.
