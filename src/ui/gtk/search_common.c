@@ -2359,7 +2359,12 @@ search_gui_handle_url(const gchar *url, const gchar **error_str)
 		magnet_resource_free(&magnet);
 	}
 	
-	success = search_gui_handle_magnet(magnet_url, error_str);
+	success = guc_download_handle_magnet(magnet_url) > 0;
+	if (success) {
+		statusbar_gui_message(15, _("Created download from URL."));
+	} else {
+		statusbar_gui_message(15, _("Ignored unusable URL."));
+	}
 	G_FREE_NULL(magnet_url);
 
 	return success;
