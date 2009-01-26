@@ -95,8 +95,10 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	such as printf formats. This is normally only supported by GNU cc.
  */
 #$d_attribut HASATTRIBUTE 	/**/
-#ifndef HASATTRIBUTE
-#define __attribute__(_arg_)
+#ifdef HASATTRIBUTE
+#define GTKG_ATTRIBUTE __attribute__
+#else
+#define GTKG_ATTRIBUTE(_arg_)
 #endif
 
 /* HAS_BCOPY:

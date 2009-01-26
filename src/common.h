@@ -465,7 +465,7 @@ G_STMT_START {			\
  * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
  */
 #if HAVE_GCC(3, 3)
-#define NON_NULL_PARAM(x) __attribute__((__nonnull__ x))
+#define NON_NULL_PARAM(x) GTKG_ATTRIBUTE((__nonnull__ x))
 #else /* GCC < 3.3 */
 #define NON_NULL_PARAM(x)
 #endif
@@ -475,7 +475,7 @@ G_STMT_START {			\
  * of GCC do not allow function attributes for function pointers.
  */
 #if HAVE_GCC(3, 0)
-#define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
+#define PRINTF_FUNC_PTR(x, y) GTKG_ATTRIBUTE((format(__printf__, (x), (y))))
 #else /* GCC < 3.0 */
 #define PRINTF_FUNC_PTR(x, y)
 #endif
@@ -483,7 +483,7 @@ G_STMT_START {			\
 /* Functions using this attribute cause a warning if the returned
  * value is not used. */
 #if HAVE_GCC(3, 4)
-#define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
+#define WARN_UNUSED_RESULT GTKG_ATTRIBUTE((__warn_unused_result__))
 #else /* GCC < 3.4 */
 #define WARN_UNUSED_RESULT
 #endif
@@ -491,7 +491,7 @@ G_STMT_START {			\
 /* Instructs the compiler to emit code for this function even if it is
  * or seems to be unused. */
 #if HAVE_GCC(3, 1)
-#define KEEP_FUNCTION __attribute__((__used__))
+#define KEEP_FUNCTION GTKG_ATTRIBUTE((__used__))
 #else /* GCC < 3.1 || !GCC */
 #define KEEP_FUNCTION
 #endif
@@ -508,7 +508,7 @@ G_STMT_START {			\
  * argument list does not contain a NULL pointer. */
 #ifndef G_GNUC_NULL_TERMINATED
 #if HAVE_GCC(4, 0)
-#define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
+#define G_GNUC_NULL_TERMINATED GTKG_ATTRIBUTE((__sentinel__))
 #else	/* GCC < 4 */
 #define G_GNUC_NULL_TERMINATED
 #endif	/* GCC >= 4 */
@@ -529,20 +529,20 @@ G_STMT_START {			\
 
 #ifndef G_GNUC_MALLOC
 #if HAVE_GCC(3, 0)
-#define G_GNUC_MALLOC __attribute__((__malloc__))
+#define G_GNUC_MALLOC GTKG_ATTRIBUTE((__malloc__))
 #else
 #define G_GNUC_MALLOC
 #endif	/* GCC >= 3.0 */
 #endif	/* G_GNUC_MALLOC */
 
 #if HAVE_GCC(3, 1)
-#define ALWAYS_INLINE __attribute__((__always_inline__))
+#define ALWAYS_INLINE GTKG_ATTRIBUTE((__always_inline__))
 #else
 #define ALWAYS_INLINE
 #endif	/* GCC >= 3.1 */
 
 #ifdef HAS_REGPARM
-#define REGPARM(n)	__attribute__((__regparm__((n))))
+#define REGPARM(n)	GTKG_ATTRIBUTE((__regparm__((n))))
 #else
 #define REGPARM(n)
 #endif	/* HAS_REGPARM */
