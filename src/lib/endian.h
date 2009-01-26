@@ -33,17 +33,44 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE guchar
-peek_u8(gconstpointer p)
+static inline ALWAYS_INLINE unsigned char
+peek_u8(const void *p)
 {
-	const guchar *q = p;
+	const unsigned char *q = p;
 	return q[0] & 0xff;
 }
 
-static inline guint16
-peek_be16(gconstpointer p)
+static inline ALWAYS_INLINE guint16
+peek_u16(const void *p)
 {
-	const guchar *q = p;
+	const unsigned char *q = p;
+	guint16 v;
+	memcpy(&v, q, sizeof v);
+	return v;
+}
+
+static inline ALWAYS_INLINE guint32
+peek_u32(const void *p)
+{
+	const unsigned char *q = p;
+	guint32 v;
+	memcpy(&v, q, sizeof v);
+	return v;
+}
+
+static inline ALWAYS_INLINE guint64
+peek_u64(const void *p)
+{
+	const unsigned char *q = p;
+	guint64 v;
+	memcpy(&v, q, sizeof v);
+	return v;
+}
+
+static inline guint16
+peek_be16(const void *p)
+{
+	const unsigned char *q = p;
 	guint16 v;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
@@ -55,9 +82,9 @@ peek_be16(gconstpointer p)
 }
 
 static inline guint32
-peek_be32(gconstpointer p)
+peek_be32(const void *p)
 {
-	const guchar *q = p;
+	const unsigned char *q = p;
 	guint32 v;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
@@ -69,9 +96,9 @@ peek_be32(gconstpointer p)
 }
 
 static inline guint16
-peek_le16(gconstpointer p)
+peek_le16(const void *p)
 {
-	const guchar *q = p;
+	const unsigned char *q = p;
 	guint16 v;
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
@@ -83,9 +110,9 @@ peek_le16(gconstpointer p)
 }
 
 static inline guint32
-peek_le32(gconstpointer p)
+peek_le32(const void *p)
 {
-	const guchar *q = p;
+	const unsigned char *q = p;
 	guint32 v;
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
@@ -102,9 +129,9 @@ peek_le32(gconstpointer p)
  */
 
 static inline ALWAYS_INLINE gpointer
-poke_u8(gpointer p, guchar v)
+poke_u8(gpointer p, unsigned char v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 	*q = v & 0xff;
 	return &q[sizeof v];
 }
@@ -112,7 +139,7 @@ poke_u8(gpointer p, guchar v)
 static inline gpointer
 poke_be16(gpointer p, guint16 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -127,7 +154,7 @@ poke_be16(gpointer p, guint16 v)
 static inline gpointer
 poke_be32(gpointer p, guint32 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -142,7 +169,7 @@ poke_be32(gpointer p, guint32 v)
 static inline gpointer
 poke_be64(gpointer p, guint64 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -157,7 +184,7 @@ poke_be64(gpointer p, guint64 v)
 static inline gpointer
 poke_le16(gpointer p, guint16 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -172,7 +199,7 @@ poke_le16(gpointer p, guint16 v)
 static inline gpointer
 poke_le32(gpointer p, guint32 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -187,7 +214,7 @@ poke_le32(gpointer p, guint32 v)
 static inline gpointer
 poke_le64(gpointer p, guint64 v)
 {
-	guchar *q = p;
+	unsigned char *q = p;
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
 	memcpy(q, &v, sizeof v);
@@ -242,7 +269,7 @@ poke_float_be32(gpointer p, float v)
 }
 
 static inline float
-peek_float_be32(gconstpointer p)
+peek_float_be32(const void *p)
 {
 	guint32 tmp;
 	float v;
