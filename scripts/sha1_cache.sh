@@ -4,7 +4,7 @@
 #
 # Requires:
 #
-#   bitter - see http://www.ghostwhitecrab.com/bitter/
+#   bitter - see contrib/bitter in gtk-gnutella's SVN repository
 #   stat - The stat tool provided by FreeBSD, NetBSD or GNU coreutils.
 #
 # Purpose:
