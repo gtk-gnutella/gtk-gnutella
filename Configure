@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Fri Jul 11 17:35:19 CEST 2008 [metaconfig 3.5-25]
+# Generated on Mon Jan 26 03:12:20 CET 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -313,6 +313,7 @@ d_lstat=''
 d_madvise=''
 d_memalign=''
 d_memcpy=''
+d_memmove=''
 d_mmap=''
 d_msghdr_msg_flags=''
 d_nanosleep=''
@@ -4212,25 +4213,13 @@ eval $trylink
 : Look for GNU-cc style attribute checking
 echo " "
 echo "Checking whether your compiler can handle __attribute__ ..." >&4
-$cat >attrib.c <<'EOCP'
+$cat >try.c <<'EOCP'
 #include <stdio.h>
 void croak (char* pat,...) __attribute__((format(printf,1,2),noreturn));
+int main(void) { return 0; }
 EOCP
-if $cc $ccflags -c attrib.c >attrib.out 2>&1 ; then
-	if $contains 'warning' attrib.out >/dev/null 2>&1; then
-		echo "Your C compiler doesn't fully support __attribute__."
-		val="$undef"
-	else
-		echo "Your C compiler supports __attribute__."
-		val="$define"
-	fi
-else
-	echo "Your C compiler doesn't seem to understand __attribute__ at all."
-	val="$undef"
-fi
 set d_attribut
-eval $setvar
-$rm -f attrib*
+eval $trylink
 
 : see if bcopy exists
 $cat >try.c <<EOC
@@ -5814,6 +5803,20 @@ int main(void)
 }
 EOC
 set d_memcpy
+eval $trylink
+
+: see if memmove exists
+$cat >try.c <<EOC
+#include <string.h>
+int main(void)
+{
+	static char dst, src;
+	void *p;
+	p = memmove(&dst, &src, sizeof(dst));
+	return p ? 0 : 1;
+}
+EOC
+set d_memmove
 eval $trylink
 
 : see if mmap exists
@@ -8754,6 +8757,7 @@ case "$d_iconv" in
 esac
 
 which apt-get >/dev/null 2>&1 && aptget=echo || aptget=:
+which yum >/dev/null 2>&1 && yum=echo || yum=:
 
 $cat >&4 <<EOM
 
@@ -8777,8 +8781,12 @@ case "$d_glib" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against GLib. Library or header files might be missing.' >&4
 	case "$glibversion" in
-	1) $aptget 'ADVICE: Run "apt-get install libglib1.2-dev".' >&4;;
-	2) $aptget 'ADVICE: Run "apt-get install libglib2.0-dev".' >&4;;
+	1) $aptget 'ADVICE: Run "apt-get install libglib1.2-dev".' >&4
+	   $yum 'ADVICE: Run "yum install glib-devel".' >&4
+	;;
+	2) $aptget 'ADVICE: Run "apt-get install libglib2.0-dev".' >&4
+	   $yum 'ADVICE: Run "yum install glib2-devel".' >&4
+	;;
 	esac
 	;;
 esac
@@ -8788,6 +8796,7 @@ case "$d_libxml2" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
 	$aptget 'ADVICE: Run "apt-get install libxml2-dev".' >&4
+	$yum 'ADVICE: Run "yum install libxml2-devel".' >&4
 	;;
 esac
 
@@ -8795,6 +8804,7 @@ if [ "$zlib" != yes ]; then
 	bailout=yes
 	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
 	$aptget 'ADVICE: Run "apt-get install zlib1g-dev".' >&4
+	$yum 'ADVICE: Run "yum install zlib-devel".' >&4
 fi
 
 if [ "$iconv" != yes ]; then
@@ -8808,8 +8818,12 @@ case "$d_gtk" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against Gtk+. Library or header files might be missing.' >&4
 	case "$gtkversion" in
-	1) $aptget 'ADVICE: Run "apt-get install libgtk1.2-dev".' >&4;;
-	2) $aptget 'ADVICE: Run "apt-get install libgtk2.0-dev".' >&4;;
+	1) $aptget 'ADVICE: Run "apt-get install libgtk1.2-dev".' >&4
+	   $yum 'ADVICE: Run "yum install gtk-devel".' >&4
+	;;
+	2) $aptget 'ADVICE: Run "apt-get install libgtk2.0-dev".' >&4
+	   $yum 'ADVICE: Run "yum install gtk2-devel".' >&4
+	;;
 	esac
 	;;
 esac
@@ -8995,6 +9009,7 @@ d_lstat='$d_lstat'
 d_madvise='$d_madvise'
 d_memalign='$d_memalign'
 d_memcpy='$d_memcpy'
+d_memmove='$d_memmove'
 d_mmap='$d_mmap'
 d_msghdr_msg_flags='$d_msghdr_msg_flags'
 d_nanosleep='$d_nanosleep'

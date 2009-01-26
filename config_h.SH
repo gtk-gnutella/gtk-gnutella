@@ -45,10 +45,15 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #ifndef _config_h_
 #define _config_h_
 
+/* VMS_SYSTEM:
+ *	This symbol, if defined, indicates that the program is running under
+ *	VMS.  It is currently only set in conjunction with the EUNICE symbol.
+ */
 /* LINUX_SYSTEM:
  *	This symbol, if defined, indicates that the program is running under
  *	a Linux system.
  */
+#$d_eunice VMS_SYSTEM		/**/
 #$d_linux LINUX_SYSTEM		/**/
 
 /* MEM_ALIGNBYTES:
@@ -56,6 +61,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	double. Usual values are 2, 4 and 8.
  */
 #define MEM_ALIGNBYTES $alignbytes	/**/
+
+/* BIN:
+ *	This symbol holds the path of the bin directory where the package will
+ *	be installed. Program must be prepared to deal with ~name substitution.
+ */
+#define BIN "$bin"	/**/
 
 /* CAT2:
  *	This macro catenates 2 tokens together.
@@ -95,11 +106,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	such as printf formats. This is normally only supported by GNU cc.
  */
 #$d_attribut HASATTRIBUTE 	/**/
-#ifdef HASATTRIBUTE
-#define GTKG_ATTRIBUTE __attribute__
-#else
-#define GTKG_ATTRIBUTE(_arg_)
-#endif
 
 /* HAS_BCOPY:
  *	This symbol is defined if the bcopy() routine is available to
@@ -164,6 +170,14 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	to copy blocks of memory.
  */
 #$d_memcpy HAS_MEMCPY	/**/
+
+/* HAS_MEMMOVE:
+ *	This symbol, if defined, indicates that the memmove routine is available
+ *	to copy potentially overlapping blocks of memory. This should be used
+ *	only when HAS_SAFE_BCOPY is not defined. If neither is there, roll your
+ *	own version.
+ */
+#$d_memmove HAS_MEMMOVE	/**/
 
 /* HAS_MMAP:
  *	This symbol, if defined, indicates that the mmap system call is
