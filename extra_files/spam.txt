@@ -26,7 +26,7 @@ ADDED 2007-01-09
 END
 
 # Malware
-NAME [dD]ownload.*[wW]ith.[nN]ew.Secured.*zip$
+NAME [dD]ownload.*[wW]ith.[nN]ew.[sS]ecured.*(zip|rar)$
 SIZE 1000000-20000000
 ADDED 2007-11-19
 END
