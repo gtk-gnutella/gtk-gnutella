@@ -916,7 +916,7 @@ static struct {
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
-	OPTION(topless,			NONE, NULL),	/* accept by hide */
+	OPTION(topless,			NONE, NULL),	/* accept but hide */
 #else
 	OPTION(topless,			NONE, "Disable the graphical user-interface."),
 #endif	/* USE_TOPLESS */
