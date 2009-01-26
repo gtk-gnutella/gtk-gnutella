@@ -18,7 +18,7 @@
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend remote nls fastassert zlib iconv
-?T:gnutls ipv6 dbus bailout aptget
+?T:gnutls ipv6 dbus bailout aptget yum
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
@@ -74,6 +74,7 @@ case "$d_iconv" in
 esac
 
 which apt-get >/dev/null 2>&1 && aptget=echo || aptget=:
+which yum >/dev/null 2>&1 && yum=echo || yum=:
 
 $cat >&4 <<EOM
 
@@ -97,8 +98,12 @@ case "$d_glib" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against GLib. Library or header files might be missing.' >&4
 	case "$glibversion" in
-	1) $aptget 'ADVICE: Run "apt-get install libglib1.2-dev".' >&4;;
-	2) $aptget 'ADVICE: Run "apt-get install libglib2.0-dev".' >&4;;
+	1) $aptget 'ADVICE: Run "apt-get install libglib1.2-dev".' >&4
+	   $yum 'ADVICE: Run "yum install glib-devel".' >&4
+	;;
+	2) $aptget 'ADVICE: Run "apt-get install libglib2.0-dev".' >&4
+	   $yum 'ADVICE: Run "yum install glib2-devel".' >&4
+	;;
 	esac
 	;;
 esac
@@ -108,6 +113,7 @@ case "$d_libxml2" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against libxml2. Library or header files might be missing.' >&4
 	$aptget 'ADVICE: Run "apt-get install libxml2-dev".' >&4
+	$yum 'ADVICE: Run "yum install libxml2-devel".' >&4
 	;;
 esac
 
@@ -115,6 +121,7 @@ if [ "$zlib" != yes ]; then
 	bailout=yes
 	echo 'ERROR: Cannot compile against zlib. Library or header files might be missing.' >&4
 	$aptget 'ADVICE: Run "apt-get install zlib1g-dev".' >&4
+	$yum 'ADVICE: Run "yum install zlib-devel".' >&4
 fi
 
 if [ "$iconv" != yes ]; then
@@ -128,8 +135,12 @@ case "$d_gtk" in
 	bailout=yes
 	echo 'ERROR: Cannot compile against Gtk+. Library or header files might be missing.' >&4
 	case "$gtkversion" in
-	1) $aptget 'ADVICE: Run "apt-get install libgtk1.2-dev".' >&4;;
-	2) $aptget 'ADVICE: Run "apt-get install libgtk2.0-dev".' >&4;;
+	1) $aptget 'ADVICE: Run "apt-get install libgtk1.2-dev".' >&4
+	   $yum 'ADVICE: Run "yum install gtk-devel".' >&4
+	;;
+	2) $aptget 'ADVICE: Run "apt-get install libgtk2.0-dev".' >&4
+	   $yum 'ADVICE: Run "yum install gtk2-devel".' >&4
+	;;
 	esac
 	;;
 esac
