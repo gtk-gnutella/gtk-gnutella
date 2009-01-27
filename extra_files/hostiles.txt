@@ -1496,11 +1496,19 @@
 # Momentum Solutions Inc; Ontario; Canada
 74.213.164.0/23
 #91.121.119.17:37538; d127e1ae7fe198d2b75b68c88b4c7c00
+#91.121.183.121:2497; 13c8b6ca1d8fabe36cc47c945ae62700
 # French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
 #91.121.67.16
 # OVH SAS; France; Paris
 91.121.0.0/17
+91.121.160.0/19
 # netdirekt e. K.; Germany
 # 212.95.57.122:47098; a017b67c7b43e91d0160e3f100158800
 212.95.32.0/19
+# AKANOC Solutions Inc.
+# Assigned to: David Posada; Toronto; Ontario; M6LMB7; CA
+#208.77.45.150:40976; 510d817dbb3c6f64c3e0d4fb39b0bf00
+#208.77.45.154:8218; ae735f5d7b15303f460a4e004249cb00
+#208.77.45.158:3275; 7516076d338af1f92d47c8b714a3b100
+208.77.40.0/21
 
