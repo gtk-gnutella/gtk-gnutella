@@ -578,7 +578,6 @@
 85.17.36.36
 85.118.37.47
 85.118.37.51
-88.191.11.7
 # giFT; belongs to the above Mutella peers
 213.251.174.143
 # BearShare; belongs to the above Mutella peers
@@ -1500,7 +1499,15 @@
 #91.121.183.121:2497; 13c8b6ca1d8fabe36cc47c945ae62700
 # French DRM WMV pr0n spammer; touslesfilmsx dot com; Shareaza
 #91.121.67.16
+# security violations
+#91.121.18.30
+#91.121.72.228
+#91.121.86.39
+#91.121.102.178
+#91.121.184.145
 # OVH SAS; France; Paris
+# complete range blocked by LimeWire
+#91.121.0.0/19
 91.121.0.0/17
 91.121.160.0/19
 # netdirekt e. K.; Germany
@@ -1512,4 +1519,90 @@
 #208.77.45.154:8218; ae735f5d7b15303f460a4e004249cb00
 #208.77.45.158:3275; 7516076d338af1f92d47c8b714a3b100
 208.77.40.0/21
+
+
+# Dedibox SAS; Paris, France
+# complete range blocked by LimeWire
+88.191.0.0/16
+# security violations
+#88.191.11.7
+#88.191.75.207
+#88.191.75.3
+#88.191.88.225
+#88.191.99.6
+
+
+# Smart Broadband Incorporated; Makati City, Philippines
+# complete range blocked by LimeWire
+121.1.52.0/22
+# security violations
+#121.1.53.14
+#121.1.53.24
+#121.1.53.31
+#121.1.53.36
+#121.1.53.57
+#121.1.53.7
+#121.1.53.8
+#121.1.53.9
+#121.1.55.55
+#121.1.57.234
+#121.1.61.197
+# complete range blocked by LimeWire
+121.54.0.0/22
+# security violations
+#121.54.1.16
+#121.54.1.20
+#121.54.1.3
+#121.54.1.6
+#121.54.1.9
+# complete range blocked by LimeWire
+121.54.64.0/22
+# security violations
+#121.54.64.35
+# complete range blocked by LimeWire
+125.60.128.0/17
+# security violations
+#125.60.173.70
+#125.60.209.67
+#125.60.209.68
+#125.60.235.212
+#125.60.235.231
+#125.60.240.217
+#125.60.241.134
+#125.60.241.144
+#125.60.241.162
+#125.60.241.201
+#125.60.241.224
+#125.60.241.45
+#125.60.243.66
+#125.60.248.153
+# complete range blocked by LimeWire
+203.84.170.0/24
+# security violations
+#203.84.170.194
+# complete range blocked by LimeWire
+203.87.176.0/20
+203.87.192.0/20
+# security violations
+#203.87.176.214
+#203.87.179.146
+#203.87.187.230
+#203.87.196.234
+#203.87.197.118
+#203.87.198.122
+#203.87.203.214
+
+
+# OVH SAS; Paris, France
+# complete range blocked by LimeWire
+94.23.0.0/18
+# security violations
+#94.23.22.131
+
+
+# FAWRI; Algeria
+# complete range blocked by LimeWire
+41.221.16.0/20 
+#41.221.17.89
+#41.221.18.147
 
