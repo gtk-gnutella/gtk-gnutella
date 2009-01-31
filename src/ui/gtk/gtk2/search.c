@@ -1487,7 +1487,7 @@ search_gui_request_bitzi_data_helper(gpointer key,
 	g_return_if_fail(rd->record->sha1);
 
 	atom_str_change(&rd->meta, _("Query queued..."));
-	guc_query_bitzi_by_sha1(rd->record->sha1, rd->record->size);
+	guc_query_bitzi_by_sha1(rd->record->sha1, rd->record->size, TRUE);
 }
 
 static void
@@ -1763,7 +1763,7 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 	 * cache. If so lets update the GUI to reflect this.
 	 */
 	if (NULL != rc->sha1 && guc_bitzi_has_cached_ticket(rc->sha1)) {
-		guc_query_bitzi_by_sha1(rc->sha1, rc->size);
+		guc_query_bitzi_by_sha1(rc->sha1, rc->size, FALSE);
 	}
 }
 

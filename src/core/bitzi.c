@@ -36,6 +36,13 @@
  * @note
  * The code requires libxml to parse the XML responses.
  *
+ * @bug FIXME: Due to the way the XML file is loaded and stored,
+ *      old tickets are not removed until they expire. If a
+ *      ticket is refreshed it is appended to the XML file, but
+ *      the old ticket is still at a lower offset, so that we
+ *      load the old ticket on startup but discard it when we
+ *      reach the newer ticket.
+ *
  * @author Alex Bennee <alex@bennee.com>
  * @date 2004
  */
@@ -116,6 +123,7 @@ static void process_meta_data(bitzi_request_t * req);
 /* cache functions */
 static gboolean bitzi_cache_add(bitzi_data_t * data);
 static void bitzi_cache_remove(bitzi_data_t * data);
+static void bitzi_cache_remove_by_sha1(const struct sha1 *);
 static void bitzi_cache_clean(void);
 
 /* Get rid of the obnoxious (xmlChar *) */
@@ -593,6 +601,7 @@ process_meta_data(bitzi_request_t *request)
 		bitzi_destroy(data);
 		goto finish;
 	}
+	bitzi_cache_remove_by_sha1(data->sha1);
 
 	if (request->sha1 && !sha1_eq(data->sha1, request->sha1)) {
 		if (GNET_PROPERTY(bitzi_debug))  {
@@ -847,16 +856,30 @@ bitzi_has_cached_ticket(const struct sha1 *sha1)
 	return NULL != bitzi_query_cache_by_sha1(sha1);
 }
 
+static void
+bitzi_cache_remove_by_sha1(const struct sha1 *sha1)
+{
+	bitzi_data_t *data = bitzi_query_cache_by_sha1(sha1);
+	if (data) {
+		bitzi_cache_remove(data);
+	}
+}
+
 /**
  * A GUI/Bitzi API passes a pointer to the search type (currently only
  * urn:sha1), a pointer to a callback function and a user data
  * pointer.
  *
+ * @param sha1 The SHA-1 of the file.
+ * @param filesize The expected filesize.
+ * @param refresh If TRUE a fresh ticket is requested, otherwise a
+ *                cached ticket is used.
+ *
  * If no query succeds then the call back is never made, however we
  * should always get some sort of data back from the service.
  */
 bitzi_data_t *
-bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
+bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize, gboolean refresh)
 {
 	bitzi_data_t *data;
 	bitzi_request_t	*request;
@@ -868,7 +891,13 @@ bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 		if (GNET_PROPERTY(bitzi_debug)) {
 			g_message("bitzi_query_by_sha1: result already in cache");
 		}
+		if (refresh) {
+			bitzi_cache_remove(data);
+			data = NULL;
+		}
+	}
 
+	if (data) {
 		if (filesize && data->size != filesize) {
 			bitzi_failure(sha1, filesize,
 				data->size ? BITZI_FJ_WRONG_FILESIZE : BITZI_FJ_UNKNOWN);
@@ -890,7 +919,6 @@ bitzi_query_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 		request->filesize = filesize;
 		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
 				bitzi_url_fmt, sha1_base32(sha1));
-		g_assert(len < sizeof request->bitzi_url);
 
 		bitzi_rq = g_slist_append(bitzi_rq, request);
 		if (GNET_PROPERTY(bitzi_debug)) {

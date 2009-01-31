@@ -276,7 +276,7 @@ const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
 gboolean guc_bitzi_has_cached_ticket(const struct sha1 *);
-void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t);
+void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t, gboolean);
 const char *guc_bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
 
 /** main functions */

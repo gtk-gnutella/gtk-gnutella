@@ -78,9 +78,9 @@ guc_adns_resolve(const gchar *hostname,
 /*	bitzi interface functions (UI -> Core)*/
 
 void
-guc_query_bitzi_by_sha1(const struct sha1 *sha1, filesize_t filesize)
+guc_query_bitzi_by_sha1(const struct sha1 *sha1, filesize_t filesize, gboolean refresh)
 {
-    bitzi_query_by_sha1(sha1, filesize);
+    bitzi_query_by_sha1(sha1, filesize, refresh);
 }
 
 const char *
