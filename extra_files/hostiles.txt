@@ -530,7 +530,7 @@
 # end with .wm instead of .wma or .wmv.
 82.208.41.192/29
 83.148.8.19
-87.236.194.72/29
+#87.236.194.72/29
 212.47.3.250
 
 # pr0n MOV spammer with fake LimeWire; giFT-based
@@ -1615,4 +1615,15 @@
 41.221.16.0/20 
 #41.221.17.89
 #41.221.18.147
+
+
+# Coolhousing, s.r.o.; Czech republic, Praha
+# embedded URL links to thebestofnet dot com
+# video shows freesexyworld dot com
+# both domains are registered to Radek Cisar and point to the same range
+# ASF videos disguised as *.snd and *.mpg
+# 87.236.194.79:45299; Shareaza/2.1.0.0
+# complete range blocked by LimeWire
+87.236.192.0/21
+
 
