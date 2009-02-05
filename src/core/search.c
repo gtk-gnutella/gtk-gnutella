@@ -5015,14 +5015,14 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		/*
-		 * If it's a neighbouring query, make sure the IP for results
+		 * If it's a neighbouring leaf query, make sure the IP for results
 		 * matches what we know about the listening IP for the node.
 		 * The UDP port can be different from the TCP port, so we can't
 		 * check that.
 		 */
 
 		if (
-			gnutella_header_get_hops(&n->header) == 1 &&
+			NODE_IS_LEAF(n) &&
 			is_host_addr(n->gnet_addr) &&
 			!host_addr_equal(addr, n->gnet_addr)
 		) {

@@ -91,7 +91,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Evil filename"),				 /**< MSG_DROP_EVIL */
 		N_("Payload inflating error"),		 /**< MSG_DROP_INFLATE_ERROR */
 		N_("Unknown header flags present"),/**< MSG_DROP_UNKNOWN_HEADER_FLAGS */
-		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULTS */
+		N_("Own search results"),			 /**< MSG_DROP_OWN_RESULT */
 		N_("Ancient query format"),			 /**< MSG_DROP_ANCIENT_QUERY */
 		N_("Blank Servent ID"),				 /**< MSG_DROP_BLANK_SERVENT_ID */
 		N_("DHT Invalid security token"),	 /**< MSG_DROP_DHT_INVALID_TOKEN */
