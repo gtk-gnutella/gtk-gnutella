@@ -23,9 +23,8 @@ Connecting
 
   $ gtk-gnutella --shell
 
-  Type "HELO<enter>" to access the shell interface. Note, the environment
-  variable GTK_GNUTELLA_DIR is also respected in this case.  You need
-  write-permission to the local socket located in
+  Note, the environment variable GTK_GNUTELLA_DIR is also respected in
+  this case.  You need write-permission to the local socket located in
   "$GTK_GNUTELLA_DIR/ipc/socket". For security reasons, the "ipc" directory
   and "socket" are created so that only the user running the gtk-gnutella
   process can access them.
@@ -37,6 +36,7 @@ Connecting
   
   While it is possible to have multiple shells open at the same time, keep in
   mind that this feature is not implemented as a multi-user system.
+
 
 Authentication
 ----------------
@@ -56,6 +56,11 @@ Authentication
   The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. gtk-gnutella
   creates this file at startup and stores a random base32 value in it.  The
   file is readable only by the owner.
+
+  NOTE: The remote shell interface is deprecated and will be removed in
+  the future in its current form because the authentication is unacceptably
+  insecure. Therefore, it is completely disabled at compile-time by
+  default.
 
 
 Commands
@@ -141,9 +146,36 @@ Commands
     Lists the names of all core properties. An optional regex pattern can
     be used to show only certain properties.
 
+  - downloads
+    Lists all current registered downloads by file in human-readable form.
+
   - download add <magnet>|<HTTP URL>
-    Initiates a download. The command accepts magnet links and URLs starting
-    with "http://".
+    Initiates a download. The command accepts magnet links ("magnet:?") and
+    HTTP URLs ("http://").
+
+  - download list
+    Lists all download IDs, one per line. These IDs are to be used with
+    following commands. These IDs are stable between sessions.
+
+  - download abort ID
+    Aborts the download with the given download ID. Whether the file is
+    removed depends on the settings.
+
+  - download pause ID
+    Pauses the download with the given download ID.
+
+  - download resume ID
+    Resumes a paused download with the given download ID.
+
+  - download show ID [filename|size|downloaded|id|paused|sha1|tth]
+    Displays the requested attributes one per line in the same order as
+    requested prefixed with the attribute name followed by '=' for the
+    given download ID. Attributes can be requested multiple times,
+    seperated by whitespace.
+    
+  - download rename ID filename
+    Renames the target file for a download with the given download ID.
+
 
 Notes:
 ------
@@ -151,6 +183,11 @@ Notes:
   The property "remote_shell_timeout" controls after how many seconds a
   idle shell session is terminated. The default is 60 seconds. You can
   disable this timeout by setting the property to zero.
+
+  The property "session_id" is useful for front-ends or scripts to check
+  whether gtk-gnutella has been restarted between accesses of the shell
+  interface. This ID refers to the server session, not the shell session.
+
 
 Caveats:
 --------
