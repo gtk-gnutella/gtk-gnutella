@@ -5038,19 +5038,34 @@ search_request_preprocess(struct gnutella_node *n)
 		}
 
 		/*
-		 * If the query contains an invalid IP:port, clear the OOB flag.
+		 * If the query contains an invalid IP:port, clear the OOB flag
+		 * if it comes from a leaf node (and we may then OOB-proxy it)
+		 * or drop it if it comes from an ultra node (results cannot be
+		 * sent back, no need to propagate further).
 		 */
 
 		if (!host_is_valid(addr, port)) {
-			query_strip_oob_flag(n, n->data);
-			oob = FALSE;
+			if (NODE_IS_LEAF(n)) {
+				query_strip_oob_flag(n, n->data);
+				oob = FALSE;
 
-			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
-				g_message("QUERY %s node %s <%s>: removed OOB flag "
-					"(invalid return address: %s)",
-					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					node_addr(n), node_vendor(n),
-					host_addr_port_to_string(addr, port));
+				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
+					g_message("QUERY %s node %s <%s>: removed OOB flag "
+						"(invalid return address: %s)",
+						guid_hex_str(gnutella_header_get_muid(&n->header)),
+						node_addr(n), node_vendor(n),
+						host_addr_port_to_string(addr, port));
+			} else {
+				gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
+
+				if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
+					g_message("QUERY dropped, relayed via node %s <%s>: "
+						"invalid return address: %s",
+						node_addr(n), node_vendor(n),
+						host_addr_port_to_string(addr, port));
+
+				goto drop;
+			}
 		}
 	}
 
