@@ -48,7 +48,7 @@
 #define GTA_PATCHLEVEL 6			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2009-01-26"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2009-02-06"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -397,6 +397,10 @@ typedef void (*GCallback) (void);
 #ifndef OFF_T_MAX
 #define OFF_T_MAX MAX_INT_VAL(off_t)
 #endif /* OFF_T_MAX */
+
+#ifndef SIZE_MAX
+#define SIZE_MAX MAX_INT_VAL(size_t)
+#endif
 
 /*
  * Other common macros.
