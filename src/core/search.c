@@ -1928,12 +1928,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	if (
-		T_0000 == rs->vcode.u32 ||
+		!is_vendor_acceptable(rs->vcode) ||
 		(T_LIME == rs->vcode.u32 && !(ST_HAS_CT & rs->status))
 	) {	
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
-		 * A vendor code is mandatory.
+		 * A proper vendor code is mandatory.
 		 */
 		rs->status |= ST_FAKE_SPAM;
 	}

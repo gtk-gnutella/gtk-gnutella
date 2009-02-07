@@ -161,6 +161,21 @@ is_vendor_known(vendor_code_t code)
 }
 
 /**
+ * @return TRUE If the 4-byte vendor code is acceptable.
+ */
+gboolean
+is_vendor_acceptable(vendor_code_t code)
+{
+	char temp[4];
+
+	memcpy(temp, &code.u32, 4);
+	return is_ascii_print(temp[0]) &&
+		is_ascii_print(temp[1]) &&
+		is_ascii_print(temp[2]) &&
+		is_ascii_print(temp[3]);
+}
+
+/**
  * Make up a printable version of the vendor code.
  *
  * @param code A 4-letter Gnutella vendor ID in host-endian order thus
