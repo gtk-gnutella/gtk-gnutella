@@ -6827,9 +6827,6 @@ download_continue(struct download *d, gboolean trimmed)
 	}
 	s->pos = 0;
 
-	if (!can_continue) {
-		download_stop(cd, GTA_DL_COMPLETED, no_reason);
-	}
 	next = download_pick_followup(cd);
 	if (cd != next) {
 		next->socket = s;
@@ -6843,6 +6840,7 @@ download_continue(struct download *d, gboolean trimmed)
 		next->socket = s;
 		next->socket->resource.download = next;
 	} else {
+		download_stop(cd, GTA_DL_COMPLETED, no_reason);
 		socket_free_null(&s);
 		next = NULL;
 	}
