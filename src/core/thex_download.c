@@ -762,7 +762,7 @@ thex_download_close(struct thex_download *ctx)
 }
 
 /**
- * Terminate host browsing.
+ * Terminate THEX download.
  */
 void
 thex_download_free(struct thex_download **ptr)
