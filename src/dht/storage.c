@@ -47,6 +47,8 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
+
 /**
  * Converts store status code to string.
  */
@@ -107,7 +109,8 @@ storage_create(const char *name, const char *base,
 	dbmw_t *dw;
 
 	path = make_pathname(settings_config_dir(), base);
-	dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR, 0600);
+	dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR,
+			STORAGE_FILE_MODE);
 
 	if (!dm) {
 		g_warning("cannot create SDBM in %s for %s: %s",
