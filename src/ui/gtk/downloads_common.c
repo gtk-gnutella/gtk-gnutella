@@ -1143,7 +1143,7 @@ fi_gui_file_visible(const struct fileinfo_data *file)
 		return 0 == file->recv_count
 			&& (file->actively_queued || file->passively_queued);
 	case nb_downloads_page_finished:
-		return file->finished && !file->seeding;
+		return file->finished || file->complete;
 	case nb_downloads_page_seeding:
 		return file->seeding;
 	case nb_downloads_page_paused:
