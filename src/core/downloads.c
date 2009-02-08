@@ -4475,6 +4475,15 @@ download_request_pause(struct download *d)
 }
 
 /**
+ * Is download special?
+ */
+static inline gboolean
+download_is_special(const struct download *d)
+{
+	return 0 != (d->flags & (DL_F_THEX | DL_F_BROWSE));
+}
+
+/**
  * Pick-up another source from this server, for the next HTTP request.
  * We may very well request another file we want on this server.
  */
@@ -4482,6 +4491,7 @@ static struct download *
 download_pick_followup(struct download *d)
 {
 	list_iter_t *iter;
+	gboolean was_plain_incomplete;
 
 	download_check(d);
 
@@ -4505,6 +4515,17 @@ download_pick_followup(struct download *d)
 		/* FALL-THROUGH: this version won't choke on resource switching. */
 	}
 
+	/*
+	 * If we have a slot for a non-complete source file, then we will only
+	 * allow switching to a special resource (either browse or THEX loads).
+	 * Or the risk is that we lose the slot completely, or get requeued by
+	 * the remote server.
+	 *		--RAM, 2009-02-08
+	 */
+
+	was_plain_incomplete = !FILE_INFO_COMPLETE(d->file_info) &&
+		!download_is_special(d);
+
 	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -4519,6 +4540,9 @@ download_pick_followup(struct download *d)
 			continue;
 
 		if (FILE_INFO_COMPLETE(cur->file_info))
+			continue;
+
+		if (was_plain_incomplete && !download_is_special(cur))
 			continue;
 
 		/*
