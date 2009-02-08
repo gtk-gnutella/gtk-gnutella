@@ -91,7 +91,7 @@ store_error_to_string(guint16 errnum)
  * an in-core version.
  *
  * @param name			the name of the storage created, for logs
- * @param base			the base name of SDBM files (use NULL for in-memory)
+ * @param base			the base name of SDBM files
  * @param key_size		Constant key size, in bytes
  * @param value_size	Maximum value size, in bytes
  * @param pack			Serialization routine for values
