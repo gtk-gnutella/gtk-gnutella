@@ -243,20 +243,31 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 	switch (dm->type) {
 	case DBMAP_MAP:
 		{
-			gpointer dkey = walloc(dm->key_size);
 			gpointer dvalue = walloc(value.len);
 			dbmap_datum_t *d = walloc(sizeof *d);
-			gboolean existed;
+			gpointer okey;
+			gpointer ovalue;
+			gboolean found;
 
-			memcpy(dkey, key, dm->key_size);
 			memcpy(dvalue, value.data, value.len);
 			d->data = dvalue;
 			d->len = value.len;
+		
+			found = map_lookup_extended(dm->u.m.map, key, &okey, &ovalue);
+			if (found) {
+				dbmap_datum_t *od = ovalue;
 
-			existed = NULL != map_lookup(dm->u.m.map, dkey);
-			map_insert(dm->u.m.map, dkey, d);
-			if (!existed)
+				g_assert(dm->count);
+				map_replace(dm->u.m.map, okey, d);
+				wfree(deconstify_gpointer(od->data), od->len);
+				wfree(od, sizeof *od);
+			} else {
+				gpointer dkey = walloc(dm->key_size);
+
+				memcpy(dkey, key, dm->key_size);
+				map_insert(dm->u.m.map, dkey, d);
 				dm->count++;
+			}
 		}
 		break;
 	case DBMAP_SDBM:

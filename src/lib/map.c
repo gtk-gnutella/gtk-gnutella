@@ -204,6 +204,26 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 }
 
 /**
+ * Replace a key/value pair in the map.
+ */
+void
+map_replace(const map_t *m, gconstpointer key, gconstpointer value)
+{
+	g_assert(m);
+
+	switch (m->type) {
+	case MAP_HASH:
+		gm_hash_table_replace_const(m->u.h.ht, key, value);
+		break;
+	case MAP_PATRICIA:
+		patricia_insert(m->u.p.pt, key, value);		/* Does replace */
+		break;
+	case MAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+}
+
+/**
  * Remove a key from the map.
  */
 void
