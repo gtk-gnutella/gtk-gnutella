@@ -797,7 +797,7 @@ buffers_alloc(struct download *d)
 	download_check(d);
 	socket_check(d->socket);
 	g_assert(d->buffers == NULL);
-	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(DOWNLOAD_IS_ACTIVE(d));
 
 	b = walloc(sizeof *b);
 	*b = zero_buffers;
@@ -846,7 +846,7 @@ buffers_reset_reading(struct download *d)
 	download_check(d);
 	socket_check(d->socket);
 	g_assert(d->buffers != NULL);
-	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(DOWNLOAD_IS_ACTIVE(d));
 	g_assert(d->buffers->held == 0);
 
 	b = d->buffers;
@@ -879,7 +879,7 @@ buffers_to_iovec(struct download *d, gint *iov_cnt)
 	g_assert(iov_cnt);
 
 	g_assert(d->buffers != NULL);
-	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(DOWNLOAD_IS_ACTIVE(d));
 
 	b = d->buffers;
 	g_assert(b->mode == DL_BUF_READING);
@@ -1775,6 +1775,98 @@ change_server_addr(struct dl_server *server,
 			list_iter_free(&iter);
 		}
 	}
+}
+
+/**
+ * Do we have more pending files to be retrieved on this server?
+ */
+static gboolean
+download_has_pending_on_server(const struct download *d)
+{
+	download_check(d);
+
+	return GNET_PROPERTY(dl_resource_switching) &&
+		server_list_length(d->server, DL_LIST_WAITING) > 0;
+}
+
+/**
+ * See whether we can ignore the data from now on, keeping the connection
+ * open and sinking to /dev/null: the idea is that we keep the slot busy
+ * to get a chance to re-issue another request later.
+ *
+ * @return TRUE if we successfully setup the downloaded data to be ignored.
+ */
+static gboolean
+download_can_ignore(struct download *d)
+{
+	filesize_t remain;
+	guint speed_avg;
+
+	download_check(d);
+
+	g_assert(d->range_end >= d->pos);
+	g_assert(d->socket);
+	g_assert(d->rx);
+
+	if (d->status == GTA_DL_IGNORING)
+		return TRUE;
+
+	remain = d->range_end - d->pos;
+
+	/*
+	 * If this is an incoming connection, keep it up provided we have
+	 * something else to switch to later on for this server.
+	 */
+
+	if (
+		SOCK_CONN_INCOMING == d->socket->direction &&
+		download_has_pending_on_server(d)
+	) {
+		if (GNET_PROPERTY(download_debug)) {
+			guint count = server_list_length(d->server, DL_LIST_WAITING);
+			g_message("download \"%s\" has incoming connection from %s "
+				"and %u waiting file%s on that server -- will sink %s bytes",
+				download_basename(d), download_host_info(d),
+				count, 1 == count ? "" : "s", uint64_to_string(remain));
+		}
+
+		goto sink_data;
+	}
+
+	/*
+	 * Look at how many bytes we need to download still for this
+	 * request.  If we have a known average download rate for the
+	 * server, great, we'll use it to estimate the time we'll spend.
+	 * Otherwise, use a size limit.
+	 */
+
+	speed_avg = download_speed_avg(d);
+
+	if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
+		return FALSE;
+
+	if (remain > DOWNLOAD_MAX_IGN_DATA)
+		return FALSE;
+
+sink_data:
+
+	/*
+	 * We're going to purely ignore the data until we reach the end
+	 * of this request, at which time we'll issue a new request,
+	 * possibly somewhere else: we don't know for sure whether the
+	 * source is bad or the data we had at the resuming point were
+	 * faulty, hence we have to leave that to randomness -- we take
+	 * our chances with the source..
+	 */
+
+	(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
+	download_set_status(d, GTA_DL_IGNORING);
+
+	if (GNET_PROPERTY(download_debug) > 1)
+		g_message("will be ignoring next %s bytes of data for \"%s\"",
+			uint64_to_string(remain), download_basename(d));
+
+	return TRUE;
 }
 
 /**
@@ -3265,6 +3357,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
 
+	d->flags &= ~DL_F_MUST_IGNORE;
 	d->remove_msg = fmt ? d->error_str: NULL;
 	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
 	fi_src_status_changed(d);
@@ -3582,8 +3675,21 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 		}
 
 		if (suspend) {
-			if (DOWNLOAD_IS_RUNNING(d))
-				download_queue(d, _("Suspended (SHA1 checking)"));
+			if (DOWNLOAD_IS_RUNNING(d)) {
+				/*
+				 * Try to not lose a valid slot: if we can ignore the incoming
+				 * data to later switch to another resource, let's do so instead
+				 * of severing the connection.
+				 */
+
+				if (download_has_pending_on_server(d)) {
+					if (DOWNLOAD_IS_ESTABLISHING(d)) {
+						d->flags |= DL_F_MUST_IGNORE;
+					} else if (!download_can_ignore(d))
+						download_queue(d, _("Suspended (SHA1 checking)"));
+				} else
+					download_queue(d, _("Suspended (SHA1 checking)"));
+			}
 			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
 		} else {
 			d->flags &= ~DL_F_SUSPENDED;
@@ -3723,6 +3829,7 @@ queue_remove_downloads_with_file(fileinfo_t *fi, struct download *skip)
 		case GTA_DL_MOVE_WAIT:
 		case GTA_DL_MOVING:
 		case GTA_DL_DONE:
+		case GTA_DL_IGNORING:
 			continue;
 		default:
 			break;
@@ -3999,6 +4106,16 @@ download_pick_chunk(struct download *d)
 	d->overlap_size = 0;
 	d->last_update = tm_time();
 
+	/*
+	 * If we're going to ignore the data we read, just ask for 1 byte.
+	 */
+
+	if (d->flags & DL_F_MUST_IGNORE) {
+		d->skip = random_value((download_filesize(d) & 0xffffffff) - 1);
+		d->size = 1;
+		return TRUE;
+	}
+
 	status = file_info_find_hole(d, &from, &to);
 
 	switch (status) {
@@ -4044,6 +4161,16 @@ download_pick_available(struct download *d)
 
 	d->overlap_size = 0;
 	d->last_update = tm_time();
+
+	/*
+	 * If we're going to ignore the data we read, just ask for 1 byte.
+	 */
+
+	if (d->flags & DL_F_MUST_IGNORE) {
+		d->skip = random_value((download_filesize(d) & 0xffffffff) - 1);
+		d->size = 1;
+		return TRUE;
+	}
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (GNET_PROPERTY(download_debug) > 3)
@@ -4354,7 +4481,6 @@ download_request_pause(struct download *d)
 static struct download *
 download_pick_followup(struct download *d)
 {
-	time_t now = tm_time();
 	list_iter_t *iter;
 
 	download_check(d);
@@ -4392,16 +4518,15 @@ download_pick_followup(struct download *d)
 		if (download_has_enough_active_sources(cur))
 			continue;
 
-		if (
-			delta_time(now, cur->last_update) <=
-			(time_delta_t) cur->timeout_delay
-		) {
+		if (FILE_INFO_COMPLETE(cur->file_info))
 			continue;
-		}
 
-		/* Note that we skip over paused and suspended downloads */
-		if (delta_time(now, cur->retry_after) < 0)
-			break;	/* List is sorted */
+		/*
+		 * NOTE: we don't care about cur->timeout_delay and cur->retry_after
+		 * because after this routine we are not going to be initiating a new
+		 * connection: we're going to reuse the existing connection we have to
+		 * the server already.
+		 */
 
 		if (!FILE_INFO_COMPLETE(d->file_info)) {
 			if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
@@ -5353,6 +5478,7 @@ download_clone(struct download *d)
 	cd->file_name = atom_str_get(d->file_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
+	cd->flags &= ~DL_F_MUST_IGNORE;
 	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
@@ -6342,58 +6468,6 @@ call_download_push_ready(gpointer o, header_t *unused_header)
 }
 
 /**
- * See whether we can ignore the data from now on, keeping the connection
- * open and sinking to /dev/null: the idea is that we keep the slot busy
- * to get a chance to re-issue another request later.
- *
- * @return TRUE if we successfully setup the downloaded data to be ignored.
- */
-static gboolean
-download_can_ignore(struct download *d)
-{
-	filesize_t remain;
-	guint speed_avg;
-
-	download_check(d);
-
-	g_assert(d->range_end >= d->pos);
-
-	/*
-	 * Look at how many bytes we need to download still for this
-	 * request.  If we have a known average download rate for the
-	 * server, great, we'll use it to estimate the time we'll spend.
-	 * Otherwise, use a size limit.
-	 */
-
-	remain = d->range_end - d->pos;
-	speed_avg = download_speed_avg(d);
-
-	if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
-		return FALSE;
-
-	if (remain > DOWNLOAD_MAX_IGN_DATA)
-		return FALSE;
-
-	/*
-	 * We're going to purely ignore the data until we reach the end
-	 * of this request, at which time we'll issue a new request,
-	 * possibly somewhere else: we don't know for sure whether the
-	 * source is bad or the data we had at the resuming point were
-	 * faulty, hence we have to leave that to randomness -- we take
-	 * our chances with the source..
-	 */
-
-	(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
-	download_set_status(d, GTA_DL_IGNORING);
-
-	if (GNET_PROPERTY(download_debug) > 1)
-		g_message("will be ignoring next %s bytes of data for \"%s\"",
-			uint64_to_string(remain), download_basename(d));
-
-	return TRUE;
-}
-
-/**
  * Forget that we ever downloaded some bytes when there was a resuming
  * mismatch at some point.
  */
@@ -6779,7 +6853,7 @@ download_continue(struct download *d, gboolean trimmed)
 	 * Determine whether we can use this download for a follow-up request if
 	 * download_pick_followup() finds no better candidate.
 	 */
-	can_continue = GTA_DL_RECEIVING == d->status &&
+	can_continue = DOWNLOAD_IS_ACTIVE(d) &&
 		!FILE_INFO_COMPLETE(d->file_info);
 
 	/*
@@ -6801,10 +6875,20 @@ download_continue(struct download *d, gboolean trimmed)
 	 */
 
 	if (trimmed) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("had to trim data for \"%s\" (%.2f%%), served by %s",
+				download_basename(cd), 100.0 * download_total_progress(cd),
+				download_host_info(cd));
+
 		download_queue(cd, _("Requeued after trimmed data"));
 		return;
 	}
 	if (!cd->keep_alive) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("connection not kept alive for \"%s\" (%.2f%%) by %s",
+				download_basename(cd), 100.0 * download_total_progress(cd),
+				download_host_info(cd));
+
 		download_queue(cd, _("Chunk done, connection closed"));
 		return;
 	}
@@ -6829,11 +6913,21 @@ download_continue(struct download *d, gboolean trimmed)
 
 	next = download_pick_followup(cd);
 	if (cd != next) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("switching from \"%s\" (%.2f%%) to \"%s\" (%.2f%%) at %s",
+				download_basename(cd), 100.0 * download_total_progress(cd),
+				download_basename(next), 100.0 * download_total_progress(next),
+				download_host_info(next));
+
 		next->socket = s;
 		next->socket->resource.download = next;
+
 		if (can_continue) {
 			download_queue(cd, _("Switching to \"%s\""),
 				download_basename(next));
+		} else {
+			download_stop(cd, GTA_DL_COMPLETED,
+				_("Switching to \"%s\""), download_basename(next));
 		}
 	} else if (can_continue) {
 		next = cd;
@@ -8034,7 +8128,7 @@ lazy_ack_message_to_ui_string(const gchar *src)
  * Mark download as receiving data: download is becoming active.
  */
 static void
-download_mark_active(struct download *d)
+download_mark_active(struct download *d, gboolean must_ignore)
 {
 	fileinfo_t *fi;
 
@@ -8042,7 +8136,7 @@ download_mark_active(struct download *d)
 
 	fi = d->file_info;
 	d->start_date = tm_time();
-	download_set_status(d, GTA_DL_RECEIVING);
+	download_set_status(d, must_ignore ? GTA_DL_IGNORING : GTA_DL_RECEIVING);
 
 	if (fi->recvcount == 0) {		/* First source to begin receiving */
 		fi->recv_last_time = d->start_date;
@@ -8227,6 +8321,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	gchar *buf;
 	gboolean got_content_length = FALSE;
 	gboolean is_chunked;
+	gboolean must_ignore;
 	http_content_encoding_t content_encoding;
 	filesize_t check_content_range = 0, requested_size;
 	guint http_major = 0, http_minor = 0;
@@ -9324,7 +9419,7 @@ http_version_nofix:
 	 */
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
-		download_mark_active(d);
+		download_mark_active(d, FALSE);
 
 		/*
 		 * If we have something in the socket buffer, feed it to the RX stack.
@@ -9378,7 +9473,15 @@ http_version_nofix:
 		args.cb = &download_rx_inflate_cb;
 		d->rx = rx_make_above(d->rx, rx_inflate_get_ops(), &args);
 	}
-	rx_set_data_ind(d->rx, download_data_ind);
+
+	if (d->flags & DL_F_MUST_IGNORE) {
+		d->flags &= ~DL_F_MUST_IGNORE;
+		must_ignore = TRUE;
+		rx_set_data_ind(d->rx, download_ignore_data_ind);
+	} else {
+		must_ignore = FALSE;
+		rx_set_data_ind(d->rx, download_data_ind);
+	}
 	rx_enable(d->rx);
 
 	/*
@@ -9427,7 +9530,7 @@ http_version_nofix:
 	 * We're ready to receive.
 	 */
 
-	download_mark_active(d);
+	download_mark_active(d, must_ignore);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
