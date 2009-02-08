@@ -4095,9 +4095,7 @@ download_start_prepare(struct download *d)
 static gboolean
 download_pick_random_byte(struct download *d)
 {
-	guint32 filesize = MIN(download_filesize(d), MAX_INT_VAL(guint32));
-
-	d->skip = filesize > 1 ?  random_value(filesize - 1) : 0;
+	d->skip = get_random_file_offset(download_filesize(d));
 	d->size = 1;
 
 	return TRUE;
