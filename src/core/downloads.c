@@ -4088,6 +4088,21 @@ download_start_prepare(struct download *d)
 }
 
 /**
+ * Pick a one random byte chunk within the file.
+ *
+ * @returns TRUE (meaning we can continue with the download)
+ */
+static gboolean
+download_pick_random_byte(struct download *d)
+{
+	d->skip = download_filesize(d) > 1 ?
+		random_value((download_filesize(d) & 0xffffffff) - 1) : 0;
+	d->size = 1;
+
+	return TRUE;
+}
+
+/**
  * Called for swarming downloads when we are connected to the remote server,
  * but before making the request, to pick up a chunk for downloading.
  *
@@ -4110,11 +4125,8 @@ download_pick_chunk(struct download *d)
 	 * If we're going to ignore the data we read, just ask for 1 byte.
 	 */
 
-	if (d->flags & DL_F_MUST_IGNORE) {
-		d->skip = random_value((download_filesize(d) & 0xffffffff) - 1);
-		d->size = 1;
-		return TRUE;
-	}
+	if (d->flags & DL_F_MUST_IGNORE)
+		return download_pick_random_byte(d);
 
 	status = file_info_find_hole(d, &from, &to);
 
@@ -4166,11 +4178,8 @@ download_pick_available(struct download *d)
 	 * If we're going to ignore the data we read, just ask for 1 byte.
 	 */
 
-	if (d->flags & DL_F_MUST_IGNORE) {
-		d->skip = random_value((download_filesize(d) & 0xffffffff) - 1);
-		d->size = 1;
-		return TRUE;
-	}
+	if (d->flags & DL_F_MUST_IGNORE)
+		return download_pick_random_byte(d);
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (GNET_PROPERTY(download_debug) > 3)
@@ -7082,8 +7091,14 @@ download_write_data(struct download *d)
 			 * is little enough data to grab still and we can ignore them.
 			 */
 			if (fi->done >= fi->size) {
-				if (d->pos >= d->range_end || !download_can_ignore(d))
+				if (d->pos >= d->range_end)
 					goto done;
+				if (
+					!download_has_pending_on_server(d) ||
+					!download_can_ignore(d))
+				)
+					goto done;
+				/* Will ignore data until we can switch to another file */
 			} else if (d->pos == d->range_end)
 				goto partial_done;
 			else if (!download_can_ignore(d))
