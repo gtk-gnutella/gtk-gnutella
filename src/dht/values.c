@@ -506,6 +506,14 @@ kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
 {
 	char buf[2 * KUID_RAW_SIZE];
 
+	/*
+	 * We don't cache expired key tuples if DHT data are kept in core
+	 * because this will be mostly an ever-filling pool.
+	 */
+
+	if (GNET_PROPERTY(dht_storage_in_memory))
+		return FALSE;
+
 	kuid_pair_fill(buf, sizeof buf, key, skey);
 	return dbmw_exists(db_expired, buf);
 }
@@ -521,6 +529,14 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 {
 	char buf[2 * KUID_RAW_SIZE];
 
+	/*
+	 * We don't cache expired key tuples if DHT data are kept in core
+	 * because this will be mostly an ever-filling pool.
+	 */
+
+	if (GNET_PROPERTY(dht_storage_in_memory))
+		return;
+
 	kuid_pair_fill(buf, sizeof buf, key, skey);
 	dbmw_write(db_expired, buf, NULL, 0);
 }
@@ -535,6 +551,13 @@ static void
 kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
 {
 	char buf[2 * KUID_RAW_SIZE];
+
+	/*
+	 * We don't cache expired key tuples if DHT data are kept in core.
+	 */
+
+	if (GNET_PROPERTY(dht_storage_in_memory))
+		return;
 
 	kuid_pair_fill(buf, sizeof buf, key, skey);
 	dbmw_delete(db_expired, buf);
