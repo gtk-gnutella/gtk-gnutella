@@ -7057,9 +7057,10 @@ download_write_data(struct download *d)
 			 * requeue the download, thereby loosing the slot, unless there
 			 * is little enough data to grab still and we can ignore them.
 			 */
-			if (fi->done >= fi->size)
-				goto done;
-			else if (d->pos == d->range_end)
+			if (fi->done >= fi->size) {
+				if (d->pos >= d->range_end || !download_can_ignore(d))
+					goto done;
+			} else if (d->pos == d->range_end)
 				goto partial_done;
 			else if (!download_can_ignore(d))
 				download_queue(d, _("Requeued by competing download"));
