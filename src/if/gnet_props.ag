@@ -3744,4 +3744,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "dht_storage_in_memory";
+    desc = "If TRUE, DHT storage uses memory instead of diskspace.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

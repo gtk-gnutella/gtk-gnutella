@@ -40,6 +40,8 @@ RCSID("$Id$")
 #include "storage.h"
 
 #include "if/core/settings.h"
+#include "if/gnet_property.h"
+#include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
 #include "lib/dbmap.h"
@@ -89,7 +91,7 @@ store_error_to_string(guint16 errnum)
  * an in-core version.
  *
  * @param name			the name of the storage created, for logs
- * @param base			the base name of SDBM files
+ * @param base			the base name of SDBM files (use NULL for in-memory)
  * @param key_size		Constant key size, in bytes
  * @param value_size	Maximum value size, in bytes
  * @param pack			Serialization routine for values
@@ -105,16 +107,25 @@ storage_create(const char *name, const char *base,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmap_t *dm;
-	char *path;
 	dbmw_t *dw;
 
-	path = make_pathname(settings_config_dir(), base);
-	dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR,
-			STORAGE_FILE_MODE);
+	if (!GNET_PROPERTY(dht_storage_in_memory)) {
+		char *path;
+
+		path = make_pathname(settings_config_dir(), base);
+		dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR,
+				STORAGE_FILE_MODE);
+
+		if (!dm) {
+			g_warning("cannot create SDBM in %s for %s: %s",
+					path, name, g_strerror(errno));
+		}
+		G_FREE_NULL(path);
+	} else {
+		dm = NULL;
+	}
 
 	if (!dm) {
-		g_warning("cannot create SDBM in %s for %s: %s",
-			path, name, g_strerror(errno));
 		dm = dbmap_create_hash(key_size, hash_func, eq_func);
 	}
 
@@ -125,8 +136,6 @@ storage_create(const char *name, const char *base,
 
 	dw = dbmw_create(dm, name, key_size, value_size, pack, unpack,
 		cache_size, hash_func, eq_func);
-
-	G_FREE_NULL(path);
 
 	return dw;
 }

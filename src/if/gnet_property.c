@@ -722,6 +722,8 @@ gboolean gnet_property_variable_sticky_kuid     = TRUE;
 static const gboolean gnet_property_variable_sticky_kuid_default = TRUE;
 guint32  gnet_property_variable_dht_ulq_debug     = 0;
 static const guint32  gnet_property_variable_dht_ulq_debug_default = 0;
+gboolean gnet_property_variable_dht_storage_in_memory     = TRUE;
+static const gboolean gnet_property_variable_dht_storage_in_memory_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -6935,6 +6937,23 @@ gnet_prop_init(void) {
     gnet_property->props[325].data.guint32.choices = NULL;
     gnet_property->props[325].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[325].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DHT_STORAGE_IN_MEMORY:
+     *
+     * General data:
+     */
+    gnet_property->props[326].name = "dht_storage_in_memory";
+    gnet_property->props[326].desc = _("If TRUE, DHT storage uses memory instead of diskspace.");
+    gnet_property->props[326].ev_changed = event_new("dht_storage_in_memory_changed");
+    gnet_property->props[326].save = TRUE;
+    gnet_property->props[326].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[326].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[326].data.boolean.def   = (void *) &gnet_property_variable_dht_storage_in_memory_default;
+    gnet_property->props[326].data.boolean.value = (void *) &gnet_property_variable_dht_storage_in_memory;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -362,6 +362,7 @@ typedef enum {
     PROP_STICKY_GUID,
     PROP_STICKY_KUID,
     PROP_DHT_ULQ_DEBUG,
+    PROP_DHT_STORAGE_IN_MEMORY,
     GNET_PROPERTY_END
 } gnet_property_t;
 
