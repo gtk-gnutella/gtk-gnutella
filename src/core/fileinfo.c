@@ -4425,29 +4425,6 @@ fi_busy_count(fileinfo_t *fi, struct download *d)
 }
 
 /**
- * @return a random offset within the file, aligned on a TTH block boundary.
- */
-static filesize_t
-get_random_offset(const filesize_t size)
-{
-	filesize_t offset;
-
-	offset = 0;
-	if (size > 1) {
-		random_bytes(&offset, sizeof offset);
-		offset %= size - 1;
-	}
-
-	/*
-	 * Aligning blocks is just a convenience here, to make it easier later to
-	 * validate the file against the TTH, and also because it is likely to be
-	 * slightly more efficient when doing aligned disk I/Os.
-	 */
-
-	return offset & ~((filesize_t)128 * 1024 - 1);
-}
-
-/**
  * Clone fileinfo's chunk list, shifting the origin of the list to a randomly
  * selected offset within the file.
  *
@@ -4526,8 +4503,16 @@ list_clone_shift(fileinfo_t *fi)
 	 * forced to something else above.
 	 */
 
-	if (0 == offset)
-		offset = get_random_offset(fi->size);
+	if (0 == offset) {
+		offset = get_random_file_offset(fi->size);
+
+		/*
+		 * Aligning blocks is just a convenience here, to make it easier later to
+		 * validate the file against the TTH, and also because it is likely to be
+		 * slightly more efficient when doing aligned disk I/Os.
+		 */
+		offset &= ~((filesize_t)128 * 1024 - 1);
+	}
 
 	/*
 	 * First pass: clone the list starting at the first chunk whose start is
@@ -5810,7 +5795,10 @@ fi_dht_query(fileinfo_t *fi)
 	retry_period = time_delta_add(retry_period,
 		FI_DHT_RECV_DELAY * fi->recvcount);
 
-	if (delta_time(tm_time(), fi->last_dht_query) < retry_period)
+	if (
+		fi->last_dht_query &&
+		delta_time(tm_time(), fi->last_dht_query) < retry_period
+	)
 		return;
 
 	fi->last_dht_query = tm_time();

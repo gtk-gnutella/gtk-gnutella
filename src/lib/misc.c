@@ -919,6 +919,24 @@ seek_to_filepos(gint fd, filesize_t pos)
 	return 0;
 }
 
+/**
+ * Picks a random offset between 0 and (filesize - 1).
+ * @param size The size of the file.
+ * @return a random offset within the file.
+ */
+filesize_t
+get_random_file_offset(const filesize_t size)
+{
+	filesize_t offset;
+
+	offset = 0;
+	if (size > 1) {
+		random_bytes(&offset, sizeof offset);
+		offset %= size - 1;
+	}
+	return offset;
+}
+
 static inline guint
 filesize_fraction(filesize_t size, filesize_t part, guint base)
 {

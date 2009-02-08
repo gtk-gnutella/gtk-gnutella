@@ -524,6 +524,7 @@ is_temporary_error(gint error)
 
 /* Wrapper around lseek() to handle filesize -> off_t conversion. */
 gint seek_to_filepos(gint fd, filesize_t pos);
+filesize_t get_random_file_offset(const filesize_t size);
 
 guint filesize_per_100(filesize_t size, filesize_t part);
 guint filesize_per_1000(filesize_t size, filesize_t part);
