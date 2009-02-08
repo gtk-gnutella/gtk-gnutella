@@ -4095,8 +4095,9 @@ download_start_prepare(struct download *d)
 static gboolean
 download_pick_random_byte(struct download *d)
 {
-	d->skip = download_filesize(d) > 1 ?
-		random_value((download_filesize(d) & 0xffffffff) - 1) : 0;
+	guint32 filesize = MIN(download_filesize(d), MAX_INT_VAL(guint32));
+
+	d->skip = filesize > 1 ?  random_value(filesize - 1) : 0;
 	d->size = 1;
 
 	return TRUE;
@@ -7095,7 +7096,7 @@ download_write_data(struct download *d)
 					goto done;
 				if (
 					!download_has_pending_on_server(d) ||
-					!download_can_ignore(d))
+					!download_can_ignore(d)
 				)
 					goto done;
 				/* Will ignore data until we can switch to another file */
