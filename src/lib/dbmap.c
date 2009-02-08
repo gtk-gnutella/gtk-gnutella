@@ -246,14 +246,17 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 			gpointer dkey = walloc(dm->key_size);
 			gpointer dvalue = walloc(value.len);
 			dbmap_datum_t *d = walloc(sizeof *d);
+			gboolean existed;
 
 			memcpy(dkey, key, dm->key_size);
 			memcpy(dvalue, value.data, value.len);
 			d->data = dvalue;
 			d->len = value.len;
 
+			existed = NULL != map_lookup(dm->u.m.map, dkey);
 			map_insert(dm->u.m.map, dkey, d);
-			dm->count++;
+			if (!existed)
+				dm->count++;
 		}
 		break;
 	case DBMAP_SDBM:
