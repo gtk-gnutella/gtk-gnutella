@@ -511,7 +511,7 @@ kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
 	 * because this will be mostly an ever-filling pool.
 	 */
 
-	if (GNET_PROPERTY(dht_storage_in_memory))
+	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return FALSE;
 
 	kuid_pair_fill(buf, sizeof buf, key, skey);
@@ -534,7 +534,7 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 	 * because this will be mostly an ever-filling pool.
 	 */
 
-	if (GNET_PROPERTY(dht_storage_in_memory))
+	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
 	kuid_pair_fill(buf, sizeof buf, key, skey);
@@ -556,7 +556,7 @@ kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
 	 * We don't cache expired key tuples if DHT data are kept in core.
 	 */
 
-	if (GNET_PROPERTY(dht_storage_in_memory))
+	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
 	kuid_pair_fill(buf, sizeof buf, key, skey);
