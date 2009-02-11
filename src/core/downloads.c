@@ -6727,6 +6727,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	download_check(d);
 	b = d->buffers;
 	g_assert(b != NULL);
+	g_assert(d->status == GTA_DL_RECEIVING);
 
 	if (GNET_PROPERTY(download_debug) > 10)
 		g_message("flushing %lu bytes (%u buffers) for \"%s\"%s",
