@@ -130,10 +130,22 @@ upload_stats_find(const struct sha1 *sha1, const gchar *pathname, guint64 size)
 		atom_str_free_null(&key.pathname);
 
 		if (s && sha1) {
-			/* Was missing from the by-SHA1 table? */
-			g_assert(NULL == s->sha1);	/* Only possible when SHA1 unknown */
+			/* Was missing from the by-SHA1 table */
+			if (NULL == s->sha1) {
+				/* SHA1 was unknown */
 
-			s->sha1 = atom_sha1_get(sha1);
+				s->sha1 = atom_sha1_get(sha1);
+			} else {
+				/* SHA1 changed, file was modified */
+				struct ul_stats *old =
+					g_hash_table_lookup(upload_stats_by_sha1, s->sha1);
+
+				g_assert(old == s);		/* Must be the same filename entry */
+
+				g_hash_table_remove(upload_stats_by_sha1, s->sha1);
+				atom_sha1_free(s->sha1);
+				s->sha1 = atom_sha1_get(sha1);
+			}
 			gm_hash_table_insert_const(upload_stats_by_sha1, s->sha1, s);
 		}
 	}
