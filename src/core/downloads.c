@@ -4500,6 +4500,7 @@ download_pick_followup(struct download *d)
 {
 	list_iter_t *iter;
 	gboolean was_plain_incomplete;
+	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
 
@@ -4534,6 +4535,15 @@ download_pick_followup(struct download *d)
 	was_plain_incomplete = !FILE_INFO_COMPLETE(d->file_info) &&
 		!download_is_special(d);
 
+	/*
+	 * If the download was a THEX download, try to switch back to the
+	 * download for the file whose THEX we downloaded.  Some servents only
+	 * allow switching between a THEX and the corresponding file.
+	 */
+
+	if (d->thex)
+		sha1 = thex_download_get_sha1(d->thex);
+
 	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -4552,6 +4562,34 @@ download_pick_followup(struct download *d)
 
 		if (was_plain_incomplete && !download_is_special(cur))
 			continue;
+
+		/*
+		 * Can only switch to a download that is not actively / passively
+		 * queued, as otherwise we could be violating the retry parameters
+		 * assigned by the remote server for the resource we're about to ask.
+		 */
+
+		switch (cur->status) {
+		case GTA_DL_TIMEOUT_WAIT:
+		case GTA_DL_QUEUED:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_PUSH_SENT:
+			break;
+		default:
+			continue;		/* Can't switch to that download */
+		}
+
+		/*
+		 * Give priority to the file whose THEX we downloaded.
+		 */
+
+		if (
+			sha1 && !download_is_special(cur) && cur->file_info->sha1 &&
+			sha1_eq(sha1, cur->file_info->sha1)
+		) {
+			d = cur;		/* Found plain file download on this server */
+			break;
+		}
 
 		/*
 		 * NOTE: we don't care about cur->timeout_delay and cur->retry_after
