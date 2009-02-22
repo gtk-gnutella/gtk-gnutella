@@ -215,8 +215,8 @@ guint32  gnet_property_variable_parq_size_always_continue     = 8192;
 static const guint32  gnet_property_variable_parq_size_always_continue_default = 8192;
 guint32  gnet_property_variable_parq_time_always_continue     = 5;
 static const guint32  gnet_property_variable_parq_time_always_continue_default = 5;
-guint32  gnet_property_variable_parq_ban_bad_maxcountwait     = 1;
-static const guint32  gnet_property_variable_parq_ban_bad_maxcountwait_default = 1;
+guint32  gnet_property_variable_parq_ban_bad_maxcountwait     = 10;
+static const guint32  gnet_property_variable_parq_ban_bad_maxcountwait_default = 10;
 guint32  gnet_property_variable_track_props     = 0;
 static const guint32  gnet_property_variable_track_props_default = 0;
 gboolean gnet_property_variable_stop_host_get     = FALSE;
@@ -2479,7 +2479,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[88].name = "parq_ban_bad_maxcountwait";
-    gnet_property->props[88].desc = _("Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 1, so the client is banned after retrying too soon once.");
+    gnet_property->props[88].desc = _("Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 10, so the client is banned after retrying too soon 10 times, which a good balance between abuse and legacy client support.");
     gnet_property->props[88].ev_changed = event_new("parq_ban_bad_maxcountwait_changed");
     gnet_property->props[88].save = TRUE;
     gnet_property->props[88].vector_size = 1;
