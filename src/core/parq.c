@@ -83,7 +83,8 @@ RCSID("$Id$")
 
 #define MAX_UPLOADS			100		/**< Avoid more than that many uploads */
 #define MAX_UPLOAD_QSIZE	4000	/**< Size of the PARQ queue */
-#define MIN_UPLOAD_AQUEUED	2		/**< Actively queued uploads per queue */
+#define MIN_UPLOAD_ASLOT	10		/**< Queue up to that many slots ahead */
+#define MIN_ALWAYS_QUEUE	5		/**< Try to actively queue first 5 slots */
 
 #define MEBI (1024 * 1024)
 /*
@@ -1517,10 +1518,12 @@ parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 
 			g_assert(parq_ul_prev != NULL);
 
-			fast_result = (parq_ul_prev->chunk_size / avg_bps)
-							* GNET_PROPERTY(max_uploads);
+			if (parq_ul_prev->has_slot) {
+				fast_result = (parq_ul_prev->chunk_size / avg_bps)
+								* GNET_PROPERTY(max_uploads);
 
-			result = MIN(result, fast_result);
+				result = MIN(result, fast_result);
+			}
 		}
 	}
 
@@ -3435,7 +3438,10 @@ parq_upload_request(struct upload *u)
 			max_fd_used -= GNET_PROPERTY(max_downloads) / 2;
 
 		queueable = GNET_PROPERTY(sys_nofile) * 4 / 5 >
-			max_fd_used + (MIN_UPLOAD_AQUEUED * GNET_PROPERTY(max_uploads));
+			max_fd_used + (MIN_ALWAYS_QUEUE * GNET_PROPERTY(max_uploads));
+
+		if (parq_ul->relative_position <= MIN_ALWAYS_QUEUE)
+			queueable = TRUE;
 
 		/*
 		 * Disable active queueing when under a fd shortage, excepted for
@@ -3461,13 +3467,8 @@ parq_upload_request(struct upload *u)
 
 		if (
 			(u->push && parq_ul->relative_position <= max_slot) ||
-			(queueable && (
-				(parq_ul->queue->active_queued_cnt < MIN_UPLOAD_AQUEUED &&
-				parq_ul->relative_position <= GNET_PROPERTY(max_uploads) * 2) ||
-				parq_ul->relative_position <=
-					UNSIGNED(free_upload_slots(parq_ul->queue)) +
-					MIN_UPLOAD_AQUEUED
-			))
+			(queueable && parq_ul->relative_position <=
+				UNSIGNED(free_upload_slots(parq_ul->queue)) + MIN_UPLOAD_ASLOT)
 		) {
 			if ((parq_ul->flags & PARQ_UL_FROZEN) && !activeable) {
 				if (GNET_PROPERTY(parq_debug))
