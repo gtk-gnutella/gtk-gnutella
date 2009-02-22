@@ -2479,7 +2479,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[88].name = "parq_ban_bad_maxcountwait";
-    gnet_property->props[88].desc = _("Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 10, so the client is banned after retrying too soon 10 times, which a good balance between abuse and legacy client support.");
+    gnet_property->props[88].desc = _("Ban the client if it violates the Retry-After interval too often. Set this to 0 to disable the banning. The upload will be removed from the queue in any case though. Default is 10, so the client is banned after retrying too soon 10 times, which is a good balance between abuse and legacy client support.");
     gnet_property->props[88].ev_changed = event_new("parq_ban_bad_maxcountwait_changed");
     gnet_property->props[88].save = TRUE;
     gnet_property->props[88].vector_size = 1;

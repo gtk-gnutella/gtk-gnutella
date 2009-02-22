@@ -1019,7 +1019,7 @@ prop = {
 	       "too often. Set this to 0 to disable the banning. The upload "
 		   "will be removed from the queue in any case though. Default is "
 		   "10, so the client is banned after retrying too soon 10 times, "
-		   "which a good balance between abuse and legacy client support.";
+		   "which is a good balance between abuse and legacy client support.";
 	type = guint32;
 	data = {
 		default = 10;
