@@ -360,6 +360,12 @@ enum {
 	(	DOWNLOAD_IS_ACTIVE(d)			\
 	||	DOWNLOAD_IS_ESTABLISHING(d)		)
 
+#define DOWNLOAD_IS_SWITCHABLE(d)		\
+	(  (d)->status == GTA_DL_TIMEOUT_WAIT \
+	|| (d)->status == GTA_DL_QUEUED	\
+	|| (d)->status == GTA_DL_FALLBACK	\
+	|| (d)->status == GTA_DL_PUSH_SENT	)
+
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 
 gboolean download_has_blank_guid(const struct download *);

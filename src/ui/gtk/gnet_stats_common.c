@@ -137,6 +137,8 @@ general_type_str(gint value)
 		N_("Compressed UDP messages enqueued"),
 		N_("Compressed UDP messages received"),
 		N_("Uncompressed UDP messages due to no gain"),
+		N_("Attempted download resource switching"),
+		N_("Ignored downloaded data"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("DHT keys held"),
 		N_("DHT values held"),

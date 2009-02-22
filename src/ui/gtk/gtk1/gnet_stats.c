@@ -115,7 +115,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
     if (stats->general[type] == 0)
         return "-";
 
-    if (type == GNR_QUERY_COMPACT_SIZE) {
+    if (type == GNR_QUERY_COMPACT_SIZE || type == GNR_IGNORED_DATA) {
         return compact_size(stats->general[type], show_metric_units());
     } else {
         uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);

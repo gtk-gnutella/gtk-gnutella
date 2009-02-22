@@ -1779,14 +1779,39 @@ change_server_addr(struct dl_server *server,
 
 /**
  * Do we have more pending files to be retrieved on this server?
+ *
+ * We're only interested in downloads to which we could switch an already
+ * established connection.
  */
 static gboolean
 download_has_pending_on_server(const struct download *d)
 {
+	list_iter_t *iter;
+	gboolean result = FALSE;
+
 	download_check(d);
 
-	return GNET_PROPERTY(dl_resource_switching) &&
-		server_list_length(d->server, DL_LIST_WAITING) > 0;
+	if (
+		!GNET_PROPERTY(dl_resource_switching) ||
+		0 == server_list_length(d->server, DL_LIST_WAITING)
+	)
+		return FALSE;
+
+	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		if (DOWNLOAD_IS_SWITCHABLE(cur)) {
+			result = TRUE;
+			break;
+		}
+	}
+	list_iter_free(&iter);
+
+	return result;
 }
 
 /**
@@ -4492,6 +4517,83 @@ download_is_special(const struct download *d)
 }
 
 /**
+ * Helper for inner loops of download_pick_followup().
+ *
+ * Return FALSE if we must continue, TRUE if we can break out of the loop
+ * because we found the proper target download.
+ */
+static gboolean
+download_pick_process(
+	struct download **dp, struct download *cur,
+	gboolean was_plain_incomplete, const struct sha1 *sha1)
+{
+	struct download *d;
+
+	if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
+		return FALSE;
+
+	if (download_has_enough_active_sources(cur))
+		return FALSE;
+
+	if (FILE_INFO_COMPLETE(cur->file_info))
+		return FALSE;
+
+	if (was_plain_incomplete && !download_is_special(cur))
+		return FALSE;
+
+	/*
+	 * Can only switch to a download that is not actively / passively
+	 * queued, as otherwise we could be violating the retry parameters
+	 * assigned by the remote server for the resource we're about to ask.
+	 */
+
+	if (!DOWNLOAD_IS_SWITCHABLE(cur))
+		return FALSE;		/* Can't switch to that download */
+
+	/*
+	 * Give priority to the file whose THEX we downloaded.
+	 */
+
+	if (
+		sha1 && !download_is_special(cur) && cur->file_info->sha1 &&
+		sha1_eq(sha1, cur->file_info->sha1)
+	) {
+		*dp = cur;		/* Found plain file download on this server */
+		return TRUE;	/* Exit loop */
+	}
+
+	/*
+	 * NOTE: we don't care about cur->timeout_delay and cur->retry_after
+	 * because after this routine we are not going to be initiating a new
+	 * connection: we're going to reuse the existing connection we have to
+	 * the server already.
+	 */
+
+	d = *dp;
+
+	if (!FILE_INFO_COMPLETE(d->file_info)) {
+		if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
+			/*
+			 * Pick the download with the most progress. Otherwise
+			 * we easily end up with dozens of partials from the
+			 * the server.
+			 */
+
+			if (download_total_progress(d) >= download_total_progress(cur))
+				return FALSE;
+		}
+
+		/* Give priority to THEX downloads */
+		if ((DL_F_THEX & d->flags) > (DL_F_THEX & cur->flags))
+			return FALSE;
+	}
+
+	*dp = cur;		/* Have a new candidate for switching */
+
+	return FALSE;
+}
+
+/**
  * Pick-up another source from this server, for the next HTTP request.
  * We may very well request another file we want on this server.
  */
@@ -4500,9 +4602,11 @@ download_pick_followup(struct download *d)
 {
 	list_iter_t *iter;
 	gboolean was_plain_incomplete;
+	gboolean found = FALSE;
 	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
+	g_assert(d->list_idx == DL_LIST_WAITING);
 
 	if (!GNET_PROPERTY(dl_resource_switching))
 		return d;
@@ -4544,6 +4648,23 @@ download_pick_followup(struct download *d)
 	if (d->thex)
 		sha1 = thex_download_get_sha1(d->thex);
 
+	iter = list_iter_before_head(d->server->list[DL_LIST_RUNNING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		if (download_pick_process(&d, cur, was_plain_incomplete, sha1)) {
+			found = TRUE;
+			break;
+		}
+	}
+	list_iter_free(&iter);
+
+	if (found)
+		goto done;
+
 	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -4551,80 +4672,29 @@ download_pick_followup(struct download *d)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
-			continue;
-
-		if (download_has_enough_active_sources(cur))
-			continue;
-
-		if (FILE_INFO_COMPLETE(cur->file_info))
-			continue;
-
-		if (was_plain_incomplete && !download_is_special(cur))
-			continue;
-
-		/*
-		 * Can only switch to a download that is not actively / passively
-		 * queued, as otherwise we could be violating the retry parameters
-		 * assigned by the remote server for the resource we're about to ask.
-		 */
-
-		switch (cur->status) {
-		case GTA_DL_TIMEOUT_WAIT:
-		case GTA_DL_QUEUED:
-		case GTA_DL_FALLBACK:
-		case GTA_DL_PUSH_SENT:
+		if (download_pick_process(&d, cur, was_plain_incomplete, sha1))
 			break;
-		default:
-			continue;		/* Can't switch to that download */
-		}
-
-		/*
-		 * Give priority to the file whose THEX we downloaded.
-		 */
-
-		if (
-			sha1 && !download_is_special(cur) && cur->file_info->sha1 &&
-			sha1_eq(sha1, cur->file_info->sha1)
-		) {
-			d = cur;		/* Found plain file download on this server */
-			break;
-		}
-
-		/*
-		 * NOTE: we don't care about cur->timeout_delay and cur->retry_after
-		 * because after this routine we are not going to be initiating a new
-		 * connection: we're going to reuse the existing connection we have to
-		 * the server already.
-		 */
-
-		if (!FILE_INFO_COMPLETE(d->file_info)) {
-			if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
-				/*
-				 * Pick the download with the most progress. Otherwise
-				 * we easily end up with dozens of partials from the
-				 * the server.
-				 */
-
-				if (download_total_progress(d) >= download_total_progress(cur))
-					continue;
-			}
-
-			/* Give priority to THEX downloads */
-			if ((DL_F_THEX & d->flags) > (DL_F_THEX & cur->flags))
-				continue;
-		}
-
-		d = cur;
 	}
 	list_iter_free(&iter);
+
+done:
+	/*
+	 * If we have elected a "running" download (awaiting push results),
+	 * then we need to move it back temporarily to the "waiting" list,
+	 * as download_start_prepare() expects non-running downloads.
+	 */
+
+	if (d->list_idx == DL_LIST_RUNNING)
+		download_move_to_list(d, DL_LIST_WAITING);
+
+	g_assert(d->list_idx == DL_LIST_WAITING);
 
 	return d;
 }
 
 /**
  * Pick up new downloads from the queue as needed.
-*/
+ */
 static void
 download_pickup_queued(void)
 {
@@ -6989,6 +7059,10 @@ download_continue(struct download *d, gboolean trimmed)
 				download_basename(cd), 100.0 * download_total_progress(cd),
 				download_basename(next), 100.0 * download_total_progress(next),
 				download_host_info(next));
+
+		g_assert(NULL == next->socket);
+
+		gnet_stats_count_general(GNR_ATTEMPTED_RESOURCE_SWITCHING, 1);
 
 		next->socket = s;
 		next->socket->resource.download = next;
@@ -9704,6 +9778,8 @@ download_ignore_data(struct download *d, pmsg_t *mb)
 
 	d->last_update = tm_time();
 	d->pos += pmsg_size(mb);
+
+	gnet_stats_count_general(GNR_IGNORED_DATA, pmsg_size(mb));
 
 	/*
 	 * Do not increment fi->recv_amount here, because we're ignoring the
