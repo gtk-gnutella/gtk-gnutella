@@ -1766,10 +1766,10 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 }
 
 /**
- * Whether file is complete (i.e. either shared from the library or seeded).
+ * Whether file is finished (i.e. either shared from the library or seeded).
  */
 gboolean
-shared_file_is_complete(const struct shared_file *sf)
+shared_file_is_finished(const struct shared_file *sf)
 {
 	shared_file_check(sf);
 	return NULL == sf->fi || 0 != (sf->fi->flags & FI_F_SEEDING);

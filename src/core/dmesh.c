@@ -660,15 +660,15 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 }
 
 /**
- * Is the SHA1 that of a complete file (either shared in the library or
+ * Is the SHA1 that of a finished file (either shared in the library or
  * seeded after completion)?
  */
 static gboolean
-sha1_of_complete_file(const struct sha1 *sha1)
+sha1_of_finished_file(const struct sha1 *sha1)
 {
 	const struct shared_file *sf = shared_file_by_sha1(sha1);
 
-	return sf && sf != SHARE_REBUILDING && shared_file_is_complete(sf);
+	return sf && sf != SHARE_REBUILDING && shared_file_is_finished(sf);
 }
 
 /**
@@ -684,7 +684,7 @@ dm_lifetime(const struct dmesh *dm)
 	g_assert(dm);
 	g_assert(dm->sha1);
 
-	return sha1_of_complete_file(dm->sha1) ? MAX_LIBLIFETIME : MAX_LIFETIME;
+	return sha1_of_finished_file(dm->sha1) ? MAX_LIBLIFETIME : MAX_LIFETIME;
 }
 
 /**
@@ -1387,7 +1387,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	 */
 
 	i = 0;
-	complete_file = sha1_of_complete_file(sha1);
+	complete_file = sha1_of_finished_file(sha1);
 	iter = list_iter_before_head(dm->entries);
 
 	while (list_iter_has_next(iter)) {
