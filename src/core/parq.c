@@ -2236,7 +2236,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 			/*
 			 * Mark for removal. Can't remove now as we are still using the
 			 * ul_parq_by_position linked list. (prepend is probably the
-			 * fastest function
+			 * fastest function)
 			 */
 			to_remove = g_slist_prepend(to_remove, uq);
 		}
@@ -3186,8 +3186,7 @@ parq_upload_request(struct upload *u)
 		avg_bps = MAX(1, avg_bps);
 
 		delta = parq_ul->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
-		if (parq_ul->active_queued)
-			delta = MIN(delta, MIN_LIFE_TIME);
+		delta = MIN(delta, MIN_LIFE_TIME);
 		parq_ul->expire = time_advance(parq_ul->retry, delta);
 	} else {
 		parq_ul->expire = time_advance(parq_ul->retry, MIN_LIFE_TIME);
