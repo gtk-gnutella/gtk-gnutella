@@ -82,8 +82,8 @@ static GHashTable *mesh = NULL;
 struct dmesh {				/**< A download mesh bucket */
 	list_t *entries;		/**< The download mesh entries, dmesh_entry data */
 	GHashTable *by_host;	/**< Entries indexed by host */
-	time_t last_update;		/**< Timestamp of last insertion in the mesh */
-	const struct sha1 *sha1;	/**< For tracing, the SHA1 of this mesh */
+	time_t last_update;		/**< Timestamp of last insert/expire in the mesh */
+	const struct sha1 *sha1;	/**< The SHA1 of this mesh */
 };
 
 struct dmesh_entry {
@@ -94,7 +94,8 @@ struct dmesh_entry {
 	gboolean good;			/**< Whether marked as being a good entry */
 };
 
-#define MAX_LIFETIME	86400		/**< 1 day */
+#define MAX_LIFETIME	43200		/**< half a day */
+#define MAX_LIBLIFETIME	3600		/**< 1 hour for shared/seeded files */
 #define MAX_ENTRIES		256			/**< Max amount of entries kept per SHA1 */
 
 #define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
@@ -659,15 +660,46 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
 }
 
 /**
- * Expire entries older than `agemax' in a given mesh bucket `dm'.
+ * Is the SHA1 that of a complete file (either shared in the library or
+ * seeded after completion)?
+ */
+static gboolean
+sha1_of_complete_file(const struct sha1 *sha1)
+{
+	const struct shared_file *sf = shared_file_by_sha1(sha1);
+
+	return sf && sf != SHARE_REBUILDING && shared_file_is_complete(sf);
+}
+
+/**
+ * Compute suitable life time for mesh entries.
+ *
+ * Complete files have no download HTTP transactions, hence the alt-locs
+ * we get are only from uploaders.  To keep only the ones that are fresh-enough, 
+ * reduce the lifetime of each entry.
+ */
+static glong
+dm_lifetime(const struct dmesh *dm)
+{
+	g_assert(dm);
+	g_assert(dm->sha1);
+
+	return sha1_of_complete_file(dm->sha1) ? MAX_LIBLIFETIME : MAX_LIFETIME;
+}
+
+/**
+ * Expire entries deemed too old in a given mesh bucket `dm'.
  */
 static void
-dm_expire(struct dmesh *dm, glong agemax)
+dm_expire(struct dmesh *dm)
 {
 	GSList *expired = NULL;
 	GSList *sl;
 	time_t now = tm_time();
+	glong agemax;
 	list_iter_t *iter;
+
+	agemax = dm_lifetime(dm);
 
 	iter = list_iter_before_head(dm->entries);
 
@@ -702,6 +734,8 @@ dm_expire(struct dmesh *dm, glong agemax)
 	}
 
 	g_slist_free(expired);
+
+	dm->last_update = tm_time();
 }
 
 /**
@@ -861,7 +895,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dm = dm_alloc(sha1);
 		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
 	} else {
-		dm_expire(dm, MAX_LIFETIME);
+		dm_expire(dm);
 	}
 
 	/*
@@ -1337,6 +1371,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	gint nselected;
 	gint i;
 	gint j;
+	gboolean complete_file;
 	list_iter_t *iter;
 
 	/*
@@ -1352,6 +1387,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	 */
 
 	i = 0;
+	complete_file = sha1_of_complete_file(sha1);
 	iter = list_iter_before_head(dm->entries);
 
 	while (list_iter_has_next(iter)) {
@@ -1360,13 +1396,19 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 		if (dme->url.idx != URN_INDEX)
 			continue;
 
-#if 0	/* XXX not yet */
-		if (!dme->good)
-			continue;			/* Only propagate good alt locs */
-#else
-		if (dme->bad)			/* Don't progagate with negative feedback */
-			continue;
-#endif
+		/*
+		 * When downloading (i.e. when the file is not complete), we have the
+		 * neceesary feedback to spot good sources.  When sharing a complete
+		 * file, all we can do is skip entries for which we got bad feedback.
+		 */
+
+		if (complete_file) {
+			if (dme->bad)		/* Skip entries with negative feedback */
+				continue;
+		} else {
+			if (!dme->good)
+				continue;		/* Only propagate good alt locs */
+		}
 
 		if (NET_TYPE_IPV4 != host_addr_net(dme->url.addr))
 			continue;
@@ -1633,14 +1675,14 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	if (dm == NULL)						/* SHA1 unknown */
 		goto nomore;
 
-	if (delta_time(dm->last_update, last_sent) <= 0)	/* No new insertion */
+	if (delta_time(dm->last_update, last_sent) <= 0)	/* No change occurred */
 		goto nomore;
 
 	/*
 	 * Expire old entries.  If none remain, free entry and return.
 	 */
 
-	dm_expire(dm, MAX_LIFETIME);
+	dm_expire(dm);
 
 	if (list_length(dm->entries) == 0) {
 		dmesh_dispose(sha1);
