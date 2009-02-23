@@ -241,6 +241,7 @@ struct download {
  */
 
 enum {
+	DL_F_SWITCHED		= 1 << 25,	/**< Scheduled after resource switching */
 	DL_F_MUST_IGNORE	= 1 << 24,	/**< Must ignore data when they come */
 	DL_F_FAKE_G2		= 1 << 23,	/**< Trying to fake G2, intuition only */
 	DL_F_TRIED_TLS		= 1 << 22,	/**< TLS connection was tried already */
@@ -363,6 +364,7 @@ enum {
 #define DOWNLOAD_IS_SWITCHABLE(d)		\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT \
 	|| (d)->status == GTA_DL_QUEUED	\
+	|| (d)->status == GTA_DL_CONNECTING	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_PUSH_SENT	)
 

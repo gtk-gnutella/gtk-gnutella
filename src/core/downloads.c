@@ -3257,7 +3257,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 	file_info_clear_download(d, FALSE);
 	file_info_changed(d->file_info);
-	d->flags &= ~DL_F_CHUNK_CHOSEN;
+	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -3382,7 +3382,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
 
-	d->flags &= ~DL_F_MUST_IGNORE;
+	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED);
 	d->remove_msg = fmt ? d->error_str: NULL;
 	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
 	fi_src_status_changed(d);
@@ -4596,14 +4596,20 @@ download_pick_process(
 /**
  * Pick-up another source from this server, for the next HTTP request.
  * We may very well request another file we want on this server.
+ *
+ * If the download was a THEX download, try to switch back to the
+ * download for the file whose THEX we downloaded.  Some servents only
+ * allow switching between a THEX and the corresponding file.
+ *
+ * @param d		the download structure
+ * @param sha1	if non-NULL, the SHA1 of the file we downloaded the THEX for
  */
 static struct download *
-download_pick_followup(struct download *d)
+download_pick_followup(struct download *d, const struct sha1 *sha1)
 {
 	list_iter_t *iter;
 	gboolean was_plain_incomplete;
 	gboolean found = FALSE;
-	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
 	g_assert(d->list_idx == DL_LIST_WAITING);
@@ -4639,15 +4645,6 @@ download_pick_followup(struct download *d)
 	was_plain_incomplete = !FILE_INFO_COMPLETE(d->file_info) &&
 		!download_is_special(d);
 
-	/*
-	 * If the download was a THEX download, try to switch back to the
-	 * download for the file whose THEX we downloaded.  Some servents only
-	 * allow switching between a THEX and the corresponding file.
-	 */
-
-	if (d->thex)
-		sha1 = thex_download_get_sha1(d->thex);
-
 	iter = list_iter_before_head(d->server->list[DL_LIST_RUNNING]);
 	while (list_iter_has_next(iter)) {
 		struct download *cur;
@@ -4679,13 +4676,15 @@ download_pick_followup(struct download *d)
 
 done:
 	/*
-	 * If we have elected a "running" download (awaiting push results),
-	 * then we need to move it back temporarily to the "waiting" list,
-	 * as download_start_prepare() expects non-running downloads.
+	 * If we have elected a "running" download (awaiting push results or
+	 * connecting), then we need to move it back temporarily to the
+	 * "waiting" list, as download_start_prepare() expects non-running
+	 * downloads.  Calling download_stop() is a nice way to also cleanup
+	 * the socket structure.
 	 */
 
 	if (d->list_idx == DL_LIST_RUNNING)
-		download_move_to_list(d, DL_LIST_WAITING);
+		download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 
 	g_assert(d->list_idx == DL_LIST_WAITING);
 
@@ -5618,7 +5617,7 @@ download_clone(struct download *d)
 	cd->file_name = atom_str_get(d->file_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
-	cd->flags &= ~DL_F_MUST_IGNORE;
+	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED);
 	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
@@ -6987,6 +6986,7 @@ download_continue(struct download *d, gboolean trimmed)
 	struct download *cd, *next = NULL;
 	struct gnutella_socket *s;
 	gboolean can_continue;
+	const struct sha1 *sha1 = NULL;
 
 	download_check(d);
 
@@ -6994,8 +6994,20 @@ download_continue(struct download *d, gboolean trimmed)
 	 * Determine whether we can use this download for a follow-up request if
 	 * download_pick_followup() finds no better candidate.
 	 */
-	can_continue = DOWNLOAD_IS_ACTIVE(d) &&
-		!FILE_INFO_COMPLETE(d->file_info);
+
+	can_continue = DOWNLOAD_IS_ACTIVE(d) && !FILE_INFO_COMPLETE(d->file_info);
+
+	/*
+	 * Also for THEX downloads, we need to save the SHA1 from the THEX context
+	 * before calling download_stop(), since that will free up that information
+	 * and it is not propagated to the cloned structure.
+	 */
+
+	if (d->thex) {
+		sha1 = thex_download_get_sha1(d->thex);
+		if (sha1)
+			sha1 = atom_sha1_get(sha1);
+	}
 
 	/*
 	 * Since a download structure is associated with a GUI line entry, we
@@ -7022,7 +7034,7 @@ download_continue(struct download *d, gboolean trimmed)
 				download_host_info(cd));
 
 		download_queue(cd, _("Requeued after trimmed data"));
-		return;
+		goto cleanup;
 	}
 	if (!cd->keep_alive) {
 		if (GNET_PROPERTY(download_debug))
@@ -7031,7 +7043,7 @@ download_continue(struct download *d, gboolean trimmed)
 				download_host_info(cd));
 
 		download_queue(cd, _("Chunk done, connection closed"));
-		return;
+		goto cleanup;
 	}
 
 	/* Steal the socket because download_stop() would free it. */
@@ -7052,7 +7064,7 @@ download_continue(struct download *d, gboolean trimmed)
 	}
 	s->pos = 0;
 
-	next = download_pick_followup(cd);
+	next = download_pick_followup(cd, sha1);
 	if (cd != next) {
 		if (GNET_PROPERTY(download_debug))
 			g_message("switching from \"%s\" (%.2f%%) to \"%s\" (%.2f%%) at %s",
@@ -7066,6 +7078,7 @@ download_continue(struct download *d, gboolean trimmed)
 
 		next->socket = s;
 		next->socket->resource.download = next;
+		next->flags |= DL_F_SWITCHED;
 
 		if (can_continue) {
 			download_queue(cd, _("Switching to \"%s\""),
@@ -7088,6 +7101,9 @@ download_continue(struct download *d, gboolean trimmed)
 		next->keep_alive = TRUE;			/* Was reset by _prepare() */
 		download_send_request(next);		/* Will pick up new range */
 	}
+
+cleanup:
+	atom_sha1_free_null(&sha1);
 }
 
 /**
@@ -8762,6 +8778,13 @@ http_version_nofix:
 						dmesh_add_good_alternate(d->sha1,
 							download_addr(d), download_port(d));
 					}
+
+					/* Count partial success if we were switched */
+					if (d->flags & DL_F_SWITCHED) {
+						d->flags &= ~DL_F_SWITCHED;
+						gnet_stats_count_general(GNR_QUEUED_AFTER_SWITCHING, 1);
+					}
+
 					return;
 
 				} /* Download not active queued, continue as normal */
@@ -9488,6 +9511,15 @@ http_version_nofix:
 
 	g_assert(d->size >= 0);
 #endif
+
+	/*
+	 * If we reached that point, we can count a resource switching success.
+	 */
+
+	if (d->flags & DL_F_SWITCHED) {
+		d->flags &= ~DL_F_SWITCHED;
+		gnet_stats_count_general(GNR_SUCCESSFUL_RESOURCE_SWITCHING, 1);
+	}
 
 	/*
 	 * Handle browse-host requests specially: there's no file to save to.
