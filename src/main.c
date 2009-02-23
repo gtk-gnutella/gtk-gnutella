@@ -382,6 +382,7 @@ gtk_gnutella_exit(gint n)
 #define DO(fn) 	do { exit_step = #fn; fn(); } while (0)
 
 	DO(shell_close);
+	DO(file_info_store_if_dirty);
 	DO(file_info_close_pre);
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
@@ -403,11 +404,11 @@ gtk_gnutella_exit(gint n)
 	 */
 
 	DO(settings_save_if_dirty);
-	if (!running_topless) {
-		DO(settings_gui_save_if_dirty);
-	}
 
 	safe_to_exit = TRUE;	/* Will immediately exit if re-entered */
+
+	if (debugging(0) || signal_received || shutdown_requested)
+		g_message("context files and settings closed properly");
 
 	if (from_atexit)
 		return;
@@ -415,7 +416,11 @@ gtk_gnutella_exit(gint n)
 #undef DO
 
 	if (!running_topless) {
+		settings_gui_save_if_dirty();
 		main_gui_shutdown();
+
+		if (debugging(0) || signal_received || shutdown_requested)
+			g_message("GUI shutdown completed");
 	}
 
     hcache_shutdown();		/* Save host caches to disk */
@@ -447,6 +452,11 @@ gtk_gnutella_exit(gint n)
 	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA)
 		exit_grace *= 2;
 
+	if (debugging(0) || signal_received || shutdown_requested) {
+		g_message("waiting at most %s for BYE messages",
+			short_time(exit_grace));
+	}
+
 	while (node_bye_pending()) {
 		time_t now = time(NULL);
 		time_delta_t d;
@@ -462,6 +472,9 @@ gtk_gnutella_exit(gint n)
 		}
 		compat_sleep_ms(50);
 	}
+
+	if (debugging(0) || signal_received || shutdown_requested)
+		g_message("running final shutdown sequence...");
 
 	search_shutdown();		/* Disable now, since we can get queries above */
 
