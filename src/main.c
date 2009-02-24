@@ -602,6 +602,7 @@ slow_main_timer(time_t now)
 	rx_collect();					/* Idem for freed RX stacks */
 	prune_page_cache();
 
+	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
 }

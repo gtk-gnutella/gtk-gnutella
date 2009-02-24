@@ -53,6 +53,7 @@ void download_init(void);
 void download_restore_state(void);
 void download_store_if_dirty(void);
 void download_timer(time_t now);
+void download_slow_timer(time_t now);
 void download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi);
 void download_orphan_new(const gchar *file, filesize_t size,
 		const struct sha1 *sha1, fileinfo_t *fi);

@@ -137,6 +137,7 @@ static const gchar DL_OK_EXT[] = ".OK";		/**< Extension to mark OK files */
 static const gchar DL_BAD_EXT[] = ".BAD";	/**< "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";		/**< For unchecked files */
 static const gchar no_reason[] = "<no reason>"; /**< Don't translate this */
+static const gchar dev_null[] = "/dev/null";
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean download_send_push_request(struct download *d, gboolean broad);
@@ -8457,9 +8458,12 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 	return FALSE;
 }
 
+/**
+ * Check whether the remote host supports TLS, and insert its addr:port in
+ * the TLS cache if it does.
+ */
 static void
-download_detect_tls_support(
-		struct download *d, header_t *header)
+download_detect_tls_support(struct download *d, header_t *header)
 {
 	download_check(d);
 
@@ -8474,6 +8478,44 @@ download_detect_tls_support(
 	}
 }
 
+/**
+ * Open the specified path for writing downloaded data.
+ *
+ * To avoid using too many file descriptors (each download source opening
+ * the same file for writing its bits), we share file descriptors through
+ * the file_object abstraction.
+ *
+ * @return the created file object, NULL if file could not be opened.
+ */
+struct file_object *
+download_open(const char * const pathname)
+{
+	struct file_object *fo;
+
+	/*
+	 * Try to reusing existing file descriptor attached to the path.
+	 */
+
+	fo = file_object_open(pathname, O_WRONLY);
+
+	if (!fo) {
+		int fd;
+
+		/*
+		 * Since there was no file object initially, a new one is created
+		 * for reading AND writing, in order to allow sharing the file
+		 * descriptor with uploading as well (PFSP support).  A request through
+		 * file_object_open() for O_WRONLY or O_RDONLY will still return the
+		 * same file descriptor.
+		 */
+
+		fd = file_open(pathname, O_RDWR, 0);
+		if (fd >= 0)
+			fo = file_object_new(fd, pathname, O_RDWR);
+	}
+
+	return fo;
+}
 
 /**
  * Called to initiate the download once all the HTTP headers have been read.
@@ -9678,15 +9720,28 @@ http_version_nofix:
 
 	g_assert(NULL == d->out_file);
 
-	d->out_file = file_object_open(fi->pathname, O_WRONLY);
-	if (!d->out_file) {
-		gint fd = file_open_missing(fi->pathname, O_RDWR);
-		if (fd >= 0) {
-			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
-		}
-	}
-	if (d->out_file) {
+	if (must_ignore) {
+		/*
+		 * Ignoring can happen even when files are completely downloaded (and
+		 * possibly SHA1-checked and moved away.  In order to avoid any
+		 * accidental writing to the completed/verified file as well as provide
+		 * a writable file descriptor (normally unused), we open /dev/null.
+		 */
 
+		d->out_file = download_open(dev_null);
+
+		if (!d->out_file) {
+			const gchar *error = g_strerror(errno);
+			download_stop(d, GTA_DL_ERROR, _("Cannot open %s: %s"),
+				dev_null, error);
+			return;
+		}
+
+		goto file_opened;		/* Avoid too much indenting below */
+	}
+
+	d->out_file = download_open(fi->pathname);
+	if (d->out_file) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
 			g_message("File '%s' changed size (now %s, but was %s)",
@@ -9712,6 +9767,7 @@ http_version_nofix:
 		}
 	}
 
+file_opened:
 	g_assert(d->out_file);
 
 	/*
@@ -13143,6 +13199,46 @@ download_timer(time_t now)
 		download_pickup_queued();
 }
 
+/**
+ * Download infrequent heartbeat timer.
+ */
+void
+download_slow_timer(time_t now)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_downloads);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		g_assert(dl_server_valid(d->server));
+
+		next = hash_list_next(sl_unqueued, next);
+
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+			/*
+			 * If has a PARQ ID but the download is neither actively nor
+			 * passively queued, then we may have gone through a queue
+			 * freezing period, or we can't connect to the remote server.
+			 */
+
+			if (d->parq_dl && delta_time(now, d->retry_after) >= 0) {
+				if (GNET_PROPERTY(parq_debug) || GNET_PROPERTY(download_debug))
+					g_message("restarting pending \"%s\" PARQ ID=%s",
+						download_pathname(d), get_parq_dl_id(d));
+
+				download_start(d, FALSE);
+			}
+			break;
+		case GTA_DL_INVALID:
+			g_assert_not_reached();
+		default:
+			break;
+		}
+	}
+}
 
 /*
  * Local Variables:
