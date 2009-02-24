@@ -3240,11 +3240,6 @@ parq_upload_request(struct upload *u)
 		 * upload slot or not. Neither are we going to active queue it.
 		 *
 		 */
-		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
-			"host %s (%s) re-requested \"%s\" too soon (%u secs early)",
-			host_addr_port_to_string(u->socket->addr, u->socket->port),
-			upload_vendor_str(u),
-			u->name, (unsigned) delta_time(org_retry, now));
 
 		if (
 			delta_time(parq_ul->ban_timeout, now) > 0 &&
@@ -3252,6 +3247,13 @@ parq_upload_request(struct upload *u)
 		)
 			parq_ul->ban_countwait++;
 		
+		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
+			"host %s (%s) re-requested \"%s\" too soon (%s early, #%u)",
+			host_addr_port_to_string(u->socket->addr, u->socket->port),
+			upload_vendor_str(u),
+			u->name, short_time(delta_time(org_retry, now)),
+			parq_ul->ban_countwait);
+
 		if (
 			delta_time(parq_ul->ban_timeout, now) > 0 &&
 			parq_ul->ban_countwait >= GNET_PROPERTY(parq_ban_bad_maxcountwait)
@@ -3263,10 +3265,10 @@ parq_upload_request(struct upload *u)
 
 			if (GNET_PROPERTY(parq_debug)) g_warning(
 				"[PARQ UL] "
-				"punishing %s (%s) for re-requesting \"%s\" %u secs early [%s]",
+				"punishing %s (%s) for re-requesting \"%s\" %s early [%s]",
 				host_addr_port_to_string(u->socket->addr, u->socket->port),
 				upload_vendor_str(u),
-				u->name, (unsigned) delta_time(org_retry, now),
+				u->name, short_time(delta_time(org_retry, now)),
 				guid_hex_str(&parq_ul->id));
 
 			parq_add_banned_source(u->addr, delta_time(parq_ul->retry, now));
