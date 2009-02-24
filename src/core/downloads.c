@@ -4581,6 +4581,10 @@ download_pick_process(
 
 			if (download_total_progress(d) >= download_total_progress(cur))
 				return FALSE;
+
+			/* Favor smaller files (completed sooner, hopefully) */
+			if (download_filesize(d) <= download_filesize(cur))
+				return FALSE;
 		}
 
 		/* Give priority to THEX downloads */
