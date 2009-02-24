@@ -3122,6 +3122,57 @@ cleanup:
 }
 
 /**
+ * Bad bad client, re-requested within the Retry-After interval...
+ * See whether we can nonetheless be nice or whether this is abuse.
+ *
+ * @return TRUE if we can allow the request, FALSE if we detected abuse.
+ */
+static gboolean
+parq_upload_abusing(
+	struct upload *u, struct parq_ul_queued *parq_ul,
+	time_t now, time_t org_retry)
+{
+	if (
+		delta_time(parq_ul->ban_timeout, now) > 0 &&
+		GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
+	)
+		parq_ul->ban_countwait++;
+	
+	if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
+		"host %s (%s) re-requested \"%s\" too soon (%s early, warn #%u)",
+		host_addr_port_to_string(u->socket->addr, u->socket->port),
+		upload_vendor_str(u),
+		u->name, short_time(delta_time(org_retry, now)),
+		parq_ul->ban_countwait);
+
+	if (
+		delta_time(parq_ul->ban_timeout, now) > 0 &&
+		parq_ul->ban_countwait >= GNET_PROPERTY(parq_ban_bad_maxcountwait)
+	) {
+		/*
+		 * Bye bye, the client did it again, and is removed from the PARQ
+		 * queue now.
+		 */
+
+		if (GNET_PROPERTY(parq_debug)) g_warning(
+			"[PARQ UL] "
+			"punishing %s (%s) for re-requesting \"%s\" %s early [%s]",
+			host_addr_port_to_string(u->socket->addr, u->socket->port),
+			upload_vendor_str(u),
+			u->name, short_time(delta_time(org_retry, now)),
+			guid_hex_str(&parq_ul->id));
+
+		parq_add_banned_source(u->addr, delta_time(parq_ul->retry, now));
+		parq_upload_force_remove(u);
+		return TRUE;
+	}
+
+	parq_ul->ban_timeout = time_advance(now, parq_upload_ban_window);
+
+	return FALSE;	/* Process request nonetheless for this time */
+}
+
+/**
  * If the download may continue, true is returned. False otherwise (which
  * probably means the upload is queued).
  * Where parq_upload_request honours the number of upload slots, this one
@@ -3228,60 +3279,19 @@ parq_upload_request(struct upload *u)
 
 	if (
 		!parq_ul->has_slot &&		/* Not a follow-up request */
-		delta_time(org_retry, now) >= PARQ_MIN_POLL &&
-		!(
-			(parq_ul->flags & PARQ_UL_QUEUE_SENT) ||
-			u->status == GTA_UL_QUEUE_WAITING
-		)
+		delta_time(org_retry, now) >= PARQ_MIN_POLL
 	) {
-		/*
-		 * Bad bad client, re-requested within the Retry-After interval.
-		 * we are not going to allow this download. Whether it could get an
-		 * upload slot or not. Neither are we going to active queue it.
-		 *
-		 */
-
 		if (
-			delta_time(parq_ul->ban_timeout, now) > 0 &&
-			GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
+			!(
+				(parq_ul->flags & PARQ_UL_QUEUE_SENT) ||
+				u->status == GTA_UL_QUEUE_WAITING
+			) && parq_upload_abusing(u, parq_ul, now, org_retry)
 		)
-			parq_ul->ban_countwait++;
-		
-		if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
-			"host %s (%s) re-requested \"%s\" too soon (%s early, #%u)",
-			host_addr_port_to_string(u->socket->addr, u->socket->port),
-			upload_vendor_str(u),
-			u->name, short_time(delta_time(org_retry, now)),
-			parq_ul->ban_countwait);
-
-		if (
-			delta_time(parq_ul->ban_timeout, now) > 0 &&
-			parq_ul->ban_countwait >= GNET_PROPERTY(parq_ban_bad_maxcountwait)
-		) {
-			/*
-			 * Bye bye, the client did it again, and is removed from the PARQ
-		 	 * queue now.
-			 */
-
-			if (GNET_PROPERTY(parq_debug)) g_warning(
-				"[PARQ UL] "
-				"punishing %s (%s) for re-requesting \"%s\" %s early [%s]",
-				host_addr_port_to_string(u->socket->addr, u->socket->port),
-				upload_vendor_str(u),
-				u->name, short_time(delta_time(org_retry, now)),
-				guid_hex_str(&parq_ul->id));
-
-			parq_add_banned_source(u->addr, delta_time(parq_ul->retry, now));
-			parq_upload_force_remove(u);
 			return FALSE;
-		}
-
-		parq_ul->ban_timeout = time_advance(now, parq_upload_ban_window);
-		return FALSE;
+	} else {
+		if (parq_ul->ban_countwait > 0)
+				parq_ul->ban_countwait--;		/* They requested on time */
 	}
-
-	if (parq_ul->ban_countwait > 0)
-		parq_ul->ban_countwait--;		/* They requested on time */
 
 	/*
 	 * If we sent a QUEUE message and we're getting a reply, reset the
