@@ -3529,6 +3529,15 @@ download_push_remove(struct download *d)
 }
 
 /**
+ * Is download special?
+ */
+static inline gboolean
+download_is_special(const struct download *d)
+{
+	return 0 != (d->flags & (DL_F_THEX | DL_F_BROWSE));
+}
+
+/**
  * Send a HEAD Ping vendor message to node to get alternate sources via
  * UDP since we're not going to issue an HTTP request right now.
  */
@@ -3545,7 +3554,7 @@ download_send_head_ping(struct download *d)
 	if (download_queue_is_frozen())
 		return;
 
-	if ((DL_F_THEX | DL_F_BROWSE) & d->flags)
+	if (download_is_special(d))
 		return;
 
 	if (NULL == d->file_info->sha1 || !d->file_info->use_swarming)
@@ -4509,15 +4518,6 @@ download_request_pause(struct download *d)
 }
 
 /**
- * Is download special?
- */
-static inline gboolean
-download_is_special(const struct download *d)
-{
-	return 0 != (d->flags & (DL_F_THEX | DL_F_BROWSE));
-}
-
-/**
  * Helper for inner loops of download_pick_followup().
  *
  * Return FALSE if we must continue, TRUE if we can break out of the loop
@@ -4736,6 +4736,7 @@ download_pickup_queued(void)
 			list_iter_t *iter;
 			struct download *d;
 			guint n;
+			gboolean only_special = FALSE;
 
 			g_assert(dl_server_valid(server));
 
@@ -4758,7 +4759,17 @@ download_pickup_queued(void)
 					>= GNET_PROPERTY(max_host_downloads)
 			) {
 				download_list_send_head_ping(server->list[DL_LIST_WAITING]);
-				continue;
+
+				/*
+				 * Normally, special downloads are served by remote servents
+				 * regardless of the amount of upload slots or per host
+				 * restrictions (since these downloads are small, usually).
+				 *
+				 * Hence, allow such special downloads to be scheduled even
+				 * if we reached the configured local maximum.
+				 */
+
+				only_special = TRUE;
 			}
 
 			/*
@@ -4778,6 +4789,9 @@ download_pickup_queued(void)
 				download_check(cur);
 
 				if (cur->flags & (DL_F_SUSPENDED | DL_F_PAUSED))
+					continue;
+
+				if (only_special && !download_is_special(cur))
 					continue;
 
 				if (download_has_enough_active_sources(cur)) {
