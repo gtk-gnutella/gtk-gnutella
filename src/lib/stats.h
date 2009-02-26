@@ -47,6 +47,7 @@ void statx_free(gpointer ox);
 void statx_clear(gpointer ox);
 void statx_add(gpointer ox, gdouble val);
 void statx_remove(gpointer ox, gdouble val);
+void statx_remove_oldest(gpointer ox);
 gint statx_n(gpointer ox);
 gdouble statx_avg(gpointer ox);
 gdouble statx_sdev(gpointer ox);

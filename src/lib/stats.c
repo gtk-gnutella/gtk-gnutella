@@ -42,6 +42,7 @@ RCSID("$Id$")
 #endif	/* I_MATH */
 
 #include "stats.h"
+#include "glib-missing.h"	/* For g_slist_delete_link() */
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -168,6 +169,51 @@ statx_remove(gpointer ox, gdouble val)
 }
 
 /**
+ * Remove oldest data point from container.
+ */
+void
+statx_remove_oldest(gpointer ox)
+{
+	struct statx *sx = ox;
+	GSList *l;
+	gdouble val;
+
+	g_assert(sx->n > 0);
+	g_assert(sx->data != NULL);
+
+	/*
+	 * Since we prepend new items to the list (for speed), we need to find
+	 * the next to last item to delete the final item.
+	 */
+
+	for (l = sx->data; l; l = g_slist_next(l)) {
+		GSList *next = g_slist_next(l);
+		if (next == NULL) {
+			/* Only one item in list, `l' points to it */
+			gdouble *vp = (gdouble *) l->data;
+			val = *vp;
+			wfree(vp, sizeof(*vp));
+			g_slist_free(sx->data);
+			sx->data = NULL;
+			break;
+		} else if (NULL == g_slist_next(next)) {
+			/* The item after `l' is the last item of the list */
+			gdouble *vp = (gdouble *) next ->data;
+			val = *vp;
+			wfree(vp, sizeof(*vp));
+			(void) g_slist_delete_link(l, next);
+			break;
+		}
+	}
+
+	sx->n--;
+	sx->sx -= val;
+	sx->sx2 -= val * val;
+
+	g_assert(sx->n > 0 || sx->data == NULL);
+}
+
+/**
  * @return amount of data points.
  */
 gint
@@ -207,7 +253,7 @@ statx_var(gpointer ox)
 {
 	struct statx *sx = ox;
 
-	g_assert(sx->n > 0);
+	g_assert(sx->n > 1);
 
 	return (sx->sx2 - (sx->sx * sx->sx) / sx->n) / (sx->n - 1);
 }
