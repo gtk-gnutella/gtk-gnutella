@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/stats.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -85,6 +86,8 @@ RCSID("$Id$")
 #define MAX_UPLOAD_QSIZE	4000	/**< Size of the PARQ queue */
 #define MIN_UPLOAD_ASLOT	10		/**< Queue up to that many slots ahead */
 #define MIN_ALWAYS_QUEUE	5		/**< Try to actively queue first 5 slots */
+#define STAT_POINTS			150		/**< Amount of stat points to keep */
+#define STAT_MIN_POINTS		10		/**< Min points before analyzing data */
 
 #define MEBI (1024 * 1024)
 /*
@@ -140,6 +143,8 @@ struct parq_banned {
 
 static gboolean parq_shutdown;
 static gboolean parq_initialized;
+static time_t parq_start;					/**< Init time */
+static guint64 parq_slots_removed = 0;		/**< Amount of slots removed */
 
 /**
  * Holds status of current queue.
@@ -150,6 +155,7 @@ struct parq_ul_queue {
 	GList *by_rel_pos;		/**< Queued items sorted by relative position */
 	GList *by_date_dead;	/**< Queued items sorted on last update and
 								 not alive */
+	gpointer slot_stats;	/**< Slot kept-time statistics */
 	gint by_position_length;/**< Number of items in "by_position" */
 
 	gint num;				/**< Queue number */
@@ -211,6 +217,7 @@ struct parq_ul_queued {
 
 	time_t last_queue_sent;	/**< When we last sent the QUEUE */
 	time_t send_next_queue;	/**< When to send the next QUEUE */
+	time_t slot_granted;	/**< Time at which the upload slot was granted */
 	guint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
 	guint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
 
@@ -1150,6 +1157,69 @@ handle_to_queued(struct parq_ul_queued *uq)
 }
 
 /**
+ * Compute a statistically probable time used by an upload slot in the queue.
+ *
+ * @return probable slot time, or 0 if we cannot compute anything due to
+ * too little data points.
+ */
+static guint
+parq_probable_slot_time(const struct parq_ul_queue *q)
+{
+	guint e;
+	double factor;
+
+	if (statx_n(q->slot_stats) < STAT_MIN_POINTS)
+		return 0;
+
+	STATIC_ASSERT(STAT_MIN_POINTS >= 2);	/* Need 2 to compute variance */
+
+	/*
+	 * 95% of the data will fall below the average + 2 standard deviation,
+	 * assuming normal distribution of the data points.
+	 *
+	 * If we're more optimistic, we can take the simple average plus the
+	 * half of the standard deviation.
+	 */
+
+	factor = GNET_PROPERTY(parq_optimistic) ? 0.5 : 2.0;
+	e = (guint) (statx_avg(q->slot_stats) + factor * statx_sdev(q->slot_stats));
+	
+	return e;
+}
+
+/**
+ * Compute estimate for the time it will take to upload the whole file (or
+ * a fraction of it if we are optimistic) at a given queue position.
+ */
+static guint
+parq_estimated_slot_time(const struct parq_ul_queued *uq)
+{
+	guint avg_bps;
+	guint d;
+	guint pd;
+
+	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
+	avg_bps = MAX(1, avg_bps);
+
+	/* XXX unsigned int has only 32 bit.
+	 * XXX this is no proper  way to calculate in C using integer arithmetic.
+	 */
+
+	d = uq->file_size / avg_bps * GNET_PROPERTY(max_uploads);
+	if (GNET_PROPERTY(parq_optimistic)) {
+		guint n;
+
+		n = uq->sha1 ? dmesh_count(uq->sha1) : 0;
+		if (n > 1) {
+			d /= n;
+		}
+	}
+	pd = parq_probable_slot_time(uq->queue);	/* 0 if cannot compute */
+
+	return pd ? MIN(pd, d) : d;
+}
+
+/**
  * Updates the ETA of all queued items in the given queue.
  */
 static void
@@ -1158,6 +1228,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	GList *l;
 	guint eta = 0;
 	guint avg_bps;
+	time_delta_t running_time = delta_time(tm_time(), parq_start);
 
 	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 	avg_bps = MAX(1024, avg_bps);		/* Assume at least 1 KiB/s */
@@ -1174,11 +1245,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			struct parq_ul_queued *parq_ul = l->data;
 
 			if (parq_ul->has_slot) {		/* Recompute ETA */
-				/* XXX: unsigned int has only 32 bit, this is no proper
-				 *      way to calculate in C.
-				 */
-				eta += (parq_ul->file_size / avg_bps)
-							* GNET_PROPERTY(max_uploads);
+				eta += parq_estimated_slot_time(parq_ul);
 				break;
 			}
 		}
@@ -1190,53 +1257,48 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 * Use the eta of another queue. First by the queue which uses more than
 		 * one upload slot. If that result is still 0, we have a small problem
 		 * as the ETA can't be calculated correctly anymore.
-		 *
-		 * XXX this is old code that assumed by_rel_pos contained running
-		 * XXX entries.  This is no longer the case, so this code is almost
-		 * XXX meaningless.  We could track active entries some day.
-		 *		--RAM, 2007-08-19
 		 */
 
-		for (l = ul_parqs; l; l = g_list_next(l)) {
+		eta = parq_probable_slot_time(which_ul_queue);
+
+		for (l = ul_parqs; l && 0 == eta; l = g_list_next(l)) {
 			struct parq_ul_queue *q = l->data;
 
-			if (q->active_uploads > 1) {
-				GList *lx;
-
-				for (lx = q->by_position; lx; lx = g_list_next(lx)) {
-					struct parq_ul_queued *parq_ul = lx->data;
-
-					if (parq_ul->has_slot) {		/* Recompute ETA */
-						eta = (parq_ul->file_size / avg_bps)
-									* GNET_PROPERTY(max_uploads);
-						goto estimated;
-					}
-				}
-			}
+			eta = parq_probable_slot_time(q);
 		}
 
-	estimated:
-		if (eta == 0 && GNET_PROPERTY(parq_debug) > 0)
+		if (eta == 0 && GNET_PROPERTY(parq_debug))
 			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
 	}
 
 	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *parq_ul = l->data;
+		struct parq_ul_queued *uq = l->data;
 
-		g_assert(parq_ul->is_alive);
+		g_assert(uq->is_alive);
 
-		parq_ul->eta = eta;
+		uq->eta = eta;
 
-		if (parq_ul->has_slot)
+		if (uq->has_slot)
 			continue;			/* Skip already uploading uploads */
 
-		/* Recalculate ETA */
-		if (GNET_PROPERTY(parq_optimistic))
-			eta += (parq_ul->file_size / avg_bps * GNET_PROPERTY(max_uploads)) /
-				(parq_ul->sha1 != NULL ? dmesh_count(parq_ul->sha1) + 1 : 1);
-		else
-			eta += parq_ul->file_size / avg_bps * GNET_PROPERTY(max_uploads);
+		/*
+		 * Recalculate ETA of queued slots
+		 *
+		 * For the first "max_uploads" ones, we use the normal computation.
+		 * For slots further away, we further compute the average time it
+		 * would take to move to a runnable slot based on global removal
+		 * rate from all the queues.
+		 */
 
+		if (uq->relative_position > GNET_PROPERTY(max_uploads)) {
+			time_delta_t per_slot = running_time / MIN(1, parq_slots_removed);
+			guint cheap_eta = uq->relative_position * per_slot;
+
+			if (cheap_eta < eta)
+				uq->eta = cheap_eta;
+		}
+
+		eta += parq_estimated_slot_time(uq);
 	}
 }
 
@@ -1310,6 +1372,7 @@ parq_upload_remove_relative(struct parq_ul_queued *uq)
 	g_assert(uq);
 
 	uq->queue->by_rel_pos = g_list_remove(uq->queue->by_rel_pos, uq);
+	parq_slots_removed++;
 }
 
 /**
@@ -1549,6 +1612,7 @@ parq_upload_new_queue(void)
 	*queue = zero_queue;
 
 	queue->active = TRUE;
+	queue->slot_stats = statx_make();
 
 	ul_parqs = g_list_append(ul_parqs, queue);
 	ul_parqs_cnt++;
@@ -1680,22 +1744,7 @@ parq_upload_create(struct upload *u)
 		if (GNET_PROPERTY(max_uploads) <= 0) {
 			eta = (guint) -1;
 		} else if (parq_ul_prev->is_alive) {
-			guint avg_bps;
-			guint d;
-
-			avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
-			avg_bps = MAX(1, avg_bps);
-
-			d = parq_ul_prev->file_size / avg_bps * GNET_PROPERTY(max_uploads);
-			if (GNET_PROPERTY(parq_optimistic)) {
-				guint n;
-
-				n = parq_ul_prev->sha1 ? dmesh_count(parq_ul_prev->sha1) : 0;
-				if (n > 1) {
-					d /= n;
-				}
-			}
-			eta += d;
+			eta += parq_estimated_slot_time(parq_ul_prev);
 		}
 	}
 
@@ -1742,6 +1791,7 @@ parq_upload_create(struct upload *u)
 	parq_ul->ban_timeout = 0;
 	parq_ul->disc_timeout = 0;
 	parq_ul->uploaded_size = 0;
+	parq_ul->slot_granted = 0;
 
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, &parq_ul->id, parq_ul);
@@ -1844,6 +1894,7 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	ul_parqs_cnt--;
 
 	/* Free memory */
+	statx_free(queue->slot_stats);
 	wfree(queue, sizeof(*queue));
 	queue = NULL;
 }
@@ -3032,7 +3083,7 @@ cleanup:
 
 	/* XXX -- must allow "n" uploads from a host, not just 1 --RAM, 2007-08-17 */
 	if (parq_ul->u != NULL && parq_ul->u != u) {
-		if (GNET_PROPERTY(parq_debug) > 1) {
+		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
 				"upload %s while another one is still active within PARQ",
 				host_addr_to_string(u->addr), upload_vendor_str(u), u->name);
@@ -3578,6 +3629,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 
 	parq_ul->has_slot = TRUE;
 	parq_ul->by_addr->uploading++;
+	parq_ul->slot_granted = tm_time();
 }
 
 void
@@ -3798,6 +3850,20 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 		}
 
 		parq_upload_unfreeze_all(parq_ul);	/* Allow others to compete */
+
+		/*
+		 * Update queue statistics on the amount of time we keep slots.
+		 */
+
+		if (parq_ul->slot_granted != 0) {
+			time_delta_t kept = delta_time(now, parq_ul->slot_granted);
+			struct parq_ul_queue *q = parq_ul->queue;
+
+			while (statx_n(q->slot_stats) >= STAT_POINTS)
+				statx_remove_oldest(q->slot_stats);
+
+			statx_add(q->slot_stats, kept);
+		}
 	}
 
 	g_assert(parq_ul->queue->active_uploads >= 0);
@@ -4927,6 +4993,7 @@ parq_init(void)
 
 	parq_upload_load_queue();
 	parq_initialized = TRUE;
+	parq_start = tm_time();
 }
 
 /**
