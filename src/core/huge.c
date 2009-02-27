@@ -836,7 +836,7 @@ bad:
  * about other sources for this file.
  */
 void
-huge_collect_locations(const struct sha1 *sha1, header_t *header)
+huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 {
 	gchar *alt;
    
