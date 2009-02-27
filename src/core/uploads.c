@@ -439,6 +439,22 @@ use_sendfile(struct upload *u)
 }
 
 /**
+ * Summary host information for uploader.
+ */
+static const char *
+upload_host_info(const struct upload *u)
+{
+	static char info[256];
+	char host[128];
+	
+	host_addr_to_string_buf(u->addr, host, sizeof host);
+	concat_strings(info, sizeof info,
+		"<", host, " \'", upload_vendor_str(u), "\'>",
+		(void *) 0);
+	return info;
+}
+
+/**
  * Upload heartbeat timer.
  */
 void
@@ -1039,7 +1055,7 @@ upload_clone(struct upload *u)
  * Check whether the request was likely made from a browser.
  */
 static gboolean
-upload_likely_from_browser(header_t *header)
+upload_likely_from_browser(const header_t *header)
 {
 	gchar *buf;
 
@@ -1876,7 +1892,7 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
  * Extract User-Agent information out of the HTTP headers.
  */
 static void
-upload_request_handle_user_agent(struct upload *u, header_t *header)
+upload_request_handle_user_agent(struct upload *u, const header_t *header)
 {
 	const gchar *user_agent;
 
@@ -2301,7 +2317,7 @@ failure:
  */
 static void
 upload_collect_locations(struct upload *u,
-	const struct sha1 *sha1, header_t *header)
+	const struct sha1 *sha1, const header_t *header)
 {
 	g_return_if_fail(sha1);
 
@@ -2331,7 +2347,7 @@ upload_collect_locations(struct upload *u,
  * @return -1 on error, 0 on success.
  */
 static gint
-get_file_to_upload_from_index(struct upload *u, header_t *header,
+get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	const gchar *uri, guint idx)
 {
 	struct shared_file *sf;
@@ -2584,7 +2600,7 @@ upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
  * @return -1 on error, 0 on success.
  */
 static gint
-get_file_to_upload_from_urn(struct upload *u, header_t *header,
+get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	const gchar *uri)
 {
 	struct tth tth_buf, *tth = NULL;
@@ -2772,7 +2788,7 @@ tth_recomputed:
  * 			error back to the client.
  */
 static gint
-get_file_to_upload(struct upload *u, header_t *header,
+get_file_to_upload(struct upload *u, const header_t *header,
 	gchar *uri, gchar *search)
 {
 	const gchar *endptr;
@@ -2865,7 +2881,7 @@ static const struct tx_link_cb upload_tx_link_cb = {
  *         BH_F_DEFLATE: deflate
  */
 static gint
-select_encoding(header_t *header)
+select_encoding(const header_t *header)
 {
     const gchar *buf;
 
@@ -2886,6 +2902,30 @@ select_encoding(header_t *header)
 	}
 
     return 0;
+}
+
+/**
+ * Extract X-Downloaded from header, returning 0 if none.
+ */
+static filesize_t
+extract_downloaded(const struct upload *u, const header_t *header)
+{
+	const gchar *buf;
+	filesize_t downloaded;
+	gint error;
+
+	buf = header_get(header, "X-Downloaded");
+	if (!buf)
+		return 0;
+
+	downloaded = parse_uint64(buf, NULL, 10, &error);
+	if (error) {
+		g_warning("cannot parse X-Downloaded \"%s\" sent by %s",
+			buf, upload_host_info(u));
+		return 0;
+	}
+
+	return downloaded;
 }
 
 /**
@@ -3293,6 +3333,13 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		parq_allows = parq_upload_request(u);
 	}
+
+	/*
+	 * Update downloaded amount in the PARQ entry.
+	 */
+
+	if (u->parq_ul != NULL)
+		parq_upload_update_downloaded(u);
 
 	if (!u->head_only && !parq_allows) {
 		/*
@@ -3793,6 +3840,7 @@ upload_request(struct upload *u, header_t *header)
 	}
 	u->from_browser = upload_likely_from_browser(header);
 	u->request = g_strdup(getline_str(u->socket->getline));
+	u->downloaded = extract_downloaded(u, header);
 
 	u->status = GTA_UL_SENDING;
 

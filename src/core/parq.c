@@ -233,6 +233,7 @@ struct parq_ul_queued {
 	filesize_t file_size;	/**< Needed to recalculate ETA */
 	filesize_t chunk_size;	/**< Requested chunk size */
 	filesize_t uploaded_size;	/**< Bytes previously uploaded */
+	filesize_t downloaded;	/**< Their advertized downloaded amount */
 	host_addr_t addr;		/**< Contact IP:port, as read from X-Node: */
 	guint16 port;
 
@@ -1194,6 +1195,7 @@ parq_probable_slot_time(const struct parq_ul_queue *q)
 static guint
 parq_estimated_slot_time(const struct parq_ul_queued *uq)
 {
+	filesize_t remaining;
 	guint avg_bps;
 	guint d;
 	guint pd;
@@ -1205,7 +1207,8 @@ parq_estimated_slot_time(const struct parq_ul_queued *uq)
 	 * XXX this is no proper  way to calculate in C using integer arithmetic.
 	 */
 
-	d = uq->file_size / avg_bps * GNET_PROPERTY(max_uploads);
+	remaining = uq->file_size - uq->downloaded;
+	d = remaining / avg_bps * GNET_PROPERTY(max_uploads);
 	if (GNET_PROPERTY(parq_optimistic)) {
 		guint n;
 
@@ -1769,6 +1772,7 @@ parq_upload_create(struct upload *u)
 	parq_ul->enter = now;
 	parq_ul->updated = now;
 	parq_ul->file_size = u->file_size;
+	parq_ul->downloaded = u->downloaded;
 	parq_ul->queue = parq_ul_queue;
 	parq_ul->has_slot = FALSE;
 	parq_ul->addr = zero_host_addr;
@@ -3256,6 +3260,19 @@ parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 	}
 }
 
+/**
+ * Update amount downloaded by requestor.
+ */
+void
+parq_upload_update_downloaded(const struct upload *u)
+{
+	struct parq_ul_queued *parq_ul;
+
+	parq_ul = handle_to_queued(u->parq_ul);
+
+	if (u->downloaded <= parq_ul->file_size)
+		parq_ul->downloaded = u->downloaded;
+}
 
 /**
  * @return If the download may continue, TRUE is returned. FALSE otherwise
@@ -4470,6 +4487,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		"EXPIRE: %d\n"
 		"ID: %s\n"
 		"SIZE: %s\n"
+		"GOT: %s\n"
 		"IP: %s\n"
 		,
 		parq_ul->queue->num,
@@ -4478,6 +4496,7 @@ parq_store(gpointer data, gpointer file_ptr)
 		expire,
 		guid_hex_str(&parq_ul->id),
 		uint64_to_string(parq_ul->file_size),
+		uint64_to_string2(parq_ul->downloaded),
 		host_addr_to_string(parq_ul->remote_addr)
 	);
 
@@ -4552,6 +4571,7 @@ typedef enum {
 	PARQ_TAG_QUEUE,
 	PARQ_TAG_SHA1,
 	PARQ_TAG_SIZE,
+	PARQ_TAG_GOT,
 	PARQ_TAG_XIP,
 	PARQ_TAG_XPORT,
 	PARQ_TAG_QUEUESSENT,
@@ -4569,6 +4589,7 @@ static const struct parq_tag {
 #define PARQ_TAG(x) { CAT2(PARQ_TAG_,x), #x }
 	PARQ_TAG(ENTERED),
 	PARQ_TAG(EXPIRE),
+	PARQ_TAG(GOT),
 	PARQ_TAG(ID),
 	PARQ_TAG(IP),
 	PARQ_TAG(LASTQUEUE),
@@ -4612,6 +4633,7 @@ parq_string_to_tag(const gchar *s)
 typedef struct {
 	const struct sha1 *sha1;
 	filesize_t filesize;
+	filesize_t downloaded;
 	host_addr_t addr;
 	host_addr_t x_addr;
 	gint queue;
@@ -4795,6 +4817,14 @@ parq_upload_load_queue(void)
 			entry.filesize = v;
 			break;
 
+		case PARQ_TAG_GOT:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 ||
+				(v > UINT_MAX && sizeof entry.downloaded <= 4) ||
+				*endptr != '\0';
+			entry.downloaded = v;
+			break;
+
 		case PARQ_TAG_ID:
 			if (!hex_to_guid(value, &entry.id)) {
 				damaged = TRUE;
@@ -4879,6 +4909,7 @@ parq_upload_load_queue(void)
 			/* Fill a fake upload structure */
 			fake_upload = upload_alloc();
 			fake_upload->file_size = entry.filesize;
+			fake_upload->downloaded = entry.downloaded;
 			fake_upload->name = entry.name;
 			fake_upload->addr = entry.addr;
 

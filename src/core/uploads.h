@@ -114,6 +114,7 @@ struct upload {
 	filesize_t pos;				/**< Read position in file we're sending */
 	filesize_t sent;			/**< Bytes sent in this request */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
+	filesize_t downloaded;		/**< What they claim as downloaded so far */
 
 	gint http_major;			/**< HTTP major version */
 	gint http_minor;			/**< HTTP minor version */
