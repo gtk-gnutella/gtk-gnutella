@@ -90,6 +90,7 @@ guint parq_upload_lookup_position(const struct upload *);
 const struct guid *parq_upload_lookup_id(const struct upload *);
 gboolean parq_upload_queue_full(struct upload *);
 guint parq_upload_lookup_size(const struct upload *);
+void parq_upload_update_downloaded(const struct upload *u);
 
 time_t parq_upload_lifetime(const struct upload *);
 time_t parq_upload_retry(const struct upload *);
