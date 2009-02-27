@@ -176,6 +176,19 @@ Commands
   - download rename ID filename
     Renames the target file for a download with the given download ID.
 
+  - stats
+	Print statistics (general counters) in a parseable way for other programs
+	to peruse.  For instance:
+
+		echo stats | gtk-gnutella --shell | grep switching
+
+	would print:
+
+		attempted_resource_switching 7
+		successful_resource_switching 7
+		queued_after_switching 0
+
+	These strings are never translated: consider them as variable names.
 
 Notes:
 ------
