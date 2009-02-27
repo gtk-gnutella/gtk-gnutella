@@ -63,7 +63,6 @@ const char *
 shell_summary_intr(void)
 {
 	return "Toggles interactive mode";
-
 }
 
 const char *
