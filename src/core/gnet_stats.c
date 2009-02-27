@@ -55,10 +55,10 @@ static gnet_stats_t gnet_udp_stats;
  *** Public functions
  ***/
 
-const gchar *
+const char *
 gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 {
-	static const gchar * const msg_drop_reasons[] = {
+	static const char * const msg_drop_reasons[] = {
 		N_("Bad size"),						 /**< MSG_DROP_BAD_SIZE */
 		N_("Too small"),					 /**< MSG_DROP_TOO_SMALL */
 		N_("Too large"),					 /**< MSG_DROP_TOO_LARGE */
@@ -103,6 +103,79 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 	g_return_val_if_fail(UNSIGNED(reason) < G_N_ELEMENTS(msg_drop_reasons),
 		NULL);
 	return msg_drop_reasons[reason];
+}
+
+const char *
+gnet_stats_general_to_string(gnr_stats_t type)
+{
+	/* Do NOT translate any of these strings */
+
+	static const char * const type_string[] = {
+	"routing_errors",
+	"local_searches",
+	"local_hits",
+	"local_query_hits",
+	"oob_proxied_query_hits",
+	"oob_queries",
+	"oob_queries_stripped",
+	"dups_with_higher_ttl",
+	"query_oob_proxied_dups",
+	"oob_hits_for_proxied_queries",
+	"oob_hits_with_alien_ip",
+	"unclaimed_oob_hits",
+	"partially_claimed_oob_hits",
+	"spurious_oob_hit_claim",
+	"unrequested_oob_hits",
+	"query_compact_count",
+	"query_compact_size",
+	"query_utf8",
+	"query_sha1",
+	"broadcasted_pushes",
+	"push_proxy_relayed",
+	"push_proxy_broadcasted",
+	"push_proxy_failed",
+	"local_dyn_queries",
+	"leaf_dyn_queries",
+	"oob_proxied_queries",
+	"dyn_queries_completed_full",
+	"dyn_queries_completed_partial",
+	"dyn_queries_completed_zero",
+	"dyn_queries_linger_extra",
+	"dyn_queries_linger_results",
+	"dyn_queries_linger_completed",
+	"gtkg_total_queries",
+	"gtkg_requeries",
+	"queries_with_ggep_h",
+	"giv_callbacks",
+	"queue_callbacks",
+	"udp_bogus_source_ip",
+	"udp_alien_message",
+	"udp_unprocessed_message",
+	"udp_tx_compressed",
+	"udp_rx_compressed",
+	"udp_larger_hence_not_compressed",
+	"attempted_resource_switching",
+	"successful_resource_switching",
+	"queued_after_switching",
+	"ignored_data",
+	"seeding_of_orphan",
+	"dht_keys_held",
+	"dht_values_held",
+	"dht_fetch_local_hits",
+	"dht_stale_replication",
+	"dht_replication",
+	"dht_republish",
+	"dht_alt_loc_lookups",
+	"dht_push_proxy_lookups",
+	"dht_successful_alt_loc_lookups",
+	"dht_successful_push_proxy_lookups",
+	"dht_seeding_of_orphan",
+	};
+
+	STATIC_ASSERT(G_N_ELEMENTS(type_string) == GNR_TYPE_COUNT);
+	g_return_val_if_fail(UNSIGNED(type) < G_N_ELEMENTS(type_string),
+		NULL);
+	return type_string[type];
 }
 
 void
