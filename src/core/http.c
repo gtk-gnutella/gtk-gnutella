@@ -86,6 +86,7 @@ static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
  */
 gboolean
 http_send_status(
+	http_layer_t layer,
 	struct gnutella_socket *s, gint code, gboolean keep_alive,
 	http_extra_desc_t *hev, gint hevcnt,
 	const gchar *reason, ...)
@@ -259,8 +260,22 @@ http_send_status(
 			host_addr_to_string(s->addr));
 		return FALSE;
 	} else {
-		if (GNET_PROPERTY(http_debug) > 2)
-			g_message("----Sent HTTP Status to %s (%lu bytes):\n%.*s\n----",
+		guint32 trace;
+
+		switch (layer) {
+		case HTTP_PUSH_PROXY:
+			trace = GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_OUT;
+			break;
+		case HTTP_UPLOAD:
+			trace = GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT;
+			break;
+		case HTTP_OTHER:
+			trace = GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT;
+			break;
+		}
+
+		if (trace)
+			g_message("----Sent HTTP status to %s (%lu bytes):\n%.*s\n----",
 				host_addr_to_string(s->addr), (gulong) rw,
 				(int) MIN(rw, INT_MAX), header);
 	}
@@ -2214,7 +2229,7 @@ http_got_header(struct http_async *ha, header_t *header)
 	gchar *buf;
 	guint http_major = 0, http_minor = 0;
 
-	if (GNET_PROPERTY(http_debug) > 2) {
+	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
 		g_message("----Got HTTP reply from %s:",
 			host_addr_to_string(s->addr));
 		g_message("%s", status);
@@ -2453,7 +2468,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	} else if ((size_t) sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (GNET_PROPERTY(http_debug) > 2) {
+	} else if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
 		g_message("----"
 			"Sent HTTP request completely to %s (%d bytes):\n%.*s\n----\n",
 			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
@@ -2537,7 +2552,7 @@ http_async_connected(struct http_async *ha)
 		socket_evt_set(s, INPUT_EVENT_WX, http_async_write_request, ha);
 
 		return;
-	} else if (GNET_PROPERTY(http_debug) > 2) {
+	} else if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
 		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s\n----",
 			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
 	}

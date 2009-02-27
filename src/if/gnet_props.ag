@@ -13,6 +13,7 @@ uses = "core/sockets.h";
 uses = "core/bsched.h";
 uses = "lib/misc.h";
 uses = "if/core/nodes.h";
+uses = "if/core/sockets.h";
 uses = "dht/kuid.h";
 
 prop = {
@@ -2174,13 +2175,6 @@ prop = {
         name = "leaf node";
         value = NODE_P_LEAF;
     };
-/*
-	DISABLED -- RAM, 2004-10-30
-    choice = {
-        name = "legacy node (avoid)";
-        value = NODE_P_NORMAL;
-    };
-*/
 };
 
 prop = {
@@ -3751,6 +3745,132 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+    };
+};
+
+prop = {
+    name = "download_trace";
+    desc = "Defines which download HTTP header exchanges should be traced.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
+prop = {
+    name = "upload_trace";
+    desc = "Defines which upload HTTP header exchanges should be traced.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
+prop = {
+    name = "gnet_trace";
+    desc = "Defines which Gnutella header exchanges should be traced.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
+prop = {
+    name = "push_proxy_trace";
+    desc = "Defines which push-proxy HTTP header exchanges should be traced.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
+prop = {
+    name = "http_trace";
+    desc = "Defines which HTTP header exchanges should be traced, other "
+		"than downloads, uploads and push-proxy exchanges.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
     };
 };
 

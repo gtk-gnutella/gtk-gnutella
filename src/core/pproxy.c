@@ -150,7 +150,7 @@ send_pproxy_error_v(
 				"ignoring too large extra header (%d bytes)", (int) slen);
 	}
 
-	http_send_status(pp->socket, code, FALSE,
+	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
 			hevcnt ? hev : NULL, hevcnt, "%s", reason);
 
 	pp->error_sent = code;
@@ -787,7 +787,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			gmsg_sendto_one(n, packet.data, packet.size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
 
-			http_send_status(pp->socket, 202, FALSE, NULL, 0,
+			http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 					"Push-proxy: message sent to node");
 
 			pp->error_sent = 202;
@@ -827,7 +827,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 			cnt = g_slist_length(nodes);
 
-			http_send_status(pp->socket, 203, FALSE, NULL, 0,
+			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
 					"Push-proxy: message sent through Gnutella (via %d node%s)",
 					cnt, cnt == 1 ? "" : "s");
 
@@ -850,7 +850,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 		upload_send_giv(pp->addr_v4, pp->port, 0, 1, 0,
 			"<from push-proxy>", FALSE, pp->flags);
 
-		http_send_status(pp->socket, 202, FALSE, NULL, 0,
+		http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: you found the target GUID %s",
 			guid_hex_str(pp->guid));
 

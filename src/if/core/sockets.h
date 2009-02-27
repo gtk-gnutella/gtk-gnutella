@@ -44,7 +44,18 @@ enum proxy_protocol {
 enum {
     NET_USE_BOTH  = 0,
     NET_USE_IPV4  = 4,
-    NET_USE_IPV6  = 6,
+    NET_USE_IPV6  = 6
+};
+
+/***
+ *** Tracing options for higher-level protocols, defined here for
+ *** lacking a better common place.
+ ***/
+enum {
+	SOCK_TRACE_NONE = 0,
+	SOCK_TRACE_IN	= 0x1,
+	SOCK_TRACE_OUT	= 0x2,
+	SOCK_TRACE_BOTH = 0x1 | 0x2
 };
 
 /*

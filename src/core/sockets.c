@@ -1526,8 +1526,10 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		if (
 			is_strprefix(s->buf, "GET ") ||
 			is_strprefix(s->buf, "HEAD ")
-		)
-			http_send_status(s, 414, FALSE, NULL, 0, "Requested URL Too Large");
+		) {
+			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
+				"Requested URL Too Large");
+		}
 		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
@@ -1599,7 +1601,8 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 				http_extra_callback_set(&hev, http_retry_after_add,
 					GUINT_TO_POINTER(ban_delay(s->addr)));
-				http_send_status(s, 503, FALSE, &hev, 1, "%s", msg);
+				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
+					"%s", msg);
 			}
 		}
 		goto cleanup;
@@ -1613,7 +1616,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 			http_extra_callback_set(&hev, http_retry_after_add,
 				GUINT_TO_POINTER(delay));
-			http_send_status(s, 550, FALSE, &hev, 1,
+			http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
 				"Banned for %s", short_time_ascii(delay));
 		}
 		goto cleanup;
@@ -1658,7 +1661,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, msg);
 		else
-			http_send_status(s, 550, FALSE, NULL, 0, msg);
+			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0, msg);
 		goto cleanup;
 	}
 
@@ -1707,8 +1710,10 @@ unknown:
 		if (len > 0)
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
-	if (strstr(first, "HTTP"))
-		http_send_status(s, 501, FALSE, NULL, 0, "Method Not Implemented");
+	if (strstr(first, "HTTP")) {
+		http_send_status(HTTP_UPLOAD, s, 501, FALSE, NULL, 0,
+			"Method Not Implemented");
+	}
 	/* FALL THROUGH */
 
 cleanup:

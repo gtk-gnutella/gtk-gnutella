@@ -43,6 +43,7 @@
 #include "core/bsched.h"
 #include "lib/misc.h"
 #include "if/core/nodes.h"
+#include "if/core/sockets.h"
 #include "dht/kuid.h"
 
 
@@ -373,6 +374,11 @@ extern const gboolean gnet_property_variable_sticky_guid;
 extern const gboolean gnet_property_variable_sticky_kuid;
 extern const guint32  gnet_property_variable_dht_ulq_debug;
 extern const gboolean gnet_property_variable_dht_storage_in_memory;
+extern const guint32  gnet_property_variable_download_trace;
+extern const guint32  gnet_property_variable_upload_trace;
+extern const guint32  gnet_property_variable_gnet_trace;
+extern const guint32  gnet_property_variable_push_proxy_trace;
+extern const guint32  gnet_property_variable_http_trace;
 
 
 prop_set_t *gnet_prop_init(void);

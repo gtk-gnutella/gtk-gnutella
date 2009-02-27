@@ -3052,7 +3052,7 @@ send_error(
 				"to node %s: %s", (int) sent, (int) rw, code, msg_tmp,
 				host_addr_to_string(s->addr), g_strerror(errno));
 		}
-	} else if (GNET_PROPERTY(node_debug) > 2) {
+	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		g_message("----Sent error %d to node %s (%d bytes):\n%.*s----",
 			code, host_addr_to_string(s->addr),
 			(int) rw, (int) rw, gnet_response);
@@ -3735,7 +3735,7 @@ node_got_bye(struct gnutella_node *n)
 
 	if (!is_plain_message) {
 		/* XXX parse header */
-		if (GNET_PROPERTY(node_debug))
+		if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN)
 			g_message("----Bye Message from %s:\n%.*s----",
 				node_addr(n), (gint) n->size - 2, message);
 	}
@@ -4569,14 +4569,14 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	socket_check(s);
 
-	if (GNET_PROPERTY(node_debug)) {
+	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 		g_message("got final acknowledgment headers from node %s:",
 			host_addr_to_string(n->addr));
 		dump_hex(stdout, "Status Line", getline_str(s->getline),
 			MIN(getline_length(s->getline), 80));
-		g_message("------ Header Dump:");
+		g_message("----Header Dump:");
 		header_dump(head, stderr);
-		g_message("------");
+		g_message("----");
 		fflush(stderr);
 	}
 
@@ -4854,16 +4854,16 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	const gchar *compressing = "Content-Encoding: deflate\r\n";
 
-	if (GNET_PROPERTY(node_debug)) {
+	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 		g_message("got %s handshaking headers from node %s:",
 			incoming ? "incoming" : "outgoing",
 			host_addr_to_string(n->addr));
 		if (!incoming)
 			dump_hex(stdout, "Status Line", getline_str(n->socket->getline),
 				MIN(getline_length(n->socket->getline), 80));
-		g_message("------ Header Dump:");
+		g_message("----Header Dump:");
 		header_dump(head, stderr);
-		g_message("------");
+		g_message("----");
 		fflush(stderr);
 	}
 
@@ -5539,7 +5539,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			(int) sent, (int) rw, what, host_addr_to_string(n->addr));
 		node_remove(n, _("Failed (Cannot send %s atomically)"), what);
 		goto free_gnet_response;
-	} else if (GNET_PROPERTY(node_debug) > 2) {
+	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		g_message("----Sent OK %s to %s (%d bytes):\n%.*s----",
 			what, host_addr_to_string(n->addr),
 			(int) rw, (int) rw, gnet_response);
@@ -7365,7 +7365,7 @@ node_init_outgoing(struct gnutella_node *n)
 	n->last_update = tm_time();
 	node_fire_node_info_changed(n);
 
-	if (GNET_PROPERTY(node_debug) > 2) {
+	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		gint len = strlen(n->hello.ptr);
 
 		g_message("----Sent HELLO request to %s (%d bytes):\n%.*s----",

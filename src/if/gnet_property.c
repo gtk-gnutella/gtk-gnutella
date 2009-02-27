@@ -38,6 +38,7 @@
 #include "core/bsched.h"
 #include "lib/misc.h"
 #include "if/core/nodes.h"
+#include "if/core/sockets.h"
 #include "dht/kuid.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -724,6 +725,51 @@ guint32  gnet_property_variable_dht_ulq_debug     = 0;
 static const guint32  gnet_property_variable_dht_ulq_debug_default = 0;
 gboolean gnet_property_variable_dht_storage_in_memory     = TRUE;
 static const gboolean gnet_property_variable_dht_storage_in_memory_default = TRUE;
+guint32  gnet_property_variable_download_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_download_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_download_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_upload_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_upload_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_upload_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_gnet_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_gnet_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_gnet_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_push_proxy_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_push_proxy_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_push_proxy_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
+guint32  gnet_property_variable_http_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_http_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_http_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
 
 static prop_set_t *gnet_property;
 
@@ -6954,6 +7000,106 @@ gnet_prop_init(void) {
     gnet_property->props[326].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[326].data.boolean.def   = (void *) &gnet_property_variable_dht_storage_in_memory_default;
     gnet_property->props[326].data.boolean.value = (void *) &gnet_property_variable_dht_storage_in_memory;
+
+
+    /*
+     * PROP_DOWNLOAD_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[327].name = "download_trace";
+    gnet_property->props[327].desc = _("Defines which download HTTP header exchanges should be traced.");
+    gnet_property->props[327].ev_changed = event_new("download_trace_changed");
+    gnet_property->props[327].save = TRUE;
+    gnet_property->props[327].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[327].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[327].data.guint32.def   = (void *) &gnet_property_variable_download_trace_default;
+    gnet_property->props[327].data.guint32.value = (void *) &gnet_property_variable_download_trace;
+    gnet_property->props[327].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[327].data.guint32.min   = 0x00000000;
+    gnet_property->props[327].data.guint32.choices = (void *) &gnet_property_variable_download_trace_choices;
+
+
+    /*
+     * PROP_UPLOAD_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[328].name = "upload_trace";
+    gnet_property->props[328].desc = _("Defines which upload HTTP header exchanges should be traced.");
+    gnet_property->props[328].ev_changed = event_new("upload_trace_changed");
+    gnet_property->props[328].save = TRUE;
+    gnet_property->props[328].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[328].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[328].data.guint32.def   = (void *) &gnet_property_variable_upload_trace_default;
+    gnet_property->props[328].data.guint32.value = (void *) &gnet_property_variable_upload_trace;
+    gnet_property->props[328].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[328].data.guint32.min   = 0x00000000;
+    gnet_property->props[328].data.guint32.choices = (void *) &gnet_property_variable_upload_trace_choices;
+
+
+    /*
+     * PROP_GNET_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[329].name = "gnet_trace";
+    gnet_property->props[329].desc = _("Defines which Gnutella header exchanges should be traced.");
+    gnet_property->props[329].ev_changed = event_new("gnet_trace_changed");
+    gnet_property->props[329].save = TRUE;
+    gnet_property->props[329].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[329].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[329].data.guint32.def   = (void *) &gnet_property_variable_gnet_trace_default;
+    gnet_property->props[329].data.guint32.value = (void *) &gnet_property_variable_gnet_trace;
+    gnet_property->props[329].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[329].data.guint32.min   = 0x00000000;
+    gnet_property->props[329].data.guint32.choices = (void *) &gnet_property_variable_gnet_trace_choices;
+
+
+    /*
+     * PROP_PUSH_PROXY_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[330].name = "push_proxy_trace";
+    gnet_property->props[330].desc = _("Defines which push-proxy HTTP header exchanges should be traced.");
+    gnet_property->props[330].ev_changed = event_new("push_proxy_trace_changed");
+    gnet_property->props[330].save = TRUE;
+    gnet_property->props[330].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[330].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[330].data.guint32.def   = (void *) &gnet_property_variable_push_proxy_trace_default;
+    gnet_property->props[330].data.guint32.value = (void *) &gnet_property_variable_push_proxy_trace;
+    gnet_property->props[330].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[330].data.guint32.min   = 0x00000000;
+    gnet_property->props[330].data.guint32.choices = (void *) &gnet_property_variable_push_proxy_trace_choices;
+
+
+    /*
+     * PROP_HTTP_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[331].name = "http_trace";
+    gnet_property->props[331].desc = _("Defines which HTTP header exchanges should be traced, other than downloads, uploads and push-proxy exchanges.");
+    gnet_property->props[331].ev_changed = event_new("http_trace_changed");
+    gnet_property->props[331].save = TRUE;
+    gnet_property->props[331].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[331].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[331].data.guint32.def   = (void *) &gnet_property_variable_http_trace_default;
+    gnet_property->props[331].data.guint32.value = (void *) &gnet_property_variable_http_trace;
+    gnet_property->props[331].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[331].data.guint32.min   = 0x00000000;
+    gnet_property->props[331].data.guint32.choices = (void *) &gnet_property_variable_http_trace_choices;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

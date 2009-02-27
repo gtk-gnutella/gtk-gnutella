@@ -1080,7 +1080,7 @@ upload_send_http_status(struct upload *u,
 	if (u->keep_alive)
 		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
 
-	return http_send_status(u->socket, code, keep_alive,
+	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
 				u->hev, u->hevcnt, "%s", msg);
 }
 
@@ -2170,7 +2170,7 @@ upload_connect_conf(struct upload *u)
 		if (GNET_PROPERTY(upload_debug)) g_warning(
 			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
 			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
-	} else if (GNET_PROPERTY(upload_debug) > 2) {
+	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 		g_message(
 			"----Sent GIV to %s:\n%.*s\n----", host_addr_to_string(s->addr),
 			(gint) MIN(rw, (size_t) INT_MAX), giv);
@@ -3799,7 +3799,7 @@ upload_request(struct upload *u, header_t *header)
 	getline_free(u->socket->getline);
 	u->socket->getline = NULL;
 
-	if (GNET_PROPERTY(upload_debug) > 2) {
+	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
 		g_message("----%s Request from %s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
 			host_addr_to_string(u->socket->addr),

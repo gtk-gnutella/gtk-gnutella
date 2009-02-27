@@ -1007,8 +1007,8 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
 
-	if (GNET_PROPERTY(parq_debug) > 2 || GNET_PROPERTY(download_debug) > 2) {
-		g_message("--- Got QUEUE from %s:\n%s\n---",
+	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
+		g_message("----Got QUEUE from %s:\n%s\n----",
 			host_addr_to_string(s->addr), queue);
 	}
 

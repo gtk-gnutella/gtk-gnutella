@@ -1186,8 +1186,6 @@ buffers_strip_trailing(struct download *d, size_t amount)
 
 /* ----------------------------------------- */
 
-/* ----------------------------------------- */
-
 /**
  * Insert server by retry time into the `dl_by_time' structure.
  */
@@ -7983,7 +7981,7 @@ handle_content_urn(struct download *d, header_t *header)
 			}
 		} else if (GNET_PROPERTY(tth_auto_discovery)) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				g_message("Discovered TTH (%s) for %s from %s",
+				g_message("discovered TTH (%s) for %s from %s",
 					tth_base32(&tth),
 					download_basename(d), download_host_info(d));
 			}
@@ -8585,7 +8583,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	status = getline_str(s->getline);
 	d->last_update = tm_time();			/* Done reading headers */
 
-	if (GNET_PROPERTY(download_debug) > 2) {
+	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_message("----Got %sreply from %s:\n%s",
 			ok ? "" : "INCOMPLETE ", host_addr_to_string(s->addr), status);
 		header_dump(header, stderr);
@@ -8929,7 +8927,7 @@ http_version_nofix:
 				buf = header_get(header, "Content-Length");	/* Mandatory */
 
 				if (buf == NULL) {
-					g_message("No Content-Length with keep-alive reply "
+					g_message("no Content-Length with keep-alive reply "
 						"%u \"%s\" from %s", ack_code, ack_message,
 						download_host_info(d));
 					download_queue_delay(d,
@@ -8940,14 +8938,14 @@ http_version_nofix:
 
 				v = parse_uint64(buf, NULL, 10, &error);
 				if (error) {
-					g_message("Cannot parse Content-Length header from %s: "
+					g_message("cannot parse Content-Length header from %s: "
 						"\"%s\"",
 						download_host_info(d), buf);
 				}
 				d->sinkleft = v;
 
 				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
-					g_message("Too much data to sink (%s bytes) on reply "
+					g_message("too much data to sink (%s bytes) on reply "
 						"%u \"%s\" from %s",
 						uint64_to_string(d->sinkleft), ack_code, ack_message,
 						download_host_info(d));
@@ -8965,7 +8963,7 @@ http_version_nofix:
 				 */
 
 				if (d->flags & DL_F_SUNK_DATA) {
-					g_message("Would have to sink twice during session from %s",
+					g_message("would have to sink twice during session from %s",
 						download_host_info(d));
 					download_queue_delay(d,
 						MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
@@ -9758,7 +9756,7 @@ http_version_nofix:
 	if (d->out_file) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
-			g_message("File '%s' changed size (now %s, but was %s)",
+			g_message("file '%s' changed size (now %s, but was %s)",
 				fi->pathname, uint64_to_string(fi->done),
 				uint64_to_string2(d->skip));
 			download_queue_delay(d, GNET_PROPERTY(download_retry_stopped_delay),
@@ -10003,7 +10001,7 @@ download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 	} else if (sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (GNET_PROPERTY(download_debug) > 2) {
+	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
 		g_message(
 			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
@@ -10422,7 +10420,7 @@ picked:
 
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
-	} else if (GNET_PROPERTY(download_debug) > 2) {
+	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
 		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
@@ -10751,7 +10749,7 @@ download_push_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
-	if (GNET_PROPERTY(download_debug) > 2)
+	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN)
 		g_message("----Got GIV from %s:\n%s\n----",
 			host_addr_to_string(s->addr), giv);
 

@@ -60,6 +60,16 @@ typedef enum {
 } http_extra_type_t;
 
 /**
+ * http_send_status() layer description (for tracing purposes):
+ */
+
+typedef enum {
+	HTTP_PUSH_PROXY,
+	HTTP_UPLOAD,
+	HTTP_OTHER
+} http_layer_t;
+
+/**
  * The callback used to generate custom headers.
  *
  * @param `buf' is where the callback can generate extra data.
@@ -242,9 +252,9 @@ struct gnutella_socket;
 
 void http_timer(time_t now);
 
-gboolean http_send_status(struct gnutella_socket *s,
+gboolean http_send_status(http_layer_t layer, struct gnutella_socket *s,
 	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt,
-	const gchar *reason, ...) G_GNUC_PRINTF(6, 7);
+	const gchar *reason, ...) G_GNUC_PRINTF(7, 8);
 
 size_t http_hostname_add(
 	gchar *buf, size_t size, gpointer arg, guint32 flags);
