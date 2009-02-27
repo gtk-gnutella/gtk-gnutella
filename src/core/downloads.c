@@ -12670,10 +12670,20 @@ void
 download_rx_done(struct download *d)
 {
 	fileinfo_t *fi;
+	gboolean was_receiving;
 
 	download_check(d);
 	fi = d->file_info;
 	file_info_check(fi);
+
+	/*
+	 * We could have been receiving data, in which case we'll need to start
+	 * checking the SHA1 of the file, or simply ignoring data, in which case
+	 * we were actively transferring data that went to the bit bucket, and
+	 * the file was already completed by another (receiving) source.
+	 */
+
+	was_receiving = GTA_DL_RECEIVING == d->status;
 
    	if (!fi->file_size_known) {
 		file_info_size_known(d, fi->done);
@@ -12687,7 +12697,16 @@ download_rx_done(struct download *d)
 		download_thex_done(d);
 	}
 	download_continue(d, FALSE);
-	download_verify_sha1(d);
+
+	/*
+	 * Don't call download_verify_sha1() if we were not receiving: we were
+	 * ignoring data and probably "suspended", i.e. with the DL_F_SUSPENDED
+	 * activated to prevent scheduling of new requests.
+	 */
+
+	if (was_receiving) {
+		download_verify_sha1(d);
+	}
 }
 
 /**
