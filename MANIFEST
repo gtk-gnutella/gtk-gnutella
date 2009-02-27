@@ -736,6 +736,7 @@ src/shell/set.c
 src/shell/shell.c
 src/shell/shell.h
 src/shell/shutdown.c
+src/shell/stats.c
 src/shell/status.c
 src/shell/uploads.c
 src/shell/whatis.c

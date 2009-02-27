@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
+ * $Id$
  *
- * Copyright (c) 2003, Raphael Manfredi
- *
- * Jmakefile for the shell part.
+ * Copyright (c) 2008, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,47 +23,50 @@
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
+#include "common.h"
 
-SRC = \
-	download.c \
-	downloads.c \
-	echo.c \
-	help.c \
-	horizon.c \
-	intr.c \
-	node.c \
-	nodes.c \
-	offline.c \
-	online.c \
-	print.c \
-	props.c \
-	quit.c \
-	rescan.c \
-	search.c \
-	set.c \
-	shell.c \
-	shutdown.c \
-	stats.c \
-	status.c \
-	uploads.c \
-	whatis.c
+RCSID("$Id$")
 
-OBJ = \
-|expand f!$(SRC)!
-	!f:\.c=.o \
--expand \\
+#include "cmd.h"
+#include "core/gnet_stats.h"
 
-/* Additional flags for GTK compilation, added in the substituted section */
-++GLIB_CFLAGS $glibcflags
+#include "lib/override.h"		/* Must be the last header included */
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
+enum shell_reply
+shell_exec_stats(struct gnutella_shell *sh, int argc, const char *argv[])
+{
+	int i;
+	gnet_stats_t stats;
 
-IF = ../if
-GNET_PROPS = gnet_property.h
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
 
-RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
-NormalLibraryTarget(shell, $(SRC), $(OBJ))
-DependTarget()
+	gnet_stats_get(&stats);
+
+	for (i = 0; i < GNR_TYPE_COUNT; i++) {
+		shell_write(sh, gnet_stats_general_to_string(i));
+		shell_write(sh, " ");
+		shell_write(sh, uint64_to_string(stats.general[i]));
+		shell_write(sh, "\n");
+	}
+
+	return REPLY_READY;
+}
+
+const char *
+shell_summary_stats(void)
+{
+	return "Print the general counters";
+}
+
+const char *
+shell_help_stats(int argc, const char *argv[])
+{
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return	NULL;
+}
+
+/* vi: set ts=4 sw=4 cindent: */
