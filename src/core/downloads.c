@@ -10274,6 +10274,22 @@ picked:
 
 	fi_src_info_changed(d);		/* Now that we know d->range_end */
 
+	/*
+	 * LimeWire hosts have started to emit an X-Downloaded: header stating
+	 * the amount of bytes already downloaded by the requester.  This can
+	 * be used to prioritize slots in a queue, or to prioritize requests
+	 * when the remote host also has a partial file and wants to complete it.
+	 *
+	 * Let's emit the header for now, and we'll see whether we can peruse
+	 * this information ourselves later.
+	 *		--RAM, 2009-02-27
+	 */
+
+	if (!(d->server->attrs & DLS_A_FAKE_G2)) {
+		rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw,
+			"X-Downloaded: %s\r\n", uint64_to_string(download_filedone(d)));
+	}
+
 	g_assert(rw + 3U < sizeof request_buf);	/* Should not have filled yet! */
 
 	/*
@@ -10362,6 +10378,10 @@ picked:
 				sha1_base32(sha1));
 		}
 	}
+
+	/*
+	 * Finish headers.
+	 */
 
 	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
 
