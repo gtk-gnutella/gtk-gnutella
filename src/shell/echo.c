@@ -70,7 +70,8 @@ shell_help_echo(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return NULL;
+	return	"echo [-n] arguments\n"
+			"echoes the arguments (without final newline if -n)\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */
