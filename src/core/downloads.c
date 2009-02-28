@@ -162,8 +162,7 @@ static void download_queue_delay(struct download *d, guint32 delay,
 static void download_queue_hold(struct download *d, guint32 hold,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
-static gboolean download_flush(
-	struct download *d, gboolean *trimmed, gboolean may_stop);
+static void download_silent_flush(struct download *d);
 
 static gboolean download_dirty = FALSE;
 static gboolean download_shutdown = FALSE;
@@ -1831,6 +1830,7 @@ download_can_ignore(struct download *d)
 	g_assert(d->range_end >= d->pos);
 	g_assert(d->socket);
 	g_assert(d->rx);
+	g_assert(d->buffers);
 
 	if (d->status == GTA_DL_IGNORING)
 		return TRUE;
@@ -1884,6 +1884,7 @@ sink_data:
 	 */
 
 	(void) rx_replace_data_ind(d->rx, download_ignore_data_ind);
+	download_silent_flush(d);
 	download_set_status(d, GTA_DL_IGNORING);
 
 	if (GNET_PROPERTY(download_debug) > 1)
@@ -3094,12 +3095,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		 */
 
 		if (d->buffers != NULL) {
-			if (d->buffers->held > 0) {
-				download_flush(d, NULL, FALSE);
-				if (d->buffers->held > 0) {
-					buffers_discard(d);
-				}
-			}
+			download_silent_flush(d);
 			buffers_free(d);
 		}
 
@@ -6984,6 +6980,25 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	buffers_discard(d);			/* Since we wrote everything... */
 
 	return TRUE;
+}
+
+/**
+ * Issue download_flush() if needed, discarding silently anything we cannot
+ * commit to disk.
+ */
+static void
+download_silent_flush(struct download *d)
+{
+	download_check(d);
+	g_assert(d->status == GTA_DL_RECEIVING);
+	g_assert(d->buffers != NULL);
+
+	if (d->buffers->held > 0) {
+		download_flush(d, NULL, FALSE);
+		if (d->buffers->held > 0) {
+			buffers_discard(d);
+		}
+	}
 }
 
 /**
