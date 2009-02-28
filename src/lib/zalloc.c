@@ -223,7 +223,7 @@ zalloc_track(zone_t *zone, gchar *file, gint line)
 	gchar *p;
 
 	p = blk - FILE_REV_OFFSET;			/* Go backwards */
-	*(gchar **) p = file;
+	*(gchar **) p = short_filename(file);
 	p += sizeof(gchar *);
 	*(gint *) p = line;
 
@@ -259,17 +259,19 @@ zblock_log(gchar *p, gint size, gpointer leakset)
 static void
 zdump_used(zone_t *zone)
 {
-	gint used = 0;
+	int used = 0;
 	struct subzone *next;
 	gchar *p;
 	gpointer leakset = leak_init();
+	int i;
 
-	for (next = zone->zn_next; next; next = next->sz_next) {
-		gint cnt = zone->zn_hint;		/* Amount of blocks per zone */
+	for (i = 0, next = zone->zn_next; next; next = next->sz_next, i++) {
+		char *end;
 
 		p = next->sz_base;
+		end = p + next->sz_size;
 
-		while (cnt-- > 0) {
+		while (p < end) {
 			if (*(gchar **) p == BLOCK_USED) {
 				used++;
 				zblock_log(p, zone->zn_size, leakset);
@@ -278,9 +280,11 @@ zdump_used(zone_t *zone)
 		}
 	}
 
-	if (used != zone->zn_cnt)
-		g_warning("found %d used block, but zone said it was holding %d",
-			used, zone->zn_cnt);
+	if (used != zone->zn_cnt) {
+		g_warning(
+			"found %d used block%s, but %d-byte zone said it was holding %d",
+			used, 1 == used ? "" : "s", zone->zn_size, zone->zn_cnt);
+	}
 
 	leak_dump(leakset);
 	leak_close(leakset);
