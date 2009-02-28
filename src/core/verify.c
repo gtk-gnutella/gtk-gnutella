@@ -349,6 +349,10 @@ verify_context_free(void *data)
 	 */
 
 	ctx->task = NULL;
+
+	if (GNET_PROPERTY(verify_debug) > 1) {
+		g_message("destroying task for %s verification", verify_hash_name(ctx));
+	}
 }
 
 static void
@@ -379,7 +383,7 @@ verify_next_file(struct verify *ctx)
 				}
 			}
 			if (NULL == ctx->file) {
-				g_warning("Failed to open \"%s\" for %s hashing: %s",
+				g_warning("failed to open \"%s\" for %s hashing: %s",
 					verify_hash_name(ctx), item->pathname, g_strerror(errno));
 			}
 		}
@@ -391,8 +395,8 @@ verify_next_file(struct verify *ctx)
 	}
 
 	if (ctx->file) {
-		if (GNET_PROPERTY(dbg) > 1) {
-			g_message("Verifying %s digest for %s",
+		if (GNET_PROPERTY(verify_debug)) {
+			g_message("verifying %s digest for %s",
 				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
 		}
 		verify_hash_init(ctx);
@@ -412,7 +416,7 @@ verify_final(struct verify *ctx)
 	verify_check(ctx);
 
 	if (ctx->offset != ctx->end) {
-		g_warning("File shrunk? \"%s\"", file_object_get_pathname(ctx->file));
+		g_warning("file shrunk? \"%s\"", file_object_get_pathname(ctx->file));
 		verify_failure(ctx);
 	} else if (verify_hash_final(ctx)) {
 		g_warning("verify_hash_final() failed for \"%s\"",
@@ -516,6 +520,11 @@ verify_create_task(struct verify *ctx)
 	if (NULL == ctx->task) {
 		static const bgstep_cb_t step[] = { verify_step_compute };
 
+		if (GNET_PROPERTY(verify_debug) > 1) {
+			g_message("creating new task for %s verification",
+				verify_hash_name(ctx));
+		}
+
 		ctx->task = bg_task_create(verify_hash_name(ctx),
 							step, G_N_ELEMENTS(step),
 			  				ctx, verify_context_free,
@@ -558,6 +567,13 @@ verify_enqueue(struct verify *ctx, int high_priority,
 		}
 		inserted = TRUE;
 	}
+
+	if (GNET_PROPERTY(verify_debug)) {
+		g_message("%s %s digest verification for %s",
+			inserted ? "enqueued" : "already had queued",
+			verify_hash_name(ctx), pathname);
+	}
+
 	verify_create_task(ctx);
 	return inserted;
 }
