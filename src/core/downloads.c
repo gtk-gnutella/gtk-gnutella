@@ -6990,8 +6990,9 @@ static void
 download_silent_flush(struct download *d)
 {
 	download_check(d);
-	g_assert(d->status == GTA_DL_RECEIVING);
 	g_assert(d->buffers != NULL);
+	g_assert(d->status != GTA_DL_IGNORING || 0 == d->buffers->held);
+	g_assert(d->status == GTA_DL_IGNORING || d->status == GTA_DL_RECEIVING);
 
 	if (d->buffers->held > 0) {
 		download_flush(d, NULL, FALSE);
