@@ -3714,8 +3714,12 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 				if (download_has_pending_on_server(d)) {
 					if (DOWNLOAD_IS_ESTABLISHING(d)) {
 						d->flags |= DL_F_MUST_IGNORE;
-					} else if (!download_can_ignore(d))
+					} else if (download_can_ignore(d)) {
+						gnet_stats_count_general(
+							GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
+					} else {
 						download_queue(d, _("Suspended (SHA1 checking)"));
+					}
 				} else
 					download_queue(d, _("Suspended (SHA1 checking)"));
 			}
@@ -6784,6 +6788,7 @@ download_overlap_check(struct download *d)
 			download_can_ignore(d)
 		) {
 			success = TRUE;			/* Act as if overlapping was OK */
+			gnet_stats_count_general(GNR_IGNORING_AFTER_MISMATCH, 1);
 			goto out;
 		}
 
@@ -7260,9 +7265,14 @@ download_write_data(struct download *d)
 				)
 					goto done;
 				/* Will ignore data until we can switch to another file */
-			} else if (d->pos == d->range_end)
+				gnet_stats_count_general(
+					GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
+			} else if (d->pos == d->range_end) {
 				goto partial_done;
-			else if (!download_can_ignore(d))
+			} else if (download_can_ignore(d)) {
+				gnet_stats_count_general(
+					GNR_IGNORING_DURING_AGGRESSIVE_SWARMING, 1);
+			} else
 				download_queue(d, _("Requeued by competing download"));
 			break;
 		case DL_CHUNK_BUSY:
@@ -9736,6 +9746,7 @@ http_version_nofix:
 		d->flags &= ~DL_F_MUST_IGNORE;
 		must_ignore = TRUE;
 		rx_set_data_ind(d->rx, download_ignore_data_ind);
+		gnet_stats_count_general(GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
 	} else {
 		must_ignore = FALSE;
 		rx_set_data_ind(d->rx, download_data_ind);
