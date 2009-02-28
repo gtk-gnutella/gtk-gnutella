@@ -11746,6 +11746,7 @@ download_verify_sha1_done(struct download *d,
 	file_info_changed(fi);
 
 	download_set_status(d, GTA_DL_VERIFIED);
+	fi->flags &= ~FI_F_VERIFYING;
 
 	ignore_add_sha1(name, fi->cha1);
 
@@ -11785,9 +11786,9 @@ download_verify_status_unknown(struct download *d, const gchar *what)
 			what, fi->pathname, name);
     }
 
-
 	download_set_status(d, GTA_DL_VERIFIED);
 	fi->cha1_hashed = fi->size;
+	fi->flags &= ~FI_F_VERIFYING;
 	file_info_changed(fi);
 
 	ignore_add_filesize(name, fi->size);
@@ -11858,13 +11859,15 @@ download_verify_sha1(struct download *d)
 		return;
 
 	g_assert(!FILE_INFO_FINISHED(d->file_info));
-	if (FI_F_SUSPEND & d->file_info->flags)	/* Already verifying */
+	if (FI_F_VERIFYING & d->file_info->flags)	/* Already verifying */
 		return;
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
 	 * anyway, so start verifying its SHA1.
 	 */
+
+	d->file_info->flags |= FI_F_VERIFYING;
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
@@ -11920,6 +11923,7 @@ download_verify_tigertree_done(struct download *d,
 
 	fi = d->file_info;
 	file_info_check(fi);
+	fi->flags &= ~FI_F_VERIFYING;
 
 	(void) elapsed;
 
@@ -11989,11 +11993,21 @@ download_verify_tigertree_done(struct download *d,
 }
 
 /**
- * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
+ * Called when we cannot verify the TTH for the file (I/O error, etc...).
  */
 static void
 download_verify_tigertree_error(struct download *d)
 {
+	fileinfo_t *fi;
+
+	download_check(d);
+	g_assert(d->status == GTA_DL_VERIFYING);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
+
+	fi = d->file_info;
+	file_info_check(fi);
+	fi->flags &= ~FI_F_VERIFYING;
+
 	download_verify_status_unknown(d, "TTH");
 }
 
@@ -12041,6 +12055,7 @@ download_verify_tigertree(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 	g_return_if_fail(!(d->flags & DL_F_TRANSIENT));
 	g_return_if_fail(d->file_info->tigertree.num_leaves > 0);
+	g_assert(!(d->file_info->flags & FI_F_VERIFYING));
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
@@ -12048,6 +12063,7 @@ download_verify_tigertree(struct download *d)
 	 */
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
+	d->file_info->flags |= FI_F_VERIFYING;
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),

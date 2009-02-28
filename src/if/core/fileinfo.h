@@ -48,6 +48,7 @@ enum {
 	FI_F_FETCH_TTH		= 1 << 7,	/**< Tigertree data is being downloaded */
 	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
 	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
+	FI_F_VERIFYING		= 1 << 10,	/**< Verifying SHA1 or TTH */
 };
 
 /**
