@@ -1871,10 +1871,10 @@ download_can_ignore(struct download *d)
 	speed_avg = download_speed_avg(d);
 
 	if (speed_avg && remain / speed_avg > DOWNLOAD_MAX_IGN_TIME)
-		return FALSE;
+		goto refused;
 
 	if (remain > DOWNLOAD_MAX_IGN_DATA)
-		return FALSE;
+		goto refused;
 
 sink_data:
 
@@ -1896,6 +1896,10 @@ sink_data:
 			uint64_to_string(remain), download_basename(d));
 
 	return TRUE;
+
+refused:
+	gnet_stats_count_general(GNR_IGNORING_REFUSED, 1);
+	return FALSE;
 }
 
 /**
@@ -11898,13 +11902,15 @@ download_verify_sha1(struct download *d)
 	 * anyway, so start verifying its SHA1.
 	 */
 
-	d->file_info->flags |= FI_F_VERIFYING;
-
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
+
 	inserted = verify_sha1_enqueue(TRUE, download_pathname(d),
 					download_filesize(d), download_verify_sha1_callback, d);
-	g_assert(inserted); /* There should be no duplicates */
+
+	g_assert(inserted); /* There cannot be duplicates */
+
+	d->file_info->flags |= FI_F_VERIFYING;
 }
 
 
@@ -12094,11 +12100,12 @@ download_verify_tigertree(struct download *d)
 	 */
 
 	download_set_status(d, GTA_DL_VERIFY_WAIT);
-	d->file_info->flags |= FI_F_VERIFYING;
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 
 	verify_tth_prepend(download_pathname(d), 0, download_filesize(d),
 		download_verify_tigertree_callback, d);
+
+	d->file_info->flags |= FI_F_VERIFYING;
 }
 
 /**

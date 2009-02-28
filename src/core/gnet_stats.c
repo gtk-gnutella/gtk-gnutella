@@ -161,6 +161,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"ignoring_after_mismatch",
 	"ignoring_to_preserve_connection",
 	"ignoring_during_aggressive_swarming",
+	"ignoring_refused",
 	"seeding_of_orphan",
 	"dht_keys_held",
 	"dht_values_held",
