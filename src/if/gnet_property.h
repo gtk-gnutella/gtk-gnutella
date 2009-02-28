@@ -368,6 +368,7 @@ typedef enum {
     PROP_GNET_TRACE,
     PROP_PUSH_PROXY_TRACE,
     PROP_HTTP_TRACE,
+    PROP_VERIFY_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

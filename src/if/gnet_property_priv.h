@@ -379,6 +379,7 @@ extern const guint32  gnet_property_variable_upload_trace;
 extern const guint32  gnet_property_variable_gnet_trace;
 extern const guint32  gnet_property_variable_push_proxy_trace;
 extern const guint32  gnet_property_variable_http_trace;
+extern const guint32  gnet_property_variable_verify_debug;
 
 
 prop_set_t *gnet_prop_init(void);

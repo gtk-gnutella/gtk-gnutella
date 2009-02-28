@@ -770,6 +770,8 @@ prop_def_choice_t gnet_property_variable_http_trace_choices[] = {
     {N_("input & output"), SOCK_TRACE_BOTH},
     {NULL, 0}
 };
+guint32  gnet_property_variable_verify_debug     = 0;
+static const guint32  gnet_property_variable_verify_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7100,6 +7102,26 @@ gnet_prop_init(void) {
     gnet_property->props[331].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[331].data.guint32.min   = 0x00000000;
     gnet_property->props[331].data.guint32.choices = (void *) &gnet_property_variable_http_trace_choices;
+
+
+    /*
+     * PROP_VERIFY_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[332].name = "verify_debug";
+    gnet_property->props[332].desc = _("Debug level for (generic) file verification code.");
+    gnet_property->props[332].ev_changed = event_new("verify_debug_changed");
+    gnet_property->props[332].save = TRUE;
+    gnet_property->props[332].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[332].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[332].data.guint32.def   = (void *) &gnet_property_variable_verify_debug_default;
+    gnet_property->props[332].data.guint32.value = (void *) &gnet_property_variable_verify_debug;
+    gnet_property->props[332].data.guint32.choices = NULL;
+    gnet_property->props[332].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[332].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
