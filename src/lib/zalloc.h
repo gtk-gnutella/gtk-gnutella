@@ -76,7 +76,7 @@ void zfree(zone_t *, gpointer);
 
 #ifdef TRACK_ZALLOC
 
-#define zalloc(z)	zalloc_track(z, __FILE__, __LINE__)
+#define zalloc(z)	zalloc_track(z, _WHERE_, __LINE__)
 
 gpointer zalloc_track(zone_t *z, gchar *file, gint line);
 
