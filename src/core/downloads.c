@@ -12141,7 +12141,7 @@ download_resume_bg_tasks(void)
 		 * we had a fi->cha1 in the record...
 		 */
 
-		if (fi->flags & (FI_F_SUSPEND | FI_F_PAUSED | FI_F_SEEDING)) {
+		if (fi->flags & (FI_F_VERIFYING | FI_F_PAUSED | FI_F_SEEDING)) {
 			/* Already computing SHA1, moving or paused by user */
 			continue;
 		}
