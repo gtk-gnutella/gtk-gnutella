@@ -156,6 +156,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"udp_larger_hence_not_compressed",
 	"attempted_resource_switching",
 	"successful_resource_switching",
+	"successful_plain_resource_switching",
 	"queued_after_switching",
 	"ignored_data",
 	"ignoring_after_mismatch",
