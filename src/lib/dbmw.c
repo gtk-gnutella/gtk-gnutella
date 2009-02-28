@@ -746,6 +746,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	if (entry->len)
 		wfree(entry->data, entry->len);
 	wfree(key, dw->key_size);
+	wfree(entry, sizeof *entry);
 }
 
 /**
