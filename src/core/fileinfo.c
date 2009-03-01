@@ -1427,27 +1427,38 @@ file_info_shared_sha1(const struct sha1 *sha1)
 	if (fi) {
 		file_info_check(fi);
 
-		if (
-			fi->done > 0 &&
-			fi->size >= GNET_PROPERTY(pfsp_minimum_filesize) &&
-			((FI_F_SEEDING & fi->flags) || !FILE_INFO_FINISHED(fi))
-		) {
-			g_assert(NULL != fi->sha1);
+		/*
+		 * Completed file (with SHA-1 verified) are always shared, regardless
+		 * of their size.
+		 *
+		 * Partial files below the minimum filesize are not shared, since
+		 * their SHA-1 is not yet validated and we don't partially validate
+		 * chunks based on the TTH.
+		 */
 
-			/*
-			 * Build shared_file entry if not already present.
-			 */
+		if (FI_F_SEEDING & fi->flags)
+			goto share;
 
-			if (fi->sf) {
-				shared_file_check(fi->sf);
-			} else {
-				shared_file_from_fileinfo(fi);
-				file_info_changed(fi);
-			}
-			return fi->sf;
-		}
+		if (fi->done > 0 && fi->size >= GNET_PROPERTY(pfsp_minimum_filesize))
+			goto share;
 	}
 	return NULL;
+
+share:
+	/*
+	 * Build shared_file entry if not already present.
+	 */
+
+	g_assert(NULL != fi);
+	g_assert(NULL != fi->sha1);
+
+	if (fi->sf) {
+		shared_file_check(fi->sf);
+	} else {
+		shared_file_from_fileinfo(fi);
+		file_info_changed(fi);
+	}
+	return fi->sf;
 }
 
 /**
