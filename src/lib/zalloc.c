@@ -86,7 +86,7 @@ struct zone {			/* Zone descriptor */
 #endif
 
 #ifdef ZONE_SAFE
-#define FILE_REV_OFFSET		sizeof(gchar *)
+#define USED_REV_OFFSET		sizeof(gchar *)
 #endif
 
 #ifdef TRACK_ZALLOC
@@ -104,7 +104,7 @@ struct zone {			/* Zone descriptor */
 #endif	/* TRACK_ZALLOC */
 
 #ifdef ZONE_SAFE
-#define BLOCK_USED			((gchar *) 0xff12aa35)	/**< Tagging of used blocks */
+#define BLOCK_USED			((gchar *) 0xff12aa35)	/**< Tag for used blocks */
 #endif
 
 #define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
