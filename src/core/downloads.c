@@ -3260,7 +3260,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 	file_info_clear_download(d, FALSE);
 	file_info_changed(d->file_info);
-	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED);
+	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_FROM_PLAIN);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -3385,7 +3385,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
 
-	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED);
+	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED | DL_F_FROM_PLAIN);
 	d->remove_msg = fmt ? d->error_str: NULL;
 	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
 	fi_src_status_changed(d);
@@ -4589,8 +4589,8 @@ download_pick_process(
 			if (download_total_progress(d) >= download_total_progress(cur))
 				return FALSE;
 
-			/* Favor smaller files (completed sooner, hopefully) */
-			if (download_filesize(d) <= download_filesize(cur))
+			/* Favor smaller file remains (completed sooner, hopefully) */
+			if (download_fileremain(d) <= download_fileremain(cur))
 				return FALSE;
 		}
 
@@ -5642,7 +5642,7 @@ download_clone(struct download *d)
 	cd->file_name = atom_str_get(d->file_name);
 	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
 	cd->push = FALSE;
-	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED);
+	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED | DL_F_FROM_PLAIN);
 	download_set_status(cd, GTA_DL_CONNECTING);
 	cd->server->refcnt++;
 
@@ -7125,6 +7125,8 @@ download_continue(struct download *d, gboolean trimmed)
 		next->socket = s;
 		next->socket->resource.download = next;
 		next->flags |= DL_F_SWITCHED;
+		if (!download_is_special(cd))
+			next->flags |= DL_F_FROM_PLAIN;
 
 		if (can_continue) {
 			download_queue(cd, _("Switching to \"%s\""),
@@ -8873,7 +8875,7 @@ http_version_nofix:
 
 					/* Count partial success if we were switched */
 					if (d->flags & DL_F_SWITCHED) {
-						d->flags &= ~DL_F_SWITCHED;
+						d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN);
 						gnet_stats_count_general(GNR_QUEUED_AFTER_SWITCHING, 1);
 					}
 
@@ -9609,8 +9611,12 @@ http_version_nofix:
 	 */
 
 	if (d->flags & DL_F_SWITCHED) {
-		d->flags &= ~DL_F_SWITCHED;
 		gnet_stats_count_general(GNR_SUCCESSFUL_RESOURCE_SWITCHING, 1);
+		if (!download_is_special(d) && (d->flags & DL_F_FROM_PLAIN)) {
+			gnet_stats_count_general(
+				GNR_SUCCESSFUL_PLAIN_RESOURCE_SWITCHING, 1);
+		}
+		d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN);
 	}
 
 	/*
@@ -11894,6 +11900,14 @@ download_verify_sha1(struct download *d)
 		return;
 
 	g_assert(!FILE_INFO_FINISHED(d->file_info));
+
+	if (GNET_PROPERTY(verify_debug) > 1) {
+		g_message("%s verifying SHA-1 of completed %s",
+			(FI_F_VERIFYING & d->file_info->flags) ?
+				"already planned" : "will be",
+			download_pathname(d));
+	}
+
 	if (FI_F_VERIFYING & d->file_info->flags)	/* Already verifying */
 		return;
 
@@ -12093,6 +12107,11 @@ download_verify_tigertree(struct download *d)
 	g_return_if_fail(!(d->flags & DL_F_TRANSIENT));
 	g_return_if_fail(d->file_info->tigertree.num_leaves > 0);
 	g_assert(!(d->file_info->flags & FI_F_VERIFYING));
+
+	if (GNET_PROPERTY(verify_debug) > 1) {
+		g_message("will be verifying TTH of completed %s",
+			download_pathname(d));
+	}
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
