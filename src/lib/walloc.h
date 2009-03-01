@@ -123,10 +123,10 @@ wcopy(gconstpointer ptr, size_t size)
 
 #ifdef TRACK_ZALLOC
 
-#define walloc(s)			walloc_track(s, __FILE__, __LINE__)
-#define wcopy(p,s)			wcopy_track(p, s, __FILE__, __LINE__)
-#define walloc0(s)			walloc0_track(s, __FILE__, __LINE__)
-#define wrealloc(p,o,n)		wrealloc_track(p, o, n, __FILE__, __LINE__)
+#define walloc(s)			walloc_track(s, _WHERE_, __LINE__)
+#define wcopy(p,s)			wcopy_track(p, s, _WHERE_, __LINE__)
+#define walloc0(s)			walloc0_track(s, _WHERE_, __LINE__)
+#define wrealloc(p,o,n)		wrealloc_track(p, o, n, _WHERE_, __LINE__)
 
 gpointer walloc_track(size_t size, gchar *file, gint line);
 gpointer walloc0_track(size_t size, gchar *file, gint line);
