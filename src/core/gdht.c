@@ -589,7 +589,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 					gnet_host_set(&proxies[proxy_count++], a, p);
 				}
 
-				bstr_close(bs);
+				bstr_destroy(bs);
 			}
 			break;
 		default:
