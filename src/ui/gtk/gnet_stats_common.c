@@ -146,6 +146,8 @@ general_type_str(gint value)
 		N_("Ignoring requested to preserve connection"),
 		N_("Ignoring requested due to aggressive swarming"),
 		N_("Ignoring refused (data too large or server too slow)"),
+		N_("Client resource switching (all detected)"),
+		N_("Client resource switching between plain files"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("DHT keys held"),
 		N_("DHT values held"),

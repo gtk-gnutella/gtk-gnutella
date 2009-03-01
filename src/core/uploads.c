@@ -71,6 +71,7 @@ RCSID("$Id$")
 #include "uploads.h"
 #include "verify_tth.h"
 #include "version.h"
+#include "gnet_stats.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -990,6 +991,15 @@ upload_free_resources(struct upload *u)
 }
 
 /**
+ * Is upload special?
+ */
+static inline gboolean
+upload_is_special(const struct upload *u)
+{
+	return u->browse_host || u->thex != NULL;
+}
+
+/**
  * Clone upload, resetting all dynamically allocated structures in the
  * original, since they are shallow-copied to the new upload.
  *
@@ -1007,6 +1017,11 @@ upload_clone(struct upload *u)
 
 	cu = wcopy(u, sizeof *cu);
 	parq_upload_upload_got_cloned(u, cu);
+
+	if (upload_is_special(u))
+		cu->flags |= UPLOAD_F_WAS_PLAIN;
+	else
+		cu->flags &= ~UPLOAD_F_WAS_PLAIN;
 
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
 	cu->bio = NULL;						/* Recreated on each transfer */
@@ -3147,10 +3162,30 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	 *		--RAM, 31/12/2001
 	 */
 
-	if (u->push && idx != u->file_index && GNET_PROPERTY(upload_debug))
+	if (u->push && idx != u->file_index && GNET_PROPERTY(upload_debug)) {
 		g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->file_index, u->name, idx,
 				shared_file_name_nfc(u->sf));
+	}
+
+	/*
+	 * Detect resource switching among plain files.
+	 */
+
+	if (u->flags & UPLOAD_F_WAS_PLAIN) {
+		if (u->sha1) {
+			if (u->sha1 != sha1) {
+				gnet_stats_count_general(
+					GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
+				if (sha1)
+					atom_sha1_change(&u->sha1, sha1);
+				else
+					atom_sha1_free_null(&u->sha1);
+			}
+		} else if (u->file_index != idx) {
+			gnet_stats_count_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
+		}
+	}
 
 	/*
 	 * We already have a non-NULL u->name in the structure, because we
@@ -3305,7 +3340,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	if (!u->head_only) {
 		if (u->is_followup && !parq_upload_queued(u)) {
 			/*
-			 * Allthough the request is an follow up request, the last time the
+			 * Although the request is an follow up request, the last time the
 			 * upload didn't get a parq slot. There is probably a good reason
 			 * for this. The most logical explantion is that the client did a
 			 * HEAD only request with a keep-alive. However, no parq structure
@@ -4004,14 +4039,22 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (0 == strcmp(uri, "/")) {
-		if (prepare_browse_host_upload(u, header, host)) {
+		if (0 != prepare_browse_host_upload(u, header, host)) {
 			return;
 		}
-	} else if (get_file_to_upload(u, header, uri, search)) {
+	} else if (0 != get_file_to_upload(u, header, uri, search)) {
 		/* get_file_to_upload() has signaled the error already */
 		return;
 	}
 
+	/*
+	 * XXX We can't detect switching between two THEX or between THEX and
+	 * XXX browse due to the fact that information from the previous request
+	 * XXX was cleared.		--RAM, 2009-03-01
+	 */
+
+	if ((u->flags & UPLOAD_F_WAS_PLAIN) && upload_is_special(u))
+		gnet_stats_count_general(GNR_CLIENT_RESOURCE_SWITCHING, 1);
 
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);

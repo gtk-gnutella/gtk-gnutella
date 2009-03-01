@@ -148,8 +148,11 @@ upload_check(const struct upload * const u)
  * Operating flags
  */
 
-#define UPLOAD_F_STALLED		0x00000001	/**< Stall condition present */
-#define UPLOAD_F_EARLY_STALL	0x00000002	/**< Pre-stalling condition */
+enum {
+	UPLOAD_F_WAS_PLAIN		= 1 << 2,	/**< Prev request was for plain file  */
+	UPLOAD_F_EARLY_STALL	= 1 << 1,	/**< Pre-stalling condition */
+	UPLOAD_F_STALLED		= 1 << 0	/**< Stall condition present */
+};
 
 /*
  * Global Data
