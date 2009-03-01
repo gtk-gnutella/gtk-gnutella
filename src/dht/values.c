@@ -317,8 +317,7 @@ dht_value_clone(const dht_value_t *v)
 	vc->length = v->length;
 
 	if (v->data) {
-		vc->data = walloc(v->length);
-		memcpy(deconstify_gpointer(vc->data), v->data, v->length);
+		vc->data = wcopy(v->data, v->length);
 	}
 
 	return vc;
@@ -1347,8 +1346,7 @@ values_get(guint64 dbkey, dht_value_type_t type)
 		g_assert(data);
 		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
 
-		vdata = walloc(length);
-		memcpy(vdata, data, length);
+		vdata = wcopy(data, length);
 	}
 
 	creator = knode_new(&vd->cid, 0, vd->addr, vd->port, vd->vcode,
