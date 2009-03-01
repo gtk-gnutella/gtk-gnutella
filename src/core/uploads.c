@@ -991,15 +991,6 @@ upload_free_resources(struct upload *u)
 }
 
 /**
- * Is upload special?
- */
-static inline gboolean
-upload_is_special(const struct upload *u)
-{
-	return u->browse_host || u->thex != NULL;
-}
-
-/**
  * Clone upload, resetting all dynamically allocated structures in the
  * original, since they are shallow-copied to the new upload.
  *
@@ -3059,17 +3050,20 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	return 0;
 }
 
+/**
+ * Check whether upload is already running.  If found but stalling, kick it
+ * out as we have a replacement being asked by the remote end.
+ *
+ * @return TRUE if upload is a duplicate, FALSE if it isn't or if the old
+ * duplicate was stalling and thus kicked out.
+ */
 static gboolean
-upload_is_already_downloading(struct upload *upload,
-	gboolean *replaced_stalling)
+upload_is_already_downloading(struct upload *upload)
 {
 	GSList *sl, *to_remove = NULL;
 	gboolean result = FALSE;
 
 	g_assert(upload);
-	g_assert(replaced_stalling);
-
-	*replaced_stalling = FALSE;
 
 	/*
 	 * Ensure that noone tries to download the same file twice, and
@@ -3129,7 +3123,6 @@ upload_is_already_downloading(struct upload *upload,
 				uint64_to_string(up->sent), stalled);
 
 			upload_remove(up, _("Stalling upload replaced"));
-			*replaced_stalling = TRUE;
 		}
 	}
 
@@ -3141,7 +3134,7 @@ static void
 upload_request_for_shared_file(struct upload *u, header_t *header)
 {
 	filesize_t range_skip = 0, range_end = 0;
-	gboolean range_unavailable = FALSE, replaced_stalling = FALSE;
+	gboolean range_unavailable = FALSE;
 	const struct sha1 *sha1 = NULL;
 	const gchar *buf;
 	time_t now = tm_time();
@@ -3205,7 +3198,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	u->file_size = shared_file_size(u->sf);
 
-	if (!u->head_only && upload_is_already_downloading(u, &replaced_stalling)) {
+	if (!u->head_only && upload_is_already_downloading(u)) {
 		upload_error_remove(u, 503, "Already downloading this file");
 		return;
 	}
@@ -3350,7 +3343,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 			u->is_followup = FALSE;
 		}
 
-		u->parq_ul = parq_upload_get(u, header, replaced_stalling);
+		u->parq_ul = parq_upload_get(u, header);
 		if (u->parq_ul == NULL) {
 			upload_error_remove(u, 503,
 				parq_upload_queue_full(u) ? "Queue full" :

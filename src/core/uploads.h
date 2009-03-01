@@ -144,6 +144,15 @@ upload_check(const struct upload * const u)
 
 #define upload_vendor_str(u)	((u)->user_agent ? (u)->user_agent : "")
 
+/**
+ * Is upload special?
+ */
+static inline gboolean
+upload_is_special(const struct upload *u)
+{
+	return u->browse_host || u->thex != NULL;
+}
+
 /*
  * Operating flags
  */

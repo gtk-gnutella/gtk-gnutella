@@ -198,8 +198,7 @@ struct parq_ul_queued {
 	gboolean quick;			/**< Slot granted for allowed quick upload */
 	gboolean active_queued;	/**< Whether the current upload is actively queued */
 	gboolean has_slot;		/**< Whether the items is currently uploading */
-	gboolean had_slot;		/**< If an upload had an upload slot it is not
-							     allowed to reuse the id for another upload	*/
+	gboolean had_slot;		/**< Whether we granted a slot to that entry */
 	guint eta;				/**< Expected time in seconds till an upload slot is
 							     reached, this is a relative timestamp */
 
@@ -251,12 +250,15 @@ struct parq_ul_queued {
  * Flags for parq_ul_queued.
  */
 
-#define PARQ_UL_QUEUE		0x00000001	/**< Scheduled for QUEUE sending */
-#define PARQ_UL_NOQUEUE		0x00000002	/**< No IP:port, don't send QUEUE */
-#define PARQ_UL_QUEUE_SENT	0x00000004	/**< QUEUE message sent */
-#define PARQ_UL_ID_SENT		0x00000008	/**< We already sent an ID */
-#define PARQ_UL_FROZEN		0x00000010	/**< Frozen entry */
-#define PARQ_UL_MARK		0x80000000	/**< Mark for duplicate checks */
+enum {
+	PARQ_UL_MARK		= 1 << 6,	/**< Mark for duplicate checks */
+	PARQ_UL_SPECIAL		= 1 << 5,	/**< Special upload */
+	PARQ_UL_FROZEN		= 1 << 4,	/**< Frozen entry */
+	PARQ_UL_ID_SENT		= 1 << 3,	/**< We already sent an ID */
+	PARQ_UL_QUEUE_SENT	= 1 << 2,	/**< QUEUE message sent */
+	PARQ_UL_NOQUEUE		= 1 << 1,	/**< No IP:port, don't send QUEUE */
+	PARQ_UL_QUEUE		= 1 << 0	/**< Scheduled for QUEUE sending */
+};
 
 /**
  * Contains the queued download status.
@@ -1760,8 +1762,8 @@ parq_upload_create(struct upload *u)
 	parq_upload_update_addr_and_name(parq_ul, u);
 	parq_ul->sha1 = u->sha1 ? atom_sha1_get(u->sha1) : NULL;
 
-	/* Create an ID */
-	guid_random_muid(&parq_ul->id);
+	/* Create a random ID */
+	guid_random_fill(&parq_ul->id);
 
 	g_assert(parq_ul->addr_and_name != NULL);
 
@@ -1903,8 +1905,11 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	queue = NULL;
 }
 
+/**
+ * Find the parq upload entry based on the PARQ ID found in the X-Queued header.
+ */
 static struct parq_ul_queued *
-parq_upload_find_id(header_t *header)
+parq_upload_find_id(const header_t *header)
 {
 	gchar *buf;
 
@@ -1938,17 +1943,20 @@ parq_upload_find_id(header_t *header)
  * rebuilt.
  */
 static gboolean
-parq_still_sharing(struct parq_ul_queued *parq_ul)
+parq_still_sharing(struct parq_ul_queued *uq)
 {
 	struct shared_file *sf;
 
-	if (parq_ul->sha1) {
-		sf = shared_file_by_sha1(parq_ul->sha1);
+	if (uq->flags & PARQ_UL_SPECIAL)
+		return TRUE;
+
+	if (uq->sha1) {
+		sf = shared_file_by_sha1(uq->sha1);
 		if (NULL == sf) {
 			if (GNET_PROPERTY(parq_debug))
 				g_message("[PARQ UL] We no longer share this file: "
 					"SHA1=%s \"%s\"",
-					sha1_base32(parq_ul->sha1), parq_ul->name);
+					sha1_base32(uq->sha1), uq->name);
 			return FALSE;
 		}
 		/* Either we have the file or we are rebuilding */
@@ -1961,17 +1969,17 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 		 * files over time, and new partials do have a SHA1 in the
 		 * PARQ data structure.
 		 */
-		sf = shared_file_by_name(parq_ul->name);
+		sf = shared_file_by_name(uq->name);
 		if (sf != SHARE_REBUILDING) {
 			if (NULL != sf && sha1_hash_available(sf)) {
-				parq_ul->sha1 = atom_sha1_get(shared_file_sha1(sf));
+				uq->sha1 = atom_sha1_get(shared_file_sha1(sf));
 				g_message("[PARQ UL] Found SHA1=%s for \"%s\"",
-					sha1_base32(parq_ul->sha1), parq_ul->name);
+					sha1_base32(uq->sha1), uq->name);
 				return TRUE;
 			} else {
 				if (GNET_PROPERTY(parq_debug))
 					g_message("[PARQ UL] We no longer share this file \"%s\"",
-						parq_ul->name);
+						uq->name);
 				return FALSE;
 			}
 		}
@@ -3023,15 +3031,12 @@ parq_upload_upload_got_freed(struct upload *u)
 /**
  * Get a queue slot, either existing or new.
  *
- * When `replacing' is TRUE, they issued a new request for a possibly
- * stalling entry, which was killed anyway, so give them a slot!
- *
  * @return slot as an opaque handle, NULL if slot cannot be created.
  */
 struct parq_ul_queued *
-parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
+parq_upload_get(struct upload *u, const header_t *header)
 {
-	struct parq_ul_queued *parq_ul;
+	struct parq_ul_queued *uq;
 	gchar *buf;
 
 	upload_check(u);
@@ -3039,24 +3044,22 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 
 	/*
 	 * Try to locate by ID first. If this fails, try to locate by IP and file
-	 * name. We want to locate on ID first as a client may reuse an ID.
-	 * Avoid abusing a PARQ entry by reusing an ID which already finished
-	 * uploading.
+	 * name. We want to locate on ID first as PARQ clients will always supply
+	 * the one they got already.
 	 */
 
-	parq_ul = parq_upload_find_id(header);
+	uq = parq_upload_find_id(header);
 
-	if (parq_ul != NULL) {
-		if (!parq_ul->had_slot)
-			goto cleanup;
-		if (!replacing)
-			parq_ul = NULL;
-	}
+	/*
+	 * If they supply a valid ID, they are always allowed to proceed even
+	 * when switching resources -- a practice that is encouraged anyway
+	 * nowadays, even if it can be seen unfair to others.
+	 */
 
-	if (parq_ul == NULL)
-		parq_ul = parq_upload_find(u);
+	if (uq == NULL)
+		uq = parq_upload_find(u);
 
-	if (parq_ul == NULL) {
+	if (uq == NULL) {
 		/*
 		 * Current upload is not queued yet. If the queue isn't full yet,
 		 * always add the upload in the queue.
@@ -3065,42 +3068,45 @@ parq_upload_get(struct upload *u, header_t *header, gboolean replacing)
 		if (parq_upload_queue_full(u))
 			return NULL;
 
-		parq_ul = parq_upload_create(u);
+		uq = parq_upload_create(u);
 
-		g_assert(parq_ul != NULL);
+		g_assert(uq != NULL);
 
 		if (GNET_PROPERTY(parq_debug) >= 3)
 			g_message("[PARQ UL] Q %d/%d (%3d[%3d]/%3d) "
 				"ETA: %s Added: %s '%s' %s",
-				parq_ul->queue->num,
+				uq->queue->num,
 				ul_parqs_cnt,
-				parq_ul->position,
-				parq_ul->relative_position,
-				parq_ul->queue->by_position_length,
+				uq->position,
+				uq->relative_position,
+				uq->queue->by_position_length,
 				short_time(parq_upload_lookup_eta(u)),
-				host_addr_to_string(parq_ul->remote_addr),
-				parq_ul->name, guid_hex_str(&parq_ul->id));
+				host_addr_to_string(uq->remote_addr),
+				uq->name, guid_hex_str(&uq->id));
 	}
 
-cleanup:
-	g_assert(parq_ul != NULL);
+	g_assert(uq != NULL);
 
-	/* XXX -- must allow "n" uploads from a host, not just 1 --RAM, 2007-08-17 */
-	if (parq_ul->u != NULL && parq_ul->u != u) {
+	/*
+	 * Regardless of the amount of simultaneous upload slots a host can get,
+	 * a given PARQ ID can only be used once.
+	 */
+	if (uq->u != NULL && uq->u != u) {
 		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
-				"upload %s while another one is still active within PARQ",
-				host_addr_to_string(u->addr), upload_vendor_str(u), u->name);
+				"upload %s whilst %s is still running",
+				host_addr_to_string(u->addr), upload_vendor_str(u), u->name,
+				uq->u->name);
 		}
 		return NULL;
 	}
 
 	if (
-		parq_ul->queue->by_date_dead != NULL &&
-		g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL
+		uq->queue->by_date_dead != NULL &&
+		g_list_find(uq->queue->by_date_dead, uq) != NULL
 	)
-		parq_ul->queue->by_date_dead =
-			  g_list_remove(parq_ul->queue->by_date_dead, parq_ul);
+		uq->queue->by_date_dead =
+			  g_list_remove(uq->queue->by_date_dead, uq);
 
 	/*
 	 * It is possible the client reused its ID for another file name, which is
@@ -3108,26 +3114,47 @@ cleanup:
 	 * in sync
 	 */
 
-	parq_upload_update_addr_and_name(parq_ul, u);
+	parq_upload_update_addr_and_name(uq, u);
 
-	if (!parq_ul->is_alive) {
-		parq_ul->queue->alive++;
-		parq_ul->is_alive = TRUE;
-		g_assert(parq_ul->queue->alive > 0);
-		g_assert(g_list_find(parq_ul->queue->by_rel_pos, parq_ul) == NULL);
+	/*
+	 * Update SHA-1 when they switch resources being asked.
+	 */
+
+	if (uq->sha1) {
+		if (u->sha1 != uq->sha1) {		/* Both are atoms */
+			if (u->sha1)
+				atom_sha1_change(&uq->sha1, u->sha1);
+			else
+				atom_sha1_free_null(&uq->sha1);
+			}
+		}
+	} else if (u->sha1) {
+		uq->sha1 = atom_sha1_get(u->sha1);
+	}
+
+	if (upload_is_special(u))
+		uq->flags |= PARQ_UL_SPECIAL;
+	else
+		uq->flags &= ~PARQ_UL_SPECIAL;
+
+	if (!uq->is_alive) {
+		uq->queue->alive++;
+		uq->is_alive = TRUE;
+		g_assert(uq->queue->alive > 0);
+		g_assert(g_list_find(uq->queue->by_rel_pos, uq) == NULL);
 
 		/* Re-insert in the relative position list, unless entry is frozen */
-		if (!(parq_ul->flags & PARQ_UL_FROZEN)) {
-			parq_upload_insert_relative(parq_ul);
-			parq_upload_recompute_relative_positions(parq_ul->queue, FALSE);
-			parq_upload_update_eta(parq_ul->queue);
+		if (!(uq->flags & PARQ_UL_FROZEN)) {
+			parq_upload_insert_relative(uq);
+			parq_upload_recompute_relative_positions(uq->queue, FALSE);
+			parq_upload_update_eta(uq->queue);
 		}
 	}
 
 	buf = header_get(header, "X-Queue");
 
 	if (buf != NULL)			/* Remote server does support queues */
-		get_header_version(buf, &parq_ul->major, &parq_ul->minor);
+		get_header_version(buf, &uq->major, &uq->minor);
 
 	/*
 	 * Update listening IP and port information
@@ -3137,7 +3164,7 @@ cleanup:
 	 *		--RAM, 11/05/2003
 	 */
 
-	if (parq_ul->major >= 1) {					/* Only if PARQ advertised */
+	if (uq->major >= 1) {					/* Only if PARQ advertised */
 		GList *l = NULL;
 
 		buf = header_get(header, "X-Node");
@@ -3156,24 +3183,24 @@ cleanup:
 			 * XXX multiple ports.
 			 */
 
-			for (l = parq_ul->by_addr->list; l != NULL; l = g_list_next(l)) {
-				struct parq_ul_queued *parq_ul_up = l->data;
+			for (l = uq->by_addr->list; l != NULL; l = g_list_next(l)) {
+				struct parq_ul_queued *puq = l->data;
 
-				string_to_host_addr_port(buf, NULL,
-					&parq_ul_up->addr, &parq_ul_up->port);
-				parq_ul_up->flags &= ~PARQ_UL_NOQUEUE;
+				string_to_host_addr_port(buf, NULL, &puq->addr, &puq->port);
+				puq->flags &= ~PARQ_UL_NOQUEUE;
 			}
 		}
 	}
 
-	/* Save pointer to structure. Don't forget to move it to
+	/*
+	 * Save pointer to structure. Don't forget to move it to
      * the cloned upload or remove the pointer when the struct
      * is freed
 	 */
 
-	parq_ul->u = u;
+	uq->u = u;
 
-	return parq_ul;
+	return uq;
 }
 
 /**

@@ -82,8 +82,7 @@ size_t parq_upload_add_headers(gchar *buf, size_t size,
 size_t parq_upload_add_header_id(gchar *buf, size_t size,
 	gpointer arg, guint32 flags);
 
-struct parq_ul_queued *parq_upload_get(struct upload *, header_t *,
-				gboolean replacing);
+struct parq_ul_queued *parq_upload_get(struct upload *, const header_t *);
 gboolean parq_upload_request(struct upload *);
 gboolean parq_upload_request_force(struct upload *, struct parq_ul_queued *);
 guint parq_upload_lookup_position(const struct upload *);
