@@ -108,6 +108,9 @@ gpointer walloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void wfree(gpointer ptr, size_t size);
 gpointer wrealloc(gpointer old, size_t old_size, size_t new_size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
+
+/* Don't define both an inline routine and a macro... */
+#ifndef TRACK_ZALLOC
 static inline gpointer wcopy(gconstpointer ptr, size_t size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
@@ -118,6 +121,7 @@ wcopy(gconstpointer ptr, size_t size)
 	memcpy(cp, ptr, size);
 	return cp;
 }
+#endif
 
 #endif	/* REMAP_ZALLOC */
 
