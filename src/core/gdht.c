@@ -308,7 +308,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			g_warning("discarding %s from %s for %s: invalid IP:port",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname);
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -320,7 +320,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			g_warning("discarding %s from %s for %s: hostile IP",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname);
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -333,7 +333,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 				"we have size=%lu, ALOC says %lu",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname, (gulong) fi->size, (gulong) filesize);
-		return;
+		goto cleanup;
 	}
 
 	/**
@@ -351,7 +351,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname, tth_base32(fi->tth), buf);
 		}
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -378,6 +378,12 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		tm_time(),
 		deconstify_gpointer(fi),
 		flags);
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (exvcnt)
+		ext_reset(exv, MAX_EXTVEC);
 }
 
 /**
@@ -611,7 +617,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 			g_warning("discarding %s from %s for GUID %s: no proxies found",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				guid_to_string(glk->guid));
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -651,6 +657,12 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 			host_addr_port_to_string(glk->addr, glk->port));
 
 	download_add_push_proxies(glk->guid, proxies, proxy_count);
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (exvcnt)
+		ext_reset(exv, MAX_EXTVEC);
 }
 
 /**
