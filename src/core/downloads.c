@@ -11672,10 +11672,9 @@ download_move_done(struct download *d, const gchar *pathname, guint elapsed)
 		file_info_moved(fi, pathname);
 
 		if (
-			fi->sha1 &&
-			GNET_PROPERTY(pfsp_server) &&
-			fi->size >= GNET_PROPERTY(pfsp_minimum_filesize) &&
+			fi->sha1 && GNET_PROPERTY(pfsp_server) &&
 			!(FI_F_TRANSIENT & fi->flags)
+			/* No size consideration here as the file is complete */
 		) {
 			fi->flags |= FI_F_SEEDING;
 		}
