@@ -102,7 +102,6 @@ typedef void (*lookup_cb_err_t)(
  */
 
 const char *lookup_strerror(lookup_error_t error);
-void lookup_free_value_results(const lookup_val_rs_t *rs);
 
 /*
  * User value lookups.

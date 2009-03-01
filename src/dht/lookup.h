@@ -122,7 +122,6 @@ nlookup_t *lookup_find_node(const kuid_t *kuid,
 
 void lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats);
 void lookup_cancel(nlookup_t *nl, gboolean callback);
-void lookup_free_results(const lookup_rs_t *rs);
 
 #endif	/* _dht_lookup_h_ */
 

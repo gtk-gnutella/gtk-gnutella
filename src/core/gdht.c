@@ -424,7 +424,6 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	}
 
 cleanup:
-	lookup_free_value_results(rs);
 	gdht_free_sha1_lookup(slk, TRUE);
 }
 
@@ -683,7 +682,6 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 		gdht_handle_prox(rc, glk);
 	}
 
-	lookup_free_value_results(rs);
 	gdht_free_guid_lookup(glk, TRUE);
 }
 

@@ -429,7 +429,7 @@ lookup_create_results(nlookup_t *nl)
 /**
  * Free node lookup results.
  */
-void
+static void
 lookup_free_results(const lookup_rs_t *results)
 {
 	lookup_rs_t *rs = deconstify_gpointer(results);
@@ -495,14 +495,21 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 /**
  * Free value result.
  */
-void
+static void
 lookup_free_value_results(const lookup_val_rs_t *results)
 {
 	lookup_val_rs_t *rs = deconstify_gpointer(results);
+	size_t i;
 
 	g_assert(rs);
 	g_assert(rs->count);
 	g_assert(rs->records);
+
+	for (i = 0; i < rs->count; i++) {
+		lookup_val_rc_t *rc = &rs->records[i];
+		if (rc->length)
+			wfree(deconstify_gpointer(rc->data), rc->length);
+	}
 
 	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
 	wfree(rs, sizeof *rs);
@@ -603,7 +610,7 @@ struct pmsg_info;
  * RPC layer.
  */
 struct rpc_info {
-	struct lookup_id lid;	/**< ID of the node lookup, to spot outdated replies */
+	struct lookup_id lid;	/**< ID of node lookup, to spot outdated replies */
 	struct pmsg_info *pmi;	/**< In case the RPC times out */
 	guint32 hop;			/**< The hop count when we sent it */
 	gboolean fetch_value;	/**< Signals the "fetch extra value" phase */
@@ -647,8 +654,8 @@ lookup_rpi_free(struct rpc_info *rpi)
  * for every message we're sending out.
  */
 struct pmsg_info {
-	struct lookup_id lid;	/**< ID of the node lookup, to spot outdated replies */
-	knode_t *kn;			/**< The node to which we sent it to (ref-counted) */
+	struct lookup_id lid;	/**< ID of node lookup, to spot outdated replies */
+	knode_t *kn;			/**< The node to which we sent it to (refcounted) */
 	struct rpc_info *rpi;	/**< Attached RPC info (for cancelling) */
 	gboolean rpc_done;		/**< TRUE if RPC times out before message sent */
 };
@@ -712,6 +719,7 @@ lookup_terminate(nlookup_t *nl)
 		if (nl->u.fn.ok) {
 			lookup_rs_t *rs = lookup_create_results(nl);
 			(*nl->u.fn.ok)(nl->kuid, rs, nl->arg);
+			lookup_free_results(rs);
 		} else if (nl->err) {
 			(*nl->err)(nl->kuid, LOOKUP_E_OK, nl->arg);
 		}
@@ -780,6 +788,7 @@ lookup_value_terminate(nlookup_t *nl,
 
 	(*nl->u.fv.ok)(nl->kuid, rs, nl->arg);
 
+	lookup_free_value_results(rs);
 	lookup_free(nl, TRUE);
 }
 
