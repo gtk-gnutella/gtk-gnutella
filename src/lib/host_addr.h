@@ -527,13 +527,17 @@ host_addr_is_ipv4_mapped(const host_addr_t addr)
 
 const gchar *host_addr_to_string(const host_addr_t addr);
 size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
-gboolean string_to_host_addr(const gchar *s, const gchar **endptr, host_addr_t *addr_ptr);
+gboolean string_to_host_addr(const gchar *s, const gchar **endptr,
+	host_addr_t *addr_ptr);
 const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
 const gchar *host_addr_port_to_string2(const host_addr_t addr, guint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
 				guint16 port, gchar *, size_t);
-gboolean string_to_host_addr_port(const gchar *str, const gchar **endptr,
+gboolean string_to_host_addr_port(const char *str, const char **endptr,
 	host_addr_t *addr_ptr, guint16 *port_ptr);
+gboolean
+string_to_port_host_addr(const char *str, const char **endptr,
+	guint16 *port_ptr, host_addr_t *addr_ptr);
 const gchar *host_port_to_string(const gchar *hostname,
 				host_addr_t addr, guint16 port);
 

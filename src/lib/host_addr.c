@@ -574,11 +574,23 @@ string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
 	return len > 0 && len <= MAX_HOSTLEN;
 }
 
+/**
+ * Parse "IP:port" string to retrieve the host address and port.
+ *
+ * @param str		the string to parse
+ * @param endptr	if not NULL, it will point the first character after
+ * 					the parsed elements.
+ * @param addr_ptr	where the parsed address is written
+ * @param port_ptr	where the parsed port is written
+ *
+ * @return TRUE if we parsed the string correctly, FALSE if it did not
+ * look like a valid "IP:port" string.
+ */
 gboolean
-string_to_host_addr_port(const gchar *str, const gchar **endptr,
+string_to_host_addr_port(const char *str, const char **endptr,
 	host_addr_t *addr_ptr, guint16 *port_ptr)
 {
-	const gchar *ep;
+	const char *ep;
 	host_addr_t addr;
 	gboolean ret;
 	guint16 port;
@@ -603,6 +615,47 @@ string_to_host_addr_port(const gchar *str, const gchar **endptr,
 		*port_ptr = port;
 	if (endptr)
 		*endptr = ep;
+
+	return ret;
+}
+
+/**
+ * Parse "port:IP" string to retrieve the host address and port.
+ *
+ * @param str		the string to parse
+ * @param endptr	if not NULL, it will point the first character after
+ * 					the parsed elements.
+ * @param port_ptr	where the parsed port is written
+ * @param addr_ptr	where the parsed address is written
+ *
+ * @return TRUE if we parsed the string correctly, FALSE if it did not
+ * look like a valid "port:IP" string.
+ */
+gboolean
+string_to_port_host_addr(const char *str, const char **endptr,
+	guint16 *port_ptr, host_addr_t *addr_ptr)
+{
+	const char *ep;
+	host_addr_t addr;
+	gboolean ret;
+	guint16 port;
+	guint32 u;
+	gint error;
+
+	u = parse_uint32(str, &ep, 10, &error);
+	port = error || u > 65535 ? 0 : u;
+	if (!error && ':' == *ep) {
+		ret = string_to_host_or_addr(ep, &ep, &addr);
+		ret = ret && is_host_addr(addr);
+	}
+
+	if (addr_ptr)
+		*addr_ptr = addr;
+	if (port_ptr)
+		*port_ptr = port;
+	if (endptr)
+		*endptr = ep;
+
 	return ret;
 }
 
