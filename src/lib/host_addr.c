@@ -461,6 +461,64 @@ host_addr_port_to_string2(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
+/**
+ * Prints the ``port'' followed by host address ``ha'' to ``dst''. The string
+ * written to ``dst'' is always NUL-terminated unless ``size'' is zero. If
+ * ``size'' is too small, the string will be truncated.
+ *
+ * @param dst the destination buffer; may be NULL iff ``size'' is zero.
+ * @param port the port number.
+ * @param ha the host address.
+ * @param size the size of ``dst'' in bytes.
+ *
+ * @return The length of the resulting string assuming ``size'' is sufficient.
+ */
+size_t
+host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
+	char *dst, size_t size)
+{
+	char port_buf[UINT32_DEC_BUFLEN];
+	char host_buf[HOST_ADDR_BUFLEN];
+	size_t n;
+
+	uint32_to_string_buf(port, port_buf, sizeof port_buf);
+	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
+
+	switch (host_addr_net(ha)) {
+	case NET_TYPE_IPV6:
+		n = concat_strings(dst, size, port_buf, ":[", host_buf, "]",
+			(void *) 0);
+		break;
+	case NET_TYPE_IPV4:
+		n = concat_strings(dst, size, port_buf, ":", host_buf, (void *) 0);
+		break;
+	default:
+		n = g_strlcpy(dst, host_buf, size);
+	}
+
+	return n;
+}
+
+/**
+ * Prints the host address ``ha'' followed by ``port'' to a static buffer. 
+ *
+ * @param ha the host address.
+ * @param port the port number.
+ *
+ * @return a pointer to a static buffer holding a NUL-terminated string
+ *         representing the given host address and port.
+ */
+const gchar *
+host_port_addr_to_string(guint16 port, const host_addr_t ha)
+{
+	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	size_t n;
+
+	n = host_port_addr_to_string_buf(port, ha, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
 const char *
 host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
 {
