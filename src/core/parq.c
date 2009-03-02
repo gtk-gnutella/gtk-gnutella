@@ -3122,9 +3122,10 @@ parq_upload_get(struct upload *u, const header_t *header)
 
 	if (uq->sha1) {
 		if (u->sha1 != uq->sha1) {		/* Both are atoms */
-			if (u->sha1)
+			if (u->sha1) {
 				atom_sha1_change(&uq->sha1, u->sha1);
-			else
+            }
+			else {
 				atom_sha1_free_null(&uq->sha1);
 			}
 		}
