@@ -156,13 +156,21 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 			 * After a rescan, there might be files in the queue which are
 			 * no longer shared.
 			 */
+
+			if (GNET_PROPERTY(verify_debug) > 1) {
+				g_message("skipping TTH computation for %s: no longer shared",
+					shared_file_path(sf));
+			}
 			return FALSE;
 		}
 		if (
 			shared_file_tth(sf) &&
 			tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
 		) {
-			if (GNET_PROPERTY(tigertree_debug) > 1) {
+			if (
+				GNET_PROPERTY(tigertree_debug) > 1 ||
+				GNET_PROPERTY(verify_debug) > 1
+			) {
 				g_message("TTH for %s is already cached (%s)",
 					shared_file_path(sf), tth_base32(shared_file_tth(sf)));
 			}

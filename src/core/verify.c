@@ -362,8 +362,11 @@ verify_next_file(struct verify *ctx)
 
 	verify_check(ctx);
 
+pick_next:
 	item = ctx->files_to_hash ? hash_list_shift(ctx->files_to_hash) : NULL;
 	if (item) {
+		gboolean skipped = FALSE;
+
 		verify_file_check(item);
 
 		ctx->user_data = item->user_data;
@@ -386,8 +389,18 @@ verify_next_file(struct verify *ctx)
 				g_warning("failed to open \"%s\" for %s hashing: %s",
 					verify_hash_name(ctx), item->pathname, g_strerror(errno));
 			}
+		} else {
+			skipped = TRUE;
+
+			if (GNET_PROPERTY(verify_debug)) {
+				g_message("discarding request of %s digest for %s",
+					verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+			}
 		}
 		verify_file_free(&item);
+
+		if (skipped)
+			goto pick_next;
 
 		if (NULL == ctx->file) {
 			goto error;
