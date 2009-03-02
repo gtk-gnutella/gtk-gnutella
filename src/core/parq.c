@@ -3117,6 +3117,14 @@ parq_upload_get(struct upload *u, const header_t *header)
 	parq_upload_update_addr_and_name(uq, u);
 
 	/*
+	 * Count SHA-1 resource switches.  We miss switches between special
+	 * uploads, which have no SHA-1.
+	 */
+
+	if (uq->sha1 != u->sha1)
+		gnet_stats_count_general(GNR_PARQ_SLOT_RESOURCE_SWITCHING, 1);
+
+	/*
 	 * Update SHA-1 when they switch resources being asked.
 	 */
 

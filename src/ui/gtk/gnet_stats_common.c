@@ -148,6 +148,7 @@ general_type_str(gint value)
 		N_("Ignoring refused (data too large or server too slow)"),
 		N_("Client resource switching (all detected)"),
 		N_("Client resource switching between plain files"),
+		N_("Client resource switching seen in PARQ slots (SHA-1 based)"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("DHT keys held"),
 		N_("DHT values held"),
