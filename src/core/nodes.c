@@ -9156,8 +9156,9 @@ node_proxy_cancel_all(void)
 /**
  * HTTP status callback.
  *
- * If we are still firewalled and have push-proxies, let the downloader
- * know about them via the X-Push-Proxy header.
+ * If we are still firewalled or have push-proxies, let the downloader
+ * know about our attributes via the X-FW-Node-Info header or our push-proxies
+ * via the X-Push-Proxy header.
  */
 size_t
 node_http_proxies_add(gchar *buf, size_t size,
@@ -9168,10 +9169,57 @@ node_http_proxies_add(gchar *buf, size_t size,
 	(void) unused_arg;
 	(void) unused_flags;
 
-	if (GNET_PROPERTY(is_firewalled) && sl_proxies != NULL) {
-		header_t *fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
-		GSList *sl;
+	/*
+	 * If node is firewalled, send basic information: GUID and port:IP
+	 */
+
+	if (GNET_PROPERTY(is_firewalled)) {
+		header_t *fmt;
 		size_t len;
+		struct guid guid;
+		guint16 port = socket_listen_port();
+
+		fmt = header_fmt_make("X-FW-Node-Info", "; ", 0);
+
+		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+		header_fmt_append_value(fmt, guid_to_string(&guid));
+
+#if 0
+		/* No FWT support yet */
+		header_fmt_append_value(fmt, "fwt/1");
+#endif
+
+		if (host_is_valid(listen_addr(), port)) {
+			header_fmt_append_value(fmt,
+				host_port_addr_to_string(port, listen_addr()));
+		} else if (host_is_valid(listen_addr6(), port)) {
+			header_fmt_append_value(fmt,
+				host_port_addr_to_string(port, listen_addr6()));
+		}
+
+		header_fmt_end(fmt);
+		len = header_fmt_length(fmt);
+
+		if (len < size) {
+			strncpy(buf, header_fmt_string(fmt), size);
+			rw += len;
+		}
+
+		header_fmt_free(fmt);
+	}
+
+	/*
+	 * If we have known push proxies, whether we are firewalled or not,
+	 * send them out.  LimeWire combines that in the X-FW-Node-Info header,
+	 * but for legacy reasons, it's best to continue to emit X-Push-Proxies
+	 * as this is what the majority of servents out there expect.
+	 *		--RAM, 2009-03-02
+	 */
+
+	if (sl_proxies != NULL) {
+		header_t *fmt = header_fmt_make("X-Push-Proxies", ", ", 0);
+		size_t len;
+		GSList *sl;
 
 		for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
 			struct gnutella_node *n = sl->data;
@@ -9187,13 +9235,14 @@ node_http_proxies_add(gchar *buf, size_t size,
 		header_fmt_end(fmt);
 		len = header_fmt_length(fmt);
 
-		if (len < size) {
-			strncpy(buf, header_fmt_string(fmt), size);
+		if (len < size - rw) {
+			strncpy(&buf[rw], header_fmt_string(fmt), size - rw);
 			rw += len;
 		}
 
 		header_fmt_free(fmt);
 	}
+
 	return rw; /* Tell them how much we wrote into `buf' */
 }
 
