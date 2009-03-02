@@ -591,21 +591,20 @@ struct header_fmt {
 
 /**
  * Compute the length of the string `s' whose length is `len' with trailing
- * whitespace ignored.
+ * blanks ignored.
  */
 static gint
-stripped_strlen(const gchar *s, gint len)
+stripped_strlen(const char *s, gint len)
 {
-	const gchar *end = s + len;
+	const char *end = s + len;
 	gint i;
 
 	/*
 	 * Locate last non-space char in separator.
 	 */
 
-	/* XXX: Shouldn't this allow at least \t or maybe use isspace()? */
 	for (i = len - 1; i >= 0; i--, end--) {
-		if (s[i] != ' ')
+		if (!is_ascii_blank(s[i]))
 			return end - s;
 	}
 
