@@ -1531,10 +1531,11 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 	}
 
 	/*
-	 * Send X-Features on error too.
-	 *		-- JA, 03/11/2003
+	 * Send X-Features and X-FW-Node-Info on errors as well.
 	 */
+
 	upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
+	upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
 
 	/*
 	 * If the download got queued, also add the queueing information
@@ -1611,15 +1612,10 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
-	 *
-	 * If we are firewalled, let them know about our push proxies, if we
-	 * have ones.
 	 */
 
 	if (u->push && !GNET_PROPERTY(is_firewalled)) {
 		upload_http_extra_callback_add(u, upload_http_xhost_add, NULL);
-	} else if (GNET_PROPERTY(is_firewalled)) {
-		upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
 	}
 
 	/*
