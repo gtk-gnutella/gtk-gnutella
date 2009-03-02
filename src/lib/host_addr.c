@@ -655,13 +655,11 @@ string_to_host_addr_port(const char *str, const char **endptr,
 
 	ret = string_to_host_or_addr(str, &ep, &addr);
 	if (ret && ':' == *ep && is_host_addr(addr)) {
-		guint32 u;
-		gint error;
+		int error;
 
 		ep++;
-		u = parse_uint32(ep, &ep, 10, &error);
-		port = error || u > 65535 ? 0 : u;
-		ret = 0 != port;
+		port = parse_uint16(ep, &ep, 10, &error);
+		ret = 0 == error && 0 != port;
 	} else {
 		ret = FALSE;
 		port = 0;
@@ -697,14 +695,15 @@ string_to_port_host_addr(const char *str, const char **endptr,
 	host_addr_t addr;
 	gboolean ret;
 	guint16 port;
-	guint32 u;
-	gint error;
+	int error;
 
-	u = parse_uint32(str, &ep, 10, &error);
-	port = error || u > 65535 ? 0 : u;
+	port = parse_uint16(str, &ep, 10, &error);
 	if (!error && ':' == *ep) {
 		ret = string_to_host_or_addr(ep, &ep, &addr);
 		ret = ret && is_host_addr(addr);
+	} else {
+		addr = zero_host_addr;
+		ret = FALSE;
 	}
 
 	if (addr_ptr)
