@@ -1682,7 +1682,8 @@ route_query_hit(struct route_log *route_log,
 	const struct guid *origin_guid;
 
 	g_assert(sender->size >= GUID_RAW_SIZE);
-   	origin_guid = cast_to_guid_ptr_const(&sender->data[sender->size - GUID_RAW_SIZE]);
+   	origin_guid =
+		cast_to_guid_ptr_const(&sender->data[sender->size - GUID_RAW_SIZE]);
 
 	/*
 	 * We have to record we have seen a hit reply from the GUID held at
