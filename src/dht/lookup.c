@@ -903,7 +903,7 @@ lookup_value_create(nlookup_t *nl, float load,
 
 	for (i = 0; i < fv->vcnt; i++) {
 		dht_value_t *v = fv->vvec[i];
-		map_insert(fv->seen, v->id, v);
+		map_insert(fv->seen, v->creator->id, v);
 	}
 
 	g_assert(lookup_is_fetching(nl));
@@ -991,14 +991,16 @@ lookup_value_append(nlookup_t *nl, float load,
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
 
-		if (!map_contains(fv->seen, v->id)) {
+		if (!map_contains(fv->seen, v->creator->id)) {
 			g_assert(fv->vcnt < fv->vsize);
 			fv->vvec[fv->vcnt++] = v;
-			map_insert(fv->seen, v->id, v);
+			map_insert(fv->seen, v->creator->id, v);
 		} else {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
 				g_message("DHT LOOKUP[%s] ignoring duplicate value %s",
 					lookup_id_to_string(nl->lid), dht_value_to_string(v));
+
+			dht_value_free(v, TRUE);
 		}
 	}
 
