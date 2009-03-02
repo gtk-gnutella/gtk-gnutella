@@ -394,7 +394,7 @@ pick_next:
 
 			if (GNET_PROPERTY(verify_debug)) {
 				g_message("discarding request of %s digest for %s",
-					verify_hash_name(ctx), file_object_get_pathname(ctx->file));
+					verify_hash_name(ctx), item->pathname);
 			}
 		}
 		verify_file_free(&item);
