@@ -124,7 +124,11 @@ static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
 
 static const host_addr_t ipv4_loopback = {	/* 127.0.0.1/32 */
 	NET_TYPE_IPV4,
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 	{ { 0x7f, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+#else
+	{ { 0x01, 0x00, 0x00, 0x7f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+#endif
 };
 
 static const host_addr_t ipv6_unspecified = {	/* ::/128 */
@@ -540,6 +544,9 @@ string_to_port_host_addr(const char *str, const char **endptr,
 	guint16 *port_ptr, host_addr_t *addr_ptr);
 const gchar *host_port_to_string(const gchar *hostname,
 				host_addr_t addr, guint16 port);
+const gchar *host_port_addr_to_string(guint16 port, const host_addr_t ha);
+size_t host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
+	char *dst, size_t size);
 
 GSList *name_to_host_addr(const gchar *host, enum net_type net);
 void host_addr_free_list(GSList **sl_ptr);
