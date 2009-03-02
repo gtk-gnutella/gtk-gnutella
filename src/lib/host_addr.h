@@ -544,7 +544,7 @@ string_to_port_host_addr(const char *str, const char **endptr,
 	guint16 *port_ptr, host_addr_t *addr_ptr);
 const gchar *host_port_to_string(const gchar *hostname,
 				host_addr_t addr, guint16 port);
-const gchar *host_port_addr_to_string(guint16 port, const host_addr_t ha);
+const gchar *port_host_addr_to_string(guint16 port, const host_addr_t ha);
 size_t host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
 	char *dst, size_t size);
 

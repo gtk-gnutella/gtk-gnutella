@@ -9191,10 +9191,10 @@ node_http_proxies_add(gchar *buf, size_t size,
 
 		if (host_is_valid(listen_addr(), port)) {
 			header_fmt_append_value(fmt,
-				host_port_addr_to_string(port, listen_addr()));
+				port_host_addr_to_string(port, listen_addr()));
 		} else if (host_is_valid(listen_addr6(), port)) {
 			header_fmt_append_value(fmt,
-				host_port_addr_to_string(port, listen_addr6()));
+				port_host_addr_to_string(port, listen_addr6()));
 		}
 
 		header_fmt_end(fmt);

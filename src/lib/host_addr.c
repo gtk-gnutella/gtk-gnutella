@@ -509,7 +509,7 @@ host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
  *         representing the given host address and port.
  */
 const gchar *
-host_port_addr_to_string(guint16 port, const host_addr_t ha)
+port_host_addr_to_string(guint16 port, const host_addr_t ha)
 {
 	static gchar buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
