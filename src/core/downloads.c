@@ -1925,13 +1925,50 @@ download_found_server(const struct guid *guid,
 	server = g_hash_table_lookup(dl_by_guid, guid);
 
 	if (NULL == server) {
-		if (GNET_PROPERTY(download_debug))
+		if (GNET_PROPERTY(download_debug)) {
 			g_message("discovered GUID %s is for host %s, but server is gone!",
 				guid_to_string(guid), host_addr_port_to_string(addr, port));
+		}
+
+		/*
+		 * Locate server by address/port to see whether we already knew about
+		 * that host and whether it had a blank GUID, in which case we can
+		 * now put the GUID we discovered.
+		 */
+
+		if (host_is_valid(addr, port)) {
+			struct dl_addr ipk;
+
+			ipk.addr = addr;
+			ipk.port = port;
+
+			server = g_hash_table_lookup(dl_by_addr, &ipk);
+
+			if (server && guid_is_blank(server->key->guid)) {
+				struct dl_key *key = server->key;
+
+				if (GNET_PROPERTY(download_debug)) {
+					g_message("discovered GUID %s is for host %s "
+						"which had a blank GUID", guid_to_string(guid),
+						host_addr_port_to_string(addr, port));
+				}
+
+				atom_guid_change(&key->guid, guid);
+				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
+			}
+		}
+
 		return;
 	}
 
 	g_assert(dl_server_valid(server));
+
+	/*
+	 * Check whether something changed at all.
+	 */
+
+	if (host_addr_equal(addr, server->key->addr) && port == server->key->port)
+		return;
 
 	if (GNET_PROPERTY(download_debug))
 		g_message("discovered GUID %s is for host %s (was %s)",
@@ -8136,11 +8173,22 @@ collect_locations:
 static void
 check_push_proxies(struct download *d, header_t *header)
 {
-	gchar *buf;
-	const gchar *tok;
+	char *buf;
+	const char *tok;
+	const char *msg;
 	GSList *sl = NULL;
 
 	download_check(d);
+
+	/*
+	 * When LW node supports firewalled-to-firewalled transfers, it sends
+	 * its proxy information in a X-FW-Node-Info header, which encompasses
+	 * the information one could find in X-Push-Proxies.
+	 */
+
+	buf = header_get(header, "X-FW-Node-Info");
+	if (buf)
+		goto parse_fwt;
 
 	/*
 	 * The newest specifications say that the header to be used
@@ -8162,13 +8210,16 @@ check_push_proxies(struct download *d, header_t *header)
 		host_addr_t addr;
 		guint16 port;
 
+		/* TODO: handle pptls=<hex> */
+		if (is_strcaseprefix(tok, "pptls="))
+			continue;
+
 		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
 			continue;
 
-
-		if (is_private_addr(addr)) {
-			g_message("host %s sent a private IP address as Push-Proxy.",
-				download_host_info(d));
+		if (is_private_addr(addr) || !host_addr_is_routable(addr)) {
+			g_message("host %s sent non-routable IP address %s as push-proxy",
+				download_host_info(d), host_addr_to_string(addr));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
 			gnet_host_set(host, addr, port);
@@ -8176,9 +8227,100 @@ check_push_proxies(struct download *d, header_t *header)
 		}
 	}
 
+	goto done;	/* Avoid too deep indentation */
+
+parse_fwt:
+	/*
+	 * An X-FW-Node-Info header looks like this:
+	 *
+	 *  X-FW-Node-Info: 9DBC52EEEBCA2C8A79036D626B959900;fwt/1;
+	 *		26252:85.182.49.3;
+	 *		pptls=E;69.12.88.95:1085;64.53.20.48:804;66.17.23.159:343
+	 *
+	 * We learn the GUID of the node, its address (in reversed port:IP format)
+	 * and the push-proxies.
+	 */
+
+	{
+		struct guid guid;
+		gboolean seen_proxy = FALSE;
+		gboolean seen_guid = FALSE;
+		gboolean seen_pptls = FALSE;
+
+		for (tok = strtok(buf, ";"); tok; tok = strtok(NULL, ";")) {
+			host_addr_t addr;
+			guint16 port;
+
+			/* GUID is the first item we expect */
+			if (!seen_guid) {
+				if (!hex_to_guid(tok, &guid)) {
+					msg = "bad leading GUID";
+					goto fwt_error;
+				}
+				seen_guid = TRUE;
+				continue;
+			}
+
+			/* Skip "options", stated as "word/x.y" */
+			if (strstr(tok, "/"))
+				continue;
+
+			/* Skip first "pptsl=" indication */
+			if (!seen_pptls) {
+				/* TODO: handle pptls=<hex> */
+				if (is_strcaseprefix(tok, "pptls=")) {
+					seen_pptls = TRUE;
+					continue;
+				}
+			}
+
+			/*
+			 * If we find a valid port:IP host, then these are the remote
+			 * server address and port.
+			 */
+
+			if (
+				!seen_proxy &&
+				string_to_port_host_addr(tok, NULL, &port, &addr)
+			) {
+				if (!is_private_addr(addr) && host_addr_is_routable(addr)) {
+					if (
+						!host_addr_equal(download_addr(d), addr) ||
+						download_port(d) != port
+					)
+						change_server_addr(d->server, addr, port);
+
+					download_found_server(&guid, addr, port);
+				}
+				continue;
+			}
+
+			if (!string_to_host_addr_port(tok, NULL, &addr, &port))
+				continue;
+
+			seen_proxy = TRUE;
+
+			if (is_private_addr(addr) || !host_addr_is_routable(addr)) {
+				g_message(
+					"host %s sent non-routable IP address %s as push-proxy",
+					download_host_info(d), host_addr_to_string(addr));
+			} else {
+				gnet_host_t *host = walloc(sizeof *host);
+				gnet_host_set(host, addr, port);
+				sl = g_slist_prepend(sl, host);
+			}
+		}
+	}
+
+done:
 	free_proxies(d->server);
 	d->server->proxies = sl;
 	d->server->proxies_stamp = tm_time();
+	return;
+
+fwt_error:
+	if (GNET_PROPERTY(download_debug))
+		g_warning("could not parse 'X-FW-Node-Info: %s' -- %s", buf, msg);
 }
 
 /**
