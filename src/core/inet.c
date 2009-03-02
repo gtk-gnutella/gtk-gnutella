@@ -258,6 +258,11 @@ is_local_addr(const host_addr_t addr)
 	if (is_my_address(addr))
 		return TRUE;
 
+	if (host_addr_equal(addr, ipv4_loopback))
+		return TRUE;
+	if (host_addr_equal(addr, ipv6_loopback))
+		return TRUE;
+
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
 	case NET_TYPE_IPV6:
@@ -404,8 +409,15 @@ inet_udp_not_firewalled(void)
 void
 inet_got_incoming(const host_addr_t addr)
 {
-	if (is_local_addr(addr))
+	if (is_local_addr(addr)) {
+		if (GNET_PROPERTY(dbg))
+			g_message("FW: not counting local connection from %s",
+				host_addr_to_string(addr));
 		return;
+	}
+
+	if (GNET_PROPERTY(dbg) > 19)
+		g_message("FW: got TCP connection from %s", host_addr_to_string(addr));
 
 	/*
 	 * If we get an incoming connection from the outside, we're surely
