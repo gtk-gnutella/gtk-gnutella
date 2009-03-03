@@ -1406,21 +1406,14 @@ server_list_free_all(struct dl_server *server)
 }
 
 /**
- * Free server structure.
+ * Unregister server so that get_server() may no longer find it.
  */
 static void
-free_server(struct dl_server *server)
+server_unregister(struct dl_server *server)
 {
 	struct dl_addr ipk;
 
 	g_assert(dl_server_valid(server));
-	g_assert(server->refcnt == 0);
-	g_assert(server_list_length(server, DL_LIST_RUNNING) == 0);
-	g_assert(server_list_length(server, DL_LIST_WAITING) == 0);
-	g_assert(server_list_length(server, DL_LIST_STOPPED) == 0);
-	g_assert(server->list[DL_LIST_RUNNING] == NULL);
-	g_assert(server->list[DL_LIST_WAITING] == NULL);
-	g_assert(server->list[DL_LIST_STOPPED] == NULL);
 
 	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
@@ -1456,9 +1449,34 @@ free_server(struct dl_server *server)
 	}
 
 	/*
-	 * Get rid of the known push proxies, if any.
+	 * Given there can be GUID collisions, make sure it is this entry which
+	 * is listed in the `dl_by_guid' table.  Only non-blank GUIDs are stored.
 	 */
 
+	if (
+		!guid_is_blank(server->key->guid) &&
+		g_hash_table_lookup(dl_by_guid, server->key->guid) == server
+	) {
+		g_hash_table_remove(dl_by_guid, server->key->guid);
+	}
+}
+
+/**
+ * Free server structure.
+ */
+static void
+free_server(struct dl_server *server)
+{
+	g_assert(dl_server_valid(server));
+	g_assert(server->refcnt == 0);
+	g_assert(server_list_length(server, DL_LIST_RUNNING) == 0);
+	g_assert(server_list_length(server, DL_LIST_WAITING) == 0);
+	g_assert(server_list_length(server, DL_LIST_STOPPED) == 0);
+	g_assert(server->list[DL_LIST_RUNNING] == NULL);
+	g_assert(server->list[DL_LIST_WAITING] == NULL);
+	g_assert(server->list[DL_LIST_STOPPED] == NULL);
+
+	server_unregister(server);
 	free_proxies(server);
 	atom_str_free_null(&server->hostname);
 	server_list_free_all(server);
@@ -1473,18 +1491,6 @@ free_server(struct dl_server *server)
 	}
 	g_hash_table_destroy(server->sha1_counts);
 	server->sha1_counts = NULL;
-
-	/*
-	 * Given there can be GUID collisions, make sure it is this entry which
-	 * is listed in the `dl_by_guid' table.  Only non-blank GUIDs are stored.
-	 */
-
-	if (
-		!guid_is_blank(server->key->guid) &&
-		g_hash_table_lookup(dl_by_guid, server->key->guid) == server
-	) {
-		g_hash_table_remove(dl_by_guid, server->key->guid);
-	}
 
 	atom_str_free_null(&server->vendor);
 	atom_guid_free_null(&server->key->guid);
@@ -1622,7 +1628,11 @@ download_reparent_all(struct dl_server *duplicate, struct dl_server *server)
 			download_reparent(d, server);
 	}
 
-	g_assert(duplicate->attrs & DLS_A_REMOVED);
+	/*
+	 * Make sure get_server() no longer returns it
+	 */
+
+	server_unregister(duplicate);
 }
 
 /**
@@ -2179,6 +2189,62 @@ download_add_push_proxies(const struct guid *guid,
 }
 
 /**
+ * Wakeup call when we get a fresh list of push-proxies for a server.
+ * Re-send UDP push-requests to those expecting a GIV and those in a
+ * "timeout wait" state.
+ */
+static void
+download_push_proxy_wakeup(struct dl_server *server)
+{
+	list_iter_t *iter;
+	guint32 n = GNET_PROPERTY(max_host_downloads);
+	time_t now;
+
+	if (NULL == server->proxies)
+		return;
+
+	/*
+	 * Send a UDP push request to the `n' first download we find waiting
+	 * for a GIV from this server, with n = the max number of downloads
+	 * we can request from a single server.
+	 */
+
+	iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter) && n != 0) {
+		struct download *d = list_iter_next(iter);
+		download_check(d);
+		if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+			download_send_push_request(d, FALSE);	/* UDP only */
+			n--;
+		}
+	}
+	list_iter_free(&iter);
+
+	/*
+	 * If we still have some slots for this host, look at downloads
+	 * in the "timeout" state which we can restart.
+	 */
+
+	if (n == 0)
+		return;
+
+	now = tm_time();
+
+	iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter) && n != 0) {
+		struct download *d = list_iter_next(iter);
+		download_check(d);
+		if (delta_time(now, d->retry_after) < 0)
+			break;		/* List is sorted */
+		if (GTA_DL_TIMEOUT_WAIT == d->status) {
+			download_send_push_request(d, FALSE);	/* UDP only */
+			n--;
+		}
+	}
+	list_iter_free(&iter);
+}
+
+/**
  * Lookup for push proxies is finished.
  */
 void
@@ -2192,25 +2258,7 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 
 	server->attrs &= ~DLS_A_DHT_PROX;
 
-	/*
-	 * Send a UDP push request to the first download we find waiting
-	 * for a GIV from this server.
-	 */
-
-	if (server->proxies) {
-		list_iter_t *iter;
-		
-		iter = list_iter_before_head(server->list[DL_LIST_WAITING]);
-		while (list_iter_has_next(iter)) {
-			struct download *d = list_iter_next(iter);
-			download_check(d);
-			if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
-				download_send_push_request(d, FALSE);	/* UDP only */
-				break;
-			}
-		}
-		list_iter_free(&iter);
-	}
+	download_push_proxy_wakeup(server);
 }
 
 /**
@@ -2423,7 +2471,12 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 	}
 }
 
-
+/**
+ * Are two downloads equivalent?
+ *
+ * If both have a SHA-1, then they must match, otherwise both the file
+ * size and name must be identical.
+ */
 static gboolean
 download_eq(gconstpointer p, gconstpointer q)
 {
@@ -2451,6 +2504,10 @@ download_eq(gconstpointer p, gconstpointer q)
 	return FALSE;
 }
 
+/**
+ * Lookup in the supplied server list whether we hold a matching file entry,
+ * as identified by its file name, file size and SHA1.
+ */
 static struct download *
 server_list_lookup(const struct dl_server *server, enum dl_list idx,
 	const struct sha1 *sha1, const gchar *file, filesize_t size)
@@ -2552,22 +2609,18 @@ server_list_remove_download(struct dl_server *server, enum dl_list idx,
 
 /**
  * Check whether we already have an identical (same file, same SHA1, same host)
- * running or queued download.
+ * running or queued download in the server.
  *
- * @returns found active download, or NULL if we have no such download yet.
+ * @return the found active download, or NULL if the server has no such
+ * download yet.
  */
 static struct download *
-has_same_download(
-	const gchar *file, const struct sha1 *sha1, filesize_t size,
-	const struct guid *guid, const host_addr_t addr, guint16 port)
+server_has_same_download(struct dl_server *server,
+	const gchar *file, const struct sha1 *sha1, filesize_t size)
 {
 	static const enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
-	struct dl_server *server = get_server(guid, addr, port, FALSE);
 	struct download *d;
 	guint i;
-
-	if (server == NULL)
-		return NULL;
 
 	g_assert(dl_server_valid(server));
 
@@ -2592,6 +2645,22 @@ has_same_download(
 	}
 
 	return NULL;
+}
+
+/**
+ * Check whether we already have an identical (same file, same SHA1, same host)
+ * running or queued download.
+ *
+ * @returns found active download, or NULL if we have no such download yet.
+ */
+static struct download *
+has_same_download(
+	const gchar *file, const struct sha1 *sha1, filesize_t size,
+	const struct guid *guid, const host_addr_t addr, guint16 port)
+{
+	struct dl_server *server = get_server(guid, addr, port, FALSE);
+
+	return server ? server_has_same_download(server, file, sha1, size) : NULL;
 }
 
 static gboolean
@@ -3213,11 +3282,82 @@ static void
 download_reparent(struct download *d, struct dl_server *new_server)
 {
 	enum dl_list list_idx;
+	struct download *other;
 
 	download_check(d);
 	g_assert(dl_server_valid(d->server));
 
+	/*
+	 * If not stopped, make sure we do not have a duplicate (same download
+	 * attached originally to two different servers).
+	 */
+
+	switch (d->list_idx) {
+	case DL_LIST_STOPPED:
+		/* Does not matter, it's stopped -- we'll recheck on manual resume */
+		break;
+	case DL_LIST_RUNNING:
+		other = server_has_same_download(new_server,
+			d->file_name, d->sha1, d->file_size);
+
+		/*
+		 * If duplicate found, abort the duplicate unless it is active
+		 * and we are not (the "running" list contains downloads which
+		 * sent a PUSH, for instance, but which are not active yet).
+		 */
+
+		if (other != NULL) {
+			if (DOWNLOAD_IS_ACTIVE(d)) {
+				goto stop_other;
+			} else if (DOWNLOAD_IS_PARQED(d)) {
+				if (DOWNLOAD_IS_ACTIVE(other)) {
+					goto stop_this;
+				} else if (DOWNLOAD_IS_PARQED(other)) {
+					if (get_parq_dl_position(d) > get_parq_dl_position(other))
+						goto stop_this;
+					else
+						goto stop_other;
+				} else {
+					goto stop_other;
+				}
+			} else {
+				goto stop_other;
+			}
+		}
+		break;
+	case DL_LIST_WAITING:
+		other = server_has_same_download(new_server,
+			d->file_name, d->sha1, d->file_size);
+
+		/*
+		 * If duplicate found, do not reparent this download, just stop it.
+		 */
+
+		if (other != NULL)
+			goto stop_this;
+		break;
+	case DL_LIST_INVALID:
+	case DL_LIST_SZ:
+		g_assert_not_reached();
+	}
+
+reparent:
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_message("reparenting \"%s\", moving from %s/%s to %s/%s",
+			download_basename(d), guid_hex_str(download_guid(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+			guid_to_string(new_server->key->guid),
+			host_addr_port_to_string2(
+				new_server->key->addr, new_server->key->port));
+	}
+
+	/*
+	 * Remove download from its current server.
+	 */
+
 	list_idx = d->list_idx;			/* Save index, before removal from server */
+
 	download_remove_from_server(d, FALSE);	/* Server reclaimed later */
 	download_reclaim_server(d, TRUE);		/* Delays free if empty */
 	d->server = new_server;
@@ -3231,6 +3371,40 @@ download_reparent(struct download *d, struct dl_server *new_server)
 	d->list_idx = DL_LIST_INVALID;	/* Pre-cond. for download_add_to_list() */
 
 	download_add_to_list(d, list_idx);
+	return;
+
+stop_this:
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_message("stopping \"%s\" from %s/%s: "
+			"duplicate in %s/%s \"%s\"",
+			download_basename(d), guid_hex_str(download_guid(d)),
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+			guid_to_string(new_server->key->guid),
+			host_addr_port_to_string2(
+				new_server->key->addr, new_server->key->port),
+			download_basename(other));
+	}
+
+	/* So we may call download_stop */
+	download_set_status(d, GTA_DL_CONNECTING);
+	download_move_to_list(d, DL_LIST_RUNNING);
+	download_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+
+	goto reparent;
+
+stop_other:
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_message("duplicate \"%s\" stopped in %s/%s",
+			download_basename(d), guid_to_string(new_server->key->guid),
+			host_addr_port_to_string(
+				new_server->key->addr, new_server->key->port));
+	}
+
+	download_stop(other, GTA_DL_ERROR, _("Duplicate download"));
+
+	goto reparent;
 }
 
 /**
@@ -5473,8 +5647,7 @@ create_download(
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	d = has_same_download(file_name, sha1, size, guid,
-			server->key->addr, server->key->port);
+	d = server_has_same_download(server, file_name, sha1, size);
 	if (d) {
 		download_check(d);
 		atom_str_free_null(&file_name);
@@ -6325,8 +6498,7 @@ download_resume(struct download *d)
 	g_return_if_fail(d->list_idx == DL_LIST_STOPPED);
 
 	if (
-		has_same_download(d->file_name, d->sha1, d->file_size,
-			download_guid(d), download_addr(d), download_port(d))
+		server_has_same_download(d->server, d->file_name, d->sha1, d->file_size)
 	) {
 		/* So we may call download_stop */
 		download_set_status(d, GTA_DL_CONNECTING);
@@ -6384,6 +6556,20 @@ download_request_requeue(struct download *d)
 		return;
 
 	download_requeue(d);
+}
+
+/**
+ * Do we have push-proxies to use for a download?
+ */
+static gboolean
+has_push_proxies(const struct download *d)
+{
+	struct dl_server *server = d->server;
+
+	download_check(d);
+	g_assert(dl_server_valid(server));
+
+	return server->proxies != NULL && !has_blank_guid(d);
 }
 
 /**
@@ -6529,7 +6715,7 @@ download_send_push_request(struct download *d, gboolean broadcast)
 		/* Pure luck: try to reach the remote host directly via UDP... */
 		(void) send_udp_push(packet, download_addr(d), download_port(d));
 
-		if (d->server && d->server->proxies) {
+		if (has_push_proxies(d)) {
 			GSList *sl;
 
 			for (sl = d->server->proxies; sl; sl = g_slist_next(sl)) {
@@ -8348,6 +8534,8 @@ collect_locations:
 static gboolean
 check_fw_node_info(struct download *d, char *fwinfo)
 {
+	struct dl_server *server = d->server;
+	struct dl_key *key = server->key;
 	struct guid guid;
 	gboolean seen_proxy = FALSE;
 	gboolean seen_guid = FALSE;
@@ -8409,12 +8597,9 @@ check_fw_node_info(struct download *d, char *fwinfo)
 			string_to_port_host_addr(tok, NULL, &port, &addr)
 		) {
 			if (!is_private_addr(addr) && host_addr_is_routable(addr)) {
-				if (
-					!host_addr_equal(download_addr(d), addr) ||
-					download_port(d) != port
-				)
-					change_server_addr(d->server, addr, port);
-
+				if (!host_addr_equal(key->addr, addr) || key->port != port) {
+					change_server_addr(server, addr, port);
+				}
 				download_found_server(&guid, addr, port);
 			}
 			continue;
@@ -8425,10 +8610,10 @@ check_fw_node_info(struct download *d, char *fwinfo)
 
 		seen_proxy = TRUE;
 
-		if (is_private_addr(addr) || !host_addr_is_routable(addr)) {
+		if (is_private_addr(addr) || !host_is_valid(addr, port)) {
 			g_message(
 				"host %s sent non-routable IP address %s as push-proxy",
-				download_host_info(d), host_addr_to_string(addr));
+				download_host_info(d), host_addr_port_to_string(addr, port));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
 			gnet_host_set(host, addr, port);
@@ -8438,16 +8623,16 @@ check_fw_node_info(struct download *d, char *fwinfo)
 
 	if (msg != NULL) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("could not parse 'X-FW-Node-Info: %s' -- %s",
-				fwinfo, msg);
+			g_warning("could not parse 'X-FW-Node-Info: %s': %s", fwinfo, msg);
 
 		return FALSE;
 	}
 
 	if (NULL != sl) {
-		free_proxies(d->server);
-		d->server->proxies = sl;
-		d->server->proxies_stamp = tm_time();
+		free_proxies(server);
+		server->proxies = sl;
+		server->proxies_stamp = tm_time();
+		download_push_proxy_wakeup(server);
 	}
 
 	return sl != NULL;
@@ -8514,9 +8699,9 @@ check_push_proxies(struct download *d, const header_t *header)
 		if (!string_to_host_addr_port(tok, NULL, &addr, &port))
 			continue;
 
-		if (is_private_addr(addr) || !host_addr_is_routable(addr)) {
+		if (is_private_addr(addr) || !host_is_valid(addr, port)) {
 			g_message("host %s sent non-routable IP address %s as push-proxy",
-				download_host_info(d), host_addr_to_string(addr));
+				download_host_info(d), host_addr_port_to_string(addr, port));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
 			gnet_host_set(host, addr, port);
@@ -8528,6 +8713,7 @@ check_push_proxies(struct download *d, const header_t *header)
 		free_proxies(d->server);
 		d->server->proxies = sl;
 		d->server->proxies_stamp = tm_time();
+		download_push_proxy_wakeup(d->server);
 	}
 }
 
@@ -11103,6 +11289,77 @@ select_servers(const struct guid *guid, const host_addr_t addr, gint *count)
 }
 
 /**
+ * We may find more that one suitable server when a GIV comes, because GUIDs
+ * are not always known for servers and we may get for instance:
+ *
+ *  #1 is GUID d60159d9606be30beab0fd4242845200 at 24.86.132.181:21173
+ *  #2 is GUID 00000000000000000000000000000000 at 24.86.132.181:21173
+ *
+ * Here we can merge the two servers into one because they have the same
+ * address and one has a blank GUID whilst the other has a matching GUID,
+ * most probably.
+ *
+ * This routine merges the two matching servers we found provided that
+ * one has a matching non-blank GUID and the other has a blank one.  The
+ * server kept is the one with the non-blank GUID and it is set with the
+ * proper address (taken from the line with the blank GUID).
+ *
+ * @return a new GSList with the blank GUID removed, or the initial list
+ * if we could not perform the merging.
+ */
+static GSList *
+merge_push_servers(GSList *servers, const struct guid *guid)
+{
+	struct dl_server *serv[2];
+	struct dl_server *duplicate;	/* blank GUID but valid addr:port */
+	struct dl_server *server;		/* non-blank GUID but maybe bad address */
+
+	g_assert(2 == g_slist_length(servers));
+
+	serv[0] = g_slist_nth_data(servers, 0);
+	serv[1] = g_slist_nth_data(servers, 1);
+
+	if (serv[0] == NULL || serv[1] == NULL)
+		return servers;
+
+	if (guid_is_blank(serv[0]->key->guid)) {
+		duplicate = serv[0];
+		server = serv[1];
+	} else {
+		duplicate = serv[1];
+		server = serv[0];
+	}
+
+	if (guid_is_blank(server->key->guid))
+		return servers;		/* Both GUIDs are blank */
+
+	if (!guid_is_blank(duplicate->key->guid))
+		return servers;		/* Both GUIDs are non-blank */
+
+	if (!guid_eq(server->key->guid, guid))
+		return servers;		/*  Not a matching GUID */
+
+	/*
+	 * We can merge...
+	 */
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_message("merging servers: GUID %s at %s into GUID %s at %s",
+			guid_hex_str(duplicate->key->guid),
+			host_addr_port_to_string(
+				duplicate->key->addr, duplicate->key->port),
+			guid_to_string(server->key->guid),
+			host_addr_port_to_string2(server->key->addr, server->key->port));
+	}
+
+	download_reparent_all(duplicate, server);
+	change_server_addr(server, duplicate->key->addr, duplicate->key->port);
+	g_slist_free(servers);
+
+	return g_slist_prepend(NULL, server);
+}
+
+/**
  * @return FALSE on failure, TRUE if the GIV was successfully parsed.
  */
 static gboolean
@@ -11184,6 +11441,12 @@ download_push_ack(struct gnutella_socket *s)
 		goto discard;
 	}
 
+	if (guid_is_blank(&guid)) {
+		g_warning("discarding GIV since server %s supplied a blank GUID",
+			host_addr_to_string(s->addr));
+		goto discard;
+	}
+
 	/*
 	 * Identify the targets for this download.
 	 */
@@ -11213,6 +11476,10 @@ download_push_ack(struct gnutella_socket *s)
 					i + 1, guid_hex_str(serv->key->guid),
 					host_addr_port_to_string(serv->key->addr, serv->key->port),
 					serv->vendor ? serv->vendor : "");
+			}
+
+			if (2 == count) {
+				servers = merge_push_servers(servers, &guid);
 			}
 		}
 		break;
@@ -12691,28 +12958,23 @@ download_url_for_uri(const struct download *d, const gchar *uri)
 	download_check(d);
 
 	if (DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push) {
+		gchar guid_buf[GUID_HEX_SIZE + 1];
 
 		g_assert(dl_server_valid(d->server));
 
-		if (download_guid(d)) {
-			gchar guid_buf[GUID_HEX_SIZE + 1];
-			
-		   	if (d->server->proxies) {
-				/* Pick the first push-proxy */
-				addr = gnet_host_get_addr(d->server->proxies->data);
-				port = gnet_host_get_port(d->server->proxies->data);
-			} else {
-				addr = download_addr(d);
-				port = download_port(d);
-			}
-
-			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
-			concat_strings(prefix_buf, sizeof prefix_buf,
-				"push://", guid_buf, ":", (void *) 0);
-			prefix = prefix_buf;
+		if (has_push_proxies(d)) {
+			/* Pick the first push-proxy */
+			addr = gnet_host_get_addr(d->server->proxies->data);
+			port = gnet_host_get_port(d->server->proxies->data);
 		} else {
-			return NULL;
+			addr = download_addr(d);
+			port = download_port(d);
 		}
+
+		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
+		concat_strings(prefix_buf, sizeof prefix_buf,
+			"push://", guid_buf, ":", (void *) 0);
+		prefix = prefix_buf;
 	} else {
 		/* FIXME: "https:" when TLS is possible? */
 
