@@ -93,6 +93,7 @@
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
+#include "lib/iso3166.h"
 #include "lib/palloc.h"
 #include "lib/magnet.h"
 #include "lib/tigertree.h"
@@ -164,6 +165,8 @@ static void download_queue_hold(struct download *d, guint32 hold,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
+static void change_server_addr(struct dl_server *server,
+	const host_addr_t new_addr, const guint16 new_port);
 
 static gboolean download_dirty = FALSE;
 static gboolean download_shutdown = FALSE;
@@ -1517,9 +1520,147 @@ server_undelete(struct dl_server *server)
 }
 
 /**
+ * Found IP:port of firewalled source for which we knew only the GUID.
+ * This happens when retrieving firewalled magnet sources for instance.
+ *
+ * Or we have found the GUID of a server which was only known by its IP:port.
+ */
+void
+download_found_server(const struct guid *guid,
+	const host_addr_t addr, guint16 port)
+{
+	struct dl_server *server;
+
+	/*
+	 * XXX Unfortunately, this late discovery of the real IP:port can create
+	 * XXX duplicate downloads.  Imagine we thought this was 0.0.0.0 for some
+	 * XXX GUID and then we get a query hit for the same SHA1 but with a
+	 * XXX proper IP.  Later on when we discover the real IP, we'll create
+	 * XXX a duplicate download because we're changing the server from 0.0.0.0
+	 * XXX to the same IP address.
+	 * XXX		--RAM, 2008-09-01
+	 */
+
+	server = g_hash_table_lookup(dl_by_guid, guid);
+
+	if (NULL == server) {
+		/*
+		 * Locate server by address/port to see whether we already knew about
+		 * that host and whether it had a blank GUID, in which case we can
+		 * now put the GUID we discovered.
+		 */
+
+		if (host_is_valid(addr, port)) {
+			struct dl_addr ipk;
+
+			ipk.addr = addr;
+			ipk.port = port;
+
+			server = g_hash_table_lookup(dl_by_addr, &ipk);
+
+			if (server && guid_is_blank(server->key->guid)) {
+				struct dl_key *key = server->key;
+
+				if (GNET_PROPERTY(download_debug)) {
+					g_message("discovered GUID %s is for host %s "
+						"which had a blank GUID", guid_to_string(guid),
+						host_addr_port_to_string(addr, port));
+				}
+
+				atom_guid_change(&key->guid, guid);
+				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
+			}
+		} else {
+			if (GNET_PROPERTY(download_debug)) {
+				g_message("discovered GUID %s is for (firewalled) host %s, "
+					"but server is gone!",
+					guid_to_string(guid), host_addr_port_to_string(addr, port));
+			}
+		}
+
+		return;
+	}
+
+	g_assert(dl_server_valid(server));
+
+	/*
+	 * Check whether something changed at all.
+	 */
+
+	if (host_addr_equal(addr, server->key->addr) && port == server->key->port)
+		return;
+
+	if (GNET_PROPERTY(download_debug))
+		g_message("discovered GUID %s is for host %s [%s] (was %s [%s])",
+			guid_to_string(guid), host_addr_port_to_string(addr, port),
+			iso3166_country_cc(gip_country(addr)),
+			host_addr_port_to_string2(server->key->addr, server->key->port),
+			iso3166_country_cc(server->country));
+
+	change_server_addr(server, addr, port);
+}
+
+/**
+ * Reparent (i.e. move) all downloads from server ``duplicate'' to ``server''.
+ */
+static void
+download_reparent_all(struct dl_server *duplicate, struct dl_server *server)
+{
+	struct download *next;
+
+	next = hash_list_head(sl_downloads);
+	while (next) {
+		struct download *d = next;
+
+		download_check(d);
+		next = hash_list_next(sl_downloads, next);
+
+		if (d->status == GTA_DL_REMOVED)
+			continue;
+
+		if (d->server == duplicate)
+			download_reparent(d, server);
+	}
+
+	g_assert(duplicate->attrs & DLS_A_REMOVED);
+}
+
+/**
+ * Notify all the downloads attached to a server that the address of the
+ * server changed, so that the GUI can be refreshed.
+ */
+static void
+download_server_info_changed(const struct dl_server *server)
+{
+	size_t i;
+	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
+
+	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
+		enum dl_list idx = listnum[i];
+		list_iter_t *iter;
+		
+		iter = list_iter_before_head(server->list[idx]);
+		while (list_iter_has_next(iter)) {
+			struct download *d;
+
+			d = list_iter_next(iter);
+			download_check(d);
+			fi_src_info_changed(d);
+		}
+		list_iter_free(&iter);
+	}
+}
+
+/**
  * Fetch server entry identified by IP:port first, then GUID+IP:port.
  *
  * @returns server, allocated if needed when allocate is TRUE.
+ *
+ * WARNING: may return a server instance whose address and port do not
+ * match the initial arguments (when for instance the addr:port was a private
+ * address but the non-blank GUID yields a proper server with a non-private
+ * one.  If addr:port matter, the caller must use server->key->addr and
+ * server->key->port after calling get_server().
  */
 static struct dl_server *
 get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
@@ -1547,6 +1688,11 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 		goto allocated;
 	}
 
+	/*
+	 * Only servers with a valid addr:port are inserted in dl_by_addr.
+	 * So if we did not find it there, look in the table listing all servers.
+	 */
+
 	key.guid = deconstify_gpointer(guid);
 	key.addr = addr;
 	key.port = port;
@@ -1554,8 +1700,86 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 	server = g_hash_table_lookup(dl_by_host, &key);
 	g_assert(server == NULL || dl_server_valid(server));
 
-	if (server && (server->attrs & DLS_A_REMOVED))
-		server_undelete(server);
+	if (server) {
+		if (server->attrs & DLS_A_REMOVED)
+			server_undelete(server);
+		goto allocated;
+	}
+
+	/*
+	 * Last chance: if the GUID is non-blank, maybe we can find the server.
+	 * Naturally, it will not bear the same addr:port or we would have found
+	 * it in dl_by_host.
+	 */
+
+	if (!guid_is_blank(guid)) {
+		server = g_hash_table_lookup(dl_by_guid, guid);
+
+		if (server) {
+			struct dl_key *skey = server->key;
+			guint16 new_country = gip_country(addr);
+
+			if (server->attrs & DLS_A_REMOVED)
+				server_undelete(server);
+
+			/*
+			 * Equality is only possible when we're not asked to create a
+			 * new server, because we're coming from change_server_addr()
+			 * for instance and manipulating the data structures.
+			 *
+			 * If we're not allocating a new host. don't mess with the
+			 * found server address.
+			 */
+
+			if (!allocate)
+				goto allocated;
+
+			g_assert(!host_addr_equal(skey->addr, addr) || skey->port != port);
+
+			/*
+			 * We knew this server, and it bears a new IP or port.
+			 *
+			 * If only the port changed, that's OK, but if the IP also
+			 * changed, make sure it is in the same country or that the
+			 * old address was not routable.
+			 */
+
+			if (
+				host_addr_equal(skey->addr, addr) ||
+				server->country == new_country ||
+				(
+					/* Address becomes routable */
+					!host_addr_is_routable(skey->addr) &&
+					host_addr_is_routable(addr)
+				)
+			) {
+				if (GNET_PROPERTY(download_debug)) {
+					g_message("server GUID %s was at %s, now seen at %s [%s]",
+						guid_to_string(guid),
+						host_addr_port_to_string(skey->addr, skey->port),
+						host_addr_port_to_string2(addr, port),
+						iso3166_country_cc(new_country));
+				}
+				change_server_addr(server, addr, port);
+			} else {
+				if (GNET_PROPERTY(download_debug)) {
+					g_message(
+						"not moving server GUID %s from %s [%s] to %s [%s]",
+						guid_to_string(guid),
+						host_addr_port_to_string(skey->addr, skey->port),
+						iso3166_country_cc(server->country),
+						host_addr_port_to_string2(addr, port),
+						iso3166_country_cc(new_country));
+				}
+				/*
+				 * The server we return should bear correct addr:port, but it
+				 * won't match the supplied arguments.  See WARNING in
+				 * function's leading comment.
+				 */
+			}
+			g_assert(!guid_is_blank(server->key->guid));
+		}
+	}
 
 	/*
 	 * Allocate new server if it does not exist already.
@@ -1565,18 +1789,80 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 		if (!allocate)
 			return NULL;
 		server = allocate_server(guid, addr, port);
+	}
 
-	allocated:
-		if (g2_cache_lookup(addr, port)) {
-			server->attrs |= DLS_A_G2_ONLY | DLS_A_MINIMAL_HTTP;
-			if (GNET_PROPERTY(enable_hackarounds)) {
-				server->attrs |= DLS_A_FAKE_G2;
-			}
+allocated:
+	if (g2_cache_lookup(addr, port)) {
+		server->attrs |= DLS_A_G2_ONLY | DLS_A_MINIMAL_HTTP;
+		if (GNET_PROPERTY(enable_hackarounds)) {
+			server->attrs |= DLS_A_FAKE_G2;
 		}
-		/* FALL THROUGH */
+	}
+
+	/*
+	 * If we had a blank GUID in the server but we had a non-blank one
+	 * supplied, we have found the missing piece to uniquely identify
+	 * the server.
+	 *
+	 * Imagine the server's GUID was not yet known. For instance,
+	 * we could have two entries for one host:
+	 *
+	 * #1	GUID 00000000000000000000000000000000 at 99.184.74.166:22459
+	 * #2	GUID 018c33a4c292b2d2fc8c53dd28ba4d00 at 192.168.1.64:22459
+	 *
+	 * If we found the server by address, we got #1, but download_found_server()
+	 * will locate by GUID and find #2.  It will then call
+	 * change_server_address() to change the address of #2 to that of #1,
+	 * and the duplicate #1 will be picked and remaped to #2.
+	 *
+	 * Upon return, we must therefore not return the original server we
+	 * had figured, but recompute the server by looking in the by_dl_guid hash.
+	 */
+
+	if (guid_is_blank(server->key->guid) && !guid_is_blank(guid)) {
+		struct dl_server *correct;
+
+		download_found_server(guid, addr, port);
+		correct = g_hash_table_lookup(dl_by_guid, guid);
+
+		g_assert(correct != NULL);
+
+		if (correct != server) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_message("had originally found GUID %s at %s, "
+					"returning GUID %s at %s",
+					guid_hex_str(server->key->guid),
+					host_addr_port_to_string(
+						server->key->addr, server->key->port),
+					guid_to_string(correct->key->guid),
+					host_addr_port_to_string2(
+						correct->key->addr, correct->key->port));
+			}
+			server = correct;
+		}
 	}
 
 	g_assert(dl_server_valid(server));
+	g_assert(guid_is_blank(guid) || guid_eq(server->key->guid, guid));
+
+	/*
+	 * Address and port of returned server may be different from arguments
+	 */
+
+	if (GNET_PROPERTY(download_debug)) {
+		if (
+			!host_addr_equal(addr, server->key->addr) ||
+			server->key->port != port
+		) {
+			g_message("called get_server() with GUID %s at %s, "
+				"returning GUID %s at %s",
+				guid_hex_str(guid), host_addr_port_to_string(addr, port),
+				guid_to_string(server->key->guid),
+				 host_addr_port_to_string2(
+					server->key->addr, server->key->port));
+		}
+	}
+
 	return server;
 }
 
@@ -1617,12 +1903,6 @@ change_server_addr(struct dl_server *server,
 		}
 	}
 
-	/*
-	 * Get rid of the known push proxies, if any.
-	 */
-
-	free_proxies(server);
-
 	if (GNET_PROPERTY(download_debug)) {
 		g_message("server <%s> at %s:%u changed its IP from %s to %s",
 			server->vendor == NULL ? "UNKNOWN" : server->vendor,
@@ -1648,10 +1928,9 @@ change_server_addr(struct dl_server *server,
 
 	duplicate = get_server(key->guid, new_addr, new_port, FALSE);
 
-	if (duplicate != NULL) {
+	if (duplicate != NULL && duplicate != server) {
 		g_assert(host_addr_equal(duplicate->key->addr, key->addr));
 		g_assert(duplicate->key->port == key->port);
-		g_assert(duplicate != server);
 
 		if (GNET_PROPERTY(download_debug)) {
             g_message(
@@ -1695,23 +1974,8 @@ change_server_addr(struct dl_server *server,
 		 * All the downloads attached to the `duplicate' server need to be
 		 * reparented to `server' instead.
 		 */
-		{
-			struct download *next;
 
-			next = hash_list_head(sl_downloads);
-			while (next) {
-				struct download *d = next;
-
-				download_check(d);
-				next = hash_list_next(sl_downloads, next);
-
-				if (d->status == GTA_DL_REMOVED)
-					continue;
-
-				if (d->server == duplicate)
-					download_reparent(d, server);
-			}
-		}
+		download_reparent_all(duplicate, server);
 	}
 
 	/*
@@ -1755,28 +2019,11 @@ change_server_addr(struct dl_server *server,
 
 	/*
 	 * Notify the source information change to all the downloads
-	 * attached to that server.
+	 * attached to that server so that the GUI can be refreshed to
+	 * show the new address and port number.
 	 */
 
-	{
-		size_t i;
-		enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
-
-		for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
-			enum dl_list idx = listnum[i];
-			list_iter_t *iter;
-			
-			iter = list_iter_before_head(server->list[idx]);
-			while (list_iter_has_next(iter)) {
-				struct download *d;
-
-				d = list_iter_next(iter);
-				download_check(d);
-				fi_src_status_changed(d);
-			}
-			list_iter_free(&iter);
-		}
-	}
+	download_server_info_changed(server);
 }
 
 /**
@@ -1900,82 +2147,6 @@ sink_data:
 refused:
 	gnet_stats_count_general(GNR_IGNORING_REFUSED, 1);
 	return FALSE;
-}
-
-/**
- * Found IP:port of firewalled source for which we knew only the GUID.
- * This happens when retrieving firewalled magnet sources for instance.
- */
-void
-download_found_server(const struct guid *guid,
-	const host_addr_t addr, guint16 port)
-{
-	struct dl_server *server;
-
-	/*
-	 * XXX Unfortunately, this late discovery of the real IP:port can create
-	 * XXX duplicate downloads.  Imagine we thought this was 0.0.0.0 for some
-	 * XXX GUID and then we get a query hit for the same SHA1 but with a
-	 * XXX proper IP.  Later on when we discover the real IP, we'll create
-	 * XXX a duplicate download because we're changing the server from 0.0.0.0
-	 * XXX to the same IP address.
-	 * XXX		--RAM, 2008-09-01
-	 */
-
-	server = g_hash_table_lookup(dl_by_guid, guid);
-
-	if (NULL == server) {
-		if (GNET_PROPERTY(download_debug)) {
-			g_message("discovered GUID %s is for host %s, but server is gone!",
-				guid_to_string(guid), host_addr_port_to_string(addr, port));
-		}
-
-		/*
-		 * Locate server by address/port to see whether we already knew about
-		 * that host and whether it had a blank GUID, in which case we can
-		 * now put the GUID we discovered.
-		 */
-
-		if (host_is_valid(addr, port)) {
-			struct dl_addr ipk;
-
-			ipk.addr = addr;
-			ipk.port = port;
-
-			server = g_hash_table_lookup(dl_by_addr, &ipk);
-
-			if (server && guid_is_blank(server->key->guid)) {
-				struct dl_key *key = server->key;
-
-				if (GNET_PROPERTY(download_debug)) {
-					g_message("discovered GUID %s is for host %s "
-						"which had a blank GUID", guid_to_string(guid),
-						host_addr_port_to_string(addr, port));
-				}
-
-				atom_guid_change(&key->guid, guid);
-				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
-			}
-		}
-
-		return;
-	}
-
-	g_assert(dl_server_valid(server));
-
-	/*
-	 * Check whether something changed at all.
-	 */
-
-	if (host_addr_equal(addr, server->key->addr) && port == server->key->port)
-		return;
-
-	if (GNET_PROPERTY(download_debug))
-		g_message("discovered GUID %s is for host %s (was %s)",
-			guid_to_string(guid), host_addr_port_to_string(addr, port),
-			host_addr_port_to_string2(server->key->addr, server->key->port));
-
-	change_server_addr(server, addr, port);
 }
 
 /**
@@ -2982,6 +3153,7 @@ download_reclaim_server(struct download *d, gboolean delayed)
 
 	server = d->server;
 	d->server = NULL;
+	g_assert(server->refcnt > 0);
 	server->refcnt--;
 
 	/*
@@ -5301,7 +5473,8 @@ create_download(
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	d = has_same_download(file_name, sha1, size, guid, addr, port);
+	d = has_same_download(file_name, sha1, size, guid,
+			server->key->addr, server->key->port);
 	if (d) {
 		download_check(d);
 		atom_str_free_null(&file_name);
@@ -11079,11 +11252,13 @@ download_push_ack(struct gnutella_socket *s)
 	s->resource.download = d;
 
 	/*
-	 * Since we got a GIV, we now know the remote IP of the host.
+	 * Since we got a GIV, we now know the remote IP of the host and its GUID.
 	 */
 
 	if (!host_addr_equal(download_addr(d), s->addr))
 		change_server_addr(d->server, s->addr, download_port(d));
+
+	download_found_server(&guid, s->addr, download_port(d));
 
 	g_assert(host_addr_equal(download_addr(d), s->addr));
 
@@ -11100,6 +11275,7 @@ download_push_ack(struct gnutella_socket *s)
 	return;
 
 discard:
+	gnet_stats_count_general(GNR_GIV_DISCARDED, 1);
 	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
 	socket_free_null(&s);
 }
