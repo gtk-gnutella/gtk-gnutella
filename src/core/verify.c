@@ -483,9 +483,9 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 	struct verify *ctx = data;
 	int i = ticks;
 	int used = 0;		/* Amount used for CPU-intensive tasks */
+	int light = 0;		/* Amount used for system-intensive tasks */
 
 	verify_check(ctx);
-	(void) ticks;
 	(void) bt;
 
 	while (i-- > 0) {
@@ -495,6 +495,8 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 		if (ctx->file) {
 			verify_update(ctx);
 			used++;
+		} else {
+			light++;	/* Did not open file, still processed something */
 		}
 		if (NULL == ctx->file && 0 == hash_list_length(ctx->files_to_hash))
 			break;
@@ -507,7 +509,9 @@ verify_step_compute(struct bgtask *bt, void *data, int ticks)
 	 * seconds, if not minutes!
 	 */
 
-	if (ticks != used)
+	used += light / 10;			/* Arbitrary decimation factor */
+
+	if (used < ticks)
 		bg_task_ticks_used(bt, used);
 
 	if (ctx->file || hash_list_length(ctx->files_to_hash) > 0) {
