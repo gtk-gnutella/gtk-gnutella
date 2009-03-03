@@ -4919,9 +4919,15 @@ fi_find_aggressive_candidate(
 	if (!can_be_aggressive)
 		return FALSE;
 
-	/* Start in the middle of the selected range ('to' is NOT in the range). */
-	*from = (fc->from + fc->to - 1) / 2;
-	*to = fc->to;
+	if (fc->to - fc->from >= 2 * FI_MIN_CHUNK_SPLIT) {
+		/* Start in the middle of the selected range */
+		*from = (fc->from + fc->to - 1) / 2;
+		*to = fc->to;		/* 'to' is NOT in the range */
+	} else {
+		/* Range too small, grab everything */
+		*from = fc->from;
+		*to = fc->to;
+	}
 
 	if (GNET_PROPERTY(download_debug) > 1)
 		g_message("aggressively requesting %s@%s for \"%s\" using %s source",
