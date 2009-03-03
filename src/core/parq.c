@@ -1119,9 +1119,6 @@ parq_download_queue_ack(struct gnutella_socket *s)
 		struct gnutella_socket *ds = dl->socket;
 		dl->socket = s;
 		ds = s;
-#if 0
-		d->keep_alive = TRUE;			/* was reset in start_prepare_running */
-#endif
 
 		getline_free(ds->getline);		/* No longer need this */
 		ds->getline = NULL;
@@ -1138,6 +1135,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	return;
 
 ignore:
+	gnet_stats_count_general(GNR_QUEUE_DISCARDED, 1);
 	g_assert(s->resource.download == NULL); /* Hence socket_free() allowed */
 	socket_free_null(&s);
 	return;
