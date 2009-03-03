@@ -37,8 +37,6 @@
 
 RCSID("$Id$")
 
-#include "downloads_cb.h"
-
 #include "gtk/columns.h"
 #include "gtk/downloads_common.h"
 #include "gtk/drag.h"
