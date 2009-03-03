@@ -772,9 +772,6 @@ src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk-shared/callbacks.h
 src/ui/gtk/gtk1/Jmakefile
 src/ui/gtk/gtk1/Makefile.SH
-src/ui/gtk/gtk1/downloads.c
-src/ui/gtk/gtk1/downloads_cb.c
-src/ui/gtk/gtk1/downloads_cb.h
 src/ui/gtk/gtk1/fileinfo.c
 src/ui/gtk/gtk1/gnet_stats.c
 src/ui/gtk/gtk1/gtk-gnutella.glade
@@ -797,9 +794,6 @@ src/ui/gtk/gtk1/upload_stats.c
 src/ui/gtk/gtk1/uploads.c
 src/ui/gtk/gtk2/Jmakefile
 src/ui/gtk/gtk2/Makefile.SH
-src/ui/gtk/gtk2/downloads.c
-src/ui/gtk/gtk2/downloads_cb.c
-src/ui/gtk/gtk2/downloads_cb.h
 src/ui/gtk/gtk2/fileinfo.c
 src/ui/gtk/gtk2/gnet_stats.c
 src/ui/gtk/gtk2/gtk-gnutella.glade
