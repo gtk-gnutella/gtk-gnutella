@@ -91,8 +91,6 @@ REMOTE_GLADE_H = callbacks.h
 REMOTE_GLADE = $(REMOTE_GLADE_C) $(REMOTE_GLADE_H)
 
 LSRC = \
-	downloads.c \
-	downloads_cb.c \
 	fileinfo.c \
 	gnet_stats.c \
 	hcache.c \
@@ -109,8 +107,6 @@ LSRC = \
 	uploads.c
 
 LOBJ = \
-	downloads.o \
-	downloads_cb.o \
 	fileinfo.o \
 	gnet_stats.o \
 	hcache.o \

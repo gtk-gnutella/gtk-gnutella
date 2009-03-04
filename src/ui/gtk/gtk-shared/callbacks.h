@@ -41,11 +41,9 @@
 #include "gtk/visual_progress.h"
 
 #ifdef USE_GTK1
-#include "gtk/gtk1/downloads_cb.h"
 #include "gtk/gtk1/nodes_cb.h"
 #endif
 #ifdef USE_GTK2
-#include "gtk/gtk2/downloads_cb.h"
 #include "gtk/gtk2/nodes_cb.h"
 #endif
 
