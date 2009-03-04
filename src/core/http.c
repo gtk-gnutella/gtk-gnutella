@@ -260,7 +260,7 @@ http_send_status(
 			host_addr_to_string(s->addr));
 		return FALSE;
 	} else {
-		guint32 trace;
+		guint32 trace = 0;
 
 		switch (layer) {
 		case HTTP_PUSH_PROXY:
