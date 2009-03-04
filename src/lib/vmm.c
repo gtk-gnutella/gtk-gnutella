@@ -39,6 +39,8 @@
 
 RCSID("$Id$")
 
+#include <malloc.h>				/* For memalign() on cygwin */
+
 #include "misc.h"
 #include "tm.h"
 
