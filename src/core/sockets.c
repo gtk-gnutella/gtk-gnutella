@@ -2602,6 +2602,10 @@ socket_connect_prepare(struct gnutella_socket *s,
 	}
 
 	addr = socket_ipv6_trt_map(addr);
+	if (NET_TYPE_NONE == host_addr_net(addr)) {
+		errno = EINVAL;
+		return -1;
+	}
 	family = host_addr_family(addr);
 	if (-1 == family) {
 		errno = EINVAL;
