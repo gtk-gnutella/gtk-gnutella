@@ -39,8 +39,6 @@
 
 RCSID("$Id$")
 
-#include <malloc.h>				/* For memalign() on cygwin */
-
 #include "misc.h"
 #include "tm.h"
 
@@ -205,29 +203,24 @@ vmm_mmap_anonymous(size_t size)
 }
 #else	/* !HAS_MMAP */
 {
-	(void) size;
-	return NULL;
-}
-#endif	/* HAS_MMAP */
-
-static void *
-vmm_memalign(size_t align, size_t size)
-{
 	void *p;
 
+	size = MIN(kernel_pagesize, size);
 #if defined(HAS_POSIX_MEMALIGN)
-	if (posix_memalign(&p, align, size)) {
+	if (posix_memalign(&p, kernel_pagesize, size)) {
 		p = NULL;
 	}
 #elif defined(HAS_MEMALIGN)
-	p = memalign(align, size);
+	p = memalign(kernel_pagesize, size);
 #else
-	(void) align;
 	(void) size;
 	p = NULL;
+	RUNTIME_UNREACHABLE();
+#error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN */
 	return p;
 }
+#endif	/* HAS_MMAP */
 
 /**
  * Allocates a page-aligned chunk of memory.
@@ -243,17 +236,7 @@ alloc_pages_intern(size_t size)
 
 	RUNTIME_ASSERT(kernel_pagesize > 0); /* Computed by round_pagesize_fast() */
 
-#if !defined(HAS_MMAP) && !defined(HAS_POSIX_MEMALIGN) && !defined(HAS_MEMALIGN)
-#error "Neither mmap(), posix_memalign() nor memalign() available"
-	p = NULL;
-	RUNTIME_UNREACHABLE();
-#endif	/* !(HAS_MMAP || HAS_POSIX_MEMALIGN || HAS_MEMALIGN) */
-
 	p = vmm_mmap_anonymous(size);
-	if (!p) {
-		p = vmm_memalign(kernel_pagesize, size);
-	}
-
 	return_value_unless(NULL != p, NULL);
 	
 	if (round_pagesize_fast((size_t) p) != (size_t) p) {
@@ -433,6 +416,7 @@ free_pages_intern(void *p, size_t size)
 	(void) p;
 	(void) size;
 	RUNTIME_UNREACHABLE();
+#error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 }
 
