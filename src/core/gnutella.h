@@ -468,10 +468,10 @@ gnutella_msg_qrp_reset_set_table_length(gnutella_msg_qrp_reset_t *msg,
 
 static inline void
 gnutella_msg_qrp_reset_set_infinity(gnutella_msg_qrp_reset_t *msg,
-	guint8 infinity)
+	guint8 inf_value)
 {
 	guint8 *u8 = (void *) msg;
-	u8[GTA_HEADER_SIZE + 5] = infinity;
+	u8[GTA_HEADER_SIZE + 5] = inf_value;
 }
 
 /* The logic layout of the QRP PATCH message specific payload is as follows:

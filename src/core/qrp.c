@@ -882,7 +882,7 @@ qrt_free(struct routing_table *rt)
  * returned.
  */
 static gpointer
-qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint infinity)
+qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint inf_val)
 {
 	gint factor;		/* Shrink factor */
 	gint ratio;
@@ -908,11 +908,11 @@ qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint infinity)
 		gint set = FALSE;
 
 		for (k = 0; k < factor && !set; k++) {
-			if ((guchar) arena[j + k] != infinity)
+			if ((guchar) arena[j + k] != inf_val)
 				set = TRUE;
 		}
 
-		arena[i] = set ? 0 : infinity;
+		arena[i] = set ? 0 : inf_val;
 	}
 
 	return g_realloc(arena, new_slots);
@@ -2319,13 +2319,13 @@ qrt_compress_cancel_all(void)
  * to size the table.
  */
 static void
-qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
+qrp_send_reset(struct gnutella_node *n, gint slots, gint inf_val)
 {
 	gnutella_msg_qrp_reset_t msg;
 	gnutella_header_t *header = gnutella_msg_qrp_reset_header(&msg);
 
 	g_assert(is_pow2(slots));
-	g_assert(infinity > 0 && infinity < 256);
+	g_assert(inf_val > 0 && inf_val < 256);
 
 	message_set_muid(header, GTA_MSG_QRP);
 
@@ -2336,13 +2336,13 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 
 	gnutella_msg_qrp_reset_set_variant(&msg, GTA_MSGV_QRP_RESET);
 	gnutella_msg_qrp_reset_set_table_length(&msg, slots);
-	gnutella_msg_qrp_reset_set_infinity(&msg, infinity);
+	gnutella_msg_qrp_reset_set_infinity(&msg, inf_val);
 
 	gmsg_sendto_one(n, &msg, sizeof msg);
 
 	if (GNET_PROPERTY(qrp_debug) > 4)
 		g_message("QRP sent RESET slots=%d, infinity=%d to %s",
-			slots, infinity, node_addr(n));
+			slots, inf_val, node_addr(n));
 }
 
 /**
