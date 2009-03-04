@@ -106,8 +106,6 @@ LSRC = \
 	uploads.c
 
 LOBJ = \
-	downloads.o \
-	downloads_cb.o \
 	fileinfo.o \
 	gnet_stats.o \
 	hcache.o \
