@@ -42,17 +42,19 @@
  * One dimension statistics.
  */
 
-gpointer statx_make(void);
-void statx_free(gpointer ox);
-void statx_clear(gpointer ox);
-void statx_add(gpointer ox, gdouble val);
-void statx_remove(gpointer ox, gdouble val);
-void statx_remove_oldest(gpointer ox);
-gint statx_n(gpointer ox);
-gdouble statx_avg(gpointer ox);
-gdouble statx_sdev(gpointer ox);
-gdouble statx_var(gpointer ox);
-gdouble *statx_data(gpointer ox);
+struct statx;
+
+struct statx *statx_make(void);
+void statx_free(struct statx *);
+void statx_clear(struct statx *);
+void statx_add(struct statx *, double);
+void statx_remove(struct statx *, double);
+void statx_remove_oldest(struct statx *);
+int statx_n(struct statx *);
+double statx_avg(struct statx *);
+double statx_sdev(struct statx *);
+double statx_var(struct statx *);
+double *statx_data(struct statx *);
 
 #endif /* _stats_h_ */
 
