@@ -347,16 +347,6 @@ strtok_next_internal(strtok_t *s, const char *delim,
 			}
 		}
 
-		/* Character was not a delimiter, add to token */
-
-		if (tlen >= s->len)
-			extend_token(s);
-
-		g_assert(tlen < s->len);
-
-		*s->t++ = c;
-		tlen++;
-
 		/* Check whether token can match the ``looked'' up string */
 
 		if (looked) {
@@ -386,7 +376,18 @@ strtok_next_internal(strtok_t *s, const char *delim,
 				if (c != x)
 					goto skip_until_delim;
 			}
+			continue;		/* No need to collect token when looking... */
 		}
+
+		/* Character was not a delimiter, add to token */
+
+		if (tlen >= s->len)
+			extend_token(s);
+
+		g_assert(tlen < s->len);
+
+		*s->t++ = c;
+		tlen++;
 	}
 
 	s->p = NULL;			/* Signals: reached end of string */
