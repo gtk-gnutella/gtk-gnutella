@@ -143,6 +143,7 @@ general_type_str(gint value)
 		N_("Successful download resource switching (all kinds)"),
 		N_("Successful download resource switching between plain files"),
 		N_("Actively queued after resource switching attempt"),
+		N_("Sunk HTTP reply data on error codes"),
 		N_("Ignored downloaded data"),
 		N_("Ignoring requested after data mismatch"),
 		N_("Ignoring requested to preserve connection"),

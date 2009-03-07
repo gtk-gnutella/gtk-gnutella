@@ -160,6 +160,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"successful_resource_switching",
 	"successful_plain_resource_switching",
 	"queued_after_switching",
+	"sunk_data",
 	"ignored_data",
 	"ignoring_after_mismatch",
 	"ignoring_to_preserve_connection",
