@@ -1629,4 +1629,7 @@
 # complete range blocked by LimeWire
 87.236.192.0/21
 
-
+# iWeb Technologies Inc. (range 174.142.0.0/16)
+# Spamming gtk-gnutella seen on these subnets
+174.142.32.0/24
+174.142.36.0/24
