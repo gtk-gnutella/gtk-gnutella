@@ -168,6 +168,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"ignoring_refused",
 	"client_resource_switching",
 	"client_plain_resource_switching",
+	"client_followup_after_error",
 	"parq_slot_resource_switching",
 	"seeding_of_orphan",
 	"dht_keys_held",
