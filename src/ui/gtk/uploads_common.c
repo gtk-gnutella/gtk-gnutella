@@ -65,7 +65,6 @@ uploads_gui_progress(const gnet_upload_status_t *u,
     case GTA_UL_HEADERS:
     case GTA_UL_EXPECTING:
     case GTA_UL_WAITING:
-    case GTA_UL_PFSP_WAITING:
     case GTA_UL_ABORTED:
 	case GTA_UL_QUEUED:
     case GTA_UL_QUEUE:
@@ -146,13 +145,17 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
         return _("Waiting for headers...");
 
     case GTA_UL_EXPECTING:
-        return _("Waiting for further request...");
+		if (u->error_count)
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				"%s #%u E=%u", _("Waiting for further request..."),
+				u->reqnum, u->error_count);
+		else
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				"%s #%u", _("Waiting for further request..."), u->reqnum);
+		break;
 
     case GTA_UL_WAITING:
         return _("Reading follow-up request...");
-
-    case GTA_UL_PFSP_WAITING:
-        return _("Unavailable range, waiting retry...");
 
     case GTA_UL_ABORTED:
         return _("Transmission aborted");
@@ -251,7 +254,6 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 	case GTA_UL_QUEUED:
 	case GTA_UL_QUEUE:
 	case GTA_UL_QUEUE_WAITING:
-	case GTA_UL_PFSP_WAITING:
 		break;
 	}
 

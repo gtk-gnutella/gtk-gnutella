@@ -47,8 +47,7 @@ typedef enum {
 	GTA_UL_QUEUE            = 9,    /**< Send a queue (Similar to push) */
 	GTA_UL_QUEUE_WAITING    = 10,   /**< Connect back with GTA_UL_QUEUE was
 									     success now waiting for a response */
-	GTA_UL_PFSP_WAITING     = 11,   /**< Requested range unavailable, retry */
-	GTA_UL_EXPECTING        = 12,   /**< Expecting follow-up HTTP request */
+	GTA_UL_EXPECTING        = 11,   /**< Expecting follow-up HTTP request */
 } upload_stage_t;
 
 typedef struct gnet_upload_status {
@@ -58,6 +57,7 @@ typedef struct gnet_upload_status {
 	guint32 avg_bps;     /**< Average transfer rate */
 	time_t  last_update;
 	guint reqnum;		 /**< Count of uploaded chunks */
+	guint error_count;	 /**< Number of errors */
 
 	gboolean parq_quick;
 	gboolean parq_frozen;
@@ -101,7 +101,6 @@ typedef struct gnet_upload_info {
 	||	(u)->status == GTA_UL_PUSH_RECEIVED			\
 	||	(u)->status == GTA_UL_QUEUE					\
 	||	(u)->status == GTA_UL_QUEUE_WAITING			\
-	||	(u)->status == GTA_UL_PFSP_WAITING			\
 	||	(u)->status == GTA_UL_EXPECTING				\
 	||	(u)->status == GTA_UL_WAITING	)
 

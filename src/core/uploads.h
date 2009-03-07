@@ -96,6 +96,7 @@ struct upload {
 
 	guint file_index;
 	guint reqnum;				/**< Request number, incremented when serving */
+	guint error_count;			/**< Amount of errors on connection */
 
 	time_t start_date;
 	time_t last_update;
@@ -123,7 +124,6 @@ struct upload {
 	gboolean push;
 	gboolean queue;				/**< Similar to PUSH, but for PARQ's QUEUE */
 	gboolean accounted;			/**< True when upload was accounted for */
-	gboolean unavailable_range;	/**< True when last request ended with 416 */
 	gboolean n2r;				/**< True when they sent an N2R request */
 	gboolean browse_host;		/**< True when they sent a Browse Host req. */
 	gboolean from_browser;		/**< True when request likely from browser */
@@ -131,7 +131,7 @@ struct upload {
 	gboolean is_followup;
 	gboolean was_actively_queued;
 	gboolean was_running;
-
+	gboolean last_was_error;	/**< Whether last request was an error */
 	gboolean parq_status;
 };
 

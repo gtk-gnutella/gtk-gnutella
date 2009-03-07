@@ -106,6 +106,7 @@ RCSID("$Id$")
 #define UP_SEND_BUFSIZE	1024		/**< Socket write buffer, when stalling */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define STALL_THRESH	3			/**< If more stalls than that, workaround */
+#define MAX_ERRORS		10			/**< Max # of errors before we close */
 
 static GSList *list_uploads;
 static guint stalled;				/**< Counts stalled connections */
@@ -1005,7 +1006,12 @@ upload_clone(struct upload *u)
 	struct upload *cu;
 
 	upload_check(u);
-	g_assert(u->io_opaque == NULL);		/* If cloned, we were transferrring! */
+
+	if (u->io_opaque) {
+		/* Was cloned after error sending, not during transfer */
+		io_free(u->io_opaque);
+		u->io_opaque = NULL;
+	}
 
 	cu = wcopy(u, sizeof *cu);
 	parq_upload_upload_got_cloned(u, cu);
@@ -1097,6 +1103,10 @@ upload_likely_from_browser(const header_t *header)
 	return FALSE;
 }
 
+/**
+ * Wrapper to http_send_status() to disable TCP quick ACKs before sending
+ * the actual status.
+ */
 static gboolean 
 upload_send_http_status(struct upload *u,
 	gboolean keep_alive, gint code, const gchar *msg)
@@ -1860,6 +1870,49 @@ upload_error_remove_ext(struct upload *u, const gchar *ext, int code,
 }
 
 /**
+ * This is used for HTTP/1.1 persistent connections.
+ *
+ * Move the upload back to a waiting state, until a new HTTP request comes
+ * on the socket.
+ */
+static void
+upload_wait_new_request(struct upload *u)
+{
+	/*
+	 * File will be re-opened each time a new request is made.
+	 */
+
+	file_object_release(&u->file);	/* expect_http_header() expects this */
+ 	socket_tos_normal(u->socket);
+	expect_http_header(u, GTA_UL_EXPECTING);
+}
+
+/**
+ * Report HTTP error to remote host, but keep the connection alive so
+ * that they can send a new request, unless we have reached the maximum
+ * amount of errors on that connection.
+ */
+static void
+upload_send_error(struct upload *u, int code, const char *msg)
+{
+	if (u->error_count++ < MAX_ERRORS && u->keep_alive) {
+		if (upload_send_http_status(u, TRUE, code, msg)) {
+			struct upload *cu;
+			if (u->special) {
+				u->special->close(u->special, FALSE);
+				u->special = NULL;
+			}
+			cu = upload_clone(u);
+			cu->last_was_error = TRUE;
+			upload_wait_new_request(cu);
+		}
+	} else {
+		upload_send_http_status(u, FALSE, code, msg);
+	}
+	upload_remove(u, "%s", msg);
+}
+
+/**
  * Stop all uploads dealing with partial file `fi'.
  */
 void
@@ -2132,24 +2185,6 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 }
 
 /**
- * This is used for HTTP/1.1 persistent connections.
- *
- * Move the upload back to a waiting state, until a new HTTP request comes
- * on the socket.
- */
-static void
-upload_wait_new_request(struct upload *u)
-{
-	/*
-	 * File will be re-opened each time a new request is made.
-	 */
-
-	file_object_release(&u->file);	/* expect_http_header() expects this */
- 	socket_tos_normal(u->socket);
-	expect_http_header(u, GTA_UL_EXPECTING);
-}
-
-/**
  * Got confirmation that the connection to the remote host was OK.
  * Send the GIV/QUEUE string, then prepare receiving back the HTTP request.
  */
@@ -2233,7 +2268,7 @@ upload_error_not_found(struct upload *u, const gchar *request)
 			filename ? request : "verbatim");
 	}
 
-	upload_error_remove(u, 404, "Not Found");
+	upload_send_error(u, 404, "Not Found");
 }
 
 /**
@@ -2556,7 +2591,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		}
 
 		if (NULL == sfn) {
-			upload_error_remove(u, 409, "File index/name mismatch");
+			upload_send_error(u, 404, "File index/name mismatch");
 			return -1;
 		} else
 			sf = sfn;
@@ -2572,11 +2607,11 @@ found:
 	return 0;
 
 urn_not_found:
-	upload_error_remove(u, 404, "URN Not Found (urn:sha1)");
+	upload_send_error(u, 404, "URN Not Found (urn:sha1)");
 	return -1;
 
 sha1_recomputed:
-	upload_error_remove(u, 503, "SHA1 is being recomputed");
+	upload_send_error(u, 503, "SHA1 is being recomputed");
 	return -1;
 
 not_found:
@@ -2660,8 +2695,8 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == SHARE_REBUILDING) {
-		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, "Library being rebuilt");
+		/* Retry-able by user, hence 500 */
+		upload_error_remove(u, 500, "Library being rebuilt");
 		return -1;
 	}
 
@@ -2669,7 +2704,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		upload_error_not_found(u, uri);
 		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
-		upload_error_remove(u, 503, "SHA1 is being recomputed");
+		upload_send_error(u, 500, "SHA1 is being recomputed");
 		return -1;
 	} else if (!upload_file_present(u, sf)) {
 		goto not_found;
@@ -2725,9 +2760,9 @@ get_thex_file_to_upload_from_urn(struct upload *u, const gchar *uri)
 
 	sf = shared_file_by_sha1(&sha1);
 	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 503 */
+		/* Retry-able by user, hence 500 */
 		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
-		upload_error_remove(u, 503, "Library being rebuilt");
+		upload_error_remove(u, 500, "Library being rebuilt");
 		return -1;
 	}
 	if (sf == NULL) {
@@ -2745,7 +2780,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const gchar *uri)
 	}
 	
 	if (!sha1_hash_is_uptodate(sf)) {
-		upload_error_remove(u, 503, "SHA1 is being recomputed");
+		upload_send_error(u, 500, "SHA1 is being recomputed");
 		return -1;
 	}
 
@@ -2776,7 +2811,7 @@ malformed:
 	return -1;
 
 tth_recomputed:
-	upload_error_remove(u, 503, "TTH is being computed");
+	upload_send_error(u, 500, "TTH is being computed");
 	return -1;
 }
 
@@ -2990,7 +3025,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 			upload_vendor_str(u));
 
 	if (!GNET_PROPERTY(browse_host_enabled)) {
-		upload_error_remove(u, 403, "Browse Host Disabled");
+		upload_send_error(u, 403, "Browse Host Disabled");
 		return -1;
 	}
 
@@ -3027,7 +3062,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 			(time_t) -1 != t &&
 			delta_time((time_t) GNET_PROPERTY(library_rescan_finished), t) <= 0 
 		) {
-			upload_error_remove(u, 304, "Not Modified");
+			upload_send_error(u, 304, "Not Modified");
 			return -1;
 		}
 	}
@@ -3198,7 +3233,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	u->file_size = shared_file_size(u->sf);
 
 	if (!u->head_only && upload_is_already_downloading(u)) {
-		upload_error_remove(u, 503, "Already downloading this file");
+		upload_send_error(u, 409, "Already downloading this file");
 		return;
 	}
 
@@ -3262,11 +3297,6 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	) {
 		g_assert(GNET_PROPERTY(pfsp_server));
 		range_unavailable = TRUE;
-	} else {
-		if (u->unavailable_range) { /* Previous request was for bad chunk */
-			u->is_followup = FALSE;		/* Perform as if original request */
-		}
-		u->unavailable_range = FALSE;
 	}
 
 	u->skip = range_skip;
@@ -3289,8 +3319,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		u->cb_416_arg.u = u;
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
-		upload_send_http_status(u, FALSE, 416, msg);
-		upload_remove(u, msg);
+		upload_send_error(u, 416, msg);
 		return;
 	}
 
@@ -3311,14 +3340,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		upload_http_extra_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
 
-		if (!u->head_only && u->keep_alive && !u->unavailable_range) {
-			u->unavailable_range = TRUE;
-			upload_send_http_status(u, TRUE, 416, msg);
-			expect_http_header(u, GTA_UL_PFSP_WAITING);
-		} else {
-			upload_send_http_status(u, FALSE, 416, msg);
-			upload_remove(u, msg);
-		}
+		upload_send_error(u, 416, msg);		/* Same for HEAD or GET */
 		return;
 	}
 
@@ -3517,8 +3539,8 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	 * room in the headers, should there by any alternate location present.
 	 *
 	 * We never emit the queue ID for HEAD requests, nor during follow-ups
-	 * (which always occur for the same resource, meaning the PARQ ID was
-	 * already sent for those).
+	 * (which always occur for the same slot, meaning the PARQ ID was already
+	 * sent earlier).
 	 */
 
 	if (!u->head_only && !u->is_followup && !parq_ul_id_sent(u)) {
@@ -3855,8 +3877,7 @@ upload_request(struct upload *u, header_t *header)
 
 	switch (u->status) {
 	case GTA_UL_WAITING:
-	case GTA_UL_PFSP_WAITING:
-		u->is_followup = TRUE;
+		u->is_followup = !u->last_was_error;
 		break;
 	case GTA_UL_QUEUED:
 		u->was_actively_queued = TRUE;
@@ -3865,6 +3886,7 @@ upload_request(struct upload *u, header_t *header)
 		u->is_followup = FALSE;
 		break;
 	}
+
 	u->from_browser = upload_likely_from_browser(header);
 	u->request = g_strdup(getline_str(u->socket->getline));
 	u->downloaded = extract_downloaded(u, header);
@@ -3875,14 +3897,17 @@ upload_request(struct upload *u, header_t *header)
 	u->socket->getline = NULL;
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
-		g_message("----%s Request from %s%s:\n%s",
+		g_message("----%s Request%s from %s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
+			u->last_was_error ? " (after error)" : "",
 			host_addr_to_string(u->socket->addr),
 			u->from_browser ? " (via browser)" : "",
 			u->request);
 		header_dump(header, stderr);
 		g_message("----");
 	}
+
+	u->last_was_error = FALSE;
 
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
@@ -3895,20 +3920,6 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	upload_request_handle_user_agent(u, header);
-
-	/*
-	 * Check vendor-specific banning.
-	 */
-
-	if (u->user_agent) {
-		const gchar *msg = ban_vendor(u->user_agent);
-
-		if (msg != NULL) {
-			ban_record(u->addr, msg);
-			upload_error_remove(u, 403, "%s", msg);
-			return;
-		}
-	}
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
@@ -3926,6 +3937,22 @@ upload_request(struct upload *u, header_t *header)
 	} else {
 		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
 		return;
+	}
+
+	upload_handle_connection_header(u, header);
+
+	/*
+	 * Check vendor-specific banning.
+	 */
+
+	if (u->user_agent) {
+		const gchar *msg = ban_vendor(u->user_agent);
+
+		if (msg != NULL) {
+			ban_record(u->addr, msg);
+			upload_error_remove(u, 403, "%s", msg);
+			return;
+		}
 	}
 
 	/* Separate the HTTP method (like GET or HEAD) */
@@ -3946,7 +3973,7 @@ upload_request(struct upload *u, header_t *header)
 		if (endptr && is_ascii_blank(endptr[0])) {
 			uri = skip_ascii_blanks(endptr);
 		} else {
-			upload_error_remove(u, 501, "Not Implemented");
+			upload_send_error(u, 501, "Not Implemented");
 			return;
 		}
 	}
@@ -3976,7 +4003,7 @@ upload_request(struct upload *u, header_t *header)
 	/* Extract the host and path from an absolute URI */
 	uri = upload_parse_uri(header, uri, host, sizeof host);
 	if (NULL == uri) {
-		upload_error_remove(u, 400, "Bad URI");
+		upload_send_error(u, 400, "Bad URI");
 		return;
 	}
 
@@ -3985,7 +4012,7 @@ upload_request(struct upload *u, header_t *header)
 		!url_unescape(uri, TRUE) ||
 		0 != canonize_path(uri, uri)
 	) {
-		upload_error_remove(u, 400, "Bad Path");
+		upload_send_error(u, 400, "Bad Path");
 		return;
 	}
 
@@ -4001,7 +4028,7 @@ upload_request(struct upload *u, header_t *header)
 
 	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
 		if (NULL == header_get(header, "Host")) {
-			upload_error_remove(u, 400, "Missing Host Header");
+			upload_send_error(u, 400, "Missing Host Header");
 			return;
 		}
 	}
@@ -4095,7 +4122,7 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (!upload_is_enabled()) {
-		upload_error_remove(u, 503, "Sharing currently disabled");
+		upload_error_remove(u, 500, "Sharing currently disabled");
 		return;
 	}
 
@@ -4104,8 +4131,6 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	upload_fire_upload_info_changed(u);
-
-	upload_handle_connection_header(u, header);
 
 	/*
 	 * If we're not using sendfile() or if we don't have a requested file
@@ -4173,7 +4198,7 @@ upload_request(struct upload *u, header_t *header)
 				) {
 					flags |= BH_F_HTML;	/* A browser probably */
 				} else {
-					upload_error_remove(u, 406, "Not Acceptable");
+					upload_send_error(u, 406, "Not Acceptable");
 					return;
 				}
 			}
@@ -4227,7 +4252,7 @@ upload_request(struct upload *u, header_t *header)
 				
 				u->file_size = thex_upload_get_content_length(u->thex);
 				if (0 == u->file_size) {
-					upload_error_remove(u, 500, "THEX failure");
+					upload_send_error(u, 500, "THEX failure");
 					return;
 				}
 				u->pos = 0;
@@ -4758,6 +4783,7 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->avg_bps     = 1;
     si->last_update = u->last_update;
 	si->reqnum      = u->reqnum;
+	si->error_count = u->error_count;
 
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
