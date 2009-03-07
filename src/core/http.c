@@ -275,7 +275,7 @@ http_send_status(
 		}
 
 		if (trace)
-			g_message("----Sent HTTP status to %s (%lu bytes):\n%.*s\n----",
+			g_message("----Sent HTTP status to %s (%lu bytes):\n%.*s----",
 				host_addr_to_string(s->addr), (gulong) rw,
 				(int) MIN(rw, INT_MAX), header);
 	}
