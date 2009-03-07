@@ -143,6 +143,7 @@ LSRC = \
 	socket.c \
 	sorted_array.c \
 	stats.c \
+	strtok.c \
 	tea.c \
 	tiger.c \
 	tigertree.c \
@@ -219,6 +220,7 @@ LOBJ = \
 	socket.o \
 	sorted_array.o \
 	stats.o \
+	strtok.o \
 	tea.o \
 	tiger.o \
 	tigertree.o \

@@ -659,6 +659,8 @@ src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/stats.c
 src/lib/stats.h
+src/lib/strtok.c
+src/lib/strtok.h
 src/lib/tea.c
 src/lib/tea.h
 src/lib/tiger.c

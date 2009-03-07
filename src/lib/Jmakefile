@@ -87,6 +87,7 @@ LSRC = \
 	socket.c \
 	sorted_array.c \
 	stats.c \
+	strtok.c \
 	tea.c \
 	tiger.c \
 	tigertree.c \
