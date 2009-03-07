@@ -830,6 +830,7 @@ seckeys_free(struct seckeys *sk)
 
 	knode_free(sk->kn);
 	wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
+	wfree(sk, sizeof *sk);
 }
 
 /**
@@ -1055,11 +1056,7 @@ lookup_value_free(nlookup_t *nl, gboolean free_vvec)
 		g_assert(sk->skeys);
 		g_assert(sk->scnt > 0);
 
-		for (i = 0; i < sk->scnt; i++)
-			kuid_atom_free(sk->skeys[i]);
-		wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
-		knode_free(sk->kn);
-		wfree(sk, sizeof *sk);
+		seckeys_free(sk);
 	}
 
 	g_slist_free(fv->seckeys);
