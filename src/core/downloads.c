@@ -94,8 +94,9 @@
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
-#include "lib/palloc.h"
 #include "lib/magnet.h"
+#include "lib/palloc.h"
+#include "lib/strtok.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -8543,6 +8544,7 @@ check_fw_node_info(struct download *d, char *fwinfo)
 	const char *tok;
 	const char *msg = NULL;
 	GSList *sl = NULL;
+	strtok_t *st;
 
 	/*
 	 * An X-FW-Node-Info header looks like this:
@@ -8555,20 +8557,17 @@ check_fw_node_info(struct download *d, char *fwinfo)
 	 * and the push-proxies.
 	 */
 
-	for (tok = strtok(fwinfo, ";"); tok; tok = strtok(NULL, ";")) {
+	st = strtok_make_strip(fwinfo);
+
+	while ((tok = strtok_next(st, ";"))) {
 		host_addr_t addr;
 		guint16 port;
-
-		if (msg != NULL)
-			continue;		/* Must finish loop as strtok() alters string */
-
-		tok = skip_ascii_blanks(tok);
 
 		/* GUID is the first item we expect */
 		if (!seen_guid) {
 			if (!hex_to_guid(tok, &guid)) {
 				msg = "bad leading GUID";
-				continue;
+				break;
 			}
 			seen_guid = TRUE;
 			continue;
@@ -8621,6 +8620,8 @@ check_fw_node_info(struct download *d, char *fwinfo)
 		}
 	}
 
+	strtok_free(st);
+
 	if (msg != NULL) {
 		if (GNET_PROPERTY(download_debug))
 			g_warning("could not parse 'X-FW-Node-Info: %s': %s", fwinfo, msg);
@@ -8648,6 +8649,7 @@ check_push_proxies(struct download *d, const header_t *header)
 	char *buf;
 	const char *tok;
 	GSList *sl = NULL;
+	strtok_t *st;
 
 	download_check(d);
 
@@ -8686,11 +8688,11 @@ check_push_proxies(struct download *d, const header_t *header)
 	if (buf == NULL)
 		return;
 
-	for (tok = strtok(buf, ","); tok; tok = strtok(NULL, ",")) {
+	st = strtok_make_strip(buf);
+
+	while ((tok = strtok_next(st, ","))) {
 		host_addr_t addr;
 		guint16 port;
-
-		tok = skip_ascii_blanks(tok);
 
 		/* TODO: handle pptls=<hex> */
 		if (is_strcaseprefix(tok, "pptls="))
@@ -8708,6 +8710,8 @@ check_push_proxies(struct download *d, const header_t *header)
 			sl = g_slist_prepend(sl, host);
 		}
 	}
+
+	strtok_free(st);
 
 	if (sl != NULL) {
 		free_proxies(d->server);
@@ -9568,7 +9572,6 @@ http_version_nofix:
 					}
 				}
 			} else {
-				/* Host might support queueing. If so, retrieve queue status */
 				/* Server has nothing for us yet, give it time */
 				download_queue_delay(d,
 					MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
@@ -9725,12 +9728,6 @@ http_version_nofix:
 				/* No hammering -- hold further requests on server */
 				download_passively_queued(d, FALSE);
 
-#if 0
-				if (d->sha1 && d->file_size) {
-					dmesh_multiple_downloads(d->sha1,
-							d->file_size, d->file_info);
-				}
-#endif
 				download_queue_hold(d,
 					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
 					"%sHTTP %u %s", short_read, ack_code, ack_message);
@@ -10060,12 +10057,7 @@ http_version_nofix:
 				 * one.		--RAM, 2006-01-13
 				 */
 
-				if (d->skip >= end + 1) {
-					/* NOTE: This is not an error, the source just does not
-					 *       have the full range yet and offered a sub-range.
-					 *		 Even gtk-gnutella peers do this. Maybe the above
-					 *		 should be (d->skip - d->overlap)?
-					 */
+				if (d->skip - d->overlap_size >= end + 1) {
 					download_queue(d, _("Weird server-side chunk shrinking"));
 					return;
 				}

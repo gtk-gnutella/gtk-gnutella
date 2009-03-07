@@ -90,6 +90,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/header.h"
 #include "lib/listener.h"
+#include "lib/strtok.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
@@ -1078,8 +1079,12 @@ upload_likely_from_browser(const header_t *header)
 		return FALSE;
 
 	buf = header_get(header, "Accept");
-	if (buf && (strstr(buf, "text/html") || strstr(buf, "text/*")))
-		return TRUE;
+	if (buf) {
+		if (strtok_has(buf, ",", "text/html"))
+			return TRUE;
+		if (strtok_has(buf, ",", "text/*"))
+			return TRUE;
+	}
 
 	buf = header_get(header, "Accept-Language");
 	if (buf)
@@ -2887,11 +2892,9 @@ select_encoding(const header_t *header)
 {
     const gchar *buf;
 
-    /* XXX needs more rigourous parsing */
     buf = header_get(header, "Accept-Encoding");
 	if (buf) {
-
-		if (strstr(buf, "deflate")) {
+		if (strtok_has(buf, ",", "deflate")) {
 			const gchar *ua;
 			
 			ua = header_get(header, "User-Agent");
@@ -2899,7 +2902,7 @@ select_encoding(const header_t *header)
 				return BH_F_DEFLATE;
 		}
 
-		if (strstr(buf, "gzip"))
+		if (strtok_has(buf, ",", "gzip"))
 			return BH_F_GZIP;
 	}
 
@@ -4161,11 +4164,14 @@ upload_request(struct upload *u, header_t *header)
 			buf = header_get(header, "Accept");
 			if (buf) {
 				/* FIXME: needs more rigourous parsing */
-				if (strstr(buf, "application/x-gnutella-packets")) {
+				if (strtok_has(buf, ",", "application/x-gnutella-packets")) {
 					flags |= BH_F_QHITS;
-				} else if (strstr(buf, "text/html")) {
+				} else if (strtok_has(buf, ",", "text/html")) {
 					flags |= BH_F_HTML;
-				} else if (strstr(buf, "*/*") || strstr(buf, "text/*")) {
+				} else if (
+					strtok_has(buf, ",", "*/*") ||
+					strtok_has(buf, ",", "text/*")
+				) {
 					flags |= BH_F_HTML;	/* A browser probably */
 				} else {
 					upload_error_remove(u, 406, "Not Acceptable");

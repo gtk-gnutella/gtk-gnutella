@@ -102,6 +102,7 @@ RCSID("$Id$")
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/pmsg.h"
+#include "lib/strtok.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -4538,18 +4539,17 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 	 */
 
 	field = header_get(head, "Accept");
-	if (field) {
-		if (
-			GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
-			!(n->flags & NODE_F_LEAF) &&
-			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
-		) {
-			static const gchar msg[] = N_("Protocol not acceptable");
+	if (
+		field &&
+		GNET_PROPERTY(current_peermode) != NODE_P_LEAF &&
+		!(n->flags & NODE_F_LEAF) &&
+		strtok_has(field, ",", "application/x-gnutella2")
+	) {
+		static const gchar msg[] = N_("Protocol not acceptable");
 
-			node_send_error(n, 406, msg);
-			node_remove(n, _(msg));
-			return FALSE;
-		}
+		node_send_error(n, 406, msg);
+		node_remove(n, _(msg));
+		return FALSE;
 	}
 
 	return TRUE;
@@ -4598,10 +4598,8 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 */
 
 	field = header_get(head, "Content-Encoding");
-	if (field) {
-		/* XXX needs more rigourous parsing */
-		if (strstr(field, "deflate"))
-			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+	if (field && strtok_has(field, ",", "deflate")) {
+		n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
 	if (
@@ -5043,12 +5041,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 	 */
 
 		field = header_get(head, "Accept-Encoding");
-		if (field) {
-			/* XXX needs more rigourous parsing */
-			if (strstr(field, "deflate")) {
-				n->attrs |= NODE_A_CAN_INFLATE;
-				n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
-			}
+		if (field && strtok_has(field, ",", "deflate")) {
+			n->attrs |= NODE_A_CAN_INFLATE;
+			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
 		}
 
 		/*
@@ -5056,10 +5051,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 	 */
 
 		field = header_get(head, "Content-Encoding");
-		if (field) {
-			/* XXX needs more rigourous parsing */
-			if (strstr(field, "deflate"))
-				n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+		if (field && strtok_has(field, ",", "deflate")) {
+			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 		}
 	}
 

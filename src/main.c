@@ -113,6 +113,7 @@
 #include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/socket.h"
+#include "lib/strtok.h"
 #include "lib/tea.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
@@ -1342,6 +1343,7 @@ main(int argc, char **argv)
 	random_init();
 	tea_test();
 	patricia_test();
+	strtok_test();
 	locale_init();
 	adns_init();
 	file_object_init();
