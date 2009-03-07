@@ -396,19 +396,23 @@ downloads_gui_status_string(const struct download *d)
 		break;
 
 	case GTA_DL_COMPLETED:
-		if (d->last_update != d->start_date) {
-			time_delta_t t = delta_time(d->last_update, d->start_date);
-			
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
-				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				short_rate((d->range_end - d->skip + d->overlap_size) / t,
-					show_metric_units()),
-				short_time(t));
+		if (NULL != d->remove_msg) {
+			status = d->remove_msg;
 		} else {
+			if (d->last_update != d->start_date) {
+				time_delta_t t = delta_time(d->last_update, d->start_date);
+				
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
+					FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
+					short_rate((d->range_end - d->skip + d->overlap_size) / t,
+						show_metric_units()),
+					short_time(t));
+			} else {
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"));
+			}
+			status = tmpstr;
 		}
-		status = tmpstr;
 		break;
 
 	case GTA_DL_VERIFY_WAIT:
