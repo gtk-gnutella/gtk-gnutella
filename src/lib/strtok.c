@@ -273,20 +273,33 @@ extend_token(strtok_t *s)
  * only we can specify whether we wish to ignore leading and/or trailing spaces
  * for this lookup.
  *
- * @param s		the string tokenizing object
- * @param delim	the string containing one-character delimiters, e.g. ",;"
+ * When ``looked'' is non-NULL, we're looking whether the token matches the
+ * string, and we do not bother constructing the token as soon as we have
+ * determined that the current token cannot match.  Therefore, the returned
+ * token string is meaningless and forced to "", the empty string.
+ *
+ * @param s			the string tokenizing object
+ * @param delim		the string containing one-character delimiters, e.g. ",;"
+ * @param no_lead	whether leading spaces in token should be stripped
+ * @param no_end	whether trailing spaces in token should be stripped
+ * @param looked	the token which we're looking for, NULL if none
+ * @param found		if non-NULL, gets filled with whether we found ``looked''
  *
  * @return pointer to the next token, which must be duplicated if it needs to
  * be perused, or NULL if there are no more tokens.  The token lifetime lasts
  * until the next call to one of the strtok_* functions on the same object.
  */
-const char *
-strtok_next_extended(strtok_t *s, const char *delim,
-	gboolean no_lead, gboolean no_end)
+static const char *
+strtok_next_internal(strtok_t *s, const char *delim,
+	gboolean no_lead, gboolean no_end,
+	const char *looked, gboolean *found)
 {
 	size_t tlen;
 	int c;
 	int d_min, d_max;
+	const char *l = NULL;
+	gboolean seen_non_blank = FALSE;
+	int deferred_blank = 0;
 
 	strtok_check(s);
 	g_assert(delim != NULL);
@@ -343,6 +356,37 @@ strtok_next_extended(strtok_t *s, const char *delim,
 
 		*s->t++ = c;
 		tlen++;
+
+		/* Check whether token can match the ``looked'' up string */
+
+		if (looked) {
+			if (!seen_non_blank && !is_ascii_blank(c))
+				seen_non_blank = TRUE;
+
+			if (!no_lead || seen_non_blank) {
+				int x;
+
+				if (l == NULL)
+					l = looked;
+
+				if (no_end) {
+					if (is_ascii_blank(c)) {
+						deferred_blank++;
+						continue;
+					} else {
+						for (/**/; deferred_blank > 0; deferred_blank--) {
+							/* All blanks deemed equal here */
+							if (!is_ascii_blank(*l++))
+								goto skip_until_delim;
+						}
+					}
+				}
+
+				x = *l++;
+				if (c != x)
+					goto skip_until_delim;
+			}
+		}
 	}
 
 	s->p = NULL;			/* Signals: reached end of string */
@@ -352,6 +396,7 @@ end_token:
 		extend_token(s);
 
 	g_assert(tlen < s->len);
+	g_assert(s->len > 0);
 
 	/*
 	 * Strip trailing white spaces if required.
@@ -366,7 +411,73 @@ end_token:
 	}
 	*s->t = '\0';			/* End token string */
 
+	/* Check whether token can match the ``looked'' up string */
+
+	if (looked) {
+		if (l == NULL)
+			l = looked;
+		if (*l != '\0')
+			goto not_found;
+		*s->token = '\0';		/* Always return empty string */
+	}
+
+	if (found)
+		*found = TRUE;
+
 	return no_lead ? skip_ascii_blanks(s->token) : s->token;
+
+skip_until_delim:
+
+	/*
+	 * Looked-up string did not match the token we were constructing.
+	 * Move to the next delimiter or the end of the string, skipping
+	 * the token construction.
+	 */
+
+	while ((c = *s->p++)) {
+		if (c >= d_min && c <= d_max) {
+			const char *q = delim;
+			int d;
+
+			while ((d = *q++)) {
+				if (d == c)
+					goto not_found;		/* Found delimiter, not the string */
+			}
+		}
+	}
+
+not_found:
+	if (0 == s->len)
+		extend_token(s);
+
+	*s->token = '\0';		/* Always return empty string */
+
+	if (found)
+		*found = FALSE;
+
+	return s->token;
+}
+
+/**
+ * Get next token, as delimited by one of the characters given in ``delim'' or
+ * by the end of the string, whichever comes first.  Same as strtok_next(),
+ * only we can specify whether we wish to ignore leading and/or trailing spaces
+ * for this lookup.
+ *
+ * @param s			the string tokenizing object
+ * @param delim		the string containing one-character delimiters, e.g. ",;"
+ * @param no_lead	whether leading spaces in token should be stripped
+ * @param no_end	whether trailing spaces in token should be stripped
+ *
+ * @return pointer to the next token, which must be duplicated if it needs to
+ * be perused, or NULL if there are no more tokens.  The token lifetime lasts
+ * until the next call to one of the strtok_* functions on the same object.
+ */
+const char *
+strtok_next_extended(strtok_t *s, const char *delim,
+	gboolean no_lead, gboolean no_end)
+{
+	return strtok_next_internal(s, delim, no_lead, no_end, NULL, NULL);
 }
 
 /**
@@ -386,7 +497,7 @@ strtok_next(strtok_t *s, const char *delim)
 	strtok_check(s);
 	g_assert(delim != NULL);
 
-	return strtok_next_extended(s, delim, s->no_lead, s->no_end);
+	return strtok_next_internal(s, delim, s->no_lead, s->no_end, NULL, NULL);
 }
 
 /**
@@ -402,16 +513,19 @@ gboolean
 strtok_has(const char *string, const char *delim, const char *what)
 {
 	strtok_t *st;
-	const char *token;
 	gboolean found = FALSE;
 
 	st = strtok_make(string, TRUE, TRUE);
+
+	/* FIXME: optimize by calling specialized "next" that can compare the
+	 * built token with "what" to see when we cannot match, in which case
+	 * we switch to simply looking for the token separator, and returns
+	 * a "boolean" in the args, saying whether it found the token.
+	 */
 	
-	while ((token = strtok_next(st, delim))) {
-		if (0 == strcmp(what, token)) {
-			found = TRUE;
+	while (strtok_next_internal(st, delim, TRUE, TRUE, what, &found)) {
+		if (found)
 			break;
-		}
 	}
 
 	strtok_free(st);
@@ -471,6 +585,13 @@ strtok_test(void)
 
 	g_assert(strtok_has(string, ";,/", "d"));
 	g_assert(strtok_has(string, ";", "b, c"));
+	g_assert(!strtok_has(string, ";,/", "de"));
+
+	string = "with  space  #1 ; with space  #2 ;";
+
+	g_assert(strtok_has(string, ";", "with space  #2"));
+	g_assert(!strtok_has(string, ";", "with space #2"));
+	g_assert(!strtok_has(string, ";", "absent"));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
