@@ -40,12 +40,14 @@ RCSID("$Id: wordvec.c 11437 2006-08-05 00:24:20Z cbiere $")
 #include "strtok.h"
 
 #include "ascii.h"
+#include "endian.h"
+#include "misc.h"
 #include "utf8.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-#define TOK_GROW		512		/**< Double token size up to that size */
-#define TOK_FIRST_LEN	64		/**< Initial token length */
+#define STRTOK_GROW			512		/**< Double token size up to that size */
+#define STRTOK_FIRST_LEN	64		/**< Initial token length */
 
 enum strtok_magic { STRTOK_MAGIC = 0x5185623e };	/**< Magic number */
 
@@ -54,13 +56,13 @@ enum strtok_magic { STRTOK_MAGIC = 0x5185623e };	/**< Magic number */
  */
 struct strtok {
 	enum strtok_magic magic;
+	guint8 no_lead;			/**< Whether leading spaces must be skipped */
+	guint8 no_end;			/**< Whether ending spaces must be skipped */
 	const char *string;		/**< Initial string to tokenize */
 	const char *p;			/**< Parsing pointer within string */
 	char *token;			/**< String token buffer */
 	char *t;				/**< Pointer in token where next char goes */
 	size_t len;				/**< Length of token buffer */
-	gboolean no_lead;		/**< Whether leading spaces must be skipped */
-	gboolean no_end;		/**< Whether ending spaces must be skipped */
 };
 
 static inline void
@@ -256,12 +258,12 @@ extend_token(strtok_t *s)
 	strtok_check(s);
 
 	if (s->len > 0) {
-		if (s->len > TOK_GROW)
-			len = s->len + TOK_GROW;
+		if (s->len > STRTOK_GROW)
+			len = size_saturate_add(s->len, STRTOK_GROW);
 		else
-			len = 2 * s->len;
+			len = size_saturate_mult(s->len, 2);
 	} else {
-		len = TOK_FIRST_LEN;
+		len = STRTOK_FIRST_LEN;
 	}
 
 	grow_token(s, len);
@@ -321,7 +323,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 		const char *q = delim;
 		int d;
 
-		while ((d = *q++)) {
+		while ((d = peek_u8(q++))) {
 			if (d < d_min)
 				d_min = d;
 			if (d > d_max)
@@ -336,12 +338,12 @@ strtok_next_internal(strtok_t *s, const char *delim,
 	s->t = s->token;
 	tlen = 0;
 
-	while ((c = *s->p++)) {
+	while ((c = peek_u8(s->p++))) {
 		if (c >= d_min && c <= d_max) {
 			const char *q = delim;
 			int d;
 
-			while ((d = *q++)) {
+			while ((d = peek_u8(q++))) {
 				if (d == c)
 					goto end_token;
 			}
@@ -372,7 +374,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 					}
 				}
 
-				x = *l++;
+				x = peek_u8(l++);
 				if (c != x)
 					goto skip_until_delim;
 			}
@@ -386,7 +388,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 
 		g_assert(tlen < s->len);
 
-		*s->t++ = c;
+		s->t = poke_u8(s->t, c);
 		tlen++;
 	}
 
@@ -435,12 +437,12 @@ skip_until_delim:
 	 * the token construction.
 	 */
 
-	while ((c = *s->p++)) {
+	while ((c = peek_u8(s->p++))) {
 		if (c >= d_min && c <= d_max) {
 			const char *q = delim;
 			int d;
 
-			while ((d = *q++)) {
+			while ((d = peek_u8(q++))) {
 				if (d == c)
 					goto not_found;		/* Found delimiter, not the string */
 			}
