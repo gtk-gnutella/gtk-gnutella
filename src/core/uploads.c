@@ -2695,8 +2695,8 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == SHARE_REBUILDING) {
-		/* Retry-able by user, hence 500 */
-		upload_error_remove(u, 500, "Library being rebuilt");
+		/* Retry-able by user, hence 503 */
+		upload_error_remove(u, 503, "Library being rebuilt");
 		return -1;
 	}
 
@@ -2704,7 +2704,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		upload_error_not_found(u, uri);
 		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
-		upload_send_error(u, 500, "SHA1 is being recomputed");
+		upload_send_error(u, 503, "SHA1 is being recomputed");
 		return -1;
 	} else if (!upload_file_present(u, sf)) {
 		goto not_found;
@@ -2760,9 +2760,9 @@ get_thex_file_to_upload_from_urn(struct upload *u, const gchar *uri)
 
 	sf = shared_file_by_sha1(&sha1);
 	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 500 */
+		/* Retry-able by user, hence 503 */
 		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
-		upload_error_remove(u, 500, "Library being rebuilt");
+		upload_error_remove(u, 503, "Library being rebuilt");
 		return -1;
 	}
 	if (sf == NULL) {
@@ -2780,7 +2780,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const gchar *uri)
 	}
 	
 	if (!sha1_hash_is_uptodate(sf)) {
-		upload_send_error(u, 500, "SHA1 is being recomputed");
+		upload_send_error(u, 503, "SHA1 is being recomputed");
 		return -1;
 	}
 
@@ -2811,7 +2811,7 @@ malformed:
 	return -1;
 
 tth_recomputed:
-	upload_send_error(u, 500, "TTH is being computed");
+	upload_send_error(u, 503, "TTH is being computed");
 	return -1;
 }
 
@@ -3906,6 +3906,9 @@ upload_request(struct upload *u, header_t *header)
 		header_dump(header, stderr);
 		g_message("----");
 	}
+
+	if (u->last_was_error)
+		gnet_stats_count_general(GNR_CLIENT_FOLLOWUP_AFTER_ERROR, 1);
 
 	u->last_was_error = FALSE;
 
