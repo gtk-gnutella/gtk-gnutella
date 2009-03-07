@@ -4163,7 +4163,6 @@ upload_request(struct upload *u, header_t *header)
 
 			buf = header_get(header, "Accept");
 			if (buf) {
-				/* FIXME: needs more rigourous parsing */
 				if (strtok_has(buf, ",", "application/x-gnutella-packets")) {
 					flags |= BH_F_QHITS;
 				} else if (strtok_has(buf, ",", "text/html")) {
