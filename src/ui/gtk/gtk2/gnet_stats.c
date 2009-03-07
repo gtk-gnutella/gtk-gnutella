@@ -156,7 +156,11 @@ general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 {
 	if (stats->general[type] == 0)
 		g_strlcpy(dst, "-", size);
-	else if (type == GNR_QUERY_COMPACT_SIZE || type == GNR_IGNORED_DATA)
+	else if (
+		type == GNR_QUERY_COMPACT_SIZE ||
+		type == GNR_IGNORED_DATA ||
+		type == GNR_SUNK_DATA
+	)
 		g_strlcpy(dst,
 			compact_size(stats->general[type], show_metric_units()), size);
 	else

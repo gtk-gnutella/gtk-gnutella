@@ -110,17 +110,22 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
 const gchar *
 general_stat_str(const gnet_stats_t *stats, gint type)
 {
-    static gchar strbuf[UINT64_DEC_BUFLEN];
+	static gchar strbuf[UINT64_DEC_BUFLEN];
 
-    if (stats->general[type] == 0)
-        return "-";
+	if (stats->general[type] == 0)
+		return "-";
 
-    if (type == GNR_QUERY_COMPACT_SIZE || type == GNR_IGNORED_DATA) {
-        return compact_size(stats->general[type], show_metric_units());
-    } else {
-        uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);
-        return strbuf;
-    }
+	switch (type) {
+	case GNR_QUERY_COMPACT_SIZE:
+	case GNR_IGNORED_DATA:
+	case GNR_SUNK_DATA:
+		return compact_size(stats->general[type], show_metric_units());
+	default:
+		break;
+	}
+
+	uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);
+	return strbuf;
 }
 
 const gchar *
