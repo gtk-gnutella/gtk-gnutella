@@ -312,7 +312,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 	/*
 	 * Pre-compile delimiter string to see what are the min and max character
 	 * codes on which we delimit tokens.  When handling a low amount of
-	 * delimiters which are close enough in the ASCII code space, this lowers
+	 * delimiters which are close enough in the 8-bit code space, this lowers
 	 * significantly the amount of character comparisons we have to do.
 	 */
 
@@ -339,6 +339,9 @@ strtok_next_internal(strtok_t *s, const char *delim,
 	tlen = 0;
 
 	while ((c = peek_u8(s->p++))) {
+
+		/* Have we reached one of the delimiters? */
+
 		if (c >= d_min && c <= d_max) {
 			const char *q = delim;
 			int d;
@@ -427,6 +430,10 @@ end_token:
 	if (found)
 		*found = TRUE;
 
+	/*
+	 * Leading white spaces are skipped if required.
+	 */
+
 	return no_lead ? skip_ascii_blanks(s->token) : s->token;
 
 skip_until_delim:
@@ -449,7 +456,15 @@ skip_until_delim:
 		}
 	}
 
+	/* FALL THROUGH */
+
 not_found:
+
+	/*
+	 * We did not find the looked-up string and reached either the next
+	 * delimiter or the end of the parsed string.
+	 */
+
 	if (0 == s->len)
 		extend_token(s);
 
@@ -520,12 +535,6 @@ strtok_has(const char *string, const char *delim, const char *what)
 
 	st = strtok_make(string, TRUE, TRUE);
 
-	/* FIXME: optimize by calling specialized "next" that can compare the
-	 * built token with "what" to see when we cannot match, in which case
-	 * we switch to simply looking for the token separator, and returns
-	 * a "boolean" in the args, saying whether it found the token.
-	 */
-	
 	while (strtok_next_internal(st, delim, TRUE, TRUE, what, &found)) {
 		if (found)
 			break;
