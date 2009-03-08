@@ -1619,6 +1619,8 @@ download_reparent_all(struct dl_server *duplicate, struct dl_server *server)
 {
 	struct download *next;
 
+	gnet_stats_count_general(GNR_CONSOLIDATED_SERVERS, 1);
+
 	next = hash_list_head(sl_downloads);
 	while (next) {
 		struct download *d = next;
@@ -3202,7 +3204,12 @@ download_clone(struct download *d)
 		g_assert(d->buffers);
 		g_assert(d->buffers->held == 0);		/* All data flushed */
 	} else {
+		struct gnutella_socket *s = d->socket;
 		io_free(d->io_opaque);		/* Cloned after error, not when receiving */
+		if (s->getline) {
+			getline_free(s->getline);	/* No longer need this */
+			s->getline = NULL;
+		}
 		g_assert(NULL == d->buffers);
 	}
 
