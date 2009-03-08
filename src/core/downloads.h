@@ -127,6 +127,9 @@ gboolean download_is_alive(const struct download *);
 gboolean download_remove(struct download *d);
 void download_abort(struct download *d);
 
+void download_got_fw_node_info(const struct guid *guid,
+	host_addr_t addr, guint16 port, const char *fwinfo);
+
 #endif /* _core_downloads_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

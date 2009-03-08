@@ -259,17 +259,26 @@ download_basename(const struct download *d)
 }
 
 static const char *
-download_host_info(const struct download *d)
+server_host_info(const struct dl_server *server)
 {
 	static char info[256];
 	char host[128];
-	
-	host_addr_port_to_string_buf(download_addr(d), download_port(d),
+
+	dl_server_valid(server);
+
+	host_addr_port_to_string_buf(server->key->addr, server->key->port,
 		host, sizeof host);
 	concat_strings(info, sizeof info,
-		"<", host, " \'", download_vendor_str(d), "\'>",
+		"<", host, " \'", server->vendor ? server->vendor : "", "\'>",
 		(void *) 0);
 	return info;
+}
+
+static inline const char *
+download_host_info(const struct download *d)
+{
+	download_check(d);
+	return server_host_info(d->server);
 }
 
 /*
@@ -8034,7 +8043,7 @@ partial_done:
 static gboolean
 download_moved_permanently(struct download *d, header_t *header)
 {
-	gchar *buf;
+	const char *buf;
 	dmesh_urlinfo_t info;
 	host_addr_t addr;
 	guint16 port;
@@ -8232,7 +8241,7 @@ download_convert_to_urires(struct download *d)
 guint
 extract_retry_after(struct download *d, const header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 	guint32 delay;
 	gint error;
 
@@ -8416,7 +8425,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 static void
 check_date(struct download *d, const header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 
 	download_check(d);
 
@@ -8460,7 +8469,7 @@ static void
 check_xhostname(struct download *d, const header_t *header)
 {
 	struct dl_server *server;
-	gchar *buf;
+	const char *buf;
 
 	download_check(d);
 
@@ -8511,7 +8520,7 @@ check_xhostname(struct download *d, const header_t *header)
 static void
 check_xhost(struct download *d, const header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 	host_addr_t addr;
 	guint16 port;
 
@@ -8559,7 +8568,7 @@ content_range_check(struct download *d, header_t *header)
 {
 	filesize_t start, end, total;
 	fileinfo_t *fi;
-	gchar *buf;
+	const char *buf;
 
 	buf = header_get(header, "Content-Range");		/* Optional */
 	if (NULL == buf)
@@ -8593,7 +8602,7 @@ handle_content_urn(struct download *d, header_t *header)
 	gboolean found_sha1 = FALSE;
 	struct sha1 sha1;
 	struct tth tth;
-	gchar *buf;
+	const char *buf;
 
 	download_check(d);
 
@@ -8814,9 +8823,8 @@ collect_locations:
  * @return TRUE if we got push-proxies, FALSE if the header did not contain any.
  */
 static gboolean
-check_fw_node_info(struct download *d, char *fwinfo)
+check_fw_node_info(struct dl_server *server, const char *fwinfo)
 {
-	struct dl_server *server = d->server;
 	struct dl_key *key = server->key;
 	struct guid guid;
 	gboolean seen_proxy = FALSE;
@@ -8893,7 +8901,7 @@ check_fw_node_info(struct download *d, char *fwinfo)
 		if (is_private_addr(addr) || !host_is_valid(addr, port)) {
 			g_message(
 				"host %s sent non-routable IP address %s as push-proxy",
-				download_host_info(d), host_addr_port_to_string(addr, port));
+				server_host_info(server), host_addr_port_to_string(addr, port));
 		} else {
 			gnet_host_t *host = walloc(sizeof *host);
 			gnet_host_set(host, addr, port);
@@ -8903,9 +8911,13 @@ check_fw_node_info(struct download *d, char *fwinfo)
 
 	strtok_free(st);
 
+	if (!seen_guid)
+		msg = "missing GUID";
+
 	if (msg != NULL) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("could not parse 'X-FW-Node-Info: %s': %s", fwinfo, msg);
+			g_warning("could not parse 'X-FW-Node-Info: %s' from %s: %s",
+				fwinfo, server_host_info(server), msg);
 
 		return FALSE;
 	}
@@ -8921,13 +8933,51 @@ check_fw_node_info(struct download *d, char *fwinfo)
 }
 
 /**
+ * A downloader (i.e. someone ww upload something to) sent us a X-FW-Node-Info
+ * header in its request, along with its servent IP:port.  See whether we
+ * know this GUID or host and if we do, collect push-proxies out of the header.
+ *
+ * @param guid		parsed GUID from X-FW-Node-Info line
+ * @param addr		parsed address from X-FW-Node-Info line or socket address
+ * @param port		parsed port from X-FW-Node-Info or 0
+ * @param fwinfo	the raw X-FW-Node-Info line we got
+ */
+void
+download_got_fw_node_info(const struct guid *guid,
+	host_addr_t addr, guint16 port, const char *fwinfo)
+{
+	struct dl_server *server;
+
+	/*
+	 * See whether we know this server by GUID, then by addr+port.
+	 */
+	
+	server = g_hash_table_lookup(dl_by_guid, guid);
+
+	if (NULL == server && host_is_valid(addr, port)) {
+		struct dl_addr ipk;
+
+		ipk.addr = addr;
+		ipk.port = port;
+		
+		server = g_hash_table_lookup(dl_by_addr, &ipk);
+	}
+
+	if (NULL == server)
+		return;				/* Don't know this server, ignore */
+
+	gnet_stats_count_general(GNR_RECEIVED_KNOWN_FW_NODE_INFO, 1);
+	check_fw_node_info(server, fwinfo);
+}
+
+/**
  * Extract host:port information out of X-Push-Proxy if present and
  * update the server's list.
  */
 static void
 check_push_proxies(struct download *d, const header_t *header)
 {
-	char *buf;
+	const char *buf;
 	const char *tok;
 	GSList *sl = NULL;
 	strtok_t *st;
@@ -8950,7 +9000,7 @@ check_push_proxies(struct download *d, const header_t *header)
 	 */
 
 	buf = header_get(header, "X-FW-Node-Info");
-	if (buf && check_fw_node_info(d, buf))
+	if (buf && check_fw_node_info(d->server, buf))
 		return;
 
 	/*
@@ -9016,7 +9066,7 @@ static void
 update_available_ranges(struct download *d, const header_t *header)
 {
 	static const gchar available[] = "X-Available-Ranges";
-	gchar *buf;
+	const char *buf;
 
 	download_check(d);
 
@@ -9400,10 +9450,10 @@ static void
 download_request(struct download *d, header_t *header, gboolean ok)
 {
 	struct gnutella_socket *s;
-	const gchar *status;
+	const char *status;
 	guint ack_code;
-	const gchar *ack_message = "";
-	gchar *buf;
+	const char *ack_message = "";
+	const char *buf;
 	gboolean got_content_length = FALSE;
 	gboolean is_chunked;
 	gboolean must_ignore;
@@ -9412,7 +9462,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	guint http_major = 0, http_minor = 0;
 	gboolean is_followup;
 	fileinfo_t *fi;
-	gchar short_read[80];
+	char short_read[80];
 	guint delay;
 	guint hold = 0;
 	guint fixed_ack_code;

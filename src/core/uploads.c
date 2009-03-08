@@ -1004,11 +1004,13 @@ static struct upload *
 upload_clone(struct upload *u)
 {
 	struct upload *cu;
+	gboolean within_error = FALSE;
 
 	upload_check(u);
 
 	if (u->io_opaque) {
 		/* Was cloned after error sending, not during transfer */
+		within_error = TRUE;
 		io_free(u->io_opaque);
 		u->io_opaque = NULL;
 	}
@@ -1035,16 +1037,30 @@ upload_clone(struct upload *u)
 	cu->sent = 0;
 
 	/*
+	 * This information is required to have proper GUI information displayed
+	 * on the error line (when we get cloned after an error, the parent will
+	 * be removed which will cause the line to be fully redisplayed).
+	 */
+
+	if (within_error) {
+		if (u->name)
+			u->name = atom_str_get(u->name);
+		if (u->user_agent)
+			u->user_agent = atom_str_get(u->user_agent);
+	} else {
+		/* When transferring, only the status changes: no full redisplay */
+		u->name = NULL;
+		u->user_agent = NULL;
+	}
+
+	/*
 	 * The following have been copied and appropriated by the cloned upload.
-	 * They are reset so that an upload_free_resource() on the original will
+	 * Some are reset so that an upload_free_resource() on the original will
 	 * not free them.
 	 */
 
-	u->name = NULL;
 	u->socket = NULL;
 	u->buffer = NULL;
-	u->user_agent = NULL;
-	u->country = ISO3166_INVALID;
 	u->sha1 = NULL;
 	u->thex = NULL;
 	u->request = NULL;
@@ -2973,7 +2989,7 @@ extract_downloaded(const struct upload *u, const header_t *header)
  * @return TRUE if the client seems to support it and otherwise FALSE.
  */
 static gboolean
-supports_chunked(const struct upload *u, header_t *header)
+supports_chunked(const struct upload *u, const header_t *header)
 {
 	gboolean chunked;
 
@@ -3002,6 +3018,104 @@ supports_chunked(const struct upload *u, header_t *header)
 	}
 
 	return chunked;
+}
+
+/**
+ * Extract firewalled node information from the X-FW-Node-Info header string
+ * and pass that information to the download side, in case they know about
+ * that node.
+ */
+static void
+extract_fw_node_info(const struct upload *u, const header_t *header)
+{
+	struct guid guid;
+	gboolean seen_port_ip = FALSE;
+	gboolean seen_guid = FALSE;
+	const char *tok;
+	const char *msg = NULL;
+	const char *buf;
+	strtok_t *st;
+	host_addr_t addr;
+	guint16 port;
+
+	buf = header_get(header, "X-FW-Node-Info");
+	if (NULL == buf)
+		return;
+
+	/*
+	 * An X-FW-Node-Info header looks like this:
+	 *
+	 *  X-FW-Node-Info: 9DBC52EEEBCA2C8A79036D626B959900;fwt/1;
+	 *		26252:85.182.49.3;
+	 *		pptls=E;69.12.88.95:1085;64.53.20.48:804;66.17.23.159:343
+	 *
+	 * We learn the GUID of the node, its address (in reversed port:IP format)
+	 * and the push-proxies.
+	 */
+
+	st = strtok_make_strip(buf);
+
+	while ((tok = strtok_next(st, ";"))) {
+
+		/* GUID is the first item we expect */
+		if (!seen_guid) {
+			if (!hex_to_guid(tok, &guid)) {
+				msg = "bad leading GUID";
+				break;
+			}
+			seen_guid = TRUE;
+			continue;
+		}
+
+		/* Skip "options", stated as "word/x.y" */
+		if (strstr(tok, "/"))
+			continue;
+
+		/* End at first "pptsl=" indication (remaining are push-proxies) */
+		if (is_strcaseprefix(tok, "pptls="))
+			break;
+
+		/*
+		 * If we find a valid port:IP host, then these are the remote
+		 * server address and port.
+		 */
+
+		if (string_to_port_host_addr(tok, NULL, &port, &addr)) {
+			seen_port_ip = TRUE;
+			break;
+		}
+	}
+
+	strtok_free(st);
+
+	if (!seen_guid)
+		msg = "missing GUID";
+
+	if (msg != NULL) {
+		if (GNET_PROPERTY(upload_debug))
+			g_warning("could not parse 'X-FW-Node-Info: %s' from %s: %s",
+				buf, upload_host_info(u), msg);
+
+		return;
+	}
+
+	/*
+	 * We got the GUID, but we may be missing the address and port.
+	 */
+
+	if (!seen_port_ip) {
+		addr = u->socket->addr;
+		port = 0;
+	} else if (is_private_addr(addr)) {
+		addr = u->socket->addr;
+	}
+
+	/*
+	 * Propagate information to the download layer so that we may further
+	 * consolidate servers for which we do not have a GUID yet.
+	 */
+
+	download_got_fw_node_info(&guid, addr, port, buf);
 }
 
 /**
@@ -3890,7 +4004,6 @@ upload_request(struct upload *u, header_t *header)
 	u->from_browser = upload_likely_from_browser(header);
 	u->request = g_strdup(getline_str(u->socket->getline));
 	u->downloaded = extract_downloaded(u, header);
-
 	u->status = GTA_UL_SENDING;
 
 	getline_free(u->socket->getline);
@@ -3923,6 +4036,7 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	upload_request_handle_user_agent(u, header);
+	extract_fw_node_info(u, header);
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
