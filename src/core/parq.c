@@ -3219,6 +3219,8 @@ parq_upload_abusing(
 	struct upload *u, struct parq_ul_queued *parq_ul,
 	time_t now, time_t org_retry)
 {
+	gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_VIOLATION, 1);
+
 	if (
 		delta_time(parq_ul->ban_timeout, now) > 0 &&
 		GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
@@ -3240,6 +3242,8 @@ parq_upload_abusing(
 		 * Bye bye, the client did it again, and is removed from the PARQ
 		 * queue now.
 		 */
+
+		gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_KICK_OUT, 1);
 
 		if (GNET_PROPERTY(parq_debug)) g_warning(
 			"[PARQ UL] "

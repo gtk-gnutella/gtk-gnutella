@@ -172,6 +172,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"client_plain_resource_switching",
 	"client_followup_after_error",
 	"parq_slot_resource_switching",
+	"parq_retry_after_violation",
+	"parq_retry_after_kick_out",
 	"seeding_of_orphan",
 	"dht_keys_held",
 	"dht_values_held",
