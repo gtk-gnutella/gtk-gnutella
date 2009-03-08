@@ -241,6 +241,7 @@ struct download {
  */
 
 enum {
+	DL_F_FROM_ERROR		= 1 << 27,	/**< Switched after error occurred */
 	DL_F_FROM_PLAIN		= 1 << 26,	/**< Switched from plain file download */
 	DL_F_SWITCHED		= 1 << 25,	/**< Scheduled after resource switching */
 	DL_F_MUST_IGNORE	= 1 << 24,	/**< Must ignore data when they come */

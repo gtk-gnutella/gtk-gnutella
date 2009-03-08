@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Handle downloads.
  *
  * @author Raphael Manfredi
- * @date 2001-2007
+ * @date 2001-2009
  */
 
 #include "common.h"
@@ -164,10 +164,14 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_queue_hold(struct download *d, guint32 hold,
 	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
+static void download_force_stop(struct download *d,
+	download_status_t new_status, const gchar * reason, ...);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
 static void change_server_addr(struct dl_server *server,
 	const host_addr_t new_addr, const guint16 new_port);
+static struct download *download_pick_another(
+	const struct download *d, const struct download *pd);
 
 static gboolean download_dirty = FALSE;
 static gboolean download_shutdown = FALSE;
@@ -1860,7 +1864,7 @@ allocated:
 	 * Address and port of returned server may be different from arguments
 	 */
 
-	if (GNET_PROPERTY(download_debug)) {
+	if (GNET_PROPERTY(download_debug) > 1) {
 		if (
 			!host_addr_equal(addr, server->key->addr) ||
 			server->key->port != port
@@ -3068,6 +3072,30 @@ download_set_sha1(struct download *d, const struct sha1 *sha1)
 	}
 }
 
+/**
+ * Record that we sent a push request for this download.
+ */
+static void
+download_push_insert(struct download *d)
+{
+	download_check(d);
+	g_assert(!d->push);
+
+	d->push = TRUE;
+}
+
+/**
+ * Forget that we sent a push request for this download.
+ */
+static void
+download_push_remove(struct download *d)
+{
+	download_check(d);
+	g_assert(d->push);
+
+	d->push = FALSE;
+}
+
 /*
  * Downloads management
  */
@@ -3149,6 +3177,100 @@ download_move_to_list(struct download *d, enum dl_list idx)
 	}
 
 	d->list_idx = idx;
+}
+
+/**
+ * Clone download, resetting most dynamically allocated structures in the
+ * original since they are shallow-copied to the new download.
+ *
+ * (This routine is used because each different download from the same host
+ * will become a line in the GUI, and the GUI stores download structures in
+ * ts row data, expecting a one-to-one mapping between a download and the GUI).
+ */
+static struct download *
+download_clone(struct download *d)
+{
+	struct download *cd;
+	fileinfo_t *fi;
+
+	download_check(d);
+	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
+
+	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
+		g_assert(NULL == d->buffers);
+	} else if (NULL == d->io_opaque) {
+		g_assert(d->buffers);
+		g_assert(d->buffers->held == 0);		/* All data flushed */
+	} else {
+		io_free(d->io_opaque);		/* Cloned after error, not when receiving */
+		g_assert(NULL == d->buffers);
+	}
+
+	fi = d->file_info;
+
+	cd = download_alloc();
+	*cd = *d;						/* Struct copy */
+	cd->file_info = NULL;			/* has not been added to fi sources list */
+	cd->src_handle_valid = FALSE;
+	file_info_add_source(fi, cd);	/* add cloned source */
+
+	cd->rx = NULL;
+	cd->bio = NULL;						/* Recreated on each transfer */
+	cd->out_file = NULL;				/* File re-opened each time */
+	cd->socket->resource.download = cd;	/* Takes ownership of socket */
+	cd->list_idx = DL_LIST_INVALID;
+	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
+	cd->file_name = atom_str_get(d->file_name);
+	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
+	cd->push = FALSE;
+	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
+	download_set_status(cd, GTA_DL_CONNECTING);
+	cd->server->refcnt++;
+
+	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
+
+	download_set_sha1(d, NULL);
+
+	/*
+	 * NOTE: These are explicitely prepended to avoid inconsistencies if
+	 *		 we just happen to iterate forwards over these lists.
+	 */
+	hash_list_prepend(sl_downloads, cd);
+	hash_list_prepend(sl_unqueued, cd);
+
+	if (d->push) {
+		download_push_remove(d);
+		download_push_insert(cd);
+	}
+
+	if (d->parq_dl)
+		parq_dl_reparent_id(d, cd);
+
+	if (d->cproxy != NULL)
+		cproxy_reparent(d, cd);
+
+	g_assert(d->parq_dl == NULL);	/* Cleared by parq_dl_reparent_id() */
+
+	/*
+	 * The following copied data are cleared in the child.
+	 */
+
+	cd->buffers = NULL;		/* Allocated at each new request */
+
+	cd->thex = NULL;
+	cd->browse = NULL;
+
+	/*
+	 * The following have been copied and appropriated by the cloned download.
+	 * They are reset so that a download_free() on the original will not
+	 * free them.
+	 */
+
+	d->socket = NULL;
+	d->ranges = NULL;
+
+	return cd;
 }
 
 /**
@@ -3387,10 +3509,7 @@ stop_this:
 			download_basename(other));
 	}
 
-	/* So we may call download_stop */
-	download_set_status(d, GTA_DL_CONNECTING);
-	download_move_to_list(d, DL_LIST_RUNNING);
-	download_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
 
 	goto reparent;
 
@@ -3403,7 +3522,7 @@ stop_other:
 				new_server->key->addr, new_server->key->port));
 	}
 
-	download_stop(other, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(other, GTA_DL_ERROR, _("Duplicate download"));
 
 	goto reparent;
 }
@@ -3459,6 +3578,109 @@ download_redirect_to_server(struct download *d,
 	d->list_idx = DL_LIST_INVALID;
 
 	download_add_to_list(d, list_idx);
+}
+
+/**
+ * Can we organize a resource switching on this connection we have with
+ * the remote server?
+ *
+ * @param d			the current download
+ * @param header	the returned HTTP header from the server
+ *
+ * @return TRUE if we can consider switching to another resource.
+ */
+static gboolean
+download_switchable(struct download *d, const header_t *header)
+{
+	guint64 len;
+	const char *buf;
+	int error;
+
+	if (!GNET_PROPERTY(dl_resource_switching))
+		return FALSE;
+
+	if (!d->keep_alive)
+		return FALSE;
+
+	buf = header_get(header, "Content-Length");
+	len = parse_uint64(buf, NULL, 10, &error);
+
+	if (error || len != 0)
+		return FALSE;			/* XXX would require we set sinking up */
+
+	if (GNET_PROPERTY(download_debug))
+		g_message("download \"%s\" on %s could be switchable",
+			download_basename(d), download_host_info(d));
+
+	if (!download_has_pending_on_server(d))
+		return FALSE;
+
+	if (GNET_PROPERTY(download_debug))
+		g_message("pending downloads found on %s, \"%s\" is switchable",
+			download_host_info(d), download_basename(d));
+
+	return TRUE;
+}
+
+/**
+ * Switch download to another resource on the same server if we can find one.
+ *
+ * @param d		the download we need to switch from
+ * @param pd	the parent download we just stopped and need to avoid
+ */
+static void
+download_switch(struct download *d, const struct download *pd)
+{
+	struct gnutella_socket *s;
+	struct download *next;
+
+	/* FIXME: there is a fair amount of code similarity with the trailing
+	 * part of download_continue(). --RAM, 2009-03-08
+	 */
+
+	/* Steal the socket because download_stop() would free it. */
+	s = d->socket;
+	s->resource.download = NULL;
+	d->socket = NULL;
+
+	if (s->pos > 0) {
+		g_warning("download_switch(): Clearing socket buffer of %s",
+			download_host_info(d));
+	}
+	s->pos = 0;
+
+	g_assert(0 == s->pos);
+
+	next = download_pick_another(d, pd);
+
+	if (NULL == next) {
+		download_stop(d, GTA_DL_COMPLETED, _("Nothing else to switch to"));
+		socket_free_null(&s);
+		return;
+	}
+
+	g_assert(next != d && next != pd);
+
+	if (GNET_PROPERTY(download_debug))
+		g_message("switching from \"%s\" (on error) to \"%s\" (%.2f%%) at %s",
+			download_basename(d), download_basename(next),
+			100.0 * download_total_progress(next), download_host_info(next));
+
+	gnet_stats_count_general(GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR, 1);
+
+	g_assert(NULL == next->socket);
+
+	next->socket = s;
+	next->socket->resource.download = next;
+	next->flags |= DL_F_SWITCHED | DL_F_FROM_ERROR;
+
+	download_stop(d, GTA_DL_COMPLETED,
+		_("Switching (after error) to \"%s\""), download_basename(next));
+
+	if (download_start_prepare(next)) {
+		next->keep_alive = TRUE;		/* Was reset by _prepare() */
+		download_send_request(next);
+	}
 }
 
 /**
@@ -3644,7 +3866,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 	file_info_clear_download(d, FALSE);
 	file_info_changed(d->file_info);
-	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_FROM_PLAIN);
+	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED |
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
@@ -3662,6 +3885,62 @@ download_stop(struct download *d,
 
 	download_check(d);
 	d->unavailable = FALSE;
+
+	va_start(args, reason);
+	download_stop_v(d, new_status, reason, args);
+	va_end(args);
+}
+
+/**
+ * Same as download_stop() but if the connection was kept alive,
+ * consider whether we could not switch to another download on that server.
+ *
+ * @param d				the download (with d->keep_alive correctly set)
+ * @param header		the reply headers, to get at the Content-Length
+ * @param new_status	the new download status
+ * @param reason		the reason for stopping, followed by arguments
+ */
+static void
+download_stop_switch(struct download *d, const header_t *header,
+	download_status_t new_status, const gchar * reason, ...)
+{
+	struct download *cd = NULL;
+	va_list args;
+
+	download_check(d);
+	d->unavailable = FALSE;
+
+	if (download_switchable(d, header))
+		cd = download_clone(d);
+
+	va_start(args, reason);
+	download_stop_v(d, new_status, reason, args);
+	va_end(args);
+
+	if (cd)
+		download_switch(cd, d);
+}
+
+/**
+ * Forcefully stop a download, whether active or queued.
+ */
+static void
+download_force_stop(struct download *d,
+	download_status_t new_status, const gchar * reason, ...)
+{
+	va_list args;
+
+	download_check(d);
+
+	g_return_if_fail(d->list_idx != DL_LIST_STOPPED);
+
+	d->unavailable = FALSE;
+
+	/* So we may safely call download_stop_v() */
+	if (d->list_idx != DL_LIST_RUNNING) {
+		download_set_status(d, GTA_DL_CONNECTING);
+		download_move_to_list(d, DL_LIST_RUNNING);
+	}
 
 	va_start(args, reason);
 	download_stop_v(d, new_status, reason, args);
@@ -3769,7 +4048,8 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 * Since download stop can change "d->remove_msg", update it now.
 	 */
 
-	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED | DL_F_FROM_PLAIN);
+	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
+		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 	d->remove_msg = fmt ? d->error_str: NULL;
 	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
 	fi_src_status_changed(d);
@@ -3874,6 +4154,35 @@ download_queue_delay(struct download *d, guint32 delay, const gchar *fmt, ...)
 }
 
 /**
+ * Same as download_queue_delay() but if the connection was kept alive,
+ * consider whether we could not switch to another download on that server.
+ *
+ * @param d			the download (with d->keep_alive correctly set)
+ * @param header	the reply headers, to get at the Content-Length
+ * @param delay		the delay in seconds we wish to impose to this download
+ * @param fmt		message to display, followed by arguments
+ */
+static void
+download_queue_delay_switch(struct download *d, const header_t *header,
+	guint32 delay, const gchar *fmt, ...)
+{
+	struct download *cd = NULL;
+	va_list args;
+
+	download_check(d);
+
+	if (download_switchable(d, header))
+		cd = download_clone(d);
+
+	va_start(args, fmt);
+	download_queue_hold_delay_v(d, (time_t) delay, 0, fmt, args);
+	va_end(args);
+
+	if (cd)
+		download_switch(cd, d);
+}
+
+/**
  * Same as download_queue_delay(), but make sure we don't consider
  * scheduling any currently queued download to this server before
  * the holding delay.
@@ -3888,30 +4197,6 @@ download_queue_hold(struct download *d, guint32 hold, const gchar *fmt, ...)
 	va_start(args, fmt);
 	download_queue_hold_delay_v(d, (time_t) hold, (time_t) hold, fmt, args);
 	va_end(args);
-}
-
-/**
- * Record that we sent a push request for this download.
- */
-static void
-download_push_insert(struct download *d)
-{
-	download_check(d);
-	g_assert(!d->push);
-
-	d->push = TRUE;
-}
-
-/**
- * Forget that we sent a push request for this download.
- */
-static void
-download_push_remove(struct download *d)
-{
-	download_check(d);
-	g_assert(d->push);
-
-	d->push = FALSE;
 }
 
 /**
@@ -4908,7 +5193,7 @@ download_request_pause(struct download *d)
 }
 
 /**
- * Helper for inner loops of download_pick_followup().
+ * Helper for inner loops of download_pick_followup(), download_pick_another().
  *
  * Return FALSE if we must continue, TRUE if we can break out of the loop
  * because we found the proper target download.
@@ -4962,7 +5247,7 @@ download_pick_process(
 
 	d = *dp;
 
-	if (!FILE_INFO_COMPLETE(d->file_info)) {
+	if (d && !FILE_INFO_COMPLETE(d->file_info)) {
 		if ((DL_F_THEX & d->flags) == (DL_F_THEX & cur->flags)) {
 			/*
 			 * Pick the download with the most progress. Otherwise
@@ -5084,6 +5369,77 @@ done:
 	g_assert(d->list_idx == DL_LIST_WAITING);
 
 	return d;
+}
+
+/**
+ * Pick-up another source from this server, for the next HTTP request.
+ * We must avoid the current download and its parent download, which has
+ * just been stopped / requeued.
+ *
+ * @param d		the current download
+ * @param pd	the parent download
+ *
+ * @return the download we found, or NULL if none could be chosen.
+ */
+static struct download *
+download_pick_another(const struct download *d, const struct download *pd)
+{
+	list_iter_t *iter;
+	struct download *other = NULL;
+
+	download_check(d);
+	g_assert(d->list_idx == DL_LIST_WAITING);
+
+	iter = list_iter_before_head(d->server->list[DL_LIST_RUNNING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		g_assert(cur != d && cur != pd);
+
+		if (download_pick_process(&other, cur, FALSE, NULL))
+			break;
+	}
+	list_iter_free(&iter);
+
+	if (other)
+		goto done;
+
+	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		if (cur == d || cur == pd)
+			continue;
+
+		if (download_pick_process(&other, cur, FALSE, NULL))
+			break;
+	}
+	list_iter_free(&iter);
+
+	if (NULL == other)
+		return NULL;
+
+done:
+	/*
+	 * If we have elected a "running" download (awaiting push results or
+	 * connecting), then we need to move it back temporarily to the
+	 * "waiting" list, as download_start_prepare() expects non-running
+	 * downloads.  Calling download_stop() is a nice way to also cleanup
+	 * the socket structure.
+	 */
+
+	if (other->list_idx == DL_LIST_RUNNING)
+		download_stop(other, GTA_DL_TIMEOUT_WAIT, no_reason);
+
+	g_assert(other->list_idx == DL_LIST_WAITING);
+
+	return other;
 }
 
 /**
@@ -5550,7 +5906,7 @@ get_index_from_uri(const gchar *uri)
  */
 static struct download *
 create_download(
-	const gchar *file_name,
+	const gchar *file,
 	const gchar *uri,
 	filesize_t size,
 	const host_addr_t addr,
@@ -5568,9 +5924,11 @@ create_download(
 {
 	struct dl_server *server;
 	struct download *d;
-	const gchar *reason;
+	const char *reason;
 	guint32 record_index;
 	fileinfo_t *fi;
+	const char *msg = NULL;
+	const char *file_name = NULL;
 
 	g_assert(host_addr_initialized(addr));
 
@@ -5597,19 +5955,15 @@ create_download(
 	 */
 
 	if (0 != port && is_my_address_and_port(addr, port)) {
-		if (GNET_PROPERTY(download_debug)) {
-			g_warning("create_download(): ignoring download from own address");
-		}
-		return NULL;
+		msg = "ignoring download from own address";
+		goto fail;
 	}
 
 	{
-		const gchar *orig_name;
 		gchar *s;
 		gchar *b;
 		
-		orig_name = file_name;
-		b = s = gm_sanitize_filename(orig_name, FALSE, FALSE);
+		b = s = gm_sanitize_filename(file, FALSE, FALSE);
 
 		if (GNET_PROPERTY(beautify_filenames))
 			b = gm_beautify_filename(s);
@@ -5617,8 +5971,8 @@ create_download(
 		/* An empty filename would create a corrupt download entry */
     	file_name = atom_str_get('\0' != b[0] ? b : "noname");
 
-		if (b != s)			G_FREE_NULL(b);
-		if (orig_name != s) G_FREE_NULL(s);
+		if (b != s)		G_FREE_NULL(b);
+		if (file != s)	G_FREE_NULL(s);
 	}
 
 	/*
@@ -5651,8 +6005,8 @@ create_download(
 	d = server_has_same_download(server, file_name, sha1, size);
 	if (d) {
 		download_check(d);
-		atom_str_free_null(&file_name);
-		return NULL;
+		msg = "has same download on server";
+		goto fail;
 	}
 
 	fi = file_info == NULL
@@ -5661,16 +6015,16 @@ create_download(
 		: file_info;
 
 	if (NULL == fi || (FI_F_SEEDING & fi->flags)) {
-		atom_str_free_null(&file_name);
-		return NULL;
+		msg = fi ? "fileinfo is NULL" : "file is seeding";
+		goto fail;
 	}
 
 	if (tth) {
 		if (NULL == fi->tth) {
 			file_info_got_tth(fi, tth);
 		} else if (!tth_eq(tth, fi->tth)) {
-			atom_str_free_null(&file_name);
-			return NULL;
+			msg = "TTH mismatch between argument and fileinfo";
+			goto fail;
 		}
 	}
 
@@ -5678,9 +6032,9 @@ create_download(
 	 * This usually happens when handling a magnet: with no source.
 	 */
 
-	if (!is_host_addr(addr) && guid_is_blank(guid)) {
-		atom_str_free_null(&file_name);
-		return NULL;
+	if (!is_host_addr(addr) && guid_is_blank(guid) && !FILE_INFO_COMPLETE(fi)) {
+		msg = "blank GUID and null IP address for non-orphan download";
+		goto fail;
 	}
 
 	/*
@@ -5833,6 +6187,14 @@ create_download(
 		dmesh_multiple_downloads(sha1, size, d->file_info);
 
 	return d;
+
+fail:
+	if (GNET_PROPERTY(download_debug)) {
+		g_message("create_download(\"%s\", SHA1=%s): %s",
+			file, sha1 ? sha1_base32(sha1) : "none", msg);
+	}
+	atom_str_free_null(&file_name);
+	return NULL;
 }
 
 /**
@@ -5981,98 +6343,6 @@ download_dht_auto_new(const gchar *file_name,
 
 	if (was_orphan && 0 != fi->refcount)
 		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
-}
-
-/**
- * Clone download, resetting most dynamically allocated structures in the
- * original since they are shallow-copied to the new download.
- *
- * (This routine is used because each different download from the same host
- * will become a line in the GUI, and the GUI stores download structures in
- * ts row data, expecting a one-to-one mapping between a download and the GUI).
- */
-static struct download *
-download_clone(struct download *d)
-{
-	struct download *cd;
-	fileinfo_t *fi;
-
-	download_check(d);
-	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
-
-	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
-		g_assert(NULL == d->buffers);
-	} else {
-		g_assert(d->buffers);
-		g_assert(d->buffers->held == 0);		/* All data flushed */
-	}
-
-	fi = d->file_info;
-
-	cd = download_alloc();
-	*cd = *d;						/* Struct copy */
-	cd->file_info = NULL;			/* has not been added to fi sources list */
-	cd->src_handle_valid = FALSE;
-	file_info_add_source(fi, cd);	/* add cloned source */
-
-	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
-
-	cd->rx = NULL;
-	cd->bio = NULL;						/* Recreated on each transfer */
-	cd->out_file = NULL;				/* File re-opened each time */
-	cd->socket->resource.download = cd;	/* Takes ownership of socket */
-	cd->list_idx = DL_LIST_INVALID;
-	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
-	cd->file_name = atom_str_get(d->file_name);
-	cd->uri = d->uri ? atom_str_get(d->uri) : NULL;
-	cd->push = FALSE;
-	cd->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED | DL_F_FROM_PLAIN);
-	download_set_status(cd, GTA_DL_CONNECTING);
-	cd->server->refcnt++;
-
-	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
-
-	download_set_sha1(d, NULL);
-
-	/*
-	 * NOTE: These are explicitely prepended to avoid inconsistencies if
-	 *		 we just happen to iterate forwards over these lists.
-	 */
-	hash_list_prepend(sl_downloads, cd);
-	hash_list_prepend(sl_unqueued, cd);
-
-	if (d->push) {
-		download_push_remove(d);
-		download_push_insert(cd);
-	}
-
-	if (d->parq_dl)
-		parq_dl_reparent_id(d, cd);
-
-	if (d->cproxy != NULL)
-		cproxy_reparent(d, cd);
-
-	g_assert(d->parq_dl == NULL);	/* Cleared by parq_dl_reparent_id() */
-
-	/*
-	 * The following copied data are cleared in the child.
-	 */
-
-	cd->buffers = NULL;		/* Allocated at each new request */
-
-	cd->thex = NULL;
-	cd->browse = NULL;
-
-	/*
-	 * The following have been copied and appropriated by the cloned download.
-	 * They are reset so that a download_free() on the original will not
-	 * free them.
-	 */
-
-	d->socket = NULL;
-	d->ranges = NULL;
-
-	return cd;
 }
 
 /**
@@ -6363,11 +6633,12 @@ download_orphan_new(const gchar *filename, filesize_t size,
 	const struct sha1 *sha1, fileinfo_t *fi)
 {
 	time_t ntime;
+	struct download *d;
    
 	file_info_check(fi);
 
 	ntime = fi->ntime;
-	(void) create_download(filename,
+	d = create_download(filename,
 			NULL,	/* uri */
 		   	size,
 			ipv4_unspecified,	/* for host_addr_initialized() */
@@ -6383,6 +6654,11 @@ download_orphan_new(const gchar *filename, filesize_t size,
 			NULL,	/* PARQ ID */
 			TRUE);	/* use mesh */
 	fi->ntime = ntime;
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_warning("%s orphan download for \"%s\"",
+			d ? "created" : "could not create", filename);
+	}
 }
 
 /**
@@ -6501,10 +6777,7 @@ download_resume(struct download *d)
 	if (
 		server_has_same_download(d->server, d->file_name, d->sha1, d->file_size)
 	) {
-		/* So we may call download_stop */
-		download_set_status(d, GTA_DL_CONNECTING);
-		download_move_to_list(d, DL_LIST_RUNNING);
-		download_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+		download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
 		return;
 	}
 
@@ -7537,7 +7810,7 @@ download_continue(struct download *d, gboolean trimmed)
 		next->socket = s;
 		next->socket->resource.download = next;
 	} else {
-		download_stop(cd, GTA_DL_COMPLETED, no_reason);
+		download_stop(cd, GTA_DL_COMPLETED, _("Nothing else to switch to"));
 		socket_free_null(&s);
 		next = NULL;
 	}
@@ -8797,6 +9070,8 @@ download_sink(struct download *d)
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
 	g_assert(d->flags & DL_F_SUNK_DATA);
 
+	gnet_stats_count_general(GNR_SUNK_DATA, s->pos);
+
 	if (s->pos > d->sinkleft) {
 		g_message("got more data to sink than expected from %s",
 			download_host_info(d));
@@ -9354,9 +9629,6 @@ http_version_nofix:
 			d->keep_alive = TRUE;
 	}
 
-	if (!ok)
-		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
-
 	/*
 	 * Now deal with the return code.
 	 */
@@ -9367,6 +9639,8 @@ http_version_nofix:
 		guint count = header_num_lines(header);
 		gm_snprintf(short_read, sizeof short_read,
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
+
+		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 	}
 
 	if (is_dumb_spammer(download_vendor_str(d))) {	
@@ -9415,7 +9689,8 @@ http_version_nofix:
 
 					/* Count partial success if we were switched */
 					if (d->flags & DL_F_SWITCHED) {
-						d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN);
+						d->flags &= ~(DL_F_SWITCHED |
+							DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 						gnet_stats_count_general(GNR_QUEUED_AFTER_SWITCHING, 1);
 					}
 
@@ -9573,7 +9848,7 @@ http_version_nofix:
 				}
 			} else {
 				/* Server has nothing for us yet, give it time */
-				download_queue_delay(d,
+				download_queue_delay_switch(d, header,
 					MAX(delay, GNET_PROPERTY(download_retry_refused_delay)),
 					_("Partial file on server, waiting"));
 			}
@@ -9664,7 +9939,7 @@ http_version_nofix:
 			 * Give it some time and retry.
 			 */
 			download_passively_queued(d, FALSE);
-			download_queue_hold(d,
+			download_queue_delay_switch(d, header,
 				delay ? delay : GNET_PROPERTY(download_retry_timeout_delay),
 				_("%sRequested range unavailable yet"), short_read);
 			return;
@@ -9721,7 +9996,7 @@ http_version_nofix:
 					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
 				}
 
-				download_queue_delay(d,
+				download_queue_delay_switch(d, header,
 					delay ? delay : GNET_PROPERTY(download_retry_busy_delay),
 					"%s", tmp);
 			} else {
@@ -9852,7 +10127,7 @@ http_version_nofix:
 		}
 
 	genuine_error:
-		download_stop(d, GTA_DL_ERROR,
+		download_stop_switch(d, header, GTA_DL_ERROR,
 			"%sHTTP %u %s", short_read, ack_code, ack_message);
 		return;
 	}
@@ -10121,20 +10396,6 @@ http_version_nofix:
 	}
 
 	/*
-	 * Since we may request some overlap, ensure that the server did not
-	 * shrink our request to just the overlap range!
-	 *		--RAM, 14/10/2003
-	 */
-
-#if 0
-	/* XXX:
-	 * d->size is of type guint32, and you can possibly request up to 4GB
-	 */
-
-	g_assert(d->size >= 0);
-#endif
-
-	/*
 	 * If we reached that point, we can count a resource switching success.
 	 */
 
@@ -10143,8 +10404,11 @@ http_version_nofix:
 		if (!download_is_special(d) && (d->flags & DL_F_FROM_PLAIN)) {
 			gnet_stats_count_general(
 				GNR_SUCCESSFUL_PLAIN_RESOURCE_SWITCHING, 1);
+		} else if (d->flags & DL_F_FROM_ERROR) {
+			gnet_stats_count_general(
+				GNR_SUCCESSFUL_RESOURCE_SWITCHING_AFTER_ERROR, 1);
 		}
-		d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN);
+		d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 	}
 
 	/*
