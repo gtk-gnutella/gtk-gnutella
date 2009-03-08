@@ -1392,6 +1392,7 @@
 # see above; multiple ranges hosted by R & D Technologies, LLC
 72.46.128.0/19
 76.164.192.0/19
+76.164.224.0/20
 208.64.24.0/21
 208.66.72.0/21
 # see above; STOP LLC
