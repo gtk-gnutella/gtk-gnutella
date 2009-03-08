@@ -140,6 +140,7 @@ general_type_str(gint value)
 		N_("Compressed UDP messages received"),
 		N_("Uncompressed UDP messages due to no gain"),
 		N_("Consolidated servers (after GUID and IP address linking)"),
+		N_("Discovered server GUID"),
 		N_("Attempted download resource switching on completion"),
 		N_("Attempted download resource switching after error"),
 		N_("Successful download resource switching (all kind)"),

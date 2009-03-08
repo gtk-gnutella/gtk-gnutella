@@ -1578,6 +1578,7 @@ download_found_server(const struct guid *guid,
 						host_addr_port_to_string(addr, port));
 				}
 
+				gnet_stats_count_general(GNR_DISCOVERED_SERVER_GUID, 1);
 				atom_guid_change(&key->guid, guid);
 				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
 			}
