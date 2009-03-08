@@ -164,6 +164,8 @@ general_type_str(gint value)
 		N_("DHT replication of stale value avoided"),
 		N_("DHT replication of held values"),
 		N_("DHT republishing of held values"),
+		N_("DHT secondary key value fetch issued"),
+		N_("DHT duplicate values returned in lookups"),
 		N_("DHT alt-loc lookups issued"),
 		N_("DHT push proxy lookups issued"),
 		N_("DHT successful alt-loc lookups"),

@@ -181,6 +181,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_stale_replication",
 	"dht_replication",
 	"dht_republish",
+	"dht_secondary_key_fetch",
+	"dht_dup_values",
 	"dht_alt_loc_lookups",
 	"dht_push_proxy_lookups",
 	"dht_successful_alt_loc_lookups",

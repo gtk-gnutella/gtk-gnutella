@@ -48,6 +48,8 @@ RCSID("$Id$")
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
 
+#include "core/gnet_stats.h"
+
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/hashlist.h"
@@ -1001,6 +1003,7 @@ lookup_value_append(nlookup_t *nl, float load,
 				g_message("DHT LOOKUP[%s] ignoring duplicate value %s",
 					lookup_id_to_string(nl->lid), dht_value_to_string(v));
 
+			gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
 			dht_value_free(v, TRUE);
 		}
 	}
@@ -3069,6 +3072,8 @@ lookup_value_send(nlookup_t *nl)
 
 	lookup_value_check(nl);
 
+	gnet_stats_count_general(GNR_DHT_SECONDARY_KEY_FETCH, 1);
+
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);
 	rpi = lookup_rpi_alloc(nl, sk->next_skey + 1);	/* Use hop to count keys */
@@ -3152,6 +3157,7 @@ lookup_value_iterate(nlookup_t *nl)
 				"skipping already retrieved secondary key %s",
 				lookup_id_to_string(nl->lid), kuid_to_hex_string(sid));
 
+		gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
 		sk->next_skey++;
 	}
 
