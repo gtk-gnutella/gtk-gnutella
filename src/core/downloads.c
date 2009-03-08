@@ -1425,8 +1425,6 @@ server_list_free_all(struct dl_server *server)
 static void
 server_unregister(struct dl_server *server)
 {
-	struct dl_addr ipk;
-
 	g_assert(dl_server_valid(server));
 
 	dl_by_time_remove(server);
@@ -1436,12 +1434,14 @@ server_unregister(struct dl_server *server)
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
 	 */
 
-	ipk.addr = server->key->addr;
-	ipk.port = server->key->port;
-
 	{
+		struct dl_addr ipk;
 		gpointer ipkey;
 		gpointer x;					/* Don't care about freeing values */
+
+		ipk.addr = server->key->addr;
+		ipk.port = server->key->port;
+
 
 		/*
 		 * Only remove server in the `dl_by_addr' table if it is the one
@@ -2055,15 +2055,18 @@ change_server_addr(struct dl_server *server,
 
 /**
  * Do we have more pending files to be retrieved on this server?
+ * If ``retry_after'' is TRUE, also check the d->retry_after field to
+ * make sure we can schedule this download.
  *
  * We're only interested in downloads to which we could switch an already
  * established connection.
  */
 static gboolean
-download_has_pending_on_server(const struct download *d)
+download_has_pending_on_server(const struct download *d, gboolean retry_after)
 {
 	list_iter_t *iter;
 	gboolean result = FALSE;
+	time_t now = tm_time();
 
 	download_check(d);
 
@@ -2080,7 +2083,10 @@ download_has_pending_on_server(const struct download *d)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		if (DOWNLOAD_IS_SWITCHABLE(cur)) {
+		if (
+			DOWNLOAD_IS_SWITCHABLE(cur) &&
+			(!retry_after || delta_time(now, cur->retry_after) >= 0)
+		) {
 			result = TRUE;
 			break;
 		}
@@ -2122,7 +2128,7 @@ download_can_ignore(struct download *d)
 
 	if (
 		SOCK_CONN_INCOMING == d->socket->direction &&
-		download_has_pending_on_server(d)
+		download_has_pending_on_server(d, FALSE)
 	) {
 		if (GNET_PROPERTY(download_debug)) {
 			guint count = server_list_length(d->server, DL_LIST_WAITING);
@@ -3426,6 +3432,7 @@ download_reparent(struct download *d, struct dl_server *new_server)
 
 	download_check(d);
 	g_assert(dl_server_valid(d->server));
+	g_assert(dl_server_valid(new_server));
 
 	/*
 	 * If not stopped, make sure we do not have a duplicate (same download
@@ -3629,7 +3636,7 @@ download_switchable(struct download *d, const header_t *header)
 		g_message("download \"%s\" on %s could be switchable",
 			download_basename(d), download_host_info(d));
 
-	if (!download_has_pending_on_server(d))
+	if (!download_has_pending_on_server(d, TRUE))
 		return FALSE;
 
 	if (GNET_PROPERTY(download_debug))
@@ -4405,7 +4412,7 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, gboolean suspend)
 				 * of severing the connection.
 				 */
 
-				if (download_has_pending_on_server(d)) {
+				if (download_has_pending_on_server(d, FALSE)) {
 					if (DOWNLOAD_IS_ESTABLISHING(d)) {
 						d->flags |= DL_F_MUST_IGNORE;
 					} else if (download_can_ignore(d)) {
@@ -5218,7 +5225,8 @@ download_request_pause(struct download *d)
 static gboolean
 download_pick_process(
 	struct download **dp, struct download *cur,
-	gboolean was_plain_incomplete, const struct sha1 *sha1)
+	gboolean was_plain_incomplete, const struct sha1 *sha1,
+	gboolean retry_after)
 {
 	struct download *d;
 
@@ -5254,6 +5262,9 @@ download_pick_process(
 		*dp = cur;		/* Found plain file download on this server */
 		return TRUE;	/* Exit loop */
 	}
+
+	if (retry_after && delta_time(tm_time(), cur->retry_after) < 0)
+		return FALSE;
 
 	/*
 	 * NOTE: we don't care about cur->timeout_delay and cur->retry_after
@@ -5349,7 +5360,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		if (download_pick_process(&d, cur, was_plain_incomplete, sha1)) {
+		if (download_pick_process(&d, cur, was_plain_incomplete, sha1, FALSE)) {
 			found = TRUE;
 			break;
 		}
@@ -5366,7 +5377,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		if (download_pick_process(&d, cur, was_plain_incomplete, sha1))
+		if (download_pick_process(&d, cur, was_plain_incomplete, sha1, FALSE))
 			break;
 	}
 	list_iter_free(&iter);
@@ -5393,6 +5404,10 @@ done:
  * We must avoid the current download and its parent download, which has
  * just been stopped / requeued.
  *
+ * We pay attention to the d->retry_after field because we're switching after
+ * an error condition and we don't want to go back and forth between two
+ * downloads on the same host without respecting the delays we have configured.
+ *
  * @param d		the current download
  * @param pd	the parent download
  *
@@ -5416,7 +5431,9 @@ download_pick_another(const struct download *d, const struct download *pd)
 
 		g_assert(cur != d && cur != pd);
 
-		if (download_pick_process(&other, cur, FALSE, NULL))
+		/* Pay attention to retry_after */
+
+		if (download_pick_process(&other, cur, FALSE, NULL, TRUE))
 			break;
 	}
 	list_iter_free(&iter);
@@ -5434,7 +5451,9 @@ download_pick_another(const struct download *d, const struct download *pd)
 		if (cur == d || cur == pd)
 			continue;
 
-		if (download_pick_process(&other, cur, FALSE, NULL))
+		/* Pay attention to retry_after */
+
+		if (download_pick_process(&other, cur, FALSE, NULL, TRUE))
 			break;
 	}
 	list_iter_free(&iter);
@@ -7957,7 +7976,7 @@ download_write_data(struct download *d)
 				if (d->pos >= d->range_end)
 					goto done;
 				if (
-					!download_has_pending_on_server(d) ||
+					!download_has_pending_on_server(d, FALSE) ||
 					!download_can_ignore(d)
 				)
 					goto done;
@@ -11566,7 +11585,8 @@ select_matching_servers(gpointer key, gpointer value, gpointer user)
 	struct dl_server *server = value;
 	struct server_select *ctx = user;
 
-	g_assert(server->key->guid == skey->guid);	/* They're atoms! */
+	g_assert(dl_server_valid(server));
+	g_assert(server->key == skey);
 
 	if (
 		guid_eq(skey->guid, ctx->guid) ||
