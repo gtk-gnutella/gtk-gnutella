@@ -110,14 +110,19 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			time_delta_t d = delta_time(data->last_update, data->start_date);
 	        filesize_t requested = data->range_end - data->range_start + 1;
+			size_t rw;
 
-			gm_snprintf(tmpstr, sizeof(tmpstr),
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
 				"%s (%s) %s%s #%u", _("Completed"),
 				d > 0 ? short_rate(requested / d, show_metric_units())
 						: _("< 1s"),
 				d > 0 ? short_time(d) : "",
 				u->parq_quick ? " (quick)" : "",
 				u->reqnum);
+
+			if (u->error_count)
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					_(" E=%u"), u->error_count);
 		}
         break;
 
@@ -129,15 +134,20 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			time_t now = tm_time();
 			gboolean stalled = delta_time(now, data->last_update) > IO_STALLED;
 			gchar pbuf[32];
+			size_t rw;
 
 			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s #%u"),
+			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s #%u"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
 				short_time(tr),
 				u->parq_quick ? " (quick)" : "",
 				u->reqnum);
+
+			if (u->error_count)
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					_(" E=%u"), u->error_count);
 		}
 		break;
 
@@ -147,7 +157,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
     case GTA_UL_EXPECTING:
 		if (u->error_count)
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"%s #%u E=%u", _("Waiting for further request..."),
+				_("%s #%u E=%u"), _("Waiting for further request..."),
 				u->reqnum, u->error_count);
 		else
 			gm_snprintf(tmpstr, sizeof(tmpstr),
@@ -169,6 +179,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gboolean queued;
 			guint available = 0;
 			gchar tbuf[64];
+			size_t rw;
 
 			gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &max_up);
 			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
@@ -193,7 +204,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 				tbuf[0] = '\0';
 			}
 
-			gm_snprintf(tmpstr, sizeof tmpstr,
+			rw = gm_snprintf(tmpstr, sizeof tmpstr,
 						_("%s [%d] (slot %d/%d)%s %s %s"),
 						u->parq_frozen ? _("Frozen") :
 						queued ? _("Queued") : _("Waiting"),
@@ -204,6 +215,9 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 						_("lifetime:"),
 						short_time(u->parq_lifetime));
 
+			if (u->error_count)
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					_(" E=%u"), u->error_count);
 		}
 		break;
 
