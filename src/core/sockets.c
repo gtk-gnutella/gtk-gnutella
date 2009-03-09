@@ -2330,17 +2330,15 @@ socket_udp_accept(struct gnutella_socket *s)
 		 */
 #if defined(CMSG_LEN) && defined(CMSG_SPACE)
 		{
-			static const size_t cmsg_size = 512;
-			static gchar *cmsg_buf;
-			static size_t cmsg_len;
+			union {
+				struct cmsghdr hdr;
+				size_t align;
+				char bytes[CMSG_SPACE(512)];
+			} cmsg_buf;
 
-			if (!cmsg_buf) {
-				cmsg_len = CMSG_LEN(cmsg_size);
-				cmsg_buf = walloc0(CMSG_SPACE(cmsg_size));
-			}
-
-			msg.msg_control = cmsg_buf;
-			msg.msg_controllen = cmsg_len;
+			memset(&cmsg_buf.hdr, 0, sizeof cmsg_buf.hdr);
+			msg.msg_control = cmsg_buf.bytes;
+			msg.msg_controllen = sizeof cmsg_buf.bytes;
 		}
 #endif /* CMSG_LEN && CMSG_SPACE */
 
@@ -2372,6 +2370,11 @@ socket_udp_accept(struct gnutella_socket *s)
 
 	s->addr = socket_addr_get_addr(from_addr);
 	s->port = socket_addr_get_port(from_addr);
+
+	if (!is_host_addr(s->addr)) {
+		errno = EINVAL;
+		return (ssize_t) -1;
+	}
 
 	if (has_dst_addr) {
 		static host_addr_t last_addr;
