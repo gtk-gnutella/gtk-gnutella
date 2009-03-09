@@ -1396,7 +1396,9 @@
 208.64.24.0/21
 208.66.72.0/21
 # see above; STOP LLC
-216.25.249.0/24
+#216.25.249.0/24
+# Trans World Internet eXchange, LLC
+216.25.240.0/20
 
 # Barton Media network
 # Stabu iela 59/16, Riga, Latvia
