@@ -734,8 +734,8 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 void
 settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 {
-	g_assert(is_host_addr(new_addr)); /* The new IP must be valid */
-	g_assert(is_host_addr(peer)); /* The peer's IP must be valid */
+	g_assert(host_addr_initialized(new_addr));
+	g_assert(host_addr_initialized(peer));
 
 	if (!host_addr_is_routable(new_addr) || !host_addr_is_routable(peer))
 		return;
