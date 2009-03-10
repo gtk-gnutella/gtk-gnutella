@@ -85,10 +85,10 @@ enum dl_server_magic { DL_SERVER_MAGIC = 0x5e45e4ffU };
 
 struct dl_server {
 	enum dl_server_magic magic;	/**< Magic number */
-	gint refcnt;				/**< Reference count */
+	int refcnt;					/**< Reference count */
 	struct dl_key *key;			/**< Key properties */
 	list_t *list[DL_LIST_SZ];	/**< Download lists */
-	const char *vendor;		/**< Remote server vendor string (atom) */
+	const char *vendor;			/**< Remote server vendor string (atom) */
 	const char *hostname;		/**< Remote hostname, if known (atom) */
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
 	GHashTable *sha1_counts;
@@ -444,9 +444,9 @@ void download_dht_auto_new(const char *filename,
 
 guint download_handle_magnet(const char *url);
 char *download_build_url(const struct download *);
-gint download_get_http_req_percent(const struct download *);
+int download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
-gint download_remove_all_from_peer(const struct guid *,
+int download_remove_all_from_peer(const struct guid *,
 		host_addr_t addr, guint16 port, gboolean unavailable);
 void download_remove_file(struct download *, gboolean reset);
 gboolean download_file_exists(const struct download *);

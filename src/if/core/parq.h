@@ -34,10 +34,10 @@
 
 struct download;
 
-gint get_parq_dl_position(const struct download *d);
-gint get_parq_dl_queue_length(const struct download *d);
-gint get_parq_dl_eta(const struct download *d);
-gint get_parq_dl_retry_delay(const struct download *d);
+int get_parq_dl_position(const struct download *d);
+int get_parq_dl_queue_length(const struct download *d);
+int get_parq_dl_eta(const struct download *d);
+int get_parq_dl_retry_delay(const struct download *d);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_parq_h_ */

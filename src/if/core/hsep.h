@@ -55,11 +55,11 @@ typedef struct {
 	guint32 triples_received;               /**< # of triples received */
 	guint32 msgs_sent;                      /**< # of msgs sent */
 	guint32 triples_sent;                   /**< # of triples sent */
-	gint random_skew;		/**< additonal random delay for next exchange */
+	int random_skew;		/**< additonal random delay for next exchange */
 } hsep_ctx_t;
 
-const gchar *hsep_get_static_str(gint row, gint column);
-gint hsep_get_table_size(void);
+const gchar *hsep_get_static_str(int row, int column);
+int hsep_get_table_size(void);
 void hsep_get_non_hsep_triple(hsep_triple *tripledest);
 void hsep_add_global_table_listener(GCallback cb,
 	frequency_t type, guint32 interval);

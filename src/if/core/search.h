@@ -66,10 +66,10 @@ typedef struct gnet_host_vec {
 	guint8 n_ipv6;				/**< Amount of hosts in IPv6 vector */
 } gnet_host_vec_t;
 
-static inline gint
+static inline int
 gnet_host_vec_count(const gnet_host_vec_t *hvec)
 {
-	return (gint) hvec->n_ipv4 + hvec->n_ipv6; 
+	return (int) hvec->n_ipv4 + hvec->n_ipv6; 
 }
 
 static inline gnet_host_t
@@ -98,7 +98,7 @@ gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
-gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, gint hcnt);
+gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, int hcnt);
 gnet_host_vec_t *gnet_host_vec_from_list(const GSList *);
 
 /*

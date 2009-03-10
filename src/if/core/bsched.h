@@ -57,9 +57,9 @@ enum bio_source_magic { BIO_SOURCE_MAGIC = 0x80b3bf07U };
 
 typedef struct bio_source {
 	enum bio_source_magic magic;	/**< magic for consistency checks */
-	bsched_bws_t bws;					/**< B/w scheduler for this source */
+	bsched_bws_t bws;				/**< B/w scheduler for this source */
 	wrap_io_t *wio;					/**< Wrapped I/O object */
-	gint io_tag;					/**< Recorded I/O callback tag */
+	int io_tag;						/**< Recorded I/O callback tag */
 	guint io_flags;					/**< Flags for I/O callback */
 	inputevt_handler_t io_callback;		/**< I/O callback routine */
 	gpointer io_arg;				/**< I/O callback argument */

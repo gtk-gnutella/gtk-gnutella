@@ -286,8 +286,8 @@ typedef struct gnet_node_info {
     gchar *error_str;       /**< To sprintf() error strings with vars */
 	const gchar *vendor;	/**< Vendor information (always UTF-8) */
 
-	gint proto_major;		/**< Protocol major number */
-	gint proto_minor;		/**< Protocol minor number */
+	int proto_major;		/**< Protocol major number */
+	int proto_minor;		/**< Protocol minor number */
 	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
 	gboolean is_pseudo;		/**< TRUE if it's the pseudo UDP node */
 

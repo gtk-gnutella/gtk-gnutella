@@ -32,7 +32,7 @@ guint32 main_get_build(void);
 
 #ifdef CORE_SOURCES
 
-void gtk_gnutella_exit(gint n);
+void gtk_gnutella_exit(int n);
 void gtk_gnutella_request_shutdown(void);
 gboolean debugging(guint t);
 const char *gtk_gnutella_interface(void);
