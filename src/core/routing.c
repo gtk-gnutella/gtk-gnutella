@@ -1257,8 +1257,23 @@ forward_message(
 			dest->type = ROUTE_MULTI;
 			dest->ur.u_nodes = nodes;
 
-			if (count > 1)
+			if (count > 1) {
 				gnet_stats_count_general(GNR_BROADCASTED_PUSHES, 1);
+			} else if (NODE_IS_UDP(sender)){
+				const struct guid *guid;
+				const struct guid *nguid;
+
+				/*
+				 * Got a PUSH directly by UDP.  If we send it to one node
+				 * and that node bears the GUID of the PUSH, we were most
+				 * likely the push-proxy for that node.
+				 */
+
+				guid = cast_to_guid_ptr_const(sender->data);
+				nguid = node_guid(sender);
+				if (nguid && guid_eq(guid, nguid))
+					gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
+			}
 
 		} else if (target != NULL) {
 			dest->type = ROUTE_ONE;

@@ -785,7 +785,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				(gulong) pp->file_idx);
 		} else {
 			gmsg_sendto_one(n, packet.data, packet.size);
-			gnet_stats_count_general(GNR_PUSH_PROXY_RELAYED, 1);
+			gnet_stats_count_general(GNR_PUSH_PROXY_TCP_RELAYED, 1);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 					"Push-proxy: message sent to node");
