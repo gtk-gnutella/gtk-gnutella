@@ -382,7 +382,7 @@ prop_set_stub_t *gnet_prop_get_stub(void);
  */
 prop_def_t *gnet_prop_get_def(property_t);
 property_t gnet_prop_get_by_name(const char *);
-GSList *gnet_prop_get_by_regex(const char *, gint *);
+GSList *gnet_prop_get_by_regex(const char *, int *);
 const char *gnet_prop_name(property_t);
 const char *gnet_prop_type_to_string(property_t);
 const char *gnet_prop_to_string(property_t prop);

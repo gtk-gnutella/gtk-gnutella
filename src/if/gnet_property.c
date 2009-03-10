@@ -7334,7 +7334,7 @@ gnet_prop_get_by_name(const char *name)
 }
 
 GSList *
-gnet_prop_get_by_regex(const char *pattern, gint *error)
+gnet_prop_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex(gnet_property, pattern, error);
 }

@@ -2479,7 +2479,7 @@ gui_prop_get_by_name(const char *name)
 }
 
 GSList *
-gui_prop_get_by_regex(const char *pattern, gint *error)
+gui_prop_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex(gui_property, pattern, error);
 }
