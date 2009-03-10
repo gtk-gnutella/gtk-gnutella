@@ -94,6 +94,7 @@ RCSID("$Id$")
 
 #define RQST_LINE_LENGTH	256	/**< Reasonable estimate for request line */
 #define SOCK_UDP_RECV_BUF	131072	/**< 128K - Large to avoid loosing dgrams */
+#define MAX_UDP_RECV_LOOP	128		/**< Max messages read from UDP queue */
 
 enum {
 	SOCK_ADNS_PENDING	= 1 << 0,	/**< Don't free() the socket too early */
@@ -2456,9 +2457,9 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
-	} while (i < 16);
+	} while (i < MAX_UDP_RECV_LOOP);
 
-	if (i > 1 && GNET_PROPERTY(socket_debug)) {
+	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		g_message("socket_udp_event() iterated %u times", i);
 	}
 }
