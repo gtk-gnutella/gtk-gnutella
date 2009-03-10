@@ -94,7 +94,7 @@ typedef struct hostcache_entry {
  * A hostcache table.
  */
 typedef struct hostcache {
-	const gchar		*name;		        /**< Name of the cache */
+	const char		*name;		        /**< Name of the cache */
 	hcache_type_t   type;				/**< Cache type */
 
     gboolean        addr_only;          /**< Use IP only, port always 0 */
@@ -119,7 +119,7 @@ static gboolean hcache_close_running = FALSE;
  * Has to be in the same order as in the hcache_type_t definition
  * in gnet_nodes.h.
  */
-static const gchar * const names[HCACHE_MAX] = {
+static const char * const names[HCACHE_MAX] = {
     "fresh regular",
     "valid regular",
     "fresh ultra",
@@ -130,7 +130,7 @@ static const gchar * const names[HCACHE_MAX] = {
     "none",
 };
 
-static const gchar * const host_type_names[HOST_MAX] = {
+static const char * const host_type_names[HOST_MAX] = {
     "any",
     "ultra",
 };
@@ -232,7 +232,7 @@ hce_free(struct hostcache_entry *hce)
  * Output contents information about a hostcache.
  */
 static void
-hcache_dump_info(const struct hostcache *hc, const gchar *what)
+hcache_dump_info(const struct hostcache *hc, const char *what)
 {
     g_message("[%s|%s] %u hosts (%u hits, %u misses)",
         hc->name, what, hash_list_length(hc->hostlist), hc->hits, hc->misses);
@@ -469,7 +469,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 /**
  * Convert host cache type to string.
  */
-const gchar *
+const char *
 hcache_type_to_string(hcache_type_t type)
 {
 	g_assert((guint) type < HCACHE_MAX);
@@ -480,7 +480,7 @@ hcache_type_to_string(hcache_type_t type)
 /**
  * Convert host type to string.
  */
-const gchar *
+const char *
 host_type_to_string(host_type_t type)
 {
 	g_assert((guint) type < HOST_MAX);
@@ -583,7 +583,7 @@ hcache_request_slot(hcache_type_t type)
  */
 static gboolean
 hcache_add_internal(hcache_type_t type, time_t added,
-	const host_addr_t addr, guint16 port, const gchar *what)
+	const host_addr_t addr, guint16 port, const char *what)
 {
 	gnet_host_t *host;
 	hostcache_t *hc;
@@ -772,7 +772,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 gboolean
 hcache_add(hcache_type_t type,
-	const host_addr_t addr, guint16 port, const gchar *what)
+	const host_addr_t addr, guint16 port, const char *what)
 {
 	return hcache_add_internal(type, tm_time(), addr, port, what);
 }
@@ -782,7 +782,7 @@ hcache_add(hcache_type_t type,
  */
 gboolean
 hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
-	const gchar *what)
+	const char *what)
 {
     switch (type) {
     case HOST_ANY:
@@ -802,7 +802,7 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
  */
 gboolean
 hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
-	const gchar *what)
+	const char *what)
 {
     switch (type) {
     case HOST_ANY:
@@ -1231,7 +1231,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
  * amount of hosts we can store.
  */
 static hostcache_t *
-hcache_alloc(hcache_type_t type, gnet_property_t catcher, const gchar *name)
+hcache_alloc(hcache_type_t type, gnet_property_t catcher, const char *name)
 {
 	struct hostcache *hc;
 
@@ -1267,7 +1267,7 @@ hcache_free(hostcache_t *hc)
 static void
 hcache_load_file(hostcache_t *hc, FILE *f)
 {
-	gchar buffer[1024];
+	char buffer[1024];
 	time_t now;
 
 	g_return_if_fail(hc);
@@ -1275,7 +1275,7 @@ hcache_load_file(hostcache_t *hc, FILE *f)
 
 	now = tm_time();
 	while (fgets(buffer, sizeof buffer, f)) {
-		const gchar *endptr;
+		const char *endptr;
 		host_addr_t addr;
 		guint16 port;
 		time_t added;
@@ -1307,7 +1307,7 @@ hcache_load_file(hostcache_t *hc, FILE *f)
  * Loads caught hosts from text file.
  */
 static void
-hcache_retrieve(hostcache_t *hc, const gchar *filename)
+hcache_retrieve(hostcache_t *hc, const char *filename)
 {
 	file_path_t fp[1];
 	FILE *f;
@@ -1348,7 +1348,7 @@ hcache_write(FILE *f, hostcache_t *hc)
  * If `extra' is not HCACHE_NONE, it is appended after the dump of `type'.
  */
 static void
-hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
+hcache_store(hcache_type_t type, const char *filename, hcache_type_t extra)
 {
 	FILE *f;
 	file_path_t fp;
@@ -1482,7 +1482,7 @@ hcache_store_if_dirty(host_type_t type)
 {
 	gnet_property_t prop;
 	hcache_type_t first, second;
-	const gchar *file;
+	const char *file;
 
 	switch (type) {
     case HOST_ANY:

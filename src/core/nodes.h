@@ -107,7 +107,7 @@ typedef struct gnutella_node {
 	node_peer_t peermode;		/**< Operating mode (leaf, ultra, normal) */
 	node_peer_t start_peermode;	/**< Operating mode when handshaking begun */
 
-	gchar error_str[256];		/**< To sprintf() error strings with vars */
+	char error_str[256];		/**< To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/**< Socket of the node */
 	guint16 country;			/**< Country of origin -- encoded ISO3166 */
 	guint8 proto_major;			/**< Handshaking protocol major number */
@@ -117,7 +117,7 @@ typedef struct gnutella_node {
 	guint8 qrp_minor;			/**< Query routing protocol minor number */
 	guint8 uqrp_major;			/**< UP Query routing protocol major number */
 	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
-	const gchar *vendor;		/**< Vendor information (always UTF-8) */
+	const char *vendor;		/**< Vendor information (always UTF-8) */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
 
@@ -128,7 +128,7 @@ typedef struct gnutella_node {
 	guint16 size; /**< How many bytes we need to read for the current message */
 	guint16 header_flags;		/**< Header flags (new message architecture) */
 
-	gchar *data;				/**< data of the current message */
+	char *data;				/**< data of the current message */
 	guint32 pos;				/**< write position in data */
 
 	gnet_node_state_t status;	/**< See possible values below */
@@ -170,7 +170,7 @@ typedef struct gnutella_node {
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
 	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
-	const gchar *remove_msg;	/**< Reason of removing */
+	const char *remove_msg;	/**< Reason of removing */
 
 	host_addr_t addr;			/**< ip of the node */
 	guint16 port;				/**< port of the node */
@@ -498,7 +498,7 @@ enum {
 #define GNUTELLA_HELLO "GNUTELLA CONNECT/"
 #define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
 
-extern const gchar *start_rfc822_date;
+extern const char *start_rfc822_date;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;
@@ -523,17 +523,17 @@ gboolean node_host_is_connected(const host_addr_t addr, guint16 port);
 void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		guint16 port, guint32 flags);
 void node_remove(struct gnutella_node *,
-	const gchar * reason, ...) G_GNUC_PRINTF(2, 3);
+	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 guint node_remove_by_addr(const host_addr_t addr, guint16 port);
 void node_bye(gnutella_node_t *, gint code,
-	const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
+	const char * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_real_remove(gnutella_node_t *);
 void node_eof(struct gnutella_node *n,
-	const gchar * reason, ...) G_GNUC_PRINTF(2, 3);
+	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_shutdown(struct gnutella_node *n,
-	const gchar * reason, ...) G_GNUC_PRINTF(2, 3);
+	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_bye_if_writable(struct gnutella_node *n, gint code,
-	const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
+	const char * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_init_outgoing(struct gnutella_node *);
 void node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
@@ -557,20 +557,20 @@ void node_qrt_install(struct gnutella_node *n, struct routing_table *);
 void node_qrt_patched(struct gnutella_node *n, struct routing_table *);
 
 void send_node_error(struct gnutella_socket *s, int code,
-	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
 void node_add_sent(gnutella_node_t *n, gint x);
 void node_add_txdrop(gnutella_node_t *n, gint x);
 void node_add_rxdrop(gnutella_node_t *n, gint x);
 
-void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
+void node_set_vendor(gnutella_node_t *n, const char *vendor);
 
 void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);
 void node_current_peermode_changed(node_peer_t mode);
-const gchar *node_addr(const gnutella_node_t *n);
-const gchar *node_addr2(const gnutella_node_t *n);
-const gchar *node_gnet_addr(const gnutella_node_t *n);
+const char *node_addr(const gnutella_node_t *n);
+const char *node_addr2(const gnutella_node_t *n);
+const char *node_gnet_addr(const gnutella_node_t *n);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);
@@ -581,7 +581,7 @@ void node_proxying_remove(gnutella_node_t *n);
 gboolean node_proxying_add(gnutella_node_t *n, const struct guid *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
-size_t node_http_proxies_add(gchar *buf, size_t size,
+size_t node_http_proxies_add(char *buf, size_t size,
 			gpointer arg, guint32 flags);
 const GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
@@ -613,8 +613,8 @@ guint feed_host_cache_from_headers(header_t *headers,
 	host_type_t sender, gboolean gnet, const host_addr_t peer);
 
 gnutella_node_t *node_browse_prepare(
-	gnet_host_t *host, const gchar *vendor, gnutella_header_t *header,
-	gchar *data, guint32 size);
+	gnet_host_t *host, const char *vendor, gnutella_header_t *header,
+	char *data, guint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);

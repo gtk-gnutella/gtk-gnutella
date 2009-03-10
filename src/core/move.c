@@ -66,8 +66,8 @@ static struct bgtask *move_daemon;
 struct moved {
 	gint magic;				/**< Magic number */
 	struct download *d;		/**< Download for which we're moving file */
-	gchar *buffer;			/**< Large buffer, where data is read */
-	gchar *target;			/**< Target file name, in case an error occurs */
+	char *buffer;			/**< Large buffer, where data is read */
+	char *target;			/**< Target file name, in case an error occurs */
 	time_t start;			/**< Start time, to determine copying rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
@@ -81,15 +81,15 @@ struct moved {
  */
 struct work {
 	struct download *d;		/**< Download to move */
-	const gchar *dest;		/**< Target directory (atom) */
-	const gchar *ext;		/**< Trailing extension (atom) */
+	const char *dest;		/**< Target directory (atom) */
+	const char *ext;		/**< Trailing extension (atom) */
 };
 
 /**
  * Allocate work queue entry.
  */
 static struct work *
-we_alloc(struct download *d, const gchar *dest, const gchar *ext)
+we_alloc(struct download *d, const char *dest, const char *ext)
 {
 	struct work *we;
 
@@ -184,7 +184,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	struct work *we = item;
 	struct download *d = we->d;
 	struct stat buf;
-	const gchar *name;
+	const char *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->rd == -1);
@@ -427,7 +427,7 @@ d_step_copy(struct bgtask *h, gpointer u, gint ticks)
  * Enqueue completed download file for verification.
  */
 void
-move_queue(struct download *d, const gchar *dest, const gchar *ext)
+move_queue(struct download *d, const char *dest, const char *ext)
 {
 	struct work *we;
 

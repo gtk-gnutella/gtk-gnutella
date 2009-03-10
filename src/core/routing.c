@@ -97,7 +97,7 @@ struct route_data {
 
 static struct route_data fake_route;		/**< Our fake route_data */
 
-static const gchar *debug_msg[256];
+static const char *debug_msg[256];
 
 /*
  * We're using the message table to store Query hit routes for Push requests,
@@ -150,7 +150,7 @@ static gboolean find_message(
  * The following GUIDs are so common that it does not make sense to
  * route pushes to them (i.e. they are are NOT unique on the network!).
  */
-static const gchar * const banned_push[] = {
+static const char * const banned_push[] = {
 	"20d262ff0e6fd6119734004005a207b1",		/**< Morpheus, 29/06/2002 */
 	"9c51e42153d4c94a858f8e8a8391173d",		/**< morph471 4.7.1.326 */
 	"27630b632f070ca9ffc48eb06a72c700",		/**< Morpheus?, 2005-08-30 */
@@ -179,7 +179,7 @@ struct route_log {
 	gboolean handle;			/**< Whether message will be handled */
 	gboolean local;				/**< Whether message originated locally */
 	gboolean new;				/**< Whether message is a new message */
-	gchar extra[80];			/**< Extra text for logging */
+	char extra[80];			/**< Extra text for logging */
 	struct route_dest dest;		/**< Message destination */
 };
 
@@ -250,16 +250,16 @@ routing_log_set_new(struct route_log *route_log)
 }
 
 static void routing_log_extra(struct route_log *route_log,
-	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+	const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /**
  * Record extra logging information, appending to existing information.
  */
 static void
-routing_log_extra(struct route_log *route_log, const gchar *fmt, ...)
+routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 {
 	va_list args;
-	gchar *buf;
+	char *buf;
 	gint buflen;
 	gint len;
 
@@ -298,10 +298,10 @@ routing_log_extra(struct route_log *route_log, const gchar *fmt, ...)
 /**
  * @return string representation of message route, as pointer to static data.
  */
-static gchar *
+static char *
 route_string(struct route_dest *dest, const host_addr_t origin_addr)
 {
-	static gchar msg[80];
+	static char msg[80];
 
 	switch (dest->type) {
 	case ROUTE_NONE:
@@ -739,7 +739,7 @@ routing_init(void)
 
 	for (i = 0; i < G_N_ELEMENTS(banned_push); i++) {
 		struct guid guid;
-		const gchar *hex = banned_push[i];
+		const char *hex = banned_push[i];
 
 		g_assert(strlen(hex) == 2 * sizeof guid);
 
@@ -772,7 +772,7 @@ routing_init(void)
 	 */
 
 	for (i = 0; i < 256; i++) {
-		const gchar *s;
+		const char *s;
 
 		s = "UNKN ";
 		switch ((enum gta_msg) i) {

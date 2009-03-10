@@ -57,9 +57,9 @@ struct browse_ctx {
 	rxdrv_t *rx;					/**< RX stack top */
 	gnet_host_t host;				/**< Host we're browsing, for logging */
 	gnet_search_t sh;				/**< Search ID to which hits are given */
-	const gchar *vendor;			/**< Vendor version string (atom) */
+	const char *vendor;			/**< Vendor version string (atom) */
 	gnutella_header_t header;		/**< Received header */
-	gchar *data;					/**< Where payload data is stored */
+	char *data;					/**< Where payload data is stored */
 	guint data_size;				/**< Size of data buffer */
 	guint pos;						/**< Reading position */
 	guint32 size;					/**< Payload size */
@@ -108,7 +108,7 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 	 */
 
 	if (!bc->has_header) {
-		gchar *w = cast_to_gpointer(&bc->header);
+		char *w = cast_to_gpointer(&bc->header);
 
 		g_assert(sizeof bc->header >= bc->pos);
 		bc->pos += pmsg_read(mb, &w[bc->pos], sizeof bc->header - bc->pos);
@@ -247,7 +247,7 @@ browse_rx_given(gpointer o, ssize_t r)
 }
 
 static G_GNUC_PRINTF(2, 3) void
-browse_rx_error(gpointer o, const gchar *reason, ...)
+browse_rx_error(gpointer o, const char *reason, ...)
 {
 	struct browse_ctx *bc = o;
 	va_list args;
@@ -298,7 +298,7 @@ static const struct rx_inflate_cb browse_rx_inflate_cb = {
 gboolean
 browse_host_dl_receive(
 	struct browse_ctx *bc, gnet_host_t *host, wrap_io_t *wio,
-	const gchar *vendor, guint32 flags)
+	const char *vendor, guint32 flags)
 {
 	g_assert(bc != NULL);
 
@@ -368,7 +368,7 @@ browse_host_io_source(struct browse_ctx *bc)
  * Received data from outside the RX stack.
  */
 void
-browse_host_dl_write(struct browse_ctx *bc, gchar *data, size_t len)
+browse_host_dl_write(struct browse_ctx *bc, char *data, size_t len)
 {
 	pdata_t *db;
 	pmsg_t *mb;

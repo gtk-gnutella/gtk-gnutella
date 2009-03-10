@@ -54,8 +54,8 @@ struct guid;
 
 void file_info_init(void);
 void file_info_init_post(void);
-void file_info_scandir(const gchar *dir);
-gint file_info_has_trailer(const gchar *path);
+void file_info_scandir(const char *dir);
+gint file_info_has_trailer(const char *path);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_binary(fileinfo_t *fi, gboolean force);
@@ -72,10 +72,10 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(fileinfo_t *fi);
 void file_info_recreate(struct download *d);
 fileinfo_t *file_info_get(
-	const gchar *file, const gchar *path, filesize_t size,
+	const char *file, const char *path, filesize_t size,
 	const struct sha1 *sha1, gboolean file_size_known);
 void file_info_strip_binary(fileinfo_t *fi);
-void file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *file);
+void file_info_strip_binary_from_file(fileinfo_t *fi, const char *file);
 gboolean file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1);
 void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
@@ -88,7 +88,7 @@ enum dl_chunk_status file_info_pos_status(fileinfo_t *fi,
 void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
-	const gchar *file_name, const host_addr_t addr,
+	const char *file_name, const host_addr_t addr,
 	guint16 port, const struct sha1 *sha1);
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);
@@ -98,7 +98,7 @@ void file_info_remove_source(
 void file_info_timer(void);
 void file_info_slow_timer(void);
 void file_info_unlink(fileinfo_t *fi);
-void file_info_upload_stop(fileinfo_t *fi, const gchar *reason);
+void file_info_upload_stop(fileinfo_t *fi, const char *reason);
 void file_info_pause(fileinfo_t *);
 void file_info_resume(fileinfo_t *);
 void file_info_changed(fileinfo_t *);
@@ -106,16 +106,16 @@ fileinfo_t *file_info_by_guid(const struct guid *guid);
 void file_info_dht_query(const sha1_t *sha1);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
-gint file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size);
+gint file_info_available_ranges(fileinfo_t *fi, char *buf, gint size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 
 fileinfo_t *file_info_has_identical(const struct sha1 *sha1, filesize_t size);
 
-fileinfo_t *file_info_get_transient(const gchar *name);
+fileinfo_t *file_info_get_transient(const char *name);
 fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
-void file_info_moved(fileinfo_t *fi, const gchar *pathname);
+void file_info_moved(fileinfo_t *fi, const char *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
 gboolean file_info_rename(fileinfo_t *fi, const char *filename);
 
@@ -123,8 +123,8 @@ typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, gpointer udata);
 void file_info_foreach(file_info_foreach_cb callback, gpointer udata);
 gboolean file_info_purge(fileinfo_t *fi);
 
-char *file_info_unique_filename(const gchar *path, const gchar *file,
-	const gchar *ext);
+char *file_info_unique_filename(const char *path, const char *file,
+	const char *ext);
 
 void fi_src_info_changed(struct download *);
 void fi_src_ranges_changed(struct download *);

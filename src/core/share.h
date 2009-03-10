@@ -91,22 +91,22 @@ void share_close(void);
 
 shared_file_t *shared_file(guint idx);
 shared_file_t *shared_file_sorted(guint idx);
-shared_file_t *shared_file_by_name(const gchar *filename);
+shared_file_t *shared_file_by_name(const char *filename);
 shared_file_t * shared_file_ref(shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
-shared_file_t *shared_special(const gchar *path);
+shared_file_t *shared_special(const char *path);
 void shared_file_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
-void parse_extensions(const gchar *);
-gchar *get_file_path(gint);
+void parse_extensions(const char *);
+char *get_file_path(gint);
 void shared_dirs_update_prop(void);
-gboolean shared_dirs_parse(const gchar *);
+gboolean shared_dirs_parse(const char *);
 
 void shared_file_set_sha1(struct shared_file *, const struct sha1 *sha1);
 void shared_file_set_tth(struct shared_file *, const struct tth *tth);
 void shared_file_set_modification_time(struct shared_file *sf, time_t mtime);
-void shared_file_set_path(struct shared_file *sf, const gchar *pathname);
+void shared_file_set_path(struct shared_file *sf, const char *pathname);
 
 void shared_file_check(const struct shared_file *sf);
 gboolean sha1_hash_available(const struct shared_file *sf);
@@ -116,20 +116,20 @@ gboolean shared_file_is_finished(const struct shared_file *sf);
 filesize_t shared_file_size(const shared_file_t *sf);
 guint32 shared_file_index(const shared_file_t *sf);
 time_t shared_file_modification_time(const struct shared_file *sf);
-const gchar *shared_file_path(const shared_file_t *sf);
+const char *shared_file_path(const shared_file_t *sf);
 const struct sha1 *shared_file_sha1(const shared_file_t *sf);
 const struct tth *shared_file_tth(const shared_file_t *sf);
-const gchar *shared_file_name_nfc(const shared_file_t *sf);
-const gchar *shared_file_name_canonic(const shared_file_t *sf);
-const gchar *shared_file_relative_path(const shared_file_t *sf);
+const char *shared_file_name_nfc(const shared_file_t *sf);
+const char *shared_file_name_canonic(const shared_file_t *sf);
+const char *shared_file_relative_path(const shared_file_t *sf);
 size_t shared_file_name_nfc_len(const shared_file_t *sf);
 size_t shared_file_name_canonic_len(const shared_file_t *sf);
 guint32 shared_file_flags(const shared_file_t *sf);
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf);
-const gchar *shared_file_mime_type(const shared_file_t *sf);
+const char *shared_file_mime_type(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 
-void shared_files_match(const gchar *search_term,
+void shared_files_match(const char *search_term,
 		st_search_callback callback, gpointer user_data,
 		gint max_res, struct query_hashvec *qhv);
 

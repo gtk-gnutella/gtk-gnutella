@@ -88,10 +88,10 @@ struct shared_file {
 	const struct sha1 *sha1;	/**< SHA1 digest, binary form, atom */
 	const struct tth *tth;		/**< TTH digest, binary form, atom */
 
-	const gchar *file_path;		/**< The full path of the file (atom!) */
-	const gchar *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
-	const gchar *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
-	const gchar *relative_path;	/**< UTF-8 NFC string (atom) */
+	const char *file_path;		/**< The full path of the file (atom!) */
+	const char *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
+	const char *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
+	const char *relative_path;	/**< UTF-8 NFC string (atom) */
 
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
@@ -112,10 +112,10 @@ struct shared_file {
  * Describes special files which are served by GTKG.
  */
 struct special_file {
-	const gchar *path;			/* URL path */
-	const gchar *file;			/* File name to load from disk */
+	const char *path;			/* URL path */
+	const char *file;			/* File name to load from disk */
 	enum mime_type type;	/* MIME type of the file */
-	const gchar *what;			/* Description of the file for traces */
+	const char *what;			/* Description of the file for traces */
 };
 
 static const struct special_file specials[] = {
@@ -269,7 +269,7 @@ shared_file_free(shared_file_t **sf_ptr)
 }
 
 static gboolean
-shared_file_set_names(shared_file_t *sf, const gchar *filename)
+shared_file_set_names(shared_file_t *sf, const char *filename)
 {
   	shared_file_check(sf);	
    	g_assert(!sf->name_nfc);
@@ -277,7 +277,7 @@ shared_file_set_names(shared_file_t *sf, const gchar *filename)
 
 	/* Set the NFC normalized name. */
 	{	
-		gchar *name;
+		char *name;
 
 		name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
 		sf->name_nfc = atom_str_get(name);
@@ -291,7 +291,7 @@ shared_file_set_names(shared_file_t *sf, const gchar *filename)
 	 * if enabled. Queries will be matched against this string.
 	 */
 	{
-		gchar *name, *name_canonic;
+		char *name, *name_canonic;
 
 		if (
 			GNET_PROPERTY(search_results_expose_relative_paths) &&
@@ -369,7 +369,7 @@ share_special_load(const struct special_file *sp)
 	sf->flags |= SHARE_F_SPECIAL;
 
 	{
-		gchar *filename = make_pathname(fp[idx].dir, fp[idx].name);
+		char *filename = make_pathname(fp[idx].dir, fp[idx].name);
 		sf->file_path = atom_str_get(filename);
 		G_FREE_NULL(filename);
 	}
@@ -385,7 +385,7 @@ share_special_load(const struct special_file *sp)
 }
 
 void
-shared_files_match(const gchar *search_term,
+shared_files_match(const char *search_term,
 	st_search_callback callback, gpointer user_data,
 	gint max_res, query_hashvec_t *qhv)
 {
@@ -420,7 +420,7 @@ share_special_init(void)
  * or NULL if the path is invalid.
  */
 shared_file_t *
-shared_special(const gchar *path)
+shared_special(const char *path)
 {
 	shared_file_t *sf;
 	struct stat file_stat;
@@ -494,7 +494,7 @@ shared_file_sorted(guint idx)
  * @return index > 0 if found, 0 if file is not known.
  */
 static guint
-shared_file_get_index(const gchar *filename)
+shared_file_get_index(const char *filename)
 {
 	guint idx;
 
@@ -513,7 +513,7 @@ shared_file_get_index(const gchar *filename)
  * is being rebuilt.
  */
 shared_file_t *
-shared_file_by_name(const gchar *filename)
+shared_file_by_name(const char *filename)
 {
 	shared_file_t *sf;
 	guint idx;
@@ -557,17 +557,17 @@ free_extensions(void)
  * Get the file extensions to scan.
  */
 void
-parse_extensions(const gchar *str)
+parse_extensions(const char *str)
 {
-	gchar **exts = g_strsplit(str, ";", 0);
-	gchar *x, *s;
+	char **exts = g_strsplit(str, ";", 0);
+	char *x, *s;
 	guint i;
 
 	free_extensions();
 	extensions = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
 
 	for (i = 0; exts[i]; i++) {
-		gchar c;
+		char c;
 
 		s = exts[i];
 		while ((c = *s) == '.' || c == '*' || c == '?' || is_ascii_blank(c))
@@ -638,9 +638,9 @@ shared_dirs_update_prop(void)
  * it returns FALSE.
  */
 gboolean
-shared_dirs_parse(const gchar *str)
+shared_dirs_parse(const char *str)
 {
-	gchar **dirs = g_strsplit(str, ":", 0);
+	char **dirs = g_strsplit(str, ":", 0);
     gboolean ret = TRUE;
 	guint i;
 
@@ -666,7 +666,7 @@ shared_dirs_parse(const gchar *str)
  * Add directory to the list of shared directories.
  */
 void
-shared_dir_add(const gchar *path)
+shared_dir_add(const char *path)
 {
 	if (is_directory(path))
         shared_dirs = g_slist_append(shared_dirs,
@@ -733,9 +733,9 @@ too_big_for_gnutella(off_t size)
  *			is returned.
  */
 static gboolean
-contains_control_chars(const gchar *pathname)
+contains_control_chars(const char *pathname)
 {
-	const gchar *s;
+	const char *s;
 
 	for (s = pathname; *s != '\0'; s++) {
 		if (is_ascii_cntrl(*s))
@@ -753,16 +753,16 @@ contains_control_chars(const gchar *pathname)
  * @param pathname A pathname that is relative to "base_dir".
  * @return A string atom holding the relative path or NULL.
  */
-static const gchar *
-get_relative_path(const gchar *base_dir, const gchar *pathname)
+static const char *
+get_relative_path(const char *base_dir, const char *pathname)
 {
-	const gchar *s, *relative_path = NULL;
+	const char *s, *relative_path = NULL;
 
 	s = is_strprefix(pathname, base_dir);
 	if (s) {
 		s = skip_dir_separators(s);
 		if ('\0' != s[0]) {
-			gchar *normalized, *nfc_str;
+			char *normalized, *nfc_str;
 
 			normalized = normalize_dir_separators(s);
 			nfc_str = filename_to_utf8_normalized(normalized, UNI_NORM_NETWORK);
@@ -783,9 +783,9 @@ get_relative_path(const gchar *base_dir, const gchar *pathname)
  * @return TRUE if the file should be shared, FALSE if not.
  */
 static gboolean
-shared_file_valid_extension(const gchar *filename)
+shared_file_valid_extension(const char *filename)
 {
-	const gchar *filename_ext;
+	const char *filename_ext;
 
 	if (!extensions)
 		return FALSE;
@@ -832,11 +832,11 @@ shared_file_valid_extension(const gchar *filename)
  *		  NULL is returned.
  */
 static shared_file_t * 
-share_scan_add_file(const gchar *relative_path,
-	const gchar *pathname, const struct stat *sb)
+share_scan_add_file(const char *relative_path,
+	const char *pathname, const struct stat *sb)
 {
 	shared_file_t *sf;
-	const gchar *name;
+	const char *name;
 
 	g_assert(is_absolute_path(pathname));
 	g_assert(sb);
@@ -1810,14 +1810,14 @@ shared_file_tth(const shared_file_t *sf)
 	return sf->tth;
 }
 
-const gchar *
+const char *
 shared_file_name_nfc(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return sf->name_nfc;
 }
 
-const gchar *
+const char *
 shared_file_name_canonic(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -1844,7 +1844,7 @@ shared_file_name_canonic_len(const shared_file_t *sf)
  *
  * @return A string or NULL.
  */
-const gchar *
+const char *
 shared_file_relative_path(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -1860,7 +1860,7 @@ shared_file_relative_path(const shared_file_t *sf)
  * @return	the full pathname of the shared file. The returned pointer is
  *			a string atom.
  */
-const gchar *
+const char *
 shared_file_path(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -1888,7 +1888,7 @@ shared_file_fileinfo(const shared_file_t *sf)
 	return sf->fi;
 }
 
-const gchar *
+const char *
 shared_file_mime_type(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -1907,7 +1907,7 @@ shared_file_remove(struct shared_file *sf)
 }
 
 void
-shared_file_set_path(struct shared_file *sf, const gchar *pathname)
+shared_file_set_path(struct shared_file *sf, const char *pathname)
 {
 	shared_file_check(sf);
 	atom_str_change(&sf->file_path, pathname);

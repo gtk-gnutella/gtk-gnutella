@@ -53,8 +53,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar gip_file[] = "geo-ip.txt";
-static const gchar gip_what[] = "Geographic IP mappings";
+static const char gip_file[] = "geo-ip.txt";
+static const char gip_what[] = "Geographic IP mappings";
 
 static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
 
@@ -62,7 +62,7 @@ static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
  * Context used during ip_range_split() calls.
  */
 struct range_context {
-	gchar *line;				/**< The line from the input file */
+	char *line;				/**< The line from the input file */
 	gint linenum;				/**< Line number in input file, for errors */
 	guint32 ip1;				/**< Original lower IP in global range */
 	guint32 ip2;				/**< Original upper IP in global range */
@@ -110,10 +110,10 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 static guint
 gip_load(FILE *f)
 {
-	gchar line[1024];
-	gchar *p;
+	char line[1024];
+	char *p;
 	gint linenum = 0;
-	const gchar *end;
+	const char *end;
 	guint16 code;
 	gint c;
 	struct range_context ctx;
@@ -241,10 +241,10 @@ gip_load(FILE *f)
  * geographic IP mappings changed.
  */
 static void
-gip_changed(const gchar *filename, gpointer unused)
+gip_changed(const char *filename, gpointer unused)
 {
 	FILE *f;
-	gchar buf[80];
+	char buf[80];
 	guint count;
 
 	(void) unused;
@@ -279,7 +279,7 @@ gip_retrieve(void)
 {
 	FILE *f;
 	gint idx;
-	gchar *filename;
+	char *filename;
 #ifndef OFFICIAL_BUILD
 	static file_path_t fp[3];
 #else

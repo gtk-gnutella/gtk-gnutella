@@ -54,9 +54,9 @@ RCSID("$Id$")
 
 static GSList *sl_whitelist;
 
-static const gchar whitelist_file[] = "whitelist";
+static const char whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
-static gchar *whitelist_path;
+static char *whitelist_path;
 
 static guint
 addr_default_mask(const host_addr_t addr)
@@ -81,7 +81,7 @@ addr_default_mask(const host_addr_t addr)
 static void
 whitelist_retrieve(void)
 {
-    gchar line[1024];
+    char line[1024];
     FILE *f;
     struct stat st;
     int linenum = 0;
@@ -103,11 +103,11 @@ whitelist_retrieve(void)
 
     while (fgets(line, sizeof line, f)) {
 		GSList *sl_addr, *sl;
-		const gchar *endptr, *start;
+		const char *endptr, *start;
 		host_addr_t addr;
     	guint16 port;
 		guint8 bits;
-		gchar *p;
+		char *p;
 		gboolean item_ok;
 		gboolean use_tls;
 
@@ -143,7 +143,7 @@ whitelist_retrieve(void)
        		sl_addr = name_to_host_addr(host_addr_to_string(addr),
 							settings_dns_net());
 		} else if (string_to_host_or_addr(start, &endptr, &addr)) {
-			gchar *name;
+			char *name;
 			guchar c = *endptr;
 
 			switch (c) {
@@ -213,7 +213,7 @@ whitelist_retrieve(void)
 						break;
 					}
 				} else if ('/' == c) {
-					const gchar *ep;
+					const char *ep;
 					guint32 mask;
 
 					if (0 != bits) {

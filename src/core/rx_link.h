@@ -49,7 +49,7 @@ const struct rxdrv_ops *rx_link_get_ops(void);
 struct rx_link_cb {
 	void (*add_rx_given)(gpointer owner, ssize_t amount);
 	void (*read_error)(gpointer owner,
-			const gchar *reason, ...) PRINTF_FUNC_PTR(2, 3);
+			const char *reason, ...) PRINTF_FUNC_PTR(2, 3);
 	void (*got_eof)(gpointer owner);
 };
 

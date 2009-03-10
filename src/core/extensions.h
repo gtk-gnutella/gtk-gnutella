@@ -160,7 +160,7 @@ typedef enum ext_token {
  * and access to the whole length via ext_len().
  */
 typedef struct extvec {
-	const gchar *ext_name;	/**< Extension name (may be NULL) */
+	const char *ext_name;	/**< Extension name (may be NULL) */
 	ext_token_t ext_token;	/**< Extension token */
 	ext_type_t ext_type;	/**< Extension type */
 	gpointer opaque;		/**< Internal information */
@@ -176,7 +176,7 @@ void ext_init(void);
 void ext_close(void);
 
 void ext_prepare(extvec_t *exv, gint exvcnt);
-gint ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt);
+gint ext_parse(const char *buf, gint len, extvec_t *exv, gint exvcnt);
 void ext_reset(extvec_t *exv, gint exvcnt);
 
 gboolean ext_is_printable(const extvec_t *e);
@@ -184,15 +184,15 @@ gboolean ext_is_ascii(const extvec_t *e);
 gboolean ext_has_ascii_word(const extvec_t *e);
 
 void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
-	const gchar *prefix, const gchar *postfix, gboolean payload);
+	const char *prefix, const char *postfix, gboolean payload);
 
 gconstpointer ext_payload(const extvec_t *e);
 guint16 ext_paylen(const extvec_t *e);
-const gchar *ext_base(const extvec_t *e);
+const char *ext_base(const extvec_t *e);
 guint16 ext_headlen(const extvec_t *e);
 guint16 ext_len(const extvec_t *e);
-const gchar *ext_ggep_id_str(const extvec_t *e);
-const gchar *ext_ggep_name(ext_token_t id);
+const char *ext_ggep_id_str(const extvec_t *e);
+const char *ext_ggep_name(ext_token_t id);
 
 #endif	/* _core_extensions_h_ */
 

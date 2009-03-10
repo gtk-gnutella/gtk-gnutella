@@ -84,7 +84,7 @@ RCSID("$Id$")
 struct shared_file;
 
 struct st_entry {
-	const gchar *string;				/* atom */
+	const char *string;				/* atom */
 	struct shared_file *sf;
 	guint32 mask;
 };
@@ -314,7 +314,7 @@ st_destroy(search_table_t *table)
  * plus one for any digit.
  */
 static guint32
-mask_hash(const gchar *s) {
+mask_hash(const char *s) {
 	guchar c;
 	guint32 mask = 0;
 
@@ -337,7 +337,7 @@ mask_hash(const gchar *s) {
  * Get key of two-char pair.
  */
 static inline gint
-st_key(search_table_t *table, const gchar k[2])
+st_key(search_table_t *table, const char k[2])
 {
 	return table->index_map[(guchar) k[0]] * table->nchars +
 		table->index_map[(guchar) k[1]];
@@ -350,7 +350,7 @@ st_key(search_table_t *table, const gchar k[2])
  * @return TRUE if the item was inserted; FALSE otherwise.
  */
 gboolean
-st_insert_item(search_table_t *table, const gchar *s, gpointer data)
+st_insert_item(search_table_t *table, const char *s, gpointer data)
 {
 	size_t i, len;
 	struct st_entry *entry;
@@ -413,7 +413,7 @@ st_compact(search_table_t *table)
  * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
 static gboolean
-entry_match(const gchar *text, size_t tlen,
+entry_match(const char *text, size_t tlen,
 	cpattern_t **pw, word_vec_t *wovec, size_t wn)
 {
 	size_t i;
@@ -425,7 +425,7 @@ entry_match(const gchar *text, size_t tlen,
 			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len);
 
 		for (j = 0; j < amount; j++) {
-			const gchar *pos;
+			const char *pos;
 
 			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
@@ -446,13 +446,13 @@ entry_match(const gchar *text, size_t tlen,
 void
 st_search(
 	search_table_t *table,
-	const gchar *search_term,
+	const char *search_term,
 	st_search_callback callback,
 	gpointer ctx,
 	gint max_res,
 	query_hashvec_t *qhv)
 {
-	gchar *search;
+	char *search;
 	gint key, nres;
 	guint i, len;
 	struct st_bin *best_bin = NULL;

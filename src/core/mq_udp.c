@@ -195,7 +195,7 @@ mq_udp_service(gpointer data)
 
 	for (l = q->qtail; l; /* empty */) {
 		pmsg_t *mb = l->data;
-		gchar *mb_start = pmsg_start(mb);
+		char *mb_start = pmsg_start(mb);
 		gint mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
 		guint8 function;
@@ -284,7 +284,7 @@ void
 mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
 	size_t size;
-	gchar *mbs;
+	char *mbs;
 	guint8 function;
 	guint8 hops;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */

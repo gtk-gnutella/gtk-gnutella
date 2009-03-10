@@ -114,7 +114,7 @@ static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 static guint parq_upload_active_size = 20;
 
 static guint parq_upload_ban_window = 600;
-static const gchar file_parq_file[] = "parq";
+static const char file_parq_file[] = "parq";
 
 static GList *ul_parqs;			/**< List of all queued uploads */
 static gint ul_parqs_cnt;			/**< Amount of queues */
@@ -224,8 +224,8 @@ struct parq_ul_queued {
 
 	struct guid id;			/**< PARQ identifier; GUID atom */
 
-	gchar *addr_and_name;	/**< "IP name", used as key in hash table */
-	const gchar *name;		/**< NB: points directly into `addr_and_name' */
+	char *addr_and_name;	/**< "IP name", used as key in hash table */
+	const char *name;		/**< NB: points directly into `addr_and_name' */
 	const struct sha1 *sha1;	/**< SHA1 digest for easy reference */
 	host_addr_t remote_addr;		/**< IP address of the socket endpoint */
 
@@ -269,7 +269,7 @@ struct parq_dl_queued {
 	time_t eta;				/**< Estimated time till upload slot retrieved */
 	guint lifetime;			/**< Max interval before loosing queue position */
 	guint retry_delay;		/**< Interval between new attempt */
-	gchar *id;				/**< PARQ Queue ID, +1 for trailing NUL */
+	char *id;				/**< PARQ Queue ID, +1 for trailing NUL */
 };
 
 /**
@@ -314,12 +314,12 @@ fd_avail_status(void)
  * successful.
  */
 static gboolean
-get_header_version(gchar const * const header, guint *major, guint *minor)
+get_header_version(char const * const header, guint *major, guint *minor)
 {
 	return 0 == parse_major_minor(header, NULL, major, minor);
 }
 
-static const gchar *
+static const char *
 parq_get_x_queue_1_0_header(void)
 {
 	STATIC_ASSERT(PARQ_VERSION_MAJOR == 1);
@@ -327,7 +327,7 @@ parq_get_x_queue_1_0_header(void)
 	return "X-Queue: 1.0";
 }
 
-static const gchar *
+static const char *
 parq_get_x_queue_legacy_header(void)
 {
 	return "X-Queue: 0.1";
@@ -346,11 +346,11 @@ parq_get_x_queue_legacy_header(void)
  *
  * @return a pointer in the s pointer indicating the start of the header value.
  */
-static gchar *
-get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
+static char *
+get_header_value(char *const s, char const *const attribute, size_t *length)
 {
-	gchar *header = s;
-	gchar *end;
+	char *header = s;
+	char *end;
 	gboolean found_right_attribute = FALSE;
 	gboolean found_equal_sign = FALSE;
 
@@ -368,9 +368,9 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 	 */
 
 	do {
-		gchar e;
-		gchar b;
-		gchar es;
+		char e;
+		char b;
+		char es;
 
 		header = ascii_strcasestr(header, attribute);
 
@@ -484,9 +484,9 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 /**
  * Retrieves the PARQ ID associated with an download.
  *
- * @return a gchar pointer to the ID, or NULL if no ID is available.
+ * @return a char pointer to the ID, or NULL if no ID is available.
  */
-const gchar *
+const char *
 get_parq_dl_id(const struct download *d)
 {
 	download_check(d);
@@ -600,9 +600,9 @@ parq_download_retry_active_queued(struct download *d)
  * @return parsed integer (base 10), or 0 if none could be found.
  */
 static guint
-get_integer(const gchar *buf)
+get_integer(const char *buf)
 {
-	const gchar *endptr;
+	const char *endptr;
 	guint32 val;
 	gint error;
 
@@ -700,7 +700,7 @@ parq_dl_create(const struct download *d)
  * Assigns an parq ID to a download, and places them in various lists for lookup
  */
 void
-parq_dl_add_id(struct download *d, const gchar *new_id)
+parq_dl_add_id(struct download *d, const char *new_id)
 {
 	struct parq_dl_queued *parq_dl;
 
@@ -752,7 +752,7 @@ parq_dl_reparent_id(struct download *d, struct download *cd)
  * Updates a parq id if needed.
  */
 static void
-parq_dl_update_id(struct download *d, const gchar *temp)
+parq_dl_update_id(struct download *d, const char *temp)
 {
 	download_check(d);
 	g_assert(temp != NULL);
@@ -776,9 +776,9 @@ gboolean
 parq_download_parse_queue_status(struct download *d, header_t *header)
 {
 	struct parq_dl_queued *parq_dl = NULL;
-	gchar *buf = NULL;
-	gchar *temp = NULL;
-	gchar *value = NULL;
+	char *buf = NULL;
+	char *temp = NULL;
+	char *value = NULL;
 	guint major = 0, minor = 0;
 	size_t header_value_length;
 	gint retry;
@@ -924,7 +924,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
  */
 void
 parq_download_add_header(
-	gchar *buf, size_t len, size_t *rw, struct download *d)
+	char *buf, size_t len, size_t *rw, struct download *d)
 {
 	gboolean has_ipv4 = FALSE;
 	host_addr_t addr;
@@ -993,9 +993,9 @@ parq_download_add_header(
 void
 parq_download_queue_ack(struct gnutella_socket *s)
 {
-	const gchar *queue;
-	gchar *id;
-	gchar *ip_str;
+	const char *queue;
+	char *id;
+	char *ip_str;
 	struct download *dl;
 	host_addr_t addr;
 	guint16 port = 0;
@@ -1909,11 +1909,11 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 static struct parq_ul_queued *
 parq_upload_find_id(const header_t *header)
 {
-	gchar *buf;
+	char *buf;
 
 	buf = header_get(header, "X-Queued");
 	if (buf != NULL) {
-		const gchar *id_str = get_header_value(buf, "ID", NULL);
+		const char *id_str = get_header_value(buf, "ID", NULL);
 
 		if (id_str) {
 			struct guid id;
@@ -2025,7 +2025,7 @@ parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 static inline struct parq_ul_queued *
 parq_upload_find(const struct upload *u)
 {
-	gchar buf[1024 + 128];
+	char buf[1024 + 128];
 
 	upload_check(u);
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
@@ -3035,7 +3035,7 @@ struct parq_ul_queued *
 parq_upload_get(struct upload *u, const header_t *header)
 {
 	struct parq_ul_queued *uq;
-	gchar *buf;
+	char *buf;
 
 	upload_check(u);
 	g_assert(header != NULL);
@@ -3981,7 +3981,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 }
 
 static size_t
-parq_upload_add_retry_after_header(gchar *buf, size_t size, guint d)
+parq_upload_add_retry_after_header(char *buf, size_t size, guint d)
 {
 	size_t len;
 
@@ -3992,7 +3992,7 @@ parq_upload_add_retry_after_header(gchar *buf, size_t size, guint d)
 }
 
 static size_t
-parq_upload_add_old_queue_header(gchar *buf, size_t size,
+parq_upload_add_old_queue_header(char *buf, size_t size,
 	struct parq_ul_queued *parq_ul, guint min_poll, guint max_poll,
 	gboolean small_reply)
 {
@@ -4017,7 +4017,7 @@ parq_upload_add_old_queue_header(gchar *buf, size_t size,
 }
 
 static size_t
-parq_upload_add_x_queue_header(gchar *buf, size_t size)
+parq_upload_add_x_queue_header(char *buf, size_t size)
 {
 	size_t len;
 
@@ -4029,7 +4029,7 @@ parq_upload_add_x_queue_header(gchar *buf, size_t size)
 }
 
 static size_t
-parq_upload_add_x_queued_header(gchar *buf, size_t size,
+parq_upload_add_x_queued_header(char *buf, size_t size,
 	struct parq_ul_queued *parq_ul, guint max_poll,
 	gboolean small_reply, struct upload *u)
 {
@@ -4110,7 +4110,7 @@ parq_upload_add_x_queued_header(gchar *buf, size_t size,
  * to make sure they do not re-request too soon.
  */
 size_t
-parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
+parq_upload_add_headers(char *buf, size_t size, gpointer arg, guint32 flags)
 {
 	struct parq_ul_queued *parq_ul;
 	struct upload_http_cb *a = arg;
@@ -4177,7 +4177,7 @@ parq_upload_add_headers(gchar *buf, size_t size, gpointer arg, guint32 flags)
  * @return the amount of bytes written to `buf'.
  */
 size_t
-parq_upload_add_header_id(gchar *buf, size_t size, gpointer arg,
+parq_upload_add_header_id(char *buf, size_t size, gpointer arg,
 	guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
@@ -4410,7 +4410,7 @@ parq_upload_lookup_frozen(const struct upload *u)
 void
 parq_upload_send_queue_conf(struct upload *u)
 {
-	gchar queue[MAX_LINE_SIZE];
+	char queue[MAX_LINE_SIZE];
 	struct parq_ul_queued *parq_ul;
 	struct gnutella_socket *s;
 	size_t rw;
@@ -4484,8 +4484,8 @@ parq_store(gpointer data, gpointer file_ptr)
 	FILE *f = file_ptr;
 	time_t now = tm_time();
 	struct parq_ul_queued *parq_ul = data;
-	gchar last_buf[TIMESTAMP_BUF_LEN];
-	gchar enter_buf[TIMESTAMP_BUF_LEN];
+	char last_buf[TIMESTAMP_BUF_LEN];
+	char enter_buf[TIMESTAMP_BUF_LEN];
 	gint expire;
 
 	/* We are not saving uploads which already finished an upload */
@@ -4618,7 +4618,7 @@ typedef enum {
 
 static const struct parq_tag {
 	parq_tag_t	tag;
-	const gchar *str;
+	const char *str;
 } parq_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
@@ -4646,7 +4646,7 @@ static const struct parq_tag {
 /**
  */
 static parq_tag_t
-parq_string_to_tag(const gchar *s)
+parq_string_to_tag(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(parq_tag_map) == (NUM_PARQ_TAGS - 1));
 
@@ -4657,7 +4657,7 @@ parq_string_to_tag(const gchar *s)
 } G_STMT_END
 
 	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
+	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -4679,7 +4679,7 @@ typedef struct {
 	gint xport;
 	time_t last_queue_sent;
 	gint queue_sent;
-	gchar name[1024];
+	char name[1024];
 	struct guid id;
 } parq_entry_t;
 
@@ -4693,14 +4693,14 @@ parq_upload_load_queue(void)
 	parq_entry_t entry;
 	FILE *f;
 	file_path_t fp[1];
-	gchar line[4096];
+	char line[4096];
 	gboolean next = FALSE;
 	struct parq_ul_queued *parq_ul;
 	time_t now = tm_time();
 	guint line_no = 0;
 	guint64 v;
 	gint error;
-	const gchar *endptr;
+	const char *endptr;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_PARQ_TAGS)];
 	gboolean resync = FALSE;
 
@@ -4717,8 +4717,8 @@ parq_upload_load_queue(void)
 	bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
 
 	while (fgets(line, sizeof(line), f)) {
-		const gchar *tag_name, *value;
-		gchar *colon, *nl;
+		const char *tag_name, *value;
+		char *colon, *nl;
 		gboolean damaged;
 		parq_tag_t tag;
 

@@ -56,8 +56,8 @@ RCSID("$Id$")
 
 #define SECS_PER_DAY	86400
 
-const gchar *version_string = NULL;
-const gchar *version_short_string = NULL;
+const char *version_string = NULL;
+const char *version_short_string = NULL;
 
 static version_t our_version;
 static version_t last_rel_version;
@@ -67,7 +67,7 @@ static guint8 version_code;
 /**
  * Get version string.
  */
-const gchar *
+const char *
 version_get_string(void)
 {
 	return version_string;
@@ -86,7 +86,7 @@ version_get_code(void)
  * Dump original version string and decompiled form to stdout.
  */
 static void
-version_dump(const gchar *str, const version_t *ver, const gchar *cmptag)
+version_dump(const char *str, const version_t *ver, const char *cmptag)
 {
 	printf("VERSION%s \"%s\":\n"
 		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u build=%u\n",
@@ -98,10 +98,10 @@ version_dump(const gchar *str, const version_t *ver, const gchar *cmptag)
  * @return a user-friendly description of the version.
  * NB: returns pointer to static data.
  */
-const gchar *
+const char *
 version_str(const version_t *ver)
 {
-	static gchar str[80];
+	static char str[80];
 	gint rw;
 
 	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
@@ -132,10 +132,10 @@ version_str(const version_t *ver)
  * and extract timestamp into `ver'.
  */
 static void
-version_stamp(const gchar *str, version_t *ver)
+version_stamp(const char *str, version_t *ver)
 {
-	static gchar stamp[256];
-	const gchar *p;
+	static char stamp[256];
+	const char *p;
 
 	ver->timestamp = 0;
 
@@ -151,7 +151,7 @@ version_stamp(const gchar *str, version_t *ver)
 
 	p = strchr(str, '(');
 	if (p) {
-		const gchar *end;
+		const char *end;
 
 		p++;
 		end = strchr(p, ';');
@@ -187,9 +187,9 @@ version_stamp(const gchar *str, version_t *ver)
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
 static gboolean
-version_parse(const gchar *str, version_t *ver)
+version_parse(const char *str, version_t *ver)
 {
-	const gchar *v;
+	const char *v;
 	gint error;
 
 	/*
@@ -355,7 +355,7 @@ version_build_cmp(const version_t *a, const version_t *b)
  * @returns OK if we were able to parse correctly.
  */
 gboolean
-version_fill(const gchar *version, version_t *vs)
+version_fill(const char *version, version_t *vs)
 {
 	if (!version_parse(version, vs))
 		return FALSE;
@@ -369,11 +369,11 @@ version_fill(const gchar *version, version_t *vs)
  * Invoked when a newer version is found.
  */
 static void
-version_new_found(const gchar *text, gboolean stable)
+version_new_found(const char *text, gboolean stable)
 {
-    static gchar last_stable[256] = "";
-    static gchar last_dev[256] = "";
-	gchar s[1024];
+    static char last_stable[256] = "";
+    static char last_dev[256] = "";
+	char s[1024];
 
     if (stable)
         utf8_strlcpy(last_stable, text, sizeof last_stable);
@@ -407,12 +407,12 @@ version_new_found(const gchar *text, gboolean stable)
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
 gboolean
-version_check(const gchar *str, const gchar *token, const host_addr_t addr)
+version_check(const char *str, const char *token, const host_addr_t addr)
 {
 	version_t their_version;
 	version_t *target_version;
 	gint cmp;
-	const gchar *version;
+	const char *version;
 
 	if (!version_parse(str, &their_version))
 		return TRUE;			/* Not gtk-gnutella, or unparseable */
@@ -574,15 +574,15 @@ version_check(const gchar *str, const gchar *token, const host_addr_t addr)
  *
  * @return A pointer to a static buffer holding the version string.
  */
-const gchar *
+const char *
 version_build_string(void)
 {
 	static gboolean initialized;
-	static gchar buf[128];
+	static char buf[128];
 
 	if (!initialized) {
-		const gchar *sysname = "Unknown";
-		const gchar *machine = NULL;
+		const char *sysname = "Unknown";
+		const char *machine = NULL;
 
 		initialized = TRUE;
 
@@ -633,7 +633,7 @@ version_init(void)
 	g_assert(our_version.timestamp != 0);
 
 	{
-		gchar buf[128];
+		char buf[128];
 
 		gm_snprintf(buf, sizeof(buf),
 			GTA_PRODUCT_NAME "/%s-%u (%s)",

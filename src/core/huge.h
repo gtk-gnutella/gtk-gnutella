@@ -62,10 +62,10 @@ gboolean sha1_is_cached(const struct shared_file *sf);
 gboolean huge_update_hashes(struct shared_file *sf,
 	const struct sha1 *sha1, const struct tth *tth);
 
-gboolean huge_improbable_sha1(const gchar *buf, size_t len);
-gboolean huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
+gboolean huge_improbable_sha1(const char *buf, size_t len);
+gboolean huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	gconstpointer header);
-gboolean huge_tth_extract32(const gchar *buf, size_t len, struct tth *tth,
+gboolean huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	gconstpointer header);
 void huge_collect_locations(
 	const struct sha1 *sha1, const struct header *header);

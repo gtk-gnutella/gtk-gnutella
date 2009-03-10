@@ -49,7 +49,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 struct header_x_feature {
-	gchar *name;
+	char *name;
 	int major;
 	int minor;
 };
@@ -112,7 +112,7 @@ features_close(void)
  */
 void
 header_features_add(xfeature_t xf,
-	const gchar *feature_name,
+	const char *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
 {
@@ -141,7 +141,7 @@ header_features_add(xfeature_t xf,
  * *rw is changed too *rw + bytes written
  */
 void
-header_features_generate(xfeature_t xf, gchar *dst, size_t len, size_t *rw)
+header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
 	struct features *features;
@@ -165,7 +165,7 @@ header_features_generate(xfeature_t xf, gchar *dst, size_t len, size_t *rw)
 
 	for (cur = g_list_first(features->list); cur; cur = g_list_next(cur)) {
 		struct header_x_feature *item = cur->data;
-		gchar buf[50];
+		char buf[50];
 
 		gm_snprintf(buf, sizeof buf, "%s/%d.%d",
 			item->name, item->major, item->minor);
@@ -188,11 +188,11 @@ header_features_generate(xfeature_t xf, gchar *dst, size_t len, size_t *rw)
  * is returned.
  */
 gboolean
-header_get_feature(const gchar *feature_name, const header_t *header,
+header_get_feature(const char *feature_name, const header_t *header,
 	guint *feature_version_major, guint *feature_version_minor)
 {
-	gchar *buf = NULL;
-	gchar *start;
+	char *buf = NULL;
+	char *start;
 
 	if (feature_version_major)
 		*feature_version_major = 0;

@@ -285,9 +285,9 @@ failure:
 }
 
 GSList *
-dime_parse_records(const gchar *data, size_t size)
+dime_parse_records(const char *data, size_t size)
 {
-	const gchar * const data0 = data;
+	const char * const data0 = data;
 	GSList *list = NULL;
 
 	for (;;) {

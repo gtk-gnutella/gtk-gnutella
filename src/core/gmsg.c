@@ -59,7 +59,7 @@ RCSID("$Id$")
 #include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar *msg_name[256];
+static const char *msg_name[256];
 static guint8 msg_weight[256];	/**< For gmsg_cmp() */
 static guint8 kmsg_weight[256];	/**< For gmsg_cmp() */
 
@@ -137,7 +137,7 @@ gmsg_dump(FILE *out, gconstpointer data, guint32 size)
 	g_assert(size >= GTA_HEADER_SIZE);
 
 	dump_hex(out, gmsg_infostr_full(data),
-		(gchar *) data + GTA_HEADER_SIZE, size - GTA_HEADER_SIZE);
+		(char *) data + GTA_HEADER_SIZE, size - GTA_HEADER_SIZE);
 }
 
 /**
@@ -162,7 +162,7 @@ gmsg_init(void)
 	gint i;
 
 	for (i = 0; i < 256; i++) {
-		const gchar *s = "unknown";
+		const char *s = "unknown";
 		guint w = 0;
 
 		switch ((enum gta_msg) i) {
@@ -217,7 +217,7 @@ gmsg_init(void)
 /**
  * Convert message function number into name.
  */
-const gchar *
+const char *
 gmsg_name(guint function)
 {
 	if (function > 255)
@@ -275,7 +275,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	 */
 
 	buf = walloc(blen);
-	data = (const gchar *) msg + GTA_HEADER_SIZE;
+	data = (const char *) msg + GTA_HEADER_SIZE;
 	z = zlib_deflater_make_into(data, plen, buf, blen, Z_DEFAULT_COMPRESSION);
 
 	switch (zlib_deflate(z, plen)) {
@@ -890,16 +890,16 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2)
  * message that contains the leading header immediately followed by the
  * payload of that message.
  */
-gchar *
+char *
 gmsg_infostr_full(gconstpointer msg)
 {
-	const gchar *data = (const gchar *) msg + GTA_HEADER_SIZE;
+	const char *data = (const char *) msg + GTA_HEADER_SIZE;
 
 	return gmsg_infostr_full_split(msg, data);
 }
 
 static size_t
-gmsg_infostr_to_buf(gconstpointer msg, gchar *buf, size_t buf_size)
+gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint16 size = gmsg_size(msg);
 
@@ -919,10 +919,10 @@ gmsg_infostr_to_buf(gconstpointer msg, gchar *buf, size_t buf_size)
  * that can also decompile vendor messages given a pointer on the header
  * and on the data of the message (which may not be consecutive in memory).
  */
-gchar *
+char *
 gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
 {
-	static gchar a[160];
+	static char a[160];
 
 	switch (gnutella_header_get_function(head)) {
 	case GTA_MSG_VENDOR:
@@ -953,10 +953,10 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
  *
  *     msg_type (payload length) [hops=x, TTL=x]
  */
-const gchar *
+const char *
 gmsg_infostr(gconstpointer msg)
 {
-	static gchar buf[80];
+	static char buf[80];
 	gmsg_infostr_to_buf(msg, buf, sizeof buf);
 	return buf;
 }
@@ -964,10 +964,10 @@ gmsg_infostr(gconstpointer msg)
 /**
  * Same as gmsg_infostr(), but different static buffer.
  */
-static gchar *
+static char *
 gmsg_infostr2(gconstpointer msg)
 {
-	static gchar buf[80];
+	static char buf[80];
 	gmsg_infostr_to_buf(msg, buf, sizeof buf);
 	return buf;
 }
@@ -976,7 +976,7 @@ gmsg_infostr2(gconstpointer msg)
  * Log dropped message, and reason.
  */
 void
-gmsg_log_dropped(gconstpointer msg, const gchar *reason, ...)
+gmsg_log_dropped(gconstpointer msg, const char *reason, ...)
 {
 	fputs("DROP ", stdout);
 	fputs(gmsg_infostr2(msg), stdout);	/* Allows gmsg_infostr() in arglist */
@@ -996,7 +996,7 @@ gmsg_log_dropped(gconstpointer msg, const gchar *reason, ...)
  * Log bad message, the node's vendor, and reason.
  */
 void
-gmsg_log_bad(const struct gnutella_node *n, const gchar *reason, ...)
+gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 {
 	g_message("BAD <%s> %s ", node_vendor(n), node_addr(n));
 

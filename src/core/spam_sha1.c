@@ -59,8 +59,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar spam_sha1_file[] = "spam_sha1.txt";
-static const gchar spam_sha1_what[] = "Spam SHA-1 database";
+static const char spam_sha1_file[] = "spam_sha1.txt";
+static const char spam_sha1_what[] = "Spam SHA-1 database";
 
 struct spam_lut {
 	struct sorted_array *tab;
@@ -116,7 +116,7 @@ spam_sha1_sync(void)
 static gulong
 spam_sha1_load(FILE *f)
 {
-	gchar line[1024];
+	char line[1024];
 	guint line_no = 0;
 	gulong item_count = 0;
 
@@ -124,7 +124,7 @@ spam_sha1_load(FILE *f)
 
 	while (fgets(line, sizeof line, f)) {
 		const struct sha1 *sha1;
-		gchar *nl;
+		char *nl;
 
 		line_no++;
 
@@ -183,7 +183,7 @@ spam_sha1_load(FILE *f)
  * changed.
  */
 static void
-spam_sha1_changed(const gchar *filename, gpointer unused_udata)
+spam_sha1_changed(const char *filename, gpointer unused_udata)
 {
 	FILE *f;
 
@@ -191,7 +191,7 @@ spam_sha1_changed(const gchar *filename, gpointer unused_udata)
 
 	f = file_fopen(filename, "r");
 	if (f) {
-		gchar buf[80];
+		char buf[80];
 		gulong count;
 
 		spam_sha1_close();
@@ -204,9 +204,9 @@ spam_sha1_changed(const gchar *filename, gpointer unused_udata)
 }
 
 static void
-spam_sha1_retrieve_from_file(FILE *f, const gchar *path, const gchar *filename)
+spam_sha1_retrieve_from_file(FILE *f, const char *path, const char *filename)
 {
-	gchar *pathname;
+	char *pathname;
 
 	g_assert(f);
 	g_assert(path);

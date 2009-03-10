@@ -91,7 +91,7 @@ struct addr_info {
 	cevent_t *cq_ev;			/**< Scheduled callout event */
 	gint ban_delay;				/**< Banning delay, in seconds */
 	gint ban_count;				/**< Amount of time we banned this source */
-	const gchar *ban_msg;		/**< Banning message (atom) */
+	const char *ban_msg;		/**< Banning message (atom) */
 	gboolean banned;			/**< Is this IP currently banned? */
 };
 
@@ -357,7 +357,7 @@ ban_allow(const host_addr_t addr)
  * Record banning with specific message for a given IP, for MAX_BAN seconds.
  */
 void
-ban_record(const host_addr_t addr, const gchar *msg)
+ban_record(const host_addr_t addr, const char *msg)
 {
 	struct addr_info *ipf;
 
@@ -550,7 +550,7 @@ ban_delay(const host_addr_t addr)
 /**
  * @return banning message for banned IP.
  */
-const gchar *
+const char *
 ban_message(const host_addr_t addr)
 {
 	struct addr_info *ipf;
@@ -627,8 +627,8 @@ ban_close(void)
 /*
  * These messages are sent to the remote site. Don't localize them.
  */
-static const gchar harmful[] = "Harmful version banned, upgrade required";
-static const gchar refused[] = "Connection refused";
+static const char harmful[] = "Harmful version banned, upgrade required";
+static const char refused[] = "Connection refused";
 
 /**
  * Check whether servent identified by its vendor string should be banned.
@@ -638,10 +638,10 @@ static const gchar refused[] = "Connection refused";
  *
  * @returns NULL if we shall not ban, a banning reason string otherwise.
  */
-const gchar *
-ban_vendor(const gchar *vendor)
+const char *
+ban_vendor(const char *vendor)
 {
-	const gchar *gtkg_version;
+	const char *gtkg_version;
 
 	/*
 	 * If vendor starts with "!gtk-gnutella", skip the leading '!' for
@@ -666,7 +666,7 @@ ban_vendor(const gchar *vendor)
 	 */
 
 	if (gtkg_version) {
-		static const gchar * const versions[] = {
+		static const char * const versions[] = {
 			"0.90",
 			"0.91u",
 			"0.92b",
@@ -684,7 +684,7 @@ ban_vendor(const gchar *vendor)
 	}
 
 	if (vendor[0] == 'G') {
-		const gchar *ver;
+		const char *ver;
 
 		if (NULL != (ver = is_strprefix(vendor, "Gnucleus "))) {
 			if (is_strprefix(ver, "1.6.0.0"))

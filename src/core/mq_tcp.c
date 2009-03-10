@@ -130,7 +130,7 @@ again:
 	for (l = q->qtail; l && iovsize > 0; /* empty */) {
 		struct iovec *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
-		gchar *mbs = pmsg_start(mb);
+		char *mbs = pmsg_start(mb);
 
 		/*
 		 * Don't build too much.
@@ -218,7 +218,7 @@ again:
 		pmsg_t *mb = (pmsg_t *) l->data;
 
 		if ((guint) r >= ie->iov_len) {			/* Completely written */
-			gchar *mb_start = pmsg_start(mb);
+			char *mb_start = pmsg_start(mb);
 			guint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
@@ -301,7 +301,7 @@ static void
 mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 {
 	gint size;				/* Message size */
-	gchar *mbs;				/* Start of message */
+	char *mbs;				/* Start of message */
 	guint8 function;		/* Gnutella message function */
 	guint8 hops;			/* Gnutella message hop count */
 	gboolean prioritary;	/* Is message prioritary? */

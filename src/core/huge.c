@@ -90,7 +90,7 @@ RCSID("$Id$")
  */
 
 struct sha1_cache_entry {
-    const gchar *file_name;		/**< Full path name (atom)          */
+    const char *file_name;		/**< Full path name (atom)          */
 	const struct sha1 *sha1;	/**< SHA-1 (binary; atom)			*/
 	const struct tth *tth;		/**< TTH (binary; atom)				*/
     filesize_t  size;			/**< File size                      */
@@ -172,7 +172,7 @@ cache_entry_print(FILE *f, const char *filename,
 	const struct sha1 *sha1, const struct tth *tth,
 	filesize_t size, time_t mtime)
 {
-	gchar size_buf[UINT64_DEC_BUFLEN], mtime_buf[UINT64_DEC_BUFLEN];
+	char size_buf[UINT64_DEC_BUFLEN], mtime_buf[UINT64_DEC_BUFLEN];
 
 	g_return_if_fail(f);
 	g_return_if_fail(filename);
@@ -719,7 +719,7 @@ huge_close(void)
  * improbable hashes.
  */
 gboolean
-huge_improbable_sha1(const gchar *buf, size_t len)
+huge_improbable_sha1(const char *buf, size_t len)
 {
 	size_t ilen = 0;			/* Length of the improbable sequence */
 	size_t i, longest = 0;
@@ -755,7 +755,7 @@ huge_improbable_sha1(const gchar *buf, size_t len)
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-huge_sha1_extract32(const gchar *buf, size_t len, struct sha1 *sha1,
+huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	gconstpointer header)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
@@ -802,7 +802,7 @@ bad:
 }
 
 gboolean
-huge_tth_extract32(const gchar *buf, size_t len, struct tth *tth,
+huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	gconstpointer header)
 {
 	if (len != TTH_BASE32_SIZE)
@@ -838,7 +838,7 @@ bad:
 void
 huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 {
-	gchar *alt;
+	char *alt;
    
 
 	g_return_if_fail(sha1);

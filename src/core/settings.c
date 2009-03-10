@@ -75,16 +75,16 @@
 
 RCSID("$Id$")
 
-static const gchar config_file[] = "config_gnet";
-static const gchar ul_stats_file[] = "upload_stats";
+static const char config_file[] = "config_gnet";
+static const char ul_stats_file[] = "upload_stats";
 
 static const mode_t IPC_DIR_MODE = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
 static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
 static const mode_t CONFIG_DIR_MODE =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
-static gchar *home_dir = NULL;
-static gchar *config_dir = NULL;
+static char *home_dir = NULL;
+static char *config_dir = NULL;
 
 static prop_set_t *properties = NULL;
 
@@ -102,7 +102,7 @@ static prop_set_t *properties = NULL;
  * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
-static const gchar pidfile[] = "gtk-gnutella.pid";
+static const char pidfile[] = "gtk-gnutella.pid";
 
 static gboolean settings_init_running;
 
@@ -180,7 +180,7 @@ is_my_address_and_port(const host_addr_t addr, guint16 port)
  *			be created.
  */
 static gint
-ensure_unicity(const gchar *file, gboolean check_only)
+ensure_unicity(const char *file, gboolean check_only)
 {
 	gboolean locked = FALSE;
 	gint fd;
@@ -242,7 +242,7 @@ ensure_unicity(const gchar *file, gboolean check_only)
 	 * fall back to weaker PID locking */
 	if (!locked) {
 		ssize_t r;
-		gchar buf[33];
+		char buf[33];
 
 		r = read(fd, buf, sizeof buf - 1);
 		if ((ssize_t) -1 == r) {
@@ -305,7 +305,7 @@ static void
 save_pid(gint fd)
 {
 	size_t len;
-	gchar buf[32];
+	char buf[32];
 
 	g_assert(-1 != fd);
 
@@ -369,7 +369,7 @@ settings_ensure_unicity(gboolean check_only)
 	g_assert(config_dir);
 
 	{
-		gchar *path;
+		char *path;
 		gint saved_errno;
 		
 		path = make_pathname(config_dir, pidfile);
@@ -479,7 +479,7 @@ settings_init(void)
 	}
 
 	{
-		gchar *path;
+		char *path;
 
 		path = make_pathname(config_dir, ul_stats_file);
 		upload_stats_load_history(path);	/* Loads the upload statistics */
@@ -515,30 +515,30 @@ no_config_dir:
 /**
  * Get the config directory
  */
-const gchar *
+const char *
 settings_config_dir(void)
 {
 	g_assert(NULL != config_dir);
-	return (const gchar *) config_dir;
+	return (const char *) config_dir;
 }
 
 /**
  * Gets the home dir.
  */
-const gchar *
+const char *
 settings_home_dir(void)
 {
 	g_assert(NULL != home_dir);
-	return (const gchar *) home_dir;
+	return (const char *) home_dir;
 }
 
 /**
  * Gets the IPC directory.
  */
-static const gchar *
+static const char *
 settings_ipc_dir(void)
 {
-	static const gchar *path;
+	static const char *path;
 
 	if (!path) {
 		path = make_pathname(settings_config_dir(), "ipc");
@@ -549,10 +549,10 @@ settings_ipc_dir(void)
 /**
  * Gets the path of the local socket.
  */
-const gchar *
+const char *
 settings_local_socket_path(void)
 {
-	static const gchar *path;
+	static const char *path;
 
 	if (!path) {
 		path = make_pathname(settings_ipc_dir(), "socket");
@@ -587,7 +587,7 @@ settings_dns_net(void)
 static void
 settings_remove_pidfile(void)
 {
-	gchar *path;
+	char *path;
 
 	g_assert(config_dir);
 
@@ -1158,11 +1158,11 @@ enable_local_socket_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (!s_local_listen) {
-			const gchar *ipc_dir;
+			const char *ipc_dir;
 
 			ipc_dir = settings_ipc_dir();
 			if (0 == compat_mkdir(ipc_dir, IPC_DIR_MODE) || EEXIST == errno) {
-				const gchar *socket_path;
+				const char *socket_path;
 
 				socket_path = settings_local_socket_path();
 				s_local_listen = socket_local_listen(socket_path);
@@ -1410,7 +1410,7 @@ node_sendqueue_size_changed(property_t unused_prop)
 static gboolean
 scan_extensions_changed(property_t prop)
 {
-    gchar *s = gnet_prop_get_string(prop, NULL, 0);
+    char *s = gnet_prop_get_string(prop, NULL, 0);
 
     parse_extensions(s);
     G_FREE_NULL(s);
@@ -1421,7 +1421,7 @@ scan_extensions_changed(property_t prop)
 static gboolean
 file_path_changed(property_t prop)
 {
-    gchar *s;
+    char *s;
 
 	s = gnet_prop_get_string(prop, NULL, 0);
 	g_assert(s != NULL);
@@ -1440,7 +1440,7 @@ file_path_changed(property_t prop)
 static gboolean
 shared_dirs_paths_changed(property_t prop)
 {
-    gchar *s = gnet_prop_get_string(prop, NULL, 0);
+    char *s = gnet_prop_get_string(prop, NULL, 0);
 	gboolean ok;
 
 	ok = shared_dirs_parse(s);
@@ -1457,7 +1457,7 @@ shared_dirs_paths_changed(property_t prop)
 static gboolean
 local_netmasks_string_changed(property_t prop)
 {
-    gchar *s = gnet_prop_get_string(prop, NULL, 0);
+    char *s = gnet_prop_get_string(prop, NULL, 0);
 
     parse_netmasks(s);
     G_FREE_NULL(s);

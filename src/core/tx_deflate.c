@@ -69,10 +69,10 @@ RCSID("$Id$")
 #define BUFFER_NAGLE	200		/**< 200 ms */
 
 struct buffer {
-	gchar *arena;				/**< Buffer arena */
-	gchar *end;					/**< First byte outside buffer */
-	gchar *wptr;				/**< Write pointer (first byte to write) */
-	gchar *rptr;				/**< Read pointer (first byte to read) */
+	char *arena;				/**< Buffer arena */
+	char *end;					/**< First byte outside buffer */
+	char *wptr;				/**< Write pointer (first byte to write) */
+	char *rptr;				/**< Read pointer (first byte to read) */
 };
 
 /*
@@ -441,7 +441,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, gint len)
 		gint old_added = added;
 		gboolean flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
 		gint old_avail;
-		const gchar *in, *old_in;
+		const char *in, *old_in;
 
 		/*
 		 * Prepare call to deflate().
@@ -736,7 +736,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	if (attr->gzip.enabled) {
 		/* See RFC 1952 - GZIP file format specification version 4.3 */
-		static const gchar header[] = {
+		static const char header[] = {
 			0x1f, 0x8b, /* gzip magic */
 			0x08,		/* compression method: deflate */
 			0,			/* flags: none */

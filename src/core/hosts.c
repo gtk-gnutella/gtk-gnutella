@@ -160,7 +160,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
 		if (vec->n_ipv4 < 255) {
-			gchar *dest;
+			char *dest;
 			size_t size, old_size;
 			
 			old_size = vec->n_ipv4 * sizeof *vec->hvec_v4;
@@ -176,7 +176,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 		break;
 	case NET_TYPE_IPV6:
 		if (vec->n_ipv6 < 255) {
-			gchar *dest;
+			char *dest;
 			size_t size, old_size;
 			
 			old_size = vec->n_ipv6 * sizeof *vec->hvec_v6;
@@ -236,13 +236,13 @@ gnet_host_vec_create(gnet_host_t *hvec, gint hcnt)
 		switch (gnet_host_get_net(&hvec[i])) {
 		case NET_TYPE_IPV4:
 			if (n_ipv4 < vec->n_ipv4) {
-				gchar *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
+				char *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
 				poke_be32(&dest[0], host_addr_ipv4(addr));
 				poke_le16(&dest[4], port);
 			}
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
-				gchar *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
+				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
 				memcpy(dest, host_addr_ipv6(&addr), 16);
 				poke_le16(&dest[16], port);
 			}
@@ -305,13 +305,13 @@ gnet_host_vec_from_list(const GSList *list)
 		switch (gnet_host_get_net(host)) {
 		case NET_TYPE_IPV4:
 			if (n_ipv4 < vec->n_ipv4) {
-				gchar *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
+				char *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
 				poke_be32(&dest[0], host_addr_ipv4(addr));
 				poke_le16(&dest[4], port);
 			}
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
-				gchar *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
+				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
 				memcpy(dest, host_addr_ipv6(&addr), 16);
 				poke_le16(&dest[16], port);
 			}
@@ -504,10 +504,10 @@ host_init(void)
 /**
  * @return the address:port of a host
  */
-const gchar *
+const char *
 gnet_host_to_string(const struct gnutella_host *h)
 {
-	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	static char buf[HOST_ADDR_PORT_BUFLEN];
 	host_addr_t addr;
 	guint16 port;
 
@@ -621,10 +621,10 @@ free_networks(void)
  * the local_networks array. IP's are in network order.
  */
 void
-parse_netmasks(const gchar *str)
+parse_netmasks(const char *str)
 {
-	gchar **masks = g_strsplit(str, ";", 0);
-	gchar *p;
+	char **masks = g_strsplit(str, ";", 0);
+	char *p;
 	guint32 mask_div;
 	int i;
 

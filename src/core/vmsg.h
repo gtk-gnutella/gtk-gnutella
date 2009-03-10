@@ -51,7 +51,7 @@ struct rnode_info;
  */
 
 void vmsg_handle(struct gnutella_node *n);
-const gchar *vmsg_infostr(gconstpointer data, size_t size);
+const char *vmsg_infostr(gconstpointer data, size_t size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_features_supported(struct gnutella_node *n);

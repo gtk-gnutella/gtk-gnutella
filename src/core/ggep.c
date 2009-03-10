@@ -155,7 +155,7 @@ ggep_stream_cleanup(ggep_stream_t *gs)
  * @return FALSE if there's not enough room in the output.
  */
 static inline gboolean
-ggep_stream_appendc(ggep_stream_t *gs, gchar c)
+ggep_stream_appendc(ggep_stream_t *gs, char c)
 {
 	g_assert(ggep_stream_is_valid(gs));
 
@@ -197,7 +197,7 @@ ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
  * On error, the stream is left in a clean state.
  */
 gboolean
-ggep_stream_begin(ggep_stream_t *gs, const gchar *id, guint32 wflags)
+ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags)
 {
 	gint idlen;
 	guint8 flags = 0;
@@ -478,7 +478,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	if ((gs->flags & GGEP_F_DEFLATE) && (gs->flags & GGEP_F_COBS)) {
-		gchar *deflated = zlib_deflater_out(gs->zd);
+		char *deflated = zlib_deflater_out(gs->zd);
 
 		if (!cobs_stream_write(&gs->cs, deflated, plen))
 			goto cleanup;
@@ -587,7 +587,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	g_assert((size_t) (gs->end - gs->o) <= gs->size);	/* No overwriting */
 
 	if (slen > 1) {
-		gchar *start = gs->lp + 1;
+		char *start = gs->lp + 1;
 
 		if ((size_t) (gs->end - gs->o) < (slen - 1))
 			goto cleanup;
@@ -654,7 +654,7 @@ ggep_stream_close(ggep_stream_t *gs)
  */
 gboolean
 ggep_stream_packv(ggep_stream_t *gs,
-	const gchar *id, const struct iovec *iov, gint iovcnt, guint32 wflags)
+	const char *id, const struct iovec *iov, gint iovcnt, guint32 wflags)
 {
 	g_assert(iovcnt >= 0);
 
@@ -689,7 +689,7 @@ ggep_stream_packv(ggep_stream_t *gs,
  */
 gboolean
 ggep_stream_pack(ggep_stream_t *gs,
-	const gchar *id, gconstpointer payload, size_t plen, guint32 wflags)
+	const char *id, gconstpointer payload, size_t plen, guint32 wflags)
 {
 	struct iovec iov;
 	const struct iovec *p_iov = &iov;

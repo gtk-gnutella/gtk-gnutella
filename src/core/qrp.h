@@ -101,7 +101,7 @@ struct query_hashvec *qhvec_alloc(guint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
 query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
-void qhvec_add(struct query_hashvec *qhvec, const gchar *word,
+void qhvec_add(struct query_hashvec *qhvec, const char *word,
 	enum query_hsrc src);
 gboolean qhvec_has_urn(const struct query_hashvec *qhv);
 guint qhvec_count(const struct query_hashvec *qhv);

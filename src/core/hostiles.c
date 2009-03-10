@@ -66,9 +66,9 @@ typedef enum {
 	NUM_HOSTILES
 } hostiles_t;
 
-static const gchar hostile[] = "hostile";
-static const gchar hostiles_file[] = "hostiles.txt";
-static const gchar * const hostiles_what[NUM_HOSTILES] = {
+static const char hostile[] = "hostile";
+static const char hostiles_file[] = "hostiles.txt";
+static const char * const hostiles_what[NUM_HOSTILES] = {
 	"hostile IP addresses (global)",
 	"hostile IP addresses (private)"
 };
@@ -95,8 +95,8 @@ hostiles_close_one(hostiles_t which)
 static gint
 hostiles_load(FILE *f, hostiles_t which)
 {
-	gchar line[1024];
-	gchar *p;
+	char line[1024];
+	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
 	gint bits;
@@ -166,10 +166,10 @@ hostiles_load(FILE *f, hostiles_t which)
  * addresses changed.
  */
 static void
-hostiles_changed(const gchar *filename, gpointer udata)
+hostiles_changed(const char *filename, gpointer udata)
 {
 	FILE *f;
-	gchar buf[80];
+	char buf[80];
 	gint count;
 	hostiles_t which;
 
@@ -192,9 +192,9 @@ hostiles_changed(const gchar *filename, gpointer udata)
 
 static void
 hostiles_retrieve_from_file(FILE *f, hostiles_t which,
-	const gchar *path, const gchar *filename)
+	const char *path, const char *filename)
 {
-	gchar *pathname;
+	char *pathname;
 
 	g_assert(f);
 	g_assert(path);

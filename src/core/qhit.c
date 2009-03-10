@@ -85,7 +85,7 @@ RCSID("$Id$")
  */
 
 struct found_struct {
-	gchar data[64 * 1024];		/**< data */
+	char data[64 * 1024];		/**< data */
 	size_t pos;					/**< current write position */
 	size_t files;				/**< amount of file entries */
 	size_t max_size;			/**< max query hit size */
@@ -128,7 +128,7 @@ found_ggep_h(void)
 	return found_get()->use_ggep_h;
 }
 
-static gchar *
+static char *
 found_open(void)
 {
 	struct found_struct *f = found_get();
@@ -343,10 +343,10 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 static void
 flush_match(void)
 {
-	gchar trailer[7];
+	char trailer[7];
 	gint ggep_len = 0;			/* Size of the GGEP trailer */
 	ggep_stream_t gs;
-	gchar *trailer_start;
+	char *trailer_start;
 
 	/*
 	 * Build gtk-gnutella trailer.
@@ -393,7 +393,7 @@ flush_match(void)
 	{
 		guint8 major = GTA_VERSION;
 		guint8 minor = GTA_SUBVERSION;
-		const gchar *revp = GTA_REVCHAR;
+		const char *revp = GTA_REVCHAR;
 		guint8 revchar = (guint8) revp[0];
 		guint8 patch;
 		guint32 release;
@@ -455,7 +455,7 @@ flush_match(void)
 
 			for (iter = nodes; ok && NULL != iter; iter = g_slist_next(iter)) {
 				const struct gnutella_node *n = iter->data;
-				gchar proxy[6];
+				char proxy[6];
 
 				if (NET_TYPE_IPV4 != host_addr_net(n->proxy_addr))
 					continue;
@@ -712,7 +712,7 @@ add_file(const struct shared_file *sf)
 	 */
 
 	if (fs32 == ~0U) {
-		gchar buf[sizeof(guint64)];
+		char buf[sizeof(guint64)];
 		gint len;
 
 		len = ggept_filesize_encode(shared_file_size(sf), buf);
@@ -744,7 +744,7 @@ add_file(const struct shared_file *sf)
 		for (i = 0; ok && i < hcnt; i++) {
 			host_addr_t addr;
 			guint16 port;
-			gchar alt[6];
+			char alt[6];
 
 			g_assert(start == gs.outbuf);
 			if (NET_TYPE_IPV4 != gnet_host_get_net(&hvec[i]))
@@ -777,7 +777,7 @@ add_file(const struct shared_file *sf)
 	}
 
 	{
-		const gchar *rp = shared_file_relative_path(sf);
+		const char *rp = shared_file_relative_path(sf);
 		
 		if (rp) {
 			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, strlen(rp), 0);
@@ -792,7 +792,7 @@ add_file(const struct shared_file *sf)
 		/* FIXME: Create time != modification time */
 		mtime = shared_file_modification_time(sf);
 		if ((time_t) -1 != mtime) {
-			gchar buf[sizeof(guint64)];
+			char buf[sizeof(guint64)];
 			gint len;
 
 			/*

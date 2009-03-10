@@ -55,7 +55,7 @@ RCSID("$Id$")
 static void qlink_free(mqueue_t *q);
 static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
-	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset);
+	mqueue_t *q, char *header, guint prio, gint needed, gint *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
 
 gboolean
@@ -130,10 +130,10 @@ mq_would_flow_control(const struct mqueue *q, size_t additional)
 /**
  * Compute readable queue information.
  */
-const gchar *
+const char *
 mq_info(const mqueue_t *q)
 {
-	static gchar buf[160];
+	static char buf[160];
 
 	if (q->magic != MQ_MAGIC) {
 		gm_snprintf(buf, sizeof(buf),
@@ -220,7 +220,7 @@ mq_remove_linkable(mqueue_t *q, GList *l)
  * Check queue's sanity.
  */
 void
-mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line)
+mq_check_track(mqueue_t *q, gint offset, const char *where, gint line)
 {
 	gint qcount;
 	gint qlink_alive = 0;
@@ -432,7 +432,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		gnutella_header_set_ttl(&q->header, GNET_PROPERTY(max_ttl));
 
 		if (needed > 0)
-			make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
+			make_room_header(q, (char*) &q->header, PMSG_P_DATA, needed, NULL);
 
 		/*
 		 * Whether or not we were able to make enough room at this point
@@ -476,7 +476,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 			gnutella_header_set_ttl(&q->header, ttl);
 
 			if (
-				make_room_header(q, (gchar*) &q->header, PMSG_P_DATA,
+				make_room_header(q, (char*) &q->header, PMSG_P_DATA,
 					needed, NULL)
 			)
 				break;
@@ -1030,7 +1030,7 @@ qlink_remove(mqueue_t *q, GList *l)
 static gboolean
 make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 {
-	gchar *header = pmsg_start(mb);
+	char *header = pmsg_start(mb);
 	guint prio = pmsg_prio(mb);
 
 	return make_room_header(q, header, prio, needed, offset);
@@ -1042,7 +1042,7 @@ make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
  */
 static gboolean
 make_room_header(
-	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset)
+	mqueue_t *q, char *header, guint prio, gint needed, gint *offset)
 {
 	gint n;
 	gint dropped = 0;				/* Amount of messages dropped */
@@ -1088,7 +1088,7 @@ restart:
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
 		GList *item = q->qlink[n];
 		pmsg_t *cmb;
-		gchar *cmb_start;
+		char *cmb_start;
 		gint cmb_size;
 
 		/*

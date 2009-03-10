@@ -81,12 +81,12 @@ typedef enum {
  * written to buf.
  */
 typedef size_t (*http_status_cb_t)(
-	gchar *buf, size_t size, gpointer arg, guint32 flags);
+	char *buf, size_t size, gpointer arg, guint32 flags);
 
 typedef struct {
 	http_extra_type_t he_type;		/**< Union discriminent */
 	union {
-		const gchar *u_msg;			/**< Single header line */
+		const char *u_msg;			/**< Single header line */
 		struct {
 			http_status_cb_t u_cb;	/**< Callback to compute header field */
 			gpointer u_arg;			/**< Callback context argument */
@@ -108,14 +108,14 @@ http_extra_callback_set(http_extra_desc_t *he,
 }
 
 static inline void
-http_extra_line_set(http_extra_desc_t *he, const gchar *msg)
+http_extra_line_set(http_extra_desc_t *he, const char *msg)
 {
 	he->he_type = HTTP_EXTRA_LINE;
 	he->he_msg = msg;
 }
 
 static inline void
-http_extra_body_set(http_extra_desc_t *he, const gchar *body)
+http_extra_body_set(http_extra_desc_t *he, const char *body)
 {
 	he->he_type = HTTP_EXTRA_BODY;
 	he->he_msg = body;
@@ -138,12 +138,12 @@ struct http_async;
  * Indicates whether we should continue or not, given the HTTP response code.
  */
 typedef gboolean (*http_header_cb_t)(
-	struct http_async *, struct header *, gint code, const gchar *message);
+	struct http_async *, struct header *, gint code, const char *message);
 
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(struct http_async *, gchar *data, gint len);
+typedef void (*http_data_cb_t)(struct http_async *, char *data, gint len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
@@ -154,7 +154,7 @@ typedef enum {				/**< Type of error reported by http_error_cb_t */
 
 typedef struct {
 	struct header *header;	/**< Parsed HTTP header */
-	const gchar *message;	/**< HTTP status message */
+	const char *message;	/**< HTTP status message */
 	gint code;				/**< HTTP status code */
 } http_error_t;
 
@@ -176,8 +176,8 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous operations that the user may redefine.
  */
 
-typedef size_t (*http_op_request_t)(struct http_async *, gchar *buf, size_t len,
-	const gchar *verb, const gchar *path, const gchar *host, guint16 port);
+typedef size_t (*http_op_request_t)(struct http_async *, char *buf, size_t len,
+	const char *verb, const char *path, const char *host, guint16 port);
 
 /*
  * Asynchronous request error codes.
@@ -231,9 +231,9 @@ typedef void (*http_state_change_t)(struct http_async *, http_state_t newstate);
  */
 
 typedef struct http_buffer {
-	gchar *hb_arena;				/**< The whole thing */
-	gchar *hb_rptr;					/**< Reading pointer within arena */
-	gchar *hb_end;					/**< First char after buffer */
+	char *hb_arena;				/**< The whole thing */
+	char *hb_rptr;					/**< Reading pointer within arena */
+	char *hb_end;					/**< First char after buffer */
 	gint hb_len;					/**< Total arena length */
 } http_buffer_t;
 
@@ -254,53 +254,53 @@ void http_timer(time_t now);
 
 gboolean http_send_status(http_layer_t layer, struct gnutella_socket *s,
 	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt,
-	const gchar *reason, ...) G_GNUC_PRINTF(7, 8);
+	const char *reason, ...) G_GNUC_PRINTF(7, 8);
 
 size_t http_hostname_add(
-	gchar *buf, size_t size, gpointer arg, guint32 flags);
+	char *buf, size_t size, gpointer arg, guint32 flags);
 size_t http_retry_after_add(
-	gchar *buf, size_t size, gpointer arg, guint32 flags);
+	char *buf, size_t size, gpointer arg, guint32 flags);
 
-gint http_status_parse(const gchar *line,
-	const gchar *proto, const gchar **msg, guint *major, guint *minor);
+gint http_status_parse(const char *line,
+	const char *proto, const char **msg, guint *major, guint *minor);
 
 gboolean http_extract_version(
-	const gchar *request, size_t len, guint *major, guint *minor);
+	const char *request, size_t len, guint *major, guint *minor);
 
-http_buffer_t *http_buffer_alloc(gchar *buf, size_t len, size_t written);
+http_buffer_t *http_buffer_alloc(char *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);
 
 gint
-http_content_range_parse(const gchar *buf,
+http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total);
 
 filesize_t http_range_size(const GSList *list);
 void http_range_free(GSList *list);
-GSList *http_range_parse(const gchar *field, const gchar *value,
-		filesize_t size, const gchar *vendor);
+GSList *http_range_parse(const char *field, const char *value,
+		filesize_t size, const char *vendor);
 gboolean http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
 
-const gchar *http_url_strerror(http_url_error_t errnum);
+const char *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
-	const gchar *url, guint16 *port, const gchar **host, const gchar **path);
+	const char *url, guint16 *port, const char **host, const char **path);
 
 struct http_async *http_async_get(
-	const gchar *url,
+	const char *url,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
 struct http_async *http_async_get_addr(
-	const gchar *path,
+	const char *path,
 	const host_addr_t,
 	guint16 port,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-const gchar *http_async_strerror(guint errnum);
-const gchar *http_async_info(
-	struct http_async *handle, const gchar **req, const gchar **path,
+const char *http_async_strerror(guint errnum);
+const char *http_async_info(
+	struct http_async *handle, const char **req, const char **path,
 	host_addr_t *addr, guint16 *port);
 void http_async_connected(struct http_async *handle);
 void http_async_close(struct http_async *handle);

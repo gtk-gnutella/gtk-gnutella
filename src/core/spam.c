@@ -64,8 +64,8 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar spam_text_file[] = "spam.txt";
-static const gchar spam_what[] = "Spam database";
+static const char spam_text_file[] = "spam.txt";
+static const char spam_what[] = "Spam database";
 
 /****** BEGIN IDEAS ONLY ******/
 
@@ -142,7 +142,7 @@ typedef enum {
 
 static const struct spam_tag {
 	spam_tag_t	tag;
-	const gchar *str;
+	const char *str;
 } spam_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
@@ -159,7 +159,7 @@ static const struct spam_tag {
 
 
 static spam_tag_t
-spam_string_to_tag(const gchar *s)
+spam_string_to_tag(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(spam_tag_map) == NUM_SPAM_TAGS - 1U);
 
@@ -170,7 +170,7 @@ spam_string_to_tag(const gchar *s)
 } G_STMT_END
 
 	/* Perform a binary search to find ``s'' */
-	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(spam_tag_map), strcmp,
+	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(spam_tag_map), strcmp,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -185,7 +185,7 @@ struct namesize_item {
 };
 
 static gboolean 
-spam_add_name_and_size(const gchar *name,
+spam_add_name_and_size(const char *name,
 	filesize_t min_size, filesize_t max_size)
 {
 	struct namesize_item *item;
@@ -197,7 +197,7 @@ spam_add_name_and_size(const gchar *name,
 	item = walloc(sizeof *item);
 	error = regcomp(&item->pattern, name, REG_EXTENDED | REG_NOSUB);
 	if (error) {
-		gchar buf[1024];
+		char buf[1024];
 
 		regerror(error, &item->pattern, buf, sizeof buf);
 		g_warning("spam_add_name_and_size(): regcomp() failed: %s", buf);
@@ -214,7 +214,7 @@ spam_add_name_and_size(const gchar *name,
 
 struct spam_item {
 	struct sha1 sha1;
-	gchar		*name;
+	char		*name;
 	filesize_t  min_size;
 	filesize_t  max_size;
 	gboolean	done;
@@ -238,7 +238,7 @@ spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;
 	struct spam_item item;
-	gchar line[1024];
+	char line[1024];
 	guint line_no = 0;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_SPAM_TAGS)];
 	gulong item_count = 0;
@@ -250,8 +250,8 @@ spam_load(FILE *f)
 	bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
 
 	while (fgets(line, sizeof line, f)) {
-		const gchar *tag_name, *value;
-		gchar *sp, *nl;
+		const char *tag_name, *value;
+		char *sp, *nl;
 		spam_tag_t tag;
 
 		line_no++;
@@ -338,7 +338,7 @@ spam_load(FILE *f)
 
 		case SPAM_TAG_SIZE:
 			{
-				const gchar *endptr;
+				const char *endptr;
 				guint64 u;
 				gint error;
 					
@@ -438,7 +438,7 @@ spam_load(FILE *f)
  * changed.
  */
 static void
-spam_changed(const gchar *filename, gpointer unused_udata)
+spam_changed(const char *filename, gpointer unused_udata)
 {
 	FILE *f;
 
@@ -446,7 +446,7 @@ spam_changed(const gchar *filename, gpointer unused_udata)
 
 	f = file_fopen(filename, "r");
 	if (f) {
-		gchar buf[80];
+		char buf[80];
 		gulong count;
 
 		spam_close();
@@ -459,9 +459,9 @@ spam_changed(const gchar *filename, gpointer unused_udata)
 }
 
 static void
-spam_retrieve_from_file(FILE *f, const gchar *path, const gchar *filename)
+spam_retrieve_from_file(FILE *f, const char *path, const char *filename)
 {
-	gchar *pathname;
+	char *pathname;
 
 	g_assert(f);
 	g_assert(path);

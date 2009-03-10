@@ -58,7 +58,7 @@ struct pproxy {
 	host_addr_t addr_v4;	/**< IPv4 of the requesting servent */
 	host_addr_t addr_v6;	/**< IPv6 of the requesting servent */
 	guint16 port;			/**< Port where GIV should be sent back */
-	const gchar *user_agent;/**< User-Agent string */
+	const char *user_agent;/**< User-Agent string */
 	const struct guid *guid;/**< GUID (atom) to which push should be sent */
 	guint32 file_idx;		/**< File index to request (0 if none supplied) */
 	guint32 flags;
@@ -69,7 +69,7 @@ struct pproxy {
 
 void pproxy_add(struct gnutella_socket *s);
 void pproxy_remove(struct pproxy *pp,
-	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void pproxy_timer(time_t now);
 void pproxy_close(void);
 

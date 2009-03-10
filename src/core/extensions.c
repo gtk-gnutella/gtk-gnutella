@@ -95,8 +95,8 @@ RCSID("$Id$")
  * each time a new extension is found.
  */
 typedef struct extdesc {
-	const gchar *ext_phys_payload;	/**< Start of payload buffer */
-	const gchar *ext_payload;		/**< "virtual" payload */
+	const char *ext_phys_payload;	/**< Start of payload buffer */
+	const char *ext_payload;		/**< "virtual" payload */
 	guint16 ext_phys_len;		/**< Extension length (header + payload) */
 	guint16 ext_phys_paylen;	/**< Extension payload length */
 	guint16 ext_paylen;			/**< "virtual" payload length */
@@ -106,7 +106,7 @@ typedef struct extdesc {
 		struct {
 			gboolean extu_cobs;			/**< Payload is COBS-encoded */
 			gboolean extu_deflate;		/**< Payload is deflated */
-			const gchar *extu_id;		/**< Extension ID */
+			const char *extu_id;		/**< Extension ID */
 		} extu_ggep;
 	} ext_u;
 
@@ -123,7 +123,7 @@ typedef struct extdesc {
 #define ext_ggep_deflate	ext_u.extu_ggep.extu_deflate
 #define ext_ggep_id			ext_u.extu_ggep.extu_id
 
-static const gchar * const extype[] = {
+static const char * const extype[] = {
 	"UNKNOWN",					/**< EXT_UNKNOWN */
 	"XML",						/**< EXT_XML */
 	"HUGE",						/**< EXT_HUGE */
@@ -139,7 +139,7 @@ static const gchar * const extype[] = {
  * Reserved word description.
  */
 struct rwtable {
-	const gchar *rw_name;	/**< Representation */
+	const char *rw_name;	/**< Representation */
 	ext_token_t rw_token;	/**< Token value */
 };
 
@@ -225,7 +225,7 @@ static const struct rwtable ggeptable[] =
 static ext_token_t
 rw_screen(gboolean case_sensitive,
 	const struct rwtable *table, size_t size,
-	const gchar *word, const gchar **retkw)
+	const char *word, const char **retkw)
 {
 	g_assert(retkw);
 
@@ -238,10 +238,10 @@ rw_screen(gboolean case_sensitive,
 	} G_STMT_END
 
 	if (case_sensitive)
-		BINARY_SEARCH(const gchar *, word, size,
+		BINARY_SEARCH(const char *, word, size,
 				strcmp, GET_KEY, FOUND);
 	else
-		BINARY_SEARCH(const gchar *, word, size,
+		BINARY_SEARCH(const char *, word, size,
 				ascii_strcasecmp, GET_KEY, FOUND);
 
 #undef FOUND
@@ -255,7 +255,7 @@ rw_screen(gboolean case_sensitive,
  * Ensure the reserved-word table is lexically sorted.
  */
 static void
-rw_is_sorted(const gchar *name,
+rw_is_sorted(const char *name,
 	const struct rwtable *table, size_t size)
 {
 	size_t i;
@@ -273,7 +273,7 @@ rw_is_sorted(const gchar *name,
 				name, e->rw_name);
 
 		if (ggeptable == table) {
-			const gchar *s;
+			const char *s;
 
 		   	s = ext_ggep_name(e->rw_token);
 			if (0 != strcmp(s, e->rw_name)) {
@@ -289,7 +289,7 @@ rw_is_sorted(const gchar *name,
  * If keyword was found, its static shared string is returned in `retkw'.
  */
 static ext_token_t
-rw_ggep_screen(gchar *word, const gchar **retkw)
+rw_ggep_screen(char *word, const char **retkw)
 {
 	ext_token_t t;
 
@@ -303,7 +303,7 @@ rw_ggep_screen(gchar *word, const gchar **retkw)
  * If keyword was found, its static shared string is returned in `retkw'.
  */
 static ext_token_t
-rw_urn_screen(const gchar *word, const gchar **retkw)
+rw_urn_screen(const char *word, const char **retkw)
 {
 	return rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
 }
@@ -319,11 +319,11 @@ static GHashTable *ext_names = NULL;
  *
  * @return an atom string of that printable form.
  */
-static gchar *
-ext_name_atom(const gchar *name)
+static char *
+ext_name_atom(const char *name)
 {
-	gchar *key;
-	gchar *atom;
+	char *key;
+	char *atom;
 
 	/*
 	 * Look whether we already known about this name.
@@ -388,19 +388,19 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
  * Parses a GGEP block (can hold several extensions).
  */
 static gint
-ext_ggep_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_ggep_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = *retp;
-	const gchar *end = &p[len];
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *end = &p[len];
+	const char *lastp = p;				/* Last parsed point */
 	gint count;
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
 		guchar flags;
-		gchar id[GGEP_F_IDLEN + 1];
+		char id[GGEP_F_IDLEN + 1];
 		guint id_len, data_length, i;
 		gboolean length_ended = FALSE;
-		const gchar *name;
+		const char *name;
 		extdesc_t *d;
 
 		g_assert(exv->opaque == NULL);
@@ -594,10 +594,10 @@ abort:
 }
 
 static gint
-ext_urn_bad_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_urn_bad_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = *retp;
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -637,15 +637,15 @@ ext_urn_bad_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
  * Parses a URN block (one URN only).
  */
 static gint
-ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_huge_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = *retp;
-	const gchar *end = &p[len];
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *end = &p[len];
+	const char *lastp = p;				/* Last parsed point */
 	ext_token_t token;
-	const gchar *payload_start = NULL;
+	const char *payload_start = NULL;
 	gint data_length;
-	const gchar *name = NULL;
+	const char *name = NULL;
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -682,9 +682,9 @@ ext_huge_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 */
 
 	{
-		const gchar *name_start, *name_end;
+		const char *name_start, *name_end;
 		size_t name_len;
-		gchar name_buf[16];
+		char name_buf[16];
 
 		name_start = p;
 		name_end = memchr(p, ':', end - name_start);
@@ -748,11 +748,11 @@ found:
  * Parses a XML block (grabs the whole xml up to the first NUL or separator).
  */
 static gint
-ext_xml_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_xml_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = *retp;
-	const gchar *end = &p[len];
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *end = &p[len];
+	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -795,11 +795,11 @@ ext_xml_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
  * If `skip' is TRUE, we don't resync on the first resync point.
  */
 static gint
-ext_unknown_parse(const gchar **retp, gint len, extvec_t *exv,
+ext_unknown_parse(const char **retp, gint len, extvec_t *exv,
 	gint exvcnt, gboolean skip)
 {
-	const gchar *p = *retp;
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -871,11 +871,11 @@ ext_unknown_parse(const gchar **retp, gint len, extvec_t *exv,
  * "none" extension.
  */
 static gint
-ext_none_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+ext_none_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = *retp;
-	const gchar *end = &p[len];
-	const gchar *lastp = p;				/* Last parsed point */
+	const char *p = *retp;
+	const char *end = &p[len];
+	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
@@ -925,9 +925,9 @@ ext_none_parse(const gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 static void
 ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 {
-	const gchar *end;
-	const gchar *nend;
-	const gchar *nbase;
+	const char *end;
+	const char *nend;
+	const char *nbase;
 	guint16 added;
 	extdesc_t *d = exv->opaque;
 	extdesc_t *nd = next->opaque;
@@ -984,9 +984,9 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
  * @return the number of filled entries.
  */
 gint
-ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
+ext_parse(const char *buf, gint len, extvec_t *exv, gint exvcnt)
 {
-	const gchar *p = buf, *end = &buf[len];
+	const char *p = buf, *end = &buf[len];
 	gint cnt = 0;
 
 	g_assert(buf);
@@ -996,7 +996,7 @@ ext_parse(const gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 	g_assert(exv->opaque == NULL);
 
 	while (p < end && exvcnt > 0) {
-		const gchar *old_p = p;
+		const char *old_p = p;
 		gint found = 0;
 
 		g_assert(len > 0);
@@ -1099,10 +1099,10 @@ out:
  * @returns the allocated inflated buffer, and its inflated length in `retlen'.
  * @returns NULL on error.
  */
-static gchar *
-ext_ggep_inflate(const gchar *buf, gint len, guint16 *retlen, const gchar *name)
+static char *
+ext_ggep_inflate(const char *buf, gint len, guint16 *retlen, const char *name)
 {
-	gchar *result;					/* Inflated buffer */
+	char *result;					/* Inflated buffer */
 	gint rsize;						/* Result's buffer size */
 	z_streamp inz;
 	gint ret;
@@ -1227,9 +1227,9 @@ ext_ggep_inflate(const gchar *buf, gint len, guint16 *retlen, const gchar *name)
 static void
 ext_ggep_decode(const extvec_t *e)
 {
-	const gchar *pbase;				/* Current payload base */
+	const char *pbase;				/* Current payload base */
 	size_t plen;					/* Curernt payload length */
-	gchar *uncobs = NULL;			/* COBS-decoded buffer */
+	char *uncobs = NULL;			/* COBS-decoded buffer */
 	size_t uncobs_len = 0;			/* Length of walloc()'ed buffer */
 	size_t result;					/* Decoded length */
 	extdesc_t *d;
@@ -1371,7 +1371,7 @@ ext_paylen(const extvec_t *e)
  * of the header: don't read past the ext_headlen() first bytes of the
  * header.
  */
-const gchar *
+const char *
 ext_base(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1416,7 +1416,7 @@ ext_len(const extvec_t *e)
 /**
  * @returns extension's GGEP ID, or "" if not a GGEP one.
  */
-const gchar *
+const char *
 ext_ggep_id_str(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1483,8 +1483,8 @@ ext_has_ascii_word(const extvec_t *e)
  * Dump an extension to specified stdio stream.
  */
 static void
-ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
-	const gchar *postfix, gboolean payload)
+ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
+	const char *postfix, gboolean payload)
 {
 	guint16 paylen;
 
@@ -1543,7 +1543,7 @@ ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
  */
 void
 ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
-	const gchar *prefix, const gchar *postfix, gboolean payload)
+	const char *prefix, const char *postfix, gboolean payload)
 {
 	gint i;
 
@@ -1597,7 +1597,7 @@ ext_reset(extvec_t *exv, gint exvcnt)
 	}
 }
 
-const gchar *
+const char *
 ext_ggep_name(ext_token_t id)
 {
 	size_t i;

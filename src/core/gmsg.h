@@ -98,7 +98,7 @@ typedef enum {
  */
 
 void gmsg_init(void);
-const gchar *gmsg_name(guint function);
+const char *gmsg_name(guint function);
 gmsg_valid_t gmsg_size_valid(gconstpointer msg, guint16 *size);
 
 pmsg_t *gmsg_to_pmsg(gconstpointer msg, guint32 size);
@@ -131,16 +131,16 @@ gboolean gmsg_can_drop(gconstpointer pdu, gint size);
 gboolean gmsg_is_oob_query(gconstpointer msg);
 gboolean gmsg_split_is_oob_query(gconstpointer head, gconstpointer data);
 gint gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2);
-const gchar *gmsg_infostr(gconstpointer msg);
-gchar *gmsg_infostr_full(gconstpointer msg);
-gchar *gmsg_infostr_full_split(gconstpointer head, gconstpointer data);
+const char *gmsg_infostr(gconstpointer msg);
+char *gmsg_infostr_full(gconstpointer msg);
+char *gmsg_infostr_full_split(gconstpointer head, gconstpointer data);
 
 void gmsg_install_presend(pmsg_t *mb);
 
 void gmsg_log_dropped(gconstpointer msg,
-	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_bad(const struct gnutella_node *n,
-	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
+	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 
 void gmsg_search_sendto_one(struct gnutella_node *n, gnet_search_t sh,
 	gconstpointer msg, guint32 size);

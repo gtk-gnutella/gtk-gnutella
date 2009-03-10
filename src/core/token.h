@@ -70,11 +70,11 @@ typedef enum {
  * Public interface.
  */
 
-const gchar *tok_strerror(tok_error_t errnum);
-gchar *tok_version(void);
-gchar *tok_short_version(void);
+const char *tok_strerror(tok_error_t errnum);
+char *tok_version(void);
+char *tok_short_version(void);
 tok_error_t tok_version_valid(
-	const gchar *version, const gchar *tokenb64, gint len, host_addr_t addr);
+	const char *version, const char *tokenb64, gint len, host_addr_t addr);
 gboolean tok_is_ancient(time_t now);
 
 #endif	/* _core_token_h_ */

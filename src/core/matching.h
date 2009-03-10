@@ -75,7 +75,7 @@ void st_initialize(search_table_t *);
 void st_create(search_table_t *table);
 void st_destroy(search_table_t *);
 void st_free(search_table_t **);
-gboolean st_insert_item(search_table_t *, const gchar *key, gpointer data);
+gboolean st_insert_item(search_table_t *, const char *key, gpointer data);
 void st_compact(search_table_t *);
 
 struct shared_file;
@@ -87,7 +87,7 @@ typedef void (*st_search_callback)(gpointer ctx, gpointer data);
 
 void st_search(
 	search_table_t *table,
-	const gchar *search,
+	const char *search,
 	st_search_callback callback,
 	gpointer ctx,
 	gint max_res,

@@ -83,12 +83,12 @@ void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
 gboolean search_request_preprocess(struct gnutella_node *n);
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
-size_t compact_query(gchar *search);
-void query_strip_oob_flag(const struct gnutella_node *n, gchar *data);
-void query_set_oob_flag(const struct gnutella_node *n, gchar *data);
+size_t compact_query(char *search);
+void query_strip_oob_flag(const struct gnutella_node *n, char *data);
+void query_set_oob_flag(const struct gnutella_node *n, char *data);
 
-void record_query_string(const struct guid *muid, const gchar *query);
-const gchar *map_muid_to_query_string(const struct guid *muid);
+void record_query_string(const struct guid *muid, const char *query);
+const char *map_muid_to_query_string(const struct guid *muid);
 
 #endif /* _core_search_h_ */
 

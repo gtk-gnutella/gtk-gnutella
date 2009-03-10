@@ -68,7 +68,7 @@ enum chunk_state {
 struct attr {
 	const struct rx_chunk_cb *cb;	/**< Layer-specific callbacks */
 	guint64 data_remain;		/**< Amount of remaining chunk payload data */
-	gchar hex_buf[16];			/**< Holds the hex digits of chunk-size */
+	char hex_buf[16];			/**< Holds the hex digits of chunk-size */
 	size_t hex_pos;				/**< Current position in hex_buf */
 	enum chunk_state state;		/**< Current decoding state */
 	gint flags;
@@ -95,11 +95,11 @@ struct attr {
  * @return 0 on failure; non-zero amount of consumed bytes on success.
  */
 static size_t
-parse_chunk(rxdrv_t *rx, const gchar *src, size_t size,
-	const gchar **p_error_str)
+parse_chunk(rxdrv_t *rx, const char *src, size_t size,
+	const char **p_error_str)
 {
 	struct attr *attr = rx->opaque;
-	const gchar *error_str;
+	const char *error_str;
 	size_t len;
 
 	g_assert(attr);
@@ -313,7 +313,7 @@ static pmsg_t *
 dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	const gchar *error_str, *src;
+	const char *error_str, *src;
 	size_t size;
 
 	/*

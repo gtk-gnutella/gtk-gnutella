@@ -51,7 +51,7 @@ void uhc_get_hosts(void);
 gboolean uhc_is_waiting(void);
 
 void uhc_ipp_extract(
-	struct gnutella_node *n, const gchar *payload, gint paylen);
+	struct gnutella_node *n, const char *payload, gint paylen);
 
 #endif /* _core_uhc_h_ */
 

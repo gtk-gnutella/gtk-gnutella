@@ -310,11 +310,11 @@ gnutella_msg_search_get_flags(const void *data)
  * Compute start of search string (which is NUL terminated) in query.
  * The "+2" skips the "flags" field in the query.
  */
-static inline const gchar *
+static inline const char *
 gnutella_msg_search_get_text(const void *data)
 {
 	const guint8 *u8 = data;
-	return (const gchar *) &u8[GTA_HEADER_SIZE + 2];
+	return (const char *) &u8[GTA_HEADER_SIZE + 2];
 }
 
 /* The logic layout of the PUSH message specific payload is as follows:

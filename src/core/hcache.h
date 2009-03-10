@@ -53,20 +53,20 @@ void hcache_retrieve_all(void);
 
 void hcache_timer(time_t now);
 
-const gchar *host_type_to_string(host_type_t type);
-const gchar *hcache_type_to_string(hcache_type_t type);
+const char *host_type_to_string(host_type_t type);
+const char *hcache_type_to_string(hcache_type_t type);
 
 gboolean hcache_add(
     hcache_type_t type, const host_addr_t addr, guint16 port,
-    const gchar *what);
+    const char *what);
 
 gboolean hcache_add_caught(
     host_type_t type, const host_addr_t addr, guint16 port,
-    const gchar *what);
+    const char *what);
 
 gboolean hcache_add_valid(
     host_type_t type, const host_addr_t addr, guint16 port,
-    const gchar *what);
+    const char *what);
 
 gboolean hcache_node_is_bad(const host_addr_t addr);
 

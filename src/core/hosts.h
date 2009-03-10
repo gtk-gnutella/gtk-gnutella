@@ -48,9 +48,9 @@ void host_add_semi_pong(const host_addr_t addr, guint16 port);
 void host_shutdown(void);
 void host_close(void);
 
-const gchar *gnet_host_to_string(const gnet_host_t *h);
+const char *gnet_host_to_string(const gnet_host_t *h);
 
-void parse_netmasks(const gchar *value);
+void parse_netmasks(const char *value);
 gboolean host_is_nearby(const host_addr_t addr);
 gboolean host_is_valid(const host_addr_t addr, guint16 port);
 gboolean host_address_is_usable(const host_addr_t addr);

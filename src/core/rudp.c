@@ -168,7 +168,7 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-static const gchar *
+static const char *
 rudp_op_to_string(guint8 op)
 {
   if (op <= 0x04) {
@@ -187,7 +187,7 @@ rudp_op_to_string(guint8 op)
   return NULL;
 }
 
-static const gchar *
+static const char *
 rudp_fin_reason_to_string(guint8 reason)
 {
   if (reason <= 0x04) {
@@ -416,7 +416,7 @@ rudp_send_syn(struct rudp_con *con)
 	 {
 		 gnutella_header_t *gnet;
 		 struct rudp_syn *syn;
-		 gchar packet[MAX(sizeof *gnet, sizeof *syn)];
+		 char packet[MAX(sizeof *gnet, sizeof *syn)];
 		 pmsg_t *mb;
 
 		 STATIC_ASSERT(23 == sizeof packet);
@@ -464,7 +464,7 @@ rudp_send_ack(struct rudp_con *con, guint16 seq_no)
 { 
   gnutella_header_t *gnet;
   struct rudp_ack *ack;
-  gchar packet[MAX(sizeof *ack, sizeof *gnet)];
+  char packet[MAX(sizeof *ack, sizeof *gnet)];
 
   STATIC_ASSERT(sizeof packet == 23);
 
@@ -495,7 +495,7 @@ rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
 { 
   gnutella_header_t *gnet;
   struct rudp_fin *fin;
-  gchar packet[MAX(sizeof *fin, sizeof *gnet)];
+  char packet[MAX(sizeof *fin, sizeof *gnet)];
 
   STATIC_ASSERT(sizeof packet == 23);
 
@@ -798,7 +798,7 @@ rudp_handle_data(struct rudp_con *con, gconstpointer data)
 static gboolean
 rudp_send_data(struct rudp_con *con, gconstpointer data, size_t size)
 {
-	const gchar *p = data;
+	const char *p = data;
 	guint data_len;
 	pmsg_t *mb;
 
@@ -840,7 +840,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 {
 	const struct rudp_header *rudp_header;
     gnutella_header_t *gnet_header;
-	const gchar *op_str;
+	const char *op_str;
 	guint16 seq_no;
 	guint8 data1_len;
 	guint8 op;
@@ -887,8 +887,8 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 		if (RUDP_OP_ACK != op) {
 			
 			if (!rudp_seq_number_in_recv_window(con, seq_no)) {
-				gchar start_buf[UINT64_DEC_BUFLEN];
-				gchar space_buf[UINT64_DEC_BUFLEN];
+				char start_buf[UINT64_DEC_BUFLEN];
+				char space_buf[UINT64_DEC_BUFLEN];
 
 				uint64_to_string_buf(con->in.start,
 					start_buf, sizeof start_buf);
@@ -928,7 +928,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 ssize_t
 rudp_write(struct rudp_con *con, gconstpointer data, size_t size)
 {
-	const gchar *p;
+	const char *p;
 	
 	g_return_val_if_fail(con, -1);
 	g_return_val_if_fail(data, -1);
@@ -969,7 +969,7 @@ rudp_write(struct rudp_con *con, gconstpointer data, size_t size)
 
 	if (p != data) {
 		rudp_list_add(RUDP_LIST_PENDING, con, TRUE);
-		return p - (const gchar *) data;
+		return p - (const char *) data;
 	} else {
 		errno = EAGAIN;
 		return -1;
@@ -981,7 +981,7 @@ rudp_read(struct rudp_con *con, gpointer data, size_t size)
 {
 	ssize_t received;
 	pmsg_t *mb;
-	gchar *p;
+	char *p;
 	guint i;
 	
 	g_return_val_if_fail(con, -1);

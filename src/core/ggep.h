@@ -91,12 +91,12 @@ enum ggep_magic { GGEP_MAGIC_ID = 0x62961da4U };
  */
 typedef struct ggep_stream {
 	enum ggep_magic magic;/**< Magic number */
-	gchar *outbuf;			/**< Base address of output buffer */
-	gchar *end;				/**< First address beyond output buffer */
-	gchar *o;				/**< Where next output should go */
-	gchar *fp;				/**< Where flags for current extension are */
-	gchar *lp;				/**< Where length should be written when known */
-	gchar *last_fp;			/**< Flags of last successfully written ext. */
+	char *outbuf;			/**< Base address of output buffer */
+	char *end;				/**< First address beyond output buffer */
+	char *o;				/**< Where next output should go */
+	char *fp;				/**< Where flags for current extension are */
+	char *lp;				/**< Where length should be written when known */
+	char *last_fp;			/**< Flags of last successfully written ext. */
 	size_t size;			/**< Size of the outbuf buffer */
 	guint8 flags;			/**< Extension flags (COBS / DEFLATE) */
 	gboolean magic_emitted;	/**< Whether leading magic was emitted */
@@ -111,7 +111,7 @@ typedef struct ggep_stream {
 
 struct iovec;
 
-gint ggep_decode_into(extvec_t *exv, gchar *buf, size_t len);
+gint ggep_decode_into(extvec_t *exv, char *buf, size_t len);
 
 void ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len);
 gboolean ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags);
@@ -121,9 +121,9 @@ gboolean ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len);
 gboolean ggep_stream_end(ggep_stream_t *gs);
 size_t ggep_stream_close(ggep_stream_t *gs);
 gboolean ggep_stream_packv(ggep_stream_t *gs,
-	const gchar *id, const struct iovec *iov, gint iovcnt, guint32 wflags);
+	const char *id, const struct iovec *iov, gint iovcnt, guint32 wflags);
 gboolean ggep_stream_pack(ggep_stream_t *gs,
-	const gchar *id, gconstpointer payload, size_t plen, guint32 wflags);
+	const char *id, gconstpointer payload, size_t plen, guint32 wflags);
 
 gboolean ggep_stream_is_valid(ggep_stream_t *gs);
 

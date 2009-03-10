@@ -251,7 +251,7 @@ oob_proxy_pending_results(
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
 	guint32 wanted;
-	const gchar *msg = NULL;
+	const char *msg = NULL;
 
 	(void) uu_udp_firewalled;
 

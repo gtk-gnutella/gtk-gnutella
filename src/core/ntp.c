@@ -174,7 +174,7 @@ static gboolean
 ntp_send_probes(void)
 {
 	static const struct {
-		const gchar *addr;
+		const char *addr;
 	} hosts[] = {
 #if 0
 		/* Skip this for now. We check replies only against 127.0.0.1 and ::1

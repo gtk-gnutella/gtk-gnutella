@@ -58,11 +58,11 @@ struct parq_ul_queued;
 void parq_init(void);
 void parq_close(void);
 
-const gchar *get_parq_dl_id(const struct download *);
+const char *get_parq_dl_id(const struct download *);
 void parq_dl_reparent_id(struct download *d, struct download *cd);
 
 struct parq_dl_queued *parq_dl_create(const struct download *);
-void parq_dl_add_id(struct download *, const gchar *new_id);
+void parq_dl_add_id(struct download *, const char *new_id);
 void parq_dl_remove(struct download *);
 void parq_dl_free(struct download *);
 
@@ -70,16 +70,16 @@ void parq_download_retry_active_queued(struct download *);
 gboolean parq_download_supports_parq(header_t *);
 gboolean parq_download_parse_queue_status(struct download *, header_t *);
 gboolean parq_download_is_active_queued(const struct download *);
-void parq_download_add_header(gchar *buf, size_t len, size_t *rw,
+void parq_download_add_header(char *buf, size_t len, size_t *rw,
 	struct download *);
 gboolean parq_download_is_passive_queued(const struct download *);
 void parq_download_queue_ack(struct gnutella_socket *);
 
 void parq_upload_timer(time_t now);
 
-size_t parq_upload_add_headers(gchar *buf, size_t size,
+size_t parq_upload_add_headers(char *buf, size_t size,
 	gpointer arg, guint32 flags);
-size_t parq_upload_add_header_id(gchar *buf, size_t size,
+size_t parq_upload_add_header_id(char *buf, size_t size,
 	gpointer arg, guint32 flags);
 
 struct parq_ul_queued *parq_upload_get(struct upload *, const header_t *);

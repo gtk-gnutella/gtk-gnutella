@@ -59,7 +59,7 @@ RCSID("$Id$")
  * There can be up to 2^5 = 32 keys per version.
  */
 
-static const gchar *keys_096[] = {
+static const char *keys_096[] = {
 	"261c 78d6 fcc5 d96e 2649 061a 4534 29b5",
 	"2629 7de4 8edd 43eb 6c47 2b01 caf1 5e86",
 	"50c2 076a 5a15 5c0c 27fb eda0 381b 2eb7",
@@ -84,7 +84,7 @@ static const gchar *keys_096[] = {
 	"3084 a2bc f4ed 8b3c 2a2b 1834 cd8e 3f8b",
 };
 
-static const gchar *keys_096_1[] = {
+static const char *keys_096_1[] = {
 	"ac3e f7b1 af37 e22c ce69 f25f 8dd2 8e51",
 	"7c66 fddd f8d9 8bde 8c6c 072a 1935 2237",
 	"6aab e420 921d b32c 09e9 34b8 e403 525d",
@@ -109,7 +109,7 @@ static const gchar *keys_096_1[] = {
 	"9536 535d 0e1b e017 2f73 a0bc c01a dcf9",
 };
 
-static const gchar *keys_096_2[] = {
+static const char *keys_096_2[] = {
 	"fa04 15ab 5f1d 52cc 5a5d 865b 27b5 c5a5",
 	"7f0b 5987 86ec a100 85c5 d0fc f504 b58c",
 	"2b06 f3a7 05a8 2769 2679 1ab9 9ba0 2360",
@@ -134,7 +134,7 @@ static const gchar *keys_096_2[] = {
 	"e75d b41f 2332 309d c3ee 4dd7 060d fc08",
 };
 
-static const gchar *keys_096_3[] = {
+static const char *keys_096_3[] = {
 	"ca43 91c3 d080 c596 5ec2 9e17 5011 ebb6",
 	"4b53 6e49 a6a8 c045 c0c4 bfc7 8c54 4d9a",
 	"411b fc41 6643 ba3a 527a 52c9 4a72 3db0",
@@ -159,7 +159,7 @@ static const gchar *keys_096_3[] = {
 	"c994 a380 dde0 baff 8900 c9e5 d94c b9ff",
 };
 
-static const gchar *keys_096_4[] = {
+static const char *keys_096_4[] = {
 	"4313 0c48 3747 a2b5 580c f7a5 7adc d83f",
 	"94c7 eeca e5c1 c4c4 a09d 243c b846 6917",
 	"3188 446a 39da fca8 11ae ef30 8073 f61a",
@@ -184,7 +184,7 @@ static const gchar *keys_096_4[] = {
 	"a2d0 b172 becb 8516 8f17 b2f4 80e2 4488",
 };
 
-static const gchar *keys_096_5[] = {
+static const char *keys_096_5[] = {
 	"29af ab9b fc6b 58b7 9031 cf87 f7cc 3c63",
 	"5dee 3d3f efb1 ac8d 27f4 2fa9 b1c3 705b",
 	"117f 9530 1881 6432 ecf4 780e dbfc 45c9",
@@ -214,7 +214,7 @@ static const gchar *keys_096_5[] = {
  */
 struct tokkey {
 	version_t ver;		/**< Version number */
-	const gchar **keys;	/**< Keys to use */
+	const char **keys;	/**< Keys to use */
 	guint count;		/**< Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
@@ -248,7 +248,7 @@ struct tokkey {
  * Token validation errors.
  */
 
-static const gchar *tok_errstr[] = {
+static const char *tok_errstr[] = {
 	"OK",							/**< TOK_OK */
 	"Bad length",					/**< TOK_BAD_LENGTH */
 	"Bad timestamp",				/**< TOK_BAD_STAMP */
@@ -270,7 +270,7 @@ static const gchar *tok_errstr[] = {
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 tok_strerror(tok_error_t errnum)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
@@ -328,7 +328,7 @@ find_latest(const version_t *rver)
  * @returns the key string and the index within the key array into `idx'
  * and the token key structure used in `tkused'.
  */
-static const gchar *
+static const char *
 random_key(time_t now, guint *idx, const struct tokkey **tkused)
 {
 	static gboolean warned = FALSE;
@@ -356,16 +356,16 @@ random_key(time_t now, guint *idx, const struct tokkey **tkused)
 /**
  * Generate new token for given version string.
  */
-static gchar *
-tok_generate(time_t now, const gchar *version)
+static char *
+tok_generate(time_t now, const char *version)
 {
-	gchar token[TOKEN_BASE64_SIZE + 1];
-	gchar digest[TOKEN_VERSION_SIZE];
-	gchar lvldigest[LEVEL_SIZE];
-	gchar lvlbase64[LEVEL_BASE64_SIZE + 1];
+	char token[TOKEN_BASE64_SIZE + 1];
+	char digest[TOKEN_VERSION_SIZE];
+	char lvldigest[LEVEL_SIZE];
+	char lvlbase64[LEVEL_BASE64_SIZE + 1];
 	const struct tokkey *tk;
 	guint idx;
-	const gchar *key;
+	const char *key;
 	SHA1Context ctx;
     struct sha1 sha1;
 	guint8 seed[3];
@@ -442,11 +442,11 @@ tok_generate(time_t now, const gchar *version)
  * It is not meant to be used for strict authentication management, since
  * the algorithm and the keys are exposed publicly.
  */
-gchar *
+char *
 tok_version(void)
 {
 	static time_t last_generated = 0;
-	static gchar *toklevel = NULL;
+	static char *toklevel = NULL;
 	time_t now = tm_time();
 
 	/*
@@ -475,11 +475,11 @@ tok_version(void)
  *
  * @returns a pointer to static data.
  */
-gchar *
+char *
 tok_short_version(void)
 {
 	static time_t last_generated = 0;
-	static gchar *toklevel = NULL;
+	static char *toklevel = NULL;
 	time_t now = tm_time();
 
 	/*
@@ -511,7 +511,7 @@ tok_short_version(void)
  */
 tok_error_t
 tok_version_valid(
-	const gchar *version, const gchar *tokenb64, gint len, host_addr_t addr)
+	const char *version, const char *tokenb64, gint len, host_addr_t addr)
 {
 	time_t now = tm_time();
 	time_t stamp;
@@ -520,19 +520,19 @@ tok_version_valid(
 	const struct tokkey *rtk;
 	const struct tokkey *latest;
 	guint idx;
-	const gchar *key;
+	const char *key;
 	SHA1Context ctx;
-	gchar lvldigest[1024];
-	gchar token[TOKEN_VERSION_SIZE];
+	char lvldigest[1024];
+	char token[TOKEN_VERSION_SIZE];
 	struct sha1 digest;
 	version_t rver;
-	gchar *end;
+	char *end;
 	gint toklen;
 	gint lvllen;
 	gint lvlsize;
 	gint klen;
 	guint i;
-	gchar *c = (gchar *) &stamp32;
+	char *c = (char *) &stamp32;
 
 	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;

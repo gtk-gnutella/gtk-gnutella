@@ -110,7 +110,7 @@ struct gnutella_socket {
 	enum net_type net;
 
 	gint adns;				/**< status of ADNS resolution */
-	const gchar *adns_msg;	/**< ADNS error message */
+	const char *adns_msg;	/**< ADNS error message */
 
 	host_addr_t addr;		/**< IP   of our partner */
 	guint16 port;			/**< Port of our partner */
@@ -136,7 +136,7 @@ struct gnutella_socket {
 
 	size_t pos;			/**< write position in the buffer */
 	size_t buf_size;	/**< write position in the buffer */
-	gchar *buf;			/**< buffer to put in the data read */
+	char *buf;			/**< buffer to put in the data read */
 };
 
 static inline void
@@ -210,10 +210,10 @@ void socket_free_null(struct gnutella_socket **s_ptr);
 struct gnutella_socket *socket_connect(const host_addr_t, guint16,
 		enum socket_type, guint32 flags);
 struct gnutella_socket *socket_connect_by_name(
-	const gchar *host, guint16, enum socket_type, guint32 flags);
+	const char *host, guint16, enum socket_type, guint32 flags);
 struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16);
 struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16);
-struct gnutella_socket *socket_local_listen(const gchar *pathname);
+struct gnutella_socket *socket_local_listen(const char *pathname);
 
 void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);

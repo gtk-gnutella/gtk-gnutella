@@ -82,9 +82,9 @@ RCSID("$Id$")
 static GSList *pproxies = NULL;	/**< Currently active push-proxy requests */
 
 static void send_pproxy_error(struct pproxy *pp, int code,
-	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 static void pproxy_error_remove(struct pproxy *pp, int code,
-	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
 /**
  * Get rid of all the resources attached to the push-proxy struct.
@@ -111,12 +111,12 @@ pproxy_free_resources(struct pproxy *pp)
 static void
 send_pproxy_error_v(
 	struct pproxy *pp,
-	const gchar *ext,
+	const char *ext,
 	int code,
-	const gchar *msg, va_list ap)
+	const char *msg, va_list ap)
 {
-	gchar reason[1024];
-	gchar extra[1024];
+	char reason[1024];
+	char extra[1024];
 	http_extra_desc_t hev[1];
 	gint hevcnt = 0;
 
@@ -161,7 +161,7 @@ send_pproxy_error_v(
  * This can only be done once per connection.
  */
 static void
-send_pproxy_error(struct pproxy *pp, int code, const gchar *msg, ...)
+send_pproxy_error(struct pproxy *pp, int code, const char *msg, ...)
 {
 	va_list args;
 
@@ -174,10 +174,10 @@ send_pproxy_error(struct pproxy *pp, int code, const gchar *msg, ...)
  * The vectorized (message-wise) version of pproxy_remove().
  */
 static void
-pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
+pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 {
-	const gchar *logreason;
-	gchar errbuf[1024];
+	const char *logreason;
+	char errbuf[1024];
 
 	g_assert(pp != NULL);
 
@@ -220,7 +220,7 @@ pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
  * them a 400 error with the reason.
  */
 void
-pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
+pproxy_remove(struct pproxy *pp, const char *reason, ...)
 {
 	va_list args;
 
@@ -235,7 +235,7 @@ pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
  * Utility routine.  Cancel the request, sending back the HTTP error message.
  */
 static void
-pproxy_error_remove(struct pproxy *pp, int code, const gchar *msg, ...)
+pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 {
 	va_list args, errargs;
 
@@ -312,21 +312,21 @@ pproxy_create(struct gnutella_socket *s)
  * we also return an error to the calling party.
  */
 static gboolean
-get_params(struct pproxy *pp, const gchar *request,
+get_params(struct pproxy *pp, const char *request,
 	const struct guid **guid_atom, guint32 *file_idx, gboolean *supports_tls)
 {
 	static const struct {
-		const gchar *req;
-		const gchar *attr;
+		const char *req;
+		const char *attr;
 	} req_types[] = {
 		{ "/gnutella/pushproxy?",	"ServerId" },
 		{ "/gnutella/push-proxy?",	"ServerId" },
 		{ "/gnet/push-proxy?",		"guid" },
 	};
-	gchar *uri;
-	const gchar *attr;
-	gchar *p;
-	const gchar *value;
+	char *uri;
+	const char *attr;
+	char *p;
+	const char *value;
 	gint datalen;
 	url_params_t *up;
 	guint i;
@@ -374,7 +374,7 @@ get_params(struct pproxy *pp, const gchar *request,
 
 	attr = NULL;
 	for (i = 0; i < G_N_ELEMENTS(req_types); i++) {
-		gchar *q;
+		char *q;
 
 		if (NULL != (q = is_strprefix(uri, req_types[i].req))) {
 			attr = req_types[i].attr;
@@ -516,9 +516,9 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 {
 	static union {
 		gnutella_msg_push_request_t m;
-		gchar data[1024];
+		char data[1024];
 	} packet;
-	gchar *p = packet.data;
+	char *p = packet.data;
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
 
@@ -602,16 +602,16 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
  *
  * @return atom, or NULL.
  */
-static const gchar *
-validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
+static const char *
+validate_vendor(char *vendor, char *token, const host_addr_t addr)
 {
-	const gchar *result;
+	const char *result;
 
 	if (vendor) {
 		gboolean faked = !version_check(vendor, token, addr);
 
 		if (faked) {
-			gchar name[1024];
+			char name[1024];
 
 			name[0] = '!';
 			g_strlcpy(&name[1], vendor, sizeof name - 1);
@@ -628,7 +628,7 @@ validate_vendor(gchar *vendor, gchar *token, const host_addr_t addr)
 static void
 pproxy_fetch_addresses(struct pproxy *pp, const char *buf)
 {
-	const gchar *endptr;
+	const char *endptr;
 	host_addr_t addr;
 	guint16 port;
 
@@ -685,11 +685,11 @@ static void
 pproxy_request(struct pproxy *pp, header_t *header)
 {
 	struct gnutella_socket *s = pp->socket;
-	const gchar *request = getline_str(s->getline);
+	const char *request = getline_str(s->getline);
 	struct gnutella_node *n;
-	const gchar *buf;
-	gchar *token;
-	gchar *user_agent;
+	const char *buf;
+	char *token;
+	char *user_agent;
 	GSList *nodes;
 	gboolean supports_tls = FALSE;
 
@@ -1045,12 +1045,12 @@ cproxy_http_error_ind(struct http_async *handle,
  */
 static gboolean
 cproxy_http_header_ind(struct http_async *handle, header_t *header,
-	gint code, const gchar *message)
+	gint code, const char *message)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
-	gchar *token;
-	gchar *server;
-	gchar *to_free;
+	char *token;
+	char *server;
+	char *to_free;
 
 	g_assert(cp != NULL);
 	g_assert(cp->d != NULL);
@@ -1135,12 +1135,12 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
  * @return length of generated request.
  */
 static size_t
-cproxy_build_request(struct http_async *unused_handle, gchar *buf, size_t len,
-	const gchar *verb, const gchar *path, const gchar *unused_host,
+cproxy_build_request(struct http_async *unused_handle, char *buf, size_t len,
+	const char *verb, const char *path, const char *unused_host,
 	guint16 unused_port)
 {
-	gchar addr_v4_buf[128];
-	gchar addr_v6_buf[128];
+	char addr_v4_buf[128];
+	char addr_v6_buf[128];
 	host_addr_t addr;
 	gboolean has_ipv4 = FALSE;
 

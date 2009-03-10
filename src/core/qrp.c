@@ -138,7 +138,7 @@ struct routing_table {
 	gint fill_ratio;		/**< 100 * fill ratio for table (received) */
 	gint pass_throw;		/**< Query must pass a d100 throw to be forwarded */
 	const struct sha1 *digest;	/**< SHA1 digest of the whole table (atom) */
-	gchar *name;			/**< Name for dumping purposes */
+	char *name;			/**< Name for dumping purposes */
 	gboolean reset;			/**< This is a new table, after a RESET */
 	gboolean compacted;
 	/**
@@ -234,7 +234,7 @@ install_merged_table(struct routing_table *rt)
  * @param s A keyword in canonic form (UTF-8, NFC, lowercased, etc.).
  */
 static inline guint32
-qrp_hashcode(const gchar *s)
+qrp_hashcode(const char *s)
 {
 	guint32 x = 0;		/* The running total */
 	guint32 uc;
@@ -286,7 +286,7 @@ qrp_hashcode(const gchar *s)
  * Naturally, everyone must use the SAME hashing function!
  */
 static inline guint32
-qrp_hash(const gchar *s, gint bits)
+qrp_hash(const char *s, gint bits)
 {
 	return qrp_hashcode(s) >> (32 - bits);
 }
@@ -397,7 +397,7 @@ static void
 qrt_compact(struct routing_table *rt)
 {
 	gint nsize;				/* New table size */
-	gchar *narena;			/* New arena */
+	char *narena;			/* New arena */
 	gint i;
 	guint mask;
 	guchar *p;
@@ -442,7 +442,7 @@ qrt_compact(struct routing_table *rt)
 			mask >>= 1;					/* Starting from end of table */
 	}
 
-	g_assert((gchar *) (q+1) == narena);/* Filled 1st byte at last iteration */
+	g_assert((char *) (q+1) == narena);/* Filled 1st byte at last iteration */
 
 	/*
 	 * Install new compacted arena in place of the non-compacted one.
@@ -803,7 +803,7 @@ qrt_patch_compress(
  * The value used for infinity is given as `max'.
  */
 static struct routing_table *
-qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
+qrt_create(const char *name, char *arena, gint slots, gint max)
 {
 	struct routing_table *rt;
 
@@ -847,9 +847,9 @@ qrt_create(const gchar *name, gchar *arena, gint slots, gint max)
  * Create small empty table.
  */
 static struct routing_table *
-qrt_empty_table(const gchar *name)
+qrt_empty_table(const char *name)
 {
-	gchar *arena;
+	char *arena;
 
 	arena = g_malloc(EMPTY_TABLE_SIZE);
 	memset(arena, LOCAL_INFINITY, EMPTY_TABLE_SIZE);
@@ -882,7 +882,7 @@ qrt_free(struct routing_table *rt)
  * returned.
  */
 static gpointer
-qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint inf_val)
+qrt_shrink_arena(char *arena, gint old_slots, gint new_slots, gint inf_val)
 {
 	gint factor;		/* Shrink factor */
 	gint ratio;
@@ -1233,8 +1233,8 @@ mrg_compute(bgdone_cb_t done_cb)
  */
 struct query_routing {
 	struct routing_table *qrt;		/**< Current routing table */
-	gchar *patch;					/**< Patching arena */
-	gchar *patch_end;				/**< One byte of end of patching arena */
+	char *patch;					/**< Patching arena */
+	char *patch_end;				/**< One byte of end of patching arena */
 	gint state;						/**< State of the QRT propagation */
 	gint bits_per_entry;			/**< Amount of bits per entry in patch */
 	gint payload_size;				/**< Size of the PATCH message payload */
@@ -1264,7 +1264,7 @@ struct query_routing {
 
 static GHashTable *ht_seen_words;
 static struct {
-	gchar *arena;	/* g_malloc()ed */
+	char *arena;	/* g_malloc()ed */
 	gint len;
 } buffer;
 
@@ -1325,7 +1325,7 @@ qrp_add_file(struct shared_file *sf)
 	 */
 
 	for (i = 0; i < wocnt; i++) {
-		const gchar *word = wovec[i].word;
+		const char *word = wovec[i].word;
 		size_t word_len;
 
 		g_assert(word[0] != '\0');
@@ -1371,10 +1371,10 @@ struct unique_substrings {		/* User data for unique_subtr() callback */
 };
 
 static inline void
-insert_substr(struct unique_substrings *u, const gchar *word)
+insert_substr(struct unique_substrings *u, const char *word)
 {
 	if (!g_hash_table_lookup(u->unique, word)) {
-		gchar *s;
+		char *s;
 		size_t n;
 
 		n = 1 + strlen(word);
@@ -1391,8 +1391,8 @@ static void
 unique_substr(gpointer key, gpointer unused_value, gpointer udata)
 {
 	struct unique_substrings *u = udata;
-	const gchar *word = key;
-	gchar *s;
+	const char *word = key;
+	char *s;
 	size_t len, size, i;
 
 	(void) unused_value;
@@ -1462,7 +1462,7 @@ struct qrp_context {
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
 	GSList *sl_substrings;		/**< List of all substrings */
 	gint substrings;			/**< Amount of substrings */
-	gchar *table;				/**< Computed routing table */
+	char *table;				/**< Computed routing table */
 	gint slots;					/**< Amount of slots in table */
 	struct routing_table *st;	/**< Smaller table */
 	struct routing_table *lt;	/**< Larger table for merging (destination) */
@@ -1508,7 +1508,7 @@ qrp_context_free(gpointer p)
 		dispose_ht_seen_words();
 
 	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
-		gchar *word = sl->data;
+		char *word = sl->data;
 		size_t size;
 
 		size = 1 + strlen(word);
@@ -1597,7 +1597,7 @@ qrp_step_substring(struct bgtask *unused_h, gpointer u, gint unused_ticks)
  * @returns whether tables are identical.
  */
 static gboolean
-qrt_eq(const struct routing_table *rt, const gchar *arena, gint slots)
+qrt_eq(const struct routing_table *rt, const char *arena, gint slots)
 {
 	gint i;
 
@@ -1628,7 +1628,7 @@ static bgret_t
 qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 {
 	struct qrp_context *ctx = u;
-	gchar *table = NULL;
+	char *table = NULL;
 	gint slots;
 	gint bits;
 	const GSList *sl;
@@ -1656,7 +1656,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, gint unused_ticks)
 	memset(table, LOCAL_INFINITY, slots);
 
 	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
-		const gchar *word = sl->data;
+		const char *word = sl->data;
 		guint idx = qrp_hash(word, bits);
 
 		hashed++;
@@ -2353,7 +2353,7 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint inf_val)
 static void
 qrp_send_patch(struct gnutella_node *n,
 	gint seqno, gint seqsize, gboolean compressed, gint bits,
-	gchar *buf, gint len)
+	char *buf, gint len)
 {
 	gnutella_msg_qrp_patch_t *msg;
 	guint msglen;
@@ -2828,7 +2828,7 @@ qrt_update_send_next(struct qrt_update *qup)
 
 		qrp_send_patch(n, qup->seqno++, qup->seqsize,
 			qup->patch->compressed, qup->patch->entry_bits,
-			(gchar *) qup->patch->arena + qup->offset, len);
+			(char *) qup->patch->arena + qup->offset, len);
 
 		/*
 		 * Break immediately if node is no longer connected, since then
@@ -2902,11 +2902,11 @@ struct qrt_receive {
 	gint seqno;				/**< Sequence number of next message we expect */
 	gint entry_bits;		/**< Amount of bits used by PATCH */
 	z_streamp inz;			/**< Data inflater */
-	gchar *data;			/**< Where inflated data is written */
+	char *data;			/**< Where inflated data is written */
 	gint len;				/**< Length of the `data' buffer */
 	gint current_slot;		/**< Current slot processed in patch */
 	gint current_index;		/**< Current index (after shrinking) in QR table */
-	gchar *expansion;		/**< Temporary expansion arena before shrinking */
+	char *expansion;		/**< Temporary expansion arena before shrinking */
 	gboolean deflated;		/**< Is data deflated? */
 	gboolean (*patch)(struct qrt_receive *qrcv, const guchar *data, gint len);
 };
@@ -4246,7 +4246,7 @@ qhvec_clone(const query_hashvec_t *qsrc)
  * If the vector is already full, do nothing.
  */
 void
-qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
+qhvec_add(query_hashvec_t *qhvec, const char *word, enum query_hsrc src)
 {
 	struct query_hash *qh = NULL;
 
@@ -4644,7 +4644,7 @@ test_hash(void)
 
 	/* Non-ASCII test cases */
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-		gchar buf[1024];
+		char buf[1024];
 		size_t n;
 		guint32 h;
 

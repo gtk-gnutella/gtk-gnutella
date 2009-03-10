@@ -75,12 +75,12 @@
  *
  */
 
-static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
+static const char bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
 	const struct sha1 *sha1;			/**< binary SHA-1, atom */
 	filesize_t filesize;
-	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
+	char bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /**< request URL */
 
 	/*
 	 * xml related bits
@@ -127,17 +127,17 @@ static void bitzi_cache_remove_by_sha1(const struct sha1 *);
 static void bitzi_cache_clean(void);
 
 /* Get rid of the obnoxious (xmlChar *) */
-static inline gchar *
-xml_get_string(xmlNode *node, const gchar *id)
+static inline char *
+xml_get_string(xmlNode *node, const char *id)
 {
-	return (gchar *) xmlGetProp(node, (const xmlChar *) id);
+	return (char *) xmlGetProp(node, (const xmlChar *) id);
 }
 
 /**
  * Use this to free strings returned by xml_get_string().
  */
 static inline void
-xml_free_null(gchar **ptr)
+xml_free_null(char **ptr)
 {
 	g_assert(ptr);
 	if (*ptr) {
@@ -147,16 +147,16 @@ xml_free_null(gchar **ptr)
 }
 
 static inline const xmlChar *
-string_to_xmlChar(const gchar *s)
+string_to_xmlChar(const char *s)
 {
 	/* If we were pedantic, we'd verify that ``s'' is UTF-8 encoded */
 	return (const xmlChar *) s;
 }
 
-static inline const gchar *
+static inline const char *
 xmlChar_to_gchar(const xmlChar *s)
 {
-	return (const gchar *) s;
+	return (const char *) s;
 }
 
 /********************************************************************
@@ -209,7 +209,7 @@ bitzi_destroy(bitzi_data_t *data)
  * the parsing of the document tree and processes the ticket.
  */
 static void
-bitzi_host_data_ind(struct http_async *unused_handle, gchar *data, gint len)
+bitzi_host_data_ind(struct http_async *unused_handle, char *data, gint len)
 {
 	gint result;
 
@@ -282,7 +282,7 @@ bitzi_host_error_ind(struct http_async *handle,
  */
 
 struct efj_t {
-	const gchar *string;
+	const char *string;
 	bitzi_fj_t judgement;
 };
 
@@ -309,7 +309,7 @@ static const struct efj_t enum_fj_table[] = {
 static void
 process_rdf_description(xmlNode *node, bitzi_data_t *data)
 {
-	gchar *value;
+	char *value;
 
 	/*
 	 * We extract the urn:sha1 from the ticket as we may be processing
@@ -409,12 +409,12 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		atom_str_change(&data->mime_type, value);
 
 		if (is_strcaseprefix(value, "video")) {
-			gchar *bitrate = STRTRACK(xml_get_string(node, "videoBitrate"));
-			gchar *fps = STRTRACK(xml_get_string(node, "videoFPS"));
-			gchar *height = STRTRACK(xml_get_string(node, "videoHeight"));
-			gchar *width = STRTRACK(xml_get_string(node, "videoWidth"));
+			char *bitrate = STRTRACK(xml_get_string(node, "videoBitrate"));
+			char *fps = STRTRACK(xml_get_string(node, "videoFPS"));
+			char *height = STRTRACK(xml_get_string(node, "videoHeight"));
+			char *width = STRTRACK(xml_get_string(node, "videoWidth"));
 			gboolean has_res = width && height;
-			gchar desc[256];
+			char desc[256];
 				
 			/*
 			 * format the mime details
@@ -441,12 +441,12 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			xml_free_null(&height);
 			xml_free_null(&width);
 		} else if (is_strcaseprefix(value, "audio")) {
-			gchar *channels = STRTRACK(xml_get_string(node, "audioChannels"));
-			gchar *duration = STRTRACK(xml_get_string(node, "duration"));
-			gchar *kbps = STRTRACK(xml_get_string(node, "audioBitrate"));
-			gchar *srate = STRTRACK(xml_get_string(node, "audioSamplerate"));
+			char *channels = STRTRACK(xml_get_string(node, "audioChannels"));
+			char *duration = STRTRACK(xml_get_string(node, "duration"));
+			char *kbps = STRTRACK(xml_get_string(node, "audioBitrate"));
+			char *srate = STRTRACK(xml_get_string(node, "audioSamplerate"));
 			guint32 seconds;
-			gchar desc[256];
+			char desc[256];
 
 			if (duration) {
 				gint error;
@@ -479,7 +479,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 		xmlAttr *cur_attr;
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
-			const gchar *name;
+			const char *name;
 		   
 			name = xmlChar_to_gchar(cur_attr->name);
 			value = STRTRACK(xml_get_string(node, name));
@@ -948,7 +948,7 @@ bitzi_load_cache(void)
 {
 	FILE *old_data;
 	gint ticket_count = 0;
-	gchar *path, *oldpath;
+	char *path, *oldpath;
 
 	/*
 	 * Rename the old file , overwritting stuff if we have to
@@ -985,7 +985,7 @@ bitzi_load_cache(void)
 	} else {
 		bitzi_request_t *request = NULL;
 		gboolean truncated = FALSE;
-		gchar tmp[1024];
+		char tmp[1024];
 
 		for (;;) {
 			static const char xml_prefix[] = "<?xml";

@@ -82,8 +82,8 @@ io_check(const gpointer opaque)
 
 	g_assert(ih);
 	g_assert(ih->io_opaque);
-	g_assert((gchar *) ih->io_opaque > (gchar *) ih->resource);
-	g_assert(((gchar *) ih->io_opaque - (gchar *) ih->resource) < 1024);
+	g_assert((char *) ih->io_opaque > (char *) ih->resource);
+	g_assert(((char *) ih->io_opaque - (char *) ih->resource) < 1024);
 	g_assert(*ih->io_opaque == opaque);
 }
 
@@ -140,7 +140,7 @@ io_getline(const gpointer opaque)
  * It is up to the caller to strdup the data if needed.
  * The returned data will be freed when io_free() is called.
  */
-gchar *
+char *
 io_gettext(const gpointer opaque)
 {
 	struct io_header *ih = opaque;
@@ -446,8 +446,8 @@ io_get_header(
 
 	g_assert(resource);
 	g_assert(io_opaque);
-	g_assert((gchar *) io_opaque > (gchar *) resource);
-	g_assert(((gchar *) io_opaque - (gchar *) resource) < 1024);
+	g_assert((char *) io_opaque > (char *) resource);
+	g_assert(((char *) io_opaque - (char *) resource) < 1024);
 	g_assert(bws < NUM_BSCHED_BWS);
 	g_assert(s);
 	g_assert(done);

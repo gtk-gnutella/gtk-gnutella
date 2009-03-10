@@ -89,21 +89,21 @@ http_send_status(
 	http_layer_t layer,
 	struct gnutella_socket *s, gint code, gboolean keep_alive,
 	http_extra_desc_t *hev, gint hevcnt,
-	const gchar *reason, ...)
+	const char *reason, ...)
 {
-	gchar header[2560];			/* 2.5 K max */
-	gchar status_msg[512];
+	char header[2560];			/* 2.5 K max */
+	char status_msg[512];
 	size_t rw, minimal_rw;
 	size_t header_size = sizeof(header);
 	ssize_t sent;
 	gint i;
 	va_list args;
-	const gchar *conn_close = keep_alive ? "" : "Connection: close\r\n";
-	const gchar *no_content = "Content-Length: 0\r\n";
-	const gchar *version;
-	const gchar *date;
-	const gchar *token;
-	const gchar *body = NULL;
+	const char *conn_close = keep_alive ? "" : "Connection: close\r\n";
+	const char *no_content = "Content-Length: 0\r\n";
+	const char *version;
+	const char *date;
+	const char *token;
+	const char *body = NULL;
 	gboolean saturated = bsched_saturated(BSCHED_BWS_OUT);
 	gint cb_flags = 0;
 
@@ -289,7 +289,7 @@ http_send_status(
  * Add an X-Hostname line bearing the fully qualified hostname.
  */
 size_t
-http_hostname_add(gchar *buf, size_t size, gpointer unused_arg, guint32 flags)
+http_hostname_add(char *buf, size_t size, gpointer unused_arg, guint32 flags)
 {
 	size_t len;
 
@@ -312,7 +312,7 @@ http_hostname_add(gchar *buf, size_t size, gpointer unused_arg, guint32 flags)
  * Add a Retry-After header.
  */
 size_t
-http_retry_after_add(gchar *buf, size_t size,
+http_retry_after_add(char *buf, size_t size,
 	gpointer arg, guint32 unused_flags)
 {
 	size_t len;
@@ -336,9 +336,9 @@ http_retry_after_add(gchar *buf, size_t size,
  * @return status code, -1 on error.
  */
 static gint
-code_message_parse(const gchar *line, const gchar **msg)
+code_message_parse(const char *line, const char **msg)
 {
-	const gchar *endptr;
+	const char *endptr;
 	guint32 v;
 	gint error;
 
@@ -387,11 +387,11 @@ code_message_parse(const gchar *line, const gchar **msg)
  * they follow the same pattern as HTTP status codes.
  */
 gint
-http_status_parse(const gchar *line,
-	const gchar *proto, const gchar **msg, guint *major, guint *minor)
+http_status_parse(const char *line,
+	const char *proto, const char **msg, guint *major, guint *minor)
 {
 	guchar c;
-	const gchar *p;
+	const char *p;
 
 	/*
 	 * Skip leading spaces.
@@ -496,9 +496,9 @@ http_status_parse(const gchar *line,
  */
 gboolean
 http_extract_version(
-	const gchar *request, size_t len, guint *major, guint *minor)
+	const char *request, size_t len, guint *major, guint *minor)
 {
-	const gchar *p;
+	const char *p;
 	size_t limit, i;
 
 	/*
@@ -561,7 +561,7 @@ http_extract_version(
  *** HTTP URL parsing.
  ***/
 
-static const gchar * const parse_errstr[] = {
+static const char * const parse_errstr[] = {
 	"OK",								/**< HTTP_URL_OK */
 	"Not an http URI",					/**< HTTP_URL_NOT_HTTP */
 	"More than one <user>:<password>",	/**< HTTP_URL_MULTIPLE_CREDENTIALS */
@@ -576,7 +576,7 @@ static const gchar * const parse_errstr[] = {
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 http_url_strerror(http_url_error_t errnum)
 {
 	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
@@ -595,15 +595,15 @@ http_url_strerror(http_url_error_t errnum)
  *
  */
 gboolean
-http_url_parse(const gchar *url, guint16 *port, const gchar **host,
-	const gchar **path)
+http_url_parse(const char *url, guint16 *port, const char **host,
+	const char **path)
 {
-	static gchar hostname[MAX_HOSTLEN + 1];
+	static char hostname[MAX_HOSTLEN + 1];
 	struct {
-		const gchar *host, *path;
+		const char *host, *path;
 		guint16 port;
 	} tmp;
-	const gchar *endptr, *p;
+	const char *endptr, *p;
 	host_addr_t addr;
 
 	g_assert(url);
@@ -697,7 +697,7 @@ http_url_parse(const gchar *url, guint16 *port, const gchar **host,
  * and whose `written' bytes have already been sent out.
  */
 http_buffer_t *
-http_buffer_alloc(gchar *buf, size_t len, size_t written)
+http_buffer_alloc(char *buf, size_t len, size_t written)
 {
 	http_buffer_t *b;
 
@@ -739,10 +739,10 @@ http_buffer_free(http_buffer_t *b)
  * @return -1 on error, zero on success.
  */
 gint
-http_content_range_parse(const gchar *buf,
+http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total)
 {
-	const gchar *s = buf, *endptr;
+	const char *s = buf, *endptr;
 	gint error;
 
 	/*
@@ -809,7 +809,7 @@ http_content_range_parse(const gchar *buf,
  */
 static GSList *
 http_range_add(GSList *list, filesize_t start, filesize_t end,
-	const gchar *field, const gchar *vendor, gboolean *ignored)
+	const char *field, const char *vendor, gboolean *ignored)
 {
 	GSList *l;
 	GSList *prev;
@@ -840,8 +840,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 				http_range_t *pr = (http_range_t *) prev->data;
 
 				if (pr->end >= start) {
-					gchar start_buf[UINT64_DEC_BUFLEN];
-					gchar end_buf[UINT64_DEC_BUFLEN];
+					char start_buf[UINT64_DEC_BUFLEN];
+					char end_buf[UINT64_DEC_BUFLEN];
 
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -861,8 +861,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 			if (next != NULL) {
 				http_range_t *nr = (http_range_t *) next->data;
 				if (nr->start <= end) {
-					gchar start_buf[UINT64_DEC_BUFLEN];
-				   	gchar end_buf[UINT64_DEC_BUFLEN];
+					char start_buf[UINT64_DEC_BUFLEN];
+				   	char end_buf[UINT64_DEC_BUFLEN];
 
 					uint64_to_string_buf(start, start_buf, sizeof start_buf);
 					uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -882,8 +882,8 @@ http_range_add(GSList *list, filesize_t start, filesize_t end,
 		}
 
 		if (r->end >= start) {
-			gchar start_buf[UINT64_DEC_BUFLEN];
-			gchar end_buf[UINT64_DEC_BUFLEN];
+			char start_buf[UINT64_DEC_BUFLEN];
+			char end_buf[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(start, start_buf, sizeof start_buf);
 			uint64_to_string_buf(end, end_buf, sizeof end_buf);
@@ -930,12 +930,12 @@ ignored:
  */
 GSList *
 http_range_parse(
-	const gchar *field, const gchar *value, filesize_t size,
-	const gchar *vendor)
+	const char *field, const char *value, filesize_t size,
+	const char *vendor)
 {
-	static const gchar unit[] = "bytes";
+	static const char unit[] = "bytes";
 	GSList *ranges = NULL;
-	const gchar *str = value;
+	const char *str = value;
 	guchar c;
 	filesize_t start;
 	filesize_t end;
@@ -1067,7 +1067,7 @@ http_range_parse(
 
 		if (is_ascii_digit(c)) {
 			gint error;
-			const gchar *dend;
+			const char *dend;
 			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
 
 			/* Started with digit! */
@@ -1221,16 +1221,16 @@ http_range_size(const GSList *list)
 /**
  * @returns a pointer to static data, containing the available ranges.
  */
-const gchar *
+const char *
 http_range_to_string(const GSList *list)
 {
-	static gchar str[4096];
+	static char str[4096];
 	const GSList *sl = list;
 	size_t rw;
 
 	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
 		const http_range_t *r = (const http_range_t *) sl->data;
-		gchar start_buf[UINT64_DEC_BUFLEN], end_buf[UINT64_DEC_BUFLEN];
+		char start_buf[UINT64_DEC_BUFLEN], end_buf[UINT64_DEC_BUFLEN];
 
 		uint64_to_string_buf(r->start, start_buf, sizeof start_buf);
 		uint64_to_string_buf(r->end, end_buf, sizeof end_buf);
@@ -1431,7 +1431,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
  *** Asynchronous HTTP error code management.
  ***/
 
-static const gchar * const error_str[] = {
+static const char * const error_str[] = {
 	"OK",									/**< HTTP_ASYNC_OK */
 	"Invalid HTTP URL",						/**< HTTP_ASYNC_BAD_URL */
 	"Connection failed",					/**< HTTP_ASYNC_CONN_FAILED */
@@ -1455,7 +1455,7 @@ guint http_async_errno;		/**< Used to return error codes during setup */
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 http_async_strerror(guint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str))
@@ -1476,7 +1476,7 @@ enum http_reqtype {
 	NUM_HTTP_REQTYPES
 };
 
-static const gchar * const http_verb[NUM_HTTP_REQTYPES] = {
+static const char * const http_verb[NUM_HTTP_REQTYPES] = {
 	"HEAD",
 	"GET",
 	"POST",
@@ -1492,9 +1492,9 @@ struct http_async {
 	enum http_reqtype type;			/**< Type of request */
 	http_state_t state;				/**< Current request state */
 	guint32 flags;					/**< Operational flags */
-	const gchar *url;				/**< Initial URL request (atom) */
-	const gchar *path;				/**< Path to request (atom) */
-	const gchar *host;				/**< Hostname, if not a numeric IP (atom) */
+	const char *url;				/**< Initial URL request (atom) */
+	const char *path;				/**< Path to request (atom) */
+	const char *host;				/**< Hostname, if not a numeric IP (atom) */
 	struct gnutella_socket *socket;	/**< Attached socket */
 	http_header_cb_t header_ind;	/**< Callback for headers */
 	http_data_cb_t data_ind;		/**< Callback for data */
@@ -1543,9 +1543,9 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  * if it is a non-NULL pointer, `path' with the request path, `addr' and `port'
  * with the server address/port.
  */
-const gchar *
+const char *
 http_async_info(
-	struct http_async *handle, const gchar **req, const gchar **path,
+	struct http_async *handle, const char **req, const char **path,
 	host_addr_t *addr, guint16 *port)
 {
 	struct http_async *ha = handle;
@@ -1751,7 +1751,7 @@ http_async_headerr(struct http_async *handle, gint code)
  */
 static void
 http_async_http_error(struct http_async *handle, struct header *header,
-	gint code, const gchar *message)
+	gint code, const char *message)
 {
 	http_error_t he;
 
@@ -1776,11 +1776,11 @@ http_async_http_error(struct http_async *handle, struct header *header,
  */
 static size_t
 http_async_build_request(struct http_async *unused_handle,
-	gchar *buf, size_t len,
-	const gchar *verb, const gchar *path, const gchar *host, guint16 port)
+	char *buf, size_t len,
+	const char *verb, const char *path, const char *host, guint16 port)
 {
 	size_t rw;
-	gchar port_str[32];
+	char port_str[32];
 
 	(void) unused_handle;
 	g_assert(len <= INT_MAX);
@@ -1823,7 +1823,7 @@ http_async_build_request(struct http_async *unused_handle,
  */
 static struct http_async *
 http_async_create(
-	const gchar *url,				/* Either full URL or path */
+	const char *url,				/* Either full URL or path */
 	const host_addr_t addr,			/* Optional: 0 means grab from url */
 	guint16 port,					/* Optional, must be given when IP given */
 	enum http_reqtype type,
@@ -1834,7 +1834,7 @@ http_async_create(
 {
 	struct gnutella_socket *s;
 	struct http_async *ha;
-	const gchar *path, *host = NULL;
+	const char *path, *host = NULL;
 
 	g_assert(url);
 	g_assert(error_ind);
@@ -1942,7 +1942,7 @@ http_async_newstate(struct http_async *ha, http_state_t state)
  */
 struct http_async *
 http_async_get(
-	const gchar *url,
+	const char *url,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
@@ -1957,7 +1957,7 @@ http_async_get(
  */
 struct http_async *
 http_async_get_addr(
-	const gchar *path,
+	const char *path,
 	const host_addr_t addr,
 	guint16 port,
 	http_header_cb_t header_ind,
@@ -2010,7 +2010,7 @@ http_async_allow_redirects(struct http_async *ha, gboolean allow)
  */
 static gboolean
 http_subreq_header_ind(struct http_async *ha, struct header *header,
-	gint code, const gchar *message)
+	gint code, const char *message)
 {
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2024,7 +2024,7 @@ http_subreq_header_ind(struct http_async *ha, struct header *header,
  * Reroute to parent request.
  */
 static void
-http_subreq_data_ind(struct http_async *ha, gchar *data, gint len)
+http_subreq_data_ind(struct http_async *ha, char *data, gint len)
 {
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2057,7 +2057,7 @@ http_subreq_error_ind(struct http_async *ha, http_errtype_t error, gpointer val)
  */
 static gboolean
 http_async_subrequest(
-	struct http_async *parent, gchar *url, enum http_reqtype type)
+	struct http_async *parent, char *url, enum http_reqtype type)
 {
 	struct http_async *child;
 
@@ -2095,7 +2095,7 @@ http_async_subrequest(
  * Redirect current HTTP request to some other URL.
  */
 static void
-http_redirect(struct http_async *ha, gchar *url)
+http_redirect(struct http_async *ha, char *url)
 {
 	/*
 	 * If this request already has a parent, then we're already
@@ -2223,10 +2223,10 @@ static void
 http_got_header(struct http_async *ha, header_t *header)
 {
 	struct gnutella_socket *s = ha->socket;
-	const gchar *status = getline_str(s->getline);
+	const char *status = getline_str(s->getline);
 	gint ack_code;
-	const gchar *ack_message = "";
-	gchar *buf;
+	const char *ack_message = "";
+	char *buf;
 	guint http_major = 0, http_minor = 0;
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
@@ -2443,7 +2443,7 @@ http_async_write_request(gpointer data, gint unused_source,
 	http_buffer_t *r = ha->delayed;
 	ssize_t sent;
 	size_t rw;
-	gchar *base;
+	char *base;
 
 	(void) unused_source;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
@@ -2502,7 +2502,7 @@ http_async_connected(struct http_async *ha)
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
-	gchar req[2048];
+	char req[2048];
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
@@ -2515,7 +2515,7 @@ http_async_connected(struct http_async *ha)
 	 */
 
 	rw = (*ha->op_request)(ha, req, sizeof(req),
-		(gchar *) http_verb[ha->type], ha->path,
+		(char *) http_verb[ha->type], ha->path,
 		ha->host ? ha->host : host_addr_to_string(s->addr), s->port);
 
 	if (rw >= sizeof(req)) {
@@ -2569,8 +2569,8 @@ void
 http_async_log_error_dbg(struct http_async *handle,
 	http_errtype_t type, gpointer v, guint32 dbg_level)
 {
-	const gchar *url;
-	const gchar *req;
+	const char *url;
+	const char *req;
 	gint error = GPOINTER_TO_INT(v);
 	http_error_t *herror = v;
 	host_addr_t addr;

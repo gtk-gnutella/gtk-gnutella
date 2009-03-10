@@ -79,7 +79,7 @@ typedef void (*io_start_cb_t)(gpointer resource);
 void io_free(const gpointer opaque);
 struct header *io_header(const gpointer opaque);
 struct getline *io_getline(const gpointer opaque);
-gchar *io_gettext(const gpointer opaque);
+char *io_gettext(const gpointer opaque);
 guint io_get_read_bytes(const gpointer opaque);
 
 void io_get_header(

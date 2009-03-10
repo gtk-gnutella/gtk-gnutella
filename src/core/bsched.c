@@ -186,7 +186,7 @@ bio_check(const bio_source_t * const bio)
  * @param `period' is the scheduling period in ms.
  */
 static bsched_t *
-bsched_make(const gchar *name, gint type, guint32 mode,
+bsched_make(const char *name, gint type, guint32 mode,
 	gint bandwidth, gint period)
 {
 	bsched_t *bs;
@@ -1735,7 +1735,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 #ifdef USE_MMAP
 	{
 		static gboolean first_call = TRUE;
-		const gchar *data;
+		const char *data;
 		gint n;
 
 		if (first_call) {
@@ -2799,7 +2799,7 @@ bsched_timer(void)
 }
 
 static gboolean
-true_expr(const gchar *expr)
+true_expr(const char *expr)
 {
 	if (GNET_PROPERTY(dbg) > 0) {
 		g_message("%s", expr);

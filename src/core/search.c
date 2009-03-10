@@ -128,7 +128,7 @@ query_muid_map_remove_oldest(void)
 
 	old_muid = hash_list_head(query_muids);
 	if (old_muid) {
-		const gchar *old_query;
+		const char *old_query;
 		
 		hash_list_remove(query_muids, old_muid);
 
@@ -176,7 +176,7 @@ query_muid_map_garbage_collect(void)
 }
 
 void
-record_query_string(const struct guid *muid, const gchar *query)
+record_query_string(const struct guid *muid, const char *query)
 {
 	const struct guid *key;
 	
@@ -188,7 +188,7 @@ record_query_string(const struct guid *muid, const gchar *query)
 
 		orig_key = hash_list_remove(query_muids, muid);
 	   	if (orig_key) {
-			const gchar *old_query;
+			const char *old_query;
 
 			/* We'll append the new value to the list */
 			key = orig_key;
@@ -205,7 +205,7 @@ record_query_string(const struct guid *muid, const gchar *query)
 	query_muid_map_garbage_collect();
 }
 
-const gchar *
+const char *
 map_muid_to_query_string(const struct guid *muid)
 {
 	gconstpointer orig_key;
@@ -228,8 +228,8 @@ typedef struct search_ctrl {
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
-	const gchar *query;	/**< The normalized search query (atom) */
-	const gchar *name;	/**< The original search term (atom) */
+	const char *query;	/**< The normalized search query (atom) */
+	const char *name;	/**< The original search term (atom) */
 	time_t  time;		/**< Time when this search was started */
 	GSList *muids;		/**< Message UIDs of this search */
 
@@ -625,10 +625,10 @@ has_dupe_spam(const gnet_results_set_t *rs)
  *        of one.
  * @return The normalized character.
  */
-static inline gchar
-url_normalize_char(const gchar *p, const gchar **endptr)
+static inline char
+url_normalize_char(const char *p, const char **endptr)
 {
-	gchar c;
+	char c;
 
 	g_assert(p);
 	g_assert(endptr);
@@ -659,10 +659,10 @@ url_normalize_char(const gchar *p, const gchar **endptr)
  * it can be abused in combination with poorly written clients.
  */
 static gboolean
-is_evil_filename(const gchar *filename)
+is_evil_filename(const char *filename)
 {
-	const gchar *endptr, *p = filename;
-	gchar win[4];
+	const char *endptr, *p = filename;
+	char win[4];
 	guint i;
 
 	g_assert(filename);
@@ -870,10 +870,10 @@ search_results_are_requested(const struct guid *muid,
  */
 static gboolean
 search_results_handle_trailer(const gnutella_node_t *n,
-	gnet_results_set_t *rs, const gchar *trailer, size_t trailer_size)
+	gnet_results_set_t *rs, const char *trailer, size_t trailer_size)
 {
 	guint8 open_size, open_parsing_size, enabler_mask, flags_mask;
-	const gchar *vendor;
+	const char *vendor;
 	guint32 token;
 	gboolean has_token;
 	host_addr_t ipv6_addr;
@@ -936,7 +936,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	 */
 
 	if (rs->status & ST_GGEP) {
-		const gchar *priv;
+		const char *priv;
 		size_t privlen;
 		gint exvcnt = 0;
 		extvec_t exv[MAX_EXTVEC];
@@ -1062,7 +1062,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					g_warning("%s has multiple GGEP \"HNAME\" (ignoring)",
 							gmsg_infostr(&n->header));
 				} else {
-					gchar hostname[256];
+					char hostname[256];
 
 					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
 					if (ret == GGEP_OK)
@@ -1090,7 +1090,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					rc = rs->records ? rs->records->data : NULL; 
 					if (rc && !rc->xml && paylen > 0) {
 						size_t len;
-						gchar buf[4096];
+						char buf[4096];
 
 						len = MIN(paylen, sizeof buf - 1);
 						memcpy(buf, ext_payload(e), len);
@@ -1199,20 +1199,20 @@ static gnet_results_set_t *
 get_results_set(gnutella_node_t *n, gboolean browse)
 {
 	gnet_results_set_t *rs;
-	gchar *endptr, *s, *tag;
+	char *endptr, *s, *tag;
 	guint32 nr = 0;
 	guint32 size, idx, taglen;
 	GString *info;
 	unsigned sha1_errors = 0;
 	unsigned alt_errors = 0;
 	unsigned alt_without_hash = 0;
-	gchar *trailer = NULL;
+	char *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
 	gboolean multiple_alt = FALSE;
-	const gchar *vendor = NULL;
+	const char *vendor = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -1239,7 +1239,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	}
 
 	{
-		const gchar *query;
+		const char *query;
 
 		query = map_muid_to_query_string(gnutella_header_get_muid(&n->header));
 		rs->query = query ? atom_str_get(query) : NULL;
@@ -1323,7 +1323,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 	while (endptr - s > 10 && nr < rs->num_recs) {
 		gnet_record_t *rc;
-		gchar *filename;
+		char *filename;
 
 		idx = peek_le32(s);
 		s += 4;					/* File Index */
@@ -1430,7 +1430,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				struct tth tth_digest;
 				ggept_status_t ret;
 				gint paylen;
-				const gchar *payload;
+				const char *payload;
 
 				switch (e->ext_token) {
 				case EXT_T_URN_BITPRINT:	/* first 32 chars is the SHA1 */
@@ -1509,7 +1509,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							is_strcaseprefix(payload, "bitprint:")
 						)
 					) {
-						gchar *buf;
+						char *buf;
 
 						has_hash = TRUE;
 
@@ -1629,7 +1629,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					paylen = ext_paylen(e);
 					if (!rc->xml && paylen > 0) {
 						size_t len;
-						gchar buf[4096];
+						char buf[4096];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
 						memcpy(buf, ext_payload(e), len);
@@ -1646,7 +1646,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					paylen = ext_paylen(e);
 					if (!rc->path && paylen > 0) {
 						size_t len;
-						gchar buf[1024];
+						char buf[1024];
 
 						len = MIN((size_t) paylen, sizeof buf - 1);
 						memcpy(buf, ext_payload(e), len);
@@ -1985,7 +1985,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 static void
 update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	const gchar *vendor;
+	const char *vendor;
 	guint32 old_weird = n->n_weird;
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
@@ -2057,7 +2057,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (!guid_eq(node_guid(n), rs->guid)) {
 			n->n_weird++;
 			if (GNET_PROPERTY(search_debug) > 1) {
-				gchar guid_buf[GUID_HEX_SIZE + 1];
+				char guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
 				g_warning("[weird #%d] "
@@ -2125,7 +2125,7 @@ build_search_msg(search_ctrl_t *sch)
 {
 	static union {
 		gnutella_msg_search_t data;
-		gchar bytes[1024];
+		char bytes[1024];
 		guint64 align8;
 	} msg;
 	size_t size;
@@ -2418,7 +2418,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		gmsg_search_sendto_one(n, sch->search_handle, (gchar *) msg, size);
+		gmsg_search_sendto_one(n, sch->search_handle, (char *) msg, size);
 		goto cleanup;
 	}
 
@@ -2432,7 +2432,7 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA) {
 		mark_search_sent_to_connected_nodes(sch);
 		gmsg_search_sendto_all(
-			node_all_nodes(), sch->search_handle, (gchar *) msg, size);
+			node_all_nodes(), sch->search_handle, (char *) msg, size);
 		goto cleanup;
 	}
 
@@ -3134,7 +3134,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-    	const gchar *vendor = vendor_get_name(rs->vcode.u32);
+    	const char *vendor = vendor_get_name(rs->vcode.u32);
 		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
@@ -3500,12 +3500,12 @@ search_set_create_time(gnet_search_t sh, time_t t)
  *			SEARCH_NEW_INVALID_URN if the URN was unparsable.
  */
 enum search_new_result
-search_new(gnet_search_t *ptr, const gchar *query,
+search_new(gnet_search_t *ptr, const char *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
-	const gchar *endptr;
+	const char *endptr;
 	search_ctrl_t *sch;
-	gchar *qdup;
+	char *qdup;
 	gint result;
 
 	g_assert(ptr);
@@ -3852,7 +3852,7 @@ record_token:
 	oob_reply_ack_record(muid, n->addr, n->port, token);
 }
 
-const gchar *
+const char *
 search_query(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -3942,7 +3942,7 @@ search_is_local(gnet_search_t sh)
  */
 gboolean
 search_browse(gnet_search_t sh,
-	const gchar *hostname, host_addr_t addr, guint16 port,
+	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -4047,7 +4047,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 }
 
 gboolean
-search_locally(gnet_search_t sh, const gchar *query)
+search_locally(gnet_search_t sh, const char *query)
 {
 	gnet_results_set_t *rs;
     search_ctrl_t *sch;
@@ -4131,8 +4131,8 @@ search_locally(gnet_search_t sh, const gchar *query)
 			} else if (SHARE_REBUILDING == sf) {
 				break;
 			} else if (re) {
-				const gchar *name, *path;
-				gchar *buf = NULL;
+				const char *name, *path;
+				char *buf = NULL;
 				size_t buf_size = 0;
 				int ret;
 				
@@ -4176,7 +4176,7 @@ done:
  * Handle magnet searches, launching Gnutella searches as appropriate.
  */
 guint
-search_handle_magnet(const gchar *url)
+search_handle_magnet(const char *url)
 {
 	struct magnet_resource *res;
 	guint n_searches = 0;
@@ -4186,7 +4186,7 @@ search_handle_magnet(const gchar *url)
 		GSList *sl;
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
-			const gchar *query;
+			const char *query;
 
 			/* Note that SEARCH_F_LITERAL is used to prevent that these
 			 * searches are parsed for magnets or other special items. */
@@ -4236,7 +4236,7 @@ search_request_listener_remove(search_request_listener_t l)
 
 static void
 search_request_listener_emit(
-	query_type_t type, const gchar *query, const host_addr_t addr, guint16 port)
+	query_type_t type, const char *query, const host_addr_t addr, guint16 port)
 {
     LISTENER_EMIT(search_request, (type, query, addr, port));
 }
@@ -4340,10 +4340,10 @@ got_match(gpointer context, gpointer data)
  * @return			the length in bytes of the compacted search string.
  */
 static size_t
-compact_query_utf8(gchar *search)
+compact_query_utf8(char *search)
 {
-	gchar *s;
-	gchar *word = NULL, *p;
+	char *s;
+	char *word = NULL, *p;
 	size_t word_length = 0;	/* length in bytes, not characters */
 
 #define APPEND_WORD()								\
@@ -4409,9 +4409,9 @@ do {												\
  * @returns TRUE if the string is valid UTF-8, FALSE otherwise.
  */
 static gboolean 
-query_utf8_decode(const gchar *text, guint *retoff)
+query_utf8_decode(const char *text, guint *retoff)
 {
-	const gchar *p;
+	const char *p;
 
 	/*
 	 * Look whether we're facing an UTF-8 query.
@@ -4436,7 +4436,7 @@ query_utf8_decode(const gchar *text, guint *retoff)
  * @returns new query string length.
  */
 size_t
-compact_query(gchar *search)
+compact_query(char *search)
 {
 	size_t mangled_search_len, orig_len = strlen(search);
 	guint offset;			/* Query string start offset */
@@ -4473,7 +4473,7 @@ compact_query(gchar *search)
  * Remove the OOB delivery flag by patching the query message inplace.
  */
 void
-query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
+query_strip_oob_flag(const gnutella_node_t *n, char *data)
 {
 	guint16 flags;
 
@@ -4493,7 +4493,7 @@ query_strip_oob_flag(const gnutella_node_t *n, gchar *data)
  * Set the OOB delivery flag by patching the query message inplace.
  */
 void
-query_set_oob_flag(const gnutella_node_t *n, gchar *data)
+query_set_oob_flag(const gnutella_node_t *n, char *data)
 {
 	guint16 flags;
 
@@ -4516,10 +4516,10 @@ query_set_oob_flag(const gnutella_node_t *n, gchar *data)
 gboolean
 search_request_preprocess(struct gnutella_node *n)
 {
-	static const gchar qtrax2_con[] = "QTRAX2_CONNECTION";
-	static gchar stmp_1[4096];
+	static const char qtrax2_con[] = "QTRAX2_CONNECTION";
+	static char stmp_1[4096];
 	guint16 flags;
-	gchar *search;
+	char *search;
 	size_t search_len;
 	gboolean skip_file_search = FALSE;
 	struct {
@@ -4864,7 +4864,7 @@ search_request_preprocess(struct gnutella_node *n)
 		gboolean found;
 		gpointer orig_key, orig_val;
 		gconstpointer atom;
-		gchar *query = search;
+		char *query = search;
 		time_delta_t threshold = GNET_PROPERTY(node_requery_threshold);
 
 		g_assert(NODE_IS_LEAF(n));
@@ -5144,7 +5144,7 @@ gboolean
 search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
 	guint16 flags;
-	gchar *search;
+	char *search;
 	size_t search_len;
 	gboolean skip_file_search = FALSE;
 	struct {

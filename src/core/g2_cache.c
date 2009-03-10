@@ -333,7 +333,7 @@ g2_cache_parse(FILE *f)
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
-		gchar *sp, *nl;
+		char *sp, *nl;
 		gboolean damaged;
 		g2_cache_tag_t tag;
 

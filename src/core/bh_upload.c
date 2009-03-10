@@ -96,9 +96,9 @@ struct browse_host_upload {
 	enum bh_type type;		/**< Type of data to send back */
 	gint flags;				/**< Opening flags */
 	txdrv_t *tx;			/**< The transmission stack */
-	gchar *w_buf;			/**< Used for dynamically wallocated buffer */
+	char *w_buf;			/**< Used for dynamically wallocated buffer */
 	size_t w_buf_size;		/**< Size of the wallocated buffer */
-	const gchar *b_data;	/**< Current data block */
+	const char *b_data;	/**< Current data block */
 	size_t b_offset;		/**< Offset in data block */
 	size_t b_size;			/**< Size of the data block */
 	guint file_index;		/**< Current file index (iterator) */
@@ -126,7 +126,7 @@ cast_to_browse_host_upload(struct special_upload *p)
  * @return The amount of bytes copied. Use this to advance ``dest''.
  */
 static inline size_t
-browse_host_read_data(struct browse_host_upload *bh, gchar *dest, size_t *size)
+browse_host_read_data(struct browse_host_upload *bh, char *dest, size_t *size)
 {
 	size_t len;
 
@@ -181,16 +181,16 @@ static ssize_t
 browse_host_read_html(struct special_upload *ctx,
 	gpointer const dest, size_t size)
 {
-	static const gchar header[] =
+	static const char header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\r\n"
 		"<html>\r\n"
 		"<head>\r\n"
 		"<title>Browse Host</title>\r\n"
 		"</head>\r\n"
 		"<body>\r\n";
-	static const gchar trailer[] = "</ul>\r\n</body>\r\n</html>\r\n";
+	static const char trailer[] = "</ul>\r\n</body>\r\n</html>\r\n";
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
-	gchar *p = dest;
+	char *p = dest;
 
 	g_assert(NULL != bh);
 	g_assert(NULL != dest);
@@ -266,14 +266,14 @@ browse_host_read_html(struct special_upload *ctx,
 				} else if (SHARE_REBUILDING == sf) {
 					browse_host_next_state(bh, BH_STATE_REBUILDING);
 				} else {
-					const gchar * const name_nfc = shared_file_name_nfc(sf);
+					const char * const name_nfc = shared_file_name_nfc(sf);
 					const filesize_t file_size = shared_file_size(sf);
 					size_t html_size;
-					gchar *html_name;
+					char *html_name;
 
 					{
-						const gchar *dir;
-						gchar *name;
+						const char *dir;
+						char *name;
 						
 						dir = shared_file_relative_path(sf);
 						if (dir) {
@@ -302,7 +302,7 @@ browse_host_read_html(struct special_upload *ctx,
 							"]</li>\r\n",
 							(void *) 0);
 					} else {
-						gchar *escaped;
+						char *escaped;
 
 						escaped = url_escape(name_nfc);
 						bh->w_buf_size = w_concat_strings(&bh->w_buf,
@@ -333,7 +333,7 @@ browse_host_read_html(struct special_upload *ctx,
 
 		case BH_STATE_REBUILDING:
 			if (!bh->b_data) {
-				static const gchar msg[] =
+				static const char msg[] =
 					"<li>"
 						"<b>"
 							"The library is currently being rebuild. Please, "
@@ -393,7 +393,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	size_t remain = size;
-	gchar *p = dest;
+	char *p = dest;
 
 	/*
 	 * If we have no hit pending that we can send, build some more.

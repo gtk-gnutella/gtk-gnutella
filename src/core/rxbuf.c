@@ -89,7 +89,7 @@ rxbuf_data_free(gpointer p, gpointer unused_data)
 pdata_t *
 rxbuf_new(void)
 {
-	gchar *phys = palloc(rxpool);
+	char *phys = palloc(rxpool);
 
 	/*
 	 * We want to use page-aligned memory to benefit from possible zero-copy

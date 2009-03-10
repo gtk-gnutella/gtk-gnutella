@@ -73,7 +73,7 @@ namesize_eq(gconstpointer a, gconstpointer b)
  * Create a new namesize structure.
  */
 namesize_t *
-namesize_make(const gchar *name, filesize_t size)
+namesize_make(const char *name, filesize_t size)
 {
 	namesize_t *ns;
 

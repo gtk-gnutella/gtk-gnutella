@@ -143,7 +143,7 @@ void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 
 const struct mq_cops *mq_get_cops(void);
-const gchar *mq_info(const mqueue_t *q);
+const char *mq_info(const mqueue_t *q);
 
 /*
  * Message queue assertions.
@@ -151,7 +151,7 @@ const gchar *mq_info(const mqueue_t *q);
 
 #define MQ_DEBUG
 #ifdef MQ_DEBUG
-void mq_check_track(mqueue_t *q, gint offset, const gchar *where, gint line);
+void mq_check_track(mqueue_t *q, gint offset, const char *where, gint line);
 
 #define mq_check(x,y)	mq_check_track((x), (y), _WHERE_, __LINE__)
 #else

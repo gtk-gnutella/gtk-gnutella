@@ -48,8 +48,8 @@ const struct txdrv_ops *tx_link_get_ops(void);
  */
 struct tx_link_cb {
 	void (*add_tx_written)(gpointer owner, gint amount);
-	void (*eof_remove)(gpointer owner, const gchar *reason, ...);
-	void (*eof_shutdown)(gpointer owner, const gchar *reason, ...);
+	void (*eof_remove)(gpointer owner, const char *reason, ...);
+	void (*eof_shutdown)(gpointer owner, const char *reason, ...);
 	void (*unflushq)(gpointer owner);
 };
 

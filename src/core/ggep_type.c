@@ -128,8 +128,8 @@ ggept_h_tth_extract(extvec_t *exv, struct tth *tth)
 ggept_status_t
 ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 {
-	const gchar *payload;
-	const gchar *p;
+	const char *payload;
+	const char *p;
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -171,7 +171,7 @@ ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 
 	if (hvec) {
 		gnet_host_vec_t *vec;
-		const gchar *p;
+		const char *p;
 		guint n, i;
 
 		vec = gnet_host_vec_alloc();
@@ -232,11 +232,11 @@ ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
  * extracted something in the supplied buffer.
  */
 ggept_status_t
-ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
+ggept_hname_extract(extvec_t *exv, char *buf, gint len)
 {
 	gint tlen;
 	gint slen;
-	const gchar *payload;
+	const char *payload;
 
 	g_assert(len >= 0);
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -266,7 +266,7 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 	 * IP address.
 	 */
 	{
-		const gchar *endptr;
+		const char *endptr;
 		host_addr_t addr;
 
 		if (
@@ -292,9 +292,9 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
  * @return the length in bytes of the encoded variable-length integer.
  */
 static inline gint
-ggep_vlint_encode(guint64 v, gchar *data)
+ggep_vlint_encode(guint64 v, char *data)
 {
-	gchar *p;
+	char *p;
 
 	for (p = data; v != 0; v >>= 8)	{
 		*p++ = v & 0xff;
@@ -313,7 +313,7 @@ ggep_vlint_encode(guint64 v, gchar *data)
  * @return The decoded value.
  */
 static inline guint64
-ggep_vlint_decode(const gchar *data, size_t len)
+ggep_vlint_decode(const char *data, size_t len)
 {
 	guint64 v;
 	guint i;
@@ -397,7 +397,7 @@ ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr)
  * @return the amount of bytes written.
  */
 guint
-ggept_filesize_encode(guint64 filesize, gchar *data)
+ggept_filesize_encode(guint64 filesize, char *data)
 {
 	return ggep_vlint_encode(filesize, data);
 }
@@ -433,7 +433,7 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
  * @return the amount of chars written.
  */
 guint
-ggept_du_encode(guint32 uptime, gchar *data)
+ggept_du_encode(guint32 uptime, char *data)
 {
 	return ggep_vlint_encode(uptime, data);
 }
@@ -466,7 +466,7 @@ ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr)
  * @return the amount of chars written.
  */
 guint
-ggept_ct_encode(time_t timestamp, gchar *data)
+ggept_ct_encode(time_t timestamp, char *data)
 {
 	return ggep_vlint_encode(timestamp, data);
 }

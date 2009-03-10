@@ -52,13 +52,13 @@ typedef enum {
  * Public interface.
  */
 
-gboolean header_get_feature(const gchar *feature_name, const header_t *header,
+gboolean header_get_feature(const char *feature_name, const header_t *header,
 		guint *feature_version_major, guint *feature_version_minor);
-void header_features_add(xfeature_t xf, const gchar *feature_name,
+void header_features_add(xfeature_t xf, const char *feature_name,
 		int feature_version_major, int feature_version_minor);
 void features_close(void);
 void header_features_generate(xfeature_t xf,
-		gchar *buf, size_t len, size_t *rw);
+		char *buf, size_t len, size_t *rw);
 
 #endif	/* _core_features_h_ */
 

@@ -72,7 +72,7 @@ RCSID("$Id$")
  * in the pings.
  */
 static struct uhc_context {
-	const gchar *host;			/**< Last selected host (static buffer) */
+	const char *host;			/**< Last selected host (static buffer) */
 	cevent_t *timeout_ev;		/**< Ping timeout */
 	gint attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
@@ -83,7 +83,7 @@ static struct uhc_context {
 static hash_list_t *uhc_list;	/**< List of ``struct uhc'' */
 
 struct uhc {
-	const gchar	*host;	/**< An UHC host as "<host>:<port>" (string atom) */
+	const char	*host;	/**< An UHC host as "<host>:<port>" (string atom) */
 	time_t		stamp;	/**< Timestamp of the last request */
 	guint		used;	/**< How often have we tried to contact it */
 };
@@ -92,7 +92,7 @@ struct uhc {
  * The following hosts are there for bootstrapping purposes only.
  */
 static const struct {
-	const gchar *uhc;
+	const char *uhc;
 } boot_hosts[] = {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
@@ -123,10 +123,10 @@ static void uhc_host_resolved(const host_addr_t *addr, size_t n,
  * @return TRUE if we successfully parsed the string.
  */
 static gboolean
-uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
+uhc_get_host_port(const char *hp, const char **host, guint16 *port)
 {
-	static gchar hostname[MAX_HOSTLEN + 1];
-	const gchar *ep;
+	static char hostname[MAX_HOSTLEN + 1];
+	const char *ep;
 	guint32 u;
 	gint error;
 	size_t len;
@@ -163,7 +163,7 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 }
 
 static struct uhc *
-uhc_new(const gchar *host)
+uhc_new(const char *host)
 {
 	static const struct uhc zero_uhc;
 	struct uhc *uhc;
@@ -206,7 +206,7 @@ uhc_equal(gconstpointer p, gconstpointer q)
 
 
 static void
-uhc_list_add(const gchar *host)
+uhc_list_add(const char *host)
 {
 	struct uhc *uhc;
 
@@ -229,11 +229,11 @@ uhc_list_add(const gchar *host)
 /**
  * @return NULL on error, a newly allocated string otherwise.
  */
-static gchar *
+static char *
 uhc_get_next(void)
 {
 	struct uhc *uhc;
-	gchar *host;
+	char *host;
 	time_t now;
 
 	g_return_val_if_fail(uhc_list, NULL);
@@ -276,7 +276,7 @@ static gboolean
 uhc_pick(void)
 {
 	gboolean success = FALSE;
-	gchar *uhc;
+	char *uhc;
 
 	uhc = uhc_get_next();
 	if (NULL == uhc) {
@@ -294,7 +294,7 @@ uhc_pick(void)
 	 * Give GUI feedback.
 	 */
 	{
-		gchar msg[256];
+		char msg[256];
 
 		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
@@ -367,7 +367,7 @@ uhc_send_ping(void)
 		 * Give GUI feedback.
 		 */
 		{
-			gchar msg[256];
+			char msg[256];
 
 			gm_snprintf(msg, sizeof msg,
 				_("Sent ping to UDP host cache %s:%u"),
@@ -476,7 +476,7 @@ uhc_get_hosts(void)
  * Called when a pong with an "IPP" extension was received.
  */
 void
-uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
+uhc_ipp_extract(gnutella_node_t *n, const char *payload, gint paylen)
 {
 	gint i, cnt;
 
@@ -528,7 +528,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	 */
 
 	if (cnt > 0) {
-		gchar msg[256];
+		char msg[256];
 
 		cq_cancel(callout_queue, &uhc_ctx.timeout_ev);
 		uhc_connecting = FALSE;
@@ -557,7 +557,7 @@ uhc_init(void)
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
 
 	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
-		const gchar *host, *ep, *uhc;
+		const char *host, *ep, *uhc;
 		guint16 port;
 
 		uhc = boot_hosts[i].uhc;

@@ -310,7 +310,7 @@ tx_chunk_write(txdrv_t *tx, gconstpointer data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 	size_t remain = len;
-	const gchar *ptr = data;
+	const char *ptr = data;
 	size_t written = 0;
 
 	g_assert((size_t) -1 != len && len > 0);

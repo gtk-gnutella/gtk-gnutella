@@ -297,7 +297,7 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(struct gnutella_socket *s);
-static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
+static void socket_destroy(struct gnutella_socket *s, const char *reason);
 static void socket_connected(gpointer data, gint source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
 
@@ -393,7 +393,7 @@ socket_tos(const struct gnutella_socket *s, gint tos)
 		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
 	) {
 		if (ECONNRESET != errno) {
-			const gchar *tosname;
+			const char *tosname;
 
 			switch (tos) {
 			case 0: tosname = "default"; break;
@@ -618,7 +618,7 @@ send_socks4(struct gnutella_socket *s)
 	/* Determine the current username */
 	{
 		const struct passwd *user;
-		const gchar *name;
+		const char *name;
 		size_t name_size;
 
 		user = getpwuid(getuid());
@@ -715,7 +715,7 @@ connect_http(struct gnutella_socket *s)
 	ssize_t ret;
 	size_t parsed;
 	gint status;
-	const gchar *str;
+	const char *str;
 
 	socket_check(s);
 
@@ -723,13 +723,13 @@ connect_http(struct gnutella_socket *s)
 	case 0:
 		{
 			static const struct {
-				const gchar *s;
+				const char *s;
 			} parts[] = {
 				{ "CONNECT " }, { NULL }, { " HTTP/1.0\r\nHost: " }, { NULL },
 				{ "\r\n\r\n" },
 			};
 			struct iovec iov[G_N_ELEMENTS(parts)];
-			const gchar *host_port = host_addr_port_to_string(s->addr, s->port);
+			const char *host_port = host_addr_port_to_string(s->addr, s->port);
 			size_t size = 0;
 			guint i;
 
@@ -854,10 +854,10 @@ connect_http(struct gnutella_socket *s)
 static gint
 connect_socksv5(struct gnutella_socket *s)
 {
-	static const gchar verstring[] = "\x05\x02\x02";
+	static const char verstring[] = "\x05\x02\x02";
 	ssize_t ret = 0;
 	size_t size;
-	const gchar *name;
+	const char *name;
 	gint sockid;
 	host_addr_t addr;
 
@@ -1243,7 +1243,7 @@ socket_shutdown(void)
  * with the supplied reason.
  */
 static void
-socket_destroy(struct gnutella_socket *s, const gchar *reason)
+socket_destroy(struct gnutella_socket *s, const char *reason)
 {
 	socket_check(s);
 
@@ -1421,7 +1421,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	size_t count;
 	ssize_t r;
 	size_t parsed;
-	const gchar *first, *endptr;
+	const char *first, *endptr;
 
 	(void) source;
 
@@ -1587,7 +1587,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		goto cleanup;
 	case BAN_MSG:				/* Send specific 403 error message */
 		{
-			const gchar *msg = ban_message(s->addr);
+			const char *msg = ban_message(s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
                 g_message("rejecting connection from banned %s (%s still): %s",
@@ -1652,7 +1652,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 
 	if (hostiles_check(s->addr)) {
-		static const gchar msg[] = "Hostile IP address banned";
+		static const char msg[] = "Hostile IP address banned";
 
 		socket_disable_token(s);
 
@@ -1677,7 +1677,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		NULL != (endptr = is_strprefix(first, "GET ")) ||
 		NULL != (endptr = is_strprefix(first, "HEAD "))
 	) {
-		const gchar *uri;
+		const char *uri;
 
 		/*
 		 * We have to decide whether this is an upload request or a
@@ -2511,7 +2511,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 	{
 		static const struct accept_filter_arg zero_arg;
 		struct accept_filter_arg arg;
-		static const gchar name[] = "dataready";
+		static const char name[] = "dataready";
 
 		arg = zero_arg;
 		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
@@ -2889,7 +2889,7 @@ finish:
  * resolved through async DNS calls.
  */
 struct gnutella_socket *
-socket_connect_by_name(const gchar *host, guint16 port,
+socket_connect_by_name(const char *host, guint16 port,
 	enum socket_type type, guint32 flags)
 {
 	struct gnutella_socket *s;
@@ -2994,7 +2994,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 
 #if defined(HAS_SOCKER_GET)
 	if (fd < 0 && (EACCES == saved_errno || EPERM == saved_errno)) {
-		gchar addr_str[128];
+		char addr_str[128];
 
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
 		fd = socker_get(family, type, 0, addr_str, port);
@@ -3005,14 +3005,14 @@ socket_create_and_bind(const host_addr_t bind_addr,
 #endif /* HAS_SOCKER_GET */
 
 	if (fd < 0) {
-		const gchar *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
-		const gchar *net_str = net_type_to_string(host_addr_net(bind_addr));
+		const char *type_str = SOCK_DGRAM == type ? "datagram" : "stream";
+		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
 			g_warning("Unable to create the %s (%s) socket (%s)",
 				type_str, net_str, g_strerror(errno));
 		} else {
-			gchar bind_addr_str[HOST_ADDR_PORT_BUFLEN];
+			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
 				bind_addr_str, sizeof bind_addr_str);
@@ -3070,7 +3070,7 @@ socket_is_local(const struct gnutella_socket *s)
  * resource of `type'.
  */
 struct gnutella_socket *
-socket_local_listen(const gchar *pathname)
+socket_local_listen(const char *pathname)
 {
 	struct sockaddr_un addr;
 	struct gnutella_socket *s;

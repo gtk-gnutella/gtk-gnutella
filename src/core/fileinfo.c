@@ -135,8 +135,8 @@ static GHashTable *fi_by_namesize;
 static GHashTable *fi_by_outname;
 static GHashTable *fi_by_guid;
 
-static const gchar file_info_file[] = "fileinfo";
-static const gchar file_info_what[] = "the fileinfo database";
+static const char file_info_file[] = "fileinfo";
+static const char file_info_what[] = "the fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/**< Set by file_info_retrieve() */
 
@@ -171,10 +171,10 @@ enum dl_file_info_field {
  * since we can sometime reuse the download's file descriptor.
  */
 static struct {
-	gchar *arena;			/**< Base arena */
-	gchar *wptr;			/**< Write pointer */
-	const gchar *rptr;		/**< Read pointer */
-	const gchar *end;		/**< First byte off arena */
+	char *arena;			/**< Base arena */
+	char *wptr;			/**< Write pointer */
+	const char *rptr;		/**< Read pointer */
+	const char *end;		/**< First byte off arena */
 	size_t size;			/**< Current size of arena */
 } tbuf;
 
@@ -309,7 +309,7 @@ TBUF_GET_UINT32(guint32 *x)
 }
 
 static WARN_UNUSED_RESULT gboolean
-TBUF_READ(gchar *x, size_t size)
+TBUF_READ(char *x, size_t size)
 {
 	tbuf_check();
 
@@ -339,7 +339,7 @@ TBUF_PUT_UINT32(guint32 x)
 }
 
 static void
-TBUF_WRITE(const gchar *data, size_t size)
+TBUF_WRITE(const char *data, size_t size)
 {
 	TBUF_CHECK(size);
 	memcpy(tbuf.wptr, data, size);
@@ -374,7 +374,7 @@ WRITE_UINT32(guint32 val, guint32 *checksum)
 }
 
 static void
-WRITE_STR(const gchar *data, size_t size, guint32 *checksum)
+WRITE_STR(const char *data, size_t size, guint32 *checksum)
 {
 	TBUF_WRITE(data, size);
 	file_info_checksum(checksum, data, size);
@@ -410,7 +410,7 @@ READ_UINT32(guint32 *val_ptr, guint32 *checksum)
 }
 
 static WARN_UNUSED_RESULT gboolean
-READ_STR(gchar *data, size_t size, guint32 *checksum)
+READ_STR(char *data, size_t size, guint32 *checksum)
 {
 	if (TBUF_READ(data, size)) {
 		file_info_checksum(checksum, data, size);
@@ -445,11 +445,11 @@ struct trailer {
 	fi_magic_t magic;		/**< Magic number */
 };
 
-static fileinfo_t *file_info_retrieve_binary(const gchar *pathname);
+static fileinfo_t *file_info_retrieve_binary(const char *pathname);
 static void fi_free(fileinfo_t *fi);
 static void fi_update_seen_on_network(gnet_src_t srcid);
-static const gchar *file_info_new_outname(const gchar *dir, const gchar *name);
-static gboolean looks_like_urn(const gchar *filename);
+static const char *file_info_new_outname(const char *dir, const char *name);
+static gboolean looks_like_urn(const char *filename);
 
 static idtable_t *fi_handle_map;
 static idtable_t *src_handle_map;
@@ -484,7 +484,7 @@ fi_event_trigger(fileinfo_t *fi, gnet_fi_ev_t id)
 }
 
 static void
-file_info_drop_handle(fileinfo_t *fi, const gchar *reason)
+file_info_drop_handle(fileinfo_t *fi, const char *reason)
 {
 	file_info_check(fi);
 
@@ -525,7 +525,7 @@ tbuf_write(const struct file_object *fo, filesize_t offset)
 
 	ret = file_object_pwrite(fo, tbuf.arena, size, offset);
 	if ((ssize_t) -1 == ret || (size_t) ret != size) {
-		const gchar *error;
+		const char *error;
 
 		error = (ssize_t) -1 == ret ? g_strerror(errno) : "Unknown error";
 		g_warning("error while flushing trailer info for \"%s\": %s",
@@ -838,7 +838,7 @@ file_info_mark_stripped(fileinfo_t *fi)
 }
 
 static void
-file_info_strip_trailer(fileinfo_t *fi, const gchar *pathname)
+file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 {
 	file_info_check(fi);
 	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
@@ -869,7 +869,7 @@ file_info_strip_binary(fileinfo_t *fi)
  * Strips the file metainfo trailer off specified file.
  */
 void
-file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *pathname)
+file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 {
 	fileinfo_t *dfi;
 
@@ -891,7 +891,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const gchar *pathname)
 	}
 
 	if (dfi->size != fi->size || dfi->done != fi->done) {
-		gchar buf[64];
+		char buf[64];
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(dfi->done), "/",
@@ -957,7 +957,7 @@ fi_free(fileinfo_t *fi)
 		GSList *sl;
 
 		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
-			const gchar *s = sl->data;
+			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
 		g_slist_free(fi->alias);
@@ -1048,7 +1048,7 @@ fi_resize(fileinfo_t *fi, filesize_t size)
  * If `record' is TRUE, also record new alias entry in `fi_by_namesize'.
  */
 static void
-fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
+fi_alias(fileinfo_t *fi, const char *name, gboolean record)
 {
 	namesize_t *ns;
 	GSList *list;
@@ -1099,7 +1099,7 @@ fi_alias(fileinfo_t *fi, const gchar *name, gboolean record)
  */
 static gboolean
 file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
-	const gchar *name)
+	const char *name)
 {
 	ssize_t r;
 	fi_magic_t magic;
@@ -1210,7 +1210,7 @@ file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
  *			-1 on error.
  */
 gint
-file_info_has_trailer(const gchar *path)
+file_info_has_trailer(const char *path)
 {
 	struct trailer trailer;
 	gint fd;
@@ -1242,7 +1242,7 @@ file_info_by_sha1(const struct sha1 *sha1)
  * @returns the fileinfo structure if found, NULL otherwise.
  */
 static fileinfo_t *
-file_info_lookup(const gchar *name, filesize_t size, const struct sha1 *sha1)
+file_info_lookup(const char *name, filesize_t size, const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
 	GSList *list;
@@ -1348,9 +1348,9 @@ file_info_lookup_dup(fileinfo_t *fi)
  * Check whether filename looks like an URN.
  */
 static gboolean
-looks_like_urn(const gchar *filename)
+looks_like_urn(const char *filename)
 {
-	const gchar *p, *q;
+	const char *p, *q;
 	guint i;
 
 	/* Check for the following pattern:
@@ -1389,18 +1389,18 @@ looks_like_urn(const gchar *filename)
  * @returns a pointer to the information in the fileinfo, but this must be
  * duplicated should it be perused later.
  */
-const gchar *
+const char *
 file_info_readable_filename(const fileinfo_t *fi)
 {
 	const GSList *sl;
-	const gchar *filename;
+	const char *filename;
 
 	file_info_check(fi);
 
 	filename = filepath_basename(fi->pathname);
 	if (looks_like_urn(filename)) {
 		for (sl = fi->alias; sl; sl = g_slist_next(sl)) {
-			const gchar *name = sl->data;
+			const char *name = sl->data;
 			if (!looks_like_urn(name))
 				return name;
 		}
@@ -1576,15 +1576,15 @@ discard:
  * @returns a pointer to the info structure if found, and NULL otherwise.
  */
 static fileinfo_t *
-file_info_retrieve_binary(const gchar *pathname)
+file_info_retrieve_binary(const char *pathname)
 {
 	guint32 tmpchunk[5];
 	guint32 tmpguint;
 	guint32 checksum = 0;
 	fileinfo_t *fi = NULL;
 	enum dl_file_info_field field;
-	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
-	const gchar *reason;
+	char tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
+	const char *reason;
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
@@ -1919,7 +1919,7 @@ static void
 file_info_store_one(FILE *f, fileinfo_t *fi)
 {
 	const GSList *sl;
-	gchar *path;
+	char *path;
 
 	file_info_check(fi);
 
@@ -1958,7 +1958,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	G_FREE_NULL(path);
 
 	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
-		const gchar *alias = sl->data;
+		const char *alias = sl->data;
 
 		g_assert(NULL != alias);
 		if (looks_like_urn(alias)) {
@@ -2158,7 +2158,7 @@ file_info_free_guid_kv(gpointer key, gpointer val, gpointer unused_x)
 static void
 file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 {
-	const gchar *name = key;
+	const char *name = key;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
@@ -2462,7 +2462,7 @@ transient:
  * Stop all sharing occuring for this fileinfo.
  */
 void
-file_info_upload_stop(fileinfo_t *fi, const gchar *reason)
+file_info_upload_stop(fileinfo_t *fi, const char *reason)
 {
 	file_info_check(fi);
 
@@ -2609,7 +2609,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	 */
 
 	if (GNET_PROPERTY(fileinfo_debug) > 3) {
-		gchar buf[64];
+		char buf[64];
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(xfi->done), "/",
@@ -2621,7 +2621,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	}
 
 	if (fi->done && xfi->done) {
-		gchar buf[64];
+		char buf[64];
 
 		concat_strings(buf, sizeof buf,
 			uint64_to_string(xfi->done), "/",
@@ -2669,7 +2669,7 @@ extract_guid(const char *s)
  * and return NULL if none or invalid, the SHA1 atom otherwise.
  */
 static const struct sha1 *
-extract_sha1(const gchar *s)
+extract_sha1(const char *s)
 {
 	struct sha1 sha1;
 
@@ -2684,7 +2684,7 @@ extract_sha1(const gchar *s)
 }
 
 static const struct tth *
-extract_tth(const gchar *s)
+extract_tth(const char *s)
 {
 	struct tth tth;
 
@@ -2723,7 +2723,7 @@ typedef enum {
 
 static const struct fi_tag {
 	fi_tag_t	tag;
-	const gchar *str;
+	const char *str;
 } fi_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
@@ -2754,7 +2754,7 @@ static const struct fi_tag {
  * An unknown tag yieldd FI_TAG_UNKNOWN.
  */
 static fi_tag_t
-file_info_string_to_tag(const gchar *s)
+file_info_string_to_tag(const char *s)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
 
@@ -2765,7 +2765,7 @@ file_info_string_to_tag(const gchar *s)
 } G_STMT_END
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
+	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
 		GET_KEY, FOUND);
 
 #undef FOUND
@@ -2834,14 +2834,14 @@ void
 file_info_retrieve(void)
 {
 	FILE *f;
-	gchar line[1024];
+	char line[1024];
 	fileinfo_t *fi = NULL;
 	gboolean empty = TRUE;
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
-	const gchar *old_filename = NULL;	/* In case we must rename the file */
-	const gchar *path = NULL;
-	const gchar *filename = NULL;
+	const char *old_filename = NULL;	/* In case we must rename the file */
+	const char *path = NULL;
+	const char *filename = NULL;
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -2866,8 +2866,8 @@ file_info_retrieve(void)
 		size_t len;
 		gint error;
 		gboolean truncated = FALSE, damaged;
-		const gchar *ep;
-		gchar *value;
+		const char *ep;
+		char *value;
 		guint64 v;
 
 		if ('#' == *line) continue;
@@ -2909,7 +2909,7 @@ file_info_retrieve(void)
 			gboolean reload_chunks = FALSE;
 
 			if (filename && path) {
-				gchar *pathname = make_pathname(path, filename);
+				char *pathname = make_pathname(path, filename);
 				fi->pathname = atom_str_get(pathname);
 				G_FREE_NULL(pathname);
 			} else {
@@ -2977,8 +2977,8 @@ file_info_retrieve(void)
 			 */
 
 			if (NULL != old_filename) {
-				const gchar *new_pathname;
-				gchar *old_path;
+				const char *new_pathname;
+				char *old_path;
 				gboolean renamed = TRUE;
 
 				old_path = filepath_directory(fi->pathname);
@@ -3132,7 +3132,7 @@ file_info_retrieve(void)
 				aliases = g_slist_reverse(fi->alias);
 				fi->alias = NULL;
 				for (sl = aliases; NULL != sl; sl = g_slist_next(sl)) {
-					const gchar *s = sl->data;
+					const char *s = sl->data;
 					fi_alias(fi, s, TRUE);
 					atom_str_free_null(&s);
 				}
@@ -3170,8 +3170,8 @@ file_info_retrieve(void)
 		switch (file_info_string_to_tag(line)) {
 		case FI_TAG_NAME:
 			if (GNET_PROPERTY(convert_old_filenames)) {
-				gchar *s;
-				gchar *b;
+				char *s;
+				char *b;
 
 				b = s = gm_sanitize_filename(value,
 						GNET_PROPERTY(convert_spaces),
@@ -3219,8 +3219,8 @@ file_info_retrieve(void)
 					"fileinfo database: \"%s\" (pathname=\"%s\")", value,
 					NULL_STRING(fi->pathname));
 			} else {
-				gchar *s;
-				gchar *b;
+				char *s;
+				char *b;
 
 				b = s = gm_sanitize_filename(value, FALSE, FALSE);
 
@@ -3320,7 +3320,7 @@ file_info_retrieve(void)
 					|| from > fi->size;
 
 				if (!damaged) {
-					const gchar *s = &ep[1];
+					const char *s = &ep[1];
 
 					to = v = parse_uint64(s, &ep, 10, &error);
 					damaged = error
@@ -3332,7 +3332,7 @@ file_info_retrieve(void)
 					to = 0;	/* For stupid compilers */
 				}
 				if (!damaged) {
-					const gchar *s = &ep[1];
+					const char *s = &ep[1];
 
 					status = v = parse_uint64(s, &ep, 10, &error);
 					damaged = error || '\0' != *ep || v > 2U;
@@ -3398,15 +3398,15 @@ file_info_retrieve(void)
 }
 
 static gboolean
-file_info_name_is_uniq(const gchar *pathname)
+file_info_name_is_uniq(const char *pathname)
 {
 	return NULL == g_hash_table_lookup(fi_by_outname, pathname) &&
 	   	file_does_not_exist(pathname);
 }
 
 char *
-file_info_unique_filename(const gchar *path, const gchar *file,
-	const gchar *ext)
+file_info_unique_filename(const char *path, const char *file,
+	const char *ext)
 {
 	return unique_filename(path, file, ext, file_info_name_is_uniq);
 }
@@ -3416,13 +3416,13 @@ file_info_unique_filename(const gchar *path, const gchar *file,
  *
  * @returns The full pathname (string atom).
  */
-static const gchar *
-file_info_new_outname(const gchar *dir, const gchar *name)
+static const char *
+file_info_new_outname(const char *dir, const char *name)
 {
-	gchar *uniq = NULL;
-	const gchar *filename = name;
-	gchar *b;
-	gchar *s;
+	char *uniq = NULL;
+	const char *filename = name;
+	char *b;
+	char *s;
 
 	g_assert(dir);
 	g_assert(name);
@@ -3452,7 +3452,7 @@ file_info_new_outname(const gchar *dir, const gchar *name)
 	if (name != s)	G_FREE_NULL(s);
 
 	if (uniq) {
-		const gchar *pathname;
+		const char *pathname;
 
 		pathname = atom_str_get(uniq);
 		G_FREE_NULL(uniq);
@@ -3469,7 +3469,7 @@ file_info_new_outname(const gchar *dir, const gchar *name)
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static fileinfo_t *
-file_info_create(const gchar *file, const gchar *path, filesize_t size,
+file_info_create(const char *file, const char *path, filesize_t size,
 	const struct sha1 *sha1, gboolean file_size_known)
 {
 	const char *pathname;
@@ -3526,10 +3526,10 @@ file_info_create(const gchar *file, const gchar *path, filesize_t size,
  * Create a transient fileinfo structure.
  */
 fileinfo_t *
-file_info_get_transient(const gchar *name)
+file_info_get_transient(const char *name)
 {
 	fileinfo_t *fi;
-	gchar *path;
+	char *path;
 
 	fi = walloc0(sizeof *fi);
 	fi->magic = FI_MAGIC;
@@ -3565,9 +3565,9 @@ file_info_get_transient(const gchar *name)
  * trailer so that we do not try to reparent it at a later time.
  */
 static void
-fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
+fi_rename_dead(fileinfo_t *fi, const char *pathname)
 {
-	gchar *path, *dead;
+	char *path, *dead;
 
 	file_info_check(fi);
 
@@ -3592,7 +3592,7 @@ fi_rename_dead(fileinfo_t *fi, const gchar *pathname)
  * to continue "partial-file-sharing" it now that it is fully available...
  */
 void
-file_info_moved(fileinfo_t *fi, const gchar *pathname)
+file_info_moved(fileinfo_t *fi, const char *pathname)
 {
 	const fileinfo_t *xfi;
 	
@@ -3645,12 +3645,12 @@ file_info_moved(fileinfo_t *fi, const gchar *pathname)
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  */
 fileinfo_t *
-file_info_get(const gchar *file, const gchar *path, filesize_t size,
+file_info_get(const char *file, const char *path, filesize_t size,
 	const struct sha1 *sha1, gboolean file_size_known)
 {
 	fileinfo_t *fi;
-	const gchar *pathname;
-   	gchar *to_free = NULL;
+	const char *pathname;
+   	char *to_free = NULL;
 
 	/*
 	 * See if we know anything about the file already.
@@ -3693,7 +3693,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 
 	/* First convert the filename to what the GUI used */
 	{
-		gchar *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK, NULL);
+		char *s = unknown_to_utf8_normalized(file, UNI_NORM_NETWORK, NULL);
 		if (file != s) {
 			file = s;
 			to_free = s;
@@ -3702,7 +3702,7 @@ file_info_get(const gchar *file, const gchar *path, filesize_t size,
 
 	/* Now convert the UTF-8 to what the filesystem wants */
 	{
-		gchar *s = utf8_to_filename(file);
+		char *s = utf8_to_filename(file);
 		g_assert(s != file);
 		G_FREE_NULL(to_free);
 		to_free = s;
@@ -5252,7 +5252,7 @@ selected:
  */
 void
 file_info_try_to_swarm_with(
-	const gchar *file_name, const host_addr_t addr, guint16 port,
+	const char *file_name, const host_addr_t addr, guint16 port,
 	const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
@@ -5284,12 +5284,12 @@ file_info_try_to_swarm_with(
  * fileinfo trailer, yet which we know nothing about.
  */
 void
-file_info_scandir(const gchar *dir)
+file_info_scandir(const char *dir)
 {
 	DIR *d;
 	struct dirent *dentry;
 	fileinfo_t *fi;
-	gchar *pathname = NULL;
+	char *pathname = NULL;
 
 	d = opendir(dir);
 	if (NULL == d) {
@@ -5605,15 +5605,15 @@ fi_free_ranges(GSList *ranges)
 
 
 /**
- * @return NULL terminated array of gchar * pointing to the aliases.
+ * @return NULL terminated array of char * pointing to the aliases.
  * You can easily free the returned array with g_strfreev().
  *
  * O(2n) - n: number of aliases
  */
-gchar **
+char **
 fi_get_aliases(gnet_fi_t fih)
 {
-    gchar **a;
+    char **a;
     guint len;
     GSList *sl;
     guint n;
@@ -5951,12 +5951,12 @@ fi_rename(gnet_fi_t fih, const char *filename)
  * @returns the size of the generated header.
  */
 gint
-file_info_available_ranges(fileinfo_t *fi, gchar *buf, gint size)
+file_info_available_ranges(fileinfo_t *fi, char *buf, gint size)
 {
 	const struct dl_file_chunk **fc_ary;
 	gpointer fmt;
 	gboolean is_first = TRUE;
-	gchar range[80];
+	char range[80];
 	GSList *sl;
 	gint maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
 	gint count;
@@ -6136,13 +6136,13 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
  *
  * @return A newly allocated string.
  */
-gchar *
+char *
 file_info_build_magnet(gnet_fi_t handle)
 {
 	struct magnet_resource *magnet;
 	const fileinfo_t *fi;
 	const GSList *sl;
-	gchar *url;
+	char *url;
 	gint n;
    
 	fi = file_info_find_by_handle(handle);
@@ -6169,7 +6169,7 @@ file_info_build_magnet(gnet_fi_t handle)
 	n = 0;
 	for (sl = fi->sources; NULL != sl && n++ < 20; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		gchar *dl_url;
+		char *dl_url;
 
 		download_check(d);
 		dl_url = download_build_url(d);
@@ -6189,7 +6189,7 @@ file_info_build_magnet(gnet_fi_t handle)
  *
  * @return A newly allocated string or NULL.
  */
-gchar *
+char *
 file_info_get_file_url(gnet_fi_t handle)
 {
 	fileinfo_t *fi;
@@ -6369,7 +6369,7 @@ file_info_foreach(file_info_foreach_cb callback, gpointer udata)
 const char *
 file_info_status_to_string(const gnet_fi_status_t *status)
 {
-	static gchar buf[4096];
+	static char buf[4096];
 
 	g_return_val_if_fail(status, NULL);
 
@@ -6398,7 +6398,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 			return _("Waiting for SHA1 check");
 		}
  	} else if (status->complete) {
-		static gchar msg_sha1[1024], msg_copy[1024];
+		static char msg_sha1[1024], msg_copy[1024];
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {

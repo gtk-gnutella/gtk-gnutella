@@ -74,7 +74,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static gboolean dirty = FALSE;
-static gchar *stats_file;
+static char *stats_file;
 static hash_list_t *upload_stats_list;
 static GHashTable *upload_stats_by_sha1;
 
@@ -104,7 +104,7 @@ ul_stats_hash(gconstpointer p)
  * and recorded as such.
  */
 static struct ul_stats *
-upload_stats_find(const struct sha1 *sha1, const gchar *pathname, guint64 size)
+upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
 {
 	struct ul_stats *s = NULL;
 
@@ -157,7 +157,7 @@ upload_stats_find(const struct sha1 *sha1, const gchar *pathname, guint64 size)
 }
 
 static void
-upload_stats_add(const gchar *pathname, filesize_t size, const char *name,
+upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	guint32 attempts, guint32 complete, guint64 ul_bytes,
 	time_t rtime, time_t dtime, const struct sha1 *sha1)
 {
@@ -189,10 +189,10 @@ upload_stats_add(const gchar *pathname, filesize_t size, const char *name,
 }
 
 void
-upload_stats_load_history(const gchar *ul_history_file_name)
+upload_stats_load_history(const char *ul_history_file_name)
 {
 	FILE *upload_stats_file;
-	gchar line[FILENAME_MAX + 64];
+	char line[FILENAME_MAX + 64];
 	guint lineno = 0;
 
 	gcu_upload_stats_gui_freeze();
@@ -233,7 +233,7 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 		for (i = 0; i < 8; i++) {
 			guint64 v;
 			int error;
-			const gchar *endptr;
+			const char *endptr;
 
 			p = skip_ascii_spaces(p);
 
@@ -360,7 +360,7 @@ upload_stats_dump_item(gpointer p, gpointer user_data)
  * Save upload statistics to file.
  */
 static void
-upload_stats_dump_history(const gchar *ul_history_file_name)
+upload_stats_dump_history(const char *ul_history_file_name)
 {
 	FILE *out;
 	time_t now = tm_time();
@@ -431,7 +431,7 @@ upload_stats_enforce_local_filename(const struct shared_file *sf)
 {
 	struct ul_stats *s;
 	const struct sha1 *sha1;
-	const gchar *name;
+	const char *name;
 
 	if (!upload_stats_by_sha1)
 		return;		/* Nothing known by SHA1 yet */
@@ -469,7 +469,7 @@ void
 upload_stats_file_begin(const struct shared_file *sf)
 {
 	struct ul_stats *s;
-	const gchar *pathname;
+	const char *pathname;
 	filesize_t size;
 	const struct sha1 *sha1;
 
@@ -508,7 +508,7 @@ upload_stats_file_add(
 	const struct shared_file *sf,
 	gint comp, guint64 sent, gboolean update_dtime)
 {
-	const gchar *pathname = shared_file_path(sf);
+	const char *pathname = shared_file_path(sf);
 	filesize_t size = shared_file_size(sf);
 	struct ul_stats *s;
 	const struct sha1 *sha1;

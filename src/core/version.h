@@ -71,18 +71,18 @@ typedef struct version {
 void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
-gboolean version_check(const gchar *str, const gchar *token, const host_addr_t);
+gboolean version_check(const char *str, const char *token, const host_addr_t);
 gint version_cmp(const version_t *a, const version_t *b);
 gint version_build_cmp(const version_t *a, const version_t *b);
-gboolean version_fill(const gchar *version, version_t *vs);
+gboolean version_fill(const char *version, version_t *vs);
 
-const gchar *version_str(const version_t *ver);
+const char *version_str(const version_t *ver);
 
-extern const gchar *version_string;
-extern const gchar *version_short_string;
+extern const char *version_string;
+extern const char *version_short_string;
 
-const gchar *version_build_string(void);
-const gchar *version_get_string(void);
+const char *version_build_string(void);
+const char *version_get_string(void);
 guint8 version_get_code(void);
 
 #endif	/* _core_version_h_ */

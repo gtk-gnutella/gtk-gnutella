@@ -52,10 +52,10 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const gchar bogon[] = "bogon";
+static const char bogon[] = "bogon";
 
-static const gchar bogons_file[] = "bogons.txt";
-static const gchar bogons_what[] = "Bogus IP addresses";
+static const char bogons_file[] = "bogons.txt";
+static const char bogons_what[] = "Bogus IP addresses";
 
 static struct iprange_db *bogons_db; /**< The database of bogus CIDR ranges */
 
@@ -67,8 +67,8 @@ static struct iprange_db *bogons_db; /**< The database of bogus CIDR ranges */
 static gint
 bogons_load(FILE *f)
 {
-	gchar line[1024];
-	gchar *p;
+	char line[1024];
+	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
 	gint bits;
@@ -134,10 +134,10 @@ bogons_load(FILE *f)
  * addresses changed.
  */
 static void
-bogons_changed(const gchar *filename, gpointer unused_udata)
+bogons_changed(const char *filename, gpointer unused_udata)
 {
 	FILE *f;
-	gchar buf[80];
+	char buf[80];
 	gint count;
 
 	(void) unused_udata;
@@ -171,7 +171,7 @@ bogons_retrieve(void)
 {
 	FILE *f;
 	gint idx;
-	gchar *filename;
+	char *filename;
 #ifndef OFFICIAL_BUILD
 	static file_path_t fp[3];
 #else

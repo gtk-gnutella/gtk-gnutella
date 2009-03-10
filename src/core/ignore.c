@@ -69,19 +69,19 @@ static GHashTable *by_namesize;		/**< By filename + filesize */
  * since we're appending to them (we only read them on startup).
  */
 
-static const gchar ignore_sha1[]     = "ignore.sha1";
-static const gchar done_sha1[]       = "done.sha1";
-static const gchar done_namesize[]   = "done.namesize";
+static const char ignore_sha1[]     = "ignore.sha1";
+static const char done_sha1[]       = "done.sha1";
+static const char done_namesize[]   = "done.namesize";
 
 static time_t ignore_sha1_mtime;
 
 static FILE *sha1_out = NULL;
 static FILE *namesize_out = NULL;
 
-static gchar ign_tmp[1024];
+static char ign_tmp[1024];
 
-static void ignore_sha1_load(const gchar *file, time_t *stamp);
-static void ignore_namesize_load(const gchar *file, time_t *stamp);
+static void ignore_sha1_load(const char *file, time_t *stamp);
+static void ignore_namesize_load(const char *file, time_t *stamp);
 
 /**
  * Open `file' for reading if it exists.
@@ -92,7 +92,7 @@ static void ignore_namesize_load(const gchar *file, time_t *stamp);
  * @returns FILE* of the opened file on success, NULL on failure.
  */
 static FILE *
-open_read_stamp(const gchar *file, time_t *stamp)
+open_read_stamp(const char *file, time_t *stamp)
 {
 	FILE *f;
 	char *path;
@@ -121,7 +121,7 @@ open_read_stamp(const gchar *file, time_t *stamp)
  * Open `file' for appending.
  */
 static FILE *
-open_append(const gchar *file)
+open_append(const char *file)
 {
 	FILE *f;
 	char *path;
@@ -157,11 +157,11 @@ ignore_init(void)
  * Parse opened file `f' containing SHA1s to ignore.
  */
 static void
-sha1_parse(FILE *f, const gchar *file)
+sha1_parse(FILE *f, const char *file)
 {
 	gint line = 0;
 	struct sha1 sha1;
-	gchar *p;
+	char *p;
 	gint len;
 
 	g_assert(f);
@@ -214,7 +214,7 @@ sha1_parse(FILE *f, const gchar *file)
  * time if the file does not exist.
  */
 static void
-ignore_sha1_load(const gchar *file, time_t *stamp)
+ignore_sha1_load(const char *file, time_t *stamp)
 {
 	FILE *f;
 
@@ -231,11 +231,11 @@ ignore_sha1_load(const gchar *file, time_t *stamp)
  * Parse opened `f' containing size/filenames to ignore.
  */
 static void
-namesize_parse(FILE *f, const gchar *file)
+namesize_parse(FILE *f, const char *file)
 {
 	gint line = 0, error;
 	filesize_t size;
-	const gchar *p, *q;
+	const char *p, *q;
 	namesize_t *ns;
 	namesize_t nsk;
 
@@ -286,7 +286,7 @@ namesize_parse(FILE *f, const gchar *file)
  * time if the file does not exist.
  */
 static void
-ignore_namesize_load(const gchar *file, time_t *stamp)
+ignore_namesize_load(const char *file, time_t *stamp)
 {
 	FILE *f;
 
@@ -302,14 +302,14 @@ ignore_namesize_load(const gchar *file, time_t *stamp)
 /**
  * @return the filename associated with the digest if known, NULL otherwise.
  */
-const gchar *
+const char *
 ignore_sha1_filename(const struct sha1 *sha1)
 {
 	return g_hash_table_lookup(by_sha1, sha1);
 }
 
 
-const gchar *
+const char *
 ignore_reason_to_string(enum ignore_val reason)
 {
 	switch (reason) {
@@ -333,7 +333,7 @@ ignore_reason_to_string(enum ignore_val reason)
  * @param sha1 must point to a SHA1 (binary) or NULL
  */
 enum ignore_val
-ignore_is_requested(const gchar *filename, filesize_t size,
+ignore_is_requested(const char *filename, filesize_t size,
 	const struct sha1 *sha1)
 {
 	g_assert(filename != NULL);
@@ -364,7 +364,7 @@ ignore_is_requested(const gchar *filename, filesize_t size,
  * Add `sha1' to the set of ignored entries.
  */
 void
-ignore_add_sha1(const gchar *file, const struct sha1 *sha1)
+ignore_add_sha1(const char *file, const struct sha1 *sha1)
 {
 	g_assert(sha1);
 
@@ -392,7 +392,7 @@ ignore_add_sha1(const gchar *file, const struct sha1 *sha1)
  * Add `file', `size' to the set of ignored entries.
  */
 void
-ignore_add_filesize(const gchar *file, filesize_t size)
+ignore_add_filesize(const char *file, filesize_t size)
 {
 	namesize_t nsk;
 
