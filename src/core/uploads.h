@@ -74,13 +74,13 @@ struct upload {
 	struct file_object *file;		/**< uploaded file */
 	struct dl_file_info *file_info;	/**< For PFSP: only set when partial file */
 	struct special_upload *special;	/**< For special ops like browsing */
-	const gchar *name;
+	const char *name;
 	const struct sha1 *sha1;		/**< SHA1 of requested file */
 	struct shared_file *thex;		/**< THEX owner we're uploading */
 	struct bio_source *bio;			/**< Bandwidth-limited source */
 	struct sendfile_ctx sendfile_ctx;
 
-	gchar *request;
+	char *request;
 	struct upload_http_cb cb_parq_arg;
 	struct upload_http_cb cb_sha1_arg;
 	struct upload_http_cb cb_416_arg;
@@ -89,7 +89,7 @@ struct upload {
 	http_extra_desc_t hev[16];
 	guint hevcnt;
 
-	gchar *buffer;
+	char *buffer;
 	gint bpos;
 	gint bsize;
 	gint buf_size;
@@ -107,7 +107,7 @@ struct upload {
 	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 	guint16 country;			/**< Country of origin, ISO3166 code */
 
-	const gchar *user_agent;	/**< Remote user agent */
+	const char *user_agent;	/**< Remote user agent */
 
 	filesize_t file_size;
 	filesize_t skip;			/**< First byte to send, inclusive */
@@ -173,15 +173,15 @@ enum {
 
 gboolean upload_is_enabled(void);
 void upload_timer(time_t now);
-void upload_remove(struct upload *, const gchar *, ...) G_GNUC_PRINTF(2, 3);
+void upload_remove(struct upload *, const char *, ...) G_GNUC_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *);
 void upload_connect_conf(struct upload *);
 void upload_init(void);
 void upload_close(void);
-void upload_stop_all(struct dl_file_info *, const gchar *reason);
+void upload_stop_all(struct dl_file_info *, const char *reason);
 void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
-	guint8 ttl, guint32 file_index, const gchar *file_name,
+	guint8 ttl, guint32 file_index, const char *file_name,
 	gboolean banning, guint32 flags);
 struct upload *upload_create(struct gnutella_socket *, gboolean push);
 void upload_fire_upload_info_changed(struct upload *);

@@ -117,7 +117,7 @@ static gboolean sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map;
 
-static const gchar no_reason[] = "<no reason>"; /* Don't translate this */
+static const char no_reason[] = "<no reason>"; /* Don't translate this */
 
 static inline struct upload *
 cast_to_upload(gpointer p)
@@ -177,14 +177,14 @@ static const char stall_again[] = "stall again";
 
 static void upload_request(struct upload *u, header_t *header);
 static void upload_error_remove(struct upload *u,
-		int code, const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+		int code, const char *msg, ...) G_GNUC_PRINTF(3, 4);
 static void upload_error_remove_ext(struct upload *u,
-		const gchar *extended, int code,
-		const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
+		const char *extended, int code,
+		const char *msg, ...) G_GNUC_PRINTF(4, 5);
 static void upload_writable(gpointer up, gint source, inputevt_cond_t cond);
 static void upload_special_writable(gpointer up);
 static void send_upload_error(struct upload *u, int code,
-			const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+			const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
 /***
  *** Callbacks
@@ -238,7 +238,7 @@ upload_fire_upload_added(struct upload *u)
 }
 
 static void
-upload_fire_upload_removed(struct upload *u, const gchar *reason)
+upload_fire_upload_removed(struct upload *u, const char *reason)
 {
 	if (u->was_running) {
 		gnet_prop_decr_guint32(PROP_UL_RUNNING);
@@ -707,7 +707,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
  */
 void
 upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, const gchar *file_name, gboolean banning, guint32 flags)
+	guint32 file_index, const char *file_name, gboolean banning, guint32 flags)
 {
 	struct upload *u;
 	struct gnutella_socket *s;
@@ -725,7 +725,7 @@ upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
 	u->name = atom_str_get(file_name);
 
 	if (banning) {
-		const gchar *msg = ban_message(addr);
+		const char *msg = ban_message(addr);
 		if (msg != NULL)
 			upload_remove(u, _("Banned: %s"), msg);
 		else
@@ -751,9 +751,9 @@ handle_push_request(struct gnutella_node *n)
 	host_addr_t ha;
 	guint32 file_index, flags = 0;
 	guint16 port;
-	const gchar *info;
+	const char *info;
 	gboolean show_banning = FALSE;
-	const gchar *file_name = "<invalid file index>";
+	const char *file_name = "<invalid file index>";
 
 	/* Servent ID matches our GUID? */
 	if (!guid_eq(n->data, GNET_PROPERTY(servent_guid)))
@@ -1086,7 +1086,7 @@ upload_clone(struct upload *u)
 static gboolean
 upload_likely_from_browser(const header_t *header)
 {
-	gchar *buf;
+	char *buf;
 
 	buf = header_get(header, "X-Queue");
 	if (buf)
@@ -1125,7 +1125,7 @@ upload_likely_from_browser(const header_t *header)
  */
 static gboolean 
 upload_send_http_status(struct upload *u,
-	gboolean keep_alive, gint code, const gchar *msg)
+	gboolean keep_alive, gint code, const char *msg)
 {
 	upload_check(u);
 	g_assert(msg);
@@ -1142,7 +1142,7 @@ upload_send_http_status(struct upload *u,
  * X-Host line (added to the HTTP status) into `buf'.
  */
 static size_t
-upload_http_xhost_add(gchar *buf, size_t size,
+upload_http_xhost_add(char *buf, size_t size,
 	gpointer unused_arg, guint32 unused_flags)
 {
 	host_addr_t addr;
@@ -1167,7 +1167,7 @@ upload_http_xhost_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_xfeatures_add(gchar *buf, size_t size,
+upload_xfeatures_add(char *buf, size_t size,
 	gpointer unused_arg, guint32 unused_flags)
 {
 	size_t rw = 0;
@@ -1180,7 +1180,7 @@ upload_xfeatures_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_gnutella_content_urn_add(gchar *buf, size_t size,
+upload_gnutella_content_urn_add(char *buf, size_t size,
 	gpointer arg, guint32 flags)
 {
 	struct upload_http_cb *a = arg;
@@ -1218,7 +1218,7 @@ upload_gnutella_content_urn_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_thex_uri_add(gchar *buf, size_t size, gpointer arg, guint32 flags)
+upload_thex_uri_add(char *buf, size_t size, gpointer arg, guint32 flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1254,7 +1254,7 @@ upload_thex_uri_add(gchar *buf, size_t size, gpointer arg, guint32 flags)
  * SHA1-specific headers (added to the HTTP status) into `buf'.
  */
 static size_t
-upload_http_content_urn_add(gchar *buf, size_t size, gpointer arg,
+upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 	guint32 flags)
 {
 	const struct sha1 *sha1;
@@ -1301,7 +1301,7 @@ upload_http_content_urn_add(gchar *buf, size_t size, gpointer arg,
 		shared_file_is_partial(u->sf) &&
 		(flags & HTTP_CBF_SHOW_RANGES)
 	) {
-		gchar alt_locs[160];
+		char alt_locs[160];
 		
 		/*
 		 * PFSP-server: if they requested a partial file, let them know about
@@ -1371,12 +1371,12 @@ upload_http_content_urn_add(gchar *buf, size_t size, gpointer arg,
  * additionnal headers on a "416 Request range not satisfiable" error.
  */
 static size_t
-upload_416_extra(gchar *buf, size_t size, gpointer arg, guint32 unused_flags)
+upload_416_extra(char *buf, size_t size, gpointer arg, guint32 unused_flags)
 {
 	const struct upload_http_cb *a = arg;
 	const struct upload *u = a->u;
 	size_t len;
-	gchar fsize[UINT64_DEC_BUFLEN];
+	char fsize[UINT64_DEC_BUFLEN];
 
 	(void) unused_flags;
 	upload_check(u);
@@ -1389,7 +1389,7 @@ upload_416_extra(gchar *buf, size_t size, gpointer arg, guint32 unused_flags)
 }
 
 static size_t
-upload_http_content_length_add(gchar *buf, size_t size,
+upload_http_content_length_add(char *buf, size_t size,
 	gpointer arg, guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
@@ -1406,7 +1406,7 @@ upload_http_content_length_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_http_content_type_add(gchar *buf, size_t size,
+upload_http_content_type_add(char *buf, size_t size,
 	gpointer arg, guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
@@ -1427,7 +1427,7 @@ upload_http_content_type_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_http_last_modified_add(gchar *buf, size_t size,
+upload_http_last_modified_add(char *buf, size_t size,
 	gpointer arg, guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
@@ -1442,7 +1442,7 @@ upload_http_last_modified_add(gchar *buf, size_t size,
 }
 
 static size_t
-upload_http_content_range_add(gchar *buf, size_t size,
+upload_http_content_range_add(char *buf, size_t size,
 	gpointer arg, guint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
@@ -1471,7 +1471,7 @@ upload_http_content_range_add(gchar *buf, size_t size,
  * upload-specific headers into `buf'.
  */
 static size_t
-upload_http_status(gchar *buf, size_t size, gpointer arg, guint32 flags)
+upload_http_status(char *buf, size_t size, gpointer arg, guint32 flags)
 {
 	size_t rw = 0;
 
@@ -1496,7 +1496,7 @@ upload_http_extra_callback_add(struct upload *u,
 }
 
 static void
-upload_http_extra_line_add(struct upload *u, const gchar *msg)
+upload_http_extra_line_add(struct upload *u, const char *msg)
 {
 	upload_check(u);
 	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
@@ -1508,7 +1508,7 @@ upload_http_extra_line_add(struct upload *u, const gchar *msg)
 }
 
 static void
-upload_http_extra_body_add(struct upload *u, const gchar *body)
+upload_http_extra_body_add(struct upload *u, const char *body)
 {
 	upload_check(u);
 	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
@@ -1523,11 +1523,11 @@ upload_http_extra_body_add(struct upload *u, const gchar *body)
  * The vectorized (message-wise) version of send_upload_error().
  */
 static void
-send_upload_error_v(struct upload *u, const gchar *ext, int code,
-	const gchar *msg, va_list ap)
+send_upload_error_v(struct upload *u, const char *ext, int code,
+	const char *msg, va_list ap)
 {
-	gchar reason[1024];
-	gchar extra[1024];
+	char reason[1024];
+	char extra[1024];
 	size_t slen = 0;
 
 	upload_check(u);
@@ -1586,16 +1586,16 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
 		 */
 
 		if (503 == code && u->from_browser) {
-			static gchar buf[2048];
-			gchar href[1024];
-			gchar index_href[32];
+			static char buf[2048];
+			char href[1024];
+			char index_href[32];
 			glong retry;
 
 			retry = delta_time(parq_upload_retry(u), tm_time());
 			retry = MAX(0, retry);
 
 			{
-				gchar *uri;
+				char *uri;
 
 				uri = url_escape(u->name);
 				if (html_escape(uri, href, sizeof href) >= sizeof href) {
@@ -1698,7 +1698,7 @@ send_upload_error_v(struct upload *u, const gchar *ext, int code,
  * This can only be done once per connection.
  */
 static void
-send_upload_error(struct upload *u, int code, const gchar *msg, ...)
+send_upload_error(struct upload *u, int code, const char *msg, ...)
 {
 	va_list args;
 
@@ -1731,10 +1731,10 @@ upload_aborted_file_stats(const struct upload *u)
  * The vectorized (message-wise) version of upload_remove().
  */
 static void
-upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
+upload_remove_v(struct upload *u, const char *reason, va_list ap)
 {
-	const gchar *logreason;
-	gchar errbuf[1024];
+	const char *logreason;
+	char errbuf[1024];
 	gboolean was_sending;
 
 	upload_check(u);
@@ -1828,7 +1828,7 @@ upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
  * a 400 error with the reason.
  */
 void
-upload_remove(struct upload *u, const gchar *reason, ...)
+upload_remove(struct upload *u, const char *reason, ...)
 {
 	va_list args;
 
@@ -1846,7 +1846,7 @@ upload_remove(struct upload *u, const gchar *reason, ...)
  *       translated strings because it's send as HTTP response message.
  */
 static void
-upload_error_remove(struct upload *u, int code, const gchar *msg, ...)
+upload_error_remove(struct upload *u, int code, const char *msg, ...)
 {
 	va_list args, errargs;
 
@@ -1867,8 +1867,8 @@ upload_error_remove(struct upload *u, int code, const gchar *msg, ...)
  * `ext' contains additionnal header information to propagate back.
  */
 static void
-upload_error_remove_ext(struct upload *u, const gchar *ext, int code,
-	const gchar *msg, ...)
+upload_error_remove_ext(struct upload *u, const char *ext, int code,
+	const char *msg, ...)
 {
 	va_list args, errargs;
 
@@ -1932,7 +1932,7 @@ upload_send_error(struct upload *u, int code, const char *msg)
  * Stop all uploads dealing with partial file `fi'.
  */
 void
-upload_stop_all(struct dl_file_info *fi, const gchar *reason)
+upload_stop_all(struct dl_file_info *fi, const char *reason)
 {
 	GSList *sl, *to_stop = NULL;
 	gint count = 0;
@@ -1970,7 +1970,7 @@ upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 static void
 upload_request_handle_user_agent(struct upload *u, const header_t *header)
 {
-	const gchar *user_agent;
+	const char *user_agent;
 
 	upload_check(u);
 	g_assert(header);
@@ -1985,7 +1985,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 	}
 
 	if (u->user_agent == NULL && user_agent != NULL) {
-		const gchar *token;
+		const char *token;
 		gboolean faked;
 
 		/*
@@ -1999,7 +1999,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		token = header_get(header, "X-Token");
 	   	faked = !version_check(user_agent, token, u->addr);
 		if (faked) {
-			gchar name[1024];
+			char name[1024];
 
 			name[0] = '!';
 			g_strlcpy(&name[1], user_agent, sizeof name - 1);
@@ -2207,7 +2207,7 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 void
 upload_connect_conf(struct upload *u)
 {
-	gchar giv[MAX_LINE_SIZE];
+	char giv[MAX_LINE_SIZE];
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
@@ -2267,10 +2267,10 @@ upload_connect_conf(struct upload *u)
  * We try to pretty-print SHA1 URNs for PFSP files we no longer share...
  */
 static void
-upload_error_not_found(struct upload *u, const gchar *request)
+upload_error_not_found(struct upload *u, const char *request)
 {
 	if (request && GNET_PROPERTY(upload_debug)) {
-		const gchar *filename;
+		const char *filename;
 		struct sha1 sha1;
 
 		if (urn_get_sha1(request, &sha1)) {
@@ -2293,7 +2293,7 @@ upload_error_not_found(struct upload *u, const gchar *request)
  * @return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
 static gboolean
-upload_http_version(struct upload *u, const gchar *request, size_t len)
+upload_http_version(struct upload *u, const char *request, size_t len)
 {
 	guint http_major, http_minor;
 
@@ -2380,7 +2380,7 @@ upload_collect_locations(struct upload *u,
 	g_return_if_fail(sha1);
 
 	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
-		gchar *buf;
+		char *buf;
 
 		huge_collect_locations(sha1, header);
 		if (host_is_valid(u->gnet_addr, u->gnet_port)) {
@@ -2406,7 +2406,7 @@ upload_collect_locations(struct upload *u,
  */
 static gint
 get_file_to_upload_from_index(struct upload *u, const header_t *header,
-	const gchar *uri, guint idx)
+	const char *uri, guint idx)
 {
 	struct shared_file *sf;
 	gboolean sent_sha1 = FALSE;
@@ -2441,7 +2441,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	 * SHA1 URN in there and extract it.
 	 */
 	{
-		const gchar *urn = header_get(header, "X-Gnutella-Content-Urn");
+		const char *urn = header_get(header, "X-Gnutella-Content-Urn");
 
 		if (urn)
 			sent_sha1 = dmesh_collect_sha1(urn, &sha1);
@@ -2498,8 +2498,8 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
 		if (sfn && sf != sfn) {
-			gchar location[1024];
-			const gchar *escaped;
+			char location[1024];
+			const char *escaped;
 
 			if (!sha1_hash_is_uptodate(sfn))
 				goto sha1_recomputed;
@@ -2659,7 +2659,7 @@ upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
  */
 static gint
 get_file_to_upload_from_urn(struct upload *u, const header_t *header,
-	const gchar *uri)
+	const char *uri)
 {
 	struct tth tth_buf, *tth = NULL;
 	struct sha1 sha1;
@@ -2702,7 +2702,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	sf = shared_file_by_sha1(&sha1);
 
 	if (sf == NULL || sf == SHARE_REBUILDING) {
-		const gchar *filename;
+		const char *filename;
 
 		filename = ignore_sha1_filename(&sha1);
  		atom_str_change(&u->name, filename ? filename : uri);
@@ -2748,7 +2748,7 @@ not_found:
  * @return -1 on error, 0 on success.
  */
 static gint
-get_thex_file_to_upload_from_urn(struct upload *u, const gchar *uri)
+get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 {
 	struct tth tth_buf, *tth = NULL;
 	struct sha1 sha1;
@@ -2847,9 +2847,9 @@ tth_recomputed:
  */
 static gint
 get_file_to_upload(struct upload *u, const header_t *header,
-	gchar *uri, gchar *search)
+	char *uri, char *search)
 {
-	const gchar *endptr;
+	const char *endptr;
 
 	upload_check(u);
 	g_assert(NULL == u->sf);
@@ -2895,7 +2895,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
  ***/
 
 static void
-upload_tx_error(gpointer obj, const gchar *reason, ...)
+upload_tx_error(gpointer obj, const char *reason, ...)
 {
 	struct upload *u = cast_to_upload(obj);
 	va_list args;
@@ -2941,12 +2941,12 @@ static const struct tx_link_cb upload_tx_link_cb = {
 static gint
 select_encoding(const header_t *header)
 {
-    const gchar *buf;
+    const char *buf;
 
     buf = header_get(header, "Accept-Encoding");
 	if (buf) {
 		if (strtok_has(buf, ",", "deflate")) {
-			const gchar *ua;
+			const char *ua;
 			
 			ua = header_get(header, "User-Agent");
 			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
@@ -2966,7 +2966,7 @@ select_encoding(const header_t *header)
 static filesize_t
 extract_downloaded(const struct upload *u, const header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 	filesize_t downloaded;
 	gint error;
 
@@ -2997,7 +2997,7 @@ supports_chunked(const struct upload *u, const header_t *header)
 	g_assert(header);
 
 	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
-    	const gchar *buf;
+    	const char *buf;
 
 		/*
 		 * It's assumed that LimeWire-based clients cannot handle 
@@ -3126,9 +3126,9 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
  */
 static gint
 prepare_browse_host_upload(struct upload *u, header_t *header,
-	const gchar *host)
+	const char *host)
 {
-	gchar *buf;
+	char *buf;
 
 	u->browse_host = TRUE;
 	u->name = atom_str_get(_("<Browse Host Request>"));
@@ -3155,8 +3155,8 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		!is_strprefix(host, GNET_PROPERTY(server_hostname)) &&
 		upload_likely_from_browser(header)
 	) {
-		static const gchar fmt[] = "Location: http://%s:%u/\r\n";
-		static gchar location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
+		static const char fmt[] = "Location: http://%s:%u/\r\n";
+		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
 		gm_snprintf(location, sizeof location, fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
@@ -3188,7 +3188,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	 */
 
 	{
-		static gchar lm_buf[64];
+		static char lm_buf[64];
 
 		gm_snprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
@@ -3284,7 +3284,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	filesize_t range_skip = 0, range_end = 0;
 	gboolean range_unavailable = FALSE;
 	const struct sha1 *sha1 = NULL;
-	const gchar *buf;
+	const char *buf;
 	time_t now = tm_time();
 	gboolean parq_allows = FALSE;
     guint32 idx = 0;
@@ -3429,7 +3429,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	 */
 
 	if (range_skip >= u->file_size || range_end >= u->file_size) {
-		static const gchar msg[] = "Requested range not satisfiable";
+		static const char msg[] = "Requested range not satisfiable";
 
 		u->cb_416_arg.u = u;
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
@@ -3445,7 +3445,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	 */
 
 	if (range_unavailable) {
-		static const gchar msg[] = "Requested range not available yet";
+		static const char msg[] = "Requested range not available yet";
 
 		g_assert(sha1_hash_available(u->sf));
 		g_assert(GNET_PROPERTY(pfsp_server));
@@ -3521,7 +3521,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
-			gchar retry_after[80];
+			char retry_after[80];
 			gint delay = delta_time(expire, now);
 
 			if (delay <= 0)
@@ -3675,9 +3675,9 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	}
 
 	{
-		static gchar cd_buf[1024];
+		static char cd_buf[1024];
 		size_t len, size = sizeof cd_buf;
-		gchar *p = cd_buf;
+		char *p = cd_buf;
 
 		/*
 		 * This header tells the receiver our idea of the file's name.
@@ -3701,7 +3701,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		len = url_escape_into(shared_file_name_nfc(u->sf), p, size);
 		if ((size_t) -1 != len) {
-			static const gchar term[] = "\"\r\n";
+			static const char term[] = "\"\r\n";
 
 			p += len;
 			size -= len;
@@ -3728,7 +3728,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	{
 		
-		const gchar *http_msg;
+		const char *http_msg;
 		gint http_code;
 
 		if ((u->skip || u->end != (u->file_size - 1))) {
@@ -3782,7 +3782,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 static void
 upload_determine_peer_address(struct upload *u, header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 
 	upload_check(u);
 	g_assert(header);
@@ -3844,11 +3844,11 @@ upload_set_tos(struct upload *u)
 	}
 }
 
-static gchar *
-upload_parse_uri(header_t *header, const gchar *uri,
-	gchar *host, size_t host_size)
+static char *
+upload_parse_uri(header_t *header, const char *uri,
+	char *host, size_t host_size)
 {
-	const gchar *ep;
+	const char *ep;
 
 	g_assert(uri);
 	g_assert(host);
@@ -3857,7 +3857,7 @@ upload_parse_uri(header_t *header, const gchar *uri,
 	host[0] = '\0';
 
 	if (NULL != (ep = is_strcaseprefix(uri, "http://"))) {
-		const gchar *h = ep;
+		const char *h = ep;
 		size_t len = ep - h;
 
 		if (!string_to_host_or_addr(h, &ep, NULL)) {
@@ -3886,7 +3886,7 @@ upload_parse_uri(header_t *header, const gchar *uri,
 
 		uri = ep;
 	} else {
-		const gchar *value;
+		const char *value;
 		
 		if (header && NULL != (value = header_get(header, "Host"))) {
 			g_strlcpy(host, value, host_size);
@@ -3896,9 +3896,9 @@ upload_parse_uri(header_t *header, const gchar *uri,
 }
 
 static void
-remove_trailing_http_tag(gchar *request)
+remove_trailing_http_tag(char *request)
 {
-	gchar *endptr;
+	char *endptr;
 
 	endptr = strstr(request, " HTTP/");
 	if (endptr) {
@@ -3912,7 +3912,7 @@ remove_trailing_http_tag(gchar *request)
 static guint64
 get_content_length(header_t *header)
 {
-	const gchar *value;
+	const char *value;
 	guint64 length = 0;
 	
 	value = header_get(header, "Content-Length");
@@ -3930,7 +3930,7 @@ get_content_length(header_t *header)
 static void
 upload_handle_connection_header(struct upload *u, header_t *header)
 {
-	const gchar *buf;
+	const char *buf;
 	
 	/*
 	 * Do we have to keep the connection after this request?
@@ -3959,9 +3959,9 @@ upload_handle_connection_header(struct upload *u, header_t *header)
 static void
 upload_request(struct upload *u, header_t *header)
 {
-	gchar *search, *uri;
+	char *search, *uri;
 	time_t now = tm_time();
-	gchar host[1 + MAX_HOSTLEN];
+	char host[1 + MAX_HOSTLEN];
 
 	upload_check(u);
 
@@ -4063,7 +4063,7 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (u->user_agent) {
-		const gchar *msg = ban_vendor(u->user_agent);
+		const char *msg = ban_vendor(u->user_agent);
 
 		if (msg != NULL) {
 			ban_record(u->addr, msg);
@@ -4074,7 +4074,7 @@ upload_request(struct upload *u, header_t *header)
 
 	/* Separate the HTTP method (like GET or HEAD) */
 	{
-		const gchar *endptr;
+		const char *endptr;
 
 		/*
 		 * If `head_only' is true, the request was a HEAD and we're only going
@@ -4278,8 +4278,8 @@ upload_request(struct upload *u, header_t *header)
 		
 		u->file_size = 0;
 		if (u->browse_host) {
-			const gchar *buf;
-			gchar name[1024];
+			const char *buf;
+			char name[1024];
 
 			if (supports_chunked(u, header)) {
 				flags |= BH_F_CHUNKED;
@@ -4338,7 +4338,7 @@ upload_request(struct upload *u, header_t *header)
 
 			flags |= select_encoding(header);
 			if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
-				const gchar *content_encoding;
+				const char *content_encoding;
 
 				if (flags & BH_F_GZIP) {
 					content_encoding = "Content-Encoding: gzip\r\n";
@@ -4357,7 +4357,7 @@ upload_request(struct upload *u, header_t *header)
 
 			atom_str_change(&u->name, name);
 		} else if (u->thex) {
-			gchar *name;
+			char *name;
 			
 		   	name = g_strdup_printf(_("<THEX data for %s>"), u->name);
 			atom_str_change(&u->name, name);

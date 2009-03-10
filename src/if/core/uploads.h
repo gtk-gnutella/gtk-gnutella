@@ -78,8 +78,8 @@ typedef struct gnet_upload_info {
 	filesize_t range_start;	/**< First byte to send, inclusive */
 	filesize_t range_end;	/**< Last byte to send, inclusive */
 
-	const gchar  *name;		/**< Name of requested file (converted to UTF-8) */
-	const gchar  *user_agent;	/**< Remote user agent (converted to UTF-8) */
+	const char  *name;		/**< Name of requested file (converted to UTF-8) */
+	const char  *user_agent;	/**< Remote user agent (converted to UTF-8) */
 
 	time_t  start_date;
 	time_t  last_update;
@@ -137,7 +137,7 @@ struct ul_stats {
  * Uploads callback definitions
  */
 typedef void (*upload_added_listener_t)(gnet_upload_t);
-typedef void (*upload_removed_listener_t)(gnet_upload_t, const gchar *);
+typedef void (*upload_removed_listener_t)(gnet_upload_t, const char *);
 typedef void (*upload_info_changed_listener_t)(gnet_upload_t);
 
 #define upload_add_listener(signal, callback) \
