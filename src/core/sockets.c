@@ -62,6 +62,7 @@ RCSID("$Id$")
 #include "udp.h"
 #include "settings.h"
 #include "tls_cache.h"
+#include "gnet_stats.h"
 
 #include "shell/shell.h"
 
@@ -2372,6 +2373,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	s->port = socket_addr_get_port(from_addr);
 
 	if (!is_host_addr(s->addr)) {
+		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 		errno = EINVAL;
 		return (ssize_t) -1;
 	}
