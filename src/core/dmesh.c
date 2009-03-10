@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Download mesh.
  *
  * @author Raphael Manfredi
- * @date 2002-2007
+ * @date 2002-2009
  */
 
 #include "common.h"
@@ -102,7 +102,7 @@ struct dmesh_entry {
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
 
-static const gchar dmesh_file[] = "dmesh";
+static const char dmesh_file[] = "dmesh";
 
 /**
  * If we get a "bad" URL into the mesh ("bad" = gives 404 or other error when
@@ -137,11 +137,11 @@ static GHashTable *ban_mesh_by_sha1 = NULL;
 
 #define BAN_LIFETIME	7200		/**< 2 hours */
 
-static const gchar dmesh_ban_file[] = "dmesh_ban";
+static const char dmesh_ban_file[] = "dmesh_ban";
 
 static void dmesh_retrieve(void);
 static void dmesh_ban_retrieve(void);
-static gchar *dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info);
+static char *dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info);
 
 /**
  * Hash a URL info.
@@ -215,10 +215,10 @@ dmesh_entry_free(struct dmesh_entry *dme)
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
 	const struct sha1 *sha1, const host_addr_t addr,
-	guint16 port, guint idx, const gchar *name)
+	guint16 port, guint idx, const char *name)
 {
-	static const gchar urnsha1[] = "urn:sha1:";
-	static gchar urn[SHA1_BASE32_SIZE + sizeof urnsha1];
+	static const char urnsha1[] = "urn:sha1:";
+	static char urn[SHA1_BASE32_SIZE + sizeof urnsha1];
 
 	info->addr = addr;
 	info->port = port;
@@ -409,7 +409,7 @@ dmesh_is_banned(const dmesh_urlinfo_t *info)
  *** Mesh URL parsing.
  ***/
 
-static const gchar * const parse_errstr[] = {
+static const char * const parse_errstr[] = {
 	"OK",									/**< DMESH_URL_OK */
 	"HTTP parsing error",					/**< DMESH_URL_HTTP_PARSER */
 	"File prefix neither /uri-res nor /get",/**< DMESH_URL_BAD_FILE_PREFIX */
@@ -422,14 +422,14 @@ static const gchar * const parse_errstr[] = {
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
 	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
-		static gchar http_error_str[128];
+		static char http_error_str[128];
 
 		concat_strings(http_error_str, sizeof http_error_str,
 			parse_errstr[errnum], ": ", http_url_strerror(http_url_errno),
@@ -447,12 +447,12 @@ dmesh_url_strerror(dmesh_url_error_t errnum)
  * The variable `dmesh_url_errno' is set accordingly.
  */
 gboolean
-dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
+dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 {
 	host_addr_t addr;
 	guint16 port;
 	guint idx;
-	const gchar *endptr, *file, *host = NULL, *path = NULL;
+	const char *endptr, *file, *host = NULL, *path = NULL;
 
 	if (!http_url_parse(url, &port, &host, &path)) {
 		dmesh_url_errno = DMESH_URL_HTTP_PARSER;
@@ -519,7 +519,7 @@ dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 	 */
 
 	if (idx != URN_INDEX) {
-		gchar *unescaped = url_unescape(deconstify_gchar(file), FALSE);
+		char *unescaped = url_unescape(deconstify_gchar(file), FALSE);
 		if (!unescaped) {
 			dmesh_url_errno = DMESH_URL_BAD_ENCODING;
 			return FALSE;
@@ -767,7 +767,7 @@ dmesh_dispose(const struct sha1 *sha1)
  */
 gboolean
 dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, guint16 port,
-	guint idx, const gchar *name)
+	guint idx, const char *name)
 {
 	struct dmesh *dm;
 	dmesh_urlinfo_t info;
@@ -838,9 +838,9 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	host_addr_t addr = info->addr;
 	guint16 port = info->port;
 	guint idx = info->idx;
-	const gchar *name = info->name;
+	const char *name = info->name;
 	struct packed_host packed;
-	const gchar *reason = NULL;
+	const char *reason = NULL;
 
 	g_return_val_if_fail(sha1, FALSE);
 
@@ -993,7 +993,7 @@ rejected:
  */
 gboolean
 dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
-	guint16 port, guint idx, const gchar *name, time_t stamp)
+	guint16 port, guint idx, const char *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
 
@@ -1199,12 +1199,12 @@ retry:
  * contains a "," character.
  */
 static size_t
-dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
+dmesh_urlinfo(const dmesh_urlinfo_t *info, char *buf,
 	size_t len, gboolean *quoting)
 {
 	size_t rw;
 	size_t maxslen = len - 1;			/* Account for trailing NUL */
-	const gchar *host;
+	const char *host;
 
 	g_assert(len > 0);
 	g_assert(len <= INT_MAX);
@@ -1255,10 +1255,10 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, gchar *buf,
 /**
  * Format the `info' URL and return pointer to static string.
  */
-static gchar *
+static char *
 dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
 {
-	static gchar urlstr[1024];
+	static char urlstr[1024];
 
 	(void) dmesh_urlinfo(info, urlstr, sizeof urlstr, NULL);
 
@@ -1274,10 +1274,10 @@ dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
  * URN_INDEX kind).
  */
 static size_t
-dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t size)
+dmesh_entry_compact(const struct dmesh_entry *dme, char *buf, size_t size)
 {
 	const dmesh_urlinfo_t *info = &dme->url;
-	const gchar *host;
+	const char *host;
 	size_t rw;
 
 	g_assert(size > 0);
@@ -1302,7 +1302,7 @@ dmesh_entry_compact(const struct dmesh_entry *dme, gchar *buf, size_t size)
  * the buffer.
  */
 static size_t
-dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
+dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 {
 	size_t rw;
 	gboolean quoting;
@@ -1348,10 +1348,10 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t size)
  *
  * @return pointer to static string.
  */
-static const gchar *
+static const char *
 dmesh_entry_to_string(const struct dmesh_entry *dme)
 {
-	static gchar urlstr[1024];
+	static char urlstr[1024];
 
 	(void) dmesh_entry_url_stamp(dme, urlstr, sizeof urlstr);
 	return urlstr;
@@ -1500,11 +1500,11 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
  */
 gint
 dmesh_alternate_location(const struct sha1 *sha1,
-	gchar *buf, size_t size, const host_addr_t addr,
-	time_t last_sent, const gchar *vendor,
+	char *buf, size_t size, const host_addr_t addr,
+	time_t last_sent, const char *vendor,
 	fileinfo_t *fi, gboolean request)
 {
-	gchar url[1024];
+	char url[1024];
 	struct dmesh *dm;
 	size_t len = 0;
 	GSList *l;
@@ -1582,7 +1582,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 				continue;
 
 			if (delta_time(banned->created, last_sent) > 0) {
-				const gchar *value;
+				const char *value;
 
 				value = host_addr_port_to_string(info->addr, info->port);
 
@@ -1810,9 +1810,9 @@ nomore:
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-dmesh_collect_sha1(const gchar *value, struct sha1 *sha1)
+dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 {
-	const gchar *p;
+	const char *p;
 
 	for (p = value; NULL != p && '\0' != *p; /* NOTHING */) {
 
@@ -1847,16 +1847,16 @@ dmesh_collect_sha1(const gchar *value, struct sha1 *sha1)
  * where udata is opaque user-supplied data.
  */
 static void
-dmesh_parse_addr_port_list(const struct sha1 *sha1, const gchar *value,
+dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 	dmesh_add_cb func, gpointer udata)
 {
-	const gchar *tls_hex, *p, *next;
+	const char *tls_hex, *p, *next;
 
 	tls_hex = NULL;
 	next = value;
 
 	while (NULL != (p = next)) {
-		const gchar *start, *endptr;
+		const char *start, *endptr;
 		host_addr_t addr;
 		guint16 port;
 		gboolean ok;
@@ -1910,7 +1910,7 @@ dmesh_collect_compact_locations_cback(
  * for a given SHA1 key given in the new compact form.
  */
 void
-dmesh_collect_compact_locations(const struct sha1 *sha1, const gchar *value)
+dmesh_collect_compact_locations(const struct sha1 *sha1, const char *value)
 {
 	dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_compact_locations_cback, NULL);
@@ -1934,7 +1934,7 @@ dmesh_collect_negative_locations_cback(
  */
 void
 dmesh_collect_negative_locations(
-	const struct sha1 *sha1, const gchar *value, host_addr_t reporter)
+	const struct sha1 *sha1, const char *value, host_addr_t reporter)
 {
 	dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
@@ -1945,15 +1945,15 @@ dmesh_collect_negative_locations(
  * sources for a given SHA1 key.
  */
 void
-dmesh_collect_locations(const struct sha1 *sha1, const gchar *value)
+dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 {
-	const gchar *p = value;
+	const char *p = value;
 	guchar c;
 	time_t now = tm_time();
 	gboolean finished = FALSE;
 
 	do {
-		const gchar *date_start, *url_start;
+		const char *date_start, *url_start;
 		time_t stamp;
 		gboolean ok;
 		dmesh_urlinfo_t info;
@@ -2039,7 +2039,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value)
 		 */
 
 		{
-			gchar *url;
+			char *url;
 
 			url = g_strndup(url_start, p - url_start);
 			ok = dmesh_url_parse(url, &info);
@@ -2111,7 +2111,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const gchar *value)
 		 */
 
 		if (p != date_start) {
-			gchar *date;
+			char *date;
 
 			g_assert((guchar) *p == c);
 			date = g_strndup(date_start, p - date_start);
@@ -2310,7 +2310,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 	now = tm_time();
 
 	for (p = buffer; n > 0; n--, p++) {
-		const gchar *filename;
+		const char *filename;
 
 		if (GNET_PROPERTY(dmesh_debug) > 2)
 			g_message("ALT-LOC queuing from MESH: %s",
@@ -2368,7 +2368,7 @@ typedef void (*header_func_t)(FILE *out);
  * The storing callback for each item is `store_cb'.
  */
 static void
-dmesh_store_hash(const gchar *what, GHashTable *hash, const gchar *file,
+dmesh_store_hash(const char *what, GHashTable *hash, const char *file,
 	header_func_t header_cb, GHFunc store_cb)
 {
 	FILE *out;
@@ -2422,7 +2422,7 @@ static void
 dmesh_retrieve(void)
 {
 	FILE *f;
-	gchar tmp[4096];
+	char tmp[4096];
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
 	gboolean skip = FALSE, truncated = FALSE;
@@ -2538,10 +2538,10 @@ static void
 dmesh_ban_retrieve(void)
 {
 	FILE *in;
-	gchar tmp[1024];
+	char tmp[1024];
 	gint line = 0;
 	time_t stamp;
-	const gchar *p;
+	const char *p;
 	gint error;
 	dmesh_urlinfo_t info;
 	file_path_t fp;

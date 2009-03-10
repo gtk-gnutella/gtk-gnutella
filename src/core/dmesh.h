@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,7 +30,7 @@
  * Download mesh.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2009
  */
 
 #ifndef _core_dmesh_h_
@@ -51,7 +51,7 @@
  * it's an URN.
  */
 typedef struct {
-	const gchar *name;			/**< File name (atom) */
+	const char *name;			/**< File name (atom) */
 	host_addr_t addr;			/**< Host address */
 	guint idx;					/**< File index (URN_INDEX means URN access) */
 	guint16 port;				/**< Host port */
@@ -80,16 +80,16 @@ extern dmesh_url_error_t dmesh_url_errno;
 void dmesh_init(void);
 void dmesh_close(void);
 
-const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
-gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
+const char *dmesh_url_strerror(dmesh_url_error_t errnum);
+gboolean dmesh_url_parse(const char *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
 	const struct sha1 *sha1, const host_addr_t addr, guint16 port, guint idx,
-	const gchar *name, time_t stamp);
+	const char *name, time_t stamp);
 
 gboolean dmesh_remove(
 	const struct sha1 *sha1, const host_addr_t addr, guint16 port, guint idx,
-	const gchar *name);
+	const char *name);
 
 void dmesh_add_alternate(const struct sha1 *sha1,
 		host_addr_t addr, guint16 port);
@@ -106,18 +106,18 @@ void dmesh_good_mark(const struct sha1 *sha1,
 
 gint dmesh_count(const struct sha1 *sha1);
 
-gboolean dmesh_collect_sha1(const gchar *value, struct sha1 *sha1);
-void dmesh_collect_locations(const struct sha1 *sha1, const gchar *value);
+gboolean dmesh_collect_sha1(const char *value, struct sha1 *sha1);
+void dmesh_collect_locations(const struct sha1 *sha1, const char *value);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
-		const gchar *value);
+		const char *value);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,
-	const gchar *value, host_addr_t reporter);
+	const char *value, host_addr_t reporter);
 gint dmesh_fill_alternate(const struct sha1 *sha1,
 		gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
-	const struct sha1 *sha1, gchar * buf, size_t size, const host_addr_t addr,
-	time_t last_sent, const gchar *vendor, fileinfo_t *fi,
+	const struct sha1 *sha1, char * buf, size_t size, const host_addr_t addr,
+	time_t last_sent, const char *vendor, fileinfo_t *fi,
 	gboolean request);
 
 void dmesh_multiple_downloads(
