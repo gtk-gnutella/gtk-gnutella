@@ -2459,8 +2459,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	} while (i < 16);
 
 	if (i > 1 && GNET_PROPERTY(socket_debug)) {
-		g_message("socket_udp_event() iterated %u time%s",
-			i, 1 == i ? "" : "s");
+		g_message("socket_udp_event() iterated %u times", i);
 	}
 }
 
