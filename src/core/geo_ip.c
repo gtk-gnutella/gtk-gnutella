@@ -63,7 +63,7 @@ static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
  */
 struct range_context {
 	char *line;				/**< The line from the input file */
-	gint linenum;				/**< Line number in input file, for errors */
+	int linenum;				/**< Line number in input file, for errors */
 	guint32 ip1;				/**< Original lower IP in global range */
 	guint32 ip2;				/**< Original upper IP in global range */
 	guint16 country;			/**< Country code (numerical encoded) */
@@ -112,10 +112,10 @@ gip_load(FILE *f)
 {
 	char line[1024];
 	char *p;
-	gint linenum = 0;
+	int linenum = 0;
 	const char *end;
 	guint16 code;
-	gint c;
+	int c;
 	struct range_context ctx;
 
 	geo_db = iprange_new();
@@ -278,7 +278,7 @@ static void
 gip_retrieve(void)
 {
 	FILE *f;
-	gint idx;
+	int idx;
 	char *filename;
 #ifndef OFFICIAL_BUILD
 	static file_path_t fp[3];

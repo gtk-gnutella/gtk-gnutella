@@ -230,7 +230,7 @@ spam_sha1_retrieve(void)
 	static file_path_t fp[3];
 	guint num_fp = G_N_ELEMENTS(fp) - 1;
 	FILE *f;
-	gint idx;
+	int idx;
 	
 	file_path_set(&fp[0], settings_config_dir(), spam_sha1_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, spam_sha1_file);

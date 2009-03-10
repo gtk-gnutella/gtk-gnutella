@@ -56,7 +56,7 @@ typedef struct rxdriver {
 	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct rxdriver *upper;			/**< Layer above, NULL if none */
 	struct rxdriver *lower;			/**< Layer underneath, NULL if none */
-	gint flags;						/**< Driver flags */
+	int flags;						/**< Driver flags */
 	rx_data_t data_ind;				/**< Data indication routine */
 	gpointer opaque;				/**< Used by heirs to store specific info */
 } rxdrv_t;

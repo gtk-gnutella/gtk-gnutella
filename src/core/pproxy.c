@@ -118,7 +118,7 @@ send_pproxy_error_v(
 	char reason[1024];
 	char extra[1024];
 	http_extra_desc_t hev[1];
-	gint hevcnt = 0;
+	int hevcnt = 0;
 
 	if (msg) {
 		gm_vsnprintf(reason, sizeof reason, msg, ap);
@@ -327,7 +327,7 @@ get_params(struct pproxy *pp, const char *request,
 	const char *attr;
 	char *p;
 	const char *value;
-	gint datalen;
+	int datalen;
 	url_params_t *up;
 	guint i;
 
@@ -471,7 +471,7 @@ get_params(struct pproxy *pp, const char *request,
 
 	value = url_params_get(up, "file");
 	if (value) {
-		gint error;
+		int error;
 
 		/* Ignore errors; parse_uint32() returns 0 on error. */
 		*file_idx = parse_uint32(value, NULL, 10, &error);
@@ -820,7 +820,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(gulong) pp->file_idx);
 		} else {
-			gint cnt;
+			int cnt;
 
 			gmsg_sendto_all(nodes, packet.data, packet.size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
@@ -888,13 +888,13 @@ err_line_too_long(gpointer obj, header_t *unused_head)
 }
 
 static void
-err_header_error_tell(gpointer obj, gint error)
+err_header_error_tell(gpointer obj, int error)
 {
 	send_pproxy_error(PPROXY(obj), 413, "%s", header_strerror(error));
 }
 
 static void
-err_header_error(gpointer obj, gint error)
+err_header_error(gpointer obj, int error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (%s)", header_strerror(error));
 }
@@ -913,7 +913,7 @@ err_input_buffer_full(gpointer obj)
 }
 
 static void
-err_header_read_error(gpointer obj, gint error)
+err_header_read_error(gpointer obj, int error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (Input error: %s)", g_strerror(error));
 }
@@ -1045,7 +1045,7 @@ cproxy_http_error_ind(struct http_async *handle,
  */
 static gboolean
 cproxy_http_header_ind(struct http_async *handle, header_t *header,
-	gint code, const char *message)
+	int code, const char *message)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
 	char *token;

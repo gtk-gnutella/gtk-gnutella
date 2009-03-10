@@ -159,10 +159,10 @@ ignore_init(void)
 static void
 sha1_parse(FILE *f, const char *file)
 {
-	gint line = 0;
+	int line = 0;
 	struct sha1 sha1;
 	char *p;
-	gint len;
+	int len;
 
 	g_assert(f);
 
@@ -233,7 +233,7 @@ ignore_sha1_load(const char *file, time_t *stamp)
 static void
 namesize_parse(FILE *f, const char *file)
 {
-	gint line = 0, error;
+	int line = 0, error;
 	filesize_t size;
 	const char *p, *q;
 	namesize_t *ns;

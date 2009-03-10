@@ -244,7 +244,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 		if (GNET_PROPERTY(udp_debug)) {
 			g_warning("UDP %sdatagram (%d byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
-				(gint) s->pos, s->pos == 1 ? "" : "s",
+				(int) s->pos, s->pos == 1 ? "" : "s",
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
@@ -270,7 +270,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
  * forming a valid Gnutella message.
  */
 void
-udp_send_msg(const gnutella_node_t *n, gconstpointer buf, gint len)
+udp_send_msg(const gnutella_node_t *n, gconstpointer buf, int len)
 {
 	g_assert(NODE_IS_UDP(n));
 	g_return_if_fail(n->outq);
@@ -319,7 +319,7 @@ struct udp_ping {
 
 static const time_delta_t UDP_PING_TIMEOUT	    = 30;	/**< seconds */
 static const size_t		  UDP_PING_MAX 			= 1024;	/**< amount to track */
-static const gint 		  UDP_PING_PERIODIC_MS	= 5000;	/**< milliseconds */
+static const int 		  UDP_PING_PERIODIC_MS	= 5000;	/**< milliseconds */
 
 static hash_list_t *udp_pings;	/**< Tracks send/forwarded UDP Pings */
 static cevent_t *udp_ping_ev;	/**< Monitoring event */

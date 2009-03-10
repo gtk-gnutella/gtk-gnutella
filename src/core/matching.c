@@ -90,12 +90,12 @@ struct st_entry {
 };
 
 struct st_bin {
-	gint nslots, nvals;
+	int nslots, nvals;
 	struct st_entry **vals;
 };
 
 struct _search_table {
-	gint nentries, nchars, nbins;
+	int nentries, nchars, nbins;
 	struct st_bin **bins;
 	struct st_bin all_entries;
 	guchar index_map[(guchar) -1];
@@ -115,9 +115,9 @@ destroy_entry(struct st_entry *entry)
  * Initialize a bin.
  */
 static void
-bin_initialize(struct st_bin *bin, gint size)
+bin_initialize(struct st_bin *bin, int size)
 {
-	gint i;
+	int i;
 
 	bin->nvals = 0;
 	bin->nslots = size;
@@ -271,7 +271,7 @@ st_free(search_table_t **ptr)
 void
 st_create(search_table_t *table)
 {
-	gint i;
+	int i;
 
 	table->bins = g_malloc(table->nbins * sizeof table->bins[0]);
 	for (i = 0; i < table->nbins; i++)
@@ -286,7 +286,7 @@ st_create(search_table_t *table)
 void
 st_destroy(search_table_t *table)
 {
-	gint i;
+	int i;
 
 	if (table->bins) {
 		for (i = 0; i < table->nbins; i++) {
@@ -324,7 +324,7 @@ mask_hash(const char *s) {
 		else if (is_ascii_digit(c))
 			mask |= MASK_DIGIT;
 		else {
-			gint idx = ascii_tolower(c) - 97;
+			int idx = ascii_tolower(c) - 97;
 			if (idx >= 0 && idx < 26)
 				mask |= MASK_LETTER(idx);
 		}
@@ -336,7 +336,7 @@ mask_hash(const char *s) {
 /**
  * Get key of two-char pair.
  */
-static inline gint
+static inline int
 st_key(search_table_t *table, const char k[2])
 {
 	return table->index_map[(guchar) k[0]] * table->nchars +
@@ -369,7 +369,7 @@ st_insert_item(search_table_t *table, const char *s, gpointer data)
 
 	len = strlen(entry->string);
 	for (i = 0; i < len - 1; i++) {
-		gint key = st_key(table, &entry->string[i]);
+		int key = st_key(table, &entry->string[i]);
 
 		/* don't insert item into same bin twice */
 		if (g_hash_table_lookup(seen_keys, GINT_TO_POINTER(key)))
@@ -397,7 +397,7 @@ st_insert_item(search_table_t *table, const char *s, gpointer data)
 void
 st_compact(search_table_t *table)
 {
-	gint i;
+	int i;
 
 	if (!table->all_entries.nvals)
 		return;			/* Nothing in table */
@@ -449,20 +449,20 @@ st_search(
 	const char *search_term,
 	st_search_callback callback,
 	gpointer ctx,
-	gint max_res,
+	int max_res,
 	query_hashvec_t *qhv)
 {
 	char *search;
-	gint key, nres;
+	int key, nres;
 	guint i, len;
 	struct st_bin *best_bin = NULL;
-	gint best_bin_size = INT_MAX;
+	int best_bin_size = INT_MAX;
 	word_vec_t *wovec;
 	guint wocnt;
 	cpattern_t **pattern;
 	struct st_entry **vals;
 	guint vcnt;
-	gint scanned = 0;		/* measure search mask efficiency */
+	int scanned = 0;		/* measure search mask efficiency */
 	guint32 search_mask;
 	size_t minlen;
 	guint random_offset;  /* Randomizer for search returns */

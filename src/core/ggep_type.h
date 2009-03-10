@@ -71,7 +71,7 @@ struct ggep_gtkgv1 {
 };
 
 ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
-ggept_status_t ggept_hname_extract(extvec_t *exv, char *buf, gint len);
+ggept_status_t ggept_hname_extract(extvec_t *exv, char *buf, int len);
 ggept_status_t ggept_filesize_extract(extvec_t *exv, guint64 *fs);
 ggept_status_t ggept_du_extract(extvec_t *exv, guint32 *uptime);
 ggept_status_t ggept_ct_extract(extvec_t *exv, time_t *stamp_ptr);

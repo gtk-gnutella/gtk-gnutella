@@ -74,7 +74,7 @@ RCSID("$Id$")
 static struct uhc_context {
 	const char *host;			/**< Last selected host (static buffer) */
 	cevent_t *timeout_ev;		/**< Ping timeout */
-	gint attempts;				/**< Connection / resolution attempts */
+	int attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
 	guint16 port;				/**< Port of selected host cache */
 	struct guid muid;			/**< MUID of the ping */
@@ -128,7 +128,7 @@ uhc_get_host_port(const char *hp, const char **host, guint16 *port)
 	static char hostname[MAX_HOSTLEN + 1];
 	const char *ep;
 	guint32 u;
-	gint error;
+	int error;
 	size_t len;
 
 
@@ -196,7 +196,7 @@ uhc_hash(gconstpointer key)
 	return g_str_hash(uhc->host);
 }
 
-static gint
+static int
 uhc_equal(gconstpointer p, gconstpointer q)
 {
 	const struct uhc *a = p, *b = q;
@@ -476,9 +476,9 @@ uhc_get_hosts(void)
  * Called when a pong with an "IPP" extension was received.
  */
 void
-uhc_ipp_extract(gnutella_node_t *n, const char *payload, gint paylen)
+uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen)
 {
-	gint i, cnt;
+	int i, cnt;
 
 	g_assert(0 == paylen % 6);
 

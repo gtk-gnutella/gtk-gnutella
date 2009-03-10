@@ -50,11 +50,11 @@ struct gnutella_socket;
  */
 struct io_error {
 	void (*line_too_long)(gpointer resource, struct header *header);
-	void (*header_error_tell)(gpointer resource, gint error);	/**< Optional */
-	void (*header_error)(gpointer resource, gint error);
+	void (*header_error_tell)(gpointer resource, int error);	/**< Optional */
+	void (*header_error)(gpointer resource, int error);
 	void (*input_exception)(gpointer resource, struct header *header);
 	void (*input_buffer_full)(gpointer resource);
-	void (*header_read_error)(gpointer resource, gint error);
+	void (*header_read_error)(gpointer resource, int error);
 	void (*header_read_eof)(gpointer resource, struct header *header);
 	void (*header_extra_data)(gpointer resource, struct header *header);
 };
@@ -87,14 +87,14 @@ void io_get_header(
 	gpointer *io_opaque,		/**< Field address in resource's structure */
 	bsched_bws_t bws,			/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,	/**< Socket from which we're reading */
-	gint flags,					/**< I/O parsing flags */
+	int flags,					/**< I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start,		/**< Optional: called when reading 1st byte */
 	const struct io_error *error);	/**< Mandatory: error callbacks */
 
 void io_continue_header(
 	gpointer opaque,			/**< Existing header parsing context */
-	gint flags,					/**< New I/O parsing flags */
+	int flags,					/**< New I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start);		/**< Optional: called when reading 1st byte */
 

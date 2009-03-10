@@ -94,7 +94,7 @@ enum bh_type {
 struct browse_host_upload {
 	struct special_upload special;	/**< vtable, MUST be first field */
 	enum bh_type type;		/**< Type of data to send back */
-	gint flags;				/**< Opening flags */
+	int flags;				/**< Opening flags */
 	txdrv_t *tx;			/**< The transmission stack */
 	char *w_buf;			/**< Used for dynamically wallocated buffer */
 	size_t w_buf_size;		/**< Size of the wallocated buffer */
@@ -153,7 +153,7 @@ static inline void
 browse_host_next_state(struct browse_host_upload *bh, enum bh_state state)
 {
 	g_assert(NULL != bh);
-	g_assert((gint) state >= 0 && state < NUM_BH_STATES);
+	g_assert((int) state >= 0 && state < NUM_BH_STATES);
 	bh->w_buf = NULL;
 	bh->w_buf_size = 0;
 	bh->b_data = NULL;
@@ -196,7 +196,7 @@ browse_host_read_html(struct special_upload *ctx,
 	g_assert(NULL != dest);
 	g_assert(size <= INT_MAX);
 
-	g_assert((gint) bh->state >= 0 && bh->state < NUM_BH_STATES);
+	g_assert((int) bh->state >= 0 && bh->state < NUM_BH_STATES);
 	g_assert(bh->b_size <= INT_MAX);
 	g_assert(bh->b_offset <= bh->b_size);
 
@@ -401,7 +401,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 
 	if (NULL == bh->hits) {
 		GSList *files = NULL;
-		gint i;
+		int i;
 
 		for (i = 0; i < BH_SCAN_AHEAD; i++) {
 			const shared_file_t *sf;
@@ -443,7 +443,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 
 	while (remain > 0 && NULL != bh->hits) {
 		pmsg_t *mb = bh->hits->data;
-		gint r;
+		int r;
 
 		r = pmsg_read(mb, p, remain);
 		p += r;
@@ -572,7 +572,7 @@ browse_host_open(
 	const struct tx_deflate_cb *deflate_cb,
 	const struct tx_link_cb *link_cb,
 	struct wrap_io *wio,
-	gint flags)
+	int flags)
 {
 	struct browse_host_upload *bh;
 

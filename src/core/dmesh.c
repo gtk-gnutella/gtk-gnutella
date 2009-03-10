@@ -163,7 +163,7 @@ urlinfo_hash(gconstpointer key)
 /**
  * Test equality of two URL infos.
  */
-static gint
+static int
 urlinfo_eq(gconstpointer a, gconstpointer b)
 {
 	const dmesh_urlinfo_t *ia = a, *ib = b;
@@ -425,7 +425,7 @@ static const char * const parse_errstr[] = {
 const char *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
-	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
@@ -473,7 +473,7 @@ dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 	 */
 
 	if (NULL != (endptr = is_strprefix(path, "/get/"))) {
-		gint error;
+		int error;
 
 		idx = parse_uint32(endptr, &endptr, 10, &error);
 		if (!error && URN_INDEX == idx) {
@@ -720,7 +720,7 @@ dm_expire(struct dmesh *dm)
 			g_message("MESH %s: EXPIRED \"%s\", age=%d",
 				sha1_base32(dm->sha1),
 				dmesh_urlinfo_to_string(&dme->url),
-				(gint) delta_time(now, dme->stamp));
+				(int) delta_time(now, dme->stamp));
 
 		expired = g_slist_prepend(expired, dme);
 	}
@@ -806,7 +806,7 @@ dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, guint16 port,
  *
  * @return the number of dmesh entries
  */
-gint
+int
 dmesh_count(const struct sha1 *sha1)
 {
 	struct dmesh *dm;
@@ -982,7 +982,7 @@ rejected:
 		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%d: %s",
 			sha1_base32(sha1),
 			dmesh_urlinfo_to_string(info), (guint) stamp,
-			(gint) delta_time(now, stamp),
+			(int) delta_time(now, stamp),
 			reason);
 
 	return FALSE;
@@ -1033,7 +1033,7 @@ dmesh_add_good_alternate(const struct sha1 *sha1,
 void
 dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
 {
-	gint i;
+	int i;
 
 	for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
 		struct gnutella_host host;
@@ -1229,7 +1229,7 @@ dmesh_urlinfo(const dmesh_urlinfo_t *info, char *buf,
 		 */
 
 		if (rw < maxslen) {
-			gint re = url_escape_into(info->name, &buf[rw], len - rw);
+			int re = url_escape_into(info->name, &buf[rw], len - rw);
 
 			if (re < 0)
 				return (size_t) -1;
@@ -1363,14 +1363,14 @@ dmesh_entry_to_string(const struct dmesh_entry *dme)
  *
  * @return the amount of locations filled.
  */
-gint
-dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
+int
+dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 {
 	struct dmesh *dm;
 	struct dmesh_entry *selected[MAX_ENTRIES];
-	gint nselected;
-	gint i;
-	gint j;
+	int nselected;
+	int i;
+	int j;
 	gboolean complete_file;
 	list_iter_t *iter;
 
@@ -1426,7 +1426,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 	if (nselected == 0)
 		return 0;
 
-	g_assert(nselected <= (gint) list_length(dm->entries));
+	g_assert(nselected <= (int) list_length(dm->entries));
 
 	/*
 	 * Second pass: choose at most `hcnt' entries at random.
@@ -1434,10 +1434,10 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
 
 	for (i = j = 0; i < nselected && j < hcnt; i++) {
 		struct dmesh_entry *dme;
-		gint nleft = nselected - i;
-		gint npick = random_value(nleft - 1);
-		gint k;
-		gint n;
+		int nleft = nselected - i;
+		int npick = random_value(nleft - 1);
+		int k;
+		int n;
 
 		/*
 		 * The `npick' variable is the index of the selected entry, all
@@ -1498,7 +1498,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, gint hcnt)
  *
  * @return amount of generated data.
  */
-gint
+int
 dmesh_alternate_location(const struct sha1 *sha1,
 	char *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor,
@@ -1508,9 +1508,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	struct dmesh *dm;
 	size_t len = 0;
 	GSList *l;
-	gint nselected = 0;
+	int nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
-	gint i;
+	int i;
 	size_t maxslen;			/* Account for trailing NUL + "\r\n" */
 	GSList *by_addr;
 	size_t maxlinelen = 0;
@@ -1520,7 +1520,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	g_assert(sha1);
 	g_assert(buf);
-	g_assert((gint) size >= 0);
+	g_assert((int) size >= 0);
 	g_assert(size <= INT_MAX);
 
 	if (size <= 3)
@@ -1739,7 +1739,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	if (nselected == 0)
 		goto nomore;
 
-	g_assert(nselected <= (gint) list_length(dm->entries));
+	g_assert(nselected <= (int) list_length(dm->entries));
 
 	/*
 	 * Second pass.
@@ -1747,10 +1747,10 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	for (i = 0; i < nselected; i++) {
 		struct dmesh_entry *dme;
-		gint nleft = nselected - i;
-		gint npick = random_value(nleft - 1);
-		gint j;
-		gint n;
+		int nleft = nselected - i;
+		int npick = random_value(nleft - 1);
+		int j;
+		int n;
 		size_t url_len;
 
 		/*
@@ -1880,7 +1880,7 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 		 */	
 		ok = string_to_host_addr(start, &endptr, &addr);
 		if (ok && ':' == *endptr) {
-			gint error;
+			int error;
 				
 			port = parse_uint16(&endptr[1], &endptr, 10, &error);
 			ok = !error && port > 0; 
@@ -2165,7 +2165,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_string(&info), (guint) stamp,
-				(gint) delta_time(now, stamp));
+				(int) delta_time(now, stamp));
 
 		if (c == '\0')				/* Reached end of string */
 			finished = TRUE;
@@ -2184,12 +2184,12 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
  *
  * @returns the amount of locations inserted.
  */
-static gint
-dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, gint count)
+static int
+dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 {
 	struct dmesh *dm;
 	list_iter_t *iter;
-	gint i;
+	int i;
 
 	g_assert(sha1);
 	g_assert(buf);
@@ -2264,7 +2264,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 
 			if (rc->alt_locs != NULL) {
 				gnet_host_vec_t *alt = rc->alt_locs;
-				gint i;
+				int i;
 
 				for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
 					struct gnutella_host host;
@@ -2300,7 +2300,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
 	filesize_t size, fileinfo_t *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX], *p;
-	gint n;
+	int n;
 	time_t now;
 
 	n = dmesh_alt_loc_fill(sha1, buffer, DMESH_MAX);
@@ -2426,7 +2426,7 @@ dmesh_retrieve(void)
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
 	gboolean skip = FALSE, truncated = FALSE;
-	gint line = 0;
+	int line = 0;
 	file_path_t fp[1];
 
 	file_path_set(fp, settings_config_dir(), dmesh_file);
@@ -2539,10 +2539,10 @@ dmesh_ban_retrieve(void)
 {
 	FILE *in;
 	char tmp[1024];
-	gint line = 0;
+	int line = 0;
 	time_t stamp;
 	const char *p;
-	gint error;
+	int error;
 	dmesh_urlinfo_t info;
 	file_path_t fp;
 

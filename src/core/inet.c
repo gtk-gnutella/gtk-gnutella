@@ -538,7 +538,7 @@ inet_udp_record_sent(const host_addr_t addr)
 gboolean
 inet_can_answer_ping(void)
 {
-	gint elapsed;
+	int elapsed;
 
 	/* Leaves don't send pongs */
 	if (!GNET_PROPERTY(is_firewalled))

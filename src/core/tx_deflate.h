@@ -47,7 +47,7 @@ const struct txdrv_ops *tx_deflate_get_ops(void);
  * Callbacks used by the deflating layer.
  */
 struct tx_deflate_cb {
-	void (*add_tx_deflated)(gpointer owner, gint amount);
+	void (*add_tx_deflated)(gpointer owner, int amount);
 	void (*shutdown)(gpointer owner, const char *reason, ...);
 };
 

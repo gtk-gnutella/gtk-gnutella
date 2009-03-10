@@ -1009,7 +1009,7 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
  * NB: The static buffers for each column are disjunct.
  */
 const char *
-hsep_get_static_str(gint row, gint column)
+hsep_get_static_str(int row, int column)
 {
 	const char *ret = NULL;
 	hsep_triple hsep_table[G_N_ELEMENTS(hsep_global_table)];
@@ -1062,7 +1062,7 @@ hsep_get_static_str(gint row, gint column)
 /**
  * @returns the size of the global hsep table
  */
-gint
+int
 hsep_get_table_size(void)
 {
 	hsep_triple hsep_table[G_N_ELEMENTS(hsep_global_table)];

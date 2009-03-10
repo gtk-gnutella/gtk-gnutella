@@ -64,16 +64,16 @@ static struct bgtask *move_daemon;
  * Moving daemon context.
  */
 struct moved {
-	gint magic;				/**< Magic number */
+	int magic;				/**< Magic number */
 	struct download *d;		/**< Download for which we're moving file */
 	char *buffer;			/**< Large buffer, where data is read */
 	char *target;			/**< Target file name, in case an error occurs */
 	time_t start;			/**< Start time, to determine copying rate */
 	filesize_t size;		/**< Size of file */
 	filesize_t copied;		/**< Amount of data copied so far */
-	gint rd;				/**< Opened file descriptor for read, -1 if none */
-	gint wd;				/**< Opened file descriptor for write, -1 if none */
-	gint error;				/**< Error code */
+	int rd;				/**< Opened file descriptor for read, -1 if none */
+	int wd;				/**< Opened file descriptor for write, -1 if none */
+	int error;				/**< Error code */
 };
 
 /**
@@ -258,7 +258,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 {
 	struct moved *md = ctx;
 	struct download *d = md->d;
-	gint elapsed = 0;
+	int elapsed = 0;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->d == ((struct work *) item)->d);
@@ -348,13 +348,13 @@ finish:
  * Copy file around, incrementally.
  */
 static bgret_t
-d_step_copy(struct bgtask *h, gpointer u, gint ticks)
+d_step_copy(struct bgtask *h, gpointer u, int ticks)
 {
 	struct moved *md = u;
 	ssize_t r;
 	size_t amount;
 	guint64 remain;
-	gint used;
+	int used;
 
 	g_assert(md->magic == MOVED_MAGIC);
 

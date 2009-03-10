@@ -344,7 +344,7 @@ static void
 flush_match(void)
 {
 	char trailer[7];
-	gint ggep_len = 0;			/* Size of the GGEP trailer */
+	int ggep_len = 0;			/* Size of the GGEP trailer */
 	ggep_stream_t gs;
 	char *trailer_start;
 
@@ -572,9 +572,9 @@ add_file(const struct shared_file *sf)
 {
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
-	gint hcnt = 0;
+	int hcnt = 0;
 	guint32 fs32, fs32_le, idx_le;
-	gint ggep_len;
+	int ggep_len;
 	gboolean ok;
 	ggep_stream_t gs;
 	size_t left, needed;
@@ -713,11 +713,11 @@ add_file(const struct shared_file *sf)
 
 	if (fs32 == ~0U) {
 		char buf[sizeof(guint64)];
-		gint len;
+		int len;
 
 		len = ggept_filesize_encode(shared_file_size(sf), buf);
 
-		g_assert(len > 0 && len <= (gint) sizeof buf);
+		g_assert(len > 0 && len <= (int) sizeof buf);
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(LF), buf, len, GGEP_W_COBS);
 		if (!ok)
@@ -732,7 +732,7 @@ add_file(const struct shared_file *sf)
 	if (hcnt > 0) {
 		guchar tls_bytes[(G_N_ELEMENTS(hvec) + 7) / 8];
 		guint tls_index, tls_length;
-		gint i;
+		int i;
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
 		memset(tls_bytes, 0, sizeof tls_bytes);
@@ -793,7 +793,7 @@ add_file(const struct shared_file *sf)
 		mtime = shared_file_modification_time(sf);
 		if ((time_t) -1 != mtime) {
 			char buf[sizeof(guint64)];
-			gint len;
+			int len;
 
 			/*
 			 * Suppress negative values (if time_t is signed) as this would
@@ -802,7 +802,7 @@ add_file(const struct shared_file *sf)
 			mtime = MAX(0, mtime);
 
 			len = ggept_ct_encode(mtime, buf);
-			g_assert(len >= 0 && len <= (gint) sizeof buf);
+			g_assert(len >= 0 && len <= (int) sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
 			if (!ok)
@@ -877,11 +877,11 @@ found_reset(size_t max_size, const struct guid *muid, gboolean ggep_h,
  * @param muid			the query's MUID
  */
 void
-qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
+qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	const struct guid *muid, gboolean ggep_h)
 {
 	GSList *sl;
-	gint sent = 0;
+	int sent = 0;
 
 	/*
 	 * We can't use n->header.muid as the query's MUID but must rely on the
@@ -933,12 +933,12 @@ qhit_send_results(struct gnutella_node *n, GSList *files, gint count,
  * @param muid			the MUID to use on each generated hit
  */
 void
-qhit_build_results(const GSList *files, gint count, size_t max_msgsize,
+qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 	qhit_process_t cb, gpointer udata, const struct guid *muid, gboolean ggep_h,
 	const struct array *token)
 {
 	const GSList *sl;
-	gint sent;
+	int sent;
 
 	g_assert(cb != NULL);
 	g_assert(token);

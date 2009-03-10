@@ -175,15 +175,15 @@ typedef struct extvec {
 void ext_init(void);
 void ext_close(void);
 
-void ext_prepare(extvec_t *exv, gint exvcnt);
-gint ext_parse(const char *buf, gint len, extvec_t *exv, gint exvcnt);
-void ext_reset(extvec_t *exv, gint exvcnt);
+void ext_prepare(extvec_t *exv, int exvcnt);
+int ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt);
+void ext_reset(extvec_t *exv, int exvcnt);
 
 gboolean ext_is_printable(const extvec_t *e);
 gboolean ext_is_ascii(const extvec_t *e);
 gboolean ext_has_ascii_word(const extvec_t *e);
 
-void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
+void ext_dump(FILE *fd, const extvec_t *extvec, int extcnt,
 	const char *prefix, const char *postfix, gboolean payload);
 
 gconstpointer ext_payload(const extvec_t *e);

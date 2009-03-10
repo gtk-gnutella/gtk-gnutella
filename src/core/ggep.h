@@ -111,17 +111,17 @@ typedef struct ggep_stream {
 
 struct iovec;
 
-gint ggep_decode_into(extvec_t *exv, char *buf, size_t len);
+int ggep_decode_into(extvec_t *exv, char *buf, size_t len);
 
 void ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len);
 gboolean ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags);
 gboolean ggep_stream_writev(ggep_stream_t *gs,
-	const struct iovec *iov, gint iovcnt);
+	const struct iovec *iov, int iovcnt);
 gboolean ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len);
 gboolean ggep_stream_end(ggep_stream_t *gs);
 size_t ggep_stream_close(ggep_stream_t *gs);
 gboolean ggep_stream_packv(ggep_stream_t *gs,
-	const char *id, const struct iovec *iov, gint iovcnt, guint32 wflags);
+	const char *id, const struct iovec *iov, int iovcnt, guint32 wflags);
 gboolean ggep_stream_pack(ggep_stream_t *gs,
 	const char *id, gconstpointer payload, size_t plen, guint32 wflags);
 

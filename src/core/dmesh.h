@@ -104,7 +104,7 @@ void dmesh_negative_alt(const struct sha1 *sha1,
 void dmesh_good_mark(const struct sha1 *sha1,
 	host_addr_t addr, guint16 port, gboolean good);
 
-gint dmesh_count(const struct sha1 *sha1);
+int dmesh_count(const struct sha1 *sha1);
 
 gboolean dmesh_collect_sha1(const char *value, struct sha1 *sha1);
 void dmesh_collect_locations(const struct sha1 *sha1, const char *value);
@@ -112,10 +112,10 @@ void dmesh_collect_compact_locations(const struct sha1 *sha1,
 		const char *value);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,
 	const char *value, host_addr_t reporter);
-gint dmesh_fill_alternate(const struct sha1 *sha1,
-		gnet_host_t *hvec, gint hcnt);
+int dmesh_fill_alternate(const struct sha1 *sha1,
+		gnet_host_t *hvec, int hcnt);
 
-gint dmesh_alternate_location(
+int dmesh_alternate_location(
 	const struct sha1 *sha1, char * buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor, fileinfo_t *fi,
 	gboolean request);

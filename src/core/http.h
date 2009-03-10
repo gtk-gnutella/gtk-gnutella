@@ -138,12 +138,12 @@ struct http_async;
  * Indicates whether we should continue or not, given the HTTP response code.
  */
 typedef gboolean (*http_header_cb_t)(
-	struct http_async *, struct header *, gint code, const char *message);
+	struct http_async *, struct header *, int code, const char *message);
 
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(struct http_async *, char *data, gint len);
+typedef void (*http_data_cb_t)(struct http_async *, char *data, int len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
@@ -155,7 +155,7 @@ typedef enum {				/**< Type of error reported by http_error_cb_t */
 typedef struct {
 	struct header *header;	/**< Parsed HTTP header */
 	const char *message;	/**< HTTP status message */
-	gint code;				/**< HTTP status code */
+	int code;				/**< HTTP status code */
 } http_error_t;
 
 /**
@@ -234,7 +234,7 @@ typedef struct http_buffer {
 	char *hb_arena;				/**< The whole thing */
 	char *hb_rptr;					/**< Reading pointer within arena */
 	char *hb_end;					/**< First char after buffer */
-	gint hb_len;					/**< Total arena length */
+	int hb_len;					/**< Total arena length */
 } http_buffer_t;
 
 #define http_buffer_base(hb)		((hb)->hb_arena)
@@ -253,7 +253,7 @@ struct gnutella_socket;
 void http_timer(time_t now);
 
 gboolean http_send_status(http_layer_t layer, struct gnutella_socket *s,
-	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt,
+	int code, gboolean keep_alive, http_extra_desc_t *hev, int hevcnt,
 	const char *reason, ...) G_GNUC_PRINTF(7, 8);
 
 size_t http_hostname_add(
@@ -261,7 +261,7 @@ size_t http_hostname_add(
 size_t http_retry_after_add(
 	char *buf, size_t size, gpointer arg, guint32 flags);
 
-gint http_status_parse(const char *line,
+int http_status_parse(const char *line,
 	const char *proto, const char **msg, guint *major, guint *minor);
 
 gboolean http_extract_version(
@@ -270,7 +270,7 @@ gboolean http_extract_version(
 http_buffer_t *http_buffer_alloc(char *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);
 
-gint
+int
 http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total);
 
@@ -305,7 +305,7 @@ const char *http_async_info(
 void http_async_connected(struct http_async *handle);
 void http_async_close(struct http_async *handle);
 void http_async_cancel(struct http_async *handle);
-void http_async_error(struct http_async *handle, gint code);
+void http_async_error(struct http_async *handle, int code);
 http_state_t http_async_state(struct http_async *handle);
 
 void http_async_set_opaque(struct http_async *handle,

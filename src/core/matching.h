@@ -90,7 +90,7 @@ void st_search(
 	const char *search,
 	st_search_callback callback,
 	gpointer ctx,
-	gint max_res,
+	int max_res,
 	struct query_hashvec *qhv);
 
 #endif	/* _core_matching_h_ */

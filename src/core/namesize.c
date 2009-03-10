@@ -61,7 +61,7 @@ namesize_hash(gconstpointer key)
 /**
  * Compare two `namesize_t' keys.
  */
-gint
+int
 namesize_eq(gconstpointer a, gconstpointer b)
 {
 	const namesize_t *ka = a, *kb = b;

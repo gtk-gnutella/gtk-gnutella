@@ -108,7 +108,7 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
-static void socket_accept(gpointer data, gint, inputevt_cond_t cond);
+static void socket_accept(gpointer data, int, inputevt_cond_t cond);
 
 static struct gnutella_socket *
 socket_alloc(void)
@@ -182,10 +182,10 @@ socket_ipv6_trt_map(const host_addr_t addr)
  * Return the file descriptor to use for I/O monitoring callbacks on
  * the socket.
  */
-gint
+int
 socket_evt_fd(struct gnutella_socket *s)
 {
-	gint fd = -1;
+	int fd = -1;
 
 	socket_check(s);
 	switch (s->direction) {
@@ -224,7 +224,7 @@ void
 socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
 {
-	gint fd;
+	int fd;
 
 	socket_check(s);
 	g_assert(handler);
@@ -262,7 +262,7 @@ socket_evt_clear(struct gnutella_socket *s)
 
 	if (s->gdk_tag) {
 		if (GNET_PROPERTY(tls_debug) > 4) {
-			gint fd = socket_evt_fd(s);
+			int fd = socket_evt_fd(s);
 			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
 				fd, inputevt_cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
 		}
@@ -298,7 +298,7 @@ static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const char *reason);
-static void socket_connected(gpointer data, gint source, inputevt_cond_t cond);
+static void socket_connected(gpointer data, int source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
 
 /*
@@ -310,9 +310,9 @@ static void socket_wio_link(struct gnutella_socket *s);
  * go badly.
  */
 static gboolean sol_got = FALSE;
-static gint sol_tcp_cached = -1;
-static gint sol_ip_cached = -1;
-static gint sol_ipv6_cached = -1;
+static int sol_tcp_cached = -1;
+static int sol_ip_cached = -1;
+static int sol_ipv6_cached = -1;
 
 /**
  * Compute and cache values for SOL_TCP and SOL_IP.
@@ -348,7 +348,7 @@ get_sol(void)
 /**
  * @returns SOL_TCP.
  */
-static gint
+static int
 sol_tcp(void)
 {
 	g_assert(sol_got);
@@ -358,7 +358,7 @@ sol_tcp(void)
 /**
  * @returns SOL_IP.
  */
-static gint
+static int
 sol_ip(void)
 {
 	g_assert(sol_got);
@@ -368,7 +368,7 @@ sol_ip(void)
 /**
  * @returns SOL_IPV6.
  */
-static gint
+static int
 sol_ipv6(void)
 {
 	g_assert(sol_got);
@@ -381,8 +381,8 @@ sol_ipv6(void)
  * Set the TOS on the socket.  Routers can use this information to
  * better route the IP datagrams.
  */
-static gint
-socket_tos(const struct gnutella_socket *s, gint tos)
+static int
+socket_tos(const struct gnutella_socket *s, int tos)
 {
 	socket_check(s);
 	g_return_val_if_fail(NET_TYPE_NONE != s->net, 0);
@@ -435,8 +435,8 @@ socket_tos_default(const struct gnutella_socket *s)
 	}
 }
 #else
-static gint
-socket_tos(const struct gnutella_socket *unused_s, gint unused_tos)
+static int
+socket_tos(const struct gnutella_socket *unused_s, int unused_tos)
 {
 	(void) unused_s;
 	(void) unused_tos;
@@ -581,7 +581,7 @@ proxy_connect(int fd)
 	return connect(fd, socket_addr_get_const_sockaddr(&server), len);
 }
 
-static gint
+static int
 send_socks4(struct gnutella_socket *s)
 {
 	size_t length;
@@ -652,7 +652,7 @@ send_socks4(struct gnutella_socket *s)
 	return 0;
 }
 
-static gint
+static int
 recv_socks4(struct gnutella_socket *s)
 {
 	struct {
@@ -709,12 +709,12 @@ recv_socks4(struct gnutella_socket *s)
 	return 0;
 }
 
-static gint
+static int
 connect_http(struct gnutella_socket *s)
 {
 	ssize_t ret;
 	size_t parsed;
-	gint status;
+	int status;
 	const char *str;
 
 	socket_check(s);
@@ -851,14 +851,14 @@ connect_http(struct gnutella_socket *s)
 6: Done
 */
 
-static gint
+static int
 connect_socksv5(struct gnutella_socket *s)
 {
 	static const char verstring[] = "\x05\x02\x02";
 	ssize_t ret = 0;
 	size_t size;
 	const char *name;
-	gint sockid;
+	int sockid;
 	host_addr_t addr;
 
 	socket_check(s);
@@ -1415,7 +1415,7 @@ destroy:
  * will be called as often as necessary to fetch a full line.
  */
 static void
-socket_read(gpointer data, gint source, inputevt_cond_t cond)
+socket_read(gpointer data, int source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t count;
@@ -1612,7 +1612,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			send_node_error(s, 550, "Banned for %s",
 				short_time_ascii(ban_delay(s->addr)));
 		else {
-			gint delay = ban_delay(s->addr);
+			int delay = ban_delay(s->addr);
 			http_extra_desc_t hev;
 
 			http_extra_callback_set(&hev, http_retry_after_add,
@@ -1731,7 +1731,7 @@ cleanup:
  * So far there are CONTROL, UPLOAD, DOWNLOAD and HTTP handlers.
  */
 static void
-socket_connected(gpointer data, gint source, inputevt_cond_t cond)
+socket_connected(gpointer data, int source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
 
@@ -1816,7 +1816,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (0 != (cond & INPUT_EVENT_W)) {
 		/* We are just connected to our partner */
-		gint res, option;
+		int res, option;
 		socklen_t size = sizeof option;
 
 		socket_evt_clear(s);
@@ -2048,13 +2048,13 @@ socket_local_port(struct gnutella_socket *s)
  * Someone is connecting to us.
  */
 static void
-socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
+socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	socket_addr_t addr;
 	socklen_t addr_len;
 	struct gnutella_socket *s = data;
 	struct gnutella_socket *t = NULL;
-	gint fd;
+	int fd;
 
 	(void) unused_source;
 	socket_check(s);
@@ -2409,7 +2409,7 @@ socket_udp_accept(struct gnutella_socket *s)
  * Someone is sending us a datagram.
  */
 static void
-socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
+socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t i, avail;
@@ -2417,7 +2417,7 @@ socket_udp_event(gpointer data, gint unused_source, inputevt_cond_t cond)
 	(void) unused_source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		gint error;
+		int error;
 		socklen_t error_len = sizeof error;
 
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
@@ -2495,7 +2495,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 
 #if defined(TCP_DEFER_ACCEPT)
 	{
-		gint timeout;
+		int timeout;
 
 		timeout = MIN(GNET_PROPERTY(tcp_defer_accept_timeout), (guint) INT_MAX);
 		if (
@@ -2583,12 +2583,12 @@ socket_set_quickack(struct gnutella_socket *s, int on)
  *
  * @returns non-zero in case of failure, zero on success.
  */
-static gint
+static int
 socket_connect_prepare(struct gnutella_socket *s,
 	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
 {
 	static const int enable = 1;
-	gint fd, family;
+	int fd, family;
 
 	socket_check(s);
 
@@ -2632,7 +2632,7 @@ socket_connect_prepare(struct gnutella_socket *s,
 		}
 
 		if (fd < 0) {
-			gint saved_errno = errno;
+			int saved_errno = errno;
 			g_warning("unable to create a socket (%s)",
 				g_strerror(saved_errno));
 			errno = saved_errno;
@@ -2689,12 +2689,12 @@ socket_connect_prepare(struct gnutella_socket *s,
  *
  * @returns non-zero in case of failure, zero on success.
  */
-static gint
+static int
 socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 {
 	socket_addr_t addr;
 	socklen_t addr_len;
-	gint res;
+	int res;
 
 	socket_check(s);
 
@@ -2936,12 +2936,12 @@ socket_connect_by_name(const char *host, guint16 port,
  *
  * @return The new file descriptor of socket or -1 on failure.
  */
-static gint
+static int
 socket_create_and_bind(const host_addr_t bind_addr,
 	const guint16 port, const int type)
 {
 	gboolean socket_failed;
-	gint fd, saved_errno, family;
+	int fd, saved_errno, family;
 
 	g_assert(SOCK_DGRAM == type || SOCK_STREAM == type);
 
@@ -3443,7 +3443,7 @@ socket_set_intern(int fd, int option, unsigned size,
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
@@ -3455,7 +3455,7 @@ socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
@@ -3591,7 +3591,7 @@ socket_plain_sendto(
 			socket_addr_get_const_sockaddr(&addr), len);
 
 	if ((ssize_t) -1 == ret && GNET_PROPERTY(udp_debug)) {
-		gint e = errno;
+		int e = errno;
 
 		g_warning("sendto() failed: %s", g_strerror(e));
 		errno = e;
@@ -3705,13 +3705,13 @@ socket_wio_link(struct gnutella_socket *s)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
+safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt)
 {
 	size_t got = 0;
 	struct iovec *end = iov + iovcnt;
 	struct iovec *siov;
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovgot = 0;
+	int siovcnt = MAX_IOV_COUNT;
+	int iovgot = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
@@ -3755,13 +3755,13 @@ safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_readv_fd(gint fd, struct iovec *iov, gint iovcnt)
+safe_readv_fd(int fd, struct iovec *iov, int iovcnt)
 {
 	size_t got = 0;
 	struct iovec *end = iov + iovcnt;
 	struct iovec *siov;
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovgot = 0;
+	int siovcnt = MAX_IOV_COUNT;
+	int iovgot = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
@@ -3805,11 +3805,11 @@ safe_readv_fd(gint fd, struct iovec *iov, gint iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev(wrap_io_t *wio, const struct iovec *iov, gint iovcnt)
+safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt)
 {
 	const struct iovec *siov, *end = &iov[iovcnt];
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovsent = 0;
+	int siovcnt = MAX_IOV_COUNT;
+	int iovsent = 0;
 	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {
@@ -3853,11 +3853,11 @@ safe_writev(wrap_io_t *wio, const struct iovec *iov, gint iovcnt)
  * MAX_IOV_COUNT entries at a time.
  */
 ssize_t
-safe_writev_fd(gint fd, const struct iovec *iov, gint iovcnt)
+safe_writev_fd(int fd, const struct iovec *iov, int iovcnt)
 {
 	const struct iovec *siov, *end = &iov[iovcnt];
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovsent = 0;
+	int siovcnt = MAX_IOV_COUNT;
+	int iovsent = 0;
 	size_t sent = 0;
 
 	for (siov = iov; siov < end; siov += siovcnt) {

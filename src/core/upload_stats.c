@@ -506,7 +506,7 @@ upload_stats_file_begin(const struct shared_file *sf)
 static void
 upload_stats_file_add(
 	const struct shared_file *sf,
-	gint comp, guint64 sent, gboolean update_dtime)
+	int comp, guint64 sent, gboolean update_dtime)
 {
 	const char *pathname = shared_file_path(sf);
 	filesize_t size = shared_file_size(sf);

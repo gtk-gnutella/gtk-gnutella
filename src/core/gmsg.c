@@ -159,7 +159,7 @@ gmsg_split_dump(FILE *out, gconstpointer head, gconstpointer data,
 void
 gmsg_init(void)
 {
-	gint i;
+	int i;
 
 	for (i = 0; i < 256; i++) {
 		const char *s = "unknown";
@@ -802,7 +802,7 @@ gmsg_install_presend(pmsg_t *mb)
  * and there's not enough room in the queue.
  */
 gboolean
-gmsg_can_drop(gconstpointer pdu, gint size)
+gmsg_can_drop(gconstpointer pdu, int size)
 {
 	if ((size_t) size < GTA_HEADER_SIZE)
 		return TRUE;
@@ -824,10 +824,10 @@ gmsg_can_drop(gconstpointer pdu, gint size)
  *
  * @return algebraic -1/0/+1 depending on relative order.
  */
-gint
+int
 gmsg_cmp(gconstpointer h1, gconstpointer h2)
 {
-	gint w1, w2;
+	int w1, w2;
 	guint8 f1, f2;
 
 	f1 = gnutella_header_get_function(h1);

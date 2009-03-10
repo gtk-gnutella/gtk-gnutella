@@ -52,7 +52,7 @@ struct pmsg;
 void udp_received(struct gnutella_socket *s, gboolean truncated);
 void udp_connect_back(const host_addr_t addr, guint16 port,
 	const struct guid *muid);
-void udp_send_msg(const struct gnutella_node *n, gconstpointer buf, gint len);
+void udp_send_msg(const struct gnutella_node *n, gconstpointer buf, int len);
 gboolean udp_send_ping(const struct guid *muid,
 	const host_addr_t addr, guint16 port, gboolean uhc_ping);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);

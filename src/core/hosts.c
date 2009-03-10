@@ -89,7 +89,7 @@ host_hash(gconstpointer key)
  *
  * @note For use in g_hash_table_new.
  */
-gint
+int
 host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
@@ -103,7 +103,7 @@ host_eq(gconstpointer v1, gconstpointer v2)
  *
  * @note For use in g_list_find_custom.
  */
-gint
+int
 host_cmp(gconstpointer v1, gconstpointer v2)
 {
 	return host_eq(v1, v2) ? 0 : 1;
@@ -197,11 +197,11 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 }
 
 gnet_host_vec_t *
-gnet_host_vec_create(gnet_host_t *hvec, gint hcnt)
+gnet_host_vec_create(gnet_host_t *hvec, int hcnt)
 {
 	gnet_host_vec_t *vec;
 	guint n_ipv6 = 0, n_ipv4 = 0;
-	gint i;
+	int i;
 
 	g_assert(hcnt >= 0);
 
@@ -360,7 +360,7 @@ void
 host_timer(void)
 {
     guint count;
-	gint missing;
+	int missing;
 	host_addr_t addr;
 	guint16 port;
 	host_type_t htype;
@@ -656,7 +656,7 @@ parse_netmasks(const char *str)
 					g_warning("parse_netmasks(): Invalid netmask: \"%s\"", p);
 			}
 			else {
-				gint error;
+				int error;
 
 				mask_div = parse_uint32(p, NULL, 10, &error);
 				mask_div = MIN(32, mask_div);

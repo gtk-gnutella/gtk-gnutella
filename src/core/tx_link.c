@@ -63,7 +63,7 @@ struct attr {
  * Invoked when the output file descriptor can accept more data.
  */
 static void
-is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
+is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = data;
 	struct attr *attr = tx->opaque;
@@ -139,7 +139,7 @@ tx_link_destroy(txdrv_t *tx)
 	wfree(attr, sizeof *attr);
 }
 
-static inline gint
+static inline int
 tx_link_write_error(txdrv_t *tx, const char *func)
 {
 	struct attr *attr = tx->opaque;
@@ -171,7 +171,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 			int saved_errno = errno;
 			time_t t = tm_time();
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
-			gint fd = wio->fd(wio);
+			int fd = wio->fd(wio);
 			g_warning("%s  gtk-gnutella: %s: "
 				"write failed on fd #%d with unexpected errno: %d (%s)\n",
 				ctime(&t), func, fd, saved_errno, g_strerror(saved_errno));
@@ -227,7 +227,7 @@ tx_link_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+tx_link_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 {
 	struct attr *attr = tx->opaque;
 	ssize_t r;

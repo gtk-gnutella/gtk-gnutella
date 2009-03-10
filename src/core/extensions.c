@@ -387,13 +387,13 @@ ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
 /**
  * Parses a GGEP block (can hold several extensions).
  */
-static gint
-ext_ggep_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
+static int
+ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
 	const char *end = &p[len];
 	const char *lastp = p;				/* Last parsed point */
-	gint count;
+	int count;
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
 		guchar flags;
@@ -434,7 +434,7 @@ ext_ggep_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 		 */
 
 		for (i = 0; i < id_len; i++) {
-			gint c = *p++;
+			int c = *p++;
 			if (c == '\0' || !isascii(c) || is_ascii_cntrl(c))
 				goto abort;
 			id[i] = c; 
@@ -593,8 +593,8 @@ abort:
 	return 0;		/* Cannot be a GGEP block: leave parsing pointer intact */
 }
 
-static gint
-ext_urn_bad_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
+static int
+ext_urn_bad_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
 	const char *lastp = p;				/* Last parsed point */
@@ -636,15 +636,15 @@ ext_urn_bad_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
 /**
  * Parses a URN block (one URN only).
  */
-static gint
-ext_huge_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
+static int
+ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
 	const char *end = &p[len];
 	const char *lastp = p;				/* Last parsed point */
 	ext_token_t token;
 	const char *payload_start = NULL;
-	gint data_length;
+	int data_length;
 	const char *name = NULL;
 	extdesc_t *d;
 
@@ -747,8 +747,8 @@ found:
 /**
  * Parses a XML block (grabs the whole xml up to the first NUL or separator).
  */
-static gint
-ext_xml_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
+static int
+ext_xml_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
 	const char *end = &p[len];
@@ -794,9 +794,9 @@ ext_xml_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
  *
  * If `skip' is TRUE, we don't resync on the first resync point.
  */
-static gint
-ext_unknown_parse(const char **retp, gint len, extvec_t *exv,
-	gint exvcnt, gboolean skip)
+static int
+ext_unknown_parse(const char **retp, int len, extvec_t *exv,
+	int exvcnt, gboolean skip)
 {
 	const char *p = *retp;
 	const char *lastp = p;				/* Last parsed point */
@@ -870,8 +870,8 @@ ext_unknown_parse(const char **retp, gint len, extvec_t *exv,
  * If more that one separator in a row is found, they are all wrapped as a
  * "none" extension.
  */
-static gint
-ext_none_parse(const char **retp, gint len, extvec_t *exv, gint exvcnt)
+static int
+ext_none_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = *retp;
 	const char *end = &p[len];
@@ -983,11 +983,11 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
  *
  * @return the number of filled entries.
  */
-gint
-ext_parse(const char *buf, gint len, extvec_t *exv, gint exvcnt)
+int
+ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt)
 {
 	const char *p = buf, *end = &buf[len];
-	gint cnt = 0;
+	int cnt = 0;
 
 	g_assert(buf);
 	g_assert(len > 0);
@@ -997,7 +997,7 @@ ext_parse(const char *buf, gint len, extvec_t *exv, gint exvcnt)
 
 	while (p < end && exvcnt > 0) {
 		const char *old_p = p;
-		gint found = 0;
+		int found = 0;
 
 		g_assert(len > 0);
 
@@ -1100,13 +1100,13 @@ out:
  * @returns NULL on error.
  */
 static char *
-ext_ggep_inflate(const char *buf, gint len, guint16 *retlen, const char *name)
+ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 {
 	char *result;					/* Inflated buffer */
-	gint rsize;						/* Result's buffer size */
+	int rsize;						/* Result's buffer size */
 	z_streamp inz;
-	gint ret;
-	gint inflated;					/* Amount of inflated data so far */
+	int ret;
+	int inflated;					/* Amount of inflated data so far */
 	gboolean failed = FALSE;
 
 	g_assert(buf);
@@ -1401,7 +1401,7 @@ guint16
 ext_len(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
-	gint headlen;
+	int headlen;
 
 	g_assert(e->opaque != NULL);
 
@@ -1542,10 +1542,10 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
  * non-printable characters, as text otherwise.
  */
 void
-ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
+ext_dump(FILE *fd, const extvec_t *exv, int exvcnt,
 	const char *prefix, const char *postfix, gboolean payload)
 {
-	gint i;
+	int i;
 
 	for (i = 0; i < exvcnt; i++)
 		ext_dump_one(fd, &exv[i], prefix, postfix, payload);
@@ -1556,9 +1556,9 @@ ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
  * all set to NULL.
  */
 void
-ext_prepare(extvec_t *exv, gint exvcnt)
+ext_prepare(extvec_t *exv, int exvcnt)
 {
-	gint i;
+	int i;
 
 	for (i = 0; i < exvcnt; i++)
 		exv[i].opaque = NULL;
@@ -1569,9 +1569,9 @@ ext_prepare(extvec_t *exv, gint exvcnt)
  * and of any allocated "virtual" payload.
  */
 void
-ext_reset(extvec_t *exv, gint exvcnt)
+ext_reset(extvec_t *exv, int exvcnt)
 {
-	gint i;
+	int i;
 	
 	for (i = 0; i < exvcnt; i++) {
 		extvec_t *e = &exv[i];

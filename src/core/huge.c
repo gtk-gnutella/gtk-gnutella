@@ -292,7 +292,7 @@ parse_and_append_cache_entry(char *line)
 	const char *file_name;
 	char *file_name_end;
 	const char *p, *end; /* pointers to scan the line */
-	gint c, error;
+	int c, error;
 	filesize_t size;
 	time_t mtime;
 	struct sha1 sha1;
@@ -772,7 +772,7 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 		if (GNET_PROPERTY(dbg)) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has bad SHA1 (len=%d): %.*s, hex: %s",
-					gmsg_infostr(header), (gint) len, (gint) len, buf,
+					gmsg_infostr(header), (int) len, (int) len, buf,
 					data_hex_str(sha1->data, sizeof sha1->data));
 			} else
 				goto bad;		/* SHA1 should be printable originally */

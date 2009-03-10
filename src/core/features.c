@@ -225,7 +225,7 @@ header_get_feature(const char *feature_name, const header_t *header,
 
 	start = buf;
 	for (;;) {
-		gint pc;			/* Previous char */
+		int pc;			/* Previous char */
 
 		buf = ascii_strcasestr(buf, feature_name);
 

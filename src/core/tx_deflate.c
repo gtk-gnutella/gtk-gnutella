@@ -82,12 +82,12 @@ struct attr {
 	struct buffer buf[BUFFER_COUNT];
 	size_t buffer_size;			/**< Buffer size used */
 	size_t buffer_flush;		/**< Flush after that many bytes */
-	gint fill_idx;				/**< Filled buffer index */
-	gint send_idx;				/**< Buffer to be sent */
+	int fill_idx;				/**< Filled buffer index */
+	int send_idx;				/**< Buffer to be sent */
 	z_streamp outz;				/**< Compressing stream */
 	txdrv_t *nd;				/**< Network driver, underneath us */
 	size_t unflushed;			/**< Amount of bytes written since last flush */
-	gint flags;					/**< Operating flags */
+	int flags;					/**< Operating flags */
 	cqueue_t *cq;				/**< The callout queue to use for Nagle */
 	cevent_t *tm_ev;			/**< The timer event */
 	const struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
@@ -144,7 +144,7 @@ deflate_send(txdrv_t *tx)
 
 	if (GNET_PROPERTY(dbg) > 9)
 		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
-			gnet_host_to_string(&tx->host), (gint) r, attr->send_idx,
+			gnet_host_to_string(&tx->host), (int) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -259,8 +259,8 @@ deflate_flush(txdrv_t *tx)
 	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
 	struct buffer *b;
-	gint ret;
-	gint old_avail;
+	int ret;
+	int old_avail;
 
 retry:
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
@@ -418,12 +418,12 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
  *
  * @return the amount of input bytes that were consumed ("added"), -1 on error.
  */
-static gint
-deflate_add(txdrv_t *tx, gconstpointer data, gint len)
+static int
+deflate_add(txdrv_t *tx, gconstpointer data, int len)
 {
 	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
-	gint added = 0;
+	int added = 0;
 
 	if (GNET_PROPERTY(dbg) > 9) {
 		printf("deflate_add: (%s) given %lu bytes (buffer #%d, nagle %s, "
@@ -437,10 +437,10 @@ deflate_add(txdrv_t *tx, gconstpointer data, gint len)
 
 	while (added < len) {
 		struct buffer *b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
-		gint ret;
-		gint old_added = added;
+		int ret;
+		int old_added = added;
 		gboolean flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
-		gint old_avail;
+		int old_avail;
 		const char *in, *old_in;
 
 		/*
@@ -577,7 +577,7 @@ deflate_service(gpointer data)
 			(tx->flags & TX_ERROR) ? "ERROR " : "",
 			attr->send_idx,
 			attr->send_idx >= 0 ?
-				(gint) (attr->buf[attr->send_idx].wptr -
+				(int) (attr->buf[attr->send_idx].wptr -
 						attr->buf[attr->send_idx].rptr) : 0,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -607,7 +607,7 @@ deflate_service(gpointer data)
 		if (GNET_PROPERTY(dbg) > 9)
 			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
 				gnet_host_to_string(&tx->host), attr->fill_idx,
-				(gint) (b->wptr - b->rptr));
+				(int) (b->wptr - b->rptr));
 
 		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
 
@@ -687,8 +687,8 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	struct attr *attr;
 	struct tx_deflate_args *targs = args;
 	z_streamp outz;
-	gint ret;
-	gint i;
+	int ret;
+	int i;
 
 	g_assert(tx);
 	g_assert(NULL != targs->cb);
@@ -773,8 +773,8 @@ static void
 tx_deflate_destroy(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
-	gint i;
-	gint ret;
+	int i;
+	int ret;
 
 	g_assert(attr->outz);
 
@@ -832,10 +832,10 @@ tx_deflate_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+tx_deflate_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 {
 	struct attr *attr = tx->opaque;
-	gint sent = 0;
+	int sent = 0;
 
 	if (GNET_PROPERTY(dbg) > 9)
 		printf("tx_deflate_writev: (%s) (buffer #%d, nagle %s, "
@@ -846,7 +846,7 @@ tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
 	while (iovcnt--) {
-		gint ret;
+		int ret;
 
 		/*
 		 * If we're flow controlled or shut down, stop sending.

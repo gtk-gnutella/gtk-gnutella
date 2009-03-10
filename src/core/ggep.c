@@ -199,7 +199,7 @@ ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
 gboolean
 ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags)
 {
-	gint idlen;
+	int idlen;
 	guint8 flags = 0;
 
 	g_assert(ggep_stream_is_valid(gs));
@@ -320,10 +320,10 @@ cleanup:
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
 gboolean
-ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, gint iovcnt)
+ggep_stream_writev(ggep_stream_t *gs, const struct iovec *iov, int iovcnt)
 {
 	const struct iovec *xiov;
-	gint i;
+	int i;
 
 	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->begun);
@@ -434,8 +434,8 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (GNET_PROPERTY(ggep_debug) > 2)
 				g_warning("GGEP \"%.*s\" not compressing %d bytes into %d",
-					(gint) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
-					(gint) ilen, (gint) plen);
+					(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
+					(int) ilen, (int) plen);
 
 			data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
 			if (data == NULL)
@@ -467,8 +467,8 @@ ggep_stream_end(ggep_stream_t *gs)
 				goto cleanup;
 		} else if (GNET_PROPERTY(ggep_debug) > 2)
 			g_warning("GGEP \"%.*s\" compressed %d bytes into %d",
-				(gint) (*gs->fp & GGEP_F_IDLEN),
-				gs->fp + 1, (gint) ilen, (gint) plen);
+				(int) (*gs->fp & GGEP_F_IDLEN),
+				gs->fp + 1, (int) ilen, (int) plen);
 	}
 
 	/*
@@ -516,8 +516,8 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (GNET_PROPERTY(ggep_debug) > 2)
 				g_warning("GGEP \"%.*s\" no need to COBS %d bytes into %d",
-					(gint) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
-					(gint) ilen, (gint) plen);
+					(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
+					(int) ilen, (int) plen);
 
 			/*
 			 * Remove any COBS indication.
@@ -537,7 +537,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 		} else if (GNET_PROPERTY(ggep_debug) > 2)
 			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
-				(gint) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1, (gint) plen);
+				(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1, (int) plen);
 	}
 
 	/*
@@ -557,8 +557,8 @@ ggep_stream_end(ggep_stream_t *gs)
 
 	if (GNET_PROPERTY(ggep_debug) > 3)
 		g_message("GGEP \"%.*s\" payload holds %d byte%s",
-			(gint) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
-			(gint) plen, plen == 1 ? "" : "s");
+			(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
+			(int) plen, plen == 1 ? "" : "s");
 
 	if (plen <= 63) {
 		slen = 1;
@@ -574,7 +574,7 @@ ggep_stream_end(ggep_stream_t *gs)
 		hlen[2] = GGEP_L_LAST | (plen & GGEP_L_VALUE);
 	} else {
 		g_warning("too large GGEP payload length (%d bytes) for \"%.*s\"",
-			(gint) plen, (gint) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1);
+			(int) plen, (int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1);
 		goto cleanup;
 	}
 
@@ -654,7 +654,7 @@ ggep_stream_close(ggep_stream_t *gs)
  */
 gboolean
 ggep_stream_packv(ggep_stream_t *gs,
-	const char *id, const struct iovec *iov, gint iovcnt, guint32 wflags)
+	const char *id, const struct iovec *iov, int iovcnt, guint32 wflags)
 {
 	g_assert(iovcnt >= 0);
 

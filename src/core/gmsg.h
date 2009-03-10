@@ -127,10 +127,10 @@ void gmsg_split_sendto_all_but_one(const GSList *sl,
 		guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
-gboolean gmsg_can_drop(gconstpointer pdu, gint size);
+gboolean gmsg_can_drop(gconstpointer pdu, int size);
 gboolean gmsg_is_oob_query(gconstpointer msg);
 gboolean gmsg_split_is_oob_query(gconstpointer head, gconstpointer data);
-gint gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2);
+int gmsg_cmp(gconstpointer pdu1, gconstpointer pdu2);
 const char *gmsg_infostr(gconstpointer msg);
 char *gmsg_infostr_full(gconstpointer msg);
 char *gmsg_infostr_full_split(gconstpointer head, gconstpointer data);

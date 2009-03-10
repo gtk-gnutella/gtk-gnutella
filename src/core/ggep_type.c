@@ -130,7 +130,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 {
 	const char *payload;
 	const char *p;
-	gint tlen;
+	int tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV1);
@@ -155,7 +155,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 static ggept_status_t
 ggept_ip_vec_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 {
-	gint len;
+	int len;
 
 	g_assert(exv);
 	g_assert(hvec);
@@ -232,10 +232,10 @@ ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
  * extracted something in the supplied buffer.
  */
 ggept_status_t
-ggept_hname_extract(extvec_t *exv, char *buf, gint len)
+ggept_hname_extract(extvec_t *exv, char *buf, int len)
 {
-	gint tlen;
-	gint slen;
+	int tlen;
+	int slen;
 	const char *payload;
 
 	g_assert(len >= 0);
@@ -291,7 +291,7 @@ ggept_hname_extract(extvec_t *exv, char *buf, gint len)
  *
  * @return the length in bytes of the encoded variable-length integer.
  */
-static inline gint
+static inline int
 ggep_vlint_encode(guint64 v, char *data)
 {
 	char *p;

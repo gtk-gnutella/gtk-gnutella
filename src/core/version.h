@@ -72,8 +72,8 @@ void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
 gboolean version_check(const char *str, const char *token, const host_addr_t);
-gint version_cmp(const version_t *a, const version_t *b);
-gint version_build_cmp(const version_t *a, const version_t *b);
+int version_cmp(const version_t *a, const version_t *b);
+int version_build_cmp(const version_t *a, const version_t *b);
 gboolean version_fill(const char *version, version_t *vs);
 
 const char *version_str(const version_t *ver);

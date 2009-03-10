@@ -147,8 +147,8 @@ static bsched_t *bws_set[NUM_BSCHED_BWS];
 static GSList *bws_list = NULL;
 static GSList *bws_out_list = NULL;
 static GSList *bws_in_list = NULL;
-static gint bws_out_ema = 0;
-static gint bws_in_ema = 0;
+static int bws_out_ema = 0;
+static int bws_in_ema = 0;
 
 #define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
 
@@ -186,8 +186,8 @@ bio_check(const bio_source_t * const bio)
  * @param `period' is the scheduling period in ms.
  */
 static bsched_t *
-bsched_make(const char *name, gint type, guint32 mode,
-	gint bandwidth, gint period)
+bsched_make(const char *name, int type, guint32 mode,
+	int bandwidth, int period)
 {
 	bsched_t *bs;
 
@@ -212,7 +212,7 @@ bsched_make(const char *name, gint type, guint32 mode,
 	bs->max_period = period << 1;		/* 200% of nominal period */
 	bs->period_ema = period;
 	bs->bw_per_second = bandwidth;
-	bs->bw_max = (gint) (bandwidth / 1000.0 * period);
+	bs->bw_max = (int) (bandwidth / 1000.0 * period);
 
 	return bs;
 }
@@ -830,7 +830,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	GList *iter;
 	GList *last = NULL;
 	gdouble norm_factor;
-	gint count;
+	int count;
 
 	bsched_check(bs);
 
@@ -917,7 +917,7 @@ bsched_begin_timeslice(bsched_t *bs)
 	 */
 
 	if (bs->count) {
-		gint dividor = bs->count;
+		int dividor = bs->count;
 		if (bs->last_used > 0 && bs->last_used < bs->count)
 			dividor = bs->last_used + 1;
 		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / dividor;
@@ -1067,7 +1067,7 @@ bsched_source_remove(bio_source_t *bio)
  * On-the-fly changing of the allowed bandwidth.
  */
 void
-bsched_set_bandwidth(bsched_bws_t bws, gint bandwidth)
+bsched_set_bandwidth(bsched_bws_t bws, int bandwidth)
 {
 	bsched_t *bs;
 
@@ -1081,7 +1081,7 @@ bsched_set_bandwidth(bsched_bws_t bws, gint bandwidth)
 			(double) bandwidth / bs->period, bs->name);
 
 	bs->bw_per_second = bandwidth;
-	bs->bw_max = (gint) (bandwidth / 1000.0 * bs->period);
+	bs->bw_max = (int) (bandwidth / 1000.0 * bs->period);
 
 	/*
 	 * If `bandwidth' is 0, then we're disabling bandwidth scheduling and
@@ -1113,12 +1113,12 @@ bsched_set_bandwidth(bsched_bws_t bws, gint bandwidth)
  *
  * @returns the bandwidth available for a given source.
  */
-static gint
-bw_available(bio_source_t *bio, gint len)
+static int
+bw_available(bio_source_t *bio, int len)
 {
 	bsched_t *bs;
-	gint available;
-	gint result;
+	int available;
+	int result;
 	gboolean capped = FALSE;
 	gboolean used;
 	gboolean active;
@@ -1200,7 +1200,7 @@ bw_available(bio_source_t *bio, gint len)
 		available > BW_SLOT_MIN &&
 		active
 	) {
-		gint slot = available / bs->count;
+		int slot = available / bs->count;
 
 		/*
 		 * It's not worth redistributing less than BW_SLOT_MIN bytes per slot.
@@ -1265,11 +1265,11 @@ bw_available(bio_source_t *bio, gint len)
 		result < len && available > 0 && bs->looped &&
 		(!used || bs->bw_last_capped > 0)
 	) {
-		gint adj = len - result;
-		gint nominal;
+		int adj = len - result;
+		int nominal;
 
 		if (bs->bw_last_capped > 0 && bs->bw_last_period < bs->bw_max) {
-			gint distribute = MAX(bs->bw_last_capped, available);
+			int distribute = MAX(bs->bw_last_capped, available);
 
 			/*
 			 * We have capped bandwidth last period, yet we consumed less
@@ -1339,7 +1339,7 @@ bw_available(bio_source_t *bio, gint len)
  * @param `requested' is the amount of bytes requested for the I/O.
  */
 static void
-bsched_bw_update(bsched_t *bs, gint used, gint requested)
+bsched_bw_update(bsched_t *bs, int used, int requested)
 {
 	bsched_check(bs);		/* Ensure I/O source was in alive scheduler */
 	g_assert(used <= requested);
@@ -1405,7 +1405,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_write(wio=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	r = bio->wio->write(bio->wio, data, amount);
 
@@ -1419,7 +1419,7 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1438,13 +1438,13 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
+bio_writev(bio_source_t *bio, struct iovec *iov, int iovcnt)
 {
 	size_t available;
 	ssize_t r;
 	size_t len;
 	struct iovec *siov;
-	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
+	int slen = -1;			/* Avoid "may be used uninitialized" warning */
 
 	bio_check(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
@@ -1517,7 +1517,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_writev(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -1534,7 +1534,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1593,7 +1593,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_sendto(wio=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	g_assert(bio->wio != NULL);
 	g_assert(bio->wio->sendto != NULL);
@@ -1609,7 +1609,7 @@ bio_sendto(bio_source_t *bio, const gnet_host_t *to,
 
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -1670,7 +1670,7 @@ signal_handler(int signo)
  * bandwidth constraints.
  */
 ssize_t
-bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
+bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 	size_t len)
 {
 #if !defined(USE_MMAP) && !defined(HAS_SENDFILE)
@@ -1698,7 +1698,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	volatile size_t amount;
 	size_t available;
 	ssize_t r;
-	gint out_fd;
+	int out_fd;
 	off_t start;
 
 	g_assert(ctx);
@@ -1730,13 +1730,13 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 #ifdef USE_MMAP
 	{
 		static gboolean first_call = TRUE;
 		const char *data;
-		gint n;
+		int n;
 
 		if (first_call) {
 			first_call = FALSE;
@@ -1893,7 +1893,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 		g_warning("FIXED SENDFILE returned offset: "
 			"was set to %s instead of %s (%d byte%s written)",
 			uint64_to_string(*offset), uint64_to_string2(start + r),
-			(gint) r, r == 1 ? "" : "s");
+			(int) r, r == 1 ? "" : "s");
 		*offset = start + r;
 	} else if ((ssize_t) -1 == r) {
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
@@ -1942,7 +1942,7 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	amount = len > available ? available : len;
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -1963,13 +1963,13 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
+bio_readv(bio_source_t *bio, struct iovec *iov, int iovcnt)
 {
 	size_t available;
 	ssize_t r;
 	size_t len;
 	struct iovec *siov;
-	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
+	int slen = -1;			/* Avoid "may be used uninitialized" warning */
 
 	bio_check(bio);
 	g_assert(bio->flags & BIO_F_READ);
@@ -2042,7 +2042,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (GNET_PROPERTY(dbg) > 7)
 		printf("bio_readv(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), (gint) len, (gint) available);
+			bio->wio->fd(bio->wio), (int) len, (int) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);
@@ -2059,7 +2059,7 @@ bio_readv(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if ((ssize_t) -1 == r && 0 == errno) {
 		g_warning("readv(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->wio->fd(bio->wio), (gint) len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), (int) len);
 		errno = VAL_EAGAIN;
 	}
 
@@ -2140,9 +2140,9 @@ bws_read(bsched_bws_t bws, wrap_io_t *wio, gpointer data, size_t len)
  * Account for read data from UDP.
  */
 void
-bws_udp_count_read(gint len)
+bws_udp_count_read(int len)
 {
-	gint count = BW_UDP_MSG + len;
+	int count = BW_UDP_MSG + len;
 	bsched_t *bs;
 
 	bs = bsched_get(BSCHED_BWS_GIN_UDP);
@@ -2154,9 +2154,9 @@ bws_udp_count_read(gint len)
  * Account for written data to UDP.
  */
 void
-bws_udp_count_written(gint len)
+bws_udp_count_written(int len)
 {
-	gint count = BW_UDP_MSG + len;
+	int count = BW_UDP_MSG + len;
 	bsched_t *bs;
 
 	bs = bsched_get(BSCHED_BWS_GOUT_UDP);
@@ -2333,7 +2333,7 @@ bws_can_connect(enum socket_type type)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
 	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
-	gint available;
+	int available;
 
 	if (bsout != NULL && (bsout->flags & BS_F_ENABLED)) {
 		if (bsout->flags & BS_F_NOBW)				/* No more bandwidth */
@@ -2373,13 +2373,13 @@ static void
 bsched_heartbeat(bsched_t *bs, tm_t *tv)
 {
 	GList *iter;
-	gint delay;
-	gint overused;
-	gint theoric;
-	gint correction;
-	gint last_bw_max;
-	gint last_capped;
-	gint last_used;
+	int delay;
+	int overused;
+	int theoric;
+	int correction;
+	int last_bw_max;
+	int last_capped;
+	int last_used;
 
 	bsched_check(bs);
 
@@ -2387,13 +2387,13 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	 * How much time elapsed since last call?
 	 */
 
-	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
+	delay = (int) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
 	if (GNET_PROPERTY(dbg) > 9)
 		printf("[%s] tv = %d,%d  bs = %d,%d, delay = %d\n",
-			bs->name, (gint) tv->tv_sec, (gint) tv->tv_usec,
-			(gint) bs->last_period.tv_sec, (gint) bs->last_period.tv_usec,
+			bs->name, (int) tv->tv_sec, (int) tv->tv_usec,
+			(int) bs->last_period.tv_sec, (int) bs->last_period.tv_usec,
 			delay);
 
 	/*
@@ -2460,13 +2460,13 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	last_bw_max = bs->bw_max;
 	last_capped = bs->bw_capped;
 
-	theoric = (gint) (bs->bw_per_second / 1000.0 * delay);
+	theoric = (int) (bs->bw_per_second / 1000.0 * delay);
 	overused = bs->bw_actual - theoric;
 	bs->bw_delta += overused;
 
 	overused -= bs->bw_stolen;		/* Correct for computations below */
 
-	bs->bw_max = (gint) (bs->bw_per_second / 1000.0 * bs->period_ema);
+	bs->bw_max = (int) (bs->bw_per_second / 1000.0 * bs->period_ema);
 
 	/*
 	 * We correct the bandwidth for the next slot.
@@ -2619,7 +2619,7 @@ bsched_stealbeat(bsched_t *bs)
 	 */
 
 	if (bs->flags & BS_F_WRITE) {
-		gint half_contribution = bs->count ? bs->bw_max / (2 * bs->count) : 0;
+		int half_contribution = bs->count ? bs->bw_max / (2 * bs->count) : 0;
 		GList *bl;
 
 		for (bl = bs->sources; bl && underused > 0; bl = g_list_next(bl)) {
@@ -2703,11 +2703,11 @@ bsched_stealbeat(bsched_t *bs)
 			if ((gdouble) xbs->bw_stolen + amount > (gdouble) BS_BW_MAX)
 				xbs->bw_stolen = BS_BW_MAX;
 			else
-				xbs->bw_stolen += (gint) amount;
+				xbs->bw_stolen += (int) amount;
 
 			if (GNET_PROPERTY(dbg) > 4)
 				printf("b/w sched \"%s\" giving %d bytes to \"%s\"\n",
-					bs->name, (gint) amount, xbs->name);
+					bs->name, (int) amount, xbs->name);
 		}
 		g_slist_free(all_used);
 	}
@@ -2721,8 +2721,8 @@ bsched_timer(void)
 {
 	tm_t tv;
 	GSList *l;
-	gint out_used = 0;
-	gint in_used = 0;
+	int out_used = 0;
+	int in_used = 0;
 	gboolean read_data = FALSE;
 
 	tm_now(&tv);
@@ -2762,7 +2762,7 @@ bsched_timer(void)
 	for (l = bws_out_list; l; l = g_slist_next(l)) {
 		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
 		bsched_t *bs = bsched_get(bws);
-		out_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
+		out_used += (int) (bs->bw_last_period * 1000.0 / bs->period_ema);
 	}
 
 	bws_out_ema += (out_used >> 6) - (bws_out_ema >> 6);	/* Slow EMA */
@@ -2774,7 +2774,7 @@ bsched_timer(void)
 		bsched_bws_t bws = GPOINTER_TO_UINT(l->data);
 		bsched_t *bs = bsched_get(bws);
 
-		in_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
+		in_used += (int) (bs->bw_last_period * 1000.0 / bs->period_ema);
 
 		if (bs->flags & BS_F_DATA_READ) {
 			read_data = TRUE;

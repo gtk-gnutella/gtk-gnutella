@@ -574,7 +574,7 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
  */
 static void
 vmsg_send_proxy_ack(struct gnutella_node *n,
-	const struct guid *muid, gint version)
+	const struct guid *muid, int version)
 {
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
 	guint32 msgsize;
@@ -846,7 +846,7 @@ handle_oob_reply_ind(struct gnutella_node *n,
 	gboolean can_recv_unsolicited = FALSE;
 	size_t expected_size;
 	gboolean secure;
-	gint hits;
+	int hits;
 
 	if (!NODE_IS_UDP(n)) {
 		/*
@@ -931,7 +931,7 @@ static struct array
 extract_token(const char *data, size_t size, char token[MAX_OOB_TOKEN_SIZE])
 {
 	extvec_t exv[MAX_EXTVEC];
-	gint i, exvcnt;
+	int i, exvcnt;
 	size_t token_size = 0;
 
 	ext_prepare(exv, MAX_EXTVEC);
@@ -975,7 +975,7 @@ handle_oob_reply_ack(struct gnutella_node *n,
 {
 	char token_data[MAX_OOB_TOKEN_SIZE];
 	struct array token;
-	gint wanted;
+	int wanted;
 
 	if (VMSG_CHECK_SIZE(n, vmsg, size, 1))
 		return;
@@ -1412,7 +1412,7 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 	guint32 msgsize;
 	guint32 paysize;
 	ggep_stream_t gs;
-	gint ggep_len;
+	int ggep_len;
 	char *payload, *p;
 	char *payload_end = &v_tmp[sizeof v_tmp];	/* First byte beyond buffer */
 	guint i;
@@ -1790,13 +1790,13 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 		/* Optional alternate locations */
 		if (VMSG_HEAD_F_ALT & flags) {
 			gnet_host_t hvec[15];	/* 15 * 6 = 90 bytes (max) */
-			gint hcnt = 0;
+			int hcnt = 0;
 		   	
 			if (sha1) {
 				hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
 			}
 			if (hcnt > 0) {
-				gint i;
+				int i;
 				
 				p = poke_be16(p, hcnt * 6);
 				for (i = 0; i < hcnt; i++) {
@@ -1959,7 +1959,7 @@ struct head_ping_source {
 
 static const time_delta_t HEAD_PING_TIMEOUT	    = 30;	/**< seconds */
 static const size_t		  HEAD_PING_MAX 		= 1024;	/**< amount to track */
-static const gint 		  HEAD_PING_PERIODIC_MS = 5000;	/**< milliseconds */
+static const int 		  HEAD_PING_PERIODIC_MS = 5000;	/**< milliseconds */
 
 static hash_list_t *head_pings;	/**< Tracks send/forwarded HEAD Pings */
 static cevent_t *head_ping_ev;	/**< Monitoring event */
@@ -2203,7 +2203,7 @@ static gboolean
 extract_guid(const char *data, size_t size, struct guid *guid)
 {
 	extvec_t exv[MAX_EXTVEC];
-	gint i, exvcnt;
+	int i, exvcnt;
 	gboolean success = FALSE;
 
 	ext_prepare(exv, MAX_EXTVEC);
@@ -2445,7 +2445,7 @@ handle_head_ping(struct gnutella_node *n,
  *
  * @return the size in bytes of the next block within the payload.
  */
-static gint
+static int
 block_length(const struct array array)
 {
 	if (array.size >= 2) {
@@ -2601,7 +2601,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 	
 	/* Optional ranges for partial files -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_RANGES & flags) {
-		gint len;
+		int len;
 
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 8) {
@@ -2620,7 +2620,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 
 	/* Optional firewalled alternate locations -- IGNORED FOR NOW */
 	if (VMSG_HEAD_F_ALT_PUSH & flags) {
-		gint len;
+		int len;
 		
 		len = block_length(array_init(p, endptr - p));
 		if (len != 0 && (len < 23 || (len - 23) % 6)) {
@@ -2643,7 +2643,7 @@ handle_head_pong_v1(const struct head_ping_source *source,
 	 */
 
 	if (VMSG_HEAD_F_ALT & flags) {
-		gint len;
+		int len;
 		
 		len = block_length(array_init(p, endptr - p));
 		if (len < 0 || len % 6) {
@@ -2669,9 +2669,9 @@ handle_head_pong_v2(const struct head_ping_source *source,
 	const char *payload, size_t size)
 {
 	const char *vendor;
-	gint flags, code, queue;
+	int flags, code, queue;
 	extvec_t exv[MAX_EXTVEC];
-	gint i, exvcnt;
+	int i, exvcnt;
 
 	ext_prepare(exv, MAX_EXTVEC);
 	exvcnt = ext_parse(payload, size, exv, MAX_EXTVEC);

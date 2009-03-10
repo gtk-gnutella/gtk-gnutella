@@ -52,7 +52,7 @@ struct guid;
  */
 struct pproxy {
 	struct gnutella_socket *socket;
-	gint error_sent;		/**< HTTP error code sent back */
+	int error_sent;		/**< HTTP error code sent back */
 	time_t last_update;
 
 	host_addr_t addr_v4;	/**< IPv4 of the requesting servent */

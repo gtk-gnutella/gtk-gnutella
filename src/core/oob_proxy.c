@@ -246,7 +246,7 @@ oob_proxy_create(gnutella_node_t *n)
 gboolean
 oob_proxy_pending_results(
 	gnutella_node_t *n, const struct guid *muid,
-	gint hits, gboolean uu_udp_firewalled, const struct array *token)
+	int hits, gboolean uu_udp_firewalled, const struct array *token)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;

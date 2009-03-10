@@ -47,7 +47,7 @@ const struct txdrv_ops *tx_dgram_get_ops(void);
  * Callbacks used by the datagram layer.
  */
 struct tx_dgram_cb {
-	void (*add_tx_written)(gpointer owner, gint amount);
+	void (*add_tx_written)(gpointer owner, int amount);
 };
 
 /**

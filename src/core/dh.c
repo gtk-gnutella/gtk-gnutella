@@ -188,7 +188,7 @@ dh_create(const struct guid *muid)
  * Called every time we successfully parsed a query hit from the network.
  */
 void
-dh_got_results(const struct guid *muid, gint count)
+dh_got_results(const struct guid *muid, int count)
 {
 	dqhit_t *dh;
 
@@ -407,7 +407,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
  * Route query hits from one node to the other.
  */
 void
-dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
+dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 {
 	pmsg_t *mb;
 	struct pmsg_info *pmi;

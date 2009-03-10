@@ -58,8 +58,8 @@ typedef struct search_queue {
 	time_t last_sent;    		/**< Time last msg was sent */
 	guint count;				/**< Count of number in queue */
 	/* stats */
-	gint n_sent;				/**< Number of searches sent */
-	gint n_dropped;				/**< Number dropped due to flow control */
+	int n_sent;				/**< Number of searches sent */
+	int n_dropped;				/**< Number dropped due to flow control */
 } squeue_t;
 
 #define sq_count(q)			((q)->count)

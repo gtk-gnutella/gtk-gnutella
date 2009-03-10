@@ -60,7 +60,7 @@ RCSID("$Id$")
 struct used_val {
 	host_addr_t addr;			/**< The IP address */
 	cevent_t *cq_ev;			/**< Scheduled cleanup event */
-	gint precision;				/**< The precision used for the last update */
+	int precision;				/**< The precision used for the last update */
 };
 
 static GHashTable *used;		/**< Records the IP address used */
@@ -122,7 +122,7 @@ val_destroy(cqueue_t *unused_cq, gpointer obj)
  * Create a value for the `used' table.
  */
 static struct used_val *
-val_create(const host_addr_t addr, gint precision)
+val_create(const host_addr_t addr, int precision)
 {
 	struct used_val *v = walloc(sizeof *v);
 
@@ -138,7 +138,7 @@ val_create(const host_addr_t addr, gint precision)
  * expiration timeout.
  */
 static void
-val_reused(struct used_val *v, gint precision)
+val_reused(struct used_val *v, int precision)
 {
 	v->precision = precision;
 	cq_resched(callout_queue, v->cq_ev, REUSE_DELAY * 1000);
@@ -181,14 +181,14 @@ clock_close(void)
 static void
 clock_adjust(void)
 {
-	gint n;
+	int n;
 	gdouble avg;
 	gdouble sdev;
 	gdouble min;
 	gdouble max;
-	gint i;
+	int i;
 	guint32 new_skew;
-	gint k;
+	int k;
 
 	/*
 	 * Compute average and standard deviation using all the data points.
@@ -276,7 +276,7 @@ clock_adjust(void)
  * REUSE_DELAY seconds.
  */
 void
-clock_update(time_t update, gint precision, const host_addr_t addr)
+clock_update(time_t update, int precision, const host_addr_t addr)
 {
 	time_t now;
 	gint32 delta;

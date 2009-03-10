@@ -53,10 +53,10 @@ enum query_hsrc {
 };
 
 typedef struct qrt_info {
-	gint slots;				/**< Amount of slots */
-	gint generation;		/**< Generation number */
-	gint fill_ratio;		/**< Percentage of slots used */
-	gint pass_throw;		/**< Passing throw, on a d100 */
+	int slots;				/**< Amount of slots */
+	int generation;		/**< Generation number */
+	int fill_ratio;		/**< Percentage of slots used */
+	int pass_throw;		/**< Passing throw, on a d100 */
 } qrt_info_t;
 
 
@@ -107,7 +107,7 @@ gboolean qhvec_has_urn(const struct query_hashvec *qhv);
 guint qhvec_count(const struct query_hashvec *qhv);
 
 GSList *qrt_build_query_target(
-	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
+	query_hashvec_t *qhvec, int hops, int ttl, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
 gboolean qrp_node_can_route(const struct gnutella_node *n,
 			const query_hashvec_t *qhv);

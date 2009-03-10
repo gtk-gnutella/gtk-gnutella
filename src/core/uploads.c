@@ -181,7 +181,7 @@ static void upload_error_remove(struct upload *u,
 static void upload_error_remove_ext(struct upload *u,
 		const char *extended, int code,
 		const char *msg, ...) G_GNUC_PRINTF(4, 5);
-static void upload_writable(gpointer up, gint source, inputevt_cond_t cond);
+static void upload_writable(gpointer up, int source, inputevt_cond_t cond);
 static void upload_special_writable(gpointer up);
 static void send_upload_error(struct upload *u, int code,
 			const char *msg, ...) G_GNUC_PRINTF(3, 4);
@@ -290,7 +290,7 @@ mi_key_hash(gconstpointer key)
 	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
-static gint
+static int
 mi_key_eq(gconstpointer a, gconstpointer b)
 {
 	const struct mesh_info_key *mika = a, *mikb = b;
@@ -771,8 +771,8 @@ handle_push_request(struct gnutella_node *n)
 
 	if (n->size > sizeof(gnutella_push_request_t)) {
 		extvec_t exv[MAX_EXTVEC];
-		gint exvcnt;
-		gint i;
+		int exvcnt;
+		int i;
 
 		ext_prepare(exv, MAX_EXTVEC);
 		exvcnt = ext_parse(&n->data[sizeof(gnutella_push_request_t)],
@@ -1125,7 +1125,7 @@ upload_likely_from_browser(const header_t *header)
  */
 static gboolean 
 upload_send_http_status(struct upload *u,
-	gboolean keep_alive, gint code, const char *msg)
+	gboolean keep_alive, int code, const char *msg)
 {
 	upload_check(u);
 	g_assert(msg);
@@ -1935,7 +1935,7 @@ void
 upload_stop_all(struct dl_file_info *fi, const char *reason)
 {
 	GSList *sl, *to_stop = NULL;
-	gint count = 0;
+	int count = 0;
 
 	g_return_if_fail(fi);
 	file_info_check(fi);
@@ -2025,13 +2025,13 @@ err_line_too_long(gpointer obj, header_t *head)
 }
 
 static void
-err_header_error_tell(gpointer obj, gint error)
+err_header_error_tell(gpointer obj, int error)
 {
 	send_upload_error(cast_to_upload(obj), 413, "%s", header_strerror(error));
 }
 
 static void
-err_header_error(gpointer obj, gint error)
+err_header_error(gpointer obj, int error)
 {
 	upload_remove(cast_to_upload(obj),
 		_("Failed (%s)"), header_strerror(error));
@@ -2053,7 +2053,7 @@ err_input_buffer_full(gpointer obj)
 }
 
 static void
-err_header_read_error(gpointer obj, gint error)
+err_header_read_error(gpointer obj, int error)
 {
 	upload_remove(cast_to_upload(obj),
 		_("Failed (Input error: %s)"), g_strerror(error));
@@ -2247,7 +2247,7 @@ upload_connect_conf(struct upload *u)
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 		g_message(
 			"----Sent GIV to %s:\n%.*s\n----", host_addr_to_string(s->addr),
-			(gint) MIN(rw, (size_t) INT_MAX), giv);
+			(int) MIN(rw, (size_t) INT_MAX), giv);
 	}
 
 	if ((size_t) sent != rw) {
@@ -2404,7 +2404,7 @@ upload_collect_locations(struct upload *u,
  *
  * @return -1 on error, 0 on success.
  */
-static gint
+static int
 get_file_to_upload_from_index(struct upload *u, const header_t *header,
 	const char *uri, guint idx)
 {
@@ -2657,7 +2657,7 @@ upload_request_tth_matches(struct shared_file *sf, const struct tth *tth)
  * Get the shared_file to upload from a given URN.
  * @return -1 on error, 0 on success.
  */
-static gint
+static int
 get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	const char *uri)
 {
@@ -2747,7 +2747,7 @@ not_found:
  * Get the shared_file to upload from a given URN.
  * @return -1 on error, 0 on success.
  */
-static gint
+static int
 get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 {
 	struct tth tth_buf, *tth = NULL;
@@ -2845,7 +2845,7 @@ tth_recomputed:
  * @return -1 on error, 0 on success. When -1 is returned, we have sent the
  * 			error back to the client.
  */
-static gint
+static int
 get_file_to_upload(struct upload *u, const header_t *header,
 	char *uri, char *search)
 {
@@ -2859,7 +2859,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
 
 	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
 		guint32 idx;
-		gint error;
+		int error;
 
 		idx = parse_uint32(endptr, &endptr, 10, &error);
 		if (
@@ -2912,7 +2912,7 @@ static const struct tx_deflate_cb upload_tx_deflate_cb = {
 };
 
 static void
-upload_tx_add_written(gpointer obj, gint amount)
+upload_tx_add_written(gpointer obj, int amount)
 {
 	struct upload *u = cast_to_upload(obj);
 
@@ -2938,7 +2938,7 @@ static const struct tx_link_cb upload_tx_link_cb = {
  *         BH_F_GZIP: gzip,
  *         BH_F_DEFLATE: deflate
  */
-static gint
+static int
 select_encoding(const header_t *header)
 {
     const char *buf;
@@ -2968,7 +2968,7 @@ extract_downloaded(const struct upload *u, const header_t *header)
 {
 	const char *buf;
 	filesize_t downloaded;
-	gint error;
+	int error;
 
 	buf = header_get(header, "X-Downloaded");
 	if (!buf)
@@ -3124,7 +3124,7 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
  * @return 0 if we may go on, -1 if we've replied to the remote
  * host and either expect a new request now or terminated the connection.
  */
-static gint
+static int
 prepare_browse_host_upload(struct upload *u, header_t *header,
 	const char *host)
 {
@@ -3522,14 +3522,14 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
 			char retry_after[80];
-			gint delay = delta_time(expire, now);
+			int delay = delta_time(expire, now);
 
 			if (delay <= 0)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
 			gm_snprintf(retry_after, sizeof(retry_after),
-				"Retry-After: %d\r\n", (gint) delay);
+				"Retry-After: %d\r\n", (int) delay);
 
 			/*
 			 * Looks like upload got removed from PARQ queue. For now this
@@ -3623,7 +3623,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	/* Open the file for reading. */
 	u->file = file_object_open(shared_file_path(u->sf), O_RDONLY);
 	if (!u->file) {
-		gint fd, flags;
+		int fd, flags;
 
 		/* If this is a partial file, we open it with O_RDWR so that
 		 * the file descriptor can be shared with download operations
@@ -3729,7 +3729,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	{
 		
 		const char *http_msg;
-		gint http_code;
+		int http_code;
 
 		if ((u->skip || u->end != (u->file_size - 1))) {
 			http_code = 206;
@@ -3874,7 +3874,7 @@ upload_parse_uri(header_t *header, const char *uri,
 		g_strlcpy(host, h, 1 + len);
 		if (':' == *ep) {
 			guint32 v;
-			gint error;
+			int error;
 
 			ep++; /* Skip ':' */
 			v = parse_uint32(ep, &ep, 10, &error);
@@ -3917,7 +3917,7 @@ get_content_length(header_t *header)
 	
 	value = header_get(header, "Content-Length");
 	if (value) {
-		gint error;
+		int error;
 		
 		length = parse_uint64(value, NULL, 10, &error);
 		if (error) {
@@ -4274,7 +4274,7 @@ upload_request(struct upload *u, header_t *header)
 	if (u->sf) {
 		upload_request_for_shared_file(u, header);
 	} else {
-		gint flags = 0;
+		int flags = 0;
 		
 		u->file_size = 0;
 		if (u->browse_host) {
@@ -4486,7 +4486,7 @@ upload_handle_exception(struct upload *u, inputevt_cond_t cond)
  * Called when output source can accept more data.
  */
 static void
-upload_writable(gpointer obj, gint unused_source, inputevt_cond_t cond)
+upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
 {
 	struct upload *u = cast_to_upload(obj);
 	ssize_t written;
@@ -4572,7 +4572,7 @@ upload_writable(gpointer obj, gint unused_source, inputevt_cond_t cond)
 	}
 
 	if ((ssize_t) -1 == written) {
-		gint e = errno;
+		int e = errno;
 
 		if (
 			using_sendfile &&

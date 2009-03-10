@@ -64,14 +64,14 @@ static struct iprange_db *bogons_db; /**< The database of bogus CIDR ranges */
  *
  * @returns the amount of entries loaded.
  */
-static gint
+static int
 bogons_load(FILE *f)
 {
 	char line[1024];
 	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
-	gint bits;
+	int bits;
 	iprange_err_t error;
 
 	bogons_db = iprange_new();
@@ -138,7 +138,7 @@ bogons_changed(const char *filename, gpointer unused_udata)
 {
 	FILE *f;
 	char buf[80];
-	gint count;
+	int count;
 
 	(void) unused_udata;
 
@@ -170,7 +170,7 @@ static void
 bogons_retrieve(void)
 {
 	FILE *f;
-	gint idx;
+	int idx;
 	char *filename;
 #ifndef OFFICIAL_BUILD
 	static file_path_t fp[3];

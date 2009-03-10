@@ -55,7 +55,7 @@ RCSID("$Id$")
 struct attr {
 	const struct rx_inflate_cb *cb;	/**< Layer-specific callbacks */
 	z_streamp inz;					/**< Decompressing stream */
-	gint flags;
+	int flags;
 };
 
 #define IF_ENABLED	0x00000001		/**< Reception enabled */
@@ -68,12 +68,12 @@ static pmsg_t *
 inflate_data(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	gint ret;
+	int ret;
 	pdata_t *db;					/* Inflated buffer */
 	z_streamp inz = attr->inz;
-	gint old_size;
-	gint old_avail;
-	gint inflated;
+	int old_size;
+	int old_avail;
+	int inflated;
 
 	/*
 	 * Prepare call to inflate().
@@ -143,7 +143,7 @@ rx_inflate_init(rxdrv_t *rx, gconstpointer args)
 	const struct rx_inflate_args *rargs = args;
 	struct attr *attr;
 	z_streamp inz;
-	gint ret;
+	int ret;
 
 	g_assert(rx);
 	g_assert(rargs->cb != NULL);
@@ -181,7 +181,7 @@ static void
 rx_inflate_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = rx->opaque;
-	gint ret;
+	int ret;
 
 	g_assert(attr->inz);
 

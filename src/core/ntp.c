@@ -253,7 +253,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	tm_now_exact(&got);
 
 	if (s->pos != NTP_MINSIZE && s->pos != NTP_MAXSIZE) {
-		g_warning("got weird reply from NTP server (%d bytes)", (gint) s->pos);
+		g_warning("got weird reply from NTP server (%d bytes)", (int) s->pos);
 		return;
 	}
 

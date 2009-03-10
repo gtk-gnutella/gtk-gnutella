@@ -150,7 +150,7 @@ mq_udp_attach_metadata(pmsg_t *mb, const gnet_host_t *to)
  * owned by the supplied node.
  */
 mqueue_t *
-mq_udp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
+mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
@@ -178,10 +178,10 @@ static void
 mq_udp_service(gpointer data)
 {
 	mqueue_t *q = data;
-	gint r;
+	int r;
 	GList *l;
-	gint sent;
-	gint dropped;
+	int sent;
+	int dropped;
 
 	mq_check(q, 0);
 	g_assert(q->count);		/* Queue is serviced, we must have something */
@@ -196,7 +196,7 @@ mq_udp_service(gpointer data)
 	for (l = q->qtail; l; /* empty */) {
 		pmsg_t *mb = l->data;
 		char *mb_start = pmsg_start(mb);
-		gint mb_size = pmsg_size(mb);
+		int mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
 		guint8 function;
 
@@ -386,7 +386,7 @@ again:
 
 		if (written > 0) {
 			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				(gint) written, gnet_host_to_string(to), (gint) size);
+				(int) written, gnet_host_to_string(to), (int) size);
 			goto cleanup;
 		}
 

@@ -71,7 +71,7 @@ struct special_upload *browse_host_open(
 	const struct tx_deflate_cb *deflate_cb,
 	const struct tx_link_cb *link_cb,
 	struct wrap_io *wio,
-	gint flags);
+	int flags);
 
 #endif /* _core_bh_upload_h_ */
 

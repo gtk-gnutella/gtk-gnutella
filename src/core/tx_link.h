@@ -47,7 +47,7 @@ const struct txdrv_ops *tx_link_get_ops(void);
  * Callbacks used by the link layer.
  */
 struct tx_link_cb {
-	void (*add_tx_written)(gpointer owner, gint amount);
+	void (*add_tx_written)(gpointer owner, int amount);
 	void (*eof_remove)(gpointer owner, const char *reason, ...);
 	void (*eof_shutdown)(gpointer owner, const char *reason, ...);
 	void (*unflushq)(gpointer owner);

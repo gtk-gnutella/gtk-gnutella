@@ -78,14 +78,14 @@ typedef enum {
  */
 struct oob_results {
 	oob_results_magic_t	magic;
-	gint refcount;
+	int refcount;
 	cevent_t *ev_expire;	/**< Global expiration event */
 	cevent_t *ev_timeout;	/**< Reply waiting timeout */
 	const struct guid *muid;/**< (atom) MUID of the query that generated hits */
 	GSList *files;			/**< List of shared_file_t */
 	gnet_host_t dest;		/**< The host to which we must deliver */
-	gint count;				/**< Amount of hits to deliver */
-	gint notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
+	int count;				/**< Amount of hits to deliver */
+	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
 	gboolean secure;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
 	gboolean ggep_h;		/**< TRUE -> use GGEP H, FALSE -> plain text */
 };
@@ -134,7 +134,7 @@ static void results_destroy(cqueue_t *cq, gpointer obj);
 static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
-static gint num_oob_records;	/**< Leak and duplicate free detector */
+static int num_oob_records;	/**< Leak and duplicate free detector */
 static gboolean oob_shutdown_running;
 
 static void
@@ -151,7 +151,7 @@ oob_results_check(const struct oob_results *r)
  * results delivery via the sent LIME/12v2 and the expected LIME/11v2 reply.
  */
 static struct oob_results *
-results_make(const struct guid *muid, GSList *files, gint count,
+results_make(const struct guid *muid, GSList *files, int count,
 	gnet_host_t *to, gboolean secure, gboolean ggep_h)
 {
 	static const struct oob_results zero_results;
@@ -292,7 +292,7 @@ servent_free_remove(struct gservent *s)
  * Per a suggestion of Daniel Stutzbach, we wait BASE + RAND*random secs,
  * where "random" is a real random number between 0 and 1.
  */
-static gint
+static int
 deliver_delay(void)
 {
 	return OOB_DELIVER_BASE_MS + random_value(OOB_DELIVER_RAND_MS);
@@ -426,7 +426,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 {
 	struct oob_results *r;
 	struct gservent *s;
-	gint deliver_count;
+	int deliver_count;
 	gboolean servent_created = FALSE;
 
 	g_assert(NODE_IS_UDP(n));
@@ -643,7 +643,7 @@ oob_send_reply_ind(struct oob_results *r)
  */
 void
 oob_got_results(struct gnutella_node *n, GSList *files,
-	gint count, gboolean secure, gboolean ggep_h)
+	int count, gboolean secure, gboolean ggep_h)
 {
 	struct oob_results *r;
 	gnet_host_t to;

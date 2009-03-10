@@ -65,7 +65,7 @@ struct upload {
     gnet_upload_t upload_handle;
 	guint32 flags;					/**< Operating flags */
 	upload_stage_t status;
-	gint error_sent;				/**< HTTP error code sent back */
+	int error_sent;				/**< HTTP error code sent back */
 	gpointer io_opaque;				/**< Opaque I/O callback information */
 	struct parq_ul_queued *parq_ul;	/**< PARQ information */
 
@@ -90,9 +90,9 @@ struct upload {
 	guint hevcnt;
 
 	char *buffer;
-	gint bpos;
-	gint bsize;
-	gint buf_size;
+	int bpos;
+	int bsize;
+	int buf_size;
 
 	guint file_index;
 	guint reqnum;				/**< Request number, incremented when serving */
@@ -117,8 +117,8 @@ struct upload {
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	filesize_t downloaded;		/**< What they claim as downloaded so far */
 
-	gint http_major;			/**< HTTP major version */
-	gint http_minor;			/**< HTTP minor version */
+	int http_major;			/**< HTTP major version */
+	int http_minor;			/**< HTTP minor version */
 
 	gboolean keep_alive;		/**< Keep HTTP connection? */
 	gboolean push;

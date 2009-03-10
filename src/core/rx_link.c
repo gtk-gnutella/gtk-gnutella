@@ -64,7 +64,7 @@ struct attr {
  * Invoked when the input file descriptor has more data available.
  */
 static void
-is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
+is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;

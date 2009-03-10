@@ -268,7 +268,7 @@ verify_item_hash(gconstpointer key)
 		^ pointer_hash_func(ctx->user_data);
 }
 
-static gint
+static int
 verify_item_equal(gconstpointer p, gconstpointer q)
 {
 	const struct verify_file *a = p, *b = q;

@@ -105,7 +105,7 @@ typedef struct hostcache {
     guint           misses;             /**< Misses to the cache */
 
     gnet_property_t hosts_in_catcher;   /**< Property to update host count */
-    gint            mass_update;        /**< If a mass update is in progess */
+    int            mass_update;        /**< If a mass update is in progess */
 } hostcache_t;
 
 static hostcache_t *caches[HCACHE_MAX];
@@ -488,7 +488,7 @@ host_type_to_string(host_type_t type)
 	return host_type_names[type];
 }
 
-static gint
+static int
 hcache_slots_max(hcache_type_t type)
 {
 	g_assert(UNSIGNED(type) < HCACHE_MAX);
@@ -519,10 +519,10 @@ hcache_slots_max(hcache_type_t type)
  * Several types share common pools. Adding a host of one type may
  * affect the number of slots left on other types.
  */
-static gint
+static int
 hcache_slots_left(hcache_type_t type)
 {
-	gint limit, current = 0;
+	int limit, current = 0;
 
     g_assert(UNSIGNED(type) < HCACHE_MAX);
 
@@ -1003,7 +1003,7 @@ void
 hcache_prune(hcache_type_t type)
 {
 	hostcache_t *hc;
-    gint extra;
+    int extra;
 
     g_assert((guint) type < HCACHE_MAX);
 
@@ -1061,10 +1061,10 @@ hcache_prune(hcache_type_t type)
  *
  * @return amount of hosts filled
  */
-gint
-hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
+int
+hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 {
-	gint i;
+	int i;
 	hostcache_t *hc = NULL;
 	GHashTable *seen_host = g_hash_table_new(host_hash, host_eq);
 	hash_list_iter_t *iter;

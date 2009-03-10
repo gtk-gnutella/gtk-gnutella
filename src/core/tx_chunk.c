@@ -358,7 +358,7 @@ tx_chunk_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_chunk_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+tx_chunk_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 {
 	ssize_t written = 0;
 

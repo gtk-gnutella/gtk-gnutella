@@ -358,12 +358,12 @@ sent_node_hash_func(gconstpointer key)
 {
 	const gnet_host_t *sd = key;
 
-	/* ensure that we've got sizeof(gint) bytes of deterministic data */
+	/* ensure that we've got sizeof(int) bytes of deterministic data */
 	return host_addr_hash(gnet_host_get_addr(sd)) ^
 			(guint32) gnet_host_get_port(sd);
 }
 
-static gint
+static int
 sent_node_compare(gconstpointer a, gconstpointer b)
 {
 	const gnet_host_t *sa = a, *sb = b;
@@ -637,7 +637,7 @@ url_normalize_char(const char *p, const char **endptr)
 	if ('\\' == c) {
 		c = '/';
 	} else if ('%' == c) {
-		gint hi, lo;
+		int hi, lo;
 
 		hi = hex2int_inline(p[1]);
 		if (hi >= 0) {
@@ -747,7 +747,7 @@ ora_hash(gconstpointer key)
 		(((guint32) ora->port << 16) | ora->port);
 }
 
-static gint
+static int
 ora_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct ora *a = v1, *b = v2;
@@ -938,10 +938,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (rs->status & ST_GGEP) {
 		const char *priv;
 		size_t privlen;
-		gint exvcnt = 0;
+		int exvcnt = 0;
 		extvec_t exv[MAX_EXTVEC];
 		gboolean seen_ggep = FALSE;
-		gint i;
+		int i;
 
 		if (trailer_size >= (size_t) open_size + 5) {
 			priv = &trailer[5 + open_size];
@@ -1407,8 +1407,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		if (tag) {
 			extvec_t exv[MAX_EXTVEC];
-			gint exvcnt;
-			gint i;
+			int exvcnt;
+			int i;
 			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
 			gboolean has_hash = FALSE;
 			gboolean has_unknown = FALSE;
@@ -1429,7 +1429,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				struct sha1 sha1_digest;
 				struct tth tth_digest;
 				ggept_status_t ret;
-				gint paylen;
+				int paylen;
 				const char *payload;
 
 				switch (e->ext_token) {
@@ -2861,7 +2861,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
  * amount of results contained in the query hit.
  */
 gboolean
-search_results(gnutella_node_t *n, gint *results)
+search_results(gnutella_node_t *n, int *results)
 {
 	gnet_results_set_t *rs;
 	GSList *sl;
@@ -3101,7 +3101,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
 	unsigned ignored = 0;
-	gint i;
+	int i;
 
 	g_assert(alt != NULL);
 
@@ -3310,7 +3310,7 @@ search_new_muid(gboolean initial)
 {
 	struct guid *muid;
 	host_addr_t addr;
-	gint i;
+	int i;
 
 	muid = walloc(sizeof *muid);
 
@@ -3506,7 +3506,7 @@ search_new(gnet_search_t *ptr, const char *query,
 	const char *endptr;
 	search_ctrl_t *sch;
 	char *qdup;
-	gint result;
+	int result;
 
 	g_assert(ptr);
 	g_assert(utf8_is_valid_string(query));
@@ -3752,7 +3752,7 @@ search_get_kept_results_by_handle(gnet_search_t sh)
  */
 void
 search_oob_pending_results(
-	gnutella_node_t *n, const struct guid *muid, gint hits,
+	gnutella_node_t *n, const struct guid *muid, int hits,
 	gboolean udp_firewalled, gboolean secure)
 {
 	struct array token_opaque;
@@ -4006,7 +4006,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	rc = search_record_new();
 	if (sha1_hash_available(sf)) {
 		gnet_host_t hvec[LOCAL_MAX_ALT];
-		gint hcnt;
+		int hcnt;
 
 		/*
 		 * SHA1 is available, look at the known alternate locations we have.
@@ -4053,7 +4053,7 @@ search_locally(gnet_search_t sh, const char *query)
     search_ctrl_t *sch;
 	shared_file_t *sf;
 	regex_t *re;
-	gint error;
+	int error;
 
     g_assert(query);
 
@@ -4251,7 +4251,7 @@ search_request_listener_emit(
 struct query_context {
 	GHashTable *shared_files;
 	GSList *files;				/**< List of shared_file_t that match */
-	gint found;
+	int found;
 };
 
 /**
@@ -4527,7 +4527,7 @@ search_request_preprocess(struct gnutella_node *n)
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
 	struct sha1 *last_sha1_digest = NULL;
-	gint exv_sha1cnt = 0;
+	int exv_sha1cnt = 0;
 	guint offset = 0;			/**< Query string start offset */
 	gboolean oob;		/**< Wants out-of-band query hit delivery? */
 
@@ -4665,7 +4665,7 @@ search_request_preprocess(struct gnutella_node *n)
 
 	if (search_len + 3 != n->size) {
 		extvec_t exv[MAX_EXTVEC];
-		gint i, exvcnt;
+		int i, exvcnt;
 		size_t extra;
 		gboolean drop_it = FALSE;
 
@@ -4720,7 +4720,7 @@ search_request_preprocess(struct gnutella_node *n)
 				sha1 = &exv_sha1[exv_sha1cnt].sha1;
 
 				if (EXT_T_GGEP_H == e->ext_token) {
-					gint ret;
+					int ret;
 				
 					ret = ggept_h_sha1_extract(e, sha1);
 					if (GGEP_OK == ret) {
@@ -4813,7 +4813,7 @@ search_request_preprocess(struct gnutella_node *n)
 		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
 		&& exv_sha1cnt
     ) {
-		gint i;
+		int i;
 		for (i = 0; i < exv_sha1cnt; i++) {
 			search_request_listener_emit(QUERY_SHA1,
 				sha1_base32(&exv_sha1[i].sha1), n->addr, n->port);
@@ -5151,7 +5151,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		struct sha1 sha1;
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
-	gint exv_sha1cnt = 0;
+	int exv_sha1cnt = 0;
 	guint offset = 0;			/**< Query string start offset */
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean secure_oob = FALSE;
@@ -5170,7 +5170,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	if (search_len + 3 != n->size) {
 		extvec_t exv[MAX_EXTVEC];
-		gint i, exvcnt;
+		int i, exvcnt;
 		size_t extra;
 
 	   	extra = n->size - 3 - search_len;		/* Amount of extra data */
@@ -5206,7 +5206,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				sha1 = &exv_sha1[exv_sha1cnt].sha1;
 
 				if (EXT_T_GGEP_H == e->ext_token) {
-					gint ret;
+					int ret;
 				
 					ret = ggept_h_sha1_extract(e, sha1);
 					if (GGEP_OK == ret) {
@@ -5358,7 +5358,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 */
 
 		if (exv_sha1cnt) {
-			gint i;
+			int i;
 
 			for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
 				struct shared_file *sf;
@@ -5393,7 +5393,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						search + offset,
 						skip_file_search ? " (skipped)" : "");
 				if (exv_sha1cnt) {
-					gint i;
+					int i;
 					for (i = 0; i < exv_sha1cnt; i++)
 						g_message("\t%c(%32s)",
 								exv_sha1[i].matched ? '+' : '-',

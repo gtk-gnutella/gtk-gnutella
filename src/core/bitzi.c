@@ -209,9 +209,9 @@ bitzi_destroy(bitzi_data_t *data)
  * the parsing of the document tree and processes the ticket.
  */
 static void
-bitzi_host_data_ind(struct http_async *unused_handle, char *data, gint len)
+bitzi_host_data_ind(struct http_async *unused_handle, char *data, int len)
 {
-	gint result;
+	int result;
 
 	(void) unused_handle;
 
@@ -389,7 +389,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 
 	value = STRTRACK(xml_get_string(node, "fileLength"));
 	if (value) {
-		gint error;
+		int error;
 		data->size = parse_uint64(value, NULL, 10, &error);
 	}
 	xml_free_null(&value);
@@ -449,7 +449,7 @@ process_rdf_description(xmlNode *node, bitzi_data_t *data)
 			char desc[256];
 
 			if (duration) {
-				gint error;
+				int error;
 				seconds = parse_uint32(duration, NULL, 10, &error) / 1000;
 			} else {
 				seconds = 0;
@@ -729,7 +729,7 @@ do_metadata_query(bitzi_request_t *req)
  * Add the data entry to the cache and in expiry sorted date order to
  * the linked list.
  */
-static gint
+static int
 bitzi_date_compare(gconstpointer p, gconstpointer q)
 {
 	const bitzi_data_t *a = p, *b = q;
@@ -947,7 +947,7 @@ static void
 bitzi_load_cache(void)
 {
 	FILE *old_data;
-	gint ticket_count = 0;
+	int ticket_count = 0;
 	char *path, *oldpath;
 
 	/*

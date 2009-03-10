@@ -71,7 +71,7 @@ struct attr {
 	char hex_buf[16];			/**< Holds the hex digits of chunk-size */
 	size_t hex_pos;				/**< Current position in hex_buf */
 	enum chunk_state state;		/**< Current decoding state */
-	gint flags;
+	int flags;
 };
 
 #define IF_ENABLED	0x00000001		/**< Reception enabled */

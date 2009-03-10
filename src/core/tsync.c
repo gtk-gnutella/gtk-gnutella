@@ -103,7 +103,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 
 	if (GNET_PROPERTY(dbg) > 1)
 		printf("TSYNC expiring time %d.%d\n",
-			(gint) ts->sent.tv_sec, (gint) ts->sent.tv_usec);
+			(int) ts->sent.tv_sec, (int) ts->sent.tv_usec);
 
 	ts->expire_ev = NULL;
 	g_hash_table_remove(tsync_by_time, &ts->sent);
@@ -173,8 +173,8 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 		tm_t elapsed = *final;
 		tm_sub(&elapsed, orig);
 		printf("TSYNC request %d.%d sent at %d.%d (delay = %.6f secs)\n",
-			(gint) orig->tv_sec, (gint) orig->tv_usec,
-			(gint) final->tv_sec, (gint) final->tv_usec,
+			(int) orig->tv_sec, (int) orig->tv_usec,
+			(int) final->tv_sec, (int) final->tv_usec,
 			tm2f(&elapsed));
 	}
 
@@ -182,7 +182,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 	if (ts == NULL) {
 		if (GNET_PROPERTY(dbg) > 1)
 			printf("TSYNC request %d.%d not found, expired already?\n",
-				(gint) orig->tv_sec, (gint) orig->tv_usec);
+				(int) orig->tv_sec, (int) orig->tv_usec);
 		return;
 	}
 
@@ -225,7 +225,7 @@ tsync_got_reply(struct gnutella_node *n,
 	struct tsync *ts;
 	tm_t delay;
 	double rtt;
-	gint precision;
+	int precision;
 
 	/*
 	 * Compute the delay.
@@ -242,7 +242,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(dbg) > 1)
 		printf("TSYNC RTT for %d.%d with %s via %s is: %.6f secs\n",
-			(gint) sent->tv_sec, (gint) sent->tv_usec,
+			(int) sent->tv_sec, (int) sent->tv_usec,
 			node_addr(n), NODE_IS_UDP(n) ? "UDP" : "TCP", (double) rtt);
 
 	/*
@@ -255,7 +255,7 @@ tsync_got_reply(struct gnutella_node *n,
 	if (ts == NULL) {
 		if (GNET_PROPERTY(dbg) > 1)
 			printf("TSYNC sending time %d.%d not found (expired?)\n",
-				(gint) sent->tv_sec, (gint) sent->tv_usec);
+				(int) sent->tv_sec, (int) sent->tv_usec);
 	} else {
 		tm_t offset;
 		double clock_offset;
@@ -290,9 +290,9 @@ tsync_got_reply(struct gnutella_node *n,
 		if (cn != NULL) {
 			cn->flags &= ~NODE_F_TSYNC_WAIT;
 			if (NODE_IS_UDP(n))
-				cn->udp_rtt = (gint) (rtt * 1000.0);
+				cn->udp_rtt = (int) (rtt * 1000.0);
 			else
-				cn->tcp_rtt = (gint) (rtt * 1000.0);
+				cn->tcp_rtt = (int) (rtt * 1000.0);
 		}
 
 		/*
@@ -303,9 +303,9 @@ tsync_got_reply(struct gnutella_node *n,
 		 */
 
 		precision = ntp ? (NODE_IS_UDP(n) ? 0 : 1) : 2;
-		precision += (gint) (rtt * 0.5);
+		precision += (int) (rtt * 0.5);
 
-		clock_update(got->tv_sec + (gint) clock_offset, precision,  n->addr);
+		clock_update(got->tv_sec + (int) clock_offset, precision,  n->addr);
 
 		g_hash_table_remove(tsync_by_time, &ts->sent);
 		tsync_free(ts);

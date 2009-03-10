@@ -56,9 +56,9 @@ struct mq_ops {
 };
 
 struct mq_cops {
-	void (*puthere)(mqueue_t *q, pmsg_t *mb, gint msize);
+	void (*puthere)(mqueue_t *q, pmsg_t *mb, int msize);
 	void (*qlink_remove)(mqueue_t *q, GList *l);
-	GList *(*rmlink_prev)(mqueue_t *q, GList *l, gint size);
+	GList *(*rmlink_prev)(mqueue_t *q, GList *l, int size);
 	void (*update_flowc)(mqueue_t *q);
 };
 
@@ -94,18 +94,18 @@ struct mqueue {
 	GList *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */
 	cevent_t *swift_ev;		/**< Callout queue event in "swift" mode */
-	gint swift_elapsed;		/**< Scheduled elapsed time, in ms */
-	gint qlink_count;		/**< Amount of entries in `qlink' */
-	gint maxsize;			/**< Maximum size of this queue (total queued) */
-	gint count;				/**< Amount of messages queued */
-	gint hiwat;				/**< High watermark */
-	gint lowat;				/**< Low watermark */
-	gint size;				/**< Current amount of bytes queued */
-	gint flags;				/**< Status flags */
-	gint last_written;		/**< Amount last written by service routine */
-	gint flowc_written;		/**< Amount written during flow control */
-	gint last_size;			/**< Queue size at last "swift" event callback */
-    gint putq_entered;		/**< For recursion checks in mq_putq() */
+	int swift_elapsed;		/**< Scheduled elapsed time, in ms */
+	int qlink_count;		/**< Amount of entries in `qlink' */
+	int maxsize;			/**< Maximum size of this queue (total queued) */
+	int count;				/**< Amount of messages queued */
+	int hiwat;				/**< High watermark */
+	int lowat;				/**< Low watermark */
+	int size;				/**< Current amount of bytes queued */
+	int flags;				/**< Status flags */
+	int last_written;		/**< Amount last written by service routine */
+	int flowc_written;		/**< Amount written during flow control */
+	int last_size;			/**< Queue size at last "swift" event callback */
+    int putq_entered;		/**< For recursion checks in mq_putq() */
 };
 
 /*
@@ -122,12 +122,12 @@ enum {
 gboolean mq_is_flow_controlled(const struct mqueue *q);
 gboolean mq_is_swift_controlled(const struct mqueue *q);
 gboolean mq_would_flow_control(const struct mqueue *q, size_t additional);
-gint mq_maxsize(const struct mqueue *q);
-gint mq_size(const struct mqueue *q);
-gint mq_lowat(const struct mqueue *q);
-gint mq_hiwat(const struct mqueue *q);
-gint mq_count(const struct mqueue *q);
-gint mq_pending(const struct mqueue *q);
+int mq_maxsize(const struct mqueue *q);
+int mq_size(const struct mqueue *q);
+int mq_lowat(const struct mqueue *q);
+int mq_hiwat(const struct mqueue *q);
+int mq_count(const struct mqueue *q);
+int mq_pending(const struct mqueue *q);
 struct bio_source *mq_bio(const struct mqueue *q);
 struct gnutella_node *mq_node(const struct mqueue *q);
 
@@ -151,7 +151,7 @@ const char *mq_info(const mqueue_t *q);
 
 #define MQ_DEBUG
 #ifdef MQ_DEBUG
-void mq_check_track(mqueue_t *q, gint offset, const char *where, gint line);
+void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
 
 #define mq_check(x,y)	mq_check_track((x), (y), _WHERE_, __LINE__)
 #else

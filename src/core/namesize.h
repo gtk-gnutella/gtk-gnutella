@@ -52,7 +52,7 @@ typedef struct namesize {
  */
 
 guint namesize_hash(gconstpointer key);
-gint namesize_eq(gconstpointer a, gconstpointer b);
+int namesize_eq(gconstpointer a, gconstpointer b);
 
 namesize_t *namesize_make(const char *name, filesize_t size);
 void namesize_free(namesize_t *ns);

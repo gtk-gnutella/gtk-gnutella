@@ -63,7 +63,7 @@ struct special_upload *thex_upload_open(
 	special_upload_writable_t writable,
 	const struct tx_link_cb *link_cb,
 	struct wrap_io *wio,
-	gint flags);
+	int flags);
 
 #endif /* _core_thex_upload_h_ */
 

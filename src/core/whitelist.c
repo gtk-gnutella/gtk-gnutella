@@ -194,7 +194,7 @@ whitelist_retrieve(void)
 				guchar c = *endptr++;
 
 				if (':' == c) {
-					gint error;
+					int error;
 					guint32 v;
 
 					if (0 != port) {
@@ -240,7 +240,7 @@ whitelist_retrieve(void)
 						}
 
 					} else {
-						gint error;
+						int error;
 						guint32 v;
 
 						v = parse_uint32(endptr, &endptr, 10, &error);

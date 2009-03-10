@@ -57,7 +57,7 @@ void ban_close(void);
 ban_type_t ban_allow(const host_addr_t addr);
 void ban_record(const host_addr_t addr, const char *msg);
 void ban_force(struct gnutella_socket *s);
-gint ban_delay(const host_addr_t addr);
+int ban_delay(const host_addr_t addr);
 const char *ban_message(const host_addr_t addr);
 gboolean ban_is_banned(const host_addr_t addr);
 void ban_max_recompute(void);

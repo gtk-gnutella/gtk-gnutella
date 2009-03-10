@@ -101,7 +101,7 @@ typedef enum {
 
 struct gnutella_socket {
 	socket_magic_t magic;	/**< magic for consistency checks */
-	gint file_desc;			/**< file descriptor */
+	int file_desc;			/**< file descriptor */
 	guint32 flags;			/**< operating flags */
 	guint gdk_tag;			/**< gdk tag */
 
@@ -109,7 +109,7 @@ struct gnutella_socket {
 	enum socket_type type;
 	enum net_type net;
 
-	gint adns;				/**< status of ADNS resolution */
+	int adns;				/**< status of ADNS resolution */
 	const char *adns_msg;	/**< ADNS error message */
 
 	host_addr_t addr;		/**< IP   of our partner */
@@ -220,8 +220,8 @@ void socket_evt_set(struct gnutella_socket *s,
 void socket_evt_clear(struct gnutella_socket *s);
 
 void socket_cork(struct gnutella_socket *s, gboolean on);
-void socket_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
-void socket_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
+void socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink);
+void socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink);
 void socket_nodelay(struct gnutella_socket *s, gboolean on);
 void socket_tx_shutdown(struct gnutella_socket *s);
 void socket_tos_default(const struct gnutella_socket *s);
@@ -233,16 +233,16 @@ gboolean socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
 gboolean socket_omit_token(struct gnutella_socket *s);
 void socket_set_bind_address(const host_addr_t addr);
-gint socket_evt_fd(struct gnutella_socket *s);
+int socket_evt_fd(struct gnutella_socket *s);
 gboolean socket_is_local(const struct gnutella_socket *s);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);
 
-ssize_t safe_readv(wrap_io_t *wio, struct iovec *iov, gint iovcnt);
-ssize_t safe_readv_fd(gint fd, struct iovec *iov, gint iovcnt);
-ssize_t safe_writev(wrap_io_t *wio, const struct iovec *iov, gint iovcnt);
-ssize_t safe_writev_fd(gint fd, const struct iovec *iov, gint iovcnt);
+ssize_t safe_readv(wrap_io_t *wio, struct iovec *iov, int iovcnt);
+ssize_t safe_readv_fd(int fd, struct iovec *iov, int iovcnt);
+ssize_t safe_writev(wrap_io_t *wio, const struct iovec *iov, int iovcnt);
+ssize_t safe_writev_fd(int fd, const struct iovec *iov, int iovcnt);
 
 #endif /* _core_sockets_h_ */
 

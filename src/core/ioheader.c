@@ -69,7 +69,7 @@ struct io_header {
 	io_start_cb_t header_read_start;/**< Called when reading first byte */
 	GString *text;					/**< Full header text */
 	guint read_bytes;				/**< Amount of bytes read */
-	gint flags;
+	int flags;
 };
 
 /**
@@ -175,7 +175,7 @@ io_header_parse(struct io_header *ih)
 	struct gnutella_socket *s = ih->socket;
 	header_t *header = ih->header;
 	size_t parsed;
-	gint error;
+	int error;
 
 	/*
 	 * Read header a line at a time.  We have exacly s->pos chars to handle.
@@ -349,7 +349,7 @@ nextline:
  * Read data is then handed out to io_header_parse() for analysis.
  */
 static void
-io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
+io_read_data(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct io_header *ih = data;
 	struct gnutella_socket *s = ih->socket;
@@ -437,7 +437,7 @@ io_get_header(
 	gpointer *io_opaque,		/**< Field address in resource's structure */
 	bsched_bws_t bws,			/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,	/**< Socket from which we're reading */
-	gint flags,					/**< I/O parsing flags */
+	int flags,					/**< I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start,		/**< Optional: called when reading 1st byte */
 	const struct io_error *error) /**< Mandatory: error callbacks for resource */
@@ -508,7 +508,7 @@ io_get_header(
 void
 io_continue_header(
 	gpointer opaque,			/**< Existing header parsing context */
-	gint flags,					/**< New I/O parsing flags */
+	int flags,					/**< New I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start)		/**< Optional: called when reading 1st byte */
 {

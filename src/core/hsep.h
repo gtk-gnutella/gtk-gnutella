@@ -78,7 +78,7 @@ unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(const struct gnutella_node *n,
 	hsep_triple *buffer, unsigned int maxtriples);
-const char *hsep_get_static_str(gint row, gint column);
+const char *hsep_get_static_str(int row, int column);
 
 #endif /* _core_hsep_h_ */
 

@@ -224,7 +224,7 @@ rudp_con_hash(gconstpointer key)
  *
  * @note For use in g_hash_table_new.
  */
-gint
+int
 rudp_con_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct rudp_con *c1 = v1, *c2 = v2;
@@ -530,7 +530,7 @@ rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
  * @return	On failure -1 is returned. Otherwise a non-negative connection ID
  *			is returned.
  */
-gint
+int
 rudp_connect(const host_addr_t addr, guint16 port)
 {
 	struct rudp_con *con;
@@ -1028,7 +1028,7 @@ rudp_read(struct rudp_con *con, gpointer data, size_t size)
 	}
 }
 
-gint
+int
 rudp_close(struct rudp_con *con)
 {
 	g_return_val_if_fail(con, -1);
@@ -1161,7 +1161,7 @@ rudp_foreach_closed(gpointer data, gpointer unused_udata)
 void
 rudp_timer(time_t unused_now)
 {
-	gint i;
+	int i;
 	
 	(void) unused_now;
 

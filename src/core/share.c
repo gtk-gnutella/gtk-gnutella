@@ -104,7 +104,7 @@ struct shared_file {
 
 	enum mime_type mime_type;	/* MIME type of the file */
 
-	gint refcnt;				/**< Reference count */
+	int refcnt;				/**< Reference count */
 	guint32 flags;				/**< See below for definition */
 };
 
@@ -156,7 +156,7 @@ static GTree *sha1_to_share;
  * than s2 or s1 greater than s2, respectively.
  * Used to search the sha1_to_share tree.
  */
-static gint
+static int
 compare_share_sha1(gconstpointer s1, gconstpointer s2)
 {
 	return memcmp(s1, s2, SHA1_RAW_SIZE);
@@ -339,7 +339,7 @@ static shared_file_t *
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
-	gint idx;
+	int idx;
 	shared_file_t *sf;
 
 #ifndef OFFICIAL_BUILD
@@ -387,7 +387,7 @@ share_special_load(const struct special_file *sp)
 void
 shared_files_match(const char *search_term,
 	st_search_callback callback, gpointer user_data,
-	gint max_res, query_hashvec_t *qhv)
+	int max_res, query_hashvec_t *qhv)
 {
 	st_search(search_table, search_term, callback, user_data, max_res, qhv);
 }
@@ -890,7 +890,7 @@ share_scan_add_file(const char *relative_path,
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
 
 	if (!sha1_is_cached(sf)) {
-		gint ret;
+		int ret;
 
 		ret = file_info_has_trailer(pathname);
 		switch (ret) {

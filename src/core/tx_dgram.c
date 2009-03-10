@@ -66,7 +66,7 @@ struct attr {
  * Invoked when the output file descriptor can accept more data.
  */
 static void
-is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
+is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 
@@ -140,7 +140,7 @@ tx_dgram_destroy(txdrv_t *tx)
 	wfree(attr, sizeof *attr);
 }
 
-static inline gint
+static inline int
 tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 {
 	if (is_temporary_error(errno) || ENOBUFS == errno)

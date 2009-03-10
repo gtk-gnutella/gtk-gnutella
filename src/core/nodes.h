@@ -123,7 +123,7 @@ typedef struct gnutella_node {
 
 	gnutella_header_t header;		/**< Header of the current message */
 	extvec_t extvec[MAX_EXTVEC];	/**< GGEP extensions in "fat" messages */
-	gint extcount;					/**< Amount of extensions held */
+	int extcount;					/**< Amount of extensions held */
 
 	guint16 size; /**< How many bytes we need to read for the current message */
 	guint16 header_flags;		/**< Header flags (new message architecture) */
@@ -525,14 +525,14 @@ void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 void node_remove(struct gnutella_node *,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 guint node_remove_by_addr(const host_addr_t addr, guint16 port);
-void node_bye(gnutella_node_t *, gint code,
+void node_bye(gnutella_node_t *, int code,
 	const char * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_real_remove(gnutella_node_t *);
 void node_eof(struct gnutella_node *n,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_shutdown(struct gnutella_node *n,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
-void node_bye_if_writable(struct gnutella_node *n, gint code,
+void node_bye_if_writable(struct gnutella_node *n, int code,
 	const char * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_init_outgoing(struct gnutella_node *);
 void node_sent_ttl0(struct gnutella_node *n);
@@ -559,9 +559,9 @@ void node_qrt_patched(struct gnutella_node *n, struct routing_table *);
 void send_node_error(struct gnutella_socket *s, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
-void node_add_sent(gnutella_node_t *n, gint x);
-void node_add_txdrop(gnutella_node_t *n, gint x);
-void node_add_rxdrop(gnutella_node_t *n, gint x);
+void node_add_sent(gnutella_node_t *n, int x);
+void node_add_txdrop(gnutella_node_t *n, int x);
+void node_add_rxdrop(gnutella_node_t *n, int x);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
 
@@ -594,7 +594,7 @@ void node_set_leaf_guidance(const node_id_t node_id, gboolean supported);
 
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
-void node_set_socket_rx_size(gint rx_size);
+void node_set_socket_rx_size(int rx_size);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
 gboolean node_udp_is_flow_controlled(void);
@@ -604,7 +604,7 @@ void node_udp_process(struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
 
 void node_can_tsync(gnutella_node_t *n);
-void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
+void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features);
 
 void node_update_udp_socket(void);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);

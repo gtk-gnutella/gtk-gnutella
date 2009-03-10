@@ -134,9 +134,9 @@ static const char *debug_msg[256];
 
 static struct {
 	struct message **chunks[MAX_CHUNKS];
-	gint next_idx;				 /**< Next slot to use in "message_array[]" */
-	gint capacity;				 /**< Capacity in terms of messages */
-	gint count;					 /**< Amount really stored */
+	int next_idx;				 /**< Next slot to use in "message_array[]" */
+	int capacity;				 /**< Capacity in terms of messages */
+	int count;					 /**< Amount really stored */
 	GHashTable *messages_hashed; /**< All messages (key = struct message) */
 	time_t last_rotation;		 /**< Last time we restarted from idx=0 */
 } routing;
@@ -260,8 +260,8 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 {
 	va_list args;
 	char *buf;
-	gint buflen;
-	gint len;
+	int buflen;
+	int len;
 
 	if (GNET_PROPERTY(routing_debug) <= 7)
 		return;
@@ -280,7 +280,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 		buf += len;
 
 		if (buflen > 2) {
-			gint seplen = gm_snprintf(buf, buflen, "; ");
+			int seplen = gm_snprintf(buf, buflen, "; ");
 
 			buflen -= seplen;
 			buf += seplen;
@@ -320,7 +320,7 @@ route_string(struct route_dest *dest, const host_addr_t origin_addr)
 		break;
 	case ROUTE_MULTI:
 		{
-			gint count = g_slist_length(dest->ur.u_nodes);
+			int count = g_slist_length(dest->ur.u_nodes);
 			gm_snprintf(msg, sizeof msg, "selected %u node%s",
 				count, count == 1 ? "" : "s");
 		}
@@ -467,13 +467,13 @@ get_next_slot(void)
 	idx = routing.next_idx;
 	chunk_idx = CHUNK_INDEX(idx);
 
-	g_assert((gint) chunk_idx >= 0 && chunk_idx < MAX_CHUNKS);
+	g_assert((int) chunk_idx >= 0 && chunk_idx < MAX_CHUNKS);
 
 	chunk = routing.chunks[chunk_idx];
 
 	if (chunk == NULL) {
 
-		g_assert((gint) idx >= routing.capacity);
+		g_assert((int) idx >= routing.capacity);
 
 		/*
 		 * Chunk does not exist yet, determine whether we should create
@@ -483,7 +483,7 @@ get_next_slot(void)
 		if (idx > 0 && elapsed > TABLE_MIN_CYCLE) {
 			if (GNET_PROPERTY(routing_debug))
 				printf("RT cycling over table, elapsed=%d, holds %d / %d\n",
-					(gint) elapsed, routing.count, routing.capacity);
+					(int) elapsed, routing.count, routing.capacity);
 
 			chunk_idx = 0;
 			idx = routing.next_idx = 0;
@@ -518,7 +518,7 @@ get_next_slot(void)
 		if (idx == 0) {
 			if (GNET_PROPERTY(routing_debug))
 				printf("RT cycling over FORCED, elapsed=%d, holds %d / %d\n",
-					(gint) elapsed, routing.count, routing.capacity);
+					(int) elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;
 		}
@@ -526,7 +526,7 @@ get_next_slot(void)
 
 	g_assert(slot != NULL);
 	g_assert(idx == (guint) routing.next_idx);
-	g_assert((gint) idx >= 0 && idx < (guint) routing.capacity);
+	g_assert((int) idx >= 0 && idx < (guint) routing.capacity);
 
 	/*
 	 * It's OK to go beyond the last allocated chunk (a new chunk will
@@ -647,7 +647,7 @@ static gboolean
 node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
 {
 	GSList *l;
-	gint i;
+	int i;
 	struct route_data *route;
 
 	g_assert(n != fake_node);
@@ -681,7 +681,7 @@ node_ttl_higher(struct gnutella_node *n, struct message *m, guint8 ttl)
 /**
  * compares two message structures
  */
-static gint
+static int
 message_compare_func(gconstpointer p, gconstpointer q)
 {
 	const struct message *a = p, *b = q;
@@ -1221,7 +1221,7 @@ forward_message(
 		if (routes != NULL) {
 			GSList *l;
 			GSList *nodes = NULL;
-			gint count;
+			int count;
 
 			g_assert(gnutella_header_get_function(&sender->header)
 					== GTA_MSG_PUSH_REQUEST);
@@ -1275,7 +1275,7 @@ forward_message(
 					gnutella_header_get_ttl(&sender->header)
 						> GNET_PROPERTY(max_ttl)
 			) {
-				gint ttl_max;
+				int ttl_max;
 			   
 				/* Trim down */
 				ttl_max = GNET_PROPERTY(max_ttl);
@@ -1649,7 +1649,7 @@ route_query(struct route_log *route_log,
 		(guint) gnutella_header_get_ttl(&sender->header) +
 			gnutella_header_get_hops(&sender->header) >= GNET_PROPERTY(my_ttl)
 	) {
-		gint ttl_max;
+		int ttl_max;
 	
 		ttl_max = GNET_PROPERTY(my_ttl)
 					- gnutella_header_get_hops(&sender->header) - 1;
@@ -2169,7 +2169,7 @@ routing_close(void)
 	for (cnt = 0; cnt < MAX_CHUNKS; cnt++) {
 		struct message **chunk = routing.chunks[cnt];
 		if (chunk != NULL) {
-			gint i;
+			int i;
 			for (i = 0; i < CHUNK_MESSAGES; i++) {
 				struct message *m = chunk[i];
 				if (m != NULL) {

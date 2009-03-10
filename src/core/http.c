@@ -87,8 +87,8 @@ static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
 gboolean
 http_send_status(
 	http_layer_t layer,
-	struct gnutella_socket *s, gint code, gboolean keep_alive,
-	http_extra_desc_t *hev, gint hevcnt,
+	struct gnutella_socket *s, int code, gboolean keep_alive,
+	http_extra_desc_t *hev, int hevcnt,
 	const char *reason, ...)
 {
 	char header[2560];			/* 2.5 K max */
@@ -96,7 +96,7 @@ http_send_status(
 	size_t rw, minimal_rw;
 	size_t header_size = sizeof(header);
 	ssize_t sent;
-	gint i;
+	int i;
 	va_list args;
 	const char *conn_close = keep_alive ? "" : "Connection: close\r\n";
 	const char *no_content = "Content-Length: 0\r\n";
@@ -105,7 +105,7 @@ http_send_status(
 	const char *token;
 	const char *body = NULL;
 	gboolean saturated = bsched_saturated(BSCHED_BWS_OUT);
-	gint cb_flags = 0;
+	int cb_flags = 0;
 
 	va_start(args, reason);
 	gm_vsnprintf(status_msg, sizeof(status_msg)-1, reason, args);
@@ -335,12 +335,12 @@ http_retry_after_add(char *buf, size_t size,
  *
  * @return status code, -1 on error.
  */
-static gint
+static int
 code_message_parse(const char *line, const char **msg)
 {
 	const char *endptr;
 	guint32 v;
-	gint error;
+	int error;
 
 	/*
 	 * We expect exactly 3 status digits.
@@ -386,7 +386,7 @@ code_message_parse(const char *line, const char **msg)
  * NB: this routine is also used to parse GNUTELLA status codes, since
  * they follow the same pattern as HTTP status codes.
  */
-gint
+int
 http_status_parse(const char *line,
 	const char *proto, const char **msg, guint *major, guint *minor)
 {
@@ -579,7 +579,7 @@ static const char * const parse_errstr[] = {
 const char *
 http_url_strerror(http_url_error_t errnum)
 {
-	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	return parse_errstr[errnum];
@@ -654,7 +654,7 @@ http_url_parse(const char *url, guint16 *port, const char **host,
 	if (':' != *p) {
 		*port = HTTP_PORT;
 	} else {
-		gint error;
+		int error;
 		guint32 u;
 
 		g_assert(':'== *p);
@@ -703,7 +703,7 @@ http_buffer_alloc(char *buf, size_t len, size_t written)
 
 	g_assert(buf);
 	g_assert(len > 0 && len <= INT_MAX);
-	g_assert((gint) written >= 0 && written < len);
+	g_assert((int) written >= 0 && written < len);
 
 	b = walloc(sizeof(*b));
 	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
@@ -738,12 +738,12 @@ http_buffer_free(http_buffer_t *b)
  *
  * @return -1 on error, zero on success.
  */
-gint
+int
 http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total)
 {
 	const char *s = buf, *endptr;
-	gint error;
+	int error;
 
 	/*
 	 * HTTP/1.1 -- RFC 2616 -- 3.12 Range Units
@@ -945,7 +945,7 @@ http_range_parse(
 	gboolean skipping;
 	gboolean minus_seen;
 	gboolean ignored;
-	gint count = 0;
+	int count = 0;
 
 	g_assert(size > 0);
 	vendor = vendor ? vendor : "unknown";
@@ -1005,7 +1005,7 @@ http_range_parse(
 			if (!minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d (no range?): "
-					"%s", field, vendor, (gint) (str - value) - 1, value);
+					"%s", field, vendor, (int) (str - value) - 1, value);
 				goto reset;
 			}
 
@@ -1013,7 +1013,7 @@ http_range_parse(
 				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
-					field, vendor, (gint) (str - value) - 1, value);
+					field, vendor, (int) (str - value) - 1, value);
 				goto reset;
 			}
 
@@ -1021,7 +1021,7 @@ http_range_parse(
 				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
-					(gint) (str - value) - 1, value);
+					(int) (str - value) - 1, value);
 				goto reset;
 			}
 
@@ -1033,7 +1033,7 @@ http_range_parse(
 				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
-					field, vendor, (gint) (str - value) - 1, count,
+					field, vendor, (int) (str - value) - 1, count,
 					value);
 			}
 
@@ -1047,7 +1047,7 @@ http_range_parse(
 			if (minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
 					"weird %s header from <%s>, offset %d (spurious '-'): %s",
-					field, vendor, (gint) (str - value) - 1, value);
+					field, vendor, (int) (str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
@@ -1056,7 +1056,7 @@ http_range_parse(
 					if (GNET_PROPERTY(http_debug))
 						g_warning("weird %s header from <%s>, offset %d "
 							"(negative range in reply): %s",
-							field, vendor, (gint) (str - value) - 1, value);
+							field, vendor, (int) (str - value) - 1, value);
 					goto resync;
 				}
 				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
@@ -1066,7 +1066,7 @@ http_range_parse(
 		}
 
 		if (is_ascii_digit(c)) {
-			gint error;
+			int error;
 			const char *dend;
 			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
 
@@ -1079,7 +1079,7 @@ http_range_parse(
 				if (GNET_PROPERTY(http_debug))
 					g_warning("weird %s header from <%s>, offset %d "
 						"(spurious boundary %s): %s",
-						field, vendor, (gint) (str - value) - 1,
+						field, vendor, (int) (str - value) - 1,
 						uint64_to_string(val), value);
 				goto resync;
 			}
@@ -1097,7 +1097,7 @@ http_range_parse(
 					if (GNET_PROPERTY(http_debug))
 						g_warning("weird %s header from <%s>, offset %d "
 							"(no '-' before boundary %s): %s",
-							field, vendor, (gint) (str - value) - 1,
+							field, vendor, (int) (str - value) - 1,
 							uint64_to_string(val), value);
 					goto resync;
 				}
@@ -1118,7 +1118,7 @@ http_range_parse(
 		if (GNET_PROPERTY(http_debug))
 			g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
-			field, vendor, (gint) (str - value) - 1, c, value);
+			field, vendor, (int) (str - value) - 1, c, value);
 
 		/* FALL THROUGH */
 
@@ -1141,7 +1141,7 @@ http_range_parse(
 			if (GNET_PROPERTY(http_debug))
 				g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
-				field, vendor, (gint) (str - value) - 1, value);
+				field, vendor, (int) (str - value) - 1, value);
 			goto final;
 		}
 
@@ -1149,7 +1149,7 @@ http_range_parse(
 			if (GNET_PROPERTY(http_debug))
 				g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
-				(gint) (str - value) - 1, value);
+				(int) (str - value) - 1, value);
 			goto final;
 		}
 
@@ -1160,7 +1160,7 @@ http_range_parse(
 			if (GNET_PROPERTY(http_debug))
 				g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
-				field, vendor, (gint) (str - value) - 1, count,
+				field, vendor, (int) (str - value) - 1, count,
 				value);
 	}
 
@@ -1723,7 +1723,7 @@ http_async_cancel(struct http_async *handle)
  * Cancel request (internal error).
  */
 void
-http_async_error(struct http_async *handle, gint code)
+http_async_error(struct http_async *handle, int code)
 {
 	http_async_remove(handle, HTTP_ASYNC_ERROR, GINT_TO_POINTER(code));
 }
@@ -1732,7 +1732,7 @@ http_async_error(struct http_async *handle, gint code)
  * Cancel request (system call error).
  */
 static void
-http_async_syserr(struct http_async *handle, gint code)
+http_async_syserr(struct http_async *handle, int code)
 {
 	http_async_remove(handle, HTTP_ASYNC_SYSERR, GINT_TO_POINTER(code));
 }
@@ -1741,7 +1741,7 @@ http_async_syserr(struct http_async *handle, gint code)
  * Cancel request (header parsing error).
  */
 static void
-http_async_headerr(struct http_async *handle, gint code)
+http_async_headerr(struct http_async *handle, int code)
 {
 	http_async_remove(handle, HTTP_ASYNC_HEADER, GINT_TO_POINTER(code));
 }
@@ -1751,7 +1751,7 @@ http_async_headerr(struct http_async *handle, gint code)
  */
 static void
 http_async_http_error(struct http_async *handle, struct header *header,
-	gint code, const char *message)
+	int code, const char *message)
 {
 	http_error_t he;
 
@@ -2010,7 +2010,7 @@ http_async_allow_redirects(struct http_async *ha, gboolean allow)
  */
 static gboolean
 http_subreq_header_ind(struct http_async *ha, struct header *header,
-	gint code, const char *message)
+	int code, const char *message)
 {
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2024,7 +2024,7 @@ http_subreq_header_ind(struct http_async *ha, struct header *header,
  * Reroute to parent request.
  */
 static void
-http_subreq_data_ind(struct http_async *ha, char *data, gint len)
+http_subreq_data_ind(struct http_async *ha, char *data, int len)
 {
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(ha->parent != NULL);
@@ -2176,7 +2176,7 @@ http_got_data(struct http_async *ha, gboolean eof)
  * Read them and pass them to http_got_data().
  */
 static void
-http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
+http_data_read(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct http_async *ha = data;
 	struct gnutella_socket *s = ha->socket;
@@ -2191,7 +2191,7 @@ http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert((gint) s->pos >= 0 && s->pos <= s->buf_size);
+	g_assert((int) s->pos >= 0 && s->pos <= s->buf_size);
 
 	if (s->pos == s->buf_size) {
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
@@ -2224,7 +2224,7 @@ http_got_header(struct http_async *ha, header_t *header)
 {
 	struct gnutella_socket *s = ha->socket;
 	const char *status = getline_str(s->getline);
-	gint ack_code;
+	int ack_code;
 	const char *ack_message = "";
 	char *buf;
 	guint http_major = 0, http_minor = 0;
@@ -2435,7 +2435,7 @@ http_async_request_sent(struct http_async *ha)
  * sending the HTTP request.
  */
 static void
-http_async_write_request(gpointer data, gint unused_source,
+http_async_write_request(gpointer data, int unused_source,
 	inputevt_cond_t cond)
 {
 	struct http_async *ha = data;
@@ -2537,7 +2537,7 @@ http_async_connected(struct http_async *ha)
 		return;
 	} else if ((size_t) sent < rw) {
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
-			host_addr_port_to_string(s->addr, s->port), (gint) sent, (gint) rw);
+			host_addr_port_to_string(s->addr, s->port), (int) sent, (int) rw);
 
 		g_assert(ha->delayed == NULL);
 
@@ -2571,7 +2571,7 @@ http_async_log_error_dbg(struct http_async *handle,
 {
 	const char *url;
 	const char *req;
-	gint error = GPOINTER_TO_INT(v);
+	int error = GPOINTER_TO_INT(v);
 	http_error_t *herror = v;
 	host_addr_t addr;
 	guint16 port;
@@ -2648,7 +2648,7 @@ err_line_too_long(gpointer obj, header_t *unused_head)
 }
 
 static void
-err_header_error(gpointer obj, gint error)
+err_header_error(gpointer obj, int error)
 {
 	struct http_async *ha = obj;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
@@ -2673,7 +2673,7 @@ err_input_buffer_full(gpointer obj)
 }
 
 static void
-err_header_read_error(gpointer obj, gint error)
+err_header_read_error(gpointer obj, int error)
 {
 	struct http_async *ha = obj;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
@@ -2711,8 +2711,8 @@ http_timer(time_t now)
 retry:
 	for (l = sl_outgoing; l; l = l->next) {
 		struct http_async *ha = l->data;
-		gint elapsed = delta_time(now, ha->last_update);
-		gint timeout = ha->bio
+		int elapsed = delta_time(now, ha->last_update);
+		int timeout = ha->bio
 			? GNET_PROPERTY(download_connected_timeout)
 			: GNET_PROPERTY(download_connecting_timeout);
 

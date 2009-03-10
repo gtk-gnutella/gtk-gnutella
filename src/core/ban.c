@@ -89,8 +89,8 @@ struct addr_info {
 	host_addr_t addr;			/**< IP address */
 	time_t created;				/**< When did last connection occur? */
 	cevent_t *cq_ev;			/**< Scheduled callout event */
-	gint ban_delay;				/**< Banning delay, in seconds */
-	gint ban_count;				/**< Amount of time we banned this source */
+	int ban_delay;				/**< Banning delay, in seconds */
+	int ban_count;				/**< Amount of time we banned this source */
 	const char *ban_msg;		/**< Banning message (atom) */
 	gboolean banned;			/**< Is this IP currently banned? */
 };
@@ -123,7 +123,7 @@ ipf_make(const host_addr_t addr, time_t now)
 	 * time in milli-seconds.
 	 */
 	{
-		gint delay;
+		int delay;
 		
 		delay = 1000.0 / decay_coeff;
 		delay = MAX(delay, 1);
@@ -176,7 +176,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 {
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
-	gint delay;
+	int delay;
 
 	(void) unused_cq;
 	g_assert(ipf);
@@ -343,7 +343,7 @@ ban_allow(const host_addr_t addr)
 	 * OK, we accept this connection.  Reschedule cleanup.
 	 */
 	{
-		gint delay;
+		int delay;
 
 		delay = 1000.0 * ipf->counter / decay_coeff;
 		delay = MAX(delay, 1);
@@ -477,7 +477,7 @@ ban_reclaim_fd(void)
 void
 ban_force(struct gnutella_socket *s)
 {
-	gint fd;
+	int fd;
 
 	socket_check(s);
 	fd = s->file_desc;
@@ -536,7 +536,7 @@ ban_is_banned(const host_addr_t addr)
 /**
  * @return banning delay for banned IP.
  */
-gint
+int
 ban_delay(const host_addr_t addr)
 {
 	struct addr_info *ipf;

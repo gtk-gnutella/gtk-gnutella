@@ -55,7 +55,7 @@ RCSID("$Id$")
 static void qlink_free(mqueue_t *q);
 static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
-	mqueue_t *q, char *header, guint prio, gint needed, gint *offset);
+	mqueue_t *q, char *header, guint prio, int needed, int *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
 
 gboolean
@@ -220,11 +220,11 @@ mq_remove_linkable(mqueue_t *q, GList *l)
  * Check queue's sanity.
  */
 void
-mq_check_track(mqueue_t *q, gint offset, const char *where, gint line)
+mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 {
-	gint qcount;
-	gint qlink_alive = 0;
-	gint n;
+	int qcount;
+	int qlink_alive = 0;
+	int n;
 
 	g_assert(q);
 
@@ -296,7 +296,7 @@ void
 mq_free(mqueue_t *q)
 {
 	GList *l;
-	gint n;
+	int n;
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
@@ -329,7 +329,7 @@ mq_free(mqueue_t *q)
  * queue is updated, but not the flow-control information.
  */
 static GList *
-mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
+mq_rmlink_prev(mqueue_t *q, GList *l, int size)
 {
 	GList *prev = g_list_previous(l);
 
@@ -356,14 +356,14 @@ mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 static void
 mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 {
-	gint elapsed = q->swift_elapsed;	/* Elapsed since we were scheduled */
-	gint target_to_lowmark;
-	gint flushed_till_next_timer;
-	gint added_till_next_timer;
+	int elapsed = q->swift_elapsed;	/* Elapsed since we were scheduled */
+	int target_to_lowmark;
+	int flushed_till_next_timer;
+	int added_till_next_timer;
 	gfloat period_ratio;
-	gint added;
-	gint needed;
-	gint extra;
+	int added;
+	int needed;
+	int extra;
 
 	g_assert(q->flags & MQ_FLOWC);
 	g_assert(q->size > q->lowat);	/* Or we would have left FC */
@@ -388,8 +388,8 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	target_to_lowmark = q->size - q->lowat;
 	added = q->size - q->last_size + q->flowc_written;
 
-	flushed_till_next_timer = (gint) (q->flowc_written * period_ratio);
-	added_till_next_timer = added <= 0 ? 0 : (gint) (added * period_ratio);
+	flushed_till_next_timer = (int) (q->flowc_written * period_ratio);
+	added_till_next_timer = added <= 0 ? 0 : (int) (added * period_ratio);
 
 	/*
 	 * Now compute the amount of bytes we need to forcefully drop to be
@@ -443,7 +443,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 */
 
 	} else {
-		gint ttl;
+		int ttl;
 
 		/*
 		 * We're going to drop query hits...
@@ -465,7 +465,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 */
 
 		for (ttl = GNET_PROPERTY(hard_ttl_limit); ttl >= 0; ttl--) {
-			gint old_size;
+			int old_size;
 
 			if (needed <= 0)
 				break;
@@ -686,7 +686,7 @@ mq_shutdown(mqueue_t *q)
  * based on their held Gnutella messages.
  * -- qsort() callback
  */
-static gint
+static int
 qlink_cmp(const void *a, const void *b)
 {
 	const GList * const *l1 = a, * const *l2 = b;
@@ -705,7 +705,7 @@ static void
 qlink_create(mqueue_t *q)
 {
 	GList *l;
-	gint n;
+	int n;
 
 	g_assert(q->qlink == NULL);
 
@@ -755,7 +755,7 @@ qlink_free(mqueue_t *q)
  * before the position indicated by `hint'.
  */
 static void
-qlink_insert_before(mqueue_t *q, gint hint, GList *l)
+qlink_insert_before(mqueue_t *q, int hint, GList *l)
 {
 	g_assert(hint >= 0 && hint < q->qlink_count);
 	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
@@ -780,7 +780,7 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 	q->qlink = g_realloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 
 	{
-		gint i;
+		int i;
 
 		/* Shift right */
 		for (i = q->qlink_count - 1; i > hint; i--) {
@@ -796,8 +796,8 @@ qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 static void
 qlink_insert(mqueue_t *q, GList *l)
 {
-	gint low = 0;
-	gint high = q->qlink_count - 1;
+	int low = 0;
+	int high = q->qlink_count - 1;
 	GList **qlink = q->qlink;
 
 	g_assert(l->data != NULL);
@@ -843,17 +843,17 @@ qlink_insert(mqueue_t *q, GList *l)
 	 */
 
 	while (low <= high) {
-		gint mid = low + (high - low) / 2;
-		gint c;
+		int mid = low + (high - low) / 2;
+		int c;
 
 		/*
 		 * If we end up in a NULL spot, inspect the [low, high] range.
 		 */
 
 		if (qlink[mid] == NULL) {
-			gint n;
-			gint lowest_non_null = -1;
-			gint highest_non_null = -1;
+			int n;
+			int lowest_non_null = -1;
+			int highest_non_null = -1;
 
 			/*
 			 * Go back towards `low' to find a non-NULL entry.
@@ -959,7 +959,7 @@ static void
 qlink_remove(mqueue_t *q, GList *l)
 {
 	GList **qlink = q->qlink;
-	gint n = q->qlink_count;
+	int n = q->qlink_count;
 
 	g_assert(qlink);
 	g_assert(n > 0);
@@ -974,7 +974,7 @@ qlink_remove(mqueue_t *q, GList *l)
 
 	if (n > q->count * 3) {
 		GList **dest = qlink;
-		gint copied = 0;
+		int copied = 0;
 		gboolean found = FALSE;
 
 		while (n-- > 0) {
@@ -1028,7 +1028,7 @@ qlink_remove(mqueue_t *q, GList *l)
  * @returns TRUE if we were able to make enough room.
  */
 static gboolean
-make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
+make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
 {
 	char *header = pmsg_start(mb);
 	guint prio = pmsg_prio(mb);
@@ -1042,10 +1042,10 @@ make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
  */
 static gboolean
 make_room_header(
-	mqueue_t *q, char *header, guint prio, gint needed, gint *offset)
+	mqueue_t *q, char *header, guint prio, int needed, int *offset)
 {
-	gint n;
-	gint dropped = 0;				/* Amount of messages dropped */
+	int n;
+	int dropped = 0;				/* Amount of messages dropped */
 	gboolean qlink_corrupted = FALSE;	/* BUG catcher */
 
 	g_assert(needed > 0);
@@ -1089,7 +1089,7 @@ restart:
 		GList *item = q->qlink[n];
 		pmsg_t *cmb;
 		char *cmb_start;
-		gint cmb_size;
+		int cmb_size;
 
 		/*
 		 * If slot was NULLified, skip it.
@@ -1225,10 +1225,10 @@ restart:
  * Put message in this queue.
  */
 static void
-mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
+mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 {
-	gint needed;
-	gint qlink_offset = -1;
+	int needed;
+	int qlink_offset = -1;
 	GList *new = NULL;
 	gboolean make_room_called = FALSE;
 	gboolean has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);

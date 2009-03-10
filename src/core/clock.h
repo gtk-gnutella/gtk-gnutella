@@ -47,7 +47,7 @@
 void clock_init(void);
 void clock_close(void);
 
-void clock_update(time_t update, gint precision, const host_addr_t addr);
+void clock_update(time_t update, int precision, const host_addr_t addr);
 
 time_t clock_loc2gmt(time_t stamp);
 time_t clock_gmt2loc(time_t stamp);

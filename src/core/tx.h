@@ -57,7 +57,7 @@ typedef struct txdriver {
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct txdriver *upper;			/**< Layer above, NULL if none */
 	struct txdriver *lower;			/**< Layer underneath, NULL if none */
-	gint flags;						/**< Driver flags */
+	int flags;						/**< Driver flags */
 	tx_service_t srv_routine;		/**< Service routine of upper TX layer */
 	gpointer srv_arg;				/**< Service routine argument */
 	gpointer opaque;				/**< Used by heirs to store specific info */
@@ -83,7 +83,7 @@ struct txdrv_ops {
 	gpointer (*init)(txdrv_t *tx, gpointer args);
 	void (*destroy)(txdrv_t *tx);
 	ssize_t (*write)(txdrv_t *tx, gconstpointer data, size_t len);
-	ssize_t (*writev)(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+	ssize_t (*writev)(txdrv_t *tx, struct iovec *iov, int iovcnt);
 	ssize_t (*sendto)(txdrv_t *tx, const gnet_host_t *to,
 							gconstpointer data, size_t len);
 	void (*enable)(txdrv_t *tx);
@@ -107,7 +107,7 @@ txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
 void tx_free(txdrv_t *tx);
 void tx_collect(void);
 ssize_t tx_write(txdrv_t *tx, gconstpointer data, size_t len);
-ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+ssize_t tx_writev(txdrv_t *tx, struct iovec *iov, int iovcnt);
 ssize_t tx_sendto(txdrv_t *tx, const gnet_host_t *to,
 					gconstpointer data, size_t len);
 void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, gpointer srv_arg);
@@ -116,7 +116,7 @@ void tx_srv_disable(txdrv_t *tx);
 size_t tx_pending(txdrv_t *tx);
 struct bio_source *tx_bio_source(txdrv_t *tx);
 ssize_t tx_no_write(txdrv_t *tx, gconstpointer data, size_t len);
-ssize_t tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
+ssize_t tx_no_writev(txdrv_t *tx, struct iovec *iov, int iovcnt);
 ssize_t tx_no_sendto(txdrv_t *tx, const gnet_host_t *to,
 			gconstpointer data, size_t len);
 void tx_flush(txdrv_t *tx);

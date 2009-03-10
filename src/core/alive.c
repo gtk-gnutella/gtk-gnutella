@@ -58,8 +58,8 @@ RCSID("$Id$")
 struct alive {
 	struct gnutella_node *node;
 	GSList *pings;				/**< Pings we sent (struct alive_ping) */
-	gint count;					/**< Amount of pings in list */
-	gint maxcount;				/**< Maximum amount of pings we remember */
+	int count;					/**< Amount of pings in list */
+	int maxcount;				/**< Maximum amount of pings we remember */
 	guint32 min_rt;				/**< Minimum roundtrip time (ms) */
 	guint32 max_rt;				/**< Maximim roundtrip time (ms) */
 	guint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
@@ -104,7 +104,7 @@ ap_free(struct alive_ping *ap)
  * Returned as an opaque pointer.
  */
 gpointer
-alive_make(struct gnutella_node *n, gint max)
+alive_make(struct gnutella_node *n, int max)
 {
 	struct alive *a;
 
@@ -283,11 +283,11 @@ static void
 ap_ack(const struct alive_ping *ap, struct alive *a)
 {
 	GTimeVal now;
-	gint delay;					/**< Between sending and reception, in ms */
+	int delay;					/**< Between sending and reception, in ms */
 
 	tm_now_exact(&now);
 
-	delay = (gint) ((now.tv_sec - ap->sent.tv_sec) * 1000 +
+	delay = (int) ((now.tv_sec - ap->sent.tv_sec) * 1000 +
 		(now.tv_usec - ap->sent.tv_usec) / 1000);
 
 	a->last_rt = delay;
@@ -296,12 +296,12 @@ ap_ack(const struct alive_ping *ap, struct alive *a)
 	 * Update min-max roundtrips.
 	 */
 
-	if (delay < (gint) a->min_rt) {
+	if (delay < (int) a->min_rt) {
 		if (a->min_rt == INFINITY)
 			a->avg_rt = delay;			/* First time */
 		a->min_rt = delay;
 	}
-	if (delay > (gint) a->max_rt)
+	if (delay > (int) a->max_rt)
 		a->max_rt = delay;
 
 	/*

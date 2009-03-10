@@ -539,7 +539,7 @@ tbuf_write(const struct file_object *fo, filesize_t offset)
  * @returns -1 on error.
  */
 static ssize_t
-tbuf_read(gint fd, size_t len)
+tbuf_read(int fd, size_t len)
 {
 	g_assert(fd >= 0);
 
@@ -763,7 +763,7 @@ file_info_store_binary(fileinfo_t *fi, gboolean force)
 
 	fo = file_object_open(fi->pathname, O_WRONLY);
 	if (!fo) {
-		gint fd = file_open_missing(fi->pathname, O_WRONLY);
+		int fd = file_open_missing(fi->pathname, O_WRONLY);
 		if (fd >= 0) {
 			fo = file_object_new(fd, fi->pathname, O_WRONLY);
 		}
@@ -1098,7 +1098,7 @@ fi_alias(fileinfo_t *fi, const char *name, gboolean record)
  * @returns TRUE if the trailer is "validated", FALSE otherwise.
  */
 static gboolean
-file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
+file_info_get_trailer(int fd, struct trailer *tb, struct stat *sb,
 	const char *name)
 {
 	ssize_t r;
@@ -1209,11 +1209,11 @@ file_info_get_trailer(gint fd, struct trailer *tb, struct stat *sb,
  *			1 if the file has a trailer
  *			-1 on error.
  */
-gint
+int
 file_info_has_trailer(const char *path)
 {
 	struct trailer trailer;
-	gint fd;
+	int fd;
 	gboolean valid;
 
 	fd = file_open_missing(path, O_RDONLY);
@@ -1585,7 +1585,7 @@ file_info_retrieve_binary(const char *pathname)
 	enum dl_file_info_field field;
 	char tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	const char *reason;
-	gint fd;
+	int fd;
 	guint32 version;
 	struct trailer trailer;
 	struct stat sb;
@@ -2537,7 +2537,7 @@ file_info_unlink(fileinfo_t *fi)
 		g_warning("unlinked \"%s\" (%s/%s bytes or %d%% done, %s SHA1%s%s)",
 			fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
-			(gint) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
+			(int) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");
@@ -2864,7 +2864,7 @@ file_info_retrieve(void)
 
 	while (fgets(line, sizeof line, f)) {
 		size_t len;
-		gint error;
+		int error;
 		gboolean truncated = FALSE, damaged;
 		const char *ep;
 		char *value;
@@ -4228,7 +4228,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 {
 	GSList *fclist;
 	fileinfo_t *fi;
-	gint busy;			/**< For assertions only */
+	int busy;			/**< For assertions only */
 
 	download_check(d);
 	fi = d->file_info;
@@ -4409,11 +4409,11 @@ fi_check_file(fileinfo_t *fi)
 /**
  * Count the amount of BUSY chunks attached to a given download.
  */
-static gint
+static int
 fi_busy_count(fileinfo_t *fi, struct download *d)
 {
 	const GSList *sl;
-	gint count = 0;
+	int count = 0;
 
 	download_check(d);
 	file_info_check(fi);
@@ -4631,7 +4631,7 @@ static filesize_t
 fi_chunksize(fileinfo_t *fi)
 {
 	filesize_t chunksize;
-	gint src_count;
+	int src_count;
 
 	file_info_check(fi);
 
@@ -4826,7 +4826,7 @@ fi_find_aggressive_candidate(
 {
 	fileinfo_t *fi = d->file_info;
 	const struct dl_file_chunk *fc;
-	gint starving;
+	int starving;
 	filesize_t minchunk;
 	gboolean can_be_aggressive = FALSE;
 	gdouble missing_coverage;
@@ -5950,19 +5950,19 @@ fi_rename(gnet_fi_t fih, const char *filename)
  *
  * @returns the size of the generated header.
  */
-gint
-file_info_available_ranges(fileinfo_t *fi, char *buf, gint size)
+int
+file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 {
 	const struct dl_file_chunk **fc_ary;
 	gpointer fmt;
 	gboolean is_first = TRUE;
 	char range[80];
 	GSList *sl;
-	gint maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
-	gint count;
-	gint nleft;
-	gint i;
-	gint length;
+	int maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
+	int count;
+	int nleft;
+	int i;
+	int length;
 
 	file_info_check(fi);
 	g_assert(size >= 0);
@@ -5974,7 +5974,7 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, gint size)
 
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		const struct dl_file_chunk *fc = sl->data;
-		gint rw;
+		int rw;
 
 		dl_file_chunk_check(fc);
 		if (DL_CHUNK_DONE != fc->status)
@@ -6037,7 +6037,7 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, gint size)
 
 	for (nleft = count; nleft > 0; nleft--) {
 		const struct dl_file_chunk *fc;
-		gint rw, len, j;
+		int rw, len, j;
 
 		j = random_value(nleft - 1);
 		g_assert(j >= 0 && j < nleft);
@@ -6143,7 +6143,7 @@ file_info_build_magnet(gnet_fi_t handle)
 	const fileinfo_t *fi;
 	const GSList *sl;
 	char *url;
-	gint n;
+	int n;
    
 	fi = file_info_find_by_handle(handle);
 	g_return_val_if_fail(fi, NULL);

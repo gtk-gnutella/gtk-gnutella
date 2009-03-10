@@ -55,7 +55,7 @@ struct guid;
 void file_info_init(void);
 void file_info_init_post(void);
 void file_info_scandir(const char *dir);
-gint file_info_has_trailer(const char *path);
+int file_info_has_trailer(const char *path);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_binary(fileinfo_t *fi, gboolean force);
@@ -106,7 +106,7 @@ fileinfo_t *file_info_by_guid(const struct guid *guid);
 void file_info_dht_query(const sha1_t *sha1);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
-gint file_info_available_ranges(fileinfo_t *fi, char *buf, gint size);
+int file_info_available_ranges(fileinfo_t *fi, char *buf, int size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 

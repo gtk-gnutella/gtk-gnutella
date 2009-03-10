@@ -303,7 +303,7 @@ static GHashTable *dl_count_by_name;
 
 static struct {
 	GList *servers[DHASH_SIZE];		/**< Lists of servers, by retry time */
-	gint change[DHASH_SIZE];		/**< Counts changes to the list */
+	int change[DHASH_SIZE];		/**< Counts changes to the list */
 } dl_by_time;
 
 /**
@@ -562,7 +562,7 @@ dl_key_hash(gconstpointer key)
 /**
  * Comparison of `dl_key' structures.
  */
-static gint
+static int
 dl_key_eq(gconstpointer a, gconstpointer b)
 {
 	const struct dl_key *ak = a, *bk = b;
@@ -590,7 +590,7 @@ dl_addr_hash(gconstpointer key)
 /**
  * Comparison of `dl_addr' structures.
  */
-static gint
+static int
 dl_addr_eq(gconstpointer a, gconstpointer b)
 {
 	const struct dl_addr *ak = a, *bk = b;
@@ -602,7 +602,7 @@ dl_addr_eq(gconstpointer a, gconstpointer b)
  * Compare two `download' structures based on the `retry_after' field.
  * The smaller that time, the smaller the structure is.
  */
-static gint
+static int
 dl_retry_cmp(gconstpointer p, gconstpointer q)
 {
 	const struct download *a = p, *b = q;
@@ -614,7 +614,7 @@ dl_retry_cmp(gconstpointer p, gconstpointer q)
  * Compare two `dl_server' structures based on the `retry_after' field.
  * The smaller that time, the smaller the structure is.
  */
-static gint
+static int
 dl_server_retry_cmp(gconstpointer p, gconstpointer q)
 {
 	const struct dl_server *a = p, *b = q;
@@ -889,7 +889,7 @@ buffers_reset_reading(struct download *d)
  * Reset the I/O vector for writing the whole data held in the buffer.
  */
 static struct iovec *
-buffers_to_iovec(struct download *d, gint *iov_cnt)
+buffers_to_iovec(struct download *d, int *iov_cnt)
 {
 	struct dl_buffers *b;
 	struct iovec *iov;
@@ -987,8 +987,8 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 {
 	struct dl_buffers *b;
 	fileinfo_t *fi;
-	gint size;
-	gint available;
+	int size;
+	int available;
 	pmsg_t *prev_mb;
 
 	download_check(d);
@@ -1015,7 +1015,7 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 	available = prev_mb != NULL ? pmsg_writable_length(prev_mb) : 0;
 
 	if (b->held + size < b->amount && size <= available) {
-		gint written;
+		int written;
 
 		g_assert(prev_mb != NULL);
 		written = pmsg_write(prev_mb, pmsg_start(mb), size);
@@ -1244,7 +1244,7 @@ static GSList *
 hostvec_to_slist(const gnet_host_vec_t *vec)
 {
 	GSList *sl = NULL;
-	gint i;
+	int i;
 
 	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
 		gnet_host_t *host;
@@ -2949,16 +2949,16 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
  *
  * @return the number of removed downloads.
  */
-gint
+int
 download_remove_all_from_peer(const struct guid *guid,
 	const host_addr_t addr, guint16 port, gboolean unavailable)
 {
 	struct dl_server *server[2];
-	gint n = 0;
+	int n = 0;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 	GSList *to_remove = NULL;
 	GSList *sl;
-	gint i;
+	int i;
 	guint j;
 
 	/*
@@ -3310,7 +3310,7 @@ download_clone(struct download *d)
  * from this server before the next `hold' seconds.
  */
 static void
-download_server_retry_after(struct dl_server *server, time_t now, gint hold)
+download_server_retry_after(struct dl_server *server, time_t now, int hold)
 {
 	struct download *d;
 	time_t after;
@@ -4177,7 +4177,7 @@ download_queue_is_frozen(void)
  */
 static void
 download_queue_hold_delay_v(struct download *d,
-	gint delay, time_t hold,
+	int delay, time_t hold,
 	const char *fmt, va_list ap)
 {
 	time_t now = tm_time();
@@ -5516,7 +5516,7 @@ download_pickup_queued(void)
 
 	for (i = 0; i < DHASH_SIZE; i++) {
 		GList *l;
-		gint last_change;
+		int last_change;
 
 		if (download_queue_is_frozen())
 			break;
@@ -5927,7 +5927,7 @@ get_index_from_uri(const char *uri)
 
 		endptr = is_strprefix(uri, "/get/");
 		if (endptr) {
-			gint error;
+			int error;
 
 			/*
 			 * Only accept URIs of this form with a non-empty filename:
@@ -7158,7 +7158,7 @@ err_line_too_long(gpointer o, header_t *head)
 }
 
 static void
-err_header_error(gpointer o, gint error)
+err_header_error(gpointer o, int error)
 {
 	download_stop(cast_to_download(o), GTA_DL_ERROR,
 		_("Failed (%s)"), header_strerror(error));
@@ -7172,7 +7172,7 @@ err_input_buffer_full(gpointer o)
 }
 
 static void
-err_header_read_error(gpointer o, gint error)
+err_header_read_error(gpointer o, int error)
 {
 	struct download *d = cast_to_download(o);
 
@@ -7411,7 +7411,7 @@ download_overlap_check(struct download *d)
 
 	fo = file_object_open(fi->pathname, O_RDONLY);
 	if (!fo) {
-		gint fd = file_open(fi->pathname, O_RDONLY, 0);
+		int fd = file_open(fi->pathname, O_RDONLY, 0);
 		if (fd >= 0) {
 			fo = file_object_new(fd, fi->pathname, O_RDONLY);
 		} else {
@@ -7632,7 +7632,7 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 	do {
 		struct iovec *iov;
 		ssize_t ret;
-		gint n;
+		int n;
 
 		buffers_check_held(d);
 
@@ -8169,7 +8169,7 @@ download_moved_permanently(struct download *d, header_t *header)
  * @return TRUE if we can continue.
  */
 static gboolean
-download_check_status(struct download *d, header_t *header, gint code)
+download_check_status(struct download *d, header_t *header, int code)
 {
 	download_check(d);
 
@@ -8279,7 +8279,7 @@ extract_retry_after(struct download *d, const header_t *header)
 {
 	const char *buf;
 	guint32 delay;
-	gint error;
+	int error;
 
 	download_check(d);
 
@@ -9159,7 +9159,7 @@ download_sink(struct download *d)
 	struct gnutella_socket *s = d->socket;
 
 	download_check(d);
-	g_assert((gint) s->pos >= 0 && s->pos <= s->buf_size);
+	g_assert((int) s->pos >= 0 && s->pos <= s->buf_size);
 	g_assert(d->status == GTA_DL_SINKING);
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
 	g_assert(d->flags & DL_F_SUNK_DATA);
@@ -9193,7 +9193,7 @@ download_sink(struct download *d)
  * Read callback for file data.
  */
 static void
-download_sink_read(gpointer data, gint unused_source,
+download_sink_read(gpointer data, int unused_source,
 	inputevt_cond_t unused_cond)
 {
 	struct download *d = data;
@@ -9373,7 +9373,7 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 		 */	
 		ok = string_to_host_addr(start, &endptr, &addr);
 		if (ok && ':' == *endptr) {
-			gint error;
+			int error;
 
 			port = parse_uint16(&endptr[1], &endptr, 10, &error);
 			ok = !error && port > 0;
@@ -9861,7 +9861,7 @@ http_version_nofix:
 
 			if (delay == 0 && download_pick_available(d)) {
 				guint64 v;
-				gint error;
+				int error;
 
 				/*
 				 * Sink the data that might have been returned with the
@@ -10067,9 +10067,9 @@ http_version_nofix:
 			 */
 			if (parq_download_is_passive_queued(d)) {
 				char tmp[80];
-				gint pos = get_parq_dl_position(d);
-				gint length = get_parq_dl_queue_length(d);
-				gint eta = get_parq_dl_eta(d);
+				int pos = get_parq_dl_position(d);
+				int length = get_parq_dl_queue_length(d);
+				int eta = get_parq_dl_eta(d);
 				size_t rw;
 
 				download_passively_queued(d, TRUE);
@@ -10274,7 +10274,7 @@ http_version_nofix:
 	buf = header_get(header, "Content-Length"); /* Mandatory */
 	if (buf && NULL == header_get(header, "Content-Range")) {
 		filesize_t content_size;
-		gint error;
+		int error;
 
 		content_size = parse_uint64(buf, NULL, 10, &error);
 
@@ -10694,7 +10694,7 @@ http_version_nofix:
 		download_stop(d, GTA_DL_ERROR, _("Cannot resume: file gone"));
 		return;
 	} else {
-		gint fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
+		int fd = file_create(fi->pathname, O_RDWR, DOWNLOAD_FILE_MODE);
 		if (fd >= 0) {
 			d->out_file = file_object_new(fd, fi->pathname, O_RDWR);
 		}
@@ -10868,13 +10868,13 @@ download_request_sent(struct download *d)
  * sending the HTTP request.
  */
 static void
-download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
+download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct download *d = data;
 	struct gnutella_socket *s;
 	http_buffer_t *r;
 	ssize_t sent;
-	gint rw;
+	int rw;
 	char *base;
 
 	(void) unused_source;
@@ -11375,7 +11375,7 @@ picked:
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			(guint) rw, (gint) rw, request_buf);
+			(guint) rw, (int) rw, request_buf);
 	}
 
 	download_request_sent(d);
@@ -11440,7 +11440,7 @@ select_push_download(GSList *servers)
 	GSList *sl;
 	time_t now = tm_time();
 	struct download *d = NULL;
-	gint found = 0;		/* No a boolean to trace where it was found from */
+	int found = 0;		/* No a boolean to trace where it was found from */
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -11586,7 +11586,7 @@ struct server_select {
 	const struct guid *guid;	/* The GUID that must match */
 	host_addr_t addr;			/* The IP address that must match */
 	GSList *servers;			/* List of servers matching criteria */
-	gint count;					/* Amount of servers inserted */
+	int count;					/* Amount of servers inserted */
 };
 
 /**
@@ -11624,7 +11624,7 @@ select_matching_servers(gpointer key, gpointer value, gpointer user)
  * @note	It is up to the caller to g_slist_free() the returned list.
  */
 static GSList *
-select_servers(const struct guid *guid, const host_addr_t addr, gint *count)
+select_servers(const struct guid *guid, const host_addr_t addr, int *count)
 {
 	struct server_select ctx;
 
@@ -11719,7 +11719,7 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	static const guint hex_guid_len = 32;
 	const char *endptr;
 	guint i;
-	gint error;
+	int error;
 
 	g_return_val_if_fail(line, FALSE);
 	g_return_val_if_fail(hex_guid, FALSE);
@@ -11761,7 +11761,7 @@ download_push_ack(struct gnutella_socket *s)
 	char hex_guid[33];			/* The hexadecimal GUID */
 	struct guid guid;			/* The decoded (binary) GUID */
 	GSList *servers;			/* Potential targets for the download */
-	gint count;					/* Amount of potential targets found */
+	int count;					/* Amount of potential targets found */
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
@@ -12149,7 +12149,7 @@ download_retrieve_old(FILE *f)
 	char dl_tmp[4096];
 	filesize_t d_size = 0;	/* The d_ vars are what we deserialize */
 	guint64 size64;
-	gint error;
+	int error;
 	const char *d_name;
 	host_addr_t d_addr;
 	guint16 d_port;
@@ -12157,12 +12157,12 @@ download_retrieve_old(FILE *f)
 	guint32 flags;
 	char d_hexguid[33];
 	char d_hostname[256];	/* Server hostname */
-	gint recline;			/* Record line number */
+	int recline;			/* Record line number */
 	guint line;				/* File line number */
 	struct guid d_guid;
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
-	gint maxlines = -1;
+	int maxlines = -1;
 	gboolean allow_comments = TRUE;
 	char *parq_id = NULL;
 	const char *endptr;
@@ -13428,7 +13428,7 @@ download_get_hostname(const struct download *d)
 	return buf;
 }
 
-gint
+int
 download_get_http_req_percent(const struct download *d)
 {
 	const http_buffer_t *r;

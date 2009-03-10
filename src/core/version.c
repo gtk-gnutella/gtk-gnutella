@@ -102,7 +102,7 @@ const char *
 version_str(const version_t *ver)
 {
 	static char str[80];
-	gint rw;
+	int rw;
 
 	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
 
@@ -190,7 +190,7 @@ static gboolean
 version_parse(const char *str, version_t *ver)
 {
 	const char *v;
-	gint error;
+	int error;
 
 	/*
 	 * Modern version numbers are formatted like this:
@@ -290,7 +290,7 @@ version_parse(const char *str, version_t *ver)
  * Compare two tag chars, assuming version numbers are equal.
  * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
-static gint
+static int
 version_tagcmp(guchar a, guchar b)
 {
 	if (a == b)
@@ -315,7 +315,7 @@ version_tagcmp(guchar a, guchar b)
  * Compare two gtk-gnutella versions, timestamp and build not withstanding.
  * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
-gint
+int
 version_cmp(const version_t *a, const version_t *b)
 {
 	if (a->major == b->major) {
@@ -342,10 +342,10 @@ version_cmp(const version_t *a, const version_t *b)
  *
  * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
-gint
+int
 version_build_cmp(const version_t *a, const version_t *b)
 {
-	gint cmp = version_cmp(a, b);
+	int cmp = version_cmp(a, b);
 	return 0 == cmp ? CMP(a->build, b->build) : cmp;
 }
 
@@ -411,7 +411,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 {
 	version_t their_version;
 	version_t *target_version;
-	gint cmp;
+	int cmp;
 	const char *version;
 
 	if (!version_parse(str, &their_version))
@@ -440,7 +440,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	version_stamp(str, &their_version);
 
 	if (GNET_PROPERTY(dbg) > 6)
-		printf("VERSION time=%d\n", (gint) their_version.timestamp);
+		printf("VERSION time=%d\n", (int) their_version.timestamp);
 
 	/*
 	 * If version claims something older than TOKEN_START_DATE, then

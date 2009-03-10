@@ -289,7 +289,7 @@ tls_cache_item_hash(gconstpointer key)
 	return host_hash(&item->host);
 }
 
-static gint
+static int
 tls_cache_item_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct tls_cache_item *a = v1, *b = v2;
@@ -351,7 +351,7 @@ tls_cache_parse(FILE *f)
 		tag_name = line;
 
 		tag = tls_cache_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag < NUM_TLS_CACHE_TAGS);
+		g_assert((int) tag >= 0 && tag < NUM_TLS_CACHE_TAGS);
 		if (TLS_CACHE_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning(
 				"tls_cache_load(): duplicate tag \"%s\" in entry in line %u",

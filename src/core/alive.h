@@ -45,7 +45,7 @@ struct guid;
  * Public interface.
  */
 
-gpointer alive_make(struct gnutella_node *n, gint max);
+gpointer alive_make(struct gnutella_node *n, int max);
 void alive_free(gpointer obj);
 gboolean alive_send_ping(gpointer obj);
 gboolean alive_ack_ping(gpointer obj, const struct guid *);

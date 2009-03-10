@@ -179,11 +179,11 @@ is_my_address_and_port(const host_addr_t addr, guint16 port)
  *			locked. Other errno values imply that the PID file could not
  *			be created.
  */
-static gint
+static int
 ensure_unicity(const char *file, gboolean check_only)
 {
 	gboolean locked = FALSE;
-	gint fd;
+	int fd;
 
 	g_assert(file);
 
@@ -209,7 +209,7 @@ ensure_unicity(const char *file, gboolean check_only)
 
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
 		if (locking_failed) {
-			gint saved_errno = errno;
+			int saved_errno = errno;
 
 			if (!check_only) {
 				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
@@ -257,7 +257,7 @@ ensure_unicity(const char *file, gboolean check_only)
 		/* Check the PID in the file */
 		{
 			guint64 u;
-			gint error;
+			int error;
 
 			g_assert(r >= 0 && (size_t) r < sizeof buf);
 			buf[r] = '\0';
@@ -302,7 +302,7 @@ failed:
  * Write our pid to the pidfile.
  */
 static void
-save_pid(gint fd)
+save_pid(int fd)
 {
 	size_t len;
 	char buf[32];
@@ -361,16 +361,16 @@ settings_early_init(void)
  * @returns On success zero is returned, otherwise a non-zero is returned
  *			and errno is set.
  */
-gint
+int
 settings_ensure_unicity(gboolean check_only)
 {
-	gint fd;
+	int fd;
 
 	g_assert(config_dir);
 
 	{
 		char *path;
-		gint saved_errno;
+		int saved_errno;
 		
 		path = make_pathname(config_dir, pidfile);
 		fd = ensure_unicity(path, check_only);

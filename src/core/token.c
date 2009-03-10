@@ -275,7 +275,7 @@ tok_strerror(tok_error_t errnum)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
 
-	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
+	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];
@@ -370,9 +370,9 @@ tok_generate(time_t now, const char *version)
     struct sha1 sha1;
 	guint8 seed[3];
 	guint32 now32;
-	gint lvlsize;
-	gint klen;
-	gint i;
+	int lvlsize;
+	int klen;
+	int i;
 
 	/*
 	 * Compute token.
@@ -511,7 +511,7 @@ tok_short_version(void)
  */
 tok_error_t
 tok_version_valid(
-	const char *version, const char *tokenb64, gint len, host_addr_t addr)
+	const char *version, const char *tokenb64, int len, host_addr_t addr)
 {
 	time_t now = tm_time();
 	time_t stamp;
@@ -527,10 +527,10 @@ tok_version_valid(
 	struct sha1 digest;
 	version_t rver;
 	char *end;
-	gint toklen;
-	gint lvllen;
-	gint lvlsize;
-	gint klen;
+	int toklen;
+	int lvllen;
+	int lvlsize;
+	int klen;
 	guint i;
 	char *c = (char *) &stamp32;
 
@@ -610,7 +610,7 @@ tok_version_valid(
 	lvllen = len - toklen - 2;				/* Forget about "; " */
 	end += 2;								/* Skip "; " */
 
-	if (lvllen >= (gint) sizeof(lvldigest) || lvllen <= 0)
+	if (lvllen >= (int) sizeof(lvldigest) || lvllen <= 0)
 		return TOK_BAD_LEVEL_LENGTH;
 
 	if (lvllen & 0x3)

@@ -68,7 +68,7 @@ static const struct mq_ops mq_tcp_ops = {
  * owned by the supplied node.
  */
 mqueue_t *
-mq_tcp_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
+mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
@@ -97,13 +97,13 @@ mq_tcp_service(gpointer data)
 {
 	mqueue_t *q = (mqueue_t *) data;
 	static struct iovec iov[MQ_MAXIOV];
-	gint iovsize;
-	gint iovcnt;
-	gint sent;
+	int iovsize;
+	int iovcnt;
+	int sent;
 	ssize_t r;
 	GList *l;
-	gint dropped;
-	gint maxsize;
+	int dropped;
+	int maxsize;
 	gboolean saturated;
 	gboolean has_prioritary = FALSE;
 
@@ -300,7 +300,7 @@ update_servicing:
 static void
 mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 {
-	gint size;				/* Message size */
+	int size;				/* Message size */
 	char *mbs;				/* Start of message */
 	guint8 function;		/* Gnutella message function */
 	guint8 hops;			/* Gnutella message hop count */

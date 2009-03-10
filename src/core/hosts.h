@@ -56,7 +56,7 @@ gboolean host_is_valid(const host_addr_t addr, guint16 port);
 gboolean host_address_is_usable(const host_addr_t addr);
 
 guint host_hash(gconstpointer key);
-gint host_eq(gconstpointer v1, gconstpointer v2);
-gint host_cmp(gconstpointer v1, gconstpointer v2);
+int host_eq(gconstpointer v1, gconstpointer v2);
+int host_cmp(gconstpointer v1, gconstpointer v2);
 
 #endif /* _core_hosts_h_ */

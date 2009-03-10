@@ -92,17 +92,17 @@ hostiles_close_one(hostiles_t which)
  *
  * @returns the amount of entries loaded.
  */
-static gint
+static int
 hostiles_load(FILE *f, hostiles_t which)
 {
 	char line[1024];
 	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
-	gint bits;
+	int bits;
 	iprange_err_t error;
 
-	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	g_assert((int) which >= 0 && which < NUM_HOSTILES);
 	g_assert(NULL == hostile_db[which]);
 
 	hostile_db[which] = iprange_new();
@@ -170,11 +170,11 @@ hostiles_changed(const char *filename, gpointer udata)
 {
 	FILE *f;
 	char buf[80];
-	gint count;
+	int count;
 	hostiles_t which;
 
 	which = GPOINTER_TO_UINT(udata);
-	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	g_assert((int) which >= 0 && which < NUM_HOSTILES);
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)
@@ -199,7 +199,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 	g_assert(f);
 	g_assert(path);
 	g_assert(filename);
-	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	g_assert((int) which >= 0 && which < NUM_HOSTILES);
 
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, hostiles_changed, GUINT_TO_POINTER(which));
@@ -223,13 +223,13 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 static void
 hostiles_retrieve(hostiles_t which)
 {
-	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	g_assert((int) which >= 0 && which < NUM_HOSTILES);
 
 	switch (which) {
 	case HOSTILE_PRIVATE:
 		{
 			FILE *f;
-			gint idx;
+			int idx;
 			file_path_t fp_private[1];
 
 			file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
@@ -248,7 +248,7 @@ hostiles_retrieve(hostiles_t which)
 	case HOSTILE_GLOBAL:
 		{
 			FILE *f;
-			gint idx;
+			int idx;
 			static const file_path_t fp[] = {
 #ifndef OFFICIAL_BUILD
 				{ PACKAGE_EXTRA_SOURCE_DIR, hostiles_file },
@@ -308,7 +308,7 @@ hostiles_init(void)
 void
 hostiles_close(void)
 {
-	gint i;
+	int i;
 
 	for (i = 0; i < NUM_HOSTILES; i++) {
 		hostiles_close_one(i);
@@ -331,7 +331,7 @@ hostiles_check(const host_addr_t ha)
 		host_addr_6to4_to_ipv4(ha, &to)
 	) {
 		guint32 ip;
-		gint i;
+		int i;
 
 		ip = host_addr_ipv4(to);
 

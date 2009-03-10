@@ -404,7 +404,7 @@ thex_upload_open(
 	special_upload_writable_t writable,
 	const struct tx_link_cb *link_cb,
 	struct wrap_io *wio,
-	gint flags)
+	int flags)
 {
 	struct thex_upload *ctx;
 

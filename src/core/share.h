@@ -99,7 +99,7 @@ void shared_file_unref(shared_file_t **sf_ptr);
 void shared_file_remove(shared_file_t *sf);
 
 void parse_extensions(const char *);
-char *get_file_path(gint);
+char *get_file_path(int);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const char *);
 
@@ -131,7 +131,7 @@ void shared_file_from_fileinfo(fileinfo_t *fi);
 
 void shared_files_match(const char *search_term,
 		st_search_callback callback, gpointer user_data,
-		gint max_res, struct query_hashvec *qhv);
+		int max_res, struct query_hashvec *qhv);
 
 #endif /* _core_share_h_ */
 

@@ -39,12 +39,12 @@
 
 struct rudp_con;
 
-gint rudp_connect(const host_addr_t addr, guint16 port);
+int rudp_connect(const host_addr_t addr, guint16 port);
 void rudp_handle_packet(const host_addr_t addr, guint16 port,
 	gconstpointer data, size_t size);
 ssize_t rudp_write(struct rudp_con *con, gconstpointer data, size_t size);
 ssize_t rudp_read(struct rudp_con *con, gpointer data, size_t size);
-gint rudp_close(struct rudp_con *con);
+int rudp_close(struct rudp_con *con);
 
 host_addr_t rudp_get_addr(const struct rudp_con *con);
 guint16 rudp_get_port(const struct rudp_con *con);

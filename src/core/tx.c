@@ -250,7 +250,7 @@ tx_write(txdrv_t *tx, gconstpointer data, size_t len)
  * @return amount of bytes written, or -1 on error with errno set.
  */
 ssize_t
-tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+tx_writev(txdrv_t *tx, struct iovec *iov, int iovcnt)
 {
 	g_assert(tx);
 
@@ -561,7 +561,7 @@ tx_no_write(txdrv_t *unused_tx, gconstpointer unused_data, size_t unused_len)
  * The writev() operation is forbidden.
  */
 ssize_t
-tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, gint unused_iovcnt)
+tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, int unused_iovcnt)
 {
 	(void) unused_tx;
 	(void) unused_iov;
