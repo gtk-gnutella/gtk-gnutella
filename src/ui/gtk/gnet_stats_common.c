@@ -142,7 +142,7 @@ general_type_str(gint value)
 		N_("Consolidated servers (after GUID and IP address linking)"),
 		N_("Discovered server GUIDs"),
 		N_("Changed server GUIDs"),
-		N_("Firewalled node info for known hosts received from uploaders"),
+		N_("Firewalled node info for known hosts received in upload requests"),
 		N_("Attempted download resource switching on completion"),
 		N_("Attempted download resource switching after error"),
 		N_("Successful download resource switching (all kind)"),
