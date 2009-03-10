@@ -60,7 +60,7 @@ struct gnutella_shell {
 	enum shell_magic	magic;
 	struct gnutella_socket *socket;
 	slist_t *output;
-	gchar *msg;   			/**< Additional information to reply code */
+	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	guint64 line_count;		/**< Number of input lines after HELO */
 	gboolean shutdown;  	/**< In shutdown mode? */
@@ -706,12 +706,12 @@ shell_auth_cookie(void)
  * @return TRUE if the connection is allowed.
  */
 static gboolean
-shell_auth(const gchar *str)
+shell_auth(const char *str)
 {
 	const struct sha1 *cookie;
-	gchar *tok_helo, *tok_cookie;
+	char *tok_helo, *tok_cookie;
 	gboolean ok = FALSE;
-	gint pos = 0;
+	int pos = 0;
 
 	tok_helo = shell_get_token(str, &pos);
 	tok_cookie = shell_get_token(str, &pos);
