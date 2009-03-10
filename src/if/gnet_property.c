@@ -50,8 +50,8 @@ gboolean gnet_property_variable_reading_ultrafile     = FALSE;
 static const gboolean gnet_property_variable_reading_ultrafile_default = FALSE;
 gboolean gnet_property_variable_ancient_version     = FALSE;
 static const gboolean gnet_property_variable_ancient_version_default = FALSE;
-gchar   *gnet_property_variable_new_version_str     = NULL;
-static const gchar   *gnet_property_variable_new_version_str_default = NULL;
+char   *gnet_property_variable_new_version_str     = NULL;
+static const char   *gnet_property_variable_new_version_str_default = NULL;
 guint32  gnet_property_variable_up_connections     = 32;
 static const guint32  gnet_property_variable_up_connections_default = 32;
 guint32  gnet_property_variable_normal_connections     = 0;
@@ -266,13 +266,13 @@ gboolean gnet_property_variable_download_delete_aborted     = TRUE;
 static const gboolean gnet_property_variable_download_delete_aborted_default = TRUE;
 gboolean gnet_property_variable_proxy_auth     = FALSE;
 static const gboolean gnet_property_variable_proxy_auth_default = FALSE;
-gchar   *gnet_property_variable_socks_user     = "username";
-static const gchar   *gnet_property_variable_socks_user_default = "username";
-gchar   *gnet_property_variable_socks_pass     = "password";
-static const gchar   *gnet_property_variable_socks_pass_default = "password";
+char   *gnet_property_variable_socks_user     = "username";
+static const char   *gnet_property_variable_socks_user_default = "username";
+char   *gnet_property_variable_socks_pass     = "password";
+static const char   *gnet_property_variable_socks_pass_default = "password";
 host_addr_t  gnet_property_variable_proxy_addr;
-gchar   *gnet_property_variable_proxy_hostname     = "";
-static const gchar   *gnet_property_variable_proxy_hostname_default = "";
+char   *gnet_property_variable_proxy_hostname     = "";
+static const char   *gnet_property_variable_proxy_hostname_default = "";
 guint32  gnet_property_variable_proxy_port     = 0x0000;
 static const guint32  gnet_property_variable_proxy_port_default = 0x0000;
 guint32  gnet_property_variable_proxy_protocol     = PROXY_NONE;
@@ -343,22 +343,22 @@ guint32  gnet_property_variable_min_dup_msg     = 5;
 static const guint32  gnet_property_variable_min_dup_msg_default = 5;
 guint32  gnet_property_variable_min_dup_ratio     = 150;
 static const guint32  gnet_property_variable_min_dup_ratio_default = 150;
-gchar   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;7z;cue;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
-static const gchar   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;7z;cue;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
+char   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;7z;cue;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
+static const char   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;7z;cue;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
 gboolean gnet_property_variable_scan_ignore_symlink_dirs     = FALSE;
 static const gboolean gnet_property_variable_scan_ignore_symlink_dirs_default = FALSE;
 gboolean gnet_property_variable_scan_ignore_symlink_regfiles     = FALSE;
 static const gboolean gnet_property_variable_scan_ignore_symlink_regfiles_default = FALSE;
-gchar   *gnet_property_variable_save_file_path     = "~/gtk-gnutella-downloads/incomplete";
-static const gchar   *gnet_property_variable_save_file_path_default = "~/gtk-gnutella-downloads/incomplete";
-gchar   *gnet_property_variable_move_file_path     = "~/gtk-gnutella-downloads/complete";
-static const gchar   *gnet_property_variable_move_file_path_default = "~/gtk-gnutella-downloads/complete";
-gchar   *gnet_property_variable_bad_file_path     = "~/gtk-gnutella-downloads/corrupt";
-static const gchar   *gnet_property_variable_bad_file_path_default = "~/gtk-gnutella-downloads/corrupt";
-gchar   *gnet_property_variable_shared_dirs_paths     = "";
-static const gchar   *gnet_property_variable_shared_dirs_paths_default = "";
-gchar   *gnet_property_variable_local_netmasks_string     = "";
-static const gchar   *gnet_property_variable_local_netmasks_string_default = "";
+char   *gnet_property_variable_save_file_path     = "~/gtk-gnutella-downloads/incomplete";
+static const char   *gnet_property_variable_save_file_path_default = "~/gtk-gnutella-downloads/incomplete";
+char   *gnet_property_variable_move_file_path     = "~/gtk-gnutella-downloads/complete";
+static const char   *gnet_property_variable_move_file_path_default = "~/gtk-gnutella-downloads/complete";
+char   *gnet_property_variable_bad_file_path     = "~/gtk-gnutella-downloads/corrupt";
+static const char   *gnet_property_variable_bad_file_path_default = "~/gtk-gnutella-downloads/corrupt";
+char   *gnet_property_variable_shared_dirs_paths     = "";
+static const char   *gnet_property_variable_shared_dirs_paths_default = "";
+char   *gnet_property_variable_local_netmasks_string     = "";
+static const char   *gnet_property_variable_local_netmasks_string_default = "";
 guint32  gnet_property_variable_total_downloads     = 0;
 static const guint32  gnet_property_variable_total_downloads_default = 0;
 guint32  gnet_property_variable_ul_running     = 0;
@@ -369,11 +369,11 @@ guint32  gnet_property_variable_ul_registered     = 0;
 static const guint32  gnet_property_variable_ul_registered_default = 0;
 guint32  gnet_property_variable_total_uploads     = 0;
 static const guint32  gnet_property_variable_total_uploads_default = 0;
-gchar   gnet_property_variable_servent_guid[GUID_RAW_SIZE];
-static const gchar   gnet_property_variable_servent_guid_default[GUID_RAW_SIZE];
+char   gnet_property_variable_servent_guid[GUID_RAW_SIZE];
+static const char   gnet_property_variable_servent_guid_default[GUID_RAW_SIZE];
 
-gchar   gnet_property_variable_kuid[KUID_RAW_SIZE];
-static const gchar   gnet_property_variable_kuid_default[KUID_RAW_SIZE];
+char   gnet_property_variable_kuid[KUID_RAW_SIZE];
+static const char   gnet_property_variable_kuid_default[KUID_RAW_SIZE];
 
 gboolean gnet_property_variable_use_swarming     = TRUE;
 static const gboolean gnet_property_variable_use_swarming_default = TRUE;
@@ -494,8 +494,8 @@ gboolean gnet_property_variable_dl_remove_file_on_mismatch     = FALSE;
 static const gboolean gnet_property_variable_dl_remove_file_on_mismatch_default = FALSE;
 guint32  gnet_property_variable_dl_mismatch_backout     = 50000;
 static const guint32  gnet_property_variable_dl_mismatch_backout_default = 50000;
-gchar   *gnet_property_variable_server_hostname     = "";
-static const gchar   *gnet_property_variable_server_hostname_default = "";
+char   *gnet_property_variable_server_hostname     = "";
+static const char   *gnet_property_variable_server_hostname_default = "";
 gboolean gnet_property_variable_give_server_hostname     = FALSE;
 static const gboolean gnet_property_variable_give_server_hostname_default = FALSE;
 guint32  gnet_property_variable_reserve_gtkg_nodes     = 0;
@@ -672,15 +672,15 @@ guint32  gnet_property_variable_search_max_results     = 1000;
 static const guint32  gnet_property_variable_search_max_results_default = 1000;
 guint32  gnet_property_variable_browse_host_max_results     = 10000;
 static const guint32  gnet_property_variable_browse_host_max_results_default = 10000;
-gchar   gnet_property_variable_session_id[GUID_RAW_SIZE];
-static const gchar   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
+char   gnet_property_variable_session_id[GUID_RAW_SIZE];
+static const char   gnet_property_variable_session_id_default[GUID_RAW_SIZE];
 
 time_t  gnet_property_variable_latest_svn_release_date     = 0;
 static const time_t  gnet_property_variable_latest_svn_release_date_default = 0;
 guint32  gnet_property_variable_latest_svn_release_revision     = 0;
 static const guint32  gnet_property_variable_latest_svn_release_revision_default = 0;
-gchar   *gnet_property_variable_latest_svn_release_signature     = "";
-static const gchar   *gnet_property_variable_latest_svn_release_signature_default = "";
+char   *gnet_property_variable_latest_svn_release_signature     = "";
+static const char   *gnet_property_variable_latest_svn_release_signature_default = "";
 guint32  gnet_property_variable_tls_cache_max_hosts     = 10000;
 static const guint32  gnet_property_variable_tls_cache_max_hosts_default = 10000;
 guint32  gnet_property_variable_tls_cache_max_time     = 43200;
@@ -7146,7 +7146,7 @@ gnet_prop_shutdown(void) {
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         if (gnet_property->props[n].type == PROP_TYPE_STRING) {
-			gchar **p = gnet_property->props[n].data.string.value;
+			char **p = gnet_property->props[n].data.string.value;
             struct event *e = gnet_property->props[n].ev_changed;
 	    G_FREE_NULL(*p);
             if (e)
@@ -7267,13 +7267,13 @@ gnet_prop_get_ip(
 
 
 void
-gnet_prop_set_string(property_t prop, const gchar *val)
+gnet_prop_set_string(property_t prop, const char *val)
 {
     prop_set_string(gnet_property, prop, val);
 }
 
-gchar *
-gnet_prop_get_string(property_t prop, gchar *t, size_t size)
+char *
+gnet_prop_get_string(property_t prop, char *t, size_t size)
 {
     return prop_get_string(gnet_property, prop, t, size);
 }
@@ -7290,31 +7290,31 @@ gnet_prop_get_storage(property_t p, gpointer t, size_t l)
     return prop_get_storage(gnet_property, p, t, l);
 }
 
-const gchar *
+const char *
 gnet_prop_to_string(property_t prop)
 {
     return prop_to_string(gnet_property, prop);
 }
 
-const gchar *
+const char *
 gnet_prop_default_to_string(property_t prop)
 {
     return prop_default_to_string(gnet_property, prop);
 }
 
-const gchar *
+const char *
 gnet_prop_name(property_t p)
 {
     return prop_name(gnet_property, p);
 }
 
-const gchar *
+const char *
 gnet_prop_type_to_string(property_t p)
 {
     return prop_type_to_string(gnet_property, p);
 }
 
-const gchar *
+const char *
 gnet_prop_description(property_t p)
 {
     return prop_description(gnet_property, p);
@@ -7327,20 +7327,20 @@ gnet_prop_is_saved(property_t p)
 }
 
 property_t
-gnet_prop_get_by_name(const gchar *name)
+gnet_prop_get_by_name(const char *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup(gnet_property->byName, name));
 }
 
 GSList *
-gnet_prop_get_by_regex(const gchar *pattern, gint *error)
+gnet_prop_get_by_regex(const char *pattern, gint *error)
 {
     return prop_get_by_regex(gnet_property, pattern, error);
 }
 
 void
-gnet_prop_set_from_string(property_t prop, const gchar *val)
+gnet_prop_set_from_string(property_t prop, const char *val)
 {
 	prop_set_from_string(gnet_property, prop, val, FALSE);	
 }

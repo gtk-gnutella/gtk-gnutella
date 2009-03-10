@@ -155,15 +155,15 @@ prop_set_stub_t *gui_prop_get_stub(void);
  * Property definition
  */
 prop_def_t *gui_prop_get_def(property_t);
-property_t gui_prop_get_by_name(const gchar *);
-GSList *gui_prop_get_by_regex(const gchar *, gint *);
-const gchar *gui_prop_name(property_t);
-const gchar *gui_prop_type_to_string(property_t);
-const gchar *gui_prop_to_string(property_t prop);
-const gchar *gui_prop_default_to_string(property_t);
-const gchar *gui_prop_description(property_t);
+property_t gui_prop_get_by_name(const char *);
+GSList *gui_prop_get_by_regex(const char *, gint *);
+const char *gui_prop_name(property_t);
+const char *gui_prop_type_to_string(property_t);
+const char *gui_prop_to_string(property_t prop);
+const char *gui_prop_default_to_string(property_t);
+const char *gui_prop_description(property_t);
 gboolean gui_prop_is_saved(property_t);
-void gui_prop_set_from_string(property_t, const gchar *);
+void gui_prop_set_from_string(property_t, const char *);
 
 /*
  * Property-change listeners
@@ -196,8 +196,8 @@ gui_prop_get_boolean_val(property_t p, gboolean *value_ptr)
 }
 
 
-void gui_prop_set_string(property_t, const gchar *);
-gchar *gui_prop_get_string(property_t, gchar *, size_t);
+void gui_prop_set_string(property_t, const char *);
+char *gui_prop_get_string(property_t, char *, size_t);
 
 void gui_prop_set_guint32(
     property_t, const guint32 *, size_t, size_t);

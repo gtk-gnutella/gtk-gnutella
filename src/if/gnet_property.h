@@ -381,15 +381,15 @@ prop_set_stub_t *gnet_prop_get_stub(void);
  * Property definition
  */
 prop_def_t *gnet_prop_get_def(property_t);
-property_t gnet_prop_get_by_name(const gchar *);
-GSList *gnet_prop_get_by_regex(const gchar *, gint *);
-const gchar *gnet_prop_name(property_t);
-const gchar *gnet_prop_type_to_string(property_t);
-const gchar *gnet_prop_to_string(property_t prop);
-const gchar *gnet_prop_default_to_string(property_t);
-const gchar *gnet_prop_description(property_t);
+property_t gnet_prop_get_by_name(const char *);
+GSList *gnet_prop_get_by_regex(const char *, gint *);
+const char *gnet_prop_name(property_t);
+const char *gnet_prop_type_to_string(property_t);
+const char *gnet_prop_to_string(property_t prop);
+const char *gnet_prop_default_to_string(property_t);
+const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
-void gnet_prop_set_from_string(property_t, const gchar *);
+void gnet_prop_set_from_string(property_t, const char *);
 
 /*
  * Property-change listeners
@@ -422,8 +422,8 @@ gnet_prop_get_boolean_val(property_t p, gboolean *value_ptr)
 }
 
 
-void gnet_prop_set_string(property_t, const gchar *);
-gchar *gnet_prop_get_string(property_t, gchar *, size_t);
+void gnet_prop_set_string(property_t, const char *);
+char *gnet_prop_get_string(property_t, char *, size_t);
 
 void gnet_prop_set_guint32(
     property_t, const guint32 *, size_t, size_t);

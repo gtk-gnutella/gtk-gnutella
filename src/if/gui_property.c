@@ -2291,7 +2291,7 @@ gui_prop_shutdown(void) {
 
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
-			gchar **p = gui_property->props[n].data.string.value;
+			char **p = gui_property->props[n].data.string.value;
             struct event *e = gui_property->props[n].ev_changed;
 	    G_FREE_NULL(*p);
             if (e)
@@ -2412,13 +2412,13 @@ gui_prop_get_ip(
 
 
 void
-gui_prop_set_string(property_t prop, const gchar *val)
+gui_prop_set_string(property_t prop, const char *val)
 {
     prop_set_string(gui_property, prop, val);
 }
 
-gchar *
-gui_prop_get_string(property_t prop, gchar *t, size_t size)
+char *
+gui_prop_get_string(property_t prop, char *t, size_t size)
 {
     return prop_get_string(gui_property, prop, t, size);
 }
@@ -2435,31 +2435,31 @@ gui_prop_get_storage(property_t p, gpointer t, size_t l)
     return prop_get_storage(gui_property, p, t, l);
 }
 
-const gchar *
+const char *
 gui_prop_to_string(property_t prop)
 {
     return prop_to_string(gui_property, prop);
 }
 
-const gchar *
+const char *
 gui_prop_default_to_string(property_t prop)
 {
     return prop_default_to_string(gui_property, prop);
 }
 
-const gchar *
+const char *
 gui_prop_name(property_t p)
 {
     return prop_name(gui_property, p);
 }
 
-const gchar *
+const char *
 gui_prop_type_to_string(property_t p)
 {
     return prop_type_to_string(gui_property, p);
 }
 
-const gchar *
+const char *
 gui_prop_description(property_t p)
 {
     return prop_description(gui_property, p);
@@ -2472,20 +2472,20 @@ gui_prop_is_saved(property_t p)
 }
 
 property_t
-gui_prop_get_by_name(const gchar *name)
+gui_prop_get_by_name(const char *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup(gui_property->byName, name));
 }
 
 GSList *
-gui_prop_get_by_regex(const gchar *pattern, gint *error)
+gui_prop_get_by_regex(const char *pattern, gint *error)
 {
     return prop_get_by_regex(gui_property, pattern, error);
 }
 
 void
-gui_prop_set_from_string(property_t prop, const gchar *val)
+gui_prop_set_from_string(property_t prop, const char *val)
 {
 	prop_set_from_string(gui_property, prop, val, FALSE);	
 }

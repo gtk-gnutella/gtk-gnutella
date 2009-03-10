@@ -100,15 +100,15 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  * Property definition
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
-property_t [=(. func-prefix)=]_get_by_name(const gchar *);
-GSList *[=(. func-prefix)=]_get_by_regex(const gchar *, gint *);
-const gchar *[=(. func-prefix)=]_name(property_t);
-const gchar *[=(. func-prefix)=]_type_to_string(property_t);
-const gchar *[=(. func-prefix)=]_to_string(property_t prop);
-const gchar *[=(. func-prefix)=]_default_to_string(property_t);
-const gchar *[=(. func-prefix)=]_description(property_t);
+property_t [=(. func-prefix)=]_get_by_name(const char *);
+GSList *[=(. func-prefix)=]_get_by_regex(const char *, int *);
+const char *[=(. func-prefix)=]_name(property_t);
+const char *[=(. func-prefix)=]_type_to_string(property_t);
+const char *[=(. func-prefix)=]_to_string(property_t prop);
+const char *[=(. func-prefix)=]_default_to_string(property_t);
+const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
-void [=(. func-prefix)=]_set_from_string(property_t, const gchar *);
+void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
 /*
  * Property-change listeners
@@ -141,8 +141,8 @@ static inline void
 }
 
 
-void [=(. func-prefix)=]_set_string(property_t, const gchar *);
-gchar *[=(. func-prefix)=]_get_string(property_t, gchar *, size_t);
+void [=(. func-prefix)=]_set_string(property_t, const char *);
+char *[=(. func-prefix)=]_get_string(property_t, char *, size_t);
 
 void [=(. func-prefix)=]_set_guint32(
     property_t, const guint32 *, size_t, size_t);
@@ -271,8 +271,8 @@ CASE type=][=
 = guint64=]extern const guint64  [=(. item)=][=
 = ip     =]extern const host_addr_t  [=(. item)=][=
 = multichoice=]extern const guint32  [=(. item)=][=
-= string =]extern const gchar   *[=(. item)=][=
-= storage=]extern const gchar    [=(. item)=][=
+= string =]extern const char   *[=(. item)=][=
+= storage=]extern const char    [=(. item)=][=
 = timestamp=]extern const time_t  [=(. item)=][=
 ESAC =][=
 IF (exist? "vector_size") =][[=vector_size=]][=ENDIF=];
@@ -313,8 +313,8 @@ FOR prop =][=
         (define item (sprintf "%s_variable_%s"
 			(. set-name-down) (string-downcase (get "name")))))=][=
     IF (= (get "type") "storage")=]
-gchar   [=(. item)=][[=vector_size=]];
-static const gchar   [=(. item)=]_default[[=vector_size=]];
+char   [=(. item)=][[=vector_size=]];
+static const char   [=(. item)=]_default[[=vector_size=]];
 [=
     ELIF (= (get "type") "ip")=]
 host_addr_t  [=(. item)=];[=
@@ -338,7 +338,7 @@ host_addr_t  [=(. item)=];[=
             ((= (get "type") "ip")
                 (define vtype "host_addr_t  "))
             ((= (get "type") "string")
-                (define vtype "gchar   *")
+                (define vtype "char   *")
                 (if (= (get "data.default") "NULL")
                     (define vdef (sprintf "NULL"))
                     (define vdef (sprintf "\"%s\"" (get "data.default"))))))
@@ -543,7 +543,7 @@ void
 
     for (n = 0; n < [=(. prop-num)=]; n ++) {
         if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
-			gchar **p = [=(. prop-array)=][n].data.string.value;
+			char **p = [=(. prop-array)=][n].data.string.value;
             struct event *e = [=(. prop-array)=][n].ev_changed;
 	    G_FREE_NULL(*p);
             if (e)
@@ -664,13 +664,13 @@ host_addr_t *
 
 
 void
-[=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
+[=(. func-prefix)=]_set_string(property_t prop, const char *val)
 {
     prop_set_string([=(. prop-set)=], prop, val);
 }
 
-gchar *
-[=(. func-prefix)=]_get_string(property_t prop, gchar *t, size_t size)
+char *
+[=(. func-prefix)=]_get_string(property_t prop, char *t, size_t size)
 {
     return prop_get_string([=(. prop-set)=], prop, t, size);
 }
@@ -687,31 +687,31 @@ gpointer
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }
 
-const gchar *
+const char *
 [=(. func-prefix)=]_to_string(property_t prop)
 {
     return prop_to_string([=(. prop-set)=], prop);
 }
 
-const gchar *
+const char *
 [=(. func-prefix)=]_default_to_string(property_t prop)
 {
     return prop_default_to_string([=(. prop-set)=], prop);
 }
 
-const gchar *
+const char *
 [=(. func-prefix)=]_name(property_t p)
 {
     return prop_name([=(. prop-set)=], p);
 }
 
-const gchar *
+const char *
 [=(. func-prefix)=]_type_to_string(property_t p)
 {
     return prop_type_to_string([=(. prop-set)=], p);
 }
 
-const gchar *
+const char *
 [=(. func-prefix)=]_description(property_t p)
 {
     return prop_description([=(. prop-set)=], p);
@@ -724,20 +724,20 @@ gboolean
 }
 
 property_t
-[=(. func-prefix)=]_get_by_name(const gchar *name)
+[=(. func-prefix)=]_get_by_name(const char *name)
 {
     return GPOINTER_TO_UINT(
         g_hash_table_lookup([=(. prop-set)=]->byName, name));
 }
 
 GSList *
-[=(. func-prefix)=]_get_by_regex(const gchar *pattern, gint *error)
+[=(. func-prefix)=]_get_by_regex(const char *pattern, int *error)
 {
     return prop_get_by_regex([=(. prop-set)=], pattern, error);
 }
 
 void
-[=(. func-prefix)=]_set_from_string(property_t prop, const gchar *val)
+[=(. func-prefix)=]_set_from_string(property_t prop, const char *val)
 {
 	prop_set_from_string([=(. prop-set)=], prop, val, FALSE);	
 }
