@@ -2432,14 +2432,19 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	avail = inputevt_data_available();
+	avail = (avail != 0) ? avail : 64 * 1024;
+
 	for (i = 0; i < 16; i++) {
 		ssize_t r;
 
 		r = socket_udp_accept(s);
 		if ((ssize_t) -1 == r) {
-			if (!is_temporary_error(errno))
+			if (!is_temporary_error(errno)) {
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
+			} else if (i > 0) {
+				i--;	/* For debugging message below: no read this time */
+			}
 			break;
 		}
 		if ((size_t) r >= avail)
@@ -2450,6 +2455,11 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
+	}
+
+	if (i > 0 && GNET_PROPERTY(socket_debug)) {
+		g_message("socket_udp_event() iterated %u time%s",
+			(guint) i, 1 == i ? "" : "s");
 	}
 }
 
