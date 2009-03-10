@@ -172,13 +172,13 @@ static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
  * in bits from the furthest node in the k-ball.
  *
  * If the external frontier of the k-ball is F and a key has X bits in common
- * with our KUID, with X < F, then the decimation is 1.5^(F-X).
+ * with our KUID, with X < F, then the decimation is 1.2^(F-X).
  *
  * The following table pre-computes all the possible powers.
  */
 static double decimation_factor[KUID_RAW_BITSIZE];
 
-#define KEYS_DECIMATION_BASE 	1.5		/* Base for exponential decimation */
+#define KEYS_DECIMATION_BASE 	1.2		/* Base for exponential decimation */
 
 static void keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj);
 static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
