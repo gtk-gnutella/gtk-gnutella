@@ -157,6 +157,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"udp_rx_compressed",
 	"udp_larger_hence_not_compressed",
 	"consolidated_servers",
+	"dup_downloads_in_consolidation",
 	"discovered_server_guid",
 	"changed_server_guid",
 	"received_known_fw_node_info",

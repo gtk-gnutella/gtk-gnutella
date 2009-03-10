@@ -55,14 +55,14 @@ void download_store_if_dirty(void);
 void download_timer(time_t now);
 void download_slow_timer(time_t now);
 void download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi);
-void download_orphan_new(const gchar *file, filesize_t size,
+void download_orphan_new(const char *file, filesize_t size,
 		const struct sha1 *sha1, fileinfo_t *fi);
 void download_queue(struct download *d,
-	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+	const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 void download_stop(struct download *, download_status_t,
-	const gchar *, ...) G_GNUC_PRINTF(3, 4);
+	const char *, ...) G_GNUC_PRINTF(3, 4);
 void download_stop_v(struct download *d, download_status_t new_status,
-    const gchar * reason, va_list ap);
+    const char * reason, va_list ap);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_forget(struct download *, gboolean unavailable);
@@ -87,7 +87,7 @@ void download_found_server(const struct guid *,
 
 void download_move_start(struct download *d);
 void download_move_progress(struct download *d, filesize_t copied);
-void download_move_done(struct download *d, const gchar *pathname,
+void download_move_done(struct download *d, const char *pathname,
 		guint elapsed);
 void download_move_error(struct download *d);
 
@@ -103,13 +103,13 @@ void download_proxy_sent(struct download *d);
 void download_proxy_failed(struct download *d);
 
 struct download * download_browse_start(
-	const gchar *hostname, host_addr_t addr, guint16 port,
+	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *, const gnet_host_vec_t *proxies,
 	gnet_search_t search, guint32 flags);
 
-struct download * download_thex_start(const gchar *uri,
+struct download * download_thex_start(const char *uri,
 	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize,
-	const gchar *hostname, host_addr_t addr, guint16 port,
+	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *, const gnet_host_vec_t *proxies,
 	guint32 flags);
 
@@ -120,7 +120,7 @@ void download_rx_done(struct download *d);
 void download_data_received(struct download *d, ssize_t received);
 void download_maybe_finished(struct download *d);
 
-gboolean download_handle_http(const gchar *url);
+gboolean download_handle_http(const char *url);
 gboolean download_is_stalled(struct download *);
 gboolean download_is_alive(const struct download *);
 

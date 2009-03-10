@@ -88,8 +88,8 @@ struct dl_server {
 	gint refcnt;				/**< Reference count */
 	struct dl_key *key;			/**< Key properties */
 	list_t *list[DL_LIST_SZ];	/**< Download lists */
-	const gchar *vendor;		/**< Remote server vendor string (atom) */
-	const gchar *hostname;		/**< Remote hostname, if known (atom) */
+	const char *vendor;		/**< Remote server vendor string (atom) */
+	const char *hostname;		/**< Remote hostname, if known (atom) */
 	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
 	GHashTable *sha1_counts;
 	time_t retry_after;		/**< Time at which we may retry from this host */
@@ -169,7 +169,7 @@ struct download {
     gnet_src_t src_handle;      /**< Handle */
 	gboolean src_handle_valid;	/**< TRUE if src_handle is initialized */
 
-	gchar error_str[256];		/**< Used to snprintf() error strings */
+	char error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
 	gpointer io_opaque;			/**< Opaque I/O callback information */
 	rxdrv_t *rx;					/**< RX stack top */
@@ -181,7 +181,7 @@ struct download {
 
 	struct dl_file_info *file_info;
 	guint32 record_index;		/**< Index of the file on the Gnutella server */
-	const gchar *file_name;		/**< Name of the file on the Gnutella server */
+	const char *file_name;		/**< Name of the file on the Gnutella server */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
 
 	filesize_t size;			/**< Total size of the next request, in bytes */
@@ -210,10 +210,10 @@ struct download {
 	guint32 header_read_eof;	/**< EOF errors with empty headers */
 	guint32 data_timeouts;		/**< # of timeouts after getting headers */
 
-	const gchar *remove_msg;
+	const char *remove_msg;
 
 	const struct sha1 *sha1;	/**< Known SHA1 (binary atom), NULL if none */
-	const gchar *uri;			/**< Uri if not dealing with regular gnutella
+	const char *uri;			/**< Uri if not dealing with regular gnutella
 								 **< file download */
 	time_t last_dmesh;			/**< Time when last download mesh was sent */
 
@@ -387,8 +387,8 @@ download_check(const struct download * const d)
 	g_assert(!d->always_push || !download_has_blank_guid(d));
 }
 
-const gchar *download_pathname(const struct download *);
-const gchar *download_basename(const struct download *);
+const char *download_pathname(const struct download *);
+const char *download_basename(const struct download *);
 
 /*
  * Public interface, visible only from the bridge.
@@ -403,27 +403,27 @@ const gchar *download_basename(const struct download *);
 void download_index_changed(const host_addr_t, guint16, const struct guid *,
 		guint32, guint32);
 
-gboolean download_new(const gchar *filename,
-	const gchar *uri,
+gboolean download_new(const char *filename,
+	const char *uri,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
 	const struct guid *guid,
-	const gchar *hostname,
+	const char *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
 	time_t stamp,
     struct dl_file_info *fi,
 	const gnet_host_vec_t *proxies,
 	guint32 flags,
-	const gchar *parq_id);
+	const char *parq_id);
 
-void download_auto_new(const gchar *filename,
+void download_auto_new(const char *filename,
  	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
 	const struct guid *guid,
-	const gchar *hostname,
+	const char *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
 	time_t stamp,
@@ -431,7 +431,7 @@ void download_auto_new(const gchar *filename,
 	gnet_host_vec_t *proxies,
 	guint32 flags);
 
-void download_dht_auto_new(const gchar *filename,
+void download_dht_auto_new(const char *filename,
  	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
@@ -442,8 +442,8 @@ void download_dht_auto_new(const gchar *filename,
 	struct dl_file_info *fi,
 	guint32 flags);
 
-guint download_handle_magnet(const gchar *url);
-gchar *download_build_url(const struct download *);
+guint download_handle_magnet(const char *url);
+char *download_build_url(const struct download *);
 gint download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 gint download_remove_all_from_peer(const struct guid *,
@@ -466,7 +466,7 @@ void download_gui_updates_freeze(void);
 void download_gui_updates_thaw(void);
 
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean, gboolean);
-const gchar *download_get_hostname(const struct download *);
+const char *download_get_hostname(const struct download *);
 gdouble download_source_progress(const struct download *);
 gdouble download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);

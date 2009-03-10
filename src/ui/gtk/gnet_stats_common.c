@@ -140,6 +140,7 @@ general_type_str(gint value)
 		N_("Compressed UDP messages received"),
 		N_("Uncompressed UDP messages due to no gain"),
 		N_("Consolidated servers (after GUID and IP address linking)"),
+		N_("Duplicate downloads found during server consolidation"),
 		N_("Discovered server GUIDs"),
 		N_("Changed server GUIDs"),
 		N_("Firewalled node info for known hosts received in upload requests"),
