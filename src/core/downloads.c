@@ -1872,16 +1872,16 @@ allocated:
 	}
 
 	g_assert(dl_server_valid(server));
-	g_assert(guid_is_blank(guid) || guid_eq(server->key->guid, guid));
 
 	/*
-	 * Address and port of returned server may be different from arguments
+	 * Address, port or GUID of returned server may be different from arguments
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 1) {
 		if (
 			!host_addr_equal(addr, server->key->addr) ||
-			server->key->port != port
+			server->key->port != port ||
+			!guid_eq(server->key->guid, guid)
 		) {
 			g_message("called get_server() with GUID %s at %s, "
 				"returning GUID %s at %s",
@@ -1963,12 +1963,15 @@ change_server_addr(struct dl_server *server,
 
 		if (GNET_PROPERTY(download_debug)) {
             g_message(
-                "new IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
+                "new IP %s for server <%s> GUID %s at %s:%u "
+				"was used by <%s> GUID %s at %s:%u",
                 host_addr_to_string(new_addr),
                 server->vendor == NULL ? "UNKNOWN" : server->vendor,
+				guid_hex_str(key->guid),
                 server->hostname == NULL ? "NONAME" : server->hostname,
                 key->port,
                 duplicate->vendor == NULL ? "UNKNOWN" : duplicate->vendor,
+				guid_to_string(duplicate->key->guid),
                 duplicate->hostname == NULL ? "NONAME" : duplicate->hostname,
                 duplicate->key->port);
         }
@@ -1992,6 +1995,9 @@ change_server_addr(struct dl_server *server,
 			!guid_eq(key->guid, duplicate->key->guid) &&
 			!guid_is_blank(duplicate->key->guid)
 		) {
+			/* Remote node changed its GUID (after restart?) */
+			gnet_stats_count_general(GNR_CHANGED_SERVER_GUID, 1);
+
 			if (GNET_PROPERTY(download_debug)) g_warning(
 				"found two distinct GUID for <%s> at %s:%u, keeping %s",
 				server->vendor == NULL ? "UNKNOWN" : server->vendor,

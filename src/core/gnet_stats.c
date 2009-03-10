@@ -158,6 +158,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"udp_larger_hence_not_compressed",
 	"consolidated_servers",
 	"discovered_server_guid",
+	"changed_server_guid",
 	"received_known_fw_node_info",
 	"attempted_resource_switching",
 	"attempted_resource_switching_after_error",
