@@ -118,7 +118,7 @@ static guint encode_pad_length(guint len, guint *pad)
 	tcount = len / 3;
 	remainder = len - (tcount * 3);
 
-	g_assert((gint) remainder >= 0);
+	g_assert((int) remainder >= 0);
 
 	switch (remainder) {
 	case 0: npad = 0; break;
@@ -272,9 +272,9 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 	 */
 
 	if (buf[len-1] == '=') {
-		gint pad = 0;
-		gint n = 0;					/* Amount of bytes to zero */
-		gint s = 0;					/* Amount of bytes to zero */
+		int pad = 0;
+		int n = 0;					/* Amount of bytes to zero */
+		int s = 0;					/* Amount of bytes to zero */
 
 		/*
 		 * Remove and count trailing input padding bytes.

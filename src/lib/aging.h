@@ -37,7 +37,7 @@ typedef void (*aging_free_t)(gpointer value, gpointer udata);
 
 struct aging;
 
-struct aging *aging_make(gint delay, GHashFunc hash, GEqualFunc eq,
+struct aging *aging_make(int delay, GHashFunc hash, GEqualFunc eq,
 			aging_free_t kfree);
 
 void aging_destroy(struct aging *);

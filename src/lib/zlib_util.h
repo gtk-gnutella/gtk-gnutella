@@ -43,10 +43,10 @@
  */
 typedef struct  {
 	gconstpointer in;	/**< Buffer being compressed */
-	gint inlen;			/**< Length of input buffer */
+	int inlen;			/**< Length of input buffer */
 	gpointer out;		/**< Compressed data */
-	gint outlen;		/**< Length of ouput buffer */
-	gint inlen_total;	/**< Total input length seen */
+	int outlen;		/**< Length of ouput buffer */
+	int inlen_total;	/**< Total input length seen */
 	gpointer opaque;	/**< Internal data structures */
 	gboolean allocated;	/**< Whether output buffer was allocated or static */
 	gboolean closed;	/**< Whether the stream was closed */
@@ -61,19 +61,19 @@ typedef struct  {
  * Public interface.
  */
 
-const char *zlib_strerror(gint errnum);
+const char *zlib_strerror(int errnum);
 
-zlib_deflater_t *zlib_deflater_make(gconstpointer data, gint len, gint level);
+zlib_deflater_t *zlib_deflater_make(gconstpointer data, int len, int level);
 zlib_deflater_t *zlib_deflater_make_into(
-	gconstpointer data, gint len, gpointer dest, gint destlen, gint level);
-gint zlib_deflate(zlib_deflater_t *zd, gint amount);
-gboolean zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, gint len);
+	gconstpointer data, int len, gpointer dest, int destlen, int level);
+int zlib_deflate(zlib_deflater_t *zd, int amount);
+gboolean zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, int len);
 gboolean zlib_deflate_close(zlib_deflater_t *zd);
 void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
-gpointer zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len);
-gint zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen);
-gboolean zlib_is_valid_header(gconstpointer data, gint len);
+gpointer zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len);
+int zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen);
+gboolean zlib_is_valid_header(gconstpointer data, int len);
 
 void zlib_free_func(gpointer unused_opaque, gpointer p);
 gpointer zlib_alloc_func(gpointer unused_opaque, guint n, guint m);

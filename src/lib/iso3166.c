@@ -356,7 +356,7 @@ iso3166_encode_cc(const char *cc)
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
         const char *d;
 		guint16 code;
-		gint error;
+		int error;
 
 		code = parse_uint16(cc, NULL, 36, &error);
         g_assert(code < G_N_ELEMENTS(iso3166_countries));
@@ -387,7 +387,7 @@ iso3166_init(void)
 		{
 			const char *endptr;
 			guint16 code;
-			gint error;
+			int error;
 
 			code = parse_uint16(entry->cc, &endptr, 36, &error);
 			g_assert(*endptr == '\0');

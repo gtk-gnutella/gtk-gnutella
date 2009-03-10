@@ -63,7 +63,7 @@ typedef struct cobs_stream {
 struct iovec;
 
 char *cobs_encode(char *buf, size_t len, size_t *retlen);
-char *cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen);
+char *cobs_encodev(struct iovec *iov, int iovcnt, size_t *retlen);
 char *cobs_decode(char *buf, size_t len, size_t *retlen, gboolean inplace);
 gboolean cobs_decode_into(
 	const char *buf, size_t len, char *out, size_t outlen, size_t *retlen);

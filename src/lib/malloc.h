@@ -193,88 +193,88 @@
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_SOURCE)
 
-char *string_record(const char *s, char *file, gint line);
-gpointer malloc_record(gconstpointer o, size_t size, char *file, gint line);
-GSList *gslist_record(const GSList *, char *file, gint line);
-GList *glist_record(const GList *, char *file, gint line);
+char *string_record(const char *s, char *file, int line);
+gpointer malloc_record(gconstpointer o, size_t size, char *file, int line);
+GSList *gslist_record(const GSList *, char *file, int line);
+GList *glist_record(const GList *, char *file, int line);
 
-gpointer malloc_track(size_t size, char *file, gint line);
-gpointer malloc0_track(size_t size, char *file, gint line);
-void free_track(gpointer o, char *file, gint line);
-void strfreev_track(char **v, char *file, gint line);
-gpointer realloc_track(gpointer o, size_t size, char *file, gint line);
-char *strdup_track(const char *s, char *file, gint line);
-char *strndup_track(const char *s, size_t n, char *file, gint line);
-gpointer memdup_track(gconstpointer p, size_t size, char *file, gint line);
-char *strjoinv_track(const char *s, char **vec, char *file, gint line);
-char *strconcat_track(char *file, gint line, const char *s, ...);
-char *strdup_printf_track(char *file, gint line, const char *fmt, ...)
+gpointer malloc_track(size_t size, char *file, int line);
+gpointer malloc0_track(size_t size, char *file, int line);
+void free_track(gpointer o, char *file, int line);
+void strfreev_track(char **v, char *file, int line);
+gpointer realloc_track(gpointer o, size_t size, char *file, int line);
+char *strdup_track(const char *s, char *file, int line);
+char *strndup_track(const char *s, size_t n, char *file, int line);
+gpointer memdup_track(gconstpointer p, size_t size, char *file, int line);
+char *strjoinv_track(const char *s, char **vec, char *file, int line);
+char *strconcat_track(char *file, int line, const char *s, ...);
+char *strdup_printf_track(char *file, int line, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 char **strsplit_track(
-	const char *s, const char *d, size_t m, char *file, gint line);
+	const char *s, const char *d, size_t m, char *file, int line);
 
 GHashTable *hashtable_new_track(
-	GHashFunc h, GCompareFunc y, char *file, gint line);
-void hashtable_destroy_track(GHashTable *h, char *file, gint line);
+	GHashFunc h, GCompareFunc y, char *file, int line);
+void hashtable_destroy_track(GHashTable *h, char *file, int line);
 
 hash_list_t *hash_list_new_track(
-	GHashFunc hash_func, GEqualFunc eq_func, char *file, gint line);
-void hash_list_free_track(hash_list_t **hl_ptr, char *file, gint line);
+	GHashFunc hash_func, GEqualFunc eq_func, char *file, int line);
+void hash_list_free_track(hash_list_t **hl_ptr, char *file, int line);
 
-GSList *track_slist_alloc(char *file, gint line);
-GSList *track_slist_append(GSList *l, gpointer data, char *file, gint line);
-GSList *track_slist_prepend(GSList *l, gpointer data, char *file, gint line);
-GSList *track_slist_copy(GSList *l, char *file, gint line);
-void track_slist_free(GSList *l, char *file, gint line);
-void track_slist_free1(GSList *l, char *file, gint line);
-GSList *track_slist_remove(GSList *l, gpointer data, char *file, gint line);
+GSList *track_slist_alloc(char *file, int line);
+GSList *track_slist_append(GSList *l, gpointer data, char *file, int line);
+GSList *track_slist_prepend(GSList *l, gpointer data, char *file, int line);
+GSList *track_slist_copy(GSList *l, char *file, int line);
+void track_slist_free(GSList *l, char *file, int line);
+void track_slist_free1(GSList *l, char *file, int line);
+GSList *track_slist_remove(GSList *l, gpointer data, char *file, int line);
 GSList *track_slist_insert(
-	GSList *l, gpointer d, gint pos, char *file, gint line);
+	GSList *l, gpointer d, int pos, char *file, int line);
 GSList *track_slist_insert_sorted(
-	GSList *l, gpointer d, GCompareFunc c, char *file, gint line);
+	GSList *l, gpointer d, GCompareFunc c, char *file, int line);
 GSList *track_slist_insert_after(
-	GSList *l, GSList *lk, gpointer data, char *file, gint line);
-GSList *track_slist_delete_link(GSList *l, GSList *lk, char *file, gint line);
+	GSList *l, GSList *lk, gpointer data, char *file, int line);
+GSList *track_slist_delete_link(GSList *l, GSList *lk, char *file, int line);
 
-GList *track_list_alloc(char *file, gint line);
-GList *track_list_append(GList *l, gpointer data, char *file, gint line);
-GList *track_list_prepend(GList *l, gpointer data, char *file, gint line);
-GList *track_list_copy(GList *l, char *file, gint line);
-void track_list_free(GList *l, char *file, gint line);
-void track_list_free1(GList *l, char *file, gint line);
-GList *track_list_remove(GList *l, gpointer data, char *file, gint line);
+GList *track_list_alloc(char *file, int line);
+GList *track_list_append(GList *l, gpointer data, char *file, int line);
+GList *track_list_prepend(GList *l, gpointer data, char *file, int line);
+GList *track_list_copy(GList *l, char *file, int line);
+void track_list_free(GList *l, char *file, int line);
+void track_list_free1(GList *l, char *file, int line);
+GList *track_list_remove(GList *l, gpointer data, char *file, int line);
 GList *track_list_insert(
-	GList *l, gpointer d, gint pos, char *file, gint line);
+	GList *l, gpointer d, int pos, char *file, int line);
 GList *track_list_insert_sorted(
-	GList *l, gpointer d, GCompareFunc c, char *file, gint line);
+	GList *l, gpointer d, GCompareFunc c, char *file, int line);
 GList *track_list_insert_after(
-	GList *l, GList *lk, gpointer data, char *file, gint line);
-GList *track_list_delete_link(GList *l, GList *lk, char *file, gint line);
+	GList *l, GList *lk, gpointer data, char *file, int line);
+GList *track_list_delete_link(GList *l, GList *lk, char *file, int line);
 
-GString *string_new_track(const char *p, char *file, gint line);
-GString *string_sized_new_track(size_t size, char *file, gint line);
+GString *string_new_track(const char *p, char *file, int line);
+GString *string_sized_new_track(size_t size, char *file, int line);
 GString *string_append_track(
-	GString *s, const char *p, char *file, gint line);
+	GString *s, const char *p, char *file, int line);
 GString *string_append_c_track(
-	GString *s, char c, char *file, gint line);
+	GString *s, char c, char *file, int line);
 GString *string_append_len_track(
-	GString *s, const char *val,  gssize len, char *file, gint line);
+	GString *s, const char *val,  gssize len, char *file, int line);
 GString *string_assign_track(
-	GString *s, const char *p, char *file, gint line);
-void string_free_track(GString *s, gint freestr, char *file, gint line);
+	GString *s, const char *p, char *file, int line);
+void string_free_track(GString *s, int freestr, char *file, int line);
 GString *string_prepend_track(
-	GString *s, const char *p, char *file, gint line);
+	GString *s, const char *p, char *file, int line);
 GString *string_prepend_c_track(
-	GString *s, char c, char *file, gint line);
+	GString *s, char c, char *file, int line);
 GString *string_insert_track(
-	GString *s, gint pos, const char *p, char *file, gint line);
+	GString *s, int pos, const char *p, char *file, int line);
 GString *string_insert_c_track(
-	GString *s, gint pos, char c, char *file, gint line);
+	GString *s, int pos, char c, char *file, int line);
 GString *string_sprintf_track(
-	GString *s, char *file, gint line, const char *fmt, ...)
+	GString *s, char *file, int line, const char *fmt, ...)
 	G_GNUC_PRINTF(4, 5);
 GString *string_sprintfa_track(
-	GString *s, char *file, gint line, const char *fmt, ...)
+	GString *s, char *file, int line, const char *fmt, ...)
 	G_GNUC_PRINTF(4, 5);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
@@ -286,7 +286,7 @@ void malloc_close(void);
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 
 gpointer leak_init(void);
-void leak_add(gpointer o, size_t size, char *file, gint line);
+void leak_add(gpointer o, size_t size, char *file, int line);
 void leak_dump(gpointer o);
 void leak_close(gpointer o);
 

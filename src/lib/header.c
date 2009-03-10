@@ -61,9 +61,9 @@ RCSID("$Id$")
 struct header {
 	GHashTable *headers;		/**< Indexed by name */
 	slist_t *fields;			/**< Ordered list of header_field_t */
-	gint flags;					/**< Various operating flags */
-	gint size;					/**< Total header size, in bytes */
-	gint num_lines;				/**< Total header lines seen */
+	int flags;					/**< Various operating flags */
+	int size;					/**< Total header size, in bytes */
+	int num_lines;				/**< Total header lines seen */
 };
 
 /**
@@ -127,7 +127,7 @@ header_strerror(guint errnum)
 	return error_str[errnum];
 }
 
-gint
+int
 header_num_lines(const header_t *h)
 {
 	return h->num_lines;
@@ -376,8 +376,8 @@ add_continuation(header_t *o, const char *field, const char *text)
  *
  * @return an error code, or HEAD_OK if appending was successful.
  */
-gint
-header_append(header_t *o, const char *text, gint len)
+int
+header_append(header_t *o, const char *text, int len)
 {
 	char buf[MAX_LINE_SIZE];
 	const char *p = text;
@@ -579,12 +579,12 @@ header_dump(const header_t *o, FILE *out)
  */
 struct header_fmt {
 	guint32 magic;
-	gint maxlen;			/**< Maximum line length before continuation */
+	int maxlen;			/**< Maximum line length before continuation */
 	GString *header;		/**< Header being built */
 	char sep[257];			/**< Optional separator */
-	gint seplen;			/**< Length of separator string */
-	gint stripped_seplen;	/**< Length of separator without trailing space */
-	gint current_len;		/**< Length of currently built line */
+	int seplen;			/**< Length of separator string */
+	int stripped_seplen;	/**< Length of separator without trailing space */
+	int current_len;		/**< Length of currently built line */
 	gboolean data_emitted;	/**< Whether data was ever emitted */
 	gboolean frozen;		/**< Header terminated */
 };
@@ -593,11 +593,11 @@ struct header_fmt {
  * Compute the length of the string `s' whose length is `len' with trailing
  * blanks ignored.
  */
-static gint
-stripped_strlen(const char *s, gint len)
+static int
+stripped_strlen(const char *s, int len)
 {
 	const char *end = s + len;
-	gint i;
+	int i;
 
 	/*
 	 * Locate last non-space char in separator.
@@ -631,7 +631,7 @@ stripped_strlen(const char *s, gint len)
  * @return opaque pointer.
  */
 gpointer
-header_fmt_make(const char *field, const char *separator, gint len_hint)
+header_fmt_make(const char *field, const char *separator, int len_hint)
 {
 	struct header_fmt *hf;
 	size_t len;
@@ -660,7 +660,7 @@ header_fmt_make(const char *field, const char *separator, gint len_hint)
  * Set max line length.
  */
 void
-header_fmt_set_line_length(gpointer o, gint maxlen)
+header_fmt_set_line_length(gpointer o, int maxlen)
 {
 	struct header_fmt *hf = o;
 
@@ -695,10 +695,10 @@ header_fmt_free(gpointer o)
  * the header string, not counting the final "\r\n" + the trailing NUL byte.
  */
 gboolean
-header_fmt_value_fits(gpointer o, gint len, gint maxlen)
+header_fmt_value_fits(gpointer o, int len, int maxlen)
 {
 	struct header_fmt *hf = o;
-	gint final_len;
+	int final_len;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 
@@ -729,10 +729,10 @@ header_fmt_value_fits(gpointer o, gint len, gint maxlen)
  */
 static void
 header_fmt_append_full(struct header_fmt *hf, const char *str,
-	const char *separator, gint slen, gint sslen)
+	const char *separator, int slen, int sslen)
 {
 	size_t len;
-	gint curlen;
+	int curlen;
 
 	len = strlen(str);
 	g_assert(len <= INT_MAX);	/* Legacy bug */
@@ -744,7 +744,7 @@ header_fmt_append_full(struct header_fmt *hf, const char *str,
 		 */
 
 		if (separator != NULL && hf->data_emitted) {
-			gint s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
+			int s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
 			const char *p;
 
 			for (p = separator; s > 0; p++, s--)
@@ -777,7 +777,7 @@ void
 header_fmt_append(gpointer o, const char *str, const char *separator)
 {
 	struct header_fmt *hf = o;
-	gint seplen;
+	int seplen;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 	g_assert(!hf->frozen);
@@ -810,7 +810,7 @@ header_fmt_append_value(gpointer o, const char *str)
 /**
  * @return length of currently formatted header.
  */
-gint
+int
 header_fmt_length(gpointer o)
 {
 	struct header_fmt *hf = o;

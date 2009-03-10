@@ -67,7 +67,7 @@ typedef void (*pdata_free_t)(gpointer p, gpointer arg);
 typedef struct pdata {
 	pdata_free_t d_free;			/**< Free routine */
 	gpointer d_arg;					/**< Argument to free routine */
-	gint d_refcnt;					/**< Reference count */
+	int d_refcnt;					/**< Reference count */
 	char *d_arena;					/**< First byte in buffer */
 	char *d_end;					/**< First byte after buffer */
 	char d_embedded[1];			/**< Start of embedded arena */
@@ -155,11 +155,11 @@ pmsg_check_consistency(const pmsg_t * const mb)
 void pmsg_init(void);
 void pmsg_close(void);
 
-pmsg_t *pmsg_new(gint prio, gconstpointer buf, gint len);
+pmsg_t *pmsg_new(int prio, gconstpointer buf, int len);
 pmsg_t * pmsg_new_extend(
-	gint prio, gconstpointer buf, gint len,
+	int prio, gconstpointer buf, int len,
 	pmsg_free_t free_cb, gpointer arg);
-pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff);
+pmsg_t *pmsg_alloc(int prio, pdata_t *db, int roff, int woff);
 pmsg_t *pmsg_clone(pmsg_t *mb);
 pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg);
 pmsg_free_t pmsg_replace_ext(
@@ -167,23 +167,23 @@ pmsg_free_t pmsg_replace_ext(
 gpointer pmsg_get_metadata(pmsg_t *mb);
 pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
-gint pmsg_write(pmsg_t *mb, gconstpointer data, gint len);
-gint pmsg_writable_length(const pmsg_t *mb);
-gint pmsg_read(pmsg_t *mb, gpointer data, gint len);
-gint pmsg_discard(pmsg_t *mb, gint len);
-gint pmsg_discard_trailing(pmsg_t *mb, gint len);
+int pmsg_write(pmsg_t *mb, gconstpointer data, int len);
+int pmsg_writable_length(const pmsg_t *mb);
+int pmsg_read(pmsg_t *mb, gpointer data, int len);
+int pmsg_discard(pmsg_t *mb, int len);
+int pmsg_discard_trailing(pmsg_t *mb, int len);
 void pmsg_reset(pmsg_t *mb);
 
-pdata_t *pdata_new(gint len);
-pdata_t *pdata_allocb(void *buf, gint len,
+pdata_t *pdata_new(int len);
+pdata_t *pdata_allocb(void *buf, int len,
 	pdata_free_t freecb, gpointer freearg);
-pdata_t *pdata_allocb_ext(void *buf, gint len,
+pdata_t *pdata_allocb_ext(void *buf, int len,
 	pdata_free_t freecb, gpointer freearg);
 void pdata_free_nop(gpointer p, gpointer arg);
 void pdata_unref(pdata_t *db);
 
 struct iovec *pmsg_slist_to_iovec(slist_t *slist,
-				gint *iovcnt_ptr, size_t *size_ptr);
+				int *iovcnt_ptr, size_t *size_ptr);
 void pmsg_slist_discard(slist_t *slist, size_t n_bytes);
 void pmsg_slist_append(slist_t *slist, const void *data, size_t n_bytes);
 

@@ -68,14 +68,14 @@ G_STMT_START {														\
 	}																\
 } G_STMT_END
 
-typedef gint (* prop_parse_func_t)(const char *name,
+typedef int (* prop_parse_func_t)(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i);
 
-static gint
+static int
 prop_parse_guint64(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
-	gint error;
+	int error;
 	guint64 u;
 	
 	u = parse_uint64(str, endptr, 10, &error);
@@ -89,12 +89,12 @@ prop_parse_guint64(const char *name,
 	return error;
 }
 
-static gint
+static int
 prop_parse_timestamp(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	const char *ep;
-	gint error = 0;
+	int error = 0;
 	guint64 u;
 	time_t t;
 
@@ -125,11 +125,11 @@ prop_parse_timestamp(const char *name,
 }
 
 
-static gint
+static int
 prop_parse_guint32(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
-	gint error;
+	int error;
 	guint32 u;
 	
 	u = parse_uint32(str, endptr, 10, &error);
@@ -143,12 +143,12 @@ prop_parse_guint32(const char *name,
 	return error;
 }
 
-static gint
+static int
 prop_parse_ip(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	host_addr_t addr;
-	gint error;
+	int error;
 	const char *ep;
 	
 	g_assert(name);
@@ -177,7 +177,7 @@ prop_parse_ip(const char *name,
 /**
  * Parse comma delimited boolean vector (TRUE/FALSE list).
  */
-static gint
+static int
 prop_parse_boolean(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
@@ -193,7 +193,7 @@ prop_parse_boolean(const char *name,
 	gboolean b = FALSE;
 	const char *p = NULL;
 	guint j;
-	gint error = 0;
+	int error = 0;
 	
 	g_assert(name);
 	g_assert(str);
@@ -237,7 +237,7 @@ prop_parse_vector(const char *name, const char *str,
 
 	for (i = 0; i < size && p; i++) {
 		const char *endptr;
-		gint error;
+		int error;
 
 		p = skip_ascii_spaces(p);
 		if ('\0' == *p)
@@ -2096,12 +2096,12 @@ prop_get_by_name(prop_set_t *ps, const char *name)
 }
 
 GSList *
-prop_get_by_regex(prop_set_t *ps, const char *pattern, gint *error)
+prop_get_by_regex(prop_set_t *ps, const char *pattern, int *error)
 {
 	GSList *sl = NULL;
 	size_t i;
 	regex_t re;
-	gint ret;
+	int ret;
 
 	g_assert(NULL != ps);
 	g_assert(NULL != pattern);

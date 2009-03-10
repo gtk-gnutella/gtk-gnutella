@@ -303,7 +303,7 @@ void prop_set_storage(prop_set_t *, property_t, const char *, size_t);
 char *prop_get_storage(prop_set_t *, property_t, char *, size_t);
 
 property_t prop_get_by_name(prop_set_t *ps, const char *name);
-GSList *prop_get_by_regex(prop_set_t *ps, const char *pattern, gint *error);
+GSList *prop_get_by_regex(prop_set_t *ps, const char *pattern, int *error);
 void prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	gboolean saved_only);
 

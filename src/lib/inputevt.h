@@ -61,7 +61,7 @@ typedef enum {
  */
 typedef void (*inputevt_handler_t) (
 	gpointer data,
-	gint source,
+	int source,
 	inputevt_cond_t condition
 );
 
@@ -75,7 +75,7 @@ void inputevt_close(void);
 /**
  * This emulates the GDK input interface.
  */
-guint inputevt_add(gint source, inputevt_cond_t condition,
+guint inputevt_add(int source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data);
 
 const char *inputevt_cond_to_string(inputevt_cond_t cond);

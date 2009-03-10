@@ -53,25 +53,25 @@ typedef struct {
 void file_register_fd_reclaimer(reclaim_fd_t callback);
 
 FILE *file_config_open_read(
-	const char *what, const file_path_t *fv, gint fvcnt);
+	const char *what, const file_path_t *fv, int fvcnt);
 FILE *file_config_open_read_norename(
-	const char *what, const file_path_t *fv, gint fvcnt);
+	const char *what, const file_path_t *fv, int fvcnt);
 FILE *file_config_open_read_norename_chosen(
-	const char *what, const file_path_t *fv, gint fvcnt, gint *chosen);
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen);
 FILE *file_config_open_write(const char *what, const file_path_t *fv);
 gboolean file_config_close(FILE *out, const file_path_t *fv);
 
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 
-gint file_open(const char *path, gint flags, gint mode);
-gint file_open_missing(const char *path, gint flags);
-gint file_create(const char *path, gint flags, gint mode);
-gint file_create_missing(const char *path, gint flags, gint mode);
+int file_open(const char *path, int flags, int mode);
+int file_open_missing(const char *path, int flags);
+int file_create(const char *path, int flags, int mode);
+int file_create_missing(const char *path, int flags, int mode);
 FILE *file_fopen(const char *path, const char *mode);
 FILE *file_fopen_missing(const char *path, const char *mode);
 
-void file_set_nonblocking(gint fd);
+void file_set_nonblocking(int fd);
 void file_close(int *);
 
 #endif /* _file_ */

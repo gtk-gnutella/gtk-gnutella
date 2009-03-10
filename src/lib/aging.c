@@ -58,7 +58,7 @@ struct aging {
 	enum aging_magic magic;			/**< Magic number */
 	GHashTable *table;		/**< The table holding values */
 	aging_free_t kfree;		/**< The freeing callback for keys */
-	gint delay;				/**< Initial aging delay, in seconds */
+	int delay;				/**< Initial aging delay, in seconds */
 };
 
 /**
@@ -71,7 +71,7 @@ struct aging_value {
 	cevent_t *cq_ev;		/**< Scheduled cleanup event */
 	struct aging *ag;		/**< Holding container */
 	time_t last_insert;		/**< Last insertion time */
-	gint ttl;				/**< Time to live */
+	int ttl;				/**< Time to live */
 };
 
 /**
@@ -85,7 +85,7 @@ struct aging_value {
  * @return opaque handle to the container.
  */
 struct aging *
-aging_make(gint delay, GHashFunc hash, GEqualFunc eq, aging_free_t kfree)
+aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kfree)
 {
 	struct aging *ag;
 

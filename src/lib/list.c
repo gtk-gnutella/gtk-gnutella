@@ -58,10 +58,10 @@ typedef enum {
 
 struct list {
 	list_magic_t magic;
-	gint refcount;
+	int refcount;
 	GList *head;
 	GList *tail;
-	gint length;
+	int length;
 	guint stamp;
 };
 

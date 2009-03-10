@@ -49,10 +49,10 @@ typedef void (*pool_free_t)(gpointer addr);
  */
 typedef struct pool {
 	size_t size;			/**< Size of blocks held in the pool */
-	gint max;				/**< Maximum amount of blocks to keep around */
+	int max;				/**< Maximum amount of blocks to keep around */
 	GSList *buffers;		/**< Allocated buffers in the pool */
-	gint allocated;			/**< Amount of allocated buffers */
-	gint held;				/**< Amount of available buffers */
+	int allocated;			/**< Amount of allocated buffers */
+	int held;				/**< Amount of available buffers */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
 } pool_t;
@@ -62,7 +62,7 @@ typedef struct pool {
  */
 
 pool_t *pool_create(
-	size_t size, gint max, pool_alloc_t alloc, pool_free_t dealloc);
+	size_t size, int max, pool_alloc_t alloc, pool_free_t dealloc);
 void pool_free(pool_t *pool);
 
 gpointer palloc(pool_t *pool);

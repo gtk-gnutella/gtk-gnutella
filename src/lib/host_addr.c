@@ -821,7 +821,7 @@ host_addr_to_name(host_addr_t addr)
 #ifdef HAS_GETNAMEINFO
 	{
 		static char host[1025];
-		gint error;
+		int error;
 
 		error = getnameinfo(socket_addr_get_const_sockaddr(&sa),
 					socket_addr_get_len(&sa), host, sizeof host, NULL, 0, 0);
@@ -880,7 +880,7 @@ resolve_hostname(const char *host, enum net_type net)
 	struct addrinfo hints, *ai, *ai0 = NULL;
 	GHashTable *ht;
 	GSList *sl_addr;
-	gint error;
+	int error;
 
 	g_assert(host);
 	
@@ -946,7 +946,7 @@ resolve_hostname(const char *host, enum net_type net)
 	const struct hostent *he;
 	GHashTable *ht;
 	GSList *sl_addr;
-	gint af;
+	int af;
 	size_t i;
 
 	g_assert(host);

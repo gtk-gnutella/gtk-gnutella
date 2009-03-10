@@ -239,7 +239,7 @@ char *
 is_strprefix(const char *str, const char *prefix)
 {
 	const char *s, *p;
-	gint c;
+	int c;
 
 	g_assert(NULL != str);
 	g_assert(NULL != prefix);
@@ -267,13 +267,13 @@ char *
 is_strcaseprefix(const char *str, const char *prefix)
 {
 	const char *s, *p;
-	gint a;
+	int a;
 
 	g_assert(NULL != str);
 	g_assert(NULL != prefix);
 
 	for (s = str, p = prefix; '\0' != (a = *p); p++) {
-		gint b = *s++;
+		int b = *s++;
 		if (a != b && ascii_tolower(a) != ascii_tolower(b))
 			return NULL;
 	}
@@ -318,7 +318,7 @@ static inline size_t
 print_uint16_hex(char *dst, guint16 v)
 {
 	char *p = dst;
-	gint i;
+	int i;
 
 	for (i = 0; i < 3; i++, v <<= 4) {
 		guint8 d;
@@ -413,9 +413,9 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 {
 	char *p, buf[IPV6_ADDR_BUFLEN];
 	const char *q;
-	gint zero_len = 2, zero_start = -1;
-	gint cur_len = 0, cur_start = 0;
-	gint i;
+	int zero_len = 2, zero_start = -1;
+	int cur_len = 0, cur_start = 0;
+	int i;
 
 	g_assert(ipv6);
 	g_assert(0 == size || NULL != dst);
@@ -563,10 +563,10 @@ gboolean
 parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 {
 	guint8 buf[16];
-	gint i;
+	int i;
 	guchar c = 0, last;
-	gint dc_start = -1;
-	gint error;
+	int dc_start = -1;
+	int error;
 
 	g_assert(s);
 
@@ -630,7 +630,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 		*endptr = s;
 
 	if (dc_start >= 0) {
-		gint z, n, j;
+		int z, n, j;
 
 		z = 16 - i;
 		n = i - dc_start;
@@ -668,13 +668,13 @@ string_to_ip_strict(const char *s, guint32 *addr, const char **endptr)
 	const char *p = s;
 	guint32 a = 0; /* 'pid compiler */
 	gboolean valid;
-	gint i;
+	int i;
 
 	g_assert(s);
 
 	i = 0;
 	for (;;) {
-		gint d, v;
+		int d, v;
 		
 		v = dec2int_inline(*p);
 		if (-1 == v)
@@ -722,7 +722,7 @@ string_to_ip_port(const char *s, guint32 *ip_ptr, guint16 *port_ptr)
 {
 	const char *ep;
 	guint32 v;
-	gint error;
+	int error;
 
 	s = skip_ascii_spaces(s);
 	if (!string_to_ip_strict(s, ip_ptr, &ep) || ':' != *ep)
@@ -893,8 +893,8 @@ is_same_file(const char *pathname_a, const char *pathname_b)
  * @param pos The position to seek to.
  * @return 0 on success and -1 on failure.
  */
-gint
-seek_to_filepos(gint fd, filesize_t pos)
+int
+seek_to_filepos(int fd, filesize_t pos)
 {
 	off_t offset;
 
@@ -903,7 +903,7 @@ seek_to_filepos(gint fd, filesize_t pos)
 		errno = ERANGE;
 		return -1;
 	} else {
-		gint saved_errno = errno;
+		int saved_errno = errno;
 		off_t ret;
 
 		/* Clear errno to be sure we get no bogus errno code, if
@@ -1419,10 +1419,10 @@ const gint8 *alnum2int_tab = char2int_tabs[2];
  * @param c the hexadecimal ASCII character to convert.
  * @return "0..15" for valid hexadecimal ASCII characters.
  */
-gint
+int
 hex2int(guchar c)
 {
-	gint ret;
+	int ret;
 	
 	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
@@ -1438,10 +1438,10 @@ hex2int(guchar c)
  * @param c the decimal ASCII character to convert.
  * @return "0..9" for valid decimal ASCII characters.
  */
-static gint
+static int
 dec2int(guchar c)
 {
-	gint ret;
+	int ret;
 	
 	ret = dec2int_inline(c);
 	g_assert(-1 != ret);
@@ -1457,10 +1457,10 @@ dec2int(guchar c)
  * @param c the decimal ASCII character to convert.
  * @return "0..36" for valid decimal ASCII characters.
  */
-static gint
+static int
 alnum2int(guchar c)
 {
-	gint ret;
+	int ret;
 	
 	ret = alnum2int_inline(c);
 	g_assert(-1 != ret);
@@ -1572,7 +1572,7 @@ alnum2int_init(void)
 
 	for (i = 0; i <= (guchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
-		gint v = p ? (p - abc) : -1;
+		int v = p ? (p - abc) : -1;
 	
 		g_assert(alnum2int_inline(i) == v);
 		g_assert(!p || alnum2int(i) >= 0);
@@ -1945,7 +1945,7 @@ time_locale_to_string_buf(time_t t, char *dst, size_t size)
  * Compute the difference in seconds between two tm structs (a - b).
  * Comes from glibc-2.2.5.
  */
-static gint
+static int
 tm_diff(const struct tm *a, const struct tm * b)
 {
 	/*
@@ -1956,15 +1956,15 @@ tm_diff(const struct tm *a, const struct tm * b)
 
 #define TM_YEAR_BASE 1900
 
-	gint a4 = (a->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (a->tm_year & 3);
-	gint b4 = (b->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (b->tm_year & 3);
-	gint a100 = a4 / 25 - (a4 % 25 < 0);
-	gint b100 = b4 / 25 - (b4 % 25 < 0);
-	gint a400 = a100 >> 2;
-	gint b400 = b100 >> 2;
-	gint intervening_leap_days = (a4 - b4) - (a100 - b100) + (a400 - b400);
-	gint years = a->tm_year - b->tm_year;
-	gint days = (365 * years + intervening_leap_days
+	int a4 = (a->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (a->tm_year & 3);
+	int b4 = (b->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (b->tm_year & 3);
+	int a100 = a4 / 25 - (a4 % 25 < 0);
+	int b100 = b4 / 25 - (b4 % 25 < 0);
+	int a400 = a100 >> 2;
+	int b400 = b100 >> 2;
+	int intervening_leap_days = (a4 - b4) - (a100 - b100) + (a400 - b400);
+	int years = a->tm_year - b->tm_year;
+	int days = (365 * years + intervening_leap_days
 		+ (a->tm_yday - b->tm_yday));
 
 	return (60 * (60 * (24 * days + (a->tm_hour - b->tm_hour))
@@ -1994,7 +1994,7 @@ timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 {
 	struct tm *tm;
 	struct tm gmt_tm;
-	gint gmt_off;
+	int gmt_off;
 	char sign;
 
 	g_assert(size > 0);
@@ -2116,10 +2116,10 @@ next_pow2(guint32 n)
 /**
  * Determine the highest bit set in `n', -1 if value was 0.
  */
-gint
+int
 highest_bit_set(guint32 n)
 {
-	gint h = 0;
+	int h = 0;
 	guint32 r = n;
 
 	if (r == 0)
@@ -2315,10 +2315,10 @@ random_init(void)
  * If not, consider dump_hex().
  */
 gboolean
-is_printable(const char *buf, gint len)
+is_printable(const char *buf, int len)
 {
 	const char *p = buf;
-	gint l = len;
+	int l = len;
 
 	while (l--) {
 		char c = *p++;
@@ -2381,9 +2381,9 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
-dump_hex(FILE *out, const char *title, gconstpointer data, gint length)
+dump_hex(FILE *out, const char *title, gconstpointer data, int length)
 {
-	gint i;
+	int i;
 
 	if (length < 0 || data == NULL) {
 		g_warning("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
@@ -2538,7 +2538,7 @@ unique_filename(const char *path, const char *name, const char *ext,
 	const char *mid;
 	char *pathname;
 	size_t name_len, mid_len, ext_len;
-	gint i;
+	int i;
 
 	g_assert(path);
 	g_assert(name);
@@ -2697,7 +2697,7 @@ hex_escape(const char *name, gboolean strict)
 	const char *p;
 	char *q;
 	guchar c;
-	gint need_escape = 0;
+	int need_escape = 0;
 	char *new;
 
 	for (p = name, c = *p++; c; c = *p++)
@@ -2882,7 +2882,7 @@ string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask)
 		return 0 != *netmask;
 	} else {
 		guint32 u;
-		gint error;
+		int error;
 		
 		u = parse_uint32(s, &ep, 10, &error);
 		if (error || u < 1 || u > 32 || *ep != '\0')
@@ -2944,10 +2944,10 @@ short_filename(char *fullname)
  * @return On success, zero is returned. On failure, -1 is returned and
  *         errno indicates the reason.
  */
-gint
+int
 create_directory(const char *dir, mode_t mode)
 {
-	gint error = 0;
+	int error = 0;
 
 	if (NULL == dir) {
 		error = EINVAL;
@@ -3205,7 +3205,7 @@ off_t_to_string_buf(off_t v, char *dst, size_t size)
 	p = buf;
 	neg = v < 0;
 	do {
-		gint d = v % 10;
+		int d = v % 10;
 
 		v /= 10;
 		*p++ = dec_digit(neg ? -d : d);
@@ -3230,7 +3230,7 @@ time_t_to_string_buf(time_t v, char *dst, size_t size)
 	p = buf;
 	neg = v < 0;
 	do {
-		gint d = v % 10;
+		int d = v % 10;
 
 		v /= 10;
 		*p++ = dec_digit(neg ? -d : d);
@@ -3352,11 +3352,11 @@ time_t_to_string(time_t v)
 
 #define GENERATE_PARSE_UNSIGNED(NAME, TYPE) 								\
 TYPE 																		\
-NAME(const char *src, char const **endptr, guint base, gint *errorptr) 	\
+NAME(const char *src, char const **endptr, guint base, int *errorptr) 	\
 {																			\
 	const char *p;															\
 	TYPE v = 0, mm;															\
-	gint error = 0;															\
+	int error = 0;															\
 	guint d;																\
 																			\
 	STATIC_ASSERT((TYPE) -1 > 35); /* works for unsigned integers only */	\
@@ -3400,12 +3400,12 @@ GENERATE_PARSE_UINTX(64)
 GENERATE_PARSE_UINTX(32)
 GENERATE_PARSE_UINTX(16)
 
-gint
+int
 parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor)
 {
 	const char *ep;
-	gint error;
+	int error;
 	guint32 maj, min;
 
 	g_assert(src);
@@ -3553,7 +3553,7 @@ ip_range_split(
  * @return the previous signal handler or SIG_ERR on failure.
  */
 signal_handler_t
-set_signal(gint signo, signal_handler_t handler)
+set_signal(int signo, signal_handler_t handler)
 {
 #ifdef HAS_SIGACTION
 	static const struct sigaction zero_sa;
@@ -3746,7 +3746,7 @@ failure:
  * @param path a NUL-terminated string representing the input path.
  * @return zero on sucess, non-zero on failure.
  */
-gint
+int
 canonize_path(char *dst, const char *path)
 {
   const char *p;
@@ -3816,7 +3816,7 @@ compat_max_fd(void)
 #endif
 }
 
-gint
+int
 compat_mkdir(const char *path, mode_t mode)
 {
 #ifdef MINGW32
@@ -3998,9 +3998,9 @@ normalize_dir_separators(const char *s)
 }
 
 void
-set_close_on_exec(gint fd)
+set_close_on_exec(int fd)
 {
-	gint flags;
+	int flags;
 
 	flags = fcntl(fd, F_GETFD);
 	if (0 == (flags & FD_CLOEXEC)) {
@@ -4177,7 +4177,7 @@ misc_init(void)
 			const char *s;
 			const guint64 v;
 			const guint base;
-			const gint error;
+			const int error;
 		} tests[] = {
 			{ "", 					0,				10, EINVAL },
 			{ "1111",				1111,			10, 0 },
@@ -4207,7 +4207,7 @@ misc_init(void)
 
 		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 			const char *endptr;
-			gint error;
+			int error;
 			guint64 v;
 
 			g_assert((0 == tests[i].v) ^ (0 == tests[i].error));

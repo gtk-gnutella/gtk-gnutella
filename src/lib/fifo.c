@@ -50,7 +50,7 @@ RCSID("$Id$")
 typedef struct fifo_real {
 	GList *head;			/**< Head of FIFO, where data is prepended */
 	GList *tail;			/**< Tail of FIFO, where data is removed from */
-	gint count;				/**< Amount of entries in FIFO */
+	int count;				/**< Amount of entries in FIFO */
 } fifo_real_t;
 
 /**
@@ -100,7 +100,7 @@ fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata)
 /**
  * Returns amount of items queued in FIFO.
  */
-gint
+int
 fifo_count(fifo_t *f)
 {
 	fifo_real_t *fr = (fifo_real_t *) f;

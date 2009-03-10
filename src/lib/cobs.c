@@ -54,7 +54,7 @@ RCSID("$Id$")
  * NB: the output is a linear buffer, not a vector.
  */
 char *
-cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
+cobs_encodev(struct iovec *iov, int iovcnt, size_t *retlen)
 {
 	size_t maxsize, len;
 	char *out;
@@ -62,7 +62,7 @@ cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
 	char *cp;						/* Where we'll write the code length */
 	guchar code, last_code = 0;
 	struct iovec *xiov;
-	gint i;
+	int i;
 
 	g_assert(iov);
 	g_assert(iovcnt > 0);

@@ -143,7 +143,7 @@ static const char adns_process_title[] = "DNS helper for gtk-gnutella";
 typedef struct adns_cache_struct {
 	GHashTable *ht;
 	guint pos;
-	gint timeout;
+	int timeout;
 	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
 } adns_cache_t;
 
@@ -151,7 +151,7 @@ static adns_cache_t *adns_cache = NULL;
 
 /* private variables */
 
-static gint adns_query_fd = -1;
+static int adns_query_fd = -1;
 static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
 static gboolean is_helper = FALSE;		/**< Are we the DNS helper process? */
@@ -351,7 +351,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
  * should only be used with a blocking `fd'.
  */
 static gboolean
-adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
+adns_do_transfer(int fd, gpointer buf, size_t len, gboolean do_write)
 {
 	ssize_t ret;
 	size_t n = len;
@@ -397,7 +397,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
  * @return TRUE on success, FALSE if the operation failed
  */
 static gboolean
-adns_do_read(gint fd, gpointer buf, size_t len)
+adns_do_read(int fd, gpointer buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, FALSE);
 }
@@ -408,7 +408,7 @@ adns_do_read(gint fd, gpointer buf, size_t len)
  * @return TRUE on success, FALSE if the operation failed
  */
 static gboolean
-adns_do_write(gint fd, gpointer buf, size_t len)
+adns_do_write(int fd, gpointer buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, TRUE);
 }
@@ -477,7 +477,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
  * in case of non-recoverable error during read or write.
  */
 static void
-adns_helper(gint fd_in, gint fd_out)
+adns_helper(int fd_in, int fd_out)
 {
 	g_set_prgname(adns_process_title);
 	gm_setproctitle(g_get_prgname());
@@ -615,7 +615,7 @@ adns_reply_ready(const struct adns_response *ans)
  * the reply pipe will be closed and the callback will be lost.
  */
 static void
-adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
+adns_reply_callback(gpointer data, int source, inputevt_cond_t condition)
 {
 	static struct adns_response ans;
 	static gpointer buf;
@@ -722,7 +722,7 @@ adns_async_write_free(adns_async_write_t *remain)
  * closed and the blocking adns_fallback() will be invoked.
  */
 static void
-adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
+adns_query_callback(gpointer data, int dest, inputevt_cond_t condition)
 {
 	adns_async_write_t *remain = data;
 
@@ -790,8 +790,8 @@ done:
 void
 adns_init(void)
 {
-	gint fd_query[2] = {-1, -1};
-	gint fd_reply[2] = {-1, -1};
+	int fd_query[2] = {-1, -1};
+	int fd_reply[2] = {-1, -1};
 	pid_t pid;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {

@@ -37,7 +37,7 @@
  *  name            meaning
  *  guint32         unsigned 32 bit integer
  *  guint8          unsigned 8 bit integer (i.e., unsigned char)
- *  gint            integer of >= 16 bits
+ *  int            integer of >= 16 bits
  *
  */
 
@@ -65,7 +65,7 @@ typedef struct SHA1Context
     guint64 Length;            /* Message length in bits      */
 
                               /* Index into message block array   */
-    gint Message_Block_Index;
+    int Message_Block_Index;
     guint8 Message_Block[64];      /* 512-bit message blocks      */
 
     int Computed;              /* Is the digest computed?         */

@@ -45,7 +45,7 @@
 struct header;
 typedef struct header header_t;
 
-gint header_num_lines(const header_t *h);
+int header_num_lines(const header_t *h);
 
 /*
  * Error codes.
@@ -75,20 +75,20 @@ gint header_num_lines(const header_t *h);
 header_t *header_make(void);
 void header_free(header_t *o);
 void header_reset(header_t *o);
-gint header_append(header_t *o, const char *text, gint len);
+int header_append(header_t *o, const char *text, int len);
 void header_dump(const header_t *o, FILE *out);
 const char *header_strerror(guint errnum);
 char *header_get(const header_t *o, const char *field);
 char *header_getdup(const header_t *o, const char *field);
 
 gpointer header_fmt_make(const char *field, const char *separator,
-	gint len_hint);
+	int len_hint);
 void header_fmt_free(gpointer o);
-void header_fmt_set_line_length(gpointer o, gint maxlen);
-gboolean header_fmt_value_fits(gpointer o, gint len, gint maxlen);
+void header_fmt_set_line_length(gpointer o, int maxlen);
+gboolean header_fmt_value_fits(gpointer o, int len, int maxlen);
 void header_fmt_append(gpointer o, const char *str, const char *separator);
 void header_fmt_append_value(gpointer o, const char *str);
-gint header_fmt_length(gpointer o);
+int header_fmt_length(gpointer o);
 void header_fmt_end(gpointer o);
 char *header_fmt_string(gpointer o);
 char *header_fmt_to_string(gpointer o);

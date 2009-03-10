@@ -81,7 +81,7 @@ enum escape_mask {
 };
 
 static inline gboolean
-is_transparent_char(const gint c, const enum escape_mask m)
+is_transparent_char(const int c, const enum escape_mask m)
 {
 	return c >= 32 && c < 128 && (is_transparent[c - 32] & (guint8) m);
 }
@@ -136,8 +136,8 @@ url_escape_mask(const char *url, guint8 mask)
  * @return amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-static gint
-url_escape_mask_into(const char *url, char *target, gint len, guint8 mask)
+static int
+url_escape_mask_into(const char *url, char *target, int len, guint8 mask)
 {
 	const char *p = url;
 	char *q;
@@ -226,8 +226,8 @@ url_from_absolute_path(const char *path)
  * @return amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-gint
-url_escape_into(const char *url, char *target, gint len)
+int
+url_escape_into(const char *url, char *target, int len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
 }
@@ -317,7 +317,7 @@ url_unescape(char *url, gboolean inplace)
 {
 	char *p;
 	char *q;
-	gint need_unescape = 0;
+	int need_unescape = 0;
 	guint unescaped_memory = 0;
 	guchar c;
 	char *new;
@@ -357,7 +357,7 @@ url_unescape(char *url, gboolean inplace)
 			*q++ = c;
 		else {
 			if ((c = *p++)) {
-				gint v = hex2int_inline(c) << 4;
+				int v = hex2int_inline(c) << 4;
 				if ((c = *p++))
 					v += hex2int_inline(c);
 				else
@@ -592,7 +592,7 @@ url_normalize(char *url, url_policy_t pol)
 	p = q;
 	if (':' == *q) {
 		guint32 port;
-		gint error;
+		int error;
 
 		q++; /* Skip ':' */
 

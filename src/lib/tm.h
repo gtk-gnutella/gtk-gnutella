@@ -81,7 +81,7 @@ time_t tm_time_exact(void);
 gdouble tm_cputime(gdouble *user, gdouble *sys);
 
 guint tm_hash(gconstpointer key);
-gint tm_equal(gconstpointer a, gconstpointer b);
+int tm_equal(gconstpointer a, gconstpointer b);
 
 /*
  * We use the direct difference of time_t values instead of difftime()

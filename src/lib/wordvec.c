@@ -90,7 +90,7 @@ word_vec_close(void)
  * Reallocate a word-vector from the zone into heap memory, to hold `ncount'.
  */
 static word_vec_t *
-word_vec_zrealloc(word_vec_t *wv, gint ncount)
+word_vec_zrealloc(word_vec_t *wv, int ncount)
 {
 	word_vec_t *nwv = g_malloc(ncount * sizeof(word_vec_t));
 

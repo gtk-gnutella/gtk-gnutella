@@ -96,7 +96,7 @@ iprange_strerror(iprange_err_t errnum)
 {
 	STATIC_ASSERT(IPR_ERROR_COUNT == G_N_ELEMENTS(iprange_errstr));
 
-	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(iprange_errstr))
+	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(iprange_errstr))
 		return "Invalid error code";
 
 	return iprange_errstr[errnum];

@@ -44,7 +44,7 @@
 
 typedef struct {				/**< Query word vector */
 	char *word;				/**< The word to search */
-	gint len;					/**< The word's length */
+	int len;					/**< The word's length */
 	guint amount;				/**< Amount of expected occurrences */
 } word_vec_t;
 

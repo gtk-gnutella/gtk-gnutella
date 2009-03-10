@@ -319,9 +319,9 @@ void guid_random_fill(struct guid *);
  */
 void misc_init(void);
 size_t str_chomp(char *str, size_t len);
-gint hex2int(guchar c);
-gboolean is_printable(const char *buf, gint len);
-void dump_hex(FILE *, const char *, gconstpointer, gint);
+int hex2int(guchar c);
+gboolean is_printable(const char *buf, int len);
+void dump_hex(FILE *, const char *, gconstpointer, int);
 void locale_strlower(char *, const char *);
 size_t filename_shrink(const char *filename, char *buf, size_t size);
 char *unique_filename(const char *path, const char *file, const char *ext,
@@ -329,7 +329,7 @@ char *unique_filename(const char *path, const char *file, const char *ext,
 char *hex_escape(const char *name, gboolean strict);
 char *control_escape(const char *s);
 const char *lazy_string_to_printf_escape(const char *src);
-gint highest_bit_set(guint32 n) G_GNUC_CONST;
+int highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
 gfloat force_range(gfloat value, gfloat min, gfloat max);
@@ -346,16 +346,16 @@ char *data_hex_str(const char *data, size_t len);
 #define DEFAULT_DIRECTORY_MODE (S_IRWXU | S_IRGRP | S_IXGRP)
 #endif /* S_IROTH && S_IXOTH */
 
-gint create_directory(const char *dir, mode_t mode);
-gint compat_mkdir(const char *path, mode_t mode);
+int create_directory(const char *dir, mode_t mode);
+int compat_mkdir(const char *path, mode_t mode);
 gboolean filepath_exists(const char *dir, const char *file);
 const char * filepath_basename(const char *pathname);
 char * filepath_directory(const char *pathname);
-guint16 parse_uint16(const char *, char const **, guint, gint *)
+guint16 parse_uint16(const char *, char const **, guint, int *)
 	NON_NULL_PARAM((1, 4));
-guint32 parse_uint32(const char *, char const **, guint, gint *)
+guint32 parse_uint32(const char *, char const **, guint, int *)
 	NON_NULL_PARAM((1, 4));
-guint64 parse_uint64(const char *, char const **, guint, gint *)
+guint64 parse_uint64(const char *, char const **, guint, int *)
 	NON_NULL_PARAM((1, 4));
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
@@ -369,27 +369,27 @@ const char *off_t_to_string(off_t v);
 const char *time_t_to_string(time_t v);
 const char *filesize_to_string(filesize_t v);
 const char *filesize_to_string2(filesize_t v);
-gint parse_major_minor(const char *src, char const **endptr,
+int parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor);
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 size_t html_escape(const char *src, char *dst, size_t dst_size);
 guint32 html_decode_entity(const char *src, const char **endptr);
-gint canonize_path(char *dst, const char *path);
+int canonize_path(char *dst, const char *path);
 guint compat_max_fd(void);
 void close_file_descriptors(const int first_fd);
 int reserve_standard_file_descriptors(void);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
-void set_close_on_exec(gint fd);
+void set_close_on_exec(int fd);
 void compat_fadvise_sequential(int fd, off_t offset, off_t size);
 void *compat_memmem(const void *data, size_t data_size,
 		const void *pattern, size_t pattern_size);
 
 int get_non_stdio_fd(int fd);
 
-typedef void (*signal_handler_t)(gint signo);
-signal_handler_t set_signal(gint signo, signal_handler_t handler);
+typedef void (*signal_handler_t)(int signo);
+signal_handler_t set_signal(int signo, signal_handler_t handler);
 
 char *normalize_dir_separators(const char *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
@@ -509,7 +509,7 @@ round_size(size_t align, size_t n)
 struct stat;
 
 static inline gboolean
-is_temporary_error(gint error)
+is_temporary_error(int error)
 {
   switch (error) {
   case EAGAIN:
@@ -523,7 +523,7 @@ is_temporary_error(gint error)
 }
 
 /* Wrapper around lseek() to handle filesize -> off_t conversion. */
-gint seek_to_filepos(gint fd, filesize_t pos);
+int seek_to_filepos(int fd, filesize_t pos);
 filesize_t get_random_file_offset(const filesize_t size);
 
 guint filesize_per_100(filesize_t size, filesize_t part);
@@ -624,7 +624,7 @@ G_STMT_START { \
 	size_t bs_index, bs_j = 0, bs_k; \
 	for (bs_k = (bs_size); bs_k != 0; bs_k >>= 1) { \
 		bs_type bs_item; \
-		gint bs_cmp_result; \
+		int bs_cmp_result; \
 \
 		bs_index = bs_j + (bs_k >> 1); \
 		bs_item = bs_get_key(bs_index); \

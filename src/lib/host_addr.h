@@ -55,7 +55,7 @@ enum net_type {
 	NET_TYPE_IPV6	= 6
 };
 
-static inline gint
+static inline int
 net_type_to_pf(enum net_type net)
 {
 	switch (net) {
@@ -73,7 +73,7 @@ net_type_to_pf(enum net_type net)
 	return PF_UNSPEC;
 }
 
-static inline gint
+static inline int
 net_type_to_af(enum net_type net)
 {
 	switch (net) {
@@ -282,10 +282,10 @@ host_addr_equal(const host_addr_t a, const host_addr_t b)
 	return FALSE;
 }
 
-static inline gint
+static inline int
 host_addr_cmp(host_addr_t a, host_addr_t b)
 {
-	gint r;
+	int r;
 
 	r = CMP(a.net, b.net);
 	if (0 != r) {
@@ -334,7 +334,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 
 	case NET_TYPE_IPV6:
 		{
-			gint i;
+			int i;
 
 			bits = MIN(128, bits);
 			for (i = 0; bits >= 8; i++, bits -= 8) {
@@ -493,7 +493,7 @@ socket_addr_get_sockaddr(socket_addr_t *addr)
 	return (struct sockaddr *) socket_addr_get_const_sockaddr(addr);
 }
 
-static inline gint
+static inline int
 socket_addr_get_family(const socket_addr_t *addr)
 {
 	g_assert(addr != NULL);

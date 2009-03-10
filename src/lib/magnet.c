@@ -158,7 +158,7 @@ magnet_parse_location(const char *uri, const char **error_str)
 
 	if (':' == *p) {
 		const char *ep2;
-		gint error;
+		int error;
 		guint16 u;
 
 		p++;
@@ -337,7 +337,7 @@ magnet_handle_key(struct magnet_resource *res,
 
 	case MAGNET_KEY_EXACT_LENGTH:
 		{
-			gint error;
+			int error;
 			guint64 u;
 
 			u = parse_uint64(value, NULL, 10, &error);

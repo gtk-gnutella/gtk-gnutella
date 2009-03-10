@@ -36,7 +36,7 @@ RCSID("$Id$")
  *  Sets a socket to non-blocking behaviour
  */
 void 
-socket_set_nonblocking(gint fd)
+socket_set_nonblocking(int fd)
 #ifdef MINGW32
 {
 	gulong nonblock = 1;

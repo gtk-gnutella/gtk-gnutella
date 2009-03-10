@@ -74,7 +74,7 @@ crc32_gen_crc_table(void)
 	guint32 i, crc_accum;
 
 	for (i = 0; i < 256; i++) {
-		gint j;
+		int j;
 
 		crc_accum = i << 24;
 		for (j = 0; j < 8; j++) {

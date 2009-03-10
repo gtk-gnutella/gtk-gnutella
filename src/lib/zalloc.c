@@ -68,10 +68,10 @@ struct zone {			/* Zone descriptor */
 	char **zn_free;	/**< Pointer to first free block */
 	struct subzone *zn_next;/**< Next allocated zone chunk, null if none */
     struct subzone zn_arena;
-	gint zn_refcnt;		/**< How many references to that zone? */
-	gint zn_size;		/**< Size of blocks in zone */
-	gint zn_hint;		/**< Hint size, for next zone extension */
-	gint zn_cnt;		/**< Amount of used blocks in zone */
+	int zn_refcnt;		/**< How many references to that zone? */
+	int zn_size;		/**< Size of blocks in zone */
+	int zn_hint;		/**< Hint size, for next zone extension */
+	int zn_cnt;		/**< Amount of used blocks in zone */
 };
 
 /*
@@ -97,7 +97,7 @@ struct zone {			/* Zone descriptor */
 #define ZONE_SAFE			/* Need used block tagging when tracking */
 #endif
 
-#define FILE_REV_OFFSET		(sizeof(char *) + sizeof(gint))
+#define FILE_REV_OFFSET		(sizeof(char *) + sizeof(int))
 #undef USED_REV_OFFSET
 #define USED_REV_OFFSET		(sizeof(char *) + FILE_REV_OFFSET)
 
@@ -217,7 +217,7 @@ zalloc(zone_t *zone)
  * Tracking version of zalloc().
  */
 gpointer
-zalloc_track(zone_t *zone, char *file, gint line)
+zalloc_track(zone_t *zone, char *file, int line)
 {
 	char *blk = zalloc(zone);
 	char *p;
@@ -225,7 +225,7 @@ zalloc_track(zone_t *zone, char *file, gint line)
 	p = blk - FILE_REV_OFFSET;			/* Go backwards */
 	*(char **) p = short_filename(file);
 	p += sizeof(char *);
-	*(gint *) p = line;
+	*(int *) p = line;
 
 	return blk;
 }
@@ -236,17 +236,17 @@ zalloc_track(zone_t *zone, char *file, gint line)
  * be also recorded in the `leakset' for summarizing of all the leaks.
  */
 static void
-zblock_log(char *p, gint size, gpointer leakset)
+zblock_log(char *p, int size, gpointer leakset)
 {
 	char *uptr;			/* User pointer */
 	char *file;
-	gint line;
+	int line;
 
 	uptr = p + sizeof(char *);		/* Skip used marker */
 	file = *(char **) uptr;
 	uptr += sizeof(char *);
-	line = *(gint *) uptr;
-	uptr += sizeof(gint);
+	line = *(int *) uptr;
+	uptr += sizeof(int);
 
 	g_warning("leaked block 0x%lx from \"%s:%d\"", (gulong) uptr, file, line);
 
@@ -337,7 +337,7 @@ zfree(zone_t *zone, gpointer ptr)
 static void
 zn_cram(zone_t *zone, gpointer arena)
 {
-	gint i;
+	int i;
 	char **next = arena, *p = arena;
 
 	for (i = 1; i < zone->zn_hint; i++) {
@@ -379,7 +379,7 @@ subzone_free_arena(struct subzone *sz)
  * Create a new zone able to hold items of 'size' bytes.
  */
 static zone_t *
-zn_create(zone_t *zone, gint size, gint hint)
+zn_create(zone_t *zone, int size, int hint)
 {
 	size_t arena_size;		/* Amount of bytes requested */
 
@@ -392,7 +392,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * the correct boundary.
 	 */
 
-	size = MAX((gint) sizeof(char *), size);
+	size = MAX((int) sizeof(char *), size);
 
 #ifdef ZONE_SAFE
 	/*
@@ -410,7 +410,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * When tracking allocation points, each block records the file and the
 	 * line number where it was allocated from.
 	 */
-	size += sizeof(char *) + sizeof(gint);
+	size += sizeof(char *) + sizeof(int);
 #endif
 
 	size = zalloc_round(size);
@@ -462,7 +462,7 @@ zn_create(zone_t *zone, gint size, gint hint)
  * value.
  */
 zone_t *
-zcreate(gint size, gint hint)
+zcreate(int size, int hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
@@ -523,7 +523,7 @@ zdestroy(zone_t *zone)
  * zget() to get the zone, instead of zcreate() to maximize sharing.
  */
 zone_t *
-zget(gint size, gint hint)
+zget(int size, int hint)
 {
 	static hash_table_t *zt;/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
 	zone_t *zone;
@@ -544,7 +544,7 @@ zget(gint size, gint hint)
 	 * it now in order to allow proper lookup in the zone hash table.
 	 */
 
-	if (size < (gint) sizeof(char *))
+	if (size < (int) sizeof(char *))
 		size = sizeof(char *);
 	size = zalloc_round(size);
 

@@ -81,7 +81,7 @@ size_t utf8_strcpy_max(char *dst, size_t dst_size,
 			const char *src, size_t max_chars);
 guint32 utf8_decode_char_fast(const char *s, guint *retlen)
 	NON_NULL_PARAM((1,2));
-gint utf8_to_iso8859(char *s, gint len, gboolean space);
+int utf8_to_iso8859(char *s, int len, gboolean space);
 size_t utf8_strlower(char *dst, const char *src, size_t size);
 char *utf8_strlower_copy(const char *src);
 size_t utf8_strupper(char *dst, const char *src, size_t size);
@@ -375,7 +375,7 @@ gboolean locale_is_utf8(void);
 gboolean utf8_can_latinize(const char *src);
 size_t utf8_latinize(char *dst, size_t dst_size, const char *src);
 
-gint utf16_encode_char(guint32 uc, guint16 *dst);
+int utf16_encode_char(guint32 uc, guint16 *dst);
 
 #define UNICODE_CANONIZE(x) utf8_canonize(x)
 

@@ -126,7 +126,7 @@ pmsg_reset(pmsg_t *mb)
  * @return the message block given as argument.
  */
 static pmsg_t *
-pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, gconstpointer buf, gint len)
+pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, gconstpointer buf, int len)
 {
 	mb->magic = (PMSG_PF_EXT & prio) ? PMSG_EXT_MAGIC : PMSG_MAGIC;
 	mb->m_data = db;
@@ -155,7 +155,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, gconstpointer buf, gint len)
  * @return a message made of one message block referencing one new data block.
  */
 pmsg_t *
-pmsg_new(gint prio, gconstpointer buf, gint len)
+pmsg_new(int prio, gconstpointer buf, int len)
 {
 	pmsg_t *mb;
 	pdata_t *db;
@@ -174,7 +174,7 @@ pmsg_new(gint prio, gconstpointer buf, gint len)
  * Like pmsg_new() but returns an extended form with a free routine callback.
  */
 pmsg_t *
-pmsg_new_extend(gint prio, gconstpointer buf, gint len,
+pmsg_new_extend(int prio, gconstpointer buf, int len,
 	pmsg_free_t free_cb, gpointer arg)
 {
 	pmsg_ext_t *emb;
@@ -203,7 +203,7 @@ pmsg_new_extend(gint prio, gconstpointer buf, gint len,
  * @return new message.
  */
 pmsg_t *
-pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
+pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
 {
 	pmsg_t *mb;
 
@@ -391,11 +391,11 @@ pmsg_free(pmsg_t *mb)
 /**
  * @return amount of data that can be written at the end of the message.
  */
-gint
+int
 pmsg_writable_length(const pmsg_t *mb)
 {
 	pdata_t *arena;
-	gint available;
+	int available;
 
 	pmsg_check_consistency(mb);
 
@@ -415,11 +415,11 @@ pmsg_writable_length(const pmsg_t *mb)
  *
  * @returns amount of written data.
  */
-gint
-pmsg_write(pmsg_t *mb, gconstpointer data, gint len)
+int
+pmsg_write(pmsg_t *mb, gconstpointer data, int len)
 {
 	pdata_t *arena;
-	gint available, written;
+	int available, written;
 
 	pmsg_check_consistency(mb);
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
@@ -439,10 +439,10 @@ pmsg_write(pmsg_t *mb, gconstpointer data, gint len)
 /**
  * Read data from the message, returning the amount of bytes transferred.
  */
-gint
-pmsg_read(pmsg_t *mb, gpointer data, gint len)
+int
+pmsg_read(pmsg_t *mb, gpointer data, int len)
 {
-	gint available, readable;
+	int available, readable;
 
 	pmsg_check_consistency(mb);
 
@@ -460,10 +460,10 @@ pmsg_read(pmsg_t *mb, gpointer data, gint len)
 /**
  * Discard data from the message, returning the amount of bytes discarded.
  */
-gint
-pmsg_discard(pmsg_t *mb, gint len)
+int
+pmsg_discard(pmsg_t *mb, int len)
 {
-	gint available, n;
+	int available, n;
 
 	pmsg_check_consistency(mb);
 
@@ -480,10 +480,10 @@ pmsg_discard(pmsg_t *mb, gint len)
  * Discard trailing data from the message, returning the amount of
  * bytes discarded.
  */
-gint
-pmsg_discard_trailing(pmsg_t *mb, gint len)
+int
+pmsg_discard_trailing(pmsg_t *mb, int len)
 {
-	gint available, n;
+	int available, n;
 
 	pmsg_check_consistency(mb);
 
@@ -525,12 +525,12 @@ pdata_new(int len)
  * arena will be freed with wfree(buf, len) when the data buffer is reclaimed.
  */
 pdata_t *
-pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
+pdata_allocb(void *buf, int len, pdata_free_t freecb, gpointer freearg)
 {
 	pdata_t *db;
 
 	g_assert(valid_ptr(buf));
-	g_assert(len >= (gint) EMBEDDED_OFFSET);
+	g_assert(len >= (int) EMBEDDED_OFFSET);
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
 	db = buf;
@@ -555,7 +555,7 @@ pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
  * the data buffer is reclaimed.
  */
 pdata_t *
-pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
+pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, gpointer freearg)
 {
 	pdata_t *db;
 
@@ -637,11 +637,11 @@ pdata_unref(pdata_t *db)
  *		 which would simply add more unnecessary complexity.
  */
 struct iovec *
-pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
+pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 {
 	struct iovec *iov;
 	size_t held = 0;
-	gint n;
+	int n;
 
 	g_assert(slist);
 
@@ -649,7 +649,7 @@ pmsg_slist_to_iovec(slist_t *slist, gint *iovcnt_ptr, size_t *size_ptr)
 
 	if (n > 0) {
 		slist_iter_t *iter;
-		gint i;
+		int i;
 
 		n = MIN(n, MAX_IOV_COUNT);
 		iov = g_malloc(n * sizeof *iov);

@@ -54,8 +54,8 @@ typedef struct zone zone_t;
  * Memory allocation routines.
  */
 
-zone_t *zcreate(gint, gint);
-zone_t *zget(gint, gint);
+zone_t *zcreate(int, int);
+zone_t *zget(int, int);
 void zdestroy(zone_t *zone);
 
 /*
@@ -78,7 +78,7 @@ void zfree(zone_t *, gpointer);
 
 #define zalloc(z)	zalloc_track(z, _WHERE_, __LINE__)
 
-gpointer zalloc_track(zone_t *z, char *file, gint line);
+gpointer zalloc_track(zone_t *z, char *file, int line);
 
 #endif	/* TRACK_ZALLOC */
 

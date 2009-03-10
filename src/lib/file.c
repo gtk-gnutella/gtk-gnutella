@@ -87,14 +87,14 @@ file_register_fd_reclaimer(reclaim_fd_t callback)
  */
 static FILE *
 open_read(
-	const char *what, const file_path_t *fv, gint fvcnt, gboolean renaming,
-	gint *chosen)
+	const char *what, const file_path_t *fv, int fvcnt, gboolean renaming,
+	int *chosen)
 {
 	FILE *in;
 	char *path;
 	char *path_orig;
 	const char *instead = empty_str;
-	gint idx = 0;
+	int idx = 0;
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
@@ -147,7 +147,7 @@ open_read(
 
 	if (in == NULL && fvcnt > 1) {
 		const file_path_t *xfv;
-		gint xfvcnt;
+		int xfvcnt;
 
 		instead = instead_str;
 
@@ -193,7 +193,7 @@ out:
  * @returns opened FILE, or NULL if we were unable to open any.
  */
 FILE *
-file_config_open_read(const char *what, const file_path_t *fv, gint fvcnt)
+file_config_open_read(const char *what, const file_path_t *fv, int fvcnt)
 {
 	return open_read(what, fv, fvcnt, TRUE, NULL);
 }
@@ -210,7 +210,7 @@ file_config_open_read(const char *what, const file_path_t *fv, gint fvcnt)
  */
 FILE *
 file_config_open_read_norename(
-	const char *what, const file_path_t *fv, gint fvcnt)
+	const char *what, const file_path_t *fv, int fvcnt)
 {
 	return open_read(what, fv, fvcnt, FALSE, NULL);
 }
@@ -221,7 +221,7 @@ file_config_open_read_norename(
  */
 FILE *
 file_config_open_read_norename_chosen(
-	const char *what, const file_path_t *fv, gint fvcnt, gint *chosen)
+	const char *what, const file_path_t *fv, int fvcnt, int *chosen)
 {
 	return open_read(what, fv, fvcnt, FALSE, chosen);
 }
@@ -333,11 +333,11 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
  * Errors are logged as a warning, unless `missing' is true, in which
  * case no error is logged for ENOENT.
  */
-static gint
-do_open(const char *path, gint flags, gint mode, gboolean missing)
+static int
+do_open(const char *path, int flags, int mode, gboolean missing)
 {
 	const char *what;
-	gint fd;
+	int fd;
 
 	if (!is_absolute_path(path)) {
 		errno = EPERM;
@@ -407,8 +407,8 @@ do_open(const char *path, gint flags, gint mode, gboolean missing)
  * Open file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
  */
-gint
-file_open(const char *path, gint flags, gint mode)
+int
+file_open(const char *path, int flags, int mode)
 {
 	return do_open(path, flags, mode, FALSE);
 }
@@ -418,8 +418,8 @@ file_open(const char *path, gint flags, gint mode)
  * Errors are logged as a warning, unless the file is missing, in which
  * case nothing is logged.
  */
-gint
-file_open_missing(const char *path, gint flags)
+int
+file_open_missing(const char *path, int flags)
 {
 	return do_open(path, flags, 0, TRUE);
 }
@@ -428,8 +428,8 @@ file_open_missing(const char *path, gint flags)
  * Create file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
  */
-gint
-file_create(const char *path, gint flags, gint mode)
+int
+file_create(const char *path, int flags, int mode)
 {
 	return do_open(path, flags | O_CREAT, mode, FALSE);
 }
@@ -439,8 +439,8 @@ file_create(const char *path, gint flags, gint mode)
  * Errors are logged as a warning, unless the error is ENOENT which means
  * the directory does not exist.
  */
-gint
-file_create_missing(const char *path, gint flags, gint mode)
+int
+file_create_missing(const char *path, int flags, int mode)
 {
 	return do_open(path, flags | O_CREAT, mode, TRUE);
 }
@@ -520,9 +520,9 @@ file_fopen_missing(const char *path, const char *mode)
 }
 
 void
-file_set_nonblocking(gint fd)
+file_set_nonblocking(int fd)
 {
-	gint ret, flags;
+	int ret, flags;
 
 	ret = fcntl(fd, F_GETFL, 0);
 	flags = ret | VAL_O_NONBLOCK;

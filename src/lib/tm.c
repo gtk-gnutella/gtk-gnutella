@@ -175,7 +175,7 @@ tm_hash(gconstpointer key)
 /**
  * Test two tm_t for equality.
  */
-gint
+int
 tm_equal(gconstpointer a, gconstpointer b)
 {
 	const tm_t *ta = a, *tb = b;

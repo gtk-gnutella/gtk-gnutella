@@ -347,7 +347,7 @@ static inline size_t
 buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef	HAS_VSNPRINTF
 {
-	gint retval;	/* printf()-functions really return int, not size_t */
+	int retval;	/* printf()-functions really return int, not size_t */
 	
 	g_assert(size > 0);	
 
@@ -447,7 +447,7 @@ gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return len;
 }
 
-static gint orig_argc;
+static int orig_argc;
 static char **orig_argv;
 static char **orig_env;
 
@@ -455,7 +455,7 @@ static char **orig_env;
  * Save the original main() arguments.
  */
 void
-gm_savemain(gint argc, char **argv, char **env)
+gm_savemain(int argc, char **argv, char **env)
 {
 	orig_argc = argc;
 	orig_argv = argv;
@@ -482,7 +482,7 @@ str_vec_count(char *strv[])
  * @param env_ptr The original ``env'' variable.
  */
 static struct iovec
-gm_setproctitle_init(gint argc, char *argv[], char *env_ptr[])
+gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 {
 	size_t env_count, n;
 	struct iovec *iov;
@@ -514,7 +514,7 @@ gm_setproctitle_init(gint argc, char *argv[], char *env_ptr[])
 	 * Scrap references to the arguments.
 	 */
 	{
-		gint i;
+		int i;
 
 		for (i = 1; i < argc; i++)
 			argv[i] = NULL;

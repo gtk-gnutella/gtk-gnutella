@@ -43,7 +43,7 @@
  */
 typedef struct {
 	GHashTable *params;		/**< parameter => value (malloc'ed) */
-	gint count;				/**< Amount of parameters */
+	int count;				/**< Amount of parameters */
 } url_params_t;
 
 #define url_params_count(x)	((x)->count)
@@ -66,7 +66,7 @@ char *url_escape(const char *url);
 char *url_escape_query(const char *url);
 char *url_escape_shell(const char *url);
 char *url_fix_escape(const char *url);
-gint url_escape_into(const char *url, char *target, gint len);
+int url_escape_into(const char *url, char *target, int len);
 char *url_escape_cntrl(const char *url);
 char *url_unescape(char *url, gboolean inplace);
 char *url_from_absolute_path(const char *path);

@@ -111,7 +111,7 @@ typedef struct atom {
 #ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;
 #endif /* PROTECT_ATOMS */
-	gint refcnt;			/**< Amount of references */
+	int refcnt;			/**< Amount of references */
 	/* Ensure `arena' is properly aligned */
 	union mem_chunk arena[1];			/* Start of user arena */
 } atom_t;
@@ -515,7 +515,7 @@ guid_hash(gconstpointer key)
 /**
  * Test two GUIDs for equality.
  */
-gint
+int
 guid_eq(gconstpointer a, gconstpointer b)
 {
 /* FIXME:	Disabled because of alignment problems
@@ -574,7 +574,7 @@ sha1_hash(gconstpointer key)
  * @attention
  * NB: This routine is visible for the download mesh.
  */
-gint
+int
 sha1_eq(gconstpointer a, gconstpointer b)
 {
 	return a == b || 0 == memcmp(a, b, SHA1_RAW_SIZE);
@@ -614,7 +614,7 @@ tth_hash(gconstpointer key)
  * @attention
  * NB: This routine is visible for the download mesh.
  */
-gint
+int
 tth_eq(gconstpointer a, gconstpointer b)
 {
 	return a == b || 0 == memcmp(a, b, TTH_RAW_SIZE);
@@ -687,7 +687,7 @@ uint64_str(gconstpointer v)
  *
  * @return whether both referenced 64-bit integers are equal.
  */
-gint
+int
 uint64_eq(gconstpointer a, gconstpointer b)
 {
 	return *(const guint64 *) a == *(const guint64 *) b;
@@ -722,7 +722,7 @@ filesize_str(gconstpointer v)
  *
  * @return whether both referenced 64-bit integers are equal.
  */
-gint
+int
 filesize_eq(gconstpointer a, gconstpointer b)
 {
 	return *(const filesize_t *) a == *(const filesize_t *) b;
@@ -745,7 +745,7 @@ filesize_hash(gconstpointer p)
  *
  * @return whether both referenced 32-bit integers are equal.
  */
-gint
+int
 uint32_eq(gconstpointer a, gconstpointer b)
 {
 	return *(const guint32 *) a == *(const guint32 *) b;
@@ -843,7 +843,7 @@ atom_get(enum atom_type type, gconstpointer key)
 #endif /* __GNUC__ */
 	
     g_assert(key != NULL);
-	g_assert((gint) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert((int) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -922,7 +922,7 @@ atom_free(enum atom_type type, gconstpointer key)
 	atom_t *a;
 
     g_assert(key != NULL);
-	g_assert((gint) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert((int) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	size = atom_is_registered(type, key);
 	g_assert(size > 0);
@@ -951,7 +951,7 @@ atom_free(enum atom_type type, gconstpointer key)
 
 /** Information about given spot. */
 struct spot {
-	gint count;			/**< Amount of allocation/free performed at spot */
+	int count;			/**< Amount of allocation/free performed at spot */
 };
 
 /**
@@ -960,7 +960,7 @@ struct spot {
  * @returns the atom's value.
  */
 gconstpointer
-atom_get_track(enum atom_type type, gconstpointer key, char *file, gint line)
+atom_get_track(enum atom_type type, gconstpointer key, char *file, int line)
 {
 	gconstpointer atom;
 	atom_t *a;
@@ -1024,7 +1024,7 @@ destroy_tracking_table(GHashTable *h)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free_track(enum atom_type type, gconstpointer key, char *file, gint line)
+atom_free_track(enum atom_type type, gconstpointer key, char *file, int line)
 {
 	atom_t *a;
 	char buf[512];

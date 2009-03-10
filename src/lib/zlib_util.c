@@ -52,7 +52,7 @@ RCSID("$Id$")
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
-zlib_strerror(gint errnum)
+zlib_strerror(int errnum)
 {
 	switch (errnum) {
 	case Z_OK:				return "OK";
@@ -103,11 +103,11 @@ zlib_free_func(gpointer unused_opaque, gpointer p)
  */
 static zlib_deflater_t *
 zlib_deflater_alloc(
-	gconstpointer data, gint len, gpointer dest, gint destlen, gint level)
+	gconstpointer data, int len, gpointer dest, int destlen, int level)
 {
 	zlib_deflater_t *zd;
 	z_streamp outz;
-	gint ret;
+	int ret;
 
 	g_assert(level == Z_DEFAULT_COMPRESSION || (level >= 0 && level <= 9));
 
@@ -147,7 +147,7 @@ zlib_deflater_alloc(
 		if (data == NULL && len == 0)
 			len = 512;
 
-		zd->outlen = (gint) (len * 1.005 + 12.0);
+		zd->outlen = (int) (len * 1.005 + 12.0);
 		zd->out = g_malloc(zd->outlen);
 		zd->allocated = TRUE;
 	} else {
@@ -181,7 +181,7 @@ zlib_deflater_alloc(
  * @return new deflater, or NULL if error.
  */
 zlib_deflater_t *
-zlib_deflater_make(gconstpointer data, gint len, gint level)
+zlib_deflater_make(gconstpointer data, int len, int level)
 {
 	return zlib_deflater_alloc(data, len, NULL, 0, level);
 }
@@ -199,7 +199,7 @@ zlib_deflater_make(gconstpointer data, gint len, gint level)
  */
 zlib_deflater_t *
 zlib_deflater_make_into(
-	gconstpointer data, gint len, gpointer dest, gint destlen, gint level)
+	gconstpointer data, int len, gpointer dest, int destlen, int level)
 {
 	return zlib_deflater_alloc(data, len, dest, destlen, level);
 }
@@ -213,14 +213,14 @@ zlib_deflater_make_into(
  *
  * @return -1 on error, 1 if work remains, 0 when done.
  */
-static gint
-zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
+static int
+zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 {
 	z_streamp outz = zd->opaque;
-	gint remaining;
-	gint process;
+	int remaining;
+	int process;
 	gboolean finishing;
-	gint ret;
+	int ret;
 
 	g_assert(amount > 0);
 	g_assert(!zd->closed);
@@ -301,8 +301,8 @@ error:
  *
  * @return -1 on error, 1 if work remains, 0 when done.
  */
-gint
-zlib_deflate(zlib_deflater_t *zd, gint amount)
+int
+zlib_deflate(zlib_deflater_t *zd, int amount)
 {
 	return zlib_deflate_step(zd, amount, TRUE);
 }
@@ -314,7 +314,7 @@ zlib_deflate(zlib_deflater_t *zd, gint amount)
  * @returns TRUE if OK, FALSE on error.
  */
 gboolean
-zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, gint len)
+zlib_deflate_data(zlib_deflater_t *zd, gconstpointer data, int len)
 {
 	z_streamp outz = zd->opaque;
 
@@ -339,7 +339,7 @@ gboolean
 zlib_deflate_close(zlib_deflater_t *zd)
 {
 	z_streamp outz = zd->opaque;
-	gint ret;
+	int ret;
 
 	g_assert(!zd->closed);
 	g_assert(outz != NULL);			/* Stream not closed yet */
@@ -367,7 +367,7 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 	z_streamp outz = zd->opaque;
 
 	if (outz) {
-		gint ret = deflateEnd(outz);
+		int ret = deflateEnd(outz);
 
 		if (ret != Z_OK && ret != Z_DATA_ERROR)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
@@ -387,9 +387,9 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
  * @return allocated uncompressed data if OK, NULL on error.
  */
 gpointer
-zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len)
+zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
 {
-	gint ret;
+	int ret;
 	guchar *out = g_malloc(uncompressed_len);
 	gulong retlen = uncompressed_len;
 
@@ -419,12 +419,12 @@ zlib_uncompress(gconstpointer data, gint len, gulong uncompressed_len)
  *
  * @return zlib's status: Z_OK on OK, error code otherwise.
  */
-gint
-zlib_inflate_into(gconstpointer data, gint len, gpointer out, gint *outlen)
+int
+zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen)
 {
 	z_streamp inz;
-	gint ret;
-	gint inflated = 0;
+	int ret;
+	int inflated = 0;
 
 	g_assert(data != NULL);
 	g_assert(len > 0);
@@ -487,7 +487,7 @@ done:
  * Check whether first bytes of data make up a valid zlib marker.
  */
 gboolean
-zlib_is_valid_header(gconstpointer data, gint len)
+zlib_is_valid_header(gconstpointer data, int len)
 {
 	const guchar *p = data;
 	guint16 check;

@@ -45,7 +45,7 @@ RCSID("$Id$")
  * Allocate a pool descriptor.
  */
 pool_t *
-pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t dealloc)
+pool_create(size_t size, int max, pool_alloc_t alloc, pool_free_t dealloc)
 {
 	pool_t *p;
 
@@ -64,7 +64,7 @@ pool_create(size_t size, gint max, pool_alloc_t alloc, pool_free_t dealloc)
 void
 pool_free(pool_t *p)
 {
-	gint outstanding;
+	int outstanding;
 	GSList *sl;
 
 	/*

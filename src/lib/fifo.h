@@ -47,7 +47,7 @@ typedef void (*fifo_free_t)(gpointer item, gpointer udata);
 fifo_t *fifo_make(void);
 void fifo_free(fifo_t *f);
 void fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata);
-gint fifo_count(fifo_t *f);
+int fifo_count(fifo_t *f);
 void fifo_put(fifo_t *f, gconstpointer data);
 gpointer fifo_remove(fifo_t *f);
 

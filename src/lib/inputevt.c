@@ -138,7 +138,7 @@ typedef struct {
 	inputevt_handler_t handler;
 	gpointer data;
 	inputevt_cond_t condition;
-	gint fd;
+	int fd;
 } inputevt_relay_t;
 
 typedef struct relay_list {
@@ -158,7 +158,7 @@ struct poll_ctx {
 	GHashTable *ht;				/**< Records file descriptors */
 	guint num_ev;				/**< Length of the "ev" and "relay" arrays */
 	guint num_ready;			/**< Used for /dev/poll only */
-	gint fd;					/**< The ``master'' fd for epoll or kqueue */
+	int fd;					/**< The ``master'' fd for epoll or kqueue */
 	gboolean initialized;		/**< TRUE if the context has been initialized */
 	gboolean dispatching;		/**< TRUE if dispatching events */
 };
@@ -185,7 +185,7 @@ inputevt_data_available(void)
 
 static guint data_available;	/** Used by inputevt_data_available(). */
 
-static inline gint
+static inline int
 get_poll_event_fd(gpointer p)
 {
 	struct kevent *ev = p;
@@ -236,15 +236,15 @@ create_poll_fd(void)
 	return kqueue();
 }
 
-static gint
-update_poll_event(struct poll_ctx *poll_ctx, gint fd,
+static int
+update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	static const struct timespec zero_ts;
 	struct kevent kev[2];
 	size_t i;
 	gpointer udata;
-	gint ret;
+	int ret;
 
 	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
 		return 0;
@@ -288,7 +288,7 @@ check_poll_events(struct poll_ctx *poll_ctx)
 
 #if defined(HAS_EPOLL)
 
-static inline gint
+static inline int
 get_poll_event_fd(gpointer p)
 {
 	struct epoll_event *ev = p;
@@ -316,13 +316,13 @@ create_poll_fd(void)
 	return epoll_create(1024 /* Just an arbitrary value as hint */);
 }
 
-static gint
-update_poll_event(struct poll_ctx *poll_ctx, gint fd,
+static int
+update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
-	gint op;
+	int op;
 
 	old &= INPUT_EVENT_RW;
 	cur &= INPUT_EVENT_RW;
@@ -365,8 +365,8 @@ create_poll_fd(void)
 	return get_non_stdio_fd(open("/dev/poll", O_RDWR));
 }
 
-static gint
-update_poll_event(struct poll_ctx *poll_ctx, gint fd,
+static int
+update_poll_event(struct poll_ctx *poll_ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
 	old &= INPUT_EVENT_RW;
@@ -374,7 +374,7 @@ update_poll_event(struct poll_ctx *poll_ctx, gint fd,
 	if (cur != old) {
 		static const struct pollfd zero_pfd;
 		struct pollfd pfd[2];
-		gint i = 0;
+		int i = 0;
 
 		if (0 != old) {
 			pfd[i] = zero_pfd;
@@ -425,7 +425,7 @@ get_poll_event_cond(gpointer p)
 		| ((POLLERR | POLLNVAL) & ev->revents ? INPUT_EVENT_EXCEPTION : 0);
 }
 
-static inline gint
+static inline int
 get_poll_event_fd(gpointer p)
 {
 	const struct pollfd *pfd = p;
@@ -463,12 +463,12 @@ poll_events_to_gio_cond(short events)
 }
 
 static void
-check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
+check_dev_poll(struct poll_ctx *poll_ctx, int *timeout_ms_ptr)
 {
 	struct dvpoll dvp; 
 	tm_t before, after;
 	time_delta_t d;
-	gint ret, timeout_ms;
+	int ret, timeout_ms;
 
 	g_assert(poll_ctx);
 	g_assert(timeout_ms_ptr);
@@ -514,15 +514,15 @@ check_dev_poll(struct poll_ctx *poll_ctx, gint *timeout_ms_ptr)
  * This code is only used for /dev/poll. This is necessary because the
  * device does not support polling...
  */
-static gint
-poll_func(GPollFD *gfds, guint n, gint timeout_ms)
+static int
+poll_func(GPollFD *gfds, guint n, int timeout_ms)
 {
 	struct poll_ctx *poll_ctx;
 	struct pollfd local_pfds[16], *pfds;
 	size_t w_size = 0;
 	gpointer w_buf = NULL;
 	gboolean do_check = FALSE;
-	gint ret;
+	int ret;
 
 	poll_ctx = get_global_poll_ctx();
 	g_assert(poll_ctx);
@@ -653,7 +653,7 @@ inputevt_add_source_with_glib(inputevt_relay_t *relay)
 static void
 inputevt_timer(struct poll_ctx *poll_ctx)
 {
-	gint n, i;
+	int n, i;
 
 	g_assert(poll_ctx);
 	g_assert(poll_ctx->initialized);
@@ -682,7 +682,7 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 		inputevt_cond_t cond;
 		relay_list_t *rl;
 		GSList *sl;
-		gint fd;
+		int fd;
 
 		cond = get_poll_event_cond(&poll_ctx->ev_arr.ev[i]);
 		fd = get_poll_event_fd(&poll_ctx->ev_arr.ev[i]);
@@ -723,7 +723,7 @@ inputevt_timer(struct poll_ctx *poll_ctx)
 			inputevt_relay_t *relay;
 			relay_list_t *rl;
 			guint id;
-			gint fd;
+			int fd;
 
 			id = GPOINTER_TO_UINT(sl->data);
 			g_assert(id > 0);
@@ -804,7 +804,7 @@ inputevt_remove(guint id)
 		inputevt_relay_t *relay;
 		relay_list_t *rl;
 		inputevt_cond_t old, cur;
-		gint fd;
+		int fd;
 
 		g_assert(poll_ctx->ht);
 		g_assert(id < poll_ctx->num_ev);
@@ -1060,7 +1060,7 @@ inputevt_init(void)
  * been removed (since gtkg does not use it).
  */
 guint
-inputevt_add(gint fd, inputevt_cond_t cond,
+inputevt_add(int fd, inputevt_cond_t cond,
 	inputevt_handler_t handler, gpointer data)
 {
 	inputevt_relay_t *relay = walloc(sizeof *relay);

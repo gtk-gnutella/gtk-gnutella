@@ -192,23 +192,23 @@ void atoms_close(void);
  * Hash functions and equality checks
  */
 guint filesize_hash(gconstpointer key);
-gint filesize_eq(gconstpointer a, gconstpointer b);
+int filesize_eq(gconstpointer a, gconstpointer b);
 guint sha1_hash(gconstpointer key);
-gint sha1_eq(gconstpointer a, gconstpointer b);
+int sha1_eq(gconstpointer a, gconstpointer b);
 guint tth_hash(gconstpointer key);
-gint tth_eq(gconstpointer a, gconstpointer b);
+int tth_eq(gconstpointer a, gconstpointer b);
 guint guid_hash(gconstpointer key);
-gint guid_eq(gconstpointer a, gconstpointer b);
+int guid_eq(gconstpointer a, gconstpointer b);
 guint uint64_hash(gconstpointer key);
-gint uint64_eq(gconstpointer a, gconstpointer b);
+int uint64_eq(gconstpointer a, gconstpointer b);
 guint binary_hash(const guchar *key, guint len);
 guint uint32_hash(gconstpointer key);
-gint uint32_eq(gconstpointer a, gconstpointer b);
+int uint32_eq(gconstpointer a, gconstpointer b);
 
 #ifdef TRACK_ATOMS
 gconstpointer atom_get_track(enum atom_type, gconstpointer key,
-			char *file, gint line);
-void atom_free_track(enum atom_type, gconstpointer key, char *file, gint line);
+			char *file, int line);
+void atom_free_track(enum atom_type, gconstpointer key, char *file, int line);
 #endif
 
 

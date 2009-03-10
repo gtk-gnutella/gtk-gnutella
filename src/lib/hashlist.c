@@ -61,10 +61,10 @@ typedef enum {
 
 struct hash_list {
 	hash_list_magic_t magic;
-	gint refcount;
+	int refcount;
 	GHashTable *ht;
 	GList *head, *tail;
-	gint len;
+	int len;
 	guint stamp;
 };
 

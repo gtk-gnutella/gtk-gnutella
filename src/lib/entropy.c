@@ -124,8 +124,8 @@ entropy_collect(struct sha1 *digest)
 
 		for (;;) {
 			guint8 data[1024];
-			gint r;
-			gint len = is_pipe ? sizeof(data) : 128;
+			int r;
+			int len = is_pipe ? sizeof(data) : 128;
 
 			r = fread(data, 1, len, f);
 			SHA1Input(&ctx, f, sizeof *f);	/* Changes as we read */
