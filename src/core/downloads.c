@@ -1587,9 +1587,11 @@ download_found_server(const struct guid *guid,
 						host_addr_port_to_string(addr, port));
 				}
 
+				g_hash_table_remove(dl_by_host, key);
 				gnet_stats_count_general(GNR_DISCOVERED_SERVER_GUID, 1);
 				atom_guid_change(&key->guid, guid);
 				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
+				g_hash_table_insert(dl_by_host, key, server);
 			}
 		} else {
 			if (GNET_PROPERTY(download_debug)) {
