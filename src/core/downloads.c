@@ -3966,7 +3966,7 @@ download_force_stop(struct download *d,
 
 	g_return_if_fail(d->list_idx != DL_LIST_STOPPED);
 
-	d->unavailable = FALSE;
+	d->unavailable = TRUE;		/* Want it removed from the GUID */
 
 	/* So we may safely call download_stop_v() */
 	if (d->list_idx != DL_LIST_RUNNING) {
