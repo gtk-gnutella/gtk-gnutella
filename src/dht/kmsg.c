@@ -530,7 +530,7 @@ k_send_find_node_response(
 /**
  * qsort() callback to compare two DHT values on a length basis.
  */
-static gint
+static int
 dht_value_cmp(const void *a, const void *b)
 {
 	const dht_value_t * const *pa = a;

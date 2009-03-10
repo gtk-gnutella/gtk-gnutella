@@ -3344,7 +3344,7 @@ dht_route_parse(FILE *f)
 		tag_name = line;
 
 		tag = dht_route_string_to_tag(tag_name);
-		g_assert((gint) tag >= 0 && tag <= NUM_DHT_ROUTE_TAGS);
+		g_assert((int) tag >= 0 && tag <= NUM_DHT_ROUTE_TAGS);
 
 		if (tag != DHT_ROUTE_TAG_UNKNOWN && !bit_array_flip(tag_used, tag)) {
 			g_warning("dht_route_parse(): "
