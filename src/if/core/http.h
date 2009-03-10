@@ -61,7 +61,7 @@ typedef struct http_range {
 
 #ifdef CORE_SOURCES
 
-const gchar *http_range_to_string(const GSList *list);
+const char *http_range_to_string(const GSList *list);
 GSList *http_range_merge(GSList *list1, GSList *list2);
 
 #endif /* CORE_SOURCES */

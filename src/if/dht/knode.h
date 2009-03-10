@@ -80,10 +80,10 @@ typedef struct knode {
 void knode_free(knode_t *kn);
 unsigned int knode_hash(gconstpointer key);
 int knode_eq(gconstpointer a, gconstpointer b);
-const gchar * knode_status_to_string(knode_status_t status);
-const gchar *knode_to_string(const knode_t *kn);
-const gchar *knode_to_string2(const knode_t *kn);
-const gchar *knode_to_string_buf(const knode_t *kn, char buf[], size_t len);
+const char * knode_status_to_string(knode_status_t status);
+const char *knode_to_string(const knode_t *kn);
+const char *knode_to_string2(const knode_t *kn);
+const char *knode_to_string_buf(const knode_t *kn, char buf[], size_t len);
 
 static inline void
 knode_check(const knode_t *kn)

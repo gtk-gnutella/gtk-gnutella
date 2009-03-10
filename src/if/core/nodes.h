@@ -40,7 +40,7 @@ typedef const struct node_id *node_id_t;
 node_id_t node_id_ref(const node_id_t node_id);
 void node_id_unref(const node_id_t node_id);
 
-const gchar *node_id_to_string(const node_id_t node_id);
+const char *node_id_to_string(const node_id_t node_id);
 
 #define node_id_eq_func ((GCompareFunc) node_id_eq)
 gboolean node_id_eq(const node_id_t a, const node_id_t b);
@@ -60,7 +60,7 @@ enum rnode_mode {
  */
 typedef struct rnode_info {
 	/* General information always returned */
-	gchar vendor[4];			/**< Vendor code */
+	char vendor[4];			/**< Vendor code */
 	enum rnode_mode mode;		/**< Running configuration */
 	guint32 answer_flags;		/**< Flags for the "Node Info Reply" message */
 	guint32 op_flags;			/**< Operating flags */
@@ -96,7 +96,7 @@ typedef struct rnode_info {
 	guint64 cpu_sys;			/**< Total kernel CPU time used, in ms */
 	/* Information sent via optional GGEP blocks */
 	guint32 ggep_du;			/**< Daily average uptime, from "DU" */
-	const gchar *ggep_ua;		/**< User-Agent string (atom), from "UA" */
+	const char *ggep_ua;		/**< User-Agent string (atom), from "UA" */
 	host_addr_t ggep_ipv6;		/**< IPv6 address */
 } rnode_info_t;
 
@@ -275,7 +275,7 @@ typedef struct gnet_node_status {
 	guint32 udp_rtt;			/**< RTT in ms over UDP */
 
     guint     shutdown_remain;   /**< Number of seconds before shutdown */
-    gchar    message[128];		/**< Additional information */
+    char    message[128];		/**< Additional information */
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
@@ -283,8 +283,8 @@ typedef struct gnet_node_info {
 
 	struct guid gnet_guid;	/**< Seen on network (can be blank) */
 
-    gchar *error_str;       /**< To sprintf() error strings with vars */
-	const gchar *vendor;	/**< Vendor information (always UTF-8) */
+    char *error_str;       /**< To sprintf() error strings with vars */
+	const char *vendor;	/**< Vendor information (always UTF-8) */
 
 	int proto_major;		/**< Protocol major number */
 	int proto_minor;		/**< Protocol minor number */
@@ -395,7 +395,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
  * Nodes public interface
  */
 void node_add(const host_addr_t addr, guint16, guint32 flags);
-void node_add_by_name(const gchar *host, guint16, guint32 flags);
+void node_add_by_name(const char *host, guint16, guint32 flags);
 void node_remove_by_id(const node_id_t node_id);
 void node_remove_nodes_by_id(const GSList *node_list);
 gboolean node_get_status(const node_id_t node_id, gnet_node_status_t *s);
@@ -404,8 +404,8 @@ void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
 gboolean node_fill_flags(const node_id_t node_id, gnet_node_flags_t *flags);
 gboolean node_fill_info(const node_id_t node_id, gnet_node_info_t *info);
-const gchar *node_flags_to_string(const gnet_node_flags_t *flags);
-const gchar *node_peermode_to_string(node_peer_t m);
+const char *node_flags_to_string(const gnet_node_flags_t *flags);
+const char *node_peermode_to_string(node_peer_t m);
 
 
 #endif /* CORE_SOURCES */

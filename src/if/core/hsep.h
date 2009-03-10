@@ -58,7 +58,7 @@ typedef struct {
 	int random_skew;		/**< additonal random delay for next exchange */
 } hsep_ctx_t;
 
-const gchar *hsep_get_static_str(int row, int column);
+const char *hsep_get_static_str(int row, int column);
 int hsep_get_table_size(void);
 void hsep_get_non_hsep_triple(hsep_triple *tripledest);
 void hsep_add_global_table_listener(GCallback cb,

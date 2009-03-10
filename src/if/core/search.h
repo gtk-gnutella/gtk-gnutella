@@ -161,9 +161,9 @@ typedef struct gnet_results_set {
 	host_addr_t last_hop;		/**< IP of delivering node */
 
 	const struct guid *guid;	/**< Servent's GUID (atom) */
-	const gchar *hostname;		/**< Optional: server's hostname */
-	const gchar *version;		/**< Version information (atom) */
-	const gchar *query;			/**< Optional: Original query string (atom) */
+	const char *hostname;		/**< Optional: server's hostname */
+	const char *version;		/**< Version information (atom) */
+	const char *query;			/**< Optional: Original query string (atom) */
 	gnet_host_vec_t *proxies;	/**< Optional: known push proxies */
 	GSList *records;
 
@@ -198,12 +198,12 @@ enum {
  * as identified by the parent results_set structure that contains this hit.
  */
 typedef struct gnet_record {
-	const gchar  *name;			/**< File name */
+	const char  *name;			/**< File name */
 	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
 	const struct tth *tth;		/**< TTH URN (binary form, atom) */
-	const gchar  *tag;			/**< Optional tag data string (atom) */
-	const gchar  *xml;			/**< Optional XML data string (atom) */
-	const gchar  *path;			/**< Optional path (atom) */
+	const char  *tag;			/**< Optional tag data string (atom) */
+	const char  *xml;			/**< Optional XML data string (atom) */
+	const char  *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
@@ -224,7 +224,7 @@ typedef enum {
  */
 
 typedef void (*search_request_listener_t) (
-    query_type_t, const gchar *query, const host_addr_t addr, guint16);
+    query_type_t, const char *query, const host_addr_t addr, guint16);
 
 typedef void (*search_got_results_listener_t)
     (GSList *, const gnet_results_set_t *);
@@ -244,7 +244,7 @@ enum search_new_result {
 
 #ifdef CORE_SOURCES
 
-enum search_new_result search_new(gnet_search_t *ptr, const gchar *,
+enum search_new_result search_new(gnet_search_t *ptr, const char *,
 			time_t create_time, guint lifetime, guint32 timeout, flag_t flags);
 void search_close(gnet_search_t);
 
@@ -258,7 +258,7 @@ gboolean search_is_stopped(gnet_search_t sh);
 void search_reissue(gnet_search_t);
 void search_add_kept(gnet_search_t, guint32 kept);
 
-const gchar *search_query(gnet_search_t);
+const char *search_query(gnet_search_t);
 
 gboolean search_is_active(gnet_search_t);
 gboolean search_is_browse(gnet_search_t);
@@ -278,10 +278,10 @@ void search_free_alt_locs(gnet_record_t *);
 void search_update_items(gnet_search_t, guint32 items);
 
 gboolean search_browse(gnet_search_t,
-	const gchar *hostname, host_addr_t addr, guint16 port,
+	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
-gboolean search_locally(gnet_search_t sh, const gchar *query);
-guint search_handle_magnet(const gchar *url);
+gboolean search_locally(gnet_search_t sh, const char *query);
+guint search_handle_magnet(const char *url);
 
 void search_got_results_listener_add(search_got_results_listener_t);
 void search_got_results_listener_remove(search_got_results_listener_t);

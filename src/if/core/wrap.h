@@ -54,7 +54,7 @@ typedef struct wrap_buf {
 	size_t	pos;		/**< Current position in the buffer. */
 	size_t	len;		/**< Amount of currently buffered bytes. */
 	size_t	size;		/**< The size of the buffer. */
-	gchar	*ptr;		/**< The walloc()ed buffer. */
+	char	*ptr;		/**< The walloc()ed buffer. */
 } wrap_buf_t;
 
 #endif /* _if_core_wrap_h_ */

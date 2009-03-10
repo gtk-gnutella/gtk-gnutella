@@ -54,7 +54,7 @@ struct cproxy {
 
 	host_addr_t addr;		/**< IP of the proxy servent */
 	guint16 port;			/**< Port of the proxy servent */
-	const gchar *server;	/**< Server string */
+	const char *server;	/**< Server string */
 	const struct guid *guid;/**< GUID (atom) to which push should be sent */
 	guint32 file_idx;		/**< File index to request */
 	gpointer http_handle;	/**< Asynchronous HTTP request handle */

@@ -48,9 +48,9 @@ kuid_copy(kuid_t *dest, const kuid_t *other)
  * Public interface.
  */
 
-const gchar *kuid_to_string(const kuid_t *kuid);
-const gchar *kuid_to_hex_string(const kuid_t *kuid);
-const gchar *kuid_to_hex_string2(const kuid_t *kuid);
+const char *kuid_to_string(const kuid_t *kuid);
+const char *kuid_to_hex_string(const kuid_t *kuid);
+const char *kuid_to_hex_string2(const kuid_t *kuid);
 
 kuid_t *kuid_get_atom(const kuid_t *id);
 void kuid_atom_free(const kuid_t *k);

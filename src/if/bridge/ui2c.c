@@ -69,7 +69,7 @@
 
 /*	adns interface functions (UI -> Core)*/
 gboolean
-guc_adns_resolve(const gchar *hostname,
+guc_adns_resolve(const char *hostname,
 	adns_callback_t user_callback, gpointer user_data)
 {
 	return adns_resolve(hostname, settings_dns_net(), user_callback, user_data);
@@ -96,31 +96,31 @@ guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
 }
 
 /*	download and src interface functions (UI -> Core)*/
-gchar *
+char *
 guc_download_build_url(const struct download *d)
 {
 	return download_build_url(d);
 }
 
-gchar *
+char *
 guc_file_info_build_magnet(gnet_fi_t handle)
 {
 	return file_info_build_magnet(handle);
 }
 
-gchar *
+char *
 guc_file_info_get_file_url(gnet_fi_t handle)
 {
 	return file_info_get_file_url(handle);
 }
 
-const gchar *
+const char *
 guc_file_info_status_to_string(const gnet_fi_status_t *status)
 {
 	return file_info_status_to_string(status);
 }
 
-gint
+int
 guc_download_get_http_req_percent(const struct download *d)
 {
 	return download_get_http_req_percent(d);
@@ -133,7 +133,7 @@ guc_download_fallback_to_push(struct download *d, gboolean on_timeout,
 	download_fallback_to_push(d, on_timeout, user_request);
 }
 
-gint
+int
 guc_download_remove_all_from_peer(const struct guid *guid,
 	const host_addr_t addr, guint16 port, gboolean unavailable)
 {
@@ -202,26 +202,26 @@ guc_download_clear_stopped(gboolean complete,
 }
 
 guint
-guc_download_handle_magnet(const gchar *url)
+guc_download_handle_magnet(const char *url)
 {
 	return download_handle_magnet(url);
 }
 
 gboolean
-guc_download_new(const gchar *filename,
-	const gchar *uri,
+guc_download_new(const char *filename,
+	const char *uri,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
 	const struct guid *guid,
-	const gchar *hostname,
+	const char *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
 	guint32 flags,
-	const gchar *parq_id)
+	const char *parq_id)
 {
 	return download_new(filename,
 			uri,
@@ -240,12 +240,12 @@ guc_download_new(const gchar *filename,
 }
 
 void
-guc_download_auto_new(const gchar *filename,
+guc_download_auto_new(const char *filename,
 	filesize_t size,
 	const host_addr_t addr,
 	guint16 port,
 	const struct guid *guid,
-	const gchar *hostname,
+	const char *hostname,
 	const struct sha1 *sha1,
 	const struct tth *tth,
 	time_t stamp,
@@ -267,19 +267,19 @@ guc_download_auto_new(const gchar *filename,
 		flags);
 }
 
-const gchar *
+const char *
 guc_download_get_hostname(const struct download *d)
 {
 	return download_get_hostname(d);
 }
 
-const gchar *
+const char *
 guc_download_get_country(const struct download *d)
 {
 	return iso3166_country_cc(download_country(d));
 }
 
-const gchar *
+const char *
 guc_download_get_vendor(const struct download *d)
 {
 	return download_vendor_str(d);
@@ -331,7 +331,7 @@ guc_src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
 
 
 /*	fileinfo interface functions (UI -> Core)*/
-const gchar *
+const char *
 guc_file_info_readable_filename(fileinfo_t *fi)
 {
 	return file_info_readable_filename(fi);
@@ -355,7 +355,7 @@ guc_fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 	fi_get_status(fih, s);
 }
 
-gchar **
+char **
 guc_fi_get_aliases(gnet_fi_t fih)
 {
 	return fi_get_aliases(fih);
@@ -447,7 +447,7 @@ guc_gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats)
 	gnet_get_bw_stats(type, stats);
 }
 
-const gchar *
+const char *
 guc_gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 {
 	return gnet_stats_drop_reason_to_string(reason);
@@ -473,13 +473,13 @@ guc_hcache_get_stats(hcache_stats_t *stats)
 }
 
 /*	HSEP interface functions (UI -> Core)*/
-const gchar *
-guc_hsep_get_static_str(gint row, gint column)
+const char *
+guc_hsep_get_static_str(int row, int column)
 {
 	return hsep_get_static_str(row, column);
 }
 
-gint
+int
 guc_hsep_get_table_size(void)
 {
 	return hsep_get_table_size();
@@ -507,7 +507,7 @@ guc_hsep_remove_global_table_listener(GCallback cb)
 
 
 /*	HTTP interface functions (UI -> Core)*/
-const gchar *
+const char *
 guc_http_range_to_string(const GSList *list)
 {
 	return http_range_to_string(list);
@@ -623,38 +623,38 @@ guc_node_fill_info(const node_id_t node_id, gnet_node_info_t *info)
 	return node_fill_info(node_id, info);
 }
 
-const gchar *
+const char *
 guc_node_flags_to_string(const gnet_node_flags_t *flags)
 {
 	return node_flags_to_string(flags);
 }
 
-const gchar *
+const char *
 guc_node_peermode_to_string(node_peer_t m)
 {
 	return node_peermode_to_string(m);
 }
 
 /*	parq interface functions (UI -> Core)*/
-gint
+int
 guc_get_parq_dl_position(const struct download *d)
 {
 	return get_parq_dl_position(d);
 }
 
-gint
+int
 guc_get_parq_dl_queue_length(const struct download *d)
 {
 	return get_parq_dl_queue_length(d);
 }
 
-gint
+int
 guc_get_parq_dl_eta(const struct download *d)
 {
 	return get_parq_dl_eta(d);
 }
 
-gint
+int
 guc_get_parq_dl_retry_delay(const struct download *d)
 {
 	return get_parq_dl_retry_delay(d);
@@ -662,7 +662,7 @@ guc_get_parq_dl_retry_delay(const struct download *d)
 
 /*	search interface functions (UI -> Core)*/
 guint
-guc_search_handle_magnet(const gchar *url)
+guc_search_handle_magnet(const char *url)
 {
 	return search_handle_magnet(url);
 }
@@ -703,7 +703,7 @@ guc_search_set_create_time(gnet_search_t sh, time_t t)
 	search_set_create_time(sh, t);
 }
 
-const gchar *
+const char *
 guc_search_query(gnet_search_t sh)
 {
 	return search_query(sh);
@@ -746,7 +746,7 @@ guc_search_is_frozen(gnet_search_t sh)
 }
 
 enum search_new_result
-guc_search_new(gnet_search_t *ptr, const gchar *query,
+guc_search_new(gnet_search_t *ptr, const char *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
 {
 	return search_new(ptr, query,
@@ -755,14 +755,14 @@ guc_search_new(gnet_search_t *ptr, const gchar *query,
 
 gboolean
 guc_search_browse(gnet_search_t sh,
-	const gchar *hostname, host_addr_t addr, guint16 port,
+	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
 {
 	return search_browse(sh, hostname, addr, port, guid, proxies, flags);
 }
 
 gboolean
-guc_search_locally(gnet_search_t sh, const gchar *query)
+guc_search_locally(gnet_search_t sh, const char *query)
 {
 	return search_locally(sh, query);
 }
@@ -808,13 +808,13 @@ guc_listen_addr(enum net_type net)
 	return listen_addr_by_net(net);
 }
 
-const gchar *
+const char *
 guc_settings_home_dir(void)
 {
 	return settings_home_dir();
 }
 
-const gchar *
+const char *
 guc_settings_config_dir(void)
 {
 	return settings_config_dir();
@@ -823,7 +823,7 @@ guc_settings_config_dir(void)
 
 /*	share interface functions (UI -> Core)*/
 void
-guc_shared_dir_add(const gchar * path)
+guc_shared_dir_add(const char * path)
 {
 	shared_dir_add(path);
 }
@@ -964,7 +964,7 @@ guc_upload_stats_clear_all(void)
 }
 
 /**	version interface functions (UI -> Core)*/
-const gchar *
+const char *
 guc_version_get_version_string(void)
 {
 	return version_get_string();
@@ -972,7 +972,7 @@ guc_version_get_version_string(void)
 
 /**	main interface functions (UI -> Core)*/
 void
-guc_gtk_gnutella_exit(gint code)
+guc_gtk_gnutella_exit(int code)
 {
 	gtk_gnutella_exit(code);
 }

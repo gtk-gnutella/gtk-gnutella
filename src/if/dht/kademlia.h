@@ -159,11 +159,11 @@ kademlia_ipv4_contact_set_minor_version(const void *contact, guint8 minor)
  * Byte 6-25: the Kademlia node ID of the contact.
  */
 
-static inline const gchar *
+static inline const char *
 kademlia_ipv4_contact_get_kuid(const void *contact)
 {
 	guint8 *u8 = (void *) contact;
-	return (const gchar *) &u8[6];
+	return (const char *) &u8[6];
 }
 
 static inline void
@@ -378,7 +378,7 @@ kademlia_header_set_contact_minor_version(void *header, guint8 minor)
 	kademlia_ipv4_contact_set_minor_version(&u8[24], minor);
 }
 
-static inline const gchar *
+static inline const char *
 kademlia_header_get_contact_kuid(const void *header)
 {
 	guint8 *u8 = (void *) header;
