@@ -30,11 +30,11 @@
 
 #define ISO3166_INVALID ((guint16)-1)
 
-guint16 iso3166_encode_cc(const gchar *cc);
+guint16 iso3166_encode_cc(const char *cc);
 void iso3166_init(void);
 void iso3166_close(void);
-const gchar *iso3166_country_name(guint16 code);
-const gchar *iso3166_country_cc(guint16 code);
+const char *iso3166_country_name(guint16 code);
+const char *iso3166_country_cc(guint16 code);
 
 #endif /* _lib_iso3166_h_ */
 /* vi: set ts=4 sw=4 cindent: */

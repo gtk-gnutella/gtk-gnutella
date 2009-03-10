@@ -52,7 +52,7 @@ enum {
  * to the entry if found, or NULL if it wasn't.
  */
 static option_t *
-option_lookup(gchar letter, option_t *ovec, gint osize)
+option_lookup(char letter, option_t *ovec, gint osize)
 {
 	gint i;
 
@@ -68,12 +68,12 @@ option_lookup(gchar letter, option_t *ovec, gint osize)
 	return NULL;
 }
 
-static gchar error_string[80];
+static char error_string[80];
 
 /**
  * Returns error string resulting from the last call to options_parse().
  */
-const gchar *
+const char *
 options_parse_last_error(void)
 {
 	return error_string;
@@ -97,7 +97,7 @@ options_parse_last_error(void)
  * @return The number of options processed and validated, -1 on error.
  */
 gint
-options_parse(const gchar *argv[], option_t *ovec, gint osize)
+options_parse(const char *argv[], option_t *ovec, gint osize)
 {
 	guchar options[127];	/* ASCII only */
 	option_t *current;
@@ -141,7 +141,7 @@ options_parse(const gchar *argv[], option_t *ovec, gint osize)
 
 	current = NULL;
 	for (i = 0; NULL != argv[i]; i++) {
-		const gchar *arg = argv[i];
+		const char *arg = argv[i];
 		guchar c;
 
 		if (0 == i)

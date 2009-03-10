@@ -42,9 +42,9 @@
 #include "lib/misc.h"
 
 struct magnet_source {
-	const gchar *url;			/* string atom */
-	const gchar *hostname;		/* string atom */
-	const gchar *path;			/* string atom */
+	const char *url;			/* string atom */
+	const char *hostname;		/* string atom */
+	const char *path;			/* string atom */
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
 	const struct guid *guid;	/* GUID atom */
@@ -53,39 +53,39 @@ struct magnet_source {
 };
 
 struct magnet_resource {
-	const gchar *display_name;	/* string atom */
+	const char *display_name;	/* string atom */
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
-	const gchar *parq_id;		/* string atom */
+	const char *parq_id;		/* string atom */
 	GSList *sources;	/* List of walloc()ed (struct magnet_source *) */
 	GSList *searches;	/* List of string atoms */
 	filesize_t size;
 };
 
-struct magnet_resource *magnet_parse(const gchar *url, const gchar **error_str);
-struct magnet_source *magnet_parse_exact_source(const gchar *uri,
-							const gchar **error_str);
+struct magnet_resource *magnet_parse(const char *url, const char **error_str);
+struct magnet_source *magnet_parse_exact_source(const char *uri,
+							const char **error_str);
 
 void magnet_source_free(struct magnet_source **ms_ptr);
 void magnet_resource_free(struct magnet_resource **res_ptr);
 
 struct magnet_resource *magnet_resource_new(void);
 struct magnet_source *magnet_source_new(void);
-gchar *magnet_to_string(struct magnet_resource *res);
+char *magnet_to_string(struct magnet_resource *res);
 void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
-void magnet_set_display_name(struct magnet_resource *res, const gchar *name);
+void magnet_set_display_name(struct magnet_resource *res, const char *name);
 gboolean magnet_set_exact_topic(struct magnet_resource *res,
-			const gchar *topic);
+			const char *topic);
 void magnet_set_sha1(struct magnet_resource *res, const struct sha1 *sha1);
 void magnet_set_tth(struct magnet_resource *res, const struct tth *tth);
-void magnet_add_search(struct magnet_resource *res, const gchar *search);
-void magnet_add_source_by_url(struct magnet_resource *res, const gchar *url);
+void magnet_add_search(struct magnet_resource *res, const char *search);
+void magnet_add_source_by_url(struct magnet_resource *res, const char *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
 		const struct sha1 *sha1, const host_addr_t addr, const guint16 port,
 		const struct guid *);
 
 /* Extensions */
-void magnet_set_parq_id(struct magnet_resource *res, const gchar *parq_id);
+void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
 
 #endif /* _magnet_h_ */
 /* vi: set ts=4 sw=4 cindent: */

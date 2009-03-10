@@ -65,7 +65,7 @@ struct subzone {
  */
 
 struct zone {			/* Zone descriptor */
-	gchar **zn_free;	/**< Pointer to first free block */
+	char **zn_free;	/**< Pointer to first free block */
 	struct subzone *zn_next;/**< Next allocated zone chunk, null if none */
     struct subzone zn_arena;
 	gint zn_refcnt;		/**< How many references to that zone? */
@@ -86,7 +86,7 @@ struct zone {			/* Zone descriptor */
 #endif
 
 #ifdef ZONE_SAFE
-#define USED_REV_OFFSET		sizeof(gchar *)
+#define USED_REV_OFFSET		sizeof(char *)
 #endif
 
 #ifdef TRACK_ZALLOC
@@ -97,14 +97,14 @@ struct zone {			/* Zone descriptor */
 #define ZONE_SAFE			/* Need used block tagging when tracking */
 #endif
 
-#define FILE_REV_OFFSET		(sizeof(gchar *) + sizeof(gint))
+#define FILE_REV_OFFSET		(sizeof(char *) + sizeof(gint))
 #undef USED_REV_OFFSET
-#define USED_REV_OFFSET		(sizeof(gchar *) + FILE_REV_OFFSET)
+#define USED_REV_OFFSET		(sizeof(char *) + FILE_REV_OFFSET)
 
 #endif	/* TRACK_ZALLOC */
 
 #ifdef ZONE_SAFE
-#define BLOCK_USED			((gchar *) 0xff12aa35)	/**< Tag for used blocks */
+#define BLOCK_USED			((char *) 0xff12aa35)	/**< Tag for used blocks */
 #endif
 
 #define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
@@ -128,7 +128,7 @@ zfree(zone_t *zone, gpointer ptr)
 
 #else	/* !REMAP_ZALLOC */
 
-static gchar **zn_extend(zone_t *);
+static char **zn_extend(zone_t *);
 
 /**
  * Allcate memory with fixed size blocks (zone allocation).
@@ -162,7 +162,7 @@ static gchar **zn_extend(zone_t *);
 gpointer
 zalloc(zone_t *zone)
 {
-	gchar **blk;		/**< Allocated block */
+	char **blk;		/**< Allocated block */
 
 	/* NB: this routine must be as fast as possible. No assertions */
 
@@ -173,14 +173,14 @@ zalloc(zone_t *zone)
 
 	blk = zone->zn_free;
 	if (blk != NULL) {
-		zone->zn_free = (gchar **) *blk;
+		zone->zn_free = (char **) *blk;
 		zone->zn_cnt++;
 
 #ifdef ZONE_SAFE
 		*blk++ = BLOCK_USED;
 #endif
 #ifdef TRACK_ZALLOC
-		blk = (gchar **) ((gchar *) blk + FILE_REV_OFFSET);
+		blk = (char **) ((char *) blk + FILE_REV_OFFSET);
 #endif
 
 		return blk;
@@ -199,14 +199,14 @@ zalloc(zone_t *zone)
 	 * Use first block from new extended zone.
 	 */
 
-	zone->zn_free = (gchar **) *blk;
+	zone->zn_free = (char **) *blk;
 	zone->zn_cnt++;
 
 #ifdef ZONE_SAFE
 	*blk++ = BLOCK_USED;
 #endif
 #ifdef TRACK_ZALLOC
-	blk = (gchar **) ((gchar *) blk + FILE_REV_OFFSET);
+	blk = (char **) ((char *) blk + FILE_REV_OFFSET);
 #endif
 
 	return blk;
@@ -217,14 +217,14 @@ zalloc(zone_t *zone)
  * Tracking version of zalloc().
  */
 gpointer
-zalloc_track(zone_t *zone, gchar *file, gint line)
+zalloc_track(zone_t *zone, char *file, gint line)
 {
-	gchar *blk = zalloc(zone);
-	gchar *p;
+	char *blk = zalloc(zone);
+	char *p;
 
 	p = blk - FILE_REV_OFFSET;			/* Go backwards */
-	*(gchar **) p = short_filename(file);
-	p += sizeof(gchar *);
+	*(char **) p = short_filename(file);
+	p += sizeof(char *);
 	*(gint *) p = line;
 
 	return blk;
@@ -236,15 +236,15 @@ zalloc_track(zone_t *zone, gchar *file, gint line)
  * be also recorded in the `leakset' for summarizing of all the leaks.
  */
 static void
-zblock_log(gchar *p, gint size, gpointer leakset)
+zblock_log(char *p, gint size, gpointer leakset)
 {
-	gchar *uptr;			/* User pointer */
-	gchar *file;
+	char *uptr;			/* User pointer */
+	char *file;
 	gint line;
 
-	uptr = p + sizeof(gchar *);		/* Skip used marker */
-	file = *(gchar **) uptr;
-	uptr += sizeof(gchar *);
+	uptr = p + sizeof(char *);		/* Skip used marker */
+	file = *(char **) uptr;
+	uptr += sizeof(char *);
 	line = *(gint *) uptr;
 	uptr += sizeof(gint);
 
@@ -261,7 +261,7 @@ zdump_used(zone_t *zone)
 {
 	int used = 0;
 	struct subzone *next;
-	gchar *p;
+	char *p;
 	gpointer leakset = leak_init();
 	int i;
 
@@ -272,7 +272,7 @@ zdump_used(zone_t *zone)
 		end = p + next->sz_size;
 
 		while (p < end) {
-			if (*(gchar **) p == BLOCK_USED) {
+			if (*(char **) p == BLOCK_USED) {
 				used++;
 				zblock_log(p, zone->zn_size, leakset);
 			}
@@ -309,10 +309,10 @@ zfree(zone_t *zone, gpointer ptr)
 
 #ifdef ZONE_SAFE
 	{
-		gchar **tmp;
+		char **tmp;
 
 		/* Go back at leading magic, also the start of the block */
-		tmp = (gchar **) ((gchar *) ptr - USED_REV_OFFSET);
+		tmp = (char **) ((char *) ptr - USED_REV_OFFSET);
 
 		if (*tmp != BLOCK_USED)
 			g_error("trying to free block 0x%lx twice", (gulong) ptr);
@@ -322,7 +322,7 @@ zfree(zone_t *zone, gpointer ptr)
 
 	g_assert(zone->zn_cnt > 0);		/* There must be something to free! */
 
-	*(gchar **) ptr = (gchar *) zone->zn_free;	/* Will precede old head */
+	*(char **) ptr = (char *) zone->zn_free;	/* Will precede old head */
 	zone->zn_free = ptr;						/* New free list head */
 	zone->zn_cnt--;								/* To make zone gc easier */
 }
@@ -338,7 +338,7 @@ static void
 zn_cram(zone_t *zone, gpointer arena)
 {
 	gint i;
-	gchar **next = arena, *p = arena;
+	char **next = arena, *p = arena;
 
 	for (i = 1; i < zone->zn_hint; i++) {
 		next = (gpointer) p;
@@ -392,7 +392,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * the correct boundary.
 	 */
 
-	size = MAX((gint) sizeof(gchar *), size);
+	size = MAX((gint) sizeof(char *), size);
 
 #ifdef ZONE_SAFE
 	/*
@@ -402,7 +402,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * if done at all and the error remains undetected: the free list is
 	 * corrupted).
 	 */
-	size += sizeof(gchar *);
+	size += sizeof(char *);
 #endif
 
 #ifdef TRACK_ZALLOC
@@ -410,7 +410,7 @@ zn_create(zone_t *zone, gint size, gint hint)
 	 * When tracking allocation points, each block records the file and the
 	 * line number where it was allocated from.
 	 */
-	size += sizeof(gchar *) + sizeof(gint);
+	size += sizeof(char *) + sizeof(gint);
 #endif
 
 	size = zalloc_round(size);
@@ -544,8 +544,8 @@ zget(gint size, gint hint)
 	 * it now in order to allow proper lookup in the zone hash table.
 	 */
 
-	if (size < (gint) sizeof(gchar *))
-		size = sizeof(gchar *);
+	if (size < (gint) sizeof(char *))
+		size = sizeof(char *);
 	size = zalloc_round(size);
 
 	zone = hash_table_lookup(zt, GINT_TO_POINTER(size));
@@ -582,7 +582,7 @@ zget(gint size, gint hint)
  * @return the address of the first new free block within the extended
  *         chunk arena.
  */
-static gchar **
+static char **
 zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */

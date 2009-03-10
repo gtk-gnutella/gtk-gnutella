@@ -202,7 +202,7 @@ wrealloc(gpointer old, size_t old_size, size_t new_size)
  * @returns a pointer to the start of the allocated block.
  */
 gpointer
-walloc_track(size_t size, gchar *file, gint line)
+walloc_track(size_t size, char *file, gint line)
 {
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
@@ -246,7 +246,7 @@ walloc_track(size_t size, gchar *file, gint line)
  * Same as walloc_track(), but zeroes the allocated memory before returning.
  */
 gpointer
-walloc0_track(size_t size, gchar *file, gint line)
+walloc0_track(size_t size, char *file, gint line)
 {
 	gpointer p = walloc_track(size, file, line);
 
@@ -261,7 +261,7 @@ walloc0_track(size_t size, gchar *file, gint line)
  * to the allocated memory before returning.
  */
 gpointer
-wcopy_track(gconstpointer ptr, size_t size, gchar *file, gint line)
+wcopy_track(gconstpointer ptr, size_t size, char *file, gint line)
 {
 	gpointer p = walloc_track(size, file, line);
 
@@ -278,7 +278,7 @@ wcopy_track(gconstpointer ptr, size_t size, gchar *file, gint line)
  */
 gpointer
 wrealloc_track(gpointer old, size_t old_size, size_t new_size,
-	gchar *file, gint line)
+	char *file, gint line)
 {
 	gpointer new;
 	size_t rounded = zalloc_round(new_size);

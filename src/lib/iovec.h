@@ -88,7 +88,7 @@ iov_reset_n(struct iovec *iov, size_t n)
  */
 static inline size_t 
 iov_init_from_string_vector(struct iovec *iov, size_t iov_cnt,
-	gchar *argv[], size_t argc)
+	char *argv[], size_t argc)
 {
 	size_t i, n;
 
@@ -161,7 +161,7 @@ iov_clear(struct iovec *iov, size_t byte_offset)
 	g_assert(iov);
 	
 	if (byte_offset < iov->iov_len) {
-		gchar *p = iov->iov_base;
+		char *p = iov->iov_base;
 		memset(&p[byte_offset], 0, iov->iov_len - byte_offset);
 	}
 }
@@ -206,7 +206,7 @@ iov_calculate_size(struct iovec *iov, size_t iov_cnt)
  * @return The amount of bytes copied excluding the terminating NUL.
  */
 static inline size_t
-iov_scatter_string(struct iovec *iov, size_t iov_cnt, const gchar *s)
+iov_scatter_string(struct iovec *iov, size_t iov_cnt, const char *s)
 {
 	size_t i, len, avail, size;
 

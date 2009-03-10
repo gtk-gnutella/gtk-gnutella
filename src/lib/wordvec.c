@@ -112,16 +112,16 @@ word_vec_zrealloc(word_vec_t *wv, gint ncount)
  * is no vector returned.
  */
 guint
-word_vec_make(const gchar *query_str, word_vec_t **wovec)
+word_vec_make(const char *query_str, word_vec_t **wovec)
 {
 	guint n = 0;
 	GHashTable *seen_word = NULL;
 	guint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
-	const gchar *start = NULL;
-	gchar * const query_dup = g_strdup(query_str);
-	gchar *query;
-	gchar first = TRUE;
+	const char *start = NULL;
+	char * const query_dup = g_strdup(query_str);
+	char *query;
+	char first = TRUE;
 	guchar c;
 
 	g_assert(wovec != NULL);

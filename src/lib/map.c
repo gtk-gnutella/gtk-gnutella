@@ -526,7 +526,7 @@ test_map_remove(void *o, sha1_t *keys, size_t count)
 static double
 timeit(
 	void (*f)(void *, sha1_t *, size_t),
-	void *o, sha1_t *keys, size_t count, size_t iter, const gchar *what,
+	void *o, sha1_t *keys, size_t count, size_t iter, const char *what,
 	gboolean verbose)
 {
 	size_t i;

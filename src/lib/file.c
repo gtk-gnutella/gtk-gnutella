@@ -43,10 +43,10 @@ RCSID("$Id$")
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
-static const gchar orig_ext[] = "orig";
-static const gchar new_ext[] = "new";
-static const gchar instead_str[] = " instead";
-static const gchar empty_str[] = "";
+static const char orig_ext[] = "orig";
+static const char new_ext[] = "new";
+static const char instead_str[] = " instead";
+static const char empty_str[] = "";
 
 /**
  * In order to avoid having a dependency between file.c and ban.c,
@@ -87,13 +87,13 @@ file_register_fd_reclaimer(reclaim_fd_t callback)
  */
 static FILE *
 open_read(
-	const gchar *what, const file_path_t *fv, gint fvcnt, gboolean renaming,
+	const char *what, const file_path_t *fv, gint fvcnt, gboolean renaming,
 	gint *chosen)
 {
 	FILE *in;
-	gchar *path;
-	gchar *path_orig;
-	const gchar *instead = empty_str;
+	char *path;
+	char *path_orig;
+	const char *instead = empty_str;
 	gint idx = 0;
 
 	g_assert(fv != NULL);
@@ -193,7 +193,7 @@ out:
  * @returns opened FILE, or NULL if we were unable to open any.
  */
 FILE *
-file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
+file_config_open_read(const char *what, const file_path_t *fv, gint fvcnt)
 {
 	return open_read(what, fv, fvcnt, TRUE, NULL);
 }
@@ -210,7 +210,7 @@ file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
  */
 FILE *
 file_config_open_read_norename(
-	const gchar *what, const file_path_t *fv, gint fvcnt)
+	const char *what, const file_path_t *fv, gint fvcnt)
 {
 	return open_read(what, fv, fvcnt, FALSE, NULL);
 }
@@ -221,7 +221,7 @@ file_config_open_read_norename(
  */
 FILE *
 file_config_open_read_norename_chosen(
-	const gchar *what, const file_path_t *fv, gint fvcnt, gint *chosen)
+	const char *what, const file_path_t *fv, gint fvcnt, gint *chosen)
 {
 	return open_read(what, fv, fvcnt, FALSE, chosen);
 }
@@ -234,7 +234,7 @@ file_config_open_read_norename_chosen(
  * @returns opened FILE if success, NULL on error.
  */
 static FILE *
-file_config_open(const gchar *what, const file_path_t *fv)
+file_config_open(const char *what, const file_path_t *fv)
 {
 	FILE *out = NULL;
 	char *path;
@@ -256,7 +256,7 @@ file_config_open(const gchar *what, const file_path_t *fv)
  * Open configuration file for writing.
  */
 FILE *
-file_config_open_write(const gchar *what, const file_path_t *fv)
+file_config_open_write(const char *what, const file_path_t *fv)
 {
     return file_config_open(what, fv);
 }
@@ -303,7 +303,7 @@ failed:
  * Emit the configuration preamble.
  */
 void
-file_config_preamble(FILE *out, const gchar *what)
+file_config_preamble(FILE *out, const char *what)
 {
 	time_t now = tm_time();
 
@@ -334,9 +334,9 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
  * case no error is logged for ENOENT.
  */
 static gint
-do_open(const gchar *path, gint flags, gint mode, gboolean missing)
+do_open(const char *path, gint flags, gint mode, gboolean missing)
 {
-	const gchar *what;
+	const char *what;
 	gint fd;
 
 	if (!is_absolute_path(path)) {
@@ -408,7 +408,7 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
  * Errors are logged as a warning.
  */
 gint
-file_open(const gchar *path, gint flags, gint mode)
+file_open(const char *path, gint flags, gint mode)
 {
 	return do_open(path, flags, mode, FALSE);
 }
@@ -419,7 +419,7 @@ file_open(const gchar *path, gint flags, gint mode)
  * case nothing is logged.
  */
 gint
-file_open_missing(const gchar *path, gint flags)
+file_open_missing(const char *path, gint flags)
 {
 	return do_open(path, flags, 0, TRUE);
 }
@@ -429,7 +429,7 @@ file_open_missing(const gchar *path, gint flags)
  * Errors are logged as a warning.
  */
 gint
-file_create(const gchar *path, gint flags, gint mode)
+file_create(const char *path, gint flags, gint mode)
 {
 	return do_open(path, flags | O_CREAT, mode, FALSE);
 }
@@ -440,7 +440,7 @@ file_create(const gchar *path, gint flags, gint mode)
  * the directory does not exist.
  */
 gint
-file_create_missing(const gchar *path, gint flags, gint mode)
+file_create_missing(const char *path, gint flags, gint mode)
 {
 	return do_open(path, flags | O_CREAT, mode, TRUE);
 }
@@ -451,11 +451,11 @@ file_create_missing(const gchar *path, gint flags, gint mode)
  * is TRUE.
  */
 static FILE *
-do_fopen(const gchar *path, const gchar *mode, gboolean missing)
+do_fopen(const char *path, const char *mode, gboolean missing)
 {
-	gchar m;
+	char m;
 	FILE *f;
-	const gchar *what;
+	const char *what;
 
 	if (!is_absolute_path(path)) {
 		errno = EPERM;
@@ -503,7 +503,7 @@ do_fopen(const gchar *path, const gchar *mode, gboolean missing)
  * Errors are logged as a warning.
  */
 FILE *
-file_fopen(const gchar *path, const gchar *mode)
+file_fopen(const char *path, const char *mode)
 {
 	return do_fopen(path, mode, FALSE);
 }
@@ -514,7 +514,7 @@ file_fopen(const gchar *path, const gchar *mode)
  * case nothing is logged.
  */
 FILE *
-file_fopen_missing(const gchar *path, const gchar *mode)
+file_fopen_missing(const char *path, const char *mode)
 {
 	return do_fopen(path, mode, TRUE);
 }

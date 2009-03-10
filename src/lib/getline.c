@@ -119,7 +119,7 @@ getline_reset(getline_t *o)
  * The trailing "\r\n" or "\n" is stripped from the accumulated line.
  */
 getline_result_t
-getline_read(getline_t *o, const gchar *data, size_t len, size_t *used)
+getline_read(getline_t *o, const char *data, size_t len, size_t *used)
 {
 	getline_result_t result = READ_MORE;
 	size_t used_bytes, needed, missing;
@@ -148,7 +148,7 @@ getline_read(getline_t *o, const gchar *data, size_t len, size_t *used)
 	 */
 
 	for (used_bytes = 0; used_bytes < len; /* NOTHING */) {
-		gchar c;
+		char c;
 
 		if (o->pos >= (o->size - 1))			/* Leave room for final NUL */
 			return READ_OVERFLOW;
@@ -182,7 +182,7 @@ getline_read(getline_t *o, const gchar *data, size_t len, size_t *used)
  * @return a C string (NUL-terminated) corresponding to the line we currently
  * have in the buffer.
  */
-const gchar *
+const char *
 getline_str(getline_t *o)
 {
 	g_assert(o->pos < o->size);

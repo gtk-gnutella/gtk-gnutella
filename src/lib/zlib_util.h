@@ -61,7 +61,7 @@ typedef struct  {
  * Public interface.
  */
 
-const gchar *zlib_strerror(gint errnum);
+const char *zlib_strerror(gint errnum);
 
 zlib_deflater_t *zlib_deflater_make(gconstpointer data, gint len, gint level);
 zlib_deflater_t *zlib_deflater_make_into(

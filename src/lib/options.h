@@ -50,12 +50,12 @@
  * value.
  */
 typedef struct option {
-	const gchar *letter;		/* Option letter */
-	const gchar **value;		/* Variable where option value will be put */
+	const char *letter;		/* Option letter */
+	const char **value;		/* Variable where option value will be put */
 } option_t;
 
-gint options_parse(const gchar *argv[], option_t *ovec, gint osize);
-const gchar *options_parse_last_error(void);
+gint options_parse(const char *argv[], option_t *ovec, gint osize);
+const char *options_parse_last_error(void);
 
 #endif /* _options_h_ */
 

@@ -79,7 +79,7 @@ iprange_db_check(const struct iprange_db * const idb)
 /**
  * Error code stings.
  */
-static const gchar *iprange_errstr[] = {
+static const char *iprange_errstr[] = {
 	"OK",									/**< IPR_ERR_OK */
 	"Incorrect network prefix",				/**< IPR_ERR_BAD_PREFIX */
 	"CIDR range clash",						/**< IPR_ERR_RANGE_CLASH */
@@ -91,7 +91,7 @@ static const gchar *iprange_errstr[] = {
 /**
  * @return human-readable error string for given error code.
  */
-const gchar *
+const char *
 iprange_strerror(iprange_err_t errnum)
 {
 	STATIC_ASSERT(IPR_ERROR_COUNT == G_N_ELEMENTS(iprange_errstr));

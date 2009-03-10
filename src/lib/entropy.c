@@ -66,7 +66,7 @@ sha1_feed_pointer(SHA1Context *ctx, gconstpointer p)
 }
 
 static void
-sha1_feed_string(SHA1Context *ctx, const gchar *s)
+sha1_feed_string(SHA1Context *ctx, const char *s)
 {
 	if (s) {
 		SHA1Input(ctx, s, strlen(s));

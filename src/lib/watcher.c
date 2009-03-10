@@ -54,7 +54,7 @@ RCSID("$Id$")
  * A monitored file.
  */
 struct monitored {
-	const gchar *filename;	/**< Filename to monitor */
+	const char *filename;	/**< Filename to monitor */
 	time_t mtime;			/**< Last known modified time */
 	watcher_cb_t cb;		/**< Callback to invoke on change */
 	gpointer udata;			/**< User supplied data to hand-out to callback */
@@ -67,7 +67,7 @@ static GHashTable *monitored;	/**< filename -> struct monitored */
  * Compute the modified time of the file on disk.
  */
 static time_t
-watcher_mtime(const gchar *filename)
+watcher_mtime(const char *filename)
 {
 	struct stat buf;
 
@@ -132,7 +132,7 @@ watcher_timer(cqueue_t *unused_cq, gpointer unused_udata)
  * @param udata extra data to pass to the callback, along with filename
  */
 void
-watcher_register(const gchar *filename, watcher_cb_t cb, gpointer udata)
+watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
 {
 	struct monitored *m;
 
@@ -155,7 +155,7 @@ watcher_register(const gchar *filename, watcher_cb_t cb, gpointer udata)
 void
 watcher_register_path(const file_path_t *fp, watcher_cb_t cb, gpointer udata)
 {
-	gchar *path;
+	char *path;
 
 	path = make_pathname(fp->dir, fp->name);
 	watcher_register(path, cb, udata);
@@ -176,7 +176,7 @@ watcher_free(struct monitored *m)
  * Cancel monitoring of specified file.
  */
 void
-watcher_unregister(const gchar *filename)
+watcher_unregister(const char *filename)
 {
 	struct monitored *m;
 
@@ -195,7 +195,7 @@ watcher_unregister(const gchar *filename)
 void
 watcher_unregister_path(const file_path_t *fp)
 {
-	gchar *path;
+	char *path;
 
 	path = make_pathname(fp->dir, fp->name);
 	watcher_unregister(path);

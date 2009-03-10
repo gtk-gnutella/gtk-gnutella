@@ -78,7 +78,7 @@ void inputevt_close(void);
 guint inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data);
 
-const gchar *inputevt_cond_to_string(inputevt_cond_t cond);
+const char *inputevt_cond_to_string(inputevt_cond_t cond);
 size_t inputevt_data_available(void);
 void inputevt_remove(guint id);
 

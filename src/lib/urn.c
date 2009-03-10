@@ -51,7 +51,7 @@ RCSID("$Id$")
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-parse_base32_sha1(const gchar *buf, size_t size, struct sha1 *sha1)
+parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1)
 {
 	struct sha1 raw;
 	size_t len;
@@ -77,9 +77,9 @@ parse_base32_sha1(const gchar *buf, size_t size, struct sha1 *sha1)
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1(const gchar *buf, struct sha1 *sha1)
+urn_get_sha1(const char *buf, struct sha1 *sha1)
 {
-	const gchar *p;
+	const char *p;
 	size_t len;
 
 	/*
@@ -98,12 +98,12 @@ urn_get_sha1(const gchar *buf, struct sha1 *sha1)
 }
 
 gboolean
-urn_get_bitprint(const gchar *buf, size_t size,
+urn_get_bitprint(const char *buf, size_t size,
 	struct sha1 *sha1, struct tth *tth)
 {
 	static const char prefix[] = "urn:bitprint:";
 	size_t len;
-	const gchar *p;
+	const char *p;
 
 	g_assert(0 == size || NULL != buf);
 	g_assert(sha1);
@@ -131,11 +131,11 @@ urn_get_bitprint(const gchar *buf, size_t size,
 }
 
 gboolean
-urn_get_tth(const gchar *buf, size_t size, struct tth *tth)
+urn_get_tth(const char *buf, size_t size, struct tth *tth)
 {
 	static const char prefix[] = "urn:tree:tiger";
 	size_t len;
-	const gchar *p;
+	const char *p;
 
 	g_assert(0 == size || NULL != buf);
 	g_assert(tth);
@@ -176,9 +176,9 @@ urn_get_tth(const gchar *buf, size_t size, struct tth *tth)
  * @return whether we successfully extracted the SHA1.
  */
 gboolean
-urn_get_sha1_no_prefix(const gchar *buf, struct sha1 *sha1)
+urn_get_sha1_no_prefix(const char *buf, struct sha1 *sha1)
 {
-	const gchar *p;
+	const char *p;
 	size_t len;
 
 	/*

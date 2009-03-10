@@ -63,16 +63,16 @@ struct adns_reverse_query {
 
 struct adns_query {
 	enum net_type net;
-	gchar hostname[MAX_HOSTLEN + 1];
+	char hostname[MAX_HOSTLEN + 1];
 };
 
 struct adns_reply {
-	gchar hostname[MAX_HOSTLEN + 1];
+	char hostname[MAX_HOSTLEN + 1];
 	host_addr_t addrs[10];
 };
 
 struct adns_reverse_reply {
-	gchar hostname[MAX_HOSTLEN + 1];
+	char hostname[MAX_HOSTLEN + 1];
 	host_addr_t addr;
 };
 
@@ -94,13 +94,13 @@ struct adns_response {
 
 typedef struct adns_async_write {
 	struct adns_request req;	/**< The original ADNS request */
-	gchar *buf;					/**< Remaining data to write; walloc()ed */
+	char *buf;					/**< Remaining data to write; walloc()ed */
 	size_t pos;					/**< Read position */
 	size_t size;				/**< Size of the buffer */
 } adns_async_write_t;
 
 typedef struct adns_cache_entry {
-	const gchar *hostname;		/**< atom */
+	const char *hostname;		/**< atom */
 	time_t timestamp;
 	size_t n;				/**< Number of addr items */
 	guint id;
@@ -138,7 +138,7 @@ count_addrs(const host_addr_t *addrs, size_t m)
  */
 #define ADNS_CACHE_MAX_SIZE (1024)
 
-static const gchar adns_process_title[] = "DNS helper for gtk-gnutella";
+static const char adns_process_title[] = "DNS helper for gtk-gnutella";
 
 typedef struct adns_cache_struct {
 	GHashTable *ht;
@@ -255,7 +255,7 @@ adns_cache_free(adns_cache_t *cache)
  */
 static void
 adns_cache_add(adns_cache_t *cache, time_t now,
-	const gchar *hostname, const host_addr_t *addrs, size_t n)
+	const char *hostname, const host_addr_t *addrs, size_t n)
 {
 	adns_cache_entry_t *entry;
 	size_t i;
@@ -306,7 +306,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
  */
 static size_t
 adns_cache_lookup(adns_cache_t *cache, time_t now,
-	const gchar *hostname, host_addr_t *addrs, size_t n)
+	const char *hostname, host_addr_t *addrs, size_t n)
 {
 	adns_cache_entry_t *entry;
 
@@ -384,7 +384,7 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 			return FALSE;
 		} else if (ret > 0) {
 			n -= ret;
-			buf = (gchar *) buf + ret;
+			buf = (char *) buf + ret;
 		}
 	}
 
@@ -429,7 +429,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 	if (req->common.reverse) {
 		const struct adns_reverse_query *query = &req->query.reverse;
 		struct adns_reverse_reply *reply = &ans->reply.reverse;
-		const gchar *host;
+		const char *host;
 
 
 		if (common_dbg > 1) {
@@ -873,7 +873,7 @@ prefork_failure:
 static gboolean
 adns_send_request(const struct adns_request *req)
 {
-	gchar buf[sizeof *req];
+	char buf[sizeof *req];
 	size_t size;
 	ssize_t written;
 
@@ -954,7 +954,7 @@ adns_send_request(const struct adns_request *req)
  * returned, adns_resolve() returns FALSE.
  */
 gboolean
-adns_resolve(const gchar *hostname, enum net_type net,
+adns_resolve(const char *hostname, enum net_type net,
 	adns_callback_t user_callback, gpointer user_data)
 {
 	struct adns_request req;

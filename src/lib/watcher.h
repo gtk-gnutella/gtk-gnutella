@@ -43,7 +43,7 @@
 /**
  * The callback invoked when a monitored file changes.
  */
-typedef void (*watcher_cb_t)(const gchar *filename, gpointer udata);
+typedef void (*watcher_cb_t)(const char *filename, gpointer udata);
 
 /*
  * Public interface.
@@ -51,8 +51,8 @@ typedef void (*watcher_cb_t)(const gchar *filename, gpointer udata);
 
 void watcher_init(void);
 void watcher_close(void);
-void watcher_register(const gchar *filename, watcher_cb_t cb, gpointer udata);
-void watcher_unregister(const gchar *filename);
+void watcher_register(const char *filename, watcher_cb_t cb, gpointer udata);
+void watcher_unregister(const char *filename);
 void watcher_register_path(
 	const file_path_t *fp, watcher_cb_t cb, gpointer udata);
 void watcher_unregister_path(const file_path_t *fp);

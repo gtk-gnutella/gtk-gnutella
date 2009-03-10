@@ -43,12 +43,12 @@ struct subscriber {
 };
 
 typedef struct event {
-    const gchar *name;
+    const char *name;
     guint32      triggered_count;
     GSList      *subscribers;
 } event_t;
 
-struct event *event_new(const gchar *name);
+struct event *event_new(const char *name);
 
 #define event_destroy(evt) G_STMT_START {                          \
     real_event_destroy(evt);                                       \

@@ -113,7 +113,7 @@ struct inputevt_array {
 #define WRITE_CONDITION		(G_IO_OUT)
 #define EXCEPTION_CONDITION	(G_IO_ERR | G_IO_HUP | G_IO_NVAL)
 
-const gchar *
+const char *
 inputevt_cond_to_string(inputevt_cond_t cond)
 {
 	switch (cond) {

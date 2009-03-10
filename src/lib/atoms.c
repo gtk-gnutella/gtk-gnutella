@@ -121,7 +121,7 @@ typedef struct atom {
 static inline atom_t *
 atom_from_arena(gconstpointer key)
 {
-	return (gpointer) ((gchar *) key - ARENA_OFFSET);
+	return (gpointer) ((char *) key - ARENA_OFFSET);
 }
 
 static inline void
@@ -277,7 +277,7 @@ mem_protect(gpointer ptr, size_t size)
 	size_t ps;
 
 	ps = compat_pagesize();
-	p = (gchar *) ptr - (uintptr_t) ptr % ps;
+	p = (char *) ptr - (uintptr_t) ptr % ps;
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
@@ -296,7 +296,7 @@ mem_unprotect(gpointer ptr, size_t size)
 	size_t ps;
 
 	ps = compat_pagesize();
-	p = (gchar *) ptr - (uintptr_t) ptr % ps;
+	p = (char *) ptr - (uintptr_t) ptr % ps;
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
@@ -401,13 +401,13 @@ atom_dealloc(atom_t *a, size_t size)
 #endif /* PROTECT_ATOMS */
 
 typedef size_t (*len_func_t)(gconstpointer v);
-typedef const gchar *(*str_func_t)(gconstpointer v);
+typedef const char *(*str_func_t)(gconstpointer v);
 
 /**
  * Description of atom types.
  */
 typedef struct table_desc {
-	const gchar *type;			/**< Type of atoms */
+	const char *type;			/**< Type of atoms */
 	GHashTable *table;			/**< Table of atoms: "atom value" => 1 */
 	GHashFunc hash_func;		/**< Hashing function for atoms */
 	GCompareFunc eq_func;		/**< Atom equality function */
@@ -416,19 +416,19 @@ typedef struct table_desc {
 } table_desc_t;
 
 static size_t str_len(gconstpointer v);
-static const gchar *str_str(gconstpointer v);
+static const char *str_str(gconstpointer v);
 static size_t guid_len(gconstpointer v);
-static const gchar *guid_str(gconstpointer v);
+static const char *guid_str(gconstpointer v);
 static size_t sha1_len(gconstpointer v);
-static const gchar *sha1_str(gconstpointer v);
+static const char *sha1_str(gconstpointer v);
 static size_t tth_len(gconstpointer v);
-static const gchar *tth_str(gconstpointer v);
+static const char *tth_str(gconstpointer v);
 static size_t uint64_len(gconstpointer v);
-static const gchar *uint64_str(gconstpointer v);
+static const char *uint64_str(gconstpointer v);
 static size_t filesize_len(gconstpointer v);
-static const gchar *filesize_str(gconstpointer v);
+static const char *filesize_str(gconstpointer v);
 static size_t uint32_len(gconstpointer v);
-static const gchar *uint32_str(gconstpointer v);
+static const char *uint32_str(gconstpointer v);
 
 /**
  * The set of all atom types we know about.
@@ -452,16 +452,16 @@ static GHashTable *ht_all_atoms;
 static size_t 
 str_len(gconstpointer v)
 {
-	return strlen((const gchar *) v) + 1;
+	return strlen((const char *) v) + 1;
 }
 
 /**
  * @return printable form of a string, i.e. self.
  */
-static const gchar *
+static const char *
 str_str(gconstpointer v)
 {
-	return (const gchar *) v;
+	return (const char *) v;
 }
 
 /**
@@ -549,7 +549,7 @@ guid_len(gconstpointer unused_guid)
 /**
  * @return printable form of a GUID, as pointer to static data.
  */
-static const gchar *
+static const char *
 guid_str(gconstpointer v)
 {
 	const struct guid *guid = v;
@@ -593,7 +593,7 @@ sha1_len(gconstpointer unused_sha1)
 /**
  * @return printable form of a SHA1, as pointer to static data.
  */
-static const gchar *
+static const char *
 sha1_str(gconstpointer sha1)
 {
 	return sha1_base32(sha1);
@@ -633,7 +633,7 @@ tth_len(gconstpointer unused_tth)
 /**
  * @return printable form of a TTH, as pointer to static data.
  */
-static const gchar *
+static const char *
 tth_str(gconstpointer tth)
 {
 	return tth_base32(tth);
@@ -673,10 +673,10 @@ uint32_len(gconstpointer unused_v)
 /**
  * @return printable form of a 64-bit integer, as pointer to static data.
  */
-static const gchar *
+static const char *
 uint64_str(gconstpointer v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(*(const guint64 *) v, buf, sizeof buf);
 	return buf;
@@ -708,10 +708,10 @@ uint64_hash(gconstpointer p)
 /**
  * @return printable form of a filesize_t, as pointer to static data.
  */
-static const gchar *
+static const char *
 filesize_str(gconstpointer v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(*(const filesize_t *) v, buf, sizeof buf);
 	return buf;
@@ -766,10 +766,10 @@ uint32_hash(gconstpointer p)
 /**
  * @return printable form of a 32-bit integer, as pointer to static data.
  */
-static const gchar *
+static const char *
 uint32_str(gconstpointer v)
 {
-	static gchar buf[UINT32_DEC_BUFLEN];
+	static char buf[UINT32_DEC_BUFLEN];
 
 	uint32_to_string_buf(*(const guint32 *) v, buf, sizeof buf);
 	return buf;
@@ -960,11 +960,11 @@ struct spot {
  * @returns the atom's value.
  */
 gconstpointer
-atom_get_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
+atom_get_track(enum atom_type type, gconstpointer key, char *file, gint line)
 {
 	gconstpointer atom;
 	atom_t *a;
-	gchar buf[512];
+	char buf[512];
 	gpointer k;
 	gpointer v;
 	struct spot *sp;
@@ -1024,10 +1024,10 @@ destroy_tracking_table(GHashTable *h)
  * Dispose of atom if nobody references it anymore.
  */
 void
-atom_free_track(enum atom_type type, gconstpointer key, gchar *file, gint line)
+atom_free_track(enum atom_type type, gconstpointer key, char *file, gint line)
 {
 	atom_t *a;
-	gchar buf[512];
+	char buf[512];
 	gpointer k;
 	gpointer v;
 	struct spot *sp;
@@ -1065,16 +1065,16 @@ static void
 dump_tracking_entry(gpointer key, gpointer value, gpointer user)
 {
 	struct spot *sp = (struct spot *) value;
-	const gchar *what = (const gchar *) user;
+	const char *what = (const char *) user;
 
-	g_warning("%10d %s at \"%s\"", sp->count, what, (gchar *) key);
+	g_warning("%10d %s at \"%s\"", sp->count, what, (char *) key);
 }
 
 /**
  * Dump the values held in the tracking table `h'.
  */
 static void
-dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
+dump_tracking_table(gpointer atom, GHashTable *h, char *what)
 {
 	guint count = g_hash_table_size(h);
 

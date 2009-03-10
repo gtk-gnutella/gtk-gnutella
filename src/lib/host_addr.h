@@ -195,7 +195,7 @@ host_addr_initialized(const host_addr_t ha)
 	return FALSE;
 }
 
-static inline const gchar *
+static inline const char *
 net_type_to_string(enum net_type net)
 {
 	switch (net) {
@@ -529,32 +529,32 @@ host_addr_is_ipv4_mapped(const host_addr_t addr)
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 
-const gchar *host_addr_to_string(const host_addr_t addr);
-size_t host_addr_to_string_buf(const host_addr_t addr, gchar *, size_t);
-gboolean string_to_host_addr(const gchar *s, const gchar **endptr,
+const char *host_addr_to_string(const host_addr_t addr);
+size_t host_addr_to_string_buf(const host_addr_t addr, char *, size_t);
+gboolean string_to_host_addr(const char *s, const char **endptr,
 	host_addr_t *addr_ptr);
-const gchar *host_addr_port_to_string(const host_addr_t addr, guint16 port);
-const gchar *host_addr_port_to_string2(const host_addr_t addr, guint16 port);
+const char *host_addr_port_to_string(const host_addr_t addr, guint16 port);
+const char *host_addr_port_to_string2(const host_addr_t addr, guint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
-				guint16 port, gchar *, size_t);
+				guint16 port, char *, size_t);
 gboolean string_to_host_addr_port(const char *str, const char **endptr,
 	host_addr_t *addr_ptr, guint16 *port_ptr);
 gboolean
 string_to_port_host_addr(const char *str, const char **endptr,
 	guint16 *port_ptr, host_addr_t *addr_ptr);
-const gchar *host_port_to_string(const gchar *hostname,
+const char *host_port_to_string(const char *hostname,
 				host_addr_t addr, guint16 port);
-const gchar *port_host_addr_to_string(guint16 port, const host_addr_t ha);
+const char *port_host_addr_to_string(guint16 port, const host_addr_t ha);
 size_t host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
 	char *dst, size_t size);
 
-GSList *name_to_host_addr(const gchar *host, enum net_type net);
+GSList *name_to_host_addr(const char *host, enum net_type net);
 void host_addr_free_list(GSList **sl_ptr);
 
-host_addr_t name_to_single_host_addr(const gchar *host, enum net_type net);
+host_addr_t name_to_single_host_addr(const char *host, enum net_type net);
 
-const gchar *host_addr_to_name(const host_addr_t addr);
-gboolean string_to_host_or_addr(const char *s, const gchar **endptr,
+const char *host_addr_to_name(const host_addr_t addr);
+gboolean string_to_host_or_addr(const char *s, const char **endptr,
 		host_addr_t *ha);
 
 GSList *host_addr_get_interface_addrs(enum net_type net);

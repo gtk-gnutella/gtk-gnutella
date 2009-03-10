@@ -99,7 +99,7 @@ static time_t reset_time = 0;
  * allocation, and possibly of all the reallocations performed.
  */
 struct block {
-	gchar *file;
+	char *file;
 	gint line;
 	size_t size;
 	GSList *realloc;
@@ -107,7 +107,7 @@ struct block {
 
 static GHashTable *blocks = NULL;
 
-static void free_record(gconstpointer o, gchar *file, gint line);
+static void free_record(gconstpointer o, char *file, gint line);
 
 #ifdef MALLOC_FRAMES
 
@@ -163,7 +163,7 @@ frame_eq(gconstpointer a, gconstpointer b)
 #ifdef MALLOC_STATS
 
 struct stats {
-	gchar *file;				/**< Place where allocation took place */
+	char *file;				/**< Place where allocation took place */
 	gint line;					/**< Line number */
 	gint blocks;				/**< Live blocks since last "reset" */
 	gint total_blocks;			/**< Total live blocks */
@@ -277,7 +277,7 @@ malloc_close(void)
  * @return argument `o'.
  */
 gpointer
-malloc_record(gconstpointer o, size_t sz, gchar *file, gint line)
+malloc_record(gconstpointer o, size_t sz, char *file, gint line)
 {
 	struct block *b;
 	struct block *ob;
@@ -377,7 +377,7 @@ malloc_record(gconstpointer o, size_t sz, gchar *file, gint line)
  * Allocate `s' bytes.
  */
 gpointer
-malloc_track(size_t size, gchar *file, gint line)
+malloc_track(size_t size, char *file, gint line)
 {
 	gpointer o;
 
@@ -392,7 +392,7 @@ malloc_track(size_t size, gchar *file, gint line)
  * Allocate `s' bytes, zero the allocated zone.
  */
 gpointer
-malloc0_track(size_t size, gchar *file, gint line)
+malloc0_track(size_t size, char *file, gint line)
 {
 	gpointer o;
 
@@ -406,7 +406,7 @@ malloc0_track(size_t size, gchar *file, gint line)
  * Record freeing of allocated block.
  */
 static void
-free_record(gconstpointer o, gchar *file, gint line)
+free_record(gconstpointer o, char *file, gint line)
 {
 	struct block *b;
 	gpointer k;
@@ -496,7 +496,7 @@ free_record(gconstpointer o, gchar *file, gint line)
  * Free allocated block.
  */
 void
-free_track(gpointer o, gchar *file, gint line)
+free_track(gpointer o, char *file, gint line)
 {
 #ifndef TRANSPARENT
 	free_record(o, file, line);
@@ -508,10 +508,10 @@ free_track(gpointer o, gchar *file, gint line)
  * Free NULL-terminated vector of strings, and the vector.
  */
 void
-strfreev_track(gchar **v, gchar *file, gint line)
+strfreev_track(char **v, char *file, gint line)
 {
-	gchar *x;
-	gchar **iv = v;
+	char *x;
+	char **iv = v;
 
 	while ((x = *iv++))
 		free_track(x, file, line);
@@ -524,7 +524,7 @@ strfreev_track(gchar **v, gchar *file, gint line)
  * a block of `s' bytes at `n'.
  */
 static gpointer
-realloc_record(gpointer o, gpointer n, size_t size, gchar *file, gint line)
+realloc_record(gpointer o, gpointer n, size_t size, char *file, gint line)
 {
 	struct block *b;
 	struct block *r;
@@ -607,7 +607,7 @@ realloc_record(gpointer o, gpointer n, size_t size, gchar *file, gint line)
  * Realloc object `o' to `size' bytes.
  */
 gpointer
-realloc_track(gpointer o, size_t size, gchar *file, gint line)
+realloc_track(gpointer o, size_t size, char *file, gint line)
 {
 	if (o == NULL)
 		return malloc_track(size, file, line);
@@ -634,7 +634,7 @@ realloc_track(gpointer o, size_t size, gchar *file, gint line)
  * Duplicate buffer `p' of length `size'.
  */
 gpointer
-memdup_track(gconstpointer p, size_t size, gchar *file, gint line)
+memdup_track(gconstpointer p, size_t size, char *file, gint line)
 {
 	gpointer o;
 
@@ -650,8 +650,8 @@ memdup_track(gconstpointer p, size_t size, gchar *file, gint line)
 /**
  * Duplicate string `s'.
  */
-gchar *
-strdup_track(const gchar *s, gchar *file, gint line)
+char *
+strdup_track(const char *s, char *file, gint line)
 {
 	gpointer o;
 	size_t len;
@@ -669,11 +669,11 @@ strdup_track(const gchar *s, gchar *file, gint line)
 /**
  * Duplicate string `s', on at most `n' chars.
  */
-gchar *
-strndup_track(const gchar *s, size_t n, gchar *file, gint line)
+char *
+strndup_track(const char *s, size_t n, char *file, gint line)
 {
 	gpointer o;
-	gchar *q;
+	char *q;
 
 	if (s == NULL)
 		return NULL;
@@ -691,10 +691,10 @@ strndup_track(const gchar *s, size_t n, gchar *file, gint line)
 /**
  * Join items in `vec' with `s' in-between.
  */
-gchar *
-strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line)
+char *
+strjoinv_track(const char *s, char **vec, char *file, gint line)
 {
-	gchar *o;
+	char *o;
 
 	o = g_strjoinv(s, vec);
 
@@ -704,18 +704,18 @@ strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line)
 /**
  * The internal implementation of a vectorized g_strconcat().
  */
-static gchar *
-m_strconcatv(const gchar *s, va_list args)
+static char *
+m_strconcatv(const char *s, va_list args)
 {
-	gchar *res;
-	gchar *add;
+	char *res;
+	char *add;
 	size_t size;
 
 	size = strlen(s) + 1;
 	res = g_malloc(size);
 	memcpy(res, s, size);
 
-	while ((add = va_arg(args, gchar *))) {
+	while ((add = va_arg(args, char *))) {
 		size_t len = strlen(add);
 		res = g_realloc(res, size + len);
 		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
@@ -728,11 +728,11 @@ m_strconcatv(const gchar *s, va_list args)
 /**
  * Perform string concatenation, returning newly allocated string.
  */
-gchar *
-strconcat_track(gchar *file, gint line, const gchar *s, ...)
+char *
+strconcat_track(char *file, gint line, const char *s, ...)
 {
 	va_list args;
-	gchar *o;
+	char *o;
 
 	va_start(args, s);
 	o = m_strconcatv(s, args);
@@ -744,11 +744,11 @@ strconcat_track(gchar *file, gint line, const gchar *s, ...)
 /**
  * Perform printf into newly allocated string.
  */
-gchar *
-strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
+char *
+strdup_printf_track(char *file, gint line, const char *fmt, ...)
 {
 	va_list args;
-	gchar *o;
+	char *o;
 
 	va_start(args, fmt);
 	o = g_strdup_vprintf(fmt, args);
@@ -760,15 +760,15 @@ strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
 /**
  * Perform a g_strplit() operation, tracking all returned strings.
  */
-gchar **
-strsplit_track(const gchar *s, const gchar *d, size_t m, gchar *file, gint line)
+char **
+strsplit_track(const char *s, const char *d, size_t m, char *file, gint line)
 {
-	gchar **v;
-	gchar **iv;
-	gchar *x;
+	char **v;
+	char **iv;
+	char *x;
 
 	v = g_strsplit(s, d, m);
-	malloc_record(v, (m + 1) * sizeof(gchar *), file, line);
+	malloc_record(v, (m + 1) * sizeof(char *), file, line);
 
 	iv = v;
 	while ((x = *iv++))
@@ -781,8 +781,8 @@ strsplit_track(const gchar *s, const gchar *d, size_t m, gchar *file, gint line)
  * Record string `s' allocated at `file' and `line'.
  * @return argument `s'.
  */
-gchar *
-string_record(const gchar *s, gchar *file, gint line)
+char *
+string_record(const char *s, char *file, gint line)
 {
 	if (s == NULL)
 		return NULL;
@@ -794,7 +794,7 @@ string_record(const gchar *s, gchar *file, gint line)
  * Wrapper over g_hash_table_new() to track allocation of hash tables.
  */
 GHashTable *
-hashtable_new_track(GHashFunc h, GCompareFunc y, gchar *file, gint line)
+hashtable_new_track(GHashFunc h, GCompareFunc y, char *file, gint line)
 {
 	const size_t size = 7 * sizeof(void *);	/* Estimated size */
 	GHashTable *o;
@@ -807,7 +807,7 @@ hashtable_new_track(GHashFunc h, GCompareFunc y, gchar *file, gint line)
  * Wrapper over g_hash_Table_destroy() to track destruction of hash tables.
  */
 void
-hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
+hashtable_destroy_track(GHashTable *h, char *file, gint line)
 {
 	free_record(h, file, line);
 	g_hash_table_destroy(h);
@@ -818,7 +818,7 @@ hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
  */
 hash_list_t *
 hash_list_new_track(
-	GHashFunc hash_func, GEqualFunc eq_func, gchar *file, gint line)
+	GHashFunc hash_func, GEqualFunc eq_func, char *file, gint line)
 {
 	return malloc_record(
 		hash_list_new(hash_func, eq_func),
@@ -830,7 +830,7 @@ hash_list_new_track(
  * Wrapper over hash_list_free().
  */
 void
-hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line)
+hash_list_free_track(hash_list_t **hl_ptr, char *file, gint line)
 {
 	if (*hl_ptr) {
 		free_record(*hl_ptr, file, line);
@@ -847,7 +847,7 @@ hash_list_free_track(hash_list_t **hl_ptr, gchar *file, gint line)
  * @return argument `list'.
  */
 GSList *
-gslist_record(const GSList * const list, gchar *file, gint line)
+gslist_record(const GSList * const list, char *file, gint line)
 {
 	const GSList *iter;
 
@@ -858,13 +858,13 @@ gslist_record(const GSList * const list, gchar *file, gint line)
 }
 
 GSList *
-track_slist_alloc(gchar *file, gint line)
+track_slist_alloc(char *file, gint line)
 {
 	return malloc_record(g_slist_alloc(), sizeof(GSList), file, line);
 }
 
 GSList *
-track_slist_append(GSList *l, gpointer data, gchar *file, gint line)
+track_slist_append(GSList *l, gpointer data, char *file, gint line)
 {
 	GSList *new;
 
@@ -880,7 +880,7 @@ track_slist_append(GSList *l, gpointer data, gchar *file, gint line)
 }
 
 GSList *
-track_slist_prepend(GSList *l, gpointer data, gchar *file, gint line)
+track_slist_prepend(GSList *l, gpointer data, char *file, gint line)
 {
 	GSList *new;
 
@@ -892,13 +892,13 @@ track_slist_prepend(GSList *l, gpointer data, gchar *file, gint line)
 }
 
 GSList *
-track_slist_copy(GSList *list, gchar *file, gint line)
+track_slist_copy(GSList *list, char *file, gint line)
 {
 	return gslist_record(g_slist_copy(list), file, line);
 }
 
 void
-track_slist_free(GSList *l, gchar *file, gint line)
+track_slist_free(GSList *l, char *file, gint line)
 {
 	GSList *lk;
 
@@ -909,7 +909,7 @@ track_slist_free(GSList *l, gchar *file, gint line)
 }
 
 void
-track_slist_free1(GSList *l, gchar *file, gint line)
+track_slist_free1(GSList *l, char *file, gint line)
 {
 	if (l == NULL)
 		return;
@@ -919,7 +919,7 @@ track_slist_free1(GSList *l, gchar *file, gint line)
 }
 
 GSList *
-track_slist_remove(GSList *l, gpointer data, gchar *file, gint line)
+track_slist_remove(GSList *l, gpointer data, char *file, gint line)
 {
 	GSList *lk;
 
@@ -931,7 +931,7 @@ track_slist_remove(GSList *l, gpointer data, gchar *file, gint line)
 }
 
 GSList *
-track_slist_delete_link(GSList *l, GSList *lk, gchar *file, gint line)
+track_slist_delete_link(GSList *l, GSList *lk, char *file, gint line)
 {
 	GSList *new;
 
@@ -942,7 +942,7 @@ track_slist_delete_link(GSList *l, GSList *lk, gchar *file, gint line)
 }
 
 GSList *
-track_slist_insert(GSList *l, gpointer data, gint pos, gchar *file, gint line)
+track_slist_insert(GSList *l, gpointer data, gint pos, char *file, gint line)
 {
 	GSList *lk;
 
@@ -960,7 +960,7 @@ track_slist_insert(GSList *l, gpointer data, gint pos, gchar *file, gint line)
 
 GSList *
 track_slist_insert_sorted(GSList *l, gpointer d, GCompareFunc c,
-	gchar *file, gint line)
+	char *file, gint line)
 {
 	gint cmp;
 	GSList *tmp = l;
@@ -997,7 +997,7 @@ track_slist_insert_sorted(GSList *l, gpointer d, GCompareFunc c,
 
 GSList *
 track_slist_insert_after(GSList *l, GSList *lk, gpointer data,
-	gchar *file, gint line)
+	char *file, gint line)
 {
 	GSList *new;
 
@@ -1014,13 +1014,13 @@ track_slist_insert_after(GSList *l, GSList *lk, gpointer data,
 }
 
 GList *
-track_list_alloc(gchar *file, gint line)
+track_list_alloc(char *file, gint line)
 {
 	return malloc_record(g_list_alloc(), sizeof(GList), file, line);
 }
 
 GList *
-track_list_append(GList *l, gpointer data, gchar *file, gint line)
+track_list_append(GList *l, gpointer data, char *file, gint line)
 {
 	GList *new;
 
@@ -1037,7 +1037,7 @@ track_list_append(GList *l, gpointer data, gchar *file, gint line)
 }
 
 GList *
-track_list_prepend(GList *l, gpointer data, gchar *file, gint line)
+track_list_prepend(GList *l, gpointer data, char *file, gint line)
 {
 	GList *new;
 
@@ -1061,7 +1061,7 @@ track_list_prepend(GList *l, gpointer data, gchar *file, gint line)
  * @return argument `list'.
  */
 GList *
-glist_record(const GList * const list, gchar *file, gint line)
+glist_record(const GList * const list, char *file, gint line)
 {
 	const GList *iter;
 
@@ -1073,13 +1073,13 @@ glist_record(const GList * const list, gchar *file, gint line)
 
 
 GList *
-track_list_copy(GList *list, gchar *file, gint line)
+track_list_copy(GList *list, char *file, gint line)
 {
 	return glist_record(g_list_copy(list), file, line);
 }
 
 void
-track_list_free(GList *l, gchar *file, gint line)
+track_list_free(GList *l, char *file, gint line)
 {
 	GList *lk;
 
@@ -1090,7 +1090,7 @@ track_list_free(GList *l, gchar *file, gint line)
 }
 
 void
-track_list_free1(GList *l, gchar *file, gint line)
+track_list_free1(GList *l, char *file, gint line)
 {
 	if (l == NULL)
 		return;
@@ -1100,7 +1100,7 @@ track_list_free1(GList *l, gchar *file, gint line)
 }
 
 GList *
-track_list_remove(GList *l, gpointer data, gchar *file, gint line)
+track_list_remove(GList *l, gpointer data, char *file, gint line)
 {
 	GList *lk;
 
@@ -1112,7 +1112,7 @@ track_list_remove(GList *l, gpointer data, gchar *file, gint line)
 }
 
 GList *
-track_list_insert(GList *l, gpointer data, gint pos, gchar *file, gint line)
+track_list_insert(GList *l, gpointer data, gint pos, char *file, gint line)
 {
 	GList *lk;
 
@@ -1130,7 +1130,7 @@ track_list_insert(GList *l, gpointer data, gint pos, gchar *file, gint line)
 
 GList *
 track_list_insert_sorted(GList *l, gpointer d, GCompareFunc c,
-	gchar *file, gint line)
+	char *file, gint line)
 {
 	gint cmp;
 	GList *tmp = l;
@@ -1169,7 +1169,7 @@ track_list_insert_sorted(GList *l, gpointer d, GCompareFunc c,
 
 GList *
 track_list_insert_after(GList *l, GList *lk, gpointer data,
-	gchar *file, gint line)
+	char *file, gint line)
 {
 	GList *new;
 
@@ -1191,7 +1191,7 @@ track_list_insert_after(GList *l, GList *lk, gpointer data,
 }
 
 GList *
-track_list_delete_link(GList *l, GList *lk, gchar *file, gint line)
+track_list_delete_link(GList *l, GList *lk, char *file, gint line)
 {
 	GList *new;
 
@@ -1214,7 +1214,7 @@ track_list_delete_link(GList *l, GList *lk, gchar *file, gint line)
  * @return GString object.
  */
 static GString *
-string_str_track(GString *s, gchar *old, gchar *file, gint line)
+string_str_track(GString *s, char *old, char *file, gint line)
 {
 	size_t size;
 #if GLIB_CHECK_VERSION(2,0,0)
@@ -1233,7 +1233,7 @@ string_str_track(GString *s, gchar *old, gchar *file, gint line)
 }
 
 GString *
-string_new_track(const gchar *p, gchar *file, gint line)
+string_new_track(const char *p, char *file, gint line)
 {
 	GString *result = g_string_new(p);
 
@@ -1242,7 +1242,7 @@ string_new_track(const gchar *p, gchar *file, gint line)
 }
 
 GString *
-string_sized_new_track(size_t size, gchar *file, gint line)
+string_sized_new_track(size_t size, char *file, gint line)
 {
 	GString *result = g_string_sized_new(size);
 
@@ -1251,44 +1251,44 @@ string_sized_new_track(size_t size, gchar *file, gint line)
 }
 
 GString *
-string_append_track(GString *s, const gchar *p, gchar *file, gint line)
+string_append_track(GString *s, const char *p, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_append(s, p);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_append_c_track(GString *s, gchar c, gchar *file, gint line)
+string_append_c_track(GString *s, char c, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_append_c(s, c);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_append_len_track(GString *s, const gchar *val, gssize len,
-	gchar *file, gint line)
+string_append_len_track(GString *s, const char *val, gssize len,
+	char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_append_len(s, val, len);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_assign_track(GString *s, const gchar *p, gchar *file, gint line)
+string_assign_track(GString *s, const char *p, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_assign(s, p);
 	return string_str_track(s, old, file, line);
 }
 
 void
-string_free_track(GString *s, gint freestr, gchar *file, gint line)
+string_free_track(GString *s, gint freestr, char *file, gint line)
 {
 	free_record(s, file, line);
 	if (freestr)
@@ -1298,48 +1298,48 @@ string_free_track(GString *s, gint freestr, gchar *file, gint line)
 }
 
 GString *
-string_prepend_track(GString *s, const gchar *p, gchar *file, gint line)
+string_prepend_track(GString *s, const char *p, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_prepend(s, p);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_prepend_c_track(GString *s, gchar c, gchar *file, gint line)
+string_prepend_c_track(GString *s, char c, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_prepend_c(s, c);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_insert_track(GString *s, gint pos, const gchar *p,
-	gchar *file, gint line)
+string_insert_track(GString *s, gint pos, const char *p,
+	char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_insert(s, pos, p);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_insert_c_track(GString *s, gint pos, gchar c, gchar *file, gint line)
+string_insert_c_track(GString *s, gint pos, char c, char *file, gint line)
 {
-	gchar *old = s->str;
+	char *old = s->str;
 
 	s = g_string_insert_c(s, pos, c);
 	return string_str_track(s, old, file, line);
 }
 
 GString *
-string_sprintf_track(GString *s, gchar *file, gint line, const gchar *fmt, ...)
+string_sprintf_track(GString *s, char *file, gint line, const char *fmt, ...)
 {
 	va_list args;
-	gchar *o;
-	gchar *old = s->str;
+	char *o;
+	char *old = s->str;
 
 	va_start(args, fmt);
 	o = g_strdup_vprintf(fmt, args);
@@ -1351,11 +1351,11 @@ string_sprintf_track(GString *s, gchar *file, gint line, const gchar *fmt, ...)
 }
 
 GString *
-string_sprintfa_track(GString *s, gchar *file, gint line, const gchar *fmt, ...)
+string_sprintfa_track(GString *s, char *file, gint line, const char *fmt, ...)
 {
 	va_list args;
-	gchar *o;
-	gchar *old = s->str;
+	char *o;
+	char *old = s->str;
 
 	va_start(args, fmt);
 	o = g_strdup_vprintf(fmt, args);
@@ -1427,10 +1427,10 @@ leak_close(gpointer o)
  * Record a new leak of `size' bytes allocated at `file', line `line'.
  */
 void
-leak_add(gpointer o, size_t size, gchar *file, gint line)
+leak_add(gpointer o, size_t size, char *file, gint line)
 {
 	struct leak_set *ls = o;
-	gchar key[1024];
+	char key[1024];
 	struct leak_record *lr;
 	gboolean found;
 	gpointer k;
@@ -1456,7 +1456,7 @@ leak_add(gpointer o, size_t size, gchar *file, gint line)
 }
 
 struct leak {			/* A memory leak, for sorting purposes */
-	gchar *place;
+	char *place;
 	struct leak_record *lr;
 };
 
@@ -1496,7 +1496,7 @@ fill_array(gpointer key, gpointer value, gpointer user)
 	g_assert(filler->idx < filler->count);
 
 	l = &filler->leaks[filler->idx++];
-	l->place = (gchar *) key;
+	l->place = (char *) key;
 	l->lr = lr;
 }
 
@@ -1664,15 +1664,15 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		gint remains = st->allocated + st->reallocated - st->freed;
 		gint total_remains =
 			st->total_allocated + st->total_reallocated - st->total_freed;
-		gchar *c_allocated = strdup(compact_size(st->allocated, TRUE));
-		gchar *c_freed = strdup(compact_size(st->freed, TRUE));
-		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated), TRUE));
-		gchar *c_remains = strdup(compact_size(ABS(remains), TRUE));
-		gchar *c_tallocated = strdup(compact_size(st->total_allocated, TRUE));
-		gchar *c_tfreed = strdup(compact_size(st->total_freed, TRUE));
-		gchar *c_treallocated =
+		char *c_allocated = strdup(compact_size(st->allocated, TRUE));
+		char *c_freed = strdup(compact_size(st->freed, TRUE));
+		char *c_reallocated = strdup(compact_size(ABS(st->reallocated), TRUE));
+		char *c_remains = strdup(compact_size(ABS(remains), TRUE));
+		char *c_tallocated = strdup(compact_size(st->total_allocated, TRUE));
+		char *c_tfreed = strdup(compact_size(st->total_freed, TRUE));
+		char *c_treallocated =
 			strdup(compact_size(ABS(st->total_reallocated), TRUE));
-		gchar *c_tremains = strdup(compact_size(ABS(total_remains), TRUE));
+		char *c_tremains = strdup(compact_size(ABS(total_remains), TRUE));
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?

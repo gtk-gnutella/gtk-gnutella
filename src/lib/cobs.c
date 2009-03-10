@@ -53,13 +53,13 @@ RCSID("$Id$")
  * @attention
  * NB: the output is a linear buffer, not a vector.
  */
-gchar *
+char *
 cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
 {
 	size_t maxsize, len;
-	gchar *out;
-	gchar *o;						/* Iterates over output */
-	gchar *cp;						/* Where we'll write the code length */
+	char *out;
+	char *o;						/* Iterates over output */
+	char *cp;						/* Where we'll write the code length */
 	guchar code, last_code = 0;
 	struct iovec *xiov;
 	gint i;
@@ -93,11 +93,11 @@ cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
 } while (0)
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
-		const gchar *p = xiov->iov_base;		/* Iterates over buffer */
-		const gchar *end = &p[xiov->iov_len];	/* First byte off buffer */
+		const char *p = xiov->iov_base;		/* Iterates over buffer */
+		const char *end = &p[xiov->iov_len];	/* First byte off buffer */
 
 		while (p != end) {
-			const gchar c = *p++;
+			const char c = *p++;
 			if (c == 0)
 				FINISH(code);
 			else {
@@ -133,8 +133,8 @@ cobs_encodev(struct iovec *iov, gint iovcnt, size_t *retlen)
  *
  * @returns the new encoded buffer, and its length in `retlen'.
  */
-gchar *
-cobs_encode(gchar *buf, size_t len, size_t *retlen)
+char *
+cobs_encode(char *buf, size_t len, size_t *retlen)
 {
 	struct iovec iov;
 
@@ -153,13 +153,13 @@ cobs_encode(gchar *buf, size_t len, size_t *retlen)
  * The length of the decoded buffer is returned in `retlen'.
  */
 gboolean
-cobs_decode_into(const gchar *buf, size_t len, gchar *out,
+cobs_decode_into(const char *buf, size_t len, char *out,
 	size_t outlen, size_t *retlen)
 {
-	const gchar *end = &buf[len];		/* First byte off buffer */
-	const gchar *oend = &out[outlen];	/* First byte off buffer */
-	const gchar *p;
-	gchar *o;
+	const char *end = &buf[len];		/* First byte off buffer */
+	const char *oend = &out[outlen];	/* First byte off buffer */
+	const char *p;
+	char *o;
 	guchar last_code = 0;
 
 	g_assert(NULL != buf);
@@ -218,9 +218,9 @@ cobs_decode_into(const gchar *buf, size_t len, gchar *out,
  * Check whether supplied buffer forms a valid COBS encoding.
  */
 gboolean
-cobs_is_valid(const gchar *buf, size_t len)
+cobs_is_valid(const char *buf, size_t len)
 {
-	const gchar *p, *end = &buf[len];		/* First byte off buffer */
+	const char *p, *end = &buf[len];		/* First byte off buffer */
 
 	g_assert(NULL != buf);
 	g_assert(len > 0);
@@ -250,10 +250,10 @@ cobs_is_valid(const gchar *buf, size_t len)
  * @returns the new decoded buffer, or NULL if the input was not valid COBS
  * encoding.  The length of the decoded buffer is in `retlen'.
  */
-gchar *
-cobs_decode(gchar *buf, size_t len, size_t *retlen, gboolean inplace)
+char *
+cobs_decode(char *buf, size_t len, size_t *retlen, gboolean inplace)
 {
-	gchar *out;
+	char *out;
 
 	g_assert(NULL != buf);
 	g_assert(len > 0);
@@ -314,8 +314,8 @@ cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
 gboolean
 cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
 {
-	gchar *p = data;
-	const gchar *end = &p[len];
+	char *p = data;
+	const char *end = &p[len];
 
 	g_assert(cobs_stream_is_valid(cs));
 
@@ -330,7 +330,7 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
 } while (0)
 
 	while (p != end) {
-		const gchar c = *p++;
+		const char c = *p++;
 		if (cs->cp >= cs->end)
 			return FALSE;
 		if (c == 0) {

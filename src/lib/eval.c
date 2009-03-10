@@ -53,10 +53,10 @@ RCSID("$Id$")
 #define MAX_STRING	1024	/**< Max length for substitution */
 
 static GHashTable *constants;
-static const gchar *home;	/* string atom */
+static const char *home;	/* string atom */
 
-static const gchar *get_home(void);
-static const gchar *get_variable(const gchar *s, const gchar **end);
+static const char *get_home(void);
+static const char *get_variable(const char *s, const char **end);
 static gboolean initialized;
 
 /**
@@ -64,10 +64,10 @@ static gboolean initialized;
  *
  * @returns a string atom.
  */
-static const gchar *
-constant_make(const gchar *s)
+static const char *
+constant_make(const char *s)
 {
-	const gchar *v;
+	const char *v;
 
 	v = g_hash_table_lookup(constants, s);
 	if (v != NULL)
@@ -126,8 +126,8 @@ eval_close(void)
  *
  * @return the pointer right after the inserted value.
  */
-static gchar *
-insert_value(const gchar *val, gchar *start, size_t off,
+static char *
+insert_value(const char *val, char *start, size_t off,
 	size_t len, size_t maxlen)
 {
 	size_t vlen = strlen(val);
@@ -159,14 +159,14 @@ insert_value(const gchar *val, gchar *start, size_t off,
  *
  * @return string atom, which is not meant to be freed until exit time.
  */
-const gchar *
-eval_subst(const gchar *str)
+const char *
+eval_subst(const char *str)
 {
-	gchar buf[MAX_STRING];
-	gchar *end = &buf[sizeof(buf)];
-	gchar *p;
+	char buf[MAX_STRING];
+	char *end = &buf[sizeof(buf)];
+	char *p;
 	size_t len;
-	gchar c;
+	char c;
 
 	g_assert(initialized);
 
@@ -185,8 +185,8 @@ eval_subst(const gchar *str)
 		printf("eval_subst: on entry: \"%s\"\n", buf);
 
 	for (p = buf, c = *p++; c; c = *p++) {
-		const gchar *val = NULL;
-		gchar *start = p - 1;
+		const char *val = NULL;
+		char *start = p - 1;
 
 		switch (c) {
 		case '~':
@@ -202,7 +202,7 @@ eval_subst(const gchar *str)
 			break;
 		case '$':
 			{
-				const gchar *after;
+				const char *after;
 
 				val = get_variable(p, &after);
 				g_assert(val);
@@ -215,7 +215,7 @@ eval_subst(const gchar *str)
 		}
 
 		if (val != NULL) {
-			gchar *next;
+			char *next;
 			
 			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
 			len += next - start;
@@ -242,7 +242,7 @@ eval_subst(const gchar *str)
  *
  * @return string atom.
  */
-static const gchar *
+static const char *
 get_home(void)
 {
 	const char *dir;
@@ -296,10 +296,10 @@ get_home(void)
  * @return variable's value, or "" if not found and set `end' to the address
  * of the character right after the variable name.
  */
-static const gchar *
-get_variable(const gchar *s, const gchar **end)
+static const char *
+get_variable(const char *s, const char **end)
 {
-	const gchar *value, *p = s;
+	const char *value, *p = s;
 	gboolean end_brace = FALSE;
 
 	/*
@@ -326,7 +326,7 @@ get_variable(const gchar *s, const gchar **end)
 	 */
 
 	{
-		gchar *name;
+		char *name;
 
 		name = g_strndup(s, p - s);
 		value = getenv(name);

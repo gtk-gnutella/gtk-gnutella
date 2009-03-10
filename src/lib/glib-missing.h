@@ -70,7 +70,7 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 #ifdef USE_GLIB1
 GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
-GString *g_string_append_len(GString *gs, const gchar *val, gssize len);
+GString *g_string_append_len(GString *gs, const char *val, gssize len);
 
 void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
 
@@ -86,18 +86,18 @@ GList *g_list_sort_with_data(
 #define g_string_printf		g_string_sprintf
 #endif
 
-gchar *gm_string_finalize(GString *gs);
+char *gm_string_finalize(GString *gs);
 
-size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
-size_t gm_snprintf(gchar *str, size_t n,
-	gchar const *fmt, ...) G_GNUC_PRINTF (3, 4);
+size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
+size_t gm_snprintf(char *str, size_t n,
+	char const *fmt, ...) G_GNUC_PRINTF (3, 4);
 
-void gm_savemain(gint argc, gchar **argv, gchar **env);
-const gchar *gm_getproctitle(void);
-void gm_setproctitle(const gchar *title);
-gchar *gm_sanitize_filename(const gchar *filename,
+void gm_savemain(gint argc, char **argv, char **env);
+const char *gm_getproctitle(void);
+void gm_setproctitle(const char *title);
+char *gm_sanitize_filename(const char *filename,
 	gboolean no_spaces, gboolean no_evil);
-gchar *gm_beautify_filename(const gchar *filename);
+char *gm_beautify_filename(const char *filename);
 
 static inline void
 gm_hash_table_insert_const(GHashTable *ht,

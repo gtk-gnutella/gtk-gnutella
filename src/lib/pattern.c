@@ -83,7 +83,7 @@ pattern_close(void)
  * @return a compiled pattern structure.
  */
 cpattern_t *
-pattern_compile(const gchar *pattern)
+pattern_compile(const char *pattern)
 {
 	cpattern_t *p = zalloc(pat_zone);
 	size_t plen, i, *pd = p->delta;
@@ -115,7 +115,7 @@ pattern_compile(const gchar *pattern)
  * NB: There is no pattern_free_fast(), just call zfree() on the result.
  */
 cpattern_t *
-pattern_compile_fast(const gchar *pattern, size_t plen)
+pattern_compile_fast(const char *pattern, size_t plen)
 {
 	cpattern_t *p = zalloc(pat_zone);
 	size_t i, *pd = p->delta;
@@ -159,19 +159,19 @@ pattern_free(cpattern_t *cpat)
  *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
-const gchar *
+const char *
 pattern_qsearch(
 	cpattern_t *cpat,		/**< Compiled pattern */
-	const gchar *text,		/**< Text we're scanning */
+	const char *text,		/**< Text we're scanning */
 	size_t tlen,			/**< Text length, 0 = compute strlen(text) */
 	size_t toffset,			/**< Offset within text for search start */
 	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	const gchar *p;			/* Pointer within string pattern */
-	const gchar *t;			/* Pointer within text */
-	const gchar *tp;		/* Initial local search text pointer */
-	const gchar *start;		/* Start of matching */
-	const gchar *end;		/* End of text (first byte after physical end) */
+	const char *p;			/* Pointer within string pattern */
+	const char *t;			/* Pointer within text */
+	const char *tp;		/* Initial local search text pointer */
+	const char *start;		/* Start of matching */
+	const char *end;		/* End of text (first byte after physical end) */
 	size_t i;				/* Position within pattern string */
 	size_t plen;
 

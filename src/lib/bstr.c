@@ -68,7 +68,7 @@ struct bstr {
 #define BSTR_F_EOS		(1 << 16)	/**< End of stream reached */
 #define BSTR_F_PENDING	(1 << 17)	/**< Pending reset, stream invalid */
 
-static gboolean error_eos(bstr_t *bs, ssize_t expected, const gchar *where);
+static gboolean error_eos(bstr_t *bs, ssize_t expected, const char *where);
 
 /**
  * Reset the stream.
@@ -250,7 +250,7 @@ alloc_error(bstr_t *bs)
  * @return FALSE
  */
 static gboolean
-error_eos(bstr_t *bs, ssize_t expected, const gchar *where)
+error_eos(bstr_t *bs, ssize_t expected, const char *where)
 {
 	bs->flags |= BSTR_F_EOS;
 
@@ -271,7 +271,7 @@ error_eos(bstr_t *bs, ssize_t expected, const gchar *where)
  * @return FALSE
  */
 static gboolean
-invalid_len(bstr_t *bs, size_t len, const gchar *what, const gchar *where)
+invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
@@ -290,7 +290,7 @@ invalid_len(bstr_t *bs, size_t len, const gchar *what, const gchar *where)
  */
 static gboolean
 invalid_len_max(
-	bstr_t *bs, size_t len, size_t max, const gchar *what, const gchar *where)
+	bstr_t *bs, size_t len, size_t max, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);

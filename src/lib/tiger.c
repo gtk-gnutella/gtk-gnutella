@@ -165,7 +165,7 @@ tiger_compress(const guint64 *data, guint64 state[3])
 }
 
 void
-tiger(gconstpointer data, guint64 length, gchar hash[24])
+tiger(gconstpointer data, guint64 length, char hash[24])
 {
   guint64 i, j, res[3];
   const guint8 *data_u8 = data;
@@ -249,7 +249,7 @@ tiger(gconstpointer data, guint64 length, gchar hash[24])
 void
 tiger_check(void)
 {
-	static const gchar zeros[1025];
+	static const char zeros[1025];
     static const struct {
 		const char *r;
 		const char *s;
@@ -266,8 +266,8 @@ tiger_check(void)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-		gchar hash[24];
-		gchar buf[40];
+		char hash[24];
+		char buf[40];
 		gboolean ok;
 
 		memset(buf, 0, sizeof buf);	

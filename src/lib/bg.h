@@ -100,7 +100,7 @@ void bg_close(void);
 void bg_sched_timer(gboolean overloaded);
 
 struct bgtask *bg_task_create(
-	const gchar *name,
+	const char *name,
 	const bgstep_cb_t *steps, gint stepcnt,
 	gpointer ucontext,
 	bgclean_cb_t ucontext_free,
@@ -108,7 +108,7 @@ struct bgtask *bg_task_create(
 	gpointer done_arg);
 
 struct bgtask *bg_daemon_create(
-	const gchar *name,
+	const char *name,
 	const bgstep_cb_t *steps, gint stepcnt,
 	gpointer ucontext,
 	bgclean_cb_t ucontext_free,

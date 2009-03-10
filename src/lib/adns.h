@@ -40,10 +40,10 @@
 #include "host_addr.h"	/* For ``struct host_addr'' */
 
 typedef void (*adns_callback_t)(const host_addr_t *, size_t, gpointer);
-typedef void (*adns_reverse_callback_t)(const gchar *, gpointer);
+typedef void (*adns_reverse_callback_t)(const char *, gpointer);
 
 void adns_init(void);
-gboolean adns_resolve(const gchar *, enum net_type net,
+gboolean adns_resolve(const char *, enum net_type net,
 	adns_callback_t, gpointer);
 gboolean adns_reverse_lookup(const host_addr_t,
 	adns_reverse_callback_t, gpointer);

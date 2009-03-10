@@ -86,7 +86,7 @@ struct header {
  */
 
 typedef struct {
-	gchar *name;				/**< Field name */
+	char *name;				/**< Field name */
 	slist_t *lines;				/**< List of lines making this header */
 } header_field_t;
 
@@ -118,7 +118,7 @@ static const char *error_str[] = {
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 header_strerror(guint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str))
@@ -142,7 +142,7 @@ header_num_lines(const header_t *h)
  * A private copy of `name' is done.
  */
 static header_field_t *
-hfield_make(const gchar *name)
+hfield_make(const char *name)
 {
 	header_field_t *h;
 
@@ -178,7 +178,7 @@ hfield_free(header_field_t *h)
  * A private copy of the data is made.
  */
 static void
-hfield_append(header_field_t *h, const gchar *text)
+hfield_append(header_field_t *h, const char *text)
 {
 	if (!h->lines) {
 		h->lines = slist_new();
@@ -296,8 +296,8 @@ header_reset(header_t *o)
  * pointer to the internals of the header structure, so it must not be
  * kept around.
  */
-gchar *
-header_get(const header_t *o, const gchar *field)
+char *
+header_get(const header_t *o, const char *field)
 {
 	GString *v;
 
@@ -314,8 +314,8 @@ header_get(const header_t *o, const gchar *field)
  * copy of the internal value, so it may be kept around, but must be
  * freed by the caller.
  */
-gchar *
-header_getdup(const header_t *o, const gchar *field)
+char *
+header_getdup(const header_t *o, const char *field)
 {
 	return g_strdup(header_get(o, field));
 }
@@ -325,7 +325,7 @@ header_getdup(const header_t *o, const gchar *field)
  * A private copy of the `field' name and of the `text' data is made.
  */
 static void
-add_header(header_t *o, const gchar *field, const gchar *text)
+add_header(header_t *o, const char *field, const char *text)
 {
 	GHashTable *ht;
 	GString *v;
@@ -342,7 +342,7 @@ add_header(header_t *o, const gchar *field, const gchar *text)
 		g_string_append(v, text);
 
 	} else {
-		gchar *key;
+		char *key;
 
 		/*
 		 * Create a new header entry in the hash table.
@@ -359,7 +359,7 @@ add_header(header_t *o, const gchar *field, const gchar *text)
  * A private copy of the data is made.
  */
 static void
-add_continuation(header_t *o, const gchar *field, const gchar *text)
+add_continuation(header_t *o, const char *field, const char *text)
 {
 	GString *v;
 
@@ -377,10 +377,10 @@ add_continuation(header_t *o, const gchar *field, const gchar *text)
  * @return an error code, or HEAD_OK if appending was successful.
  */
 gint
-header_append(header_t *o, const gchar *text, gint len)
+header_append(header_t *o, const char *text, gint len)
 {
-	gchar buf[MAX_LINE_SIZE];
-	const gchar *p = text;
+	char buf[MAX_LINE_SIZE];
+	const char *p = text;
 	guchar c;
 	header_field_t *hf;
 
@@ -468,7 +468,7 @@ header_append(header_t *o, const gchar *text, gint len)
 		 */
 
 	} else {
-		gchar *b;
+		char *b;
 		gboolean seen_space = FALSE;
 
 		/*
@@ -581,7 +581,7 @@ struct header_fmt {
 	guint32 magic;
 	gint maxlen;			/**< Maximum line length before continuation */
 	GString *header;		/**< Header being built */
-	gchar sep[257];			/**< Optional separator */
+	char sep[257];			/**< Optional separator */
 	gint seplen;			/**< Length of separator string */
 	gint stripped_seplen;	/**< Length of separator without trailing space */
 	gint current_len;		/**< Length of currently built line */
@@ -631,7 +631,7 @@ stripped_strlen(const char *s, gint len)
  * @return opaque pointer.
  */
 gpointer
-header_fmt_make(const gchar *field, const gchar *separator, gint len_hint)
+header_fmt_make(const char *field, const char *separator, gint len_hint)
 {
 	struct header_fmt *hf;
 	size_t len;
@@ -728,8 +728,8 @@ header_fmt_value_fits(gpointer o, gint len, gint maxlen)
  * @param `sslen' is the stripped separator length, -1 if unknown yet.
  */
 static void
-header_fmt_append_full(struct header_fmt *hf, const gchar *str,
-	const gchar *separator, gint slen, gint sslen)
+header_fmt_append_full(struct header_fmt *hf, const char *str,
+	const char *separator, gint slen, gint sslen)
 {
 	size_t len;
 	gint curlen;
@@ -745,7 +745,7 @@ header_fmt_append_full(struct header_fmt *hf, const gchar *str,
 
 		if (separator != NULL && hf->data_emitted) {
 			gint s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
-			const gchar *p;
+			const char *p;
 
 			for (p = separator; s > 0; p++, s--)
 				g_string_append_c(hf->header, *p);
@@ -774,7 +774,7 @@ header_fmt_append_full(struct header_fmt *hf, const gchar *str,
  * To use the standard separator, use header_fmt_append_value().
  */
 void
-header_fmt_append(gpointer o, const gchar *str, const gchar *separator)
+header_fmt_append(gpointer o, const char *str, const char *separator)
 {
 	struct header_fmt *hf = o;
 	gint seplen;
@@ -797,7 +797,7 @@ header_fmt_append(gpointer o, const gchar *str, const gchar *separator)
  * To supersede the default separator, use header_fmt_append().
  */
 void
-header_fmt_append_value(gpointer o, const gchar *str)
+header_fmt_append_value(gpointer o, const char *str)
 {
 	struct header_fmt *hf = o;
 
@@ -839,7 +839,7 @@ header_fmt_end(gpointer o)
 /**
  * @return current header string.
  */
-gchar *
+char *
 header_fmt_string(gpointer o)
 {
 	struct header_fmt *hf = o;
@@ -855,10 +855,10 @@ header_fmt_string(gpointer o)
  * @attention
  * NB: returns pointer to static data!
  */
-gchar *
+char *
 header_fmt_to_string(gpointer o)
 {
-	static gchar line[HEADER_FMT_MAX_SIZE + 1];
+	static char line[HEADER_FMT_MAX_SIZE + 1];
 	struct header_fmt *hf = o;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);

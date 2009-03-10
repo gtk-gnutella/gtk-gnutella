@@ -50,7 +50,7 @@
  * You also need a special type defined which holds the signature of the
  * callback function. For example:
  *
- * typedef void (*node_added_listener_t) (gnutella_node_t *, const gchar *);
+ * typedef void (*node_added_listener_t) (gnutella_node_t *, const char *);
  *
  * Again the name is important (like above).
  */

@@ -68,30 +68,30 @@ typedef enum {
 
 void locale_init(void);
 void locale_close(void);
-const gchar *locale_get_charset(void);
-const gchar *locale_get_language(void);
-guint utf8_char_len(const gchar *s);
-gboolean is_ascii_string(const gchar *str);
-gboolean utf8_is_valid_string(const gchar *s);
-gboolean utf8_is_valid_data(const gchar *s, size_t n);
-size_t utf8_char_count(const gchar *s);
-size_t utf8_data_char_count(const gchar *src, size_t len);
-size_t utf8_strlcpy(gchar *dst, const gchar *src, size_t dst_size);
-size_t utf8_strcpy_max(gchar *dst, size_t dst_size,
-			const gchar *src, size_t max_chars);
-guint32 utf8_decode_char_fast(const gchar *s, guint *retlen)
+const char *locale_get_charset(void);
+const char *locale_get_language(void);
+guint utf8_char_len(const char *s);
+gboolean is_ascii_string(const char *str);
+gboolean utf8_is_valid_string(const char *s);
+gboolean utf8_is_valid_data(const char *s, size_t n);
+size_t utf8_char_count(const char *s);
+size_t utf8_data_char_count(const char *src, size_t len);
+size_t utf8_strlcpy(char *dst, const char *src, size_t dst_size);
+size_t utf8_strcpy_max(char *dst, size_t dst_size,
+			const char *src, size_t max_chars);
+guint32 utf8_decode_char_fast(const char *s, guint *retlen)
 	NON_NULL_PARAM((1,2));
-gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
-size_t utf8_strlower(gchar *dst, const gchar *src, size_t size);
-gchar *utf8_strlower_copy(const gchar *src);
-size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
-gchar *utf8_strupper_copy(const gchar *src);
-gchar *utf8_canonize(const gchar *src);
-gchar *utf8_normalize(const gchar *src, uni_norm_t norm);
-gboolean utf8_is_decomposed(const gchar *src, gboolean nfkd);
+gint utf8_to_iso8859(char *s, gint len, gboolean space);
+size_t utf8_strlower(char *dst, const char *src, size_t size);
+char *utf8_strlower_copy(const char *src);
+size_t utf8_strupper(char *dst, const char *src, size_t size);
+char *utf8_strupper_copy(const char *src);
+char *utf8_canonize(const char *src);
+char *utf8_normalize(const char *src, uni_norm_t norm);
+gboolean utf8_is_decomposed(const char *src, gboolean nfkd);
 
-guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, gchar *buf, size_t size);
-size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
+guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, char *buf, size_t size);
+size_t utf32_to_utf8(const guint32 *in, char *out, size_t size);
 guint32 utf32_lowercase(guint32 uc);
 gboolean utf32_canonical_sorted(const guint32 *src);
 gboolean utf32_is_decomposed(const guint32 *src, gboolean nfkd);
@@ -113,7 +113,7 @@ size_t utf32_strupper(guint32 *dst, const guint32 *src, size_t size);
  * @returns the maximum length in bytes of the current UTF-8 character.
  */
 static inline size_t
-utf8_decode_lookahead(const gchar *s, size_t len)
+utf8_decode_lookahead(const char *s, size_t len)
 {
 	while (len < 6 && s[len] != '\0')
 		len++;
@@ -325,55 +325,55 @@ utf8_encode(guint32 cp, char *buf)
  * pointer. Copy the result before calling them again unless you don't
  * need the previous result anymore.
  */
-const gchar *lazy_iso8859_1_to_utf8(const gchar *src);
-const gchar *lazy_utf8_to_iso8859_1(const gchar *src);
+const char *lazy_iso8859_1_to_utf8(const char *src);
+const char *lazy_utf8_to_iso8859_1(const char *src);
 
-const gchar *lazy_ui_string_to_utf8(const gchar *src);
-const gchar *lazy_utf8_to_ui_string(const gchar *src);
+const char *lazy_ui_string_to_utf8(const char *src);
+const char *lazy_utf8_to_ui_string(const char *src);
 
-const gchar *lazy_utf8_to_locale(const gchar *src);
-const gchar *lazy_locale_to_utf8(const gchar *src);
+const char *lazy_utf8_to_locale(const char *src);
+const char *lazy_locale_to_utf8(const char *src);
 
-const gchar *lazy_locale_to_ui_string(const gchar *src);
-const gchar *lazy_locale_to_ui_string2(const gchar *src);
+const char *lazy_locale_to_ui_string(const char *src);
+const char *lazy_locale_to_ui_string2(const char *src);
 
-const gchar *lazy_filename_to_ui_string(const gchar *src);
+const char *lazy_filename_to_ui_string(const char *src);
 
-const gchar *lazy_filename_to_utf8_normalized(const gchar *str, uni_norm_t);
-const gchar *lazy_locale_to_utf8_normalized(const gchar *src, uni_norm_t);
-const gchar *lazy_unknown_to_utf8_normalized(const gchar *src, uni_norm_t,
-				const gchar **charset_ptr);
+const char *lazy_filename_to_utf8_normalized(const char *str, uni_norm_t);
+const char *lazy_locale_to_utf8_normalized(const char *src, uni_norm_t);
+const char *lazy_unknown_to_utf8_normalized(const char *src, uni_norm_t,
+				const char **charset_ptr);
 
-const gchar *lazy_unknown_to_ui_string(const gchar *src);
+const char *lazy_unknown_to_ui_string(const char *src);
 
-gchar *utf8_to_iso8859_1(const gchar *str);
-gchar *iso8859_1_to_utf8(const gchar *str);
-gchar *iso8859_1_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+char *utf8_to_iso8859_1(const char *str);
+char *iso8859_1_to_utf8(const char *str);
+char *iso8859_1_to_utf8_normalized(const char *str, uni_norm_t norm);
 
-gchar *unknown_to_ui_string(const gchar *src);
-gchar *utf8_to_ui_string(const gchar *src);
-gchar *ui_string_to_utf8(const gchar *src);
+char *unknown_to_ui_string(const char *src);
+char *utf8_to_ui_string(const char *src);
+char *ui_string_to_utf8(const char *src);
 
-gchar *utf8_to_locale(const gchar *s);
-gchar *locale_to_utf8(const gchar *str);
-gchar *locale_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+char *utf8_to_locale(const char *s);
+char *locale_to_utf8(const char *str);
+char *locale_to_utf8_normalized(const char *str, uni_norm_t norm);
 
-gchar *utf8_to_filename(const gchar *s);
-gchar *filename_to_utf8_normalized(const gchar *str, uni_norm_t norm);
+char *utf8_to_filename(const char *s);
+char *filename_to_utf8_normalized(const char *str, uni_norm_t norm);
 
-gchar *unknown_to_utf8(const gchar *str, const gchar **charset_ptr);
-gchar *unknown_to_utf8_normalized(const gchar *src, uni_norm_t norm,
-			const gchar **charset_ptr);
+char *unknown_to_utf8(const char *str, const char **charset_ptr);
+char *unknown_to_utf8_normalized(const char *src, uni_norm_t norm,
+			const char **charset_ptr);
 
-size_t ascii_enforce(gchar *dst, size_t size, const gchar *src);
-size_t utf8_enforce(gchar *dst, size_t size, const gchar *src);
+size_t ascii_enforce(char *dst, size_t size, const char *src);
+size_t utf8_enforce(char *dst, size_t size, const char *src);
 
 gboolean icu_enabled(void);
 gboolean locale_is_latin(void);
 gboolean locale_is_utf8(void);
 
-gboolean utf8_can_latinize(const gchar *src);
-size_t utf8_latinize(gchar *dst, size_t dst_size, const gchar *src);
+gboolean utf8_can_latinize(const char *src);
+size_t utf8_latinize(char *dst, size_t dst_size, const char *src);
 
 gint utf16_encode_char(guint32 uc, guint16 *dst);
 

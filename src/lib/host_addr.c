@@ -357,7 +357,7 @@ host_addr_convert(const host_addr_t from, host_addr_t *to,
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
 size_t
-host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
+host_addr_to_string_buf(const host_addr_t ha, char *dst, size_t size)
 {
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
@@ -381,10 +381,10 @@ host_addr_to_string_buf(const host_addr_t ha, gchar *dst, size_t size)
  * @return a pointer to a static buffer holding a NUL-terminated string
  *         representing the given host address.
  */
-const gchar *
+const char *
 host_addr_to_string(const host_addr_t ha)
 {
-	static gchar buf[HOST_ADDR_BUFLEN];
+	static char buf[HOST_ADDR_BUFLEN];
 	size_t n;
 
 	n = host_addr_to_string_buf(ha, buf, sizeof buf);
@@ -406,10 +406,10 @@ host_addr_to_string(const host_addr_t ha)
  */
 size_t
 host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
-		gchar *dst, size_t size)
+		char *dst, size_t size)
 {
-	gchar host_buf[HOST_ADDR_BUFLEN];
-	gchar port_buf[UINT32_DEC_BUFLEN];
+	char host_buf[HOST_ADDR_BUFLEN];
+	char port_buf[UINT32_DEC_BUFLEN];
 	size_t n;
 
 	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
@@ -439,10 +439,10 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
  * @return a pointer to a static buffer holding a NUL-terminated string
  *         representing the given host address and port.
  */
-const gchar *
+const char *
 host_addr_port_to_string(const host_addr_t ha, guint16 port)
 {
-	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
 
 	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
@@ -450,10 +450,10 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
 	return buf;
 }
 
-const gchar *
+const char *
 host_addr_port_to_string2(const host_addr_t ha, guint16 port)
 {
-	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
 
 	n = host_addr_port_to_string_buf(ha, port, buf, sizeof buf);
@@ -508,10 +508,10 @@ host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
  * @return a pointer to a static buffer holding a NUL-terminated string
  *         representing the given host address and port.
  */
-const gchar *
+const char *
 port_host_addr_to_string(guint16 port, const host_addr_t ha)
 {
-	static gchar buf[HOST_ADDR_PORT_BUFLEN];
+	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
 
 	n = host_port_addr_to_string_buf(port, ha, buf, sizeof buf);
@@ -547,7 +547,7 @@ host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
  * @return Returns TRUE on success; otherwise FALSE.
  */
 gboolean
-string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
+string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
 {
 	guint32 ip;
 
@@ -590,9 +590,9 @@ string_to_host_addr(const char *s, const gchar **endptr, host_addr_t *addr_ptr)
  *         hostname.
  */
 gboolean
-string_to_host_or_addr(const char *s, const gchar **endptr, host_addr_t *ha)
+string_to_host_or_addr(const char *s, const char **endptr, host_addr_t *ha)
 {
-	const gchar *ep;
+	const char *ep;
 	size_t len;
 	host_addr_t addr;
 
@@ -717,7 +717,7 @@ string_to_port_host_addr(const char *str, const char **endptr,
 }
 
 static void
-gethostbyname_error(const gchar *host)
+gethostbyname_error(const char *host)
 {
 #if defined(HAS_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
@@ -806,7 +806,7 @@ socket_addr_init(socket_addr_t *sa_ptr, enum net_type net)
  * @return		On success, the hostname is returned. Otherwise, NULL is
  *				returned. The resulting string points to a static buffer.
  */
-const gchar *
+const char *
 host_addr_to_name(host_addr_t addr)
 {
 	socket_addr_t sa;
@@ -820,13 +820,13 @@ host_addr_to_name(host_addr_t addr)
 
 #ifdef HAS_GETNAMEINFO
 	{
-		static gchar host[1025];
+		static char host[1025];
 		gint error;
 
 		error = getnameinfo(socket_addr_get_const_sockaddr(&sa),
 					socket_addr_get_len(&sa), host, sizeof host, NULL, 0, 0);
 		if (error) {
-			gchar buf[HOST_ADDR_BUFLEN];
+			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(addr, buf, sizeof buf);
 			g_message("getnameinfo() failed for \"%s\": %s",
@@ -839,7 +839,7 @@ host_addr_to_name(host_addr_t addr)
 	{
 		const struct hostent *he;
 		socklen_t len = 0;
-		const gchar *ptr = NULL;
+		const char *ptr = NULL;
 
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
@@ -861,7 +861,7 @@ host_addr_to_name(host_addr_t addr)
 
 		he = gethostbyaddr(ptr, len, socket_addr_get_family(&sa));
 		if (!he) {
-			gchar buf[HOST_ADDR_BUFLEN];
+			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(addr, buf, sizeof buf);
 			gethostbyname_error(buf);
@@ -873,7 +873,7 @@ host_addr_to_name(host_addr_t addr)
 }
 
 static GSList *
-resolve_hostname(const gchar *host, enum net_type net)
+resolve_hostname(const char *host, enum net_type net)
 #if defined(HAS_GETADDRINFO)
 {
 	static const struct addrinfo zero_hints;
@@ -1034,9 +1034,9 @@ resolve_hostname(const gchar *host, enum net_type net)
  *         On failure, NULL is returned.
  */
 GSList *
-name_to_host_addr(const gchar *host, enum net_type net)
+name_to_host_addr(const char *host, enum net_type net)
 {
-	const gchar *endptr;
+	const char *endptr;
 	host_addr_t addr;
 	
 	g_assert(host);
@@ -1080,7 +1080,7 @@ host_addr_free_list(GSList **sl_ptr)
  * and return it.
  */
 host_addr_t
-name_to_single_host_addr(const gchar *host, enum net_type net)
+name_to_single_host_addr(const char *host, enum net_type net)
 {
 	GSList *sl_addr;
 	host_addr_t addr;

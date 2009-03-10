@@ -45,8 +45,8 @@ RCSID("$Id$")
 #include "override.h"       /* Must be the last header included */
 
 typedef struct {
-	const gchar *country;	/* atom */
-	gchar cc[3];
+	const char *country;	/* atom */
+	char cc[3];
 } iso3166_entry_t;
 
 /**
@@ -321,10 +321,10 @@ static iso3166_entry_t *iso3166_countries[NUM_CODES];
  *		   is valid, a string pointing two the 2-letter code is returned. The
  *		   string is in a static buffer.
  */
-static const gchar *
+static const char *
 iso3166_decode_cc(guint16 code)
 {
-    static gchar s[3];
+    static char s[3];
     guint i;
 
     if (code >= G_N_ELEMENTS(iso3166_countries))
@@ -349,12 +349,12 @@ iso3166_decode_cc(guint16 code)
  *         a 2-letter country code.
  */
 guint16
-iso3166_encode_cc(const gchar *cc)
+iso3166_encode_cc(const char *cc)
 {
     g_assert(cc != NULL);
 
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
-        const gchar *d;
+        const char *d;
 		guint16 code;
 		gint error;
 
@@ -385,7 +385,7 @@ iso3166_init(void)
 		entry->country = atom_str_get(_(iso3166_tab[i].country));
 
 		{
-			const gchar *endptr;
+			const char *endptr;
 			guint16 code;
 			gint error;
 
@@ -429,7 +429,7 @@ iso3166_country_entry(guint16 code)
  *		   is valid, a string pointing two the country name is returned. Each
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
-const gchar *
+const char *
 iso3166_country_name(guint16 code)
 {
 	return iso3166_country_entry(code)->country;
@@ -442,7 +442,7 @@ iso3166_country_name(guint16 code)
  *		   is valid, a string pointing two the 2-letter code is returned. Each
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
-const gchar *
+const char *
 iso3166_country_cc(guint16 code)
 {
 	return iso3166_country_entry(code)->cc;

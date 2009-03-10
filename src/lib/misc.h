@@ -63,7 +63,7 @@
 #define GUID_BASE32_SIZE	26	/**< base32 GUID representation */
 
 typedef struct short_string {
-	gchar str[SIZE_FIELD_MAX];
+	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
 /**
@@ -72,11 +72,11 @@ typedef struct short_string {
 #ifndef USE_GLIB2
 
 #ifndef HAS_STRLCPY
-size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
+size_t strlcpy(char *dst, const char *src, size_t dst_size);
 #endif /* HAS_STRLCPY */
 
 #ifndef HAS_STRLCAT
-size_t strlcat(gchar *dst, const gchar *src, size_t dst_size);
+size_t strlcat(char *dst, const char *src, size_t dst_size);
 #endif /* HAS_STRLCAT */
 
 #define g_string_printf g_string_sprintf
@@ -84,10 +84,10 @@ size_t strlcat(gchar *dst, const gchar *src, size_t dst_size);
 #define g_strlcat strlcat
 #endif
 
-size_t concat_strings(gchar *dst, size_t size,
-	const gchar *s, ...) G_GNUC_NULL_TERMINATED;
-size_t w_concat_strings(gchar **dst,
-	const gchar *first, ...) G_GNUC_NULL_TERMINATED;
+size_t concat_strings(char *dst, size_t size,
+	const char *s, ...) G_GNUC_NULL_TERMINATED;
+size_t w_concat_strings(char **dst,
+	const char *first, ...) G_GNUC_NULL_TERMINATED;
 
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
@@ -104,18 +104,18 @@ hex_digit(guchar x)
 }
 
 #if !GLIB_CHECK_VERSION(2,4,0)
-static inline WARN_UNUSED_RESULT const gchar *
-g_strip_context(const gchar *id, const gchar *val)
+static inline WARN_UNUSED_RESULT const char *
+g_strip_context(const char *id, const char *val)
 {
-	const gchar *s;
+	const char *s;
 
 	s = id != val ? NULL : strchr(id, '|');
 	return s ? ++s : val;
 }
 #endif /* GLib < 2.4.0 */
 
-static inline WARN_UNUSED_RESULT gchar *
-skip_dir_separators(const gchar *s)
+static inline WARN_UNUSED_RESULT char *
+skip_dir_separators(const char *s)
 {
 	while ('/' == s[0] || G_DIR_SEPARATOR == s[0])
 		s++;
@@ -157,59 +157,59 @@ typedef guint16 flag_t;
 #define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
 #define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
 
-gboolean parse_ipv6_addr(const gchar *s, uint8_t *dst, const gchar **endptr);
-const gchar *ipv6_to_string(const guint8 *ipv6);
-size_t ipv6_to_string_buf(const guint8 *ipv6, gchar *dst, size_t size);
+gboolean parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr);
+const char *ipv6_to_string(const guint8 *ipv6);
+size_t ipv6_to_string_buf(const guint8 *ipv6, char *dst, size_t size);
 
 /*
  * Network related string routines
  */
-guint32  string_to_ip(const gchar *);
-gboolean string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **ep);
-gboolean string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
-gboolean string_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
-const gchar *ip_to_string(guint32);
-size_t ipv4_to_string_buf(guint32 ip, gchar *buf, size_t size);
-const gchar *hostname_port_to_string(const gchar *hostname, guint16 port);
-const gchar *local_hostname(void);
+guint32  string_to_ip(const char *);
+gboolean string_to_ip_strict(const char *s, guint32 *addr, const char **ep);
+gboolean string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask);
+gboolean string_to_ip_port(const char *str, guint32 *ip, guint16 *port);
+const char *ip_to_string(guint32);
+size_t ipv4_to_string_buf(guint32 ip, char *buf, size_t size);
+const char *hostname_port_to_string(const char *hostname, guint16 port);
+const char *local_hostname(void);
 #define port_is_valid(port) (port != 0)
 
 /*
  * Date string conversions
  */
-const gchar *timestamp_to_string(time_t date);
-const gchar *timestamp_utc_to_string(time_t date);
-const gchar *timestamp_rfc822_to_string(time_t date);
-const gchar *timestamp_rfc822_to_string2(time_t date);
-const gchar *timestamp_rfc1123_to_string(time_t date);
+const char *timestamp_to_string(time_t date);
+const char *timestamp_utc_to_string(time_t date);
+const char *timestamp_rfc822_to_string(time_t date);
+const char *timestamp_rfc822_to_string2(time_t date);
+const char *timestamp_rfc1123_to_string(time_t date);
 
-size_t timestamp_to_string_buf(time_t date, gchar *dst, size_t size);
-size_t timestamp_utc_to_string_buf(time_t date, gchar *dst, size_t size);
-size_t time_locale_to_string_buf(time_t date, gchar *dst, size_t size);
+size_t timestamp_to_string_buf(time_t date, char *dst, size_t size);
+size_t timestamp_utc_to_string_buf(time_t date, char *dst, size_t size);
+size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 
 short_string_t timestamp_get_string(time_t date);
 
 /*
  * Time string conversions
  */
-const gchar *short_time(time_delta_t s);
-const gchar *short_time_ascii(time_delta_t t);
-const gchar *short_uptime(time_delta_t s);
-const gchar *compact_time(time_delta_t t);
+const char *short_time(time_delta_t s);
+const char *short_time_ascii(time_delta_t t);
+const char *short_uptime(time_delta_t s);
+const char *compact_time(time_delta_t t);
 
 /*
  * Size string conversions
  */
-const gchar *short_size(guint64 size, gboolean metric);
-const gchar *short_html_size(guint64 size, gboolean metric);
-const gchar *short_kb_size(guint64 size, gboolean metric);
-const gchar *short_rate(guint64 rate, gboolean metric);
-const gchar *compact_size(guint64 size, gboolean metric);
-const gchar *compact_rate(guint64 rate, gboolean metric);
-const gchar *compact_kb_size(guint32 size, gboolean metric);
-const gchar *nice_size(guint64 size, gboolean metric);
-gchar *short_value(gchar *buf, size_t size, guint64 v, gboolean metric);
-gchar *compact_value(gchar *buf, size_t size, guint64 v, gboolean metric);
+const char *short_size(guint64 size, gboolean metric);
+const char *short_html_size(guint64 size, gboolean metric);
+const char *short_kb_size(guint64 size, gboolean metric);
+const char *short_rate(guint64 rate, gboolean metric);
+const char *compact_size(guint64 size, gboolean metric);
+const char *compact_rate(guint64 rate, gboolean metric);
+const char *compact_kb_size(guint32 size, gboolean metric);
+const char *nice_size(guint64 size, gboolean metric);
+char *short_value(char *buf, size_t size, guint64 v, gboolean metric);
+char *compact_value(char *buf, size_t size, guint64 v, gboolean metric);
 
 short_string_t short_rate_get_string(guint64 rate, gboolean metric);
 
@@ -278,12 +278,12 @@ size_t bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size);
  * Tests
  */
 gboolean is_absolute_path(const char *pathname);
-gboolean is_directory(const gchar *pathname);
-gboolean is_regular(const gchar *pathname);
-gboolean is_symlink(const gchar *pathname);
+gboolean is_directory(const char *pathname);
+gboolean is_regular(const char *pathname);
+gboolean is_symlink(const char *pathname);
 int is_same_file(const char *, const char *);
-gboolean file_exists(const gchar *pathname);
-gboolean file_does_not_exist(const gchar *pathname);
+gboolean file_exists(const char *pathname);
+gboolean file_does_not_exist(const char *pathname);
 guint32 next_pow2(guint32 n);
 
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
@@ -318,25 +318,25 @@ void guid_random_fill(struct guid *);
  * Stuff
  */
 void misc_init(void);
-size_t str_chomp(gchar *str, size_t len);
+size_t str_chomp(char *str, size_t len);
 gint hex2int(guchar c);
-gboolean is_printable(const gchar *buf, gint len);
-void dump_hex(FILE *, const gchar *, gconstpointer, gint);
-void locale_strlower(gchar *, const gchar *);
-size_t filename_shrink(const gchar *filename, gchar *buf, size_t size);
-char *unique_filename(const gchar *path, const gchar *file, const gchar *ext,
-		gboolean (*name_is_uniq)(const gchar *pathname));
-gchar *hex_escape(const gchar *name, gboolean strict);
-gchar *control_escape(const gchar *s);
-const gchar *lazy_string_to_printf_escape(const gchar *src);
+gboolean is_printable(const char *buf, gint len);
+void dump_hex(FILE *, const char *, gconstpointer, gint);
+void locale_strlower(char *, const char *);
+size_t filename_shrink(const char *filename, char *buf, size_t size);
+char *unique_filename(const char *path, const char *file, const char *ext,
+		gboolean (*name_is_uniq)(const char *pathname));
+char *hex_escape(const char *name, gboolean strict);
+char *control_escape(const char *s);
+const char *lazy_string_to_printf_escape(const char *src);
 gint highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
 gfloat force_range(gfloat value, gfloat min, gfloat max);
-gchar *absolute_pathname(const gchar *file);
-gchar *make_pathname(const gchar *dir, const gchar *file);
-gchar *short_filename(gchar *fullname);
-gchar *data_hex_str(const gchar *data, size_t len);
+char *absolute_pathname(const char *file);
+char *make_pathname(const char *dir, const char *file);
+char *short_filename(char *fullname);
+char *data_hex_str(const char *data, size_t len);
 
 #if defined(S_IROTH) && defined(S_IXOTH)
 /* 0755 */
@@ -346,36 +346,36 @@ gchar *data_hex_str(const gchar *data, size_t len);
 #define DEFAULT_DIRECTORY_MODE (S_IRWXU | S_IRGRP | S_IXGRP)
 #endif /* S_IROTH && S_IXOTH */
 
-gint create_directory(const gchar *dir, mode_t mode);
-gint compat_mkdir(const gchar *path, mode_t mode);
-gboolean filepath_exists(const gchar *dir, const gchar *file);
-const gchar * filepath_basename(const gchar *pathname);
-gchar * filepath_directory(const gchar *pathname);
-guint16 parse_uint16(const gchar *, gchar const **, guint, gint *)
+gint create_directory(const char *dir, mode_t mode);
+gint compat_mkdir(const char *path, mode_t mode);
+gboolean filepath_exists(const char *dir, const char *file);
+const char * filepath_basename(const char *pathname);
+char * filepath_directory(const char *pathname);
+guint16 parse_uint16(const char *, char const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
-guint32 parse_uint32(const gchar *, gchar const **, guint, gint *)
+guint32 parse_uint32(const char *, char const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
-guint64 parse_uint64(const gchar *, gchar const **, guint, gint *)
+guint64 parse_uint64(const char *, char const **, guint, gint *)
 	NON_NULL_PARAM((1, 4));
-size_t int32_to_string_buf(gint32 v, gchar *dst, size_t size);
-size_t uint32_to_string_buf(guint32 v, gchar *dst, size_t size);
-size_t uint64_to_string_buf(guint64 v, gchar *dst, size_t size);
-size_t off_t_to_string_buf(off_t v, gchar *dst, size_t size);
-size_t time_t_to_string_buf(time_t v, gchar *dst, size_t size);
-const gchar *uint32_to_string(guint32 v);
-const gchar *uint64_to_string(guint64 v);
-const gchar *uint64_to_string2(guint64 v);
-const gchar *off_t_to_string(off_t v);
-const gchar *time_t_to_string(time_t v);
-const gchar *filesize_to_string(filesize_t v);
-const gchar *filesize_to_string2(filesize_t v);
-gint parse_major_minor(const gchar *src, gchar const **endptr,
+size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
+size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
+size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
+size_t off_t_to_string_buf(off_t v, char *dst, size_t size);
+size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
+const char *uint32_to_string(guint32 v);
+const char *uint64_to_string(guint64 v);
+const char *uint64_to_string2(guint64 v);
+const char *off_t_to_string(off_t v);
+const char *time_t_to_string(time_t v);
+const char *filesize_to_string(filesize_t v);
+const char *filesize_to_string2(filesize_t v);
+gint parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor);
-gchar *is_strprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
-gchar *is_strcaseprefix(const gchar *s, const gchar *prefix) WARN_UNUSED_RESULT;
-size_t html_escape(const gchar *src, gchar *dst, size_t dst_size);
-guint32 html_decode_entity(const gchar *src, const gchar **endptr);
-gint canonize_path(gchar *dst, const gchar *path);
+char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
+char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
+size_t html_escape(const char *src, char *dst, size_t dst_size);
+guint32 html_decode_entity(const char *src, const char **endptr);
+gint canonize_path(char *dst, const char *path);
 guint compat_max_fd(void);
 void close_file_descriptors(const int first_fd);
 int reserve_standard_file_descriptors(void);
@@ -391,7 +391,7 @@ int get_non_stdio_fd(int fd);
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
-gchar *normalize_dir_separators(const gchar *s);
+char *normalize_dir_separators(const char *s);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
 
@@ -412,22 +412,22 @@ pointer_hash_func(const void *p)
  *		   if there is no NUL.
  */
 static inline size_t
-clamp_strlen(const gchar *src, size_t src_size)
+clamp_strlen(const char *src, size_t src_size)
 {
-	const gchar *p;
+	const char *p;
 	
 	p = memchr(src, '\0', src_size);
 	return (p ? p : &src[src_size]) - src;
 }
 
-static inline const gchar *
-NULL_STRING(const gchar *s)
+static inline const char *
+NULL_STRING(const char *s)
 {
 	return NULL != s ? s : "(null)";
 }
 
-static inline const gchar *
-EMPTY_STRING(const gchar *s)
+static inline const char *
+EMPTY_STRING(const char *s)
 {
 	return NULL != s ? s : "";
 }

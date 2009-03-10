@@ -6,7 +6,7 @@
  *       for a single codepoint is 4 bytes large.
  */
 static const struct {
-	const gchar *name;
+	const char *name;
 	const guint16 uc; /* all listed codepoints are below 0xFFFF */
 } html_entities[] = {
 	{ "AElig", 0x00C6 },

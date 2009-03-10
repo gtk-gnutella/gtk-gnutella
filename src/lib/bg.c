@@ -74,7 +74,7 @@ enum bgtask_magic {
 struct bgtask {
 	enum bgtask_magic magic;/**< Magic number */
 	guint32 flags;			/**< Operating flags */
-	const gchar *name;		/**< Task name */
+	const char *name;		/**< Task name */
 	gint step;				/**< Current processing step */
 	gint seqno;				/**< Number of calls at same step */
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
@@ -368,7 +368,7 @@ bg_task_alloc(void)
  * @returns an opaque handle.
  */
 struct bgtask *
-bg_task_create(const gchar *name,	/**< Task name (for tracing) */
+bg_task_create(const char *name,	/**< Task name (for tracing) */
 	const bgstep_cb_t *steps,		/**< Work to perform (copied) */
 	gint stepcnt,					/**< Number of steps */
 	gpointer ucontext,				/**< User context */
@@ -421,7 +421,7 @@ bg_task_create(const gchar *name,	/**< Task name (for tracing) */
  */
 struct bgtask *
 bg_daemon_create(
-	const gchar *name,			/**< Task name (for tracing) */
+	const char *name,			/**< Task name (for tracing) */
 	const bgstep_cb_t *steps,	/**< Work to perform (copied) */
 	gint stepcnt,				/**< Number of steps */
 	gpointer ucontext,			/**< User context */

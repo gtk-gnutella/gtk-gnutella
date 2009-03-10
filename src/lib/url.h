@@ -62,19 +62,19 @@ typedef enum {
  * Public interface.
  */
 
-gchar *url_escape(const gchar *url);
-gchar *url_escape_query(const gchar *url);
-gchar *url_escape_shell(const gchar *url);
-gchar *url_fix_escape(const gchar *url);
-gint url_escape_into(const gchar *url, gchar *target, gint len);
-gchar *url_escape_cntrl(const gchar *url);
-gchar *url_unescape(gchar *url, gboolean inplace);
-gchar *url_from_absolute_path(const gchar *path);
+char *url_escape(const char *url);
+char *url_escape_query(const char *url);
+char *url_escape_shell(const char *url);
+char *url_fix_escape(const char *url);
+gint url_escape_into(const char *url, char *target, gint len);
+char *url_escape_cntrl(const char *url);
+char *url_unescape(char *url, gboolean inplace);
+char *url_from_absolute_path(const char *path);
 
-url_params_t *url_params_parse(gchar *query);
-const gchar *url_params_get(url_params_t *up, const gchar *name);
+url_params_t *url_params_parse(char *query);
+const char *url_params_get(url_params_t *up, const char *name);
 void url_params_free(url_params_t *up);
-gchar *url_normalize(gchar *url, url_policy_t pol);
+char *url_normalize(char *url, url_policy_t pol);
 
 #endif	/* _url_h_ */
 

@@ -73,7 +73,7 @@ typedef void (*prop_remove_prop_changed_listener_t)
  * Container struct definitions for the different property types
  */
 typedef struct prop_def_choice {
-    gchar *title;
+    char *title;
     guint32 value;
 } prop_def_choice_t;
 
@@ -136,12 +136,12 @@ typedef gpointer (*prop_get_storage_t)(property_t, gpointer, size_t);
 
 
 typedef struct prop_def_string {
-    gchar **def;		/**< default value */
-    gchar **value;		/**< current value */
+    char **def;		/**< default value */
+    char **value;		/**< current value */
 } prop_def_string_t;
 
-typedef void (*prop_set_string_t)(property_t, const gchar *);
-typedef gchar *(*prop_get_string_t)(property_t, gchar *, size_t);
+typedef void (*prop_set_string_t)(property_t, const char *);
+typedef char *(*prop_get_string_t)(property_t, char *, size_t);
 
 
 typedef struct prop_def_boolean {
@@ -158,8 +158,8 @@ typedef gboolean *(*prop_get_boolean_t)
  * Property definition.
  */
 typedef struct prop_def {
-    gchar *name;		/**< key used in the config file */
-    gchar *desc;		/**< description of the property */
+    char *name;		/**< key used in the config file */
+    char *desc;		/**< description of the property */
     prop_type_t type;
     union {
         prop_def_guint32_t  guint32;
@@ -183,7 +183,7 @@ typedef struct prop_set_stub {
     size_t offset;
     prop_def_t *(*get_def)(property_t);
     property_t (*get_by_name)(const char *);
-    const gchar *(*to_string)(property_t);
+    const char *(*to_string)(property_t);
     struct {
         prop_add_prop_changed_listener_t add;
         prop_add_prop_changed_listener_full_t add_full;
@@ -228,8 +228,8 @@ typedef prop_set_stub_t *(*prop_set_get_stub_t)(void);
  * Property set definition.
  */
 typedef struct prop_set {
-    gchar *name;		/**< name of the property set */
-    gchar *desc;		/**< description of what the set contains */
+    char *name;		/**< name of the property set */
+    char *desc;		/**< description of what the set contains */
     size_t size;		/**< number of properties in the set */
     size_t offset;		/**< properties start numbering from here */
     prop_def_t *props;	/**< Pointer to first item in array of prop_def_t */
@@ -246,11 +246,11 @@ typedef struct prop_set {
 prop_def_t *prop_get_def(prop_set_t *, property_t);
 void prop_free_def(prop_def_t *);
 
-const gchar *prop_name(prop_set_t *ps, property_t prop);
-const gchar *prop_description(prop_set_t *ps, property_t prop);
-const gchar *prop_to_string(prop_set_t *ps, property_t prop);
-const gchar *prop_type_to_string(prop_set_t *ps, property_t prop);
-const gchar *prop_default_to_string(prop_set_t *ps, property_t prop);
+const char *prop_name(prop_set_t *ps, property_t prop);
+const char *prop_description(prop_set_t *ps, property_t prop);
+const char *prop_to_string(prop_set_t *ps, property_t prop);
+const char *prop_type_to_string(prop_set_t *ps, property_t prop);
+const char *prop_default_to_string(prop_set_t *ps, property_t prop);
 gboolean prop_is_saved(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(
@@ -262,11 +262,11 @@ void prop_remove_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t);
 
 void prop_save_to_file_if_dirty(
-    prop_set_t *ps, const gchar *dir, const gchar *filename);
+    prop_set_t *ps, const char *dir, const char *filename);
 void prop_save_to_file(
-    prop_set_t *ps, const gchar *dir, const gchar *filename);
+    prop_set_t *ps, const char *dir, const char *filename);
 gboolean prop_load_from_file(
-    prop_set_t *ps, const gchar *dir, const gchar *filename);
+    prop_set_t *ps, const char *dir, const char *filename);
 
 /*
  * get/set functions
@@ -276,8 +276,8 @@ void prop_set_boolean(
 gboolean *prop_get_boolean(
     prop_set_t *, property_t, gboolean *, size_t, size_t);
 
-void prop_set_string(prop_set_t *, property_t, const gchar *);
-gchar *prop_get_string(prop_set_t *, property_t, gchar *, size_t);
+void prop_set_string(prop_set_t *, property_t, const char *);
+char *prop_get_string(prop_set_t *, property_t, char *, size_t);
 
 void prop_set_guint32(
     prop_set_t *, property_t, const guint32 *, size_t, size_t);
@@ -299,12 +299,12 @@ void prop_set_ip(
 host_addr_t *prop_get_ip(
     prop_set_t *, property_t, host_addr_t *, size_t, size_t);
 
-void prop_set_storage(prop_set_t *, property_t, const gchar *, size_t);
-gchar *prop_get_storage(prop_set_t *, property_t, gchar *, size_t);
+void prop_set_storage(prop_set_t *, property_t, const char *, size_t);
+char *prop_get_storage(prop_set_t *, property_t, char *, size_t);
 
 property_t prop_get_by_name(prop_set_t *ps, const char *name);
-GSList *prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error);
-void prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
+GSList *prop_get_by_regex(prop_set_t *ps, const char *pattern, gint *error);
+void prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	gboolean saved_only);
 
 /*
@@ -317,7 +317,7 @@ prop_in_range(const prop_set_t *ps, property_t prop)
 }
 
 static inline prop_def_t *
-get_prop(prop_set_t *ps, property_t prop, const gchar *loc)
+get_prop(prop_set_t *ps, property_t prop, const char *loc)
 {
 	if (!ps)
 		g_error("%s: ps != NULL failed", loc);

@@ -44,7 +44,7 @@ RCSID("$Id$")
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 
 const struct {
-	const gchar *name; 
+	const char *name; 
 } prop_type_str[] = {
 	{ "boolean" 	},
 	{ "guint32" 	},
@@ -68,12 +68,12 @@ G_STMT_START {														\
 	}																\
 } G_STMT_END
 
-typedef gint (* prop_parse_func_t)(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i);
+typedef gint (* prop_parse_func_t)(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i);
 
 static gint
-prop_parse_guint64(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+prop_parse_guint64(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	gint error;
 	guint64 u;
@@ -90,10 +90,10 @@ prop_parse_guint64(const gchar *name,
 }
 
 static gint
-prop_parse_timestamp(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+prop_parse_timestamp(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i)
 {
-	const gchar *ep;
+	const char *ep;
 	gint error = 0;
 	guint64 u;
 	time_t t;
@@ -126,8 +126,8 @@ prop_parse_timestamp(const gchar *name,
 
 
 static gint
-prop_parse_guint32(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+prop_parse_guint32(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	gint error;
 	guint32 u;
@@ -144,12 +144,12 @@ prop_parse_guint32(const gchar *name,
 }
 
 static gint
-prop_parse_ip(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+prop_parse_ip(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	host_addr_t addr;
 	gint error;
-	const gchar *ep;
+	const char *ep;
 	
 	g_assert(name);
 	g_assert(str);
@@ -178,11 +178,11 @@ prop_parse_ip(const gchar *name,
  * Parse comma delimited boolean vector (TRUE/FALSE list).
  */
 static gint
-prop_parse_boolean(const gchar *name,
-	const gchar *str, const gchar **endptr, gpointer vec, size_t i)
+prop_parse_boolean(const char *name,
+	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	static const struct {
-		const gchar *s;
+		const char *s;
 		const gboolean v;
 	} tab[] = {
 		{ "0",		FALSE },
@@ -191,7 +191,7 @@ prop_parse_boolean(const gchar *name,
 		{ "TRUE",	TRUE },
 	};
 	gboolean b = FALSE;
-	const gchar *p = NULL;
+	const char *p = NULL;
 	guint j;
 	gint error = 0;
 	
@@ -226,17 +226,17 @@ prop_parse_boolean(const gchar *name,
  * Parse prop vector.
  */
 static void
-prop_parse_vector(const gchar *name, const gchar *str,
+prop_parse_vector(const char *name, const char *str,
 	size_t size, gpointer vec, prop_parse_func_t parser)
 {
-	const gchar *p = str;
+	const char *p = str;
 	size_t i;
 
 	g_assert(str != NULL);
 	g_assert(vec != NULL);
 
 	for (i = 0; i < size && p; i++) {
-		const gchar *endptr;
+		const char *endptr;
 		gint error;
 
 		p = skip_ascii_spaces(p);
@@ -263,14 +263,14 @@ prop_parse_vector(const gchar *name, const gchar *str,
 }
 
 static void
-prop_parse_guint64_vector(const gchar *name, const gchar *str,
+prop_parse_guint64_vector(const char *name, const char *str,
 	size_t size, guint64 *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_guint64);
 }
 
 static void
-prop_parse_timestamp_vector(const gchar *name, const gchar *str,
+prop_parse_timestamp_vector(const char *name, const char *str,
 	size_t size, time_t *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_timestamp);
@@ -278,21 +278,21 @@ prop_parse_timestamp_vector(const gchar *name, const gchar *str,
 
 
 static void
-prop_parse_guint32_vector(const gchar *name, const gchar *str,
+prop_parse_guint32_vector(const char *name, const char *str,
 	size_t size, guint32 *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_guint32);
 }
 
 static void
-prop_parse_ip_vector(const gchar *name, const gchar *str,
+prop_parse_ip_vector(const char *name, const char *str,
 	size_t size, host_addr_t *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_ip);
 }
 
 static void
-prop_parse_boolean_vector(const gchar *name, const gchar *str,
+prop_parse_boolean_vector(const char *name, const char *str,
 	size_t size, gboolean *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_boolean);
@@ -300,12 +300,12 @@ prop_parse_boolean_vector(const gchar *name, const gchar *str,
 
 
 /**
- * Parse a hex string into a gchar array.
+ * Parse a hex string into a char array.
  *
  * @return TRUE if the data was fully parsed. FALSE on failure.
  */
 static gboolean 
-prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
+prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 {
 	size_t i;
 
@@ -317,7 +317,7 @@ prop_parse_storage(const gchar *name, const gchar *str, size_t size, gchar *t)
 	}
 
 	for (i = 0; i < size; i++) {
-		gchar h, l;
+		char h, l;
 
 		h = str[i * 2];
 		l = str[i * 2 + 1];
@@ -426,9 +426,9 @@ prop_get_def(prop_set_t *ps, property_t p)
 		break;
 
 	case PROP_TYPE_STRING:
-		buf->data.string.def	= g_new(gchar*, 1);
+		buf->data.string.def	= g_new(char*, 1);
 		*buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
-		buf->data.string.value  = g_new(gchar*, 1);
+		buf->data.string.value  = g_new(char*, 1);
 		*buf->data.string.value = g_strdup(*PROP(ps,p).data.string.value);
 		break;
 
@@ -679,7 +679,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			) {
 				*PROP(ps,prop).data.guint64.value = *src;
 			} else {
-				gchar buf[64];
+				char buf[64];
 				guint64 newval = *src;
 
 				if (newval > PROP(ps,prop).data.guint64.max)
@@ -933,7 +933,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 			) {
 				*PROP(ps,prop).data.timestamp.value = *src;
 			} else {
-				gchar buf[64];
+				char buf[64];
 				time_t newval = *src;
 
 				if (newval > PROP(ps,prop).data.timestamp.max)
@@ -1087,7 +1087,7 @@ prop_get_ip(prop_set_t *ps, property_t prop, host_addr_t *t,
 
 
 void
-prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
+prop_set_storage(prop_set_t *ps, property_t prop, const char *src,
 	size_t length)
 {
 	gboolean differ = FALSE;
@@ -1116,15 +1116,15 @@ prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
 	if (debug >= 5) {
 		printf("updated property [%s] (binary)\n", PROP(ps,prop).name);
 		dump_hex(stderr, PROP(ps,prop).name,
-			(const gchar *) PROP(ps,prop).data.storage.value,
+			(const char *) PROP(ps,prop).data.storage.value,
 			PROP(ps,prop).vector_size);
 	}
 
 	prop_emit_prop_changed(ps, prop);
 }
 
-gchar *
-prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, size_t length)
+char *
+prop_get_storage(prop_set_t *ps, property_t prop, char *t, size_t length)
 {
 	gpointer target;
 
@@ -1165,9 +1165,9 @@ prop_get_storage_const(prop_set_t *ps, property_t prop)
 }
 
 void
-prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
+prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 {
-	gchar *old;
+	char *old;
 	gboolean differ = FALSE;
 
 	g_assert(ps != NULL);
@@ -1225,11 +1225,11 @@ prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * returned. This memory must be free'ed later. The size parameter has
  * no effect in this case.
  */
-gchar *
-prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
+char *
+prop_get_string(prop_set_t *ps, property_t prop, char *t, size_t size)
 {
-	gchar *target;
-	gchar *s;
+	char *target;
+	char *s;
 
 	g_assert(ps != NULL);
 	g_assert(NULL == t || size > 0);
@@ -1273,7 +1273,7 @@ prop_get_string(prop_set_t *ps, property_t prop, gchar *t, size_t size)
  *         to copy the returned string as it points to a "static const"
  *		   buffer.
  */
-const gchar *
+const char *
 prop_name(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).name;
@@ -1286,7 +1286,7 @@ prop_name(prop_set_t *ps, property_t prop)
  *         to copy the returned string as it points to a "static const"
  *		   buffer.
  */
-const gchar *
+const char *
 prop_description(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).desc;
@@ -1299,7 +1299,7 @@ prop_description(prop_set_t *ps, property_t prop)
  *         to copy the returned string as it points to a "static const"
  *		   buffer.
  */
-const gchar *
+const char *
 prop_type_to_string(prop_set_t *ps, property_t prop)
 {
 	g_assert(PROP(ps,prop).type < NUM_PROP_TYPES);
@@ -1316,10 +1316,10 @@ prop_is_saved(prop_set_t *ps, property_t prop)
 /**
  * Fetches the value of property as a string.
  */
-const gchar *
+const char *
 prop_to_string(prop_set_t *ps, property_t prop)
 {
-	static gchar s[4096];
+	static char s[4096];
 
 	g_assert(ps != NULL);
 
@@ -1409,10 +1409,10 @@ prop_to_string(prop_set_t *ps, property_t prop)
 /**
  * Fetches the default value of property as a string.
  */
-const gchar *
+const char *
 prop_default_to_string(prop_set_t *ps, property_t prop)
 {
-	static gchar s[4096];
+	static char s[4096];
 	const prop_def_t *p = &PROP(ps, prop);
 	
 	switch (p->type) {
@@ -1472,10 +1472,10 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 /**
  * @return "TRUE" or "FALSE" depending on the given boolean value.
  */
-static const gchar *
+static const char *
 config_boolean(gboolean b)
 {
-	static const gchar b_true[] = "TRUE", b_false[] = "FALSE";
+	static const char b_true[] = "TRUE", b_false[] = "FALSE";
 	return b ? b_true : b_false;
 }
 
@@ -1487,10 +1487,10 @@ config_boolean(gboolean b)
  *
  * @return A newly allocated string holding the formatted comment.
  */
-static gchar *
-config_comment(const gchar *s)
+static char *
+config_comment(const char *s)
 {
-	const gchar *word;
+	const char *word;
 	size_t line_len;
 	GString *out;
 
@@ -1502,7 +1502,7 @@ config_comment(const gchar *s)
 
 	while ('\0' != word[0]) {
 		static const size_t max_len = 72;
-		const gchar *endptr;
+		const char *endptr;
 		size_t word_len;
 
 		endptr = skip_ascii_non_spaces(word);
@@ -1554,8 +1554,8 @@ unique_file_token(const struct stat *st)
  * one persisted property changed since the last time we saved.
  */
 void
-prop_save_to_file_if_dirty(prop_set_t *ps, const gchar *dir,
-	const gchar *filename)
+prop_save_to_file_if_dirty(prop_set_t *ps, const char *dir,
+	const char *filename)
 {
 	if (!ps->dirty)
 		return;
@@ -1571,12 +1571,12 @@ prop_save_to_file_if_dirty(prop_set_t *ps, const gchar *dir,
  * saving.
  */
 void
-prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
+prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 {
 	FILE *config;
 	struct stat sb;
-	gchar *newfile;
-	gchar *pathname;
+	char *newfile;
+	char *pathname;
 	guint n;
 
 	g_assert(filename != NULL);
@@ -1598,7 +1598,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 		 */
 
 		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
-			gchar *old = g_strconcat(pathname, ".old", (void *) 0);
+			char *old = g_strconcat(pathname, ".old", (void *) 0);
 			g_warning("config file \"%s\" changed whilst I was running",
 				pathname);
 			if (-1 == rename(pathname, old))
@@ -1632,7 +1632,7 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			GTA_RELEASE, GTA_WEBSITE);
 
 	{
-		gchar *comment = config_comment(ps->desc);
+		char *comment = config_comment(ps->desc);
 
 		fprintf(config,
 			"#\n# Description of contents\n"
@@ -1643,21 +1643,21 @@ prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
-		gchar **vbuf;
+		char **vbuf;
 		guint i;
-		gchar sbuf[1024];
-		gchar *val = NULL;
+		char sbuf[1024];
+		char *val = NULL;
 		gboolean quotes = FALSE;
 		gboolean defaultvalue = TRUE;
 
 		if (p->save == FALSE)
 			continue;
 
-		vbuf = g_new(gchar*, p->vector_size+1);
+		vbuf = g_new(char*, p->vector_size+1);
 		vbuf[0] = NULL;
 
 		{
-			gchar *comment = config_comment(p->desc);
+			char *comment = config_comment(p->desc);
 
 			fprintf(config, "%s\n", comment);
 			G_FREE_NULL(comment);
@@ -1808,7 +1808,7 @@ end:
  * Called by prop_load_from_file to actually set the properties.
  */
 void
-prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
+prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	gboolean saved_only)
 {
 	prop_def_t *p;
@@ -1888,8 +1888,8 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
 		break;
 	case PROP_TYPE_STORAGE:
 		{
-			gchar s[1024];
-			gchar *d, *buf;
+			char s[1024];
+			char *d, *buf;
 
 			if (p->vector_size > sizeof s) {
 				d = g_malloc(p->vector_size);
@@ -1915,7 +1915,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const gchar *val,
  * Called by prop_load_from_file to actually set the properties.
  */
 static void
-load_helper(prop_set_t *ps, property_t prop, const gchar *val)
+load_helper(prop_set_t *ps, property_t prop, const char *val)
 {
 	prop_set_from_string(ps, prop, val, TRUE);
 }
@@ -1932,12 +1932,12 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
  * instance, TRUE otherwise.
  */
 gboolean
-prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
+prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 {
 	static const char fmt[] = "Bad line %u in config file, ignored";
-	static gchar prop_tmp[4096];
+	static char prop_tmp[4096];
 	FILE *config;
-	gchar *path;
+	char *path;
 	guint n = 1;
 	struct stat buf;
 	gboolean truncated = FALSE;
@@ -2096,7 +2096,7 @@ prop_get_by_name(prop_set_t *ps, const char *name)
 }
 
 GSList *
-prop_get_by_regex(prop_set_t *ps, const gchar *pattern, gint *error)
+prop_get_by_regex(prop_set_t *ps, const char *pattern, gint *error)
 {
 	GSList *sl = NULL;
 	size_t i;

@@ -62,7 +62,7 @@ subscriber_destroy(struct subscriber *s)
 }
 
 struct event *
-event_new(const gchar *name)
+event_new(const char *name)
 {
     struct event *evt;
 

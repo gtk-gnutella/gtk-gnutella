@@ -503,7 +503,7 @@ pdata_t *
 pdata_new(int len)
 {
 	pdata_t *db;
-	gchar *arena;
+	char *arena;
 
 	g_assert(len > 0);
 
@@ -565,7 +565,7 @@ pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 	db = walloc(sizeof(*db));
 
 	db->d_arena = buf;
-	db->d_end = (gchar *) buf + len;
+	db->d_end = (char *) buf + len;
 	db->d_refcnt = 0;
 	db->d_free = freecb;
 	db->d_arg = freearg;

@@ -59,7 +59,7 @@ typedef enum {
 
 struct iprange_db;
 
-const gchar *iprange_strerror(iprange_err_t errnum);
+const char *iprange_strerror(iprange_err_t errnum);
 
 struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(

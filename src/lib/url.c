@@ -96,14 +96,14 @@ static const char hex_alphabet[] = "0123456789ABCDEF";
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
-static gchar *
-url_escape_mask(const gchar *url, guint8 mask)
+static char *
+url_escape_mask(const char *url, guint8 mask)
 {
-	const gchar *p;
-	gchar *q;
+	const char *p;
+	char *q;
 	int need_escape = 0;
 	guchar c;
-	gchar *new;
+	char *new;
 
 	for (p = url, c = *p++; c; c = *p++)
 		if (!is_transparent_char(c, mask))
@@ -137,12 +137,12 @@ url_escape_mask(const gchar *url, guint8 mask)
  * NUL), or -1 if the buffer was too small.
  */
 static gint
-url_escape_mask_into(const gchar *url, gchar *target, gint len, guint8 mask)
+url_escape_mask_into(const char *url, char *target, gint len, guint8 mask)
 {
-	const gchar *p = url;
-	gchar *q;
+	const char *p = url;
+	char *q;
 	guchar c;
-	gchar *end = target + len;
+	char *end = target + len;
 
 	for (q = target, c = *p++; c && q < end; c = *p++) {
 		if (is_transparent_char(c, mask))
@@ -170,8 +170,8 @@ url_escape_mask_into(const gchar *url, gchar *target, gint len, guint8 mask)
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *
-url_escape(const gchar *url)
+char *
+url_escape(const char *url)
 {
 	return url_escape_mask(url, PATH_MASK);
 }
@@ -184,8 +184,8 @@ url_escape(const gchar *url)
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *
-url_escape_query(const gchar *url)
+char *
+url_escape_query(const char *url)
 {
 	return url_escape_mask(url, QUERY_MASK);
 }
@@ -194,8 +194,8 @@ url_escape_query(const gchar *url)
  * Escapes the given string for safe use in a shell or file: URL.
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *
-url_escape_shell(const gchar *url)
+char *
+url_escape_shell(const char *url)
 {
 	return url_escape_mask(url, SHELL_MASK);
 }
@@ -206,9 +206,9 @@ url_escape_shell(const gchar *url)
  * @return A new string or NULL on failure.
  */
 char *
-url_from_absolute_path(const gchar *path)
+url_from_absolute_path(const char *path)
 {
-	gchar *escaped, *url;
+	char *escaped, *url;
 	
 	g_return_val_if_fail(is_absolute_path(path), NULL);
 	escaped = url_escape_mask(path, SHELL_MASK);
@@ -227,7 +227,7 @@ url_from_absolute_path(const gchar *path)
  * NUL), or -1 if the buffer was too small.
  */
 gint
-url_escape_into(const gchar *url, gchar *target, gint len)
+url_escape_into(const char *url, char *target, gint len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
 }
@@ -235,10 +235,10 @@ url_escape_into(const gchar *url, gchar *target, gint len)
 /**
  * Don't touch '?', '&', '=', ':', '[', ']', %HH.
  */
-gchar *
-url_fix_escape(const gchar *url)
+char *
+url_fix_escape(const char *url)
 {
-	const gchar *p;
+	const char *p;
 	GString *gs;
 	guchar c;
 
@@ -251,7 +251,7 @@ url_fix_escape(const gchar *url)
 		) {
 			gs = g_string_append_c(gs, c);
 		} else {
-			gchar buf[3];
+			char buf[3];
 
 			buf[0] = ESCAPE_CHAR;
 			buf[1] = hex_alphabet[c >> 4];
@@ -268,11 +268,11 @@ url_fix_escape(const gchar *url)
  *
  * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *
-url_escape_cntrl(const gchar *url)
+char *
+url_escape_cntrl(const char *url)
 {
 	size_t need_escape = 0;
-	const gchar *p;
+	const char *p;
 
 	for (p = url; '\0' != *p; p++) {
 		if (is_ascii_cntrl(*p) || ESCAPE_CHAR == *p)
@@ -280,7 +280,7 @@ url_escape_cntrl(const gchar *url)
 	}
 
 	if (need_escape > 0) {
-		gchar *escaped, *q;
+		char *escaped, *q;
 		size_t size;
 		guchar c;
 
@@ -312,15 +312,15 @@ url_escape_cntrl(const gchar *url)
  *
  * @return NULL if the argument isn't valid encoded.
  */
-gchar *
-url_unescape(gchar *url, gboolean inplace)
+char *
+url_unescape(char *url, gboolean inplace)
 {
-	gchar *p;
-	gchar *q;
+	char *p;
+	char *q;
 	gint need_unescape = 0;
 	guint unescaped_memory = 0;
 	guchar c;
-	gchar *new;
+	char *new;
 
 	for (p = url; (c = *p) != '\0'; c = *p++)
 		if (c == ESCAPE_CHAR) {
@@ -387,13 +387,13 @@ url_unescape(gchar *url, gboolean inplace)
  *         or NULL if the argument isn't valid encoded.
  */
 url_params_t *
-url_params_parse(gchar *query)
+url_params_parse(char *query)
 {
 	url_params_t *up;
-	gchar *q;
-	gchar *start;
-	gchar *name = NULL;
-	gchar *value = NULL;
+	char *q;
+	char *start;
+	char *name = NULL;
+	char *value = NULL;
 	gboolean in_value = FALSE;
 
 	up = walloc(sizeof *up);
@@ -401,7 +401,7 @@ url_params_parse(gchar *query)
 	up->count = 0;
 
 	for (q = start = query; /* empty */; q++) {
-		gchar c = *q;
+		char c = *q;
 
 		if (in_value) {
 			if (c == '&' || c == '\0') {		/* End of value */
@@ -446,8 +446,8 @@ url_params_parse(gchar *query)
  * Get the value of a parameter, or NULL if the parameter is not present.
  * The value returned has already been URL-unescaped.
  */
-const gchar *
-url_params_get(url_params_t *up, const gchar *name)
+const char *
+url_params_get(url_params_t *up, const char *name)
 {
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
@@ -478,7 +478,7 @@ url_params_free(url_params_t *up)
 }
 
 static gboolean
-url_safe_char(gchar c, url_policy_t p)
+url_safe_char(char c, url_policy_t p)
 {
 	if (!isascii(c) || is_ascii_cntrl(c))
 		return FALSE;
@@ -511,12 +511,12 @@ url_safe_char(gchar c, url_policy_t p)
  * This allows comparing different variants of the same URL to detect
  * duplicates.
  */
-gchar *
-url_normalize(gchar *url, url_policy_t pol)
+char *
+url_normalize(char *url, url_policy_t pol)
 {
 	static const char http_prefix[] = "http://";
-	const gchar *p, *uri, *endptr, *tld = NULL, *warn = NULL;
-	gchar c, *q;
+	const char *p, *uri, *endptr, *tld = NULL, *warn = NULL;
+	char c, *q;
 	host_addr_t addr;
 
 	g_assert(url);
@@ -660,7 +660,7 @@ url_normalize(gchar *url, url_policy_t pol)
 
 	if (!(URL_POLICY_ALLOW_STATIC_FILES & pol)) {
 		static const struct {
-			const gchar *ext;
+			const char *ext;
 			size_t len;
 		} static_types[] = {
 #define D(x) { (x), CONST_STRLEN(x) }
@@ -684,7 +684,7 @@ url_normalize(gchar *url, url_policy_t pol)
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
 	if ('\0' == uri[0]) {
 		ssize_t len = q - url;
-		gchar *s;
+		char *s;
 
 		g_assert(len > 0);
 		s = g_malloc(len + sizeof "/");

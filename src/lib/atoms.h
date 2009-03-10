@@ -95,14 +95,14 @@ void atom_free(enum atom_type type, gconstpointer key);
 
 #else	/* !TRACK_ATOMS */
 
-static inline const gchar *
-atom_str_get(const gchar *k)
+static inline const char *
+atom_str_get(const char *k)
 {
 	return atom_get(ATOM_STRING, k);
 }
 
 static inline void
-atom_str_free(const gchar *k)
+atom_str_free(const char *k)
 {
 	return atom_free(ATOM_STRING, k);
 }
@@ -207,8 +207,8 @@ gint uint32_eq(gconstpointer a, gconstpointer b);
 
 #ifdef TRACK_ATOMS
 gconstpointer atom_get_track(enum atom_type, gconstpointer key,
-			gchar *file, gint line);
-void atom_free_track(enum atom_type, gconstpointer key, gchar *file, gint line);
+			char *file, gint line);
+void atom_free_track(enum atom_type, gconstpointer key, char *file, gint line);
 #endif
 
 
@@ -233,7 +233,7 @@ struct tth;
 GENERATE_ATOM_FREE_NULL(filesize, filesize_t *)
 GENERATE_ATOM_FREE_NULL(guid, struct guid *)
 GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
-GENERATE_ATOM_FREE_NULL(str, gchar *)
+GENERATE_ATOM_FREE_NULL(str, char *)
 GENERATE_ATOM_FREE_NULL(tth, struct tth *)
 GENERATE_ATOM_FREE_NULL(uint64, guint64 *)
 GENERATE_ATOM_FREE_NULL(uint32, guint32 *)
@@ -257,7 +257,7 @@ atom_ ## name ## _change(const type *atom_ptr, const type value) \
 GENERATE_ATOM_CHANGE(filesize, filesize_t *)
 GENERATE_ATOM_CHANGE(guid, struct guid *)
 GENERATE_ATOM_CHANGE(sha1, struct sha1 *)
-GENERATE_ATOM_CHANGE(str, gchar *)
+GENERATE_ATOM_CHANGE(str, char *)
 GENERATE_ATOM_CHANGE(tth, struct tth *)
 GENERATE_ATOM_CHANGE(uint64, guint64 *)
 GENERATE_ATOM_CHANGE(uint32, guint32 *)

@@ -71,10 +71,10 @@ const char hex_alphabet_lower[] = "0123456789abcdef";
 
 #if !defined(HAS_STRLCPY) && !defined(USE_GLIB2)
 size_t
-strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+strlcpy(char *dst, const char *src, size_t dst_size)
 {
-	gchar *d = dst;
-	const gchar *s = src;
+	char *d = dst;
+	const char *s = src;
 
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
@@ -97,7 +97,7 @@ strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 
 #if !defined(HAS_STRLCAT) && !defined(USE_GLIB2)
 size_t
-strlcat(gchar *dst, const gchar *src, size_t dst_size)
+strlcat(char *dst, const char *src, size_t dst_size)
 {
 	size_t n;
 	
@@ -188,10 +188,10 @@ concat_strings(char *dst, size_t size, const char *s, ...)
  *		   release the allocated buffer.
  */
 size_t
-w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
+w_concat_strings(char **dst_ptr, const char *first, ...)
 {
 	va_list ap, ap2;
-	const gchar *s;
+	const char *s;
 	size_t size;
 
 	va_start(ap, first);
@@ -199,7 +199,7 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 
 	for (s = first, size = 1; NULL != s; /* NOTHING */) {
 		size = size_saturate_add(size, strlen(s));
-		s = va_arg(ap, const gchar *);
+		s = va_arg(ap, const char *);
 	}
 
 	va_end(ap);
@@ -207,13 +207,13 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
 	g_assert(size < SIZE_MAX);
 
 	if (dst_ptr) {
-		gchar *p;
+		char *p;
 		size_t n, len = size - 1;
 
 		*dst_ptr = p = walloc(size);
 		for (s = first; NULL != s; p += n, len -= n) {
 			n = g_strlcpy(p, s, len + 1);
-			s = va_arg(ap2, const gchar *);
+			s = va_arg(ap2, const char *);
 			g_assert(n <= len);
 		}
 		*p = '\0';
@@ -235,10 +235,10 @@ w_concat_strings(gchar **dst_ptr, const gchar *first, ...)
  * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
  *			pointer to the first character in ``str'' after the prefix.
  */
-gchar *
-is_strprefix(const gchar *str, const gchar *prefix)
+char *
+is_strprefix(const char *str, const char *prefix)
 {
-	const gchar *s, *p;
+	const char *s, *p;
 	gint c;
 
 	g_assert(NULL != str);
@@ -263,10 +263,10 @@ is_strprefix(const gchar *str, const gchar *prefix)
  * @return	NULL, if ``prefix'' is not a prefix of ``str''. Otherwise, a
  *			pointer to the first character in ``str'' after the prefix.
  */
-gchar *
-is_strcaseprefix(const gchar *str, const gchar *prefix)
+char *
+is_strcaseprefix(const char *str, const char *prefix)
 {
-	const gchar *s, *p;
+	const char *s, *p;
 	gint a;
 
 	g_assert(NULL != str);
@@ -285,7 +285,7 @@ is_strcaseprefix(const gchar *str, const gchar *prefix)
  * Check for file existence.
  */
 gboolean
-file_exists(const gchar *pathname)
+file_exists(const char *pathname)
 {
   	struct stat st;
 
@@ -297,7 +297,7 @@ file_exists(const gchar *pathname)
  * Check for file non-existence.
  */
 gboolean
-file_does_not_exist(const gchar *pathname)
+file_does_not_exist(const char *pathname)
 {
   	struct stat st;
 
@@ -315,9 +315,9 @@ file_does_not_exist(const gchar *pathname)
  * @return the length of resulting string.
  */
 static inline size_t
-print_uint16_hex(gchar *dst, guint16 v)
+print_uint16_hex(char *dst, guint16 v)
 {
-	gchar *p = dst;
+	char *p = dst;
 	gint i;
 
 	for (i = 0; i < 3; i++, v <<= 4) {
@@ -343,7 +343,7 @@ print_uint16_hex(gchar *dst, guint16 v)
 static inline guchar
 dec_digit(guchar x)
 {
-	static const gchar dec_alphabet[] = "0123456789";
+	static const char dec_alphabet[] = "0123456789";
 	return dec_alphabet[x % 10];
 }
 
@@ -359,11 +359,11 @@ dec_digit(guchar x)
  *         large.
  */
 size_t
-ipv4_to_string_buf(guint32 ipv4, gchar *dst, size_t size)
+ipv4_to_string_buf(guint32 ipv4, char *dst, size_t size)
 {
-	gchar buf[IPV4_ADDR_BUFLEN];
-	gchar * const p0 = size < sizeof buf ? buf : dst;
-	gchar *p = p0;
+	char buf[IPV4_ADDR_BUFLEN];
+	char * const p0 = size < sizeof buf ? buf : dst;
+	char *p = p0;
 	guint i;
 
 	for (i = 0; i < 4; i++) {
@@ -409,10 +409,10 @@ ipv4_to_string_buf(guint32 ipv4, gchar *dst, size_t size)
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
 size_t
-ipv6_to_string_buf(const uint8_t *ipv6, gchar *dst, size_t size)
+ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 {
-	gchar *p, buf[IPV6_ADDR_BUFLEN];
-	const gchar *q;
+	char *p, buf[IPV6_ADDR_BUFLEN];
+	const char *q;
 	gint zero_len = 2, zero_start = -1;
 	gint cur_len = 0, cur_start = 0;
 	gint i;
@@ -506,10 +506,10 @@ ipv6_to_string_buf(const uint8_t *ipv6, gchar *dst, size_t size)
  * @return a pointer to a static buffer holding a NUL-terminated string
  *         representing the given IPv6 address.
  */
-const gchar *
+const char *
 ipv6_to_string(const guint8 *ipv6)
 {
-	static gchar buf[IPV6_ADDR_BUFLEN];
+	static char buf[IPV6_ADDR_BUFLEN];
 	size_t n;
 
 	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
@@ -517,19 +517,19 @@ ipv6_to_string(const guint8 *ipv6)
 	return buf;
 }
 
-const gchar *
+const char *
 ip_to_string(guint32 ip)
 {
-	static gchar buf[IPV4_ADDR_BUFLEN];
+	static char buf[IPV4_ADDR_BUFLEN];
 
 	ipv4_to_string_buf(ip, buf, sizeof buf);
 	return buf;
 }
 
-const gchar *
-hostname_port_to_string(const gchar *hostname, guint16 port)
+const char *
+hostname_port_to_string(const char *hostname, guint16 port)
 {
-	static gchar a[300];
+	static char a[300];
 
 	gm_snprintf(a, sizeof(a), "%.255s:%u", hostname, port);
 	return a;
@@ -540,7 +540,7 @@ hostname_port_to_string(const gchar *hostname, guint16 port)
  * 			IPv4 address in host byte order.
  */
 guint32
-string_to_ip(const gchar *s)
+string_to_ip(const char *s)
 {
 	guint32 ip;
 
@@ -560,7 +560,7 @@ string_to_ip(const gchar *s)
  * @returns FALSE if ``s'' is not a valid IPv6 address; TRUE on success.
  */
 gboolean
-parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
+parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 {
 	guint8 buf[16];
 	gint i;
@@ -571,7 +571,7 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
 	g_assert(s);
 
 	for (i = 0; i < 16; /* NOTHING */) {
-		const gchar *ep;
+		const char *ep;
 		guint32 v;
 
 		last = c;
@@ -663,9 +663,9 @@ parse_ipv6_addr(const gchar *s, guint8 *dst, const gchar **endptr)
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
 gboolean
-string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
+string_to_ip_strict(const char *s, guint32 *addr, const char **endptr)
 {
-	const gchar *p = s;
+	const char *p = s;
 	guint32 a = 0; /* 'pid compiler */
 	gboolean valid;
 	gint i;
@@ -718,9 +718,9 @@ string_to_ip_strict(const gchar *s, guint32 *addr, const gchar **endptr)
  * @return TRUE if it parsed correctly, FALSE otherwise.
  */
 gboolean
-string_to_ip_port(const gchar *s, guint32 *ip_ptr, guint16 *port_ptr)
+string_to_ip_port(const char *s, guint32 *ip_ptr, guint16 *port_ptr)
 {
-	const gchar *ep;
+	const char *ep;
 	guint32 v;
 	gint error;
 
@@ -742,10 +742,10 @@ string_to_ip_port(const gchar *s, guint32 *ip_ptr, guint16 *port_ptr)
 /**
  * @returns local host name, as pointer to static data.
  */
-const gchar *
+const char *
 local_hostname(void)
 {
-	static gchar name[256 + 1];
+	static char name[256 + 1];
 
 	if (-1 == gethostname(name, sizeof name))
 		g_warning("gethostname() failed: %s", g_strerror(errno));
@@ -762,7 +762,7 @@ local_hostname(void)
  * @returns new string length.
  */
 size_t
-str_chomp(gchar *str, size_t len)
+str_chomp(char *str, size_t len)
 {
 	if (len == 0) {
 		len = strlen(str);
@@ -785,7 +785,7 @@ str_chomp(gchar *str, size_t len)
 /**
  * Create an absolute path.
  */
-gchar *
+char *
 absolute_pathname(const char *file)
 {
 	g_assert(file);
@@ -795,7 +795,7 @@ absolute_pathname(const char *file)
 	} else if ('\0' == file[0]) {
 		return NULL;
 	} else {
-		gchar buf[4096], *ret;
+		char buf[4096], *ret;
 
 		ret = getcwd(buf, sizeof buf);
 		return ret ? make_pathname(ret, file) : NULL;
@@ -816,7 +816,7 @@ is_absolute_path(const char *pathname)
  * Check whether path is a directory.
  */
 gboolean
-is_directory(const gchar *pathname)
+is_directory(const char *pathname)
 {
 	struct stat st;
 
@@ -828,7 +828,7 @@ is_directory(const gchar *pathname)
  * Check whether path points to a regular file.
  */
 gboolean
-is_regular(const gchar *pathname)
+is_regular(const char *pathname)
 {
 	struct stat st;
 
@@ -840,7 +840,7 @@ is_regular(const gchar *pathname)
  * Check whether path is a symbolic link.
  */
 gboolean
-is_symlink(const gchar *pathname)
+is_symlink(const char *pathname)
 #if defined(HAS_LSTAT)
 {
 	struct stat st;
@@ -977,14 +977,14 @@ kilo(gboolean metric)
 	return metric ? 1000 : 1024;
 }
 
-static inline const gchar *
+static inline const char *
 byte_suffix(gboolean metric)
 {
-	static const gchar suffix[] = "iB";
+	static const char suffix[] = "iB";
 	return &suffix[metric ? 1 : 0];
 }
 
-static inline const gchar *
+static inline const char *
 scale_prefixes(gboolean metric)
 {
 	return metric ? "\0kMGTPEZ" : "\0KMGTPEZ";
@@ -1000,8 +1000,8 @@ scale_prefixes(gboolean metric)
  *
  * @return the appropriate prefix character from "s".
  */
-static inline gchar
-size_scale(guint64 v, guint *q, guint *r, const gchar *s, gboolean metric)
+static inline char
+size_scale(guint64 v, guint *q, guint *r, const char *s, gboolean metric)
 {
 	const guint base = kilo(metric);
 
@@ -1020,7 +1020,7 @@ size_scale(guint64 v, guint *q, guint *r, const gchar *s, gboolean metric)
 	return *s;
 }
 
-static inline gchar
+static inline char
 norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
 	return size_scale(v, q, r, scale_prefixes(metric), metric);
@@ -1030,7 +1030,7 @@ norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
  * Same as norm_size_scale_base2() but assumes v is already divided
  * by 1024 (binary).
  */
-static inline gchar
+static inline char
 kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 {
 	if (metric && v < ((guint64) -1) / 1024) {
@@ -1039,17 +1039,17 @@ kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
 	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
 }
 
-const gchar *
+const char *
 short_size(guint64 size, gboolean metric)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
 		guint n = size;
 		gm_snprintf(b, sizeof b, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
@@ -1062,17 +1062,17 @@ short_size(guint64 size, gboolean metric)
 /**
  * Like short_size() but with unbreakable space between the digits and unit.
  */
-const gchar *
+const char *
 short_html_size(guint64 size, gboolean metric)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
 		guint n = size;
 		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
@@ -1083,16 +1083,16 @@ short_html_size(guint64 size, gboolean metric)
 	return b;
 }
 
-const gchar *
+const char *
 short_kb_size(guint64 size, gboolean metric)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static char b[SIZE_FIELD_MAX];
 	
 	if (size < kilo(metric)) {
 		gm_snprintf(b, sizeof b, "%u %s", (guint) size, metric ? "kB" : "KiB");
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
@@ -1105,16 +1105,16 @@ short_kb_size(guint64 size, gboolean metric)
 /**
  * @return a number of Kbytes in a compact readable form
  */
-const gchar *
+const char *
 compact_kb_size(guint32 size, gboolean metric)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
 		gm_snprintf(b, sizeof b, "%u%s", (guint) size, metric ? "kB" : "KiB");
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
@@ -1124,11 +1124,11 @@ compact_kb_size(guint32 size, gboolean metric)
 	return b;
 }
 
-const gchar *
+const char *
 nice_size(guint64 size, gboolean metric)
 {
-	static gchar buf[256];
-	gchar bytes[UINT64_DEC_BUFLEN];
+	static char buf[256];
+	char bytes[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(size, bytes, sizeof bytes);
 	gm_snprintf(buf, sizeof buf,
@@ -1136,14 +1136,14 @@ nice_size(guint64 size, gboolean metric)
 	return buf;
 }
 
-gchar *
-compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
+char *
+compact_value(char *buf, size_t size, guint64 v, gboolean metric)
 {
 	if (v < kilo(metric)) {
 		gm_snprintf(buf, size, "%u", (guint) v);
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
@@ -1153,14 +1153,14 @@ compact_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 	return buf;
 }
 
-gchar *
-short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
+char *
+short_value(char *buf, size_t size, guint64 v, gboolean metric)
 {
 	if (v < kilo(metric)) {
 		gm_snprintf(buf, size, "%u ", (guint) v);
 	} else {
 		guint q, r;
-		gchar c;
+		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
@@ -1170,20 +1170,20 @@ short_value(gchar *buf, size_t size, guint64 v, gboolean metric)
 	return buf;
 }
 
-const gchar *
+const char *
 compact_size(guint64 size, gboolean metric)
 {
-	static gchar buf[SIZE_FIELD_MAX];
+	static char buf[SIZE_FIELD_MAX];
 
 	compact_value(buf, sizeof buf, size, metric);
 	g_strlcat(buf, "B", sizeof buf);
 	return buf;
 }
 
-const gchar *
+const char *
 compact_rate(guint64 rate, gboolean metric)
 {
-	static gchar buf[SIZE_FIELD_MAX];
+	static char buf[SIZE_FIELD_MAX];
 
 	compact_value(buf, sizeof buf, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
@@ -1192,7 +1192,7 @@ compact_rate(guint64 rate, gboolean metric)
 }
 
 static size_t
-short_rate_to_string_buf(guint64 rate, gboolean metric, gchar *dst, size_t size)
+short_rate_to_string_buf(guint64 rate, gboolean metric, char *dst, size_t size)
 {
 	short_value(dst, size, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
@@ -1207,7 +1207,7 @@ short_rate_get_string(guint64 rate, gboolean metric)
 	return buf;
 }
 
-const gchar *
+const char *
 short_rate(guint64 rate, gboolean metric)
 {
 	static short_string_t buf;
@@ -1219,10 +1219,10 @@ short_rate(guint64 rate, gboolean metric)
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string may be translated and non-ASCII.
  */
-const gchar *
+const char *
 short_time(time_delta_t t)
 {
-	static gchar buf[4 * SIZE_FIELD_MAX];
+	static char buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
 
 	if (s > 86400)
@@ -1242,10 +1242,10 @@ short_time(time_delta_t t)
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string is in English and ASCII encoded.
  */
-const gchar *
+const char *
 short_time_ascii(time_delta_t t)
 {
-	static gchar buf[4 * SIZE_FIELD_MAX];
+	static char buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
 
 	if (s > 86400)
@@ -1267,10 +1267,10 @@ short_time_ascii(time_delta_t t)
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string is in English and ASCII encoded.
  */
-const gchar *
+const char *
 compact_time(time_delta_t t)
 {
-	static gchar buf[4 * SIZE_FIELD_MAX];
+	static char buf[4 * SIZE_FIELD_MAX];
 	guint s = MAX(t, 0);
 
 	if (s > 86400)
@@ -1289,10 +1289,10 @@ compact_time(time_delta_t t)
 /**
  * Alternate time formatter for uptime.
  */
-const gchar *
+const char *
 short_uptime(time_delta_t uptime)
 {
-	static gchar b[SIZE_FIELD_MAX];
+	static char b[SIZE_FIELD_MAX];
 	guint s = MAX(uptime, 0);
 
 	if (s > 86400) {
@@ -1375,10 +1375,10 @@ guid_hex_str(const struct guid *guid)
  * Buffer must be less than 40 chars, or only the first 40 chars are
  * represented with a trailing "..." added to show it is incomplete.
  */
-gchar *
-data_hex_str(const gchar *data, size_t len)
+char *
+data_hex_str(const char *data, size_t len)
 {
-	static gchar buf[84];
+	static char buf[84];
 	static const size_t maxlen = sizeof(buf) - 4; /* 3 chars for "more" + NUL */
 	const guint8 *p = cast_to_gconstpointer(data);
 	size_t hmax;
@@ -1478,8 +1478,8 @@ hex2int_init(void)
 	/* Initialize hex2int_tab */
 	
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[0]); i++) {
-		static const gchar hexa[] = "0123456789abcdef";
-		const gchar *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
+		static const char hexa[] = "0123456789abcdef";
+		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
 		
 		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
@@ -1526,8 +1526,8 @@ dec2int_init(void)
 	/* Initialize dec2int_tab */
 	
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[1]); i++) {
-		static const gchar deca[] = "0123456789";
-		const gchar *p = i ? strchr(deca, i): NULL;
+		static const char deca[] = "0123456789";
+		const char *p = i ? strchr(deca, i): NULL;
 		
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
@@ -1557,13 +1557,13 @@ dec2int_init(void)
 static void
 alnum2int_init(void)
 {
-	static const gchar abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+	static const char abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 	size_t i;
 
 	/* Initialize alnum2int_tab */
 	
 	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[2]); i++) {
-		const gchar *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
@@ -1571,7 +1571,7 @@ alnum2int_init(void)
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (guchar) -1; i++) {
-		const gchar *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		gint v = p ? (p - abc) : -1;
 	
 		g_assert(alnum2int_inline(i) == v);
@@ -1654,19 +1654,19 @@ sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 sha1_base32(const struct sha1 *sha1)
 {
-	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
+	static char digest_b32[SHA1_BASE32_SIZE + 1];
 
 	g_assert(sha1);
 	return sha1_to_base32_buf(sha1, digest_b32, sizeof digest_b32);
 }
 
-const gchar *
+const char *
 sha1_to_string(const struct sha1 sha1)
 {
-	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
+	static char digest_b32[SHA1_BASE32_SIZE + 1];
 	return sha1_to_base32_buf(&sha1, digest_b32, sizeof digest_b32);
 }
 
@@ -1850,7 +1850,7 @@ tth_to_urn_string(const struct tth *tth)
  * @return The length of the created string.
  */
 size_t
-timestamp_utc_to_string_buf(time_t date, gchar *dst, size_t size)
+timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 {
 	const struct tm *tm = localtime(&date);
 	size_t len;
@@ -1868,10 +1868,10 @@ timestamp_utc_to_string_buf(time_t date, gchar *dst, size_t size)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 timestamp_utc_to_string(time_t date)
 {
-	static gchar buf[80];
+	static char buf[80];
 	timestamp_utc_to_string_buf(date, buf, sizeof buf);
 	return buf;
 }
@@ -1882,7 +1882,7 @@ timestamp_utc_to_string(time_t date)
  * @return The length of the created string.
  */
 size_t
-timestamp_to_string_buf(time_t date, gchar *dst, size_t size)
+timestamp_to_string_buf(time_t date, char *dst, size_t size)
 {
 	const struct tm *tm = localtime(&date);
 	size_t len;
@@ -1908,10 +1908,10 @@ timestamp_get_string(time_t date)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 timestamp_to_string(time_t date)
 {
-	static gchar buf[TIMESTAMP_BUF_LEN];
+	static char buf[TIMESTAMP_BUF_LEN];
 
 	timestamp_to_string_buf(date, buf, sizeof buf);
 	return buf;
@@ -1928,7 +1928,7 @@ timestamp_to_string(time_t date)
  * @return		length of the created string.
  */
 size_t
-time_locale_to_string_buf(time_t t, gchar *dst, size_t size)
+time_locale_to_string_buf(time_t t, char *dst, size_t size)
 {
 	const struct tm *tm = localtime(&t);
 	size_t len;
@@ -1972,10 +1972,10 @@ tm_diff(const struct tm *a, const struct tm * b)
 		+ (a->tm_sec - b->tm_sec));
 }
 
-static const gchar days[7][4] =
+static const char days[7][4] =
 	{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
-static const gchar months[12][4] = {
+static const char months[12][4] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
@@ -1990,12 +1990,12 @@ static const gchar months[12][4] = {
  * @return The length of the created string.
  */
 static size_t 
-timestamp_rfc822_to_string_buf(time_t date, gchar *buf, size_t size)
+timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 {
 	struct tm *tm;
 	struct tm gmt_tm;
 	gint gmt_off;
-	gchar sign;
+	char sign;
 
 	g_assert(size > 0);
 	tm = gmtime(&date);
@@ -2038,10 +2038,10 @@ timestamp_rfc822_to_string_buf(time_t date, gchar *buf, size_t size)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 timestamp_rfc822_to_string(time_t date)
 {
-	static gchar buf[80];
+	static char buf[80];
 
 	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
 	return buf;
@@ -2051,10 +2051,10 @@ timestamp_rfc822_to_string(time_t date)
  * Same as date_to_rfc822_gchar(), to be able to use the two in the same
  * printf() line.
  */
-const gchar *
+const char *
 timestamp_rfc822_to_string2(time_t date)
 {
-	static gchar buf[80];
+	static char buf[80];
 
 	timestamp_rfc822_to_string_buf(date, buf, sizeof buf);
 	return buf;
@@ -2070,7 +2070,7 @@ timestamp_rfc822_to_string2(time_t date)
  * @return The length of the created string.
  */
 static size_t 
-timestamp_rfc1123_to_string_buf(time_t date, gchar *buf, size_t size)
+timestamp_rfc1123_to_string_buf(time_t date, char *buf, size_t size)
 {
 	const struct tm *tm;
 
@@ -2086,10 +2086,10 @@ timestamp_rfc1123_to_string_buf(time_t date, gchar *buf, size_t size)
  *
  * @returns pointer to static data.
  */
-const gchar *
+const char *
 timestamp_rfc1123_to_string(time_t date)
 {
-	static gchar buf[80];
+	static char buf[80];
 
 	timestamp_rfc1123_to_string_buf(date, buf, sizeof buf);
 	return buf;
@@ -2315,13 +2315,13 @@ random_init(void)
  * If not, consider dump_hex().
  */
 gboolean
-is_printable(const gchar *buf, gint len)
+is_printable(const char *buf, gint len)
 {
-	const gchar *p = buf;
+	const char *p = buf;
 	gint l = len;
 
 	while (l--) {
-		gchar c = *p++;
+		char c = *p++;
 		if (!is_ascii_print(c))
 			return FALSE;
 	}
@@ -2338,10 +2338,10 @@ is_printable(const gchar *buf, gint len)
  * @param offset The offset in data to start dumping at.
  */
 static void
-dump_hex_line(FILE *out, const gchar *data, size_t length, size_t offset)
+dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 {
-	gchar char_buf[32], hex_buf[64];
-	gchar *p = hex_buf, *q = char_buf;
+	char char_buf[32], hex_buf[64];
+	char *p = hex_buf, *q = char_buf;
 	size_t j, i = offset;
 
 	for (j = 0; j < 16; j++) {
@@ -2381,7 +2381,7 @@ dump_hex_line(FILE *out, const gchar *data, size_t length, size_t offset)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
-dump_hex(FILE *out, const gchar *title, gconstpointer data, gint length)
+dump_hex(FILE *out, const char *title, gconstpointer data, gint length)
 {
 	gint i;
 
@@ -2415,7 +2415,7 @@ dump_hex(FILE *out, const gchar *title, gconstpointer data, gint length)
  * conversion depends on the current locale.
  */
 void
-locale_strlower(gchar *dst, const gchar *src)
+locale_strlower(char *dst, const char *src)
 {
 	do {
 		*dst++ = tolower((guchar) *src);
@@ -2439,9 +2439,9 @@ guid_random_fill(struct guid *guid)
  * @return The length of the resulting filename.
  */
 size_t
-filename_shrink(const gchar *filename, gchar *buf, size_t size)
+filename_shrink(const char *filename, char *buf, size_t size)
 {
-	const gchar *ext;
+	const char *ext;
 	size_t ext_size = 0, ret;
 
 	g_assert(filename);
@@ -2475,11 +2475,11 @@ filename_shrink(const gchar *filename, gchar *buf, size_t size)
 	return ret;
 }
 
-static gchar *
-unique_pathname(const gchar *path, const gchar *filename,
-		gboolean (*name_is_uniq)(const gchar *pathname))
+static char *
+unique_pathname(const char *path, const char *filename,
+		gboolean (*name_is_uniq)(const char *pathname))
 {
-	gchar *pathname;
+	char *pathname;
 	
 	if (!name_is_uniq) {
 		name_is_uniq = file_does_not_exist;
@@ -2501,7 +2501,7 @@ unique_pathname(const gchar *path, const gchar *filename,
  * @return The length of the truncated string in bytes.
  */
 static size_t
-utf8_truncate(const gchar *src, gchar *dst, size_t size)
+utf8_truncate(const char *src, char *dst, size_t size)
 {
 	g_assert(src);
 	g_assert(0 == size || NULL != dst);
@@ -2527,16 +2527,16 @@ utf8_truncate(const gchar *src, gchar *dst, size_t size)
  * @returns the chosen unique complete filename as a pointer which must be
  * freed.
  */
-gchar *
-unique_filename(const gchar *path, const gchar *name, const gchar *ext,
-		gboolean (*name_is_uniq)(const gchar *pathname))
+char *
+unique_filename(const char *path, const char *name, const char *ext,
+		gboolean (*name_is_uniq)(const char *pathname))
 {
-	gchar filename_buf[FILENAME_MAXBYTES];
-	gchar name_buf[FILENAME_MAXBYTES];
-	gchar mid_buf[32];
-	gchar ext_buf[32];
-	const gchar *mid;
-	gchar *pathname;
+	char filename_buf[FILENAME_MAXBYTES];
+	char name_buf[FILENAME_MAXBYTES];
+	char mid_buf[32];
+	char ext_buf[32];
+	const char *mid;
+	char *pathname;
 	size_t name_len, mid_len, ext_len;
 	gint i;
 
@@ -2666,7 +2666,7 @@ finish:
 	return pathname;
 }
 
-static const gchar escape_char = '\\';
+static const char escape_char = '\\';
 
 /**
  * Allow spaces, tabs or new-lines as "spacing" chars.
@@ -2691,14 +2691,14 @@ char_is_safe(guchar c, gboolean strict)
  *
  * @returns new escaped string, or the original string if no escaping occurred.
  */
-gchar *
-hex_escape(const gchar *name, gboolean strict)
+char *
+hex_escape(const char *name, gboolean strict)
 {
-	const gchar *p;
-	gchar *q;
+	const char *p;
+	char *q;
 	guchar c;
 	gint need_escape = 0;
-	gchar *new;
+	char *new;
 
 	for (p = name, c = *p++; c; c = *p++)
 		if (!char_is_safe(c, strict))
@@ -2742,11 +2742,11 @@ escape_control_char(guchar c)
  *
  * @returns new escaped string, or the original string if no escaping occurred.
  */
-gchar *
-control_escape(const gchar *s)
+char *
+control_escape(const char *s)
 {
 	size_t need_escape = 0;
-	const gchar *p;
+	const char *p;
 	guchar c;
 
 	for (p = s; '\0' != (c = *p); p++)
@@ -2754,7 +2754,7 @@ control_escape(const gchar *s)
 			need_escape++;
 
 	if (need_escape > 0) {
-		gchar *q, *escaped;
+		char *q, *escaped;
 
 		q = escaped = g_malloc(p - s + 1 + 3 * need_escape);
 
@@ -2781,7 +2781,7 @@ control_escape(const gchar *s)
 }
 
 static guint
-char_to_printf_escape(guchar c, gchar *esc, const char *safe_chars)
+char_to_printf_escape(guchar c, char *esc, const char *safe_chars)
 {
 	if (!safe_chars) {
 		safe_chars = "";
@@ -2814,13 +2814,13 @@ char_to_printf_escape(guchar c, gchar *esc, const char *safe_chars)
  * @param src The string to escape.
  * @return The escaped string. MUST NOT be freed.
  */ 
-const gchar *
-lazy_string_to_printf_escape(const gchar *src)
+const char *
+lazy_string_to_printf_escape(const char *src)
 {
-	static const gchar safe_chars[] = ".-_";
-	static gchar *prev;
-	const gchar *s;
-	gchar *p;
+	static const char safe_chars[] = ".-_";
+	static char *prev;
+	const char *s;
+	char *p;
 	guchar c;
 	size_t n;
 
@@ -2858,9 +2858,9 @@ lazy_string_to_printf_escape(const gchar *src)
  * If the IP address or the netmask is zero, the function will return FALSE.
  */
 gboolean
-string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
+string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask)
 {
-	const gchar *ep, *s = str;
+	const char *ep, *s = str;
 
 	if (!string_to_ip_strict(s, ip, &ep))
 		return FALSE;
@@ -2903,10 +2903,10 @@ string_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
  *
  * @return A newly allocated string.
  */
-gchar *
-make_pathname(const gchar *dir, const gchar *file)
+char *
+make_pathname(const char *dir, const char *file)
 {
-	const gchar *sep;
+	const char *sep;
 	size_t n;
 
 	g_assert(dir);
@@ -2926,10 +2926,10 @@ make_pathname(const gchar *dir, const gchar *file)
  *
  * @returns pointer within supplied string.
  */
-gchar *
-short_filename(gchar *fullname)
+char *
+short_filename(char *fullname)
 {
-	gchar *s;
+	char *s;
 
 	s = is_strprefix(fullname, SRC_PREFIX);
 	return s ? s : fullname;
@@ -2945,7 +2945,7 @@ short_filename(gchar *fullname)
  *         errno indicates the reason.
  */
 gint
-create_directory(const gchar *dir, mode_t mode)
+create_directory(const char *dir, mode_t mode)
 {
 	gint error = 0;
 
@@ -2963,7 +2963,7 @@ create_directory(const gchar *dir, mode_t mode)
 		if (EEXIST == error) {
 			goto finish;
 		} else if (ENOENT == error) {
-			gchar *upper = filepath_directory(dir);
+			char *upper = filepath_directory(dir);
 
 			if (create_directory(upper, mode)) {
 				error = errno;
@@ -3002,10 +3002,10 @@ failure:
  * @return	A pointer to the basename of "pathname". The pointer points into
  *			the buffer holding pathname.
  */
-const gchar *
-filepath_basename(const gchar *pathname)
+const char *
+filepath_basename(const char *pathname)
 {
-	const gchar *p, *q;
+	const char *p, *q;
 	
 	g_assert(pathname);
 	
@@ -3022,10 +3022,10 @@ filepath_basename(const gchar *pathname)
 	return p;
 }
 
-static const gchar *
-filepath_directory_end(const gchar *pathname, gchar separator)
+static const char *
+filepath_directory_end(const char *pathname, char separator)
 {
-	const gchar *p;
+	const char *p;
 	
 	p = strrchr(pathname, separator);
 	if (p) {
@@ -3046,15 +3046,15 @@ filepath_directory_end(const gchar *pathname, gchar separator)
  *			basename cut off. If the string contained no directory separator,
  *			NULL is returned.
  */
-gchar *
-filepath_directory(const gchar *pathname)
+char *
+filepath_directory(const char *pathname)
 {
-	const gchar *sep;
-	gchar *dir;
+	const char *sep;
+	char *dir;
 
 	sep = filepath_directory_end(pathname, '/');
 	if (G_DIR_SEPARATOR != '/') {
-		const gchar *alt;
+		const char *alt;
 
 		alt = filepath_directory_end(pathname, G_DIR_SEPARATOR);
 		if (sep && alt) {
@@ -3077,11 +3077,11 @@ filepath_directory(const gchar *pathname)
  * Check whether file given by its dirname and its basename exists.
  */
 gboolean
-filepath_exists(const gchar *dir, const gchar *file)
+filepath_exists(const char *dir, const char *file)
 {
 	struct stat buf;
 	gboolean exists;
-	gchar *path;
+	char *path;
 
 	path = make_pathname(dir, file);
 	exists = 0 == stat(path, &buf);
@@ -3108,13 +3108,13 @@ filepath_exists(const gchar *dir, const gchar *file)
  *         value in this case. 
  */
 static inline size_t
-reverse_strlcpy(gchar * const dst, size_t size,
-	const gchar *src, size_t src_len)
+reverse_strlcpy(char * const dst, size_t size,
+	const char *src, size_t src_len)
 {
-	gchar *p = dst;
+	char *p = dst;
 	
 	if (size-- > 0) {
-		const gchar *q = &src[src_len], *end = &dst[MIN(src_len, size)];
+		const char *q = &src[src_len], *end = &dst[MIN(src_len, size)];
 
 		while (p != end) {
 			*p++ = *--q;
@@ -3152,10 +3152,10 @@ int32_to_string_buf(gint32 v, char *dst, size_t size)
 }
 
 size_t
-uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
+uint32_to_string_buf(guint32 v, char *dst, size_t size)
 {
-	gchar buf[UINT32_DEC_BUFLEN];
-	gchar *p;
+	char buf[UINT32_DEC_BUFLEN];
+	char *p;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
@@ -3170,10 +3170,10 @@ uint32_to_string_buf(guint32 v, gchar *dst, size_t size)
 }
 
 size_t
-uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
+uint64_to_string_buf(guint64 v, char *dst, size_t size)
 {
-	gchar buf[UINT64_DEC_BUFLEN];
-	gchar *p;
+	char buf[UINT64_DEC_BUFLEN];
+	char *p;
 
 	if ((guint32) -1 >= v) {
 		/* 32-bit arithmetic is cheaper for most machines */
@@ -3193,10 +3193,10 @@ uint64_to_string_buf(guint64 v, gchar *dst, size_t size)
 }
 
 size_t
-off_t_to_string_buf(off_t v, gchar *dst, size_t size)
+off_t_to_string_buf(off_t v, char *dst, size_t size)
 {
-	gchar buf[OFF_T_DEC_BUFLEN];
-	gchar *p;
+	char buf[OFF_T_DEC_BUFLEN];
+	char *p;
 	gboolean neg;
 
 	g_assert(0 == size || NULL != dst);
@@ -3218,10 +3218,10 @@ off_t_to_string_buf(off_t v, gchar *dst, size_t size)
 }
 
 size_t
-time_t_to_string_buf(time_t v, gchar *dst, size_t size)
+time_t_to_string_buf(time_t v, char *dst, size_t size)
 {
-	gchar buf[TIME_T_DEC_BUFLEN];
-	gchar *p;
+	char buf[TIME_T_DEC_BUFLEN];
+	char *p;
 	gboolean neg;
 
 	g_assert(0 == size || NULL != dst);
@@ -3242,10 +3242,10 @@ time_t_to_string_buf(time_t v, gchar *dst, size_t size)
 	return reverse_strlcpy(dst, size, buf, p - buf);
 }
 
-const gchar *
+const char *
 uint32_to_string(guint32 v)
 {
-	static gchar buf[UINT32_DEC_BUFLEN];
+	static char buf[UINT32_DEC_BUFLEN];
 	size_t n;
 
 	n = uint32_to_string_buf(v, buf, sizeof buf);
@@ -3254,10 +3254,10 @@ uint32_to_string(guint32 v)
 	return buf;
 }
 
-const gchar *
+const char *
 uint64_to_string(guint64 v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
@@ -3266,10 +3266,10 @@ uint64_to_string(guint64 v)
 	return buf;
 }
 
-const gchar *
+const char *
 uint64_to_string2(guint64 v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	n = uint64_to_string_buf(v, buf, sizeof buf);
@@ -3278,10 +3278,10 @@ uint64_to_string2(guint64 v)
 	return buf;
 }
 
-const gchar *
+const char *
 filesize_to_string(filesize_t v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
@@ -3291,10 +3291,10 @@ filesize_to_string(filesize_t v)
 	return buf;
 }
 
-const gchar *
+const char *
 filesize_to_string2(filesize_t v)
 {
-	static gchar buf[UINT64_DEC_BUFLEN];
+	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
 	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
@@ -3304,10 +3304,10 @@ filesize_to_string2(filesize_t v)
 	return buf;
 }
 
-const gchar *
+const char *
 off_t_to_string(off_t v)
 {
-	static gchar buf[OFF_T_DEC_BUFLEN];
+	static char buf[OFF_T_DEC_BUFLEN];
 	size_t n;
 
 	n = off_t_to_string_buf(v, buf, sizeof buf);
@@ -3316,10 +3316,10 @@ off_t_to_string(off_t v)
 	return buf;
 }
 
-const gchar *
+const char *
 time_t_to_string(time_t v)
 {
-	static gchar buf[TIME_T_DEC_BUFLEN];
+	static char buf[TIME_T_DEC_BUFLEN];
 	size_t n;
 
 	n = time_t_to_string_buf(v, buf, sizeof buf);
@@ -3352,9 +3352,9 @@ time_t_to_string(time_t v)
 
 #define GENERATE_PARSE_UNSIGNED(NAME, TYPE) 								\
 TYPE 																		\
-NAME(const gchar *src, gchar const **endptr, guint base, gint *errorptr) 	\
+NAME(const char *src, char const **endptr, guint base, gint *errorptr) 	\
 {																			\
-	const gchar *p;															\
+	const char *p;															\
 	TYPE v = 0, mm;															\
 	gint error = 0;															\
 	guint d;																\
@@ -3401,10 +3401,10 @@ GENERATE_PARSE_UINTX(32)
 GENERATE_PARSE_UINTX(16)
 
 gint
-parse_major_minor(const gchar *src, gchar const **endptr,
+parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor)
 {
-	const gchar *ep;
+	const char *ep;
 	gint error;
 	guint32 maj, min;
 
@@ -3578,10 +3578,10 @@ set_signal(gint signo, signal_handler_t handler)
 #endif
 }
 
-static inline const gchar *
-html_escape_replacement(gchar c, size_t *len)
+static inline const char *
+html_escape_replacement(char c, size_t *len)
 {
-	static gchar r;
+	static char r;
 
 #define REPLACE(x) { *len = CONST_STRLEN(x); return (x); }
 
@@ -3615,10 +3615,10 @@ html_escape_replacement(gchar c, size_t *len)
  *         sufficiently large.
  */
 size_t
-html_escape(const gchar *src, gchar *dst, size_t dst_size)
+html_escape(const char *src, char *dst, size_t dst_size)
 {
-	gchar *d = dst;
-	const gchar *s = src;
+	char *d = dst;
+	const char *s = src;
 	guchar c;
 
 	g_assert(0 == dst_size || NULL != dst);
@@ -3626,7 +3626,7 @@ html_escape(const gchar *src, gchar *dst, size_t dst_size)
 
 	if (dst_size-- > 0) {
 		for (/* NOTHING*/; '\0' != (c = *s); s++) {
-			const gchar *r;
+			const char *r;
 			size_t len;
 
 			r = html_escape_replacement(c, &len);
@@ -3747,10 +3747,10 @@ failure:
  * @return zero on sucess, non-zero on failure.
  */
 gint
-canonize_path(gchar *dst, const gchar *path)
+canonize_path(char *dst, const char *path)
 {
-  const gchar *p;
-  gchar c, *q, *ep;
+  const char *p;
+  char c, *q, *ep;
 
   g_assert(dst);
   g_assert(path);
@@ -3817,7 +3817,7 @@ compat_max_fd(void)
 }
 
 gint
-compat_mkdir(const gchar *path, mode_t mode)
+compat_mkdir(const char *path, mode_t mode)
 {
 #ifdef MINGW32
 	/* FIXME WIN32 */
@@ -3938,7 +3938,7 @@ compat_fadvise_sequential(int fd, off_t offset, off_t size)
 size_t
 memcmp_diff(const void *a, const void *b, size_t size)
 {
-	const gchar *p = a, *q = b;
+	const char *p = a, *q = b;
 	size_t n = 0;
 
 	while (size-- > 0) {
@@ -3975,17 +3975,17 @@ cpu_noise(void)
  * @param s a pathname. 
  * @return  a newly allocated string.
  */
-gchar *
-normalize_dir_separators(const gchar *s)
+char *
+normalize_dir_separators(const char *s)
 {
-	gchar *ret;
+	char *ret;
   
    	g_assert(s);	
 
 	ret = g_strdup(s);
 
 	if (G_DIR_SEPARATOR != '/') {
-		gchar *p = ret;
+		char *p = ret;
 
 		while (p) {
 			p = strchr(p, G_DIR_SEPARATOR);
@@ -4088,7 +4088,7 @@ void *
 compat_memmem(const void *data, size_t data_size,
 	const void *pattern, size_t pattern_size)
 {
-	const gchar *next, *p, *pat;
+	const char *next, *p, *pat;
 	
 	pat = pattern;
 	for (p = data; NULL != p; p = next) {
@@ -4174,7 +4174,7 @@ misc_init(void)
 
 	{
 		static const struct {
-			const gchar *s;
+			const char *s;
 			const guint64 v;
 			const guint base;
 			const gint error;
@@ -4206,7 +4206,7 @@ misc_init(void)
 		guint i;
 
 		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-			const gchar *endptr;
+			const char *endptr;
 			gint error;
 			guint64 v;
 

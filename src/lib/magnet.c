@@ -93,17 +93,17 @@ static const struct {
  */
 
 static void
-clear_error_str(const gchar ***error_str)
+clear_error_str(const char ***error_str)
 {
 	if (NULL == *error_str) {
-		static const gchar *error_dummy;
+		static const char *error_dummy;
 		*error_str = &error_dummy;
 	}
 	**error_str = NULL;
 }
 
 static enum magnet_key
-magnet_key_get(const gchar *s)
+magnet_key_get(const char *s)
 {
 	guint i;
 
@@ -119,7 +119,7 @@ magnet_key_get(const gchar *s)
 }
 
 static void
-plus_to_space(gchar *s)
+plus_to_space(char *s)
 {
 	while (s) {
 		s = strchr(s, '+');
@@ -130,11 +130,11 @@ plus_to_space(gchar *s)
 }
 
 static struct magnet_source *
-magnet_parse_location(const gchar *uri, const gchar **error_str)
+magnet_parse_location(const char *uri, const char **error_str)
 {
 	static const struct magnet_source zero_ms;
 	struct magnet_source ms;
-	const gchar *p, *endptr, *host, *host_end;
+	const char *p, *endptr, *host, *host_end;
 
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -157,7 +157,7 @@ magnet_parse_location(const gchar *uri, const gchar **error_str)
 	p += endptr - p;
 
 	if (':' == *p) {
-		const gchar *ep2;
+		const char *ep2;
 		gint error;
 		guint16 u;
 
@@ -197,7 +197,7 @@ magnet_parse_location(const gchar *uri, const gchar **error_str)
 	}
 
 	if (host) {
-		gchar *h = g_strndup(host, host_end - host);
+		char *h = g_strndup(host, host_end - host);
 		ms.hostname = atom_str_get(h);
 		G_FREE_NULL(h);
 	}
@@ -206,9 +206,9 @@ magnet_parse_location(const gchar *uri, const gchar **error_str)
 }
 
 static struct magnet_source *
-magnet_parse_http_source(const gchar *uri, const gchar **error_str)
+magnet_parse_http_source(const char *uri, const char **error_str)
 {
-	const gchar *p;
+	const char *p;
 
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -220,10 +220,10 @@ magnet_parse_http_source(const gchar *uri, const gchar **error_str)
 }
 
 static struct magnet_source *
-magnet_parse_push_source(const gchar *uri, const gchar **error_str)
+magnet_parse_push_source(const char *uri, const char **error_str)
 {
 	struct magnet_source *ms;
-	const gchar *p, *endptr;
+	const char *p, *endptr;
 	struct guid guid;
 
 	clear_error_str(&error_str);
@@ -251,7 +251,7 @@ magnet_parse_push_source(const gchar *uri, const gchar **error_str)
 }
 
 struct magnet_source *
-magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
+magnet_parse_exact_source(const char *uri, const char **error_str)
 {
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -273,7 +273,7 @@ magnet_parse_exact_source(const gchar *uri, const gchar **error_str)
 
 static void
 magnet_handle_key(struct magnet_resource *res,
-	const gchar *name, const gchar *value)
+	const char *name, const char *value)
 {
 	char *to_free = NULL;
 
@@ -363,11 +363,11 @@ magnet_handle_key(struct magnet_resource *res,
 }
 
 struct magnet_resource * 
-magnet_parse(const gchar *url, const gchar **error_str)
+magnet_parse(const char *url, const char **error_str)
 {
 	static const struct magnet_resource zero_resource;
 	struct magnet_resource res;
-	const gchar *p, *next;
+	const char *p, *next;
 
 	res = zero_resource;
 	clear_error_str(&error_str);
@@ -386,8 +386,8 @@ magnet_parse(const gchar *url, const gchar **error_str)
 
 	for (/* NOTHING */; p && '\0' != p[0]; p = next) {
 		enum magnet_key key;
-		const gchar *endptr;
-		gchar name[16]; /* Large enough to hold longest key we know */
+		const char *endptr;
+		char name[16]; /* Large enough to hold longest key we know */
 
 		name[0] = '\0';
 		endptr = strchr(p, '=');
@@ -412,7 +412,7 @@ magnet_parse(const gchar *url, const gchar **error_str)
 		if (MAGNET_KEY_NONE == key) {
 			g_message("Skipping unknown key in MAGNET URI (%s)", name);
 		} else {
-			gchar *value;
+			char *value;
 			size_t value_len;
 
 			value_len = endptr - p;
@@ -477,7 +477,7 @@ magnet_resource_free(struct magnet_resource **res_ptr)
 		res->sources = NULL;
 
 		for (sl = res->searches; sl != NULL; sl = g_slist_next(sl)) {
-			const gchar *s = sl->data;
+			const char *s = sl->data;
 			atom_str_free_null(&s);
 		}
 		g_slist_free(res->searches);
@@ -512,7 +512,7 @@ magnet_add_source(struct magnet_resource *res, struct magnet_source *s)
 }
 
 void
-magnet_add_source_by_url(struct magnet_resource *res, const gchar *url)
+magnet_add_source_by_url(struct magnet_resource *res, const char *url)
 {
 	struct magnet_source *s;
 
@@ -548,7 +548,7 @@ magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
 }
 
 void
-magnet_add_search(struct magnet_resource *res, const gchar *search)
+magnet_add_search(struct magnet_resource *res, const char *search)
 {
 	g_return_if_fail(res);
 	g_return_if_fail(search);
@@ -586,7 +586,7 @@ magnet_set_tth(struct magnet_resource *res, const struct tth *tth)
 
 
 gboolean
-magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
+magnet_set_exact_topic(struct magnet_resource *res, const char *topic)
 {
 	struct sha1 sha1;
 	struct tth tth;
@@ -615,9 +615,9 @@ magnet_set_exact_topic(struct magnet_resource *res, const gchar *topic)
 }
 
 void
-magnet_set_display_name(struct magnet_resource *res, const gchar *name)
+magnet_set_display_name(struct magnet_resource *res, const char *name)
 {
-	const gchar *atom;
+	const char *atom;
 
 	g_return_if_fail(res);
 	g_return_if_fail(name);
@@ -635,7 +635,7 @@ magnet_set_filesize(struct magnet_resource *res, filesize_t size)
 
 static inline void
 magnet_append_item(GString **gs_ptr, gboolean escape_value,
-	const gchar *key, const gchar *value)
+	const char *key, const char *value)
 {
 	GString *gs;
 
@@ -655,7 +655,7 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	gs = g_string_append_c(gs, '=');
 
 	if (escape_value) {
-		gchar *escaped;
+		char *escaped;
 
 		escaped = url_escape_query(value);
 		gs = g_string_append(gs, escaped);
@@ -669,26 +669,26 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	*gs_ptr = gs;
 }
 
-static gchar *
+static char *
 magnet_source_to_string(struct magnet_source *s)
 {
-	gchar *url;
+	char *url;
 
 	g_return_val_if_fail(s, NULL);
 
 	if (s->url) {
 		url = g_strdup(s->url);
 	} else {
-		const gchar *host, *prefix;
-		gchar prefix_buf[256];
-		gchar port_buf[16];
+		const char *host, *prefix;
+		char prefix_buf[256];
+		char port_buf[16];
 
 		g_return_val_if_fail(0 != s->port, NULL);
 		g_return_val_if_fail(s->hostname || is_host_addr(s->addr), NULL);
 		g_return_val_if_fail(s->path || s->sha1, NULL);
 
 		if (s->guid) {
-			gchar guid_buf[GUID_HEX_SIZE + 1];
+			char guid_buf[GUID_HEX_SIZE + 1];
 			
 			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
 			concat_strings(prefix_buf, sizeof prefix_buf,
@@ -721,7 +721,7 @@ magnet_source_to_string(struct magnet_source *s)
 	return url;
 }
 
-gchar *
+char *
 magnet_to_string(struct magnet_resource *res)
 {
 	GString *gs;
@@ -734,7 +734,7 @@ magnet_to_string(struct magnet_resource *res)
 		magnet_append_item(&gs, TRUE, "dn", res->display_name);
 	}
 	if (0 != res->size) {
-		gchar buf[UINT64_DEC_BUFLEN];
+		char buf[UINT64_DEC_BUFLEN];
 
 		uint64_to_string_buf(res->size, buf, sizeof buf);
 		magnet_append_item(&gs, FALSE, "xl", buf);
@@ -748,7 +748,7 @@ magnet_to_string(struct magnet_resource *res)
 	}
 
 	for (sl = res->sources; NULL != sl; sl = g_slist_next(sl)) {
-		gchar *url;
+		char *url;
 
 		url = magnet_source_to_string(sl->data);
 		magnet_append_item(&gs, TRUE, "xs", url);
@@ -768,9 +768,9 @@ magnet_to_string(struct magnet_resource *res)
  * valid for a certain source.
  */
 void
-magnet_set_parq_id(struct magnet_resource *res, const gchar *parq_id)
+magnet_set_parq_id(struct magnet_resource *res, const char *parq_id)
 {
-	const gchar *atom;
+	const char *atom;
 
 	g_return_if_fail(res);
 	g_return_if_fail(parq_id);

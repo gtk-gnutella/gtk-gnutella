@@ -68,9 +68,9 @@ typedef struct pdata {
 	pdata_free_t d_free;			/**< Free routine */
 	gpointer d_arg;					/**< Argument to free routine */
 	gint d_refcnt;					/**< Reference count */
-	gchar *d_arena;					/**< First byte in buffer */
-	gchar *d_end;					/**< First byte after buffer */
-	gchar d_embedded[1];			/**< Start of embedded arena */
+	char *d_arena;					/**< First byte in buffer */
+	char *d_end;					/**< First byte after buffer */
+	char d_embedded[1];			/**< Start of embedded arena */
 } pdata_t;
 
 #define pdata_start(x)		((x)->d_arena)
@@ -93,8 +93,8 @@ enum pmsg_magic {
 
 struct pmsg {
 	enum pmsg_magic	magic;
-	const gchar *m_rptr;			/**< First unread byte in buffer */
-	gchar *m_wptr;					/**< First unwritten byte in buffer */
+	const char *m_rptr;			/**< First unread byte in buffer */
+	char *m_wptr;					/**< First unwritten byte in buffer */
 	pdata_t *m_data;				/**< Data buffer */
 	guint m_prio;					/**< Message priority (0 = normal) */
 	pmsg_check_t m_check;			/**< Optional check before sending */

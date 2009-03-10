@@ -57,7 +57,7 @@ typedef enum getline_result {
 typedef struct getline {
 	size_t maxlen;				/**< Maximum authorized length */
 	size_t size;				/**< Current allocated size for `line' */
-	gchar *line;				/**< Accumulator, NUL terminated when done */
+	char *line;				/**< Accumulator, NUL terminated when done */
 	size_t pos;					/**< Next writing position in line[] */
 } getline_t;
 
@@ -71,8 +71,8 @@ getline_t *getline_make(size_t maxsize);
 void getline_free(getline_t *);
 void getline_reset(getline_t *);
 getline_result_t getline_read(getline_t *,
-					const gchar *data, size_t len, size_t *used);
-const gchar *getline_str(getline_t *);
+					const char *data, size_t len, size_t *used);
+const char *getline_str(getline_t *);
 size_t getline_length(getline_t *);
 void getline_copy(getline_t *source, getline_t *dest);
 void getline_set_maxlen(getline_t *, size_t);

@@ -51,7 +51,7 @@ RCSID("$Id$")
  *
  * @return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *
+const char *
 zlib_strerror(gint errnum)
 {
 	switch (errnum) {
@@ -230,7 +230,7 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 	 * Compute amount of input data to process.
 	 */
 
-	remaining = zd->inlen - ((gchar *) outz->next_in - (gchar *) zd->in);
+	remaining = zd->inlen - ((char *) outz->next_in - (char *) zd->in);
 	g_assert(remaining >= 0);
 
 	process = MIN(remaining, amount);
@@ -265,7 +265,7 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 	case Z_STREAM_END:
 		g_assert(finishing);
 
-		zd->outlen = (gchar *) outz->next_out - (gchar *) zd->out;
+		zd->outlen = (char *) outz->next_out - (char *) zd->out;
 		g_assert(zd->outlen > 0);
 
 		ret = deflateEnd(outz);

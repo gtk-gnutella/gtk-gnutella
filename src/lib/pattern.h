@@ -41,7 +41,7 @@
 #define ALPHA_SIZE	256			/**< Alphabet size */
 
 typedef struct {				/**< Compiled pattern */
-	const gchar *pattern;		/**< The pattern */
+	const char *pattern;		/**< The pattern */
 	size_t len;					/**< Pattern length */
 	size_t delta[ALPHA_SIZE];	/**< Shifting deltas */
 	gboolean duped;				/**< Was `pattern' strdup()'ed? */
@@ -56,11 +56,11 @@ typedef enum {
 void pattern_init(void);
 void pattern_close(void);
 
-cpattern_t *pattern_compile(const gchar *pattern);
-cpattern_t *pattern_compile_fast(const gchar *pattern, size_t plen);
+cpattern_t *pattern_compile(const char *pattern);
+cpattern_t *pattern_compile_fast(const char *pattern, size_t plen);
 void pattern_free(cpattern_t *cpat);
-const gchar *pattern_qsearch(cpattern_t *cpat,
-	const gchar *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+const char *pattern_qsearch(cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
 #endif /* _pattern_h_ */
 

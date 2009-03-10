@@ -344,7 +344,7 @@ g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value)
  * @return The length of the resulting string.
  */
 static inline size_t
-buf_vprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
+buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef	HAS_VSNPRINTF
 {
 	gint retval;	/* printf()-functions really return int, not size_t */
@@ -366,7 +366,7 @@ buf_vprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
 }
 #else	/* !HAS_VSNPRINTF */
 {
-	gchar *buf;
+	char *buf;
 	size_t len;
   
 	g_assert(size > 0);	
@@ -395,7 +395,7 @@ buf_vprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
  * @return The length of the resulting string.
  */
 size_t
-gm_vsnprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
+gm_vsnprintf(char *dst, size_t size, const char *fmt, va_list args)
 {
 	size_t len;
 
@@ -428,7 +428,7 @@ gm_vsnprintf(gchar *dst, size_t size, const gchar *fmt, va_list args)
  * @return The length of the resulting string.
  */
 size_t
-gm_snprintf(gchar *dst, size_t size, const gchar *fmt, ...)
+gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 {
 	va_list args;
 	size_t len;
@@ -448,14 +448,14 @@ gm_snprintf(gchar *dst, size_t size, const gchar *fmt, ...)
 }
 
 static gint orig_argc;
-static gchar **orig_argv;
-static gchar **orig_env;
+static char **orig_argv;
+static char **orig_env;
 
 /**
  * Save the original main() arguments.
  */
 void
-gm_savemain(gint argc, gchar **argv, gchar **env)
+gm_savemain(gint argc, char **argv, char **env)
 {
 	orig_argc = argc;
 	orig_argv = argv;
@@ -463,7 +463,7 @@ gm_savemain(gint argc, gchar **argv, gchar **env)
 }
 
 static inline size_t
-str_vec_count(gchar *strv[])
+str_vec_count(char *strv[])
 {
 	size_t i = 0;
 
@@ -482,7 +482,7 @@ str_vec_count(gchar *strv[])
  * @param env_ptr The original ``env'' variable.
  */
 static struct iovec
-gm_setproctitle_init(gint argc, gchar *argv[], gchar *env_ptr[])
+gm_setproctitle_init(gint argc, char *argv[], char *env_ptr[])
 {
 	size_t env_count, n;
 	struct iovec *iov;
@@ -529,7 +529,7 @@ gm_setproctitle_init(gint argc, gchar *argv[], gchar *env_ptr[])
  * Change the process title as seen by "ps".
  */
 void
-gm_setproctitle(const gchar *title)
+gm_setproctitle(const char *title)
 #if defined(HAS_SETPROCTITLE)
 {
 	setproctitle("%s", title);
@@ -555,7 +555,7 @@ gm_setproctitle(const gchar *title)
 /**
  * Return the process title as seen by "ps"
  */
-const gchar *
+const char *
 gm_getproctitle(void)
 {
 	return orig_argv[0];
@@ -569,9 +569,9 @@ gm_getproctitle(void)
  * contain embedded nuls and need not be nul-terminated.
  */
 GString *
-g_string_append_len(GString *gs, const gchar *val, gssize len)
+g_string_append_len(GString *gs, const char *val, gssize len)
 {
-	const gchar *p = val;
+	const char *p = val;
 
 	while (len--)
 		g_string_append_c(gs, *p++);
@@ -592,12 +592,12 @@ g_string_append_len(GString *gs, const gchar *val, gssize len)
  * @returns a newly allocated string or ``filename'' if it was a valid filename
  *		    already.
  */
-gchar *
-gm_sanitize_filename(const gchar *filename,
+char *
+gm_sanitize_filename(const char *filename,
 		gboolean no_spaces, gboolean no_evil)
 {
-	const gchar *s;
-	gchar *q;
+	const char *s;
+	char *q;
 
 	g_assert(filename);
 
@@ -613,7 +613,7 @@ gm_sanitize_filename(const gchar *filename,
 
 	/* Replace shell meta characters and likely problematic characters */
 	{
-		static const gchar evil[] = "$&*\\`:;()'\"<>?|~\177";
+		static const char evil[] = "$&*\\`:;()'\"<>?|~\177";
 		size_t i;
 		guchar c;
 		
@@ -650,17 +650,17 @@ gm_sanitize_filename(const gchar *filename,
  * @returns a newly allocated string holding the beautified filename, even if
  * it is a mere copy of the original.
  */
-gchar *
-gm_beautify_filename(const gchar *filename)
+char *
+gm_beautify_filename(const char *filename)
 {
-	const gchar *s;
-	gchar *q;
+	const char *s;
+	char *q;
 	guchar c;
 	size_t len;
 	size_t j = 0;
-	static const gchar punct[] = "_-+=.,<>{}[]";	/* 1st MUST be '_' */
-	static const gchar strip[] = "_-.";
-	static const gchar empty[] = "{empty}";
+	static const char punct[] = "_-+=.,<>{}[]";	/* 1st MUST be '_' */
+	static const char strip[] = "_-.";
+	static const char empty[] = "{empty}";
 
 	g_assert(filename);
 
@@ -712,7 +712,7 @@ gm_beautify_filename(const gchar *filename)
 	 */
 
 	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
-		gchar *r = g_strconcat(empty, ".", q, (void *) 0);
+		char *r = g_strconcat(empty, ".", q, (void *) 0);
 		g_free(q);
 
 		return r;
@@ -728,10 +728,10 @@ gm_beautify_filename(const gchar *filename)
  *
  * @return The string data.
  */
-gchar *
+char *
 gm_string_finalize(GString *gs)
 {
-	gchar *s;
+	char *s;
 
 	g_return_val_if_fail(gs, NULL);
 	g_return_val_if_fail(gs->str, NULL);

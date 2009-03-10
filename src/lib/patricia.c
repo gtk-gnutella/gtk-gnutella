@@ -2510,7 +2510,7 @@ test_keys(guint32 keys[], size_t nkeys)
 	for (i = 0; i < nkeys; i++) {
 		gpointer key;
 		gboolean found;
-		gchar target[4];
+		char target[4];
 		gboolean removed;
 
 		random_bytes(target, sizeof target);

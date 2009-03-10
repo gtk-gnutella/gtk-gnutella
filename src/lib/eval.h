@@ -45,7 +45,7 @@
 void eval_init(void);
 void eval_close(void);
 
-const gchar *eval_subst(const gchar *str);
+const char *eval_subst(const char *str);
 
 #endif	/* _eval_h_ */
 
