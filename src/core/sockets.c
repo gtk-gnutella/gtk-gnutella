@@ -2412,7 +2412,8 @@ static void
 socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
-	size_t i, avail;
+	size_t avail;
+	unsigned i;
 
 	(void) unused_source;
 
@@ -2434,7 +2435,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	avail = inputevt_data_available();
 	avail = (avail != 0) ? avail : 64 * 1024;
 
-	for (i = 0; i < 16; i++) {
+	i = 0;
+	do {
 		ssize_t r;
 
 		r = socket_udp_accept(s);
@@ -2442,11 +2444,10 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 			if (!is_temporary_error(errno)) {
 				g_warning("ignoring datagram reception error: %s",
 					g_strerror(errno));
-			} else if (i > 0) {
-				i--;	/* For debugging message below: no read this time */
 			}
 			break;
 		}
+		i++;
 		if ((size_t) r >= avail)
 			break;
 		avail -= r;
@@ -2455,11 +2456,11 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
-	}
+	} while (i < 16);
 
-	if (i > 0 && GNET_PROPERTY(socket_debug)) {
+	if (i > 1 && GNET_PROPERTY(socket_debug)) {
 		g_message("socket_udp_event() iterated %u time%s",
-			(guint) i, 1 == i ? "" : "s");
+			i, 1 == i ? "" : "s");
 	}
 }
 
