@@ -4779,13 +4779,13 @@ msgstr ""
 msgid "Broadcasted push messages"
 msgstr ""
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr ""
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr ""
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr ""
 
 msgid "Locally generated dynamic queries"

@@ -4682,14 +4682,14 @@ msgstr "Demandes SHA1"
 msgid "Broadcasted push messages"
 msgstr "Messages push annoncés sur le réseau"
 
-msgid "Push proxy relayed messages"
-msgstr "Messages Push proxy relayés"
+msgid "Push-proxy TCP relayed messages"
+msgstr "Messages Push-proxy relayés via TCP"
 
-msgid "Push proxy broadcasted messages"
-msgstr "Messages Push proxy annoncés sur le réseau"
+msgid "Push-proxy broadcasted messages"
+msgstr "Messages Push-proxy annoncés sur le réseau"
 
-msgid "Push proxy lookup failures"
-msgstr "Echecs de consultation Push proxy"
+msgid "Push-proxy lookup failures"
+msgstr "Echecs de consultation Push-proxy"
 
 msgid "Locally generated dynamic queries"
 msgstr "Demandes locales dynamiques générées"
@@ -4773,11 +4773,10 @@ msgid "DHT republishing of held values"
 msgstr ""
 
 msgid "DHT alt-loc lookups issued"
-msgstr ""
+msgstr "DHT recherches d'autres sources"
 
-#, fuzzy
-msgid "DHT push proxy lookups issued"
-msgstr "Echecs de consultation Push proxy"
+msgid "DHT push-proxy lookups issued"
+msgstr "DHT recherches de push-proxy"
 
 msgid "DHT successful alt-loc lookups"
 msgstr ""
@@ -4813,7 +4812,7 @@ msgid "Please choose a directory to share"
 msgstr "Veuillez choisir un répertoire à partager"
 
 msgid " Clear completed "
-msgstr " Effacer ceux terminés "
+msgstr " Effacer les fichiers terminés"
 
 msgid " Gnutella browse requests"
 msgstr " Requêtes de parcours Gnutella"
@@ -5053,7 +5052,7 @@ msgid "Clear results"
 msgstr "Effacer les résultats"
 
 msgid "Clear stopped"
-msgstr "Effacer ceux arrêtés"
+msgstr "Effacer les fichiers arrêtés"
 
 msgid "Clear"
 msgstr "Effacer"
@@ -6437,7 +6436,7 @@ msgid "_Download RX buffer:"
 msgstr "Tampon RX de _téléchargement:"
 
 msgid "_Download selected"
-msgstr "_Télécharger ceux sélectionnés"
+msgstr "_Télécharger la sélection"
 
 msgid "_Duplicate"
 msgstr "_Doublon"
@@ -6858,7 +6857,7 @@ msgid "Remove completed downloads from list"
 msgstr "Enlever les téléchargements terminés de la liste"
 
 msgid "_Clear completed"
-msgstr "_Effacer ceux terminés"
+msgstr "_Effacer les fichiers terminés"
 
 msgid ", "
 msgstr ", "

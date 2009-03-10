@@ -4680,13 +4680,13 @@ msgstr "ερωτήματα SHA1"
 msgid "Broadcasted push messages"
 msgstr "Μεταδιδόμενα μηνύματα ώθησης"
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr "Μηνύματα διαμεσολαβητή ώθησης"
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr "Μηνύματα μεταδιδόμενα από το διαμεσολαβητή ώθησης"
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
 
 msgid "Locally generated dynamic queries"

@@ -4823,13 +4823,13 @@ msgstr "SHA1-keresések"
 msgid "Broadcasted push messages"
 msgstr "Szórt nyomáskérelem"
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr "Proxy továbbította üzenetek nyomása"
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr "Proxy szórta üzenetek nyomása"
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr "Sikertelen proxy-keresés nyomása"
 
 #, fuzzy

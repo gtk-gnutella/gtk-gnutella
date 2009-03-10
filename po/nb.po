@@ -4573,13 +4573,13 @@ msgstr "SHA1-spørringer"
 msgid "Broadcasted push messages"
 msgstr "Kringkastede dyttemeldinger"
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr "Dyttemellomtjener-relaterte meldinger"
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr "Dyttemeldinger kringastet via mellomtjener"
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr "Oppslagsfeil for dyttemellomtjener"
 
 msgid "Locally generated dynamic queries"

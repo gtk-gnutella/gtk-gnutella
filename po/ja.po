@@ -4724,13 +4724,13 @@ msgstr "SHA1検索クエリー"
 msgid "Broadcasted push messages"
 msgstr "広域送信PUSHメッセージ"
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr "PUSHプロキシ中継メッセージ"
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr "PUSHプロキシ広域送信メッセージ"
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr "PUSHプロキシ参照失敗"
 
 msgid "Locally generated dynamic queries"

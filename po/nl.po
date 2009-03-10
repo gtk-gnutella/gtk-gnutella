@@ -4809,14 +4809,14 @@ msgstr "SHA1 zoekopdrachten"
 msgid "Broadcasted push messages"
 msgstr "Broadcast \"push\" berichten"
 
-msgid "Push proxy relayed messages"
-msgstr "Push proxy gerouteerde berichten"
+msgid "Push-proxy TCP relayed messages"
+msgstr "Push-proxy gerouteerde berichten"
 
-msgid "Push proxy broadcasted messages"
-msgstr "Push proxy broadcast berichten"
+msgid "Push-proxy broadcasted messages"
+msgstr "Push-proxy broadcast berichten"
 
-msgid "Push proxy lookup failures"
-msgstr "Push proxy kon niet worden opgezocht"
+msgid "Push-proxy lookup failures"
+msgstr "Push-proxy kon niet worden opgezocht"
 
 msgid "Locally generated dynamic queries"
 msgstr "Lokaal dynamisch gegenereerde opdrachten"
@@ -4907,8 +4907,8 @@ msgid "DHT alt-loc lookups issued"
 msgstr ""
 
 #, fuzzy
-msgid "DHT push proxy lookups issued"
-msgstr "Push proxy kon niet worden opgezocht"
+msgid "DHT push-proxy lookups issued"
+msgstr "DHT push-proxy kon niet worden opgezocht"
 
 msgid "DHT successful alt-loc lookups"
 msgstr ""

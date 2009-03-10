@@ -4533,13 +4533,13 @@ msgstr "SHA1-Anfragen"
 msgid "Broadcasted push messages"
 msgstr "Versandte Push-Pakete"
 
-msgid "Push proxy relayed messages"
+msgid "Push-proxy TCP relayed messages"
 msgstr "Durch Push-Proxy weitergeleitete Pakete"
 
-msgid "Push proxy broadcasted messages"
+msgid "Push-proxy broadcasted messages"
 msgstr "Durch Push-Proxy versandte Pakete"
 
-msgid "Push proxy lookup failures"
+msgid "Push-proxy lookup failures"
 msgstr "Push-Proxy nicht gefunden"
 
 msgid "Locally generated dynamic queries"
