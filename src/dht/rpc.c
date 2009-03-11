@@ -98,10 +98,12 @@ dht_rpc_init(void)
  * Free the callback waiting indication.
  */
 static void
-rpc_cb_free(struct rpc_cb *rcb, gboolean can_remove)
+rpc_cb_free(struct rpc_cb *rcb, gboolean can_remove, gboolean in_shutdown)
 {
 	if (can_remove)
 		g_hash_table_remove(pending, rcb->muid);
+	if (in_shutdown && rcb->cb)
+		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	atom_guid_free(rcb->muid);
 	knode_free(rcb->kn);
 	cq_cancel(callout_queue, &rcb->timeout);
@@ -154,7 +156,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 
-	rpc_cb_free(rcb, TRUE);
+	rpc_cb_free(rcb, TRUE, FALSE);
 }
 
 /**
@@ -235,7 +237,7 @@ dht_rpc_cancel(const guid_t *muid)
 	if (!rcb)
 		return FALSE;
 
-	rpc_cb_free(rcb, TRUE);
+	rpc_cb_free(rcb, TRUE, FALSE);
 	return TRUE;
 }
 
@@ -255,7 +257,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 		return FALSE;
 
 	if (NULL == rcb->cb) {
-		rpc_cb_free(rcb, TRUE);
+		rpc_cb_free(rcb, TRUE, FALSE);
 		return TRUE;
 	}
 
@@ -348,7 +350,7 @@ dht_rpc_answer(const guid_t *muid,
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_REPLY, rcb->kn, n, function, payload, len, rcb->arg);
 
-	rpc_cb_free(rcb, TRUE);
+	rpc_cb_free(rcb, TRUE, FALSE);
 	return TRUE;
 }
 
@@ -446,7 +448,13 @@ rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 	(void) unused_key;
 	(void) unused_x;
 
-	rpc_cb_free(val, FALSE);	/* Do NOT remove item from the hash */
+	/*
+	 * Do NOT remove item from the hash (we're iterating over it).
+	 * However, do invoke the timeout callback if any, so that they may
+	 * clean up the resources they kept around to handle the RPC reply.
+	 */
+
+	rpc_cb_free(val, FALSE, TRUE);
 }
 
 /**
