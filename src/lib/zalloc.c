@@ -66,7 +66,6 @@ struct subzone {
 
 struct zone {			/* Zone descriptor */
 	char **zn_free;	/**< Pointer to first free block */
-	struct subzone *zn_next;/**< Next allocated zone chunk, null if none */
     struct subzone zn_arena;
 	int zn_refcnt;		/**< How many references to that zone? */
 	int zn_size;		/**< Size of blocks in zone */
@@ -263,9 +262,8 @@ zdump_used(zone_t *zone)
 	struct subzone *next;
 	char *p;
 	gpointer leakset = leak_init();
-	int i;
 
-	for (i = 0, next = zone->zn_next; next; next = next->sz_next, i++) {
+	for (next = &zone->zn_arena; next; next = next->sz_next) {
 		char *end;
 
 		p = next->sz_base;
@@ -281,7 +279,7 @@ zdump_used(zone_t *zone)
 	}
 
 	if (used != zone->zn_cnt) {
-		g_warning(
+		g_warning("BUG: "
 			"found %d used block%s, but %d-byte zone said it was holding %d",
 			used, 1 == used ? "" : "s", zone->zn_size, zone->zn_cnt);
 	}
@@ -441,7 +439,7 @@ zn_create(zone_t *zone, int size, int hint)
 
 	zone->zn_hint = hint;
 	zone->zn_size = size;
-	zone->zn_next = NULL;			/* Link zones to keep track of arenas */
+	zone->zn_arena.sz_next = NULL;			/* Link keep track of arenas */
 	zone->zn_cnt = 0;
 	zone->zn_free = zone->zn_arena.sz_base;	/* First free block available */
 	zone->zn_refcnt = 1;
@@ -499,7 +497,7 @@ zdestroy(zone_t *zone)
 	}
 
 	{
-		struct subzone *sz = zone->zn_next;
+		struct subzone *sz = zone->zn_arena.sz_next;
 
 		while (sz) {
 			struct subzone *next = sz->sz_next;
@@ -592,8 +590,8 @@ zn_extend(zone_t *zone)
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 	zone->zn_free = sz->sz_base;
 
-	sz->sz_next = zone->zn_next;
-	zone->zn_next = sz;				/* New subzone at head of list */
+	sz->sz_next = zone->zn_arena.sz_next;
+	zone->zn_arena.sz_next = sz;		/* New subzone at head of list */
 
 	zn_cram(zone, sz->sz_base);
 
