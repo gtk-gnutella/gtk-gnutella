@@ -2603,7 +2603,7 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 				dht_value_type_to_string(nl->u.fv.vtype));
 
 		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
-			vvec, G_N_ELEMENTS(vvec), &load);
+			vvec, G_N_ELEMENTS(vvec), &load, NULL);
 
 		if (vcnt) {
 			lookup_value_terminate(nl,

@@ -550,13 +550,15 @@ dht_value_cmp(const void *a, const void *b)
  * @param vvec		base of DHT value vector
  * @param vlen		amount of entries filled in vector
  * @param load		the EMA of the # of requests / minute for the key
+ * @param cached	whether key was cached in our node (outside our k-ball)
  * @param muid		MUID to use in response
  */
 static void
 k_send_find_value_response(
 	struct gnutella_node *n,
 	const knode_t *unused_kn,
-	dht_value_t **vvec, size_t vlen, float load, const guid_t *muid)
+	dht_value_t **vvec, size_t vlen, float load, gboolean cached,
+	const guid_t *muid)
 {
 	pmsg_t *mb;
 	kademlia_header_t *header;
@@ -684,6 +686,20 @@ k_send_find_value_response(
 	g_assert(UNSIGNED(values + secondaries) == vlen);	/* Sanity check */
 
 	kademlia_header_set_size(header, pmsg_size(mb) - KDA_HEADER_SIZE);
+
+	/*
+	 * Update statistics.
+	 */
+
+	gnet_stats_count_general(GNR_DHT_RETURNED_EXPANDED_VALUES, values);
+	gnet_stats_count_general(GNR_DHT_RETURNED_SECONDARY_KEYS, secondaries);
+
+	if (cached) {
+		gnet_stats_count_general(
+			GNR_DHT_RETURNED_EXPANDED_CACHED_VALUES, values);
+		gnet_stats_count_general(
+			GNR_DHT_RETURNED_CACHED_SECONDARY_KEYS, secondaries);
+	}
 
 	/*
 	 * Send the message...
@@ -1174,6 +1190,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	dht_value_t *vvec[MAX_VALUES_PER_KEY];
 	int vcnt = 0;
 	float load;
+	gboolean cached;
 
 	warn_no_header_extension(kn, header, extlen);
 
@@ -1284,10 +1301,10 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	vcnt = keys_get(id, type, secondary, count,
-		vvec, G_N_ELEMENTS(vvec), &load);
+		vvec, G_N_ELEMENTS(vvec), &load, &cached);
 
 	k_send_find_value_response(n,
-		kn, vvec, vcnt, load, kademlia_header_get_muid(header));
+		kn, vvec, vcnt, load, cached, kademlia_header_get_muid(header));
 
 	goto cleanup;
 

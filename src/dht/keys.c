@@ -234,6 +234,47 @@ keys_is_store_loaded(const kuid_t *id)
 }
 
 /**
+ * Are the amount of common leading bits sufficient to fall into our k-ball?
+ */
+static gboolean
+bits_within_kball(size_t common_bits)
+{
+	/*
+	 * Until we get notified that the DHT is fully bootstrapped, it is
+	 * difficult to determine accurately the external frontier of our k-ball.
+	 * Assume everything is close enough to our KUID.
+	 */
+
+	if (!kball.bootstrapped)
+		return TRUE;
+
+	return common_bits >= kball.furthest_bits;
+}
+
+/**
+ * Is a key ID within the range of our k-ball?
+ */
+gboolean
+keys_within_kball(const kuid_t *id)
+{
+	size_t common_bits;
+
+	/*
+	 * Until we get notified that the DHT is fully bootstrapped, it is
+	 * difficult to determine accurately the external frontier of our k-ball.
+	 * Assume everything is close enough to our KUID.
+	 */
+
+	if (!kball.bootstrapped)
+		return TRUE;
+
+	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
+			get_our_kuid(), KUID_RAW_BITSIZE);
+
+	return common_bits >= kball.furthest_bits;
+}
+
+/**
  * Get keydata from database.
  */
 static struct keydata *
@@ -615,7 +656,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 			get_our_kuid(), KUID_RAW_BITSIZE,
 			id, KUID_RAW_BITSIZE);
 
-		in_kball = keys_within_kball(id);
+		in_kball = bits_within_kball(common);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
 			g_message("DHT STORE new %s %s (%lu common bit%s) with creator %s",
@@ -738,6 +779,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
  * @param valvec			value vector where results are stored
  * @param valcnt			size of value vector
  * @param loadptr			where to write the average request load for key
+ * @param cached			if non-NULL, filled with whether key was cached
  *
  * @return amount of values filled into valvec.  The values are dynamically
  * created and must be freed by caller through dht_value_free().
@@ -745,7 +787,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 int
 keys_get(const kuid_t *id, dht_value_type_t type,
 	kuid_t **secondary, int secondary_count, dht_value_t **valvec, int valcnt,
-	float *loadptr)
+	float *loadptr, gboolean *cached)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
@@ -810,8 +852,15 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 * for that fetch, which accounted the hit already.
 	 */
 
-	if (secondary_count)
-		return vvec - valvec;		/* Amount of entries filled */
+	if (secondary_count) {
+		int n = vvec - valvec;		/* Amount of entries filled */
+
+		gnet_stats_count_general(GNR_DHT_CLAIMED_SECONDARY_KEYS, n);
+		if (ki->flags & DHT_KEY_F_CACHED)
+			gnet_stats_count_general(GNR_DHT_CLAIMED_CACHED_SECONDARY_KEYS, n);
+
+		goto done;
+	}
 
 	/*
 	 * No secondary keys specified.  Look them all up.
@@ -849,6 +898,11 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		if (ki->flags & DHT_KEY_F_CACHED)
 			gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_CACHED_HITS, 1);
 	}
+
+done:
+
+	if (cached)
+		*cached = (ki->flags & DHT_KEY_F_CACHED) ? TRUE : FALSE;
 
 	return vvec - valvec;		/* Amount of entries filled */
 }
@@ -1000,29 +1054,6 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
 			(gulong) keys_count, 1 == keys_count ? "" : "s");
 	}
 
-}
-
-/**
- * Is a key ID within the range of our k-ball?
- */
-gboolean
-keys_within_kball(const kuid_t *id)
-{
-	size_t common_bits;
-
-	/*
-	 * Until we get notified that the DHT is fully bootstrapped, it is
-	 * difficult to determine accurately the external frontier of our k-ball.
-	 * Assume everything is close enough to our KUID.
-	 */
-
-	if (!kball.bootstrapped)
-		return TRUE;
-
-	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
-			get_our_kuid(), KUID_RAW_BITSIZE);
-
-	return common_bits >= kball.furthest_bits;
 }
 
 /**
