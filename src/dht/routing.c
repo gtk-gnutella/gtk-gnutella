@@ -75,6 +75,7 @@ RCSID("$Id$")
 #endif
 
 #include "core/settings.h"
+#include "core/gnet_stats.h"
 #include "core/guid.h"
 #include "core/nodes.h"
 
@@ -970,7 +971,6 @@ bootstrap_completion_status(
 			g_message("DHT now completely bootstrapped");
 
 		boot_status = BOOT_COMPLETED;
-		keys_update_kball(TRUE);
 		/* XXX set property */
 
 		return;
@@ -1002,6 +1002,7 @@ dht_complete_bootstrap(void)
 	b->bits = ours->depth;
 
 	boot_status = BOOT_COMPLETING;
+	keys_update_kball(TRUE);		/* We know enough to compute the k-ball */
 	completion_iterate(b);
 }
 
@@ -1639,6 +1640,31 @@ promote_pending_node(struct kbucket *kb)
 }
 
 /**
+ * Check for clashing KUIDs.
+ *
+ * The two nodes have the same KUID, so if their IP:port differ, we have a
+ * collision case.
+ *
+ * @return TRUE if we found a collision.
+ */
+static gboolean
+clashing_nodes(const knode_t *kn1, const knode_t *kn2, gboolean verifying)
+{
+	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT %scollision on node %s (also at %s)",
+				verifying ? "verification " : "",
+				knode_to_string(kn1),
+				host_addr_port_to_string(kn2->addr, kn2->port));
+		}
+		gnet_stats_count_general(GNR_DHT_KUID_COLLISIONS, 1);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Remove node from k-bucket, if present.
  */
 static void
@@ -1665,14 +1691,8 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	 */
 
 	if (tkn != kn) {
-		if (!host_addr_equal(tkn->addr, kn->addr) || tkn->port != kn->port) {
-			if (GNET_PROPERTY(dht_debug))
-				g_warning("DHT collision on node %s (also at %s)",
-					knode_to_string(tkn),
-					host_addr_port_to_string(kn->addr, kn->port));
-
+		if (clashing_nodes(tkn, kn, FALSE))
 			return;
-		}
 	}
 
 	/*
@@ -1765,14 +1785,8 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 */
 
 	if (tkn != kn) {
-		if (!host_addr_equal(tkn->addr, kn->addr) || tkn->port != kn->port) {
-			if (GNET_PROPERTY(dht_debug))
-				g_warning("DHT collision on node %s (also at %s)",
-					knode_to_string(tkn),
-					host_addr_port_to_string(kn->addr, kn->port));
-
+		if (clashing_nodes(tkn, kn, FALSE))
 			return;
-		}
 	}
 
 	/*
@@ -1939,8 +1953,9 @@ record_node(knode_t *kn, gboolean traffic)
 
 	if (kb->ours && kuid_eq(kn->id, our_kuid)) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT rejecting colliding node %s: bears our KUID",
+			g_warning("DHT rejecting clashing node %s: bears our KUID",
 				knode_to_string(kn));
+		gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
 		return;
 	}
 
@@ -2981,15 +2996,8 @@ dht_addr_verify_cb(
 			if (NULL == tkn) {
 				av->new->flags |= KNODE_F_ALIVE;	/* Got traffic earlier! */
 				dht_add_node(av->new);
-			} else if (
-				!host_addr_equal(tkn->addr, av->new->addr) ||
-				tkn->port != av->new->port
-			) {
-				if (GNET_PROPERTY(dht_debug))
-					g_warning(
-						"DHT verification collision on node %s (also at %s)",
-						knode_to_string(av->new),
-						host_addr_port_to_string(tkn->addr, tkn->port));
+			} else if (clashing_nodes(tkn, av->new, TRUE)) {
+				/* Logging was done in clashing_nodes() */
 			} else {
 				if (GNET_PROPERTY(dht_debug))
 					g_warning("DHT verification found existing new node %s",
