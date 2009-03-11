@@ -970,6 +970,7 @@ bootstrap_completion_status(
 			g_message("DHT now completely bootstrapped");
 
 		boot_status = BOOT_COMPLETED;
+		keys_update_kball(TRUE);
 		/* XXX set property */
 
 		return;
@@ -2877,6 +2878,7 @@ void
 dht_close(void)
 {
 	dht_route_store();
+	keys_update_kball(FALSE);		/* No longer bootsrapped! */
 
 	/*
 	 * Since we're shutting down the route table, we also need to shut down
@@ -3483,6 +3485,9 @@ dht_route_parse(FILE *f)
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT after retrieval we are %s",
 			boot_status_to_string(boot_status));
+
+	if (dht_bootstrapped())
+		keys_update_kball(TRUE);
 }
 
 static const gchar node_file[] = "dht_nodes";

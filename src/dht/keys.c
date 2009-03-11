@@ -106,16 +106,22 @@ RCSID("$Id$")
  * Information about our neighbourhood (k-ball), updated periodically.
  */
 static struct kball {
-	kuid_t *closest;			/** KUID of closest node (atom) */
-	kuid_t *furthest;			/** KUID of furthest node (atom) */
-	guint8 furthest_bits;		/** Common bits with furthest node */
-	guint8 closest_bits;		/** Common bits with closest node */
-	guint8 width;				/** k-ball width, in bits */
+	kuid_t *closest;			/**< KUID of closest node (atom) */
+	kuid_t *furthest;			/**< KUID of furthest node (atom) */
+	guint8 furthest_bits;		/**< Common bits with furthest node */
+	guint8 closest_bits;		/**< Common bits with closest node */
+	guint8 width;				/**< k-ball width, in bits */
+	guint8 bootstrapped;		/**< Is the DHT bootstrapped? */
 } kball;
 
-enum keyinfo_magic {
-	KEYINFO_MAGIC = 0xf9d4de97U
+/**
+ * Operating flags for keys.
+ */
+enum {
+	DHT_KEY_F_CACHED	= 1 << 0	/**< Key outside our k-ball => cached */
 };
+
+enum keyinfo_magic { KEYINFO_MAGIC = 0xf9d4de97U };
 
 /**
  * Information about a key we're keeping in core.
@@ -130,6 +136,7 @@ struct keyinfo {
 	guint32 store_requests;		/**< # of store requests received in period */
 	guint8 common_bits;			/**< Leading bits shared with our KUID */
 	guint8 values;				/**< Amount of values stored under key */
+	guint8 flags;				/**< Operating flags */
 };
 
 /**
@@ -486,10 +493,12 @@ keys_reclaim(struct keyinfo *ki)
 
 	dbmw_delete(db_keydata, ki->kuid);
 
+	gnet_stats_count_general(GNR_DHT_KEYS_HELD, -1);
+	if (ki->flags & DHT_KEY_F_CACHED)
+		gnet_stats_count_general(GNR_DHT_CACHED_KEYS_HELD, -1);
+
 	kuid_atom_free_null(&ki->kuid);
 	wfree(ki, sizeof *ki);
-
-	gnet_stats_count_general(GNR_DHT_KEYS_HELD, -1);
 }
 
 /**
@@ -600,13 +609,17 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 
 	if (NULL == ki) {
 		size_t common;
+		gboolean in_kball;
 
 		common = common_leading_bits(
 			get_our_kuid(), KUID_RAW_BITSIZE,
 			id, KUID_RAW_BITSIZE);
 
+		in_kball = keys_within_kball(id);
+
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_message("DHT STORE new key %s (%lu common bit%s) with creator %s",
+			g_message("DHT STORE new %s %s (%lu common bit%s) with creator %s",
+				in_kball ? "key" : "cached key",
 				kuid_to_hex_string(id), (gulong) common, 1 == common ? "" : "s",
 				kuid_to_hex_string2(cid));
 
@@ -621,6 +634,8 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		ki->common_bits = common & 0xff;
 		ki->values = 0;						/* will be incremented below */
 		ki->next_expire = expire;
+		if (!in_kball)
+			ki->flags |= DHT_KEY_F_CACHED;
 
 		patricia_insert(keys, ki->kuid, ki);
 
@@ -630,6 +645,8 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		kd->dbkeys[0] = dbkey;
 
 		gnet_stats_count_general(GNR_DHT_KEYS_HELD, +1);
+		if (!in_kball)
+			gnet_stats_count_general(GNR_DHT_CACHED_KEYS_HELD, +1);
 	} else {
 		int low = 0;
 		int high = ki->values - 1;
@@ -786,8 +803,15 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		vcnt--;
 	}
 
+	/*
+	 * Don't count secondary-key fetches in the local hit stats: in order to
+	 * be able to get these fetches, we must have initially provided the
+	 * list of these keys, and thus we have already traversed the code below
+	 * for that fetch, which accounted the hit already.
+	 */
+
 	if (secondary_count)
-		return vvec - valvec;
+		return vvec - valvec;		/* Amount of entries filled */
 
 	/*
 	 * No secondary keys specified.  Look them all up.
@@ -813,10 +837,20 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		vcnt--;
 	}
 
-	if (vvec != valvec)
-		gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_HITS, 1);
+	/*
+	 * Stats update: we count all the hits, plus successful hits on keys
+	 * that do not fall within our k-ball, i.e. keys for which we act as
+	 * a "cache".  Note that our k-ball frontier can evolve through time,
+	 * so we rely on the DHT_KEY_F_CACHED flag, positionned at creation time.
+	 */
 
-	return vvec - valvec;
+	if (vvec != valvec) {
+		gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_HITS, 1);
+		if (ki->flags & DHT_KEY_F_CACHED)
+			gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_CACHED_HITS, 1);
+	}
+
+	return vvec - valvec;		/* Amount of entries filled */
 }
 
 /**
@@ -976,6 +1010,15 @@ keys_within_kball(const kuid_t *id)
 {
 	size_t common_bits;
 
+	/*
+	 * Until we get notified that the DHT is fully bootstrapped, it is
+	 * difficult to determine accurately the external frontier of our k-ball.
+	 * Assume everything is close enough to our KUID.
+	 */
+
+	if (!kball.bootstrapped)
+		return TRUE;
+
 	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
 			get_our_kuid(), KUID_RAW_BITSIZE);
 
@@ -985,14 +1028,17 @@ keys_within_kball(const kuid_t *id)
 /**
  * Update k-ball information.
  */
-static void
-keys_update_kball(void)
+void
+keys_update_kball(gboolean bootstrapped)
 {
 	kuid_t *our_kuid = get_our_kuid();
 	knode_t **kvec;
 	int kcnt;
 	patricia_t *pt;
 	int i;
+
+	if (bootstrapped)
+		kball.bootstrapped = TRUE;
 
 	kvec = walloc(KDA_K * sizeof(knode_t *));
 	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
@@ -1023,7 +1069,8 @@ keys_update_kball(void)
 		if (GNET_PROPERTY(dht_debug)) {
 			guint8 width = cbits - fbits;
 
-			g_message("DHT k-ball %s %u bit%s (was %u-bit wide)",
+			g_message("DHT %sk-ball %s %u bit%s (was %u-bit wide)",
+				kball.bootstrapped ? "" : "(not bootstrapped) ",
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
 				width, 1 == width ? "" : "s", kball.width);
@@ -1083,7 +1130,7 @@ keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_obj;
 
 	install_periodic_kball(KBALL_PERIOD);
-	keys_update_kball();
+	keys_update_kball(FALSE);
 }
 
 /**

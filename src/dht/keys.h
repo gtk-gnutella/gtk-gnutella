@@ -61,6 +61,7 @@ int keys_get(const kuid_t *id, dht_value_type_t type,
 	float *loadptr);
 gboolean keys_within_kball(const kuid_t *id);
 double keys_decimation_factor(const kuid_t *key);
+void keys_update_kball(gboolean bootstrapped);
 
 #endif /* _dht_keys_h_ */
 
