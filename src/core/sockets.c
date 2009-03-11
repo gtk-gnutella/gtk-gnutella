@@ -2413,8 +2413,7 @@ static void
 socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
-	size_t avail;
-	size_t rd;
+	size_t avail, rd;
 	unsigned i;
 
 	(void) unused_source;
@@ -2463,8 +2462,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
-		g_message("socket_udp_event() iterated %u times, read %u bytes",
-			i, (unsigned) rd);
+		g_message("socket_udp_event() iterated %u times, read %lu bytes",
+			i, (unsigned long) rd);
 	}
 }
 
