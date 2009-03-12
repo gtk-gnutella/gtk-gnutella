@@ -53,7 +53,7 @@ RCSID("$Id$")
 #include "settings.h"
 #include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
 #include "sockets.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "udp.h"
 #include "uhc.h"
 #include "version.h"

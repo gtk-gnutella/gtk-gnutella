@@ -51,7 +51,6 @@
 #include "core/features.h"
 #include "core/fileinfo.h"
 #include "core/file_object.h"
-#include "core/g2_cache.h"
 #include "core/gdht.h"
 #include "core/geo_ip.h"
 #include "core/gmsg.h"
@@ -65,6 +64,7 @@
 #include "core/http.h"
 #include "core/ignore.h"
 #include "core/inet.h"
+#include "core/ipp_cache.h"
 #include "core/local_shell.h"
 #include "core/move.h"
 #include "core/nodes.h"
@@ -81,7 +81,6 @@
 #include "core/sockets.h"
 #include "core/spam.h"
 #include "core/sq.h"
-#include "core/tls_cache.h"
 #include "core/tls_common.h"
 #include "core/topless.h"
 #include "core/tsync.h"
@@ -522,8 +521,7 @@ gtk_gnutella_exit(gint n)
 	atom_str_free_null(&start_rfc822_date);
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
-	tls_cache_close();
-	g2_cache_close();
+	ipp_cache_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
 	atoms_close();
@@ -1369,8 +1367,7 @@ main(int argc, char **argv)
 	set_library_debug(GNET_PROPERTY(lib_debug));
 	map_test();				/* after settings_init() */
 	tls_global_init();
-	tls_cache_init();
-	g2_cache_init();
+	ipp_cache_init();
 	hostiles_init();
 	spam_init();
 	bogons_init();

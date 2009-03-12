@@ -84,7 +84,7 @@ RCSID("$Id$")
 #include "geo_ip.h"
 #include "extensions.h"
 #include "bh_upload.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"

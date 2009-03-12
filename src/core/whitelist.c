@@ -42,7 +42,7 @@ RCSID("$Id$")
 
 #include "whitelist.h"
 #include "settings.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "nodes.h"
 
 #include "lib/ascii.h"

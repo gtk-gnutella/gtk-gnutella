@@ -10,8 +10,6 @@ README
 README.Debian
 README.xmingw
 TODO
-build.sh
-config.sh.xmingw
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
@@ -99,6 +97,8 @@ U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
+build.sh
+config.sh.xmingw
 config_h.SH                  Produces config.h
 cygwin/dirs
 cygwin/rules
@@ -305,8 +305,6 @@ src/core/file_object.c
 src/core/file_object.h
 src/core/fileinfo.c
 src/core/fileinfo.h
-src/core/g2_cache.c
-src/core/g2_cache.h
 src/core/gdht.c
 src/core/gdht.h
 src/core/geo_ip.c
@@ -340,6 +338,8 @@ src/core/inet.c
 src/core/inet.h
 src/core/ioheader.c
 src/core/ioheader.h
+src/core/ipp_cache.c
+src/core/ipp_cache.h
 src/core/local_shell.c
 src/core/local_shell.h
 src/core/matching.c
@@ -404,8 +404,6 @@ src/core/thex_download.c
 src/core/thex_download.h
 src/core/thex_upload.c
 src/core/thex_upload.h
-src/core/tls_cache.c
-src/core/tls_cache.h
 src/core/tls_common.c
 src/core/tls_common.h
 src/core/token.c

@@ -64,7 +64,7 @@ RCSID("$Id$")
 #include "spam.h"
 #include "thex_upload.h"
 #include "tth_cache.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "tx_deflate.h"
 #include "tx_link.h"		/* for callback structures */
 #include "upload_stats.h"

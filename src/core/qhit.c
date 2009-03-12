@@ -47,7 +47,7 @@ RCSID("$Id$")
 #include "qhit.h"
 #include "settings.h"	/* For listen_ip() */
 #include "share.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "uploads.h"	/* For count_uploads */
 
 #include "if/gnet_property_priv.h"

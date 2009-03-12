@@ -99,9 +99,8 @@ SRC = \
 	dq.c \
 	extensions.c \
 	features.c \
-	fileinfo.c \
 	file_object.c \
-	g2_cache.c \
+	fileinfo.c \
 	gdht.c \
 	geo_ip.c \
 	ggep.c \
@@ -118,6 +117,7 @@ SRC = \
 	ignore.c \
 	inet.c \
 	ioheader.c \
+	ipp_cache.c \
 	local_shell.c \
 	matching.c \
 	move.c \
@@ -149,12 +149,11 @@ SRC = \
 	sq.c \
 	thex_download.c \
 	thex_upload.c \
-	tls_cache.c \
 	tls_common.c \
-	tth_cache.c \
 	token.c \
 	topless.c \
 	tsync.c \
+	tth_cache.c \
 	tx.c \
 	tx_chunk.c \
 	tx_deflate.c \
@@ -187,9 +186,8 @@ OBJ = \
 	dq.o \
 	extensions.o \
 	features.o \
-	fileinfo.o \
 	file_object.o \
-	g2_cache.o \
+	fileinfo.o \
 	gdht.o \
 	geo_ip.o \
 	ggep.o \
@@ -206,6 +204,7 @@ OBJ = \
 	ignore.o \
 	inet.o \
 	ioheader.o \
+	ipp_cache.o \
 	local_shell.o \
 	matching.o \
 	move.o \
@@ -237,12 +236,11 @@ OBJ = \
 	sq.o \
 	thex_download.o \
 	thex_upload.o \
-	tls_cache.o \
 	tls_common.o \
-	tth_cache.o \
 	token.o \
 	topless.o \
 	tsync.o \
+	tth_cache.o \
 	tx.o \
 	tx_chunk.o \
 	tx_deflate.o \

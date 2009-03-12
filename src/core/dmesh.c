@@ -49,7 +49,7 @@ RCSID("$Id$")
 #include "fileinfo.h"
 #include "settings.h"
 #include "hosts.h"
-#include "g2_cache.h"
+#include "ipp_cache.h"
 
 #include "if/gnet_property_priv.h"
 

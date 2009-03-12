@@ -66,11 +66,10 @@
 #include "geo_ip.h"
 #include "bh_download.h"
 #include "thex_download.h"
-#include "tls_cache.h"
 #include "udp.h"
 #include "rx_inflate.h"
 #include "vmsg.h"
-#include "g2_cache.h"
+#include "ipp_cache.h"
 #include "gdht.h"
 #include "bh_upload.h"
 

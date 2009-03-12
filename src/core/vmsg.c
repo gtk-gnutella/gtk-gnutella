@@ -58,7 +58,7 @@ RCSID("$Id$")
 #include "settings.h"		/* For listen_addr() */
 #include "sockets.h"		/* For socket_listen_addr() */
 #include "tsync.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "udp.h"
 #include "uploads.h"
 #include "vmsg.h"

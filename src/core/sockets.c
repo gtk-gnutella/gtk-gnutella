@@ -61,7 +61,7 @@ RCSID("$Id$")
 #include "pproxy.h"
 #include "udp.h"
 #include "settings.h"
-#include "tls_cache.h"
+#include "ipp_cache.h"
 #include "gnet_stats.h"
 
 #include "shell/shell.h"
