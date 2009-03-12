@@ -1517,6 +1517,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	gpointer fmt;
 	gboolean added;
 	list_iter_t *iter;
+	gboolean complete_file;
 
 	g_assert(sha1);
 	g_assert(buf);
@@ -1704,17 +1705,24 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	i = 0;
 	iter = list_iter_before_head(dm->entries);
+	complete_file = sha1_of_finished_file(sha1);
 
 	while (list_iter_has_next(iter)) {
 		struct dmesh_entry *dme = list_iter_next(iter);
 
-#if 0	/* XXX not yet */
-		if (!dme->good)			/* Only report sources we've checked */
-			continue;
-#else
-		if (dme->bad)			/* Don't progagate with negative feedback */
-			continue;
-#endif
+		/*
+		 * When downloading (i.e. when the file is not complete), we have the
+		 * neceesary feedback to spot good sources.  When sharing a complete
+		 * file, all we can do is skip entries for which we got bad feedback.
+		 */
+
+		if (complete_file) {
+			if (dme->bad)		/* Skip entries with negative feedback */
+				continue;
+		} else {
+			if (!dme->good)
+				continue;		/* Only propagate good alt locs */
+		}
 
 		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
