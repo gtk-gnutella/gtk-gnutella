@@ -182,10 +182,10 @@ static void
 clock_adjust(void)
 {
 	int n;
-	gdouble avg;
-	gdouble sdev;
-	gdouble min;
-	gdouble max;
+	double avg;
+	double sdev;
+	double min;
+	double max;
 	int i;
 	guint32 new_skew;
 	int k;
@@ -203,7 +203,7 @@ clock_adjust(void)
 	 */
 
 	for (k = 0; k < CLEAN_STEPS; k++) {
-		gdouble *value = statx_data(datapoints);
+		double *value = statx_data(datapoints);
 
 		if (GNET_PROPERTY(dbg) > 1)
 			printf("CLOCK before #%d: n=%d avg=%.2f sdev=%.2f\n",
@@ -220,7 +220,7 @@ clock_adjust(void)
 		max = avg + sdev;
 
 		for (i = 0; i < n; i++) {
-			gdouble v = value[i];
+			double v = value[i];
 			if (v < min || v > max)
 				continue;
 			statx_add(datapoints, v);
@@ -305,8 +305,8 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	now = tm_time();
 	delta = delta_time(update, (now + (gint32) GNET_PROPERTY(clock_skew)));
 
-	statx_add(datapoints, (gdouble) (delta + precision));
-	statx_add(datapoints, (gdouble) (delta - precision));
+	statx_add(datapoints, (double) (delta + precision));
+	statx_add(datapoints, (double) (delta - precision));
 
 	if (GNET_PROPERTY(dbg) > 1)
 		printf("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)\n",

@@ -94,7 +94,7 @@ struct bgtask {
 	int ticks_used;		/**< Amount of ticks used by processing step */
 	int prev_ticks;		/**< Ticks used when measuring `elapsed' below */
 	int elapsed;			/**< Elapsed during last run, in usec */
-	gdouble tick_cost;		/**< Time in ms. spent by each tick */
+	double tick_cost;		/**< Time in ms. spent by each tick */
 	bgsig_cb_t sigh[BG_SIG_COUNT];	/**< Signal handlers */
 
 	/*
@@ -251,7 +251,7 @@ bg_task_suspend(struct bgtask *bt)
 	 */
 
 	if (!(bt->flags & TASK_F_NOTICK)) {
-		gdouble new_cost =
+		double new_cost =
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
 		if (common_dbg > 4)

@@ -2192,8 +2192,8 @@ common_leading_bits(
  * @return The new value of val which will be between
  *         min and max.
  */
-gfloat
-force_range(gfloat val, gfloat min, gfloat max)
+float
+force_range(float val, float min, float max)
 {
 	g_assert(min <= max);
 

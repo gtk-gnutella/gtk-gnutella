@@ -360,7 +360,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	int target_to_lowmark;
 	int flushed_till_next_timer;
 	int added_till_next_timer;
-	gfloat period_ratio;
+	float period_ratio;
 	int added;
 	int needed;
 	int extra;
@@ -384,7 +384,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	 * the queue.
 	 */
 
-	period_ratio = (gfloat) q->swift_elapsed / (gfloat) elapsed;
+	period_ratio = (float) q->swift_elapsed / (float) elapsed;
 	target_to_lowmark = q->size - q->lowat;
 	added = q->size - q->last_size + q->flowc_written;
 

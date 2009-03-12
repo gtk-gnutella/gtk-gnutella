@@ -285,13 +285,13 @@ guc_download_get_vendor(const struct download *d)
 	return download_vendor_str(d);
 }
 
-gdouble
+double
 guc_download_source_progress(const struct download *d)
 {
 	return download_source_progress(d);
 }
 
-gdouble
+double
 guc_download_total_progress(const struct download *d)
 {
 	return download_total_progress(d);

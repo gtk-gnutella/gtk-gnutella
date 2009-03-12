@@ -248,7 +248,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	tm_t replied;
 	tm_t got;
 	tm_t offset;
-	gdouble clock_offset;
+	double clock_offset;
 
 	tm_now_exact(&got);
 

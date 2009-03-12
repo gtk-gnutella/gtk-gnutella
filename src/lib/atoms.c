@@ -90,8 +90,8 @@ union mem_chunk {
   guint16  u16;
   guint32  u32;
   guint64  u64;
-  gfloat     f;
-  gdouble    d;
+  float     f;
+  double    d;
 };
 
 #define ATOM_TYPE_MASK	((size_t) 0x07)

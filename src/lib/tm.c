@@ -229,12 +229,12 @@ clock_hz(void)
  *
  * @return total CPU time used so far (user + kernel).
  */
-gdouble
-tm_cputime(gdouble *user, gdouble *sys)
+double
+tm_cputime(double *user, double *sys)
 {
 	static gboolean getrusage_failed;
-	gdouble u;
-	gdouble s;
+	double u;
+	double s;
 
 	if (!getrusage_failed) {
 #if defined(HAS_GETRUSAGE)
@@ -265,8 +265,8 @@ tm_cputime(gdouble *user, gdouble *sys)
 
 		(void) times(&t);
 
-		u = (gdouble) t.tms_utime / (gdouble) clock_hz();
-		s = (gdouble) t.tms_stime / (gdouble) clock_hz();
+		u = (double) t.tms_utime / (double) clock_hz();
+		s = (double) t.tms_stime / (double) clock_hz();
 #else
 		static gboolean warned = FALSE;
 
@@ -276,7 +276,7 @@ tm_cputime(gdouble *user, gdouble *sys)
 			warned = TRUE;
 		}
 
-		u = (gdouble) tm_time_exact();	/* Wall clock */
+		u = (double) tm_time_exact();	/* Wall clock */
 		s = 0.0;						/* We have no way of knowing that */
 #endif	/* HAS_TIMES */
 	}

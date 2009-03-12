@@ -341,9 +341,9 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 {
 	guint32 needed;
 	guint32 results;
-	gdouble results_per_up;
-	gdouble hosts_to_reach;
-	gdouble hosts_to_reach_via_node;
+	double results_per_up;
+	double hosts_to_reach;
+	double hosts_to_reach_via_node;
 	int ttl;
 
 	dquery_check(dq);
@@ -355,8 +355,8 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 	g_assert(needed > 0);		/* Or query would have been stopped */
 
 	results_per_up = dq->results / MAX(dq->horizon, 1);
-	hosts_to_reach = (gdouble) needed / MAX(results_per_up, (gdouble) 0.000001);
-	hosts_to_reach_via_node = hosts_to_reach / (gdouble) connections;
+	hosts_to_reach = (double) needed / MAX(results_per_up, (double) 0.000001);
+	hosts_to_reach_via_node = hosts_to_reach / (double) connections;
 
 	/*
 	 * Now iteratively find the TTL needed to reach the desired number

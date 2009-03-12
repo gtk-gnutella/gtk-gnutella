@@ -242,22 +242,22 @@ typedef struct gnet_node_status {
 	guint64   tx_deflated;		/**< Bytes deflated by the TX stack */
 	guint64   tx_written;		/**< Bytes written by the TX stack */
     gboolean tx_compressed;     /**< Is TX traffic compressed */
-    gfloat   tx_compression_ratio; /**< TX compression ratio */
+    float   tx_compression_ratio; /**< TX compression ratio */
     guint32  tx_bps;			/**< TX traffic rate */
 
 	guint64   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
 	guint64   rx_inflated;		/**< Bytes inflated by the RX stack */
 	guint64   rx_read;			/**< Bytes read from the RX stack */
     gboolean rx_compressed;     /**< Is RX traffic compressed */
-    gfloat   rx_compression_ratio;/**< RX compression ratio */
-    gfloat   rx_bps;			/**< RX traffic rate */
+    float   rx_compression_ratio;/**< RX compression ratio */
+    float   rx_bps;			/**< RX traffic rate */
 
 	/*
 	 * Gnutella statistics -- RAM, 10/12/2003.
 	 */
 
 	gboolean has_qrp;		/**< Whether node is under QRP control */
-	gfloat qrp_efficiency;	/**< Queries matched / received on QRP control */
+	float qrp_efficiency;	/**< Queries matched / received on QRP control */
 	guint32 rx_queries;		/**< Total amount of queries received */
 	guint32 tx_queries;		/**< Total amount of queries sent */
 	guint32 rx_qhits;		/**< Total amount of hits received */
@@ -274,7 +274,7 @@ typedef struct gnet_node_status {
 	guint32 tcp_rtt;			/**< RTT in ms over TCP */
 	guint32 udp_rtt;			/**< RTT in ms over UDP */
 
-    guint     shutdown_remain;   /**< Number of seconds before shutdown */
+    guint     shutdown_remain;	/**< Number of seconds before shutdown */
     char    message[128];		/**< Additional information */
 } gnet_node_status_t;
 
@@ -283,8 +283,8 @@ typedef struct gnet_node_info {
 
 	struct guid gnet_guid;	/**< Seen on network (can be blank) */
 
-    char *error_str;       /**< To sprintf() error strings with vars */
-	const char *vendor;	/**< Vendor information (always UTF-8) */
+    char *error_str;		/**< To sprintf() error strings with vars */
+	const char *vendor;		/**< Vendor information (always UTF-8) */
 
 	int proto_major;		/**< Protocol major number */
 	int proto_minor;		/**< Protocol minor number */
@@ -360,7 +360,7 @@ typedef enum {
 	
 } gnet_node_state_t;
 
-#define GTA_NORMAL_TTL				4	/**< Regular TTL, for hops-flow */
+#define GTA_NORMAL_TTL			4		/**< Regular TTL, for hops-flow */
 
 /*
  * Nodes callback definitions

@@ -78,7 +78,7 @@ void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
 time_t tm_time(void);
 time_t tm_time_exact(void);
-gdouble tm_cputime(gdouble *user, gdouble *sys);
+double tm_cputime(double *user, double *sys);
 
 guint tm_hash(gconstpointer key);
 int tm_equal(gconstpointer a, gconstpointer b);

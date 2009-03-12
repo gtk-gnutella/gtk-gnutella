@@ -467,8 +467,8 @@ void download_gui_updates_thaw(void);
 
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean, gboolean);
 const char *download_get_hostname(const struct download *);
-gdouble download_source_progress(const struct download *);
-gdouble download_total_progress(const struct download *);
+double download_source_progress(const struct download *);
+double download_total_progress(const struct download *);
 gboolean download_something_to_clear(void);
 guint download_speed_avg(struct download *);
 

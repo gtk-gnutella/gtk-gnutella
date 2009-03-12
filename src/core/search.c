@@ -2562,7 +2562,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 {
 	guint32 max_items;
 	unsigned percent;
-	gfloat factor;
+	float factor;
 	guint32 tm;
 
 	g_assert(sch != NULL);

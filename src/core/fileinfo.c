@@ -4670,7 +4670,7 @@ fi_chunksize(fileinfo_t *fi)
  * Compute how much the source covers the missing chunks we still have which
  * are not busy.  This is expressed as a percentage of those missing chunks.
  */
-static gdouble
+static double
 fi_missing_coverage(struct download *d)
 {
 	GSList *ranges;
@@ -4829,7 +4829,7 @@ fi_find_aggressive_candidate(
 	int starving;
 	filesize_t minchunk;
 	gboolean can_be_aggressive = FALSE;
-	gdouble missing_coverage;
+	double missing_coverage;
 
 	/*
 	 * Compute minimum chunk size for splitting.  When we're told to
@@ -4869,7 +4869,7 @@ fi_find_aggressive_candidate(
 	missing_coverage = fi_missing_coverage(d);
 
 	if (fc) {
-		gdouble longest_missing_coverage = fi_missing_coverage(fc->download);
+		double longest_missing_coverage = fi_missing_coverage(fc->download);
 
 		download_check(fc->download);
 

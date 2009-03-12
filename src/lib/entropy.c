@@ -54,7 +54,7 @@ sha1_feed_ulong(SHA1Context *ctx, gulong value)
 }
 
 static void
-sha1_feed_double(SHA1Context *ctx, gdouble value)
+sha1_feed_double(SHA1Context *ctx, double value)
 {
 	SHA1Input(ctx, &value, sizeof value);
 }
@@ -236,7 +236,7 @@ entropy_collect(struct sha1 *digest)
 	 */
 
 	{
-		gdouble u, s;
+		double u, s;
 		tm_t before, after;
 
 		sha1_feed_double(&ctx, tm_cputime(&u, &s));

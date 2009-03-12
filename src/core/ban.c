@@ -75,7 +75,7 @@ static GHashTable *info;		/**< Info by IP address */
 static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
 
 /**< Decay coefficient, per second */
-static const gfloat decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
+static const float decay_coeff = (float) MAX_REQUEST / MAX_PERIOD;
 
 /***
  *** Hammering-specific banning.
@@ -85,7 +85,7 @@ static const gfloat decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
  * Information kept in the info table, per IP address.
  */
 struct addr_info {
-	gfloat counter;				/**< Counts connection, decayed linearily */
+	float counter;				/**< Counts connection, decayed linearily */
 	host_addr_t addr;			/**< IP address */
 	time_t created;				/**< When did last connection occur? */
 	cevent_t *cq_ev;			/**< Scheduled callout event */
@@ -286,7 +286,7 @@ ban_allow(const host_addr_t addr)
 		g_message("BAN %s, counter = %.3f (%s)",
 			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
-			ipf->counter > (gfloat) MAX_REQUEST ? "banning" : "OK");
+			ipf->counter > (float) MAX_REQUEST ? "banning" : "OK");
 
 	g_assert(ipf->cq_ev);
 
@@ -319,7 +319,7 @@ ban_allow(const host_addr_t addr)
 	 * Ban the IP if it crossed the request limit.
 	 */
 
-	if (ipf->counter > (gfloat) MAX_REQUEST) {
+	if (ipf->counter > (float) MAX_REQUEST) {
 		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;

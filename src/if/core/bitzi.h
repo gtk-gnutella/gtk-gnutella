@@ -64,7 +64,7 @@ typedef struct bitzi_data {
 	char *ticket;				/**< The ticket as text */
 	filesize_t	size;			/**< size of file */
 	bitzi_fj_t	judgement;
-	gfloat		goodness;
+	float		goodness;
 	time_t		expiry;			/**< expiry date of meta-data */
 } bitzi_data_t;
 

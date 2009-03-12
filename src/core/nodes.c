@@ -1159,7 +1159,7 @@ node_timer(time_t now)
 						> NODE_RX_FC_HALF_PERIOD
 				) {
 					time_t total;
-					gdouble fc_ratio;
+					double fc_ratio;
 					guint32 max_ratio;
 
 					/*
@@ -1186,7 +1186,7 @@ node_timer(time_t now)
 					rxfc->fc_accumulator = 0;
 					rxfc->start_half_period = now;
 
-					fc_ratio = (gdouble) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
+					fc_ratio = (double) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
 					fc_ratio *= 100.0;
 
 					if ((guint32) fc_ratio > max_ratio) {
@@ -8827,7 +8827,7 @@ node_get_status(const node_id_t node_id, gnet_node_status_t *status)
 	}
 
 	status->qrp_efficiency =
-		(gfloat) node->qrp_matches / (gfloat) MAX(1, node->qrp_queries);
+		(float) node->qrp_matches / (float) MAX(1, node->qrp_queries);
 	status->has_qrp = GNET_PROPERTY(current_peermode) == NODE_P_LEAF &&
 		node_ultra_received_qrp(node);
 

@@ -576,7 +576,7 @@ callout_timer(gpointer unused_p)
  *
  * @param old_ticks	the previous amount of processed ticks
  */
-gdouble
+double
 callout_queue_coverage(int old_ticks)
 {
 	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;

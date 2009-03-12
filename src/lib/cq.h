@@ -54,7 +54,7 @@ typedef guint64 cq_time_t;		/**< Virtual time for callout queue */
 
 extern cqueue_t *callout_queue;	/* Single global instance */
 
-gdouble callout_queue_coverage(int old_ticks);
+double callout_queue_coverage(int old_ticks);
 
 void cq_init(void);
 void cq_close(void);

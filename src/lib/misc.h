@@ -332,7 +332,7 @@ const char *lazy_string_to_printf_escape(const char *src);
 int highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
-gfloat force_range(gfloat value, gfloat min, gfloat max);
+float force_range(float value, float min, float max);
 char *absolute_pathname(const char *file);
 char *make_pathname(const char *dir, const char *file);
 char *short_filename(char *fullname);

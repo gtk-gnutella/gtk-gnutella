@@ -829,7 +829,7 @@ bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *iter;
 	GList *last = NULL;
-	gdouble norm_factor;
+	double norm_factor;
 	int count;
 
 	bsched_check(bs);
@@ -2693,14 +2693,14 @@ bsched_stealbeat(bsched_t *bs)
 	} else {
 		for (l = all_used; l; l = g_slist_next(l)) {
 			bsched_t *xbs = l->data;
-			gdouble amount;
+			double amount;
 
 			if (xbs->bw_max == 0)
 				continue;
 
-			amount = (gdouble) underused * (gdouble) xbs->bw_max / all_bw_count;
+			amount = (double) underused * (double) xbs->bw_max / all_bw_count;
 
-			if ((gdouble) xbs->bw_stolen + amount > (gdouble) BS_BW_MAX)
+			if ((double) xbs->bw_stolen + amount > (double) BS_BW_MAX)
 				xbs->bw_stolen = BS_BW_MAX;
 			else
 				xbs->bw_stolen += (int) amount;

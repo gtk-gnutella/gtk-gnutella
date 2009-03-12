@@ -730,7 +730,7 @@ download_retry(struct download *d)
  *
  * @return The total percent completed for this file.
  */
-gdouble
+double
 download_total_progress(const struct download *d)
 {
 	return filesize_per_10000(download_filesize(d), download_filedone(d))
@@ -750,7 +750,7 @@ download_total_progress(const struct download *d)
  * @return  The percent completed for this source, or zero
  *			if the source is not receiving at the moment.
  */
-gdouble
+double
 download_source_progress(const struct download *d)
 {
 	if (DOWNLOAD_IS_ACTIVE(d)) {
