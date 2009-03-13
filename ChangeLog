@@ -1,4 +1,84 @@
-# v 0.96.5   2007-04-01  [stable]
+# v 0.96.6   2009-??-??  [stable]
+
+Bug Fixes:
+
+- #1932909 "columns in search window do not scale properly".
+- Fixed improper HTTP chunking when outputing chunks larger than 64 KiB.
+
+Improvements:
+- Refuse to share certain directories: /, $HOME, $GTK_GNUTELLA_DIR, and
+  the incomplete and corrupted directories.
+- Downloads GUI: added checkboxes to invert the select/filter patterns.
+- Downloads GUI: added "Modified" column and detail showing the timestamp of
+  the last file modification.
+- Optional beautification operations on filenames: strip leading "-", remove
+  consecutive "_" and prevent "_" surrounding punctuation characters.
+- Fixed significant performance issue in the Gtk+ 1.2 front-end: update of
+  upload statistics was O(n) but is now O(1).
+- Background TTH file verification now lights an icon in the GUI.
+- Show TTH tree depth in the download "Details" pane.
+- Update the bitzi metadata info box when a query finishes, so that it is
+  not required to click on the result again after requesting bitzi data.
+- Added MIME type column for search results.
+- Added "Last Request" and "Last Upload" columns to the Upload History.
+- Almost complete DHT support (missing only publishing of data), but code
+  needs to be explicitly enabled by setting "enable_dht" to TRUE.  The DHT
+  knows how to look for alt-locs for files and push-proxies for firewalled
+  hosts, and will store local data for others to query.
+- New shell commands "stats", "download", "echo".
+- It is now possible to rename files being downloaded (through GTK2 or shell,
+  no support in GTK1).
+- Added more filename extensions to the built-in search filters.
+- Added download resource switching, to preserve connections.
+
+Under the hood:
+
+- Parse legacy Shareaza THEX URIs "urn:tree:tiger/:" (extra "/" here).
+- Handle non-standard  X-Thex-URI headers if peer provides a valid
+  X-Content-URN header (Shareaza 2.1.0.0).
+- Also attempt to give priority to the last "pfsp_last_chunk" bytes of
+  downloaded files, since that can contain important indexing information to
+  enable pre-view of partial video files.
+- More MIME types known (derived from file extensions).
+- Can now download THEX data at a tree depth of 11 for files larger than 1 GiB.
+- Can download sub-optimal THEX data, as non-optimal data is better than none,
+  but keeps looking for THEX data at the optimal tree depth nonetheless.
+- Reimplemented scanning of shared directories as a background task so that
+  the process (not just the GUI) is fully responsive during the whole scan.
+- Let the background task scheduler compute the proper amount of ticks to
+  use for each task.
+- Upload statistics now record the file's SHA1, so that we can consolidate
+  partial file sharing with library sharing statistics, with the filename
+  being forced to the library's filename.
+- Avoid starting moving a completed file if there is not enough space on
+  the targetted file system.
+- Recognize and propagate the "DHT" GGEP extension in pongs.
+- Added support for "DHTIPP" GGEP extension in pings, used for DHT bootstrap.
+- Added more entropy to the random number seed.
+- Plugged memory leaks
+- No longer send SHA1 queries on the Gnutella network. They are now performed
+  through the DHT, which has the suitable topology to do so efficiently.
+- Fixed UDP bandwidth computation, and removed any limit on UDP incoming.
+- Updated list of hostile IP adress ranges, Geo-IP data, spam patterns and
+  spam samples.
+- Property loading from files was in O(n*n), made it O(n).
+- Now detect property files being blindly copied over from another
+  gtk-gnutella's config directory and reset properties whose value needs to
+  be unique.
+- The GUID and the KUID (Kademlia ID, the DHT node ID) were made sticky.
+- Optimization of QRP lookups in tables ranging from 16k to 2M slots.
+- Limit amount of hits to 10 per query hit packet, as LimeWire chokes otherwise.
+- Limit amount of alt-locs in hits to 10 or LimeWire chokes.
+- Keep connection alive when reporting an HTTP error to allow remote resource
+  switching if necessary.
+
+Limitations:
+
+- DHT code is still experimental, although functional: configuration of
+  parameters can only be done through the shell, and there is no support
+  for publishing yet.
+
+# v 0.96.5   2008-04-01  [stable]
 
 Bug Fixes:
 
