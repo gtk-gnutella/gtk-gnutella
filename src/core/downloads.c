@@ -6007,9 +6007,14 @@ create_download(
 	 * if someone echoes back our own alt-locs to us with PFSP).
 	 */
 
-	if (0 != port && is_my_address_and_port(addr, port)) {
-		msg = "ignoring download from own address";
-		goto fail;
+	if (0 != port) {
+		if (is_my_address_and_port(addr, port)) {
+			msg = "ignoring download from own address";
+			goto fail;
+		} else if (local_addr_cache_lookup(addr, port)) {
+			msg = "ignoring download from own recent address";
+			goto fail;
+		}
 	}
 
 	{

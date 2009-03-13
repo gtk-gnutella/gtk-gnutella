@@ -53,6 +53,7 @@
 #include "sockets.h"
 #include "upload_stats.h"
 #include "routing.h"			/* For gnet_reset_guid() */
+#include "ipp_cache.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -111,6 +112,27 @@ static void settings_callbacks_shutdown(void);
 static void update_uptimes(void);
 
 /* ----------------------------------------- */
+
+/**
+ * Insert local IP:port in the local address cache if combination is valid.
+ */
+static void
+remember_local_addr_port(void)
+{
+	host_addr_t addr;
+	guint16 port;
+
+	addr = listen_addr();
+	port = GNET_PROPERTY(listen_port);
+
+	if (host_is_valid(addr, port))
+		local_addr_cache_insert(addr, port);
+
+	addr = listen_addr6();
+
+	if (host_is_valid(addr, port))
+		local_addr_cache_insert(addr, port);
+}
 
 /**
  * @return the currently used local listening address.
@@ -794,6 +816,7 @@ void
 settings_shutdown(void)
 {
 	update_uptimes();
+	remember_local_addr_port();
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
@@ -909,7 +932,8 @@ get_average_ip_lifetime(time_t now, enum net_type net)
 
 /**
  * Called whenever the IP address we advertise changed.
- * Update the average uptime for a given IP address.
+ * Update the average uptime for a given IP address and remember the new
+ * address in the "local_addr" cache.
  */
 static void
 update_address_lifetime(void)
@@ -960,6 +984,14 @@ update_address_lifetime(void)
 		}
 		gnet_prop_set_timestamp_val(PROP_CURRENT_IP6_STAMP, now);
 	}
+
+	/*
+	 * We remember every local IP:port combination we had for some time in
+	 * order to later spot alternate locations that point back to one of
+	 * our recent IP:port.
+	 */
+
+	remember_local_addr_port();
 }
 
 /**
@@ -1329,6 +1361,7 @@ listen_port_changed(property_t prop)
         return TRUE;
     } else {
 		old_port = GNET_PROPERTY(listen_port);
+		remember_local_addr_port();
 	}
 
     return FALSE;

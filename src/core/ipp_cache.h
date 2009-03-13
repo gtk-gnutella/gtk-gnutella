@@ -33,20 +33,29 @@ struct ipp_cache;
 typedef struct ipp_cache ipp_cache_t;
 
 enum ipp_cache_id {
-	IPP_CACHE_TLS = 0,		/**< Cache TLS hosts */
-	IPP_CACHE_G2,			/**< Cache "G2" hosts */
+	IPP_CACHE_TLS = 0,		/**< Cache for TLS hosts */
+	IPP_CACHE_G2,			/**< Cache for "G2" hosts */
+	IPP_CACHE_LOCAL_ADDR,	/**< Cache for hosts's past IP:port combinations */
 
 	IPP_CACHE_COUNT
 };
 
-void ipp_cache_init(void);
 void ipp_cache_insert(enum ipp_cache_id cid,
 	const host_addr_t addr, guint16 port);
 gboolean ipp_cache_lookup(enum ipp_cache_id cid,
 	const host_addr_t addr, guint16 port);
 time_t ipp_cache_get_timestamp(enum ipp_cache_id cid,
 	const host_addr_t addr, guint16 port);
+gboolean ipp_cache_remove(enum ipp_cache_id cid,
+	const host_addr_t addr, guint16 port);
+
+void ipp_cache_init(void);
+void ipp_cache_save(void);
 void ipp_cache_close(void);
+
+/*
+ * TLS cache convenience routines.
+ */
 
 static inline void
 tls_cache_insert(const host_addr_t addr, guint16 port)
@@ -66,6 +75,10 @@ tls_cache_get_timestamp(const host_addr_t addr, guint16 port)
 	return ipp_cache_get_timestamp(IPP_CACHE_TLS, addr, port);
 }
 
+/*
+ * G2 cache convenience routines.
+ */
+
 static inline void
 g2_cache_insert(const host_addr_t addr, guint16 port)
 {
@@ -76,6 +89,22 @@ static inline gboolean
 g2_cache_lookup(const host_addr_t addr, guint16 port)
 {
 	return ipp_cache_lookup(IPP_CACHE_G2, addr, port);
+}
+
+/*
+ * Local IP:port cache convenience routines.
+ */
+
+static inline void
+local_addr_cache_insert(const host_addr_t addr, guint16 port)
+{
+	ipp_cache_insert(IPP_CACHE_LOCAL_ADDR, addr, port);
+}
+
+static inline gboolean
+local_addr_cache_lookup(const host_addr_t addr, guint16 port)
+{
+	return ipp_cache_lookup(IPP_CACHE_LOCAL_ADDR, addr, port);
 }
 
 #endif /* _ipp_cache_h_ */

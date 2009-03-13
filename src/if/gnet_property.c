@@ -772,6 +772,12 @@ prop_def_choice_t gnet_property_variable_http_trace_choices[] = {
 };
 guint32  gnet_property_variable_verify_debug     = 0;
 static const guint32  gnet_property_variable_verify_debug_default = 0;
+guint32  gnet_property_variable_local_addr_cache_max_hosts     = 100;
+static const guint32  gnet_property_variable_local_addr_cache_max_hosts_default = 100;
+guint32  gnet_property_variable_local_addr_cache_max_time     = 604800;
+static const guint32  gnet_property_variable_local_addr_cache_max_time_default = 604800;
+guint32  gnet_property_variable_local_addr_debug     = 0;
+static const guint32  gnet_property_variable_local_addr_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7122,6 +7128,66 @@ gnet_prop_init(void) {
     gnet_property->props[332].data.guint32.choices = NULL;
     gnet_property->props[332].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[332].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOCAL_ADDR_CACHE_MAX_HOSTS:
+     *
+     * General data:
+     */
+    gnet_property->props[333].name = "local_addr_cache_max_hosts";
+    gnet_property->props[333].desc = _("Maximum number of hosts in the local address cache, which remembers the recent IP:port combinations we had.");
+    gnet_property->props[333].ev_changed = event_new("local_addr_cache_max_hosts_changed");
+    gnet_property->props[333].save = TRUE;
+    gnet_property->props[333].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[333].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[333].data.guint32.def   = (void *) &gnet_property_variable_local_addr_cache_max_hosts_default;
+    gnet_property->props[333].data.guint32.value = (void *) &gnet_property_variable_local_addr_cache_max_hosts;
+    gnet_property->props[333].data.guint32.choices = NULL;
+    gnet_property->props[333].data.guint32.max   = 100;
+    gnet_property->props[333].data.guint32.min   = 1;
+
+
+    /*
+     * PROP_LOCAL_ADDR_CACHE_MAX_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[334].name = "local_addr_cache_max_time";
+    gnet_property->props[334].desc = _("Maximum time before removing hosts from the local address cache, which remembers the recent IP:port combinations we had.");
+    gnet_property->props[334].ev_changed = event_new("local_addr_cache_max_time_changed");
+    gnet_property->props[334].save = TRUE;
+    gnet_property->props[334].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[334].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[334].data.guint32.def   = (void *) &gnet_property_variable_local_addr_cache_max_time_default;
+    gnet_property->props[334].data.guint32.value = (void *) &gnet_property_variable_local_addr_cache_max_time;
+    gnet_property->props[334].data.guint32.choices = NULL;
+    gnet_property->props[334].data.guint32.max   = 2592000;
+    gnet_property->props[334].data.guint32.min   = 86400;
+
+
+    /*
+     * PROP_LOCAL_ADDR_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[335].name = "local_addr_debug";
+    gnet_property->props[335].desc = _("Debug level for management of local address cache.");
+    gnet_property->props[335].ev_changed = event_new("local_addr_debug_changed");
+    gnet_property->props[335].save = TRUE;
+    gnet_property->props[335].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[335].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[335].data.guint32.def   = (void *) &gnet_property_variable_local_addr_debug_default;
+    gnet_property->props[335].data.guint32.value = (void *) &gnet_property_variable_local_addr_debug;
+    gnet_property->props[335].data.guint32.choices = NULL;
+    gnet_property->props[335].data.guint32.max   = 20;
+    gnet_property->props[335].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

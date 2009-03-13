@@ -3883,4 +3883,39 @@ prop = {
     };
 };
 
+prop = {
+    name = "local_addr_cache_max_hosts";
+    desc = "Maximum number of hosts in the local address cache, which "
+		"remembers the recent IP:port combinations we had.";
+    type = guint32;
+    data = {
+        default = 100;
+        min     = 1;
+        max     = 100;
+    };
+};
+
+prop = {
+    name = "local_addr_cache_max_time";
+    desc = "Maximum time before removing hosts from the local address cache, "
+		"which remembers the recent IP:port combinations we had.";
+    type = guint32;
+    data = {
+        default = 604800;
+        min     = 86400;
+        max     = 2592000;
+    };
+};
+
+prop = {
+	name = "local_addr_debug";
+	desc = "Debug level for management of local address cache.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

@@ -853,11 +853,17 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	}
 
 	/*
-	 * Reject if this is for our host, or if the host is a private/hostile IP.
+	 * Reject if this is for our host, or if the host is a private/hostile IP
+	 * or if the IP:port point back to one of our recent addresses.
 	 */
 
 	if (is_my_address_and_port(addr, port)) {
 		reason = "my own address and port";
+		goto rejected;
+	}
+
+	if (local_addr_cache_lookup(addr, port)) {
+		reason = "recent own address and port";
 		goto rejected;
 	}
 
@@ -1416,6 +1422,9 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 		if (g2_cache_lookup(dme->url.addr, dme->url.port))
 			continue;			/* Don't pollute with G2-only entries */
 
+		if (local_addr_cache_lookup(dme->url.addr, dme->url.port))
+			continue;			/* Don't pollute with our recent addresses */
+
 		g_assert(i < MAX_ENTRIES);
 		selected[i++] = dme;
 	}
@@ -1735,6 +1744,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 		if (g2_cache_lookup(dme->url.addr, dme->url.port))
 			continue;			/* Don't pollute with G2-only entries */
+
+		if (local_addr_cache_lookup(dme->url.addr, dme->url.port))
+			continue;			/* Don't pollute with our recent addresses */
 
 		g_assert(i < MAX_ENTRIES);
 

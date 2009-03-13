@@ -65,8 +65,9 @@ RCSID("$Id$")
  */
 struct ipp_cache {
 	file_path_t fp;					/**< Path to cache file on disk */
-	const gchar *name;				/**< Cache name */
-	const gchar *item_name;			/**< Cache item name */
+	const char *name;				/**< Cache name */
+	const char *item_name;			/**< Cache item name */
+	const char *description;		/**< Cache description for comments */
 	time_delta_t max_cache_time;	/**< Amount of time data can stay cached */
 	size_t max_cache_size;			/**< Max amount od items to cache */
 	hash_list_t *hosts;				/**< The caching structure */
@@ -106,7 +107,8 @@ ipp_cache_item_eq(gconstpointer v1, gconstpointer v2)
  */
 static ipp_cache_t *
 ipp_cache_alloc(
-	const gchar *name, const gchar *item_name, const gchar *file_name,
+	const char *name, const char *item_name, const char *file_name,
+	const char *description,
 	time_delta_t max_cache_time, size_t max_cache_size,
 	guint32 debug)
 {
@@ -115,6 +117,7 @@ ipp_cache_alloc(
 	ic = walloc(sizeof *ic);
 	ic->name = name;
 	ic->item_name = item_name;
+	ic->description = description;
 	ic->max_cache_time = max_cache_time;
 	ic->max_cache_size = max_cache_size;
 	ic->hosts = hash_list_new(ipp_cache_item_hash, ipp_cache_item_eq);
@@ -197,6 +200,8 @@ ipp_cache_dump(ipp_cache_t *ic, FILE *f)
 
 	g_return_if_fail(ic);
 	g_return_if_fail(f);
+
+	file_config_preamble(f, ic->description);
 
 	iter = hash_list_iterator(ic->hosts);
 	while (hash_list_iter_has_next(iter)) {
@@ -384,6 +389,45 @@ ipp_cache_get_timestamp(enum ipp_cache_id cid,
 
 	item = ipp_cache_lookup_intern(ic, addr, port);
 	return item ? item->seen : 0;
+}
+
+/**
+ * Physical cache removal of an entry (if found).
+ *
+ * @return whether entry was found and deleted.
+ */
+static gboolean
+ipp_cache_remove_intern(const ipp_cache_t *ic,
+	const host_addr_t addr, guint16 port)
+{
+	g_assert(ic);
+
+	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
+		struct ipp_cache_item item;
+		gconstpointer key;
+
+		gnet_host_set(&item.host, addr, port);
+		if (hash_list_contains(ic->hosts, &item, &key)) {
+			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
+			
+			hash_list_remove(ic->hosts, item_ptr);
+			wfree(item_ptr, sizeof *item_ptr);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
+ * Remove IP:port tuple from cache.
+ *
+ * @return TRUE if found and removed.
+ */
+gboolean
+ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
+{
+	ipp_cache_t *ic = get_cache(cid);
+	return ipp_cache_remove_intern(ic, addr, port);
 }
 
 /**
@@ -586,7 +630,7 @@ ipp_cache_init(void)
 {
 	ipp_cache_t *ic;
 
-	ic = ipp_cache_alloc("TLS cache", "TLS", "tls_cache",
+	ic = ipp_cache_alloc("TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
 		GNET_PROPERTY(tls_cache_max_time), GNET_PROPERTY(tls_cache_max_hosts),
 		GNET_PROPERTY(tls_debug));
 
@@ -615,12 +659,50 @@ ipp_cache_init(void)
 	 * servents must not have their addresses propagated in the Gnutella mesh.
 	 */
 
-	ic = ipp_cache_alloc("G2 cache", "G2", "g2_cache",
+	ic = ipp_cache_alloc("G2 cache", "G2", "g2_cache", "Identified G2 servents",
 		GNET_PROPERTY(g2_cache_max_time), GNET_PROPERTY(g2_cache_max_hosts),
 		GNET_PROPERTY(g2_debug));
 
 	caches[IPP_CACHE_G2] = ic;
 	ipp_cache_load(ic);
+
+	/*
+	 * The local address cache is remembering the recent IP:port combinations
+	 * for this host that were routable.
+	 *
+	 * The purpose is to be able to spot alternate locations for files that
+	 * point to older instances of ourselves, and which therefore should not
+	 * be addedd to the mesh nor propagated further.
+	 */
+
+	ic = ipp_cache_alloc("Recent IP:port", "local IP:port", "local_addr",
+		"Recent local IP:port",
+		GNET_PROPERTY(local_addr_cache_max_time),
+		GNET_PROPERTY(local_addr_cache_max_hosts),
+		GNET_PROPERTY(local_addr_debug));
+
+	caches[IPP_CACHE_LOCAL_ADDR] = ic;
+	ipp_cache_load(ic);
+
+	/* Post-condition: all caches initialized */
+	{
+		size_t i;
+
+		for (i = 0; i < IPP_CACHE_COUNT; i++) {
+			g_assert(NULL != get_cache(i));
+		}
+	}
+}
+
+/**
+ * Save all the caches.
+ */
+void
+ipp_cache_save(void)
+{
+	ipp_cache_store(get_cache(IPP_CACHE_TLS));
+	ipp_cache_store(get_cache(IPP_CACHE_G2));
+	ipp_cache_store(get_cache(IPP_CACHE_LOCAL_ADDR));
 }
 
 /**
@@ -631,6 +713,7 @@ ipp_cache_close(void)
 {
 	ipp_cache_invalidate(IPP_CACHE_TLS);
 	ipp_cache_invalidate(IPP_CACHE_G2);
+	ipp_cache_invalidate(IPP_CACHE_LOCAL_ADDR);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
