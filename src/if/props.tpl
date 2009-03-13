@@ -249,7 +249,8 @@ gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 
 #ifdef [=(. private-src)=]
 
-#define [=(. set-name-up)=](name) ([=(. set-name-down)=]_variable_ ## name)
+#define [=(. set-name-up)=](name) 	([=(. set-name-down)=]_variable_ ## name)
+#define [=(. set-name-up)=]_PTR(name)	(&[=(. set-name-down)=]_variable_ ## name)
 
 /*
  * Includes specified by "uses"-statement in .ag file

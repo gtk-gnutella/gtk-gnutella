@@ -34,7 +34,8 @@
 
 #ifdef GUI_SOURCES
 
-#define GUI_PROPERTY(name) (gui_property_variable_ ## name)
+#define GUI_PROPERTY(name) 	(gui_property_variable_ ## name)
+#define GUI_PROPERTY_PTR(name)	(&gui_property_variable_ ## name)
 
 /*
  * Includes specified by "uses"-statement in .ag file

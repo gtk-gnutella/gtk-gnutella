@@ -34,7 +34,8 @@
 
 #ifdef CORE_SOURCES
 
-#define GNET_PROPERTY(name) (gnet_property_variable_ ## name)
+#define GNET_PROPERTY(name) 	(gnet_property_variable_ ## name)
+#define GNET_PROPERTY_PTR(name)	(&gnet_property_variable_ ## name)
 
 /*
  * Includes specified by "uses"-statement in .ag file
