@@ -1636,3 +1636,8 @@
 # Spamming gtk-gnutella seen on these subnets
 174.142.32.0/24
 174.142.36.0/24
+
+# FortressITX (range 69.72.128.0/17)
+# Sending back "sponsored results"
+# Spamming gtk-gnutella seen on these subnets
+69.72.128.0/24
