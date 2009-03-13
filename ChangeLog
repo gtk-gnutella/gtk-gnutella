@@ -4,6 +4,11 @@ Bug Fixes:
 
 - #1932909 "columns in search window do not scale properly".
 - Fixed improper HTTP chunking when outputing chunks larger than 64 KiB.
+- #2628899 "tries to download from my old self after IP changes".
+- Handle case of shared files changing of SHA-1 between runs.
+- Was not always resuming the interrupted SHA-1 computation of a finished file
+  when servent was closed in the middle of processing.
+- Fixed bad range checking test in the download part.
 
 Improvements:
 - Refuse to share certain directories: /, $HOME, $GTK_GNUTELLA_DIR, and
@@ -29,7 +34,19 @@ Improvements:
 - It is now possible to rename files being downloaded (through GTK2 or shell,
   no support in GTK1).
 - Added more filename extensions to the built-in search filters.
-- Added download resource switching, to preserve connections.
+- Take full advantage of persistent HTTP connections to fetch multiple files
+  from the same peer over the same connection, if scheduling permits.
+- Bitzi tickets are refreshed when explicitely requested, avoiding reuse
+  of stale metadata
+- Completed files are displayed during hash verification.
+- Only propagate good alt-locs for files we are downloading, i.e. addresses
+  of hosts which we know to be serving that file because we contacted them.
+- Many new statistics counters.
+- Allow scheduling of special downloads without considering per-host limits,
+  as these are of a much shorter duration (THEX and browse host requests).
+- Always seed completed files, regardless of their size (no PFSP minimum as
+  with partial files), when their SHA-1 has been verified.
+- Incorrectly encoded Bitzi metadata is translated to Unicode.
 
 Under the hood:
 
@@ -47,7 +64,7 @@ Under the hood:
   the process (not just the GUI) is fully responsive during the whole scan.
 - Let the background task scheduler compute the proper amount of ticks to
   use for each task.
-- Upload statistics now record the file's SHA1, so that we can consolidate
+- Upload statistics now record the file's SHA-1, so that we can consolidate
   partial file sharing with library sharing statistics, with the filename
   being forced to the library's filename.
 - Avoid starting moving a completed file if there is not enough space on
@@ -56,7 +73,7 @@ Under the hood:
 - Added support for "DHTIPP" GGEP extension in pings, used for DHT bootstrap.
 - Added more entropy to the random number seed.
 - Plugged memory leaks
-- No longer send SHA1 queries on the Gnutella network. They are now performed
+- No longer send SHA-1 queries on the Gnutella network. They are now performed
   through the DHT, which has the suitable topology to do so efficiently.
 - Fixed UDP bandwidth computation, and removed any limit on UDP incoming.
 - Updated list of hostile IP adress ranges, Geo-IP data, spam patterns and
@@ -71,6 +88,16 @@ Under the hood:
 - Limit amount of alt-locs in hits to 10 or LimeWire chokes.
 - Keep connection alive when reporting an HTTP error to allow remote resource
   switching if necessary.
+- Emit and parse new X-Downloaded header, apparently introduced by LimeWire.
+- Added parsing of X-FW-Node-Info headers to grab push-proxies from firewalled
+  hosts, as well as gather the proper GUID and host address/port.
+- Emit X-FW-Node-Info if node is firewalled but continue to list our
+  push-proxies in the standard X-Push-Proxies header.
+- Avoid endless aggressive chunk splitting during swarming.
+- Proper parsing of comma-separated values in Accept and other Accept-Encoding
+  HTTP headers.
+- Reject UDP packets from unspecified addresses.
+- Drain more data out of the UDP receive buffer to prevent it from filling up.
 
 Limitations:
 
