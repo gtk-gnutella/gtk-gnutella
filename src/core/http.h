@@ -132,6 +132,7 @@ http_extra_body_set(http_extra_desc_t *he, const char *body)
 
 struct header;
 struct http_async;
+struct gnutella_socket;
 
 /**
  * Callback used from asynchronous request to indicate that we got headers.
@@ -176,8 +177,17 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous operations that the user may redefine.
  */
 
-typedef size_t (*http_op_request_t)(struct http_async *, char *buf, size_t len,
+typedef size_t (*http_op_request_t)(const struct http_async *,
+	char *buf, size_t len,
 	const char *verb, const char *path, const char *host, guint16 port);
+
+typedef void (*http_op_reqsent_t)(const struct http_async *,
+	const struct gnutella_socket *s, const char *req, size_t len,
+	gboolean deferred);
+
+typedef void (*http_op_gotreply_t)(const struct http_async *,
+	const struct gnutella_socket *s,
+	const char *status, const struct header *header);
 
 /*
  * Asynchronous request error codes.
@@ -248,8 +258,6 @@ typedef struct http_buffer {
  * Public interface
  */
 
-struct gnutella_socket;
-
 void http_timer(time_t now);
 
 gboolean http_send_status(http_layer_t layer, struct gnutella_socket *s,
@@ -316,10 +324,11 @@ void http_async_log_error(struct http_async *handle,
 void http_async_log_error_dbg(struct http_async *handle,
 		http_errtype_t type, gpointer v, guint32 dbg_level);
 
-void http_async_on_state_change(struct http_async *handle,
-		http_state_change_t fn);
-void http_async_allow_redirects(struct http_async *handle, gboolean allow);
-void http_async_set_op_request(struct http_async *handle, http_op_request_t op);
+void http_async_on_state_change(struct http_async *ha, http_state_change_t fn);
+void http_async_allow_redirects(struct http_async *ha, gboolean allow);
+void http_async_set_op_request(struct http_async *ha, http_op_request_t op);
+void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op);
+void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op);
 
 void http_close(void);
 

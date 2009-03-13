@@ -1515,6 +1515,8 @@ struct http_async {
 	 */
 
 	http_op_request_t op_request;	/**< Creates HTTP request */
+	http_op_reqsent_t op_reqsent;	/**< Call back when HTTP request sent */
+	http_op_gotreply_t op_gotreply;	/**< Call back when HTTP reply received */
 };
 
 /*
@@ -1775,7 +1777,7 @@ http_async_http_error(struct http_async *handle, struct header *header,
  * header.
  */
 static size_t
-http_async_build_request(struct http_async *unused_handle,
+http_async_build_request(const struct http_async *unused_handle,
 	char *buf, size_t len,
 	const char *verb, const char *path, const char *host, guint16 port)
 {
@@ -1799,6 +1801,54 @@ http_async_build_request(struct http_async *unused_handle,
 		verb, path, host, port_str, version_string);
 
 	return rw;
+}
+
+/**
+ * Default callback invoked when the HTTP request has been sent.
+ *
+ * @param unused_ha		the (unused) HTTP async request descriptor
+ * @param s				the socket on which we wrote the request
+ * @param req			the actual request string
+ * @param len			the length of the request string
+ * @param deferred		if TRUE, full request sending was deferred earlier
+ */
+static void
+http_async_sent_request(const struct http_async *unused_ha,
+	const struct gnutella_socket *s, const char *req, size_t len,
+	gboolean deferred)
+{
+	(void) unused_ha;
+
+	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
+		g_message("----"
+			"Sent HTTP request%s to %s (%u bytes):\n%.*s\n----\n",
+			deferred ? " completely" : "",
+			host_addr_port_to_string(s->addr, s->port),
+				(unsigned) len, (unsigned) len, req);
+	}
+}
+
+/**
+ * Default callback invoked when we got the whole HTTP reply.
+ *
+ * @param unused_ha		the (unused) HTTP async request descriptor
+ * @param s				the socket on which we got the reply
+ * @param status		the first HTTP status line
+ * @param header		the parsed header structure
+ */
+static void
+http_async_got_reply(const struct http_async *unused_ha,
+	const struct gnutella_socket *s, const char *status, const header_t *header)
+{
+	(void) unused_ha;
+
+	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
+		g_message("----Got HTTP reply from %s:",
+			host_addr_to_string(s->addr));
+		fprintf(stderr, "%s", status);
+		header_dump(header, stderr);
+		g_message("----");
+	}
 }
 
 /**
@@ -1900,6 +1950,8 @@ http_async_create(
 	ha->delayed = NULL;
 	ha->allow_redirects = FALSE;
 	ha->op_request = http_async_build_request;
+	ha->op_reqsent = http_async_sent_request;
+	ha->op_gotreply = http_async_got_reply;
 
 	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
 
@@ -1979,6 +2031,28 @@ http_async_set_op_request(struct http_async *ha, http_op_request_t op)
 	g_assert(op != NULL);
 
 	ha->op_request = op;
+}
+
+/**
+ * Set callback to invoke when HTTP request is sent.
+ */
+void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op)
+{
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(op != NULL);
+
+	ha->op_reqsent = op;
+}
+
+/**
+ * Set callback to invoke when HTTP reply has been fully received.
+ */
+void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op)
+{
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(op != NULL);
+
+	ha->op_gotreply = op;
 }
 
 /**
@@ -2078,6 +2152,8 @@ http_async_subrequest(
 	 */
 
 	child->op_request = parent->op_request;
+	child->op_reqsent = parent->op_reqsent;
+	child->op_gotreply = parent->op_gotreply;
 
 	/*
 	 * Indicate that the child request now has control, the parent request
@@ -2229,13 +2305,8 @@ http_got_header(struct http_async *ha, header_t *header)
 	char *buf;
 	guint http_major = 0, http_minor = 0;
 
-	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
-		g_message("----Got HTTP reply from %s:",
-			host_addr_to_string(s->addr));
-		g_message("%s", status);
-		header_dump(header, stderr);
-		g_message("----");
-	}
+	/* Log HTTP headers */
+	(*ha->op_gotreply)(ha, s, status, header);
 
 	/*
 	 * Check status.
@@ -2468,11 +2539,10 @@ http_async_write_request(gpointer data, int unused_source,
 	} else if ((size_t) sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
-		g_message("----"
-			"Sent HTTP request completely to %s (%d bytes):\n%.*s\n----\n",
-			host_addr_port_to_string(s->addr, s->port), http_buffer_length(r),
-			http_buffer_length(r), http_buffer_base(r));
+	} else {
+		/* Log HTTP request */
+		(*ha->op_reqsent)(ha, s,
+			http_buffer_base(r), http_buffer_length(r), TRUE);
 	}
 
 	/*
@@ -2552,9 +2622,9 @@ http_async_connected(struct http_async *ha)
 		socket_evt_set(s, INPUT_EVENT_WX, http_async_write_request, ha);
 
 		return;
-	} else if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s\n----",
-			host_addr_port_to_string(s->addr, s->port), (int) rw, (int) rw, req);
+	} else {
+		/* Log HTTP request */
+		(*ha->op_reqsent)(ha, s, req, rw, FALSE);
 	}
 
 	http_async_request_sent(ha);

@@ -693,7 +693,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	GSList *nodes;
 	gboolean supports_tls = FALSE;
 
-	if (GNET_PROPERTY(push_proxy_debug) > 0) {
+	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
 		g_message("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
 		header_dump(header, stderr);
@@ -1135,7 +1135,8 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
  * @return length of generated request.
  */
 static size_t
-cproxy_build_request(struct http_async *unused_handle, char *buf, size_t len,
+cproxy_build_request(const struct http_async *unused_handle,
+	char *buf, size_t len,
 	const char *verb, const char *path, const char *unused_host,
 	guint16 unused_port)
 {
@@ -1187,6 +1188,54 @@ cproxy_build_request(struct http_async *unused_handle, char *buf, size_t len,
 		tok_version(),
 		addr_v4_buf,
 		addr_v6_buf);
+}
+
+/**
+ * Redefine callback invoked when the HTTP request has been sent.
+ *
+ * @param unused_ha		the (unused) HTTP async request descriptor
+ * @param s				the socket on which we wrote the request
+ * @param req			the actual request string
+ * @param len			the length of the request string
+ * @param deferred		if TRUE, full request sending was deferred earlier
+ */
+static void
+cproxy_sent_request(const struct http_async *unused_ha,
+	const struct gnutella_socket *s, const char *req, size_t len,
+	gboolean deferred)
+{
+	(void) unused_ha;
+
+	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_OUT) {
+		g_message("----"
+			"Sent push-proxy request%s to %s (%u bytes):\n%.*s\n----\n",
+			deferred ? " completely" : "",
+			host_addr_port_to_string(s->addr, s->port),
+			(unsigned) len, (unsigned) len, req);
+	}
+}
+
+/**
+ * Redefine callback invoked when we got the whole HTTP reply.
+ *
+ * @param unused_ha		the (unused) HTTP async request descriptor
+ * @param s				the socket on which we got the reply
+ * @param status		the first HTTP status line
+ * @param header		the parsed header structure
+ */
+static void
+cproxy_got_reply(const struct http_async *unused_ha,
+	const struct gnutella_socket *s, const char *status, const header_t *header)
+{
+	(void) unused_ha;
+
+	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
+		g_message("----Got push-proxy reply from %s:",
+			host_addr_to_string(s->addr));
+		fprintf(stderr, "%s", status);
+		header_dump(header, stderr);
+		g_message("----");
+	}
 }
 
 /**
@@ -1254,6 +1303,8 @@ cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
 
 	http_async_set_opaque(handle, cp, NULL);
 	http_async_set_op_request(handle, cproxy_build_request);
+	http_async_set_op_reqsent(handle, cproxy_sent_request);
+	http_async_set_op_gotreply(handle, cproxy_got_reply);
 	http_async_on_state_change(handle, cproxy_http_newstate);
 
 	return cp;
