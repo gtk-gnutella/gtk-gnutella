@@ -68,11 +68,11 @@ struct ipp_cache {
 	const char *name;				/**< Cache name */
 	const char *item_name;			/**< Cache item name */
 	const char *description;		/**< Cache description for comments */
-	time_delta_t max_cache_time;	/**< Amount of time data can stay cached */
-	size_t max_cache_size;			/**< Max amount od items to cache */
+	const guint32 *max_cache_time;	/**< Amount of time data can stay cached */
+	const guint32 *max_cache_size;	/**< Max amount od items to cache */
 	hash_list_t *hosts;				/**< The caching structure */
 	time_t last_stored;				/**< Last time cache was persisted */
-	guint32 debug;					/**< Debug level for this cache */
+	const guint32 *debug;			/**< Debug level for this cache */
 };
 
 /**
@@ -109,8 +109,8 @@ static ipp_cache_t *
 ipp_cache_alloc(
 	const char *name, const char *item_name, const char *file_name,
 	const char *description,
-	time_delta_t max_cache_time, size_t max_cache_size,
-	guint32 debug)
+	const guint32 *max_cache_time, const guint32 *max_cache_size,
+	const guint32 *debug)
 {
 	ipp_cache_t *ic;
 
@@ -136,7 +136,7 @@ static gboolean
 ipp_cache_item_expired(const ipp_cache_t *ic, time_t seen, time_t now)
 {
 	time_delta_t d = delta_time(now, seen);
-	return d < 0 || d > ic->max_cache_time;
+	return d < 0 || d > (time_delta_t) *ic->max_cache_time;
 }
 
 /**
@@ -268,6 +268,7 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 {
 	gconstpointer key;
 	int removed;
+	size_t max_size;
 
 	g_return_if_fail(item);
 
@@ -276,13 +277,13 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 		struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
 
 		/* We'll move the host to the end of the list */
-		if (ic->debug) {
+		if (*ic->debug) {
 			g_message("refreshing %s host %s",
 				ic->item_name, gnet_host_to_string(&item->host));
 		}
 		item_ptr->seen = item->seen;
 	} else {
-		if (ic->debug) {
+		if (*ic->debug) {
 			g_message("adding %s host %s",
 				ic->item_name, gnet_host_to_string(&item->host));
 		}
@@ -292,7 +293,8 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 
 	/* Remove the oldest host once we hit a reasonable limit */
 	removed = 0;
-	while (hash_list_length(ic->hosts) > ic->max_cache_size) {
+	max_size = (size_t) *ic->max_cache_size;
+	while (hash_list_length(ic->hosts) > max_size) {
 		ipp_cache_remove_oldest(ic);
 
 		/* If the limit was lowered drastically avoid doing too much work */
@@ -580,7 +582,7 @@ ipp_cache_load(ipp_cache_t *ic)
 		
 		ipp_cache_parse(ic, f);
 		n = hash_list_length(ic->hosts);
-		if (ic->debug) {
+		if (*ic->debug) {
 			g_message("loaded %u items from the %s cache", n, ic->item_name);
 		}
 		fclose(f);
@@ -631,8 +633,9 @@ ipp_cache_init(void)
 	ipp_cache_t *ic;
 
 	ic = ipp_cache_alloc("TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
-		GNET_PROPERTY(tls_cache_max_time), GNET_PROPERTY(tls_cache_max_hosts),
-		GNET_PROPERTY(tls_debug));
+		GNET_PROPERTY_PTR(tls_cache_max_time),
+		GNET_PROPERTY_PTR(tls_cache_max_hosts),
+		GNET_PROPERTY_PTR(tls_debug));
 
 	caches[IPP_CACHE_TLS] = ic;
 	ipp_cache_load(ic);
@@ -660,8 +663,9 @@ ipp_cache_init(void)
 	 */
 
 	ic = ipp_cache_alloc("G2 cache", "G2", "g2_cache", "Identified G2 servents",
-		GNET_PROPERTY(g2_cache_max_time), GNET_PROPERTY(g2_cache_max_hosts),
-		GNET_PROPERTY(g2_debug));
+		GNET_PROPERTY_PTR(g2_cache_max_time),
+		GNET_PROPERTY_PTR(g2_cache_max_hosts),
+		GNET_PROPERTY_PTR(g2_debug));
 
 	caches[IPP_CACHE_G2] = ic;
 	ipp_cache_load(ic);
@@ -677,9 +681,9 @@ ipp_cache_init(void)
 
 	ic = ipp_cache_alloc("Recent IP:port", "local IP:port", "local_addr",
 		"Recent local IP:port",
-		GNET_PROPERTY(local_addr_cache_max_time),
-		GNET_PROPERTY(local_addr_cache_max_hosts),
-		GNET_PROPERTY(local_addr_debug));
+		GNET_PROPERTY_PTR(local_addr_cache_max_time),
+		GNET_PROPERTY_PTR(local_addr_cache_max_hosts),
+		GNET_PROPERTY_PTR(local_addr_debug));
 
 	caches[IPP_CACHE_LOCAL_ADDR] = ic;
 	ipp_cache_load(ic);
