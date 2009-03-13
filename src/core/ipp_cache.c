@@ -626,19 +626,19 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
 
 /**
  * Initialize IP:port caches.
+ *
+ * This must happen before settings_init() is called to create the data
+ * structures, as some callbacks may insert data in the caches.  Later on,
+ * the caches can be loaded when we know the properties are all initialized.
  */
 void
 ipp_cache_init(void)
 {
-	ipp_cache_t *ic;
-
-	ic = ipp_cache_alloc("TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
+	caches[IPP_CACHE_TLS] = ipp_cache_alloc(
+		"TLS cache", "TLS", "tls_cache", "TLS-capable hosts",
 		GNET_PROPERTY_PTR(tls_cache_max_time),
 		GNET_PROPERTY_PTR(tls_cache_max_hosts),
 		GNET_PROPERTY_PTR(tls_debug));
-
-	caches[IPP_CACHE_TLS] = ic;
-	ipp_cache_load(ic);
 
 	/*
 	 * Address caching of G2-only hosts.
@@ -662,13 +662,11 @@ ipp_cache_init(void)
 	 * servents must not have their addresses propagated in the Gnutella mesh.
 	 */
 
-	ic = ipp_cache_alloc("G2 cache", "G2", "g2_cache", "Identified G2 servents",
+	caches[IPP_CACHE_G2] = ipp_cache_alloc(
+		"G2 cache", "G2", "g2_cache", "Identified G2 servents",
 		GNET_PROPERTY_PTR(g2_cache_max_time),
 		GNET_PROPERTY_PTR(g2_cache_max_hosts),
 		GNET_PROPERTY_PTR(g2_debug));
-
-	caches[IPP_CACHE_G2] = ic;
-	ipp_cache_load(ic);
 
 	/*
 	 * The local address cache is remembering the recent IP:port combinations
@@ -679,14 +677,12 @@ ipp_cache_init(void)
 	 * be addedd to the mesh nor propagated further.
 	 */
 
-	ic = ipp_cache_alloc("Recent IP:port", "local IP:port", "local_addr",
+	caches[IPP_CACHE_LOCAL_ADDR] = ipp_cache_alloc(
+		"Recent IP:port", "local IP:port", "local_addr",
 		"Recent local IP:port",
 		GNET_PROPERTY_PTR(local_addr_cache_max_time),
 		GNET_PROPERTY_PTR(local_addr_cache_max_hosts),
 		GNET_PROPERTY_PTR(local_addr_debug));
-
-	caches[IPP_CACHE_LOCAL_ADDR] = ic;
-	ipp_cache_load(ic);
 
 	/* Post-condition: all caches initialized */
 	{
@@ -699,10 +695,24 @@ ipp_cache_init(void)
 }
 
 /**
+ * Retrieve all the caches.
+ *
+ * Must be called only after settings_init() has been invoked, to make sure
+ * all the properties are initialized.
+ */
+void
+ipp_cache_load_all(void)
+{
+	ipp_cache_load(get_cache(IPP_CACHE_TLS));
+	ipp_cache_load(get_cache(IPP_CACHE_G2));
+	ipp_cache_load(get_cache(IPP_CACHE_LOCAL_ADDR));
+}
+
+/**
  * Save all the caches.
  */
 void
-ipp_cache_save(void)
+ipp_cache_save_all(void)
 {
 	ipp_cache_store(get_cache(IPP_CACHE_TLS));
 	ipp_cache_store(get_cache(IPP_CACHE_G2));

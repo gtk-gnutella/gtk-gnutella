@@ -50,7 +50,8 @@ gboolean ipp_cache_remove(enum ipp_cache_id cid,
 	const host_addr_t addr, guint16 port);
 
 void ipp_cache_init(void);
-void ipp_cache_save(void);
+void ipp_cache_load_all(void);
+void ipp_cache_save_all(void);
 void ipp_cache_close(void);
 
 /*

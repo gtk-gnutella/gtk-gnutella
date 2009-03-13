@@ -396,7 +396,7 @@ gtk_gnutella_exit(gint n)
 	DO(uhc_close);
 	DO(move_close);
 	DO(dht_close);
-	DO(ipp_cache_save);
+	DO(ipp_cache_save_all);
 
 	/*
 	 * When coming from atexit(), there is a sense of urgency.
@@ -1368,6 +1368,7 @@ main(int argc, char **argv)
 	settings_init();
 	set_library_debug(GNET_PROPERTY(lib_debug));
 	map_test();				/* after settings_init() */
+	ipp_cache_load_all();	/* after settings_init() */
 	tls_global_init();
 	hostiles_init();
 	spam_init();
