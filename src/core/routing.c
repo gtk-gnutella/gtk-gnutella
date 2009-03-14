@@ -1071,17 +1071,14 @@ purge_dangling_references(struct message *m)
 /**
  * Look for a particular message in the routing tables.
  *
- * If we find the message, returns true, otherwise false.
- *
  * If none of the nodes that sent us the message are still present, then
  * m->routes will be NULL.
+ *
+ * @return TRUE if the message is found.
  */
 static gboolean
 find_message(const struct guid *muid, guint8 function, struct message **m)
 {
-	/* @returns TRUE if the message is found */
-	/* Set *node to node if there is a connected node associated
-	   with the message found */
 	struct message dummyMessage;
 	struct message *found_message;
 
@@ -1270,7 +1267,7 @@ forward_message(
 				 */
 
 				guid = cast_to_guid_ptr_const(sender->data);
-				nguid = node_guid(sender);
+				nguid = node_guid(nodes->data);
 				if (nguid && guid_eq(guid, nguid))
 					gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
 			}
@@ -1512,15 +1509,20 @@ route_push(struct route_log *route_log,
 	struct gnutella_node *sender = *node;
 	struct message *m;
 	const struct guid *guid;
+	struct route_data local_route;
+	struct gnutella_node *neighbour;
+	GSList *route;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
 	 * back along the nodes that have seen Query Hits from the target
 	 * servent of the Push.
+	 *
+	 * The GUID of the target are the leading bytes of the Push message.
 	 */
 
 	g_assert(sender->size > GUID_RAW_SIZE);	/* Must be a valid push */
-	guid = cast_to_guid_ptr_const(sender->data);
+	guid = cast_to_guid_ptr_const(sender->data);	/* Targetted GUID */
 
 	/*
 	 * Is it for us?
@@ -1558,11 +1560,20 @@ route_push(struct route_log *route_log,
 	}
 
 	/*
-	 * The GUID of the target are the leading bytes of the Push
-	 * message, hence we pass `sender->data' to find_message().
+	 * If we find a local route (one of our neighbours), use that.
+	 * Otherwise look for a route in the routing table.
 	 */
 
-	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL) {
+	if (NULL != (neighbour = node_by_guid(guid))) {
+		m = NULL;
+		local_route.node = neighbour;
+		local_route.saved_messages = 0;
+		route = g_slist_append(NULL, &local_route);
+		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE, 1);
+	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
+		route = m->routes;
+		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
+	} else {
 		if (m && m->routes == NULL) {
 			routing_log_extra(route_log, "route to target GUID %s gone",
 				guid_hex_str(guid));
@@ -1581,8 +1592,13 @@ route_push(struct route_log *route_log,
 	 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
 	 */
 
-	revitalize_entry(m, FALSE);
-	forward_message(route_log, node, NULL, dest, m->routes, duplicate);
+	if (m)
+		revitalize_entry(m, FALSE);
+
+	forward_message(route_log, node, NULL, dest, route, duplicate);
+
+	if (neighbour != NULL)
+		g_slist_free(route);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
