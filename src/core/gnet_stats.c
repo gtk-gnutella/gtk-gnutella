@@ -185,6 +185,9 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"parq_retry_after_violation",
 	"parq_retry_after_kick_out",
 	"seeding_of_orphan",
+	"dht_estimated_size",
+	"dht_kball_furthest",
+	"dht_kball_closest",
 	"dht_keys_held",
 	"dht_cached_keys_held",
 	"dht_values_held",
@@ -445,6 +448,18 @@ gnet_stats_count_general(gnr_stats_t type, int delta)
 
 	g_assert(i < GNR_TYPE_COUNT);
     gnet_stats.general[i] += delta;
+}
+
+/**
+ * Set the general stats counter to the given value.
+ */
+void
+gnet_stats_set_general(gnr_stats_t type, guint64 value)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i] = value;
 }
 
 void

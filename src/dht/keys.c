@@ -1118,6 +1118,9 @@ keys_update_kball(gboolean bootstrapped)
 		kball.furthest_bits = fbits & 0xff;
 		kball.closest_bits = cbits & 0xff;
 		kball.width = (cbits - fbits) & 0xff;
+
+		gnet_stats_set_general(GNR_DHT_KBALL_FURTHEST, kball.furthest_bits);
+		gnet_stats_set_general(GNR_DHT_KBALL_CLOSEST, kball.closest_bits);
 	}
 
 	wfree(kvec, KDA_K * sizeof(knode_t *));

@@ -145,7 +145,7 @@ struct kbucket {
 	gboolean ours;				/**< Whether our KUID falls in that bucket */
 };
 
-#define K_OTHER_SIZE			32		/* Keep 32 other size estimates */
+#define K_OTHER_SIZE		64	/**< Keep 64 other size estimates */
 
 /**
  * Statistics on the routing table.
@@ -2330,9 +2330,17 @@ dht_update_size_estimate(void)
 
 	kuid_add(&stats.size_estimate, &first);	/* Final estimate is the average */
 
+	/*
+	 * Our computation is over-estimating because it assumes all the buckets
+	 * will be equally uniformly filled, which is not true in practice.
+	 * Correct that by dividing our estimation so far by 2.
+	 */
+
+	kuid_rshift(&stats.size_estimate);
+
 	if (GNET_PROPERTY(dht_debug)) {
 		double val = (pow(2.0, bpower + stats.max_depth) +
-			mantissa * pow(2.0, power)) / 2.0;
+			mantissa * pow(2.0, power)) / 4.0;
 
 		g_message("DHT final size estimate is %s (%lf) = %lf",
 			kuid_to_hex_string(&stats.size_estimate), val,
@@ -2343,9 +2351,21 @@ dht_update_size_estimate(void)
 			stats.buckets, stats.leaves, stats.max_depth,
 			stats.good, stats.stale, stats.pending,
 			stats.good + stats.stale + stats.pending);
+	}
 
-		g_message("DHT averaged global size estimate: %lf over %u points",
-			dht_size(), 1 + hash_list_length(stats.other_size));
+	/*
+	 * Update statistics.
+	 */
+
+	{
+		double size = dht_size();
+
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT averaged global size estimate: %lf over %u points",
+				size, 1 + hash_list_length(stats.other_size));
+		}
+
+		gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE, (guint64) size);
 	}
 }
 
