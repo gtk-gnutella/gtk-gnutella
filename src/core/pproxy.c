@@ -766,6 +766,19 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	n = route_proxy_find(pp->guid);
 
+	/*
+	 * Even if they did no ask for us to be their proxy, locate nodes to
+	 * which we are connected to see if haven't learned of their GUID
+	 * by looking at the query hits they sent out: see update_neighbour_info().
+	 *		--RAM, 2009-03-14
+	 */
+
+	if (NULL == n) {
+		n = node_by_guid(pp->guid);
+		if (n != NULL)
+			gnet_stats_count_general(GNR_PUSH_PROXY_ROUTE_NOT_PROXIED, 1);
+	}
+
 	if (n != NULL) {
 		struct array packet;
 
