@@ -3541,16 +3541,15 @@ dht_route_parse(FILE *f)
 	 * after an update, for instance.
 	 */
 
-	if (dht_seeded())
+	if (dht_seeded()) {
 		boot_status =
 			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
+		keys_update_kball(TRUE);
+	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT after retrieval we are %s",
 			boot_status_to_string(boot_status));
-
-	if (dht_bootstrapped())
-		keys_update_kball(TRUE);
 }
 
 static const gchar node_file[] = "dht_nodes";
