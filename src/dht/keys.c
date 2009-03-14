@@ -260,13 +260,13 @@ keys_within_kball(const kuid_t *id)
 	size_t common_bits;
 
 	/*
-	 * Until we get notified that the DHT is fully bootstrapped, it is
-	 * difficult to determine accurately the external frontier of our k-ball.
-	 * Assume everything is close enough to our KUID.
+	 * Until we get notified that the DHT is seeded (i.e. that we looked up
+	 * our own KUID in the DHT), it is difficult to determine accurately the
+	 * external frontier of our k-ball.
 	 */
 
 	if (!kball.bootstrapped)
-		return TRUE;
+		return TRUE;			/* Assume close enough to our KUID */
 
 	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
 			get_our_kuid(), KUID_RAW_BITSIZE);
