@@ -3063,6 +3063,11 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
 				msg = "bad leading GUID";
 				break;
 			}
+			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
+				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+				msg = "node bears our GUID";
+				break;
+			}
 			seen_guid = TRUE;
 			continue;
 		}
@@ -3088,7 +3093,7 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
 
 	strtok_free(st);
 
-	if (!seen_guid)
+	if (!seen_guid && NULL == msg)
 		msg = "missing GUID";
 
 	if (msg != NULL) {

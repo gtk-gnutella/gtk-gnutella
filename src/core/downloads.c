@@ -1569,6 +1569,17 @@ download_found_server(const struct guid *guid,
 		 * now put the GUID we discovered.
 		 */
 
+		if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
+			gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+
+			if (GNET_PROPERTY(download_debug)) {
+				g_warning("discovered that host %s bears our GUID!",
+					host_addr_port_to_string(addr, port));
+			}
+
+			return;
+		}
+
 		if (host_is_valid(addr, port)) {
 			struct dl_addr ipk;
 
@@ -1806,6 +1817,22 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 				 */
 			}
 			g_assert(!guid_is_blank(server->key->guid));
+		} else {
+			/*
+			 * Server not existing, make sure it does not bear our GUID
+			 */
+
+			if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
+				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+
+				if (GNET_PROPERTY(download_debug)) {
+					g_warning("host %s bears our GUID!",
+						host_addr_port_to_string(addr, port));
+				}
+
+				if (allocate)
+					guid = &blank_guid;		/* Can't let them reuse it */
+			}
 		}
 	}
 
@@ -8898,6 +8925,11 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 				msg = "bad leading GUID";
 				break;
 			}
+			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
+				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+				msg = "node bears our GUID";
+				break;
+			}
 			seen_guid = TRUE;
 			continue;
 		}
@@ -8951,7 +8983,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 
 	strtok_free(st);
 
-	if (!seen_guid)
+	if (!seen_guid && NULL == msg)
 		msg = "missing GUID";
 
 	if (msg != NULL) {

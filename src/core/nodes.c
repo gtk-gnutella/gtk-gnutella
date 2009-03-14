@@ -8447,6 +8447,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("Node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
+		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
 		goto error;
 	}
 
