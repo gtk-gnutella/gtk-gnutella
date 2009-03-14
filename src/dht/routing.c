@@ -472,14 +472,17 @@ list_update_stats(knode_status_t status, int delta)
 	switch (status) {
 	case KNODE_GOOD:
 		stats.good += delta;
+		gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, delta);
 		if (delta)
 			stats.dirty = TRUE;
 		break;
 	case KNODE_STALE:
 		stats.stale += delta;
+		gnet_stats_count_general(GNR_DHT_ROUTING_STALE_NODES, delta);
 		break;
 	case KNODE_PENDING:
 		stats.pending += delta;
+		gnet_stats_count_general(GNR_DHT_ROUTING_PENDING_NODES, delta);
 		break;
 	case KNODE_UNKNOWN:
 		g_error("invalid state passed to list_update_stats()");
@@ -834,6 +837,8 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 			safe_list_count(kb, KNODE_PENDING),
 			lookup_strerror(error));
 	}
+
+	gnet_stats_count_general(GNR_DHT_COMPLETED_BUCKET_REFRESH, 1);
 }
 
 /**
@@ -867,6 +872,7 @@ dht_bucket_refresh(struct kbucket *kb)
 	 */
 
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
+		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
 		if (GNET_PROPERTY(dht_debug))
 			g_message("DHT denying refresh of non-splitable full %s "
 				"(good: %u, stale: %u, pending: %u)",
@@ -1103,7 +1109,9 @@ dht_initialize(gboolean post_init)
 	install_bucket_refresh(root);
 
 	stats.buckets++;
+	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +1);
 	stats.leaves++;
+	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
 	stats.other_size = hash_list_new(other_size_hash, other_size_eq);
 
 	g_assert(0 == stats.good);
@@ -1482,8 +1490,13 @@ dht_split_bucket(struct kbucket *kb)
 	stats.buckets += 2;
 	stats.leaves++;					/* +2 - 1 == +1 */
 
-	if (stats.max_depth < kb->depth + 1)
+	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +2);
+	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
+	
+	if (stats.max_depth < kb->depth + 1) {
 		stats.max_depth = kb->depth + 1;
+		gnet_stats_set_general(GNR_DHT_ROUTING_MAX_DEPTH, stats.max_depth);
+	}
 }
 
 /**
@@ -1536,6 +1549,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 	if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 		add_node(kb, kn, KNODE_GOOD);
 		stats.good++;
+		gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
 		goto done;
 	}
 
@@ -1555,6 +1569,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 		if (hash_list_length(kb->nodes->good) < K_BUCKET_GOOD) {
 			add_node(kb, kn, KNODE_GOOD);
 			stats.good++;
+			gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
 			goto done;
 		}
 	}
@@ -1571,6 +1586,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 
 	if (traffic && hash_list_length(kb->nodes->pending) < K_BUCKET_PENDING) {
 		add_node(kb, kn, KNODE_PENDING);
+		gnet_stats_count_general(GNR_DHT_ROUTING_PENDING_NODES, +1);
 		stats.pending++;
 	}
 
@@ -2143,6 +2159,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 			break;		/* List is sorted: least recently seen at the head */
 
 		dht_rpc_ping(kn, NULL, NULL);
+		gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
 	}
 	hash_list_iter_release(&iter);
 
@@ -2156,10 +2173,14 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 
 		knode_check(kn);
 
-		if (knode_can_recontact(kn))
+		if (knode_can_recontact(kn)) {
 			dht_rpc_ping(kn, NULL, NULL);
+			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+		}
 	}
 	hash_list_iter_release(&iter);
+
+	gnet_stats_count_general(GNR_DHT_BUCKET_ALIVE_CHECK, 1);
 }
 
 /**

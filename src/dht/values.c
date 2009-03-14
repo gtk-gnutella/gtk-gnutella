@@ -93,7 +93,7 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define MAX_VALUES		65536	/**< Max # of values we accept to manage */
+#define MAX_VALUES		131072	/**< Max # of values we accept to manage */
 #define MAX_VALUES_IP	16		/**< Max # of values allowed per IP address */
 #define MAX_VALUES_NET	256		/**< Max # of values allowed per class C net */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
@@ -828,7 +828,7 @@ validate_quotas(const dht_value_t *v)
 	}
 
 	if (count >= MAX_VALUES_NET)
-		return STORE_SC_QUOTA;
+		goto reject;
 
 	count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
 
@@ -838,9 +838,13 @@ validate_quotas(const dht_value_t *v)
 			host_addr_to_string(c->addr));
 
 	if (count >= MAX_VALUES_IP)
-		return STORE_SC_QUOTA;
+		goto reject;
 
 	return STORE_SC_OK;
+
+reject:
+	gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_QUOTA, 1);
+	return STORE_SC_QUOTA;
 }
 
 /**
