@@ -623,6 +623,8 @@ forget_node(knode_t *kn)
 	kn->flags &= ~KNODE_F_ALIVE;
 	kn->status = KNODE_UNKNOWN;
 	knode_free(kn);
+
+	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
 }
 
 /**
@@ -1651,6 +1653,8 @@ promote_pending_node(struct kbucket *kb)
 			selected->status = KNODE_GOOD;
 			hash_list_append(kb->nodes->good, selected);
 			list_update_stats(KNODE_GOOD, +1);
+
+			gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
 		}
 	}
 }
@@ -1710,6 +1714,16 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 		if (clashing_nodes(tkn, kn, FALSE))
 			return;
 	}
+
+	/*
+	 * If node became firewalled, the KNODE_F_FIREWALLED flag has been
+	 * set before calling dht_remove_node().  If we came down to here,
+	 * the node was in our routing table, which means it was not firewalled
+	 * at that time.
+	 */
+
+	if (kn->flags & KNODE_F_FIREWALLED)
+		gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_FIREWALLED_NODES, 1);
 
 	/*
 	 * From now on, only work on "tkn" which is known to be in the
