@@ -1218,12 +1218,12 @@ forward_message(
 		if (routes != NULL) {
 			GSList *l;
 			GSList *nodes = NULL;
-			int count;
+			int count = 0;
 
 			g_assert(gnutella_header_get_function(&sender->header)
 					== GTA_MSG_PUSH_REQUEST);
 
-			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
+			for (l = routes; l; l = g_slist_next(l)) {
 				struct route_data *rd = l->data;
 				if (rd->node == sender)
 					continue;
@@ -1245,6 +1245,7 @@ forward_message(
 					continue;
 
 				nodes = g_slist_prepend(nodes, rd->node);
+				count++;
 			}
 
 			/*
@@ -1509,9 +1510,7 @@ route_push(struct route_log *route_log,
 	struct gnutella_node *sender = *node;
 	struct message *m;
 	const struct guid *guid;
-	struct route_data local_route;
 	struct gnutella_node *neighbour;
-	GSList *route;
 
 	/*
 	 * A Push request is not broadcasted as other requests, it is routed
@@ -1565,13 +1564,12 @@ route_push(struct route_log *route_log,
 	 */
 
 	if (NULL != (neighbour = node_by_guid(guid))) {
-		m = NULL;
-		local_route.node = neighbour;
-		local_route.saved_messages = 0;
-		route = g_slist_append(NULL, &local_route);
+		gboolean inserted;
+		message_add(guid, QUERY_HIT_ROUTE_SAVE, neighbour);
+		inserted = find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes;
+		g_assert(inserted);
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE, 1);
 	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
-		route = m->routes;
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
 	} else {
 		if (m && m->routes == NULL) {
@@ -1592,13 +1590,8 @@ route_push(struct route_log *route_log,
 	 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
 	 */
 
-	if (m)
-		revitalize_entry(m, FALSE);
-
-	forward_message(route_log, node, NULL, dest, route, duplicate);
-
-	if (neighbour != NULL)
-		g_slist_free(route);
+	revitalize_entry(m, FALSE);
+	forward_message(route_log, node, NULL, dest, m->routes, duplicate);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
