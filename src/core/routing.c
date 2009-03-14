@@ -1252,12 +1252,14 @@ forward_message(
 			 * The `nodes' list will be freed by node_parse().
 			 */
 
-			dest->type = ROUTE_MULTI;
-			dest->ur.u_nodes = nodes;
+			if (count > 0) {
+				dest->type = ROUTE_MULTI;
+				dest->ur.u_nodes = nodes;
+			}
 
 			if (count > 1) {
 				gnet_stats_count_general(GNR_BROADCASTED_PUSHES, 1);
-			} else if (NODE_IS_UDP(sender)){
+			} else if (1 == count && NODE_IS_UDP(sender)){
 				const struct guid *guid;
 				const struct guid *nguid;
 
