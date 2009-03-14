@@ -1154,6 +1154,8 @@ dht_reset_kuid(void)
 void
 dht_init(void)
 {
+	boot_status = BOOT_NONE;
+
 	/*
 	 * If the DHT is disabled at startup time, clear the KUID.
 	 * A new one will be re-allocated the next time it is enabled.
@@ -2872,7 +2874,7 @@ recursively_store_bucket(struct kbucket *kb, FILE *f)
 /**
  * Save all the good nodes from the routing table.
  */
-void
+static void
 dht_route_store(void)
 {
 	FILE *f;
@@ -2947,6 +2949,13 @@ other_size_free_cb(gpointer other_size, gpointer unused_data)
 void
 dht_close(void)
 {
+	/*
+	 * If the DHT was never initialized, there's nothing to close.
+	 */
+
+	if (NULL == root)
+		return;
+
 	dht_route_store();
 	keys_update_kball(FALSE);		/* No longer bootsrapped! */
 

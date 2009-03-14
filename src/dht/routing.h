@@ -93,8 +93,6 @@ void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);
 void dht_node_timed_out(knode_t *kn);
 
-void dht_route_store(void);
-
 void dht_lookup_notify(const kuid_t *id);
 void dht_verify_node(knode_t *kn, knode_t *new);
 
