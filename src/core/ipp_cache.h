@@ -1,7 +1,8 @@
 /*
  * $Id$
  *
- * Copyright (c) 2007, Raphael Manfredi
+ * Copyright (c) 2009, Raphael Manfredi
+ * Copyright (c) 2006, Christian Biere 
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,6 +22,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup core
+ * @file
+ *
+ * Caching of hosts by IP:port.
+ *
+ * @author Raphael Manfredi
+ * @date 2009
+ * @author Christian Biere
+ * @date 2006
  */
 
 #ifndef _ipp_cache_h_
