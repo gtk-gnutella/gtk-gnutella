@@ -1010,7 +1010,7 @@ dht_complete_bootstrap(void)
 	b->bits = ours->depth;
 
 	boot_status = BOOT_COMPLETING;
-	keys_update_kball(TRUE);		/* We know enough to compute the k-ball */
+	keys_update_kball();		/* We know enough to compute the k-ball */
 	completion_iterate(b);
 }
 
@@ -2957,7 +2957,6 @@ dht_close(void)
 		return;
 
 	dht_route_store();
-	keys_update_kball(FALSE);		/* No longer bootsrapped! */
 
 	/*
 	 * Since we're shutting down the route table, we also need to shut down
@@ -3553,12 +3552,13 @@ dht_route_parse(FILE *f)
 	if (dht_seeded()) {
 		boot_status =
 			most_recent < REFRESH_PERIOD / 2 ? BOOT_COMPLETED : BOOT_SEEDED;
-		keys_update_kball(TRUE);
 	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT after retrieval we are %s",
 			boot_status_to_string(boot_status));
+
+	keys_update_kball();
 }
 
 static const gchar node_file[] = "dht_nodes";

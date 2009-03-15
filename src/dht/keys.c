@@ -1060,7 +1060,7 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
  * Update k-ball information.
  */
 void
-keys_update_kball(gboolean seeded)
+keys_update_kball(void)
 {
 	kuid_t *our_kuid = get_our_kuid();
 	knode_t **kvec;
@@ -1068,10 +1068,22 @@ keys_update_kball(gboolean seeded)
 	patricia_t *pt;
 	int i;
 
-	kball.seeded = seeded;
-
 	kvec = walloc(KDA_K * sizeof(knode_t *));
 	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
+	kball.seeded = TRUE;
+
+	/*
+	 * If we know of no alive nodes yet, request any node we have in the
+	 * routing table, even "zombies".  If we get less than KDA_K of these,
+	 * we definitively know not enough about the DHT structure yet!
+	 */
+
+	if (0 == kcnt) {
+		kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, FALSE);
+		if (kcnt < KDA_K)
+			kball.seeded = FALSE;
+	}
+
 	pt = patricia_create(KUID_RAW_BITSIZE);
 
 	for (i = 0; i < kcnt; i++) {
@@ -1143,7 +1155,7 @@ keys_decimation_factor(const kuid_t *key)
 	 * If key falls within our k-ball, no decimation.
 	 */
 
-	if (common >= kball.furthest_bits)
+	if (common >= kball.furthest_bits || !kball.seeded)
 		return 1.0;
 
 	delta = kball.furthest_bits - common;
@@ -1163,7 +1175,7 @@ keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_obj;
 
 	install_periodic_kball(KBALL_PERIOD);
-	keys_update_kball(FALSE);
+	keys_update_kball();
 }
 
 /**
