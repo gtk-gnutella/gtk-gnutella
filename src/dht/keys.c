@@ -675,8 +675,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		ki->common_bits = common & 0xff;
 		ki->values = 0;						/* will be incremented below */
 		ki->next_expire = expire;
-		if (!in_kball)
-			ki->flags |= DHT_KEY_F_CACHED;
+		ki->flags = in_kball ? 0 : DHT_KEY_F_CACHED;
 
 		patricia_insert(keys, ki->kuid, ki);
 
