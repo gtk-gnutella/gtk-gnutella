@@ -85,7 +85,8 @@ static gnutella_header_t *v_tmp_header = (void *) v_tmp;
 static gnutella_vendor_t *v_tmp_data = (void *) &v_tmp[GTA_HEADER_SIZE];
 
 /* Available payload space minus the bytes used by headers */
-#define VMSG_PAYLOAD_MAX ((sizeof v_tmp) - GTA_HEADER_SIZE - sizeof(gnutella_vendor_t))
+#define VMSG_PAYLOAD_MAX \
+	((sizeof v_tmp) - GTA_HEADER_SIZE - sizeof(gnutella_vendor_t))
 
 static GHashTable *ht_vmsg;
 
