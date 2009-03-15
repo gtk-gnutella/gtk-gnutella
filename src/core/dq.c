@@ -42,7 +42,6 @@ RCSID("$Id$")
 #endif	/* I_MATH */
 
 #include "dq.h"
-#include "mq_tcp.h"
 #include "gmsg.h"
 #include "gmsg.h"
 #include "nodes.h"
@@ -164,15 +163,15 @@ typedef struct dquery {
 } dquery_t;
 
 enum {
-	DQ_F_ID_CLEANING	= 1 << 0,	/**< Cleaning the `by_node_id' table */
-	DQ_F_LINGER			= 1 << 1,	/**< Lingering to monitor extra hits */
-	DQ_F_LEAF_GUIDED	= 1 << 2,	/**< Leaf-guided query */
-	DQ_F_WAITING		= 1 << 3,	/**< Waiting guidance reply from leaf */
-	DQ_F_GOT_GUIDANCE	= 1 << 4,	/**< Got some leaf guidance */
-	DQ_F_USR_CANCELLED	= 1 << 5,	/**< Explicitely cancelled by user */
-	DQ_F_ROUTING_HITS	= 1 << 6,	/**< We'll be routing all hits */
+	DQ_F_LOCAL			= 1 << 8,	/**< Local query made by this node */
 	DQ_F_EXITING		= 1 << 7,	/**< Final cleanup at exit time */
-	DQ_F_REMOVED		= 1 << 8
+	DQ_F_ROUTING_HITS	= 1 << 6,	/**< We'll be routing all hits */
+	DQ_F_USR_CANCELLED	= 1 << 5,	/**< Explicitely cancelled by user */
+	DQ_F_GOT_GUIDANCE	= 1 << 4,	/**< Got some leaf guidance */
+	DQ_F_WAITING		= 1 << 3,	/**< Waiting guidance reply from leaf */
+	DQ_F_LEAF_GUIDED	= 1 << 2,	/**< Leaf-guided query */
+	DQ_F_LINGER			= 1 << 1,	/**< Lingering to monitor extra hits */
+	DQ_F_ID_CLEANING	= 1 << 0	/**< Cleaning the `by_node_id' table */
 };
 
 /**
@@ -315,7 +314,7 @@ dq_kept_results(dquery_t *dq)
 	 * update the amount now.
 	 */
 
-	if (node_id_self(dq->node_id))
+	if (dq->flags & DQ_F_LOCAL)
 		return dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 
 	/*
@@ -893,7 +892,6 @@ dq_free(dquery_t *dq)
 		gboolean found;
 		GSList *list;
 
-		g_assert(0 == (DQ_F_REMOVED & dq->flags));
 		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
 					NULL, &value);
 
@@ -909,7 +907,6 @@ dq_free(dquery_t *dq)
 			g_hash_table_remove(by_node_id, dq->node_id);
 			g_assert(!g_hash_table_lookup_extended(by_node_id, dq->node_id,
 						NULL, NULL));
-			dq->flags |= DQ_F_REMOVED; 
 		} else if (list != value) {
 			dquery_t *key = list->data;
 
@@ -1294,7 +1291,16 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl)
 			node_addr(n), node_vendor(n), (int) NODE_MQUEUE_PENDING(n));
 
 	dq->pending++;
-	gmsg_mb_sendto_one(n, mb);
+
+	/*
+	 * If query is not local, the messages we send are as if we had
+	 * relayed the original query message (for tracing / logging purposes).
+	 */
+
+	if (dq->flags & DQ_F_LOCAL)
+		gmsg_mb_sendto_one(n, mb);
+	else
+		gmsg_mb_routeto_one(node_by_id(dq->node_id), n, mb);
 }
 
 /**
@@ -1613,7 +1619,7 @@ dq_common_init(dquery_t *dq)
 	 * If query is not for the local node, insert it in `by_node_id'.
 	 */
 
-	if (!node_id_self(dq->node_id)) {
+	if (!(dq->flags & DQ_F_LOCAL)) {
 		gpointer value;
 		gboolean found;
 		GSList *list;
@@ -1879,7 +1885,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(GNET_PROPERTY(my_ttl), DQ_MAX_TTL);
 	dq->alive = NULL;
-	dq->flags = DQ_F_ROUTING_HITS;		/* We get our own hits! */
+	dq->flags = DQ_F_ROUTING_HITS | DQ_F_LOCAL;		/* We get our own hits! */
 
 	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 
@@ -2217,7 +2223,7 @@ dq_cancel_local(gpointer key, gpointer value, gpointer udata)
 	dquery_check(dq);
 	g_assert(&dq->qid == key);
 
-	if (node_id_self(dq->node_id) && dq->sh == ctx->handle) {
+	if ((dq->flags & DQ_F_LOCAL) && dq->sh == ctx->handle) {
 		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
 	}
 }

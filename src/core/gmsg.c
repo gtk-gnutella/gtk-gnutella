@@ -455,24 +455,37 @@ gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
 }
 
 /**
+ * Route message to one node.
+ *
+ * The supplied mb is NOT cloned, it is up to the caller to ensure that
+ * a private instance is supplied.
+ */
+void
+gmsg_mb_routeto_one(const struct gnutella_node *from,
+	const struct gnutella_node *to, pmsg_t *mb)
+{
+	g_assert(!pmsg_was_sent(mb));
+	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
+
+	if (!NODE_IS_WRITABLE(to))
+		return;
+
+	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
+		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+
+	mq_tcp_putq(to->outq, mb, from);
+}
+
+/**
  * Send message to one node.
  *
  * The supplied mb is NOT cloned, it is up to the caller to ensure that
  * a private instance is supplied.
  */
 void
-gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
+gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
 {
-	g_assert(!pmsg_was_sent(mb));
-	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
-
-	if (!NODE_IS_WRITABLE(n))
-		return;
-
-	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
-		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
-
-	mq_tcp_putq(n->outq, mb, NULL);
+	gmsg_mb_routeto_one(NULL, n, mb);
 }
 
 /**

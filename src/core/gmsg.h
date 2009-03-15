@@ -112,7 +112,9 @@ pmsg_t * gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
 			guint32 size, pmsg_free_t free_cb, gpointer arg);
 
 void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
-void gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb);
+void gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb);
+void gmsg_mb_routeto_one(const struct gnutella_node *from,
+	const struct gnutella_node *to, pmsg_t *mb);
 
 void gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size);
 void gmsg_ctrl_sendto_one(struct gnutella_node *n,
