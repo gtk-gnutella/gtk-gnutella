@@ -85,6 +85,7 @@ RCSID("$Id$")
 #include "extensions.h"
 #include "bh_upload.h"
 #include "ipp_cache.h"
+#include "dump.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -6375,176 +6376,6 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 	return TRUE;
 }
 
-enum dump_header_flags {                                                        
-	DH_F_UDP  = (1 << 0),
-	DH_F_TCP  = (1 << 1),
-	DH_F_IPV4 = (1 << 2),
-	DH_F_IPV6 = (1 << 3),
-
-	NUM_DH_F
-};
-
-struct dump_header {
-/*
- * This is the logic layout:
- *
- *	uint8_t flags;
- *	uint8_t addr[16];
- *	uint8_t port[2];
- */
-	guchar data[19];
-};
-
-static void
-dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
-{
-	memset(dh, 0, sizeof dh);
-
-	dh->data[0] = NODE_IS_UDP(node) ? DH_F_UDP : DH_F_TCP;
-	switch (host_addr_net(node->addr)) {
-	case NET_TYPE_IPV4:
-		{
-			guint32 ip;
-			
-			dh->data[0] |= DH_F_IPV4;
-			ip = host_addr_ipv4(node->addr);
-			poke_be32(&dh->data[1], ip);
-		}
-		break;
-	case NET_TYPE_IPV6:
-		dh->data[0] |= DH_F_IPV6;
-		memcpy(&dh->data[1], host_addr_ipv6(&node->addr), 16);
-		break;
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		break;
-	}
-	poke_be16(&dh->data[17], node->port);
-}
-
-static struct {
-	const char * const filename;
-	slist_t *slist;
-	size_t fill;
-	int fd;
-	int initialized;
-} dump = {
-	"packets_rx.dump", NULL, 0, -1, FALSE
-};
-
-static void
-node_dump_disable(void)
-{
-	pmsg_slist_free(&dump.slist);
-	dump.fill = 0;
-
-	if (dump.fd >= 0) {
-		close(dump.fd);
-		dump.fd = -1;
-	}
-	dump.initialized = FALSE;
-	if (GNET_PROPERTY(dump_received_gnutella_packets)) {
-		gnet_prop_set_boolean_val(PROP_DUMP_RECEIVED_GNUTELLA_PACKETS, FALSE);
-	}
-}
-
-static void
-node_dump_init(void)
-{
-	char *pathname;
-
-	if (dump.initialized)
-		return;
-
-	pathname = make_pathname(settings_config_dir(), dump.filename);
-	dump.fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NONBLOCK);
-	G_FREE_NULL(pathname);
-
-	/*
-	 * If the dump "file" is actually a named pipe, we'd block quickly
-	 * if there was no reader.  So set the file as non-blocking and
-	 * we'll disable dumping as soon as we can't write all the data
-	 * we want.
-	 */
-
-	if (dump.fd < 0) {
-		g_warning("can't open %s -- disabling dumping", dump.filename);
-		node_dump_disable();
-		return;
-	}
-
-	file_set_nonblocking(dump.fd);
-
-	dump.slist = slist_new();
-	dump.fill = 0;
-	dump.initialized = TRUE;
-	return;
-}
-
-static void
-node_dump_append(const void *data, size_t size)
-{
-	g_return_if_fail(dump.slist);
-
-	pmsg_slist_append(dump.slist, data, size);
-	dump.fill += size;
-}
-
-static void
-node_dump_packet(const struct gnutella_node *node)
-{
-	struct dump_header dh;	
-
-	if (!GNET_PROPERTY(dump_received_gnutella_packets)) {
-		if (dump.initialized) {
-			node_dump_disable();
-		}
-		return;
-	}
-
-	node_dump_init();
-	if (!dump.initialized)
-		return;
-
-	dump_header_set(&dh, node);
-	node_dump_append(dh.data, sizeof dh.data);
-	node_dump_append(node->header, sizeof node->header);
-	node_dump_append(node->data, node->size);
-
-	while (dump.fill > 0) {
-		ssize_t written;
-		struct iovec *iov;
-		int iov_cnt;
-
-		iov = pmsg_slist_to_iovec(dump.slist, &iov_cnt, NULL);
-		written = writev(dump.fd, iov, iov_cnt);
-		G_FREE_NULL(iov);
-
-		if ((ssize_t)-1 == written) {
-			if (!is_temporary_error(errno)) {
-				g_warning("error writing to %s: %s -- disabling dumping",
-					dump.filename, g_strerror(errno));
-				node_dump_disable();
-			}
-			if (dump.fill >= 256 * 1024UL) {
-				g_warning(
-					"queue is full: %s -- disabling dumping", dump.filename);
-				node_dump_disable();
-			}
-			break;
-		} else if (0 == written) {
-			g_warning("error writing to %s: hang up -- disabling dumping",
-				dump.filename);
-			node_dump_disable();
-			break;
-		} else {
-			g_assert(dump.fill >= (size_t) written);
-			dump.fill -= written;
-			pmsg_slist_discard(dump.slist, written);
-		}
-	}
-}
-
 /**
  * Processing of messages.
  *
@@ -6569,7 +6400,7 @@ node_parse(struct gnutella_node *node)
 	dest.type = ROUTE_NONE;
 	n = node;
 
-	node_dump_packet(node);
+	dump_rx_packet(node);
 
 	/*
 	 * If we're expecting a handshaking ping, check whether we got one.
@@ -8313,8 +8144,6 @@ node_close(void)
 	GSList *sl;
 
 	g_assert(in_shutdown);
-
-	node_dump_disable();
 
 	/*
 	 * Clean up memory used for determining unstable ips / servents

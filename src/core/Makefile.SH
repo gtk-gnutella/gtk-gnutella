@@ -97,6 +97,7 @@ SRC = \
 	dmesh.c \
 	downloads.c \
 	dq.c \
+	dump.c \
 	extensions.c \
 	features.c \
 	file_object.c \
@@ -184,6 +185,7 @@ OBJ = \
 	dmesh.o \
 	downloads.o \
 	dq.o \
+	dump.o \
 	extensions.o \
 	features.o \
 	file_object.o \

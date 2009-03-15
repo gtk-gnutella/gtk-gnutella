@@ -297,6 +297,8 @@ src/core/downloads.c
 src/core/downloads.h
 src/core/dq.c
 src/core/dq.h
+src/core/dump.c
+src/core/dump.h
 src/core/extensions.c
 src/core/extensions.h
 src/core/features.c

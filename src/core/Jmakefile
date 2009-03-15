@@ -41,6 +41,7 @@ SRC = \
 	dmesh.c \
 	downloads.c \
 	dq.c \
+	dump.c \
 	extensions.c \
 	features.c \
 	file_object.c \

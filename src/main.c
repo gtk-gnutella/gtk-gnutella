@@ -47,6 +47,7 @@
 #include "core/dmesh.h"
 #include "core/downloads.h"
 #include "core/dq.h"
+#include "core/dump.h"
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
@@ -523,6 +524,7 @@ gtk_gnutella_exit(gint n)
 	adns_close();
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	ipp_cache_close();
+	dump_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
 	atoms_close();
@@ -1388,6 +1390,7 @@ main(int argc, char **argv)
 	pmsg_init();
 	gmsg_init();
 	bsched_init();
+	dump_init();
 	node_init();
     hcache_retrieve_all();	/* after settings_init() and node_init() */
 	routing_init();
