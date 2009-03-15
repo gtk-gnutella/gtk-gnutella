@@ -626,6 +626,15 @@ mq_clear(mqueue_t *q)
 	if (q->count == 0)
 		return;					/* Queue is empty */
 
+	/*
+	 * If there are extended message blocks in the queue, freeing them
+	 * could cause the callback to attempt to queue something again.  Hence
+	 * we must mark we're clearing the queue to avoid deadly recursions that
+	 * would corrupt the qlink array.
+	 */
+
+	q->flags |= MQ_CLEAR;
+
 	while (q->qhead) {
 		GList *l = q->qhead;
 		pmsg_t *mb = l->data;
@@ -645,6 +654,8 @@ mq_clear(mqueue_t *q)
 
 	if (q->qlink)
 		qlink_free(q);
+
+	q->flags &= ~MQ_CLEAR;
 
 	mq_update_flowc(q);
 

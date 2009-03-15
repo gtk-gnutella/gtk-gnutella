@@ -314,17 +314,24 @@ again:
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
+	g_assert(q->ops == &mq_tcp_ops);	/* Is a TCP queue */
+
+	/*
+	 * Trap messages enqueued whilst in the middle of an mq_clear() operation
+	 * by marking them as sent and dropping them.  Idem if queue was
+	 * put in "discard" mode.
+	 */
+
+	if (q->flags & (MQ_CLEAR | MQ_DISCARD)) {
+		pmsg_mark_sent(mb);	/* Let them think it was sent */
+		goto cleanup;		/* Drop message */
+	}
+
 	mq_check(q, 0);
 
 	size = pmsg_size(mb);
-
 	if (size == 0) {
-		g_warning("mq_putq: called with empty message");
-		goto cleanup;
-	}
-
-	if (q->flags & MQ_DISCARD) {
-		g_warning("mq_putq: called whilst queue shutdown");
+		g_warning("mq_tcp_putq: called with empty message");
 		goto cleanup;
 	}
 

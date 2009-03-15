@@ -113,10 +113,11 @@ struct mqueue {
  */
 
 enum {
-	MQ_FLOWC	= (1 << 0),	/**< In flow control */
-	MQ_DISCARD	= (1 << 1),	/**< No writing, discard message */
+	MQ_CLEAR	= (1 << 4),	/**< Running mq_clear() */
+	MQ_WARNZONE	= (1 << 3),	/**< Between hiwat and lowat */
 	MQ_SWIFT	= (1 << 2),	/**< Swift mode, dropping more traffic */
-	MQ_WARNZONE	= (1 << 3)	/**< Between hiwat and lowat */
+	MQ_DISCARD	= (1 << 1),	/**< No writing, discard message */
+	MQ_FLOWC	= (1 << 0)	/**< In flow control */
 };
 
 gboolean mq_is_flow_controlled(const struct mqueue *q);
