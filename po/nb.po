@@ -7,15 +7,15 @@
 # Copyright (C) 2001-2007 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
 #
-# Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005, 2006, 2007, 2008.
+# Alexander Nicolaysen Sørnes <alex@thehandofagony.com>, 2005, 2006, 2007, 2008, 2009.
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.96.6u\n"
+"Project-Id-Version: nb\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2008-12-30 14:40+0900\n"
-"PO-Revision-Date: 2008-07-06 14:20+0200\n"
+"PO-Revision-Date: 2009-03-15 12:54+0100\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
-"Language-Team: Norsk (bokmål) <i18n-no@lister.ping.uib.no>\n"
+"Language-Team: Norsk (bokmål) <nb@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -352,7 +352,7 @@ msgstr "program?"
 
 #, c-format
 msgid "<Browse Host %s>"
-msgstr "<Bla i verten %s>"
+msgstr "<Bla i personen %s>"
 
 #, c-format
 msgid "<THEX data for %s>"
@@ -496,7 +496,7 @@ msgid "Hostile IP address"
 msgstr "Fiendtlig IP-adresse"
 
 msgid "Spam"
-msgstr "Reklame"
+msgstr "Spam"
 
 msgid "Evil filename"
 msgstr "Ondt filnavn"
@@ -517,14 +517,13 @@ msgid "Blank Servent ID"
 msgstr "Tom tjenent-ID"
 
 msgid "DHT Invalid security token"
-msgstr ""
+msgstr "DHT: Ugyldig sikkerhetstegn"
 
 msgid "DHT Too many STORE requests"
-msgstr ""
+msgstr "DHT: For mange STORE-forespørsler"
 
-#, fuzzy
 msgid "DHT Malformed message"
-msgstr "Feilformet kommando"
+msgstr "DHT: Feilformet kommando"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -895,8 +894,7 @@ msgstr ""
 msgid ""
 "gtk-gnutella found a newer version on the Gnet and gives information about "
 "it here."
-msgstr ""
-"gtk-gnutella fant en nyere versjon på Gnet og viser informasjon om den her."
+msgstr "gtk-gnutella fant en nyere versjon på Gnet og viser informasjon om den her."
 
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
@@ -961,10 +959,8 @@ msgstr ""
 "Ikke tillatt mer enn dette antallet totale opplastinger. Dette bestemmer "
 "også hvor mange PARQ-køer som brukes, og bør være minst 2."
 
-msgid ""
-"Don't upload more than this number of files in parallel to a single host."
-msgstr ""
-"Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
+msgid "Don't upload more than this number of files in parallel to a single host."
+msgstr "Ikke last opp mer enn dette antallet filer parallelt til en enkelt vert."
 
 msgid "Local IPv4 address last determined."
 msgstr "Den sist oppdagete lokale IPv4-adressen."
@@ -1004,11 +1000,9 @@ msgstr ""
 "TCP-porten 6346 til å verne mot urettverdig sensurering."
 
 msgid "Use this IP address as source address if 'force local ip' is activated."
-msgstr ""
-"Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
+msgstr "Bruk denne IP-adressen som kildeadresse hvis «Tving lokal IP» er i bruk."
 
-msgid ""
-"Use this IPv6 address as source address if 'force local ip' is activated."
+msgid "Use this IPv6 address as source address if 'force local ip' is activated."
 msgstr "Bruk denne IPv6-adressen som kildeadresse hvis «Tving lokal IP» er på."
 
 msgid ""
@@ -1057,16 +1051,13 @@ msgid "Number of seconds before a push request times out."
 msgstr "Antall sekunder før tidsavbrudd for en dytte-forespørsel."
 
 msgid "Number of seconds before a download times out if no data is received."
-msgstr ""
-"Antall sekunder før tidsavbrudd for en nedlasting hvis ingen data er mottatt."
+msgstr "Antall sekunder før tidsavbrudd for en nedlasting hvis ingen data er mottatt."
 
 msgid "Minimum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
+msgstr "Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
 
 msgid "Maximum number of seconds to wait on auto-retry timeouts."
-msgstr ""
-"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
+msgstr "Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger."
 
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
@@ -1080,8 +1071,7 @@ msgstr ""
 "Antall sekunder å vente før det prøves på nytt etter et tidsavbrudd for en "
 "tilkobling."
 
-msgid ""
-"Delay in seconds before retrying after getting a 'busy' response from a host."
+msgid "Delay in seconds before retrying after getting a 'busy' response from a host."
 msgstr ""
 "Forsinkelse i sekunder før det prøves på nytt etter å ha fått et "
 "opptattsignal fra en vert."
@@ -1119,10 +1109,8 @@ msgstr ""
 "oppnås under et dytt. Dette er også lengste ventetid for å få hele HTTP-"
 "forespørselen."
 
-msgid ""
-"Number of seconds after which an upload times out if no data is transmitted."
-msgstr ""
-"Antall sekunder før tidsavbrudd på en opplasting hvis ingen data er overført."
+msgid "Number of seconds after which an upload times out if no data is transmitted."
+msgstr "Antall sekunder før tidsavbrudd på en opplasting hvis ingen data er overført."
 
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
@@ -1243,8 +1231,7 @@ msgid "Debug level for banning code."
 msgstr "Feilsøkingsnivå for bannlysingskode."
 
 msgid "If not zero, periodic messages show the used CPU time."
-msgstr ""
-"Periodiske meldinger viser den bruke prosessortiden hvis dette ikke er 0."
+msgstr "Periodiske meldinger viser den bruke prosessortiden hvis dette ikke er 0."
 
 msgid "Debug level for download mesh management."
 msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
@@ -1434,14 +1421,11 @@ msgstr "Slå dette på for å bruke [forced_local_ip] som lokal IP-adresse."
 msgid "Enable to use [forced_local_ip6] as local ip."
 msgstr "Slå dette på for å bruke [forced_local_ip6] som lokal IP-adresse."
 
-msgid ""
-"If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
+msgid "If 'forced_local_ip' is enabled, bind the socket to the forced IP address."
 msgstr "Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip» er på."
 
-msgid ""
-"If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
-msgstr ""
-"Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip6» er på."
+msgid "If 'forced_local_ip6' is enabled, bind the socket to the forced IP address."
+msgstr "Bind sokkelen til den tvingte IP-adressen hvis «forced_local_ip6» er på."
 
 msgid "Try to connect to local networks first."
 msgstr "Prøv å koble til lokale nettverk først."
@@ -1496,8 +1480,7 @@ msgstr ""
 "Bruk en IPv6 til IPv4-oversetter for transportrelésendinger som beskrevet i "
 "RFC 3142."
 
-msgid ""
-"The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
+msgid "The IPv6 address prefix used by the IPv6-to-IPv4 Transport Relay Translator."
 msgstr ""
 "Prefikset for IPv6-adresser som brukes av IPv6 til IPv4-oversetteren for "
 "relésendinger."
@@ -1564,8 +1547,7 @@ msgstr ""
 "båndbredden tjeles fra den vanlige HTTP-trafikken hvis du kjører som "
 "ultranode og bladformeren er slått påt."
 
-msgid ""
-"Maximum size of search queries messages we forward to others  (in bytes)."
+msgid "Maximum size of search queries messages we forward to others  (in bytes)."
 msgstr ""
 "Høyeste størrelse på søkespørringsmeldinger vi videresender til andre (i "
 "byte)."
@@ -1577,10 +1559,8 @@ msgstr ""
 "Høyeste størrelse på søkespørringsmeldinger vi tilalter, ellers lukkes "
 "forbindelsen (i byte)."
 
-msgid ""
-"Maximum size of search answers messages we forward to others (in bytes)."
-msgstr ""
-"Høyeste størrelse på søkesvarmeldinger vi videresender til andre (i byte)."
+msgid "Maximum size of search answers messages we forward to others (in bytes)."
+msgstr "Høyeste størrelse på søkesvarmeldinger vi videresender til andre (i byte)."
 
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
@@ -1742,8 +1722,7 @@ msgstr ""
 "spørringstreffene som flyter gjennom noden vår. Dette ser for nye "
 "oppføringer for filer vi deler eller allerede har i nettet."
 
-msgid ""
-"When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
+msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient."
 msgstr ""
 "Hvis detta brukes kreves det at SHA1-verdier må stemme. Ellers er navn og "
 "størrelse nok."
@@ -1778,22 +1757,21 @@ msgstr ""
 "føre til overlappingsproblemer seinere hvis den første biten faktisk var fra "
 "en annen fil. Bruk med forsiktighet."
 
-msgid ""
-"Whether gtk-gnutella is currently rebuilding its library in the background."
-msgstr "Hvorvidt gtk-gnutella bygger biblioteket sitt på nytt i bakgrunnen."
+msgid "Whether gtk-gnutella is currently rebuilding its library in the background."
+msgstr "Gtk-Gnutella bygger biblioteket sitt på nytt i bakgrunnen."
 
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background."
 msgstr ""
-"Hvorvidt gtk-gnutella holder på med å kalkulere SHA1-verdier av delte filer "
+"Gtk-Gnutella holder på med å kalkulere SHA1-verdier av delte filer "
 "i bagkrunnen."
 
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background."
 msgstr ""
-"Hvorvidt gtk-gnutella holder på å kontrollere SHA1-verdier til nedlastede "
+"Gtk-Gnutella holder på å kontrollere SHA1-verdier til nedlastede "
 "filer i bakgrunnen."
 
 msgid ""
@@ -1902,8 +1880,7 @@ msgstr "Hvor mye filinformasjon med kilder vi har."
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
-msgstr ""
-"Hvor mange nedlastinger som svarer (fjern tjenent svarer på forespørsler)."
+msgstr "Hvor mange nedlastinger som svarer (fjern tjenent svarer på forespørsler)."
 
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "Antall byte lastet ned sålangt, untatt HTTP-hoder."
@@ -2032,8 +2009,7 @@ msgstr ""
 msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
-msgstr ""
-"Prosentdel av antall forbindelser vi skal reservere for gtk-gnutella-noder."
+msgstr "Prosentdel av antall forbindelser vi skal reservere for gtk-gnutella-noder."
 
 msgid "Maximum percentage of slots a vendor can occupy."
 msgstr "Høyeste prosentdel av plassene ett program kan bruke."
@@ -2083,8 +2059,7 @@ msgstr "Siste gang et automatisk bytte mellom ultra- og løvmodus tok plass."
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
-msgstr ""
-"Hvorvidt vi møter kravet på gjennomsnittlig oppetid for å bli en Ultra-node."
+msgstr "Hvorvidt vi møter kravet på gjennomsnittlig oppetid for å bli en Ultra-node."
 
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
@@ -2247,8 +2222,7 @@ msgid "Percentage of slots filled within our QRP table."
 msgstr "Prosentdel av plasser fyllt inni QRP-tabellen vår."
 
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
-msgstr ""
-"Prosentdel av lappskauskonflikter under innsetting av data i QRP-tabellen."
+msgstr "Prosentdel av lappskauskonflikter under innsetting av data i QRP-tabellen."
 
 msgid "Amount of hashed keywords in our QRP table."
 msgstr "Antall nøkkelord det er laget lappskaus i QRP-tabellen."
@@ -2305,8 +2279,7 @@ msgstr ""
 "for nye filer."
 
 msgid "If set, all outgoing connections are tunneled over TLS."
-msgstr ""
-"Hvis dette slås på legges alle utgående forbindelser i tunnel over TLS."
+msgstr "Hvis dette slås på legges alle utgående forbindelser i tunnel over TLS."
 
 msgid "If not set, support for Gnutella connection compression is disabled."
 msgstr ""
@@ -2416,8 +2389,7 @@ msgid "Number of HTML browsing requests received in this session."
 msgstr "Antall forespørsler om HTML-blaing som er mottatt i denne økten."
 
 msgid "Number of HTML browsing requests fully served in this session."
-msgstr ""
-"Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
+msgstr "Antall forespørsler om HTML-blaing som er fullstendig betjent i denne økten."
 
 msgid "Number of Gnutella browsing requests received in this session."
 msgstr "Antall forespørsler om Gnutella-blaing som er mottatt i denne økten."
@@ -2500,8 +2472,7 @@ msgstr "Ikke start flere parallelle nedlastinger for samme fil enn dette."
 msgid ""
 "If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
 "dump."
-msgstr ""
-"Hvis på dumpes alle mottatte pakker til «$GTK_GNUTELLA_DIR/packets_rx.dump»."
+msgstr "Hvis på dumpes alle mottatte pakker til «$GTK_GNUTELLA_DIR/packets_rx.dump»."
 
 msgid ""
 "If enabled, queries are also matched against the directory names which are "
@@ -2557,8 +2528,7 @@ msgid "Maximum number of results to show in any search."
 msgstr "Høyeste antall resultater å vise i et søk."
 
 msgid "Maximum number of results to show in a browse_host request."
-msgstr ""
-"Høyeste antall resultater å vise i en «browse_host» (bla i vert)-forespørsel."
+msgstr "Høyeste antall resultater å vise i en «browse_host» (bla i vert)-forespørsel."
 
 msgid "The current Session ID."
 msgstr "Gjeldende økt-ID:"
@@ -2645,52 +2615,47 @@ msgid ""
 "Whether the Distributed Hash Table (DHT) should be enabled. The DHT allows "
 "you to resolve magnet: URIs and to easily locate alternate locations for "
 "files and push-proxies for firewalled hosts. It requires UDP support."
-msgstr ""
+msgstr "Slå på Distributed Hash Table (DHT). DHT gjør det mulig å slå opp magnet:-adresser og å finne alternative nedlastingssteder for filer. Krever UDP-støtte."
 
-#, fuzzy
 msgid "Debug level for the callout queue."
-msgstr "Feilsøkingsnivå for spørringer."
+msgstr "Feilsøkingsnivå for spørringskøen."
 
-#, fuzzy
 msgid "Debug level for DHT node lookups."
-msgstr "Feilsøkingsnivå for HTTP-kode."
+msgstr "Feilsøkingsnivå for oppslag av DHT-noder"
 
-#, fuzzy
 msgid "Debug level for DHT key/value storage."
-msgstr "Feilsøkingsnivå for HTTP-kode."
+msgstr "Feilsøkingsnivå for lagring av DHT-nøkler/verdier."
 
-#, fuzzy
 msgid "Debug level for DHT key/value publishing."
-msgstr "Feilsøkingsnivå for HTTP-kode."
+msgstr "Feilsøkingsnivå for publisering av DHT-nøkler/verdier."
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
 "Gnutella UDP socket. Output needs are lower than input."
-msgstr ""
+msgstr "Hint om båndbredden for DHT-oppslag av brukere, i bytes/s. Dette brukes både for å begrense publlisering og søking. Trafikken går over Gnutella UDP-sokkelen. Det kreves mindre for opplasting enn det gjør for nedlasting."
 
 msgid ""
 "Bandwidth hint for DHT user lookups, in bytes/sec. This is used both for "
 "limiting concurrent publishing and searching.  Traffic is made on the "
 "Gnutella UDP socket and cannot therefore be truly controlled.  Input needs "
 "are much larger than output as far as lookups are concerned."
-msgstr ""
+msgstr "Hint om båndbredden for DHT-oppslag av brukere, i bytes/s. Dette brukes både for å begrense publlisering og søking. Trafikken går over Gnutella UDP-sokkelen, og kan derfor ikke kontrolleres ordentlig. Det kreves mer for nedlasting enn det gjør for opplasting"
 
 msgid ""
 "Whether the GUID should be kept accross sessions. A sticky GUID can be "
 "helpful if you are firewalled and share files because the downloaders will "
 "be able to contact you again more easily when you come back online."
-msgstr ""
+msgstr "Bevar GUID'en mellom økter. Å bevare denne kan være nyttig hvis du er bak en brannmur og deler filer, fordi nedlastere kan kontakte deg lettere når du logger på igjen."
 
 msgid ""
 "Whether the KUID should be kept accross sessions. A sticky KUID is helpful "
 "for the DHT because it promotes routing table stability and ensures that "
 "closest nodes will keep mutual knowledge about each other"
-msgstr ""
+msgstr "Behold KUID'en mellom økter. Å bevare denne hjelper DHT, fordi det fører til mer stabile rutingstabeller og sørger for at de nærmeste nodene har kunnskap om hverandre."
 
-#, fuzzy
 msgid "Debug level for the DHT user lookup queue."
-msgstr "Feilsøkingsnivå for søkekøen."
+msgstr "Feilsøkingsnivå for køen for oppslagskøen av DHT-brukere."
 
 msgid "disable"
 msgstr "slå av"
@@ -2723,7 +2688,7 @@ msgid "Bye"
 msgstr "Farvel"
 
 msgid "DHT"
-msgstr ""
+msgstr "DHT"
 
 msgid "QRP"
 msgstr "QRP"
@@ -2931,8 +2896,7 @@ msgid "Display outgoing Gnet leaf traffic bandwidth usage."
 msgstr "Vis båndbreddebruk for utgående Gnet-bladtrafikk."
 
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode."
-msgstr ""
-"Skjul bladbåndbreddevisningen automatisk når ikke i ultralikemannmodus."
+msgstr "Skjul bladbåndbreddevisningen automatisk når ikke i ultralikemannmodus."
 
 msgid "Display incoming HTTP traffic bandwidth average."
 msgstr "Vis gjennomsnittlig båndbreddebruk for innkommende HTTP-trafikk."
@@ -2992,8 +2956,7 @@ msgstr "Vis en hjelpsom melding når pekeren holdes over visse områder."
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing."
-msgstr ""
-"Vis mange flere innstillinger. Les hva de gjør hvis du prøver å endre dem."
+msgstr "Vis mange flere innstillinger. Les hva de gjør hvis du prøver å endre dem."
 
 msgid "Show percentages instead of absolute values in the Gnet stats."
 msgstr "Vis prosenter i stedet for absoluttverdier i Gnet-statistikken."
@@ -3013,8 +2976,7 @@ msgstr "Velg meldingstype for slippegrunner."
 msgid "Include Gnutella packet header size to the volume."
 msgstr "Ta med størrelsen på Gnutella-pakkehodet til volumet."
 
-msgid ""
-"Show percentages instead of absolute values in the Gnet stats (drop reasons)."
+msgid "Show percentages instead of absolute values in the Gnet stats (drop reasons)."
 msgstr ""
 "Vis prosentdeler i stedet for absoluttverdier i Gnet-statistikken "
 "(slippegrunner)."
@@ -3031,8 +2993,7 @@ msgstr "Fjern feilete opplastinger automatisk."
 msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
-msgstr ""
-"Hvorvidt nodens oppetid skal vises (ikke alle noder gir denne informasjonen)."
+msgstr "Hvorvidt nodens oppetid skal vises (ikke alle noder gir denne informasjonen)."
 
 msgid "Whether the handshaking version number should be displayed."
 msgstr "Hvorvidt håndhilsningsversjonnummeret skal vises."
@@ -3080,10 +3041,8 @@ msgstr "Hvorvidt antall mottatte spørringstreff skal vises."
 msgid "Whether count of locally generated queries should be displayed."
 msgstr "Hvorvidt antall lokalproduserte spørringer skal vises."
 
-msgid ""
-"Whether count of local queries pending transmission should be displayed."
-msgstr ""
-"Hvorvidt antall lokalproduserte spørringer som venter på sending skal vises."
+msgid "Whether count of local queries pending transmission should be displayed."
+msgstr "Hvorvidt antall lokalproduserte spørringer som venter på sending skal vises."
 
 msgid "Whether count of dropped messages on TX should be displayed."
 msgstr "Hvorvidt antall slupne meldinger på TX skal vises."
@@ -3124,14 +3083,12 @@ msgstr ""
 msgid ""
 "Whether we should display the size of the node's library, when it is known "
 "to us."
-msgstr ""
-"Hvorvidt vi skal vise størrelsen på nodens bibliotek, når vi kjenner den."
+msgstr "Hvorvidt vi skal vise størrelsen på nodens bibliotek, når vi kjenner den."
 
 msgid ""
 "Whether we should display the amount of files shared by nodes, when that is "
 "known to us."
-msgstr ""
-"Hvorvidt vi skal vise noders antall delte viler, når det er kjent for oss."
+msgstr "Hvorvidt vi skal vise noders antall delte viler, når det er kjent for oss."
 
 msgid ""
 "The amount of time in seconds that the GUI should buffer search results as "
@@ -3156,8 +3113,7 @@ msgstr "Bredde på kolonnene i Gnet-pakkestatistikktabellen (byte). [GTK2]"
 msgid "Configures the appearance of the toolbar."
 msgstr "Sett opp visningen av verktøylinjen."
 
-msgid ""
-"The lifetime of a search. If this time is exceeded, the search is stopped."
+msgid "The lifetime of a search. If this time is exceeded, the search is stopped."
 msgstr "Et søks levetid. Søket stoppes når denne tiden er utløpt."
 
 msgid ""
@@ -3957,8 +3913,7 @@ msgid "locale_get_language|en"
 msgstr "nb"
 
 msgid "This is an unofficial build which accesses files in this directory:"
-msgstr ""
-"Dette er en uoffisielt bygget versjon som bruker filer i denne katalogen:"
+msgstr "Dette er en uoffisielt bygget versjon som bruker filer i denne katalogen:"
 
 msgid "URL missing"
 msgstr "Manglende URL"
@@ -4070,9 +4025,8 @@ msgstr "Hjelp: "
 msgid "Bitzi|Unknown"
 msgstr "Ukjent"
 
-#, fuzzy
 msgid "Bitzi|Unrated"
-msgstr "Underrangert"
+msgstr "Urangert"
 
 msgid "Bitzi|Bitzi lookup failure"
 msgstr "Feil ved Bitzi-oppslag"
@@ -4187,7 +4141,7 @@ msgid "Reading headers"
 msgstr "Leser hoder"
 
 msgid "Searching for new push-proxies"
-msgstr ""
+msgstr "Søker etter nye push-mellomtjenere"
 
 msgid "Falling back to push"
 msgstr "Faller tilbake på dytt"
@@ -4573,13 +4527,13 @@ msgstr "SHA1-spørringer"
 msgid "Broadcasted push messages"
 msgstr "Kringkastede dyttemeldinger"
 
-msgid "Push-proxy TCP relayed messages"
+msgid "Push proxy relayed messages"
 msgstr "Dyttemellomtjener-relaterte meldinger"
 
-msgid "Push-proxy broadcasted messages"
+msgid "Push proxy broadcasted messages"
 msgstr "Dyttemeldinger kringastet via mellomtjener"
 
-msgid "Push-proxy lookup failures"
+msgid "Push proxy lookup failures"
 msgstr "Oppslagsfeil for dyttemellomtjener"
 
 msgid "Locally generated dynamic queries"
@@ -4643,42 +4597,40 @@ msgid "Uncompressed UDP messages due to no gain"
 msgstr "Ukomprimerte UDP-meldinger fordi det ikke var noe å tjene"
 
 msgid "Re-seeding of orphan downloads through query hits"
-msgstr ""
+msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
 
 msgid "DHT keys held"
-msgstr ""
+msgstr "Holdte DHT-nøkler"
 
 msgid "DHT values held"
-msgstr ""
+msgstr "Holdte DHT-verdier"
 
 msgid "DHT local hits on value lookups"
-msgstr ""
+msgstr "Lokale treff for oppslag av DHT-verdier"
 
 msgid "DHT replication of stale value avoided"
-msgstr ""
+msgstr "DHT-duplisering av utgått verdi unngått"
 
 msgid "DHT replication of held values"
-msgstr ""
+msgstr "Duplisering av DHT holdte verdier"
 
 msgid "DHT republishing of held values"
-msgstr ""
+msgstr "Republisering av DHT holdte verdier"
 
 msgid "DHT alt-loc lookups issued"
-msgstr ""
+msgstr "Sendte DHT alt loc-oppslag"
 
-#, fuzzy
 msgid "DHT push proxy lookups issued"
-msgstr "Oppslagsfeil for dyttemellomtjener"
+msgstr "Sendte DHT push-mellomtjener-oppslag."
 
 msgid "DHT successful alt-loc lookups"
-msgstr ""
+msgstr "Vellykkede DHT alt loc-oppslag"
 
 msgid "DHT successful push-proxy lookups"
-msgstr ""
+msgstr "Vellykkede DHT-oppslag i push-mellomtjenere"
 
-#, fuzzy
 msgid "DHT re-seeding of orphan downloads"
-msgstr "Feilsøkingsnivå for nedlastinger."
+msgstr "Gjenopta nedlastinger uten kilder ved hjelp av DHT"
 
 msgid "node"
 msgid_plural "nodes"
@@ -4759,10 +4711,8 @@ msgstr "0 begreper talt"
 msgid "<no property selected>"
 msgstr "<Ingen verdi er valgt>"
 
-msgid ""
-"==> We are looking for people who want to contribute to this fine tool. <=="
-msgstr ""
-"==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
+msgid "==> We are looking for people who want to contribute to this fine tool. <=="
+msgstr "==> Vi leiter etter folk som vil bidra til dette fantastiske verktøyet. <=="
 
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
@@ -4772,8 +4722,7 @@ msgstr ""
 "bruk (bruk som mål i en regel)."
 
 msgid "A passive search matches any search results routed through this node"
-msgstr ""
-"Et passivt søk passer alle søkeresultatene som dirigeres gjennom denne noden."
+msgstr "Et passivt søk passer alle søkeresultatene som dirigeres gjennom denne noden."
 
 msgid "A_ggressive mode"
 msgstr "A_ggressiv modus"
@@ -4896,7 +4845,7 @@ msgid "Bitzi metadata"
 msgstr "Bitzi-metadata"
 
 msgid "Browse Host"
-msgstr "Bla i vert"
+msgstr "Vis delte filer"
 
 msgid "Browse host"
 msgstr "Bla i person"
@@ -5126,7 +5075,7 @@ msgid "Do you really want to quit?"
 msgstr "Vil du virkelig avslutte?"
 
 msgid "Download"
-msgstr "Nedlastinger"
+msgstr "Last ned"
 
 msgid "Downloaded:"
 msgstr "Lastet ned."
@@ -5336,7 +5285,7 @@ msgid "Hops random factor"
 msgstr "Tilfeldighetsfaktor for hop'er"
 
 msgid "Host runs _NTP"
-msgstr "Vet kjører _NTP"
+msgstr "Maskinen kjører _NTP"
 
 msgid "Host"
 msgstr "Vert"
@@ -5510,8 +5459,7 @@ msgid "Maximum number of _retries"
 msgstr "Høyeste antall gjenp_røvinger"
 
 msgid "Maximum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+msgstr "Høyeste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
 
 msgid "Maximum size:"
 msgstr "Største størrelse:"
@@ -5542,8 +5490,7 @@ msgid "Minimum file size"
 msgstr "Minste filstørrelse"
 
 msgid "Minimum seconds to wait on auto-retry timeouts"
-msgstr ""
-"Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
+msgstr "Minste antall sekunder å vente på tidsavbrudd for automatiske gjenprøvinger"
 
 msgid "Minimum size:"
 msgstr "MInste størrelse:"
@@ -5573,7 +5520,7 @@ msgid "Move completely downloaded files to"
 msgstr "Flytt ferdig nedlastede filer til"
 
 msgid "Move corrupted downloaded files to"
-msgstr "Flytt korrupte filer til"
+msgstr "Flytt skadede filer til"
 
 msgid "Network protocol:"
 msgstr "Nettverksprotokoll:"
@@ -5970,8 +5917,7 @@ msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr "Vis verk_tøytips (rører ikke alle verktøytipsene ennå)"
 
 msgid "Show additional information and settings for advanced and _expert users"
-msgstr ""
-"Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
+msgstr "Viser ekstra informasjon og innstillinger for _erfarne og mesterbrukere"
 
 msgid "Show pr_otocol:"
 msgstr "Vis pr_otokoll:"
@@ -6187,7 +6133,7 @@ msgid "Use realistic PARQ estimates"
 msgstr "Bruk realistiske PARQ-beregninger"
 
 msgid "Use username and password to _authenticate to proxy"
-msgstr "Bruk brukern_avn og passord for å logge på mellomtjener"
+msgstr "Logg på med brukern_avn og passord"
 
 msgid "User Interface"
 msgstr "Brukergrensesnitt"
@@ -6265,8 +6211,8 @@ msgid ""
 "results. You will not be able to send queries requesting out-of-band "
 "delivery of query hits."
 msgstr ""
-"Du ser ut til å være brannmurt for både TCP og IDP. Du kommer ikke til å se "
-"dytteresultater, som kan hindre deg i så et stort antall resultater. Du kan "
+"Du ser ut til å være bak en brannmur, for både TCP og UDP. Du kommer ikke til å se "
+"push-resultater, som kan hindre deg i så et stort antall resultater. Du kan "
 "heller ikke sende spørringer som ber om utenfor rekkevidde-levering av "
 "spørringstreff."
 
@@ -6830,13 +6776,12 @@ msgstr "Sendte hallo"
 msgid "Welcome sent"
 msgstr "Sendte velkomst"
 
-#, fuzzy
 msgid "No UDP traffic yet"
-msgstr "HTTP-trafikk"
+msgstr "Ingen UDP-trafikk ennå"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
-msgstr "Lukker: %s [Stopp om %ds] RX=%d Q=%d,%d%%"
+msgstr "Lukker: %s [Stopp om %us] RX=%u Q=%u,%u%%"
 
 msgid "Removing"
 msgstr "Fjerner"
@@ -6867,7 +6812,7 @@ msgstr "Intet søk"
 
 #, c-format
 msgid "Flushing queue (%u results pending)"
-msgstr ""
+msgstr "Tømmer køen (%u resultater venter)"
 
 msgid "The search has been stopped"
 msgstr "Søker har blitt stoppet"
@@ -7078,14 +7023,13 @@ msgid "The URN in the search text is invalid."
 msgstr "URN'en i søketeksten er ugyldig."
 
 msgid "SHA-1 is unknown."
-msgstr ""
+msgstr "SHA-1 er ukjent"
 
 msgid "No Bitzi ticket requested yet."
-msgstr ""
+msgstr "Ingen Bitzi-billettforespørsler ennå."
 
-#, fuzzy
 msgid "Not in Bitzi database."
-msgstr "Ikke i databasen"
+msgstr "Ikke i Bitzi-databasen"
 
 msgid "Encoding"
 msgstr "Koding"
@@ -7248,3 +7192,4 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
