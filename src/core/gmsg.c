@@ -690,11 +690,13 @@ gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 }
 
 /**
- * Send message consisting of header and data to all the nodes in the list.
+ * Route message consisting of header and data to all the nodes in the list.
  */
 void
-gmsg_split_sendto_all(
-	const GSList *sl, gconstpointer head, gconstpointer data, guint32 size)
+gmsg_split_routeto_all(
+	const GSList *sl,
+	const struct gnutella_node *from,
+	gconstpointer head, gconstpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
@@ -712,7 +714,7 @@ gmsg_split_sendto_all(
 		 * We have already tested that the node was being writable.
 		 */
 
-		mq_tcp_putq(dn->outq, pmsg_clone(mb), NULL);
+		mq_tcp_putq(dn->outq, pmsg_clone(mb), from);
 	}
 
 	pmsg_free(mb);

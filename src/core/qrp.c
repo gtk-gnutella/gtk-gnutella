@@ -4568,7 +4568,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (gnutella_header_get_ttl(&n->header) == 0)
 		gnutella_header_set_ttl(&n->header, 1);
 
-	gmsg_split_sendto_all(nodes, &n->header, n->data,
+	gmsg_split_routeto_all(nodes, n, &n->header, n->data,
 		n->size + GTA_HEADER_SIZE);
 
 	g_slist_free(nodes);
