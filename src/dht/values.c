@@ -989,6 +989,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	}
 
 	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
+	gnet_stats_count_general(GNR_DHT_REMOVED, 1);
 
 done:
 	if (reason && GNET_PROPERTY(dht_storage_debug))
@@ -1044,8 +1045,10 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 */
 
 		if (kuid_eq(kn->id, cn->id)) {
-			if (!validate_creator(kn, cn))
+			if (!validate_creator(kn, cn)) {
+				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
 				return STORE_SC_BAD_CREATOR;
+			}
 			vd->original = TRUE;
 		} else {
 			if (NET_TYPE_IPV4 != host_addr_net(cn->addr))
@@ -1064,6 +1067,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		values_managed++;
 		gnet_stats_count_general(GNR_DHT_VALUES_HELD, +1);
+		gnet_stats_count_general(GNR_DHT_PUBLISHED, 1);
 	} else {
 		gboolean is_original = kuid_eq(kn->id, v->creator->id);
 
@@ -1106,8 +1110,10 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		} else {
 			const knode_t *cn = v->creator;
 
-			if (!validate_creator(kn, cn))
+			if (!validate_creator(kn, cn)) {
+				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
 				return STORE_SC_BAD_CREATOR;
+			}
 
 			/*
 			 * They cannot change vendor codes without at least changing
