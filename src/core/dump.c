@@ -404,6 +404,8 @@ void dump_close(void)
 {
 	if (dump_rx.initialized)
 		dump_disable(&dump_rx);
+	if (dump_tx.initialized)
+		dump_disable(&dump_tx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
