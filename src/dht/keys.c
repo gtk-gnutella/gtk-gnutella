@@ -111,7 +111,7 @@ static struct kball {
 	guint8 furthest_bits;		/**< Common bits with furthest node */
 	guint8 closest_bits;		/**< Common bits with closest node */
 	guint8 width;				/**< k-ball width, in bits */
-	guint8 bootstrapped;		/**< Is the DHT bootstrapped? */
+	guint8 seeded;				/**< Is the DHT seeded? */
 } kball;
 
 /**
@@ -240,12 +240,12 @@ static gboolean
 bits_within_kball(size_t common_bits)
 {
 	/*
-	 * Until we get notified that the DHT is fully bootstrapped, it is
-	 * difficult to determine accurately the external frontier of our k-ball.
+	 * Until we get notified that the DHT is seeded, it is difficult to
+	 * determine accurately the external frontier of our k-ball.
 	 * Assume everything is close enough to our KUID.
 	 */
 
-	if (!kball.bootstrapped)
+	if (!kball.seeded)
 		return TRUE;
 
 	return common_bits >= kball.furthest_bits;
@@ -265,7 +265,7 @@ keys_within_kball(const kuid_t *id)
 	 * external frontier of our k-ball.
 	 */
 
-	if (!kball.bootstrapped)
+	if (!kball.seeded)
 		return TRUE;			/* Assume close enough to our KUID */
 
 	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
@@ -1060,7 +1060,7 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
  * Update k-ball information.
  */
 void
-keys_update_kball(gboolean bootstrapped)
+keys_update_kball(gboolean seeded)
 {
 	kuid_t *our_kuid = get_our_kuid();
 	knode_t **kvec;
@@ -1068,8 +1068,7 @@ keys_update_kball(gboolean bootstrapped)
 	patricia_t *pt;
 	int i;
 
-	if (bootstrapped)
-		kball.bootstrapped = TRUE;
+	kball.seeded = seeded;
 
 	kvec = walloc(KDA_K * sizeof(knode_t *));
 	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
@@ -1101,7 +1100,7 @@ keys_update_kball(gboolean bootstrapped)
 			guint8 width = cbits - fbits;
 
 			g_message("DHT %sk-ball %s %u bit%s (was %u-bit wide)",
-				kball.bootstrapped ? "" : "(not bootstrapped) ",
+				kball.seeded ? "" : "(not seeded yet) ",
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
 				width, 1 == width ? "" : "s", kball.width);
