@@ -3918,4 +3918,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "dump_transmitted_gnutella_packets";
+    desc = "If enabled, all packets enqueued for transmission are dumped to "
+			"$GTK_GNUTELLA_DIR/packets_tx.dump.";
+	type = boolean;
+	save = FALSE;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */

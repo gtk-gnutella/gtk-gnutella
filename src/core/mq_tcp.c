@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "gmsg.h"
 #include "tx.h"
 #include "gnet_stats.h"
+#include "dump.h"
 
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
@@ -57,11 +58,7 @@ RCSID("$Id$")
 #define MQ_MINSEND		256		/**< Minimum size we try to send */
 
 static void mq_tcp_service(gpointer data);
-static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb);
-static const struct mq_ops mq_tcp_ops = {
-	mq_tcp_putq,			/* putq */
-};
-
+static const struct mq_ops mq_tcp_ops;
 
 /**
  * Create new message queue capable of holding `maxsize' bytes, and
@@ -296,9 +293,13 @@ update_servicing:
 
 /**
  * Enqueue message, which becomes owned by the queue.
+ *
+ * @param q			the queue to which we enqueue message
+ * @param mb		the message block to enqueue
+ * @param from		for TX traffic dump: the origin of message, NULL if local
  */
-static void
-mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
+void
+mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 {
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */
@@ -306,6 +307,8 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	guint8 hops;			/* Gnutella message hop count */
 	gboolean prioritary;	/* Is message prioritary? */
 	gboolean error = FALSE;
+
+	dump_tx_tcp_packet(from, q->node, mb);
 
 again:
 	g_assert(q);
@@ -463,5 +466,20 @@ cleanup:
 
 	return;
 }
+
+/**
+ * Disable plain mq_putq() operation on a TCP queue.
+ */
+static void
+mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
+{
+	(void) unused_q;
+	(void) unused_mb;
+	g_error("plain mq_putq() forbidden on TCP queue -- use mq_tcp_putq()");
+}
+
+static const struct mq_ops mq_tcp_ops = {
+	mq_no_putq,			/* putq */
+};
 
 /* vi: set ts=4 sw=4 cindent: */

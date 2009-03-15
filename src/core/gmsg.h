@@ -122,9 +122,6 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
 void gmsg_sendto_all(const GSList *l, gconstpointer msg, guint32 size);
 void gmsg_split_sendto_all(const GSList *l,
 		gconstpointer head, gconstpointer data, guint32 size);
-void gmsg_split_sendto_all_but_one(const GSList *sl,
-		const struct gnutella_node *n, gconstpointer head, gconstpointer data,
-		guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
 gboolean gmsg_can_drop(gconstpointer pdu, int size);

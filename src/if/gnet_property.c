@@ -778,6 +778,8 @@ guint32  gnet_property_variable_local_addr_cache_max_time     = 604800;
 static const guint32  gnet_property_variable_local_addr_cache_max_time_default = 604800;
 guint32  gnet_property_variable_local_addr_debug     = 0;
 static const guint32  gnet_property_variable_local_addr_debug_default = 0;
+gboolean gnet_property_variable_dump_transmitted_gnutella_packets     = FALSE;
+static const gboolean gnet_property_variable_dump_transmitted_gnutella_packets_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -7188,6 +7190,23 @@ gnet_prop_init(void) {
     gnet_property->props[335].data.guint32.choices = NULL;
     gnet_property->props[335].data.guint32.max   = 20;
     gnet_property->props[335].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_DUMP_TRANSMITTED_GNUTELLA_PACKETS:
+     *
+     * General data:
+     */
+    gnet_property->props[336].name = "dump_transmitted_gnutella_packets";
+    gnet_property->props[336].desc = _("If enabled, all packets enqueued for transmission are dumped to $GTK_GNUTELLA_DIR/packets_tx.dump.");
+    gnet_property->props[336].ev_changed = event_new("dump_transmitted_gnutella_packets_changed");
+    gnet_property->props[336].save = FALSE;
+    gnet_property->props[336].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[336].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[336].data.boolean.def   = (void *) &gnet_property_variable_dump_transmitted_gnutella_packets_default;
+    gnet_property->props[336].data.boolean.value = (void *) &gnet_property_variable_dump_transmitted_gnutella_packets;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

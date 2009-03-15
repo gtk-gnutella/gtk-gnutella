@@ -42,7 +42,7 @@ RCSID("$Id$")
 #endif	/* I_MATH */
 
 #include "dq.h"
-#include "mq.h"
+#include "mq_tcp.h"
 #include "gmsg.h"
 #include "gmsg.h"
 #include "nodes.h"

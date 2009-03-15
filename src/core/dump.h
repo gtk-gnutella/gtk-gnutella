@@ -38,9 +38,15 @@
 
 #include "common.h"
 
+#include "lib/pmsg.h"
+#include "if/core/hosts.h"
+
 struct gnutella_node;
 
 void dump_rx_packet(const struct gnutella_node *node);
+void dump_tx_tcp_packet(const struct gnutella_node *from,
+	const struct gnutella_node *to, const pmsg_t *mb);
+void dump_tx_udp_packet(const gnet_host_t *to, const pmsg_t *mb);
 
 void dump_init(void);
 void dump_close(void);

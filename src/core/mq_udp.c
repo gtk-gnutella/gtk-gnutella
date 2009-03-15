@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "gnet_stats.h"
 #include "hosts.h"
 #include "mq_udp.h"
+#include "dump.h"
 
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
@@ -289,6 +290,8 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	guint8 hops;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 	gboolean error = FALSE;
+
+	dump_tx_udp_packet(to, mb);
 
 again:
 	g_assert(q);

@@ -40,7 +40,7 @@ RCSID("$Id$")
 #include "dh.h"
 #include "nodes.h"
 #include "gmsg.h"
-#include "mq.h"
+#include "mq_tcp.h"
 #include "gnet_stats.h"
 
 #include "lib/atoms.h"
@@ -474,7 +474,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	mb = gmsg_split_to_pmsg_extend(&src->header, src->data,
 			src->size + GTA_HEADER_SIZE, dh_pmsg_free, pmi);
 
-	mq_putq(mq, mb);
+	mq_tcp_putq(mq, mb, src);
 
 	if (GNET_PROPERTY(dh_debug) > 19)
 		printf("DH enqueued %d hit%s for %s\n",

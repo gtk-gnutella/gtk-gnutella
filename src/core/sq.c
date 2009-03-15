@@ -49,6 +49,7 @@
 RCSID("$Id$")
 
 #include "sq.h"					/* search_queue structures */
+#include "mq_tcp.h"
 #include "nodes.h"
 #include "search.h"
 #include "dq.h"
@@ -461,7 +462,7 @@ retry:
 		if (GNET_PROPERTY(current_peermode) == NODE_P_LEAF)
 			smsg_mutate(sb, n);
 
-		mq_putq(n->outq, sb->mb);
+		mq_tcp_putq(n->outq, sb->mb, NULL);
 
 	} else {
 		if (GNET_PROPERTY(sq_debug) > 4)
