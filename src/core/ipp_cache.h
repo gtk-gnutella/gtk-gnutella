@@ -36,8 +36,8 @@
  * @date 2006
  */
 
-#ifndef _ipp_cache_h_
-#define _ipp_cache_h_
+#ifndef _core_ipp_cache_h_
+#define _core_ipp_cache_h_
 
 #include "common.h"
 
@@ -121,6 +121,6 @@ local_addr_cache_lookup(const host_addr_t addr, guint16 port)
 	return ipp_cache_lookup(IPP_CACHE_LOCAL_ADDR, addr, port);
 }
 
-#endif /* _ipp_cache_h_ */
+#endif /* _core_ipp_cache_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
