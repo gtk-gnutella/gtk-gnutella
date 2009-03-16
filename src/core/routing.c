@@ -314,10 +314,6 @@ route_string(struct route_dest *dest, const host_addr_t origin_addr)
 		gm_snprintf(msg, sizeof msg, "all but %s",
 			host_addr_to_string(origin_addr));
 		break;
-	case ROUTE_NO_DUPS_BUT_ONE:
-		gm_snprintf(msg, sizeof msg, "all but %s and broken GTKG",
-			host_addr_to_string(origin_addr));
-		break;
 	case ROUTE_MULTI:
 		{
 			int count = g_slist_length(dest->ur.u_nodes);
@@ -1153,8 +1149,7 @@ static gboolean
 forward_message(
 	struct route_log *route_log,
 	struct gnutella_node **node,
-	struct gnutella_node *target, struct route_dest *dest, GSList *routes,
-	gboolean duplicate)
+	struct gnutella_node *target, struct route_dest *dest, GSList *routes)
 {
 	struct gnutella_node *sender = *node;
 
@@ -1228,22 +1223,6 @@ forward_message(
 				if (rd->node == sender)
 					continue;
 
-				/*
-				 * There is a bug in GTKG 0.95.x: because it did not track
-				 * the TTL of messages received on a connection basis, it
-				 * wrongfully recorded the message as being duplicates when
-				 * a message with a higher TTL was received from a connection,
-				 * if the TTL was lower than the maximum ever seen for that
-				 * message (accross all the connections).
-				 *
-				 * To avoid the remote end from disconnecting, we now flag
-				 * those old broken nodes and don't forward them ANY duplicate.
-				 *		--RAM, 2005-08-02
-				 */
-
-				if (rd->node->attrs & NODE_A_NO_DUPS)
-					continue;
-
 				nodes = g_slist_prepend(nodes, rd->node);
 				count++;
 			}
@@ -1294,7 +1273,7 @@ forward_message(
 						gnutella_header_get_ttl(&sender->header));
 			}
 
-			dest->type = duplicate ? ROUTE_NO_DUPS_BUT_ONE : ROUTE_ALL_BUT_ONE;
+			dest->type = ROUTE_ALL_BUT_ONE;
 			dest->ur.u_node = sender;
 		}
 	}
@@ -1494,7 +1473,7 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
  */
 static gboolean
 route_push(struct route_log *route_log,
-	struct gnutella_node **node, struct route_dest *dest, gboolean duplicate)
+	struct gnutella_node **node, struct route_dest *dest)
 {
 	struct gnutella_node *sender = *node;
 	struct message *m;
@@ -1589,7 +1568,7 @@ route_push(struct route_log *route_log,
 	 */
 
 	revitalize_entry(m, FALSE);
-	forward_message(route_log, node, NULL, dest, m->routes, duplicate);
+	forward_message(route_log, node, NULL, dest, m->routes);
 
 	return FALSE;		/* We are not the target, don't handle it */
 }
@@ -1601,7 +1580,7 @@ route_push(struct route_log *route_log,
  */
 static gboolean
 route_query(struct route_log *route_log,
-	struct gnutella_node **node, struct route_dest *dest, gboolean duplicate)
+	struct gnutella_node **node, struct route_dest *dest)
 {
 	struct gnutella_node *sender = *node;
 	gboolean is_oob_query;
@@ -1684,7 +1663,7 @@ route_query(struct route_log *route_log,
 	}
 
 	/* Broadcast */
-	return forward_message(route_log, node, NULL, dest, NULL, duplicate);
+	return forward_message(route_log, node, NULL, dest, NULL);
 }
 
 /**
@@ -2033,10 +2012,10 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	switch (gnutella_header_get_function(&sender->header)) {
 	case GTA_MSG_PUSH_REQUEST:
-		handle_it = route_push(&route_log, node, dest, duplicate);
+		handle_it = route_push(&route_log, node, dest);
 		break;
 	case GTA_MSG_SEARCH:
-		handle_it = route_query(&route_log, node, dest, duplicate);
+		handle_it = route_query(&route_log, node, dest);
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
 		handle_it = route_query_hit(&route_log, node, dest);

@@ -41,7 +41,6 @@ typedef enum {
 	ROUTE_ONE,				/**< Route to single node */
 	ROUTE_ALL_BUT_ONE,		/**< Route to all nodes but one */
 	ROUTE_MULTI,			/**< Route to list of nodes */
-	ROUTE_NO_DUPS_BUT_ONE,	/**< Temporary: watch out broken GTKGs */
 } route_type_t;
 
 /**

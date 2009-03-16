@@ -323,8 +323,8 @@ enum {
 	NODE_A_DYN_QUERY	= 1 << 12,	/**< Node can perform dynamic queries */
 	NODE_A_CAN_SFLAG	= 1 << 13,	/**< Node supports flags in headers */
  
-	NODE_A_NO_KEPT_ZERO	= 1 << 14,	/**< For GTKG < 2006-08-15: no kept=0! */
-	NODE_A_NO_DUPS		= 1 << 15,	/**< For broken old GTKG: no dups! */
+	NODE_A_UNUSED_1		= 1 << 14,	/**< UNUSED */
+	NODE_A_UNUSED_2		= 1 << 15,	/**< UNUSED */
 	NODE_A_CAN_HSEP		= 1 << 16,	/**< Node supports HSEP */
 	NODE_A_CAN_QRP		= 1 << 17,	/**< Node supports query routing */
 	NODE_A_CAN_VENDOR	= 1 << 18,	/**< Node supports vendor messages */
@@ -585,8 +585,6 @@ size_t node_http_proxies_add(char *buf, size_t size,
 			gpointer arg, guint32 flags);
 const GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
-const GSList *node_all_but_broken_gtkg(void);
-
 
 gnutella_node_t *node_by_id(const node_id_t node_id);
 gnutella_node_t *node_active_by_id(const node_id_t node_id);

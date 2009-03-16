@@ -161,7 +161,6 @@ RCSID("$Id$")
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
-static GSList *sl_nodes_without_broken_gtkg;
 static GHashTable *nodes_by_id;
 static GHashTable *nodes_by_guid;
 static gnutella_node_t *udp_node;
@@ -1579,8 +1578,6 @@ node_real_remove(gnutella_node_t *n)
     node_fire_node_removed(n);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
-	sl_nodes_without_broken_gtkg =
-		g_slist_remove(sl_nodes_without_broken_gtkg, n);
 	g_hash_table_remove(nodes_by_id, NODE_ID(n));
 
 	/*
@@ -3338,14 +3335,6 @@ node_is_now_connected(struct gnutella_node *n)
 	socket_check(n->socket);
 
 	/*
-	 * Temporary: if node is not a broken GTKG node, record it.
-	 */
-
-	if (!(n->attrs & NODE_A_NO_DUPS))
-		sl_nodes_without_broken_gtkg =
-			g_slist_prepend(sl_nodes_without_broken_gtkg, n);
-
-	/*
 	 * Cleanup hanshaking objects.
 	 */
 
@@ -4794,17 +4783,21 @@ node_extract_user_agent(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
-	 * Spot remote GTKG nodes (even if faked name).
+	 * Spot remote GTKG nodes (even if faked name or ancient vesion).
 	 */
 
-	if (field) {
-		if (
+	if (field &&
+		(
 			is_strprefix(n->vendor, gtkg_vendor) ||
 			(*n->vendor == '!' && is_strprefix(&n->vendor[1], gtkg_vendor))
-		) {
-			version_t rver;
+		)
+	) {
+		n->flags |= NODE_F_GTKG;
 
-			n->flags |= NODE_F_GTKG;
+/* No bugs to work-around for the 0.96.6 release --RAM, 2009-03-16 */
+#if 0
+		{
+			version_t rver;
 
 			/*
 			 * Look for known bugs in certain older GTKG servents:
@@ -4812,25 +4805,15 @@ node_extract_user_agent(struct gnutella_node *n, header_t *head)
 
 			if (version_fill(n->vendor, &rver)) {
 				/*
-				 * All versions prior 0.96u of 2005-10-02 are known to be
-				 * broken with respect to duplicate message handling.
+				 * All versions prior to... are broken with respect to ....
 				 */
 
+				/* Sample code */
 				if (rver.timestamp < 1128204000)
-					n->attrs |= NODE_A_NO_DUPS;
-
-				/*
-				 * Versions prior 0.96.2u of 2006-08-15 are broken when they
-				 * act as UP and perform dynamic queries for leaves: they will
-				 * ignore an "OOB results status" message with kept=0 and
-				 * terminate the dynamic query on timeout waiting for that
-				 * message.
-				 */
-
-				if (rver.timestamp < 1155592800)
-					n->attrs |= NODE_A_NO_KEPT_ZERO;
+					n->attrs |= NODE_A_BROKEN;
 			}
 		}
+#endif
 	}
 }
 
@@ -8199,9 +8182,6 @@ node_close(void)
 
 	G_FREE_NULL(payload_inflate_buffer);
 
-	g_slist_free(sl_nodes_without_broken_gtkg);
-	sl_nodes_without_broken_gtkg = NULL;
-
 	g_slist_free(sl_proxies);
 	sl_proxies = NULL;
 
@@ -9085,17 +9065,6 @@ const GSList *
 node_all_nodes(void)
 {
 	return sl_nodes;
-}
-
-/**
- * @return list of all nodes without any broken GTKG (those nodes that must
- * not be forwarded any duplicate message, even with a higher TTL than
- * previously sent).
- */
-const GSList *
-node_all_but_broken_gtkg(void)
-{
-	return (const GSList *) sl_nodes_without_broken_gtkg;
 }
 
 /**
