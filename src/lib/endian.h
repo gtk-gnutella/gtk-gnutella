@@ -95,6 +95,20 @@ peek_be32(const void *p)
 	return v;
 }
 
+static inline guint64
+peek_be64(const void *p)
+{
+	const unsigned char *q = p;
+	guint64 v;
+
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+	memcpy(&v, q, sizeof v);
+#else
+	v = ((guint64) peek_be32(q) << 32) | peek_be32(&q[sizeof v / 2]);
+#endif
+	return v;
+}
+
 static inline guint16
 peek_le16(const void *p)
 {
