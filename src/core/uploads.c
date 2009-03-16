@@ -240,9 +240,6 @@ upload_fire_upload_added(struct upload *u)
 static void
 upload_fire_upload_removed(struct upload *u, const char *reason)
 {
-	if (u->was_running) {
-		gnet_prop_decr_guint32(PROP_UL_RUNNING);
-	}
 	gnet_prop_decr_guint32(PROP_UL_REGISTERED);
     LISTENER_EMIT(upload_removed, (u->upload_handle, reason));
 }
@@ -1031,7 +1028,6 @@ upload_clone(struct upload *u)
 	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
 	cu->browse_host = FALSE;
-	cu->was_running = FALSE;
     cu->skip = 0;
     cu->end = 0;
 	cu->sent = 0;
@@ -1052,6 +1048,7 @@ upload_clone(struct upload *u)
 		u->name = NULL;
 		u->user_agent = NULL;
 	}
+	u->was_running = FALSE;				/* Status transferred to clone */
 
 	/*
 	 * The following have been copied and appropriated by the cloned upload.
@@ -1814,6 +1811,8 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
     }
 
 	parq_upload_remove(u, was_sending, u->was_running);
+	if (u->was_running)
+		gnet_prop_decr_guint32(PROP_UL_RUNNING);
 
 	reason = reason != no_reason ? reason : NULL;
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
@@ -2188,6 +2187,12 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 
 	if (new_status == GTA_UL_EXPECTING)
 		start_cb = move_to_ul_waiting;
+	else if (new_status == GTA_UL_QUEUED) {
+		if (u->was_running) {
+			gnet_prop_decr_guint32(PROP_UL_RUNNING);
+			u->was_running = FALSE;
+		}
+	}
 
 	/*
 	 * We're requesting the reading of a "status line", which will be the
@@ -3583,7 +3588,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 				parq_allows = TRUE;
 				if (GNET_PROPERTY(upload_debug))
 					g_message(
-						"Overriden slot limit because u/l b/w used at "
+						"overriden slot limit because u/l b/w used at "
 						"%lu%% (minimum set to %d%%)",
 						bsched_avg_pct(BSCHED_BWS_OUT),
 						GNET_PROPERTY(ul_usage_min_percentage));
@@ -3780,8 +3785,11 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 				&u->socket->wio, BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
 	upload_fire_upload_info_changed(u);
-	gnet_prop_incr_guint32(PROP_UL_RUNNING);
-	u->was_running = TRUE;
+
+	if (!u->was_running) {
+		gnet_prop_incr_guint32(PROP_UL_RUNNING);
+		u->was_running = TRUE;
+	}
 }
 
 static void
@@ -4429,8 +4437,10 @@ upload_request(struct upload *u, header_t *header)
 						flags);
 				shared_file_unref(&u->thex);
 			}
-			gnet_prop_incr_guint32(PROP_UL_RUNNING);
-			u->was_running = TRUE;
+			if (!u->was_running) {
+				gnet_prop_incr_guint32(PROP_UL_RUNNING);
+				u->was_running = TRUE;
+			}
 		}
 	}
 }
