@@ -85,7 +85,7 @@ void dht_traffic_from(knode_t *kn);
 void dht_set_node_status(knode_t *kn, knode_status_t new);
 void dht_record_size_estimate(knode_t *kn, kuid_t *size);
 const kuid_t *dht_get_size_estimate(void);
-double dht_size(void);
+guint64 dht_size(void);
 int dht_fill_closest(const kuid_t *id,
 	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive);
 knode_t *dht_find_node(const kuid_t *kuid);

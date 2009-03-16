@@ -424,6 +424,7 @@ safe_list_count(const struct kbucket *kb, knode_status_t status)
 	return is_leaf(kb) ? list_count(kb, status) : 0;
 }
 
+#if 0		/* UNUSED */
 /**
  * Compute how mnay nodes are held with a given status under all the leaves
  * of the k-bucket.
@@ -441,6 +442,7 @@ recursive_list_count(const struct kbucket *kb, knode_status_t status)
 		recursive_list_count(kb->zero, status) +
 		recursive_list_count(kb->one, status);
 }
+#endif
 
 /**
  * Maximum size allowed for the lists of a given status.
@@ -2234,15 +2236,20 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 void
 dht_update_size_estimate(void)
 {
-	int power;			/* Power of 2, for magnitude */
-	guint32 mantissa;	/* Mantissa of our size */
-	guint count;
-	int magnitude;
-	int bpower;
-	struct kbucket *our_kb;
-	struct kbucket *our_sibling;
+	knode_t **kvec;
+	int kcnt;
+	patricia_t *pt;
+	patricia_iter_t *iter;
 	int i;
-	kuid_t first;
+	guint32 squares = 0;
+	kuid_t *id;
+	kuid_t dsum;
+	kuid_t sq;
+	kuid_t sparseness;
+	kuid_t r;
+	kuid_t max;
+
+#define NCNT	(5 * KDA_K)		/* 100 closest nodes */
 
 	if (!GNET_PROPERTY(enable_dht))
 		return;
@@ -2250,159 +2257,116 @@ dht_update_size_estimate(void)
 	stats.last_size_estimate = tm_time();
 
 	/*
-	 * An order of magnitude of the size of the DHT is given by the depth
-	 * of the routing table, corrected by the fact that not all the buckets
-	 * are split: if a bucket of 20 nodes was split, we could expect between
-	 * 4 and 5 levels (2^4 = 16, 2^5 = 32).  So if the maximum depth of the
-	 * table is 3, we have at most 2^(5+3) = 256 nodes around, as a first
-	 * estimate.
+	 * Here is the algorithm used to compute the size estimate.
 	 *
-	 * However, until the root bucket is split, we really cannot say
-	 * whether there are only a few hosts or whether we have too recently
-	 * joined the DHT.
-	 */
-
-	STATIC_ASSERT(K_BUCKET_GOOD > 0);
-
-	bpower = highest_bit_set(K_BUCKET_GOOD);
-	if (K_BUCKET_GOOD > (1 << bpower))
-		bpower++;
-
-	if (root->nodes)			/* Root bucket not split yet */
-		bpower = highest_bit_set(1 + list_count(root, KNODE_GOOD));
-
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT 1st size estimate is 2^%d", bpower + stats.max_depth);
-
-	/*
-	 * At this point we have a first estimate: 2^(bpower + stats.max_depth).
+	 * We perform a routing table lookup of the NCNT nodes closest to our
+	 * own KUID.  Once we have that, we can estimate the sparseness of the
+	 * results by computing:
 	 *
-	 * This is very imprecise, so we're going to refine this value:
-	 * look at the bucket containing our KUID, say at depth 6. Imagine we
-	 * have 20 nodes there: we know there are no more or we would have split
-	 * the bucket, since we systematically split the ones where our ID falls.
-	 * So at depth 6, we have 20 nodes whose KUID begin with the same 6 bits.
-	 * There are 2^6 = 64 possible prefixes on 6 bits, so the amount of hosts
-	 * on the network would be roughly 64*20 = 1280, given KUIDs are evenly
-	 * distributed within the whole ID space.
+	 *  Nodes = { node_1 .. node_n } sorted by increasing distance to our KUID
+	 *  D = sum of Di*i for i = 1..NCNT and Di = distance(node_i, our_kuid)
+	 *  S = sum of i*i for i = 1..NCNT
 	 *
-	 * The value we compute here is "mantissa * 2^power".
-	 */
-
-	our_kb = dht_find_bucket(our_kuid);
-	mantissa = list_count(our_kb, KNODE_GOOD) + 1;	/* + 1 for ourselves */
-	power = our_kb->depth;
-
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT 2nd size estimate is %u * 2^%d", mantissa, power);
-
-	/*
-	 * To estimate how much nodes we miss on average, we look at the sibling
-	 * bucket.  If things are evenly distributed, it should also contain
-	 * the same amount of nodes.  If it contains say 15 nodes where our bucket
-	 * holds 19 contacts, then we miss 4 nodes out of 19 in the sibling space.
-	 * If it contains 18 and we only have 7, then we miss 11 out of 18.
-	 * Naturally, it could also mean that the ID space there is not properly
-	 * covered by the random KUIDs out there.
-	 * Therefore, we look at orders of magnitude here again.  If one bucket
-	 * has twice or four times as much nodes as the other, then we need to
-	 * multiply our lowest figures by that much and take the average value
-	 * between our minimum and that maximum, to use as the proper estimate.
+	 *  D/S represents the sparseness of the results.  If all results were
+	 * at distance 1, 2, 3... etc, then D/S = 1.  The greater D/S, the more
+	 * sparse the results are.
 	 *
-	 * NOTE: if the tree is unbalanced, our sibling could have been already
-	 * split, so we need to recurse. We also look at pending nodes in buckets
-	 * under our sibbling that are no longer splitable because not in our
-	 * closest subtree (see is_splitable() for the logic).
+	 * The DHT size is then estimated by 2^160 / (D/S).
 	 */
 
-	our_sibling = sibling_of(our_kb);
-	g_assert(our_sibling != NULL);
+	kvec = walloc(NCNT * sizeof(knode_t *));
+	kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, TRUE);
+	pt = patricia_create(KUID_RAW_BITSIZE);
 
-	count = recursive_list_count(our_sibling, KNODE_GOOD) +
-		recursive_list_count(our_sibling, KNODE_PENDING);
+	if (0 == kcnt)
+		kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, FALSE);
 
-	/*
-	 * We know counts and magnitude difference (at most 6) are such that
-	 * there will be no overflow of the 32-bit mantissa below.
-	 *
-	 * The assertion catches that even under the worst possibilities,
-	 * shifting the mantissa to the left by the maximum magnitude will
-	 * not overflow.
-	 */
+	if (0 == kcnt) {
+		kuid_zero(&stats.size_estimate);
+		kuid_set_nth_bit(&stats.size_estimate, 0);		/* 1 node: ourselves */
+		goto done;
+	}
 
-	g_assert(2 * highest_bit_set(mantissa) < 32);
+	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
+	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
 
-	magnitude = highest_bit_set(mantissa) - highest_bit_set(count + 1);
-	mantissa = (mantissa + (mantissa << ABS(magnitude))) / 2;
+	for (i = 0; i < kcnt; i++) {
+		knode_t *kn = kvec[i];
+		patricia_insert(pt, kn->id, kn);
+	}
 
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT fixed 2nd size estimate is %u * 2^%d", mantissa, power);
+	g_assert(patricia_count(pt) == UNSIGNED(kcnt));
 
-	/*
-	 * Our estimate is the average between the two values we have computed.
-	 * Write the second first, divided by two.  It will then be trivial to
-	 * add the first since we won't have any carry to handle.
-	 */
+	iter = patricia_metric_iterator(pt, our_kuid, TRUE);
+	i = 1;
+	kuid_zero(&dsum);
 
-	i = power - 1;					/* divided by 2 */
-	if (i < 0)
-		mantissa >>= 1;				/* Divide mantissa if exponent was 0 */
-	kuid_set32(&stats.size_estimate, mantissa);
+	while (patricia_iter_next(iter, (gpointer) &id, NULL, NULL)) {
+		kuid_t di;
+		kuid_xor_distance(&di, id, our_kuid);
+		kuid_mult_u8(&di, i);
+		kuid_add(&dsum, &di);
+		squares += i * i;			/* Can't overflow due to static assert */
+		i++;
+	}
+	patricia_iterator_release(&iter);
 
-	while (i-- > 0)
-		kuid_lshift(&stats.size_estimate);
+	g_assert(kcnt == i -1);
 
-	if (GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT halved fixed 2nd size estimate is %s",
-			kuid_to_hex_string(&stats.size_estimate));
-
-	if (bpower + stats.max_depth)
-		kuid_set_nth_bit(&first, bpower + stats.max_depth - 1);	/* div by 2 */
-	else
-		kuid_set_nth_bit(&first, 0);	/* At least one node: ourselves */
-
-	if (GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT halved 1st size estimate is %s",
-			kuid_to_hex_string(&first));
-
-	kuid_add(&stats.size_estimate, &first);	/* Final estimate is the average */
-
-	/*
-	 * Our computation is over-estimating because it assumes all the buckets
-	 * will be equally uniformly filled, which is not true in practice.
-	 * Correct that by dividing our estimation so far by 2.
-	 */
-
-	kuid_rshift(&stats.size_estimate);
+	kuid_set32(&sq, squares);
+	kuid_divide(&dsum, &sq, &sparseness, &r);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		double val = (pow(2.0, bpower + stats.max_depth) +
-			mantissa * pow(2.0, power)) / 4.0;
+		double ds = kuid_to_double(&dsum);
+		double s = kuid_to_double(&sq);
 
-		g_message("DHT final size estimate is %s (%lf) = %lf",
-			kuid_to_hex_string(&stats.size_estimate), val,
-			kuid_to_double(&stats.size_estimate));
+		g_message("DHT dsum is %s = %lf", kuid_to_hex_string(&dsum), ds);
+		g_message("DHT squares is %s = %lf (%d)",
+			kuid_to_hex_string(&sq), s, squares);
 
-		g_message("DHT (route table: %d buckets, %d leaves, max depth %d, "
-			"%d good nodes, %d stale, %d pending => %d total)",
-			stats.buckets, stats.leaves, stats.max_depth,
-			stats.good, stats.stale, stats.pending,
-			stats.good + stats.stale + stats.pending);
+		g_message("DHT sparseness over %d nodes is %s = %lf (%lf)",
+			kcnt, kuid_to_hex_string(&sparseness),
+			kuid_to_double(&sparseness), ds / s);
 	}
+
+	/*
+	 * We can't divide 2^160 by the sparseness because we can't represent
+	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
+	 * won't make much of a difference.
+	 */
+
+	kuid_zero(&max);
+	kuid_not(&max);
+	kuid_divide(&max, &sparseness, &stats.size_estimate, &r);
+
+	/* FALL THROUGH */
+
+done:
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT final size estimate is %s = %lf",
+			kuid_to_hex_string(&stats.size_estimate),
+			kuid_to_double(&stats.size_estimate));
+	}
+
+	wfree(kvec, NCNT * sizeof(knode_t *));
+	patricia_destroy(pt);
+
+#undef NCNT
 
 	/*
 	 * Update statistics.
 	 */
 
 	{
-		double size = dht_size();
+		guint64 size = dht_size();
 
 		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT averaged global size estimate: %lf over %u points",
-				size, 1 + hash_list_length(stats.other_size));
+			g_message("DHT averaged global size estimate: %s over %u points",
+				uint64_to_string(size),
+				1 + hash_list_length(stats.other_size));
 		}
 
-		gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE, (guint64) size);
+		gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE, size);
 	}
 }
 
@@ -2452,12 +2416,12 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
  * For local user information, compute the probable DHT size, consisting
  * of the average of all the recent sizes we have collected plus our own.
  */
-double
+guint64
 dht_size(void)
 {
 	hash_list_iter_t *iter;
 	int count = 0;
-	double size = 0;
+	guint64 size = 0;
 
 	if (stats.last_size_estimate == 0)
 		dht_update_size_estimate();
@@ -2468,11 +2432,11 @@ dht_size(void)
 
 		item = hash_list_iter_next(iter);
 		count++;
-		size += kuid_to_double(&item->size);
+		size += kuid_to_guint64(&item->size);
 	}
 	hash_list_iter_release(&iter);
 
-	size += kuid_to_double(&stats.size_estimate);
+	size += kuid_to_guint64(&stats.size_estimate);
 
 	return size / (count + 1);
 }
@@ -3559,6 +3523,7 @@ dht_route_parse(FILE *f)
 			boot_status_to_string(boot_status));
 
 	keys_update_kball();
+	dht_update_size_estimate();
 }
 
 static const gchar node_file[] = "dht_nodes";
