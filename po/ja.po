@@ -75,7 +75,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-12-30 14:40+0900\n"
+"POT-Creation-Date: 2009-03-16 18:46+0100\n"
 "PO-Revision-Date: 2008-12-30 14:55+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -108,6 +108,17 @@ msgstr "キューに戻されました (ファイル削除)"
 
 msgid "Requeued by file info change"
 msgstr "キューに戻されました (ファイル情報変更)"
+
+msgid "Duplicate download"
+msgstr "ダウンロードをコピーしました"
+
+#, fuzzy
+msgid "Nothing else to switch to"
+msgstr "これ以上取得するデータはありません"
+
+#, c-format
+msgid "Switching (after error) to \"%s\""
+msgstr ""
 
 # NOTE: both `s' show localized timestamp
 #, c-format
@@ -189,9 +200,6 @@ msgstr "download_start() に失敗しました"
 
 msgid "Stopped (Index changed)"
 msgstr "中断されました (インデックスが変更されました)"
-
-msgid "Duplicate download"
-msgstr "ダウンロードをコピーしました"
 
 msgid "Explicitly requeued"
 msgstr "キューに戻されました (利用者によって戻されました)"
@@ -371,6 +379,10 @@ msgstr "検索は既に閉じられています"
 
 msgid "THEX download aborted"
 msgstr "THEXダウンロードが異常終了しました"
+
+#, fuzzy, c-format
+msgid "Cannot open %s: %s"
+msgstr "失敗しました (%s を送信できません: %s)"
 
 msgid "Cannot resume: file gone"
 msgstr "再開できません: ファイルが無くなっています"
@@ -968,6 +980,19 @@ msgstr "ウルトラピア"
 msgid "leaf node"
 msgstr "リーフ"
 
+#, fuzzy
+msgid "none"
+msgstr "基のピア"
+
+msgid "input only"
+msgstr ""
+
+msgid "output only"
+msgstr ""
+
+msgid "input & output"
+msgstr ""
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr "ホストのキャッシュファイルは読み込める状態にあります。"
 
@@ -1441,11 +1466,13 @@ msgstr ""
 "を基にする迂回処理の「後に」なされます。この時間を基にする迂回措置を無効にす"
 "るには 0 を設定して下さい。"
 
+#, fuzzy
 msgid ""
 "Ban the client if it violates the Retry-After interval too often. Set this "
 "to 0 to disable the banning. The upload will be removed from the queue in "
-"any case though. Default is 1, so the client is banned after retrying too "
-"soon once."
+"any case though. Default is 10, so the client is banned after retrying too "
+"soon 10 times, which is a good balance between abuse and legacy client "
+"support."
 msgstr ""
 "Retry-After の間隔を何度も違反するクライアントを接続禁止にします。これを無効"
 "にするには 0 を設定しますが、アップロードに関しては、無効にしていてもキューか"
@@ -2755,6 +2782,52 @@ msgstr ""
 
 msgid "Debug level for the DHT user lookup queue."
 msgstr "DHT ユーザー参照キューのデバッグレベルです。"
+
+msgid "If TRUE, DHT storage uses memory instead of diskspace."
+msgstr ""
+
+msgid "Defines which download HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which upload HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which Gnutella header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which push-proxy HTTP header exchanges should be traced."
+msgstr ""
+
+msgid ""
+"Defines which HTTP header exchanges should be traced, other than downloads, "
+"uploads and push-proxy exchanges."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for (generic) file verification code."
+msgstr "ファイル共有コードのデバッグレベルです。"
+
+msgid ""
+"Maximum number of hosts in the local address cache, which remembers the "
+"recent IP:port combinations we had."
+msgstr ""
+
+msgid ""
+"Maximum time before removing hosts from the local address cache, which "
+"remembers the recent IP:port combinations we had."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for management of local address cache."
+msgstr "ダウンロード・メッシュ管理のデバッグレベルです。"
+
+#, fuzzy
+msgid ""
+"If enabled, all packets enqueued for transmission are dumped to "
+"$GTK_GNUTELLA_DIR/packets_tx.dump."
+msgstr ""
+"有効にすると、受信した全てのパケットを $GTK_GNUTELLA_DIR/packets_rx.dump にダ"
+"ンプします。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -4701,12 +4774,12 @@ msgid "Partially claimed locally-generated OOB hits"
 msgstr "一部要求されているローカル生成OOBヒット"
 
 # XXX: wtf
-msgid "Unrequested OOB hits received"
-msgstr "リクエストしていないOOBヒットの受信数"
-
-# XXX: wtf
 msgid "Spurious OOB hit claiming received"
 msgstr "受信した偽のOOBヒット要求"
+
+# XXX: wtf
+msgid "Unrequested OOB hits received"
+msgstr "リクエストしていないOOBヒットの受信数"
 
 msgid "Compacted queries"
 msgstr "圧縮検索クエリー"
@@ -4724,14 +4797,27 @@ msgstr "SHA1検索クエリー"
 msgid "Broadcasted push messages"
 msgstr "広域送信PUSHメッセージ"
 
+#, fuzzy
+msgid "Push-proxy UDP relayed messages"
+msgstr "PUSHプロキシ中継メッセージ"
+
 msgid "Push-proxy TCP relayed messages"
 msgstr "PUSHプロキシ中継メッセージ"
 
 msgid "Push-proxy broadcasted messages"
 msgstr "PUSHプロキシ広域送信メッセージ"
 
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
 msgid "Push-proxy lookup failures"
 msgstr "PUSHプロキシ参照失敗"
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
 
 msgid "Locally generated dynamic queries"
 msgstr "ローカル生成の動的検索クエリー"
@@ -4778,8 +4864,14 @@ msgstr "GGEP「H」への対応を知らせる検索クエリー"
 msgid "GIV callbacks received"
 msgstr "受信したGIVコールバック"
 
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
 msgid "QUEUE callbacks received"
 msgstr "受信したQUEUEコールバック"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
 
 msgid "UDP messages with bogus source IP"
 msgstr "UDPメッセージ (偽の送信元IP)"
@@ -4800,16 +4892,197 @@ msgstr "受信した圧縮UDPメッセージ"
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "有効性が無いため圧縮されないUDPメッセージ"
 
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "ダウンロード済データ:"
+
+#, fuzzy
+msgid "Ignoring requested after data mismatch"
+msgstr "リクエストを無視しています (%s)"
+
+#, fuzzy
+msgid "Ignoring requested to preserve connection"
+msgstr "リクエストを無視しています (%s)"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
 msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
 msgstr ""
 
 msgid "DHT values held"
 msgstr ""
 
 msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "タイムアウト (全て秒単位)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "タイムアウト (全て秒単位)"
+
+msgid "DHT successful received value publications"
+msgstr ""
+
+msgid "DHT successful received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -4821,11 +5094,23 @@ msgstr ""
 msgid "DHT republishing of held values"
 msgstr ""
 
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
 #, fuzzy
-msgid "DHT push proxy lookups issued"
+msgid "DHT push-proxy lookups issued"
 msgstr "PUSHプロキシ参照失敗"
 
 msgid "DHT successful alt-loc lookups"
@@ -7235,6 +7520,18 @@ msgstr "マグネットリンク (%s, %s) を取り扱います。"
 msgid "Ignored unusable magnet link."
 msgstr "無効なマグネットリンクが無視されました。"
 
+# NOTE: this string is used as follows
+#
+# 'Created 0 downloads from the 0 selected items'
+#
+#, fuzzy
+msgid "Created download from URL."
+msgstr "%u 件のダウンロードを作成しました。"
+
+#, fuzzy
+msgid "Ignored unusable URL."
+msgstr "無効なマグネットリンクが無視されました。"
+
 msgid "The given urn type is not supported."
 msgstr "このタイプのURNには対応しません。"
 
@@ -7493,8 +7790,15 @@ msgstr "PUSH されました、折り返し接続中..."
 msgid "< 1s"
 msgstr "1秒未満"
 
+msgid "(quick) "
+msgstr ""
+
 #, c-format
-msgid "%s(%s) TR: %s %s #%u"
+msgid " E=%u"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "%s(%s) TR: %s %s#%u"
 msgstr "%s(%s) 残り時間: %s %s #%u"
 
 msgid "stalled"
@@ -7503,15 +7807,15 @@ msgstr "停滞しています"
 msgid "Waiting for headers..."
 msgstr "ヘッダーを待受中..."
 
+#, c-format
+msgid "%s %s#%u E=%u"
+msgstr ""
+
 msgid "Waiting for further request..."
 msgstr "リクエストの詳細を待受中..."
 
 msgid "Reading follow-up request..."
 msgstr "後続リクエストを読込中..."
-
-# FIXME: should be revised.
-msgid "Unavailable range, waiting retry..."
-msgstr "この範囲は現在取得/提供できません、間をおいて再実行します..."
 
 msgid "Transmission aborted"
 msgstr "転送が中断されました"
@@ -7534,3 +7838,7 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+# FIXME: should be revised.
+#~ msgid "Unavailable range, waiting retry..."
+#~ msgstr "この範囲は現在取得/提供できません、間をおいて再実行します..."

@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-12-30 14:40+0900\n"
+"POT-Creation-Date: 2009-03-16 18:46+0100\n"
 "PO-Revision-Date: 2005-09-11 17:18+0900\n"
 "Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -46,6 +46,17 @@ msgstr "Reencolado tras datos recortados"
 
 msgid "Requeued by file info change"
 msgstr "Reencolado por cambio en los atributos del fichero"
+
+#, fuzzy
+msgid "Duplicate download"
+msgstr "%u/%u bajada"
+
+msgid "Nothing else to switch to"
+msgstr ""
+
+#, c-format
+msgid "Switching (after error) to \"%s\""
+msgstr ""
 
 #, c-format
 msgid " at %s - rescheduled for %s%s #%u"
@@ -133,10 +144,6 @@ msgstr "Descargar archivos seleccionados"
 
 msgid "Stopped (Index changed)"
 msgstr "Parado (El índice cambió)"
-
-#, fuzzy
-msgid "Duplicate download"
-msgstr "%u/%u bajada"
 
 msgid "Explicitly requeued"
 msgstr "Reencolado explícitamente"
@@ -332,6 +339,10 @@ msgstr "Búsqueda añadida"
 #, fuzzy
 msgid "THEX download aborted"
 msgstr "Bajados:"
+
+#, fuzzy, c-format
+msgid "Cannot open %s: %s"
+msgstr "Fracasado (Imposible enviar %s: %s)"
 
 msgid "Cannot resume: file gone"
 msgstr ""
@@ -926,6 +937,19 @@ msgstr "ultra nodo"
 msgid "leaf node"
 msgstr "nodo hoja"
 
+#, fuzzy
+msgid "none"
+msgstr "nodo"
+
+msgid "input only"
+msgstr ""
+
+msgid "output only"
+msgstr ""
+
+msgid "input & output"
+msgstr ""
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Indica si la caché de nodos está siendo leida."
 
@@ -1413,8 +1437,9 @@ msgstr ""
 msgid ""
 "Ban the client if it violates the Retry-After interval too often. Set this "
 "to 0 to disable the banning. The upload will be removed from the queue in "
-"any case though. Default is 1, so the client is banned after retrying too "
-"soon once."
+"any case though. Default is 10, so the client is banned after retrying too "
+"soon 10 times, which is a good balance between abuse and legacy client "
+"support."
 msgstr ""
 
 msgid "For development use: track properties."
@@ -2693,6 +2718,49 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the DHT user lookup queue."
 msgstr "Nivel de depurado para la interfaz gráfica."
+
+msgid "If TRUE, DHT storage uses memory instead of diskspace."
+msgstr ""
+
+msgid "Defines which download HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which upload HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which Gnutella header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which push-proxy HTTP header exchanges should be traced."
+msgstr ""
+
+msgid ""
+"Defines which HTTP header exchanges should be traced, other than downloads, "
+"uploads and push-proxy exchanges."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for (generic) file verification code."
+msgstr "Nivel de depurado para las subidas."
+
+msgid ""
+"Maximum number of hosts in the local address cache, which remembers the "
+"recent IP:port combinations we had."
+msgstr ""
+
+msgid ""
+"Maximum time before removing hosts from the local address cache, which "
+"remembers the recent IP:port combinations we had."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for management of local address cache."
+msgstr "Nivel de depurado para las descargas."
+
+msgid ""
+"If enabled, all packets enqueued for transmission are dumped to "
+"$GTK_GNUTELLA_DIR/packets_tx.dump."
+msgstr ""
 
 msgid "disable"
 msgstr "desactivar"
@@ -4669,10 +4737,10 @@ msgstr ""
 msgid "Partially claimed locally-generated OOB hits"
 msgstr ""
 
-msgid "Unrequested OOB hits received"
+msgid "Spurious OOB hit claiming received"
 msgstr ""
 
-msgid "Spurious OOB hit claiming received"
+msgid "Unrequested OOB hits received"
 msgstr ""
 
 msgid "Compacted queries"
@@ -4690,13 +4758,26 @@ msgstr "Peticiones SHA1"
 msgid "Broadcasted push messages"
 msgstr "Mensajes 'push' retransmitidos"
 
+#, fuzzy
+msgid "Push-proxy UDP relayed messages"
+msgstr "Mensajes UDP Gnutella sin procesar"
+
 msgid "Push-proxy TCP relayed messages"
 msgstr ""
 
 msgid "Push-proxy broadcasted messages"
 msgstr ""
 
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
 msgid "Push-proxy lookup failures"
+msgstr ""
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
 msgstr ""
 
 msgid "Locally generated dynamic queries"
@@ -4739,7 +4820,13 @@ msgstr "Peticiones anunciando soporte de GGEP \"H\""
 msgid "GIV callbacks received"
 msgstr ""
 
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
 msgid "QUEUE callbacks received"
+msgstr ""
+
+msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
 msgid "UDP messages with bogus source IP"
@@ -4763,16 +4850,197 @@ msgstr "Mensajes UDP Gnutella sin procesar"
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Mensajes UDP Gnutella sin procesar"
 
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "Datos descargados:"
+
+#, fuzzy
+msgid "Ignoring requested after data mismatch"
+msgstr "Enviando petición (%d%%)"
+
+#, fuzzy
+msgid "Ignoring requested to preserve connection"
+msgstr "Enviando petición (%d%%)"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "Número de generación de la tabla del enrutado de peticiones."
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "Número de generación de la tabla del enrutado de peticiones."
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
 msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
 msgstr ""
 
 msgid "DHT values held"
 msgstr ""
 
 msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "Tiempos de caducidad (todos los valores en segundos)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "Tiempos de caducidad (todos los valores en segundos)"
+
+msgid "DHT successful received value publications"
+msgstr ""
+
+msgid "DHT successful received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -4784,10 +5052,22 @@ msgstr ""
 msgid "DHT republishing of held values"
 msgstr ""
 
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
-msgid "DHT push proxy lookups issued"
+msgid "DHT push-proxy lookups issued"
 msgstr ""
 
 msgid "DHT successful alt-loc lookups"
@@ -7177,6 +7457,13 @@ msgid "Ignored unusable magnet link."
 msgstr ""
 
 #, fuzzy
+msgid "Created download from URL."
+msgstr "Creada %u descarga"
+
+msgid "Ignored unusable URL."
+msgstr ""
+
+#, fuzzy
 msgid "The given urn type is not supported."
 msgstr "Tipo no soportado"
 
@@ -7453,8 +7740,15 @@ msgstr "Recibido 'push', conectando..."
 msgid "< 1s"
 msgstr "< 1º"
 
+msgid "(quick) "
+msgstr ""
+
 #, c-format
-msgid "%s(%s) TR: %s %s #%u"
+msgid " E=%u"
+msgstr ""
+
+#, c-format
+msgid "%s(%s) TR: %s %s#%u"
 msgstr ""
 
 msgid "stalled"
@@ -7463,15 +7757,16 @@ msgstr "atascado"
 msgid "Waiting for headers..."
 msgstr "Esperando las cabeceras..."
 
+#, c-format
+msgid "%s %s#%u E=%u"
+msgstr ""
+
 msgid "Waiting for further request..."
 msgstr "Esperando de nuevo la conexión..."
 
 #, fuzzy
 msgid "Reading follow-up request..."
 msgstr "Esperando de nuevo la conexión..."
-
-msgid "Unavailable range, waiting retry..."
-msgstr "Rango no disponible, esperando el reintento..."
 
 msgid "Transmission aborted"
 msgstr "Trnasmisión abortada"
@@ -7494,3 +7789,6 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "Unavailable range, waiting retry..."
+#~ msgstr "Rango no disponible, esperando el reintento..."

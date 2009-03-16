@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.6u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2008-12-30 14:40+0900\n"
+"POT-Creation-Date: 2009-03-16 18:46+0100\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -46,6 +46,17 @@ msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω λήξη�
 
 msgid "Requeued by file info change"
 msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω αλλαγής πληροφοριών αρχείου"
+
+#, fuzzy
+msgid "Duplicate download"
+msgstr "%u/%u λήψη"
+
+msgid "Nothing else to switch to"
+msgstr ""
+
+#, c-format
+msgid "Switching (after error) to \"%s\""
+msgstr ""
 
 #, fuzzy, c-format
 msgid " at %s - rescheduled for %s%s #%u"
@@ -133,10 +144,6 @@ msgstr "Λήψη επιλεγμένων αρχείων"
 
 msgid "Stopped (Index changed)"
 msgstr "Διακόπηκε (Το ευρετήριο άλλαξε)"
-
-#, fuzzy
-msgid "Duplicate download"
-msgstr "%u/%u λήψη"
 
 msgid "Explicitly requeued"
 msgstr "Ξαναμπήκε κατηγορηματικά στη λίστα αναμονής"
@@ -331,6 +338,10 @@ msgstr "Προστέθηκε αναζήτηση"
 #, fuzzy
 msgid "THEX download aborted"
 msgstr "Λήφθηκαν:"
+
+#, fuzzy, c-format
+msgid "Cannot open %s: %s"
+msgstr "Απέτυχε (Δεν είναι δυνατή η αποστολή %s: %s)"
 
 msgid "Cannot resume: file gone"
 msgstr ""
@@ -917,6 +928,19 @@ msgstr "υπερ-κόμβος"
 msgid "leaf node"
 msgstr "δικτυακός κόμβος"
 
+#, fuzzy
+msgid "none"
+msgstr "κόμβος"
+
+msgid "input only"
+msgstr ""
+
+msgid "output only"
+msgstr ""
+
+msgid "input & output"
+msgstr ""
+
 msgid "Indicates whether the hostcache file is being read."
 msgstr "Προσδιορίζει αν θα διαβάζεται η λανθάνουσα μνήμη υπολογιστών."
 
@@ -1411,8 +1435,9 @@ msgstr ""
 msgid ""
 "Ban the client if it violates the Retry-After interval too often. Set this "
 "to 0 to disable the banning. The upload will be removed from the queue in "
-"any case though. Default is 1, so the client is banned after retrying too "
-"soon once."
+"any case though. Default is 10, so the client is banned after retrying too "
+"soon 10 times, which is a good balance between abuse and legacy client "
+"support."
 msgstr ""
 
 msgid "For development use: track properties."
@@ -2688,6 +2713,49 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the DHT user lookup queue."
 msgstr "Επίπεδο αποσφαλμάτωσης γραφικού ενδιαμέσου."
+
+msgid "If TRUE, DHT storage uses memory instead of diskspace."
+msgstr ""
+
+msgid "Defines which download HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which upload HTTP header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which Gnutella header exchanges should be traced."
+msgstr ""
+
+msgid "Defines which push-proxy HTTP header exchanges should be traced."
+msgstr ""
+
+msgid ""
+"Defines which HTTP header exchanges should be traced, other than downloads, "
+"uploads and push-proxy exchanges."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for (generic) file verification code."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα ανταλλαγής αρχείων."
+
+msgid ""
+"Maximum number of hosts in the local address cache, which remembers the "
+"recent IP:port combinations we had."
+msgstr ""
+
+msgid ""
+"Maximum time before removing hosts from the local address cache, which "
+"remembers the recent IP:port combinations we had."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for management of local address cache."
+msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+
+msgid ""
+"If enabled, all packets enqueued for transmission are dumped to "
+"$GTK_GNUTELLA_DIR/packets_tx.dump."
+msgstr ""
 
 msgid "disable"
 msgstr "απενεργοποίηση"
@@ -4658,12 +4726,12 @@ msgstr "Αδήλωτα τοπικά δημιουργημένα χτυπήματ�
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Μερικώς δηλωμένα τοπικά δημιουργημένα χτυπήματα OOB"
 
+msgid "Spurious OOB hit claiming received"
+msgstr ""
+
 #, fuzzy
 msgid "Unrequested OOB hits received"
 msgstr "Ερωτήματα αναζήτησης χτυπημάτων παράδοσης OOB"
-
-msgid "Spurious OOB hit claiming received"
-msgstr ""
 
 msgid "Compacted queries"
 msgstr "Συμπαγή ερωτήματα"
@@ -4680,14 +4748,27 @@ msgstr "ερωτήματα SHA1"
 msgid "Broadcasted push messages"
 msgstr "Μεταδιδόμενα μηνύματα ώθησης"
 
+#, fuzzy
+msgid "Push-proxy UDP relayed messages"
+msgstr "Μηνύματα διαμεσολαβητή ώθησης"
+
 msgid "Push-proxy TCP relayed messages"
 msgstr "Μηνύματα διαμεσολαβητή ώθησης"
 
 msgid "Push-proxy broadcasted messages"
 msgstr "Μηνύματα μεταδιδόμενα από το διαμεσολαβητή ώθησης"
 
+msgid "Push-proxy found un-proxied local route"
+msgstr ""
+
 msgid "Push-proxy lookup failures"
 msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
+
+msgid "Push relayed via local route"
+msgstr ""
+
+msgid "Push relayed via routing table"
+msgstr ""
 
 msgid "Locally generated dynamic queries"
 msgstr "Τοπικά δημιουργημένα δυναμικά ερωτήματα"
@@ -4729,8 +4810,14 @@ msgstr "Ερωτήματα με διαφημίσεις υποστήριξης GG
 msgid "GIV callbacks received"
 msgstr "Ελήφθησαν πίσω κλήσεις GIV"
 
+msgid "GIV discarded due to no suitable download"
+msgstr ""
+
 msgid "QUEUE callbacks received"
 msgstr "Ελήφθησαν πίσω κλήσεις ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ"
+
+msgid "QUEUE discarded due to no suitable download"
+msgstr ""
 
 msgid "UDP messages with bogus source IP"
 msgstr "Μηνύματα UDP με ψεύτικη πηγαία IP"
@@ -4753,16 +4840,197 @@ msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Ασυμπίεστα μηνύματα UDP Gnutella"
 
+msgid "Consolidated servers (after GUID and IP address linking)"
+msgstr ""
+
+msgid "Duplicate downloads found during server consolidation"
+msgstr ""
+
+msgid "Discovered server GUIDs"
+msgstr ""
+
+msgid "Changed server GUIDs"
+msgstr ""
+
+msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "Firewalled node info for known hosts received in upload requests"
+msgstr ""
+
+msgid "Attempted download resource switching on completion"
+msgstr ""
+
+msgid "Attempted download resource switching after error"
+msgstr ""
+
+msgid "Successful download resource switching (all kind)"
+msgstr ""
+
+msgid "Successful download resource switching between plain files"
+msgstr ""
+
+msgid "Successful download resource switching after error"
+msgstr ""
+
+msgid "Actively queued after resource switching attempt"
+msgstr ""
+
+msgid "Sunk HTTP reply data on error codes"
+msgstr ""
+
+#, fuzzy
+msgid "Ignored downloaded data"
+msgstr "Ληφθέντα δεδομένα:"
+
+#, fuzzy
+msgid "Ignoring requested after data mismatch"
+msgstr "Αποστολή αιτήματος (%u%%)"
+
+#, fuzzy
+msgid "Ignoring requested to preserve connection"
+msgstr "Αποστολή αιτήματος (%u%%)"
+
+msgid "Ignoring requested due to aggressive swarming"
+msgstr ""
+
+msgid "Ignoring refused (data too large or server too slow)"
+msgstr ""
+
+msgid "Client resource switching (all detected)"
+msgstr ""
+
+msgid "Client resource switching between plain files"
+msgstr ""
+
+msgid "Client follow-up request after HTTP error was returned"
+msgstr ""
+
+msgid "PARQ client resource switching in slots (SHA-1 based)"
+msgstr ""
+
+msgid "PARQ client retry-after violation"
+msgstr ""
+
+msgid "PARQ client kicked out after too many retry-after violations"
+msgstr ""
+
+msgid "PARQ upload slot limit overrides"
+msgstr ""
+
+msgid "PARQ quick upload slots granted"
+msgstr ""
+
+msgid "PARQ QUEUE sending attempts"
+msgstr ""
+
+msgid "PARQ QUEUE messages sent"
+msgstr ""
+
+msgid "PARQ QUEUE follow-up requests received"
+msgstr ""
+
 msgid "Re-seeding of orphan downloads through query hits"
 msgstr ""
 
+msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT k-ball furthest frontier (bits)"
+msgstr ""
+
+msgid "DHT k-ball closeest frontier (bits)"
+msgstr ""
+
+msgid "DHT routing table buckets"
+msgstr ""
+
+msgid "DHT routing table leaves"
+msgstr ""
+
+msgid "DHT routing table maximum depth"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table good nodes"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table stale nodes"
+msgstr ""
+
+#, fuzzy
+msgid "DHT routing table pending nodes"
+msgstr "Αριθμός δημιουργίας πίνακα δρομολόγησης ερωτημάτων."
+
+msgid "DHT routing table evicted nodes"
+msgstr ""
+
+msgid "DHT routing table evicted firewalled nodes"
+msgstr ""
+
+msgid "DHT routing table promoted pending nodes"
+msgstr ""
+
+msgid "DHT completed bucket refreshes"
+msgstr ""
+
+msgid "DHT denied non-splitable bucket refresh"
+msgstr ""
+
+msgid "DHT initiated bucket alive checks"
+msgstr ""
+
+msgid "DHT alive pings sent to good nodes"
+msgstr ""
+
+msgid "DHT alive pings sent to stale nodes"
+msgstr ""
+
+msgid "DHT value store rejected on IP/network quota grounds"
+msgstr ""
+
+msgid "DHT value store rejected on creator validation grounds"
+msgstr ""
+
 msgid "DHT keys held"
+msgstr ""
+
+msgid "DHT cached keys held"
 msgstr ""
 
 msgid "DHT values held"
 msgstr ""
 
 msgid "DHT local hits on value lookups"
+msgstr ""
+
+msgid "DHT local hits returning values from cached keys"
+msgstr ""
+
+msgid "DHT returned expanded values"
+msgstr ""
+
+msgid "DHT returned values as secondary keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed values via secondary keys"
+msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
+
+msgid "DHT returned cached expanded values"
+msgstr ""
+
+msgid "DHT returned cached values as secondary-keys"
+msgstr ""
+
+#, fuzzy
+msgid "DHT claimed cached values via secondary keys"
+msgstr "Χρονικά όρια (όλες οι τιμές σε δευτερόλεπτα)"
+
+msgid "DHT successful received value publications"
+msgstr ""
+
+msgid "DHT successful received value removals"
 msgstr ""
 
 msgid "DHT replication of stale value avoided"
@@ -4774,11 +5042,23 @@ msgstr ""
 msgid "DHT republishing of held values"
 msgstr ""
 
+msgid "DHT secondary-key value fetch issued"
+msgstr ""
+
+msgid "DHT duplicate values returned in lookups"
+msgstr ""
+
+msgid "DHT detected KUID collisions"
+msgstr ""
+
+msgid "DHT detected collisions with our own KUID"
+msgstr ""
+
 msgid "DHT alt-loc lookups issued"
 msgstr ""
 
 #, fuzzy
-msgid "DHT push proxy lookups issued"
+msgid "DHT push-proxy lookups issued"
 msgstr "Μηνύματα αποτυχίας εύρεσης διαμεσολαβητή ώθησης"
 
 msgid "DHT successful alt-loc lookups"
@@ -7143,6 +7423,13 @@ msgid "Ignored unusable magnet link."
 msgstr ""
 
 #, fuzzy
+msgid "Created download from URL."
+msgstr "Δημιουργήθηκε %u λήψη"
+
+msgid "Ignored unusable URL."
+msgstr ""
+
+#, fuzzy
 msgid "The given urn type is not supported."
 msgstr "Ο τύπος δεν υποστηρίζεται"
 
@@ -7418,8 +7705,15 @@ msgstr "Ελήφθη ώθηση, γίνεται σύνδεση πίσω..."
 msgid "< 1s"
 msgstr "< 1s"
 
+msgid "(quick) "
+msgstr ""
+
+#, c-format
+msgid " E=%u"
+msgstr ""
+
 #, fuzzy, c-format
-msgid "%s(%s) TR: %s %s #%u"
+msgid "%s(%s) TR: %s %s#%u"
 msgstr "%s%s(%s) TR: %s"
 
 msgid "stalled"
@@ -7428,15 +7722,16 @@ msgstr "διακόπηκε"
 msgid "Waiting for headers..."
 msgstr "Αναμονή κεφαλίδων..."
 
+#, c-format
+msgid "%s %s#%u E=%u"
+msgstr ""
+
 msgid "Waiting for further request..."
 msgstr "Αναμονή περαιτέρω αιτήματος..."
 
 #, fuzzy
 msgid "Reading follow-up request..."
 msgstr "Αναμονή περαιτέρω αιτήματος..."
-
-msgid "Unavailable range, waiting retry..."
-msgstr "Μη διαθέσιμο εύρος, αναμονή προσπάθειας ξανά..."
 
 msgid "Transmission aborted"
 msgstr "Η μεταφορά εγκαταλείφθηκε"
@@ -7459,3 +7754,6 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid "Unavailable range, waiting retry..."
+#~ msgstr "Μη διαθέσιμο εύρος, αναμονή προσπάθειας ξανά..."
