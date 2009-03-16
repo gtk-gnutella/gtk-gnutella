@@ -1257,23 +1257,8 @@ forward_message(
 				dest->ur.u_nodes = nodes;
 			}
 
-			if (count > 1) {
+			if (count > 1)
 				gnet_stats_count_general(GNR_BROADCASTED_PUSHES, 1);
-			} else if (1 == count && NODE_IS_UDP(sender)){
-				const struct guid *guid;
-				const struct guid *nguid;
-
-				/*
-				 * Got a PUSH directly by UDP.  If we send it to one node
-				 * and that node bears the GUID of the PUSH, we were most
-				 * likely the push-proxy for that node.
-				 */
-
-				guid = cast_to_guid_ptr_const(sender->data);
-				nguid = node_guid(nodes->data);
-				if (nguid && guid_eq(guid, nguid))
-					gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
-			}
 
 		} else if (target != NULL) {
 			dest->type = ROUTE_ONE;
@@ -1388,10 +1373,12 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 			higher_ttl = node_ttl_higher(sender, m,
 							gnutella_header_get_ttl(&sender->header));
 
-			if (higher_ttl)
-				routing_log_extra(route_log, "dup message (same node, higher TTL)");
-			else
+			if (higher_ttl) {
+				routing_log_extra(route_log,
+					"dup message (same node, higher TTL)");
+			} else {
 				routing_log_extra(route_log, "dup message (same node)");
+			}
 
 			/*
 			 * That is a really good reason to kick the offender
@@ -1571,6 +1558,15 @@ route_push(struct route_log *route_log,
 		inserted = find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes;
 		g_assert(inserted);
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE, 1);
+
+		/*
+		 * If we got a PUSH directly through UDP, and we can relay it to
+		 * a local neighbour, we were most likely the push-proxy for that node.
+		 */
+
+		if (NODE_IS_UDP(sender))
+			gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
+
 	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
 		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
 	} else {
