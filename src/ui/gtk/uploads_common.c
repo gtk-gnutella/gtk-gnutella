@@ -113,11 +113,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			size_t rw;
 
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
-				"%s (%s) %s%s #%u", _("Completed"),
+				"%s (%s) %s %s#%u", _("Completed"),
 				d > 0 ? short_rate(requested / d, show_metric_units())
 						: _("< 1s"),
 				d > 0 ? short_time(d) : "",
-				u->parq_quick ? " (quick)" : "",
+				u->parq_quick ? _("(quick) ") : "",
 				u->reqnum);
 
 			if (u->error_count)
@@ -137,12 +137,12 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			size_t rw;
 
 			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s #%u"),
+			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s#%u"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
 				short_time(tr),
-				u->parq_quick ? " (quick)" : "",
+				u->parq_quick ? _("(quick) ") : "",
 				u->reqnum);
 
 			if (u->error_count)
@@ -157,11 +157,12 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
     case GTA_UL_EXPECTING:
 		if (u->error_count)
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				_("%s #%u E=%u"), _("Waiting for further request..."),
-				u->reqnum, u->error_count);
+				_("%s %s#%u E=%u"), _("Waiting for further request..."),
+				u->parq_quick ? _("(quick) ") : "", u->reqnum, u->error_count);
 		else
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"%s #%u", _("Waiting for further request..."), u->reqnum);
+				"%s %s#%u", _("Waiting for further request..."),
+				u->parq_quick ? _("(quick) ") : "", u->reqnum);
 		break;
 
     case GTA_UL_WAITING:
