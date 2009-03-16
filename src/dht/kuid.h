@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2006-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,10 +27,10 @@
  * @ingroup dht
  * @file
  *
- * Kademlia Unique ID (KUID) manager.
+ * Kademlia Unique IDs (KUID) and KUID-based integer arithmetic.
  *
  * @author Raphael Manfredi
- * @date 2006-2008
+ * @date 2006-2009
  */
 
 #ifndef _dht_kuid_h_
@@ -47,18 +47,23 @@ void kuid_from_buf(kuid_t *dest, const gchar *id);
 gboolean kuid_is_blank(const kuid_t *kuid);
 int kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2);
 int kuid_cmp(const kuid_t *kuid1, const kuid_t *kuid2);
+void kuid_xor_distance(kuid_t *res, const kuid_t *k1, const kuid_t *k2);
 gboolean kuid_eq(const kuid_t *k1, const kuid_t *k2);
 gboolean kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits);
 void kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits);
 void kuid_flip_nth_leading_bit(kuid_t *res, int n);
 
 void kuid_zero(kuid_t *res);
+void kuid_not(kuid_t *k);
 void kuid_set32(kuid_t *res, guint32 val);
 void kuid_set_nth_bit(kuid_t *res, int n);
 gboolean kuid_add(kuid_t *res, const kuid_t *other);
 gboolean kuid_lshift(kuid_t *res);
 void kuid_rshift(kuid_t *res);
+guint8 kuid_mult_u8(kuid_t *res, guint8 l);
+void kuid_divide(const kuid_t *k1, const kuid_t *k2, kuid_t *q, kuid_t *r);
 double kuid_to_double(const kuid_t *value);
+guint64 kuid_to_guint64(const kuid_t *value);
 
 #endif /* _dht_kuid_h_ */
 

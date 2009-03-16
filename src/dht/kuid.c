@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2006-2008, Raphael Manfredi
+ * Copyright (c) 2006-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,10 +27,10 @@
  * @ingroup dht
  * @file
  *
- * Kademlia Unique IDs (KUID).
+ * Kademlia Unique IDs (KUID) and KUID-based integer arithmetic.
  *
  * @author Raphael Manfredi
- * @date 2006-2008
+ * @date 2006-2009
  */
 
 #include "common.h"
@@ -161,6 +161,19 @@ kuid_cmp(const kuid_t *k1, const kuid_t *k2)
 	}
 
 	return 0;
+}
+
+/**
+ * Fills ``res'' with the XOR distance between k1 and k2.
+ */
+void
+kuid_xor_distance(kuid_t *res, const kuid_t *k1, const kuid_t *k2)
+{
+	int i;
+
+	for (i = 0; i < KUID_RAW_SIZE; i++) {
+		res->v[i] = k1->v[i] ^ k2->v[i];
+	}
 }
 
 /**
@@ -324,15 +337,15 @@ kuid_zero(kuid_t *res)
 void
 kuid_set32(kuid_t *res, guint32 val)
 {
-	kuid_zero(res);
-
 	STATIC_ASSERT(KUID_RAW_SIZE >= 4);
 
+	kuid_zero(res);
 	poke_be32(&res->v[KUID_RAW_SIZE - 4], val);
 }
 
 /**
- * Set the KUID to a power of two by setting the nth bit to 1 (n = 0 .. 159).
+ * Set the nth bit in the KUID to 1 (n = 0 .. 159).
+ * The lowest bit is 0, at the rightmost part of the KUID.
  */
 void
 kuid_set_nth_bit(kuid_t *res, int n)
@@ -342,14 +355,56 @@ kuid_set_nth_bit(kuid_t *res, int n)
 
 	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
-	kuid_zero(res);
-
 	byte = KUID_RAW_SIZE - (n / 8) - 1;
 	mask = 1 << (n % 8);
 
 	g_assert(byte >= 0 && byte < KUID_RAW_SIZE);
 
 	res->v[byte] |= mask;
+}
+
+/**
+ * Is KUID positive, considering 2-complement arithmetic?
+ */
+static gboolean
+kuid_is_positive(const kuid_t *k)
+{
+	return 0 == (k->v[0] & 0x80) ? TRUE : FALSE;
+}
+
+/**
+ * Negate KUID, using 2-complement arithmetic.
+ */
+static void
+kuid_negate(kuid_t *k)
+{
+	int i;
+	gboolean carry;
+
+	/*
+	 * Add 1 to ~k.
+	 */
+
+	for (carry = TRUE, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
+		guint32 sum;
+
+		sum = (~k->v[i] & 0xff) + (carry ? 1 : 0);
+		carry = sum >= 0x100;
+		k->v[i] = sum & 0xff;
+	}
+}
+
+/**
+ * Flip all the bits of the KUID.
+ */
+void
+kuid_not(kuid_t *k)
+{
+	int i;
+
+	for (i = 0; i < KUID_RAW_SIZE; i++) {
+		k->v[i] = (~k->v[i] & 0xff);
+	}
 }
 
 /**
@@ -420,6 +475,115 @@ kuid_rshift(kuid_t *res)
 }
 
 /**
+ * Multiply KUID by 8-bit lambda constant, in-place.
+ *
+ * @return leading carry byte (if not zero, we overflowed).
+ */
+guint8
+kuid_mult_u8(kuid_t *res, guint8 l)
+{
+	int i;
+	guint8 carry;
+
+	for (carry = 0, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
+		guint16 accum;
+
+		accum = res->v[i] * l + carry;
+		carry = (accum & 0xff00) >> 8;
+		res->v[i] = accum & 0xff;
+	}
+
+	return carry;
+}
+
+/**
+ * Divide k1 by k2, filling q with quotient and r with remainder.
+ */
+void
+kuid_divide(const kuid_t *k1, const kuid_t *k2, kuid_t *q, kuid_t *r)
+{
+	int cmp;
+	int i;
+	kuid_t nk2;
+
+	g_assert(k1 != NULL);
+	g_assert(k2 != NULL);
+	g_assert(q != NULL);
+	g_assert(r != NULL);
+
+	/*
+	 * First the trivial checks.
+	 */
+
+	cmp = kuid_cmp(k1, k2);
+
+	if (cmp < 0) {
+		kuid_copy(r, k1);			/* r = k1 */
+		kuid_zero(q);				/* q = 0 */
+		return;
+	} else if (0 == cmp) {
+		kuid_zero(r);				/* r = 0 */
+		kuid_zero(q);
+		kuid_set_nth_bit(q, 0);		/* q = 1 */
+		return;
+	}
+
+	g_assert(cmp > 0);
+
+	/*
+	 * The algorithm retained for doing the binary division is known as
+	 * the "shift, test and restore" algorithm.  In an n-bit integer space,
+	 * it can be described as follows:
+	 *
+	 * Consider the double-width register RQ as being one single 2n-bit
+	 * register made by concatenating R and Q together. (a reminder of
+	 * the "BC" register in the good old Z80...):
+	 *
+	 *    R = 0
+	 *    Q = dividend.
+	 *
+	 *    For i = 1 to n do
+	 *    {
+	 *        RQ <<= 1
+	 *        R -= divisor
+	 *        If R >= 0 {
+	 *            Q |= 1
+	 *        } else {
+	 *            R += divisor
+	 *        }
+	 *    }
+	 *
+	 * At the end, Q has the quotient and R has the remainder.
+	 */
+
+	kuid_zero(r);			/* R = 0 */
+	kuid_copy(q, k1);		/* Q = k1 */			
+
+	kuid_copy(&nk2, k2);
+	kuid_negate(&nk2);		/* nk2 = -k2 */
+
+	for (i = 0; i < KUID_RAW_BITSIZE; i++) {
+		gboolean carry;
+		kuid_t saved;
+
+		/* RQ <<= 1 */
+		carry = kuid_lshift(q);
+		kuid_lshift(r);
+		if (carry)
+			kuid_set_nth_bit(r, 0);
+
+		/* R -= divisor */
+		kuid_copy(&saved, r);
+		kuid_add(r, &nk2);
+
+		if (kuid_is_positive(r))		/* If R >= 0 */
+			kuid_set_nth_bit(q, 0);		/* Q |= 1 */
+		else							/* Else */
+			kuid_copy(r, &saved);		/* R += divisor */
+	}
+}
+
+/**
  * Convert KUID interpreted as a big-endian number into floating point.
  */
 double
@@ -430,10 +594,23 @@ kuid_to_double(const kuid_t *value)
 	double p;
 
 	for (i = KUID_RAW_SIZE - 4, p = 0.0; i >= 0; i -= 4, p += 32.0) {
-		v += pow(2.0, p) * peek_be32(&value->v[i]);
+		guint32 m = peek_be32(&value->v[i]);
+		if (m != 0)
+			v += m * pow(2.0, p);
 	}
 
 	return v;
+}
+
+/**
+ * Convert KUID to 64-bit integer, truncating it if larger.
+ */
+guint64
+kuid_to_guint64(const kuid_t *value)
+{
+	STATIC_ASSERT(KUID_RAW_SIZE >= 8);
+
+	return peek_be64(&value->v[KUID_RAW_SIZE - 8]);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
