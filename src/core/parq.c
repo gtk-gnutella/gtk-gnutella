@@ -2081,6 +2081,8 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 			  host_addr_port_to_string(parq_ul->addr, parq_ul->port),
 			  parq_ul->name);
 
+	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
+
 	s = socket_connect(parq_ul->addr, parq_ul->port, SOCK_TYPE_UPLOAD, 0);
 
 	if (!s) {
@@ -2096,13 +2098,13 @@ parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	u->status = GTA_UL_QUEUE;
 	u->name = atom_str_get(parq_ul->name);
 
-	/* TODO: Create an PARQ pointer in the download structure, so we don't need
-	 * to lookup the ID again, which we don't have at the moment */
 	parq_upload_update_addr_and_name(parq_ul, u);
 	upload_fire_upload_info_changed(u);
 
 	/* Verify created upload entry */
 	g_assert(parq_upload_find(u) == parq_ul);
+
+	u->parq_ul = parq_ul;
 }
 
 /**
@@ -2970,6 +2972,7 @@ check_quick:
 
 		parq_upload_unfreeze_one(uq);
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
+		gnet_stats_count_general(GNR_PARQ_QUICK_SLOTS_GRANTED, 1);
 		uq->quick = TRUE;
 		return TRUE;
 	}
@@ -3290,6 +3293,7 @@ parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 		if (u->status == GTA_UL_QUEUED) {
 			u->status = GTA_UL_SENDING;
 		}
+		gnet_stats_count_general(GNR_PARQ_SLOT_LIMIT_OVERRIDES, 1);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -3405,6 +3409,7 @@ parq_upload_request(struct upload *u)
 	if (parq_ul->flags & PARQ_UL_QUEUE_SENT) {
 		parq_ul->queue_sent = 0;
 		parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
+		gnet_stats_count_general(GNR_PARQ_QUEUE_FOLLOW_UPS, 1);
 	}
 
 	/*
@@ -4464,11 +4469,13 @@ parq_upload_send_queue_conf(struct upload *u)
 		return;
 	}
 
-	parq_ul->flags |= PARQ_UL_QUEUE_SENT;		/* We sent the QUEUE message */
-
 	/*
-	 * We're now expecting HTTP headers on the connection we've made.
+	 * We sent the QUEUE message.
+	 * We're now expecting HTTP headers on the connection we've established
 	 */
+
+	parq_ul->flags |= PARQ_UL_QUEUE_SENT;
+	gnet_stats_count_general(GNR_PARQ_QUEUE_SENT, 1);
 	expect_http_header(u, GTA_UL_QUEUE_WAITING);
 }
 
