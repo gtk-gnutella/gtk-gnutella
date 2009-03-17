@@ -155,7 +155,7 @@ struct parq_ul_queue {
 	GList *by_rel_pos;		/**< Queued items sorted by relative position */
 	GList *by_date_dead;	/**< Queued items sorted on last update and
 								 not alive */
-	gpointer slot_stats;	/**< Slot kept-time statistics */
+	statx_t *slot_stats;	/**< Slot kept-time statistics */
 	int by_position_length;/**< Number of items in "by_position" */
 
 	int num;				/**< Queue number */
