@@ -56,6 +56,7 @@ void kuid_flip_nth_leading_bit(kuid_t *res, int n);
 void kuid_zero(kuid_t *res);
 void kuid_not(kuid_t *k);
 void kuid_set32(kuid_t *res, guint32 val);
+void kuid_set64(kuid_t *res, guint64 val);
 void kuid_set_nth_bit(kuid_t *res, int n);
 gboolean kuid_add(kuid_t *res, const kuid_t *other);
 gboolean kuid_add_u8(kuid_t *k, guint8 l);
@@ -65,6 +66,15 @@ guint8 kuid_mult_u8(kuid_t *res, guint8 l);
 void kuid_divide(const kuid_t *k1, const kuid_t *k2, kuid_t *q, kuid_t *r);
 double kuid_to_double(const kuid_t *value);
 guint64 kuid_to_guint64(const kuid_t *value);
+
+/**
+ * Return leading KUID byte.
+ */
+static inline guint8
+kuid_leading_u8(const kuid_t *k)
+{
+	return k->v[0];
+}
 
 #endif /* _dht_kuid_h_ */
 

@@ -344,6 +344,18 @@ kuid_set32(kuid_t *res, guint32 val)
 }
 
 /**
+ * Set 64-bit quantity in the KUID.
+ */
+void
+kuid_set64(kuid_t *res, guint64 val)
+{
+	STATIC_ASSERT(KUID_RAW_SIZE >= 8);
+
+	kuid_zero(res);
+	poke_be64(&res->v[KUID_RAW_SIZE - 8], val);
+}
+
+/**
  * Set the nth bit in the KUID to 1 (n = 0 .. 159).
  * The lowest bit is 0, at the rightmost part of the KUID.
  */
