@@ -429,6 +429,32 @@ kuid_add(kuid_t *res, const kuid_t *other)
 }
 
 /**
+ * Add small quantity to the KUID, in place, and return whether there was
+ * a leading carry bit.
+ */
+gboolean
+kuid_add_u8(kuid_t *k, guint8 l)
+{
+	int i;
+	gboolean carry;
+	guint32 sum;
+
+	STATIC_ASSERT(KUID_RAW_SIZE >= 2);
+
+	sum = k->v[KUID_RAW_SIZE - 1] + l;
+	carry = sum >= 0x100;
+	k->v[KUID_RAW_SIZE - 1] = sum & 0xff;
+
+	for (i = KUID_RAW_SIZE - 2; i >= 0; i--) {
+		sum = k->v[i] + (carry ? 1 : 0);
+		carry = sum >= 0x100;
+		k->v[i] = sum & 0xff;
+	}
+
+	return carry;
+}
+
+/**
  * Left shift KUID in place by 1 bit.
  * Return whether there was a leading carry.
  */
