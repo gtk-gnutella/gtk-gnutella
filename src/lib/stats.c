@@ -53,7 +53,8 @@ struct statx {
 	GSList *data;			/**< Data points (value = double *) */
 	int n;					/**< Amount of points */
 	double sx;				/**< Sx: sum of all points */
-	double sx2;			/**< Sx2: sum of the square of all points */
+	double sx2;				/**< Sx2: sum of the square of all points */
+	gboolean no_data;		/**< Do not keep data, it is managed externally */
 };
 
 typedef enum op {
@@ -64,12 +65,25 @@ typedef enum op {
 /**
  * Create one-dimension container.
  */
-struct statx *
+statx_t *
 statx_make(void)
 {
-	struct statx *sx;
+	statx_t *sx;
 
 	sx = walloc0(sizeof(*sx));
+	return sx;
+}
+
+/**
+ * Create one-dimension set of statistics with no data management.
+ */
+statx_t *
+statx_make_nodata(void)
+{
+	statx_t *sx;
+
+	sx = walloc0(sizeof(*sx));
+	sx->no_data = TRUE;
 	return sx;
 }
 
@@ -77,7 +91,7 @@ statx_make(void)
  * Destroy one-dimension container.
  */
 void
-statx_free(struct statx *sx)
+statx_free(statx_t *sx)
 {
 	statx_clear(sx);
 	wfree(sx, sizeof(*sx));
@@ -87,7 +101,7 @@ statx_free(struct statx *sx)
  * Clear container.
  */
 void
-statx_clear(struct statx *sx)
+statx_clear(statx_t *sx)
 {
 	GSList *l;
 
@@ -111,35 +125,37 @@ statx_clear(struct statx *sx)
  * @param op the operation: STATS_OP_ADD or STATS_OP_REMOVE
  */
 static void
-statx_opx(struct statx *sx, double val, stats_op_t op)
+statx_opx(statx_t *sx, double val, stats_op_t op)
 {
 	g_assert(op == STATS_OP_ADD || sx->n > 0);
-	g_assert(op == STATS_OP_ADD || sx->data != NULL);
+	g_assert(op == STATS_OP_ADD || sx->data != NULL || sx->no_data);
 
-	if (op == STATS_OP_REMOVE) {
-		GSList *l;
+	if (!sx->no_data) {
+		if (op == STATS_OP_REMOVE) {
+			GSList *l;
 
-		/*
-		 * If value is removed, it must belong to the data set.
-		 */
+			/*
+			 * If value is removed, it must belong to the data set.
+			 */
 
-		for (l = sx->data; l; l = g_slist_next(l)) {
-			double *vp = (double *) l->data;
+			for (l = sx->data; l; l = g_slist_next(l)) {
+				double *vp = (double *) l->data;
 
-			if (*vp == val) {
-				sx->data = g_slist_remove(sx->data, vp);
-				wfree(vp, sizeof(*vp));
-				break;
+				if (*vp == val) {
+					sx->data = g_slist_remove(sx->data, vp);
+					wfree(vp, sizeof(*vp));
+					break;
+				}
 			}
+
+			g_assert(l != NULL);		/* Found it */
+		} else {
+			double *vp;
+
+			vp = walloc(sizeof(*vp));
+			*vp = val;
+			sx->data = g_slist_prepend(sx->data, vp);
 		}
-
-		g_assert(l != NULL);		/* Found it */
-	} else {
-		double *vp;
-
-		vp = walloc(sizeof(*vp));
-		*vp = val;
-		sx->data = g_slist_prepend(sx->data, vp);
 	}
 
 	sx->n += op;
@@ -151,7 +167,7 @@ statx_opx(struct statx *sx, double val, stats_op_t op)
  * Add data point to container.
  */
 void
-statx_add(struct statx *sx, double val)
+statx_add(statx_t *sx, double val)
 {
 	statx_opx(sx, val, STATS_OP_ADD);
 }
@@ -160,7 +176,7 @@ statx_add(struct statx *sx, double val)
  * Remove data point from container.
  */
 void
-statx_remove(struct statx *sx, double val)
+statx_remove(statx_t *sx, double val)
 {
 	statx_opx(sx, val, STATS_OP_REMOVE);
 }
@@ -169,11 +185,12 @@ statx_remove(struct statx *sx, double val)
  * Remove oldest data point from container.
  */
 void
-statx_remove_oldest(struct statx *sx)
+statx_remove_oldest(statx_t *sx)
 {
 	GSList *l;
 	double val = 0;
 
+	g_assert(!sx->no_data);
 	g_assert(sx->n >= 0);
 	g_assert((sx->n > 0) ^ (NULL == sx->data));
 
@@ -216,7 +233,7 @@ statx_remove_oldest(struct statx *sx)
  * @return amount of data points.
  */
 int
-statx_n(struct statx *sx)
+statx_n(const statx_t *sx)
 {
 	return sx->n;
 }
@@ -225,7 +242,7 @@ statx_n(struct statx *sx)
  * @return average of data points.
  */
 double
-statx_avg(struct statx *sx)
+statx_avg(const statx_t *sx)
 {
 	g_assert(sx->n > 0);
 
@@ -236,7 +253,7 @@ statx_avg(struct statx *sx)
  * @return the standard deviation of the data points.
  */
 double
-statx_sdev(struct statx *sx)
+statx_sdev(const statx_t *sx)
 {
 	return sqrt(statx_var(sx));
 }
@@ -245,7 +262,7 @@ statx_sdev(struct statx *sx)
  * @return the variance of the data points.
  */
 double
-statx_var(struct statx *sx)
+statx_var(const statx_t *sx)
 {
 	g_assert(sx->n > 1);
 
@@ -256,12 +273,13 @@ statx_var(struct statx *sx)
  * @return an array of datapoints which can be freed when done.
  */
 double *
-statx_data(struct statx *sx)
+statx_data(const statx_t *sx)
 {
 	double *array;
 	int i;
 	GSList *l;
 
+	g_assert(!sx->no_data);
 	g_assert(sx->n > 0);
 
 	array = g_malloc(sizeof(double) * sx->n);
