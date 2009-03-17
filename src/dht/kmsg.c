@@ -918,8 +918,9 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		memset(&estimated.v[0], 0, KUID_RAW_SIZE - bytes);
 
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT node %s estimates DHT size to %lf hosts",
-				knode_to_string(kn), kuid_to_double(&estimated));
+			g_message("DHT node %s estimates DHT size to %s hosts",
+				knode_to_string(kn),
+				uint64_to_string(kuid_to_guint64(&estimated)));
 
 		dht_record_size_estimate(kn, &estimated);
 	}
