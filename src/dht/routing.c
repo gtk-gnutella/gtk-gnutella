@@ -2225,7 +2225,7 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 
 /**
  * Provide an estimation of the size of the DHT based on the information
- * we have in our routing table.
+ * we have in the routing table for nodes close to our KUID.
  *
  * The size is written in a 160-bit number, which is the maximum size of
  * the network. We use a KUID to hold it, for convenience.
@@ -2278,7 +2278,14 @@ dht_update_size_estimate(void)
 	kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, TRUE);
 	pt = patricia_create(KUID_RAW_BITSIZE);
 
-	if (0 == kcnt)
+	/*
+	 * Normally the DHT size estimation is done on alive nodes but after
+	 * startup, we may not have enough alive nodes in the routing table,
+	 * so use "zombies" to perform our initial computations, until we get
+	 * to know enough hosts.
+	 */
+
+	if (kcnt < NCNT)
 		kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, FALSE);
 
 	if (0 == kcnt) {
@@ -2300,18 +2307,28 @@ dht_update_size_estimate(void)
 	iter = patricia_metric_iterator(pt, our_kuid, TRUE);
 	i = 1;
 	kuid_zero(&dsum);
+	kuid_zero(&max);
+	kuid_not(&max);			/* Max amount: 2^160 - 1 */
 
 	while (patricia_iter_next(iter, (gpointer) &id, NULL, NULL)) {
 		kuid_t di;
+		gboolean saturated = FALSE;
+
 		kuid_xor_distance(&di, id, our_kuid);
-		kuid_mult_u8(&di, i);
-		kuid_add(&dsum, &di);
+		if (0 != kuid_mult_u8(&di, i)) {
+			saturated = TRUE;		/* Carry => saturation: hosts too sparse */
+			kuid_copy(&dsum, &max);
+		} else {
+			kuid_add(&dsum, &di);
+		}
 		squares += i * i;			/* Can't overflow due to static assert */
 		i++;
+		if (saturated)
+			break;		/* DHT size too small or incomplete routing table */
 	}
 	patricia_iterator_release(&iter);
 
-	g_assert(kcnt == i -1);
+	g_assert(i - 1 <= kcnt);
 
 	kuid_set32(&sq, squares);
 	kuid_divide(&dsum, &sq, &sparseness, &r);
@@ -2325,19 +2342,18 @@ dht_update_size_estimate(void)
 			kuid_to_hex_string(&sq), s, squares);
 
 		g_message("DHT sparseness over %d nodes is %s = %lf (%lf)",
-			kcnt, kuid_to_hex_string(&sparseness),
+			i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
 
 	/*
 	 * We can't divide 2^160 by the sparseness because we can't represent
 	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
-	 * won't make much of a difference.
+	 * won't make much of a difference, and we add one for ourselves.
 	 */
 
-	kuid_zero(&max);
-	kuid_not(&max);
 	kuid_divide(&max, &sparseness, &stats.size_estimate, &r);
+	kuid_add_u8(&stats.size_estimate, 1);
 
 	/* FALL THROUGH */
 
