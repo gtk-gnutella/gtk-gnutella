@@ -86,7 +86,7 @@ static GHashTable *used;		/**< Records the IP address used */
  * local time is only used when the host is not running NTP.  Otherwise,
  * we compute the skew just for the fun of it.
  */
-static struct statx *datapoints;
+static statx_t *datapoints;
 
 /**
  * Dispose of the value from the `used' table.
