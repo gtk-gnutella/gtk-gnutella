@@ -605,7 +605,7 @@ prop = {
     type = guint32;
     data = {
         default = 98304;
-        min     = 98305;
+        min     = 98304;
         max     = 256000;
     };
 };
@@ -3948,6 +3948,18 @@ prop = {
         default = 0;
         min     = 0;
         max     = 20;
+    };
+};
+
+prop = {
+    name = "node_udp_sendqueue_size";
+    desc = "Maximum size of the UDP message queue (in bytes). "
+           "Must be at least 150 percent of the maximum message size.";
+    type = guint32;
+    data = {
+        default = 98304;
+        min     = 98304;
+        max     = 256000;
     };
 };
 

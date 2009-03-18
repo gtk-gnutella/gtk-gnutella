@@ -5824,7 +5824,7 @@ node_udp_enable_by_net(enum net_type net)
 		n->outq = NULL;
 	}
 	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
-	n->outq = mq_udp_make(GNET_PROPERTY(node_sendqueue_size), n, tx);
+	n->outq = mq_udp_make(GNET_PROPERTY(node_udp_sendqueue_size), n, tx);
 	n->flags |= NODE_F_WRITABLE;
 	
     node_fire_node_added(n);

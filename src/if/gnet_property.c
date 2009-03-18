@@ -784,6 +784,8 @@ guint32  gnet_property_variable_mq_tcp_debug     = 0;
 static const guint32  gnet_property_variable_mq_tcp_debug_default = 0;
 guint32  gnet_property_variable_mq_udp_debug     = 0;
 static const guint32  gnet_property_variable_mq_udp_debug_default = 0;
+guint32  gnet_property_variable_node_udp_sendqueue_size     = 98304;
+static const guint32  gnet_property_variable_node_udp_sendqueue_size_default = 98304;
 
 static prop_set_t *gnet_property;
 
@@ -1793,7 +1795,7 @@ gnet_prop_init(void) {
     gnet_property->props[50].data.guint32.value = (void *) &gnet_property_variable_node_sendqueue_size;
     gnet_property->props[50].data.guint32.choices = NULL;
     gnet_property->props[50].data.guint32.max   = 256000;
-    gnet_property->props[50].data.guint32.min   = 98305;
+    gnet_property->props[50].data.guint32.min   = 98304;
 
 
     /*
@@ -7251,6 +7253,26 @@ gnet_prop_init(void) {
     gnet_property->props[338].data.guint32.choices = NULL;
     gnet_property->props[338].data.guint32.max   = 20;
     gnet_property->props[338].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_NODE_UDP_SENDQUEUE_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[339].name = "node_udp_sendqueue_size";
+    gnet_property->props[339].desc = _("Maximum size of the UDP message queue (in bytes). Must be at least 150 percent of the maximum message size.");
+    gnet_property->props[339].ev_changed = event_new("node_udp_sendqueue_size_changed");
+    gnet_property->props[339].save = TRUE;
+    gnet_property->props[339].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[339].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[339].data.guint32.def   = (void *) &gnet_property_variable_node_udp_sendqueue_size_default;
+    gnet_property->props[339].data.guint32.value = (void *) &gnet_property_variable_node_udp_sendqueue_size;
+    gnet_property->props[339].data.guint32.choices = NULL;
+    gnet_property->props[339].data.guint32.max   = 256000;
+    gnet_property->props[339].data.guint32.min   = 98304;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
