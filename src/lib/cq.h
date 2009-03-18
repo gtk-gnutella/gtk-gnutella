@@ -57,6 +57,7 @@ extern cqueue_t *callout_queue;	/* Single global instance */
 double callout_queue_coverage(int old_ticks);
 
 void cq_init(void);
+void cq_halt(void);
 void cq_close(void);
 
 cqueue_t *cq_make(cq_time_t now);

@@ -425,7 +425,8 @@ gtk_gnutella_exit(gint n)
 			g_message("GUI shutdown completed");
 	}
 
-    hcache_shutdown();		/* Save host caches to disk */
+	cq_halt();				/* No more callbacks, with everything shutdown */
+	hcache_shutdown();		/* Save host caches to disk */
 	settings_shutdown();
 	oob_shutdown();			/* No longer deliver outstanding OOB hits */
 	socket_shutdown();

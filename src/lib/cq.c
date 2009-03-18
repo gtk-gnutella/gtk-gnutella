@@ -582,6 +582,8 @@ callout_queue_coverage(int old_ticks)
 	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
 }
 
+static guint callout_timer_id = 0;
+
 /**
  * Initialization.
  */
@@ -589,7 +591,19 @@ void
 cq_init(void)
 {
 	callout_queue = cq_make(0);
-	(void) g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
+	callout_timer_id = g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
+}
+
+/**
+ * Halt the callout queue, during final shutdown.
+ */
+void
+cq_halt(void)
+{
+	if (callout_timer_id) {
+		g_source_remove(callout_timer_id);
+		callout_timer_id = 0;
+	}
 }
 
 /**
