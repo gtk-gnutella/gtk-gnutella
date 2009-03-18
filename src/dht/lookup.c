@@ -1475,6 +1475,8 @@ lookup_completed(nlookup_t *nl)
 			closest ? knode_to_string(closest) : "unknown");
 	}
 
+	dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
+
 	if (LOOKUP_VALUE == nl->type)
 		lookup_value_not_found(nl);
 	else
@@ -2640,10 +2642,10 @@ lookup_find_value(
 	g_assert(ok);		/* Pointless to request a value without this */
 
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
-	nl->amount = KDA_K / 4;		/* We want to locate 1/4th of the k-closest */
+	nl->amount = KDA_ALPHA / 2;	/* We want lo locate 1/2 of the k-closest */
 	nl->u.fv.ok = ok;
 	nl->u.fv.vtype = type;
-	nl->mode = LOOKUP_STRICT;	/* Converge optimally but slowly */
+	nl->mode = LOOKUP_LOOSE;	/* Converge quickly */
 
 	if (!lookup_load_shortlist(nl)) {
 		lookup_free(nl, TRUE);
