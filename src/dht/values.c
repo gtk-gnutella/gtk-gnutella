@@ -831,9 +831,9 @@ validate_quotas(const dht_value_t *v)
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			guint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
-			g_message("DHT STORE rejecting value from %s: "
+			g_message("DHT STORE rejecting \"%s\": "
 				"has %d/%d value%s for class C network %s",
-				knode_to_string(c),
+				dht_value_to_string(v),
 				count, MAX_VALUES_NET, 1 == count ? "" : "s",
 				host_addr_to_string(host_addr_get_ipv4(net)));
 		}
@@ -849,9 +849,9 @@ validate_quotas(const dht_value_t *v)
 
 	if (count >= MAX_VALUES_IP) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
-			g_message("DHT STORE rejecting value from %s: "
+			g_message("DHT STORE rejecting \"%s\": "
 				"has %d/%d value%s for IP %s",
-				knode_to_string(c),
+				dht_value_to_string(v),
 				count, MAX_VALUES_IP, 1 == count ? "" : "s",
 				host_addr_to_string(c->addr));
 		}
