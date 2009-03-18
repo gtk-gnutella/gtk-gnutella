@@ -43,6 +43,7 @@ gboolean kmsg_can_drop(gconstpointer pdu, int size);
 
 const char *kmsg_infostr(gconstpointer msg);
 const char *kmsg_name(guint function);
+size_t kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size);
 
 /*
  * Inlined routines.

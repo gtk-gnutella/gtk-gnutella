@@ -1804,7 +1804,11 @@ kmsg_name(guint function)
 	return kmsg_map[function].name;
 }
 
-static size_t
+/**
+ * Same a kmsg_infostr() but fills the supplied buffer with the formatted
+ * string and returns the amount of bytes written.
+ */
+size_t
 kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
 	guint size = kmsg_size(msg);
