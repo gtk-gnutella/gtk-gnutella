@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Jan 26 03:12:20 CET 2009 [metaconfig 3.5-25]
+# Generated on Wed Mar 18 20:50:15 CET 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -1722,7 +1722,7 @@ EOS
 cat <<'EOSC' >>trygcc
 case "$cc" in
 '') ;;
-*)  $rm -f try try.*
+*)  $rm -rf try try.*
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
   (void) argc;
@@ -1771,7 +1771,7 @@ EOM
             fi
         fi
     fi
-    $rm -f try try.*
+    $rm -rf try try.*
     ;;
 esac
 EOSC
@@ -1783,7 +1783,7 @@ EOS
 cat <<'EOSC' >>checkcc
 case "$cc" in        
 '') ;;
-*)  $rm -f try try.*              
+*)  $rm -rf try try.*              
     $cat >try.c <<EOM
 int main(int argc, char *argv[]) {
   (void) argc;
@@ -1805,7 +1805,7 @@ I cannot continue any further, aborting.
 EOM
         exit 1
     fi
-    $rm -f try try.*
+    $rm -rf try try.*
     ;;
 esac
 EOSC
@@ -3314,7 +3314,7 @@ then
 else
 	gccversion=''
 fi
-$rm -f try try.*
+$rm -rf try try.*
 case "$gccversion" in
 1*) cpp=`./loc gcc-cpp $cpp $pth` ;;
 esac
@@ -3363,7 +3363,7 @@ case "$gccversion" in
        sed '1,/^#include <\.\.\.>/d;/^End of search list/,$d;s/^ //'` ; do
        locincpth=`echo $locincpth | sed s!$incdir!!`
     done
-    $rm -f try try.*
+    $rm -rf try try.*
 esac
 
 : What should the include directory be ?
@@ -3889,7 +3889,8 @@ y)
 	;;
 n) echo "OK, that should do.";;
 esac
-$rm -f try try.* core
+$rm -rf try try.*
+$rm -f core
 
 : see whether the try.c file compiles and links
 trylink='
@@ -4188,7 +4189,7 @@ EOCP
 	fi
 	;;
 esac
-$rm -f access*
+$rm -rf access*
 
 : see if stdlib is available
 set stdlib.h i_stdlib
@@ -4301,7 +4302,7 @@ else
 fi
 set d_const
 eval $setvar
-$rm -f const.c const.o
+$rm -rf const.*
 
 : how can we find information about dbus?
 echo " "
@@ -4793,7 +4794,7 @@ esac
 case "$dflt" in
 ' '|'') dflt='none';;
 esac
-$rm -f lt.c lt
+$rm -rf lt.* lt
 
 $cat <<EOM
 
@@ -4860,7 +4861,8 @@ else
 	gnulibc_version=''
 	echo "You are not using the GNU C Library"
 fi
-$rm -f try try.* glibc.ver
+$rm -f glibc.ver
+$rm -rf try try.*
 set d_gnulibc
 eval $setvar
 
@@ -5266,7 +5268,7 @@ yes)
 		then tval=true;
 		else tval=false;
 		fi;
-		$rm -f t t.c;;
+		$rm -rf t t.c;;
 	esac;;
 *)
 	case "$tval" in
@@ -5358,7 +5360,7 @@ echo "ulimit returns $d_ulimit4 as the number of available file descriptors." >&
 		nofile=''
 	fi
 fi
-$rm -f nofile*
+$rm -rf nofile*
 
 : can we use getuid?
 echo " "
@@ -5925,7 +5927,7 @@ else
 fi
 set d_open3
 eval $setvar
-$rm -f open3*
+$rm -rf open3*
 
 : see if there is a poll.h file
 set poll.h i_poll
@@ -6136,7 +6138,7 @@ EOC
 	then
 		val="$define"
 	fi
-	$rm -f try try.c
+	$rm -rf try try.*
 fi
 
 set d_regparm
@@ -6294,7 +6296,7 @@ EOM
 esac
 set d_sigsetjmp
 eval $setvar
-$rm -f set.c set
+$rm -rf set.* set
 
 : can we use getaddrinfo?
 echo " "
@@ -6785,7 +6787,7 @@ else
 fi
 set d_volatile
 eval $setvar
-$rm -f try.*
+$rm -rf try.*
 
 : see if vsnprintf exists
 $cat >try.c <<EOC
@@ -6898,7 +6900,7 @@ esac
 rp="Doubles must be aligned on a how-many-byte boundary?"
 . ./myread
 alignbytes="$ans"
-$rm -f try.c try
+$rm -rf try.* try
 
 : how do we catenate cpp tokens here?
 echo " "
@@ -7031,7 +7033,8 @@ EOCP
 	;;
 *) echo "Using $hint value $o_nonblock.";;
 esac
-$rm -f try try.* .out core
+$rm -f .out core
+$rm -rf try try.*
 
 echo " "
 echo "Let's see what value errno gets from read() on a $o_nonblock file..." >&4
@@ -7158,7 +7161,8 @@ EOCP
 	esac
 	;;
 esac
-$rm -f try try.* .out core head.c mtry
+$rm -f .out core head.c mtry
+$rm -rf try try.*
 
 : derive which glade to use based on the configured GTK+
 echo " "
@@ -7236,7 +7240,7 @@ then
 else 
   ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi
-$rm -f try try.c
+$rm -rf try try.*
 
 : how can we find information about GTK?
 d_gtk="$undef"
@@ -7358,7 +7362,7 @@ then
 else 
   ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi
-$rm -f try try.c
+$rm -rf try try.*
 ;;
 esac
 
@@ -7658,7 +7662,7 @@ none)
 	./warn "Unrecognized memory models--you may have to edit Makefile.SH" 4>&4
 	;;
 esac
-$rm -f pdp11.* pdp11
+$rm -rf pdp11.* pdp11
 
 : check whether make sets MAKE
 echo " "
@@ -7927,7 +7931,7 @@ else
 fi
 set prototype
 eval $setvar
-$rm -f prototype*
+$rm -rf prototype*
 
 : see if ar generates random libraries by itself
 echo " "
@@ -7970,7 +7974,7 @@ else
 		ranlib=":"
 	fi
 fi
-$rm -f foo* bar* 
+$rm -rf foo* bar* 
 
 : check for void type
 echo " "
@@ -8070,7 +8074,8 @@ case "$voidflags" in
 	voidflags="$ans"
 	;;
 esac
-$rm -f try.* .out flags
+$rm -f .out flags
+$rm -rf try try.*
 
 : determine compiler compiler
 echo " "
@@ -8393,7 +8398,7 @@ case "$val" in
 	esac
 	echo "We'll include <$i_varhdr> to get va_dcl definition." >&4;;
 esac
-$rm -f varargs*
+$rm -rf varargs*
 
 : see which of string.h or strings.h is needed
 echo " "
@@ -8514,7 +8519,7 @@ case "$flags" in
 	echo "We'll include <sys/time.h>." >&4;;
 *) i_systime="$undef";;
 esac
-$rm -f try.c try
+$rm -rf try.* try
 
 : see if sys/types.h has to be included
 set sys/types.h i_systypes
