@@ -168,8 +168,8 @@ gmsg_init(void)
 		switch ((enum gta_msg) i) {
 		case GTA_MSG_DHT:            w = 0; s = "DHT"; break;
 		case GTA_MSG_INIT:           w = 1; s = "Ping"; break;
-		case GTA_MSG_INIT_RESPONSE:  w = 3; s = "Pong"; break;
 		case GTA_MSG_SEARCH:         w = 2; s = "Query"; break;
+		case GTA_MSG_INIT_RESPONSE:  w = 3; s = "Pong"; break;
 		case GTA_MSG_SEARCH_RESULTS: w = 4; s = "Q-Hit"; break;
 		case GTA_MSG_PUSH_REQUEST:   w = 5; s = "Push"; break;
 		case GTA_MSG_RUDP:   		 		s = "RUDP"; break;
@@ -201,16 +201,17 @@ gmsg_init(void)
 
 		switch ((enum kda_msg) i) {
 		case KDA_MSG_PING_REQUEST:        w = 1; break;
-		case KDA_MSG_PING_RESPONSE:       w = 0; break;
+		case KDA_MSG_PING_RESPONSE:       w = 2; break;
 		case KDA_MSG_STORE_REQUEST:       w = 0; break;
 		case KDA_MSG_STORE_RESPONSE:      w = 3; break;
 		case KDA_MSG_FIND_NODE_REQUEST:   w = 0; break;
 		case KDA_MSG_FIND_NODE_RESPONSE:  w = 0; break;
 		case KDA_MSG_FIND_VALUE_REQUEST:  w = 0; break;
-		case KDA_MSG_FIND_VALUE_RESPONSE: w = 5; break;
+		case KDA_MSG_FIND_VALUE_RESPONSE: w = 7; break;
 		case KDA_MSG_STATS_REQUEST:       w = 0; break;	/* UNUSED */
 		case KDA_MSG_STATS_RESPONSE:      w = 0; break;	/* UNUSED */
 		}
+		kmsg_weight[i] = w;
 	}
 }
 
@@ -879,6 +880,21 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2)
 	/*
 	 * Same weight.
 	 *
+	 * DHT messages are less prioritary than Gnutella.
+	 * Between 2 DHT messages, keep the shortest.
+	 */
+
+	if (f1 == GTA_MSG_DHT) {
+		return f2 == GTA_MSG_DHT ?
+			CMP(gnutella_header_get_size(h2), gnutella_header_get_size(h1)) :
+			-1;
+	} else if (f2 == GTA_MSG_DHT) {
+		return +1;		/* Gnutella message (f1) more prioritary */
+	}
+
+	/*
+	 * Same weight, both Gnutella messages.
+	 *
 	 * Compare hops.
 	 *
 	 * For queries: the more hops a message has travelled, the less prioritary
@@ -929,13 +945,21 @@ gmsg_infostr_full(gconstpointer msg)
 	return gmsg_infostr_full_split(msg, data);
 }
 
+/**
+ * Same a gmsg_infostr() but fills the supplied buffer with the formatted
+ * string and returns the amount of bytes written.
+ */
 static size_t
 gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 {
+	guint8 function = gnutella_header_get_function(msg);
 	guint16 size = gmsg_size(msg);
 
+	if (GTA_MSG_DHT == function)
+		return kmsg_infostr_to_buf(msg, buf, size);
+
 	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
-		gmsg_name(gnutella_header_get_function(msg)),
+		gmsg_name(function),
 		size, size == 1 ? "" : "s",
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
