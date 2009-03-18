@@ -34,7 +34,7 @@ EOC
 	then
 		val="$define"
 	fi
-	$rm -f try try.c
+	$rm -rf try try.*
 fi
 
 set d_regparm

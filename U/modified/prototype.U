@@ -122,5 +122,5 @@ else
 fi
 set prototype
 eval $setvar
-$rm -f prototype*
+$rm -rf prototype*
 
