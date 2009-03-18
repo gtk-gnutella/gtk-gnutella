@@ -37,8 +37,10 @@
 
 RCSID("$Id$")
 
-#include "nodes.h"
+#define MQ_INTERNAL
 #include "mq.h"
+
+#include "nodes.h"
 #include "mq_tcp.h"
 #include "gmsg.h"
 #include "tx.h"
@@ -166,6 +168,7 @@ mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->qwait = slist_new();
 	q->ops = &mq_udp_ops;
 	q->cops = mq_get_cops();
+	q->debug = GNET_PROPERTY_PTR(mq_udp_debug);
 
 	tx_srv_register(nd, mq_udp_service, q);
 
@@ -386,6 +389,10 @@ again:
 			default:
 				break;
 			}
+
+			if (GNET_PROPERTY(mq_udp_debug) > 5)
+				g_message("MQ UDP sent %s", gmsg_infostr_full(pmsg_start(mb)));
+
 			goto cleanup;
 		}
 
@@ -403,6 +410,9 @@ again:
 
 		/* FALL THROUGH */
 	}
+
+	if (GNET_PROPERTY(mq_udp_debug) > 5)
+		g_message("MQ UDP queued %s", gmsg_infostr_full(pmsg_start(mb)));
 
 	/*
 	 * Attach the destination information as metadata to the message, unless

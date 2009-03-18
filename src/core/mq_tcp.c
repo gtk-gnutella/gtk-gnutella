@@ -37,8 +37,10 @@
 
 RCSID("$Id$")
 
-#include "nodes.h"
+#define MQ_INTERNAL
 #include "mq.h"
+
+#include "nodes.h"
 #include "mq_tcp.h"
 #include "gmsg.h"
 #include "tx.h"
@@ -80,6 +82,7 @@ mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
 	q->qwait = slist_new();
 	q->ops = &mq_tcp_ops;
 	q->cops = mq_get_cops();
+	q->debug = GNET_PROPERTY_PTR(mq_tcp_debug);
 
 	tx_srv_register(nd, mq_tcp_service, q);
 

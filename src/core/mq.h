@@ -62,6 +62,8 @@ struct mq_cops {
 	void (*update_flowc)(mqueue_t *q);
 };
 
+#ifdef MQ_INTERNAL
+
 enum mq_magic {
 	MQ_MAGIC = 0x33990ee
 };
@@ -94,6 +96,7 @@ struct mqueue {
 	GList *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */
 	cevent_t *swift_ev;		/**< Callout queue event in "swift" mode */
+	const guint32 *debug;	/**< Debug config variable for this queue */
 	int swift_elapsed;		/**< Scheduled elapsed time, in ms */
 	int qlink_count;		/**< Amount of entries in `qlink' */
 	int maxsize;			/**< Maximum size of this queue (total queued) */
@@ -120,17 +123,20 @@ enum {
 	MQ_FLOWC	= (1 << 0)	/**< In flow control */
 };
 
-gboolean mq_is_flow_controlled(const struct mqueue *q);
-gboolean mq_is_swift_controlled(const struct mqueue *q);
-gboolean mq_would_flow_control(const struct mqueue *q, size_t additional);
-int mq_maxsize(const struct mqueue *q);
-int mq_size(const struct mqueue *q);
-int mq_lowat(const struct mqueue *q);
-int mq_hiwat(const struct mqueue *q);
-int mq_count(const struct mqueue *q);
-int mq_pending(const struct mqueue *q);
-struct bio_source *mq_bio(const struct mqueue *q);
-struct gnutella_node *mq_node(const struct mqueue *q);
+#endif /* MQ_INTERNAL */
+
+gboolean mq_is_flow_controlled(const mqueue_t *q);
+gboolean mq_is_swift_controlled(const mqueue_t *q);
+gboolean mq_would_flow_control(const mqueue_t *q, size_t additional);
+guint32 mq_debug(const mqueue_t *q);
+int mq_maxsize(const mqueue_t *q);
+int mq_size(const mqueue_t *q);
+int mq_lowat(const mqueue_t *q);
+int mq_hiwat(const mqueue_t *q);
+int mq_count(const mqueue_t *q);
+int mq_pending(const mqueue_t *q);
+struct bio_source *mq_bio(const mqueue_t *q);
+struct gnutella_node *mq_node(const mqueue_t *q);
 
 /*
  * Public interface
