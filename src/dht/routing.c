@@ -91,6 +91,7 @@ RCSID("$Id$")
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
+#include "lib/stats.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -145,7 +146,29 @@ struct kbucket {
 	gboolean ours;				/**< Whether our KUID falls in that bucket */
 };
 
-#define K_OTHER_SIZE		64	/**< Keep 64 other size estimates */
+/**
+ * A (locallay determined) size estimate.
+ */
+struct ksize {
+	guint64 estimate;			/**< Value (64 bits should be enough!) */
+	size_t amount;				/**< Amount of nodes used to compute estimate */
+	time_t computed;			/**< When did we compute it? */
+};
+
+/**
+ * A (network-received) remote size estimate
+ */
+struct nsize {
+	time_t updated;				/**< When did we last update it? */
+	hash_list_t *others;		/**< K_OTHER_SIZE items at most */
+};
+
+#define K_OTHER_SIZE		8	/**< Keep 8 network size estimates per region */
+#define K_REGIONS			256	/**< Extra local size estimates after lookups */
+
+#define K_LOCAL_ESTIMATE	(5 * KDA_K)		/**< # of nodes for local size */
+#define MIN_ESTIMATE_NODES	15				/**< At least 15 data points */
+#define ESTIMATE_LIFE		REFRESH_PERIOD	/**< Life of subspace estimates */
 
 /**
  * Statistics on the routing table.
@@ -157,18 +180,21 @@ struct kstats {
 	int stale;					/**< Number of stale nodes */
 	int pending;				/**< Number of pending nodes */
 	int max_depth;				/**< Maximum tree depth */
-	time_t last_size_estimate;	/**< When did we compute the last estimate? */
-	kuid_t size_estimate;		/**< Last own size estimate */
-	hash_list_t *other_size;	/**< K_OTHER_SIZE items at most */
+	struct ksize local;			/**< Local estimate based our neighbours */
+	struct ksize average;		/**< Cached average DHT size estimate */
+	struct ksize lookups[K_REGIONS];	/**< Estimates derived from lookups */
+	struct nsize network[K_REGIONS];	/**< K_OTHER_SIZE items at most */
+	statx_t *lookdata;			/**< Statistics on lookups[] */
+	statx_t *netdata;			/**< Statistics on network[] */
 	gboolean dirty;				/**< The "good" list was changed */
 };
 
 /**
- * Items for the stats.other_size list.
+ * Items for the stats.network[] lists.
  */
 struct other_size {
 	kuid_t *id;					/**< Node who made the estimate (atom) */
-	kuid_t size;				/**< Its own size estimate */
+	guint64 size;				/**< Its own size estimate */
 };
 
 /**
@@ -1096,6 +1122,8 @@ dht_attempt_bootstrap(void)
 void
 dht_initialize(gboolean post_init)
 {
+	size_t i;
+
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT initializing (%s init)",
 			post_init ? "post" : "first");
@@ -1116,7 +1144,11 @@ dht_initialize(gboolean post_init)
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +1);
 	stats.leaves++;
 	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
-	stats.other_size = hash_list_new(other_size_hash, other_size_eq);
+	for (i = 0; i < K_REGIONS; i++) {
+		stats.network[i].others = hash_list_new(other_size_hash, other_size_eq);
+	}
+	stats.lookdata = statx_make_nodata();
+	stats.netdata = statx_make_nodata();
 
 	g_assert(0 == stats.good);
 
@@ -2224,23 +2256,19 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 }
 
 /**
- * Provide an estimation of the size of the DHT based on the information
- * we have in the routing table for nodes close to our KUID.
+ * Given a PATRICIA trie containing the closest nodes we could find relative
+ * to a given KUID, derive an estimation of the DHT size.
  *
- * The size is written in a 160-bit number, which is the maximum size of
- * the network. We use a KUID to hold it, for convenience.
- *
- * This routine is meant to be called periodically to update our own
- * estimate of the DHT size, which is what we report to others.
+ * @param pt		the PATRICIA trie holding the lookup path
+ * @param kuid		the KUID that was looked for
+ * @param amount	the amount of k-closest nodes they wanted
  */
-void
-dht_update_size_estimate(void)
+static guint64
+dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 {
-	knode_t **kvec;
-	int kcnt;
-	patricia_t *pt;
 	patricia_iter_t *iter;
-	int i;
+	size_t i;
+	size_t count;
 	guint32 squares = 0;
 	kuid_t *id;
 	kuid_t dsum;
@@ -2248,13 +2276,11 @@ dht_update_size_estimate(void)
 	kuid_t sparseness;
 	kuid_t r;
 	kuid_t max;
+	kuid_t estimate;
 
-#define NCNT	(5 * KDA_K)		/* 100 closest nodes */
+#define NCNT	K_LOCAL_ESTIMATE
 
-	if (!GNET_PROPERTY(enable_dht))
-		return;
-
-	stats.last_size_estimate = tm_time();
+	count = patricia_count(pt);
 
 	/*
 	 * Here is the algorithm used to compute the size estimate.
@@ -2274,61 +2300,50 @@ dht_update_size_estimate(void)
 	 * The DHT size is then estimated by 2^160 / (D/S).
 	 */
 
-	kvec = walloc(NCNT * sizeof(knode_t *));
-	kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, TRUE);
-	pt = patricia_create(KUID_RAW_BITSIZE);
-
-	/*
-	 * Normally the DHT size estimation is done on alive nodes but after
-	 * startup, we may not have enough alive nodes in the routing table,
-	 * so use "zombies" to perform our initial computations, until we get
-	 * to know enough hosts.
-	 */
-
-	if (kcnt < NCNT)
-		kcnt = dht_fill_closest(our_kuid, kvec, NCNT, NULL, FALSE);
-
-	if (0 == kcnt) {
-		kuid_zero(&stats.size_estimate);
-		kuid_set_nth_bit(&stats.size_estimate, 0);		/* 1 node: ourselves */
-		goto done;
-	}
-
-	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
-	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
-
-	for (i = 0; i < kcnt; i++) {
-		knode_t *kn = kvec[i];
-		patricia_insert(pt, kn->id, kn);
-	}
-
-	g_assert(patricia_count(pt) == UNSIGNED(kcnt));
-
-	iter = patricia_metric_iterator(pt, our_kuid, TRUE);
+	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
 	i = 1;
 	kuid_zero(&dsum);
 	kuid_zero(&max);
 	kuid_not(&max);			/* Max amount: 2^160 - 1 */
 
+	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
+	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
+
 	while (patricia_iter_next(iter, (gpointer) &id, NULL, NULL)) {
 		kuid_t di;
 		gboolean saturated = FALSE;
 
-		kuid_xor_distance(&di, id, our_kuid);
+		kuid_xor_distance(&di, id, kuid);
+
+		/*
+		 * If any of these operations report a carry, then we're saturating
+		 * and it's time to leave our computations: the hosts are too sparse
+		 * and the distance is getting too large.
+		 */
+
 		if (0 != kuid_mult_u8(&di, i)) {
-			saturated = TRUE;		/* Carry => saturation: hosts too sparse */
-			kuid_copy(&dsum, &max);
-		} else {
-			kuid_add(&dsum, &di);
+			saturated = TRUE;
+		} else if (kuid_add(&dsum, &di)) {
+			saturated = TRUE;
 		}
+
 		squares += i * i;			/* Can't overflow due to static assert */
 		i++;
-		if (saturated)
+
+		if (saturated) {
+			kuid_copy(&dsum, &max);
 			break;		/* DHT size too small or incomplete routing table */
+		}
+		if (i > NCNT)
+			break;		/* Have collected enough nodes, more could overflow */
+		if (i > UNSIGNED(amount))
+			break;		/* Reaching not-so-close nodes in trie, abort */
 	}
 	patricia_iterator_release(&iter);
 
-	g_assert(i - 1 <= kcnt);
+	g_assert(i - 1 <= count);
+
+#undef NCNT
 
 	kuid_set32(&sq, squares);
 	kuid_divide(&dsum, &sq, &sparseness, &r);
@@ -2337,6 +2352,9 @@ dht_update_size_estimate(void)
 		double ds = kuid_to_double(&dsum);
 		double s = kuid_to_double(&sq);
 
+		g_message("DHT target KUID is %s (%d node%s wanted, %u used)",
+			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
+			(unsigned) (i - 1));
 		g_message("DHT dsum is %s = %lf", kuid_to_hex_string(&dsum), ds);
 		g_message("DHT squares is %s = %lf (%d)",
 			kuid_to_hex_string(&sq), s, squares);
@@ -2349,50 +2367,297 @@ dht_update_size_estimate(void)
 	/*
 	 * We can't divide 2^160 by the sparseness because we can't represent
 	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
-	 * won't make much of a difference, and we add one for ourselves.
+	 * won't make much of a difference, and we add one.
 	 */
 
-	kuid_divide(&max, &sparseness, &stats.size_estimate, &r);
-	kuid_add_u8(&stats.size_estimate, 1);
+	kuid_divide(&max, &sparseness, &estimate, &r);
+	kuid_add_u8(&estimate, 1);
 
-	/* FALL THROUGH */
+	return kuid_to_guint64(&estimate);
+}
 
-done:
+/**
+ * Report DHT size estimate through property.
+ */
+static void
+report_estimated_size(void)
+{
+	guint64 size = dht_size();
+
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT final size estimate is %s = %lf",
-			kuid_to_hex_string(&stats.size_estimate),
-			kuid_to_double(&stats.size_estimate));
+		g_message("DHT averaged global size estimate: %s "
+			"(%d local, %d remote)",
+			uint64_to_string(size), 1 + statx_n(stats.lookdata),
+			statx_n(stats.netdata));
 	}
 
-	wfree(kvec, NCNT * sizeof(knode_t *));
-	patricia_destroy(pt);
+	gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE, size);
+}
 
-#undef NCNT
+/**
+ * Update cached size estimate average, taking into account our local estimate
+ * plus the other recent estimates made on other parts of the KUID space.
+ */
+static void
+update_cached_size_estimate(void)
+{
+	time_t now = tm_time();
+	int i;
+	int count = 0;
+	guint64 estimate = 0;
+	int n;
+	guint64 min = 0;
+	guint64 max = MAX_INT_VAL(guint64);
+
+	n = statx_n(stats.lookdata);
+	if (n > 1) {
+		guint64 sdev = (guint64) statx_sdev(stats.lookdata);
+		guint64 avg = (guint64) statx_avg(stats.lookdata);
+		if (2 * sdev < avg)
+			min = avg - 2 * sdev;
+		max = avg + 2 * sdev;
+	}
+
+	for (i = 0; i < K_REGIONS; i++) {
+		if (delta_time(now, stats.lookups[i].computed) <= ESTIMATE_LIFE) {
+			guint64 val = stats.lookups[i].estimate;
+			if (val >= min && val <= max) {
+				estimate += val;
+				count++;
+			}
+		}
+	}
+
+	/*
+	 * We give as much weight to our local estimate as we give to the other
+	 * collected data from different lookups on different parts of the
+	 * KUID space because we know the subtree closest to our KUID in a much
+	 * deeper and complete way, and thuse we can use much more nodes to
+	 * compute that local estimate.
+	 *
+	 * We still need to average with other parts of the KUID space because
+	 * we could be facing a density anomaly in the KUID space around our node.
+	 */
+
+	estimate += stats.local.estimate;
+	count++;
+	estimate /= count;
+
+	stats.average.estimate = estimate;
+	stats.average.computed = now;
+	stats.average.amount = K_LOCAL_ESTIMATE;
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT cached average local size estimate is %s "
+			"(%d point%s, skipped %d)",
+			uint64_to_string2(stats.average.estimate),
+			count, 1 == count ? "" : "s", n + 1 - count);
+		if (n > 1) {
+			g_message(
+				"DHT collected average is %.0lf (%d points), sdev = %.2lf",
+				statx_avg(stats.lookdata), n, statx_sdev(stats.lookdata));
+		}
+	}
+
+	report_estimated_size();
+}
+
+/**
+ * After a node lookup for some KUID, see whether we have a recent-enough
+ * DHT size estimate for that part of the ID space, and possibly recompute
+ * one if it had expired.
+ *
+ * @param pt		the PATRICIA trie holding the lookup path
+ * @param kuid		the KUID that was looked for
+ * @param amount	the amount of k-closest nodes they wanted
+ */
+void
+dht_update_subspace_size_estimate(
+	patricia_t *pt, const kuid_t *kuid, int amount)
+{
+	guint8 subspace;
+	time_t now = tm_time();
+	guint64 estimate;
+	size_t kept;
+
+	/*
+	 * See whether we have to trim some nodes (among the furthest).
+	 *
+	 * Trim the last KDA_ALPHA nodes in the path, since they could be
+	 * the furthest ones (the first we queried).
+	 */
+
+	kept = patricia_count(pt);
+	if (kept > KDA_ALPHA)
+		kept -= KDA_ALPHA;
+	if (kept > UNSIGNED(amount))
+		kept = amount;
+
+	if (kept < MIN_ESTIMATE_NODES)
+		return;
+
+	/*
+	 * If we have recently updated an estimation for this subspace, return
+	 * unless we have more data in the results (estimate will be more precise).
+	 */
+
+	subspace = kuid_leading_u8(kuid);
+
+	STATIC_ASSERT(sizeof(guint8) == sizeof subspace);
+	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(guint8));
+
+	if (delta_time(now, stats.lookups[subspace].computed) < ALIVENESS_PERIOD) {
+		if (kept <= stats.lookups[subspace].amount)
+			return;
+	}
+
+	estimate = dht_compute_size_estimate(pt, kuid, kept);
+
+	if (stats.lookups[subspace].computed != 0)
+		statx_remove(stats.lookdata, (double) stats.lookups[subspace].estimate);
+
+	stats.lookups[subspace].estimate = estimate;
+	stats.lookups[subspace].computed = now;
+	stats.lookups[subspace].amount = kept;
+
+	statx_add(stats.lookdata, (double) estimate);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT subspace %02x estimate is %s (over %u/%d nodes)",
+			subspace, uint64_to_string(estimate), (unsigned) kept, amount);
+	}
+
+	update_cached_size_estimate();
+}
+
+/**
+ * Periodic cleanup of expired size estimates.
+ */
+static void
+dht_expire_size_estimates(void)
+{
+	time_t now = tm_time();
+	int i;
+
+	for (i = 0; i < K_REGIONS; i++) {
+		time_t stamp;
+
+		stamp = stats.lookups[i].computed;
+		if (stamp != 0 && delta_time(now, stamp) >= ESTIMATE_LIFE) {
+			statx_remove(stats.lookdata, (double) stats.lookups[i].estimate);
+			stats.lookups[i].computed = 0;
+
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT expired subspace %02x local size estimate", i);
+		}
+
+		stamp = stats.network[i].updated;
+		if (stamp != 0 && delta_time(now, stamp) >= ESTIMATE_LIFE) {
+			hash_list_t *hl = stats.network[i].others;
+
+			while (hash_list_length(hl) > 0) {
+				struct other_size *old = hash_list_remove_head(hl);
+				statx_remove(stats.netdata, (double) old->size);
+				other_size_free(old);
+			}
+			stats.network[i].updated = 0;
+
+			if (GNET_PROPERTY(dht_debug))
+				g_message("DHT expired subspace %02x remote size estimates", i);
+		}
+	}
+}
+
+/**
+ * Provide an estimation of the size of the DHT based on the information
+ * we have in the routing table for nodes close to our KUID.
+ *
+ * The size is written in a 160-bit number, which is the maximum size of
+ * the network. We use a KUID to hold it, for convenience.
+ *
+ * This routine is meant to be called periodically to update our own
+ * estimate of the DHT size, which is what we report to others.
+ */
+void
+dht_update_size_estimate(void)
+{
+	knode_t **kvec;
+	int kcnt;
+	patricia_t *pt;
+	guint64 estimate;
+	gboolean alive = TRUE;
+
+	if (!GNET_PROPERTY(enable_dht))
+		return;
+
+	kvec = walloc(K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	kcnt = dht_fill_closest(our_kuid, kvec, K_LOCAL_ESTIMATE, NULL, TRUE);
+	pt = patricia_create(KUID_RAW_BITSIZE);
+
+	/*
+	 * Normally the DHT size estimation is done on alive nodes but after
+	 * startup, we may not have enough alive nodes in the routing table,
+	 * so use "zombies" to perform our initial computations, until we get
+	 * to know enough hosts.
+	 */
+
+	if (kcnt < K_LOCAL_ESTIMATE) {
+		kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
+		if (kcnt < KDA_K) {
+			alive = FALSE;
+			kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, FALSE);
+		}
+	}
+
+	if (0 == kcnt) {
+		estimate = 1;		/* 1 node: ourselves */
+	} else {
+		int i;
+
+		for (i = 0; i < kcnt; i++) {
+			knode_t *kn = kvec[i];
+			patricia_insert(pt, kn->id, kn);
+		}
+
+		g_assert(patricia_count(pt) == UNSIGNED(kcnt));
+
+		estimate = dht_compute_size_estimate(pt, our_kuid, kcnt);
+	}
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT local size estimate is %s (using %d %s nodes)",
+			uint64_to_string(estimate), kcnt,
+			alive ? "alive" : "possibly zombie");
+	}
+
+	stats.local.computed = tm_time();
+	stats.local.estimate = estimate;
+	stats.local.amount = K_LOCAL_ESTIMATE;
+
+	wfree(kvec, K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	patricia_destroy(pt);
 
 	/*
 	 * Update statistics.
 	 */
 
-	{
-		guint64 size = dht_size();
-
-		if (GNET_PROPERTY(dht_debug)) {
-			g_message("DHT averaged global size estimate: %s over %u points",
-				uint64_to_string(size),
-				1 + hash_list_length(stats.other_size));
-		}
-
-		gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE, size);
-	}
+	dht_expire_size_estimates();
+	update_cached_size_estimate();
 }
 
 /**
- * Get current DHT size estimate.
+ * Get our current DHT size estimate, which we propagate to others in PONGs.
  */
 const kuid_t *
 dht_get_size_estimate(void)
 {
-	return &stats.size_estimate;
+	static kuid_t size_estimate;
+
+	if (stats.average.computed == 0)
+		dht_update_size_estimate();
+
+	kuid_set64(&size_estimate, stats.average.estimate);
+	return &size_estimate;
 }
 
 /**
@@ -2401,31 +2666,49 @@ dht_get_size_estimate(void)
 void
 dht_record_size_estimate(knode_t *kn, kuid_t *size)
 {
+	guint8 subspace;
 	struct other_size *os;
 	gconstpointer key;
 	struct other_size *data;
+	hash_list_t *hl;
+	guint64 estimate;
 
 	knode_check(kn);
 	g_assert(size);
 
+	STATIC_ASSERT(sizeof(guint8) == sizeof subspace);
+	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(guint8));
+
+	subspace = kuid_leading_u8(kn->id);
+	hl = stats.network[subspace].others;
+	estimate = kuid_to_guint64(size);
+
 	os = walloc(sizeof *os);
 	os->id = kuid_get_atom(kn->id);
 
-	if (hash_list_contains(stats.other_size, os, &key)) {
+	if (hash_list_contains(hl, os, &key)) {
 		/* This should happen only infrequently */
 		other_size_free(os);
 		data = deconstify_gpointer(key);
-		kuid_copy(&data->size, size);
-		hash_list_moveto_tail(stats.other_size, key);
+		if (data->size != estimate) {
+			statx_remove(stats.netdata, (double) data->size);
+			data->size = estimate;
+			statx_add(stats.netdata, (double) estimate);
+		}
+		hash_list_moveto_tail(hl, key);
 	} else {
 		/* Common case: no stats recorded from this node yet */
-		while (hash_list_length(stats.other_size) >= K_OTHER_SIZE) {
-			struct other_size *old = hash_list_remove_head(stats.other_size);
+		while (hash_list_length(hl) >= K_OTHER_SIZE) {
+			struct other_size *old = hash_list_remove_head(hl);
+			statx_remove(stats.netdata, (double) old->size);
 			other_size_free(old);
 		}
-		kuid_copy(&os->size, size);
-		hash_list_append(stats.other_size, os);
+		os->size = estimate;
+		statx_add(stats.netdata, (double) estimate);
+		hash_list_append(hl, os);
 	}
+
+	stats.network[subspace].updated = tm_time();
 }
 
 /**
@@ -2435,26 +2718,9 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 guint64
 dht_size(void)
 {
-	hash_list_iter_t *iter;
-	int count = 0;
-	guint64 size = 0;
-
-	if (stats.last_size_estimate == 0)
-		dht_update_size_estimate();
-
-	iter = hash_list_iterator(stats.other_size);
-	while (hash_list_iter_has_next(iter)) {
-		const struct other_size *item;
-
-		item = hash_list_iter_next(iter);
-		count++;
-		size += kuid_to_guint64(&item->size);
-	}
-	hash_list_iter_release(&iter);
-
-	size += kuid_to_guint64(&stats.size_estimate);
-
-	return size / (count + 1);
+	return statx_n(stats.netdata) > 0 ?
+		(3 * stats.average.estimate + statx_avg(stats.netdata)) / 4 :
+		stats.average.estimate;
 }
 
 /**
@@ -2929,6 +3195,8 @@ other_size_free_cb(gpointer other_size, gpointer unused_data)
 void
 dht_close(void)
 {
+	size_t i;
+
 	/*
 	 * If the DHT was never initialized, there's nothing to close.
 	 */
@@ -2957,10 +3225,15 @@ dht_close(void)
 	recursively_apply(root, dht_free_bucket, NULL);
 	root = NULL;
 	kuid_atom_free_null(&our_kuid);
-	if (stats.other_size) {
-		hash_list_foreach(stats.other_size, other_size_free_cb, NULL);
-		hash_list_free(&stats.other_size);
+
+	for (i = 0; i < K_REGIONS; i++) {
+		hash_list_t *hl = stats.network[i].others;
+		if (hl)
+			hash_list_foreach(hl, other_size_free_cb, NULL);
+		hash_list_free(&stats.network[i].others);
 	}
+	statx_free(stats.lookdata);
+	statx_free(stats.netdata);
 
 	memset(&stats, 0, sizeof stats);		/* Clear all stats */
 	boot_status = BOOT_NONE;

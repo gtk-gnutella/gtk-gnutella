@@ -45,6 +45,7 @@
 #include "if/dht/dht.h"
 
 #include "lib/host_addr.h"
+#include "lib/patricia.h"
 #include "lib/vendors.h"
 
 #define K_BUCKET_GOOD		KDA_K	/* Keep k good contacts per k-bucket */
@@ -95,6 +96,8 @@ void dht_node_timed_out(knode_t *kn);
 
 void dht_lookup_notify(const kuid_t *id);
 void dht_verify_node(knode_t *kn, knode_t *new);
+void dht_update_subspace_size_estimate(
+	patricia_t *pt, const kuid_t *kuid, int amount);
 
 #endif /* _dht_routing_h_ */
 
