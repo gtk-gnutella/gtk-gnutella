@@ -780,6 +780,10 @@ guint32  gnet_property_variable_local_addr_debug     = 0;
 static const guint32  gnet_property_variable_local_addr_debug_default = 0;
 gboolean gnet_property_variable_dump_transmitted_gnutella_packets     = FALSE;
 static const gboolean gnet_property_variable_dump_transmitted_gnutella_packets_default = FALSE;
+guint32  gnet_property_variable_mq_tcp_debug     = 0;
+static const guint32  gnet_property_variable_mq_tcp_debug_default = 0;
+guint32  gnet_property_variable_mq_udp_debug     = 0;
+static const guint32  gnet_property_variable_mq_udp_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7207,6 +7211,46 @@ gnet_prop_init(void) {
     gnet_property->props[336].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[336].data.boolean.def   = (void *) &gnet_property_variable_dump_transmitted_gnutella_packets_default;
     gnet_property->props[336].data.boolean.value = (void *) &gnet_property_variable_dump_transmitted_gnutella_packets;
+
+
+    /*
+     * PROP_MQ_TCP_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[337].name = "mq_tcp_debug";
+    gnet_property->props[337].desc = _("Debug level the TCP message queues");
+    gnet_property->props[337].ev_changed = event_new("mq_tcp_debug_changed");
+    gnet_property->props[337].save = TRUE;
+    gnet_property->props[337].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[337].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[337].data.guint32.def   = (void *) &gnet_property_variable_mq_tcp_debug_default;
+    gnet_property->props[337].data.guint32.value = (void *) &gnet_property_variable_mq_tcp_debug;
+    gnet_property->props[337].data.guint32.choices = NULL;
+    gnet_property->props[337].data.guint32.max   = 20;
+    gnet_property->props[337].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_MQ_UDP_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[338].name = "mq_udp_debug";
+    gnet_property->props[338].desc = _("Debug level for the UDP message queue.");
+    gnet_property->props[338].ev_changed = event_new("mq_udp_debug_changed");
+    gnet_property->props[338].save = TRUE;
+    gnet_property->props[338].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[338].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[338].data.guint32.def   = (void *) &gnet_property_variable_mq_udp_debug_default;
+    gnet_property->props[338].data.guint32.value = (void *) &gnet_property_variable_mq_udp_debug;
+    gnet_property->props[338].data.guint32.choices = NULL;
+    gnet_property->props[338].data.guint32.max   = 20;
+    gnet_property->props[338].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

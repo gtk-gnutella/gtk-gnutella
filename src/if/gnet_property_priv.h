@@ -385,6 +385,8 @@ extern const guint32  gnet_property_variable_local_addr_cache_max_hosts;
 extern const guint32  gnet_property_variable_local_addr_cache_max_time;
 extern const guint32  gnet_property_variable_local_addr_debug;
 extern const gboolean gnet_property_variable_dump_transmitted_gnutella_packets;
+extern const guint32  gnet_property_variable_mq_tcp_debug;
+extern const guint32  gnet_property_variable_mq_udp_debug;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -3929,4 +3929,26 @@ prop = {
 	};
 };
 
+prop = {
+	name = "mq_tcp_debug";
+	desc = "Debug level the TCP message queues";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "mq_udp_debug";
+	desc = "Debug level for the UDP message queue.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */
