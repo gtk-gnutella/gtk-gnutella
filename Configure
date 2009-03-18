@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Mar 18 20:50:15 CET 2009 [metaconfig 3.5-25]
+# Generated on Wed Mar 18 21:31:50 CET 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -8684,6 +8684,7 @@ main("This is not C")
 	switch (**1) { case 1: case 1: }
 }
 EOC
+			result=''
 			set result
 			eval $trylink
 	

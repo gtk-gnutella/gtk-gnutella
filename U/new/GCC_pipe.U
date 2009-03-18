@@ -38,6 +38,8 @@ main("This is not C")
 	switch (**1) { case 1: case 1: }
 }
 EOC
+?X: trylink could "Whoa there" if we do not reset this variable
+			result=''
 			set result
 			eval $trylink
 	
