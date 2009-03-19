@@ -2642,7 +2642,7 @@ lookup_find_value(
 	g_assert(ok);		/* Pointless to request a value without this */
 
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
-	nl->amount = KDA_ALPHA / 2;	/* We want lo locate 1/2 of the k-closest */
+	nl->amount = KDA_K / 2;		/* We want to locate 1/2 of the k-closest */
 	nl->u.fv.ok = ok;
 	nl->u.fv.vtype = type;
 	nl->mode = LOOKUP_LOOSE;	/* Converge quickly */
