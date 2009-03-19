@@ -3902,7 +3902,9 @@ nparams=$#;
 echo "--- $var ---" >> "$file";
 $cat try.c >> "$file";
 while :; do
-	if $cc $ccflags -o try try.c $ldflags $1 >> "$file" 2>&1; then
+	$rm -rf check.*;
+	$cat try.c > check.c;
+	if $cc $ccflags -o check.out check.c $ldflags $1 >> "$file" 2>&1; then
 		case "$nparams" in 0) ;; *) echo "==> OK with \"$1\"" >> "$file";; esac;
 		val=$define;
 		break;
@@ -3913,7 +3915,7 @@ while :; do
 	echo "==> FAILED with \"$1\"" >> "$file";
 	shift;
 done;
-$rm -rf try try.*;
+$rm -rf try.c check.*;
 echo "==> $var=$val" >> "$file";
 set $var; eval $setvar;
 '
