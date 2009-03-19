@@ -87,12 +87,13 @@ SRC = \
 	knode.c \
 	kuid.c \
 	lookup.c \
+	publish.c \
 	routing.c \
 	rpc.c \
 	token.c \
-	values.c \
 	storage.c \
-	ulq.c
+	ulq.c \
+	values.c
 
 OBJ = \
 	acct.o \
@@ -101,12 +102,13 @@ OBJ = \
 	knode.o \
 	kuid.o \
 	lookup.o \
+	publish.o \
 	routing.o \
 	rpc.o \
 	token.o \
-	values.o \
 	storage.o \
-	ulq.o 
+	ulq.o \
+	values.o 
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
