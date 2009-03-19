@@ -362,15 +362,17 @@ handle_features_supported(struct gnutella_node *n,
 	guint16 count;
 
 	if (NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u over UDP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
+		if (GNET_PROPERTY(vmsg_debug)) {
+			g_warning("got %s/%uv%u over UDP via %s, ignoring",
+				vendor_code_to_string(vmsg->vendor),
+				vmsg->id, vmsg->version, node_addr(n));
+		}
 		return;
 	}
 
 	count = peek_le16(payload);
 
-	if (GNET_PROPERTY(vmsg_debug))
+	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_message("VMSG node %s <%s> supports %u extra feature%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
@@ -393,7 +395,7 @@ handle_features_supported(struct gnutella_node *n,
 		version = peek_le16(&description[4]);
 		description += 6;
 
-		if (GNET_PROPERTY(vmsg_debug) > 1)
+		if (GNET_PROPERTY(vmsg_debug) > 2)
 			g_message("VMSG node %s <%s> supports feature %s/%u",
 				node_addr(n), node_vendor(n),
 				feature, version);
@@ -725,7 +727,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 		 */
 
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("Could not find matching search");
+			g_warning("VMSG could not find matching search");
 		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
 	} else {
@@ -946,7 +948,7 @@ extract_token(const char *data, size_t size, char token[MAX_OOB_TOKEN_SIZE])
 
 			if (len < 1) {
 				if (GNET_PROPERTY(vmsg_debug))
-					g_warning("Empty GGEP \"SO\"");
+					g_warning("empty GGEP \"SO\"");
 			} else if (len > MAX_OOB_TOKEN_SIZE) {
 				if (GNET_PROPERTY(vmsg_debug))
 					g_warning("GGEP \"SO\" too large");
@@ -1816,8 +1818,9 @@ vmsg_send_head_pong_v1(struct gnutella_node *n, const struct sha1 *sha1,
 	poke_u8(&payload[0], flags);	/* Update flags */
 	paysize = p - payload;
 
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_message("Sending HEAD Pong to %s (%u bytes)", node_addr(n), paysize);
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
+		g_message("sending HEAD Pong v1 to %s (%u bytes)",
+			node_addr(n), paysize);
 	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
@@ -1930,8 +1933,9 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 	ggep_len = ggep_stream_close(&gs);
 	paysize += ggep_len;
 
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_message("Sending HEAD Pong to %s (%u bytes)", node_addr(n), paysize);
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
+		g_message("sending HEAD Pong v2 to %s (%u bytes)",
+			node_addr(n), paysize);
 	}
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
@@ -2191,9 +2195,9 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
 	if (head_ping_register_own(muid, sha1, n)) {
-		if (GNET_PROPERTY(vmsg_debug)) {
+		if (GNET_PROPERTY(vmsg_debug) > 1) {
 			g_message(
-				"Sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
+				"sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
 					node_addr(n), paysize, sha1_base32(sha1));
 		}
 		vmsg_send_data(n, v_tmp, msgsize);
@@ -2287,8 +2291,8 @@ handle_head_ping(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expect_size))
 		return;
 
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_message("Got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
+		g_message("got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
 			node_addr(n),
@@ -2308,7 +2312,7 @@ handle_head_ping(struct gnutella_node *n,
 		}
 	} else {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("No SHA-1 in HEAD Ping");
+			g_warning("no SHA-1 in HEAD Ping");
 		}
 		return;
 	}
@@ -2328,12 +2332,12 @@ handle_head_ping(struct gnutella_node *n,
 			has_guid = extract_guid(p, p - &payload[1], &guid);
 		}
 		if (has_guid) {
-		   	if (GNET_PROPERTY(vmsg_debug)) {
+		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
 				g_message("HEAD Ping carries GUID %s", guid_hex_str(&guid));
 			}
 		} else {
-		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("No GUID in HEAD Ping");
+		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
+				g_message("no GUID in HEAD Ping");
 			}
 		}
 	}
@@ -2343,13 +2347,13 @@ handle_head_ping(struct gnutella_node *n,
 
 		if (NODE_P_LEAF == GNET_PROPERTY(current_peermode)) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("Not forwarding HEAD Ping as leaf");
+				g_message("not forwarding HEAD Ping as leaf");
 			}
 			return;
 		}
 		if (gnutella_header_get_hops(&n->header) > 0) {
 		   	if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("Not forwarding forwarded HEAD Ping");
+				g_message("not forwarding forwarded HEAD Ping");
 			}
 			return;
 		}
@@ -2365,15 +2369,15 @@ handle_head_ping(struct gnutella_node *n,
 			muid = gnutella_header_get_muid(header);
 
 			if (head_ping_register_forwarded(muid, &sha1, n)) {
-				if (GNET_PROPERTY(vmsg_debug)) {
-					g_message("Forwarding HEAD Ping to %s", node_addr(target));
+				if (GNET_PROPERTY(vmsg_debug) > 1) {
+					g_message("forwarding HEAD Ping to %s", node_addr(target));
 				}
 				gmsg_split_sendto_one(target, header, n->data,
 					GTA_HEADER_SIZE + n->size);
 			}
 		} else {
 			if (GNET_PROPERTY(vmsg_debug)) {
-				g_message("No route found for HEAD Ping");
+				g_message("no route found for HEAD Ping");
 			}
 		}
 	} else {
@@ -2563,9 +2567,9 @@ handle_head_pong_v1(const struct head_ping_source *source,
 		}
 	}
 
-	if (GNET_PROPERTY(vmsg_debug)) {
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_message(
-			"HEAD Pong vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
+			"HEAD Pong v1 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
 			source->ping.sha1 ? "urn:sha1:" : "<unknown hash>",
 			source->ping.sha1 ? sha1_base32(source->ping.sha1) : "",
@@ -2739,7 +2743,8 @@ handle_head_pong_v2(const struct head_ping_source *source,
 				const char *name = ext_ggep_id_str(e);
 
 				if (name[0]) {
-					g_message("HEAD Pong carries unhandled GGEP \"%s\" (%lu byte)",
+					g_message(
+						"HEAD Pong carries unhandled GGEP \"%s\" (%lu byte)",
 						name, (unsigned long) ext_paylen(e));
 				} else {
 					g_message("HEAD Pong carries unknown extra payload");
@@ -2752,9 +2757,9 @@ handle_head_pong_v2(const struct head_ping_source *source,
 		ext_reset(exv, MAX_EXTVEC);
 	}	
 
-	if (GNET_PROPERTY(vmsg_debug)) {
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
 		g_message(
-			"HEAD Pong vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
+			"HEAD Pong v2 vendor=%s, %s%s, result=\"%s%s%s\", queue=%d",
 			vendor,
 			source->ping.sha1 ? "urn:sha1:" : "<unknown hash>",
 			source->ping.sha1 ? sha1_base32(source->ping.sha1) : "",
@@ -2810,8 +2815,8 @@ handle_head_pong(struct gnutella_node *n,
 	if (VMSG_CHECK_SIZE(n, vmsg, size, expected_size))
 		return;
 
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_message("Got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
+	if (GNET_PROPERTY(vmsg_debug) > 1) {
+		g_message("got %s v%u from %s over %s (TTL=%u, hops=%u, size=%lu)",
 			vmsg->name,
 			vmsg->version,
 			node_addr(n),
@@ -2882,7 +2887,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	count = peek_le16(payload);
 
-	if (GNET_PROPERTY(vmsg_debug))
+	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_message("VMSG node %s <%s> supports %u vendor message%s",
 			node_addr(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
