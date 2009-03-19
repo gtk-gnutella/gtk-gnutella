@@ -729,12 +729,13 @@ values_has_expired(guint64 dbkey, time_t now, time_t *expire)
 }
 
 /**
- * Validate that sender and creator agree on other things than just the
- * KUID: they must agree on everything.
+ * Validate that sender and valued's creator agree on other things than
+ * just the KUID: they must agree on everything.
  */
 static gboolean
-validate_creator(const knode_t *sender, const knode_t *creator)
+validate_creator(const knode_t *sender, const dht_value_t *v)
 {
+	const knode_t *creator = v->creator;
 	const char *what;
 
 	if (sender->vcode.u32 != creator->vcode.u32) {
@@ -769,15 +770,18 @@ validate_creator(const knode_t *sender, const knode_t *creator)
 
 mismatch:
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE %s mismatch between sender %s and creator %s",
-			what, knode_to_string(sender), knode_to_string2(creator));
+		g_message("DHT STORE rejecting \"%s\": "
+			"%s mismatch between sender %s and creator %s",
+			dht_value_to_string(v), what,
+			knode_to_string(sender), knode_to_string2(creator));
 
 	return FALSE;
 
 wrong:
 	if (GNET_PROPERTY(dht_storage_debug))
-		g_message("DHT STORE %s: sender %s and creator %s",
-			what, knode_to_string(sender), knode_to_string2(creator));
+		g_message("DHT STORE rejecting \"%s\": %s: sender %s and creator %s",
+			dht_value_to_string(v), what,
+			knode_to_string(sender), knode_to_string2(creator));
 
 	return FALSE;
 }
@@ -975,7 +979,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 		goto done;
 	}
 
-	if (!validate_creator(kn, cn)) {
+	if (!validate_creator(kn, v)) {
 		reason = "invalid creator";
 		goto done;
 	}
@@ -1063,7 +1067,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 */
 
 		if (kuid_eq(kn->id, cn->id)) {
-			if (!validate_creator(kn, cn)) {
+			if (!validate_creator(kn, v)) {
 				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
 				return STORE_SC_BAD_CREATOR;
 			}
@@ -1128,7 +1132,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		} else {
 			const knode_t *cn = v->creator;
 
-			if (!validate_creator(kn, cn)) {
+			if (!validate_creator(kn, v)) {
 				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
 				return STORE_SC_BAD_CREATOR;
 			}
