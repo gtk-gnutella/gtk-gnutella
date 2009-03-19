@@ -8255,14 +8255,14 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 	g_return_val_if_fail(!n->guid, TRUE);
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-		g_warning("Node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
+		g_warning("node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
 		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
 		goto error;
 	}
 
 	if (guid_eq(guid, &blank_guid)) {
 		if (GNET_PROPERTY(node_debug) > 0) {
-			g_warning("Node %s (%s) uses blank GUID",
+			g_warning("node %s (%s) uses blank GUID",
 				node_addr(n), node_vendor(n));
 		}
 		goto error;
@@ -8270,11 +8270,8 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 
 	owner = node_by_guid(guid);
 	if (owner) {
-		if (
-			GNET_PROPERTY(node_debug) > 0 ||
-			!host_addr_equal(n->addr, owner->addr)
-		) {
-			g_warning("Node %s (%s) uses same GUID as %s (%s)",
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("node %s (%s) uses same GUID as %s (%s)",
 				node_addr(n), node_vendor(n),
 				node_addr2(owner), node_vendor(owner));
 		}
@@ -8863,7 +8860,7 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 				char guid_buf[GUID_HEX_SIZE + 1];
 
 				guid_to_string_buf(guid, guid_buf, sizeof guid_buf);
-				g_warning("Node %s <%s> has GUID %s but used %s",
+				g_warning("node %s <%s> has GUID %s but used %s",
 					guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
 					guid_buf);
 			}
