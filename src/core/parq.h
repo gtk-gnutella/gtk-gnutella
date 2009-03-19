@@ -106,7 +106,6 @@ void parq_upload_upload_got_cloned(struct upload *u, struct upload *cu);
 void parq_upload_force_remove(struct upload *);
 void parq_upload_add(struct upload *);
 void parq_upload_busy(struct upload *, struct parq_ul_queued *);
-void parq_upload_save_queue(void);
 void parq_upload_send_queue_conf(struct upload *);
 
 gboolean parq_ul_id_sent(const struct upload *);
