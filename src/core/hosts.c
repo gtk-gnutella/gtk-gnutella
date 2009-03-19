@@ -109,6 +109,54 @@ host_cmp(gconstpointer v1, gconstpointer v2)
 	return host_eq(v1, v2) ? 0 : 1;
 }
 
+/**
+ * Create a host for given address and port
+ */
+gnet_host_t *
+gnet_host_new(const host_addr_t addr, guint16 port)
+{
+	gnet_host_t *h;
+
+	h = walloc(sizeof *h);
+	gnet_host_set(h, addr, port);
+
+	return h;
+}
+
+/**
+ * Return a duplicate of given host.
+ */
+gnet_host_t *
+gnet_host_dup(const gnet_host_t *h)
+{
+	gnet_host_t *nh;
+
+	nh = walloc(sizeof *nh);
+	*nh = *h;				/* struct copy */
+
+	return nh;
+}
+
+/**
+ * Free host.
+ */
+void
+gnet_host_free(gnet_host_t *h)
+{
+	wfree(h, sizeof *h);
+}
+
+/**
+ * Free host, version suitable for iterators (additional callback arg unused).
+ */
+void
+gnet_host_free_item(gpointer key, gpointer unused_data)
+{
+	gnet_host_t *h = key;
+	(void) unused_data;
+	wfree(h, sizeof *h);
+}
+
 void
 gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 {
@@ -256,15 +304,19 @@ gnet_host_vec_create(gnet_host_t *hvec, int hcnt)
 }
 
 gnet_host_vec_t *
-gnet_host_vec_from_list(const GSList *list)
+gnet_host_vec_from_hash_list(const hash_list_t *hl)
 {
-	const GSList *iter;
+	hash_list_iter_t *iter;
 	gnet_host_vec_t *vec;
 	guint n_ipv6 = 0, n_ipv4 = 0, hcnt;
 
+	if (NULL == hl)
+		return NULL;
+
 	hcnt = 0;
-	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		const gnet_host_t *host = iter->data;
+	iter = hash_list_iterator(hl);
+	while (hash_list_iter_has_next(iter)) {
+		const gnet_host_t *host = hash_list_iter_next(iter);
 
 		switch (gnet_host_get_net(host)) {
 		case NET_TYPE_IPV4:
@@ -280,6 +332,7 @@ gnet_host_vec_from_list(const GSList *list)
 			break;
 		}
 	}
+	hash_list_iter_release(&iter);
 	if (0 == hcnt)
 		return NULL;
 
@@ -297,8 +350,9 @@ gnet_host_vec_from_list(const GSList *list)
 	n_ipv4 = 0;
 	n_ipv6 = 0;
 
-	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		const gnet_host_t *host = iter->data;
+	iter = hash_list_iterator(hl);
+	while (hash_list_iter_has_next(iter)) {
+		const gnet_host_t *host = hash_list_iter_next(iter);
 		host_addr_t addr = gnet_host_get_addr(host);
 		guint16 port = gnet_host_get_port(host);
 		
@@ -321,6 +375,7 @@ gnet_host_vec_from_list(const GSList *list)
 			break;
 		}
 	}
+	hash_list_iter_release(&iter);
 	return vec;
 }
 

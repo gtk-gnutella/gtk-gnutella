@@ -28,6 +28,7 @@
 
 #include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
+#include "lib/hashlist.h"
 #include "lib/list.h"
 #include "lib/slist.h"
 
@@ -90,7 +91,7 @@ struct dl_server {
 	list_t *list[DL_LIST_SZ];	/**< Download lists */
 	const char *vendor;			/**< Remote server vendor string (atom) */
 	const char *hostname;		/**< Remote hostname, if known (atom) */
-	GSList *proxies;		/**< Known push proxies (struct gnutella_host) */
+	hash_list_t *proxies;		/**< Known push proxies (gnet_host_t) */
 	GHashTable *sha1_counts;
 	time_t retry_after;		/**< Time at which we may retry from this host */
 	time_t dns_lookup;		/**< Last DNS lookup for hostname */

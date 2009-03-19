@@ -29,6 +29,7 @@
 #include "common.h"
 
 #include "lib/misc.h"
+#include "lib/hashlist.h"
 #include "lib/vendors.h"
 #include "if/core/nodes.h"
 
@@ -99,7 +100,7 @@ void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
 gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, int hcnt);
-gnet_host_vec_t *gnet_host_vec_from_list(const GSList *);
+gnet_host_vec_t *gnet_host_vec_from_hash_list(const hash_list_t *hl);
 
 /*
  * Result sets `status' flags.

@@ -39,6 +39,11 @@ typedef struct gnutella_host {
 	struct packed_host data;
 } gnet_host_t;
 
+gnet_host_t *gnet_host_new(const host_addr_t addr, guint16 port);
+gnet_host_t *gnet_host_dup(const gnet_host_t *h);
+void gnet_host_free(gnet_host_t *h);
+void gnet_host_free_item(gpointer key, gpointer unused_data);
+
 static inline void
 gnet_host_set(struct gnutella_host *h, const host_addr_t addr, guint16 port)
 {
