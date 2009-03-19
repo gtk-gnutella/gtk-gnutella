@@ -2517,15 +2517,23 @@ dht_update_subspace_size_estimate(
 	if (kept < MIN_ESTIMATE_NODES)
 		return;
 
-	/*
-	 * If we have recently updated an estimation for this subspace, return
-	 * unless we have more data in the results (estimate will be more precise).
-	 */
-
 	subspace = kuid_leading_u8(kuid);
 
 	STATIC_ASSERT(sizeof(guint8) == sizeof subspace);
 	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(guint8));
+
+	/*
+	 * If subspace is that of our KUID, we have more precise information
+	 * in the routing table.
+	 */
+
+	if (kuid_leading_u8(our_kuid) == subspace)
+		return;
+
+	/*
+	 * If we have recently updated an estimation for this subspace, return
+	 * unless we have more data in the results (estimate will be more precise).
+	 */
 
 	if (delta_time(now, stats.lookups[subspace].computed) < ALIVENESS_PERIOD) {
 		if (kept <= stats.lookups[subspace].amount)
