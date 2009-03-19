@@ -69,10 +69,7 @@ RCSID("$Id$")
 #include "keys.h"
 #include "ulq.h"
 #include "kmsg.h"
-#if 0
-/* Not yet */
 #include "publish.h"
-#endif
 
 #include "core/settings.h"
 #include "core/gnet_stats.h"
@@ -1188,10 +1185,7 @@ dht_initialize(gboolean post_init)
 	token_init();
 	keys_init();
 	values_init();
-#if 0
-	/* Not yet */
 	publish_init();
-#endif
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -2047,7 +2041,8 @@ record_node(knode_t *kn, gboolean traffic)
 		if (GNET_PROPERTY(dht_debug))
 			g_warning("DHT rejecting clashing node %s: bears our KUID",
 				knode_to_string(kn));
-		gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
+		if (!is_my_address_and_port(kn->addr, kn->port))
+			gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
 		return;
 	}
 
@@ -3237,10 +3232,7 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
-#if 0
-	/* Not yet */
 	publish_close();
-#endif
 	values_close();
 	keys_close();
 	ulq_close();
