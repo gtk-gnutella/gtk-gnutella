@@ -8,6 +8,13 @@ Bug Fixes:
 - Was not always resuming the interrupted SHA-1 computation of a finished file
   when servent was closed in the middle of processing.
 - Fixed bad range checking test in the download part.
+- Was not paying attention to the "give_server_hostname" property and instead
+  sent "HNAME" GGEP extensions in query hits provided a non-empty name was
+  defined as the "server_hostname".
+- Fixed improper upload slot counting which introduced race conditions,
+  sometimes leading to having more slots used than the configured maximum
+  (in addition to the "quick" upload slots).
+- Prevent occasional crashes at shutdown time, during subsystem cleanups.
 
 Improvements:
 - Refuse to share certain directories: /, $HOME, $GTK_GNUTELLA_DIR, and
@@ -50,6 +57,9 @@ Improvements:
 - Incorrectly encoded Bitzi metadata is translated to Unicode.
 - Browse-host responses are sorted alphanumerically on relative pathnames to
   allow users to relate files together if they don't understand GGEP "PATH".
+- Improved routing of PUSH messages by also looking whether targetted hosts
+  happen to be one of our immediate neighbours.
+- Updated Norwegian Bokmal translation.
 
 Under the hood:
 
@@ -101,6 +111,9 @@ Under the hood:
   HTTP headers.
 - Reject UDP packets from unspecified addresses.
 - Drain more data out of the UDP receive buffer to prevent it from filling up.
+- Strip at most 5 trailing characters from words when building the QRP table,
+  thereby inserting less radices and making the table more sparse.
+- Removed workarounds for dealing with broken 0.96.2 nodes and earlier 0.95.x.
 
 Limitations:
 
