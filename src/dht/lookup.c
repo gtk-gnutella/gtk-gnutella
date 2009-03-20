@@ -80,7 +80,6 @@ struct lookup_id {
 };
 
 static void lookup_iterate(nlookup_t *nl);
-static void lookup_terminate(nlookup_t *nl);
 static void lookup_value_free(nlookup_t *nl, gboolean free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
 static void lookup_value_expired(cqueue_t *unused_cq, gpointer obj);
@@ -185,7 +184,8 @@ struct nlookup {
  */
 #define NL_F_SENDING		(1 << 0)	/**< Currently sending new requests */
 #define NL_F_UDP_DROP		(1 << 1)	/**< UDP message was dropped  */
-#define NL_F_DELAYED		(1 << 2)	/** Iteration has been delayed */
+#define NL_F_DELAYED		(1 << 2)	/**< Iteration has been delayed */
+#define NL_F_COMPLETED		(1 << 3)	/**< Completed, waiting final RPCs */
 
 static const char *
 lookup_id_to_string(const struct lookup_id id)
@@ -572,32 +572,6 @@ lookup_abort(nlookup_t *nl, lookup_error_t error)
 	if (nl->err)
 		(*nl->err)(nl->kuid, error, nl->arg);
 	lookup_free(nl, TRUE);
-}
-
-/**
- * Expiration timeout.
- */
-static void
-lookup_expired(cqueue_t *unused_cq, gpointer obj)
-{
-	nlookup_t *nl = obj;
-
-	(void) unused_cq;
-	lookup_check(nl);
-
-	nl->expire_ev = NULL;
-
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT LOOKUP[%s] %s lookup for %s expired",
-			lookup_id_to_string(nl->lid), lookup_type_to_string(nl->type),
-			kuid_to_hex_string(nl->kuid));
-
-	if (LOOKUP_NODE != nl->type || 0 == patricia_count(nl->path)) {
-		lookup_abort(nl, LOOKUP_E_EXPIRED);
-		return;
-	}
-
-	lookup_terminate(nl);
 }
 
 struct pmsg_info;
@@ -1458,6 +1432,39 @@ lookup_value_not_found(nlookup_t *nl)
 }
 
 /**
+ * Dump a PATRICIA tree, from furthest to closest.
+ */
+static void
+log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
+{
+	size_t count;
+	patricia_iter_t *iter;
+	int i = 0;
+
+	lookup_check(nl);
+
+	count = patricia_count(pt);
+	g_message("DHT LOOKUP[%s] %s contains %lu item%s:",
+		lookup_id_to_string(nl->lid), what, (gulong) count,
+		count == 1 ? "" : "s");
+
+	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
+
+	while (patricia_iter_has_next(iter)) {
+		knode_t *kn = patricia_iter_next_value(iter);
+
+		knode_check(kn);
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 18)
+			g_message("DHT LOOKUP[%s] %s[%d]: %s",
+				lookup_id_to_string(nl->lid), what, i, knode_to_string(kn));
+		i++;
+	}
+
+	patricia_iterator_release(&iter);
+}
+
+/**
  * Lookup is completed: there are no more nodes to query.
  */
 static void
@@ -1473,6 +1480,9 @@ lookup_completed(nlookup_t *nl)
 			lookup_id_to_string(nl->lid), (gulong) path_len,
 			1 == path_len ? "" : "s",
 			closest ? knode_to_string(closest) : "unknown");
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+			log_patricia_dump(nl, nl->path, "path");
 	}
 
 	dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
@@ -1481,6 +1491,49 @@ lookup_completed(nlookup_t *nl)
 		lookup_value_not_found(nl);
 	else
 		lookup_terminate(nl);
+}
+
+/**
+ * Expiration timeout.
+ */
+static void
+lookup_expired(cqueue_t *unused_cq, gpointer obj)
+{
+	nlookup_t *nl = obj;
+
+	(void) unused_cq;
+	lookup_check(nl);
+
+	nl->expire_ev = NULL;
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1)
+		g_message("DHT LOOKUP[%s] %s lookup for %s expired (%s)",
+			lookup_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			kuid_to_hex_string(nl->kuid),
+			(nl->flags & NL_F_COMPLETED) ? "completed" : "incomplete");
+
+	/*
+	 * If we were simply waiting for the final RPCs to come back before
+	 * declaring this lookup complete, then it has succeeded in reaching
+	 * the required amount of closest nodes.
+	 */
+
+	if (nl->flags & NL_F_COMPLETED) {
+		lookup_completed(nl);
+		return;
+	}
+
+	/*
+	 * Lookup going on for too long, and we have not yet found the desired
+	 * amount of closest nodes.
+	 */
+
+	if (LOOKUP_NODE != nl->type || 0 == patricia_count(nl->path)) {
+		lookup_abort(nl, LOOKUP_E_EXPIRED);
+		return;
+	}
+
+	lookup_terminate(nl);
 }
 
 /**
@@ -1536,6 +1589,14 @@ lookup_closest_ok(nlookup_t *nl)
 	lookup_check(nl);
 
 	/*
+	 * If the path length is less than the desired amount of nodes, then
+	 * we can't have the k-closest nodes already.
+	 */
+
+	if (patricia_count(nl->path) < UNSIGNED(nl->amount))
+		return FALSE;
+
+	/*
 	 * Consider the "ball" which contains all the succesfully queried nodes
 	 * plus all the nodes in the shortlist (hence unqueried).
 	 * We say we have enough closest neighbours when, wanting "k" nodes,
@@ -1582,8 +1643,10 @@ log_status(nlookup_t *nl)
 		nl->rpc_timeouts, nl->rpc_bad, nl->rpc_replies);
 	g_message("DHT LOOKUP[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		lookup_id_to_string(nl->lid), nl->bw_incoming, nl->bw_outgoing);
-	g_message("DHT LOOKUP[%s] current closest node: %s",
-		lookup_id_to_string(nl->lid), knode_to_string(nl->closest));
+	g_message("DHT LOOKUP[%s] current %s closest node: %s",
+		lookup_id_to_string(nl->lid),
+		map_contains(nl->queried, nl->closest->id) ? "queried" : "unqueried",
+		knode_to_string(nl->closest));
 }
 
 /**
@@ -2092,6 +2155,8 @@ lookup_rpc_cb(
 	 * the requested amount of closest neighbours, we can end the lookup.
 	 */
 
+	nl->flags &= ~NL_F_COMPLETED;	/* A priori not completed yet */
+
 	if (
 		nl->closest == nl->prev_closest &&
 		lookup_closest_ok(nl)
@@ -2109,6 +2174,12 @@ lookup_rpc_cb(
 		if (0 == nl->rpc_latest_pending)
 			lookup_completed(nl);
 
+		/*
+		 * Flag lookup as completed, in case we time-out the lookup during
+		 * the final wait for the last RPCs.
+		 */
+
+		nl->flags |= NL_F_COMPLETED;	/* For lookup_expired() to check */
 		goto cleanup;
 	}
 
@@ -2209,39 +2280,6 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 			lookup_rpc_cb, rpi, lookup_pmsg_free, pmi);
 		break;
 	}
-}
-
-/**
- * Dump a PATRICIA tree, from furthest to closest.
- */
-static void
-log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
-{
-	size_t count;
-	patricia_iter_t *iter;
-	int i = 0;
-
-	lookup_check(nl);
-
-	count = patricia_count(pt);
-	g_message("DHT LOOKUP[%s] %s contains %lu item%s:",
-		lookup_id_to_string(nl->lid), what, (gulong) count,
-		count == 1 ? "" : "s");
-
-	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
-
-	while (patricia_iter_has_next(iter)) {
-		knode_t *kn = patricia_iter_next_value(iter);
-
-		knode_check(kn);
-
-		if (GNET_PROPERTY(dht_lookup_debug) > 18)
-			g_message("DHT LOOKUP[%s] %s[%d]: %s",
-				lookup_id_to_string(nl->lid), what, i, knode_to_string(kn));
-		i++;
-	}
-
-	patricia_iterator_release(&iter);
 }
 
 /**
@@ -2642,7 +2680,7 @@ lookup_find_value(
 	g_assert(ok);		/* Pointless to request a value without this */
 
 	nl = lookup_create(kuid, LOOKUP_VALUE, error, arg);
-	nl->amount = KDA_K / 2;		/* We want to locate 1/2 of the k-closest */
+	nl->amount = KDA_K;
 	nl->u.fv.ok = ok;
 	nl->u.fv.vtype = type;
 	nl->mode = LOOKUP_LOOSE;	/* Converge quickly */
