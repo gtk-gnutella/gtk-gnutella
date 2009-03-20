@@ -70,7 +70,7 @@ enum magnet_key {
 	MAGNET_KEY_EXACT_SOURCE,		/* eXact Source */
 	MAGNET_KEY_EXACT_TOPIC,			/* eXact Topic */
 	MAGNET_KEY_PARQ_ID,				/* PARQ ID */
-	
+
 	NUM_MAGNET_KEYS
 };
 
@@ -78,14 +78,17 @@ static const struct {
 	const char * const key;
 	const enum magnet_key id;
 } magnet_keys[] = {
+	/* Must be sorted alphabetically */
 	{ "",			MAGNET_KEY_NONE },
 	{ "as",			MAGNET_KEY_ALTERNATE_SOURCE },
 	{ "dn",			MAGNET_KEY_DISPLAY_NAME },
 	{ "kt",			MAGNET_KEY_KEYWORD_TOPIC },
+	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
 	{ "xl",			MAGNET_KEY_EXACT_LENGTH },
 	{ "xs",			MAGNET_KEY_EXACT_SOURCE },
 	{ "xt",			MAGNET_KEY_EXACT_TOPIC },
-	{ "x.parq-id",	MAGNET_KEY_PARQ_ID },
+
+	/* Above line left blank for "!}sort" under vi */
 };
 
 /*
@@ -105,15 +108,20 @@ clear_error_str(const char ***error_str)
 static enum magnet_key
 magnet_key_get(const char *s)
 {
-	guint i;
-
 	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
 	g_assert(s);
+
+#define GET_KEY(i) (magnet_keys[(i)].key)
+#define FOUND(i) G_STMT_START { \
+	return magnet_keys[(i)].id;	\
+	/* NOTREACHED */ \
+} G_STMT_END
+
+	BINARY_SEARCH(const char *, s, G_N_ELEMENTS(magnet_keys), ascii_strcasecmp,
+		GET_KEY, FOUND);
 	
-	for (i = 0; i < G_N_ELEMENTS(magnet_keys); i++) {
-		if (0 == ascii_strcasecmp(magnet_keys[i].key, s))
-			return magnet_keys[i].id;
-	}
+#undef FOUND
+#undef GET_KEY
 
 	return MAGNET_KEY_NONE;
 }
