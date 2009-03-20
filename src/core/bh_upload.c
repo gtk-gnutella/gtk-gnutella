@@ -50,12 +50,12 @@ RCSID("$Id$")
 #include "guid.h"
 #include "version.h"
 
-#include "if/core/hosts.h"
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/array.h"
 #include "lib/header.h"
+#include "lib/gnet_host.h"
 #include "lib/misc.h"
 #include "lib/url.h"
 #include "lib/walloc.h"

@@ -28,7 +28,7 @@
 
 #include "common.h"
 
-#include "if/core/hosts.h"
+#include "lib/host_addr.h"
 
 /*
  * Global Data
@@ -48,15 +48,11 @@ void host_add_semi_pong(const host_addr_t addr, guint16 port);
 void host_shutdown(void);
 void host_close(void);
 
-const char *gnet_host_to_string(const gnet_host_t *h);
-
 void parse_netmasks(const char *value);
 gboolean host_is_nearby(const host_addr_t addr);
 gboolean host_is_valid(const host_addr_t addr, guint16 port);
 gboolean host_address_is_usable(const host_addr_t addr);
 
-guint host_hash(gconstpointer key);
-int host_eq(gconstpointer v1, gconstpointer v2);
-int host_cmp(gconstpointer v1, gconstpointer v2);
-
 #endif /* _core_hosts_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

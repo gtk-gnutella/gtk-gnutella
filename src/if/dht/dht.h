@@ -27,7 +27,7 @@
 #define _if_dht_dht_h_
 
 #include "lib/host_addr.h"
-#include "if/core/hosts.h"
+#include "lib/gnet_host.h"
 
 typedef enum {
 	DHT_MODE_INACTIVE = 0x0,		/**< DHT capable, but not in DHT */

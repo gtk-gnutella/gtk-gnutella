@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 15781 2008-09-02 16:30:18Z rmanfredi $
+# $X-Id: Jmakefile 16065 2009-03-07 07:49:35Z rmanfredi $
 
 LSRC = \
 	adns.c \
@@ -115,6 +115,7 @@ LSRC = \
 	getline.c \
 	getphysmemsize.c \
 	glib-missing.c \
+	gnet_host.c \
 	halloc.c \
 	hashlist.c \
 	hashtable.c \
@@ -192,6 +193,7 @@ LOBJ = \
 	getline.o \
 	getphysmemsize.o \
 	glib-missing.o \
+	gnet_host.o \
 	halloc.o \
 	hashlist.o \
 	hashtable.o \

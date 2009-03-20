@@ -38,8 +38,8 @@
 
 #include "common.h" 
 
+#include "lib/gnet_host.h"
 #include "lib/pmsg.h"
-#include "if/core/hosts.h"
 
 struct rxdriver;
 struct gnutella_node;

@@ -40,9 +40,9 @@
 
 #include "sockets.h"		/* For enum socket_type */
 
+#include "lib/gnet_host.h"
 #include "lib/inputevt.h"
 #include "lib/tm.h"
-#include "if/core/hosts.h"	/* For gnet_host_t */
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 

@@ -46,8 +46,7 @@ RCSID("$Id$")
 #include "hosts.h"
 #include "inet.h"
 
-#include "if/core/hosts.h"
-
+#include "lib/gnet_host.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"

@@ -36,7 +36,7 @@
 #ifndef _if_core_wrap_h_
 #define _if_core_wrap_h_
 
-#include "if/core/hosts.h"
+#include "lib/gnet_host.h"
 
 typedef struct wrap_io {
 	gpointer ctx;

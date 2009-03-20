@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-#include "if/core/hosts.h"
+#include "lib/gnet_host.h"
 
 struct txdrv_ops;
 struct iovec;

@@ -58,7 +58,6 @@ RCSID("$Id$")
 #include "uhc.h"
 #include "version.h"
 
-#include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
 #include "if/dht/kademlia.h"
 #include "if/dht/dht.h"
@@ -66,6 +65,7 @@ RCSID("$Id$")
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/gnet_host.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */

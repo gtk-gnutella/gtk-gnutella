@@ -29,9 +29,9 @@
 #include "common.h"
 
 #include "if/core/guid.h"
-#include "if/core/hosts.h"
 
 #include "lib/host_addr.h"
+#include "lib/gnet_host.h"
 #include "lib/vendors.h"
 
 struct node_id;

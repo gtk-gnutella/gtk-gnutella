@@ -40,7 +40,7 @@
 #include "common.h"
 
 #include "if/core/hcache.h"
-#include "if/core/hosts.h"
+#include "lib/gnet_host.h"
 
 /*
  * Global Functions

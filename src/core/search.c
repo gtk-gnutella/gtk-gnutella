@@ -70,7 +70,6 @@ RCSID("$Id$")
 #include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
-#include "if/core/hosts.h"
 #include "if/bridge/c2ui.h"
 
 #include "lib/array.h"
@@ -78,6 +77,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/gnet_host.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"

@@ -38,8 +38,8 @@
 
 #include "common.h"
 #include "mq.h"
+#include "lib/gnet_host.h"
 #include "lib/pmsg.h"
-#include "if/core/hosts.h"		/* For gnet_host_t */
 
 /*
  * Public interface.

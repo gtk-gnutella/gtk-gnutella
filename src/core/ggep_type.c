@@ -42,11 +42,11 @@ RCSID("$Id$")
 #include "hosts.h"				/* For struct gnutella_host */
 
 #include "lib/endian.h"
+#include "lib/gnet_host.h"
 #include "lib/misc.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
-#include "if/core/hosts.h"
 #include "if/core/search.h"
 
 #include "lib/override.h"		/* Must be the last header included */

@@ -50,12 +50,12 @@ RCSID("$Id$")
 #include "tx_chunk.h"
 #include "tx_link.h"
 
-#include "if/core/hosts.h"
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
 #include "lib/array.h"
+#include "lib/gnet_host.h"
 #include "lib/tigertree.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"

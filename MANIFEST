@@ -491,7 +491,6 @@ src/if/core/filter.h
 src/if/core/gnutella.h
 src/if/core/guid.h
 src/if/core/hcache.h
-src/if/core/hosts.h
 src/if/core/hsep.h
 src/if/core/http.h
 src/if/core/main.h
@@ -599,6 +598,8 @@ src/lib/getphysmemsize.c
 src/lib/getphysmemsize.h
 src/lib/glib-missing.c
 src/lib/glib-missing.h
+src/lib/gnet_host.c
+src/lib/gnet_host.h
 src/lib/halloc.c
 src/lib/halloc.h
 src/lib/hashlist.c

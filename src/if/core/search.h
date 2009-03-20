@@ -49,59 +49,6 @@ enum {
 	SEARCH_F_LOCAL		= 1 << 4	/**< Search in local files */
 };
 
-typedef struct {
-	guint8 data[4 + 2];		/* IPv4 address (BE) + Port (LE) */
-} gnet_ipv4_host_t;
-
-typedef struct {
-	guint8 data[16 + 2];	/* IPv6 address + Port (LE) */
-} gnet_ipv6_host_t;
-
-/*
- * Host vectors held in query hits.
- */
-typedef struct gnet_host_vec {
-	gnet_ipv4_host_t *hvec_v4;	/**< Vector of alternate IPv4 locations */
-	gnet_ipv6_host_t *hvec_v6;	/**< Vector of alternate IPv6 locations */
-	guint8 n_ipv4;				/**< Amount of hosts in IPv4 vector */
-	guint8 n_ipv6;				/**< Amount of hosts in IPv6 vector */
-} gnet_host_vec_t;
-
-static inline int
-gnet_host_vec_count(const gnet_host_vec_t *hvec)
-{
-	return (int) hvec->n_ipv4 + hvec->n_ipv6; 
-}
-
-static inline gnet_host_t
-gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
-{
-	gnet_host_t host;
-	host_addr_t addr;
-	guint16 port;
-
-	g_assert(i < (guint) gnet_host_vec_count(hvec));
-
-	if (i < hvec->n_ipv4) {
-		addr = host_addr_peek_ipv4(hvec->hvec_v4[i].data);
-		port = peek_le16(&hvec->hvec_v4[i].data[4]);
-	} else {
-		i -= hvec->n_ipv4;
-		addr = host_addr_peek_ipv6(hvec->hvec_v6[i].data);
-		port = peek_le16(&hvec->hvec_v6[i].data[16]);
-	}
-
-	gnet_host_set(&host, addr, port);
-	return host;
-}
-
-gnet_host_vec_t *gnet_host_vec_alloc(void);
-void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
-gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
-void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
-gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, int hcnt);
-gnet_host_vec_t *gnet_host_vec_from_hash_list(const hash_list_t *hl);
-
 /*
  * Result sets `status' flags.
  */

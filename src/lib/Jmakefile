@@ -59,6 +59,7 @@ LSRC = \
 	getline.c \
 	getphysmemsize.c \
 	glib-missing.c \
+	gnet_host.c \
 	halloc.c \
 	hashlist.c \
 	hashtable.c \
