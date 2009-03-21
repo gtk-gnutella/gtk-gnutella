@@ -36,9 +36,6 @@
 #define _sbool_h_
 
 #include "common.h"
-#include "lib/fast_assert.h"
-
-/* @note This file is only for inclusion by common.h. */
 
 enum sbool {
 	sbool_false = 0x59976b8fU,
@@ -55,7 +52,7 @@ sbool_get(sbool sb)
 	switch (sb.value) {
 	case sbool_false:	return 0;
 	case sbool_true:	break;
-	default:			RUNTIME_UNREACHABLE();
+	default:			g_assert_not_reached();
 	}
 	return 1;
 }
