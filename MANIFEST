@@ -652,6 +652,8 @@ src/lib/pmsg.h
 src/lib/prop.c
 src/lib/prop.h
 src/lib/sbool.h
+src/lib/sequence.c
+src/lib/sequence.h
 src/lib/sha1.c
 src/lib/sha1.h
 src/lib/slist.c

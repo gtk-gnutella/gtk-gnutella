@@ -83,6 +83,7 @@ LSRC = \
 	pattern.c \
 	pmsg.c \
 	prop.c \
+	sequence.c \
 	sha1.c \
 	slist.c \
 	socket.c \
