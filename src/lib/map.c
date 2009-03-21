@@ -62,12 +62,8 @@ enum map_type {
  */
 struct map {
 	union {
-		struct {
-			GHashTable *ht;
-		} h;
-		struct {
-			patricia_t *pt;
-		} p;
+		GHashTable *ht;
+		patricia_t *pt;
 	} u;
 	enum map_type type;
 };
@@ -87,7 +83,7 @@ map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
 
 	m = walloc(sizeof *m);
 	m->type = MAP_HASH;
-	m->u.h.ht = g_hash_table_new(hash_func, key_eq_func);
+	m->u.ht = g_hash_table_new(hash_func, key_eq_func);
 
 	return m;
 }
@@ -104,7 +100,7 @@ map_create_patricia(size_t keybits)
 
 	m = walloc(sizeof *m);
 	m->type = MAP_PATRICIA;
-	m->u.p.pt = patricia_create(keybits);
+	m->u.pt = patricia_create(keybits);
 
 	return m;
 }
@@ -122,7 +118,7 @@ map_create_from_hash(GHashTable *ht)
 
 	m = walloc(sizeof *m);
 	m->type = MAP_HASH;
-	m->u.h.ht = ht;
+	m->u.ht = ht;
 
 	return m;
 }
@@ -140,7 +136,7 @@ map_create_from_patricia(patricia_t *pt)
 
 	m = walloc(sizeof *m);
 	m->type = MAP_PATRICIA;
-	m->u.p.pt = pt;
+	m->u.pt = pt;
 
 	return m;
 }
@@ -159,7 +155,7 @@ map_switch_to_hash(map_t *m, GHashTable *ht)
 
 	implementation = map_implementation(m);
 	m->type = MAP_HASH;
-	m->u.h.ht = ht;
+	m->u.ht = ht;
 
 	return implementation;
 }
@@ -178,7 +174,7 @@ map_switch_to_patricia(map_t *m, patricia_t *pt)
 
 	implementation = map_implementation(m);
 	m->type = MAP_PATRICIA;
-	m->u.p.pt = pt;
+	m->u.pt = pt;
 
 	return implementation;
 }
@@ -193,10 +189,10 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 
 	switch (m->type) {
 	case MAP_HASH:
-		gm_hash_table_insert_const(m->u.h.ht, key, value);
+		gm_hash_table_insert_const(m->u.ht, key, value);
 		break;
 	case MAP_PATRICIA:
-		patricia_insert(m->u.p.pt, key, value);
+		patricia_insert(m->u.pt, key, value);
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -213,10 +209,10 @@ map_replace(const map_t *m, gconstpointer key, gconstpointer value)
 
 	switch (m->type) {
 	case MAP_HASH:
-		gm_hash_table_replace_const(m->u.h.ht, key, value);
+		gm_hash_table_replace_const(m->u.ht, key, value);
 		break;
 	case MAP_PATRICIA:
-		patricia_insert(m->u.p.pt, key, value);		/* Does replace */
+		patricia_insert(m->u.pt, key, value);		/* Does replace */
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -233,10 +229,10 @@ map_remove(const map_t *m, gconstpointer key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_remove(m->u.h.ht, key);
+		g_hash_table_remove(m->u.ht, key);
 		break;
 	case MAP_PATRICIA:
-		(void) patricia_remove(m->u.p.pt, key);
+		(void) patricia_remove(m->u.pt, key);
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -253,9 +249,9 @@ map_contains(const map_t *m, gconstpointer key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup_extended(m->u.h.ht, key, NULL, NULL);
+		return g_hash_table_lookup_extended(m->u.ht, key, NULL, NULL);
 	case MAP_PATRICIA:
-		return patricia_contains(m->u.p.pt, key);
+		return patricia_contains(m->u.pt, key);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -272,9 +268,9 @@ map_lookup(const map_t *m, gconstpointer key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup(m->u.h.ht, key);
+		return g_hash_table_lookup(m->u.ht, key);
 	case MAP_PATRICIA:
-		return patricia_lookup(m->u.p.pt, key);
+		return patricia_lookup(m->u.pt, key);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -291,9 +287,9 @@ map_count(const map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_size(m->u.h.ht);
+		return g_hash_table_size(m->u.ht);
 	case MAP_PATRICIA:
-		return patricia_count(m->u.p.pt);
+		return patricia_count(m->u.pt);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -311,9 +307,9 @@ map_lookup_extended(const map_t *m, gconstpointer key,
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup_extended(m->u.h.ht, key, okey, oval);
+		return g_hash_table_lookup_extended(m->u.ht, key, okey, oval);
 	case MAP_PATRICIA:
-		return patricia_lookup_extended(m->u.p.pt, key, okey, oval);
+		return patricia_lookup_extended(m->u.pt, key, okey, oval);
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -351,7 +347,7 @@ void map_foreach(const map_t *m, map_cb_t cb, gpointer u)
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_foreach(m->u.h.ht, cb, u);
+		g_hash_table_foreach(m->u.ht, cb, u);
 		break;
 	case MAP_PATRICIA:
 		{
@@ -360,7 +356,7 @@ void map_foreach(const map_t *m, map_cb_t cb, gpointer u)
 			ctx.cb = cb;
 			ctx.u = u;
 
-			patricia_foreach(m->u.p.pt, pat_foreach_wrapper, &ctx);
+			patricia_foreach(m->u.pt, pat_foreach_wrapper, &ctx);
 		}
 		break;
 	case MAP_MAXTYPE:
@@ -402,7 +398,7 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_foreach_remove(m->u.h.ht, cb, u);
+		return g_hash_table_foreach_remove(m->u.ht, cb, u);
 	case MAP_PATRICIA:
 		{
 			struct pat_foreach_remove ctx;
@@ -411,7 +407,7 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 			ctx.u = u;
 
 			return patricia_foreach_remove(
-				m->u.p.pt, pat_foreach_remove_wrapper, &ctx);
+				m->u.pt, pat_foreach_remove_wrapper, &ctx);
 		}
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
@@ -429,9 +425,9 @@ map_implementation(map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return m->u.h.ht;
+		return m->u.ht;
 	case MAP_PATRICIA:
-		return m->u.p.pt;
+		return m->u.pt;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -469,10 +465,10 @@ map_destroy(map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_destroy(m->u.h.ht);
+		g_hash_table_destroy(m->u.ht);
 		break;
 	case MAP_PATRICIA:
-		patricia_destroy(m->u.p.pt);
+		patricia_destroy(m->u.pt);
 		break;
 	case MAP_MAXTYPE:
 		g_assert_not_reached();
