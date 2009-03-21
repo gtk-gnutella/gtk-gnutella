@@ -419,7 +419,7 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
  * Returns the underlying map implementation.
  */
 gpointer
-map_implementation(map_t *m)
+map_implementation(const map_t *m)
 {
 	g_assert(m);
 
