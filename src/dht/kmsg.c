@@ -73,6 +73,12 @@ RCSID("$Id$")
 #define MAX_VALUE_RESPONSE_SIZE	1024	/**< Max message size for VALUE */
 #define MAX_STORE_RESPONSE_SIZE	1024	/**< Max message size for STORE acks */
 
+/**
+ * The typical length of a full FIND_NODE response: 61 bytes of header
+ * plus 666 bytes of payload for a total of 727 bytes.
+ */
+#define KMSG_FOUND_NODE_SIZE	727
+
 typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header,
 	guint8 extlen, const void *payload, size_t len);
@@ -941,6 +947,61 @@ error:
 }
 
 /**
+ * Perform find_node(id) and send back the answer.
+ *
+ * @param n			the node to whom we need to send the response
+ * @param kn		querying node (required to generate the security token)
+ * @param id		the node ID they want to look up
+ * @param muid		the MUID to use in the reply
+ */
+static void
+answer_find_node(struct gnutella_node *n,
+	const knode_t *kn, const kuid_t *id, const guid_t *muid)
+{
+	knode_t *kvec[KDA_K];
+	int cnt;
+	const char *msg = NULL;
+
+	/*
+	 * If the UDP queue is flow controlled already, there's no need to
+	 * bother computing the answer and generating the message since it
+	 * is likely to be dropped by the queue later on.
+	 */
+
+	if (node_udp_is_flow_controlled()) {
+		msg = "is flow-controlled";
+		goto dropped;
+	}
+
+	/*
+	 * If sending the message would cause the UDP queue to flow control,
+	 * then don't bother.  We assume we'll find KDA_K hosts, which is always
+	 * the case in practice as long as we've been looking up our own KUID once.
+	 */
+
+	if (node_udp_would_flow_control(KMSG_FOUND_NODE_SIZE)) {
+		msg = "would flow-control";
+		goto dropped;
+	}
+
+	/*
+	 * OK, perform the lookup and send them the answer.
+	 */
+
+	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
+	k_send_find_node_response(n, kn, kvec, cnt, muid);
+	return;
+
+dropped:
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT ignoring FIND_NODE %s: UDP queue %s",
+			kuid_to_hex_string(id), msg);
+	}
+
+	gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
+}
+
+/**
  * Handle find_node(id) messages.
  */
 static void
@@ -948,8 +1009,6 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header, guint8 extlen,
 	const void *payload, size_t len)
 {
-	knode_t *kvec[KDA_K];
-	int cnt;
 	kuid_t *id = (kuid_t *) payload;
 
 	warn_no_header_extension(kn, header, extlen);
@@ -988,9 +1047,7 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 		return;
 	}
 
-	cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
-	k_send_find_node_response(n,
-		kn, kvec, cnt, kademlia_header_get_muid(header));
+	answer_find_node(n, kn, id, kademlia_header_get_muid(header));
 }
 
 /**
@@ -1230,17 +1287,11 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	if (!keys_exists(id)) {
-		knode_t *kvec[KDA_K];
-		int cnt;
-
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
 			g_message("DHT FETCH %s not found (%s)",
 				kuid_to_hex_string(id), kuid_to_string(id));
 
-		cnt = dht_fill_closest(id, kvec, KDA_K, kn->id, TRUE);
-		k_send_find_node_response(n,
-			kn, kvec, cnt, kademlia_header_get_muid(header));
-
+		answer_find_node(n, kn, id, kademlia_header_get_muid(header));
 		return;
 	}
 
