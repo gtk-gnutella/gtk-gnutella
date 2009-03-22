@@ -947,9 +947,9 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 
 	file = fi_gui_get_file_at_cursor();
 	if (file) {
-		char *magnet = fi_gui_file_get_magnet(file);
+		const char *magnet = fi_gui_file_get_magnet(file);
 		clipboard_set_text(gui_main_window(), magnet);
-		G_FREE_NULL(magnet);
+		G_FREE_NULL_CONST(magnet);
 	}
 }
 
@@ -1097,9 +1097,9 @@ on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 
    	d = fi_gui_get_source_at_cursor();
 	if (d) {
-		char *url = guc_download_build_url(d);
+		const char *url = guc_download_build_url(d);
 		clipboard_set_text(gui_main_window(), url);
-		G_FREE_NULL(url);
+		G_FREE_NULL_CONST(url);
 	}
 }
 
@@ -1264,14 +1264,14 @@ fi_gui_file_get_progress(const struct fileinfo_data *file)
 	return file->progress / 100;
 }
 
-static char *
+static const char *
 fi_gui_file_get_file_url(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
 	return guc_file_info_get_file_url(file->handle);
 }
 
-char *
+const char *
 fi_gui_file_get_magnet(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
@@ -1285,7 +1285,7 @@ fi_gui_file_get_file_url_at_cursor(GtkWidget *unused_widget)
 	
 	(void) unused_widget;
 	file = fi_gui_get_file_at_cursor();
-	return file ? fi_gui_file_get_file_url(file) : NULL;
+	return file ? deconstify_gpointer(fi_gui_file_get_file_url(file)) : NULL;
 }
 
 static struct fileinfo_data *

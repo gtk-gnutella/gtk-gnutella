@@ -123,7 +123,7 @@ void *fi_gui_file_get_user_data(const struct fileinfo_data *);
 
 const char *fi_gui_file_get_filename(const struct fileinfo_data *);
 unsigned fi_gui_file_get_progress(const struct fileinfo_data *);
-char *fi_gui_file_get_magnet(const struct fileinfo_data *);
+const char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 
 gboolean fi_gui_rename(const char *filename);
 

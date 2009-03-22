@@ -6136,13 +6136,13 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
  *
  * @return A newly allocated string.
  */
-char *
+const char *
 file_info_build_magnet(gnet_fi_t handle)
 {
 	struct magnet_resource *magnet;
 	const fileinfo_t *fi;
 	const GSList *sl;
-	char *url;
+	const char *url;
 	int n;
    
 	fi = file_info_find_by_handle(handle);
@@ -6169,7 +6169,7 @@ file_info_build_magnet(gnet_fi_t handle)
 	n = 0;
 	for (sl = fi->sources; NULL != sl && n++ < 20; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		char *dl_url;
+		const char *dl_url;
 
 		download_check(d);
 		dl_url = download_build_url(d);
@@ -6189,7 +6189,7 @@ file_info_build_magnet(gnet_fi_t handle)
  *
  * @return A newly allocated string or NULL.
  */
-char *
+const char *
 file_info_get_file_url(gnet_fi_t handle)
 {
 	fileinfo_t *fi;

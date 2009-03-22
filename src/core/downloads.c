@@ -12058,11 +12058,12 @@ static const char download_file[] = "downloads";
 static const char file_what[] = "downloads"; /**< What is persisted to file */
 static gboolean retrieving = FALSE;
 
-static char *
+static const char *
 download_build_magnet(const struct download *d)
 {
 	const fileinfo_t *fi;
-	char *url, *dl_url;
+	const char *url;
+	const char *dl_url;
    
 	download_check(d);
 
@@ -12096,7 +12097,7 @@ download_build_magnet(const struct download *d)
 			magnet_set_parq_id(magnet, parq_id);
 		}
 		magnet_add_source_by_url(magnet, dl_url);
-		G_FREE_NULL(dl_url);
+		G_FREE_NULL_CONST(dl_url);
 		url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	} else {
@@ -12109,7 +12110,7 @@ download_build_magnet(const struct download *d)
 static void
 download_store_magnet(FILE *f, const struct download *d)
 {
-	char *url;
+	const char *url;
 
 	g_return_if_fail(f);
 	download_check(d);
@@ -12122,7 +12123,7 @@ download_store_magnet(FILE *f, const struct download *d)
 	url = download_build_magnet(d);
 	if (url) {
 		fprintf(f, "%s\n\n", url);
-		G_FREE_NULL(url);
+		G_FREE_NULL_CONST(url);
 	}
 }
 
@@ -13407,55 +13408,53 @@ download_close(void)
 	dl_count_by_name = NULL;
 }
 
-static char *
+static const char *
 download_url_for_uri(const struct download *d, const char *uri)
 {
-	const char *prefix, *hostname = NULL;
+	const char *prefix;
 	char prefix_buf[256];
+	const char *result;
+	const char *host;
+	gboolean free_host = FALSE;
 	host_addr_t addr;
 	guint16 port;
 
 	g_return_val_if_fail(d, NULL);
 	g_return_val_if_fail(uri, NULL);
 	download_check(d);
+	g_assert(dl_server_valid(d->server));
 
-	if (DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push) {
+	addr = download_addr(d);
+	port = download_port(d);
+
+	if (
+		DOWNLOAD_IS_IN_PUSH_MODE(d) || d->always_push ||
+		(!host_is_valid(addr, port) && !guid_is_blank(download_guid(d)))
+	) {
 		char guid_buf[GUID_HEX_SIZE + 1];
 
-		g_assert(dl_server_valid(d->server));
-
-		if (has_push_proxies(d)) {
-			/* Pick the first push-proxy */
-			gnet_host_t *host = hash_list_head(d->server->proxies);
-			addr = gnet_host_get_addr(host);
-			port = gnet_host_get_port(host);
-		} else {
-			addr = download_addr(d);
-			port = download_port(d);
-		}
-
+		host = magnet_proxies_to_string(d->server->proxies);
+		free_host = TRUE;
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
 			"push://", guid_buf, ":", (void *) 0);
 		prefix = prefix_buf;
+	} else if (0 != port && is_host_addr(addr)) {
+		host = host_port_to_string(download_hostname(d), addr, port);
+		prefix = "http://";		/* FIXME: "https:" when TLS is possible? */
 	} else {
-		/* FIXME: "https:" when TLS is possible? */
-
-		addr = download_addr(d);
-		port = download_port(d);
-		hostname = d->server ? d->server->hostname : NULL;
-		prefix = "http://";
-	}
-
-	if (0 == port || !is_host_addr(addr)) {
 		return NULL;
 	}
 
-	if ('/' == uri[0]) {
+	if ('/' == uri[0])
 		uri++;
-	}
-	return g_strconcat(prefix, host_port_to_string(hostname, addr, port),
-				"/", uri, (void *) 0);
+
+	result = g_strconcat(prefix, host, "/", uri, (void *) 0);
+
+	if (free_host)
+		G_FREE_NULL_CONST(host);
+
+	return result;
 }
 
 /**
@@ -13463,10 +13462,10 @@ download_url_for_uri(const struct download *d, const char *uri)
  * browser and download the file there with this URL).
  * @return NULL on failure, an URL string which must be freed with g_free().
  */
-char *
+const char *
 download_build_url(const struct download *d)
 {
-	char *url;
+	const char *url;
 
 	g_return_val_if_fail(d, NULL);
 	download_check(d);
@@ -13979,26 +13978,30 @@ download_handle_magnet(const char *url)
 
 		for (sl = res->sources; sl != NULL; sl = g_slist_next(sl)) {
 			struct magnet_source *ms = sl->data;
-			gnet_host_vec_t *proxy;
+			gnet_host_vec_t *proxies;
 			const struct guid *guid;
 			host_addr_t addr;
 			guint16 port;
 			guint32 flags;
 
 			if (
-				0 == ms->port ||
 				(NULL == ms->path && NULL == res->sha1) ||
-				(NULL == ms->hostname && !is_host_addr(ms->addr))
+				(NULL == ms->guid &&
+					(0 == ms->port ||
+						(NULL == ms->hostname && !is_host_addr(ms->addr)))
+				)
 			) {
-				g_message("Unusable magnet source");
+				char *s = magnet_source_to_string(ms);
+				g_message("unusable magnet source \"%s\"", NULL_STRING(s));
+				G_FREE_NULL(s);
 				continue;
 			}
 
 			flags = SOCK_F_FORCE;
 
 			/*
-			 * Firewalled magnets have a push:// source pointing to the
-			 * first known push proxy.  When retrieving, we lost the
+			 * Firewalled magnets have a push:// source pointing to a
+			 * list of push-proxies.  When retrieving, we lost the
 			 * original IP address of the server, so leave it unspecified.
 			 */
 
@@ -14007,13 +14010,12 @@ download_handle_magnet(const char *url)
 				port = 0;
 				flags |= SOCK_F_PUSH;
 				guid = ms->guid;
-				proxy = gnet_host_vec_alloc();
-				gnet_host_vec_add(proxy, ms->addr, ms->port);
+				proxies = gnet_host_vec_from_gslist(ms->proxies);
 			} else {
 				addr = is_host_addr(ms->addr) ? ms->addr : ipv4_unspecified;
 				port = ms->port;
 				guid = &blank_guid;
-				proxy = NULL;
+				proxies = NULL;
 			}
 
 			download_new(filename,
@@ -14027,11 +14029,11 @@ download_handle_magnet(const char *url)
 				res->tth,
 				tm_time(),
 				NULL,
-				proxy,
+				proxies,
 				flags,
 				res->parq_id);
 			
-			gnet_host_vec_free(&proxy);
+			gnet_host_vec_free(&proxies);
 			n_downloads++;
 		}
 

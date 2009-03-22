@@ -94,9 +94,9 @@ guc_download_auto_new(const char *filename,
 	gnet_host_vec_t *proxies,
 	guint32 flags);
 
-char *guc_download_build_url(const struct download *);
-char *guc_file_info_build_magnet(gnet_fi_t);
-char *guc_file_info_get_file_url(gnet_fi_t);
+const char *guc_download_build_url(const struct download *);
+const char *guc_file_info_build_magnet(gnet_fi_t);
+const char *guc_file_info_get_file_url(gnet_fi_t);
 const char *guc_file_info_status_to_string(const gnet_fi_status_t *);
 int guc_download_get_http_req_percent(const struct download *);
 void guc_download_fallback_to_push(struct download *, gboolean on_timeout,

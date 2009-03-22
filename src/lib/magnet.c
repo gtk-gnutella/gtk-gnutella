@@ -42,7 +42,9 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "atoms.h"
 #include "glib-missing.h"
+#include "gnet_host.h"
 #include "magnet.h"
+#include "sequence.h"
 #include "tm.h"
 #include "url.h"
 #include "urn.h"
@@ -105,6 +107,13 @@ clear_error_str(const char ***error_str)
 	**error_str = NULL;
 }
 
+static void
+free_proxies_list(GSList *sl)
+{
+	g_slist_foreach(sl, gnet_host_free_item, NULL);
+	g_slist_free(sl);
+}
+
 static enum magnet_key
 magnet_key_get(const char *s)
 {
@@ -138,53 +147,20 @@ plus_to_space(char *s)
 }
 
 static struct magnet_source *
-magnet_parse_location(const char *uri, const char **error_str)
+magnet_parse_path(const char *path, const char **error_str)
 {
 	static const struct magnet_source zero_ms;
 	struct magnet_source ms;
-	const char *p, *endptr, *host, *host_end;
+	const char *p, *endptr;
 
 	clear_error_str(&error_str);
-	g_return_val_if_fail(uri, NULL);
+	g_return_val_if_fail(path, NULL);
 
 	ms = zero_ms;
-	p = uri;
-
-	if (!string_to_host_or_addr(p, &endptr, &ms.addr)) {
-		*error_str = "Expected host part";
-		return NULL;
-	}
-
-	if (is_host_addr(ms.addr)) {
-		host = NULL;
-		host_end = NULL;
-	} else {
-		host = p;
-		host_end = endptr;
-	}
-	p += endptr - p;
-
-	if (':' == *p) {
-		const char *ep2;
-		int error;
-		guint16 u;
-
-		p++;
-		u = parse_uint16(p, &ep2, 10, &error);
-		if (error) {
-			*error_str = "TCP port is out of range";
-			/* Skip this parameter */
-			return NULL;
-		}
-
-		ms.port = u;
-		p += ep2 - p;
-	} else {
-		ms.port = 80;
-	}
+	p = path;
 
 	if ('/' != *p) {
-		*error_str = "Expected port followed by '/'";
+		*error_str = "Expected path starting with '/'";
 		/* Skip this parameter */
 		return NULL;
 	}
@@ -204,13 +180,171 @@ magnet_parse_location(const char *uri, const char **error_str)
 		ms.path = atom_str_get(p);
 	}
 
+	return wcopy(&ms, sizeof ms);
+}
+
+static const char *
+magnet_parse_host_port(const char *hostport,
+	host_addr_t *addr, guint16 *port, const char **host, const char **host_end,
+	const char **error_str)
+{
+	const char *p;
+	const char *endptr;
+
+	clear_error_str(&error_str);
+	g_return_val_if_fail(hostport, NULL);
+
+	p = hostport;
+
+	if (!string_to_host_or_addr(p, &endptr, addr)) {
+		*error_str = "Expected host part";
+		return NULL;
+	}
+
+	if (is_host_addr(*addr)) {
+		if (host)     *host = NULL;
+		if (host_end) *host_end = NULL;
+	} else {
+		if (host)     *host = p;
+		if (host_end) *host_end = endptr;
+	}
+	p += endptr - p;
+
+	if (':' == *p) {
+		const char *ep2;
+		int error;
+		guint16 u;
+
+		p++;
+		u = parse_uint16(p, &ep2, 10, &error);
+		if (error) {
+			*error_str = "TCP port is out of range";
+			/* Skip this parameter */
+			return NULL;
+		}
+
+		*port = u;
+		p += ep2 - p;
+	} else {
+		*port = 80;
+	}
+
+	return p;
+}
+
+static struct magnet_source *
+magnet_parse_location(const char *uri, const char **error_str)
+{
+	struct magnet_source *ms;
+	const char *p, *host, *host_end;
+	host_addr_t addr;
+	guint16 port;
+
+	clear_error_str(&error_str);
+	g_return_val_if_fail(uri, NULL);
+
+	p = uri;
+
+	p = magnet_parse_host_port(uri, &addr, &port, &host, &host_end, error_str);
+	if (NULL == p)
+		return NULL;
+
+	ms = magnet_parse_path(p, error_str);
+	if (NULL == ms)
+		return NULL;
+
 	if (host) {
 		char *h = g_strndup(host, host_end - host);
-		ms.hostname = atom_str_get(h);
+		ms->hostname = atom_str_get(h);
 		G_FREE_NULL(h);
 	}
 
-	return wcopy(&ms, sizeof ms);
+	ms->addr = addr;
+	ms->port = port;
+
+	return ms;
+}
+
+static gboolean
+magnet_parse_addr_list(const char *proxies,
+	const char **endptr, GSList **list, const char **error_str)
+{
+	GSList *sl = NULL;
+	const char *p;
+
+	clear_error_str(&error_str);
+	g_return_val_if_fail(proxies, FALSE);
+
+	p = proxies;
+
+	if (*p != '{') {
+		*endptr = p;
+		*error_str = "Expected push-proxies list";
+		return FALSE;
+	}
+
+	p++;
+
+	while (*p != '}') {
+		host_addr_t addr;
+		guint16 port;
+		gnet_host_t *host;
+
+		p = magnet_parse_host_port(p, &addr, &port, NULL, NULL, error_str);
+		if (NULL == p)
+			goto cleanup;
+
+		host = gnet_host_new(addr, port);
+		sl = g_slist_prepend(sl, host);		/* Will reverse list below */
+
+		if (*p == ',')
+			p++;
+	}
+
+	sl = g_slist_reverse(sl);		/* Keep order of listed push-proxies */
+	p++;
+	*endptr = p;
+
+	*list = sl;
+	return TRUE;
+
+cleanup:
+	free_proxies_list(sl);
+	return FALSE;
+}
+
+static struct magnet_source *
+magnet_parse_proxy_location(const char *uri, const char **error_str)
+{
+	struct magnet_source *ms;
+	const char *p, *endptr = NULL;
+	GSList *sl = NULL;
+
+	clear_error_str(&error_str);
+	g_return_val_if_fail(uri, NULL);
+
+	p = uri;
+
+	if (*p != '{')
+		return magnet_parse_location(uri, error_str);
+
+	/*
+	 * We have a list of push-proxies: {addr1:port,addr2:port}.
+	 * The list may be empty if we have no known push proxies.
+	 */
+
+	if (!magnet_parse_addr_list(uri, &endptr, &sl, error_str))
+		return NULL;
+
+	ms = magnet_parse_path(endptr, error_str);
+	if (NULL == ms) {
+		free_proxies_list(sl);
+		return NULL;
+	}
+
+	ms->proxies = sl;		/* Perfectly OK to be NULL */
+
+	return ms;
 }
 
 static struct magnet_source *
@@ -251,7 +385,7 @@ magnet_parse_push_source(const char *uri, const char **error_str)
 	}
 
 	p = &endptr[1];
-	ms = magnet_parse_location(p, error_str);
+	ms = magnet_parse_proxy_location(p, error_str);
 	if (ms) {
 		ms->guid = atom_guid_get(&guid);
 	}
@@ -303,7 +437,7 @@ magnet_handle_key(struct magnet_resource *res,
 			to_free = result;
 		}
 		value = result;
-		g_message("Assuming MAGNET URI key \"%s\" is %s encoded",
+		g_message("assuming MAGNET URI key \"%s\" is %s encoded",
 			name, encoding);
 	}
 
@@ -318,8 +452,9 @@ magnet_handle_key(struct magnet_resource *res,
 	case MAGNET_KEY_EXACT_SOURCE:
 		{
 			struct magnet_source *ms;
+			const char *error;
 
-			ms = magnet_parse_exact_source(value, NULL);
+			ms = magnet_parse_exact_source(value, &error);
 			if (ms) {
 				if (!res->sha1 && ms->sha1) {
 					res->sha1 = atom_sha1_get(ms->sha1);
@@ -329,13 +464,17 @@ magnet_handle_key(struct magnet_resource *res,
 				} else {
 					magnet_source_free(&ms);
 				}
+			} else {
+				g_message("could not parse source \"%s\" in MAGNET URI: %s",
+					value, error);
 			}
 		}
 		break;
 
 	case MAGNET_KEY_EXACT_TOPIC:
 		if (!magnet_set_exact_topic(res, value)) {
-			g_message("MAGNET URI contained unsupported exact topic.");
+			g_message("MAGNET URI contained unsupported exact topic \"%s\"",
+				value);
 		}
 		break;
 
@@ -360,7 +499,7 @@ magnet_handle_key(struct magnet_resource *res,
 		break;
 
 	case MAGNET_KEY_NONE:
-		g_message("Unhandled parameter in MAGNET URI \"%s\"", name);
+		g_message("unhandled parameter in MAGNET URI: \"%s\"", name);
 		break;
 
 	case NUM_MAGNET_KEYS:
@@ -418,7 +557,7 @@ magnet_parse(const char *url, const char **error_str)
 
 		key = magnet_key_get(name);
 		if (MAGNET_KEY_NONE == key) {
-			g_message("Skipping unknown key in MAGNET URI (%s)", name);
+			g_message("skipping unknown key \"%s\" in MAGNET URI", name);
 		} else {
 			char *value;
 			size_t value_len;
@@ -430,7 +569,7 @@ magnet_parse(const char *url, const char **error_str)
 			if (url_unescape(value, TRUE)) {
 				magnet_handle_key(&res, name, value);
 			} else {
-				g_message("Invalidly encoded value in MAGNET URI");
+				g_message("badly encoded value in MAGNET URI: \"%s\"", value);
 			}
 			G_FREE_NULL(value);
 		}
@@ -459,6 +598,10 @@ magnet_source_free(struct magnet_source **ms_ptr)
 		atom_sha1_free_null(&ms->sha1);
 		atom_tth_free_null(&ms->tth);
 		atom_guid_free_null(&ms->guid);
+		if (ms->proxies) {
+			free_proxies_list(ms->proxies);
+			ms->proxies = NULL;
+		}
 		wfree(ms, sizeof *ms);
 		*ms_ptr = NULL;
 	}
@@ -677,8 +820,70 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	*gs_ptr = gs;
 }
 
-static char *
-magnet_source_to_string(struct magnet_source *s)
+static const char *
+proxy_sequence_to_string(const sequence_t *s)
+{
+	GString *gs;
+
+	gs = g_string_new(NULL);
+
+	if (sequence_is_empty(s)) {
+		gs = g_string_append(gs, "{}");
+	} else {
+		sequence_iter_t *iter;
+
+		gs = g_string_append_c(gs, '{');
+
+		iter = sequence_forward_iterator(s);
+		while (sequence_iter_has_next(iter)) {
+			gnet_host_t *host = sequence_iter_next(iter);
+			if (gs->len > 1)
+				gs = g_string_append_c(gs, ',');
+			g_string_append(gs, gnet_host_to_string(host));
+		}
+		sequence_iterator_release(&iter);
+
+		gs = g_string_append_c(gs, '}');
+	}
+
+	return gm_string_finalize(gs);
+}
+
+static const char *
+proxies_to_string(GSList *proxies)
+{
+	sequence_t seq;
+
+	return proxy_sequence_to_string(sequence_fill_from_gslist(&seq, proxies));
+}
+
+/**
+ * Create the string representation of the push-proxies, for inclusion
+ * in the push:// URL.
+ *
+ * @return "{}" if the list is empty or the address NULL; otherwise a
+ * coma-separeted list of IP:port, enclosed in braces.  The returned string
+ * may be freed with g_free().
+ */
+const char *
+magnet_proxies_to_string(hash_list_t *proxies)
+{
+	sequence_t seq;
+
+	if (NULL == proxies)
+		return g_strdup("{}");
+	
+	return proxy_sequence_to_string(
+		sequence_fill_from_hash_list(&seq, proxies));
+}
+
+/**
+ * Convert magnet source to a string representation.
+ *
+ * @return string that must be freed with g_free().
+ */
+char *
+magnet_source_to_string(const struct magnet_source *s)
 {
 	char *url;
 
@@ -687,13 +892,10 @@ magnet_source_to_string(struct magnet_source *s)
 	if (s->url) {
 		url = g_strdup(s->url);
 	} else {
+		const char *proxies = NULL;
 		const char *host, *prefix;
 		char prefix_buf[256];
 		char port_buf[16];
-
-		g_return_val_if_fail(0 != s->port, NULL);
-		g_return_val_if_fail(s->hostname || is_host_addr(s->addr), NULL);
-		g_return_val_if_fail(s->path || s->sha1, NULL);
 
 		if (s->guid) {
 			char guid_buf[GUID_HEX_SIZE + 1];
@@ -713,24 +915,34 @@ magnet_source_to_string(struct magnet_source *s)
 				gm_snprintf(port_buf, sizeof port_buf, ":%u",
 					(unsigned) s->port);
 			}
+		} else if (s->guid) {
+			host = proxies = proxies_to_string(s->proxies);
 		} else {
 			host = host_addr_port_to_string(s->addr, s->port);
 		}
 		if (s->path) {
 			url = g_strconcat(prefix, host, port_buf, s->path, (void *) 0);
-		} else {
-			g_assert(s->sha1);
+		} else if (s->sha1) {
 			url = g_strconcat(prefix, host, port_buf,
 					"/uri-res/N2R?", bitprint_to_urn_string(s->sha1, s->tth),
 					(void *) 0);
+		} else {
+			url = g_strconcat(prefix, host, port_buf, "/", (void *) 0);
 		}
+
+		G_FREE_NULL_CONST(proxies);
 	}
 
 	return url;
 }
 
+/**
+ * Create a string representation of the magnet resource.
+ *
+ * @return a string that must be freed with g_free().
+ */
 char *
-magnet_to_string(struct magnet_resource *res)
+magnet_to_string(const struct magnet_resource *res)
 {
 	GString *gs;
 	GSList *sl;

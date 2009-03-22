@@ -40,6 +40,7 @@
 
 #include "lib/host_addr.h"
 #include "lib/misc.h"
+#include "lib/hashlist.h"
 
 struct magnet_source {
 	const char *url;			/* string atom */
@@ -48,6 +49,7 @@ struct magnet_source {
 	const struct sha1 *sha1;	/* SHA1 atom */
 	const struct tth *tth;		/* TTH atom */
 	const struct guid *guid;	/* GUID atom */
+	GSList *proxies;	/* List of walloc()ed (gnet_host_t *) */
 	host_addr_t addr;
 	guint16 port;
 };
@@ -65,13 +67,13 @@ struct magnet_resource {
 struct magnet_resource *magnet_parse(const char *url, const char **error_str);
 struct magnet_source *magnet_parse_exact_source(const char *uri,
 							const char **error_str);
-
 void magnet_source_free(struct magnet_source **ms_ptr);
 void magnet_resource_free(struct magnet_resource **res_ptr);
 
 struct magnet_resource *magnet_resource_new(void);
 struct magnet_source *magnet_source_new(void);
-char *magnet_to_string(struct magnet_resource *res);
+char *magnet_to_string(const struct magnet_resource *res);
+char *magnet_source_to_string(const struct magnet_source *s);
 void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
 void magnet_set_display_name(struct magnet_resource *res, const char *name);
 gboolean magnet_set_exact_topic(struct magnet_resource *res,
@@ -86,6 +88,7 @@ void magnet_add_sha1_source(struct magnet_resource *res,
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
+const char *magnet_proxies_to_string(hash_list_t *proxies);
 
 #endif /* _magnet_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -277,8 +277,8 @@ void fi_resume(gnet_fi_t fih);
 gboolean fi_rename(gnet_fi_t fih, const char *);
 
 const char *file_info_readable_filename(const struct dl_file_info *fi);
-char *file_info_build_magnet(gnet_fi_t fih);
-char *file_info_get_file_url(gnet_fi_t fih);
+const char *file_info_build_magnet(gnet_fi_t fih);
+const char *file_info_get_file_url(gnet_fi_t fih);
 const char *file_info_status_to_string(const gnet_fi_status_t *status);
 
 void fi_increase_uploaded(fileinfo_t *fi, size_t amount);
