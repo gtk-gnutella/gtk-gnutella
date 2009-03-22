@@ -42,34 +42,6 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 /**
- * Allowed sequence types.
- */
-enum sequence_type {
-	SEQUENCE_GSLIST = 0x1,		/**< GSList */
-	SEQUENCE_GLIST,				/**< GList */
-	SEQUENCE_LIST,				/**< list_t */
-	SEQUENCE_SLIST,				/**< slist_t */
-	SEQUENCE_HLIST,				/**< hash_list_t */
-
-	SEQUENCE_MAXTYPE
-};
-
-/**
- * The sequence structure holding the necessary information to delegate all
- * the operations to different implementations.
- */
-struct sequence {
-	union {
-		GSList *gsl;
-		GList *gl;
-		list_t *l;
-		slist_t *sl;
-		hash_list_t *hl;
-	} u;
-	enum sequence_type type;
-};
-
-/**
  * Iterator directions.
  */
 enum sequence_direction {
@@ -215,13 +187,39 @@ sequence_fill_from_slist(sequence_t *s, slist_t *sl)
  * Fill sequence object with hash_list_t.
  */
 sequence_t *
-sequence_fill_from_hlist(sequence_t *s, hash_list_t *hl)
+sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl)
 {
 	g_assert(hl != NULL);
 
 	s->type = SEQUENCE_HLIST;
 	s->u.hl = hl;
 	return s;
+}
+
+/**
+ * Is the sequence empty?
+ */
+gboolean
+sequence_is_empty(const sequence_t *s)
+{
+	g_assert(s != NULL);
+
+	switch (s->type) {
+	case SEQUENCE_GSLIST:
+		return NULL == s->u.gsl;
+	case SEQUENCE_GLIST:
+		return NULL == s->u.gl;
+	case SEQUENCE_LIST:
+		return 0 == list_length(s->u.l);
+	case SEQUENCE_SLIST:
+		return 0 == slist_length(s->u.sl);
+	case SEQUENCE_HLIST:
+		return 0 == hash_list_length(s->u.hl);
+	case SEQUENCE_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
 }
 
 /**

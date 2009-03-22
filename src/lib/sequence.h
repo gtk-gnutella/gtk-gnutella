@@ -42,6 +42,34 @@
 #include "slist.h"
 #include "hashlist.h"
 
+/**
+ * Allowed sequence types.
+ */
+enum sequence_type {
+	SEQUENCE_GSLIST = 0x1,		/**< GSList */
+	SEQUENCE_GLIST,				/**< GList */
+	SEQUENCE_LIST,				/**< list_t */
+	SEQUENCE_SLIST,				/**< slist_t */
+	SEQUENCE_HLIST,				/**< hash_list_t */
+
+	SEQUENCE_MAXTYPE
+};
+
+/**
+ * The sequence structure holding the necessary information to delegate all
+ * the operations to different implementations.
+ */
+struct sequence {
+	union {
+		GSList *gsl;
+		GList *gl;
+		list_t *l;
+		slist_t *sl;
+		hash_list_t *hl;
+	} u;
+	enum sequence_type type;
+};
+
 typedef struct sequence sequence_t;
 typedef struct sequence_iterator sequence_iter_t;
 
@@ -68,6 +96,8 @@ sequence_t *sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl);
 gpointer sequence_implementation(const sequence_t *s);
 gpointer sequence_release(sequence_t *s);
 void sequence_destroy(sequence_t *s);
+
+gboolean sequence_is_empty(const sequence_t *s);
 
 sequence_iter_t *sequence_forward_iterator(const sequence_t *s);
 gboolean sequence_iter_has_next(const sequence_iter_t *si);
