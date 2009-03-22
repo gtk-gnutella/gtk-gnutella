@@ -48,7 +48,7 @@
 #define GTA_PATCHLEVEL 6			/**< patch level or teeny version */
 #define GTA_REVISION "unstable"		/**< unstable, beta, stable */
 #define GTA_REVCHAR "u"				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2009-02-06"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE "2009-03-22"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -441,6 +441,17 @@ G_STMT_START {			\
 		g_free(p);		\
 		p = NULL;		\
 	}					\
+} G_STMT_END
+
+/**
+ * Same as G_FREE_NULL() but for variables declared const.
+ */
+#define G_FREE_NULL_CONST(p)				\
+G_STMT_START {								\
+	if (p) {								\
+		g_free(deconstify_gpointer(p));		\
+		p = NULL;							\
+	}										\
 } G_STMT_END
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
