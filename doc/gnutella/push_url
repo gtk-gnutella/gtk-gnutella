@@ -8,25 +8,25 @@ these:
  - The host is prefixed with the GUID of the target host. The GUID
    consists of 32 hexadecimal ASCII characters.  GUIDs are handled
    case-insensitively.
- - The host part does not describe the target host but a push-proxy
-   thereof.
+ - The host part does not describe the target host but a set of
+   push-proxy servers, which may be empty.  It is delimited with braces,
+   and items are separated with commas.
 
 
                                  Format
                                  ======
 
-        push://<guid>:<host>:<port>/<path>
+        push://<guid>:{<host1>:<port1>,<host2>:port2>}/<path>
 
 
                                 Examples
                                 ========
         
-        push://0123456789abcdef123456789abcdef:gnutella.example.com:6346/uri-res/N2R?urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+push://0123456789abcdef123456789abcdef:{gnutella.example.com:6348,5.6.7.8:61234}/uri-res/N2R?urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
+push://0123456789abcdef123456789abcdef:{127.0.0.1}/path/file
 
-        push://0123456789abcdef123456789abcdef:127.0.0.1/path/file
-
-        push://abababababababababababababababa:[::1]:6347/get/0/something.txt
+push://abababababababababababababababa:{[::1]:6347}/get/0/something.txt
 
 
                                  Usage
@@ -35,5 +35,4 @@ these:
 The push-proxy may be reachable over TCP or UDP. It is recommended to
 contact the push-proxy first over UDP and fall-back to TCP after a
 reasonable timeout.
-
 
