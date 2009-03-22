@@ -153,6 +153,7 @@ void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
 gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, int hcnt);
+gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *sl);
 gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *hl);
 
 #endif /* _gnet_host_h_ */

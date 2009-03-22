@@ -56,6 +56,7 @@ RCSID("$Id$")
 
 #include "gnet_host.h"
 #include "misc.h"
+#include "sequence.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -337,22 +338,22 @@ gnet_host_vec_create(gnet_host_t *hvec, int hcnt)
 }
 
 /**
- * Create a new Gnutella host vector out of a hash_list of gnet_host_t items.
+ * Create a new Gnutella host vector out of a sequence of gnet_host_t items.
  */
-gnet_host_vec_t *
-gnet_host_vec_from_hash_list(hash_list_t *hl)
+static gnet_host_vec_t *
+gnet_host_vec_from_sequence(sequence_t *s)
 {
-	hash_list_iter_t *iter;
+	sequence_iter_t *iter;
 	gnet_host_vec_t *vec;
 	guint n_ipv6 = 0, n_ipv4 = 0, hcnt;
 
-	if (NULL == hl)
+	if (sequence_is_empty(s))
 		return NULL;
 
 	hcnt = 0;
-	iter = hash_list_iterator(hl);
-	while (hash_list_iter_has_next(iter)) {
-		const gnet_host_t *host = hash_list_iter_next(iter);
+	iter = sequence_forward_iterator(s);
+	while (sequence_iter_has_next(iter)) {
+		const gnet_host_t *host = sequence_iter_next(iter);
 
 		switch (gnet_host_get_net(host)) {
 		case NET_TYPE_IPV4:
@@ -368,7 +369,7 @@ gnet_host_vec_from_hash_list(hash_list_t *hl)
 			break;
 		}
 	}
-	hash_list_iter_release(&iter);
+	sequence_iterator_release(&iter);
 	if (0 == hcnt)
 		return NULL;
 
@@ -386,9 +387,9 @@ gnet_host_vec_from_hash_list(hash_list_t *hl)
 	n_ipv4 = 0;
 	n_ipv6 = 0;
 
-	iter = hash_list_iterator(hl);
-	while (hash_list_iter_has_next(iter)) {
-		const gnet_host_t *host = hash_list_iter_next(iter);
+	iter = sequence_forward_iterator(s);
+	while (sequence_iter_has_next(iter)) {
+		const gnet_host_t *host = sequence_iter_next(iter);
 		host_addr_t addr = gnet_host_get_addr(host);
 		guint16 port = gnet_host_get_port(host);
 		
@@ -411,8 +412,33 @@ gnet_host_vec_from_hash_list(hash_list_t *hl)
 			break;
 		}
 	}
-	hash_list_iter_release(&iter);
+	sequence_iterator_release(&iter);
 	return vec;
+}
+
+/**
+ * Create a new Gnutella host vector out of a GSList of gnet_host_t items.
+ */
+gnet_host_vec_t *
+gnet_host_vec_from_gslist(GSList *sl)
+{
+	sequence_t seq;
+
+	return gnet_host_vec_from_sequence(sequence_fill_from_gslist(&seq, sl));
+}
+
+/**
+ * Create a new Gnutella host vector out of a hash_list of gnet_host_t items.
+ */
+gnet_host_vec_t *
+gnet_host_vec_from_hash_list(hash_list_t *hl)
+{
+	sequence_t seq;
+
+	if (NULL == hl)
+		return NULL;
+
+	return gnet_host_vec_from_sequence(sequence_fill_from_hash_list(&seq, hl));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
