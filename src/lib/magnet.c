@@ -325,8 +325,21 @@ magnet_parse_proxy_location(const char *uri, const char **error_str)
 
 	p = uri;
 
-	if (*p != '{')
-		return magnet_parse_location(uri, error_str);
+	/*
+	 * Legacy push:// support: only 1 push-proxy address given.
+	 * FIXME: remove this in 0.96.7.	--RAM, 2009-03-22
+	 */
+
+	if (*p != '{') {
+		gnet_host_t *host;
+
+		ms = magnet_parse_location(uri, error_str);
+		host = gnet_host_new(ms->addr, ms->port);
+		sl = g_slist_append(sl, host);
+		ms->proxies = sl;
+
+		return ms;
+	}
 
 	/*
 	 * We have a list of push-proxies: {addr1:port,addr2:port}.
