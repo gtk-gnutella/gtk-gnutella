@@ -741,34 +741,33 @@ main_timer(gpointer p)
     hcache_timer(now);
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
-	if (!exiting) {
-		shell_timer(now);
-		download_timer(now);  	    /* Download timeouts */
-		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
-		upload_timer(now);			/* Upload timeouts */
-		file_info_timer();          /* Notify about changes */
-		hsep_timer(now);			/* HSEP notify message timer */
-		pproxy_timer(now);			/* Push-proxy requests */
-		dh_timer(now);				/* Monitoring of query hits */
-	}
 	socket_timer(now);				/* Expire inactive sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
+
+	if (exiting)
+		return TRUE;
+
+	shell_timer(now);
+	download_timer(now);  	    /* Download timeouts */
+	parq_upload_timer(now);		/* PARQ upload timeouts/removal */
+	upload_timer(now);			/* Upload timeouts */
+	file_info_timer();          /* Notify about changes */
+	hsep_timer(now);			/* HSEP notify message timer */
+	pproxy_timer(now);			/* Push-proxy requests */
+	dh_timer(now);				/* Monitoring of query hits */
 
 	/*
 	 * GUI update
 	 */
 
-	if (!exiting) {
+	if (!running_topless) {
+		main_gui_timer(now);
+	}
 
-		if (!running_topless) {
-			main_gui_timer(now);
-		}
-
-		/* Update for things that change slowly */
-		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
-			main_slow_update = 0;
-			slow_main_timer(now);
-		}
+	/* Update for things that change slowly */
+	if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
+		main_slow_update = 0;
+		slow_main_timer(now);
 	}
 
 	/*
