@@ -114,6 +114,10 @@ Under the hood:
 - Strip at most 5 trailing characters from words when building the QRP table,
   thereby inserting less radices and making the table more sparse.
 - Removed workarounds for dealing with broken 0.96.2 nodes and earlier 0.95.x.
+- Extended syntax for push:// exact sources in magnets to be able to supply
+  all the known push-proxies, even if that is an empty set.  Since downloads
+  are persisted as magnets, this also allows keeping all the previously
+  known push-proxies accross sessions.
 
 Limitations:
 

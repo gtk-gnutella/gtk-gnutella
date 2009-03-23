@@ -9,24 +9,29 @@ these:
    consists of 32 hexadecimal ASCII characters.  GUIDs are handled
    case-insensitively.
  - The host part does not describe the target host but a set of
-   push-proxy servers, which may be empty.  It is delimited with braces,
-   and items are separated with commas.
+   push-proxy servers, which may be empty.
 
 
                                  Format
                                  ======
 
-        push://<guid>:{<host1>:<port1>,<host2>:port2>}/<path>
+        push://<guid>/<path>
+        push://<guid>:<host>:<port>/<path>
+        push://<guid>:<host1>:<port1>:<host2>:<port2>/<path>
+
+Which can be expressed in pseudo regular-expression style as:
+
+		push://<guid>(:<host>:<port>)*/<path>
 
 
                                 Examples
                                 ========
         
-push://0123456789abcdef123456789abcdef:{gnutella.example.com:6348,5.6.7.8:61234}/uri-res/N2R?urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+push://0123456789abcdef123456789abcdef:gnutella.example.com:6348:5.6.7.8:61234/uri-res/N2R?urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
-push://0123456789abcdef123456789abcdef:{127.0.0.1}/path/file
+push://0123456789abcdef123456789abcdef:127.0.0.1:80/path/file
 
-push://abababababababababababababababa:{[::1]:6347}/get/0/something.txt
+push://abababababababababababababababa:[::1]:6347/get/0/something.txt
 
 
                                  Usage

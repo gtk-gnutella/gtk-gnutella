@@ -266,7 +266,7 @@ magnet_parse_location(const char *uri, const char **error_str)
 }
 
 static gboolean
-magnet_parse_addr_list(const char *proxies,
+magnet_parse_legacy_addr_list(const char *proxies,
 	const char **endptr, GSList **list, const char **error_str)
 {
 	GSList *sl = NULL;
@@ -313,6 +313,42 @@ cleanup:
 	return FALSE;
 }
 
+static gboolean
+magnet_parse_addr_list(const char *proxies,
+	const char **endptr, GSList **list, const char **error_str)
+{
+	GSList *sl = NULL;
+	const char *p;
+
+	clear_error_str(&error_str);
+	g_return_val_if_fail(proxies, FALSE);
+
+	p = proxies;
+
+	while (*p == ':') {
+		host_addr_t addr;
+		guint16 port;
+		gnet_host_t *host;
+
+		p = magnet_parse_host_port(p+1, &addr, &port, NULL, NULL, error_str);
+		if (NULL == p)
+			goto cleanup;
+
+		host = gnet_host_new(addr, port);
+		sl = g_slist_prepend(sl, host);		/* Will reverse list below */
+	}
+
+	sl = g_slist_reverse(sl);		/* Keep order of listed push-proxies */
+	*endptr = p;
+
+	*list = sl;
+	return TRUE;
+
+cleanup:
+	free_proxies_list(sl);
+	return FALSE;
+}
+
 static struct magnet_source *
 magnet_parse_proxy_location(const char *uri, const char **error_str)
 {
@@ -326,29 +362,39 @@ magnet_parse_proxy_location(const char *uri, const char **error_str)
 	p = uri;
 
 	/*
-	 * Legacy push:// support: only 1 push-proxy address given.
-	 * FIXME: remove this in 0.96.7.	--RAM, 2009-03-22
+	 * If starts with a '/', then we have no push-proxy following the GUID.
 	 */
 
-	if (*p != '{') {
-		gnet_host_t *host;
-
-		ms = magnet_parse_location(uri, error_str);
-		host = gnet_host_new(ms->addr, ms->port);
-		sl = g_slist_append(sl, host);
-		ms->proxies = sl;
-
-		return ms;
+	if (*p == '/') {
+		endptr = p;
+		goto path;
 	}
 
 	/*
+	 * Legacy push:// support: push-proxy address given in a set.
 	 * We have a list of push-proxies: {addr1:port,addr2:port}.
 	 * The list may be empty if we have no known push proxies.
+	 *
+	 * FIXME: remove this in 0.96.7.	--RAM, 2009-03-22
 	 */
+
+	if (p[0] == ':' && p[1] == '{') {
+		if (!magnet_parse_legacy_addr_list(uri+1, &endptr, &sl, error_str))
+			return NULL;
+		goto path;
+	}
+
+	if (*p != ':') {
+		*error_str = "Expected / or : following the GUID";
+		return NULL;
+	}
 
 	if (!magnet_parse_addr_list(uri, &endptr, &sl, error_str))
 		return NULL;
 
+	/* FALL THROUGH */
+
+path:
 	ms = magnet_parse_path(endptr, error_str);
 	if (NULL == ms) {
 		free_proxies_list(sl);
@@ -387,7 +433,10 @@ magnet_parse_push_source(const char *uri, const char **error_str)
 	p = is_strprefix(uri, "push://");
 	g_return_val_if_fail(p, NULL);
 
-	endptr = strchr(p, ':');
+	endptr = strchr(p, ':');		/* First push-proxy host */
+	if (NULL == endptr || GUID_HEX_SIZE != (endptr - p))
+		endptr = strchr(p, '/');	/* No push-proxy host */
+
 	if (
 		NULL == endptr ||
 		GUID_HEX_SIZE != (endptr - p) ||
@@ -397,8 +446,7 @@ magnet_parse_push_source(const char *uri, const char **error_str)
 		return NULL;
 	}
 
-	p = &endptr[1];
-	ms = magnet_parse_proxy_location(p, error_str);
+	ms = magnet_parse_proxy_location(endptr, error_str);
 	if (ms) {
 		ms->guid = atom_guid_get(&guid);
 	}
@@ -479,7 +527,7 @@ magnet_handle_key(struct magnet_resource *res,
 				}
 			} else {
 				g_message("could not parse source \"%s\" in MAGNET URI: %s",
-					value, error);
+					value, NULL_STRING(error));
 			}
 		}
 		break;
@@ -840,23 +888,16 @@ proxy_sequence_to_string(const sequence_t *s)
 
 	gs = g_string_new(NULL);
 
-	if (sequence_is_empty(s)) {
-		gs = g_string_append(gs, "{}");
-	} else {
+	if (!sequence_is_empty(s)) {
 		sequence_iter_t *iter;
-
-		gs = g_string_append_c(gs, '{');
 
 		iter = sequence_forward_iterator(s);
 		while (sequence_iter_has_next(iter)) {
 			gnet_host_t *host = sequence_iter_next(iter);
-			if (gs->len > 1)
-				gs = g_string_append_c(gs, ',');
+			gs = g_string_append_c(gs, ':');
 			g_string_append(gs, gnet_host_to_string(host));
 		}
 		sequence_iterator_release(&iter);
-
-		gs = g_string_append_c(gs, '}');
 	}
 
 	return gm_string_finalize(gs);
@@ -874,9 +915,9 @@ proxies_to_string(GSList *proxies)
  * Create the string representation of the push-proxies, for inclusion
  * in the push:// URL.
  *
- * @return "{}" if the list is empty or the address NULL; otherwise a
- * coma-separeted list of IP:port, enclosed in braces.  The returned string
- * may be freed with g_free().
+ * @return "" if the list is empty or the address NULL; otherwise a
+ * colon-separated list of IP:port, beginning with a colon.
+ * The returned string may be freed with g_free().
  */
 char *
 magnet_proxies_to_string(hash_list_t *proxies)
@@ -884,7 +925,7 @@ magnet_proxies_to_string(hash_list_t *proxies)
 	sequence_t seq;
 
 	if (NULL == proxies)
-		return g_strdup("{}");
+		return g_strdup("");
 	
 	return proxy_sequence_to_string(
 		sequence_fill_from_hash_list(&seq, proxies));
@@ -915,7 +956,7 @@ magnet_source_to_string(const struct magnet_source *s)
 			
 			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
 			concat_strings(prefix_buf, sizeof prefix_buf,
-				"push://", guid_buf, ":", (void *) 0);
+				"push://", guid_buf, (void *) 0);
 			prefix = prefix_buf;
 		} else {
 			prefix = "http://";

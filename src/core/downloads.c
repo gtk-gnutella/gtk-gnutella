@@ -13436,7 +13436,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 		host = hostp = magnet_proxies_to_string(d->server->proxies);
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
-			"push://", guid_buf, ":", (void *) 0);
+			"push://", guid_buf, (void *) 0);
 		prefix = prefix_buf;
 	} else if (0 != port && is_host_addr(addr)) {
 		host = host_port_to_string(download_hostname(d), addr, port);
