@@ -833,7 +833,7 @@ magnet_append_item(GString **gs_ptr, gboolean escape_value,
 	*gs_ptr = gs;
 }
 
-static const char *
+static char *
 proxy_sequence_to_string(const sequence_t *s)
 {
 	GString *gs;
@@ -862,7 +862,7 @@ proxy_sequence_to_string(const sequence_t *s)
 	return gm_string_finalize(gs);
 }
 
-static const char *
+static char *
 proxies_to_string(GSList *proxies)
 {
 	sequence_t seq;
@@ -878,7 +878,7 @@ proxies_to_string(GSList *proxies)
  * coma-separeted list of IP:port, enclosed in braces.  The returned string
  * may be freed with g_free().
  */
-const char *
+char *
 magnet_proxies_to_string(hash_list_t *proxies)
 {
 	sequence_t seq;
@@ -905,7 +905,7 @@ magnet_source_to_string(const struct magnet_source *s)
 	if (s->url) {
 		url = g_strdup(s->url);
 	} else {
-		const char *proxies = NULL;
+		char *proxies = NULL;
 		const char *host, *prefix;
 		char prefix_buf[256];
 		char port_buf[16];
@@ -943,7 +943,7 @@ magnet_source_to_string(const struct magnet_source *s)
 			url = g_strconcat(prefix, host, port_buf, "/", (void *) 0);
 		}
 
-		G_FREE_NULL_CONST(proxies);
+		G_FREE_NULL(proxies);
 	}
 
 	return url;

@@ -96,19 +96,19 @@ guc_bitzi_has_cached_ticket(const struct sha1 *sha1)
 }
 
 /*	download and src interface functions (UI -> Core)*/
-const char *
+char *
 guc_download_build_url(const struct download *d)
 {
 	return download_build_url(d);
 }
 
-const char *
+char *
 guc_file_info_build_magnet(gnet_fi_t handle)
 {
 	return file_info_build_magnet(handle);
 }
 
-const char *
+char *
 guc_file_info_get_file_url(gnet_fi_t handle)
 {
 	return file_info_get_file_url(handle);

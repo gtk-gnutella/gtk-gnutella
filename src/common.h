@@ -443,17 +443,6 @@ G_STMT_START {			\
 	}					\
 } G_STMT_END
 
-/**
- * Same as G_FREE_NULL() but for variables declared const.
- */
-#define G_FREE_NULL_CONST(p)				\
-G_STMT_START {								\
-	if (p) {								\
-		g_free(deconstify_gpointer(p));		\
-		p = NULL;							\
-	}										\
-} G_STMT_END
-
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 
 /** HAVE_GCC allows conditionalization depending on the version of gcc

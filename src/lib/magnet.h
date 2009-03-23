@@ -88,7 +88,7 @@ void magnet_add_sha1_source(struct magnet_resource *res,
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
-const char *magnet_proxies_to_string(hash_list_t *proxies);
+char *magnet_proxies_to_string(hash_list_t *proxies);
 
 #endif /* _magnet_h_ */
 /* vi: set ts=4 sw=4 cindent: */

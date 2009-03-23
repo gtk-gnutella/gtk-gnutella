@@ -444,7 +444,7 @@ void download_dht_auto_new(const char *filename,
 	guint32 flags);
 
 guint download_handle_magnet(const char *url);
-const char *download_build_url(const struct download *);
+char *download_build_url(const struct download *);
 int download_get_http_req_percent(const struct download *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 int download_remove_all_from_peer(const struct guid *,

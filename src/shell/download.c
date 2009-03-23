@@ -330,9 +330,9 @@ shell_exec_download_show(struct gnutella_shell *sh,
 		} else if (0 == strcmp(property, "complete")) {
 			show_property(sh, property, boolean_to_string(status.complete));
 		} else if (0 == strcmp(property, "magnet")) {
-			const char *magnet = file_info_build_magnet(fi->fi_handle);
+			char *magnet = file_info_build_magnet(fi->fi_handle);
 			show_property(sh, property, EMPTY_STRING(magnet));
-			G_FREE_NULL_CONST(magnet);
+			G_FREE_NULL(magnet);
 		}
 	}
 	guc_fi_free_info(info);

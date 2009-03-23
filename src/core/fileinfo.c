@@ -6136,13 +6136,13 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
  *
  * @return A newly allocated string.
  */
-const char *
+char *
 file_info_build_magnet(gnet_fi_t handle)
 {
 	struct magnet_resource *magnet;
 	const fileinfo_t *fi;
 	const GSList *sl;
-	const char *url;
+	char *url;
 	int n;
    
 	fi = file_info_find_by_handle(handle);
@@ -6189,7 +6189,7 @@ file_info_build_magnet(gnet_fi_t handle)
  *
  * @return A newly allocated string or NULL.
  */
-const char *
+char *
 file_info_get_file_url(gnet_fi_t handle)
 {
 	fileinfo_t *fi;

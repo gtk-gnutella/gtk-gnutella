@@ -12058,12 +12058,12 @@ static const char download_file[] = "downloads";
 static const char file_what[] = "downloads"; /**< What is persisted to file */
 static gboolean retrieving = FALSE;
 
-static const char *
+static char *
 download_build_magnet(const struct download *d)
 {
 	const fileinfo_t *fi;
-	const char *url;
-	const char *dl_url;
+	char *url;
+	char *dl_url;
    
 	download_check(d);
 
@@ -12097,7 +12097,7 @@ download_build_magnet(const struct download *d)
 			magnet_set_parq_id(magnet, parq_id);
 		}
 		magnet_add_source_by_url(magnet, dl_url);
-		G_FREE_NULL_CONST(dl_url);
+		G_FREE_NULL(dl_url);
 		url = magnet_to_string(magnet);
 		magnet_resource_free(&magnet);
 	} else {
@@ -12110,7 +12110,7 @@ download_build_magnet(const struct download *d)
 static void
 download_store_magnet(FILE *f, const struct download *d)
 {
-	const char *url;
+	char *url;
 
 	g_return_if_fail(f);
 	download_check(d);
@@ -12123,7 +12123,7 @@ download_store_magnet(FILE *f, const struct download *d)
 	url = download_build_magnet(d);
 	if (url) {
 		fprintf(f, "%s\n\n", url);
-		G_FREE_NULL_CONST(url);
+		G_FREE_NULL(url);
 	}
 }
 
@@ -13408,14 +13408,14 @@ download_close(void)
 	dl_count_by_name = NULL;
 }
 
-static const char *
+static char *
 download_url_for_uri(const struct download *d, const char *uri)
 {
 	const char *prefix;
 	char prefix_buf[256];
-	const char *result;
+	char *result;
 	const char *host;
-	gboolean free_host = FALSE;
+	char *hostp = NULL;
 	host_addr_t addr;
 	guint16 port;
 
@@ -13433,8 +13433,7 @@ download_url_for_uri(const struct download *d, const char *uri)
 	) {
 		char guid_buf[GUID_HEX_SIZE + 1];
 
-		host = magnet_proxies_to_string(d->server->proxies);
-		free_host = TRUE;
+		host = hostp = magnet_proxies_to_string(d->server->proxies);
 		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
 		concat_strings(prefix_buf, sizeof prefix_buf,
 			"push://", guid_buf, ":", (void *) 0);
@@ -13451,8 +13450,8 @@ download_url_for_uri(const struct download *d, const char *uri)
 
 	result = g_strconcat(prefix, host, "/", uri, (void *) 0);
 
-	if (free_host)
-		G_FREE_NULL_CONST(host);
+	if (hostp)
+		G_FREE_NULL(hostp);
 
 	return result;
 }
@@ -13462,10 +13461,10 @@ download_url_for_uri(const struct download *d, const char *uri)
  * browser and download the file there with this URL).
  * @return NULL on failure, an URL string which must be freed with g_free().
  */
-const char *
+char *
 download_build_url(const struct download *d)
 {
-	const char *url;
+	char *url;
 
 	g_return_val_if_fail(d, NULL);
 	download_check(d);

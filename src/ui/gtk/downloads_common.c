@@ -947,9 +947,9 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 
 	file = fi_gui_get_file_at_cursor();
 	if (file) {
-		const char *magnet = fi_gui_file_get_magnet(file);
+		char *magnet = fi_gui_file_get_magnet(file);
 		clipboard_set_text(gui_main_window(), magnet);
-		G_FREE_NULL_CONST(magnet);
+		G_FREE_NULL(magnet);
 	}
 }
 
@@ -1097,9 +1097,9 @@ on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 
    	d = fi_gui_get_source_at_cursor();
 	if (d) {
-		const char *url = guc_download_build_url(d);
+		char *url = guc_download_build_url(d);
 		clipboard_set_text(gui_main_window(), url);
-		G_FREE_NULL_CONST(url);
+		G_FREE_NULL(url);
 	}
 }
 
