@@ -1002,6 +1002,16 @@ dropped:
 }
 
 /**
+ * Is lookup of ID by the given node something that can be accounted for
+ * as peer replication among the k-closest nodes?
+ */
+static inline gboolean
+peer_replication(const knode_t *kn, const kuid_t *id)
+{
+	return keys_within_kball(kn->id) && keys_within_kball(id);
+}
+
+/**
  * Handle find_node(id) messages.
  */
 static void
@@ -1028,16 +1038,19 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	g_assert(len == KUID_RAW_SIZE);
 
 	/*
-	 * If we're getting too much STORE request for this key, do not reply
-	 * to the FIND_NODE message which will cause further STORE and further
+	 * If we're getting too many STORE requests for this key, do not reply
+	 * to the FIND_NODE message which could cause further STORE and further
 	 * negative acknowledgements, wasting bandwidth.  Just drop the request
 	 * on the floor, too bad for the remote node.
 	 *
 	 * We're going to appear as "stale" for the remote party, but we'll
 	 * reply to its pings and to other requests for less busy keys...
+	 *
+	 * However, we need to make sure we do not prevent Kademlia replication
+	 * of values among the k-closest nodes.
 	 */
 
-	if (keys_is_store_loaded(id)) {
+	if (!peer_replication(kn, id) && keys_is_store_loaded(id)) {
 		if (GNET_PROPERTY(dht_debug > 2))
 			g_message("DHT key %s getting too many STORE, "
 				"ignoring FIND_NODE from %s",
