@@ -713,7 +713,7 @@ gm_beautify_filename(const char *filename)
 
 	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
 		char *r = g_strconcat(empty, ".", q, (void *) 0);
-		g_free(q);
+		G_FREE_NULL(q);
 
 		return r;
 	}

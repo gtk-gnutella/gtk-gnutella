@@ -1346,7 +1346,7 @@ string_sprintf_track(GString *s, char *file, int line, const char *fmt, ...)
 	va_end(args);
 
 	g_string_assign(s, o);
-	g_free(o);
+	G_FREE_NULL(o);
 	return string_str_track(s, old, file, line);
 }
 
@@ -1362,7 +1362,7 @@ string_sprintfa_track(GString *s, char *file, int line, const char *fmt, ...)
 	va_end(args);
 
 	g_string_append(s, o);
-	g_free(o);
+	G_FREE_NULL(o);
 	return string_str_track(s, old, file, line);
 }
 

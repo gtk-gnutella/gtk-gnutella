@@ -1585,9 +1585,10 @@ ext_reset(extvec_t *exv, int exvcnt)
 		if (d->ext_payload != NULL && d->ext_payload != d->ext_phys_payload) {
 			gpointer p = deconstify_gpointer(d->ext_payload);
 			if (d->ext_rpaylen == 0) {
-				g_free(p);
+				G_FREE_NULL(p);
 			} else {
 				wfree(p, d->ext_rpaylen);
+				p = NULL;
 			}
 			d->ext_payload = NULL;
 		}

@@ -2689,7 +2689,7 @@ test_keys(guint32 keys[], size_t nkeys)
 	g_assert(pt->nodes == 0);
 	g_assert(pt->embedded == 0);
 
-	g_free(data);
+	G_FREE_NULL(data);
 }
 
 /**

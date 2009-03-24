@@ -147,7 +147,7 @@ pattern_free(cpattern_t *cpat)
 {
 	if (cpat->duped) {
 		g_free(deconstify_gchar(cpat->pattern));
-		cpat->pattern = NULL;
+		cpat->pattern = NULL; /* Don't use G_FREE_NULL b/c of lvalue cast */
 	}
 	zfree(pat_zone, cpat);
 }

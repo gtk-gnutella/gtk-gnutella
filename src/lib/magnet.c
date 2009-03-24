@@ -915,9 +915,9 @@ proxies_to_string(GSList *proxies)
  * Create the string representation of the push-proxies, for inclusion
  * in the push:// URL.
  *
- * @return "" if the list is empty or the address NULL; otherwise a
- * colon-separated list of IP:port, beginning with a colon.
- * The returned string may be freed with g_free().
+ * @return An empty string (""), if the list is empty or the address NULL;
+ * otherwise a colon-separated list of IP:port, beginning with a colon. The
+ * string is newly allocated.
  */
 char *
 magnet_proxies_to_string(hash_list_t *proxies)
@@ -934,7 +934,7 @@ magnet_proxies_to_string(hash_list_t *proxies)
 /**
  * Convert magnet source to a string representation.
  *
- * @return string that must be freed with g_free().
+ * @return A newly allocated string.
  */
 char *
 magnet_source_to_string(const struct magnet_source *s)
@@ -993,7 +993,7 @@ magnet_source_to_string(const struct magnet_source *s)
 /**
  * Create a string representation of the magnet resource.
  *
- * @return a string that must be freed with g_free().
+ * @return A newly allocated string.
  */
 char *
 magnet_to_string(const struct magnet_resource *res)

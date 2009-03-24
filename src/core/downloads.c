@@ -13459,7 +13459,8 @@ download_url_for_uri(const struct download *d, const char *uri)
 /**
  * Creates a URL which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this URL).
- * @return NULL on failure, an URL string which must be freed with g_free().
+ * @return NULL on failure, otherwise a newly allocated string holding
+ *         the URL.
  */
 char *
 download_build_url(const struct download *d)

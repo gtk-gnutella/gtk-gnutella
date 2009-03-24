@@ -271,7 +271,7 @@ shell_unescape(char *s)
 /**
  * @return the next token from s starting from position pos. Make sure
  * that pos is 0 or something sensible when calling this the first time!.
- * The returned string needs to be g_free-ed when no longer needed.
+ * The returned string is newly allocated.
  */
 static char *
 shell_get_token(const char *s, int *pos)

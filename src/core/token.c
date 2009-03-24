@@ -457,14 +457,12 @@ tok_version(void)
 
 	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
 
-	if (now - last_generated < TOKEN_LIFE)
+	if (delta_time(now, last_generated) < TOKEN_LIFE)
 		return toklevel;
 
 	last_generated = now;
 
-	if (toklevel != NULL)
-		g_free(toklevel);
-
+	G_FREE_NULL(toklevel);
 	toklevel = tok_generate(now, version_string);
 
 	return toklevel;
@@ -490,14 +488,12 @@ tok_short_version(void)
 
 	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
 
-	if (now - last_generated < TOKEN_LIFE)
+	if (delta_time(now, last_generated) < TOKEN_LIFE)
 		return toklevel;
 
 	last_generated = now;
 
-	if (toklevel != NULL)
-		g_free(toklevel);
-
+	G_FREE_NULL(toklevel);
 	toklevel = tok_generate(now, version_short_string);
 
 	return toklevel;

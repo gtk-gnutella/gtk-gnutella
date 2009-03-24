@@ -637,7 +637,7 @@ void map_test()
 		g_message("PATRICIA remove was faster than hash in %d out of %d tests",
 			faster[REMOVE_IDX], tests);
 
-	g_free(keys);
+	G_FREE_NULL(keys);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -459,8 +459,8 @@ static void
 free_params_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
-	g_free(key);
-	g_free(value);
+	G_FREE_NULL(key);
+	G_FREE_NULL(value);
 }
 
 /**
@@ -502,8 +502,8 @@ url_safe_char(char c, url_policy_t p)
  * NB: May modify ``url'' in all cased; pass a copy if necessary!
  *
  * @returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
- * it returns either a pointer to the original URL or a g_malloc()ed
- * modified copy which has to be g_free()ed.
+ * it returns either a pointer to the original URL or a newly allocated
+ * string holding a modified copy.
  *
  * The URL is validated according to the specified policy. Unnecessary
  * parts such as ":80" (for the port) and "/./" are removed: the hostname

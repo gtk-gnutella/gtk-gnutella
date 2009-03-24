@@ -226,7 +226,7 @@ clock_adjust(void)
 			statx_add(datapoints, v);
 		}
 
-		g_free(value);
+		G_FREE_NULL(value);
 
 		/*
 		 * Recompute the new average using the "sound" points we kept.

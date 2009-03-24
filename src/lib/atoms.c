@@ -1003,7 +1003,7 @@ tracking_free_kv(gpointer key, gpointer value, gpointer uu_user)
 {
 	(void) uu_user;
 
-	g_free(key);
+	G_FREE_NULL(key);
 	wfree(value, sizeof(struct spot));
 	return TRUE;
 }

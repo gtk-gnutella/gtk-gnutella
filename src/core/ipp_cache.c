@@ -605,6 +605,7 @@ ipp_cache_free(ipp_cache_t *ic)
 	}
 
 	g_free(deconstify_gpointer(ic->fp.dir));
+	ic->fp.dir = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 	wfree(ic, sizeof *ic);
 }
 
