@@ -1264,14 +1264,14 @@ fi_gui_file_get_progress(const struct fileinfo_data *file)
 	return file->progress / 100;
 }
 
-static const char *
+const char *
 fi_gui_file_get_file_url(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
 	return guc_file_info_get_file_url(file->handle);
 }
 
-const char *
+char *
 fi_gui_file_get_magnet(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
