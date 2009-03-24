@@ -5326,56 +5326,55 @@ msgstr "Aide:"
 
 #: src/ui/gtk/bitzi.c:56
 msgid "Bitzi|Unknown"
-msgstr "Bitzi|Inconnu"
+msgstr "Inconnu"
 
 #: src/ui/gtk/bitzi.c:57
-#, fuzzy
 msgid "Bitzi|Unrated"
-msgstr "Bitzi|Sous-estimé"
+msgstr ""
 
 #: src/ui/gtk/bitzi.c:58
 msgid "Bitzi|Bitzi lookup failure"
-msgstr "Bitzi|Erreur de recherche Bitzi"
+msgstr "Erreur de recherche Bitzi"
 
 #: src/ui/gtk/bitzi.c:59
 msgid "Bitzi|Filesize mismatch"
-msgstr "Bitzi|Erreur de taille de fichier"
+msgstr "Erreur de taille de fichier"
 
 #: src/ui/gtk/bitzi.c:60
 msgid "Bitzi|Dangerous/Misleading"
-msgstr "Bitzi|Dangereux/Trompeur"
+msgstr "Dangereux/Trompeur"
 
 #: src/ui/gtk/bitzi.c:61
 msgid "Bitzi|Incomplete/Damaged"
-msgstr "Bitzi|Incomplet/Endommagé"
+msgstr "Incomplet/Endommagé"
 
 #: src/ui/gtk/bitzi.c:62
 msgid "Bitzi|Substandard"
-msgstr "Bitzi|Inférieur"
+msgstr "Inférieur"
 
 #: src/ui/gtk/bitzi.c:63
 msgid "Bitzi|Overrated"
-msgstr "Bitzi|Sur-estimé"
+msgstr "Sur-estimé"
 
 #: src/ui/gtk/bitzi.c:64
 msgid "Bitzi|Normal"
-msgstr "Bitzi|Normal"
+msgstr "Normal"
 
 #: src/ui/gtk/bitzi.c:65
 msgid "Bitzi|Underrated"
-msgstr "Bitzi|Sous-estimé"
+msgstr "Sous-estimé"
 
 #: src/ui/gtk/bitzi.c:66
 msgid "Bitzi|Complete"
-msgstr "Bitzi|Terminé"
+msgstr "Terminé"
 
 #: src/ui/gtk/bitzi.c:67
 msgid "Bitzi|Recommended"
-msgstr "Bitzi|Recommandé"
+msgstr "Recommandé"
 
 #: src/ui/gtk/bitzi.c:68
 msgid "Bitzi|Best Version"
-msgstr "Bitzi|Meilleure Version"
+msgstr "Meilleure Version"
 
 #: src/ui/gtk/bitzi.c:133
 msgid "No other data"
