@@ -144,6 +144,12 @@ doesn't clash with another one in the same scope. In rare cases, you might
 want to discard the underscore so that no accelerator will be available for
 the GUI element.
 
+If you don't want to change the accelerator key, but the letter doesn't
+appear in the translated string, you can append it embedded in parentheses:
+
+    msgid "_Copy File"
+    msgstr "Kopiere Datei (_C)"
+
 
 5.1 Translation Context:
 ========================
