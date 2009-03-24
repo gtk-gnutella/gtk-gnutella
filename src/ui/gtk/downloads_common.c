@@ -1264,7 +1264,7 @@ fi_gui_file_get_progress(const struct fileinfo_data *file)
 	return file->progress / 100;
 }
 
-const char *
+static char *
 fi_gui_file_get_file_url(const struct fileinfo_data *file)
 {
 	g_return_val_if_fail(file, NULL);
@@ -1285,7 +1285,7 @@ fi_gui_file_get_file_url_at_cursor(GtkWidget *unused_widget)
 	
 	(void) unused_widget;
 	file = fi_gui_get_file_at_cursor();
-	return file ? deconstify_gpointer(fi_gui_file_get_file_url(file)) : NULL;
+	return file ? fi_gui_file_get_file_url(file) : NULL;
 }
 
 static struct fileinfo_data *
