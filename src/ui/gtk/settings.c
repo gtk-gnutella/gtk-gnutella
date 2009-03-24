@@ -2432,10 +2432,15 @@ static gboolean
 clock_skew_changed(property_t prop)
 {
     guint32 val;
+	gint32 sval;
+	char buf[128];
 
     gnet_prop_get_guint32_val(prop, &val);
+	sval = val;
+	gm_snprintf(buf, sizeof buf, "%c%s",
+		sval < 0 ? '-' : '+', short_time(ABS(sval)));
     gtk_label_set_text(GTK_LABEL(gui_dlg_prefs_lookup("label_clock_skew")),
-		short_time(val));
+		buf);
     return FALSE;
 }
 
