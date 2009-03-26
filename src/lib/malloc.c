@@ -1191,6 +1191,29 @@ track_list_insert_after(GList *l, GList *lk, gpointer data,
 }
 
 GList *
+track_list_insert_before(GList *l, GList *lk, gpointer data,
+	char *file, int line)
+{
+	GList *new;
+
+	if (lk == NULL)
+		return track_list_append(l, data, file, line);
+
+	new = track_list_alloc(file, line);
+	new->data = data;
+
+	new->next = lk;
+	new->prev = lk->prev;
+
+	if (lk->prev)
+		lk->prev->next = new;
+
+	lk->prev = new;
+
+	return lk == l ? new : l;
+}
+
+GList *
 track_list_delete_link(GList *l, GList *lk, char *file, int line)
 {
 	GList *new;

@@ -140,6 +140,8 @@
 	track_list_insert_after((l),(lk),(d), _WHERE_, __LINE__)
 #define g_list_delete_link(l,lk) \
 	track_list_delete_link((l),(lk), _WHERE_, __LINE__)
+#define g_list_insert_before(l,lk,d) \
+	track_list_insert_before((l),(lk),(d), _WHERE_, __LINE__)
 
 #define g_string_new(p)			string_new_track((p), _WHERE_, __LINE__)
 #define g_string_sized_new(s)	string_sized_new_track((s), _WHERE_, __LINE__)
@@ -248,6 +250,8 @@ GList *track_list_insert(
 GList *track_list_insert_sorted(
 	GList *l, gpointer d, GCompareFunc c, char *file, int line);
 GList *track_list_insert_after(
+	GList *l, GList *lk, gpointer data, char *file, int line);
+GList *track_list_insert_before(
 	GList *l, GList *lk, gpointer data, char *file, int line);
 GList *track_list_delete_link(GList *l, GList *lk, char *file, int line);
 

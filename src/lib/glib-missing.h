@@ -70,6 +70,7 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 #ifdef USE_GLIB1
 GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
+GList *g_list_insert_before(GList *l, GList *lk, gpointer data);
 GString *g_string_append_len(GString *gs, const char *val, gssize len);
 
 void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);

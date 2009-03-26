@@ -299,6 +299,7 @@ gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 #ifdef USE_GLIB1
 #undef g_list_delete_link		/* Remaped under -DTRACK_MALLOC */
 #undef g_slist_delete_link
+#undef g_list_insert_before
 GList *
 g_list_delete_link(GList *l, GList *lnk)
 {
@@ -319,6 +320,27 @@ g_slist_delete_link(GSList *sl, GSList *lnk)
 	return head;
 }
 
+GList *
+g_list_insert_before(GList *l, GList *lk, gpointer data)
+{
+	GList *new;
+
+	if (lk == NULL)
+		return g_list_append(l, data);
+
+	new = g_list_alloc();
+	new->data = data;
+
+	new->next = lk;
+	new->prev = lk->prev;
+
+	if (lk->prev)
+		lk->prev->next = new;
+
+	lk->prev = new;
+
+	return lk == l ? new : l;
+}
 #endif /* USE_GLIB1 */
 #endif	/* !TRACK_MALLOC */
 
