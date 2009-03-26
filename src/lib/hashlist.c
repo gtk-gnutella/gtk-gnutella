@@ -272,7 +272,6 @@ hash_list_prepend(hash_list_t *hl, gconstpointer key)
 void
 hash_list_insert_sorted(hash_list_t *hl, gconstpointer key, GCompareFunc func)
 {
-	struct hash_list_item *item;
 	GList *iter;
 
 	hash_list_check(hl);
@@ -281,34 +280,26 @@ hash_list_insert_sorted(hash_list_t *hl, gconstpointer key, GCompareFunc func)
 	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
 
 	for (iter = hl->head; iter; iter = g_list_next(iter)) {
-		item = iter->data;
+		struct hash_list_item *item = iter->data;
 		if (func(key, item->orig_key) <= 0)
 			break;
 	}
-	
-	item = walloc(sizeof *item);
-	item->orig_key = key;
-	item->list = g_list_alloc();
-	item->list->data = item;
-	item->list->prev = g_list_previous(iter);
-	item->list->next = iter;
-	if (item->list->prev) {
-		item->list->prev->next = item->list;
+
+	if (NULL == iter) {
+		hash_list_append(hl, key);
+	} else {
+		struct hash_list_item *item;
+
+		item = walloc(sizeof *item);
+		item->orig_key = key;
+
+		/* Inserting ``item'' before ``iter'' */
+
+		hl->head = g_list_insert_before(hl->head, iter, item);
+		item->list = g_list_previous(iter);
+
+		hash_list_insert_item(hl, item);
 	}
-
-	if (hl->head == iter) {
-		hl->head = item->list;
-	}
-	if (!hl->tail) {
-		hl->tail = item->list;
-	}
-
-	g_hash_table_insert(hl->ht, deconstify_gpointer(key), item);
-
-	hl->len++;
-	hl->stamp++;
-
-	hash_list_regression(hl);
 }
 
 static gpointer
