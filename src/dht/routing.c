@@ -1706,9 +1706,24 @@ promote_pending_node(struct kbucket *kb)
 			hash_list_remove(kb->nodes->pending, selected);
 			list_update_stats(KNODE_PENDING, -1);
 
+			/*
+			 * Picked up node is the most recently seen pending node (at the
+			 * tail of the list), but it is not necessarily the latest seen
+			 * node when put among the good nodes, so we must insert at the
+			 * proper position in the list.
+			 */
+
 			selected->status = KNODE_GOOD;
-			hash_list_append(kb->nodes->good, selected);
+			hash_list_insert_sorted(kb->nodes->good, selected, knode_seen_cmp);
 			list_update_stats(KNODE_GOOD, +1);
+
+			/*
+			 * If we haven't heard about the selected pending node for a while,
+			 * ping it to make sure it's still alive.
+			 */
+
+			if (delta_time(tm_time(), selected->last_seen) >= ALIVENESS_PERIOD)
+				dht_rpc_ping(selected, NULL, NULL);
 
 			gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
 		}

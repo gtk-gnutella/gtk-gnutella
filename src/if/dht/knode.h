@@ -80,6 +80,7 @@ typedef struct knode {
 void knode_free(knode_t *kn);
 unsigned int knode_hash(gconstpointer key);
 int knode_eq(gconstpointer a, gconstpointer b);
+int knode_seen_cmp(gconstpointer a, gconstpointer b);
 const char * knode_status_to_string(knode_status_t status);
 const char *knode_to_string(const knode_t *kn);
 const char *knode_to_string2(const knode_t *kn);

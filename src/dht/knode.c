@@ -81,6 +81,21 @@ knode_eq(gconstpointer a, gconstpointer b)
 }
 
 /**
+ * Comparison of two knodes based on the last_seen time.
+ */
+int
+knode_seen_cmp(gconstpointer a, gconstpointer b)
+{
+	const knode_t *k1 = a;
+	const knode_t *k2 = b;
+
+	knode_check(k1);
+	knode_check(k2);
+
+	return CMP(k1->last_seen, k2->last_seen);
+}
+
+/**
  * Allocate new Kademlia node.
  */
 knode_t *
