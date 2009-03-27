@@ -108,7 +108,7 @@ tx_dgram_init(txdrv_t *tx, gpointer args)
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
-	 * the TX stack (i.e. upper layers detect that we were enable to comply
+	 * the TX stack (i.e. upper layers detect that we were unable to comply
 	 * with the whole write and enable us), there is no I/O callback attached
 	 * to the I/O source: we only create it to benefit from bandwidth limiting
 	 * through calls to bio_sendto().
