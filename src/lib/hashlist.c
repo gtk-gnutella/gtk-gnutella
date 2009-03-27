@@ -691,6 +691,21 @@ hash_list_contains(hash_list_t *hl, gconstpointer key,
 
 /**
  * Get the next item after a given key.
+ *
+ * This is more costly than taking an iterator and traversing the structure,
+ * but it is safe to use when the processing of each item can remove the item
+ * from the traversed structure.
+ *
+ * Here's template code demonstrating usage:
+ *
+ *		gpointer next = hash_list_head(hl);
+ *		while (next) {
+ *			struct <item> *item = next;
+ *			next = hash_list_next(hl, next);
+ *			<process item, can be safely removed from hl>
+ *		}
+ *
+ * @return pointer to next item, NULL if we reached the end of the list.
  */
 gpointer
 hash_list_next(hash_list_t *hl, gconstpointer key)
