@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/strtok.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"
@@ -1823,7 +1824,7 @@ nomore:
 }
 
 /**
- * Parse the value of the X-Gnutella-Content-URN header in `value', looking
+ * Parse the value of the X-(Gnutella-)Content-URN header in `value', looking
  * for a SHA1.  When found, the SHA1 is extracted and placed into the given
  * `digest' buffer.
  *
@@ -1832,28 +1833,22 @@ nomore:
 gboolean
 dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 {
-	const char *p;
+	strtok_t *st;
+	const char *tok;
+	gboolean found;
 
-	for (p = value; NULL != p && '\0' != *p; /* NOTHING */) {
+	st = strtok_make_strip(value);
 
-		/*
-		 * Skip leading spaces, if any.
-		 */
-
-		p = skip_ascii_spaces(p);
-		if (urn_get_sha1(p, sha1))
-			return TRUE;
-
-		/*
-		 * Advance past the next ',', if any.
-		 */
-
-		p = strchr(p, ',');
-		if (p)
-			p++;
+	while ((tok = strtok_next(st, ","))) {
+		if (urn_get_sha1(tok, sha1)) {
+			found = TRUE;
+			break;
+		}
 	}
 
-	return FALSE;
+	strtok_free(st);
+
+	return found;
 }
 
 /**
