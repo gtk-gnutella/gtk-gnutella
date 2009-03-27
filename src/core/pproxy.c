@@ -1150,8 +1150,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 static size_t
 cproxy_build_request(const struct http_async *unused_handle,
 	char *buf, size_t len,
-	const char *verb, const char *path, const char *unused_host,
-	guint16 unused_port)
+	const char *verb, const char *path, const char *host, guint16 port)
 {
 	char addr_v4_buf[128];
 	char addr_v6_buf[128];
@@ -1159,8 +1158,6 @@ cproxy_build_request(const struct http_async *unused_handle,
 	gboolean has_ipv4 = FALSE;
 
 	(void) unused_handle;
-	(void) unused_host;
-	(void) unused_port;
 	g_assert(len <= INT_MAX);
 
 	addr = listen_addr();
@@ -1192,12 +1189,13 @@ cproxy_build_request(const struct http_async *unused_handle,
 		"%s %s HTTP/1.1\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n"
-		"Host:\r\n"
+		"Host: %s:%u\r\n"
 		"X-Token: %s\r\n"
 		"%s"
 		"%s"
 		"\r\n",
 		verb, path, version_string,
+		host, port,
 		tok_version(),
 		addr_v4_buf,
 		addr_v6_buf);
