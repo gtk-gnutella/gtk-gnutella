@@ -3140,22 +3140,24 @@ download_remove_all_thex(const struct sha1 *sha1, const struct download *skip)
 void
 download_set_socket_rx_size(unsigned rx_size)
 {
-	struct download *next;
+	hash_list_iter_t *iter;
 
 	/* This is called from settings_init() before download_init() */
 	if (NULL == sl_downloads)
 		return;
 
-	next = hash_list_head(sl_downloads);
-	while (next) {
-		struct download *d = next;
+	iter = hash_list_iterator(sl_downloads);
+
+	while (hash_list_iter_has_next(iter)) {
+		struct download *d = hash_list_iter_next(iter);
 
 		download_check(d);
-		next = hash_list_next(sl_downloads, next);
 
 		if (d->socket != NULL)
 			socket_recv_buf(d->socket, rx_size, TRUE);
 	}
+
+	hash_list_iter_release(&iter);
 }
 
 static void
@@ -12171,18 +12173,19 @@ download_store_magnets(void)
 	file_path_set(&fp, settings_config_dir(), download_file);
 	f = file_config_open_write(file_what, &fp);
 	if (f) {
-		struct download *next;
+		hash_list_iter_t *iter;
 		
 		file_config_preamble(f, "Downloads");
+		iter = hash_list_iterator(sl_downloads);
 
-		next = hash_list_head(sl_downloads);
-		while (next) {
-			struct download *d = next;
+		while (hash_list_iter_has_next(iter)) {
+			struct download *d = hash_list_iter_next(iter);
 
 			download_check(d);
-			next = hash_list_next(sl_downloads, next);
 			download_store_magnet(f, d);
 		}
+
+		hash_list_iter_release(&iter);
 		file_config_close(f, &fp);
 	}
 }
@@ -13590,26 +13593,31 @@ download_get_http_req_percent(const struct download *d)
 gboolean
 download_something_to_clear(void)
 {
-	struct download *next;
+	hash_list_iter_t *iter;
+	gboolean found = FALSE;
 
-	next = hash_list_head(sl_unqueued);
-	while (next) {
-		struct download *d = next;
+	iter = hash_list_iterator(sl_unqueued);
+
+	while (hash_list_iter_has_next(iter)) {
+		struct download *d = hash_list_iter_next(iter);
 
 		download_check(d);
-		next = hash_list_next(sl_unqueued, next);
 
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
 		case GTA_DL_DONE:
-			return TRUE;
+			found = TRUE;
+			goto done;
 		default:
 			break;
 		}
 	}
-	return FALSE;
+
+done:
+	hash_list_iter_release(&iter);
+	return found;
 }
 
 /***
