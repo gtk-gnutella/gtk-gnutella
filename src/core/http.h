@@ -121,6 +121,15 @@ http_extra_body_set(http_extra_desc_t *he, const char *body)
 	he->he_msg = body;
 }
 
+static inline gboolean
+http_extra_callback_matches(http_extra_desc_t *he,
+	http_status_cb_t callback, gpointer user_arg)
+{
+	return he->he_type == HTTP_EXTRA_CALLBACK &&
+		he->he_cb == callback &&
+		he->he_arg == user_arg;
+}
+
 /*
  * Flags used during callback invocation.
  */

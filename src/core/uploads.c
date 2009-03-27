@@ -1479,6 +1479,10 @@ upload_http_status(char *buf, size_t size, gpointer arg, guint32 flags)
 	return rw;
 }
 
+/**
+ * Record additional header-generation callback to invoke when we generate
+ * the HTTP status.
+ */
 static void
 upload_http_extra_callback_add(struct upload *u,
 	http_status_cb_t callback, gpointer user_arg)
@@ -1492,6 +1496,34 @@ upload_http_extra_callback_add(struct upload *u,
 	u->hevcnt++;
 }
 
+/**
+ * Record additional header-generation callback to invoke when we generate
+ * the HTTP status, provided that callback has not been recorded already.
+ */
+static void
+upload_http_extra_callback_add_once(struct upload *u,
+	http_status_cb_t callback, gpointer user_arg)
+{
+	guint i;
+
+	upload_check(u);
+	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+
+	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+
+	for (i = 0; i < u->hevcnt; i++) {
+		if (http_extra_callback_matches(&u->hev[i], callback, user_arg))
+			return;
+	}
+
+	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
+	u->hevcnt++;
+}
+
+/**
+ * Record additional header line (including trailing "\r\n") to add to the
+ * generated HTTP status.
+ */
 static void
 upload_http_extra_line_add(struct upload *u, const char *msg)
 {
@@ -1504,6 +1536,9 @@ upload_http_extra_line_add(struct upload *u, const char *msg)
 	u->hevcnt++;
 }
 
+/**
+ * Record extra body data to send along with the HTTP status.
+ */
 static void
 upload_http_extra_body_add(struct upload *u, const char *body)
 {
@@ -1559,11 +1594,16 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	/*
-	 * Send X-Features and X-FW-Node-Info on errors as well.
+	 * Send X-Features (the first time) and X-FW-Node-Info on errors as well.
+	 *
+	 * Since we don't really know the code path that led us here, we're
+	 * careful not to add the same extra headers twice.
 	 */
 
-	upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
-	upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
+	if (0 == u->reqnum)
+		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
+
+	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
 
 	/*
 	 * If the download got queued, also add the queueing information
@@ -1917,6 +1957,7 @@ upload_send_error(struct upload *u, int code, const char *msg)
 				u->special->close(u->special, FALSE);
 				u->special = NULL;
 			}
+			u->reqnum++;
 			cu = upload_clone(u);
 			cu->last_was_error = TRUE;
 			upload_wait_new_request(cu);
@@ -3290,8 +3331,13 @@ upload_is_already_downloading(struct upload *upload)
 	return result;
 }
 
-static void
-upload_request_for_shared_file(struct upload *u, header_t *header)
+/**
+ * Handle request for a shared file.
+ *
+ * @return TRUE if we're going to actually serve the request.
+ */
+static gboolean
+upload_request_for_shared_file(struct upload *u, const header_t *header)
 {
 	filesize_t range_skip = 0, range_end = 0;
 	gboolean range_unavailable = FALSE;
@@ -3300,6 +3346,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	time_t now = tm_time();
 	gboolean parq_allows = FALSE;
     guint32 idx = 0;
+	gboolean switched = FALSE;
 
 	upload_check(u);
 	g_assert(u->sf);
@@ -3328,6 +3375,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	if (u->flags & UPLOAD_F_WAS_PLAIN) {
 		if (u->sha1) {
 			if (u->sha1 != sha1) {
+				switched = TRUE;
 				gnet_stats_count_general(
 					GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
 				if (sha1)
@@ -3336,6 +3384,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 					atom_sha1_free_null(&u->sha1);
 			}
 		} else if (u->file_index != idx) {
+			switched = TRUE;
 			gnet_stats_count_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
 		}
 	}
@@ -3360,7 +3409,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	if (!u->head_only && upload_is_already_downloading(u)) {
 		upload_send_error(u, 409, "Already downloading this file");
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -3377,7 +3426,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		if (ranges == NULL) {
 			upload_error_remove(u, 400, "Malformed Range request");
-			return;
+			return FALSE;
 		}
 
 		/*
@@ -3446,7 +3495,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 		u->cb_416_arg.u = u;
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
 		upload_send_error(u, 416, msg);
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -3467,7 +3516,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 			upload_http_content_urn_add, &u->cb_sha1_arg);
 
 		upload_send_error(u, 416, msg);		/* Same for HEAD or GET */
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -3495,7 +3544,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 			upload_error_remove(u, 503,
 				parq_upload_queue_full(u) ? "Queue full" :
 				"Another connection is still active");
-			return;
+			return FALSE;
 		}
 
 		/*
@@ -3552,7 +3601,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 				"%s not honoured; removed from PARQ queue",
 				u->was_actively_queued ?
 					"Minimum retry delay" : "Retry-After");
-			return;
+			return FALSE;
 		}
 
 		/*
@@ -3610,7 +3659,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 				/* Avoid data timeout */
 				u->last_update = tm_time();
 				expect_http_header(u, GTA_UL_QUEUED);
-				return;
+				return FALSE;
 			} else if (parq_upload_queue_full(u)) {
 				upload_error_remove(u, 503, "Queue full");
 			} else {
@@ -3619,7 +3668,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 					parq_upload_lookup_position(u),
 					short_time_ascii(parq_upload_lookup_eta(u)));
 			}
-			return;
+			return FALSE;
 		}
 	}
 
@@ -3652,7 +3701,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 	}
 	if (!u->file) {
 		upload_error_not_found(u, NULL);
-		return;
+		return FALSE;
 	}
 
 	if (!u->head_only)
@@ -3675,34 +3724,36 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 			parq_upload_add_header_id, &u->cb_parq_arg);
 	}
 
-	{
-		/*
-		 * Content-Length, Last-Modified, etc...
-		 */
+	/*
+	 * Content-Length, Last-Modified, etc...
+	 */
 
-		u->cb_status_arg.u = u;
-		u->cb_status_arg.mtime = shared_file_modification_time(u->sf);
-		upload_http_extra_callback_add(u,
-			upload_http_status, &u->cb_status_arg);
-	}
+	u->cb_status_arg.u = u;
+	u->cb_status_arg.mtime = shared_file_modification_time(u->sf);
+	upload_http_extra_callback_add(u,
+		upload_http_status, &u->cb_status_arg);
 
-	{
+	/*
+	 * Content-Disposition
+	 *
+	 * This header tells the receiver our idea of the file's name.
+	 * It's especially - but not only - useful when downloading by
+	 * urn:sha1 or similar using a browser.
+	 *
+	 * See RFC 2183 and RFC 2184 for explanations. Basically,
+	 * the filename is URL-encoded and set character set is
+	 * declared as utf-8. The language is declared 'en' (English)
+	 * which is bogus but it's required.
+	 *
+	 * This works with Mozilla.
+	 * The header is sent once per file, or on HEAD requests.  It won't be
+	 * sent for a follow-up GET after a HEAD for the same file.
+	 */
+
+	if (!u->is_followup || switched || u->head_only) {
 		static char cd_buf[1024];
 		size_t len, size = sizeof cd_buf;
 		char *p = cd_buf;
-
-		/*
-		 * This header tells the receiver our idea of the file's name.
-		 * It's especially - but not only - useful when downloading by
-		 * urn:sha1 or similar using a browser.
-		 *
-		 * See RFC 2183 and RFC 2184 for explanations. Basically,
-		 * the filename is URL-encoded and set character set is
-		 * declared as utf-8. The language is declared 'en' (English)
-		 * which is bogus but it's required.
-		 *
-		 * This works with Mozilla.
-		 */
 
 		len = g_strlcpy(p,
 				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
@@ -3753,7 +3804,7 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 		if (!upload_send_http_status(u, u->keep_alive, http_code, http_msg)) {
 			upload_remove(u, _("Cannot send whole HTTP status"));
-			return;
+			return FALSE;
 		}
 	}
 
@@ -3763,11 +3814,12 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	if (u->head_only) {
 		if (u->keep_alive) {
+			u->reqnum++;
 			upload_wait_new_request(u);
 		} else {
 			upload_remove(u, no_reason);	/* No message, everything was OK */
 		}
-		return;
+		return FALSE;
 	}
 
 	io_free(u->io_opaque);
@@ -3782,16 +3834,11 @@ upload_request_for_shared_file(struct upload *u, header_t *header)
 
 	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
 
-	u->reqnum++;
 	u->bio = bsched_source_add(bsched_out_select_by_addr(u->socket->addr),
 				&u->socket->wio, BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
-	upload_fire_upload_info_changed(u);
 
-	if (!u->was_running) {
-		gnet_prop_incr_guint32(PROP_UL_RUNNING);
-		u->was_running = TRUE;
-	}
+	return TRUE;
 }
 
 static void
@@ -3964,6 +4011,170 @@ upload_handle_connection_header(struct upload *u, header_t *header)
 		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
 			u->keep_alive = TRUE;
 	}
+}
+
+/**
+ * Handle request for special uploads.
+ *
+ * @return TRUE if we're going to actually serve the request.
+ */
+static gboolean
+upload_request_special(struct upload *u, const header_t *header)
+{
+	int flags = 0;
+	
+	u->file_size = 0;
+	if (u->browse_host) {
+		const char *buf;
+		char name[1024];
+
+		if (supports_chunked(u, header)) {
+			flags |= BH_F_CHUNKED;
+			if (!u->head_only) {
+				upload_http_extra_line_add(u,
+					"Transfer-Encoding: chunked\r\n");
+			}
+		} else {
+			/*
+			 * If browsing our host with a client that cannot allow chunked
+			 * transmission encoding, we have no choice but to indicate the
+			 * end of the transmission with EOF since we don't want to
+			 * compute the length of the data in advance.
+			 */
+			u->keep_alive = FALSE;
+		}
+
+		/*
+		 * Look at an Accept: line with "application/x-gnutella-packets".
+		 * If we get that, then we can send query hits backs.  Otherwise,
+		 * we'll send HTML output.
+		 */
+
+		buf = header_get(header, "Accept");
+		if (buf) {
+			if (strtok_has(buf, ",", "application/x-gnutella-packets")) {
+				flags |= BH_F_QHITS;
+			} else if (strtok_has(buf, ",", "text/html")) {
+				flags |= BH_F_HTML;
+			} else if (
+				strtok_has(buf, ",", "*/*") ||
+				strtok_has(buf, ",", "text/*")
+			) {
+				flags |= BH_F_HTML;	/* A browser probably */
+			} else {
+				upload_send_error(u, 406, "Not Acceptable");
+				return FALSE;
+			}
+		}
+		if (!(BH_F_QHITS & flags)) {
+			/* No Accept, default to HTML */
+			flags |= BH_F_HTML;
+		}
+
+		if (flags & BH_F_HTML) {
+			upload_http_extra_line_add(u,
+					"Content-Type: text/html; charset=utf-8\r\n");
+		} else {
+			upload_http_extra_line_add(u,
+					"Content-Type: application/x-gnutella-packets\r\n");
+		}
+
+		/*
+		 * Accept-Encoding -- see whether they want compressed output.
+		 */
+
+		flags |= select_encoding(header);
+		if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
+			const char *content_encoding;
+
+			if (flags & BH_F_GZIP) {
+				content_encoding = "Content-Encoding: gzip\r\n";
+			} else {
+				content_encoding = "Content-Encoding: deflate\r\n";
+			}
+			upload_http_extra_line_add(u, content_encoding);
+		}
+
+		gm_snprintf(name, sizeof name,
+				_("<Browse Host Request> [%s%s%s]"),
+				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
+				(flags & BH_F_DEFLATE) ? _(", deflate") :
+				(flags & BH_F_GZIP) ? _(", gzip") : "",
+				(flags & BH_F_CHUNKED) ? _(", chunked") : "");
+
+		atom_str_change(&u->name, name);
+	} else if (u->thex) {
+		char *name;
+		
+		name = g_strdup_printf(_("<THEX data for %s>"), u->name);
+		atom_str_change(&u->name, name);
+		G_FREE_NULL(name);
+
+		upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
+
+		if (!(flags & THEX_UPLOAD_F_CHUNKED)) {
+			
+			u->file_size = thex_upload_get_content_length(u->thex);
+			if (0 == u->file_size) {
+				upload_send_error(u, 500, "THEX failure");
+				return FALSE;
+			}
+			u->pos = 0;
+			u->skip = 0;
+			u->end = u->file_size - 1;
+			u->cb_length_arg.u = u;
+			upload_http_extra_callback_add(u,
+				upload_http_content_length_add, &u->cb_length_arg);
+		}
+	}
+
+	if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {
+		upload_remove(u, _("Cannot send whole HTTP status"));
+		return FALSE;
+	}
+
+	/*
+	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+	 */
+
+	if (u->head_only) {
+		if (u->keep_alive) {
+			u->reqnum++;
+			upload_wait_new_request(u);
+		} else {
+			/* No message, everything was OK */
+			upload_remove(u, no_reason);
+		}
+		return FALSE;
+	} else {
+		gnet_host_t peer;
+
+		io_free(u->io_opaque);
+		u->io_opaque = NULL;
+
+		socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024,
+			FALSE);
+
+		gnet_host_set(&peer, u->socket->addr, u->socket->port);
+		if (u->browse_host) {
+			u->special = browse_host_open(u, &peer,
+					upload_special_writable,
+					&upload_tx_deflate_cb,
+					&upload_tx_link_cb,
+					&u->socket->wio,
+					flags);
+		} else if (u->thex) {
+			u->special = thex_upload_open(u, &peer,
+					u->thex,
+					upload_special_writable,
+					&upload_tx_link_cb,
+					&u->socket->wio,
+					flags);
+			shared_file_unref(&u->thex);
+		}
+	}
+
+	return TRUE;
 }
 
 /**
@@ -4210,7 +4421,8 @@ upload_request(struct upload *u, header_t *header)
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);
 
-	upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
+	if (0 == u->reqnum)
+		upload_http_extra_callback_add(u, upload_xfeatures_add, NULL);
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
@@ -4222,7 +4434,7 @@ upload_request(struct upload *u, header_t *header)
 
 	if (u->push && !GNET_PROPERTY(is_firewalled)) {
 		/* Only send X-Host the first time we reply */
-		if (!u->is_followup) {
+		if (0 == u->reqnum) {
 			upload_http_extra_callback_add(u, upload_http_xhost_add, NULL);
 		}
 	} else if (GNET_PROPERTY(is_firewalled)) {
@@ -4231,12 +4443,12 @@ upload_request(struct upload *u, header_t *header)
 	}
 	
 	/*
-	 * Include X-Hostname if not in a followup reply and if we have a
+	 * Include X-Hostname the first time we reply and if we have a
 	 * known hostname, for which the user gave permission to advertise.
 	 */
 
 	if (
-		!u->is_followup &&
+		0 == u->reqnum &&
 		!GNET_PROPERTY(is_firewalled) &&
 		GNET_PROPERTY(give_server_hostname) &&
 		'\0' != GNET_PROPERTY(server_hostname)[0]
@@ -4287,163 +4499,19 @@ upload_request(struct upload *u, header_t *header)
 	upload_set_tos(u);
 
 	if (u->sf) {
-		upload_request_for_shared_file(u, header);
+		if (!upload_request_for_shared_file(u, header))
+			return;
 	} else {
-		int flags = 0;
-		
-		u->file_size = 0;
-		if (u->browse_host) {
-			const char *buf;
-			char name[1024];
-
-			if (supports_chunked(u, header)) {
-				flags |= BH_F_CHUNKED;
-				if (!u->head_only) {
-					upload_http_extra_line_add(u,
-						"Transfer-Encoding: chunked\r\n");
-				}
-			} else {
-				/*
-				 * If browsing our host with a client that cannot allow chunked
-				 * transmission encoding, we have no choice but to indicate the
-				 * end of the transmission with EOF since we don't want to
-				 * compute the length of the data in advance.
-				 */
-				u->keep_alive = FALSE;
-			}
-
-			/*
-			 * Look at an Accept: line with "application/x-gnutella-packets".
-			 * If we get that, then we can send query hits backs.  Otherwise,
-			 * we'll send HTML output.
-			 */
-
-			buf = header_get(header, "Accept");
-			if (buf) {
-				if (strtok_has(buf, ",", "application/x-gnutella-packets")) {
-					flags |= BH_F_QHITS;
-				} else if (strtok_has(buf, ",", "text/html")) {
-					flags |= BH_F_HTML;
-				} else if (
-					strtok_has(buf, ",", "*/*") ||
-					strtok_has(buf, ",", "text/*")
-				) {
-					flags |= BH_F_HTML;	/* A browser probably */
-				} else {
-					upload_send_error(u, 406, "Not Acceptable");
-					return;
-				}
-			}
-			if (!(BH_F_QHITS & flags)) {
-				/* No Accept, default to HTML */
-				flags |= BH_F_HTML;
-			}
-
-			if (flags & BH_F_HTML) {
-				upload_http_extra_line_add(u,
-						"Content-Type: text/html; charset=utf-8\r\n");
-			} else {
-				upload_http_extra_line_add(u,
-						"Content-Type: application/x-gnutella-packets\r\n");
-			}
-
-			/*
-			 * Accept-Encoding -- see whether they want compressed output.
-			 */
-
-			flags |= select_encoding(header);
-			if (flags & (BH_F_DEFLATE | BH_F_GZIP)) {
-				const char *content_encoding;
-
-				if (flags & BH_F_GZIP) {
-					content_encoding = "Content-Encoding: gzip\r\n";
-				} else {
-					content_encoding = "Content-Encoding: deflate\r\n";
-				}
-				upload_http_extra_line_add(u, content_encoding);
-			}
-
-			gm_snprintf(name, sizeof name,
-					_("<Browse Host Request> [%s%s%s]"),
-					(flags & BH_F_HTML) ? "HTML" : _("query hits"),
-					(flags & BH_F_DEFLATE) ? _(", deflate") :
-					(flags & BH_F_GZIP) ? _(", gzip") : "",
-					(flags & BH_F_CHUNKED) ? _(", chunked") : "");
-
-			atom_str_change(&u->name, name);
-		} else if (u->thex) {
-			char *name;
-			
-		   	name = g_strdup_printf(_("<THEX data for %s>"), u->name);
-			atom_str_change(&u->name, name);
-			G_FREE_NULL(name);
-
-			upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
-
-			if (!(flags & THEX_UPLOAD_F_CHUNKED)) {
-				
-				u->file_size = thex_upload_get_content_length(u->thex);
-				if (0 == u->file_size) {
-					upload_send_error(u, 500, "THEX failure");
-					return;
-				}
-				u->pos = 0;
-				u->skip = 0;
-				u->end = u->file_size - 1;
-				u->cb_length_arg.u = u;
-				upload_http_extra_callback_add(u,
-					upload_http_content_length_add, &u->cb_length_arg);
-			}
-		}
-
-		if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {
-			upload_remove(u, _("Cannot send whole HTTP status"));
+		if (!upload_request_special(u, header))
 			return;
-		}
+	}
 
-		/*
-		 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
-		 */
+	u->reqnum++;
+	upload_fire_upload_info_changed(u);
 
-		if (u->head_only) {
-			if (u->keep_alive) {
-				upload_wait_new_request(u);
-			} else {
-				/* No message, everything was OK */
-				upload_remove(u, no_reason);
-			}
-			return;
-		} else {
-			gnet_host_t peer;
-
-			io_free(u->io_opaque);
-			u->io_opaque = NULL;
-
-			socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024,
-				FALSE);
-
-			gnet_host_set(&peer, u->socket->addr, u->socket->port);
-			if (u->browse_host) {
-				u->special = browse_host_open(u, &peer,
-						upload_special_writable,
-						&upload_tx_deflate_cb,
-						&upload_tx_link_cb,
-						&u->socket->wio,
-						flags);
-			} else if (u->thex) {
-				u->special = thex_upload_open(u, &peer,
-						u->thex,
-						upload_special_writable,
-						&upload_tx_link_cb,
-						&u->socket->wio,
-						flags);
-				shared_file_unref(&u->thex);
-			}
-			if (!u->was_running) {
-				gnet_prop_incr_guint32(PROP_UL_RUNNING);
-				u->was_running = TRUE;
-			}
-		}
+	if (!u->was_running) {
+		gnet_prop_incr_guint32(PROP_UL_RUNNING);
+		u->was_running = TRUE;
 	}
 }
 
