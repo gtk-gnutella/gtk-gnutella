@@ -8426,6 +8426,39 @@ extract_retry_after(struct download *d, const header_t *header)
 	return delay;
 }
 
+/**
+ * Extract urn:bitprint information (SHA-1 and TTH root) out of a X-Content-URN
+ * header, which may contain several entries (separated with ",").
+ *
+ * @param buf		the X-Content-URN header string
+ * @param sha1		where the SHA-1 gets written to
+ * @param tth		where the TTH root gets written to
+ *
+ * @return TRUE if we found a valid urn:bitprint and filled the information.
+ */
+static gboolean
+extract_bitprint(const char *buf, struct sha1 *sha1, struct tth *tth)
+{
+	strtok_t *st;
+	const char *tok;
+	size_t len;
+	gboolean found = FALSE;
+
+	st = strtok_make_strip(buf);
+
+	while ((tok = strtok_next_length(st, ",", &len))) {
+		if (urn_get_bitprint(tok, len, sha1, tth)) {
+			found = TRUE;
+			break;
+		}
+	}
+
+	strtok_free(st);
+
+	return found;
+}
+
+
 /*
  * A standard X-Thex-URI header has the following form:
  * X-Thex-URI: <relative URI with an absolute path>;<TTH without prefix>
@@ -8500,12 +8533,12 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		 */
 		content_urn = header_get(header, "X-Content-URN");
 		if (!content_urn) {
-			g_message("Missing root hash and missing X-Content-URN (%s)",
+			g_message("missing root hash and missing X-Content-URN (%s)",
 				download_host_info(d));
 			return;
 		}
-		if (!urn_get_bitprint(content_urn, strlen(content_urn), &sha1, &tth)) {
-			g_message("Missing root hash and bad X-Content-URN (%s)",
+		if (!extract_bitprint(content_urn, &sha1, &tth)) {
+			g_message("missing root hash and bad X-Content-URN (%s)",
 				download_host_info(d));
 			return;
 		}
