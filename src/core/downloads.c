@@ -8776,7 +8776,7 @@ content_range_check(struct download *d, header_t *header)
 }
 
 /**
- * Handle X-Gnutella-Content-URN header.
+ * Handle X-(Gnutella-)Content-URN header.
  *
  * @returns FALSE if we cannot continue with the download.
  */
@@ -8802,17 +8802,16 @@ handle_content_urn(struct download *d, header_t *header)
 	if (!content_range_check(d, header))
 		return FALSE;
 
-	buf = header_get(header, "X-Gnutella-Content-Urn");
+	buf = header_get(header, "X-Gnutella-Content-URN");
 
 	/*
-	 * Clueless Shareaza chose to blindly and secretly change the header
-	 * into X-Content-Urn, which can also contain a list of URNs and not
-	 * a single URN (the latter being a good thing actually).
-	 *		--RAM, 16/06/2003
+	 * Shareaza chose to adhere to the Content-Addressable Web (CAW) specs
+	 * instead of the HUGE specs.  However, we can get several comma-separated
+	 * URNs in the header, not just one.
 	 */
 
 	if (buf == NULL)
-		buf = header_get(header, "X-Content-Urn");
+		buf = header_get(header, "X-Content-URN");
 
 	if (buf == NULL) {
 		gboolean n2r = FALSE;
@@ -8878,7 +8877,7 @@ handle_content_urn(struct download *d, header_t *header)
 		return TRUE;		/* Nothing to check against, continue */
 	}
 
-	found_sha1 = urn_get_bitprint(buf, strlen(buf), &sha1, &tth);
+	found_sha1 = extract_bitprint(buf, &sha1, &tth);
 	if (found_sha1) {
 		if (d->file_info->tth) {
 			if (!tth_eq(&tth, d->file_info->tth)) {
