@@ -52,6 +52,7 @@ struct header_x_feature {
 	char *name;
 	int major;
 	int minor;
+	const gboolean *guard;
 };
 
 struct features {
@@ -107,14 +108,12 @@ features_close(void)
 }
 
 /**
- * Add support for feature_name with the specified version to the X-Features
- * header.
+ * Add conditional support for feature ``name'': if at run-time the value
+ * pointed-at by ``guard'' is FALSE, the feature is not emitted.
  */
 void
-header_features_add(xfeature_t xf,
-	const char *feature_name,
-	int feature_version_major,
-	int feature_version_minor)
+header_features_add_guarded(xfeature_t xf,
+	const char *name, int major, int minor, const gboolean *guard)
 {
 	struct header_x_feature *item;
 	struct features *features;
@@ -123,11 +122,22 @@ header_features_add(xfeature_t xf,
 	g_return_if_fail(features);
 
 	item = walloc(sizeof *item);
-	item->name = g_strdup(feature_name);
-	item->major = feature_version_major;
-	item->minor = feature_version_minor;
+	item->name = g_strdup(name);
+	item->major = major;
+	item->minor = minor;
+	item->guard = guard;
 
 	features->list = g_list_append(features->list, item);
+}
+
+/**
+ * Add support for feature ``name'' with the specified version to the
+ * X-Features header.
+ */
+void
+header_features_add(xfeature_t xf, const char *name, int major, int minor)
+{
+	header_features_add_guarded(xf, name, minor, major, NULL);
 }
 
 /**
@@ -167,6 +177,9 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 		struct header_x_feature *item = cur->data;
 		char buf[50];
 
+		if (item->guard && !*item->guard)
+			continue;
+
 		gm_snprintf(buf, sizeof buf, "%s/%d.%d",
 			item->name, item->major, item->minor);
 
@@ -188,21 +201,21 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
  * is returned.
  */
 gboolean
-header_get_feature(const char *feature_name, const header_t *header,
-	guint *feature_version_major, guint *feature_version_minor)
+header_get_feature(const char *name, const header_t *header,
+	guint *major, guint *minor)
 {
 	char *buf = NULL;
 	char *start;
 
-	if (feature_version_major)
-		*feature_version_major = 0;
-	if (feature_version_minor)
-		*feature_version_minor = 0;
+	if (major)
+		*major = 0;
+	if (minor)
+		*minor = 0;
 
 	buf = header_get(header, "X-Features");
 
 	/*
-	 * We could also try to scan for the header: feature_name, so this would
+	 * We could also try to scan for the header: name, so this would
      * make this function even more generic. But I would suggest another
      * function for this though.
      */
@@ -219,7 +232,7 @@ header_get_feature(const char *feature_name, const header_t *header,
 	}
 
 	/*
-	 * We must locate the feature_name exactly, and not a subpart of another
+	 * We must locate the name exactly, and not a subpart of another
 	 * feature.  If we look for "bar", then we must not match on "foobar".
 	 */
 
@@ -227,7 +240,7 @@ header_get_feature(const char *feature_name, const header_t *header,
 	for (;;) {
 		int pc;			/* Previous char */
 
-		buf = ascii_strcasestr(buf, feature_name);
+		buf = ascii_strcasestr(buf, name);
 
 		if (buf == NULL)
 			return FALSE;
@@ -244,10 +257,10 @@ header_get_feature(const char *feature_name, const header_t *header,
 		 * the end of the current string we matched...
 		 */
 
-		buf += strlen(feature_name);
+		buf += strlen(name);
 	}
 
-	buf += strlen(feature_name);		/* Should now be on the "/" sep */
+	buf += strlen(name);		/* Should now be on the "/" sep */
 
 	if (*buf != '/') {
 		g_warning("[header] Malformed X-Features header, ignoring");
@@ -263,8 +276,7 @@ header_get_feature(const char *feature_name, const header_t *header,
 		return FALSE;
 
 	
-	return 0 == parse_major_minor(buf, NULL,
-					feature_version_major, feature_version_minor);
+	return 0 == parse_major_minor(buf, NULL, major, minor);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
