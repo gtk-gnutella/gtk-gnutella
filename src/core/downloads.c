@@ -14416,7 +14416,7 @@ download_slow_timer(time_t now)
 		download_check(d);
 		g_assert(dl_server_valid(d->server));
 
-		next = hash_list_next(sl_unqueued, next);
+		next = hash_list_next(sl_downloads, next);
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
