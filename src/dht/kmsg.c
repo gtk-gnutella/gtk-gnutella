@@ -1301,7 +1301,8 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 
 	if (!keys_exists(id)) {
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
-			g_message("DHT FETCH %s not found (%s)",
+			g_message("DHT FETCH \"%s\" %s not found (%s)",
+				dht_value_type_to_string(type),
 				kuid_to_hex_string(id), kuid_to_string(id));
 
 		answer_find_node(n, kn, id, kademlia_header_get_muid(header));
