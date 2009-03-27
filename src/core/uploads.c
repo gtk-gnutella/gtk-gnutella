@@ -2442,12 +2442,14 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
     atom_str_change(&u->name, uri);
 
 	/*
-	 * If we have a X-Gnutella-Content-Urn, check whether we got a valid
+	 * If we have a X-Gnutella-Content-URN, check whether we got a valid
 	 * SHA1 URN in there and extract it.
 	 */
 	{
-		const char *urn = header_get(header, "X-Gnutella-Content-Urn");
+		const char *urn = header_get(header, "X-Gnutella-Content-URN");
 
+		if (NULL == urn)
+			urn = header_get(header, "X-Content-URN");
 		if (urn)
 			sent_sha1 = dmesh_collect_sha1(urn, &sha1);
 	}
