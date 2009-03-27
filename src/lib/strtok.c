@@ -284,6 +284,7 @@ extend_token(strtok_t *s)
  * @param delim		the string containing one-character delimiters, e.g. ",;"
  * @param no_lead	whether leading spaces in token should be stripped
  * @param no_end	whether trailing spaces in token should be stripped
+ * @param length	if non-NULL, gets filled with the returned token length
  * @param looked	the token which we're looking for, NULL if none
  * @param found		if non-NULL, gets filled with whether we found ``looked''
  *
@@ -293,7 +294,7 @@ extend_token(strtok_t *s)
  */
 static const char *
 strtok_next_internal(strtok_t *s, const char *delim,
-	gboolean no_lead, gboolean no_end,
+	gboolean no_lead, gboolean no_end, size_t *length,
 	const char *looked, gboolean *found)
 {
 	size_t tlen;
@@ -302,6 +303,7 @@ strtok_next_internal(strtok_t *s, const char *delim,
 	const char *l = NULL;
 	gboolean seen_non_blank = FALSE;
 	int deferred_blank = 0;
+	char *tstart;
 
 	strtok_check(s);
 	g_assert(delim != NULL);
@@ -427,14 +429,18 @@ end_token:
 		*s->token = '\0';		/* Always return empty string */
 	}
 
-	if (found)
-		*found = TRUE;
-
 	/*
 	 * Leading white spaces are skipped if required.
 	 */
 
-	return no_lead ? skip_ascii_blanks(s->token) : s->token;
+	tstart = no_lead ? skip_ascii_blanks(s->token) : s->token;
+
+	/* Fill to-be-returned information */
+
+	if (found)  *found  = TRUE;
+	if (length) *length = s->t - tstart;
+
+	return tstart;
 
 skip_until_delim:
 
@@ -470,8 +476,8 @@ not_found:
 
 	*s->token = '\0';		/* Always return empty string */
 
-	if (found)
-		*found = FALSE;
+	if (length) *length = 0;
+	if (found)  *found  = FALSE;
 
 	return s->token;
 }
@@ -495,7 +501,7 @@ const char *
 strtok_next_extended(strtok_t *s, const char *delim,
 	gboolean no_lead, gboolean no_end)
 {
-	return strtok_next_internal(s, delim, no_lead, no_end, NULL, NULL);
+	return strtok_next_internal(s, delim, no_lead, no_end, NULL, NULL, NULL);
 }
 
 /**
@@ -515,7 +521,26 @@ strtok_next(strtok_t *s, const char *delim)
 	strtok_check(s);
 	g_assert(delim != NULL);
 
-	return strtok_next_internal(s, delim, s->no_lead, s->no_end, NULL, NULL);
+	return strtok_next_internal(s, delim, s->no_lead, s->no_end,
+		NULL, NULL, NULL);
+}
+
+/**
+ * Same as strtok_next() but the length of the returned token is also returned
+ * through ``length'' if non-NULL, provided we do have a next token.
+ *
+ * @param s		 the string tokenizing object
+ * @param delim	 the string containing one-character delimiters, e.g. ",;"
+ * @param length if non-NULL, gets written with the length of the token
+ */
+const char *
+strtok_next_length(strtok_t *s, const char *delim, size_t *length)
+{
+	strtok_check(s);
+	g_assert(delim != NULL);
+
+	return strtok_next_internal(s, delim, s->no_lead, s->no_end, length,
+		NULL, NULL);
 }
 
 /**
@@ -535,7 +560,7 @@ strtok_has(const char *string, const char *delim, const char *what)
 
 	st = strtok_make(string, TRUE, TRUE);
 
-	while (strtok_next_internal(st, delim, TRUE, TRUE, what, &found)) {
+	while (strtok_next_internal(st, delim, TRUE, TRUE, NULL, what, &found)) {
 		if (found)
 			break;
 	}
@@ -554,6 +579,7 @@ strtok_test(void)
 	const char *string = "a; b, c ; d/e";
 	strtok_t *st;
 	const char *tk;
+	size_t len;
 
 	st = strtok_make_nostrip(string);
 
@@ -569,8 +595,9 @@ strtok_test(void)
 	g_assert(0 == strcmp(tk, " b"));
 	g_assert(',' == strtok_delim(st));
 
-	tk = strtok_next(st, ";");
+	tk = strtok_next_length(st, ";", &len);
 	g_assert(0 == strcmp(tk, " c "));
+	g_assert(3 == len);
 	g_assert(';' == strtok_delim(st));
 
 	tk = strtok_next_extended(st, "/", TRUE, TRUE);

@@ -52,6 +52,7 @@ void strtok_skip(strtok_t *s, const char *delim, size_t n);
 const char *strtok_next(strtok_t *s, const char *delim);
 const char *strtok_next_extended(strtok_t *s, const char *delim,
 	gboolean no_lead, gboolean no_end);
+const char *strtok_next_length(strtok_t *s, const char *delim, size_t *length);
 gboolean strtok_eos(const strtok_t *s);
 const char *strtok_ptr(const strtok_t *s);
 char strtok_char(const strtok_t *s);
