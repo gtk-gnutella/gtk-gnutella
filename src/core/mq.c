@@ -702,6 +702,17 @@ mq_shutdown(mqueue_t *q)
 }
 
 /**
+ * Request explicit flush of all buffered data in the TX stack.
+ */
+void
+mq_flush(mqueue_t *q)
+{
+	g_assert(q);
+
+	tx_flush(q->tx_drv);
+}
+
+/**
  * Compare two pointers to links based on their relative priorities, then
  * based on their held Gnutella messages.
  * -- qsort() callback
