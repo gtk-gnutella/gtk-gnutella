@@ -1633,9 +1633,11 @@
 87.236.192.0/21
 
 # iWeb Technologies Inc. (range 174.142.0.0/16)
+# iWeb Technologies Inc. (range 67.205.64.0/18)
 # Spamming gtk-gnutella seen on these subnets
 174.142.32.0/24
 174.142.36.0/24
+67.205.64.0/18
 
 # FortressITX (range 69.72.128.0/17)
 # Sending back "sponsored results"
