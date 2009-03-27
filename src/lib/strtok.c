@@ -631,6 +631,10 @@ strtok_test(void)
 	g_assert(strtok_has(string, ";", "with space  #2"));
 	g_assert(!strtok_has(string, ";", "with space #2"));
 	g_assert(!strtok_has(string, ";", "absent"));
+
+	string = "word";
+	g_assert(strtok_has(string, ";", "word"));
+	g_assert(strtok_has(string, ",;/", "word"));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
