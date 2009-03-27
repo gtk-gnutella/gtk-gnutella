@@ -4893,8 +4893,9 @@ upload_init(void)
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
     upload_handle_map = idtable_new();
-	header_features_add(FEATURES_UPLOADS, "browse",
-		BH_VERSION_MAJOR, BH_VERSION_MINOR);
+	header_features_add_guarded(FEATURES_UPLOADS, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR,
+		GNET_PROPERTY_PTR(browse_host_enabled));
 }
 
 /**

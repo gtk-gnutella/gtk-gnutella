@@ -773,8 +773,9 @@ download_init(void)
 	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 
-	header_features_add(FEATURES_DOWNLOADS, "browse",
-		BH_VERSION_MAJOR, BH_VERSION_MINOR);
+	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR,
+		GNET_PROPERTY_PTR(browse_host_enabled));
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);

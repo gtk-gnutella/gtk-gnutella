@@ -1316,8 +1316,9 @@ node_init(void)
 
 	g_assert(23 == sizeof(gnutella_header_t));
 
-	header_features_add(FEATURES_CONNECTIONS, "browse",
-		BH_VERSION_MAJOR, BH_VERSION_MINOR);
+	header_features_add_guarded(FEATURES_CONNECTIONS, "browse",
+		BH_VERSION_MAJOR, BH_VERSION_MINOR,
+		GNET_PROPERTY_PTR(browse_host_enabled));
 
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
@@ -7646,9 +7647,11 @@ node_bye_all(void)
 
 	if (udp_node && udp_node->outq) {
 		mq_clear(udp_node->outq);
+		mq_discard(udp_node->outq);
 	}
 	if (udp6_node && udp6_node->outq) {
 		mq_clear(udp6_node->outq);
+		mq_discard(udp6_node->outq);
 	}
 
 	host_shutdown();
