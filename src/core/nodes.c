@@ -976,6 +976,10 @@ node_timer(time_t now)
 
 		if (n->flags & NODE_F_BYE_SENT) {
 			g_assert(n->outq);
+
+			if (in_shutdown)
+				mq_flush(n->outq); 	/* Callout queue halted during shutdown */
+
 			if (mq_pending(n->outq) == 0)
 				node_bye_sent(n);
 		}
