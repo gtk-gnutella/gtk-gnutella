@@ -4566,11 +4566,15 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	socket_check(s);
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
-		g_message("got final acknowledgment headers from node %s:",
+		const char *status = getline_str(s->getline);
+		g_message("----Got final acknowledgment headers from node %s:",
 			host_addr_to_string(n->addr));
-		dump_hex(stdout, "Status Line", getline_str(s->getline),
-			MIN(getline_length(s->getline), 80));
-		g_message("----Header Dump:");
+		if (is_printable_iso8859_string(status)) {
+			fprintf(stderr, "%s\n", status);
+		} else {
+			dump_hex(stderr, "Status Line", status,
+				MIN(getline_length(s->getline), 80));
+		}
 		header_dump(stderr, head, "----");
 		fflush(stderr);
 	}
@@ -4842,13 +4846,18 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	const char *compressing = "Content-Encoding: deflate\r\n";
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
-		g_message("got %s handshaking headers from node %s:",
+		g_message("----Got %s handshaking headers from node %s:",
 			incoming ? "incoming" : "outgoing",
 			host_addr_to_string(n->addr));
-		if (!incoming)
-			dump_hex(stdout, "Status Line", getline_str(n->socket->getline),
-				MIN(getline_length(n->socket->getline), 80));
-		g_message("----Header Dump:");
+		if (!incoming) {
+			const char *status = getline_str(n->socket->getline);
+			if (is_printable_iso8859_string(status)) {
+				fprintf(stderr, "%s\n", status);
+			} else {
+				dump_hex(stderr, "Status Line", status,
+					MIN(getline_length(n->socket->getline), 80));
+			}
+		}
 		header_dump(stderr, head, "----");
 		fflush(stderr);
 	}
