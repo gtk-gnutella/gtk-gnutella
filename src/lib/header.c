@@ -202,11 +202,22 @@ hfield_dump(const header_field_t *h, FILE *out)
 	first = TRUE;
 	iter = slist_iter_on_head(h->lines);
 	for (/* NOTHING */; slist_iter_has_item(iter); slist_iter_next(iter)) {
+		const char *s;
+
 		if (!first) {
 			first = FALSE;
 			fputs("    ", out);			/* Continuation line */
 		}
-		fputs(slist_iter_current(iter), out);
+		s = slist_iter_current(iter);
+		if (is_printable_iso8859_string(s)) {
+			fputs(s, out);
+		} else {
+			char buf[80];
+			size_t len = strlen(s);
+			gm_snprintf(buf, sizeof buf, "<%u non-printable byte%s>",
+				(unsigned) len, 1 == len ? "" : "s");
+			fputs(buf, out);
+		}
 		fputc('\n', out);
 	}
 	slist_iter_free(&iter);	
