@@ -96,6 +96,7 @@ struct dl_server {
 	time_t retry_after;		/**< Time at which we may retry from this host */
 	time_t dns_lookup;		/**< Last DNS lookup for hostname */
 	time_t proxies_stamp;	/**< Time when list was last updated */
+	time_t last_connect;	/**< When we last connected to that server */
 	struct vernum parq_version; /**< Supported queueing version */
 	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
 	guint32 attrs;

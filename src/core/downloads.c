@@ -129,6 +129,7 @@ RCSID("$Id$")
 #define DOWNLOAD_BAN_DELAY		360		/**< Retry time when suspecting ban */
 #define DOWNLOAD_MAX_PROXIES	8		/**< Keep that many recent proxies */
 #define DOWNLOAD_MAX_UDP_PUSH	4		/**< Contact at most 4 hosts */
+#define DOWNLOAD_CONNECT_DELAY	12		/**< Seconds between connections */
 
 #define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
 
@@ -5654,8 +5655,17 @@ download_pickup_queued(void)
 			}
 
 			/*
-			 * OK, pick the download at the start of the waiting list, but
-			 * do not remove it yet.  This will be done by download_start().
+			 * Avoid hammering servers.  In case we have multiple files queued
+			 * on that server, we must not issue all the requests in a short
+			 * period of time as this can be frowned upon.
+			 */
+
+			if (delta_time(now, server->last_connect) < DOWNLOAD_CONNECT_DELAY) 
+				continue;
+
+			/*
+			 * OK, select a download within the waiting list, but do not
+			 * remove it yet.  This will be done by download_start().
 			 */
 
 			g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
@@ -11534,9 +11544,11 @@ void
 download_connected(struct download *d)
 {
 	download_check(d);
+	dl_server_valid(d->server);
 	socket_check(d->socket);
 
 	d->flags |= DL_F_INITIAL;
+	d->server->last_connect = tm_time();
 	socket_nodelay(d->socket, TRUE);
 	download_send_request(d);
 }
