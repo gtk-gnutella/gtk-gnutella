@@ -183,7 +183,7 @@ getline_read(getline_t *o, const char *data, size_t len, size_t *used)
  * have in the buffer.
  */
 const char *
-getline_str(getline_t *o)
+getline_str(const getline_t *o)
 {
 	g_assert(o->pos < o->size);
 
@@ -195,7 +195,7 @@ getline_str(getline_t *o)
  * @return the length of the currently accumulated line.
  */
 size_t
-getline_length(getline_t *o)
+getline_length(const getline_t *o)
 {
 	return o->pos;
 }
@@ -204,7 +204,7 @@ getline_length(getline_t *o)
  * Copy source into dest.
  */
 void
-getline_copy(getline_t *source, getline_t *dest)
+getline_copy(const getline_t *source, getline_t *dest)
 {
 	g_assert(source);
 	g_assert(dest);

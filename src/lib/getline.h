@@ -72,9 +72,9 @@ void getline_free(getline_t *);
 void getline_reset(getline_t *);
 getline_result_t getline_read(getline_t *,
 					const char *data, size_t len, size_t *used);
-const char *getline_str(getline_t *);
-size_t getline_length(getline_t *);
-void getline_copy(getline_t *source, getline_t *dest);
+const char *getline_str(const getline_t *);
+size_t getline_length(const getline_t *);
+void getline_copy(const getline_t *source, getline_t *dest);
 void getline_set_maxlen(getline_t *, size_t);
 
 #endif	/* _getline_h_ */
