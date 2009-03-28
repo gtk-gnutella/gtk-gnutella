@@ -1939,6 +1939,7 @@ http_async_create(
 	 */
 
 	if (!is_host_addr(addr)) {
+		host_addr_t ip;
 		guint16 uport;
 
 		if (!http_url_parse(url, &uport, &host, &path)) {
@@ -1948,11 +1949,21 @@ http_async_create(
 
 		g_assert(host != NULL);
 
-		s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP, 0);
-	} else {
-		host = host_addr_port_to_string(addr, port);
-		path = url;
+		/*
+		 * Host can be an IP address or a hostname.  If it is a hostname,
+		 * we want to keep it as such in ha->host, otherwise we keep only
+		 * the IP address as part of the socket structure.
+		 */
 
+		if (string_to_host_addr(host, NULL, &ip)) {
+			host = NULL;
+			s = socket_connect(ip, uport, SOCK_TYPE_HTTP, 0);
+		} else {
+			s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP, 0);
+		}
+	} else {
+		host = NULL;
+		path = url;
 		s = socket_connect(addr, port, SOCK_TYPE_HTTP, 0);
 	}
 
@@ -1975,7 +1986,7 @@ http_async_create(
 	ha->flags = 0;
 	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
-	ha->host = atom_str_get(host);
+	ha->host = host ? atom_str_get(host) : NULL;
 	ha->socket = s;
 	ha->header_ind = header_ind;
 	ha->data_ind = data_ind;
