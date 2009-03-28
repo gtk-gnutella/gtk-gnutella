@@ -395,6 +395,8 @@ header_append(header_t *o, const char *text, int len)
 	guchar c;
 	header_field_t *hf;
 
+	g_assert(len >= 0);
+
 	if (o->flags & HEAD_F_EOH)
 		return HEAD_EOH_REACHED;
 
@@ -617,22 +619,21 @@ header_fmt_check(const header_fmt_t *fmt)
  * Compute the length of the string `s' whose length is `len' with trailing
  * blanks ignored.
  */
-static int
-stripped_strlen(const char *s, int len)
+static size_t
+stripped_strlen(const char *s, size_t len)
 {
-	const char *end = s + len;
-	int i;
+	const char *end;
 
 	/*
-	 * Locate last non-space char in separator.
+	 * Locate last non-blank char in separator.
 	 */
 
-	for (i = len - 1; i >= 0; i--, end--) {
-		if (!is_ascii_blank(s[i]))
-			return end - s;
+	for (end = &s[len]; end != s; end--) {
+		if (!is_ascii_blank(end[-1]))
+			break;
 	}
 
-	return 0;
+	return end - s;
 }
 
 /**
@@ -735,14 +736,14 @@ gboolean
 header_fmt_value_fits(const header_fmt_t *hf, size_t len)
 {
 	size_t final_len;
-	size_t maxlen;
+	size_t maxlen, n;
 
 	header_fmt_check(hf);
 
 	if (hf->empty)
 		return FALSE;
 
-	maxlen = hf->max_size - sizeof("\r\n");
+	maxlen = size_saturate_sub(hf->max_size, sizeof("\r\n"));
 
 	/*
 	 * If it fits on the line, no continuation will have to be emitted.
@@ -750,10 +751,15 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
 	 * followed by "\r\n\t" (3 chars).
 	 */
 
-	if (hf->current_len + len + hf->seplen <= hf->maxlen)
-		final_len = hf->header->len + len + hf->seplen;
-	else
-		final_len = hf->header->len + len + hf->stripped_seplen + 3;
+	final_len = size_saturate_add(hf->header->len, len);
+
+	n = size_saturate_add(hf->current_len, size_saturate_add(len, hf->seplen));
+	if (n <= hf->maxlen) {
+		final_len = size_saturate_add(final_len, hf->seplen);
+	} else {
+		final_len = size_saturate_add(final_len, hf->stripped_seplen);
+		final_len = size_saturate_add(final_len, 3);
+	}
 
 	return final_len < maxlen;	/* Could say "<=" perhaps, but let's be safe */
 }
@@ -783,6 +789,8 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 	gboolean success;
 
 	header_fmt_check(hf);
+	g_assert(slen >= 0);
+	g_assert(sslen >= -1);
 
 	if (hf->empty)
 		return FALSE;
@@ -790,20 +798,20 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 	gslen = hf->header->len;
 	len = strlen(str);
 	curlen = hf->current_len;
+	g_assert(curlen >= 0);
 
 	g_assert(len <= INT_MAX);	/* Legacy bug */
 
-	if (curlen + len + slen > (size_t) hf->maxlen) {
+	if (
+		size_saturate_add(curlen, size_saturate_add(len, slen)) > UNSIGNED(hf->maxlen)
+	) {
 		/*
 		 * Emit sperator, if any and data was already emitted.
 		 */
 
 		if (separator != NULL && hf->data_emitted) {
-			int s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
-			const char *p;
-
-			for (p = separator; s > 0; p++, s--)
-				g_string_append_c(hf->header, *p);
+			size_t s = sslen >= 0 ? UNSIGNED(sslen) : stripped_strlen(separator, slen);
+			g_string_append_len(hf->header, separator, s);
 		}
 
 		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
@@ -849,7 +857,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 gboolean
 header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 {
-	int seplen;
+	size_t seplen;
 
 	header_fmt_check(hf);
 	g_assert(!hf->frozen);
@@ -933,13 +941,11 @@ header_fmt_to_string(const header_fmt_t *hf)
 
 	header_fmt_check(hf);
 
-	if (hf->header->len > HEADER_FMT_MAX_SIZE)
-		g_warning("trying to format too long an HTTP line (%d bytes)",
-			(int) hf->header->len);
-
-	strncpy(line, hf->header->str, HEADER_FMT_MAX_SIZE);
-	line[HEADER_FMT_MAX_SIZE] = '\0';
-
+	if (hf->header->len >= sizeof line) {
+		g_warning("trying to format too long an HTTP line (%lu bytes)",
+			(unsigned long) hf->header->len);
+	}
+	clamp_strncpy(line, sizeof line, hf->header->str, hf->header->len);
 	return line;
 }
 
