@@ -2377,7 +2377,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 }
 
 /**
- * Displays hex & ascii lines to the terminal (for debug)
+ * Displays hex & ascii lines to the specified file (for debug)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
@@ -2407,6 +2407,24 @@ dump_hex(FILE *out, const char *title, gconstpointer data, int length)
 
 	fprintf(out, "----------------- (%d bytes).\n", length);
 	fflush(out);
+}
+
+/**
+ * Dump text string to the specified file, followed by trailer (if non-NULL).
+ * A final "\n" is emitted at the end.
+ */
+void
+dump_string(FILE *out, const char *str, size_t len, const char *trailer)
+{
+	g_return_if_fail(out);
+	g_return_if_fail(str);
+	g_return_if_fail(size_is_non_negative(len));
+
+	if (len)
+		fwrite(str, len, 1, out);
+	if (trailer)
+		fprintf(out, "%s", trailer);
+	fputc('\n', out);
 }
 
 /**
