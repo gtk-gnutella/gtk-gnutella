@@ -323,6 +323,7 @@ int hex2int(guchar c);
 gboolean is_printable(const char *buf, int len);
 void dump_hex(FILE *, const char *, gconstpointer, int);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
+gboolean is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t filename_shrink(const char *filename, char *buf, size_t size);
 char *unique_filename(const char *path, const char *file, const char *ext,

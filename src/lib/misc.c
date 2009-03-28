@@ -2423,8 +2423,28 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
 	if (len)
 		fwrite(str, len, 1, out);
 	if (trailer)
-		fprintf(out, "%s", trailer);
+		fputs(trailer, out);
 	fputc('\n', out);
+}
+
+/**
+ * Is string made-up of printable ISO-8859 characters?
+ * If not, consider dump_hex().
+ */
+gboolean
+is_printable_iso8859_string(const char *s)
+{
+	int c;
+
+	while ((c = *s++)) {
+		if (
+			!is_ascii_print(c) && c != '\r' && c != '\n' && c != '\t' &&
+			!(c >= 160 && c <= 255)
+		)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 /**
