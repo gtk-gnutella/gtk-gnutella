@@ -555,14 +555,17 @@ header_dump_item(gpointer p, gpointer user_data)
 }
 
 /**
- * Dump whole header on specified file.
+ * Dump whole header on specified file, followed by trailer string
+ * (if not NULL) and a final "\n".
  */
 void
-header_dump(const header_t *o, FILE *out)
+header_dump(FILE *out, const header_t *o, const char *trailer)
 {
 	if (o->fields) {
 		slist_foreach(o->fields, header_dump_item, out);
 	}
+	if (trailer)
+		fprintf(out, "%s\n", trailer);
 }
 
 /***

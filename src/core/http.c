@@ -278,10 +278,11 @@ http_send_status(
 			break;
 		}
 
-		if (trace)
-			g_message("----Sent HTTP status to %s (%lu bytes):\n%.*s----",
-				host_addr_to_string(s->addr), (gulong) rw,
-				(int) MIN(rw, INT_MAX), header);
+		if (trace) {
+			g_message("----Sent HTTP status to %s (%lu bytes):",
+				host_addr_to_string(s->addr), (gulong) rw);
+			dump_string(stderr, header, rw, "----");
+		}
 	}
 
 	return TRUE;
@@ -1863,11 +1864,10 @@ http_async_sent_request(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
-		g_message("----"
-			"Sent HTTP request%s to %s (%u bytes):\n%.*s\n----\n",
+		g_message("----Sent HTTP request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
-			host_addr_port_to_string(s->addr, s->port),
-				(unsigned) len, (unsigned) len, req);
+			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
+		dump_string(stderr, req, len, "----");
 	}
 }
 
@@ -1889,8 +1889,7 @@ http_async_got_reply(const struct http_async *unused_ha,
 		g_message("----Got HTTP reply from %s:",
 			host_addr_to_string(s->addr));
 		fprintf(stderr, "%s", status);
-		header_dump(header, stderr);
-		g_message("----");
+		header_dump(stderr, header, "----");
 	}
 }
 

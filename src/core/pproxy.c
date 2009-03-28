@@ -696,8 +696,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
 		g_message("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
-		header_dump(header, stderr);
-		g_message("----");
+		header_dump(stderr, header, "----");
 	}
 
 	/*
@@ -1216,11 +1215,10 @@ cproxy_sent_request(const struct http_async *unused_ha,
 	(void) unused_ha;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_OUT) {
-		g_message("----"
-			"Sent push-proxy request%s to %s (%u bytes):\n%.*s\n----\n",
+		g_message("----Sent push-proxy request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
-			host_addr_port_to_string(s->addr, s->port),
-			(unsigned) len, (unsigned) len, req);
+			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
+		dump_string(stderr, req, len, "----");
 	}
 }
 
@@ -1242,8 +1240,7 @@ cproxy_got_reply(const struct http_async *unused_ha,
 		g_message("----Got push-proxy reply from %s:",
 			host_addr_to_string(s->addr));
 		fprintf(stderr, "%s", status);
-		header_dump(header, stderr);
-		g_message("----");
+		header_dump(stderr, header, "----");
 	}
 }
 

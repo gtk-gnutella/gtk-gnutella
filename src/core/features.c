@@ -265,7 +265,7 @@ header_get_feature(const char *name, const header_t *header,
 	if (*buf != '/') {
 		g_warning("[header] Malformed X-Features header, ignoring");
 		if (GNET_PROPERTY(dbg) > 2)
-			header_dump(header, stderr);
+			header_dump(stderr, header, NULL);
 
 		return FALSE;
 	}

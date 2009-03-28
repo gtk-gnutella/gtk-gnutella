@@ -189,8 +189,7 @@ nextline:
 			host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
+		header_dump(stderr, header, "-----");
 		(*ih->error->line_too_long)(ih->resource, header);
 		return;
 		/* NOTREACHED */
@@ -272,8 +271,7 @@ nextline:
 		g_warning("io_header_parse: %s, disconnecting from %s",
 			header_strerror(error),	host_addr_to_string(s->addr));
 		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
+		header_dump(stderr, header, "-----");
 		dump_hex(stderr, "Header Line", getline_str(ih->getline),
 			MIN(getline_length(ih->getline), 128));
 		(*ih->error->header_error)(ih->resource, error);
@@ -286,8 +284,7 @@ nextline:
 			dump_hex(stderr, "Header Line",
 				getline_str(ih->getline), getline_length(ih->getline));
 			fprintf(stderr, "------ Header Dump (so far):\n");
-			header_dump(header, stderr);
-			fprintf(stderr, "------\n");
+			header_dump(stderr, header, "-----");
 		}
 		getline_reset(ih->getline);
 		goto nextline;			/* Go process other lines we may have read */

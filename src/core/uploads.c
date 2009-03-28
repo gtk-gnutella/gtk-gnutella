@@ -2291,9 +2291,8 @@ upload_connect_conf(struct upload *u)
 			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
 			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
-		g_message(
-			"----Sent GIV to %s:\n%.*s\n----", host_addr_to_string(s->addr),
-			(int) MIN(rw, (size_t) INT_MAX), giv);
+		g_message("----Sent GIV to %s:", host_addr_to_string(s->addr));
+		dump_string(stderr, giv, rw, "----");
 	}
 
 	if ((size_t) sent != rw) {
@@ -4242,8 +4241,7 @@ upload_request(struct upload *u, header_t *header)
 			host_addr_to_string(u->socket->addr),
 			u->from_browser ? " (via browser)" : "",
 			u->request);
-		header_dump(header, stderr);
-		g_message("----");
+		header_dump(stderr, header, "----");
 	}
 
 	if (u->last_was_error)

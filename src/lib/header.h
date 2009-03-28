@@ -75,7 +75,7 @@ header_t *header_make(void);
 void header_free(header_t *o);
 void header_reset(header_t *o);
 int header_append(header_t *o, const char *text, int len);
-void header_dump(const header_t *o, FILE *out);
+void header_dump(FILE *out, const header_t *o, const char *trailer);
 const char *header_strerror(guint errnum);
 char *header_get(const header_t *o, const char *field);
 char *header_getdup(const header_t *o, const char *field);

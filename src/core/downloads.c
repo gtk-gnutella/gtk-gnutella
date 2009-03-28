@@ -9677,8 +9677,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_message("----Got %sreply from %s:\n%s",
 			ok ? "" : "INCOMPLETE ", host_addr_to_string(s->addr), status);
-		header_dump(header, stderr);
-		g_message("----");
+		header_dump(stderr, header, "----");
 	}
 
 	/*
@@ -11075,11 +11074,11 @@ download_write_request(gpointer data, int unused_source, inputevt_cond_t cond)
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_message(
-			"----Sent Request (%s) completely to %s (%u bytes):\n%.*s\n----",
+		g_message("----Sent Request (%s) completely to %s (%u bytes):",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
+			http_buffer_length(r));
+		dump_string(stderr, http_buffer_base(r), http_buffer_length(r), "----");
 	}
 
 	/*
@@ -11514,14 +11513,15 @@ picked:
 		socket_evt_set(s, INPUT_EVENT_WX, download_write_request, d);
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):\n%.*s\n----",
+		g_message("----Sent Request (%s%s%s%s%s) to %s (%u bytes):",
 			d->keep_alive ? "follow-up" : "initial",
 			(d->server->attrs & DLS_A_NO_HTTP_1_1) ? "" : ", HTTP/1.1",
 			(d->server->attrs & DLS_A_PUSH_IGN) ? ", ign-push" : "",
 			(d->server->attrs & DLS_A_MINIMAL_HTTP) ? ", minimal" : "",
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			(guint) rw, (int) rw, request_buf);
+			(guint) rw);
+		dump_string(stderr, request_buf, rw, "----");
 	}
 
 	download_request_sent(d);
@@ -11914,9 +11914,10 @@ download_push_ack(struct gnutella_socket *s)
 
 	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
-	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN)
-		g_message("----Got GIV from %s:\n%s\n----",
-			host_addr_to_string(s->addr), giv);
+	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
+		g_message("----Got GIV from %s:", host_addr_to_string(s->addr));
+		dump_string(stderr, giv, getline_length(s->getline), "----");
+	}
 
 	/*
 	 * To find out which download this is, we have to parse the incoming
