@@ -137,7 +137,7 @@ header_features_add_guarded(xfeature_t xf,
 void
 header_features_add(xfeature_t xf, const char *name, int major, int minor)
 {
-	header_features_add_guarded(xf, name, minor, major, NULL);
+	header_features_add_guarded(xf, name, major, minor, NULL);
 }
 
 /**
