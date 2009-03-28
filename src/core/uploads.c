@@ -1269,7 +1269,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 	g_return_val_if_fail(sha1, 0);
 
 	/*
-	 * Because of possible persistent uplaods, we have to keep track on
+	 * Because of possible persistent uploads, we have to keep track on
 	 * the last time we sent download mesh information within the upload
 	 * itself: the time for them to download a range will be greater than
 	 * our expiration timer on the external mesh information.
