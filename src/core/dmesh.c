@@ -426,7 +426,7 @@ static const char * const parse_errstr[] = {
 const char *
 dmesh_url_strerror(dmesh_url_error_t errnum)
 {
-	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
@@ -718,10 +718,10 @@ dm_expire(struct dmesh *dm)
 		 */
 
 		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("MESH %s: EXPIRED \"%s\", age=%d",
+			g_message("MESH %s: EXPIRED \"%s\", age=%u",
 				sha1_base32(dm->sha1),
 				dmesh_urlinfo_to_string(&dme->url),
-				(int) delta_time(now, dme->stamp));
+				(unsigned) delta_time(now, dme->stamp));
 
 		expired = g_slist_prepend(expired, dme);
 	}
@@ -986,10 +986,10 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 
 rejected:
 	if (GNET_PROPERTY(dmesh_debug) > 4)
-		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%d: %s",
+		g_message("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
 			dmesh_urlinfo_to_string(info), (guint) stamp,
-			(int) delta_time(now, stamp),
+			(unsigned) delta_time(now, stamp),
 			reason);
 
 	return FALSE;
@@ -1436,7 +1436,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	if (nselected == 0)
 		return 0;
 
-	g_assert(nselected <= (int) list_length(dm->entries));
+	g_assert(UNSIGNED(nselected) <= list_length(dm->entries));
 
 	/*
 	 * Second pass: choose at most `hcnt' entries at random.
@@ -1530,7 +1530,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 	g_assert(sha1);
 	g_assert(buf);
-	g_assert((int) size >= 0);
+	g_assert(size_is_non_negative(size));
 	g_assert(size <= INT_MAX);
 
 	if (size <= 3)		/* Account for trailing NUL + "\r\n" */
@@ -1755,7 +1755,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	if (nselected == 0)
 		goto nomore;
 
-	g_assert(nselected <= (int) list_length(dm->entries));
+	g_assert(UNSIGNED(nselected) <= list_length(dm->entries));
 
 	/*
 	 * Second pass.
@@ -1827,7 +1827,7 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 {
 	strtok_t *st;
 	const char *tok;
-	gboolean found;
+	gboolean found = FALSE;
 
 	st = strtok_make_strip(value);
 
@@ -2168,11 +2168,11 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
-			g_message("MESH %s: %s \"%s\", stamp=%u age=%d",
+			g_message("MESH %s: %s \"%s\", stamp=%u age=%u",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_string(&info), (guint) stamp,
-				(int) delta_time(now, stamp));
+				(unsigned) delta_time(now, stamp));
 
 		if (c == '\0')				/* Reached end of string */
 			finished = TRUE;
