@@ -2347,16 +2347,17 @@ node_eof_v(struct gnutella_node *n, const char *reason, va_list args)
 
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
-		if (GNET_PROPERTY(node_debug) > 4) {
+		if (GNET_PROPERTY(node_debug)) {
 			va_list dbargs;
 
-			printf("EOF-style error during BYE to %s:\n (BYE) ", node_addr(n));
+			g_message("EOF-style error during BYE to %s:\n (BYE) ",
+				node_addr(n));
 
 			VA_COPY(dbargs, args);
-			vprintf(reason, dbargs);
+			vfprintf(stderr, reason, dbargs);
 			va_end(dbargs);
 
-			printf("\n");
+			fprintf(stderr, "\n");
 		}
 	}
 
@@ -2714,7 +2715,7 @@ formatted_connection_pongs(const char *field, host_type_t htype, int num)
 	/* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
 	if (hcount) {
 		int i;
-		gpointer fmt = header_fmt_make(field, ", ",
+		header_fmt_t *fmt = header_fmt_make(field, ", ", 0,
 			23 /* 23 == PONG_LEN */ * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
@@ -8981,12 +8982,12 @@ node_http_proxies_add(char *buf, size_t size,
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
-		header_t *fmt;
+		header_fmt_t *fmt;
 		size_t len;
 		struct guid guid;
 		guint16 port = socket_listen_port();
 
-		fmt = header_fmt_make("X-FW-Node-Info", "; ", 0);
+		fmt = header_fmt_make("X-FW-Node-Info", "; ", 0, size);
 
 		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
 		header_fmt_append_value(fmt, guid_to_string(&guid));
@@ -9007,10 +9008,10 @@ node_http_proxies_add(char *buf, size_t size,
 		header_fmt_end(fmt);
 		len = header_fmt_length(fmt);
 
-		if (len < size) {
-			strncpy(buf, header_fmt_string(fmt), size);
-			rw += len;
-		}
+		g_assert(len < size);		/* ``size'' was the configured maximum */
+
+		strncpy(buf, header_fmt_string(fmt), size);
+		rw += len;
 
 		header_fmt_free(fmt);
 	}
@@ -9024,7 +9025,8 @@ node_http_proxies_add(char *buf, size_t size,
 	 */
 
 	if (sl_proxies != NULL) {
-		header_t *fmt = header_fmt_make("X-Push-Proxies", ", ", 0);
+		header_fmt_t *fmt =
+			header_fmt_make("X-Push-Proxies", ", ", 0, size - rw);
 		size_t len;
 		GSList *sl;
 
@@ -9042,10 +9044,10 @@ node_http_proxies_add(char *buf, size_t size,
 		header_fmt_end(fmt);
 		len = header_fmt_length(fmt);
 
-		if (len < size - rw) {
-			strncpy(&buf[rw], header_fmt_string(fmt), size - rw);
-			rw += len;
-		}
+		g_assert(len < size - rw);		/* Less than configured maximum */
+
+		strncpy(&buf[rw], header_fmt_string(fmt), size - rw);
+		rw += len;
 
 		header_fmt_free(fmt);
 	}

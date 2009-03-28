@@ -171,6 +171,10 @@ http_send_status(
 	if (code < 300 || !keep_alive || body)
 		no_content = "";
 
+	/*
+	 * Construct a minimal header: what we shall always send.
+	 */
+
 	g_assert(header_size <= sizeof header);
 
 	date = timestamp_rfc1123_to_string(clock_loc2gmt(tm_time()));
@@ -237,7 +241,7 @@ http_send_status(
 	if (body) {
 		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
 	}
-	if (rw >= header_size && hev) {
+	if (rw >= header_size && (hev || body)) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, status_msg);
 
@@ -1482,9 +1486,7 @@ static const char * const http_verb[NUM_HTTP_REQTYPES] = {
 	"POST",
 };
 
-enum http_async_magic {
-	HTTP_ASYNC_MAGIC = 0xa91cf3eeU
-};
+enum http_async_magic { HTTP_ASYNC_MAGIC = 0xa91cf3eeU };
 
 /**
  * An asynchronous HTTP request.

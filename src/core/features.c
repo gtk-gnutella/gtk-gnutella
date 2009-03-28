@@ -156,7 +156,7 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 	static const char hdr[] = "X-Features";
 	struct features *features;
 	GList *cur;
-	gpointer fmt;
+	header_fmt_t *fmt;
 
 	g_assert(len <= INT_MAX);
 	g_assert(*rw <= INT_MAX);
@@ -171,7 +171,7 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 	if (g_list_first(features->list) == NULL)
 		return;
 
-	fmt = header_fmt_make(hdr, ", ", len - *rw);
+	fmt = header_fmt_make(hdr, ", ", 0, len - *rw);
 
 	for (cur = g_list_first(features->list); cur; cur = g_list_next(cur)) {
 		struct header_x_feature *item = cur->data;

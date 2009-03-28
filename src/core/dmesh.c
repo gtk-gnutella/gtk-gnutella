@@ -1521,10 +1521,9 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	int nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	int i;
-	size_t maxslen;			/* Account for trailing NUL + "\r\n" */
 	GSList *by_addr;
 	size_t maxlinelen = 0;
-	gpointer fmt;
+	header_fmt_t *fmt;
 	gboolean added;
 	list_iter_t *iter;
 	gboolean complete_file;
@@ -1534,9 +1533,8 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	g_assert((int) size >= 0);
 	g_assert(size <= INT_MAX);
 
-	if (size <= 3)
+	if (size <= 3)		/* Account for trailing NUL + "\r\n" */
 		return 0;
-	maxslen = size - 3;		/* Account for trailing NUL + "\r\n" */
 
 	/*
 	 * Shall we emit continuations?
@@ -1579,7 +1577,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	by_addr = g_hash_table_lookup(ban_mesh_by_sha1, sha1);
 
 	if (by_addr != NULL) {
-		fmt = header_fmt_make("X-Nalt", ", ", size);
+		fmt = header_fmt_make("X-Nalt", ", ", size, size / 3);
 		if (maxlinelen)
 			header_fmt_set_line_length(fmt, maxlinelen);
 		added = FALSE;
@@ -1596,11 +1594,8 @@ dmesh_alternate_location(const struct sha1 *sha1,
 				const char *value;
 
 				value = host_addr_port_to_string(info->addr, info->port);
-
-				if (!header_fmt_value_fits(fmt, strlen(value), size / 3))
+				if (!header_fmt_append_value(fmt, value))
 					break;
-
-				header_fmt_append_value(fmt, value);
 				added = TRUE;
 			}
 		}
@@ -1625,11 +1620,11 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 * Start filling the buffer.
 	 */
 
-	fmt = header_fmt_make("X-Alt", ", ", size);
+	/* `len' is non-zero if X-Nalt was generated */
+	fmt = header_fmt_make("X-Alt", ", ", size - len, size - len);
 	if (maxlinelen)
 		header_fmt_set_line_length(fmt, maxlinelen);
 	added = FALSE;
-	maxslen -= len;		/* `len' is non-zero if X-Nalt was generated */
 
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
@@ -1669,14 +1664,14 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		url_len = dmesh_entry_compact(&ourselves, url, sizeof url);
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
-		if (!header_fmt_value_fits(fmt, url_len + strlen(tls_hex), maxslen))
+		if (!header_fmt_value_fits(fmt, url_len + strlen(tls_hex)))
 			goto nomore;
 
 		if (tls_enabled()) {
 			header_fmt_append_value(fmt, tls_hex);
 		}
-		header_fmt_append_value(fmt, url);
-		added = TRUE;
+		if (header_fmt_append_value(fmt, url))
+			added = TRUE;
 	}
 
 	/*
@@ -1800,11 +1795,8 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		/* Buffer was large enough */
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
-		if (!header_fmt_value_fits(fmt, url_len, maxslen))
-			continue;
-
-		header_fmt_append_value(fmt, url);
-		added = TRUE;
+		if (header_fmt_append_value(fmt, url))
+			added = TRUE;
 	}
 
 nomore:

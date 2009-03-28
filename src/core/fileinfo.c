@@ -5954,11 +5954,10 @@ int
 file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 {
 	const struct dl_file_chunk **fc_ary;
-	gpointer fmt;
+	header_fmt_t *fmt;
 	gboolean is_first = TRUE;
 	char range[80];
 	GSList *sl;
-	int maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
 	int count;
 	int nleft;
 	int i;
@@ -5967,7 +5966,7 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 	file_info_check(fi);
 	g_assert(size >= 0);
 	g_assert(file_info_check_chunklist(fi, TRUE));
-	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
+	fmt = header_fmt_make("X-Available-Ranges", ", ", size, size);
 
 	if (header_fmt_length(fmt) + sizeof "bytes 0-512\r\n" >= (size_t) size)
 		goto emit;				/* Sorry, not enough room for anything */
@@ -5984,10 +5983,8 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 			is_first ? "bytes " : "",
 			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
 
-		if (!header_fmt_value_fits(fmt, rw, maxfmt))
-			break;			/* Will not fit, cannot emit all of it */
-
-		header_fmt_append_value(fmt, range);
+		if (!header_fmt_append_value(fmt, range))
+			break;
 		is_first = FALSE;
 	}
 
@@ -6000,7 +5997,7 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 	 */
 
 	header_fmt_free(fmt);
-	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
+	fmt = header_fmt_make("X-Available-Ranges", ", ", size, size);
 	is_first = TRUE;
 
 	/*
@@ -6052,13 +6049,8 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 
 		len = header_fmt_length(fmt);
 
-		if ((size_t) len + sizeof "bytes 0-512\r\n" >= (size_t) maxfmt)
-			break;			/* No more room, no need to continue */
-
-		if (header_fmt_value_fits(fmt, rw, maxfmt)) {
-			header_fmt_append_value(fmt, range);
+		if (header_fmt_append_value(fmt, range))
 			is_first = FALSE;
-		}
 
 		/*
 		 * Shift upper (nleft - j - 1) items down 1 position.
