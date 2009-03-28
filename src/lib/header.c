@@ -571,7 +571,6 @@ header_dump(const header_t *o, FILE *out)
 
 enum header_fmt_magic { HEADER_FMT_MAGIC = 0xf7a91cU };
 
-#define HEADER_FMT_MAGIC		0xf7a91c
 #define HEADER_FMT_DFLT_LEN		256		/**< Default field length if no hint */
 #define HEADER_FMT_LINE_LEN		78		/**< Try to never emit longer lines */
 #define HEADER_FMT_MAX_SIZE		1024	/**< Max line size for header */
