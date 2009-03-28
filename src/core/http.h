@@ -187,8 +187,7 @@ typedef void (*http_user_free_t)(gpointer data);
  */
 
 typedef size_t (*http_op_request_t)(const struct http_async *,
-	char *buf, size_t len,
-	const char *verb, const char *path, const char *host, guint16 port);
+	char *buf, size_t len, const char *verb, const char *path);
 
 typedef void (*http_op_reqsent_t)(const struct http_async *,
 	const struct gnutella_socket *s, const char *req, size_t len,
@@ -338,6 +337,7 @@ void http_async_allow_redirects(struct http_async *ha, gboolean allow);
 void http_async_set_op_request(struct http_async *ha, http_op_request_t op);
 void http_async_set_op_reqsent(struct http_async *ha, http_op_reqsent_t op);
 void http_async_set_op_gotreply(struct http_async *ha, http_op_gotreply_t op);
+const char *http_async_remote_host_port(const struct http_async *ha);
 
 void http_close(void);
 
