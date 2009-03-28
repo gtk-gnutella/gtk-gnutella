@@ -394,7 +394,7 @@ prop = {
     desc = "Maximum number of seconds to wait on auto-retry timeouts.";
     type = guint32;
     data = {
-        default = 300;
+        default = 3600;
         min     = 5;
         max     = 100000;
     };
