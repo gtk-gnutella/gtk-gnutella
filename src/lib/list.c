@@ -276,7 +276,11 @@ list_remove(list_t *list, gpointer key)
 		if (item == list->tail) {
 			list->tail = g_list_previous(list->tail);
 		}
-		IGNORE_RESULT(g_list_delete_link(item, item));
+		/* @note: Return value is only assigned to "item" because
+	 	 *        g_slist_delete_link is incorrectly tagged to
+	 	 *        cause a GCC compiler warning otherwise.
+	 	 */
+		item = g_list_delete_link(item, item);
 
 		list->length--;
 		list->stamp++;

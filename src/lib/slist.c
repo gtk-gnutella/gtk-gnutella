@@ -267,7 +267,11 @@ slist_remove_item(slist_t *slist, GSList *prev, GSList *item)
 	if (item == slist->tail) {
 		slist->tail = prev;
 	}
-	IGNORE_RESULT(g_slist_delete_link(prev ? prev : item, item));
+	/* @note: Return value is only assigned to prev because
+	 *        g_slist_delete_link is incorrectly tagged to
+	 *        cause a GCC compiler warning otherwise.
+	 */
+	item = g_slist_delete_link(prev ? prev : item, item);
 
 	slist->length--;
 	slist->stamp++;
