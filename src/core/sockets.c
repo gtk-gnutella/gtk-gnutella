@@ -1657,9 +1657,14 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 
 		socket_disable_token(s);
 
-		if (GNET_PROPERTY(socket_debug))
+		if (GNET_PROPERTY(socket_debug)) {
+			const char *string = first;
+			if (!is_printable_iso8859_string(first))
+				string = "<non-printable request>";
 			g_warning("denying connection from hostile %s: \"%s\"",
-				host_addr_to_string(s->addr), first);
+				host_addr_to_string(s->addr), string);
+		}
+
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, msg);
 		else
