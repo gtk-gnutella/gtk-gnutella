@@ -409,18 +409,101 @@ pointer_hash_func(const void *p)
  * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
  * returned. Otherwise, the returned value is identical to strlen(str). Thus,
  * it is safe to pass a possibly non-terminated buffer.
- * 
+ *
+ * @param src An initialized buffer.
+ * @param src_size The size of src in number of bytes. IF AND ONLY IF,
+ *        src is NUL-terminated, src_size may exceed the actual buffer length.
  * @return The number of bytes in "src" before the first found NUL or src_size
  *		   if there is no NUL.
  */
 static inline size_t
 clamp_strlen(const char *src, size_t src_size)
 {
-	const char *p;
-	
-	p = memchr(src, '\0', src_size);
-	return (p ? p : &src[src_size]) - src;
+	const char *p, *endptr = &src[src_size];
+
+	/* @NOTE: memchr() is intentionally NOT used because 'src_size' is allowed
+	 *        to exceed the size of the memory object 'src'.
+	 */
+	for (p = src; p != endptr && '\0' != *p; p++)
+		continue;
+
+	return p - src;
 }
+
+/**
+ * Copies at most MIN(dst_size, src_len) bytes from "src" to "dst".
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size of dst in number of bytes. 
+ * @param src the source buffer. 
+ * @param src_len the length of src in number of bytes.
+ *
+ * @return The number of copied bytes.
+ */
+static inline size_t
+clamp_memcpy(char *dst, size_t dst_size, const char *src, size_t src_len)
+{
+	size_t n;
+
+	n = MIN(dst_size, src_len);
+	memcpy(dst, src, n);
+	return n;
+}
+
+/**
+ * Copies at most MIN(dst_size - 1, src_len) characters from the buffer "src"
+ * to the buffer "dst", ensuring the resulting string in "dst" is
+ * NUL-terminated and truncating it if necessary. If "src_len" is (size_t)-1,
+ * "src" must be NUL-terminated, otherwise the first "src_len" bytes of "src"
+ * must be initialized but a terminating NUL is not necessary.
+ *
+ * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size of dst in number of bytes. 
+ * @param src a NUL-terminated string or at an initialized buffer of least
+ *        "src_len" bytes.
+ * @param src_len the length of src in number of bytes to copy at maximum. May
+ *        be (size_t)-1 if "src" is NUL-terminated.
+ *
+ * @return The length of the resulting string in number of bytes.
+ */
+static inline size_t
+clamp_strncpy(char *dst, size_t dst_size, const char *src, size_t src_len)
+{
+	if (dst_size-- > 0) {
+		size_t n;
+
+		if ((size_t) -1 == src_len) {
+			src_len = clamp_strlen(src, dst_size);
+		}
+		n = clamp_memcpy(dst, dst_size, src, src_len);
+		dst[n] = '\0';
+		return n;
+	} else {
+		return 0;
+	}
+}
+
+/**
+ * Copies at most "dst_size - 1" characters from the NUL-terminated string
+ * "src" to the buffer "dst", ensuring the resulting string in "dst" is
+ * NUL-terminated and truncating it if necessary.
+ *
+ * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size of dst in number of bytes. 
+ * @param src a NUL-terminated string.
+ *
+ * @return The length of the resulting string in number of bytes.
+ */
+static inline size_t
+clamp_strcpy(char *dst, size_t dst_size, const char *src)
+{
+	return clamp_strncpy(dst, dst_size, src, (size_t) -1);
+}
+
 
 static inline const char *
 NULL_STRING(const char *s)
