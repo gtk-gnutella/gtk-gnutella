@@ -569,6 +569,19 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 }
 
 /**
+ * Clear content of the cache.
+ */
+static void
+ipp_cache_clear(ipp_cache_t *ic)
+{
+	if (ic && ic->hosts) {
+		while (hash_list_length(ic->hosts) > 0) {
+			ipp_cache_remove_oldest(ic);
+		}
+	}
+}
+
+/**
  * Retrieve cache from disk file.
  */
 static void
@@ -580,6 +593,7 @@ ipp_cache_load(ipp_cache_t *ic)
 	if (f) {
 		guint n;
 		
+		ipp_cache_clear(ic);
 		ipp_cache_parse(ic, f);
 		n = hash_list_length(ic->hosts);
 		if (*ic->debug) {
@@ -597,13 +611,8 @@ ipp_cache_free(ipp_cache_t *ic)
 {
 	g_assert(ic);
 
-	if (ic->hosts) {
-		while (hash_list_length(ic->hosts) > 0) {
-			ipp_cache_remove_oldest(ic);
-		}
-		hash_list_free(&ic->hosts);
-	}
-
+	ipp_cache_clear(ic);
+	hash_list_free(&ic->hosts);
 	g_free(deconstify_gpointer(ic->fp.dir));
 	ic->fp.dir = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 	wfree(ic, sizeof *ic);
