@@ -15,6 +15,9 @@ Bug Fixes:
   sometimes leading to having more slots used than the configured maximum
   (in addition to the "quick" upload slots).
 - Prevent occasional crashes at shutdown time, during subsystem cleanups.
+- Fixed corner cases where we could lose a server hostname and downright bug
+  where we discarded the hostname after a DNS lookup if the subsequent
+  connection attempt did not succeed.
 
 Improvements:
 - Refuse to share certain directories: /, $HOME, $GTK_GNUTELLA_DIR, and
@@ -59,7 +62,7 @@ Improvements:
   allow users to relate files together if they don't understand GGEP "PATH".
 - Improved routing of PUSH messages by also looking whether targetted hosts
   happen to be one of our immediate neighbours.
-- Updated Norwegian Bokmal translation.
+- Updated Norwegian Bokmal and Spanish translations.
 
 Under the hood:
 
@@ -118,6 +121,11 @@ Under the hood:
   all the known push-proxies, even if that is an empty set.  Since downloads
   are persisted as magnets, this also allows keeping all the previously
   known push-proxies accross sessions.
+- Upgraded PARQ to version 1.1 (mostly specification cleanups).
+- Added additional anti-hammering for cases where many files on the same
+  server are queued and gtk-gnutella is configured to launch more than 1
+  connection per IP.  Connection attempts to the same server are now limited
+  to 5 per minute.
 
 Limitations:
 
