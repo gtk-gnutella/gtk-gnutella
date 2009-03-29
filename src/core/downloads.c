@@ -6070,7 +6070,6 @@ create_download(
 	struct dl_server *server;
 	struct download *d;
 	const char *reason;
-	guint32 record_index;
 	fileinfo_t *fi;
 	const char *msg = NULL;
 	const char *file_name = NULL;
@@ -6263,13 +6262,26 @@ create_download(
 		set_server_hostname(d->server, hostname);
 
 	/*
+	 * Compute proper record_index.  Recall that URN_INDEX is our special mark
+	 * to indicate that we can ask the resource on the server via a
+	 * "/uri-res/N2R?urn:sha1:..." request.
+	 *
+	 * If the supplied URI starts with "/uri-res/N2R?urn:sha1" and we have
+	 * a SHA1, it's a done deal.
+	 */
+
+	if (d->uri && is_strprefix(d->uri, "/uri-res/N2R?urn:sha1:") && d->sha1) {
+		d->record_index = URN_INDEX;
+	} else {
+		d->record_index = get_index_from_uri(d->uri);
+	}
+
+	/*
 	 * Insert in download mesh if it does not require a push and has a SHA1.
 	 */
 
-	record_index = get_index_from_uri(d->uri);
-
-	if (!d->always_push && d->sha1 && (NULL == d->uri || 0 != record_index))
-		dmesh_add(d->sha1, addr, port, record_index, d->file_name, stamp);
+	if (!d->always_push && d->sha1 && (NULL == d->uri || 0 != d->record_index))
+		dmesh_add(d->sha1, addr, port, d->record_index, d->file_name, stamp);
 
 	/*
 	 * When we know our SHA1, if we don't have a SHA1 in the `fi' and we
