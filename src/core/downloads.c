@@ -2442,11 +2442,14 @@ server_dht_query(struct download *d)
 
 /**
  * Set/change the server's hostname.
+ *
+ * @return TRUE if we changed the value, FALSE otherwise.
  */
-static void
+static gboolean
 set_server_hostname(struct dl_server *server, const char *hostname)
 {
 	g_assert(dl_server_valid(server));
+	g_assert(hostname);
 
 	if (
 		NULL == server->hostname ||
@@ -2457,7 +2460,10 @@ set_server_hostname(struct dl_server *server, const char *hostname)
 				hostname, server_host_info(server));
 
 		atom_str_change(&server->hostname, hostname);
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
 /**
@@ -8742,19 +8748,8 @@ check_xhostname(struct download *d, const header_t *header)
 		d->flags |= DL_F_PUSH_IGN;
 	}
 
-	/*
-	 * If we had a hostname for this server, and it has not changed,
-	 * then we're done.
-	 */
-
-	if (
-		server->hostname != NULL &&
-		0 == ascii_strcasecmp(server->hostname, buf)
-	)
-		return;
-
-	set_server_hostname(server, buf);
-	fi_src_info_changed(d);
+	if (set_server_hostname(server, buf))
+		fi_src_info_changed(d);
 }
 
 /**
