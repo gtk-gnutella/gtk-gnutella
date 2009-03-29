@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "Apr 2008" Version "0.96.5"
+.TH GTK\\-GNUTELLA 1 "Mar 2009" Version "0.96.6"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -46,6 +46,13 @@ and
 .B "\-\-log\-stdout"
 can be used to redirect log output in this case.
 .TP 
+\fB\-\-exec\-on\-crash \fIpath\fR
+Execute command specified in
+.I path
+when
+.I gtk-gnutella
+crashes.
+.TP 
 .B "\-\-geometry"
 This option can be used to force the main window of the GUI to a
 certain location on your screen and/or give it certain dimensions.
@@ -78,6 +85,14 @@ them.  Therefore, you can sent
 a SIGHUP signal. 
 .I gtk\-gnutella 
 will catch the signal and reopen these log files.
+.TP
+.B "\-\-no\-xshm"
+Disable MIT shared memory extension, when running with the X graphical
+user-interface.
+.TP
+.B "\-\-pause\-on\-crash"
+Pause the process on crash, so that a debugger may be attached to inspect
+the current state for instance.
 .TP
 .B "\-\-ping"
 This option allows you to check whether 
@@ -233,6 +248,12 @@ This is where the open searches and all the search filters are saved.
 This is where the cache of all the computed SHA1 is stored.
 .RE
 .TP
+.I $GTK_GNUTELLA_DIR/tth_cache
+.RS
+This is the directory under which all the computed TTH trees are stored.
+These files are binary data.
+.RE
+.TP
 .I $GTK_GNUTELLA_DIR/upload_stats
 .RS
 This file keeps track of the upload statistics.
@@ -254,8 +275,8 @@ There are a couple of mailing lists for
 See http://sourceforge.net/mail/?group_id=4467 for more info.
 .SH BUGS
 .I gtk\-gnutella
-is beta-quality software, and still has bugs and incomplete or missing
-features.  But which software doesn't for its authors?
+is production-quality software, but still has minor bugs and incomplete
+or missing features.  But which software doesn't for its authors?
 .PP
 There are probably other missing features that should
 be listed here.
@@ -289,7 +310,7 @@ of this manpage.
 .SH COPYRIGHT
 .I gtk\-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
-by other contributors 2000-2006.
+by other contributors 2000-2009.
 .PP
 License to use and copy
 .I gtk\-gnutella
