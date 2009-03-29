@@ -941,7 +941,7 @@ header_fmt_to_string(const header_fmt_t *hf)
 
 	header_fmt_check(hf);
 
-	if (hf->header->len >= sizeof line) {
+	if (UNSIGNED(hf->header->len) >= sizeof line) {
 		g_warning("trying to format too long an HTTP line (%lu bytes)",
 			(unsigned long) hf->header->len);
 	}
