@@ -5263,18 +5263,6 @@ download_start(struct download *d, gboolean check_allowed)
 				return;
 			}
 
-			/*
-			 * If DNS lookup was attempted, and we fail immediately, it
-			 * means either the address returned by the DNS was invalid or
-			 * there was no successful (synchronous) resolution for this
-			 * host.
-			 */
-
-			if (d->flags & DL_F_DNS_LOOKUP) {
-				atom_str_free_null(&d->server->hostname);
-				fi_src_info_changed(d);
-			}
-
 			download_unavailable(d, GTA_DL_ERROR, _("Connection failed"));
 			return;
 		}
@@ -11182,21 +11170,6 @@ download_send_request(struct download *d)
 	file_info_check(fi);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
-
-	/*
-	 * If we have a hostname for this server, check the IP address of the
-	 * socket with the one we have for this server: it may have changed if
-	 * the remote server changed its IP address since last time we connected.
-	 *		--RAM, 26/10/2003
-	 */
-
-	if (
-		NULL != d->server->hostname &&
-		!host_addr_equal(download_addr(d), s->addr)
-	) {
-		change_server_addr(d->server, s->addr, download_port(d));
-		g_assert(host_addr_equal(download_addr(d), s->addr));
-	}
 
 	fi_src_info_changed(d);
 
