@@ -263,15 +263,24 @@ download_basename(const struct download *d)
 static const char *
 server_host_info(const struct dl_server *server)
 {
-	static char info[256];
+	static char info[256 + MAX_HOSTLEN];
 	char host[128];
+	char name[MAX_HOSTLEN + 8];
 
 	dl_server_valid(server);
 
 	host_addr_port_to_string_buf(server->key->addr, server->key->port,
 		host, sizeof host);
+
+	name[0] = '\0';
+	if (server->hostname) {
+		concat_strings(name, sizeof name,
+			" (", server->hostname, ") ",
+			(void *) 0);
+	}
+
 	concat_strings(info, sizeof info,
-		"<", host, " \'", server->vendor ? server->vendor : "", "\'>",
+		"<", host, name, " \'", server->vendor ? server->vendor : "", "\'>",
 		(void *) 0);
 	return info;
 }
@@ -2438,7 +2447,17 @@ static void
 set_server_hostname(struct dl_server *server, const char *hostname)
 {
 	g_assert(dl_server_valid(server));
-	atom_str_change(&server->hostname, hostname);
+
+	if (
+		NULL == server->hostname ||
+		0 != ascii_strcasecmp(server->hostname, hostname)
+	) {
+		if (GNET_PROPERTY(download_debug))
+			g_message("setting hostname \"%s\" for server %s",
+				hostname, server_host_info(server));
+
+		atom_str_change(&server->hostname, hostname);
+	}
 }
 
 /**
@@ -6147,6 +6166,19 @@ create_download(
 	}
 
 	/*
+	 * Record server's hostname if non-NULL and not empty.
+	 *
+	 * We need to do that before checking for duplicate downloads in case
+	 * we already have the download for the IP address (through the download
+	 * mesh entry) but we just resolved the hostname through the DNS and now
+	 * attempt to create the download entry.  If we don't do that now, we'll
+	 * lose the information about the server.
+	 */
+
+	if (hostname != NULL && *hostname != '\0')
+		set_server_hostname(server, hostname);
+
+	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
@@ -6255,22 +6287,14 @@ create_download(
 	download_dirty = TRUE;			/* Refresh list, in case we crash */
 
 	/*
-	 * Record server's hostname if non-NULL and not empty.
-	 */
-
-	if (hostname != NULL && *hostname != '\0')
-		set_server_hostname(d->server, hostname);
-
-	/*
 	 * Compute proper record_index.  Recall that URN_INDEX is our special mark
 	 * to indicate that we can ask the resource on the server via a
 	 * "/uri-res/N2R?urn:sha1:..." request.
 	 *
-	 * If the supplied URI starts with "/uri-res/N2R?urn:sha1" and we have
-	 * a SHA1, it's a done deal.
+	 * If we have no URI and a SHA1, chances are we can request via N2R...
 	 */
 
-	if (d->uri && is_strprefix(d->uri, "/uri-res/N2R?urn:sha1:") && d->sha1) {
+	if (NULL == d->uri && d->sha1) {
 		d->record_index = URN_INDEX;
 	} else {
 		d->record_index = get_index_from_uri(d->uri);
@@ -6608,6 +6632,9 @@ download_index_changed(const host_addr_t addr, guint16 port,
     }
 }
 
+/**
+ * Structure used to save download_new() parameters.
+ */
 struct download_request {
 	host_addr_t addr;
 	const struct guid *guid;
@@ -6625,6 +6652,11 @@ struct download_request {
 	guint16 port;
 };
 
+/*
+ * We create a download_request when a hostname is supplied for the server.
+ * The name is first resolved asynchronously by the ADNS process, and then
+ * we can call create_download().
+ */
 static struct download_request *
 download_request_new(
 	const char *filename,
@@ -6734,6 +6766,10 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 	download_request_free(&req);
 }
 
+/**
+ * Resolve the hostname of the download request so that we can invoke
+ * create_download() once we know the IP address.
+ */
 static void
 download_new_by_hostname(struct download_request *req)
 {
