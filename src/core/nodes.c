@@ -5257,18 +5257,18 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	/*
 	 * Test for HSEP X-Features header version. According to the specs,
-	 * different version of HSEP are not necessarily compatible to each
-	 * other. Therefore, we test for exactly the HSEP version we support
-	 * here.
+	 * different version of HSEP are not necessarily compatible with each
+	 * other. Therefore, we test for exactly the HSEP major version we support
+	 * here, but allow minor versions earlier than ours.
 	 */
 	{
 		guint major, minor;
 
  		header_get_feature("hsep", head, &major, &minor);
 
- 		if (major == HSEP_VERSION_MAJOR && minor == HSEP_VERSION_MINOR) {
+ 		if (major == HSEP_VERSION_MAJOR && minor <= HSEP_VERSION_MINOR) {
 			n->attrs |= NODE_A_CAN_HSEP;
-			hsep_connection_init(n);
+			hsep_connection_init(n, major & 0xff, minor & 0xff);
 			/* first HSEP message will be sent on next hsep_timer() call */
 		}
 	}

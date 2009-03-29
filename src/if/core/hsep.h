@@ -56,6 +56,8 @@ typedef struct {
 	guint32 msgs_sent;                      /**< # of msgs sent */
 	guint32 triples_sent;                   /**< # of triples sent */
 	int random_skew;		/**< additonal random delay for next exchange */
+	guint8 major;			/**< their major version */
+	guint8 minor;			/**< their minor version */
 } hsep_ctx_t;
 
 const char *hsep_get_static_str(int row, int column);

@@ -68,7 +68,7 @@ struct gnutella_node;
 void hsep_init(void);
 void hsep_reset(void);
 void hsep_close(void);
-void hsep_connection_init(struct gnutella_node *n);
+void hsep_connection_init(struct gnutella_node *n, guint8 major, guint8 minor);
 void hsep_connection_close(struct gnutella_node *n);
 void hsep_send_msg(struct gnutella_node *, time_t now);
 void hsep_process_msg(struct gnutella_node *, time_t now);

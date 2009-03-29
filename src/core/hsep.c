@@ -421,7 +421,7 @@ hsep_reset(void)
  */
 
 void
-hsep_connection_init(struct gnutella_node *n)
+hsep_connection_init(struct gnutella_node *n, guint8 major, guint8 minor)
 {
 	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
@@ -436,6 +436,8 @@ hsep_connection_init(struct gnutella_node *n)
 	n->hsep = walloc(sizeof *n->hsep);
 	*n->hsep = zero_hsep; /* Initializes everything to 0 */
 	n->hsep->last_sent = now;
+	n->hsep->major = major;
+	n->hsep->minor = minor;
 
 	/* this is what we know before receiving the first message */
 
