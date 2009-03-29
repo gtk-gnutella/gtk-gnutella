@@ -260,7 +260,7 @@ download_basename(const struct download *d)
 	return filepath_basename(download_pathname(d));
 }
 
-static const char *
+const char *
 server_host_info(const struct dl_server *server)
 {
 	static char info[256 + MAX_HOSTLEN];
@@ -5146,6 +5146,7 @@ download_connect(struct download *d)
 		return socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags | tls);
 	} else
+		server->last_connect = tm_time();
 		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
 				d->cflags | tls);
 }
@@ -11591,13 +11592,31 @@ picked:
 void
 download_connected(struct download *d)
 {
+	struct gnutella_socket *s;
+
 	download_check(d);
 	dl_server_valid(d->server);
 	socket_check(d->socket);
 
 	d->flags |= DL_F_INITIAL;
 	d->server->last_connect = tm_time();
-	socket_nodelay(d->socket, TRUE);
+	s = d->socket;
+	socket_nodelay(s, TRUE);
+
+	/*
+	 * If we issued a DNS lookup, check whether the server address changed.
+	 */
+
+	if (d->flags & DL_F_DNS_LOOKUP) {
+		if (!host_addr_equal(download_addr(d), s->addr)) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_message("DNS lookup revealed server %s moved to %s",
+					server_host_info(d->server), host_addr_to_string(s->addr));
+			}
+			change_server_addr(d->server, s->addr, download_port(d));
+		}
+	}
+
 	download_send_request(d);
 }
 
