@@ -69,7 +69,7 @@ RCSID("$Id$")
 #include "lib/override.h"			/* Must be the last header included */
 
 #define PARQ_VERSION_MAJOR	1
-#define PARQ_VERSION_MINOR	0
+#define PARQ_VERSION_MINOR	1		/**< Version 1.1 since GTKG 0.96.6 */
 
 #define PARQ_RETRY_FROZEN	300		/**< Each 5 minutes for frozen uploads */
 #define PARQ_RETRY_SAFETY	40		/**< 40 seconds before lifetime */
@@ -322,11 +322,11 @@ get_header_version(char const * const header, guint *major, guint *minor)
 }
 
 static const char *
-parq_get_x_queue_1_0_header(void)
+parq_get_x_queue_header(void)
 {
 	STATIC_ASSERT(PARQ_VERSION_MAJOR == 1);
-	STATIC_ASSERT(PARQ_VERSION_MINOR == 0);
-	return "X-Queue: 1.0";
+	STATIC_ASSERT(PARQ_VERSION_MINOR == 1);
+	return "X-Queue: 1.1";
 }
 
 static const char *
@@ -348,10 +348,11 @@ parq_get_x_queue_legacy_header(void)
  *
  * @return a pointer in the s pointer indicating the start of the header value.
  */
-static char *
-get_header_value(char *const s, char const *const attribute, size_t *length)
+static const char *
+get_header_value(const char *const s,
+	char const *const attribute, size_t *length)
 {
-	char *header = s;
+	const char *header = s;
 	char *end;
 	gboolean found_right_attribute = FALSE;
 	gboolean found_equal_sign = FALSE;
@@ -778,45 +779,94 @@ gboolean
 parq_download_parse_queue_status(struct download *d, header_t *header)
 {
 	struct parq_dl_queued *parq_dl = NULL;
-	char *buf = NULL;
+	const char *buf;
 	char *temp = NULL;
-	char *value = NULL;
-	guint major = 0, minor = 0;
+	const char *value = NULL;
+	guint major, minor;
 	size_t header_value_length;
 	int retry;
 
-	g_assert(d != NULL);
+	download_check(d);
+	dl_server_valid(d->server);
 	g_assert(header != NULL);
 
-	buf = header_get(header, "X-Queue");
+	/*
+	 * We cannot assume X-Features will be emitted each time.  Starting
+	 * with 0.96.6, GTKG only emits it once per connection, at the first reply.
+	 *
+	 * Therefore, if we already have a known PARQ version support for the
+	 * server, reuse it, and only look for X-Features and X-Queue if we
+	 * don't know anything.
+	 */
 
-	if (buf == NULL)			/* Remote server does not support queues */
-		return FALSE;
+	major = d->server->parq_version.major;
+	minor = d->server->parq_version.minor;
 
-	header_get_feature("queue", header, &major, &minor);
+	if (major == 0 && minor == 0) {
+		if (!header_get_feature("queue", header, &major, &minor)) {
+			const char *queue = header_get(header, "X-Queue");
 
-	if (major == 0 && minor == 0 && !get_header_version(buf, &major, &minor)) {
-		/*
-	 	* Could not retrieve queueing version. It could be 0.1 but there is
-		* no way to tell for certain
-	 	*/
-		major = 0;
-		minor = 1;
+			if (queue && !get_header_version(queue, &major, &minor)) {
+				/* Assume version 0.1 since we have the X-Queue header */
+				major = 0;
+				minor = 1;
+			}
+		}
+		/* Paranoid -- force at least 1.0 if we see the "X-Queued" header */
+		if (major < 1 && header_get(header, "X-Queued")) {
+			major = 1;
+			minor = 0;
+		}
 	}
 
 	d->server->parq_version.major = major;
 	d->server->parq_version.minor = minor;
+
+	if (major == 0 && minor == 0)
+		return FALSE;				/* No queueing supported */
+
+	/*
+	 * OK, server supports queueuing, but is this download being queued?
+	 */
+
+	switch (major) {
+	case 0:				/* Active queueing */
+		buf = header_get(header, "X-Queue");
+		if (buf == NULL)
+			return FALSE;
+		break;
+	case 1:				/* PARQ */
+		buf = header_get(header, "X-Queued");
+		if (buf == NULL) {
+			g_warning("[PARQ DL] server %s advertised PARQ %d.%d but did not"
+				" send X-Queued",
+				server_host_info(d->server), major, minor);
+			if (GNET_PROPERTY(parq_debug)) {
+				g_warning("[PARQ DL]: header dump:");
+				header_dump(stderr, header, NULL);
+			}
+			return FALSE;
+		}
+		break;
+	default:
+		g_warning("[PARQ DL] unhandled queuing version %d.%d from %s <%s>",
+			major, minor,
+			host_addr_port_to_string(download_addr(d), download_port(d)),
+			download_vendor_str(d));
+		return FALSE;
+	}
 
 	if (d->parq_dl == NULL) {
 		/* So this download has no parq structure yet, well create one! */
 		d->parq_dl = parq_dl_create(d);
 	}
 	parq_dl = d->parq_dl;
+
 	g_assert(parq_dl != NULL);
+	g_assert(buf != NULL);
 
 	switch (major) {
 	case 0:				/* Active queueing */
-		g_assert(buf != NULL);
 		value = get_header_value(buf, "pollMin", NULL);
 		parq_dl->retry_delay  = value == NULL ? 0 : get_integer(value);
 
@@ -824,20 +874,6 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 		parq_dl->lifetime  = value == NULL ? 0 : get_integer(value);
 		break;
 	case 1:				/* PARQ */
-		buf = header_get(header, "X-Queued");
-
-		if (buf == NULL) {
-			g_warning("[PARQ DL] host %s advertised PARQ %d.%d but did not"
-				" send X-Queued",
-				host_addr_port_to_string(download_addr(d), download_port(d)),
-				major, minor);
-			if (GNET_PROPERTY(parq_debug)) {
-				g_warning("[PARQ DL]: header dump:");
-				header_dump(stderr, header, NULL);
-			}
-			return FALSE;
-		}
-
 		parq_dl->retry_delay = extract_retry_after(d, header);
 
 		value = get_header_value(buf, "lifetime", NULL);
@@ -861,11 +897,7 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 		}
 		break;
 	default:
-		g_warning("[PARQ DL] unhandled queuing version %d.%d from %s <%s>",
-			major, minor,
-			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_vendor_str(d));
-		return FALSE;
+		g_assert_not_reached();
 	}
 
 	value = get_header_value(buf, "position", NULL);
@@ -894,9 +926,11 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 	if (retry < (int) parq_dl->retry_delay)
 		retry = parq_dl->retry_delay;
 
-	if (GNET_PROPERTY(parq_debug) > 2)
-		g_message("Queue version: %d.%d, position %d out of %d,"
-			" retry in %ds within [%d, %d]",
+	if (GNET_PROPERTY(parq_debug))
+		g_message("file \"%s\" on %s queued "
+			"(version: %d.%d, position %d out of %d,"
+			" retry in %ds within [%d, %d])",
+			download_basename(d), server_host_info(d->server),
 			major, minor, parq_dl->position, parq_dl->length,
 			retry, parq_dl->retry_delay, parq_dl->lifetime);
 
@@ -940,7 +974,7 @@ parq_download_add_header(
 
 	*rw += gm_snprintf(&buf[*rw], len - *rw, "%s\r\n",
 		(d->server->attrs & DLS_A_FAKE_G2) ?
-			parq_get_x_queue_legacy_header() : parq_get_x_queue_1_0_header());
+			parq_get_x_queue_legacy_header() : parq_get_x_queue_header());
 
 	/*
 	 * Only add X-Queued header if server really supports X-Queue: 1.x. Don't
@@ -3330,8 +3364,6 @@ parq_upload_request(struct upload *u)
 {
 	struct parq_ul_queued *puq;
 	time_t now, org_retry;
-	guint avg_bps;
-	time_delta_t grace;
 
 	upload_check(u);
 
@@ -3345,27 +3377,7 @@ parq_upload_request(struct upload *u)
 
 	g_assert(delta_time(puq->retry, now) >= 0);
 
-	if (GNET_PROPERTY(parq_optimistic)) {
-		time_delta_t delta;
-
-		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
-		avg_bps = MAX(1, avg_bps);
-
-		delta = puq->chunk_size / avg_bps * GNET_PROPERTY(ul_running);
-		delta = MIN(delta, MIN_LIFE_TIME);
-		puq->expire = time_advance(puq->retry, delta);
-	} else {
-		puq->expire = time_advance(puq->retry, MIN_LIFE_TIME);
-	}
-
-	/* Ensure our adjustments make sense here */
-	STATIC_ASSERT(PARQ_RETRY_SAFETY < MIN_LIFE_TIME);
-
-	grace = delta_time(puq->expire, puq->retry);
-	if (grace < PARQ_RETRY_SAFETY) {
-		time_delta_t delta = PARQ_RETRY_SAFETY - grace;
-		puq->expire = time_advance(puq->expire, delta);
-	}
+	puq->expire = time_advance(puq->retry, MIN_LIFE_TIME + PARQ_RETRY_SAFETY);
 
 	if (GNET_PROPERTY(parq_debug) > 1)
 		g_message("[PARQ UL] Request for \"%s\" from %s <%s>: %s, "
@@ -4034,18 +4046,6 @@ parq_upload_add_old_queue_header(char *buf, size_t size,
 }
 
 static size_t
-parq_upload_add_x_queue_header(char *buf, size_t size)
-{
-	size_t len;
-
-	len = concat_strings(buf, size,
-			parq_get_x_queue_1_0_header(), "\r\n",
-			(void *) 0);
-	return len < size ? len : 0;
-
-}
-
-static size_t
 parq_upload_add_x_queued_header(char *buf, size_t size,
 	struct parq_ul_queued *puq, guint max_poll,
 	gboolean small_reply, struct upload *u)
@@ -4178,7 +4178,6 @@ parq_upload_add_headers(char *buf, size_t size, gpointer arg, guint32 flags)
 		rw += parq_upload_add_old_queue_header(&buf[rw], size - rw,
 				puq, min_poll, max_poll, small_reply);
 	} else { 
-		rw += parq_upload_add_x_queue_header(&buf[rw], size - rw);
 		rw += parq_upload_add_x_queued_header(&buf[rw], size - rw,
 				puq, max_poll, small_reply, u);
 	}
@@ -4222,7 +4221,6 @@ parq_upload_add_header_id(char *buf, size_t size, gpointer arg,
 		size_t len;
 
 		len = concat_strings(&buf[rw], size,
-				parq_get_x_queue_1_0_header(), "\r\n",
 				"X-Queued: ID=", guid_hex_str(parq_upload_lookup_id(u)),
 				"\r\n",
 				(void *) 0);

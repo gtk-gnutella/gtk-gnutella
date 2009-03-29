@@ -1,11 +1,12 @@
                     Passive/Active Remote Queueing
-                            Version 1.0.a
+                            Version 1.1
 
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
 
                           August, 14th 2002
                            May, 10th, 2003
+                          March, 29th, 2009
 
 
 
@@ -127,7 +128,7 @@ HTTP exchange:
 
         HTTP/1.1 503 Queued
         Server: blah
-        X-Queue: 1.0
+        X-Features: queue/1.1
         X-Queued: position=1503; length=1840; ETA=4200; lifetime=3600;
             ID=6a074979f3201edbf323b6425fef4a53
         Connection: close
@@ -137,15 +138,21 @@ The "X-Node" in the request indicates the client is not firewalled
 and provides the address and port where the server can make its QUEUE
 callback, if necessary (more on this later).
 
-The server tells its PARQ level of support via its own X-Queue header.
+The server tells its PARQ support level via its own X-Features header,
+which is emitted only once per connection (so the value must be remembered
+by the downloader, if necessary).
+
 Even if the server supports a more recent version (say 1.3), it will always
-downgrade its reply to match that of the client.
+downgrade its reply format to match what the client expects at its own level,
+so a client must not consider a more recent version reported as an obstacle.
 
 The "X-Queued" header of the reply indicates that the request was
 asynchronously queued.  The general syntax of the X-Queued: header is a
 list of var=value settings, each separated by ';'.  The spaces after each
 ';' are optional.  Variables are case-insensitive (i.e. "ID" and "id" are
-the same).
+the same) and the order must not be relied upon.
+
+Only two variables are mandatory: "position" and "ID".
 
 The meaning of each variable is:
 
@@ -164,7 +171,8 @@ optimal transfer rate equal to the maximum upload bandwidth.  (here,
 The server expects a new request to come before the lifetime expires.
 (here, a new request must be made before the next 3600 seconds).
 However, the minimum retry blackout period indicated by Retry-After MUST
-be honoured by the client (here, 600 seconds).
+be honoured by the client (here, 600 seconds).  If missing, use the value
+specified by Retry-After plus 60 seconds.
 
 "ID": The unique queue ID (pure random number).  It must be remembered
 and given out by the client within further requests to identify the
@@ -199,7 +207,7 @@ In order to maintain its queue position, the client MUST reply with:
 
         HTTP/1.1 503 Queued
         Server: blah
-        X-Queue: 1.0
+        X-Features: queue/1.1
         X-Queued: position=1501; length=3500; ETA=4100; lifetime=3600;
             ID=6a074979f3201edbf323b6425fef4a53
         Connection: close
@@ -215,6 +223,12 @@ The X-Queued header in the request simply shows the server that the
 client at this IP:port knows the last slot number that was returned for
 this entry, and is therefore the proper client.  If there is a mismatch,
 the corresponding slot is immediately freed.
+
+If the client is no longer interested by the file at that queue position,
+or if it cannot determine anything else that it would want from that server,
+it simply closes the connection.  After 2 attempts for the same slot ID where
+the client closes the connection, the server will understand the client is
+not interested and will release the slot.
 
 The QUEUE callback is useful when the server is firewalled and the client
 is not.  Otherwise, the client will make the request after the time
@@ -235,7 +249,7 @@ an example, but things would be totally similar for an initial request:
 
         HTTP/1.1 503 Queued
         Server: blah
-        X-Queue: 1.0
+        X-Features: queue/1.1
         X-Queued: position=14; length=4300;
             ETA=2100; ID=6a074979f3201edbf323b6425fef4a53
         Retry-After: 290
@@ -250,7 +264,6 @@ an example, but things would be totally similar for an initial request:
 
         HTTP/1.1 503 Queued
         Server: blah
-        X-Queue: 1.0
         X-Queued: position=1; length=4300;
             ETA=2100; ID=6a074979f3201edbf323b6425fef4a53
         Retry-After: 30
@@ -271,6 +284,9 @@ a "Connection: close" header, so according to regular HTTP/1.1 semantics,
 the connection is persistent.  Therefore, after the delay imposed by the
 server (via the Retry-After header), the client can re-issue its request.
 Until it gets a 200 (or 206 for partial content) reply.
+
+Also note than the X-Features header is not present on subsequent answers
+made by the server on the same connection.
 
 If the connection between the server and the client is broken at this
 stage, the server will hold the slot for 300 seconds max the first time.
@@ -426,6 +442,24 @@ them:
 
 
 A. Change History
+
+March 29th, 2009 - revision 1.1:
+
+    * Now uses X-Features: queue/1.1 to indicate the PARQ version in the
+      server reply.  Mentionned that this header can be present only during
+      the first reply on a given connection.
+
+    * Documented that only "position" and "ID" are mandatory in X-Queued.
+      When "lifetime" is missing, it must be assumed to be the value of the
+      Retry-After header plus 1 minute.
+
+    * Removed emission of "X-Queue: 1.0" in server replies.  This is now
+      superseeded by X-Features, and it also prevents LimeWire from assuming
+      that the minimum retry time is 0 (this servent is known to be confused
+      by X-Queue bearing only a version number).
+
+    * Documented that for a given slot, refusing (i.e. not replying to) two
+      QUEUE callbacks in a row will cause the server to cancel the slot.
 
 May 10th, 2003 - revision 1.0.a:
 
