@@ -108,6 +108,7 @@ storage_create(const char *name, const char *base,
 {
 	dbmap_t *dm;
 	dbmw_t *dw;
+	size_t adjusted_cache_size = cache_size;
 
 	if (!GNET_PROPERTY(dht_storage_in_memory)) {
 		char *path;
@@ -127,6 +128,7 @@ storage_create(const char *name, const char *base,
 
 	if (!dm) {
 		dm = dbmap_create_hash(key_size, hash_func, eq_func);
+		adjusted_cache_size = 0;
 	}
 
 	/*
@@ -135,7 +137,7 @@ storage_create(const char *name, const char *base,
 	 */
 
 	dw = dbmw_create(dm, name, key_size, value_size, pack, unpack,
-		cache_size, hash_func, eq_func);
+		adjusted_cache_size, hash_func, eq_func);
 
 	return dw;
 }
