@@ -6,6 +6,7 @@
 # This file is distributed under the same license as the gtk-gnutella package.
 # Nicolás Lichtmaier <nick@technisys.com.ar>, 2003.
 # Paco Arjonilla García <pacoarjonilla@yahoo.es>, 2004-2005.
+# Larry Nieves <lnieves@315-web.com>, 2009.
 #
 msgid ""
 msgstr ""
@@ -20,8 +21,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Poedit-Language: Spanish\n"
-"X-Poedit-Basepath: /home/lnieves/gtk-gnutella/\n"
-"X-Poedit-Bookmarks: -1,-1,1108,-1,-1,-1,-1,-1,-1,-1\n"
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
