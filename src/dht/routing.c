@@ -2567,7 +2567,7 @@ dht_update_subspace_size_estimate(
 	statx_add(stats.lookdata, (double) estimate);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT subspace %02x estimate is %s (over %u/%d nodes)",
+		g_message("DHT subspace \"%02x\" estimate is %s (over %u/%d nodes)",
 			subspace, uint64_to_string(estimate), (unsigned) kept, amount);
 	}
 
@@ -2591,8 +2591,10 @@ dht_expire_size_estimates(void)
 			statx_remove(stats.lookdata, (double) stats.lookups[i].estimate);
 			stats.lookups[i].computed = 0;
 
-			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT expired subspace %02x local size estimate", i);
+			if (GNET_PROPERTY(dht_debug)) {
+				g_message(
+					"DHT expired subspace \"%02x\" local size estimate", i);
+			}
 		}
 
 		stamp = stats.network[i].updated;
@@ -2606,8 +2608,10 @@ dht_expire_size_estimates(void)
 			}
 			stats.network[i].updated = 0;
 
-			if (GNET_PROPERTY(dht_debug))
-				g_message("DHT expired subspace %02x remote size estimates", i);
+			if (GNET_PROPERTY(dht_debug)) {
+				g_message(
+					"DHT expired subspace \"%02x\" remote size estimates", i);
+			}
 		}
 	}
 }
