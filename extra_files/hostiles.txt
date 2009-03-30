@@ -1621,9 +1621,11 @@
 
 # iWeb Technologies Inc. (range 174.142.0.0/16)
 # iWeb Technologies Inc. (range 67.205.64.0/18)
-# Spamming gtk-gnutella seen on these subnets
-174.142.32.0/24
-174.142.36.0/24
+# Spamming LimeWire and gtk-gnutella seen on these subnets
+#174.142.32.0/24
+#174.142.36.0/24
+#174.142.104.245
+174.142.0.0/16
 67.205.64.0/18
 
 # iWeb Technologies Inc.; Montreal; Canada
