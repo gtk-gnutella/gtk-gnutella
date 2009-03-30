@@ -461,7 +461,8 @@ gui_init_dlg_about(void)
 		"U\304\237ur \303\207etin <ugur.jnmbk\100gmail.com>",
 		"Lloyd Bryant <lloydbaz\100msn.com>",
 		"Martijn van Oosterhout <kleptog\100svana.org>",
-		"Jochen Kemnade <jochenkemnade@web.de>",
+		"Jochen Kemnade <jochenkemnade\100web.de>",
+		"Larry Nieves <lanieves\100gmail.com>",
     };
 	GtkWidget *text;
     guint i;
