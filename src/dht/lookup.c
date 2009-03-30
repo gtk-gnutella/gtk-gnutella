@@ -2629,9 +2629,6 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
 
-	if (NULL == nlookups)
-		return;				/* Shutdown occurred before we were scheduled */
-
 	if (keys_exists(nl->kuid)) {
 		dht_value_t *vvec[MAX_VALUES_PER_KEY];
 		int vcnt = 0;
