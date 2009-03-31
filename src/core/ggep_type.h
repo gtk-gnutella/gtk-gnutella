@@ -79,6 +79,7 @@ ggept_status_t ggept_gtkg_ipv6_extract(extvec_t *exv, host_addr_t *addr);
 
 ggept_status_t ggept_alt_extract(extvec_t *exv, gnet_host_vec_t **hvec);
 ggept_status_t ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec);
+ggept_status_t ggept_utf8_string_extract(extvec_t *exv, char *buf, size_t len);
 
 guint ggept_filesize_encode(guint64 filesize, char *data);
 guint ggept_du_encode(guint32 uptime, char *data);

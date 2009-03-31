@@ -226,6 +226,38 @@ ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 }
 
 /**
+ * Extract an UTF-8 encoded string into the supplied buffer.
+ *
+ * @returns extraction status: only when GGEP_OK is returned will we have
+ * extracted something in the supplied buffer.
+ */
+ggept_status_t
+ggept_utf8_string_extract(extvec_t *exv, char *buf, size_t len)
+{
+	int tlen;
+
+	g_assert(size_is_non_negative(len));
+	g_assert(exv->ext_type == EXT_GGEP);
+
+	/*
+	 * The payload should not contain a NUL.
+	 * We only copy up to the first NUL.
+	 * The empty string is accepted.
+	 */
+
+	tlen = ext_paylen(exv);
+	if (tlen < 0 || UNSIGNED(tlen) >= len)
+		return GGEP_INVALID;
+
+	clamp_strncpy(buf, len, ext_payload(exv), tlen);
+
+	if (!utf8_is_valid_string(buf))
+		return GGEP_INVALID;
+
+	return GGEP_OK;
+}
+
+/**
  * Extract hostname of the "HNAME" extension into the supplied buffer.
  *
  * @returns extraction status: only when GGEP_OK is returned will we have
@@ -234,32 +266,12 @@ ggept_push_extract(extvec_t *exv, gnet_host_vec_t **hvec)
 ggept_status_t
 ggept_hname_extract(extvec_t *exv, char *buf, int len)
 {
-	int tlen;
-	int slen;
-	const char *payload;
-
 	g_assert(len >= 0);
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_HNAME);
 
-	/*
-	 * Leave out one character at the end to be able to store the trailing
-	 * NUL, which is not included in the extension.
-	 */
-
-	tlen = ext_paylen(exv);
-	if (tlen <= 0 || tlen >= len)
+	if (GGEP_OK != ggept_utf8_string_extract(exv, buf, len))
 		return GGEP_INVALID;
-
-	payload = ext_payload(exv);
-	slen = MIN(tlen, len - 1);
-
-	memcpy(buf, payload, slen);
-	buf[slen] = '\0';
-
-	if (!utf8_is_valid_string(buf)) {
-		return GGEP_INVALID;
-	}
 
 	/*
 	 * Make sure the full string qualifies as hostname and is not an
@@ -271,7 +283,7 @@ ggept_hname_extract(extvec_t *exv, char *buf, int len)
 
 		if (
 			!string_to_host_or_addr(buf, &endptr, &addr) ||
-			&buf[slen] != endptr ||
+			'\0' != *endptr ||
 			is_host_addr(addr)
 		) {
 			return GGEP_INVALID;
