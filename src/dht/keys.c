@@ -102,6 +102,8 @@ RCSID("$Id$")
 #define KBALL_PERIOD	(10*60)	/**< Update k-ball info every 10 minutes */
 #define KBALL_FIRST		60		/**< First k-ball update after 1 minute */
 
+#define KEYS_DB_CACHE_SIZE	512	/**< Amount of keys to keep cached in RAM */
+
 /**
  * Information about our neighbourhood (k-ball), updated periodically.
  */
@@ -179,13 +181,13 @@ static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
  * in bits from the furthest node in the k-ball.
  *
  * If the external frontier of the k-ball is F and a key has X bits in common
- * with our KUID, with X < F, then the decimation is 1.2^(F-X).
+ * with our KUID, with X < F, then the decimation is 1.5^(F-X).
  *
  * The following table pre-computes all the possible powers.
  */
 static double decimation_factor[KUID_RAW_BITSIZE];
 
-#define KEYS_DECIMATION_BASE 	1.2		/* Base for exponential decimation */
+#define KEYS_DECIMATION_BASE 	1.5		/* Base for exponential decimation */
 
 static void keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj);
 static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
@@ -432,14 +434,14 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_message("DHT STORE key %s holds %d/%d value%s, "
-			"load avg: get = %.2f [%s], store = %.2f [%s], expire = %lu",
+			"load avg: get = %.2f [%s], store = %.2f [%s], expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s",
 			(int) (ki->get_req_load * 100) / 100.0,
 			ki->get_req_load >= LOAD_GET_THRESH ? "LOADED" : "OK",
 			(int) (ki->store_req_load * 100) / 100.0,
 			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK",
-			(gulong) ki->next_expire);
+			compact_time(delta_time(ki->next_expire, tm_time())));
 
 	if (ki->get_req_load >= LOAD_GET_THRESH) {
 		*loaded = TRUE;
@@ -1192,7 +1194,7 @@ keys_init(void)
 	db_keydata = storage_create(db_keywhat, db_keybase,
 		KUID_RAW_SIZE, sizeof(struct keydata),
 		serialize_keydata, deserialize_keydata,
-		1, sha1_hash, sha1_eq);
+		KEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 
 	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
