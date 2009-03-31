@@ -518,6 +518,15 @@ EMPTY_STRING(const char *s)
 }
 
 /**
+ * Is string not empty?
+ */
+static inline gboolean
+str_not_empty(const char *s)
+{
+	return NULL != s && *s != '\0';
+}
+
+/**
  * Swap endianness of a guint32.
  *
  * @param i the guint32 to swap
@@ -680,6 +689,19 @@ size_saturate_sub(size_t a, size_t b)
 	if (G_UNLIKELY(a < b))
 		return 0;
 	return a - b;
+}
+
+/*
+ * Calculate the sum of a and b but saturate towards the maximum value.
+ * @return maximum if a + b > maximum, otherwise a + b.
+ */
+static inline size_t
+guint32_saturate_add(guint32 a, guint32 b)
+{
+	guint32 ret = a + b;
+	if (G_UNLIKELY(ret < a))
+		return MAX_INT_VAL(guint32);
+	return ret;
 }
 
 /*
