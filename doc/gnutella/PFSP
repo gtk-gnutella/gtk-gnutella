@@ -1,9 +1,13 @@
-Partial File Sharing Protocol Version 1.0
-Tor Klingberg <tor.klingberg@gmx.net>
-August 2002
+            Partial File Sharing Protocol Version 1.0a
+
+               Tor Klingberg <tor.klingberg@gmx.net>
+                          August 2002
+
+           Raphael Manfredi <Raphael.Manfredi@pobox.com>
+                          March 2009
 
 
-Introduction:
+Introduction
 
 This is a protocol for sharing partial files on the Gnutella network. A
 partial file is a file that a host has only downloaded parts of. Partial 
@@ -29,11 +33,12 @@ about what ranges are available. Note that a 2xx or 503 response without
 an X-Available-Ranges header means the complete file is available. The
 format is as follows:
 
-X-Available-Ranges: bytes 0-10,20-30
+    X-Available-Ranges: bytes 0-10,20-30
 
 The client requests the range it wants using the Range header.
 
-Range: bytes=0-
+    Range: bytes=0-
+
 means the client wants any ranges the server can provide.
 
 The server then provides the range it wants to upload using a 206 Partial
@@ -45,16 +50,19 @@ byte in the response is first requested byte.
 
 The 206 response contains a Content-Range header on the form
 
-Content-Range: bytes <start>-<end>/<total_size>
+    Content-Range: bytes <start>-<end>/<total_size>
 
 Note that <total_size> is the size of the COMPLETE file.
 
 If the server is unable to provide any part of the requested range, it
-returns a "503 Requested Range Not Available" (the Reason Phrase is just my
+returns a "416 Requested Range Not Available" (the Reason Phrase is just my
 recommendation). If the client continues to request the same range, the
-server may send a 404 to make a PFSP unaware client stop retrying.
-The X-Available-Ranges header will tell a PFSP enabled client what ranges it
-can request.
+server may send a 404 to make a PFSP-unaware client stop retrying.
+
+When the server returns 416, it does two things: it provides the list of
+available ranges with the X-Available-Ranges and it keeps the HTTP connection
+opened so that the client may submit a new request, picking from the list
+of available ranges.  If none fits the client, it can close the connection.
 
 If the client provides an "Accept:" header with "multipart/byteranges" in
 it, the server may respond with multiple ranges at once. The client may send
@@ -134,17 +142,15 @@ not a big problem.
 Here is a sample negotiation. I don't think it will look exactly like this,
 but it should show the headers in action. Clients might want to request a
 small range first, to get the list of available ranges. There are some
-linebreakes in long headers below.
+continuations in long headers below (which is perfectly valid HTTP).
 
 Client:
     GET /uri-res/N2R?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X HTTP/1.1
     User-Agent: FooBar/1.0
     Host: 123.123.123.123:6346
-    Connection: Keep-Alive
     Range: bytes=73826-
     X-Gnutella-Content-URN: urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
-    X-Gnutella-Alternate-Location:
-http://theclient.com:6346/uri-res/N2R?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
+    X-Alt: <list of alt-locs>
 
 Server:
     HTTP/1.1 206 Partial Content
@@ -152,16 +158,60 @@ Server:
     Content-Type: audio/mpeg
     Content-Range: bytes 73826-285749/533273
     Content-Length: 211924
-    Connection: Keep-Alive
-    X-Available-Ranges: bytes 0-285749,425926-488271
+    X-Available-Ranges: bytes 0-285749, 425926-488271
     X-Gnutella-Content-URN: urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
     X-Thex-URI:
-/uri-res/N2X?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X;VEKXTRSJPTZJLY2IKG5FQ
-2TCXK26SECFPP4DX7I
-    X-Gnutella-Alternate-Location: <list of alt-locs>
+        /uri-res/N2X?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X;
+        VEKXTRSJPTZJLY2IKG5FQ2TCXK26SECFPP4DX7I
+    X-Alt: <list of alt-locs>
 
     <211924 bytes of data>
 
 "N2X" above is an example. Someone should comment on what should be used.
 Since the URI is provided in the X-Thex-URI header, each vendor can chose
 how to provide the THEX data.
+
+
+5. Extension from gtk-gnutella
+
+Due to header size or bandwidth contraints, a servent may choose to
+truncate the X-Available-Ranges header by only including a random extract
+of the set of total available ranges.
+
+A servent may also choose to not emit X-Available-Ranges on 503 responses,
+for the same reasons.
+
+To still give the client an accurate view on how much of the file is
+available, and signal that the server does not hold the whole file,
+an extra X-Available header MUST be generated.
+
+The format is the following:
+
+    X-Available: bytes 535204
+
+It is perfectly valid to have both X-Available and X-Available-Ranges at
+the same time, although a servent MAY choose to not emit X-Available in
+case the X-Available-Ranges header contains all the available ranges,
+since then the client can compute the amount of available bytes by himself.
+
+However, if the file served is partial, one of the X-Available or
+X-Available-Ranges headers MUST be present in the response.  When a 206 or
+a 416 response is sent back, X-Available-Ranges remains of course mandatory.
+
+
+A. Change History
+
+March 2009 - revision 1.0a:
+
+    * Added X-Available header, as a gtk-gnutella extension.
+
+    * When the requested range is unavailable, a server must return 416,
+      and not 503.  Indeed, 5xx codes indicate a server error: a client may
+      retry the same request later, whereas a 4xx error code indicates that
+      the same request will not succeed.  The client must fix its request
+      before retrying or the same error will happen.
+
+    * Cleaned-up section 4, adding valid header continuations instead of
+      arbitrary line breaks in the headers, and replacing the deprecated
+      X-Gnutella-Alternate-Location header with the modern X-Alt.
+
