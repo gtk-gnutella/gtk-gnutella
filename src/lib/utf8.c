@@ -874,10 +874,11 @@ utf8_char_len(const char *s)
 
 
 /**
- * @return amount of UTF-8 chars when first `len' bytes of the given string
- * `s' form valid a UTF-8 string, 0 meaning the string is not valid UTF-8.
+ * Determine whether a string is UTF-8 encoded.
  *
  * @param src a NUL-terminated string.
+ * @return FALSE if there are any non-UTF-8 characters before the
+ *         terminating NUL, otherwise TRUE.
  */
 gboolean
 utf8_is_valid_string(const char *src)
