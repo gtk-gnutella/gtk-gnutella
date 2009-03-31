@@ -98,6 +98,9 @@ RCSID("$Id$")
 #define MAX_VALUES_NET	256		/**< Max # of values allowed per class C net */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
 
+#define VALUES_DB_CACHE_SIZE 1024	/**< Amount of values to keep cached */
+#define RAW_DB_CACHE_SIZE	 512	/**< Amount of raw data to keep cached */
+
 #define equiv(p,q)  (!(p) == !(q))
 
 /**
@@ -118,7 +121,7 @@ RCSID("$Id$")
  */
 struct valuedata {
 	kuid_t id;					/**< The primary key of the value */
-	time_t publish;				/**< Initial publish time at our node */
+	time_t publish;				/**< Last publish time at our node */
 	time_t replicated;			/**< Last replication time */
 	time_t expire;				/**< Expiration time */
 	/* Creator information */
@@ -134,6 +137,13 @@ struct valuedata {
 	guint8 value_minor;			/**< Minor version of value */
 	guint16 length;				/**< Value length */
 	gboolean original;			/**< Whether we got data from creator */
+	/* Statistics */
+	time_t created;				/**< When we first created the value */
+	guint32 n_republish;		/**< Amount of republishing we had */
+	guint32 n_replication;		/**< Amount of replication we had */
+	guint32 s_elapsed_publish;	/**< Sum of elapsed time between publications */
+	guint32 s_elapsed_replicat;	/**< Sum of elapsed time between replications */
+	guint32 n_requests;			/**< Amount of time value was requested */
 };
 
 /**
@@ -222,6 +232,13 @@ serialize_valuedata(pmsg_t *mb, gconstpointer data)
 	pmsg_write_u8(mb, vd->value_minor);
 	pmsg_write_be16(mb, vd->length);
 	pmsg_write_boolean(mb, vd->original);
+	/* Statistics */
+	pmsg_write_time(mb, vd->created);
+	pmsg_write_be32(mb, vd->n_republish);
+	pmsg_write_be32(mb, vd->n_replication);
+	pmsg_write_be32(mb, vd->s_elapsed_publish);
+	pmsg_write_be32(mb, vd->s_elapsed_replicat);
+	pmsg_write_be32(mb, vd->n_requests);
 }
 
 /**
@@ -251,6 +268,13 @@ deserialize_valuedata(bstr_t *bs, gpointer valptr, size_t len)
 	bstr_read_u8(bs, &vd->value_minor);
 	bstr_read_be16(bs, &vd->length);
 	bstr_read_boolean(bs, &vd->original);
+	/* Statistics */
+	bstr_read_time(bs, &vd->created);
+	bstr_read_be32(bs, &vd->n_republish);
+	bstr_read_be32(bs, &vd->n_replication);
+	bstr_read_be32(bs, &vd->s_elapsed_publish);
+	bstr_read_be32(bs, &vd->s_elapsed_replicat);
+	bstr_read_be32(bs, &vd->n_requests);
 
 	if (bstr_has_error(bs))
 		return FALSE;
@@ -658,18 +682,55 @@ values_periodic_expire(cqueue_t *unused_cq, gpointer unused_obj)
 }
 
 /**
+ * Log statistics about an expired value.
+ */
+static void
+log_expired_value_stats(guint64 dbkey, const struct valuedata *vd)
+{
+	if (NULL == vd)
+		return;
+
+	g_message("DHT STORE expiring \"%s\" %s "
+		"life=%s, republish#=%u, replication#=%u, request#=%u, dbkey=%s",
+		dht_value_type_to_string(vd->type),
+		kuid_to_hex_string(&vd->id),
+		compact_time(delta_time(tm_time(), vd->created)),
+		(unsigned) vd->n_republish, (unsigned) vd->n_replication,
+		(unsigned) vd->n_requests, uint64_to_string(dbkey));
+
+	if (GNET_PROPERTY(dht_storage_debug) > 1) {
+		guint32 avg_publish = 0;
+		guint32 avg_replicate = 0;
+
+		if (vd->n_republish)
+			avg_publish = vd->s_elapsed_publish / vd->n_republish;
+		if (vd->n_replication > 1) {
+			avg_replicate =
+				vd->s_elapsed_replicat / (vd->n_replication - 1);
+		}
+		g_message("DHT STORE averages for \"%s\" %s "
+			"between republish=%s, replication=%s",
+			dht_value_type_to_string(vd->type),
+			kuid_to_hex_string(&vd->id),
+			compact_time(avg_publish), short_time_ascii(avg_replicate));
+	}
+}
+/**
  * Remember that a value has expired, if we did not already know about it.
  *
  * The recorded keys are deleted asynchronously in the background regularily,
  * to avoid perturbation in the caller's data structures.
  */
 static void
-values_expire(guint64 dbkey)
+values_expire(guint64 dbkey, const struct valuedata *vd)
 {
 	const guint64 *dbatom;
 
 	if (g_hash_table_lookup(expired, &dbkey))
 		return;
+
+	if (GNET_PROPERTY(dht_storage_debug))
+		log_expired_value_stats(dbkey, vd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_message("DHT DB-key %s expired", uint64_to_string(dbkey));
@@ -718,7 +779,7 @@ values_has_expired(guint64 dbkey, time_t now, time_t *expire)
 	g_assert(vd);		/* XXX better handling for I/O errors */
 
 	if (now >= vd->expire)  {
-		values_expire(dbkey);
+		values_expire(dbkey, vd);
 		return TRUE;
 	}
 
@@ -940,8 +1001,6 @@ fill_valuedata(struct valuedata *vd, const knode_t *cn, const dht_value_t *v)
 		acct_net_update(values_per_ip, cn->addr, NET_IPv4_MASK, +1);
 	}
 
-	vd->publish = tm_time();
-	vd->replicated = 0;
 	vd->expire = values_expire_time(v->id, v->type);
 	vd->vcode = cn->vcode;			/* struct copy */
 	vd->addr = cn->addr;			/* struct copy */
@@ -996,18 +1055,18 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	 */
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
-		struct valuedata *vd;
+		struct valuedata *vd = get_valuedata(dbkey);
+		if (vd) {
+			g_assert(kuid_eq(&vd->id, v->id));		/* Primary key */
+			g_assert(kuid_eq(&vd->cid, cn->id));	/* Secondary key */
 
-		vd = get_valuedata(dbkey);
-
-		g_assert(vd);							/* XXX handle DB failures */
-		g_assert(kuid_eq(&vd->id, v->id));		/* Primary key */
-		g_assert(kuid_eq(&vd->cid, cn->id));	/* Secondary key */
-
-		g_message("DHT STORE creator %s deleting %u-byte %s value %s",
-			kuid_to_hex_string(cn->id), vd->length,
-			dht_value_type_to_string(vd->type),
-			kuid_to_hex_string2(v->id));
+			g_message("DHT STORE creator %s deleting %u-byte %s value %s"
+				" (life %s)",
+				kuid_to_hex_string(cn->id), vd->length,
+				dht_value_type_to_string(vd->type),
+				kuid_to_hex_string2(v->id),
+				short_time_ascii(delta_time(tm_time(), vd->created)));
+		}
 	}
 
 	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
@@ -1029,6 +1088,75 @@ done:
 }
 
 /**
+ * Update statistics by counting a value republishing.
+ *
+ * @attention
+ * Must be called before updating vd->publish again.
+ */
+static void
+value_count_republish(struct valuedata *vd)
+{
+	time_t now = tm_time();
+
+	STATIC_ASSERT(DHT_VALUE_EXPIRE < MAX_INT_VAL(gint32));
+
+	/*
+	 * We only count a republishing if the value was an original, i.e. not
+	 * obtained through replication or caching.
+	 */
+
+	if (vd->original) {
+		guint32 elapsed = (guint32) delta_time(now, vd->publish);
+
+		vd->n_republish++;
+		vd->s_elapsed_publish =
+			guint32_saturate_add(vd->s_elapsed_publish, elapsed);
+
+		if (GNET_PROPERTY(dht_storage_debug))
+			g_message("DHT STORE republishing of \"%s\" %s #%u after %s",
+				dht_value_type_to_string(vd->type),
+				kuid_to_hex_string(&vd->id), (unsigned) vd->n_republish,
+				compact_time(elapsed));
+	}
+
+	vd->publish = now;
+	gnet_stats_count_general(GNR_DHT_REPUBLISH, 1);
+}
+
+/**
+ * Update statistics by counting a value replication.
+ */
+static void
+value_count_replication(struct valuedata *vd)
+{
+	time_t now = tm_time();
+
+	STATIC_ASSERT(DHT_VALUE_EXPIRE < MAX_INT_VAL(gint32));
+
+	/*
+	 * Only update the sum of the elapsed time between replications if
+	 * we already replicated the value.
+	 */
+
+	vd->n_replication++;
+
+	if (0 != vd->replicated) {
+		guint32 elapsed = (guint32) delta_time(now, vd->replicated);
+		vd->s_elapsed_replicat =
+			guint32_saturate_add(vd->s_elapsed_replicat, elapsed);
+
+		if (GNET_PROPERTY(dht_storage_debug))
+			g_message("DHT STORE replication of \"%s\" %s #%u after %s",
+				dht_value_type_to_string(vd->type),
+				kuid_to_hex_string(&vd->id), (unsigned) vd->n_replication,
+				compact_time(elapsed));
+	}
+
+	vd->replicated = now;
+	gnet_stats_count_general(GNR_DHT_REPLICATION, 1);
+}
+
+/**
  * Publish or replicate value in our local data store.
  *
  * @return store status code that will be relayed back to the remote node.
@@ -1043,8 +1171,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 	gboolean check_data = FALSE;
 
 	/*
-	 * Look whether we already hold this value (in which case it would
-	 * be a replication or a republishing from original creator).
+	 * Look whether we already hold this value (in which case it could
+	 * be either a replication or a republishing from the original creator).
 	 */
 
 	dbkey = keys_has(v->id, v->creator->id, TRUE);
@@ -1083,6 +1211,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		dbkey = valueid++;
 		vd->id = *v->id;				/* struct copy */
 		vd->cid = *cn->id;				/* struct copy */
+		vd->created = tm_time();		/* First time we see this value */
+		vd->publish = vd->created;
 		fill_valuedata(vd, cn, v);
 
 		keys_add_value(v->id, cn->id, dbkey, vd->expire);
@@ -1153,13 +1283,18 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 					"with %s", vd->length, dht_value_type_to_string(vd->type),
 					dht_value_to_string(v));
 
+			/*
+			 * Update statistics before changing the old valuedata structure.
+			 */
+
+			value_count_republish(vd);
+
 			vd->original = TRUE;
 			fill_valuedata(vd, cn, v);
 
 			values_unexpire(dbkey);
 			kuid_pair_was_republished(&vd->id, &vd->cid);
 			keys_update_value(&vd->id, vd->expire);
-			gnet_stats_count_general(GNR_DHT_REPUBLISH, 1);
 		}
 	}
 
@@ -1194,8 +1329,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		 * and we're done.
 		 */
 
-		vd->replicated = tm_time();
-		gnet_stats_count_general(GNR_DHT_REPLICATION, 1);
+		value_count_replication(vd);
 	} else {
 		/*
 		 * We got either new data or something republished by the creator.
@@ -1320,7 +1454,8 @@ values_store(const knode_t *kn, const dht_value_t *v, gboolean token)
 
 done:
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
-		g_message("DHT STORE status for %s is %u (%s)",
+		g_message("DHT STORE status for \"%s\" %s is %u (%s)",
+			dht_value_type_to_string(v->type),
 			kuid_to_hex_string(v->id), status, store_error_to_string(status));
 
 	return status;
@@ -1361,13 +1496,15 @@ values_get(guint64 dbkey, dht_value_type_t type)
 	 */
 
 	if (tm_time() >= vd->expire) {
-		values_expire(dbkey);
+		values_expire(dbkey, vd);
 		return NULL;
 	}
 
 	/*
 	 * OK, we have a value and its type matches.  Build the DHT value.
 	 */
+
+	vd->n_requests++;
 
 	if (vd->length) {
 		size_t length;
@@ -1407,17 +1544,17 @@ values_init(void)
 	db_valuedata = storage_create(db_valwhat, db_valbase,
 		sizeof(guint64), sizeof(struct valuedata),
 		serialize_valuedata, deserialize_valuedata,
-		1, uint64_hash, uint64_eq);
+		VALUES_DB_CACHE_SIZE, uint64_hash, uint64_eq);
 
 	db_rawdata = storage_create(db_rawwhat, db_rawbase,
 		sizeof(guint64), DHT_VALUE_MAX_LEN,
 		NULL, NULL,
-		1, uint64_hash, uint64_eq);
+		RAW_DB_CACHE_SIZE, uint64_hash, uint64_eq);
 
 	db_expired = storage_create(db_expwhat, db_expbase,
 		2 * KUID_RAW_SIZE, 0,
 		NULL, NULL,
-		1, kuid_pair_hash, kuid_pair_eq);
+		0, kuid_pair_hash, kuid_pair_eq);
 
 	values_per_ip = acct_net_create();
 	values_per_class_c = acct_net_create();
