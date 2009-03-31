@@ -277,6 +277,7 @@ enum {
  * Server attributes.
  */
 enum {
+	DLS_A_TLS			= 1 << 11,	/**< Server known to support TLS */
 	DLS_A_DHT_PROX		= 1 << 10,	/**< Looking for push-proxies in DHT */
 	DLS_A_G2_ONLY		= 1 << 9,	/**< Server is "G2" only */
 	DLS_A_FOOBAR		= 1 << 8,	/**< Server is foobar */
@@ -435,6 +436,7 @@ void download_auto_new(const char *filename,
 
 void download_dht_auto_new(const char *filename,
  	filesize_t size,
+	const char *hostname,
 	const host_addr_t addr,
 	guint16 port,
 	const struct guid *guid,

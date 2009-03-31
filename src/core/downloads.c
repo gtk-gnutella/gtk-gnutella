@@ -120,7 +120,7 @@ RCSID("$Id$")
 #define DOWNLOAD_MAX_IGN_TIME	300		/**< Max amount of secs we can ignore */
 #define DOWNLOAD_MAX_IGN_REQS	3		/**< How many mismatches per source */
 #define DOWNLOAD_SERVER_HOLD	15		/**< Space requests to same server */
-#define DOWNLOAD_DNS_LOOKUP		7200	/**< Period of server DNS lookups */
+#define DOWNLOAD_DNS_LOOKUP		1800	/**< Period of server DNS lookups */
 #define DOWNLOAD_STALLED		60		/**< Consider stalled after 60 secs */
 #define DOWNLOAD_PING_DELAY		300		/**< Minimum delay for 2 HEAD pings */
 #define DOWNLOAD_MAX_HEADER_EOF	3		/**< Max # of EOF in headers we allow */
@@ -2019,6 +2019,16 @@ change_server_addr(struct dl_server *server,
 			key->port, host_addr_port_to_string(key->addr, key->port),
 			host_addr_port_to_string2(new_addr, new_port));
     }
+
+	/*
+	 * If server is known to support TLS, remove the old address from the
+	 * cache and insert the new one instead.
+	 */
+
+	if (server->attrs & DLS_A_TLS) {
+		tls_cache_remove(key->addr, key->port);
+		tls_cache_insert(new_addr, new_port);
+	}
 
 	/*
 	 * Perform the IP change.
@@ -5134,6 +5144,14 @@ download_connect(struct download *d)
 	}
 
 	/*
+	 * If server is known to support TLS, request a TLS connection, avoiding
+	 * any cache lookup later.
+	 */
+
+	if (server->attrs & DLS_A_TLS)
+		tls = SOCK_F_TLS;
+
+	/*
 	 * If there is a fully qualified domain name, look it up for possible
 	 * change if either sufficient time passed since last lookup, or if the
 	 * DLS_A_DNS_LOOKUP attribute was set because of a connection failure.
@@ -5141,8 +5159,8 @@ download_connect(struct download *d)
 
 	if (
 		(server->attrs & DLS_A_DNS_LOOKUP) ||
-		(server->hostname != NULL &&
-			delta_time(tm_time(), server->dns_lookup) > DOWNLOAD_DNS_LOOKUP)
+		(str_not_empty(server->hostname) &&
+			delta_time(tm_time(), server->dns_lookup) >= DOWNLOAD_DNS_LOOKUP)
 	) {
 		g_assert(server->hostname != NULL);
 
@@ -5993,7 +6011,10 @@ download_fallback_to_push(struct download *d,
 		 * XXX simply discarding it.
 		 */
 
-		if (socket_bad_hostname(d->socket) && d->server->hostname != NULL) {
+		if (
+			socket_bad_hostname(d->socket) &&
+			str_not_empty(d->server->hostname)
+		) {
 			g_warning("hostname \"%s\" for %s could not resolve, discarding",
 				d->server->hostname,
 				host_addr_port_to_string(download_addr(d), download_port(d)));
@@ -6007,7 +6028,7 @@ download_fallback_to_push(struct download *d,
 		 * next attempt.
 		 */
 
-		if (d->server->hostname != NULL && !(d->flags & DL_F_DNS_LOOKUP))
+		if (str_not_empty(d->server->hostname) && !(d->flags & DL_F_DNS_LOOKUP))
 			d->server->attrs |= DLS_A_DNS_LOOKUP;
 
 		socket_free_null(&d->socket);
@@ -6170,7 +6191,7 @@ create_download(
 	 * lose the information about the server.
 	 */
 
-	if (hostname != NULL && *hostname != '\0')
+	if (str_not_empty(hostname))
 		set_server_hostname(server, hostname);
 
 	/*
@@ -6502,6 +6523,7 @@ download_auto_new(const char *file_name,
 void
 download_dht_auto_new(const char *file_name,
 	filesize_t size,
+	const char *hostname,
 	const host_addr_t addr,
    	guint16 port,
 	const struct guid *guid,
@@ -6514,8 +6536,7 @@ download_dht_auto_new(const char *file_name,
 	gboolean was_orphan = fi && 0 == fi->refcount;
 
 	download_auto_new_common(
-		file_name, size, addr, port, guid,
-		NULL, /* hostname */
+		file_name, size, addr, port, guid, hostname,
 		sha1, tth, stamp, fi,
 		NULL, /* proxies */
 		flags);
@@ -9611,6 +9632,7 @@ static void
 download_detect_tls_support(struct download *d, header_t *header)
 {
 	download_check(d);
+	dl_server_valid(d->server);
 
 	if (d->got_giv)
 		return;
@@ -9620,6 +9642,7 @@ download_detect_tls_support(struct download *d, header_t *header)
 		xalt_detect_tls_support(d, header)
 	) {
 		tls_cache_insert(download_addr(d), download_port(d));
+		d->server->attrs |= DLS_A_TLS;
 	}
 }
 

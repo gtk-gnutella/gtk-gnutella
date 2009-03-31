@@ -226,6 +226,8 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	gboolean tls = FALSE;
 	filesize_t filesize = 0;
 	guint32 flags = 0;
+	char host[MAX_HOSTLEN];
+	const char *hostname = NULL;
 
 	g_assert(DHT_VT_ALOC == rc->type);
 
@@ -270,6 +272,15 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			if (sizeof(tth.data) == ext_paylen(e)) {
 				memcpy(tth.data, ext_payload(e), sizeof(tth.data));
 				has_tth = TRUE;
+			}
+			break;
+		case EXT_T_GGEP_HNAME:		/* GTKG-added key to ALOCs */
+			{
+				ggept_status_t ret;
+
+				ret = ggept_hname_extract(e, host, sizeof host);
+				if (GGEP_OK == ret)
+					hostname = host;
 			}
 			break;
 		default:
@@ -371,7 +382,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	download_dht_auto_new(filepath_basename(fi->pathname),
 		fi->size,
-		rc->addr, port,
+		hostname, rc->addr, port,
 		&guid,
 		fi->sha1,
 		has_tth ? &tth : NULL,
