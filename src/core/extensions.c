@@ -200,6 +200,7 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(V),			/**< Vendor code, in HEAD Pongs */
 	GGEP_ID(VC),		/**< Vendor code, in pongs */
 	GGEP_ID(VMSG),		/**< Array of supported vendor message codes */
+	GGEP_ID(XQ),		/**< eXtended Query; for longer query strings */
 	{ "client-id", EXT_T_GGEP_client_id }, /**< GUID in ALOC v0.0 */
 	GGEP_ID(features),	/**< Unknown value, PROX v0.0 */
 	GGEP_ID(firewalled),/**< Firewalled status in ALOC v0.0 */

@@ -120,6 +120,7 @@ typedef enum ext_token {
 	EXT_T_GGEP_V,			/**< Vendor Code in HEAD Pongs */
 	EXT_T_GGEP_VC,			/**< Vendor Code */
 	EXT_T_GGEP_VMSG,		/**< Array of vendor message codes supported */
+	EXT_T_GGEP_XQ,			/**< eXtended Query; for longer query strings */
 	EXT_T_GGEP_client_id,	/**< "client-id" in ALOC & PROX v0.0 (i.e. GUID) */
 	EXT_T_GGEP_features,	/**< Unknown value, PROX v0.0 */
 	EXT_T_GGEP_firewalled,	/**< Firewalled status in ALOC v0.0 */
