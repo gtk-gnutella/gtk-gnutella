@@ -620,8 +620,7 @@ k_send_find_value_response(
 	 * know how large the values are).
 	 */
 
-	if (vlen != 0)
-		qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
