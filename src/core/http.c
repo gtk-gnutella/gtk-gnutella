@@ -115,8 +115,8 @@ http_send_status(
 	 * Prepare flags for callbacks.
 	 */
 
-	if (saturated)					cb_flags |= HTTP_CBF_BW_SATURATED;
-	if (code == 503)				cb_flags |= HTTP_CBF_BUSY_SIGNAL;
+	if (saturated)		cb_flags |= HTTP_CBF_BW_SATURATED;
+	if (code == 503)	cb_flags |= HTTP_CBF_BUSY_SIGNAL;
 
 	/*
 	 * On 5xx errors, limit the header to 1K max, a priori.  This will be
@@ -958,11 +958,13 @@ http_range_parse(
 	if (NULL != (str = is_strprefix(str, unit))) {
 		c = *str;
 		if (!is_ascii_space(c) && c != '=') {
-			g_warning("improper %s header from <%s>: %s", field, vendor, value);
+			if (GNET_PROPERTY(http_debug)) g_warning(
+				"improper %s header from <%s>: %s", field, vendor, value);
 			return NULL;
 		}
 	} else {
-		g_warning("improper %s header from <%s> (not bytes?): %s",
+		if (GNET_PROPERTY(http_debug)) g_warning(
+			"improper %s header from <%s> (not bytes?): %s",
 			field, vendor, value);
 		return NULL;
 	}
@@ -975,7 +977,8 @@ http_range_parse(
 	while ((c = *str)) {
 		if (c == '=') {
 			if (request) {
-				g_warning("improper %s header from <%s> (multiple '='): %s",
+				if (GNET_PROPERTY(http_debug)) g_warning(
+					"improper %s header from <%s> (multiple '='): %s",
 					field, vendor, value);
 				return NULL;
 			}
