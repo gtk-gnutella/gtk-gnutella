@@ -134,10 +134,10 @@ http_extra_callback_matches(http_extra_desc_t *he,
  * Flags used during callback invocation.
  */
 
-#define HTTP_CBF_SMALL_REPLY	0x00000001	/**< Try to emit smallest reply */
-#define HTTP_CBF_BW_SATURATED	0x00000002	/**< Bandwidth is saturated */
-#define HTTP_CBF_BUSY_SIGNAL	0x00000004	/**< Sending back a 503 "busy" */
-#define HTTP_CBF_SHOW_RANGES	0x00000008	/**< Show available ranges */
+#define HTTP_CBF_SMALL_REPLY	(1 << 0)	/**< Try to emit smallest reply */
+#define HTTP_CBF_BW_SATURATED	(1 << 1)	/**< Bandwidth is saturated */
+#define HTTP_CBF_BUSY_SIGNAL	(1 << 2)	/**< Sending back a 503 "busy" */
+#define HTTP_CBF_SHOW_RANGES	(1 << 3)	/**< Show available ranges */
 
 struct header;
 struct http_async;
