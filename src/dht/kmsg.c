@@ -620,7 +620,8 @@ k_send_find_value_response(
 	 * know how large the values are).
 	 */
 
-	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+	if (vlen != 0)
+		qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
@@ -1368,6 +1369,36 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 
 	vcnt = keys_get(id, type, secondary, count,
 		vvec, G_N_ELEMENTS(vvec), &load, &cached);
+
+	/*
+	 * If we have no items of the requested value type, we need to act
+	 * as if we were not holding the key.
+	 *
+	 * The reason is that due to value caching, we may have stored some
+	 * cached results for a key, but only for a particular type.  There may
+	 * be actual results for the type they are looking up now further down
+	 * in the path, at some node closest to the key than we are.
+	 *
+	 * Furthermore, we need to carefully distinguish between an initial
+	 * lookup, asking for a value, and secondary key fetches.  The initial
+	 * lookup cannot know the secondary keys, so it cannot specify any.
+	 * If a secondary key lookup was issued, and we have no value to
+	 * return, we'll reply with an empty message.
+	 */
+
+	if (0 == vcnt && NULL == secondary) {
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
+			g_message("DHT FETCH \"%s\" %s not found in existing key (%s)",
+				dht_value_type_to_string(type),
+				kuid_to_hex_string(id), kuid_to_string(id));
+
+		answer_find_node(n, kn, id, kademlia_header_get_muid(header));
+		goto cleanup;
+	}
+
+	/*
+	 * Send back the values we found (could be none for secondary keys).
+	 */
 
 	k_send_find_value_response(n,
 		kn, vvec, vcnt, load, cached, kademlia_header_get_muid(header));
