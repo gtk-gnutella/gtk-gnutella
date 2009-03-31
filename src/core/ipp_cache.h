@@ -77,6 +77,12 @@ tls_cache_insert(const host_addr_t addr, guint16 port)
 	ipp_cache_insert(IPP_CACHE_TLS, addr, port);
 }
 
+static inline void
+tls_cache_remove(const host_addr_t addr, guint16 port)
+{
+	ipp_cache_remove(IPP_CACHE_TLS, addr, port);
+}
+
 static inline gboolean
 tls_cache_lookup(const host_addr_t addr, guint16 port)
 {
