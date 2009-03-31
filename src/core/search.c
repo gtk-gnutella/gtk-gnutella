@@ -1062,7 +1062,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					g_warning("%s has multiple GGEP \"HNAME\" (ignoring)",
 							gmsg_infostr(&n->header));
 				} else {
-					char hostname[256];
+					char hostname[MAX_HOSTLEN];
 
 					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
 					if (ret == GGEP_OK)
