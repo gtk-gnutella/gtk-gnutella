@@ -59,20 +59,20 @@ static const guint16 RUDP_PROTO_VERSION = 0;
 
 /* Standardized RUDP packet opcodes */
 enum rudp_op {
-  RUDP_OP_SYN       = 0x00,
-  RUDP_OP_ACK       = 0x01,
+  RUDP_OP_SYN        = 0x00,
+  RUDP_OP_ACK        = 0x01,
   RUDP_OP_KEEP_ALIVE = 0x02,
-  RUDP_OP_DATA      = 0x03,
-  RUDP_OP_FIN       = 0x04
+  RUDP_OP_DATA       = 0x03,
+  RUDP_OP_FIN        = 0x04
 };
 
 /* Standardized RUDP FIN codes */
 enum rudp_fin_reason {
-  RUDP_FIN_CLOSE    = 0x00,
-  RUDP_FIN_ACK      = 0x01,
-  RUDP_FIN_TIMEOUT  = 0x02,
-  RUDP_FIN_TOO_BIG  = 0x03,
-  RUDP_FIN_TOO_BAD  = 0x04
+  RUDP_FIN_CLOSE     = 0x00,
+  RUDP_FIN_ACK       = 0x01,
+  RUDP_FIN_TIMEOUT   = 0x02,
+  RUDP_FIN_TOO_BIG   = 0x03,
+  RUDP_FIN_TOO_BAD   = 0x04
 };
 
 /* Raw layout of a RUDP packet header. This overlays/replaces the GUID area of
