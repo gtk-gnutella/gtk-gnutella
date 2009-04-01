@@ -62,12 +62,23 @@ typedef enum {
 #define DHT_VALUE_MAX_LEN	512		/**< Max value size */
 
 /**
- * Value expiration time (republishing should occur 1 hour before expiration).
+ * Value expiration time (republishing should occur before expiration).
+ *
+ * The 1 hour expiration time may seem low, but LimeWire uses that and
+ * it probably makes sense in a highly transient environment.  However,
+ * with such a low expiration time, it would have been wiser to choose
+ * a KDA_K < 20.
  */
+#define DHT_VALUE_EXPIRE		(4*60*60)	/**< 4 hours, default */
+#define DHT_VALUE_ALOC_EXPIRE	(1*60*60)	/**< 1 hour for alt-locs */
+#define DHT_VALUE_PROX_EXPIRE	(1*60*60)	/**< 1 hour for push-proxies */
 
-#define DHT_VALUE_EXPIRE		(13*60*60)	/**< 13 hours */
-#define DHT_VALUE_ALOC_EXPIRE	(13*60*60)	/**< 13 hours for alt-locs */
-#define DHT_VALUE_PROX_EXPIRE	(3*60*60)	/**< 3 hours for push-proxies */
+/**
+ * Value republishing time.
+ *
+ * Again, very low value chosen by the LimeWire team.
+ */
+#define DHT_VALUE_REPUBLISH		(30*60)		/**< 30 minutes */
 
 /**
  * A DHT value.
