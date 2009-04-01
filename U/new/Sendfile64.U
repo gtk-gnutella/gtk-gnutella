@@ -18,6 +18,7 @@ int main(void)
 }
 EOC
 
+result=''
 set result
 eval $trylink
 
@@ -27,6 +28,4 @@ case "$result" in
 	d_sendfile="$undef"
 	;;
 esac
-?X: trylink could "Whoa there" if we do not reset this variable
-result=''
 

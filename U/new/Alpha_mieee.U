@@ -24,6 +24,7 @@ int main(void)
 EOC
 	saved_ccflags=$ccflags
 	ccflags="$flag $ccflags"
+	result=''
 	set result
 	eval $trylink
 
@@ -36,6 +37,4 @@ EOC
 	esac
 	;;
 esac
-?X: trylink could "Whoa there" if we do not reset this variable
-result=''
 

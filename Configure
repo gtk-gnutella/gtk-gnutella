@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Apr  1 19:34:55 CEST 2009 [metaconfig 3.5-25]
+# Generated on Wed Apr  1 19:47:22 CEST 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5590,12 +5590,12 @@ int main(void)
 }
 EOC
 
+	result=''
 	set result
 	eval $trylink
 	d_ipv6=$result
 	;;
 esac
-result=''
 
 : Look for isascii
 $cat >try.c <<EOC
@@ -8588,6 +8588,7 @@ int main(void)
 }
 EOC
 
+result=''
 set result
 eval $trylink
 
@@ -8597,7 +8598,6 @@ case "$result" in
 	d_sendfile="$undef"
 	;;
 esac
-result=''
 
 : see if iconv exists
 $cat >try.c <<EOC
@@ -8639,6 +8639,7 @@ int main(void)
 EOC
 	saved_ccflags=$ccflags
 	ccflags="$flag $ccflags"
+	result=''
 	set result
 	eval $trylink
 
@@ -8651,7 +8652,6 @@ EOC
 	esac
 	;;
 esac
-result=''
 
 : check whether -pipe should be used
 flag='-pipe'
@@ -8673,6 +8673,7 @@ EOC
 		saved_ccflags=$ccflags
 		ccflags="$flag $ccflags"
 
+		result=''
 		set result
 		eval $trylink
 	
@@ -8707,7 +8708,6 @@ EOC
 	esac
 	;;
 esac
-result=''
 
 : end of configuration questions
 echo " "
