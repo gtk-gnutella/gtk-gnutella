@@ -1017,6 +1017,9 @@
 # diversity (faked)
 64.208.52.0/22
 
+# sub-range of Global Crossing (GBLX); fake mp3s
+64.213.84.0/22
+
 # "Fun Workplace Time Waster", "(US Special Release)" etc. EXE, ZIP, RAR malware/adware
 216.139.213.16/28
 
