@@ -1520,7 +1520,7 @@ get_protocol_version(const char *handshake, guint *major, guint *minor)
 	if (GNET_PROPERTY(node_debug))
 		g_warning("Unable to parse version number in HELLO, assuming 0.4");
 	if (GNET_PROPERTY(node_debug) > 2) {
-		guint len = strlen(handshake);
+		size_t len = strlen(handshake);
 		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
 	}
 
