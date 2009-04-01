@@ -147,6 +147,7 @@ general_type_str(gint value)
 		N_("Duplicate downloads found during server consolidation"),
 		N_("Discovered server GUIDs"),
 		N_("Changed server GUIDs"),
+		N_("Detected GUID collisions"),
 		N_("Detected collisions with our own GUID"),
 		N_("Firewalled node info for known hosts received in upload requests"),
 		N_("Attempted download resource switching on completion"),

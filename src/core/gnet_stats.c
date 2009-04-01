@@ -165,6 +165,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"discovered_server_guid",
 	"changed_server_guid",
 	"guid_collisions",
+	"own_guid_collisions",
 	"received_known_fw_node_info",
 	"attempted_resource_switching",
 	"attempted_resource_switching_after_error",
