@@ -4506,7 +4506,6 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 gboolean
 search_request_preprocess(struct gnutella_node *n)
 {
-	static const char qtrax2_con[] = "QTRAX2_CONNECTION";
 	static char stmp_1[4096];
 	guint16 flags;
 	char *search;
@@ -4578,17 +4577,6 @@ search_request_preprocess(struct gnutella_node *n)
 	flags = peek_be16(n->data);
 	if (!(flags & QUERY_F_MARK)) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
-		goto drop;		/* Drop the message! */
-	}
-
-	/*
-	 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
-	 */
-	if (
-		search_len >= CONST_STRLEN(qtrax2_con) &&
-		is_strprefix(search, qtrax2_con)
-	) {
-		gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 		goto drop;		/* Drop the message! */
 	}
 
