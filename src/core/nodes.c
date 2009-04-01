@@ -6736,7 +6736,7 @@ route_only:
 				qhvec_reset(qhv);
 			}
 
-			drop = search_request(n, qhv);
+			search_request(n, qhv);
 			break;
 
 		case GTA_MSG_SEARCH_RESULTS:

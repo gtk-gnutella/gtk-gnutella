@@ -98,15 +98,11 @@ RCSID("$Id$")
 #define MAX_SEARCH_TERM_BYTES 200	/* in bytes; reserve some for GGEP etc. */
 
 /*
- * Ignore this nonsense for release but see whether anyone complains about this
- * rather low limit for non-releases. LimeWire drops searches with more than
- * 30 characters (actually UTF-16 codepoints).
+ * LimeWire has dropped searches with more than 30 characters (actually UTF-16
+ * codepoints) for years. In late 2008, they added GGEP XQ to bypass this limit.
  */
-#ifdef OFFICIAL_BUILD
 #define MAX_SEARCH_TERM_CHARS MAX_SEARCH_TERM_BYTES	/* in characters! */
-#else
-#define MAX_SEARCH_TERM_CHARS 30	/* in characters! */
-#endif	/* OFFICIAL_BUILD */
+#define MAX_EXTENDED_QUERY_LEN 255	/* in bytes; long search terms (GGEP XQ) */
 
 #define MUID_MAX			4	 /**< Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800 /**< Minimum search retry timeout */
@@ -4497,6 +4493,28 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 			node_addr(n), node_vendor(n), flags);
 }
 
+/**
+ * Extract query flags for a search and apply some workarounds for
+ * buggy clients.
+ */
+static guint16
+search_request_get_flags(const struct gnutella_node *n)
+{
+	const guint16 mask = QUERY_F_MARK | QUERY_F_GGEP_H | QUERY_F_LEAF_GUIDED;
+	guint16 flags;
+
+	flags = peek_be16(n->data);
+	if (flags & QUERY_F_MARK)
+		return flags;
+	if (0 == flags)
+		return flags;
+	/* RAZA has been buggy for years, incorrectly using little-endian */
+	flags = peek_le16(n->data);
+	if ((flags & mask) == mask)
+		return flags;
+
+	return QUERY_F_MARK;	/* Ignore speed and clear all flags */
+}
 
 /**
  * Preprocesses searches requests (from others nodes)
@@ -4574,8 +4592,8 @@ search_request_preprocess(struct gnutella_node *n)
 	 * interpretation. --RAM
 	 */
 
-	flags = peek_be16(n->data);
-	if (!(flags & QUERY_F_MARK)) {
+	flags = search_request_get_flags(n);
+	if (0 == flags) {
 		gnet_stats_count_dropped(n, MSG_DROP_ANCIENT_QUERY);
 		goto drop;		/* Drop the message! */
 	}
@@ -5115,14 +5133,12 @@ drop:
  *
  * If `qhv' is not NULL, it is filled with hashes of URN or query words,
  * so that we may later properly route the query among the leaf nodes.
- *
- * @returns TRUE if the message should be dropped and not propagated further.
  */
-gboolean
+void
 search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
 	guint16 flags;
-	char *search;
+	const char *search;
 	size_t search_len;
 	gboolean skip_file_search = FALSE;
 	struct {
@@ -5130,15 +5146,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
 	int exv_sha1cnt = 0;
-	guint offset = 0;			/**< Query string start offset */
 	gboolean oob = FALSE;		/**< Wants out-of-band query hit delivery? */
 	gboolean secure_oob = FALSE;
 	gboolean may_oob_proxy = !(n->flags & NODE_F_NO_OOB_PROXY);
 	struct guid muid;
+	const char *extended_query = NULL;
 
 	/* NOTE: search_request_preprocess() has already handled this query. */
 
-	flags = peek_be16(n->data);
+	flags = search_request_get_flags(n);
 	search = n->data + 2;	/* skip flags */
 	search_len = clamp_strlen(search, n->size - 2);
 
@@ -5222,6 +5238,30 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				}
 				break;
 
+			case EXT_T_GGEP_XQ:	/* eXtended Query */
+				if (NULL != extended_query) {
+					g_warning("%s has multiple GGEP \"XQ\" (ignoring)",
+							gmsg_infostr(&n->header));
+				} else {
+					char buf[MAX_EXTENDED_QUERY_LEN + 1];
+
+					switch (ggept_utf8_string_extract(e, buf, sizeof buf)) {
+					case GGEP_OK:
+						extended_query = atom_str_get(buf);
+						break;
+					default:
+						if (
+							GNET_PROPERTY(search_debug) > 0 ||
+							GNET_PROPERTY(ggep_debug) > 0 
+						) {
+							g_warning("%s bad GGEP \"XQ\" (dumping)",
+									gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+				}
+				break;
+
 			default:;
 			}
 		}
@@ -5231,6 +5271,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (exvcnt)
 			ext_reset(exv, MAX_EXTVEC);
+	}
+
+	if (extended_query) {
+		if (GNET_PROPERTY(search_debug) > 0) {
+			g_warning("extended query:\n\toriginal=\"%s\"\n\textended=\"%s\"",
+				search, extended_query);
+		}
+		search = extended_query;
+		search_len = strlen(search);
 	}
 
     /*
@@ -5294,7 +5343,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		0 != (flags & QUERY_F_FIREWALLED) &&
 		GNET_PROPERTY(is_firewalled)
 	) {
-		return FALSE;			/* Both servents are firewalled */
+		goto finish;			/* Both servents are firewalled */
 	}
 
 	/*
@@ -5368,7 +5417,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			if (GNET_PROPERTY(share_debug) > 3) {
 				g_message("share HIT %u files '%s'%s ", qctx->found,
-						search + offset,
+						search,
 						skip_file_search ? " (skipped)" : "");
 				if (exv_sha1cnt) {
 					int i;
@@ -5417,7 +5466,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		share_query_context_free(qctx);
 	}
 
-	return FALSE;
+finish:
+	atom_str_free_null(&extended_query);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
