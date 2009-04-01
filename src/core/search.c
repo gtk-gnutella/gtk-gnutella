@@ -1116,8 +1116,10 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		}
 
 		if (exvcnt == MAX_EXTVEC) {
-			g_warning("%s from %s has %d trailer extensions!",
+			if (GNET_PROPERTY(search_debug) > 0) {
+				g_warning("%s from %s has %d trailer extensions!",
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+			}
 			if (GNET_PROPERTY(search_debug) > 2)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			if (GNET_PROPERTY(search_debug) > 3 && priv)
