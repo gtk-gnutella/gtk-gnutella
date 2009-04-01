@@ -61,7 +61,7 @@ static const guint16 RUDP_PROTO_VERSION = 0;
 enum rudp_op {
   RUDP_OP_SYN       = 0x00,
   RUDP_OP_ACK       = 0x01,
-  RUDP_OP_KEEPALIVE = 0x02,
+  RUDP_OP_KEEP_ALIVE = 0x02,
   RUDP_OP_DATA      = 0x03,
   RUDP_OP_FIN       = 0x04
 };
@@ -178,7 +178,7 @@ rudp_op_to_string(guint8 op)
 #define CASE(x) case ( RUDP_OP_ ##x ) : return #x;
     CASE(SYN)
     CASE(ACK)
-    CASE(KEEPALIVE)
+    CASE(KEEP_ALIVE)
     CASE(DATA)
     CASE(FIN)
 #undef CASE
@@ -910,7 +910,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 	case RUDP_OP_SYN:
 		rudp_handle_syn(con, addr, port, rudp_header);
 		break;
-	case RUDP_OP_KEEPALIVE:
+	case RUDP_OP_KEEP_ALIVE:
 		rudp_handle_keep_alive(con, rudp_header);
 		break;
 	case RUDP_OP_ACK:
