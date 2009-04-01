@@ -514,9 +514,8 @@ hsep_timer(time_t now)
  * to be closed. The connection's HSEP data is restored to
  * zero and the CAN_HSEP attribute is cleared.
  */
-
 void
-hsep_connection_close(struct gnutella_node *n)
+hsep_connection_close(struct gnutella_node *n, gboolean in_shutdown)
 {
 	unsigned int i, j;
 
@@ -527,6 +526,9 @@ hsep_connection_close(struct gnutella_node *n)
 		printf("HSEP: Deinitializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
+	if (in_shutdown)
+		goto cleanup;
+
 	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
 
 		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
@@ -535,19 +537,20 @@ hsep_connection_close(struct gnutella_node *n)
 		}
 	}
 
+	if (GNET_PROPERTY(hsep_debug) > 1)
+		hsep_dump_table();
+
+	hsep_fire_global_table_changed(tm_time());
+
 	/*
 	 * Clear CAN_HSEP attribute so that the HSEP code
 	 * will not use the node any longer.
 	 */
 
+cleanup:
 	n->attrs &= ~NODE_A_CAN_HSEP;
 	wfree(n->hsep, sizeof *n->hsep);
 	n->hsep = NULL;
-
-	if (GNET_PROPERTY(hsep_debug) > 1)
-		hsep_dump_table();
-
-	hsep_fire_global_table_changed(tm_time());
 }
 
 static inline void

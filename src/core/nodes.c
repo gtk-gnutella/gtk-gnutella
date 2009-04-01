@@ -1789,11 +1789,10 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		g_hash_table_remove(nodes_by_guid, n->guid);
 		atom_guid_free_null(&n->guid);
 	}
+	if (n->attrs & NODE_A_CAN_HSEP)
+		hsep_connection_close(n, in_shutdown);
 
 	if (!in_shutdown) {
-		if (n->attrs & NODE_A_CAN_HSEP) {
-			hsep_connection_close(n);
-		}
 		if (NODE_IS_LEAF(n)) {
 			/* Purge dynamic queries for that node */
 			dq_node_removed(NODE_ID(n));
@@ -8275,7 +8274,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("node %s (%s) uses our GUID", node_addr(n), node_vendor(n));
-		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+		gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 		goto error;
 	}
 
@@ -8294,6 +8293,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid)
 				node_addr(n), node_vendor(n),
 				node_addr2(owner), node_vendor(owner));
 		}
+		gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
 		goto error;
 	}
 
