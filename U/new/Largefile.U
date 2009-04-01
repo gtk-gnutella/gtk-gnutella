@@ -24,6 +24,7 @@ int main(void)
 }
 EOC
 
+result=''
 set result
 eval $trylink
 
@@ -49,6 +50,7 @@ int main(void)
 	return 0;
 }
 EOC
+	result=''
 	set result
 	eval $trylink
 
@@ -63,6 +65,4 @@ EOC
 	esac	
 	;;
 esac
-?X: trylink could "Whoa there" if we do not reset this variable
-result=''
 
