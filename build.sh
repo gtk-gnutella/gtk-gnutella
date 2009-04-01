@@ -23,6 +23,7 @@ build_official=
 build_so_suffix=
 build_socker=
 build_ui=
+build_verbose='-s'
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -46,6 +47,7 @@ while [ $# -gt 0 ]; do
 	--prefix=*)		PREFIX="${1#--*=}";;
 	--topless)		build_ui='d_headless';;
 	--unofficial)		build_official='false';;
+	--verbose)		build_verbose='';;
 	--yacc=*)		YACC="${1#--*=}";;
 	--) 		break
 			;;
@@ -72,6 +74,7 @@ echo '  --make=TOOL      make tool to be used. [$MAKE]'
 echo '  --yacc=TOOL      yacc, bison or some compatible tool. [$YACC]'
 echo '  --configure-only Do not run make after Configure.'
 echo '  --unofficial     Use for test builds only. Requires no installation.'
+echo '  --verbose        Increase verbosity of Configure output.'
 echo '  --enable-halloc  Enable mmap()-based malloc() replacement.'
 echo
 echo 'Typically no switches need to be used. Just run '"$0"' to start the'
@@ -126,7 +129,8 @@ rm -f config.sh
 
 # Use /bin/sh explicitely so that it works on noexec mounted file systems.
 # Note: Configure won't work as of yet on such a file system.
-/bin/sh ./Configure -Oders \
+/bin/sh ./Configure -Oder \
+	$build_verbose \
 	-U usenm \
 	${CC:+-D "cc=$CC"} \
 	${CFLAGS:+-D "ccflags=$CFLAGS"} \
