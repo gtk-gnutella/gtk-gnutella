@@ -2057,7 +2057,7 @@ lookup_rpc_cb(
 	case LOOKUP_VALUE:
 		if (function == KDA_MSG_FIND_VALUE_RESPONSE) {
 			if (lookup_value_found(nl, kn, payload, len))
-				return;
+				goto cleanup;
 			nl->rpc_bad++;
 			goto iterate_check;
 		} else if (lookup_is_fetching(nl)) {
@@ -2274,12 +2274,14 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	case LOOKUP_REFRESH:
 		dht_rpc_find_node(kn, nl->kuid,
 			lookup_rpc_cb, rpi, lookup_pmsg_free, pmi);
-		break;
+		return;
 	case LOOKUP_VALUE:
 		dht_rpc_find_value(kn, nl->kuid, nl->u.fv.vtype, NULL, 0,
 			lookup_rpc_cb, rpi, lookup_pmsg_free, pmi);
-		break;
+		return;
 	}
+
+	g_assert_not_reached();
 }
 
 /**
