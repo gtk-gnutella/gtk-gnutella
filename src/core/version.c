@@ -677,8 +677,7 @@ version_init(void)
  *
  * If the version being ran is not a stable one, warn after 60 days, otherwise
  * warn after a year.  If we're not "expired" yet but are approaching the
- * deadline, start to remind them.  After the deadline plus some grace period,
- * refuse to run unless a special property is set.
+ * deadline, start to remind them. 
  */
 void
 version_ancient_warn(void)
@@ -701,7 +700,11 @@ version_ancient_warn(void)
 	elapsed = delta_time(now, our_version.timestamp);
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
-		g_warning("version of gtk-gnutella is too old, you should upgrade!");
+		static gboolean warned = FALSE;
+		if (!warned) {
+			g_warning("version of gtk-gnutella is too old, please upgrade!");
+			warned = TRUE;
+		}
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 		return;
 	}
