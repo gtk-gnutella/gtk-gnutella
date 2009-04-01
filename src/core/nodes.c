@@ -3732,9 +3732,10 @@ node_got_bye(struct gnutella_node *n)
 
 	if (!is_plain_message) {
 		/* XXX parse header */
-		if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN)
+		if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 			g_message("----Bye Message from %s:", node_addr(n));
 			dump_string(stderr, message, n->size - 2, "----");
+		}
 	}
 
 	if (GNET_PROPERTY(node_debug))
