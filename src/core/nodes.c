@@ -3705,15 +3705,16 @@ node_got_bye(struct gnutella_node *n)
 	for (cnt = 0, p = message; cnt < message_len; cnt++, p++) {
 		c = *p;
 		if (c == '\0') {			/* NUL marks the end of the message */
-			if (GNET_PROPERTY(node_debug) && cnt != message_len - 1)
+			if (GNET_PROPERTY(node_debug) && cnt != message_len - 1) {
 				g_warning("BYE message %u from %s <%s> has early NUL",
 					code, node_addr(n), node_vendor(n));
+			}
 			break;
 		} else if (c == '\r') {
 			if (++cnt < n->size) {
 				if ((c = *(++p)) == '\n') {
 					is_plain_message = FALSE;
-					message_len = (p - message + 1) - 2;  /* 2 = len("\r\n") */
+					message_len = (p - message + 1) - CONST_STRLEN("\r\n");
 					break;
 				} else {
 					p--;			/* Undo our look-ahead */
@@ -3722,7 +3723,7 @@ node_got_bye(struct gnutella_node *n)
 			}
 			continue;
 		}
-		if (c && c < ' ' && !warned) {
+		if (is_ascii_cntrl(c) && !warned) {
 			warned = TRUE;
 			if (GNET_PROPERTY(node_debug))
 				g_warning("BYE message %u from %s <%s> contains control chars",
