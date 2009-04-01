@@ -573,6 +573,7 @@ slow_main_timer(time_t now)
 	case 0:
 		dmesh_store();
 		dmesh_ban_store();
+		version_ancient_warn();
 		break;
 	case 1:
 		hcache_store_if_dirty(HOST_ANY);
