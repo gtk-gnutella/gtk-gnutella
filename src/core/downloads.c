@@ -1624,7 +1624,7 @@ download_found_server(const struct guid *guid,
 		 */
 
 		if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-			gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 
 			if (GNET_PROPERTY(download_debug)) {
 				g_warning("discovered that host %s bears our GUID!",
@@ -1877,7 +1877,7 @@ get_server(const struct guid *guid, const host_addr_t addr, guint16 port,
 			 */
 
 			if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 
 				if (GNET_PROPERTY(download_debug)) {
 					g_warning("host %s bears our GUID!",
@@ -4159,9 +4159,9 @@ download_queue_update_status(struct download *d)
 
 	/* Append PFS indication */
 	pfs[0] = '\0';
-	if (d->ranges != NULL)
+	if (d->ranges_size)
 		gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
-			d->ranges_size * 100.0 / d->file_info->size);
+			d->ranges_size * 100.0 / download_filesize(d));
 
 	buf = &d->error_str[strlen(d->error_str)];
 	size = sizeof d->error_str - strlen(d->error_str);
@@ -9109,7 +9109,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 				break;
 			}
 			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 				msg = "node bears our GUID";
 				break;
 			}
@@ -9310,49 +9310,130 @@ check_push_proxies(struct download *d, const header_t *header)
 static void
 update_available_ranges(struct download *d, const header_t *header)
 {
-	static const char available[] = "X-Available-Ranges";
+	static const char available_ranges[] = "X-Available-Ranges";
+	static const char available[] = "X-Available";
 	const char *buf;
+	filesize_t available_bytes = 0;
 
 	download_check(d);
 
-	if (d->ranges != NULL) {
-		http_range_free(d->ranges);
-		d->ranges = NULL;
-	}
+	d->flags &= ~DL_F_PARTIAL;		/* Assume file is complete now */
 
 	if (!d->file_info->use_swarming)
 		goto send_event;
 
 	g_assert(header != NULL);
 
+	/*
+	 * Handle X-Available (indicates a partial file).
+	 */
+
 	buf = header_get(header, available);
 
-	if (buf == NULL || download_filesize(d) == 0)
-		goto send_event;
+	if (buf) {
+		int error;
+		char *p = is_strprefix(buf, "bytes");
+
+		d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+
+		if (p) {
+			guint64 v = parse_uint64(buf, NULL, 10, &error);
+
+			if (!error)
+				available_bytes = MIN(v, download_filesize(d));
+		} else {
+			error = EINVAL;
+		}
+
+		if (error && GNET_PROPERTY(download_debug)) {
+			g_warning("malformed X-Available header from %s: \"%s\"",
+				download_host_info(d), buf);
+		}
+	}
 
 	/*
-	 * LimeWire seemingly sends this to imply support for the feature
-	 * when it has no availble ranges.
+	 * Handle X-Available-Ranges.
 	 */
+
+	buf = header_get(header, available_ranges);
+
+	if (NULL == buf || download_filesize(d) == 0)
+		goto send_event;
+
+	d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+
+	/*
+	 * LimeWire seemingly sends this to imply that file is partial yet
+	 * it has no available ranges.
+	 */
+
 	if (0 == strcmp(buf, "bytes"))
 		goto send_event;
 		
 	/*
 	 * Update available range list and total size available remotely.
+	 *
+	 * Since remote end can give us a random subset of ranges each time,
+	 * we merge the new list we get with the old one we had.
 	 */
 
-	d->ranges = http_range_parse(available, buf,
-		download_filesize(d), download_vendor_str(d));
+	{
+		GSList *old_ranges = d->ranges;
+		GSList *new_ranges;
 
-	d->ranges_size = http_range_size(d->ranges);
+		new_ranges = http_range_parse(available_ranges, buf,
+			download_filesize(d), download_vendor_str(d));
+
+		d->ranges = http_range_merge(old_ranges, new_ranges);
+		d->ranges_size = http_range_size(d->ranges);
+
+		http_range_free(old_ranges);
+		http_range_free(new_ranges);
+	}
+
+	/* FALL THROUGH */
 
  send_event:
+	/*
+	 * If we have an X-Available header mentionning more data than we
+	 * can see in X-Available-Ranges, use the former on the basis that
+	 * the latter could have been truncated due to header size constraints.
+	 */
+
+	if (available_bytes > d->ranges_size) {
+		d->ranges_size = available_bytes;
+
+		if (GNET_PROPERTY(download_debug)) {
+			g_message("X-Available header from %s: has %s bytes for \"%s\"",
+				download_host_info(d), uint64_to_string(available_bytes),
+				download_basename(d));
+		}
+	}
+
+	/*
+	 * If they have the whole file, we can discard the ranges.
+	 */
+
+	if (download_filesize(d) != 0 && d->ranges_size >= download_filesize(d)) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_message("server %s now has the whole file (%s bytes) for \"%s\"",
+				download_host_info(d), uint64_to_string(available_bytes),
+				download_basename(d));
+		}
+
+		http_range_free(d->ranges);
+		d->ranges = NULL;
+		d->ranges_size = download_filesize(d);
+		d->flags &= ~DL_F_PARTIAL;
+	}
+
 	/*
 	 * We should always send an update event for the ranges, even when
 	 * not using swarming or when there are no available ranges. That
 	 * way the receiver of this event can still determine that the
 	 * whole range for this file is available.
 	 */
+
 	fi_src_ranges_changed(d);
 }
 

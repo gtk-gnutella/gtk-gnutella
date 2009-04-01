@@ -1290,13 +1290,15 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 	 * However, we're not going to include the available ranges when we
 	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
 	 * since the data will be stale by the time it is needed.  We only dump
-	 * then when explicitly requested to do so.
+	 * them when explicitly requested to do so.  Otherwise, we let them know
+	 * about the amount of data we have for the file, so that they know we
+	 * hold only a fraction of it.
 	 */
 
 	if (
 		GNET_PROPERTY(pfsp_server) &&
 		shared_file_is_partial(u->sf) &&
-		(flags & HTTP_CBF_SHOW_RANGES)
+		(flags & (HTTP_CBF_SHOW_RANGES|HTTP_CBF_BUSY_SIGNAL))
 	) {
 		char alt_locs[160];
 		
@@ -1319,11 +1321,17 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 			
 			/*
 			 * Emit the X-Available-Ranges: header if file is partial and we're
-			 * not returning a busy signal.
+			 * not returning a busy signal.  Otherwise, just emit the
+			 * X-Available header.
 			 */
 
-			len = file_info_available_ranges(shared_file_fileinfo(u->sf),
-					&buf[rw], size - rw - mesh_len);
+			if (flags & HTTP_CBF_BUSY_SIGNAL) {
+				len = file_info_available(shared_file_fileinfo(u->sf),
+						&buf[rw], size - rw - mesh_len);
+			} else {
+				len = file_info_available_ranges(shared_file_fileinfo(u->sf),
+						&buf[rw], size - rw - mesh_len);
+			}
 			rw += len;
 		}
 	} else {
@@ -3111,7 +3119,7 @@ extract_fw_node_info(const struct upload *u, const header_t *header)
 				break;
 			}
 			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 				msg = "node bears our GUID";
 				break;
 			}

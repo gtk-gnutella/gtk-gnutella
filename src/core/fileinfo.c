@@ -4681,9 +4681,21 @@ fi_missing_coverage(struct download *d)
 
 	download_check(d);
 
+	/*
+	 * See update_available_ranges() to understand why we can still get a
+	 * non-zero download_ranges_size() despite download_ranges() returning NULL.
+	 *
+	 * We asssume the server has the whole file if there are no ranges and
+	 * a zero ranges_size, as we have not seen any header indicating that the
+	 * file would be partial.
+	 */
+
 	ranges = download_ranges(d);
-	if (ranges == NULL)
-		return 1.0;		/* Full coverage, as file is complete */
+	if (ranges == NULL) {
+		filesize_t available = download_ranges_size(d);
+
+		return available ? (available * 1.0) / (fi->size * 1.0) : 1.0;
+	}
 
 	fi = d->file_info;
 	file_info_check(fi);
@@ -4971,18 +4983,6 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 		fi_check_file(fi);
 	}
-
-	/*
-	 * XXX Mirar reported that this assert sometimes fails.  Too close to
-	 * XXX the release, and it's not something worth panicing.
-	 * XXX This happens after "Requeued by file info change".
-	 * XXX Replacing with a warning for now.
-	 * XXX		--RAM, 17/10/2002
-	 */
-
-#if 0
-	g_assert(fi->size >= d->file_size);
-#endif /* 0 */
 
 	if (fi->size < d->file_size) {
 		g_warning("fi->size=%s < d->file_size=%s for \"%s\"",
@@ -5941,45 +5941,77 @@ fi_rename(gnet_fi_t fih, const char *filename)
 }
 
 /**
+ * Emit a single X-Available header, letting them know we hold a partial
+ * file and how many bytes exactly, in case they want to prioritize their
+ * download requests depending on file completion criteria.
+ *
+ * @return the size of the generated header.
+ */
+size_t
+file_info_available(const fileinfo_t *fi, char *buf, size_t size)
+{
+	header_fmt_t *fmt;
+	size_t rw = 0;
+	int len;
+
+	file_info_check(fi);
+	g_assert(size_is_non_negative(size));
+
+	fmt = header_fmt_make("X-Available", " ",
+		UINT64_DEC_BUFLEN + sizeof("X-Available: bytes") + 2, size);
+
+	header_fmt_append_value(fmt, "bytes");
+	header_fmt_append_value(fmt, uint64_to_string(fi->done));
+	header_fmt_end(fmt);
+
+	len = header_fmt_length(fmt);
+	g_assert(UNSIGNED(len) < size);
+	rw = clamp_strncpy(buf, size, header_fmt_string(fmt), len);
+
+	g_assert(rw < size);	/* No clamping occurred */
+
+	return rw;
+}
+
+/**
  * Emit an X-Available-Ranges header listing the ranges within the file that
  * we have on disk and we can share as a PFSP-server.  The header is emitted
  * in `buf', which is `size' bytes long.
  *
  * If there is not enough room to emit all the ranges, emit a random subset
- * of the ranges.
+ * of the ranges but include an extra "X-Available" header to let them know
+ * how many bytes we really have.
  *
- * @returns the size of the generated header.
+ * @return the size of the generated header.
  */
-int
-file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
+size_t
+file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 {
 	const struct dl_file_chunk **fc_ary;
-	header_fmt_t *fmt;
+	header_fmt_t *fmt, *fmta = NULL;
 	gboolean is_first = TRUE;
-	char range[80];
+	char range[2 * UINT64_DEC_BUFLEN + sizeof(" bytes ")];
 	GSList *sl;
 	int count;
 	int nleft;
 	int i;
-	int length;
+	size_t rw;
+	const char *x_available_ranges = "X-Available-Ranges";
 
 	file_info_check(fi);
-	g_assert(size >= 0);
+	g_assert(size_is_non_negative(size));
 	g_assert(file_info_check_chunklist(fi, TRUE));
-	fmt = header_fmt_make("X-Available-Ranges", ", ", size, size);
 
-	if (header_fmt_length(fmt) + sizeof "bytes 0-512\r\n" >= (size_t) size)
-		goto emit;				/* Sorry, not enough room for anything */
+	fmt = header_fmt_make(x_available_ranges, ", ", size, size);
 
 	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		const struct dl_file_chunk *fc = sl->data;
-		int rw;
 
 		dl_file_chunk_check(fc);
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
 
-		rw = gm_snprintf(range, sizeof range, "%s%s-%s",
+		gm_snprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
 			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
 
@@ -5994,10 +6026,30 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 	/*
 	 * Not everything fitted.  We have to be smarter and include only what
 	 * can fit in the size we were given.
+	 *
+	 * However, to let them know how much file data we really hold, we're also
+	 * going to include an extra "X-Available" header specifying how many
+	 * bytes we have.
 	 */
 
 	header_fmt_free(fmt);
-	fmt = header_fmt_make("X-Available-Ranges", ", ", size, size);
+
+	{
+		int len;
+
+		fmta = header_fmt_make("X-Available", " ",
+			UINT64_DEC_BUFLEN + sizeof("X-Available: bytes") + 2, size);
+
+		header_fmt_append_value(fmta, "bytes");
+		header_fmt_append_value(fmta, uint64_to_string(fi->done));
+		header_fmt_end(fmta);
+
+		len = header_fmt_length(fmta);
+
+		fmt = header_fmt_make(x_available_ranges, ", ", size,
+			size > UNSIGNED(len) ? size - len : 0);
+	}
+
 	is_first = TRUE;
 
 	/*
@@ -6034,7 +6086,7 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 
 	for (nleft = count; nleft > 0; nleft--) {
 		const struct dl_file_chunk *fc;
-		int rw, len, j;
+		int j;
 
 		j = random_value(nleft - 1);
 		g_assert(j >= 0 && j < nleft);
@@ -6043,11 +6095,9 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 		dl_file_chunk_check(fc);	
 		g_assert(DL_CHUNK_DONE == fc->status);
 
-		rw = gm_snprintf(range, sizeof range, "%s%s-%s",
+		gm_snprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
 			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
-
-		len = header_fmt_length(fmt);
 
 		if (header_fmt_append_value(fmt, range))
 			is_first = FALSE;
@@ -6064,18 +6114,28 @@ file_info_available_ranges(fileinfo_t *fi, char *buf, int size)
 	G_FREE_NULL(fc_ary);
 
 emit:
-	length = 0;
+	rw = 0;
 
-	if (!is_first) {			/* Something was recorded */
+	if (fmta) {				/* X-Available header is required */
+		int len = header_fmt_length(fmta);
+		g_assert(UNSIGNED(len) < size);
+		rw = clamp_strncpy(buf, size, header_fmt_string(fmta), len);
+		header_fmt_free(fmta);
+	}
+
+	if (!is_first) {		/* Something was recorded in X-Available-Ranges */
+		int len;
 		header_fmt_end(fmt);
-		length = header_fmt_length(fmt);
-		g_assert(length < size);
-		strncpy(buf, header_fmt_string(fmt), length + 1);	/* with final NUL */
+		len = header_fmt_length(fmt);
+		g_assert(len + rw < size);
+		rw += clamp_strncpy(&buf[rw], size - rw, header_fmt_string(fmt), len);
 	}
 
 	header_fmt_free(fmt);
 
-	return length;
+	g_assert(rw < size);	/* No clamping occurred */
+
+	return rw;
 }
 
 /**
@@ -6255,7 +6315,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * overall ranges info for this file.
 	 */
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		printf("*** Fileinfo: %s\n", d->file_info->pathname);
+		g_message("*** Fileinfo: %s\n", d->file_info->pathname);
 
 	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
 		struct download *src = sl->data;
@@ -6275,24 +6335,21 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				printf("    %s:%d replied (%x, %x), ",
+				g_message("    %s:%d replied (%x, %x), ",
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
-			if (!src->file_info->use_swarming || NULL == src->ranges) {
+
+			if (!src->file_info->use_swarming || !(src->flags & DL_F_PARTIAL)) {
 				/*
 				 * Indicate that the whole file is available.
 				 * We could just stop here and assign the complete file range,
    				 * but I'm leaving the code as-is so that we can play with the
  				 * info more, e.g. show different colors for ranges that are
 				 * available more.
-				 * FIXME: it is not clear that the logic in this if()
-				 * properly captures whether a whole file is available.
-				 * This depends also on the HTTP error code, e.g. I
-				 * believe that currently a 404 will also trigger a
-				 * whole file is available event...
-				*/
+				 */
+
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					printf("whole file available.\n");
+					g_message("  whole file is now available");
 
 				{
 					GSList *full_r;
@@ -6304,7 +6361,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					printf(" ranges %s available\n",
+					g_message("  ranges %s available",
 						http_range_to_string(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
 			}
@@ -6315,7 +6372,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	d->file_info->seen_on_network = r;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		printf("    Final ranges: %s\n\n", http_range_to_string(r));
+		g_message("    final ranges: %s", http_range_to_string(r));
 
 	/*
 	 * Remove the old list and free its range elements

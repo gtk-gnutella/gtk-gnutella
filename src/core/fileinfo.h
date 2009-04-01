@@ -106,7 +106,8 @@ fileinfo_t *file_info_by_guid(const struct guid *guid);
 void file_info_dht_query(const sha1_t *sha1);
 
 shared_file_t *file_info_shared_sha1(const struct sha1 *sha1);
-int file_info_available_ranges(fileinfo_t *fi, char *buf, int size);
+size_t file_info_available(const fileinfo_t *fi, char *buf, size_t size);
+size_t file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size);
 gboolean file_info_restrict_range(
 	fileinfo_t *fi, filesize_t start, filesize_t *end);
 

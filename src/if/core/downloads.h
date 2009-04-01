@@ -243,6 +243,7 @@ struct download {
  */
 
 enum {
+	DL_F_PARTIAL		= 1 << 28,	/**< Partial source */
 	DL_F_FROM_ERROR		= 1 << 27,	/**< Switched after error occurred */
 	DL_F_FROM_PLAIN		= 1 << 26,	/**< Switched from plain file download */
 	DL_F_SWITCHED		= 1 << 25,	/**< Scheduled after resource switching */
@@ -315,6 +316,7 @@ enum {
  * on the remote size, in case the file is partial.
  */
 #define download_ranges(d)		((d)->ranges)
+#define download_ranges_size(d)	((d)->ranges_size)
 
 /*
  * State inspection macros.
