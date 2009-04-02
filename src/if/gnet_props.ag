@@ -3963,4 +3963,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "clock_debug";
+	desc = "Debug level for the management of the clock accuracy.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */
