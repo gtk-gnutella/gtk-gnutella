@@ -3289,7 +3289,16 @@ download_move_to_list(struct download *d, enum dl_list idx)
 		if (DOWNLOAD_IS_ACTIVE(d))
 			dl_active--;
 		else {
-			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
+			/*
+			 * Cannot assert DOWNLOAD_IS_ESTABLISHING(d) here because of
+			 * download_force_stop() which can move things in the running
+			 * list to be able to forcefully stop them later.  We could be
+			 * dealing with a download that is in GTA_DL_TIMEOUT_WAIT for
+			 * instance and which is being reparented and spot as a duplicate.
+			 * What we DO know however is that the download was put in the
+			 * running list so dl_establishing was incremented...
+			 *		--RAM, 2009-04-02
+			 */
 			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
