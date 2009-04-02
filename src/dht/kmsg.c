@@ -1398,6 +1398,12 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	 * Send back the values we found (could be none for secondary keys).
 	 */
 
+	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_storage_debug))
+		g_message("DHT FETCH \"%s\" %s (%s) FOUND %d %svalue%s",
+			dht_value_type_to_string(type),
+			kuid_to_hex_string(id), kuid_to_string(id),
+			vcnt, cached ? "cached " : "", 1 == vcnt ? "" : "s");
+
 	k_send_find_value_response(n,
 		kn, vvec, vcnt, load, cached, kademlia_header_get_muid(header));
 
