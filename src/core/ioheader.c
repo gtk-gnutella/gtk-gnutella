@@ -53,11 +53,14 @@ RCSID("$Id$")
 
 #define DFLT_SIZE	2048	/**< Expected headers should not be larger */
 
+enum io_opaque_magic { IO_OPAQUE_MAGIC = 0x578da161U };
+
 /**
  * This structure is used to encapsulate the various arguments required
  * by the header parsing I/O callbacks.
  */
 struct io_header {
+	enum io_opaque_magic magic;
 	gpointer resource;				/**< Resource for which we're parsing */
 	gpointer *io_opaque;			/**< Where we're referenced in resource */
 	struct gnutella_socket *socket;	/**< Socket on which we're reading */
@@ -81,6 +84,7 @@ io_check(const gpointer opaque)
 	struct io_header *ih = opaque;
 
 	g_assert(ih);
+	g_assert(IO_OPAQUE_MAGIC == ih->magic);
 	g_assert(ih->io_opaque);
 	g_assert((char *) ih->io_opaque > (char *) ih->resource);
 	g_assert(((char *) ih->io_opaque - (char *) ih->resource) < 1024);
@@ -105,6 +109,7 @@ io_free(gpointer opaque)
 	if (ih->text)
 		g_string_free(ih->text, TRUE);
 
+	ih->magic = 0;
 	wfree(ih, sizeof(*ih));
 }
 
@@ -457,6 +462,7 @@ io_get_header(
 	 */
 
 	ih = walloc(sizeof *ih);
+	ih->magic = IO_OPAQUE_MAGIC;
 	ih->resource = resource;
 	ih->io_opaque = io_opaque;
 	ih->getline = getline_make(HEAD_MAX_SIZE);
