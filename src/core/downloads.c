@@ -3340,9 +3340,15 @@ download_clone(struct download *d)
 {
 	struct download *cd;
 	fileinfo_t *fi;
+	struct gnutella_socket *s = d->socket;
 
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
+
+	if (s->getline) {
+		getline_free(s->getline);	/* No longer need this */
+		s->getline = NULL;
+	}
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
@@ -3354,12 +3360,7 @@ download_clone(struct download *d)
 		g_assert(d->buffers);
 		g_assert(d->buffers->held == 0);		/* All data flushed */
 	} else {
-		struct gnutella_socket *s = d->socket;
 		io_free(d->io_opaque);		/* Cloned after error, not when receiving */
-		if (s->getline) {
-			getline_free(s->getline);	/* No longer need this */
-			s->getline = NULL;
-		}
 		g_assert(NULL == d->buffers);
 	}
 

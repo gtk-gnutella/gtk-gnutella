@@ -95,7 +95,7 @@ typedef enum ext_token {
 	/* keep remaining sorted */
 	EXT_T_GGEP_GUE,			/**< GUESS support */
 	EXT_T_GGEP_H,			/**< GGEP binary hash value */
-	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits */
+	EXT_T_GGEP_HNAME,		/**< Hostname info, in query hits and ALOC */
 	EXT_T_GGEP_IP,			/**< IP:Port, in ping and pongs (F2F) */
 	EXT_T_GGEP_IPP,			/**< IP:Port, in pongs (UHC) */
 	EXT_T_GGEP_IPP_TLS,		/**< TLS-capability bitmap for GGEP IPP */
