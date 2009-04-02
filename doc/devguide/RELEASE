@@ -104,10 +104,12 @@ Release steps
 
 	This will generate file gtk-gnutella-0.91.0-0.i386.rpm
 
-14. Upload the files to sourceforge.
+14. Upload the files to sourceforge using rsync or scp.
 
 	rsync -avP -e ssh gtk-gnutella-0.96.6.tar.bz2 \
 		USER@frs.sourceforge.net uploads/
+OR
+	scp gtk-gnutella-0.96.6.tar.bz2 USER@frs.sourceforge.net:uploads/
 
 15. Login to www.sf.net and go to the Admin section of the gtk-gnutella
     project.
