@@ -3176,7 +3176,7 @@ gnet_prop_init(void) {
     gnet_property->props[123].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_ultra_catcher_default;
     gnet_property->props[123].data.guint32.value = (void *) &gnet_property_variable_hosts_in_ultra_catcher;
     gnet_property->props[123].data.guint32.choices = NULL;
-    gnet_property->props[123].data.guint32.max   = 999999;
+    gnet_property->props[123].data.guint32.max   = INT_MAX;
     gnet_property->props[123].data.guint32.min   = 0;
 
 
@@ -3196,7 +3196,7 @@ gnet_prop_init(void) {
     gnet_property->props[124].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_bad_catcher_default;
     gnet_property->props[124].data.guint32.value = (void *) &gnet_property_variable_hosts_in_bad_catcher;
     gnet_property->props[124].data.guint32.choices = NULL;
-    gnet_property->props[124].data.guint32.max   = 999999;
+    gnet_property->props[124].data.guint32.max   = INT_MAX;
     gnet_property->props[124].data.guint32.min   = 0;
 
 
