@@ -398,7 +398,7 @@ gnutella_bye_set_code(void *data, guint16 code)
 {
 	guint8 *u8 = data;
 	poke_le16(&u8[0], code);
-};
+}
 
 /* The logic layout of the QRP RESET message specific payload is as follows:
  *
