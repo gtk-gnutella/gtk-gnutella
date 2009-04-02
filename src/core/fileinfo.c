@@ -5966,6 +5966,7 @@ file_info_available(const fileinfo_t *fi, char *buf, size_t size)
 	len = header_fmt_length(fmt);
 	g_assert(UNSIGNED(len) < size);
 	rw = clamp_strncpy(buf, size, header_fmt_string(fmt), len);
+	header_fmt_free(fmt);
 
 	g_assert(rw < size);	/* No clamping occurred */
 
