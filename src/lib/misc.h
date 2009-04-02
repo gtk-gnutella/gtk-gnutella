@@ -419,12 +419,12 @@ pointer_hash_func(const void *p)
 static inline size_t
 clamp_strlen(const char *src, size_t src_size)
 {
-	const char *p, *endptr = &src[src_size];
+	const char *p;
 
 	/* @NOTE: memchr() is intentionally NOT used because 'src_size' is allowed
 	 *        to exceed the size of the memory object 'src'.
 	 */
-	for (p = src; p != endptr && '\0' != *p; p++)
+	for (p = src; src_size-- > 0 && '\0' != *p; p++)
 		continue;
 
 	return p - src;
