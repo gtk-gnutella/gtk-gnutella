@@ -736,7 +736,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	if (attr->gzip.enabled) {
 		/* See RFC 1952 - GZIP file format specification version 4.3 */
-		static const char header[] = {
+		static const unsigned char header[] = {
 			0x1f, 0x8b, /* gzip magic */
 			0x08,		/* compression method: deflate */
 			0,			/* flags: none */
