@@ -1297,11 +1297,11 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 
 	if (
 		GNET_PROPERTY(pfsp_server) &&
-		shared_file_is_partial(u->sf) &&
+		!shared_file_is_finished(u->sf) &&
 		(flags & (HTTP_CBF_SHOW_RANGES|HTTP_CBF_BUSY_SIGNAL))
 	) {
 		char alt_locs[160];
-		
+
 		/*
 		 * PFSP-server: if they requested a partial file, let them know about
 		 * the set of available ranges.
@@ -1318,7 +1318,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 
 		if (size - rw > mesh_len) {
 			size_t len;
-			
+
 			/*
 			 * Emit the X-Available-Ranges: header if file is partial and we're
 			 * not returning a busy signal.  Otherwise, just emit the
