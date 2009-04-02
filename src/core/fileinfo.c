@@ -4680,6 +4680,10 @@ fi_missing_coverage(struct download *d)
 	GSList *fclist;
 
 	download_check(d);
+	fi = d->file_info;
+	file_info_check(fi);
+	g_assert(file_info_check_chunklist(fi, TRUE));
+	g_assert(fi->lifecount > 0);
 
 	/*
 	 * See update_available_ranges() to understand why we can still get a
@@ -4696,11 +4700,6 @@ fi_missing_coverage(struct download *d)
 
 		return available ? (available * 1.0) / (fi->size * 1.0) : 1.0;
 	}
-
-	fi = d->file_info;
-	file_info_check(fi);
-	g_assert(file_info_check_chunklist(fi, TRUE));
-	g_assert(fi->lifecount > 0);
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		const struct dl_file_chunk *fc = fclist->data;
