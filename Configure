@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Apr  1 22:43:10 CEST 2009 [metaconfig 3.5-25]
+# Generated on Thu Apr  2 20:49:34 CEST 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5426,7 +5426,7 @@ else
 fi
 
 if [ "$gnutlsconfig" != false ]; then
-	echo "(I'll use '$gnutlsconfig' to gather that information.)" >&4
+	echo "(I'll use '$gnutlsconfig' to gather that information.)"
 fi
 
 version=`$gnutlsconfig $modver`
@@ -5706,6 +5706,10 @@ EOC
 	esac
 
 	;;
+*)
+	val="$undef"
+	set d_kevent_int_udata
+	eval $setvar
 esac
 
 : how can we find information about libxml2?
@@ -5724,7 +5728,7 @@ else
 fi
 case "$xmlconfig" in
 false) ;;
-*) echo "(I'll use '$xmlconfig' to gather that information.)" >&4;;
+*) echo "(I'll use '$xmlconfig' to gather that information.)";;
 esac
 
 xmlcflags=""
@@ -5744,7 +5748,7 @@ case "$version" in
 		d_libxml2="$define"
 		case " $xmlldflags " in
 		*" -lpthread "*)
-			echo "(Removing unneeded -lpthread from the list of libraries.)" >&4
+			echo "(Removing unneeded -lpthread from the list of libraries.)"
 			xmlldflags=`echo "$xmlldflags " | $sed -e 's/-lpthread //'`
 			;;
 		esac
@@ -7254,7 +7258,7 @@ else
 	modver=''
 fi
 
-echo "(I'll use '$glibconfig' to gather that information.)" >&4
+echo "(I'll use '$glibconfig' to gather that information.)"
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
 version=`$glibconfig $modver`
@@ -7328,7 +7332,7 @@ else
 	gtkconfig='false'
 	modver=''
 fi
-echo "(I'll use '$gtkconfig' to gather that information.)" >&4
+echo "(I'll use '$gtkconfig' to gather that information.)"
 version=`$gtkconfig $modver`
 case "$gtkversion" in
 1)
@@ -7448,7 +7452,7 @@ END {
 }
 EOC
 gtkgversion=`$awk -f ./ver "$rsrc/src/common.h"`
-echo "(You have version $gtkgversion.)" >&4
+echo "(You have version $gtkgversion.)"
 $rm -f ver
 
 : locate a BSD compatible install program

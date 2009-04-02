@@ -42,5 +42,9 @@ EOC
 	esac
 
 	;;
+*)
+	val="$undef"
+	set d_kevent_int_udata
+	eval $setvar
 esac
 
