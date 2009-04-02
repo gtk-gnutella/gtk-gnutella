@@ -2723,7 +2723,7 @@ formatted_connection_pongs(const char *field, host_type_t htype, int num)
 
 		header_fmt_end(fmt);
 		line = header_fmt_to_string(fmt);
-		header_fmt_free(fmt);
+		header_fmt_free(&fmt);
 	}
 
 	return line;		/* Pointer to static data */
@@ -9020,11 +9020,9 @@ node_http_proxies_add(char *buf, size_t size,
 		len = header_fmt_length(fmt);
 
 		g_assert(len < size);		/* ``size'' was the configured maximum */
+		rw += clamp_strncpy(buf, size, header_fmt_string(fmt), len);
 
-		strncpy(buf, header_fmt_string(fmt), size);
-		rw += len;
-
-		header_fmt_free(fmt);
+		header_fmt_free(&fmt);
 	}
 
 	/*
@@ -9036,10 +9034,11 @@ node_http_proxies_add(char *buf, size_t size,
 	 */
 
 	if (sl_proxies != NULL) {
-		header_fmt_t *fmt =
-			header_fmt_make("X-Push-Proxies", ", ", 0, size - rw);
+		header_fmt_t *fmt;
 		size_t len;
 		GSList *sl;
+		
+		fmt = header_fmt_make("X-Push-Proxies", ", ", 0, size - rw);
 
 		for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
 			struct gnutella_node *n = sl->data;
@@ -9056,11 +9055,9 @@ node_http_proxies_add(char *buf, size_t size,
 		len = header_fmt_length(fmt);
 
 		g_assert(len < size - rw);		/* Less than configured maximum */
+		rw += clamp_strncpy(&buf[rw], size - rw, header_fmt_string(fmt), len);
 
-		strncpy(&buf[rw], header_fmt_string(fmt), size - rw);
-		rw += len;
-
-		header_fmt_free(fmt);
+		header_fmt_free(&fmt);
 	}
 
 	return rw; /* Tell them how much we wrote into `buf' */

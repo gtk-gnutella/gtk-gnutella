@@ -188,11 +188,12 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 
 	header_fmt_end(fmt);
 
-	if ((size_t) header_fmt_length(fmt) < len - *rw) {
-		*rw += gm_snprintf(&dst[*rw], len - *rw, "%s", header_fmt_string(fmt));
+	if (header_fmt_length(fmt) < len - *rw) {
+		*rw += clamp_strncpy(&dst[*rw], len - *rw,
+				header_fmt_string(fmt), header_fmt_length(fmt));
 	}
 
-	header_fmt_free(fmt);
+	header_fmt_free(&fmt);
 }
 
 /**

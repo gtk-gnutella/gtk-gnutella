@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "header.h"
+#include "atoms.h"
 #include "ascii.h"
 #include "glib-missing.h"
 #include "misc.h"
@@ -599,13 +600,13 @@ struct header_fmt {
 	size_t max_size;		/**< Maximum line length, including "\r\n" + NUL */
 	size_t maxlen;			/**< Maximum line length before continuation */
 	GString *header;		/**< Header being built */
-	char sep[257];			/**< Optional separator */
-	int seplen;				/**< Length of separator string */
-	int stripped_seplen;	/**< Length of separator without trailing space */
-	int current_len;		/**< Length of currently built line */
-	gboolean data_emitted;	/**< Whether data was ever emitted */
-	gboolean frozen;		/**< Header terminated */
-	gboolean empty;			/**< Header max-size too small, must stay empty */
+	const char *sep;		/**< Optional separator */
+	size_t seplen;			/**< Length of separator string */
+	size_t stripped_seplen;	/**< Length of separator without trailing space */
+	size_t current_len;		/**< Length of currently built line */
+	unsigned data_emitted:1;/**< Whether data was ever emitted */
+	unsigned frozen:1;		/**< Header terminated */
+	unsigned empty:1;		/**< Header max-size too small, must stay empty */
 };
 
 static inline void
@@ -661,13 +662,11 @@ stripped_strlen(const char *s, size_t len)
  */
 header_fmt_t *
 header_fmt_make(const char *field, const char *separator,
-	int len_hint, size_t max_size)
+	size_t len_hint, size_t max_size)
 {
 	struct header_fmt *hf;
-	size_t len;
 
-	g_assert(!separator || strlen(separator) < sizeof(hf->sep));
-	g_assert(len_hint >= 0);
+	g_assert(size_is_non_negative(len_hint));
 
 	hf = walloc(sizeof(*hf));
 	hf->magic = HEADER_FMT_MAGIC;
@@ -676,8 +675,8 @@ header_fmt_make(const char *field, const char *separator,
 	hf->data_emitted = FALSE;
 	hf->frozen = FALSE;
 	hf->max_size = max_size;
-	len = g_strlcpy(hf->sep, separator ? separator : "", sizeof(hf->sep));
-	hf->seplen = MIN(len, (sizeof hf->sep - 1));
+	hf->sep = atom_str_get(separator ? separator : "");
+	hf->seplen = strlen(hf->sep);
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	g_string_append(hf->header, field);
 	g_string_append(hf->header, ": ");
@@ -706,10 +705,10 @@ header_fmt_make(const char *field, const char *separator,
  * Set max line length.
  */
 void
-header_fmt_set_line_length(header_fmt_t *hf, int maxlen)
+header_fmt_set_line_length(header_fmt_t *hf, size_t maxlen)
 {
 	header_fmt_check(hf);
-	g_assert(maxlen > 0);
+	g_assert(size_is_positive(maxlen));
 
 	hf->maxlen = maxlen;
 }
@@ -718,13 +717,19 @@ header_fmt_set_line_length(header_fmt_t *hf, int maxlen)
  * Dispose of header formatting context.
  */
 void
-header_fmt_free(header_fmt_t *hf)
+header_fmt_free(header_fmt_t **hf_ptr)
 {
-	header_fmt_check(hf);
+	header_fmt_t *hf = *hf_ptr;
 
-	g_string_free(hf->header, TRUE);
-	hf->magic = 0;
-	wfree(hf, sizeof *hf);
+	if (hf) {
+		header_fmt_check(hf);
+
+		g_string_free(hf->header, TRUE);
+		atom_str_free_null(&hf->sep);
+		hf->magic = 0;
+		wfree(hf, sizeof *hf);
+		*hf_ptr = NULL;
+	}
 }
 
 /**
@@ -773,7 +778,7 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
  *         BEFORE outputting the data, and only when nothing has been emitted
  *         already.
  * @param `slen' is the separator length, 0 if empty.
- * @param `sslen' is the stripped separator length, -1 if unknown yet.
+ * @param `sslen' is the stripped separator length, (size_t)-1 if unknown yet.
  *
  * @return TRUE if we were able to fit the string, FALSE if it would have
  * resulted in the header being larger than the configured max size (the
@@ -781,16 +786,15 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
  */
 static gboolean
 header_fmt_append_full(header_fmt_t *hf, const char *str,
-	const char *separator, int slen, int sslen)
+	const char *separator, size_t slen, size_t sslen)
 {
-	size_t len;
-	int curlen;
+	size_t len, curlen;
 	gsize gslen;
 	gboolean success;
 
 	header_fmt_check(hf);
-	g_assert(slen >= 0);
-	g_assert(sslen >= -1);
+	g_assert(size_is_non_negative(slen));
+	g_assert((size_t)-1 == sslen || size_is_non_negative(sslen));
 
 	if (hf->empty)
 		return FALSE;
@@ -798,7 +802,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 	gslen = hf->header->len;
 	len = strlen(str);
 	curlen = hf->current_len;
-	g_assert(curlen >= 0);
+	g_assert(size_is_non_negative(curlen));
 
 	g_assert(len <= INT_MAX);	/* Legacy bug */
 
@@ -810,8 +814,8 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 		 */
 
 		if (separator != NULL && hf->data_emitted) {
-			size_t s = sslen >= 0 ? UNSIGNED(sslen) : stripped_strlen(separator, slen);
-			g_string_append_len(hf->header, separator, s);
+			sslen = (size_t)-1 != sslen ? sslen : stripped_strlen(separator, slen);
+			g_string_append_len(hf->header, separator, sslen);
 		}
 
 		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
@@ -864,7 +868,7 @@ header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 
 	seplen = (separator == NULL) ? 0 : strlen(separator);
 
-	return header_fmt_append_full(hf, str, separator, seplen, -1);
+	return header_fmt_append_full(hf, str, separator, seplen, (size_t)-1);
 }
 
 /**
@@ -892,7 +896,7 @@ header_fmt_append_value(header_fmt_t *hf, const char *str)
 /**
  * @return length of currently formatted header.
  */
-int
+size_t
 header_fmt_length(const header_fmt_t *hf)
 {
 	header_fmt_check(hf);
@@ -920,7 +924,7 @@ header_fmt_end(header_fmt_t *hf)
 /**
  * @return current header string.
  */
-char *
+const char *
 header_fmt_string(const header_fmt_t *hf)
 {
 	header_fmt_check(hf);
@@ -934,7 +938,7 @@ header_fmt_string(const header_fmt_t *hf)
  * @attention
  * NB: returns pointer to static data!
  */
-char *
+const char *
 header_fmt_to_string(const header_fmt_t *hf)
 {
 	static char line[HEADER_FMT_MAX_SIZE + 1];

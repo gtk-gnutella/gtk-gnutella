@@ -83,16 +83,16 @@ char *header_getdup(const header_t *o, const char *field);
 typedef struct header_fmt header_fmt_t;
 
 header_fmt_t *header_fmt_make(const char *field, const char *separator,
-	int len_hint, size_t max_size);
-void header_fmt_free(header_fmt_t *hf);
-void header_fmt_set_line_length(header_fmt_t *hf, int maxlen);
+	size_t len_hint, size_t max_size);
+void header_fmt_free(header_fmt_t **hf);
+void header_fmt_set_line_length(header_fmt_t *hf, size_t maxlen);
 gboolean header_fmt_value_fits(const header_fmt_t *hf, size_t len);
 gboolean header_fmt_append(header_fmt_t *hf, const char *str, const char *sep);
 gboolean header_fmt_append_value(header_fmt_t *hf, const char *str);
-int header_fmt_length(const header_fmt_t *hf);
+size_t header_fmt_length(const header_fmt_t *hf);
 void header_fmt_end(header_fmt_t *hf);
-char *header_fmt_string(const header_fmt_t *hf);
-char *header_fmt_to_string(const header_fmt_t *hf);
+const char *header_fmt_string(const header_fmt_t *hf);
+const char *header_fmt_to_string(const header_fmt_t *hf);
 
 #endif	/* _header_h_ */
 

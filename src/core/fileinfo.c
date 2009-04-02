@@ -5950,8 +5950,7 @@ size_t
 file_info_available(const fileinfo_t *fi, char *buf, size_t size)
 {
 	header_fmt_t *fmt;
-	size_t rw = 0;
-	int len;
+	size_t len, rw;
 
 	file_info_check(fi);
 	g_assert(size_is_non_negative(size));
@@ -5964,9 +5963,9 @@ file_info_available(const fileinfo_t *fi, char *buf, size_t size)
 	header_fmt_end(fmt);
 
 	len = header_fmt_length(fmt);
-	g_assert(UNSIGNED(len) < size);
+	g_assert(len < size);
 	rw = clamp_strncpy(buf, size, header_fmt_string(fmt), len);
-	header_fmt_free(fmt);
+	header_fmt_free(&fmt);
 
 	g_assert(rw < size);	/* No clamping occurred */
 
@@ -6032,10 +6031,10 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 	 * bytes we have.
 	 */
 
-	header_fmt_free(fmt);
+	header_fmt_free(&fmt);
 
 	{
-		int len;
+		size_t len;
 
 		fmta = header_fmt_make("X-Available", " ",
 			UINT64_DEC_BUFLEN + sizeof("X-Available: bytes") + 2, size);
@@ -6045,9 +6044,9 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		header_fmt_end(fmta);
 
 		len = header_fmt_length(fmta);
+		len = size > len ? size - len : 0;
 
-		fmt = header_fmt_make(x_available_ranges, ", ", size,
-			size > UNSIGNED(len) ? size - len : 0);
+		fmt = header_fmt_make(x_available_ranges, ", ", size, len);
 	}
 
 	is_first = TRUE;
@@ -6117,21 +6116,21 @@ emit:
 	rw = 0;
 
 	if (fmta) {				/* X-Available header is required */
-		int len = header_fmt_length(fmta);
-		g_assert(UNSIGNED(len) < size);
-		rw = clamp_strncpy(buf, size, header_fmt_string(fmta), len);
-		header_fmt_free(fmta);
+		size_t len = header_fmt_length(fmta);
+		g_assert(len + rw < size);
+		rw += clamp_strncpy(&buf[rw], size - rw, header_fmt_string(fmta), len);
+		header_fmt_free(&fmta);
 	}
 
 	if (!is_first) {		/* Something was recorded in X-Available-Ranges */
-		int len;
+		size_t len;
 		header_fmt_end(fmt);
 		len = header_fmt_length(fmt);
 		g_assert(len + rw < size);
 		rw += clamp_strncpy(&buf[rw], size - rw, header_fmt_string(fmt), len);
 	}
 
-	header_fmt_free(fmt);
+	header_fmt_free(&fmt);
 
 	g_assert(rw < size);	/* No clamping occurred */
 

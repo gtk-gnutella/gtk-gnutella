@@ -12573,9 +12573,7 @@ download_retrieve_old(FILE *f)
 				g_assert(':' == *endptr);
 				endptr++;
 
-				strncpy(d_hexguid, endptr, sizeof d_hexguid);
-				d_hexguid[32] = '\0';
-				endptr += strlen(d_hexguid);
+				endptr += clamp_strcpy(d_hexguid, sizeof d_hexguid, endptr);
 			}
 
 			if (',' != *endptr) {

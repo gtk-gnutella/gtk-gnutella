@@ -1606,11 +1606,10 @@ dmesh_alternate_location(const struct sha1 *sha1,
 			header_fmt_end(fmt);
 			length = header_fmt_length(fmt);
 			g_assert(length < size);
-			strncpy(buf, header_fmt_string(fmt), length + 1); /* + final NUL */
-			len += length;
+			len += clamp_strncpy(buf, size, header_fmt_string(fmt), length);
 		}
 
-		header_fmt_free(fmt);
+		header_fmt_free(&fmt);
 	}
 
 	/* Find mesh entry for this SHA1 */
@@ -1805,12 +1804,11 @@ nomore:
 
 		header_fmt_end(fmt);			/* Only report sources we've checked */
 		length = header_fmt_length(fmt);
-		g_assert(length + len < size);
-		/* Add +1 for final NUL */
-		strncpy(&buf[len], header_fmt_string(fmt), length + 1);
-		len += length;
+		g_assert(size >= len);
+		g_assert(size > size_saturate_add(length, len));
+		len += clamp_strncpy(&buf[len], size - len, header_fmt_string(fmt), length);
 	}
-	header_fmt_free(fmt);
+	header_fmt_free(&fmt);
 
 	return len;
 }
