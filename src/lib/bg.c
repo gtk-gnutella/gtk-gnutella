@@ -50,7 +50,7 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 enum bgtask_magic {
-	BGTASK_MAGIC	  = 0xbacc931dU,
+	BGTASK_MAGIC	  = 0x3acc931dU,
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 

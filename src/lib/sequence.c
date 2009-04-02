@@ -46,7 +46,7 @@ RCSID("$Id$")
  */
 enum sequence_direction {
 	SEQ_ITER_FORWARD = 0,		/**< Forward iteration */
-	SEQ_ITER_BACKWARD,			/**< Backward iteration */
+	SEQ_ITER_BACKWARD			/**< Backward iteration */
 };
 
 /**

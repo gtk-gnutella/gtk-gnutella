@@ -208,7 +208,7 @@ uploads_func_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 	GtkTreeIter *iter, gpointer data)
 {
 	upload_row_data_t *d = NULL;
-	GFunc func = data;
+	GFunc func = cast_pointer_to_func(data);
 
 	(void) unused_path;
 

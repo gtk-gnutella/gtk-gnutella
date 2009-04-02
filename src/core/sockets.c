@@ -2474,7 +2474,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		tm_t end;
 		tm_now_exact(&end);
 		g_message(
-			"socket_udp_event() iterated %u times, read %lu bytes in %lf secs",
+			"socket_udp_event() iterated %u times, read %lu bytes in %f secs",
 			i, (unsigned long) rd, tm_elapsed_f(&end, &start));
 	}
 }

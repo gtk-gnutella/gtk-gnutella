@@ -47,7 +47,7 @@
 typedef enum getline_result {
 	READ_MORE,		/**< OK, expecting more */
 	READ_DONE,		/**< OK, got whole line */
-	READ_OVERFLOW,	/**< Reached max line size */
+	READ_OVERFLOW	/**< Reached max line size */
 } getline_result_t;
 
 /**

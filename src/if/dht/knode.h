@@ -39,7 +39,7 @@ typedef enum knode_status {
 	/* Following codes indicate node is present in the routing table */
 	KNODE_GOOD,					/**< Good node, known to be alive */
 	KNODE_STALE,				/**< Possibly stale node, verifying */
-	KNODE_PENDING,				/**< Node pending addition or discarding */
+	KNODE_PENDING				/**< Node pending addition or discarding */
 } knode_status_t;
 
 typedef enum {

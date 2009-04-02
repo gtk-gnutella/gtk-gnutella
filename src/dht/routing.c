@@ -250,10 +250,10 @@ static void dht_route_retrieve(void);
 static struct kbucket *dht_find_bucket(const kuid_t *id);
 
 /*
- * Define DEBUGGING only to enable more costly run-time assertions which
+ * Define DEBUG_THIS only to enable more costly run-time assertions which
  * make all hash list insertions O(n), basically.
  */
-#undef DEBUGGING
+#undef DEBUG_THIS
 
 static const char * const boot_status_str[] = {
 	"not bootstrapped yet",			/**< BOOT_NONE */
@@ -542,7 +542,7 @@ list_update_stats(knode_status_t status, int delta)
 	/* NOTREACHED */
 }
 
-#ifdef DEBUGGING
+#ifdef DEBUG_THIS
 /**
  * Check bucket list consistency.
  */
@@ -573,7 +573,7 @@ check_leaf_list_consistency(
 }
 #else
 #define check_leaf_list_consistency(a, b, c)
-#endif	/* DEBUGGING */
+#endif	/* DEBUG_THIS */
 
 /**
  * Get our KUID.
@@ -2391,11 +2391,11 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 		g_message("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_message("DHT dsum is %s = %lf", kuid_to_hex_string(&dsum), ds);
-		g_message("DHT squares is %s = %lf (%d)",
+		g_message("DHT dsum is %s = %f", kuid_to_hex_string(&dsum), ds);
+		g_message("DHT squares is %s = %f (%d)",
 			kuid_to_hex_string(&sq), s, squares);
 
-		g_message("DHT sparseness over %d nodes is %s = %lf (%lf)",
+		g_message("DHT sparseness over %d nodes is %s = %f (%f)",
 			i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
@@ -2490,7 +2490,7 @@ update_cached_size_estimate(void)
 			count, 1 == count ? "" : "s", n + 1 - count);
 		if (n > 1) {
 			g_message(
-				"DHT collected average is %.0lf (%d points), sdev = %.2lf",
+				"DHT collected average is %.0f (%d points), sdev = %.2f",
 				statx_avg(stats.lookdata), n, statx_sdev(stats.lookdata));
 		}
 	}

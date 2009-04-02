@@ -115,7 +115,7 @@ qhvec_count(const struct query_hashvec *qhv)
 #define LEAF_MONITOR_PERIOD	(300 * 1000)	/**< 5 minutes, in ms */
 
 enum qrp_route_magic {
-	QRP_ROUTE_MAGIC	= 0xf2aa4886
+	QRP_ROUTE_MAGIC	= 0x72aa4886
 };
 
 /**
@@ -154,7 +154,7 @@ struct routing_table {
 };
 
 enum routing_patch_magic {
-	ROUTING_PATCH_MAGIC = 0x811906cf
+	ROUTING_PATCH_MAGIC = 0x011906cf
 };
 
 /**
@@ -622,7 +622,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
  */
 
 enum qrt_compress_magic {
-	QRT_COMPRESS_MAGIC = 0xcbb0a7ac
+	QRT_COMPRESS_MAGIC = 0x4bb0a7ac
 };
 #define QRT_TICK_CHUNK		256			/**< Chunk size per tick */
 
@@ -979,7 +979,7 @@ qrt_get_info(const struct routing_table *rt, qrt_info_t *qi)
 static struct bgtask *merge_comp;		/* Background table merging handle */
 
 enum merge_magic {
-	MERGE_MAGIC	= 0xe39ee39e
+	MERGE_MAGIC	= 0x639ee39eU
 };
 
 struct merge_context {
@@ -1453,7 +1453,7 @@ unique_substrings(GHashTable *ht, int *retcount)
 #define QRP_STEP_LAST		3	/**< Last step */
 
 enum qrp_magic {
-	QRP_MAGIC = 0xc4b5975aU
+	QRP_MAGIC = 0x44b5975aU
 };
 
 struct qrp_context {
@@ -2118,7 +2118,7 @@ qrp_peermode_changed(void)
  ***/
 
 enum qrt_patch_magic {
-	QRT_PATCH_MAGIC	= 0xf347c237
+	QRT_PATCH_MAGIC	= 0x7347c237U
 };
 
 struct qrt_patch_context {
@@ -3432,14 +3432,14 @@ qrp_can_route_##bits(const query_hashvec_t *qhv, \
 }
 
 /* Create eight QRT lookup routines with fixed shift factors. */
-CAN_ROUTE(14);
-CAN_ROUTE(15);
-CAN_ROUTE(16);
-CAN_ROUTE(17);
-CAN_ROUTE(18);
-CAN_ROUTE(19);
-CAN_ROUTE(20);
-CAN_ROUTE(21);
+CAN_ROUTE(14)
+CAN_ROUTE(15)
+CAN_ROUTE(16)
+CAN_ROUTE(17)
+CAN_ROUTE(18)
+CAN_ROUTE(19)
+CAN_ROUTE(20)
+CAN_ROUTE(21)
 
 #undef CAN_ROUTE
 
@@ -3492,14 +3492,14 @@ qrp_can_route_urn_##bits(const query_hashvec_t *qhv,                  \
 
 /* Create eight QRT lookup routines (with a URN) with fixed shift
  * factors. */
-CAN_ROUTE_URN(14);
-CAN_ROUTE_URN(15);
-CAN_ROUTE_URN(16);
-CAN_ROUTE_URN(17);
-CAN_ROUTE_URN(18);
-CAN_ROUTE_URN(19);
-CAN_ROUTE_URN(20);
-CAN_ROUTE_URN(21);
+CAN_ROUTE_URN(14)
+CAN_ROUTE_URN(15)
+CAN_ROUTE_URN(16)
+CAN_ROUTE_URN(17)
+CAN_ROUTE_URN(18)
+CAN_ROUTE_URN(19)
+CAN_ROUTE_URN(20)
+CAN_ROUTE_URN(21)
 #undef CAN_ROUTE_URN
 
 /**

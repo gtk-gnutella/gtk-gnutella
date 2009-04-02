@@ -44,7 +44,7 @@ typedef enum kda_msg {
 	KDA_MSG_FIND_VALUE_REQUEST		= 0x07,
 	KDA_MSG_FIND_VALUE_RESPONSE		= 0x08,
 	KDA_MSG_STATS_REQUEST			= 0x09,	/**< DEPRECATED, UNSUPPORTED */
-	KDA_MSG_STATS_RESPONSE			= 0x0a,	/**< DEPRECATED, UNSUPPORTED */
+	KDA_MSG_STATS_RESPONSE			= 0x0a	/**< DEPRECATED, UNSUPPORTED */
 } kda_msg_t;
 
 #define KDA_MSG_MAX_ID				  0x0a
@@ -60,7 +60,7 @@ enum kda_val {
 	KDA_VAL_LIME		= MAKE_VAL_CODE('L','I','M','E'),
 	KDA_VAL_TEXT		= MAKE_VAL_CODE('T','E','X','T'),
 	KDA_VAL_TEST		= MAKE_VAL_CODE('T','E','S','T'),
-	KDA_VAL_ANY			= MAKE_VAL_CODE('*','*','*','*'),
+	KDA_VAL_ANY			= MAKE_VAL_CODE('*','*','*','*')
 };
 
 #undef MAKE_VAL_CODE

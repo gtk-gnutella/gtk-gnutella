@@ -33,7 +33,7 @@ typedef enum {
 	DHT_MODE_INACTIVE = 0x0,		/**< DHT capable, but not in DHT */
 	DHT_MODE_ACTIVE = 0x1,			/**< Active DHT node */
 	DHT_MODE_PASSIVE = 0x2,			/**< Passive DHT node */
-	DHT_MODE_PASSIVE_LEAF = 0x3,	/**< Passive leaf DHT node */
+	DHT_MODE_PASSIVE_LEAF = 0x3		/**< Passive leaf DHT node */
 } dht_mode_t;
 
 /*

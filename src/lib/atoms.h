@@ -104,7 +104,7 @@ atom_str_get(const char *k)
 static inline void
 atom_str_free(const char *k)
 {
-	return atom_free(ATOM_STRING, k);
+	atom_free(ATOM_STRING, k);
 }
 
 static inline const struct guid *
@@ -116,7 +116,7 @@ atom_guid_get(const struct guid *k)
 static inline void
 atom_guid_free(const struct guid *k)
 {
-	return atom_free(ATOM_GUID, k);
+	atom_free(ATOM_GUID, k);
 }
 
 static inline const struct sha1 *
@@ -128,7 +128,7 @@ atom_sha1_get(const struct sha1 *k)
 static inline void
 atom_sha1_free(const struct sha1 *k)
 {
-	return atom_free(ATOM_SHA1, k);
+	atom_free(ATOM_SHA1, k);
 }
 
 static inline const struct tth *
@@ -140,7 +140,7 @@ atom_tth_get(const struct tth *k)
 static inline void
 atom_tth_free(const struct tth *k)
 {
-	return atom_free(ATOM_TTH, k);
+	atom_free(ATOM_TTH, k);
 }
 
 static inline const guint64 *
@@ -152,7 +152,7 @@ atom_uint64_get(const guint64 *k)
 static inline void
 atom_uint64_free(const guint64 *k)
 {
-	return atom_free(ATOM_UINT64, k);
+	atom_free(ATOM_UINT64, k);
 }
 
 static inline const filesize_t *
@@ -164,7 +164,7 @@ atom_filesize_get(const filesize_t *k)
 static inline void
 atom_filesize_free(const filesize_t *k)
 {
-	return atom_free(ATOM_FILESIZE, k);
+	atom_free(ATOM_FILESIZE, k);
 }
 
 static inline const guint32 *
@@ -176,7 +176,7 @@ atom_uint32_get(const guint32 *k)
 static inline void
 atom_uint32_free(const guint32 *k)
 {
-	return atom_free(ATOM_UINT32, k);
+	atom_free(ATOM_UINT32, k);
 }
 
 #endif	/* TRACK_ATOMS */

@@ -2097,7 +2097,7 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 enum patricia_iter_type {
 	PATRICIA_ITER_TREE	= 1,		/**< "lexicographic" traversal */
 	PATRICIA_ITER_XOR,				/**< "xor metric" traversal */
-	PATRICIA_ITER_XOR_LAZY,			/**< idem, key not copied */
+	PATRICIA_ITER_XOR_LAZY			/**< idem, key not copied */
 };
 
 /**

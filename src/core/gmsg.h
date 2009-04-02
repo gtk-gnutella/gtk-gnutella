@@ -90,7 +90,7 @@ typedef enum {
 	GMSG_VALID = 0,				/* Payload <= 64KiB, no flags */
 	GMSG_VALID_MARKED,			/* Payload <= 64KiB, marked but no flags */
 	GMSG_INVALID,				/* Payload > 64KiB, no mark for flags */
-	GMSG_VALID_NO_PROCESS,		/* Marked for flags we do not know */
+	GMSG_VALID_NO_PROCESS		/* Marked for flags we do not know */
 } gmsg_valid_t;
 
 /*

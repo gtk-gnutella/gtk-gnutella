@@ -92,7 +92,7 @@ RCSID("$Id$")
 #define FI_DHT_RECV_THRESH	5			/**< No query if that many active */
 
 enum dl_file_chunk_magic {
-	DL_FILE_CHUNK_MAGIC = 0xd63b483dU
+	DL_FILE_CHUNK_MAGIC = 0x563b483dU
 };
 
 struct dl_file_chunk {
@@ -5930,7 +5930,7 @@ fi_pause(gnet_fi_t fih)
 void
 fi_resume(gnet_fi_t fih)
 {
-	return file_info_resume(file_info_find_by_handle(fih));
+	file_info_resume(file_info_find_by_handle(fih));
 }
 
 gboolean

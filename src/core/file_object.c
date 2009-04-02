@@ -103,7 +103,7 @@ static GHashTable *ht_file_objects_rdonly;	/* read-only file objects */
 static GHashTable *ht_file_objects_wronly;	/* write-only file objects */
 static GHashTable *ht_file_objects_rdwr;	/* read+write-able file objects */
 
-enum file_object_magic { FILE_OBJECT_MAGIC = 0xeb084325 };	/**< Magic number */
+enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
 struct file_object {
 	const char *pathname;	/* atom */

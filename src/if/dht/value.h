@@ -54,7 +54,7 @@ typedef enum {
 	DHT_VT_TEST		= VT_CODE('T','E','S','T'),
 	DHT_VT_TEXT		= VT_CODE('T','E','X','T'),
 
-	DHT_VT_ANY		= VT_CODE('*','*','*','*'),
+	DHT_VT_ANY		= VT_CODE('*','*','*','*')
 } dht_value_type_t;
 
 #undef VT_CODE

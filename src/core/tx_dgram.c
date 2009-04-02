@@ -191,11 +191,9 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, const char *func)
 	default:
 		{
 			int terr = errno;
-			time_t t = tm_time();
 			tx->flags |= TX_ERROR;				/* This should be fatal! */
-			g_error("%s  gtk-gnutella: %s: "
-				"UDP write to %s failed with unexpected errno: %d (%s)\n",
-				ctime(&t), func, gnet_host_to_string(to),
+			g_error("%s: UDP write to %s failed with unexpected errno: %d (%s)",
+				func, gnet_host_to_string(to),
 				terr, g_strerror(terr));
 		}
 	}

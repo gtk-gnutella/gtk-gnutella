@@ -207,7 +207,7 @@ entropy_collect(struct sha1 *digest)
 #endif	/* HAS_UNAME */
 	
 	sha1_feed_pointer(&ctx, &ctx);
-	sha1_feed_pointer(&ctx, &random_init);
+	sha1_feed_pointer(&ctx, cast_func_to_pointer(&random_init));
 	sha1_feed_pointer(&ctx, sbrk(0));
 
 	{

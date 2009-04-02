@@ -38,26 +38,26 @@ struct download;
  */
 
 enum {
-	FI_F_SUSPEND		= 1 << 0,	/**< Marked "suspended" new downloads */
-	FI_F_DISCARD		= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
-	FI_F_TRANSIENT		= 1 << 2,	/**< Don't persist to disk */
-	FI_F_MARK			= 1 << 3,	/**< Marked during traversal */
-	FI_F_PAUSED			= 1 << 4,	/**< Paused by user */
-	FI_F_SEEDING		= 1 << 5,	/**< Seeding after successful download */
-	FI_F_STRIPPED		= 1 << 6,	/**< Fileinfo trailler has been stripped */
-	FI_F_FETCH_TTH		= 1 << 7,	/**< Tigertree data is being downloaded */
-	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
-	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
 	FI_F_VERIFYING		= 1 << 10,	/**< Verifying SHA1 or TTH */
+	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
+	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
+	FI_F_FETCH_TTH		= 1 << 7,	/**< Tigertree data is being downloaded */
+	FI_F_STRIPPED		= 1 << 6,	/**< Fileinfo trailler has been stripped */
+	FI_F_SEEDING		= 1 << 5,	/**< Seeding after successful download */
+	FI_F_PAUSED			= 1 << 4,	/**< Paused by user */
+	FI_F_MARK			= 1 << 3,	/**< Marked during traversal */
+	FI_F_TRANSIENT		= 1 << 2,	/**< Don't persist to disk */
+	FI_F_DISCARD		= 1 << 1,	/**< Discard fileinfo if refcount = 0 */
+	FI_F_SUSPEND		= 1 << 0	/**< Marked "suspended" new downloads */
 };
 
 /**
  * These used to be in fileinfo.h, but we need them now at several places.
  */
 enum dl_chunk_status {
-    DL_CHUNK_EMPTY = 0,			/**< No data available yet */
-    DL_CHUNK_BUSY  = 1,			/**< Being downloaded */
     DL_CHUNK_DONE  = 2,			/**< Downloaded */
+    DL_CHUNK_BUSY  = 1,			/**< Being downloaded */
+    DL_CHUNK_EMPTY = 0			/**< No data available yet */
 };
 
 typedef guint32 gnet_fi_t;
@@ -114,7 +114,7 @@ typedef struct gnet_fi_chunks {
 } gnet_fi_chunks_t;
 
 enum fi_magic {
-	FI_MAGIC = 0xd99892e7
+	FI_MAGIC = 0x599892e7
 };
 
 struct guid;

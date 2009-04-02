@@ -64,7 +64,7 @@ RCSID("$Id$")
 #define PROXY_EXPIRE_MS		(11*60*1000)	/**< 11 minutes at most */
 
 typedef enum oob_proxy_rec_magic {
-	OOB_PROXY_REC_MAGIC = 0xe3c9bc13U
+	OOB_PROXY_REC_MAGIC = 0x63c9bc13U
 } oob_proxy_rec_magic_t;
 
 /**

@@ -43,7 +43,7 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-enum cevent_magic { CEVENT_MAGIC = 0xc0110172U };
+enum cevent_magic { CEVENT_MAGIC = 0x40110172U };
 
 /**
  * Callout queue event.
@@ -94,7 +94,7 @@ struct chash {
 	cevent_t *ch_tail;			/**< Bucket list tail */
 };
 
-enum cqueue_magic { CQUEUE_MAGIC = 0x940332ddU };
+enum cqueue_magic { CQUEUE_MAGIC = 0x140332ddU };
 
 struct cqueue {
 	struct chash *cq_hash;		/**< Array of buckets for hash list */

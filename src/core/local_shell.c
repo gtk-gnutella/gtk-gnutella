@@ -78,7 +78,7 @@ socket_set_nonblocking(int fd)
 
 #include "common.h"
 
-RCSID("$Id$");
+RCSID("$Id$")
 
 #include "lib/misc.h"
 #include "lib/socket.h"

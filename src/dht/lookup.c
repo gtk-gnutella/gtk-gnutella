@@ -86,7 +86,7 @@ static void lookup_value_expired(cqueue_t *unused_cq, gpointer obj);
 static void lookup_value_delay(nlookup_t *nl);
 
 typedef enum {
-	NLOOKUP_MAGIC = 0xabb8100cU
+	NLOOKUP_MAGIC = 0x2bb8100cU
 } nlookup_magic_t;
 
 /**
@@ -95,7 +95,7 @@ typedef enum {
 enum parallelism {
 	LOOKUP_STRICT = 1,			/**< Strict parallelism */
 	LOOKUP_BOUNDED,				/**< Bounded parallelism */
-	LOOKUP_LOOSE,				/**< Loose parallelism */
+	LOOKUP_LOOSE				/**< Loose parallelism */
 };
 
 struct nlookup;
@@ -529,7 +529,7 @@ lookup_final_stats(nlookup_t *nl)
 	tm_now_exact(&nl->end);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT LOOKUP[%s] %lf secs, hops=%u, in=%d bytes, out=%d bytes",
+		g_message("DHT LOOKUP[%s] %f secs, hops=%u, in=%d bytes, out=%d bytes",
 			lookup_id_to_string(nl->lid), tm_elapsed_f(&nl->end, &nl->start),
 			nl->hops, nl->bw_incoming, nl->bw_outgoing);
 
@@ -1069,7 +1069,7 @@ lookup_value_done(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_message("DHT LOOKUP[%s] %lf secs, ending secondary key fetch from %s",
+		g_message("DHT LOOKUP[%s] %f secs, ending secondary key fetch from %s",
 			lookup_id_to_string(nl->lid), tm_elapsed_f(&now, &fv->start),
 			knode_to_string(sk->kn));
 	}
@@ -1156,7 +1156,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
 		g_assert(remain > 0);
 
 		g_message("DHT LOOKUP[%s] expiring secondary key fetching in "
-			"%s lookup (%s) for %s after %lf secs, %d key%s remaining",
+			"%s lookup (%s) for %s after %f secs, %d key%s remaining",
 			lookup_id_to_string(nl->lid), lookup_type_to_string(nl->type),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
@@ -1630,7 +1630,7 @@ log_status(nlookup_t *nl)
 
 	tm_now_exact(&now);
 
-	g_message("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %lf secs",
+	g_message("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %f secs",
 		lookup_id_to_string(nl->lid), kuid_to_hex_string(nl->kuid),
 		lookup_type_to_string(nl->type), nl->hops,
 		tm_elapsed_f(&now, &nl->start));
@@ -2886,6 +2886,7 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 	struct fvalue *fv;
 	struct seckeys *sk;
 	const knode_t *kn;
+	dht_value_t *v;
 
 	lookup_value_check(nl);
 
@@ -2921,8 +2922,7 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 		goto bad;
 	}
 
-	dht_value_t *v = kmsg_deserialize_dht_value(bs);
-
+	v = kmsg_deserialize_dht_value(bs);
 	if (NULL == v) {
 		reason = "cannot parse DHT value";
 		goto bad;
@@ -3207,7 +3207,7 @@ lookup_value_iterate(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_message("DHT LOOKUP[%s] %lf secs, asking secondary key %d/%d from %s",
+		g_message("DHT LOOKUP[%s] %f secs, asking secondary key %d/%d from %s",
 			lookup_id_to_string(nl->lid), tm_elapsed_f(&now, &fv->start),
 			sk->next_skey + 1, sk->scnt, knode_to_string(sk->kn));
 	}

@@ -108,7 +108,7 @@ verify_hash_name(const struct verify * const ctx)
 	return ctx->hash.name();
 }
 
-enum verify_file_magic { VERIFY_FILE_MAGIC = 0x863ac7adU };
+enum verify_file_magic { VERIFY_FILE_MAGIC = 0x063ac7adU };
 
 struct verify_file {
 	enum verify_file_magic magic;	/**< Magic number */

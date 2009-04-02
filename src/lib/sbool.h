@@ -39,7 +39,7 @@
 
 enum sbool {
 	sbool_false = 0x59976b8fU,
-	sbool_true = 0x96459047U
+	sbool_true	= 0x16459047U
 };
 
 typedef struct {

@@ -53,7 +53,7 @@ typedef enum {
 	INPUT_EVENT_WX = ((guint) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
 	
 	INPUT_EVENT_RW = ((guint) INPUT_EVENT_R | (guint) INPUT_EVENT_W),
-	INPUT_EVENT_RWX = ((guint) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_RWX = ((guint) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;
 
 /**

@@ -90,7 +90,7 @@ sha1_lookup_check(const struct sha1_lookup *slk)
 }
 
 typedef enum {
-	GUID_LOOKUP_MAGIC = 0xc65531c7U
+	GUID_LOOKUP_MAGIC = 0x465531c7U
 } glk_magic_t;
 
 /**

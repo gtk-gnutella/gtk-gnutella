@@ -29,7 +29,7 @@
 struct guid;
 
 typedef enum {
-	RESULTS_SET_MAGIC = 0xa44eb853U
+	RESULTS_SET_MAGIC = 0x244eb853U
 } results_set_magic_t;
 
 /**

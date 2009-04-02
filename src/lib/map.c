@@ -536,7 +536,7 @@ timeit(
 	elapsed = tm_elapsed_f(&end, &start);
 
 	if (verbose)
-		g_message("%s (%lu items, %lu loop%s): %lf s (average: %lf s)", what,
+		g_message("%s (%lu items, %lu loop%s): %f s (average: %f s)", what,
 			(unsigned long) count, (gulong) iter, iter == 1 ? "" : "s",
 			elapsed, elapsed / iter);
 

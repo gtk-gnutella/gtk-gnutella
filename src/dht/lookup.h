@@ -50,7 +50,7 @@ typedef struct nlookup nlookup_t;
 typedef enum {
 	LOOKUP_NODE = 1,			/**< Node lookup */
 	LOOKUP_VALUE,				/**< Value lookup */
-	LOOKUP_REFRESH,				/**< Refresh lookup */
+	LOOKUP_REFRESH				/**< Refresh lookup */
 } lookup_type_t;
 
 /**

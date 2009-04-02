@@ -123,7 +123,7 @@ enum {
 	DHT_KEY_F_CACHED	= 1 << 0	/**< Key outside our k-ball => cached */
 };
 
-enum keyinfo_magic { KEYINFO_MAGIC = 0xf9d4de97U };
+enum keyinfo_magic { KEYINFO_MAGIC = 0x79d4de97U };
 
 /**
  * Information about a key we're keeping in core.

@@ -54,7 +54,7 @@ enum {
 	 RULE_FLAG_VALID  = 1 << 3,	/**< rule has valid target */
 	 RULE_FLAG_ACTIVE = 1 << 2,
 	 RULE_FLAG_SOFT   = 1 << 1,
-	 RULE_FLAG_SHADOW = 1 << 0,	/**< rule is not yet committed */
+	 RULE_FLAG_SHADOW = 1 << 0	/**< rule is not yet committed */
 };
 
 enum {
@@ -62,7 +62,7 @@ enum {
 	FILTER_FLAG_GLOBAL	= 1 << 3,
 	FILTER_FLAG_BUILTIN	= 1 << 2,
 	FILTER_FLAG_ACTIVE	= 1 << 1,
-	FILTER_FLAG_SHADOW	= 1 << 0,	/**< filter is not yet committed */
+	FILTER_FLAG_SHADOW	= 1 << 0	/**< filter is not yet committed */
 };
 
 #define RULE_IS_VALID(r) ((r != NULL) && (r->flags & RULE_FLAG_VALID))

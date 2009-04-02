@@ -58,7 +58,7 @@ struct upload_http_cb {
 	time_t mtime;				/**< File modification time */
 };
 
-enum upload_magic { UPLOAD_MAGIC = 0xac20f063U };	/**< Magic number */
+enum upload_magic { UPLOAD_MAGIC = 0x2c20f063U };	/**< Magic number */
 
 struct upload {
 	enum upload_magic magic;

@@ -1436,9 +1436,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					paylen = ext_paylen(e);
 					if (paylen >= BITPRINT_BASE32_SIZE) {
 						paylen = MIN(paylen, TTH_BASE32_SIZE);
+						payload = ext_payload(e);
 						if (
-							huge_tth_extract32(
-								ext_payload(e) + SHA1_BASE32_SIZE + 1,
+							huge_tth_extract32(&payload[SHA1_BASE32_SIZE + 1],
 								paylen, &tth_digest, &n->header)
 						) {
 							atom_tth_change(&rc->tth, &tth_digest);

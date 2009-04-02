@@ -53,7 +53,7 @@ RCSID("$Id$")
 static GSList *sl_shells;
 
 enum shell_magic {
-	SHELL_MAGIC = 0xb3f3e711U
+	SHELL_MAGIC = 0x33f3e711U
 };
 
 struct gnutella_shell {

@@ -81,7 +81,7 @@ RCSID("$Id$")
 #define vema(x)	((x) >> ULQ_EMA_SHIFT)
 
 enum ulq_magic {
-	ULQ_MAGIC = 0xfc777379U
+	ULQ_MAGIC = 0x7c777379U
 };
 
 /**

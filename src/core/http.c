@@ -1490,7 +1490,7 @@ static const char * const http_verb[NUM_HTTP_REQTYPES] = {
 	"POST",
 };
 
-enum http_async_magic { HTTP_ASYNC_MAGIC = 0xa91cf3eeU };
+enum http_async_magic { HTTP_ASYNC_MAGIC = 0x291cf3eeU };
 
 /**
  * An asynchronous HTTP request.
@@ -2774,7 +2774,7 @@ http_async_log_error_dbg(struct http_async *handle,
 void
 http_async_log_error(struct http_async *handle, http_errtype_t type, gpointer v)
 {
-	return http_async_log_error_dbg(handle, type, v, GNET_PROPERTY(http_debug));
+	http_async_log_error_dbg(handle, type, v, GNET_PROPERTY(http_debug));
 }
 
 /***

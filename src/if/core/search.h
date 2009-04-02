@@ -93,7 +93,7 @@ enum {
 enum {
 	SEARCH_IGN_DISPLAY_AS_IS,	/**< Display normally */
 	SEARCH_IGN_DISPLAY_MARKED,	/**< Display marked (lighter color) */
-	SEARCH_IGN_NO_DISPLAY,		/**< Don't display */
+	SEARCH_IGN_NO_DISPLAY		/**< Don't display */
 };
 
 /**

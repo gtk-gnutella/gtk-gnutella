@@ -55,7 +55,7 @@
 enum dht_rpc_op {
 	DHT_RPC_PING = 0,		/**< ping remote node */
 	DHT_RPC_FIND_NODE,		/**< lookup for node KUID */
-	DHT_RPC_FIND_VALUE,		/**< lookup for value KUID */
+	DHT_RPC_FIND_VALUE		/**< lookup for value KUID */
 };
 
 /**
@@ -63,7 +63,7 @@ enum dht_rpc_op {
  */
 enum dht_rpc_ret {
 	DHT_RPC_TIMEOUT = 0,	/**< timed out */
-	DHT_RPC_REPLY,			/**< reply from host */
+	DHT_RPC_REPLY			/**< reply from host */
 };
 
 struct gnutella_node;

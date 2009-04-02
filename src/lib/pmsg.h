@@ -87,8 +87,8 @@ typedef struct pmsg pmsg_t;
 typedef gboolean (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
 
 enum pmsg_magic {
-	PMSG_MAGIC		= 0xafa50be3U,
-	PMSG_EXT_MAGIC	= 0xc64cc376U
+	PMSG_MAGIC		= 0x2fa50be3U,
+	PMSG_EXT_MAGIC	= 0x464cc376U
 };
 
 struct pmsg {

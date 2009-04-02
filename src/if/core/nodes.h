@@ -52,7 +52,7 @@ guint node_id_hash(gconstpointer node_id);
 enum rnode_mode {
 	RNODE_M_AUTO = 0,
 	RNODE_M_LEAF = 1,
-	RNODE_M_ULTRA = 2,
+	RNODE_M_ULTRA = 2
 };
 
 /**

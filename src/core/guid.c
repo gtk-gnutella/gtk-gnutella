@@ -206,7 +206,7 @@ guid_flag_modern(struct guid *muid)
 	 *				--RAM, 15/09/2001
 	 */
 
-	muid->v[8] = 0xff;
+	muid->v[8] = (unsigned char) 0xffU;
 	muid->v[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
 }
 

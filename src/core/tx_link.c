@@ -169,12 +169,11 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	default:
 		{
 			int saved_errno = errno;
-			time_t t = tm_time();
 			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
 			int fd = wio->fd(wio);
-			g_warning("%s  gtk-gnutella: %s: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), func, fd, saved_errno, g_strerror(saved_errno));
+			g_warning(
+				"%s: write failed on fd #%d with unexpected errno: %d (%s)",
+				func, fd, saved_errno, g_strerror(saved_errno));
 			errno = saved_errno;
 		}
 		/* FALL THROUGH */

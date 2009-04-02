@@ -83,12 +83,12 @@ enum bh_state {
 	BH_STATE_TRAILER,		/* Sending trailer data */
 	BH_STATE_EOF,			/* All data sent (End Of File) */
 
-	NUM_BH_STATES,
+	NUM_BH_STATES
 };
 
 enum bh_type {
 	BH_TYPE_HTML = 0,		/* Send back HTML */
-	BH_TYPE_QHIT,			/* Send back Gnutella query hits */
+	BH_TYPE_QHIT			/* Send back Gnutella query hits */
 };
 
 struct browse_host_upload {

@@ -55,11 +55,11 @@ typedef struct shared_file shared_file_t;
  */
 
 enum {
-	SHARE_F_HAS_DIGEST	=	(1 << 0),		/**< Digest is set */
-	SHARE_F_RECOMPUTING	=	(1 << 1),		/**< Digest being recomputed */
-	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
-	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
 	SHARE_F_INDEXED		=	(1 << 4),		/**< File is in file_table index */
+	SHARE_F_BASENAME	=	(1 << 3),		/**< File is in basename index */
+	SHARE_F_SPECIAL		=	(1 << 2),		/**< Special (robots.txt, favicon)*/
+	SHARE_F_RECOMPUTING	=	(1 << 1),		/**< Digest being recomputed */
+	SHARE_F_HAS_DIGEST	=	(1 << 0)		/**< Digest is set */
 };
 
 #define SHARE_REBUILDING shared_file_dummy()

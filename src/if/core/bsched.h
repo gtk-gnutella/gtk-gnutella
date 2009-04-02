@@ -53,7 +53,7 @@ typedef enum {
  * Source under bandwidth control.
  */
 
-enum bio_source_magic { BIO_SOURCE_MAGIC = 0x80b3bf07U };
+enum bio_source_magic { BIO_SOURCE_MAGIC = 0x7fb3bf07U };
 
 typedef struct bio_source {
 	enum bio_source_magic magic;	/**< magic for consistency checks */

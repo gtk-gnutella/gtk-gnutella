@@ -76,7 +76,7 @@ enum {
 };
 
 enum bsched_magic {
-	BSCHED_MAGIC = 0xee24261eU
+	BSCHED_MAGIC = 0x6e24261eU
 };
 
 /**

@@ -51,7 +51,7 @@ RCSID("$Id$")
  */
 
 enum aging_magic {
-	AGING_MAGIC	= 0xb8e2fac3U
+	AGING_MAGIC	= 0x38e2fac3
 };
 
 struct aging {
