@@ -518,12 +518,12 @@ EMPTY_STRING(const char *s)
 }
 
 /**
- * Is string not empty?
+ * Is string NULL or empty?
  */
 static inline gboolean
-str_not_empty(const char *s)
+is_null_or_empty(const char *s)
 {
-	return NULL != s && *s != '\0';
+	return NULL == s || '\0' == *s;
 }
 
 /**
@@ -645,7 +645,7 @@ size_is_non_negative(size_t size)
 }
 
 /**
- * Check whether a signed representation of size would be positive.
+ * Check whether a signed representation of size would be strictly positive.
  * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.
  */
 static inline gboolean

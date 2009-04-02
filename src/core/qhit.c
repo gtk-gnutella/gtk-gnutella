@@ -495,7 +495,7 @@ flush_match(void)
 	if (
 		!GNET_PROPERTY(is_firewalled) &&
 		GNET_PROPERTY(give_server_hostname) &&
-		str_not_empty(GNET_PROPERTY(server_hostname))
+		!is_null_or_empty(GNET_PROPERTY(server_hostname))
 	) {
 		gboolean ok;
 

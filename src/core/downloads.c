@@ -3346,6 +3346,10 @@ download_clone(struct download *d)
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
+		if (d->io_opaque) {
+			io_free(d->io_opaque);
+			g_assert(NULL == d->io_opaque);
+		}
 	} else if (NULL == d->io_opaque) {
 		g_assert(d->buffers);
 		g_assert(d->buffers->held == 0);		/* All data flushed */
@@ -5168,7 +5172,7 @@ download_connect(struct download *d)
 
 	if (
 		(server->attrs & DLS_A_DNS_LOOKUP) ||
-		(str_not_empty(server->hostname) &&
+		(!is_null_or_empty(server->hostname) &&
 			delta_time(tm_time(), server->dns_lookup) >= DOWNLOAD_DNS_LOOKUP)
 	) {
 		g_assert(server->hostname != NULL);
@@ -6022,7 +6026,7 @@ download_fallback_to_push(struct download *d,
 
 		if (
 			socket_bad_hostname(d->socket) &&
-			str_not_empty(d->server->hostname)
+			!is_null_or_empty(d->server->hostname)
 		) {
 			g_warning("hostname \"%s\" for %s could not resolve, discarding",
 				d->server->hostname,
@@ -6037,7 +6041,10 @@ download_fallback_to_push(struct download *d,
 		 * next attempt.
 		 */
 
-		if (str_not_empty(d->server->hostname) && !(d->flags & DL_F_DNS_LOOKUP))
+		if (
+			!is_null_or_empty(d->server->hostname) &&
+			!(d->flags & DL_F_DNS_LOOKUP)
+		)
 			d->server->attrs |= DLS_A_DNS_LOOKUP;
 
 		socket_free_null(&d->socket);
@@ -6200,7 +6207,7 @@ create_download(
 	 * lose the information about the server.
 	 */
 
-	if (str_not_empty(hostname))
+	if (!is_null_or_empty(hostname))
 		set_server_hostname(server, hostname);
 
 	/*
