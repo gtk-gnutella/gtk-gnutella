@@ -216,16 +216,22 @@ sig_malloc(int n)
 guint32
 main_get_build(void)
 {
-	static guint32 build = 0;
-	const gchar *p;
+	static guint32 build;
+	static int initialized;
 
 	if (build)
 		return build;
 
-	p = is_strprefix(GTA_BUILD, "$Revision: ");
-	if (p)
-		build = atoi(p);
+	if (!initialized) {
+		const char *p;
 
+		initialized = TRUE;
+		p = is_strprefix(GTA_BUILD, "$Revision: ");
+		if (p) {
+			int error;
+			build = parse_uint32(p, NULL, 10, &error);
+		}
+	}
 	return build;
 }
 
