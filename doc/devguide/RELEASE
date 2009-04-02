@@ -106,14 +106,8 @@ Release steps
 
 14. Upload the files to sourceforge.
 
-	ftp upload.sf.net
-	ftp> cd incoming
-	ftp> binary
-	ftp> passive
-	ftp> put gtk-gnutella-0.91.tar.bz2
-	ftp> put gtk-gnutella_0.91.0-0_i386.deb
-	ftp> put gtk-gnutella-0.91.0-0.i386.rpm
-	ftp> quit
+	rsync -avP -e ssh gtk-gnutella-0.96.6.tar.bz2 \
+		USER@frs.sourceforge.net uploads/
 
 15. Login to www.sf.net and go to the Admin section of the gtk-gnutella
     project.
@@ -162,8 +156,9 @@ Release steps
 29. Manually update the web site by logging in to projects.sourceforge.net via
     SSH:
 
-	ssh USER@projects.sourceforge.net \
-		"cd /home/groups/g/gt/gtk-gnutella && ./update_homepage.sh"
+	ssh -t USER,gtk-gnutella@shell.sourceforge.net create
+	$ cd /home/groups/g/gt/gtk-gnutella
+	$ ./update_homepage_v2.sh
 
 30. Send a message to gtk-gnutella-announce telling about the release
     using Announce-template.txt
