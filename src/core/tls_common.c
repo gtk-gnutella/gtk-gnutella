@@ -145,9 +145,9 @@ tls_socket_evt_change(struct gnutella_socket *s, inputevt_cond_t cond)
 
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			int fd = socket_evt_fd(s);
-			g_message("tls_socket_evt_change: fd=%d, cond=%s -> %s, handler=%p",
+			g_message("tls_socket_evt_change: fd=%d, cond=%s -> %s",
 				fd, inputevt_cond_to_string(s->tls.cb_cond),
-				inputevt_cond_to_string(cond), s->tls.cb_handler);
+				inputevt_cond_to_string(cond));
 		}
 		if (s->gdk_tag) {
 			inputevt_remove(s->gdk_tag);

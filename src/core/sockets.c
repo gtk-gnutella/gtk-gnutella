@@ -240,8 +240,8 @@ socket_evt_set(struct gnutella_socket *s,
 	s->tls.cb_data = data;
 
 	if (GNET_PROPERTY(tls_debug) > 4) {
-		g_message("socket_evt_set: fd=%d, cond=%s, handler=%p",
-			fd, inputevt_cond_to_string(cond), handler);
+		g_message("socket_evt_set: fd=%d, cond=%s",
+			fd, inputevt_cond_to_string(cond));
 	}
 	s->gdk_tag = inputevt_add(fd, cond, handler, data);
 	g_assert(0 != s->gdk_tag);
@@ -264,8 +264,8 @@ socket_evt_clear(struct gnutella_socket *s)
 	if (s->gdk_tag) {
 		if (GNET_PROPERTY(tls_debug) > 4) {
 			int fd = socket_evt_fd(s);
-			g_message("socket_evt_clear: fd=%d, cond=%s, handler=%p",
-				fd, inputevt_cond_to_string(s->tls.cb_cond), s->tls.cb_handler);
+			g_message("socket_evt_clear: fd=%d, cond=%s",
+				fd, inputevt_cond_to_string(s->tls.cb_cond));
 		}
 
 		s->tls.cb_cond = 0;
