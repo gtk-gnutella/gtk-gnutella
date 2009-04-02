@@ -318,24 +318,76 @@ tok_strerror(tok_error_t errnum)
 }
 
 /**
- * Based on the timestamp, determine the proper token keys to use.
+ * Based on the timestamp, determine the proper token keys to use limiting
+ * to the first ``count'' items.
  *
  * @return NULL if we cannot locate any suitable keys.
  */
 static const struct tokkey *
-find_tokkey(time_t now)
+find_tokkey_upto(time_t now, size_t count)
 {
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
-	const struct tokkey *tk;
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
-		tk = &token_keys[i];
+	g_assert(count <= G_N_ELEMENTS(token_keys));
+
+	for (i = 0; i < count; i++) {
+		const struct tokkey *tk = &token_keys[i];
 		if (tk->ver.timestamp > adjusted)
 			return tk;
 	}
 
 	return NULL;
+}
+
+/**
+ * Based on the timestamp, determine the proper token keys to use.
+ *
+ * @return NULL if we cannot locate any suitable keys.
+ */
+static inline const struct tokkey *
+find_tokkey(time_t now)
+{
+	return find_tokkey_upto(now, G_N_ELEMENTS(token_keys));
+}
+
+/**
+ * Based on the timestamp and their advertised version, find out the
+ * token key they used.
+ *
+ * @return NULL if we cannot locate any suitable keys.
+ */
+static const struct tokkey *
+find_tokkey_version(const version_t *ver, time_t now)
+{
+	guint i;
+
+	/*
+	 * All versions before r16370 used the first key set when they expired.
+	 * If we're more recent, we probably have a stripped list of past key
+	 * sets, and therefore cannot validate their token.
+	 */
+
+	if (ver->build < 16370)
+		return find_tokkey(now);
+
+	/*
+	 * Expired servents will always use their last key set.  Even if we're
+	 * more recent, we can try to validate by mimicing the behaviour of
+	 * these servents.
+	 *
+	 * We determine the index of the last key set that they must know about
+	 * and we look for the token up to that index only.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+		const struct tokkey *tk = &token_keys[i];
+		time_delta_t dtime = delta_time(ver->timestamp, tk->ver.timestamp);
+		if (dtime < 0 && -dtime >= 86400)
+			break;				/* Not within a day and older than token */
+	}
+
+	return find_tokkey_upto(now, i);
 }
 
 /**
@@ -379,7 +431,10 @@ random_key(time_t now, guint *idx, const struct tokkey **tkused)
 			warned = TRUE;
 		}
 
-		tk = &token_keys[0];	/* They'll have problems with their token */
+		STATIC_ASSERT(G_N_ELEMENTS(token_keys) >= 1);
+
+		/* Pick the latest (most recent) key set from the array */
+		tk = &token_keys[G_N_ELEMENTS(token_keys) - 1];
 	}
 
 	random_idx = random_value(tk->count - 1);
@@ -592,7 +647,10 @@ tok_version_valid(
 	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
 
-	tk = find_tokkey(stamp);				/* The keys they used */
+	if (!version_fill(version, &rver))		/* Remote version */
+		return TOK_BAD_VERSION;
+
+	tk = find_tokkey_version(&rver, stamp);	/* The keys they used */
 	if (tk == NULL)
 		return TOK_BAD_KEYS;
 
@@ -610,9 +668,6 @@ tok_version_valid(
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
 		return TOK_INVALID;
-
-	if (!version_fill(version, &rver))		/* Remote version */
-		return TOK_BAD_VERSION;
 
 	if (version_build_cmp(&rver, &tk->ver) < 0)
 		return TOK_OLD_VERSION;
