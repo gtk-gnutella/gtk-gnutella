@@ -92,7 +92,6 @@ struct kmsg {
 	const char *name;
 };
 
-static const struct kmsg kmsg_map[];
 static const struct kmsg *kmsg_find(guint8 function);
 
 /**
