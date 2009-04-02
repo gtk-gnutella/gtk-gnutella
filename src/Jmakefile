@@ -29,7 +29,7 @@
 
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(core shell dht lib ui if)
+SetSubdirs(core shell dht lib ui if sdbm)
 DependSubdirs()
 
 SRC = main.c
