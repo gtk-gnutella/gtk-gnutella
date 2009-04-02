@@ -26,7 +26,8 @@
 : determine whether socker_get is available
 
 case "$d_socker_get" in
-"$undef") ;;
+"$undef")
+	echo "socker support is disabled.";;
 *)
 $cat >try.c <<'EOC'
 #include <sys/types.h>

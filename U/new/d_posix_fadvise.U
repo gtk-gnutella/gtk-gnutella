@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_posix_fadvise: Trylink cat
+?MAKE:d_posix_fadvise: Trylink cat echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_posix_fadvise:
 ?S:	This variable conditionally defines the HAS_POSIX_FADVISE symbol, which
@@ -16,7 +16,7 @@
 ?LINT: set d_posix_fadvise
 : can we use posix_fadvise?
 echo " "
-echo "Checking whether posix_fadvise() is available ..." >&4
+$echo $n "Is posix_fadvise() available? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -41,4 +41,9 @@ EOC
 
 set d_posix_fadvise
 eval $trylink
+
+case "$d_posix_fadvise" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

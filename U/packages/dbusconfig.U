@@ -39,7 +39,7 @@ case "$d_dbus" in
 	if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
 		dbusconfig="pkg-config dbus-1"
 		modver=--modversion
-		echo "(I'll use '$dbusconfig' to gather that information.)"
+		echo "(I'll use '$dbusconfig' to gather that information.)" >&4
 
 		: Make sure we have a good enough version
 		version=`$dbusconfig $modver`
@@ -52,7 +52,7 @@ case "$d_dbus" in
 				dbuscflags=
 				dbusldflags=
 			else
-				echo "Good, you have dbus $version."
+				echo "Good, you have dbus $version." >&4
 
 				dbuscflags=`$dbusconfig --cflags`
 				dbusldflags=`$dbusconfig --libs`

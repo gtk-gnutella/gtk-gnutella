@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getuid: Trylink cat i_unistd
+?MAKE:d_getuid: Trylink cat i_unistd echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_getuid:
 ?S:	This variable conditionally defines the HAS_GETUID symbol, which
@@ -16,7 +16,7 @@
 ?LINT: set d_getuid
 : can we use getuid?
 echo " "
-echo "Checking whether getuid() is available ..." >&4
+$echo $n "Is getuid() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -33,4 +33,9 @@ int main(void)
 EOC
 set d_getuid
 eval $trylink
+
+case "$d_getuid" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

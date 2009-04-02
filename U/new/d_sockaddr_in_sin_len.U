@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_sockaddr_in_sin_len: Trylink cat i_arpainet
+?MAKE:d_sockaddr_in_sin_len: Trylink cat i_arpainet echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_sockaddr_in_sin_len:
 ?S:	This variable conditionally defines the HAS_SOCKADDR_IN_SIN_LEN symbol,
@@ -17,7 +17,7 @@
 ?LINT: set d_sockaddr_in_sin_len
 : can we use getaddrinfo?
 echo " "
-echo "Checking whether getaddrinfo() can be used ..." >&4
+$echo $n "Is getaddrinfo() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -36,4 +36,9 @@ int main(void)
 EOC
 set d_sockaddr_in_sin_len
 eval $trylink
+
+case "$d_sockaddr_in_sin_len" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

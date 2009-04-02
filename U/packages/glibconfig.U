@@ -44,7 +44,7 @@ glibldflags=`$glibconfig --libs`
 ?X:
 version=`$glibconfig $modver`
 echo " "
-echo "Checking whether glib.h can be compiled against..."
+echo "Checking whether glib.h can be compiled against..." >&4
 $cat >try.c <<EOC
 #include <glib.h>
 #ifndef GLIB_MAJOR_VERSION
@@ -86,7 +86,7 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
   d_glib="$define"
-  echo "We'll be using GLib version $version."
+  echo "We'll be using GLib version $version." >&4
 else 
   ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi

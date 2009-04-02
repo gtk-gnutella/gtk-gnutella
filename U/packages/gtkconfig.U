@@ -54,7 +54,7 @@ case "$gtkversion" in
 			echo "Sorry, you have GTK+ $version, I need at least 1.2.10." >&4
 			exit 1;
 		else
-			echo "OK, you have GTK+ $version"
+			echo "OK, you have GTK+ $version" >&4
 		fi
 		;;
 	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
@@ -69,7 +69,7 @@ case "$gtkversion" in
 			echo "Sorry, you have GTK+ $version, I need at least 2.2.1." >&4
 			exit 1;
 		else
-			echo "OK, you have GTK+ $version"
+			echo "OK, you have GTK+ $version" >&4
 		fi
 		;;
 	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
@@ -95,7 +95,7 @@ for flag in "$glibcflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)" >&4
 	gtkcflags="$gtkcflags $glibcflags"
 	allok=false
 fi
@@ -108,19 +108,19 @@ for flag in "$glibldflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)" >&4
 	gtkldflags="$gtkldflags $glibldflags"
 	allok=false
 fi
 if $allok; then
-	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags."
+	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags." >&4
 fi
 ?X: Remember, indentation wrong on purpose
 ;;
 esac
 
 case "$d_headless" in
-"$undef") echo "Checking whether Gtk+ can be compiled against..."
+"$undef") echo "Checking whether Gtk+ can be compiled against..." >&4
 $cat >try.c <<EOC
 #include <stdlib.h>
 #include <glib.h>
@@ -143,7 +143,7 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $gtkcflags $gtkldflags  >/dev/null 2>&1;
 then
   d_gtk="$define"
-  echo "We'll be using Gtk+ version $version."
+  echo "We'll be using Gtk+ version $version." >&4
 else 
   ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi

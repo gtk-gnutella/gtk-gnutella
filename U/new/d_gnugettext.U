@@ -31,10 +31,10 @@ int main()
 }
 EOC
 	if $cc $ccflags $ldflags -o t t.c $libs >/dev/null 2>&1; then
-		echo "Yes, you have the GNU version."
+		echo "Yes, you have the GNU version." >&4
 		val="$define"
 	else
-		echo "No, you don't have the GNU version."
+		echo "No, you don't have the GNU version." >&4
 		val="$undef"
 	fi
 	;;

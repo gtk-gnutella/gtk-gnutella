@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_kqueue: Trylink cat
+?MAKE:d_kqueue: Trylink cat echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_kqueue:
 ?S:	This variable conditionally defines the HAS_KQUEUE symbol, which
@@ -16,7 +16,7 @@
 ?LINT: set d_kqueue
 : can we use kqueue?
 echo " "
-echo "Checking whether kqueue() is available ..." >&4
+$echo $n "Is kqueue() available? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -51,4 +51,9 @@ EOC
 
 set d_kqueue
 eval $trylink
+
+case "$d_kqueue" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

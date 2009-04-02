@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_msghdr_msg_flags: Trylink cat
+?MAKE:d_msghdr_msg_flags: Trylink cat echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_msghdr_msg_flags:
 ?S:	This variable conditionally defines the HAS_MSGHDR_MSG_FLAGS symbol,
@@ -18,9 +18,7 @@
 ?LINT:set d_msghdr_msg_flags
 : check for msg_flags in struct msghdr
 echo " "
-$cat >&4 << 'EOM'
-Checking whether "struct msghdr" has a member "msg_flags"...
-EOM
+$echo $n "Does 'struct msghdr' have a member 'msg_flags'? $c" >&4
 $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -34,4 +32,9 @@ EOC
 
 set d_msghdr_msg_flags
 eval $trylink
+
+case "$d_msghdr_msg_flags" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

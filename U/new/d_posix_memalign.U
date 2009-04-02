@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_posix_memalign: Trylink cat i_stdlib
+?MAKE:d_posix_memalign: Trylink cat i_stdlib echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_posix_memalign:
 ?S:	This variable conditionally defines the HAS_POSIX_MEMALIGN symbol, which
@@ -16,7 +16,7 @@
 ?LINT: set d_posix_memalign
 : can we use posix_memalign?
 echo " "
-echo "Checking whether posix_memalign() is available ..." >&4
+$echo $n "Is posix_memalign() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #$i_stdlib I_STDLIB
@@ -35,4 +35,9 @@ EOC
 
 set d_posix_memalign
 eval $trylink
+
+case "$d_posix_memalign" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

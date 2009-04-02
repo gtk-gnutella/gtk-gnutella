@@ -3,7 +3,7 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?MAKE:d_iptos: cat rm contains cppstdin cppflags cppminus \
-	i_niin i_sysin i_niip test Setvar
+	i_niin i_sysin i_niip test Setvar echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_iptos:
 ?S:	This variable conditionally defines the USE_IP_TOS symbol, which
@@ -23,7 +23,7 @@
 ?LINT:usefile iptos.h
 : check for IP TOS support
 echo " "
-echo "Checking for IP TOS (Type of Service) support..." >&4
+$echo $n "Is IP TOS (Type of Service) support available? $c" >&4
 case "$i_niin" in
 "$define") inh=netinet/in.h;;
 *)
@@ -43,7 +43,7 @@ $cppstdin $cppflags $cppminus <iptos >iptos.h
 val="$undef"
 if $contains 'YES' iptos.h >/dev/null 2>&1; then
 	val="$define"
-	echo "You have IP TOS support in <$inh>."
+	echo "You have IP TOS support in <$inh>." >&4
 elif $test "x$i_niip" = "x$define"; then
 	$cat >iptos <<EOM
 	#include <sys/socket.h>
@@ -56,9 +56,9 @@ EOM
 	$cppstdin $cppflags $cppminus <iptos >iptos.h
 	if $contains 'YES' iptos.h >/dev/null 2>&1; then
 		val="$define"
-		echo "You have IP TOS support in <netinet/ip.h>."
+		echo "You have IP TOS support in <netinet/ip.h>." >&4
 	else
-		echo "Sorry, you seem to be lacking IP TOS support.".
+		echo "Sorry, you seem to be lacking IP TOS support.". >&4
 	fi
 fi
 set d_iptos

@@ -29,7 +29,7 @@
 ?RCS: Revision 3.0  1993/08/18  12:09:36  ram
 ?RCS: Baseline for dist 3.0 netwide release.
 ?RCS:
-?MAKE:prototype: Myread Oldconfig cat +cc +ccflags rm Setvar
+?MAKE:prototype: Myread Oldconfig cat Trylink echo n c
 ?MAKE:	-pick add $@ %<
 ?S:prototype:
 ?S:	This variable holds the eventual value of CAN_PROTOTYPE, which
@@ -108,19 +108,16 @@
 ?LINT:set prototype
 : Cruising for prototypes
 echo " "
-echo "Checking out function prototypes..." >&4
-$cat >prototype.c <<'EOCP'
-main(int argc, char *argv[]) {
-	exit(0);}
+$echo $n "Does the C compiler support function prototypes? $c" >&4
+$cat >try.c <<'EOCP'
+main(int argc, char *argv[]) { return 0; }
 EOCP
-if $cc $ccflags -c prototype.c >prototype.out 2>&1 ; then
-	echo "Your C compiler appears to support function prototypes."
-	val="$define"
-else
-	echo "Your C compiler doesn't seem to understand function prototypes."
-	val="$undef"
-fi
+
 set prototype
-eval $setvar
-$rm -rf prototype*
+eval $trylink
+
+case "$prototype" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

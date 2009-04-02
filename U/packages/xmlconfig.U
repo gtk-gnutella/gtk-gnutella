@@ -33,7 +33,7 @@ elif xml2-config --cflags >/dev/null 2>&1; then
 	xmlconfig='xml2-config'
 	modver=--version
 else
-	echo "You don't seem to have libxml2 installed."
+	echo "You don't seem to have libxml2 installed." >&4
 	xmlconfig='false'
 	modver=''
 fi
@@ -54,7 +54,7 @@ case "$version" in
 	if test 0$vint -lt 20600; then
 		echo "Sorry, you have libxml2 $version, I need at least 2.6.0." >&4
 	else
-		echo "Good, you have libxml2 $version.  Enabling XML persistence..."
+		echo "Good, you have libxml2 $version.  Enabling XML persistence..." >&4
 		xmlcflags=`$xmlconfig --cflags`
 		xmlldflags=`$xmlconfig --libs`
 		d_libxml2="$define"

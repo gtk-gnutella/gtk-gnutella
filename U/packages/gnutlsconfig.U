@@ -59,7 +59,7 @@ case "$version" in
 	if test 0$vint -lt 010016; then
 		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
 	else
-		echo "Good, you have GNU TLS $version."
+		echo "Good, you have GNU TLS $version." >&4
 		
 		$cat <<'EOM'
 

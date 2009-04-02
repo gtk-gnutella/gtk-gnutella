@@ -2,17 +2,17 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:GCC_pipe: Trylink cat ccflags gccversion optimize
+?MAKE:GCC_pipe: Trylink cat ccflags gccversion optimize echo n c
 ?MAKE:	-pick add $@ %<
 ?T:flag result saved_ccflags
 ?LINT:change ccflags
 : check whether -pipe should be used
 flag='-pipe'
 echo " "
-echo "Checking whether $flag should be used..." >&4
 case "$gccversion" in
 '');;
 *)
+	$echo $n "Should $flag be used? $c" >&4
 	case "$ccflags $optimize" in
 	*-save-temps*);;
 	*-pipe*);;
@@ -46,15 +46,16 @@ EOC
 	
 			case "$result" in
 			"$define")
-				echo "With $flag the compiler seems to see no code."
+				echo "No. With $flag the compiler seems to see no code." >&4
 				ccflags=$saved_ccflags
 				;;
-			"$undef")
-				echo "(Adding $flag)"
+			*)
+				echo "Yes." >&4
 				;;
 			esac
 			;;
-		"$undef")
+		*)
+			echo "No." >&4
 			ccflags=$saved_ccflags
 			;;
 		esac

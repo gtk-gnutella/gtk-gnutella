@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_ipv6: Trylink cat i_arpainet i_netdb
+?MAKE:d_ipv6: Trylink cat i_arpainet i_netdb echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_ipv6:
 ?S: This variable conditionally defines HAS_IPV6.
@@ -15,10 +15,12 @@
 ?T:result
 : determine whether IPv6 can be used
 case "$d_ipv6" in
-"$undef") ;;
+"$undef") 
+	echo "IPv6 support is disabled." >&4
+;;
 *)
 	echo " "
-	echo "Checking whether IPv6 can be used ..." >&4
+	$echo $n "Is IPv6 support available? $c" >&4
 	$cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -67,6 +69,11 @@ EOC
 	set result
 	eval $trylink
 	d_ipv6=$result
+	case "$d_ipv6" in
+	"$define")	echo 'Yes.' >&4;;
+	*)		echo 'No.' >&4;;
+	esac
+
 	;;
 esac
 

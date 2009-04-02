@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_sa_interrupt: Trylink cat
+?MAKE:d_sa_interrupt: Trylink cat echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_sa_interrupt:
 ?S:	This variable conditionally defines the HAS_SA_INTERRUPT symbol, which
@@ -17,7 +17,7 @@
 ?LINT: set d_sa_interrupt
 : can we use SA_INTERRUPT?
 echo " "
-echo "Checking whether SA_INTERRUPT is available in <signal.h>..." >&4
+$echo $n "Is SA_INTERRUPT available in <signal.h>? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <signal.h>
@@ -31,4 +31,9 @@ EOC
 
 set d_sa_interrupt
 eval $trylink
+
+case "$d_sa_interrupt" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Apr  1 19:47:22 CEST 2009 [metaconfig 3.5-25]
+# Generated on Wed Apr  1 22:43:10 CEST 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -2542,7 +2542,7 @@ eval $setvar
 echo " "
 case "$d_headless" in
 "$define")
-	echo "Turning off GTK+ since you want to run without any GUI"
+	echo "Turning off GTK+ since you want to run without any GUI" >&4
 	d_usegtk1="$undef";
 	d_usegtk2="$undef";
 	;;
@@ -3665,7 +3665,7 @@ default|recommended)
 	esac
 	case "$gccversion" in
 	1*|2*) dflt="$dflt -Wall";;
-	*) dflt="$dflt -W -Wall -Wformat=2 -Wshadow";;
+	*) dflt="$dflt -W -Wall -Wformat=2 -Wshadow -Wno-long-long -pedantic";;
 	esac
 	;;
 esac
@@ -4320,7 +4320,7 @@ case "$d_dbus" in
 	if pkg-config dbus-1 --cflags >/dev/null 2>&1; then
 		dbusconfig="pkg-config dbus-1"
 		modver=--modversion
-		echo "(I'll use '$dbusconfig' to gather that information.)"
+		echo "(I'll use '$dbusconfig' to gather that information.)" >&4
 
 		: Make sure we have a good enough version
 		version=`$dbusconfig $modver`
@@ -4333,7 +4333,7 @@ case "$d_dbus" in
 				dbuscflags=
 				dbusldflags=
 			else
-				echo "Good, you have dbus $version."
+				echo "Good, you have dbus $version." >&4
 
 				dbuscflags=`$dbusconfig --cflags`
 				dbusldflags=`$dbusconfig --libs`
@@ -4535,7 +4535,7 @@ eval $inhdr
 
 : can we use getaddrinfo?
 echo " "
-echo "Checking whether getaddrinfo() can be used ..." >&4
+$echo $n "Is getaddrinfo() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -4576,9 +4576,14 @@ EOC
 set d_getaddrinfo
 eval $trylink
 
+case "$d_getaddrinfo" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
+
 : can we use geteuid?
 echo " "
-echo "Checking whether geteuid() is available ..." >&4
+$echo $n "Is geteuid() available? $c" >&4
 $cat >try.c <<EOC
 #include <sys/types.h>
 #$i_unistd I_UNISTD
@@ -4595,13 +4600,18 @@ EOC
 set d_geteuid
 eval $trylink
 
+case "$d_geteuid" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
+
 : see if this is a net/if.h system
 set net/if.h i_netif
 eval $inhdr
 
 : can we use getifaddrs?
 echo " "
-echo "Checking whether getifaddrs() is available ..." >&4
+$echo $n "Is getifaddrs() available? $c" >&4
 $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -4631,6 +4641,11 @@ int main(void)
 EOC
 set d_getifaddrs
 eval $trylink
+
+case "$d_getifaddrs" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : see if getinvent exists
 $cat >try.c <<EOC
@@ -5364,7 +5379,7 @@ $rm -rf nofile*
 
 : can we use getuid?
 echo " "
-echo "Checking whether getuid() is available ..." >&4
+$echo $n "Is getuid() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -5381,6 +5396,11 @@ int main(void)
 EOC
 set d_getuid
 eval $trylink
+
+case "$d_getuid" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : how can we find information about GNU TLS?
 echo " "
@@ -5406,7 +5426,7 @@ else
 fi
 
 if [ "$gnutlsconfig" != false ]; then
-	echo "(I'll use '$gnutlsconfig' to gather that information.)"
+	echo "(I'll use '$gnutlsconfig' to gather that information.)" >&4
 fi
 
 version=`$gnutlsconfig $modver`
@@ -5417,7 +5437,7 @@ case "$version" in
 	if test 0$vint -lt 010016; then
 		echo "Sorry, you have GNU TLS $version, I need at least 1.0.16." >&4
 	else
-		echo "Good, you have GNU TLS $version."
+		echo "Good, you have GNU TLS $version." >&4
 		
 		$cat <<'EOM'
 
@@ -5498,7 +5518,7 @@ eval $inhdr
 
 : check for IP TOS support
 echo " "
-echo "Checking for IP TOS (Type of Service) support..." >&4
+$echo $n "Is IP TOS (Type of Service) support available? $c" >&4
 case "$i_niin" in
 "$define") inh=netinet/in.h;;
 *)
@@ -5518,7 +5538,7 @@ $cppstdin $cppflags $cppminus <iptos >iptos.h
 val="$undef"
 if $contains 'YES' iptos.h >/dev/null 2>&1; then
 	val="$define"
-	echo "You have IP TOS support in <$inh>."
+	echo "You have IP TOS support in <$inh>." >&4
 elif $test "x$i_niip" = "x$define"; then
 	$cat >iptos <<EOM
 	#include <sys/socket.h>
@@ -5531,9 +5551,9 @@ EOM
 	$cppstdin $cppflags $cppminus <iptos >iptos.h
 	if $contains 'YES' iptos.h >/dev/null 2>&1; then
 		val="$define"
-		echo "You have IP TOS support in <netinet/ip.h>."
+		echo "You have IP TOS support in <netinet/ip.h>." >&4
 	else
-		echo "Sorry, you seem to be lacking IP TOS support.".
+		echo "Sorry, you seem to be lacking IP TOS support.". >&4
 	fi
 fi
 set d_iptos
@@ -5542,10 +5562,12 @@ $rm -f iptos iptos.h
 
 : determine whether IPv6 can be used
 case "$d_ipv6" in
-"$undef") ;;
+"$undef") 
+	echo "IPv6 support is disabled." >&4
+;;
 *)
 	echo " "
-	echo "Checking whether IPv6 can be used ..." >&4
+	$echo $n "Is IPv6 support available? $c" >&4
 	$cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -5594,6 +5616,11 @@ EOC
 	set result
 	eval $trylink
 	d_ipv6=$result
+	case "$d_ipv6" in
+	"$define")	echo 'Yes.' >&4;;
+	*)		echo 'No.' >&4;;
+	esac
+
 	;;
 esac
 
@@ -5610,29 +5637,9 @@ EOC
 set d_isascii
 eval $trylink
 
-: check whether udata in struct kevent is an integer
-echo " "
-$cat << 'EOM' >&4
-Checking whether the member "udata" of "struct kevent" is an integer ...
-EOM
-$cat >try.c <<EOC
-#include <sys/types.h>
-#include <sys/event.h>
-#include <sys/time.h>
-int main(void)
-{
-  static struct kevent ev;
-  ev.udata |= 1;
-  return 0;
-}
-EOC
-
-set d_kevent_int_udata
-eval $trylink
-
 : can we use kqueue?
 echo " "
-echo "Checking whether kqueue() is available ..." >&4
+$echo $n "Is kqueue() available? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -5668,6 +5675,39 @@ EOC
 set d_kqueue
 eval $trylink
 
+case "$d_kqueue" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
+
+: check whether udata in struct kevent is an integer
+case "$d_kqueue" in
+"$define")
+	echo " "
+	$echo $n "Is member 'udata' of 'struct kevent' an integer? $c" >&4
+	$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+int main(void)
+{
+  static struct kevent ev;
+  ev.udata |= 1;
+  return 0;
+}
+EOC
+
+	set d_kevent_int_udata
+	eval $trylink
+
+	case "$d_kevent_int_udata" in
+	"$define")	echo 'Yes.' >&4;;
+	*)		echo 'No.' >&4;;
+	esac
+
+	;;
+esac
+
 : how can we find information about libxml2?
 echo " "
 echo "Checking how we can gather information about libxml2..." >&4
@@ -5678,13 +5718,13 @@ elif xml2-config --cflags >/dev/null 2>&1; then
 	xmlconfig='xml2-config'
 	modver=--version
 else
-	echo "You don't seem to have libxml2 installed."
+	echo "You don't seem to have libxml2 installed." >&4
 	xmlconfig='false'
 	modver=''
 fi
 case "$xmlconfig" in
 false) ;;
-*) echo "(I'll use '$xmlconfig' to gather that information.)";;
+*) echo "(I'll use '$xmlconfig' to gather that information.)" >&4;;
 esac
 
 xmlcflags=""
@@ -5698,13 +5738,13 @@ case "$version" in
 	if test 0$vint -lt 20600; then
 		echo "Sorry, you have libxml2 $version, I need at least 2.6.0." >&4
 	else
-		echo "Good, you have libxml2 $version.  Enabling XML persistence..."
+		echo "Good, you have libxml2 $version.  Enabling XML persistence..." >&4
 		xmlcflags=`$xmlconfig --cflags`
 		xmlldflags=`$xmlconfig --libs`
 		d_libxml2="$define"
 		case " $xmlldflags " in
 		*" -lpthread "*)
-			echo "(Removing unneeded -lpthread from the list of libraries.)"
+			echo "(Removing unneeded -lpthread from the list of libraries.)" >&4
 			xmlldflags=`echo "$xmlldflags " | $sed -e 's/-lpthread //'`
 			;;
 		esac
@@ -5848,9 +5888,7 @@ eval $trylink
 
 : check for msg_flags in struct msghdr
 echo " "
-$cat >&4 << 'EOM'
-Checking whether "struct msghdr" has a member "msg_flags"...
-EOM
+$echo $n "Does 'struct msghdr' have a member 'msg_flags'? $c" >&4
 $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -5864,6 +5902,11 @@ EOC
 
 set d_msghdr_msg_flags
 eval $trylink
+
+case "$d_msghdr_msg_flags" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : see if nanosleep exists
 $cat >try.c <<EOC
@@ -5970,7 +6013,7 @@ eval $trylink
 
 : can we use posix_fadvise?
 echo " "
-echo "Checking whether posix_fadvise() is available ..." >&4
+$echo $n "Is posix_fadvise() available? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -5996,9 +6039,14 @@ EOC
 set d_posix_fadvise
 eval $trylink
 
+case "$d_posix_fadvise" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
+
 : can we use posix_memalign?
 echo " "
-echo "Checking whether posix_memalign() is available ..." >&4
+$echo $n "Is posix_memalign() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #$i_stdlib I_STDLIB
@@ -6017,6 +6065,11 @@ EOC
 
 set d_posix_memalign
 eval $trylink
+
+case "$d_posix_memalign" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : see if pread exists
 $cat >try.c <<EOC
@@ -6170,7 +6223,7 @@ eval $trylink
 
 : can we use SA_INTERRUPT?
 echo " "
-echo "Checking whether SA_INTERRUPT is available in <signal.h>..." >&4
+$echo $n "Is SA_INTERRUPT available in <signal.h>? $c" >&4
 val="$define"
 $cat >try.c <<'EOC'
 #include <signal.h>
@@ -6184,6 +6237,11 @@ EOC
 
 set d_sa_interrupt
 eval $trylink
+
+case "$d_sa_interrupt" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : see if select exists
 $cat >try.c <<EOC
@@ -6300,7 +6358,7 @@ $rm -rf set.* set
 
 : can we use getaddrinfo?
 echo " "
-echo "Checking whether getaddrinfo() can be used ..." >&4
+$echo $n "Is getaddrinfo() available? $c" >&4
 val="$define"
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -6320,10 +6378,16 @@ EOC
 set d_sockaddr_in_sin_len
 eval $trylink
 
+case "$d_sockaddr_in_sin_len" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
+
 : determine whether socker_get is available
 
 case "$d_socker_get" in
-"$undef") ;;
+"$undef")
+	echo "socker support is disabled.";;
 *)
 $cat >try.c <<'EOC'
 #include <sys/types.h>
@@ -7190,12 +7254,12 @@ else
 	modver=''
 fi
 
-echo "(I'll use '$glibconfig' to gather that information.)"
+echo "(I'll use '$glibconfig' to gather that information.)" >&4
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
 version=`$glibconfig $modver`
 echo " "
-echo "Checking whether glib.h can be compiled against..."
+echo "Checking whether glib.h can be compiled against..." >&4
 $cat >try.c <<EOC
 #include <glib.h>
 #ifndef GLIB_MAJOR_VERSION
@@ -7237,7 +7301,7 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $glibcflags $glibldflags >/dev/null 2>&1;
 then
   d_glib="$define"
-  echo "We'll be using GLib version $version."
+  echo "We'll be using GLib version $version." >&4
 else 
   ./warn "Cannot compile against GLib version '$version'" 4>&4
 fi
@@ -7264,7 +7328,7 @@ else
 	gtkconfig='false'
 	modver=''
 fi
-echo "(I'll use '$gtkconfig' to gather that information.)"
+echo "(I'll use '$gtkconfig' to gather that information.)" >&4
 version=`$gtkconfig $modver`
 case "$gtkversion" in
 1)
@@ -7275,7 +7339,7 @@ case "$gtkversion" in
 			echo "Sorry, you have GTK+ $version, I need at least 1.2.10." >&4
 			exit 1;
 		else
-			echo "OK, you have GTK+ $version"
+			echo "OK, you have GTK+ $version" >&4
 		fi
 		;;
 	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
@@ -7290,7 +7354,7 @@ case "$gtkversion" in
 			echo "Sorry, you have GTK+ $version, I need at least 2.2.1." >&4
 			exit 1;
 		else
-			echo "OK, you have GTK+ $version"
+			echo "OK, you have GTK+ $version" >&4
 		fi
 		;;
 	*)	./warn "you asked for GTK+ $gtkversion, I found $version" 4>&4
@@ -7313,7 +7377,7 @@ for flag in "$glibcflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib C flags are missing from GTK+ flags, adding all of them.)" >&4
 	gtkcflags="$gtkcflags $glibcflags"
 	allok=false
 fi
@@ -7325,18 +7389,18 @@ for flag in "$glibldflags"; do
 	esac
 done
 if $missing; then
-	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)"
+	echo "(Some GLib ld flags are missing from GTK+ flags, adding all of them.)" >&4
 	gtkldflags="$gtkldflags $glibldflags"
 	allok=false
 fi
 if $allok; then
-	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags."
+	echo "Good, all the cc and ld flags from GLib are included in GTK+ flags." >&4
 fi
 ;;
 esac
 
 case "$d_headless" in
-"$undef") echo "Checking whether Gtk+ can be compiled against..."
+"$undef") echo "Checking whether Gtk+ can be compiled against..." >&4
 $cat >try.c <<EOC
 #include <stdlib.h>
 #include <glib.h>
@@ -7359,7 +7423,7 @@ EOC
 if $cc -o try try.c $ccflags $ldflags $gtkcflags $gtkldflags  >/dev/null 2>&1;
 then
   d_gtk="$define"
-  echo "We'll be using Gtk+ version $version."
+  echo "We'll be using Gtk+ version $version." >&4
 else 
   ./warn "Cannot compile against Gtk+ version '$version'" 4>&4
 fi
@@ -7384,7 +7448,7 @@ END {
 }
 EOC
 gtkgversion=`$awk -f ./ver "$rsrc/src/common.h"`
-echo "(You have version $gtkgversion.)"
+echo "(You have version $gtkgversion.)" >&4
 $rm -f ver
 
 : locate a BSD compatible install program
@@ -7918,21 +7982,18 @@ $rm -f msghelp
 
 : Cruising for prototypes
 echo " "
-echo "Checking out function prototypes..." >&4
-$cat >prototype.c <<'EOCP'
-main(int argc, char *argv[]) {
-	exit(0);}
+$echo $n "Does the C compiler support function prototypes? $c" >&4
+$cat >try.c <<'EOCP'
+main(int argc, char *argv[]) { return 0; }
 EOCP
-if $cc $ccflags -c prototype.c >prototype.out 2>&1 ; then
-	echo "Your C compiler appears to support function prototypes."
-	val="$define"
-else
-	echo "Your C compiler doesn't seem to understand function prototypes."
-	val="$undef"
-fi
+
 set prototype
-eval $setvar
-$rm -rf prototype*
+eval $trylink
+
+case "$prototype" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
 : see if ar generates random libraries by itself
 echo " "
@@ -8624,10 +8685,10 @@ eval $trylink
 : check whether -mieee should be used
 flag='-mieee'
 echo " "
-echo "Checking whether $flag should be used..." >&4
 case "$gccversion" in
 '');;
 *)
+	$echo $n "Should '$flag' be used? $c" >&4
 	$cat >try.c <<EOC
 int main(void)
 {
@@ -8644,9 +8705,10 @@ EOC
 	eval $trylink
 
 	case "$result" in
-	"$define")	echo "(Adding $flag)"
+	"$define")	echo 'Yes.' >&4
 			;;
-	"$undef")
+	*)
+			echo 'No.' >&4
 			ccflags=$saved_ccflags
 			;;
 	esac
@@ -8656,10 +8718,10 @@ esac
 : check whether -pipe should be used
 flag='-pipe'
 echo " "
-echo "Checking whether $flag should be used..." >&4
 case "$gccversion" in
 '');;
 *)
+	$echo $n "Should $flag be used? $c" >&4
 	case "$ccflags $optimize" in
 	*-save-temps*);;
 	*-pipe*);;
@@ -8692,15 +8754,16 @@ EOC
 	
 			case "$result" in
 			"$define")
-				echo "With $flag the compiler seems to see no code."
+				echo "No. With $flag the compiler seems to see no code." >&4
 				ccflags=$saved_ccflags
 				;;
-			"$undef")
-				echo "(Adding $flag)"
+			*)
+				echo "Yes." >&4
 				;;
 			esac
 			;;
-		"$undef")
+		*)
+			echo "No." >&4
 			ccflags=$saved_ccflags
 			;;
 		esac

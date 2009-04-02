@@ -33,7 +33,7 @@
 echo " "
 case "$d_headless" in
 "$define")
-	echo "Turning off GTK+ since you want to run without any GUI"
+	echo "Turning off GTK+ since you want to run without any GUI" >&4
 	d_usegtk1="$undef";
 	d_usegtk2="$undef";
 	;;

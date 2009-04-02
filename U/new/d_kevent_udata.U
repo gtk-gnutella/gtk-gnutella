@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_kevent_int_udata: Trylink cat
+?MAKE:d_kevent_int_udata: Trylink cat d_kqueue echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_kevent_int_udata:
 ?S:	This variable conditionally defines the HAS_KEVENT_INT_UDATA symbol,
@@ -17,11 +17,11 @@
 ?H:.
 ?LINT:set d_kevent_int_udata
 : check whether udata in struct kevent is an integer
-echo " "
-$cat << 'EOM' >&4
-Checking whether the member "udata" of "struct kevent" is an integer ...
-EOM
-$cat >try.c <<EOC
+case "$d_kqueue" in
+"$define")
+	echo " "
+	$echo $n "Is member 'udata' of 'struct kevent' an integer? $c" >&4
+	$cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -33,6 +33,14 @@ int main(void)
 }
 EOC
 
-set d_kevent_int_udata
-eval $trylink
+	set d_kevent_int_udata
+	eval $trylink
+
+	case "$d_kevent_int_udata" in
+	"$define")	echo 'Yes.' >&4;;
+	*)		echo 'No.' >&4;;
+	esac
+
+	;;
+esac
 

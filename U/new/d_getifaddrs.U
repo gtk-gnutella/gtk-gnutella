@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:d_getifaddrs: Trylink cat i_netif
+?MAKE:d_getifaddrs: Trylink cat i_netif echo n c
 ?MAKE:	-pick add $@ %<
 ?S:d_getifaddrs:
 ?S:	This variable conditionally defines the HAS_GETIFADDRS symbol, which
@@ -16,7 +16,7 @@
 ?LINT: set d_getifaddrs
 : can we use getifaddrs?
 echo " "
-echo "Checking whether getifaddrs() is available ..." >&4
+$echo $n "Is getifaddrs() available? $c" >&4
 $cat >try.c <<EOC
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -46,4 +46,9 @@ int main(void)
 EOC
 set d_getifaddrs
 eval $trylink
+
+case "$d_getifaddrs" in
+"$define")	echo 'Yes.' >&4;;
+*)		echo 'No.' >&4;;
+esac
 
