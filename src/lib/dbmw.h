@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * of data structures and cache management.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008-2009
  */
 
 #ifndef _dbmw_h_
@@ -63,9 +63,19 @@ typedef void (*dbmw_serialize_t)(pmsg_t *mb, gconstpointer data);
  */
 typedef gboolean (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
 
+/**
+ * Free routine for values, to reclaim data allocated during deserialization
+ * and which is referenced by the value, not to reclaim the memory used by the
+ * value itself.
+ *
+ * @param valptr	where deserialization was done
+ * @param len		length of arena allocated for value, for assertions
+ */
+typedef void (*dbmw_free_t)(gconstpointer valptr, size_t len);
+
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t key_size, size_t value_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 void dbmw_destroy(dbmw_t *dw, gboolean close_sdbm);
 void dbmw_sync(dbmw_t *dw);

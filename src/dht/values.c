@@ -1543,17 +1543,17 @@ values_init(void)
 {
 	db_valuedata = storage_create(db_valwhat, db_valbase,
 		sizeof(guint64), sizeof(struct valuedata),
-		serialize_valuedata, deserialize_valuedata,
+		serialize_valuedata, deserialize_valuedata, NULL,
 		VALUES_DB_CACHE_SIZE, uint64_hash, uint64_eq);
 
 	db_rawdata = storage_create(db_rawwhat, db_rawbase,
 		sizeof(guint64), DHT_VALUE_MAX_LEN,
-		NULL, NULL,
+		NULL, NULL, NULL,
 		RAW_DB_CACHE_SIZE, uint64_hash, uint64_eq);
 
 	db_expired = storage_create(db_expwhat, db_expbase,
 		2 * KUID_RAW_SIZE, 0,
-		NULL, NULL,
+		NULL, NULL, NULL,
 		0, kuid_pair_hash, kuid_pair_eq);
 
 	values_per_ip = acct_net_create();

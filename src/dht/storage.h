@@ -65,7 +65,7 @@ const char *store_error_to_string(guint16 errnum);
 
 dbmw_t *storage_create(const char *name, const char *base,
 	size_t key_size, size_t value_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 
 void storage_delete(dbmw_t *dw, const char *base);

@@ -96,6 +96,7 @@ store_error_to_string(guint16 errnum)
  * @param value_size	Maximum value size, in bytes
  * @param pack			Serialization routine for values
  * @param unpack		Deserialization routine for values
+ * @param valfree		Free dynamically allocated deserialization data
  * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func		Key hash function
  * @param eq_func		Key equality test function
@@ -103,7 +104,7 @@ store_error_to_string(guint16 errnum)
 dbmw_t *
 storage_create(const char *name, const char *base,
 	size_t key_size, size_t value_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmap_t *dm;
@@ -136,7 +137,7 @@ storage_create(const char *name, const char *base,
 	 * support and caching of (deserialized) values.
 	 */
 
-	dw = dbmw_create(dm, name, key_size, value_size, pack, unpack,
+	dw = dbmw_create(dm, name, key_size, value_size, pack, unpack, valfree,
 		adjusted_cache_size, hash_func, eq_func);
 
 	return dw;

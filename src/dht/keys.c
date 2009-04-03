@@ -1193,7 +1193,7 @@ keys_init(void)
 
 	db_keydata = storage_create(db_keywhat, db_keybase,
 		KUID_RAW_SIZE, sizeof(struct keydata),
-		serialize_keydata, deserialize_keydata,
+		serialize_keydata, deserialize_keydata, NULL,
 		KEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 
 	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)

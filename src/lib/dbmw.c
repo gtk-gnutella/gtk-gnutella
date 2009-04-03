@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008-2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * of data structures and cache management.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008-2009
  */
 
 #include "common.h"
@@ -70,6 +70,7 @@ struct dbmw {
 	size_t max_cached;			/**< Max amount of items to cache */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
+	dbmw_free_t valfree;		/**< Free routine for values */
 	int error;					/**< Last errno value */
 	gboolean ioerr;				/**< Had I/O error */
 	gboolean count_needs_sync;	/**< Whether we need to sync to get count */
@@ -138,6 +139,7 @@ dbmw_count(dbmw_t *dw)
  * @param value_size	Maximum value size, in bytes
  * @param pack			Serialization routine for values
  * @param unpack		Deserialization routine for values
+ * @param valfree		Free routine for value (or NULL if none needed)
  * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func		Key hash function
  * @param eq_func		Key equality test function
@@ -148,7 +150,7 @@ dbmw_count(dbmw_t *dw)
  */
 dbmw_t *
 dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
-	dbmw_serialize_t pack, dbmw_deserialize_t unpack,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmw_t *dw;
@@ -157,6 +159,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 	g_assert(pack == NULL || value_size);
 	g_assert(sdbm_is_storable(key_size, value_size));	/* SDBM constraint */
 	g_assert((pack != NULL) == (unpack != NULL));
+	g_assert(valfree == NULL || unpack != NULL);
 	g_assert(dm);
 	g_assert(dbmap_key_size(dm) == key_size);
 
@@ -181,6 +184,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 	dw->keys = hash_list_new(hash_func, eq_func);
 	dw->pack = pack;
 	dw->unpack = unpack;
+	dw->valfree = valfree;
 
 	/*
 	 * If a serialization routine is provided, we'll also have a need for
@@ -283,6 +287,31 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 }
 
 /**
+ * Free memory used to hold the value in the cache.
+ *
+ * If a free routine was registered, it is invoked on the value to cleanup
+ * any dynamically allocated structure created during the value deserialization
+ * and which is still referenced by the value.
+ *
+ * When ``reclaim'' is FALSE, the value free routine is invoked on the
+ * old value to reclaim value-specific allocations, but the value arena
+ * is not freed and can be reused.
+ */
+static void
+free_value(const dbmw_t *dw, struct cached *cv, gboolean reclaim)
+{
+	if (cv->len) {
+		if (dw->valfree)
+			(*dw->valfree)(cv->data, cv->len);
+		if (reclaim) {
+			wfree(cv->data, cv->len);
+			cv->len = 0;
+			cv->data = NULL;
+		}
+	}
+}
+
+/**
  * Remove cached entry for key, optionally disposing of the whole structure.
  * Cached entry is flushed if it was dirty and flush is set.
  *
@@ -317,9 +346,7 @@ remove_entry(dbmw_t *dw, gconstpointer key, gboolean dispose, gboolean flush)
 	 * Dispose of the cache structure.
 	 */
 
-	if (old->len)
-		wfree(old->data, old->len);
-
+	free_value(dw, old, TRUE);
 	wfree(old, sizeof *old);
 
 	return NULL;
@@ -350,8 +377,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 	g_assert(!map_contains(dw->values, key));
 	g_assert(!filled || (!filled->len == !filled->data));
 
-	saved_key = walloc(dw->key_size);
-	memcpy(saved_key, key, dw->key_size);
+	saved_key = wcopy(key, dw->key_size);
 
 	/*
 	 * If we have less keys cached than our maximum, add it.
@@ -393,7 +419,8 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
  * Fill cache entry structure with value data, marking it dirty and present.
  */
 static void
-fill_entry(struct cached *entry, gpointer value, size_t length)
+fill_entry(const dbmw_t *dw,
+	struct cached *entry, gpointer value, size_t length)
 {
 	/*
 	 * Try to reuse old entry arena if same size.
@@ -407,16 +434,13 @@ fill_entry(struct cached *entry, gpointer value, size_t length)
 	if (length != (size_t) entry->len) {
 		gpointer arena = NULL;
 
-		if (length) {
-			arena = walloc(length);
-			memcpy(arena, value, length);
-		}
-		if (entry->len)
-			wfree(entry->data, entry->len);
-
+		if (length)
+			arena = wcopy(value, length);
+		free_value(dw, entry, TRUE);
 		entry->data = arena;
 		entry->len = length;
 	} else if (value != entry->data && length) {
+		free_value(dw, entry, FALSE);
 		memcpy(entry->data, value, length);
 	}
 
@@ -514,11 +538,11 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 			dw->w_hits++;
 		else if (entry->absent)
 			dw->count_needs_sync = TRUE;	/* Key exists now */
-		fill_entry(entry, value, length);
+		fill_entry(dw, entry, value, length);
 		hash_list_moveto_tail(dw->keys, key);
 	} else if (dw->max_cached > 1) {
 		entry = allocate_entry(dw, key, NULL);
-		fill_entry(entry, value, length);
+		fill_entry(dw, entry, value, length);
 		dw->count_needs_sync = TRUE;	/* Does not know whether key exists */
 	} else { 
 		write_immediately(dw, key, value, length);
@@ -598,6 +622,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 		if (!(*dw->unpack)(dw->bs, entry->data, dw->value_size)) {
 			g_error("DBMW deserialization error for %s: %s",
 				dw->name, bstr_error(dw->bs));
+			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
 			wfree(entry, sizeof *entry);
 			return NULL;
@@ -609,9 +634,8 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 		g_assert(dw->value_size >= dval.len);
 
 		if (dval.len) {
-			entry->data = walloc(dval.len);
 			entry->len = dval.len;
-			memcpy(entry->data, dval.data, dval.len);
+			entry->data = wcopy(dval.data, dval.len);
 		} else {
 			entry->data = NULL;
 			entry->len = 0;
@@ -699,7 +723,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 			dw->w_hits++;
 		if (!entry->absent) {
 			dw->count_needs_sync = TRUE;	/* Deferred delete */
-			fill_entry(entry, NULL, 0);
+			fill_entry(dw, entry, NULL, 0);
 			entry->absent = TRUE;
 		}
 		hash_list_moveto_tail(dw->keys, key);
@@ -743,8 +767,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	g_assert(!entry->dirty);
 	g_assert(!entry->len == !entry->data);
 
-	if (entry->len)
-		wfree(entry->data, entry->len);
+	free_value(dw, entry, TRUE);
 	wfree(key, dw->key_size);
 	wfree(entry, sizeof *entry);
 }
