@@ -173,7 +173,9 @@ frame_eq(gconstpointer a, gconstpointer b)
 		0 == memcmp(fa->stack, fb->stack, fa->len * sizeof(void *));
 }
 
-#if defined(MAXPATHLEN)
+#if defined(PATH_MAX)
+#define MAX_PATH_LEN	PATH_MAX	/* POSIX, first choice */
+#elif defined(MAXPATHLEN)
 #define MAX_PATH_LEN	MAXPATHLEN
 #elif defined(PATH_LEN)
 #define MAX_PATH_LEN	PATH_LEN
@@ -194,7 +196,7 @@ locate_from_path(const char *argv0)
 	char filepath[MAX_PATH_LEN + 1];
 	char *result = NULL;
 
-	if (strchr(argv0, G_DIR_SEPARATOR)) {
+	if (filepath_basename(argv0) != argv0) {
 		g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 			argv0, G_DIR_SEPARATOR);
 		return NULL;
@@ -219,8 +221,10 @@ locate_from_path(const char *argv0)
 			dir, G_DIR_SEPARATOR_S, argv0, NULL);
 
 		if (-1 != stat(filepath, &buf)) {
-			result = strdup(filepath);
-			break;
+			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
+				result = strdup(filepath);
+				break;
+			}
 		}
 	}
 
@@ -248,6 +252,9 @@ static void
 trace_remove(size_t i)
 {
 	struct trace *t;
+
+	g_assert(size_is_non_negative(i));
+	g_assert(i < trace_array.count);
 
 	t = &trace_array.base[i];
 	free(t->name);
@@ -367,23 +374,20 @@ trace_name(void *pc)
  *	082be9d3 t zn_create
  */
 static void
-parse_nm(const char *line)
+parse_nm(char *line)
 {
 	int error;
 	const char *ep;
 	guint64 v;
-	char *p = deconstify_gpointer(line);
-	int c;
+	char *p = line;
 
 	v = parse_uint64(p, &ep, 16, &error);
-	if (error || 0 == v) {
+	if (error || 0 == v)
 		return;
-	}
 
 	p = skip_ascii_blanks(ep);
-	c = *p;
 
-	if (c == 't' || c == 'T') {
+	if ('t' == ascii_tolower(*p)) {
 		p = skip_ascii_blanks(p + 1);
 		str_chomp(p, 0);
 		trace_insert(ulong_to_pointer(v), p);
@@ -397,8 +401,9 @@ static void
 load_symbols(const char *argv0)
 {
 	struct stat buf;
-	char *file = deconstify_gpointer(argv0);
+	const char *file = argv0;
 	char tmp[MAX_PATH_LEN + 80];
+	size_t rw;
 	FILE *f;
 
 	if (-1 == stat(argv0, &buf)) {
@@ -409,7 +414,30 @@ load_symbols(const char *argv0)
 		}
 	}
 
-	gm_snprintf(tmp, sizeof tmp, "nm -p %s", file);
+	/*
+	 * Make sure there are no problematic shell meta-characters in the path.
+	 */
+
+	{
+		const char meta[] = "$&`:;()<>|";
+		const char *p = file;
+		int c;
+
+		while ((c = *p++)) {
+			if (strchr(meta, c)) {
+				g_warning("found shell meta-character '%c' in path \"%s\", "
+					"not loading symbols", c, file);
+				goto done;
+			}
+		}
+	}
+
+	rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", file);
+	if (rw != strlen(file) + CONST_STRLEN("nm -p ")) {
+		g_warning("full path \"%s\" too long, cannot load symbols", file);
+		goto done;
+	}
+
 	f = popen(tmp, "r");
 
 	if (NULL == f) {
@@ -430,7 +458,7 @@ done:
 	trace_sort();
 
 	if (file != NULL && file != argv0)
-		free(file);
+		free(deconstify_gpointer(file));
 }
 
 /**
