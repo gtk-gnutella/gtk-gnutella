@@ -77,8 +77,13 @@ void
 gtk_clist_set_column_name(GtkCList *clist, int col, const char *title)
 {
     if (col >= 0 && col < clist->columns) {
-		G_FREE_NULL(clist->column[col].title);
-		clist->column[col].title = g_strdup(title);
+		if (
+			NULL == clist->column[col].title ||
+			0 != strcmp(clist->column[col].title, title)
+		) {
+			G_FREE_NULL(clist->column[col].title);
+			clist->column[col].title = g_strdup(title);
+		}
 	}
 }
 
