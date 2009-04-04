@@ -403,8 +403,10 @@ load_symbols(const char *argv0)
 
 	if (-1 == stat(argv0, &buf)) {
 		file = locate_from_path(argv0);
-		if (NULL == file)
+		if (NULL == file) {
+			g_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto done;
+		}
 	}
 
 	gm_snprintf(tmp, sizeof tmp, "nm -p %s", file);
@@ -694,7 +696,8 @@ malloc_record(gconstpointer o, size_t sz, char *file, int line)
 
 	ob = g_hash_table_lookup(blocks, o);
 	if (ob) {
-		g_warning("(%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
+		g_warning(
+			"MALLOC (%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
 			file, line, (gulong) o, ob->file, ob->line);
 		free_record(o, "FAKED", 0);
 	}
@@ -788,7 +791,7 @@ free_record(gconstpointer o, char *file, int line)
 		return;
 
 	if (blocks == NULL || !(g_hash_table_lookup_extended(blocks, o, &k, &v))) {
-		g_warning("(%s:%d) attempt to free block at 0x%lx twice?",
+		g_warning("MALLOC (%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
 		return;
 	}
@@ -806,7 +809,8 @@ free_record(gconstpointer o, char *file, int line)
 		st = g_hash_table_lookup(stats, &s);
 
 		if (st == NULL)
-			g_warning("(%s:%d) no allocation record of block 0x%lx from %s:%d?",
+			g_warning(
+				"MALLOC (%s:%d) no alloc record of block 0x%lx from %s:%d?",
 				file, line, (gulong) o, b->file, b->line);
 		else {
 			/* Count present block size, after possible realloc() */
@@ -815,7 +819,8 @@ free_record(gconstpointer o, char *file, int line)
 			if (st->total_blocks > 0)
 				st->total_blocks--;
 			else
-				g_warning("(%s:%d) live # of blocks was zero at free time?",
+				g_warning(
+					"MALLOC (%s:%d) live # of blocks was zero at free time?",
 					file, line);
 
 			/* We could free blocks allocated before "reset", don't warn */
@@ -894,7 +899,7 @@ realloc_record(gpointer o, gpointer n, size_t size, char *file, int line)
 	g_assert(n);
 
 	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
-		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
+		g_warning("MALLOC (%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
 		return malloc_record(n, size, file, line);
 	}
@@ -926,7 +931,8 @@ realloc_record(gpointer o, gpointer n, size_t size, char *file, int line)
 		st = g_hash_table_lookup(stats, &s);
 
 		if (st == NULL)
-			g_warning("(%s:%d) no allocation record of block 0x%lx from %s:%d?",
+			g_warning(
+				"MALLOC (%s:%d) no alloc record of block 0x%lx from %s:%d?",
 				file, line, (gulong) o, b->file, b->line);
 		else {
 			/* We store variations in size, as algebric quantities */
@@ -953,7 +959,8 @@ realloc_record(gpointer o, gpointer n, size_t size, char *file, int line)
 				g_hash_table_remove(alloc_points, o);
 				g_hash_table_insert(alloc_points, n, fra);
 			} else {
-				g_warning("lost allocation frame for 0x%lx from %s:%d -> 0x%lx",
+				g_warning(
+					"MALLOC lost allocation frame for 0x%lx at %s:%d -> 0x%lx",
 					(gulong) o, b->file, b->line, (gulong) n);
 			}
 		}
