@@ -308,6 +308,7 @@ is_pow2(guint32 value)
 /*
  * Random numbers
  */
+
 void random_init(void);
 guint32 random_value(guint32 max) WARN_UNUSED_RESULT;
 guint32 random_u32(void) WARN_UNUSED_RESULT;
@@ -317,7 +318,10 @@ void guid_random_fill(struct guid *);
 /*
  * Stuff
  */
+
 void misc_init(void);
+void misc_close(void);
+
 size_t str_chomp(char *str, size_t len);
 int hex2int(guchar c);
 gboolean is_printable(const char *buf, int len);
