@@ -75,7 +75,7 @@ tth_cache_directory(void)
 	if (!directory) {
 		directory = make_pathname(settings_config_dir(), "tth_cache");
 	}
-	return directory;
+	return NOT_LEAKING(directory);
 }
 
 static char *

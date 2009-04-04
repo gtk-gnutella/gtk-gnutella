@@ -186,7 +186,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 	g_assert(l->data != NULL);
 	
 	if (qown == NULL)
-		qown = g_hash_table_new(NULL, NULL);
+		qown = NOT_LEAKING(g_hash_table_new(NULL, NULL));
 
 	owner = g_hash_table_lookup(qown, l);
 	if (owner) {

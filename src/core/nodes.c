@@ -8190,6 +8190,10 @@ node_close(void)
 					alive_free(n->alive_pings);
 					n->alive_pings = NULL;
 				}
+				if (n->routing_data) {
+					routing_node_remove(n);
+					n->routing_data = NULL;
+				}
 				node_real_remove(n);
 			}
 		}
