@@ -534,6 +534,7 @@ gtk_gnutella_exit(gint n)
 	dump_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
+	inputevt_close();
 	atoms_close();
 	wdestroy();
 	locale_close();

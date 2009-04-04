@@ -1097,7 +1097,15 @@ inputevt_add(int fd, inputevt_cond_t cond,
 void
 inputevt_close(void)
 {
-	/* no cleanup required */
+#if !defined(USE_POLL)
+	struct poll_ctx *poll_ctx;
+	
+	poll_ctx = get_global_poll_ctx();
+	g_hash_table_destroy(poll_ctx->ht);
+	G_FREE_NULL(poll_ctx->used);
+	G_FREE_NULL(poll_ctx->relay);
+	G_FREE_NULL(poll_ctx->ev_arr.ev);
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */
