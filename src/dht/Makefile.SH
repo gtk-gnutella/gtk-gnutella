@@ -88,6 +88,7 @@ SRC = \
 	kuid.c \
 	lookup.c \
 	publish.c \
+	revent.c \
 	routing.c \
 	rpc.c \
 	token.c \
@@ -103,6 +104,7 @@ OBJ = \
 	kuid.o \
 	lookup.o \
 	publish.o \
+	revent.o \
 	routing.o \
 	rpc.o \
 	token.o \
