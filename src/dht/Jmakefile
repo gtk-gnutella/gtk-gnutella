@@ -35,6 +35,7 @@ SRC = \
 	kuid.c \
 	lookup.c \
 	publish.c \
+	revent.c \
 	routing.c \
 	rpc.c \
 	token.c \

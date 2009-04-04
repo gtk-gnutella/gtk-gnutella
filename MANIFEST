@@ -500,6 +500,8 @@ src/dht/lookup.c
 src/dht/lookup.h
 src/dht/publish.c
 src/dht/publish.h
+src/dht/revent.c
+src/dht/revent.h
 src/dht/routing.c
 src/dht/routing.h
 src/dht/rpc.c
