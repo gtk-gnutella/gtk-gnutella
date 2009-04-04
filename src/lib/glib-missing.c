@@ -351,6 +351,19 @@ g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value)
 	g_hash_table_remove(ht, key);
 	g_hash_table_insert(ht, key, value);
 }
+
+gboolean
+gm_hash_table_remove(GHashTable *ht, gconstpointer key)
+{
+	/* In glib 1.x, g_hash_table_remove() does not return anything */
+
+	if (g_hash_table_lookup(ht, key)) {
+		g_hash_table_remove(ht, key);
+		return TRUE;
+	}
+
+	return FALSE;
+}
 #endif	/* USE_GLIB1 */
 
 /**

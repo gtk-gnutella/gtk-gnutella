@@ -74,6 +74,7 @@ GList *g_list_insert_before(GList *l, GList *lk, gpointer data);
 GString *g_string_append_len(GString *gs, const char *val, gssize len);
 
 void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
+gboolean gm_hash_table_remove(GHashTable *ht, gconstpointer key);
 
 void g_mem_set_vtable(GMemVTable *vtable);
 gboolean g_mem_is_system_malloc(void);
@@ -85,6 +86,10 @@ GList *g_list_sort_with_data(
 	GList *l, GCompareDataFunc cmp, gpointer user_data);
 
 #define g_string_printf		g_string_sprintf
+#endif
+
+#ifdef USE_GLIB2
+#define gm_hash_table_remove	g_hash_table_remove
 #endif
 
 char *gm_string_finalize(GString *gs);
