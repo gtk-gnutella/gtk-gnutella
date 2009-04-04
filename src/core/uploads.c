@@ -1701,9 +1701,15 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	if (
 		!GNET_PROPERTY(is_firewalled) &&
 		GNET_PROPERTY(give_server_hostname) &&
-		'\0' != GNET_PROPERTY(server_hostname)[0]
+		!is_null_or_empty(GNET_PROPERTY(server_hostname))
 	) {
-		upload_http_extra_callback_add(u, http_hostname_add, NULL);
+		/*
+		 * If they are not actively queued, we force the emission of the
+		 * hostname even if bandwidth is tight.
+		 */
+
+		upload_http_extra_callback_add(u, http_hostname_add,
+			u->status != GTA_UL_QUEUED ? GINT_TO_POINTER(1) : NULL);
 	}
 
 	/*
@@ -3536,7 +3542,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	if (!u->head_only) {
 		if (u->is_followup && !parq_upload_queued(u)) {
 			/*
-			 * Although the request is an follow up request, the last time the
+			 * Although the request is a follow up request, the last time the
 			 * upload didn't get a parq slot. There is probably a good reason
 			 * for this. The most logical explantion is that the client did a
 			 * HEAD only request with a keep-alive. However, no parq structure
@@ -4457,9 +4463,11 @@ upload_request(struct upload *u, header_t *header)
 		0 == u->reqnum &&
 		!GNET_PROPERTY(is_firewalled) &&
 		GNET_PROPERTY(give_server_hostname) &&
-		'\0' != GNET_PROPERTY(server_hostname)[0]
+		!is_null_or_empty(GNET_PROPERTY(server_hostname))
 	) {
-		upload_http_extra_callback_add(u, http_hostname_add, NULL);
+		/* Force sending of X-Hostname even if bandwidth is tight */
+		upload_http_extra_callback_add(u, http_hostname_add,
+			GINT_TO_POINTER(1));
 	}
 
 	/*

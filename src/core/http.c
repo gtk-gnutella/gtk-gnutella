@@ -292,17 +292,18 @@ http_send_status(
  * HTTP status callback.
  *
  * Add an X-Hostname line bearing the fully qualified hostname.
+ *
+ * The ``arg'' parameter is interpreted as a flag: if TRUE, it forces the
+ * emission of the header even if bandwidth is tight (HTTP_CBF_SMALL_REPLY).
  */
 size_t
-http_hostname_add(char *buf, size_t size, gpointer unused_arg, guint32 flags)
+http_hostname_add(char *buf, size_t size, gpointer arg, guint32 flags)
 {
 	size_t len;
 
-	(void) unused_arg;
-
-	if (flags & HTTP_CBF_SMALL_REPLY)
+	if (arg == NULL && (flags & HTTP_CBF_SMALL_REPLY))
 		return 0;
-	if (GNET_PROPERTY(server_hostname)[0])
+	if (is_null_or_empty(GNET_PROPERTY(server_hostname)))
 		return 0;
 
 	len = concat_strings(buf, size,

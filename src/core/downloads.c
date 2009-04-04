@@ -10078,7 +10078,7 @@ http_version_nofix:
 		 */
 		if (ack_code == 503) {			/* Check for queued status */
 
-			if (parq_download_parse_queue_status(d, header)) {
+			if (parq_download_parse_queue_status(d, header, ack_code)) {
 				/* If we are queued, there is nothing else we can do for now */
 				if (parq_download_is_active_queued(d)) {
 					download_passively_queued(d, FALSE);
@@ -10530,24 +10530,24 @@ http_version_nofix:
 
 	genuine_error:
 		download_stop_switch(d, header, GTA_DL_ERROR,
-			"%sHTTP %u %s", short_read, ack_code, ack_message);
-		return;
-	}
+				"%sHTTP %u %s", short_read, ack_code, ack_message);
+			return;
+		}
 
-	/*
-	 * We got a success status from the remote servent.	Parse header.
-	 */
+		/*
+		 * We got a success status from the remote servent.	Parse header.
+		 */
 
-	g_assert(ok);
+		g_assert(ok);
 
-	/*
-	 * Even upon a 2xx reply, a PARQ-compliant server may send us an ID.
-	 * That ID will be used when the server sends us a QUEUE, so it's good
-	 * to remember it.
-	 *		--RAM, 17/05/2003
-	 */
+		/*
+		 * Even upon a 2xx reply, a PARQ-compliant server may send us an ID.
+		 * That ID will be used when the server sends us a QUEUE, so it's good
+		 * to remember it.
+		 *		--RAM, 17/05/2003
+		 */
 
-	(void) parq_download_parse_queue_status(d, header);
+		(void) parq_download_parse_queue_status(d, header, ack_code);
 
 	/*
 	 * If they configured us to require a server name, and we have none

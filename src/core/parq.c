@@ -773,10 +773,15 @@ parq_dl_update_id(struct download *d, const char *temp)
 /**
  * Retrieve and parse queueing information.
  *
+ * @param d			the download
+ * @param header	parsed headers we got from d
+ * @param code		HTTP status code of the reply
+ *
  * @return TRUE if we parsed it OK, FALSE on error.
  */
 gboolean
-parq_download_parse_queue_status(struct download *d, header_t *header)
+parq_download_parse_queue_status(struct download *d,
+	header_t *header, guint code)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 	const char *buf;
@@ -837,9 +842,9 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 		break;
 	case 1:				/* PARQ */
 		buf = header_get(header, "X-Queued");
-		if (buf == NULL) {
+		if (buf == NULL && 503 == code) {
 			g_warning("[PARQ DL] server %s advertised PARQ %d.%d but did not"
-				" send X-Queued",
+				" send X-Queued on HTTP 503",
 				server_host_info(d->server), major, minor);
 			if (GNET_PROPERTY(parq_debug)) {
 				g_warning("[PARQ DL]: header dump:");

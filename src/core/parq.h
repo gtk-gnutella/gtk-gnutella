@@ -68,7 +68,7 @@ void parq_dl_free(struct download *);
 
 void parq_download_retry_active_queued(struct download *);
 gboolean parq_download_supports_parq(header_t *);
-gboolean parq_download_parse_queue_status(struct download *, header_t *);
+gboolean parq_download_parse_queue_status(struct download *, header_t *, guint);
 gboolean parq_download_is_active_queued(const struct download *);
 void parq_download_add_header(char *buf, size_t len, size_t *rw,
 	struct download *);
