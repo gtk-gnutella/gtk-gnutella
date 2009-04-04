@@ -2669,7 +2669,7 @@ bsched_stealbeat(bsched_t *bs)
 					bs->name, amount, xbs->name, xbs->bw_urgent);
 
 			if (underused <= 0)			/* Nothing left to redistribute */
-				return;
+				goto done;
 		}
 	}
 
@@ -2709,8 +2709,10 @@ bsched_stealbeat(bsched_t *bs)
 				printf("b/w sched \"%s\" giving %d bytes to \"%s\"\n",
 					bs->name, (int) amount, xbs->name);
 		}
-		g_slist_free(all_used);
 	}
+
+done:
+	g_slist_free(all_used);
 }
 
 /**

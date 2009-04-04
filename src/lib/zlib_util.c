@@ -479,6 +479,7 @@ zlib_inflate_into(gconstpointer data, int len, gpointer out, int *outlen)
 	/* FALL THROUGH */
 
 done:
+	(void) inflateEnd(inz);
 	wfree(inz, sizeof(*inz));
 	return ret;
 }
