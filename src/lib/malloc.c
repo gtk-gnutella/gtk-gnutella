@@ -839,9 +839,8 @@ free_record(gconstpointer o, char *file, int line)
 
 		fr->count += b->size;			/* Counts actual size, not original */
 		fr->total_count += b->size;
-
-		g_hash_table_remove(alloc_points, o);
 	}
+	g_hash_table_remove(alloc_points, o);
 #endif /* MALLOC_FRAMES */
 
 	g_hash_table_remove(blocks, o);
@@ -951,18 +950,17 @@ realloc_record(gpointer o, gpointer n, size_t size, char *file, int line)
 
 		fr->count += b->size - r->size;
 		fr->total_count += b->size - r->size;
-
-		if (n != o) {
-			struct frame *fra = g_hash_table_lookup(alloc_points, o);
-			if (fra) {
-				/* Propagate the initial allocation frame through reallocs */
-				g_hash_table_remove(alloc_points, o);
-				g_hash_table_insert(alloc_points, n, fra);
-			} else {
-				g_warning(
-					"MALLOC lost allocation frame for 0x%lx at %s:%d -> 0x%lx",
-					(gulong) o, b->file, b->line, (gulong) n);
-			}
+	}
+	if (n != o) {
+		struct frame *fra = g_hash_table_lookup(alloc_points, o);
+		if (fra) {
+			/* Propagate the initial allocation frame through reallocs */
+			g_hash_table_remove(alloc_points, o);
+			g_hash_table_insert(alloc_points, n, fra);
+		} else {
+			g_warning(
+				"MALLOC lost allocation frame for 0x%lx at %s:%d -> 0x%lx",
+				(gulong) o, b->file, b->line, (gulong) n);
 		}
 	}
 #endif /* MALLOC_FRAMES */
