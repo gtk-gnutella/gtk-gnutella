@@ -803,6 +803,7 @@ main_gui_shutdown(void)
     upload_stats_gui_shutdown();
 	gnet_stats_gui_shutdown();
     hcache_gui_shutdown();
+    statusbar_gui_shutdown();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -964,7 +964,7 @@ filter_lazy_utf8_to_ui_string(const gchar *src)
 	G_FREE_NULL(prev);
 	if (dst != src)
 		prev = dst;
-	return dst;
+	return NOT_LEAKING(dst);
 }
 
 /**

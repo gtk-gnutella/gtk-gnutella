@@ -565,7 +565,7 @@ settings_ipc_dir(void)
 	if (!path) {
 		path = make_pathname(settings_config_dir(), "ipc");
 	}
-	return path;
+	return NOT_LEAKING(path);
 
 }
 /**
@@ -579,7 +579,7 @@ settings_local_socket_path(void)
 	if (!path) {
 		path = make_pathname(settings_ipc_dir(), "socket");
 	}
-	return path;
+	return NOT_LEAKING(path);
 }
 
 /**

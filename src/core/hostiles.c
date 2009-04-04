@@ -313,6 +313,9 @@ hostiles_close(void)
 	for (i = 0; i < NUM_HOSTILES; i++) {
 		hostiles_close_one(i);
 	}
+
+	gnet_prop_remove_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
+		use_global_hostiles_txt_changed);
 }
 
 /**

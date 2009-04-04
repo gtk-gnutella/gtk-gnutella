@@ -484,7 +484,12 @@ void
 ignore_close(void)
 {
 	g_hash_table_foreach_remove(by_sha1, free_sha1_kv, NULL);
+	g_hash_table_destroy(by_sha1);
+	by_sha1 = NULL;
+
 	g_hash_table_foreach_remove(by_namesize, free_namesize_kv, NULL);
+	g_hash_table_destroy(by_namesize);
+	by_namesize = NULL;
 
 	if (sha1_out != NULL) {
 		fclose(sha1_out);

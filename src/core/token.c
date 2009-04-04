@@ -556,7 +556,7 @@ tok_version(void)
 	G_FREE_NULL(toklevel);
 	toklevel = tok_generate(now, version_string);
 
-	return toklevel;
+	return NOT_LEAKING(toklevel);
 }
 
 /**

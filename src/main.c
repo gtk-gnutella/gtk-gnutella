@@ -534,6 +534,7 @@ gtk_gnutella_exit(gint n)
 	dump_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
+	misc_close();
 	inputevt_close();
 	atoms_close();
 	wdestroy();
@@ -1303,8 +1304,8 @@ main(int argc, char **argv)
 		halloc_init();
 	}
 	
-	misc_init();
 	tm_now_exact(&start_time);
+	misc_init();
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGHUP, sig_hup);
@@ -1329,7 +1330,6 @@ main(int argc, char **argv)
 	handle_arguments(argc, argv);
 
 	/* Our inits */
-	(void) tm_time_exact();
 	log_init();
 
 #ifdef MALLOC_FRAMES

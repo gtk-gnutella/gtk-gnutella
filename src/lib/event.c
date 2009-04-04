@@ -71,7 +71,7 @@ event_new(const char *name)
     evt = g_new0(struct event, 1);
     evt->name = name;
 
-    return evt;
+    return NOT_LEAKING(evt);	/* Allocated once, never freed */
 }
 
 /**

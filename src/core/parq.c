@@ -5171,6 +5171,7 @@ parq_close(void)
 	g_hash_table_destroy(ul_all_parq_by_addr);
 	g_hash_table_destroy(ul_all_parq_by_id);
 
+	g_hash_table_destroy(dl_all_parq_by_id);
 	g_hash_table_destroy(ht_banned_source);
 	g_list_free(parq_banned_sources);
 }

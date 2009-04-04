@@ -4324,6 +4324,9 @@ search_gui_shutdown(void)
  	guc_search_got_results_listener_remove(search_gui_got_results);
  	guc_search_status_change_listener_remove(search_gui_status_change);
 
+	gui_prop_remove_prop_changed_listener(PROP_SEARCH_RESULTS_SHOW_TABS,
+		search_results_show_tabs_changed);
+
 	search_gui_real_store_searches();
 	store_searches_disabled = TRUE;
 

@@ -2310,6 +2310,7 @@ fi_gui_common_shutdown(void)
     guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
     guc_fi_remove_listener(fi_gui_fi_status_changed_transient,
 		EV_FI_STATUS_CHANGED_TRANSIENT);
+    guc_fi_remove_listener(fi_gui_fi_info_changed, EV_FI_INFO_CHANGED);
 
     guc_src_remove_listener(fi_gui_src_added, EV_SRC_ADDED);
     guc_src_remove_listener(fi_gui_src_removed, EV_SRC_REMOVED);

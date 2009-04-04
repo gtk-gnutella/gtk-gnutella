@@ -126,6 +126,7 @@ struct conv_to_utf8 {
 };
 
 static const char *charset = NULL;	/** Name of the locale charset */
+static GHashTable *utf32_compose_roots;
 
 /** A single-linked list of conv_to_utf8 structs. The first one is used
  ** for converting from the primary charset. Additional charsets are optional.
@@ -1201,6 +1202,12 @@ locale_get_charset(void)
 #endif /* I_LIBCHARSET */
 #endif /* USE_GLIB2 */
 
+		if (cs == NULL) {
+			/* Default locale codeset */
+			cs = "ISO-8859-1";
+			g_warning("locale_init: using default codeset %s as fallback", cs);
+		}
+
 		cs = g_strdup(cs);
 		initialized = TRUE;
 	}
@@ -1237,6 +1244,12 @@ conv_to_utf8_new(const char *cs)
 	return t;
 }
 
+static void
+conv_to_utf8_free(struct conv_to_utf8 *cu)
+{
+	G_FREE_NULL(cu->name);
+	g_free(cu);
+}
 
 /**
  * Emulate GLib 2.x behaviour and select the appropriate character set
@@ -1477,13 +1490,6 @@ locale_init(void)
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);
 
-	if (charset == NULL) {
-		/* Default locale codeset */
-		charset = g_strdup("ISO-8859-1");
-		g_warning("locale_init: Using default codeset %s as fallback.",
-			charset);
-	}
-
 	textdomain_init(charset);
 
 	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++) {
@@ -1528,6 +1534,21 @@ locale_init(void)
 }
 
 /**
+ * Hashtable iteration callback to free lists from utf32_compose_roots.
+ */
+static gboolean
+compose_free_slist(gpointer unused_key, gpointer value, gpointer unused_udata)
+{
+	GSList *sl = value;
+
+	(void) unused_key;
+	(void) unused_udata;
+
+	g_slist_free(sl);
+	return TRUE;
+}
+
+/**
  * Called at shutdown time.
  */
 void
@@ -1543,6 +1564,19 @@ locale_close(void)
 	  conv_icu_utf8 = NULL;
 	}
 #endif
+
+	G_SLIST_FOREACH(sl_filename_charsets, conv_to_utf8_free);
+	g_slist_free(sl_filename_charsets);
+	sl_filename_charsets = NULL;
+
+	if (charset) {
+		g_free(deconstify_gpointer(charset));
+		charset = NULL;
+	}
+
+	g_hash_table_foreach_remove(utf32_compose_roots, compose_free_slist, NULL);
+	g_hash_table_destroy(utf32_compose_roots);
+	utf32_compose_roots = NULL;
 }
 
 /**
@@ -2519,7 +2553,7 @@ CAT2(lazy_,func) proto \
 	dst = func params; \
 	if (dst != src) \
 		prev = dst; \
-	return dst; \
+	return NOT_LEAKING(dst); \
 }
 
 /*
@@ -2852,8 +2886,6 @@ utf32_special_folding(guint32 uc)
 
 	return NULL;
 }
-
-static GHashTable *utf32_compose_roots;
 
 /**
  * Finds the composition of two UTF-32 characters.

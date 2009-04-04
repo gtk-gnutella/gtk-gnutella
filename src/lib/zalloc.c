@@ -531,7 +531,7 @@ zget(int size, int hint)
 	 */
 
 	if (zt == NULL)
-		zt = hash_table_new();
+		zt = NOT_LEAKING(hash_table_new());
 
 	/*
 	 * Make sure size is big enough to store the free-list pointer used to

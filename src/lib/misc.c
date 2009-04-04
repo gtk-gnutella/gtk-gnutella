@@ -2880,7 +2880,7 @@ lazy_string_to_printf_escape(const char *src)
 	}
 	*p = '\0';
 	
-	return prev;	
+	return NOT_LEAKING(prev);	
 }
 
 /**
@@ -3701,6 +3701,12 @@ html_entities_init(void)
 	}
 }
 
+static void
+html_entities_close(void)
+{
+	g_hash_table_destroy(html_entities_lut);
+}
+
 /**
  * Maps an HTML entity to an Unicode codepoint.
  *
@@ -4202,6 +4208,9 @@ get_non_stdio_fd(int fd)
 	return fd;
 }
 
+/**
+ * Initialize miscellaneous data structures.
+ */
 void
 misc_init(void)
 {
@@ -4280,6 +4289,15 @@ misc_init(void)
 		}
 	}
 
+}
+
+/**
+ * Final cleanup at shutdown time.
+ */
+void
+misc_close(void)
+{
+	html_entities_close();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

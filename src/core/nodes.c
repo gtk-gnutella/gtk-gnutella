@@ -8209,6 +8209,9 @@ node_close(void)
 	g_hash_table_destroy(nodes_by_id);
 	nodes_by_id = NULL;
 
+	g_hash_table_destroy(nodes_by_guid);
+	nodes_by_guid = NULL;
+
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;
 
