@@ -1207,16 +1207,20 @@ handle_arguments(int argc, char **argv)
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
+
 #ifndef USE_TOPLESS
 	if (options[main_arg_topless].used) {
 		running_topless = TRUE;
 	}
 #endif	/* USE_TOPLESS */
+
 	if (options[main_arg_version].used) {
 		printf("%s\n", version_build_string());
+
 #ifndef OFFICIAL_BUILD
 		printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
 #endif
+
 		printf("GLib %u.%u.%u",
 			glib_major_version, glib_minor_version, glib_micro_version);
 		if (
@@ -1326,6 +1330,11 @@ main(int argc, char **argv)
 	/* Our inits */
 	(void) tm_time_exact();
 	log_init();
+
+#ifdef MALLOC_FRAMES
+	malloc_init(argv[0]);
+#endif
+
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
 		_("This is an unofficial build which accesses "

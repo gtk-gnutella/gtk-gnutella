@@ -64,6 +64,7 @@
 #include "hashlist.h"
 
 #undef strdup			/**< Defined in <bits/string2.h> */
+#undef strndup
 
 #define malloc(s)		malloc_track((s), _WHERE_, __LINE__)
 #define calloc(n,s)		malloc0_track((n)*(s), _WHERE_, __LINE__)
@@ -76,8 +77,8 @@
 #define g_malloc0(s)	malloc0_track((s), _WHERE_, __LINE__)
 #define g_free(o)		free_track(o, _WHERE_, __LINE__)
 #define g_realloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
-#define g_strdup(s)		((s) ? strdup_track(s, _WHERE_, __LINE__) : 0)
-#define g_strndup(s,n)	((s) ? strndup_track(s, (n), _WHERE_, __LINE__) : 0)
+#define g_strdup(s)		(NULL!=(s) ? strdup_track(s, _WHERE_, __LINE__) : 0)
+#define g_strndup(s,n)	(NULL!=(s) ? strndup_track(s,(n),_WHERE_,__LINE__) : 0)
 #define g_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
 #define g_memdup(p,s)	((p) ? memdup_track((p), (s), _WHERE_, __LINE__) : 0)
 #define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
@@ -284,6 +285,7 @@ GString *string_sprintfa_track(
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
 #ifdef TRACK_MALLOC
+void malloc_init(const char *argv0);
 void malloc_close(void);
 #endif
 

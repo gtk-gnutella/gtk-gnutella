@@ -36,6 +36,7 @@
 #include "common.h"		/* For RCSID */
 
 #include "atoms.h"		/* For binary_hash() */
+#include "ascii.h"
 #include "misc.h"		/* For concat_strings() */
 #include "tm.h"			/* For tm_time() */
 
@@ -58,9 +59,7 @@ RCSID("$Id$")
  *
  * This turns on MALLOC_STATS automatically if not set.
  *
- * XXX need metaconfig checks for execinfo.h, backtrace() and
- * backtrace_symbols().  Also, when GNU ld is used, -rdynamic must be
- * added to the ld flags to get routine name information.
+ * XXX need metaconfig checks for <execinfo.h>, backtrace().
  */
 
 #ifdef MALLOC_FRAMES
@@ -109,7 +108,17 @@ static GHashTable *blocks = NULL;
 
 static void free_record(gconstpointer o, char *file, int line);
 
+/*
+ * When MALLOC_FRAMES is defined, we keep track of allocation stack frames
+ * for all the blocks to know how many allocation / reallocation and free
+ * points there are for each allocation point (identified by file + line).
+ *
+ * We also keep and show the allocation stack frame using symbol names for all
+ * the leaked blocks that we can identify at the end.
+ */
 #ifdef MALLOC_FRAMES
+
+static GHashTable *alloc_points; /**< Maps a block to its allocation frame */
 
 /**
  * Structure keeping track of the allocation/free stack frames.
@@ -119,10 +128,27 @@ static void free_record(gconstpointer o, char *file, int line);
  */
 struct frame {
 	void *stack[FRAME_DEPTH];	/**< PC of callers */
-	int len;					/**< Number of valid entries in stack */
+	size_t len;					/**< Number of valid entries in stack */
 	size_t count;				/**< Bytes allocated/freed since reset */
 	size_t total_count;			/**< Grand total for this stack frame */
 };
+
+/**
+ * A routine entry in the symbol table.
+ */
+struct trace {
+	void *start;				/**< Start PC address */
+	char *name;					/**< Routine name */
+};
+
+/**
+ * The array of trace entries.
+ */
+static struct {
+	struct trace *base;			/**< Array base */
+	size_t size;				/**< Amount of entries allocated */
+	size_t count;				/**< Amount of entries held */
+} trace_array;
 
 /**
  * Hashing routine for a "struct frame".
@@ -132,7 +158,7 @@ frame_hash(gconstpointer key)
 {
 	const struct frame *f = key;
 
-	return binary_hash(f->stack, f->len * sizeof(void *));
+	return binary_hash((guchar *) f->stack, f->len * sizeof(void *));
 }
 
 /**
@@ -147,6 +173,309 @@ frame_eq(gconstpointer a, gconstpointer b)
 		0 == memcmp(fa->stack, fb->stack, fa->len * sizeof(void *));
 }
 
+#if defined(MAXPATHLEN)
+#define MAX_PATH_LEN	MAXPATHLEN
+#elif defined(PATH_LEN)
+#define MAX_PATH_LEN	PATH_LEN
+#else
+#define MAX_PATH_LEN	2048
+#endif
+
+/**
+ * Search executable within the user's PATH.
+ *
+ * @return full path if found, NULL otherwise.
+ */
+static char *
+locate_from_path(const char *argv0)
+{
+	char *path;
+	char *tok;
+	char filepath[MAX_PATH_LEN + 1];
+	char *result = NULL;
+
+	if (strchr(argv0, G_DIR_SEPARATOR)) {
+		g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+			argv0, G_DIR_SEPARATOR);
+		return NULL;
+	}
+
+	path = getenv("PATH");
+	if (NULL == path) {
+		g_warning("can't locate \"%s\" in PATH: no such environment variable",
+			argv0);
+		return NULL;
+	}
+
+	path = strdup(path);
+
+	for (tok = strtok(path, ":"); tok; tok = strtok(NULL, ":")) {
+		const char *dir = tok;
+		struct stat buf;
+
+		if ('\0' == *dir)
+			dir = ".";
+		concat_strings(filepath, sizeof filepath,
+			dir, G_DIR_SEPARATOR_S, argv0, NULL);
+
+		if (-1 != stat(filepath, &buf)) {
+			result = strdup(filepath);
+			break;
+		}
+	}
+
+	free(path);
+	return result;
+}
+
+/**
+ * Compare two trace entries -- qsort() callback.
+ */
+static int
+trace_cmp(const void *p, const void *q)
+{
+	const struct trace const *a = p;
+	const struct trace const *b = q;
+
+	return a->start == b->start ? 0 :
+		pointer_to_ulong(a->start) < pointer_to_ulong(b->start) ? -1 : +1;
+}
+
+/**
+ * Remove duplicate entry in trace array at the specified index.
+ */
+static void
+trace_remove(size_t i)
+{
+	struct trace *t;
+
+	t = &trace_array.base[i];
+	free(t->name);
+	if (i < trace_array.count - 1)
+		memmove(t, t + 1, trace_array.count - i - 1);
+	trace_array.count--;
+}
+
+/**
+ * Sort trace array, remove duplicate entries.
+ */
+static void
+trace_sort(void)
+{
+	size_t i = 0;
+	size_t old_count = trace_array.count;
+	void *last = 0;
+
+	qsort(trace_array.base, trace_array.count,
+		sizeof trace_array.base[0], trace_cmp);
+
+	while (i < trace_array.count) {
+		struct trace *t = &trace_array.base[i];
+		if (last && t->start == last) {
+			trace_remove(i);
+		} else {
+			last = t->start;
+			i++;
+		}
+	}
+
+	if (old_count != trace_array.count) {
+		size_t delta = old_count - trace_array.count;
+		g_assert(size_is_non_negative(delta));
+		g_message("stripped %u duplicate symbol%s",
+			delta, 1 == delta ? "" : "s");
+	}
+}
+
+/**
+ * Insert new trace symbol.
+ */
+static void
+trace_insert(void *start, const char *name)
+{
+	struct trace *t;
+
+	if (trace_array.count >= trace_array.size) {
+		trace_array.size += 1024;
+		if (NULL == trace_array.base)
+			trace_array.base = malloc(trace_array.size * sizeof *t);
+		else
+			trace_array.base = realloc(trace_array.base,
+				trace_array.size * sizeof *t);
+		if (NULL == trace_array.base)
+			g_error("out of memory");
+	}
+
+	t = &trace_array.base[trace_array.count++];
+	t->start = start;
+	t->name = strdup(name);
+}
+
+/**
+ * Lookup trace structure encompassing given program counter.
+ *
+ * @return trace structure if found, NULL otherwise.
+ */
+static struct trace *
+trace_lookup(void *pc)
+{
+	struct trace *low = trace_array.base,
+				 *high = &trace_array.base[trace_array.count -1],
+				 *mid;
+
+	while (low <= high) {
+		mid = low + (high - low) / 2;
+		if (pc >= mid->start && (mid == high || pc < (mid+1)->start))
+			return mid;			/* Found it! */
+		else if (pc < mid->start)
+			high = mid - 1;
+		else
+			low = mid + 1;
+	}
+
+	return NULL;				/* Not found */
+}
+
+/*
+ * @eturn symbolic name for given pc offset, if found, otherwise
+ * the hexadecimal value.
+ */
+static const char *
+trace_name(void *pc)
+{
+	struct trace *t;
+	static char buf[256];
+
+	t = trace_lookup(pc);
+
+	if (NULL == t) {
+		gm_snprintf(buf, sizeof buf, "0x%lx", pointer_to_ulong(pc));
+	} else {
+		gm_snprintf(buf, sizeof buf, "%s+%u", t->name,
+			(unsigned) ptr_diff(pc, t->start));
+	}
+
+	return buf;
+}
+
+/**
+ * Parse the nm output line, recording symbol mapping for function entries.
+ *
+ * We're looking for lines like:
+ *
+ *	082bec77 T zget
+ *	082be9d3 t zn_create
+ */
+static void
+parse_nm(const char *line)
+{
+	int error;
+	const char *ep;
+	guint64 v;
+	char *p = deconstify_gpointer(line);
+	int c;
+
+	v = parse_uint64(p, &ep, 16, &error);
+	if (error || 0 == v) {
+		return;
+	}
+
+	p = skip_ascii_blanks(ep);
+	c = *p;
+
+	if (c == 't' || c == 'T') {
+		p = skip_ascii_blanks(p + 1);
+		str_chomp(p, 0);
+		trace_insert(ulong_to_pointer(v), p);
+	}
+}
+
+/**
+ * Load symbols from the executable we're running.
+ */
+static void
+load_symbols(const char *argv0)
+{
+	struct stat buf;
+	char *file = deconstify_gpointer(argv0);
+	char tmp[MAX_PATH_LEN + 80];
+	FILE *f;
+
+	if (-1 == stat(argv0, &buf)) {
+		file = locate_from_path(argv0);
+		if (NULL == file)
+			goto done;
+	}
+
+	gm_snprintf(tmp, sizeof tmp, "nm -p %s", file);
+	f = popen(tmp, "r");
+
+	if (NULL == f) {
+		g_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
+		goto done;
+	}
+
+	while (fgets(tmp, sizeof tmp, f)) {
+		parse_nm(tmp);
+	}
+
+	pclose(f);
+
+done:
+	g_message("loaded %u symbols from \"%s\"",
+		(unsigned) trace_array.count, file);
+
+	trace_sort();
+
+	if (file != NULL && file != argv0)
+		free(file);
+}
+
+/**
+ * Fill supplied frame structure with the backtrace.
+ */
+static void
+get_stack_frame(struct frame *f)
+{
+	void *stack[FRAME_DEPTH + 2];
+	int len;
+
+	/* Remove ourselves + our caller from stack (first two items) */
+	len = backtrace(stack, G_N_ELEMENTS(stack));
+	g_assert(len >= 2);
+	f->len = len - 2;
+	memcpy(f->stack, &stack[2],
+		sizeof stack[0] * MIN(f->len, G_N_ELEMENTS(f->stack)));
+}
+
+/**
+ * Keep track of each distinct frames in the supplied hash table (given
+ * by a pointer to the variable which holds it so that we can allocate
+ * if if necessary).
+ *
+ * @return stack frame "atom".
+ */
+static struct frame *
+get_frame_atom(GHashTable **hptr, const struct frame *f)
+{
+	struct frame *fr = NULL;
+	GHashTable *ht;
+
+	ht = *hptr;
+	if (NULL == ht)
+		*hptr = ht = g_hash_table_new(frame_hash, frame_eq);
+	else
+		fr = g_hash_table_lookup(ht, f);
+
+	if (fr == NULL) {
+		fr = calloc(1, sizeof(*fr));
+		memcpy(fr->stack, f->stack, f->len * sizeof f->stack[0]);
+		fr->len = f->len;
+		g_hash_table_insert(ht, fr, fr);
+	}
+
+	return fr;
+}
 #endif /* MALLOC_FRAMES */
 
 /**
@@ -163,16 +492,16 @@ frame_eq(gconstpointer a, gconstpointer b)
 #ifdef MALLOC_STATS
 
 struct stats {
-	char *file;				/**< Place where allocation took place */
+	char *file;					/**< Place where allocation took place */
 	int line;					/**< Line number */
-	int blocks;				/**< Live blocks since last "reset" */
+	int blocks;					/**< Live blocks since last "reset" */
 	int total_blocks;			/**< Total live blocks */
 	size_t allocated;			/**< Total allocated since last "reset" */
 	size_t freed;				/**< Total freed since last "reset" */
 	size_t total_allocated;		/**< Total allocated overall */
 	size_t total_freed;			/**< Total freed overall */
-	size_t reallocated;			/**< Total reallocated since last "reset" */
-	size_t total_reallocated;	/**< Total reallocated overall (algebric!) */
+	ssize_t reallocated;		/**< Total reallocated since last "reset" */
+	ssize_t total_reallocated;	/**< Total reallocated overall (algebric!) */
 #ifdef MALLOC_FRAMES
 	GHashTable *alloc_frames;	/**< The frames where allocation took place */
 	GHashTable *free_frames;	/**< The frames where free took place */
@@ -208,20 +537,33 @@ stats_eq(gconstpointer a, gconstpointer b)
 #endif /* MALLOC_STATS */
 
 /**
- * malloc_init
- *
- * Called at first allocation to initialize tracking structures.
+ * Called from main() to load symbols from the executable.
+ */
+void
+malloc_init(const char *argv0)
+{
+#ifdef MALLOC_FRAMES
+	if (argv0 != NULL)
+		load_symbols(argv0);
+#endif
+}
+
+/**
+ * Called at first allocation to initialize tracking structures,.
  */
 static void
-malloc_init(void)
+track_init(void)
 {
 	blocks = g_hash_table_new(NULL, NULL);
 
 #ifdef MALLOC_STATS
 	stats = g_hash_table_new(stats_hash, stats_eq);
 #endif
+#ifdef MALLOC_FRAMES
+	alloc_points = g_hash_table_new(NULL, NULL);
+#endif
 
-	init_time = reset_time = tm_time();
+	init_time = reset_time = tm_time_exact();
 }
 
 /**
@@ -246,6 +588,41 @@ malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 		g_warning("   (realloc'ed %u time%s, lastly from \"%s:%d\")",
 			cnt, cnt == 1 ? "" : "s", r->file, r->line);
 	}
+
+#ifdef MALLOC_FRAMES
+	{
+		struct frame *fr;
+
+		fr = g_hash_table_lookup(alloc_points, k);
+		if (fr == NULL)
+			g_warning("no allocation record for 0x%lx from %s:%d?",
+				(gulong) k, b->file, b->line);
+		else {
+
+			if (trace_array.count) {
+				size_t i;
+
+				g_message("block 0x%lx allocated from:", (gulong) k);
+
+				for (i = 0; i < fr->len; i++) {
+					const char *where = trace_name(fr->stack[i]);
+					fprintf(stderr, "\t%s\n", where);
+				}
+			} else {
+				size_t i;
+				char buf[12 * FRAME_DEPTH];
+				size_t rw = 0;
+
+				buf[0] = '\0';
+				for (i = 0; i < fr->len; i++) {
+					rw += gm_snprintf(&buf[rw], sizeof buf - rw,
+						"0x%lx ", (gulong) fr->stack[i]);
+				}
+				g_message("block 0x%lx allocated from %s", (gulong) k, buf);
+			}
+		}
+	}
+#endif
 }
 
 /**
@@ -293,7 +670,7 @@ malloc_record(gconstpointer o, size_t sz, char *file, int line)
 		return NULL;
 
 	if (blocks == NULL)
-		malloc_init();
+		track_init();
 
 	b = calloc(1, sizeof(*b));
 	if (b == NULL)
@@ -349,24 +726,15 @@ malloc_record(gconstpointer o, size_t sz, char *file, int line)
 #ifdef MALLOC_FRAMES
 	{
 		struct frame f;
-		struct frame *fr = NULL;
+		struct frame *fr;
 
-		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
-
-		if (st->alloc_frames == NULL)
-			st->alloc_frames = g_hash_table_new(frame_hash, frame_eq);
-		else
-			fr = g_hash_table_lookup(st->alloc_frames, &f);
-
-		if (fr == NULL) {
-			fr = calloc(1, sizeof(*fr));
-			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
-			fr->len = f.len;
-			g_hash_table_insert(st->alloc_frames, fr, fr);
-		}
+		get_stack_frame(&f);
+		fr = get_frame_atom(&st->alloc_frames, &f);
 
 		fr->count += sz;
 		fr->total_count += sz;
+
+		gm_hash_table_insert_const(alloc_points, o, fr);
 	}
 #endif /* MALLOC_FRAMES */
 
@@ -459,24 +827,15 @@ free_record(gconstpointer o, char *file, int line)
 #ifdef MALLOC_FRAMES
 	if (st != NULL) {
 		struct frame f;
-		struct frame *fr = NULL;
+		struct frame *fr;
 
-		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
-
-		if (st->free_frames == NULL)
-			st->free_frames = g_hash_table_new(frame_hash, frame_eq);
-		else
-			fr = g_hash_table_lookup(st->free_frames, &f);
-
-		if (fr == NULL) {
-			fr = calloc(1, sizeof(*fr));
-			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
-			fr->len = f.len;
-			g_hash_table_insert(st->free_frames, fr, fr);
-		}
+		get_stack_frame(&f);
+		fr = get_frame_atom(&st->free_frames, &f);
 
 		fr->count += b->size;			/* Counts actual size, not original */
 		fr->total_count += b->size;
+
+		g_hash_table_remove(alloc_points, o);
 	}
 #endif /* MALLOC_FRAMES */
 
@@ -579,24 +938,25 @@ realloc_record(gpointer o, gpointer n, size_t size, char *file, int line)
 #ifdef MALLOC_FRAMES
 	if (st != NULL) {
 		struct frame f;
-		struct frame *fr = NULL;
+		struct frame *fr;
 
-		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
-
-		if (st->realloc_frames == NULL)
-			st->realloc_frames = g_hash_table_new(frame_hash, frame_eq);
-		else
-			fr = g_hash_table_lookup(st->realloc_frames, &f);
-
-		if (fr == NULL) {
-			fr = calloc(1, sizeof(*fr));
-			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
-			fr->len = f.len;
-			g_hash_table_insert(st->realloc_frames, fr, fr);
-		}
+		get_stack_frame(&f);
+		fr = get_frame_atom(&st->realloc_frames, &f);
 
 		fr->count += b->size - r->size;
 		fr->total_count += b->size - r->size;
+
+		if (n != o) {
+			struct frame *fra = g_hash_table_lookup(alloc_points, o);
+			if (fra) {
+				/* Propagate the initial allocation frame through reallocs */
+				g_hash_table_remove(alloc_points, o);
+				g_hash_table_insert(alloc_points, n, fra);
+			} else {
+				g_warning("lost allocation frame for 0x%lx from %s:%d -> 0x%lx",
+					(gulong) o, b->file, b->line, (gulong) n);
+			}
+		}
 	}
 #endif /* MALLOC_FRAMES */
 
@@ -1753,7 +2113,7 @@ alloc_dump(FILE *f, gboolean total)
 
 	now = tm_time();
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
-		count, short_time(now - init_time));
+		count, short_time(delta_time(now, init_time)));
 
 	filler.stats = malloc(sizeof(struct stats *) * count);
 	filler.count = count;
@@ -1774,7 +2134,7 @@ alloc_dump(FILE *f, gboolean total)
 
 	fprintf(f, "--- summary by decreasing %s allocation size %s %s:\n",
 		total ? "total" : "incremental", total ? "at" : "after",
-		short_time(now - (total ? init_time : reset_time)));
+		short_time(delta_time(now, total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
 	/*
