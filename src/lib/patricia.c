@@ -2690,6 +2690,7 @@ test_keys(guint32 keys[], size_t nkeys)
 	g_assert(pt->embedded == 0);
 
 	G_FREE_NULL(data);
+	patricia_destroy(pt);
 }
 
 /**
