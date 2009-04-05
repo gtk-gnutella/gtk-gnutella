@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "features.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/core/main.h"
 
 #include "lib/ascii.h"
 #include "lib/header.h"
