@@ -310,8 +310,10 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 	g_assert(sq);
 	g_assert(mb);
 
-	if (sqh_exists(sq, sh))
+	if (sqh_exists(sq, sh)) {
+		pmsg_free(mb);
 		return;						/* Search already in queue */
+	}
 
 	sb = smsg_alloc(sh, mb, qhv);
 
