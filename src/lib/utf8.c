@@ -1844,6 +1844,17 @@ ascii_enforce(char *dst, size_t size, const char *src)
 	return d - dst;
 }
 
+/**
+ * Applies utf8_enforce to the string "src" copying the
+ * result into "dst" if "dst_size" is sufficiently large.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size in bytes of the destination buffer.
+ * @param src a NUL-terminated string.
+ * @return If dst_size was sufficient dst is returned, otherwise
+ *		   a newly allocated buffer.
+ *         
+ */
 static char *
 hyper_utf8_enforce(char *dst, size_t dst_size, const char *src)
 {
@@ -1863,6 +1874,17 @@ hyper_utf8_enforce(char *dst, size_t dst_size, const char *src)
 	return dst;
 }
 
+/**
+ * Applies ascii_enforce to the string "src" copying the
+ * result into "dst" if "dst_size" is sufficiently large.
+ *
+ * @param dst the destination buffer.
+ * @param dst_size the size in bytes of the destination buffer.
+ * @param src a NUL-terminated string.
+ * @return If dst_size was sufficient dst is returned, otherwise
+ *		   a newly allocated buffer.
+ *         
+ */
 static char *
 hyper_ascii_enforce(char *dst, size_t dst_size, const char *src)
 {
@@ -2395,10 +2417,12 @@ filename_to_utf8_normalized(const char *src, uni_norm_t norm)
 	}
 
 	if (!s) {
-		if (!utf8_is_valid_string(src))
+		if (!utf8_is_valid_string(src)) {
 			g_warning("Could not properly convert to UTF-8: \"%s\"", src);
-			
-		s = hyper_utf8_enforce(NULL, 0, src);
+		}
+		g_assert(NULL == dbuf);
+		dbuf = hyper_utf8_enforce(NULL, 0, src);
+		s = dbuf;
 	}
 
 	dst = utf8_normalize(s, norm);
@@ -4607,7 +4631,7 @@ utf32_normalize(const guint32 *src, uni_norm_t norm)
 	gboolean compat = FALSE;
 	gboolean ok = FALSE;
 
-	g_assert((int) norm >= 0 && norm < NUM_UNI_NORM);
+	g_assert(UNSIGNED(norm) < NUM_UNI_NORM);
 
 	switch (norm) {
 	case UNI_NORM_NFKC:
@@ -4683,7 +4707,7 @@ utf8_normalize(const char *src, uni_norm_t norm)
 
 	g_assert(src);
 	g_assert(utf8_is_valid_string(src));
-	g_assert((int) norm >= 0 && norm < NUM_UNI_NORM);
+	g_assert(UNSIGNED(norm) < NUM_UNI_NORM);
 
 	if (is_ascii_string(src)) {
 		/*
@@ -5741,7 +5765,7 @@ regression_utf8_vs_glib2(void)
 		}
 
 		size = g_unichar_to_utf8(i, utf8_char);
-		g_assert((int) size >= 0 && size < sizeof utf8_char);
+		g_assert(size < sizeof utf8_char);
 		utf8_char[size] = '\0';
 		utf8_decompose_nfd(utf8_char, buf, G_N_ELEMENTS(buf));
 #if 1  /* !defined(xxxUSE_ICU) */
