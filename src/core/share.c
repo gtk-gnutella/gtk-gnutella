@@ -1479,12 +1479,14 @@ finish:
  * @return TRUE if finished.
  */
 static gboolean 
-recursive_scan_next_dir(struct recursive_scan *ctx)
+recursive_scan_next_dir(struct recursive_scan *ctx, int *extra)
 {
 	recursive_scan_check(ctx);
 
 	if (ctx->directory) {
 		recursive_scan_readdir(ctx);
+		if (ctx->directory)
+			*extra = 10;		/* Heavier work done when adding a file */
 		return FALSE;
 	} else if (slist_length(ctx->sub_dirs) > 0) {
 		char *dir;
@@ -1509,17 +1511,19 @@ recursive_scan_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
 	int i = 0;
+	int extra;
 
 	recursive_scan_check(ctx);
 	(void) ticks;
 	(void) bt;
 
 	do {
-		if (recursive_scan_next_dir(ctx)) {
+		extra = 0;
+		if (recursive_scan_next_dir(ctx, &extra)) {
 			recursive_scan_finish(ctx);
 			return BGR_DONE;
 		}
-	} while (++i < ticks);
+	} while ((i += 1 + extra) < ticks);
 
 	return BGR_MORE;
 }
