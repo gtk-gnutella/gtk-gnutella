@@ -161,23 +161,25 @@ gmsg_init(void)
 {
 	int i;
 
+#define VMSG_W	10		/* Special weight to flag vendor messages */
+
 	for (i = 0; i < 256; i++) {
 		const char *s = "unknown";
 		guint w = 0;
 
 		switch ((enum gta_msg) i) {
-		case GTA_MSG_DHT:            w = 0; s = "DHT"; break;
-		case GTA_MSG_INIT:           w = 1; s = "Ping"; break;
-		case GTA_MSG_SEARCH:         w = 2; s = "Query"; break;
-		case GTA_MSG_INIT_RESPONSE:  w = 3; s = "Pong"; break;
-		case GTA_MSG_SEARCH_RESULTS: w = 4; s = "Q-Hit"; break;
-		case GTA_MSG_PUSH_REQUEST:   w = 5; s = "Push"; break;
-		case GTA_MSG_RUDP:   		 		s = "RUDP"; break;
-		case GTA_MSG_VENDOR:         		s = "Vndor"; break;
-		case GTA_MSG_STANDARD:       		s = "Vstd"; break;
-		case GTA_MSG_QRP:            w = 6; s = "QRP"; break;
-		case GTA_MSG_HSEP_DATA:      		s = "HSEP"; break;
-		case GTA_MSG_BYE:      		 w = 7; s = "BYE"; break;
+		case GTA_MSG_DHT:            w = 0;      s = "DHT"; break;
+		case GTA_MSG_HSEP_DATA:      w = 0;      s = "HSEP"; break;
+		case GTA_MSG_INIT:           w = 1;      s = "Ping"; break;
+		case GTA_MSG_SEARCH:         w = 2;      s = "Query"; break;
+		case GTA_MSG_INIT_RESPONSE:  w = 3;      s = "Pong"; break;
+		case GTA_MSG_SEARCH_RESULTS: w = 4;      s = "Q-Hit"; break;
+		case GTA_MSG_PUSH_REQUEST:   w = 5;      s = "Push"; break;
+		case GTA_MSG_VENDOR:         w = VMSG_W; s = "Vndor"; break;
+		case GTA_MSG_STANDARD:       w = VMSG_W; s = "Vstd"; break;
+		case GTA_MSG_RUDP:   		 w = 6;      s = "RUDP"; break;
+		case GTA_MSG_QRP:            w = 8;      s = "QRP"; break;
+		case GTA_MSG_BYE:      		 w = 9;      s = "BYE"; break;
 		}
 		msg_name[i] = s;
 		msg_weight[i] = w;
@@ -875,6 +877,15 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 		kmsg_weight[kademlia_header_get_function(h2)] :  msg_weight[f2];
 
 	/*
+	 * Special case for vendor messages.
+	 */
+
+	w1 = w1 == VMSG_W ?
+		vmsg_weight(gnutella_data(h1) + GTA_HEADER_SIZE) : w1;
+	w2 = (w2 == VMSG_W && h2_pdu) ?
+		vmsg_weight(gnutella_data(h2) + GTA_HEADER_SIZE) : w2;
+
+	/*
 	 * The more weight a message type has, the more prioritary it is.
 	 */
 
@@ -949,6 +960,8 @@ gmsg_infostr_full(gconstpointer msg, size_t msg_len)
 {
 	const char *data = (const char *) msg + GTA_HEADER_SIZE;
 	size_t data_len = msg_len - GTA_HEADER_SIZE;
+
+	g_assert(size_is_non_negative(data_len));
 
 	return gmsg_infostr_full_split(msg, data, data_len);
 }

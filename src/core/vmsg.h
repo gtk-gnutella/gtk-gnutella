@@ -76,6 +76,8 @@ void vmsg_send_head_ping(const struct sha1 *sha1,
 struct pmsg *vmsg_build_oob_reply_ind(const struct guid *muid,
 				guint8 hits, gboolean secure);
 
+guint8 vmsg_weight(gconstpointer data);
+
 void vmsg_init(void);
 void vmsg_close(void);
 

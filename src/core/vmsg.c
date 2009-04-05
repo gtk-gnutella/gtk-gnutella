@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
@@ -1006,15 +1007,23 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	oob_deliver_hits(n, gnutella_header_get_muid(&n->header), wanted, &token);
 }
 
+/**
+ * Node does not want us to OOB-proxy its queries.
+ */
 static void
 handle_oob_proxy_veto(struct gnutella_node *n,
 	const struct vmsg *vmsg, const char *payload, size_t size)
 {
+	const char *msg = NULL;
+
 	if (NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_addr(n));
-		return;
+		msg = "UDP";
+		goto ignore;
+	}
+
+	if (!NODE_IS_LEAF(n)) {
+		msg = "non-leaf node";
+		goto ignore;
 	}
 
 	if (size > 0 && peek_u8(payload) < 3) {
@@ -1022,6 +1031,15 @@ handle_oob_proxy_veto(struct gnutella_node *n,
 		n->flags &= ~NODE_F_NO_OOB_PROXY;
 	} else {
 		n->flags |= NODE_F_NO_OOB_PROXY;
+	}
+
+	return;
+
+ignore:
+	if (GNET_PROPERTY(vmsg_debug)) {
+		g_warning("got %s/%uv%u from %s via %s, ignoring",
+			vendor_code_to_string(vmsg->vendor),
+			vmsg->id, vmsg->version, msg, node_addr(n));
 	}
 }
 
@@ -3126,6 +3144,102 @@ vmsg_send_features_supported(struct gnutella_node *n)
 }
 
 /**
+ * Definition of vendor message sorting weight, for gmsg_cmp().
+ * Note that we don't care about the message version here.
+ */
+struct vmsg_weight {
+	guint32 vendor;
+	guint16 id;
+	int weight;
+};
+
+static const struct vmsg_weight vmsg_weight_map[] = {
+	{ T_0000,  0,  7 },		/* Messages Supported */
+	{ T_0000, 10,  7 },		/* Features Supported */
+	{ T_BEAR,  4,  8 },		/* Hops Flow */
+	{ T_BEAR,  7,  3 },		/* TCP Connect Back */
+	{ T_BEAR, 11,  6 },		/* Query Status Request */
+	{ T_BEAR, 12,  8 },		/* Query Status Response */
+	{ T_GTKG,  7,  3 },		/* UDP Connect Back */
+	{ T_GTKG,  9,  1 },		/* Time Sync Request */
+	{ T_GTKG, 10,  2 },		/* Time Sync Reply */
+	{ T_GTKG, 21,  0 },		/* Push-Proxy Cancel */
+	{ T_GTKG, 22,  0 },		/* Node Info Request */
+	{ T_GTKG, 23,  0 },		/* Node Info Reply */
+	{ T_GTKG, 24,  9 },		/* SVN Release Notify */
+	{ T_LIME,  5,  1 },		/* UDP Crawler Ping */
+	{ T_LIME, 11,  6 },		/* OOB Reply ACK */
+	{ T_LIME, 12,  7 },		/* OOB Reply Indication */
+	{ T_LIME, 13,  2 },		/* OOB Proxy Veto */
+	{ T_LIME, 21,  8 },		/* Push-Proxy Request */
+	{ T_LIME, 22,  8 },		/* Push-Proxy ACK */
+	{ T_LIME, 23,  4 },		/* HEAD Ping */
+	{ T_LIME, 24,  2 },		/* HEAD Pong */
+};
+
+static patricia_t *pt_weight;
+
+#define VMSG_TYPE_LEN		6		/* 6 bytes to identify a message */
+#define VMSG_TYPE_BITLEN	(VMSG_TYPE_LEN * 8)
+
+/**
+ * @return vendor message weight given beginning of vendor message payload.
+ */
+guint8
+vmsg_weight(gconstpointer data)
+{
+	gpointer value;
+
+	value = patricia_lookup(pt_weight, data);
+
+	return pointer_to_uint(value) & 0xff;
+}
+
+/**
+ * Construct the PATRICIA that will be used to quickly determine the
+ * weight of a vendor message by looking at the first 6 bytes of the
+ * message payload.
+ */
+static void
+vmsg_init_weight(void)
+{
+	size_t i;
+
+	pt_weight = patricia_create(VMSG_TYPE_BITLEN);
+
+	for (i = 0; i < G_N_ELEMENTS(vmsg_weight_map); i++) {
+		const struct vmsg_weight *vw = &vmsg_weight_map[i];
+		gnutella_vendor_t *key = walloc(VMSG_TYPE_LEN);
+
+		gnutella_vendor_set_code(key, vw->vendor);
+		gnutella_vendor_set_selector_id(key, vw->id);
+
+		patricia_insert(pt_weight, key, uint_to_pointer(vw->weight));
+	}
+}
+
+static gboolean
+pt_weight_free(gpointer key, size_t keybits, gpointer value, gpointer u)
+{
+	(void) keybits;
+	(void) value;
+	(void) u;
+	wfree(key, VMSG_TYPE_LEN);
+	return TRUE;
+}
+
+/**
+ * Cleanup the weights.
+ */
+static void
+vmsg_close_weight(void)
+{
+	patricia_foreach_remove(pt_weight, pt_weight_free, NULL);
+	patricia_destroy(pt_weight);
+	pt_weight = NULL;
+}
+
+/**
  * Initialize vendor messages.
  */
 void
@@ -3143,11 +3257,13 @@ vmsg_init(void)
 	head_ping_ev = cq_insert(callout_queue, HEAD_PING_PERIODIC_MS,
 					head_ping_timer, NULL);
 
+	vmsg_init_weight();
 }
 
 void
 vmsg_close(void)
 {
+	vmsg_close_weight();
 	head_ping_expire(TRUE);
 	hash_list_free(&head_pings);
 	cq_cancel(callout_queue, &head_ping_ev);

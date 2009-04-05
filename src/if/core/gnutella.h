@@ -71,6 +71,12 @@ struct gnutella_header_ {
 
 typedef guint8 gnutella_header_t[GTA_HEADER_SIZE];
 
+static inline gconstpointer
+gnutella_data(gconstpointer header)
+{
+	return (char *) header + GTA_HEADER_SIZE;
+}
+
 static inline struct guid *
 gnutella_header_muid(gnutella_header_t *header)
 {
