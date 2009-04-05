@@ -690,13 +690,17 @@ malloc_close(void)
  * @return argument ``o''.
  */
 gpointer
-malloc_not_leaking(gconstpointer o, const char *file, int line)
+malloc_not_leaking(gconstpointer o, const char *unused_file, int unused_line)
 {
-	if (!g_hash_table_lookup(blocks, o)) {
-		g_warning(
-			"MALLOC (%s:%d) marking an unknown block 0x%lx as non-leaking",
-			file, line, (unsigned long) o);
-	} else {
+	(void) unused_file;
+	(void) unused_line;
+
+	/*
+	 * Could be called on memory that was not allocated dynamically or which
+	 * we do not know anything about. If so, just ignore silently.
+	 */
+
+	if (g_hash_table_lookup(blocks, o)) {
 		gm_hash_table_insert_const(not_leaking, o, GINT_TO_POINTER(1));
 	}
 	return deconstify_gpointer(o);
