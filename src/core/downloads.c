@@ -7095,7 +7095,6 @@ use_push_proxy(struct download *d)
 	gboolean created = FALSE;
 
 	download_check(d);
-	g_assert(d->push);
 	g_assert(!has_blank_guid(d));
 	g_assert(dl_server_valid(server));
 
