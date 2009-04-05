@@ -837,7 +837,7 @@ parq_download_parse_queue_status(struct download *d,
 	switch (major) {
 	case 0:				/* Active queueing */
 		buf = header_get(header, "X-Queue");
-		if (buf == NULL)
+		if (buf == NULL && 503 == code)
 			return FALSE;
 		break;
 	case 1:				/* PARQ */
@@ -861,6 +861,16 @@ parq_download_parse_queue_status(struct download *d,
 		return FALSE;
 	}
 
+	/*
+	 * If no queue header to parse at this point, then we're dealing with
+	 * an HTTP status other than 503 and it's OK, we have no more work to do.
+	 */
+
+	if (NULL == buf) {
+		g_assert(code != 503);
+		return TRUE;			/* Did not have any queue info to parse */
+	}
+
 	if (d->parq_dl == NULL) {
 		/* So this download has no parq structure yet, well create one! */
 		d->parq_dl = parq_dl_create(d);
@@ -868,7 +878,6 @@ parq_download_parse_queue_status(struct download *d,
 	parq_dl = d->parq_dl;
 
 	g_assert(parq_dl != NULL);
-	g_assert(buf != NULL);
 
 	switch (major) {
 	case 0:				/* Active queueing */
