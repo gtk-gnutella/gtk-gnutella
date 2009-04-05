@@ -1058,7 +1058,7 @@ qlink_remove(mqueue_t *q, GList *l)
  *
  * @param q			the queue
  * @param header	pointer to the header of the new message
- * @param full		whether header points to a full PDU or just the header
+ * @param msglen	if non-zero, header points to a full PDU of msglen bytes
  * @param prio		the priority of the new message we want to enqueue
  * @param needed	the amount of room we want to make in the queue
  * @param offset	see above description
@@ -1067,7 +1067,7 @@ qlink_remove(mqueue_t *q, GList *l)
  */
 static gboolean
 make_room_internal(mqueue_t *q,
-	char *header, gboolean full, guint prio, int needed, int *offset)
+	char *header, size_t msglen, guint prio, int needed, int *offset)
 {
 	int n;
 	int dropped = 0;				/* Amount of messages dropped */
@@ -1169,7 +1169,7 @@ restart:
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, header, full) >= 0) {
+		if (gmsg_cmp(cmb_start, header, msglen != 0) >= 0) {
 			if (offset != NULL)
 				*offset = n;
 			break;
@@ -1191,10 +1191,12 @@ restart:
 		 * Drop message.
 		 */
 
-		if (MQ_DEBUG_LVL(q) > 4)
+		if (MQ_DEBUG_LVL(q) > 4) {
 			gmsg_log_dropped_pmsg(cmb, "to %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				node_addr(q->node), gmsg_infostr(header));
+				node_addr(q->node), msglen ?
+					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
+		}
 
 		gnet_stats_count_flowc(pmsg_start(cmb));
 		cmb_size = pmsg_size(cmb);
@@ -1261,8 +1263,9 @@ make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
 {
 	char *header = pmsg_start(mb);
 	guint prio = pmsg_prio(mb);
+	size_t msglen = pmsg_written_size(mb);
 
-	return make_room_internal(q, header, TRUE, prio, needed, offset);
+	return make_room_internal(q, header, msglen, prio, needed, offset);
 }
 
 /**
@@ -1273,7 +1276,7 @@ static gboolean
 make_room_header(
 	mqueue_t *q, char *header, guint prio, int needed, int *offset)
 {
-	return make_room_internal(q, header, FALSE, prio, needed, offset);
+	return make_room_internal(q, header, 0, prio, needed, offset);
 }
 
 /**
