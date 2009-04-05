@@ -993,6 +993,7 @@ struct recursive_scan {
 	slist_t *base_dirs;			/* list of string atoms */
 	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
 	slist_t *shared_files;		/* list of struct shared_file */
+	int ticks;
 };
 
 static inline void
@@ -1406,6 +1407,8 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 			goto finish;
 		}
 
+		ctx->ticks += 10;	/* Heavier work */
+
 		fullpath = make_pathname(ctx->current_dir, dir_entry->d_name);
 		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
@@ -1479,14 +1482,12 @@ finish:
  * @return TRUE if finished.
  */
 static gboolean 
-recursive_scan_next_dir(struct recursive_scan *ctx, int *extra)
+recursive_scan_next_dir(struct recursive_scan *ctx)
 {
 	recursive_scan_check(ctx);
 
 	if (ctx->directory) {
 		recursive_scan_readdir(ctx);
-		if (ctx->directory)
-			*extra = 10;		/* Heavier work done when adding a file */
 		return FALSE;
 	} else if (slist_length(ctx->sub_dirs) > 0) {
 		char *dir;
@@ -1510,20 +1511,18 @@ static bgret_t
 recursive_scan_step_compute(struct bgtask *bt, void *data, int ticks)
 {
 	struct recursive_scan *ctx = data;
-	int i = 0;
-	int extra;
 
 	recursive_scan_check(ctx);
-	(void) ticks;
 	(void) bt;
 
+	ctx->ticks = 0;
 	do {
-		extra = 0;
-		if (recursive_scan_next_dir(ctx, &extra)) {
+		if (recursive_scan_next_dir(ctx)) {
 			recursive_scan_finish(ctx);
 			return BGR_DONE;
 		}
-	} while ((i += 1 + extra) < ticks);
+		ctx->ticks++;
+	} while (ctx->ticks < ticks);
 
 	return BGR_MORE;
 }
