@@ -84,10 +84,6 @@ RCSID("$Id$")
 #define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
 #include "override.h"
 
-#if 0
-#define TRANSPARENT		/**< To make sure our macros have no side effect */
-#endif
-
 static time_t init_time = 0;
 static time_t reset_time = 0;
 
@@ -719,10 +715,6 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
-#ifdef TRANSPARENT
-	return o;
-#endif
-
 	if (o == NULL)			/* In case it's called externally */
 		return NULL;
 
@@ -917,9 +909,7 @@ free_record(gconstpointer o, const char *file, int line)
 void
 free_track(gpointer o, const char *file, int line)
 {
-#ifndef TRANSPARENT
 	free_record(o, file, line);
-#endif
 	free(o);
 }
 
@@ -1035,10 +1025,6 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 {
 	if (o == NULL)
 		return malloc_track(size, file, line);
-
-#ifdef TRANSPARENT
-	return realloc(o, size);
-#endif
 
 	if (0 == size) {
 		free_track(o, file, line);

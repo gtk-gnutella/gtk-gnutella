@@ -77,10 +77,10 @@
 #define g_malloc0(s)	malloc0_track((s), _WHERE_, __LINE__)
 #define g_free(o)		free_track(o, _WHERE_, __LINE__)
 #define g_realloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
-#define g_strdup(s)		(NULL!=(s) ? strdup_track(s, _WHERE_, __LINE__) : 0)
-#define g_strndup(s,n)	(NULL!=(s) ? strndup_track(s,(n),_WHERE_,__LINE__) : 0)
+#define g_strdup(s)		strdup_track(s, _WHERE_, __LINE__)
+#define g_strndup(s,n)	strndup_track(s,(n),_WHERE_,__LINE__)
 #define g_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
-#define g_memdup(p,s)	((p) ? memdup_track((p), (s), _WHERE_, __LINE__) : 0)
+#define g_memdup(p,s)	memdup_track((p), (s), _WHERE_, __LINE__)
 #define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
 /* FIXME: This only correct if xmlFree() is equivalent to free(). */
