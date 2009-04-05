@@ -880,10 +880,8 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 	 * Special case for vendor messages.
 	 */
 
-	w1 = w1 == VMSG_W ?
-		vmsg_weight(gnutella_data(h1) + GTA_HEADER_SIZE) : w1;
-	w2 = (w2 == VMSG_W && h2_pdu) ?
-		vmsg_weight(gnutella_data(h2) + GTA_HEADER_SIZE) : w2;
+	w1 = w1 == VMSG_W ?  vmsg_weight(gnutella_data(h1)) : w1;
+	w2 = (w2 == VMSG_W && h2_pdu) ? vmsg_weight(gnutella_data(h2)) : w2;
 
 	/*
 	 * The more weight a message type has, the more prioritary it is.
@@ -967,6 +965,35 @@ gmsg_infostr_full(gconstpointer msg, size_t msg_len)
 }
 
 /**
+ * Same a gmsg_infostr_to_buf() only we have the header and the payload.
+ * If the data follows the header, then we can also decompile DHT messages.
+ */
+static size_t
+gmsg_infostr_split_to_buf(
+	gconstpointer head, gconstpointer data, size_t data_len,
+	char *buf, size_t buf_size)
+{
+	guint8 function = gnutella_header_get_function(head);
+	guint16 size = gmsg_size(head);
+
+	if (
+		GTA_MSG_DHT == function &&
+		data_len + GTA_HEADER_SIZE >= KDA_HEADER_SIZE &&
+		data == gnutella_data(head) && data_len == size
+	) {
+		/* Data is consecutive to header and length matches with header */
+		return kmsg_infostr_to_buf(head, buf, buf_size);
+	}
+
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+		gmsg_name(function),
+		size, size == 1 ? "" : "s",
+		gnutella_header_get_ttl(head) & GTA_UDP_DEFLATED ? "deflated " : "",
+		gnutella_header_get_hops(head),
+		gnutella_header_get_ttl(head) & ~GTA_UDP_DEFLATED);
+}
+
+/**
  * Same a gmsg_infostr() but fills the supplied buffer with the formatted
  * string and returns the amount of bytes written.
  */
@@ -976,8 +1003,10 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 	guint8 function = gnutella_header_get_function(msg);
 	guint16 size = gmsg_size(msg);
 
-	if (GTA_MSG_DHT == function)
-		return kmsg_infostr_to_buf(msg, buf, buf_size);
+	/*
+	 * We cannot assume we have more than the Gnutella header, so
+	 * we can't go and probe DHT messages.
+	 */
 
 	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
@@ -1016,7 +1045,7 @@ gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
 		}
 		break;
 	default:
-		rw = gmsg_infostr_to_buf(head, buf, buf_size);
+		rw = gmsg_infostr_split_to_buf(head, data, data_len, buf, buf_size);
 	}
 
 	return rw;
@@ -1037,6 +1066,9 @@ gmsg_infostr_full_to_buf(gconstpointer msg, size_t msg_len,
 }
 
 /**
+ * Pretty-print the message information, based on the Gnutella header and
+ * possibly probing the payload if necessary (for vendor or DHT messages).
+ *
  * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
@@ -1054,6 +1086,8 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data, size_t data_len)
 }
 
 /**
+ * Pretty-print the message information, based solely on the Gnutella header.
+ *
  * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
