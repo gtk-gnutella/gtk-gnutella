@@ -138,7 +138,7 @@ pointer_to_int(const void *p)
 	return pointer_to_uint(p);
 }
 
-typedef void (*func_ptr_t)(void);
+typedef void (*func_ptr_t)();
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE func_ptr_t
 cast_pointer_to_func(const void *p)
