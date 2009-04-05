@@ -1048,32 +1048,26 @@ qlink_remove(mqueue_t *q, GList *l)
 }
 
 /**
- * Remove from the queue enough messages that are less prioritary than
- * the current one, so as to make sure we can enqueue it.
+ * Attempt to make room in the queue to be able to enqueue the new message
+ * whose header is specified.
  *
  * If `offset' is not null, it may be set with the offset within qlink where
- * the message immediately more prioritary than `mb' can be found.  It is
- * up to the caller to initialize it with -1 and check whether it has been
- * set.
+ * the message immediately more prioritary than the new one can be found.
+ * It is up to the caller to initialize it with -1 and check whether it has
+ * been set.
+ *
+ * @param q			the queue
+ * @param header	pointer to the header of the new message
+ * @param full		whether header points to a full PDU or just the header
+ * @param prio		the priority of the new message we want to enqueue
+ * @param needed	the amount of room we want to make in the queue
+ * @param offset	see above description
  *
  * @returns TRUE if we were able to make enough room.
  */
 static gboolean
-make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
-{
-	char *header = pmsg_start(mb);
-	guint prio = pmsg_prio(mb);
-
-	return make_room_header(q, header, prio, needed, offset);
-}
-
-/**
- * Same as make_room(), but we are not given a "pmsg_t" as a comparison
- * point but a Gnutella header and a message priority explicitly.
- */
-static gboolean
-make_room_header(
-	mqueue_t *q, char *header, guint prio, int needed, int *offset)
+make_room_internal(mqueue_t *q,
+	char *header, gboolean full, guint prio, int needed, int *offset)
 {
 	int n;
 	int dropped = 0;				/* Amount of messages dropped */
@@ -1175,7 +1169,7 @@ restart:
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, header, FALSE) >= 0) {
+		if (gmsg_cmp(cmb_start, header, full) >= 0) {
 			if (offset != NULL)
 				*offset = n;
 			break;
@@ -1249,6 +1243,37 @@ restart:
 	}
 
 	return needed <= 0;		/* Can be 0 if we broke out loop above */
+}
+
+/**
+ * Remove from the queue enough messages that are less prioritary than
+ * the current one, so as to make sure we can enqueue it.
+ *
+ * If `offset' is not null, it may be set with the offset within qlink where
+ * the message immediately more prioritary than `mb' can be found.  It is
+ * up to the caller to initialize it with -1 and check whether it has been
+ * set.
+ *
+ * @returns TRUE if we were able to make enough room.
+ */
+static gboolean
+make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
+{
+	char *header = pmsg_start(mb);
+	guint prio = pmsg_prio(mb);
+
+	return make_room_internal(q, header, TRUE, prio, needed, offset);
+}
+
+/**
+ * Same as make_room(), but we are not given a "pmsg_t" as a comparison
+ * point but a Gnutella header and a message priority explicitly.
+ */
+static gboolean
+make_room_header(
+	mqueue_t *q, char *header, guint prio, int needed, int *offset)
+{
+	return make_room_internal(q, header, FALSE, prio, needed, offset);
 }
 
 /**
