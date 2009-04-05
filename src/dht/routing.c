@@ -3493,6 +3493,7 @@ dht_ping(host_addr_t addr, guint16 port)
 	 */
 
 	dht_rpc_ping_extended(kn, RPC_CALL_NO_VERIFY, dht_ping_cb, NULL);
+	knode_free(kn);
 }
 
 /**
