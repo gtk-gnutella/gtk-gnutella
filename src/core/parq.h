@@ -56,6 +56,7 @@ struct parq_dl_queued;
 struct parq_ul_queued;
 
 void parq_init(void);
+void parq_close_pre(void);
 void parq_close(void);
 
 const char *get_parq_dl_id(const struct download *);

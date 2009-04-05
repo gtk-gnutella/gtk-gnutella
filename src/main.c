@@ -394,10 +394,11 @@ gtk_gnutella_exit(gint n)
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
-	DO(parq_close);
+	DO(parq_close_pre);
 	DO(verify_sha1_close);
 	DO(verify_tth_close);
 	DO(download_close);
+	DO(parq_close);
 	DO(pproxy_close);
 	DO(http_close);
 	DO(uhc_close);

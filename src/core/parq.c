@@ -5110,7 +5110,7 @@ parq_init(void)
  * Saves any queueing information and frees all memory used by PARQ.
  */
 void
-parq_close(void)
+parq_close_pre(void)
 {
 	GList *dl, *queues;
 	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
@@ -5182,12 +5182,29 @@ parq_close(void)
 	to_removeq = NULL;
 
 	g_hash_table_destroy(ul_all_parq_by_addr_and_name);
-	g_hash_table_destroy(ul_all_parq_by_addr);
-	g_hash_table_destroy(ul_all_parq_by_id);
+	ul_all_parq_by_addr_and_name = NULL;
 
-	g_hash_table_destroy(dl_all_parq_by_id);
+	g_hash_table_destroy(ul_all_parq_by_addr);
+	ul_all_parq_by_addr = NULL;
+
+	g_hash_table_destroy(ul_all_parq_by_id);
+	ul_all_parq_by_id = NULL;
+
 	g_hash_table_destroy(ht_banned_source);
+	ht_banned_source = NULL;
+
 	g_list_free(parq_banned_sources);
+	parq_banned_sources = NULL;
+}
+
+/*
+ * Final cleanup, must be called after download_close().
+ */
+void
+parq_close(void)
+{
+	g_hash_table_destroy(dl_all_parq_by_id);
+	dl_all_parq_by_id = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
