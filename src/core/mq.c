@@ -238,7 +238,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 	g_assert(q);
 
 	if (qown == NULL)
-		qown = g_hash_table_new(NULL, NULL);
+		qown = NOT_LEAKING(g_hash_table_new(NULL, NULL));
 
 	if (q->magic != MQ_MAGIC)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
