@@ -787,7 +787,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 				source);
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_message("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",
-			gmsg_infostr_full(head),
+			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),
 			qhvec_count(dq->qhv), qhvec_count(dq->qhv) == 1 ? "" : "s",
 			qhvec_has_urn(dq->qhv) ? " + URN" : "",
 			g_slist_length(nodes), GNET_PROPERTY(node_leaf_count));

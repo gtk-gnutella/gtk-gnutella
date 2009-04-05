@@ -259,7 +259,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	if (GNET_PROPERTY(udp_debug) > 19)
-		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buf),
+		g_message("UDP got %s from %s%s", gmsg_infostr_full(s->buf, s->pos),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
 	node_udp_process(s);

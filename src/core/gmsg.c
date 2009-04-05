@@ -136,7 +136,7 @@ gmsg_dump(FILE *out, gconstpointer data, guint32 size)
 {
 	g_assert(size >= GTA_HEADER_SIZE);
 
-	dump_hex(out, gmsg_infostr_full(data),
+	dump_hex(out, gmsg_infostr_full(data, size),
 		(char *) data + GTA_HEADER_SIZE, size - GTA_HEADER_SIZE);
 }
 
@@ -149,7 +149,7 @@ gmsg_split_dump(FILE *out, gconstpointer head, gconstpointer data,
 {
 	g_assert(size >= GTA_HEADER_SIZE);
 
-	dump_hex(out, gmsg_infostr_full_split(head, data),
+	dump_hex(out, gmsg_infostr_full_split(head, data, size - GTA_HEADER_SIZE),
 		data, size - GTA_HEADER_SIZE);
 }
 
@@ -304,7 +304,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 	if (deflated_length >= plen) {
 		if (GNET_PROPERTY(udp_debug))
 			g_message("UDP not deflating %s into %d bytes",
-				gmsg_infostr_full(msg), deflated_length);
+				gmsg_infostr_full(msg, size), deflated_length);
 
 		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
 		goto send_raw;
@@ -321,7 +321,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
 
 	if (GNET_PROPERTY(udp_debug))
 		g_message("UDP deflated %s into %d bytes",
-			gmsg_infostr_full(msg), deflated_length);
+			gmsg_infostr_full(msg, size), deflated_length);
 
 	{
 		gpointer header;
@@ -794,8 +794,8 @@ gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 
 	if (!node_query_hops_ok(n, gnutella_header_get_hops(msg))) {
 		if (GNET_PROPERTY(gmsg_debug) > 4)
-			gmsg_log_dropped(msg, "to node %s due to hops-flow",
-				node_addr(n));
+			gmsg_log_dropped_pmsg(mb,
+				"to node %s due to hops-flow", node_addr(n));
 		return FALSE;
 	}
 
@@ -804,8 +804,8 @@ gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 
 	if (!route_exists_for_reply(msg, gnutella_header_get_function(msg))) {
 		if (GNET_PROPERTY(gmsg_debug) > 4)
-			gmsg_log_dropped(msg, "to node %s due to no route for hits",
-				node_addr(n));
+			gmsg_log_dropped_pmsg(mb,
+				"to node %s due to no route for hits", node_addr(n));
 		return FALSE;
 	}
 
@@ -852,12 +852,16 @@ gmsg_can_drop(gconstpointer pdu, int size)
 }
 
 /**
- * Perform a priority comparison between two messages, given as the whole PDU.
+ * Perform a priority comparison between two messages, given as whole PDUs.
+ *
+ * If h2_pdu is FALSE, then h2 is only a Gnutella header, not a whole PDU.
+ * Caller must ensure that h1 points to the whole PDU, i.e. that the data
+ * immediately follows the Gnutella header.
  *
  * @return algebraic -1/0/+1 depending on relative order.
  */
 int
-gmsg_cmp(gconstpointer h1, gconstpointer h2)
+gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 {
 	int w1, w2;
 	guint8 f1, f2;
@@ -867,7 +871,7 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2)
 
 	w1 = (f1 == GTA_MSG_DHT) ?
 		kmsg_weight[kademlia_header_get_function(h1)] :  msg_weight[f1];
-	w2 = (f2 == GTA_MSG_DHT) ?
+	w2 = (f2 == GTA_MSG_DHT && h2_pdu) ?
 		kmsg_weight[kademlia_header_get_function(h2)] :  msg_weight[f2];
 
 	/*
@@ -929,6 +933,9 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2)
 }
 
 /**
+ * @param msg		start of message (Gnutella header), followed by data
+ * @param msg_len	length of the buffer containing the header + body
+ * 
  * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
@@ -938,11 +945,12 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2)
  * payload of that message.
  */
 char *
-gmsg_infostr_full(gconstpointer msg)
+gmsg_infostr_full(gconstpointer msg, size_t msg_len)
 {
 	const char *data = (const char *) msg + GTA_HEADER_SIZE;
+	size_t data_len = msg_len - GTA_HEADER_SIZE;
 
-	return gmsg_infostr_full_split(msg, data);
+	return gmsg_infostr_full_split(msg, data, data_len);
 }
 
 /**
@@ -956,7 +964,7 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 	guint16 size = gmsg_size(msg);
 
 	if (GTA_MSG_DHT == function)
-		return kmsg_infostr_to_buf(msg, buf, size);
+		return kmsg_infostr_to_buf(msg, buf, buf_size);
 
 	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
@@ -964,6 +972,55 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
 		gnutella_header_get_ttl(msg) & ~GTA_UDP_DEFLATED);
+}
+
+/**
+ * Same as gmsg_infostr_full_split() but fills the supplied buffer with
+ * the formatted string and returns the amount of bytes written.
+ */
+static size_t
+gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
+	size_t data_len, char *buf, size_t buf_size)
+{
+	size_t rw;
+
+	switch (gnutella_header_get_function(head)) {
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
+		{
+			guint16 size = data_len & GTA_SIZE_MASK;
+			guint8 ttl = gnutella_header_get_ttl(head);
+
+			rw = gm_snprintf(buf, buf_size,
+				"%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
+				gmsg_name(gnutella_header_get_function(head)),
+				vmsg_infostr(data, size),
+				size, size == 1 ? "" : "s",
+				ttl & GTA_UDP_DEFLATED ? "deflated " : 
+					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
+				gnutella_header_get_hops(head),
+				ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
+		}
+		break;
+	default:
+		rw = gmsg_infostr_to_buf(head, buf, buf_size);
+	}
+
+	return rw;
+}
+
+/**
+ * Same as gmsg_infostr_full() but formats to supplied buffer ``buf''
+ * which is ``buf_len'' bytes long and returns the amount of bytes written.
+ */
+static size_t
+gmsg_infostr_full_to_buf(gconstpointer msg, size_t msg_len,
+	char *buf, size_t buf_len)
+{
+	const char *data = (const char *) msg + GTA_HEADER_SIZE;
+	size_t data_len = msg_len - GTA_HEADER_SIZE;
+
+	return gmsg_infostr_full_split_to_buf(msg, data, data_len, buf, buf_len);
 }
 
 /**
@@ -975,32 +1032,12 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
  * and on the data of the message (which may not be consecutive in memory).
  */
 char *
-gmsg_infostr_full_split(gconstpointer head, gconstpointer data)
+gmsg_infostr_full_split(gconstpointer head, gconstpointer data, size_t data_len)
 {
-	static char a[160];
+	static char buf[160];
 
-	switch (gnutella_header_get_function(head)) {
-	case GTA_MSG_VENDOR:
-	case GTA_MSG_STANDARD:
-		{
-			guint16 size = gmsg_size(head);
-			guint8 ttl = gnutella_header_get_ttl(head);
-			
-			gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
-				gmsg_name(gnutella_header_get_function(head)),
-				vmsg_infostr(data, size),
-				size, size == 1 ? "" : "s",
-				ttl & GTA_UDP_DEFLATED ? "deflated " : 
-					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
-				gnutella_header_get_hops(head),
-				ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));
-		}
-		break;
-	default:
-		gmsg_infostr_to_buf(head, a, sizeof a);
-	}
-
-	return a;
+	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
+	return buf;
 }
 
 /**
@@ -1017,34 +1054,56 @@ gmsg_infostr(gconstpointer msg)
 }
 
 /**
- * Same as gmsg_infostr(), but different static buffer.
- */
-static char *
-gmsg_infostr2(gconstpointer msg)
-{
-	static char buf[80];
-	gmsg_infostr_to_buf(msg, buf, sizeof buf);
-	return buf;
-}
-
-/**
- * Log dropped message, and reason.
+ * Log dropped message (given with separated header and data) with reason.
  */
 void
-gmsg_log_dropped(gconstpointer msg, const char *reason, ...)
+gmsg_log_split_dropped(
+	gconstpointer head, gconstpointer data, size_t data_len,
+	const char *reason, ...)
 {
-	fputs("DROP ", stdout);
-	fputs(gmsg_infostr2(msg), stdout);	/* Allows gmsg_infostr() in arglist */
+	char rbuf[128];
+	char buf[128];
+
+	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
 
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
-		fputs(": ", stdout);
-		vprintf(reason, args);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		gm_vsnprintf(rbuf, sizeof rbuf - 2, reason, args);
 		va_end(args);
+	} else {
+		rbuf[0] = '\0';
 	}
 
-	fputc('\n', stdout);
+	g_message("DROP %s%s", buf, rbuf);
+}
+
+/**
+ * Log dropped message (held in message block) with supplied reason.
+ */
+void
+gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
+{
+	char rbuf[128];
+	char buf[128];
+
+	gmsg_infostr_full_to_buf(pmsg_start(mb), pmsg_written_size(mb),
+		buf, sizeof buf);
+
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		va_end(args);
+	} else {
+		rbuf[0] = '\0';
+	}
+
+	g_message("DROP %s%s", buf, rbuf);
 }
 
 /**
@@ -1053,19 +1112,25 @@ gmsg_log_dropped(gconstpointer msg, const char *reason, ...)
 void
 gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 {
-	g_message("BAD <%s> %s ", node_vendor(n), node_addr(n));
+	char rbuf[128];
+	char buf[128];
 
-	fputs(gmsg_infostr_full_split(&n->header, n->data), stderr);
+	gmsg_infostr_full_split_to_buf(
+		&n->header, n->data, n->size, buf, sizeof buf);
 
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
-		fputs(": ", stderr);
-		vfprintf(stderr, reason, args);
+		rbuf[0] = ':';
+		rbuf[1] = ' ';
+		gm_vsnprintf(rbuf, sizeof rbuf - 2, reason, args);
 		va_end(args);
+	} else {
+		rbuf[0] = '\0';
 	}
 
-	fputc('\n', stderr);
+	g_message("BAD <%s> %s %s%s",
+		node_vendor(n), node_addr(n), buf, rbuf);
 }
 
 /**

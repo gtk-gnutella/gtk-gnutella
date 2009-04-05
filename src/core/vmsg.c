@@ -798,7 +798,8 @@ vmsg_send_qstat_answer(struct gnutella_node *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_message("VMSG sending %s with hits=%u to %s <%s>",
-			gmsg_infostr_full(v_tmp), hits, node_addr(n), node_vendor(n));
+			gmsg_infostr_full(v_tmp, msgsize),
+			hits, node_addr(n), node_vendor(n));
 
 	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send it ASAP */
 }
@@ -1376,7 +1377,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 		guint8 nleaves = peek_u8(&payload[1]);
 
 		g_message("VMSG sending %s with up=%u and leaves=%u to %s",
-			gmsg_infostr_full(v_tmp), nup, nleaves, node_addr(n));
+			gmsg_infostr_full(v_tmp, msgsize), nup, nleaves, node_addr(n));
 	}
 
 	udp_send_msg(n, v_tmp, msgsize);

@@ -571,7 +571,7 @@ mq_enter_flowc(mqueue_t *q)
 	node_tx_enter_flowc(q->node);	/* Signal flow control */
 
 	if (MQ_DEBUG_LVL(q) > 4)
-		printf("entering FLOWC for node %s (%d bytes queued)\n",
+		g_message("entering FLOWC for node %s (%d bytes queued)",
 			node_addr(q->node), q->size);
 }
 
@@ -584,7 +584,7 @@ mq_leave_flowc(mqueue_t *q)
 	g_assert(q->flags & MQ_FLOWC);
 
 	if (MQ_DEBUG_LVL(q) > 4)
-		printf("leaving %s for node %s (%d bytes queued)\n",
+		g_message("leaving %s for node %s (%d bytes queued)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			node_addr(q->node), q->size);
 
@@ -724,7 +724,7 @@ qlink_cmp(const void *a, const void *b)
 	const pmsg_t *m1 = (*l1)->data, *m2 = (*l2)->data;
 
 	if (pmsg_prio(m1) == pmsg_prio(m2))
-		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2));
+		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2), TRUE);
 	else
 		return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
@@ -1083,7 +1083,7 @@ make_room_header(
 	mq_check(q, 0);
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		printf("%s try to make room for %d bytes in queue 0x%lx (node %s)\n",
+		g_message("%s try to make room for %d bytes in queue 0x%lx (node %s)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			needed, (gulong) q, node_addr(q->node));
 
@@ -1175,7 +1175,7 @@ restart:
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, header) >= 0) {
+		if (gmsg_cmp(cmb_start, header, FALSE) >= 0) {
 			if (offset != NULL)
 				*offset = n;
 			break;
@@ -1198,8 +1198,7 @@ restart:
 		 */
 
 		if (MQ_DEBUG_LVL(q) > 4)
-			gmsg_log_dropped(pmsg_start(cmb),
-				"to %s node %s, in favor of %s",
+			gmsg_log_dropped_pmsg(cmb, "to %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 				node_addr(q->node), gmsg_infostr(header));
 
@@ -1221,7 +1220,7 @@ restart:
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		printf("%s end purge: %d bytes (count=%d) for node %s, need=%d\n",
+		g_message("%s end purge: %d bytes (count=%d) for node %s, need=%d",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			q->size, q->count, node_addr(q->node), needed);
 
@@ -1281,8 +1280,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	) {
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 		if (MQ_DEBUG_LVL(q) > 4)
-			gmsg_log_dropped(pmsg_start(mb),
-				"to FLOWC node %s, %d bytes queued",
+			gmsg_log_dropped_pmsg(mb, "to FLOWC node %s, %d bytes queued",
 				node_addr(q->node), q->size);
 
 		gnet_stats_count_flowc(pmsg_start(mb));
@@ -1319,14 +1317,14 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 
 		if (has_normal_prio) {
 			if (MQ_DEBUG_LVL(q) > 4)
-				gmsg_log_dropped(pmsg_start(mb),
+				gmsg_log_dropped_pmsg(mb,
 					"to FLOWC node %s, %d bytes queued [FULL]",
 					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
 			if (MQ_DEBUG_LVL(q) > 4)
-				gmsg_log_dropped(pmsg_start(mb),
+				gmsg_log_dropped_pmsg(mb,
 					"to FLOWC node %s, %d bytes queued [KILLING]",
 					node_addr(q->node), q->size);
 

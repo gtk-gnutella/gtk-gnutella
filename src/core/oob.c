@@ -321,7 +321,8 @@ servent_service(cqueue_t *cq, gpointer obj)
 
 	if (GNET_PROPERTY(udp_debug) > 19)
 		g_message("UDP queuing OOB %s to %s for %s",
-			gmsg_infostr_full(pmsg_start(mb)), gnet_host_to_string(s->host),
+			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)),
+			gnet_host_to_string(s->host),
 			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
 
 	/*

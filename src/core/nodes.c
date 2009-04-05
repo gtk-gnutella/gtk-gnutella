@@ -2767,7 +2767,8 @@ node_inflate_payload(gnutella_node_t *n)
 	if (!zlib_is_valid_header(n->data, n->size)) {
 		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP got %s with non-deflated payload from %s",
-				gmsg_infostr_full_split(&n->header, n->data), node_addr(n));
+				gmsg_infostr_full_split(&n->header, n->data, n->size),
+				node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
 		return FALSE;
 	}
@@ -2780,7 +2781,8 @@ node_inflate_payload(gnutella_node_t *n)
 	if (ret != Z_OK) {
 		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP cannot inflate %s from %s: %s",
-				gmsg_infostr_full_split(&n->header, n->data), node_addr(n),
+				gmsg_infostr_full_split(&n->header, n->data, n->size),
+				node_addr(n),
 				zlib_strerror(ret));
 		gnet_stats_count_dropped(n, MSG_DROP_INFLATE_ERROR);
 		return FALSE;
@@ -2798,7 +2800,7 @@ node_inflate_payload(gnutella_node_t *n)
 	if (GNET_PROPERTY(udp_debug))
 		g_message("UDP inflated %d-byte payload from %s into %s",
 			n->size, node_addr(n),
-			gmsg_infostr_full_split(&n->header, n->data));
+			gmsg_infostr_full_split(&n->header, n->data, n->size));
 
 	n->size = outlen;
 
@@ -6979,7 +6981,7 @@ node_udp_process(struct gnutella_socket *s)
 	if (drop_hostile && hostiles_check(n->addr)) {
 		if (GNET_PROPERTY(udp_debug))
 			g_warning("UDP got %s from hostile %s -- dropped",
-				gmsg_infostr_full(s->buf), node_addr(n));
+				gmsg_infostr_full(s->buf, s->pos), node_addr(n));
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		return;
 	}
