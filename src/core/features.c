@@ -205,6 +205,7 @@ gboolean
 header_get_feature(const char *name, const header_t *header,
 	guint *major, guint *minor)
 {
+	const char *x_features = "X-Features";
 	char *buf = NULL;
 	char *start;
 
@@ -213,7 +214,7 @@ header_get_feature(const char *name, const header_t *header,
 	if (minor)
 		*minor = 0;
 
-	buf = header_get(header, "X-Features");
+	buf = header_get(header, x_features);
 
 	/*
 	 * We could also try to scan for the header: name, so this would
@@ -264,10 +265,9 @@ header_get_feature(const char *name, const header_t *header,
 	buf += strlen(name);		/* Should now be on the "/" sep */
 
 	if (*buf != '/') {
-		g_warning("[header] Malformed X-Features header, ignoring");
-		if (GNET_PROPERTY(dbg) > 2)
-			header_dump(stderr, header, NULL);
-
+		if (debugging(0))
+			g_warning("malformed %s header \"%s\", ignoring",
+				x_features, NULL_STRING(header_get(header, x_features)));
 		return FALSE;
 	}
 
@@ -276,7 +276,6 @@ header_get_feature(const char *name, const header_t *header,
 	if (*buf == '\0')
 		return FALSE;
 
-	
 	return 0 == parse_major_minor(buf, NULL, major, minor);
 }
 
