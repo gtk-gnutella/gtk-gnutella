@@ -180,8 +180,8 @@ static guint32     connected_node_count = 0;
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
 
-static struct aging *tcp_crawls;
-static struct aging *udp_crawls;
+static aging_table_t *tcp_crawls;
+static aging_table_t *udp_crawls;
 
 typedef struct node_bad_client {
 	const char *vendor;

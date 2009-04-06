@@ -1124,6 +1124,9 @@ host_addr_eq_func(gconstpointer p, gconstpointer q)
 	return host_addr_equal(*a, *b);
 }
 
+/**
+ * Aging table callback.
+ */
 void
 wfree_host_addr(gpointer key, gpointer unused_data)
 {

@@ -52,7 +52,6 @@ struct subzone {
 	size_t  sz_size;			/**< Size of zone arena */
 };
 
-
 /**
  * @struct zone
  *
@@ -65,12 +64,12 @@ struct subzone {
  */
 
 struct zone {			/* Zone descriptor */
-	char **zn_free;	/**< Pointer to first free block */
+	char **zn_free;		/**< Pointer to first free block */
     struct subzone zn_arena;
 	int zn_refcnt;		/**< How many references to that zone? */
 	int zn_size;		/**< Size of blocks in zone */
 	int zn_hint;		/**< Hint size, for next zone extension */
-	int zn_cnt;		/**< Amount of used blocks in zone */
+	int zn_cnt;			/**< Amount of used blocks in zone */
 };
 
 /*
