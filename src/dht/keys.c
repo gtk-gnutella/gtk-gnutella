@@ -173,7 +173,6 @@ static dbmw_t *db_keydata;
 static char db_keybase[] = "dht_keys";
 static char db_keywhat[] = "DHT key data";
 
-static cevent_t *load_ev;		/**< Event for periodic load update */
 static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
 
 /**
@@ -189,7 +188,6 @@ static double decimation_factor[KUID_RAW_BITSIZE];
 
 #define KEYS_DECIMATION_BASE 	1.5		/* Base for exponential decimation */
 
-static void keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj);
 static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
 
 /**
@@ -956,13 +954,6 @@ deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 }
 
 static void
-install_periodic_load(void)
-{
-	load_ev = cq_insert(callout_queue, LOAD_PERIOD * 1000,
-		keys_periodic_load, NULL);
-}
-
-static void
 install_periodic_kball(int period)
 {
 	kball_ev = cq_insert(callout_queue, period * 1000,
@@ -1029,18 +1020,15 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 }
 
 /**
- * Callout queue callback for request load updates.
+ * Callout queue periodic event for request load updates.
  * Also reclaims dead keys holding no values.
  */
-static void
-keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+keys_periodic_load(gpointer unused_obj)
 {
 	struct load_ctx ctx;
 
-	(void) unused_cq;
 	(void) unused_obj;
-
-	install_periodic_load();
 
 	ctx.values = 0;
 	ctx.now = tm_time();
@@ -1055,6 +1043,7 @@ keys_periodic_load(cqueue_t *unused_cq, gpointer unused_obj)
 			(gulong) keys_count, 1 == keys_count ? "" : "s");
 	}
 
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -1187,8 +1176,10 @@ keys_init(void)
 {
 	size_t i;
 
+	cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
+		keys_periodic_load, NULL);
+
 	keys = patricia_create(KUID_RAW_BITSIZE);
-	install_periodic_load();
 	install_periodic_kball(KBALL_FIRST);
 
 	db_keydata = storage_create(db_keywhat, db_keybase,
@@ -1236,7 +1227,6 @@ keys_close(void)
 	kuid_atom_free_null(&kball.furthest);
 	kuid_atom_free_null(&kball.closest);
 
-	cq_cancel(callout_queue, &load_ev);
 	cq_cancel(callout_queue, &kball_ev);
 }
 

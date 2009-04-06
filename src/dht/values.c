@@ -192,10 +192,6 @@ static dbmw_t *db_expired;
 static char db_expbase[] = "dht_expired";
 static char db_expwhat[] = "DHT expired values";
 
-static cevent_t *expire_ev;			/**< Event for periodic value expiration */
-
-static void install_periodic_expire(void);
-
 /**
  * @return amount of values managed.
  */
@@ -669,16 +665,15 @@ values_reclaim_expired(void)
 }
 
 /**
- *  Callout queue callback for periodic value expiration.
+ *  Callout queue periodic event for value expiration.
  */
-static void
-values_periodic_expire(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+values_periodic_expire(gpointer unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
-	install_periodic_expire();
 	values_reclaim_expired();
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -1528,13 +1523,6 @@ values_get(guint64 dbkey, dht_value_type_t type)
 	return v;
 }
 
-static void
-install_periodic_expire(void)
-{
-	expire_ev = cq_insert(callout_queue, EXPIRE_PERIOD * 1000,
-		values_periodic_expire, NULL);
-}
-
 /**
  * Initialize values management.
  */
@@ -1560,7 +1548,8 @@ values_init(void)
 	values_per_class_c = acct_net_create();
 	expired = g_hash_table_new(uint64_hash, uint64_eq);
 
-	install_periodic_expire();
+	cq_periodic_add(callout_queue, EXPIRE_PERIOD * 1000,
+		values_periodic_expire, NULL);
 }
 
 static void
@@ -1589,7 +1578,6 @@ values_close(void)
 
 	g_hash_table_foreach(expired, expired_free_kv, NULL);
 	g_hash_table_destroy(expired);
-	cq_cancel(callout_queue, &expire_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
