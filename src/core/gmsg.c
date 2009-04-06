@@ -867,6 +867,7 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 {
 	int w1, w2;
 	guint8 f1, f2;
+	guint8 hop1, hop2;
 
 	f1 = gnutella_header_get_function(h1);
 	f2 = gnutella_header_get_function(h2);
@@ -898,9 +899,9 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 	 */
 
 	if (f1 == GTA_MSG_DHT) {
-		return f2 == GTA_MSG_DHT ?
-			CMP(gnutella_header_get_size(h2), gnutella_header_get_size(h1)) :
-			-1;
+		guint32 s1 = gnutella_header_get_size(h1);
+		guint32 s2 = gnutella_header_get_size(h2);
+		return f2 == GTA_MSG_DHT ?  CMP(s2, s1) : -1;
 	} else if (f2 == GTA_MSG_DHT) {
 		return +1;		/* Gnutella message (f1) more prioritary */
 	}
@@ -918,25 +919,42 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 	 * to its destination (lowest TTL).
 	 */
 
-	if (gnutella_header_get_hops(h1) == gnutella_header_get_hops(h2)) {
+	hop1 = gnutella_header_get_hops(h1);
+	hop2 = gnutella_header_get_hops(h2);
+
+	if (hop1 == hop2) {
 		switch (f1) {
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH_RESULTS:
-			return CMP(gnutella_header_get_ttl(h2),
-						gnutella_header_get_ttl(h1));
+			{
+				guint8 t1 = gnutella_header_get_ttl(h1);
+				guint8 t2 = gnutella_header_get_ttl(h2);
+				int ttlc = CMP(t2, t1);
+				/* If same TTL, favor the shortest message */
+				if (ttlc) {
+					return ttlc;
+				} else {
+					guint32 s1 = gnutella_header_get_size(h1);
+					guint32 s2 = gnutella_header_get_size(h2);
+					return CMP(s2, s1);
+				}
+			}
 		default:
-			return 0;
+			/* Favor the shortest */
+			{
+				guint32 s1 = gnutella_header_get_size(h1);
+				guint32 s2 = gnutella_header_get_size(h2);
+				return CMP(s2, s1);
+			}
 		}
 	} else {
 		switch (f1) {
 		case GTA_MSG_INIT:
 		case GTA_MSG_SEARCH:
 		case GTA_MSG_QRP:
-			return gnutella_header_get_hops(h1) > gnutella_header_get_hops(h2)
-					? -1 : +1;
+			return hop1 > hop2 ? -1 : +1;
 		default:
-			return gnutella_header_get_hops(h1) < gnutella_header_get_hops(h2)
-					? -1 : +1;
+			return hop1 < hop2 ? -1 : +1;
 		}
 	}
 }
