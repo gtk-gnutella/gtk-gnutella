@@ -1192,8 +1192,9 @@ restart:
 		 */
 
 		if (MQ_DEBUG_LVL(q) > 4) {
-			gmsg_log_dropped_pmsg(cmb, "to %s node %s, in favor of %s",
+			gmsg_log_dropped_pmsg(cmb, "to %s %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), msglen ?
 					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
 		}
@@ -1308,7 +1309,9 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	) {
 		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 		if (MQ_DEBUG_LVL(q) > 4)
-			gmsg_log_dropped_pmsg(mb, "to FLOWC node %s, %d bytes queued",
+			gmsg_log_dropped_pmsg(mb, "to %s %s node %s, %d bytes queued",
+				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), q->size);
 
 		gnet_stats_count_flowc(pmsg_start(mb));
@@ -1346,14 +1349,18 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		if (has_normal_prio) {
 			if (MQ_DEBUG_LVL(q) > 4)
 				gmsg_log_dropped_pmsg(mb,
-					"to FLOWC node %s, %d bytes queued [FULL]",
+					"to %s %s node %s, %d bytes queued [FULL]",
+					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
 			if (MQ_DEBUG_LVL(q) > 4)
 				gmsg_log_dropped_pmsg(mb,
-					"to FLOWC node %s, %d bytes queued [KILLING]",
+					"to %s %s node %s, %d bytes queued [KILLING]",
+					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			/*
