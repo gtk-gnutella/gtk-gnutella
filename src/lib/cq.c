@@ -37,11 +37,17 @@
 
 RCSID("$Id$")
 
+#include "atoms.h"
 #include "cq.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
+
+static void cq_run_idle(cqueue_t *cq);
+
+static const guint32 *cq_debug_ptr;
+static inline guint32 cq_debug(void) { return *cq_debug_ptr; }
 
 enum cevent_magic { CEVENT_MAGIC = 0x40110172U };
 
@@ -94,23 +100,31 @@ struct chash {
 	cevent_t *ch_tail;			/**< Bucket list tail */
 };
 
-enum cqueue_magic { CQUEUE_MAGIC = 0x140332ddU };
+enum cqueue_magic  {
+	CQUEUE_MAGIC    = 0x140332ddU,
+	CSUBQUEUE_MAGIC = 0x64d037feU
+};
 
 struct cqueue {
-	struct chash *cq_hash;		/**< Array of buckets for hash list */
+	tm_t cq_last_heartbeat;		/**< Real time of last heartbeat */
 	cq_time_t cq_time;			/**< "current time" */
+	const char *cq_name;		/**< Queue name, for logging */
+	struct chash *cq_hash;		/**< Array of buckets for hash list */
+	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
+	GHashTable *cq_periodic;	/**< Periodic events registered */
+	GHashTable *cq_idle;		/**< Idle events registered */
 	enum cqueue_magic cq_magic;
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
-	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
+	int cq_period;				/**< Regular callout period, in ms */
 };
 
 static inline void
 cqueue_check(const struct cqueue * const cq)
 {
 	g_assert(cq);
-	g_assert(CQUEUE_MAGIC == cq->cq_magic);
+	g_assert(CQUEUE_MAGIC == cq->cq_magic || CSUBQUEUE_MAGIC == cq->cq_magic);
 }
 
 #define HASH_SIZE	2048		/**< Hash list size, must be a power of 2 */
@@ -128,53 +142,51 @@ cqueue_check(const struct cqueue * const cq)
 cqueue_t *callout_queue;
 
 /**
- * Create a new callout queue object. The 'now' parameter is used to
- * initialize the "current time". Use zero if you don't care...
+ * Initialize newly created callout queue object.
+ *
+ * @param name		queue name, for logging
+ * @param now		virtual current time -- use 0 if not important
+ * @param period	period between heartbeats, in ms
+ *
+ * @return the initialized object
  */
-cqueue_t *
-cq_make(cq_time_t now)
+static cqueue_t *
+cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 {
-	cqueue_t *cq;
-
-	cq = g_malloc(sizeof *cq);
-	cq->cq_magic = CQUEUE_MAGIC;
-
 	/*
 	 * The cq_hash hash list is used to speed up insert/delete operations.
 	 */
 
+	cq->cq_magic = CQUEUE_MAGIC;
+	cq->cq_name = atom_str_get(name);
 	cq->cq_hash = g_malloc0(HASH_SIZE * sizeof *cq->cq_hash);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
 	cq->cq_current = NULL;
+	cq->cq_period = period;
 
+	cqueue_check(cq);
 	return cq;
 }
 
 /**
- * Free the callout queue and all contained event objects.
+ * Create a new callout queue object.
+ *
+ * @param name		queue name, for logging
+ * @param now		virtual current time -- use 0 if not important
+ * @param period	period between heartbeats, in ms
+ *
+ * @return a new callout queue
  */
-void
-cq_free(cqueue_t *cq)
+cqueue_t *
+cq_make(const char *name, cq_time_t now, int period)
 {
-	cevent_t *ev;
-	cevent_t *ev_next;
-	int i;
-	struct chash *ch;
+	cqueue_t *cq;
 
-	cqueue_check(cq);
-
-	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
-		for (ev = ch->ch_head; ev; ev = ev_next) {
-			ev_next = ev->ce_bnext;
-			wfree(ev, sizeof *ev);
-		}
-	}
-
-	G_FREE_NULL(cq->cq_hash);
-	G_FREE_NULL(cq);
+	cq = walloc0(sizeof *cq);
+	return cq_initialize(cq, name, now, period);
 }
 
 /**
@@ -190,9 +202,18 @@ cq_count(const cqueue_t *cq)
  * @return the amount of ticks processed by the callout queue.
  */
 int
-cq_ticks(cqueue_t *cq)
+cq_ticks(const cqueue_t *cq)
 {
 	return cq->cq_ticks;
+}
+
+/**
+ * @return the callout queue name
+ */
+const char *
+cq_name(const cqueue_t *cq)
+{
+	return cq->cq_name;
 }
 
 /**
@@ -464,6 +485,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 	struct chash *ch;
 	cevent_t *ev;
 	cq_time_t now;
+	int processed = 0;
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
@@ -493,8 +515,10 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 	cq->cq_current = ch;
 
-	while ((ev = ch->ch_head) && ev->ce_time <= now)
+	while ((ev = ch->ch_head) && ev->ce_time <= now) {
 		cq_expire(cq, ev);
+		processed++;
+	}
 
 	/*
 	 * If we don't have to move forward (elapsed is too small), we're done.
@@ -519,54 +543,403 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 		cq->cq_current = ch;
 
-		while ((ev = ch->ch_head) && ev->ce_time <= now)
+		while ((ev = ch->ch_head) && ev->ce_time <= now) {
 			cq_expire(cq, ev);
+			processed++;
+		}
 
 	} while (bucket != last_bucket);
 
 done:
 	cq->cq_current = NULL;
-}
 
-/***
- *** Single callout queue instance beating every CALLOUT_PERIOD.
- ***/
-
-#define CALLOUT_PERIOD			100	/* milliseconds */
-
-/**
- * Called every CALLOUT_PERIOD to heartbeat the callout queue.
- */
-static gboolean
-callout_timer(gpointer unused_p)
-{
-	static tm_t last_period;
-	GTimeVal tv;
-	int delay;
-
-	(void) unused_p;
-	tm_now_exact(&tv);
+	if (cq_debug() > 5) {
+		g_message("CQ: %squeue \"%s\" triggered %d event%s (%d item%s)",
+			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
+			cq->cq_name, processed, 1 == processed ? "" : "s",
+			cq->cq_items, 1 == cq->cq_items ? "" : "s");
+	}
 
 	/*
-	 * How much elapsed since last call?
+	 * Run idle callbacks if nothing was processed.
 	 */
 
-	delay = (tv.tv_sec - last_period.tv_sec) * 1000 +
-		(tv.tv_usec - last_period.tv_usec) / 1000;
+	if (0 == processed)
+		cq_run_idle(cq);
+}
 
-	last_period = tv;		/* struct copy */
+/**
+ * Called every period to heartbeat the callout queue.
+ */
+void
+cq_heartbeat(cqueue_t *cq)
+{
+	tm_t tv;
+	time_delta_t delay;
+
+	cqueue_check(cq);
+
+	/*
+	 * How much milliseconds elapsed since last heart beat?
+	 */
+
+	tm_now_exact(&tv);
+	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
+	cq->cq_last_heartbeat = tv;		/* struct copy */
 
 	/*
 	 * If too much variation, or too little, maybe the clock was adjusted.
 	 * Assume a single period then.
 	 */
 
-	if (delay < 0 || delay > 10 * CALLOUT_PERIOD)
-		delay = CALLOUT_PERIOD;
+	if (delay < 0 || delay > 10 * cq->cq_period)
+		delay = cq->cq_period;;
 
-	cq_clock(callout_queue, delay);
+	cq_clock(cq, delay);
+}
 
+/**
+ * Trampoline to invoke heartbeat.
+ */
+static gboolean
+heartbeat_trampoline(gpointer p)
+{
+	cqueue_t *cq = p;
+
+	cq_heartbeat(cq);
 	return TRUE;
+}
+
+/**
+ * Register object in the supplied hash table (passed by reference, created
+ * if not existing already).
+ */
+static void
+register_object(GHashTable **hptr, gpointer o)
+{
+	GHashTable *h = *hptr;
+
+	g_assert(o != NULL);
+
+	if (NULL == h)
+		*hptr = h = g_hash_table_new(NULL, NULL);
+
+	g_assert(!g_hash_table_lookup(h, o));
+
+	g_hash_table_insert(h, o, o);
+}
+
+/**
+ * Unregister object from the hash table.
+ */
+static void
+unregister_object(GHashTable *h, gpointer o)
+{
+	g_assert(h != NULL);
+	g_assert(o != NULL);
+	g_assert(g_hash_table_lookup(h, o));
+
+	g_hash_table_remove(h, o);
+}
+
+/***
+ *** Periodic events.
+ ***/
+
+enum cperiodic_magic { CPERIODIC_MAGIC = 0x1b2d0ed3U };
+
+/**
+ * A periodic event is a callback that needs to be called at regular specified
+ * intervals.  We implement it as a self-reinstantiating callout queue event.
+ *
+ * The callout queue is not given to periodic callbacks.  To cancel the
+ * periodic activity permanently, they can return FALSE.  Otherwise, they
+ * will be periodically invoked.
+ */
+struct cperiodic {
+	enum cperiodic_magic magic;
+	cq_invoke_t event;				/**< Periodic callback */
+	gpointer arg;					/**< Callback argument */
+	int period;						/**< Period between invocations, in ms */
+	cevent_t *ev;					/**< Scheduled event */
+};
+
+static inline void
+cperiodic_check(const struct cperiodic * const cp)
+{
+	g_assert(cp);
+	g_assert(CPERIODIC_MAGIC == cp->magic);
+}
+
+/**
+ * Free allocated periodic event.
+ */
+static void
+cq_periodic_free(cqueue_t *cq, cperiodic_t *cp)
+{
+	cqueue_check(cq);
+	cperiodic_check(cp);
+
+	cq_cancel(cq, &cp->ev);
+	unregister_object(cq->cq_periodic, cp);
+	wfree(cp, sizeof *cp);
+}
+
+/**
+ * Trampoline for dispatching periodic events.
+ */
+static void
+periodic_trampoline(cqueue_t *cq, gpointer data)
+{
+	cperiodic_t *cp = data;
+
+	cqueue_check(cq);
+	cperiodic_check(cp);
+
+	cp->ev = NULL;
+
+	/*
+	 * As long as the periodic event returns TRUE, keep scheduling it.
+	 */
+
+	if ((*cp->event)(cp->arg))
+		cp->ev = cq_insert(cq, cp->period, periodic_trampoline, cp);
+	else {
+		cq_periodic_free(cq, cp);
+	}
+}
+
+/**
+ * Create a new periodic event, invoked every ``period'' milliseconds with
+ * the supplied argument.
+ *
+ * When the callout queue is freed, registered periodic events are
+ * automatically reclaimed as well, so they need not be removed explicitly.
+ */
+cperiodic_t *
+cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
+{
+	cperiodic_t *cp;
+
+	cqueue_check(cq);
+
+	cp = walloc(sizeof *cp);
+	cp->magic = CPERIODIC_MAGIC;
+	cp->event = event;
+	cp->arg = arg;
+	cp->period = period;
+	cp->ev = cq_insert(cq, period, periodic_trampoline, cp);
+
+	register_object(&cq->cq_periodic, cp);
+
+	return cp;
+}
+
+/**
+ * Remove periodic event, if non-NULL, and nullify the variable holding it.
+ */
+void
+cq_periodic_remove(cqueue_t *cq, cperiodic_t **cp_ptr)
+{
+	cqueue_check(cq);
+
+	if (*cp_ptr) {
+		cperiodic_t *cp = *cp_ptr;
+		cq_periodic_free(cq, cp);
+		*cp_ptr = NULL;
+	}
+}
+
+/***
+ *** Sub-queues.
+ ***
+ *** These are standalone callout queues that are scheduled periodically
+ *** out of the main callout queue.
+ ***
+ *** The aim is to be able to have different scheduling periods for different
+ *** activitie and not clutter the hash buckets of the main callout queue with
+ *** too many entries.
+ ***
+ *** Sub-systems making an heavy usage of callout events or which can
+ *** accomodate from a larger time granularity could consider using a sub-queue.
+ ***/
+
+/**
+ * A sub-queue is structurally equivalent to a queue (when considering the
+ * pure callout queue part).
+ */
+struct csubqueue {
+	struct cqueue sub_cq;		/* The sub-queue */
+	cqueue_t *parent;			/* The parent callout queue */
+	cperiodic_t *heartbeat;		/* The heartbeat timer in parent */
+};
+
+static inline void
+csubqueue_check(const struct csubqueue * const csq)
+{
+	g_assert(csq);
+	g_assert(CSUBQUEUE_MAGIC == csq->sub_cq.cq_magic);
+}
+
+/**
+ * Create a new callout queue subordinate to another.
+ *
+ * @param name		the name of the subqueue
+ * @param parent	the parent callout queue
+ * @param period	period between heartbeats, in ms
+ *
+ * @return a new callout queue
+ */
+cqueue_t *
+cq_submake(const char *name, cqueue_t *parent, int period)
+{
+	struct csubqueue *csq;
+
+	csq = walloc0(sizeof *csq);
+	cq_initialize(&csq->sub_cq, name, parent->cq_time, period);
+	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
+
+	csq->parent = parent;
+	csq->heartbeat = cq_periodic_add(parent, period,
+		heartbeat_trampoline, &csq->sub_cq);
+
+	csubqueue_check(csq);
+	cqueue_check(&csq->sub_cq);
+
+	return &csq->sub_cq;
+}
+
+/**
+ * Get rid of a sub-queue, removing its heartbeat in the parent queue and
+ * freeing the sub-queue object.
+ */
+static void
+subqueue_free(struct csubqueue * csq)
+{
+	csubqueue_check(csq);
+	cqueue_check(csq->parent);
+	
+	cq_periodic_remove(csq->parent, &csq->heartbeat);
+	wfree(csq, sizeof *csq);
+}
+
+/***
+ *** Idle events.
+ ***/
+
+enum cidle_magic { CIDLE_MAGIC = 0x70c2d8bdU };
+
+/**
+ * An idle event is called when the associated callout queue has nothing
+ * to schedule when the heartbeat happens.
+ *
+ * The callout queue is not given as to idle callbacks.  To cancel the
+ * idle callback permanently, they can return FALSE.  Otherwise, they
+ * will be invoked each time the callout queue is idle.
+ */
+struct cidle {
+	enum cidle_magic magic;
+	cq_invoke_t event;				/**< Periodic callback */
+	gpointer arg;					/**< Callback argument */
+	cqueue_t *cq;					/**< Callout queue to which they belong */
+};
+
+static inline void
+cidle_check(const struct cidle * const ci)
+{
+	g_assert(ci);
+	g_assert(CIDLE_MAGIC == ci->magic);
+}
+
+/**
+ * Free allocated idle event.
+ */
+static void
+cq_idle_free(cidle_t *ci)
+{
+	cidle_check(ci);
+	cqueue_check(ci->cq);
+
+	unregister_object(ci->cq->cq_idle, ci);
+	wfree(ci, sizeof *ci);
+}
+
+/**
+ * Create a new idle event, invoked each time the associated callout queue
+ * has nothing else to schedule on a given heartbeat.
+ *
+ * When the callout queue is freed, registered idle events are automatically
+ * reclaimed as well, so they need not be removed explicitly.
+ */
+cidle_t *
+cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg)
+{
+	cidle_t *ci;
+
+	cqueue_check(cq);
+
+	ci = walloc(sizeof *ci);
+	ci->magic = CIDLE_MAGIC;
+	ci->event = event;
+	ci->arg = arg;
+	ci->cq = cq;
+
+	register_object(&cq->cq_idle, ci);
+
+	return ci;
+}
+
+/**
+ * Remove idle event, if non-NULL, and nullify the variable holding it.
+ */
+void
+cq_idle_remove(cidle_t **ci_ptr)
+{
+
+	if (*ci_ptr) {
+		cidle_t *ci = *ci_ptr;
+		cq_idle_free(ci);
+		*ci_ptr = NULL;
+	}
+}
+
+/**
+ * Trampoline for dispatching idle events.
+ */
+static gboolean
+idle_trampoline(gpointer key, gpointer val, gpointer data)
+{
+	cidle_t *ci = key;
+	gboolean remove_it = FALSE;
+
+	(void) val;
+	(void) data;
+
+	cidle_check(ci);
+
+	/*
+	 * As long as the idle event returns TRUE, keep scheduling it.
+	 */
+
+	if (!(*ci->event)(ci->arg)) {
+		cq_idle_free(ci);
+		remove_it = TRUE;
+	}
+
+	return remove_it;
+}
+
+/**
+ * Launch idle events for the queue.
+ */
+
+static void
+cq_run_idle(cqueue_t *cq)
+{
+	cqueue_check(cq);
+
+	if (cq->cq_idle)
+		g_hash_table_foreach_remove(cq->cq_idle, idle_trampoline, NULL);
 }
 
 /**
@@ -579,19 +952,35 @@ callout_timer(gpointer unused_p)
 double
 callout_queue_coverage(int old_ticks)
 {
-	return (callout_queue->cq_ticks - old_ticks) * CALLOUT_PERIOD / 1000.0;
+	return (callout_queue->cq_ticks - old_ticks) *
+		callout_queue->cq_period / 1000.0;
 }
+
+/***
+ *** Main callout queue instance beating every CALLOUT_PERIOD.
+ ***/
+
+#define CALLOUT_PERIOD			100	/* milliseconds */
 
 static guint callout_timer_id = 0;
 
 /**
  * Initialization.
+ *
+ * Create the main callout queue (globally visible) and install the supplied
+ * idle callback, if non-NULL.
  */
 void
-cq_init(void)
+cq_init(cq_invoke_t idle, const guint32 *debug)
 {
-	callout_queue = cq_make(0);
-	callout_timer_id = g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
+	cq_debug_ptr = debug;
+
+	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
+	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
+		heartbeat_trampoline, callout_queue);
+
+	if (idle != NULL)
+		cq_idle_add(callout_queue, idle, callout_queue);
 }
 
 /**
@@ -604,6 +993,78 @@ cq_halt(void)
 		g_source_remove(callout_timer_id);
 		callout_timer_id = 0;
 	}
+}
+
+static gboolean
+free_periodic(gpointer key, gpointer value, gpointer data)
+{
+	cperiodic_t *cp = key;
+
+	(void) data;
+	(void) value;
+
+	cperiodic_check(cp);
+	wfree(cp, sizeof *cp);
+	return TRUE;
+}
+
+static gboolean
+free_idle(gpointer key, gpointer value, gpointer data)
+{
+	cidle_t *ci = key;
+
+	(void) data;
+	(void) value;
+
+	cidle_check(ci);
+	wfree(ci, sizeof *ci);
+	return TRUE;
+}
+
+/**
+ * Free the callout queue and all contained event objects.
+ */
+void
+cq_free(cqueue_t *cq)
+{
+	cevent_t *ev;
+	cevent_t *ev_next;
+	int i;
+	struct chash *ch;
+
+	cqueue_check(cq);
+
+	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
+		for (ev = ch->ch_head; ev; ev = ev_next) {
+			ev_next = ev->ce_bnext;
+			wfree(ev, sizeof *ev);
+		}
+	}
+
+	if (cq->cq_periodic) {
+		g_hash_table_foreach_remove(cq->cq_periodic, free_periodic, NULL);
+		g_hash_table_destroy(cq->cq_periodic);
+		cq->cq_periodic = NULL;
+	}
+
+	if (cq->cq_idle) {
+		g_hash_table_foreach_remove(cq->cq_idle, free_idle, cq);
+		g_hash_table_destroy(cq->cq_idle);
+		cq->cq_idle = NULL;
+	}
+
+	G_FREE_NULL(cq->cq_hash);
+	atom_str_free_null(&cq->cq_name);
+
+	/*
+	 * If freeing a sub-queue, the object is a bit larger than a queue,
+	 * and we have more cleanup to do...
+	 */
+
+	if (CSUBQUEUE_MAGIC == cq->cq_magic)
+		subqueue_free((struct csubqueue *) cq);
+	else
+		wfree(cq, sizeof *cq);
 }
 
 /**

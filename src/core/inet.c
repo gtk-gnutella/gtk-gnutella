@@ -50,6 +50,10 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+#define INET_CALLOUT			1000	/**< Heartbeat every second */
+
+static cqueue_t *inet_cq;				/**< Private callout queue */
+
 /***
  *** Firewall status management structures.
  ***/
@@ -139,7 +143,7 @@ ip_record_make(const host_addr_t addr)
 static void
 ip_record_free(struct ip_record *ipr)
 {
-	cq_cancel(callout_queue, &ipr->timeout_ev);
+	cq_cancel(inet_cq, &ipr->timeout_ev);
 	wfree(ipr, sizeof *ipr);
 }
 
@@ -161,7 +165,7 @@ ip_record_touch(struct ip_record *ipr)
 {
 	g_assert(ipr->timeout_ev != NULL);
 
-	cq_resched(callout_queue, ipr->timeout_ev, FW_UDP_WINDOW * 1000);
+	cq_resched(inet_cq, ipr->timeout_ev, FW_UDP_WINDOW * 1000);
 }
 
 /**
@@ -287,7 +291,7 @@ inet_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
 	fw_time = tm_time();
-	cq_cancel(callout_queue, &incoming_ev);
+	cq_cancel(inet_cq, &incoming_ev);
 	node_became_firewalled();
 }
 
@@ -298,7 +302,7 @@ void
 inet_udp_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
-	cq_cancel(callout_queue, &incoming_udp_ev);
+	cq_cancel(inet_cq, &incoming_udp_ev);
 	node_became_udp_firewalled();
 }
 
@@ -330,13 +334,12 @@ inet_udp_got_solicited(void)
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
 	if (solicited_udp_ev == NULL) {
-		cq_insert(callout_queue,
+		cq_insert(inet_cq,
 			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
 		if (GNET_PROPERTY(dbg))
 			g_message("FW: got solicited UDP traffic");
 	} else
-		cq_resched(callout_queue,
-			solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
+		cq_resched(inet_cq, solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
 }
 
 /**
@@ -437,7 +440,7 @@ inet_got_incoming(const host_addr_t addr)
 
 	if (!GNET_PROPERTY(is_firewalled)) {
 		g_assert(incoming_ev);
-		cq_resched(callout_queue, incoming_ev, FW_INCOMING_WINDOW * 1000);
+		cq_resched(inet_cq, incoming_ev, FW_INCOMING_WINDOW * 1000);
 		return;
 	}
 
@@ -448,7 +451,7 @@ inet_got_incoming(const host_addr_t addr)
 
 	inet_not_firewalled();
 
-	incoming_ev = cq_insert(callout_queue, FW_INCOMING_WINDOW * 1000,
+	incoming_ev = cq_insert(inet_cq, FW_INCOMING_WINDOW * 1000,
 					got_no_connection, NULL);
 }
 
@@ -471,7 +474,7 @@ inet_udp_got_unsolicited_incoming(void)
 
 	if (!GNET_PROPERTY(is_udp_firewalled)) {
 		g_assert(incoming_udp_ev);
-		cq_resched(callout_queue, incoming_udp_ev, FW_INCOMING_WINDOW * 1000);
+		cq_resched(inet_cq, incoming_udp_ev, FW_INCOMING_WINDOW * 1000);
 		return;
 	}
 
@@ -479,7 +482,7 @@ inet_udp_got_unsolicited_incoming(void)
 
 	g_assert(incoming_udp_ev == NULL);
 
-	incoming_udp_ev = cq_insert(callout_queue, FW_INCOMING_WINDOW * 1000,
+	incoming_udp_ev = cq_insert(inet_cq, FW_INCOMING_WINDOW * 1000,
 							got_no_udp_unsolicited, NULL);
 }
 
@@ -523,7 +526,7 @@ inet_udp_record_sent(const host_addr_t addr)
 	else {
 		ipr = ip_record_make(addr);
 		g_hash_table_insert(outgoing_udp, &ipr->addr, ipr);
-		ipr->timeout_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
+		ipr->timeout_ev = cq_insert(inet_cq, FW_UDP_WINDOW * 1000,
 			ip_record_destroy, ipr);
 	}
 }
@@ -627,8 +630,7 @@ inet_connection_attempted(const host_addr_t addr)
 
 	if (!outgoing_ev) {
 		activity_seen = FALSE;
-		outgoing_ev = cq_insert(
-			callout_queue, OUTGOING_WINDOW * 1000,
+		outgoing_ev = cq_insert(inet_cq, OUTGOING_WINDOW * 1000,
 			check_outgoing_connection, NULL);
 	}
 }
@@ -672,13 +674,15 @@ inet_read_activity(void)
 void
 inet_init(void)
 {
+	inet_cq = cq_submake("inet", callout_queue, INET_CALLOUT);
+
 	/*
 	 * If we persisted "is_firewalled" to FALSE, arm the no-connection timer.
 	 */
 
 	if (!GNET_PROPERTY(is_firewalled))
 		incoming_ev = cq_insert(
-			callout_queue, FW_INCOMING_WINDOW * 1000,
+			inet_cq, FW_INCOMING_WINDOW * 1000,
 			got_no_connection, NULL);
 
 	/*
@@ -687,7 +691,7 @@ inet_init(void)
 
 	if (!GNET_PROPERTY(is_udp_firewalled))
 		incoming_udp_ev = cq_insert(
-			callout_queue, FW_INCOMING_WINDOW * 1000,
+			inet_cq, FW_INCOMING_WINDOW * 1000,
 			got_no_udp_unsolicited, NULL);
 
 	/*
@@ -696,7 +700,7 @@ inet_init(void)
 
 	if (GNET_PROPERTY(recv_solicited_udp))
 		solicited_udp_ev = cq_insert(
-			callout_queue, FW_SOLICITED_WINDOW * 1000,
+			inet_cq, FW_SOLICITED_WINDOW * 1000,
 			got_no_udp_solicited, NULL);
 
 	/*
@@ -728,9 +732,12 @@ inet_close(void)
 	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
 	g_hash_table_destroy(outgoing_udp);
 
-	cq_cancel(callout_queue, &incoming_ev);
-	cq_cancel(callout_queue, &incoming_udp_ev);
-	cq_cancel(callout_queue, &solicited_udp_ev);
+	cq_cancel(inet_cq, &incoming_ev);
+	cq_cancel(inet_cq, &incoming_udp_ev);
+	cq_cancel(inet_cq, &solicited_udp_ev);
+
+	cq_free(inet_cq);
+	inet_cq = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -38,13 +38,13 @@
 
 #include "common.h" 
 
-struct cqueue;
 typedef struct cqueue cqueue_t;
-
-struct cevent;
 typedef struct cevent cevent_t;
+typedef struct cperiodic cperiodic_t;
+typedef struct cidle cidle_t;
 
 typedef void (*cq_service_t)(struct cqueue *cq, gpointer udata);
+typedef gboolean (*cq_invoke_t)(gpointer udata);
 
 typedef guint64 cq_time_t;		/**< Virtual time for callout queue */
 
@@ -56,19 +56,28 @@ extern cqueue_t *callout_queue;	/* Single global instance */
 
 double callout_queue_coverage(int old_ticks);
 
-void cq_init(void);
+void cq_init(cq_invoke_t idle, const guint32 *debug);
 void cq_halt(void);
 void cq_close(void);
 
-cqueue_t *cq_make(cq_time_t now);
+cqueue_t *cq_make(const char *name, cq_time_t now, int period);
+cqueue_t *cq_submake(const char *name, cqueue_t *parent, int period);
 void cq_free(cqueue_t *cq);
 cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg);
 void cq_expire(cqueue_t *cq, cevent_t *ev);
 void cq_cancel(cqueue_t *cq, cevent_t **handle_ptr);
 void cq_resched(cqueue_t *cq, cevent_t *handle, int delay);
 void cq_clock(cqueue_t *cq, int elapsed);
-int cq_ticks(cqueue_t *cq);
+int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
+const char *cq_name(const cqueue_t *cq);
+void cq_heartbeat(cqueue_t *cq);
+
+cperiodic_t *cq_periodic_add(cqueue_t *cq,
+	int period, cq_invoke_t event, gpointer arg);
+void cq_periodic_remove(cqueue_t *cq, cperiodic_t **cp_ptr);
+cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg);
+void cq_idle_remove(cidle_t **ci_ptr);
 
 #endif	/* _cq_h_ */
 

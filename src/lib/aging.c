@@ -27,7 +27,7 @@
  * @ingroup lib
  * @file
  *
- * Hash table with aging values, removed automatically after
+ * Hash table with aging key/value pairs, removed automatically after
  * some time has elapsed.
  *
  * @author Raphael Manfredi
@@ -45,21 +45,37 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
+#define AGING_CALLOUT	1500	/**< Heartbeat every 1.5 seconds */
+
 /**
- * The hash table is the central piece, but we also have a `value freeing'
- * callback, since the values can expire automatically.
+ * Private callout queue shared by all aging tables, to avoid cluttering
+ * the main callout queue with too many entries.  It is created with the
+ * first aging table and cleared when the last aging table is gone.
  */
+static cqueue_t *aging_cq;		/**< Private callout queue */
+static guint32 aging_refcnt;	/**< Amount of alive aging tables */
 
 enum aging_magic {
 	AGING_MAGIC	= 0x38e2fac3
 };
 
+/**
+ * The hash table is the central piece, but we also have a freeing callbacks,
+ * since the entries expire automatically after some time has elapsed.
+ */
 struct aging {
-	enum aging_magic magic;			/**< Magic number */
+	enum aging_magic magic;	/**< Magic number */
 	GHashTable *table;		/**< The table holding values */
-	aging_free_t kfree;		/**< The freeing callback for keys */
+	aging_free_t kvfree;	/**< The freeing callback for key/value pairs */
 	int delay;				/**< Initial aging delay, in seconds */
 };
+
+static void
+aging_check(const aging_table_t * const ag)
+{
+	g_assert(ag != NULL);
+	g_assert(ag->magic == AGING_MAGIC);
+}
 
 /**
  * We wrap the values we insert in the table, since each value must keep
@@ -69,32 +85,67 @@ struct aging_value {
 	gpointer value;			/**< The value they inserted in the table */
 	gpointer key;			/**< The associated key object */
 	cevent_t *cq_ev;		/**< Scheduled cleanup event */
-	struct aging *ag;		/**< Holding container */
+	aging_table_t *ag;		/**< Holding container */
 	time_t last_insert;		/**< Last insertion time */
 	int ttl;				/**< Time to live */
 };
 
 /**
- * Create new aging container.
+ * Create private callout queue if none exists.
+ */
+static void
+ag_create_callout_queue(void)
+{
+	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
+
+	if (NULL == aging_cq)
+		aging_cq = cq_submake("aging", callout_queue, AGING_CALLOUT);
+
+	aging_refcnt++;
+}
+
+/**
+ * Remove one reference to callout queue, discarding it when nobody
+ * references it anymore.
+ */
+static void
+ag_unref_callout_queue(void)
+{
+	g_assert(aging_refcnt > 0);
+
+	if (0 == --aging_refcnt) {
+		cq_free(aging_cq);
+		aging_cq = NULL;
+	}
+
+	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
+}
+
+/**
+ * Create new aging container, where only keys expire and need to be freed.
+ * Values are either integers (cast to pointers) or refer to parts of the keys.
  *
  * @param delay		the aging delay, in seconds, for entries
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
- * @param kfree		the key freeing callback, NULL if none.
+ * @param kvfree	the key/value pair freeing callback, NULL if none.
  *
  * @return opaque handle to the container.
  */
-struct aging *
-aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kfree)
+aging_table_t *
+aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
 {
-	struct aging *ag;
+	aging_table_t *ag;
+
+	ag_create_callout_queue();
 
 	ag = walloc(sizeof *ag);
 	ag->magic = AGING_MAGIC;
 	ag->table = g_hash_table_new(hash, eq);
-	ag->kfree = kfree;
+	ag->kvfree = kvfree;
 	ag->delay = delay;
 
+	aging_check(ag);
 	return ag;
 }
 
@@ -104,16 +155,17 @@ aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kfree)
 static void
 aging_free_kv(gpointer key, gpointer value, gpointer udata)
 {
-	struct aging *ag = udata;
+	aging_table_t *ag = udata;
 	struct aging_value *aval = value;
 
+	aging_check(ag);
 	g_assert(aval->ag == ag);
+	g_assert(aval->key == key);
 
-	if (ag->kfree != NULL)
-		(*ag->kfree)(key, aval->value);
+	if (ag->kvfree != NULL)
+		(*ag->kvfree)(key, aval->value);
 
-	cq_cancel(callout_queue, &aval->cq_ev);
-
+	cq_cancel(aging_cq, &aval->cq_ev);
 	wfree(aval, sizeof *aval);
 }
 
@@ -121,14 +173,16 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
  * Destroy container, freeing all keys and values.
  */
 void
-aging_destroy(struct aging *ag)
+aging_destroy(aging_table_t *ag)
 {
-	g_assert(ag->magic == AGING_MAGIC);
+	aging_check(ag);
 
 	g_hash_table_foreach(ag->table, aging_free_kv, ag);
 	g_hash_table_destroy(ag->table);
 	ag->magic = 0;
 	wfree(ag, sizeof *ag);
+
+	ag_unref_callout_queue();
 }
 
 /**
@@ -138,9 +192,11 @@ static void
 aging_expire(cqueue_t *unused_cq, gpointer obj)
 {
 	struct aging_value *aval = obj;
-	struct aging *ag = aval->ag;
+	aging_table_t *ag = aval->ag;
 
 	(void) unused_cq;
+	aging_check(ag);
+
 	aval->cq_ev = NULL;
 
 	g_hash_table_remove(ag->table, aval->key);
@@ -151,22 +207,46 @@ aging_expire(cqueue_t *unused_cq, gpointer obj)
  * Lookup value in table.
  */
 gpointer
-aging_lookup(struct aging *ag, gpointer key)
+aging_lookup(const aging_table_t *ag, gconstpointer key)
 {
 	struct aging_value *aval;
 
-	g_assert(ag->magic == AGING_MAGIC);
+	aging_check(ag);
 
 	aval = g_hash_table_lookup(ag->table, key);
 	return aval == NULL ? NULL : aval->value;
 }
 
 /**
+ * Lookup value in table, and if found, revitalize entry, restoring the
+ * initial lifetime the key/value pair had at insertion time.
+ */
+gpointer
+aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
+{
+	struct aging_value *aval;
+
+	aging_check(ag);
+
+	aval = g_hash_table_lookup(ag->table, key);
+
+	if (aval != NULL) {
+		g_assert(aval->cq_ev != NULL);
+		aval->last_insert = tm_time();
+		cq_resched(aging_cq, aval->cq_ev, 1000 * aval->ttl);
+	}
+
+	return aval == NULL ? NULL : aval->value;
+}
+
+/**
  * Remove value associated with key, dispose of items (key and value)
  * stored in the hash table, but leave the function parameter alone.
+ *
+ * @return wehether key was found and subsequently removed.
  */
-void
-aging_remove(struct aging *ag, gpointer key)
+gboolean
+aging_remove(aging_table_t *ag, gpointer key)
 {
 	struct aging_value *aval;
 	gpointer okey, ovalue;
@@ -174,7 +254,7 @@ aging_remove(struct aging *ag, gpointer key)
 	g_assert(ag->magic == AGING_MAGIC);
 
 	if (!g_hash_table_lookup_extended(ag->table, key, &okey, &ovalue))
-		return;
+		return FALSE;
 
 	aval = ovalue;
 
@@ -183,6 +263,8 @@ aging_remove(struct aging *ag, gpointer key)
 
 	g_hash_table_remove(ag->table, aval->key);
 	aging_free_kv(aval->key, aval, ag);
+
+	return TRUE;
 }
 
 /**
@@ -197,7 +279,7 @@ aging_remove(struct aging *ag, gpointer key)
  * an insertion conflict and the value pointers are different.
  */
 void
-aging_insert(struct aging *ag, gpointer key, gpointer value)
+aging_insert(aging_table_t *ag, gpointer key, gpointer value)
 {
 	gboolean found;
 	gpointer okey, ovalue;
@@ -212,9 +294,13 @@ aging_insert(struct aging *ag, gpointer key, gpointer value)
 
 		g_assert(aval->key == okey);
 
-		if (aval->key != key && ag->kfree != NULL) {
-			/* We discard the new and keep the old key instead */
-			(*ag->kfree)(key, aval->value);
+		if (aval->key != key && ag->kvfree != NULL) {
+			/*
+			 * We discard the new and keep the old key instead.
+			 * That way, we don't have to update the hash table.
+			 */
+
+			(*ag->kvfree)(key, aval->value);
 		}
 
 		g_assert(aval->cq_ev != NULL);
@@ -230,7 +316,7 @@ aging_insert(struct aging *ag, gpointer key, gpointer value)
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
 
-		cq_resched(callout_queue, aval->cq_ev, 1000 * aval->ttl);
+		cq_resched(aging_cq, aval->cq_ev, 1000 * aval->ttl);
 	} else {
 		aval = walloc(sizeof(*aval));
 
@@ -241,8 +327,8 @@ aging_insert(struct aging *ag, gpointer key, gpointer value)
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
 		aval->ag = ag;
-		aval->cq_ev = cq_insert(callout_queue,
-			1000 * aval->ttl, aging_expire, aval);
+
+		aval->cq_ev = cq_insert(aging_cq, 1000 * aval->ttl, aging_expire, aval);
 		g_hash_table_insert(ag->table, key, aval);
 	}
 }

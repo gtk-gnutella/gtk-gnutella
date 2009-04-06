@@ -68,11 +68,13 @@ RCSID("$Id$")
 #define MAX_PERIOD		60		/**< ...per minute */
 #define MAX_BAN			10800	/**< 3 hours */
 #define BAN_REMIND		5		/**< Every so many attemps, tell them about it */
+#define BAN_CALLOUT		1000	/**< Every 1 second */
 
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 
 static GHashTable *info;		/**< Info by IP address */
 static zone_t *ipf_zone;		/**< Zone for addr_info allocation */
+static cqueue_t *ban_cq;		/**< Private callout queue */
 
 /**< Decay coefficient, per second */
 static const float decay_coeff = (float) MAX_REQUEST / MAX_PERIOD;
@@ -127,7 +129,7 @@ ipf_make(const host_addr_t addr, time_t now)
 		
 		delay = 1000.0 / decay_coeff;
 		delay = MAX(delay, 1);
-		ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
+		ipf->cq_ev = cq_insert(ban_cq, delay, ipf_destroy, ipf);
 	}
 
 	return ipf;
@@ -141,7 +143,7 @@ ipf_free(struct addr_info *ipf)
 {
 	g_assert(ipf);
 
-	cq_cancel(callout_queue, &ipf->cq_ev);
+	cq_cancel(ban_cq, &ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
 	zfree(ipf_zone, ipf);
 }
@@ -220,7 +222,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 
 	ipf->banned = FALSE;
 	atom_str_free_null(&ipf->ban_msg);
-	ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
+	ipf->cq_ev = cq_insert(ban_cq, delay, ipf_destroy, ipf);
 }
 
 /**
@@ -320,7 +322,7 @@ ban_allow(const host_addr_t addr)
 	 */
 
 	if (ipf->counter > (float) MAX_REQUEST) {
-		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(ban_cq, &ipf->cq_ev);	/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;
 		atom_str_change(&ipf->ban_msg, "Too frequent connections");
@@ -333,8 +335,7 @@ ban_allow(const host_addr_t addr)
 		if (ipf->ban_delay > MAX_BAN)
 			ipf->ban_delay = MAX_BAN;
 
-		ipf->cq_ev =
-			cq_insert(callout_queue, 1000 * ipf->ban_delay, ipf_unban, ipf);
+		ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
 
 		return BAN_FIRST;
 	}
@@ -347,7 +348,7 @@ ban_allow(const host_addr_t addr)
 
 		delay = 1000.0 * ipf->counter / decay_coeff;
 		delay = MAX(delay, 1);
-		cq_resched(callout_queue, ipf->cq_ev, delay);
+		cq_resched(ban_cq, ipf->cq_ev, delay);
 	}
 
 	return BAN_OK;
@@ -381,11 +382,11 @@ ban_record(const host_addr_t addr, const char *msg)
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	if (ipf->banned)
-		cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
+		cq_resched(ban_cq, ipf->cq_ev, MAX_BAN * 1000);
 	else {
-		cq_cancel(callout_queue, &ipf->cq_ev);	/* Cancel ipf_destroy */
+		cq_cancel(ban_cq, &ipf->cq_ev);	/* Cancel ipf_destroy */
 		ipf->banned = TRUE;
-		ipf->cq_ev = cq_insert(callout_queue, MAX_BAN * 1000, ipf_unban, ipf);
+		ipf->cq_ev = cq_insert(ban_cq, MAX_BAN * 1000, ipf_unban, ipf);
 	}
 }
 
@@ -569,6 +570,7 @@ ban_init(void)
 {
 	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 	ipf_zone = zget(sizeof(struct addr_info), 0);
+	ban_cq = cq_submake("ban", callout_queue, BAN_CALLOUT);
 
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);
@@ -618,6 +620,8 @@ ban_close(void)
 
 	g_list_free(banned_head);
 	zdestroy(ipf_zone);
+	cq_free(ban_cq);
+	ban_cq = NULL;
 }
 
 /***

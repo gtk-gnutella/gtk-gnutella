@@ -23,11 +23,24 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Hash table with aging key/value pairs, removed automatically after
+ * some time has elapsed.
+ *
+ * @author Raphael Manfredi
+ * @date 2004
+ */
+
 #ifndef _aging_h_
 #define _aging_h_
 
 #include "common.h"
 #include "glib-missing.h"	/* For GEqualFunc in glib-1.x */
+
+typedef struct aging aging_table_t;
 
 typedef void (*aging_free_t)(gpointer value, gpointer udata);
 
@@ -35,16 +48,15 @@ typedef void (*aging_free_t)(gpointer value, gpointer udata);
  * Public interface.
  */
 
-struct aging;
+aging_table_t *aging_make(int delay,
+	GHashFunc hash, GEqualFunc eq, aging_free_t kfree);
 
-struct aging *aging_make(int delay, GHashFunc hash, GEqualFunc eq,
-			aging_free_t kfree);
+void aging_destroy(aging_table_t *);
 
-void aging_destroy(struct aging *);
-
-gpointer aging_lookup(struct aging *, gpointer key);
-void aging_insert(struct aging *, gpointer key, gpointer value);
-void aging_remove(struct aging *, gpointer key);
+gpointer aging_lookup(const aging_table_t *ag, gconstpointer key);
+gpointer aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key);
+void aging_insert(aging_table_t *ag, gpointer key, gpointer value);
+gboolean aging_remove(aging_table_t *ag, gpointer key);
 
 #endif	/* _aging_h_ */
 

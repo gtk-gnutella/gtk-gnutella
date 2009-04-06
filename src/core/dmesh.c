@@ -102,8 +102,10 @@ struct dmesh_entry {
 #define MIN_PFSP_SIZE	524288		/**< 512K, min size for PFSP advertising */
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
+#define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
 
 static const char dmesh_file[] = "dmesh";
+static cqueue_t *dmesh_cq;			/**< Download mesh callout queue */
 
 /**
  * If we get a "bad" URL into the mesh ("bad" = gives 404 or other error when
@@ -184,6 +186,7 @@ dmesh_init(void)
 	mesh = g_hash_table_new(sha1_hash, sha1_eq);
 	ban_mesh = g_hash_table_new(urlinfo_hash, urlinfo_eq);
 	ban_mesh_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	dmesh_cq = cq_submake("dmesh", callout_queue, DMESH_CALLOUT);
 	dmesh_retrieve();
 	dmesh_ban_retrieve();
 }
@@ -340,8 +343,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		dmb = walloc(sizeof *dmb);
 		dmb->info = ui;
 		dmb->created = stamp;
-		dmb->cq_ev = cq_insert(callout_queue,
-			lifetime * 1000, dmesh_ban_expire, dmb);
+		dmb->cq_ev = cq_insert(dmesh_cq, lifetime*1000, dmesh_ban_expire, dmb);
 		dmb->sha1 = NULL;
 
 		g_hash_table_insert(ban_mesh, dmb->info, dmb);
@@ -375,7 +377,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	}
 	else if (delta_time(dmb->created, stamp) < 0) {
 		dmb->created = stamp;
-		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
+		cq_resched(dmesh_cq, dmb->cq_ev, lifetime * 1000);
 	}
 }
 
@@ -392,7 +394,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 	dmb = g_hash_table_lookup(ban_mesh, &info);
 
 	if (dmb) {
-		cq_cancel(callout_queue, &dmb->cq_ev);
+		cq_cancel(dmesh_cq, &dmb->cq_ev);
 		dmesh_ban_remove_entry(dmb);
 	}
 }
@@ -2651,14 +2653,17 @@ dmesh_close(void)
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
 		struct dmesh_banned *dmb = sl->data;
-		cq_cancel(callout_queue, &dmb->cq_ev);
-		dmesh_ban_expire(callout_queue, dmb);
+		cq_cancel(dmesh_cq, &dmb->cq_ev);
+		dmesh_ban_expire(dmesh_cq, dmb);
 	}
 
 	g_slist_free(banned);
 
 	g_hash_table_destroy(ban_mesh);
 	g_hash_table_destroy(ban_mesh_by_sha1);
+
+	cq_free(dmesh_cq);
+	dmesh_cq = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -60,7 +60,6 @@ struct monitored {
 	gpointer udata;			/**< User supplied data to hand-out to callback */
 };
 
-static cevent_t *monitor_ev;		/**< Monitoring event */
 static GHashTable *monitored;	/**< filename -> struct monitored */
 
 /**
@@ -98,27 +97,17 @@ watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
 }
 
 /**
- * Callout queue callback to perform periodic monitoring of the
+ * Callout queue periodic event to perform periodic monitoring of the
  * registered files.
  */
-static void
-watcher_timer(cqueue_t *unused_cq, gpointer unused_udata)
+static gboolean
+watcher_timer(gpointer unused_udata)
 {
-	(void) unused_cq;
 	(void) unused_udata;
 
-	/*
-	 * Re-install timer for next time.
-	 */
-
-	monitor_ev = cq_insert(callout_queue,
-		MONITOR_PERIOD_MS, watcher_timer, NULL);
-
-	/*
-	 * Monitor each registered file.
-	 */
-
 	g_hash_table_foreach(monitored, watcher_check_mtime, NULL);
+
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -209,8 +198,7 @@ void
 watcher_init(void)
 {
 	monitored = g_hash_table_new(g_str_hash, g_str_equal);
-	monitor_ev = cq_insert(callout_queue,
-		MONITOR_PERIOD_MS, watcher_timer, NULL);
+	cq_periodic_add(callout_queue, MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
 /**
@@ -234,8 +222,6 @@ watcher_close(void)
 {
 	g_hash_table_foreach(monitored, free_monitored_kv, NULL);
 	g_hash_table_destroy(monitored);
-
-	cq_cancel(callout_queue, &monitor_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

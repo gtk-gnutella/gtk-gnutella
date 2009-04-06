@@ -519,7 +519,6 @@ gtk_gnutella_exit(gint n)
 	vmsg_close();
 	watcher_close();
 	tsync_close();
-	cq_close();
 	word_vec_close();
 	pattern_close();
 	pmsg_close();
@@ -537,9 +536,15 @@ gtk_gnutella_exit(gint n)
 	settings_close();	/* Must come after hcache_close() */
 	misc_close();
 	inputevt_close();
+	locale_close();
+	cq_close();
+
+	/*
+	 * Memory shutdown must come last.
+	 */
+
 	atoms_close();
 	wdestroy();
-	locale_close();
 #ifdef TRACK_MALLOC
 	malloc_close();
 #endif
@@ -656,8 +661,9 @@ check_cpu_usage(void)
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
 	if (GNET_PROPERTY(cq_debug)) {
-		g_message("CQ: callout queue holds %d items and processed %d ticks",
-			cq_count(callout_queue), cq_ticks(callout_queue));
+		g_message("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
+			cq_name(callout_queue), cq_count(callout_queue),
+			cq_ticks(callout_queue), (int) (coverage * 100.0 + 0.5));
 	}
 
 	/*
@@ -780,13 +786,26 @@ main_timer(gpointer p)
 		slow_main_timer(now);
 	}
 
-	/*
-	 * The following are low-priority tasks, not called if we've
-	 * detected a high CPU load.
-	 */
 	bg_sched_timer(GNET_PROPERTY(overloaded_cpu));	/* Background tasks */
 
 	return TRUE;
+}
+
+/**
+ * Called when the main callout queue is idle.
+ */
+static gboolean
+callout_queue_idle(gpointer unused_data)
+{
+	(void) unused_data;
+
+	if (GNET_PROPERTY(cq_debug))
+		g_message("CQ: callout queue is idle (CPU %s)",
+			GNET_PROPERTY(overloaded_cpu) ? "OVERLOADED" : "available");
+
+	/* XXX add taks we can run when idle */
+
+	return TRUE;		/* Keep scheduling this */
 }
 
 /**
@@ -1378,7 +1397,7 @@ main(int argc, char **argv)
 		main_gui_early_init(argc, argv, options[main_arg_no_xshm].used);
 	}
 
-	cq_init();
+	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmsg_init();
 	tsync_init();
 	watcher_init();
