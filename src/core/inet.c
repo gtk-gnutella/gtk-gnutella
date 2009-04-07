@@ -78,15 +78,15 @@ static time_t fw_time = 0;				/**< When we last became firewalled */
  * To detect switching from firewalled -> non-firewalled, we use incoming
  * connections (checking done in socket_accept()).
  *
- * To detect switching from non-firewalled -> firewalled, we arm a timer
+ * To detect switching from non-firewalled -> firewalled, we arm a watchdog
  * each time we get an incoming connection.  If we don't get another
  * connection before the timer expires, we might have switched to firewalled
  * mode.
  */
 
-static cevent_t *incoming_ev;		/**< Callout queue timer */
-static cevent_t *incoming_udp_ev;	/**< Idem */
-static cevent_t *solicited_udp_ev;	/**< Idem */
+static watchdog_t *incoming_wd;
+static watchdog_t *incoming_udp_wd;
+static watchdog_t *solicited_udp_wd;
 
 /*
  * Unfortunately, to accurately detect true unsolicited UDP traffic, we have
@@ -291,7 +291,7 @@ inet_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
 	fw_time = tm_time();
-	cq_cancel(inet_cq, &incoming_ev);
+	wd_sleep(incoming_wd);
 	node_became_firewalled();
 }
 
@@ -302,7 +302,7 @@ void
 inet_udp_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
-	cq_cancel(inet_cq, &incoming_udp_ev);
+	wd_sleep(incoming_udp_wd);
 	node_became_udp_firewalled();
 }
 
@@ -311,18 +311,18 @@ inet_udp_firewalled(void)
  * for some amount of time.  We conclude we're no longer able to get
  * solicited UDP traffic.
  */
-static void
-got_no_udp_solicited(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+got_no_udp_solicited(watchdog_t *unused_wd, gpointer unused_obj)
 {
-	(void) unused_cq;
+	(void) unused_wd;
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
 
-	solicited_udp_ev = NULL;
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, FALSE);
+	return FALSE;		/* Disarm watchdog */
 }
 
 /**
@@ -333,49 +333,46 @@ inet_udp_got_solicited(void)
 {
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
-	if (solicited_udp_ev == NULL) {
-		cq_insert(inet_cq,
-			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
-		if (GNET_PROPERTY(fw_debug))
-			g_message("FW: got solicited UDP traffic");
-	} else
-		cq_resched(inet_cq, solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
+	if (wd_wakeup(solicited_udp_wd) && GNET_PROPERTY(fw_debug))
+		g_message("FW: got solicited UDP traffic");
+
+	wd_kick(solicited_udp_wd);
 }
 
 /**
  * This is a callback invoked when no incoming connection has been received
  * for some amount of time.  We conclude we became firewalled.
  */
-static void
-got_no_connection(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+got_no_connection(watchdog_t *unused_wd, gpointer unused_obj)
 {
-	(void) unused_cq;
+	(void) unused_wd;
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no connection to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
-	incoming_ev = NULL;
 	inet_firewalled();
+	return FALSE;			/* Disarm watchdog */
 }
 
 /**
  * This is a callback invoked when no unsolicited UDP datagrams have been
  * received for some amount of time.  We conclude we became firewalled.
  */
-static void
-got_no_udp_unsolicited(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 {
-	(void) unused_cq;
+	(void) unused_wd;
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
-	incoming_udp_ev = NULL;
 	inet_udp_firewalled();
+	return FALSE;			/* Disarm watchdog */
 }
 
 
@@ -427,32 +424,27 @@ inet_got_incoming(const host_addr_t addr)
 	 * connected to the Internet.
 	 */
 
-	if (!GNET_PROPERTY(is_inet_connected)) {
-		wd_sleep(outgoing_wd);
+	if (
+		wd_sleep(outgoing_wd) &&
+		!GNET_PROPERTY(is_inet_connected) &&
+		GNET_PROPERTY(fw_debug)
+	) {
+		g_message("FW: got incoming connection => connected");
+	}
+
+	if (!GNET_PROPERTY(is_inet_connected))
 		inet_set_is_connected(TRUE);
-	}
 
 	/*
-	 * If we already know we're not firewalled, we have already scheduled
-	 * a callback in the future.  We need to reschedule it, since we just
-	 * got an incoming connection.
+	 * We're not firewalled.
 	 */
 
-	if (!GNET_PROPERTY(is_firewalled)) {
-		g_assert(incoming_ev);
-		cq_resched(inet_cq, incoming_ev, FW_INCOMING_WINDOW * 1000);
-		return;
+	if (GNET_PROPERTY(is_firewalled)) {
+		wd_wakeup(incoming_wd);
+		inet_not_firewalled();
 	}
 
-	/*
-	 * Make sure we're not connecting locally.
-	 * If we're not, then we're not firewalled.
-	 */
-
-	inet_not_firewalled();
-
-	incoming_ev = cq_insert(inet_cq, FW_INCOMING_WINDOW * 1000,
-					got_no_connection, NULL);
+	wd_kick(incoming_wd);
 }
 
 /**
@@ -466,24 +458,12 @@ inet_got_incoming(const host_addr_t addr)
 static void
 inet_udp_got_unsolicited_incoming(void)
 {
-	/*
-	 * If we already know we're not firewalled, we have already scheduled
-	 * a callback in the future.  We need to reschedule it, since we just
-	 * got an incoming connection.
-	 */
-
-	if (!GNET_PROPERTY(is_udp_firewalled)) {
-		g_assert(incoming_udp_ev);
-		cq_resched(inet_cq, incoming_udp_ev, FW_INCOMING_WINDOW * 1000);
-		return;
+	if (GNET_PROPERTY(is_udp_firewalled)) {
+		wd_wakeup(incoming_udp_wd);
+		inet_udp_not_firewalled();
 	}
 
-	inet_udp_not_firewalled();
-
-	g_assert(incoming_udp_ev == NULL);
-
-	incoming_udp_ev = cq_insert(inet_cq, FW_INCOMING_WINDOW * 1000,
-							got_no_udp_unsolicited, NULL);
+	wd_kick(incoming_udp_wd);
 }
 
 /**
@@ -495,10 +475,16 @@ inet_udp_got_incoming(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	if (!GNET_PROPERTY(is_inet_connected)) {
-		wd_sleep(outgoing_wd);
-		inet_set_is_connected(TRUE);
+	if (
+		wd_sleep(outgoing_wd) &&
+		!GNET_PROPERTY(is_inet_connected) &&
+		GNET_PROPERTY(fw_debug)
+	) {
+		g_message("FW: got incoming UDP traffic => connected");
 	}
+
+	if (!GNET_PROPERTY(is_inet_connected))
+		inet_set_is_connected(TRUE);
 
 	/*
 	 * Make sure we're not connecting locally.
@@ -634,10 +620,16 @@ inet_connection_succeeded(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	if (!GNET_PROPERTY(is_inet_connected)) {
-		wd_sleep(outgoing_wd);
-		inet_set_is_connected(TRUE);
+	if (
+		wd_sleep(outgoing_wd) &&
+		!GNET_PROPERTY(is_inet_connected) &&
+		GNET_PROPERTY(fw_debug)
+	) {
+		g_message("FW: outgoing TCP connection succeeded => connected");
 	}
+
+	if (!GNET_PROPERTY(is_inet_connected))
+		inet_set_is_connected(TRUE);
 }
 
 /**
@@ -663,37 +655,30 @@ inet_init(void)
 	inet_cq = cq_submake("inet", callout_queue, INET_CALLOUT);
 
 	/*
-	 * If we persisted "is_firewalled" to FALSE, arm the no-connection timer.
+	 * Monitoring watchdogs for incoming connections.
+	 */
+
+	incoming_wd = wd_make("incoming TCP connections",
+		FW_INCOMING_WINDOW, got_no_connection, NULL, FALSE);
+
+	incoming_udp_wd = wd_make("incoming UDP message",
+		FW_INCOMING_WINDOW, got_no_udp_unsolicited, NULL, FALSE);
+
+	solicited_udp_wd = wd_make("solicited UDP reply",
+		FW_SOLICITED_WINDOW, got_no_udp_solicited, NULL, FALSE);
+
+	/*
+	 * Start the required watchdog depending on the persisted property values.
 	 */
 
 	if (!GNET_PROPERTY(is_firewalled))
-		incoming_ev = cq_insert(
-			inet_cq, FW_INCOMING_WINDOW * 1000,
-			got_no_connection, NULL);
-
-	/*
-	 * If we persisted "is_udp_firewalled" to FALSE, idem.
-	 */
+		wd_wakeup(incoming_wd);
 
 	if (!GNET_PROPERTY(is_udp_firewalled))
-		incoming_udp_ev = cq_insert(
-			inet_cq, FW_INCOMING_WINDOW * 1000,
-			got_no_udp_unsolicited, NULL);
-
-	/*
-	 * If we persisted "recv_solicited_udp" to TRUE, idem.
-	 */
+		wd_wakeup(incoming_udp_wd);
 
 	if (GNET_PROPERTY(recv_solicited_udp))
-		solicited_udp_ev = cq_insert(
-			inet_cq, FW_SOLICITED_WINDOW * 1000,
-			got_no_udp_solicited, NULL);
-
-	/*
-	 * Initialize the table used to record outgoing UDP traffic.
-	 */
-
-	outgoing_udp = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+		wd_wakeup(solicited_udp_wd);
 
 	/*
 	 * Monitoring watchdog for outgoing connections.
@@ -701,6 +686,12 @@ inet_init(void)
 
 	outgoing_wd = wd_make("outgoing TCP connections",
 		OUTGOING_WINDOW, no_outgoing_connection, NULL, FALSE);
+
+	/*
+	 * Initialize the table used to record outgoing UDP traffic.
+	 */
+
+	outgoing_udp = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
 }
 
 /**
@@ -724,13 +715,11 @@ inet_close(void)
 {
 	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
 	g_hash_table_destroy(outgoing_udp);
-
-	cq_cancel(inet_cq, &incoming_ev);
-	cq_cancel(inet_cq, &incoming_udp_ev);
-	cq_cancel(inet_cq, &solicited_udp_ev);
-
 	cq_free_null(&inet_cq);
 	wd_free_null(&outgoing_wd);
+	wd_free_null(&incoming_wd);
+	wd_free_null(&incoming_udp_wd);
+	wd_free_null(&solicited_udp_wd);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
