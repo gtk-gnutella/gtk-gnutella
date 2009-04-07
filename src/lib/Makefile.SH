@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 16228 2009-03-21 15:58:27Z rmanfredi $
+# $X-Id: Jmakefile 16436 2009-04-07 19:13:35Z rmanfredi $
 
 LSRC = \
 	adns.c \
@@ -158,6 +158,7 @@ LSRC = \
 	vmm.c \
 	walloc.c \
 	watcher.c \
+	wd.c \
 	wordvec.c \
 	zalloc.c \
 	zlib_util.c
@@ -237,6 +238,7 @@ LOBJ = \
 	vmm.o \
 	walloc.o \
 	watcher.o \
+	wd.o \
 	wordvec.o \
 	zalloc.o \
 	zlib_util.o 
