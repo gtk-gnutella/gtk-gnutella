@@ -620,8 +620,7 @@ ban_close(void)
 
 	g_list_free(banned_head);
 	zdestroy(ipf_zone);
-	cq_free(ban_cq);
-	ban_cq = NULL;
+	cq_free_null(&ban_cq);
 }
 
 /***

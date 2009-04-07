@@ -47,6 +47,7 @@ RCSID("$Id$")
 
 #include "lib/cq.h"
 #include "lib/tm.h"
+#include "lib/wd.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -116,8 +117,7 @@ struct ip_record {
 
 #define OUTGOING_WINDOW		150			/**< Outgoing monitoring window */
 
-static gboolean activity_seen;			/**< Activity recorded in period */
-static cevent_t *outgoing_ev;			/**< Callout queue timer */
+static watchdog_t *outgoing_wd;			/**< Watchdog for outgoing activity */
 
 static void inet_set_is_connected(gboolean val);
 
@@ -317,7 +317,7 @@ got_no_udp_solicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no solicited UDP traffic for %d secs",
 			FW_SOLICITED_WINDOW);
 
@@ -336,7 +336,7 @@ inet_udp_got_solicited(void)
 	if (solicited_udp_ev == NULL) {
 		cq_insert(inet_cq,
 			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
-		if (GNET_PROPERTY(dbg))
+		if (GNET_PROPERTY(fw_debug))
 			g_message("FW: got solicited UDP traffic");
 	} else
 		cq_resched(inet_cq, solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
@@ -352,7 +352,7 @@ got_no_connection(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no connection to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
@@ -370,7 +370,7 @@ got_no_udp_unsolicited(cqueue_t *unused_cq, gpointer unused_obj)
 	(void) unused_cq;
 	(void) unused_obj;
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
@@ -388,7 +388,7 @@ inet_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 	node_proxy_cancel_all();
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: we're not TCP-firewalled for port %u",
 			socket_listen_port());
 }
@@ -401,7 +401,7 @@ inet_udp_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
 }
@@ -413,13 +413,13 @@ void
 inet_got_incoming(const host_addr_t addr)
 {
 	if (is_local_addr(addr)) {
-		if (GNET_PROPERTY(dbg))
+		if (GNET_PROPERTY(fw_debug))
 			g_message("FW: not counting local connection from %s",
 				host_addr_to_string(addr));
 		return;
 	}
 
-	if (GNET_PROPERTY(dbg) > 19)
+	if (GNET_PROPERTY(fw_debug) > 19)
 		g_message("FW: got TCP connection from %s", host_addr_to_string(addr));
 
 	/*
@@ -427,10 +427,10 @@ inet_got_incoming(const host_addr_t addr)
 	 * connected to the Internet.
 	 */
 
-	activity_seen = TRUE;				/* In case we have a timer set */
-
-	if (!GNET_PROPERTY(is_inet_connected))
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		wd_sleep(outgoing_wd);
 		inet_set_is_connected(TRUE);
+	}
 
 	/*
 	 * If we already know we're not firewalled, we have already scheduled
@@ -495,10 +495,10 @@ inet_udp_got_incoming(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	activity_seen = TRUE;				/* In case we have a timer set */
-
-	if (!GNET_PROPERTY(is_inet_connected))
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		wd_sleep(outgoing_wd);
 		inet_set_is_connected(TRUE);
+	}
 
 	/*
 	 * Make sure we're not connecting locally.
@@ -586,29 +586,23 @@ inet_set_is_connected(gboolean val)
 {
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
-	if (GNET_PROPERTY(dbg))
+	if (GNET_PROPERTY(fw_debug))
 		g_message("FW: we're %sconnected to the Internet",
 			val ? "" : "no longer ");
 }
 
 /**
- * This callback is periodically called when there has been outgoing
- * connections attempted.
+ * This callback fires when there was no outgoing activity for the period
+ * after the watchdog was started.
  */
-static void
-check_outgoing_connection(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+no_outgoing_connection(watchdog_t *unused_wd, gpointer unused_obj)
 {
-	outgoing_ev = NULL;
-
-	(void) unused_cq;
+	(void) unused_wd;
 	(void) unused_obj;
 
-	if (activity_seen) {
-		activity_seen = FALSE;
-	} else {
-		/* Nothing over the period */
-		inet_set_is_connected(FALSE);
-	}
+	inet_set_is_connected(FALSE);		/* Nothing over the period */
+	return FALSE;						/* Put watchdog back to sleep */
 }
 
 /**
@@ -624,15 +618,7 @@ inet_connection_attempted(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	/*
-	 * Start timer if not already done.
-	 */
-
-	if (!outgoing_ev) {
-		activity_seen = FALSE;
-		outgoing_ev = cq_insert(inet_cq, OUTGOING_WINDOW * 1000,
-			check_outgoing_connection, NULL);
-	}
+	wd_wakeup(outgoing_wd);
 }
 
 /**
@@ -648,10 +634,10 @@ inet_connection_succeeded(const host_addr_t addr)
 	if (is_local_addr(addr))
 		return;
 
-	activity_seen = TRUE;
-
-	if (!GNET_PROPERTY(is_inet_connected))
+	if (!GNET_PROPERTY(is_inet_connected)) {
+		wd_sleep(outgoing_wd);
 		inet_set_is_connected(TRUE);
+	}
 }
 
 /**
@@ -660,12 +646,12 @@ inet_connection_succeeded(const host_addr_t addr)
 void
 inet_read_activity(void)
 {
-	activity_seen = TRUE;
-
 	/*
 	 * We're not sure activity was not with a local node, so don't
 	 * call inet_set_is_connected(TRUE) at this point!
 	 */
+
+	wd_kick(outgoing_wd);
 }
 
 /**
@@ -708,6 +694,13 @@ inet_init(void)
 	 */
 
 	outgoing_udp = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+
+	/*
+	 * Monitoring watchdog for outgoing connections.
+	 */
+
+	outgoing_wd = wd_make("outgoing TCP connections",
+		OUTGOING_WINDOW, no_outgoing_connection, NULL, FALSE);
 }
 
 /**
@@ -736,8 +729,8 @@ inet_close(void)
 	cq_cancel(inet_cq, &incoming_udp_ev);
 	cq_cancel(inet_cq, &solicited_udp_ev);
 
-	cq_free(inet_cq);
-	inet_cq = NULL;
+	cq_free_null(&inet_cq);
+	wd_free_null(&outgoing_wd);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

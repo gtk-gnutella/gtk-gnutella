@@ -113,10 +113,8 @@ ag_unref_callout_queue(void)
 {
 	g_assert(aging_refcnt > 0);
 
-	if (0 == --aging_refcnt) {
-		cq_free(aging_cq);
-		aging_cq = NULL;
-	}
+	if (0 == --aging_refcnt)
+		cq_free_null(&aging_cq);
 
 	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
 }

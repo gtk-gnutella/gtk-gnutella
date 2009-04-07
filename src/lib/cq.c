@@ -363,7 +363,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg)
 
 	cqueue_check(cq);
 	g_assert(fn);
-	g_assert(delay > 0);
+	g_assert(delay >= 0);
 
 	ev = walloc(sizeof *ev);
 
@@ -715,6 +715,14 @@ periodic_trampoline(cqueue_t *cq, gpointer data)
  *
  * When the callout queue is freed, registered periodic events are
  * automatically reclaimed as well, so they need not be removed explicitly.
+ *
+ * @param cq		the callout queue in which the periodic event should be put
+ * @param period	firing period, in milliseconds
+ * @param event		the callback to invoke each period
+ * @param arg		additional callback argument to supply
+ *
+ * @return a new periodic event descriptor, which can be discarded if there
+ * is no need to explicitly remove it between firing periods.
  */
 cperiodic_t *
 cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, gpointer arg)
@@ -870,6 +878,13 @@ cq_idle_free(cidle_t *ci)
  *
  * When the callout queue is freed, registered idle events are automatically
  * reclaimed as well, so they need not be removed explicitly.
+ *
+ * @param cq		the queue for which the idle event sould be installed
+ * @param event		the callback to invoke each time the queue is idle
+ * @param arg		additional callback argument to supply
+ *
+ * @return a new idle event descriptor, which can be discarded if there
+ * is no need to explicitly remove it between firing periods.
  */
 cidle_t *
 cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg)
@@ -932,7 +947,6 @@ idle_trampoline(gpointer key, gpointer val, gpointer data)
 /**
  * Launch idle events for the queue.
  */
-
 static void
 cq_run_idle(cqueue_t *cq)
 {
@@ -969,6 +983,9 @@ static guint callout_timer_id = 0;
  *
  * Create the main callout queue (globally visible) and install the supplied
  * idle callback, if non-NULL.
+ *
+ * @param idle		idle callback for main callout queue
+ * @param debug		pointer to the property governing the cq_debug level
  */
 void
 cq_init(cq_invoke_t idle, const guint32 *debug)
@@ -1024,7 +1041,7 @@ free_idle(gpointer key, gpointer value, gpointer data)
 /**
  * Free the callout queue and all contained event objects.
  */
-void
+static void
 cq_free(cqueue_t *cq)
 {
 	cevent_t *ev;
@@ -1068,13 +1085,26 @@ cq_free(cqueue_t *cq)
 }
 
 /**
+ * Free callout queue, nullify pointer.
+ */
+void
+cq_free_null(cqueue_t **cq_ptr)
+{
+	cqueue_t *cq = *cq_ptr;
+
+	if (cq) {
+		cq_free(cq);
+		*cq_ptr = NULL;
+	}
+}
+
+/**
  * Final cleanup.
  */
 void
 cq_close(void)
 {
-	cq_free(callout_queue);
-	callout_queue = NULL;
+	cq_free_null(&callout_queue);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

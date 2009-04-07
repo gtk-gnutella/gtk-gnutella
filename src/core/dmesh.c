@@ -2662,8 +2662,7 @@ dmesh_close(void)
 	g_hash_table_destroy(ban_mesh);
 	g_hash_table_destroy(ban_mesh_by_sha1);
 
-	cq_free(dmesh_cq);
-	dmesh_cq = NULL;
+	cq_free_null(&dmesh_cq);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
