@@ -121,5 +121,13 @@ The defines which can be used are:
 		keep track of the allocation stacks, free stacks and reallocation
 		stacks and will show the various paths leading to a given call.
 
-		This is still work in progress.  At a later time, it will also
-		be able to display stacks and related information.
+		At exit time, it will provide, for each leaked block, the stack trace
+		that led to the allocation of that block  The stack uses symbol
+		names if possible.  This is done by parsing the output of "nm -p",
+		so it may not work on all systems (tested only on Linux, but the
+		expected format is known to be compatible with that of HP-UX, at least).
+
+		MALLOC_FRAMES works best with MALLOC_STATS and REMAP_ZALLOC.
+
+		Currently, the code does not compile without MALLOC_STATS if
+		MALLOC_FRAMES is also requested, but this will be fixed in the future.
