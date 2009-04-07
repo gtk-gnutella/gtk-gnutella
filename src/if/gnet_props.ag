@@ -3974,4 +3974,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "fw_debug";
+	desc = "Debug level for the firewalled status management.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

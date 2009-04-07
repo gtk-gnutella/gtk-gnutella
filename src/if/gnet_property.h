@@ -377,6 +377,7 @@ typedef enum {
     PROP_MQ_UDP_DEBUG,
     PROP_NODE_UDP_SENDQUEUE_SIZE,
     PROP_CLOCK_DEBUG,
+    PROP_FW_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
