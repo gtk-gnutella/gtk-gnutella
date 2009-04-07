@@ -227,7 +227,7 @@ wd_name(const watchdog_t *wd)
 /**
  * Free watchdog.
  */
-void
+static void
 wd_free(watchdog_t *wd)
 {
 	watchdog_check(wd);

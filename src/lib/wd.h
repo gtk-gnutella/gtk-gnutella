@@ -58,7 +58,6 @@ typedef gboolean (*wd_trigger_t)(watchdog_t *wd, gpointer udata);
 
 watchdog_t *wd_make(const char *name, int period,
 	wd_trigger_t trigger, gpointer arg, gboolean start);
-void wd_free(watchdog_t *wd);
 void wd_free_null(watchdog_t **wd);
 
 const char * wd_name(const watchdog_t *wd);
