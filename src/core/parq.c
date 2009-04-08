@@ -1472,9 +1472,9 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 	g_assert(cur_parq_ul->queue != NULL);
 	g_assert(cur_parq_ul->queue->by_rel_pos != NULL);
 	g_assert(cur_parq_ul->queue->by_position_length > 0);
-	g_assert(rel_pos > 0);
 
 	rel_pos = cur_parq_ul->relative_position;
+	g_assert(rel_pos > 0);
 
 	iter = hash_list_iterator_at(cur_parq_ul->queue->by_rel_pos, cur_parq_ul);
 
@@ -1738,8 +1738,6 @@ parq_upload_create(struct upload *u)
 	struct parq_ul_queue *parq_ul_queue = NULL;
 	guint eta = 0;
 	guint rel_pos = 1;
-	GList *l;
-	GList *prev = NULL;
 	hash_list_iter_t *iter;
 
 	upload_check(u);
@@ -1756,7 +1754,6 @@ parq_upload_create(struct upload *u)
 		struct parq_ul_queued *item = hash_list_iter_previous(iter);
 
 		if (item->is_alive) {
-			prev = l;
 			if (hash_list_iter_has_previous(iter))
 				parq_ul_prev = hash_list_iter_previous(iter);
 			break;
