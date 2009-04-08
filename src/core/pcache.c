@@ -1215,7 +1215,7 @@ pcache_close(void)
 		g_hash_table_destroy(recent_pongs[type].ht_recent_pongs);
 	}
 
-	aging_destroy(udp_pings);
+	aging_destroy(&udp_pings);
 }
 
 /**

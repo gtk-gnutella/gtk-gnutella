@@ -8227,12 +8227,8 @@ node_close(void)
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;
 
-	aging_destroy(tcp_crawls);
-	tcp_crawls = NULL;
-
-	aging_destroy(udp_crawls);
-	udp_crawls = NULL;
-
+	aging_destroy(&tcp_crawls);
+	aging_destroy(&udp_crawls);
 	rxbuf_close();
 }
 

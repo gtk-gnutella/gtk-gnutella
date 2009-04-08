@@ -1400,7 +1400,7 @@ fi_gui_source_add(struct download *d)
 	if (NULL == file->sources) {
 		file->sources = hash_list_new(NULL, NULL);
 	}
-	g_return_if_fail(!hash_list_contains(file->sources, d, NULL));
+	g_return_if_fail(!hash_list_contains(file->sources, d));
 
 	/*
 	 * NOTE: Always append items so that we can jump through the hashlist with
@@ -1431,7 +1431,7 @@ fi_gui_source_remove(struct download *d)
 	g_return_if_fail(file);
 
 	g_return_if_fail(file->sources);
-	g_return_if_fail(hash_list_contains(file->sources, d, NULL));
+	g_return_if_fail(hash_list_contains(file->sources, d));
 
 	hash_list_remove(file->sources, d);
 	if (0 == hash_list_length(file->sources)) {

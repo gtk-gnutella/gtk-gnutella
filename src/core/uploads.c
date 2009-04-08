@@ -4932,8 +4932,7 @@ upload_close(void)
 	g_hash_table_destroy(mesh_info);
 	mesh_info = NULL;
 
-	aging_destroy(stalling_uploads);
-	stalling_uploads = NULL;
+	aging_destroy(&stalling_uploads);
 }
 
 gnet_upload_info_t *

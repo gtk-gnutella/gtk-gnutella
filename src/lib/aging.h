@@ -51,7 +51,7 @@ typedef void (*aging_free_t)(gpointer value, gpointer udata);
 aging_table_t *aging_make(int delay,
 	GHashFunc hash, GEqualFunc eq, aging_free_t kfree);
 
-void aging_destroy(aging_table_t *);
+void aging_destroy(aging_table_t **);
 
 gpointer aging_lookup(const aging_table_t *ag, gconstpointer key);
 gpointer aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key);

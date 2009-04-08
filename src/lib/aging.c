@@ -168,19 +168,24 @@ aging_free_kv(gpointer key, gpointer value, gpointer udata)
 }
 
 /**
- * Destroy container, freeing all keys and values.
+ * Destroy container, freeing all keys and values, and nullify pointer.
  */
 void
-aging_destroy(aging_table_t *ag)
+aging_destroy(aging_table_t **ag_ptr)
 {
-	aging_check(ag);
+	aging_table_t *ag = *ag_ptr;
 
-	g_hash_table_foreach(ag->table, aging_free_kv, ag);
-	g_hash_table_destroy(ag->table);
-	ag->magic = 0;
-	wfree(ag, sizeof *ag);
+	if (ag) {
+		aging_check(ag);
 
-	ag_unref_callout_queue();
+		g_hash_table_foreach(ag->table, aging_free_kv, ag);
+		g_hash_table_destroy(ag->table);
+		ag->magic = 0;
+		wfree(ag, sizeof *ag);
+
+		ag_unref_callout_queue();
+		*ag_ptr = NULL;
+	}
 }
 
 /**
