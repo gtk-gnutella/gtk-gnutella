@@ -1005,6 +1005,7 @@ node_timer(time_t now)
 					node_send_udp_ping(n);
 					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0, "timeout");
+					continue;
 				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
 				if (delta_time(now, n->shutdown_date) > n->shutdown_delay) {
@@ -1012,6 +1013,7 @@ node_timer(time_t now)
 
 					g_strlcpy(reason, n->error_str, sizeof reason);
 					node_remove(n, _("Shutdown (%s)"), reason);
+					continue;
 				}
 			} else if (
 				GNET_PROPERTY(current_peermode) == NODE_P_ULTRA &&
@@ -1036,6 +1038,7 @@ node_timer(time_t now)
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout");
+					continue;
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
 					delta_time(now, n->tx_flowc_date) >
@@ -1046,6 +1049,7 @@ node_timer(time_t now)
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
 						GNET_PROPERTY(node_tx_flowc_timeout),
 						GNET_PROPERTY(node_tx_flowc_timeout) == 1 ? "" : "s");
+					continue;
 				}
 			}
 		}
@@ -1067,7 +1071,7 @@ node_timer(time_t now)
 				ban_record(n->addr,
 					"IP with Gnutella security violations");
 				node_bye_if_writable(n, 412, "Security violation");
-				return;
+				continue;
 			}
 
 #if 0
@@ -1081,7 +1085,7 @@ node_timer(time_t now)
 				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
 			) {
 				node_bye_if_writable(n, 405, "Reception shortage");
-				return;
+				continue;
 			}
 #endif
 
@@ -1136,7 +1140,7 @@ node_timer(time_t now)
 					!alive_send_ping(n->alive_pings)
 				) {
 					node_bye(n, 406, "No reply to alive pings");
-					return;
+					continue;
 				}
 			}
 
@@ -1148,7 +1152,7 @@ node_timer(time_t now)
 				g_assert(NODE_IS_CONNECTED(n));
 				node_send_patch_step(n);
 				if (!NODE_IS_CONNECTED(n))
-					return;
+					continue;
 			}
 
 			/*
@@ -1197,7 +1201,7 @@ node_timer(time_t now)
 						node_bye(n, 405,
 							"Remotely flow-controlled too often "
 							"(%.2f%% > %d%% of time)", fc_ratio, max_ratio);
-						return;
+						continue;
 					}
 
 					/* Dispose of monitoring if we're not flow-controlled */
@@ -2313,8 +2317,10 @@ node_remove_by_addr(const host_addr_t addr, guint16 port)
 	const GSList *sl;
 	guint n_removed = 0;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+	for (sl = sl_nodes; sl; /* empty */) {
 		const struct gnutella_node *n = sl->data;
+
+		sl = g_slist_next(sl);	/* node_remove_by_id() will alter sl_nodes */
 
 		if ((!port || n->port == port) && host_addr_equal(n->addr, addr)) {
 			node_remove_by_id(NODE_ID(n));
