@@ -183,10 +183,6 @@ static void qrt_patch_compute(
 static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full);
 void test_hash(void);
 
-static void qrp_monitor(cqueue_t *cq, gpointer obj);
-
-static cevent_t *monitor_ev;
-
 static gboolean
 qrp_can_route_default(const query_hashvec_t *qhv,
 					  const struct routing_table *rt);
@@ -3995,18 +3991,10 @@ qrp_leaf_changed(void)
  * Periodic monitor, to trigger recomputation of the merged table if we got
  * a new leaf with a QRT or lost a leaf which sent us its QRT.
  */
-static void
-qrp_monitor(cqueue_t *unused_cq, gpointer unused_obj)
+static gboolean
+qrp_monitor(gpointer unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
-
-	/*
-	 * Re-install monitor for next time.
-	 */
-
-	monitor_ev = cq_insert(callout_queue,
-		LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
 
 	/*
 	 * If we're not running as an ultra node, or if the reconstruction thread
@@ -4014,7 +4002,7 @@ qrp_monitor(cqueue_t *unused_cq, gpointer unused_obj)
 	 */
 
 	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA || merge_comp != NULL)
-		return;
+		return TRUE;
 
 	/*
 	 * If we got notified of changes, relaunch the computation of the
@@ -4025,6 +4013,8 @@ qrp_monitor(cqueue_t *unused_cq, gpointer unused_obj)
 		qrt_leaf_change_notified = FALSE;
 		mrg_compute(qrp_merge_routing_table);
 	}
+
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -4048,8 +4038,7 @@ qrp_init(void)
 	 * Install the periodic monitoring callback.
 	 */
 
-	monitor_ev = cq_insert(callout_queue,
-		LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
+	cq_periodic_add(callout_queue, LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
 
 	/*
 	 * Install an empty local table untill we compute our shared library.
@@ -4064,7 +4053,6 @@ qrp_init(void)
 void
 qrp_close(void)
 {
-	cq_cancel(callout_queue, &monitor_ev);
 	qrp_cancel_computation();
 
 	if (routing_table)
