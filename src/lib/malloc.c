@@ -463,7 +463,7 @@ done:
  * Fill supplied frame structure with the backtrace.
  */
 static void
-get_stack_frame(struct frame *f)
+get_stack_frame(struct frame *fr)
 {
 	void *stack[FRAME_DEPTH + 2];
 	int len;
@@ -471,9 +471,38 @@ get_stack_frame(struct frame *f)
 	/* Remove ourselves + our caller from stack (first two items) */
 	len = backtrace(stack, G_N_ELEMENTS(stack));
 	g_assert(len >= 2);
-	f->len = len - 2;
-	memcpy(f->stack, &stack[2],
-		sizeof stack[0] * MIN(f->len, G_N_ELEMENTS(f->stack)));
+	fr->len = len - 2;
+	memcpy(fr->stack, &stack[2],
+		sizeof stack[0] * MIN(fr->len, G_N_ELEMENTS(fr->stack)));
+}
+
+/**
+ * Print stack frame to specified file, using symbolic names if possible.
+ */
+static void
+print_stack_frame(FILE *f, const struct frame *fr)
+{
+	size_t i;
+
+	for (i = 0; i < fr->len; i++) {
+		const char *where = trace_name(fr->stack[i]);
+		fprintf(f, "\t%s\n", where);
+	}
+}
+
+/**
+ * Print current stack frame to specified file.
+ *
+ * @attention: not declared in "lib/malloc.h", only defined when MALLOC_FRAMES,
+ * meant to be used as a last resort tool to track memory problems.
+ */
+void
+where(FILE *f)
+{
+	struct frame fr;
+
+	get_stack_frame(&fr);
+	print_stack_frame(f, &fr);
 }
 
 /**
@@ -632,14 +661,8 @@ malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 		else {
 
 			if (trace_array.count) {
-				size_t i;
-
 				g_message("block 0x%lx allocated from:", (gulong) k);
-
-				for (i = 0; i < fr->len; i++) {
-					const char *where = trace_name(fr->stack[i]);
-					fprintf(stderr, "\t%s\n", where);
-				}
+				print_stack_frame(stderr, fr);
 			} else {
 				size_t i;
 				char buf[12 * FRAME_DEPTH];
@@ -2034,8 +2057,8 @@ stats_residual_cmp(const void *p1, const void *p2)
 {
 	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
 	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
-	size_t i1 = s1->allocated + s1->reallocated - s1->freed;
-	size_t i2 = s2->allocated + s2->reallocated - s2->freed;
+	ssize_t i1 = s1->allocated + s1->reallocated - s1->freed;
+	ssize_t i2 = s2->allocated + s2->reallocated - s2->freed;
 	int ret;
 
 	/* Reverse order: largest first */
@@ -2088,6 +2111,9 @@ stats_array_dump(FILE *f, struct afiller *filler)
 {
 	int i;
 
+	fputs("------------- variations ------------- "
+		  "[---------------- totals ----------------]  "
+		  "frames\n", f);
 	fprintf(f, "%7s %7s %8s %8s %4s [%7s %7s %8s %8s %6s] #a #f #r %s:\n",
 		"alloc", "freed", "realloc", "remains", "live",
 		"alloc", "freed", "realloc", "remains", "live", "from");
