@@ -1108,7 +1108,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 * If this host already reported this addr:port as being bad, ignore.
 	 */
 
-	if (hash_list_contains(dme->bad, &reporter, NULL))
+	if (hash_list_contains(dme->bad, &reporter))
 		return;
 
 	/*

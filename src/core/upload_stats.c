@@ -125,7 +125,7 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
 		key.pathname = atom_str_get(pathname);
 		key.size = size;
 
-		if (hash_list_contains(upload_stats_list, &key, &orig_key))
+		if (hash_list_find(upload_stats_list, &key, &orig_key))
 			s = deconstify_gpointer(orig_key);
 		atom_str_free_null(&key.pathname);
 

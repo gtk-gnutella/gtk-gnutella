@@ -373,7 +373,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 	struct cached *entry;
 	gpointer saved_key;
 
-	g_assert(!hash_list_contains(dw->keys, key, NULL));
+	g_assert(!hash_list_contains(dw->keys, key));
 	g_assert(!map_contains(dw->values, key));
 	g_assert(!filled || (!filled->len == !filled->data));
 

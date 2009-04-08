@@ -561,7 +561,7 @@ hash_list_iterator(hash_list_t *hl)
 
 /**
  * Get an iterator on the list, positionned after last item.
- * Get items with hash_list_previous().
+ * Get items with hash_list_iter_previous().
  */
 hash_list_iter_t *
 hash_list_iterator_tail(hash_list_t *hl)
@@ -578,6 +578,43 @@ hash_list_iterator_tail(hash_list_t *hl)
 		iter->prev = hl->tail;
 		iter->next = NULL;
 		iter->item = NULL;
+		iter->stamp = hl->stamp;
+		hl->refcount++;
+		return iter;
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * Get an iterator on the list, positionned at the specified item (or after
+ * the tail of the list if not found).
+ *
+ * Get next items with hash_list_iter_next() or hash_list_iter_previous().
+ */
+hash_list_iter_t *
+hash_list_iterator_at(hash_list_t *hl, gconstpointer key)
+{
+	if (hl) {
+		hash_list_iter_t *iter;
+		struct hash_list_item *item;
+
+		hash_list_check(hl);
+
+		iter = walloc(sizeof(*iter));
+		item = g_hash_table_lookup(hl->ht, key);
+
+		iter->magic = HASH_LIST_ITER_MAGIC;
+		iter->hl = hl;
+		if (item) {
+			iter->prev = g_list_previous(item->list);
+			iter->next = g_list_next(item->list);
+			iter->item = item;
+		} else {
+			iter->prev = hl->tail;
+			iter->next = NULL;
+			iter->item = NULL;
+		}
 		iter->stamp = hl->stamp;
 		hl->refcount++;
 		return iter;
@@ -670,12 +707,13 @@ hash_list_iter_release(hash_list_iter_t **iter_ptr)
 }
 
 /**
- * Check whether hashlist contains the `data'.
- * If `orig_key_ptr' is not NULL and the key exists, a pointer to
- * the stored key is written to it.
+ * Find key in hashlist.  If ``orig_key_ptr'' is not NULL and the key
+ * exists, a pointer to the stored key is written into it.
+ *
+ * @return TRUE if the key is present.
  */
 gboolean
-hash_list_contains(hash_list_t *hl, gconstpointer key,
+hash_list_find(hash_list_t *hl, gconstpointer key,
 	gconstpointer *orig_key_ptr)
 {
 	struct hash_list_item *item;
@@ -687,6 +725,18 @@ hash_list_contains(hash_list_t *hl, gconstpointer key,
 		*orig_key_ptr = item->orig_key;
 	}
 	return NULL != item;
+}
+
+/**
+ * Check whether hashlist contains the key.
+ * @return TRUE if the key is present.
+ */
+gboolean
+hash_list_contains(hash_list_t *hl, gconstpointer key)
+{
+	hash_list_check(hl);
+
+	return NULL != g_hash_table_lookup(hl->ht, key);
 }
 
 /**

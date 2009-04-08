@@ -2053,7 +2053,7 @@ head_ping_register_intern(const struct guid *muid,
 			return NULL;
 		}
 	}
-	if (hash_list_contains(head_pings, muid, NULL)) {
+	if (hash_list_contains(head_pings, muid)) {
 		/* Probably a duplicate */
 		return NULL;
 	}

@@ -2734,7 +2734,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 	os = walloc(sizeof *os);
 	os->id = kuid_get_atom(kn->id);
 
-	if (hash_list_contains(hl, os, &key)) {
+	if (hash_list_find(hl, os, &key)) {
 		/* This should happen only infrequently */
 		other_size_free(os);
 		data = deconstify_gpointer(key);

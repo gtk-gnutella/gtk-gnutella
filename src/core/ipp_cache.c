@@ -355,7 +355,7 @@ ipp_cache_lookup_intern(const ipp_cache_t *ic,
 		gconstpointer key;
 
 		gnet_host_set(&item.host, addr, port);
-		if (hash_list_contains(ic->hosts, &item, &key)) {
+		if (hash_list_find(ic->hosts, &item, &key)) {
 			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
 			
 			if (!ipp_cache_item_expired(ic, item_ptr->seen, tm_time()))
@@ -409,7 +409,7 @@ ipp_cache_remove_intern(const ipp_cache_t *ic,
 		gconstpointer key;
 
 		gnet_host_set(&item.host, addr, port);
-		if (hash_list_contains(ic->hosts, &item, &key)) {
+		if (hash_list_find(ic->hosts, &item, &key)) {
 			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
 			
 			hash_list_remove(ic->hosts, item_ptr);

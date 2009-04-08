@@ -1288,7 +1288,7 @@ add_proxies_vec(struct dl_server *server, const gnet_host_vec_t *vec)
 
 	for (i = gnet_host_vec_count(vec) - 1; i >= 0; i--) {
 		gnet_host_t host = gnet_host_vec_get(vec, i);
-		if (hash_list_contains(hl, &host, NULL)) {
+		if (hash_list_contains(hl, &host)) {
 			hash_list_moveto_head(hl, &host);
 		} else {
 			hash_list_prepend(hl, gnet_host_dup(&host));
@@ -1319,7 +1319,7 @@ add_proxy(struct dl_server *server, const host_addr_t addr, guint16 port)
 
 	gnet_host_set(&host, addr, port);
 
-	if (hash_list_contains(hl, &host, NULL)) {
+	if (hash_list_contains(hl, &host)) {
 		hash_list_moveto_head(hl, &host);
 	} else {
 		hash_list_prepend(hl, gnet_host_dup(&host));
@@ -2304,7 +2304,7 @@ download_add_push_proxies(const struct guid *guid,
 		hl = server->proxies = hash_list_new(host_hash, host_eq);
 
 	for (i = 0; i < proxy_count; i++) {
-		if (hash_list_contains(hl, &proxies[i], NULL)) {
+		if (hash_list_contains(hl, &proxies[i])) {
 			hash_list_moveto_head(hl, &proxies[i]);
 		} else {
 			hash_list_prepend(hl, gnet_host_dup(&proxies[i]));

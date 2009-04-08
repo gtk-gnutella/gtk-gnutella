@@ -390,7 +390,7 @@ udp_ping_register(const struct guid *muid)
 	}
 	g_return_val_if_fail(udp_pings, FALSE);
 
-	if (hash_list_contains(udp_pings, muid, NULL)) {
+	if (hash_list_contains(udp_pings, muid)) {
 		/* Probably a duplicate */
 		return FALSE;
 	}

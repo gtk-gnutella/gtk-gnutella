@@ -213,8 +213,8 @@ uhc_list_add(const char *host)
 	g_return_if_fail(host);
 
 	uhc = uhc_new(host);
-	if (hash_list_contains(uhc_list, uhc, NULL)) {
-		g_warning("Duplicate bootstrap UHC: \"%s\"", uhc->host);
+	if (hash_list_contains(uhc_list, uhc)) {
+		g_warning("duplicate bootstrap UHC: \"%s\"", uhc->host);
 		uhc_free(&uhc);
 		return;
 	}

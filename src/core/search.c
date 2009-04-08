@@ -206,7 +206,7 @@ map_muid_to_query_string(const struct guid *muid)
 {
 	gconstpointer orig_key;
 	
-	if (hash_list_contains(query_muids, muid, &orig_key)) {
+	if (hash_list_find(query_muids, muid, &orig_key)) {
 		return g_hash_table_lookup(muid_to_query_map, orig_key);
 	}
 	return NULL;
@@ -767,7 +767,7 @@ ora_lookup(const struct guid *muid,
 	ora.port = port;
 	ora.token = token;
 
-	if (hash_list_contains(oob_reply_acks, &ora, &key)) {
+	if (hash_list_find(oob_reply_acks, &ora, &key)) {
 		return deconstify_gpointer(key);
 	}
 	return NULL;

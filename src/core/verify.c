@@ -560,7 +560,7 @@ verify_enqueue(struct verify *ctx, int high_priority,
 	g_return_val_if_fail(callback, FALSE);
 
 	item = verify_file_new(pathname, offset, amount, callback, user_data);
-	if (hash_list_contains(ctx->files_to_hash, item, NULL)) {
+	if (hash_list_contains(ctx->files_to_hash, item)) {
 		if (high_priority) {
 			hash_list_moveto_head(ctx->files_to_hash, item);
 			inserted = FALSE;
