@@ -57,12 +57,15 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/aging.h"
 #include "lib/ascii.h"
 #include "lib/bit_array.h"
+#include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -79,6 +82,8 @@ RCSID("$Id$")
 #define MIN_LIFE_TIME		60		/**< Grace time past retry-after */
 #define QUEUE_PERIOD		600		/**< Try to resend a queue every 10 min. */
 #define QUEUE_DEAD_SCAN		60		/**< Scan the "dead" queue every 60 secs. */
+#define QUEUE_SAVE_PERIOD	60		/**< Save queues every minute */
+#define QUEUE_HOST_DELAY	12		/**< No more than 1 QUEUE per 12 seconds */
 #define MAX_QUEUE			144		/**< Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/**< Max QUEUE they can refuse in a row */
 
@@ -116,9 +121,10 @@ static guint parq_upload_active_size = 20;
 static guint parq_upload_ban_window = 600;
 static const char file_parq_file[] = "parq";
 
-static GList *ul_parqs;			/**< List of all queued uploads */
+static GList *ul_parqs;				/**< List of all queued uploads */
 static int ul_parqs_cnt;			/**< Amount of queues */
-static GList *ul_parq_queue;		/**< To whom we need to send a QUEUE */
+static hash_list_t *ul_parq_queue;	/**< To whom we need to send a QUEUE */
+static aging_table_t *ul_queue_sent;	/** Used as search table by IP addr */
 static GHashTable *ul_all_parq_by_addr_and_name;
 static GHashTable *ul_all_parq_by_addr;
 static GHashTable *ul_all_parq_by_id;
@@ -142,7 +148,6 @@ struct parq_banned {
 
 
 static gboolean parq_shutdown;
-static gboolean parq_initialized;
 static time_t parq_start;					/**< Init time */
 static guint64 parq_slots_removed = 0;		/**< Amount of slots removed */
 
@@ -152,11 +157,10 @@ static guint64 parq_slots_removed = 0;		/**< Amount of slots removed */
 struct parq_ul_queue {
 	GList *by_position;		/**< Queued items sorted on position. Newest is
 								 added to the end. */
-	GList *by_rel_pos;		/**< Queued items sorted by relative position */
-	GList *by_date_dead;	/**< Queued items sorted on last update and
-								 not alive */
-	statx_t *slot_stats;	/**< Slot kept-time statistics */
-	int by_position_length;/**< Number of items in "by_position" */
+	hash_list_t *by_rel_pos;	/**< Queued items sorted by relative position */
+	hash_list_t *by_date_dead;	/**< Dead items sorted on last update */
+	statx_t *slot_stats;		/**< Slot kept-time statistics */
+	int by_position_length;	/**< Number of items in "by_position" */
 
 	int num;				/**< Queue number */
 	int active_uploads;
@@ -177,7 +181,7 @@ struct parq_ul_queued_by_addr {
 	host_addr_t addr;
 
 	time_t	last_queue_sent;
-	time_t	last_queue_connected;
+	time_t	last_queue_failure;
 
 	GList	*list;			/**< List or queued items for this ip */
 };
@@ -280,8 +284,6 @@ enum fd_avail_status {
 	FD_AVAIL_YELLOW = 1,	/**< Warning, we have to steal from banning fd */
 	FD_AVAIL_RED = 2		/**< Critical, we ran out of fd */
 };
-
-static void parq_upload_save_queue(void);
 
 /***
  ***  Generic non PARQ specific functions
@@ -1282,6 +1284,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	guint eta = 0;
 	guint avg_bps;
 	time_delta_t running_time = delta_time(tm_time(), parq_start);
+	hash_list_iter_t *iter;
 
 	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 	avg_bps = MAX(1024, avg_bps);		/* Assume at least 1 KiB/s */
@@ -1324,8 +1327,10 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
 	}
 
-	for (l = which_ul_queue->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *puq = l->data;
+	iter = hash_list_iterator(which_ul_queue->by_rel_pos);
+
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
 
 		g_assert(puq->is_alive);
 
@@ -1353,6 +1358,8 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 
 		eta += parq_estimated_slot_time(puq);
 	}
+
+	hash_list_iter_release(&iter);
 }
 
 /**
@@ -1412,8 +1419,7 @@ parq_upload_insert_relative(struct parq_ul_queued *puq)
 {
 	g_assert(puq);
 
-	puq->queue->by_rel_pos = g_list_insert_sorted(
-		puq->queue->by_rel_pos, puq, parq_ul_rel_pos_cmp);
+	hash_list_insert_sorted(puq->queue->by_rel_pos, puq, parq_ul_rel_pos_cmp);
 }
 
 /**
@@ -1424,7 +1430,7 @@ parq_upload_remove_relative(struct parq_ul_queued *puq)
 {
 	g_assert(puq);
 
-	puq->queue->by_rel_pos = g_list_remove(puq->queue->by_rel_pos, puq);
+	hash_list_remove(puq->queue->by_rel_pos, puq);
 	parq_slots_removed++;
 }
 
@@ -1432,49 +1438,23 @@ parq_upload_remove_relative(struct parq_ul_queued *puq)
  * Recomputes all relative positions of given queue.
  *
  * @param q		the queue for which we wish to recompute position
- * @param check	whether we must check for duplicate entries
  */
 static void
-parq_upload_recompute_relative_positions(struct parq_ul_queue *q, gboolean check)
+parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 {
-	GList *l = NULL;
 	guint pos = 0;
-	GList *dups = NULL;
+	hash_list_iter_t *iter;
 
-	for (l = q->by_rel_pos; l; l = g_list_next(l)) {
-		struct parq_ul_queued *uqx = l->data;
+	iter = hash_list_iterator(q->by_rel_pos);
 
-		uqx->relative_position = ++pos;
-		g_assert(uqx->queue == q);
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
 
-		if (check) {
-			if (uqx->flags & PARQ_UL_MARK)
-				dups = g_list_prepend(dups, uqx);
-			else
-				uqx->flags |= PARQ_UL_MARK;
-		}
+		puq->relative_position = ++pos;
+		g_assert(puq->queue == q);
 	}
 
-	if (check) {
-		for (l = q->by_rel_pos; l; l = g_list_next(l)) {
-			struct parq_ul_queued *uqx = l->data;
-
-			uqx->flags &= ~PARQ_UL_MARK;
-		}
-
-		for (l = dups; l; l = g_list_next(l)) {
-			struct parq_ul_queued *uqx = l->data;
-
-			g_warning("BUG: [PARQ UL] [#%d] removing dup %s %s from rel_pos",
-				q->num, uqx->is_alive ? "alive" : "dead",
-				guid_hex_str(&uqx->id));
-
-			parq_upload_remove_relative(uqx);
-		}
-
-		/* recurse without checks to recompute proper positions now */
-		parq_upload_recompute_relative_positions(q, FALSE);
-	}
+	hash_list_iter_release(&iter);
 
 	g_assert(pos <= UNSIGNED(q->by_position_length));
 }
@@ -1485,8 +1465,8 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q, gboolean check
 static void
 parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 {
-	GList *l = NULL;
-	guint rel_pos = cur_parq_ul->relative_position;
+	guint rel_pos;
+	hash_list_iter_t *iter;
 
 	g_assert(cur_parq_ul != NULL);
 	g_assert(cur_parq_ul->queue != NULL);
@@ -1494,15 +1474,19 @@ parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
 	g_assert(cur_parq_ul->queue->by_position_length > 0);
 	g_assert(rel_pos > 0);
 
-	l = g_list_find(cur_parq_ul->queue->by_rel_pos, cur_parq_ul);
+	rel_pos = cur_parq_ul->relative_position;
 
-	for (l = g_list_next(l); l; l = g_list_next(l)) {
-		struct parq_ul_queued *uqx = l->data;
+	iter = hash_list_iterator_at(cur_parq_ul->queue->by_rel_pos, cur_parq_ul);
 
-		g_assert(uqx != NULL);
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
 
-		uqx->relative_position = ++rel_pos;
+		g_assert(puq != NULL);
+
+		puq->relative_position = ++rel_pos;
 	}
+
+	hash_list_iter_release(&iter);
 
 	g_assert(rel_pos <= UNSIGNED(cur_parq_ul->queue->by_position_length));
 }
@@ -1528,7 +1512,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 	parq_upload_decrease_all_after(puq);
 
 	if (puq->flags & PARQ_UL_QUEUE)
-		ul_parq_queue = g_list_remove(ul_parq_queue, puq);
+		hash_list_remove(ul_parq_queue, puq);
 
 	puq->by_addr->list = g_list_remove(puq->by_addr->list, puq);
 	puq->by_addr->total--;
@@ -1551,8 +1535,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 		puq->queue->alive--;
 		puq->is_alive = FALSE;
 	} else {
-		puq->queue->by_date_dead = g_list_remove(
-			  puq->queue->by_date_dead, puq);
+		hash_list_remove(puq->queue->by_date_dead, puq);
 	}
 
 	/* Remove the current queued item from all lists */
@@ -1564,8 +1547,8 @@ parq_upload_free(struct parq_ul_queued *puq)
 	g_hash_table_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
 	g_hash_table_remove(ul_all_parq_by_id, &puq->id);
 
-	g_assert(g_list_find(puq->queue->by_date_dead, puq) == NULL);
-	g_assert(g_list_find(puq->queue->by_rel_pos, puq) == NULL);
+	g_assert(!hash_list_contains(puq->queue->by_date_dead, puq));
+	g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
 
 	/*
 	 * Queued upload is now removed from all lists. So queue size can be
@@ -1581,7 +1564,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 	 * the memory
 	 */
 	if (!parq_shutdown) {
-		parq_upload_recompute_relative_positions(puq->queue, FALSE);
+		parq_upload_recompute_relative_positions(puq->queue);
 		parq_upload_update_eta(puq->queue);
 	}
 
@@ -1611,35 +1594,20 @@ parq_ul_calc_retry(struct parq_ul_queued *puq)
 	int result = PARQ_TIMER_BY_POS +
 		(puq->relative_position - 1) * (PARQ_TIMER_BY_POS / 2);
 
-	/* Used for optimistic mode */
-	int fast_result;
-	struct parq_ul_queued *parq_ul_prev = NULL;
-	GList *l = NULL;
-	guint avg_bps;
-
 	if (GNET_PROPERTY(parq_optimistic)) {
+		struct parq_ul_queued *puq_prev = NULL;
+		guint avg_bps;
+
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
 
-		l = g_list_find(puq->queue->by_rel_pos, puq);
+		puq_prev = hash_list_previous(puq->queue->by_rel_pos, puq);
 
-		if (l == NULL)
-			l = g_list_last(puq->queue->by_position);
+		if (puq_prev != NULL && puq_prev->has_slot) {
+			int fast_result =
+				(puq_prev->chunk_size / avg_bps) * GNET_PROPERTY(max_uploads);
 
-		if (l == NULL)
-			return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
-
-		if (l->prev != NULL) {
-			parq_ul_prev = l->prev->data;
-
-			g_assert(parq_ul_prev != NULL);
-
-			if (parq_ul_prev->has_slot) {
-				fast_result = (parq_ul_prev->chunk_size / avg_bps)
-								* GNET_PROPERTY(max_uploads);
-
-				result = MIN(result, fast_result);
-			}
+			result = MIN(result, fast_result);
 		}
 	}
 
@@ -1666,6 +1634,8 @@ parq_upload_new_queue(void)
 
 	queue->active = TRUE;
 	queue->slot_stats = statx_make();
+	queue->by_rel_pos = hash_list_new(NULL, NULL);
+	queue->by_date_dead = hash_list_new(NULL, NULL);
 
 	ul_parqs = g_list_append(ul_parqs, queue);
 	ul_parqs_cnt++;
@@ -1770,6 +1740,7 @@ parq_upload_create(struct upload *u)
 	guint rel_pos = 1;
 	GList *l;
 	GList *prev = NULL;
+	hash_list_iter_t *iter;
 
 	upload_check(u);
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
@@ -1778,16 +1749,21 @@ parq_upload_create(struct upload *u)
 	parq_ul_queue = parq_upload_which_queue(u);
 	g_assert(parq_ul_queue != NULL);
 
+	iter = hash_list_iterator_tail(parq_ul_queue->by_rel_pos);
+
 	/* Locate the last alive queued item so we can calculate the ETA */
-	for (l = g_list_last(parq_ul_queue->by_rel_pos); l; l = g_list_previous(l)) {
-		struct parq_ul_queued *item = l->data;
+	while (hash_list_iter_has_previous(iter)) {
+		struct parq_ul_queued *item = hash_list_iter_previous(iter);
 
 		if (item->is_alive) {
 			prev = l;
-			parq_ul_prev = item;
+			if (hash_list_iter_has_previous(iter))
+				parq_ul_prev = hash_list_iter_previous(iter);
 			break;
 		}
 	}
+
+	hash_list_iter_release(&iter);
 
 	if (parq_ul_prev != NULL) {
 		rel_pos = parq_ul_prev->relative_position + 1;
@@ -1948,6 +1924,8 @@ parq_upload_free_queue(struct parq_ul_queue *queue)
 	ul_parqs_cnt--;
 
 	/* Free memory */
+	hash_list_free(&queue->by_rel_pos);
+	hash_list_free(&queue->by_date_dead);
 	statx_free(queue->slot_stats);
 	wfree(queue, sizeof(*queue));
 	queue = NULL;
@@ -2063,7 +2041,7 @@ parq_upload_register_send_queue(struct parq_ul_queued *puq)
 		return;
 	}
 
-	ul_parq_queue = g_list_append(ul_parq_queue, puq);
+	hash_list_append(ul_parq_queue, puq);
 	puq->flags |= PARQ_UL_QUEUE;
 }
 
@@ -2155,6 +2133,11 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	g_assert(parq_upload_find(u) == puq);
 
 	u->parq_ul = puq;
+
+	/* Prevent too frequent QUEUE sending to the same host */
+	aging_insert(ul_queue_sent,
+		wcopy(&puq->by_addr->addr, sizeof puq->by_addr->addr),
+		GUINT_TO_POINTER(1));
 }
 
 /**
@@ -2167,6 +2150,7 @@ parq_upload_send_queue_failed(struct parq_ul_queued *puq)
 	g_assert(puq);
 
 	puq->flags &= ~PARQ_UL_QUEUE;
+	puq->by_addr->last_queue_failure = tm_time();
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
 		g_message("PARQ UL: QUEUE callback not sent: could not connect to %s",
@@ -2266,19 +2250,14 @@ parq_cleanup_banned(time_t now)
  * should send a QUEUE callback.
  */
 static void
-parq_dead_timer(time_t now, struct parq_ul_queue *q)
+parq_ul_queue_dead_timer(time_t now, const struct parq_ul_queue *q)
 {
-	static time_t last_dead_scan;
-	GList *dl;
+	hash_list_iter_t *iter;
 
-	if (
-		GNET_PROPERTY(max_uploads) > 0 ||	/* Sharing disabled */
-		delta_time(now, last_dead_scan) < QUEUE_DEAD_SCAN
-	)
-		return;
+	iter = hash_list_iterator(q->by_date_dead);
 
-	for (dl = q->by_date_dead; dl != NULL; dl = g_list_next(dl)) {
-		struct parq_ul_queued *puq = dl->data;
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
 
 		g_assert(puq != NULL);
 
@@ -2293,6 +2272,30 @@ parq_dead_timer(time_t now, struct parq_ul_queue *q)
 		)
 			parq_upload_register_send_queue(puq);
 	}
+
+	hash_list_iter_release(&iter);
+}
+
+/**
+ * Callout queue periodic event to scan dead entries in queues.
+ */
+static gboolean
+parq_dead_timer(gpointer unused_udata)
+{
+	time_t now = tm_time();
+	GList *l;
+
+	(void) unused_udata;
+
+	if (0 == GNET_PROPERTY(max_uploads))	/* Sharing disabled */
+		return TRUE;
+
+	for (l = ul_parqs ; l != NULL; l = g_list_next(l)) {
+		struct parq_ul_queue *q = l->data;
+		parq_ul_queue_dead_timer(now, q);	/* Send QUEUE if possible */
+	}
+
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -2305,11 +2308,13 @@ parq_dead_timer(time_t now, struct parq_ul_queue *q)
 static void
 parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 {
+	hash_list_iter_t *iter;
 	GSList *to_remove = *rlp;
-	GList *dl;
 
-	for (dl = q->by_rel_pos; dl != NULL; dl = g_list_next(dl)) {
-		struct parq_ul_queued *puq = dl->data;
+	iter = hash_list_iterator(q->by_rel_pos);
+
+	while (hash_list_iter_has_next(iter)) {
+		struct parq_ul_queued *puq = hash_list_iter_next(iter);
 
 		g_assert(puq != NULL);
 
@@ -2353,6 +2358,8 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 		}
 	}
 
+	hash_list_iter_release(&iter);
+
 	*rlp = to_remove;
 }
 
@@ -2362,72 +2369,88 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 static void
 parq_upload_send_queue_callbacks(time_t now)
 {
-	GList *queue_cmd_remove = NULL;
-	GList *queue_cmd_list = NULL;
+	gpointer next;
 
 	if (
 		GNET_PROPERTY(library_rebuilding) ||
-		ul_parq_queue == NULL ||
+		0 == hash_list_length(ul_parq_queue) ||
 		0 == GNET_PROPERTY(max_uploads)
 	)
 		return;
 
-	queue_cmd_list = ul_parq_queue;
-	do {
-		struct parq_ul_queued *puq = queue_cmd_list->data;
-		gboolean has_timedout;
+	/*
+	 * Use an iteration method allowing the removal of items whilst we
+	 * traverse the hash_list structure.  See hash_list_next() comment.
+	 */
 
-		has_timedout = delta_time(now, puq->by_addr->last_queue_sent)
-				>= (time_delta_t) GNET_PROPERTY(upload_connecting_timeout)
-				&& delta_time(puq->by_addr->last_queue_sent,
-						puq->by_addr->last_queue_connected) > 0;
+	next = hash_list_head(ul_parq_queue);
+	while (next) {
+		struct parq_ul_queued *puq = next;
+		gboolean has_timedout;
+		time_t last_queue_sent;
+		time_t last_queue_failure;
+
+		next = hash_list_next(ul_parq_queue, next);
+
+		if (
+			GNET_PROPERTY(ul_registered) > MAX_UPLOADS ||
+			!bws_can_connect(SOCK_TYPE_UPLOAD)
+		)
+			break;
+
+		last_queue_sent = puq->by_addr->last_queue_sent;	/* To that IP */
+		last_queue_failure = puq->by_addr->last_queue_failure;
+
+		has_timedout =
+			delta_time(now, last_queue_sent) < QUEUE_PERIOD &&
+			delta_time(now, last_queue_failure) < QUEUE_PERIOD;
 
 		/*
 		 * If a previous QUEUE command could not connect to this IP during
 		 * this timeframe, we can safely ignore all QUEUE commands for this
 		 * IP now.
 		 */
+
 		if (
 			has_timedout &&
 			delta_time(puq->send_next_queue, now) < 0
 		) {
 
 			if (GNET_PROPERTY(parq_debug) > 3) {
-				g_message("PARQ UL: Removing QUEUE command due to other "
-					"failed QUEUE command for ip: %s",
+				g_message("PARQ UL: removing QUEUE callback due to other "
+					"failed QUEUE callbacks for IP: %s",
 					host_addr_to_string(puq->by_addr->addr));
 			}
-			puq->last_queue_sent = puq->by_addr->last_queue_sent;
-			goto next;
+			puq->last_queue_sent = last_queue_sent;	/* We considered it... */
+			puq->flags &= ~PARQ_UL_QUEUE;
+			goto remove;
 		}
 
 		/*
-		 * Don't send queue if the current IP has another pending connecting
-		 * QUEUE.
+		 * Don't send QUEUE if the current IP has been sent one recently.
 		 */
-		if (has_timedout) {
-			if (GNET_PROPERTY(parq_debug) > 3) {
-				g_message("PARQ UL: Not sending QUEUE command due to "
-					"another pending QUEUE command for ip: %s",
+
+		if (aging_lookup(ul_queue_sent, &puq->by_addr->addr)) {
+			if (GNET_PROPERTY(parq_debug) > 2) {
+				g_message("PARQ UL: not sending QUEUE since we sent one "
+					"recently to IP: %s",
 					host_addr_to_string(puq->by_addr->addr));
 			}
-		} else
+			continue;		/* Do not remove from list. move forward */
+		} else {
 			parq_upload_send_queue(puq);
 
-	next:
-		queue_cmd_remove = g_list_prepend(queue_cmd_remove, puq);
-		puq->flags &= ~PARQ_UL_QUEUE;
-	} while (
-		GNET_PROPERTY(ul_registered) < MAX_UPLOADS &&
-		(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
-		bws_can_connect(SOCK_TYPE_UPLOAD)
-	);
+			/*
+			 * Do not clear PARQ_UL_QUEUE yet since this entry cannot be
+			 * considered for another QUEUE until we know the fate of the
+			 * connect back attempt.
+			 */
+		}
 
-	while (g_list_first(queue_cmd_remove) != NULL) {
-		ul_parq_queue =
-			g_list_remove(ul_parq_queue, queue_cmd_remove->data);
-		queue_cmd_remove =
-			g_list_remove(queue_cmd_remove, queue_cmd_remove->data);
+		/* FALL THROUGH */
+
+	remove:
+		hash_list_remove(ul_parq_queue, puq);
 	}
 }
 
@@ -2437,7 +2460,6 @@ parq_upload_send_queue_callbacks(time_t now)
 void
 parq_upload_timer(time_t now)
 {
-	static guint print_q_size;
 	static guint startup_delay;
 	GList *queues;
 	GSList *sl, *to_remove = NULL;
@@ -2467,7 +2489,6 @@ parq_upload_timer(time_t now)
 
 		queue_selected++;
 
-		parq_dead_timer(now, queue);	/* Send QUEUE if possible */
 		parq_upload_queue_timer(now, queue, &to_remove);
 
 		/*
@@ -2491,8 +2512,7 @@ parq_upload_timer(time_t now)
 		puq->queue->recompute = TRUE;	/* Defer costly recomputations */
 
 		if (enable_real_passive && parq_still_sharing(puq)) {
-			puq->queue->by_date_dead =
-				g_list_append(puq->queue->by_date_dead, puq);
+			hash_list_append(puq->queue->by_date_dead, puq);
 		} else
 			parq_upload_free(sl->data);
 	}
@@ -2505,7 +2525,7 @@ parq_upload_timer(time_t now)
 		struct parq_ul_queue *q = queues->data;
 
 		if (q->recompute) {
-			parq_upload_recompute_relative_positions(q, FALSE);
+			parq_upload_recompute_relative_positions(q);
 			parq_upload_update_eta(q);
 			q->recompute = FALSE;
 		}
@@ -2513,30 +2533,6 @@ parq_upload_timer(time_t now)
 
 	g_slist_free(to_remove);
 	to_remove = NULL;
-
-	/* Save queue info every 60 seconds */
-	if (print_q_size++ >= 60) {
-		print_q_size = 0;
-
-		if (GNET_PROPERTY(parq_debug)) {
-
-			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
-				struct parq_ul_queue *queue = queues->data;
-
-				g_message("PARQ UL: Queue %d/%d contains %d items, "
-					  "%d uploading, %d alive, queue is marked %s",
-					  queue->num,
-					  ul_parqs_cnt,
-					  queue->by_position_length,
-					  queue->active_uploads,
-					  queue->alive,
-					  queue->active ? "active" : "inactive");
-			}
-		}
-
-		parq_upload_save_queue();
-
-	}
 
 	/*
 	 * If the last queue is not active anymore (ie it should be removed
@@ -2561,32 +2557,28 @@ parq_upload_timer(time_t now)
 gboolean
 parq_upload_queue_full(struct upload *u)
 {
-	struct parq_ul_queue *q_ul;
+	struct parq_ul_queue *q;
 	struct parq_ul_queued *puq;
 
 	upload_check(u);
 
-	q_ul = parq_upload_which_queue(u);
-	g_assert(q_ul->by_position_length >= q_ul->alive);
+	q = parq_upload_which_queue(u);
+	g_assert(q->by_position_length >= q->alive);
 
-	if (UNSIGNED(q_ul->by_position_length) < parq_max_upload_size)
+	if (UNSIGNED(q->by_position_length) < parq_max_upload_size)
 		return FALSE;
 
-	if (q_ul->by_date_dead == NULL ||
-		  g_list_first(q_ul->by_date_dead) == NULL) {
-		return TRUE;
-	}
+	if (0 == hash_list_length(q->by_date_dead))
+		return TRUE;		/* No dead entries to remove */
 
-	g_assert(q_ul->by_date_dead != NULL);
+	puq = hash_list_head(q->by_date_dead);
 
-	puq = g_list_first(q_ul->by_date_dead)->data;
-
-	if (GNET_PROPERTY(parq_debug) > 2)
-		g_message(
-			"PARQ UL: Removing a 'dead' upload %s", guid_hex_str(&puq->id));
+	if (GNET_PROPERTY(parq_debug) > 1)
+		g_message("PARQ UL: removing dead upload %s \"%s\" from %s",
+				guid_hex_str(&puq->id), puq->name,
+				host_addr_to_string(puq->remote_addr));
 
 	parq_upload_free(puq);
-
 	return FALSE;
 }
 
@@ -2598,17 +2590,6 @@ parq_upload_queued(struct upload *u)
 {
 	return parq_upload_lookup_position(u) != (guint) -1;
 }
-
-#if 0 /* UNUSED */
-/**
- * Get parq structure at specified position.
- */
-static struct parq_ul_queued *
-parq_upload_get_at(struct parq_ul_queue *queue, int position)
-{
-	return g_list_nth_data(queue->by_rel_pos, position - 1);
-}
-#endif /* UNUSED */
 
 /**
  * @return TRUE if the current upload will finish quickly enough and 
@@ -2808,7 +2789,7 @@ parq_upload_unfreeze_one(struct parq_ul_queued *puq)
 			guid_hex_str(&puq->id), puq->queue->num,
 			host_addr_to_string(puq->by_addr->addr));
 
-	g_assert(g_list_find(puq->queue->by_rel_pos, puq) == NULL);
+	g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
 
 	puq->flags &= ~PARQ_UL_FROZEN;
 	parq_upload_insert_relative(puq);
@@ -2816,7 +2797,7 @@ parq_upload_unfreeze_one(struct parq_ul_queued *puq)
 	g_assert(puq->by_addr->frozen > 0);
 	puq->by_addr->frozen--;
 
-	parq_upload_recompute_relative_positions(puq->queue, FALSE);
+	parq_upload_recompute_relative_positions(puq->queue);
 }
 
 /**
@@ -2859,7 +2840,7 @@ parq_upload_unfreeze_all(struct parq_ul_queued *puq)
 	}
 
 	if (inserted)
-		parq_upload_recompute_relative_positions(puq->queue, TRUE);
+		parq_upload_recompute_relative_positions(puq->queue);
 
 	if (GNET_PROPERTY(parq_debug))
 		g_message("[PARQ UL] Thawed %d entr%s for IP %s",
@@ -3150,12 +3131,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 		return NULL;
 	}
 
-	if (
-		puq->queue->by_date_dead != NULL &&
-		g_list_find(puq->queue->by_date_dead, puq) != NULL
-	)
-		puq->queue->by_date_dead =
-			  g_list_remove(puq->queue->by_date_dead, puq);
+	hash_list_remove(puq->queue->by_date_dead, puq);
 
 	/*
 	 * It is possible the client reused its ID for another file name, which is
@@ -3197,12 +3173,12 @@ parq_upload_get(struct upload *u, const header_t *header)
 		puq->queue->alive++;
 		puq->is_alive = TRUE;
 		g_assert(puq->queue->alive > 0);
-		g_assert(g_list_find(puq->queue->by_rel_pos, puq) == NULL);
+		g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
 
 		/* Re-insert in the relative position list, unless entry is frozen */
 		if (!(puq->flags & PARQ_UL_FROZEN)) {
 			parq_upload_insert_relative(puq);
-			parq_upload_recompute_relative_positions(puq->queue, FALSE);
+			parq_upload_recompute_relative_positions(puq->queue);
 			parq_upload_update_eta(puq->queue);
 		}
 	}
@@ -3700,7 +3676,7 @@ parq_upload_busy(struct upload *u, struct parq_ul_queued *handle)
 
 	if (!puq->quick && puq->relative_position) {
 		parq_upload_remove_relative(puq);
-		parq_upload_recompute_relative_positions(puq->queue, FALSE);
+		parq_upload_recompute_relative_positions(puq->queue);
 
 		puq->relative_position = 0;		/* Signals: has regular slot */
 		puq->had_slot = TRUE;			/* Had a regular slot */
@@ -3888,7 +3864,7 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 	 */
 
 	if (puq->has_slot) {
-		GList *lnext = NULL;
+		hash_list_iter_t *iter;
 
 		if (GNET_PROPERTY(parq_debug) > 2)
 			g_message("PARQ UL: [#%d] [%s] Freed an upload slot%s",
@@ -3902,18 +3878,24 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 
 		puq->by_addr->uploading--;
 
-		/* Tell next waiting upload that a slot is available, using QUEUE */
-		for (lnext = g_list_first(puq->queue->by_rel_pos); lnext != NULL;
-			  lnext = g_list_next(lnext)) {
-				struct parq_ul_queued *parq_ul_next = lnext->data;
+		/*
+		 * Tell next waiting upload that a slot is available, using QUEUE
+		 */
 
-			if (!parq_ul_next->has_slot) {
-				g_assert(parq_ul_next->queue->active <= 1);
-				if (!(parq_ul_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
-					parq_upload_register_send_queue(parq_ul_next);
+		iter = hash_list_iterator(puq->queue->by_rel_pos);
+
+		while (hash_list_iter_has_next(iter)) {
+			struct parq_ul_queued *puq_next = hash_list_iter_next(iter);
+
+			if (!puq_next->has_slot) {
+				g_assert(puq_next->queue->active <= 1);
+				if (!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
+					parq_upload_register_send_queue(puq_next);
 				break;
 			}
 		}
+
+		hash_list_iter_release(&iter);
 
 		/*
 		 * Put back in queue as first position after the currently available
@@ -3934,10 +3916,10 @@ parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
 			if (puq->had_slot)
 				puq->flags |= PARQ_UL_NOQUEUE;
 
-			g_assert(g_list_find(puq->queue->by_rel_pos, puq) == NULL);
+			g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
 
 			parq_upload_insert_relative(puq);
-			parq_upload_recompute_relative_positions(puq->queue, FALSE);
+			parq_upload_recompute_relative_positions(puq->queue);
 		}
 
 		parq_upload_unfreeze_all(puq);	/* Allow others to compete */
@@ -4444,7 +4426,6 @@ parq_upload_send_queue_conf(struct upload *u)
 	struct gnutella_socket *s;
 	size_t rw;
 	ssize_t sent;
-	time_t now = tm_time();
 
 	upload_check(u);
 	g_assert(u->status == GTA_UL_QUEUE);
@@ -4459,11 +4440,11 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	g_assert(puq != NULL);
 
-	puq->by_addr->last_queue_connected = now;
-
 	/*
 	 * Send the QUEUE header.
 	 */
+
+	puq->flags &= ~PARQ_UL_QUEUE;
 
 	rw = gm_snprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
 			guid_hex_str(&puq->id),
@@ -4632,6 +4613,33 @@ parq_upload_save_queue(void)
 	if (GNET_PROPERTY(parq_debug) > 3)
 		g_message("PARQ UL: All saved");
 
+}
+
+/**
+ * Callout queue periodic event to save PARQ queues.
+ */
+static gboolean
+parq_save_timer(gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	if (GNET_PROPERTY(parq_debug)) {
+		GList *l;
+
+		for (l = ul_parqs ; l != NULL; l = g_list_next(l)) {
+			struct parq_ul_queue *q = l->data;
+
+			g_message("PARQ UL: Queue %d/%d contains %d items, "
+				  "%d uploading, %d alive, queue marked %s",
+				  q->num, ul_parqs_cnt, q->by_position_length,
+				  q->active_uploads, q->alive,
+				  q->active ? "active" : "inactive");
+		}
+	}
+
+	parq_upload_save_queue();
+
+	return TRUE;		/* Keep calling */
 }
 
 typedef enum {
@@ -5062,7 +5070,7 @@ parq_banned_source_expire(const host_addr_t addr)
 gboolean
 parq_is_enabled(void)
 {
-	return parq_initialized;
+	return GNET_PROPERTY(parq_enabled);
 }
 
 /**
@@ -5071,9 +5079,6 @@ parq_is_enabled(void)
 void
 parq_init(void)
 {
-	if (!GNET_PROPERTY(parq_enabled))
-		return;
-
 #define bs_nop(x)	(x)
 
 	BINARY_ARRAY_SORTED(parq_tag_map, struct parq_tag, str, strcmp, bs_nop);
@@ -5092,6 +5097,9 @@ parq_init(void)
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
 	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	ul_parq_queue = hash_list_new(NULL, NULL);
+	ul_queue_sent = aging_make(QUEUE_HOST_DELAY,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	(void) parq_upload_new_queue();
 
@@ -5102,8 +5110,12 @@ parq_init(void)
 	g_assert(ht_banned_source != NULL);
 
 	parq_upload_load_queue();
-	parq_initialized = TRUE;
 	parq_start = tm_time();
+
+	cq_periodic_add(callout_queue,
+		QUEUE_DEAD_SCAN * 1000, parq_dead_timer, NULL);
+	cq_periodic_add(callout_queue,
+		QUEUE_SAVE_PERIOD * 1000, parq_save_timer, NULL);
 }
 
 /**
@@ -5116,9 +5128,6 @@ parq_close_pre(void)
 	GSList *sl, *to_remove = NULL, *to_removeq = NULL;
 
 	parq_shutdown = TRUE;
-
-	if (!parq_initialized)
-		return;
 
 	parq_upload_save_queue();
 
@@ -5195,6 +5204,9 @@ parq_close_pre(void)
 
 	g_list_free(parq_banned_sources);
 	parq_banned_sources = NULL;
+
+	hash_list_free(&ul_parq_queue);
+	aging_destroy(&ul_queue_sent);
 }
 
 /*
