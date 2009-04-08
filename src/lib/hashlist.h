@@ -32,37 +32,35 @@
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
-hash_list_t *hash_list_new(GHashFunc hash_func, GEqualFunc eq_func);
-void hash_list_free(hash_list_t **hl_ptr);
-gpointer hash_list_remove(hash_list_t *hl, gconstpointer key);
-gpointer hash_list_remove_head(hash_list_t *hl);
-gpointer hash_list_remove_tail(hash_list_t *hl);
-gpointer hash_list_shift(hash_list_t *hl);
-void hash_list_append(hash_list_t *hl, gconstpointer key);
-void hash_list_prepend(hash_list_t *hl, gconstpointer key);
-void hash_list_insert_sorted(hash_list_t *hl, gconstpointer key,
-	GCompareFunc func);
-void hash_list_moveto_head(hash_list_t *hl, gconstpointer key);
-void hash_list_moveto_tail(hash_list_t *hl, gconstpointer key);
-gpointer hash_list_head(const hash_list_t *hl);
-gpointer hash_list_tail(const hash_list_t *hl);
-gpointer hash_list_next(hash_list_t *hl, gconstpointer key);
-gpointer hash_list_previous(hash_list_t *hl, gconstpointer key);
-guint hash_list_length(const hash_list_t *hl);
-GList *hash_list_list(hash_list_t *hl);
+hash_list_t *hash_list_new(GHashFunc, GEqualFunc);
+void hash_list_free(hash_list_t **);
+void *hash_list_remove(hash_list_t *, const void *key);
+void *hash_list_remove_head(hash_list_t *);
+void *hash_list_remove_tail(hash_list_t *);
+void *hash_list_shift(hash_list_t *);
+void hash_list_append(hash_list_t *, const void *key);
+void hash_list_prepend(hash_list_t *, const void *key);
+void hash_list_insert_sorted(hash_list_t *, const void *key, GCompareFunc);
+void hash_list_moveto_head(hash_list_t *, const void *key);
+void hash_list_moveto_tail(hash_list_t *, const void *key);
+void *hash_list_head(const hash_list_t *);
+void *hash_list_tail(const hash_list_t *);
+void *hash_list_next(hash_list_t *, const void *key);
+void *hash_list_previous(hash_list_t *, const void *key);
+unsigned hash_list_length(const hash_list_t *);
+GList *hash_list_list(hash_list_t *);
 
-hash_list_iter_t *hash_list_iterator(hash_list_t *hl);
-hash_list_iter_t *hash_list_iterator_tail(hash_list_t *hl);
-hash_list_iter_t *hash_list_iterator_at(hash_list_t *hl, gconstpointer key);
-void hash_list_iter_release(hash_list_iter_t **iter_ptr);
-gboolean hash_list_iter_has_next(const hash_list_iter_t *i);
-gboolean hash_list_iter_has_previous(const hash_list_iter_t *iter);
-gpointer hash_list_iter_next(hash_list_iter_t *i);
-gpointer hash_list_iter_previous(hash_list_iter_t *i);
+hash_list_iter_t *hash_list_iterator(hash_list_t *);
+hash_list_iter_t *hash_list_iterator_tail(hash_list_t *);
+hash_list_iter_t *hash_list_iterator_at(hash_list_t *, const void *key);
+void hash_list_iter_release(hash_list_iter_t **);
+gboolean hash_list_iter_has_next(const hash_list_iter_t *);
+gboolean hash_list_iter_has_previous(const hash_list_iter_t *);
+void *hash_list_iter_next(hash_list_iter_t *);
+void *hash_list_iter_previous(hash_list_iter_t *);
 
-gboolean hash_list_find(hash_list_t *hl,
-		gconstpointer key, gconstpointer *orig_key);
-gboolean hash_list_contains(hash_list_t *hl, gconstpointer key);
-void hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data);
+gboolean hash_list_find(hash_list_t *, const void *key, const void **orig_key);
+gboolean hash_list_contains(hash_list_t *, const void *key);
+void hash_list_foreach(const hash_list_t *, GFunc, void *user_data);
 
 #endif	/* _hashlist_h_ */
