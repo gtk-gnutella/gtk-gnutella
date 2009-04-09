@@ -585,10 +585,10 @@ hash_list_iterator_tail(hash_list_t *hl)
 }
 
 /**
- * Get an iterator on the list, positionned at the specified item (or after
- * the tail of the list if not found).
- *
+ * Get an iterator on the list, positionned at the specified item.
  * Get next items with hash_list_iter_next() or hash_list_iter_previous().
+ *
+ * @return the iterator object or NULL if the key is not in the list.
  */
 hash_list_iter_t *
 hash_list_iterator_at(hash_list_t *hl, const void *key)
@@ -608,7 +608,7 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 			iter->item = item;
 			return iter;
 		} else {
-			return hash_list_iterator_tail(hl);
+			return NULL;
 		}
 	} else {
 		return NULL;

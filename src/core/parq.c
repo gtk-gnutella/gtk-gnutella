@@ -1366,17 +1366,17 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
  * Decreases the position of all queued items after the given queued item.
  */
 static void
-parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
+parq_upload_decrease_all_after(struct parq_ul_queued *puq)
 {
 	GList *l;
 	int pos_cnt = 0;	/* Used for assertion */
 
-	g_assert(cur_parq_ul != NULL);
-	g_assert(cur_parq_ul->queue != NULL);
-	g_assert(cur_parq_ul->queue->by_position != NULL);
-	g_assert(cur_parq_ul->queue->by_position_length > 0);
+	g_assert(puq != NULL);
+	g_assert(puq->queue != NULL);
+	g_assert(puq->queue->by_position != NULL);
+	g_assert(puq->queue->by_position_length > 0);
 
-	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
+	l = g_list_find(puq->queue->by_position, puq);
 	pos_cnt = ((struct parq_ul_queued *) l->data)->position;
 
 	l = g_list_next(l);	/* Decrease _after_ current parq */
@@ -1386,13 +1386,13 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	 * never reach 0 which would mean the queued item is currently uploading
 	 */
 	for (;	l; l = g_list_next(l)) {
-		struct parq_ul_queued *puq = l->data;
+		struct parq_ul_queued *p = l->data;
 
-		g_assert(puq != NULL);
-		g_assert(puq->position > 1);
-		g_assert(puq->position - 1 == UNSIGNED(pos_cnt));
+		g_assert(p != NULL);
+		g_assert(p->position > 1);
+		g_assert(p->position - 1 == UNSIGNED(pos_cnt));
 
-		puq->position--;
+		p->position--;
 		pos_cnt++;
 	}
 }
@@ -1463,32 +1463,32 @@ parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
  * Updates the relative position of all queued items after the given one.
  */
 static void
-parq_upload_update_relative_position_after(struct parq_ul_queued *cur_parq_ul)
+parq_upload_update_relative_position_after(struct parq_ul_queued *puq)
 {
 	guint rel_pos;
 	hash_list_iter_t *iter;
 
-	g_assert(cur_parq_ul != NULL);
-	g_assert(cur_parq_ul->queue != NULL);
-	g_assert(cur_parq_ul->queue->by_rel_pos != NULL);
-	g_assert(cur_parq_ul->queue->by_position_length > 0);
+	g_assert(puq != NULL);
+	g_assert(puq->queue != NULL);
+	g_assert(puq->queue->by_rel_pos != NULL);
+	g_assert(puq->queue->by_position_length > 0);
 
-	rel_pos = cur_parq_ul->relative_position;
+	rel_pos = puq->relative_position;
 	g_assert(rel_pos > 0);
 
-	iter = hash_list_iterator_at(cur_parq_ul->queue->by_rel_pos, cur_parq_ul);
+	iter = hash_list_iterator_at(puq->queue->by_rel_pos, puq);
+	g_assert(iter != NULL);		/* Item found */
 
 	while (hash_list_iter_has_next(iter)) {
-		struct parq_ul_queued *puq = hash_list_iter_next(iter);
+		struct parq_ul_queued *p = hash_list_iter_next(iter);
 
-		g_assert(puq != NULL);
-
-		puq->relative_position = ++rel_pos;
+		g_assert(p != NULL);
+		p->relative_position = ++rel_pos;
 	}
 
 	hash_list_iter_release(&iter);
 
-	g_assert(rel_pos <= UNSIGNED(cur_parq_ul->queue->by_position_length));
+	g_assert(rel_pos <= UNSIGNED(puq->queue->by_position_length));
 }
 
 /**
@@ -4619,6 +4619,9 @@ static gboolean
 parq_save_timer(gpointer unused_udata)
 {
 	(void) unused_udata;
+
+	if (!parq_is_enabled())
+		return TRUE;
 
 	if (GNET_PROPERTY(parq_debug)) {
 		GList *l;
