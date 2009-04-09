@@ -99,7 +99,7 @@
 
 #define gui_signal_disconnect(widget, func, data) \
 	g_signal_handlers_disconnect_by_func((widget), \
-		G_CALLBACK(func), (data))
+		cast_func_to_pointer(func), (data))
 
 #define gui_signal_stop_emit_by_name(widget, name) \
 	g_signal_stop_emission_by_name((widget), (name))

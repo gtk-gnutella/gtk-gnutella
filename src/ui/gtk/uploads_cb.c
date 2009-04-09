@@ -228,8 +228,8 @@ on_button_uploads_kill_clicked(GtkButton *unused_button, gpointer unused_udata)
 
     treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
-    gtk_tree_selection_selected_foreach(selection,
-		uploads_func_helper, kill_upload);
+    gtk_tree_selection_selected_foreach(selection, uploads_func_helper,
+		cast_func_to_pointer(kill_upload));
 }
 
 /**
@@ -247,8 +247,8 @@ on_popup_uploads_browse_host_activate(GtkMenuItem *unused_menuitem,
 	
     treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
-    gtk_tree_selection_selected_foreach(selection,
-		uploads_func_helper, browse_uploading_host);
+    gtk_tree_selection_selected_foreach(selection, uploads_func_helper,
+		cast_func_to_pointer(browse_uploading_host));
 }
 #endif /* USE_GTK2 */
 
