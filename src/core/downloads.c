@@ -9774,7 +9774,7 @@ download_open(const char * const pathname)
 		 * same file descriptor.
 		 */
 
-		fd = file_open(pathname, O_RDWR, 0);
+		fd = file_open_missing(pathname, O_RDWR);
 		if (fd >= 0)
 			fo = file_object_new(fd, pathname, O_RDWR);
 	}
