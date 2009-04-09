@@ -455,53 +455,49 @@ tt_leave_count(TTH_CONTEXT *ctx)
 	return ctx->li;
 }
 
-/**
- * Runs some test cases to check whether the implementation is alright.
- */
+static void
+tt_check_digest(const char * const expected, const void *data, size_t size)
+{
+	char digest[TTH_BASE32_SIZE + 1];
+	struct tth hash;
+	TTH_CONTEXT ctx;
+
+	tt_init(&ctx, size);
+	tt_update(&ctx, data, size);
+	tt_digest(&ctx, &hash);
+
+	memset(digest, 0, sizeof digest);	
+	base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
+	digest[G_N_ELEMENTS(digest) - 1] = '\0';
+
+	if (0 != strcmp(expected, digest)) {
+		g_warning("tt_check_digest:\nExpected: \"%s\"\nGot:      \"%s\"",
+			expected, digest);
+		g_error("Tigertree implementation is defective.");
+	}
+}
+
 void
 tt_check(void)
 {
-    static const struct {
-		const char *digest;
-		const char *data;
-		size_t size;
-	} tests[] = {
-#define D(x) x x
-#define Ax1024 D(D(D(D(D(D(D(D(D(D("A"))))))))))
-#define Ax1025 Ax1024 "A"
-		{ "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ", "", 0 },
-		{ "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA", "", 1 },
-		{ "L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA", Ax1024, 1024 },
-		{ "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY", Ax1025, 1025 },
-#undef Ax1025
-#undef Ax1024
-#undef D
-	};
-	unsigned i;
+	/* test case: empty file (zero bytes) */
+	tt_check_digest("LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ", "", 0);
 
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-		char digest[TTH_BASE32_SIZE + 1];
-		struct tth hash;
-		TTH_CONTEXT ctx;
+	/* test case: empty string (a single NUL) */
+	tt_check_digest("VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA", "", 1);
 
-		tt_init(&ctx, tests[i].size);
-		tt_update(&ctx, tests[i].data, tests[i].size);
-		tt_digest(&ctx, &hash);
-	
-		memset(digest, 0, sizeof digest);	
-		base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
-		digest[G_N_ELEMENTS(digest) - 1] = '\0';
+	/* test case: 1024x 'A' */
+	{
+		char buf[1024];
+		memset(buf, 'A', sizeof buf);
+		tt_check_digest("L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA", buf, sizeof buf);
+	}
 
-		if (0 != strcmp(tests[i].digest, digest)) {
-			unsigned j;
-
-			g_warning("i=%u, digest=\"%s\"", i, digest);
-			for (j = 0; j < G_N_ELEMENTS(hash.data); j++) {
-				printf("%02x", (unsigned char) hash.data[j] & 0xff);
-			}
-			printf("\n");
-			g_assert_not_reached();
-		}
+	/* test case: 1025x 'A' */
+	{
+		char buf[1025];
+		memset(buf, 'A', sizeof buf);
+		tt_check_digest("PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY", buf, sizeof buf);
 	}
 }
 
