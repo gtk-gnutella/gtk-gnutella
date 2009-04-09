@@ -90,7 +90,7 @@ publish_check(const publish_t *pb)
  *
  * @return NULL if the publish ID is unknown, otherwise the publish object
  */
-static publish_t *
+static inline publish_t *
 publish_is_alive(struct publish_id pid)
 {
 	publish_t *pb;
@@ -126,7 +126,7 @@ publish_id_create(void)
  * @param key		the primary key for accessing published values
  * ...etc...
  */
-static publish_t *
+static inline publish_t *
 publish_create(const kuid_t *key /* etc... */)
 {
 	publish_t *pb;
@@ -208,15 +208,6 @@ publish_close(void)
 	g_hash_table_foreach(publishes, free_publish, NULL);
 	g_hash_table_destroy(publishes);
 	publishes = NULL;
-
-	/* XXX Avoid warnings about unused static functions */
-	{
-		gconstpointer f;
-		gconstpointer g;
-
-		f = publish_is_alive;
-		g = publish_create;
-	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
