@@ -2171,6 +2171,8 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		free(c_treallocated);
 		free(c_tremains);
 	}
+
+	fflush(f);
 }
 
 /**
