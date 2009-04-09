@@ -150,7 +150,7 @@ main_gui_page_visibility_change(int page_num, gboolean visible)
 
 	iter = visibility_listeners[page_num];
 	for (/* NOTHING */; NULL != iter; iter = g_slist_next(iter)) {
-		main_gui_visibility_cb func = iter->data;
+		main_gui_visibility_cb func = cast_pointer_to_func(iter->data);
 
 		g_assert(func);
 		(*func)(visible);
@@ -221,7 +221,7 @@ main_gui_add_page_visibility_listener(main_gui_visibility_cb func,
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
 
 	visibility_listeners[page_num] = g_slist_append(
-										visibility_listeners[page_num], func);
+			visibility_listeners[page_num], cast_func_to_pointer(func));
 }
 
 void
@@ -232,7 +232,7 @@ main_gui_remove_page_visibility_listener(main_gui_visibility_cb func,
 	g_return_if_fail(UNSIGNED(page_num) < nb_main_page_num);
 
 	visibility_listeners[page_num] = g_slist_remove(
-										visibility_listeners[page_num], func);
+			visibility_listeners[page_num], cast_func_to_pointer(func));
 }
 
 int
@@ -706,7 +706,7 @@ main_gui_add_timer(main_gui_timer_cb func)
 	}
 	g_return_if_fail(!slist_contains_identical(timers, func));
 
-	slist_append(timers, func);
+	slist_append(timers, cast_func_to_pointer(func));
 }
 
 void
@@ -715,7 +715,7 @@ main_gui_remove_timer(main_gui_timer_cb func)
 	g_return_if_fail(func);
 	g_return_if_fail(timers);
 
-	slist_remove(timers, func);
+	slist_remove(timers, cast_func_to_pointer(func));
 }
 
 /**
@@ -739,11 +739,14 @@ main_gui_timer(time_t now)
 
 	length = timers ? slist_length(timers) : 0;
 	while (length-- > 0) {
-		main_gui_timer_cb func;
+		void *p;
 
-		func = slist_shift(timers);
-		if (func) {
-			slist_append(timers, func);
+		p = slist_shift(timers);
+		if (p) {
+			main_gui_timer_cb func;
+
+			slist_append(timers, p);
+			func = cast_pointer_to_func(p);
 			(*func)(now);
 		}
 		if (overloaded)

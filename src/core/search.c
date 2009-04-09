@@ -3564,7 +3564,7 @@ search_new(gnet_search_t *ptr, const char *query,
 	if (sbool_get(sch->active)) {
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
-		sch->new_node_hook->func = node_added_callback;
+		sch->new_node_hook->func = cast_func_to_pointer(node_added_callback);
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)

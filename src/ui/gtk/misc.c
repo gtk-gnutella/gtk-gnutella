@@ -870,12 +870,18 @@ show_popup_menu(widget_popup_menu_cb handler)
 	}
 }
 
+static inline widget_popup_menu_cb
+cast_to_widget_popup_menu_cb(const void *p)
+{
+	return (widget_popup_menu_cb) cast_pointer_to_func(p);
+}
+
 #if GTK_CHECK_VERSION(2,0,0)
 static gboolean
 on_popup_menu(GtkWidget *unused_widget, void *user_data)
 {
 	(void) unused_widget;
-	return show_popup_menu(user_data);
+	return show_popup_menu(cast_to_widget_popup_menu_cb(user_data));
 }
 #endif	/* Gtk+ >= 2.0*/
 
@@ -891,7 +897,7 @@ on_key_press_event(GtkWidget *unused_widget,
 	case 0x1008FE0A:	/* Shift+F10 under Xnest */
 		modifier = gtk_accelerator_get_default_mod_mask() & event->state;
 		if (GDK_SHIFT_MASK == modifier) {
-			return show_popup_menu(user_data);
+			return show_popup_menu(cast_to_widget_popup_menu_cb(user_data));
 		}
 		break;
 	}
@@ -909,7 +915,7 @@ on_button_press_event(GtkWidget *unused_widget,
 		3 == event->button &&
 		0 == (gtk_accelerator_get_default_mod_mask() & event->state)
 	) {
-		return show_popup_menu(user_data);
+		return show_popup_menu(cast_to_widget_popup_menu_cb(user_data));
 	}
 	return FALSE;
 }
@@ -920,18 +926,20 @@ on_button_press_event(GtkWidget *unused_widget,
 void
 widget_add_popup_menu(GtkWidget *widget, widget_popup_menu_cb handler)
 {
+	void *data = cast_func_to_pointer((func_ptr_t) handler);
+
 	g_return_if_fail(widget);
 	g_return_if_fail(handler);
 
 	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_FOCUS);
 	GTK_WIDGET_SET_FLAGS(widget, GTK_CAN_DEFAULT);
 #if GTK_CHECK_VERSION(2,0,0)
-	gui_signal_connect(widget, "popup-menu", on_popup_menu, handler);
+	gui_signal_connect(widget, "popup-menu", on_popup_menu, data);
 #endif	/* Gtk+ >= 2.0*/
 
-	gui_signal_connect(widget, "key-press-event", on_key_press_event, handler);
+	gui_signal_connect(widget, "key-press-event", on_key_press_event, data);
 	gui_signal_connect(widget, "button-press-event", on_button_press_event,
-		handler);
+		data);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
