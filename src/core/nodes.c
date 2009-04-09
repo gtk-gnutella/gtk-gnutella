@@ -188,16 +188,13 @@ typedef struct node_bad_client {
 	int	errors;
 } node_bad_client_t;
 
-static int node_error_threshold = 6;	/**< This requires an average uptime of
-										     1 hour for an ultrapeer */
+/* This requires an average uptime of 1 hour for an ultrapeer */
+static int node_error_threshold = 6;
 static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
 static GSList *sl_proxies;	/* Our push proxies */
-
 static guint32 shutdown_nodes;
-
 static gboolean allow_gnet_connections = FALSE;
-
 GHookList node_added_hook_list;
 
 /**
@@ -875,11 +872,16 @@ node_slow_timer(time_t now)
 	}
 }
 
-static inline void
-node_error_cleanup(void)
+/**
+ * Periodic event to cleanup error data structures.
+ */
+static gboolean
+node_error_cleanup(gpointer unused_x)
 {
 	GSList *sl;
 	GSList *to_remove = NULL;
+
+	(void) unused_x;
 
 	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
@@ -907,6 +909,8 @@ node_error_cleanup(void)
 	}
 
 	g_slist_free(to_remove);
+
+	return TRUE;		/* Keep calling */
 }
 
 static void
@@ -944,9 +948,6 @@ void
 node_timer(time_t now)
 {
 	const GSList *sl;
-
-	if ((now % node_error_cleanup_timer) == 0)
-		node_error_cleanup();
 
 	/*
 	 * Asynchronously react to current peermode change.
@@ -1365,6 +1366,9 @@ node_init(void)
 	 */
 
 	header_features_add(FEATURES_CONNECTIONS, "sflag", 0, 1);
+
+	cq_periodic_add(callout_queue,
+		node_error_cleanup_timer * 1000, node_error_cleanup, NULL);
 }
 
 /**
@@ -7617,7 +7621,7 @@ node_sent_ttl0(struct gnutella_node *n)
 static void
 node_bye_flags(guint32 mask, int code, const char *message)
 {
-	GSList *sl;
+	const GSList *sl;
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
