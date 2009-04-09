@@ -699,9 +699,46 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	outz->zfree = zlib_free_func;
 	outz->opaque = NULL;
 
-	ret = deflateInit2(outz, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-			targs->gzip ? (-MAX_WBITS) : MAX_WBITS,
-			MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
+	/*
+	 * Reduce memory requirements for deflation when running as an ultrapeer.
+	 *
+	 * Memory used for deflation is:
+	 *
+	 *	(1 << (window_bits +2)) +  (1 << (mem_level + 9))
+	 *
+	 * For leaves, we use window_bits = 15 and mem_level = 9, which makes
+	 * for 128 KiB + 256 KiB = 384 KiB per connection (TX side).
+	 *
+	 * For ultra peers, we use window_bits = 14 and mem_level = 6, so this
+	 * uses 64 KiB + 32 KiB = 96 KiB only.
+	 *
+	 * Since ultra peers have many more connections than leaves, the memory
+	 * savings are drastic, yet compression levels remain around 50% (varies
+	 * depending on the nature of the traffic, of course).
+	 *
+	 *		--RAM, 2009-04-09
+	 */
+
+	{
+		int window_bits = MAX_WBITS;		/* Must be 8 .. MAX_WBITS */
+		int mem_level = MAX_MEM_LEVEL;		/* Must be 1 .. MAX_MEM_LEVEL */
+		int level = Z_BEST_COMPRESSION;
+
+		if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
+			window_bits = 14;
+			mem_level = 6;
+			level = Z_DEFAULT_COMPRESSION;
+		}
+
+		g_assert(window_bits >= 8 && window_bits <= MAX_WBITS);
+		g_assert(mem_level >= 1 && mem_level <= MAX_MEM_LEVEL);
+		g_assert(level == Z_DEFAULT_COMPRESSION ||
+			(level >= Z_BEST_SPEED && level <= Z_BEST_COMPRESSION));
+
+		ret = deflateInit2(outz, level, Z_DEFLATED,
+				targs->gzip ? (-window_bits) : window_bits, mem_level,
+				Z_DEFAULT_STRATEGY);
+	}
 
 	if (Z_OK != ret) {
 		g_warning("unable to initialize compressor for peer %s: %s",
