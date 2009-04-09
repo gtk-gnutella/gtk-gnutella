@@ -45,15 +45,12 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/cq.h"
 #include "lib/tm.h"
 #include "lib/wd.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-#define INET_CALLOUT			1000	/**< Heartbeat every second */
-
-static cqueue_t *inet_cq;				/**< Private callout queue */
 
 /***
  *** Firewall status management structures.
@@ -97,12 +94,34 @@ static watchdog_t *solicited_udp_wd;
 
 #define FW_UDP_WINDOW			120		/**< 2 minutes, in most firewalls */
 
-static GHashTable *outgoing_udp = NULL;		/**< Maps "IP" => "ip_record" */
+static aging_table_t *outgoing_udp;		/**< IP addresses to whom we send */
 
 struct ip_record {
 	host_addr_t addr;			/**< The IP address to which we sent data */
 	cevent_t *timeout_ev;		/**< The expiration time for the fw breach */
 };
+
+/**
+ * States of our small automaton to try to detect reception of unsolicited
+ * messages if we do not get them naturally: there are only a few such messages
+ * that can only be viewed as unsolicited.
+ *
+ * SO if we don't get these, we enter the mode UNSOLICITED_PREPARE in which
+ * we just record the addresses of whom we send things to.  We ignore any
+ * unsolicited checks for non-matching addresses at this point.  After
+ * FW_UDP_WINDOW seconds have elapsed, we enter UNSOLICITED_CHECK and the
+ * first time we get an unsolicited packet, we know...  At which point we
+ * move back to UNSOLICTED_OFF to turn off these checks.
+ */
+
+enum solicited_states {
+	UNSOLICITED_OFF = 0,
+	UNSOLICITED_PREPARE,
+	UNSOLICITED_CHECK
+};
+
+static enum solicited_states outgoing_udp_state = UNSOLICITED_OFF;
+static cevent_t *unsolicited_udp_ev;
 
 /***
  *** External connection status management structures.
@@ -120,66 +139,6 @@ struct ip_record {
 static watchdog_t *outgoing_wd;			/**< Watchdog for outgoing activity */
 
 static void inet_set_is_connected(gboolean val);
-
-/**
- * Create a new ip_record structure.
- */
-static struct ip_record *
-ip_record_make(const host_addr_t addr)
-{
-	struct ip_record *ipr;
-
-	ipr = walloc(sizeof *ipr);
-
-	ipr->addr = addr;
-	ipr->timeout_ev = NULL;
-
-	return ipr;
-}
-
-/**
- * Free ip_record structure.
- */
-static void
-ip_record_free(struct ip_record *ipr)
-{
-	cq_cancel(inet_cq, &ipr->timeout_ev);
-	wfree(ipr, sizeof *ipr);
-}
-
-/**
- * Free ip_record structure and remove it from the `outgoing_udp' table.
- */
-static void
-ip_record_free_remove(struct ip_record *ipr)
-{
-	g_hash_table_remove(outgoing_udp, &ipr->addr);
-	ip_record_free(ipr);
-}
-
-/**
- * Touch ip_record when we send a new datagram to that IP.
- */
-static void
-ip_record_touch(struct ip_record *ipr)
-{
-	g_assert(ipr->timeout_ev != NULL);
-
-	cq_resched(inet_cq, ipr->timeout_ev, FW_UDP_WINDOW * 1000);
-}
-
-/**
- * Callout queue callback, invoked when it's time to destroy the record.
- */
-static void
-ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
-{
-	struct ip_record *ipr = obj;
-
-	(void) unused_cq;
-	ipr->timeout_ev = NULL;			/* The event that fired */
-	ip_record_free_remove(ipr);
-}
 
 /**
  * Checks whether a host address is considered being "local".
@@ -302,8 +261,53 @@ void
 inet_udp_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
-	wd_sleep(incoming_udp_wd);
 	node_became_udp_firewalled();
+}
+
+/**
+ * Callout queue callback.
+ * Enter the UNSOLICITED_CHECK state.
+ */
+static void
+move_to_unsolicited_check(cqueue_t *unused_cq, gpointer unused_data)
+{
+	(void) unused_cq;
+	(void) unused_data;
+
+	unsolicited_udp_ev = NULL;		/* Event fired */
+
+	if (GNET_PROPERTY(fw_debug))
+		g_message("FW: will be now monitoring UDP for unsolicited messages");
+
+	outgoing_udp_state = UNSOLICITED_CHECK;
+}
+
+/**
+ * Enter the UNSOLICITED_PREPARE state.
+ */
+static void
+move_to_unsolicited_prepare(void)
+{
+	if (GNET_PROPERTY(fw_debug))
+		g_message("FW: set for unsolicited traffic detection in %d secs",
+			FW_UDP_WINDOW);
+
+	unsolicited_udp_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
+		move_to_unsolicited_check, NULL);
+	outgoing_udp_state = UNSOLICITED_PREPARE;
+}
+
+/**
+ * Enter the UNSOLICITED_OFF state.
+ */
+static void
+move_to_unsolicited_off(void)
+{
+	if (GNET_PROPERTY(fw_debug))
+		g_message("FW: turning off unsolicited traffic detection");
+
+	outgoing_udp_state = UNSOLICITED_OFF;
+	cq_cancel(callout_queue, &unsolicited_udp_ev);	/* Paranoid */
 }
 
 /**
@@ -322,7 +326,7 @@ got_no_udp_solicited(watchdog_t *unused_wd, gpointer unused_obj)
 			FW_SOLICITED_WINDOW);
 
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, FALSE);
-	return FALSE;		/* Disarm watchdog */
+	return FALSE;			/* Disarm watchdog */
 }
 
 /**
@@ -371,10 +375,28 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 		g_message("FW: got no unsolicited UDP datagram to port %u for %d secs",
 			socket_listen_port(), FW_INCOMING_WINDOW);
 
-	inet_udp_firewalled();
-	return FALSE;			/* Disarm watchdog */
-}
+	/*
+	 * If we are in the UNSOLICITED_OFF state, move to UNSOLICITED_PREPARE
+	 * for FW_UDP_WINDOW seconds.
+	 *
+	 * Otherwise, move to UNSOLICITED_OFF and state we are firewalled.
+	 */
 
+	STATIC_ASSERT(FW_UDP_WINDOW < FW_SOLICITED_WINDOW);
+
+	if (UNSOLICITED_OFF == outgoing_udp_state) {
+		move_to_unsolicited_prepare();
+		return TRUE;		/* Let watchdog fire again at next period */
+	} else {
+		if (GNET_PROPERTY(fw_debug)) {
+			g_message("FW: no unsolicited UDP again for %d secs on port %u "
+				"=> firewalled", FW_SOLICITED_WINDOW, socket_listen_port());
+		}
+		move_to_unsolicited_off();
+		inet_udp_firewalled();
+		return TRUE;		/* Try again to detect unsolicited at next period */
+	}
+}
 
 /**
  * Called when we have determined we are definitely not TCP-firewalled.
@@ -448,20 +470,27 @@ inet_got_incoming(const host_addr_t addr)
 }
 
 /**
- * Called when we got an incoming unsolicited datagram from another
- * computer at `ip'.
+ * Called when we got an incoming unsolicited datagram from another computer.
  *
  * i.e. the datagram was sent directly to our listening socket port,
  * and not to a masqueraded port on the firewall opened because we
  * previously sent out an UDP datagram to a host and got its reply.
+ *
+ * There are some messages that we know cannot be received from UDP as
+ * a reply of some sort (i.e. sent back to us through a masquerated port).
+ * When we do get these messages, then this routine can be called explicitly.
  */
-static void
+void 
 inet_udp_got_unsolicited_incoming(void)
 {
-	if (GNET_PROPERTY(is_udp_firewalled)) {
-		wd_wakeup(incoming_udp_wd);
-		inet_udp_not_firewalled();
+	if (outgoing_udp_state != UNSOLICITED_OFF) {
+		if (GNET_PROPERTY(fw_debug))
+			g_message("FW: got unsolicited UDP message => not firewalled");
+		move_to_unsolicited_off();
 	}
+
+	if (GNET_PROPERTY(is_udp_firewalled))
+		inet_udp_not_firewalled();
 
 	wd_kick(incoming_udp_wd);
 }
@@ -486,15 +515,19 @@ inet_udp_got_incoming(const host_addr_t addr)
 	if (!GNET_PROPERTY(is_inet_connected))
 		inet_set_is_connected(TRUE);
 
+	inet_udp_got_solicited();
+
 	/*
-	 * Make sure we're not connecting locally.
-	 * If we're not, then we're not firewalled, unless we recently sent
-	 * some data to that IP address.
+	 * If checking for unsolicited traffic, then we have a match if we
+	 * get a message from an IP to whom we haven't sent anything recently.
 	 */
 
-	inet_udp_got_solicited();
-	if (NULL == g_hash_table_lookup(outgoing_udp, &addr))
+	if (
+		UNSOLICITED_CHECK == outgoing_udp_state &&
+		NULL == aging_lookup(outgoing_udp, &addr)
+	) {
 		inet_udp_got_unsolicited_incoming();
+	}
 }
 
 /**
@@ -504,16 +537,12 @@ inet_udp_got_incoming(const host_addr_t addr)
 void
 inet_udp_record_sent(const host_addr_t addr)
 {
-	struct ip_record *ipr;
+	if (UNSOLICITED_OFF == outgoing_udp_state)
+		return;		/* Not currently monitoring for unsolicited UDP */
 
-	ipr = g_hash_table_lookup(outgoing_udp, &addr);
-	if (ipr != NULL)
-		ip_record_touch(ipr);
-	else {
-		ipr = ip_record_make(addr);
-		g_hash_table_insert(outgoing_udp, &ipr->addr, ipr);
-		ipr->timeout_ev = cq_insert(inet_cq, FW_UDP_WINDOW * 1000,
-			ip_record_destroy, ipr);
+	if (!aging_lookup_revitalise(outgoing_udp, &addr)) {
+		aging_insert(outgoing_udp,
+			wcopy(&addr, sizeof addr), uint_to_pointer(1));
 	}
 }
 
@@ -652,8 +681,6 @@ inet_read_activity(void)
 void
 inet_init(void)
 {
-	inet_cq = cq_submake("inet", callout_queue, INET_CALLOUT);
-
 	/*
 	 * Monitoring watchdogs for incoming connections.
 	 */
@@ -661,8 +688,8 @@ inet_init(void)
 	incoming_wd = wd_make("incoming TCP connections",
 		FW_INCOMING_WINDOW, got_no_connection, NULL, FALSE);
 
-	incoming_udp_wd = wd_make("incoming UDP message",
-		FW_INCOMING_WINDOW, got_no_udp_unsolicited, NULL, FALSE);
+	incoming_udp_wd = wd_make("unsolicited UDP message",
+		FW_INCOMING_WINDOW, got_no_udp_unsolicited, NULL, TRUE);
 
 	solicited_udp_wd = wd_make("solicited UDP reply",
 		FW_SOLICITED_WINDOW, got_no_udp_solicited, NULL, FALSE);
@@ -673,9 +700,6 @@ inet_init(void)
 
 	if (!GNET_PROPERTY(is_firewalled))
 		wd_wakeup(incoming_wd);
-
-	if (!GNET_PROPERTY(is_udp_firewalled))
-		wd_wakeup(incoming_udp_wd);
 
 	if (GNET_PROPERTY(recv_solicited_udp))
 		wd_wakeup(solicited_udp_wd);
@@ -691,20 +715,10 @@ inet_init(void)
 	 * Initialize the table used to record outgoing UDP traffic.
 	 */
 
-	outgoing_udp = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-}
+	outgoing_udp = aging_make(FW_UDP_WINDOW,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
-/**
- * Hash table iteration callback to free the "ip_record" structure.
- */
-static void
-free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
-{
-	struct ip_record *ipr = value;
-
-	(void) unused_udata;
-	g_assert(&ipr->addr == key);
-	ip_record_free(ipr);
+	outgoing_udp_state = UNSOLICITED_OFF;
 }
 
 /**
@@ -713,9 +727,8 @@ free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
 void
 inet_close(void)
 {
-	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
-	g_hash_table_destroy(outgoing_udp);
-	cq_free_null(&inet_cq);
+	aging_destroy(&outgoing_udp);
+	cq_cancel(callout_queue, &unsolicited_udp_ev);
 	wd_free_null(&outgoing_wd);
 	wd_free_null(&incoming_wd);
 	wd_free_null(&incoming_udp_wd);

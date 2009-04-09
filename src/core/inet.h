@@ -55,6 +55,7 @@ void inet_got_incoming(const host_addr_t addr);
 void inet_read_activity(void);
 void inet_udp_got_incoming(const host_addr_t addr);
 void inet_udp_record_sent(const host_addr_t addr);
+void inet_udp_got_unsolicited_incoming(void);
 
 void inet_connection_attempted(const host_addr_t addr);
 void inet_connection_succeeded(const host_addr_t addr);
