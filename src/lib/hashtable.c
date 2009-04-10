@@ -53,7 +53,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 #define HASH_ITEMS_PER_BIN	4
-#define HASH_ITEMS_GROW		50
+#define HASH_ITEMS_GROW		56
 
 #if 0
 #define HASH_TABLE_CHECKS
@@ -100,14 +100,14 @@ G_STMT_START { \
  *       only a quarter of the bins are used.
  */
 static inline size_t
-hash_id_key(const hash_table_t *ht, const void *key)
+hash_id_key(const void *key)
 {
   size_t n = (size_t) key;
   return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
 }
 
 static inline gboolean
-hash_id_eq(const hash_table_t *ht, const void *a, const void *b)
+hash_id_eq(const void *a, const void *b)
 {
   return a == b;
 }
@@ -384,23 +384,42 @@ hash_table_resize_helper(const void *key, void *value, void *data)
   RUNTIME_ASSERT(ok);
 }
 
-static inline void
-hash_table_resize(hash_table_t *ht)
+static void
+hash_table_resize(hash_table_t *ht, size_t n)
 {
   hash_table_t tmp;
-  size_t n;
 
-  /* TODO: Also shrink the table */
-
-  if ((ht->num_held / HASH_ITEMS_PER_BIN) < ht->num_bins)
-      return;
-
-  n = ht->num_bins * 2;
   hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
   hash_table_foreach(ht, hash_table_resize_helper, &tmp);
   RUNTIME_ASSERT(ht->num_held == tmp.num_held);
   hash_table_clear(ht);
   *ht = tmp;
+}
+
+static inline void
+hash_table_resize_on_remove(hash_table_t *ht)
+{
+  size_t n;
+  size_t needed_bins = ht->num_held / HASH_ITEMS_PER_BIN;
+
+  if (needed_bins + (HASH_ITEMS_GROW / HASH_ITEMS_PER_BIN) >= ht->num_bins / 2)
+	return;
+
+  n = ht->num_bins / 2;
+  n = MAX(2, n);
+  if (n < needed_bins)
+	return;
+
+  hash_table_resize(ht, n);
+}
+
+static inline void
+hash_table_resize_on_insert(hash_table_t *ht)
+{
+  if (ht->num_held / HASH_ITEMS_PER_BIN < ht->num_bins)
+	return;
+
+  hash_table_resize(ht, ht->num_bins * 2);
 }
 
 /**
@@ -414,7 +433,7 @@ hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 {
   hash_table_check(ht);
 
-  hash_table_resize(ht);
+  hash_table_resize_on_insert(ht);
   return hash_table_insert_no_resize(ht, key, value);
 }
 
@@ -469,6 +488,9 @@ hash_table_remove(hash_table_t *ht, const void *key)
     ht->num_held--;
 
     RUNTIME_CHECK(!hash_table_lookup(ht, key));
+
+	hash_table_resize_on_remove(ht);
+
     return TRUE;
   }
   RUNTIME_CHECK(!hash_table_lookup(ht, key));
