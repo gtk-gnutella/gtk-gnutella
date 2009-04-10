@@ -54,7 +54,7 @@ typedef struct option {
 	const char **value;		/* Variable where option value will be put */
 } option_t;
 
-int options_parse(const char *argv[], option_t *ovec, int osize);
+int options_parse(const char *argv[], const option_t *ovec, int osize);
 const char *options_parse_last_error(void);
 
 #endif /* _options_h_ */

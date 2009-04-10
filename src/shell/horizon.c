@@ -146,14 +146,14 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 enum shell_reply
 shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	const char *all;
+	const option_t options[] = {
+		{ "a", &all },
+	};
 	char buf[200];
 	hsep_triple globaltable[HSEP_N_MAX + 1];
 	hsep_triple non_hsep[1];
-	const char *all;
 	int parsed;
-	option_t options[] = {
-		{ "a", &all },
-	};
 	unsigned num_hsep, num_total;
 
 	shell_check(sh);

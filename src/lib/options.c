@@ -51,13 +51,13 @@ enum {
  * Locate the option letter in the vector array, returning the pointer
  * to the entry if found, or NULL if it wasn't.
  */
-static option_t *
-option_lookup(char letter, option_t *ovec, int osize)
+static const option_t *
+option_lookup(char letter, const option_t *ovec, int osize)
 {
 	int i;
 
 	for (i = 0; i < osize; i++) {
-		option_t *entry = &ovec[i];
+		const option_t *entry = &ovec[i];
 
 		g_assert(entry->letter);
 
@@ -97,10 +97,10 @@ options_parse_last_error(void)
  * @return The number of options processed and validated, -1 on error.
  */
 int
-options_parse(const char *argv[], option_t *ovec, int osize)
+options_parse(const char *argv[], const option_t *ovec, int osize)
 {
 	guchar options[127];	/* ASCII only */
-	option_t *current;
+	const option_t *current;
 	int i;
 
 	g_assert(argv);
@@ -115,7 +115,7 @@ options_parse(const char *argv[], option_t *ovec, int osize)
 	error_string[0] = '\0';
 
 	for (i = 0; i < osize; i++) {
-		option_t *o = &ovec[i];
+		const option_t *o = &ovec[i];
 		guchar idx;
 
 		g_assert(o->letter);
@@ -181,7 +181,7 @@ options_parse(const char *argv[], option_t *ovec, int osize)
 		g_assert(current == NULL);
 
 		while ((c = *arg++)) {
-			option_t *opt;
+			const option_t *opt;
 			int flags;
 
 			if (UNSIGNED(c) >= G_N_ELEMENTS(options)) {

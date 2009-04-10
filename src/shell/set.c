@@ -37,12 +37,12 @@ RCSID("$Id$")
 enum shell_reply
 shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	property_t prop;
 	const char *verbose;
-	int parsed;
-	option_t options[] = {
+	const option_t options[] = {
 		{ "v", &verbose },
 	};
+	property_t prop;
+	int parsed;
 
 	shell_check(sh);
 	g_assert(argv);

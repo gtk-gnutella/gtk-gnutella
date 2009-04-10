@@ -55,7 +55,7 @@ guint64 shell_line_count(struct gnutella_shell *);
 gboolean shell_request_library_rescan(void);
 
 int shell_options_parse(struct gnutella_shell *,
-	const char *argv[], option_t *ovec, int ovcnt);
+	const char *argv[], const option_t *ovec, int ovcnt);
 
 /* Implemented commands */
 

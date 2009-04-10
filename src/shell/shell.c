@@ -231,7 +231,7 @@ shell_token_end(const char *s)
  */
 int
 shell_options_parse(struct gnutella_shell *sh,
-	const char *argv[], option_t *ovec, int ovcnt)
+	const char *argv[], const option_t *ovec, int ovcnt)
 {
 	int ret;
 
