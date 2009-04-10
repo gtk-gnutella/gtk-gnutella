@@ -65,8 +65,8 @@ RCSID("$Id$")
 #endif
 
 typedef struct hash_item {
-  void *key;
-  void *value;
+  const void *key;
+  const void *value;
   struct hash_item *next;
 } hash_item_t;
 
@@ -75,6 +75,8 @@ struct hash_table {
   size_t      num_bins; /* Number of bins */
   size_t      num_held; /* Number of items actually in the table */
   size_t      bin_fill; /* Number of bins in use */
+  hash_table_hash_func hash;	/* Key hash functions, or NULL */
+  hash_table_eq_func eq;		/* Key equality function, or NULL */
   hash_item_t **bins;   /* Array of bins of size ``num_bins'' */
   hash_item_t *free_list;   /* List of free hash items */
   hash_item_t *items;       /* Array of items */
@@ -89,7 +91,7 @@ G_STMT_START { \
 } G_STMT_END
 
 static hash_item_t * 
-hash_item_alloc(hash_table_t *ht, void *key, void *value)
+hash_item_alloc(hash_table_t *ht, const void *key, const void *value)
 {
   hash_item_t *item;
 
@@ -117,7 +119,8 @@ hash_item_free(hash_table_t *ht, hash_item_t *item)
 }
 
 static void
-hash_table_new_intern(hash_table_t *ht, size_t num_bins)
+hash_table_new_intern(hash_table_t *ht, size_t num_bins,
+	hash_table_hash_func hash, hash_table_eq_func eq)
 {
   size_t i;
    
@@ -126,6 +129,8 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins)
   
   ht->num_held = 0;
   ht->bin_fill = 0;
+  ht->hash = hash;
+  ht->eq = eq;
 
   ht->num_bins = num_bins;
   ht->bins = alloc_pages(ht->num_bins * sizeof ht->bins[0]);
@@ -152,7 +157,15 @@ hash_table_t *
 hash_table_new(void)
 {
   hash_table_t *ht = malloc(sizeof *ht);
-  hash_table_new_intern(ht, 2);
+  hash_table_new_intern(ht, 2, NULL, NULL);
+  return ht;
+}
+
+hash_table_t *
+hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
+{
+  hash_table_t *ht = malloc(sizeof *ht);
+  hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }
 
@@ -174,10 +187,24 @@ hash_table_size(const hash_table_t *ht)
  *       only a quarter of the bins are used.
  */
 static inline size_t
-hash_key(const void *key)
+hash_key(const hash_table_t *ht, const void *key)
 {
-  size_t n = (size_t) key;
-  return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
+  if (ht->hash) {
+	return (*ht->hash)(key);
+  } else {
+	size_t n = (size_t) key;
+	return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
+  }
+}
+
+static inline gboolean
+hash_eq(const hash_table_t *ht, const void *a, const void *b)
+{
+  if (ht->eq) {
+	return (*ht->eq)(a, b);
+  } else {
+	return a == b;
+  }
 }
 
 /**
@@ -190,21 +217,21 @@ hash_key(const void *key)
  *         associated with the key is returned.
  */
 static hash_item_t *
-hash_table_find(hash_table_t *ht, const void *key, size_t *bin)
+hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 {
   hash_item_t *item;
   size_t hash;
 
   hash_table_check(ht);
 
-  hash = hash_key(key) & (ht->num_bins - 1);
+  hash = hash_key(ht, key) & (ht->num_bins - 1);
   item = ht->bins[hash];
   if (bin) {
     *bin = hash;
   }
 
   for (/* NOTHING */; item != NULL; item = item->next) {
-    if (key == item->key)
+    if (hash_eq(ht, key, item->key))
         return item;
   }
 
@@ -224,7 +251,7 @@ hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
     hash_item_t *item;
 
     for (item = ht->bins[i]; NULL != item; item = item->next) {
-      (*func)(item->key, item->value, data);
+      (*func)(item->key, deconstify_gpointer(item->value), data);
       n--;
     }
   }
@@ -260,63 +287,15 @@ hash_table_clear(hash_table_t *ht)
   ht->free_list = NULL;
 }
 
-static void
-hash_table_resize_helper(void *key, void *value, void *data)
-{
-  gboolean ok;
-  ok = hash_table_insert(data, key, value);
-  RUNTIME_ASSERT(ok);
-}
-
-static inline void
-hash_table_resize(hash_table_t *ht)
-{
-  size_t n;
-
-  /* TODO: Also shrink the table */
-  if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
-    n = ht->num_bins * 2;
-  } else {
-    n = ht->num_bins;
-  }
-
-  if (n != ht->num_bins) {
-    hash_table_t tmp;
-
-    hash_table_new_intern(&tmp, n);
-    hash_table_foreach(ht, hash_table_resize_helper, &tmp);
-    RUNTIME_ASSERT(ht->num_held == tmp.num_held);
-    hash_table_clear(ht);
-
-    *ht = tmp;
-  }
-}
-
-#if 0 /* UNUSED */
-void
-hash_table_status(const hash_table_t *ht)
-{
-  fprintf(stderr,
-      "hash_table_status:\n"
-      "ht=%p\n"
-      "num_held=%lu\n"
-      "num_bins=%lu\n"
-      "bin_fill=%lu\n",
-      ht,
-      (unsigned long) ht->num_held,
-      (unsigned long) ht->num_bins,
-      (unsigned long) ht->bin_fill);
-}
-#endif /* UNUSED */
-
 /**
  * Adds a new item to the hash_table. If the hash_table already contains an
  * item with the same key, the old value is kept and FALSE is returned.
  *
  * @return FALSE if the item could not be added, TRUE on success.
  */
-gboolean
-hash_table_insert(hash_table_t *ht, void *key, void *value)
+static gboolean
+hash_table_insert_no_resize(hash_table_t *ht,
+	const void *key, const void *value)
 {
   hash_item_t *item;
   size_t bin;
@@ -325,8 +304,6 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
 
   RUNTIME_ASSERT(key);
   RUNTIME_ASSERT(value);
-
-  hash_table_resize(ht);
 
   if (hash_table_find(ht, key, &bin)) {
     return FALSE;
@@ -348,8 +325,72 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
   return TRUE;
 }
 
+static void
+hash_table_resize_helper(const void *key, void *value, void *data)
+{
+  gboolean ok;
+  ok = hash_table_insert_no_resize(data, key, value);
+  RUNTIME_ASSERT(ok);
+}
+
+static inline void
+hash_table_resize(hash_table_t *ht)
+{
+  size_t n;
+
+  /* TODO: Also shrink the table */
+  if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
+    n = ht->num_bins * 2;
+  } else {
+    n = ht->num_bins;
+  }
+
+  if (n != ht->num_bins) {
+    hash_table_t tmp;
+
+    hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
+    hash_table_foreach(ht, hash_table_resize_helper, &tmp);
+    RUNTIME_ASSERT(ht->num_held == tmp.num_held);
+    hash_table_clear(ht);
+
+    *ht = tmp;
+  }
+}
+
+/**
+ * Adds a new item to the hash_table. If the hash_table already contains an
+ * item with the same key, the old value is kept and FALSE is returned.
+ *
+ * @return FALSE if the item could not be added, TRUE on success.
+ */
 gboolean
-hash_table_remove(hash_table_t *ht, void *key)
+hash_table_insert(hash_table_t *ht, const void *key, const void *value)
+{
+  hash_table_check(ht);
+
+  hash_table_resize(ht);
+  return hash_table_insert_no_resize(ht, key, value);
+}
+
+#if 0 /* UNUSED */
+void
+hash_table_status(const hash_table_t *ht)
+{
+  fprintf(stderr,
+      "hash_table_status:\n"
+      "ht=%p\n"
+      "num_held=%lu\n"
+      "num_bins=%lu\n"
+      "bin_fill=%lu\n",
+      ht,
+      (unsigned long) ht->num_held,
+      (unsigned long) ht->num_bins,
+      (unsigned long) ht->bin_fill);
+}
+#endif /* UNUSED */
+
+gboolean
+hash_table_remove(hash_table_t *ht, const void *key)
 {
   hash_item_t *item;
   size_t bin;
@@ -389,14 +430,32 @@ hash_table_remove(hash_table_t *ht, void *key)
 }
 
 void *
-hash_table_lookup(hash_table_t *ht, void *key)
+hash_table_lookup(const hash_table_t *ht, const void *key)
 {
   hash_item_t *item;
 
   hash_table_check(ht);
   item = hash_table_find(ht, key, NULL);
 
-  return item ? item->value : NULL;
+  return item ? deconstify_gpointer(item->value) : NULL;
+}
+
+gboolean
+hash_table_lookup_extended(const hash_table_t *ht,
+	const void *key, const void **kp, void **vp)
+{
+  hash_item_t *item;
+
+  hash_table_check(ht);
+  item = hash_table_find(ht, key, NULL);
+
+  if (item == NULL)
+	return FALSE;
+
+  if (kp)	*kp = item->key;
+  if (vp)	*vp = deconstify_gpointer(item->value);
+
+  return TRUE;
 }
 
 void
@@ -406,4 +465,29 @@ hash_table_destroy(hash_table_t *ht)
   free(ht);
 }
 
-/* vi: set ai et sts=2 sw=2 cindent: */
+#ifdef TRACK_MALLOC
+hash_table_t *
+hash_table_new_real(void)
+{
+  hash_table_t *ht = real_malloc(sizeof *ht);
+  hash_table_new_intern(ht, 2, NULL, NULL);
+  return ht;
+}
+
+hash_table_t *
+hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
+{
+  hash_table_t *ht = real_malloc(sizeof *ht);
+  hash_table_new_intern(ht, 2, hash, eq);
+  return ht;
+}
+
+void
+hash_table_destroy_real(hash_table_t *ht)
+{
+  hash_table_clear(ht);
+  real_free(ht);
+}
+#endif /* TRACK_MALLOC */
+
+/* vi: set ai et sts=4 sw=4 cindent: */
