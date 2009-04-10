@@ -610,7 +610,7 @@ real_malloc(size_t size)
 void
 real_free(void *p)
 {
-	free((char *) p);
+	free(p);
 }
 
 /**
