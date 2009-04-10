@@ -51,6 +51,7 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -232,7 +233,8 @@ write_data(int fd, struct shell_buf *sb)
 		case -1:
 			if (EPIPE == errno) {
 				sb->hup = 1;
-			} else if (!is_temporary_error(errno)) {
+			}
+			if (!is_temporary_error(errno)) {
 				perror("write() failed");
 				return -1;
 			}
@@ -259,9 +261,6 @@ compat_poll(struct pollfd *fds, size_t n, int timeout)
 	fd_set rfds, wfds, efds;
 	int ret, max_fd = -1;
 
-	tv.tv_sec = timeout / 1000;
-	tv.tv_usec = (timeout % 1000) * 1000UL;
-
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	FD_ZERO(&efds);
@@ -285,6 +284,15 @@ compat_poll(struct pollfd *fds, size_t n, int timeout)
 		}
 		FD_SET(fd, &efds);
 	}
+
+	if (timeout < 0) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+	} else {
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = (timeout % 1000) * 1000UL;
+	}
+
 	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
 	if (ret > 0) {
 		for (i = 0; i < n; i++) {
@@ -471,6 +479,8 @@ local_shell(const char *socket_path)
 {
 	struct sockaddr_un addr;
 	int fd;
+
+	signal(SIGINT, SIG_DFL);
 
 	if (!socket_path) {
 		goto failure;
