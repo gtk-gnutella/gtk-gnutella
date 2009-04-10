@@ -273,12 +273,9 @@ hash_table_resize(hash_table_t *ht)
 {
   size_t n;
 
+  /* TODO: Also shrink the table */
   if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
     n = ht->num_bins * 2;
-  } else if (
-  	(ht->num_held + HASH_ITEMS_GROW) / HASH_ITEMS_PER_BIN < ht->num_bins / 2
-  ) {
-    n = ht->num_bins / 2;
   } else {
     n = ht->num_bins;
   }
