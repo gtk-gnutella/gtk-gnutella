@@ -386,7 +386,6 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 
 	if (UNSOLICITED_OFF == outgoing_udp_state) {
 		move_to_unsolicited_prepare();
-		return TRUE;		/* Let watchdog fire again at next period */
 	} else {
 		if (GNET_PROPERTY(fw_debug)) {
 			g_message("FW: no unsolicited UDP again for %d secs on port %u "
@@ -394,8 +393,9 @@ got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
 		}
 		move_to_unsolicited_off();
 		inet_udp_firewalled();
-		return TRUE;		/* Try again to detect unsolicited at next period */
 	}
+
+	return TRUE;		/* Let watchdog fire again at next period */
 }
 
 /**
