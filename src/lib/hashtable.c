@@ -95,6 +95,23 @@ G_STMT_START { \
   RUNTIME_ASSERT(ht_->num_bins > 0); \
 } G_STMT_END
 
+/**
+ * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
+ *       only a quarter of the bins are used.
+ */
+static inline size_t
+hash_id_key(const hash_table_t *ht, const void *key)
+{
+  size_t n = (size_t) key;
+  return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
+}
+
+static inline gboolean
+hash_id_eq(const hash_table_t *ht, const void *a, const void *b)
+{
+  return a == b;
+}
+
 static hash_item_t * 
 hash_item_alloc(hash_table_t *ht, const void *key, const void *value)
 {
@@ -160,8 +177,8 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
   
   ht->num_held = 0;
   ht->bin_fill = 0;
-  ht->hash = hash;
-  ht->eq = eq;
+  ht->hash = hash ? hash : hash_id_key;
+  ht->eq = eq ? eq : hash_id_eq;
 
   ht->num_bins = num_bins;
   ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
@@ -227,15 +244,13 @@ hash_table_size(const hash_table_t *ht)
 static inline size_t
 hash_key(const hash_table_t *ht, const void *key)
 {
-  return ht->hash ?
-	(*ht->hash)(key) :
-	((0x4F1BBCDCUL * (guint64) (size_t) key) >> 32) ^ (size_t) key;
+  return (*ht->hash)(key);
 }
 
 static inline gboolean
 hash_eq(const hash_table_t *ht, const void *a, const void *b)
 {
-  return ht->eq ? (*ht->eq)(a, b) : a == b;
+  return (*ht->eq)(a, b);
 }
 
 /**
@@ -278,7 +293,8 @@ hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
   RUNTIME_ASSERT(func != NULL);
 
   n = ht->num_held;
-  for (i = 0; i < ht->num_bins; i++) {
+  i = ht->num_bins;
+  while (i-- > 0) {
     hash_item_t *item;
 
     for (item = ht->bins[i]; NULL != item; item = item->next) {
@@ -296,7 +312,9 @@ hash_table_clear(hash_table_t *ht)
   size_t arena;
 
   hash_table_check(ht);
-  for (i = 0; i < ht->num_bins; i++) {
+
+  i = ht->num_bins;
+  while (i-- > 0) {
     hash_item_t *item = ht->bins[i];
 
     while (item) {
@@ -369,25 +387,20 @@ hash_table_resize_helper(const void *key, void *value, void *data)
 static inline void
 hash_table_resize(hash_table_t *ht)
 {
+  hash_table_t tmp;
   size_t n;
 
   /* TODO: Also shrink the table */
-  if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
-    n = ht->num_bins * 2;
-  } else {
-    n = ht->num_bins;
-  }
 
-  if (n != ht->num_bins) {
-    hash_table_t tmp;
+  if ((ht->num_held / HASH_ITEMS_PER_BIN) < ht->num_bins)
+      return;
 
-    hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
-    hash_table_foreach(ht, hash_table_resize_helper, &tmp);
-    RUNTIME_ASSERT(ht->num_held == tmp.num_held);
-    hash_table_clear(ht);
-
-    *ht = tmp;
-  }
+  n = ht->num_bins * 2;
+  hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
+  hash_table_foreach(ht, hash_table_resize_helper, &tmp);
+  RUNTIME_ASSERT(ht->num_held == tmp.num_held);
+  hash_table_clear(ht);
+  *ht = tmp;
 }
 
 /**
@@ -523,4 +536,4 @@ hash_table_destroy_real(hash_table_t *ht)
 }
 #endif /* TRACK_MALLOC */
 
-/* vi: set ai et sts=4 sw=4 cindent: */
+/* vi: set ai et sts=2 sw=2 cindent: */
