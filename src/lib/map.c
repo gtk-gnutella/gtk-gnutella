@@ -552,12 +552,13 @@ map_test(void)
 	int i;
 	size_t count;
 	int tests;
-	int faster[3] = { 0, 0, 0};
-	gboolean verbose = common_dbg > 0;
+	struct {
+		unsigned insertion, contains, removal;
+	} faster = { 0, 0, 0};
+	gboolean verbose = common_dbg > 1;
 
-#define INSERT_IDX		0
-#define CONTAINS_IDX	1
-#define REMOVE_IDX		2
+	if (common_dbg <= 0)
+		return;
 
 	keys = g_malloc(ITEM_COUNT * sizeof *keys);
 
@@ -596,7 +597,7 @@ map_test(void)
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
-			faster[INSERT_IDX]++;
+			faster.insertion++;
 
 		htime = timeit(test_map_contains, mh, keys, count,
 			LOOPS, "map hash contains", verbose);
@@ -609,7 +610,7 @@ map_test(void)
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
-			faster[CONTAINS_IDX]++;
+			faster.contains++;
 
 		htime = timeit(test_map_remove, mh, keys, count,
 			1, "map hash remove", verbose);
@@ -622,22 +623,22 @@ map_test(void)
 				ptime < htime ? "faster" : "slower", (unsigned long) count);
 
 		if (ptime < htime)
-			faster[REMOVE_IDX]++;
+			faster.removal++;
 
 		map_destroy(mh);
 		map_destroy(mp);
 	}
 
-	if (faster[INSERT_IDX])
+	if (faster.insertion)
 		g_message("PATRICIA insert was faster than hash in %d out of %d tests",
-			faster[INSERT_IDX], tests);
-	if (faster[CONTAINS_IDX])
+			faster.insertion, tests);
+	if (faster.contains)
 		g_message(
 			"PATRICIA contains was faster than hash in %d out of %d tests",
-			faster[CONTAINS_IDX], tests);
-	if (faster[REMOVE_IDX])
+			faster.contains, tests);
+	if (faster.removal)
 		g_message("PATRICIA remove was faster than hash in %d out of %d tests",
-			faster[REMOVE_IDX], tests);
+			faster.removal, tests);
 
 	G_FREE_NULL(keys);
 }
