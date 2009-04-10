@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Apr  2 20:49:34 CEST 2009 [metaconfig 3.5-25]
+# Generated on Sat Apr 11 01:37:49 CEST 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6951,9 +6951,10 @@ struct foobar {
 	char foo;
 	double bar;
 } try;
-int main()
+int main(void)
 {
-	printf("%d\n", (char *)&try.bar - (char *)&try.foo);
+	printf("%d\n", (int)((char *)&try.bar - (char *)&try.foo));
+	return 0;
 }
 EOCP
 	if $cc $ccflags try.c -o try >/dev/null 2>&1; then
