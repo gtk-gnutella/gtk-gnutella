@@ -580,8 +580,9 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
 }
 
 static inline void
-freecb_wrapper(gpointer data, slist_destroy_cb freecb)
+freecb_wrapper(gpointer data, gpointer user_data)
 {
+	slist_destroy_cb freecb = cast_pointer_to_func(user_data);
 	(*freecb)(data);
 }
 
@@ -599,7 +600,8 @@ slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb)
 		slist_t *slist = *slist_ptr;
 
 		slist_check(slist);
-		G_SLIST_FOREACH_WITH_DATA(slist->head, freecb_wrapper, freecb);
+		G_SLIST_FOREACH_WITH_DATA(slist->head, freecb_wrapper,
+			cast_func_to_pointer(freecb));
 		slist_free(slist_ptr);
 	}
 }
