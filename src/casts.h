@@ -168,6 +168,12 @@ ptr_diff(const void *a, const void *b)
 	return (const char *) a - (const char *) b;
 }
 
+static inline void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
+ptr_add_offset(const void *p, size_t o)
+{
+	return (void *) ((char *) p + o);
+}
+
 /**
  * Converts a filesize_t to off_t.
  *
