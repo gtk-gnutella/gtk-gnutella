@@ -47,7 +47,22 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define HASH_ITEMS_PER_BIN 4
+#define HASH_ITEMS_PER_BIN	4
+#define HASH_ITEMS_GROW		50
+
+#if 0
+#define HASH_TABLE_CHECKS
+#endif
+
+/*
+ * More costsly run-time assertions are only enabled if HASH_TABLE_CHECKS
+ * is defined.
+ */
+#ifdef HASH_TABLE_CHECKS
+#define RUNTIME_CHECK(x)		RUNTIME_ASSERT(x)
+#else
+#define RUNTIME_CHECK(x)
+#endif
 
 typedef struct hash_item {
   void *key;
@@ -258,9 +273,12 @@ hash_table_resize(hash_table_t *ht)
 {
   size_t n;
 
-  /* TODO: Also shrink the table */
   if ((ht->num_held / HASH_ITEMS_PER_BIN) >= ht->num_bins) {
     n = ht->num_bins * 2;
+  } else if (
+  	(ht->num_held + HASH_ITEMS_GROW) / HASH_ITEMS_PER_BIN < ht->num_bins / 2
+  ) {
+    n = ht->num_bins / 2;
   } else {
     n = ht->num_bins;
   }
@@ -316,7 +334,7 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
   if (hash_table_find(ht, key, &bin)) {
     return FALSE;
   }
-  RUNTIME_ASSERT(NULL == hash_table_lookup(ht, key));
+  RUNTIME_CHECK(NULL == hash_table_lookup(ht, key));
 
   item = hash_item_alloc(ht, key, value);
   RUNTIME_ASSERT(item != NULL);
@@ -329,7 +347,7 @@ hash_table_insert(hash_table_t *ht, void *key, void *value)
   ht->bins[bin] = item;
   ht->num_held++;
 
-  RUNTIME_ASSERT(value == hash_table_lookup(ht, key));
+  RUNTIME_CHECK(value == hash_table_lookup(ht, key));
   return TRUE;
 }
 
@@ -366,10 +384,10 @@ hash_table_remove(hash_table_t *ht, void *key)
     hash_item_free(ht, item);
     ht->num_held--;
 
-    RUNTIME_ASSERT(!hash_table_lookup(ht, key));
+    RUNTIME_CHECK(!hash_table_lookup(ht, key));
     return TRUE;
   }
-  RUNTIME_ASSERT(!hash_table_lookup(ht, key));
+  RUNTIME_CHECK(!hash_table_lookup(ht, key));
   return FALSE;
 }
 
