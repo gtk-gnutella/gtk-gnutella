@@ -301,6 +301,8 @@ GString *string_sprintfa_track(
 #ifdef TRACK_MALLOC
 void malloc_init(const char *argv0);
 void malloc_close(void);
+void *real_malloc(size_t size);
+void real_free(void *p);
 #endif
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)

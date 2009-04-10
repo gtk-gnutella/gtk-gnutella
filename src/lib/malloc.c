@@ -37,6 +37,7 @@
 
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
+#include "hashtable.h"
 #include "misc.h"		/* For concat_strings() */
 #include "tm.h"			/* For tm_time() */
 #include "glib-missing.h"
@@ -101,8 +102,8 @@ struct block {
 	GSList *realloc;
 };
 
-static GHashTable *blocks = NULL;
-static GHashTable *not_leaking = NULL;
+static hash_table_t *blocks = NULL;
+static hash_table_t *not_leaking = NULL;
 
 static void free_record(gconstpointer o, const char *file, int line);
 
@@ -116,7 +117,7 @@ static void free_record(gconstpointer o, const char *file, int line);
  */
 #ifdef MALLOC_FRAMES
 
-static GHashTable *alloc_points; /**< Maps a block to its allocation frame */
+static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
 
 /**
  * Structure keeping track of the allocation/free stack frames.
@@ -127,6 +128,7 @@ static GHashTable *alloc_points; /**< Maps a block to its allocation frame */
 struct frame {
 	void *stack[FRAME_DEPTH];	/**< PC of callers */
 	size_t len;					/**< Number of valid entries in stack */
+	size_t blocks;				/**< Blocks allocated from this stack frame */
 	size_t count;				/**< Bytes allocated/freed since reset */
 	size_t total_count;			/**< Grand total for this stack frame */
 };
@@ -513,22 +515,22 @@ where(FILE *f)
  * @return stack frame "atom".
  */
 static struct frame *
-get_frame_atom(GHashTable **hptr, const struct frame *f)
+get_frame_atom(hash_table_t **hptr, const struct frame *f)
 {
 	struct frame *fr = NULL;
-	GHashTable *ht;
+	hash_table_t *ht;
 
 	ht = *hptr;
 	if (NULL == ht)
-		*hptr = ht = g_hash_table_new(frame_hash, frame_eq);
+		*hptr = ht = hash_table_new_full_real(frame_hash, frame_eq);
 	else
-		fr = g_hash_table_lookup(ht, f);
+		fr = hash_table_lookup(ht, f);
 
 	if (fr == NULL) {
 		fr = calloc(1, sizeof(*fr));
 		memcpy(fr->stack, f->stack, f->len * sizeof f->stack[0]);
 		fr->len = f->len;
-		g_hash_table_insert(ht, fr, fr);
+		hash_table_insert(ht, fr, fr);
 	}
 
 	return fr;
@@ -560,13 +562,13 @@ struct stats {
 	ssize_t reallocated;		/**< Total reallocated since last "reset" */
 	ssize_t total_reallocated;	/**< Total reallocated overall (algebric!) */
 #ifdef MALLOC_FRAMES
-	GHashTable *alloc_frames;	/**< The frames where allocation took place */
-	GHashTable *free_frames;	/**< The frames where free took place */
-	GHashTable *realloc_frames;	/**< The frames where realloc took place */
+	hash_table_t *alloc_frames;		/**< The frames where alloc took place */
+	hash_table_t *free_frames;		/**< The frames where free took place */
+	hash_table_t *realloc_frames;	/**< The frames where realloc took place */
 #endif /* MALLOC_FRAMES */
 };
 
-static GHashTable *stats = NULL; /**< maps stats(file, line) -> stats */
+static hash_table_t *stats = NULL; /**< maps stats(file, line) -> stats */
 
 /**
  * Hashing routine for "struct stats".
@@ -594,6 +596,24 @@ stats_eq(gconstpointer a, gconstpointer b)
 #endif /* MALLOC_STATS */
 
 /**
+ * Calls real malloc, no tracking.
+ */
+void *
+real_malloc(size_t size)
+{
+	return malloc(size);
+}
+
+/**
+ * Calls real free, no tracking.
+ */
+void
+real_free(void *p)
+{
+	free((char *) p);
+}
+
+/**
  * Called from main() to load symbols from the executable.
  */
 void
@@ -611,14 +631,14 @@ malloc_init(const char *argv0)
 static void
 track_init(void)
 {
-	blocks = g_hash_table_new(NULL, NULL);
-	not_leaking = g_hash_table_new(NULL, NULL);
+	blocks = hash_table_new_real();
+	not_leaking = hash_table_new_real();
 
 #ifdef MALLOC_STATS
-	stats = g_hash_table_new(stats_hash, stats_eq);
+	stats = hash_table_new_full_real(stats_hash, stats_eq);
 #endif
 #ifdef MALLOC_FRAMES
-	alloc_points = g_hash_table_new(NULL, NULL);
+	alloc_points = hash_table_new_real();
 #endif
 
 	init_time = reset_time = tm_time_exact();
@@ -630,11 +650,11 @@ track_init(void)
  * Log used block, and record it among the `leaksort' set for future summary.
  */
 static void
-malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
+malloc_log_block(const void *k, void *v, gpointer leaksort)
 {
-	struct block *b = v;
+	const struct block *b = v;
 
-	if (g_hash_table_lookup(not_leaking, k))
+	if (hash_table_lookup(not_leaking, k))
 		return;
 
 	g_warning("leaked block 0x%lx (%lu bytes) from \"%s:%d\"",
@@ -654,14 +674,15 @@ malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 	{
 		struct frame *fr;
 
-		fr = g_hash_table_lookup(alloc_points, k);
+		fr = hash_table_lookup(alloc_points, k);
 		if (fr == NULL)
 			g_warning("no allocation record for 0x%lx from %s:%d?",
 				(gulong) k, b->file, b->line);
 		else {
 
 			if (trace_array.count) {
-				g_message("block 0x%lx allocated from:", (gulong) k);
+				g_message("block 0x%lx (out of %u) allocated from:",
+					(gulong) k, (unsigned) fr->blocks);
 				print_stack_frame(stderr, fr);
 			} else {
 				size_t i;
@@ -698,7 +719,7 @@ malloc_close(void)
 
 	leaksort = leak_init();
 
-	g_hash_table_foreach(blocks, malloc_log_block, leaksort);
+	hash_table_foreach(blocks, malloc_log_block, leaksort);
 
 	leak_dump(leaksort);
 	leak_close(leaksort);
@@ -719,8 +740,8 @@ malloc_not_leaking(gconstpointer o, const char *unused_file, int unused_line)
 	 * we do not know anything about. If so, just ignore silently.
 	 */
 
-	if (g_hash_table_lookup(blocks, o)) {
-		gm_hash_table_insert_const(not_leaking, o, GINT_TO_POINTER(1));
+	if (hash_table_lookup(blocks, o)) {
+		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
 	}
 	return deconstify_gpointer(o);
 }
@@ -764,7 +785,7 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 	 * not reuse it again!  Fake a free from "FAKED:0".
 	 */
 
-	ob = g_hash_table_lookup(blocks, o);
+	ob = hash_table_lookup(blocks, o);
 	if (ob) {
 		g_warning(
 			"MALLOC (%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
@@ -772,7 +793,7 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 		free_record(o, "FAKED", 0);
 	}
 
-	gm_hash_table_insert_const(blocks, o, b);
+	hash_table_insert(blocks, o, b);
 
 #ifdef MALLOC_STATS
 	{
@@ -781,13 +802,13 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 		s.file = b->file;
 		s.line = line;
 
-		st = g_hash_table_lookup(stats, &s);
+		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL) {
 			st = calloc(1, sizeof(*st));
 			st->file = b->file;
 			st->line = line;
-			g_hash_table_insert(stats, st, st);
+			hash_table_insert(stats, st, st);
 		}
 
 		st->total_blocks++;
@@ -806,8 +827,9 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 
 		fr->count += sz;
 		fr->total_count += sz;
+		fr->blocks++;
 
-		gm_hash_table_insert_const(alloc_points, o, fr);
+		hash_table_insert(alloc_points, o, fr);
 	}
 #endif /* MALLOC_FRAMES */
 
@@ -850,8 +872,8 @@ static void
 free_record(gconstpointer o, const char *file, int line)
 {
 	struct block *b;
-	gpointer k;
-	gpointer v;
+	const void *k;
+	void *v;
 	GSList *l;
 #ifdef MALLOC_STATS
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
@@ -860,7 +882,7 @@ free_record(gconstpointer o, const char *file, int line)
 	if (NULL == o)
 		return;
 
-	if (blocks == NULL || !(g_hash_table_lookup_extended(blocks, o, &k, &v))) {
+	if (blocks == NULL || !(hash_table_lookup_extended(blocks, o, &k, &v))) {
 		g_warning("MALLOC (%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
 		return;
@@ -876,7 +898,7 @@ free_record(gconstpointer o, const char *file, int line)
 		s.file = b->file;
 		s.line = b->line;
 
-		st = g_hash_table_lookup(stats, &s);
+		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL)
 			g_warning(
@@ -910,11 +932,11 @@ free_record(gconstpointer o, const char *file, int line)
 		fr->count += b->size;			/* Counts actual size, not original */
 		fr->total_count += b->size;
 	}
-	g_hash_table_remove(alloc_points, o);
+	hash_table_remove(alloc_points, o);
 #endif /* MALLOC_FRAMES */
 
-	g_hash_table_remove(blocks, o);
-	g_hash_table_remove(not_leaking, o);
+	hash_table_remove(blocks, o);
+	hash_table_remove(not_leaking, o);
 
 	for (l = b->realloc; l; l = g_slist_next(l)) {
 		struct block *r = l->data;
@@ -966,7 +988,7 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 
 	g_assert(n);
 
-	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
+	if (blocks == NULL || !(b = hash_table_lookup(blocks, o))) {
 		g_warning("MALLOC (%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
 		return malloc_record(n, size, file, line);
@@ -985,10 +1007,10 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 	b->size = size;
 
 	if (n != o) {
-		g_hash_table_remove(blocks, o);
-		g_hash_table_insert(blocks, n, b);
-		if (gm_hash_table_remove(not_leaking, o)) {
-			g_hash_table_insert(not_leaking, n, GINT_TO_POINTER(1));
+		hash_table_remove(blocks, o);
+		hash_table_insert(blocks, n, b);
+		if (hash_table_remove(not_leaking, o)) {
+			hash_table_insert(not_leaking, n, GINT_TO_POINTER(1));
 		}
 	}
 
@@ -999,7 +1021,7 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 		s.file = b->file;
 		s.line = b->line;
 
-		st = g_hash_table_lookup(stats, &s);
+		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL)
 			g_warning(
@@ -1024,11 +1046,11 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 		fr->total_count += b->size - r->size;
 	}
 	if (n != o) {
-		struct frame *fra = g_hash_table_lookup(alloc_points, o);
+		struct frame *fra = hash_table_lookup(alloc_points, o);
 		if (fra) {
 			/* Propagate the initial allocation frame through reallocs */
-			g_hash_table_remove(alloc_points, o);
-			g_hash_table_insert(alloc_points, n, fra);
+			hash_table_remove(alloc_points, o);
+			hash_table_insert(alloc_points, n, fra);
 		} else {
 			g_warning(
 				"MALLOC lost allocation frame for 0x%lx at %s:%d -> 0x%lx",
@@ -1238,7 +1260,7 @@ hashtable_new_track(GHashFunc h, GCompareFunc y, const char *file, int line)
 }
 
 /**
- * Wrapper over g_hash_Table_destroy() to track destruction of hash tables.
+ * Wrapper over g_hash_table_destroy() to track destruction of hash tables.
  */
 void
 hashtable_destroy_track(GHashTable *h, const char *file, int line)
@@ -2017,7 +2039,7 @@ leak_dump(gpointer o)
 #ifdef MALLOC_STATS
 
 struct afiller {		/* Used by hash table iterator to fill alloc array */
-	struct stats **stats;
+	const struct stats **stats;
 	int count;			/* Size of `stats' array */
 	int idx;			/* Next index to be filled */
 };
@@ -2089,11 +2111,11 @@ stats_total_residual_cmp(const void *p1, const void *p2)
  * in the supplied filler structure.  -- hash table iterator
  */
 static void
-stats_fill_array(gpointer unused_key, gpointer value, gpointer user)
+stats_fill_array(const void *unused_key, void *value, void *user)
 {
 	struct afiller *filler = user;
-	struct stats *st = value;
-	struct stats **e;
+	const struct stats *st = value;
+	const struct stats **e;
 
 	(void) unused_key;
 
@@ -2119,7 +2141,7 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		"alloc", "freed", "realloc", "remains", "live", "from");
 
 	for (i = 0; i < filler->count; i++) {
-		struct stats *st = filler->stats[i];
+		const struct stats *st = filler->stats[i];
 		int alloc_stacks;
 		int free_stacks;
 		int realloc_stacks;
@@ -2138,11 +2160,11 @@ stats_array_dump(FILE *f, struct afiller *filler)
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?
-			0 : g_hash_table_size(st->alloc_frames);
+			0 : hash_table_size(st->alloc_frames);
 		free_stacks = st->free_frames == NULL ?
-			0 : g_hash_table_size(st->free_frames);
+			0 : hash_table_size(st->free_frames);
 		realloc_stacks = st->realloc_frames == NULL ?
-			0 : g_hash_table_size(st->realloc_frames);
+			0 : hash_table_size(st->realloc_frames);
 #else
 		alloc_stacks = free_stacks = realloc_stacks = 0;
 #endif
@@ -2187,7 +2209,7 @@ alloc_dump(FILE *f, gboolean total)
 	struct afiller filler;
 	time_t now;
 
-	count = g_hash_table_size(stats);
+	count = hash_table_size(stats);
 
 	if (count == 0)
 		return;
@@ -2205,7 +2227,7 @@ alloc_dump(FILE *f, gboolean total)
 	 * decreasing allocation size.
 	 */
 
-	g_hash_table_foreach(stats, stats_fill_array, &filler);
+	hash_table_foreach(stats, stats_fill_array, &filler);
 	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_allocated_cmp : stats_allocated_cmp);
 
@@ -2224,7 +2246,7 @@ alloc_dump(FILE *f, gboolean total)
 
 	filler.idx = 0;
 
-	g_hash_table_foreach(stats, stats_fill_array, &filler);
+	hash_table_foreach(stats, stats_fill_array, &filler);
 	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
@@ -2232,6 +2254,23 @@ alloc_dump(FILE *f, gboolean total)
 		total ? "total" : "incremental", total ? "at" : "after",
 		short_time(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
+
+	/*
+	 * If we were not outputing for total memory, finish by dump sorted
+	 * on total residual allocation.
+	 */
+
+	if (!total) {
+		filler.idx = 0;
+
+		hash_table_foreach(stats, stats_fill_array, &filler);
+		qsort(filler.stats, count, sizeof(struct stats *),
+			stats_total_residual_cmp);
+
+		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
+			"total", "at", short_time(delta_time(now, init_time)));
+		stats_array_dump(f, &filler);
+	}
 
 	fprintf(f, "--- end summary at %s\n", short_time(now - init_time));
 
@@ -2242,7 +2281,7 @@ alloc_dump(FILE *f, gboolean total)
  * Reset incremental allocation and free counters. -- hash table iterator
  */
 static void
-stats_reset(gpointer uu_key, gpointer value, gpointer uu_user)
+stats_reset(const void *uu_key, void *value, gpointer uu_user)
 {
 	struct stats *st = value;
 
@@ -2262,7 +2301,7 @@ alloc_reset(FILE *f, gboolean total)
 	time_t now = tm_time();
 
 	alloc_dump(f, total);
-	g_hash_table_foreach(stats, stats_reset, NULL);
+	hash_table_foreach(stats, stats_reset, NULL);
 
 	fprintf(f, "--- incremental allocation stats reset after %s.\n",
 		short_time(now - reset_time));
