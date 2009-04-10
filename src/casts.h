@@ -169,9 +169,9 @@ ptr_diff(const void *a, const void *b)
 }
 
 static inline void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
-ptr_add_offset(const void *p, size_t o)
+ptr_add_offset(void *p, size_t offset)
 {
-	return (void *) ((char *) p + o);
+	return (void *) ((char *) p + offset);
 }
 
 /**
