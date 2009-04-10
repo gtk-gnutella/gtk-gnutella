@@ -2321,6 +2321,9 @@ handle_head_ping(struct gnutella_node *n,
 			(unsigned long) size);
 	}
 
+	if (NODE_IS_UDP(n))
+		inet_udp_got_unsolicited_incoming();
+
 	flags = peek_u8(&payload[0]);
 	if (
 		is_strcaseprefix(&payload[1], urn_prefix) &&
