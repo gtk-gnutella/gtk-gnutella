@@ -158,7 +158,7 @@ frame_hash(gconstpointer key)
 {
 	const struct frame *f = key;
 
-	return binary_hash((guchar *) f->stack, f->len * sizeof(void *));
+	return binary_hash(f->stack, f->len * sizeof(void *));
 }
 
 /**

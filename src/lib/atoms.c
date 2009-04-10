@@ -41,6 +41,7 @@
 #include "common.h"
 
 #include "atoms.h"
+#include "endian.h"
 
 RCSID("$Id$")
 
@@ -465,15 +466,14 @@ str_str(gconstpointer v)
 }
 
 /**
- * Hash `len' bytes starting from `key'.
+ * Hash `len' bytes starting from `data'.
  */
 guint
-binary_hash(const guchar *key, guint len)
+binary_hash(gconstpointer data, size_t len)
 {
-	guint hash = len;
-	guint i;
-	guint remain;
-	guint t4;
+	const unsigned char *key = data;
+	size_t i, remain, t4;
+	guint32 hash;
 
 	remain = len & 0x3;
 	t4 = len & ~0x3U;
@@ -481,15 +481,13 @@ binary_hash(const guchar *key, guint len)
 	g_assert(remain + t4 == len);
 	g_assert(remain <= 3);
 
+	hash = len;
 	for (i = 0; i < t4; i += 4) {
 		static const guint32 x[] = {
 			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
 			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
 		};
-		hash ^= key[i] |
-			((guint) key[i + 1] << 8) |
-			((guint) key[i + 2] << 16) |
-			((guint) key[i + 3] << 24);
+		hash ^= peek_le32(&key[i]);
 		hash += x[(i >> 2) & 0x7];
 		hash = (hash << 24) ^ (hash >> 8);
 	}
