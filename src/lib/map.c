@@ -340,7 +340,8 @@ pat_foreach_wrapper(gpointer key, size_t u_keybits, gpointer value, gpointer u)
 /**
  * Iterate on each item of the map, applying callback.
  */
-void map_foreach(const map_t *m, map_cb_t cb, gpointer u)
+void
+map_foreach(const map_t *m, map_cb_t cb, gpointer u)
 {
 	g_assert(m);
 	g_assert(cb);
@@ -543,7 +544,8 @@ timeit(
 	return elapsed;
 }
 
-void map_test()
+void
+map_test(void)
 {
 	sha1_t *keys;
 	map_t *mh, *mp;
