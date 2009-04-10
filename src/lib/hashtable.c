@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2009 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * All rights reserved.
+ *
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
@@ -34,6 +37,8 @@
  *
  * A simple hashtable implementation.
  *
+ * @author Raphael Manfredi
+ * @date 2009
  * @author Christian Biere
  * @date 2006
  */
@@ -118,11 +123,37 @@ hash_item_free(hash_table_t *ht, hash_item_t *item)
   ht->free_list = item;
 }
 
+/**
+ * Compute how much memory we need to allocate to store the bins and the
+ * zone for the items. Bins come first, then optional padding, then items.
+ *
+ * @return the total size needed and the offset within the big chunk where
+ * items will start, taking into account memory alignment constraints.
+ */
+static size_t
+hash_bins_items_arena_size(const hash_table_t *ht, size_t *items_offset)
+{
+  size_t bins = ht->num_bins * sizeof ht->bins[0];
+  size_t items = ht->num_items * sizeof ht->items[0];
+  size_t align = bins % MEM_ALIGNBYTES;
+
+  if (align != 0)
+	  align = MEM_ALIGNBYTES - align;		/* Padding to align items */
+
+
+  if (items_offset)	
+	*items_offset = bins + align;
+
+  return bins + align + items;
+}
+
 static void
 hash_table_new_intern(hash_table_t *ht, size_t num_bins,
 	hash_table_hash_func hash, hash_table_eq_func eq)
 {
   size_t i;
+  size_t arena;
+  size_t items_off;
    
   RUNTIME_ASSERT(ht);
   RUNTIME_ASSERT(num_bins > 1);
@@ -133,18 +164,25 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
   ht->eq = eq;
 
   ht->num_bins = num_bins;
-  ht->bins = alloc_pages(ht->num_bins * sizeof ht->bins[0]);
-  RUNTIME_ASSERT(ht->bins);
-  
   ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
-  ht->items = alloc_pages(ht->num_items * sizeof ht->items[0]);
-  RUNTIME_ASSERT(ht->items);
+
+  arena = hash_bins_items_arena_size(ht, &items_off);
+
+  ht->bins = alloc_pages(arena);
+  RUNTIME_ASSERT(ht->bins);
+  RUNTIME_ASSERT(items_off != 0);
+  
+  ht->items = ptr_add_offset(ht->bins, items_off);
+
+  /* Build free list */
 
   ht->free_list = &ht->items[0];
   for (i = 0; i < ht->num_items - 1; i++) {
     ht->items[i].next = &ht->items[i + 1];
   }
   ht->items[i].next = NULL;
+
+  /* Initialize bins -- all empty */
 
   for (i = 0; i < ht->num_bins; i++) {
     ht->bins[i] = NULL;
@@ -189,22 +227,15 @@ hash_table_size(const hash_table_t *ht)
 static inline size_t
 hash_key(const hash_table_t *ht, const void *key)
 {
-  if (ht->hash) {
-	return (*ht->hash)(key);
-  } else {
-	size_t n = (size_t) key;
-	return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
-  }
+  return ht->hash ?
+	(*ht->hash)(key) :
+	((0x4F1BBCDCUL * (guint64) (size_t) key) >> 32) ^ (size_t) key;
 }
 
 static inline gboolean
 hash_eq(const hash_table_t *ht, const void *a, const void *b)
 {
-  if (ht->eq) {
-	return (*ht->eq)(a, b);
-  } else {
-	return a == b;
-  }
+  return ht->eq ? (*ht->eq)(a, b) : a == b;
 }
 
 /**
@@ -262,6 +293,7 @@ static void
 hash_table_clear(hash_table_t *ht)
 {
   size_t i;
+  size_t arena;
 
   hash_table_check(ht);
   for (i = 0; i < ht->num_bins; i++) {
@@ -277,10 +309,11 @@ hash_table_clear(hash_table_t *ht)
     ht->bins[i] = NULL;
   }
 
-  free_pages(ht->bins, ht->num_bins * sizeof ht->bins[0]);
+  arena = hash_bins_items_arena_size(ht, NULL);
+
+  free_pages(ht->bins, arena);
   ht->bins = NULL;
   ht->num_bins = 0;
-  free_pages(ht->items, ht->num_items * sizeof ht->items[0]);
   ht->items = NULL;
   ht->num_held = 0;
   ht->num_items = 0;

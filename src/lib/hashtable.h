@@ -1,6 +1,7 @@
 /*
  * $Id$
  *
+ * Copyright (c) 2009, Raphael Manfredi
  * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
@@ -27,6 +28,8 @@
  * @ingroup lib
  * @file
  *
+ * @author Raphael Manfredi
+ * @date 2009
  * @author Christian Biere
  * @date 2006
  */
