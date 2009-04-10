@@ -1662,3 +1662,4 @@
 # Nobis Technology Group, L.L.C.
 # Spamming gtk-gnutella seen on these subnets
 216.6.238.0/24
+174.34.189.0/24
