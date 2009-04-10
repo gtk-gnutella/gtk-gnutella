@@ -99,8 +99,11 @@ static const struct {
 #else	/* !USE_LOCAL_UHC */
 	{ "drei.gtkg.net:62666" },
 	{ "g6.dns6.org:1337" },
+	{ "gnutelladev1.udp-host-cache.com:1234" },
+	{ "gnutelladev2.udp-host-cache.com:5678" },
 	{ "gwc.ak-electron.eu:12060" },
 	{ "gwc.chickenkiller.com:8080" },
+	{ "gwcalpha.servebeer.com:8080" },
 	{ "leet.gtkg.org:1337" },
 	{ "tertiary.udp-host-cache.com:9999" },
 	{ "yang.cloud.bishopston.net:33558" },
