@@ -774,6 +774,7 @@ src/shell/echo.c
 src/shell/help.c
 src/shell/horizon.c
 src/shell/intr.c
+src/shell/memory.c
 src/shell/node.c
 src/shell/nodes.c
 src/shell/offline.c
