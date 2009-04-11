@@ -378,19 +378,19 @@ parse_nm(char *line)
 {
 	int error;
 	const char *ep;
-	guint64 v;
 	char *p = line;
+	const void *addr;
 
-	v = parse_uint64(p, &ep, 16, &error);
-	if (error || 0 == v)
+	addr = parse_pointer(p, &ep, &error);
+	if (error || NULL == addr)
 		return;
 
 	p = skip_ascii_blanks(ep);
 
 	if ('t' == ascii_tolower(*p)) {
-		p = skip_ascii_blanks(p + 1);
+		p = skip_ascii_blanks(&p[1]);
 		str_chomp(p, 0);
-		trace_insert(ulong_to_pointer(v), p);
+		trace_insert(addr, p);
 	}
 }
 

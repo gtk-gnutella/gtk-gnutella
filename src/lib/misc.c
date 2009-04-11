@@ -3231,6 +3231,25 @@ uint64_to_string_buf(guint64 v, char *dst, size_t size)
 }
 
 size_t
+pointer_to_string_buf(const void *ptr, char *dst, size_t size)
+{
+	char buf[POINTER_BUFLEN];
+	unsigned long v = pointer_to_ulong(ptr);
+	char *p;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf; /* NOTHING */; v /= 16) {
+		*p++ = hex_digit(v % 16);
+		if (v < 16)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 off_t_to_string_buf(off_t v, char *dst, size_t size)
 {
 	char buf[OFF_T_DEC_BUFLEN];
@@ -3390,12 +3409,12 @@ time_t_to_string(time_t v)
 
 #define GENERATE_PARSE_UNSIGNED(NAME, TYPE) 								\
 TYPE 																		\
-NAME(const char *src, char const **endptr, guint base, int *errorptr) 	\
+NAME(const char *src, char const **endptr, unsigned base, int *errorptr) 	\
 {																			\
 	const char *p;															\
 	TYPE v = 0, mm;															\
 	int error = 0;															\
-	guint d;																\
+	unsigned d;																\
 																			\
 	STATIC_ASSERT((TYPE) -1 > 35); /* works for unsigned integers only */	\
 																			\
@@ -3437,6 +3456,22 @@ finish:																		\
 GENERATE_PARSE_UINTX(64)
 GENERATE_PARSE_UINTX(32)
 GENERATE_PARSE_UINTX(16)
+
+GENERATE_PARSE_UNSIGNED(parse_uint, unsigned int)
+GENERATE_PARSE_UNSIGNED(parse_ulong, unsigned long)
+GENERATE_PARSE_UNSIGNED(parse_size, size_t)
+
+const void *
+parse_pointer(const char *src, char const **endptr, int *errorptr)
+{
+	size_t value;
+
+	if ('0' == src[0] && 'x' == ascii_tolower(src[1])) {
+		src += 2;
+	}
+	value = parse_size(src, endptr, 16, errorptr);
+	return (const void *) value;
+}
 
 int
 parse_major_minor(const char *src, char const **endptr,

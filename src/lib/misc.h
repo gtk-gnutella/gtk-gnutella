@@ -153,6 +153,7 @@ typedef guint16 flag_t;
 #define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
 #define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
 #define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
+#define POINTER_BUFLEN		(sizeof(unsigned long) * CHAR_BIT) /* very roughly */
 
 #define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
 #define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
@@ -357,17 +358,29 @@ int compat_mkdir(const char *path, mode_t mode);
 gboolean filepath_exists(const char *dir, const char *file);
 const char * filepath_basename(const char *pathname);
 char * filepath_directory(const char *pathname);
-guint16 parse_uint16(const char *, char const **, guint, int *)
+
+guint16 parse_uint16(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1, 4));
-guint32 parse_uint32(const char *, char const **, guint, int *)
+guint32 parse_uint32(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1, 4));
-guint64 parse_uint64(const char *, char const **, guint, int *)
+guint64 parse_uint64(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1, 4));
+
+unsigned parse_uint(const char *, char const **, unsigned, int *)
+	NON_NULL_PARAM((1, 4));
+unsigned long parse_ulong(const char *, char const **, unsigned, int *)
+	NON_NULL_PARAM((1, 4));
+size_t parse_size(const char *, char const **, unsigned, int *)
+	NON_NULL_PARAM((1, 4));
+const void *parse_pointer(const char *, char const **, int *)
+	NON_NULL_PARAM((1, 3));
+
 size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
 size_t off_t_to_string_buf(off_t v, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
+size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
 const char *uint32_to_string(guint32 v);
 const char *uint64_to_string(guint64 v);
 const char *uint64_to_string2(guint64 v);
@@ -404,7 +417,7 @@ guint32 cpu_noise(void);
 static inline guint
 pointer_hash_func(const void *p)
 {
-	size_t v = (size_t) p;
+	unsigned long v = pointer_to_ulong(p);
 	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
 }
 
