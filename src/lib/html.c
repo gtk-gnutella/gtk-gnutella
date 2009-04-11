@@ -190,7 +190,7 @@ parse_attribute(const struct array attr)
 		len++;
 	}
 
-	if (len > 0 && len < (int)G_N_ELEMENTS(name)) {
+	if (len > 0 && len < G_N_ELEMENTS(name)) {
 		name[len] = '\0';
 		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))
@@ -278,7 +278,7 @@ parse_tag(const struct array tag)
 		len++;
 	}
 
-	if (len > 0 && len < (int)G_N_ELEMENTS(name)) {
+	if (len > 0 && len < G_N_ELEMENTS(name)) {
 		name[len] = '\0';
 		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))

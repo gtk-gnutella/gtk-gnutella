@@ -143,8 +143,8 @@ deflate_send(txdrv_t *tx)
 	r = tx_write(tx->lower, b->rptr, len);
 
 	if (GNET_PROPERTY(dbg) > 9)
-		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
-			gnet_host_to_string(&tx->host), (int) r, attr->send_idx,
+		printf("deflate_send: (%s) wrote %lu bytes (buffer #%d) [%c%c]\n",
+			gnet_host_to_string(&tx->host), (unsigned long) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
@@ -572,12 +572,12 @@ deflate_service(gpointer data)
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
 	if (GNET_PROPERTY(dbg) > 9)
-		printf("deflate_service: (%s) %s(buffer #%d, %d bytes held) [%c%c]\n",
+		printf("deflate_service: (%s) %s(buffer #%d, %lu bytes held) [%c%c]\n",
 			gnet_host_to_string(&tx->host),
 			(tx->flags & TX_ERROR) ? "ERROR " : "",
 			attr->send_idx,
 			attr->send_idx >= 0 ?
-				(int) (attr->buf[attr->send_idx].wptr -
+				(unsigned long) (attr->buf[attr->send_idx].wptr -
 						attr->buf[attr->send_idx].rptr) : 0,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -605,9 +605,9 @@ deflate_service(gpointer data)
 
 	if (b->wptr >= b->end) {
 		if (GNET_PROPERTY(dbg) > 9)
-			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
+			printf("deflate_service: (%s) sending fill buffer #%d, %lu bytes\n",
 				gnet_host_to_string(&tx->host), attr->fill_idx,
-				(int) (b->wptr - b->rptr));
+				(unsigned long) (b->wptr - b->rptr));
 
 		deflate_rotate_and_send(tx);	/* Can set TX_ERROR */
 

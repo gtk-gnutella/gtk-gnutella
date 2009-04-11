@@ -311,7 +311,7 @@ tok_strerror(tok_error_t errnum)
 {
 	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
 
-	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
+	if (UNSIGNED(errnum) >= G_N_ELEMENTS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];

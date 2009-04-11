@@ -118,13 +118,11 @@ static guint encode_pad_length(guint len, guint *pad)
 	tcount = len / 3;
 	remainder = len - (tcount * 3);
 
-	g_assert((int) remainder >= 0);
-
 	switch (remainder) {
 	case 0: npad = 0; break;
 	case 1: npad = 2; break;
 	case 2: npad = 1; break;
-	default: g_assert(0);		/* Not possible */
+	default: g_assert_not_reached();		/* Not possible */
 	}
 
 	ndigits = tcount * 4;		/* Each full triplet encoded on 4 bytes */

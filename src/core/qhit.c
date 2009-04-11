@@ -718,7 +718,7 @@ add_file(const struct shared_file *sf)
 
 		len = ggept_filesize_encode(shared_file_size(sf), buf);
 
-		g_assert(len > 0 && len <= (int) sizeof buf);
+		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(LF), buf, len, GGEP_W_COBS);
 		if (!ok)
@@ -803,7 +803,7 @@ add_file(const struct shared_file *sf)
 			mtime = MAX(0, mtime);
 
 			len = ggept_ct_encode(mtime, buf);
-			g_assert(len >= 0 && len <= (int) sizeof buf);
+			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
 			if (!ok)

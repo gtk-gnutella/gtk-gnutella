@@ -9465,7 +9465,7 @@ download_sink(struct download *d)
 	struct gnutella_socket *s = d->socket;
 
 	download_check(d);
-	g_assert((int) s->pos >= 0 && s->pos <= s->buf_size);
+	g_assert(UNSIGNED(s->pos) <= s->buf_size);
 	g_assert(d->status == GTA_DL_SINKING);
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
 	g_assert(d->flags & DL_F_SUNK_DATA);

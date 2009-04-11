@@ -153,7 +153,7 @@ static inline void
 browse_host_next_state(struct browse_host_upload *bh, enum bh_state state)
 {
 	g_assert(NULL != bh);
-	g_assert((int) state >= 0 && state < NUM_BH_STATES);
+	g_assert(UNSIGNED(state) < NUM_BH_STATES);
 	bh->w_buf = NULL;
 	bh->w_buf_size = 0;
 	bh->b_data = NULL;
@@ -196,7 +196,7 @@ browse_host_read_html(struct special_upload *ctx,
 	g_assert(NULL != dest);
 	g_assert(size <= INT_MAX);
 
-	g_assert((int) bh->state >= 0 && bh->state < NUM_BH_STATES);
+	g_assert(UNSIGNED(bh->state) < NUM_BH_STATES);
 	g_assert(bh->b_size <= INT_MAX);
 	g_assert(bh->b_offset <= bh->b_size);
 

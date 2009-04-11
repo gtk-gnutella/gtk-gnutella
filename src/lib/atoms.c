@@ -841,7 +841,7 @@ atom_get(enum atom_type type, gconstpointer key)
 #endif /* __GNUC__ */
 	
     g_assert(key != NULL);
-	g_assert((int) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -920,7 +920,7 @@ atom_free(enum atom_type type, gconstpointer key)
 	atom_t *a;
 
     g_assert(key != NULL);
-	g_assert((int) type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
 	size = atom_is_registered(type, key);
 	g_assert(size > 0);

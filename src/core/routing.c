@@ -463,13 +463,13 @@ get_next_slot(void)
 	idx = routing.next_idx;
 	chunk_idx = CHUNK_INDEX(idx);
 
-	g_assert((int) chunk_idx >= 0 && chunk_idx < MAX_CHUNKS);
+	g_assert(UNSIGNED(chunk_idx) < MAX_CHUNKS);
 
 	chunk = routing.chunks[chunk_idx];
 
 	if (chunk == NULL) {
 
-		g_assert((int) idx >= routing.capacity);
+		g_assert(idx >= UNSIGNED(routing.capacity));
 
 		/*
 		 * Chunk does not exist yet, determine whether we should create
@@ -478,8 +478,8 @@ get_next_slot(void)
 
 		if (idx > 0 && elapsed > TABLE_MIN_CYCLE) {
 			if (GNET_PROPERTY(routing_debug))
-				printf("RT cycling over table, elapsed=%d, holds %d / %d\n",
-					(int) elapsed, routing.count, routing.capacity);
+				printf("RT cycling over table, elapsed=%u, holds %d / %d\n",
+					(unsigned) elapsed, routing.count, routing.capacity);
 
 			chunk_idx = 0;
 			idx = routing.next_idx = 0;
@@ -513,16 +513,16 @@ get_next_slot(void)
 
 		if (idx == 0) {
 			if (GNET_PROPERTY(routing_debug))
-				printf("RT cycling over FORCED, elapsed=%d, holds %d / %d\n",
-					(int) elapsed, routing.count, routing.capacity);
+				printf("RT cycling over FORCED, elapsed=%u, holds %d / %d\n",
+					(unsigned) elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;
 		}
 	}
 
 	g_assert(slot != NULL);
-	g_assert(idx == (guint) routing.next_idx);
-	g_assert((int) idx >= 0 && idx < (guint) routing.capacity);
+	g_assert(idx == UNSIGNED(routing.next_idx));
+	g_assert(idx < UNSIGNED(routing.capacity));
 
 	/*
 	 * It's OK to go beyond the last allocated chunk (a new chunk will

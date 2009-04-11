@@ -109,6 +109,8 @@ zlib_deflater_alloc(
 	z_streamp outz;
 	int ret;
 
+	g_assert(len >= 0);
+	g_assert(destlen >= 0);
 	g_assert(level == Z_DEFAULT_COMPRESSION || (level >= 0 && level <= 9));
 
 	outz = walloc(sizeof(*outz));
@@ -147,7 +149,10 @@ zlib_deflater_alloc(
 		if (data == NULL && len == 0)
 			len = 512;
 
-		zd->outlen = (int) (len * 1.005 + 12.0);
+		zd->outlen = (unsigned) (UNSIGNED(len) * 1.005 + 12.0);
+		g_assert(zd->outlen > len);
+		g_assert(zd->outlen - len >= 12);
+
 		zd->out = g_malloc(zd->outlen);
 		zd->allocated = TRUE;
 	} else {

@@ -147,7 +147,8 @@ send_pproxy_error_v(
 			hev[hevcnt++].he_msg = extra;
 		} else
 			g_warning("send_pproxy_error_v: "
-				"ignoring too large extra header (%d bytes)", (int) slen);
+				"ignoring too large extra header (%lu bytes)",
+				(unsigned long) slen);
 	}
 
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,

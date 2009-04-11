@@ -1053,8 +1053,10 @@ connect_socksv5(struct gnutella_socket *s)
 				g_strerror(errno));
 			return ECONNREFUSED;
 		}
-		if (GNET_PROPERTY(socket_debug))
-			g_message("connect_socksv5: Step 5, bytes recv'd %d\n", (int) ret);
+		if (GNET_PROPERTY(socket_debug)) {
+			g_message("connect_socksv5: Step 5, bytes recv'd %lu\n",
+				(unsigned long) ret);
+		}
 		if ((size_t) ret != size) {
 			g_warning("Short reply from SOCKS server");
 			return ECONNREFUSED;

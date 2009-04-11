@@ -530,7 +530,7 @@ pdata_allocb(void *buf, int len, pdata_free_t freecb, gpointer freearg)
 	pdata_t *db;
 
 	g_assert(valid_ptr(buf));
-	g_assert(len >= (int) EMBEDDED_OFFSET);
+	g_assert(UNSIGNED(len) >= EMBEDDED_OFFSET);
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
 	db = buf;

@@ -1596,9 +1596,11 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 		if (slen < sizeof(extra)) {
 			upload_http_extra_line_add(u, extra);
-		} else
+		} else {
 			g_warning("send_upload_error_v: "
-				"ignoring too large extra header (%d bytes)", (int) slen);
+				"ignoring too large extra header (%lu bytes)",
+				(unsigned long) slen);
+		}
 	}
 
 	/*
@@ -3596,14 +3598,14 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
 			char retry_after[80];
-			int delay = delta_time(expire, now);
+			time_delta_t delay = delta_time(expire, now);
 
 			if (delay <= 0)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
 			gm_snprintf(retry_after, sizeof(retry_after),
-				"Retry-After: %d\r\n", (int) delay);
+				"Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
 			 * Looks like upload got removed from PARQ queue. For now this

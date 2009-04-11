@@ -1069,7 +1069,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 {
 	struct recent *rec;
 
-	g_assert((int) type >= 0 && type < HOST_MAX);
+	g_assert(UNSIGNED(type) < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -1129,7 +1129,7 @@ pcache_clear_recent(host_type_t type)
 	GList *l;
 	struct recent *rec;
 
-	g_assert((int) type >= 0 && type < HOST_MAX);
+	g_assert(UNSIGNED(type) < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -1645,14 +1645,14 @@ static void
 pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 {
 	const GSList *sl;
-	int leaves;
+	unsigned leaves;
 	struct gnutella_node *leaf = NULL;
 
 	g_assert(GNET_PROPERTY(current_peermode) == NODE_P_ULTRA);
 
 	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
-		int threshold;
+		unsigned threshold;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
@@ -1672,9 +1672,9 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		 */
 
 		leaves++;
-		threshold = (int) (1000.0 / leaves);
+		threshold = 1000.0 / leaves;
 
-		if ((int) random_value(999) < threshold)
+		if (random_value(999) < threshold)
 			leaf = cn;
 	}
 
@@ -1870,7 +1870,7 @@ record_fresh_pong(
 	struct cached_pong *cp;
 	guint8 hop;
 
-	g_assert((int) type >= 0 && type < HOST_MAX);
+	g_assert(UNSIGNED(type) < HOST_MAX);
 
 	cp = walloc(sizeof *cp);
 
@@ -2377,7 +2377,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (!(n->attrs & NODE_A_PONG_CACHING)) {
-		int ratio = (int) random_value(100);
+		unsigned ratio = random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (GNET_PROPERTY(pcache_debug) > 7)
 				printf("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s\n",

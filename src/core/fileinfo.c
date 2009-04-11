@@ -2534,10 +2534,10 @@ file_info_unlink(fileinfo_t *fi)
 			g_warning("cannot unlink \"%s\": %s",
 				fi->pathname, g_strerror(errno));
 	} else {
-		g_warning("unlinked \"%s\" (%s/%s bytes or %d%% done, %s SHA1%s%s)",
+		g_warning("unlinked \"%s\" (%s/%s bytes or %u%% done, %s SHA1%s%s)",
 			fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
-			(int) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
+			(unsigned) (fi->done * 100U / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");

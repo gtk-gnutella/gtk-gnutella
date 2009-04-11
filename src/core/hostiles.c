@@ -102,7 +102,7 @@ hostiles_load(FILE *f, hostiles_t which)
 	int bits;
 	iprange_err_t error;
 
-	g_assert((int) which >= 0 && which < NUM_HOSTILES);
+	g_assert(UNSIGNED(which) < NUM_HOSTILES);
 	g_assert(NULL == hostile_db[which]);
 
 	hostile_db[which] = iprange_new();
@@ -174,7 +174,7 @@ hostiles_changed(const char *filename, gpointer udata)
 	hostiles_t which;
 
 	which = GPOINTER_TO_UINT(udata);
-	g_assert((int) which >= 0 && which < NUM_HOSTILES);
+	g_assert(UNSIGNED(which) < NUM_HOSTILES);
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)
@@ -199,7 +199,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 	g_assert(f);
 	g_assert(path);
 	g_assert(filename);
-	g_assert((int) which >= 0 && which < NUM_HOSTILES);
+	g_assert(UNSIGNED(which) < NUM_HOSTILES);
 
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, hostiles_changed, GUINT_TO_POINTER(which));
@@ -223,7 +223,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 static void
 hostiles_retrieve(hostiles_t which)
 {
-	g_assert((int) which >= 0 && which < NUM_HOSTILES);
+	g_assert(UNSIGNED(which) < NUM_HOSTILES);
 
 	switch (which) {
 	case HOSTILE_PRIVATE:

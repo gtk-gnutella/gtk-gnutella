@@ -585,7 +585,7 @@ static const char * const parse_errstr[] = {
 const char *
 http_url_strerror(http_url_error_t errnum)
 {
-	if ((int) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	return parse_errstr[errnum];
@@ -708,8 +708,8 @@ http_buffer_alloc(char *buf, size_t len, size_t written)
 	http_buffer_t *b;
 
 	g_assert(buf);
-	g_assert(len > 0 && len <= INT_MAX);
-	g_assert((int) written >= 0 && written < len);
+	g_assert(size_is_positive(len));
+	g_assert(written < len);
 
 	b = walloc(sizeof(*b));
 	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
@@ -1013,24 +1013,25 @@ http_range_parse(
 
 			if (!minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %d (no range?): "
-					"%s", field, vendor, (int) (str - value) - 1, value);
+					"weird %s header from <%s>, offset %lu (no range?): "
+					"%s", field, vendor, (unsigned long) (str - value) - 1,
+					value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %d "
+					"weird %s header from <%s>, offset %lu "
 					"(incomplete negative range): %s",
-					field, vendor, (int) (str - value) - 1, value);
+					field, vendor, (unsigned long) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start > end) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %d "
+					"weird %s header from <%s>, offset %lu "
 					"(swapped range?): %s", field, vendor,
-					(int) (str - value) - 1, value);
+					(unsigned long) (str - value) - 1, value);
 				goto reset;
 			}
 
@@ -1040,10 +1041,10 @@ http_range_parse(
 
 			if (ignored) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %d "
+					"weird %s header from <%s>, offset %lu "
 					"(ignored range #%d): %s",
-					field, vendor, (int) (str - value) - 1, count,
-					value);
+					field, vendor, (unsigned long) (str - value) - 1,
+					count, value);
 			}
 
 			goto reset;
@@ -1055,17 +1056,18 @@ http_range_parse(
 		if (c == '-') {
 			if (minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %d (spurious '-'): %s",
-					field, vendor, (int) (str - value) - 1, value);
+					"weird %s header from <%s>, offset %lu (spurious '-'): %s",
+					field, vendor, (unsigned long) (str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
 			if (!has_start) {		/* Negative range */
 				if (!request) {
 					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %d "
+						g_warning("weird %s header from <%s>, offset %lu "
 							"(negative range in reply): %s",
-							field, vendor, (int) (str - value) - 1, value);
+							field, vendor, (unsigned long) (str - value) - 1,
+							value);
 					goto resync;
 				}
 				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
@@ -1086,9 +1088,9 @@ http_range_parse(
 
 			if (has_end) {
 				if (GNET_PROPERTY(http_debug))
-					g_warning("weird %s header from <%s>, offset %d "
+					g_warning("weird %s header from <%s>, offset %lu "
 						"(spurious boundary %s): %s",
-						field, vendor, (int) (str - value) - 1,
+						field, vendor, (unsigned long) (str - value) - 1,
 						uint64_to_string(val), value);
 				goto resync;
 			}
@@ -1104,9 +1106,9 @@ http_range_parse(
 			if (has_start) {
 				if (!minus_seen) {
 					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %d "
+						g_warning("weird %s header from <%s>, offset %lu "
 							"(no '-' before boundary %s): %s",
-							field, vendor, (int) (str - value) - 1,
+							field, vendor, (unsigned long) (str - value) - 1,
 							uint64_to_string(val), value);
 					goto resync;
 				}

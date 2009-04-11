@@ -490,7 +490,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		tag_name = line;
 
 		tag = ipp_cache_string_to_tag(tag_name);
-		g_assert((int) tag >= 0 && tag < NUM_IPP_CACHE_TAGS);
+		g_assert(UNSIGNED(tag) < NUM_IPP_CACHE_TAGS);
 		if (IPP_CACHE_TAG_UNKNOWN != tag && !bit_array_flip(tag_used, tag)) {
 			g_warning(
 				"ipp_cache_load(\"%s\"): "
