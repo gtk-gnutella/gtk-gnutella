@@ -53,10 +53,15 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
+
+
 /**
  * An RPC callback descriptor.
  */
 struct rpc_cb {
+	enum rpc_cb_magic magic;	/**< magic */
+	enum dht_rpc_op op;			/**< Operation type */
 	host_addr_t addr;			/**< The host from which we expect a reply */
 	tm_t start;					/**< The time at which we initiated the RPC */
 	const guid_t *muid;			/**< MUID of the message sent (atom) */
@@ -65,10 +70,17 @@ struct rpc_cb {
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
 	gpointer arg;				/**< Additional opaque argument */
 	cevent_t *timeout;			/**< Callout queue timeout event */
-	enum dht_rpc_op op;			/**< Operation type */
 };
 
-static GHashTable *pending = NULL;		/**< Pending RPC (GUID -> rpc_cb) */
+static inline void
+rpc_cb_check(const struct rpc_cb * const rcb)
+{
+	g_assert(rcb);
+	g_assert(RPC_CB_MAGIC == rcb->magic);
+	g_assert(NULL != rcb->muid);
+}
+
+static GHashTable *pending;		/**< Pending RPC (GUID -> rpc_cb) */
 
 /**
  * RPC operation to string, for logs.
@@ -98,16 +110,21 @@ dht_rpc_init(void)
  * Free the callback waiting indication.
  */
 static void
-rpc_cb_free(struct rpc_cb *rcb, gboolean can_remove, gboolean in_shutdown)
+rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
 {
-	if (can_remove)
+	rpc_cb_check(rcb);
+
+	if (in_shutdown) {
+		if (rcb->cb)
+			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
+	} else {
 		g_hash_table_remove(pending, rcb->muid);
-	if (in_shutdown && rcb->cb)
-		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
-	atom_guid_free(rcb->muid);
+	}
+	atom_guid_free_null(&rcb->muid);
 	knode_free(rcb->kn);
 	cq_cancel(callout_queue, &rcb->timeout);
-	wfree(rcb, sizeof(*rcb));
+	rcb->magic = 0;
+	wfree(rcb, sizeof *rcb);
 }
 
 /**
@@ -148,6 +165,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 {
 	struct rpc_cb *rcb = obj;
 
+	rpc_cb_check(rcb);
 	(void) unused_cq;
 
 	rcb->timeout = NULL;
@@ -156,7 +174,7 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 
-	rpc_cb_free(rcb, TRUE, FALSE);
+	rpc_cb_free(rcb, FALSE);
 }
 
 /**
@@ -205,6 +223,7 @@ rpc_call_prepare(
 	 */
 
 	rcb = walloc(sizeof *rcb);
+	rcb->magic = RPC_CB_MAGIC;
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
 	rcb->flags = flags;
@@ -237,7 +256,8 @@ dht_rpc_cancel(const guid_t *muid)
 	if (!rcb)
 		return FALSE;
 
-	rpc_cb_free(rcb, TRUE, FALSE);
+	rpc_cb_check(rcb);
+	rpc_cb_free(rcb, FALSE);
 	return TRUE;
 }
 
@@ -256,8 +276,9 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 	if (!rcb)
 		return FALSE;
 
+	rpc_cb_check(rcb);
 	if (NULL == rcb->cb) {
-		rpc_cb_free(rcb, TRUE, FALSE);
+		rpc_cb_free(rcb, FALSE);
 		return TRUE;
 	}
 
@@ -293,6 +314,7 @@ dht_rpc_answer(const guid_t *muid,
 	if (!rcb)
 		return FALSE;
 
+	rpc_cb_check(rcb);
 	cq_cancel(callout_queue, &rcb->timeout);
 
 	/* 
@@ -350,7 +372,7 @@ dht_rpc_answer(const guid_t *muid,
 	if (rcb->cb)
 		(*rcb->cb)(DHT_RPC_REPLY, rcb->kn, n, function, payload, len, rcb->arg);
 
-	rpc_cb_free(rcb, TRUE, FALSE);
+	rpc_cb_free(rcb, FALSE);
 	return TRUE;
 }
 
@@ -454,7 +476,7 @@ rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 	 * clean up the resources they kept around to handle the RPC reply.
 	 */
 
-	rpc_cb_free(val, FALSE, TRUE);
+	rpc_cb_free(val, TRUE);
 }
 
 /**
