@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Apr 11 01:37:49 CEST 2009 [metaconfig 3.5-25]
+# Generated on Sat Apr 11 03:16:38 CEST 2009 [metaconfig 3.5-25]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -399,6 +399,7 @@ i_invent=''
 i_langinfo=''
 i_libcharset=''
 i_libintl=''
+i_limits=''
 i_math=''
 i_netdb=''
 i_netif=''
@@ -6942,35 +6943,142 @@ EOC
 	;;
 esac
 
+: see if this is a inttypes.h system
+set inttypes.h i_inttypes
+eval $inhdr
+
+: see if this is a limits.h system
+set limits.h i_limits
+eval $inhdr
+
+: see if this is a math.h system
+set math.h i_math
+eval $inhdr
+
+: see whether we need libm
+$cat >try.c <<EOC
+#$i_math I_MATH
+#ifdef I_MATH
+#include <math.h>
+#endif
+int main(void)
+{
+	static double ret;
+
+	ret += 1.2 * pow(1.2, 1.2);
+	ret += 1.2 * sqrt(ret);
+	return 0 != ret;
+}
+EOC
+set val '-lm'
+eval $trylink
+
 : check for alignment requirements
 echo " "
 case "$alignbytes" in
-'') echo "Checking alignment constraints..." >&4
-	$cat >try.c <<'EOCP'
-struct foobar {
-	char foo;
-	double bar;
-} try;
-int main(void)
+'')
+	echo "Checking alignment constraints..." >&4
+
+	for alignment in 8 4 2 1 16 32 error
+	do
+		$cat >try.c <<EOCP
+#$i_inttypes I_INTTYPES
+#ifdef I_INTTYPES
+#include <inttypes.h>
+#endif
+#$i_limits I_LIMITS
+#ifdef I_LIMITS
+#include <limits.h>
+#endif
+#$i_math I_MATH
+#ifdef I_MATH
+#include <math.h>
+#endif
+
+union u {
+	void *void_ptr;
+	void (*func_ptr)(void);
+	char c;
+	short s;
+	int i;
+	long l;
+	float f;
+	double d;
+#ifdef LLONG_MAX
+	long long ll;
+#else
+#warning "LLONG_MAX undefined"
+#endif
+#if defined(HUGE_VALL)
+	long double ld;
+#else
+#warning "HUGE_VALL undefined"
+#endif
+#ifdef UINT32_MAX
+	uint32_t u32;
+#else
+#warning "UINT32_MAX undefined"
+#endif
+#ifdef UINT16_MAX
+	uint16_t u16;
+#else
+#warning "UINT32_MAX undefined"
+#endif
+#ifdef UINT64_MAX
+	uint64_t u64;
+#else
+#warning "UINT64_MAX undefined"
+#endif
+#ifdef UINTMAX_MAX
+	uintmax_t m;
+#else
+#warning "UINTMAX_MAX undefined"
+#endif
+#ifdef UINTPTR_MAX
+	uintptr_t up;
+#else
+#warning "UINTPTR_MAX undefined"
+#endif
+};
+
+struct s {
+	char a;
+	union u b;
+};
+
+#define STATIC_ASSERT(expr)	\
+	do { switch (0) { case ((expr) ? 1 : 0): case 0: break; } } while(0)
+
+int
+main(void)
 {
-	printf("%d\n", (int)((char *)&try.bar - (char *)&try.foo));
+	STATIC_ASSERT($alignment == ((sizeof (struct s) - (sizeof (union u)))));
 	return 0;
 }
 EOCP
-	if $cc $ccflags try.c -o try >/dev/null 2>&1; then
-		dflt=`./try`
-	else
-		dflt='8'
-		echo "(I can't seem to compile the test program...)"
-	fi
-	;;
+
+		result=''
+		set result
+		eval $trylink
+		case "$result" in
+		"$define") break;;
+		esac
+	done
+
+	case "$alignment" in
+	error)	dflt='8'
+		echo "(I can't seem to compile the test program...)" >&4
+		;;
+	*)	dflt=$alignment
+		;;
+	esac
+;;
 *) dflt="$alignbytes"
 	;;
 esac
-rp="Doubles must be aligned on a how-many-byte boundary?"
+rp="What is the maximum alignment in bytes required for a standard type?"
 . ./myread
 alignbytes="$ans"
-$rm -rf try.* try
 
 : how do we catenate cpp tokens here?
 echo " "
@@ -8261,10 +8369,6 @@ eval $setvar
 set ifaddrs.h i_ifaddrs
 eval $inhdr
 
-: see if this is a inttypes.h system
-set inttypes.h i_inttypes
-eval $inhdr
-
 : see if this is a invent.h system
 set invent.h i_invent
 eval $inhdr
@@ -8272,28 +8376,6 @@ eval $inhdr
 : see if this is a langinfo system
 set langinfo.h i_langinfo
 eval $inhdr
-
-: see if this is a math.h system
-set math.h i_math
-eval $inhdr
-
-: see whether we need libm
-$cat >try.c <<EOC
-#$i_math I_MATH
-#ifdef I_MATH
-#include <math.h>
-#endif
-int main(void)
-{
-	static double ret;
-
-	ret += 1.2 * pow(1.2, 1.2);
-	ret += 1.2 * sqrt(ret);
-	return 0 != ret;
-}
-EOC
-set val '-lm'
-eval $trylink
 
 : see if this is a pwd.h system
 set pwd.h i_pwd
@@ -9193,6 +9275,7 @@ i_invent='$i_invent'
 i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
+i_limits='$i_limits'
 i_math='$i_math'
 i_netdb='$i_netdb'
 i_netif='$i_netif'
