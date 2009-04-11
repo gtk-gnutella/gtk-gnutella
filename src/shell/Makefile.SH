@@ -87,6 +87,7 @@ SRC = \
 	help.c \
 	horizon.c \
 	intr.c \
+	memory.c \
 	node.c \
 	nodes.c \
 	offline.c \
@@ -111,6 +112,7 @@ OBJ = \
 	help.o \
 	horizon.o \
 	intr.o \
+	memory.o \
 	node.o \
 	nodes.o \
 	offline.o \
