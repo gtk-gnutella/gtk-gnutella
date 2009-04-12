@@ -932,7 +932,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 
 	warn_unparsed_trailer(kn, header, bs);
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return;
 
 error:
@@ -942,7 +942,7 @@ error:
 			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
 			reason, bstr_error(bs));
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 }
 
 /**
@@ -1239,7 +1239,7 @@ cleanup:
 		wfree(vec, values * sizeof *vec);
 	}
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 }
 
 /**
@@ -1437,7 +1437,7 @@ cleanup:
 			dht_value_free(vvec[i], TRUE);
 	}
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 }
 
 /**

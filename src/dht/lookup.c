@@ -1228,7 +1228,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 			dht_value_type_to_string(type),
 			scnt, 1 == scnt ? "" : "s", knode_to_string(kn));
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 
 	/*
 	 * It is possible all the last "alpha" requests we sent out looking for
@@ -1304,7 +1304,7 @@ ignore:
 		wfree(skeys, seckeys * sizeof *skeys);
 	}
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return FALSE;
 }
 
@@ -1711,7 +1711,7 @@ lookup_handle_reply(
 		map_insert(nl->tokens, kn->id, token);
 	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return TRUE;
 
 bad_token:
@@ -1731,7 +1731,7 @@ bad:
 
 	if (token)
 		token_free(token);
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return FALSE;
 }
 
@@ -2677,7 +2677,7 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 	 * Stop parsing, we're not interested by what comes afterwards.
 	 */
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return TRUE;
 
 bad:
@@ -2691,7 +2691,7 @@ bad:
 			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
-	bstr_destroy(bs);
+	bstr_free(&bs);
 	return FALSE;
 }
 

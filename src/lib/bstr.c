@@ -130,7 +130,7 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
  * @param len		total length of the arena to parse
  * @param flags		configuration flags
  *
- * @return a stream descriptor that must be freed with bstr_destroy(), or
+ * @return a stream descriptor that must be freed with bstr_free(), or
  * which can be reused through bstr_close() and bstr_reset() at will.
  */
 bstr_t *
@@ -174,7 +174,7 @@ bstr_reset(bstr_t *bs, const void *arena, size_t len, guint32 flags)
  * Create the stream, but make it unusable until a bstr_reset() has
  * been done.
  *
- * @return a stream descriptor that must be freed with bstr_destroy(), or
+ * @return a stream descriptor that must be freed with bstr_free(), or
  * which can be reused through bstr_close() and bstr_reset() at will.
  */
 bstr_t *
@@ -190,7 +190,7 @@ bstr_create(void)
 
 /**
  * Close memory stream.
- * Stream can then be freed by bstr_destroy() or reused via bstr_reset().
+ * Stream can then be freed by bstr_free() or reused via bstr_reset().
  */
 void
 bstr_close(bstr_t *bs)
@@ -207,10 +207,16 @@ bstr_close(bstr_t *bs)
  * Destroy memory stream.
  */
 void
-bstr_destroy(bstr_t *bs)
+bstr_free(bstr_t **bs_ptr)
 {
-	bstr_close(bs);
-	wfree(bs, sizeof *bs);
+	g_assert(bs_ptr);
+	if (*bs_ptr) {
+		bstr_t *bs = *bs_ptr;
+
+		bstr_close(bs);
+		wfree(bs, sizeof *bs);
+		*bs_ptr = NULL;
+	}
 }
 
 /**

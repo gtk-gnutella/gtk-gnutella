@@ -802,8 +802,7 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 
 	if (dw->mb)
 		pmsg_free(dw->mb);
-	if (dw->bs)
-		bstr_destroy(dw->bs);
+	bstr_free(&dw->bs);
 
 	if (close_map)
 		dbmap_destroy(dw->dm);

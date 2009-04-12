@@ -63,7 +63,7 @@ void bstr_close(bstr_t *);
 void bstr_reset(bstr_t *, const void *arena, size_t len, guint32 flags);
 gboolean bstr_has_error(const bstr_t *);
 void bstr_clear_error(bstr_t *);
-void bstr_destroy(bstr_t *);
+void bstr_free(bstr_t **);
 const char *bstr_error(const bstr_t *);
 
 size_t bstr_unread_size(const bstr_t *);
