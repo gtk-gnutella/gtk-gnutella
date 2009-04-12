@@ -153,6 +153,7 @@ typedef guint16 flag_t;
 #define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
 #define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
 #define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
+#define SIZE_T_DEC_BUFLEN	(sizeof(size_t) * CHAR_BIT) /* very roughly */
 #define POINTER_BUFLEN		(sizeof(unsigned long) * CHAR_BIT) /* very roughly */
 
 #define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
@@ -380,14 +381,16 @@ size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
 size_t off_t_to_string_buf(off_t v, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
+size_t size_t_to_string_buf(size_t v, char *dst, size_t size);
 size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
-const char *uint32_to_string(guint32 v);
-const char *uint64_to_string(guint64 v);
-const char *uint64_to_string2(guint64 v);
-const char *off_t_to_string(off_t v);
-const char *time_t_to_string(time_t v);
-const char *filesize_to_string(filesize_t v);
-const char *filesize_to_string2(filesize_t v);
+const char *uint32_to_string(guint32);
+const char *uint64_to_string(guint64);
+const char *uint64_to_string2(guint64);
+const char *off_t_to_string(off_t);
+const char *time_t_to_string(time_t);
+const char *size_t_to_string(size_t);
+const char *filesize_to_string(filesize_t);
+const char *filesize_to_string2(filesize_t);
 int parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor);
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
