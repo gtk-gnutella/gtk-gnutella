@@ -52,12 +52,12 @@ RCSID("$Id$")
  * A binary stream.
  */
 struct bstr {
-	const guchar *start;			/**< First byte in buffer */
-	guchar *rptr;					/**< First unread byte in buffer */
-	const guchar *end;				/**< First byte beyond buffer */
+	const unsigned char *start;		/**< First byte in buffer */
+	const unsigned char *rptr;		/**< First unread byte in buffer */
+	const unsigned char *end;		/**< First byte beyond buffer */
+	GString *error;					/**< Last parsing error */
 	guint32 flags;					/**< Configuration flags */
 	gboolean ok;					/**< Whether everything is OK so far */
-	GString *error;					/**< Last parsing error */
 };
 
 /*
@@ -68,17 +68,15 @@ struct bstr {
 #define BSTR_F_EOS		(1 << 16)	/**< End of stream reached */
 #define BSTR_F_PENDING	(1 << 17)	/**< Pending reset, stream invalid */
 
-static gboolean error_eos(bstr_t *bs, ssize_t expected, const char *where);
-
 /**
  * Reset the stream.
  */
 static void
-reset_stream(bstr_t *bs, gconstpointer arena, size_t len, guint32 flags)
+reset_stream(bstr_t *bs, const void *arena, size_t len, guint32 flags)
 {
 	bs->ok = TRUE;
 	bs->flags = flags;
-	bs->rptr = deconstify_gpointer(arena);
+	bs->rptr = arena;
 	bs->start = bs->rptr;
 	bs->end = bs->start + len;
 	bs->error = NULL;
@@ -95,6 +93,37 @@ mark_unusable(bstr_t *bs)
 }
 
 /**
+ * Allocate error string if not already done.
+ */
+static void
+alloc_error(bstr_t *bs)
+{
+	if (!bs->error)
+		bs->error = g_string_sized_new(BSTR_ERRLEN);
+}
+
+/**
+ * Record End of Stream condition.
+ * @return FALSE
+ */
+static gboolean
+error_eos(bstr_t *bs, size_t expected, const char *where)
+{
+	bs->flags |= BSTR_F_EOS;
+
+	if (bs->flags & BSTR_F_ERROR) {
+		alloc_error(bs);
+		g_string_printf(bs->error,
+			"%s: end of stream reached at offset %lu; expected %s more byte%s",
+			where, (unsigned long) (bs->end - bs->start),
+			expected ? size_t_to_string(expected) : "some",
+			expected == 1 ? "" : "s");
+	}
+
+	return bs->ok = FALSE;
+}
+
+/**
  * Create a new memory stream to parse given arena
  *
  * @param arena		the base of the memory arena
@@ -105,7 +134,7 @@ mark_unusable(bstr_t *bs)
  * which can be reused through bstr_close() and bstr_reset() at will.
  */
 bstr_t *
-bstr_open(gconstpointer arena, size_t len, guint32 flags)
+bstr_open(const void *arena, size_t len, guint32 flags)
 {
 	bstr_t *bs;
 
@@ -130,7 +159,7 @@ bstr_open(gconstpointer arena, size_t len, guint32 flags)
  * @param flags		configuration flags
  */
 void
-bstr_reset(bstr_t *bs, gconstpointer arena, size_t len, guint32 flags)
+bstr_reset(bstr_t *bs, const void *arena, size_t len, guint32 flags)
 {
 	g_assert(arena);
 	g_assert(0 == (flags & BSTR_F_PRIVATE));
@@ -236,37 +265,6 @@ bstr_error(const bstr_t *bs)
 }
 
 /**
- * Allocate error string if not already done.
- */
-static void
-alloc_error(bstr_t *bs)
-{
-	if (!bs->error)
-		bs->error = g_string_sized_new(BSTR_ERRLEN);
-}
-
-/**
- * Record End of Stream condition.
- * @return FALSE
- */
-static gboolean
-error_eos(bstr_t *bs, ssize_t expected, const char *where)
-{
-	bs->flags |= BSTR_F_EOS;
-
-	if (bs->flags & BSTR_F_ERROR) {
-		alloc_error(bs);
-		g_string_printf(bs->error,
-			"%s: end of stream reached at offset %lu; expected %s more byte%s",
-			where, (unsigned long) (bs->end - bs->start),
-			expected ? off_t_to_string((off_t) expected) : "some",
-			expected == 1 ? "" : "s");
-	}
-
-	return bs->ok = FALSE;
-}
-
-/**
  * Report invalid length condition.
  * @return FALSE
  */
@@ -304,37 +302,38 @@ invalid_len_max(
 }
 
 /**
+ * @return amount of unread data.
+ */
+size_t
+bstr_unread_size(const bstr_t *bs)
+{
+	g_assert(bs->end >= bs->rptr);
+	return bs->end - bs->rptr;
+}
+
+/**
  * Check that stream contains at least the expected amount of bytes.
  * Raise the "End Of Stream" error.
  */
 static gboolean
-expect(bstr_t *bs, ssize_t expected, const char *where)
+expect(bstr_t *bs, size_t expected, const char *where)
 {
 	g_assert(bs);
-	g_assert(expected > 0);
+	g_assert(size_is_positive(expected));
 
 	if (!bs->ok)
 		return FALSE;
 
-	if (bs->end - bs->rptr >= expected)
+	if (bstr_unread_size(bs) >= expected)
 		return TRUE;
 
 	return error_eos(bs, expected, where);
 }
 
 /**
- * @return amount of unread data.
- */
-size_t
-bstr_unread_size(const bstr_t *bs)
-{
-	return bs->end - bs->rptr;
-}
-
-/**
  * @return current reading position.
  */
-gpointer
+const void *
 bstr_read_base(const bstr_t *bs)
 {
 	return bs->rptr;
@@ -402,7 +401,7 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
 	if (!expect(bs, 1, "bstr_read_u8"))
 		return FALSE;
 
-	*pv = *(guint8 *) bs->rptr++;
+	*pv = peek_u8(bs->rptr++);
 	return TRUE;
 }
 
@@ -422,7 +421,7 @@ bstr_read_boolean(bstr_t *bs, gboolean *pv)
 	if (!expect(bs, 1, "bstr_read_boolean"))
 		return FALSE;
 
-	*pv = *(guint8 *) bs->rptr++ ? TRUE : FALSE;
+	*pv = peek_u8(bs->rptr++) ? TRUE : FALSE;
 	return TRUE;
 }
 
@@ -477,7 +476,7 @@ bstr_read_be16(bstr_t *bs, guint16 *pv)
  * @return TRUE if OK.
  */
 gboolean
-bstr_read_le32(bstr_t *bs, guint16 *pv)
+bstr_read_le32(bstr_t *bs, guint32 *pv)
 {
 	g_assert(pv);
 
@@ -564,7 +563,7 @@ bstr_read_float_be(bstr_t *bs, float *pv)
 gboolean
 bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char *where = "bstr_read_ipv4_addr";
+	static const char where[] = "bstr_read_ipv4_addr";
 
 	g_assert(ha);
 
@@ -588,7 +587,7 @@ bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 gboolean
 bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char *where = "bstr_read_ipv6_addr";
+	static const char where[] = "bstr_read_ipv6_addr";
 
 	g_assert(ha);
 
@@ -615,7 +614,7 @@ bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 gboolean
 bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
-	static const char *where = "bstr_read_packed_ipv4_or_ipv6_addr";
+	static const char where[] = "bstr_read_packed_ipv4_or_ipv6_addr";
 	guint8 len;
 
 	g_assert(ha);
@@ -623,8 +622,7 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 	if (!expect(bs, 1, where))
 		return FALSE;
 
-	len = *(guint8 *) bs->rptr++;
-
+	len = peek_u8(bs->rptr++);
 	if (len != 4 && len != 16)
 		return invalid_len(bs, len, "IP address", where);
 
@@ -656,9 +654,9 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
  * @param pr	where to put the amount of bytes read in ptr
  */
 gboolean
-bstr_read_packed_array_u8(bstr_t *bs, size_t max, gpointer ptr, guint8 *pr)
+bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
 {
-	static const char *where = "bstr_read_packed_array_u8";
+	static const char where[] = "bstr_read_packed_array_u8";
 	guint8 len;
 
 	g_assert(ptr);
@@ -667,7 +665,7 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, gpointer ptr, guint8 *pr)
 	if (!expect(bs, 1, where))
 		return FALSE;
 
-	len = *(guint8 *) bs->rptr++;
+	len = peek_u8(bs->rptr++);
 
 	if (len > max)
 		return invalid_len_max(bs, len, max, "array size", where);
