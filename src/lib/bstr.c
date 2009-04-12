@@ -209,9 +209,7 @@ bstr_close(bstr_t *bs)
 void
 bstr_destroy(bstr_t *bs)
 {
-	if (bs->error)
-		g_string_free(bs->error, TRUE);
-
+	bstr_close(bs);
 	wfree(bs, sizeof *bs);
 }
 
