@@ -1664,3 +1664,10 @@
 # Spamming gtk-gnutella seen on these subnets
 216.6.238.0/24
 174.34.189.0/24
+
+# Y-Net IP Network; UK
+# LimeWire; EXE spam;
+# $query.exe; urn:sha1:OY2A2ZEOJB2IWA647M7D7TFDBCAJCZ4H
+#217.114.215.239:11678; 5e243cf42a02a93b8d9981d7b1007500
+217.114.215.192/26
+
