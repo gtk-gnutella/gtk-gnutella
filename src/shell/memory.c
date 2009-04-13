@@ -35,6 +35,40 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+/**
+ * Reads a piece of memory from the process address space using a pipe. As
+ * write() fails with EFAULT for unreadable bytes, accessing such memory
+ * doesn't raise a signal. The array "valid" is used to record which bytes in
+ * "dst" are successfully copied from "addr".
+ *
+ * @param fd Array of 2 filescriptors initialized by pipe().
+ * @param addr The source address to read from.
+ * @param length The maximum number of bytes to read.
+ * @param dst The destination buffer.
+ * @param size The size of destination buffer.
+ * @param valid The buffer to record validity of bytes in "dst". MUST be
+ *        as large as "dst". If valid[i] is not zero, dst[i] is valid,
+ *        otherwise addr[i] could not be read and dst[i] is zero.
+ */
+static inline void
+read_memory(int fd[2], const unsigned char *addr, size_t length,
+	char *dst, size_t size, char *valid)
+{
+	size_t i;
+
+	memset(dst, 0, size);
+	memset(valid, 0, size);
+
+	size = MIN(length, size);
+	for (i = 0; i < size; i++) {
+		if (1 != write(fd[1], &addr[i], 1))
+			continue;
+		if (1 != read(fd[0], &dst[i], 1))
+			break;
+		valid[i] = 1;
+	}
+}
+
 static enum shell_reply
 shell_exec_memory_dump(struct gnutella_shell *sh,
 	int argc, const char *argv[])
@@ -43,6 +77,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 	const char *endptr;
 	size_t length;
 	int error, fd[2];
+	GString *gs;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -68,61 +103,45 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		goto failure;
 	}
 
+	gs = g_string_sized_new(128);
 	while (length > 0) {
-		char buf[128], data[16], valid[G_N_ELEMENTS(data)], *p;
+		char data[16], valid[sizeof data];
 		size_t i;
 
-		memset(data, 0, sizeof data);
-		memset(valid, 0, sizeof valid);
-		for (i = 0; i < G_N_ELEMENTS(data); i++) {
-			ssize_t ret;
+		STATIC_ASSERT(sizeof data == sizeof valid);
+		read_memory(fd, addr, length, data, sizeof data, valid);
 
-			ret = write(fd[1], &addr[i], 1);
-			if (1 != ret)
-				continue;
-
-			read(fd[0], &data[i], 1);
-			if (1 != ret)
-				continue;
-			valid[i] = 1;
-		}
-
-		p = buf + pointer_to_string_buf(addr, buf, sizeof buf);
-		*p++ = ' ';
-		*p++ = ' ';
+		gs = g_string_assign(gs, pointer_to_string(addr));
+		gs = g_string_append(gs, "  ");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 
 				if (valid[i]) {
-					*p++ = hex_digit((c >> 4) & 0xf);
-					*p++ = hex_digit(c & 0x0f);
+					gs = g_string_append_c(gs, hex_digit((c >> 4) & 0xf));
+					gs = g_string_append_c(gs, hex_digit(c & 0x0f));
+					gs = g_string_append_c(gs, ' ');
 				} else {
-					*p++ = 'X';
-					*p++ = 'X';
+					gs = g_string_append(gs, "XX ");
 				}
 			} else {
-				*p++ = ' ';
-				*p++ = ' ';
+				gs = g_string_append(gs, "   ");
 			}
-			*p++ = ' ';
 		}
-		*p++ = ' ';
-		*p++ = '|';
+		gs = g_string_append(gs, " |");
 
 		for (i = 0; i < G_N_ELEMENTS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
-				*p++ = is_ascii_print(c) ? c : '.';
+				c = is_ascii_print(c) ? c : '.';
+				gs = g_string_append_c(gs, c);
 			} else {
-				*p++ = ' ';
+				gs = g_string_append_c(gs, ' ');
 			}
 		}
-		*p++ = '|';
-		*p++ = '\n';
-		*p = '\0';
-		shell_write(sh, buf);
+		gs = g_string_append(gs, "|\n");
+		shell_write(sh, gs->str);
 
 		if (length < G_N_ELEMENTS(data))
 			break;
@@ -130,6 +149,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		length -= G_N_ELEMENTS(data);
 		addr += G_N_ELEMENTS(data);
 	}
+	g_string_free(gs, TRUE);
 	close(fd[0]);
 	close(fd[1]);
 	return REPLY_READY;
