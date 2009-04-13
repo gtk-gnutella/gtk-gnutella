@@ -389,6 +389,7 @@ const char *uint64_to_string2(guint64);
 const char *off_t_to_string(off_t);
 const char *time_t_to_string(time_t);
 const char *size_t_to_string(size_t);
+const char *pointer_to_string(const void *);
 const char *filesize_to_string(filesize_t);
 const char *filesize_to_string2(filesize_t);
 int parse_major_minor(const char *src, char const **endptr,

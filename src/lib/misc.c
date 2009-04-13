@@ -3366,6 +3366,18 @@ size_t_to_string(size_t v)
 }
 
 const char *
+pointer_to_string(const void *p)
+{
+	static char buf[POINTER_BUFLEN];
+	size_t n;
+
+	n = pointer_to_string_buf(p, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
 filesize_to_string(filesize_t v)
 {
 	static char buf[UINT64_DEC_BUFLEN];
