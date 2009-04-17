@@ -1676,3 +1676,8 @@
 62.157.140.0/23
 80.156.84.0/22
 
+# OpenDNS, LLC
+# DNS manipulation target ranges
+67.215.64.0/19
+208.69.32.0/21
+
