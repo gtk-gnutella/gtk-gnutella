@@ -1671,3 +1671,8 @@
 #217.114.215.239:11678; 5e243cf42a02a93b8d9981d7b1007500
 217.114.215.192/26
 
+# Deutsche Telekom/T-Online/T-Com
+# DNS manipulation target ranges
+62.157.140.0/23
+80.156.84.0/22
+
