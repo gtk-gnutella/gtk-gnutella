@@ -3666,7 +3666,7 @@ default|recommended)
 	esac
 	case "$gccversion" in
 	1*|2*) dflt="$dflt -Wall";;
-	*) dflt="$dflt -W -Wall -Wformat=2 -Wshadow -Wno-long-long -pedantic";;
+	*) dflt="$dflt -W -Wall -Wformat=2 -Wshadow";;
 	esac
 	;;
 esac
