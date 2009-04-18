@@ -159,7 +159,7 @@ failure:
 }
 
 /**
- * Handles the download command.
+ * Handles the memory command.
  */
 enum shell_reply
 shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
