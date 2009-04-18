@@ -206,9 +206,8 @@ gboolean
 header_get_feature(const char *name, const header_t *header,
 	guint *major, guint *minor)
 {
-	const char *x_features = "X-Features";
-	char *buf = NULL;
-	char *start;
+	static const char x_features[] = "X-Features";
+	char *buf, *start;
 
 	if (major)
 		*major = 0;
