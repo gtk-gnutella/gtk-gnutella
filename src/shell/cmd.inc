@@ -12,7 +12,9 @@ SHELL_CMD(echo)
 SHELL_CMD(help)
 SHELL_CMD(horizon)
 SHELL_CMD(intr)
+#ifdef MALLOC_STATS
 SHELL_CMD(memory)
+#endif
 SHELL_CMD(node)
 SHELL_CMD(nodes)
 SHELL_CMD(offline)
