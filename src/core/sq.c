@@ -312,6 +312,8 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 
 	if (sqh_exists(sq, sh)) {
 		pmsg_free(mb);
+		if (qhv)
+			qhvec_free(qhv);
 		return;						/* Search already in queue */
 	}
 
