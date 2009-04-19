@@ -300,13 +300,9 @@ download_host_info(const struct download *d)
  *
  * All `dl_server' structures are also inserted in the `dl_by_time' struct,
  * where hosts are sorted based on their retry time.
- *
- * The `dl_count_by_name' hash tables is indexed by name, and counts the
- * amount of downloads scheduled with that name.
  */
 
 static GHashTable *dl_by_host;
-static GHashTable *dl_count_by_name;
 
 #define DHASH_SIZE	(1UL << 10)	/**< Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
@@ -781,7 +777,6 @@ download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
 	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
-	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 
 	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -2498,46 +2493,6 @@ download_server_nopush(const struct guid *guid,
 	return server->attrs & DLS_A_PUSH_IGN;
 }
 
-/**
- * How many downloads with same filename are running (active or establishing)?
- */
-static guint
-count_running_downloads_with_name(const char *name)
-{
-	return GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
-}
-
-/**
- * Add one to the amount of downloads running and bearing the filename.
- */
-static void
-downloads_with_name_inc(const char *name)
-{
-	guint val;
-
-	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
-	g_hash_table_insert(dl_count_by_name, deconstify_gchar(name),
-		GUINT_TO_POINTER(val + 1));
-}
-
-/**
- * Remove one from the amount of downloads running and bearing the filename.
- */
-static void
-downloads_with_name_dec(const char *name)
-{
-	guint val;
-
-	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
-	g_return_if_fail(val > 0);		/* Cannot decrement something not present */
-
-	if (val > 1)
-		gm_hash_table_insert_const(dl_count_by_name,
-			name, GUINT_TO_POINTER(val - 1));
-	else
-		g_hash_table_remove(dl_count_by_name, name);
-}
-
 static inline const struct sha1 *
 download_get_sha1(const struct download *d)
 {
@@ -2808,7 +2763,11 @@ has_same_download(
 static gboolean
 download_has_enough_active_sources(struct download *d)
 {
-	guint n;
+	fileinfo_t *fi;
+	unsigned n;
+
+	download_check(d);
+	fi = d->file_info;
 
 	/*
 	 * Disabled: this is broken logic.  Indeed, near the end, when only a
@@ -2818,7 +2777,7 @@ download_has_enough_active_sources(struct download *d)
 	 *		--RAM, 2007-05-17
 	 */
 #if 0
-	if (d->file_info->use_swarming) {
+	if (fi->use_swarming) {
 		filesize_t m = download_filesize(d) - download_filedone(d);
 
 		/*
@@ -2832,9 +2791,13 @@ download_has_enough_active_sources(struct download *d)
 		n = 1;
 	}
 #else
-	n = GNET_PROPERTY(max_simultaneous_downloads_per_file);
+	if (fi->use_swarming) {
+		n = GNET_PROPERTY(max_simultaneous_downloads_per_file);
+	} else {
+		n = 1;
+	}
 #endif
-	return count_running_downloads_with_name(download_basename(d)) >= n;
+	return UNSIGNED(fi->lifecount) >= n;
 }
 
 /**
@@ -3302,10 +3265,8 @@ download_move_to_list(struct download *d, enum dl_list idx)
 			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
-		downloads_with_name_dec(download_basename(d));
 	} else if (idx == DL_LIST_RUNNING) {
 		dl_establishing++;
-		downloads_with_name_inc(download_basename(d));
 	}
 
 	g_assert(dl_active <= INT_MAX && dl_establishing <= INT_MAX);
@@ -4515,7 +4476,6 @@ download_info_reget(struct download *d)
 	if (fi->flags & FI_F_TRANSIENT)
 		return;
 
-	downloads_with_name_dec(download_basename(d));	/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 	file_size_known = fi->file_size_known;		/* This should not change */
 
@@ -4533,8 +4493,6 @@ download_info_reget(struct download *d)
 		d->flags |= DL_F_SUSPENDED;
 	if (fi->flags & FI_F_PAUSED)
 		d->flags |= DL_F_PAUSED;
-
-	downloads_with_name_inc(download_basename(d));
 }
 
 /**
@@ -13605,9 +13563,6 @@ download_close(void)
 
 	g_hash_table_destroy(dl_by_addr);
 	dl_by_addr = NULL;
-
-	g_hash_table_destroy(dl_count_by_name);
-	dl_count_by_name = NULL;
 }
 
 static char *
