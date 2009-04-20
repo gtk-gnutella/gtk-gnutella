@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "core/gnet_stats.h"
 #include "core/hosts.h"
 #include "core/hostiles.h"
+#include "core/gmsg.h"
 #include "core/udp.h"
 #include "core/nodes.h"
 #include "core/guid.h"
@@ -356,6 +357,25 @@ kmsg_deserialize_contact(bstr_t *bs)
 }
 
 /**
+ * Serialize a DHT value.
+ */
+void
+kmsg_serialize_dht_value(pmsg_t *mb, const dht_value_t *v)
+{
+	/* DHT value header */
+	serialize_contact(mb, v->creator);
+	pmsg_write(mb, v->id, KUID_RAW_SIZE);
+	pmsg_write_be32(mb, v->type);
+	pmsg_write_u8(mb, v->major);
+	pmsg_write_u8(mb, v->minor);
+	pmsg_write_be16(mb, v->length);
+
+	/* DHT value data */
+	if (v->length)
+		pmsg_write(mb, v->data, v->length);
+}
+
+/**
  * Deserialize a DHT value.
  *
  * @return the deserialized DHT value, or NULL if an error occurred.
@@ -640,18 +660,7 @@ k_send_find_value_response(
 		/* That's the specs and the 61 above depends on the following... */
 		g_assert(NET_TYPE_IPV4 == host_addr_net(v->creator->addr));
 
-		/* DHT value header */
-		serialize_contact(mb, v->creator);
-		pmsg_write(mb, v->id, KUID_RAW_SIZE);
-		pmsg_write_be32(mb, v->type);
-		pmsg_write_u8(mb, v->major);
-		pmsg_write_u8(mb, v->minor);
-		pmsg_write_be16(mb, v->length);
-
-		/* DHT value data */
-		if (v->length)
-			pmsg_write(mb, v->data, v->length);
-
+		kmsg_serialize_dht_value(mb, v);
 		values++;
 
 		if (GNET_PROPERTY(dht_debug) > 4)
@@ -1575,6 +1584,50 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 }
 
 /**
+ * Send store(values) message to node.
+ *
+ * @param kn		the node to whom the message should be sent
+ * @param token		security token
+ * @param toklen	length of security token, in bytes (can be 0)
+ * @param values	serialized DHT values
+ * @param vcnt		amount of values serialized
+ * @param muid		the message ID to use
+ * @param mfree		(optional) message free routine to use
+ * @param marg		the argument to supply to the message free routine
+ */
+void
+kmsg_send_store(knode_t *kn,
+	gconstpointer token, size_t toklen, pmsg_t *values, int vcnt,
+	const guid_t *muid, pmsg_free_t mfree, gpointer marg)
+{
+	pmsg_t *mb;
+	int msize;
+
+	g_assert(values);
+	g_assert(size_is_non_negative(toklen));
+	g_assert(token == NULL || size_is_positive(toklen));
+	g_assert(vcnt > 0 && vcnt < 256);
+	g_assert(pmsg_is_unread(values));
+
+	/* Header + token length + security token + count + values */
+	msize = KDA_HEADER_SIZE + 1 + toklen + 1 + pmsg_size(values);
+
+	mb = mfree ?
+		pmsg_new_extend(PMSG_P_DATA, NULL, msize, mfree, marg) :
+		pmsg_new(PMSG_P_DATA, NULL, msize);
+
+	kmsg_build_header_pmsg(mb, KDA_MSG_STORE_REQUEST, 0, 0, muid);
+	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
+	pmsg_write_u8(mb, toklen);
+	pmsg_write(mb, token, toklen);
+	pmsg_write_u8(mb, vcnt);
+	pmsg_write(mb, pmsg_read_base(values), pmsg_size(values));
+
+	g_assert(0 == pmsg_available(mb));
+	kmsg_send_mb(kn, mb);
+}
+
+/**
  * Main entry point for DHT messages received from UDP.
  *
  * The Gnutella layer that comes before has validated that the message looked
@@ -1609,6 +1662,8 @@ void kmsg_received(
 	const kuid_t *id;
 	guint8 flags;
 	guint16 extended_length;
+
+	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 
 	/*
 	 * If DHT is not enabled, drop the message now.
@@ -1844,7 +1899,7 @@ void kmsg_received(
 	}
 
 	kmsg_handle(kn, n, header, extended_length,
-		(char *) header + extended_length + KDA_HEADER_SIZE,
+		ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
 		len - KDA_HEADER_SIZE - extended_length);
 
 	knode_free(kn);		/* Will free only if not still referenced */
@@ -1853,7 +1908,9 @@ void kmsg_received(
 
 drop:
 	if (GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT got invalid Kademlia packet from UDP (%s): %s",
+		g_warning("DHT got invalid Kademlia packet (%u bytes) "
+			"\"%s\" from UDP (%s): %s",
+			(unsigned) len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
 		if (len)
 			dump_hex(stderr, "UDP datagram", data, len);
@@ -1861,7 +1918,7 @@ drop:
 }
 
 static const struct kmsg kmsg_map[] = {
-	{ 0x00,							NULL,					"invalid"		},
+	{ 0x00,							NULL, /* Invalid */		"invalid"		},
 	{ KDA_MSG_PING_REQUEST,			k_handle_ping,			"PING"			},
 	{ KDA_MSG_PING_RESPONSE,		k_handle_pong,			"PONG"			},
 	{ KDA_MSG_STORE_REQUEST,		k_handle_store,			"STORE"			},
@@ -1870,8 +1927,8 @@ static const struct kmsg kmsg_map[] = {
 	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_lookup,		"FOUND_NODE"	},
 	{ KDA_MSG_FIND_VALUE_REQUEST,	k_handle_find_value,	"FIND_VALUE"	},
 	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_lookup,		"VALUE"			},
-	{ KDA_MSG_STATS_REQUEST,		NULL,					"STATS"			},
-	{ KDA_MSG_STATS_RESPONSE,		NULL,					"STATS_ACK" 	},
+	{ KDA_MSG_STATS_REQUEST,		NULL, /* Deprecated */	"STATS"			},
+	{ KDA_MSG_STATS_RESPONSE,		NULL, /* Deprecated */	"STATS_ACK" 	},
 };
 
 /**
