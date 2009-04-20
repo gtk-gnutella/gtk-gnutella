@@ -174,6 +174,11 @@ ptr_add_offset(void *p, size_t offset)
 	return (void *) ((char *) p + offset);
 }
 
+static inline const void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
+ptr_add_offset_const(const void *p, size_t offset)
+{
+	return (const void *) ((const char *) p + offset);
+}
 /**
  * Converts a filesize_t to off_t.
  *
