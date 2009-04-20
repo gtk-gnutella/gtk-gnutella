@@ -35,18 +35,16 @@
 
 #include "common.h"		/* For RCSID */
 
+#if defined(MALLOC_STATS) && !defined(TRACK_MALLOC)
+#define TRACK_MALLOC
+#endif
+
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "hashtable.h"
 #include "misc.h"		/* For concat_strings() */
 #include "tm.h"			/* For tm_time() */
 #include "glib-missing.h"
-
-#ifdef MALLOC_STATS
-#ifndef TRACK_MALLOC
-#define TRACK_MALLOC
-#endif
-#endif
 
 /**
  * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
@@ -137,7 +135,7 @@ struct frame {
  * A routine entry in the symbol table.
  */
 struct trace {
-	void *start;				/**< Start PC address */
+	const void *start;			/**< Start PC address */
 	char *name;					/**< Routine name */
 };
 
@@ -271,7 +269,7 @@ trace_sort(void)
 {
 	size_t i = 0;
 	size_t old_count = trace_array.count;
-	void *last = 0;
+	const void *last = 0;
 
 	qsort(trace_array.base, trace_array.count,
 		sizeof trace_array.base[0], trace_cmp);
@@ -298,7 +296,7 @@ trace_sort(void)
  * Insert new trace symbol.
  */
 static void
-trace_insert(void *start, const char *name)
+trace_insert(const void *start, const char *name)
 {
 	struct trace *t;
 
