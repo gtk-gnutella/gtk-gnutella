@@ -72,7 +72,15 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	const char *msg;
 	guint16 size;				/**< Payload size, from the Gnutella message */
 
-	g_return_val_if_fail(n, FALSE);
+	/*
+	 * If we can't get a proper UDP node for this address/port combination,
+	 * ignore the message.
+	 */
+
+	if (NULL == n) {
+		msg = "Invalid address/port combination";
+		goto not;
+	}
 
 	if (s->pos < GTA_HEADER_SIZE) {
 		msg = "Too short";
@@ -122,7 +130,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	 */
 
 	if (truncated) {
-		msg = "Too large (truncated)";
+		msg = "Too large";
 		goto too_large;
 	}
 
@@ -168,7 +176,11 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
-		g_warning("got invalid Gnutella packet from UDP (%s): %s",
+		g_warning("got invalid Gnutella packet (%u byte%s)"
+			"\"%s\" %sfrom UDP (%s): %s",
+			(unsigned) s->pos, 1 == s->pos ? "" : "s",
+			gmsg_infostr_full(s->buf, s->pos),
+			truncated ? "(truncated) " : "",
 			host_addr_port_to_string(s->addr, s->port), msg);
 		if (s->pos)
 			dump_hex(stderr, "UDP datagram", s->buf, s->pos);
