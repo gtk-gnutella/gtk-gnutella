@@ -974,10 +974,11 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 char *
 gmsg_infostr_full(gconstpointer msg, size_t msg_len)
 {
-	const char *data = (const char *) msg + GTA_HEADER_SIZE;
+	const char *data = ptr_add_offset_const(msg, GTA_HEADER_SIZE);
 	size_t data_len = msg_len - GTA_HEADER_SIZE;
 
-	g_assert(size_is_non_negative(data_len));
+	if (msg_len < GTA_HEADER_SIZE)
+		return "undecipherable (smaller than Gnutella header)";
 
 	return gmsg_infostr_full_split(msg, data, data_len);
 }
@@ -1043,6 +1044,9 @@ gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
 	size_t data_len, char *buf, size_t buf_size)
 {
 	size_t rw;
+
+	g_assert(size_is_non_negative(data_len));
+	g_assert(size_is_non_negative(buf_size));
 
 	switch (gnutella_header_get_function(head)) {
 	case GTA_MSG_VENDOR:
