@@ -2769,6 +2769,7 @@ download_has_enough_active_sources(struct download *d)
 	download_check(d);
 	fi = d->file_info;
 
+#if 0
 	/*
 	 * Disabled: this is broken logic.  Indeed, near the end, when only a
 	 * few small holes remain, most of the source don't get scheduled, and
@@ -2776,7 +2777,6 @@ download_has_enough_active_sources(struct download *d)
 	 * need, resulting in an endless catch-22.
 	 *		--RAM, 2007-05-17
 	 */
-#if 0
 	if (fi->use_swarming) {
 		filesize_t m = download_filesize(d) - download_filedone(d);
 
@@ -2797,7 +2797,7 @@ download_has_enough_active_sources(struct download *d)
 		n = 1;
 	}
 #endif
-	return UNSIGNED(fi->lifecount) >= n;
+	return UNSIGNED(fi->recvcount) >= n;
 }
 
 /**
