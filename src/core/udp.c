@@ -100,6 +100,18 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 	gnet_stats_count_received_payload(n);
 
 	/*
+	 * If the message was truncated, then there is also going to be a
+	 * size mismatch, but we want to flag truncated messages as being
+	 * "too large" because this is mainly why we reject them.  They may
+	 * be legitimate Gnutella packets, too bad.
+	 */
+
+	if (truncated) {
+		msg = "Truncated (too large?)";
+		goto too_large;
+	}
+
+	/*
 	 * Message sizes are architecturally limited to 64K bytes.
 	 *
 	 * We don't ensure the leading bits are zero in the size field because
@@ -119,19 +131,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean truncated)
 		goto drop;
 	case GMSG_INVALID:
 		msg = "Invalid size (greater than 64 KiB without flags)";
-		goto too_large;
-	}
-
-	/*
-	 * If the message was truncated, then there is also going to be a
-	 * size mismatch, but we want to flag truncated messages as being
-	 * "too large" because this is mainly why we reject them.  They may
-	 * be legitimate Gnutella packets, too bad.
-	 */
-
-	if (truncated) {
-		msg = "Too large";
-		goto too_large;
+		goto not;		/* Probably just garbage */
 	}
 
 	if ((size_t) size + GTA_HEADER_SIZE != s->pos) {
