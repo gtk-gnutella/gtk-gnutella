@@ -176,7 +176,7 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
-		g_warning("got invalid Gnutella packet (%u byte%s)"
+		g_warning("got invalid Gnutella packet (%u byte%s) "
 			"\"%s\" %sfrom UDP (%s): %s",
 			(unsigned) s->pos, 1 == s->pos ? "" : "s",
 			gmsg_infostr_full(s->buf, s->pos),
