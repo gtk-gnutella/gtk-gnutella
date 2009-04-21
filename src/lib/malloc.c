@@ -39,6 +39,8 @@
 #define TRACK_MALLOC
 #endif
 
+#define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
+
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "hashtable.h"
@@ -76,11 +78,9 @@ RCSID("$Id$")
 
 #ifdef TRACK_MALLOC
 
-#include "hashlist.h"
 #include "misc.h"
+#include "hashlist.h"
 #include "glib-missing.h"
-
-#define MALLOC_SOURCE	/**< Avoid nasty remappings, but include signatures */
 #include "override.h"
 
 static time_t init_time = 0;

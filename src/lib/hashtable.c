@@ -534,6 +534,16 @@ hash_table_destroy(hash_table_t *ht)
 }
 
 #ifdef TRACK_MALLOC
+/*
+ * The hash table is used to keep track of the malloc() and free() operations,
+ * so we need special routines to ensure allocation and freeing of memory
+ * uses the real routines, not the remapped ones.
+ *
+ * These *_real() routines must only be called by the malloc tracking code.
+ * Other clients of this hash table should use the regular routines, so that
+ * their usage is properly tracked.
+ */
+
 hash_table_t *
 hash_table_new_real(void)
 {

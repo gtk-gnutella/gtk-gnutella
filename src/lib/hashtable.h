@@ -51,7 +51,8 @@ hash_table_t *hash_table_new_full(
 	hash_table_hash_func hash, hash_table_eq_func eq);
 void hash_table_destroy(hash_table_t *ht);
 
-#ifdef TRACK_MALLOC
+#if defined(TRACK_MALLOC) && defined(MALLOC_SOURCE)
+/* These routines are reserved for the tracking malloc code */
 hash_table_t *hash_table_new_real(void);
 hash_table_t *hash_table_new_full_real(
 	hash_table_hash_func hash, hash_table_eq_func eq);
