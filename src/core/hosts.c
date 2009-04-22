@@ -154,7 +154,7 @@ host_timer(void)
 	if (count < max_nodes)
 		missing -= whitelist_connect();
 
-	if (GNET_PROPERTY(host_debug) && missing != 0)
+	if (GNET_PROPERTY(host_debug) && missing > 0)
 		g_message("host_timer - missing %u host%s",
 			missing, missing == 1 ? "" : "s");
 
@@ -179,7 +179,7 @@ host_timer(void)
 		htype = HOST_ANY;
 
     if (!GNET_PROPERTY(stop_host_get)) {
-        if (missing != 0) {
+        if (missing > 0) {
 			static time_t last_try;
             unsigned fan, max_pool, to_add;
 
@@ -217,13 +217,13 @@ host_timer(void)
 
             missing = to_add;
 
-			while (hcache_size(htype) && missing-- != 0) {
+			while (hcache_size(htype) && missing-- > 0) {
 				if (hcache_get_caught(htype, &addr, &port)) {
 					node_add(addr, port, 0);
 				}
 			}
 
-			if (missing != 0 && host_cache_allow_bypass()) {
+			if (missing > 0 && host_cache_allow_bypass()) {
 				if (!uhc_is_waiting()) {
 					if (GNET_PROPERTY(host_debug))
 						g_message("host_timer - querying UDP host cache");
