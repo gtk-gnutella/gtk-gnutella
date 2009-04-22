@@ -85,7 +85,7 @@ RCSID("$Id$")
 #define FI_MIN_CHUNK_SPLIT	512		/**< Smallest chunk we can split */
 /**< Max field length we accept to save */
 #define FI_MAX_FIELD_LEN	(TTH_RAW_SIZE * TTH_MAX_LEAVES)
-#define FI_DHT_PERIOD		(1*3600)	/**< Requery period for DHT: 1 hour */
+#define FI_DHT_PERIOD		1200		/**< Requery period for DHT: 20 min */
 #define FI_DHT_SOURCE_DELAY	300			/**< Penalty per known source */
 #define FI_DHT_QUEUED_DELAY	150			/**< Penalty per queued source */
 #define FI_DHT_RECV_DELAY	600			/**< Penalty per active source */
