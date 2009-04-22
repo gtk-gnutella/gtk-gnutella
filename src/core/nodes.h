@@ -513,7 +513,7 @@ void node_slow_timer(time_t now);
 void node_timer(time_t now);
 guint connected_nodes(void);
 guint node_count(void);
-guint node_keep_missing(void);
+int node_keep_missing(void);
 guint node_missing(void);
 guint node_leaves_missing(void);
 guint node_outdegree(void);

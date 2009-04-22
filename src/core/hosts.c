@@ -104,7 +104,7 @@ void
 host_timer(void)
 {
     guint count;
-	guint missing;
+	int missing;
 	host_addr_t addr;
 	guint16 port;
 	host_type_t htype;
@@ -155,7 +155,7 @@ host_timer(void)
 		missing -= whitelist_connect();
 
 	if (GNET_PROPERTY(host_debug) && missing > 0)
-		g_message("host_timer - missing %u host%s",
+		g_message("host_timer - missing %d host%s",
 			missing, missing == 1 ? "" : "s");
 
 	/*

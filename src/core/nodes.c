@@ -1414,7 +1414,7 @@ node_count(void)
  *
  * @return 0 if none.
  */
-guint
+int
 node_keep_missing(void)
 {
 	int missing;
