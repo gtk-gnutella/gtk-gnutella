@@ -57,7 +57,7 @@
 #include "tm.h"
 #include "vmm.h"
 
-#define SIZE_FIELD_MAX 64		/**< Max size of sprintf-ed size quantity */
+#define SIZE_FIELD_MAX		64	/**< Max size of sprintf-ed size quantity */
 #define GUID_RAW_SIZE		16	/**< Binary representation of 128 bits */
 #define GUID_HEX_SIZE		32	/**< Hexadecimal GUID representation */
 #define GUID_BASE32_SIZE	26	/**< base32 GUID representation */
@@ -710,6 +710,50 @@ size_saturate_sub(size_t a, size_t b)
 	if (G_UNLIKELY(a < b))
 		return 0;
 	return a - b;
+}
+
+/**
+ * Check whether a signed representation of unsigned int would be non-negative.
+ * @return TRUE if size is greater than or equal to zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline gboolean
+uint_is_non_negative(unsigned v)
+{
+	return v <= MAX_INT_VAL(unsigned) / 2;
+}
+
+/**
+ * Check whether a signed representation of value would be strictly positive.
+ * @return TRUE if size is stricly larger than zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline gboolean
+uint_is_positive(unsigned v)
+{
+	return uint_is_non_negative(v - 1);
+}
+
+/**
+ * Check whether a signed representation of value would be non-negative.
+ * @return TRUE if size is greater than or equal to zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline gboolean
+guint32_is_non_negative(guint32 v)
+{
+	return v <= MAX_INT_VAL(guint32) / 2;
+}
+
+/**
+ * Check whether a signed representation of value would be strictly positive.
+ * @return TRUE if size is stricly larger than zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline gboolean
+guint32_is_positive(guint32 v)
+{
+	return guint32_is_non_negative(v - 1);
 }
 
 /*
