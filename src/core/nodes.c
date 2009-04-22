@@ -173,7 +173,6 @@ static const char gtkg_vendor[] = "gtk-gnutella/";
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
-static guint32     connected_node_count = 0;
 
 #define NO_METADATA		GUINT_TO_POINTER(1)	/**< No metadata for host */
 
@@ -520,7 +519,6 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
  	host = walloc(sizeof *host);
 	gnet_host_set(host, addr, port);
 	g_hash_table_insert(ht_connected_nodes, host, NO_METADATA);
-	connected_node_count++;
 }
 
 /**
@@ -535,9 +533,6 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 
     if (orig_host) {
 		g_hash_table_remove(ht_connected_nodes, orig_host);
-		g_assert(connected_node_count > 0);
-		connected_node_count--;
-
 		wfree(orig_host, sizeof *orig_host);
 	}
 }
@@ -1404,8 +1399,14 @@ connected_nodes(void)
 guint
 node_count(void)
 {
-	return connected_node_count - shutdown_nodes -
-			GNET_PROPERTY(node_leaf_count);
+	unsigned count;
+
+	count = connected_node_cnt - shutdown_nodes -
+				GNET_PROPERTY(node_leaf_count);
+
+	g_assert(uint_is_non_negative(count));
+
+	return count;
 }
 
 /**
@@ -1540,19 +1541,19 @@ get_protocol_version(const char *handshake, guint *major, guint *minor)
  * Decrement the proper node count property, depending on the peermode.
  */
 static void
-node_type_count_dec(struct gnutella_node *n)
+node_type_count_dec(const struct gnutella_node *n)
 {
 	switch (n->peermode) {
 	case NODE_P_LEAF:
-		g_assert(GNET_PROPERTY(node_leaf_count) > 0);
+		g_assert(guint32_is_positive(GNET_PROPERTY(node_leaf_count)));
 		gnet_prop_decr_guint32(PROP_NODE_LEAF_COUNT);
 		return;
 	case NODE_P_NORMAL:
-		g_assert(GNET_PROPERTY(node_normal_count) > 0);
+		g_assert(guint32_is_positive(GNET_PROPERTY(node_normal_count)));
 		gnet_prop_decr_guint32(PROP_NODE_NORMAL_COUNT);
 		return;
 	case NODE_P_ULTRA:
-		g_assert(GNET_PROPERTY(node_ultra_count) > 0);
+		g_assert(guint32_is_positive(GNET_PROPERTY(node_ultra_count)));
 		gnet_prop_decr_guint32(PROP_NODE_ULTRA_COUNT);
 		return;
 	case NODE_P_AUTO:
@@ -1652,6 +1653,27 @@ node_real_remove(gnutella_node_t *n)
 }
 
 /**
+ * A node is removed, decrement counters.
+ */
+static void
+node_decrement_counters(const struct gnutella_node *n)
+{
+	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
+		g_assert(uint_is_positive(connected_node_cnt));
+		connected_node_cnt--;
+		if (n->attrs & NODE_A_RX_INFLATE) {
+			if (n->flags & NODE_F_LEAF) {
+				g_assert(uint_is_positive(compressed_leaf_cnt));
+				compressed_leaf_cnt--;
+			}
+			g_assert(uint_is_positive(compressed_node_cnt));
+			compressed_node_cnt--;
+		}
+		node_type_count_dec(n);
+	}
+}
+
+/**
  * The vectorized (message-wise) version of node_remove().
  */
 static G_GNUC_PRINTF(2, 0) void
@@ -1730,22 +1752,12 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	if (n->rxfc) {
 		WFREE_NULL(n->rxfc, sizeof(*n->rxfc));
 	}
-	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
-		g_assert(connected_node_cnt > 0);
-		connected_node_cnt--;
-        if (n->attrs & NODE_A_RX_INFLATE) {
-			if (n->flags & NODE_F_LEAF) {
-				g_assert(compressed_leaf_cnt > 0);
-				compressed_leaf_cnt--;
-			}
-            g_assert(compressed_node_cnt > 0);
-            compressed_node_cnt--;
-        }
-		node_type_count_dec(n);
-	}
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
+		g_assert(uint_is_positive(shutdown_nodes));
 		shutdown_nodes--;
+	} else {
+		node_decrement_counters(n);
 	}
 	if (n->hello.ptr) {
 		WFREE_NULL(n->hello.ptr, n->hello.size);
@@ -2421,18 +2433,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 	if (n->status == GTA_NODE_SHUTDOWN)
 		return;
 
-	if (n->status == GTA_NODE_CONNECTED) {	/* Free Gnet slot */
-		connected_node_cnt--;
-		g_assert(connected_node_cnt <= INT_MAX);
-        if (n->attrs & NODE_A_RX_INFLATE) {
-			if (n->flags & NODE_F_LEAF)
-				compressed_leaf_cnt--;
-            compressed_node_cnt--;
-            g_assert(compressed_node_cnt <= INT_MAX);
-			g_assert(compressed_leaf_cnt <= INT_MAX);
-        }
-		node_type_count_dec(n);
- 	}
+	node_decrement_counters(n);
 
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
