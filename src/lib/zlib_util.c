@@ -140,7 +140,7 @@ zlib_deflater_alloc(
 	 *
 	 * NB: strictly speaking, we shouldn't need to store this information
 	 * here, we could rely on the information in the Z stream.  However, to
-	 * be able to inspect what's going on and add assertion,s, let's be
+	 * be able to inspect what's going on and add assertions, let's be
 	 * redundant.
 	 */
 
