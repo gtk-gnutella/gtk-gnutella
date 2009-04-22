@@ -790,6 +790,8 @@ guint32  gnet_property_variable_clock_debug     = 0;
 static const guint32  gnet_property_variable_clock_debug_default = 0;
 guint32  gnet_property_variable_fw_debug     = 0;
 static const guint32  gnet_property_variable_fw_debug_default = 0;
+guint32  gnet_property_variable_host_debug     = 0;
+static const guint32  gnet_property_variable_host_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7317,6 +7319,26 @@ gnet_prop_init(void) {
     gnet_property->props[341].data.guint32.choices = NULL;
     gnet_property->props[341].data.guint32.max   = 20;
     gnet_property->props[341].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_HOST_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[342].name = "host_debug";
+    gnet_property->props[342].desc = _("Debug level for host management.");
+    gnet_property->props[342].ev_changed = event_new("host_debug_changed");
+    gnet_property->props[342].save = TRUE;
+    gnet_property->props[342].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[342].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[342].data.guint32.def   = (void *) &gnet_property_variable_host_debug_default;
+    gnet_property->props[342].data.guint32.value = (void *) &gnet_property_variable_host_debug;
+    gnet_property->props[342].data.guint32.choices = NULL;
+    gnet_property->props[342].data.guint32.max   = 20;
+    gnet_property->props[342].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
