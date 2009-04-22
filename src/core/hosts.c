@@ -81,8 +81,11 @@ host_cache_allow_bypass(void)
 	if (delta_time(tm_time(), GNET_PROPERTY(start_stamp)) < 2 * 60)
 		return FALSE;
 
-	/* Allow again after 12 hours, useful after unexpected network outtage or
-	 * downtime */
+	/*
+	 * Allow again after 12 hours, useful after unexpected network outage
+	 * or downtime.
+	 */
+
 	if (last_try && delta_time(tm_time(), last_try) < 12 * 3600)
 		return FALSE;
 
@@ -101,7 +104,7 @@ void
 host_timer(void)
 {
     guint count;
-	int missing;
+	guint missing;
 	host_addr_t addr;
 	guint16 port;
 	host_type_t htype;
@@ -115,6 +118,9 @@ host_timer(void)
 	count = node_count();
 	missing = node_keep_missing();
 
+	if (GNET_PROPERTY(host_debug) > 1)
+		g_message("host_timer - count %u, missing %u", count, missing);
+
 	/*
 	 * If we are not connected to the Internet, apparently, make sure to
 	 * connect to at most one host, to avoid using all our hostcache.
@@ -127,6 +133,9 @@ host_timer(void)
 		if (last_try && delta_time(tm_time(), last_try) < 20)
 			return;
 		last_try = tm_time();
+
+		if (GNET_PROPERTY(host_debug))
+			g_message("host_timer - not connected, trying to connect");
 	}
 
 	/*
@@ -136,18 +145,17 @@ host_timer(void)
 	 */
 
 	if (count >= GNET_PROPERTY(quick_connect_pool_size)) {
-		if (GNET_PROPERTY(dbg) > 10) {
-			g_message("host_timer - count %d >= pool size %d",
+		if (GNET_PROPERTY(host_debug) > 1)
+			g_message("host_timer - count %u >= pool size %u",
 				count, GNET_PROPERTY(quick_connect_pool_size));
-		}
 		return;
 	}
 
 	if (count < max_nodes)
 		missing -= whitelist_connect();
 
-	if (GNET_PROPERTY(dbg) > 10 && missing > 0)
-		g_message("host_timer - missing %d host%s",
+	if (GNET_PROPERTY(host_debug) && missing != 0)
+		g_message("host_timer - missing %u host%s",
 			missing, missing == 1 ? "" : "s");
 
 	/*
@@ -171,7 +179,7 @@ host_timer(void)
 		htype = HOST_ANY;
 
     if (!GNET_PROPERTY(stop_host_get)) {
-        if (missing > 0) {
+        if (missing != 0) {
 			static time_t last_try;
             unsigned fan, max_pool, to_add;
 
@@ -200,7 +208,7 @@ host_timer(void)
             if (to_add + count > max_pool)
                 to_add = max_pool - count;
 
-            if (GNET_PROPERTY(dbg) > 10) {
+            if (GNET_PROPERTY(host_debug) > 2) {
                 g_message("host_timer - connecting - "
 					"add: %d fan:%d miss:%d max_hosts:%d count:%d extra:%d",
 					 to_add, fan, missing, max_nodes, count,
@@ -209,18 +217,24 @@ host_timer(void)
 
             missing = to_add;
 
-			while (hcache_size(htype) && missing-- > 0) {
+			while (hcache_size(htype) && missing-- != 0) {
 				if (hcache_get_caught(htype, &addr, &port)) {
 					node_add(addr, port, 0);
 				}
 			}
 
-			if (missing > 0 || host_cache_allow_bypass()) {
+			if (missing != 0 && host_cache_allow_bypass()) {
 				if (!uhc_is_waiting()) {
-					uhc_get_hosts();	/* Get from UDP pong caches */
-				} else if (GNET_PROPERTY(bootstrap_debug) > 2)
+					if (GNET_PROPERTY(host_debug))
+						g_message("host_timer - querying UDP host cache");
+					uhc_get_hosts();	/* Get new hosts from UHCs */
+				} else if (
+					GNET_PROPERTY(bootstrap_debug) > 2 ||
+					GNET_PROPERTY(host_debug)
+				) {
 					g_message("BOOT host_timer - waiting for reply from %s",
 						uhc_is_waiting() ? "UDP host cache" : "web cache");
+				}
 			}
 		}
 
