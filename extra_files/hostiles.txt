@@ -346,10 +346,12 @@
 # Gnucleus-based DRM WMV spammer hosted by DMG Networks
 209.165.244.242
 
+# Columbus Network Access Point, Inc.
+209.190.0.0/17
 # Gnucleus-based DRM WMV spammer hosted by CNAP; it's no typo, the IP
 # address are really very similar
-209.190.22.86
-209.190.122.186
+#209.190.22.86
+#209.190.122.186
 222.73.219.128
 222.73.218.0/24
 222.73.204.159
@@ -363,10 +365,6 @@
 72.51.34.0/24
 72.51.37.0/24
 72.51.42.0/24
-
-# Gnucleus-based DRM WMV spammer hosted by eNET
-206.222.26.34
-206.222.26.38
 
 # Shareaza-based DRM WMV spammer hosted by Peer 1 (PEER1-CALYEUNG-*)
 # The ranges are assigned to "Calvin Yeung". Servers host thousands of
@@ -1666,9 +1664,20 @@
 216.6.238.0/24
 174.34.189.0/24
 # eNET Inc.
+# Gnucleus-based DRM WMV spammer hosted by eNET
+#206.222.26.34
+#206.222.26.38
+206.222.0.0/19
+207.182.128.0/19
+209.51.192.0/19
 173.45.64.0/18
 # gwcalpha.servebeer.com; dubious GWC/UHC
 #173.45.75.146
+
+# Fake LimeWire (probably GnucDNA); port 10453
+63.151.177.206
+# Fake LimeWire (probably GnucDNA); port 20991
+206.255.215.130
 
 # Y-Net IP Network; UK
 # LimeWire; EXE spam;
