@@ -1660,10 +1660,15 @@
 69.147.240.0/24
 70.32.36.0/24
 
-# Nobis Technology Group, L.L.C.
-# Spamming gtk-gnutella seen on these subnets
+# Nobis Technology Group, L.L.C. / Ubiquity Server Solutions Chicago
+# Spamming gtk-gnutella (fake LimeWire) seen on these subnets
+216.6.234.0/24
 216.6.238.0/24
 174.34.189.0/24
+# eNET Inc.
+173.45.64.0/18
+# gwcalpha.servebeer.com; dubious GWC/UHC
+#173.45.75.146
 
 # Y-Net IP Network; UK
 # LimeWire; EXE spam;
