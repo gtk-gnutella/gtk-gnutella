@@ -415,8 +415,8 @@ retry:
 		if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
 			return;
 
-		if (UNSIGNED(node_keep_missing()) * 3 > 2 * GNET_PROPERTY(up_connections))
-			return;							/* Not enough nodes for querying */
+		if (3*UNSIGNED(node_keep_missing()) > 2*GNET_PROPERTY(up_connections))
+			return;		/* Not enough nodes for querying */
 	}
 
 	/*
