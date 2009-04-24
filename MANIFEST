@@ -138,7 +138,6 @@ doc/gnutella/bye
 doc/gnutella/compression
 doc/gnutella/crawler
 doc/gnutella/deflated_udp
-doc/gnutella/draft-nielsen-dime-02.txt
 doc/gnutella/dynamic_query
 doc/gnutella/gwcache
 doc/gnutella/handshaking_0.6
@@ -165,10 +164,6 @@ doc/gnutella/ultrapeer_qrp
 doc/gnutella/vendor_msg
 doc/gnutella/x-alt
 doc/gnutella/x-features
-doc/http/README
-doc/http/http-1.1.txt
-doc/http/uri-res.txt
-doc/http/uri.txt
 doc/manual/Makefile
 doc/manual/gtk-gnutella.dsl
 doc/manual/images/downloads.png
@@ -188,14 +183,8 @@ doc/manual/images/upload-history.png
 doc/manual/images/uploads.png
 doc/manual/manual.css
 doc/manual/manual.xml
-doc/other/DIME.txt
-doc/other/NOTE-datetime.txt
 doc/other/dbus-support.txt
-doc/other/gtkg-shell.sh
 doc/other/gtkg.supp
-doc/other/gwccheck
-doc/other/remote-shell.expect
-doc/other/rfc3548.txt
 doc/other/shell.txt
 doc/public/GGEP/ALT
 doc/public/GGEP/GTKG-V1

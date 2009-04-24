@@ -58,7 +58,8 @@ Release steps
 
 	TZ=UTC LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
-6. Drink a coffee.
+6. Make sure MANIFEST doesn't list any files considered unfree by debian,
+   for example, RFCs and other copyrighted documentation.
 
 7. From the "top directory", run:
 
