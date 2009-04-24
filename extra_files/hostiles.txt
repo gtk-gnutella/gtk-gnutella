@@ -1455,6 +1455,9 @@
 #67.213.214.0/28
 # peertracking dot com; fake AVI pr0n; ASF with URL redirect
 #67.228.193.80/29
+# Hosting Services, Inc. 
+# 69.4.233.237:13783; dfbfcdaefdacefeddeaefadabdccebda
+69.4.224.0/20
 #208.43.146.93
 #208.43.68.149
 # SoftLayer Technologies Inc.
