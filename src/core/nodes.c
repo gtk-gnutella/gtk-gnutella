@@ -1401,10 +1401,11 @@ node_count(void)
 {
 	unsigned count;
 
-	count = connected_node_cnt - shutdown_nodes -
-				GNET_PROPERTY(node_leaf_count);
+	g_return_val_if_fail(connected_node_cnt >= shutdown_nodes, 0);
+	count = connected_node_cnt - shutdown_nodes;
 
-	g_assert(uint_is_non_negative(count));
+	g_return_val_if_fail(count >= GNET_PROPERTY(node_leaf_count), 0);
+	count -= GNET_PROPERTY(node_leaf_count);
 
 	return count;
 }
