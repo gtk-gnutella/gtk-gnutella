@@ -173,7 +173,6 @@ static const char gtkg_vendor[] = "gtk-gnutella/";
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
-static guint32 total_node_count;
 
 #define NO_METADATA		GUINT_TO_POINTER(1)	/**< No metadata for host */
 
@@ -520,7 +519,6 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
  	host = walloc(sizeof *host);
 	gnet_host_set(host, addr, port);
 	g_hash_table_insert(ht_connected_nodes, host, NO_METADATA);
-	total_node_count++;
 }
 
 /**
@@ -536,8 +534,6 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
     if (orig_host) {
 		g_hash_table_remove(ht_connected_nodes, orig_host);
 		wfree(orig_host, sizeof *orig_host);
-		total_node_count--;
-		g_assert(guint32_is_non_negative(total_node_count));
 	}
 }
 
@@ -1410,8 +1406,8 @@ connected_nodes(void)
 guint
 node_count(void)
 {
-	unsigned count =
-		total_node_count - shutdown_nodes - GNET_PROPERTY(node_leaf_count);
+	unsigned count = g_hash_table_size(ht_connected_nodes) -
+		shutdown_nodes - GNET_PROPERTY(node_leaf_count);
 
 	g_assert(uint_is_non_negative(count));
 
