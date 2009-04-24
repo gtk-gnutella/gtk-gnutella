@@ -1406,10 +1406,15 @@ connected_nodes(void)
 guint
 node_count(void)
 {
-	unsigned count = g_hash_table_size(ht_connected_nodes) -
-		shutdown_nodes - GNET_PROPERTY(node_leaf_count);
+	unsigned connections = g_hash_table_size(ht_connected_nodes);
+	unsigned count = connections - shutdown_nodes -
+		GNET_PROPERTY(node_leaf_count);
 
-	g_assert(uint_is_non_negative(count));
+	if (!uint_is_non_negative(count)) {
+		g_warning("node_count: connections = %u, shutdown = %u, leaves = %u",
+			connections, shutdown_nodes, GNET_PROPERTY(node_leaf_count));
+		return 0;
+	}
 
 	return count;
 }
