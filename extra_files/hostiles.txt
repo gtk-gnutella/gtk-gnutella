@@ -1447,6 +1447,9 @@
 # Hosting Services, Inc., Chicago
 # $query + .mpeg; ASF; peertracking dot com
 67.213.208.0/20
+# PACIFIC-RACK
+# spams for peertracking dot com
+67.215.247.0/24
 #67.213.213.240/28
 #67.213.214.0/28
 # peertracking dot com; fake AVI pr0n; ASF with URL redirect
