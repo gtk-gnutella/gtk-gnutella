@@ -173,6 +173,7 @@ static const char gtkg_vendor[] = "gtk-gnutella/";
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
+static guint32 total_nodes_connected;
 
 #define NO_METADATA		GUINT_TO_POINTER(1)	/**< No metadata for host */
 
@@ -513,6 +514,9 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
 {
     gnet_host_t *host;
 
+	/* This is done unconditionally, whether we add host to table or not */
+	total_nodes_connected++;
+
     if (node_ht_connected_nodes_has(addr, port))
         return;
 
@@ -535,6 +539,10 @@ node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
 		g_hash_table_remove(ht_connected_nodes, orig_host);
 		wfree(orig_host, sizeof *orig_host);
 	}
+
+	/* This is done unconditionally, whether host was in table or not */
+	g_assert(guint32_is_positive(total_nodes_connected));
+	total_nodes_connected--;
 }
 
 /**
@@ -1406,13 +1414,14 @@ connected_nodes(void)
 guint
 node_count(void)
 {
-	unsigned connections = g_hash_table_size(ht_connected_nodes);
-	unsigned count = connections - shutdown_nodes -
+	unsigned count = total_nodes_connected - shutdown_nodes -
 		GNET_PROPERTY(node_leaf_count);
 
 	if (!uint_is_non_negative(count)) {
-		g_warning("node_count: connections = %u, shutdown = %u, leaves = %u",
-			connections, shutdown_nodes, GNET_PROPERTY(node_leaf_count));
+		g_warning("BUG node_count() is negative? "
+			"connections = %u, shutdown = %u, leaves = %u",
+			total_nodes_connected, shutdown_nodes,
+			GNET_PROPERTY(node_leaf_count));
 		return 0;
 	}
 
@@ -1765,8 +1774,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
 		g_assert(uint_is_positive(shutdown_nodes));
-		if (node_ht_connected_nodes_has(n->gnet_addr, n->gnet_port))
-			shutdown_nodes--;
+		shutdown_nodes--;
 	} else {
 		node_decrement_counters(n);
 	}
@@ -1803,6 +1811,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	n->last_update = tm_time();
 
     node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
+
 	node_proxying_remove(n);
 
 	if (n->flags & NODE_F_EOF_WAIT) {
@@ -2452,8 +2461,7 @@ node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 	mq_discard(n->outq);					/* Discard any further data */
 	node_flushq(n);							/* Fast queue flushing */
 
-	if (node_ht_connected_nodes_has(n->gnet_addr, n->gnet_port))
-		shutdown_nodes++;
+	shutdown_nodes++;
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
@@ -6307,8 +6315,9 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 
-	if (n->status != GTA_NODE_REMOVING)
+	if (n->status != GTA_NODE_REMOVING) {
 		node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
+	}
 
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
