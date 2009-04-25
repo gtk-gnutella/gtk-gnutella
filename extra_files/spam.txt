@@ -1,5 +1,3 @@
-# Verified SHA-1 checksums of spam files
-#
 # $Id: spam.txt 13581 2007-05-09 23:47:42Z cbiere $
 #
 # In order to filter all the listed items, this file must by copied
@@ -82,5 +80,9 @@ END
 NAME ^Get.latest.*with.RadarSync[.]zip$
 SIZE 1000000-20000000
 ADDED 2008-11-12
+END
+
+NAME [[:blank:]]{6}$
+ADDED 2009-04-25
 END
 
