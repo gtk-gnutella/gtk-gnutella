@@ -1399,6 +1399,9 @@
 # * bittorrent download.zip
 # * [wyzo].zip
 69.10.33.232/29
+# RADFACTORY.CO.UK (wzyo)
+#65.254.32.242:20402
+65.254.32.240/29
 
 # FDCservers.net; LimeWire currently bans their whole range; this is overkill
 # but if they are too stupid to use rwhois.fdcservers.net:4321, there is no
@@ -1444,6 +1447,10 @@
 # $query + HD.avi; pr0n spam; ASF URL redirect
 94.102.48.0/24
 
+# Pacific Rack
+# bestbartersoftware dot com
+# wonderfultracks dot com
+66.212.18.0/24
 # Hosting Services, Inc., Chicago
 # $query + .mpeg; ASF; peertracking dot com
 67.213.208.0/20
