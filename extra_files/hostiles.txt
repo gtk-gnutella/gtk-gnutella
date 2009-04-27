@@ -1678,9 +1678,11 @@
 70.32.36.0/24
 
 # Nobis Technology Group, L.L.C. / Ubiquity Server Solutions Chicago
+# Jun Group; spam advertisement campaigns for Unilever et al.
 # Spamming gtk-gnutella (fake LimeWire) seen on these subnets
 216.6.234.0/24
 216.6.238.0/24
+174.34.184.0/23
 174.34.189.0/24
 # eNET Inc.
 # Gnucleus-based DRM WMV spammer hosted by eNET
