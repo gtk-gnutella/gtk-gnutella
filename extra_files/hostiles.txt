@@ -1345,6 +1345,9 @@
 208.76.184.0/22
 # hosted by hostnoc.net
 64.191.56.32/28
+# FSH Network Services INC
+70.42.162.0/23
+72.5.222.0/24
 
 # LimeWire/4.12.8; security violations
 67.221.175.0/24
