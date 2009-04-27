@@ -1336,11 +1336,13 @@
 
 # Onkea Interactive Ltd; pr0n spam
 # ranges hosted by vanoppen.biz LLC
-74.85.92.0/25
+#74.85.92.0/25
+74.85.64.0/19
 #216.243.1.5
 #216.243.1.6
 #216.243.3.124
 208.76.153.128/27
+208.76.184.0/22
 # hosted by hostnoc.net
 64.191.56.32/28
 
