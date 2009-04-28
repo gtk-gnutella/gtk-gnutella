@@ -1458,13 +1458,19 @@
 66.212.18.0/24
 # Hosting Services, Inc., Chicago
 # $query + .mpeg; ASF; peertracking dot com
-67.213.208.0/20
-# La Salle Appraisal Group Inc (PACIFIC-RACK)
-67.215.234.216/29
-# PACIFIC-RACK
-67.215.247.0/24
 #67.213.213.240/28
 #67.213.214.0/28
+67.213.208.0/20
+# PACIFIC-RACK
+67.215.247.0/24
+# Secured Private Network; PACIFIC RACK
+#67.215.250.138:32548
+#67.215.250.139:43904
+#67.215.250.141:17541
+#67.215.250.142:21308
+# La Salle Appraisal Group Inc (PACIFIC-RACK)
+#67.215.234.216/29
+67.215.224.0/19
 #216.45.58.106:25121; bcfeeedbcbddbadaabbcecbddaeabdab
 216.45.58.0/24
 # peertracking dot com; fake AVI pr0n; ASF with URL redirect
