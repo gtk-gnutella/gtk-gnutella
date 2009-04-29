@@ -13975,17 +13975,37 @@ download_got_eof(struct download *d)
 
 	download_check(d);
 
-	/*
-	 * If we don't know the file size, then consider EOF as an indication
-	 * we got everything.
-	 */
-
 	fi = d->file_info;
 	file_info_check(fi);
 
+	/*
+	 * If we don't know the file size, then consider EOF as an indication
+	 * we got everything.  Flush buffers in that case because we're probably
+	 * not swarming a file whose size is unknown...
+	 */
+
+	if (!fi->file_size_known) {
+		if (d->buffers)
+			download_silent_flush(d);
+	}
+
 	if (!fi->file_size_known || FILE_INFO_COMPLETE(fi)) {
+		/*
+		 * Any pending buffered data not flushed above (if the size is not
+		 * known) should be discarded, because if the file is complete and
+		 * we have pending buffered data, it means someone else completed
+		 * the file and our data is now irrelevant.
+		 */
+
+		if (d->buffers && d->buffers->held > 0) {
+			buffers_discard(d);
+		}
 		download_rx_done(d);
 	} else {
+		/*
+		 * Buffers will be flushed by download_stop_v().
+		 */
+
 		download_queue_delay(d, GNET_PROPERTY(download_retry_busy_delay),
 			_("Stopped data (EOF) <download_got_eof>"));
 	}
