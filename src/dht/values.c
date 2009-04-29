@@ -556,6 +556,14 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
+	/*
+	 * Only cache expired keys within our k-ball.  Anything outside
+	 * is just cached data, not replication from our k-closest nodes.
+	 */
+
+	if (!keys_within_kball(key))
+		return;
+
 	kuid_pair_fill(buf, sizeof buf, key, skey);
 	dbmw_write(db_expired, buf, NULL, 0);
 }
@@ -649,7 +657,7 @@ reclaim_dbkey(gpointer key, gpointer u_value, gpointer u_data)
 	delete_valuedata(*dbatom, TRUE);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT DB-key %s reclaimed", uint64_to_string(*dbatom));
+		g_message("DHT value DB-key %s reclaimed", uint64_to_string(*dbatom));
 
 	atom_uint64_free(dbatom);
 	return TRUE;
@@ -728,7 +736,7 @@ values_expire(guint64 dbkey, const struct valuedata *vd)
 		log_expired_value_stats(dbkey, vd);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_message("DHT DB-key %s expired", uint64_to_string(dbkey));
+		g_message("DHT value DB-key %s expired", uint64_to_string(dbkey));
 
 	dbatom = atom_uint64_get(&dbkey);
 	gm_hash_table_insert_const(expired, dbatom, GINT_TO_POINTER(1));
@@ -753,7 +761,8 @@ values_unexpire(guint64 dbkey)
 		atom_uint64_free(dbatom);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 2)
-			g_message("DHT DB-key %s un-expired", uint64_to_string(dbkey));
+			g_message("DHT value DB-key %s un-expired",
+				uint64_to_string(dbkey));
 	}
 }
 
