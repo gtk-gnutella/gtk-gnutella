@@ -15,30 +15,30 @@ typedef struct {
 datum nullitem = { NULL, 0 };
 .sp
 \s-1DBM\s0 *sdbm_open(char *file, int flags, int mode)
-.sp
 \s-1DBM\s0 *sdbm_prep(char *dirname, char *pagname, int flags, int mode)
-.sp
 void sdbm_close(\s-1DBM\s0 *db)
 .sp
 datum sdbm_fetch(\s-1DBM\s0 *db, key)
-.sp
 int sdbm_store(\s-1DBM\s0 *db, datum key, datum val, int flags)
-.sp
 int sdbm_delete(\s-1DBM\s0 *db, datum key)
-.sp
 int sdbm_exists(\s-1DBM\s0 *db, datum key)
 .sp
 datum sdbm_firstkey(\s-1DBM\s0 *db)
-.sp
 datum sdbm_nextkey(\s-1DBM\s0 *db)
+datum sdbm_value(\s-1DBM\s0 *db)
+int sdbm_deletekey(\s-1DBM\s0 *db)
 .sp
 long sdbm_hash(char *string, size_t len)
 .sp
-int sdbm_rdonly(\s-1DBM\s0 *db)
-int sdbm_error(\s-1DBM\s0 *db)
+void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
+const char *sdbm_name(\s-1DBM\s0 *db)
+.sp
+gboolean sdbm_rdonly(\s-1DBM\s0 *db)
+gboolean sdbm_error(\s-1DBM\s0 *db)
 sdbm_clearerr(\s-1DBM\s0 *db)
 int sdbm_dirfno(\s-1DBM\s0 *db)
 int sdbm_pagfno(\s-1DBM\s0 *db)
+gboolean sdbm_is_storable(size_t key, size_t value)
 .ft R
 .fi
 .SH DESCRIPTION
@@ -50,8 +50,10 @@ int sdbm_pagfno(\s-1DBM\s0 *db)
 .IX sdbm_store "" "\fLsdbm_store\fR \(em add data to \fLsdbm\fR database"
 .IX sdbm_delete "" "\fLsdbm_delete\fR \(em remove data from \fLsdbm\fR database"
 .IX sdbm_exists "" "\fLsdbm_exists\fR \(em test \fLsdbm\fR key existence"
-.IX sdbm_firstkey "" "\fLsdbm_firstkey\fR \(em access \fLsdbm\fR database"
-.IX sdbm_nextkey "" "\fLsdbm_nextkey\fR \(em access \fLsdbm\fR database"
+.IX sdbm_firstkey "" "\fLsdbm_firstkey\fR \(em start iterator on \fLsdbm\fR database"
+.IX sdbm_nextkey "" "\fLsdbm_nextkey\fR \(em move iterator on \fLsdbm\fR database"
+.IX sdbm_value "" "\fLsdbm_value\fR \(em current value in \fLsdbm\fR database iterator"
+.IX sdbm_deletekey "" "\fLsdbm_deletekey\fR \(em delete current key in \fLsdbm\fR database"
 .IX sdbm_hash "" "\fLsdbm_hash\fR \(em string hash for \fLsdbm\fR database"
 .IX sdbm_rdonly "" "\fLsdbm_rdonly\fR \(em return \fLsdbm\fR database read-only mode"
 .IX sdbm_error "" "\fLsdbm_error\fR \(em return \fLsdbm\fR database error condition"
@@ -66,6 +68,8 @@ int sdbm_pagfno(\s-1DBM\s0 *db)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_delete  ""  \fLsdbm_delete\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_firstkey  ""  \fLsdbm_firstkey\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_nextkey  ""  \fLsdbm_nextkey\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_value  ""  \fLsdbm_value\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_deletekey  ""  \fLsdbm_deletekey\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_rdonly  ""  \fLsdbm_rdonly\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_error  ""  \fLsdbm_error\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_clearerr  ""  \fLsdbm_clearerr\fP
@@ -170,16 +174,23 @@ To delete a key and its associated value use the
 .BR sdbm_delete (\|)
 routine.
 .LP
-To retrieve every key in the database, use a loop like:
+To retrieve every key/value pairss in the database, use a loop like:
 .sp
 .nf
 .ft B
-for (key = sdbm_firstkey(db); key.dptr != NULL; key = sdbm_nextkey(db))
-        ;
+for (key = sdbm_firstkey(db); key.dptr != NULL; key = sdbm_nextkey(db)) {
+    datum value = sdbm_value(db);
+}
 .ft R
 .fi
 .LP
-The order of retrieval is unspecified.
+The order of retrieval is unspecified.  During traversal, no insertion or
+deletion of any other key should occur.  However, the current key may be
+deleted through the
+.BR sdbm_deletekey (\|)
+routine.  Usage of
+.BR sdbm_value (\|)
+outside of the outlined iterator loop is forbidden.
 .LP
 If you determine that the performance of the database is inadequate or
 you notice clustering or other effects that may be due to the hashing
@@ -190,7 +201,7 @@ routine.  Doing so will make the database unintelligable to any other
 applications that do not use your specialized hash function.
 .sp
 .LP
-The following macros are defined in the header file:
+The following functions are also defined in the header file:
 .IP
 .BR sdbm_rdonly (\|)
 returns true if the database has been opened read\-only.
@@ -207,6 +218,15 @@ returns the file descriptor associated with the bitmap file.
 .IP
 .BR sdbm_pagfno (\|)
 returns the file descriptor associated with the data file.
+.IP
+.BR sdbm_name (\|)
+returns the database name previous set using
+.BR sdbm_set_name (\|)
+or the empty string if none was set.
+.IP
+.BR sdbm_is_storable (\|)
+indicates whether a combination of key and value sizes can fit within the size
+constraints we have.
 .SH SEE ALSO
 .IR open (2).
 .SH DIAGNOSTICS
@@ -251,8 +271,12 @@ will contain the value set by the relevant failed system call, either
 .IR write (2),
 or
 .IR lseek (2).
-.SH AUTHOR
-.IP "Ozan S. Yigit" (oz@nexus.yorku.ca)
+.SH AUTHORS
+"Ozan S. Yigit" <oz@nexus.yorku.ca>
+.sp
+Raphael Manfredi <Raphael_Manfredi@pobox.com> (for
+.B gtk-gnutella
+extensions)
 .SH BUGS
 The sum of key and value data sizes must not exceed
 .B \s-1PAIRMAX\s0
@@ -293,3 +317,14 @@ data item, and the
 and
 .BR sdbm_pagfno (\|)
 functions are unique to this package.
+.LP
+The
+.BR sdbm_deletekey (\|),
+.BR sdbm_value (\|),
+.BR sdbm_is_storable (\|),
+.BR sdbm_set_name (\|),
+and
+.BR sdbm_name (\|)
+functions are additions made by Raphael Manfredi for
+.B gtk-gnutella
+but anyone is welcome reusing these extensions.

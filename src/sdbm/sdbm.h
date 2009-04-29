@@ -44,6 +44,8 @@ int sdbm_delete(DBM *, datum);
 int sdbm_store(DBM *, datum, datum, int);
 datum sdbm_firstkey(DBM *);
 datum sdbm_nextkey(DBM *);
+datum sdbm_value(DBM *);
+int sdbm_deletekey(DBM *);
 int sdbm_exists(DBM *, datum);
 
 /*
@@ -51,12 +53,14 @@ int sdbm_exists(DBM *, datum);
  */
 DBM *sdbm_prep(const char *, const char *, int, int);
 long sdbm_hash(const char *, size_t);
-int sdbm_rdonly(DBM *);
-int sdbm_error(DBM *);
+gboolean sdbm_rdonly(DBM *);
+gboolean sdbm_error(DBM *);
 void sdbm_clearerr(DBM *);
 int sdbm_dirfno(DBM *);
 int sdbm_pagfno(DBM *);
-int sdbm_is_storable(size_t, size_t);
+gboolean sdbm_is_storable(size_t, size_t);
+void sdbm_set_name(DBM *, const char *);
+const char *sdbm_name(DBM *);
 
 #endif /* _sdbm_h_ */
 

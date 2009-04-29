@@ -63,3 +63,21 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Indented all comments within a function to match general gtk-gnutella style.
 * Added trailing vi comments for VIM.
 
+
+Wed Apr 29 23:58:57 CEST 2009
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Factorized page reading and flushing into fetch_pagbuf() and flush_pagbuf().
+* All functions returning a boolean had their return type changed from int
+  to gboolean to make that explicit.  Constants TRUE and FALSE replace 1 and 0.
+* Protected getnext() against DB modifications during the key traversal. This
+  is forbidden and will now trigger an assertion failure.
+* Fixed chkpage() to ensure ino[0] is always an even number.
+* Added sdbm_deletekey() to delete the current key during traversals.
+* Added getnval() to get the n-th value from current page and sdbm_value() to
+  return the current value during key iteration.
+* Added sdbm_set_name() and sdbm_name(), for logging purposes.
+* Call g_warning() unconditionally on low-level I/O errors to leave a trail
+  when things start to go wrong.
+

@@ -19,8 +19,10 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 struct DBM {
+	char *name;		/* database name, for logging */
 	char *pagbuf;	/* page file block buffer (size: DBM_PBLKSIZ) */
 	char *dirbuf;	/* directory file block buffer (size: DBM_DBLKSIZ) */
+	off_t pagtail;	/* end of page file descriptor, for iterating */
 	long maxbno;	/* size of dirfile in bits */
 	long curbit;	/* current bit number */
 	long hmask;	/* current hash mask */
@@ -39,11 +41,11 @@ const datum nullitem = {0, 0};
 /*
  * forward
  */
-static int getdbit (DBM *, long);
-static int setdbit (DBM *, long);
-static int getpage (DBM *, long);
+static gboolean getdbit (DBM *, long);
+static gboolean setdbit (DBM *, long);
+static gboolean getpage (DBM *, long);
 static datum getnext (DBM *);
-static int makroom (DBM *, long, size_t);
+static gboolean makroom (DBM *, long, size_t);
 
 static inline int
 bad(const datum item)
@@ -129,6 +131,26 @@ sdbm_alloc(void)
 	return db;
 }
 
+/**
+ * Set the database name (copied).
+ */
+void
+sdbm_set_name(DBM *db, const char *name)
+{
+	G_FREE_NULL(db->name);
+	db->name = g_strdup(name);
+}
+
+/**
+ * Get the database name
+ * @return an empty string if not set.
+ */
+const char *
+sdbm_name(DBM *db)
+{
+	return db->name ? db->name : "";
+}
+
 DBM *
 sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 {
@@ -207,8 +229,84 @@ sdbm_close(DBM *db)
 		file_close(&db->pagf);
 		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
 		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+		G_FREE_NULL(db->name);
 		wfree(db, sizeof *db);
 	}
+}
+
+/**
+ * Fetch the specified page number into db->pagbuf and update db->pagbno
+ * on success.  Otherwise, set pagbno to -1 to indicate invalid db->pagbuf.
+ *
+ * @return TRUE on success
+ */
+static gboolean
+fetch_pagbuf(DBM *db, long pagnum)
+{
+	/*
+	 * See if the block we need is already in memory.
+	 * note: this lookaside cache has about 10% hit rate.
+	 */
+
+	if (pagnum != db->pagbno) {
+		ssize_t got;
+
+		/*
+		 * Note: here we assume a "hole" is read as 0s.
+		 */
+
+		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
+		if (got < 0) {
+			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
+				sdbm_name(db), pagnum, g_strerror(errno));
+			ioerr(db);
+			goto failed;
+		}
+		if (got < DBM_PBLKSIZ) {
+			if (got > 0)
+				g_warning("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
+					sdbm_name(db), (unsigned) got, pagnum);
+			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
+		}
+		if (!chkpage(db->pagbuf)) {
+			g_warning("sdbm: \"%s\": corrupted page #%ld",
+				sdbm_name(db), pagnum);
+			goto failed;
+		}
+		db->pagbno = pagnum;
+
+		debug(("pag read: %ld\n", pagnum));
+	}
+
+	return TRUE;
+
+failed:
+	db->pagbno = -1;
+	return FALSE;
+}
+
+/**
+ * Flush db->pagbuf to disk.
+ * @return TRUE on success
+ */
+static gboolean
+flush_pagbuf(DBM *db)
+{
+	ssize_t w;
+	w = compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(db->pagbno));
+
+	if (w < 0 || w != DBM_PBLKSIZ) {
+		if (w < 0)
+			g_warning("sdbm: \"%s\": cannot flush page #%ld: %s",
+				sdbm_name(db), db->pagbno, g_strerror(errno));
+		else
+			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
+				sdbm_name(db), (unsigned) w, db->pagbno);
+		ioerr(db);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 datum
@@ -261,12 +359,9 @@ sdbm_delete(DBM *db, datum key)
 	 * update the page file
 	 */
 
-	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-		OFF_PAG(db->pagbno)) < 0
-	) {
-		ioerr(db);
+	if (!flush_pagbuf(db))
 		return -1;
-	}
+
 	return 0;
 }
 
@@ -334,12 +429,8 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 
 	putpair(db->pagbuf, key, val);
 
-	if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-		OFF_PAG(db->pagbno)) < 0
-	) {
-		ioerr(db);
+	if (!flush_pagbuf(db))
 		return -1;
-	}
 
 	return 0;		/* Success */
 }
@@ -349,7 +440,7 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
  * this routine will attempt to make room for DBM_SPLTMAX times before
  * giving up.
  */
-static int
+static gboolean
 makroom(DBM *db, long int hash, size_t need)
 {
 	long newp;
@@ -394,34 +485,35 @@ makroom(DBM *db, long int hash, size_t need)
 			while (OFF_PAG(newp) > oldtail) {
 				if (lseek(db->pagf, 0L, SEEK_END) < 0 ||
 				    write(db->pagf, zer, DBM_PBLKSIZ) < 0) {
-					return 0;
+					return FALSE;
 				}
 				oldtail += DBM_PBLKSIZ;
 			}
 		}
 #endif
 		if (hash & (db->hmask + 1)) {
-			if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-				OFF_PAG(db->pagbno)) < 0)
-				return 0;
+			if (!flush_pagbuf(db))
+				return FALSE;
 
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
-		} else if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ,
-				OFF_PAG(newp)) < 0
+		} else if (
+			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
 		) {
-			return 0;
+			g_warning("sdbm: \"%s\": cannot flush new page #%lu: %s",
+				sdbm_name(db), newp, g_strerror(errno));
+			return FALSE;
 		}
 
 		if (!setdbit(db, db->curbit))
-			return 0;
+			return FALSE;
 
 		/*
 		 * see if we have enough room now
 		 */
 
 		if (fitpair(pag, need))
-			return 1;
+			return TRUE;
 
 		/*
 		 * try again... update curbit and hmask as getpage would have
@@ -434,10 +526,8 @@ makroom(DBM *db, long int hash, size_t need)
 			((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
 
-		if (compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ,
-			OFF_PAG(db->pagbno)) < 0)
-			return 0;
-
+		if (!flush_pagbuf(db))
+			return FALSE;
 	} while (--smax);
 
 	/*
@@ -445,9 +535,10 @@ makroom(DBM *db, long int hash, size_t need)
 	 * we still cannot fit the key. say goodnight.
 	 */
 
-	g_warning("sdbm: cannot insert after DBM_SPLTMAX attempts.");
+	g_warning("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
+		sdbm_name(db), DBM_SPLTMAX);
 
-	return 0;
+	return FALSE;
 }
 
 /*
@@ -462,17 +553,19 @@ sdbm_firstkey(DBM *db)
 		return nullitem;
 	}
 
+	db->keyptr = 0;
+	db->blkptr = 0;
+
 	/*
 	 * start at page 0
 	 */
 
-	if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(0)) < 0) {
-		ioerr(db);
+	if (!fetch_pagbuf(db, 0))
 		return nullitem;
-	}
-	db->pagbno = 0;
-	db->blkptr = 0;
-	db->keyptr = 0;
+
+	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
+	if (db->pagtail < 0)
+		return nullitem;
 
 	return getnext(db);
 }
@@ -490,7 +583,7 @@ sdbm_nextkey(DBM *db)
 /*
  * all important binary trie traversal
  */
-static int
+static gboolean
 getpage(DBM *db, long int hash)
 {
 	int hbit;
@@ -509,37 +602,24 @@ getpage(DBM *db, long int hash)
 
 	pagb = hash & db->hmask;
 
-	/*
-	 * see if the block we need is already in memory.
-	 * note: this lookaside cache has about 10% hit rate.
-	 */
+	if (!fetch_pagbuf(db, pagb))
+		return FALSE;
 
-	if (pagb != db->pagbno) { 
-		/*
-		 * note: here, we assume a "hole" is read as 0s.
-		 * if not, must zero pagbuf first.
-		 */
-
-		if (compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagb)) < 0)
-			return 0;
-		if (!chkpage(db->pagbuf))
-			return 0;
-		db->pagbno = pagb;
-
-		debug(("pag read: %ld\n", pagb));
-	}
-	return 1;
+	return TRUE;
 }
 
-static int
+static gboolean
 fetch_dirbuf(DBM *db, long dirb)
 {
 	if (dirb != db->dirbno) {
 		ssize_t got;
 
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
-		if (got < 0)
-			return 0;
+		if (got < 0) {
+			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
+				sdbm_name(db), dirb, g_strerror(errno));
+			return FALSE;
+		}
 
 		if (0 == got) {
 			memset(db->dirbuf, 0, DBM_DBLKSIZ);
@@ -548,10 +628,10 @@ fetch_dirbuf(DBM *db, long dirb)
 
 		debug(("dir read: %ld\n", dirb));
 	}
-	return 1;
+	return TRUE;
 }
 
-static int
+static gboolean
 getdbit(DBM *db, long int dbit)
 {
 	long c;
@@ -561,12 +641,12 @@ getdbit(DBM *db, long int dbit)
 	dirb = c / DBM_DBLKSIZ;
 
 	if (!fetch_dirbuf(db, dirb))
-		return 0;
+		return FALSE;
 
-	return db->dirbuf[c % DBM_DBLKSIZ] & (1 << dbit % BYTESIZ);
+	return 0 != (db->dirbuf[c % DBM_DBLKSIZ] & (1 << dbit % BYTESIZ));
 }
 
-static int
+static gboolean
 setdbit(DBM *db, long int dbit)
 {
 	long c;
@@ -588,11 +668,10 @@ setdbit(DBM *db, long int dbit)
 		db->maxbno=OFF_DIR((dirb+1))*BYTESIZ;
 #endif
 
-	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ,
-		OFF_DIR(dirb)) < 0)
-		return 0;
+	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb)) < 0)
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 /*
@@ -604,9 +683,16 @@ getnext(DBM *db)
 {
 	datum key;
 
-	for (;;) {
-		ssize_t got;
+	/*
+	 * During a traversal, no modification should be done on the database,
+	 * so the current page number must be the same as before.  The only
+	 * safe modification that can be done is sdbm_deletekey() to delete the
+	 * current key.
+	 */
 
+	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
+
+	while (db->blkptr != -1) {
 		db->keyptr++;
 		key = getnkey(db->pagbuf, db->keyptr);
 		if (key.dptr != NULL)
@@ -620,32 +706,103 @@ getnext(DBM *db)
 
 		db->keyptr = 0;
 		db->blkptr++;
-		db->pagbno = db->blkptr;
 
-		got = compat_pread(
-			db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(db->pagbno));
-		if (0 == got)
-			return nullitem;
-		if (got < 0)
+		if (OFF_PAG(db->blkptr) > db->pagtail)
 			break;
-		if (!chkpage(db->pagbuf))
+		else if (!fetch_pagbuf(db, db->blkptr))
 			break;
 	}
 
-	ioerr(db);
 	return nullitem;
 }
 
+/**
+ * Delete current key in the iteration, as returned by sdbm_firstkey() and
+ * subsequent sdbm_nextkey() calls.
+ *
+ * This is a safe operation during key traversal.
+ */
 int
-sdbm_rdonly(DBM *db)
+sdbm_deletekey(DBM *db)
 {
-	return db->flags & DBM_RDONLY;
+	datum key;
+
+	if (db == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (sdbm_rdonly(db)) {
+		errno = EPERM;
+		return -1;
+	}
+
+	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
+
+	if (0 == db->keyptr) {
+		errno = ENOENT;
+		return -1;
+	}
+
+	key = getnkey(db->pagbuf, db->keyptr);
+	if (NULL == key.dptr) {
+		errno = ENOENT;
+		return -1;
+	}
+
+	if (!delpair(db->pagbuf, key))
+		return -1;
+
+	/*
+	 * update the page file
+	 */
+
+	if (!flush_pagbuf(db))
+		return -1;
+
+	db->keyptr--;
+	return 0;
 }
 
-int
+/**
+ * Return current value during key iteration.
+ * Must not be called outside of a key iteration loop.
+ */
+datum
+sdbm_value(DBM *db)
+{
+	datum val;
+
+	if (db == NULL) {
+		errno = EINVAL;
+		return nullitem;
+	}
+
+	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
+
+	if (0 == db->keyptr) {
+		errno = ENOENT;
+		return nullitem;
+	}
+
+	val = getnval(db->pagbuf, db->keyptr);
+	if (NULL == val.dptr) {
+		errno = ENOENT;
+		return nullitem;
+	}
+
+	return val;
+}
+
+gboolean
+sdbm_rdonly(DBM *db)
+{
+	return 0 != (db->flags & DBM_RDONLY);
+}
+
+gboolean
 sdbm_error(DBM *db)
 {
-	return db->flags & DBM_IOERR;
+	return 0 != (db->flags & DBM_IOERR);
 }
 
 void
@@ -666,7 +823,7 @@ sdbm_pagfno(DBM *db)
 	return db->pagf;
 }
 
-int
+gboolean
 sdbm_is_storable(size_t key_size, size_t value_size)
 {
 	return key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size;

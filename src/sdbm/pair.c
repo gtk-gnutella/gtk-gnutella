@@ -44,7 +44,7 @@ static int seepair (const char *, int, const char *, size_t);
  * nth (ino[ino[0]]) entry's offset.
  */
 
-int
+gboolean
 fitpair(const char *pag, size_t need)
 {
 	int n;
@@ -113,19 +113,42 @@ getpair(char *pag, datum key)
 	return val;
 }
 
-int
+/**
+ * Get value for the num-th key in the page.
+ */
+datum
+getnval(char *pag, int num)
+{
+	int i;
+	int n;
+	datum val;
+	const short *ino = (const short *) pag;
+
+	g_assert(num > 0);
+
+	i = num * 2 - 1;
+
+	if ((n = ino[0]) == 0 || i >= n)
+		return nullitem;
+
+	val.dptr = pag + ino[i + 1];
+	val.dsize = ino[i] - ino[i + 1];
+	return val;
+}
+
+gboolean
 exipair(const char *pag, datum key)
 {
 	const short *ino = (const short *) pag;
 
 	if (ino[0] == 0)
-		return 0;
+		return FALSE;
 
 	return (seepair(pag, ino[0], key.dptr, key.dsize) != 0);
 }
 
 #ifdef SEEDUPS
-int
+gboolean
 duppair(const char *pag, datum key)
 {
 	const short *ino = (const short *) pag;
@@ -137,22 +160,25 @@ datum
 getnkey(char *pag, int num)
 {
 	datum key;
+	int i;
 	int off;
 	const short *ino = (const short *) pag;
 
-	num = num * 2 - 1;
-	if (ino[0] == 0 || num > ino[0])
+	g_assert(num > 0);
+
+	i = num * 2 - 1;
+	if (ino[0] == 0 || i > ino[0])
 		return nullitem;
 
-	off = (num > 1) ? ino[num - 1] : DBM_PBLKSIZ;
+	off = (i > 1) ? ino[i - 1] : DBM_PBLKSIZ;
 
-	key.dptr = pag + ino[num];
-	key.dsize = off - ino[num];
+	key.dptr = pag + ino[i];
+	key.dsize = off - ino[i];
 
 	return key;
 }
 
-int
+gboolean
 delpair(char *pag, datum key)
 {
 	int n;
@@ -160,10 +186,10 @@ delpair(char *pag, datum key)
 	short *ino = (short *) pag;
 
 	if ((n = ino[0]) == 0)
-		return 0;
+		return FALSE;
 
 	if ((i = seepair(pag, n, key.dptr, key.dsize)) == 0)
-		return 0;
+		return FALSE;
 
 	/*
 	 * found the key. if it is the last entry
@@ -222,7 +248,7 @@ delpair(char *pag, datum key)
 		}
 	}
 	ino[0] -= 2;
-	return 1;
+	return TRUE;
 }
 
 /*
@@ -288,7 +314,7 @@ splpage(char *pag, char *New, long int sbit)
  * reasonable, and all offsets in the index should be in order.
  * this could be made more rigorous.
  */
-int
+gboolean
 chkpage(const char *pag)
 {
 	int n;
@@ -296,7 +322,10 @@ chkpage(const char *pag)
 	const short *ino = (const short *) pag;
 
 	if ((n = ino[0]) < 0 || n > (int) (DBM_PBLKSIZ / sizeof(short)))
-		return 0;
+		return FALSE;
+
+	if (n & 0x1)
+		return FALSE;		/* Always a multiple of 2 */
 
 	if (n > 0) {
 		off = DBM_PBLKSIZ;
@@ -308,7 +337,7 @@ chkpage(const char *pag)
 			n -= 2;
 		}
 	}
-	return 1;
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
