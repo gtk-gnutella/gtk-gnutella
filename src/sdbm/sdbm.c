@@ -752,6 +752,8 @@ sdbm_deletekey(DBM *db)
 	if (!delpair(db->pagbuf, key))
 		return -1;
 
+	db->keyptr--;
+
 	/*
 	 * update the page file
 	 */
@@ -759,7 +761,6 @@ sdbm_deletekey(DBM *db)
 	if (!flush_pagbuf(db))
 		return -1;
 
-	db->keyptr--;
 	return 0;
 }
 
