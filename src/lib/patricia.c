@@ -216,7 +216,7 @@ struct patricia {
 	size_t nodes;					/**< Total amount of nodes used */
 	size_t embedded;				/**< Nodes holding embedded data */
 	guint stamp;					/**< Stamp to protect iterators */
-	int refcnt;					/**< Reference count */
+	int refcnt;						/**< Reference count */
 };
 
 /**
