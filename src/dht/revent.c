@@ -284,7 +284,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	obj = (*ops->is_alive)(pmi->rid);
 	if (NULL == obj) {
-		if (*ops->debug > 4)
+		if (*ops->debug > 2)
 			g_message("DHT %s[%s] late UDP message %s",
 				ops->name, revent_id_to_string(pmi->rid),
 				pmsg_was_sent(mb) ? "sending" : "dropping");
@@ -316,7 +316,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 		if (ops->msg_sent)
 			(*ops->msg_sent)(obj, mb);
 
-		if (*ops->debug > 17)
+		if (*ops->debug > 4)
 			g_message("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
 				revent_id_to_string(pmi->rid), ops->name,
 				kmsg_infostr(pmsg_start(mb)), 
@@ -336,7 +336,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 		 */
 
 		if (ops->msg_dropped)
-			(*ops->msg_dropped)(obj, kn);
+			(*ops->msg_dropped)(obj, kn, mb);
 		
 		/*
 		 * Cancel the RPC, since the message was never sent out...
@@ -393,7 +393,7 @@ revent_rpc_cb(
 
 	obj = (*ops->is_alive)(rpi->rid);
 	if (NULL == obj) {
-		if (*ops->debug > 4)
+		if (*ops->debug > 2)
 			g_message("DHT %s[%s] late RPC %s from %s",
 				ops->name, revent_id_to_string(rpi->rid),
 				type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
@@ -406,10 +406,10 @@ revent_rpc_cb(
 	 */
 
 	if (*ops->debug > 2)
-		g_message("DHT %s[%s] handling %s for RPC issued %s%u",
+		g_message("DHT %s[%s] handling %s for RPC issued %s%u to %s",
 			ops->name, revent_id_to_string(rpi->rid),
 			type == DHT_RPC_TIMEOUT ? "timeout" : "reply",
-			ops->udata_name, rpi->udata);
+			ops->udata_name, rpi->udata, knode_to_string(kn));
 
 	if (ops->handling_rpc)
 		(*ops->handling_rpc)(obj, type, rpi->udata);
@@ -433,7 +433,7 @@ revent_rpc_cb(
 	 */
 
 	if (ops->iterate)
-		(*ops->iterate)(obj, type);
+		(*ops->iterate)(obj, type, rpi->udata);
 
 cleanup:
 	revent_rpi_free(rpi);
@@ -508,6 +508,37 @@ revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 
 	dht_rpc_find_value(kn, kuid, type, skeys, scnt,
 		revent_rpc_cb, rpi, revent_pmsg_free, pmi);
+}
+
+/**
+ * Send a STORE message to specified KUID.
+ *
+ * @param kn	the node to contact
+ * @param mb	the message block to send
+ * @param id	the caller unique ID
+ * @param ops	the callback operations to invoke
+ * @param udata	opaque argument given to RPC user callbacks
+ */
+void
+revent_store(knode_t *kn, pmsg_t *mb,
+	struct revent_id id, struct revent_ops *ops, guint32 udata)
+{
+	struct pmsg_info *pmi;
+	struct rpc_info *rpi;
+
+	knode_check(kn);
+	g_assert(mb != NULL);
+	g_assert(ops != NULL);
+
+	/*
+	 * Install our own callbacks in order to dispatch the user-supplied
+	 * callbacks using the processing logic and order defined by our
+	 * message free and RPC callabcks.
+	 */
+
+	revent_get_pair(id, kn, udata, ops, &pmi, &rpi);
+
+	dht_rpc_store(kn, mb, revent_rpc_cb, rpi, revent_pmsg_free, pmi);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

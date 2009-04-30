@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "core/guid.h"
+#include "core/gnet_stats.h"
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
@@ -90,6 +91,7 @@ op_to_string(enum dht_rpc_op op)
 {
 	switch (op) {
 	case DHT_RPC_PING:			return "PING";
+	case DHT_RPC_STORE:			return "STORE";
 	case DHT_RPC_FIND_NODE:		return "FIND_NODE";
 	case DHT_RPC_FIND_VALUE:	return "FIND_VALUE";
 	}
@@ -325,13 +327,15 @@ dht_rpc_answer(const guid_t *muid,
 
 	if (!(rcb->flags & RPC_CALL_NO_VERIFY) && !kuid_eq(kn->id, rcb->kn->id)) {
 		/*
-		 * Our routing table is stale: the node to which we sent the RPC bears
-		 * a KUID different from the one we thought it would.  The node we
-		 * had in our routing table is therefore gone.
+		 * This node is stale: the node to which we sent the RPC bears
+		 * a KUID different from the one we thought it had.  The node we
+		 * knew about is therefore gone.
 		 *
-		 * Remove the original node from the routing table and do not handle
-		 * the reply.
+		 * Remove the original node from the routing table (in case it is
+		 * present) and do not handle the reply.
 		 */
+
+		gnet_stats_count_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH, 1);
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_message("DHT sent %s RPC %s to %s but got reply from %s",
@@ -459,6 +463,46 @@ dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 
 	muid = rpc_call_prepare(DHT_RPC_FIND_VALUE, kn, rpc_delay(kn), 0, cb, arg);
 	kmsg_send_find_value(kn, id, type, skeys, scnt, muid, mfree, marg);
+}
+
+/**
+ * Store values on remote node.
+ *
+ * @param kn		the node to whom the message should be sent
+ * @param mb		the pre-built STORE message, with blank GUID
+ * @param cb		the (optional) callback when reply arrives or on timeout
+ * @param arg		additional opaque callback argument
+ * @param mfree		(optional) message free routine to use
+ * @param marg		the argument to supply to the message free routine
+ */
+void
+dht_rpc_store(knode_t *kn, pmsg_t *mb,
+	dht_rpc_cb_t cb, gpointer arg,
+	pmsg_free_t mfree, gpointer marg)
+{
+	const guid_t *muid;
+	pmsg_t *smb;
+
+	knode_check(kn);
+	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
+
+	muid = rpc_call_prepare(DHT_RPC_STORE, kn, rpc_delay(kn), 0, cb, arg);
+
+	/*
+	 * We need to write the RPC MUID at the beginning of the pre-built message
+	 * block, but this means that nobody else is currently pointing at the
+	 * message data.  That is normally ensured by the publishing logic, which
+	 * does the necessary bookkeeping of the STORE messages and re-issues
+	 * one only when the previous one was discarded (timeouts do not count,
+	 * as the message could be stuck in the UDP message queue).
+	 *
+	 * We therefore need to patch the MUID before cloning the message.
+	 */
+
+	kademlia_header_set_muid((void *) pmsg_start(mb), muid);
+
+	smb = mfree != NULL ? pmsg_clone_extend(mb, mfree, marg) : pmsg_clone(mb);
+	kmsg_send_mb(kn, smb);
 }
 
 /**

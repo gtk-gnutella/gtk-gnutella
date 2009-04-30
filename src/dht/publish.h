@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -36,12 +36,22 @@
 #ifndef _dht_publish_h_
 #define _dht_publish_h_
 
+#include "values.h"
+#include "lookup.h"
+
+typedef struct publish publish_t;
+
 /*
  * Public interface.
  */
 
 void publish_init(void);
 void publish_close(void);
+
+publish_t *publish_cache(const kuid_t *key,
+	lookup_rc_t *target, dht_value_t **vvec, int vcnt);
+publish_t *publish_offload(const knode_t *kn, GSList *keys);
+void publish_cancel(publish_t *pb);
 
 #endif	/* _dht_publish_h_ */
 

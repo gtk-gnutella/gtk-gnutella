@@ -61,13 +61,13 @@ struct revent_ops {
 	/* message free routine callbacks */
 	void (*freeing_msg)(gpointer obj);
 	void (*msg_sent)(gpointer obj, pmsg_t *mb);
-	void (*msg_dropped)(gpointer obj, knode_t *kn);
+	void (*msg_dropped)(gpointer obj, knode_t *kn, pmsg_t *mb);
 	void (*rpc_cancelled)(gpointer obj, guint32 udata);
 	/* RPC callbacks */
 	void (*handling_rpc)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
 	gboolean (*handle_reply)(gpointer obj, const knode_t *kn,
 		kda_msg_t function, const char *payload, size_t len, guint32 udata);
-	void (*iterate)(gpointer obj, enum dht_rpc_ret type);
+	void (*iterate)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
 };
 
 struct pmsg_info;
@@ -86,6 +86,8 @@ void revent_find_node(knode_t *kn, const kuid_t *kuid,
 	struct revent_id id, struct revent_ops *ops, guint32 udata);
 void revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
+	struct revent_id id, struct revent_ops *ops, guint32 udata);
+void revent_store(knode_t *kn, pmsg_t *mb,
 	struct revent_id id, struct revent_ops *ops, guint32 udata);
 
 #endif	/* _dht_revent_h_ */

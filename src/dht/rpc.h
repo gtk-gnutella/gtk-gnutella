@@ -54,6 +54,7 @@
  */
 enum dht_rpc_op {
 	DHT_RPC_PING = 0,		/**< ping remote node */
+	DHT_RPC_STORE,			/**< store values on remote node */
 	DHT_RPC_FIND_NODE,		/**< lookup for node KUID */
 	DHT_RPC_FIND_VALUE		/**< lookup for value KUID */
 };
@@ -109,6 +110,9 @@ void dht_rpc_find_node(
 	pmsg_free_t mfree, gpointer marg);
 void dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
+	dht_rpc_cb_t cb, gpointer arg,
+	pmsg_free_t mfree, gpointer marg);
+void dht_rpc_store(knode_t *kn, pmsg_t *mb,
 	dht_rpc_cb_t cb, gpointer arg,
 	pmsg_free_t mfree, gpointer marg);
 
