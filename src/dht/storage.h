@@ -39,35 +39,21 @@
 #include "lib/dbmw.h"
 #include "lib/dbmap.h"
 
-/**
- * Store status codes.
- */
-#define STORE_SC_OK				1U	/**< OK */
-#define STORE_SC_ERROR			2U	/**< Generic error */
-#define STORE_SC_FULL			3U	/**< Node is full for this key */
-#define STORE_SC_LOADED			4U	/**< Node is too loaded for this key */
-#define STORE_SC_FULL_LOADED	5U	/**< Node is both loaded and full */
-#define STORE_SC_TOO_LARGE		6U	/**< Value is too large */
-#define STORE_SC_EXHAUSTED		7U	/**< Storage space exhausted */
-#define STORE_SC_BAD_CREATOR	8U	/**< Creator is not acceptable */
-#define STORE_SC_BAD_VALUE		9U	/**< Analyzed value did not validate */
-#define STORE_SC_BAD_TYPE		10U	/**< Improper value type */
-#define STORE_SC_QUOTA			11U /**< Storage quota for creator reached */
-#define STORE_SC_DATA_MISMATCH	12U /**< Replicated data is different */
-#define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
-#define STORE_SC_EXPIRED		14U	/**< Value has already expired */
-
 /*
  * Public interface.
  */
-
-const char *store_error_to_string(guint16 errnum);
 
 dbmw_t *storage_create(const char *name, const char *base,
 	size_t key_size, size_t value_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 
+dbmw_t *storage_open(const char *name, const char *base,
+	size_t key_size, size_t value_size,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
+
+void storage_close(dbmw_t *dw, const char *base);
 void storage_delete(dbmw_t *dw, const char *base);
 
 #endif /* _dht_storage_h_ */

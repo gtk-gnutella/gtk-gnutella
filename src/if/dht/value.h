@@ -81,6 +81,35 @@ typedef enum {
 #define DHT_VALUE_REPUBLISH		(30*60)		/**< 30 minutes */
 
 /**
+ * The size of the DHT value header, preceding the actual data value
+ * (fixed because IP address of creator must be given as IPv4)
+ */
+#define DHT_VALUE_HEADER_SIZE	61
+
+/**
+ * Maximum size of a serialized DHT value.
+ */
+#define DHT_VALUE_MAX_SERIAL_SIZE	(DHT_VALUE_HEADER_SIZE + DHT_VALUE_MAX_LEN)
+
+/**
+ * Store status codes.
+ */
+#define STORE_SC_OK				1U	/**< OK */
+#define STORE_SC_ERROR			2U	/**< Generic error */
+#define STORE_SC_FULL			3U	/**< Node is full for this key */
+#define STORE_SC_LOADED			4U	/**< Node is too loaded for this key */
+#define STORE_SC_FULL_LOADED	5U	/**< Node is both loaded and full */
+#define STORE_SC_TOO_LARGE		6U	/**< Value is too large */
+#define STORE_SC_EXHAUSTED		7U	/**< Storage space exhausted */
+#define STORE_SC_BAD_CREATOR	8U	/**< Creator is not acceptable */
+#define STORE_SC_BAD_VALUE		9U	/**< Analyzed value did not validate */
+#define STORE_SC_BAD_TYPE		10U	/**< Improper value type */
+#define STORE_SC_QUOTA			11U /**< Storage quota for creator reached */
+#define STORE_SC_DATA_MISMATCH	12U /**< Replicated data is different */
+#define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
+#define STORE_SC_EXPIRED		14U	/**< Value has already expired */
+
+/**
  * A DHT value.
  */
 typedef struct {
@@ -96,6 +125,8 @@ typedef struct {
 /*
  * Public interface.
  */
+
+const char *dht_store_error_to_string(guint16 errnum);
 
 dht_value_t *dht_value_make(const knode_t *creator,
 	kuid_t *primary_key, dht_value_type_t type,

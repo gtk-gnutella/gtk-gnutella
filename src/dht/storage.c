@@ -52,46 +52,14 @@ RCSID("$Id$")
 static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
 
 /**
- * Converts store status code to string.
- */
-static const char * const store_errstr[] = {
-	"INVALID",								/* O */
-	"OK",									/**< STORE_SC_OK */
-	"Error",								/**< STORE_SC_ERROR */
-	"Node is full for this key",			/**< STORE_SC_FULL */
-	"Node is loaded for this key",			/**< STORE_SC_LOADED */
-	"Node is both loaded and full for key",	/**< STORE_SC_FULL_LOADED */
-	"Value is too large",					/**< STORE_SC_TOO_LARGE */
-	"Storage space exhausted",				/**< STORE_SC_EXHAUSTED */
-	"Creator is not acceptable",			/**< STORE_SC_BAD_CREATOR */
-	"Analyzed value did not validate",		/**< STORE_SC_BAD_VALUE */
-	"Improper value type",					/**< STORE_SC_BAD_TYPE */
-	"Storage quota for creator reached",	/**< STORE_SC_QUOTA */
-	"Replicated data is different",			/**< STORE_SC_DATA_MISMATCH */
-	"Invalid security token",				/**< STORE_SC_BAD_TOKEN */
-	"Value has already expired",			/**< STORE_SC_EXPIRED */
-};
-
-/**
- * @return human-readable error string corresponding to error code `errnum'.
- */
-const char *
-store_error_to_string(guint16 errnum)
-{
-	if (errnum == 0 || errnum >= G_N_ELEMENTS(store_errstr))
-		return "Invalid error code";
-
-	return store_errstr[errnum];
-}
-
-/**
- * Creates a disk database with an SDBM back-end.
+ * Creates a disk database with an SDBM or memory map back-end.
  *
  * If we can't create the SDBM files on disk, we'll transparently use
  * an in-core version.
  *
  * @param name			the name of the storage created, for logs
  * @param base			the base name of SDBM files
+ * @param flags			the sdbm_open() flags
  * @param key_size		Constant key size, in bytes
  * @param value_size	Maximum value size, in bytes
  * @param pack			Serialization routine for values
@@ -100,26 +68,31 @@ store_error_to_string(guint16 errnum)
  * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
  * @param hash_func		Key hash function
  * @param eq_func		Key equality test function
+ * @param incore		If TRUE, use a RAM-only database
+ *
+ * @return the DBMW wrapping object.
  */
-dbmw_t *
-storage_create(const char *name, const char *base,
+static dbmw_t *
+storage_create_internal(const char *name, const char *base, int flags,
 	size_t key_size, size_t value_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	gboolean incore)
 {
 	dbmap_t *dm;
 	dbmw_t *dw;
 	size_t adjusted_cache_size = cache_size;
 
-	if (!GNET_PROPERTY(dht_storage_in_memory)) {
+	if (!incore) {
 		char *path;
 
+		g_assert(base != NULL);
+
 		path = make_pathname(settings_config_dir(), base);
-		dm = dbmap_create_sdbm(key_size, path, O_CREAT | O_TRUNC | O_RDWR,
-				STORAGE_FILE_MODE);
+		dm = dbmap_create_sdbm(key_size, name, path, flags, STORAGE_FILE_MODE);
 
 		if (!dm) {
-			g_warning("cannot create SDBM in %s for %s: %s",
+			g_warning("DHT cannot open SDBM at %s for %s: %s",
 					path, name, g_strerror(errno));
 		}
 		G_FREE_NULL(path);
@@ -141,6 +114,138 @@ storage_create(const char *name, const char *base,
 		adjusted_cache_size, hash_func, eq_func);
 
 	return dw;
+}
+
+/**
+ * Creates a disk database with an SDBM back-end.
+ *
+ * If we can't create the SDBM files on disk, we'll transparently use
+ * an in-core version.
+ *
+ * @param name			the name of the storage created, for logs
+ * @param base			the base name of SDBM files
+ * @param flags			the sdbm_open() flags
+ * @param key_size		Constant key size, in bytes
+ * @param value_size	Maximum value size, in bytes
+ * @param pack			Serialization routine for values
+ * @param unpack		Deserialization routine for values
+ * @param valfree		Free dynamically allocated deserialization data
+ * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func		Key hash function
+ * @param eq_func		Key equality test function
+ *
+ * @return the DBMW wrapping object.
+ */
+dbmw_t *
+storage_create(const char *name, const char *base,
+	size_t key_size, size_t value_size,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+{
+	return storage_create_internal(name, base, O_CREAT | O_TRUNC | O_RDWR,
+		key_size, value_size,
+		pack, unpack, valfree,
+		cache_size, hash_func, eq_func,
+		GNET_PROPERTY(dht_storage_in_memory));
+}
+
+/**
+ * Opens or create a disk database with an SDBM back-end.
+ *
+ * If we can't access the SDBM files on disk, we'll transparently use
+ * an in-core version.
+ *
+ * @param name			the name of the storage created, for logs
+ * @param base			the base name of SDBM files
+ * @param flags			the sdbm_open() flags
+ * @param key_size		Constant key size, in bytes
+ * @param value_size	Maximum value size, in bytes
+ * @param pack			Serialization routine for values
+ * @param unpack		Deserialization routine for values
+ * @param valfree		Free dynamically allocated deserialization data
+ * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func		Key hash function
+ * @param eq_func		Key equality test function
+ *
+ * @return the DBMW wrapping object.
+ */
+dbmw_t *
+storage_open(const char *name, const char *base,
+	size_t key_size, size_t value_size,
+	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
+	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+{
+	dbmw_t *dw;
+
+	dw = storage_create_internal(name, base, O_CREAT | O_RDWR,
+		key_size, value_size,
+		pack, unpack, valfree,
+		cache_size, hash_func, eq_func, FALSE);
+
+	if (dw != NULL && GNET_PROPERTY(dht_debug)) {
+		size_t count = dbmw_count(dw);
+		g_message("DHT opened DBMW \"%s\" (%u key%s) from %s",
+			dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+	}
+
+	/*
+	 * If they want RAM-only storage, create a new RAM DBMW and copy
+	 * the persisted one there.
+	 */
+
+	if (dw != NULL && GNET_PROPERTY(dht_storage_in_memory)) {
+		dbmw_t *dram;
+		size_t count = dbmw_count(dw);
+
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT loading DBMW \"%s\" (%u key%s) from %s",
+				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+		}
+
+		dram = storage_create_internal(name, NULL, 0,
+			key_size, value_size,
+			pack, unpack, valfree,
+			cache_size, hash_func, eq_func, TRUE);
+
+		if (!dbmw_copy(dw, dram)) {
+			g_warning("DHT could not load DBMW \"%s\" (%u key%s) from %s",
+				dbmw_name(dw), (unsigned) count, 1 == count ? "" : "s", base);
+		}
+
+		dbmw_destroy(dw, TRUE);
+		dw = dram;
+	}
+
+	return dw;
+}
+
+/**
+ * Close DM map, keeping the SDBM file around.
+ *
+ * If the map was held in memory, it is serialized to disk.
+ */
+void
+storage_close(dbmw_t *dw, const char *base)
+{
+	gboolean ok;
+	char *path;
+
+	if (NULL == dw)
+		return;
+
+	path = make_pathname(settings_config_dir(), base);
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
+
+	ok = dbmw_store(dw, path, TRUE);
+	G_FREE_NULL(path);
+
+	if (GNET_PROPERTY(dht_debug))
+		g_message("DHT %ssucessfully persisted DBMW \"%s\"",
+			ok ? "" : "un", dbmw_name(dw));
+
+	dbmw_destroy(dw, TRUE);
 }
 
 /**
