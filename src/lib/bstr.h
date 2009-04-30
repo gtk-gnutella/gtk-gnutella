@@ -76,6 +76,7 @@ gboolean bstr_read_le16(bstr_t *, guint16 *pv);
 gboolean bstr_read_be16(bstr_t *, guint16 *pv);
 gboolean bstr_read_le32(bstr_t *, guint32 *pv);
 gboolean bstr_read_be32(bstr_t *, guint32 *pv);
+gboolean bstr_read_be64(bstr_t *, guint64 *pv);
 gboolean bstr_read_time(bstr_t *, time_t *pv);
 gboolean bstr_read_float_be(bstr_t *, float *pv);
 gboolean bstr_read_ipv4_addr(bstr_t *, host_addr_t *);

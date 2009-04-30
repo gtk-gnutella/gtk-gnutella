@@ -514,6 +514,27 @@ bstr_read_be32(bstr_t *bs, guint32 *pv)
 }
 
 /**
+ * Read a big-endian 64-bit quantity.
+ *
+ * @param bs	the binary stream
+ * @param pv	where to write the value
+ *
+ * @return TRUE if OK.
+ */
+gboolean
+bstr_read_be64(bstr_t *bs, guint64 *pv)
+{
+	g_assert(pv);
+
+	if (!expect(bs, 8, "bstr_read_be64"))
+		return FALSE;
+
+	*pv = peek_be64(bs->rptr);
+	bs->rptr += 8;
+	return TRUE;
+}
+
+/**
  * Read time.
  *
  * @param bs	the binary stream
