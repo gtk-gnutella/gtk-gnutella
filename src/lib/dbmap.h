@@ -55,18 +55,26 @@ struct dbmap;
 typedef struct dbmap dbmap_t;
 
 typedef struct dbmap_datum {
-	gconstpointer data;
+	gpointer data;
 	size_t len;
 } dbmap_datum_t;
+
+/**
+ * DB map "foreach" iterator callbacks.
+ */
+typedef void (*dbmap_cb_t)(gpointer key, dbmap_datum_t *value, gpointer u);
+typedef gboolean (*dbmap_cbr_t)(gpointer key, dbmap_datum_t *value, gpointer u);
 
 /**
  * Creation interface.
  */
 
 dbmap_t *dbmap_create_hash(size_t ks, GHashFunc hashf, GEqualFunc key_eqf);
-dbmap_t * dbmap_create_sdbm(size_t ks, char *path, int flags, int mode);
+dbmap_t * dbmap_create_sdbm(size_t ks, const char *name, const char *path,
+	int flags, int mode);
 dbmap_t *dbmap_create_from_map(size_t ks, map_t *map);
-dbmap_t *dbmap_create_from_sdbm(size_t ks, DBM *sdbm);
+dbmap_t *dbmap_create_from_sdbm(const char *name, size_t ks, DBM *sdbm);
+void dbmap_sdbm_set_name(const dbmap_t *dm, const char *name);
 
 /**
  * Public DB map interface.
@@ -86,6 +94,9 @@ const char *dbmap_strerror(const dbmap_t *dm);
 enum dbmap_type dbmap_type(const dbmap_t *dm);
 size_t dbmap_count(const dbmap_t *dm);
 
+void dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg);
+void dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg);
+
 /**
  * Key snapshot utilities.
  */
@@ -98,6 +109,9 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
  */
 size_t dbmap_count_keys_sdbm(DBM *sdbm);
 void dbmap_unlink_sdbm(const char *base);
+
+gboolean dbmap_store(const dbmap_t *dm, const char *base, gboolean inplace);
+gboolean dbmap_copy(dbmap_t *from, dbmap_t *to);
 
 #endif	/* _dbmap_h_ */
 
