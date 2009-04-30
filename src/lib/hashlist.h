@@ -47,6 +47,7 @@ void *hash_list_head(const hash_list_t *);
 void *hash_list_tail(const hash_list_t *);
 void *hash_list_next(hash_list_t *, const void *key);
 void *hash_list_previous(hash_list_t *, const void *key);
+void hash_list_clear(hash_list_t *hl);
 unsigned hash_list_length(const hash_list_t *);
 GList *hash_list_list(hash_list_t *);
 

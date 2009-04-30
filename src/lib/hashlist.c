@@ -363,6 +363,10 @@ hash_list_remove_tail(hash_list_t *hl)
 	return hash_list_remove_item(hl, hl->tail->data);
 }
 
+/**
+ * Remove head item from the list.
+ * @return The data that was stored there.
+ */
 void *
 hash_list_shift(hash_list_t *hl)
 {
@@ -373,6 +377,21 @@ hash_list_shift(hash_list_t *hl)
 
 	item = hl->head ? hl->head->data : NULL;
 	return item ? hash_list_remove_item(hl, item) : NULL;
+}
+
+/**
+ * Clear the list, removing all items.
+ */
+void
+hash_list_clear(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	while (NULL != hl->head) {
+		struct hash_list_item *item = hl->head->data;
+		hash_list_remove_item(hl, item);
+	}
 }
 
 /**
