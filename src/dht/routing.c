@@ -70,6 +70,7 @@ RCSID("$Id$")
 #include "ulq.h"
 #include "kmsg.h"
 #include "publish.h"
+#include "roots.h"
 
 #include "core/settings.h"
 #include "core/gnet_stats.h"
@@ -250,10 +251,10 @@ static void dht_route_retrieve(void);
 static struct kbucket *dht_find_bucket(const kuid_t *id);
 
 /*
- * Define DEBUG_THIS only to enable more costly run-time assertions which
+ * Define DHT_ROUTING_DEBUG to enable more costly run-time assertions which
  * make all hash list insertions O(n), basically.
  */
-#undef DEBUG_THIS
+#undef DHT_ROUTING_DEBUG
 
 static const char * const boot_status_str[] = {
 	"not bootstrapped yet",			/**< BOOT_NONE */
@@ -542,7 +543,7 @@ list_update_stats(knode_status_t status, int delta)
 	/* NOTREACHED */
 }
 
-#ifdef DEBUG_THIS
+#ifdef DHT_ROUTING_DEBUG
 /**
  * Check bucket list consistency.
  */
@@ -573,7 +574,7 @@ check_leaf_list_consistency(
 }
 #else
 #define check_leaf_list_consistency(a, b, c)
-#endif	/* DEBUG_THIS */
+#endif	/* DHT_ROUTING_DEBUG */
 
 /**
  * Get our KUID.
@@ -1186,6 +1187,7 @@ dht_initialize(gboolean post_init)
 	keys_init();
 	values_init();
 	publish_init();
+	roots_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -1590,10 +1592,14 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t new)
  * If the bucket that should manage the node is already full and it cannot
  * be split further, we need to see whether we don't have stale nodes in
  * there.  In which case the addition is pending, until we know for sure.
+ *
+ * @return TRUE if we added the node to the table.
  */
-static void
+static gboolean
 dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 {
+	gboolean added = FALSE;
+
 	knode_check(kn);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->all != NULL);
@@ -1608,6 +1614,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 		add_node(kb, kn, KNODE_GOOD);
 		stats.good++;
 		gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
+		added = TRUE;
 		goto done;
 	}
 
@@ -1628,6 +1635,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 			add_node(kb, kn, KNODE_GOOD);
 			stats.good++;
 			gnet_stats_count_general(GNR_DHT_ROUTING_GOOD_NODES, +1);
+			added = TRUE;
 			goto done;
 		}
 	}
@@ -1646,10 +1654,13 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 		add_node(kb, kn, KNODE_PENDING);
 		gnet_stats_count_general(GNR_DHT_ROUTING_PENDING_NODES, +1);
 		stats.pending++;
+		added = TRUE;
 	}
 
 done:
 	check_leaf_bucket_consistency(kb);
+
+	return added;
 }
 
 /**
@@ -1722,8 +1733,13 @@ promote_pending_node(struct kbucket *kb)
 			 * ping it to make sure it's still alive.
 			 */
 
-			if (delta_time(tm_time(), selected->last_seen) >= ALIVENESS_PERIOD)
+			if (
+				delta_time(tm_time(), selected->last_seen) >= ALIVENESS_PERIOD
+			) {
 				dht_rpc_ping(selected, NULL, NULL);
+				gnet_stats_count_general(
+					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
+			}
 
 			gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
 		}
@@ -2031,8 +2047,11 @@ dht_record_activity(knode_t *kn)
  *
  * @param kn		the node we're trying to add
  * @param traffic	whether node was passively collected or we got data from it
+ *
+ * @return TRUE if we added the node to the table, FALSE if we rejected it or
+ * if it was already present.
  */
-static void
+static gboolean
 record_node(knode_t *kn, gboolean traffic)
 {
 	struct kbucket *kb;
@@ -2058,7 +2077,7 @@ record_node(knode_t *kn, gboolean traffic)
 				knode_to_string(kn));
 		if (!is_my_address_and_port(kn->addr, kn->port))
 			gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
-		return;
+		return FALSE;
 	}
 
 	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
@@ -2076,7 +2095,7 @@ record_node(knode_t *kn, gboolean traffic)
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
 				kbucket_to_string(kb));
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -2088,16 +2107,17 @@ record_node(knode_t *kn, gboolean traffic)
 	if (traffic)
 		dht_record_activity(kn);
 
-	dht_add_node_to_bucket(kn, kb, traffic);
+	return dht_add_node_to_bucket(kn, kb, traffic);
 }
 
 /**
- * Record traffic from node.
+ * Record traffic from a new node.
  */
 void
 dht_traffic_from(knode_t *kn)
 {
-	record_node(kn, TRUE);
+	if (record_node(kn, TRUE))
+		keys_offload(kn);
 
 	/*
 	 * If not bootstrapped yet, we just got our seed.
@@ -2113,12 +2133,13 @@ dht_traffic_from(knode_t *kn)
 }
 
 /**
- * Add node to the table.
+ * Add node to the table after KUID verification.
  */
 static void
-dht_add_node(knode_t *node)
+dht_add_node(knode_t *kn)
 {
-	record_node(node, FALSE);
+	if (record_node(kn, FALSE))
+		keys_offload(kn);
 }
 
 /**
@@ -2321,12 +2342,12 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 	/*
 	 * Here is the algorithm used to compute the size estimate.
 	 *
-	 * We perform a routing table lookup of the NCNT nodes closest to our
-	 * own KUID.  Once we have that, we can estimate the sparseness of the
+	 * We perform a routing table lookup of the NCNT nodes closest to a
+	 * given KUID.  Once we have that, we can estimate the sparseness of the
 	 * results by computing:
 	 *
-	 *  Nodes = { node_1 .. node_n } sorted by increasing distance to our KUID
-	 *  D = sum of Di*i for i = 1..NCNT and Di = distance(node_i, our_kuid)
+	 *  Nodes = { node_1 .. node_n } sorted by increasing distance to the KUID
+	 *  D = sum of Di*i for i = 1..NCNT and Di = distance(node_i, KUID)
 	 *  S = sum of i*i for i = 1..NCNT
 	 *
 	 *  D/S represents the sparseness of the results.  If all results were
@@ -2345,7 +2366,7 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
 	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
 
-	while (patricia_iter_next(iter, (gpointer) &id, NULL, NULL)) {
+	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
 		kuid_t di;
 		gboolean saturated = FALSE;
 
@@ -2403,7 +2424,7 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 	/*
 	 * We can't divide 2^160 by the sparseness because we can't represent
 	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
-	 * won't make much of a difference, and we add one.
+	 * won't make much of a difference, and we add one (for ourselves).
 	 */
 
 	kuid_divide(&max, &sparseness, &estimate, &r);
@@ -2518,14 +2539,9 @@ dht_update_subspace_size_estimate(
 
 	/*
 	 * See whether we have to trim some nodes (among the furthest).
-	 *
-	 * Trim the last KDA_ALPHA nodes in the path, since they could be
-	 * the furthest ones (the first we queried).
 	 */
 
 	kept = patricia_count(pt);
-	if (kept > KDA_ALPHA)
-		kept -= KDA_ALPHA;
 	if (kept > UNSIGNED(amount))
 		kept = amount;
 
@@ -2968,7 +2984,8 @@ recursively_fill_closest_from(
  * @param kvec		base of the "knode_t *" vector
  * @param kcnt		size of the "knode_t *" vector
  * @param exclude	the KUID to exclude (NULL if no exclusion)
- * @param alive		whether we want only know-to-be-alive nodes
+ * @param alive		whether we want only known-to-be-alive nodes
+ *
  * @return the amount of entries filled in the vector.
  */
 int
@@ -3259,6 +3276,7 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	roots_close();
 	publish_close();
 	values_close();
 	keys_close();
@@ -3826,7 +3844,7 @@ dht_route_parse(FILE *f)
 				g_warning("DHT ignoring persisted dup %s (has %s already)",
 					knode_to_string(kn), knode_to_string2(tkn));
 			} else {
-				dht_add_node(kn);
+				record_node(kn, FALSE);
 			}
 
 			knode_free(kn);
