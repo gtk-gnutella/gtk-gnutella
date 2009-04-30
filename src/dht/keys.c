@@ -50,6 +50,11 @@
  * e.g. each bit of difference could be halving the default TTL (how much will
  * actually depend on the depth of our k-bucket in the tree).
  *
+ * NOTE: The above two paragraphs explain how things would work in the context
+ * of the original Kademlia design.  In our instantiation for Gnutella, the
+ * republishing period was fixed by LimeWire to 30 minutes and the default TTL
+ * to 1 hour.  In that context, we're NOT IMPLEMENTING any replication.
+ *
  * Finally, we count the amount of requests we receive for each key, over
  * a given period, and compute a "request load", an Exponential Moving
  * Average of the amount of requests per period.  And we track the amount of
@@ -71,6 +76,7 @@ RCSID("$Id$")
 #include "keys.h"
 #include "kuid.h"
 #include "knode.h"
+#include "publish.h"
 #include "routing.h"
 #include "storage.h"
 
@@ -141,6 +147,13 @@ struct keyinfo {
 	guint8 flags;				/**< Operating flags */
 };
 
+static inline void
+keyinfo_check(const struct keyinfo *ki)
+{
+	g_assert(ki);
+	g_assert(KEYINFO_MAGIC == ki->magic);
+}
+
 /**
  * Information about a key that is stored to disk and not kept in memory.
  * The structure is serialized first, not written as-is.
@@ -157,14 +170,9 @@ struct keydata {
 };
 
 /**
- * PATRICIA tree holding information about all the keys we're storing.
- *
- * We need a PATRICIA instead of a hash table (despite the fact that it will
- * contain many items) because we need to quickly identify keys closest to
- * a given KUID: when a new node joins, we need to offload to it all the keys
- * from which he is closest than we are.
+ * Hashtable holding information about all the keys we're storing.
  */
-static patricia_t *keys;		/**< KUID => struct keyinfo */
+static GHashTable *keys;		/**< KUID => struct keyinfo */
 
 /**
  * DBM wrapper to store keydata.
@@ -196,7 +204,7 @@ static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
 gboolean
 keys_exists(const kuid_t *key)
 {
-	return patricia_contains(keys, key);
+	return g_hash_table_lookup_extended(keys, key, NULL, NULL);
 }
 
 /**
@@ -210,7 +218,7 @@ keys_is_store_loaded(const kuid_t *id)
 
 	g_assert(id);
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 	if (ki == NULL)
 		return FALSE;
 
@@ -236,7 +244,7 @@ keys_is_store_loaded(const kuid_t *id)
 /**
  * Are the amount of common leading bits sufficient to fall into our k-ball?
  */
-static gboolean
+static inline gboolean
 bits_within_kball(size_t common_bits)
 {
 	/*
@@ -248,7 +256,7 @@ bits_within_kball(size_t common_bits)
 	if (!kball.seeded)
 		return TRUE;
 
-	return common_bits >= kball.furthest_bits;
+	return common_bits > kball.furthest_bits;
 }
 
 /**
@@ -271,7 +279,7 @@ keys_within_kball(const kuid_t *id)
 	common_bits = common_leading_bits(id, KUID_RAW_BITSIZE,
 			get_our_kuid(), KUID_RAW_BITSIZE);
 
-	return common_bits >= kball.furthest_bits;
+	return common_bits > kball.furthest_bits;
 }
 
 /**
@@ -285,13 +293,14 @@ get_keydata(const kuid_t *id)
 	kd = dbmw_read(db_keydata, id, NULL);
 
 	if (kd == NULL) {
-		/* XXX Must handle I/O errors correctly */
 		if (dbmw_has_ioerr(db_keydata)) {
-			g_warning("DB I/O error, bad things will happen...");
-			return NULL;
+			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+				dbmw_name(db_keydata));
+		} else {
+			g_warning("key %s exists but was not found in DBMW \"%s\"",
+				kuid_to_hex_string(id), dbmw_name(db_keydata));
 		}
-		g_error("Key %s exists but was not found in DB",
-			kuid_to_hex_string(id));
+		return NULL;
 	}
 
 	return kd;
@@ -376,7 +385,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 
 	kd = get_keydata(ki->kuid);
 	if (kd == NULL)
-		return;				/* XXX DB access error, need better handling */
+		return;
 
 	g_assert(kd->values == ki->values);
 
@@ -405,7 +414,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 
 	values_reclaim_expired();
 
-	g_assert(KEYINFO_MAGIC == ki->magic);	/* Reclaim is asynchronous */
+	keyinfo_check(ki);		/* Reclaim is asynchronous */
 }
 
 /**
@@ -424,11 +433,11 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 	*full = FALSE;
 	*loaded = FALSE;
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 	if (ki == NULL)
 		return;
 
-	g_assert(KEYINFO_MAGIC == ki->magic);
+	keyinfo_check(ki);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_message("DHT STORE key %s holds %d/%d value%s, "
@@ -491,7 +500,7 @@ keys_has(const kuid_t *id, const kuid_t *cid, gboolean store)
 	struct keydata *kd;
 	guint64 dbkey;
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 	if (ki == NULL)
 		return 0;
 
@@ -559,13 +568,13 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
 	struct keydata *kd;
 	int idx;
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 
 	g_assert(ki);
 
 	kd = get_keydata(id);
-
-	g_assert(kd);			/* XXX need proper error management */
+	if (NULL == kd)
+		return;
 
 	g_assert(kd->values);
 	g_assert(kd->values == ki->values);
@@ -617,7 +626,7 @@ keys_update_value(const kuid_t *id, time_t expire)
 {
 	struct keyinfo *ki;
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 	g_assert(ki != NULL);
 
 	ki->next_expire = MIN(ki->next_expire, expire);
@@ -641,7 +650,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 	struct keydata *kd;
 	struct keydata new_kd;
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 
 	/*
 	 * If we're storing the first value under a key, we do not have any
@@ -677,7 +686,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		ki->next_expire = expire;
 		ki->flags = in_kball ? 0 : DHT_KEY_F_CACHED;
 
-		patricia_insert(keys, ki->kuid, ki);
+		g_hash_table_insert(keys, ki->kuid, ki);
 
 		kd = &new_kd;
 		kd->values = 0;						/* will be incremented below */
@@ -693,7 +702,8 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 
 		kd = get_keydata(id);
 
-		g_assert(kd);			/* XXX need proper error management */
+		if (NULL == kd)
+			return;
 
 		g_assert(kd->values == ki->values);
 		g_assert(kd->values < MAX_VALUES);
@@ -766,6 +776,58 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 }
 
 /**
+ * Fill supplied value vector with all the DHT values we have under the key.
+ *
+ * This is an internal call, not the result of an external query, so no
+ * statistics are updated.
+ *
+ * @param id				the primary key of the value
+ * @param valvec			value vector where results are stored
+ * @param valcnt			size of value vector
+ *
+ * @return amount of values filled into valvec.  The values are dynamically
+ * created and must be freed by caller through dht_value_free().
+ */
+int
+keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
+{
+	struct keyinfo *ki;
+	struct keydata *kd;
+	int i;
+	int vcnt = valcnt;
+	dht_value_t **vvec = valvec;
+
+	g_assert(valvec);
+	g_assert(valcnt > 0);
+
+	ki = g_hash_table_lookup(keys, id);
+	if (ki == NULL)
+		return 0;
+
+	kd = get_keydata(id);
+	if (kd == NULL)				/* DB failure */
+		return 0;
+
+	for (i = 0; i < kd->values && vcnt > 0; i++) {
+		guint64 dbkey = kd->dbkeys[i];
+		dht_value_t *v;
+
+		g_assert(0 != dbkey);
+
+		v = values_get(dbkey, DHT_VT_ANY);
+		if (v == NULL)
+			continue;
+
+		g_assert(kuid_eq(v->id, id));
+
+		*vvec++ = v;
+		vcnt--;
+	}
+
+	return vvec - valvec;		/* Amount of entries filled */
+}
+
+/**
  * Fill supplied value vector with the DHT values we have under the key that
  * match the specifications: among those bearing the specified secondary keys
  * (or all of them if no secondary keys are supplied), return only those with
@@ -799,7 +861,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(valcnt > 0);
 	g_assert(loadptr);
 
-	ki = patricia_lookup(keys, id);
+	ki = g_hash_table_lookup(keys, id);
 
 	g_assert(ki);	/* If called, we know the key exists */
 
@@ -822,7 +884,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 * they have the right DHT type (or skip them).
 	 */
 
-	for (i = 0; i < secondary_count && vcnt; i++) {
+	for (i = 0; i < secondary_count && vcnt > 0; i++) {
 		guint64 dbkey = lookup_secondary(kd, secondary[i]);
 		dht_value_t *v;
 
@@ -865,7 +927,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 * No secondary keys specified.  Look them all up.
 	 */
 
-	for (i = 0; i < kd->values; i++) {
+	for (i = 0; i < kd->values && vcnt > 0; i++) {
 		guint64 dbkey = kd->dbkeys[i];
 		dht_value_t *v;
 
@@ -936,6 +998,10 @@ deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 	g_assert(sizeof *kd == len);
 
 	bstr_read_u8(bs, &kd->values);
+	g_assert(kd->values <= G_N_ELEMENTS(kd->creators));
+
+	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->dbkeys));
+
 	for (i = 0; i < kd->values; i++) {
 		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
 		bstr_read(bs, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
@@ -969,20 +1035,19 @@ struct load_ctx {
 };
 
 /**
- * PATRICIA iterator to update key's request load.
+ * Hashtalbe iterator to update key's request load.
  *
  * @return TRUE if the key item holds no value and must be removed.
  */
 static gboolean
-keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
+keys_update_load(gpointer u_key, gpointer val, gpointer u)
 {
 	struct keyinfo *ki = val;
 	struct load_ctx *ctx = u;
 
 	(void) u_key;
-	(void) u_size;
 
-	g_assert(KEYINFO_MAGIC == ki->magic);
+	keyinfo_check(ki);
 
 	/*
 	 * Check for expired values.
@@ -999,7 +1064,7 @@ keys_update_load(gpointer u_key, size_t u_size, gpointer val, gpointer u)
 
 	if (0 == ki->values) {
 		keys_reclaim(ki);
-		return TRUE;			/* Node must be deleted from PATRICIA tree */
+		return TRUE;			/* Entry deleted */
 	}
 
 	/*
@@ -1032,12 +1097,12 @@ keys_periodic_load(gpointer unused_obj)
 
 	ctx.values = 0;
 	ctx.now = tm_time();
-	patricia_foreach_remove(keys, keys_update_load, &ctx);
+	g_hash_table_foreach_remove(keys, keys_update_load, &ctx);
 
 	g_assert(values_count() == ctx.values);
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
-		size_t keys_count = patricia_count(keys);
+		size_t keys_count = g_hash_table_size(keys);
 		g_message("DHT holding %lu value%s spread over %lu key%s",
 			(gulong) ctx.values, 1 == ctx.values ? "" : "s",
 			(gulong) keys_count, 1 == keys_count ? "" : "s");
@@ -1179,7 +1244,7 @@ keys_init(void)
 	cq_periodic_add(callout_queue, LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
-	keys = patricia_create(KUID_RAW_BITSIZE);
+	keys = g_hash_table_new(sha1_hash, sha1_eq);
 	install_periodic_kball(KBALL_FIRST);
 
 	db_keydata = storage_create(db_keywhat, db_keybase,
@@ -1192,18 +1257,148 @@ keys_init(void)
 }
 
 /**
- * PATRICIA iterator to free the items held in `keys'.
+ * Context for keys_offload_prepare().
+ */
+struct offload_context {
+	const kuid_t *our_kuid;			/**< Our KUID */
+	const kuid_t *remote_kuid;		/**< Remote node's KUID */
+	patricia_t *kclosest;			/**< Our k-closest alive nodes */
+	GSList *found;					/**< Target keys found */
+	unsigned count;					/**< How many keys we found */
+};
+
+/**
+ * Hashtable iterator to determine which keys are closer to a particular
+ * KUID than we are and for which we are the closest among our k-closest
+ * nodes.
  */
 static void
-keys_free_kv(gpointer u_key, size_t u_size, gpointer val, gpointer u_x)
+keys_offload_prepare(gpointer key, gpointer val, gpointer data)
+{
+	kuid_t *id = key;
+	struct keyinfo *ki = val;
+	struct offload_context *ctx = data;
+
+	if (!bits_within_kball(ki->common_bits))
+		return;		/* Key not in our k-ball, cached probably */
+
+	if (kuid_cmp3(id, ctx->remote_kuid, ctx->our_kuid) >= 0)
+		return;		/* Remote KUID is farther away from id than ourselves */
+
+	/*
+	 * Remote KUID is closer, but are we the closest among our k-closest nodes?
+	 */
+
+	if (patricia_closest(ctx->kclosest, id) == ctx->our_kuid) {
+		ctx->found = g_slist_prepend(ctx->found, id);
+		ctx->count++;
+	}
+}
+
+/*
+ * Offload keys to remote node, as appropriate.
+ *
+ * Firstly we only consider remote nodes whose KUID falls within our k-ball.
+ *
+ * Secondly, we are only considering remote nodes that end-up being in our
+ * routing table (i.e. ones which are close enough to us to get room in the
+ * table, which also means they're not firewalled nor going to shutdown soon).
+ * This is normally ensured by our caller.
+ *
+ * Thirdly, we are only going to consider keys closer to the node than we are
+ * and for which we are the closest among our k-closest nodes, to avoid too
+ * many redundant STORE operations.
+ */
+void
+keys_offload(const knode_t *kn)
+{
+	struct offload_context ctx;
+	unsigned n;
+	knode_t *kclosest[KDA_K];		/* Our known k-closest nodes */
+	gboolean debug;
+
+	knode_check(kn);
+	g_return_if_fail(!(kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING)));
+
+	if (
+		!dht_bootstrapped() ||				/* Not bootstrapped */
+		!keys_within_kball(kn->id) ||		/* Node KUID outside our k-ball */
+		0 == g_hash_table_size(keys)		/* No keys held */
+	)
+		return;
+
+	debug = GNET_PROPERTY(dht_storage_debug) > 1 ||
+			GNET_PROPERTY(dht_publish_debug) > 1;
+
+	if (debug)
+		g_message("DHT preparing key offloading to %s", knode_to_string(kn));
+
+	gnet_stats_count_general(GNR_DHT_KEY_OFFLOADING_CHECKS, 1);
+
+	ctx.our_kuid = get_our_kuid();
+	ctx.remote_kuid = kn->id;
+	ctx.found = NULL;
+	ctx.count = 0;
+
+	/*
+	 * We need to have KDA_K closest known alive neighbours in order to
+	 * be able to select proper keys to offload.
+	 *
+	 * Note that we make sure to NOT include the new node in our k-closest set
+	 * since it would always be closer than ourselves to keys we wish to
+	 * offload to it...
+	 */
+
+	n = dht_fill_closest(ctx.our_kuid, kclosest,
+			G_N_ELEMENTS(kclosest), ctx.remote_kuid, TRUE);
+
+	if (n < G_N_ELEMENTS(kclosest)) {
+		if (debug)
+			g_warning("DHT got only %u closest alive nodes, cannot offload", n);
+		return;
+	}
+
+	/*
+	 * Prepare a PATRICIA containing the ID of our k-closest alive nodes
+	 * plus ourselves.
+	 */
+
+	ctx.kclosest = patricia_create(KUID_RAW_BITSIZE);
+	for (n = 0; n < G_N_ELEMENTS(kclosest); n++) {
+		patricia_insert(ctx.kclosest, kclosest[n]->id, kclosest[n]->id);
+	}
+	patricia_insert(ctx.kclosest, ctx.our_kuid, ctx.our_kuid);
+
+	/*
+	 * Select offloading candidate keys.
+	 */
+
+	g_hash_table_foreach(keys, keys_offload_prepare, &ctx);
+	patricia_destroy(ctx.kclosest);
+
+	if (debug)
+		g_message("DHT found %u/%u offloading candidate%s",
+			ctx.count, (unsigned) g_hash_table_size(keys),
+			1 == ctx.count ? "" : "s");
+
+	if (ctx.count)
+		publish_offload(kn, ctx.found);
+
+	g_slist_free(ctx.found);
+}
+
+/**
+ * Hashtable iterator to free the items held in `keys'.
+ */
+static void
+keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
 {
 	struct keyinfo *ki = val;
 
 	(void) u_key;
-	(void) u_size;
 	(void) u_x;
 
-	g_assert(KEYINFO_MAGIC == ki->magic);
+	keyinfo_check(ki);
 
 	kuid_atom_free_null(&ki->kuid);
 	wfree(ki, sizeof *ki);
@@ -1219,8 +1414,8 @@ keys_close(void)
 	db_keydata = NULL;
 
 	if (keys) {
-		patricia_foreach(keys, keys_free_kv, NULL);
-		patricia_destroy(keys);
+		g_hash_table_foreach(keys, keys_free_kv, NULL);
+		g_hash_table_destroy(keys);
 		keys = NULL;
 	}
 

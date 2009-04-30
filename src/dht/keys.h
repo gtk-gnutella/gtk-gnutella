@@ -56,12 +56,14 @@ void keys_add_value(const kuid_t *id, const kuid_t *cid,
 	guint64 dbkey, time_t expire);
 void keys_update_value(const kuid_t *id, time_t expire);
 void keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey);
+int keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt);
 int keys_get(const kuid_t *id, dht_value_type_t type,
 	kuid_t **secondary, int secondary_count, dht_value_t **valvec, int valcnt,
 	float *loadptr, gboolean *cached);
 gboolean keys_within_kball(const kuid_t *id);
 double keys_decimation_factor(const kuid_t *key);
 void keys_update_kball();
+void keys_offload(const knode_t *kn);
 
 #endif /* _dht_keys_h_ */
 
