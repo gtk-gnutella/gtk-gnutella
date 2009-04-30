@@ -494,9 +494,9 @@ kademlia_header_constants_ok(void *header)
  * End of Kademlia regular header (first byte after header).
  */
 static inline const void *
-kademlia_header_end(const kademlia_header_t *header)
+kademlia_header_end(const void *header)
 {
-	const guint8 *u8 = (void *) header;
+	const guint8 *u8 = header;
 	return &u8[KDA_HEADER_SIZE];
 }
 
