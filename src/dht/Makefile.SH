@@ -89,6 +89,7 @@ SRC = \
 	lookup.c \
 	publish.c \
 	revent.c \
+	roots.c \
 	routing.c \
 	rpc.c \
 	token.c \
@@ -105,6 +106,7 @@ OBJ = \
 	lookup.o \
 	publish.o \
 	revent.o \
+	roots.o \
 	routing.o \
 	rpc.o \
 	token.o \
