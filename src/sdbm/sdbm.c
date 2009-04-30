@@ -260,7 +260,8 @@ fetch_pagbuf(DBM *db, long pagnum)
 			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
 				sdbm_name(db), pagnum, g_strerror(errno));
 			ioerr(db);
-			goto failed;
+			db->pagbno = -1;
+			return FALSE;
 		}
 		if (got < DBM_PBLKSIZ) {
 			if (got > 0)
@@ -269,9 +270,9 @@ fetch_pagbuf(DBM *db, long pagnum)
 			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
 		}
 		if (!chkpage(db->pagbuf)) {
-			g_warning("sdbm: \"%s\": corrupted page #%ld",
+			g_warning("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
-			goto failed;
+			memset(db->pagbuf, 0, DBM_PBLKSIZ);
 		}
 		db->pagbno = pagnum;
 
@@ -279,10 +280,6 @@ fetch_pagbuf(DBM *db, long pagnum)
 	}
 
 	return TRUE;
-
-failed:
-	db->pagbno = -1;
-	return FALSE;
 }
 
 /**
