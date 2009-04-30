@@ -226,7 +226,8 @@ size_t
 dbmap_count(const dbmap_t *dm)
 {
 	if (DBMAP_MAP == dm->type) {
-		g_assert(dm->count == map_count(dm->u.m.map));
+		size_t count = map_count(dm->u.m.map);
+		g_assert(dm->count == count);
 	}
 
 	return dm->count;
@@ -857,11 +858,15 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 	case DBMAP_MAP:
 		{
 			struct foreach_ctx ctx;
+			dbmap_t *dmw;
 
 			ctx.u.cbr = cbr;
 			ctx.arg = arg;
 			map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
+			
+			dmw = deconstify_gpointer(dm);
+			dmw->count = map_count(dm->u.m.map);
 		}
 		break;
 	case DBMAP_SDBM:
