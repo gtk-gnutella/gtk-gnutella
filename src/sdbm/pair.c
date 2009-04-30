@@ -328,11 +328,13 @@ chkpage(const char *pag)
 		return FALSE;		/* Always a multiple of 2 */
 
 	if (n > 0) {
+		int ino_end = (n + 1) * sizeof(short);
 		off = DBM_PBLKSIZ;
 		for (ino++; n > 0; ino += 2) {
-			if (ino[0] > off || ino[1] > off ||
-			    ino[1] > ino[0])
-				return 0;
+			if (ino[0] > off || ino[1] > off || ino[1] > ino[0])
+				return FALSE;
+			if (ino[0] < ino_end || ino[1] < ino_end)
+				return FALSE;
 			off = ino[1];
 			n -= 2;
 		}

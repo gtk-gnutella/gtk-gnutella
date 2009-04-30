@@ -73,7 +73,8 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   to gboolean to make that explicit.  Constants TRUE and FALSE replace 1 and 0.
 * Protected getnext() against DB modifications during the key traversal. This
   is forbidden and will now trigger an assertion failure.
-* Fixed chkpage() to ensure ino[0] is always an even number.
+* Enhanced chkpage() to ensure ino[0] is always an even number and that offsets
+  never point within the ino[] zone.
 * Added sdbm_deletekey() to delete the current key during traversals.
 * Added getnval() to get the n-th value from current page and sdbm_value() to
   return the current value during key iteration.
