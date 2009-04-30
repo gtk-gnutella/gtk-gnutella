@@ -73,6 +73,20 @@ typedef gboolean (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
  */
 typedef void (*dbmw_free_t)(gconstpointer valptr, size_t len);
 
+/**
+ * DBMW "foreach" iterator callbacks.
+ *
+ * @param key		pointer to constant-length key
+ * @param value		deserialized value
+ * @param len		length of arena where value was deserialized
+ * @param u			user-supplied additional callback argument
+ *
+ * @return TRUE if key/value pair is to be removed (for the dbmw_cbr_t callbak).
+ */
+typedef void (*dbmw_cb_t)(gpointer key, gpointer value, size_t len, gpointer u);
+typedef gboolean (*dbmw_cbr_t)(
+	gpointer key, gpointer value, size_t len, gpointer u);
+
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t key_size, size_t value_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
@@ -88,9 +102,16 @@ void dbmw_delete(dbmw_t *dw, gconstpointer key);
 enum dbmap_type dbmw_map_type(const dbmw_t *dw);
 size_t dbmw_count(dbmw_t *dw);
 gboolean dbmw_has_ioerr(const dbmw_t *dw);
+const char *dbmw_name(const dbmw_t *dw);
 
 GSList *dbmw_all_keys(const dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
+
+void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg);
+void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg);
+
+gboolean dbmw_store(dbmw_t *dw, const char *base, gboolean inplace);
+gboolean dbmw_copy(dbmw_t *from, dbmw_t *to);
 
 #endif /* _dbmw_h_ */
 

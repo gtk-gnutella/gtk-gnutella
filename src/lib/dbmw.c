@@ -70,7 +70,7 @@ struct dbmw {
 	size_t max_cached;			/**< Max amount of items to cache */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
-	dbmw_free_t valfree;		/**< Free routine for values */
+	dbmw_free_t valfree;		/**< Free routine for deserialized values */
 	int error;					/**< Last errno value */
 	gboolean ioerr;				/**< Had I/O error */
 	gboolean count_needs_sync;	/**< Whether we need to sync to get count */
@@ -116,6 +116,15 @@ enum dbmap_type
 dbmw_map_type(const dbmw_t *dw)
 {
 	return dbmap_type(dw->dm);
+}
+
+/**
+ * @return name of DBMW.
+ */
+const char *
+dbmw_name(const dbmw_t *dw)
+{
+	return dw->name;
 }
 
 /**
@@ -276,11 +285,11 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 	} else if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW I/O error whilst %s dirty entry for \"%s\": %s",
+		g_warning("DBMW \"%s\" I/O error whilst %s dirty entry: %s",
 			value->absent ? "deleting" : "flushing", dw->name,
 			dbmap_strerror(dw->dm));
 	} else {
-		g_warning("DBMW error whilst %s dirty entry for \"%s\": %s",
+		g_warning("DBMW \"%s\" error whilst %s dirty entry: %s",
 			value->absent ? "deleting" : "flushing", dw->name,
 			dbmap_strerror(dw->dm));
 	}
@@ -593,7 +602,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW I/O error whilst reading entry for \"%s\": %s",
+		g_warning("DBMW \"%s\" I/O error whilst reading entry: %s",
 			dw->name, dbmap_strerror(dw->dm));
 		return NULL;
 	} else if (NULL == dval.data)
@@ -620,7 +629,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
 		if (!(*dw->unpack)(dw->bs, entry->data, dw->value_size)) {
-			g_error("DBMW deserialization error for %s: %s",
+			g_warning("DBMW \"%s\" deserialization error: %s",
 				dw->name, bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
@@ -681,7 +690,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	if (dbmap_has_ioerr(dw->dm)) {
 		dw->ioerr = TRUE;
 		dw->error = errno;
-		g_warning("DBMW I/O error whilst checking key existence for \"%s\": %s",
+		g_warning("DBMW \"%s\" I/O error whilst checking key existence: %s",
 			dw->name, dbmap_strerror(dw->dm));
 		return FALSE;
 	}
@@ -733,7 +742,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 		if (dbmap_has_ioerr(dw->dm)) {
 			dw->ioerr = TRUE;
 			dw->error = errno;
-			g_warning("DBMW I/O error whilst deleting key for \"%s\": %s",
+			g_warning("DBMW \"%s\" I/O error whilst deleting key: %s",
 				dw->name, dbmap_strerror(dw->dm));
 		}
 
@@ -758,7 +767,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 /**
  * Map iterator to free cached entries.
  */
-static void
+static gboolean
 free_cached(gpointer key, gpointer value, gpointer data)
 {
 	dbmw_t *dw = data;
@@ -770,6 +779,23 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	free_value(dw, entry, TRUE);
 	wfree(key, dw->key_size);
 	wfree(entry, sizeof *entry);
+	return TRUE;
+}
+
+/**
+ * Clear the cache, discard everything.
+ */
+static void
+dbmw_clear_cache(dbmw_t *dw)
+{
+	/*
+	 * In the cache, the hash list and the value cache share the same
+	 * key pointers.  Therefore, we need to iterate on the map only
+	 * to free both at the same time.
+	 */
+
+	hash_list_clear(dw->keys);
+	map_foreach_remove(dw->values, free_cached, dw);
 }
 
 /**
@@ -778,8 +804,6 @@ free_cached(gpointer key, gpointer value, gpointer data)
 void
 dbmw_destroy(dbmw_t *dw, gboolean close_map)
 {
-	dbmw_sync(dw);
-
 	if (common_dbg)
 		g_message("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
@@ -790,13 +814,8 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
 			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
 
-	/*
-	 * In the cache, the hash list and the value cache share the same
-	 * key pointers.  Therefore, we need to iterate on the map only
-	 * to free both at the same time.
-	 */
-
-	map_foreach(dw->values, free_cached, dw);
+	dbmw_sync(dw);
+	dbmw_clear_cache(dw);
 	hash_list_free(&dw->keys);
 	map_destroy(dw->values);
 
@@ -808,6 +827,129 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 		dbmap_destroy(dw->dm);
 
 	wfree(dw, sizeof *dw);
+}
+
+/**
+ * Structure used as context by dbmw_foreach_*trampoline().
+ */
+struct foreach_ctx {
+	union {
+		dbmw_cb_t cb;
+		dbmw_cbr_t cbr;
+	} u;
+	gpointer arg;
+	const dbmw_t *dw;
+};
+
+/**
+ * Common code for dbmw_foreach_trampoline() and
+ * dbmw_foreach_remove_trampoline().
+ */
+static gboolean
+dbmw_foreach_common(gboolean removing,
+	gpointer key, dbmap_datum_t *d, gpointer arg)
+{
+	struct foreach_ctx *ctx = arg;
+	const dbmw_t *dw = ctx->dw;
+	struct cached *entry;
+
+	entry = map_lookup(dw->values, key);
+	if (entry != NULL) {
+		if (entry->absent)
+			return FALSE;		/* Key was deleted in cache */
+		if (removing) {
+			return (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
+		} else {
+			(*ctx->u.cb)(key, entry->data, entry->len, ctx->arg);
+			return FALSE;
+		}
+	} else {
+		gboolean status = FALSE;
+		gpointer data = d->data;
+		size_t len = d->len;
+
+		/*
+		 * Deserialize data if needed, but do not cache this value.
+		 * Iterating over the map must not disrupt the cache.
+		 */
+
+		if (dw->unpack) {
+			len = dw->value_size;
+			data = walloc(len);
+
+			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
+
+			if (!(*dw->unpack)(dw->bs, data, len)) {
+				g_warning("DBMW \"%s\" deserialization error: %s",
+					dw->name, bstr_error(dw->bs));
+				/* Not calling value free routine on deserialization failures */
+				wfree(data, len);
+				return FALSE;
+			}
+		}
+
+		if (removing) {
+			status = (*ctx->u.cbr)(key, data, len, ctx->arg);
+		} else {
+			(*ctx->u.cb)(key, data, len, ctx->arg);
+		}
+
+		if (dw->unpack) {
+			if (dw->valfree)
+				(*dw->valfree)(data, len);
+			wfree(data, len);
+		}
+
+		return status;
+	}
+}
+
+/**
+ * Trampoline to invoke the DB map iterator and do the proper casts.
+ */
+static void
+dbmw_foreach_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
+{
+	dbmw_foreach_common(FALSE, key, d, arg);
+}
+
+/**
+ * Trampoline to invoke the map iterator and do the proper casts.
+ */
+static gboolean
+dbmw_foreach_remove_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
+{
+	return dbmw_foreach_common(TRUE, key, d, arg);
+}
+
+/**
+ * Iterate over the DB, invoking the callback on each item along with the
+ * supplied argument.
+ */
+void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
+{
+	struct foreach_ctx ctx;
+
+	ctx.u.cb = cb;
+	ctx.arg = arg;
+	ctx.dw = dw;
+
+	dbmap_foreach(dw->dm, dbmw_foreach_trampoline, &ctx);
+}
+
+/**
+ * Iterate over the DB, invoking the callback on each item along with the
+ * supplied argument and removing the item when the callback returns TRUE.
+ */
+void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
+{
+	struct foreach_ctx ctx;
+
+	ctx.u.cbr = cbr;
+	ctx.arg = arg;
+	ctx.dw = dw;
+
+	dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
 }
 
 /**
@@ -827,6 +969,47 @@ void
 dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
 {
 	dbmap_free_all_keys(dw->dm, keys);
+}
+
+/**
+ * Store DBMW map to disk in an SDBM database, at the specified base.
+ * Two files are created (using suffixes .pag and .dir).
+ *
+ * @param dw		the DBMW map to store
+ * @param base		base path for the persistent database
+ * @param inplace	if TRUE and map was an SDBM already, persist as itself
+ *
+ * @return TRUE on success.
+ */
+gboolean
+dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
+{
+	dbmw_sync(dw);
+	return dbmap_store(dw->dm, base, inplace);
+}
+
+/**
+ * Copy all the data from one DBMW map to another, replacing values if the
+ * destination is not empty and already holds some data.
+ *
+ * @return TRUE on success.
+ */
+gboolean
+dbmw_copy(dbmw_t *from, dbmw_t *to)
+{
+	g_assert(from != NULL);
+	g_assert(to != NULL);
+
+	dbmw_sync(from);
+	dbmw_sync(to);
+	dbmw_clear_cache(to);
+
+	/*
+	 * Since ``from'' was sync'ed and the cache from ``to'' was cleared,
+	 * we can ignore caches and handle the copy at the dbmap level.
+	 */
+
+	return dbmap_copy(from->dm, to->dm);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
