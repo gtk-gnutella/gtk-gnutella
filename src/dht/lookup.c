@@ -40,11 +40,13 @@ RCSID("$Id$")
 #include "lookup.h"
 #include "kuid.h"
 #include "kmsg.h"
+#include "roots.h"
 #include "routing.h"
 #include "rpc.h"
 #include "keys.h"
 #include "token.h"
 #include "revent.h"
+#include "publish.h"
 
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
@@ -132,8 +134,8 @@ struct fvalue {
 struct nlookup {
 	nlookup_magic_t magic;
 	kuid_t *kuid;				/**< The KUID we're looking for */
-	knode_t *closest;			/**< Closest node found so far */
-	knode_t *prev_closest;		/**< Previous closest node at last hop */
+	const knode_t *closest;			/**< Closest node found so far */
+	const knode_t *prev_closest;	/**< Previous closest node at last hop */
 	patricia_t *shortlist;		/**< Nodes to query */
 	map_t *queried;				/**< Nodes already queried */
 	map_t *tokens;				/**< Collected security tokens */
@@ -171,7 +173,6 @@ struct nlookup {
 	int bw_incoming;			/**< Amount of incoming bandwidth used */
 	int udp_drops;				/**< Amount of UDP packet drops */
 	tm_t start;					/**< Start time */
-	tm_t end;					/**< End time */
 	guint32 hops;				/**< Amount of hops in lookup so far */
 	guint32 flags;				/**< Operating flags */
 };
@@ -237,6 +238,8 @@ lookup_strerror(lookup_error_t error)
 	case LOOKUP_E_NOT_FOUND:	return "Value not found";
 	case LOOKUP_E_EXPIRED:		return "Lookup expired";
 	case LOOKUP_E_EMPTY_ROUTE:	return "Empty DHT routing table";
+	case LOOKUP_E_EMPTY_PATH:	return "Unable to contact any node";
+	case LOOKUP_E_PARTIAL:		return "Incomplete results";
 	case LOOKUP_E_MAX:
 		break;
 	}
@@ -508,20 +511,56 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 }
 
 /**
+ * Dump a PATRICIA tree, from furthest to closest.
+ */
+static void
+log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, guint level)
+{
+	size_t count;
+	patricia_iter_t *iter;
+	int i = 0;
+
+	lookup_check(nl);
+
+	count = patricia_count(pt);
+	g_message("DHT LOOKUP[%s] %s contains %lu item%s:",
+		revent_id_to_string(nl->lid), what, (gulong) count,
+		count == 1 ? "" : "s");
+
+	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
+
+	while (patricia_iter_has_next(iter)) {
+		knode_t *kn = patricia_iter_next_value(iter);
+
+		knode_check(kn);
+
+		if (GNET_PROPERTY(dht_lookup_debug) > level)
+			g_message("DHT LOOKUP[%s] %s[%d]: %s",
+				revent_id_to_string(nl->lid), what, i, knode_to_string(kn));
+		i++;
+	}
+
+	patricia_iterator_release(&iter);
+}
+
+/**
  * Invoke statistics callback, if added by user.
  * Log final statistics.
  */
 static void
 lookup_final_stats(nlookup_t *nl)
 {
+	tm_t end;					/* End time */
 	lookup_check(nl);
 
-	tm_now_exact(&nl->end);
+	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_message("DHT LOOKUP[%s] %f secs, hops=%u, in=%d bytes, out=%d bytes",
-			revent_id_to_string(nl->lid), tm_elapsed_f(&nl->end, &nl->start),
-			nl->hops, nl->bw_incoming, nl->bw_outgoing);
+		g_message("DHT LOOKUP[%s] %f secs, "
+			"hops=%u, path=%u, in=%d bytes, out=%d bytes",
+			revent_id_to_string(nl->lid), tm_elapsed_f(&end, &nl->start),
+			nl->hops, (unsigned) patricia_count(nl->path),
+			nl->bw_incoming, nl->bw_outgoing);
 
 	/*
 	 * Optional statistics callback, added via lookup_ctrl_stats() after
@@ -531,7 +570,7 @@ lookup_final_stats(nlookup_t *nl)
 	if (nl->stats) {
 		struct lookup_stats stats;
 
-		stats.elapsed = tm_elapsed_f(&nl->end, &nl->start);
+		stats.elapsed = tm_elapsed_f(&end, &nl->start);
 		stats.msg_sent = nl->msg_sent;
 		stats.msg_dropped = nl->msg_dropped;
 		stats.rpc_replies = nl->rpc_replies;
@@ -586,17 +625,73 @@ lookup_terminate(nlookup_t *nl)
 	lookup_final_stats(nl);
 
 	if (LOOKUP_NODE == nl->type) {
-		if (nl->u.fn.ok) {
+		size_t path_len = patricia_count(nl->path);
+		if (path_len > 0 && nl->u.fn.ok) {
 			lookup_rs_t *rs = lookup_create_results(nl);
 			(*nl->u.fn.ok)(nl->kuid, rs, nl->arg);
 			lookup_free_results(rs);
 		} else if (nl->err) {
-			(*nl->err)(nl->kuid, LOOKUP_E_OK, nl->arg);
+			(*nl->err)(nl->kuid,
+				0 == path_len ? LOOKUP_E_EMPTY_PATH :
+				path_len < UNSIGNED(nl->amount) ? LOOKUP_E_PARTIAL :
+				LOOKUP_E_OK, nl->arg);
 		}
 	} else
 		g_assert_not_reached();
 
 	lookup_free(nl, TRUE);
+}
+
+/**
+ * PATRICIA remove iterator to discard from the ball all the nodes which are
+ * still present in the shortlist.
+ */
+static gboolean
+remove_if_in_shortlist(gpointer key, size_t ukeybits, gpointer val, gpointer u)
+{
+	kuid_t *id = key;
+	nlookup_t *nl = u;
+	knode_t *kn = val;
+
+	lookup_check(nl);
+	knode_check(kn);
+	(void) ukeybits;
+
+	if (patricia_contains(nl->shortlist, id)) {
+		knode_free(kn);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Cleanup the ball by removing all the nodes that are still in the shortlist,
+ * thereby keeping only the ones successfully queried.
+ */
+static void
+lookup_cleanup_ball(nlookup_t *nl)
+{
+	lookup_check(nl);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		size_t bcount = patricia_count(nl->ball);
+		size_t pcount = patricia_count(nl->path);
+		g_message("DHT LOOKUP[%s] %s lookup "
+			"cleaning up ball (%u item%s), path has %u",
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			(unsigned) bcount, 1 == bcount ? "" : "s",
+			(unsigned) pcount);
+	}
+
+	patricia_foreach_remove(nl->ball, remove_if_in_shortlist, nl);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		size_t bcount = patricia_count(nl->ball);
+		g_message("DHT LOOKUP[%s] ball now down to %u item%s",
+			revent_id_to_string(nl->lid),
+			(unsigned) bcount, 1 == bcount ? "" : "s");
+	}
 }
 
 /**
@@ -618,6 +713,7 @@ lookup_value_terminate(nlookup_t *nl,
 	float load, dht_value_t **vvec, int vcnt, int vsize, gboolean local)
 {
 	lookup_val_rs_t *rs;
+
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
 	g_assert(nl->u.fv.ok);
@@ -631,14 +727,50 @@ lookup_value_terminate(nlookup_t *nl,
 			kuid_to_hex_string(nl->kuid),
 			vcnt, 1 == vcnt ? "" : "s");
 
+	/*
+	 * If we were unable to collect any value, abort as if we had not
+	 * found anything.
+	 */
+
+	if (0 == vcnt) {
+		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
+		goto cleanup;
+	}
+
 	lookup_final_stats(nl);
 
-	if (!local) {
-		/*
-		 * XXX don't forget to STORE the values at the closest node in the
-		 * XXX path, i.e. the last node that did not return any value.
-		 * XXX initiate single iterative store for the 'n' values.
-		 */
+	/*
+	 * If we did not get the value locally (should never happen in practice!)
+	 * we need to store the retrieved values at the last node in the path
+	 * which did not return the value.  This is going to act as a cache for
+	 * further lookups, to relieve the nodes closest to the key from excessive
+	 * lookup load.
+	 *
+	 * If the path is empty, it means we were lucky and the first node we
+	 * queried returned the value.  It can happen if we're searching a key
+	 * within our closest subtree.
+	 */
+
+	if (!local && patricia_count(nl->path) > 0) {
+		knode_t *closest = patricia_closest(nl->path, nl->kuid);
+		sec_token_t *token = map_lookup(nl->tokens, closest->id);
+		lookup_rc_t rc;
+
+		if (
+			GNET_PROPERTY(dht_lookup_debug) > 2 ||
+			GNET_PROPERTY(dht_publish_debug) > 2
+		) {
+			g_message("DHT LOOKUP[%s] going to cache %d \"%s\" value%s at %s",
+				revent_id_to_string(nl->lid),
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
+				1 == vcnt ? "" : "s", knode_to_string(closest));
+		}
+
+		rc.kn = closest;
+		rc.token = token ? token->v : NULL;
+		rc.token_len = token ? token->length : 0;
+
+		publish_cache(nl->kuid, &rc, vvec, vcnt);
 	}
 
 	/*
@@ -648,6 +780,30 @@ lookup_value_terminate(nlookup_t *nl,
 
 	rs = lookup_create_value_results(load, vvec, vcnt);
 
+	(*nl->u.fv.ok)(nl->kuid, rs, nl->arg);
+
+	lookup_free_value_results(rs);
+
+	/**
+	 * Value lookups augment the ball with the nodes that returned a value,
+	 * so we use that instead for a more accurate subspace computation.
+	 * Also we want to cache the nodes we found during this lookup, including
+	 * the ones that held the values.
+	 *
+	 * But first we need to cleanup the ball to remove the nodes that are
+	 * still in the shortlist.
+	 */
+
+	lookup_cleanup_ball(nl);
+	dht_update_subspace_size_estimate(nl->ball, nl->kuid, nl->amount);
+	roots_record(nl->ball, nl->kuid);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		log_patricia_dump(nl, nl->ball, "final value path", 2);
+
+	lookup_free(nl, TRUE);
+
+cleanup:
 	/*
 	 * If values were collected locally, then it was done in a buffer
 	 * on the stack and we must not free it.
@@ -655,11 +811,6 @@ lookup_value_terminate(nlookup_t *nl,
 
 	if (!local)
 		wfree(vvec, vsize * sizeof *vvec);
-
-	(*nl->u.fv.ok)(nl->kuid, rs, nl->arg);
-
-	lookup_free_value_results(rs);
-	lookup_free(nl, TRUE);
 }
 
 /**
@@ -868,7 +1019,7 @@ lookup_value_append(nlookup_t *nl, float load,
 			map_insert(fv->seen, v->creator->id, v);
 		} else {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_message("DHT LOOKUP[%s] ignoring duplicate value %s",
+				g_message("DHT LOOKUP[%s] ignoring duplicate %s",
 					revent_id_to_string(nl->lid), dht_value_to_string(v));
 
 			gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
@@ -1069,6 +1220,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
  * @param kn		the node who replied with a value
  * @param payload	base of the reply payload
  * @param len		length of payload
+ * @param hop		hop at which RPC was sent, for logging
  *
  * @return TRUE if the value was sucessfully extracted (with the lookup having
  * been possibly terminated) , FALSE if we had problems parsing the message,
@@ -1077,7 +1229,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
  */
 static gboolean
 lookup_value_found(nlookup_t *nl, const knode_t *kn,
-	const char *payload, size_t len)
+	const char *payload, size_t len, guint32 hop)
 {
 	bstr_t *bs;
 	float load;
@@ -1098,9 +1250,9 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	type = nl->u.fv.vtype;
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_message("DHT LOOKUP[%s] got value for %s %s from %s",
+		g_message("DHT LOOKUP[%s] got value for %s %s from hop %u %s",
 			revent_id_to_string(nl->lid), dht_value_type_to_string(type),
-			kuid_to_hex_string(nl->kuid), knode_to_string(kn));
+			kuid_to_hex_string(nl->kuid), hop, knode_to_string(kn));
 
 	/*
 	 * Parse payload to extract value(s).
@@ -1231,6 +1383,18 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	bstr_free(&bs);
 
 	/*
+	 * For the purpose of root node caching, remember the nodes which replied
+	 * with a value by inserting them in the ball (we do not touch the path
+	 * because for value lookups it must only contain the nodes that did not
+	 * return a value: we're going to cache the values on the last one...).
+	 *
+	 * All the nodes still present in the shortlist will be removed from the
+	 * ball later on to keep only successfully queried nodes!
+	 */
+
+	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
+
+	/*
 	 * It is possible all the last "alpha" requests we sent out looking for
 	 * a value finally yield back some results.  We want to benefit from
 	 * this by attempting to collect the maximum amount of values, in case
@@ -1317,45 +1481,19 @@ lookup_value_not_found(nlookup_t *nl)
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
 
+	/*
+	 * Nevertheless, cache the closest nodes we were able to locate, so that
+	 * next time we look for the value, we can converge faster, hopefully.
+	 */
+
+	roots_record(nl->path, nl->kuid);
+
 	if (patricia_contains(nl->path, nl->kuid))
 		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
 	else if (nl->rpc_replies < MIN(KDA_ALPHA, nl->initial_contactable))
 		lookup_abort(nl, LOOKUP_E_NO_REPLY);
 	else
 		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
-}
-
-/**
- * Dump a PATRICIA tree, from furthest to closest.
- */
-static void
-log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what)
-{
-	size_t count;
-	patricia_iter_t *iter;
-	int i = 0;
-
-	lookup_check(nl);
-
-	count = patricia_count(pt);
-	g_message("DHT LOOKUP[%s] %s contains %lu item%s:",
-		revent_id_to_string(nl->lid), what, (gulong) count,
-		count == 1 ? "" : "s");
-
-	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
-
-	while (patricia_iter_has_next(iter)) {
-		knode_t *kn = patricia_iter_next_value(iter);
-
-		knode_check(kn);
-
-		if (GNET_PROPERTY(dht_lookup_debug) > 18)
-			g_message("DHT LOOKUP[%s] %s[%d]: %s",
-				revent_id_to_string(nl->lid), what, i, knode_to_string(kn));
-		i++;
-	}
-
-	patricia_iterator_release(&iter);
 }
 
 /**
@@ -1376,10 +1514,15 @@ lookup_completed(nlookup_t *nl)
 			closest ? knode_to_string(closest) : "unknown");
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			log_patricia_dump(nl, nl->path, "path");
+			log_patricia_dump(nl, nl->path, "final path", 2);
 	}
 
 	dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
+
+	/*
+	 * All done -- value was not found if it was a value lookup, otherwise
+	 * we end through lookup_value_terminate().
+	 */
 
 	if (LOOKUP_VALUE == nl->type)
 		lookup_value_not_found(nl);
@@ -1434,7 +1577,7 @@ lookup_expired(cqueue_t *unused_cq, gpointer obj)
  * Add node to the shortlist.
  */
 static void
-lookup_shortlist_add(nlookup_t *nl, knode_t *kn)
+lookup_shortlist_add(nlookup_t *nl, const knode_t *kn)
 {
 	lookup_check(nl);
 	g_assert(!map_contains(nl->queried, kn->id));
@@ -1479,6 +1622,7 @@ lookup_closest_ok(nlookup_t *nl)
 	patricia_iter_t *iter;
 	int i = 0;
 	gboolean enough = TRUE;
+	knode_t *kn = NULL;
 
 	lookup_check(nl);
 
@@ -1500,7 +1644,7 @@ lookup_closest_ok(nlookup_t *nl)
 	iter = patricia_metric_iterator_lazy(nl->ball, nl->kuid, TRUE);
 
 	while (i++ < nl->amount && patricia_iter_has_next(iter)) {
-		knode_t *kn = patricia_iter_next_value(iter);
+		kn = patricia_iter_next_value(iter);
 
 		if (!patricia_contains(nl->path, kn->id)) {
 			enough = FALSE;
@@ -1509,6 +1653,12 @@ lookup_closest_ok(nlookup_t *nl)
 	}
 
 	patricia_iterator_release(&iter);
+
+	if (!enough && GNET_PROPERTY(dht_lookup_debug) > 2) {
+		g_message("DHT LOOKUP[%s] still need to query %s",
+			revent_id_to_string(nl->lid), knode_to_string(kn));
+	}
+
 	return enough;
 }
 
@@ -1544,19 +1694,58 @@ log_status(nlookup_t *nl)
 }
 
 /**
+ * Iterate if current parallelism mode allows it.
+ */
+static void
+lookup_iterate_if_possible(nlookup_t *nl)
+{
+	lookup_check(nl);
+
+	/*
+	 * Loose parallelism: iterate as soon as one of the "alpha" RPCs from
+	 * the previous hop has returned.
+	 *
+	 * Strict parallelism: iterate when all RPCs have come back.
+	 *
+	 * Bounded parallelism: make sure we have only "alpha" RPCs pending.
+	 *
+	 * From here we only distinguish between loose/bounded and strict.
+	 * It is up to lookup_iterate() to determine, in the case of bounded
+	 * parallelism, how many requests to send.
+	 */
+
+	switch (nl->mode) {
+	case LOOKUP_STRICT:
+		if (0 != nl->rpc_pending) {
+			if (GNET_PROPERTY(dht_lookup_debug) > 2)
+				g_message(
+					"DHT LOOKUP[%s] not iterating yet (strict parallelism)",
+					revent_id_to_string(nl->lid));
+			break;
+		}
+		/* FALL THROUGH */
+	case LOOKUP_BOUNDED:
+	case LOOKUP_LOOSE:
+		lookup_iterate(nl);
+		break;
+	}
+}
+
+/**
  * Got a FIND_NODE RPC reply from node.
  *
  * @param nl		current lookup
  * @param kn		the node who replied
  * @param payload	base of the reply payload
  * @param len		length of payload
+ * @param hop		hop at which message was sent, for logging
  *
  * @return TRUE if reply was parsed correctly
  */
 static gboolean
 lookup_handle_reply(
 	nlookup_t *nl, const knode_t *kn,
-	const char *payload, size_t len)
+	const char *payload, size_t len, guint32 hop)
 {
 	bstr_t *bs;
 	sec_token_t *token = NULL;
@@ -1568,9 +1757,13 @@ lookup_handle_reply(
 	lookup_check(nl);
 	knode_check(kn);
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_message("DHT LOOKUP[%s] handling reply from %s",
-			revent_id_to_string(nl->lid), knode_to_string(kn));
+	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+		tm_t now;
+		tm_now_exact(&now);
+		g_message("DHT LOOKUP[%s] %f secs, handling hop %u reply from %s",
+			revent_id_to_string(nl->lid), tm_elapsed_f(&now, &nl->start),
+		 	hop, knode_to_string(kn));
+	}
 
 	bs = bstr_open(payload, len, GNET_PROPERTY(dht_debug) ? BSTR_F_ERROR : 0);
 
@@ -1588,7 +1781,7 @@ lookup_handle_reply(
 
 		if (!bstr_read_u8(bs, &tlen))
 			goto bad_token;
-		if (tlen && !bstr_skip(bs, tlen))
+		if (!bstr_skip(bs, tlen))
 			goto bad_token;
 	} else {
 		guint8 tlen;
@@ -1604,7 +1797,7 @@ lookup_handle_reply(
 
 		token = token_alloc(tlen);
 		
-		if (tlen && !bstr_read(bs, token->v, tlen))
+		if (tlen > 0 && !bstr_read(bs, token->v, tlen))
 			goto bad_token;
 	}
 
@@ -1668,7 +1861,7 @@ lookup_handle_reply(
 		 * Add the contact to the shortlist.
 		 */
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 4)
+		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_message("DHT LOOKUP[%s] adding contact #%d to shortlist: %s",
 				revent_id_to_string(nl->lid), n, knode_to_string(cn));
 
@@ -1764,10 +1957,12 @@ lk_msg_sent(gpointer obj, pmsg_t *mb)
 }
 
 static void
-lk_msg_dropped(gpointer obj, knode_t *kn)
+lk_msg_dropped(gpointer obj, knode_t *kn, pmsg_t *unused_mb)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
+
+	(void) unused_mb;
 
 	/*
 	 * Message was not sent and dropped by the queue.
@@ -1796,10 +1991,9 @@ lk_msg_dropped(gpointer obj, knode_t *kn)
 }
 
 static void
-lk_rpc_cancelled(gpointer obj, guint32 udata)
+lk_rpc_cancelled(gpointer obj, guint32 hop)
 {
 	nlookup_t *nl = obj;
-	guint32 hop = udata;
 	lookup_check(nl);
 
 	if (hop == nl->hops) {
@@ -1836,15 +2030,14 @@ lk_rpc_cancelled(gpointer obj, guint32 udata)
 }
 
 static void
-lk_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 udata)
+lk_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 hop)
 {
 	nlookup_t *nl = obj;
-	guint32 hop = udata;
 	lookup_check(nl);
 
 	g_assert(nl->rpc_pending > 0);
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 3)
+	if (GNET_PROPERTY(dht_lookup_debug) > 4)
 		log_status(nl);
 
 	if (hop == nl->hops) {
@@ -1859,10 +2052,9 @@ lk_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 udata)
 
 static gboolean
 lk_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 udata)
+	kda_msg_t function, const char *payload, size_t len, guint32 hop)
 {
 	nlookup_t *nl = obj;
-	guint32 hop = udata;
 
 	lookup_check(nl);
 
@@ -1876,7 +2068,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	switch (nl->type) {
 	case LOOKUP_VALUE:
 		if (function == KDA_MSG_FIND_VALUE_RESPONSE) {
-			if (lookup_value_found(nl, kn, payload, len))
+			if (lookup_value_found(nl, kn, payload, len, hop))
 				return FALSE;	/* Do not iterate */
 			nl->rpc_bad++;
 			return TRUE;		/* Iterate */
@@ -1904,7 +2096,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	g_assert(KDA_MSG_FIND_NODE_RESPONSE == function);
 
 	nl->rpc_replies++;
-	if (!lookup_handle_reply(nl, kn, payload, len))
+	if (!lookup_handle_reply(nl, kn, payload, len, hop))
 		return TRUE;	/* Iterate */
 
 	/*
@@ -1924,6 +2116,27 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	}
 
 	/*
+	 * If we are in a loose parallelism mode and the amount of items in
+	 * the path (nodes from which we got a reply) plus the amount of
+	 * outstanding RPCs reaches over the amount of closest nodes they want,
+	 * convert to bounded parallelism to prevent querying too many nodes.
+	 */
+
+	if (
+		LOOKUP_LOOSE == nl->mode &&
+		patricia_count(nl->path) + nl->rpc_pending > UNSIGNED(nl->amount)
+	) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+			g_message("DHT LOOKUP[%s] switching from loose to "
+				"bounded parallelism (path has %u items, %d RPC%s pending)",
+				revent_id_to_string(nl->lid),
+				(unsigned) patricia_count(nl->path),
+				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+		}
+		nl->mode = LOOKUP_BOUNDED;
+	}
+
+	/*
 	 * When performing a lookup to refresh a k-bucket, we're not interested
 	 * in the result directly.  Instead, we're looking to get good contacts.
 	 * Therefore, we can stop as soon as the lookup path contains the
@@ -1932,7 +2145,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 
 	if (
 		LOOKUP_REFRESH == nl->type &&
-		patricia_count(nl->path) >= (size_t) nl->amount
+		patricia_count(nl->path) >= UNSIGNED(nl->amount)
 	) {
 		if (GNET_PROPERTY(dht_lookup_debug) > 1)
 			g_message("DHT LOOKUP[%s] ending due to path size",
@@ -1954,22 +2167,12 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 			nl->closest = closest;
 
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_message("DHT LOOKUP[%s] new closest %s",
+				g_message("DHT LOOKUP[%s] new shortlist closest %s",
 					revent_id_to_string(nl->lid), knode_to_string(closest));
 		}
 	}
 
 	/*
-	 * If we get a reply from an RPC issued at a previous hop, we will only
-	 * iterate if we have no more RPC pending.
-	 */
-
-	if (hop != nl->hops)
-		return TRUE;		/* Iterate */
-
-	/*
-	 * We got an RPC reply for the latest hop (most recently sent).
-	 *
 	 * If we have seen no improvements in the closest node and we have
 	 * the requested amount of closest neighbours, we can end the lookup.
 	 */
@@ -1981,9 +2184,9 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		lookup_closest_ok(nl)
 	) {
 		if (GNET_PROPERTY(dht_lookup_debug) > 1)
-			g_message("DHT LOOKUP[%s] %s due to no improvement",
+			g_message("DHT LOOKUP[%s] %s due to no improvement (hop %u)",
 				revent_id_to_string(nl->lid),
-				0 == nl->rpc_latest_pending ? "ending" : "waiting");
+				0 == nl->rpc_latest_pending ? "ending" : "waiting", hop);
 
 		/*
 		 * End only when we got all the replies from the latest hop, in case
@@ -2002,45 +2205,33 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		return FALSE;					/* Do not iterate */
 	}
 
-	/*
-	 * Loose parallelism: iterate as soon as one of the "alpha" RPCs from
-	 * the previous hop has returned.
-	 *
-	 * Strict parallelism: iterate when all RPCs have come back.
-	 *
-	 * Bounded parallelism: make sure we have only "alpha" RPCs pending.
-	 *
-	 * From here we only distinguish between loose/bounded and strict.
-	 * It is up to lookup_iterate() to determine, in the case of bounded
-	 * parallelism, how many requests to send.
-	 */
-
-	switch (nl->mode) {
-	case LOOKUP_STRICT:
-		if (0 != nl->rpc_pending) {
-			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_message(
-					"DHT LOOKUP[%s] not iterating yet (strict parallelism)",
-					revent_id_to_string(nl->lid));
-			break;
-		}
-		/* FALL THROUGH */
-	case LOOKUP_BOUNDED:
-	case LOOKUP_LOOSE:
-		lookup_iterate(nl);
-		break;
-	}
-
-	return FALSE;	/* Do not further iterate (we may have already done so) */
+	return TRUE;	/* Iterate */
 }
 
 static void
-lk_iterate(gpointer obj, enum dht_rpc_ret unused_type)
+lk_iterate(gpointer obj, enum dht_rpc_ret type, guint32 hop)
 {
 	nlookup_t *nl = obj;
 
 	lookup_check(nl);
-	(void) unused_type;
+	(void) type;
+
+	/*
+	 * If lookup has been flagged as complete already during a previous reply,
+	 * do not iterate, and end the lookup if we have no more RPC pending.
+	 */
+
+	if (nl->flags & NL_F_COMPLETED) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 1)
+			g_message("DHT LOOKUP[%s] %s due to no improvement after hop %u %s",
+				revent_id_to_string(nl->lid),
+				0 == nl->rpc_latest_pending ? "ending" : "waiting",
+				hop, DHT_RPC_TIMEOUT == type ? "timeout" : "reply");
+
+		if (0 == nl->rpc_latest_pending)
+			lookup_completed(nl);
+		return;
+	}
 
 	/*
 	 * Check whether we need to iterate to the next set of hosts.
@@ -2054,12 +2245,30 @@ lk_iterate(gpointer obj, enum dht_rpc_ret unused_type)
 	if (lookup_is_fetching(nl))
 		return;
 
-	if (0 == nl->rpc_pending) {
-		lookup_iterate(nl);
+	/*
+	 * If we're in a bounded parallelism mode, we may always iterate after
+	 * receiving a reply or a timeout since we enforce a maximum number of
+	 * outstanding requests.
+	 *
+	 * Otherwise, after a timeout or when we got a reply from a previous hop,
+	 * we never iterate unless there are no more pending RPCs.
+	 */
+
+	if (
+		nl->mode != LOOKUP_BOUNDED &&
+		(DHT_RPC_TIMEOUT == type || hop != nl->hops)
+	) {
+		if (0 == nl->rpc_pending) {
+			lookup_iterate(nl);
+		} else if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+			g_message("DHT LOOKUP[%s] not iterating on %s (%d pending RPC%s)",
+				revent_id_to_string(nl->lid),
+				DHT_RPC_TIMEOUT == type ?
+					"timeout" : "reply from previous hop",
+				nl->rpc_pending, 1 == nl->rpc_pending ? "" : "s");
+		}
 	} else {
-		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			g_message("DHT LOOKUP[%s] not iterating (pending RPC)",
-				revent_id_to_string(nl->lid));
+		lookup_iterate_if_possible(nl);
 	}
 }
 
@@ -2085,6 +2294,10 @@ static struct revent_ops lookup_ops = {
 static void
 lookup_send(nlookup_t *nl, knode_t *kn)
 {
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		g_message("DHT LOOKUP[%s] hop %u, querying %s",
+			revent_id_to_string(nl->lid), nl->hops, knode_to_string(kn));
+
 	/*
 	 * Increate message pending variables before sending, as the callback
 	 * for message freeing can be synchronous with the call if the UDP queue
@@ -2138,6 +2351,10 @@ lookup_delay(nlookup_t *nl)
 	g_assert(nl->delay_ev == NULL);
 	g_assert(!(nl->flags & NL_F_DELAYED));
 
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		g_message("DHT LOOKUP[%s] delaying next iteration by %f seconds",
+			revent_id_to_string(nl->lid), NL_FIND_DELAY / 1000.0);
+
 	nl->flags |= NL_F_DELAYED;
 	nl->delay_ev = cq_insert(callout_queue, NL_FIND_DELAY,
 		lookup_delay_expired, nl);
@@ -2179,8 +2396,9 @@ lookup_iterate(nlookup_t *nl)
 
 		if (alpha <= 0) {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_message("DHT LOOKUP[%s] not iterating yet (%d RPC pending)",
-					revent_id_to_string(nl->lid), nl->rpc_pending);
+				g_message("DHT LOOKUP[%s] not iterating yet (%d RPC%s pending)",
+					revent_id_to_string(nl->lid), nl->rpc_pending,
+					1 == nl->rpc_pending ? "" : "s");
 			return;
 		}
 	}
@@ -2196,13 +2414,13 @@ lookup_iterate(nlookup_t *nl)
 			lookup_parallelism_mode_to_string(nl->mode),
 			alpha, 1 == alpha ? "" : "s", nl->rpc_pending);
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 3)
+	if (GNET_PROPERTY(dht_lookup_debug) > 4)
 		log_status(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-		log_patricia_dump(nl, nl->shortlist, "shortlist");
-		log_patricia_dump(nl, nl->path, "path");
-		log_patricia_dump(nl, nl->ball, "ball");
+		log_patricia_dump(nl, nl->shortlist, "shortlist", 18);
+		log_patricia_dump(nl, nl->path, "path", 18);
+		log_patricia_dump(nl, nl->ball, "ball", 18);
 	}
 
 	/*
@@ -2235,7 +2453,7 @@ lookup_iterate(nlookup_t *nl)
 	patricia_iterator_release(&iter);
 
 	/*
-	 * Remove the nodes to which we sent a message.
+	 * Remove the nodes to whom we sent a message.
 	 */
 
 	g_assert(0 == i || to_remove != NULL);
@@ -2283,7 +2501,8 @@ lookup_iterate(nlookup_t *nl)
 }
 
 /**
- * Load the initial shortlist, using known nodes from the routing table.
+ * Load the initial shortlist, using known nodes from the routing table and
+ * possibly cached roots for a close-enough target.
  *
  * @return TRUE if OK so far, FALSE on error.
  */
@@ -2297,6 +2516,10 @@ lookup_load_shortlist(nlookup_t *nl)
 
 	lookup_check(nl);
 
+	/*
+	 * Start with nodes from the routing table.
+	 */
+
 	kvec = walloc(KDA_K * sizeof(knode_t *));
 	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL, FALSE);
 
@@ -2309,10 +2532,30 @@ lookup_load_shortlist(nlookup_t *nl)
 			contactable++;
 	}
 
+	/*
+	 * Now see whether we can add nodes from the cached k-closest nodes
+	 * we have for some KUID targets.  In order to get close-enough nodes
+	 * even if there is no exact KUID target match in the cache and avoid
+	 * duplicates, we supply the current shortlist.
+	 */
+
+	kcnt = roots_fill_closest(nl->kuid, kvec, KDA_K, nl->shortlist);
+
+	for (i = 0; i < kcnt; i++) {
+		knode_t *kn = kvec[i];
+
+		lookup_shortlist_add(nl, kn);
+		knode_free(kn);		/* Node refcount increased when added */
+		contactable++;		/* Assume we can if it was in the roots cache */
+	}
+
 	nl->closest = patricia_closest(nl->shortlist, nl->kuid);
 	nl->initial_contactable = contactable;
 
 	wfree(kvec, KDA_K * sizeof(knode_t *));
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 3)
+		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 3);
 
 	if (0 == contactable && GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_message("DHT LOOKUP[%s] cancelling %s lookup for %s: "
@@ -2378,6 +2621,12 @@ lookup_cancel(nlookup_t *nl, gboolean callback)
 {
 	lookup_check(nl);
 
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_message("DHT LOOKUP[%s] cancelling %s lookup with%s callback",
+			revent_id_to_string(nl->lid), lookup_type_to_string(nl->type),
+			callback && nl->err ? "" : "out");
+	}
+
 	if (callback && nl->err)
 		(*nl->err)(nl->kuid, LOOKUP_E_CANCELLED, nl->arg);
 
@@ -2426,6 +2675,41 @@ lookup_find_node(
 		lookup_free(nl, TRUE);
 		return NULL;
 	}
+
+	lookup_iterate(nl);
+	return nl;
+}
+
+/**
+ * Get the security token from specified node.
+ *
+ * @param kn		the node for which we want to get the security token
+ * @param ok		callback to invoke when results are available
+ * @param err		callback to invoke on error
+ * @param arg		additional user data to propagate to callbacks
+ *
+ * @return opaque pointer to the created lookup
+ */
+nlookup_t *
+lookup_token(const knode_t *kn,
+	lookup_cb_ok_t ok, lookup_cb_err_t err, gpointer arg)
+{
+	nlookup_t *nl;
+
+	knode_check(kn);
+
+	nl = lookup_create(kn->id, LOOKUP_NODE, err, arg);
+	nl->amount = 1;
+	nl->u.fn.ok = ok;
+	nl->mode = LOOKUP_STRICT;
+
+	/*
+	 * Our shortlist is limited to the node for which we want the token
+	 */
+
+	lookup_shortlist_add(nl, kn);
+	nl->closest = kn;
+	nl->initial_contactable = 1;
 
 	lookup_iterate(nl);
 	return nl;
@@ -2598,7 +2882,8 @@ lookup_value_delay(nlookup_t *nl)
  * parsing it.
  */
 static gboolean
-lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
+lookup_value_handle_reply(nlookup_t *nl,
+	const char *payload, size_t len)
 {
 	bstr_t *bs;
 	float load;
@@ -2651,6 +2936,10 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 		goto bad;
 	}
 
+	/*
+	 * Check that we got the type of value we were looking for.
+	 */
+
 	if (type != DHT_VT_ANY && type != v->type) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT LOOKUP[%s] "
@@ -2660,6 +2949,23 @@ lookup_value_handle_reply(nlookup_t *nl, const char *payload, size_t len)
 
 		dht_value_free(v, TRUE);
 		reason = "unexpected DHT value type";
+		goto bad;
+	}
+
+	/*
+	 * Check that we got a value for the proper key.
+	 */
+
+	if (!kuid_eq(nl->kuid, v->id)) {
+		if (GNET_PROPERTY(dht_lookup_debug))
+			g_warning("DHT LOOKUP[%s] "
+				"requested \"%s\" %s but got %s from %s",
+				revent_id_to_string(nl->lid),
+				dht_value_type_to_string(type), kuid_to_hex_string(nl->kuid),
+				dht_value_to_string(v), knode_to_string(kn));
+
+		dht_value_free(v, TRUE);
+		reason = "DHT value primary key mismatch";
 		goto bad;
 	}
 
@@ -2687,9 +2993,11 @@ bad:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
-			"from %s: %s: %s",
+			"from %s: %s%s%s",
 			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 reason, bstr_error(bs));
+			 reason,
+			 bstr_has_error(bs) ? ": " : "",
+			 bstr_has_error(bs) ? bstr_error(bs) : "");
 
 	bstr_free(&bs);
 	return FALSE;
@@ -2723,12 +3031,13 @@ lk_value_msg_sent(gpointer obj, pmsg_t *mb)
 }
 
 static void
-lk_value_msg_dropped(gpointer obj, knode_t *unused_kn)
+lk_value_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *unused_mb)
 {
 	nlookup_t *nl = obj;
 	lookup_value_check(nl);
 
 	(void) unused_kn;
+	(void) unused_mb;
 
 	nl->msg_dropped++;
 	nl->udp_drops++;
@@ -2775,12 +3084,11 @@ lk_value_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 unused_udata)
 
 static gboolean
 lk_value_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 udata)
+	kda_msg_t function, const char *payload, size_t len, guint32 hop)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 	struct seckeys *sk;
-	guint32 hop = udata;
 
 	lookup_value_check(nl);
 
@@ -2829,13 +3137,14 @@ lk_value_handle_reply(gpointer obj, const knode_t *kn,
 }
 
 static void
-lk_value_iterate(gpointer obj, enum dht_rpc_ret type)
+lk_value_iterate(gpointer obj, enum dht_rpc_ret type, guint32 unused_data)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 	struct seckeys *sk;
 
 	lookup_value_check(nl);
+	(void) unused_data;
 
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);

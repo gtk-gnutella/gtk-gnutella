@@ -119,6 +119,8 @@ nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
 nlookup_t *lookup_find_node(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+nlookup_t *lookup_token(const knode_t *kn,
+	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 
 void lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats);
 void lookup_cancel(nlookup_t *nl, gboolean callback);
