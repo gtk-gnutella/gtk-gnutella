@@ -1707,6 +1707,8 @@ promote_pending_node(struct kbucket *kb)
 		hash_list_iter_release(&iter);
 
 		if (selected) {
+			time_delta_t elapsed;
+
 			if (GNET_PROPERTY(dht_debug))
 				g_message("DHT promoting %s node %s at %s to good in %s",
 					knode_status_to_string(selected->status),
@@ -1733,9 +1735,13 @@ promote_pending_node(struct kbucket *kb)
 			 * ping it to make sure it's still alive.
 			 */
 
-			if (
-				delta_time(tm_time(), selected->last_seen) >= ALIVENESS_PERIOD
-			) {
+			elapsed = delta_time(tm_time(), selected->last_seen);
+
+			if (elapsed >= ALIVENESS_PERIOD) {
+				if (GNET_PROPERTY(dht_debug))
+					g_message("DHT pinging promoted node (last seen %s)",
+						short_time(elapsed));
+
 				dht_rpc_ping(selected, NULL, NULL);
 				gnet_stats_count_general(
 					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);

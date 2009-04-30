@@ -804,9 +804,9 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 	gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, rd->count);
 
 	if (GNET_PROPERTY(dht_roots_debug) > 3)
-		g_message("DHT ROOTS retrieved %u closest node%s from %s kept",
+		g_message("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
 			rd->count, 1 == rd->count ? "" : "s",
-			kuid_to_hex_string(id));
+			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
 
 	return FALSE;
 }
