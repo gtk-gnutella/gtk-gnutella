@@ -285,6 +285,39 @@ deserialize_valuedata(bstr_t *bs, gpointer valptr, size_t len)
 }
 
 /**
+ * Converts store status code to string.
+ */
+static const char * const store_errstr[] = {
+	"INVALID",								/* O */
+	"OK",									/**< STORE_SC_OK */
+	"Error",								/**< STORE_SC_ERROR */
+	"Node is full for this key",			/**< STORE_SC_FULL */
+	"Node is loaded for this key",			/**< STORE_SC_LOADED */
+	"Node is both loaded and full for key",	/**< STORE_SC_FULL_LOADED */
+	"Value is too large",					/**< STORE_SC_TOO_LARGE */
+	"Storage space exhausted",				/**< STORE_SC_EXHAUSTED */
+	"Creator is not acceptable",			/**< STORE_SC_BAD_CREATOR */
+	"Analyzed value did not validate",		/**< STORE_SC_BAD_VALUE */
+	"Improper value type",					/**< STORE_SC_BAD_TYPE */
+	"Storage quota for creator reached",	/**< STORE_SC_QUOTA */
+	"Replicated data is different",			/**< STORE_SC_DATA_MISMATCH */
+	"Invalid security token",				/**< STORE_SC_BAD_TOKEN */
+	"Value has already expired",			/**< STORE_SC_EXPIRED */
+};
+
+/**
+ * @return human-readable error string corresponding to error code `errnum'.
+ */
+const char *
+dht_store_error_to_string(guint16 errnum)
+{
+	if (errnum == 0 || errnum >= G_N_ELEMENTS(store_errstr))
+		return "Invalid error code";
+
+	return store_errstr[errnum];
+}
+
+/**
  * Create a DHT value.
  *
  * @param creator		the creator of the value
@@ -601,13 +634,14 @@ get_valuedata(guint64 dbkey)
 	vd = dbmw_read(db_valuedata, &dbkey, NULL);
 
 	if (vd == NULL) {
-		/* XXX Must handle I/O errors correctly */
 		if (dbmw_has_ioerr(db_valuedata)) {
-			g_warning("DB I/O error, bad things will happen...");
-			return NULL;
+			g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+				dbmw_name(db_valuedata));
+		} else {
+			g_warning("value for DB-key %s exists but not found in DBMW \"%s\"",
+				uint64_to_string(dbkey), dbmw_name(db_valuedata));
 		}
-		g_error("Value for DB-key %s supposed to exist but was not found in DB",
-			uint64_to_string(dbkey));
+		return NULL;
 	}
 
 	return vd;
@@ -624,10 +658,11 @@ delete_valuedata(guint64 dbkey, gboolean has_expired)
 {
 	const struct valuedata *vd;
 
-	vd = get_valuedata(dbkey);
-
-	g_assert(vd);					/* XXX handle I/O errors correctly */
 	g_assert(values_managed > 0);
+
+	vd = get_valuedata(dbkey);
+	if (NULL == vd)
+		return;			/* I/O error or corrupted data */
 
 	values_managed--;
 	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
@@ -780,7 +815,8 @@ values_has_expired(guint64 dbkey, time_t now, time_t *expire)
 	struct valuedata *vd;
 
 	vd = get_valuedata(dbkey);
-	g_assert(vd);		/* XXX better handling for I/O errors */
+	if (NULL == vd)
+		return FALSE;		/* I/O error or corrupted database */
 
 	if (now >= vd->expire)  {
 		values_expire(dbkey, vd);
@@ -1229,12 +1265,14 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		vd = get_valuedata(dbkey);
 
+		if (NULL == vd)
+			return STORE_SC_ERROR;		/* I/O error or corrupted DB */
+
 		/*
 		 * If one the following assertions fails, then it means our data
 		 * management is wrong and we messed up severely somewhere.
 		 */
 
-		g_assert(vd);						/* XXX handle DB failures */
 		g_assert(kuid_eq(&vd->id, v->id));				/* Primary key */
 		g_assert(kuid_eq(&vd->cid, v->creator->id));	/* Secondary key */
 
@@ -1460,7 +1498,8 @@ done:
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_message("DHT STORE status for \"%s\" %s is %u (%s)",
 			dht_value_type_to_string(v->type),
-			kuid_to_hex_string(v->id), status, store_error_to_string(status));
+			kuid_to_hex_string(v->id), status,
+			dht_store_error_to_string(status));
 
 	return status;
 }
