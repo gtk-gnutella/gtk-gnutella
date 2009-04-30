@@ -51,6 +51,8 @@ typedef enum {
 	LOOKUP_E_NOT_FOUND,			/**< Value not found */
 	LOOKUP_E_EXPIRED,			/**< Lookup expired */
 	LOOKUP_E_EMPTY_ROUTE,		/**< Empty routing table */
+	LOOKUP_E_EMPTY_PATH,		/**< Unable to contact any node */
+	LOOKUP_E_PARTIAL,			/**< Incomplete results */
 
 	LOOKUP_E_MAX				/**< Amount of error codes defined */
 } lookup_error_t;
