@@ -389,6 +389,20 @@ pmsg_free(pmsg_t *mb)
 }
 
 /**
+ * Free message block referenced in the variable and nullify it.
+ */
+void
+pmsg_free_null(pmsg_t **mb_ptr)
+{
+	pmsg_t *mb = *mb_ptr;
+
+	if (mb) {
+		pmsg_free(mb);
+		*mb_ptr = NULL;
+	}
+}
+
+/**
  * @return amount of data that can be written at the end of the message.
  */
 int

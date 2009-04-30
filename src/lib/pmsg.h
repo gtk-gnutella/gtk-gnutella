@@ -167,6 +167,7 @@ pmsg_free_t pmsg_replace_ext(
 gpointer pmsg_get_metadata(pmsg_t *mb);
 pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
+void pmsg_free_null(pmsg_t **mb_ptr);
 int pmsg_write(pmsg_t *mb, gconstpointer data, int len);
 int pmsg_writable_length(const pmsg_t *mb);
 int pmsg_read(pmsg_t *mb, gpointer data, int len);
