@@ -779,8 +779,16 @@ dbmap_foreach_remove_trampoline(gpointer key, gpointer value, gpointer arg)
 {
 	dbmap_datum_t *d = value;
 	struct foreach_ctx *ctx = arg;
+	gboolean to_remove;
 
-	return (*ctx->u.cbr)(key, d, ctx->arg);
+	to_remove = (*ctx->u.cbr)(key, d, ctx->arg);
+
+	if (to_remove) {
+		wfree(d->data, d->len);
+		wfree(d, sizeof *d);
+	}
+
+	return to_remove;
 }
 
 /**
