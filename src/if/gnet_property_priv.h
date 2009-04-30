@@ -391,6 +391,7 @@ extern const guint32  gnet_property_variable_node_udp_sendqueue_size;
 extern const guint32  gnet_property_variable_clock_debug;
 extern const guint32  gnet_property_variable_fw_debug;
 extern const guint32  gnet_property_variable_host_debug;
+extern const guint32  gnet_property_variable_dht_roots_debug;
 
 
 prop_set_t *gnet_prop_init(void);

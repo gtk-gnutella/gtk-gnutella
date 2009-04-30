@@ -3996,4 +3996,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "dht_roots_debug";
+    desc = "Debug level for DHT root node caching.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

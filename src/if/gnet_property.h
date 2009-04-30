@@ -379,6 +379,7 @@ typedef enum {
     PROP_CLOCK_DEBUG,
     PROP_FW_DEBUG,
     PROP_HOST_DEBUG,
+    PROP_DHT_ROOTS_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
