@@ -80,6 +80,24 @@ RCSID("$Id$")
  */
 #define KMSG_FOUND_NODE_SIZE	727
 
+/**
+ * The aimed length for STORE messages.
+ *
+ * The overhead of a STORE message is variable, because the security token is
+ * of variable length, and there can be several DHT values in one single
+ * STORE message.
+ *
+ * The maximum possible length would be 652 bytes with a 512-byte long value
+ * payload, and using an IPv6 address for the creator.  However, the current
+ * specifications (v0.0) require the DHT value header to use an IPv4 address,
+ * so the maximum message length is 640 bytes.
+ *
+ * In practice, we aim for 512-byte long messages (including overhead) and
+ * only include 1 single DHT value if the message would end-up being longer.
+ */
+#define KMSG_STORE_AIMED_SIZE	512
+#define KMSG_STORE_MAX_SIZE		640
+
 typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header,
 	guint8 extlen, const void *payload, size_t len);
@@ -303,7 +321,7 @@ serialize_size_estimate(pmsg_t *mb)
  * Serialize a contact to message block.
  */
 static void
-serialize_contact(pmsg_t *mb, const knode_t *kn)
+kmsg_serialize_contact(pmsg_t *mb, const knode_t *kn)
 {
 	pmsg_write_be32(mb, kn->vcode.u32);
 	pmsg_write_u8(mb, kn->major);
@@ -321,12 +339,12 @@ serialize_contact_vector(pmsg_t *mb, knode_t **kvec, size_t klen)
 {
 	size_t i;
 
-	g_assert(klen < 256);
+	g_assert(klen <= MAX_INT_VAL(guint8));
 
 	pmsg_write_u8(mb, klen);
 
 	for (i = 0; i < klen; i++)
-		serialize_contact(mb, kvec[i]);
+		kmsg_serialize_contact(mb, kvec[i]);
 }
 
 /**
@@ -359,11 +377,11 @@ kmsg_deserialize_contact(bstr_t *bs)
 /**
  * Serialize a DHT value.
  */
-void
-kmsg_serialize_dht_value(pmsg_t *mb, const dht_value_t *v)
+static void
+serialize_dht_value(pmsg_t *mb, const dht_value_t *v)
 {
 	/* DHT value header */
-	serialize_contact(mb, v->creator);
+	kmsg_serialize_contact(mb, v->creator);
 	pmsg_write(mb, v->id, KUID_RAW_SIZE);
 	pmsg_write_be32(mb, v->type);
 	pmsg_write_u8(mb, v->major);
@@ -644,7 +662,7 @@ k_send_find_value_response(
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
 		dht_value_t *v = vvec[i];
-		size_t value_size = 61 + v->length;	/* See assert below */
+		size_t value_size = DHT_VALUE_HEADER_SIZE + v->length;
 
 		g_assert((size_t) pmsg_available(mb) >= secondary_size);
 
@@ -660,7 +678,7 @@ k_send_find_value_response(
 		/* That's the specs and the 61 above depends on the following... */
 		g_assert(NET_TYPE_IPV4 == host_addr_net(v->creator->addr));
 
-		kmsg_serialize_dht_value(mb, v);
+		serialize_dht_value(mb, v);
 		values++;
 
 		if (GNET_PROPERTY(dht_debug) > 4)
@@ -978,7 +996,7 @@ answer_find_node(struct gnutella_node *n,
 
 	if (node_udp_is_flow_controlled()) {
 		msg = "is flow-controlled";
-		goto dropped;
+		goto flow_controlled;
 	}
 
 	/*
@@ -989,7 +1007,7 @@ answer_find_node(struct gnutella_node *n,
 
 	if (node_udp_would_flow_control(KMSG_FOUND_NODE_SIZE)) {
 		msg = "would flow-control";
-		goto dropped;
+		goto flow_controlled;
 	}
 
 	/*
@@ -1000,13 +1018,29 @@ answer_find_node(struct gnutella_node *n,
 	k_send_find_node_response(n, kn, kvec, cnt, muid);
 	return;
 
-dropped:
-	if (GNET_PROPERTY(dht_debug)) {
-		g_message("DHT ignoring FIND_NODE %s: UDP queue %s",
-			kuid_to_hex_string(id), msg);
-	}
+flow_controlled:
+	/*
+	 * If they are looking for our KUID, they probably want our security token.
+	 * Answer with no nodes to limit message size.
+	 *
+	 * Otherwise, don't bother replying.
+	 */
 
-	gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
+	if (kuid_eq(id, get_our_kuid())) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT limiting FIND_NODE %s (ourselves): UDP queue %s",
+				kuid_to_hex_string(id), msg);
+		}
+
+		k_send_find_node_response(n, kn, kvec, 0, muid);
+	} else {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT ignoring FIND_NODE %s: UDP queue %s",
+				kuid_to_hex_string(id), msg);
+		}
+
+		gnet_stats_count_dropped(n, MSG_DROP_FLOW_CONTROL);
+	}
 }
 
 /**
@@ -1450,10 +1484,14 @@ cleanup:
 }
 
 /**
- * Handle node lookup answers (FIND_NODE_RESPONSE and FIND_VALUE_RESPONSE).
+ * Handle node RPC answers (FIND_NODE_RESPONSE, FIND_VALUE_RESPONSE and
+ * STORE_RESPONSE).
+ *
+ * If the message is for a recognized RPC (based on the message's MUID), then
+ * it will be handled by the RPC callbacks.  Otherwise, the message is ignored.
  */
 static void
-k_handle_lookup(knode_t *kn, struct gnutella_node *n,
+k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header, guint8 extlen,
 	const void *payload, size_t len)
 {
@@ -1477,7 +1515,7 @@ k_handle_lookup(knode_t *kn, struct gnutella_node *n,
 /**
  * Send message to the Kademlia node.
  */
-static void
+void
 kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(kn->addr, kn->port);
@@ -1560,7 +1598,7 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	int i;
 
 	g_assert(skeys == NULL || scnt > 0);
-	g_assert(scnt >= 0 && scnt < 256);
+	g_assert(scnt >= 0 && scnt <= MAX_INT_VAL(guint8));
 
 	/* Header + target KUID + count + array-of-sec-keys + type */
 	msize = KDA_HEADER_SIZE + KUID_RAW_SIZE + 1 +
@@ -1584,47 +1622,142 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 }
 
 /**
- * Send store(values) message to node.
+ * Patch the STORE message value count byte if we have finally put more than
+ * one values in the message and adjust the Kademlia header size to match
+ * that of the built buffer, since the message block can be larger than
+ * the message actually serialized to it.
+ */
+static void
+store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
+{
+	guint8 function = kademlia_header_get_function(pmsg_start(mb));
+
+	g_assert(KDA_MSG_STORE_REQUEST == function);
+
+	/* Patch value count if more than 1 value is held in message */
+	if (values_held > 1) {
+		pmsg_offset_t cur = pmsg_write_offset(mb);
+		pmsg_seek(mb, value_count);
+		pmsg_write_u8(mb, values_held);
+		pmsg_seek(mb, cur);		/* Critical: must go back to end */
+	}
+
+	/* Adjust Kademlia header size -- message block can be larger */
+	kademlia_header_set_size(pmsg_start(mb),
+		pmsg_written_size(mb) - KDA_HEADER_SIZE);
+}
+
+/**
+ * Build store(values) messages.
  *
- * @param kn		the node to whom the message should be sent
+ * There are ``vcnt'' values to store, and we need at most 1 message per
+ * value.  We try to stuff as many values per message as we can, aiming
+ * to produce messages that are around KMSG_STORE_AIMED_SIZE bytes, including
+ * Kademlia header overhead + DHT value header overhead.
+ *
  * @param token		security token
  * @param toklen	length of security token, in bytes (can be 0)
- * @param values	serialized DHT values
- * @param vcnt		amount of values serialized
- * @param muid		the message ID to use
- * @param mfree		(optional) message free routine to use
- * @param marg		the argument to supply to the message free routine
+ * @param vvec		vector of values to store
+ * @param vcnt		amount of values in ``vvec''
+ *
+ * @return a GSList of message blocks (pmsg_t *), with blank MUIDs, meant
+ * to be overwritten by the RPC layer.
+ * It is up to the caller to free up the list and the blocks.
  */
-void
-kmsg_send_store(knode_t *kn,
-	gconstpointer token, size_t toklen, pmsg_t *values, int vcnt,
-	const guid_t *muid, pmsg_free_t mfree, gpointer marg)
+GSList *
+kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 {
-	pmsg_t *mb;
-	int msize;
+	int i;
+	GSList *result = NULL;
+	pmsg_t *mb = NULL;
+	int vheld = 0;
+	pmsg_offset_t value_count = 0;
 
-	g_assert(values);
+	g_assert(vvec);
 	g_assert(size_is_non_negative(toklen));
 	g_assert(token == NULL || size_is_positive(toklen));
-	g_assert(vcnt > 0 && vcnt < 256);
-	g_assert(pmsg_is_unread(values));
+	g_assert(vcnt > 0 && vcnt <= MAX_INT_VAL(guint8));
 
-	/* Header + token length + security token + count + values */
-	msize = KDA_HEADER_SIZE + 1 + toklen + 1 + pmsg_size(values);
+	/*
+	 * Sort values by increasing size, so that we can stuff as many smaller
+	 * values as possible in the first messages.
+	 */
 
-	mb = mfree ?
-		pmsg_new_extend(PMSG_P_DATA, NULL, msize, mfree, marg) :
-		pmsg_new(PMSG_P_DATA, NULL, msize);
+	qsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
 
-	kmsg_build_header_pmsg(mb, KDA_MSG_STORE_REQUEST, 0, 0, muid);
-	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
-	pmsg_write_u8(mb, toklen);
-	pmsg_write(mb, token, toklen);
-	pmsg_write_u8(mb, vcnt);
-	pmsg_write(mb, pmsg_read_base(values), pmsg_size(values));
+	for (i = 0; i < vcnt; i++) {
+		dht_value_t *v = vvec[i];
+		size_t value_size = DHT_VALUE_HEADER_SIZE + v->length;
 
-	g_assert(0 == pmsg_available(mb));
-	kmsg_send_mb(kn, mb);
+		/*
+		 * If value does not fit in message, flush the current one.
+		 */
+
+		if (mb && UNSIGNED(pmsg_available(mb)) < value_size) {
+			g_assert(vheld > 0 && vheld <= MAX_INT_VAL(guint8));
+
+			store_finalize_pmsg(mb, vheld, value_count);
+
+			result = g_slist_prepend(result, mb);
+			mb = NULL;
+			vheld = 0;
+		}
+
+		/*
+		 * If no current message, allocate one suitable for holding the
+		 * current value.
+		 */
+
+		if (NULL == mb) {
+			int msize;
+			kademlia_header_t *header;
+
+			/* Header + token length + security token + count + value(s) */
+			msize = KDA_HEADER_SIZE + 1 + toklen + 1 + value_size;
+			if (vcnt - i > 1)		/* Can hope to pack more than 1 value */
+				msize = MAX(msize, KMSG_STORE_AIMED_SIZE);
+
+			mb = pmsg_new(PMSG_P_DATA, NULL, msize);
+
+			/*
+			 * Build message header.
+			 *
+			 * When we stuff more than one value in the message, we cannot
+			 * know what the final size is going to be a priori, so it will
+			 * get patched at the end in store_finalize_pmsg().
+			 */
+
+			header = (kademlia_header_t *) pmsg_start(mb);
+			kmsg_build_header(header, KDA_MSG_STORE_REQUEST, 0, 0, &blank_guid);
+			pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
+			pmsg_write_u8(mb, toklen);
+			pmsg_write(mb, token, toklen);
+
+			/* Assume 1 value will be held -- field patched if needed */
+			value_count = pmsg_write_offset(mb);
+			pmsg_write_u8(mb, 1);
+		}
+
+		/*
+		 * Serialize current value at the tail of the current message.
+		 */
+
+		g_assert(UNSIGNED(pmsg_available(mb)) >= value_size);
+
+		serialize_dht_value(mb, v);
+		vheld++;
+	}
+
+	/*
+	 * Flush current message.
+	 */
+
+	g_assert(mb != NULL);
+	g_assert(vheld > 0 && vheld <= MAX_INT_VAL(guint8));
+
+	store_finalize_pmsg(mb, vheld, value_count);
+
+	return g_slist_prepend(result, mb);
 }
 
 /**
@@ -1922,11 +2055,11 @@ static const struct kmsg kmsg_map[] = {
 	{ KDA_MSG_PING_REQUEST,			k_handle_ping,			"PING"			},
 	{ KDA_MSG_PING_RESPONSE,		k_handle_pong,			"PONG"			},
 	{ KDA_MSG_STORE_REQUEST,		k_handle_store,			"STORE"			},
-	{ KDA_MSG_STORE_RESPONSE,		NULL,					"STORE_ACK"		},
+	{ KDA_MSG_STORE_RESPONSE,		k_handle_rpc_reply,		"STORE_ACK"		},
 	{ KDA_MSG_FIND_NODE_REQUEST,	k_handle_find_node,		"FIND_NODE"		},
-	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_lookup,		"FOUND_NODE"	},
+	{ KDA_MSG_FIND_NODE_RESPONSE,	k_handle_rpc_reply,		"FOUND_NODE"	},
 	{ KDA_MSG_FIND_VALUE_REQUEST,	k_handle_find_value,	"FIND_VALUE"	},
-	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_lookup,		"VALUE"			},
+	{ KDA_MSG_FIND_VALUE_RESPONSE,	k_handle_rpc_reply,		"VALUE"			},
 	{ KDA_MSG_STATS_REQUEST,		NULL, /* Deprecated */	"STATS"			},
 	{ KDA_MSG_STATS_RESPONSE,		NULL, /* Deprecated */	"STATS_ACK" 	},
 };
