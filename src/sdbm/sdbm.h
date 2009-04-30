@@ -11,15 +11,14 @@
 #define DBM_DBLKSIZ 4096
 #define DBM_PBLKSIZ 1024
 #define DBM_PAIRMAX 1008		/* arbitrary on PBLKSIZ-N */
-#define DBM_SPLTMAX	10		/* maximum allowed splits */
-					/* for a single insertion */
+#define DBM_SPLTMAX	10			/* maximum allowed splits for an insertion */
 #define DBM_DIRFEXT	".dir"
 #define DBM_PAGFEXT	".pag"
 
 typedef struct DBM DBM;
 
-#define DBM_RDONLY	0x1	       /* data base open read-only */
-#define DBM_IOERR	0x2	       /* data base I/O error */
+#define DBM_RDONLY	0x1			/* data base open read-only */
+#define DBM_IOERR	0x2			/* data base I/O error */
 
 typedef struct {
 	char *dptr;
