@@ -522,8 +522,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * [deferred] page out, as the window of failure is too great.
 		 */
 
-		db->curbit = 2 * db->curbit +
-			((hash & (db->hmask + 1)) ? 2 : 1);
+		db->curbit = 2 * db->curbit + ((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
 
 		if (!flush_pagbuf(db))
@@ -656,7 +655,7 @@ setdbit(DBM *db, long int dbit)
 	dirb = c / DBM_DBLKSIZ;
 
 	if (!fetch_dirbuf(db, dirb))
-		return 0;
+		return FALSE;
 
 	db->dirbuf[c % DBM_DBLKSIZ] |= (1 << dbit % BYTESIZ);
 
@@ -664,8 +663,8 @@ setdbit(DBM *db, long int dbit)
 	if (dbit >= db->maxbno)
 		db->maxbno += DBM_DBLKSIZ * BYTESIZ;
 #else
-	if (OFF_DIR((dirb+1))*BYTESIZ > db->maxbno) 
-		db->maxbno=OFF_DIR((dirb+1))*BYTESIZ;
+	if (OFF_DIR((dirb+1)) * BYTESIZ > db->maxbno) 
+		db->maxbno = OFF_DIR((dirb+1)) * BYTESIZ;
 #endif
 
 	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb)) < 0)
