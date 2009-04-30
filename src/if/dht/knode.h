@@ -76,6 +76,7 @@ typedef struct knode {
 #define KNODE_F_FOREIGN_IP	(1 << 3)	/**< Got packet from different IP */
 #define KNODE_F_SHUTDOWNING	(1 << 4)	/**< Host said it was shutdowning */
 #define KNODE_F_PCONTACT	(1 << 5)	/**< Patched contact address */
+#define KNODE_F_CACHED		(1 << 6)	/**< Node comes from root cache */
 
 void knode_free(knode_t *kn);
 unsigned int knode_hash(gconstpointer key);

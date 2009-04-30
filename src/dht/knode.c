@@ -97,6 +97,17 @@ knode_seen_cmp(gconstpointer a, gconstpointer b)
 
 /**
  * Allocate new Kademlia node.
+ *
+ * @param id		the KUID of the node
+ * @param flags		the message flags supplied by the node (incoming traffic)
+ * @param addr		the IP address of the node
+ * @param port		the port of the node
+ * @param vcode		the vendor code
+ * @param major		the major version number
+ * @param minor		the minor version number
+ *
+ * @return a new Kademlia node with a reference count of 1, in the
+ * "unknown" status.
  */
 knode_t *
 knode_new(
@@ -258,6 +269,8 @@ knode_addr_is_usable(const knode_t *kn)
  * is not alive.  Normally, only alive hosts from which we get traffic are
  * added, but here we have an instance that is not alive -- a zombie.
  *
+ * A "cached" node is a node coming from the k-closest root cache.
+ *
  * A firewalled node is indicated by a trailing "fw" indication.
  *
  * @return the buffer where printing was done.
@@ -273,7 +286,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s",
+		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s%s",
 		host_buf,
 		(kn->flags & KNODE_F_PCONTACT) ? "*" : "",
 		(kn->flags & KNODE_F_FOREIGN_IP) ? "?" : "",
@@ -281,6 +294,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 		knode_status_to_string(kn->status), kn->refcnt,
 		(kn->status != KNODE_UNKNOWN && !(kn->flags & KNODE_F_ALIVE)) ?
 			" zombie" : "",
+		(kn->flags & KNODE_F_CACHED) ? " cached" : "",
 		(kn->flags & KNODE_F_FIREWALLED) ? " fw" : "");
 
 	return buf;
