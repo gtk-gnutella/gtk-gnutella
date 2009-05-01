@@ -29,6 +29,7 @@
 
 SRC = \
 	hash.c \
+	lru.c \
 	pair.c \
 	sdbm.c
 

@@ -11,12 +11,13 @@
  */
 
 #define SEEDUPS			/* always detect duplicates */
-#define BADMESS			/* generate a message for worst case:
-				   cannot make room after DBM_SPLTMAX splits */
+#define LRU				/* use LRU cache for pages */
+#define LRU_PAGES	64	/* default amount of pages in LRU cache */
+
 /*
  * misc
  */
-#ifdef DEBUG
+#ifdef SDBM_DEBUG
 #define debug(x)	printf x
 #else
 #define debug(x)

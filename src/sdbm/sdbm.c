@@ -12,29 +12,14 @@
 #include "sdbm.h"
 #include "tune.h"
 #include "pair.h"
+#include "lru.h"
+#include "private.h"
 
 #include "lib/compat_pio.h"
+#include "lib/debug.h"
 #include "lib/file.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-struct DBM {
-	char *name;		/* database name, for logging */
-	char *pagbuf;	/* page file block buffer (size: DBM_PBLKSIZ) */
-	char *dirbuf;	/* directory file block buffer (size: DBM_DBLKSIZ) */
-	off_t pagtail;	/* end of page file descriptor, for iterating */
-	long maxbno;	/* size of dirfile in bits */
-	long curbit;	/* current bit number */
-	long hmask;	/* current hash mask */
-	long blkptr;	/* current block for nextkey */
-	long blkno;	/* current page to read/write */
-	long pagbno;	/* current page in pagbuf */
-	long dirbno;	/* current block in dirbuf */
-	int dirf;	/* directory file descriptor */
-	int pagf;	/* page file descriptor */
-	int flags;	/* status/error flags, see below */
-	int keyptr;	/* current key for nextkey */
-};
 
 const datum nullitem = {0, 0};
 
@@ -57,24 +42,6 @@ static inline int
 exhash(const datum item)
 {
 	return sdbm_hash(item.dptr, item.dsize);
-}
-
-static inline void
-ioerr(DBM *db)
-{
-	db->flags |= DBM_IOERR;
-}
-
-static inline long
-OFF_PAG(unsigned long off)
-{
-	return off * DBM_PBLKSIZ;
-}
-
-static inline long
-OFF_DIR(unsigned long off)
-{
-	return off * DBM_DBLKSIZ;
 }
 
 static const long masks[] = {
@@ -157,14 +124,25 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 	DBM *db;
 	struct stat dstat;
 
-	if ((db = sdbm_alloc()) == NULL
-		|| (db->pagbuf = walloc(DBM_PBLKSIZ)) == NULL
-		|| (db->dirbuf = walloc(DBM_DBLKSIZ)) == NULL
+	if (
+		(db = sdbm_alloc()) == NULL ||
+		(db->dirbuf = walloc(DBM_DBLKSIZ)) == NULL
 	) {
-		sdbm_close(db);
 		errno = ENOMEM;
-		return NULL;
+		goto error;
 	}
+
+	/*
+	 * If configured to use the LRU cache, then db->pagbuf will point to
+	 * pages allocated in the cache, so it need not be allocated separately.
+	 */
+
+#ifndef LRU
+	if ((db->pagbuf = walloc(DBM_PBLKSIZ)) == NULL) {
+		errno = ENOMEM;
+		goto error;
+	}
+#endif
 
 	/*
 	 * adjust user flags so that WRONLY becomes RDWR, 
@@ -207,7 +185,6 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 				db->pagbno = -1;
 				db->maxbno = dstat.st_size * BYTESIZ;
 
-				memset(db->pagbuf, 0, DBM_PBLKSIZ);
 				memset(db->dirbuf, 0, DBM_DBLKSIZ);
 
 				return db;		/* Success */
@@ -215,8 +192,24 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 		}
 	}
 
+error:
 	sdbm_close(db);
 	return NULL;
+}
+
+static void
+log_sdbmstats(DBM *db)
+{
+	g_message("sdbm: \"%s\" page reads = %lu, page writes = %lu",
+		sdbm_name(db), db->pagread, db->pagwrite);
+	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu",
+		sdbm_name(db), db->dirread, db->dirwrite);
+	g_message("sdbm: \"%s\" page blocknum hits = %.2lf%% on %lu request%s",
+		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
+		db->pagfetch, 1 == db->pagfetch ? "" : "s");
+	g_message("sdbm: \"%s\" dir blocknum hits = %.2lf%% on %lu request%s",
+		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
+		db->dirfetch, 1 == db->dirfetch ? "" : "s");
 }
 
 void
@@ -225,10 +218,16 @@ sdbm_close(DBM *db)
 	if (db == NULL)
 		errno = EINVAL;
 	else {
+		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+#ifdef LRU
+		lru_close(db);
+#else
+		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+#endif
 		file_close(&db->dirf);
 		file_close(&db->pagf);
-		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
-		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+		if (common_stats)
+			log_sdbmstats(db);
 		G_FREE_NULL(db->name);
 		wfree(db, sizeof *db);
 	}
@@ -236,13 +235,23 @@ sdbm_close(DBM *db)
 
 /**
  * Fetch the specified page number into db->pagbuf and update db->pagbno
- * on success.  Otherwise, set pagbno to -1 to indicate invalid db->pagbuf.
+ * on success.  Otherwise, set db->pagbno to -1 to indicate invalid db->pagbuf.
  *
  * @return TRUE on success
  */
 static gboolean
 fetch_pagbuf(DBM *db, long pagnum)
 {
+	db->pagfetch++;
+
+#ifdef LRU
+	/* Initialize LRU cache on the first page requested */
+	if (NULL == db->cache) {
+		g_assert(-1 == db->pagbno);
+		lru_init(db);
+	}
+#endif
+
 	/*
 	 * See if the block we need is already in memory.
 	 * note: this lookaside cache has about 10% hit rate.
@@ -251,10 +260,18 @@ fetch_pagbuf(DBM *db, long pagnum)
 	if (pagnum != db->pagbno) {
 		ssize_t got;
 
+#ifdef LRU
+		if (readbuf(db, pagnum)) {
+			db->pagbno = pagnum;
+			return TRUE;
+		}
+#endif
+
 		/*
 		 * Note: here we assume a "hole" is read as 0s.
 		 */
 
+		db->pagread++;
 		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
@@ -277,6 +294,8 @@ fetch_pagbuf(DBM *db, long pagnum)
 		db->pagbno = pagnum;
 
 		debug(("pag read: %ld\n", pagnum));
+	} else {
+		db->pagbno_hit++;
 	}
 
 	return TRUE;
@@ -289,21 +308,11 @@ fetch_pagbuf(DBM *db, long pagnum)
 static gboolean
 flush_pagbuf(DBM *db)
 {
-	ssize_t w;
-	w = compat_pwrite(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(db->pagbno));
-
-	if (w < 0 || w != DBM_PBLKSIZ) {
-		if (w < 0)
-			g_warning("sdbm: \"%s\": cannot flush page #%ld: %s",
-				sdbm_name(db), db->pagbno, g_strerror(errno));
-		else
-			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
-				sdbm_name(db), (unsigned) w, db->pagbno);
-		ioerr(db);
-		return FALSE;
-	}
-
-	return TRUE;
+#ifdef LRU
+	return dirtypag(db);	/* Current (cached) page buffer is dirty */
+#else
+	return flushpag(db, db->pagbuf, db->pagbno);
+#endif
 }
 
 datum
@@ -492,9 +501,14 @@ makroom(DBM *db, long int hash, size_t need)
 			if (!flush_pagbuf(db))
 				return FALSE;
 
+#ifdef LRU
+			readbuf(db, newp);		/* Get new page from LRU cache */
+			pag = db->pagbuf;		/* Must refresh pointer to current page */
+#endif
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
 		} else if (
+			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
 		) {
 			g_warning("sdbm: \"%s\": cannot flush new page #%lu: %s",
@@ -607,9 +621,12 @@ getpage(DBM *db, long int hash)
 static gboolean
 fetch_dirbuf(DBM *db, long dirb)
 {
+	db->dirfetch++;
+
 	if (dirb != db->dirbno) {
 		ssize_t got;
 
+		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
@@ -623,6 +640,8 @@ fetch_dirbuf(DBM *db, long dirb)
 		db->dirbno = dirb;
 
 		debug(("dir read: %ld\n", dirb));
+	} else {
+		db->dirbno_hit++;
 	}
 	return TRUE;
 }
@@ -664,6 +683,7 @@ setdbit(DBM *db, long int dbit)
 		db->maxbno = OFF_DIR((dirb+1)) * BYTESIZ;
 #endif
 
+	db->dirwrite++;
 	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb)) < 0)
 		return FALSE;
 

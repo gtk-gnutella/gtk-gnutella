@@ -82,3 +82,18 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Call g_warning() unconditionally on low-level I/O errors to leave a trail
   when things start to go wrong.
 
+
+Fri May  1 21:46:55 CEST 2009
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Modified dba's output to show the space used by keys and values, and to
+  highlight pages with low free space (unable to add a new key/value pair,
+  given the average size of the existing entries on the page).
+* Added LRU page cache, activated via "tune.h".
+* Added statistics counters and final logging for:
+  - amount of page reads and writes
+  - amount of dir reads and writes
+  - amount of block number hits for page and dir (accesses to current page)
+  - amount of LRU page read cache hits (when LRU is activated)
+  - amount of LRU page write cache hits (when LRU write-back is activated)

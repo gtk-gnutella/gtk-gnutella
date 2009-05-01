@@ -82,11 +82,13 @@ all:: .FORCE_DEPEND
 
 SRC = \
 	hash.c \
+	lru.c \
 	pair.c \
 	sdbm.c
 
 OBJ = \
 	hash.o \
+	lru.o \
 	pair.o \
 	sdbm.o 
 
