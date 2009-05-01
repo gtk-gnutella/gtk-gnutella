@@ -241,9 +241,12 @@ storage_close(dbmw_t *dw, const char *base)
 	ok = dbmw_store(dw, path, TRUE);
 	G_FREE_NULL(path);
 
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT %ssucessfully persisted DBMW \"%s\"",
-			ok ? "" : "un", dbmw_name(dw));
+	if (GNET_PROPERTY(dht_debug)) {
+		size_t count = dbmw_count(dw);
+		g_message("DHT %ssucessfully persisted DBMW \"%s\" (%u key%s)",
+			ok ? "" : "un", dbmw_name(dw),
+			(unsigned) count, 1 == count ? "" : "s");
+	}
 
 	dbmw_destroy(dw, TRUE);
 }
