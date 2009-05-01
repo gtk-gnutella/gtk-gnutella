@@ -4,10 +4,12 @@
 
 #include <stdio.h>
 #include <sys/file.h>
+#include "common.h"
 #include "sdbm.h"
 
 char *progname;
 extern void oops();
+void sdump(int);
 
 int
 main(int argc, char **argv)
@@ -25,7 +27,7 @@ main(int argc, char **argv)
 		    oops("cannot get memory");
 
 		strcpy(name, p);
-		strcpy(name + n, ".pag");
+		strcpy(name + n, DBM_PAGFEXT);
 
 		if ((pagf = open(name, O_RDONLY)) < 0)
 			oops("cannot open %s.", name);
@@ -46,9 +48,9 @@ sdump(int pagf)
 	register t = 0;
 	register o = 0;
 	register e;
-	char pag[PBLKSIZ];
+	char pag[DBM_PBLKSIZ];
 
-	while ((b = read(pagf, pag, PBLKSIZ)) > 0) {
+	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		printf("#%d: ", n);
 		if (!okpage(pag))
 			printf("bad\n");
@@ -78,9 +80,23 @@ pagestat(char *pag)
 	if (!(n = ino[0]))
 		printf("no entries.\n");
 	else {
+		int i;
+		int keysize = 0, valsize = 0;
+		int off = DBM_PBLKSIZ;
+
+		for (i = 1; i < n; i+= 2) {
+			keysize += off - ino[i];
+			valsize += ino[i] - ino[i+1];
+			off = ino[i+1];
+		}
+
 		free = ino[n] - (n + 1) * sizeof(short);
-		printf("%3d entries %2d%% used free %d.\n",
-		       n / 2, ((PBLKSIZ - free) * 100) / PBLKSIZ, free);
+
+		printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s\n",
+		       n / 2, ((DBM_PBLKSIZ - free) * 100) / DBM_PBLKSIZ,
+			   keysize, valsize, free,
+			   (DBM_PBLKSIZ - free) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
+					" (LOW)" : "");
 	}
 	return n / 2;
 }
