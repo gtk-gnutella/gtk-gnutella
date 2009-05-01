@@ -804,7 +804,7 @@ dbmw_clear_cache(dbmw_t *dw)
 void
 dbmw_destroy(dbmw_t *dw, gboolean close_map)
 {
-	if (common_dbg)
+	if (common_stats)
 		g_message("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
@@ -856,7 +856,7 @@ dbmw_foreach_common(gboolean removing,
 	entry = map_lookup(dw->values, key);
 	if (entry != NULL) {
 		if (entry->absent)
-			return FALSE;		/* Key was deleted in cache */
+			return TRUE;		/* Key was deleted in cache */
 		if (removing) {
 			return (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
 		} else {

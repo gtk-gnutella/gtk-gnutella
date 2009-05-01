@@ -555,9 +555,9 @@ map_test(void)
 	struct {
 		unsigned insertion, contains, removal;
 	} faster = { 0, 0, 0};
-	gboolean verbose = common_dbg > 1;
+	gboolean verbose = common_stats > 1;
 
-	if (common_dbg <= 0)
+	if (common_stats <= 0)
 		return;
 
 	keys = g_malloc(ITEM_COUNT * sizeof *keys);
