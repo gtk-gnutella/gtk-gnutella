@@ -1633,6 +1633,17 @@ lib_debug_changed(property_t prop)
 }
 
 static gboolean
+lib_stats_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_library_stats(val);
+
+    return FALSE;
+}
+
+static gboolean
 forced_local_ip_changed(property_t prop)
 {
 	(void) prop;
@@ -2031,6 +2042,11 @@ static prop_map_t property_map[] = {
     {
         PROP_LIB_DEBUG,
         lib_debug_changed,
+        TRUE
+    },
+    {
+        PROP_LIB_STATS,
+        lib_stats_changed,
         TRUE
     },
 	{

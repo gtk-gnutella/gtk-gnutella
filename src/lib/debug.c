@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "override.h"			/* Must be the last header included */
 
 guint32 common_dbg = 0;			/**< Common debug level for library files */
+guint32 common_stats = 0;		/**< Common log level for library statistics */
 
 /**
  * Set the debug level for library files.
@@ -49,6 +50,15 @@ void
 set_library_debug(guint32 level)
 {
 	common_dbg = level;
+}
+
+/**
+ * Set the log level for library runtime statistics.
+ */
+void
+set_library_stats(guint32 level)
+{
+	common_stats = level;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -4005,4 +4005,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "lib_stats";
+    desc = "Logged statistics level for code shared between GUI and core.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

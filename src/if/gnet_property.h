@@ -380,6 +380,7 @@ typedef enum {
     PROP_FW_DEBUG,
     PROP_HOST_DEBUG,
     PROP_DHT_ROOTS_DEBUG,
+    PROP_LIB_STATS,
     GNET_PROPERTY_END
 } gnet_property_t;
 
