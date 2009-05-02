@@ -104,7 +104,7 @@ struct shared_file {
 
 	enum mime_type mime_type;	/* MIME type of the file */
 
-	int refcnt;				/**< Reference count */
+	int refcnt;					/**< Reference count */
 	guint32 flags;				/**< See below for definition */
 };
 
@@ -114,7 +114,7 @@ struct shared_file {
 struct special_file {
 	const char *path;			/* URL path */
 	const char *file;			/* File name to load from disk */
-	enum mime_type type;	/* MIME type of the file */
+	enum mime_type type;		/* MIME type of the file */
 	const char *what;			/* Description of the file for traces */
 };
 
