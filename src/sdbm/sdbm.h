@@ -60,6 +60,10 @@ int sdbm_pagfno(DBM *);
 gboolean sdbm_is_storable(size_t, size_t);
 void sdbm_set_name(DBM *, const char *);
 const char *sdbm_name(DBM *);
+ssize_t sdbm_sync(DBM *);
+int sdbm_set_cache(DBM *db, long pages);
+int sdbm_set_wdelay(DBM *db, gboolean on);
+int sdbm_set_volatile(DBM *db, gboolean yes);
 
 #endif /* _sdbm_h_ */
 

@@ -91,6 +91,11 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   highlight pages with low free space (unable to add a new key/value pair,
   given the average size of the existing entries on the page).
 * Added LRU page cache, activated via "tune.h".
+* Added sdbm_set_cache() to tune the LRU cache size, sdbm_set_wdelay() to tune
+  whether the cache should defer write operations (on non-important operations).
+* Added sdbm_set_volatile() to flag the DB as not outliving an sdbm_close(),
+  in which case even important bookkeeping operations can have their write
+  deferred.
 * Added statistics counters and final logging for:
   - amount of page reads and writes
   - amount of dir reads and writes

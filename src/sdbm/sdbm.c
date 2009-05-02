@@ -200,8 +200,8 @@ error:
 static void
 log_sdbmstats(DBM *db)
 {
-	g_message("sdbm: \"%s\" page reads = %lu, page writes = %lu",
-		sdbm_name(db), db->pagread, db->pagwrite);
+	g_message("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
+		sdbm_name(db), db->pagread, db->pagwrite, db->pagwforced);
 	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu",
 		sdbm_name(db), db->dirread, db->dirwrite);
 	g_message("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
@@ -309,7 +309,23 @@ static gboolean
 flush_pagbuf(DBM *db)
 {
 #ifdef LRU
-	return dirtypag(db);	/* Current (cached) page buffer is dirty */
+	return dirtypag(db, FALSE);	/* Current (cached) page buffer is dirty */
+#else
+	return flushpag(db, db->pagbuf, db->pagbno);
+#endif
+}
+
+/**
+ * Possibly force flush of db->pagbuf to disk, even on deferred writes.
+ * @return TRUE on success
+ */
+static gboolean
+force_flush_pagbuf(DBM *db, gboolean force)
+{
+	if (force)
+		db->pagwforced++;
+#ifdef LRU
+	return dirtypag(db, force);	/* Current (cached) page buffer is dirty */
 #else
 	return flushpag(db, db->pagbuf, db->pagbno);
 #endif
@@ -376,6 +392,7 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 {
 	size_t need;
 	long hash;
+	gboolean need_split;
 
 	if (0 == val.dsize) {
 		val.dptr = "";
@@ -421,9 +438,9 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	 * if we do not have enough room, we have to split.
 	 */
 
-	if (!fitpair(db->pagbuf, need)
-		&& !makroom(db, hash, need)
-	) {
+	need_split = !fitpair(db->pagbuf, need);
+
+	if (need_split && !makroom(db, hash, need)) {
 		ioerr(db);
 		return -1;
 	}
@@ -435,7 +452,13 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 
 	putpair(db->pagbuf, key, val);
 
-	if (!flush_pagbuf(db))
+	/*
+	 * After a split, we force a physical flush of the page even if they
+	 * have requested deferred writes, to ensure consistency of the database.
+	 * If database was flagged as volatile, there's no need.
+	 */
+
+	if (!force_flush_pagbuf(db, need_split && !db->is_volatile))
 		return -1;
 
 	return 0;		/* Success */
@@ -475,6 +498,13 @@ makroom(DBM *db, long int hash, size_t need)
 		 * it the current page. If not, simply write the new page, and we are
 		 * still looking at the page of interest. current page is not updated
 		 * here, as sdbm_store will do so, after it inserts the incoming pair.
+		 *
+		 * NOTE: we use force_flush_pagbuf() here to force writing of split
+		 * pages back to disk immediately, even if there are normally deferred
+		 * writes.  The reason is that if there is a crash before the split
+		 * pages make it to disk, there could be two pages on the disk holding
+		 * the same key/value pair: the original (never committed back) and the
+		 * new split page...  A problem, unless the database is volatile.
 		 */
 
 #if defined(DOSISH) || defined(WIN32)
@@ -498,7 +528,7 @@ makroom(DBM *db, long int hash, size_t need)
 		}
 #endif
 		if (hash & (db->hmask + 1)) {
-			if (!flush_pagbuf(db))
+			if (!force_flush_pagbuf(db, !db->is_volatile))
 				return FALSE;
 
 #ifdef LRU
@@ -536,7 +566,7 @@ makroom(DBM *db, long int hash, size_t need)
 		db->curbit = 2 * db->curbit + ((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
 
-		if (!flush_pagbuf(db))
+		if (!force_flush_pagbuf(db, !db->is_volatile))
 			return FALSE;
 	} while (--smax);
 
@@ -808,6 +838,67 @@ sdbm_value(DBM *db)
 	}
 
 	return val;
+}
+
+/**
+ * Synchronize cached data to disk.
+ *
+ * @return the amount of pages successfully flushed as a positive number
+ * if everything was fine, 0 if there was nothing to flush, and -1 if there
+ * were I/O errors (errno is set).
+ */
+ssize_t
+sdbm_sync(DBM *db)
+{
+#ifdef LRU
+	return flush_dirty(db);
+#else
+	return 0;
+#endif
+}
+
+/**
+ * Set the LRU cache size.
+ */
+int
+sdbm_set_cache(DBM *db, long pages)
+{
+#ifdef LRU
+	return setcache(db, pages);
+#else
+	errno = ENOTSUP;
+	return -1;
+#endif
+}
+
+/**
+ * Turn LRU write delays on or off.
+ */
+int
+sdbm_set_wdelay(DBM *db, gboolean on)
+{
+#ifdef LRU
+	return setwdelay(db, on);
+#else
+	errno = ENOTSUP;
+	return -1;
+#endif
+}
+
+/**
+ * Set whether database is volatile (rebuilt from scratch each time it is
+ * opened, so disk consistency is not so much an issue).
+ * As a convenience, also turns delayed writes on if the argument is TRUE.
+ */
+int
+sdbm_set_volatile(DBM *db, gboolean yes)
+{
+#ifdef LRU
+	db->is_volatile = yes;
+	if (yes)
+		return setwdelay(db, TRUE);
+#endif
+	return 0;
 }
 
 gboolean

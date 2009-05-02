@@ -27,10 +27,14 @@ struct DBM {
 	unsigned long pagread;		/* stats: amount of page read requests */
 	unsigned long pagbno_hit;	/* stats: amount of read avoided on pagbno */
 	unsigned long pagwrite;		/* stats: amount of page write requests */
+	unsigned long pagwforced;	/* stats: amount of forced page writes */
 	unsigned long dirfetch;		/* stats: amount of dir fetch calls */
 	unsigned long dirread;		/* stats: amount of dir read requests */
 	unsigned long dirbno_hit;	/* stats: amount of read avoided on dirbno */
 	unsigned long dirwrite;		/* stats: amount of dir write requests */
+#ifdef LRU
+	guint8 is_volatile;			/* whether consistency of database matters */
+#endif
 };
 
 static inline long

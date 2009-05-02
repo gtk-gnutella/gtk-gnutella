@@ -30,6 +30,12 @@ int sdbm_deletekey(\s-1DBM\s0 *db)
 .sp
 long sdbm_hash(char *string, size_t len)
 .sp
+ssize_t sdbm_sync(\s-1DBM\s0 *db)
+.sp
+int sdbm_set_cache(\s-1DBM\s0 *db, long pages)
+int sdbm_set_wdelay(\s-1DBM\s0 *db, gboolean on)
+int sdbm_set_volatile(\s-1DBM\s0 *db, gboolean yes)
+.sp
 void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
 const char *sdbm_name(\s-1DBM\s0 *db)
 .sp
@@ -227,6 +233,46 @@ or the empty string if none was set.
 .BR sdbm_is_storable (\|)
 indicates whether a combination of key and value sizes can fit within the size
 constraints we have.
+.SH PAGE CACHING
+This
+.B sdbm
+library is equipped with an LRU (Least Recently Used) page cache whose aim
+is to reduce the amount of
+.BR read (\|)
+system calls performed when accessing data.  By default, it is set to cache
+64 pages, but this may be changed at any time by calling
+.BR sdbm_set_cache (\|)
+with the amount of pages desired for caching. Use 1 to disable LRU caching
+altogether and only keep the last loaded page in memory.
+.LP
+It is also possible to enhance the performance of
+.B sdbm
+by turning write delay on via
+.BR sdbm_set_wdelay (\|)
+at any time.
+This will also greatly reduce the amount of
+.BR write (\|)
+system calls performed when changing data, but it could make the database
+inconsistent in the advent of a crash before
+.BR sdbm_close (\|)
+can be called.  To mitigate that risk, the application can call
+.BR sdbm_sync (\|)
+on a regular basis (say every 5 seconds).  That call returns the amount of
+pages flushed if everything was OK, and -1 if an I/O error occurred during
+flushing.
+.LP
+Even with deferred writes, there are important operations that are nonetheless
+flushed immediately to disk, when splitting a page for instance.  Otherwise,
+in the advent of a crash, the disk data could contain twice the same key / value
+pair.  However, if the database is recreated from scratch each time it is
+opened, there is no need for this precaution, since disk consistency does not
+matter then.  The database is said to be
+.I volatile
+and this behaviour can be turned on by calling
+.BR sdbm_set_volatile (\|)
+with a
+.B \s-1TRUE\s0
+argument.  In which case it also automatically enables delayed writes.
 .SH SEE ALSO
 .IR open (2).
 .SH DIAGNOSTICS
@@ -322,6 +368,10 @@ The
 .BR sdbm_deletekey (\|),
 .BR sdbm_value (\|),
 .BR sdbm_is_storable (\|),
+.BR sdbm_sync (\|),
+.BR sdbm_set_cache (\|),
+.BR sdbm_set_wdelay (\|),
+.BR sdbm_set_volatile (\|),
 .BR sdbm_set_name (\|),
 and
 .BR sdbm_name (\|)

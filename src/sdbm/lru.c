@@ -31,8 +31,8 @@ struct lru_cache {
 	char *arena;				/* Cache arena */
 	long *numpag;				/* Associates a cache index to a page number */
 	guint8 *dirty;				/* Flags dirty pages (write cache enabled) */
-	int pages;					/* Amount of pages in arena */
-	int next;					/* Next allocated page index */
+	long pages;					/* Amount of pages in arena */
+	long next;					/* Next allocated page index */
 	guint8 write_deferred;		/* Whether writes should be deferred */
 	unsigned long rhits;		/* Stats: amount of cache hits on reads */
 	unsigned long rmisses;		/* Stats: amount of cache misses on reads */
@@ -41,21 +41,69 @@ struct lru_cache {
 };
 
 /**
- * Initialize the LRU page cache.
+ * Setup allocated LRU page cache.
+ */
+static int
+setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
+{
+	cache->arena = alloc_pages(pages * DBM_PBLKSIZ);
+	if (NULL == cache->arena)
+		return -1;
+	cache->pagnum = g_hash_table_new(NULL, NULL);
+	cache->used = hash_list_new(NULL, NULL);
+	cache->pages = pages;
+	cache->write_deferred = wdelay;
+	cache->dirty = walloc(cache->pages);
+	cache->numpag = walloc(cache->pages * sizeof(long));
+
+	return 0;
+}
+
+/**
+ * Free data structures used by the page cache.
+ */
+static void
+free_cache(struct lru_cache *cache)
+{
+	hash_list_free(&cache->used);
+	g_hash_table_destroy(cache->pagnum);
+	free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
+	wfree(cache->numpag, cache->pages * sizeof(long));
+	wfree(cache->dirty, cache->pages);
+}
+
+/**
+ * Create a new LRU cache.
+ * @return -1 with errno set on error, 0 if OK.
+ */
+static int
+init_cache(DBM *db, long pages, gboolean wdelay)
+{
+	struct lru_cache *cache;
+
+	g_assert(NULL == db->cache);
+
+	cache = walloc0(sizeof *cache);
+	if (-1 == setup_cache(cache, pages, wdelay)) {
+		wfree(cache, sizeof *cache);
+		return -1;
+	}
+	db->cache = cache;
+	return 0;
+}
+
+/**
+ * Initialize the LRU page cache with default values.
  */
 void lru_init(DBM *db)
 {
 	struct lru_cache *cache;
 
-	cache = walloc0(sizeof *cache);
-	cache->pagnum = g_hash_table_new(NULL, NULL);
-	cache->used = hash_list_new(NULL, NULL);
-	cache->pages = LRU_PAGES;		/* XXX allow external customization */
-	cache->write_deferred = TRUE;	/* XXX allow external customization */
-	cache->arena = alloc_pages(cache->pages * DBM_PBLKSIZ);
-	cache->dirty = walloc0(cache->pages);
-	cache->numpag = walloc(cache->pages * sizeof(long));
+	g_assert(NULL == db->cache);
 
+	cache = walloc0(sizeof *cache);
+	if (-1 == setup_cache(cache, LRU_PAGES, FALSE))
+		g_error("out of virtual memory");
 	db->cache = cache;
 }
 
@@ -66,6 +114,10 @@ log_lrustats(DBM *db)
 	unsigned long raccesses = cache->rhits + cache->rmisses;
 	unsigned long waccesses = cache->whits + cache->wmisses;
 
+	g_message("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
+		sdbm_name(db), cache->pages, 1 == cache->pages ? "" : "s",
+		cache->write_deferred ? "deferred" : "synchronous",
+		db->is_volatile ? "volatile" : "persistent");
 	g_message("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1), raccesses,
 		1 == raccesses ? "" : "s");
@@ -76,34 +128,146 @@ log_lrustats(DBM *db)
 
 /**
  * Write back cached page to disk.
+ * @return TRUE on success.
  */
-static void
-writebuf(DBM *db, long oldnum, int idx)
+static gboolean
+writebuf(DBM *db, long oldnum, long idx)
 {
 	struct lru_cache *cache = db->cache;
 	char *pag = cache->arena + OFF_PAG(idx);
 
 	g_assert(idx >= 0 && idx < cache->pages);
 
-	if (flushpag(db, pag, oldnum))
-		cache->dirty[idx] = 0;
+	if (!flushpag(db, pag, oldnum))
+		return FALSE;
+
+	cache->dirty[idx] = 0;
+	return TRUE;
 }
 
 /**
  * Flush all the dirty pages to disk.
+ *
+ * @return the amount of pages successfully flushed as a positive number
+ * if everything was fine, 0 if there was nothing to flush, and -1 if there
+ * were I/O errors (errno is set).
  */
-static void
+ssize_t
 flush_dirty(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 	int n;
+	ssize_t amount = 0;
+	int saved_errno = 0;
 
 	for (n = 0; n < cache->pages; n++) {
 		if (cache->dirty[n]) {
 			long num = cache->numpag[n];
-			writebuf(db, num, n);
+			if (writebuf(db, num, n)) {
+				amount++;
+			} else {
+				saved_errno = errno;
+			}
 		}
 	}
+
+	if (saved_errno != 0) {
+		errno = saved_errno;
+		return -1;
+	}
+
+	return amount;
+}
+
+/**
+ * Set the page cache size.
+ * @return 0 if OK, -1 on failure with errno set.
+ */
+int
+setcache(DBM *db, long pages)
+{
+	struct lru_cache *cache = db->cache;
+	gboolean wdelay;
+
+	if (pages <= 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (NULL == cache)
+		return init_cache(db, pages, FALSE);
+
+	/*
+	 * Easiest case: the size identical.
+	 */
+
+	if (pages == cache->pages)
+		return 0;
+
+	/*
+	 * Straightforward: the size is increased.
+	 */
+
+	if (pages > cache->pages) {
+		char *new_arena = alloc_pages(pages * DBM_PBLKSIZ);
+		if (NULL == new_arena)
+			return -1;
+		memmove(new_arena, cache->arena, cache->pages * DBM_PBLKSIZ);
+		free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
+		cache->arena = new_arena;
+		cache->dirty = wrealloc(cache->dirty, cache->pages, pages);
+		cache->numpag = wrealloc(cache->numpag,
+			cache->pages * sizeof(long), pages * sizeof(long));
+		cache->pages = pages;
+		return 0;
+	}
+
+	/*
+	 * Difficult: the size is decreased.
+	 *
+	 * The current page buffer could point in a cache area that is going
+	 * to disappear, and the internal data structures must forget about
+	 * all the old indices that are greater than the new limit.
+	 *
+	 * We do not try to optimize anything here, as this call should happen
+	 * only infrequently: we flush the current cache (in case there are
+	 * deferred writes), destroy the LRU cache data structures, recreate a
+	 * new one and invalidate the current DB page.
+	 */
+
+	wdelay = cache->write_deferred;
+	flush_dirty(db);
+	free_cache(cache);
+	return setup_cache(cache, pages, wdelay);
+}
+
+/**
+ * Turn LRU deferred writes on or off.
+ * @return -1 on error with errno set, 0 if OK.
+ */
+int
+setwdelay(DBM *db, gboolean on)
+{
+	struct lru_cache *cache = db->cache;
+
+	if (NULL == cache)
+		return init_cache(db, LRU_PAGES, on);
+
+	if (on == cache->write_deferred)
+		return 0;
+
+	/*
+	 * Value is inverted.
+	 */
+
+	if (cache->write_deferred) {
+		flush_dirty(db);
+		cache->write_deferred = FALSE;
+	} else {
+		cache->write_deferred = TRUE;
+	}
+
+	return 0;
 }
 
 /**
@@ -114,16 +278,13 @@ void lru_close(DBM *db)
 	struct lru_cache *cache = db->cache;
 
 	if (cache) {
-		flush_dirty(db);
+		if (!db->is_volatile)
+			flush_dirty(db);
 
 		if (common_stats)
 			log_lrustats(db);
 
-		hash_list_free(&cache->used);
-		g_hash_table_destroy(cache->pagnum);
-		free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
-		wfree(cache->numpag, cache->pages * sizeof(long));
-		wfree(cache->dirty, cache->pages);
+		free_cache(cache);
 		wfree(cache, sizeof *cache);
 	}
 
@@ -132,18 +293,19 @@ void lru_close(DBM *db)
 
 /**
  * Mark current page as dirty.
- * If there is no delayed writes, the page is immediately flushed to disk.
+ * If there are no deferred writes, the page is immediately flushed to disk.
+ * If ``force'' is TRUE, we also ignore deferred writes and flush the page.
  * @return TRUE on success.
  */
 gboolean
-dirtypag(DBM *db)
+dirtypag(DBM *db, gboolean force)
 {
 	struct lru_cache *cache = db->cache;
 	long n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
 
 	g_assert(n >= 0 && n < cache->pages);
 
-	if (cache->write_deferred) {
+	if (cache->write_deferred && !force) {
 		if (cache->dirty[n])
 			cache->whits++;		/* Was already dirty -> write cache hit */
 		else
@@ -167,7 +329,7 @@ static int
 getidx(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
-	int n;		/* Cache index */
+	long n;		/* Cache index */
 
 	/*
 	 * If we have not used all the pages yet, get the next one.
@@ -176,6 +338,7 @@ getidx(DBM *db, long num)
 
 	if (cache->next < cache->pages) {
 		n = cache->next++;
+		cache->dirty[n] = 0;
 		hash_list_prepend(cache->used, int_to_pointer(n));
 	} else {
 		void *last = hash_list_tail(cache->used);
@@ -193,12 +356,9 @@ getidx(DBM *db, long num)
 
 		oldnum = cache->numpag[n];
 
-		if (cache->dirty[n]) {
-			writebuf(db, oldnum, n);
-
-			if (cache->dirty[n])
-				g_warning("sdbm: \"%s\": discarding dirty page #%ld",
-					sdbm_name(db), oldnum);
+		if (cache->dirty[n] && !writebuf(db, oldnum, n)) {
+			g_warning("sdbm: \"%s\": discarding dirty page #%ld",
+				sdbm_name(db), oldnum);
 		}
 
 		g_hash_table_remove(cache->pagnum, ulong_to_pointer(oldnum));
@@ -229,7 +389,7 @@ readbuf(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
 	void *key, *value;
-	int idx;
+	long idx;
 	gboolean good_page = TRUE;
 
 	if (
