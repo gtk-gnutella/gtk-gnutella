@@ -1422,6 +1422,9 @@
 74.52.0.0/14
 75.125.0.0/16
 174.132.0.0/15
+# Suavemente, INC.
+# Fake mp3 results; not connectible
+174.136.192.0/18
 # Peer 1 Network Inc.; same as above applies
 76.74.128.0/17
 # SoftLayer Technologies Inc.; see above
