@@ -897,10 +897,16 @@
 #67.159.44.0/24
 66.90.101.0/24
 
+# "Darkstar Management"; fake wma/mp3/m4a; switches qhit address
+78.129.136.192/26
+# same as above; probably belong together
+64.62.210.0/24
+64.62.214.0/24
 # LimeWire; security violations; hosted at RapidSwitch and United Layer
-78.129.137.0/24
-78.129.148.0/23
-78.129.150.0/23
+#78.129.137.0/24
+#78.129.148.0/23
+#78.129.150.0/23
+78.129.128.0/17
 83.142.224.128/25
 87.117.192.0/18
 # hellum pohellum
@@ -1085,12 +1091,6 @@
 
 # p2pads dot com; MOV; pr0n spam; hosted by Easy Online Solutions
 8.17.0.0/23
-
-# "Darkstar Management"; fake wma/mp3/m4a; switches qhit address
-78.129.136.192/26
-# same as above; probably belong together
-64.62.210.0/24
-64.62.214.0/24
 
 # MOV pr0n spam; torrentvideos dot com; Yourbrain Media Inc.
 216.169.106.242
