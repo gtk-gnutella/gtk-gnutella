@@ -91,7 +91,15 @@ storage_create_internal(const char *name, const char *base, int flags,
 		path = make_pathname(settings_config_dir(), base);
 		dm = dbmap_create_sdbm(key_size, name, path, flags, STORAGE_FILE_MODE);
 
-		if (!dm) {
+		/*
+		 * For performance reasons, always use deferred writes.  Maps which
+		 * are going to persist from session to session are synchronized on
+		 * a regular basis.
+		 */
+
+		if (dm != NULL) {
+			dbmap_set_deferred_writes(dm, TRUE);
+		} else {
 			g_warning("DHT cannot open SDBM at %s for %s: %s",
 					path, name, g_strerror(errno));
 		}
@@ -142,11 +150,17 @@ storage_create(const char *name, const char *base,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
-	return storage_create_internal(name, base, O_CREAT | O_TRUNC | O_RDWR,
+	dbmw_t *dw;
+
+	dw = storage_create_internal(name, base, O_CREAT | O_TRUNC | O_RDWR,
 		key_size, value_size,
 		pack, unpack, valfree,
 		cache_size, hash_func, eq_func,
 		GNET_PROPERTY(dht_storage_in_memory));
+
+	dbmw_set_volatile(dw, TRUE);
+
+	return dw;
 }
 
 /**
