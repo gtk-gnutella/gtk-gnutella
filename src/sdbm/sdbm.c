@@ -202,8 +202,8 @@ log_sdbmstats(DBM *db)
 {
 	g_message("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
 		sdbm_name(db), db->pagread, db->pagwrite, db->pagwforced);
-	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu",
-		sdbm_name(db), db->dirread, db->dirwrite);
+	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
+		sdbm_name(db), db->dirread, db->dirwrite, db->dirwdelayed);
 	g_message("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
 		db->pagfetch, 1 == db->pagfetch ? "" : "s");
@@ -329,6 +329,26 @@ force_flush_pagbuf(DBM *db, gboolean force)
 #else
 	return flushpag(db, db->pagbuf, db->pagbno);
 #endif
+}
+
+/**
+ * Flush dirbuf to disk.
+ * @return TRUE on success.
+ */
+static gboolean
+flush_dirbuf(DBM *db)
+{
+	ssize_t w;
+
+	db->dirwrite++;
+	w = compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(db->dirbno));
+
+#ifdef LRU
+	if (DBM_DBLKSIZ == w)
+		db->dirbuf_dirty = FALSE;
+#endif
+
+	return DBM_DBLKSIZ == w;
 }
 
 datum
@@ -656,6 +676,16 @@ fetch_dirbuf(DBM *db, long dirb)
 	if (dirb != db->dirbno) {
 		ssize_t got;
 
+#ifdef LRU
+		if (db->dirbuf_dirty) {
+			if (!flush_dirbuf(db)) {
+				g_warning("sdbm: \"%s\": could not flush dir page #%ld: %s",
+					sdbm_name(db), db->dirbno, g_strerror(errno));
+				return FALSE;
+			}
+		}
+#endif
+
 		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
 		if (got < 0) {
@@ -713,8 +743,13 @@ setdbit(DBM *db, long int dbit)
 		db->maxbno = OFF_DIR((dirb+1)) * BYTESIZ;
 #endif
 
-	db->dirwrite++;
-	if (compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb)) < 0)
+#ifdef LRU
+	if (db->is_volatile) {
+		db->dirbuf_dirty = TRUE;
+		db->dirwdelayed++;
+	} else
+#endif
+	if (!flush_dirbuf(db))
 		return FALSE;
 
 	return TRUE;

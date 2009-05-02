@@ -32,8 +32,10 @@ struct DBM {
 	unsigned long dirread;		/* stats: amount of dir read requests */
 	unsigned long dirbno_hit;	/* stats: amount of read avoided on dirbno */
 	unsigned long dirwrite;		/* stats: amount of dir write requests */
+	unsigned long dirwdelayed;	/* stats: amount of deferred dir writes */
 #ifdef LRU
 	guint8 is_volatile;			/* whether consistency of database matters */
+	guint8 dirbuf_dirty;		/* whether dirbuf needs flushing to disk */
 #endif
 };
 
