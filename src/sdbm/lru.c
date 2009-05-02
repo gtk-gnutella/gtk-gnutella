@@ -204,6 +204,8 @@ setcache(DBM *db, long pages)
 	if (pages == cache->pages)
 		return 0;
 
+	db->pagbno = -1;		/* Current page address will become invalid */
+
 	/*
 	 * Straightforward: the size is increased.
 	 */
