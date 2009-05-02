@@ -300,7 +300,6 @@
 # trailing part like "_full-l", "part-l", "part-s" etc.); usually Gnucleus
 # usually port 40464
 64.182.136.130
-64.151.98.36
 # Same as above; DRM header links to 216.93.188.81; WhenU/SaveNow spam
 206.51.230.0/24
 206.51.239.0/24
@@ -336,8 +335,10 @@
 210.51.51.132
 # DRM license server
 #68.178.225.162
-# DRM License server used by DRM WMV spam; ETE LLC; Shanghai
+# ETE LLC (hosted by ServerPath, LLC); Shanghai
+# DRM License server used by DRM WMV spam
 216.93.188.80/30
+64.151.98.32/29
 
 # Gnucleus-based DRM WMV spammer hosted by HopOne
 209.160.32.221
