@@ -72,8 +72,9 @@ struct dbmw {
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
 	int error;					/**< Last errno value */
-	gboolean ioerr;				/**< Had I/O error */
-	gboolean count_needs_sync;	/**< Whether we need to sync to get count */
+	guint8 ioerr;				/**< Had I/O error */
+	guint8 count_needs_sync;	/**< Whether we need to sync to get count */
+	guint8 is_volatile;			/**< Whether database dies when map dies */
 };
 
 /**
@@ -133,8 +134,13 @@ dbmw_name(const dbmw_t *dw)
 size_t
 dbmw_count(dbmw_t *dw)
 {
+	/*
+	 * Must write pending new items first and delete cached items to allow
+	 * proper count in the underlying map.
+	 */
+
 	if (dw->count_needs_sync)
-		dbmw_sync(dw);				/* Must write pending new items first */
+		dbmw_sync(dw, DBMW_SYNC_CACHE);
 
 	return dbmap_count(dw->dm);
 }
@@ -234,8 +240,9 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 /**
  * Write back cached value to disk.
+ * @return TRUE on success
  */
-static void
+static gboolean
 write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 {
 	dbmap_datum_t dval;
@@ -293,6 +300,8 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 			value->absent ? "deleting" : "flushing", dw->name,
 			dbmap_strerror(dw->dm));
 	}
+
+	return ok;
 }
 
 /**
@@ -460,26 +469,65 @@ fill_entry(const dbmw_t *dw,
 }
 
 /**
+ * Context for flushes.
+ */
+struct flush_context {
+	dbmw_t *dw;
+	ssize_t amount;
+	gboolean error;
+};
+
+/**
  * Map iterator to flush dirty cached entries.
  */
 static void
 flush_dirty(gpointer key, gpointer value, gpointer data)
 {
-	dbmw_t *dw = data;
+	struct flush_context *ctx = data;
 	struct cached *entry = value;
 
-	if (entry->dirty)
-		write_back(dw, key, entry);
+	if (entry->dirty) {
+		if (write_back(ctx->dw, key, entry))
+			ctx->amount++;
+		else
+			ctx->error = TRUE;
+	}
 }
 
 /**
  * Synchronize dirty values.
+ * @return amount of values flush plus amount of sdbm pages flushes, -1 if
+ * an error occurred.
  */
-void
-dbmw_sync(dbmw_t *dw)
+ssize_t
+dbmw_sync(dbmw_t *dw, int which)
 {
-	map_foreach(dw->values, flush_dirty, dw);
-	dw->count_needs_sync = FALSE;
+	ssize_t amount = 0;
+	gboolean error = FALSE;
+
+	if (which & DBMW_SYNC_CACHE) {
+		struct flush_context ctx;
+
+		ctx.dw = dw;
+		ctx.error = FALSE;
+		ctx.amount = 0;
+
+		map_foreach(dw->values, flush_dirty, &ctx);
+		if (!ctx.error)
+			dw->count_needs_sync = FALSE;
+
+		amount += ctx.amount;
+		error = ctx.error;
+	}
+	if (which & DBMW_SYNC_MAP) {
+		ssize_t ret = dbmap_sync(dw->dm);
+		if (-1 == ret)
+			error = TRUE;
+		else
+			amount += ret;
+	}
+
+	return error ? -1 : amount;
 }
 
 /**
@@ -773,7 +821,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	dbmw_t *dw = data;
 	struct cached *entry = value;
 
-	g_assert(!entry->dirty);
+	g_assert(dw->is_volatile || !entry->dirty);
 	g_assert(!entry->len == !entry->data);
 
 	free_value(dw, entry, TRUE);
@@ -814,7 +862,15 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
 			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
 
-	dbmw_sync(dw);
+	/*
+	 * If we close the map and we're volatile, there's no need to flush
+	 * the cache as the data is going to be gone soon anyway.
+	 */
+
+	if (!close_map || !dw->is_volatile) {
+		dbmw_sync(dw, DBMW_SYNC_CACHE);
+	}
+
 	dbmw_clear_cache(dw);
 	hash_list_free(&dw->keys);
 	map_destroy(dw->values);
@@ -984,7 +1040,7 @@ dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
 gboolean
 dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
 {
-	dbmw_sync(dw);
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
 	return dbmap_store(dw->dm, base, inplace);
 }
 
@@ -1000,8 +1056,8 @@ dbmw_copy(dbmw_t *from, dbmw_t *to)
 	g_assert(from != NULL);
 	g_assert(to != NULL);
 
-	dbmw_sync(from);
-	dbmw_sync(to);
+	dbmw_sync(from, DBMW_SYNC_CACHE);
+	dbmw_sync(to, DBMW_SYNC_CACHE);
 	dbmw_clear_cache(to);
 
 	/*
@@ -1010,6 +1066,18 @@ dbmw_copy(dbmw_t *from, dbmw_t *to)
 	 */
 
 	return dbmap_copy(from->dm, to->dm);
+}
+
+/**
+ * Flag whether database is volatile (never outlives a close).
+ *
+ * @return TRUE on success.
+ */
+gboolean
+dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile)
+{
+	dw->is_volatile = TRUE;
+	return 0 == dbmap_set_volatile(dw->dm, is_volatile);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

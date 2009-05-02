@@ -87,12 +87,18 @@ typedef void (*dbmw_cb_t)(gpointer key, gpointer value, size_t len, gpointer u);
 typedef gboolean (*dbmw_cbr_t)(
 	gpointer key, gpointer value, size_t len, gpointer u);
 
+/**
+ * Flags for dbmw_sync().
+ */
+#define DBMW_SYNC_CACHE		(1 << 0)	/**< Sync DBMW local cache */
+#define DBMW_SYNC_MAP		(1 << 1)	/**< Sync DBMW underlying map */
+
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t key_size, size_t value_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 void dbmw_destroy(dbmw_t *dw, gboolean close_sdbm);
-void dbmw_sync(dbmw_t *dw);
+ssize_t dbmw_sync(dbmw_t *dw, int which);
 void dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length);
 void dbmw_write_nocache(
 	dbmw_t *dw, gconstpointer key, gpointer value, size_t length);
@@ -103,6 +109,7 @@ enum dbmap_type dbmw_map_type(const dbmw_t *dw);
 size_t dbmw_count(dbmw_t *dw);
 gboolean dbmw_has_ioerr(const dbmw_t *dw);
 const char *dbmw_name(const dbmw_t *dw);
+gboolean dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile);
 
 GSList *dbmw_all_keys(const dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
