@@ -297,8 +297,6 @@ search_drop_handle(gnet_search_t n)
     idtable_free_id(search_handle_map, n);
 }
 
-static void search_check_results_set(gnet_results_set_t *rs);
-
 /***
  *** Callbacks (private and public)
  ***/
@@ -2786,6 +2784,170 @@ search_shutdown(void)
 }
 
 /**
+ * Check for alternate locations in the result set, and enqueue the downloads
+ * if there are any.  Then free the alternate location from the record.
+ */
+static void
+search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
+{
+	gnet_host_vec_t *alt = rc->alt_locs;
+	unsigned i, ignored = 0;
+
+	g_assert(alt != NULL);
+
+	i = gnet_host_vec_count(alt);
+	while (i-- > 0) {
+		struct gnutella_host host;
+		host_addr_t addr;
+		guint16 port;
+
+		host = gnet_host_vec_get(alt, i);
+		addr = gnet_host_get_addr(&host);
+		port = gnet_host_get_port(&host);
+		if (host_is_valid(addr, port)) {
+			download_auto_new(rc->name,
+				rc->size,
+				addr,
+				port,
+				&blank_guid,
+				NULL,	/* hostname */
+				rc->sha1,
+				rc->tth,
+				rs->stamp,
+				fi,
+				NULL,	/* proxies */
+				0);		/* flags */
+		} else {
+			ignored++;
+		}
+	}
+
+	search_free_alt_locs(rc);
+
+	if (ignored) {
+    	const char *vendor = vendor_get_name(rs->vcode.u32);
+		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
+			ignored, ignored == 1 ? "" : "s",
+			host_addr_port_to_string(rs->addr, rs->port),
+			vendor ? vendor : "????");
+	}
+}
+
+static void
+search_results_set_flag_records(gnet_results_set_t *rs)
+{
+	const GSList *sl;
+
+	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
+		const shared_file_t *sf;
+		gnet_record_t *rc = sl->data;
+
+		if (!rc->sha1)
+			continue;
+
+		sf = shared_file_by_sha1(rc->sha1);
+		if (sf && SHARE_REBUILDING != sf) {
+			if (shared_file_is_partial(sf)) {
+				set_flags(rc->flags, SR_PARTIAL);
+			} else {
+				set_flags(rc->flags, SR_SHARED);
+			}
+		} else {
+			enum ignore_val reason;
+
+			reason = ignore_is_requested(rc->name, rc->size, rc->sha1);
+			switch (reason) {
+				case IGNORE_FALSE:
+					break;
+				case IGNORE_SHA1:
+				case IGNORE_NAMESIZE:
+				case IGNORE_LIBRARY:
+					set_flags(rc->flags, SR_OWNED);
+					break;
+				case IGNORE_SPAM:
+					set_flags(rc->flags, SR_SPAM);
+					break;
+				case IGNORE_OURSELVES:
+				case IGNORE_HOSTILE:
+					/* These are for manual use and never returned */
+					g_assert_not_reached();
+					break;
+			}
+			if (IGNORE_FALSE != reason) {
+				switch (GNET_PROPERTY(search_handle_ignored_files)) {
+				case SEARCH_IGN_DISPLAY_AS_IS:
+					break;
+				case SEARCH_IGN_NO_DISPLAY:
+					set_flags(rc->flags, SR_DONT_SHOW);
+					break;
+				default:
+					set_flags(rc->flags, SR_IGNORED);
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Check a results_set for matching entries in the download queue,
+ * and generate new entries if we find a match.
+ */
+static void
+search_results_set_auto_download(gnet_results_set_t *rs)
+{
+	const GSList *sl;
+
+	if (!GNET_PROPERTY(auto_download_identical))
+		return;
+
+	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+		gnet_record_t *rc = sl->data;
+		fileinfo_t *fi;
+
+		if (!rc->sha1)
+			continue;
+
+		fi = file_info_has_identical(rc->sha1, rc->size);
+		if (fi) {
+			guint32 flags = 0;
+			
+			flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
+			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
+			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
+			
+			download_auto_new(rc->name,
+				rc->size,
+				rs->addr,
+				rs->port,
+				rs->guid,
+			   	rs->hostname,
+				rc->sha1,
+				rc->tth,
+				rs->stamp,
+				fi,
+				rs->proxies,
+				flags);
+
+			search_free_proxies(rs);
+			set_flags(rc->flags, SR_DOWNLOADED);
+
+			/*
+			 * If there are alternate sources for this download in the query
+			 * hit, enqueue the downloads as well, then remove the sources
+			 * from the record.
+			 *		--RAM, 15/07/2003.
+			 */
+
+			if (rc->alt_locs != NULL)
+				search_check_alt_locs(rs, rc, fi);
+
+			g_assert(rc->alt_locs == NULL);
+		}
+	}
+}
+
+
+/**
  * This routine is called for each Query Hit packet we receive out of
  * a browse-host request, since we know the target search result, and
  * we don't need to bother with forwarding that message.
@@ -2832,7 +2994,8 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	}
 
 	if (search) {
-		search_check_results_set(rs);
+		search_results_set_flag_records(rs);
+		search_results_set_auto_download(rs);
 		search_fire_got_results(search, rs);
 		g_slist_free(search);
 		search = NULL;
@@ -2970,8 +3133,7 @@ search_results(gnutella_node_t *n, int *results)
 		 * Look for records that match entries in the download queue.
 		 */
 
-		if (GNET_PROPERTY(auto_download_identical))
-			search_check_results_set(rs);
+		search_results_set_auto_download(rs);
 
 		/*
 		 * Look for records whose SHA1 matches files we own and add
@@ -2982,37 +3144,14 @@ search_results(gnutella_node_t *n, int *results)
 			dmesh_check_results_set(rs);
 	}
 
-    /*
-     * Look for records that should be ignored.
-     */
-
-    if (
-		selected_searches != NULL &&
-		GNET_PROPERTY(search_handle_ignored_files) != SEARCH_IGN_DISPLAY_AS_IS
-	) {
-        for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
-            gnet_record_t *rc = sl->data;
-            enum ignore_val ival;
-
-            ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
-            if (ival != IGNORE_FALSE) {
-				if (
-					GNET_PROPERTY(search_handle_ignored_files)
-						== SEARCH_IGN_NO_DISPLAY
-				)
-					set_flags(rc->flags, SR_DONT_SHOW);
-				else
-					set_flags(rc->flags, SR_IGNORED);
-			}
-		}
-	}
-
 	/*
 	 * Dispatch the results to the selected searches.
 	 */
 
-	if (selected_searches != NULL)
+	if (selected_searches != NULL) {
+		search_results_set_flag_records(rs);
 		search_fire_got_results(selected_searches, rs);
+	}
 
     search_free_r_set(rs);
 
@@ -3078,140 +3217,6 @@ search_notify_sent(gpointer search, guint32 id, const node_id_t node_id)
 		return;
 
 	mark_search_sent_to_node_id(sch, node_id);
-}
-
-/**
- * Check for alternate locations in the result set, and enqueue the downloads
- * if there are any.  Then free the alternate location from the record.
- */
-static void
-search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
-{
-	gnet_host_vec_t *alt = rc->alt_locs;
-	unsigned ignored = 0;
-	int i;
-
-	g_assert(alt != NULL);
-
-	for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
-		struct gnutella_host host;
-		host_addr_t addr;
-		guint16 port;
-
-		host = gnet_host_vec_get(alt, i);
-		addr = gnet_host_get_addr(&host);
-		port = gnet_host_get_port(&host);
-		if (host_is_valid(addr, port)) {
-			download_auto_new(rc->name,
-				rc->size,
-				addr,
-				port,
-				&blank_guid,
-				NULL,	/* hostname */
-				rc->sha1,
-				rc->tth,
-				rs->stamp,
-				fi,
-				NULL,	/* proxies */
-				0);		/* flags */
-		} else {
-			ignored++;
-		}
-	}
-
-	search_free_alt_locs(rc);
-
-	if (ignored) {
-    	const char *vendor = vendor_get_name(rs->vcode.u32);
-		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
-			ignored, ignored == 1 ? "" : "s",
-			host_addr_port_to_string(rs->addr, rs->port),
-			vendor ? vendor : "????");
-	}
-}
-
-/**
- * Check a results_set for matching entries in the download queue,
- * and generate new entries if we find a match.
- */
-static void
-search_check_results_set(gnet_results_set_t *rs)
-{
-	GSList *sl;
-	fileinfo_t *fi;
-
-	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
-		gnet_record_t *rc = sl->data;
-
-		if (rc->sha1) {
-			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
-			if (sf && SHARE_REBUILDING != sf) {
-				if (shared_file_is_partial(sf)) {
-            		set_flags(rc->flags, SR_PARTIAL);
-				} else {
-					set_flags(rc->flags, SR_SHARED);
-				}
-			} else {
-				enum ignore_val reason;
-
-				reason = ignore_is_requested(rc->name, rc->size, rc->sha1);
-				switch (reason) {
-				case IGNORE_FALSE:
-					break;
-				case IGNORE_SHA1:
-				case IGNORE_NAMESIZE:
-				case IGNORE_LIBRARY:
-					set_flags(rc->flags, SR_OWNED);
-					break;
-				case IGNORE_SPAM:
-					set_flags(rc->flags, SR_SPAM);
-					break;
-				case IGNORE_OURSELVES:
-				case IGNORE_HOSTILE:
-					/* These are for manual use and never returned */
-					g_assert_not_reached();
-					break;
-				}
-			}
-		}
-
-		fi = file_info_has_identical(rc->sha1, rc->size);
-		if (fi) {
-			guint32 flags = 0;
-			
-			flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
-			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
-			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
-			
-			download_auto_new(rc->name,
-				rc->size,
-				rs->addr,
-				rs->port,
-				rs->guid,
-			   	rs->hostname,
-				rc->sha1,
-				rc->tth,
-				rs->stamp,
-				fi,
-				rs->proxies,
-				flags);
-
-			search_free_proxies(rs);
-            set_flags(rc->flags, SR_DOWNLOADED);
-
-			/*
-			 * If there are alternate sources for this download in the query
-			 * hit, enqueue the downloads as well, then remove the sources
-			 * from the record.
-			 *		--RAM, 15/07/2003.
-			 */
-
-			if (rc->alt_locs != NULL)
-				search_check_alt_locs(rs, rc, fi);
-
-			g_assert(rc->alt_locs == NULL);
-		}
-	}
 }
 
 /***
