@@ -66,10 +66,10 @@ log_lrustats(DBM *db)
 	unsigned long raccesses = cache->rhits + cache->rmisses;
 	unsigned long waccesses = cache->whits + cache->wmisses;
 
-	g_message("sdbm: \"%s\" LRU read cache hits = %.2lf%% on %lu request%s",
+	g_message("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1), raccesses,
 		1 == raccesses ? "" : "s");
-	g_message("sdbm: \"%s\" LRU write cache hits = %.2lf%% on %lu request%s",
+	g_message("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
 		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1), waccesses,
 		1 == waccesses ? "" : "s");
 }

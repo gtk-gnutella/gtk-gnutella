@@ -204,10 +204,10 @@ log_sdbmstats(DBM *db)
 		sdbm_name(db), db->pagread, db->pagwrite);
 	g_message("sdbm: \"%s\" dir reads = %lu, dir writes = %lu",
 		sdbm_name(db), db->dirread, db->dirwrite);
-	g_message("sdbm: \"%s\" page blocknum hits = %.2lf%% on %lu request%s",
+	g_message("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
 		db->pagfetch, 1 == db->pagfetch ? "" : "s");
-	g_message("sdbm: \"%s\" dir blocknum hits = %.2lf%% on %lu request%s",
+	g_message("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
 		db->dirfetch, 1 == db->dirfetch ? "" : "s");
 }
