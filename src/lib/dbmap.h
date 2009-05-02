@@ -112,6 +112,10 @@ void dbmap_unlink_sdbm(const char *base);
 
 gboolean dbmap_store(const dbmap_t *dm, const char *base, gboolean inplace);
 gboolean dbmap_copy(dbmap_t *from, dbmap_t *to);
+ssize_t dbmap_sync(dbmap_t *dm);
+int dbmap_set_cachesize(dbmap_t *dm, long pages);
+int dbmap_set_deferred_writes(dbmap_t *dm, gboolean on);
+int dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile);
 
 #endif	/* _dbmap_h_ */
 

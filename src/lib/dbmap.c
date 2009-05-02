@@ -1092,4 +1092,80 @@ dbmap_copy(dbmap_t *from, dbmap_t *to)
 	return !ctx.error;
 }
 
+/**
+ * Synchronize map.
+ * @return amount of pages flushed to disk, or -1 in case of errors.
+ */
+ssize_t
+dbmap_sync(dbmap_t *dm)
+{
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return 0;
+	case DBMAP_SDBM:
+		return sdbm_sync(dm->u.s.sdbm);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/**
+ * Set SDBM cache size, in amount of pages (must be >= 1).
+ * @return 0 if OK, -1 on errors with errno set.
+ */
+int
+dbmap_set_cachesize(dbmap_t *dm, long pages)
+{
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return 0;
+	case DBMAP_SDBM:
+		return sdbm_set_cache(dm->u.s.sdbm, pages);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/**
+ * Turn SDBM deferred writes on or off.
+ * @return 0 if OK, -1 on errors with errno set.
+ */
+int
+dbmap_set_deferred_writes(dbmap_t *dm, gboolean on)
+{
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return 0;
+	case DBMAP_SDBM:
+		return sdbm_set_wdelay(dm->u.s.sdbm, on);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/**
+ * Tell SDBM whether it is volatile.
+ * @return 0 if OK, -1 on errors with errno set.
+ */
+int
+dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile)
+{
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return 0;
+	case DBMAP_SDBM:
+		return sdbm_set_volatile(dm->u.s.sdbm, is_volatile);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
