@@ -86,13 +86,8 @@ typedef enum {
 #include "override.h"		/* Must be the last header included */
 
 union mem_chunk {
-  void      *next;
-  guint8   u8;
-  guint16  u16;
-  guint32  u32;
-  guint64  u64;
-  float     f;
-  double    d;
+  void *next;
+  char align[MEM_ALIGNBYTES];
 };
 
 #define ATOM_TYPE_MASK	((size_t) 0x07)
