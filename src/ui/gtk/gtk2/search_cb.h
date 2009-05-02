@@ -38,8 +38,6 @@ void on_tree_view_search_results_unselect_row(GtkTreeView *,
 void search_update_tooltip(GtkTreeView *, GtkTreePath *);
 
 void *search_gui_get_record(GtkTreeModel *, GtkTreeIter *);
-gboolean search_gui_update_rank(GtkTreeModel *, GtkTreePath *, GtkTreeIter *,
-		void *user_data);
 
 void search_gui_request_bitzi_data(struct search *);
 const struct record *search_gui_get_record_at_path(GtkTreeView *,

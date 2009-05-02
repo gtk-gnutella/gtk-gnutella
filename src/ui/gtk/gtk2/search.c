@@ -77,7 +77,6 @@ struct result_data {
 	record_t *record;
 	const gchar *meta;	/**< Atom */
 	guint children;		/**< count of children */
-	guint32 rank;		/**< for stable sorting */
 	enum gui_color color;
 };
 
@@ -169,25 +168,6 @@ on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 	
 	search_gui_synchronize_list(gtk_tree_view_get_model(
 		GTK_TREE_VIEW(column->tree_view)));
-}
-
-/**
- * Callback handler used with gtk_tree_model_foreach() to record the current
- * rank/position in tree enabling stable sorting. 
- */
-gboolean
-search_gui_update_rank(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer udata)
-{
-	guint32 *rank_ptr = udata;
-	struct result_data *data;
-
-	(void) path;
-	
-	data = get_result_data(model, iter);
-	data->rank = *rank_ptr;
-	(*rank_ptr)++;
-	return FALSE;
 }
 
 static void
@@ -854,7 +834,8 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 	case c_sr_ctime:	ret = search_gui_cmp_ctime(a, b); break;
 	case c_sr_num: 		g_assert_not_reached(); break;
 	}
-	return ret ? ret : CMP(a->rank, b->rank);
+	/* Use address to stabilize sorting */
+	return ret ? ret : CMP(pointer_to_ulong(a), pointer_to_ulong(b));
 }
 
 void
