@@ -1398,6 +1398,8 @@
 #216.25.249.0/24
 # Trans World Internet eXchange, LLC
 216.25.240.0/20
+89.18.160.0/24
+65.182.105.0/24
 
 # Barton Media network
 # Stabu iela 59/16, Riga, Latvia
