@@ -109,6 +109,7 @@ enum dbmap_type dbmw_map_type(const dbmw_t *dw);
 size_t dbmw_count(dbmw_t *dw);
 gboolean dbmw_has_ioerr(const dbmw_t *dw);
 const char *dbmw_name(const dbmw_t *dw);
+gboolean dbmw_set_map_cache(dbmw_t *dw, long pages);
 gboolean dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile);
 
 GSList *dbmw_all_keys(const dbmw_t *dw);

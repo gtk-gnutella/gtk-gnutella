@@ -51,10 +51,13 @@ RCSID("$Id$")
 
 #define DBMW_CACHE	128			/**< Default amount of items to cache */
 
+enum dbmw_magic { DBMW_MAGIC = 0x28e7e7d2U };
+
 /**
  * Our DBM wrapper.
  */
 struct dbmw {
+	enum dbmw_magic magic;
 	dbmap_t *dm;				/**< Underlying database manager */
 	const char *name;			/**< DB name, for logging */
 	pmsg_t *mb;					/**< Message block used for serialization */
@@ -76,6 +79,13 @@ struct dbmw {
 	guint8 count_needs_sync;	/**< Whether we need to sync to get count */
 	guint8 is_volatile;			/**< Whether database dies when map dies */
 };
+
+static inline void
+dbmw_check(const dbmw_t *dw)
+{
+	g_assert(dw != NULL);
+	g_assert(DBMW_MAGIC == dw->magic);
+}
 
 /**
  * A cached entry (deserialized value). 
@@ -180,6 +190,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	dw = walloc0(sizeof *dw);
 
+	dw->magic = DBMW_MAGIC;
 	dw->dm = dm;
 	dw->name = name;
 
@@ -558,7 +569,7 @@ write_immediately(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 void
 dbmw_write_nocache(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 {
-	g_assert(dw);
+	dbmw_check(dw);
 	g_assert(key);
 	g_assert(length <= dw->value_size);
 	g_assert(length || value == NULL);
@@ -581,7 +592,7 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 {
 	struct cached *entry;
 
-	g_assert(dw);
+	dbmw_check(dw);
 	g_assert(key);
 	g_assert(length <= dw->value_size);
 	g_assert(length || value == NULL);
@@ -628,7 +639,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 	struct cached *entry;
 	dbmap_datum_t dval;
 
-	g_assert(dw);
+	dbmw_check(dw);
 	g_assert(key);
 
 	dw->r_access++;
@@ -722,7 +733,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	struct cached *entry;
 	gboolean ret;
 
-	g_assert(dw);
+	dbmw_check(dw);
 	g_assert(key);
 
 	dw->r_access++;
@@ -769,7 +780,7 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 {
 	struct cached *entry;
 
-	g_assert(dw);
+	dbmw_check(dw);
 	g_assert(key);
 
 	dw->w_access++;
@@ -821,6 +832,7 @@ free_cached(gpointer key, gpointer value, gpointer data)
 	dbmw_t *dw = data;
 	struct cached *entry = value;
 
+	dbmw_check(dw);
 	g_assert(dw->is_volatile || !entry->dirty);
 	g_assert(!entry->len == !entry->data);
 
@@ -836,6 +848,8 @@ free_cached(gpointer key, gpointer value, gpointer data)
 static void
 dbmw_clear_cache(dbmw_t *dw)
 {
+	dbmw_check(dw);
+
 	/*
 	 * In the cache, the hash list and the value cache share the same
 	 * key pointers.  Therefore, we need to iterate on the map only
@@ -852,6 +866,8 @@ dbmw_clear_cache(dbmw_t *dw)
 void
 dbmw_destroy(dbmw_t *dw, gboolean close_map)
 {
+	dbmw_check(dw);
+
 	if (common_stats)
 		g_message("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
@@ -882,6 +898,7 @@ dbmw_destroy(dbmw_t *dw, gboolean close_map)
 	if (close_map)
 		dbmap_destroy(dw->dm);
 
+	dw->magic = 0;
 	wfree(dw, sizeof *dw);
 }
 
@@ -908,6 +925,8 @@ dbmw_foreach_common(gboolean removing,
 	struct foreach_ctx *ctx = arg;
 	const dbmw_t *dw = ctx->dw;
 	struct cached *entry;
+
+	dbmw_check(dw);
 
 	entry = map_lookup(dw->values, key);
 	if (entry != NULL) {
@@ -986,6 +1005,8 @@ void dbmw_foreach(const dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
 {
 	struct foreach_ctx ctx;
 
+	dbmw_check(dw);
+
 	ctx.u.cb = cb;
 	ctx.arg = arg;
 	ctx.dw = dw;
@@ -1001,6 +1022,8 @@ void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 {
 	struct foreach_ctx ctx;
 
+	dbmw_check(dw);
+
 	ctx.u.cbr = cbr;
 	ctx.arg = arg;
 	ctx.dw = dw;
@@ -1015,6 +1038,8 @@ void dbmw_foreach_remove(const dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
 GSList *
 dbmw_all_keys(const dbmw_t *dw)
 {
+	dbmw_check(dw);
+
 	return dbmap_all_keys(dw->dm);
 }
 
@@ -1024,6 +1049,8 @@ dbmw_all_keys(const dbmw_t *dw)
 void
 dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
 {
+	dbmw_check(dw);
+
 	dbmap_free_all_keys(dw->dm, keys);
 }
 
@@ -1040,6 +1067,8 @@ dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
 gboolean
 dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
 {
+	dbmw_check(dw);
+
 	dbmw_sync(dw, DBMW_SYNC_CACHE);
 	return dbmap_store(dw->dm, base, inplace);
 }
@@ -1053,8 +1082,8 @@ dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
 gboolean
 dbmw_copy(dbmw_t *from, dbmw_t *to)
 {
-	g_assert(from != NULL);
-	g_assert(to != NULL);
+	dbmw_check(from);
+	dbmw_check(to);
 
 	dbmw_sync(from, DBMW_SYNC_CACHE);
 	dbmw_sync(to, DBMW_SYNC_CACHE);
@@ -1069,6 +1098,18 @@ dbmw_copy(dbmw_t *from, dbmw_t *to)
 }
 
 /**
+ * Set the map cache size, as an amount of 1 KiB pages.
+ * @return TRUE on success.
+ */
+gboolean
+dbmw_set_map_cache(dbmw_t *dw, long pages)
+{
+	dbmw_check(dw);
+
+	return 0 == dbmap_set_cachesize(dw->dm, pages);
+}
+
+/**
  * Flag whether database is volatile (never outlives a close).
  *
  * @return TRUE on success.
@@ -1076,6 +1117,8 @@ dbmw_copy(dbmw_t *from, dbmw_t *to)
 gboolean
 dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile)
 {
+	dbmw_check(dw);
+
 	dw->is_volatile = TRUE;
 	return 0 == dbmap_set_volatile(dw->dm, is_volatile);
 }
