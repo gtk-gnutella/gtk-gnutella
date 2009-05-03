@@ -262,13 +262,53 @@ seepair(const char *pag, int n, const char *key, size_t siz)
 	int i;
 	size_t off = DBM_PBLKSIZ;
 	const short *ino = (const short *) pag;
+#if 1
+	/* Slightly optimized version */
+	char b, e;
 
+	if (n <= 5) {
+		/* The original version is optimum for low n */
+		for (i = 1; i < n; i += 2) {
+			if (siz == off - ino[i] && 0 == memcmp(key, pag + ino[i], siz))
+				return i;
+			off = ino[i + 1];
+		}
+		return 0;
+	}
+
+	/* Compare head and tail bytes of key first before calling memcmp() */
+
+	if (siz > 0) {
+		b = key[0];
+		e = key[siz - 1];
+	}
+
+	for (i = 1; i < n; i += 2) {
+		if (siz == off - ino[i]) {
+			const char *p = pag + ino[i];
+			if (0 == siz) {
+				return i;
+			} else if (b == p[0]) {
+				if (1 == siz) {
+					return i;
+				} else {
+					if (e == p[siz - 1] && 0 == memcmp(key + 1, p + 1, siz - 2))
+						return i;
+				}
+			}
+		}
+		off = ino[i + 1];
+	}
+	return 0;
+#else
+	/* Original version */
 	for (i = 1; i < n; i += 2) {
 		if (siz == off - ino[i] && 0 == memcmp(key, pag + ino[i], siz))
 			return i;
 		off = ino[i + 1];
 	}
 	return 0;
+#endif
 }
 
 void

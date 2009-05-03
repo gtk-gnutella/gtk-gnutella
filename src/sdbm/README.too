@@ -102,3 +102,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   - amount of block number hits for page and dir (accesses to current page)
   - amount of LRU page read cache hits (when LRU is activated)
   - amount of LRU page write cache hits (when LRU write-back is activated)
+* Optimized seepair() slightly.
+
