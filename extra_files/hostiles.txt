@@ -1722,6 +1722,19 @@
 #217.114.215.239:11678; 5e243cf42a02a93b8d9981d7b1007500
 217.114.215.192/26
 
+# pr0n mpg spam; domains hosted at 146.82.200.176
+# collegemegaparties dot com
+# herprivatecam dot com
+# SingleHop, Inc.
+216.104.32.0/20
+# VPLS Inc. d/b/a Krypt Technologies 
+98.126.209.0/24
+98.126.9.0/24
+174.139.0.0/24
+# Sago Networks
+66.118.144.0/21
+64.16.214.0/24
+
 # Deutsche Telekom/T-Online/T-Com
 # DNS manipulation target ranges
 62.157.140.0/23
