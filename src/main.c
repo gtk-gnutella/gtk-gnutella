@@ -840,7 +840,7 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 	if (stderr_disabled)
 		return;
 
-	now = tm_time();
+	now = tm_time_exact();
 	ct = localtime(&now);
 
 	switch (level) {
