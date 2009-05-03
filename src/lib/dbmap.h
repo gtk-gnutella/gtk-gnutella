@@ -110,7 +110,7 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
 size_t dbmap_count_keys_sdbm(DBM *sdbm);
 void dbmap_unlink_sdbm(const char *base);
 
-gboolean dbmap_store(const dbmap_t *dm, const char *base, gboolean inplace);
+gboolean dbmap_store(dbmap_t *dm, const char *base, gboolean inplace);
 gboolean dbmap_copy(dbmap_t *from, dbmap_t *to);
 ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);

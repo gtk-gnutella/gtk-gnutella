@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "sdbm/sdbm.h"
 
 #include "dbmap.h"
+#include "atoms.h"
 #include "bstr.h"
 #include "debug.h"
 #include "map.h"
@@ -73,6 +74,8 @@ struct dbmap {
 		} m;
 		struct {
 			DBM *sdbm;
+			const char *path;		/**< SDBM file path (atom), if known */
+			gboolean is_volatile;	/**< Whether DB can be discarded */
 		} s;
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
@@ -299,6 +302,7 @@ dbmap_create_sdbm(size_t ksize,
 	}
 
 	dm->magic = DBMAP_MAGIC;
+	dm->u.s.path = atom_str_get(path);
 
 	if (name)
 		sdbm_set_name(dm->u.s.sdbm, name);
@@ -636,6 +640,10 @@ dbmap_release(dbmap_t *dm)
 
 	implementation = dbmap_implementation(dm);
 
+	if (DBMAP_SDBM == dm->type) {
+		atom_str_free_null(&dm->u.s.path);
+	}
+
 	dm->type = DBMAP_MAXTYPE;
 	dm->magic = 0;
 	wfree(dm, sizeof *dm);
@@ -660,6 +668,9 @@ free_kv(gpointer key, gpointer value, gpointer u)
 
 /**
  * Destroy a DB map.
+ *
+ * A memory-backed map is lost.
+ * An SDBM-backed map is lost if marked volatile, provided its path is known.
  */
 void
 dbmap_destroy(dbmap_t *dm)
@@ -673,6 +684,9 @@ dbmap_destroy(dbmap_t *dm)
 		break;
 	case DBMAP_SDBM:
 		sdbm_close(dm->u.s.sdbm);
+		if (dm->u.s.is_volatile && dm->u.s.path != NULL)
+			dbmap_unlink_sdbm(dm->u.s.path);
+		atom_str_free_null(&dm->u.s.path);
 		break;
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
@@ -1019,6 +1033,10 @@ dbmap_store_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
  * Store DB map to disk in an SDBM database, at the specified base.
  * Two files are created (using suffixes .pag and .dir).
  *
+ * If the map was already backed by an SDBM database and ``inplace'' is TRUE,
+ * then the map is simply persisted as such.  It is marked non-volatile as
+ * a side effect.
+ *
  * @param dm		the DB map to store
  * @param base		base path for the persistent database
  * @param inplace	if TRUE and map was an SDBM already, persist as itself
@@ -1026,7 +1044,7 @@ dbmap_store_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
  * @return TRUE on success.
  */
 gboolean
-dbmap_store(const dbmap_t *dm, const char *base, gboolean inplace)
+dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 {
 	dbmap_t *ndm;
 	gboolean ok = TRUE;
@@ -1034,8 +1052,11 @@ dbmap_store(const dbmap_t *dm, const char *base, gboolean inplace)
 	dbmap_check(dm);
 
 	if (inplace && DBMAP_SDBM == dm->type) {
-		if (dbmap_sdbm_store_superblock(dm))
+		if (dbmap_sdbm_store_superblock(dm)) {
+			dbmap_set_volatile(dm, FALSE);
+			dbmap_sync(dm);
 			return ok;
+		}
 
 		g_warning("SDBM \"%s\": cannot store superblock: %s",
 			sdbm_name(dm->u.s.sdbm), g_strerror(errno));
@@ -1193,6 +1214,7 @@ dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile)
 	case DBMAP_MAP:
 		return 0;
 	case DBMAP_SDBM:
+		dm->u.s.is_volatile = is_volatile;
 		return sdbm_set_volatile(dm->u.s.sdbm, is_volatile);
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
