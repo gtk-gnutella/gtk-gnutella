@@ -56,17 +56,27 @@ enum map_type {
 	MAP_MAXTYPE
 };
 
+enum map_magic { MAP_MAGIC = 0x7a16297fU };
+
 /**
  * The map structure holding the necessary information to delegate all
  * the operations to different implementations.
  */
 struct map {
+	enum map_magic magic;
 	union {
 		GHashTable *ht;
 		patricia_t *pt;
 	} u;
 	enum map_type type;
 };
+
+static inline void
+map_check(const map_t *m)
+{
+	g_assert(m != NULL);
+	g_assert(MAP_MAGIC == m->magic);
+}
 
 /**
  * Create a map implemented as a hash table.
@@ -82,6 +92,7 @@ map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
 	map_t *m;
 
 	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = g_hash_table_new(hash_func, key_eq_func);
 
@@ -99,6 +110,7 @@ map_create_patricia(size_t keybits)
 	map_t *m;
 
 	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
 	m->type = MAP_PATRICIA;
 	m->u.pt = patricia_create(keybits);
 
@@ -117,6 +129,7 @@ map_create_from_hash(GHashTable *ht)
 	g_assert(ht);
 
 	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
 	m->u.ht = ht;
 
@@ -135,6 +148,7 @@ map_create_from_patricia(patricia_t *pt)
 	g_assert(pt);
 
 	m = walloc(sizeof *m);
+	m->magic = MAP_MAGIC;
 	m->type = MAP_PATRICIA;
 	m->u.pt = pt;
 
@@ -150,7 +164,7 @@ map_switch_to_hash(map_t *m, GHashTable *ht)
 {
 	gpointer implementation;
 
-	g_assert(m);
+	map_check(m);
 	g_assert(ht);
 
 	implementation = map_implementation(m);
@@ -169,7 +183,7 @@ map_switch_to_patricia(map_t *m, patricia_t *pt)
 {
 	gpointer implementation;
 
-	g_assert(m);
+	map_check(m);
 	g_assert(pt);
 
 	implementation = map_implementation(m);
@@ -185,7 +199,7 @@ map_switch_to_patricia(map_t *m, patricia_t *pt)
 void
 map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -205,7 +219,7 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
 void
 map_replace(const map_t *m, gconstpointer key, gconstpointer value)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -225,7 +239,7 @@ map_replace(const map_t *m, gconstpointer key, gconstpointer value)
 void
 map_remove(const map_t *m, gconstpointer key)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -245,7 +259,7 @@ map_remove(const map_t *m, gconstpointer key)
 gboolean
 map_contains(const map_t *m, gconstpointer key)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -264,7 +278,7 @@ map_contains(const map_t *m, gconstpointer key)
 gpointer
 map_lookup(const map_t *m, gconstpointer key)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -283,7 +297,7 @@ map_lookup(const map_t *m, gconstpointer key)
 size_t
 map_count(const map_t *m)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -303,7 +317,7 @@ gboolean
 map_lookup_extended(const map_t *m, gconstpointer key,
 	gpointer *okey, gpointer *oval)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -343,7 +357,7 @@ pat_foreach_wrapper(gpointer key, size_t u_keybits, gpointer value, gpointer u)
 void
 map_foreach(const map_t *m, map_cb_t cb, gpointer u)
 {
-	g_assert(m);
+	map_check(m);
 	g_assert(cb);
 
 	switch (m->type) {
@@ -394,7 +408,7 @@ pat_foreach_remove_wrapper(
  */
 size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 {
-	g_assert(m);
+	map_check(m);
 	g_assert(cb);
 
 	switch (m->type) {
@@ -422,7 +436,7 @@ size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 gpointer
 map_implementation(const map_t *m)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -446,11 +460,12 @@ map_release(map_t *m)
 {
 	gpointer implementation;
 
-	g_assert(m);
+	map_check(m);
 
 	implementation = map_implementation(m);
 
 	m->type = MAP_MAXTYPE;
+	m->magic = 0;
 	wfree(m, sizeof *m);
 
 	return implementation;
@@ -462,7 +477,7 @@ map_release(map_t *m)
 void
 map_destroy(map_t *m)
 {
-	g_assert(m);
+	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
@@ -476,6 +491,7 @@ map_destroy(map_t *m)
 	}
 
 	m->type = MAP_MAXTYPE;
+	m->magic = 0;
 	wfree(m, sizeof *m);
 }
 
