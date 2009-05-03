@@ -212,27 +212,6 @@ log_sdbmstats(DBM *db)
 		db->dirfetch, 1 == db->dirfetch ? "" : "s");
 }
 
-void
-sdbm_close(DBM *db)
-{
-	if (db == NULL)
-		errno = EINVAL;
-	else {
-		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
-#ifdef LRU
-		lru_close(db);
-#else
-		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
-#endif
-		file_close(&db->dirf);
-		file_close(&db->pagf);
-		if (common_stats)
-			log_sdbmstats(db);
-		G_FREE_NULL(db->name);
-		wfree(db, sizeof *db);
-	}
-}
-
 /**
  * Fetch the specified page number into db->pagbuf and update db->pagbno
  * on success.  Otherwise, set db->pagbno to -1 to indicate invalid db->pagbuf.
@@ -349,6 +328,29 @@ flush_dirbuf(DBM *db)
 #endif
 
 	return DBM_DBLKSIZ == w;
+}
+
+void
+sdbm_close(DBM *db)
+{
+	if (db == NULL)
+		errno = EINVAL;
+	else {
+#ifdef LRU
+		if (!db->is_volatile && db->dirbuf_dirty)
+			flush_dirbuf(db);
+		lru_close(db);
+#else
+		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+#endif
+		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+		file_close(&db->dirf);
+		file_close(&db->pagf);
+		if (common_stats)
+			log_sdbmstats(db);
+		G_FREE_NULL(db->name);
+		wfree(db, sizeof *db);
+	}
 }
 
 datum
@@ -901,7 +903,18 @@ ssize_t
 sdbm_sync(DBM *db)
 {
 #ifdef LRU
-	return flush_dirtypag(db);
+	{
+		ssize_t npag;
+
+		npag = flush_dirtypag(db);
+		if (-1 == npag)
+			return -1;
+
+		if (db->dirbuf_dirty)
+			return flush_dirbuf(db) ? npag + 1 : -1;
+
+		return npag;
+	}
 #else
 	return 0;
 #endif
