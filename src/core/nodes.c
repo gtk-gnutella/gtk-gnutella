@@ -9487,6 +9487,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	if (ui != un) {
 		g_assert(ui < un);
 		payload[0] = ui;
+		/* FIXME: This nonsense is emitted if connected to IPv6 peers */
 		g_warning("crawler pong can only hold %d ultras out of selected %d",
 			ui, un);
 	}
@@ -9494,6 +9495,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	if (li != ln) {
 		g_assert(li < ln);
 		payload[1] = li;
+		/* FIXME: This nonsense is emitted if connected to IPv6 peers */
 		g_warning("crawler pong can only hold %d leaves out of selected %d",
 			li, ln);
 	}
