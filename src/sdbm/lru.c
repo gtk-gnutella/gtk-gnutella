@@ -209,7 +209,31 @@ setcache(DBM *db, long pages)
 	if (pages == cache->pages)
 		return 0;
 
+	/*
+	 * Cache size is changed.
+	 *
+	 * This means the arena will be reallocated, so we must invalidate the
+	 * current db->pagbuf pointer, which lies within the old arena.  It is
+	 * sufficient to reset db->pagbno, forcing a reload from the upper layers.
+	 * Note than when the cache size is enlarged, the old page is still cached
+	 * so reloading will be just a matter of recomputing db->pagbuf.  We could
+	 * do so here, but cache size changes should only be infrequent.
+	 *
+	 * We also reset all the cache statistics, since a different cache size
+	 * will imply a different set of hit/miss ratio.
+	 */
+
 	db->pagbno = -1;		/* Current page address will become invalid */
+
+	if (common_stats) {
+		g_message("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
+			sdbm_name(db), pages > cache->pages ? "increased" : "decreased",
+			cache->pages, 1 == cache->pages ? "" : "s", pages);
+		log_lrustats(db);
+	}
+
+	cache->rhits = cache->rmisses = 0;
+	cache->whits = cache->wmisses = 0;
 
 	/*
 	 * Straightforward: the size is increased.
