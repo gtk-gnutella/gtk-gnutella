@@ -224,6 +224,7 @@ setcache(DBM *db, long pages)
 	 */
 
 	db->pagbno = -1;		/* Current page address will become invalid */
+	db->pagbuf = NULL;
 
 	if (common_stats) {
 		g_message("sdbm: \"%s\" LRU cache size %s from %ld page%s to %ld",
