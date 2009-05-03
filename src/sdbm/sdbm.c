@@ -557,7 +557,22 @@ makroom(DBM *db, long int hash, size_t need)
 #endif
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
-		} else if (
+		}
+#ifdef LRU
+		else if (db->is_volatile) {
+			/*
+			 * Since DB is volatile, there is no pressure to write it to disk
+			 * immediately.  Since this page may be of interest soon, let's
+			 * cache it instead.  It will be written to disk immediately
+			 * if deferred writes have been turned off despite the DB being
+			 * volatile.
+			 */
+
+			if (!cachepag(db, New, newp))
+				return FALSE;
+		}
+#endif
+		else if (
 			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
 		) {
@@ -886,7 +901,7 @@ ssize_t
 sdbm_sync(DBM *db)
 {
 #ifdef LRU
-	return flush_dirty(db);
+	return flush_dirtypag(db);
 #else
 	return 0;
 #endif

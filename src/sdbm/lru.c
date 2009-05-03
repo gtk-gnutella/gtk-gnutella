@@ -52,6 +52,7 @@ setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
 	cache->pagnum = g_hash_table_new(NULL, NULL);
 	cache->used = hash_list_new(NULL, NULL);
 	cache->pages = pages;
+	cache->next = 0;
 	cache->write_deferred = wdelay;
 	cache->dirty = walloc(cache->pages);
 	cache->numpag = walloc(cache->pages * sizeof(long));
@@ -67,9 +68,12 @@ free_cache(struct lru_cache *cache)
 {
 	hash_list_free(&cache->used);
 	g_hash_table_destroy(cache->pagnum);
+	cache->pagnum = NULL;
 	free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
-	wfree(cache->numpag, cache->pages * sizeof(long));
-	wfree(cache->dirty, cache->pages);
+	cache->arena = NULL;
+	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
+	WFREE_NULL(cache->dirty, cache->pages);
+	cache->pages = cache->next = 0;
 }
 
 /**
@@ -141,7 +145,7 @@ writebuf(DBM *db, long oldnum, long idx)
 	if (!flushpag(db, pag, oldnum))
 		return FALSE;
 
-	cache->dirty[idx] = 0;
+	cache->dirty[idx] = FALSE;
 	return TRUE;
 }
 
@@ -153,14 +157,15 @@ writebuf(DBM *db, long oldnum, long idx)
  * were I/O errors (errno is set).
  */
 ssize_t
-flush_dirty(DBM *db)
+flush_dirtypag(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 	int n;
 	ssize_t amount = 0;
 	int saved_errno = 0;
+	long pages = MIN(cache->pages, cache->next);
 
-	for (n = 0; n < cache->pages; n++) {
+	for (n = 0; n < pages; n++) {
 		if (cache->dirty[n]) {
 			long num = cache->numpag[n];
 			if (writebuf(db, num, n)) {
@@ -238,7 +243,7 @@ setcache(DBM *db, long pages)
 	 */
 
 	wdelay = cache->write_deferred;
-	flush_dirty(db);
+	flush_dirtypag(db);
 	free_cache(cache);
 	return setup_cache(cache, pages, wdelay);
 }
@@ -263,7 +268,7 @@ setwdelay(DBM *db, gboolean on)
 	 */
 
 	if (cache->write_deferred) {
-		flush_dirty(db);
+		flush_dirtypag(db);
 		cache->write_deferred = FALSE;
 	} else {
 		cache->write_deferred = TRUE;
@@ -281,7 +286,7 @@ void lru_close(DBM *db)
 
 	if (cache) {
 		if (!db->is_volatile)
-			flush_dirty(db);
+			flush_dirtypag(db);
 
 		if (common_stats)
 			log_lrustats(db);
@@ -312,12 +317,12 @@ dirtypag(DBM *db, gboolean force)
 			cache->whits++;		/* Was already dirty -> write cache hit */
 		else
 			cache->wmisses++;
-		cache->dirty[n] = 1;
+		cache->dirty[n] = TRUE;
 		return TRUE;
 	}
 
 	if (flushpag(db, db->pagbuf, db->pagbno)) {
-		cache->dirty[n] = 0;
+		cache->dirty[n] = FALSE;
 		return TRUE;
 	}
 
@@ -340,7 +345,7 @@ getidx(DBM *db, long num)
 
 	if (cache->next < cache->pages) {
 		n = cache->next++;
-		cache->dirty[n] = 0;
+		cache->dirty[n] = FALSE;
 		hash_list_prepend(cache->used, int_to_pointer(n));
 	} else {
 		void *last = hash_list_tail(cache->used);
@@ -364,7 +369,7 @@ getidx(DBM *db, long num)
 		}
 
 		g_hash_table_remove(cache->pagnum, ulong_to_pointer(oldnum));
-		cache->dirty[n] = 0;
+		cache->dirty[n] = FALSE;
 	}
 
 	/*
@@ -394,12 +399,15 @@ readbuf(DBM *db, long num)
 	long idx;
 	gboolean good_page = TRUE;
 
+	g_assert(num >= 0);
+
 	if (
 		g_hash_table_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), &key, &value)
 	) {
 		hash_list_moveto_head(cache->used, value);
 		idx = pointer_to_int(value);
+		g_assert(idx >= 0 && idx < cache->pages);
 		g_assert(cache->numpag[idx] == num);
 		cache->rhits++;
 	} else {
@@ -412,6 +420,32 @@ readbuf(DBM *db, long num)
 	return good_page;
 }
 
+/**
+ * Cache new page held in memory if there are deferred writes configured.
+ * @return TRUE on success.
+ */
+gboolean
+cachepag(DBM *db, char *pag, long num)
+{
+	struct lru_cache *cache = db->cache;
+
+	g_assert(num >= 0);
+	g_assert(!g_hash_table_lookup(cache->pagnum, ulong_to_pointer(num)));
+
+	if (cache->write_deferred) {
+		long idx;
+		char *cpag;
+
+		idx = getidx(db, num);
+		cpag = cache->arena + OFF_PAG(idx);
+		memmove(cpag, pag, DBM_PBLKSIZ);
+		cache->dirty[idx] = TRUE;
+		return TRUE;
+	} else {
+		return flushpag(db, pag, num);
+	}
+}
+
 #endif	/* LRU */
 
 /**
@@ -422,6 +456,8 @@ gboolean
 flushpag(DBM *db, char *pag, long num)
 {
 	ssize_t w;
+
+	g_assert(num >= 0);
 
 	db->pagwrite++;
 	w = compat_pwrite(db->pagf, pag, DBM_PBLKSIZ, OFF_PAG(num));

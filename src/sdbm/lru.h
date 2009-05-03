@@ -4,15 +4,17 @@
 #define readbuf sdbm__readbuf
 #define flushpag sdbm__flushpag
 #define dirtypag sdbm__dirtypag
-#define flush_dirty sdbm__flush_dirty
+#define flush_dirtypag sdbm__flush_dirtypag
 #define setcache sdbm__setcache
 #define setwdelay sdbm__setwdelay
+#define cachepag sdbm__cachepag
 
-extern void lru_init(DBM *);
-extern void lru_close(DBM *);
-extern gboolean readbuf(DBM *, long);
-extern gboolean dirtypag(DBM *, gboolean);
-extern gboolean flushpag(DBM *, char *, long);
-extern ssize_t flush_dirty(DBM *);
-extern int setcache(DBM *db, long pages);
-extern int setwdelay(DBM *db, gboolean on);
+void lru_init(DBM *);
+void lru_close(DBM *);
+gboolean readbuf(DBM *, long);
+gboolean dirtypag(DBM *, gboolean);
+gboolean flushpag(DBM *, char *, long);
+ssize_t flush_dirtypag(DBM *);
+int setcache(DBM *, long);
+int setwdelay(DBM *, gboolean);
+gboolean cachepag(DBM *, char *, long);
