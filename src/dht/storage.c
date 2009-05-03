@@ -271,17 +271,8 @@ storage_close(dbmw_t *dw, const char *base)
 void
 storage_delete(dbmw_t *dw, const char *base)
 {
-	if (dw) {
-		gboolean uses_sdbm = DBMAP_SDBM == dbmw_map_type(dw);
-
+	if (dw)
 		dbmw_destroy(dw, TRUE);
-
-		if (uses_sdbm) {
-			char *path = make_pathname(settings_config_dir(), base);
-			dbmap_unlink_sdbm(path);
-			G_FREE_NULL(path);
-		}
-	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
