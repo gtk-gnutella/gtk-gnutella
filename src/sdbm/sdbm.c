@@ -294,6 +294,7 @@ flush_pagbuf(DBM *db)
 #endif
 }
 
+#ifdef LRU
 /**
  * Possibly force flush of db->pagbuf to disk, even on deferred writes.
  * @return TRUE on success
@@ -303,12 +304,9 @@ force_flush_pagbuf(DBM *db, gboolean force)
 {
 	if (force)
 		db->pagwforced++;
-#ifdef LRU
 	return dirtypag(db, force);	/* Current (cached) page buffer is dirty */
-#else
-	return flushpag(db, db->pagbuf, db->pagbno);
-#endif
 }
+#endif
 
 /**
  * Flush dirbuf to disk.
@@ -480,8 +478,13 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	 * If database was flagged as volatile, there's no need.
 	 */
 
+#ifdef LRU
 	if (!force_flush_pagbuf(db, need_split && !db->is_volatile))
 		return -1;
+#else
+	if (!flush_pagbuf(db))
+		return -1;
+#endif
 
 	return 0;		/* Success */
 }
@@ -550,12 +553,15 @@ makroom(DBM *db, long int hash, size_t need)
 		}
 #endif
 		if (hash & (db->hmask + 1)) {
+#ifdef LRU
 			if (!force_flush_pagbuf(db, !db->is_volatile))
 				return FALSE;
 
-#ifdef LRU
 			readbuf(db, newp);		/* Get new page from LRU cache */
 			pag = db->pagbuf;		/* Must refresh pointer to current page */
+#else
+			if (!flush_pagbuf(db))
+				return FALSE;
 #endif
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
@@ -603,8 +609,13 @@ makroom(DBM *db, long int hash, size_t need)
 		db->curbit = 2 * db->curbit + ((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
 
+#ifdef LRU
 		if (!force_flush_pagbuf(db, !db->is_volatile))
 			return FALSE;
+#else
+		if (!flush_pagbuf(db))
+			return FALSE;
+#endif
 	} while (--smax);
 
 	/*
@@ -916,6 +927,7 @@ sdbm_sync(DBM *db)
 		return npag;
 	}
 #else
+	(void) db;
 	return 0;
 #endif
 }
@@ -929,6 +941,8 @@ sdbm_set_cache(DBM *db, long pages)
 #ifdef LRU
 	return setcache(db, pages);
 #else
+	(void) db;
+	(void) pages;
 	errno = ENOTSUP;
 	return -1;
 #endif
@@ -943,6 +957,8 @@ sdbm_set_wdelay(DBM *db, gboolean on)
 #ifdef LRU
 	return setwdelay(db, on);
 #else
+	(void) db;
+	(void) on;
 	errno = ENOTSUP;
 	return -1;
 #endif
@@ -960,6 +976,9 @@ sdbm_set_volatile(DBM *db, gboolean yes)
 	db->is_volatile = yes;
 	if (yes)
 		return setwdelay(db, TRUE);
+#else
+	(void) db;
+	(void) yes;
 #endif
 	return 0;
 }
