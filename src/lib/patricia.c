@@ -206,10 +206,13 @@ struct patricia_parent {
 #define embedded_item_value(n_)		((n_)->p.ext->value)
 #define embedded_item_keybits(n_)	(size_t) ((n_)->bit)
 
+enum patricia_magic { PATRICIA_MAGIC = 0x42123004U };
+
 /**
  * The PATRICIA tree.
  */
 struct patricia {
+	enum patricia_magic magic;		/**< Magic number */
 	struct patricia_node *root;		/**< Root of tree (lazily allocated) */
 	size_t maxbits;					/**< Maximum bitsize of key */
 	size_t count;					/**< Amount of keys stored */
@@ -218,6 +221,13 @@ struct patricia {
 	guint stamp;					/**< Stamp to protect iterators */
 	int refcnt;						/**< Reference count */
 };
+
+static inline void
+patricia_check(const patricia_t *pt)
+{
+	g_assert(pt != NULL);
+	g_assert(PATRICIA_MAGIC == pt->magic);
+}
 
 /**
  * Create a new PATRICIA tree.
@@ -235,6 +245,7 @@ patricia_create(size_t maxbits)
 	g_assert(maxbits != 0);
 
 	pt = walloc(sizeof *pt);
+	pt->magic = PATRICIA_MAGIC;
 	pt->root = NULL;
 	pt->count = pt->nodes = pt->embedded = 0;
 	pt->maxbits = maxbits;
@@ -250,7 +261,7 @@ patricia_create(size_t maxbits)
 size_t
 patricia_count(const patricia_t *pt)
 {
-	g_assert(pt);
+	patricia_check(pt);
 
 	return pt->count;
 }
@@ -261,7 +272,7 @@ patricia_count(const patricia_t *pt)
 size_t
 patricia_max_keybits(const patricia_t *pt)
 {
-	g_assert(pt);
+	patricia_check(pt);
 
 	return pt->maxbits;
 }
@@ -272,7 +283,7 @@ patricia_max_keybits(const patricia_t *pt)
 static struct patricia_node *
 allocate_node(patricia_t *pt)
 {
-	g_assert(pt);
+	patricia_check(pt);
 
 	pt->nodes++;
 	return walloc(sizeof(struct patricia_node));
@@ -284,7 +295,7 @@ allocate_node(patricia_t *pt)
 static void
 free_node(patricia_t *pt, struct patricia_node *pn)
 {
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pn);
 	g_assert(pt->nodes > 0);
 
@@ -562,7 +573,7 @@ match_best(patricia_t *pt, gconstpointer key, size_t keybits)
 	const struct patricia_node *pn;
 	int i;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pt->root);
 	g_assert(key);
 	g_assert(keybits <= pt->maxbits);
@@ -613,7 +624,7 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 	const struct patricia_node *pn;
 	int i;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(key);
 	g_assert(keybits <= pt->maxbits);
 
@@ -767,7 +778,7 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
 	const struct patricia_node *pn;
 	int i;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(key);
 	g_assert(keybits <= pt->maxbits);
 
@@ -866,7 +877,7 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
 	const struct patricia_node *pn;
 	int i;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(key);
 	g_assert(keybits == pt->maxbits);
 	g_assert(pt->embedded == 0);		/* All keys must have the same size */
@@ -975,7 +986,7 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 	struct patricia_node *parent;
 	struct patricia_node *child = NULL;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pn);
 
 	parent = parent_node(pn);
@@ -1017,7 +1028,7 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
 	size_t old_keybits;
 	struct patricia_node *parent;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pn);
 	g_assert(!pn->leaf);
 	g_assert(pn->has_embedded_data);
@@ -1369,7 +1380,7 @@ patricia_insert_k(patricia_t *pt,
 	size_t common_bits;
 	gconstpointer prefix;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(key);
 	g_assert(keybits <= pt->maxbits);
 
@@ -1760,7 +1771,7 @@ patricia_furthest_extended(
 static void
 remove_node(patricia_t *pt, struct patricia_node *pn)
 {
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pn);
 
 	pt->stamp++;
@@ -1905,7 +1916,7 @@ traverse(patricia_t *pt,
 	node_cb_t ncb, gpointer un,
 	patricia_cb_t cb, gpointer u)
 {
-	g_assert(pt);
+	patricia_check(pt);
 
 	/*
 	 * Traverse without recursing for maximum efficiency.
@@ -1968,7 +1979,7 @@ traverse_remove_node(struct patricia_node *pn, gpointer u)
 void
 patricia_destroy(patricia_t *pt)
 {
-	g_assert(pt);
+	patricia_check(pt);
 
 	if (--pt->refcnt > 0)
 		return;			/* Still referenced by something internally */
@@ -1989,7 +2000,7 @@ patricia_destroy(patricia_t *pt)
 void
 patricia_foreach(const patricia_t *pt, patricia_cb_t cb, gpointer u)
 {
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(cb);
 
 	traverse(deconstify_gpointer(pt), NULL, NULL, cb, u);
@@ -2065,7 +2076,7 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 	struct remove_ctx ctx;
 	GSList *sl;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(cb);
 
 	ctx.sl = NULL;
@@ -2100,10 +2111,13 @@ enum patricia_iter_type {
 	PATRICIA_ITER_XOR_LAZY			/**< idem, key not copied */
 };
 
+enum patricia_iter_magic { PATRICIA_ITER_MAGIC = 0x64083edeU };
+
 /**
  * A PATRICIA iterator.
  */
 struct patricia_iter {
+	enum patricia_iter_magic magic;		/**< Magic number */
 	enum patricia_iter_type type;		/**< Type of iterator */
 	patricia_t *pt;						/**< The PATRICIA tree */
 	const struct patricia_node *last;	/**< Last visited node */
@@ -2115,12 +2129,20 @@ struct patricia_iter {
 	gboolean forward;				/**< Whether iterator is moving forward */
 };
 
+static inline void
+patricia_iter_check(const patricia_iter_t *iter)
+{
+	g_assert(iter != NULL);
+	g_assert(PATRICIA_ITER_MAGIC == iter->magic);
+}
+
 /**
  * Common iterator field initialization.
  */
 static patricia_iter_t *
 common_iter_init(patricia_iter_t *iter, patricia_t *pt, gboolean forward)
 {
+	iter->magic = PATRICIA_ITER_MAGIC;
 	iter->pt = pt;
 	iter->last = NULL;
 	iter->stamp = pt->stamp;
@@ -2142,7 +2164,7 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
 {
 	struct patricia_iter *iter;
 
-	g_assert(pt);
+	patricia_check(pt);
 
 	iter = walloc0(sizeof *iter);
 
@@ -2176,7 +2198,7 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 	struct patricia_iter *iter;
 	size_t keybytes = bits2bytes(pt->maxbits);
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pt->embedded == 0);
 
 	iter = walloc(sizeof *iter);
@@ -2201,7 +2223,7 @@ patricia_metric_iterator_lazy(
 {
 	struct patricia_iter *iter;
 
-	g_assert(pt);
+	patricia_check(pt);
 	g_assert(pt->embedded == 0);
 
 	iter = walloc(sizeof *iter);
@@ -2310,6 +2332,8 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 {
 	const struct patricia_node *next = NULL;
 
+	patricia_iter_check(iter);
+
 	switch (iter->type) {
 	case PATRICIA_ITER_TREE:
 		next = next_tree_node(prev, iter->forward);
@@ -2336,6 +2360,8 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 gboolean
 patricia_iter_has_next(patricia_iter_t *iter)
 {
+	patricia_iter_check(iter);
+
 	if (!iter->knows_next) {
 		g_assert(iter->stamp == iter->pt->stamp);
 		g_assert(iter->last != NULL);
@@ -2360,6 +2386,8 @@ gpointer
 patricia_iter_next_value(patricia_iter_t *iter)
 {
 	gboolean has_next;
+
+	patricia_iter_check(iter);
 
 	has_next = iter->knows_next ?
 		iter->next != NULL : patricia_iter_has_next(iter);
@@ -2387,6 +2415,8 @@ patricia_iter_next(patricia_iter_t *iter,
 	gpointer *key, size_t *keybits, gpointer *value)
 {
 	gboolean has_next;
+
+	patricia_iter_check(iter);
 
 	has_next = iter->knows_next ?
 		iter->next != NULL : patricia_iter_has_next(iter);
@@ -2417,6 +2447,8 @@ patricia_iterator_release(patricia_iter_t **iter_ptr)
 	iter = *iter_ptr;
 
 	if (iter) {
+		patricia_iter_check(iter);
+
 		patricia_destroy(iter->pt);
 		if (iter->type == PATRICIA_ITER_XOR) {
 			wfree(iter->key, bits2bytes(iter->keybits));
