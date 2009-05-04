@@ -64,7 +64,7 @@ gpointer map_switch_to_patricia(map_t *m, patricia_t *pt);
 
 void map_insert(const map_t *m, gconstpointer key, gconstpointer value);
 void map_replace(const map_t *m, gconstpointer key, gconstpointer value);
-void map_remove(const map_t *m, gconstpointer key);
+gboolean map_remove(const map_t *m, gconstpointer key);
 gpointer map_lookup(const map_t *m, gconstpointer key);
 gboolean map_lookup_extended(const map_t *m, gconstpointer key,
 	gpointer *okey, gpointer *oval);

@@ -235,22 +235,27 @@ map_replace(const map_t *m, gconstpointer key, gconstpointer value)
 
 /**
  * Remove a key from the map.
+ *
+ * @return TRUE if the key was found and removed from the map.
  */
-void
+gboolean
 map_remove(const map_t *m, gconstpointer key)
 {
 	map_check(m);
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_remove(m->u.ht, key);
+		return gm_hash_table_remove(m->u.ht, key);
 		break;
 	case MAP_PATRICIA:
-		(void) patricia_remove(m->u.pt, key);
+		return patricia_remove(m->u.pt, key);
 		break;
 	case MAP_MAXTYPE:
-		g_assert_not_reached();
+		break;
 	}
+
+	g_assert_not_reached();
+	return FALSE;
 }
 
 /**
