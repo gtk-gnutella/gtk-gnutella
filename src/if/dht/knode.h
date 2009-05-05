@@ -96,6 +96,7 @@ knode_check(const knode_t *kn)
 
 /**
  * Add one reference to a Kademlia node.
+ * @return the argument
  */
 static inline knode_t *
 knode_refcnt_inc(const knode_t *kn)
@@ -106,6 +107,23 @@ knode_refcnt_inc(const knode_t *kn)
 	g_assert(kn->refcnt > 0);
 
 	knm->refcnt++;
+	return knm;
+}
+
+/**
+ * Remove one reference to a Kademlia node, expecting the node to still
+ * be referenced.
+ * @return the argument
+ */
+static inline knode_t *
+knode_refcnt_dec(const knode_t *kn)
+{
+	knode_t *knm = deconstify_gpointer(kn);
+
+	knode_check(kn);
+	g_assert(kn->refcnt > 1);
+
+	knm->refcnt--;
 	return knm;
 }
 
