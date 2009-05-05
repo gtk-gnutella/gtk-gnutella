@@ -381,6 +381,8 @@ typedef enum {
     PROP_HOST_DEBUG,
     PROP_DHT_ROOTS_DEBUG,
     PROP_LIB_STATS,
+    PROP_SPAM_LUT_IN_MEMORY,
+    PROP_SPAM_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

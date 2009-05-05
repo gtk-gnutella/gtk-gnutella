@@ -393,6 +393,8 @@ extern const guint32  gnet_property_variable_fw_debug;
 extern const guint32  gnet_property_variable_host_debug;
 extern const guint32  gnet_property_variable_dht_roots_debug;
 extern const guint32  gnet_property_variable_lib_stats;
+extern const gboolean gnet_property_variable_spam_lut_in_memory;
+extern const guint32  gnet_property_variable_spam_debug;
 
 
 prop_set_t *gnet_prop_init(void);

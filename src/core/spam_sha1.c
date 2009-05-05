@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/dbmw.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/sorted_array.h"
@@ -59,14 +60,29 @@ RCSID("$Id$")
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SPAM_DB_LOAD_CACHESIZE	32768	/* Large to do it mostly in RAM */
+#define SPAM_DB_RUN_CACHESIZE	128		/* During operations, less demanding */
+
 static const char spam_sha1_file[] = "spam_sha1.txt";
 static const char spam_sha1_what[] = "Spam SHA-1 database";
+static char db_spambase[] = "spam_sha1";
 
-struct spam_lut {
-	struct sorted_array *tab;
+enum spam_state {
+	SPAM_UNINITIALIZED = 0,
+	SPAM_LOADING = 1,
+	SPAM_LOADED,
 };
 
-static struct spam_lut spam_lut;
+struct sha1_lut {
+	struct sorted_array *tab;
+	enum spam_state state;
+	union {
+		dbmw_t *dw;
+		dbmap_t *dm;
+	} d;
+};
+
+static struct sha1_lut sha1_lut;
 
 static inline int
 sha1_cmp_func(const void *a, const void *b)
@@ -74,30 +90,82 @@ sha1_cmp_func(const void *a, const void *b)
 	return sha1_cmp(a, b);
 }
 
+/**
+ * Initialize SPAM lookup up table.
+ */
+static void
+spam_lut_create(void)
+{
+	if (GNET_PROPERTY(spam_lut_in_memory)) {
+		sha1_lut.tab = sorted_array_new(sizeof(struct sha1), sha1_cmp_func);
+	} else {
+		dbmap_t *dm;
+		char *path;
+
+		path = make_pathname(settings_config_dir(), db_spambase);
+		dm = dbmap_create_sdbm(SHA1_RAW_SIZE, spam_sha1_what, path,
+			O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
+		G_FREE_NULL(path);
+
+		if (NULL == dm) {
+			if (GNET_PROPERTY(spam_debug))
+				g_warning("unable to create SDBM database for %s: %s",
+					db_spambase, g_strerror(errno));
+			sha1_lut.tab = sorted_array_new(sizeof(struct sha1), sha1_cmp_func);
+		} else {
+			/*
+			 * During loading we use the dbmap directly, not the wrapper
+			 * since we don't care about that high-level cache layer which
+			 * is going to slow us down needlessly.
+			 */
+
+			dbmap_set_volatile(dm, TRUE);
+			dbmap_set_cachesize(dm, SPAM_DB_LOAD_CACHESIZE);
+			sha1_lut.d.dm = dm;
+		}
+	}
+}
+
 void
 spam_sha1_add(const struct sha1 *sha1)
 {
 	g_return_if_fail(sha1);
-	if (NULL == spam_lut.tab) {
-		spam_lut.tab = sorted_array_new(sizeof *sha1, sha1_cmp_func);
+
+	if (sha1_lut.tab)
+		sorted_array_add(sha1_lut.tab, sha1);
+	else {
+		dbmap_datum_t val = { NULL, 0 };
+		dbmap_insert(sha1_lut.d.dm, sha1, val);
 	}
-	sorted_array_add(spam_lut.tab, sha1);
 }
 
 static int
 sha1_collision(const void *a, const void *b)
 {
 	(void) a;
-	g_warning("spam_sha1_sync(): Removing duplicate SHA-1 %s",
-		sha1_base32(b));
+	g_warning("spam_sha1_sync(): Removing duplicate SHA-1 %s", sha1_base32(b));
 	return 1;
 }
 
 void
 spam_sha1_sync(void)
 {
-	if (spam_lut.tab) {
-		sorted_array_sync(spam_lut.tab, sha1_collision);
+	if (sha1_lut.tab) {
+		sorted_array_sync(sha1_lut.tab, sha1_collision);
+	} else if (SPAM_LOADING == sha1_lut.state) {
+		dbmap_t *dm = sha1_lut.d.dm;
+
+		/*
+		 * Now that loading is finished, we can wrap the dbmap to use some
+		 * amount of high-level caching, and therefore reduce the amount
+		 * of low-level caching done.
+		 */
+
+		dbmap_set_cachesize(dm, SPAM_DB_RUN_CACHESIZE);
+		sha1_lut.d.dw = dbmw_create(dm, spam_sha1_what,
+			SHA1_RAW_SIZE, 0,
+			NULL, NULL, NULL,
+			1, sha1_hash, sha1_eq);
 	}
 }
 
@@ -121,6 +189,9 @@ spam_sha1_load(FILE *f)
 	gulong item_count = 0;
 
 	g_assert(f);
+
+	spam_lut_create();
+	sha1_lut.state = SPAM_LOADING;
 
 	while (fgets(line, sizeof line, f)) {
 		const struct sha1 *sha1;
@@ -174,6 +245,10 @@ spam_sha1_load(FILE *f)
 	}
 
 	spam_sha1_sync();
+	sha1_lut.state = SPAM_LOADED;
+
+	if (GNET_PROPERTY(spam_debug))
+		g_message("loaded %lu SPAM SHA-1 keys", item_count);
 
 	return item_count;
 }
@@ -262,7 +337,13 @@ spam_sha1_init(void)
 void
 spam_sha1_close(void)
 {
-	sorted_array_free(&spam_lut.tab);
+	sorted_array_free(&sha1_lut.tab);
+	if (sha1_lut.d.dw) {
+		dbmw_destroy(sha1_lut.d.dw, TRUE);
+		sha1_lut.d.dw = NULL;
+	}
+
+	sha1_lut.state = SPAM_UNINITIALIZED;
 }
 
 /**
@@ -275,7 +356,10 @@ gboolean
 spam_sha1_check(const struct sha1 *sha1)
 {
 	g_return_val_if_fail(sha1, FALSE);
-	return spam_lut.tab && NULL != sorted_array_lookup(spam_lut.tab, sha1);
+	if (sha1_lut.tab)
+		return NULL != sorted_array_lookup(sha1_lut.tab, sha1);
+	else
+		return dbmw_exists(sha1_lut.d.dw, sha1);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

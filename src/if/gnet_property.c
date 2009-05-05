@@ -796,6 +796,10 @@ guint32  gnet_property_variable_dht_roots_debug     = 0;
 static const guint32  gnet_property_variable_dht_roots_debug_default = 0;
 guint32  gnet_property_variable_lib_stats     = 0;
 static const guint32  gnet_property_variable_lib_stats_default = 0;
+gboolean gnet_property_variable_spam_lut_in_memory     = TRUE;
+static const gboolean gnet_property_variable_spam_lut_in_memory_default = TRUE;
+guint32  gnet_property_variable_spam_debug     = 0;
+static const guint32  gnet_property_variable_spam_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7383,6 +7387,43 @@ gnet_prop_init(void) {
     gnet_property->props[344].data.guint32.choices = NULL;
     gnet_property->props[344].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[344].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_SPAM_LUT_IN_MEMORY:
+     *
+     * General data:
+     */
+    gnet_property->props[345].name = "spam_lut_in_memory";
+    gnet_property->props[345].desc = _("If TRUE, the spam SHA1 database is kept in memory.");
+    gnet_property->props[345].ev_changed = event_new("spam_lut_in_memory_changed");
+    gnet_property->props[345].save = TRUE;
+    gnet_property->props[345].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[345].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[345].data.boolean.def   = (void *) &gnet_property_variable_spam_lut_in_memory_default;
+    gnet_property->props[345].data.boolean.value = (void *) &gnet_property_variable_spam_lut_in_memory;
+
+
+    /*
+     * PROP_SPAM_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[346].name = "spam_debug";
+    gnet_property->props[346].desc = _("Debug level for spam detection.");
+    gnet_property->props[346].ev_changed = event_new("spam_debug_changed");
+    gnet_property->props[346].save = TRUE;
+    gnet_property->props[346].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[346].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[346].data.guint32.def   = (void *) &gnet_property_variable_spam_debug_default;
+    gnet_property->props[346].data.guint32.value = (void *) &gnet_property_variable_spam_debug;
+    gnet_property->props[346].data.guint32.choices = NULL;
+    gnet_property->props[346].data.guint32.max   = 20;
+    gnet_property->props[346].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

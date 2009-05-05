@@ -4014,4 +4014,24 @@ prop = {
     };
 };
 
+prop = {
+    name = "spam_lut_in_memory";
+    desc = "If TRUE, the spam SHA1 database is kept in memory.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+	name = "spam_debug";
+	desc = "Debug level for spam detection.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */
