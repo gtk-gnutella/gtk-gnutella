@@ -44,16 +44,6 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if ZALLOC_ALIGNBYTES == 2
-#define ZALLOC_ALIGNBITS 1
-#elif ZALLOC_ALIGNBYTES == 4
-#define ZALLOC_ALIGNBITS 2
-#elif ZALLOC_ALIGNBYTES == 8
-#define ZALLOC_ALIGNBITS 3
-#else
-#error "Unexpected ZALLOC_ALIGNBYTES value"
-#endif
-
 #ifdef TRACK_ZALLOC
 #undef walloc				/* We want to define the real routines */
 #undef walloc0
@@ -95,9 +85,10 @@ walloc(size_t size)
 	if (rounded >= WALLOC_MAX)
 		return malloc(size);		/* Too big for efficient zalloc() */
 
-	idx = rounded >> ZALLOC_ALIGNBITS;
+	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
+	idx = rounded / ZALLOC_ALIGNBYTES;
 
-	STATIC_ASSERT(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
+	STATIC_ASSERT(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
 	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
@@ -159,7 +150,7 @@ wfree(gpointer ptr, size_t size)
 		return;
 	}
 
-	idx = rounded >> ZALLOC_ALIGNBITS;
+	idx = rounded / ZALLOC_ALIGNBYTES;
 
 	g_assert(idx < WZONE_SIZE);
 
@@ -217,9 +208,9 @@ walloc_track(size_t size, char *file, int line)
 		return malloc(size);		/* Too big for efficient zalloc() */
 #endif
 
-	idx = rounded >> ZALLOC_ALIGNBITS;
+	idx = rounded / ZALLOC_ALIGNBYTES;
 
-	g_assert(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
+	g_assert(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
 	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
