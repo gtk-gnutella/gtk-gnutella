@@ -1700,6 +1700,7 @@
 69.147.240.0/24
 70.32.35.0/24
 70.32.36.0/24
+72.37.145.0/24
 72.37.242.0/23
 # eNET Inc.
 # Gnucleus-based DRM WMV spammer hosted by eNET
