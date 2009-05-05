@@ -280,9 +280,11 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
 	char vc_buf[VENDOR_CODE_BUFLEN];
+	gchar kuid_buf[KUID_RAW_SIZE * 2 + 1];
 
 	knode_check(kn);
 
+	bin_to_hex_buf(kn->id, KUID_RAW_SIZE, kuid_buf, sizeof kuid_buf);
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
@@ -290,7 +292,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 		host_buf,
 		(kn->flags & KNODE_F_PCONTACT) ? "*" : "",
 		(kn->flags & KNODE_F_FOREIGN_IP) ? "?" : "",
-		vc_buf, kn->major, kn->minor, kuid_to_hex_string2(kn->id),
+		vc_buf, kn->major, kn->minor, kuid_buf,
 		knode_status_to_string(kn->status), kn->refcnt,
 		(kn->status != KNODE_UNKNOWN && !(kn->flags & KNODE_F_ALIVE)) ?
 			" zombie" : "",
@@ -346,6 +348,7 @@ knode_dispose(knode_t *kn)
 	}
 
 	kuid_atom_free_null(&kn->id);
+	kn->magic = 0;
 	wfree(kn, sizeof *kn);
 }
 
