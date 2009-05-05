@@ -49,10 +49,14 @@ enum sequence_direction {
 	SEQ_ITER_BACKWARD			/**< Backward iteration */
 };
 
+enum sequence_iter_magic { SEQUENCE_ITER_MAGIC = 0x169103ceU };
+
 /**
  * A sequence iterator.
  */
 struct sequence_iterator {
+	enum sequence_iter_magic magic;
+	enum sequence_type type;
 	union {
 		GSList *gsl;
 		GList *gl;
@@ -60,9 +64,20 @@ struct sequence_iterator {
 		slist_iter_t *sli;
 		hash_list_iter_t *hli;
 	} u;
-	enum sequence_type type;
 	enum sequence_direction direction;
 };
+
+static inline void sequence_iter_check(const sequence_iter_t *si)
+{
+	g_assert(si != NULL);
+	g_assert(SEQUENCE_ITER_MAGIC == si->magic);
+}
+
+static inline void sequence_check(const sequence_t *s)
+{
+	g_assert(s != NULL);
+	g_assert(SEQUENCE_MAGIC == s->magic);
+}
 
 /**
  * Create a sequence out of an existing GSList.
@@ -141,6 +156,7 @@ sequence_create_from_hash_list(hash_list_t *hl)
 sequence_t *
 sequence_fill_from_gslist(sequence_t *s, GSList *gsl)
 {
+	s->magic = SEQUENCE_MAGIC;
 	s->type = SEQUENCE_GSLIST;
 	s->u.gsl = gsl;
 	return s;
@@ -152,6 +168,7 @@ sequence_fill_from_gslist(sequence_t *s, GSList *gsl)
 sequence_t *
 sequence_fill_from_glist(sequence_t *s, GList *gl)
 {
+	s->magic = SEQUENCE_MAGIC;
 	s->type = SEQUENCE_GLIST;
 	s->u.gl = gl;
 	return s;
@@ -165,6 +182,7 @@ sequence_fill_from_list(sequence_t *s, list_t *l)
 {
 	g_assert(l != NULL);
 
+	s->magic = SEQUENCE_MAGIC;
 	s->type = SEQUENCE_LIST;
 	s->u.l = l;
 	return s;
@@ -178,6 +196,7 @@ sequence_fill_from_slist(sequence_t *s, slist_t *sl)
 {
 	g_assert(sl != NULL);
 
+	s->magic = SEQUENCE_MAGIC;
 	s->type = SEQUENCE_SLIST;
 	s->u.sl = sl;
 	return s;
@@ -191,6 +210,7 @@ sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl)
 {
 	g_assert(hl != NULL);
 
+	s->magic = SEQUENCE_MAGIC;
 	s->type = SEQUENCE_HLIST;
 	s->u.hl = hl;
 	return s;
@@ -202,7 +222,7 @@ sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl)
 gboolean
 sequence_is_empty(const sequence_t *s)
 {
-	g_assert(s != NULL);
+	sequence_check(s);
 
 	switch (s->type) {
 	case SEQUENCE_GSLIST:
@@ -228,7 +248,7 @@ sequence_is_empty(const sequence_t *s)
 gpointer
 sequence_implementation(const sequence_t *s)
 {
-	g_assert(s != NULL);
+	sequence_check(s);
 
 	switch (s->type) {
 	case SEQUENCE_GSLIST:
@@ -257,11 +277,12 @@ sequence_release(sequence_t *s)
 {
 	gpointer implementation;
 
-	g_assert(s != NULL);
+	sequence_check(s);
 
 	implementation = sequence_implementation(s);
 
 	s->type = SEQUENCE_MAXTYPE;
+	s->magic = 0;
 	wfree(s, sizeof *s);
 
 	return implementation;
@@ -273,7 +294,7 @@ sequence_release(sequence_t *s)
 void
 sequence_destroy(sequence_t *s)
 {
-	g_assert(s != NULL);
+	sequence_check(s);
 
 	switch (s->type) {
 	case SEQUENCE_GSLIST:
@@ -296,6 +317,7 @@ sequence_destroy(sequence_t *s)
 	}
 
 	s->type = SEQUENCE_MAXTYPE;
+	s->magic = 0;
 	wfree(s, sizeof *s);
 }
 
@@ -310,6 +332,7 @@ sequence_forward_iterator(const sequence_t *s)
 	g_assert(s != NULL);
 
 	si = walloc(sizeof *si);
+	si->magic = SEQUENCE_ITER_MAGIC;
 	si->direction = SEQ_ITER_FORWARD;
 	si->type = s->type;
 
@@ -345,6 +368,7 @@ sequence_iter_has_next(const sequence_iter_t *si)
 	if (!si)
 		return FALSE;
 
+	sequence_iter_check(si);
 	g_assert(SEQ_ITER_FORWARD == si->direction);
 
 	switch (si->type) {
@@ -373,7 +397,7 @@ sequence_iter_next(sequence_iter_t *si)
 {
 	gpointer next = NULL;
 
-	g_assert(si != NULL);
+	sequence_iter_check(si);
 	g_assert(SEQ_ITER_FORWARD == si->direction);
 
 	switch (si->type) {
@@ -407,6 +431,8 @@ sequence_iterator_release(sequence_iter_t **iter_ptr)
 	if (*iter_ptr) {
 		sequence_iter_t *si = *iter_ptr;
 
+		sequence_iter_check(si);
+
 		switch (si->type) {
 		case SEQUENCE_GSLIST:
 		case SEQUENCE_GLIST:
@@ -424,6 +450,7 @@ sequence_iterator_release(sequence_iter_t **iter_ptr)
 			g_assert_not_reached();
 		}
 
+		si->magic = 0;
 		wfree(si, sizeof *si);
 		*iter_ptr = NULL;
 	}

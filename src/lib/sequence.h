@@ -55,11 +55,15 @@ enum sequence_type {
 	SEQUENCE_MAXTYPE
 };
 
+enum sequence_magic { SEQUENCE_MAGIC = 0x062be573U };
+
 /**
  * The sequence structure holding the necessary information to delegate all
  * the operations to different implementations.
  */
 struct sequence {
+	enum sequence_magic magic;
+	enum sequence_type type;
 	union {
 		GSList *gsl;
 		GList *gl;
@@ -67,7 +71,6 @@ struct sequence {
 		slist_t *sl;
 		hash_list_t *hl;
 	} u;
-	enum sequence_type type;
 };
 
 typedef struct sequence sequence_t;
