@@ -497,6 +497,22 @@ hash_table_remove(hash_table_t *ht, const void *key)
   return FALSE;
 }
 
+void
+hash_table_replace(hash_table_t *ht, const void *key, const void *value)
+{
+  hash_item_t *item;
+
+  hash_table_check(ht);
+	
+  item = hash_table_find(ht, key, NULL);
+  if (item == NULL) {
+	hash_table_insert(ht, key, value);
+  } else {
+	item->key = key;
+	item->value = value;
+  }
+}
+
 void *
 hash_table_lookup(const hash_table_t *ht, const void *key)
 {
@@ -544,10 +560,13 @@ hash_table_destroy(hash_table_t *ht)
  * their usage is properly tracked.
  */
 
+#undef malloc
+#undef free
+
 hash_table_t *
 hash_table_new_real(void)
 {
-  hash_table_t *ht = real_malloc(sizeof *ht);
+  hash_table_t *ht = malloc(sizeof *ht);
   hash_table_new_intern(ht, 2, NULL, NULL);
   return ht;
 }
@@ -555,7 +574,7 @@ hash_table_new_real(void)
 hash_table_t *
 hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 {
-  hash_table_t *ht = real_malloc(sizeof *ht);
+  hash_table_t *ht = malloc(sizeof *ht);
   hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }
@@ -564,7 +583,7 @@ void
 hash_table_destroy_real(hash_table_t *ht)
 {
   hash_table_clear(ht);
-  real_free(ht);
+  free(ht);
 }
 #endif /* TRACK_MALLOC */
 

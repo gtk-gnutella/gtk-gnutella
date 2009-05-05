@@ -62,7 +62,7 @@ void hash_table_destroy_real(hash_table_t *ht);
 size_t hash_table_size(const hash_table_t *ht);
 gboolean hash_table_insert(hash_table_t *ht,
 	const void *key, const void *value);
-void hash_table_replace(hash_table_t *ht, void *key, void *value);
+void hash_table_replace(hash_table_t *ht, const void *key, const void *value);
 void *hash_table_lookup(const hash_table_t *ht, const void *key);
 gboolean hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp);
