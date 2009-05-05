@@ -90,6 +90,7 @@ RCSID("$Id$")
 
 #define ROOTKEYS_DB_CACHE_SIZE	512		/**< Cached amount of root keys */
 #define CONTACT_DB_CACHE_SIZE	2048	/**< Cached amount of contacts */
+#define CONTACT_MAP_CACHE_SIZE	128		/**< Amount of SDBM pages to cache */
 
 /**
  * Private callout queue used to expire entries in the database that have
@@ -885,6 +886,8 @@ roots_init(void)
 		sizeof(guint64), sizeof(struct contact),
 		serialize_contact, deserialize_contact, NULL,
 		CONTACT_DB_CACHE_SIZE, uint64_hash, uint64_eq);
+
+	dbmw_set_map_cache(db_contact, CONTACT_MAP_CACHE_SIZE);
 
 	roots_init_rootinfo();
 	cq_periodic_add(roots_cq, ROOTS_SYNC_PERIOD, roots_sync, NULL);
