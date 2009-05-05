@@ -153,12 +153,32 @@ RCSID("$Id$")
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
+/**
+ * When defined, extra magic numbers are insert in PATRICIA nodes, to make
+ * sure the internal data structures never become corrupted.  This adds some
+ * memory overhead to each item stored in the tree, so this is not enabled
+ * by default: only the main externally visible data structure is protected.
+ */
+#if 0
+#define PATRICIA_MEMCHECK
+#endif
+
+#ifdef PATRICIA_MEMCHECK
+enum patricia_node_magic   { PATRICIA_NODE_MAGIC   = 0x1cabac44U };
+enum patricia_parent_magic { PATRICIA_PARENT_MAGIC = 0x4d928669U };
+#endif
+
 struct patricia_parent;
 
 /**
  * A PATRICIA node in the tree.
  */
 struct patricia_node {
+
+#ifdef PATRICIA_MEMCHECK
+	enum patricia_node_magic magic;
+#endif
+
 	union {
 		struct patricia_node *parent;	/**< Parent node (NULL if root node) */
 		struct patricia_parent *ext;	/**< Extended: parent + data */
@@ -184,10 +204,75 @@ struct patricia_node {
  * reach the parent node.
  */
 struct patricia_parent {
+
+#ifdef PATRICIA_MEMCHECK
+	enum patricia_parent_magic magic;
+#endif
+
 	struct patricia_node *parent;	/**< Parent node (NULL if root node) */
 	const void *key;				/**< The item key */
 	const void *value;				/**< Data stored for the key in this node */
 };
+
+#ifdef PATRICIA_MEMCHECK
+static inline void
+patricia_node_set_magic(struct patricia_node *pn)
+{
+	pn->magic = PATRICIA_NODE_MAGIC;
+}
+
+static inline void
+patricia_node_check_magic(const struct patricia_node *pn)
+{
+	g_assert(PATRICIA_NODE_MAGIC == pn->magic);
+}
+
+static inline void
+patricia_node_clear_magic(struct patricia_node *pn)
+{
+	pn->magic = 0;
+}
+
+static inline void
+patricia_parent_set_magic(struct patricia_parent *pp)
+{
+	pp->magic = PATRICIA_PARENT_MAGIC;
+}
+
+static inline void
+patricia_parent_clear_magic(struct patricia_parent *pp)
+{
+	pp->magic = 0;
+}
+
+static inline void
+patricia_parent_check_magic(const struct patricia_parent *pp)
+{
+	g_assert(PATRICIA_PARENT_MAGIC == pp->magic);
+}
+
+#else  /* !PATRICIA_MEMCHECK */
+#define patricia_node_set_magic(n_)
+#define patricia_node_clear_magic(n_)
+#define patricia_node_check_magic(n_)
+#define patricia_parent_set_magic(p_)
+#define patricia_parent_clear_magic(p_)
+#define patricia_parent_check_magic(p_)
+#endif /* PATRICIA_MEMCHECK */
+
+static inline void
+patricia_node_check(const struct patricia_node *pn)
+{
+	g_assert(pn != NULL);
+	patricia_node_check_magic(pn);
+}
+
+static inline void
+patricia_parent_check(const struct patricia_parent *pp)
+{
+	g_assert(pp != NULL);
+	patricia_parent_check_magic(pp);
+}
 
 /*
  * Accessing shortcuts.
@@ -197,14 +282,14 @@ struct patricia_parent {
 #define child_one(n_)			((n_)->u.children.o)
 #define leaf_item_key(n_)		((n_)->u.item.key)
 #define leaf_item_value(n_)		((n_)->u.item.value)
-#define leaf_item_keybits(n_)	(size_t) ((n_)->last_kbit + 1)
+#define leaf_item_keybits(n_)	((size_t) ((n_)->last_kbit + 1))
 
 #define parent_node(n_) \
 	((n_)->has_embedded_data ? (n_)->p.ext->parent : (n_)->p.parent)
 
 #define embedded_item_key(n_)		((n_)->p.ext->key)
 #define embedded_item_value(n_)		((n_)->p.ext->value)
-#define embedded_item_keybits(n_)	(size_t) ((n_)->bit)
+#define embedded_item_keybits(n_)	((size_t) ((n_)->bit))
 
 enum patricia_magic { PATRICIA_MAGIC = 0x42123004U };
 
@@ -283,10 +368,15 @@ patricia_max_keybits(const patricia_t *pt)
 static struct patricia_node *
 allocate_node(patricia_t *pt)
 {
+	struct patricia_node *pn;
+
 	patricia_check(pt);
 
 	pt->nodes++;
-	return walloc(sizeof(struct patricia_node));
+	pn = walloc(sizeof(struct patricia_node));
+	patricia_node_set_magic(pn);
+
+	return pn;
 }
 
 /**
@@ -296,10 +386,11 @@ static void
 free_node(patricia_t *pt, struct patricia_node *pn)
 {
 	patricia_check(pt);
-	g_assert(pn);
+	patricia_node_check(pn);
 	g_assert(pt->nodes > 0);
 
 	pt->nodes--;
+	patricia_node_clear_magic(pn);
 	wfree(pn, sizeof *pn);
 }
 
@@ -309,7 +400,7 @@ free_node(patricia_t *pt, struct patricia_node *pn)
 static inline void
 set_parent(struct patricia_node *pn, struct patricia_node *parent)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	if (pn->has_embedded_data) {
 		g_assert(!pn->leaf);
@@ -345,12 +436,12 @@ node_prefix(const struct patricia_node *pn)
 	int i;
 	gconstpointer result = NULL;
 
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	for (n = pn, i = 0; i < PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *child;
 
-		g_assert(n);
+		patricia_node_check(n);
 
 		/*
 		 * If the node holds a value, then by construction its leading key
@@ -413,7 +504,7 @@ found:
 static inline size_t
 node_prefix_bits(const struct patricia_node *pn)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	return pn->leaf ? leaf_item_keybits(pn) : pn->bit;
 }
@@ -424,7 +515,7 @@ node_prefix_bits(const struct patricia_node *pn)
 static inline gboolean
 node_has_data(const struct patricia_node *pn)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	return pn->leaf || pn->has_embedded_data;
 }
@@ -435,7 +526,7 @@ node_has_data(const struct patricia_node *pn)
 static inline gconstpointer
 node_key(const struct patricia_node *pn)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	if (pn->leaf)
 		return leaf_item_key(pn);
@@ -451,7 +542,7 @@ node_key(const struct patricia_node *pn)
 static inline size_t
 node_keybits(const struct patricia_node *pn)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	if (pn->leaf)
 		return leaf_item_keybits(pn);
@@ -467,7 +558,7 @@ node_keybits(const struct patricia_node *pn)
 static inline gconstpointer
 node_value(const struct patricia_node *pn)
 {
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	if (pn->leaf)
 		return leaf_item_value(pn);
@@ -485,7 +576,7 @@ node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
 {
 	const guint8 *k = key;
 
-	g_assert(pn);
+	patricia_node_check(pn);
 	g_assert(key);
 	g_assert(keybits >= (size_t) pn->bit + 1);
 
@@ -546,7 +637,7 @@ matched_bits(
 {
 	gconstpointer prefix;
 
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	prefix = node_prefix(pn);
 	if (pprefix)
@@ -584,7 +675,7 @@ match_best(patricia_t *pt, gconstpointer key, size_t keybits)
 	for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *child;
 
-		g_assert(pn);
+		patricia_node_check(pn);
 
 		/*
 		 * If we have less bits in the key than the first bit to test for at
@@ -642,7 +733,7 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 		for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
 			const struct patricia_node *child;
 
-			g_assert(pn);
+			patricia_node_check(pn);
 
 			/*
 			 * If we reach a leaf node, compare the key with the value.
@@ -669,7 +760,7 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
 		for (pn = pt->root, i = 0; i <= PATRICIA_MAXBITS; i++) {
 			const struct patricia_node *child;
 
-			g_assert(pn);
+			patricia_node_check(pn);
 
 			/*
 			 * If we have exactly the same amount of bits and the node contains
@@ -733,7 +824,7 @@ find_deepest(const struct patricia_node *root, gboolean leftmost)
 	for (pn = root, i = 0; i <= PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *child;
 
-		g_assert(pn);
+		patricia_node_check(pn);
 
 		if (pn->leaf)
 			return pn;
@@ -786,12 +877,15 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
 		return NULL;
 
 	pn = pt->root;
+	patricia_node_check(pn);
 
 	if (keybits == 0)
 		return (node_has_data(pn) && 0 == node_keybits(pn)) ?  pn : NULL;
 
 	for (i = 0; i <= PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *child;
+
+		patricia_node_check(pn);
 
 		/*
 		 * If we're already too deep in the tree, the keys we'll find will
@@ -842,6 +936,7 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
 		const struct patricia_node *n = *sp--;
 		size_t nbits = node_keybits(n);
 
+		patricia_node_check(n);
 		g_assert(nbits <= keybits);
 
 		if (nbits == common_leading_bits(node_key(n), nbits, key, keybits))
@@ -895,7 +990,7 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
 		const struct patricia_node *child;
 		gboolean matches;
 
-		g_assert(pn);
+		patricia_node_check(pn);
 
 		if (pn->leaf)
 			return pn;						/* We found the closest node */
@@ -949,6 +1044,8 @@ static void
 fill_leaf(struct patricia_node *pn, struct patricia_node *parent,
 	gconstpointer key, size_t keybits, gconstpointer value)
 {
+	patricia_node_check(pn);
+
 	pn->leaf = TRUE;
 	pn->has_embedded_data = FALSE;
 	pn->p.parent = parent;
@@ -966,11 +1063,16 @@ clear_embedded_data(struct patricia_node *pn)
 {
 	struct patricia_node *parent;
 
-	g_assert(pn);
+	patricia_node_check(pn);
 	g_assert(pn->has_embedded_data);
 
 	parent = parent_node(pn);
+
 	pn->has_embedded_data = FALSE;
+
+	patricia_parent_check(pn->p.ext);
+	patricia_parent_clear_magic(pn->p.ext);
+
 	wfree(pn->p.ext, sizeof *pn->p.ext);
 	pn->p.parent = parent;
 
@@ -987,7 +1089,7 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 	struct patricia_node *child = NULL;
 
 	patricia_check(pt);
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	parent = parent_node(pn);
 
@@ -1004,6 +1106,7 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 	}
 
 	if (parent) {
+		patricia_node_check(parent);
 		if (child_one(parent) == pn) {
 			parent->u.children.o = child;
 		} else {
@@ -1029,7 +1132,7 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
 	struct patricia_node *parent;
 
 	patricia_check(pt);
-	g_assert(pn);
+	patricia_node_check(pn);
 	g_assert(!pn->leaf);
 	g_assert(pn->has_embedded_data);
 	g_assert(child_one(pn) == NULL && child_zero(pn) == NULL);
@@ -1038,6 +1141,9 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
 	old_value = embedded_item_value(pn);
 	old_keybits = embedded_item_keybits(pn);
 	parent = parent_node(pn);
+
+	patricia_parent_check(pn->p.ext);
+	patricia_parent_clear_magic(pn->p.ext);
 
 	wfree(pn->p.ext, sizeof *pn->p.ext);
 
@@ -1073,6 +1179,8 @@ insert_at(
 	patricia_t *pt, struct patricia_node *pn,
 	gconstpointer key, size_t keybits, gconstpointer value)
 {
+	patricia_check(pt);
+	patricia_node_check(pn);
 	g_assert(keybits >= node_prefix_bits(pn));
 
 	if (!pn->leaf) {
@@ -1093,6 +1201,7 @@ insert_at(
 
 			/* New item */
 			ext = walloc(sizeof *ext);
+			patricia_parent_set_magic(ext);
 			ext->parent = pn->p.parent;
 			ext->key = key;
 			ext->value = value;
@@ -1132,6 +1241,7 @@ insert_at(
 		new->last_kbit = 0;			/* Does not matter for non-leaves */
 		new->bit = keybits;
 		new->p.ext = ext;
+		patricia_parent_set_magic(ext);
 		ext->key = key;
 		ext->value = value;
 		ext->parent = parent;
@@ -1173,6 +1283,9 @@ insert_below(
 {
 	struct patricia_node *new = allocate_node(pt);
 
+	patricia_check(pt);
+	patricia_node_check(pn);
+	patricia_node_check(new);
 	g_assert(common < keybits);
 
 	fill_leaf(new, pn, key, keybits, value);
@@ -1205,6 +1318,7 @@ insert_below(
 
 			g_assert(old_keybits < pt->maxbits);
 
+			patricia_parent_set_magic(ext);
 			ext->parent = pn->p.parent;
 			ext->key = old_key;
 			ext->value = old_value;
@@ -1268,6 +1382,9 @@ insert_above(
 	struct patricia_node *up;
 	struct patricia_node *child;
 
+	patricia_check(pt);
+	patricia_node_check(pn);
+	patricia_node_check(new);
 	g_assert(common <= keybits);
 
 	/*
@@ -1772,7 +1889,7 @@ static void
 remove_node(patricia_t *pt, struct patricia_node *pn)
 {
 	patricia_check(pt);
-	g_assert(pn);
+	patricia_node_check(pn);
 
 	pt->stamp++;
 	pt->count--;
@@ -1787,6 +1904,7 @@ remove_node(patricia_t *pt, struct patricia_node *pn)
 		struct patricia_node *parent = parent_node(pn);
 		remove_useless_node(pt, pn);
 		if (parent) {
+			patricia_node_check(parent);
 			if (!parent->has_embedded_data)
 				remove_useless_node(pt, parent);	/* Has only one leaf now */
 			else if (child_one(parent) == NULL && child_zero(parent) == NULL)
@@ -1932,6 +2050,8 @@ traverse(patricia_t *pt,
 			const struct patricia_node *z = NULL;
 			const struct patricia_node *o = NULL;
 
+			patricia_node_check(n);
+
 			if (!n->leaf) {
 				z = child_zero(n);
 				o = child_one(n);
@@ -1987,6 +2107,7 @@ patricia_destroy(patricia_t *pt)
 	traverse(pt, traverse_remove_node, pt, NULL, NULL);
 	g_assert(pt->nodes == 0);
 
+	pt->magic = 0;
 	wfree(pt, sizeof *pt);
 }
 
@@ -2025,6 +2146,8 @@ static void
 traverse_foreach_node(struct patricia_node *pn, gpointer u)
 {
 	struct remove_ctx *ctx = u;
+
+	patricia_node_check(pn);
 
 	/*
 	 * ctx->last_was_removed was set possibly by previous call to the
@@ -2252,6 +2375,8 @@ next_tree_node(const struct patricia_node *prev, gboolean forward)
 		const struct patricia_node *parent = parent_node(pn);
 		const struct patricia_node *next = NULL;
 
+		patricia_node_check(pn);
+
 		if (!parent)
 			return NULL;
 		else if (forward && parent->u.children.z == pn)
@@ -2291,6 +2416,8 @@ next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
 
 	for (pn = prev, i = 0; i <= PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *parent = parent_node(pn);
+
+		patricia_node_check(pn);
 
 		if (!parent) {
 			return NULL;
@@ -2454,6 +2581,7 @@ patricia_iterator_release(patricia_iter_t **iter_ptr)
 			wfree(iter->key, bits2bytes(iter->keybits));
 			iter->key = NULL;
 		}
+		iter->magic = 0;
 		wfree(iter, sizeof *iter);
 		*iter_ptr = NULL;
 	}
