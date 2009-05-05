@@ -106,18 +106,22 @@ typedef struct atom {
 #endif
 #ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;
-#endif /* PROTECT_ATOMS */
+#endif /* ATOM_HAVE_MAGIC */
 	int refcnt;			/**< Amount of references */
-	/* Ensure `arena' is properly aligned */
-	union mem_chunk arena[1];			/* Start of user arena */
 } atom_t;
 
-#define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
+#define ARENA_OFFSET (MEM_ALIGNBYTES * ((MEM_ALIGNBYTES / sizeof(atom_t)) + ((MEM_ALIGNBYTES % sizeof(atom_t)) ? 1 : 0)))
 
 static inline atom_t *
 atom_from_arena(gconstpointer key)
 {
-	return (gpointer) ((char *) key - ARENA_OFFSET);
+	return (atom_t *) (((char *) key) - ARENA_OFFSET);
+}
+
+static inline void *
+atom_arena(const atom_t *a)
+{
+	return ((char *) a) + ARENA_OFFSET;
 }
 
 static inline void
@@ -140,7 +144,7 @@ struct mem_cache {
 	size_t hold;
 };
 
-static struct mem_cache *mc[9];
+static struct mem_cache *mem_cache[9];
 
 static struct mem_pool *
 mem_pool_new(size_t size, size_t hold)
@@ -255,9 +259,9 @@ atom_get_mc(size_t size)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(mc); i++) {
-		if (size <= mc[i]->size)
-			return mc[i];
+	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+		if (size <= mem_cache[i]->size)
+			return mem_cache[i];
 	}
 	return NULL;
 }
@@ -780,8 +784,8 @@ atoms_init(void)
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
 
 #ifdef PROTECT_ATOMS
-	for (i = 0; i < G_N_ELEMENTS(mc); i++) {
-		mc[i] = mem_new((2 * sizeof (union mem_chunk)) << i);
+	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+		mem_cache[i] = mem_new((2 * sizeof (union mem_chunk)) << i);
 	}
 #endif /* PROTECT_ATOMS */
 
@@ -828,12 +832,7 @@ atom_get(enum atom_type type, gconstpointer key)
 	gpointer orig_key;
 	size_t size;
 
-#ifdef __GNUC__
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
-#else
-	/* ARENA_OFFSET is no constant expression with some Sun compiler */
-	g_assert(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
-#endif /* __GNUC__ */
 	
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
@@ -889,7 +888,7 @@ atom_get(enum atom_type type, gconstpointer key)
 
 		a = atom_alloc(size);
 		a->refcnt = 1;
-		memcpy(a->arena, key, len);
+		memcpy(atom_arena(a), key, len);
 		atom_protect(a, size);
 
 		/*
@@ -897,10 +896,10 @@ atom_get(enum atom_type type, gconstpointer key)
 		 */
 
 		value = (gpointer) (size | (guint) type);
-		g_hash_table_insert(ht_all_atoms, a->arena, value);
-		g_hash_table_insert(td->table, a->arena, (gpointer) size);
+		g_hash_table_insert(ht_all_atoms, atom_arena(a), value);
+		g_hash_table_insert(td->table, atom_arena(a), (gpointer) size);
 
-		return a->arena;
+		return atom_arena(a);
 	}
 }
 
