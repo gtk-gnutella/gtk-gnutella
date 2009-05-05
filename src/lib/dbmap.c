@@ -68,6 +68,7 @@ enum dbmap_magic { DBMAP_MAGIC = 0x5890dc4fU };
  */
 struct dbmap {
 	enum dbmap_magic magic;
+	enum dbmap_type type;
 	union {
 		struct {
 			map_t *map;
@@ -80,7 +81,6 @@ struct dbmap {
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
 	size_t count;			/**< Amount of items */
-	enum dbmap_type type;
 	gboolean ioerr;			/**< Had I/O error */
 	int error;				/**< Last errno value consecutive to an error */
 };

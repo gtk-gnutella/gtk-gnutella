@@ -64,11 +64,11 @@ enum map_magic { MAP_MAGIC = 0x7a16297fU };
  */
 struct map {
 	enum map_magic magic;
+	enum map_type type;
 	union {
 		GHashTable *ht;
 		patricia_t *pt;
 	} u;
-	enum map_type type;
 };
 
 static inline void
