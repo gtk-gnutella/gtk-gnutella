@@ -309,6 +309,7 @@ dht_rpc_answer(const guid_t *muid,
 {
 	struct rpc_cb *rcb;
 	tm_t now;
+	knode_t *rn;		/* Node to which we sent the RPC */
 
 	knode_check(kn);
 
@@ -319,13 +320,25 @@ dht_rpc_answer(const guid_t *muid,
 	rpc_cb_check(rcb);
 	cq_cancel(callout_queue, &rcb->timeout);
 
+	/*
+	 * The node that was registered during the creation of the RPC was
+	 * ref-counted and must be the one given back to client callbacks.
+	 *
+	 * It can be a different object from `kn' if the node was orginally
+	 * in the routing table but was dropped before the reply arrived, or
+	 * if the node was not in the routing table at the start of the RPC.
+	 */
+
+	rn = rcb->kn;
+	knode_check(rn);
+
 	/* 
 	 * Verify that the node who replied indeed bears the same KUID as we
 	 * think it has.  When the RPC_CALL_NO_VERIFY flag is set, it means
 	 * the registered callback will perform this kind of verification itself.
 	 */
 
-	if (!(rcb->flags & RPC_CALL_NO_VERIFY) && !kuid_eq(kn->id, rcb->kn->id)) {
+	if (!(rcb->flags & RPC_CALL_NO_VERIFY) && !kuid_eq(kn->id, rn->id)) {
 		/*
 		 * This node is stale: the node to which we sent the RPC bears
 		 * a KUID different from the one we thought it had.  The node we
@@ -341,11 +354,11 @@ dht_rpc_answer(const guid_t *muid,
 			g_message("DHT sent %s RPC %s to %s but got reply from %s",
 				op_to_string(rcb->op),
 				guid_to_string(rcb->muid),
-				knode_to_string(rcb->kn),
+				knode_to_string(rn),
 				knode_to_string2(kn));
 		}
 
-		dht_remove_node(rcb->kn);			/* Discard obsolete entry */
+		dht_remove_node(rn);				/* Discard obsolete entry */
 		rpc_timed_out(callout_queue, rcb);	/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
@@ -358,12 +371,26 @@ dht_rpc_answer(const guid_t *muid,
 	 */
 
 	tm_now_exact(&now);
-	kn->rpc_timeouts = 0;
 
-	kn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (kn->rtt >> 1);
+	rn->rpc_timeouts = 0;
+	rn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (rn->rtt >> 1);
+
+	/*
+	 * If the node from which we got a reply is in the routing table and
+	 * not the same node as `rn', update the rtt there as well.
+	 */
+
+	if (KNODE_UNKNOWN != kn->status && kn != rn) {
+		kn->rpc_timeouts = 0;
+		kn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (kn->rtt >> 1);
+	}
 
 	/*
 	 * If the node was stale, move it back to the "good" list.
+	 *
+	 * We use `kn' here and not `rn' because we want to update the status
+	 * only if the node is still in the routing table.  If it was not
+	 * found at RPC reply time, a new node in "unknown" status was created.
 	 */
 
 	if (kn->status == KNODE_STALE)
@@ -374,7 +401,7 @@ dht_rpc_answer(const guid_t *muid,
 	 */
 
 	if (rcb->cb)
-		(*rcb->cb)(DHT_RPC_REPLY, rcb->kn, n, function, payload, len, rcb->arg);
+		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
 
 	rpc_cb_free(rcb, FALSE);
 	return TRUE;
