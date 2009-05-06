@@ -96,21 +96,23 @@ union mem_chunk {
  * Atoms are ref-counted.
  *
  * The reference count is held at the beginning of the data arena.
- * What we return to the outside is a pointer to arena[], not to
+ * What we return to the outside the value of atom_arena(), not
  * the atom structure.
  */
 typedef struct atom {
+#ifdef ATOMS_HAVE_MAGIC
+	atom_prot_magic_t magic;	/**< Magic should be at the beginning */
+#endif /* ATOM_HAVE_MAGIC */
 #ifdef TRACK_ATOMS
 	GHashTable *get;		/**< Allocation spots */
 	GHashTable *free;		/**< Free spots */
 #endif
-#ifdef ATOMS_HAVE_MAGIC
-	atom_prot_magic_t magic;
-#endif /* ATOM_HAVE_MAGIC */
-	int refcnt;			/**< Amount of references */
+	int refcnt;				/**< Amount of references */
 } atom_t;
 
-#define ARENA_OFFSET (MEM_ALIGNBYTES * ((MEM_ALIGNBYTES / sizeof(atom_t)) + ((MEM_ALIGNBYTES % sizeof(atom_t)) ? 1 : 0)))
+#define ARENA_OFFSET \
+	(MEM_ALIGNBYTES * ((MEM_ALIGNBYTES / sizeof(atom_t)) + \
+		((MEM_ALIGNBYTES % sizeof(atom_t)) ? 1 : 0)))
 
 static inline atom_t *
 atom_from_arena(gconstpointer key)
