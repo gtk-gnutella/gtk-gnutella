@@ -103,11 +103,11 @@ typedef struct atom {
 #ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;	/**< Magic should be at the beginning */
 #endif /* ATOM_HAVE_MAGIC */
+	int refcnt;				/**< Amount of references */
 #ifdef TRACK_ATOMS
 	GHashTable *get;		/**< Allocation spots */
 	GHashTable *free;		/**< Free spots */
 #endif
-	int refcnt;				/**< Amount of references */
 } atom_t;
 
 #define ARENA_OFFSET \
