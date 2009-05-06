@@ -678,6 +678,16 @@ get_rcsid_string(void)	\
 	return rcsid;	\
 }
 
+/**
+ * Composes a 32-bit native endian integer from four characters (bytes) given
+ * in big endian byte order.
+ */
+#define FOURCC_NATIVE(a,b,c,d) ( \
+	((guint32) (unsigned char) ((a) & 0xffU) << 24) | \
+	((guint32) (unsigned char) ((b) & 0xffU) << 16) | \
+	((guint32) (unsigned char) ((c) & 0xffU) << 8)  | \
+	((guint32) (unsigned char) ((d) & 0xffU)))
+
 #include "casts.h"
 
 #endif /* _common_h_ */

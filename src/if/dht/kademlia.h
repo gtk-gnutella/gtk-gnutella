@@ -49,21 +49,13 @@ typedef enum kda_msg {
 
 #define KDA_MSG_MAX_ID				  0x0a
 
-#define MAKE_VAL_CODE(a,b,c,d) ( \
-	((guint32) (a) << 24) | \
-	((guint32) (b) << 16) | \
-	((guint32) (c) << 8)  | \
-	((guint32) (d)))
-
 enum kda_val {
 	KDA_VAL_BINARY		= 0x0,
-	KDA_VAL_LIME		= MAKE_VAL_CODE('L','I','M','E'),
-	KDA_VAL_TEXT		= MAKE_VAL_CODE('T','E','X','T'),
-	KDA_VAL_TEST		= MAKE_VAL_CODE('T','E','S','T'),
-	KDA_VAL_ANY			= MAKE_VAL_CODE('*','*','*','*')
+	KDA_VAL_LIME		= FOURCC_NATIVE('L','I','M','E'),
+	KDA_VAL_TEXT		= FOURCC_NATIVE('T','E','X','T'),
+	KDA_VAL_TEST		= FOURCC_NATIVE('T','E','S','T'),
+	KDA_VAL_ANY			= FOURCC_NATIVE('*','*','*','*')
 };
-
-#undef MAKE_VAL_CODE
 
 /*
  * Our version number.

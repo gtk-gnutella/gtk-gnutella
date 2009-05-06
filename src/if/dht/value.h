@@ -33,12 +33,6 @@
 
 #include "lib/tm.h"
 
-#define VT_CODE(a,b,c,d) (	\
-	((guint32) (a) << 24) | \
-	((guint32) (b) << 16) | \
-	((guint32) (c) << 8)  | \
-	((guint32) (d)))
-
 /**
  * Value types.
  *
@@ -46,18 +40,16 @@
  */
 typedef enum {
 	DHT_VT_BINARY	= 0x00000000,
-	DHT_VT_ALOC		= VT_CODE('A','L','O','C'),	/**< Gnutella alt-loc */
-	DHT_VT_BTAL		= VT_CODE('B','T','A','L'),	/**< Bittorrent alt-loc */
-	DHT_VT_GTKG		= VT_CODE('G','T','K','G'),
-	DHT_VT_LIME		= VT_CODE('L','I','M','E'),
-	DHT_VT_PROX		= VT_CODE('P','R','O','X'),
-	DHT_VT_TEST		= VT_CODE('T','E','S','T'),
-	DHT_VT_TEXT		= VT_CODE('T','E','X','T'),
+	DHT_VT_ALOC		= FOURCC_NATIVE('A','L','O','C'),	/**< Gnutella alt-loc */
+	DHT_VT_BTAL		= FOURCC_NATIVE('B','T','A','L'),	/**< Bittorrent alt-loc */
+	DHT_VT_GTKG		= FOURCC_NATIVE('G','T','K','G'),
+	DHT_VT_LIME		= FOURCC_NATIVE('L','I','M','E'),
+	DHT_VT_PROX		= FOURCC_NATIVE('P','R','O','X'),
+	DHT_VT_TEST		= FOURCC_NATIVE('T','E','S','T'),
+	DHT_VT_TEXT		= FOURCC_NATIVE('T','E','X','T'),
 
-	DHT_VT_ANY		= VT_CODE('*','*','*','*')
+	DHT_VT_ANY		= FOURCC_NATIVE('*','*','*','*')
 } dht_value_type_t;
-
-#undef VT_CODE
 
 #define DHT_VALUE_MAX_LEN	512		/**< Max value size */
 
