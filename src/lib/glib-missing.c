@@ -51,7 +51,7 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if defined(USE_GLIB1) && !defined(TRACK_MALLOC) && defined(USE_HALLOC)
+#if defined(USE_GLIB1) && (defined(TRACK_MALLOC) || defined(USE_HALLOC))
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
@@ -59,24 +59,28 @@ static GMemVTable gm_vtable;
 	 ? (gm_vtable.gmvt_ ## method params) \
 	 : (method params))
 
+#undef malloc
 static inline ALWAYS_INLINE gpointer
 gm_malloc(gulong size)
 {
 	return GM_VTABLE_METHOD(malloc, (size));
 }
 
+#undef calloc
 static inline ALWAYS_INLINE gpointer
 gm_malloc0(gulong size)
 {
 	return GM_VTABLE_METHOD(calloc, (1, size));
 }
 
+#undef realloc
 static inline ALWAYS_INLINE gpointer
 gm_realloc(gpointer p, gulong size)
 {
 	return GM_VTABLE_METHOD(realloc, (p, size));
 }
 
+#undef free
 static inline ALWAYS_INLINE void
 gm_free(gpointer p)
 {

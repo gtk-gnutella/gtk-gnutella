@@ -1323,7 +1323,8 @@ main(int argc, char **argv)
 	if (!options[main_arg_no_halloc].used) {
 		halloc_init();
 	}
-	
+
+	malloc_init_vtable();
 	tm_now_exact(&start_time);
 	misc_init();
 
@@ -1352,7 +1353,7 @@ main(int argc, char **argv)
 	/* Our inits */
 	log_init();
 
-#ifdef MALLOC_FRAMES
+#ifdef TRACK_MALLOC
 	malloc_init(argv[0]);
 #endif
 

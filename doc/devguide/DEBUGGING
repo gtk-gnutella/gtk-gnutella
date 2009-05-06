@@ -131,3 +131,16 @@ The defines which can be used are:
 
 		Currently, the code does not compile without MALLOC_STATS if
 		MALLOC_FRAMES is also requested, but this will be fixed in the future.
+
+	MALLOC_SAFE
+		When turned on, this adds a 4-byte trailer with a magic number, to
+		detect buffer overruns at realloc() and free() time.  One can also
+		add a fixed-length additional trailer (length is controlled by the
+		MALLOC_TRAILER_LEN define) to increase the protection / detection range.
+
+		Say -DMALLOC_TRAILER_LEN=32 on the compile line to get an additional
+		32-byte trailer that will be checked for overrun.
+
+		This is aimed at detecting buffer overruns, not as a way to permanently
+		tolerate them with some protection.  First, it costs additional memory,
+		and second, buffer overruns are bugs!

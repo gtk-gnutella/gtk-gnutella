@@ -187,7 +187,7 @@
  * compute data on the first call and then always return the same value.
  */
 #define STRTRACK(o)		string_record((o), _WHERE_, __LINE__)
-#define MEMTRACK(o,s)	malloc_record((o), (s), _WHERE_, __LINE__)
+#define MEMTRACK(o,s)	malloc_record((o), (s), FALSE, _WHERE_, __LINE__)
 #define GSLISTTRACK(o)	gslist_record((o), _WHERE_, __LINE__)
 #define GLISTTRACK(o)	glist_record((o), _WHERE_, __LINE__)
 #define NOT_LEAKING(o)	malloc_not_leaking(o, _WHERE_, __LINE__)
@@ -205,7 +205,7 @@
 #if defined(TRACK_MALLOC) || defined(MALLOC_SOURCE)
 
 char *string_record(const char *s, const char *file, int line);
-gpointer malloc_record(gconstpointer o, size_t size,
+gpointer malloc_record(gconstpointer o, size_t size, gboolean owned,
 	const char *file, int line);
 GSList *gslist_record(const GSList *, const char *file, int line);
 GList *glist_record(const GList *, const char *file, int line);
@@ -298,11 +298,11 @@ GString *string_sprintfa_track(
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
+void malloc_init_vtable(void);
+
 #ifdef TRACK_MALLOC
 void malloc_init(const char *argv0);
 void malloc_close(void);
-void *real_malloc(size_t size);
-void real_free(void *p);
 #endif
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)

@@ -43,17 +43,42 @@
 
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
+#include "endian.h"		/* For peek_*() and poke_*() */
 #include "hashtable.h"
 #include "misc.h"		/* For concat_strings() */
 #include "tm.h"			/* For tm_time() */
 #include "glib-missing.h"
 
+/*
+ * The following setups are more or less independent from each other.
+ *
+ * This comes at the price of heavy usage of conditinal compilation
+ * throughout the file...
+ *
+ * None of these has any effect when TRACK_MALLOC is not defined.
+ */
+
+#if 0
+#define MALLOC_SAFE			/* Add trailer magic to each block */
+#endif
+#if 1
+#define MALLOC_FREE_ERASE	/* Whether freeing should erase block data */
+#endif
+#if 1
+#define MALLOC_DUP_FREE		/* Detect duplicate frees by block tagging */
+#endif
+#if 1
+#define MALLOC_VTABLE		/* Try to redirect glib's malloc to here */
+#endif
+
+RCSID("$Id$")
+
 /**
- * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
+ * Most routines in this file are defined either when compiling with
+ * TRACK_MALLOC or TRACK_ZALLOC.
  */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
-RCSID("$Id$")
 
 /*
  * When MALLOC_FRAMES is supplied, we keep information about the allocation
@@ -71,10 +96,94 @@ RCSID("$Id$")
 #define MALLOC_STATS
 #endif
 
-#define FRAME_DEPTH		8	/**< Size of allocation frame we keep around */
+#define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
 
 #endif /* MALLOC_FRAMES */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
+
+/*
+ * With MALLOC_SAFE, a marker integer is put at the end of each block, and is
+ * checked at free time to detect buffer overruns.  A blank safety trailer
+ * can also be put to catch accidental overruns and prevent corrupting data in
+ * the next block.
+ */
+#ifdef MALLOC_SAFE
+
+#define MALLOC_START_MARK	0xf8b519d1U
+#define MALLOC_END_MARK		0xc5c67b7aU
+
+/**
+ * Safety trailer appended to each malloc'ed block to "absorb" overruns and
+ * prevent corruption of the malloc free list (by destroying the header of
+ * the next malloc'ed block).
+ *
+ * This is going to be additional overhead for each block, so don't set it
+ * too large or there will be a huge memory penalty. 32 bytes is reasonable.
+ * If set to 0, there is still the end marker protection (4 bytes).
+ */
+#ifndef MALLOC_TRAILER_LEN
+#define MALLOC_TRAILER_LEN	0		/* No additional trailer by default */
+#endif
+#define MALLOC_TRAILER_MARK	'\245'	/* 0xa5 */
+
+union mem_chunk {
+  void      *next;
+  guint8   u8;
+  guint16  u16;
+  guint32  u32;
+  guint64  u64;
+  float     f;
+  double    d;
+};
+
+/**
+ * It would be nice to also protect the head, but alas, this does not work
+ * well with GTK...
+ */
+#undef MALLOC_SAFE_HEAD		/* Shall we protect the head of each block? */
+#ifdef MALLOC_SAFE_HEAD
+
+/**
+ * Header prepended to allocated blocks, when we want to check the start
+ * of each block as well.  This is more dangerous because it changes the
+ * start address of the blocks and it forces us to be extra careful about
+ * which blocks we own (and had therefore this overhead prepended) since
+ * the user does not know about that header and only passes us the start
+ * of the arena.
+ *
+ * Also, it is required that we be the ones freeing the blocks we allocate.
+ * If this is not the case and our free is not called, havoc will result.
+ *
+ * With gtk-gnutella, it is IMPOSSIBLE to enable as of today (2009-05-04)
+ * because the GTK routines free blocks that we allocate (for instance
+ * in our gtk_clist_set_column_name() version for GTK1).
+ */
+struct malloc_header {
+	unsigned start;				/* Start mark (must be before arena) */
+	union mem_chunk arena[1];	/* Start of user arena */
+};
+
+#define SAFE_ARENA_OFFSET	G_STRUCT_OFFSET(struct malloc_header, arena)
+
+#endif /* MALLOC_SAFE_HEAD */
+
+enum real_malloc_magic { REAL_MALLOC_MAGIC = 0x5fb8b88aU };
+
+/**
+ * This header is prepended to blocks allocated by real_malloc(), because
+ * we know these will be freed by real_free() and these blocks are not
+ * tracked.  To be able to know the size of the block to check the trailers,
+ * we have to record the size within the block...
+ */
+struct real_malloc_header {
+	enum real_malloc_magic magic;
+	size_t size;				/* Size of block */
+	union mem_chunk arena[1];	/* Start of user arena */
+};
+
+#define REAL_ARENA_OFFSET	G_STRUCT_OFFSET(struct real_malloc_header, arena)
+
+#endif /* MALLOC_SAFE */
 
 #ifdef TRACK_MALLOC
 
@@ -98,12 +207,18 @@ struct block {
 	int line;
 	size_t size;
 	GSList *realloc;
+	guint8 owned;		/* Whether we allocated the block ourselves */
 };
 
 static hash_table_t *blocks = NULL;
+static hash_table_t *reals = NULL;
 static hash_table_t *not_leaking = NULL;
 
-static void free_record(gconstpointer o, const char *file, int line);
+static gboolean free_record(gconstpointer o, const char *file, int line);
+
+#ifdef MALLOC_VTABLE
+static gboolean vtable_works;	/* Whether we can trap glib memory calls */
+#endif
 
 /*
  * When MALLOC_FRAMES is defined, we keep track of allocation stack frames
@@ -594,21 +709,428 @@ stats_eq(gconstpointer a, gconstpointer b)
 #endif /* MALLOC_STATS */
 
 /**
- * Calls real malloc, no tracking.
+ * Safe malloc definitions.
+ *
+ * Optional: MALLOC_SAFE_HEAD to also check the beginning of the block.
+ * Optional: MALLOC_TRAILER_LEN > 0 to include additional trailer to blocks.
+ * Optional: MALLOC_FREE_ERASE to erase content of blocks we allocated
+ * Optional: MALLOC_DUP_FREE to try to detect duplicate free via block tagging
  */
-void *
-real_malloc(size_t size)
+#ifdef MALLOC_SAFE
+
+#ifdef MALLOC_SAFE_HEAD
+static inline struct malloc_header *
+malloc_header_from_arena(gconstpointer o)
 {
-	return malloc(size);
+	return (gpointer) ((char *) o - SAFE_ARENA_OFFSET);
+}
+#endif /* MALLOC_SAFE_HEAD */
+
+static inline struct real_malloc_header *
+real_malloc_header_from_arena(gconstpointer o)
+{
+	return (gpointer) ((char *) o - REAL_ARENA_OFFSET);
+}
+
+static inline size_t
+malloc_safe_size(size_t size)
+{
+	return size +
+#ifdef MALLOC_SAFE_HEAD
+		SAFE_ARENA_OFFSET +
+#endif
+		sizeof(guint32) + MALLOC_TRAILER_LEN;
+}
+
+static inline size_t
+real_malloc_safe_size(size_t size)
+{
+	return size + REAL_ARENA_OFFSET + sizeof(guint32) + MALLOC_TRAILER_LEN;
 }
 
 /**
- * Calls real free, no tracking.
+ * Mark allocated block trailer.
  */
-void
+static void
+block_write_trailer(gpointer o, size_t size)
+{
+	size_t trailer = MALLOC_TRAILER_LEN;
+	char *p;
+
+	p = poke_be32(ptr_add_offset(o, size), MALLOC_END_MARK);
+	while (trailer--)
+		*p++ = MALLOC_TRAILER_MARK;
+}
+
+/**
+ * Check that block's trailer was not altered.
+ *
+ * @param o			the user-known pointer to the buffer
+ * @param size		the user-known size of the buffer
+ * @param file		file where block allocation was done
+ * @param line		line number within file where allocation was done
+ * @param op_file	file where free()/realloc() operation is happening
+ * @param op_line	line where free()/realloc() operation is happening
+ * @param showstack	whether to log the stackframe on errors
+ *
+ * @return whether an error was detected.
+ */
+static gboolean
+block_check_trailer(gconstpointer o, size_t size,
+	const char *file, int line, const char *op_file, int op_line,
+	gboolean showstack)
+{
+	gboolean error = FALSE;
+	size_t trailer = MALLOC_TRAILER_LEN;
+	const char *p;
+
+	if (MALLOC_END_MARK != peek_be32(ptr_add_offset_const(o, size))) {
+		error = TRUE;
+		g_warning(
+			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted end mark",
+			op_file, op_line, (gulong) o, file, line);
+	}
+
+	p = ptr_add_offset_const(o, size + sizeof(guint32));
+	while (trailer--) {
+		if (*p++ != MALLOC_TRAILER_MARK) {
+			error = TRUE;
+			g_warning(
+				"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted trailer",
+				op_file, op_line, (gulong) o, file, line);
+			break;
+		}
+	}
+
+	if (error && showstack) {
+#ifdef MALLOC_FRAMES
+		g_warning("current stack:");
+		where(stderr);
+#endif
+	}
+
+	return error;
+}
+
+/**
+ * With MALLOC_SAFE, each block we own (i.e. which we allocate ourselves)
+ * is tagged at the beginning and at the end with magic numbers, to detect
+ * buffer overruns.
+ *
+ * @param o		the user-known pointer to the buffer
+ * @param size	the user-known size of the buffer
+ */
+static void
+block_check_marks(gconstpointer o, const struct block *b,
+	const char *file, int line)
+{
+	gboolean error = FALSE;
+
+#ifdef MALLOC_SAFE_HEAD
+	const struct malloc_header *mh = malloc_header_from_arena(o);
+
+	if (mh->start != MALLOC_START_MARK) {
+		error = TRUE;
+		g_warning(
+			"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted start mark",
+			file, line, (gulong) o, b->file, b->line);
+	}
+#endif /* MALLOC_SAFE_HEAD */
+
+	if (block_check_trailer(o, b->size, b->file, b->line, file, line, FALSE)) {
+		error = TRUE;
+	}
+
+	if (error) {
+#ifdef MALLOC_FRAMES
+		g_warning("current stack:");
+		where(stderr);
+#endif
+	}
+}
+#endif /* MALLOC_SAFE */
+
+/**
+ * When MALLOC_FREE_ERASE is set, freed blocks are overwritten to detect
+ * accidental reuse of freed memory.
+ */
+#ifdef MALLOC_FREE_ERASE
+#define MALLOC_ERASE_MARK	'Z'	/* 0x5a */
+
+static inline void
+block_erase(const void *o, size_t size)
+{
+	void *p = deconstify_gpointer(o);
+	memset(p, MALLOC_ERASE_MARK, size);
+}
+#else	/* !MALLOC_FREE_ERASE */
+#define block_erase(p_, s_)
+#endif	/* MALLOC_FREE_ERASE */
+
+/**
+ * When MALLOC_DUP_FREE is set, the first integer of the block is marked to
+ * allow free() to detect duplicates.
+ */
+#ifdef MALLOC_DUR_FREE
+#define MALLOC_DEAD_MARK	0xdeadbeefU
+#define MALLOC_DEAD_CLEAR	0x0
+
+static inline void
+block_mark_dead(void *p, size_t size)
+{
+	if (size >= sizeof guint) {
+		*(guint *) p = MALLOC_DEAD_MARK;
+	}
+}
+
+static inline void
+block_clear_dead(void *p, size_t size)
+{
+	if (size >= sizeof guint) {
+		*(guint *) p = MALLOC_DEAD_CLEAR;
+	}
+}
+
+static inline gboolean
+block_is_dead(void *p, size_t size)
+{
+	if (size >= sizeof guint) {
+		return MALLOC_DEAD_MARK == *(guint *) p;
+	}
+
+	return FALSE;
+}
+#else	/* !MALLOC_DUR_FREE */
+#define block_mark_dead(p_, s_)
+#define block_clear_dead(p_, s_)
+#define block_is_dead(p_, s_)		(FALSE)
+#endif	/* MALLOC_DUR_FREE */
+
+#endif	/* TRACK_MALLOC */
+
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+
+/**
+ * Calls real malloc(), no tracking.
+ */
+static void *
+real_malloc(size_t size)
+{
+	void *o;
+
+#if defined(TRACK_MALLOC) && defined(MALLOC_SAFE)
+	{
+		size_t len = real_malloc_safe_size(size);
+		struct real_malloc_header *rmh;
+
+		rmh = malloc(len);
+
+		if (rmh == NULL)
+			g_error("unable to allocate %lu bytes", (gulong) size);
+
+		rmh->magic = REAL_MALLOC_MAGIC;
+		rmh->size = size;
+		o = rmh->arena;
+		block_write_trailer(o, size);
+	}
+#else  /* !TRACK_MALLOC || !MALLOC_SAFE */
+
+	o = malloc(size);
+
+#endif /* TRACK_MALLOC && MALLOC_SAFE */
+
+	if (o == NULL)
+		g_error("unable to allocate %lu bytes", (gulong) size);
+
+#ifdef TRACK_MALLOC
+	hash_table_insert(reals, o, ulong_to_pointer(size));
+#endif
+
+	return o;
+}
+
+/**
+ * Calls real free(), no tracking.
+ * Block must have been allocated via real_malloc().
+ */
+static void
 real_free(void *p)
 {
+#ifdef TRACK_MALLOC
+	struct block *b = NULL;
+	size_t size = 0;
+
+	if (NULL == p)
+		return;
+
+	if (blocks)
+		b = hash_table_lookup(blocks, p);
+
+	/*
+	 * Because of glib's vtable setup, we may end-up here freeing something we
+	 * allocated via malloc() and tracked, gave to GTK, and then GTK frees
+	 * it directly via g_free(), which calls us.
+	 */
+
+	if (b) {
+		size = b->size;
+		free_record(p, _WHERE_, __LINE__);
+	} else {
+		void *v = hash_table_lookup(reals, p);
+		if (v) {
+			size = (size_t) pointer_to_ulong(v);
+			hash_table_remove(reals, p);
+#ifdef MALLOC_SAFE
+			block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
+#endif
+			block_erase(p, size);
+			block_mark_dead(p, size);
+		} else {
+			g_warning("MALLOC freeing unknown block 0x%lx", (unsigned long) p);
+			if (block_is_dead(p, sizeof(guint)))
+				g_error("MALLOC probable duplicate free of 0x%lx", (gulong) p);
+		}
+	}
+
+#ifdef MALLOC_SAFE
+	/*
+	 * Because of glib's vtable setup, we may end-up here freeing something we
+	 * allocated via malloc() and tracked.
+	 *
+	 * If we have a tracking block, it was allocated via malloc().
+	 * Otherwise, it was allocated via real_malloc(), with a real block header.
+	 */
+
+	if (NULL == b) {
+		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
+		if (REAL_MALLOC_MAGIC != rmh->magic)
+			g_error("MALLOC free(): corrupted real block magic at 0x%lx",
+				(unsigned long) p);
+		free(rmh);
+	} else {
+		free(p);
+	}
+#else
 	free(p);
+#endif	/* MALLOC_SAFE */
+#else	/* !TRACK_MALLOC */
+	free(p);
+#endif	/* TRACK_MALLOC */
+}
+
+/**
+ * Wraps strdup() call so that real_free() can be used on the result.
+ */
+static char *
+real_strdup(const char *s)
+{
+	void *p;
+	size_t len;
+
+	if (s == NULL)
+		return NULL;
+
+	len = strlen(s);
+	p = real_malloc(len + 1);
+	memcpy(p, s, len + 1);		/* Also copy trailing NUL */
+
+	return p;
+}
+#endif	/* TRACK_MALLOC || TRACK_ZALLOC */
+
+#ifdef TRACK_MALLOC
+
+/**
+ * Calls real realloc(), no tracking.
+ */
+static void *
+real_realloc(void *p, size_t size)
+{
+	if (p == NULL)
+		return real_malloc(size);
+
+	if (0 == size) {
+		real_free(p);
+		return NULL;
+	} else {
+		void *n;
+
+#ifdef TRACK_MALLOC
+		struct block *b = NULL;
+
+		if (blocks)
+			b = hash_table_lookup(blocks, p);
+
+#ifdef MALLOC_SAFE
+		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
+		size_t len = real_malloc_safe_size(size);
+
+		if (REAL_MALLOC_MAGIC != rmh->magic)
+			g_error("MALLOC realloc(): corrupted real block magic at 0x%lx",
+				(unsigned long) p);
+
+		block_check_trailer(p, rmh->size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
+
+		rmh = realloc(rmh, len);
+		if (rmh == NULL) {
+			n = NULL;
+		} else {
+			g_assert(REAL_MALLOC_MAGIC == rmh->magic);
+
+			rmh->size = size;
+			n = rmh->arena;
+			block_write_trailer(n, size);
+		}
+#else  /* !MALLOC_SAFE */
+		n = realloc(p, size);
+#endif /* MALLOC_SAFE */
+
+		if (b != NULL) {
+			b->size = size;
+			if (n != p) {
+				hash_table_remove(blocks, p);
+				hash_table_insert(blocks, n, b);
+			}
+		} else {
+			if (n != p) {
+				hash_table_remove(reals, p);
+				hash_table_insert(reals, n, ulong_to_pointer(size));
+			} else {
+				hash_table_replace(reals, n, ulong_to_pointer(size));
+			}
+		}
+
+#else	/* !TRACK_MALLOC */
+
+		n = realloc(p, size);
+
+#endif	/* TRACK_MALLOC */
+
+		if (n == NULL)
+			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+
+		return n;
+	}
+}
+
+/**
+ * Wrapper to real malloc().
+ */
+static void *
+real_calloc(size_t nmemb, size_t size)
+{
+	void *p;
+
+	if (nmemb > 0 && size > 0 && size < ((size_t) -1) / nmemb) {
+		size_t len = nmemb * size;
+
+		p = real_malloc(len);
+		memset(p, 0, len);
+	} else {
+		p = NULL;
+	}
+
+	return p;
 }
 
 /**
@@ -641,6 +1163,41 @@ track_init(void)
 
 	init_time = reset_time = tm_time_exact();
 }
+
+#ifdef MALLOC_VTABLE
+/**
+ * In glib 1.2 there is no g_mem_set_vtable() routine.  We supply a
+ * replacement that works on some platforms but not on others.
+ *
+ * This routine checks whether calling a simple memory allocation
+ * function from glib will cause real_malloc() to be called.
+ */
+static void
+malloc_glib12_check(void)
+{
+	vtable_works = TRUE;
+
+#if !GLIB_CHECK_VERSION(2,0,0)
+	gpointer p;
+	size_t old_size = hash_table_size(reals);
+
+	/*
+	 * Check whether the remapping is effective. This may not be
+	 * the case for our GLib 1.2 hack. This is required for Darwin,
+	 * for example.
+	 */
+	p = g_strdup("");
+	if (hash_table_size(reals) == old_size) {
+		static GMemVTable zero_vtable;
+		fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
+		g_mem_set_vtable(&zero_vtable);
+		vtable_works = FALSE;
+	} else {
+		G_FREE_NULL(p);
+	}
+#endif	/* GLib < 2.0.0 */
+}
+#endif	/* MALLOC_VTABLE */
 
 /**
  * malloc_log_block		-- hash table iterator callback
@@ -749,7 +1306,8 @@ malloc_not_leaking(gconstpointer o, const char *unused_file, int unused_line)
  * @return argument `o'.
  */
 gpointer
-malloc_record(gconstpointer o, size_t sz, const char *file, int line)
+malloc_record(gconstpointer o, size_t sz, gboolean owned,
+	const char *file, int line)
 {
 	struct block *b;
 	struct block *ob;
@@ -763,7 +1321,7 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 	if (blocks == NULL)
 		track_init();
 
-	b = calloc(1, sizeof(*b));
+	b = real_calloc(1, sizeof(*b));
 	if (b == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*b));
 
@@ -771,6 +1329,7 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 	b->line = line;
 	b->size = sz;
 	b->realloc = NULL;
+	b->owned = owned;
 
 	/**
 	 * It can happen that we track the allocation of a block somewhere
@@ -785,9 +1344,16 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 
 	ob = hash_table_lookup(blocks, o);
 	if (ob) {
-		g_warning(
-			"MALLOC (%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
-			file, line, (gulong) o, ob->file, ob->line);
+		const char *ofile = ob->file;
+		int oline = ob->line;
+		gboolean was_owned = ob->owned;
+
+		ob->owned = FALSE;		/* No need to check markers */
+
+		g_warning("MALLOC (%s:%d) reusing %sblock 0x%lx from %s:%d, "
+			"missed its freeing",
+			file, line, was_owned ? "owned " : "foreign ",
+			(gulong) o, ofile, oline);
 		free_record(o, "FAKED", 0);
 	}
 
@@ -803,7 +1369,7 @@ malloc_record(gconstpointer o, size_t sz, const char *file, int line)
 		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL) {
-			st = calloc(1, sizeof(*st));
+			st = real_calloc(1, sizeof(*st));
 			st->file = b->file;
 			st->line = line;
 			hash_table_insert(stats, st, st);
@@ -842,11 +1408,34 @@ malloc_track(size_t size, const char *file, int line)
 {
 	gpointer o;
 
+#ifdef MALLOC_SAFE
+	{
+		size_t len = malloc_safe_size(size);
+#ifdef MALLOC_SAFE_HEAD
+		struct malloc_header *mh;
+
+		mh = malloc(len);
+
+		if (mh == NULL)
+			g_error("unable to allocate %lu bytes", (gulong) size);
+
+		mh->start = MALLOC_START_MARK;
+		o = mh->arena;
+#else  /* !MALLOC_SAFE_HEAD */
+		o = malloc(len);
+#endif /* MALLOC_SAFE_HEAD */
+		block_write_trailer(o, size);
+	}
+#else  /* !MALLOC_SAFE */
 	o = malloc(size);
+#endif /* MALLOC_SAFE */
+
 	if (o == NULL)
 		g_error("unable to allocate %lu bytes", (gulong) size);
 
-	return malloc_record(o, size, file, line);
+	block_clear_dead(o, size);
+
+	return malloc_record(o, size, TRUE, file, line);
 }
 
 /**
@@ -865,29 +1454,57 @@ malloc0_track(size_t size, const char *file, int line)
 
 /**
  * Record freeing of allocated block.
+ * @return TRUE if the block was owned
  */
-static void
+static gboolean
 free_record(gconstpointer o, const char *file, int line)
 {
 	struct block *b;
 	const void *k;
 	void *v;
 	GSList *l;
+	gboolean owned = FALSE;
 #ifdef MALLOC_STATS
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
 #endif
 
 	if (NULL == o)
-		return;
+		return FALSE;
 
 	if (blocks == NULL || !(hash_table_lookup_extended(blocks, o, &k, &v))) {
+		if (hash_table_lookup(reals, o))
+			return FALSE;
+
+		if (block_is_dead(o, 4))
+			g_error("MALLOC (%s:%d) duplicate free of 0x%lx",
+				file, line, (gulong) o);
+
 		g_warning("MALLOC (%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
-		return;
+		return FALSE;
 	}
 
 	b = v;
 	g_assert(o == k);
+
+	if (b->owned) {
+		owned = TRUE;
+
+#ifdef MALLOC_SAFE
+		block_check_marks(o, b, file, line);
+#endif
+
+		/*
+		 * We can only erase and mark as dead blocks that we "own", i.e. for
+		 * which we did not just record the address.  Indeed, blocks we do
+		 * not own are not yet freed when this routine is called: for now we're
+		 * just breaking the association between the address and the block
+		 * information, so that no leak is reported on that block.
+		 */
+
+		block_erase(o, b->size);
+		block_mark_dead(o, b->size);
+	}
 
 #ifdef MALLOC_STATS
 	{
@@ -939,11 +1556,12 @@ free_record(gconstpointer o, const char *file, int line)
 	for (l = b->realloc; l; l = g_slist_next(l)) {
 		struct block *r = l->data;
 		g_assert(r->realloc == NULL);
-		free(r);
+		real_free(r);
 	}
 	g_slist_free(b->realloc);
 
-	free(b);
+	real_free(b);
+	return owned;
 }
 
 /**
@@ -952,8 +1570,24 @@ free_record(gconstpointer o, const char *file, int line)
 void
 free_track(gpointer o, const char *file, int line)
 {
+#ifdef MALLOC_SAFE_HEAD
+	gboolean owned = free_record(o, file, line);
+
+	if (owned) {
+		struct malloc_header *mh = malloc_header_from_arena(o);
+		free(mh);
+	} else {
+		free(o);
+	}
+#else
 	free_record(o, file, line);
-	free(o);
+
+	if (hash_table_lookup(reals, o)) {
+		real_free(o);
+	} else {
+		free(o);
+	}
+#endif /* MALLOC_SAFE_HEAD */
 }
 
 /**
@@ -989,10 +1623,10 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 	if (blocks == NULL || !(b = hash_table_lookup(blocks, o))) {
 		g_warning("MALLOC (%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
-		return malloc_record(n, size, file, line);
+		return malloc_record(n, size, FALSE, file, line);
 	}
 
-	r = calloc(sizeof(*r), 1);
+	r = real_calloc(sizeof(*r), 1);
 	if (r == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*r));
 
@@ -1075,7 +1709,36 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 	} else {
 		gpointer n;
 
+#ifdef MALLOC_SAFE
+		struct block *b;
+
+		if (blocks != NULL && (b = hash_table_lookup(blocks, o)) && b->owned) {
+			size_t total = malloc_safe_size(size);
+#ifdef MALLOC_SAFE_HEAD
+			struct malloc_header *mh = malloc_header_from_arena(o);
+
+			block_check_marks(o, b, file, line);
+
+			mh = realloc(mh, total);
+
+			if (mh == NULL) {
+				g_error("cannot realloc block into a %lu-byte one",
+					(gulong) size);
+			}
+
+			mh->start = MALLOC_START_MARK;
+			n = mh->arena;
+#else  /* !MALLOC_SAFE_HEAD */
+			n = realloc(o, total);
+#endif /* MALLOC_SAFE_HEAD */
+			block_write_trailer(n, size);
+		} else {
+			n = realloc(o, size);
+		}
+#else  /* !MALLOC_SAFE */
 		n = realloc(o, size);
+#endif /* MALLOC_SAFE */
+
 		if (n == NULL)
 			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
 
@@ -1151,7 +1814,7 @@ strjoinv_track(const char *s, char **vec, const char *file, int line)
 
 	o = g_strjoinv(s, vec);
 
-	return malloc_record(o, strlen(o) + 1, file, line);
+	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -1165,12 +1828,12 @@ m_strconcatv(const char *s, va_list args)
 	size_t size;
 
 	size = strlen(s) + 1;
-	res = g_malloc(size);
+	res = malloc(size);
 	memcpy(res, s, size);
 
 	while ((add = va_arg(args, char *))) {
 		size_t len = strlen(add);
-		res = g_realloc(res, size + len);
+		res = realloc(res, size + len);
 		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
 		size += len;
 	}
@@ -1191,7 +1854,7 @@ strconcat_track(const char *file, int line, const char *s, ...)
 	o = m_strconcatv(s, args);
 	va_end(args);
 
-	return malloc_record(o, strlen(o) + 1, file, line);
+	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -1207,7 +1870,7 @@ strdup_printf_track(const char *file, int line, const char *fmt, ...)
 	o = g_strdup_vprintf(fmt, args);
 	va_end(args);
 
-	return malloc_record(o, strlen(o) + 1, file, line);
+	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -1222,11 +1885,11 @@ strsplit_track(const char *s, const char *d, size_t m,
 	char *x;
 
 	v = g_strsplit(s, d, m);
-	malloc_record(v, (m + 1) * sizeof(char *), file, line);
+	malloc_record(v, (m + 1) * sizeof(char *), FALSE, file, line);
 
 	iv = v;
 	while ((x = *iv++))
-		malloc_record(x, strlen(x) + 1, file, line);
+		malloc_record(x, strlen(x) + 1, FALSE, file, line);
 
 	return v;
 }
@@ -1241,7 +1904,7 @@ string_record(const char *s, const char *file, int line)
 	if (s == NULL)
 		return NULL;
 
-	return malloc_record(s, strlen(s) + 1, file, line);
+	return malloc_record(s, strlen(s) + 1, FALSE, file, line);
 }
 
 /**
@@ -1254,7 +1917,7 @@ hashtable_new_track(GHashFunc h, GCompareFunc y, const char *file, int line)
 	GHashTable *o;
 
 	o = g_hash_table_new(h, y);
-	return malloc_record(o, size, file, line);
+	return malloc_record(o, size, FALSE, file, line);
 }
 
 /**
@@ -1277,6 +1940,7 @@ hash_list_new_track(
 	return malloc_record(
 		hash_list_new(hash_func, eq_func),
 		28,				/* Approx. size */
+		FALSE,
 		file, line);
 }
 
@@ -1306,7 +1970,7 @@ gslist_record(const GSList * const list, const char *file, int line)
 	const GSList *iter;
 
 	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		malloc_record(iter, sizeof *iter, file, line);
+		malloc_record(iter, sizeof *iter, FALSE, file, line);
 	}
 	return deconstify_gpointer(list);
 }
@@ -1314,7 +1978,7 @@ gslist_record(const GSList * const list, const char *file, int line)
 GSList *
 track_slist_alloc(const char *file, int line)
 {
-	return malloc_record(g_slist_alloc(), sizeof(GSList), file, line);
+	return malloc_record(g_slist_alloc(), sizeof(GSList), FALSE, file, line);
 }
 
 GSList *
@@ -1470,7 +2134,7 @@ track_slist_insert_after(GSList *l, GSList *lk, gpointer data,
 GList *
 track_list_alloc(const char *file, int line)
 {
-	return malloc_record(g_list_alloc(), sizeof(GList), file, line);
+	return malloc_record(g_list_alloc(), sizeof(GList), FALSE, file, line);
 }
 
 GList *
@@ -1520,7 +2184,7 @@ glist_record(const GList * const list, const char *file, int line)
 	const GList *iter;
 
 	for (iter = list; NULL != iter; iter = g_list_next(iter)) {
-		malloc_record(iter, sizeof *iter, file, line);
+		malloc_record(iter, sizeof *iter, FALSE, file, line);
 	}
 	return deconstify_gpointer(list);
 }
@@ -1685,27 +2349,55 @@ track_list_delete_link(GList *l, GList *lk, const char *file, int line)
 #define GSTRING_OBJ_SIZE	(3 * sizeof(void *))		/* Estimated size */
 
 /**
+ * Allocated length of a string object.
+ */
+static inline size_t
+string_allocated_length(GString *s)
+{
+#if GLIB_CHECK_VERSION(2,0,0)
+	return s->allocated_len;
+#else
+	struct real_gstring {
+		gchar *str;
+		gint len;
+		gint alloc;
+	} *rs = (struct real_gstring *) s;
+	return rs->alloc;
+#endif 
+}
+
+/**
  * string_str_track
  *
  * Track changes to the internal string object.
  * @return GString object.
  */
 static GString *
-string_str_track(GString *s, char *old, const char *file, int line)
+string_str_track(GString *s, char *old, size_t osize,
+	const char *file, int line)
 {
-	size_t size;
-#if GLIB_CHECK_VERSION(2,0,0)
-	size = s->allocated_len;
-#else
-	size = s->len + 1;
-#endif 
+	/*
+	 * If we configured glib to trap all its g_malloc() and g_realloc()
+	 * calls, it is not harmful to do additional bookkeeping here.
+	 */
+
+#ifdef MALLOC_VTABLE
+	if (!vtable_works) {
+#endif
+
+	size_t size = string_allocated_length(s);
 
 	if (s->str != old) {
 		free_record(old, file, line);
-		malloc_record(s->str, size, file, line);
-	} else {
+		malloc_record(s->str, size, FALSE, file, line);
+	} else if (size != osize) {
 		realloc_record(s->str, s->str, size, file, line);
 	}
+
+#ifdef MALLOC_VTABLE
+	}
+#endif
+
 	return s;
 }
 
@@ -1714,8 +2406,8 @@ string_new_track(const char *p, const char *file, int line)
 {
 	GString *result = g_string_new(p);
 
-	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
-	return string_str_track(result, NULL, file, line);
+	malloc_record(result, GSTRING_OBJ_SIZE, FALSE, file, line);
+	return string_str_track(result, NULL, 0, file, line);
 }
 
 GString *
@@ -1723,26 +2415,28 @@ string_sized_new_track(size_t size, const char *file, int line)
 {
 	GString *result = g_string_sized_new(size);
 
-	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
-	return string_str_track(result, NULL, file, line);
+	malloc_record(result, GSTRING_OBJ_SIZE, FALSE, file, line);
+	return string_str_track(result, NULL, 0, file, line);
 }
 
 GString *
 string_append_track(GString *s, const char *p, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_append(s, p);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
 string_append_c_track(GString *s, char c, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_append_c(s, c);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
@@ -1750,26 +2444,43 @@ string_append_len_track(GString *s, const char *val, gssize len,
 	const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_append_len(s, val, len);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
 string_assign_track(GString *s, const char *p, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_assign(s, p);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 void
 string_free_track(GString *s, int freestr, const char *file, int line)
 {
 	free_record(s, file, line);
+
+	/*
+	 * If the glib vtable was setup, then the call to g_string_free() below
+	 * is going to let us know about s->str being freed, so we must not
+	 * call free_record() ourselves.
+	 */
+
+#ifdef MALLOC_VTABLE
+	if (!vtable_works) {
+#endif
+
 	if (freestr)
 		free_record(s->str, file, line);
+
+#ifdef MALLOC_VTABLE
+	}
+#endif
 
 	g_string_free(s, freestr);
 }
@@ -1778,18 +2489,20 @@ GString *
 string_prepend_track(GString *s, const char *p, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_prepend(s, p);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
 string_prepend_c_track(GString *s, char c, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_prepend_c(s, c);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
@@ -1797,18 +2510,20 @@ string_insert_track(GString *s, int pos, const char *p,
 	const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_insert(s, pos, p);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
 string_insert_c_track(GString *s, int pos, char c, const char *file, int line)
 {
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	s = g_string_insert_c(s, pos, c);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
@@ -1818,6 +2533,7 @@ string_sprintf_track(GString *s,
 	va_list args;
 	char *o;
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	va_start(args, fmt);
 	o = g_strdup_vprintf(fmt, args);
@@ -1825,7 +2541,7 @@ string_sprintf_track(GString *s,
 
 	g_string_assign(s, o);
 	G_FREE_NULL(o);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 GString *
@@ -1835,6 +2551,7 @@ string_sprintfa_track(GString *s,
 	va_list args;
 	char *o;
 	char *old = s->str;
+	size_t osize = string_allocated_length(s);
 
 	va_start(args, fmt);
 	o = g_strdup_vprintf(fmt, args);
@@ -1842,7 +2559,7 @@ string_sprintfa_track(GString *s,
 
 	g_string_append(s, o);
 	G_FREE_NULL(o);
-	return string_str_track(s, old, file, line);
+	return string_str_track(s, old, osize, file, line);
 }
 
 #endif /* TRACK_MALLOC */
@@ -1870,7 +2587,7 @@ gpointer leak_init(void)
 {
 	struct leak_set *ls;
 
-	ls = malloc(sizeof *ls);
+	ls = real_malloc(sizeof *ls);
 	ls->places = g_hash_table_new(g_str_hash, g_str_equal);
 
 	return ls;
@@ -1883,8 +2600,8 @@ static gboolean
 leak_free_kv(gpointer key, gpointer value, gpointer unused_user)
 {
 	(void) unused_user;
-	free(key);
-	free(value);
+	real_free(key);
+	real_free(value);
 	return TRUE;
 }
 
@@ -1899,7 +2616,7 @@ leak_close(gpointer o)
 	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
 	g_hash_table_destroy(ls->places);
 
-	free(ls);
+	real_free(ls);
 }
 
 /**
@@ -1927,10 +2644,10 @@ leak_add(gpointer o, size_t size, const char *file, int line)
 		lr->size += size;
 		lr->count++;
 	} else {
-		lr = malloc(sizeof(*lr));
+		lr = real_malloc(sizeof(*lr));
 		lr->size = size;
 		lr->count = 1;
-		g_hash_table_insert(ls->places, g_strdup(key), lr);
+		g_hash_table_insert(ls->places, real_strdup(key), lr);
 	}
 }
 
@@ -1995,7 +2712,7 @@ leak_dump(gpointer o)
 	if (count == 0)
 		return;
 
-	filler.leaks = malloc(sizeof(struct leak) * count);
+	filler.leaks = real_malloc(sizeof(struct leak) * count);
 	filler.count = count;
 	filler.idx = 0;
 
@@ -2021,7 +2738,7 @@ leak_dump(gpointer o)
 			l->lr->count == 1 ? "" : "s", l->place);
 	}
 
-	free(filler.leaks);
+	real_free(filler.leaks);
 }
 
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
@@ -2146,15 +2863,17 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		int remains = st->allocated + st->reallocated - st->freed;
 		int total_remains =
 			st->total_allocated + st->total_reallocated - st->total_freed;
-		char *c_allocated = strdup(compact_size(st->allocated, TRUE));
-		char *c_freed = strdup(compact_size(st->freed, TRUE));
-		char *c_reallocated = strdup(compact_size(ABS(st->reallocated), TRUE));
-		char *c_remains = strdup(compact_size(ABS(remains), TRUE));
-		char *c_tallocated = strdup(compact_size(st->total_allocated, TRUE));
-		char *c_tfreed = strdup(compact_size(st->total_freed, TRUE));
+		char *c_allocated = real_strdup(compact_size(st->allocated, TRUE));
+		char *c_freed = real_strdup(compact_size(st->freed, TRUE));
+		char *c_reallocated =
+			real_strdup(compact_size(ABS(st->reallocated), TRUE));
+		char *c_remains = real_strdup(compact_size(ABS(remains), TRUE));
+		char *c_tallocated =
+			real_strdup(compact_size(st->total_allocated, TRUE));
+		char *c_tfreed = real_strdup(compact_size(st->total_freed, TRUE));
 		char *c_treallocated =
-			strdup(compact_size(ABS(st->total_reallocated), TRUE));
-		char *c_tremains = strdup(compact_size(ABS(total_remains), TRUE));
+			real_strdup(compact_size(ABS(st->total_reallocated), TRUE));
+		char *c_tremains = real_strdup(compact_size(ABS(total_remains), TRUE));
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?
@@ -2182,14 +2901,14 @@ stats_array_dump(FILE *f, struct afiller *filler)
 			MIN(realloc_stacks, 99),
 			st->file, st->line);
 
-		free(c_allocated);
-		free(c_freed);
-		free(c_reallocated);
-		free(c_remains);
-		free(c_tallocated);
-		free(c_tfreed);
-		free(c_treallocated);
-		free(c_tremains);
+		real_free(c_allocated);
+		real_free(c_freed);
+		real_free(c_reallocated);
+		real_free(c_remains);
+		real_free(c_tallocated);
+		real_free(c_tfreed);
+		real_free(c_treallocated);
+		real_free(c_tremains);
 	}
 
 	fflush(f);
@@ -2216,7 +2935,7 @@ alloc_dump(FILE *f, gboolean total)
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
 		count, short_time(delta_time(now, init_time)));
 
-	filler.stats = malloc(sizeof(struct stats *) * count);
+	filler.stats = real_malloc(sizeof(struct stats *) * count);
 	filler.count = count;
 	filler.idx = 0;
 
@@ -2272,7 +2991,7 @@ alloc_dump(FILE *f, gboolean total)
 
 	fprintf(f, "--- end summary at %s\n", short_time(now - init_time));
 
-	free(filler.stats);
+	real_free(filler.stats);
 }
 
 /**
@@ -2308,5 +3027,43 @@ alloc_reset(FILE *f, gboolean total)
 }
 
 #endif /* MALLOC_STATS */
+
+/**
+ * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
+ * when TRACK_MALLOC and MALLOC_VTABLE are defined.
+ *
+ * This allows features like MALLOC_FREE_ERASE, MALLOC_SAFE, etc... to be
+ * used on blocks that are allocated by glib internally or by GTK.  It also
+ * enables us to see frees for blocks we track but give to GTK, and never
+ * see again otherwise.
+ */
+void
+malloc_init_vtable(void)
+{
+#ifdef TRACK_MALLOC
+	reals = hash_table_new_real();
+
+#ifdef MALLOC_VTABLE
+	{
+		static GMemVTable vtable;
+
+#if GLIB_CHECK_VERSION(2,0,0)
+		vtable.malloc = real_malloc;
+		vtable.realloc = real_realloc;
+		vtable.free = real_free;
+#else	/* GLib < 2.0.0 */
+		vtable.gmvt_malloc = real_malloc;
+		vtable.gmvt_realloc = real_realloc;
+		vtable.gmvt_free = real_free;
+#endif	/* GLib >= 2.0.0 */
+
+		g_mem_set_vtable(&vtable);
+
+		malloc_glib12_check();
+	}
+#endif	/* MALLOC_VTABLE */
+
+#endif	/* TRACK_MALLOC */
+}
 
 /* vi: set ts=4 sw=4 cindent:  */
