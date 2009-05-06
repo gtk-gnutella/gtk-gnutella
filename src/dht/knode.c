@@ -280,7 +280,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
 	char vc_buf[VENDOR_CODE_BUFLEN];
-	gchar kuid_buf[KUID_RAW_SIZE * 2 + 1];
+	gchar kuid_buf[KUID_HEX_BUFLEN];
 
 	knode_check(kn);
 

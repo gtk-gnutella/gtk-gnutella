@@ -280,7 +280,7 @@ kuid_to_string(const kuid_t *kuid)
 const gchar *
 kuid_to_hex_string(const kuid_t *kuid)
 {
-	static gchar buf[KUID_RAW_SIZE * 2 + 1];
+	static gchar buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 
@@ -295,7 +295,7 @@ kuid_to_hex_string(const kuid_t *kuid)
 const gchar *
 kuid_to_hex_string2(const kuid_t *kuid)
 {
-	static gchar buf[KUID_RAW_SIZE * 2 + 1];
+	static gchar buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 

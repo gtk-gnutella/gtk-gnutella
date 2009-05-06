@@ -30,6 +30,8 @@
 
 #define KUID_RAW_SIZE		20
 #define KUID_RAW_BITSIZE	(KUID_RAW_SIZE * 8)
+#define KUID_HEX_SIZE		(2 * KUID_RAW_SIZE)
+#define KUID_HEX_BUFLEN		(KUID_HEX_SIZE + 1)
 
 typedef struct kuid {
 	guchar v[KUID_RAW_SIZE];
