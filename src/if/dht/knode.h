@@ -51,11 +51,11 @@ typedef enum {
  */
 typedef struct knode {
 	knode_magic_t magic;
+	int refcnt;					/**< Reference count */
 	kuid_t *id;					/**< KUID of the node (atom) */
 	time_t last_seen;			/**< Last seen message from that node */
 	time_t last_sent;			/**< Last sent RPC to that node */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
-	int refcnt;					/**< Reference count */
 	guint32 rtt;				/**< Round-trip time in milliseconds */
 	guint32 flags;				/**< Operating flags */
 	host_addr_t addr;			/**< IP of the node */
