@@ -744,19 +744,38 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 }
 
 /**
+ * Context for recreate_ri() and remove_orphan().
+ */
+struct recreate_context {
+	GHashTable *dbkeys;		/* Seen DB keys (atoms) */
+	guint orphans;			/* Orphan keys found */
+};
+
+static void
+free_dbkey_kv(gpointer key, gpointer u_value, gpointer u_data)
+{
+	guint64 *dbkey = key;
+
+	(void) u_value;
+	(void) u_data;
+
+	atom_uint64_free(dbkey);
+}
+
+/**
  * DBMW foreach iterator to recreate keyinfo if not too ancient.
  * @return TRUE if entry is too ancient and key must be deleted.
  */
 static gboolean
-recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer u_data)
+recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
 {
+	struct recreate_context *ctx = data;
 	const struct rootdata *rd = value;
 	const kuid_t *id = key;
 	struct rootinfo *ri;
 	time_delta_t d;
 	int i;
 
-	(void) u_data;
 	(void) u_len;
 
 	/*
@@ -785,8 +804,14 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 
 	for (i = 0; i < rd->count; i++) {
 		guint64 dbkey = rd->dbkeys[i];
+
 		if (dbkey >= contactid)
 			contactid = dbkey + 1;
+
+		if (!g_hash_table_lookup(ctx->dbkeys, &dbkey)) {
+			const guint64 *dbatom = atom_uint64_get(&dbkey);
+			gm_hash_table_insert_const(ctx->dbkeys, dbatom, uint_to_pointer(1));
+		}
 	}
 
 	ri = allocate_rootinfo(id);
@@ -809,6 +834,27 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer u_data)
 		g_message("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
 			rd->count, 1 == rd->count ? "" : "s",
 			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
+
+	return FALSE;
+}
+
+/**
+ * DBMW foreach iterator to remove orphan DB keys.
+ * @return TRUE if entry is orphaned must be deleted.
+ */
+static gboolean
+remove_orphan(gpointer key, gpointer u_value, size_t u_len, gpointer data)
+{
+	struct recreate_context *ctx = data;
+	guint64 *dbkey = key;
+
+	(void) u_value;
+	(void) u_len;
+
+	if (!g_hash_table_lookup(ctx->dbkeys, dbkey)) {
+		ctx->orphans++;
+		return TRUE;
+	}
 
 	return FALSE;
 }
@@ -850,19 +896,30 @@ roots_sync(gpointer unused_obj)
 static void
 roots_init_rootinfo(void)
 {
+	struct recreate_context ctx;
+
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		size_t count = dbmw_count(db_rootdata);
 		g_message("DHT ROOTS scanning %u retrieved target KUID%s",
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	dbmw_foreach_remove(db_rootdata, recreate_ri, NULL);
+	ctx.dbkeys = g_hash_table_new(uint64_hash, uint64_eq);
+	ctx.orphans = 0;
+
+	dbmw_foreach_remove(db_rootdata, recreate_ri, &ctx);
+	dbmw_foreach_remove(db_contact, remove_orphan, &ctx);
+
+	g_hash_table_foreach(ctx.dbkeys, free_dbkey_kv, NULL);
+	g_hash_table_destroy(ctx.dbkeys);
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		size_t count = dbmw_count(db_rootdata);
 		g_message("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
 			(unsigned) count, 1 == count ? "" : "s",
 			targets_managed, contacts_managed);
+		g_message("DHT ROOTS stripped %u orphan contact DB-key%s",
+			ctx.orphans, 1 == ctx.orphans ? "" : "s");
 		g_message("DHT ROOTS first allocated contact DB-key will be %s",
 			uint64_to_string(contactid));
 	}
