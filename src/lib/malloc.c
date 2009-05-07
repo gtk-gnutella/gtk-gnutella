@@ -43,6 +43,7 @@
 
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
+#include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "hashtable.h"
 #include "misc.h"		/* For concat_strings() */
@@ -55,20 +56,27 @@
  * This comes at the price of heavy usage of conditinal compilation
  * throughout the file...
  *
- * None of these has any effect when TRACK_MALLOC is not defined.
+ * All of these have effect even when TRACK_MALLOC is not defined,
+ * although in that case MALLOC_VTABLE should be defined so that real_malloc()
+ * is called, at least -- otherwse the other settings do not matter much!
  */
 
 #if 0
-#define MALLOC_SAFE			/* Add trailer magic to each block */
+#define MALLOC_SAFE				/* Add trailer magic to each block */
+#define MALLOC_TRAILER_LEN	32	/* Additional trailer len, past end mark */
 #endif
-#if 1
+#if 0
 #define MALLOC_FREE_ERASE	/* Whether freeing should erase block data */
 #endif
-#if 1
+#if 0
 #define MALLOC_DUP_FREE		/* Detect duplicate frees by block tagging */
 #endif
-#if 1
-#define MALLOC_VTABLE		/* Try to redirect glib's malloc to here */
+#if 0
+#define MALLOC_VTABLE		/* Try to redirect glib's malloc here */
+#endif
+#if 0
+#define MALLOC_PERIODIC		/* Periodically scan blocks for overruns */
+#define MALLOC_PERIOD	5000	/* Every 5 secs */
 #endif
 
 RCSID("$Id$")
@@ -185,18 +193,21 @@ struct real_malloc_header {
 
 #endif /* MALLOC_SAFE */
 
-#ifdef TRACK_MALLOC
-
 #include "misc.h"
 #include "hashlist.h"
 #include "glib-missing.h"
 #include "override.h"
 
-static time_t init_time = 0;
-static time_t reset_time = 0;
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+static hash_table_t *reals = NULL;
+#endif
+
+#ifdef MALLOC_VTABLE
+static gboolean vtable_works;	/* Whether we can trap glib memory calls */
+#endif
 
 /**
- * Structure keeping track of allocated blocks.
+ * Structure keeping track of allocated blocks. (visible for convenience)
  *
  * Each block is inserted into a hash table, the key being the block's
  * address and the value being a structure keeping track of the initial
@@ -210,15 +221,15 @@ struct block {
 	guint8 owned;		/* Whether we allocated the block ourselves */
 };
 
+#ifdef TRACK_MALLOC
+
+static time_t init_time = 0;
+static time_t reset_time = 0;
+
 static hash_table_t *blocks = NULL;
-static hash_table_t *reals = NULL;
 static hash_table_t *not_leaking = NULL;
 
 static gboolean free_record(gconstpointer o, const char *file, int line);
-
-#ifdef MALLOC_VTABLE
-static gboolean vtable_works;	/* Whether we can trap glib memory calls */
-#endif
 
 /*
  * When MALLOC_FRAMES is defined, we keep track of allocation stack frames
@@ -707,6 +718,7 @@ stats_eq(gconstpointer a, gconstpointer b)
 	return  sa->line == sb->line && 0 == strcmp(sa->file, sb->file);
 }
 #endif /* MALLOC_STATS */
+#endif /* TRACK_MALLOC */
 
 /**
  * Safe malloc definitions.
@@ -812,6 +824,7 @@ block_check_trailer(gconstpointer o, size_t size,
 	return error;
 }
 
+#ifdef TRACK_MALLOC
 /**
  * With MALLOC_SAFE, each block we own (i.e. which we allocate ourselves)
  * is tagged at the beginning and at the end with magic numbers, to detect
@@ -848,7 +861,21 @@ block_check_marks(gconstpointer o, const struct block *b,
 #endif
 	}
 }
-#endif /* MALLOC_SAFE */
+#endif	/* TRACK_MALLOC */
+
+#else	/* !MALLOC_SAFE */
+static inline void block_write_trailer(gpointer o, size_t size)
+{
+	(void) o; (void) size;
+}
+static inline void block_check_trailer(gconstpointer o, size_t size,
+	const char *file, int line, const char *op_file, int op_line,
+	gboolean showstack)
+{
+	(void) o; (void) size; (void) file; (void) line;
+	(void) op_file; (void) op_line; (void) showstack;
+}
+#endif	/* MALLOC_SAFE */
 
 /**
  * When MALLOC_FREE_ERASE is set, freed blocks are overwritten to detect
@@ -900,15 +927,107 @@ block_is_dead(void *p, size_t size)
 
 	return FALSE;
 }
-#else	/* !MALLOC_DUR_FREE */
+#endif	/* MALLOC_DUR_FREE */
+
+#if !defined(TRACK_MALLOC) || !defined(MALLOC_DUP_FREE)
 #define block_mark_dead(p_, s_)
 #define block_clear_dead(p_, s_)
 #define block_is_dead(p_, s_)		(FALSE)
-#endif	/* MALLOC_DUR_FREE */
+#endif /* !TRAC_MALLOC || !MALLOC_DUP_FREE */
 
+/**
+ * With MALLOC_PERIODIC, all the allocated blocks (whether they be tracked
+ * or allocated directly via real_malloc() and friends)
+ */
+#ifdef MALLOC_PERIODIC
+
+static gboolean need_periodic;
+
+#ifdef TRACK_MALLOC
+/**
+ * Iterating callback to check a tracked block.
+ */
+static void
+block_check(const void *key, void *value, void *unused_user)
+{
+	(void) unused_user;
+}
 #endif	/* TRACK_MALLOC */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+/**
+ * Iterating callback to check a real (untracked) malloc'ed block.
+ */
+static void
+real_check(const void *key, void *value, void *unused_user)
+{
+	size_t size = pointer_to_ulong(value);
+	void *p = deconstify_gpointer(key);
+
+	(void) unused_user;
+
+	block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
+	if (block_is_dead(p, size)) {
+		g_warning("MALLOC allocated block 0x%lx marked as DEAD", (gulong) p);
+	}
+
+#ifdef MALLOC_SAFE
+	{
+		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
+		if (REAL_MALLOC_MAGIC != rmh->magic) {
+			g_warning("MALLOC corrupted real block magic at 0x%lx",
+				(unsigned long) p);
+		} else if (rmh->size != size) {
+			g_warning("MALLOC size mismatch for real block 0x%lx: "
+				"hashtable says %u byte%s, header says %u",
+				(unsigned long) p, size, 1 == size ? "" : "s", rmh->size);
+		}
+	}
+#endif	/* MALLOC_SAFE */
+}
+
+/**
+ * Periodic check to make sure all the known blocks are correct.
+ */
+static gboolean
+malloc_periodic(gpointer unused_obj)
+{
+	gboolean checked = FALSE;
+
+	(void) unused_obj;
+
+	g_message("malloc periodic check starting...");
+
+#ifdef TRACK_MALLOC
+	checked = TRUE;
+	if (blocks != NULL)
+		hash_table_foreach(blocks, block_check, NULL);
+#endif
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+		checked = TRUE;
+		hash_table_foreach(reals, real_check, NULL);
+#endif
+
+	if (!checked) {
+		g_message("malloc periodic: nothing to check, disabling.");
+		return FALSE;
+	}
+
+	g_message("malloc periodic check done.");
+
+	return TRUE;
+}
+
+static void
+install_malloc_periodic(void)
+{
+	need_periodic = FALSE;
+	cq_periodic_add(callout_queue, MALLOC_PERIOD, malloc_periodic, NULL);
+}
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
+#endif	/* MALLOC_PERIODIC */
+
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(MALLOC_VTABLE)
 
 /**
  * Calls real malloc(), no tracking.
@@ -918,7 +1037,12 @@ real_malloc(size_t size)
 {
 	void *o;
 
-#if defined(TRACK_MALLOC) && defined(MALLOC_SAFE)
+#ifdef MALLOC_PERIODIC
+	if (need_periodic && NULL != callout_queue)
+		install_malloc_periodic();
+#endif
+
+#ifdef MALLOC_SAFE
 	{
 		size_t len = real_malloc_safe_size(size);
 		struct real_malloc_header *rmh;
@@ -933,17 +1057,22 @@ real_malloc(size_t size)
 		o = rmh->arena;
 		block_write_trailer(o, size);
 	}
-#else  /* !TRACK_MALLOC || !MALLOC_SAFE */
+#else  /* !MALLOC_SAFE */
 
 	o = malloc(size);
 
-#endif /* TRACK_MALLOC && MALLOC_SAFE */
+#endif /* MALLOC_SAFE */
+
+	block_clear_dead(o, size);
 
 	if (o == NULL)
 		g_error("unable to allocate %lu bytes", (gulong) size);
 
-#ifdef TRACK_MALLOC
-	hash_table_insert(reals, o, ulong_to_pointer(size));
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+	if (!hash_table_insert(reals, o, ulong_to_pointer(size))) {
+		g_warning("MALLOC reusing block 0x%lx, missed its freeing", (gulong) o);
+		hash_table_replace(reals, o, ulong_to_pointer(size));
+	}
 #endif
 
 	return o;
@@ -956,13 +1085,20 @@ real_malloc(size_t size)
 static void
 real_free(void *p)
 {
+#ifdef MALLOC_PERIODIC
+	if (need_periodic && NULL != callout_queue)
+		install_malloc_periodic();
+#endif
+
 #ifdef TRACK_MALLOC
 	struct block *b = NULL;
+#endif
 	size_t size = 0;
 
 	if (NULL == p)
 		return;
 
+#ifdef TRACK_MALLOC
 	if (blocks)
 		b = hash_table_lookup(blocks, p);
 
@@ -975,14 +1111,15 @@ real_free(void *p)
 	if (b) {
 		size = b->size;
 		free_record(p, _WHERE_, __LINE__);
-	} else {
+	} else
+#endif
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+	{
 		void *v = hash_table_lookup(reals, p);
 		if (v) {
 			size = (size_t) pointer_to_ulong(v);
 			hash_table_remove(reals, p);
-#ifdef MALLOC_SAFE
 			block_check_trailer(p, size, "FAKED", 0, _WHERE_, __LINE__, TRUE);
-#endif
 			block_erase(p, size);
 			block_mark_dead(p, size);
 		} else {
@@ -991,6 +1128,7 @@ real_free(void *p)
 				g_error("MALLOC probable duplicate free of 0x%lx", (gulong) p);
 		}
 	}
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 #ifdef MALLOC_SAFE
 	/*
@@ -1001,23 +1139,26 @@ real_free(void *p)
 	 * Otherwise, it was allocated via real_malloc(), with a real block header.
 	 */
 
-	if (NULL == b) {
+	if (
+#ifdef TRACK_MALLOC
+		NULL == b ||
+#endif
+		TRUE
+	) {
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		if (REAL_MALLOC_MAGIC != rmh->magic)
 			g_error("MALLOC free(): corrupted real block magic at 0x%lx",
 				(unsigned long) p);
 		free(rmh);
-	} else {
+	} else
+#endif	/* MALLOC_SAFE */
+	{
 		free(p);
 	}
-#else
-	free(p);
-#endif	/* MALLOC_SAFE */
-#else	/* !TRACK_MALLOC */
-	free(p);
-#endif	/* TRACK_MALLOC */
 }
+#endif /* TRACK_MALLOC || TRACK_ZALLOC || MALLOC_VTABLE */
 
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
@@ -1038,14 +1179,18 @@ real_strdup(const char *s)
 }
 #endif	/* TRACK_MALLOC || TRACK_ZALLOC */
 
-#ifdef TRACK_MALLOC
-
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 /**
  * Calls real realloc(), no tracking.
  */
 static void *
 real_realloc(void *p, size_t size)
 {
+#ifdef MALLOC_PERIODIC
+	if (need_periodic && NULL != callout_queue)
+		install_malloc_periodic();
+#endif
+
 	if (p == NULL)
 		return real_malloc(size);
 
@@ -1060,8 +1205,9 @@ real_realloc(void *p, size_t size)
 
 		if (blocks)
 			b = hash_table_lookup(blocks, p);
+#endif
 
-#ifdef MALLOC_SAFE
+#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE)
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		size_t len = real_malloc_safe_size(size);
 
@@ -1081,17 +1227,21 @@ real_realloc(void *p, size_t size)
 			n = rmh->arena;
 			block_write_trailer(n, size);
 		}
-#else  /* !MALLOC_SAFE */
+#else	/* !TRACK_MALLOC && !MALLOC_SAFE */
 		n = realloc(p, size);
-#endif /* MALLOC_SAFE */
+#endif	/* TRACK_MALLOC || MALLOC_SAFE */
 
+#ifdef TRACK_MALLOC
 		if (b != NULL) {
 			b->size = size;
 			if (n != p) {
 				hash_table_remove(blocks, p);
 				hash_table_insert(blocks, n, b);
 			}
-		} else {
+		} else
+#endif	/* TRACK_MALLOC */
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+		{
 			if (n != p) {
 				hash_table_remove(reals, p);
 				hash_table_insert(reals, n, ulong_to_pointer(size));
@@ -1099,12 +1249,7 @@ real_realloc(void *p, size_t size)
 				hash_table_replace(reals, n, ulong_to_pointer(size));
 			}
 		}
-
-#else	/* !TRACK_MALLOC */
-
-		n = realloc(p, size);
-
-#endif	/* TRACK_MALLOC */
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 		if (n == NULL)
 			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
@@ -1112,7 +1257,9 @@ real_realloc(void *p, size_t size)
 		return n;
 	}
 }
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
+#ifdef TRACK_MALLOC
 /**
  * Wrapper to real malloc().
  */
@@ -1134,18 +1281,6 @@ real_calloc(size_t nmemb, size_t size)
 }
 
 /**
- * Called from main() to load symbols from the executable.
- */
-void
-malloc_init(const char *argv0)
-{
-#ifdef MALLOC_FRAMES
-	if (argv0 != NULL)
-		load_symbols(argv0);
-#endif
-}
-
-/**
  * Called at first allocation to initialize tracking structures,.
  */
 static void
@@ -1163,41 +1298,6 @@ track_init(void)
 
 	init_time = reset_time = tm_time_exact();
 }
-
-#ifdef MALLOC_VTABLE
-/**
- * In glib 1.2 there is no g_mem_set_vtable() routine.  We supply a
- * replacement that works on some platforms but not on others.
- *
- * This routine checks whether calling a simple memory allocation
- * function from glib will cause real_malloc() to be called.
- */
-static void
-malloc_glib12_check(void)
-{
-	vtable_works = TRUE;
-
-#if !GLIB_CHECK_VERSION(2,0,0)
-	gpointer p;
-	size_t old_size = hash_table_size(reals);
-
-	/*
-	 * Check whether the remapping is effective. This may not be
-	 * the case for our GLib 1.2 hack. This is required for Darwin,
-	 * for example.
-	 */
-	p = g_strdup("");
-	if (hash_table_size(reals) == old_size) {
-		static GMemVTable zero_vtable;
-		fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
-		g_mem_set_vtable(&zero_vtable);
-		vtable_works = FALSE;
-	} else {
-		G_FREE_NULL(p);
-	}
-#endif	/* GLib < 2.0.0 */
-}
-#endif	/* MALLOC_VTABLE */
 
 /**
  * malloc_log_block		-- hash table iterator callback
@@ -1254,30 +1354,6 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 		}
 	}
 #endif
-}
-
-/**
- * Dump all the blocks that are still used.
- */
-void
-malloc_close(void)
-{
-	gpointer leaksort;
-
-	if (blocks == NULL)
-		return;
-
-#ifdef MALLOC_STATS
-	g_warning("aggregated memory usage statistics:");
-	alloc_dump(stderr, TRUE);
-#endif
-
-	leaksort = leak_init();
-
-	hash_table_foreach(blocks, malloc_log_block, leaksort);
-
-	leak_dump(leaksort);
-	leak_close(leaksort);
 }
 
 /**
@@ -3028,6 +3104,41 @@ alloc_reset(FILE *f, gboolean total)
 
 #endif /* MALLOC_STATS */
 
+#ifdef MALLOC_VTABLE
+/**
+ * In glib 1.2 there is no g_mem_set_vtable() routine.  We supply a
+ * replacement that works on some platforms but not on others.
+ *
+ * This routine checks whether calling a simple memory allocation
+ * function from glib will cause real_malloc() to be called.
+ */
+static void
+malloc_glib12_check(void)
+{
+	vtable_works = TRUE;
+
+#if !GLIB_CHECK_VERSION(2,0,0)
+	gpointer p;
+	size_t old_size = hash_table_size(reals);
+
+	/*
+	 * Check whether the remapping is effective. This may not be
+	 * the case for our GLib 1.2 hack. This is required for Darwin,
+	 * for example.
+	 */
+	p = g_strdup("");
+	if (hash_table_size(reals) == old_size) {
+		static GMemVTable zero_vtable;
+		fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
+		g_mem_set_vtable(&zero_vtable);
+		vtable_works = FALSE;
+	} else {
+		G_FREE_NULL(p);
+	}
+#endif	/* GLib < 2.0.0 */
+}
+#endif	/* MALLOC_VTABLE */
+
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
  * when TRACK_MALLOC and MALLOC_VTABLE are defined.
@@ -3040,8 +3151,9 @@ alloc_reset(FILE *f, gboolean total)
 void
 malloc_init_vtable(void)
 {
-#ifdef TRACK_MALLOC
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	reals = hash_table_new_real();
+#endif
 
 #ifdef MALLOC_VTABLE
 	{
@@ -3058,11 +3170,186 @@ malloc_init_vtable(void)
 #endif	/* GLib >= 2.0.0 */
 
 		g_mem_set_vtable(&vtable);
-
 		malloc_glib12_check();
 	}
-#endif	/* MALLOC_VTABLE */
 
+	/*
+	 * Sanity checks of malloc settings
+	 */
+
+	{
+		static const char test_string[] = "test string";
+		gchar *p = g_strdup(test_string);
+
+		if (0 != strcmp(test_string, p))
+			g_error("g_strdup() is not working");
+		G_FREE_NULL(p);
+
+		p = g_malloc(CONST_STRLEN(test_string) + 20);
+		memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
+		if (0 != strcmp(test_string, p))
+			g_error("g_malloc() is not working");
+
+		p = g_realloc(p, CONST_STRLEN(test_string) + 1);
+		if (0 != strcmp(test_string, p))
+			g_error("g_realloc() is not working");
+
+		p = g_realloc(p, CONST_STRLEN(test_string) + 512);
+		if (0 != strcmp(test_string, p))
+			g_error("g_realloc() is not working");
+		G_FREE_NULL(p);
+	}
+#endif	/* MALLOC_VTABLE */
+}
+
+/**
+ * Called from main() to init data structures.
+ */
+void
+malloc_init(const char *argv0)
+{
+	gboolean has_setting = FALSE;
+	struct malloc_settings {
+		guint8 track_malloc;
+		guint8 track_zalloc;
+		guint8 remap_zalloc;
+		guint8 malloc_stats;
+		guint8 malloc_frames;
+		guint8 malloc_safe;
+		guint8 malloc_safe_head;
+		gulong malloc_trailer_len;
+		guint8 malloc_free_erase;
+		guint8 malloc_dup_free;
+		guint8 malloc_vtable;
+		guint8 malloc_periodic;
+		gulong malloc_period;
+		gboolean vtable_works;
+	} settings;
+
+	memset(&settings, 0, sizeof settings);
+
+#ifdef MALLOC_FRAMES
+	/*
+	 * Load symbols from the executable.
+	 */
+
+	if (argv0 != NULL)
+		load_symbols(argv0);
+#else
+	(void) argv0;
+#endif
+
+#ifdef MALLOC_PERIODIC
+	/*
+	 * Cannot install the periodic monitoring callback since at this stage
+	 * the callout queue has not been created yet.
+	 */
+	need_periodic = TRUE;
+#endif
+
+	/*
+	 * Log malloc configuration.
+	 */
+
+#ifdef TRACK_MALLOC
+	settings.track_malloc = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef TRACK_ZALLOC
+	settings.track_zalloc = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef REMAP_ZALLOC
+	settings.remap_zalloc = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_STATS
+	settings.malloc_stats = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_FRAMES
+	settings.malloc_frames = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_SAFE
+	settings.malloc_safe = TRUE;
+	settings.malloc_trailer_len = MALLOC_TRAILER_LEN;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_SAFE_HEAD
+	settings.malloc_safe_head = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_FREE_ERASE
+	settings.malloc_free_erase = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_DUP_FREE
+	settings.malloc_dup_free = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_VTABLE
+	settings.malloc_vtable = TRUE;
+	settings.vtable_works = vtable_works;
+	has_setting = TRUE;
+#endif
+#ifdef MALLOC_PERIODIC
+	settings.malloc_periodic = TRUE;
+	settings.malloc_period = MALLOC_PERIOD;
+	has_setting = TRUE;
+#endif
+
+	if (has_setting) {
+		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s",
+			settings.track_malloc ? "TRACK_MALLOC " : "",
+			settings.track_zalloc ? "TRACK_ZALLOC " : "",
+			settings.remap_zalloc ? "REMAP_ZALLOC " : "",
+			settings.malloc_stats ? "MALLOC_STATS " : "",
+			settings.malloc_frames ? "MALLOC_FRAMES " : "",
+			settings.malloc_safe ? "MALLOC_SAFE " : "",
+			settings.malloc_safe_head ? "MALLOC_SAFE_HEAD " : "",
+			settings.malloc_free_erase ? "MALLOC_FREE_ERASE " : "",
+			settings.malloc_dup_free ? "MALLOC_DUP_FREE " : "",
+			settings.malloc_vtable ? "MALLOC_VTABLE " : "",
+			settings.malloc_periodic ? "MALLOC_PERIODIC " : "");
+	}
+
+	if (settings.malloc_safe)
+		g_message("malloc variable MALLOC_TRAILER_LEN = %lu",
+			settings.malloc_trailer_len);
+
+	if (settings.malloc_periodic)
+		g_message("malloc variable MALLOC_PERIOD = %lu",
+			settings.malloc_period);
+
+	if (settings.malloc_vtable)
+		g_message("malloc setting MALLOC_VTABLE %s",
+			settings.vtable_works ? "works" : "does NOT work!");
+}
+
+/**
+ * Dump all the blocks that are still used.
+ */
+void
+malloc_close(void)
+{
+#ifdef TRACK_MALLOC
+	gpointer leaksort;
+
+	if (blocks == NULL)
+		return;
+
+#ifdef MALLOC_STATS
+	g_message("aggregated memory usage statistics:");
+	alloc_dump(stderr, TRUE);
+#endif
+
+	leaksort = leak_init();
+
+	hash_table_foreach(blocks, malloc_log_block, leaksort);
+
+	leak_dump(leaksort);
+	leak_close(leaksort);
 #endif	/* TRACK_MALLOC */
 }
 

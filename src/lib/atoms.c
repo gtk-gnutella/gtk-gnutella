@@ -780,7 +780,15 @@ uint32_str(gconstpointer v)
 void
 atoms_init(void)
 {
+	gboolean has_setting = FALSE;
+	struct atom_settings {
+		guint8 track_atoms;
+		guint8 protect_atoms;
+		guint8 atoms_have_magic;
+	} settings;
 	guint i;
+
+	memset(&settings, 0, sizeof settings);
 
 	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
@@ -797,6 +805,30 @@ atoms_init(void)
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
 	ht_all_atoms = g_hash_table_new(pointer_hash_func, NULL);
+
+	/*
+	 * Log atoms configuration.
+	 */
+
+#ifdef TRACK_ATOMS
+	settings.track_atoms = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef PROTECT_ATOMS
+	settings.protect_atoms = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef ATOMS_HAVE_MAGIC
+	settings.atoms_have_magic = TRUE;
+	has_setting = TRUE;
+#endif
+
+	if (has_setting) {
+		g_message("atom settings: %s%s%s",
+			settings.track_atoms ? "TRACK_ATOMS " : "",
+			settings.protect_atoms ? "PROTECT_ATOMS " : "",
+			settings.atoms_have_magic ? "ATOMS_HAVE_MAGIC " : "");
+	}
 }
 
 static inline size_t

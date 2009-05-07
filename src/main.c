@@ -545,9 +545,7 @@ gtk_gnutella_exit(gint n)
 
 	atoms_close();
 	wdestroy();
-#ifdef TRACK_MALLOC
 	malloc_close();
-#endif
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_message("gtk-gnutella shut down cleanly.");
@@ -1320,6 +1318,8 @@ main(int argc, char **argv)
 
 	prehandle_arguments(argv);
 
+	/* Early inits */
+
 	if (!options[main_arg_no_halloc].used) {
 		halloc_init();
 	}
@@ -1344,23 +1344,19 @@ main(int argc, char **argv)
 
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
+	log_init();
+	malloc_init(argv[0]);
 	atoms_init();
 	eval_init();
 	settings_early_init();
 
 	handle_arguments(argc, argv);
 
-	/* Our inits */
-	log_init();
-
-#ifdef TRACK_MALLOC
-	malloc_init(argv[0]);
-#endif
+	/* Our regular inits */
 
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
-		_("This is an unofficial build which accesses "
-			"files in this directory:"),
+		_("unofficial build, accessing files from"),
 		PACKAGE_SOURCE_DIR);
 #endif
 

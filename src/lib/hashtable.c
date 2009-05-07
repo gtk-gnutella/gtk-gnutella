@@ -549,7 +549,6 @@ hash_table_destroy(hash_table_t *ht)
   free(ht);
 }
 
-#ifdef TRACK_MALLOC
 /*
  * The hash table is used to keep track of the malloc() and free() operations,
  * so we need special routines to ensure allocation and freeing of memory
@@ -585,6 +584,5 @@ hash_table_destroy_real(hash_table_t *ht)
   hash_table_clear(ht);
   free(ht);
 }
-#endif /* TRACK_MALLOC */
 
 /* vi: set ai et sts=2 sw=2 cindent: */

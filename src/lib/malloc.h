@@ -298,13 +298,6 @@ GString *string_sprintfa_track(
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
-void malloc_init_vtable(void);
-
-#ifdef TRACK_MALLOC
-void malloc_init(const char *argv0);
-void malloc_close(void);
-#endif
-
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 
 gpointer leak_init(void);
@@ -318,6 +311,14 @@ void leak_close(gpointer o);
 void alloc_dump(FILE *f, gboolean total);
 void alloc_reset(FILE *f, gboolean total);
 #endif
+
+/*
+ * Public interface, available no matter which compile options are used.
+ */
+
+void malloc_init(const char *argv0);
+void malloc_init_vtable(void);
+void malloc_close(void);
 
 #endif /* _malloc_h_ */
 

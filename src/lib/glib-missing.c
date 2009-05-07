@@ -51,7 +51,10 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if defined(USE_GLIB1) && (defined(TRACK_MALLOC) || defined(USE_HALLOC))
+#if defined(USE_GLIB1) && \
+	(defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+		defined(REMAP_ZALLOC))
+
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
