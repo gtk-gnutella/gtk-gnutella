@@ -112,7 +112,7 @@ typedef struct atom {
 
 #define ARENA_OFFSET \
 	(MEM_ALIGNBYTES * ((sizeof(atom_t) / MEM_ALIGNBYTES) + \
-		((MEM_ALIGNBYTES % sizeof(atom_t)) ? 1 : 0)))
+		((sizeof(atom_t) % MEM_ALIGNBYTES) ? 1 : 0)))
 
 static inline atom_t *
 atom_from_arena(gconstpointer key)
