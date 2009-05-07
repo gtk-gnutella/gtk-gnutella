@@ -1146,8 +1146,11 @@ prehandle_arguments(char **argv)
 	}
 }
 
+/**
+ * Parse arguments, but do not take any action (excepted re-opening log files).
+ */
 static void
-handle_arguments(int argc, char **argv)
+parse_arguments(int argc, char **argv)
 {
 	const char *argv0;
 	guint i;
@@ -1220,7 +1223,14 @@ handle_arguments(int argc, char **argv)
 	if (0 != reopen_log_files()) {
 		exit(EXIT_FAILURE);
 	}
+}
 
+/**
+ * Act on the options we parsed.
+ */
+static void
+handle_arguments(char *argv0)
+{
 	crash_init(options[main_arg_exec_on_crash].arg, argv0,
 		options[main_arg_pause_on_crash].used);
 
@@ -1306,6 +1316,9 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	tm_now_exact(&start_time);
+	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+
 	/*
 	 * This must be run before we allocate memory because we might
 	 * use mmap() with /dev/zero and then accidently close this
@@ -1316,17 +1329,14 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	prehandle_arguments(argv);
+	/* First inits -- initialize custom memory allocator, if needed */
 
-	/* Early inits */
+	prehandle_arguments(argv);
 
 	if (!options[main_arg_no_halloc].used) {
 		halloc_init();
 	}
-
 	malloc_init_vtable();
-	tm_now_exact(&start_time);
-	misc_init();
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
 	set_signal(SIGHUP, sig_hup);
@@ -1342,15 +1352,17 @@ main(int argc, char **argv)
 	set_signal(SIGUSR2, sig_malloc);
 #endif
 
-	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+	/* Early inits */
 
+	parse_arguments(argc, argv);
 	log_init();
 	malloc_init(argv[0]);
 	atoms_init();
 	eval_init();
+	misc_init();
 	settings_early_init();
 
-	handle_arguments(argc, argv);
+	handle_arguments(argv[0]);
 
 	/* Our regular inits */
 
