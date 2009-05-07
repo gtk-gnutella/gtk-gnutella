@@ -977,8 +977,8 @@ static struct {
 #undef OPTION
 };
 
-static inline gchar
-underscore_to_hyphen(gchar c)
+static inline char
+underscore_to_hyphen(char c)
 {
 	return '_' == c ? '-' : c;
 }
@@ -990,17 +990,19 @@ underscore_to_hyphen(gchar c)
  * @return whether the two strings qualify as equivalent or not.
  */
 static gboolean
-option_match(const gchar *a, const gchar *b)
+option_match(const char *a, const char *b)
 {
 	g_assert(a);
 	g_assert(b);
 
-	do {
-		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b)) {
+	for (;;) {	
+		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
 			return FALSE;
-		}
+		if ('\0' == *a)
+			break;
+		a++;
 		b++;
-	} while ('\0' != *a++);
+	}
 
 	return TRUE;
 }
@@ -1383,6 +1385,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(INT_MIN) > 0);
 	STATIC_ASSERT(UNSIGNED(LONG_MIN) > 0);
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
+	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	inputevt_init();
 	tiger_check();
