@@ -835,6 +835,7 @@ atom_get(enum atom_type type, gconstpointer key)
 	size_t size;
 
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
+	STATIC_ASSERT(ARENA_OFFSET >= sizeof(atom_t));
 	
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
