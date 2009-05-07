@@ -547,6 +547,24 @@ inet_udp_record_sent(const host_addr_t addr)
 }
 
 /**
+ * Called when the port changes.  We must redo UDP checks to see if we are
+ * able to receive truly unsolicited traffic on that port.
+ */
+void
+inet_udp_check_unsolicited(void)
+{
+	if (UNSOLICITED_OFF == outgoing_udp_state) {
+		if (GNET_PROPERTY(fw_debug))
+			g_message("FW: forcing checks for UDP unsolicited traffic");
+
+		move_to_unsolicited_prepare();
+	} else {
+		if (GNET_PROPERTY(fw_debug))
+			g_message("FW: already checking UDP unsolicited traffic");
+	}
+}
+
+/**
  * Check whether we can answer a ping with a pong.
  *
  * Normally, when we're firewalled, we don't answer. However, if we have

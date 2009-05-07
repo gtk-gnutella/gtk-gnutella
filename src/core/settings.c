@@ -1349,6 +1349,7 @@ listen_port_changed(property_t prop)
 	if (!settings_init_running) {
 		inet_firewalled();
 		inet_udp_firewalled();
+		inet_udp_check_unsolicited();
 	}
 
 	/*
