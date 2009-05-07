@@ -589,7 +589,7 @@ ping_type(const gnutella_node_t *n)
 	}
 
 	if ((flags & PING_F_UHC) && GNET_PROPERTY(ggep_debug) > 1)
-		printf("%s: UHC ping requesting %s slots from %s\n",
+		g_message("%s: UHC ping requesting %s slots from %s",
 			gmsg_infostr(&n->header),
 			(flags & PING_F_UHC_ANY) ?	"unspecified" :
 			(flags & PING_F_UHC_ULTRA) ?	"ultra" : "leaf",
@@ -1053,7 +1053,7 @@ found:
 	*port = last_port = cp->info.port;
 
 	if (GNET_PROPERTY(pcache_debug) > 8)
-		printf("returning recent %s PONG %s\n",
+		g_message("returning recent %s PONG %s",
 			host_type_to_string(type),
 			host_addr_port_to_string(cp->info.addr, cp->info.port));
 
@@ -1193,7 +1193,7 @@ pcache_expire(void)
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
-		printf("Pong CACHE expired (%d entr%s, %d in reserve)\n",
+		g_message("Pong CACHE expired (%d entr%s, %d in reserve)",
 			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
 }
 
@@ -1377,7 +1377,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 		n->pong_needed[h] = amount;
 		remains -= amount;
 		if (GNET_PROPERTY(pcache_debug) > 7)
-			printf("pong_needed[%d] = %d, remains = %d\n", h, amount, remains);
+			g_message("pong_needed[%d] = %d, remains = %d", h, amount, remains);
 	}
 
 	g_assert(remains == 0);
@@ -1444,8 +1444,8 @@ iterate_on_cached_line(
 		n->pong_missing--;
 
 		if (GNET_PROPERTY(pcache_debug) > 7)
-			printf("iterate: sent cached pong %s (hops=%d, TTL=%d) to %s, "
-				"missing=%d %s\n",
+			g_message("iterate: sent cached pong %s (hops=%d, TTL=%d) to %s, "
+				"missing=%d %s",
 				host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl,
 				node_addr(n), n->pong_missing, strict ? "STRICT" : "loose");
@@ -1630,8 +1630,8 @@ pong_all_neighbours_but_one(
 			hops + 1, ttl, &cn->ping_guid, &cp->info, cp->meta);
 
 		if (GNET_PROPERTY(pcache_debug) > 7)
-			printf("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
-				"missing=%d\n",
+			g_message("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
+				"missing=%d",
 				host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl, node_addr(cn), cn->pong_missing);
 	}
@@ -1690,7 +1690,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 			&cp->info, cp->meta);
 
 		if (GNET_PROPERTY(pcache_debug) > 7)
-			printf("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s\n",
+			g_message("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s",
 				host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl, node_addr(leaf));
 	}
@@ -1901,8 +1901,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 
 	/*
 	 * If we got a PING whose MUID is our node's GUID, then it's a reply
-	 * to our "UDP Connect Back" message.  Ignore it, we've already
-	 * noticed that we got an unsolicited UDP message.
+	 * to our "UDP Connect Back" message.
 	 */
 
 	if (
@@ -1910,7 +1909,8 @@ pcache_udp_ping_received(struct gnutella_node *n)
 			gnutella_header_get_muid(&n->header))
 	) {
 		if (GNET_PROPERTY(udp_debug) > 19)
-			printf("UDP got unsolicited PING matching our GUID!\n");
+			g_message("UDP got unsolicited PING matching our GUID!");
+		inet_udp_got_unsolicited_incoming();
 		return;
 	}
 
@@ -2380,7 +2380,7 @@ pcache_pong_received(struct gnutella_node *n)
 		unsigned ratio = random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (GNET_PROPERTY(pcache_debug) > 7)
-				printf("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s\n",
+				g_message("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s",
 					host_addr_port_to_string(addr, port),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
@@ -2404,7 +2404,7 @@ pcache_pong_received(struct gnutella_node *n)
 		add_recent_pong(HOST_ULTRA, cp);
 
 	if (GNET_PROPERTY(pcache_debug) > 6)
-		printf("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s\n",
+		g_message("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",
 			ptype == HOST_ULTRA ? "ultra" : "normal",
 			host_addr_port_to_string(addr, port),
 			gnutella_header_get_hops(&n->header),
