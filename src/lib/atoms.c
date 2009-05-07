@@ -96,8 +96,8 @@ union mem_chunk {
  * Atoms are ref-counted.
  *
  * The reference count is held at the beginning of the data arena.
- * What we return to the outside the value of atom_arena(), not
- * the atom structure.
+ * What we return to the outside is the value of atom_arena(), not a
+ * pointer to the atom structure.
  */
 typedef struct atom {
 #ifdef ATOMS_HAVE_MAGIC
@@ -111,7 +111,7 @@ typedef struct atom {
 } atom_t;
 
 #define ARENA_OFFSET \
-	(MEM_ALIGNBYTES * ((MEM_ALIGNBYTES / sizeof(atom_t)) + \
+	(MEM_ALIGNBYTES * ((sizeof(atom_t) / MEM_ALIGNBYTES) + \
 		((MEM_ALIGNBYTES % sizeof(atom_t)) ? 1 : 0)))
 
 static inline atom_t *
