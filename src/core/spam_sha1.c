@@ -62,6 +62,7 @@ RCSID("$Id$")
 
 #define SPAM_DB_LOAD_CACHESIZE	32768	/* Large to do it mostly in RAM */
 #define SPAM_DB_RUN_CACHESIZE	128		/* During operations, less demanding */
+#define SPAM_DBMW_CACHESIZE		512		/* DB wrapper cache size */
 
 static const char spam_sha1_file[] = "spam_sha1.txt";
 static const char spam_sha1_what[] = "Spam SHA-1 database";
@@ -165,7 +166,7 @@ spam_sha1_sync(void)
 		sha1_lut.d.dw = dbmw_create(dm, spam_sha1_what,
 			SHA1_RAW_SIZE, 0,
 			NULL, NULL, NULL,
-			1, sha1_hash, sha1_eq);
+			SPAM_DBMW_CACHESIZE, sha1_hash, sha1_eq);
 	}
 }
 
