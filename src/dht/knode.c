@@ -332,8 +332,9 @@ knode_to_string2(const knode_t *kn)
 static void
 knode_dispose(knode_t *kn)
 {
-	knode_check(kn);
-	g_assert(kn->refcnt == 0);
+	g_assert(kn);
+	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(0 == kn->refcnt);
 
 	/*
 	 * If the status is not KNODE_UNKNOWN, then the node is still held in

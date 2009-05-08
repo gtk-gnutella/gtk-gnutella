@@ -92,6 +92,7 @@ knode_check(const knode_t *kn)
 {
 	g_assert(kn);
 	g_assert(KNODE_MAGIC == kn->magic);
+	g_assert(kn->refcnt > 0);
 }
 
 /**
@@ -125,6 +126,25 @@ knode_refcnt_dec(const knode_t *kn)
 
 	knm->refcnt--;
 	return knm;
+}
+
+/**
+ * Is the Kademlia node shared (i.e. referenced from more than one place)?
+ *
+ * @param no_routing_table		if TRUE, do not count the routing table
+ */
+static inline gboolean
+knode_is_shared(const knode_t *kn, gboolean no_routing_table)
+{
+	int refcnt;
+
+	knode_check(kn);
+
+	refcnt = kn->refcnt;
+	if (no_routing_table && KNODE_UNKNOWN != kn->status)
+		refcnt--;
+
+	return refcnt > 1;
 }
 
 #endif /* _if_dht_knode_h_ */
