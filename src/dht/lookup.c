@@ -175,6 +175,28 @@ struct nlookup {
 	tm_t start;					/**< Start time */
 	guint32 hops;				/**< Amount of hops in lookup so far */
 	guint32 flags;				/**< Operating flags */
+	/*
+	 * XXX -- hack alert!
+	 *
+	 * Leave these fields here, or gtk-gnutella crashes quickly with a
+	 * corrupted free list.  Why? (it crashes even the fields are otherwise
+	 * unused, so it has to do with the structure size and is probably NOT
+	 * related to the code here but something elsewhere).
+	 *
+	 * When REMAP_ZALLOC is on:
+	 * If put above the union {} field, the crash happens within 2-3 minutes,
+	 * unless compiled with MALLOC_SAFE.
+	 * If put here, everything works fine, so memory corruption has to do
+	 * with the structure size.
+	 *
+	 * Without REMAP_ZALLOC, everything works fine, probably because zalloc()
+	 * rounds the block size.
+	 *
+	 *		--RAM, 2009-05-08
+	 */
+	map_t *pending;				/**< Nodes still pending a reply */
+	map_t *alternate;			/**< Alternate address for nodes */
+	map_t *fixed;				/**< Nodes whose contact address was fixed */
 };
 
 /**
@@ -299,13 +321,13 @@ free_token(gpointer unused_key, gpointer value, gpointer unused_u)
  * Map iterator callback to free Kademlia nodes
  */
 static void
-free_knode(gpointer unused_key, gpointer value, gpointer unused_u)
+free_knode(gpointer key, gpointer value, gpointer unused_u)
 {
 	knode_t *kn = value;
 
-	(void) unused_key;
 	(void) unused_u;
 
+	g_assert(key == kn->id);
 	knode_free(kn);
 }
 
@@ -313,14 +335,14 @@ free_knode(gpointer unused_key, gpointer value, gpointer unused_u)
  * PATRICIA iterator callback to free Kademlia nodes
  */
 static void
-free_knode_pt(gpointer u_key, size_t u_kbits, gpointer value, gpointer u_data)
+free_knode_pt(gpointer key, size_t u_kbits, gpointer value, gpointer u_data)
 {
 	knode_t *kn = value;
 
-	(void) u_key;
 	(void) u_kbits;
 	(void) u_data;
 
+	g_assert(key == kn->id);
 	knode_free(kn);
 }
 
@@ -338,17 +360,24 @@ lookup_free(nlookup_t *nl, gboolean can_remove)
 	map_foreach(nl->tokens, free_token, NULL);
 	patricia_foreach(nl->shortlist, free_knode_pt, NULL);
 	map_foreach(nl->queried, free_knode, NULL);
+	map_foreach(nl->alternate, free_knode, NULL);
+	map_foreach(nl->pending, free_knode, NULL);
+	map_foreach(nl->fixed, free_knode, NULL);
 	patricia_foreach(nl->path, free_knode_pt, NULL);
 	patricia_foreach(nl->ball, free_knode_pt, NULL);
 
 	cq_cancel(callout_queue, &nl->expire_ev);
 	cq_cancel(callout_queue, &nl->delay_ev);
 	kuid_atom_free_null(&nl->kuid);
+
+	map_destroy(nl->tokens);
 	patricia_destroy(nl->shortlist);
 	map_destroy(nl->queried);
+	map_destroy(nl->alternate);
+	map_destroy(nl->pending);
+	map_destroy(nl->fixed);
 	patricia_destroy(nl->path);
 	patricia_destroy(nl->ball);
-	map_destroy(nl->tokens);
 
 	if (can_remove)
 		g_hash_table_remove(nlookups, &nl->lid);
@@ -658,7 +687,7 @@ remove_if_in_shortlist(gpointer key, size_t ukeybits, gpointer val, gpointer u)
 	(void) ukeybits;
 
 	if (patricia_contains(nl->shortlist, id)) {
-		knode_free(kn);
+		knode_refcnt_dec(kn);
 		return TRUE;
 	}
 
@@ -1580,8 +1609,11 @@ static void
 lookup_shortlist_add(nlookup_t *nl, const knode_t *kn)
 {
 	lookup_check(nl);
-	g_assert(!map_contains(nl->queried, kn->id));
 	knode_check(kn);
+	g_assert(!map_contains(nl->queried, kn->id));
+	g_assert(!map_contains(nl->pending, kn->id));
+	g_assert(!patricia_contains(nl->shortlist, kn->id));
+	g_assert(!patricia_contains(nl->ball, kn->id));
 
 	patricia_insert(nl->shortlist, kn->id, knode_refcnt_inc(kn));
 
@@ -1603,14 +1635,14 @@ lookup_shortlist_remove(nlookup_t *nl, knode_t *kn)
 	knode_check(kn);
 
 	if (patricia_remove(nl->shortlist, kn->id))
-		knode_free(kn);
+		knode_refcnt_dec(kn);
 
 	/*
 	 * Any removal from the shortlist is replicated on the ball.
 	 */
 
 	if (patricia_remove(nl->ball, kn->id))
-		knode_free(kn);
+		knode_refcnt_dec(kn);
 }
 
 /**
@@ -1645,6 +1677,8 @@ lookup_closest_ok(nlookup_t *nl)
 
 	while (i++ < nl->amount && patricia_iter_has_next(iter)) {
 		kn = patricia_iter_next_value(iter);
+
+		knode_check(kn);
 
 		if (!patricia_contains(nl->path, kn->id)) {
 			enough = FALSE;
@@ -1732,6 +1766,55 @@ lookup_iterate_if_possible(nlookup_t *nl)
 }
 
 /**
+ * After an RPC failure to node ``kn'', retry with the alternate contact ``an''.
+ *
+ * Node is removed from the queried list and added back to the shortlist.
+ * We remember that we fixed the IP:port of that node's KUID once to not
+ * re-attempt it again in the context of this lookup.
+ */
+static void
+lookup_fix_contact(nlookup_t *nl, const knode_t *kn, const knode_t *an)
+{
+	knode_t *xn;
+	gboolean removed;
+
+	lookup_check(nl);
+	knode_check(kn);
+	knode_check(an);
+	g_assert(kuid_eq(kn->id, an->id));
+	g_assert(an != kn);
+	g_assert(KNODE_UNKNOWN == kn->status);	/* Not in routing table */
+	g_assert(!patricia_contains(nl->shortlist, kn->id));
+
+	if (map_contains(nl->fixed, kn->id)) {
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_warning("DHT LOOKUP[%s] already fixed %s, not fixing again to %s",
+				revent_id_to_string(nl->lid), knode_to_string(kn),
+				host_addr_port_to_string(an->addr, an->port));
+		}
+		return;
+	}
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		g_message("DHT LOOKUP[%s] removing %s from queried list, now at %s",
+			revent_id_to_string(nl->lid), knode_to_string(kn),
+			host_addr_port_to_string(an->addr, an->port));
+	}
+
+	xn = deconstify_gpointer(kn);
+
+	xn->port = an->port;
+	xn->addr = an->addr;
+
+	removed = map_remove(nl->queried, kn->id);
+	g_assert(removed);
+
+	map_insert(nl->fixed, kn->id, knode_refcnt_inc(kn));
+	lookup_shortlist_add(nl, kn);
+	knode_refcnt_dec(kn);			/* Removal from nl->queried */
+}
+
+/**
  * Got a FIND_NODE RPC reply from node.
  *
  * @param nl		current lookup
@@ -1750,7 +1833,7 @@ lookup_handle_reply(
 	bstr_t *bs;
 	sec_token_t *token = NULL;
 	const char *reason;
-	char msg[120];
+	char msg[256];
 	int n = 0;
 	guint8 contacts;
 
@@ -1812,8 +1895,10 @@ lookup_handle_reply(
 
 	while (contacts--) {
 		knode_t *cn = kmsg_deserialize_contact(bs);
+		knode_t *xn;
 
 		n++;
+		msg[0] = '\0';
 
 		if (NULL == cn) {
 			gm_snprintf(msg, sizeof msg, "cannot parse contact #%d", n);
@@ -1845,15 +1930,120 @@ lookup_handle_reply(
 			goto skip;
 		}
 
-		if (map_contains(nl->queried, cn->id)) {
-			gm_snprintf(msg, sizeof msg,
-				"%s was already queried", knode_to_string(cn));
+		xn = map_lookup(nl->queried, cn->id);
+		if (xn != NULL) {
+			/*
+			 * If node is not in our path, check whether the contact
+			 * information we have for it matches, and if not, change them
+			 * and put it back to the shortlist: it could be the previous
+			 * node information we had about this KUID is obsolete.
+			 *
+			 * We only consider nodes not in the DHT routing table, i.e.
+			 * ones whose status is KNODE_UNKNOWN: the routing table
+			 * periodically checks the nodes, and we can't change the
+			 * address of a node there from here due to network accounting.
+			 *
+			 * After fixing, node is inserted in the nl->fixed map so that
+			 * we do not attempt endless fixes if all our queries report
+			 * different IP:port for the KUID.
+			 */
+
+			knode_check(xn);
+
+			if (
+				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
+				(xn->port != cn->port ||
+					!host_addr_equal(xn->addr, cn->addr)) &&
+				!patricia_contains(nl->path, cn->id) &&
+				!map_contains(nl->fixed, cn->id) &&
+				!map_contains(nl->alternate, cn->id) &&
+				!kuid_eq(cn->id, kn->id)	/* Not the replying node itself */
+			) {
+				if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+					g_message("DHT LOOKUP[%s] contact #%d "
+						"queried as %s, now mentionned at %s%s",
+						revent_id_to_string(nl->lid), n, knode_to_string(xn),
+						host_addr_port_to_string(cn->addr, cn->port),
+						map_contains(nl->pending, cn->id) ?
+							" (RPC pending)" : "");
+				}
+
+				g_assert(!patricia_contains(nl->shortlist, xn->id));
+
+				/*
+				 * If the RPC to the node is still pending, we do not know
+				 * whether the new information we just gathered are more
+				 * pertinent.  We have to either wait for the timeout or
+				 * for the actual reply.
+				 *
+				 * We register the possibly new contact information in the
+				 * nl->alternate map, to be tried should a timeout occur...
+				 */
+
+				if (map_contains(nl->pending, cn->id)) {
+					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
+
+					gm_snprintf(msg, sizeof msg,
+						"%s already queried, RPC pending, alternate IP %s",
+						knode_to_string(xn),
+						host_addr_port_to_string(cn->addr, cn->port));
+				} else {
+					lookup_fix_contact(nl, xn, cn);
+
+					gm_snprintf(msg, sizeof msg,
+						"for now, fixed as %s and re-added to shortlist",
+						host_addr_port_to_string(cn->addr, cn->port));
+				}
+			} else {
+				gm_snprintf(msg, sizeof msg,
+					"%s was already queried", knode_to_string(xn));
+			}
 			goto skip;
 		}
 
-		if (patricia_contains(nl->shortlist, cn->id)) {
-			gm_snprintf(msg, sizeof msg,
-				"%s is still in our shortlist", knode_to_string(cn));
+		xn = patricia_lookup(nl->shortlist, cn->id);
+		if (xn != NULL) {
+			/*
+			 * Same IP:port mismatch detection logic as above, here for nodes
+			 * still in our shortlist.
+			 */
+
+			knode_check(xn);
+			g_assert(knode_is_shared(xn, TRUE));
+
+			if (
+				KNODE_UNKNOWN == xn->status &&	/* Not in routing table */
+				(xn->port != cn->port ||
+					!host_addr_equal(xn->addr, cn->addr)) &&
+				!map_contains(nl->fixed, cn->id) &&
+				!map_contains(nl->alternate, cn->id)
+			) {
+				if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+					g_message("DHT LOOKUP[%s] contact #%d "
+						"still in shortlist as %s, now mentionned at %s",
+						revent_id_to_string(nl->lid), n, knode_to_string(xn),
+						host_addr_port_to_string(cn->addr, cn->port));
+				}
+
+				g_assert(!patricia_contains(nl->path, xn->id));
+
+				/*
+				 * Record the alternate contact address, since we don't
+				 * know a priori whether this address is better than the
+				 * one we have in our shortlist.  If we do not manage to
+				 * contact the host, we'll try the alternate address.
+				 */
+
+				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
+
+				gm_snprintf(msg, sizeof msg,
+					"%s still in our shorlist, recorded alternate IP %s",
+					knode_to_string(cn),
+					host_addr_port_to_string(cn->addr, cn->port));
+			} else {
+				gm_snprintf(msg, sizeof msg,
+					"%s is still in our shortlist", knode_to_string(cn));
+			}
 			goto skip;
 		}
 
@@ -1862,17 +2052,21 @@ lookup_handle_reply(
 		 */
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
-			g_message("DHT LOOKUP[%s] adding contact #%d to shortlist: %s",
-				revent_id_to_string(nl->lid), n, knode_to_string(cn));
+			g_message("DHT LOOKUP[%s] adding %scontact #%d to shortlist: %s",
+				revent_id_to_string(nl->lid),
+				map_contains(nl->fixed, cn->id) ? "(fixed) " : "",
+				n, knode_to_string(cn));
 
 		lookup_shortlist_add(nl, cn);
-		knode_free(cn);
+		knode_refcnt_dec(cn);
 		continue;
 
 	skip:
 		if (GNET_PROPERTY(dht_lookup_debug) > 4)
-			g_message("DHT LOOKUP[%s] ignoring contact #%d: %s",
-				revent_id_to_string(nl->lid), n, msg);
+			g_message("DHT LOOKUP[%s] ignoring %scontact #%d: %s",
+				revent_id_to_string(nl->lid),
+				map_contains(nl->fixed, cn->id) ? "(fixed) " : "",
+				n, msg);
 
 		knode_free(cn);
 	}
@@ -1898,6 +2092,7 @@ lookup_handle_reply(
 	 */
 
 	g_assert(!patricia_contains(nl->path, kn->id));
+	g_assert(!patricia_contains(nl->shortlist, kn->id));
 
 	patricia_insert(nl->path, kn->id, knode_refcnt_inc(kn));
 	if (token)
@@ -1978,9 +2173,11 @@ lk_msg_dropped(gpointer obj, knode_t *kn, pmsg_t *unused_mb)
 	nl->udp_drops++;
 
 	if (!(nl->flags & NL_F_SENDING)) {
-		map_remove(nl->queried, kn->id);	/* Did not send the message */
+		if (map_remove(nl->queried, kn->id))	/* Did not send the message */
+			knode_refcnt_dec(kn);
+		if (map_remove(nl->pending, kn->id))
+			knode_refcnt_dec(kn);
 		lookup_shortlist_add(nl, kn);
-		knode_free(kn);						/* Referenced in nl->queried */
 	} else {
 		nl->flags |= NL_F_UDP_DROP;			/* Caller must stop sending */
 
@@ -2030,10 +2227,12 @@ lk_rpc_cancelled(gpointer obj, guint32 hop)
 }
 
 static void
-lk_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 hop)
+lk_handling_rpc(gpointer obj, enum dht_rpc_ret type,
+	const knode_t *kn, guint32 hop)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
+	gboolean removed;
 
 	g_assert(nl->rpc_pending > 0);
 
@@ -2046,8 +2245,29 @@ lk_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 hop)
 	}
 	nl->rpc_pending--;
 
-	if (type == DHT_RPC_TIMEOUT)
+	removed = map_remove(nl->pending, kn->id);
+	g_assert(removed);
+	knode_refcnt_dec(kn);		/* Was referenced in nl->pending */
+
+	/*
+	 * If we have a timeout and an alternate address known, try it:
+	 * the node is removed from the queried set and put back in the
+	 * shortlist, with a fixed address.
+	 */
+
+	if (type == DHT_RPC_TIMEOUT) {
+		knode_t *an;
+
 		nl->rpc_timeouts++;
+
+		an = map_lookup(nl->alternate, kn->id);
+		if (an != NULL) {
+			lookup_fix_contact(nl, kn, an);
+			removed = map_remove(nl->alternate, kn->id);
+			g_assert(removed);
+			knode_free(an);
+		}
+	}
 }
 
 static gboolean
@@ -2162,6 +2382,9 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
+
+		knode_check(nl->closest);
+		g_assert(knode_is_shared(closest, TRUE));
 
 		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
 			nl->closest = closest;
@@ -2309,6 +2532,7 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	nl->rpc_latest_pending++;
 
 	map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
+	map_insert(nl->pending, kn->id, knode_refcnt_inc(kn));
 
 	switch (nl->type) {
 	case LOOKUP_NODE:
@@ -2545,8 +2769,8 @@ lookup_load_shortlist(nlookup_t *nl)
 		knode_t *kn = kvec[i];
 
 		lookup_shortlist_add(nl, kn);
-		knode_free(kn);		/* Node refcount increased when added */
-		contactable++;		/* Assume we can if it was in the roots cache */
+		knode_refcnt_dec(kn);	/* Node refcount increased when added */
+		contactable++;			/* Assume we can: comes from the roots cache */
 	}
 
 	nl->closest = patricia_closest(nl->shortlist, nl->kuid);
@@ -2588,6 +2812,9 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 	nl->closest = NULL;
 	nl->shortlist = patricia_create(KUID_RAW_BITSIZE);
 	nl->queried = map_create_patricia(KUID_RAW_BITSIZE);
+	nl->pending = map_create_patricia(KUID_RAW_BITSIZE);
+	nl->alternate = map_create_patricia(KUID_RAW_BITSIZE);
+	nl->fixed = map_create_patricia(KUID_RAW_BITSIZE);
 	nl->tokens = map_create_patricia(KUID_RAW_BITSIZE);
 	nl->path = patricia_create(KUID_RAW_BITSIZE);
 	nl->ball = patricia_create(KUID_RAW_BITSIZE);
@@ -3065,13 +3292,15 @@ lk_value_rpc_cancelled(gpointer obj, guint32 unused_udata)
 }
 
 static void
-lk_value_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 unused_udata)
+lk_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
+	const knode_t *unused_kn, guint32 unused_udata)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 
 	lookup_value_check(nl);
 	(void) unused_udata;
+	(void) unused_kn;
 
 	fv = lookup_fv(nl);
 

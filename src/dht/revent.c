@@ -412,7 +412,7 @@ revent_rpc_cb(
 			ops->udata_name, rpi->udata, knode_to_string(kn));
 
 	if (ops->handling_rpc)
-		(*ops->handling_rpc)(obj, type, rpi->udata);
+		(*ops->handling_rpc)(obj, type, kn, rpi->udata);
 
 	/*
 	 * Handle reply.

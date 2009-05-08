@@ -975,12 +975,14 @@ pb_rpc_cancelled(gpointer obj, guint32 unused_udata)
 }
 
 static void
-pb_handling_rpc(gpointer obj, enum dht_rpc_ret type, guint32 unused_udata)
+pb_handling_rpc(gpointer obj, enum dht_rpc_ret type,
+	const knode_t *unused_kn, guint32 unused_udata)
 {
 	publish_t *pb = obj;
 
 	publish_check(pb);
 	(void) unused_udata;
+	(void) unused_kn;
 
 	g_assert(pb->rpc_pending > 0);
 	g_assert(pb->target.c.pending != NULL);
