@@ -200,6 +200,8 @@ free_ulq_item(struct ulq_item *ui)
 	ulq_item_check(ui);
 
 	kuid_atom_free(ui->kuid);
+	ui->kuid = NULL;
+	ui->magic = 0;
 	wfree(ui, sizeof *ui);
 }
 
