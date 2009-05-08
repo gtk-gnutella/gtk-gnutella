@@ -64,7 +64,8 @@ struct revent_ops {
 	void (*msg_dropped)(gpointer obj, knode_t *kn, pmsg_t *mb);
 	void (*rpc_cancelled)(gpointer obj, guint32 udata);
 	/* RPC callbacks */
-	void (*handling_rpc)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
+	void (*handling_rpc)(gpointer obj, enum dht_rpc_ret type,
+		const knode_t *kn, guint32 udata);
 	gboolean (*handle_reply)(gpointer obj, const knode_t *kn,
 		kda_msg_t function, const char *payload, size_t len, guint32 udata);
 	void (*iterate)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
