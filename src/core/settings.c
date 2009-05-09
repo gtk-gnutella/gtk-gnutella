@@ -104,6 +104,7 @@ static prop_set_t *properties = NULL;
  */
 
 static const char pidfile[] = "gtk-gnutella.pid";
+static const char dirlockfile[] = ".gtk-gnutella.lock";
 
 static gboolean settings_init_running;
 
@@ -211,11 +212,14 @@ ensure_unicity(const char *file, gboolean check_only)
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (fd < 0) {
-		if (!check_only) {
+		if (!check_only || GNET_PROPERTY(lockfile_debug)) {
 			g_warning("could not create \"%s\": %s", file, g_strerror(errno));
 		}
 		return -1;
 	}
+
+	if (GNET_PROPERTY(lockfile_debug))
+		g_message("file \"%s\" opened", file);
 
 /* FIXME: These might be enums, a compile-time check would be better */
 #if defined(F_SETLK) && defined(F_WRLCK)
@@ -230,10 +234,16 @@ ensure_unicity(const char *file, gboolean check_only)
 		/* l_start and l_len are zero, which means the whole file is locked */
 
 		locking_failed = -1 == fcntl(fd, F_SETLK, &fl);
+
+		if (GNET_PROPERTY(lockfile_debug)) {
+			g_message("file \"%s\" fcntl-locking %s", file,
+				locking_failed ? "failed" : "succeeded");
+		}
+
 		if (locking_failed) {
 			int saved_errno = errno;
 
-			if (!check_only) {
+			if (!check_only || GNET_PROPERTY(lockfile_debug)) {
 				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
 					fd, file, g_strerror(saved_errno));
 				/*
@@ -247,7 +257,11 @@ ensure_unicity(const char *file, gboolean check_only)
 
 				if (-1 != fcntl(fd, F_GETLK, &fl)) {
 					g_warning("another gtk-gnutella process seems to "
-							"be still running (pid=%lu)", (gulong) fl.l_pid);
+							"be using \"%s\" (pid=%lu)",
+							file, (gulong) fl.l_pid);
+				} else {
+					g_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %s",
+						fd, file, g_strerror(errno));
 				}
 			}
 
@@ -260,17 +274,23 @@ ensure_unicity(const char *file, gboolean check_only)
 	}
 #endif /* F_SETLK && F_WRLCK */
 
-	/* Maybe F_SETLK is not supported by the OS or filesystem,
-	 * fall back to weaker PID locking */
+	/*
+	 * Maybe F_SETLK is not supported by the OS or filesystem?
+	 * Fall back to weaker PID locking
+	 */
+
 	if (!locked) {
 		ssize_t r;
 		char buf[33];
 
+		if (GNET_PROPERTY(lockfile_debug))
+			g_message("file \"%s\" being read for PID", file);
+
 		r = read(fd, buf, sizeof buf - 1);
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
-			if (!check_only) {
-				g_warning("could not read pidfile \"%s\": %s",
+			if (!check_only || GNET_PROPERTY(lockfile_debug)) {
+				g_warning("could not read file \"%s\": %s",
 					file, g_strerror(errno));
 			}
 			goto failed;
@@ -290,15 +310,25 @@ ensure_unicity(const char *file, gboolean check_only)
 			if (!error && u > 1) {
 				pid_t pid = u;
 
+				if (GNET_PROPERTY(lockfile_debug)) {
+					g_message("file \"%s\" trying to send SIGZERO to PID %lu",
+						file, (unsigned long) pid);
+				}
+
 				if (0 == kill(pid, 0)) {
 					if (!check_only) {
 						g_warning("another gtk-gnutella process seems to "
-							"be still running (pid=%lu)", (gulong) pid);
+							"be using \"%s\" (pid=%lu)", file, (gulong) pid);
 					}
 					goto failed;
 				}
 			}
 		}
+	}
+
+	if (GNET_PROPERTY(lockfile_debug)) {
+		g_message("file \"%s\" LOCKED (mode %s)",
+			file, check_only ? "check" : "permanent");
 	}
 
 	if (check_only) {
@@ -315,16 +345,19 @@ ensure_unicity(const char *file, gboolean check_only)
 
 failed:
 
+	if (GNET_PROPERTY(lockfile_debug))
+		g_message("file \"%s\" NOT LOCKED", file);
+
 	close(fd);
 	errno = EEXIST;
 	return -1;
 }
 
 /**
- * Write our pid to the pidfile.
+ * Write our pid to the lockfile, opened as "fd".
  */
 static void
-save_pid(int fd)
+save_pid(int fd, const char *path)
 {
 	size_t len;
 	char buf[32];
@@ -334,18 +367,23 @@ save_pid(int fd)
 	gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
 	len = strlen(buf);
 
+	if (GNET_PROPERTY(lockfile_debug))
+		g_message("file \"%s\" about to be written with PID %lu on fd #%d",
+			path, (gulong) getpid(), fd);
+
 	if (-1 == ftruncate(fd, 0))	{
-		g_warning("ftruncate() failed for pidfile: %s", g_strerror(errno));
+		g_warning("ftruncate() failed for \"%s\": %s",
+			path, g_strerror(errno));
 		return;
 	}
 
 	if (0 != lseek(fd, 0, SEEK_SET))	{
-		g_warning("lseek() failed for pidfile: %s", g_strerror(errno));
+		g_warning("lseek() failed for \"%s\": %s", path, g_strerror(errno));
 		return;
 	}
 
 	if (len != (size_t) write(fd, buf, len))
-		g_warning("could not flush pidfile: %s", g_strerror(errno));
+		g_warning("could not flush \"%s\": %s", path, g_strerror(errno));
 }
 
 /* ----------------------------------------- */
@@ -375,6 +413,49 @@ settings_early_init(void)
 }
 
 /**
+ * Make sure there is only one process leaving file "path/lockfile" around.
+ *
+ * @param path			the path where the lockfile is to be held
+ * @param lockfile		the basename of the locking file
+ * @param check_only	if TRUE, no warnings are emitting
+ * @param fd_ptr		if non-NULL, return the opened file descriptor here
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+static int
+settings_unique_usage(
+	const char *path, const char *lockfile, gboolean check_only, int *fd_ptr)
+{
+	int fd;
+	char *file;
+	int saved_errno;
+
+	g_assert(path != NULL);
+	g_assert(lockfile != NULL);
+
+	file = make_pathname(path, lockfile);
+	fd = ensure_unicity(file, check_only);
+	saved_errno = errno;
+	errno = saved_errno;
+
+	if (fd < 0) {
+		G_FREE_NULL(file);
+		return -1;
+	}
+
+	if (!check_only) {
+		save_pid(fd, file);
+	}
+	G_FREE_NULL(file);
+
+	if (fd_ptr != NULL)
+		*fd_ptr = fd;
+
+	/* The file descriptor must be kept open */
+	return 0;
+}
+
+/**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
@@ -386,30 +467,36 @@ settings_early_init(void)
 int
 settings_ensure_unicity(gboolean check_only)
 {
-	int fd;
-
 	g_assert(config_dir);
 
-	{
-		char *path;
-		int saved_errno;
-		
-		path = make_pathname(config_dir, pidfile);
-		fd = ensure_unicity(path, check_only);
-		saved_errno = errno;
-		G_FREE_NULL(path);
-		errno = saved_errno;
+	return settings_unique_usage(config_dir, pidfile, check_only, NULL);
+}
+
+/**
+ * Tries to ensure that the current process is the only writer in
+ * the directory where files are saved.
+ *
+ * @param check_only	if TRUE, be silent, only check lock-ability.
+ *
+ * @return 0 on success, -1 otherwise with errno set.
+ */
+int
+settings_unique_saver(gboolean check_only)
+{
+	static int save_file_path_lock = -1;
+	int fd;
+	int ret;
+
+	ret = settings_unique_usage(GNET_PROPERTY(save_file_path),
+				dirlockfile, check_only, &fd);
+
+	if (0 == ret) {
+		if (save_file_path_lock != -1)
+			close(save_file_path_lock);
+		save_file_path_lock = fd;
 	}
 
-	if (fd < 0) {
-		return -1;
-	}
-
-	if (!check_only) {
-		save_pid(fd);
-	}
-	/* The file descriptor must be kept open */
-	return 0;
+	return ret;
 }
 
 static void
@@ -470,12 +557,6 @@ settings_init(void)
 		}
 	}
 
-	/* Ensure this is the only instance running */
-	if (0 != settings_ensure_unicity(FALSE)) {
-		g_warning(_("You seem to have left another gtk-gnutella running\n"));
-		exit(EXIT_FAILURE);
-	}
-
 	/*
 	 * Parse the configuration.
 	 *
@@ -489,6 +570,29 @@ settings_init(void)
 			g_warning("config file \"%s\" was copied over", config_file);
 		dht_reset_kuid();
 		gnet_reset_guid();
+	}
+
+	/*
+	 * Ensure this is the only instance running.
+	 *
+	 * This is done after loading the configuration file to benefit from
+	 * the "lockfile_debug" property.
+	 */
+
+	if (0 != settings_ensure_unicity(FALSE)) {
+		g_warning(_("You seem to have left another gtk-gnutella running"));
+		exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * Make sure we never start two separate instances saving incomplete
+	 * file at the same place ("save_file_path").
+	 */
+
+	if (0 != settings_unique_saver(FALSE)) {
+		g_warning(_("Another gtk-gnutella is using \"%s\" as a save directory"),
+			GNET_PROPERTY(save_file_path));
+		exit(EXIT_FAILURE);
 	}
 
 	if (debugging(0)) {
@@ -604,21 +708,22 @@ settings_dns_net(void)
 }
 
 /**
- * Remove pidfile.
+ * Remove "path/lockfile".
  */
 static void
-settings_remove_pidfile(void)
+settings_remove_lockfile(const char *path, const char *lockfile)
 {
-	char *path;
+	char *file;
 
-	g_assert(config_dir);
+	g_assert(path != NULL);
+	g_assert(lockfile != NULL);
 
-	path = make_pathname(config_dir, pidfile);
-	g_return_if_fail(NULL != path);
-	if (-1 == unlink(path))
-		g_warning("could not remove pidfile \"%s\": %s",
-			path, g_strerror(errno));
-	G_FREE_NULL(path);
+	file = make_pathname(path, lockfile);
+	g_return_if_fail(NULL != file);
+	if (-1 == unlink(file))
+		g_warning("could not remove lockfile \"%s\": %s",
+			file, g_strerror(errno));
+	G_FREE_NULL(file);
 }
 
 static void
@@ -837,7 +942,8 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
-	settings_remove_pidfile();
+	settings_remove_lockfile(config_dir, pidfile);
+	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();
 
 	G_FREE_NULL(home_dir);
@@ -1211,6 +1317,36 @@ enable_local_socket_changed(property_t prop)
 	}
 
 	return FALSE;
+}
+
+static gboolean
+save_file_path_changed(property_t prop)
+{
+	static char old_path[MAX_PATH_LEN];
+	char path[MAX_PATH_LEN];
+
+    gnet_prop_get_string(prop, path, sizeof path);
+
+	if (0 != strcmp(path, old_path)) {
+		if ('\0' == old_path[0])		/* Init time, first call */
+			goto ok;
+		if (0 != settings_unique_saver(FALSE))
+			goto restore;
+	} else {
+		return FALSE;		/* OK, no change, value not forced */
+	}
+
+ok:
+	clamp_strcpy(old_path, sizeof old_path, path);
+	return FALSE;
+
+restore:
+	gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
+	g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
+		path, old_path);
+
+	gnet_prop_set_string(prop, old_path);
+	return TRUE;			/* Forced new value */
 }
 
 static void
@@ -2134,6 +2270,11 @@ static prop_map_t property_map[] = {
 		PROP_ENABLE_LOCAL_SOCKET,
 		enable_local_socket_changed,
 		TRUE,
+	},
+	{
+		PROP_SAVE_FILE_PATH,
+		save_file_path_changed,
+		TRUE						/* Need to call callback at init time */
 	},
 };
 
