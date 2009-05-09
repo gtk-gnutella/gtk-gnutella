@@ -607,6 +607,17 @@ G_STMT_START {			\
 /** Maximum bytes in filename i.e., including NUL */
 #define	FILENAME_MAXBYTES 256
 
+/* Maximum path length, in bytes */
+#if defined(PATH_MAX)
+#define MAX_PATH_LEN	PATH_MAX	/* POSIX, first choice */
+#elif defined(MAXPATHLEN)
+#define MAX_PATH_LEN	MAXPATHLEN
+#elif defined(PATH_LEN)
+#define MAX_PATH_LEN	PATH_LEN
+#else
+#define MAX_PATH_LEN	2048
+#endif
+
 /*
  * Forbidden glib calls.
  */

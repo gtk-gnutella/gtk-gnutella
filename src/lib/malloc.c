@@ -297,16 +297,6 @@ frame_eq(gconstpointer a, gconstpointer b)
 		0 == memcmp(fa->stack, fb->stack, fa->len * sizeof(void *));
 }
 
-#if defined(PATH_MAX)
-#define MAX_PATH_LEN	PATH_MAX	/* POSIX, first choice */
-#elif defined(MAXPATHLEN)
-#define MAX_PATH_LEN	MAXPATHLEN
-#elif defined(PATH_LEN)
-#define MAX_PATH_LEN	PATH_LEN
-#else
-#define MAX_PATH_LEN	2048
-#endif
-
 /**
  * Search executable within the user's PATH.
  *
