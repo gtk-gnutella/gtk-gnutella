@@ -1410,7 +1410,7 @@ keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
 void
 keys_close(void)
 {
-	storage_delete(db_keydata, db_keybase);
+	storage_delete(db_keydata);
 	db_keydata = NULL;
 
 	if (keys) {

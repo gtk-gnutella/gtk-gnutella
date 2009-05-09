@@ -54,7 +54,7 @@ dbmw_t *storage_open(const char *name, const char *base,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 
 void storage_close(dbmw_t *dw, const char *base);
-void storage_delete(dbmw_t *dw, const char *base);
+void storage_delete(dbmw_t *dw);
 
 #endif /* _dht_storage_h_ */
 

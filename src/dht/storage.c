@@ -269,7 +269,7 @@ storage_close(dbmw_t *dw, const char *base)
  * Shutdown DB map and delete associated SDBM files if needed.
  */
 void
-storage_delete(dbmw_t *dw, const char *base)
+storage_delete(dbmw_t *dw)
 {
 	if (dw)
 		dbmw_destroy(dw, TRUE);

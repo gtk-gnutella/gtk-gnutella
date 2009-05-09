@@ -1617,9 +1617,9 @@ expired_free_kv(gpointer key, gpointer u_val, gpointer u_data)
 void
 values_close(void)
 {
-	storage_delete(db_valuedata, db_valbase);
-	storage_delete(db_rawdata, db_rawbase);
-	storage_delete(db_expired, db_expbase);
+	storage_delete(db_valuedata);
+	storage_delete(db_rawdata);
+	storage_delete(db_expired);
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free(&values_per_ip);
 	acct_net_free(&values_per_class_c);
