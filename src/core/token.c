@@ -437,11 +437,28 @@ random_key(time_t now, guint *idx, const struct tokkey **tkused)
 		tk = &token_keys[G_N_ELEMENTS(token_keys) - 1];
 	}
 
-	random_idx = random_value(tk->count - 1);
+	random_idx = random_u32() % tk->count;
 	*idx = random_idx;
 	*tkused = tk;
 
 	return tk->keys[random_idx];
+}
+
+static guint16
+tok_crc(guint32 crc, const struct tokkey *tk)
+{
+	const char **keys = tk->keys;
+	size_t i;
+
+	i = tk->count;
+	while (i-- > 0) {
+		const char *k = *keys++;
+		crc = crc32_update_crc(crc, k, strlen(k));
+	}
+	crc ^= (crc >> 8);
+	crc &= 0x00ff00ffU;
+	crc |= crc >> 8;
+	return crc & 0xffffU;
 }
 
 /**
@@ -455,14 +472,12 @@ tok_generate(time_t now, const char *version)
 	char lvldigest[LEVEL_SIZE];
 	char lvlbase64[LEVEL_BASE64_SIZE + 1];
 	const struct tokkey *tk;
+	guint32 crc32;
 	guint idx;
 	const char *key;
 	SHA1Context ctx;
     struct sha1 sha1;
-	guint8 seed[3];
-	guint32 now32;
 	int lvlsize;
-	int klen;
 	int i;
 
 	/*
@@ -470,16 +485,12 @@ tok_generate(time_t now, const char *version)
 	 */
 
 	key = random_key(now, &idx, &tk);
-	seed[0] = random_value(0xff);
-	seed[1] = random_value(0xff);
-	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
-	seed[2] |= idx;							/* Has 5 bits for the index */
-
 	now = clock_loc2gmt(now);				/* As close to GMT as possible */
 
-	now32 = (guint32) htonl((guint32) now);
-	memcpy(&digest[0], &now32, 4);
-	memcpy(&digest[4], &seed, 3);
+	poke_be32(&digest[0], now);
+	random_bytes(&digest[4], 3);
+	digest[6] &= 0xe0U;			/* Upper 3 bits only */
+	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
 	SHA1Reset(&ctx);
 	SHA1Input(&ctx, key, strlen(key));
@@ -493,20 +504,11 @@ tok_generate(time_t now, const char *version)
 	 */
 
 	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
-	now32 = crc32_update_crc(0, digest, TOKEN_VERSION_SIZE);
-	klen = strlen(tk->keys[0]);
+	crc32 = crc32_update_crc(0, digest, TOKEN_VERSION_SIZE);
 
-	for (i = 0; i < lvlsize; i++, tk++) {
-		guint j;
-		guint32 crc = now32;
-		const guchar *c = (const guchar *) &crc;
-
-		for (j = 0; j < tk->count; j++)
-			crc = crc32_update_crc(crc, tk->keys[j], klen);
-
-		crc = htonl(crc);
-		lvldigest[i*2] = c[0] ^ c[1];
-		lvldigest[i*2+1] = c[2] ^ c[3];
+	for (i = 0; i < lvlsize; i++) {
+		poke_be16(&lvldigest[i*2], tok_crc(crc32, tk));
+		tk++;
 	}
 
 	/*
@@ -602,7 +604,7 @@ tok_version_valid(
 {
 	time_t now = tm_time();
 	time_t stamp;
-	guint32 stamp32;
+	guint32 crc;
 	const struct tokkey *tk;
 	const struct tokkey *rtk;
 	const struct tokkey *latest;
@@ -617,9 +619,7 @@ tok_version_valid(
 	int toklen;
 	int lvllen;
 	int lvlsize;
-	int klen;
 	guint i;
-	char *c = (char *) &stamp32;
 
 	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
@@ -634,8 +634,7 @@ tok_version_valid(
 	if (!base64_decode_into(tokenb64, toklen, token, TOKEN_VERSION_SIZE))
 		return TOK_BAD_ENCODING;
 
-	memcpy(&stamp32, token, 4);
-	stamp = (time_t) ntohl(stamp32);
+	stamp = (time_t) peek_be32(&token);
 
 	/*
 	 * Use that stamp, whose precision is TOKEN_LIFE, to update our
@@ -697,7 +696,7 @@ tok_version_valid(
 	lvllen = len - toklen - 2;				/* Forget about "; " */
 	end += 2;								/* Skip "; " */
 
-	if (lvllen >= (int) sizeof(lvldigest) || lvllen <= 0)
+	if (UNSIGNED(lvllen) >= sizeof(lvldigest) || lvllen <= 0)
 		return TOK_BAD_LEVEL_LENGTH;
 
 	if (lvllen & 0x3)
@@ -723,20 +722,12 @@ tok_version_valid(
 
 	rtk = tk + (lvlsize - 1);				/* Keys at that level */
 
-	stamp32 = crc32_update_crc(0, token, TOKEN_VERSION_SIZE);
-	klen = strlen(rtk->keys[0]);
-
-	for (i = 0; i < rtk->count; i++)
-		stamp32 = crc32_update_crc(stamp32, rtk->keys[i], klen);
-
-	stamp32 = htonl(stamp32);
+	crc = crc32_update_crc(0, token, TOKEN_VERSION_SIZE);
+	crc = tok_crc(crc, rtk);
 
 	lvlsize--;								/* Move to 0-based offset */
 
-	if (lvldigest[2*lvlsize] != (c[0] ^ c[1]))
-		return TOK_INVALID_LEVEL;
-
-	if (lvldigest[2*lvlsize+1] != (c[2] ^ c[3]))
+	if (peek_be16(&lvldigest[2*lvlsize]) != crc)
 		return TOK_INVALID_LEVEL;
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
