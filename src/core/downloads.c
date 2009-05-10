@@ -2797,7 +2797,7 @@ download_has_enough_active_sources(struct download *d)
 		n = 1;
 	}
 #endif
-	return UNSIGNED(fi->recvcount) >= n;
+	return UNSIGNED(fi->recvcount + fi->active_queued) >= n;
 }
 
 /**
