@@ -658,7 +658,7 @@ check_cpu_usage(void)
 	coverage = callout_queue_coverage(ticks);
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
-	if (GNET_PROPERTY(cq_debug)) {
+	if (GNET_PROPERTY(cq_debug) > 2) {
 		g_message("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
 			cq_name(callout_queue), cq_count(callout_queue),
 			cq_ticks(callout_queue), (int) (coverage * 100.0 + 0.5));
@@ -797,7 +797,7 @@ callout_queue_idle(gpointer unused_data)
 {
 	(void) unused_data;
 
-	if (GNET_PROPERTY(cq_debug))
+	if (GNET_PROPERTY(cq_debug) > 1)
 		g_message("CQ: callout queue is idle (CPU %s)",
 			GNET_PROPERTY(overloaded_cpu) ? "OVERLOADED" : "available");
 

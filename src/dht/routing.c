@@ -1879,7 +1879,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	if (tkn == kn && kn->status == new)
 		return;
 
-	if (GNET_PROPERTY(dht_debug))
+	if (GNET_PROPERTY(dht_debug) > 1)
 		g_message("DHT node %s at %s (%s in table) moving from %s to %s",
 			kuid_to_hex_string(kn->id),
 			host_addr_port_to_string(kn->addr, kn->port),

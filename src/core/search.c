@@ -887,7 +887,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 
 	if (open_size > trailer_size - 4) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_warning("Trailer is too small for open size field");
+			g_warning("trailer is too small (%u byte%s) for open size field",
+				(unsigned) trailer_size, 1 == trailer_size ? "" : "s");
 		}
 		return TRUE;
 	} else if (open_size == 4) {
@@ -1160,8 +1161,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else {
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
-			if (GNET_PROPERTY(search_debug)) {
-				g_message("Received unrequested query hit from %s",
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_message("received unrequested query hit from %s",
                 	host_addr_port_to_string(n->addr, n->port));
 			}
 		}
@@ -1278,9 +1279,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
-        if (GNET_PROPERTY(dbg) || GNET_PROPERTY(search_debug)) {
-            g_message("dropping query hit from hostile IP %s",
-                host_addr_to_string(rs->addr));
+        if (GNET_PROPERTY(search_debug) > 1) {
+            g_message("dropping %s query hit from hostile IP %s",
+                NODE_IS_UDP(n) ? "UDP" : "TCP", host_addr_to_string(rs->addr));
         }
 		rs->status |= ST_HOSTILE;
 	}
@@ -1300,8 +1301,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (!host_addr_is_routable(rs->addr)) {
 		rs->status |= ST_FIREWALL;
 	} else if (rs->port == 0 || bogons_check(rs->addr)) {
-        if (GNET_PROPERTY(dbg) || GNET_PROPERTY(search_debug)) {
-            g_warning("query hit advertising bogus IP %s",
+        if (GNET_PROPERTY(search_debug)) {
+            g_warning("%s query hit advertising bogus IP %s",
+				NODE_IS_UDP(n) ? "UDP" : "TCP",
 				host_addr_port_to_string(rs->addr, rs->port));
         }
 		rs->status |= ST_BOGUS | ST_FIREWALL;
@@ -1390,7 +1392,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		if (is_evil_filename(rc->name)) {
 			if (GNET_PROPERTY(search_debug)) {
-				g_message("get_results_set(): Ignoring evil filename \"%s\"",
+				g_message("get_results_set(): ignoring evil filename \"%s\"",
 					rc->name);
 			}
 			rs->status |= ST_EVIL;
@@ -1523,7 +1525,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 									sizeof sha1_digest.data)
 							) {
 								if (GNET_PROPERTY(search_debug) > 0) {
-									g_message("Improbable SHA-1 detected");
+									g_message("improbable SHA-1 detected");
 								}
 								sha1_errors++;
 							} else {
@@ -3795,7 +3797,7 @@ search_oob_pending_results(
 		return;
 	}
 
-	if (GNET_PROPERTY(search_debug) || GNET_PROPERTY(udp_debug))
+	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1)
 		g_message("has %d pending OOB hit%s for search %s at %s",
 			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 
