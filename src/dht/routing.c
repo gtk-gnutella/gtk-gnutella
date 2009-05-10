@@ -2422,8 +2422,8 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 		g_message("DHT squares is %s = %f (%d)",
 			kuid_to_hex_string(&sq), s, squares);
 
-		g_message("DHT sparseness over %d nodes is %s = %f (%f)",
-			i - 1, kuid_to_hex_string(&sparseness),
+		g_message("DHT sparseness over %u nodes is %s = %f (%f)",
+			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
 
