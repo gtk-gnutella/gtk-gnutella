@@ -288,6 +288,35 @@ gboolean file_exists(const char *pathname);
 gboolean file_does_not_exist(const char *pathname);
 guint32 next_pow2(guint32 n);
 
+/**
+ * Tries to extrace the file mode from a struct dirent. Not all systems
+ * support this, in which case zero is returned. Types other than regular
+ * files, directories and symlinks are ignored and gain a value of zero
+ * as well.
+ */
+static inline mode_t
+dir_entry_mode(const struct dirent *dir_entry)
+{
+	g_assert(dir_entry);
+#ifdef HAS_DIRENT_D_TYPE
+	switch (dir_entry->d_type) {
+	case DT_DIR:	return S_IFDIR;
+	case DT_LNK:	return S_IFLNK;
+	case DT_REG:	return S_IFREG;
+	case DT_CHR:	return S_IFCHR;
+	case DT_BLK:	return S_IFBLK;
+	case DT_FIFO:	return S_IFIFO;
+#if defined(DT_WHT) && defined(S_IFWHT)
+	case DT_WHT:	return S_IFWHT;
+#endif	/* DT_WHT */
+#if defined(DT_SOCK) && defined(S_IFSOCK)
+	case DT_SOCK:	return S_IFSOCK;
+#endif	/* DT_SOCK */
+	}
+#endif	/* HAS_DIRENT_WITH_D_TYPE */
+	return 0;
+}
+
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
 /**
  * Checks whether the given value is a power of 2.

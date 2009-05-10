@@ -918,26 +918,6 @@ share_scan_add_file(const char *relative_path,
 }
 
 /**
- * Tries to extrace the file mode from a struct dirent. Not all systems
- * support this, in which case zero is returned. Types other than regular
- * files, directories and symlinks are ignored and gain a value of zero
- * as well.
- */
-static mode_t
-dir_entry_mode(const struct dirent *dir_entry)
-{
-	g_assert(dir_entry);
-#ifdef HAS_DIRENT_D_TYPE
-	switch (dir_entry->d_type) {
-	case DT_DIR: return S_IFDIR;
-	case DT_LNK: return S_IFLNK;
-	case DT_REG: return S_IFREG;
-	}
-#endif	/* HAS_DIRENT_WITH_D_TYPE */
-	return 0;
-}
-
-/**
  * Check whether the given directory is one which should never be shared.
  * This is not meant to be exhaustive but test for common configuration
  * mistakes.
@@ -1392,6 +1372,20 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		}
 
 		sb.st_mode = dir_entry_mode(dir_entry);
+		switch (sb.st_mode) {
+		case 0:
+		case S_IFREG:
+		case S_IFDIR:
+		case S_IFLNK:
+			break;
+		default:
+			if (GNET_PROPERTY(share_debug)) {
+				g_warning("Skipping file of unknown type \"%s\" in \"%s\"",
+					ctx->current_dir, dir_entry->d_name);
+			}
+			goto finish;
+		}
+
 		if (
 			S_ISLNK(sb.st_mode) &&
 			GNET_PROPERTY(scan_ignore_symlink_dirs) &&

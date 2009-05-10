@@ -5301,11 +5301,20 @@ file_info_scandir(const char *dir)
 
 		G_FREE_NULL(pathname);
 
-		if (
-			0 == strcmp(dentry->d_name, ".") ||
-			0 == strcmp(dentry->d_name, "..")
-		) {
-				continue;					/* Skip "." and ".." */
+		/**
+		 * Skip ".", "..", and hidden files. We don't create any
+	   	 * and we also must skip the lock file.
+		 */
+		if ('.' == dentry->d_name[0])
+			continue;
+
+		switch (dir_entry_mode(dentry)) {
+		case 0:
+		case S_IFREG:
+		case S_IFLNK:
+			break;
+		default:
+			continue;
 		}
 
 		pathname = make_pathname(dir, dentry->d_name);
