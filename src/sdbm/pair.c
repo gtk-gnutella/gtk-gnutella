@@ -266,8 +266,8 @@ seepair(const char *pag, int n, const char *key, size_t siz)
 	/* Slightly optimized version */
 	char b, e;
 
-	if (n <= 5) {
-		/* The original version is optimum for low n */
+	if (n <= 5 || 0 == siz) {
+		/* The original version is optimum for low n or zero-length keys */
 		for (i = 1; i < n; i += 2) {
 			if (siz == off - ino[i] && 0 == memcmp(key, pag + ino[i], siz))
 				return i;
@@ -278,10 +278,8 @@ seepair(const char *pag, int n, const char *key, size_t siz)
 
 	/* Compare head and tail bytes of key first before calling memcmp() */
 
-	if (siz > 0) {
-		b = key[0];
-		e = key[siz - 1];
-	}
+	b = key[0];
+	e = key[siz - 1];
 
 	for (i = 1; i < n; i += 2) {
 		if (siz == off - ino[i]) {

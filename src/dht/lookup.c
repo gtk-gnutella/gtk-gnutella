@@ -2231,9 +2231,9 @@ lk_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	const knode_t *kn, guint32 hop)
 {
 	nlookup_t *nl = obj;
-	lookup_check(nl);
 	gboolean removed;
 
+	lookup_check(nl);
 	g_assert(nl->rpc_pending > 0);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 4)

@@ -71,7 +71,7 @@ static char db_spambase[] = "spam_sha1";
 enum spam_state {
 	SPAM_UNINITIALIZED = 0,
 	SPAM_LOADING = 1,
-	SPAM_LOADED,
+	SPAM_LOADED
 };
 
 struct sha1_lut {
