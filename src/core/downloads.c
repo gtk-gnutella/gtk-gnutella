@@ -8663,6 +8663,7 @@ check_date(struct download *d, const header_t *header)
 	const char *buf;
 
 	download_check(d);
+	g_assert(d->socket != NULL);
 
 	buf = header_get(header, "Date");
 	if (buf) {
@@ -8690,7 +8691,7 @@ check_date(struct download *d, const header_t *header)
 			tm_sub(&delta, &d->header_sent);
 			correction = (time_t) (tm2f(&delta) / 2.0);
 
-			clock_update(their + correction, correction + 1, download_addr(d));
+			clock_update(their + correction, correction + 1, d->socket->addr);
 		}
 	}
 }
