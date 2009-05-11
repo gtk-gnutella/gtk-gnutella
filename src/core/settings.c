@@ -1319,36 +1319,6 @@ enable_local_socket_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
-save_file_path_changed(property_t prop)
-{
-	static char old_path[MAX_PATH_LEN];
-	char path[MAX_PATH_LEN];
-
-    gnet_prop_get_string(prop, path, sizeof path);
-
-	if (0 != strcmp(path, old_path)) {
-		if ('\0' == old_path[0])		/* Init time, first call */
-			goto ok;
-		if (0 != settings_unique_saver(FALSE))
-			goto restore;
-	} else {
-		return FALSE;		/* OK, no change, value not forced */
-	}
-
-ok:
-	clamp_strcpy(old_path, sizeof old_path, path);
-	return FALSE;
-
-restore:
-	gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
-	g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
-		path, old_path);
-
-	gnet_prop_set_string(prop, old_path);
-	return TRUE;			/* Forced new value */
-}
-
 static void
 request_new_sockets(guint16 port, gboolean check_firewalled)
 {
@@ -1597,14 +1567,56 @@ file_path_changed(property_t prop)
 	g_assert(s != NULL);
 
 	if (!is_directory(s)) {
-		g_message("Attempt to create directory \"%s\"", s);
+		g_message("attempting to create directory \"%s\"", s);
 
-		if (0 != create_directory(s, DEFAULT_DIRECTORY_MODE))
-			g_message("Attempt failed: \"%s\"", g_strerror(errno));
+		if (0 != create_directory(s, DEFAULT_DIRECTORY_MODE)) {
+			g_warning("creation of directory \"%s\" failed: \"%s\"",
+				s, g_strerror(errno));
+		}
 	}
 
     G_FREE_NULL(s);
     return FALSE;
+}
+
+static gboolean
+save_file_path_changed(property_t prop)
+{
+	static char old_path[MAX_PATH_LEN + 1];
+	char *path;
+
+    path = gnet_prop_get_string(prop, NULL, 0);
+
+	if (0 != strcmp(path, old_path)) {
+		if ('\0' == old_path[0])		/* Init time, first call */
+			goto ok;
+		if (0 != settings_unique_saver(FALSE))
+			goto already_used;
+	} else {
+		goto not_changed;
+	}
+
+ok:
+	if (strlen(path) > MAX_PATH_LEN) {
+		gcu_statusbar_warning("New save path too long, keeping old value");
+		goto restore;
+	}
+	clamp_strcpy(old_path, sizeof old_path, path);
+
+not_changed:
+	G_FREE_NULL(path);
+	return file_path_changed(prop);
+
+already_used:
+	gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
+	/* FALL THROUGH */
+restore:
+	g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
+		path, old_path);
+
+	G_FREE_NULL(path);
+	gnet_prop_set_string(prop, old_path);
+	return TRUE;			/* Forced new value */
 }
 
 static gboolean
@@ -2103,8 +2115,8 @@ static prop_map_t property_map[] = {
     },
     {
         PROP_SAVE_FILE_PATH,
-        file_path_changed,
-        TRUE
+		save_file_path_changed,
+		TRUE						/* Need to call callback at init time */
     },
     {
         PROP_MOVE_FILE_PATH,
@@ -2270,11 +2282,6 @@ static prop_map_t property_map[] = {
 		PROP_ENABLE_LOCAL_SOCKET,
 		enable_local_socket_changed,
 		TRUE,
-	},
-	{
-		PROP_SAVE_FILE_PATH,
-		save_file_path_changed,
-		TRUE						/* Need to call callback at init time */
 	},
 };
 
