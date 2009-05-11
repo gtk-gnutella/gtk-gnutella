@@ -195,15 +195,14 @@ is_my_address_and_port(const host_addr_t addr, guint16 port)
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  *
- * @returns On success a non-negative value is returned.
- *          If check_only was FALSE, the file descriptor of the pidfile
- *			is returned, if check_only was TRUE, zero is returned on success.
+ * @returns Returns zero on success and -1 on failure.
+ *          If fd_ptr is NULL the lock is only tested but not created.
  *			On failure errno is set to EEXIST, if the PID file was already
  *			locked. Other errno values imply that the PID file could not
  *			be created.
  */
 static int
-ensure_unicity(const char *file, gboolean check_only)
+ensure_unicity(const char *file, int *fd_ptr)
 {
 	gboolean locked = FALSE;
 	int fd;
@@ -212,15 +211,19 @@ ensure_unicity(const char *file, gboolean check_only)
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (fd < 0) {
-		if (!check_only || GNET_PROPERTY(lockfile_debug)) {
+		int saved_errno = errno;
+
+		if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
 			g_warning("could not create \"%s\": %s", file, g_strerror(errno));
 		}
+
+		errno = saved_errno;
 		return -1;
 	}
 
-	if (GNET_PROPERTY(lockfile_debug))
+	if (GNET_PROPERTY(lockfile_debug)) {
 		g_message("file \"%s\" opened", file);
-
+	}
 /* FIXME: These might be enums, a compile-time check would be better */
 #if defined(F_SETLK) && defined(F_WRLCK)
 	{
@@ -243,7 +246,7 @@ ensure_unicity(const char *file, gboolean check_only)
 		if (locking_failed) {
 			int saved_errno = errno;
 
-			if (!check_only || GNET_PROPERTY(lockfile_debug)) {
+			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
 				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
 					fd, file, g_strerror(saved_errno));
 				/*
@@ -283,13 +286,13 @@ ensure_unicity(const char *file, gboolean check_only)
 		ssize_t r;
 		char buf[33];
 
-		if (GNET_PROPERTY(lockfile_debug))
+		if (GNET_PROPERTY(lockfile_debug)) {
 			g_message("file \"%s\" being read for PID", file);
-
+		}
 		r = read(fd, buf, sizeof buf - 1);
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
-			if (!check_only || GNET_PROPERTY(lockfile_debug)) {
+			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
 				g_warning("could not read file \"%s\": %s",
 					file, g_strerror(errno));
 			}
@@ -316,7 +319,7 @@ ensure_unicity(const char *file, gboolean check_only)
 				}
 
 				if (0 == kill(pid, 0)) {
-					if (!check_only) {
+					if (fd_ptr) {
 						g_warning("another gtk-gnutella process seems to "
 							"be using \"%s\" (pid=%lu)", file, (gulong) pid);
 					}
@@ -328,28 +331,32 @@ ensure_unicity(const char *file, gboolean check_only)
 
 	if (GNET_PROPERTY(lockfile_debug)) {
 		g_message("file \"%s\" LOCKED (mode %s)",
-			file, check_only ? "check" : "permanent");
+			file, fd_ptr ? "check" : "permanent");
 	}
 
-	if (check_only) {
+	if (NULL == fd_ptr) {
 		/*
 		 * We keep the empty PID file around. Otherwise,
 		 * there's a race-condition without fcntl() locking.
 		 */
 		close(fd);
-		return 0;
+	} else {
+		/* Keep the fd open, otherwise the lock is lost */
+		*fd_ptr = fd;
 	}
 
-	/* Keep the fd open, otherwise the lock is lost */
-	return fd;
+	return 0;
 
 failed:
 
-	if (GNET_PROPERTY(lockfile_debug))
+	if (GNET_PROPERTY(lockfile_debug)) {
 		g_message("file \"%s\" NOT LOCKED", file);
-
+	}
 	close(fd);
 	errno = EEXIST;
+	if (fd_ptr) {
+		*fd_ptr = -1;
+	}
 	return -1;
 }
 
@@ -362,28 +369,26 @@ save_pid(int fd, const char *path)
 	size_t len;
 	char buf[32];
 
-	g_assert(-1 != fd);
+	g_assert(fd >= 0);
 
-	gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
-	len = strlen(buf);
+	len = gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
 
-	if (GNET_PROPERTY(lockfile_debug))
+	if (GNET_PROPERTY(lockfile_debug)) {
 		g_message("file \"%s\" about to be written with PID %lu on fd #%d",
 			path, (gulong) getpid(), fd);
-
+	}
 	if (-1 == ftruncate(fd, 0))	{
 		g_warning("ftruncate() failed for \"%s\": %s",
 			path, g_strerror(errno));
 		return;
 	}
-
 	if (0 != lseek(fd, 0, SEEK_SET))	{
 		g_warning("lseek() failed for \"%s\": %s", path, g_strerror(errno));
 		return;
 	}
-
-	if (len != (size_t) write(fd, buf, len))
+	if (len != (size_t) write(fd, buf, len)) {
 		g_warning("could not flush \"%s\": %s", path, g_strerror(errno));
+	}
 }
 
 /* ----------------------------------------- */
@@ -417,82 +422,78 @@ settings_early_init(void)
  *
  * @param path			the path where the lockfile is to be held
  * @param lockfile		the basename of the locking file
- * @param check_only	if TRUE, no warnings are emitting
  * @param fd_ptr		if non-NULL, return the opened file descriptor here
  *
  * @return 0 if OK, -1 on error with errno set.
  */
 static int
-settings_unique_usage(
-	const char *path, const char *lockfile, gboolean check_only, int *fd_ptr)
+settings_unique_usage(const char *path, const char *lockfile, int *fd_ptr)
 {
-	int fd;
 	char *file;
-	int saved_errno;
+	int saved_errno, ret;
 
 	g_assert(path != NULL);
 	g_assert(lockfile != NULL);
 
 	file = make_pathname(path, lockfile);
-	fd = ensure_unicity(file, check_only);
+	ret = ensure_unicity(file, fd_ptr);
 	saved_errno = errno;
-	errno = saved_errno;
 
-	if (fd < 0) {
-		G_FREE_NULL(file);
-		return -1;
-	}
-
-	if (!check_only) {
-		save_pid(fd, file);
+	if (0 == ret && fd_ptr) {
+		save_pid(*fd_ptr, file);
 	}
 	G_FREE_NULL(file);
 
-	if (fd_ptr != NULL)
-		*fd_ptr = fd;
-
+	errno = saved_errno;
 	/* The file descriptor must be kept open */
-	return 0;
+	return ret;
 }
 
 /**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
- * @param check_only If TRUE, no warnings are emitted and a possibly created
- *                   PID file is automagically removed.
- * @returns On success zero is returned, otherwise a non-zero is returned
+ * @returns On success zero is returned, otherwise -1 is returned
  *			and errno is set.
  */
+static int
+settings_ensure_unicity(void)
+{
+	int fd;
+
+	g_assert(config_dir);
+
+	return settings_unique_usage(config_dir, pidfile, &fd);
+}
+
 int
-settings_ensure_unicity(gboolean check_only)
+settings_is_unique_instance(void)
 {
 	g_assert(config_dir);
 
-	return settings_unique_usage(config_dir, pidfile, check_only, NULL);
+	return settings_unique_usage(config_dir, pidfile, NULL) && EEXIST == errno;
 }
 
 /**
  * Tries to ensure that the current process is the only writer in
  * the directory where files are saved.
  *
- * @param check_only	if TRUE, be silent, only check lock-ability.
- *
  * @return 0 on success, -1 otherwise with errno set.
  */
-int
-settings_unique_saver(gboolean check_only)
+static int
+settings_unique_saver(void)
 {
 	static int save_file_path_lock = -1;
 	int fd;
 	int ret;
 
 	ret = settings_unique_usage(GNET_PROPERTY(save_file_path),
-				dirlockfile, check_only, &fd);
+				dirlockfile, &fd);
 
 	if (0 == ret) {
-		if (save_file_path_lock != -1)
+		if (save_file_path_lock >= 0) {
 			close(save_file_path_lock);
+		}
 		save_file_path_lock = fd;
 	}
 
@@ -579,19 +580,8 @@ settings_init(void)
 	 * the "lockfile_debug" property.
 	 */
 
-	if (0 != settings_ensure_unicity(FALSE)) {
+	if (0 != settings_ensure_unicity()) {
 		g_warning(_("You seem to have left another gtk-gnutella running"));
-		exit(EXIT_FAILURE);
-	}
-
-	/*
-	 * Make sure we never start two separate instances saving incomplete
-	 * file at the same place ("save_file_path").
-	 */
-
-	if (0 != settings_unique_saver(FALSE)) {
-		g_warning(_("Another gtk-gnutella is using \"%s\" as a save directory"),
-			GNET_PROPERTY(save_file_path));
 		exit(EXIT_FAILURE);
 	}
 
@@ -715,14 +705,14 @@ settings_remove_lockfile(const char *path, const char *lockfile)
 {
 	char *file;
 
-	g_assert(path != NULL);
-	g_assert(lockfile != NULL);
+	g_return_if_fail(!is_null_or_empty(path));
+	g_return_if_fail(lockfile);
 
 	file = make_pathname(path, lockfile);
-	g_return_if_fail(NULL != file);
-	if (-1 == unlink(file))
+	if (-1 == unlink(file)) {
 		g_warning("could not remove lockfile \"%s\": %s",
 			file, g_strerror(errno));
+	}
 	G_FREE_NULL(file);
 }
 
@@ -1558,65 +1548,74 @@ scan_extensions_changed(property_t prop)
     return FALSE;
 }
 
+static int
+request_directory(const char *pathname)
+{
+	if (!is_absolute_path(pathname)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (is_directory(pathname))
+		return 0;
+
+	g_message("Attempt to create directory \"%s\"", pathname);
+
+	if (0 == create_directory(pathname, DEFAULT_DIRECTORY_MODE))
+		return 0;
+
+	g_message("Attempt failed: \"%s\"", g_strerror(errno));
+	return -1;
+}
+
 static gboolean
 file_path_changed(property_t prop)
 {
-    char *s;
+    char *pathname;
 
-	s = gnet_prop_get_string(prop, NULL, 0);
-	g_assert(s != NULL);
-
-	if (!is_directory(s)) {
-		g_message("attempting to create directory \"%s\"", s);
-
-		if (0 != create_directory(s, DEFAULT_DIRECTORY_MODE)) {
-			g_warning("creation of directory \"%s\" failed: \"%s\"",
-				s, g_strerror(errno));
-		}
-	}
-
-    G_FREE_NULL(s);
+	pathname = gnet_prop_get_string(prop, NULL, 0);
+	request_directory(pathname);
+    G_FREE_NULL(pathname);
     return FALSE;
 }
 
 static gboolean
 save_file_path_changed(property_t prop)
 {
-	static char old_path[MAX_PATH_LEN + 1];
+	static char *old_path;
 	char *path;
 
-    path = gnet_prop_get_string(prop, NULL, 0);
+	path = gnet_prop_get_string(prop, NULL, 0);
 
-	if (0 != strcmp(path, old_path)) {
-		if ('\0' == old_path[0])		/* Init time, first call */
-			goto ok;
-		if (0 != settings_unique_saver(FALSE))
-			goto already_used;
-	} else {
-		goto not_changed;
+	if (GNET_PROPERTY(lockfile_debug)) {
+		g_message("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
+			NULL_STRING(path), NULL_STRING(old_path));
 	}
 
-ok:
-	if (strlen(path) > MAX_PATH_LEN) {
-		gcu_statusbar_warning("New save path too long, keeping old value");
-		goto restore;
+	if (
+		!is_null_or_empty(path) &&
+		(NULL == old_path || 0 != strcmp(path, old_path))
+	) {
+		gboolean failure = FALSE;
+
+		if (request_directory(path)) {
+			failure = TRUE;
+		} else if (settings_unique_saver()) {
+			failure = TRUE;
+			gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
+		}
+		if (failure) {
+			g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
+					path, NULL_STRING(old_path));
+			gnet_prop_set_string(prop, old_path);
+			G_FREE_NULL(path);
+			return TRUE; /* Force changed value */
+		}
 	}
-	clamp_strcpy(old_path, sizeof old_path, path);
-
-not_changed:
-	G_FREE_NULL(path);
-	return file_path_changed(prop);
-
-already_used:
-	gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
-	/* FALL THROUGH */
-restore:
-	g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
-		path, old_path);
-
-	G_FREE_NULL(path);
-	gnet_prop_set_string(prop, old_path);
-	return TRUE;			/* Forced new value */
+	
+	G_FREE_NULL(old_path);
+	old_path = path;
+	return FALSE;
 }
 
 static gboolean
@@ -2115,8 +2114,8 @@ static prop_map_t property_map[] = {
     },
     {
         PROP_SAVE_FILE_PATH,
-		save_file_path_changed,
-		TRUE						/* Need to call callback at init time */
+        save_file_path_changed,
+        TRUE
     },
     {
         PROP_MOVE_FILE_PATH,
@@ -2296,7 +2295,7 @@ static gboolean init_list[GNET_PROPERTY_NUM];
 static void
 settings_callbacks_init(void)
 {
-    guint n;
+    unsigned n;
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++)
         init_list[n] = FALSE;
@@ -2310,12 +2309,11 @@ settings_callbacks_init(void)
         property_t prop = property_map[n].prop;
         guint32 idx = prop - GNET_PROPERTY_MIN;
 
-        if (!init_list[idx])
-           init_list[idx] = TRUE;
-        else
-            g_warning("settings_callbacks_init:"
-                " property %d already mapped", n);
+        if (init_list[idx]) {
+            g_error("settings_callbacks_init: property %u already mapped", n);
+		}
 
+		init_list[idx] = TRUE;
         if (property_map[n].cb) {
             gnet_prop_add_prop_changed_listener(
                 property_map[n].prop,

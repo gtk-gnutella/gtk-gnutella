@@ -1285,13 +1285,14 @@ handle_arguments(char *argv0)
 		exit(EXIT_SUCCESS);
 	}
 	if (options[main_arg_ping].used) {
-		if (0 != settings_ensure_unicity(TRUE) && EEXIST == errno) {
+		if (settings_is_unique_instance()) {
 			/* gtk-gnutella was running. */
 			exit(EXIT_SUCCESS);
+		} else {
+			/* gtk-gnutella was not running or the PID file could
+			 * not be created. */
+			exit(EXIT_FAILURE);
 		}
-		/* gtk-gnutella was not running or the PID file could
-		 * not be created. */
-		exit(EXIT_FAILURE);
 	}
 	if (options[main_arg_shell].used) {
 		local_shell(settings_local_socket_path());

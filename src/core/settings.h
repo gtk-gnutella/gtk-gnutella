@@ -57,7 +57,7 @@ gboolean is_my_address(const host_addr_t addr);
 gboolean is_my_address_and_port(const host_addr_t addr, guint16 port);
 
 void settings_early_init(void);
-int settings_ensure_unicity(gboolean silent);
+gboolean settings_is_unique_instance(void);
 void settings_init(void);
 void settings_save_if_dirty(void);
 void settings_shutdown(void);
