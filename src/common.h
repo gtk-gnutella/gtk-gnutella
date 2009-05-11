@@ -643,10 +643,8 @@ typedef gboolean (*reclaim_fd_t)(void);
 #  ifdef gettext_noop
 #    define N_(String) gettext_noop(String)
 #  else
-#    define N_(String) (String)
+#    define N_(String) "" String ""
 #  endif
-
-
 #else
 #  define textdomain(String) (String)
 #  define gettext(String) (String)
