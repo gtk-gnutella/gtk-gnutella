@@ -3424,9 +3424,9 @@ file_info_new_outname(const char *dir, const char *name)
 	char *b;
 	char *s;
 
-	g_assert(dir);
-	g_assert(name);
-	g_assert(is_absolute_path(dir));
+	g_return_val_if_fail(dir, NULL);
+	g_return_val_if_fail(name, NULL);
+	g_return_val_if_fail(is_absolute_path(dir), NULL);
 
 	b = s = gm_sanitize_filename(name,
 			GNET_PROPERTY(convert_spaces),
@@ -5289,6 +5289,9 @@ file_info_scandir(const char *dir)
 	struct dirent *dentry;
 	fileinfo_t *fi;
 	char *pathname = NULL;
+
+	g_return_if_fail(dir);
+	g_return_if_fail(is_absolute_path(dir));
 
 	d = opendir(dir);
 	if (NULL == d) {

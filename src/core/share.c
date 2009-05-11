@@ -946,15 +946,16 @@ directory_is_unshareable(const char *dir)
 		return TRUE;
 	}
 
-	if (TRUE == is_same_file(dir, GNET_PROPERTY(save_file_path))) {
-		g_warning("Refusing to share directory for incomplete files: %s",
-			dir);
+	if (
+		!is_null_or_empty(GNET_PROPERTY(save_file_path)) &&
+		TRUE == is_same_file(dir, GNET_PROPERTY(save_file_path))
+	) {
+		g_warning("Refusing to share directory for incomplete files: %s", dir);
 		return TRUE;
 	}
 
 	if (TRUE == is_same_file(dir, GNET_PROPERTY(bad_file_path))) {
-		g_warning("Refusing to share directory for corrupted files: %s",
-			dir);
+		g_warning("Refusing to share directory for corrupted files: %s", dir);
 		return TRUE;
 	}
 
