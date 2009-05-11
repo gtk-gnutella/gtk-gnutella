@@ -5297,8 +5297,6 @@ file_info_scandir(const char *dir)
 	}
 
 	while (NULL != (dentry = readdir(d))) {
-		struct stat buf;
-
 		G_FREE_NULL(pathname);
 
 		/**
@@ -5318,13 +5316,17 @@ file_info_scandir(const char *dir)
 		}
 
 		pathname = make_pathname(dir, dentry->d_name);
-		if (-1 == stat(pathname, &buf)) {
-			g_warning("cannot stat %s: %s", pathname, g_strerror(errno));
-			continue;
-		}
 
-		if (!S_ISREG(buf.st_mode))			/* Only regular files */
-			continue;
+		if (!S_ISREG(dir_entry_mode(dentry))) {
+			struct stat sb;
+
+			if (-1 == stat(pathname, &sb)) {
+				g_warning("cannot stat %s: %s", pathname, g_strerror(errno));
+				continue;
+			}
+			if (!S_ISREG(sb.st_mode))			/* Only regular files */
+				continue;
+		}
 
 		fi = file_info_retrieve_binary(pathname);
 		if (NULL == fi)
