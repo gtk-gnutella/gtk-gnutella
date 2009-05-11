@@ -1184,32 +1184,18 @@ prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 	prop_assert(ps, prop, PROP(ps,prop).vector_size == 1);
 
 	old = *PROP(ps,prop).data.string.value;
-
-	if (val == NULL) {
-		/*
-		 * Clear property.
-		 */
-		if (old != NULL) {
-			G_FREE_NULL(old);
-			differ = TRUE;
-		}
+	if (old && val) {
+		differ = 0 != strcmp(old, val);
 	} else {
-		/*
-		 * Update property.
-		 */
-		if (old != NULL) {
-			differ = strcmp(old, val) != 0;
-			G_FREE_NULL(old);
-		} else {
-			differ = TRUE;
-		}
-		*PROP(ps,prop).data.string.value = g_strdup(val);
+		differ = old != val;
 	}
+	*PROP(ps,prop).data.string.value = g_strdup(val);
+	G_FREE_NULL(old);
 
 	if (differ && debug >= 5)
 		printf("updated property [%s] = \"%s\"\n",
 			PROP(ps,prop).name,
-			*PROP(ps,prop).data.string.value);
+			NULL_STRING(*PROP(ps,prop).data.string.value));
 
 	if (differ)
 		prop_emit_prop_changed(ps, prop);
