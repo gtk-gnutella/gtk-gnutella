@@ -1718,6 +1718,10 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			) {
 				defaultvalue = FALSE;
 			}
+			if (NULL == val) {
+				val = g_strdup("");
+				defaultvalue = FALSE;
+			}
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_IP:
