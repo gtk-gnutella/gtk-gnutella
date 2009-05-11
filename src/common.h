@@ -655,7 +655,7 @@ typedef gboolean (*reclaim_fd_t)(void);
 #  define bindtextdomain(Domain,Directory) (Domain)
 #  define ngettext(Single, Plural, Number) ((Number) == 1 ? (Single) : (Plural))
 #  define _(String) (String)
-#  define N_(String) (String)
+#  define N_(String) "" String ""
 #  define Q_(String) g_strip_context ((String), (String))
 #endif /* ENABLE_NLS */
 
