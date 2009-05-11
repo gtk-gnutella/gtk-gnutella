@@ -481,7 +481,7 @@ settings_is_unique_instance(void)
  * @return 0 on success, -1 otherwise with errno set.
  */
 static int
-settings_unique_saver(void)
+settings_ensure_unique_save_file_path(void)
 {
 	static int save_file_path_lock = -1;
 	int fd;
@@ -1600,9 +1600,10 @@ save_file_path_changed(property_t prop)
 
 		if (request_directory(path)) {
 			failure = TRUE;
-		} else if (settings_unique_saver()) {
+		} else if (settings_ensure_unique_save_file_path()) {
 			failure = TRUE;
-			gcu_statusbar_warning("Save path already used by another gtk-gnutella!");
+			gcu_statusbar_warning(
+				"Save path already used by another gtk-gnutella!");
 		}
 		if (failure) {
 			g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
