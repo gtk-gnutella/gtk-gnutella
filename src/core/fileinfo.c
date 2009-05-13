@@ -3665,10 +3665,16 @@ file_info_get(const char *file, const char *path, filesize_t size,
 
 
 	if (fi) {
+		/*
+		 * Once we have determined the file size with certainety, we do not
+		 * allow resizing.  Of course, we can't know which size is the correct
+		 * one (the one we had before, or the new reported one).
+		 */
 
 		if (size != fi->size) {
 			if (fi->file_size_known) {
-				g_warning("file \"%s\" (SHA1 %s, %s bytes): Size mismatch: %s bytes",
+				g_warning("file \"%s\" (SHA1 %s, %s bytes): "
+					"size mismatch: %s bytes",
 					fi->pathname, sha1_base32(fi->sha1),
 					filesize_to_string(fi->size),
 					filesize_to_string2(size));
