@@ -1190,6 +1190,24 @@ publish_cache_iterate(publish_t *pb)
 	pb->flags &= ~PB_F_UDP_DROP;
 
 	mb = slist_shift(pb->target.c.messages);
+
+	/*
+	 * If the message is still referenced from more than one place (i.e. not
+	 * "writable"), it means we just had an RCP timeout but the message is
+	 * still held in the (clogged) UDP queue.  Delay iteration: we can't
+	 * resend the current message until the previous one was dropped by
+	 * the queue...
+	 */
+
+	if (!pmsg_is_writable(mb)) {
+		if (GNET_PROPERTY(dht_publish_debug) > 1) {
+			g_message("DHT PUBLISH[%s] previous message still in UDP queue",
+				revent_id_to_string(pb->pid));
+		}
+		publish_delay(pb);
+		return;
+	}
+
 	publish_cache_send(pb, mb);
 
 	/*
