@@ -4045,4 +4045,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "zalloc_debug";
+	desc = "Debug level for the zone-based memory allocator.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

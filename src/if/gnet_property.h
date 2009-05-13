@@ -384,6 +384,7 @@ typedef enum {
     PROP_SPAM_LUT_IN_MEMORY,
     PROP_SPAM_DEBUG,
     PROP_LOCKFILE_DEBUG,
+    PROP_ZALLOC_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -54,8 +54,8 @@ typedef struct zone zone_t;
  * Memory allocation routines.
  */
 
-zone_t *zcreate(int, int);
-zone_t *zget(int, int);
+zone_t *zcreate(size_t, unsigned);
+zone_t *zget(size_t, unsigned);
 void zdestroy(zone_t *zone);
 
 /*
@@ -73,6 +73,10 @@ void zdestroy(zone_t *zone);
 
 gpointer zalloc(zone_t *);
 void zfree(zone_t *, gpointer);
+void zclose(void);
+void zgc(void);
+
+void set_zalloc_debug(guint32 level);
 
 #ifdef TRACK_ZALLOC
 

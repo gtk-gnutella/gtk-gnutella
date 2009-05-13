@@ -71,6 +71,7 @@
 #include "lib/glib-missing.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
+#include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1771,6 +1772,17 @@ node_online_mode_changed(property_t prop)
 }
 
 static gboolean
+zalloc_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_zalloc_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 lib_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2188,6 +2200,11 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_ZALLOC_DEBUG,
+        zalloc_debug_changed,
+        TRUE
+    },
     {
         PROP_LIB_DEBUG,
         lib_debug_changed,

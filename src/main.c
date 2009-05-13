@@ -123,6 +123,7 @@
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
+#include "lib/zalloc.h"
 #include "shell/shell.h"
 
 #include "ui/gtk/gui.h"
@@ -545,6 +546,7 @@ gtk_gnutella_exit(gint n)
 
 	atoms_close();
 	wdestroy();
+	zclose();
 	malloc_close();
 
 	if (debugging(0) || signal_received || shutdown_requested) {
@@ -801,7 +803,13 @@ callout_queue_idle(gpointer unused_data)
 		g_message("CQ: callout queue is idle (CPU %s)",
 			GNET_PROPERTY(overloaded_cpu) ? "OVERLOADED" : "available");
 
-	/* XXX add taks we can run when idle */
+	/*
+	 * Only perform idle tasks when the CPU is not already overloaded.
+	 */
+
+	if (!GNET_PROPERTY(overloaded_cpu)) {
+		zgc();
+	}
 
 	return TRUE;		/* Keep scheduling this */
 }
