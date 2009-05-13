@@ -3666,6 +3666,16 @@ file_info_get(const char *file, const char *path, filesize_t size,
 
 	if (fi) {
 
+		if (size != fi->size) {
+			if (fi->file_size_known) {
+				g_warning("file \"%s\" (SHA1 %s, %s bytes): Size mismatch: %s bytes",
+					fi->pathname, sha1_base32(fi->sha1),
+					filesize_to_string(fi->size),
+					filesize_to_string2(size));
+				return NULL;
+			}
+		}
+
 		/*
 		 * If download size is greater, we need to resize the output file.
 		 * This can only happen for a download with a SHA1, because otherwise
