@@ -866,6 +866,14 @@
 
 # "Accelerator" spam; ZIP files; hosted at Bezeq International
 62.219.0.0/19
+# Babylon.7.0.0.17.Pro.Multilingual.Incl.Crack.-   $QUERY.rar
+# Slysoft AnyDVD HD v6.5.2.8 FiNAL Incl $QUERY + Keygen.rar
+# Babylon Free translation tool - instant translation from any language $QUERY.rar
+# $QUERY.Download.With.GetRight.Pro.v6.3e.Incl-Crack.rar
+# $QUERY incl Babylon 7 PRO + Crack.rar
+# $QUERY_+_Babylon_Translator+SERIAL.zip
+#62.219.247.15 - 62.219.247.22
+62.219.224.0/19
 192.115.190.0/24
 212.25.103.0/24
 212.179.18.0/24
