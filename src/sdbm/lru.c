@@ -46,7 +46,7 @@ struct lru_cache {
 static int
 setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
 {
-	cache->arena = alloc_pages(pages * DBM_PBLKSIZ);
+	cache->arena = vmm_alloc(pages * DBM_PBLKSIZ);
 	if (NULL == cache->arena)
 		return -1;
 	cache->pagnum = g_hash_table_new(NULL, NULL);
@@ -69,7 +69,7 @@ free_cache(struct lru_cache *cache)
 	hash_list_free(&cache->used);
 	g_hash_table_destroy(cache->pagnum);
 	cache->pagnum = NULL;
-	free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
+	vmm_free(cache->arena, cache->pages * DBM_PBLKSIZ);
 	cache->arena = NULL;
 	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
 	WFREE_NULL(cache->dirty, cache->pages);
@@ -241,11 +241,11 @@ setcache(DBM *db, long pages)
 	 */
 
 	if (pages > cache->pages) {
-		char *new_arena = alloc_pages(pages * DBM_PBLKSIZ);
+		char *new_arena = vmm_alloc(pages * DBM_PBLKSIZ);
 		if (NULL == new_arena)
 			return -1;
 		memmove(new_arena, cache->arena, cache->pages * DBM_PBLKSIZ);
-		free_pages(cache->arena, cache->pages * DBM_PBLKSIZ);
+		vmm_free(cache->arena, cache->pages * DBM_PBLKSIZ);
 		cache->arena = new_arena;
 		cache->dirty = wrealloc(cache->dirty, cache->pages, pages);
 		cache->numpag = wrealloc(cache->numpag,

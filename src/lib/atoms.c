@@ -161,7 +161,7 @@ mem_pool_new(size_t size, size_t hold)
   ps = compat_pagesize();
   len = hold * size;
   
-  mp = alloc_pages(len);
+  mp = vmm_alloc(len);
   if (mp) {
     size_t i, step = size / sizeof mp->chunks[0];
     
@@ -345,7 +345,7 @@ atom_alloc(size_t size)
 		a = mem_alloc(mc_ptr);
 		mem_unprotect(a, size);
 	} else {
-		a = alloc_pages(size);
+		a = vmm_alloc(size);
 	}
 	ATOM_SET_MAGIC(a);
 
@@ -379,7 +379,7 @@ atom_dealloc(atom_t *a, size_t size)
 		 * relies on executable heap-memory because the page is now
 		 * mapped (PROT_READ | PROT_WRITE).
 		 */
-		FREE_PAGES_NULL(a, size);
+		VMM_FREE_NULL(a, size);
 	}
 }
 #else

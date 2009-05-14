@@ -230,7 +230,7 @@ vmm_mmap_anonymous(size_t size)
  *		   failure NULL is returned.
  */
 static void *
-alloc_pages_intern(size_t size)
+alloc_pages(size_t size)
 {
 	void *p;
 
@@ -319,7 +319,7 @@ vmm_invalidate_pages(void *p, size_t size)
  * @param size The size in bytes to allocate; will be rounded to the pagesize.
  */
 void *
-alloc_pages(size_t size)
+vmm_alloc(size_t size)
 {
 	size_t n;
 
@@ -344,12 +344,12 @@ alloc_pages(size_t size)
 #endif	/* VMM_GREEDY_PAGE_CACHE */
 
 			/*
-			 * If alloc_pages_intern() fails we are approaching our memory
+			 * If alloc_pages() fails we are approaching our memory
 			 * limit, so we retry with less pre-allocated pages.
 			 */
 			m = max_cached;
 			do {
-				base = alloc_pages_intern(m * size);
+				base = alloc_pages(m * size);
 				if (base) {
 					max_cached = m;
 					break;
@@ -357,13 +357,13 @@ alloc_pages(size_t size)
 			} while (m-- > 1);
 
 			/*
-			 * If alloc_pages_intern() failed completely, we retry with a
+			 * If alloc_pages() failed completely, we retry with a
 			 * a larger size to grab cached pages from the next level.
 			 */
 
 			if (!base && n < G_N_ELEMENTS(page_cache) - 1) {
 				max_cached *= 2;	/* We will halve the pages */
-				base = alloc_pages(size * 2);
+				base = vmm_alloc(size * 2);
 			}
 			RUNTIME_ASSERT(NULL != base);	/* Out of memory */
 	
@@ -374,25 +374,25 @@ alloc_pages(size_t size)
 
 			p = &base[(max_cached - 1) * size];
 			while (p != base) {
-				free_pages(p, size);		/* Fills the cache entry */
+				vmm_free(p, size);			/* Fills the cache entry */
 				p -= size;
 			}
 			return p;
 		}
 	} else {
-		void *p = alloc_pages_intern(size);
+		void *p = alloc_pages(size);
 		RUNTIME_ASSERT(NULL != p);	/* Out of memory */
 		return p;
 	}
 }
 
 void *
-alloc_pages0(size_t size)
+vmm_alloc0(size_t size)
 {
 	void *p;
 
 	/* FIXME: If the pages are freshly mapped they are already clean */
-	p = alloc_pages(size);
+	p = vmm_alloc(size);
 	if (p) {
 		memset(p, 0, size);
 	}
@@ -400,7 +400,7 @@ alloc_pages0(size_t size)
 }
 
 static void
-free_pages_intern(void *p, size_t size)
+free_pages(void *p, size_t size)
 {
 #if defined(HAS_MMAP)
 	{
@@ -421,10 +421,10 @@ free_pages_intern(void *p, size_t size)
 }
 
 /**
- * Free memory allocated via alloc_pages().
+ * Free memory allocated via vmm_alloc().
  */
 void
-free_pages(void *p, size_t size)
+vmm_free(void *p, size_t size)
 {
 	RUNTIME_ASSERT(0 == size || p);
 
@@ -455,7 +455,7 @@ free_pages(void *p, size_t size)
 			page_cache[n].stack[page_cache[n].current].stamp = tm_time();
 			page_cache[n].current++;
 		} else
-			free_pages_intern(p, size);
+			free_pages(p, size);
 	}
 }
 
@@ -487,7 +487,7 @@ prune_page_cache(void)
 			if (d < page_cache_prune_timeout)
 				break;
 			RUNTIME_ASSERT(page_cache[n].stack[i].addr);
-			free_pages_intern(page_cache[n].stack[i].addr, size);
+			free_pages(page_cache[n].stack[i].addr, size);
 			page_cache[n].stack[i].addr = NULL;
 			pruned++;
 		}
@@ -504,7 +504,7 @@ prune_page_cache(void)
 }
 
 /**
- * Copies the given string to a read-only buffer. free_pages() can be used
+ * Copies the given string to a read-only buffer. vmm_free() can be used
  * to free the memory.
  *
  * @param s A NUL-terminated string. If NULL, NULL is returned.
@@ -521,7 +521,7 @@ prot_strdup(const char *s)
 		return NULL;
 
 	n = strlen(s) + 1;
-	p = alloc_pages_intern(round_pagesize_fast(n));
+	p = alloc_pages(round_pagesize_fast(n));
 	if (p) {
 		memcpy(p, s, n);
 		mprotect(p, n, PROT_READ);
@@ -542,7 +542,7 @@ vmm_trap_page(void)
 			size_t size;
 		   
 			size = compat_pagesize();
-			trap_page = alloc_pages_intern(size);
+			trap_page = alloc_pages(size);
 			RUNTIME_ASSERT(trap_page);
 			mprotect(trap_page, size, PROT_NONE);
 		}

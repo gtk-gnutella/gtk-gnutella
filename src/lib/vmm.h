@@ -42,9 +42,9 @@
 
 size_t round_pagesize(size_t n);
 size_t compat_pagesize(void);
-void *alloc_pages(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *alloc_pages0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void free_pages(void *p, size_t size);
+void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void vmm_free(void *p, size_t size);
 size_t prune_page_cache(void);
 const char *prot_strdup(const char *s);
 const void *vmm_trap_page(void);
@@ -54,10 +54,10 @@ void vmm_madvise_normal(void *p, size_t size);
 void vmm_madvise_sequential(void *p, size_t size);
 void vmm_madvise_willneed(void *p, size_t size);
 
-#define FREE_PAGES_NULL(p, size) \
+#define VMM_FREE_NULL(p, size) \
 G_STMT_START { \
 	if (p) { \
-		free_pages((p), (size)); \
+		vmm_free((p), (size)); \
 		p = NULL; \
 	} \
 } G_STMT_END

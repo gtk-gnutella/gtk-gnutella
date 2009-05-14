@@ -78,7 +78,7 @@ page_table_destroy(page_table_t *tab)
 		size_t i;
 
 		for (i = 0; i < G_N_ELEMENTS(tab->slice); i++) {
-			free_pages(tab->slice[i], sizeof tab->slice[i][0]);
+			vmm_free(tab->slice[i], sizeof tab->slice[i][0]);
 		}
 		free(tab);
 	}
@@ -116,7 +116,7 @@ page_table_insert(page_table_t *tab, void *p, size_t size)
 		i = k >> SLICE_BITSHIFT;
 		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
 		if (NULL == tab->slice[i]) {
-			tab->slice[i] = alloc_pages0(sizeof tab->slice[i][0]);
+			tab->slice[i] = vmm_alloc0(sizeof tab->slice[i][0]);
 		}
 		tab->slice[i]->size[j] = size;
 		return TRUE;

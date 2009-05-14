@@ -182,7 +182,7 @@ halloc(size_t size)
 	} else {
 		int inserted;
 
-		p = alloc_pages(size);
+		p = vmm_alloc(size);
 		inserted = page_insert(p, size);
 		RUNTIME_ASSERT(inserted);
 	}
@@ -225,7 +225,7 @@ hfree(void *p)
 		wfree(head, size + sizeof(union align));
 	} else {
 		page_remove(p);
-		free_pages(p, size);
+		vmm_free(p, size);
 	}
 	bytes_allocated -= size;
 	chunks_allocated--;

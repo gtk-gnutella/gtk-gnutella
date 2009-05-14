@@ -408,21 +408,14 @@ zn_cram(zone_t *zone, gpointer arena)
 static size_t
 subzone_alloc_arena(struct subzone *sz, size_t size)
 {
-	size_t pagesize = compat_pagesize(); 
-	size_t threshold = (pagesize / 32) * 31;
+	size_t threshold = (compat_pagesize() / 32) * 31;
 
 	if (size < threshold) {
 		sz->sz_size = size;
 		sz->sz_base = malloc(sz->sz_size);
 	} else {
-		size_t fraction = size % pagesize;
-		size_t requested = size;
-
-		if (fraction != 0)
-			requested += pagesize - fraction;
-
-		sz->sz_size = requested;
-		sz->sz_base = alloc_pages(sz->sz_size);
+		sz->sz_size = round_pagesize(size);
+		sz->sz_base = vmm_alloc(sz->sz_size);
 	}
 
 	return sz->sz_size;
@@ -434,7 +427,7 @@ subzone_free_arena(struct subzone *sz)
 	if (sz->sz_size < compat_pagesize()) {
 		free(sz->sz_base);
 	} else {
-		free_pages(sz->sz_base, sz->sz_size);
+		vmm_free(sz->sz_base, sz->sz_size);
 	}
 	sz->sz_base = NULL;
 	sz->sz_size = 0;
@@ -1136,8 +1129,8 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	 */
 
 	if (
-		zone->zn_subzones > 1 &&
 		NULL == zone->zn_gc &&
+		zone->zn_subzones > 1 &&
 		zone->zn_blocks - zone->zn_cnt > zone->zn_hint
 	) {
 		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH) {

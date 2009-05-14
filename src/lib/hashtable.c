@@ -185,7 +185,7 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
 
   arena = hash_bins_items_arena_size(ht, &items_off);
 
-  ht->bins = alloc_pages(arena);
+  ht->bins = vmm_alloc(arena);
   RUNTIME_ASSERT(ht->bins);
   RUNTIME_ASSERT(items_off != 0);
   
@@ -329,7 +329,7 @@ hash_table_clear(hash_table_t *ht)
 
   arena = hash_bins_items_arena_size(ht, NULL);
 
-  free_pages(ht->bins, arena);
+  vmm_free(ht->bins, arena);
   ht->bins = NULL;
   ht->num_bins = 0;
   ht->items = NULL;
