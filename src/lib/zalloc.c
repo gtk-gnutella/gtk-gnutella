@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2009 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,6 +31,7 @@
  *
  * @author Raphael Manfredi
  * @date 2002-2003
+ * @date 2009
  */
 
 #include "common.h"
@@ -72,8 +73,11 @@ struct subzinfo {
  * contains sorted "struct subzinfo" entries, sorted by arena base address.
  */
 struct zone_gc {
-	unsigned zg_zones;					/**< Amount of zones */
-	struct subzinfo *zg_subzinfo;		/**< Big chunk containing subzinfos */
+	time_t zg_start;				/**< Time at which GC was started */
+	unsigned zg_zone_freed;			/**< Amount of zones freed by GC */
+	unsigned zg_zones;				/**< Amount of zones in zg_subzinfo[] */
+	unsigned zg_free;				/**< First subzinfo with free blocks */
+	struct subzinfo *zg_subzinfo;	/**< Big chunk containing subzinfos */
 };
 
 /**
@@ -100,8 +104,9 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
 };
 
-static hash_table_t *zt;	/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
-static guint32 zalloc_debug;
+static hash_table_t *zt;		/**< Keeps size (rounded up) -> zone */
+static guint32 zalloc_debug;	/**< Debug level */
+static unsigned zgc_zone_cnt;	/**< Zones in garbage collecting mode */
 
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
@@ -136,8 +141,8 @@ static guint32 zalloc_debug;
 #define BLOCK_USED			((char *) 0xff12aa35)	/**< Tag for used blocks */
 #endif
 
-#define DEFAULT_HINT		128		/**< Default amount of blocks in a zone */
-#define MAX_ZONE_SIZE		16384	/**< Maximum zone size */
+#define DEFAULT_HINT		8		/**< Default amount of blocks in a zone */
+#define MAX_ZONE_SIZE		32768	/**< Maximum zone size */
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
@@ -243,6 +248,8 @@ zalloc(zone_t *zone)
 	/*
 	 * No more free blocks, extend the zone.
 	 */
+
+	g_assert(zone->zn_blocks == zone->zn_cnt);
 
 	blk = zn_extend(zone);
 	if (blk == NULL)
@@ -405,30 +412,17 @@ zn_cram(zone_t *zone, gpointer arena)
 	*next = NULL;
 }
 
-static size_t
+static void
 subzone_alloc_arena(struct subzone *sz, size_t size)
 {
-	size_t threshold = (compat_pagesize() / 32) * 31;
-
-	if (size < threshold) {
-		sz->sz_size = size;
-		sz->sz_base = malloc(sz->sz_size);
-	} else {
-		sz->sz_size = round_pagesize(size);
-		sz->sz_base = vmm_alloc(sz->sz_size);
-	}
-
-	return sz->sz_size;
+	sz->sz_size = round_pagesize(size);
+	sz->sz_base = vmm_alloc(sz->sz_size);
 }
 
 static void
 subzone_free_arena(struct subzone *sz)
 {
-	if (sz->sz_size < compat_pagesize()) {
-		free(sz->sz_base);
-	} else {
-		vmm_free(sz->sz_base, sz->sz_size);
-	}
+	vmm_free(sz->sz_base, sz->sz_size);
 	sz->sz_base = NULL;
 	sz->sz_size = 0;
 }
@@ -452,16 +446,20 @@ zn_free_additional_subzones(zone_t *zone)
 }
 
 /**
- * Create a new zone able to hold items of 'size' bytes.
+ * Adjust the block size so that we minimize the amount of wasted
+ * memory per subzone chunk and get blocks large enough to store possible
+ * extra information when debugging.
+ *
+ * @return adjusted block size and updated hint value
  */
-static zone_t *
-zn_create(zone_t *zone, size_t size, unsigned hint)
+static size_t
+adjust_size(size_t requested, unsigned *hint_ptr)
 {
-	size_t arena_size;		/* Amount of bytes requested */
-	size_t real_size;		/* Allocated arena size */
-
-	g_assert(size > 0);
-	g_assert(uint_is_non_negative(hint));
+	size_t rounded;
+	size_t wasted;
+	size_t size;
+	size_t arena_size;
+	unsigned hint = *hint_ptr;
 
 	/*
 	 * Make sure size is big enough to store the free-list pointer used to
@@ -469,7 +467,7 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	 * the correct boundary.
 	 */
 
-	size = MAX((int) sizeof(char *), size);
+	size = MAX(sizeof(char *), requested);
 
 	/*
 	 * To secure the accesses, we reserve a pointer on top to make the linking.
@@ -500,16 +498,67 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	arena_size = size * hint;
 	g_assert(arena_size <= MAX_ZONE_SIZE);
 
+	rounded = round_pagesize(arena_size);
+	hint = rounded / size;
+	wasted = rounded - size * hint;
+
 	/*
-	 * Allocate the arena.
+	 * If the selected block size would waste some memory at the end of the
+	 * subzone arena (always a multiple of the system's page size), then
+	 * increase the block size.
 	 *
-	 * The first time we call it, we may adjust the value of hint in case
-	 * allocation is done by using VM pages: we may add a few blocks to avoid
-	 * wasting space.
+	 * With this strategy and a memory alignment of 4, we reduce the maximum
+	 * amount of zones needed for walloc() (4KiB blocks max) from 1024 to 79!
+	 * with a memory alignment of 8, we have only 60 zones instead of 512.
+	 *
+	 * Overall, we considerably reduce the memory overhead, since zones for
+	 * larger block sizes tend to be "shared" (for instance, block sizes
+	 * ranging from 3076 to 3184 are all rounded up to 3184).
 	 */
 
-	real_size = subzone_alloc_arena(&zone->zn_arena, arena_size);
-	hint = real_size != arena_size ? real_size / size : hint;
+	if (wasted > 0) {
+		size_t bsize = rounded / hint;
+		size_t adjusted = (bsize / ZALLOC_ALIGNBYTES) * ZALLOC_ALIGNBYTES;
+	
+		g_assert(adjusted >= size);
+
+		if (adjusted != size) {
+			if (zalloc_debug) {
+				g_message("ZALLOC adjusting block size from %u to %u "
+					"(%u blocks will waste %u bytes at end of %u-byte subzone)",
+					(unsigned) requested, (unsigned) adjusted, hint,
+					(unsigned) (rounded - hint * adjusted), rounded);
+			}
+		} else {
+			if (zalloc_debug) {
+				g_message("ZALLOC cannot adjust block size of %u "
+					"(%u blocks will waste %u bytes at end of %u-byte subzone)",
+					(unsigned) requested, hint,
+					(unsigned) (rounded - hint * adjusted), rounded);
+			}
+		}
+
+		size = adjusted;
+	}
+
+	*hint_ptr = hint;
+	return size;
+}
+
+/**
+ * Create a new zone able to hold `hint' items of 'size' bytes.
+ */
+static zone_t *
+zn_create(zone_t *zone, size_t size, unsigned hint)
+{
+	g_assert(size > 0);
+	g_assert(uint_is_non_negative(hint));
+
+	/*
+	 * Allocate the arena.
+	 */
+
+	subzone_alloc_arena(&zone->zn_arena, size * hint);
 
 	/*
 	 * Initialize zone descriptor.
@@ -567,10 +616,12 @@ zn_shrink(zone_t *zone)
 {
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
-	if (zalloc_debug) {
-		g_message("ZGC %u-byte zone 0x%lx shrunk: freeing %u subzone%s",
+	if (zalloc_debug > 1) {
+		g_message("ZGC %u-byte zone 0x%lx shrunk: "
+			"freeing %u subzone%s of %uK (%u blocks each)",
 			(unsigned) zone->zn_size, (unsigned long) zone,
-			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s");
+			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
+			(unsigned) zone->zn_arena.sz_size / 1024, zone->zn_hint);
 	}
 
 	zn_free_additional_subzones(zone);
@@ -597,7 +648,7 @@ zcreate(size_t size, unsigned hint)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	zone = malloc(sizeof(*zone));
+	zone = malloc(sizeof *zone);
 
 	return zn_create(zone, size, hint);
 }
@@ -660,23 +711,19 @@ zget(size_t size, unsigned hint)
 		zt = hash_table_new();
 
 	/*
-	 * Make sure size is big enough to store the free-list pointer used to
-	 * chain all free blocks. Also round it so that all blocks are aligned on
-	 * the correct boundary.
-	 *
-	 * This simply duplicates the adjustment done in zcreate. We have to do
-	 * it now in order to allow proper lookup in the zone hash table.
+	 * Adjust the requested size to ensure proper alignment of allocated
+	 * memory blocks and minimize the amount of wasted space in subzones.
 	 */
 
-	if (size < (int) sizeof(char *))
-		size = sizeof(char *);
-	size = zalloc_round(size);
+	size = adjust_size(size, &hint);
 
 	zone = hash_table_lookup(zt, GINT_TO_POINTER(size));
 
+	/*
+	 * Supplied hint value is ignored if a zone already exists for that size
+	 */
+
 	if (zone) {
-		if (zone->zn_hint < hint)
-			zone->zn_hint = hint;	/* For further extension */
 		zone->zn_refcnt++;
 		return zone;				/* Found a zone for matching size! */
 	}
@@ -748,7 +795,7 @@ set_zalloc_debug(guint32 level)
  *** Garbage collector
  ***/
 
-#define ZN_OVERSIZE_THRESH	30
+#define ZN_OVERSIZE_THRESH	90
 
 /**
  * Compare two subzinfo based on base address -- qsort() callback.
@@ -819,11 +866,15 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 			return FALSE;
 
 		if (zalloc_debug > 1) {
+			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
+				zone->zn_hint;
 			g_message("ZGC %u-byte zone 0x%lx: freeing first subzone "
-				"[0x%lx, 0x%lx]",
+				"[0x%lx, 0x%lx] %uK, %u blocks (still has %u free block%s)",
 				(unsigned) zone->zn_size, (unsigned long) zone,
 				(unsigned long) szi->szi_base,
-				(unsigned long) szi->szi_end - 1);
+				(unsigned long) szi->szi_end - 1,
+				(unsigned) (szi->szi_end - szi->szi_base) / 1024,
+				zone->zn_hint, free_blocks, 1 == free_blocks ? "" : "s");
 		}
 
 		subzone_free_arena(&zone->zn_arena);
@@ -838,11 +889,17 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 			if (sz->sz_base == szi->szi_base) {
 				if (zalloc_debug > 1) {
+					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
+						zone->zn_hint;
 					g_message("ZGC %u-byte zone 0x%lx: freeing subzone #%u "
-						"[0x%lx, 0x%lx]",
+						"[0x%lx, 0x%lx] %uK, %u blocks "
+						"(still has %u free block%s)",
 						(unsigned) zone->zn_size, (unsigned long) zone, n,
 						(unsigned long) szi->szi_base,
-						(unsigned long) szi->szi_end - 1);
+						(unsigned long) szi->szi_end - 1,
+						(unsigned) (szi->szi_end - szi->szi_base) / 1024,
+						zone->zn_hint,
+						free_blocks, 1 == free_blocks ? "" : "s");
 				}
 				subzone_free_arena(sz);
 				free(sz);
@@ -867,9 +924,14 @@ found:
 	 * Remove subzone info from sorted array.
 	 */
 
+	zg->zg_zone_freed++;
 	zg->zg_zones--;
 
-	if (szi != &zg->zg_subzinfo[zg->zg_zones]) {
+	if (szi == &zg->zg_subzinfo[zg->zg_zones]) {
+		/* Removing last zone */
+		if (zg->zg_free == zg->zg_zones)
+			zg->zg_free--;
+	} else {
 		unsigned i = szi - zg->zg_subzinfo;
 
 		g_assert(uint_is_non_negative(i));
@@ -877,7 +939,12 @@ found:
 
 		memmove(&zg->zg_subzinfo[i], &zg->zg_subzinfo[i+1],
 			(zg->zg_zones - i) * sizeof(struct subzinfo));
+
+		if (zg->zg_free > i)
+			zg->zg_free = i;
 	}
+
+	g_assert(uint_is_non_negative(zg->zg_free) && zg->zg_free < zg->zg_zones);
 
 	return TRUE;
 }
@@ -892,6 +959,7 @@ static gboolean
 zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 {
 	struct subzinfo *szi;
+	unsigned idx;
 
 	szi = zgc_find_subzone(zg, blk);
 	g_assert(szi != NULL);
@@ -900,11 +968,24 @@ zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 	/*
 	 * Whether we are going to free up the subzone or not, we put the block
 	 * back to the freelist.  Indeed, zgc_subzone_free() will never accept
-	 * to free up the first subzone if it is the only one remaining.
+	 * to free up the first subzone if it is the only one remaining, so we
+	 * don't want to lose the freed block should the sunzone be kept.
 	 */
 
 	*blk = (char *) szi->szi_free;		/* Precede old head */
 	szi->szi_free = blk;
+
+	/*
+	 * Remember index of first subzinfo with free blocks to accelerate
+	 * zgc_zalloc().
+	 */
+
+	idx = szi - zg->zg_subzinfo;
+
+	g_assert(uint_is_non_negative(idx) && idx < zg->zg_zones);
+
+	if (idx < zg->zg_free)
+		zg->zg_free = idx;
 
 	if (++szi->szi_free_cnt == zone->zn_hint)
 		return !zgc_subzone_free(zone, szi);
@@ -929,10 +1010,12 @@ zgc_allocate(zone_t *zone)
 	g_assert(zone->zn_blocks >= zone->zn_cnt);
 
 	if (zalloc_debug > 1) {
+		unsigned free_blocks = zone->zn_blocks - zone->zn_cnt;
 		g_message("ZGC %u-byte zone 0x%lx: "
-			"setting up garbage collection for %u subzone%s",
+			"setting up garbage collection for %u subzone%s, %u free block%s",
 			(unsigned) zone->zn_size, (unsigned long) zone,
-			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
+			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
+			free_blocks, 1 == free_blocks ? "" : "s");
 	}
 
 	zg = malloc(sizeof *zg);
@@ -940,6 +1023,9 @@ zgc_allocate(zone_t *zone)
 
 	zg->zg_zones = zone->zn_subzones;
 	zg->zg_subzinfo = malloc(zg->zg_zones * sizeof(struct subzinfo));
+	zg->zg_zone_freed = 0;
+	zg->zg_start = tm_time();
+	zg->zg_free = 0;
 
 	/*
 	 * Fill in the subzone information, enough for sorting the array.
@@ -984,6 +1070,8 @@ zgc_allocate(zone_t *zone)
 		}
 	}
 
+	zgc_zone_cnt++;
+
 	g_assert(dispatched == zone->zn_blocks - zone->zn_cnt);
 	g_assert(NULL == zone->zn_free);
 	g_assert(zone->zn_gc != NULL);
@@ -1006,11 +1094,13 @@ zgc_dispose(zone_t *zone)
 	zg = zone->zn_gc;
 
 	if (zalloc_debug > 1) {
+		time_delta_t elapsed = delta_time(tm_time(), zg->zg_start);
 		g_message("ZGC %u-byte zone 0x%lx ending garbage collection "
-			"(%u free block%s, %u subzone%s)",
+			"(%u free block%s, %u subzone%s, freed %u in %s)",
 			(unsigned) zone->zn_size, (unsigned long) zone,
 			free_blocks, 1 == free_blocks ? "" : "s",
-			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
+			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
+			zg->zg_zone_freed, compact_time(elapsed));
 	}
 
 	/*
@@ -1047,6 +1137,9 @@ zgc_dispose(zone_t *zone)
 	free(zg->zg_subzinfo);
 	free(zg);
 	zone->zn_gc = NULL;			/* Back to regular zalloc() */
+	zgc_zone_cnt--;
+
+	g_assert(uint_is_non_negative(zgc_zone_cnt));
 }
 
 /**
@@ -1062,10 +1155,13 @@ zgc_zalloc(zone_t *zone)
 	char **blk;
 
 
-	for (i = 0, szi = zg->zg_subzinfo; i < max; i++, szi++) {
+	for (i = zg->zg_free, szi = &zg->zg_subzinfo[i]; i < max; i++, szi++) {
 		blk = szi->szi_free;
-		if (NULL == blk)
+
+		if (NULL == blk) {
+			zg->zg_free = (i + 1 == max) ? zg->zg_free : i + 1;
 			continue;
+		}
 
 		szi->szi_free = (char **) *blk;
 		szi->szi_free_cnt--;
@@ -1077,6 +1173,8 @@ zgc_zalloc(zone_t *zone)
 	 * No more free blocks, need a new zone.
 	 * This means we can end trying to garbage-collect this zone.
 	 */
+
+	g_assert(zone->zn_blocks == zone->zn_cnt);
 
 	zgc_dispose(zone);
 
@@ -1120,8 +1218,8 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 
 	/*
 	 * A zone is oversized if it contains more than 1 subzone and if it has
-	 * at least "hint" blocks free (i.e. potentially extra subzones that could
-	 * be released).
+	 * at least "1.5 hint" blocks free (i.e. with potentially extra subzones
+	 * that could be released).
 	 *
 	 * However, to account for demand variability, we wait for at least
 	 * ZN_OVERSIZE_THRESH times before flagging the zone as definitively
@@ -1131,7 +1229,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 	if (
 		NULL == zone->zn_gc &&
 		zone->zn_subzones > 1 &&
-		zone->zn_blocks - zone->zn_cnt > zone->zn_hint
+		zone->zn_blocks - zone->zn_cnt >= (zone->zn_hint + zone->zn_hint / 2)
 	) {
 		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH) {
 			if (zalloc_debug > 4) {
@@ -1147,10 +1245,13 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 			 * Otherwise set it up for garbage collection.
 			 */
 
-			if (0 == zone->zn_cnt)
+			if (0 == zone->zn_cnt) {
 				zn_shrink(zone);
-			else
+			} else {
 				zgc_allocate(zone);
+				if (1 == zone->zn_subzones)
+					zgc_dispose(zone);
+			}
 
 			if (zalloc_debug > 4) {
 				g_message("ZGC %u-byte zone 0x%lx %s: "
@@ -1178,6 +1279,7 @@ zgc(void)
 {
 	static time_t last_run;
 	time_t now;
+	tm_t start;
 
 	if (NULL == zt)
 		return;
@@ -1191,12 +1293,23 @@ zgc(void)
 		return;
 	last_run = now;
 
-	if (zalloc_debug > 2) {
-		g_message("ZGC iterating over %u zones",
-			(unsigned) hash_table_size(zt));
+	if (zalloc_debug > 2)
+		tm_now_exact(&start);
+
+	if (zalloc_debug > 3) {
+		g_message("ZGC iterating over %u zones (%u in GC mode)",
+			(unsigned) hash_table_size(zt), zgc_zone_cnt);
 	}
 
 	hash_table_foreach(zt, spot_oversized_zone, NULL);
+
+	if (zalloc_debug > 2) {
+		tm_t end;
+		tm_now_exact(&end);
+		g_message("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
+			(unsigned) hash_table_size(zt), zgc_zone_cnt,
+			(unsigned) tm_elapsed_us(&end, &start));
+	}
 }
 
 /* vi: set ts=4: */
