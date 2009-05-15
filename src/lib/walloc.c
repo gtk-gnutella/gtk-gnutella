@@ -64,6 +64,53 @@ static struct zone *wzone[WZONE_SIZE];
 
 #ifndef REMAP_ZALLOC
 /**
+ * Compute index in wzone[] for a (rounded) size.
+ */
+static inline size_t
+wzone_index(size_t rounded)
+{
+	size_t idx;
+
+	g_assert(rounded == zalloc_round(rounded));
+	g_assert(size_is_positive(rounded) && rounded < WALLOC_MAX);
+
+	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
+	idx = rounded / ZALLOC_ALIGNBYTES;
+
+	STATIC_ASSERT(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
+	g_assert(idx < WZONE_SIZE);
+
+	return idx;
+}
+
+/**
+ * Allocate a new zone of given rounded size.
+ */
+static zone_t *
+wzone_get(size_t rounded)
+{
+	size_t count;
+	zone_t *zone;
+
+	g_assert(rounded == zalloc_round(rounded));
+
+	/*
+	 * We're paying this computation/allocation cost once per size!
+	 *
+	 * Try to create approximately WALLOC_CHUNK byte chunks, but
+	 * capable of holding at least WALLOC_MINCOUNT structures.
+	 */
+
+	count = WALLOC_CHUNK / rounded;
+	count = MAX(count, WALLOC_MINCOUNT);
+
+	if (!(zone = zget(rounded, count)))
+		g_error("zget() failed?");
+
+	return zone;
+}
+
+/**
  * Allocate memory from a zone suitable for the given size.
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
@@ -80,33 +127,15 @@ walloc(size_t size)
 	size_t rounded = zalloc_round(size);
 	size_t idx;
 
-	g_assert(size > 0);
+	g_assert(size_is_positive(size));
 
 	if (rounded >= WALLOC_MAX)
 		return malloc(size);		/* Too big for efficient zalloc() */
 
-	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
-	idx = rounded / ZALLOC_ALIGNBYTES;
+	idx = wzone_index(rounded);
 
-	STATIC_ASSERT(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
-	g_assert(idx < WZONE_SIZE);
-
-	if (!(zone = wzone[idx])) {
-		size_t count;
-
-		/*
-		 * We're paying this computation/allocation cost once per size!
-		 *
-		 * Try to create approximately WALLOC_CHUNK byte chunks, but
-		 * capable of holding at least WALLOC_MINCOUNT structures.
-		 */
-
-		count = WALLOC_CHUNK / rounded;
-		count = MAX(count, WALLOC_MINCOUNT);
-
-		if (!(zone = wzone[idx] = zget(rounded, count)))
-			g_error("zget() failed?");
-	}
+	if (!(zone = wzone[idx]))
+		zone = wzone[idx] = wzone_get(rounded);
 
 	return zalloc(zone);
 }
@@ -169,10 +198,34 @@ gpointer
 wrealloc(gpointer old, size_t old_size, size_t new_size)
 {
 	gpointer new;
-	size_t rounded = zalloc_round(new_size);
+	size_t new_rounded = zalloc_round(new_size);
+	size_t old_rounded = zalloc_round(old_size);
+	size_t idx_old, idx_new;
 
-	if (zalloc_round(old_size) == rounded)
+	if (old_rounded == new_rounded)
 		return old;
+
+	if (new_rounded >= WALLOC_MAX || old_rounded >= WALLOC_MAX)
+		goto resize_block;
+
+	/*
+	 * Due to upward rounding in zalloc() to avoid wasting bytes, it is
+	 * possible that the two sizes be actually served by the same underlying
+	 * zone, in which case there is nothing to do.
+	 */
+
+	idx_old = wzone_index(old_rounded);
+	idx_new = wzone_index(new_rounded);
+
+	g_assert(wzone[idx_old] != NULL);
+
+	if (NULL == wzone[idx_new])
+		wzone[idx_new] = wzone_get(new_rounded);
+
+	if (wzone[idx_old] == wzone[idx_new])
+		return old;
+
+resize_block:
 
 	new = walloc(new_size);
 	memcpy(new, old, MIN(old_size, new_size));
