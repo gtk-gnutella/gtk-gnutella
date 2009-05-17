@@ -2798,6 +2798,10 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	return 0;
 
 malformed:
+	if (GNET_PROPERTY(upload_debug)) {
+		g_warning("malformed URN \"%s\" in /uri-res/N2R request sent by %s",
+			NULL_STRING(uri), upload_host_info(u));
+	}
 	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2R request");
 	return -1;
 
@@ -2886,6 +2890,10 @@ not_found:
 	return -1;
 
 malformed:
+	if (GNET_PROPERTY(upload_debug)) {
+		g_warning("malformed URN \"%s\" in /uri-res/N2X request sent by %s",
+			NULL_STRING(uri), upload_host_info(u));
+	}
 	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2X request");
 	return -1;
 
@@ -3039,8 +3047,9 @@ extract_downloaded(const struct upload *u, const header_t *header)
 
 	downloaded = parse_uint64(buf, NULL, 10, &error);
 	if (error) {
-		g_warning("cannot parse X-Downloaded \"%s\" sent by %s",
-			buf, upload_host_info(u));
+		if (GNET_PROPERTY(upload_debug))
+			g_warning("cannot parse X-Downloaded \"%s\" sent by %s",
+				buf, upload_host_info(u));
 		return 0;
 	}
 
@@ -3440,6 +3449,10 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 					shared_file_size(u->sf), u->user_agent);
 
 		if (ranges == NULL) {
+			if (GNET_PROPERTY(upload_debug)) {
+				g_warning("cannot parse Range \"%s\" sent by %s",
+					buf, upload_host_info(u));
+			}
 			upload_error_remove(u, 400, "Malformed Range request");
 			return FALSE;
 		}
@@ -3452,12 +3465,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		 */
 
 		if (g_slist_next(ranges) != NULL) {
-			if (GNET_PROPERTY(upload_debug))
-				g_warning("client %s <%s> requested several ranges "
-						"for \"%s\": %s", host_addr_to_string(u->addr),
-						u->user_agent ? u->user_agent : "",
-						shared_file_name_nfc(u->sf),
-						http_range_to_string(ranges));
+			if (GNET_PROPERTY(upload_debug)) {
+				g_warning("%s requested several ranges for \"%s\": %s",
+					upload_host_info(u), shared_file_name_nfc(u->sf),
+					http_range_to_string(ranges));
+			}
 		}
 
 		r = ranges->data;
