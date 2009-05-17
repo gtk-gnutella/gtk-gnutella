@@ -9312,7 +9312,10 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
 
 		if (p) {
-			guint64 v = parse_uint64(buf, NULL, 10, &error);
+			guint64 v;
+
+			p = skip_ascii_blanks(p);
+			v = parse_uint64(p, NULL, 10, &error);
 
 			if (!error)
 				available_bytes = MIN(v, download_filesize(d));
