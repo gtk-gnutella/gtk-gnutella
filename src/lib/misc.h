@@ -644,7 +644,7 @@ static inline size_t
 round_size(size_t align, size_t n)
 {
 	size_t m = n % align;
-	return m ? n + (align - m) : MAX(n, align);
+	return m ? n + (align - m) : n;
 }
 
 /**
@@ -655,8 +655,6 @@ static inline size_t
 round_size_fast(size_t align, size_t n)
 {
 	size_t mask = align - 1;
-
-	g_assert(align && 0 == (align & mask));		/* IS_POWER_OF_2 */
 
 	return (n + mask) & ~mask;
 }
