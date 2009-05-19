@@ -110,6 +110,7 @@
 #include "lib/iso3166.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
+#include "lib/palloc.h"
 #include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/socket.h"
