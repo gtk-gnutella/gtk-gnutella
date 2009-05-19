@@ -919,7 +919,7 @@ atom_get(enum atom_type type, gconstpointer key)
 
 		len = (*td->len_func)(key);
 		g_assert(len < ((size_t) -1) - ARENA_OFFSET);
-		size = round_size((ATOM_TYPE_MASK + 1), ARENA_OFFSET + len);
+		size = round_size_fast((ATOM_TYPE_MASK + 1), ARENA_OFFSET + len);
 
 		a = atom_alloc(size);
 		a->refcnt = 1;
