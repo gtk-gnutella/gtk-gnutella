@@ -53,7 +53,8 @@ RCSID("$Id$")
 struct subzone {
 	struct subzone *sz_next;	/**< Next allocated zone chunk, NULL if last */
 	gpointer sz_base;			/**< Base address of zone arena */
-	size_t  sz_size;			/**< Size of zone arena */
+	size_t sz_size;				/**< Size of zone arena */
+	time_t sz_ctime;			/**< Creation time */
 };
 
 /**
@@ -417,6 +418,7 @@ subzone_alloc_arena(struct subzone *sz, size_t size)
 {
 	sz->sz_size = round_pagesize(size);
 	sz->sz_base = vmm_alloc(sz->sz_size);
+	sz->sz_ctime = tm_time();
 }
 
 static void
@@ -508,8 +510,8 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 	 * increase the block size.
 	 *
 	 * With this strategy and a memory alignment of 4, we reduce the maximum
-	 * amount of zones needed for walloc() (4KiB blocks max) from 1024 to 79!
-	 * with a memory alignment of 8, we have only 60 zones instead of 512.
+	 * amount of zones needed for walloc() (4KiB blocks max) from 1024 to 80!
+	 * With a memory alignment of 8, we have only 60 zones instead of 512.
 	 *
 	 * Overall, we considerably reduce the memory overhead, since zones for
 	 * larger block sizes tend to be "shared" (for instance, block sizes
@@ -868,13 +870,16 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 		if (zalloc_debug > 1) {
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 				zone->zn_hint;
+			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
 			g_message("ZGC %u-byte zone 0x%lx: freeing first subzone "
-				"[0x%lx, 0x%lx] %uK, %u blocks (still has %u free block%s)",
+				"[0x%lx, 0x%lx] %uK, %u blocks, lifetime %s "
+				"(still has %u free block%s)",
 				(unsigned) zone->zn_size, (unsigned long) zone,
 				(unsigned long) szi->szi_base,
 				(unsigned long) szi->szi_end - 1,
 				(unsigned) (szi->szi_end - szi->szi_base) / 1024,
-				zone->zn_hint, free_blocks, 1 == free_blocks ? "" : "s");
+				zone->zn_hint, compact_time(life),
+				free_blocks, 1 == free_blocks ? "" : "s");
 		}
 
 		subzone_free_arena(&zone->zn_arena);
@@ -891,14 +896,15 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 				if (zalloc_debug > 1) {
 					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
 						zone->zn_hint;
+					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
 					g_message("ZGC %u-byte zone 0x%lx: freeing subzone #%u "
-						"[0x%lx, 0x%lx] %uK, %u blocks "
+						"[0x%lx, 0x%lx] %uK, %u blocks, lifetime %s "
 						"(still has %u free block%s)",
 						(unsigned) zone->zn_size, (unsigned long) zone, n,
 						(unsigned long) szi->szi_base,
 						(unsigned long) szi->szi_end - 1,
 						(unsigned) (szi->szi_end - szi->szi_base) / 1024,
-						zone->zn_hint,
+						zone->zn_hint, compact_time(life),
 						free_blocks, 1 == free_blocks ? "" : "s");
 				}
 				subzone_free_arena(sz);
@@ -1255,11 +1261,11 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 
 			if (zalloc_debug > 4) {
 				g_message("ZGC %u-byte zone 0x%lx %s: "
-					"%u blocks, %u used (hint=%u, %u subzones)",
+					"%u blocks, %u used (hint=%u, %u subzone%s)",
 					(unsigned) zone->zn_size, (unsigned long) zone,
 					NULL == zone->zn_gc ? "after shrinking" : "has GC on",
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-					zone->zn_subzones);
+					zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
 			}
 		}
 	} else {
