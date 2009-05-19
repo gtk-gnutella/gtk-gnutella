@@ -318,6 +318,7 @@ dir_entry_mode(const struct dirent *dir_entry)
 }
 
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
+
 /**
  * Checks whether the given value is a power of 2.
  *
@@ -644,6 +645,20 @@ round_size(size_t align, size_t n)
 {
 	size_t m = n % align;
 	return m ? n + (align - m) : MAX(n, align);
+}
+
+/**
+ * Rounds ``n'' up so that it matches the given alignment ``align''.
+ * Fast version, when ``align'' is known to be a power of 2.
+ */
+static inline size_t
+round_size_fast(size_t align, size_t n)
+{
+	size_t mask = align - 1;
+
+	g_assert(align && 0 == (align & mask));		/* IS_POWER_OF_2 */
+
+	return (n + mask) & ~mask;
 }
 
 /*
