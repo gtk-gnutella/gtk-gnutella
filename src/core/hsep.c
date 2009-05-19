@@ -724,7 +724,7 @@ void
 hsep_send_msg(struct gnutella_node *n, time_t now)
 {
 	hsep_triple tmp[G_N_ELEMENTS(n->hsep->sent_table)], other;
-	unsigned int i, j, msglen, triples, opttriples;
+	unsigned int i, j, msglen, msgsize, triples, opttriples;
 	gnutella_msg_hsep_t *msg;
 	hsep_ctx_t *hsep;
 
@@ -749,8 +749,8 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	 * Allocate and initialize message to send.
 	 */
 
-	msglen = GTA_HEADER_SIZE + triples * (sizeof *msg - GTA_HEADER_SIZE);
-	msg = g_malloc(msglen);
+	msgsize = GTA_HEADER_SIZE + triples * (sizeof *msg - GTA_HEADER_SIZE);
+	msg = walloc(msgsize);
 
 	{
 		gnutella_header_t *header;
@@ -787,7 +787,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	if (
 		0 == memcmp(tmp, hsep->sent_table, sizeof tmp)
 	) {
-		G_FREE_NULL(msg);
+		WFREE_NULL(msg, msgsize);
 		goto charge_timer;
 	}
 
@@ -842,7 +842,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	/* send message to peer node */
 	gmsg_sendto_one(n, msg, msglen);
 
-	G_FREE_NULL(msg);
+	WFREE_NULL(msg, msgsize);
 
 	/*
 	 * Update counters.
