@@ -159,7 +159,7 @@ static guint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
  * The structure is serialized first, not written as-is.
  */
 struct contact {
-	kuid_t id;				/**< KUID of the node (expanded) */
+	kuid_t *id;				/**< KUID of the node (atom) */
 	vendor_code_t vcode;	/**< Vendor code */
 	host_addr_t addr;		/**< IP of the node */
 	guint16 port;			/**< Port of the node */
@@ -391,7 +391,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 		if (NULL == c)
 			continue;		/* I/O error */
 
-		previous[i].id = c->id;		/* Struct copy */
+		previous[i].id = *c->id;		/* Struct copy */
 		previous[i].dbkey = rd->dbkeys[i];
 		map_insert(existing, &previous[i].id, &previous[i].dbkey);
 	}
@@ -435,7 +435,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			struct contact nc;
 			guint64 dbkey;
 
-			nc.id = *kn->id;		/* Struct copy */
+			nc.id = kuid_get_atom(kn->id);	/* Freed through free_contact() */
 			nc.vcode = kn->vcode;	/* Struct copy */
 			nc.addr = kn->addr;		/* Struct copy */
 			nc.port = kn->port;
@@ -446,6 +446,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, +1);
 
 			dbmw_write(db_contact, &dbkey, &nc, sizeof nc);
+				
 			rd->dbkeys[i++] = dbkey;
 			new++;
 		}
@@ -519,7 +520,7 @@ roots_fill_vector(struct rootdata *rd,
 		if (NULL == c)
 			continue;		/* I/O error or corrupted database */
 
-		if (patricia_contains(known, &c->id))
+		if (patricia_contains(known, c->id))
 			continue;
 
 		/*
@@ -527,10 +528,10 @@ roots_fill_vector(struct rootdata *rd,
 		 * that boundary.
 		 */
 
-		if (furthest != NULL && kuid_cmp3(id, &c->id, furthest->id) >= 0)
+		if (furthest != NULL && kuid_cmp3(id, c->id, furthest->id) >= 0)
 			continue;
 
-		kn = knode_new(&c->id, 0,
+		kn = knode_new(c->id, 0,
 			c->addr, c->port, c->vcode, c->major, c->minor);
 		kn->flags |= KNODE_F_CACHED;
 		kvec[j++] = kn;
@@ -706,7 +707,7 @@ serialize_contact(pmsg_t *mb, gconstpointer data)
 {
 	const struct contact *c = data;
 
-	pmsg_write(mb, c->id.v, KUID_RAW_SIZE);
+	pmsg_write(mb, c->id->v, KUID_RAW_SIZE);
 	pmsg_write_be32(mb, c->vcode.u32);
 	pmsg_write_ipv4_or_ipv6_addr(mb, c->addr);
 	pmsg_write_be16(mb, c->port);
@@ -721,10 +722,13 @@ static gboolean
 deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct contact *c = valptr;
+	kuid_t id;
 
 	g_assert(sizeof *c == len);
 
-	bstr_read(bs, c->id.v, KUID_RAW_SIZE);
+	c->id = NULL;
+
+	bstr_read(bs, id.v, KUID_RAW_SIZE);
 	bstr_read_be32(bs, &c->vcode.u32);
 	bstr_read_packed_ipv4_or_ipv6_addr(bs, &c->addr);
 	bstr_read_be16(bs, &c->port);
@@ -740,7 +744,23 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 		return FALSE;
 	}
 
+	c->id = kuid_get_atom(&id);
+
 	return TRUE;
+}
+
+/**
+ * Free routine for contacts, to release internally allocated memory, not
+ * the structure itself.
+ */
+static void
+free_contact(gpointer valptr, size_t len)
+{
+	struct contact *c = valptr;
+
+	g_assert(sizeof *c == len);
+
+	kuid_atom_free_null(&c->id);
 }
 
 /**
@@ -935,13 +955,14 @@ roots_init(void)
 	roots = patricia_create(KUID_RAW_BITSIZE);
 
 	db_rootdata = storage_open(db_rootdata_what, db_rootdata_base,
-		KUID_RAW_SIZE, sizeof(struct rootdata),
+		KUID_RAW_SIZE, sizeof(struct rootdata), 0,
 		serialize_rootdata, deserialize_rootdata, NULL,
 		ROOTKEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 
 	db_contact = storage_open(db_contact_what, db_contact_base,
 		sizeof(guint64), sizeof(struct contact),
-		serialize_contact, deserialize_contact, NULL,
+			sizeof(struct contact) + KUID_RAW_SIZE,
+		serialize_contact, deserialize_contact, free_contact,
 		CONTACT_DB_CACHE_SIZE, uint64_hash, uint64_eq);
 
 	dbmw_set_map_cache(db_contact, CONTACT_MAP_CACHE_SIZE);
