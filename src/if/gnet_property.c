@@ -804,6 +804,10 @@ guint32  gnet_property_variable_lockfile_debug     = 0;
 static const guint32  gnet_property_variable_lockfile_debug_default = 0;
 guint32  gnet_property_variable_zalloc_debug     = 0;
 static const guint32  gnet_property_variable_zalloc_debug_default = 0;
+guint32  gnet_property_variable_palloc_debug     = 0;
+static const guint32  gnet_property_variable_palloc_debug_default = 0;
+guint32  gnet_property_variable_rxbuf_debug     = 0;
+static const guint32  gnet_property_variable_rxbuf_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7468,6 +7472,46 @@ gnet_prop_init(void) {
     gnet_property->props[348].data.guint32.choices = NULL;
     gnet_property->props[348].data.guint32.max   = 20;
     gnet_property->props[348].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_PALLOC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[349].name = "palloc_debug";
+    gnet_property->props[349].desc = _("Debug level for the pool-based memory allocator.");
+    gnet_property->props[349].ev_changed = event_new("palloc_debug_changed");
+    gnet_property->props[349].save = TRUE;
+    gnet_property->props[349].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[349].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[349].data.guint32.def   = (void *) &gnet_property_variable_palloc_debug_default;
+    gnet_property->props[349].data.guint32.value = (void *) &gnet_property_variable_palloc_debug;
+    gnet_property->props[349].data.guint32.choices = NULL;
+    gnet_property->props[349].data.guint32.max   = 20;
+    gnet_property->props[349].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_RXBUF_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[350].name = "rxbuf_debug";
+    gnet_property->props[350].desc = _("Debug level for the RX buffer allocator.");
+    gnet_property->props[350].ev_changed = event_new("rxbuf_debug_changed");
+    gnet_property->props[350].save = TRUE;
+    gnet_property->props[350].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[350].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[350].data.guint32.def   = (void *) &gnet_property_variable_rxbuf_debug_default;
+    gnet_property->props[350].data.guint32.value = (void *) &gnet_property_variable_rxbuf_debug;
+    gnet_property->props[350].data.guint32.choices = NULL;
+    gnet_property->props[350].data.guint32.max   = 20;
+    gnet_property->props[350].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

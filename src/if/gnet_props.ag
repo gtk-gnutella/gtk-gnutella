@@ -4056,4 +4056,26 @@ prop = {
     };
 };
 
+prop = {
+	name = "palloc_debug";
+	desc = "Debug level for the pool-based memory allocator.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "rxbuf_debug";
+	desc = "Debug level for the RX buffer allocator.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

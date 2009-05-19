@@ -44,29 +44,21 @@
 typedef gpointer (*pool_alloc_t)(size_t len);
 typedef void (*pool_free_t)(gpointer addr);
 
-/**
- * A memory pool descriptor.
- */
-typedef struct pool {
-	size_t size;			/**< Size of blocks held in the pool */
-	int max;				/**< Maximum amount of blocks to keep around */
-	GSList *buffers;		/**< Allocated buffers in the pool */
-	int allocated;			/**< Amount of allocated buffers */
-	int held;				/**< Amount of available buffers */
-	pool_alloc_t alloc;		/**< Memory allocation routine */
-	pool_free_t	dealloc;	/**< Memory release routine */
-} pool_t;
+typedef struct pool pool_t;
 
 /*
  * Public interface
  */
 
-pool_t *pool_create(
-	size_t size, int max, pool_alloc_t alloc, pool_free_t dealloc);
+pool_t *pool_create(const char *name,
+	size_t size, pool_alloc_t alloc, pool_free_t dealloc);
 void pool_free(pool_t *pool);
 
 gpointer palloc(pool_t *pool);
 void pfree(pool_t *pool, gpointer obj);
+void pgc(void);
+
+void set_palloc_debug(guint32 level);
 
 #endif	/* _palloc_h_ */
 

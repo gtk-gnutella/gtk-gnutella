@@ -69,6 +69,7 @@
 #include "lib/file.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
+#include "lib/palloc.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/zalloc.h"
@@ -593,6 +594,8 @@ settings_init(void)
 			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
 		g_message("process can use %u file descriptors", max_fd);
 		g_message("max I/O vector size is %d items", MAX_IOV_COUNT);
+		g_message("virtual memory page size is %lu bytes",
+			(gulong) compat_pagesize());
 	}
 
 	{
@@ -1607,7 +1610,8 @@ save_file_path_changed(property_t prop)
 				"Save path already used by another gtk-gnutella!");
 		}
 		if (failure) {
-			g_warning("not changing save file path to \"%s\", keeping old \"%s\"",
+			g_warning(
+				"not changing save file path to \"%s\", keeping old \"%s\"",
 					path, NULL_STRING(old_path));
 			gnet_prop_set_string(prop, old_path);
 			G_FREE_NULL(path);
@@ -1778,6 +1782,17 @@ zalloc_debug_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_zalloc_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
+palloc_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_palloc_debug(val);
 
     return FALSE;
 }
@@ -2203,6 +2218,11 @@ static prop_map_t property_map[] = {
     {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,
+        TRUE
+    },
+    {
+        PROP_PALLOC_DEBUG,
+        palloc_debug_changed,
         TRUE
     },
     {

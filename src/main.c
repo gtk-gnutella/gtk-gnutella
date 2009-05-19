@@ -803,7 +803,13 @@ callout_queue_idle(gpointer unused_data)
 		g_message("CQ: callout queue is idle (CPU %s)",
 			GNET_PROPERTY(overloaded_cpu) ? "OVERLOADED" : "available");
 
+	/* Idle tasks always scheduled */
 	zgc();
+
+	if (!GNET_PROPERTY(overloaded_cpu)) {
+		/* Idle tasks scheduled only when CPU is not overloaded */
+		pgc();
+	}
 
 	return TRUE;		/* Keep scheduling this */
 }

@@ -29,6 +29,10 @@
  *
  * Network RX buffer allocator.
  *
+ * RX buffers are a set of pdata_t structures which are never physically freed
+ * during normal operations but endlessly recycled: the set of free RX buffers
+ * is held into a list.  Each pdata_t is equipped with a suitable free routine.
+ *
  * @author Raphael Manfredi
  * @date 2002-2003
  */
@@ -44,15 +48,8 @@ RCSID("$Id$")
 #include "lib/misc.h"
 #include "lib/palloc.h"
 #include "lib/pmsg.h"
+#include "lib/vmm.h"
 #include "lib/override.h"		/* Must be the last header included */
-
-/*
- * RX buffers are a set of pdata_t structures which are never physically freed
- * during normal operations but endlessly recycled: the set of free RX buffers
- * is held into a list.  Each pdata_t is equipped with a suitable free routine.
- */
-
-#define BUF_COUNT	64		/**< Max amount of buffers we want in pool */
 
 static pool_t *rxpool;
 
@@ -106,7 +103,17 @@ rxbuf_new(void)
 static gpointer
 rxbuf_page_alloc(size_t size)
 {
-	return g_malloc(size);
+	gpointer p;
+
+	g_assert(size == compat_pagesize());
+
+	p = vmm_alloc(size);
+
+	if (GNET_PROPERTY(rxbuf_debug) > 2)
+		g_message("RXBUF allocated %uK buffer at 0x%lx",
+			(unsigned) size / 1024, (unsigned long) p);
+
+	return p;
 }
 
 /**
@@ -115,7 +122,11 @@ rxbuf_page_alloc(size_t size)
 static void
 rxbuf_page_free(gpointer p)
 {
-	g_free(p);
+	if (GNET_PROPERTY(rxbuf_debug) > 2)
+		g_message("RXBUF freeing %uK buffer at 0x%lx",
+			(unsigned) compat_pagesize() / 1024, (unsigned long) p);
+
+	vmm_free(p, compat_pagesize());
 }
 
 /**
@@ -124,8 +135,8 @@ rxbuf_page_free(gpointer p)
 void
 rxbuf_init(void)
 {
-	rxpool = pool_create(
-		compat_pagesize(), BUF_COUNT, rxbuf_page_alloc, rxbuf_page_free);
+	rxpool = pool_create("RX buffers",
+		compat_pagesize(), rxbuf_page_alloc, rxbuf_page_free);
 }
 
 /**
