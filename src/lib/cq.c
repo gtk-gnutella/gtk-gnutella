@@ -55,12 +55,12 @@ enum cevent_magic { CEVENT_MAGIC = 0x40110172U };
  * Callout queue event.
  */
 struct cevent {
+	enum cevent_magic ce_magic;	/**< Magic number (must be at the top) */
 	struct cevent *ce_bnext;	/**< Next item in hash bucket */
 	struct cevent *ce_bprev;	/**< Prev item in hash bucket */
 	cq_service_t ce_fn;			/**< Callback routine */
 	gpointer ce_arg;			/**< Argument to pass to said callback */
 	cq_time_t ce_time;			/**< Absolute trigger time (virtual cq time) */
-	enum cevent_magic ce_magic;
 };
 
 static inline void
@@ -682,6 +682,7 @@ cq_periodic_free(cqueue_t *cq, cperiodic_t *cp)
 
 	cq_cancel(cq, &cp->ev);
 	unregister_object(cq->cq_periodic, cp);
+	cp->magic = 0;
 	wfree(cp, sizeof *cp);
 }
 
@@ -828,6 +829,7 @@ subqueue_free(struct csubqueue * csq)
 	cqueue_check(csq->parent);
 	
 	cq_periodic_remove(csq->parent, &csq->heartbeat);
+	csq->sub_cq.cq_magic = 0;
 	wfree(csq, sizeof *csq);
 }
 
@@ -869,6 +871,7 @@ cq_idle_free(cidle_t *ci)
 	cqueue_check(ci->cq);
 
 	unregister_object(ci->cq->cq_idle, ci);
+	ci->magic = 0;
 	wfree(ci, sizeof *ci);
 }
 
@@ -1021,6 +1024,7 @@ free_periodic(gpointer key, gpointer value, gpointer data)
 	(void) value;
 
 	cperiodic_check(cp);
+	cp->magic = 0;
 	wfree(cp, sizeof *cp);
 	return TRUE;
 }
@@ -1034,6 +1038,7 @@ free_idle(gpointer key, gpointer value, gpointer data)
 	(void) value;
 
 	cidle_check(ci);
+	ci->magic = 0;
 	wfree(ci, sizeof *ci);
 	return TRUE;
 }
@@ -1054,6 +1059,7 @@ cq_free(cqueue_t *cq)
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
+			ev->ce_magic = 0;
 			wfree(ev, sizeof *ev);
 		}
 	}
@@ -1078,10 +1084,12 @@ cq_free(cqueue_t *cq)
 	 * and we have more cleanup to do...
 	 */
 
-	if (CSUBQUEUE_MAGIC == cq->cq_magic)
+	if (CSUBQUEUE_MAGIC == cq->cq_magic) {
 		subqueue_free((struct csubqueue *) cq);
-	else
+	} else {
+		cq->cq_magic = 0;
 		wfree(cq, sizeof *cq);
+	}
 }
 
 /**
