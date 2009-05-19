@@ -421,13 +421,14 @@ pool_reclaim_garbage(pool_t *p)
 	/*
 	 * The threshold is normally the EMA of "grabbed" blocks plus the
 	 * requirements for monotonic allocations.  However, we are also
-	 * monitoring the peak allocation and use that as minimum boundary
+	 * monitoring the peak "grabbing" and use that as minimum boundary
 	 * for the threshold to avoid deallocating too many buffers in a period
 	 * of relatively high demand (erratic, hence the EMA are "late").
 	 */
 
-	threshold = ema + pool_ema(p, monotonic_ema);
+	threshold = pool_ema(p, monotonic_ema);
 	threshold = MAX(threshold, p->peak);
+	threshold += ema;
 
 	if (p->allocated <= threshold) {
 		if (palloc_debug > 1) {
