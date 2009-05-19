@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2005, Raphael Manfredi
+ * Copyright (c) 2005, 2009, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -43,14 +43,15 @@
  * When the pool heartbeat routine is invoked from the callout queue, the
  * buffers used in the pool must be of the second kind (grabbed), since the
  * invocation is done asynchronously from a low level event loop.  So it is
- * easy to determine how much buffers we need for grabbing.
+ * easy to determine how many buffers we need for grabbing.
  *
  * To determine the amount of buffers required for monotonic allocation, we
  * count the amount of allocations done between two heartbeats, looking for
- * how much allocation requests there are until a release happens.
+ * how many allocation requests there are until a release happens.
  *
  * @author Raphael Manfredi
  * @date 2005
+ * @date 2009
  */
 
 #include "common.h"
