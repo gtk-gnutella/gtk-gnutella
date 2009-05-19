@@ -327,7 +327,8 @@ again:
 
 	if (q->flags & (MQ_CLEAR | MQ_DISCARD)) {
 		pmsg_mark_sent(mb);	/* Let them think it was sent */
-		goto cleanup;		/* Drop message */
+		pmsg_free(mb);		/* Drop message */
+		return;
 	}
 
 	mq_check(q, 0);
