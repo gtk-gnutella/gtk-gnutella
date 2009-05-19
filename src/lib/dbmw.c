@@ -68,8 +68,9 @@ struct dbmw {
 	guint64 w_access;			/**< Number of write accesses */
 	guint64 r_hits;				/**< Number of read cache hits */
 	guint64 w_hits;				/**< Number of write cache hits */
-	size_t key_size;			/**< Size of keys */
-	size_t value_size;			/**< Maximum size of values */
+	size_t key_size;			/**< Size of keys (constant) */
+	size_t value_size;			/**< Maximum size of values (structure) */
+	size_t value_data_size;		/**< Maximum size of values (serialized form) */
 	size_t max_cached;			/**< Max amount of items to cache */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
@@ -158,23 +159,27 @@ dbmw_count(dbmw_t *dw)
 /**
  * Create a new DBM wrapper over already created DB map.
  *
- * @param dm			The database (already opened)
- * @param name			Database name, for logs
- * @param key_size		Constant key size, in bytes
- * @param value_size	Maximum value size, in bytes
- * @param pack			Serialization routine for values
- * @param unpack		Deserialization routine for values
- * @param valfree		Free routine for value (or NULL if none needed)
- * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
- * @param hash_func		Key hash function
- * @param eq_func		Key equality test function
+ * If value_dsize is 0, the length for value_size is used.
+ *
+ * @param dm				The database (already opened)
+ * @param name				Database name, for logs
+ * @param key_size			Constant key size, in bytes
+ * @param value_size		Maximum value size, in bytes (structure)
+ * @param value_data_size	Maximum value size, in bytes (serialized form)
+ * @param pack				Serialization routine for values
+ * @param unpack			Deserialization routine for values
+ * @param valfree			Free routine for value (or NULL if none needed)
+ * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func			Key hash function
+ * @param eq_func			Key equality test function
  *
  * If serialization and deserialization routines are NULL pointers, data
  * will be stored and retrieved as-is.  In that case, they must be both
  * NULL.
  */
 dbmw_t *
-dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
+dbmw_create(dbmap_t *dm, const char *name, size_t key_size,
+	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
@@ -182,7 +187,6 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	g_assert(key_size);
 	g_assert(pack == NULL || value_size);
-	g_assert(sdbm_is_storable(key_size, value_size));	/* SDBM constraint */
 	g_assert((pack != NULL) == (unpack != NULL));
 	g_assert(valfree == NULL || unpack != NULL);
 	g_assert(dm);
@@ -196,6 +200,16 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	dw->key_size = key_size;
 	dw->value_size = value_size;
+	dw->value_data_size = 0 == value_data_size ? value_size : value_data_size;
+
+	/* Make sure we do not violate the SDBM constraint */
+	g_assert(sdbm_is_storable(key_size, dw->value_data_size));
+
+	/*
+	 * There must be a serialization routine if the serialized length is not
+	 * the same as the structure length.
+	 */
+	g_assert(dw->value_size == dw->value_data_size || pack != NULL);
 
 	/*
 	 * For a small amount of items, a PATRICIA tree is more efficient
@@ -219,7 +233,7 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	if (dw->pack) {
 		dw->bs = bstr_create();
-		dw->mb = pmsg_new(PMSG_P_DATA, NULL, value_size);
+		dw->mb = pmsg_new(PMSG_P_DATA, NULL, dw->value_data_size);
 	}
 
 	/*
@@ -241,10 +255,12 @@ dbmw_create(dbmap_t *dm, const char *name, size_t key_size, size_t value_size,
 
 	if (common_dbg)
 		g_message("DBMW created \"%s\" with %s back-end "
-			"(max cached = %lu, key=%lu bytes, value=%lu bytes max)",
+			"(max cached = %lu, key=%lu bytes, value=%lu bytes, "
+			"%lu max serialized)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
 			(gulong) dw->max_cached,
-			(gulong) dw->key_size, (gulong) dw->value_size);
+			(gulong) dw->key_size, (gulong) dw->value_size,
+			(gulong) dw->value_data_size);
 
 	return dw;
 }
@@ -555,11 +571,20 @@ write_immediately(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 	tmp.absent = FALSE;
 
 	write_back(dw, key, &tmp);
+
+	/*
+	 * Free any dynamically allocated memory in the value, through
+	 * registered value cleanup callback.
+	 */
+
+	if (length && dw->valfree)
+		(*dw->valfree)(value, length);
 }
 
 /**
  * Write value to the database file immediately, without caching for write-back
- * nor for future reading.
+ * nor for future reading.  If defined, the registered value cleanup callback
+ * is invoked before returning.
  *
  * @param dw		the DBM wrapper
  * @param key		the key (constant-width, determined at open time)
@@ -581,6 +606,10 @@ dbmw_write_nocache(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
 
 /**
  * Write value to the database file, possibly caching it and deferring write.
+ *
+ * Any registered value cleanup callback will be invoked right after the value
+ * is written to disk (for immediated writes) or removed from the cache (for
+ * deferred writes).
  *
  * @param dw		the DBM wrapper
  * @param key		the key (constant-width, determined at open time)

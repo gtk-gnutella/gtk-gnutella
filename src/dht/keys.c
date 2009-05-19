@@ -1248,7 +1248,7 @@ keys_init(void)
 	install_periodic_kball(KBALL_FIRST);
 
 	db_keydata = storage_create(db_keywhat, db_keybase,
-		KUID_RAW_SIZE, sizeof(struct keydata),
+		KUID_RAW_SIZE, sizeof(struct keydata), 0,
 		serialize_keydata, deserialize_keydata, NULL,
 		KEYS_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 

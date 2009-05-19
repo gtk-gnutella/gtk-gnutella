@@ -57,24 +57,25 @@ static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
  * If we can't create the SDBM files on disk, we'll transparently use
  * an in-core version.
  *
- * @param name			the name of the storage created, for logs
- * @param base			the base name of SDBM files
- * @param flags			the sdbm_open() flags
- * @param key_size		Constant key size, in bytes
- * @param value_size	Maximum value size, in bytes
- * @param pack			Serialization routine for values
- * @param unpack		Deserialization routine for values
- * @param valfree		Free dynamically allocated deserialization data
- * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
- * @param hash_func		Key hash function
- * @param eq_func		Key equality test function
- * @param incore		If TRUE, use a RAM-only database
+ * @param name				the name of the storage created, for logs
+ * @param base				the base name of SDBM files
+ * @param flags				the sdbm_open() flags
+ * @param key_size			Constant key size, in bytes
+ * @param value_size		Maximum value size, in bytes (structure)
+ * @param value_data_size	Maximum value size, in bytes (serialized form)
+ * @param pack				Serialization routine for values
+ * @param unpack			Deserialization routine for values
+ * @param valfree			Free dynamically allocated deserialization data
+ * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func			Key hash function
+ * @param eq_func			Key equality test function
+ * @param incore			If TRUE, use a RAM-only database
  *
  * @return the DBMW wrapping object.
  */
 static dbmw_t *
 storage_create_internal(const char *name, const char *base, int flags,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
 	gboolean incore)
@@ -118,8 +119,8 @@ storage_create_internal(const char *name, const char *base, int flags,
 	 * support and caching of (deserialized) values.
 	 */
 
-	dw = dbmw_create(dm, name, key_size, value_size, pack, unpack, valfree,
-		adjusted_cache_size, hash_func, eq_func);
+	dw = dbmw_create(dm, name, key_size, value_size, value_data_size,
+		pack, unpack, valfree, adjusted_cache_size, hash_func, eq_func);
 
 	return dw;
 }
@@ -130,30 +131,31 @@ storage_create_internal(const char *name, const char *base, int flags,
  * If we can't create the SDBM files on disk, we'll transparently use
  * an in-core version.
  *
- * @param name			the name of the storage created, for logs
- * @param base			the base name of SDBM files
- * @param flags			the sdbm_open() flags
- * @param key_size		Constant key size, in bytes
- * @param value_size	Maximum value size, in bytes
- * @param pack			Serialization routine for values
- * @param unpack		Deserialization routine for values
- * @param valfree		Free dynamically allocated deserialization data
- * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
- * @param hash_func		Key hash function
- * @param eq_func		Key equality test function
+ * @param name				the name of the storage created, for logs
+ * @param base				the base name of SDBM files
+ * @param flags				the sdbm_open() flags
+ * @param key_size			Constant key size, in bytes
+ * @param value_size		Maximum value size, in bytes (structure)
+ * @param value_data_size	Maximum value size, in bytes (serialized form)
+ * @param pack				Serialization routine for values
+ * @param unpack			Deserialization routine for values
+ * @param valfree			Free dynamically allocated deserialization data
+ * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func			Key hash function
+ * @param eq_func			Key equality test function
  *
  * @return the DBMW wrapping object.
  */
 dbmw_t *
 storage_create(const char *name, const char *base,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmw_t *dw;
 
 	dw = storage_create_internal(name, base, O_CREAT | O_TRUNC | O_RDWR,
-		key_size, value_size,
+		key_size, value_size, value_data_size,
 		pack, unpack, valfree,
 		cache_size, hash_func, eq_func,
 		GNET_PROPERTY(dht_storage_in_memory));
@@ -169,30 +171,31 @@ storage_create(const char *name, const char *base,
  * If we can't access the SDBM files on disk, we'll transparently use
  * an in-core version.
  *
- * @param name			the name of the storage created, for logs
- * @param base			the base name of SDBM files
- * @param flags			the sdbm_open() flags
- * @param key_size		Constant key size, in bytes
- * @param value_size	Maximum value size, in bytes
- * @param pack			Serialization routine for values
- * @param unpack		Deserialization routine for values
- * @param valfree		Free dynamically allocated deserialization data
- * @param cache_size	Amount of items to cache (0 = no cache, 1 = default)
- * @param hash_func		Key hash function
- * @param eq_func		Key equality test function
+ * @param name				the name of the storage created, for logs
+ * @param base				the base name of SDBM files
+ * @param flags				the sdbm_open() flags
+ * @param key_size			Constant key size, in bytes
+ * @param value_size		Maximum value size, in bytes (structure)
+ * @param value_data_size	Maximum value size, in bytes (serialized form)
+ * @param pack				Serialization routine for values
+ * @param unpack			Deserialization routine for values
+ * @param valfree			Free dynamically allocated deserialization data
+ * @param cache_size		Amount of items to cache (0 = no cache, 1 = default)
+ * @param hash_func			Key hash function
+ * @param eq_func			Key equality test function
  *
  * @return the DBMW wrapping object.
  */
 dbmw_t *
 storage_open(const char *name, const char *base,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
 {
 	dbmw_t *dw;
 
 	dw = storage_create_internal(name, base, O_CREAT | O_RDWR,
-		key_size, value_size,
+		key_size, value_size, value_data_size,
 		pack, unpack, valfree,
 		cache_size, hash_func, eq_func, FALSE);
 
@@ -217,7 +220,7 @@ storage_open(const char *name, const char *base,
 		}
 
 		dram = storage_create_internal(name, NULL, 0,
-			key_size, value_size,
+			key_size, value_size, value_data_size,
 			pack, unpack, valfree,
 			cache_size, hash_func, eq_func, TRUE);
 

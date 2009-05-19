@@ -44,12 +44,12 @@
  */
 
 dbmw_t *storage_create(const char *name, const char *base,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 
 dbmw_t *storage_open(const char *name, const char *base,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 

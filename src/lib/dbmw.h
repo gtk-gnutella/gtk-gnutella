@@ -71,7 +71,7 @@ typedef gboolean (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
  * @param valptr	where deserialization was done
  * @param len		length of arena allocated for value, for assertions
  */
-typedef void (*dbmw_free_t)(gconstpointer valptr, size_t len);
+typedef void (*dbmw_free_t)(gpointer valptr, size_t len);
 
 /**
  * DBMW "foreach" iterator callbacks.
@@ -94,7 +94,7 @@ typedef gboolean (*dbmw_cbr_t)(
 #define DBMW_SYNC_MAP		(1 << 1)	/**< Sync DBMW underlying map */
 
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
-	size_t key_size, size_t value_size,
+	size_t key_size, size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 void dbmw_destroy(dbmw_t *dw, gboolean close_sdbm);
