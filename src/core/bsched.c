@@ -855,7 +855,7 @@ bsched_begin_timeslice(bsched_t *bs)
 		 * "instantaneous bandwidth" used.
 		 *
 		 * Slow EMA of bandwidth is computed on the last n=127 terms, which at
-		 * one computation per second, means an average of the two minutes.
+		 * one computation per second, means an average of the last two minutes.
 		 * This value is smoother and therefore more suited to use for the
 		 * remaining time estimates.
 		 *
