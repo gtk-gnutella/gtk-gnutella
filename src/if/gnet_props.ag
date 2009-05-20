@@ -4016,7 +4016,13 @@ prop = {
 
 prop = {
     name = "spam_lut_in_memory";
-    desc = "If TRUE, the spam SHA1 database is kept in memory.";
+    desc = "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it "
+		"is kept in a fast disk database, which saves a large amount of "
+		"core memory and reduces the overall footprint, at the cost of an "
+		"increased I/O level. However, the DB cache has typically a 90% hit "
+		"rate, so the actual overhead is barely noticeable when running as an "
+		"ultra node and should remain completely unnoticed when running as a "
+		"leaf.";
     type = boolean;
     data = {
         default = TRUE;
@@ -4075,6 +4081,20 @@ prop = {
         default = 0;
         min     = 0;
         max     = 20;
+    };
+};
+
+prop = {
+	name = "zalloc_always_gc";
+	desc = "Whether the zone-based memory allocator should always keep the "
+		"zones in garbage-collecting mode, thereby maximizing the chances of "
+		"being able to quickly reclaim empty zones after an allocation burst. "
+		"This causes a slight CPU overhead at block free time but the memory "
+		"footprint will remain much lower. To further minimize the footprint, "
+		"you can also set spam_lut_in_memory to FALSE.";
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
 

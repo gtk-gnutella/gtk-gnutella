@@ -808,6 +808,8 @@ guint32  gnet_property_variable_palloc_debug     = 0;
 static const guint32  gnet_property_variable_palloc_debug_default = 0;
 guint32  gnet_property_variable_rxbuf_debug     = 0;
 static const guint32  gnet_property_variable_rxbuf_debug_default = 0;
+gboolean gnet_property_variable_zalloc_always_gc     = TRUE;
+static const gboolean gnet_property_variable_zalloc_always_gc_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -7403,7 +7405,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[345].name = "spam_lut_in_memory";
-    gnet_property->props[345].desc = _("If TRUE, the spam SHA1 database is kept in memory.");
+    gnet_property->props[345].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has typically a 90% hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
     gnet_property->props[345].ev_changed = event_new("spam_lut_in_memory_changed");
     gnet_property->props[345].save = TRUE;
     gnet_property->props[345].vector_size = 1;
@@ -7512,6 +7514,23 @@ gnet_prop_init(void) {
     gnet_property->props[350].data.guint32.choices = NULL;
     gnet_property->props[350].data.guint32.max   = 20;
     gnet_property->props[350].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_ZALLOC_ALWAYS_GC:
+     *
+     * General data:
+     */
+    gnet_property->props[351].name = "zalloc_always_gc";
+    gnet_property->props[351].desc = _("Whether the zone-based memory allocator should always keep the zones in garbage-collecting mode, thereby maximizing the chances of being able to quickly reclaim empty zones after an allocation burst. This causes a slight CPU overhead at block free time but the memory footprint will remain much lower. To further minimize the footprint, you can also set spam_lut_in_memory to FALSE.");
+    gnet_property->props[351].ev_changed = event_new("zalloc_always_gc_changed");
+    gnet_property->props[351].save = TRUE;
+    gnet_property->props[351].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[351].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[351].data.boolean.def   = (void *) &gnet_property_variable_zalloc_always_gc_default;
+    gnet_property->props[351].data.boolean.value = (void *) &gnet_property_variable_zalloc_always_gc;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

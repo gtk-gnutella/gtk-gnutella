@@ -105,9 +105,10 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
 };
 
-static hash_table_t *zt;		/**< Keeps size (rounded up) -> zone */
-static guint32 zalloc_debug;	/**< Debug level */
-static unsigned zgc_zone_cnt;	/**< Zones in garbage collecting mode */
+static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
+static guint32 zalloc_debug;		/**< Debug level */
+static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
+static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
@@ -166,6 +167,7 @@ zfree(zone_t *zone, gpointer ptr)
 static char **zn_extend(zone_t *);
 static gpointer zgc_zalloc(zone_t *);
 static void zgc_zfree(zone_t *, gpointer);
+static void zgc_allocate(zone_t *zone);
 static void zgc_dispose(zone_t *);
 
 /**
@@ -252,15 +254,11 @@ zalloc(zone_t *zone)
 
 	g_assert(zone->zn_blocks == zone->zn_cnt);
 
-	blk = zn_extend(zone);
-	if (blk == NULL)
-		g_error("cannot extend zone to allocate a %d-byte block",
-			zone->zn_size);
-
 	/*
 	 * Use first block from new extended zone.
 	 */
 
+	blk = zn_extend(zone);
 	zone->zn_free = (char **) *blk;
 	zone->zn_cnt++;
 
@@ -596,8 +594,11 @@ zn_extend(zone_t *zone)
 	sz = malloc(sizeof *sz);
 
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
-	zone->zn_free = sz->sz_base;
 
+	if (NULL == sz->sz_base)
+		g_error("cannot extend %u-byte zone", (unsigned) zone->zn_size);
+
+	zone->zn_free = sz->sz_base;
 	sz->sz_next = zone->zn_arena.sz_next;
 	zone->zn_arena.sz_next = sz;		/* New subzone at head of list */
 	zone->zn_subzones++;
@@ -652,7 +653,12 @@ zcreate(size_t size, unsigned hint)
 
 	zone = malloc(sizeof *zone);
 
-	return zn_create(zone, size, hint);
+	zn_create(zone, size, hint);
+
+	if (zalloc_always_gc)
+		zgc_allocate(zone);
+
+	return zone;
 }
 
 /**
@@ -791,6 +797,31 @@ void
 set_zalloc_debug(guint32 level)
 {
 	zalloc_debug = level;
+}
+
+/**
+ * Whether zones should always stay in GC mode.
+ *
+ * The advantage of having all zones in GC mode is that allocation will be
+ * always done in a subzone where we have already allocated some other blocks,
+ * since fully empty subzones are reclaimed.  This minimizes the risk of having
+ * rather permanent blocks allocated in all the subzones, preventing collection
+ * since unfortunately we cannot move allocated blocks around!
+ *
+ * The disadvantage is that each free has to perform a binary search on the
+ * subzone array to find the proper subzone to return the block to.  However,
+ * with the current size adjustments performed to minimize waste in subzones,
+ * we allocate only 80 zones for walloc() with an alignment to 4 bytes.  That
+ * means we perform at most 7 checks, so it's only slightly more costly.
+ *
+ * What this strategy buys us however is greater chances of allocating less
+ * subzones, resulting in a smaller memory footprint.  For long-running
+ * processes, this is a good property.
+ */
+void
+set_zalloc_always_gc(gboolean val)
+{
+	zalloc_always_gc = val;
 }
 
 /***
@@ -993,7 +1024,15 @@ zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 	if (idx < zg->zg_free)
 		zg->zg_free = idx;
 
-	if (++szi->szi_free_cnt == zone->zn_hint)
+	/*
+	 * Do not free the subzone if that would leave us with no more free blocks
+	 * in the whole zone.
+	 */
+
+	if (
+		++szi->szi_free_cnt == zone->zn_hint &&
+		zone->zn_blocks - zone->zn_cnt > zone->zn_hint
+	)
 		return !zgc_subzone_free(zone, szi);
 
 	return TRUE;
@@ -1081,6 +1120,96 @@ zgc_allocate(zone_t *zone)
 	g_assert(dispatched == zone->zn_blocks - zone->zn_cnt);
 	g_assert(NULL == zone->zn_free);
 	g_assert(zone->zn_gc != NULL);
+}
+
+/**
+ * Extend garbage-collected zone.
+ *
+ * @return new free block, removed from free list.
+ */
+static gpointer
+zgc_extend(zone_t *zone)
+{
+	char **blk;
+	struct zone_gc *zg;
+	struct subzone *sz;
+	struct subzinfo *szi;
+	struct subzinfo *array;
+	unsigned low, high;
+	char *start;
+	char *end;
+
+	g_assert(zone->zn_gc != NULL);
+	g_assert(zone->zn_free == NULL);
+
+	/*
+	 * Extend the zone by allocating a new subzone.
+	 */
+
+	blk = zn_extend(zone);
+	sz = zone->zn_arena.sz_next;		/* Allocated zone */
+
+	g_assert(zone->zn_free != NULL);
+	g_assert(blk == sz->sz_base);
+
+	/*
+	 * Find index at which we must insert the new zone in the sorted array.
+	 */
+
+	zg = zone->zn_gc;
+	start = sz->sz_base;
+	end = start + sz->sz_size;
+	array = zg->zg_subzinfo;
+	high = zg->zg_zones - 1;
+	low = 0;
+
+	while (low <= high && uint_is_non_negative(high)) {
+		unsigned mid = low + (high - low) / 2;
+		struct subzinfo *item;
+
+		g_assert(mid < zg->zg_zones);
+
+		item = &array[mid];
+		if ((gpointer) blk >= item->szi_end)
+			low = mid + 1;
+		else if ((gpointer) blk < item->szi_base)
+			high = mid - 1;
+		else
+			g_error("new subzone cannot be present in the array");
+	}
+
+	/*
+	 * Insert new subzone at `low'.
+	 */
+
+	zg->zg_zones++;
+	array = realloc(array, zg->zg_zones * sizeof(struct subzinfo));
+	zg->zg_subzinfo = array;
+
+	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);
+
+	if (low < zg->zg_zones - 1) {
+		memmove(&array[low+1], &array[low],
+			sizeof(struct subzinfo) * (zg->zg_zones - 1 - low));
+	}
+
+	szi = &array[low];
+	szi->szi_base = start;
+	szi->szi_end = end;
+	szi->szi_free_cnt = zone->zn_hint - 1;	/* About to use first block */
+	szi->szi_free = (char **) *blk;			/* Unchained from free list */
+
+	zone->zn_free = NULL;		/* In GC mode, we never use this */
+	zg->zg_free = low;			/* The subzone we have just added */
+
+	if (zalloc_debug > 4) {
+		g_message("ZGC %u-byte zone 0x%lx extended by "
+			"%u blocks in [0x%lx, 0x%lx]",
+			(unsigned) zone->zn_size, (unsigned long) zone,
+			zone->zn_hint, (unsigned long) start, (unsigned long) end);
+	}
+
+	return blk;					/* First free block */
 }
 
 /**
@@ -1177,25 +1306,22 @@ zgc_zalloc(zone_t *zone)
 
 	/*
 	 * No more free blocks, need a new zone.
-	 * This means we can end trying to garbage-collect this zone.
+	 *
+	 * This means we can end trying to garbage-collect this zone unless we
+	 * are requested to always GC the zones.
 	 */
 
 	g_assert(zone->zn_blocks == zone->zn_cnt);
 
-	zgc_dispose(zone);
+	if (zalloc_always_gc) {
+		blk = zgc_extend(zone);
+	} else {
+		zgc_dispose(zone);
+		blk = zn_extend(zone);				/* First block from new subzone */
+		zone->zn_free = (char **) *blk;
+	}
 
-	blk = zn_extend(zone);
-	if (blk == NULL)
-		g_error("cannot extend zone to allocate a %d-byte block",
-			zone->zn_size);
-
-	/*
-	 * Use first block from new extended zone.
-	 */
-
-	zone->zn_free = (char **) *blk;
 	zone->zn_cnt++;
-
 	return zprepare(zone, blk);
 }
 
@@ -1237,11 +1363,12 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 		zone->zn_subzones > 1 &&
 		zone->zn_blocks - zone->zn_cnt >= (zone->zn_hint + zone->zn_hint / 2)
 	) {
-		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH) {
+		if (++zone->zn_oversized >= ZN_OVERSIZE_THRESH || zalloc_always_gc) {
 			if (zalloc_debug > 4) {
-				g_message("ZGC %u-byte zone 0x%lx oversized: "
+				g_message("ZGC %u-byte zone 0x%lx %s: "
 					"%u blocks, %u used (hint=%u, %u subzones)",
 					(unsigned) zone->zn_size, (unsigned long) zone,
+					zalloc_always_gc ? "forced in GC mode" : "oversized",
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones);
 			}
@@ -1255,7 +1382,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 				zn_shrink(zone);
 			} else {
 				zgc_allocate(zone);
-				if (1 == zone->zn_subzones)
+				if (1 == zone->zn_subzones && !zalloc_always_gc)
 					zgc_dispose(zone);
 			}
 
@@ -1267,6 +1394,17 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 					zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
 			}
+		}
+	} else if (zalloc_always_gc) {
+		if (NULL == zone->zn_gc) {
+			if (zalloc_debug > 4) {
+				g_message("ZGC %u-byte zone 0x%lx forced in GC mode: "
+					"%u blocks, %u used (hint=%u, %u subzones)",
+					(unsigned) zone->zn_size, (unsigned long) zone,
+					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
+					zone->zn_subzones);
+			}
+			zgc_allocate(zone);
 		}
 	} else {
 		zone->zn_oversized = 0;

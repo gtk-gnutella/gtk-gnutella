@@ -77,6 +77,7 @@ void zclose(void);
 void zgc(void);
 
 void set_zalloc_debug(guint32 level);
+void set_zalloc_always_gc(gboolean val);
 
 #ifdef TRACK_ZALLOC
 

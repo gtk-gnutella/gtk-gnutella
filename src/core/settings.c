@@ -1776,6 +1776,17 @@ node_online_mode_changed(property_t prop)
 }
 
 static gboolean
+zalloc_always_gc_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+	set_zalloc_always_gc(val);
+
+    return FALSE;
+}
+
+static gboolean
 zalloc_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2233,6 +2244,11 @@ static prop_map_t property_map[] = {
     {
         PROP_LIB_STATS,
         lib_stats_changed,
+        TRUE
+    },
+    {
+        PROP_ZALLOC_ALWAYS_GC,
+        zalloc_always_gc_changed,
         TRUE
     },
 	{
