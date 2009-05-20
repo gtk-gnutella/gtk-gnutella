@@ -133,7 +133,8 @@ pool_needs_gc(const pool_t *p, gboolean need)
 			if (palloc_debug > 1) {
 				g_message("PGC turning GC on for pool \"%s\" "
 					"(allocated=%u, held=%u, slow_ema=%u, fast_ema=%u)",
-					p->name, p->allocated, p->held, p->slow_ema, p->fast_ema);
+					p->name, p->allocated, p->held,
+					pool_ema(p, slow_ema), pool_ema(p, fast_ema));
 			}
 		}
 	}
