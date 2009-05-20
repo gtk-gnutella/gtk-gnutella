@@ -54,7 +54,7 @@ RCSID("$Id$")
 #define WALLOC_CHUNK	4096	/**< Target chunk size for small structs */
 #define WALLOC_MINCOUNT	8		/**< Minimum amount of structs in a chunk */
 
-#define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES)
+#define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
 
 static struct zone *wzone[WZONE_SIZE];
 
@@ -72,12 +72,12 @@ wzone_index(size_t rounded)
 	size_t idx;
 
 	g_assert(rounded == zalloc_round(rounded));
-	g_assert(size_is_positive(rounded) && rounded < WALLOC_MAX);
+	g_assert(size_is_positive(rounded) && rounded <= WALLOC_MAX);
 
 	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
 	idx = rounded / ZALLOC_ALIGNBYTES;
 
-	STATIC_ASSERT(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
+	STATIC_ASSERT(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1 == WZONE_SIZE);
 	g_assert(idx < WZONE_SIZE);
 
 	return idx;
@@ -115,7 +115,7 @@ wzone_get(size_t rounded)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to malloc() if size is greater or equal to WALLOC_MAX.
+ * and to malloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -129,7 +129,7 @@ walloc(size_t size)
 
 	g_assert(size_is_positive(size));
 
-	if (rounded >= WALLOC_MAX)
+	if (rounded > WALLOC_MAX)
 		return malloc(size);		/* Too big for efficient zalloc() */
 
 	idx = wzone_index(rounded);
@@ -174,7 +174,7 @@ wfree(gpointer ptr, size_t size)
 	memset(ptr, 1, size);
 #endif
 
-	if (rounded >= WALLOC_MAX) {
+	if (rounded > WALLOC_MAX) {
 		free(ptr);
 		return;
 	}
@@ -205,7 +205,7 @@ wrealloc(gpointer old, size_t old_size, size_t new_size)
 	if (old_rounded == new_rounded)
 		return old;
 
-	if (new_rounded >= WALLOC_MAX || old_rounded >= WALLOC_MAX)
+	if (new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
 		goto resize_block;
 
 	/*
@@ -254,7 +254,7 @@ walloc_track(size_t size, char *file, int line)
 
 	g_assert(size > 0);
 
-	if (rounded >= WALLOC_MAX)
+	if (rounded > WALLOC_MAX)
 #ifdef TRACK_MALLOC
 		return malloc_track(size, file, line);
 #else
@@ -263,7 +263,7 @@ walloc_track(size_t size, char *file, int line)
 
 	idx = rounded / ZALLOC_ALIGNBYTES;
 
-	g_assert(WALLOC_MAX / ZALLOC_ALIGNBYTES == WZONE_SIZE);
+	g_assert(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1 == WZONE_SIZE);
 	g_assert(idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
