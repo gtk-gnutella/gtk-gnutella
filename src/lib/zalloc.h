@@ -74,7 +74,7 @@ void zdestroy(zone_t *zone);
 gpointer zalloc(zone_t *);
 void zfree(zone_t *, gpointer);
 void zclose(void);
-void zgc(void);
+void zgc(gboolean overloaded);
 
 void set_zalloc_debug(guint32 level);
 void set_zalloc_always_gc(gboolean val);

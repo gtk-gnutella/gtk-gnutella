@@ -798,16 +798,17 @@ main_timer(gpointer p)
 static gboolean
 callout_queue_idle(gpointer unused_data)
 {
+	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
 	(void) unused_data;
 
 	if (GNET_PROPERTY(cq_debug) > 1)
 		g_message("CQ: callout queue is idle (CPU %s)",
-			GNET_PROPERTY(overloaded_cpu) ? "OVERLOADED" : "available");
+			overloaded ? "OVERLOADED" : "available");
 
 	/* Idle tasks always scheduled */
-	zgc();
+	zgc(overloaded);
 
-	if (!GNET_PROPERTY(overloaded_cpu)) {
+	if (!overloaded) {
 		/* Idle tasks scheduled only when CPU is not overloaded */
 		pgc();
 	}

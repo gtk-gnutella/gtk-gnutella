@@ -64,6 +64,7 @@ struct subzinfo {
 	gpointer szi_base;			/**< Base zone arena address (convenience) */
 	gpointer szi_end;			/**< Pointer to first byte after arena */
 	char **szi_free;			/**< Pointer to first free block in arena */
+	struct subzone *szi_sz;		/**< The subzone for which we keep extra info */
 	unsigned szi_free_cnt;		/**< Amount of free blocks in zone */
 };
 
@@ -74,12 +75,30 @@ struct subzinfo {
  * contains sorted "struct subzinfo" entries, sorted by arena base address.
  */
 struct zone_gc {
+	struct subzinfo *zg_subzinfo;	/**< Big chunk containing subzinfos */
 	time_t zg_start;				/**< Time at which GC was started */
-	unsigned zg_zone_freed;			/**< Amount of zones freed by GC */
+	unsigned zg_zone_freed;			/**< Total amount of zones freed by GC */
 	unsigned zg_zones;				/**< Amount of zones in zg_subzinfo[] */
 	unsigned zg_free;				/**< First subzinfo with free blocks */
-	struct subzinfo *zg_subzinfo;	/**< Big chunk containing subzinfos */
+	guint32 zg_flags;				/**< GC flags */
 };
+
+/**
+ * Zone GC flags
+ */
+#define ZGC_SCAN_ALL	(1 << 0)	/**< Scan all subzones at next run */
+
+/**
+ * Global zone garbage collector state.
+ */
+static struct {
+	unsigned subzone_freed;			/**< Amount of subzones freed this run */
+	gboolean running;				/**< Garbage collector is running */
+} zgc_context;
+
+#define ZGC_SUBZONE_MINLIFE		5	/**< Do not free too recent subzone */
+#define ZGC_SUBZONE_FREEMAX		64	/**< Max # of subzones freed in a run */
+#define ZGC_SUBZONE_OVERBASE	48	/**< Initial base when CPU overloaded */
 
 /**
  * @struct zone
@@ -313,15 +332,15 @@ static void
 zdump_used(zone_t *zone)
 {
 	int used = 0;
-	struct subzone *next;
+	struct subzone *sz;
 	char *p;
 	gpointer leakset = leak_init();
 
-	for (next = &zone->zn_arena; next; next = next->sz_next) {
+	for (sz = &zone->zn_arena; sz; sz = sz->sz_next) {
 		char *end;
 
-		p = next->sz_base;
-		end = p + next->sz_size;
+		p = sz->sz_base;
+		end = p + sz->sz_size;
 
 		while (p < end) {
 			if (*(char **) p == BLOCK_USED) {
@@ -886,17 +905,56 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	struct subzone *sz = zone->zn_arena.sz_next;
 
 	g_assert(szi != NULL);
+	g_assert(zg != NULL);
 	g_assert(equiv(NULL == sz, 1 == zone->zn_subzones));
 	g_assert(zone->zn_blocks >= zone->zn_hint);
 
-	if (szi->szi_base == zone->zn_arena.sz_base) {
-		/*
-		 * The first subzone is special because it is expanded.
-		 * It can only be freed if there is another subzone following.
-		 */
+	/*
+	 * Do not free the subzone if that would leave us with no more free blocks
+	 * in the whole zone.
+	 *
+	 * Also, to accomodate rapid zalloc()/zfree() usage patterns for a zone,
+	 * do not release a subzone that was allocated too recently.
+	 *
+	 * This strategy imposes us to flag the zone as requiring a complete
+	 * subzone scan at the next GC run because otherwise we could be left with
+	 * many free zones after massive zfree() calls.  That scan will only
+	 * happen if we have more free blocks in the zone than the amount of
+	 * blocks held in a subzone, or it will be cancelled (since by definition
+	 * we cannot have a free subzone when we have less than a subzone worth).
+	 */
 
-		if (NULL == sz)
-			return FALSE;
+	if (1 == zone->zn_subzones)
+		return FALSE;
+
+	if (
+		zone->zn_blocks - zone->zn_cnt <= zone->zn_hint ||
+		delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE
+	) {
+		zg->zg_flags |= ZGC_SCAN_ALL;
+		return FALSE;
+	}
+
+	/*
+	 * If we have already freed our quota of subzones during this GC cycle,
+	 * do not free the zone.
+	 */
+
+	if (
+		zgc_context.running &&
+		zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX
+	) {
+		if (zalloc_debug > 3) {
+			g_message("ZGC %u-byte zone 0x%lx: hit subzone free limit",
+				(unsigned) zone->zn_size, (unsigned long) zone);
+		}
+		zg->zg_flags |= ZGC_SCAN_ALL;
+		return FALSE;
+	}
+
+	if (szi->szi_base == zone->zn_arena.sz_base) {
+
+		g_assert(sz != NULL);	/* We know there are more than 1 subzone */
 
 		if (zalloc_debug > 1) {
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
@@ -956,6 +1014,7 @@ found:
 
 	zone->zn_blocks -= zone->zn_hint;
 	zone->zn_subzones--;
+	zgc_context.subzone_freed++;
 
 	/*
 	 * Remove subzone info from sorted array.
@@ -1006,7 +1065,7 @@ zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 	 * Whether we are going to free up the subzone or not, we put the block
 	 * back to the freelist.  Indeed, zgc_subzone_free() will never accept
 	 * to free up the first subzone if it is the only one remaining, so we
-	 * don't want to lose the freed block should the sunzone be kept.
+	 * don't want to lose the freed block should the subzone be kept.
 	 */
 
 	*blk = (char *) szi->szi_free;		/* Precede old head */
@@ -1024,15 +1083,7 @@ zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 	if (idx < zg->zg_free)
 		zg->zg_free = idx;
 
-	/*
-	 * Do not free the subzone if that would leave us with no more free blocks
-	 * in the whole zone.
-	 */
-
-	if (
-		++szi->szi_free_cnt == zone->zn_hint &&
-		zone->zn_blocks - zone->zn_cnt > zone->zn_hint
-	)
+	if (++szi->szi_free_cnt == zone->zn_hint)
 		return !zgc_subzone_free(zone, szi);
 
 	return TRUE;
@@ -1045,7 +1096,7 @@ static void
 zgc_allocate(zone_t *zone)
 {
 	struct zone_gc *zg;
-	struct subzone *next;
+	struct subzone *sz;
 	struct subzinfo *szi;
 	char **blk;
 	unsigned dispatched = 0;
@@ -1071,18 +1122,19 @@ zgc_allocate(zone_t *zone)
 	zg->zg_zone_freed = 0;
 	zg->zg_start = tm_time();
 	zg->zg_free = 0;
+	zg->zg_flags = 0;
 
 	/*
 	 * Fill in the subzone information, enough for sorting the array.
 	 */
 
 	for (
-		szi = zg->zg_subzinfo, next = &zone->zn_arena;
-		next != NULL;
-		next = next->sz_next, szi++
+		szi = zg->zg_subzinfo, sz = &zone->zn_arena;
+		sz != NULL;
+		sz = sz->sz_next, szi++
 	) {
-		char *start = next->sz_base;
-		char *end = start + next->sz_size;
+		char *start = sz->sz_base;
+		char *end = start + sz->sz_size;
 
 		g_assert(subzones < zone->zn_subzones);
 
@@ -1090,6 +1142,7 @@ zgc_allocate(zone_t *zone)
 		szi->szi_end = end;
 		szi->szi_free_cnt = 0;
 		szi->szi_free = NULL;
+		szi->szi_sz = sz;
 
 		subzones++;
 	}
@@ -1198,6 +1251,7 @@ zgc_extend(zone_t *zone)
 	szi->szi_end = end;
 	szi->szi_free_cnt = zone->zn_hint - 1;	/* About to use first block */
 	szi->szi_free = (char **) *blk;			/* Unchained from free list */
+	szi->szi_sz = sz;
 
 	zone->zn_free = NULL;		/* In GC mode, we never use this */
 	zg->zg_free = low;			/* The subzone we have just added */
@@ -1210,6 +1264,88 @@ zgc_extend(zone_t *zone)
 	}
 
 	return blk;					/* First free block */
+}
+
+/**
+ * Scan zone to see whether we have empty subzones that are old enough and
+ * free them up provided that does not leave us with no more free blocks.
+ */
+static void
+zgc_scan(zone_t *zone)
+{
+	struct zone_gc *zg = zone->zn_gc;
+	unsigned i;
+	time_t now;
+	gboolean must_continue = FALSE;
+
+	g_assert(zg != NULL);
+	g_assert(zone->zn_blocks >= zone->zn_cnt);
+
+	if (zalloc_debug > 4) {
+		g_message("ZGC %u-byte zone 0x%lx scanned for free subzones: "
+			"%u blocks, %u free (hint=%u, %u subzones)",
+			(unsigned) zone->zn_size, (unsigned long) zone,
+			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
+			zone->zn_subzones);
+	}
+
+	i = zg->zg_free;
+	now = tm_time();
+
+	while (i < zg->zg_zones) {
+		struct subzinfo *szi = &zg->zg_subzinfo[i];
+
+		/*
+		 * If we have less that a subzone worth of free blocks, we no longer
+		 * need to scan all the zones.
+		 */
+
+		if (zone->zn_blocks - zone->zn_cnt < zone->zn_hint)
+			goto finished;
+
+		/*
+		 * If we have already freed enough subzones in the GC run, abort.
+		 */
+
+		if (zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX) {
+			if (zalloc_debug > 3) {
+				g_message("ZGC %u-byte zone 0x%lx: hit subzone free limit, "
+					"will resume scanning at next run",
+					(unsigned) zone->zn_size, (unsigned long) zone);
+			}
+			must_continue = TRUE;
+			break;
+		}
+
+		if (szi->szi_free_cnt != zone->zn_hint)
+			goto next;
+
+		if (zgc_subzone_free(zone, szi))
+			continue;
+
+		must_continue = TRUE;		/* Did not free empty subzone */
+
+		/* FALL THROUGH */
+
+	next:
+		i++;
+	}
+
+	if (!must_continue)
+		goto finished;
+
+	return;
+
+finished:
+	zg->zg_flags &= ~ZGC_SCAN_ALL;
+
+	if (zalloc_debug > 4) {
+		g_message("ZGC %u-byte zone 0x%lx turned scan-all off: "
+			"%u blocks, %u free (hint=%u, %u subzones)",
+			(unsigned) zone->zn_size, (unsigned long) zone,
+			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
+			zone->zn_subzones);
+	}
 }
 
 /**
@@ -1405,8 +1541,13 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
 					zone->zn_subzones);
 			}
 			zgc_allocate(zone);
+		} else if (zone->zn_gc->zg_flags & ZGC_SCAN_ALL) {
+			zgc_scan(zone);
 		}
 	} else {
+		if (zone->zn_gc != NULL && (zone->zn_gc->zg_flags & ZGC_SCAN_ALL)) {
+			zgc_scan(zone);
+		}
 		zone->zn_oversized = 0;
 	}
 }
@@ -1419,7 +1560,7 @@ spot_oversized_zone(const void *u_key, void *value, void *u_data)
  * Typically, this routine is invoked from an idle callout queue timer.
  */
 void
-zgc(void)
+zgc(gboolean overloaded)
 {
 	static time_t last_run;
 	time_t now;
@@ -1445,7 +1586,11 @@ zgc(void)
 			(unsigned) hash_table_size(zt), zgc_zone_cnt);
 	}
 
+	zgc_context.subzone_freed = overloaded ? ZGC_SUBZONE_OVERBASE : 0;
+
+	zgc_context.running = TRUE;
 	hash_table_foreach(zt, spot_oversized_zone, NULL);
+	zgc_context.running = FALSE;
 
 	if (zalloc_debug > 2) {
 		tm_t end;
