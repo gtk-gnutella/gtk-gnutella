@@ -814,7 +814,8 @@ dq_free(dquery_t *dq)
 	int i;
 
 	dquery_check(dq);
-	g_assert(g_hash_table_lookup(dqueries, &dq->qid) == dq);
+	g_assert((dq->flags & DQ_F_EXITING) ||
+		g_hash_table_lookup(dqueries, &dq->qid) == dq);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_message("DQ[%s] %s(%d secs; +%d secs) node #%s ending: "
