@@ -1696,13 +1696,10 @@
 # Spamming gtk-gnutella seen on these subnets
 69.72.128.0/24
 
-# SouthWeb Ventures
-# gtk-gnutella; irrelevant query hits like "..... for search-string fans"
-207.150.196.146
-
 # Nobis Technology Group, L.L.C. / Ubiquity Server Solutions Chicago
 # Jun Group; spam advertisement campaigns for Unilever et al.
 # Spamming gtk-gnutella (fake LimeWire) seen on these subnets
+# ".* for $QUERY fans.(avi|mpg|mov)$"
 216.6.234.0/24
 216.6.238.0/24
 174.34.184.0/23
@@ -1718,6 +1715,8 @@
 # Total Server Solutions L.L.C. 
 #206.220.174.0/24
 206.220.172.0/22
+# SouthWeb Ventures
+207.150.196.146
 # eNET Inc.
 # Gnucleus-based DRM WMV spammer hosted by eNET
 #206.222.26.34
