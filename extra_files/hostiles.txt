@@ -1696,6 +1696,10 @@
 # Spamming gtk-gnutella seen on these subnets
 69.72.128.0/24
 
+# SouthWeb Ventures
+# gtk-gnutella; irrelevant query hits like "..... for search-string fans"
+207.150.196.146
+
 # Nobis Technology Group, L.L.C. / Ubiquity Server Solutions Chicago
 # Jun Group; spam advertisement campaigns for Unilever et al.
 # Spamming gtk-gnutella (fake LimeWire) seen on these subnets
