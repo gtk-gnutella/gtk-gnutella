@@ -2422,7 +2422,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	struct gnutella_socket *s = data;
 	size_t avail, rd;
 	unsigned i;
-	tm_t start;
+	tm_t start, end;
 
 	(void) unused_source;
 
@@ -2441,8 +2441,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 	 * as there are often several packets queued.
 	 */
 
-	if (GNET_PROPERTY(socket_debug))
-		tm_now_exact(&start);
+	tm_now_exact(&start);
 
 	avail = inputevt_data_available();
 	avail = (avail != 0) ? avail : 64 * 1024;
@@ -2470,11 +2469,14 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		 * it refers to header or control msg data. */
 		if (avail <= 32)
 			break;
+
+		tm_now_exact(&end);
+		if (tm_elapsed_ms(&end, &start) > 150)
+			break;
+
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
-		tm_t end;
-		tm_now_exact(&end);
 		g_message(
 			"socket_udp_event() iterated %u times, read %lu bytes in %f secs",
 			i, (unsigned long) rd, tm_elapsed_f(&end, &start));
