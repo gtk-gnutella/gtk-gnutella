@@ -1746,6 +1746,12 @@
 # herprivatecam dot com
 # SingleHop, Inc.
 216.104.32.0/20
+# Sub-range of SingleHop, Inc.
+# 647927 BC LTD, Vancouver, Canada
+#65.60.49.210
+65.60.49.208/29
+#65.60.58.130
+65.60.58.128/29
 # VPLS Inc. d/b/a Krypt Technologies 
 98.126.209.0/24
 98.126.9.0/24
