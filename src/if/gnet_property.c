@@ -810,6 +810,8 @@ guint32  gnet_property_variable_rxbuf_debug     = 0;
 static const guint32  gnet_property_variable_rxbuf_debug_default = 0;
 gboolean gnet_property_variable_zalloc_always_gc     = TRUE;
 static const gboolean gnet_property_variable_zalloc_always_gc_default = TRUE;
+guint32  gnet_property_variable_vmm_debug     = 0;
+static const guint32  gnet_property_variable_vmm_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7531,6 +7533,26 @@ gnet_prop_init(void) {
     gnet_property->props[351].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[351].data.boolean.def   = (void *) &gnet_property_variable_zalloc_always_gc_default;
     gnet_property->props[351].data.boolean.value = (void *) &gnet_property_variable_zalloc_always_gc;
+
+
+    /*
+     * PROP_VMM_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[352].name = "vmm_debug";
+    gnet_property->props[352].desc = _("Debug level for the virtual memory manager.");
+    gnet_property->props[352].ev_changed = event_new("vmm_debug_changed");
+    gnet_property->props[352].save = TRUE;
+    gnet_property->props[352].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[352].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[352].data.guint32.def   = (void *) &gnet_property_variable_vmm_debug_default;
+    gnet_property->props[352].data.guint32.value = (void *) &gnet_property_variable_vmm_debug;
+    gnet_property->props[352].data.guint32.choices = NULL;
+    gnet_property->props[352].data.guint32.max   = 20;
+    gnet_property->props[352].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

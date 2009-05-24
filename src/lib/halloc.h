@@ -67,7 +67,7 @@ void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
 #endif	/* REMAP_ZALLOC */
 
-void halloc_init(void);
+void halloc_init(gboolean replace_malloc);
 void hdestroy(void);
 
 size_t halloc_bytes_allocated(void);

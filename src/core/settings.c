@@ -72,6 +72,7 @@
 #include "lib/palloc.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
+#include "lib/vmm.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -1809,6 +1810,17 @@ palloc_debug_changed(property_t prop)
 }
 
 static gboolean
+vmm_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_vmm_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
 lib_debug_changed(property_t prop)
 {
 	guint32 val;
@@ -2226,6 +2238,11 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_VMM_DEBUG,
+        vmm_debug_changed,
+        TRUE
+    },
     {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,

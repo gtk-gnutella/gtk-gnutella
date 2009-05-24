@@ -121,6 +121,7 @@
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
@@ -556,6 +557,7 @@ gtk_gnutella_exit(gint n)
 	if (!running_topless) {
 		main_gui_exit(n);
 	}
+	hdestroy();
 	exit(n);
 }
 
@@ -619,7 +621,6 @@ slow_main_timer(time_t now)
 	}
 	tx_collect();					/* Collect freed TX stacks */
 	rx_collect();					/* Idem for freed RX stacks */
-	prune_page_cache();
 
 	download_slow_timer(now);
 	node_slow_timer(now);
@@ -1345,10 +1346,8 @@ main(int argc, char **argv)
 	/* First inits -- initialize custom memory allocator, if needed */
 
 	prehandle_arguments(argv);
-
-	if (!options[main_arg_no_halloc].used) {
-		halloc_init();
-	}
+	vmm_init();
+	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
 
 	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
@@ -1428,7 +1427,7 @@ main(int argc, char **argv)
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
 	settings_init();
-	set_library_debug(GNET_PROPERTY(lib_debug));
+	vmm_malloc_inited();	/* after settings_init() */
 	map_test();				/* after settings_init() */
 	ipp_cache_load_all();	/* after settings_init() */
 	tls_global_init();

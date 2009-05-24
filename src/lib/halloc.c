@@ -28,10 +28,10 @@
  * @file
  *
  * Hashtable-tracked allocator. Small chunks are allocated via walloc(),
- * whereas large chunks are served via alloc_pages(). The interface
+ * whereas large chunks are served via vmm_alloc(). The interface
  * is the same as that of malloc()/free(). The hashtable keeps track of
  * the sizes which should gain a more compact memory layout and is
- * considered more cache-friendly. alloc_pages() may cause an overhead
+ * considered more cache-friendly. vmm_alloc() may cause an overhead
  * up to (pagesize - 1) per allocation. The advantage is that the pages
  * will be unmapped on hfree().
  *
@@ -68,8 +68,6 @@ RCSID("$Id$")
 
 static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */
-
-#if defined(USE_HALLOC)
 
 static int use_page_table;
 static page_table_t *pt_pages;
@@ -120,11 +118,11 @@ hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
 }
 
 static void
-hdestroy_hash_table_item(void *key, void *value, void *unused_udata)
+hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	RUNTIME_ASSERT((size_t) value > 0);
-	hfree(key);
+	hfree(deconstify_gpointer(key));
 }
 
 static inline void
@@ -169,6 +167,7 @@ void *
 halloc(size_t size)
 {
 	void *p;
+	size_t allocated;
 
 	if (0 == size)
 		return NULL;
@@ -176,17 +175,19 @@ halloc(size_t size)
 	if (size < page_threshold) {
 		union align *head;
 
-		head = walloc(size + sizeof head[0]);
+		allocated = size + sizeof head[0];
+		head = walloc(allocated);
 		head->size = size;
 		p = &head[1];
 	} else {
 		int inserted;
 
-		p = vmm_alloc(size);
-		inserted = page_insert(p, size);
+		allocated = round_pagesize(size);
+		p = vmm_alloc(allocated);
+		inserted = page_insert(p, allocated);
 		RUNTIME_ASSERT(inserted);
 	}
-	bytes_allocated += size;
+	bytes_allocated += allocated;
 	chunks_allocated++;
 	return p;
 }
@@ -211,6 +212,7 @@ void
 hfree(void *p)
 {
 	size_t size;
+	size_t allocated;
 
 	if (NULL == p)
 		return;
@@ -222,12 +224,14 @@ hfree(void *p)
 		union align *head = p;
 
 		head--;
-		wfree(head, size + sizeof(union align));
+		allocated = size + sizeof(union align);
+		wfree(head, allocated);
 	} else {
+		allocated = size;
 		page_remove(p);
 		vmm_free(p, size);
 	}
-	bytes_allocated -= size;
+	bytes_allocated -= allocated;
 	chunks_allocated--;
 }
 
@@ -256,6 +260,9 @@ hrealloc(void *old, size_t new_size)
 	if (old_size >= new_size && old_size / 2 < new_size)
 		return old;
 
+	if (new_size >= page_threshold && round_pagesize(new_size) == old_size)
+		return old;
+
 	p = halloc(new_size);
 	RUNTIME_ASSERT(NULL != p);
 
@@ -273,6 +280,8 @@ hdestroy(void)
 {
 	page_destroy();
 }
+
+#ifdef USE_HALLOC
 
 gpointer
 gm_malloc(gsize size)
@@ -320,6 +329,15 @@ halloc_init_vtable(void)
 	static GMemVTable vtable;
 
 #if GLIB_CHECK_VERSION(2,0,0)
+	{
+		/* NOTE: This string is not read-only because it will be overwritten
+		 *		 by gm_setproctitle() as it becomes part of the environment.
+		 *	     This happens at least on some Linux systems.
+		 */
+		static char variable[] = "G_SLICE=always-malloc";
+		putenv(variable);
+	}
+	
 	vtable.malloc = gm_malloc;
 	vtable.realloc = gm_realloc;
 	vtable.free = gm_free;
@@ -334,25 +352,23 @@ halloc_init_vtable(void)
 	halloc_glib12_check();
 }
 
+#else	/* !USE_HALLOC */
+
+static void
+halloc_init_vtable(void)
+{
+}
+
+#endif	/* USE_HALLOC */
+
 void
-halloc_init(void)
+halloc_init(gboolean replace_malloc)
 {
 	static int initialized;
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
 
-#if GLIB_CHECK_VERSION(2,0,0)
-	{
-		/* NOTE: This string is not read-only because it will be overwritten
-		 *		 by gm_setproctitle() as it becomes part of the environment.
-		 *	     This happens at least on some Linux systems.
-		 */
-		static char variable[] = "G_SLICE=always-malloc";
-		putenv(variable);
-	}
-#endif	/* GLib >= 2.0 */
-	
 	use_page_table = (size_t)-1 == (guint32)-1 && compat_pagesize() == 4096;
 	page_threshold = compat_pagesize() - sizeof(union align);
 
@@ -361,24 +377,10 @@ halloc_init(void)
 	} else {
 		ht_pages = hash_table_new();
 	}
-	halloc_init_vtable();
+
+	if (replace_malloc)
+		halloc_init_vtable();
 }
-
-#else	/* !USE_HALLOC */
-
-void
-halloc_init(void)
-{
-	/* NOTHING */
-}
-
-void
-hdestroy(void)
-{
-	/* NOTHING */
-}
-
-#endif	/* USE_HALLOC */
 
 size_t
 halloc_bytes_allocated(void)

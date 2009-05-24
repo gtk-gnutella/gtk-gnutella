@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, Raphael Manfredi
+ * Copyright (c) 2006, 2009 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,9 +30,10 @@
  *
  * Virtual memory management.
  *
- * @author Raphael Manfredi
  * @author Christian Biere
  * @date 2006
+ * @author Raphael Manfredi
+ * @date 2006, 2009
  */
 
 #ifndef _vmm_h_
@@ -45,9 +46,12 @@ size_t compat_pagesize(void);
 void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
-size_t prune_page_cache(void);
 const char *prot_strdup(const char *s);
 const void *vmm_trap_page(void);
+
+void set_vmm_debug(guint32 level);
+void vmm_init(void);
+void vmm_malloc_inited(void);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

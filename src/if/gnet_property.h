@@ -388,6 +388,7 @@ typedef enum {
     PROP_PALLOC_DEBUG,
     PROP_RXBUF_DEBUG,
     PROP_ZALLOC_ALWAYS_GC,
+    PROP_VMM_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
