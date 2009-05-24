@@ -209,19 +209,18 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
 }
 
 hash_table_t *
-hash_table_new(void)
+hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
   hash_table_t *ht = malloc(sizeof *ht);
-  hash_table_new_intern(ht, 2, NULL, NULL);
+  RUNTIME_ASSERT(ht);
+  hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }
 
 hash_table_t *
-hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_new(void)
 {
-  hash_table_t *ht = malloc(sizeof *ht);
-  hash_table_new_intern(ht, 2, hash, eq);
-  return ht;
+  return hash_table_new_full(NULL, NULL);
 }
 
 /**
@@ -563,19 +562,18 @@ hash_table_destroy(hash_table_t *ht)
 #undef free
 
 hash_table_t *
-hash_table_new_real(void)
+hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 {
   hash_table_t *ht = malloc(sizeof *ht);
-  hash_table_new_intern(ht, 2, NULL, NULL);
+  RUNTIME_ASSERT(ht);
+  hash_table_new_intern(ht, 2, hash, eq);
   return ht;
 }
 
 hash_table_t *
-hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_new_real(void)
 {
-  hash_table_t *ht = malloc(sizeof *ht);
-  hash_table_new_intern(ht, 2, hash, eq);
-  return ht;
+  return hash_table_new_full_real(NULL, NULL);
 }
 
 void

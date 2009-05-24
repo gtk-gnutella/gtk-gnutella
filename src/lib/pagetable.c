@@ -67,6 +67,7 @@ page_table_new(void)
 	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
 	tab = malloc(sizeof *tab);
+	g_assert(tab);
 	*tab = zero_page_table;
 	return tab;
 }

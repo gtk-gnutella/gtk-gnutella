@@ -217,7 +217,7 @@ struct block {
 	const char *file;
 	int line;
 	size_t size;
-	GSList *realloc;
+	GSList *reallocations;
 	guint8 owned;		/* Whether we allocated the block ourselves */
 };
 
@@ -1053,10 +1053,10 @@ real_malloc(size_t size)
 
 #endif /* MALLOC_SAFE */
 
-	block_clear_dead(o, size);
-
 	if (o == NULL)
 		g_error("unable to allocate %lu bytes", (gulong) size);
+
+	block_clear_dead(o, size);
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	if (!hash_table_insert(reals, o, ulong_to_pointer(size))) {
@@ -1307,9 +1307,9 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 
 	leak_add(leaksort, b->size, b->file, b->line);
 
-	if (b->realloc) {
-		struct block *r = b->realloc->data;
-		guint cnt = g_slist_length(b->realloc);
+	if (b->reallocations) {
+		struct block *r = b->reallocations->data;
+		guint cnt = g_slist_length(b->reallocations);
 
 		g_warning("   (realloc'ed %u time%s, lastly from \"%s:%d\")",
 			cnt, cnt == 1 ? "" : "s", r->file, r->line);
@@ -1394,7 +1394,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	b->file = short_filename(deconstify_gpointer(file));
 	b->line = line;
 	b->size = sz;
-	b->realloc = NULL;
+	b->reallocations = NULL;
 	b->owned = owned;
 
 	/**
@@ -1619,12 +1619,12 @@ free_record(gconstpointer o, const char *file, int line)
 	hash_table_remove(blocks, o);
 	hash_table_remove(not_leaking, o);
 
-	for (l = b->realloc; l; l = g_slist_next(l)) {
+	for (l = b->reallocations; l; l = g_slist_next(l)) {
 		struct block *r = l->data;
-		g_assert(r->realloc == NULL);
+		g_assert(r->reallocations == NULL);
 		real_free(r);
 	}
-	g_slist_free(b->realloc);
+	g_slist_free(b->reallocations);
 
 	real_free(b);
 	return owned;
@@ -1699,9 +1699,9 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 	r->file = short_filename(deconstify_gpointer(file));
 	r->line = line;
 	r->size = b->size;			/* Previous size before realloc */
-	r->realloc = NULL;
+	r->reallocations = NULL;
 
-	b->realloc = g_slist_prepend(b->realloc, r);	/* Last realloc at head */
+	b->reallocations = g_slist_prepend(b->reallocations, r); /* Last realloc at head */
 	b->size = size;
 
 	if (n != o) {
@@ -1895,13 +1895,22 @@ m_strconcatv(const char *s, va_list args)
 
 	size = strlen(s) + 1;
 	res = malloc(size);
+	if (NULL == res)
+		g_error("out of memory");
+
 	memcpy(res, s, size);
 
 	while ((add = va_arg(args, char *))) {
 		size_t len = strlen(add);
-		res = realloc(res, size + len);
-		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
-		size += len;
+
+		if (len > 0) {
+			res = realloc(res, size + len);
+			if (NULL == res)
+				g_error("out of memory");
+
+			memcpy(&res[size - 1], add, len + 1);	/* Includes trailing NULL */
+			size += len;
+		}
 	}
 
 	return res;
@@ -2448,21 +2457,19 @@ string_str_track(GString *s, char *old, size_t osize,
 	 */
 
 #ifdef MALLOC_VTABLE
-	if (!vtable_works) {
+	if (!vtable_works)
 #endif
+   	{
 
-	size_t size = string_allocated_length(s);
+		size_t size = string_allocated_length(s);
 
-	if (s->str != old) {
-		free_record(old, file, line);
-		malloc_record(s->str, size, FALSE, file, line);
-	} else if (size != osize) {
-		realloc_record(s->str, s->str, size, file, line);
+		if (s->str != old) {
+			free_record(old, file, line);
+			malloc_record(s->str, size, FALSE, file, line);
+		} else if (size != osize) {
+			realloc_record(s->str, s->str, size, file, line);
+		}
 	}
-
-#ifdef MALLOC_VTABLE
-	}
-#endif
 
 	return s;
 }
@@ -2649,7 +2656,8 @@ struct leak_set {
 /**
  * Initialize the leak accumulator by "file:line"
  */
-gpointer leak_init(void)
+gpointer
+leak_init(void)
 {
 	struct leak_set *ls;
 

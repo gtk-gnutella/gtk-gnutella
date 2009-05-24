@@ -613,6 +613,8 @@ zn_extend(zone_t *zone)
 	struct subzone *sz;		/* New sub-zone */
 
 	sz = malloc(sizeof *sz);
+	if (NULL == sz)
+		g_error("out of memory");
 
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 
@@ -673,6 +675,8 @@ zcreate(size_t size, unsigned hint)
 	zone_t *zone;			/* Zone descriptor */
 
 	zone = malloc(sizeof *zone);
+	if (NULL == zone)
+		g_error("out of memory");
 
 	zn_create(zone, size, hint);
 
@@ -1126,10 +1130,16 @@ zgc_allocate(zone_t *zone)
 	}
 
 	zg = malloc(sizeof *zg);
+	if (NULL == zg)
+		g_error("out of memory");
+
 	zone->zn_gc = zg;
 
 	zg->zg_zones = zone->zn_subzones;
 	zg->zg_subzinfo = malloc(zg->zg_zones * sizeof(struct subzinfo));
+	if (NULL == zg->zg_subzinfo)
+		g_error("out of memory");
+
 	zg->zg_zone_freed = 0;
 	zg->zg_start = tm_time();
 	zg->zg_free = 0;
@@ -1228,6 +1238,9 @@ zgc_extend(zone_t *zone)
 
 	zg->zg_zones++;
 	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(struct subzinfo));
+	if (NULL == array)
+		g_error("out of memory");
+
 	zg->zg_subzinfo = array;
 
 	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);

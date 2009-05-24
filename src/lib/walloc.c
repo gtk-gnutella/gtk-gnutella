@@ -129,8 +129,13 @@ walloc(size_t size)
 
 	g_assert(size_is_positive(size));
 
-	if (rounded > WALLOC_MAX)
-		return malloc(size);		/* Too big for efficient zalloc() */
+	if (rounded > WALLOC_MAX) {
+		void *p = malloc(size);		/* Too big for efficient zalloc() */
+		if (NULL == p)
+			g_error("out of memory");
+
+		return p;
+	}
 
 	idx = wzone_index(rounded);
 
@@ -254,12 +259,18 @@ walloc_track(size_t size, char *file, int line)
 
 	g_assert(size > 0);
 
-	if (rounded > WALLOC_MAX)
+	if (rounded > WALLOC_MAX) {
+		void *p = 
 #ifdef TRACK_MALLOC
-		return malloc_track(size, file, line);
+			malloc_track(size, file, line);
 #else
-		return malloc(size);		/* Too big for efficient zalloc() */
+			malloc(size);		/* Too big for efficient zalloc() */
 #endif
+			if (NULL == p)
+				g_error("out of memory");
+
+			return p;
+	}
 
 	idx = rounded / ZALLOC_ALIGNBYTES;
 
