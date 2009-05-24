@@ -471,6 +471,17 @@ vpc_insert(struct page_cache *pc, void *p)
 	 */
 
 	if (pages != pc->pages) {
+		if (vmm_debugging(2)) {
+			g_message("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
+				"%luKiB region [0x%lx, 0x%lx] (recursing)",
+				(unsigned long) (pc->chunksize / 1024),
+				(unsigned long) p,
+				(unsigned long) ptr_add_offset(p, pc->chunksize - 1),
+				(unsigned long) (pages * compat_pagesize() / 1024),
+				(unsigned long) base,
+				(unsigned long) ptr_add_offset(base,
+					pages * compat_pagesize() - 1));
+		}
 		page_cache_insert_pages(base, pages);
 		return;
 	}
