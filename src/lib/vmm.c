@@ -347,6 +347,7 @@ vpc_lookup(const struct page_cache *pc, const char *p, gboolean match)
 static inline void
 vpc_delete_slot(struct page_cache *pc, size_t idx)
 {
+	g_assert(size_is_positive(pc->current));
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 
 	pc->current--;
@@ -377,6 +378,7 @@ vpc_free(struct page_cache *pc, size_t idx)
 {
 	void *p;
 
+	g_assert(size_is_positive(pc->current));
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 
 	p = pc->info[idx].base;
@@ -400,6 +402,9 @@ vpc_insert(struct page_cache *pc, void *p)
 	size_t idx;
 	void *base = p;
 	size_t pages = pc->pages;
+
+	g_assert(size_is_non_negative(pc->current) &&
+		pc->current <= VMM_CACHE_SIZE);
 
 	idx = vpc_lookup(pc, p, FALSE);
 
@@ -478,10 +483,12 @@ insert:
 
 	if (VMM_CACHE_SIZE == pc->current) {
 		vpc_free(pc, VMM_CACHE_SIZE - 1);
-		if (idx == VMM_CACHE_SIZE - 1) {
+		if (idx == VMM_CACHE_SIZE)
 			idx--;
-		}
 	}
+
+	g_assert(size_is_non_negative(pc->current) && pc->current < VMM_CACHE_SIZE);
+	g_assert(size_is_non_negative(idx) && idx < VMM_CACHE_SIZE);
 
 	if (idx < pc->current) {
 		memmove(&pc->info[idx + 1], &pc->info[idx],
@@ -580,18 +587,29 @@ found:
 /**
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
+ * To avoid excessive virtual memory space fragmentation, we refuse to split
+ * the pages in the highest-order cache line, unless explicitly told to do so
+ * via ``split_highest''.
+ *
  * @return a pointer to the start of the memory region, NULL if we were
  * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n)
+page_cache_find_pages(size_t n, gboolean split_highest)
 {
 	void *p;
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
 
+	if (split_highest && vmm_debugging(0)) {
+		g_warning("VMM allocating %lu page%s with cache as last-resort",
+			(unsigned long) n, 1 == n ? "" : "s");
+	}
+
 	if (n >= VMM_CACHE_LINES) {
+		if (!split_highest)
+			return NULL;
 		pc = &page_cache[VMM_CACHE_LINES - 1];
 		p = vpc_find_pages(pc, n);
 	} else {
@@ -604,8 +622,9 @@ page_cache_find_pages(size_t n)
 
 		if (NULL == p) {
 			size_t i;
+			size_t max = VMM_CACHE_LINES - (split_highest ? 0 : 1);
 
-			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
+			for (i = n; i < max && NULL == p; i++) {
 				pc = &page_cache[i];
 				p = vpc_find_pages(pc, n);
 			}
@@ -678,14 +697,20 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 		for (j = MIN(first, VMM_CACHE_LINES - 1); j > 0; j--) {
 			struct page_cache *lopc = &page_cache[j - 1];
-			void *before = ptr_add_offset(base, -lopc->chunksize);
+			void *before;
 			size_t loidx;
 
+			if (0 == lopc->current)
+				continue;
+
+			before = ptr_add_offset(base, -lopc->chunksize);
 			loidx = vpc_lookup(lopc, before, TRUE);
+
 			if (loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					g_message("VMM iter #%lu, coalescing previous [0x%lx, 0x%lx] "
-						"from lower cache #%lu with [0x%lx, 0x%lx]",
+					g_message("VMM iter #%lu, coalescing previous "
+						"[0x%lx, 0x%lx] from lower cache #%lu "
+						"with [0x%lx, 0x%lx]",
 						(unsigned long) i, (unsigned long) before,
 						(unsigned long) ptr_add_offset(base, -1),
 						(unsigned long) lopc->pages - 1,
@@ -713,10 +738,15 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 	for (j = old_pages + 1; j <= VMM_CACHE_LINES - 1; j++) {
 		struct page_cache *hopc = &page_cache[j - 1];
-		void *before = ptr_add_offset(base, -hopc->chunksize);
+		void *before;
 		size_t hoidx;
 
+		if (0 == hopc->current)
+			continue;
+
+		before = ptr_add_offset(base, -hopc->chunksize);
 		hoidx = vpc_lookup(hopc, before, TRUE);
+
 		if (hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
 				g_message("VMM coalescing previous [0x%lx, 0x%lx] "
@@ -747,6 +777,9 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		for (j = MIN(first, VMM_CACHE_LINES - 1); j > 0; j--) {
 			struct page_cache *lopc = &page_cache[j - 1];
 			size_t loidx;
+
+			if (0 == lopc->current)
+				continue;
 
 			loidx = vpc_lookup(lopc, end, TRUE);
 			if (loidx != (size_t) -1) {
@@ -780,6 +813,9 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	for (j = old_pages + 1; j <= VMM_CACHE_LINES - 1; j++) {
 		struct page_cache *hopc = &page_cache[j - 1];
 		size_t hoidx;
+
+		if (0 == hopc->current)
+			continue;
 
 		hoidx = vpc_lookup(hopc, end, TRUE);
 		if (hoidx != (size_t) -1) {
@@ -909,19 +945,25 @@ vmm_alloc(size_t size)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
-
-	if (p != NULL) {
-		vmm_validate_pages(p, size);
-		return p;
-	}
+	p = page_cache_find_pages(n, FALSE);
+	if (p != NULL)
+		goto validate;
 
 	p = alloc_pages(size);
+	if (p != NULL)
+		return p;
 
+	/*
+	 * Last chance, allow touching of highest-order pages.
+	 */
+
+	p = page_cache_find_pages(n, TRUE);
 	if (NULL == p)
 		g_error("cannot allocated %lu bytes: out of virtual memmory",
 			(unsigned long) size);
 
+validate:
+	vmm_validate_pages(p, size);
 	return p;
 }
 
@@ -941,21 +983,27 @@ vmm_alloc0(size_t size)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
-
-	if (p != NULL) {
-		vmm_validate_pages(p, size);
-		memset(p, 0, size);
-		return p;
-	}
+	p = page_cache_find_pages(n, FALSE);
+	if (p != NULL)
+		goto validate;
 
 	p = alloc_pages(size);
+	if (p != NULL)
+		return p;		/* Memory allocated by kernel is already zero-ed */
 
+	/*
+	 * Last chance, allow touching of highest-order pages.
+	 */
+
+	p = page_cache_find_pages(n, TRUE);
 	if (NULL == p)
 		g_error("cannot allocated %lu bytes: out of virtual memmory",
 			(unsigned long) size);
 
-	return p;		/* Memory allocated by kernel is already zero-ed */
+validate:
+	vmm_validate_pages(p, size);
+	memset(p, 0, size);
+	return p;
 }
 
 /**
