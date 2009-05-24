@@ -57,7 +57,7 @@ RCSID("$Id$")
 #include "override.h"		/* Must be the last header included */
 
 /*
- * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
+ * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
 #if defined(USE_HALLOC)
@@ -68,6 +68,8 @@ RCSID("$Id$")
 
 static size_t bytes_allocated;	/* Amount of bytes allocated */
 static size_t chunks_allocated;	/* Amount of chunks allocated */
+
+#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 
 static int use_page_table;
 static page_table_t *pt_pages;
@@ -281,6 +283,16 @@ hdestroy(void)
 	page_destroy();
 }
 
+#else	/* REMAP_ZALLOC || TRACK_MALLOC */
+
+void
+hdestroy(void)
+{
+	/* EMPTY */
+}
+
+#endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
+
 #ifdef USE_HALLOC
 
 gpointer
@@ -361,6 +373,8 @@ halloc_init_vtable(void)
 
 #endif	/* USE_HALLOC */
 
+#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
+
 void
 halloc_init(gboolean replace_malloc)
 {
@@ -381,6 +395,17 @@ halloc_init(gboolean replace_malloc)
 	if (replace_malloc)
 		halloc_init_vtable();
 }
+#else	/* REMAP_ZALLOC || TRACK_MALLOC
+
+void
+halloc_init(gboolean unused_replace_malloc)
+{
+	(void) unused_replace_malloc;
+
+	/* EMPTY */
+}
+
+#endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
 size_t
 halloc_bytes_allocated(void)
