@@ -395,7 +395,7 @@ halloc_init(gboolean replace_malloc)
 	if (replace_malloc)
 		halloc_init_vtable();
 }
-#else	/* REMAP_ZALLOC || TRACK_MALLOC
+#else	/* REMAP_ZALLOC || TRACK_MALLOC */
 
 void
 halloc_init(gboolean unused_replace_malloc)
