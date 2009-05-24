@@ -872,6 +872,11 @@ subzinfo_cmp(const void *a, const void *b)
 
 /**
  * Lookup subzone holding the block.
+ *
+ * If ``low_ptr'' is non-NULL, it is written with the index where insertion
+ * of a new item should happen (in which case the returned value must be NULL).
+ *
+ * @return a pointer to the found subzone information, NULL if not found.
  */
 static struct subzinfo *
 zgc_find_subzone(struct zone_gc *zg, gpointer blk, unsigned *low_ptr)
@@ -902,9 +907,9 @@ zgc_find_subzone(struct zone_gc *zg, gpointer blk, unsigned *low_ptr)
 			break;	/* Found */
 	}
 
-	if (*low_ptr) {
+	if (low_ptr != NULL)
 		*low_ptr = low;
-	}
+
 	return item;
 }
 
@@ -942,9 +947,14 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	if (1 == zone->zn_subzones)
 		return FALSE;
 
+	if (delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE) {
+		zg->zg_flags |= ZGC_SCAN_ALL;
+		return FALSE;
+	}
+
 	if (
-		zone->zn_blocks - zone->zn_cnt <= zone->zn_hint ||
-		delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE
+		zone->zn_blocks - zone->zn_cnt == zone->zn_hint &&
+		delta_time(tm_time(), szi->szi_sz->sz_ctime) < 5 * ZGC_SUBZONE_MINLIFE
 	) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
 		return FALSE;
@@ -1049,7 +1059,7 @@ found:
 		g_assert(i < zg->zg_zones);
 
 		memmove(&zg->zg_subzinfo[i], &zg->zg_subzinfo[i+1],
-			(zg->zg_zones - i) * sizeof(struct subzinfo));
+			(zg->zg_zones - i) * sizeof(zg->zg_subzinfo[0]));
 
 		if (zg->zg_free > i)
 			zg->zg_free = i;
@@ -1136,7 +1146,7 @@ zgc_allocate(zone_t *zone)
 	zone->zn_gc = zg;
 
 	zg->zg_zones = zone->zn_subzones;
-	zg->zg_subzinfo = malloc(zg->zg_zones * sizeof(struct subzinfo));
+	zg->zg_subzinfo = malloc(zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 	if (NULL == zg->zg_subzinfo)
 		g_error("out of memory");
 
@@ -1237,7 +1247,7 @@ zgc_extend(zone_t *zone)
 	 */
 
 	zg->zg_zones++;
-	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(struct subzinfo));
+	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
 	if (NULL == array)
 		g_error("out of memory");
 
@@ -1247,7 +1257,7 @@ zgc_extend(zone_t *zone)
 
 	if (low < zg->zg_zones - 1) {
 		memmove(&array[low+1], &array[low],
-			sizeof(struct subzinfo) * (zg->zg_zones - 1 - low));
+			sizeof(zg->zg_subzinfo[0]) * (zg->zg_zones - 1 - low));
 	}
 
 	szi = &array[low];
