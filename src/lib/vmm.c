@@ -269,8 +269,8 @@ alloc_pages(size_t size)
 	}
 
 	if (vmm_debugging(5)) {
-		g_message("VMM allocated %uKiB region at 0x%lx",
-			(unsigned) size / 1024, (unsigned long) p);
+		g_message("VMM allocated %luKiB region at 0x%lx",
+			(unsigned long) size / 1024, (unsigned long) p);
 	}
 
 	return p;
@@ -283,8 +283,8 @@ static void
 free_pages(void *p, size_t size)
 {
 	if (vmm_debugging(5)) {
-		g_message("VMM freeing %uKiB region at 0x%lx",
-			(unsigned) size / 1024, (unsigned long) p);
+		g_message("VMM freeing %luKiB region at 0x%lx",
+			(unsigned long) size / 1024, (unsigned long) p);
 	}
 
 #if defined(HAS_MMAP)
@@ -314,15 +314,15 @@ free_pages(void *p, size_t size)
  * -1 if not found.
  */
 static size_t
-vpc_lookup(const struct page_cache *pc, void *p, gboolean match)
+vpc_lookup(const struct page_cache *pc, const char *p, gboolean match)
 {
-	unsigned low = 0, high = pc->current - 1;
+	size_t low = 0, high = pc->current - 1;
 
 	/* Binary search */
 
-	while (low <= high && uint_is_non_negative(high)) {
-		unsigned mid = low + (high - low) / 2;
-		void *item;
+	while (low <= high && size_is_non_negative(high)) {
+		size_t mid = low + (high - low) / 2;
+		const char *item;
 
 		g_assert(mid < pc->current);
 
@@ -424,9 +424,9 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if (after == p) {
 			if (vmm_debugging(6)) {
-				g_message("VMM page cache #%u: "
+				g_message("VMM page cache #%lu: "
 					"coalescing previous [0x%lx, 0x%lx] with [0x%lx, 0x%lx]",
-					pc->pages - 1, (unsigned long) before,
+					(unsigned long) pc->pages - 1, (unsigned long) before,
 					(unsigned long) ptr_add_offset(after, -1),
 					(unsigned long) p,
 					(unsigned long) ptr_add_offset(p, pc->chunksize - 1));
@@ -448,9 +448,9 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if (next == end) {
 			if (vmm_debugging(6)) {
-				g_message("VMM page cache #%u: "
+				g_message("VMM page cache #%lu: "
 					"coalescing [0x%lx, 0x%lx] with next [0x%lx, 0x%lx]",
-					pc->pages - 1, (unsigned long) base,
+					(unsigned long) pc->pages - 1, (unsigned long) base,
 					(unsigned long) ptr_add_offset(end, -1),
 					(unsigned long) next,
 					(unsigned long) ptr_add_offset(next, pc->chunksize - 1));
@@ -465,8 +465,10 @@ vpc_insert(struct page_cache *pc, void *p)
 	 * Otherwise, insertion is happening before ``idx''.
 	 */
 
-	if (pages != pc->pages)
-		return page_cache_insert_pages(base, pages);
+	if (pages != pc->pages) {
+		page_cache_insert_pages(base, pages);
+		return;
+	}
 
 insert:
 
@@ -491,12 +493,12 @@ insert:
 	pc->info[idx].stamp = tm_time();
 
 	if (vmm_debugging(4)) {
-		g_message("VMM page cache #%u: inserted [0x%lx, 0x%lx] %uKiB, "
-			"now holds %u item%s",
-			pc->pages - 1, (unsigned long) base,
+		g_message("VMM page cache #%lu: inserted [0x%lx, 0x%lx] %luKiB, "
+			"now holds %lu item%s",
+			(unsigned long) pc->pages - 1, (unsigned long) base,
 			(unsigned long) ptr_add_offset(base, pc->chunksize - 1),
-			(unsigned) pc->chunksize / 1024, pc->current,
-			1 == pc->current ? "" : "s");
+			(unsigned long) pc->chunksize / 1024,
+			(unsigned long) pc->current, 1 == pc->current ? "" : "s");
 	}
 }
 
@@ -508,12 +510,9 @@ insert:
 static void *
 vpc_find_pages(struct page_cache *pc, size_t n)
 {
-	size_t i;
 	size_t total = 0;
 	size_t begin_idx = 0;
-	void *base;
-	void *end;
-	char *p;
+	void *base, *end;
 
 	if (0 == pc->current)
 		return NULL;
@@ -530,6 +529,8 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 	 */
 
 	if (total < n) {
+		size_t i;
+
 		for (i = 1; i < pc->current; i++) {
 			void *start = pc->info[i].base;
 
@@ -553,9 +554,14 @@ found:
 	/*
 	 * Remove the entries from the cache.
 	 */
+	{
+		char *p = base;
+		size_t i;
 
-	 for (i = 0, p = base; i < total; i += pc->pages, p += pc->chunksize) {
-		vpc_remove(pc, p);
+		for (i = 0; i < total; i += pc->pages) {
+			vpc_remove(pc, p);
+			p += pc->chunksize;
+		}
 	}
 	 
 	/*
@@ -607,9 +613,10 @@ page_cache_find_pages(size_t n)
 	}
 
 	if (p != NULL && vmm_debugging(5)) {
-		g_message("VMM found %uKiB region at 0x%lx in cache #%u%s",
-			(unsigned) (n * compat_pagesize() / 1024),
-			(unsigned long) p, pc->pages - 1,
+		g_message("VMM found %luKiB region at 0x%lx in cache #%lu%s",
+			(unsigned long) (n * compat_pagesize() / 1024),
+			(unsigned long) p,
+			(unsigned long) pc->pages - 1,
 			pc->pages == n ? "" : " (split)");
 	}
 
@@ -677,11 +684,11 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			loidx = vpc_lookup(lopc, before, TRUE);
 			if (loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					g_message("VMM iter #%u, coalescing previous [0x%lx, 0x%lx] "
-						"from lower cache #%u with [0x%lx, 0x%lx]",
-						(unsigned) i, (unsigned long) before,
+					g_message("VMM iter #%lu, coalescing previous [0x%lx, 0x%lx] "
+						"from lower cache #%lu with [0x%lx, 0x%lx]",
+						(unsigned long) i, (unsigned long) before,
 						(unsigned long) ptr_add_offset(base, -1),
-						lopc->pages - 1,
+						(unsigned long) lopc->pages - 1,
 						(unsigned long) base,
 						(unsigned long) ptr_add_offset(base,
 							pages * compat_pagesize() - 1));
@@ -713,9 +720,10 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
 				g_message("VMM coalescing previous [0x%lx, 0x%lx] "
-					"from higher cache #%u with [0x%lx, 0x%lx]",
+					"from higher cache #%lu with [0x%lx, 0x%lx]",
 					(unsigned long) before,
-					(unsigned long) ptr_add_offset(base, -1), hopc->pages - 1,
+					(unsigned long) ptr_add_offset(base, -1),
+					(unsigned long) hopc->pages - 1,
 					(unsigned long) base,
 					(unsigned long) ptr_add_offset(base,
 						pages * compat_pagesize() - 1));
@@ -743,12 +751,12 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			loidx = vpc_lookup(lopc, end, TRUE);
 			if (loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					g_message("VMM iter #%u, coalescing next [0x%lx, 0x%lx] "
-						"from lower cache #%u with [0x%lx, 0x%lx]",
-						(unsigned) i, (unsigned long) end,
+					g_message("VMM iter #%lu, coalescing next [0x%lx, 0x%lx] "
+						"from lower cache #%lu with [0x%lx, 0x%lx]",
+						(unsigned long) i, (unsigned long) end,
 						(unsigned long) ptr_add_offset(end,
 							lopc->chunksize - 1),
-						lopc->pages - 1, (unsigned long) base,
+						(unsigned long) lopc->pages - 1, (unsigned long) base,
 						(unsigned long) ptr_add_offset(end, -1));
 				}
 				pages += lopc->pages;
@@ -777,10 +785,11 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
 				g_message("VMM coalescing next [0x%lx, 0x%lx] "
-					"from higher cache #%u with [0x%lx, 0x%lx]",
+					"from higher cache #%lu with [0x%lx, 0x%lx]",
 					(unsigned long) end,
 					(unsigned long) ptr_add_offset(end, hopc->chunksize - 1),
-					hopc->pages - 1, (unsigned long) base,
+					(unsigned long) hopc->pages - 1,
+					(unsigned long) base,
 					(unsigned long) ptr_add_offset(end, -1));
 			}
 			pages += hopc->pages;
@@ -791,13 +800,13 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 	if (pages != old_pages) {
 		if (vmm_debugging(2)) {
-			g_message("VMM coalesced %uKiB region [0x%lx, 0x%lx] into "
-				"%uKiB region [0x%lx, 0x%lx]",
-				(unsigned) (old_pages * compat_pagesize() / 1024),
+			g_message("VMM coalesced %luKiB region [0x%lx, 0x%lx] into "
+				"%luKiB region [0x%lx, 0x%lx]",
+				(unsigned long) (old_pages * compat_pagesize() / 1024),
 				(unsigned long) *base_ptr,
 				(unsigned long) ptr_add_offset(*base_ptr,
 					old_pages * compat_pagesize() - 1),
-				(unsigned) (pages * compat_pagesize() / 1024),
+				(unsigned long) (pages * compat_pagesize() / 1024),
 				(unsigned long) base,
 				(unsigned long) ptr_add_offset(base,
 					pages * compat_pagesize() - 1));
@@ -910,8 +919,8 @@ vmm_alloc(size_t size)
 	p = alloc_pages(size);
 
 	if (NULL == p)
-		g_error("cannot allocated %u bytes: out of virtual memmory",
-			(unsigned) size);
+		g_error("cannot allocated %lu bytes: out of virtual memmory",
+			(unsigned long) size);
 
 	return p;
 }
@@ -943,8 +952,8 @@ vmm_alloc0(size_t size)
 	p = alloc_pages(size);
 
 	if (NULL == p)
-		g_error("cannot allocated %u bytes: out of virtual memmory",
-			(unsigned) size);
+		g_error("cannot allocated %lu bytes: out of virtual memmory",
+			(unsigned long) size);
 
 	return p;		/* Memory allocated by kernel is already zero-ed */
 }
@@ -983,8 +992,8 @@ vmm_free(void *p, size_t size)
 static gboolean
 page_cache_timer(gpointer unused_udata)
 {
-	time_t now = tm_time();
 	static size_t line;
+	time_t now = tm_time();
 	struct page_cache *pc;
 	size_t i;
 	size_t expired = 0;
@@ -997,8 +1006,9 @@ page_cache_timer(gpointer unused_udata)
 	pc = &page_cache[line];
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
-		g_message("VMM scanning page cache #%u (%u item%s)",
-			line, (unsigned) pc->current, 1 == pc->current ? "" : "s");
+		g_message("VMM scanning page cache #%lu (%lu item%s)",
+			(unsigned long) line,
+			(unsigned long) pc->current, 1 == pc->current ? "" : "s");
 	}
 
 	for (i = 0; i < pc->current; /* empty */) {
@@ -1012,11 +1022,12 @@ page_cache_timer(gpointer unused_udata)
 	}
 
 	if (expired > 0 && vmm_debugging(1)) {
-		g_message("VMM expired %u item%s (%uKiB total) from "
-			"page cache #%u (%u item%s remaining)",
-			(unsigned) expired, 1 == expired ? "" : "s",
-			(unsigned) (expired * pc->chunksize / 1024),
-			line, pc->current, 1 == pc->current ? "" : "s");
+		g_message("VMM expired %lu item%s (%luKiB total) from "
+			"page cache #%lu (%lu item%s remaining)",
+			(unsigned long) expired, 1 == expired ? "" : "s",
+			(unsigned long) (expired * pc->chunksize / 1024),
+			(unsigned long) line,
+			(unsigned long) pc->current, 1 == pc->current ? "" : "s");
 	}
 
 	line++;			/* For next time */
@@ -1090,8 +1101,8 @@ vmm_malloc_inited(void)
 	safe_to_malloc = TRUE;
 
 	if (debugging(0) || vmm_debugging(0)) {
-		g_message("VMM using %u bytes for the page cache",
-			(unsigned) sizeof page_cache);
+		g_message("VMM using %lu bytes for the page cache",
+			(unsigned long) sizeof page_cache);
 	}
 
 	cq_periodic_add(callout_queue, 1000, page_cache_timer, NULL);
