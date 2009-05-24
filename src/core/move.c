@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -159,7 +160,7 @@ d_free(gpointer ctx)
 		close(md->wd);
 		md->wd = -1;
 	}
-	G_FREE_NULL(md->buffer);
+	HFREE_NULL(md->buffer);
 	md->magic = 0;
 	wfree(md, sizeof(*md));
 }
@@ -448,7 +449,7 @@ move_init(void)
 	md->magic = MOVED_MAGIC;
 	md->rd = -1;
 	md->wd = -1;
-	md->buffer = g_malloc(COPY_BUF_SIZE);
+	md->buffer = halloc(COPY_BUF_SIZE);
 	md->target = NULL;
 
 	move_daemon = bg_daemon_create("file moving",

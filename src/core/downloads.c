@@ -90,6 +90,7 @@
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -12370,7 +12371,7 @@ download_retrieve_magnets(FILE *f)
 		gboolean truncated = FALSE;
 		guint line = 0;
 
-		buffer = g_malloc(buffer_size);
+		buffer = halloc(buffer_size);
 		while (fgets(buffer, buffer_size, f)) {
 			char *endptr;
 
@@ -12417,7 +12418,7 @@ download_retrieve_magnets(FILE *f)
 			}
 		}
 	}
-	G_FREE_NULL(buffer);
+	HFREE_NULL(buffer);
 	return !expect_old_format;
 }
 

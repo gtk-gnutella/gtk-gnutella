@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/bg.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/file.h"
 #include "lib/tigertree.h"
@@ -127,7 +128,7 @@ verify_tth_init(void)
 	if (!initialized) {
 		initialized = TRUE;
 
-		verify_tth.context = g_malloc(tt_size());
+		verify_tth.context = halloc(tt_size());
 		verify_tth.verify = verify_new(&verify_hash_tth);
 	}
 }
@@ -139,7 +140,7 @@ void
 verify_tth_close(void)
 {
 	verify_free(&verify_tth.verify);
-	G_FREE_NULL(verify_tth.context);
+	HFREE_NULL(verify_tth.context);
 }
 
 static gboolean 

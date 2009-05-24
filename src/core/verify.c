@@ -45,6 +45,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/file.h"
 #include "lib/tm.h"
@@ -295,7 +296,7 @@ verify_new(const struct verify_hash *hash)
 	*ctx = zero_ctx;
 	ctx->magic = VERIFY_MAGIC;
 	ctx->buffer_size = HASH_BUF_SIZE;
-	ctx->buffer = g_malloc(ctx->buffer_size);
+	ctx->buffer = halloc(ctx->buffer_size);
 	ctx->hash = *hash;
 	ctx->files_to_hash = hash_list_new(verify_item_hash, verify_item_equal);
 	return ctx;
@@ -326,7 +327,7 @@ verify_free(struct verify **ptr)
 			hash_list_free(&ctx->files_to_hash);
 		}
 		file_object_release(&ctx->file);
-		G_FREE_NULL(ctx->buffer);
+		HFREE_NULL(ctx->buffer);
 		ctx->magic = 0;
 		wfree(ctx, sizeof *ctx);
 		*ptr = NULL;

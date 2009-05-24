@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/endian.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
@@ -6098,7 +6099,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 
 	g_assert(count > 0);		/* Or there would be nothing to emit */
 
-	fc_ary = g_malloc(count * sizeof fc_ary[0]);
+	fc_ary = halloc(count * sizeof fc_ary[0]);
 
 	for (i = 0, sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
 		const struct dl_file_chunk *fc = sl->data;
@@ -6140,7 +6141,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 				(nleft - j - 1) * sizeof fc_ary[0]);
 	}
 
-	G_FREE_NULL(fc_ary);
+	HFREE_NULL(fc_ary);
 
 emit:
 	rw = 0;
