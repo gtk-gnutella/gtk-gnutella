@@ -1023,9 +1023,21 @@ vmm_free(void *p, size_t size)
 		n = pagecount_fast(size);
 		RUNTIME_ASSERT(n >= 1);
 
-		vmm_invalidate_pages(p, size);
-		page_cache_coalesce_pages(&p, &n);
-		page_cache_insert_pages(p, n);
+		/*
+		 * Memory regions that are larger than our highest-order cache
+		 * are allocated and freed as-is, and never broken into smaller
+		 * pages.  The purpose is to avoid excessive virtual memory space
+		 * fragmentation, leading at some point to the unability for the
+		 * kernel to find a large consecutive virtual memory region.
+		 */
+
+		if (n <= VMM_CACHE_LINES) {
+			vmm_invalidate_pages(p, size);
+			page_cache_coalesce_pages(&p, &n);
+			page_cache_insert_pages(p, n);
+		} else {
+			free_pages(p, size);
+		}
 	}
 }
 
