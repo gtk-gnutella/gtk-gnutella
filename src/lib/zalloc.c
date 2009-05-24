@@ -640,7 +640,7 @@ zn_shrink(zone_t *zone)
 
 	if (zalloc_debug > 1) {
 		g_message("ZGC %u-byte zone 0x%lx shrunk: "
-			"freeing %u subzone%s of %uK (%u blocks each)",
+			"freeing %u subzone%s of %uKiB (%u blocks each)",
 			(unsigned) zone->zn_size, (unsigned long) zone,
 			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
 			(unsigned) zone->zn_arena.sz_size / 1024, zone->zn_hint);
@@ -961,12 +961,12 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 				zone->zn_hint;
 			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
 			g_message("ZGC %u-byte zone 0x%lx: freeing first subzone "
-				"[0x%lx, 0x%lx] %uK, %u blocks, lifetime %s "
+				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
 				"(still has %u free block%s)",
 				(unsigned) zone->zn_size, (unsigned long) zone,
 				(unsigned long) szi->szi_base,
 				(unsigned long) szi->szi_end - 1,
-				(unsigned) (szi->szi_end - szi->szi_base) / 1024,
+				(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 				zone->zn_hint, compact_time(life),
 				free_blocks, 1 == free_blocks ? "" : "s");
 		}
@@ -987,12 +987,12 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 						zone->zn_hint;
 					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
 					g_message("ZGC %u-byte zone 0x%lx: freeing subzone #%u "
-						"[0x%lx, 0x%lx] %uK, %u blocks, lifetime %s "
+						"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s "
 						"(still has %u free block%s)",
 						(unsigned) zone->zn_size, (unsigned long) zone, n,
 						(unsigned long) szi->szi_base,
 						(unsigned long) szi->szi_end - 1,
-						(unsigned) (szi->szi_end - szi->szi_base) / 1024,
+						(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 						zone->zn_hint, compact_time(life),
 						free_blocks, 1 == free_blocks ? "" : "s");
 				}
