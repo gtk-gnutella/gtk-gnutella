@@ -1075,15 +1075,15 @@ real_malloc(size_t size)
 static void
 real_free(void *p)
 {
+	size_t size = 0;
+#ifdef TRACK_MALLOC
+	struct block *b = NULL;
+#endif
+
 #ifdef MALLOC_PERIODIC
 	if (need_periodic && NULL != callout_queue)
 		install_malloc_periodic();
 #endif
-
-#ifdef TRACK_MALLOC
-	struct block *b = NULL;
-#endif
-	size_t size = 0;
 
 	if (NULL == p)
 		return;
