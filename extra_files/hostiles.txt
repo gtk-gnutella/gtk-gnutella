@@ -1085,6 +1085,10 @@
 # Revelation Networks, Inc.
 # mislabeled pr0n; MOV
 207.246.192.0/20
+# Subrange of Yellow Fiber Networks
+# Danube Internaional SA, Miami, USA (moveclicks dot com)
+# 67.23.123.0/26
+67.23.112.0/20
 
 # Query-Cache-0.1; fake Ultrapeer; sniffing?
 # ZIP/MPG spammer; uses different source address
