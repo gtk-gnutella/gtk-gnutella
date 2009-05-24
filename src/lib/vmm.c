@@ -684,7 +684,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	size_t i, j;
 	void *base = *base_ptr;
 	size_t pages = *pages_ptr;
-	size_t old_pages = pages;
+	const size_t old_pages = pages;
 	void *end;
 
 	/*
@@ -693,10 +693,10 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 	for (i = 0; /* empty */; i++) {
 		gboolean coalesced = FALSE;
-		size_t first = old_pages - 1;
 
-		for (j = MIN(first, VMM_CACHE_LINES - 1); j > 0; j--) {
-			struct page_cache *lopc = &page_cache[j - 1];
+		j = MIN(old_pages, VMM_CACHE_LINES) - 1;
+		while (j-- > 0) {
+			struct page_cache *lopc = &page_cache[j];
 			void *before;
 			size_t loidx;
 
@@ -736,8 +736,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 * the ranges again).
 	 */
 
-	for (j = old_pages + 1; j <= VMM_CACHE_LINES - 1; j++) {
-		struct page_cache *hopc = &page_cache[j - 1];
+	for (j = old_pages; j < VMM_CACHE_LINES - 1; j++) {
+		struct page_cache *hopc = &page_cache[j];
 		void *before;
 		size_t hoidx;
 
@@ -772,10 +772,10 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 	for (i = 0; /* empty */; i++) {
 		gboolean coalesced = FALSE;
-		size_t first = old_pages - 1;
 
-		for (j = MIN(first, VMM_CACHE_LINES - 1); j > 0; j--) {
-			struct page_cache *lopc = &page_cache[j - 1];
+		j = MIN(old_pages, VMM_CACHE_LINES) - 1;
+		while (j-- > 0) {
+			struct page_cache *lopc = &page_cache[j];
 			size_t loidx;
 
 			if (0 == lopc->current)
@@ -810,8 +810,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 * the ranges again).
 	 */
 
-	for (j = old_pages + 1; j <= VMM_CACHE_LINES - 1; j++) {
-		struct page_cache *hopc = &page_cache[j - 1];
+	for (j = old_pages; j < VMM_CACHE_LINES - 1; j++) {
+		struct page_cache *hopc = &page_cache[j];
 		size_t hoidx;
 
 		if (0 == hopc->current)
