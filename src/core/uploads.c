@@ -88,6 +88,7 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/strtok.h"
@@ -956,7 +957,7 @@ upload_free_resources(struct upload *u)
 	}
 #endif /* USE_MMAP */
 
-	G_FREE_NULL(u->buffer);
+	HFREE_NULL(u->buffer);
 	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
 		g_assert(u->io_opaque == NULL);
@@ -4516,7 +4517,7 @@ upload_request(struct upload *u, header_t *header)
 
 		if (u->buffer == NULL) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = g_malloc(u->buf_size);
+			u->buffer = halloc(u->buf_size);
 		}
 	}
 
@@ -4649,7 +4650,7 @@ upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
 		 */
 		if (sendfile_failed && NULL == u->buffer) {
 			u->buf_size = READ_BUF_SIZE;
-			u->buffer = g_malloc(u->buf_size);
+			u->buffer = halloc(u->buf_size);
 		}
 
 		/*

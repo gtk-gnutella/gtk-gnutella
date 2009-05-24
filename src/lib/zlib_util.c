@@ -41,6 +41,7 @@ RCSID("$Id$")
 
 #include "zlib_util.h"
 #include "misc.h"
+#include "halloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -79,14 +80,14 @@ zlib_alloc_func(gpointer unused_opaque, guint n, guint m)
 	g_return_val_if_fail(m > 0, NULL);
 	g_return_val_if_fail(m < ((size_t) -1) / n, NULL);
 
-	return g_malloc((size_t) n * m);
+	return halloc((size_t) n * m);
 }
 
 void
 zlib_free_func(gpointer unused_opaque, gpointer p)
 {
 	(void) unused_opaque;
-	g_free(p);
+	hfree(p);
 }
 
 /**

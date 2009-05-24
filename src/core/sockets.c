@@ -75,6 +75,7 @@ RCSID("$Id$")
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -131,7 +132,7 @@ socket_alloc_buffer(struct gnutella_socket *s)
 
 	if (!s->buf) {
 		s->buf_size = SOCK_BUFSZ;
-		s->buf = g_malloc(s->buf_size);
+		s->buf = halloc(s->buf_size);
 	}
 }
 
@@ -143,7 +144,7 @@ socket_free_buffer(struct gnutella_socket *s)
 
 	if (s->buf) {
 		s->buf_size = 0;
-		G_FREE_NULL(s->buf);
+		HFREE_NULL(s->buf);
 	}
 }
 

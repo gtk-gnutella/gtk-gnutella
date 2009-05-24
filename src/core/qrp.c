@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/halloc.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -411,7 +412,7 @@ qrt_compact(struct routing_table *rt)
 	}
 
 	nsize = rt->slots / 8;
-	narena = g_malloc0(nsize);
+	narena = halloc0(nsize);
 	rt->set_count = 0;
 	q = (guchar *) narena + (nsize - 1);
 
@@ -444,7 +445,7 @@ qrt_compact(struct routing_table *rt)
 	 * Install new compacted arena in place of the non-compacted one.
 	 */
 
-	G_FREE_NULL(rt->arena);
+	HFREE_NULL(rt->arena);
 	rt->arena = (guchar *) narena;
 	rt->compacted = TRUE;
 
@@ -510,7 +511,7 @@ static void
 qrt_patch_free(struct routing_patch *rp)
 {
 	g_assert(ROUTING_PATCH_MAGIC == rp->magic);
-	G_FREE_NULL(rp->arena);
+	HFREE_NULL(rp->arena);
 	rp->magic = 0;
 	wfree(rp, sizeof *rp);
 }
@@ -562,7 +563,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	rp->len = rp->size / 2;			/* Each entry stored on 4 bits */
 	rp->entry_bits = 4;
 	rp->compressed = FALSE;
-	pp = rp->arena = g_malloc(rp->len);
+	pp = rp->arena = halloc(rp->len);
 
 	op = old ? old->arena : NULL;
 	np = new->arena;
@@ -693,9 +694,9 @@ qrt_step_compress(struct bgtask *h, gpointer u, int ticks)
 			struct routing_patch *rp = ctx->rp;
 
 			g_assert(ROUTING_PATCH_MAGIC == rp->magic);
-			G_FREE_NULL(rp->arena);
+			HFREE_NULL(rp->arena);
 			rp->len = zlib_deflater_outlen(ctx->zd);
-			rp->arena = g_memdup(zlib_deflater_out(ctx->zd), rp->len);
+			rp->arena = hcopy(zlib_deflater_out(ctx->zd), rp->len);
 			rp->compressed = TRUE;
 		}
 		zlib_deflater_free(ctx->zd, TRUE);
@@ -847,7 +848,7 @@ qrt_empty_table(const char *name)
 {
 	char *arena;
 
-	arena = g_malloc(EMPTY_TABLE_SIZE);
+	arena = halloc(EMPTY_TABLE_SIZE);
 	memset(arena, LOCAL_INFINITY, EMPTY_TABLE_SIZE);
 
 	return qrt_create(name, arena, EMPTY_TABLE_SIZE, LOCAL_INFINITY);
@@ -862,7 +863,7 @@ qrt_free(struct routing_table *rt)
 	g_assert(rt->refcnt == 0);
 
 	atom_sha1_free_null(&rt->digest);
-	G_FREE_NULL(rt->arena);
+	HFREE_NULL(rt->arena);
 	G_FREE_NULL(rt->name);
 
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
@@ -911,7 +912,7 @@ qrt_shrink_arena(char *arena, int old_slots, int new_slots, int inf_val)
 		arena[i] = set ? 0 : inf_val;
 	}
 
-	return g_realloc(arena, new_slots);
+	return hrealloc(arena, new_slots);
 }
 
 /**
@@ -1008,7 +1009,7 @@ merge_context_free(gpointer p)
 	}
 	g_slist_free(ctx->tables);
 
-	G_FREE_NULL(ctx->arena);
+	HFREE_NULL(ctx->arena);
 	ctx->magic = 0;
 	wfree(ctx, sizeof *ctx);
 }
@@ -1062,7 +1063,7 @@ mrg_step_get_list(struct bgtask *unused_h, gpointer u, int unused_ticks)
 
 	ctx->slots = max_size;
 	if (max_size > 0) {
-		ctx->arena = g_malloc(max_size);
+		ctx->arena = halloc(max_size);
 		memset(ctx->arena, LOCAL_INFINITY, max_size);
 	}
 
@@ -1260,7 +1261,7 @@ struct query_routing {
 
 static GHashTable *ht_seen_words;
 static struct {
-	char *arena;	/* g_malloc()ed */
+	char *arena;	/* halloc()ed */
 	int len;
 } buffer;
 
@@ -1279,7 +1280,7 @@ qrp_prepare_computation(void)
 	ht_seen_words = g_hash_table_new(g_str_hash, g_str_equal);
 
 	if (buffer.arena == NULL) {
-		buffer.arena = g_malloc(DEFAULT_BUF_SIZE);
+		buffer.arena = halloc(DEFAULT_BUF_SIZE);
 		buffer.len = DEFAULT_BUF_SIZE;
 	}
 }
@@ -1513,7 +1514,7 @@ qrp_context_free(gpointer p)
 	}
 	g_slist_free(ctx->sl_substrings);
 
-	G_FREE_NULL(ctx->table);
+	HFREE_NULL(ctx->table);
 
 	if (ctx->st)
 		qrt_unref(ctx->st);
@@ -1648,7 +1649,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 
 	upper_thresh = MIN_SPARSE_RATIO * slots;
 
-	table = g_malloc(slots);
+	table = halloc(slots);
 	memset(table, LOCAL_INFINITY, slots);
 
 	for (sl = ctx->sl_substrings; sl; sl = g_slist_next(sl)) {
@@ -1717,7 +1718,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
 			if (GNET_PROPERTY(qrp_debug))
 				g_message("no change in QRP table");
-			G_FREE_NULL(table);
+			HFREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
 
@@ -1731,7 +1732,7 @@ qrp_step_compute(struct bgtask *h, gpointer u, int unused_ticks)
 		return BGR_NEXT;		/* Done! */
 	}
 
-	G_FREE_NULL(table);
+	HFREE_NULL(table);
 
 	return BGR_MORE;			/* More work required */
 }
@@ -1878,7 +1879,7 @@ qrp_step_wait_for_merged_table(struct bgtask *h, gpointer u, int unused_ticks)
 
 	g_assert(ctx->table == NULL);
 
-	ctx->table = g_malloc(ctx->slots);
+	ctx->table = halloc(ctx->slots);
 	memset(ctx->table, LOCAL_INFINITY, ctx->slots);
 
 	/* Ready for iterating */
@@ -2364,7 +2365,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	g_assert((size_t) len <= INT_MAX - sizeof *msg);
 	msglen = len + sizeof *msg;
-	msg = g_malloc(msglen);
+	msg = halloc(msglen);
 
 	{
 		gnutella_header_t *header = gnutella_msg_qrp_patch_header(msg);
@@ -2386,7 +2387,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	gmsg_sendto_one(n, msg, msglen);
 
-	G_FREE_NULL(msg);
+	HFREE_NULL(msg);
 
 	if (GNET_PROPERTY(qrp_debug) > 4)
 		g_message("QRP sent PATCH #%d/%d (%d bytes) to %s",
@@ -2975,7 +2976,7 @@ qrt_receive_create(struct gnutella_node *n, struct routing_table *query_table)
 	qrcv->deflated = FALSE;
 	qrcv->inz = inz;
 	qrcv->len = QRT_RECEIVE_BUFSIZE;
-	qrcv->data = g_malloc(qrcv->len);
+	qrcv->data = halloc(qrcv->len);
 	qrcv->expansion = NULL;
 	qrcv->patch = qrt_unknown_patch;
 
@@ -3024,7 +3025,7 @@ qrt_receive_free(struct qrt_receive *qrcv)
 		qrt_unref(qrcv->table);
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
-	G_FREE_NULL(qrcv->data);
+	HFREE_NULL(qrcv->data);
 
 	qrcv->magic = 0;			/* Prevent accidental reuse */
 	wfree(qrcv, sizeof *qrcv);
@@ -3656,7 +3657,7 @@ qrt_handle_reset(
 	 */
 
 	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
-	rt->arena = g_malloc0(slots);
+	rt->arena = halloc0(slots);
 
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
 		GNET_PROPERTY(qrp_memory) + slots);
@@ -4067,7 +4068,7 @@ qrp_close(void)
 	if (merged_table)
 		qrt_unref(merged_table);
 
-	G_FREE_NULL(buffer.arena);
+	HFREE_NULL(buffer.arena);
 }
 
 /**

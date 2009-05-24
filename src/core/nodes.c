@@ -95,6 +95,7 @@ RCSID("$Id$")
 #include "lib/dbus_util.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/iovec.h"
 #include "lib/endian.h"
@@ -106,6 +107,7 @@ RCSID("$Id$")
 #include "lib/strtok.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 
@@ -1786,7 +1788,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	/* n->vendor will be freed by node_real_remove() */
 
 	if (n->allocated) {
-		G_FREE_NULL(n->data);
+		HFREE_NULL(n->data);
 		n->allocated = 0;
 	}
 	if (n->searchq) {
@@ -5343,7 +5345,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	/* Large in case Crawler info sent back */
-	gnet_response = g_malloc(gnet_response_max);
+	gnet_response = vmm_alloc(gnet_response_max);
 
 	if (!incoming) {
 		gboolean mode_changed = FALSE;
@@ -5599,7 +5601,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		node_is_now_connected(n);
 
 free_gnet_response:
-	G_FREE_NULL(gnet_response);
+	VMM_FREE_NULL(gnet_response, gnet_response_max);
 }
 
 /***
@@ -7541,9 +7543,9 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			}
 
 			if (n->allocated)
-				n->data = g_realloc(n->data, n->size);
+				n->data = hrealloc(n->data, n->size);
 			else
-				n->data = g_malloc(n->size);
+				n->data = halloc(n->size);
 			n->allocated = n->size;
 		}
 
