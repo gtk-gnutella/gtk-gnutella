@@ -1274,7 +1274,7 @@ zgc_extend(zone_t *zone)
 		g_message("ZGC %lu-byte zone 0x%lx extended by "
 			"%u blocks in [0x%lx, 0x%lx]",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
-			zone->zn_hint, (unsigned long) szi->szi_end,
+			zone->zn_hint, (unsigned long) szi->szi_base,
 			(unsigned long) szi->szi_end);
 	}
 
