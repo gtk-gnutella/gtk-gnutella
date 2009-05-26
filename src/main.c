@@ -303,6 +303,7 @@ gtk_gnutella_atexit(void)
 	if (!exiting) {
 		g_warning("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
+		running_topless = TRUE;		/* X connection may be broken, avoid GUI */
 
 #ifdef SIGALRM
 		set_signal(SIGALRM, sig_alarm);
