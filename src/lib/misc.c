@@ -3503,6 +3503,9 @@ GENERATE_PARSE_UNSIGNED(parse_uint, unsigned int)
 GENERATE_PARSE_UNSIGNED(parse_ulong, unsigned long)
 GENERATE_PARSE_UNSIGNED(parse_size, size_t)
 
+/**
+ * Parse a pointer in hexadecimal notation, with optional leading "Ox" or "0X".
+ */
 const void *
 parse_pointer(const char *src, char const **endptr, int *errorptr)
 {
