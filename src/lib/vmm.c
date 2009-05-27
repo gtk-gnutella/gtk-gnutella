@@ -798,7 +798,7 @@ pmap_insert_region(struct pmap *pm,
  * @return TRUE if we managed to parse the line correctly
  */
 static gboolean
-pmap_parse_and_add(struct pmap *pm, char *line)
+pmap_parse_and_add(struct pmap *pm, const char *line)
 {
 	int error;
 	const char *ep;
@@ -871,6 +871,93 @@ pmap_parse_and_add(struct pmap *pm, char *line)
 	return TRUE;
 }
 
+struct iobuffer {
+	char *buf;
+	size_t size;
+	char *rptr;
+	size_t fill;
+	unsigned int eof:1;
+	unsigned int error:1;
+	unsigned int toobig:1;
+};
+
+static void
+iobuffer_init(struct iobuffer *iob, char *dst, size_t size)
+{
+	iob->buf = dst;
+	iob->size = size;
+	iob->rptr = dst;
+	iob->fill = 0;
+	iob->eof = 0;
+	iob->error = 0;
+	iob->toobig = 0;
+}
+
+/**
+ * Reads a line from an open file descriptor whereas each successive call
+ * clears the previous line. Lines are separated by '\n' which is replaced
+ * by a NUL when returned. The maximum acceptable line length is bound to
+ * the buffer size. iob->error is set on I/O errors, iob->toobig is set
+ * once the buffer is full without any newline character.
+ *
+ * @param iob	An initialized, valid 'struct iobuffer'.
+ * @param fd	An open file descriptor.
+ *
+ * @return NULL on failure or EOF, pointer to the current line on success.
+ */
+static const char *
+iobuffer_readline(struct iobuffer *iob, int fd)
+{
+	g_assert(iob);
+	g_assert(iob->buf);
+	g_assert(iob->rptr);
+	g_assert(iob->fill <= iob->size);
+
+	/* Clear previous line and shift following chars */
+	if (iob->rptr != iob->buf) {
+		size_t n = iob->rptr - iob->buf;
+
+		g_assert(iob->fill >= n);
+		iob->fill -= n;
+		memmove(iob->buf, iob->rptr, iob->fill);
+		iob->rptr = iob->buf;
+	}
+
+	do {
+		/* Refill buffer if not EOF and not full */
+		if (!iob->eof && iob->fill < iob->size) {
+			size_t n = iob->size - iob->fill;
+			ssize_t ret;
+
+			ret = read(fd, &iob->buf[iob->fill], n);
+			if ((ssize_t) -1 == ret) {
+				iob->error = TRUE;
+				iob->eof = TRUE;
+				break;
+			} else if (0 == ret) {
+				iob->eof = TRUE;
+			} else {
+				iob->fill += ret;
+			}
+		}
+		if (iob->fill > 0) {
+			char *p = memchr(iob->rptr, '\n', iob->fill);
+			if (p) {
+				*p = '\0';
+				iob->rptr = &p[1];
+				return iob->buf;
+			}
+			iob->rptr += iob->fill;
+		}
+		if (iob->fill >= iob->size) {
+			iob->toobig = TRUE;
+			break;
+		}
+	} while (!iob->eof);
+
+	return NULL;
+}
+
 /**
  * Load the process's memory map from /proc/self/maps into the supplied map.
  */
@@ -879,9 +966,8 @@ pmap_load(struct pmap *pm)
 {
 	static int failed;
 	int fd;
+	struct iobuffer iob;
 	char buf[4096];
-	size_t pos;
-	size_t size;
 
 	if (failed)
 		return;
@@ -896,7 +982,7 @@ pmap_load(struct pmap *pm)
 	 */
 
 	fd = open("/proc/self/maps", O_RDONLY);
-	if (-1 == fd) {
+	if (fd < 0) {
 		failed = TRUE;
 		if (vmm_debugging(0))
 			g_warning("VMM cannot open /proc/self/maps: %s", g_strerror(errno));
@@ -904,83 +990,37 @@ pmap_load(struct pmap *pm)
 	}
 
 	pm->count = 0;
-	pos = size = 0;
+	iobuffer_init(&iob, buf, sizeof buf);
 
 	for (;;) {
-		char *p;
-		int c;
+		const char *line;
 
-		g_assert(size_is_non_negative(size));
-
-		if (pos == size) {
-			ssize_t rw;
-
-			g_assert(UNSIGNED(size) < sizeof buf);
-
-			rw = read(fd, &buf[size], sizeof buf - size);
-			if (0 == rw)
-				break;				/* Done, EOF reached */
-			else if (-1 == rw) {
+		line = iobuffer_readline(&iob, fd);
+		if (NULL == line) {
+			if (iob.error) {
 				if (vmm_debugging(0)) {
 					g_warning("VMM error reading /proc/self/maps: %s",
-						g_strerror(errno));
+							g_strerror(errno));
 				}
-				break;
+				failed = TRUE;
 			}
-			size += rw;
-		}
-
-		g_assert(UNSIGNED(size) <= sizeof buf);
-		g_assert(pos < size);
-
-		p = &buf[pos];
-		while (pos < size && (c = *p)) {
-			if ('\n' == c) {
-				*p = '\0';
-				goto eol_found;
+			if (iob.toobig) {
+				if (vmm_debugging(0)) {
+					g_warning("VMM too long a line in /proc/self/maps output");
+				}
+				failed = TRUE;
 			}
-			pos++;
-			p++;
+			break;
 		}
-
-		if ('\0' == c) {
-			if (vmm_debugging(0)) {
-				g_warning("VMM unexpected NUL in /proc/self/maps output");
-			}
-			failed = TRUE;
-			goto done;
-		}
-
-		if (pos == size && UNSIGNED(size) < sizeof buf)
-			continue;
-
-		if (vmm_debugging(0)) {
-			g_warning("VMM too long a line in /proc/self/maps output");
-		}
-		failed = TRUE;
-		goto done;
-
-	eol_found:
-		/*
-		 * Found a line, contained from buf[0] to buf[pos] (trailing NUL).
-		 */
-
-		if (!pmap_parse_and_add(pm, buf)) {
+		if (!pmap_parse_and_add(pm, line)) {
 			if (vmm_debugging(0)) {
 				g_warning("VMM error parsing \"%s\"", buf);
 			}
 			failed = TRUE;
-			goto done;
+			break;
 		}
-
-		if (pos < size - 1) {
-			memmove(&buf[0], &buf[pos+1], size - pos - 1);
-		}
-		size -= pos + 1;
-		pos = 0;
 	}
 
-done:
 	close(fd);
 
 	if (vmm_debugging(1)) {
