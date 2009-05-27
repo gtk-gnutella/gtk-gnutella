@@ -1245,9 +1245,6 @@ parse_arguments(int argc, char **argv)
 static void
 handle_arguments(char *argv0)
 {
-	crash_init(options[main_arg_exec_on_crash].arg, argv0,
-		options[main_arg_pause_on_crash].used);
-
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
 	}
@@ -1348,6 +1345,8 @@ main(int argc, char **argv)
 
 	prehandle_arguments(argv);
 	vmm_init();
+	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
+		options[main_arg_pause_on_crash].used);
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
 
@@ -1370,6 +1369,7 @@ main(int argc, char **argv)
 	parse_arguments(argc, argv);
 	log_init();
 	malloc_init(argv[0]);
+	vmm_malloc_inited();
 	atoms_init();
 	eval_init();
 	misc_init();
@@ -1428,7 +1428,7 @@ main(int argc, char **argv)
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
 	settings_init();
-	vmm_malloc_inited();	/* after settings_init() */
+	vmm_post_init();		/* after settings_init() */
 	map_test();				/* after settings_init() */
 	ipp_cache_load_all();	/* after settings_init() */
 	tls_global_init();

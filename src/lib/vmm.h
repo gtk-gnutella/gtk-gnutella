@@ -48,10 +48,12 @@ void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
 const char *prot_strdup(const char *s);
 const void *vmm_trap_page(void);
+gboolean vmm_is_fragment(const void *base, size_t size);
 
 void set_vmm_debug(guint32 level);
 void vmm_init(void);
 void vmm_malloc_inited(void);
+void vmm_post_init(void);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

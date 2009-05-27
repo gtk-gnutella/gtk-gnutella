@@ -61,14 +61,26 @@ RCSID("$Id$")
  * With VMM_INVALIDATE_FREE_PAGES freed pages are invalidated so that the
  * system can recycle them without ever paging them out as we don't care about
  * the data in them anymore.
+ *
+ * This may cause the kernel to re-initialize a page with zeroes when the
+ * page is un-cached, and causes an extra system call each time the page is
+ * put in the cache or removed from it, which is a non negligeable penalty,
+ * not even counting the work the kernel has to do.  This partly defeats the
+ * advantage of having a cache to quickly recycle pages.
+ *
+ * Therefore, by default it is not enabled.
  */
-#define VMM_INVALIDATE_FREE_PAGES 1
+#if 0
+#define VMM_INVALIDATE_FREE_PAGES
+#endif
 
 /*
  * With VMM_PROTECT_FREE_PAGES freed pages are completely protected. This may
  * help to detect access-after-free bugs.
  */
-/* #define VMM_PROTECT_FREE_PAGES 1 */
+#if 0
+#define VMM_PROTECT_FREE_PAGES
+#endif
 
 /**
  * Cached pages older than `page_cache_prune_timeout' seconds are released
@@ -360,6 +372,7 @@ vmm_find_hole(size_t size)
 
 	return NULL;
 }
+#endif	/* HAS_MMAP */
 
 /**
  * Insert foreign region in the pmap.
@@ -369,7 +382,6 @@ pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 {
 	pmap_insert_region(pm, start, size, TRUE);
 }
-#endif	/* HAS_MMAP */
 
 /**
  * Allocate a new chunk of anonymous memory.
@@ -653,9 +665,9 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 		g_assert(mid < pm->count);
 
 		item = &pm->array[mid];
-		if (p >= vmf_end(item))
+		if (ptr_cmp(p, vmf_end(item)) >= 0)
 			low = mid + 1;
-		else if (p < item->start)
+		else if (ptr_cmp(p, item->start) < 0)
 			high = mid - 1;
 		else
 			break;	/* Found */
@@ -677,7 +689,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
-	g_assert(start < end);
+	g_assert(ptr_cmp(start, end) < 0);
 
 	if (pm->count == pm->size)
 		pmap_extend(pm);
@@ -690,7 +702,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	if (pm->count > 0) {
 		vmf = &pm->array[pm->count - 1];
-		g_assert(start >= vmf->end);
+		g_assert(ptr_cmp(start, vmf->end) >= 0);
 	}
 
 	/*
@@ -717,7 +729,7 @@ pmap_insert_region(struct pmap *pm,
 
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
-	g_assert(start < end);
+	g_assert(ptr_cmp(start, end) < 0);
 
 	if (pm->count == pm->size)
 		pmap_extend(pm);
@@ -833,7 +845,7 @@ pmap_parse_and_add(struct pmap *pm, char *line)
 		return FALSE;
 	}
 
-	if (end <= start) {
+	if (ptr_cmp(end, start) <= 0) {
 		if (vmm_debugging(0))
 			g_warning("VMM invalid start/end address pair");
 		return FALSE;
@@ -874,9 +886,8 @@ pmap_load(struct pmap *pm)
 	static int failed;
 	int fd;
 	char buf[4096];
-	int rw;
-	int pos;
-	int size;
+	size_t pos;
+	size_t size;
 
 	if (failed)
 		return;
@@ -899,16 +910,19 @@ pmap_load(struct pmap *pm)
 	}
 
 	pm->count = 0;
-	rw = pos = size = 0;
+	pos = size = 0;
 
 	for (;;) {
 		char *p;
 		int c;
 
-		g_assert(size >= 0);
+		g_assert(size_is_non_negative(size));
 
 		if (pos == size) {
+			ssize_t rw;
+
 			g_assert(UNSIGNED(size) < sizeof buf);
+
 			rw = read(fd, &buf[size], sizeof buf - size);
 			if (0 == rw)
 				break;				/* Done, EOF reached */
@@ -1032,6 +1046,19 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 }
 
 /**
+ * Is region starting at ``base'' and of ``size'' bytes a virtual memory
+ * fragment, i.e. a standalone mapping in the middle of the VM space?
+ */
+gboolean
+vmm_is_fragment(const void *base, size_t size)
+{
+	g_assert(base != NULL);
+	g_assert(size_is_positive(size));
+
+	return pmap_is_fragment(vmm_pmap(), base, pagecount_fast(size));
+}
+
+/**
  * Remove whole region from the list of identified fragments.
  */
 static void
@@ -1066,38 +1093,40 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 
 	if (vmf != NULL) {
 		const void *end = ptr_add_offset_const(p, size);
-
-		g_assert(!vmf_is_foreign(vmf));	/* Cannot remove foreign entries */
+		const void *vend = vmf_end(vmf);
+		gboolean foreign = vend != vmf->end;
 
 		if (p == vmf->start) {
 
 			if (vmm_debugging(2)) {
-				g_message("VMM %luKiB region at 0x%lx was %s fragment",
+				g_message("VMM %s%luKiB region at 0x%lx was %s fragment",
+					foreign ? "foreign " : "",
 					(unsigned long) size / 1024, (unsigned long) p,
-					end == vmf->end ? "a whole" : "start of a");
+					end == vend ? "a whole" : "start of a");
 			}
 
-			if (end == vmf->end) {
+			if (end == vend) {
 				pmap_remove_whole_region(pm, p, size);
 			} else {
 				vmf->start = end;			/* Known fragment reduced */
-				g_assert(vmf->start < vmf->end);
+				g_assert(ptr_cmp(vmf->start, vmf->end) < 0);
 			}
 		} else {
-			const void *vend = vmf->end;
-
-			g_assert(vmf->start < p);
-			g_assert(end <= vend);
+			g_assert(ptr_cmp(vmf->start, p) < 0);
+			g_assert(ptr_cmp(end, vend) <= 0);
 
 			vmf->end = p;
+			if (foreign)
+				vmf_mark_foreign(vmf);
 
 			if (end != vend) {
 				if (vmm_debugging(1)) {
-					g_message("VMM freeing %luKiB region at 0x%lx "
+					g_message("VMM freeing %s%luKiB region at 0x%lx "
 						"fragments VM space",
+						foreign ? "foreign " : "",
 						(unsigned long) size / 1024, (unsigned long) p);
 				}
-				pmap_insert(pm, end, ptr_diff(vend, end));
+				pmap_insert_region(pm, end, ptr_diff(vend, end), foreign);
 			}
 		}
 	} else {
@@ -1796,7 +1825,7 @@ void
 vmm_madvise_normal(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_NORMAL)
 	madvise(p, size, MADV_NORMAL);
 #endif	/* MADV_NORMAL */
@@ -1806,7 +1835,7 @@ void
 vmm_madvise_sequential(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_SEQUENTIAL)
 	madvise(p, size, MADV_SEQUENTIAL);
 #endif	/* MADV_SEQUENTIAL */
@@ -1816,7 +1845,7 @@ void
 vmm_madvise_free(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_FREE)
 	madvise(p, size, MADV_FREE);
 #elif defined(HAS_MADVISE) && defined(MADV_DONTNEED)
@@ -1828,7 +1857,7 @@ void
 vmm_madvise_willneed(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #if defined(HAS_MADVISE) && defined(MADV_WILLNEED)
 	madvise(p, size, MADV_WILLNEED);
 #endif	/* MADV_WILLNEED */
@@ -1838,7 +1867,7 @@ static void
 vmm_validate_pages(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_READ | PROT_WRITE);
 #endif	/* VMM_PROTECT_FREE_PAGES */
@@ -1851,7 +1880,7 @@ static void
 vmm_invalidate_pages(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_NONE);
 #endif	/* VMM_PROTECT_FREE_PAGES */
@@ -1872,7 +1901,7 @@ vmm_alloc(size_t size)
 	size_t n;
 	void *p;
 
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 	
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
@@ -1905,7 +1934,7 @@ vmm_alloc0(size_t size)
 	size_t n;
 	void *p;
 
-	RUNTIME_ASSERT(size > 0);
+	RUNTIME_ASSERT(size_is_positive(size));
 
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
@@ -2058,13 +2087,16 @@ prot_strdup(const char *s)
 		return NULL;
 
 	n = strlen(s) + 1;
-	p = alloc_pages(round_pagesize_fast(n), TRUE);
+	p = alloc_pages(round_pagesize_fast(n), FALSE);
 	if (p) {
 		memcpy(p, s, n);
 		mprotect(p, n, PROT_READ);
+		pmap_insert_foreign(vmm_pmap(), p, kernel_pagesize);
 	}
 	return p;
 }
+
+static void *trap_page;		/** The trap page */
 
 /**
  * @return	A page-sized and page-aligned chunk of memory which causes an
@@ -2073,15 +2105,14 @@ prot_strdup(const char *s)
 const void *
 vmm_trap_page(void)
 {
-		static void *trap_page;
-
 		if (!trap_page) {
 			size_t size;
 		   
 			size = compat_pagesize();
-			trap_page = alloc_pages(size, TRUE);
+			trap_page = alloc_pages(size, FALSE);
 			RUNTIME_ASSERT(trap_page);
 			mprotect(trap_page, size, PROT_NONE);
+			pmap_insert_foreign(vmm_pmap(), trap_page, kernel_pagesize);
 		}
 		return trap_page;
 }
@@ -2102,9 +2133,44 @@ set_vmm_debug(guint32 level)
 void
 vmm_malloc_inited(void)
 {
-	extern gboolean debugging(guint32 t);
+	gboolean has_setting = FALSE;
+	struct vmm_settings {
+		guint8 vmm_invalidate_free_pages;
+		guint8 vmm_protect_free_pages;
+	} settings;
 
 	safe_to_malloc = TRUE;
+
+	/*
+	 * Log VMM configuration.
+	 */
+
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	settings.vmm_invalidate_free_pages = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef VMM_PROTECT_FREE_PAGES
+	settings.vmm_protect_free_pages = TRUE;
+	has_setting = TRUE;
+#endif
+
+	if (has_setting) {
+		g_message("VMM settings: %s%s",
+			settings.vmm_invalidate_free_pages ?
+				"VMM_INVALIDATE_FREE_PAGES" : "",
+			settings.vmm_protect_free_pages ?
+				"VMM_PROTECT_FREE_PAGES" : "");
+	}
+}
+
+/**
+ * Called later in the initialization chain once the callout queue has been
+ * initialized and the properties loaded.
+ */
+void
+vmm_post_init(void)
+{
+	extern gboolean debugging(guint32 t);
 
 	if (debugging(0) || vmm_debugging(0)) {
 		g_message("VMM using %lu bytes for the page cache",
@@ -2118,7 +2184,7 @@ vmm_malloc_inited(void)
 }
 
 /**
- * Initialize the vitual memory manager.
+ * Early initialization of the vitual memory manager.
  *
  * @attention
  * No external memory allocation (malloc() and friends) can be done in this
@@ -2139,11 +2205,22 @@ vmm_init(void)
 	}
 
 	/*
+	 * Allocate the trap page early so that it is at the bottom of the
+	 * memory space, hopefully (not really true on Linux, but close enough).
+	 */
+
+	trap_page = alloc_pages(kernel_pagesize, FALSE);
+	RUNTIME_ASSERT(trap_page);
+	mprotect(trap_page, kernel_pagesize, PROT_NONE);
+
+	/*
 	 * Allocate the pmaps.
 	 */
 
 	pmap_allocate(&local_pmap);
 	pmap_allocate(&kernel_pmap);
+
+	pmap_insert_foreign(vmm_pmap(), trap_page, kernel_pagesize);
 
 	/*
 	 * Determine how the kernel is growing the virtual memory region.
@@ -2153,7 +2230,7 @@ vmm_init(void)
 		void *p = alloc_pages(kernel_pagesize, FALSE);
 		void *q = alloc_pages(kernel_pagesize, FALSE);
 
-		kernel_mapaddr_increasing = q > p;
+		kernel_mapaddr_increasing = ptr_cmp(q, p) > 0;
 
 		free_pages(q, kernel_pagesize, FALSE);
 		free_pages(p, kernel_pagesize, FALSE);
