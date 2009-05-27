@@ -941,13 +941,12 @@ iobuffer_readline(struct iobuffer *iob, int fd)
 			}
 		}
 		if (iob->fill > 0) {
-			char *p = memchr(iob->rptr, '\n', iob->fill);
+			char *p = memchr(iob->buf, '\n', iob->fill);
 			if (p) {
 				*p = '\0';
 				iob->rptr = &p[1];
 				return iob->buf;
 			}
-			iob->rptr += iob->fill;
 		}
 		if (iob->fill >= iob->size) {
 			iob->toobig = TRUE;
