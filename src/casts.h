@@ -185,6 +185,17 @@ ptr_add_offset_const(const void *p, size_t offset)
 {
 	return (const void *) ((const char *) p + offset);
 }
+
+/**
+ * Compare two generic pointers.
+ */
+static inline int G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
+ptr_cmp(const void *a, const void *b)
+{
+	return a == b ? 0 :
+		(const char *) a < (const char *) b ? -1 : +1;
+}
+
 /**
  * Converts a filesize_t to off_t.
  *
