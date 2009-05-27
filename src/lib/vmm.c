@@ -82,12 +82,6 @@ RCSID("$Id$")
 #define VMM_PROTECT_FREE_PAGES
 #endif
 
-/**
- * Cached pages older than `page_cache_prune_timeout' seconds are released
- * to prevent that they are unnecessarily paged out to swap.
- */
-static const time_delta_t page_cache_prune_timeout = 20; /* unit: seconds */
-
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
