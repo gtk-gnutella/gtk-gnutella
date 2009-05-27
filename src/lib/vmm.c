@@ -574,15 +574,40 @@ pmap_extend(struct pmap *pm)
 	size_t osize;
 	void *oarray;
 
-	pm->pages++;
-	nsize = kernel_pagesize * pm->pages;
-	osize = nsize - kernel_pagesize;
-	narray = alloc_pages(nsize, FALSE);
+	osize = kernel_pagesize * pm->pages;
+	nsize = osize + kernel_pagesize;
+
+	/*
+	 * It is possible to recursively enter here through alloc_pages() when
+	 * mmap() is used to allocate virtual memory, in case we reload the
+	 * kernel map or insert a foreign region.
+	 *
+	 * To protect against that, we start by allocating the new pages and
+	 * remember the amount of pages in the map.  If upon return from the
+	 * alloc_pages() call we see the number is different, it means the
+	 * allocation was done and we can free up the pages we already allocated
+	 * and return.
+	 */
+
+	{
+		size_t old_pages = pm->pages;
+
+		narray = alloc_pages(nsize, FALSE);
+
+		if (pm->pages != old_pages) {
+			if (vmm_debugging(0))
+				g_warning("VMM already recursed to pmap_extend(), ignoring");
+			if (narray != NULL)
+				free_pages(narray, nsize, FALSE);
+			return;
+		}
+
+		if (NULL == narray)
+			g_error("cannot extend pmap: out of virtual memory");
+	}
+
 	oarray = pm->array;
-
-	if (NULL == narray)
-		g_error("cannot extend pmap: out of virtual memory");
-
+	pm->pages++;
 	pm->size = nsize / sizeof pm->array[0];
 	memcpy(narray, oarray, osize);
 	pm->array = narray;
@@ -1363,10 +1388,32 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 	if (0 == pc->current)
 		return NULL;
 
-	total = pc->pages;
-	base = kernel_mapaddr_increasing ?
-		pc->info[0].base : pc->info[pc->current - 1].base;
+	/*
+	 * If we're looking for less pages than what this cache line stores, it
+	 * means we'll have to split the pages.  To limit fragmentation of the VM
+	 * space, we avoid splitting regions at the beginning or at the tail of a
+	 * VM region (since these can be released without fragmenting further).
+	 */
+
+	if (n > pc->pages) {
+		size_t i;
+
+		for (i = 0; i < pc->current; i++) {
+			base = kernel_mapaddr_increasing ?
+				pc->info[i].base : pc->info[pc->current - 1 - i].base;
+			if (pmap_is_within_region(vmm_pmap(), base, pc->chunksize))
+				goto selected;
+		}
+
+		return NULL;
+	} else {
+		base = kernel_mapaddr_increasing ?
+			pc->info[0].base : pc->info[pc->current - 1].base;
+	}
+
+selected:
 	end = ptr_add_offset(base, pc->chunksize);
+	total = pc->pages;
 
 	/*
 	 * If we have not yet the amount of pages we want, iterate to find
@@ -1479,9 +1526,14 @@ page_cache_find_pages(size_t n)
 
 		/*
 		 * Visit higher-order cache lines if we found nothing in the cache.
+		 *
+		 * To avoid VM space fragmentation, we never split a larger region
+		 * to allocate just one page.  This policy allows us to fill the holes
+		 * that can be created and avoid undoing the coalescing we may have
+		 * achieved so far in higher-order caches.
 		 */
 
-		if (NULL == p) {
+		if (NULL == p && n > 1) {
 			size_t i;
 
 			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
@@ -1879,7 +1931,7 @@ vmm_alloc0(size_t size)
 }
 
 /**
- * Free memory allocated via vmm_alloc().
+ * Free memory allocated via vmm_alloc(), possibly returning it to the cache.
  */
 void
 vmm_free(void *p, size_t size)
@@ -2098,13 +2150,13 @@ vmm_init(void)
 	 */
 
 	{
-		void *p = alloc_pages(kernel_pagesize, TRUE);
-		void *q = alloc_pages(kernel_pagesize, TRUE);
+		void *p = alloc_pages(kernel_pagesize, FALSE);
+		void *q = alloc_pages(kernel_pagesize, FALSE);
 
 		kernel_mapaddr_increasing = q > p;
 
-		free_pages(q, kernel_pagesize, TRUE);
-		free_pages(p, kernel_pagesize, TRUE);
+		free_pages(q, kernel_pagesize, FALSE);
+		free_pages(p, kernel_pagesize, FALSE);
 	}
 }
 
