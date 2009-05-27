@@ -257,7 +257,14 @@ hrealloc(void *old, size_t new_size)
 	}
 
 	old_size = halloc_get_size(old);
-	RUNTIME_ASSERT(old_size > 0);
+	RUNTIME_ASSERT(size_is_positive(old_size));
+
+	/*
+	 * This is our chance to move a virtual memory fragment out of the way.
+	 */
+
+	if (old_size >= page_threshold && vmm_is_fragment(old, old_size))
+		goto relocate;
 
 	if (old_size >= new_size && old_size / 2 < new_size)
 		return old;
@@ -265,6 +272,7 @@ hrealloc(void *old, size_t new_size)
 	if (new_size >= page_threshold && round_pagesize(new_size) == old_size)
 		return old;
 
+relocate:
 	p = halloc(new_size);
 	RUNTIME_ASSERT(NULL != p);
 
