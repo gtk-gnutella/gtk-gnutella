@@ -44,7 +44,6 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 {
 	gnet_node_flags_t flags;
 	time_delta_t up, con;
-	time_t now;
 	char buf[1024];
 	char vendor_escaped[20];
 	char uptime_buf[8];
@@ -53,16 +52,11 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 	g_return_if_fail(sh);
 	g_return_if_fail(n);
 	
-	if (
-		!NODE_IS_ESTABLISHED(n) ||
-		!node_fill_flags(NODE_ID(n), &flags)
-	) {
+	if (!node_fill_flags(NODE_ID(n), &flags))
 		return;
-	}
 
-	now = tm_time();
-	con = n->connect_date ? delta_time(now, n->connect_date) : 0;
-	up = n->up_date ? delta_time(now, n->up_date) : 0;
+	con = n->connect_date ? delta_time(tm_time(), n->connect_date) : 0;
+	up = n->up_date ? delta_time(tm_time(), n->up_date) : 0;
 
 	{
 		const char *vendor;
@@ -82,7 +76,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 		sizeof contime_buf);
 
 	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.30s",
+		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.50s",
 		node_addr(n),
 		(unsigned) n->gnet_port,
 		node_flags_to_string(&flags),
