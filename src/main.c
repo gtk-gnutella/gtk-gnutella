@@ -303,8 +303,10 @@ gtk_gnutella_atexit(void)
 	if (!exiting) {
 		g_warning("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
+#ifndef USE_TOPLESS
 		running_topless = TRUE;		/* X connection may be broken, avoid GUI */
-
+#endif
+        
 #ifdef SIGALRM
 		set_signal(SIGALRM, sig_alarm);
 #endif
@@ -1243,7 +1245,7 @@ parse_arguments(int argc, char **argv)
  * Act on the options we parsed.
  */
 static void
-handle_arguments(char *argv0)
+handle_arguments()
 {
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
@@ -1375,7 +1377,7 @@ main(int argc, char **argv)
 	misc_init();
 	settings_early_init();
 
-	handle_arguments(argv[0]);
+	handle_arguments();
 
 	/* Our regular inits */
 
