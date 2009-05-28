@@ -96,6 +96,7 @@ RCSID("$Id$")
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -952,7 +953,7 @@ upload_free_resources(struct upload *u)
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_start;
 
 		g_assert(len > 0 && len <= INT_MAX);
-		munmap(u->sendfile_ctx.map, len);
+		vmm_munmap(u->sendfile_ctx.map, len);
 		u->sendfile_ctx.map = NULL;
 	}
 #endif /* USE_MMAP */

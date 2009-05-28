@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
 #include "lib/misc.h"
+#include "lib/vmm.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1784,7 +1785,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 			old_len = ctx->map_end - ctx->map_start;
 			if (ctx->map) {
 			   	if (old_len != map_len) {
-					munmap(ctx->map, old_len);
+					vmm_munmap(ctx->map, old_len);
 					ctx->map = NULL;
 				} else {
 					flags |= MAP_FIXED;
@@ -1795,13 +1796,13 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 			ctx->map_end = ctx->map_start + map_len;
 			g_assert(ctx->map_start < ctx->map_end);
 
-			addr = mmap(ctx->map, map_len, PROT_READ, flags, in_fd,
+			addr = vmm_mmap(ctx->map, map_len, PROT_READ, flags, in_fd,
 						ctx->map_start);
 
 			if (addr == MAP_FAILED) {
 				int saved_errno = errno;
 				if (ctx->map) {
-					munmap(ctx->map, old_len);
+					vmm_munmap(ctx->map, old_len);
 					old_len = 0;
 					flags &= ~MAP_FIXED;
 				}
@@ -1850,7 +1851,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, int in_fd, off_t *offset,
 		case (ssize_t) -1:
 			break;
 		case 0:
-			munmap(ctx->map, ctx->map_end - ctx->map_start);
+			vmm_munmap(ctx->map, ctx->map_end - ctx->map_start);
 			ctx->map = NULL;
 			break;
 		default:

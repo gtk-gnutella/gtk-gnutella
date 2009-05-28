@@ -1323,6 +1323,8 @@ handle_arguments(void)
 int
 main(int argc, char **argv)
 {
+	int sp;
+
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
 		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
@@ -1346,7 +1348,7 @@ main(int argc, char **argv)
 	/* First inits -- initialize custom memory allocator, if needed */
 
 	prehandle_arguments(argv);
-	vmm_init();
+	vmm_init(&sp);
 	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
 		options[main_arg_pause_on_crash].used);
 	halloc_init(!options[main_arg_no_halloc].used);

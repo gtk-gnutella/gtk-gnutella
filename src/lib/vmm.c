@@ -91,6 +91,7 @@ static gboolean kernel_mapaddr_increasing;
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
 #define VMM_CACHE_LIFE		60	/**< At most 1 minute if not fragmenting */
 #define VMM_CACHE_MAXLIFE	180	/**< At most 3 minutes if fragmenting */
+#define VMM_STACK_MINSIZE	(64 * 1024)		/**< Minimum stack size */
 
 struct page_info {
 	void *base;		/**< base address */
@@ -145,6 +146,9 @@ static struct pmap local_pmap;
 
 static gboolean safe_to_malloc;		/**< True when malloc() was inited */
 static guint32 vmm_debug;			/**< Debug level */
+static const void *initial_brk;		/**< Startup position of the heap */
+static const void *initial_sp;		/**< Initial "bottom" of the stack */
+static gboolean sp_increasing;		/**< Growing direction of the stack */
 
 static inline gboolean
 vmm_debugging(guint32 lvl)
@@ -198,6 +202,18 @@ size_t
 round_pagesize(size_t n)
 {
 	return round_pagesize_fast(n);
+}
+
+/**
+ * Rounds pointer down so that it is aligned to the start of the page.
+ */
+static inline void *
+page_start(const void *p)
+{
+	unsigned long addr = pointer_to_ulong(p);
+
+	addr &= ~kernel_pagemask;
+	return ulong_to_pointer(addr);
 }
 
 static long
@@ -1061,6 +1077,36 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 }
 
 /**
+ * Given a known-to-be-mapped block (base address and size), compute the
+ * distance of its middle point to the border of the region holding it:
+ * the smallest distance between the middle point and the start and end of the
+ * region.
+ *
+ * @return the distance to the border of the enclosing region.
+ */
+static size_t
+pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
+{
+	struct vm_fragment *vmf;
+	const void *middle;
+	size_t distance_to_start;
+	size_t distance_to_end;
+
+	vmf = pmap_lookup(pm, p, NULL);
+
+	if (NULL == vmf) {
+		pmap_log_missing(pm, p, size);
+		return 0;
+	}
+
+	middle = ptr_add_offset_const(p, size / 2);
+	distance_to_start = ptr_diff(middle, vmf->start);
+	distance_to_end = ptr_diff(vmf_end(vmf), middle);
+
+	return MIN(distance_to_start, distance_to_end);
+}
+
+/**
  * Is block an identified fragment?
  */
 static gboolean
@@ -1076,6 +1122,29 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	}
 
 	return p == vmf->start && npages == pagecount_fast(vmf_size(vmf));
+}
+
+/**
+ * Is range available (hole) within the VM space?
+ */
+static gboolean
+pmap_is_available(const struct pmap *pm, const void *p, size_t size)
+{
+	size_t idx;
+
+	if (pmap_lookup(pm, p, &idx))
+		return FALSE;
+
+	g_assert(size_is_non_negative(idx));
+
+	if (idx < pm->count) {
+		struct vm_fragment *vmf = &pm->array[idx];
+		const void *end = ptr_add_offset_const(p, size);
+
+		return ptr_cmp(end, vmf->start) <= 0;
+	}
+
+	return TRUE;
 }
 
 /**
@@ -1450,15 +1519,16 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 	if (0 == pc->current)
 		return NULL;
 
-	/*
-	 * If we're looking for less pages than what this cache line stores, it
-	 * means we'll have to split the pages.  To limit fragmentation of the VM
-	 * space, we avoid splitting regions at the beginning or at the tail of a
-	 * VM region (since these can be released without fragmenting further).
-	 */
-
 	if (n > pc->pages) {
 		size_t i;
+
+		/*
+		 * Since we're looking for less pages than what this cache line stores,
+		 * we'll have to split the page.  To limit fragmentation of the VM
+		 * space, we avoid splitting regions at the beginning or at the tail
+		 * of a VM region (since these can be released without fragmenting
+		 * further).
+		 */
 
 		for (i = 0; i < pc->current; i++) {
 			base = kernel_mapaddr_increasing ?
@@ -1469,8 +1539,30 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 
 		return NULL;
 	} else {
-		base = kernel_mapaddr_increasing ?
-			pc->info[0].base : pc->info[pc->current - 1].base;
+		size_t i;
+		size_t max_distance = 0;
+		base = NULL;
+
+		/*
+		 * Allocate the innermost pages within the region, so that pages at
+		 * the beginning or end of the region remain unused and can be
+		 * released if they're not needed.
+		 */
+
+		for (i = 0; i < pc->current; i++) {
+			size_t d;
+			const void *p;
+
+			p = kernel_mapaddr_increasing ?
+				pc->info[i].base : pc->info[pc->current - 1 - i].base;
+			d = pmap_nesting_within_region(vmm_pmap(), p, pc->chunksize);
+			if (d > max_distance) {
+				max_distance = d;
+				base = deconstify_gpointer(p);
+			}
+		}
+
+		g_assert(base != NULL);
 	}
 
 selected:
@@ -2138,16 +2230,7 @@ static void *trap_page;		/** The trap page */
 const void *
 vmm_trap_page(void)
 {
-		if (!trap_page) {
-			size_t size;
-		   
-			size = compat_pagesize();
-			trap_page = alloc_pages(size, FALSE);
-			RUNTIME_ASSERT(trap_page);
-			mprotect(trap_page, size, PROT_NONE);
-			pmap_insert_foreign(vmm_pmap(), trap_page, kernel_pagesize);
-		}
-		return trap_page;
+	return trap_page;
 }
 
 /**
@@ -2197,6 +2280,104 @@ vmm_malloc_inited(void)
 }
 
 /**
+ * Mark "amount" bytes as foreign in the local pmap, reserved for the stack.
+ */
+static void
+vmm_reserve_stack(size_t amount)
+{
+	void *stack_base;
+	void *stack_end;
+	void *stack_low;
+
+	RUNTIME_ASSERT(amount != 0);
+
+	/*
+	 * If we could read the kernel pmap, reserve an extra VMM_STACK_MINSIZE
+	 * after the stack, as a precaution.
+	 */
+
+	if (vmm_pmap() == &kernel_pmap) {
+		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, initial_sp, NULL);
+
+		if (NULL == vmf) {
+			if (vmm_debugging(0)) {
+				g_warning("VMM no stack region found in the kernel pmap");
+			}
+		} else {
+			void *reserve_start;
+
+			if (vmm_debugging(1)) {
+				g_message("VMM stack region found in the kernel pmap (%lu KiB)",
+					(unsigned long) (vmf_size(vmf) / 1024));
+			}
+
+			stack_end = deconstify_gpointer(
+				sp_increasing ? vmf_end(vmf) : vmf->start);
+			reserve_start = ptr_add_offset(stack_end,
+				(kernel_mapaddr_increasing ? +1 : -1) * VMM_STACK_MINSIZE);
+
+			if (
+				!pmap_is_available(&kernel_pmap,
+					reserve_start, VMM_STACK_MINSIZE)
+			) {
+				if (vmm_debugging(0)) {
+					g_warning("VMM cannot reserve extra %uKiB %s stack",
+						VMM_STACK_MINSIZE / 1024,
+						sp_increasing ? "after" : "before");
+				}
+			} else {
+				pmap_insert_foreign(&kernel_pmap,
+					reserve_start, VMM_STACK_MINSIZE);
+				if (vmm_debugging(1)) {
+					g_message("VMM reserved [0x%lx, 0x%lx] "
+						"%s stack for possible growing",
+						(unsigned long) reserve_start,
+						(unsigned long) ptr_add_offset(reserve_start,
+							VMM_STACK_MINSIZE - 1),
+						sp_increasing ? "after" : "before");
+					vmm_dump_pmap();
+				}
+			}
+		}
+		return;
+	}
+
+	/*
+	 * If stack and VM region grow in opposite directions, there is ample
+	 * room for the stack provided their relative position is correct.
+	 */
+
+	if ((size_t) -1 == amount)
+		return;
+
+	stack_base = page_start(initial_sp);
+	if (!sp_increasing)
+		stack_base = ptr_add_offset(stack_base, kernel_pagesize);
+
+	stack_end = ptr_add_offset(stack_base, (sp_increasing ? +1 : -1) * amount);
+
+	stack_low = sp_increasing ? stack_base : stack_end;
+
+	if (pmap_is_available(&local_pmap, stack_low, amount)) {
+		pmap_insert_foreign(&local_pmap, stack_low, amount);
+		if (vmm_debugging(1)) {
+			g_message("VMM reserved %luKiB [0x%lx, 0x%lx] for the stack",
+				(unsigned long) amount / 1024,
+				(unsigned long) stack_low,
+				(unsigned long) ptr_add_offset(stack_low, amount - 1));
+		}
+	} else {
+		if (vmm_debugging(0)) {
+			g_message("VMM cannot reserve %luKiB [0x%lx, 0x%lx] for the stack",
+				(unsigned long) amount / 1024,
+				(unsigned long) stack_low,
+				(unsigned long) ptr_add_offset(stack_low, amount - 1));
+			vmm_dump_pmap();
+		}
+	}
+}
+
+/**
  * Called later in the initialization chain once the callout queue has been
  * initialized and the properties loaded.
  */
@@ -2210,10 +2391,81 @@ vmm_post_init(void)
 			(unsigned long) sizeof page_cache);
 		g_message("VMM kernel grows virtual memory by %s addresses",
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
+		g_message("VMM stack grows by %s addresses",
+			sp_increasing ? "increasing" : "decreasing");
+	}
+
+	if (vmm_debugging(0)) {
+		g_message("VMM initial break at 0x%lx", (unsigned long) initial_brk);
+		g_message("VMM stack bottom at 0x%lx", (unsigned long) initial_sp);
 	}
 
 	pmap_load(&kernel_pmap);
 	cq_periodic_add(callout_queue, 1000, page_cache_timer, NULL);
+
+	/*
+	 * Check whether we have enough room for the stack to grow.
+	 */
+
+	{
+		void *vmbase = trap_page;	/* First page allocated */
+		void *end = ptr_add_offset(vmbase, kernel_pagesize);
+		size_t room;
+
+		if (ptr_cmp(initial_sp, vmbase) > 0) {
+			if (!sp_increasing) {
+				/*
+				 * Stack is after the VM region and is decreasing, it can
+				 * grow at most to the end of the allocated region.
+				 */
+
+				room = round_pagesize(ptr_diff(initial_sp, end));
+			} else {
+				/*
+				 * Stack is after the VM region and is increasing.
+				 * The kernel should be able to extend it.
+				 */
+
+				room = (size_t) -1;
+			}
+		} else {
+			if (sp_increasing) {
+
+				/*
+				 * Stack is before the VM region and is increasing, it can
+				 * grow at most to the start of the allocated region.
+				 */
+
+				room = round_pagesize(ptr_diff(vmbase, initial_sp));
+			} else {
+				/*
+				 * Stack is before the VM region and is decreasing.
+				 * The kernel should be able to extend it.
+				 */
+
+				room = (size_t) -1;
+			}
+		}
+
+		if ((size_t) -1 == room) {
+			if (vmm_debugging(0)) {
+				g_message("VMM kernel can grow the stack as needed");
+			}
+		} else if (room < VMM_STACK_MINSIZE) {
+			g_warning("VMM stack has only %luKiB to grow!",
+				(unsigned long) room / 1024);
+		} else if (vmm_debugging(0)) {
+			g_message("VMM stack has at most %luKiB to grow",
+				(unsigned long) room / 1024);
+		}
+
+		/*
+		 * Reserve mappings for the stack so that we do not attempt
+		 * to hint an allocation within that range.
+		 */
+
+		vmm_reserve_stack(room);
+	}
 }
 
 /**
@@ -2224,9 +2476,15 @@ vmm_post_init(void)
  * routine, which is called very early at startup.
  */
 void
-vmm_init(void)
+vmm_init(const void *sp)
 {
 	int i;
+
+	RUNTIME_ASSERT(sp != &i);
+
+	initial_brk = sbrk(0);
+	initial_sp = sp;
+	sp_increasing = ptr_cmp(&i, sp) > 0;
 
 	init_kernel_pagesize();
 
@@ -2268,6 +2526,58 @@ vmm_init(void)
 		free_pages(q, kernel_pagesize, FALSE);
 		free_pages(p, kernel_pagesize, FALSE);
 	}
+}
+
+/***
+ *** mmap() and munmap() wrappers: the application should not call these
+ *** system calls directly but go through the wrappers so that the VMM layer
+ *** can keep an accurate view of the process's virtul memory map.
+ ***/
+
+/**
+ * Wrapper of the mmap() system call.
+ */
+void *vmm_mmap(void *addr, size_t length,
+	int prot, int flags, int fd, off_t offset)
+{
+#ifdef HAS_MMAP
+	void *p = mmap(addr, length, prot, flags, fd, offset);
+
+	if (p != MAP_FAILED) {
+		pmap_insert_foreign(vmm_pmap(), p, round_pagesize_fast(length));
+	}
+
+	return p;
+#else
+	(void) addr;
+	(void) length;
+	(void) prot;
+	(void) flags;
+	(void) offset;
+
+	return (void *) -1;
+#endif
+}
+
+/**
+ * Wrappper of the munmap() system call.
+ */
+int vmm_munmap(void *addr, size_t length)
+{
+#ifdef HAS_MMAP
+	int ret = munmap(addr, length);
+
+	if (ret != -1) {
+		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+	}
+
+	return ret;
+#else
+	(void) addr;
+	(void) length;
+
+	return -1;
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */

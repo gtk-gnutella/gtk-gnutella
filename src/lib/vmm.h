@@ -51,7 +51,7 @@ const void *vmm_trap_page(void);
 gboolean vmm_is_fragment(const void *base, size_t size);
 
 void set_vmm_debug(guint32 level);
-void vmm_init(void);
+void vmm_init(const void *sp);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);
 
@@ -59,6 +59,10 @@ void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);
 void vmm_madvise_sequential(void *p, size_t size);
 void vmm_madvise_willneed(void *p, size_t size);
+
+void *vmm_mmap(void *addr, size_t length,
+	int prot, int flags, int fd, off_t offset);
+int vmm_munmap(void *addr, size_t length);
 
 #define VMM_FREE_NULL(p, size) \
 G_STMT_START { \

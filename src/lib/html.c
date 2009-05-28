@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "misc.h"
 #include "utf8.h"
 #include "walloc.h"
+#include "vmm.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -726,7 +727,7 @@ html_load_file(struct html_output *output, int fd)
 		goto error;
 	}
 	size = sb.st_size;
-	p = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	p = vmm_mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (MAP_FAILED == p) {
 		perror("open");
 		goto error;
@@ -741,7 +742,7 @@ error:
 		close(fd);
 	}
 	if (MAP_FAILED != p) {
-		munmap(p, size);
+		vmm_munmap(p, size);
 	}
 	return ret;
 }
