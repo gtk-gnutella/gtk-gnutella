@@ -1245,7 +1245,7 @@ parse_arguments(int argc, char **argv)
  * Act on the options we parsed.
  */
 static void
-handle_arguments()
+handle_arguments(void)
 {
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
