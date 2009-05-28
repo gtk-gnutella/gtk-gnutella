@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/misc.h"
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -1135,7 +1136,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 
 	rsize = len * 2;				/* Assume a 50% compression ratio */
 	rsize = MIN(rsize, GGEP_MAXLEN);
-	result = g_malloc(rsize);
+	result = halloc(rsize);
 
 	/*
 	 * Prepare call to inflate().
@@ -1165,7 +1166,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 
 			g_assert(rsize > inflated);
 
-			result = g_realloc(result, rsize);
+			result = hrealloc(result, rsize);
 		}
 
 		inz->next_out = (guchar *) result + inflated;
@@ -1207,7 +1208,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	 */
 
 	if (failed) {
-		G_FREE_NULL(result);
+		HFREE_NULL(result);
 		return NULL;
 	}
 
@@ -1301,7 +1302,7 @@ ext_ggep_decode(const extvec_t *e)
 
 	g_assert(d->ext_ggep_deflate);
 
-	d->ext_rpaylen = 0;			/* Signals it was malloc()'ed */
+	d->ext_rpaylen = 0;			/* Signals it was halloc()'ed */
 	d->ext_payload =
 		ext_ggep_inflate(pbase, plen, &d->ext_paylen, d->ext_ggep_id);
 
@@ -1586,7 +1587,7 @@ ext_reset(extvec_t *exv, int exvcnt)
 		if (d->ext_payload != NULL && d->ext_payload != d->ext_phys_payload) {
 			gpointer p = deconstify_gpointer(d->ext_payload);
 			if (d->ext_rpaylen == 0) {
-				G_FREE_NULL(p);
+				HFREE_NULL(p);
 			} else {
 				wfree(p, d->ext_rpaylen);
 				p = NULL;

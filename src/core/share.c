@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "lib/bg.h"
 #include "lib/endian.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/listener.h"
 #include "lib/mime_type.h"
@@ -1100,8 +1101,8 @@ share_free(void)
 	g_slist_free(shared_files);
 	shared_files = NULL;
 
-	G_FREE_NULL(file_table);
-	G_FREE_NULL(sorted_file_table);
+	HFREE_NULL(file_table);
+	HFREE_NULL(sorted_file_table);
 }
 
 /**
@@ -1207,7 +1208,7 @@ recursive_scan_finish(struct recursive_scan *ctx)
 	/* Compact the search table */
 	st_compact(search_table);
 
-	file_table = g_malloc0((files_scanned + 1) * sizeof file_table[0]);
+	file_table = halloc0((files_scanned + 1) * sizeof file_table[0]);
 
 	/*
 	 * We over-allocate the file_table by one entry so that even when they
@@ -1281,7 +1282,7 @@ recursive_scan_finish(struct recursive_scan *ctx)
 		sf->flags |= SHARE_F_BASENAME;
 	}
 
-	sorted_file_table = g_memdup(file_table,
+	sorted_file_table = hcopy(file_table,
 							(files_scanned + 1) * sizeof file_table[0]);
 	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
 		shared_file_sort_by_name);

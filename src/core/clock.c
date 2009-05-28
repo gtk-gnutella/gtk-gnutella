@@ -42,6 +42,7 @@ RCSID("$Id$")
 
 #include "lib/cq.h"
 #include "lib/misc.h"
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"
@@ -228,7 +229,7 @@ clock_adjust(void)
 			statx_add(datapoints, v);
 		}
 
-		G_FREE_NULL(value);
+		HFREE_NULL(value);
 
 		/*
 		 * Recompute the new average using the "sound" points we kept.

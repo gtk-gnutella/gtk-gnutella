@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
+#include "lib/halloc.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -226,7 +227,7 @@ dump_flush(struct dump *dump)
 
 		iov = pmsg_slist_to_iovec(dump->slist, &iov_cnt, NULL);
 		written = writev(dump->fd, iov, iov_cnt);
-		G_FREE_NULL(iov);
+		HFREE_NULL(iov);
 
 		if ((ssize_t)-1 == written) {
 			if (!is_temporary_error(errno)) {

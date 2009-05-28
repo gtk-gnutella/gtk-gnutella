@@ -43,6 +43,7 @@ RCSID("$Id$")
 
 #include "stats.h"
 #include "glib-missing.h"	/* For g_slist_delete_link() */
+#include "halloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -270,7 +271,7 @@ statx_var(const statx_t *sx)
 }
 
 /**
- * @return an array of datapoints which can be freed when done.
+ * @return an array of datapoints which can be freed via hfree() when done.
  */
 double *
 statx_data(const statx_t *sx)
@@ -282,7 +283,7 @@ statx_data(const statx_t *sx)
 	g_assert(!sx->no_data);
 	g_assert(sx->n > 0);
 
-	array = g_malloc(sizeof(double) * sx->n);
+	array = halloc(sizeof(double) * sx->n);
 
 	for (i = 0, l = sx->data; i < sx->n && l; l = g_slist_next(l), i++) {
 		double *vp = (double *) l->data;

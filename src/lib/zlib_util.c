@@ -154,7 +154,7 @@ zlib_deflater_alloc(
 		g_assert(zd->outlen > len);
 		g_assert(zd->outlen - len >= 12);
 
-		zd->out = g_malloc(zd->outlen);
+		zd->out = halloc(zd->outlen);
 		zd->allocated = TRUE;
 	} else {
 		/* Compressed data go to a supplied buffer, not-resizable */
@@ -258,7 +258,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
 
 			if (zd->allocated) {
 				zd->outlen += OUT_GROW;
-				zd->out = g_realloc(zd->out, zd->outlen);
+				zd->out = hrealloc(zd->out, zd->outlen);
 				outz->next_out = (guchar *) zd->out + (zd->outlen - OUT_GROW);
 				outz->avail_out = OUT_GROW;
 			} else
@@ -382,7 +382,7 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 	}
 
 	if (output && zd->allocated) {
-		G_FREE_NULL(zd->out);
+		HFREE_NULL(zd->out);
 	}
 	wfree(zd, sizeof(*zd));
 }
@@ -390,13 +390,14 @@ zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 /**
  * Inflate data, whose final uncompressed size is known.
  *
- * @return allocated uncompressed data if OK, NULL on error.
+ * @return allocated uncompressed data via halloc() if OK, NULL on error.
+ * Use hfree() to free the data.
  */
 gpointer
 zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
 {
 	int ret;
-	guchar *out = g_malloc(uncompressed_len);
+	guchar *out = halloc(uncompressed_len);
 	gulong retlen = uncompressed_len;
 
 	ret = uncompress(out, &retlen, data, len);
@@ -409,7 +410,7 @@ zlib_uncompress(gconstpointer data, int len, gulong uncompressed_len)
 	}
 
 	g_warning("while decompressing data: %s", zlib_strerror(ret));
-	G_FREE_NULL(out);
+	HFREE_NULL(out);
 
 	return NULL;
 }

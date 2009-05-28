@@ -1354,7 +1354,7 @@ node_init(void)
 	browse_node = node_browse_create();
 
 	payload_inflate_buffer_len = settings_max_msg_size();
-	payload_inflate_buffer = g_malloc(payload_inflate_buffer_len);
+	payload_inflate_buffer = halloc(payload_inflate_buffer_len);
 
 	/*
 	 * Limit replies to TCP/UDP crawls from a single IP.
@@ -8238,7 +8238,7 @@ node_close(void)
 		browse_node = NULL;
 	}
 
-	G_FREE_NULL(payload_inflate_buffer);
+	HFREE_NULL(payload_inflate_buffer);
 
 	g_slist_free(sl_proxies);
 	sl_proxies = NULL;

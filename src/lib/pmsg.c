@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "pmsg.h"
+#include "halloc.h"
 #include "zalloc.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
@@ -645,6 +646,8 @@ pdata_unref(pdata_t *db)
 
 /**
  * Creates an iovec from a singly-linked list of pmsg_t buffers.
+ * It should be freed via hfree().
+ *
  * NOTE: The iovec will hold no more than MAX_IOV_COUNT items. That means
  *       the iovec might not cover the whole buffered data. This limited
  *		 is applied because writev() could fail with EINVAL otherwise
@@ -666,7 +669,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 		int i;
 
 		n = MIN(n, MAX_IOV_COUNT);
-		iov = g_malloc(n * sizeof *iov);
+		iov = halloc(n * sizeof *iov);
 
 		iter = slist_iter_before_head(slist);
 		for (i = 0; i < n; i++) {

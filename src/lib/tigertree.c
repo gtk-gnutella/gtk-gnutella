@@ -84,6 +84,7 @@ RCSID("$Id$")
 
 #include "base32.h"
 #include "endian.h"
+#include "halloc.h"
 #include "misc.h"
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
@@ -362,13 +363,13 @@ tt_root_hash(const struct tth *src, size_t n_leaves)
 	if (n_leaves > 1) {
 		struct tth root, *buf;
 
-		buf = g_malloc((n_leaves + 1) * 2 * sizeof buf[0]);
+		buf = halloc((n_leaves + 1) * 2 * sizeof buf[0]);
 		n_leaves = tt_compute_parents(buf, src, n_leaves);
 		while (n_leaves > 1) {
 			n_leaves = tt_compute_parents(buf, buf, n_leaves);
 		}
 		root = buf[0];
-		G_FREE_NULL(buf);
+		HFREE_NULL(buf);
 		return root;
 	} else {
 		return src[0];

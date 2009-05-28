@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
 
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -456,7 +457,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 				size_t n = 1 + hostname_len;
 
 				g_assert(n > hostname_len);
-				p = g_malloc(n);
+				p = halloc(n);
 				g_strlcpy(p, hostname, n);
 				hostname = p;
 			}
@@ -466,7 +467,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 			ctx->flags = flags;
 			guc_adns_resolve(hostname, add_node_helper, ctx);
 
-			G_FREE_NULL(p);
+			HFREE_NULL(p);
 		}
 	}
 }

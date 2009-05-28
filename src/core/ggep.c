@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "ggep.h"
 #include "extensions.h"
 #include "lib/cobs.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -461,7 +462,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			/* No overwriting */
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 			ok = ggep_stream_write(gs, data, ilen);
-			G_FREE_NULL(data);
+			HFREE_NULL(data);
 
 			if (!ok)
 				goto cleanup;

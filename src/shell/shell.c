@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
 #include "lib/sha1.h"
@@ -477,7 +478,7 @@ shell_write_data(struct gnutella_shell *sh)
 	}
 
 done:
-	G_FREE_NULL(iov);
+	HFREE_NULL(iov);
 	return;
 }
 

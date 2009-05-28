@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "getline.h"
+#include "halloc.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */
 #include "override.h"	/* Must be the last header included */
@@ -65,7 +66,7 @@ getline_make(size_t maxlen)
 
 	o->maxlen = maxlen;
 	o->size = MIN(START_LENGTH, maxlen);
-	o->line = g_malloc(o->size);
+	o->line = halloc(o->size);
 
 	return o;
 }
@@ -86,7 +87,7 @@ getline_free(getline_t *o)
 	g_assert(o);
 	g_assert(o->line);
 
-	G_FREE_NULL(o->line);
+	HFREE_NULL(o->line);
 	wfree(o, sizeof *o);
 }
 
@@ -137,7 +138,7 @@ getline_read(getline_t *o, const char *data, size_t len, size_t *used)
 		new_size = MIN(new_size, o->maxlen);
 
 		g_assert(new_size <= INT_MAX);
-		o->line = g_realloc(o->line, new_size);
+		o->line = hrealloc(o->line, new_size);
 		o->size = new_size;
 
 		g_assert(o->size <= o->maxlen);
@@ -213,7 +214,7 @@ getline_copy(const getline_t *source, getline_t *dest)
 
 	if (dest->size <= source->pos) {
 		dest->size = source->pos + 1;		/* Trailing NUL */
-		dest->line = g_realloc(dest->line, dest->size);
+		dest->line = hrealloc(dest->line, dest->size);
 	}
 
 	memmove(dest->line, source->line, source->pos);

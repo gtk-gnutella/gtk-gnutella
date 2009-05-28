@@ -895,6 +895,7 @@ buffers_reset_reading(struct download *d)
 
 /**
  * Reset the I/O vector for writing the whole data held in the buffer.
+ * The returned object must be freed via hfree().
  */
 static struct iovec *
 buffers_to_iovec(struct download *d, int *iov_cnt)
@@ -7806,9 +7807,10 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		/*
 		 * Prepare I/O vector for writing.
 		 */
+
 		iov = buffers_to_iovec(d, &n); 
 		ret = file_object_pwritev(d->out_file, iov, n, d->pos);
-		G_FREE_NULL(iov);
+		HFREE_NULL(iov);
 
 		b->mode = DL_BUF_READING;
 
