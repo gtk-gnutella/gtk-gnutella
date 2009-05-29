@@ -227,7 +227,7 @@ struct passwd
 
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *) -1)
-#endif	/* !MMAP_FAILED */
+#endif	/* !MAP_FAILED */
 
 #ifdef I_SYS_SENDFILE
 #include <sys/sendfile.h>

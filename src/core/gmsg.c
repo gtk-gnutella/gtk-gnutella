@@ -974,7 +974,7 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 char *
 gmsg_infostr_full(gconstpointer msg, size_t msg_len)
 {
-	const char *data = ptr_add_offset_const(msg, GTA_HEADER_SIZE);
+	const char *data = const_ptr_add_offset(msg, GTA_HEADER_SIZE);
 	size_t data_len = msg_len - GTA_HEADER_SIZE;
 
 	if (msg_len < GTA_HEADER_SIZE)

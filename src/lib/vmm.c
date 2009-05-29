@@ -207,7 +207,7 @@ round_pagesize(size_t n)
 /**
  * Rounds pointer down so that it is aligned to the start of the page.
  */
-static inline void *
+static inline const void *
 page_start(const void *p)
 {
 	unsigned long addr = pointer_to_ulong(p);
@@ -324,7 +324,7 @@ vmm_dump_pmap(void)
 
 		g_message("VMM [0x%lx, 0x%lx] %luKiB%s%s%s%s",
 			(unsigned long) vmf->start,
-			(unsigned long) ptr_add_offset_const(vmf_end(vmf), -1),
+			(unsigned long) const_ptr_add_offset(vmf_end(vmf), -1),
 			(unsigned long) (vmf_size(vmf) / 1024),
 			vmf_is_foreign(vmf) ? " (foreign)" : "",
 			hole ? " + " : "",
@@ -365,12 +365,12 @@ vmm_find_hole(size_t size)
 			struct vm_fragment *vmf = &pm->array[i - 1];
 
 			if (i == 1) {
-				return ptr_add_offset_const(vmf->start, -size);
+				return const_ptr_add_offset(vmf->start, -size);
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
 				if (ptr_diff(vmf->start, vmf_end(prev)) >= size)
-					return ptr_add_offset_const(vmf->start, -size);
+					return const_ptr_add_offset(vmf->start, -size);
 			}
 		}
 	}
@@ -733,7 +733,7 @@ static void
 pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, gboolean foreign)
 {
-	const void *end = ptr_add_offset_const(start, size);
+	const void *end = const_ptr_add_offset(start, size);
 	struct vm_fragment *vmf;
 	size_t idx;
 
@@ -744,8 +744,13 @@ pmap_insert_region(struct pmap *pm,
 	if (pm->count == pm->size)
 		pmap_extend(pm);
 
-	if (pmap_lookup(pm, start, &idx))
-		g_error("pmap already contains the new region");
+	vmf = pmap_lookup(pm, start, &idx);
+	if (vmf) {
+		g_warning("pmap already contains the new region");
+		g_assert(foreign);
+		g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
+		return;
+	}
 
 	g_assert(pm->count < pm->size);
 	g_assert(idx <= pm->count);
@@ -1073,7 +1078,7 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 		return FALSE;
 	}
 
-	return p != vmf->start && vmf_end(vmf) != ptr_add_offset_const(p, size);
+	return p != vmf->start && vmf_end(vmf) != const_ptr_add_offset(p, size);
 }
 
 /**
@@ -1099,7 +1104,7 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 		return 0;
 	}
 
-	middle = ptr_add_offset_const(p, size / 2);
+	middle = const_ptr_add_offset(p, size / 2);
 	distance_to_start = ptr_diff(middle, vmf->start);
 	distance_to_end = ptr_diff(vmf_end(vmf), middle);
 
@@ -1139,7 +1144,7 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 
 	if (idx < pm->count) {
 		struct vm_fragment *vmf = &pm->array[idx];
-		const void *end = ptr_add_offset_const(p, size);
+		const void *end = const_ptr_add_offset(p, size);
 
 		return ptr_cmp(end, vmf->start) <= 0;
 	}
@@ -1194,7 +1199,7 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 	struct vm_fragment *vmf = pmap_lookup(pm, p, NULL);
 
 	if (vmf != NULL) {
-		const void *end = ptr_add_offset_const(p, size);
+		const void *end = const_ptr_add_offset(p, size);
 		const void *vend = vmf_end(vmf);
 		gboolean foreign = vend != vmf->end;
 
@@ -2285,9 +2290,7 @@ vmm_malloc_inited(void)
 static void
 vmm_reserve_stack(size_t amount)
 {
-	void *stack_base;
-	void *stack_end;
-	void *stack_low;
+	const void *stack_base, *stack_end, *stack_low;
 
 	RUNTIME_ASSERT(amount != 0);
 
@@ -2304,7 +2307,7 @@ vmm_reserve_stack(size_t amount)
 				g_warning("VMM no stack region found in the kernel pmap");
 			}
 		} else {
-			void *reserve_start;
+			const void *reserve_start;
 
 			if (vmm_debugging(1)) {
 				g_message("VMM stack region found in the kernel pmap (%lu KiB)",
@@ -2313,7 +2316,7 @@ vmm_reserve_stack(size_t amount)
 
 			stack_end = deconstify_gpointer(
 				sp_increasing ? vmf_end(vmf) : vmf->start);
-			reserve_start = ptr_add_offset(stack_end,
+			reserve_start = const_ptr_add_offset(stack_end,
 				(kernel_mapaddr_increasing ? +1 : -1) * VMM_STACK_MINSIZE);
 
 			if (
@@ -2332,7 +2335,7 @@ vmm_reserve_stack(size_t amount)
 					g_message("VMM reserved [0x%lx, 0x%lx] "
 						"%s stack for possible growing",
 						(unsigned long) reserve_start,
-						(unsigned long) ptr_add_offset(reserve_start,
+						(unsigned long) const_ptr_add_offset(reserve_start,
 							VMM_STACK_MINSIZE - 1),
 						sp_increasing ? "after" : "before");
 					vmm_dump_pmap();
@@ -2352,9 +2355,9 @@ vmm_reserve_stack(size_t amount)
 
 	stack_base = page_start(initial_sp);
 	if (!sp_increasing)
-		stack_base = ptr_add_offset(stack_base, kernel_pagesize);
+		stack_base = const_ptr_add_offset(stack_base, kernel_pagesize);
 
-	stack_end = ptr_add_offset(stack_base, (sp_increasing ? +1 : -1) * amount);
+	stack_end = const_ptr_add_offset(stack_base, (sp_increasing ? +1 : -1) * amount);
 
 	stack_low = sp_increasing ? stack_base : stack_end;
 
@@ -2364,14 +2367,14 @@ vmm_reserve_stack(size_t amount)
 			g_message("VMM reserved %luKiB [0x%lx, 0x%lx] for the stack",
 				(unsigned long) amount / 1024,
 				(unsigned long) stack_low,
-				(unsigned long) ptr_add_offset(stack_low, amount - 1));
+				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
 		}
 	} else {
 		if (vmm_debugging(0)) {
 			g_message("VMM cannot reserve %luKiB [0x%lx, 0x%lx] for the stack",
 				(unsigned long) amount / 1024,
 				(unsigned long) stack_low,
-				(unsigned long) ptr_add_offset(stack_low, amount - 1));
+				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
 			vmm_dump_pmap();
 		}
 	}
@@ -2537,8 +2540,8 @@ vmm_init(const void *sp)
 /**
  * Wrapper of the mmap() system call.
  */
-void *vmm_mmap(void *addr, size_t length,
-	int prot, int flags, int fd, off_t offset)
+void *
+vmm_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 {
 #ifdef HAS_MMAP
 	void *p = mmap(addr, length, prot, flags, fd, offset);
@@ -2554,20 +2557,22 @@ void *vmm_mmap(void *addr, size_t length,
 	(void) prot;
 	(void) flags;
 	(void) offset;
+	g_assert_not_reached();
 
-	return (void *) -1;
+	return MAP_FAILED;
 #endif
 }
 
 /**
  * Wrappper of the munmap() system call.
  */
-int vmm_munmap(void *addr, size_t length)
+int
+vmm_munmap(void *addr, size_t length)
 {
 #ifdef HAS_MMAP
 	int ret = munmap(addr, length);
 
-	if (ret != -1) {
+	if (ret) {
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
 	}
 
@@ -2575,6 +2580,7 @@ int vmm_munmap(void *addr, size_t length)
 #else
 	(void) addr;
 	(void) length;
+	g_assert_not_reached();
 
 	return -1;
 #endif

@@ -580,7 +580,7 @@ values_held(pmsg_t *mb)
 
 	g_assert(pmsg_size(mb) > KDA_HEADER_SIZE + 1 + toklen);
 
-	p = ptr_add_offset_const(p, toklen + 1);	/* Skip token */
+	p = const_ptr_add_offset(p, toklen + 1);	/* Skip token */
 	result = peek_u8(p);
 
 	g_assert(result != 0);
@@ -609,7 +609,7 @@ first_creator_kuid(pmsg_t *mb)
 
 	/* Skip: token (toklen + 1), value count (1), vendor (4) and version (2) */
 
-	return ptr_add_offset_const(p, toklen + 8);
+	return const_ptr_add_offset(p, toklen + 8);
 }
 
 /**

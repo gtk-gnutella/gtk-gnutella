@@ -177,13 +177,15 @@ ptr_diff(const void *a, const void *b)
 static inline void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_add_offset(void *p, size_t offset)
 {
-	return (void *) ((char *) p + offset);
+	/* Using size_t instead of 'char *' because pointers don't wrap. */
+	return (void *) ((size_t) p + offset);
 }
 
 static inline const void * G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
-ptr_add_offset_const(const void *p, size_t offset)
+const_ptr_add_offset(const void *p, size_t offset)
 {
-	return (const void *) ((const char *) p + offset);
+	/* Using size_t instead of 'char *' because pointers don't wrap. */
+	return (const void *) ((size_t) p + offset);
 }
 
 /**
