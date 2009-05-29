@@ -1201,7 +1201,7 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 	if (vmf != NULL) {
 		const void *end = const_ptr_add_offset(p, size);
 		const void *vend = vmf_end(vmf);
-		gboolean foreign = vend != vmf->end;
+		gboolean foreign = vmf_is_foreign(vmf);
 
 		if (p == vmf->start) {
 
@@ -2210,18 +2210,19 @@ page_cache_timer(gpointer unused_udata)
 const char *
 prot_strdup(const char *s)
 {
-	size_t n;
+	size_t n, size;
 	void *p;
 
 	if (!s)
 		return NULL;
 
 	n = strlen(s) + 1;
-	p = alloc_pages(round_pagesize_fast(n), FALSE);
+	size = round_pagesize_fast(n);
+	p = alloc_pages(size, FALSE);
 	if (p) {
 		memcpy(p, s, n);
-		mprotect(p, n, PROT_READ);
-		pmap_insert_foreign(vmm_pmap(), p, kernel_pagesize);
+		mprotect(p, size, PROT_READ);
+		pmap_insert_foreign(vmm_pmap(), p, size);
 	}
 	return p;
 }
