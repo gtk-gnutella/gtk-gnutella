@@ -230,6 +230,9 @@ filesize_to_off_t(filesize_t pos)
 #define UNSIGNED(value) ((value) + ((guint64)0U))
 #endif	/* UINTMAX_C */
 
+/* Normalize boolean-like values to TRUE(1) or FALSE(0) */
+#define booleanize(x) ((x) ? 1 : 0)
+
 #endif /* _casts_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
