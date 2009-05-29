@@ -68,7 +68,7 @@ RCSID("$Id$")
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
 
 static struct zone *wzone[WZONE_SIZE];
-static gboolean walloc_can_use_halloc;
+static size_t halloc_threshold = -1;
 
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
@@ -143,7 +143,7 @@ walloc(size_t size)
 
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		void *p = walloc_can_use_halloc ? halloc(size) : malloc(size);
+		void *p = size >= halloc_threshold ? halloc(size) : malloc(size);
 		if (NULL == p)
 			g_error("out of memory");
 
@@ -193,7 +193,7 @@ wfree(gpointer ptr, size_t size)
 #endif
 
 	if (rounded > WALLOC_MAX) {
-		if (walloc_can_use_halloc) {
+		if (rounded >= halloc_threshold) {
 			hfree(ptr);
 		} else {
 			free(ptr);
@@ -410,12 +410,7 @@ walloc_init(void)
 	 * or larger, then it is safe to halloc() the larger blocks.
 	 */
 
-	if (WALLOC_MAX >= compat_pagesize()) {
-		walloc_can_use_halloc = TRUE;
-	} else {
-		g_warning("walloc() will fallback on malloc() for sizes "
-			"larger than %d KiB", WALLOC_MAX);
-	}
+	halloc_threshold = MAX(WALLOC_MAX, compat_pagesize());
 }
 
 /* vi: set ts=4 sw=4 cindent: */
