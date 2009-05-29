@@ -10698,7 +10698,7 @@ http_version_nofix:
 				 * one.		--RAM, 2006-01-13
 				 */
 
-				if (d->skip - d->overlap_size >= end + 1) {
+				if (d->skip >= end + 1) {
 					download_queue(d, _("Weird server-side chunk shrinking"));
 					return;
 				}
