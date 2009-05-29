@@ -396,12 +396,12 @@ vmm_mmap_anonymous(size_t size)
 #if defined(HAS_MMAP)
 {
 	static int flags, failed, fd = -1;
-	void *p;
-	void *hint;
+	void *hint, *p;
 
 	if (failed)
 		return NULL;
 
+	size = round_pagesize_fast(size);
 	hint = deconstify_gpointer(vmm_find_hole(size));
 
 	if (hint != NULL && vmm_debugging(7)) {
@@ -458,7 +458,7 @@ vmm_mmap_anonymous(size_t size)
 {
 	void *p;
 
-	size = MIN(kernel_pagesize, size);
+	size = round_pagesize_fast(size);
 #if defined(HAS_POSIX_MEMALIGN)
 	if (posix_memalign(&p, kernel_pagesize, size)) {
 		p = NULL;
@@ -471,6 +471,9 @@ vmm_mmap_anonymous(size_t size)
 	RUNTIME_UNREACHABLE();
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN */
+	if (p) {
+		memset(p, 0, size);
+	}
 	return p;
 }
 #endif	/* HAS_MMAP */
