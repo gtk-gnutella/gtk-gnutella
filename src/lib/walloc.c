@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "glib-missing.h"
 #include "misc.h"
+#include "halloc.h"
 #include "walloc.h"
 #include "zalloc.h"
 
@@ -50,13 +51,14 @@ RCSID("$Id$")
 #undef wrealloc
 #endif
 
-#define WALLOC_MAX		4096	/**< Passed this size, use malloc() */
+#define WALLOC_MAX		4096	/**< Passed this size, use malloc()/halloc() */
 #define WALLOC_CHUNK	4096	/**< Target chunk size for small structs */
 #define WALLOC_MINCOUNT	8		/**< Minimum amount of structs in a chunk */
 
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
 
 static struct zone *wzone[WZONE_SIZE];
+static walloc_can_use_halloc;
 
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
@@ -115,7 +117,7 @@ wzone_get(size_t rounded)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to malloc() if size is greater than WALLOC_MAX.
+ * and to halloc()/malloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -130,7 +132,8 @@ walloc(size_t size)
 	g_assert(size_is_positive(size));
 
 	if (rounded > WALLOC_MAX) {
-		void *p = malloc(size);		/* Too big for efficient zalloc() */
+		/* Too big for efficient zalloc() */
+		void *p = walloc_can_use_halloc ? halloc(size) : malloc(size);
 		if (NULL == p)
 			g_error("out of memory");
 
@@ -180,7 +183,11 @@ wfree(gpointer ptr, size_t size)
 #endif
 
 	if (rounded > WALLOC_MAX) {
-		free(ptr);
+		if (walloc_can_use_halloc) {
+			hfree(ptr);
+		} else {
+			free(ptr);
+		}
 		return;
 	}
 
@@ -228,7 +235,7 @@ wrealloc(gpointer old, size_t old_size, size_t new_size)
 		wzone[idx_new] = wzone_get(new_rounded);
 
 	if (wzone[idx_old] == wzone[idx_new])
-		return old;
+		return zmove(wzone[idx_old], old);	/* Move around if interesting */
 
 resize_block:
 
@@ -377,6 +384,27 @@ wdestroy(void)
 			zdestroy(wzone[i]);
 			wzone[i] = NULL;
 		}
+	}
+}
+
+/**
+ * Initialize the width-based allocator.
+ */
+void
+walloc_init(void)
+{
+	/*
+	 * We know that halloc() will redirect to walloc() if the size of the
+	 * block is slightly smaller than the system's page size.  If the maximum
+	 * size of blocks we can handle via walloc() is equal to the page size
+	 * or larger, then it is safe to halloc() the larger blocks.
+	 */
+
+	if (WALLOC_MAX >= compat_pagesize()) {
+		walloc_can_use_halloc = TRUE;
+	} else {
+		g_warning("walloc() will fallback on malloc() for sizes "
+			"larger than %d KiB", WALLOC_MAX);
 	}
 }
 

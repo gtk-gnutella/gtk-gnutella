@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "hashtable.h"
 #include "misc.h"
 #include "tm.h"
+#include "vmm.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -78,6 +79,7 @@ struct zone_gc {
 	struct subzinfo *zg_subzinfo;	/**< Big chunk containing subzinfos */
 	time_t zg_start;				/**< Time at which GC was started */
 	unsigned zg_zone_freed;			/**< Total amount of zones freed by GC */
+	unsigned zg_zone_defragmented;	/**< Total amount of zones defragmented */
 	unsigned zg_zones;				/**< Amount of zones in zg_subzinfo[] */
 	unsigned zg_free;				/**< First subzinfo with free blocks */
 	guint32 zg_flags;				/**< GC flags */
@@ -128,6 +130,7 @@ static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
 static guint32 zalloc_debug;		/**< Debug level */
 static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
+static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
@@ -168,14 +171,14 @@ static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
 #ifdef REMAP_ZALLOC
-gpointer
+void *
 zalloc(zone_t *zone)
 {
 	return g_malloc(zone->zn_size);
 }
 
 void
-zfree(zone_t *zone, gpointer ptr)
+zfree(zone_t *zone, void *ptr)
 {
 	(void) zone;
 	g_free(ptr);
@@ -184,16 +187,17 @@ zfree(zone_t *zone, gpointer ptr)
 #else	/* !REMAP_ZALLOC */
 
 static char **zn_extend(zone_t *);
-static gpointer zgc_zalloc(zone_t *);
-static void zgc_zfree(zone_t *, gpointer);
+static void *zgc_zalloc(zone_t *);
+static void zgc_zfree(zone_t *, void *);
 static void zgc_allocate(zone_t *zone);
 static void zgc_dispose(zone_t *);
+static void *zgc_zmove(zone_t *, void *);
 
 /**
- * Return block, with possible size adjustment for tracking and markup,
- * as determined by compile options.
+ * Return block, with possible start address adjustment due to tracking and
+ * markup, as determined by compile options.
  */
-static inline gpointer
+static inline void *
 zprepare(zone_t *zone, char **blk)
 {
 	(void) zone;
@@ -202,7 +206,7 @@ zprepare(zone_t *zone, char **blk)
 	*blk++ = (char *) zone;
 #endif
 #ifdef TRACK_ZALLOC
-	blk = (char **) ((char *) blk + FILE_REV_OFFSET);
+	blk = ptr_add_offset(blk, FILE_REV_OFFSET);
 #endif
 	return blk;
 }
@@ -236,7 +240,7 @@ zprepare(zone_t *zone, char **blk)
  * Moreover, periodic calls to the zone gc are needed to collect unused chunks
  * when peak allocations are infrequent or occur at random.
  */
-gpointer
+void *
 zalloc(zone_t *zone)
 {
 	char **blk;		/**< Allocated block */
@@ -288,7 +292,7 @@ zalloc(zone_t *zone)
 /**
  * Tracking version of zalloc().
  */
-gpointer
+void *
 zalloc_track(zone_t *zone, char *file, int line)
 {
 	char *blk = zalloc(zone);
@@ -308,7 +312,7 @@ zalloc_track(zone_t *zone, char *file, int line)
  * be also recorded in the `leakset' for summarizing of all the leaks.
  */
 static void
-zblock_log(const char *p, size_t size, gpointer leakset)
+zblock_log(const char *p, size_t size, void *leakset)
 {
 	const char *uptr;			/* User pointer */
 	const char *file;
@@ -335,7 +339,7 @@ zdump_used(const zone_t *zone)
 	unsigned used = 0;
 	const struct subzone *sz;
 	const char *p;
-	gpointer leakset = leak_init();
+	void *leakset = leak_init();
 
 	for (sz = &zone->zn_arena; sz; sz = sz->sz_next) {
 		const char *end;
@@ -375,7 +379,7 @@ zdump_used(const zone_t *zone)
  * Warning: returning a block to the wrong zone may lead to disasters.
  */
 void
-zfree(zone_t *zone, gpointer ptr)
+zfree(zone_t *zone, void *ptr)
 {
 	char **head;
 	g_assert(ptr);
@@ -415,9 +419,11 @@ zfree(zone_t *zone, gpointer ptr)
  *
  * A zone consists of linked blocks, where the address of the next free block
  * is written in the first bytes of each free block.
+ *
+ * The first block in the arena will be the first free block.
  */
 static void
-zn_cram(zone_t *zone, gpointer arena)
+zn_cram(const zone_t *zone, void *arena)
 {
 	unsigned i;
 	char **next = arena, *p = arena;
@@ -425,10 +431,10 @@ zn_cram(zone_t *zone, gpointer arena)
 	unsigned hint = zone->zn_hint;
 
 	for (i = 1; i < hint; i++) {
-		next = (gpointer) p;
+		next = cast_to_void_ptr(p);
 		p = *next = &p[size];
 	}
-	next = (gpointer) p;
+	next = cast_to_void_ptr(p);
 	*next = NULL;
 }
 
@@ -446,6 +452,15 @@ subzone_free_arena(struct subzone *sz)
 	vmm_free(sz->sz_base, sz->sz_size);
 	sz->sz_base = NULL;
 	sz->sz_size = 0;
+}
+
+/*
+ * Is subzone held in a standalone virtual memory fragment?
+ */
+static gboolean
+subzone_is_fragment(const struct subzone *sz)
+{
+	return vmm_is_fragment(sz->sz_base, sz->sz_size);
 }
 
 /**
@@ -781,6 +796,24 @@ zget(size_t size, unsigned hint)
 }
 
 /**
+ * Move block in the same zone to an hopefully better place.
+ * @return new location for block.
+ */
+void *
+zmove(zone_t *zone, void *p)
+{
+	/*
+	 * If there is no garbage collection turned on for the zone, keep it as-is.
+	 */
+
+	if (NULL == zone->zn_gc)
+		return p;
+
+	return zgc_zmove(zone, p);
+}
+
+
+/**
  * Iterator callback on hash table.
  */
 static void
@@ -879,7 +912,7 @@ subzinfo_cmp(const void *a, const void *b)
  * @return a pointer to the found subzone information, NULL if not found.
  */
 static struct subzinfo *
-zgc_find_subzone(struct zone_gc *zg, gpointer blk, unsigned *low_ptr)
+zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 {
 	struct subzinfo *item, *array = zg->zg_subzinfo;
 	unsigned low = 0, high = zg->zg_zones - 1;
@@ -914,6 +947,173 @@ zgc_find_subzone(struct zone_gc *zg, gpointer blk, unsigned *low_ptr)
 }
 
 /**
+ * Add a new subzone in the garbage collection structure, where ``blk'' is
+ * the first free block in the subzone.
+ *
+ * @return pointer to the inserted subzone info.
+ */
+static struct subzinfo *
+zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
+{
+	struct zone_gc *zg = zone->zn_gc;
+	unsigned low;
+	struct subzinfo *szi;
+	struct subzinfo *array;
+
+	/*
+	 * Find index at which we must insert the new zone in the sorted array.
+	 */
+
+	if (zgc_find_subzone(zg, blk, &low))
+		g_error("new subzone cannot be present in the array");
+
+	/*
+	 * Insert new subzone at `low'.
+	 */
+
+	zg->zg_zones++;
+	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
+	if (NULL == array)
+		g_error("out of memory");
+
+	zg->zg_subzinfo = array;
+
+	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);
+
+	if (low < zg->zg_zones - 1) {
+		memmove(&array[low+1], &array[low],
+			sizeof(zg->zg_subzinfo[0]) * (zg->zg_zones - 1 - low));
+	}
+
+	szi = &array[low];
+	szi->szi_base = sz->sz_base;
+	szi->szi_end = &sz->sz_base[sz->sz_size];
+	szi->szi_free_cnt = zone->zn_hint;
+	szi->szi_free = blk;
+	szi->szi_sz = sz;
+
+	if (addr_grows_upwards) {
+		if (zg->zg_free > low)
+			zg->zg_free = low;		/* The subzone we have just added */
+	} else {
+		if (zg->zg_free <= low)
+			zg->zg_free = low;		/* The subzone we have just added */
+		else
+			zg->zg_free++;			/* Everything above was shifted up */
+	}
+
+	g_assert(uint_is_non_negative(zg->zg_free) && zg->zg_free < zg->zg_zones);
+
+	return szi;
+}
+
+/**
+ * Remove subzone info from the garbage collection structure.
+ */
+static void
+zgc_remove_subzone(const zone_t *zone, struct subzinfo *szi)
+{
+	struct zone_gc *zg = zone->zn_gc;
+
+	g_assert(uint_is_positive(zg->zg_zones));
+
+	zg->zg_zones--;
+
+	if (szi == &zg->zg_subzinfo[zg->zg_zones]) {
+		/* Removing trailing zone */
+		if (zg->zg_free == zg->zg_zones && 0 != zg->zg_zones)
+			zg->zg_free--;
+	} else {
+		unsigned i = szi - zg->zg_subzinfo;
+
+		g_assert(uint_is_non_negative(i));
+		g_assert(i < zg->zg_zones);
+
+		memmove(&zg->zg_subzinfo[i], &zg->zg_subzinfo[i+1],
+			(zg->zg_zones - i) * sizeof(zg->zg_subzinfo[0]));
+
+		if (zg->zg_free > i)
+			zg->zg_free--;
+	}
+
+	g_assert(uint_is_non_negative(zg->zg_free));
+	g_assert(0 == zg->zg_zones || zg->zg_free < zg->zg_zones);
+	g_assert(uint_is_non_negative(zg->zg_zones));
+	g_assert(zg->zg_zones != 1 || &zone->zn_arena == zg->zg_subzinfo[0].szi_sz);
+}
+
+/**
+ * Allocate a new subzone arena in the specified subzone and cram a free list
+ * inside the new arena.
+ *
+ * @return the address of the first free block
+ */
+static void *
+zgc_subzone_new_arena(const zone_t *zone, struct subzone *sz)
+{
+	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
+
+	if (NULL == sz->sz_base) {
+		g_error("cannot recreate %lu-byte zone arena",
+			(unsigned long) zone->zn_size);
+	}
+
+	zn_cram(zone, sz->sz_base);
+	return cast_to_void_ptr(sz->sz_base);
+}
+
+/**
+ * Defragment a subzone in the VM space: if the subzone's arena happens to
+ * be a VM fragment, free it and reallocate a new one.
+ */
+static void
+zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
+{
+	struct zone_gc *zg = zone->zn_gc;
+	struct subzone *sz = szi->szi_sz;
+	char **blk;
+	struct subzinfo *nszi;
+
+	g_assert(szi != NULL);
+	g_assert(zg != NULL);
+	g_assert(equiv(&zone->zn_arena == sz, 1 == zone->zn_subzones));
+	g_assert(szi->szi_free_cnt == zone->zn_hint);
+
+	if (!subzone_is_fragment(sz))
+		return;
+
+	if (zalloc_debug > 1) {
+		time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
+		g_message("ZGC %lu-byte zone 0x%lx: %ssubzone "
+			"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment",
+			(unsigned long) zone->zn_size, (unsigned long) zone,
+			&zone->zn_arena == sz ? "first " : "extra ",
+			(unsigned long) szi->szi_base,
+			(unsigned long) szi->szi_end - 1,
+			(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
+			zone->zn_hint, compact_time(life));
+	}
+
+	/*
+	 * Fragment will be freed by the VMM layer, not cached.
+	 */
+
+	subzone_free_arena(sz);
+	zg->zg_zone_defragmented++;
+	zgc_remove_subzone(zone, szi);
+	blk = zgc_subzone_new_arena(zone, sz);
+	nszi = zgc_insert_subzone(zone, sz, blk);
+
+	if (zalloc_debug > 4) {
+		g_message("ZGC %lu-byte zone 0x%lx recreated "
+			"%u blocks in [0x%lx, 0x%lx]",
+			(unsigned long) zone->zn_size, (unsigned long) zone,
+			zone->zn_hint, (unsigned long) nszi->szi_base,
+			(unsigned long) nszi->szi_end);
+	}
+}
+
+/**
  * Free up a subzone which is completely empty.
  *
  * @return TRUE if OK, FALSE if we did not free it.
@@ -933,7 +1133,39 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	 * Do not free the subzone if that would leave us with no more free blocks
 	 * in the whole zone.
 	 *
-	 * Also, to accomodate rapid zalloc()/zfree() usage patterns for a zone,
+	 * To help defragmenting the VM space, if the subzone is actually a
+	 * fragment, deallocate it and reallocate a new one.
+	 */
+
+	if (1 == zone->zn_subzones) {
+		g_assert(zone->zn_blocks == zone->zn_hint);
+		zgc_subzone_defragment(zone, szi);
+		return FALSE;
+	}
+
+	/*
+	 * Regardless of its age, if the subzone is a memory fragment, release it.
+	 */
+
+	if (subzone_is_fragment(szi->szi_sz)) {
+		if (zalloc_debug > 1) {
+			time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
+			g_message("ZGC %lu-byte zone 0x%lx: %ssubzone "
+				"[0x%lx, 0x%lx] %uKiB, %u blocks, lifetime %s is a fragment, "
+				"attempting release",
+				(unsigned long) zone->zn_size, (unsigned long) zone,
+				&zone->zn_arena == szi->szi_sz ? "first " : "extra ",
+				(unsigned long) szi->szi_base,
+				(unsigned long) szi->szi_end - 1,
+				(unsigned) ptr_diff(szi->szi_end, szi->szi_base) / 1024,
+				zone->zn_hint, compact_time(life));
+		}
+
+		goto release_zone;
+	}
+
+	/*
+	 * To accomodate rapid zalloc()/zfree() usage patterns for a zone,
 	 * do not release a subzone that was allocated too recently.
 	 *
 	 * This strategy imposes us to flag the zone as requiring a complete
@@ -943,9 +1175,6 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	 * blocks held in a subzone, or it will be cancelled (since by definition
 	 * we cannot have a free subzone when we have less than a subzone worth).
 	 */
-
-	if (1 == zone->zn_subzones)
-		return FALSE;
 
 	if (delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
@@ -959,6 +1188,8 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 		zg->zg_flags |= ZGC_SCAN_ALL;
 		return FALSE;
 	}
+
+release_zone:
 
 	/*
 	 * If we have already freed our quota of subzones during this GC cycle,
@@ -998,6 +1229,17 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 		subzone_free_arena(&zone->zn_arena);
 		zone->zn_arena = *sz;	/* Struct copy */
+		{
+			size_t i;
+
+			for (i = 0; i < zg->zg_zones; i++) {
+				struct subzinfo *s = &zg->zg_subzinfo[i];
+				if (s->szi_sz == sz) {
+					s->szi_sz = &zone->zn_arena;
+					break;
+				}
+			}
+		}
 		free(sz);
 	} else {
 		unsigned n = 2;
@@ -1046,26 +1288,7 @@ found:
 	 */
 
 	zg->zg_zone_freed++;
-	zg->zg_zones--;
-
-	if (szi == &zg->zg_subzinfo[zg->zg_zones]) {
-		/* Removing last zone */
-		if (zg->zg_free == zg->zg_zones)
-			zg->zg_free--;
-	} else {
-		unsigned i = szi - zg->zg_subzinfo;
-
-		g_assert(uint_is_non_negative(i));
-		g_assert(i < zg->zg_zones);
-
-		memmove(&zg->zg_subzinfo[i], &zg->zg_subzinfo[i+1],
-			(zg->zg_zones - i) * sizeof(zg->zg_subzinfo[0]));
-
-		if (zg->zg_free > i)
-			zg->zg_free = i;
-	}
-
-	g_assert(uint_is_non_negative(zg->zg_free) && zg->zg_free < zg->zg_zones);
+	zgc_remove_subzone(zone, szi);
 
 	return TRUE;
 }
@@ -1077,8 +1300,9 @@ found:
  * @return TRUE if block was inserted, FALSE if subzone was freed.
  */
 static gboolean
-zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
+zgc_insert_freelist(zone_t *zone, char **blk)
 {
+	struct zone_gc *zg = zone->zn_gc;
 	struct subzinfo *szi;
 	unsigned idx;
 
@@ -1105,8 +1329,19 @@ zgc_insert_freelist(zone_t *zone, struct zone_gc *zg, char **blk)
 
 	g_assert(uint_is_non_negative(idx) && idx < zg->zg_zones);
 
-	if (idx < zg->zg_free)
-		zg->zg_free = idx;
+	/*
+	 * Keep the first free zone index closest to the start of the
+	 * VM address space so that we start to allocate blocks in subzones
+	 * that are less likely to become fragments.
+	 */
+
+	if (addr_grows_upwards) {
+		if (idx < zg->zg_free)
+			zg->zg_free = idx;
+	} else {
+		if (idx > zg->zg_free)
+			zg->zg_free = idx;
+	}
 
 	if (++szi->szi_free_cnt == zone->zn_hint)
 		return !zgc_subzone_free(zone, szi);
@@ -1151,6 +1386,7 @@ zgc_allocate(zone_t *zone)
 		g_error("out of memory");
 
 	zg->zg_zone_freed = 0;
+	zg->zg_zone_defragmented = 0;
 	zg->zg_start = tm_time();
 	zg->zg_free = 0;
 	zg->zg_flags = 0;
@@ -1193,7 +1429,7 @@ zgc_allocate(zone_t *zone)
 	while ((blk = zone->zn_free)) {
 		zone->zn_free = (char **) *blk;
 		dispatched++;
-		if (!zgc_insert_freelist(zone, zg, blk)) {
+		if (!zgc_insert_freelist(zone, blk)) {
 			g_assert(dispatched >= zone->zn_hint);
 			dispatched -= zone->zn_hint;	/* Subzone removed */
 		}
@@ -1211,15 +1447,12 @@ zgc_allocate(zone_t *zone)
  *
  * @return new free block, removed from free list.
  */
-static gpointer
+static void *
 zgc_extend(zone_t *zone)
 {
 	char **blk;
-	struct zone_gc *zg;
 	struct subzone *sz;
 	struct subzinfo *szi;
-	struct subzinfo *array;
-	unsigned low;
 
 	g_assert(zone->zn_gc != NULL);
 	g_assert(zone->zn_free == NULL);
@@ -1234,41 +1467,9 @@ zgc_extend(zone_t *zone)
 	g_assert(zone->zn_free != NULL);
 	g_assert(cast_to_char_ptr(blk) == sz->sz_base);
 
-	/*
-	 * Find index at which we must insert the new zone in the sorted array.
-	 */
-
-	zg = zone->zn_gc;
-	if (zgc_find_subzone(zg, blk, &low))
-		g_error("new subzone cannot be present in the array");
-
-	/*
-	 * Insert new subzone at `low'.
-	 */
-
-	zg->zg_zones++;
-	array = realloc(zg->zg_subzinfo, zg->zg_zones * sizeof(zg->zg_subzinfo[0]));
-	if (NULL == array)
-		g_error("out of memory");
-
-	zg->zg_subzinfo = array;
-
-	g_assert(uint_is_non_negative(low) && low < zg->zg_zones);
-
-	if (low < zg->zg_zones - 1) {
-		memmove(&array[low+1], &array[low],
-			sizeof(zg->zg_subzinfo[0]) * (zg->zg_zones - 1 - low));
-	}
-
-	szi = &array[low];
-	szi->szi_base = sz->sz_base;
-	szi->szi_end = &sz->sz_base[sz->sz_size];
-	szi->szi_free_cnt = zone->zn_hint - 1;	/* About to use first block */
-	szi->szi_free = (char **) *blk;			/* Unchained from free list */
-	szi->szi_sz = sz;
-
-	zone->zn_free = NULL;		/* In GC mode, we never use this */
-	zg->zg_free = low;			/* The subzone we have just added */
+	szi = zgc_insert_subzone(zone, sz, blk);
+	szi->szi_free = (char **) *blk;		/* Use first block */
+	szi->szi_free_cnt--;
 
 	if (zalloc_debug > 4) {
 		g_message("ZGC %lu-byte zone 0x%lx extended by "
@@ -1278,6 +1479,7 @@ zgc_extend(zone_t *zone)
 			(unsigned long) szi->szi_end);
 	}
 
+	zone->zn_free = NULL;		/* In GC mode, we never use this */
 	return blk;					/* First free block */
 }
 
@@ -1295,6 +1497,7 @@ zgc_scan(zone_t *zone)
 
 	g_assert(zg != NULL);
 	g_assert(zone->zn_blocks >= zone->zn_cnt);
+	g_assert(uint_is_non_negative(zg->zg_free));
 
 	if (zalloc_debug > 4) {
 		g_message("ZGC %lu-byte zone 0x%lx scanned for free subzones: "
@@ -1382,11 +1585,13 @@ zgc_dispose(zone_t *zone)
 	if (zalloc_debug > 1) {
 		time_delta_t elapsed = delta_time(tm_time(), zg->zg_start);
 		g_message("ZGC %lu-byte zone 0x%lx ending garbage collection "
-			"(%u free block%s, %u subzone%s, freed %u in %s)",
+			"(%u free block%s, %u subzone%s, freed %u and defragmented %u "
+			"in %s)",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			free_blocks, 1 == free_blocks ? "" : "s",
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
-			zg->zg_zone_freed, compact_time(elapsed));
+			zg->zg_zone_freed, zg->zg_zone_defragmented,
+			compact_time(elapsed));
 	}
 
 	/*
@@ -1431,28 +1636,45 @@ zgc_dispose(zone_t *zone)
 /**
  * Allocate a block from the first subzone with free items.
  */
-static gpointer
+static void *
 zgc_zalloc(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;
-	unsigned max = zg->zg_zones;
 	unsigned i;
 	struct subzinfo *szi;
 	char **blk;
 
+	/*
+	 * Lookup for free blocks in each subzone, scanning them from the first
+	 * one known to have free blocks and moving up.  By attempting to
+	 * allocate from zones at the bottom of the array first, we keep the
+	 * newest blocks in the lowest zones, possibly freeing up the zones
+	 * at a higher place in memory, up to the point where they can be
+	 * reclaimed.
+	 */
 
-	for (i = zg->zg_free, szi = &zg->zg_subzinfo[i]; i < max; i++, szi++) {
-		blk = szi->szi_free;
+	g_assert(uint_is_non_negative(zg->zg_free) && zg->zg_free < zg->zg_zones);
 
-		if (NULL == blk) {
+	if (addr_grows_upwards) {
+		unsigned max = zg->zg_zones;
+
+		for (i = zg->zg_free, szi = &zg->zg_subzinfo[i]; i < max; i++, szi++) {
+			blk = szi->szi_free;
+			if (blk != NULL)
+				goto found;
 			zg->zg_free = (i + 1 == max) ? zg->zg_free : i + 1;
-			continue;
 		}
-
-		szi->szi_free = (char **) *blk;
-		szi->szi_free_cnt--;
-		zone->zn_cnt++;
-		return zprepare(zone, blk);
+	} else {
+		for (
+			i = zg->zg_free, szi = &zg->zg_subzinfo[i];
+			uint_is_non_negative(i);
+			i--, szi--
+		) {
+			blk = szi->szi_free;
+			if (blk != NULL)
+				goto found;
+			zg->zg_free = (i == 0) ? zg->zg_free : i - 1;
+		}
 	}
 
 	/*
@@ -1468,10 +1690,18 @@ zgc_zalloc(zone_t *zone)
 		blk = zgc_extend(zone);
 	} else {
 		zgc_dispose(zone);
-		blk = zn_extend(zone);				/* First block from new subzone */
+		blk = zn_extend(zone);			/* First block from new subzone */
 		zone->zn_free = (char **) *blk;
 	}
 
+	goto extended;
+
+found:
+	szi->szi_free = (char **) *blk;
+	szi->szi_free_cnt--;
+	/* FALL THROUGH */
+
+extended:
 	zone->zn_cnt++;
 	return zprepare(zone, blk);
 }
@@ -1480,10 +1710,111 @@ zgc_zalloc(zone_t *zone)
  * Free block, returning it to the proper subzone free list.
  */
 static void
-zgc_zfree(zone_t *zone, gpointer ptr)
+zgc_zfree(zone_t *zone, void *ptr)
 {
 	zone->zn_cnt--;
-	zgc_insert_freelist(zone, zone->zn_gc, ptr);
+	zgc_insert_freelist(zone, ptr);
+}
+
+/**
+ * Move block in the same zone to an hopefully better place.
+ * @return new location for block.
+ */
+static void *
+zgc_zmove(zone_t *zone, void *p)
+{
+	struct zone_gc *zg = zone->zn_gc;
+	struct subzinfo *szi;
+	unsigned i;
+	char **blk;
+	void *np;
+	void *start;
+
+	if (zone->zn_blocks == zone->zn_cnt)
+		return p;		/* No free blocks */
+
+	szi = zgc_find_subzone(zg, p, NULL);
+	g_assert(szi != NULL);
+	g_assert(ptr_cmp(p, szi->szi_base) >= 0 && ptr_cmp(p, szi->szi_end) < 0);
+
+	if (zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
+		return p;		/* No free blocks in any other subzone */
+
+	/*
+	 * Look for an "earlier" (in the VM space) subzone with a free block.
+	 */
+
+	i = szi - zg->zg_subzinfo;
+
+	if (!addr_grows_upwards) {
+		unsigned max = zg->zg_zones;
+
+		if (++i == max)
+			return p;		/* Not worth moving the block */
+
+		for (szi = &zg->zg_subzinfo[i]; i < max; i++, szi++) {
+			blk = szi->szi_free;
+			if (blk != NULL)
+				goto found;
+			zg->zg_free = (i + 1 == max) ? zg->zg_free : i + 1;
+		}
+	} else {
+		if (0 == i)
+			return p;		/* Not worth moving the block */
+
+		for (szi = &zg->zg_subzinfo[i-1]; i > 0; i--, szi--) {
+			blk = szi->szi_free;
+			if (blk != NULL)
+				goto found;
+			zg->zg_free = (i == 1) ? zg->zg_free : i - 1;
+		}
+	}
+
+	return p;				/* Did not find any better zone */
+
+	/*
+	 * Found a subzone with free blocks "earlier" in the VM space.
+	 * Move the block there.
+	 */
+
+found:
+
+	/*
+	 * Remove block from the subzone's free list.
+	 */
+
+	g_assert(uint_is_positive(szi->szi_free_cnt));
+
+	szi->szi_free = (char **) *blk;
+	szi->szi_free_cnt--;
+
+	/*
+	 * Also copy possible overhead (which is already included in the zone's
+	 * block size).
+	 */
+
+	start = ptr_add_offset(p, -USED_REV_OFFSET);
+	memcpy(blk, start, zone->zn_size);
+
+	np = zprepare(zone, blk);		/* Allow for block overhead */
+
+	if (zalloc_debug > 1) {
+		g_message("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
+			"zone has %u blocks, %u used (hint=%u, %u subzone%s)",
+			(unsigned long) zone->zn_size, (unsigned long) zone,
+			(unsigned long) p, (unsigned long) np,
+			zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
+			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
+	}
+
+	/*
+	 * Put old block back into its subzone, which may result in it being
+	 * freed up if it became empty (that's why we're moving blocks around).
+	 */
+
+	zgc_insert_freelist(zone, start);
+
+	return np;
 }
 
 /**
@@ -1614,6 +1945,15 @@ zgc(gboolean overloaded)
 			(unsigned) hash_table_size(zt), zgc_zone_cnt,
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
+}
+
+/**
+ * Initialize zone allocator.
+ */
+void
+zinit(void)
+{
+	addr_grows_upwards = vmm_grows_upwards();
 }
 
 /* vi: set ts=4: */

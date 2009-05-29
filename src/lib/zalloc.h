@@ -71,11 +71,13 @@ void zdestroy(zone_t *zone);
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
 #endif	/* REMAP_ZALLOC && TRACK_ZALLOC */
 
-gpointer zalloc(zone_t *);
-void zfree(zone_t *, gpointer);
-void zclose(void);
+void *zalloc(zone_t *);
+void zfree(zone_t *, void *);
+void *zmove(zone_t *zone, void *p);
 void zgc(gboolean overloaded);
 
+void zinit(void);
+void zclose(void);
 void set_zalloc_debug(guint32 level);
 void set_zalloc_always_gc(gboolean val);
 
@@ -83,7 +85,7 @@ void set_zalloc_always_gc(gboolean val);
 
 #define zalloc(z)	zalloc_track(z, _WHERE_, __LINE__)
 
-gpointer zalloc_track(zone_t *z, char *file, int line);
+void *zalloc_track(zone_t *z, char *file, int line);
 
 #endif	/* TRACK_ZALLOC */
 

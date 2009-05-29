@@ -140,6 +140,7 @@ gpointer wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 
 #endif	/* TRACK_ZALLOC */
 
+void walloc_init(void);
 void wdestroy(void);
 
 #define WFREE_NULL(p,size)	\

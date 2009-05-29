@@ -1374,6 +1374,8 @@ main(int argc, char **argv)
 	log_init();
 	malloc_init(argv[0]);
 	vmm_malloc_inited();
+	zinit();
+	walloc_init();
 	atoms_init();
 	eval_init();
 	misc_init();
