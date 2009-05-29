@@ -266,18 +266,14 @@ compat_pagesize(void)
 static inline gboolean
 vmf_is_foreign(const struct vm_fragment *vmf)
 {
-	return 0 != (pointer_to_ulong(vmf->end) & 0x1);
+	return booleanize((pointer_to_ulong(vmf->end) & 0x1));
 }
 
-/**
- * Mark fragment as foreign.
- */
-static void
-vmf_mark_foreign(struct vm_fragment *vmf)
+static inline void
+vmf_set_end(struct vm_fragment *vmf, const void *end, gboolean foreign)
 {
-	if (!vmf_is_foreign(vmf)) {
-		vmf->end = ptr_add_offset(deconstify_gpointer(vmf->end), -1);
-	}
+	g_assert(0 == (pointer_to_ulong(end) & 0x1));
+	vmf->end = const_ptr_add_offset(end, -booleanize(foreign));
 }
 
 /**
@@ -286,8 +282,7 @@ vmf_mark_foreign(struct vm_fragment *vmf)
 static inline const void *
 vmf_end(const struct vm_fragment *vmf)
 {
-	return vmf_is_foreign(vmf) ?
-		ptr_add_offset(deconstify_gpointer(vmf->end), 1) : vmf->end;
+	return vmf_is_foreign(vmf) ? const_ptr_add_offset(vmf->end, 1) : vmf->end;
 }
 
 /**
@@ -723,7 +718,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	vmf = &pm->array[pm->count++];
 	vmf->start = start;
-	vmf->end = foreign ? ptr_add_offset(deconstify_gpointer(end), -1) : end;
+	vmf_set_end(vmf, end, foreign);
 }
 
 /**
@@ -740,6 +735,7 @@ pmap_insert_region(struct pmap *pm,
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
+	foreign = booleanize(foreign);
 
 	if (pm->count == pm->size)
 		pmap_extend(pm);
@@ -764,10 +760,8 @@ pmap_insert_region(struct pmap *pm,
 	if (idx > 0) {
 		struct vm_fragment *prev = &pm->array[idx - 1];
 
-		if (!foreign == !vmf_is_foreign(prev) && prev->end == start) {
-			prev->end = end;
-			if (foreign)
-				vmf_mark_foreign(prev);
+		if (vmf_is_foreign(prev) == foreign && vmf_end(prev) == start) {
+			vmf_set_end(prev, end, foreign);
 
 			/*
 			 * If we're now bumping into the next chunk, we need to coalesce
@@ -777,8 +771,9 @@ pmap_insert_region(struct pmap *pm,
 			if (idx < pm->count) {
 				struct vm_fragment *next = &pm->array[idx];
 
-				if (!foreign == !vmf_is_foreign(next) && next->start == end) {
-					prev->end = next->end;
+				if (vmf_is_foreign(next) == foreign && next->start == end) {
+					vmf_set_end(prev, vmf_end(next), foreign);
+
 					pm->count--;
 					if (idx < pm->count) {
 						memmove(&pm->array[idx], &pm->array[idx+1],
@@ -793,7 +788,7 @@ pmap_insert_region(struct pmap *pm,
 	if (idx < pm->count) {
 		struct vm_fragment *next = &pm->array[idx];
 
-		if (!foreign == !vmf_is_foreign(next) && next->start == end) {
+		if (vmf_is_foreign(next) == foreign && next->start == end) {
 			next->start = start;
 			return;
 		}
@@ -809,10 +804,7 @@ pmap_insert_region(struct pmap *pm,
 	pm->count++;
 	vmf = &pm->array[idx];
 	vmf->start = start;
-	vmf->end = end;
-
-	if (foreign)
-		vmf_mark_foreign(vmf);
+	vmf_set_end(vmf, end, foreign);
 }
 
 /**
@@ -1223,9 +1215,7 @@ pmap_remove(struct pmap *pm, void *p, size_t size)
 			g_assert(ptr_cmp(vmf->start, p) < 0);
 			g_assert(ptr_cmp(end, vend) <= 0);
 
-			vmf->end = p;
-			if (foreign)
-				vmf_mark_foreign(vmf);
+			vmf_set_end(vmf, p, foreign);
 
 			if (end != vend) {
 				if (vmm_debugging(1)) {
