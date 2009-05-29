@@ -57,8 +57,8 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_linux LINUX_SYSTEM		/**/
 
 /* MEM_ALIGNBYTES:
- *	This symbol contains the number of bytes required to align a
- *	double. Usual values are 2, 4 and 8.
+ *	This symbol contains the number of bytes required to align an
+ *	arbitrary standard type. Usual values are 2, 4 and 8.
  */
 #define MEM_ALIGNBYTES $alignbytes	/**/
 
