@@ -167,6 +167,7 @@ static void pmap_remove(struct pmap *pm, void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, gboolean foreign);
+static void vmm_reserve_stack(size_t amount);
 
 static void
 init_kernel_pagesize(void)
@@ -360,12 +361,12 @@ vmm_find_hole(size_t size)
 			struct vm_fragment *vmf = &pm->array[i - 1];
 
 			if (i == 1) {
-				return const_ptr_add_offset(vmf->start, -size);
+				return page_start(const_ptr_add_offset(vmf->start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
 				if (ptr_diff(vmf->start, vmf_end(prev)) >= size)
-					return const_ptr_add_offset(vmf->start, -size);
+					return page_start(const_ptr_add_offset(vmf->start, -size));
 			}
 		}
 	}
@@ -401,7 +402,6 @@ vmm_mmap_anonymous(size_t size)
 	if (failed)
 		return NULL;
 
-	size = round_pagesize_fast(size);
 	hint = deconstify_gpointer(vmm_find_hole(size));
 
 	if (hint != NULL && vmm_debugging(7)) {
@@ -448,6 +448,7 @@ vmm_mmap_anonymous(size_t size)
 
 		if (vmm_pmap() == &kernel_pmap) {
 			pmap_load(&kernel_pmap);
+			vmm_reserve_stack(0);
 		} else {
 			pmap_insert_foreign(vmm_pmap(), hint, kernel_pagesize);
 		}
@@ -506,7 +507,7 @@ alloc_pages(size_t size, gboolean update_pmap)
 	p = vmm_mmap_anonymous(size);
 	return_value_unless(NULL != p, NULL);
 	
-	if (round_pagesize_fast((size_t) p) != (size_t) p) {
+	if (page_start(p) != p) {
 		RUNTIME_ASSERT(!"Aligned memory required");
 	}
 
@@ -1548,6 +1549,11 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 		 * released if they're not needed.
 		 */
 
+		if (1 == pc->current) {
+			base = pc->info[0].base;
+			goto selected;
+		}
+
 		for (i = 0; i < pc->current; i++) {
 			size_t d;
 			const void *p;
@@ -1561,7 +1567,7 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 			}
 		}
 
-		g_assert(base != NULL);
+		g_assert(base != NULL);		/* Anything has a distance > 0 */
 	}
 
 selected:
@@ -2234,6 +2240,15 @@ vmm_trap_page(void)
 }
 
 /**
+ * @return whether the virtual memory segment grows with increasing addresses.
+ */
+gboolean
+vmm_grows_upwards(void)
+{
+	return kernel_mapaddr_increasing;
+}
+
+/**
  * Set VMM debug level.
  */
 void
@@ -2281,6 +2296,10 @@ vmm_malloc_inited(void)
 
 /**
  * Mark "amount" bytes as foreign in the local pmap, reserved for the stack.
+ *
+ * When the kernel pmap is loaded, simply make sure we find the stack
+ * region and reserve an extra VMM_STACK_MINSIZE bytes for it to grow
+ * further.
  */
 static void
 vmm_reserve_stack(size_t amount)
@@ -2352,8 +2371,8 @@ vmm_reserve_stack(size_t amount)
 	if (!sp_increasing)
 		stack_base = const_ptr_add_offset(stack_base, kernel_pagesize);
 
-	stack_end = const_ptr_add_offset(stack_base, (sp_increasing ? +1 : -1) * amount);
-
+	stack_end = const_ptr_add_offset(stack_base,
+		(sp_increasing ? +1 : -1) * amount);
 	stack_low = sp_increasing ? stack_base : stack_end;
 
 	if (pmap_is_available(&local_pmap, stack_low, amount)) {
