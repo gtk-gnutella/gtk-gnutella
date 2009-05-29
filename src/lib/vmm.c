@@ -2308,8 +2308,6 @@ vmm_reserve_stack(size_t amount)
 {
 	const void *stack_base, *stack_end, *stack_low;
 
-	RUNTIME_ASSERT(amount != 0);
-
 	/*
 	 * If we could read the kernel pmap, reserve an extra VMM_STACK_MINSIZE
 	 * after the stack, as a precaution.
@@ -2360,6 +2358,8 @@ vmm_reserve_stack(size_t amount)
 		}
 		return;
 	}
+
+	RUNTIME_ASSERT(amount != 0);
 
 	/*
 	 * If stack and VM region grow in opposite directions, there is ample
