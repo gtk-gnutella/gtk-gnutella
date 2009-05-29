@@ -1724,7 +1724,7 @@ static void *
 zgc_zmove(zone_t *zone, void *p)
 {
 	struct zone_gc *zg = zone->zn_gc;
-	struct subzinfo *szi;
+	struct subzinfo *szi, *nszi;
 	unsigned i;
 	char **blk;
 	void *np;
@@ -1752,8 +1752,8 @@ zgc_zmove(zone_t *zone, void *p)
 		if (++i == max)
 			return p;		/* Not worth moving the block */
 
-		for (szi = &zg->zg_subzinfo[i]; i < max; i++, szi++) {
-			blk = szi->szi_free;
+		for (nszi = &zg->zg_subzinfo[i]; i < max; i++, nszi++) {
+			blk = nszi->szi_free;
 			if (blk != NULL)
 				goto found;
 			zg->zg_free = (i + 1 == max) ? zg->zg_free : i + 1;
@@ -1762,8 +1762,8 @@ zgc_zmove(zone_t *zone, void *p)
 		if (0 == i)
 			return p;		/* Not worth moving the block */
 
-		for (szi = &zg->zg_subzinfo[i-1]; i > 0; i--, szi--) {
-			blk = szi->szi_free;
+		for (nszi = &zg->zg_subzinfo[i-1]; i > 0; i--, nszi--) {
+			blk = nszi->szi_free;
 			if (blk != NULL)
 				goto found;
 			zg->zg_free = (i == 1) ? zg->zg_free : i - 1;
@@ -1783,10 +1783,10 @@ found:
 	 * Remove block from the subzone's free list.
 	 */
 
-	g_assert(uint_is_positive(szi->szi_free_cnt));
+	g_assert(uint_is_positive(nszi->szi_free_cnt));
 
-	szi->szi_free = (char **) *blk;
-	szi->szi_free_cnt--;
+	nszi->szi_free = (char **) *blk;
+	nszi->szi_free_cnt--;
 
 	/*
 	 * Also copy possible overhead (which is already included in the zone's
@@ -1799,12 +1799,15 @@ found:
 	np = zprepare(zone, blk);		/* Allow for block overhead */
 
 	if (zalloc_debug > 1) {
+		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
 		g_message("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
-			"zone has %u blocks, %u used (hint=%u, %u subzone%s)",
+			"zone has %u blocks, %u used (hint=%u, %u subzone%s), previous "
+			"subzone has %u block%s",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			(unsigned long) p, (unsigned long) np,
 			zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s");
+			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
+			used, 1 == used ? "" : "s");
 	}
 
 	/*
