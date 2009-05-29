@@ -747,7 +747,10 @@ pmap_insert_region(struct pmap *pm,
 	vmf = pmap_lookup(pm, start, &idx);
 	if (vmf) {
 		if (vmm_debugging(0)) {
-			g_warning("pmap already contains the new region");
+			g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
+				(unsigned long) start,
+				(unsigned long) const_ptr_add_offset(start, size - 1));
+			vmm_dump_pmap();
 		}
 		g_assert(foreign);
 		g_assert(vmf_is_foreign(vmf));
@@ -2588,7 +2591,7 @@ vmm_munmap(void *addr, size_t length)
 #ifdef HAS_MMAP
 	int ret = munmap(addr, length);
 
-	if (ret) {
+	if (ret != -1) {
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
 	}
 
