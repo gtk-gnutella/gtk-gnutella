@@ -748,6 +748,7 @@ pmap_insert_region(struct pmap *pm,
 	if (vmf) {
 		g_warning("pmap already contains the new region");
 		g_assert(foreign);
+		g_assert(vmf_is_foreign(vmf));
 		g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
 		return;
 	}
