@@ -51,14 +51,24 @@ RCSID("$Id$")
 #undef wrealloc
 #endif
 
-#define WALLOC_MAX		4096	/**< Passed this size, use malloc()/halloc() */
-#define WALLOC_CHUNK	4096	/**< Target chunk size for small structs */
-#define WALLOC_MINCOUNT	8		/**< Minimum amount of structs in a chunk */
+/**
+ * Maximum size for a walloc().  Anything larger is allocated by using
+ * either halloc() or malloc().
+ *
+ * To be able to fallback on halloc(), WALLOC_MAX must be kept greater than
+ * the system's page size.  We're going to assume that 32-bit systems use
+ * 4 KiB pages and 64-bit systems use 8 KiB pages.  We're basing our
+ * compile-time detection on the size of "long".
+ */
+#define WALLOC_MAX		(sizeof(long) > 4 ? 8192 : 4096)
+
+#define WALLOC_CHUNK	WALLOC_MAX	/**< Target chunk size for small structs */
+#define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
 
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
 
 static struct zone *wzone[WZONE_SIZE];
-static walloc_can_use_halloc;
+static gboolean walloc_can_use_halloc;
 
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
