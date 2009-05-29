@@ -2591,8 +2591,10 @@ vmm_munmap(void *addr, size_t length)
 #ifdef HAS_MMAP
 	int ret = munmap(addr, length);
 
-	if (ret != -1) {
+	if (0 == ret) {
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+	} else {
+		g_warning("munmap() failed: %s", g_strerror(errno));
 	}
 
 	return ret;
