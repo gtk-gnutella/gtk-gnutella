@@ -79,7 +79,9 @@ page_table_destroy(page_table_t *tab)
 		size_t i;
 
 		for (i = 0; i < G_N_ELEMENTS(tab->slice); i++) {
-			vmm_free(tab->slice[i], sizeof tab->slice[i][0]);
+			if (tab->slice[i]) {
+				vmm_free(tab->slice[i], sizeof tab->slice[i][0]);
+			}
 		}
 		free(tab);
 	}
