@@ -1388,7 +1388,7 @@ zgc_allocate(zone_t *zone)
 	zg->zg_zone_freed = 0;
 	zg->zg_zone_defragmented = 0;
 	zg->zg_start = tm_time();
-	zg->zg_free = 0;
+	zg->zg_free = addr_grows_upwards ? 0 : zg->zg_zones - 1;
 	zg->zg_flags = 0;
 
 	/*
@@ -1741,32 +1741,26 @@ zgc_zmove(zone_t *zone, void *p)
 		return p;		/* No free blocks in any other subzone */
 
 	/*
-	 * Look for an "earlier" (in the VM space) subzone with a free block.
+	 * Look for the "earliest" (in the VM space) subzone with a free block.
 	 */
 
 	i = szi - zg->zg_subzinfo;
 
-	if (!addr_grows_upwards) {
-		unsigned max = zg->zg_zones;
+	if (addr_grows_upwards) {
+		unsigned j = zg->zg_free;		/* Lowest zone with free blocks */
 
-		if (++i == max)
-			return p;		/* Not worth moving the block */
-
-		for (nszi = &zg->zg_subzinfo[i]; i < max; i++, nszi++) {
+		for (nszi = &zg->zg_subzinfo[j]; j < i; j++, nszi++) {
 			blk = nszi->szi_free;
 			if (blk != NULL)
 				goto found;
-			zg->zg_free = (i + 1 == max) ? zg->zg_free : i + 1;
 		}
 	} else {
-		if (0 == i)
-			return p;		/* Not worth moving the block */
+		unsigned j = zg->zg_free;		/* Highest zone with free blocks */
 
-		for (nszi = &zg->zg_subzinfo[i-1]; i > 0; i--, nszi--) {
+		for (nszi = &zg->zg_subzinfo[j]; j > i; j--, nszi--) {
 			blk = nszi->szi_free;
 			if (blk != NULL)
 				goto found;
-			zg->zg_free = (i == 1) ? zg->zg_free : i - 1;
 		}
 	}
 
