@@ -2176,7 +2176,8 @@ vmm_validate_pages(void *p, size_t size)
 	mprotect(p, size, PROT_READ | PROT_WRITE);
 #endif	/* VMM_PROTECT_FREE_PAGES */
 #ifdef VMM_INVALIDATE_FREE_PAGES 
-	vmm_madvise_normal(p, size);
+	/*  This should be unnecessary */
+	/*  vmm_madvise_normal(p, size); */
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
 }
 
@@ -2466,11 +2467,14 @@ vmm_malloc_inited(void)
 #endif
 
 	if (settings.non_default) {
+#if 0
+		/* This is FAR too verbose and printed too early */
 		g_message("VMM settings: %s%s",
 			settings.vmm_invalidate_free_pages ?
 				"VMM_INVALIDATE_FREE_PAGES" : "",
 			settings.vmm_protect_free_pages ?
 				"VMM_PROTECT_FREE_PAGES" : "");
+#endif
 	}
 }
 
