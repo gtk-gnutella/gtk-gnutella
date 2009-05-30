@@ -55,6 +55,7 @@ void set_vmm_debug(guint32 level);
 void vmm_init(const void *sp);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);
+void vmm_pre_close(void);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

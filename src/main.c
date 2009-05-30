@@ -549,6 +549,7 @@ gtk_gnutella_exit(gint n)
 	 * Memory shutdown must come last.
 	 */
 
+	vmm_pre_close();
 	atoms_close();
 	wdestroy();
 	zclose();

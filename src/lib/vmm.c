@@ -386,7 +386,6 @@ vmm_find_hole(size_t size)
 	return NULL;
 }
 
-#if 0
 /**
  * Compute the size of the first hole at the base of the VM space and return
  * its location in ``hole_ptr'', if we find one with a non-zero length.
@@ -408,12 +407,14 @@ vmm_first_hole(const void **hole_ptr)
 			if (ptr_cmp(end, vmm_base) < 0)
 				continue;
 
-			*hole_ptr = end;
-
 			if (i == pm->count - 1) {
+				*hole_ptr = end;
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
+				if (next->start == end)
+					continue;		/* Foreign and native do not coalesce */
+				*hole_ptr = end;
 				return ptr_diff(next->start, end);
 			}
 		}
@@ -425,28 +426,28 @@ vmm_first_hole(const void **hole_ptr)
 				continue;
 
 			if (i == 1) {
-				*hole_ptr = NULL;
+				*hole_ptr = ulong_to_pointer(kernel_pagesize);	/* Not NULL */
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
-				*hole_ptr = vmf_end(prev);
-				return ptr_diff(vmf->start, vmf_end(prev));
+				const void *end = vmf_end(prev);
+				if (vmf->start == end)
+					continue;		/* Foreign and native do not coalesce */
+				*hole_ptr = vmf->start;
+				return ptr_diff(vmf->start, end);
 			}
 		}
 	}
 
 	return 0;
 }
-#endif
 #else	/* !HAS_MMAP */
-#if 0
 static inline size_t
 vmm_first_hole(const void **unused)
 {
 	(void) unused;
 	return 0;
 }
-#endif
 #endif	/* HAS_MMAP */
 
 /**
@@ -473,7 +474,7 @@ vmm_mmap_anonymous(size_t size)
 
 	hint = deconstify_gpointer(vmm_find_hole(size));
 
-	if (hint != NULL && vmm_debugging(7)) {
+	if (hint != NULL && vmm_debugging(8)) {
 		g_message("VMM hinting 0x%lx for new %luKiB region",
 			(unsigned long) hint, (unsigned long) (size / 1024));
 	}
@@ -1580,12 +1581,29 @@ insert:
 }
 
 /**
+ * Compare two pointers according to the growing direction of the VM space.
+ * A pointer is larger than another if it is further away from the base.
+ */
+static inline int
+vmm_ptr_cmp(const void *a, const void *b)
+{
+	if (a == b)
+		return 0;
+
+	return (kernel_mapaddr_increasing ? +1 : -1) * ptr_cmp(a, b);
+}
+
+/**
  * Find "n" consecutive pages in page cache and remove them from it.
+ *
+ * @param pc		the page cache line to search
+ * @param n			amount of pages wanted
+ * @param hole		if non-NULL, first known hole (uncached) that would fit
  *
  * @return pointer to the base of the "n" pages if found, NULL otherwise.
  */
 static void *
-vpc_find_pages(struct page_cache *pc, size_t n)
+vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 {
 	size_t total = 0;
 	void *base, *end;
@@ -1598,17 +1616,31 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 
 		/*
 		 * Since we're looking for less pages than what this cache line stores,
-		 * we'll have to split the page.  To limit fragmentation of the VM
-		 * space, we avoid splitting regions at the beginning or at the tail
-		 * of a VM region (since these can be released without fragmenting
-		 * further).
+		 * we'll have to split the page.
 		 */
 
 		for (i = 0; i < pc->current; i++) {
 			base = kernel_mapaddr_increasing ?
 				pc->info[i].base : pc->info[pc->current - 1 - i].base;
-			if (pmap_is_within_region(vmm_pmap(), base, pc->chunksize))
-				goto selected;
+
+			/*
+			 * We stop considering pages that are further away than the
+			 * identified hole.  Since we traverse the cache line in the
+			 * proper order, from "lower" addresses to "upper" ones, we can
+			 * abort as soon as we've gone beyond the hole.
+			 */
+
+			if (hole != NULL && vmm_ptr_cmp(base, hole) > 0) {
+				if (vmm_debugging(7)) {
+					g_message("VMM page cache #%lu: stopping split attempt "
+						"at 0x%lx (upper than hole 0x%lx)",
+						(unsigned long) pc->pages - 1,
+						(unsigned long) base, (unsigned long) hole);
+				}
+				break;
+			}
+
+			goto selected;
 		}
 
 		return NULL;
@@ -1623,17 +1655,28 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 		 * released if they're not needed.
 		 */
 
-		if (1 == pc->current) {
-			base = pc->info[0].base;
-			goto selected;
-		}
-
 		for (i = 0; i < pc->current; i++) {
 			size_t d;
 			const void *p;
 
 			p = kernel_mapaddr_increasing ?
 				pc->info[i].base : pc->info[pc->current - 1 - i].base;
+
+			/*
+			 * Stop considering pages that are further away from the
+			 * identified hole.
+			 */
+
+			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
+				if (vmm_debugging(7)) {
+					g_message("VMM page cache #%lu: stopping lookup at 0x%lx "
+						"(upper than hole 0x%lx)",
+						(unsigned long) pc->pages - 1,
+						(unsigned long) p, (unsigned long) hole);
+				}
+				break;
+			}
+
 			d = pmap_nesting_within_region(vmm_pmap(), p, pc->chunksize);
 			if (d > max_distance) {
 				max_distance = d;
@@ -1641,7 +1684,10 @@ vpc_find_pages(struct page_cache *pc, size_t n)
 			}
 		}
 
-		g_assert(base != NULL);		/* Anything has a distance > 0 */
+		if (NULL == base)
+			return NULL;
+
+		/* FALL THROUGH */
 	}
 
 selected:
@@ -1671,6 +1717,16 @@ selected:
 					if (total >= n)
 						goto found;
 				} else {
+					if (hole != NULL && vmm_ptr_cmp(start, hole) > 0) {
+						if (vmm_debugging(7)) {
+							g_message("VMM cache #%lu: stopping merge at "
+								"0x%lx (upper than hole 0x%lx)",
+								(unsigned long) pc->pages - 1,
+								(unsigned long) start, (unsigned long) hole);
+						}
+						break;
+					}
+
 					total = pc->pages;
 					base = start;
 					end = ptr_add_offset(base, pc->chunksize);
@@ -1687,6 +1743,17 @@ selected:
 					if (total >= n)
 						goto found;
 				} else {
+					if (hole != NULL && vmm_ptr_cmp(prev_base, hole) > 0) {
+						if (vmm_debugging(7)) {
+							g_message("VMM cache #%lu: stopping merge at "
+								"0x%lx (upper than hole 0x%lx)",
+								(unsigned long) pc->pages - 1,
+								(unsigned long) prev_base,
+								(unsigned long) hole);
+						}
+						break;
+					}
+
 					total = pc->pages;
 					base = prev_base;
 					end = last;
@@ -1742,20 +1809,53 @@ static void *
 page_cache_find_pages(size_t n)
 {
 	void *p;
+	size_t len;
+	const void *hole;
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
 
+	/*
+	 * Before using pages from the cache, look where the first hole is
+	 * at the start of the virtual memory space.  If we find one that can
+	 * suit this allocation, then do not use cached pages that would
+	 * lie after the hole.
+	 */
+
+
+	len = vmm_first_hole(&hole);
+	if (pagecount_fast(len) < n) {
+		hole = NULL;
+	} else if (!kernel_mapaddr_increasing) {
+		hole = const_ptr_add_offset(hole, -n * kernel_pagesize);
+	}
+
+	if (hole != NULL && vmm_debugging(8)) {
+		g_message("VMM lowest hole of %lu page%s at 0x%lx",
+			(unsigned long) n, n == 1 ? "" : "s", (unsigned long) hole);
+	}
+
 	if (n >= VMM_CACHE_LINES) {
+		/*
+		 * Our only hope to find suitable pages in the cache is to have
+		 * consecutive ranges in the largest cache line.
+		 */
+
 		pc = &page_cache[VMM_CACHE_LINES - 1];
-		p = vpc_find_pages(pc, n);
+		p = vpc_find_pages(pc, n, hole);
+
 		if (vmm_debugging(3)) {
 			g_message("VMM lookup for large area (%lu pages) returned 0x%lx",
 				(unsigned long) n, (unsigned long) p);
 		}
 	} else {
+		/*
+		 * Start looking for a suitable page in the page cache matching
+		 * the size we want.
+		 */
+
 		pc = &page_cache[n - 1];
-		p = vpc_find_pages(pc, n);
+		p = vpc_find_pages(pc, n, hole);
 
 		/*
 		 * Visit higher-order cache lines if we found nothing in the cache.
@@ -1771,7 +1871,7 @@ page_cache_find_pages(size_t n)
 
 			for (i = n; i < VMM_CACHE_LINES && NULL == p; i++) {
 				pc = &page_cache[i];
-				p = vpc_find_pages(pc, n);
+				p = vpc_find_pages(pc, n, hole);
 			}
 		}
 	}
@@ -2648,6 +2748,15 @@ vmm_init(const void *sp)
 		free_pages(q, kernel_pagesize, FALSE);
 		free_pages(p, kernel_pagesize, FALSE);
 	}
+}
+
+/**
+ * Signal that we're about to close down all activity.
+ */
+void
+vmm_pre_close(void)
+{
+	safe_to_malloc = FALSE;		/* Turn logging off */
 }
 
 /***
