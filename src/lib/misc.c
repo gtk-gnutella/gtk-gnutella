@@ -399,16 +399,22 @@ h_strconcat(const char *str1, ...)
 static size_t
 vprintf_get_size(const char *format, va_list ap)
 {
-	size_t size;
+	char dummy[1];	/* Intentionally 1 byte, see below. */
 	char *buf;
+	size_t size;
 	int ret;
 
-	size = 0;
+	/**
+	 * NOTE: Older vsnprintf() return an unspecified value less
+	 * than 1 (one) if size is zero. That could be zero which
+	 * is also returned for an empty string!
+	 */
+
 	buf = NULL;
+	size = sizeof dummy;
 
 	for (;;) {
 		va_list ap2;
-		char dummy[1];
 
 		VA_COPY(ap2, ap);
 		ret = vsnprintf(buf ? buf : dummy, size, format, ap2);
@@ -418,12 +424,14 @@ vprintf_get_size(const char *format, va_list ap)
 			if (0 != errno)
 				break;
 		} else if (UNSIGNED(ret) > size) {
-			break; /* Assume conforming C99 vsnprintf() */
+			/* Assume conforming C99 vsnprintf() */
+			break;
 		} else if (size - ret > 1) {
+			/* Only trust this if there's more than 1 byte left. */
 			break;
 		}
 
-		size = size > 0 ? size_saturate_mult(size, 2) : 1024;
+		size = buf ? size_saturate_mult(size, 2) : 1024;
 
 		/* Since vsnprintf() returns an int, INT_MAX is the limit */
 		g_assert(size < UNSIGNED(INT_MAX));
