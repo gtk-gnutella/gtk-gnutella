@@ -191,18 +191,15 @@ concat_strings(char *dst, size_t size, const char *s, ...)
 size_t
 w_concat_strings(char **dst_ptr, const char *first, ...)
 {
-	va_list ap, ap2;
+	va_list ap;
 	const char *s;
 	size_t size;
 
 	va_start(ap, first);
-	VA_COPY(ap2, ap);
-
 	for (s = first, size = 1; NULL != s; /* NOTHING */) {
 		size = size_saturate_add(size, strlen(s));
 		s = va_arg(ap, const char *);
 	}
-
 	va_end(ap);
 
 	g_assert(size < SIZE_MAX);
@@ -212,16 +209,16 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 		size_t n, len = size - 1;
 
 		*dst_ptr = p = walloc(size);
+		va_start(ap, first);
 		for (s = first; NULL != s; p += n, len -= n) {
 			n = g_strlcpy(p, s, len + 1);
-			s = va_arg(ap2, const char *);
+			s = va_arg(ap, const char *);
 			g_assert(n <= len);
 		}
+		va_end(ap);
 		*p = '\0';
 		g_assert(0 == len);
 	}
-
-	va_end(ap2);
 
 	return size;
 }
@@ -360,34 +357,83 @@ h_strfreev(char **str_array)
 char *
 h_strconcat(const char *str1, ...)
 {
-	va_list ap, ap2;
+	va_list ap;
 	const char *s;
 	size_t size;
 	char *result;
 	size_t pos;
 
 	va_start(ap, str1);
-	VA_COPY(ap2, ap);
-
 	for (s = str1, size = 1; NULL != s; /* NOTHING */) {
 		size = size_saturate_add(size, strlen(s));
 		s = va_arg(ap, const char *);
 	}
-
 	va_end(ap);
+
 	g_assert(size < SIZE_MAX);
 
 	result = halloc(size);
 
+	va_start(ap, str1);
 	for (s = str1, pos = 0; NULL != s; /* NOTHING */) {
 		pos += strcpy_len(&result[pos], s);
-		s = va_arg(ap2, const char *);
+		s = va_arg(ap, const char *);
 	}
+	va_end(ap);
 
-	va_end(ap2);
 	g_assert(pos + 1 == size);
 
 	return result;
+}
+
+/**
+ * Calculate the size of the buffer required to hold the string
+ * resulting from vnsprintf().
+ * 
+ * @param format The printf format string.
+ * @param ap The argument list.
+ *
+ * @return The size of the buffer required to hold the resulting
+ *         string including the terminating NUL.
+ */
+static size_t
+vprintf_get_size(const char *format, va_list ap)
+{
+	size_t size;
+	char *buf;
+	int ret;
+
+	size = 0;
+	buf = NULL;
+
+	for (;;) {
+		va_list ap2;
+		char dummy[8];
+
+		VA_COPY(ap2, ap);
+		ret = vsnprintf(buf ? buf : dummy, size, format, ap2);
+		va_end(ap2);
+
+		if (ret < 0) {
+			if (0 != errno)
+				return (size_t) -1;
+		} else if (UNSIGNED(ret) > size) {
+			break; /* Assume conforming C99 vsnprintf() */
+		} else if (size - ret > 1) {
+			break;
+		}
+
+		size = MIN(size, sizeof dummy);
+		size = size_saturate_mult(size, 2);
+
+		/* Since vsnprintf() returns an int, INT_MAX is the limit */
+		g_assert(size < UNSIGNED(INT_MAX));
+
+		buf = hrealloc(buf, size);
+	}
+
+	HFREE_NULL(buf);
+	return size_saturate_add(ret, 1);
 }
 
 /**
@@ -397,17 +443,20 @@ h_strconcat(const char *str1, ...)
 static char *
 h_strdup_vprintf(const char *format, va_list ap)
 {
-	char *buf;
-	size_t len;
 	va_list ap2;
+	char *buf;
+	size_t size;
+	int ret;
 
 	VA_COPY(ap2, ap);
-
-	len = g_printf_string_upper_bound(format, ap);
-	va_end(ap);
-	buf = halloc(len);
-	vsnprintf(buf, len, format, ap2);
+	size = vprintf_get_size(format, ap2);
 	va_end(ap2);
+
+	buf = halloc(size);
+	ret = vsnprintf(buf, size, format, ap);
+	va_end(ap);
+
+	g_assert(UNSIGNED(ret) == size - 1);
 
 	return buf;
 }
