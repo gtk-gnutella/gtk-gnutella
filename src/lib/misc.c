@@ -404,8 +404,9 @@ h_strdup_vprintf(const char *format, va_list ap)
 	VA_COPY(ap2, ap);
 
 	len = g_printf_string_upper_bound(format, ap);
+	va_end(ap);
 	buf = halloc(len);
-	vsnprintf(buf, len, format, ap);
+	vsnprintf(buf, len, format, ap2);
 	va_end(ap2);
 
 	return buf;
