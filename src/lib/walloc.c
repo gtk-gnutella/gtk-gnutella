@@ -209,6 +209,10 @@ wfree(gpointer ptr, size_t size)
 /**
  * Reallocate a block allocated via walloc().
  *
+ * @param old		old block address (may be NULL)
+ * @param old_size	size of the old block (ignored if old is NULL)
+ * @param new_size	the new size of the block
+ *
  * @return new block address.
  */
 gpointer
@@ -218,6 +222,9 @@ wrealloc(gpointer old, size_t old_size, size_t new_size)
 	size_t new_rounded = zalloc_round(new_size);
 	size_t old_rounded = zalloc_round(old_size);
 	size_t idx_old, idx_new;
+
+	if (NULL == old)
+		return walloc(new_size);
 
 	if (old_rounded == new_rounded)
 		return old;
