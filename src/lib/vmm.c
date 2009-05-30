@@ -385,6 +385,68 @@ vmm_find_hole(size_t size)
 
 	return NULL;
 }
+
+#if 0
+/**
+ * Compute the size of the first hole at the base of the VM space and return
+ * its location in ``hole_ptr'', if we find one with a non-zero length.
+ */
+static size_t
+vmm_first_hole(const void **hole_ptr)
+{
+	struct pmap *pm = vmm_pmap();
+	size_t i;
+
+	if (pm == &local_pmap || 0 == pm->count)
+		return 0;
+
+	if (kernel_mapaddr_increasing) {
+		for (i = 0; i < pm->count; i++) {
+			struct vm_fragment *vmf = &pm->array[i];
+			const void *end = vmf_end(vmf);
+
+			if (ptr_cmp(end, vmm_base) < 0)
+				continue;
+
+			*hole_ptr = end;
+
+			if (i == pm->count - 1) {
+				return SIZE_MAX;
+			} else {
+				struct vm_fragment *next = &pm->array[i + 1];
+				return ptr_diff(next->start, end);
+			}
+		}
+	} else {
+		for (i = pm->count; i > 0; i--) {
+			struct vm_fragment *vmf = &pm->array[i - 1];
+
+			if (ptr_cmp(vmf->start, vmm_base) > 0)
+				continue;
+
+			if (i == 1) {
+				*hole_ptr = NULL;
+				return SIZE_MAX;
+			} else {
+				struct vm_fragment *prev = &pm->array[i - 2];
+				*hole_ptr = vmf_end(prev);
+				return ptr_diff(vmf->start, vmf_end(prev));
+			}
+		}
+	}
+
+	return 0;
+}
+#endif
+#else	/* !HAS_MMAP */
+#if 0
+static inline size_t
+vmm_first_hole(const void **unused)
+{
+	(void) unused;
+	return 0;
+}
+#endif
 #endif	/* HAS_MMAP */
 
 /**
@@ -2412,7 +2474,7 @@ vmm_reserve_stack(size_t amount)
 				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
 		}
 		if (kernel_mapaddr_increasing) {
-			void *after_stack = ptr_add_offset(stack_low, amount);
+			const void *after_stack = const_ptr_add_offset(stack_low, amount);
 			vmm_base = vmm_trap_page();
 			if (ptr_cmp(vmm_base, after_stack) > 0)
 				vmm_base = after_stack;
@@ -2435,7 +2497,8 @@ vmm_reserve_stack(size_t amount)
 vm_setup:
 	if (vmm_debugging(0)) {
 		g_message("VMM will allocate pages from 0x%lx %swards",
-			vmm_base, kernel_mapaddr_increasing ? "up" : "down");
+			(unsigned long) vmm_base,
+			kernel_mapaddr_increasing ? "up" : "down");
 	}
 }
 
