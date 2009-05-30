@@ -2344,11 +2344,11 @@ set_vmm_debug(guint32 level)
 void
 vmm_malloc_inited(void)
 {
-	gboolean has_setting = FALSE;
-	struct vmm_settings {
-		guint8 vmm_invalidate_free_pages;
-		guint8 vmm_protect_free_pages;
-	} settings;
+	struct {
+		unsigned non_default:1;
+		unsigned vmm_invalidate_free_pages:1;
+		unsigned vmm_protect_free_pages:1;
+	} settings = { FALSE, FALSE, FALSE };
 
 	safe_to_malloc = TRUE;
 
@@ -2357,15 +2357,15 @@ vmm_malloc_inited(void)
 	 */
 
 #ifdef VMM_INVALIDATE_FREE_PAGES
+	settings.non_default = TRUE;
 	settings.vmm_invalidate_free_pages = TRUE;
-	has_setting = TRUE;
 #endif
 #ifdef VMM_PROTECT_FREE_PAGES
+	settings.non_default = TRUE;
 	settings.vmm_protect_free_pages = TRUE;
-	has_setting = TRUE;
 #endif
 
-	if (has_setting) {
+	if (settings.non_default) {
 		g_message("VMM settings: %s%s",
 			settings.vmm_invalidate_free_pages ?
 				"VMM_INVALIDATE_FREE_PAGES" : "",
