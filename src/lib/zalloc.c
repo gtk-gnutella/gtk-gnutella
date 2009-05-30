@@ -131,6 +131,7 @@ static guint32 zalloc_debug;		/**< Debug level */
 static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
+static gboolean zalloc_closing;		/**< Whether zclose() was called */
 
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
@@ -737,7 +738,10 @@ zdestroy(zone_t *zone)
 
 	zn_free_additional_subzones(zone);
 	subzone_free_arena(&zone->zn_arena);
-	hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
+
+	if (!zalloc_closing)
+		hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
+
 	free(zone);
 }
 
@@ -847,6 +851,7 @@ zclose(void)
 	if (NULL == zt)
 		return;
 
+	zalloc_closing = TRUE;
 	hash_table_foreach(zt, free_zone, NULL);
 	hash_table_destroy(zt);
 	zt = NULL;
