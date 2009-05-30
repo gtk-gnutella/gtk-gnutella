@@ -1242,11 +1242,9 @@ parse_arguments(int argc, char **argv)
 	}
 }
 
-/**
- * Act on the options we parsed.
- */
+/* Handle certain arguments as soon as possible */
 static void
-handle_arguments(void)
+handle_arguments_asap(void)
 {
 	if (options[main_arg_help].used) {
 		usage(EXIT_SUCCESS);
@@ -1296,6 +1294,19 @@ handle_arguments(void)
 		}
 		exit(EXIT_SUCCESS);
 	}
+
+	if (options[main_arg_shell].used) {
+		local_shell(settings_local_socket_path());
+		exit(EXIT_SUCCESS);
+	}
+}
+
+/**
+ * Act on the options we parsed.
+ */
+static void
+handle_arguments(void)
+{
 	if (options[main_arg_ping].used) {
 		if (settings_is_unique_instance()) {
 			/* gtk-gnutella was running. */
@@ -1305,10 +1316,6 @@ handle_arguments(void)
 			 * not be created. */
 			exit(EXIT_FAILURE);
 		}
-	}
-	if (options[main_arg_shell].used) {
-		local_shell(settings_local_socket_path());
-		exit(EXIT_SUCCESS);
 	}
 	if (options[main_arg_daemonize].used) {
 		if (0 != compat_daemonize(NULL)) {
@@ -1348,10 +1355,10 @@ main(int argc, char **argv)
 
 	/* First inits -- initialize custom memory allocator, if needed */
 
+	misc_init();
+
 	prehandle_arguments(argv);
 	vmm_init(&sp);
-	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
-		options[main_arg_pause_on_crash].used);
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
 
@@ -1372,6 +1379,10 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	parse_arguments(argc, argv);
+	crash_init(options[main_arg_exec_on_crash].arg, argv[0],
+		options[main_arg_pause_on_crash].used);
+	handle_arguments_asap();
+
 	log_init();
 	malloc_init(argv[0]);
 	vmm_malloc_inited();
@@ -1379,7 +1390,6 @@ main(int argc, char **argv)
 	walloc_init();
 	atoms_init();
 	eval_init();
-	misc_init();
 	settings_early_init();
 
 	handle_arguments();
