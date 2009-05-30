@@ -40,6 +40,7 @@ RCSID("$Id$")
 
 #include "zalloc.h"
 #include "hashtable.h"
+#include "glib-missing.h"	/* For g_mem_is_system_malloc() */
 #include "misc.h"
 #include "tm.h"
 #include "vmm.h"
@@ -850,6 +851,22 @@ zclose(void)
 {
 	if (NULL == zt)
 		return;
+
+#ifdef USE_HALLOC
+	/*
+	 * FIXME
+	 *
+	 * Cannot cleanup zones and log problems if halloc() is replacing malloc()
+	 * because it will not be possible to allocate memory.
+	 *
+	 * A solution could be to replace GLib's memory vtable by another one where
+	 * freeing would do nothing and allocation would go back to the system's
+	 * malloc, before shutting down the memory allocators.
+	 */
+
+	if (!g_mem_is_system_malloc())
+		return;
+#endif
 
 	zalloc_closing = TRUE;
 	hash_table_foreach(zt, free_zone, NULL);
