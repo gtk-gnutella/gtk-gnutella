@@ -54,13 +54,8 @@ RCSID("$Id$")
 /**
  * Maximum size for a walloc().  Anything larger is allocated by using
  * either halloc() or malloc().
- *
- * To be able to fallback on halloc(), WALLOC_MAX must be kept greater than
- * the system's page size.  We're going to assume that 32-bit systems use
- * 4 KiB pages and 64-bit systems use 8 KiB pages.  We're basing our
- * compile-time detection on the size of "long".
  */
-#define WALLOC_MAX		(sizeof(long) > 4 ? 8192 : 4096)
+#define WALLOC_MAX		4096
 
 #define WALLOC_CHUNK	WALLOC_MAX	/**< Target chunk size for small structs */
 #define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
@@ -277,11 +272,12 @@ walloc_track(size_t size, char *file, int line)
 	g_assert(size > 0);
 
 	if (rounded > WALLOC_MAX) {
+		/* Too big for efficient zalloc() */
 		void *p = 
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
-			malloc(size);		/* Too big for efficient zalloc() */
+			rounded >= halloc_threshold ? halloc(size) : malloc(size);
 #endif
 			if (NULL == p)
 				g_error("out of memory");
