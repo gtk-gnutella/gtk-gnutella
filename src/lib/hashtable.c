@@ -75,25 +75,28 @@ typedef struct hash_item {
   struct hash_item *next;
 } hash_item_t;
 
+enum hashtable_magic { HASHTABLE_MAGIC = 0x54452ad4 };
+
 struct hash_table {
-  size_t      num_items; /* Array length of "items" */
-  size_t      num_bins; /* Number of bins */
-  size_t      num_held; /* Number of items actually in the table */
-  size_t      bin_fill; /* Number of bins in use */
-  hash_table_hash_func hash;	/* Key hash functions, or NULL */
-  hash_table_eq_func eq;		/* Key equality function, or NULL */
-  hash_item_t **bins;   /* Array of bins of size ``num_bins'' */
-  hash_item_t *free_list;   /* List of free hash items */
-  hash_item_t *items;       /* Array of items */
+  enum hashtable_magic magic;   /* Magic number */
+  size_t num_items;             /* Array length of "items" */
+  size_t num_bins;              /* Number of bins */
+  size_t num_held;              /* Number of items actually in the table */
+  size_t bin_fill;              /* Number of bins in use */
+  hash_table_hash_func hash;    /* Key hash functions, or NULL */
+  hash_table_eq_func eq;        /* Key equality function, or NULL */
+  hash_item_t **bins;           /* Array of bins of size ``num_bins'' */
+  hash_item_t *free_list;       /* List of free hash items */
+  hash_item_t *items;           /* Array of items */
 };
 
-#define hash_table_check(ht) \
-G_STMT_START { \
-  const hash_table_t *ht_ = (ht); \
- \
-  RUNTIME_ASSERT(ht_ != NULL); \
-  RUNTIME_ASSERT(ht_->num_bins > 0); \
-} G_STMT_END
+static inline void
+hash_table_check(const struct hash_table *ht)
+{
+  RUNTIME_ASSERT(ht != NULL);
+  RUNTIME_ASSERT(HASHTABLE_MAGIC == ht->magic);
+  RUNTIME_ASSERT(ht->num_bins > 0 && ht->num_bins < SIZE_MAX / 2);
+}
 
 /**
  * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
@@ -175,6 +178,7 @@ hash_table_new_intern(hash_table_t *ht, size_t num_bins,
   RUNTIME_ASSERT(ht);
   RUNTIME_ASSERT(num_bins > 1);
   
+  ht->magic = HASHTABLE_MAGIC;
   ht->num_held = 0;
   ht->bin_fill = 0;
   ht->hash = hash ? hash : hash_id_key;
@@ -459,6 +463,8 @@ hash_table_remove(hash_table_t *ht, const void *key)
   hash_item_t *item;
   size_t bin;
 
+  hash_table_check(ht);
+
   item = hash_table_find(ht, key, &bin);
   if (item) {
     hash_item_t *i;
@@ -545,6 +551,7 @@ void
 hash_table_destroy(hash_table_t *ht)
 {
   hash_table_clear(ht);
+  ht->magic = 0;
   free(ht);
 }
 
@@ -580,6 +587,7 @@ void
 hash_table_destroy_real(hash_table_t *ht)
 {
   hash_table_clear(ht);
+  ht->magic = 0;
   free(ht);
 }
 
