@@ -2232,8 +2232,6 @@ prot_strdup(const char *s)
 	return p;
 }
 
-static void *trap_page;		/** The trap page */
-
 /**
  * @return	A page-sized and page-aligned chunk of memory which causes an
  *			exception to be raised if accessed.
@@ -2241,6 +2239,14 @@ static void *trap_page;		/** The trap page */
 const void *
 vmm_trap_page(void)
 {
+	static const void *trap_page;
+
+	if (NULL == trap_page) {
+		void *p = alloc_pages(kernel_pagesize, FALSE);
+		RUNTIME_ASSERT(p);
+		mprotect(p, kernel_pagesize, PROT_NONE);
+		trap_page = p;
+	}
 	return trap_page;
 }
 
@@ -2430,8 +2436,8 @@ vmm_post_init(void)
 	 */
 
 	{
-		void *vmbase = trap_page;	/* First page allocated */
-		void *end = ptr_add_offset(vmbase, kernel_pagesize);
+		const void *vmbase = vmm_trap_page();	/* First page allocated */
+		const void *end = const_ptr_add_offset(vmbase, kernel_pagesize);
 		size_t room;
 
 		if (ptr_cmp(initial_sp, vmbase) > 0) {
@@ -2521,10 +2527,7 @@ vmm_init(const void *sp)
 	 * Allocate the trap page early so that it is at the bottom of the
 	 * memory space, hopefully (not really true on Linux, but close enough).
 	 */
-
-	trap_page = alloc_pages(kernel_pagesize, FALSE);
-	RUNTIME_ASSERT(trap_page);
-	mprotect(trap_page, kernel_pagesize, PROT_NONE);
+	(void) vmm_trap_page();
 
 	/*
 	 * Allocate the pmaps.
@@ -2533,7 +2536,7 @@ vmm_init(const void *sp)
 	pmap_allocate(&local_pmap);
 	pmap_allocate(&kernel_pmap);
 
-	pmap_insert_foreign(vmm_pmap(), trap_page, kernel_pagesize);
+	pmap_insert_foreign(vmm_pmap(), vmm_trap_page(), kernel_pagesize);
 
 	/*
 	 * Determine how the kernel is growing the virtual memory region.
