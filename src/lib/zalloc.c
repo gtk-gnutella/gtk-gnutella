@@ -560,17 +560,20 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 
 		if (adjusted != size) {
 			if (zalloc_debug) {
-				g_message("ZALLOC adjusting block size from %u to %u "
-					"(%u blocks will waste %u bytes at end of %u-byte subzone)",
-					(unsigned) requested, (unsigned) adjusted, hint,
-					(unsigned) (rounded - hint * adjusted), rounded);
+				g_message("ZALLOC adjusting block size from %lu to %lu "
+					"(%lu blocks will waste %lu bytes at end of %lu-byte subzone)",
+					(unsigned long) requested, (unsigned long) adjusted,
+					(unsigned long) hint,
+					(unsigned long) (rounded - hint * adjusted),
+					(unsigned long) rounded);
 			}
 		} else {
 			if (zalloc_debug) {
-				g_message("ZALLOC cannot adjust block size of %u "
-					"(%u blocks will waste %u bytes at end of %u-byte subzone)",
-					(unsigned) requested, hint,
-					(unsigned) (rounded - hint * adjusted), rounded);
+				g_message("ZALLOC cannot adjust block size of %lu "
+					"(%lu blocks will waste %lu bytes at end of %lu-byte subzone)",
+					(unsigned long) requested, (unsigned long) hint,
+					(unsigned long) (rounded - hint * adjusted),
+					(unsigned long) rounded);
 			}
 		}
 
@@ -1796,12 +1799,12 @@ found:
 		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
 		g_message("ZGC %lu-byte zone 0x%lx: moved 0x%lx to 0x%lx, "
 			"zone has %u blocks, %u used (hint=%u, %u subzone%s), previous "
-			"subzone has %u block%s",
+			"subzone has %lu block%s",
 			(unsigned long) zone->zn_size, (unsigned long) zone,
 			(unsigned long) p, (unsigned long) np,
 			zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
 			zone->zn_subzones, 1 == zone->zn_subzones ? "" : "s",
-			used, 1 == used ? "" : "s");
+			(unsigned long) used, 1 == used ? "" : "s");
 	}
 
 	/*
