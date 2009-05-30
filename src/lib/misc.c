@@ -2623,11 +2623,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 			*p++ = hex_digit((c >> 4) & 0xf);
 			*p++ = hex_digit(c & 0x0f);
 
-			if (is_ascii_alnum(c) || is_ascii_punct(c)) {
-				*q++ = c;
-			} else {
-				*q++ = '.';		/* no non-printables */
-			}
+			*q++ = is_ascii_print(c) ? c : '.';
 		} else {
 			*p++ = ' ';
 			*p++ = ' ';
