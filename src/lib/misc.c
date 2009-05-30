@@ -399,25 +399,28 @@ h_strconcat(const char *str1, ...)
 static size_t
 vprintf_get_size(const char *format, va_list ap)
 {
-	char dummy[1];	/* Intentionally 1 byte, see below. */
 	char *buf;
 	size_t size;
 	int ret;
 
 	/**
-	 * NOTE: Older vsnprintf() return an unspecified value less
-	 * than 1 (one) if size is zero. That could be zero which
-	 * is also returned for an empty string!
+	 * NOTE: ISO C99 ensures that vsnprintf(NULL, 0, ...) calculates the size
+	 * of the required buffer but older vsnprintf() return an unspecified value
+	 * less than 1 (one) if size is zero. That could be zero which is also
+	 * returned for an empty string, so don't try that. Older vsnprintf()
+	 * may silently truncate the string if the buffer is insufficient but
+	 * don't return the required size.
 	 */
 
-	buf = NULL;
-	size = sizeof dummy;
+	size = 1024;
+	buf = walloc(size);
 
 	for (;;) {
 		va_list ap2;
+		size_t old_size;
 
 		VA_COPY(ap2, ap);
-		ret = vsnprintf(buf ? buf : dummy, size, format, ap2);
+		ret = vsnprintf(buf, size, format, ap2);
 		va_end(ap2);
 
 		if (ret < 0) {
@@ -431,15 +434,16 @@ vprintf_get_size(const char *format, va_list ap)
 			break;
 		}
 
-		size = buf ? size_saturate_mult(size, 2) : 1024;
-
 		/* Since vsnprintf() returns an int, INT_MAX is the limit */
 		g_assert(size < UNSIGNED(INT_MAX));
 
-		buf = hrealloc(buf, size);
+		old_size = size;
+		size = size_saturate_mult(size, 2);
+
+		buf = wrealloc(buf, old_size, size);
 	}
 
-	HFREE_NULL(buf);
+	WFREE_NULL(buf, size);
 	return ret < 0 ? (size_t)-1 : size_saturate_add(ret, 1);
 }
 
