@@ -149,6 +149,7 @@ static guint32 vmm_debug;			/**< Debug level */
 static const void *initial_brk;		/**< Startup position of the heap */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
 static gboolean sp_increasing;		/**< Growing direction of the stack */
+static const void *vmm_base;		/**< Where we'll start allocating */
 
 static inline gboolean
 vmm_debugging(guint32 lvl)
@@ -347,6 +348,9 @@ vmm_find_hole(size_t size)
 			struct vm_fragment *vmf = &pm->array[i];
 			const void *end = vmf_end(vmf);
 
+			if (ptr_cmp(end, vmm_base) < 0)
+				continue;
+
 			if (i == pm->count - 1) {
 				return end;
 			} else {
@@ -359,6 +363,9 @@ vmm_find_hole(size_t size)
 	} else {
 		for (i = pm->count; i > 0; i--) {
 			struct vm_fragment *vmf = &pm->array[i - 1];
+
+			if (ptr_cmp(vmf->start, vmm_base) > 0)
+				continue;
 
 			if (i == 1) {
 				return page_start(const_ptr_add_offset(vmf->start, -size));
@@ -2324,11 +2331,14 @@ vmm_reserve_stack(size_t amount)
 
 	if (vmm_pmap() == &kernel_pmap) {
 		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, initial_sp, NULL);
+		gboolean first_time = NULL == vmm_base;
 
 		if (NULL == vmf) {
 			if (vmm_debugging(0)) {
 				g_warning("VMM no stack region found in the kernel pmap");
 			}
+			if (NULL == vmm_base)
+				vmm_base = vmm_trap_page();
 		} else {
 			const void *reserve_start;
 
@@ -2364,7 +2374,12 @@ vmm_reserve_stack(size_t amount)
 					vmm_dump_pmap();
 				}
 			}
+
+			if (NULL == vmm_base)
+				vmm_base = reserve_start;
 		}
+		if (first_time)
+			goto vm_setup;
 		return;
 	}
 
@@ -2375,8 +2390,10 @@ vmm_reserve_stack(size_t amount)
 	 * room for the stack provided their relative position is correct.
 	 */
 
-	if ((size_t) -1 == amount)
-		return;
+	if ((size_t) -1 == amount) {
+		vmm_base = vmm_trap_page();
+		goto vm_setup;
+	}
 
 	stack_base = page_start(initial_sp);
 	if (!sp_increasing)
@@ -2394,6 +2411,16 @@ vmm_reserve_stack(size_t amount)
 				(unsigned long) stack_low,
 				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
 		}
+		if (kernel_mapaddr_increasing) {
+			void *after_stack = ptr_add_offset(stack_low, amount);
+			vmm_base = vmm_trap_page();
+			if (ptr_cmp(vmm_base, after_stack) > 0)
+				vmm_base = after_stack;
+		} else {
+			vmm_base = vmm_trap_page();
+			if (ptr_cmp(vmm_base, stack_low) < 0)
+				vmm_base = stack_low;
+		}
 	} else {
 		if (vmm_debugging(0)) {
 			g_message("VMM cannot reserve %luKiB [0x%lx, 0x%lx] for the stack",
@@ -2402,6 +2429,13 @@ vmm_reserve_stack(size_t amount)
 				(unsigned long) const_ptr_add_offset(stack_low, amount - 1));
 			vmm_dump_pmap();
 		}
+		vmm_base = vmm_trap_page();
+	}
+
+vm_setup:
+	if (vmm_debugging(0)) {
+		g_message("VMM will allocate pages from 0x%lx %swards",
+			vmm_base, kernel_mapaddr_increasing ? "up" : "down");
 	}
 }
 
