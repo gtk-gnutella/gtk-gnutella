@@ -4105,6 +4105,9 @@ html_decode_entity(const char * const src, const char **endptr)
 		}
 		name[name_len] = '\0';
 
+		if (!html_entities_lut) {
+			html_entities_init();
+		}
 		value = g_hash_table_lookup(html_entities_lut, name);
 		if (NULL == value)
 			goto failure;
@@ -4558,7 +4561,6 @@ misc_init(void)
 	hex2int_init();
 	dec2int_init();
 	alnum2int_init();
-	html_entities_init();
 
 	{
 		static const struct {
