@@ -54,7 +54,7 @@ RCSID("$Id$")
 
 #include "lib/override.h"	/* Must be the last header included */
 
-#define COPY_BLOCK_SHIFT	12			/**< Power of two of copy unit credit */
+#define COPY_BLOCK_FRAGMENT	4096		/**< Power of two of copy unit credit */
 #define COPY_BUF_SIZE		65536		/**< Size of the reading buffer */
 
 static struct bgtask *move_daemon;
@@ -354,7 +354,7 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 	struct moved *md = u;
 	ssize_t r;
 	size_t amount;
-	guint64 remain;
+	filesize_t remain;
 	int used;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -367,16 +367,17 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 
 	g_assert(md->size > md->copied);
 	remain = md->size - md->copied;
+	remain = MIN(remain, COPY_BUF_SIZE);
 
 	/*
-	 * Each tick we have can buy us 2^COPY_BLOCK_SHIFT bytes.
+	 * Each tick we have can buy us COPY_BLOCK_FRAGMENT bytes.
 	 *
 	 * We read into a COPY_BUF_SIZE bytes buffer, and at most md->size
 	 * bytes total, to stop before the fileinfo trailer.
 	 */
 
-	amount = ticks << COPY_BLOCK_SHIFT;
-	remain = MIN(remain, COPY_BUF_SIZE);
+	amount = MAX(0, ticks);
+	amount = size_saturate_mult(amount, COPY_BLOCK_FRAGMENT);
 	amount = MIN(amount, remain);
 
 	g_assert(amount > 0);
@@ -398,8 +399,7 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 	 * Any partially read block counts as one block, hence the second term.
 	 */
 
-	used = (r >> COPY_BLOCK_SHIFT) +
-		((r & ((1 << COPY_BLOCK_SHIFT) - 1)) ? 1 : 0);
+	used = (r / COPY_BLOCK_FRAGMENT) + (r % COPY_BLOCK_FRAGMENT ? 1 : 0);
 
 	if (used != ticks)
 		bg_task_ticks_used(h, used);
