@@ -184,7 +184,10 @@ halloc(size_t size)
 	} else {
 		int inserted;
 
+		/* round_pagesize() is unsafe and wraps! */
 		allocated = round_pagesize(size);
+		RUNTIME_ASSERT(allocated >= size);
+
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
 		RUNTIME_ASSERT(inserted);
