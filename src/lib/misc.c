@@ -424,8 +424,7 @@ vprintf_get_size(const char *format, va_list ap)
 		va_end(ap2);
 
 		if (ret < 0) {
-			if (0 != errno)
-				break;
+			/* Keep trying */
 		} else if (UNSIGNED(ret) > size) {
 			/* Assume conforming C99 vsnprintf() */
 			break;
