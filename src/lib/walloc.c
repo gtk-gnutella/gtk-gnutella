@@ -358,6 +358,9 @@ wrealloc_track(gpointer old, size_t old_size, size_t new_size,
 	gpointer new;
 	size_t rounded = zalloc_round(new_size);
 
+	if (NULL == old)
+		return walloc_track(new_size, file, line);
+
 	if (zalloc_round(old_size) == (size_t) rounded)
 		return old;
 
