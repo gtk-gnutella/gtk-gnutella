@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/pmsg.h"
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -134,7 +135,7 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 
 		if (bc->size > bc->data_size) {
 			bc->data_size = MAX(BH_DL_DEFAULT_SIZE, bc->size);
-			bc->data = g_realloc(bc->data, bc->data_size);
+			bc->data = hrealloc(bc->data, bc->data_size);
 		}
 
 		bc->pos = 0;
@@ -420,7 +421,7 @@ browse_host_dl_free(struct browse_ctx **ptr)
 		if (!bc->closed) {
 			search_dissociate_browse(bc->sh, bc->owner);
 		}
-		G_FREE_NULL(bc->data);
+		HFREE_NULL(bc->data);
 		wfree(bc, sizeof *bc);
 		*ptr = NULL;
 	}

@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -511,26 +512,26 @@ main_gui_gtkrc_init(void)
 	/* parse gtkrc files (thx to the sylpheed-claws developers for the tip) */
 	userrc = make_pathname(guc_settings_home_dir(), rchfn);
 	gtk_rc_parse(userrc);
-	G_FREE_NULL(userrc);
+	HFREE_NULL(userrc);
 
-	userrc = g_strconcat(guc_settings_home_dir(),
+	userrc = h_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 	gtk_rc_parse(userrc);
-	G_FREE_NULL(userrc);
+	HFREE_NULL(userrc);
 
 #ifdef USE_GTK2
-	userrc = g_strconcat(guc_settings_home_dir(),
+	userrc = h_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 #else
-	userrc = g_strconcat(guc_settings_home_dir(),
+	userrc = h_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", (void *) 0);
 #endif
 	gtk_rc_parse(userrc);
-	G_FREE_NULL(userrc);
+	HFREE_NULL(userrc);
 
 	userrc = make_pathname(guc_settings_config_dir(), rcfn);
 	gtk_rc_parse(userrc);
-	G_FREE_NULL(userrc);
+	HFREE_NULL(userrc);
 }
 
 /***

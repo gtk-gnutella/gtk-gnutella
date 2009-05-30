@@ -372,7 +372,7 @@ share_special_load(const struct special_file *sp)
 	{
 		char *filename = make_pathname(fp[idx].dir, fp[idx].name);
 		sf->file_path = atom_str_get(filename);
-		G_FREE_NULL(filename);
+		HFREE_NULL(filename);
 	}
 	if (shared_file_set_names(sf, sp->file)) {
 		shared_file_free(&sf);
@@ -1047,7 +1047,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		recursive_scan_closedir(ctx);
 
 		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
-		slist_free_all(&ctx->sub_dirs, g_free);
+		slist_free_all(&ctx->sub_dirs, hfree);
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 
 		atom_str_free_null(&ctx->base_dir);
@@ -1471,7 +1471,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 	}
 
 finish:
-	G_FREE_NULL(fullpath);
+	HFREE_NULL(fullpath);
 }
 
 /**
@@ -1490,7 +1490,7 @@ recursive_scan_next_dir(struct recursive_scan *ctx)
 	   
 		dir = slist_shift(ctx->sub_dirs);
 		recursive_scan_opendir(ctx, dir);
-		G_FREE_NULL(dir);
+		HFREE_NULL(dir);
 		return FALSE;
 	} else if (slist_length(ctx->base_dirs) > 0) {
 		atom_str_free_null(&ctx->base_dir);

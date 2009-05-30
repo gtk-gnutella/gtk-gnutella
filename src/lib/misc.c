@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "base32.h"
 #include "endian.h"
 #include "entropy.h"
+#include "halloc.h"
 #include "html_entities.h"
 #include "misc.h"
 #include "glib-missing.h"
@@ -223,6 +224,207 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 	va_end(ap2);
 
 	return size;
+}
+
+/**
+ * A clone of strdup() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ *
+ * @return a pointer to the new string.
+ */
+char *
+h_strdup(const char *str)
+{
+	if (str != NULL) {
+		size_t len = strlen(str);
+		char *result = halloc(len + 1);
+
+		strcpy(result, str);
+		return result;
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * A clone of strndup() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * @param str		the string to duplicate a part of (can be NULL)
+ * @param n			the maximum number of characters to copy from string
+ *
+ * @return a pointer to the new string.
+ */
+char *
+h_strndup(const char *str, size_t n)
+{
+	if (str != NULL) {
+		size_t len = clamp_strlen(str, n);
+		char *result = halloc(len + 1);
+
+		memcpy(result, str, len);
+		result[len] = '\0';
+
+		return result;
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * A clone of g_strjoinv() which uses halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * Joins a number of strings together to form one long string, with the
+ * optional separator inserted between each of them.
+ *
+ * @param separator		string to insert between each strings, or NULL
+ * @param str_array		a NULL-terminated array of strings to join
+ *
+ * @return a newly allocated string joining all the strings from the array,
+ * with the separator between them.
+ */
+char *
+h_strjoinv(const char *separator, char **str_array)
+{
+	const char *sep = separator;
+	char *result;
+
+	g_assert(str_array != NULL);
+
+	if (NULL == sep)
+		sep = "";
+
+	if (str_array[0] != NULL) {
+		size_t seplen = strlen(sep);
+		size_t i, len, pos;
+
+		len = size_saturate_add(1, strlen(str_array[0]));
+		for (i = 1; str_array[i] != NULL; i++) {
+			len = size_saturate_add(len, seplen);
+			len = size_saturate_add(len, strlen(str_array[i]));
+		}
+
+		g_assert(len < SIZE_MAX);
+
+		result = halloc(len);
+		pos = strcpy_len(result, str_array[0]);
+
+		/* We can freely add to pos, we know it cannot saturate now */
+
+		for (i = 1; str_array[i] != NULL; i++) {
+			pos += strcpy_len(&result[pos], sep);
+			pos += strcpy_len(&result[pos], str_array[i]);
+		}
+
+		g_assert(pos + 1 == len);
+	} else {
+		result = h_strdup("");
+	}
+
+	return result;
+}
+
+/**
+ * A clone of g_strfreev().
+ *
+ * Frees (via hfree()) a NULL-terminated array of strings, and the array itself.
+ * If called on a NULL value, does nothing.
+ */
+void
+h_strfreev(char **str_array)
+{
+	if (str_array != NULL) {
+		size_t i;
+
+		for (i = 0; str_array[i] != NULL; i++) {
+			hfree(str_array[i]);
+		}
+
+		hfree(str_array);
+	}
+}
+
+/**
+ * A clone of g_strconcat() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * Concatenates all of the given strings into one long string.
+ *
+ * @attention
+ * The argument list must end with NULL.
+ */
+char *
+h_strconcat(const char *str1, ...)
+{
+	va_list ap, ap2;
+	const char *s;
+	size_t size;
+	char *result;
+	size_t pos;
+
+	va_start(ap, str1);
+	VA_COPY(ap2, ap);
+
+	for (s = str1, size = 1; NULL != s; /* NOTHING */) {
+		size = size_saturate_add(size, strlen(s));
+		s = va_arg(ap, const char *);
+	}
+
+	va_end(ap);
+	g_assert(size < SIZE_MAX);
+
+	result = halloc(size);
+
+	for (s = str1, pos = 0; NULL != s; /* NOTHING */) {
+		pos += strcpy_len(&result[pos], s);
+		s = va_arg(ap2, const char *);
+	}
+
+	va_end(ap2);
+	g_assert(pos + 1 == size);
+
+	return result;
+}
+
+/**
+ * A clone of g_strdup_vprintf() using halloc().
+ * The resulting string must be freed by hfree().
+ */
+static char *
+h_strdup_vprintf(const char *format, va_list ap)
+{
+	char *buf;
+	size_t len;
+	va_list ap2;
+
+	VA_COPY(ap2, ap);
+
+	len = g_printf_string_upper_bound(format, ap);
+	buf = halloc(len);
+	vsnprintf(buf, len, format, ap);
+	va_end(ap2);
+
+	return buf;
+}
+
+/**
+ * A clone of g_strdup_printf(), using halloc().
+ * The resulting string must be freed by hfree().
+ */
+char *
+h_strdup_printf(const char *format, ...)
+{
+	char *buf;
+	va_list args;
+
+	va_start(args, format);
+	buf = h_strdup_vprintf(format, args);
+	va_end(args);
+
+	return buf;
 }
 
 /**
@@ -784,6 +986,7 @@ str_chomp(char *str, size_t len)
 
 /**
  * Create an absolute path.
+ * The resulting string must be freed with hfree().
  */
 char *
 absolute_pathname(const char *file)
@@ -791,7 +994,7 @@ absolute_pathname(const char *file)
 	g_assert(file);
 	
 	if (is_absolute_path(file)) {
-		return g_strdup(file);
+		return h_strdup(file);
 	} else if ('\0' == file[0]) {
 		return NULL;
 	} else {
@@ -2524,7 +2727,7 @@ unique_pathname(const char *path, const char *filename,
 	}
 	pathname = make_pathname(path, filename);
 	if (!(*name_is_uniq)(pathname)) {
-		G_FREE_NULL(pathname);
+		HFREE_NULL(pathname);
 	}
 	return pathname;
 }
@@ -2563,7 +2766,7 @@ utf8_truncate(const char *src, char *dst, size_t size)
  *        pathname is uniq. If omitted, the default is file_does_not_exist().
  *
  * @returns the chosen unique complete filename as a pointer which must be
- * freed.
+ * freed via hfree().
  */
 char *
 unique_filename(const char *path, const char *name, const char *ext,
@@ -2939,7 +3142,7 @@ string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask)
  * @param dir The directory path.
  * @param file The filename.
  *
- * @return A newly allocated string.
+ * @return a newly allocated string that must be freed with hfree().
  */
 char *
 make_pathname(const char *dir, const char *file)
@@ -2956,7 +3159,7 @@ make_pathname(const char *dir, const char *file)
 	else
 		 sep = G_DIR_SEPARATOR_S;
 
-	return g_strconcat(dir, sep, file, (void *) 0);
+	return h_strconcat(dir, sep, file, (void *) 0);
 }
 
 /**
@@ -3012,7 +3215,7 @@ create_directory(const char *dir, mode_t mode)
 					error = 0;
 				}
 			}
-			G_FREE_NULL(upper);
+			HFREE_NULL(upper);
 		} else {
 			goto failure;
 		}
@@ -3082,7 +3285,7 @@ filepath_directory_end(const char *pathname, char separator)
  *
  * @return	A newly allocated string holding the given pathname with the
  *			basename cut off. If the string contained no directory separator,
- *			NULL is returned.
+ *			NULL is returned.  The string must be freed via hfree().
  */
 char *
 filepath_directory(const char *pathname)
@@ -3102,9 +3305,9 @@ filepath_directory(const char *pathname)
 		}
 	}
 	if (sep == pathname) {
-		dir = g_strdup(G_DIR_SEPARATOR_S);
+		dir = h_strdup(G_DIR_SEPARATOR_S);
 	} else if (sep) {
-		dir = g_strndup(pathname, sep - pathname);
+		dir = h_strndup(pathname, sep - pathname);
 	} else {
 		dir = NULL;
 	}
@@ -3123,7 +3326,7 @@ filepath_exists(const char *dir, const char *file)
 
 	path = make_pathname(dir, file);
 	exists = 0 == stat(path, &buf);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	return exists;
 }

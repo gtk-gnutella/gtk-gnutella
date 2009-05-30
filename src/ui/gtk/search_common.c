@@ -64,6 +64,7 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
@@ -1094,7 +1095,7 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
 			}
 		}
 		rc->utf8_name = atom_str_get(utf8_name);
-		G_FREE_NULL(to_free);
+		HFREE_NULL(to_free);
 	}
 
 	{
@@ -1571,7 +1572,7 @@ search_gui_real_store_searches(void)
     if (file_exists(path)) {
 		char *path_old;
 
-      	path_old = g_strdup_printf("%s.old", path);
+      	path_old = h_strdup_printf("%s.old", path);
 		if (NULL != path_old) {
         	g_warning(
             	_("Found old searches file. The search information has been\n"
@@ -1582,10 +1583,10 @@ search_gui_real_store_searches(void)
                 	"The XML file will not be used "
 					"unless this problem is resolved."),
                 path, path_old, g_strerror(errno));
-			G_FREE_NULL(path_old);
+			HFREE_NULL(path_old);
 		}
     }
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 }
 
 /**

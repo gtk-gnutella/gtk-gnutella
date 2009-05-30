@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
+#include "lib/misc.h"
 #include "lib/pmsg.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
@@ -308,7 +309,7 @@ shell_get_token(const char *s, int *pos)
 	if (*start == '"' && *end == '"')
 		start++;
 
-	retval = g_strndup(start, end - start);
+	retval = h_strndup(start, end - start);
 	shell_unescape(retval);
 
 	return retval;
@@ -334,7 +335,7 @@ shell_parse_command(const char *line, const char ***argv_ptr)
 
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
-			argv = g_realloc(argv, n * sizeof argv[0]);
+			argv = hrealloc(argv, n * sizeof argv[0]);
 		}	
 		token = shell_get_token(line, &pos);
 		argv[argc] = token;
@@ -343,7 +344,7 @@ shell_parse_command(const char *line, const char ***argv_ptr)
 
 		argc++;
 		if (argc > 1024) {
-			G_FREE_NULL(argv);
+			HFREE_NULL(argv);
 			argc = 0;
 			break;
 		}
@@ -360,10 +361,10 @@ shell_free_argv(const char ***argv_ptr)
 		char **argv = deconstify_gpointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
-			G_FREE_NULL(argv[0]);
+			HFREE_NULL(argv[0]);
 			argv++;
 		}
-		G_FREE_NULL(*argv_ptr);
+		HFREE_NULL(*argv_ptr);
 	}
 }
 

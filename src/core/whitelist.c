@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -359,7 +360,7 @@ whitelist_close(void)
 
     g_slist_free(sl_whitelist);
     sl_whitelist = NULL;
-	G_FREE_NULL(whitelist_path);
+	HFREE_NULL(whitelist_path);
 }
 
 /**

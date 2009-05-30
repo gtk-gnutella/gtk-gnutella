@@ -69,6 +69,7 @@
 #include "lib/file.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/palloc.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
@@ -402,8 +403,8 @@ save_pid(int fd, const char *path)
 void
 settings_early_init(void)
 {
-	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
-	home_dir = g_strdup(eval_subst("~"));
+	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
+	home_dir = h_strdup(eval_subst("~"));
 	if (home_dir) {
 		if (!is_absolute_path(home_dir)) {
 			g_error("$HOME must point to an absolute path!");
@@ -445,7 +446,7 @@ settings_unique_usage(const char *path, const char *lockfile, int *fd_ptr)
 	if (0 == ret && fd_ptr) {
 		save_pid(*fd_ptr, file);
 	}
-	G_FREE_NULL(file);
+	HFREE_NULL(file);
 
 	errno = saved_errno;
 	/* The file descriptor must be kept open */
@@ -604,7 +605,7 @@ settings_init(void)
 
 		path = make_pathname(config_dir, ul_stats_file);
 		upload_stats_load_history(path);	/* Loads the upload statistics */
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 	}
 
 
@@ -718,7 +719,7 @@ settings_remove_lockfile(const char *path, const char *lockfile)
 		g_warning("could not remove lockfile \"%s\": %s",
 			file, g_strerror(errno));
 	}
-	G_FREE_NULL(file);
+	HFREE_NULL(file);
 }
 
 static void
@@ -941,8 +942,8 @@ settings_close(void)
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();
 
-	G_FREE_NULL(home_dir);
-	G_FREE_NULL(config_dir);
+	HFREE_NULL(home_dir);
+	HFREE_NULL(config_dir);
 }
 
 static void

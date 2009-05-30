@@ -56,6 +56,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/pmsg.h"
 #include "lib/tigertree.h"
+#include "lib/halloc.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -150,7 +151,7 @@ thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
 
 		if (size > ctx->data_size - ctx->pos) {
 			ctx->data_size += MAX(size, ctx->data_size);
-			ctx->data = g_realloc(ctx->data, ctx->data_size);
+			ctx->data = hrealloc(ctx->data, ctx->data_size);
 		}
 		ctx->pos += pmsg_read(mb, &ctx->data[ctx->pos], size);
 	}
@@ -595,7 +596,7 @@ thex_download_finished(struct thex_download *ctx)
 
 finish:
 	dime_list_free(&records);
-	G_FREE_NULL(ctx->data);
+	HFREE_NULL(ctx->data);
 	return success;
 }
 
@@ -774,7 +775,7 @@ thex_download_free(struct thex_download **ptr)
 			rx_free(ctx->rx);
 			ctx->rx = NULL;
 		}
-		G_FREE_NULL(ctx->data);
+		HFREE_NULL(ctx->data);
 		G_FREE_NULL(ctx->leaves);
 		atom_sha1_free_null(&ctx->sha1);
 		atom_tth_free_null(&ctx->tth);

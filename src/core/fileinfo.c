@@ -1956,7 +1956,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		path,
 		guid_hex_str(fi->guid),
 		fi->generation);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
 		const char *alias = sl->data;
@@ -2912,7 +2912,7 @@ file_info_retrieve(void)
 			if (filename && path) {
 				char *pathname = make_pathname(path, filename);
 				fi->pathname = atom_str_get(pathname);
-				G_FREE_NULL(pathname);
+				HFREE_NULL(pathname);
 			} else {
 				/* There's an incomplete fileinfo record */
 				goto reset;
@@ -2985,7 +2985,7 @@ file_info_retrieve(void)
 				old_path = filepath_directory(fi->pathname);
 				new_pathname = file_info_new_outname(old_path,
 									filepath_basename(fi->pathname));
-				G_FREE_NULL(old_path);
+				HFREE_NULL(old_path);
 				if (NULL == new_pathname)
 					goto reset;
 
@@ -3405,6 +3405,10 @@ file_info_name_is_uniq(const char *pathname)
 	   	file_does_not_exist(pathname);
 }
 
+/**
+ * Unique filename where data will be saved.
+ * String must be freed via hfree().
+ */
 char *
 file_info_unique_filename(const char *path, const char *file,
 	const char *ext)
@@ -3456,7 +3460,7 @@ file_info_new_outname(const char *dir, const char *name)
 		const char *pathname;
 
 		pathname = atom_str_get(uniq);
-		G_FREE_NULL(uniq);
+		HFREE_NULL(uniq);
 		g_assert(NULL == g_hash_table_lookup(fi_by_outname, pathname));
 		return pathname;
 	} else {
@@ -3537,7 +3541,7 @@ file_info_get_transient(const char *name)
 
 	path = make_pathname("/non-existent", name);
 	fi->pathname = atom_str_get(path);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	/* Get unique ID */
 	fi->guid = fi_random_guid_atom();
@@ -3582,8 +3586,8 @@ fi_rename_dead(fileinfo_t *fi, const char *pathname)
 		g_warning("cannot rename \"%s\" as \"%s\": %s",
 			pathname, NULL_STRING(dead), g_strerror(errno));
 	}
-	G_FREE_NULL(dead);
-	G_FREE_NULL(path);
+	HFREE_NULL(dead);
+	HFREE_NULL(path);
 }
 
 /**
@@ -5317,7 +5321,7 @@ file_info_scandir(const char *dir)
 	}
 
 	while (NULL != (dentry = readdir(d))) {
-		G_FREE_NULL(pathname);
+		HFREE_NULL(pathname);
 
 		/**
 		 * Skip ".", "..", and hidden files. We don't create any
@@ -5371,7 +5375,7 @@ file_info_scandir(const char *dir)
 			fi->sha1 ? "with" : "no", pathname);
 	}
 
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	closedir(d);
 }
 
@@ -6549,7 +6553,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 		if (name != filename) {
 			G_FREE_NULL(name);
 		}
-		G_FREE_NULL(directory);
+		HFREE_NULL(directory);
 	}
 	if (NULL != pathname) {
 		struct stat sb;
@@ -6567,7 +6571,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 		if (success) {
 			file_info_moved(fi, pathname);
 		}
-		G_FREE_NULL(pathname);
+		HFREE_NULL(pathname);
 	}
 	return success;
 }

@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/base32.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 
 #include "if/gnet_property_priv.h"
@@ -104,7 +105,7 @@ open_read_stamp(const char *file, time_t *stamp)
 	if (-1 == stat(path, &buf)) {
 		if (stamp)
 			*stamp = tm_time();
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 		return NULL;
 	}
 
@@ -113,7 +114,7 @@ open_read_stamp(const char *file, time_t *stamp)
 
 	f = file_fopen(path, "r");
 
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 	return f;
 }
 
@@ -131,7 +132,7 @@ open_append(const char *file)
 
 	f = file_fopen(path, "a");
 
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 	return f;
 }
 

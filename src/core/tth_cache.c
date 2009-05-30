@@ -55,6 +55,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/tigertree.h"
 #include "lib/walloc.h"
@@ -86,7 +87,7 @@ tth_cache_pathname(const struct tth *tth)
 	g_assert(tth);
 	
 	hash = tth_base32(tth);
-	return g_strdup_printf("%s%c%2.2s%c%s",
+	return h_strdup_printf("%s%c%2.2s%c%s",
 			tth_cache_directory(), G_DIR_SEPARATOR,
 			&hash[0], G_DIR_SEPARATOR, &hash[2]);
 }
@@ -108,9 +109,9 @@ tth_cache_file_create(const struct tth *tth)
 		if (0 == create_directory(dir, DEFAULT_DIRECTORY_MODE)) {
 			fd = file_create(pathname, accmode, TTH_FILE_MODE);
 		}
-		G_FREE_NULL(dir);
+		HFREE_NULL(dir);
 	}
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	return fd;
 }
 
@@ -124,7 +125,7 @@ tth_cache_file_open(const struct tth *tth)
 
 	pathname = tth_cache_pathname(tth);
 	fd = file_open_missing(pathname, O_RDONLY);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	return fd;
 }
 
@@ -138,7 +139,7 @@ tth_cache_file_exists(const struct tth *tth)
 
 	pathname = tth_cache_pathname(tth);
 	ret = file_exists(pathname);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	return ret;
 }
 
@@ -229,7 +230,7 @@ tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 		} else {
 			leave_count = tth_cache_leave_count(tth, &sb);
 		}
-		G_FREE_NULL(pathname);
+		HFREE_NULL(pathname);
 	} else {
 		leave_count = 1;
 	}
@@ -245,7 +246,7 @@ tth_cache_remove(const struct tth *tth)
 
 	pathname = tth_cache_pathname(tth);
 	remove(pathname);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 }
 
 static size_t

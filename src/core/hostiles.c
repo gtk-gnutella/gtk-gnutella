@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iprange.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -203,7 +204,7 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
 
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, hostiles_changed, GUINT_TO_POINTER(which));
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	hostiles_load(f, which);
 }
 

@@ -83,7 +83,12 @@
 #define g_memdup(p,s)	memdup_track((p), (s), _WHERE_, __LINE__)
 #define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
-/* FIXME: This only correct if xmlFree() is equivalent to free(). */
+#define h_strdup(s)		strdup_track(s,(n),_WHERE_,__LINE__)
+#define h_strndup(s,n)	strndup_track(s,(n),_WHERE_,__LINE__)
+#define h_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
+#define h_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
+
+/* FIXME: This is only correct if xmlFree() is equivalent to free(). */
 #define xmlFree(o)		free_track(o, _WHERE_, __LINE__)
 
 #undef g_new
@@ -170,6 +175,8 @@
 #define g_string_sprintfa(s,fmt,...) \
 	string_sprintf_tracka((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
 
+#define h_strconcat(s, ...) \
+	strconcat_track(_WHERE_, __LINE__, s, __VA_ARGS__)
 
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that

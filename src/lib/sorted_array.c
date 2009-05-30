@@ -36,6 +36,7 @@
 RCSID("$Id$")
 
 #include "misc.h"
+#include "halloc.h"
 #include "walloc.h"
 #include "lib/sorted_array.h"
 
@@ -74,7 +75,7 @@ sorted_array_free(struct sorted_array **tab_ptr)
 	
 	tab = *tab_ptr;
 	if (tab) {
-		G_FREE_NULL(tab->items);
+		HFREE_NULL(tab->items);
 		wfree(tab, sizeof *tab);
 		*tab_ptr = NULL;
 	}
@@ -124,7 +125,7 @@ sorted_array_add(struct sorted_array *tab, const void *item)
 
 	if (tab->num_added >= tab->num_size) {
 		tab->num_size = tab->num_size ? (tab->num_size * 2) : 8;
-		tab->items = g_realloc(tab->items, tab->num_size * tab->item_size);
+		tab->items = hrealloc(tab->items, tab->num_size * tab->item_size);
 	}
 
 	dst = sorted_array_item_intern(tab, tab->num_added);
@@ -196,7 +197,7 @@ sorted_array_sync(struct sorted_array *tab,
 	/* Compact the array if possible to save some memory. */
 	if (tab->num_size > tab->num_items) {
 		tab->num_size = tab->num_items;
-		tab->items = g_realloc(tab->items, tab->num_size * tab->item_size);
+		tab->items = hrealloc(tab->items, tab->num_size * tab->item_size);
 	}
 }
 

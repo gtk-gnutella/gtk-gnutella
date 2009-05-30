@@ -342,7 +342,7 @@ finish:
 	} else
 		download_move_error(d);
 
-	G_FREE_NULL(md->target);
+	HFREE_NULL(md->target);
 }
 
 /**

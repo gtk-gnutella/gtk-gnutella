@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iprange.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -192,7 +193,7 @@ bogons_retrieve(void)
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, bogons_changed, NULL);
-	G_FREE_NULL(filename);
+	HFREE_NULL(filename);
 
 	bogons_load(f);
 	fclose(f);

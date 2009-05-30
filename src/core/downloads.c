@@ -12783,7 +12783,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 		/* FIXME: This could be done without copying. */
 		path = filepath_directory(fi->pathname);
 		same_dir = 0 == strcmp(dir, path);
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 
 		if (same_dir) {
 			dest = file_info_unique_filename(dir, name, ext);
@@ -12866,7 +12866,7 @@ renamed:
 
 cleanup:
 
-	G_FREE_NULL(dest);
+	HFREE_NULL(dest);
 	return;
 }
 
@@ -12966,7 +12966,7 @@ download_move_error(struct download *d)
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
 	path = filepath_directory(fi->pathname);
 	dest = file_info_unique_filename(path, name, ext);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	file_info_strip_binary(fi);
 
@@ -12978,7 +12978,7 @@ download_move_error(struct download *d)
 		g_message("Completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, dest, 0);
 	}
-	G_FREE_NULL(dest);
+	HFREE_NULL(dest);
 }
 
 /***

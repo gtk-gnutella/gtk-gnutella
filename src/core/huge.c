@@ -54,6 +54,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/sha1.h"
 #include "lib/tm.h"
@@ -219,7 +220,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 		g_warning("add_persistent_cache_entry: could not open \"%s\"",
 			pathname);
 	}
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 }
 
 struct dump_cache_context {

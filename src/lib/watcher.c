@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "cq.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -148,7 +149,7 @@ watcher_register_path(const file_path_t *fp, watcher_cb_t cb, gpointer udata)
 
 	path = make_pathname(fp->dir, fp->name);
 	watcher_register(path, cb, udata);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 }
 
 /**
@@ -188,7 +189,7 @@ watcher_unregister_path(const file_path_t *fp)
 
 	path = make_pathname(fp->dir, fp->name);
 	watcher_unregister(path);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 }
 
 /**

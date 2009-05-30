@@ -178,7 +178,7 @@ dump_initialize(struct dump *dump)
 
 	pathname = make_pathname(settings_config_dir(), dump->filename);
 	dump->fd = file_open_missing(pathname, O_WRONLY | O_APPEND | O_NONBLOCK);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 
 	/*
 	 * If the dump "file" is actually a named pipe, we'd block quickly

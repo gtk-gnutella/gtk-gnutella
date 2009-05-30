@@ -32,6 +32,7 @@ RCSID("$Id$")
 #include "prop.h"
 #include "debug.h"
 #include "file.h"
+#include "halloc.h"
 #include "misc.h"
 #include "sha1.h"
 #include "glib-missing.h"
@@ -1584,7 +1585,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		 */
 
 		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
-			char *old = g_strconcat(pathname, ".old", (void *) 0);
+			char *old = h_strconcat(pathname, ".old", (void *) 0);
 			g_warning("config file \"%s\" changed whilst I was running",
 				pathname);
 			if (-1 == rename(pathname, old))
@@ -1592,7 +1593,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 					old, g_strerror(errno));
 			else
 				g_warning("renamed old copy as \"%s\"", old);
-			G_FREE_NULL(old);
+			HFREE_NULL(old);
 		}
 	}
 
@@ -1601,7 +1602,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * clobber a good configuration file should we fail abruptly.
 	 */
 
-	newfile = g_strconcat(pathname, ".new", (void *) 0);
+	newfile = h_strconcat(pathname, ".new", (void *) 0);
 	config = file_fopen(newfile, "w");
 
 	if (config == NULL)
@@ -1639,7 +1640,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		if (p->save == FALSE)
 			continue;
 
-		vbuf = g_new(char*, p->vector_size+1);
+		vbuf = halloc((p->vector_size + 1) * sizeof(char *));
 		vbuf[0] = NULL;
 
 		{
@@ -1657,11 +1658,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				v = p->data.boolean.value[i];
 				if (v != p->data.boolean.def[i])
 					defaultvalue = FALSE;
-				vbuf[i] = g_strdup(config_boolean(v));
+				vbuf[i] = h_strdup(config_boolean(v));
 			}
 			vbuf[p->vector_size] = NULL;
 
-			val = g_strjoinv(",", vbuf);
+			val = h_strjoinv(",", vbuf);
 			break;
 		case PROP_TYPE_MULTICHOICE:
 		case PROP_TYPE_GUINT32:
@@ -1672,11 +1673,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
 				gm_snprintf(sbuf, sizeof(sbuf), "%u", v);
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
 
-			val = g_strjoinv(",", vbuf);
+			val = h_strjoinv(",", vbuf);
 			break;
 		case PROP_TYPE_GUINT64:
 			for (i = 0; i < p->vector_size; i++) {
@@ -1687,11 +1688,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 					defaultvalue = FALSE;
 
 				uint64_to_string_buf(v, sbuf, sizeof sbuf);
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
 
-			val = g_strjoinv(",", vbuf);
+			val = h_strjoinv(",", vbuf);
 			break;
 		case PROP_TYPE_TIMESTAMP:
 			for (i = 0; i < p->vector_size; i++) {
@@ -1702,14 +1703,14 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 					defaultvalue = FALSE;
 
 				timestamp_utc_to_string_buf(t, sbuf, sizeof sbuf);
-				vbuf[i] = g_strdup(sbuf);
+				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
-			val = g_strjoinv(",", vbuf);
+			val = h_strjoinv(",", vbuf);
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_STRING:
-			val = g_strdup(*p->data.string.value);
+			val = h_strdup(*p->data.string.value);
 			if (
 				val != *p->data.string.def &&
 				NULL != val &&
@@ -1719,7 +1720,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				defaultvalue = FALSE;
 			}
 			if (NULL == val) {
-				val = g_strdup("");
+				val = h_strdup("");
 				defaultvalue = FALSE;
 			}
 			quotes = TRUE;
@@ -1729,11 +1730,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				host_addr_t addr;
 
 				addr = p->data.ip.value[i];
-				vbuf[i] = g_strdup(host_addr_to_string(addr));
+				vbuf[i] = h_strdup(host_addr_to_string(addr));
 			}
 			vbuf[p->vector_size] = NULL;
 
-			val = g_strjoinv(",", vbuf);
+			val = h_strjoinv(",", vbuf);
 			quotes = TRUE;
 			defaultvalue = FALSE;
 			break;
@@ -1741,7 +1742,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			{
 				size_t hex_size = (p->vector_size * 2) + 1;
 
-				val = g_malloc(hex_size);
+				val = halloc(hex_size);
 				bin_to_hex_buf(p->data.storage.value, p->vector_size,
 					val, hex_size);
 				quotes = TRUE;
@@ -1759,8 +1760,8 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		fprintf(config, "%s%s = %s%s%s\n\n", defaultvalue ? "#" : "",
 			p->name, quotes ? "\"" : "", val, quotes ? "\"" : "");
 
-		G_FREE_NULL(val);
-		g_strfreev(vbuf);
+		HFREE_NULL(val);
+		h_strfreev(vbuf);
 	}
 
 	/*
@@ -1790,8 +1791,8 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 
 end:
-	G_FREE_NULL(newfile);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(newfile);
+	HFREE_NULL(pathname);
 }
 
 /**
@@ -1944,7 +1945,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	path = make_pathname(dir, filename);
 	config = file_fopen(path, "r");
 	if (!config) {
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 		return TRUE;
 	}
 
@@ -1957,7 +1958,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		file_id = unique_file_token(&buf);
 	}
 
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	/*
 	 * Lines should match the following expression:

@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
@@ -469,7 +470,7 @@ spam_retrieve_from_file(FILE *f, const char *path, const char *filename)
 
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, spam_changed, NULL);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	spam_load(f);
 }
 

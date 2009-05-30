@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "if/core/settings.h"
 
 #include "lib/array.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
@@ -491,8 +492,8 @@ tls_global_init(void)
 			gnutls_certificate_set_dh_params(server_cert_cred, get_dh_params());
 		}
 	}
-	G_FREE_NULL(key_file);
-	G_FREE_NULL(cert_file);
+	HFREE_NULL(key_file);
+	HFREE_NULL(cert_file);
 
 	header_features_add(FEATURES_CONNECTIONS, f.name, f.major, f.minor);
 	header_features_add(FEATURES_DOWNLOADS, f.name, f.major, f.minor);

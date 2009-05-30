@@ -53,6 +53,7 @@ load_faq(void)
 {
 	static const gchar faq_file[] = "FAQ";
 	static file_path_t fp[4];
+	static int initialized;
 	GtkWidget *textview;
 	const gchar *lang;
 	guint i = 0;
@@ -63,16 +64,23 @@ load_faq(void)
 	textview = gui_dlg_faq_lookup("textview_faq");
 	lang = locale_get_language();
 
-	file_path_set(&fp[i++], make_pathname(PRIVLIB_EXP, lang), faq_file);
-	file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
+	if (initialized != 0) {
+		i = initialized;
+	} else {
+		file_path_set(&fp[i++],
+			NOT_LEAKING(make_pathname(PRIVLIB_EXP, lang)), faq_file);
+		file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
 	
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[i++],
-		make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang), faq_file);
+		file_path_set(&fp[i++],
+			NOT_LEAKING(make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang)),
+			faq_file);
 
-	file_path_set(&fp[i++],
-		PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
+		file_path_set(&fp[i++],
+			PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
 #endif /* !OFFICIAL_BUILD */
+		initialized = i;
+	}
 
 	g_assert(i <= G_N_ELEMENTS(fp));
 
@@ -100,7 +108,6 @@ load_faq(void)
 		faq_html_view = html_view_load_memory(textview, array_from_string(msg));
 	}
 }
-
 
 static void
 quit(gboolean force)

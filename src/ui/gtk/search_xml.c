@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -470,10 +471,10 @@ search_store_xml(void)
 			g_warning("could not rename %s as %s: %s",
 				filename_new, filename, g_strerror(errno));
 
-		G_FREE_NULL(filename);
+		HFREE_NULL(filename);
     }
 
-	G_FREE_NULL(filename_new);
+	HFREE_NULL(filename_new);
 
 	xmlFreeDoc(doc);
 
@@ -521,15 +522,15 @@ search_retrieve_xml(void)
 		if (-1 == rename(path, path_orig)) {
 			g_warning("could not rename \"%s\" as \"%s\": %s",
 				path, path_orig, g_strerror(errno));
-			G_FREE_NULL(path_orig);
+			HFREE_NULL(path_orig);
 			path_orig = path;
 			path = NULL;
 		} else {
-			G_FREE_NULL(path);
+			HFREE_NULL(path);
 		}
 	} else {
         g_warning("searches file does not exist: %s", path);
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 
 		if (!file_exists(path_orig))
 			goto out;
@@ -562,7 +563,7 @@ search_retrieve_xml(void)
 		xmlFreeDoc(doc);
 		goto out;
 	}
-	G_FREE_NULL(path_orig);
+	HFREE_NULL(path_orig);
 
     id_map = g_hash_table_new(pointer_hash_func, NULL);
 
@@ -683,8 +684,8 @@ search_retrieve_xml(void)
 	return TRUE;
 
 out:
-	G_FREE_NULL(path);
-	G_FREE_NULL(path_orig);
+	HFREE_NULL(path);
+	HFREE_NULL(path_orig);
 
 	return FALSE;
 }
@@ -1478,7 +1479,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 					NODE_RULE_SHA1));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SHA1_FILENAME));
-    filename = g_strdup(buf != NULL ? buf : "[Unknown]");
+    filename = h_strdup(buf != NULL ? buf : "[Unknown]");
 	xml_free_null(&buf);
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SHA1_HASH));
@@ -1514,7 +1515,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
     filter->ruleset = g_list_append(filter->ruleset, rule);
 	
 failure:
-    G_FREE_NULL(filename);
+    HFREE_NULL(filename);
 	xml_free_null(&buf);
 }
 

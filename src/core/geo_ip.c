@@ -43,6 +43,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"
 #include "lib/walloc.h"
@@ -300,7 +301,7 @@ gip_retrieve(void)
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, gip_changed, NULL);
-	G_FREE_NULL(filename);
+	HFREE_NULL(filename);
 
 	gip_load(f);
 	fclose(f);

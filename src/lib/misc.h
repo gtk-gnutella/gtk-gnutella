@@ -89,6 +89,14 @@ size_t concat_strings(char *dst, size_t size,
 size_t w_concat_strings(char **dst,
 	const char *first, ...) G_GNUC_NULL_TERMINATED;
 
+char *h_strdup(const char *str);
+char *h_strndup(const char *str, size_t n);
+char *h_strjoinv(const char *separator, char **str_array);
+void h_strfreev(char **str_array);
+char *h_strconcat(const char *str1, ...) G_GNUC_NULL_TERMINATED;
+
+char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
+
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
  * this is just a convenience function.
@@ -388,7 +396,7 @@ int create_directory(const char *dir, mode_t mode);
 int compat_mkdir(const char *path, mode_t mode);
 gboolean filepath_exists(const char *dir, const char *file);
 const char * filepath_basename(const char *pathname);
-char * filepath_directory(const char *pathname);
+char *filepath_directory(const char *pathname);
 
 guint16 parse_uint16(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1, 4));
@@ -453,6 +461,29 @@ pointer_hash_func(const void *p)
 {
 	unsigned long v = pointer_to_ulong(p);
 	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
+}
+
+/**
+ * An strcpy() that returns the length of the copied string.
+ */
+static inline size_t
+strcpy_len(char *dest, const char *src)
+{
+	const char *p = src;
+	char *q = dest;
+	int c;
+
+	g_assert(dest != NULL);
+
+	if (NULL == src)
+		return 0;
+	
+	while ((c = *p++))
+		*q++ = c;
+
+	*q = '\0';
+
+	return q - dest;
 }
 
 /**

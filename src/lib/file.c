@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "file.h"
 #include "debug.h"
+#include "halloc.h"
 #include "misc.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
@@ -101,11 +102,11 @@ open_read(
 
 	path = make_pathname(fv->dir, fv->name);
 	if (!is_absolute_path(path)) {
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 		return NULL;
 	}
 
-	path_orig = g_strdup_printf("%s.%s", path, orig_ext);
+	path_orig = h_strdup_printf("%s.%s", path, orig_ext);
 	in = fopen(path, "r");
 	if (in) {
 		if (renaming && -1 == rename(path, path_orig))
@@ -136,7 +137,7 @@ open_read(
 	if (in != NULL) {
 		instead = instead_str;
 
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 		path = path_orig;
 		path_orig = NULL;
 	}
@@ -152,7 +153,7 @@ open_read(
 		instead = instead_str;
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
-			G_FREE_NULL(path);
+			HFREE_NULL(path);
 			path = make_pathname(xfv->dir, xfv->name);
 			idx++;
 			if (NULL != path && NULL != (in = fopen(path, "r")))
@@ -174,8 +175,8 @@ open_read(
 
 out:
 
-	G_FREE_NULL(path);
-	G_FREE_NULL(path_orig);
+	HFREE_NULL(path);
+	HFREE_NULL(path_orig);
 	if (in != NULL && chosen != NULL)
 		*chosen = idx;
 
@@ -239,7 +240,7 @@ file_config_open(const char *what, const file_path_t *fv)
 	FILE *out = NULL;
 	char *path;
 
-	path = g_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, ".",
+	path = h_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, ".",
 				new_ext, (void *) 0);
 	g_return_val_if_fail(NULL != path, NULL);
 
@@ -247,7 +248,7 @@ file_config_open(const char *what, const file_path_t *fv)
 		out = file_fopen(path, "w");
 		if (out == NULL)
 			g_warning("unable to persist %s", what);
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 	}
 	return out;
 }
@@ -280,7 +281,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 
 	path = make_pathname(fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, FALSE);
-	path_new = g_strdup_printf("%s.%s", path, new_ext);
+	path_new = h_strdup_printf("%s.%s", path, new_ext);
 	if (NULL == path_new)
 		goto failed;
 
@@ -294,8 +295,8 @@ file_config_close(FILE *out, const file_path_t *fv)
 
 failed:
 
-	G_FREE_NULL(path_new);
-	G_FREE_NULL(path);
+	HFREE_NULL(path_new);
+	HFREE_NULL(path);
 	return success;
 }
 

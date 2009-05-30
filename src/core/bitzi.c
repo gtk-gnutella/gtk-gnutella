@@ -62,6 +62,7 @@
 #include "lib/atoms.h"
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
@@ -1062,8 +1063,8 @@ bitzi_load_cache(void)
 			ticket_count, oldpath);
 
 	/* clean-up */
-	G_FREE_NULL(path);
-	G_FREE_NULL(oldpath);
+	HFREE_NULL(path);
+	HFREE_NULL(oldpath);
 }
 
 /**

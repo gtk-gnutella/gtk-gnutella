@@ -46,6 +46,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/dbmap.h"
 #include "lib/dbmw.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -104,7 +105,7 @@ storage_create_internal(const char *name, const char *base, int flags,
 			g_warning("DHT cannot open SDBM at %s for %s: %s",
 					path, name, g_strerror(errno));
 		}
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 	} else {
 		dm = NULL;
 	}
@@ -256,7 +257,7 @@ storage_close(dbmw_t *dw, const char *base)
 		g_message("DHT persisting DBMW \"%s\" as %s", dbmw_name(dw), path);
 
 	ok = dbmw_store(dw, path, TRUE);
-	G_FREE_NULL(path);
+	HFREE_NULL(path);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		size_t count = dbmw_count(dw);

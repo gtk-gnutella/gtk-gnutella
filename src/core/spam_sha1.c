@@ -51,6 +51,7 @@ RCSID("$Id$")
 #include "lib/dbmw.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/sorted_array.h"
 #include "lib/watcher.h"
 
@@ -106,7 +107,7 @@ spam_lut_create(void)
 		path = make_pathname(settings_config_dir(), db_spambase);
 		dm = dbmap_create_sdbm(SHA1_RAW_SIZE, spam_sha1_what, path,
 			O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
-		G_FREE_NULL(path);
+		HFREE_NULL(path);
 
 		if (NULL == dm) {
 			if (GNET_PROPERTY(spam_debug))
@@ -295,7 +296,7 @@ spam_sha1_retrieve_from_file(FILE *f, const char *path, const char *filename)
 
 	pathname = make_pathname(path, filename);
 	watcher_register(pathname, spam_sha1_changed, NULL);
-	G_FREE_NULL(pathname);
+	HFREE_NULL(pathname);
 	spam_sha1_load(f);
 }
 
