@@ -408,7 +408,7 @@ vprintf_get_size(const char *format, va_list ap)
 
 	for (;;) {
 		va_list ap2;
-		char dummy[8];
+		char dummy[1];
 
 		VA_COPY(ap2, ap);
 		ret = vsnprintf(buf ? buf : dummy, size, format, ap2);
@@ -416,15 +416,14 @@ vprintf_get_size(const char *format, va_list ap)
 
 		if (ret < 0) {
 			if (0 != errno)
-				return (size_t) -1;
+				break;
 		} else if (UNSIGNED(ret) > size) {
 			break; /* Assume conforming C99 vsnprintf() */
 		} else if (size - ret > 1) {
 			break;
 		}
 
-		size = MIN(size, sizeof dummy);
-		size = size_saturate_mult(size, 2);
+		size = size > 0 ? size_saturate_mult(size, 2) : 1024;
 
 		/* Since vsnprintf() returns an int, INT_MAX is the limit */
 		g_assert(size < UNSIGNED(INT_MAX));
@@ -433,7 +432,7 @@ vprintf_get_size(const char *format, va_list ap)
 	}
 
 	HFREE_NULL(buf);
-	return size_saturate_add(ret, 1);
+	return ret < 0 ? (size_t)-1 : size_saturate_add(ret, 1);
 }
 
 /**
