@@ -89,13 +89,14 @@ size_t concat_strings(char *dst, size_t size,
 size_t w_concat_strings(char **dst,
 	const char *first, ...) G_GNUC_NULL_TERMINATED;
 
+#ifndef TRACK_MALLOC
 char *h_strdup(const char *str);
 char *h_strndup(const char *str, size_t n);
 char *h_strjoinv(const char *separator, char **str_array);
 void h_strfreev(char **str_array);
 char *h_strconcat(const char *str1, ...) G_GNUC_NULL_TERMINATED;
-
 char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
+#endif	/* !TRACK_MALLOC */
 
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,

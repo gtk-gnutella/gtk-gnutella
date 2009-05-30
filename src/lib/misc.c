@@ -226,6 +226,7 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 	return size;
 }
 
+#ifndef TRACK_MALLOC
 /**
  * A clone of strdup() using halloc().
  * The resulting string must be freed via hfree().
@@ -426,6 +427,7 @@ h_strdup_printf(const char *format, ...)
 
 	return buf;
 }
+#endif /* !TRACK_MALLOC */
 
 /**
  * Checks whether ``prefix'' is a prefix of ``str''.

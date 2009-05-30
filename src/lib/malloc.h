@@ -73,6 +73,10 @@
 #define strdup(s)		strdup_track((s), _WHERE_, __LINE__)
 #define strndup(s,n)	strndup_track((s), (n), _WHERE_, __LINE__)
 
+#define halloc(s)		malloc_track((s), _WHERE_, __LINE__)
+#define hfree(s)		free_track((s), _WHERE_, __LINE__)
+#define hrealloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
+
 #define g_malloc(s)		malloc_track((s), _WHERE_, __LINE__)
 #define g_malloc0(s)	malloc0_track((s), _WHERE_, __LINE__)
 #define g_free(o)		free_track(o, _WHERE_, __LINE__)
@@ -174,6 +178,9 @@
 	string_sprintf_track((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
 #define g_string_sprintfa(s,fmt,...) \
 	string_sprintf_tracka((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
+
+#define h_strdup_printf(fmt, ...) \
+	strdup_printf_track(_WHERE_, __LINE__, fmt, __VA_ARGS__)
 
 #define h_strconcat(s, ...) \
 	strconcat_track(_WHERE_, __LINE__, s, __VA_ARGS__)
