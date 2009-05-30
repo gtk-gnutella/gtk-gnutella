@@ -4045,7 +4045,10 @@ html_entities_init(void)
 static void
 html_entities_close(void)
 {
-	g_hash_table_destroy(html_entities_lut);
+	if (html_entities_lut) {
+		g_hash_table_destroy(html_entities_lut);
+		html_entities_lut = NULL;
+	}
 }
 
 /**
