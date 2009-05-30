@@ -3108,7 +3108,8 @@ download_remove_all_thex(const struct sha1 *sha1, const struct download *skip)
 {
 	struct download *next;
 
-	g_return_if_fail(sha1 != NULL);
+	if (NULL == sha1)
+		return;
 
 	/*
 	 * Abort THEX downloads aimed at the given sha1.
