@@ -688,7 +688,7 @@ pmap_extend(struct pmap *pm)
 		g_message("VMM extending %s%s pmap from %lu KiB to %lu KiB",
 			pm->loading ? "loading " : "",
 			pm == &kernel_pmap ? "kernel" : "local",
-			(unsigned long) osize / 1024, (unsigned long) nsize);
+			(unsigned long) osize / 1024, (unsigned long) nsize / 1024);
 	}
 
 	/*
