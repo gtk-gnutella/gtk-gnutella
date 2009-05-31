@@ -152,18 +152,18 @@ RCSID("$Id$")
 #define LOAD_HIGH_WATERMARK		90	/**< % amount over which we're overloaded */
 #define LOAD_LOW_WATERMARK		55	/**< lower threshold to clear condition */
 
-static guint main_slow_update = 0;
-static gboolean exiting = FALSE;
-static volatile sig_atomic_t from_atexit = FALSE;
-static volatile sig_atomic_t signal_received = 0;
-static volatile sig_atomic_t shutdown_requested = 0;
-static volatile sig_atomic_t sig_hup_received = 0;
+static unsigned main_slow_update;
+static volatile sig_atomic_t exiting;
+static volatile sig_atomic_t from_atexit;
+static volatile sig_atomic_t signal_received;
+static volatile sig_atomic_t shutdown_requested;
+static volatile sig_atomic_t sig_hup_received;
 static jmp_buf atexit_env;
-static volatile const gchar *exit_step = "gtk_gnutella_exit";
+static volatile const char *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
-void gtk_gnutella_exit(gint n);
-static gint reopen_log_files(void);
+void gtk_gnutella_exit(int n);
+static int reopen_log_files(void);
 static gboolean stderr_disabled;
 
 /**
@@ -329,24 +329,24 @@ gtk_gnutella_atexit(void)
  * @param prev_sys		previous total system time, updated if not NULL
  */
 static void
-log_cpu_usage(tm_t *since_time, gdouble *prev_user, gdouble *prev_sys)
+log_cpu_usage(tm_t *since_time, double *prev_user, double *prev_sys)
 {
-	gdouble user;
-	gdouble sys;
-	gdouble total;
+	double user;
+	double sys;
+	double total;
 	tm_t cur_time;
-	gdouble elapsed;
+	double elapsed;
 
 	tm_now_exact(&cur_time);
 	total = tm_cputime(&user, &sys);
 	if (prev_user) {
-		gdouble v = *prev_user;
+		double v = *prev_user;
 		*prev_user = user;
 		user -= v;
 		total -= v;
 	}
 	if (prev_sys) {
-		gdouble v = *prev_sys;
+		double v = *prev_sys;
 		*prev_sys = sys;
 		sys -= v;
 		total -= v;
@@ -368,25 +368,25 @@ gtk_gnutella_request_shutdown(void)
 }
 
 /**
- * Exit program, return status `n' to parent process.
+ * Exit program, return status `exit_code' to parent process.
  *
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
 void
-gtk_gnutella_exit(gint n)
+gtk_gnutella_exit(int exit_code)
 {
+	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
-	static gboolean safe_to_exit = FALSE;
 
 	if (exiting) {
 		if (safe_to_exit) {
-			g_warning("forced exit(%d), good bye.", n);
-			exit(n);
+			g_warning("forced exit(%d), good bye.", exit_code);
+			exit(exit_code);
 		}
 		g_warning("ignoring re-entrant exit(%d), unsafe now (in %s)",
-			n, exit_step);
+			exit_code, exit_step);
 		return;
 	}
 
@@ -559,10 +559,10 @@ gtk_gnutella_exit(gint n)
 		g_message("gtk-gnutella shut down cleanly.");
 	}
 	if (!running_topless) {
-		main_gui_exit(n);
+		main_gui_exit(exit_code);
 	}
 	hdestroy();
-	exit(n);
+	exit(exit_code);
 }
 
 static void
@@ -571,18 +571,18 @@ sig_terminate(int n)
 	signal_received = n;		/* Terminate asynchronously in main_timer() */
 
 	if (from_atexit)			/* Might be stuck in some cleanup callback */
-		exit(1);				/* Terminate ASAP */
+		exit(EXIT_FAILURE);		/* Terminate ASAP */
 }
 
 static void
 slow_main_timer(time_t now)
 {
-	static guint i = 0;
+	static unsigned i = 0;
 
 	if (GNET_PROPERTY(cpu_debug)) {
 		static tm_t since = { 0, 0 };
-		static gdouble user = 0.0;
-		static gdouble sys = 0.0;
+		static double user = 0.0;
+		static double sys = 0.0;
 
 		if (since.tv_sec == 0)
 			since = start_time;
@@ -640,16 +640,16 @@ static time_t
 check_cpu_usage(void)
 {
 	static tm_t last_tm;
-	static gdouble last_cpu = 0.0;
-	static gint ticks = 0;
-	static gint load_avg = 0;		/* 100 * cpu% for integer arithmetic */
-	static gint avg = 0;			/* cpu% */
+	static double last_cpu = 0.0;
+	static int ticks = 0;
+	static int load_avg = 0;	/* 100 * cpu% for integer arithmetic */
+	static int avg = 0;			/* cpu% */
 	tm_t cur_tm;
-	gint load = 0;
-	gdouble cpu;
-	gdouble elapsed;
-	gdouble cpu_percent;
-	gdouble coverage;
+	int load = 0;
+	double cpu;
+	double elapsed;
+	double cpu_percent;
+	double coverage;
 
 	/*
 	 * Compute CPU time used this period.
@@ -691,7 +691,7 @@ check_cpu_usage(void)
 	else if (coverage <= 0.5)
 		cpu_percent *= 1.5;
 
-	load = (gint) cpu_percent * 100;
+	load = (unsigned) cpu_percent * 100;
 	load_avg += (load >> 3) - (load_avg >> 3);
 	avg = load_avg / 100;
 
@@ -731,16 +731,16 @@ check_cpu_usage(void)
  * Main timer routine, called once per second.
  */
 static gboolean
-main_timer(gpointer p)
+main_timer(void *unused_data)
 {
 	time_t now;
 
-	(void) p;
+	(void) unused_data;
 	if (signal_received || shutdown_requested) {
 		if (signal_received) {
 			g_warning("caught signal #%d, exiting...", signal_received);
 		}
-		gtk_gnutella_exit(1);
+		gtk_gnutella_exit(EXIT_FAILURE);
 	}
 
 	now = check_cpu_usage();
@@ -801,7 +801,7 @@ main_timer(gpointer p)
  * Called when the main callout queue is idle.
  */
 static gboolean
-callout_queue_idle(gpointer unused_data)
+callout_queue_idle(void *unused_data)
 {
 	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
 	(void) unused_data;
@@ -825,30 +825,30 @@ callout_queue_idle(gpointer unused_data)
  * Scan files when the GUI is up.
  */
 static gboolean
-scan_files_once(gpointer p)
+scan_files_once(void *unused_data)
 {
-	(void) p;
+	(void) unused_data;
 	share_scan();
 
 	return FALSE;
 }
 
-static const gchar * const log_domains[] = {
+static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
 };
 
 static void
-log_handler(const gchar *domain, GLogLevelFlags level,
-	const gchar *message, gpointer user_data)
+log_handler(const char *unused_domain, GLogLevelFlags level,
+	const char *message, void *unused_data)
 {
-	gint saved_errno = errno;
+	int saved_errno = errno;
 	time_t now;
 	struct tm *ct;
 	const char *prefix;
-	gchar *safer;
+	char *safer;
 
-	(void) domain;
-	(void) user_data;
+	(void) unused_domain;
+	(void) unused_data;
 
 	if (stderr_disabled)
 		return;
@@ -883,10 +883,10 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 #if 0
 	/* Define to debug Glib or Gtk problems */
 	if (domain) {
-		guint i;
+		unsigned i;
 
 		for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
-			const gchar *dom = log_domains[i];
+			const char *dom = log_domains[i];
 			if (dom && 0 == strcmp(domain, dom)) {
 				raise(SIGTRAP);
 				break;
@@ -901,7 +901,7 @@ log_handler(const gchar *domain, GLogLevelFlags level,
 static void
 log_init(void)
 {
-	guint i;
+	unsigned i;
 
 	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
 		g_log_set_handler(log_domains[i],
@@ -949,10 +949,10 @@ enum arg_type {
 
 static struct {
 	const enum main_arg id;
-	const gchar * const name;
-	const gchar * const summary;
+	const char * const name;
+	const char * const summary;
 	const enum arg_type type;
-	const gchar *arg;	/* memory will be allocated via halloc() */
+	const char *arg;	/* memory will be allocated via halloc() */
 	gboolean used;
 } options[] = {
 #define OPTION(name, type, summary) \
@@ -1029,10 +1029,10 @@ option_match(const char *a, const char *b)
  * @return a pointer to a static buffer holding the pretty version of the
  *         option name. 
  */
-static const gchar *
-option_pretty_name(const gchar *name)
+static const char *
+option_pretty_name(const char *name)
 {
-	static gchar buf[128];
+	static char buf[128];
 	size_t i;
 
 	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
@@ -1044,7 +1044,7 @@ option_pretty_name(const gchar *name)
 	return buf;
 }
 
-static gint
+static int
 reopen_log_files(void)
 {
 	gboolean failure = FALSE;
@@ -1081,7 +1081,7 @@ static void
 usage(int exit_code)
 {
 	FILE *f;
-	guint i;
+	unsigned i;
 
 	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
 	fprintf(f, "Usage: gtk-gnutella [ options ... ]\n");
@@ -1091,7 +1091,7 @@ usage(int exit_code)
 		g_assert(options[i].id == i);
 
 		if (options[i].summary) {
-			const gchar *arg, *name;
+			const char *arg, *name;
 			size_t pad;
 
 			arg = "";
@@ -1115,7 +1115,7 @@ usage(int exit_code)
 			}
 
 			fprintf(f, "  --%s%s%-*s%s\n",
-				name, arg, (gint) pad, "", options[i].summary);
+				name, arg, (int) MIN(pad, INT_MAX), "", options[i].summary);
 		}
 	}
 	
@@ -1129,8 +1129,8 @@ prehandle_arguments(char **argv)
 	argv++;
 
 	while (argv[0]) {
-		const gchar *s;
-		guint i;
+		const char *s;
+		unsigned i;
 
 		s = is_strprefix(argv[0], "--");
 		if (NULL == s || '\0' == s[0])
@@ -1170,7 +1170,7 @@ static void
 parse_arguments(int argc, char **argv)
 {
 	const char *argv0;
-	guint i;
+	unsigned i;
 
 	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
 	for (i = 0; i < G_N_ELEMENTS(options); i++) {
@@ -1186,7 +1186,7 @@ parse_arguments(int argc, char **argv)
 	argc--;
 
 	while (argc > 0) {
-		const gchar *s;
+		const char *s;
 
 		s = is_strprefix(argv[0], "--");
 		if (!s)
