@@ -235,15 +235,7 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 char *
 h_strdup(const char *str)
 {
-	if (str != NULL) {
-		size_t len = strlen(str);
-		char *result = halloc(len + 1);
-
-		strcpy(result, str);
-		return result;
-	} else {
-		return NULL;
-	}
+	return str ? hcopy(str, 1 + strlen(str)) : NULL;
 }
 
 /**
@@ -261,7 +253,8 @@ h_strndup(const char *str, size_t n)
 	if (str != NULL) {
 		size_t len = clamp_strlen(str, n);
 		char *result = halloc(len + 1);
-
+		
+		/* Not hcopy() because we shouldn't even read the nth byte of src. */
 		memcpy(result, str, len);
 		result[len] = '\0';
 
