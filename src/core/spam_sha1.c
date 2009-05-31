@@ -369,7 +369,6 @@ spam_sha1_check(const struct sha1 *sha1)
 	if (sha1_lut.d.dw)
 		return dbmw_exists(sha1_lut.d.dw, sha1);
 
-	g_assert_not_reached();
 	return FALSE;
 }
 
