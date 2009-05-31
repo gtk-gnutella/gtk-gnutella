@@ -144,10 +144,16 @@ rpc_delay(const knode_t *kn)
 	/*
 	 * If we already have seen timeouts for this host, use additional
 	 * timeout of 256ms * 2^timeouts. As 256 = 2^8, this is 2^(timeouts+8).
+	 *
+	 * We clamp the amount of timeouts considered to 10, to prevent overflowing
+	 * the integer. 2^10 is also roughly 1 second, so we're already way beyond
+	 * the reasonable timeout maximum of DHT_RPC_MAXDELAY.
 	 */
 
+	STATIC_ASSERT(DHT_RPC_MAXDELAY < (1 << (10 + 8)));
+
 	if (kn->rpc_timeouts)
-		timeout = 1 << (kn->rpc_timeouts + 8);
+		timeout = 1 << (MIN(kn->rpc_timeouts, 10) + 8);
 
 	if (kn->rtt)
 		timeout += 3 * kn->rtt;
