@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/pmsg.h"
 #include "lib/sha1.h"
@@ -116,7 +117,7 @@ shell_free(struct gnutella_shell *sh)
 	g_assert(SHELL_MAGIC == sh->magic);
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
-	G_FREE_NULL(sh->msg);
+	HFREE_NULL(sh->msg);
 
 	sh->magic = 0;
 	wfree(sh, sizeof *sh);
@@ -153,8 +154,8 @@ shell_set_msg(struct gnutella_shell *sh, const char *text)
 {
 	shell_check(sh);
 
-	G_FREE_NULL(sh->msg);
-	sh->msg = g_strdup(text);
+	HFREE_NULL(sh->msg);
+	sh->msg = h_strdup(text);
 }
 
 static void

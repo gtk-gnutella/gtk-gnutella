@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/getline.h"
+#include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
@@ -1070,7 +1071,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 	g_assert(cp->magic == CPROXY_MAGIC);
 
 	/* message is not valid anymore after http_async_cancel() */
-	to_free = g_strdup(message);
+	to_free = h_strdup(message);
 	message = to_free;
 
 	/*
@@ -1134,7 +1135,7 @@ cproxy_http_header_ind(struct http_async *handle, header_t *header,
 			guid_hex_str(cp->guid), cp->file_idx,
 			cp->directly ? "directly" : "via Gnet");
 
-	G_FREE_NULL(to_free);
+	HFREE_NULL(to_free);
 
 	return FALSE;		/* Don't continue -- handle invalid now anyway */
 }

@@ -4364,7 +4364,7 @@ cpu_noise(void)
  * canonic path component separator '/' (a slash).
  *
  * @param s a pathname. 
- * @return  a newly allocated string.
+ * @return  a newly allocated string, which must be freed with hfree().
  */
 char *
 normalize_dir_separators(const char *s)
@@ -4373,7 +4373,7 @@ normalize_dir_separators(const char *s)
   
    	g_assert(s);	
 
-	ret = g_strdup(s);
+	ret = h_strdup(s);
 
 	if (G_DIR_SEPARATOR != '/') {
 		char *p = ret;

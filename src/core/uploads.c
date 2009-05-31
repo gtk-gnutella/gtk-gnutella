@@ -983,7 +983,7 @@ upload_free_resources(struct upload *u)
 	}
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
-	G_FREE_NULL(u->request);
+	HFREE_NULL(u->request);
 
     upload_free_handle(u->upload_handle);
 	list_uploads = g_slist_remove(list_uploads, u);
@@ -2159,7 +2159,7 @@ call_upload_request(gpointer obj, header_t *header)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	atom_str_free_null(&u->name);
-	G_FREE_NULL(u->request);
+	HFREE_NULL(u->request);
 	u->hevcnt = 0;
 
 	upload_request(u, header);
@@ -4257,7 +4257,7 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	u->from_browser = upload_likely_from_browser(header);
-	u->request = g_strdup(getline_str(u->socket->getline));
+	u->request = h_strdup(getline_str(u->socket->getline));
 	u->downloaded = extract_downloaded(u, header);
 	u->status = GTA_UL_SENDING;
 

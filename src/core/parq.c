@@ -65,6 +65,7 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
@@ -654,7 +655,7 @@ parq_dl_del_id(struct download *d)
 	g_assert(parq_dl->id != NULL);
 
 	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
-	G_FREE_NULL(parq_dl->id);
+	HFREE_NULL(parq_dl->id);
 
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 }
@@ -718,7 +719,7 @@ parq_dl_add_id(struct download *d, const char *new_id)
 	g_assert(parq_dl != NULL);
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 
-	parq_dl->id = g_strdup(new_id);
+	parq_dl->id = h_strdup(new_id);
 	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, d);
 
 	g_assert(parq_dl->id != NULL);

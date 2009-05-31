@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "misc.h"
 #include "pattern.h"
+#include "halloc.h"
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -89,7 +90,7 @@ pattern_compile(const char *pattern)
 	size_t plen, i, *pd = p->delta;
 	const guchar *c;
 
-	p->pattern = g_strdup(pattern);
+	p->pattern = h_strdup(pattern);
 	p->len = plen = strlen(p->pattern);
 	p->duped = TRUE;
 
@@ -146,8 +147,8 @@ void
 pattern_free(cpattern_t *cpat)
 {
 	if (cpat->duped) {
-		g_free(deconstify_gchar(cpat->pattern));
-		cpat->pattern = NULL; /* Don't use G_FREE_NULL b/c of lvalue cast */
+		hfree(deconstify_gchar(cpat->pattern));
+		cpat->pattern = NULL; /* Don't use HFREE_NULL b/c of lvalue cast */
 	}
 	zfree(pat_zone, cpat);
 }
@@ -169,7 +170,7 @@ pattern_qsearch(
 {
 	const char *p;			/* Pointer within string pattern */
 	const char *t;			/* Pointer within text */
-	const char *tp;		/* Initial local search text pointer */
+	const char *tp;			/* Initial local search text pointer */
 	const char *start;		/* Start of matching */
 	const char *end;		/* End of text (first byte after physical end) */
 	size_t i;				/* Position within pattern string */

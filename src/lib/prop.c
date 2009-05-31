@@ -37,6 +37,7 @@ RCSID("$Id$")
 #include "sha1.h"
 #include "glib-missing.h"
 #include "tm.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
 #define PROP_FILE_ID	"_id"
@@ -341,7 +342,7 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 
 /**
  * Copy the property definition from the property set and return it.
- * Use the prop_free_def call to free the memory again. A simple g_free
+ * Use the prop_free_def call to free the memory again. A simple hfree
  * won't do, since there are lot's of pointers to allocated memory
  * in the definition structure.
  *
@@ -357,17 +358,17 @@ prop_get_def(prop_set_t *ps, property_t p)
 	if (!prop_in_range(ps, p))
 		g_error("prop_get_def: unknown property %d", p);
 
-	buf = g_memdup(&PROP(ps, p), sizeof(prop_def_t));
-	buf->name = g_strdup(PROP(ps, p).name);
-	buf->desc = g_strdup(PROP(ps, p).desc);
+	buf = wcopy(&PROP(ps, p), sizeof(prop_def_t));
+	buf->name = h_strdup(PROP(ps, p).name);
+	buf->desc = h_strdup(PROP(ps, p).desc);
 	buf->ev_changed = NULL;
 
 	switch (buf->type) {
 	case PROP_TYPE_BOOLEAN:
-		buf->data.boolean.def = g_memdup(
+		buf->data.boolean.def = hcopy(
 			PROP(ps,p).data.boolean.def,
 			sizeof(gboolean) * PROP(ps,p).vector_size);
-		buf->data.boolean.value = g_memdup(
+		buf->data.boolean.value = hcopy(
 			PROP(ps,p).data.boolean.value,
 			sizeof(gboolean) * PROP(ps,p).vector_size);
 		break;
@@ -379,7 +380,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 
 		n ++; /* Keep space for terminating {NULL, 0} field */
 
-		buf->data.guint32.choices = g_memdup(
+		buf->data.guint32.choices = hcopy(
 			PROP(ps,p).data.guint32.choices,
 			sizeof(prop_def_choice_t) * n);
 
@@ -389,53 +390,53 @@ prop_get_def(prop_set_t *ps, property_t p)
 		n = 0;
 		while (PROP(ps,p).data.guint32.choices[n].title != NULL) {
 			buf->data.guint32.choices[n].title =
-				g_strdup(PROP(ps,p).data.guint32.choices[n].title);
+				h_strdup(PROP(ps,p).data.guint32.choices[n].title);
 			n++;
 		}
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
 	case PROP_TYPE_GUINT32:
-		buf->data.guint32.def = g_memdup(
+		buf->data.guint32.def = hcopy(
 			PROP(ps,p).data.guint32.def,
 			sizeof(guint32) * PROP(ps,p).vector_size);
-		buf->data.guint32.value = g_memdup(
+		buf->data.guint32.value = hcopy(
 			PROP(ps,p).data.guint32.value,
 			sizeof(guint32) * PROP(ps,p).vector_size);
 		break;
 
 	case PROP_TYPE_GUINT64:
-		buf->data.guint64.def = g_memdup(
+		buf->data.guint64.def = hcopy(
 			PROP(ps,p).data.guint64.def,
 			sizeof(guint64) * PROP(ps,p).vector_size);
-		buf->data.guint64.value = g_memdup(
+		buf->data.guint64.value = hcopy(
 			PROP(ps,p).data.guint64.value,
 			sizeof(guint64) * PROP(ps,p).vector_size);
 		break;
 
 	case PROP_TYPE_TIMESTAMP:
-		buf->data.timestamp.def = g_memdup(
+		buf->data.timestamp.def = hcopy(
 			PROP(ps,p).data.timestamp.def,
 			sizeof(time_t) * PROP(ps,p).vector_size);
-		buf->data.timestamp.value = g_memdup(
+		buf->data.timestamp.value = hcopy(
 			PROP(ps,p).data.timestamp.value,
 			sizeof(time_t) * PROP(ps,p).vector_size);
 		break;
 
 	case PROP_TYPE_IP:
-		buf->data.ip.value = g_memdup(PROP(ps,p).data.ip.value,
+		buf->data.ip.value = hcopy(PROP(ps,p).data.ip.value,
 			sizeof buf->data.ip.value * PROP(ps,p).vector_size);
 		break;
 
 	case PROP_TYPE_STRING:
-		buf->data.string.def	= g_new(char*, 1);
-		*buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
-		buf->data.string.value  = g_new(char*, 1);
-		*buf->data.string.value = g_strdup(*PROP(ps,p).data.string.value);
+		buf->data.string.def	= walloc(sizeof(char *));
+		*buf->data.string.def   = h_strdup(*PROP(ps,p).data.string.def);
+		buf->data.string.value  = walloc(sizeof(char *));
+		*buf->data.string.value = h_strdup(*PROP(ps,p).data.string.value);
 		break;
 
 	case PROP_TYPE_STORAGE:
-		buf->data.storage.value = g_memdup
-			(PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
+		buf->data.storage.value = hcopy(
+			PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
 		break;
 		
 	case NUM_PROP_TYPES:
@@ -452,50 +453,50 @@ prop_free_def(prop_def_t *d)
 
 	switch (d->type) {
 	case PROP_TYPE_BOOLEAN:
-		G_FREE_NULL(d->data.boolean.value);
-		G_FREE_NULL(d->data.boolean.def);
+		HFREE_NULL(d->data.boolean.value);
+		HFREE_NULL(d->data.boolean.def);
 		break;
 	case PROP_TYPE_MULTICHOICE: {
 		guint n = 0;
 
 		while (d->data.guint32.choices[n].title != NULL) {
-			G_FREE_NULL(d->data.guint32.choices[n].title);
+			HFREE_NULL(d->data.guint32.choices[n].title);
 			n++;
 		}
 
-		G_FREE_NULL(d->data.guint32.choices);
+		HFREE_NULL(d->data.guint32.choices);
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
 	case PROP_TYPE_GUINT32:
-		G_FREE_NULL(d->data.guint32.value);
-		G_FREE_NULL(d->data.guint32.def);
+		HFREE_NULL(d->data.guint32.value);
+		HFREE_NULL(d->data.guint32.def);
 		break;
 	case PROP_TYPE_GUINT64:
-		G_FREE_NULL(d->data.guint64.value);
-		G_FREE_NULL(d->data.guint64.def);
+		HFREE_NULL(d->data.guint64.value);
+		HFREE_NULL(d->data.guint64.def);
 		break;
 	case PROP_TYPE_TIMESTAMP:
-		G_FREE_NULL(d->data.timestamp.value);
-		G_FREE_NULL(d->data.timestamp.def);
+		HFREE_NULL(d->data.timestamp.value);
+		HFREE_NULL(d->data.timestamp.def);
 		break;
 	case PROP_TYPE_IP:
-		G_FREE_NULL(d->data.ip.value);
+		HFREE_NULL(d->data.ip.value);
 		break;
 	case PROP_TYPE_STRING:
-		G_FREE_NULL(*d->data.string.value);
-		G_FREE_NULL(*d->data.string.def);
-		G_FREE_NULL(d->data.string.value);
-		G_FREE_NULL(d->data.string.def);
+		HFREE_NULL(*d->data.string.value);
+		HFREE_NULL(*d->data.string.def);
+		WFREE_NULL(d->data.string.value, sizeof(char *));
+		WFREE_NULL(d->data.string.def, sizeof(char *));
 		break;
 	case PROP_TYPE_STORAGE:
-		G_FREE_NULL(d->data.storage.value);
+		HFREE_NULL(d->data.storage.value);
 		break;
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
-	G_FREE_NULL(d->name);
-	G_FREE_NULL(d->desc);
-	G_FREE_NULL(d);
+	HFREE_NULL(d->name);
+	HFREE_NULL(d->desc);
+	WFREE_NULL(d, sizeof *d);
 }
 
 /**

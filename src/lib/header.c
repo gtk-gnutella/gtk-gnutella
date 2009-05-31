@@ -41,6 +41,7 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "ascii.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "misc.h"
 #include "walloc.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */
@@ -148,7 +149,7 @@ hfield_make(const char *name)
 	header_field_t *h;
 
 	h = walloc0(sizeof *h);
-	h->name = g_strdup(name);
+	h->name = h_strdup(name);
 
 	return h;
 }
@@ -157,7 +158,7 @@ static void
 hfield_free_item(gpointer p, gpointer unused_data)
 {
 	(void) unused_data;
-	G_FREE_NULL(p);
+	HFREE_NULL(p);
 }
 
 /**
@@ -170,7 +171,7 @@ hfield_free(header_field_t *h)
 		slist_foreach(h->lines, hfield_free_item, NULL);
 		slist_free(&h->lines);
 	}
-	G_FREE_NULL(h->name);
+	HFREE_NULL(h->name);
 	wfree(h, sizeof *h);
 }
 
@@ -184,7 +185,7 @@ hfield_append(header_field_t *h, const char *text)
 	if (!h->lines) {
 		h->lines = slist_new();
 	}
-	slist_append(h->lines, g_strdup(text));
+	slist_append(h->lines, h_strdup(text));
 }
 
 /**
@@ -257,7 +258,7 @@ free_header_data(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-	G_FREE_NULL(key);		/* XXX if shared, don't do that */
+	HFREE_NULL(key);			/* XXX if shared, don't do that */
 	g_string_free(value, TRUE);
 	return TRUE;
 }
@@ -360,7 +361,7 @@ add_header(header_t *o, const char *field, const char *text)
 		 * Create a new header entry in the hash table.
 		 */
 
-		key = g_strdup(field);
+		key = h_strdup(field);
 		v = g_string_new(text);
 		g_hash_table_insert(ht, key, v);
 	}

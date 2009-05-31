@@ -315,7 +315,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 			}
 			goto finish;
 		}
-		hashtree_id = g_strdup(value);
+		hashtree_id = h_strdup(value);
 		xml_string_free(&value);
 
 		value = STRTRACK(xml_get_string(node, "depth"));
@@ -351,7 +351,7 @@ finish:
 		doc = NULL;
 	}
 	if (!success) {
-		G_FREE_NULL(hashtree_id);
+		HFREE_NULL(hashtree_id);
 	}
 	return hashtree_id;
 }
@@ -570,7 +570,7 @@ thex_download_finished(struct thex_download *ctx)
 			 */
 			record = dime_find_record(records, THEX_TREE_TYPE, NULL);
 		}
-		G_FREE_NULL(hashtree_id);
+		HFREE_NULL(hashtree_id);
 
 		if (NULL == record) {
 			if (GNET_PROPERTY(tigertree_debug)) {

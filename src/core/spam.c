@@ -332,7 +332,7 @@ spam_load(FILE *f)
 					item.damaged = TRUE;
 					g_warning("spam_load(): Filename pattern is not UTF-8.");
 				} else {
-					item.name = g_strdup(value);
+					item.name = h_strdup(value);
 				}
 			}
 			break;
@@ -423,7 +423,7 @@ spam_load(FILE *f)
 
 		if (item.done) {
 			/* Reset state */
-			G_FREE_NULL(item.name);
+			HFREE_NULL(item.name);
 			item = zero_item;
 			bit_array_clear_range(tag_used, 0, NUM_SPAM_TAGS - 1U);
 		}

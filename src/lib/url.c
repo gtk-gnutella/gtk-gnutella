@@ -39,6 +39,7 @@ RCSID("$Id$")
 
 #include "ascii.h"
 #include "glib-missing.h"
+#include "halloc.h"
 #include "host_addr.h"
 #include "url.h"
 #include "misc.h"
@@ -408,7 +409,7 @@ url_params_parse(char *query)
 				*q = '\0';
 				value = url_unescape(start, FALSE);
 				if (!value) {
-					G_FREE_NULL(name);
+					HFREE_NULL(name);
 					url_params_free(up);
 					return NULL;
 				}
@@ -425,7 +426,7 @@ url_params_parse(char *query)
 		} else {
 			if (c == '=') {						/* End of parameter name */
 				*q = '\0';
-				name = g_strdup(start);
+				name = h_strdup(start);
 				*q = c;
 				in_value = TRUE;
 				start = q + 1;					/* Value will start there */
@@ -459,7 +460,7 @@ static void
 free_params_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	(void) unused_udata;
-	G_FREE_NULL(key);
+	HFREE_NULL(key);
 	G_FREE_NULL(value);
 }
 

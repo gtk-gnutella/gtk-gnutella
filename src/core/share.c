@@ -771,7 +771,7 @@ get_relative_path(const char *base_dir, const char *pathname)
 			if (nfc_str != normalized) {
 				G_FREE_NULL(nfc_str);
 			}
-			G_FREE_NULL(normalized);
+			HFREE_NULL(normalized);
 		}
 	}
 	return relative_path;

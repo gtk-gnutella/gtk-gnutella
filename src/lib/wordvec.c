@@ -39,6 +39,8 @@ RCSID("$Id$")
 
 #include "wordvec.h"
 #include "utf8.h"
+#include "halloc.h"
+#include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -92,7 +94,7 @@ word_vec_close(void)
 static word_vec_t *
 word_vec_zrealloc(word_vec_t *wv, int ncount)
 {
-	word_vec_t *nwv = g_malloc(ncount * sizeof(word_vec_t));
+	word_vec_t *nwv = halloc(ncount * sizeof(word_vec_t));
 
 	g_assert(ncount > WOVEC_DFLT);
 
@@ -119,7 +121,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 	guint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
 	const char *start = NULL;
-	char * const query_dup = g_strdup(query_str);
+	char * const query_dup = h_strdup(query_str);
 	char *query;
 	char first = TRUE;
 	guchar c;
@@ -173,7 +175,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 				if (n == nv) {				/* Filled all the slots */
 					nv *= 2;
 					if (n > WOVEC_DFLT)
-						wv = g_realloc(wv, nv * sizeof(word_vec_t));
+						wv = hrealloc(wv, nv * sizeof(word_vec_t));
 					else
 						wv = word_vec_zrealloc(wv, nv);
 				}
@@ -210,7 +212,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 		*wovec = wv;
 	else
 		zfree(wovec_zone, wv);
-	g_free(query_dup);
+	hfree(query_dup);
 	return n;
 }
 
@@ -226,7 +228,7 @@ word_vec_free(word_vec_t *wovec, guint n)
 		wfree(wovec[i].word, wovec[i].len + 1);
 
 	if (n > WOVEC_DFLT)
-		G_FREE_NULL(wovec);
+		HFREE_NULL(wovec);
 	else
 		zfree(wovec_zone, wovec);
 }
