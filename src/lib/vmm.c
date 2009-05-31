@@ -136,6 +136,9 @@ struct pmap {
 	size_t count;					/**< Amount of entries in array */
 	size_t size;					/**< Total amount of slots in array */
 	size_t pages;					/**< Amount of pages for the array */
+	size_t generation;				/**< Reloading generation number */
+	unsigned loading:1;				/**< Pmap being loaded */
+	unsigned resized:1;				/**< Pmap has been resized */
 };
 
 /**
@@ -340,7 +343,7 @@ vmm_find_hole(size_t size)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	if (pm == &local_pmap || 0 == pm->count)
+	if (pm == &local_pmap || 0 == pm->count || pm->loading)
 		return NULL;
 
 	if (kernel_mapaddr_increasing) {
@@ -517,6 +520,10 @@ vmm_mmap_anonymous(size_t size)
 		 */
 
 		if (vmm_pmap() == &kernel_pmap) {
+			if (vmm_debugging(0)) {
+				g_message("VMM current kernel pmap before reloading attempt:");
+				vmm_dump_pmap();
+			}
 			pmap_load(&kernel_pmap);
 			vmm_reserve_stack(0);
 		} else {
@@ -571,6 +578,7 @@ static void *
 alloc_pages(size_t size, gboolean update_pmap)
 {
 	void *p;
+	size_t generation = kernel_pmap.generation;
 
 	RUNTIME_ASSERT(kernel_pagesize > 0);
 
@@ -586,7 +594,15 @@ alloc_pages(size_t size, gboolean update_pmap)
 			(unsigned long) size / 1024, (unsigned long) p);
 	}
 
-	if (update_pmap)
+	/*
+	 * Since the kernel pmap can be reloaded by vmm_mmap_anonymous(), we
+	 * need to be careful and not insert something that will be listed there.
+	 *
+	 * NB: we check the kernel_pmap object only but we use vmm_pmap() for
+	 * inserting in case we do not use the kernel pmap.
+	 */
+
+	if (update_pmap && kernel_pmap.generation == generation)
 		pmap_insert(vmm_pmap(), p, size);
 
 	return p;
@@ -668,6 +684,13 @@ pmap_extend(struct pmap *pm)
 	osize = kernel_pagesize * pm->pages;
 	nsize = osize + kernel_pagesize;
 
+	if (vmm_debugging(0)) {
+		g_message("VMM extending %s%s pmap from %lu KiB to %lu KiB",
+			pm->loading ? "loading " : "",
+			pm == &kernel_pmap ? "kernel" : "local",
+			(unsigned long) osize / 1024, (unsigned long) nsize);
+	}
+
 	/*
 	 * It is possible to recursively enter here through alloc_pages() when
 	 * mmap() is used to allocate virtual memory, in case we reload the
@@ -711,7 +734,22 @@ pmap_extend(struct pmap *pm)
 	 */
 
 	free_pages(oarray, osize, TRUE);
-	pmap_insert(vmm_pmap(), narray, nsize);
+
+	/*
+	 * Watch out for extending the kernel pmap whilst we're reloading it.
+	 * This means our data structures were too small, and we'll need to
+	 * reload it again.
+	 */
+
+	{
+		struct pmap *vpm = vmm_pmap();
+
+		if (!vpm->loading) {
+			pmap_insert(vpm, narray, nsize);
+		} else {
+			vpm->resized = TRUE;
+		}
+	}
 }
 
 /**
@@ -805,27 +843,63 @@ pmap_insert_region(struct pmap *pm,
 	const void *end = const_ptr_add_offset(start, size);
 	struct vm_fragment *vmf;
 	size_t idx;
+	gboolean reloaded = FALSE;
 
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
 	foreign = booleanize(foreign);
 
-	if (pm->count == pm->size)
+	/*
+	 * Watch out for the kernel pmap being reloaded because the kernel did not
+	 * follow our hint when the pmap pages were allocated.
+	 */
+
+	if (pm->count == pm->size) {
+		size_t generation = kernel_pmap.generation;
+
 		pmap_extend(pm);
 
-	vmf = pmap_lookup(pm, start, &idx);
-	if (vmf) {
-		if (vmm_debugging(0)) {
-			g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
-				(unsigned long) start,
-				(unsigned long) const_ptr_add_offset(start, size - 1));
-			vmm_dump_pmap();
+		if (kernel_pmap.generation != generation) {
+			if (vmm_debugging(1)) {
+				g_message("VMM kernel pmap reloaded before inserting "
+					"%s[0x%lx, 0x%lx]",
+					foreign ? "foreign " : "",
+					(unsigned long) start,
+					(unsigned long) const_ptr_add_offset(end, -1));
+			}
+			reloaded = TRUE;
 		}
-		g_assert(foreign);
-		g_assert(vmf_is_foreign(vmf));
-		g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
+	}
+
+	vmf = pmap_lookup(pm, start, &idx);
+
+	if (vmf != NULL) {
+		if (reloaded) {
+			if (vmm_debugging(2)) {
+				g_message("VMM good, reloaded kernel pmap contains region");
+			}
+		} else {
+			if (vmm_debugging(0)) {
+				g_warning("pmap already contains the new region [0x%lx, 0x%lx]",
+					(unsigned long) start,
+					(unsigned long) const_ptr_add_offset(start, size - 1));
+				vmm_dump_pmap();
+			}
+			g_assert(foreign);
+			g_assert(vmf_is_foreign(vmf));
+			g_assert(ptr_cmp(end, vmf_end(vmf)) <= 0);
+		}
 		return;
+	} else if (reloaded) {
+		if (vmm_debugging(0)) {
+			g_warning("VMM reloaded kernel pmap does not contain "
+				"%s[0x%lx, 0x%lx], will add now",
+				foreign ? "foreign " : "",
+				(unsigned long) start,
+				(unsigned long) const_ptr_add_offset(end, -1));
+		}
+		/* FALL THROUGH */
 	}
 
 	g_assert(pm->count < pm->size);
@@ -1060,12 +1134,23 @@ pmap_load(struct pmap *pm)
 	int fd;
 	struct iobuffer iob;
 	char buf[4096];
+	unsigned attempt = 0;
 
 	if (failed)
 		return;
 
-	if (vmm_debugging(8))
-		g_message("VMM loading kernel memory map");
+	g_assert(&kernel_pmap == pm);
+
+	if (vmm_debugging(8)) {
+		g_message("VMM loading kernel memory map (for generation #%lu)",
+			(unsigned long) pm->generation + 1);
+	}
+
+retry:
+
+	attempt++;
+	pm->loading = TRUE;
+	pm->resized = FALSE;
 
 	/*
 	 * This is a low-level routine, do not use stdio at all as it could
@@ -1078,7 +1163,7 @@ pmap_load(struct pmap *pm)
 		failed = TRUE;
 		if (vmm_debugging(0))
 			g_warning("VMM cannot open /proc/self/maps: %s", g_strerror(errno));
-		return;
+		goto done;
 	}
 
 	pm->count = 0;
@@ -1111,12 +1196,35 @@ pmap_load(struct pmap *pm)
 			failed = TRUE;
 			break;
 		}
+
+		if (pm->resized) {
+			close(fd);
+			if (attempt < 10) {
+				if (vmm_debugging(0)) {
+					g_warning("VMM kernel pmap resized during loading "
+						"attempt #%u, retrying", attempt);
+				}
+				goto retry;
+			} else {
+				/* Unconditional warning -- something may break afterwards */
+				g_warning("VMM unable to reload kernel pmap after %u attempts",
+					attempt);
+				break;
+			}
+		}
 	}
 
 	close(fd);
 
+done:
+	pm->loading = FALSE;
+
+	if (!failed)
+		pm->generation++;
+
 	if (vmm_debugging(1)) {
-		g_message("VMM kernel memory map holds %lu region%s",
+		g_message("VMM kernel memory map (generation #%lu) holds %lu region%s",
+			(unsigned long) pm->generation,
 			(unsigned long) pm->count, 1 == pm->count ? "" : "s");
 	}
 }
