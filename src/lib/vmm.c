@@ -1936,9 +1936,9 @@ page_cache_find_pages(size_t n)
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
-		size_t length = n * kernel_pagesize;
+		size_t length = size_saturate_mult(n, kernel_pagesize);
 
-		g_assert(len >= length);
+		g_assert((size_t) -1 != length);
 		g_assert(ptr_diff(hole, NULL) > length);
 
 		hole = const_ptr_add_offset(hole, -length);
