@@ -365,8 +365,12 @@ spam_sha1_check(const struct sha1 *sha1)
 	g_return_val_if_fail(sha1, FALSE);
 	if (sha1_lut.tab)
 		return NULL != sorted_array_lookup(sha1_lut.tab, sha1);
-	else
+
+	if (sha1_lut.d.dw)
 		return dbmw_exists(sha1_lut.d.dw, sha1);
+
+	g_assert_not_reached();
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
