@@ -315,6 +315,20 @@ shell_get_token(const char *s, int *pos)
 	return retval;
 }
 
+static void
+shell_free_argv(const char ***argv_ptr)
+{
+	if (*argv_ptr) {
+		char **argv = deconstify_gpointer(*argv_ptr);
+
+		while (NULL != argv[0]) {
+			HFREE_NULL(argv[0]);
+			argv++;
+		}
+		HFREE_NULL(*argv_ptr);
+	}
+}
+
 static int 
 shell_parse_command(const char *line, const char ***argv_ptr)
 {
@@ -331,41 +345,24 @@ shell_parse_command(const char *line, const char ***argv_ptr)
 	 * overflow.
 	 */
 	for (;;) {
-		char *token;
-
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
 			argv = hrealloc(argv, n * sizeof argv[0]);
-		}	
-		token = shell_get_token(line, &pos);
-		argv[argc] = token;
-		if (NULL == token)
-			break;
-
-		argc++;
+		}
 		if (argc > 1024) {
-			HFREE_NULL(argv);
+			argv[argc] = NULL;
+			shell_free_argv(&argv);
 			argc = 0;
 			break;
 		}
+		argv[argc] = shell_get_token(line, &pos);
+		if (NULL == argv[argc])
+			break;
+		argc++;
 	}
 
 	*argv_ptr = argv;
 	return argc;
-}
-
-static void
-shell_free_argv(const char ***argv_ptr)
-{
-	if (*argv_ptr) {
-		char **argv = deconstify_gpointer(*argv_ptr);
-
-		while (NULL != argv[0]) {
-			HFREE_NULL(argv[0]);
-			argv++;
-		}
-		HFREE_NULL(*argv_ptr);
-	}
 }
 
 /**
