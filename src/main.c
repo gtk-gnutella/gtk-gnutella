@@ -1294,11 +1294,6 @@ handle_arguments_asap(void)
 		}
 		exit(EXIT_SUCCESS);
 	}
-
-	if (options[main_arg_shell].used) {
-		local_shell(settings_local_socket_path());
-		exit(EXIT_SUCCESS);
-	}
 }
 
 /**
@@ -1307,6 +1302,10 @@ handle_arguments_asap(void)
 static void
 handle_arguments(void)
 {
+	if (options[main_arg_shell].used) {
+		local_shell(settings_local_socket_path());
+		exit(EXIT_SUCCESS);
+	}
 	if (options[main_arg_ping].used) {
 		if (settings_is_unique_instance()) {
 			/* gtk-gnutella was running. */
