@@ -1823,10 +1823,13 @@ page_cache_find_pages(size_t n)
 	 */
 
 
+	/* FIXME: hole may be uninitialized */
 	len = vmm_first_hole(&hole);
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
+		/* FIXME: Overflow during multiplication? */
+		/* FIXME: Underflow during addition? */
 		hole = const_ptr_add_offset(hole, -n * kernel_pagesize);
 	}
 
