@@ -45,7 +45,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 	gnet_node_flags_t flags;
 	time_delta_t up, con;
 	char buf[1024];
-	char vendor_escaped[20];
+	char vendor_escaped[50];
 	char uptime_buf[8];
 	char contime_buf[8];
 
@@ -64,16 +64,16 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 		
 		vendor = node_vendor(n);
 		escaped = hex_escape(vendor, TRUE);
-		g_strlcpy(vendor_escaped, escaped, sizeof vendor_escaped);
+		clamp_strcpy(vendor_escaped, sizeof vendor_escaped, escaped);
 		if (escaped != vendor) {
 			G_FREE_NULL(escaped);
 		}
 	}
 
-	g_strlcpy(uptime_buf, up > 0 ? compact_time(up) : "?",
-		sizeof uptime_buf);
-	g_strlcpy(contime_buf, con > 0 ? compact_time(con) : "?",
-		sizeof contime_buf);
+	clamp_strcpy(uptime_buf, sizeof uptime_buf,
+		up > 0 ? compact_time(up) : "?");
+	clamp_strcpy(contime_buf, sizeof contime_buf,
+		con > 0 ? compact_time(con) : "?");
 
 	gm_snprintf(buf, sizeof buf,
 		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.50s",
