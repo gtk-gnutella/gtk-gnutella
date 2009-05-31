@@ -1930,15 +1930,18 @@ page_cache_find_pages(size_t n)
 	 * lie after the hole.
 	 */
 
-
-	/* FIXME: hole may be uninitialized */
+	hole = NULL;
 	len = vmm_first_hole(&hole);
+
 	if (pagecount_fast(len) < n) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
-		/* FIXME: Overflow during multiplication? */
-		/* FIXME: Underflow during addition? */
-		hole = const_ptr_add_offset(hole, -n * kernel_pagesize);
+		size_t length = n * kernel_pagesize;
+
+		g_assert(len >= length);
+		g_assert(ptr_diff(hole, NULL) > length);
+
+		hole = const_ptr_add_offset(hole, -length);
 	}
 
 	if (hole != NULL && vmm_debugging(8)) {
