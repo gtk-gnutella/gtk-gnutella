@@ -952,7 +952,7 @@ static struct {
 	const gchar * const name;
 	const gchar * const summary;
 	const enum arg_type type;
-	const gchar *arg;
+	const gchar *arg;	/* memory will be allocated via halloc() */
 	gboolean used;
 } options[] = {
 #define OPTION(name, type, summary) \
@@ -1218,7 +1218,7 @@ parse_arguments(int argc, char **argv)
 			}
 			switch (options[i].type) {
 			case ARG_TYPE_TEXT:
-				options[i].arg = NOT_LEAKING(g_strdup(argv[0]));
+				options[i].arg = NOT_LEAKING(h_strdup(argv[0]));
 				break;
 			case ARG_TYPE_PATH:
 				options[i].arg = NOT_LEAKING(absolute_pathname(argv[0]));
