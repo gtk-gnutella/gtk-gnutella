@@ -4360,32 +4360,24 @@ cpu_noise(void)
 }
 
 /**
- * Creates a string copy with all directory separators replaced with the
- * canonic path component separator '/' (a slash).
+ * Replaces all G_DIR_SEPARATOR characters with the canonic path component
+ * separator '/' (a slash). The string is modified in-place.
  *
  * @param s a pathname. 
- * @return  a newly allocated string, which must be freed with hfree().
  */
-char *
-normalize_dir_separators(const char *s)
+void
+normalize_dir_separators(char *pathname)
 {
-	char *ret;
-  
-   	g_assert(s);	
-
-	ret = h_strdup(s);
+   	g_assert(pathname);
 
 	if (G_DIR_SEPARATOR != '/') {
-		char *p = ret;
-
-		while (p) {
-			p = strchr(p, G_DIR_SEPARATOR);
-			if (p) {
-				*p++ = '/';
+		while (pathname) {
+			pathname = strchr(pathname, G_DIR_SEPARATOR);
+			if (pathname) {
+				*pathname++ = '/';
 			}
 		}
 	}
-	return ret;
 }
 
 void

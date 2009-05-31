@@ -453,7 +453,7 @@ int get_non_stdio_fd(int fd);
 typedef void (*signal_handler_t)(int signo);
 signal_handler_t set_signal(int signo, signal_handler_t handler);
 
-char *normalize_dir_separators(const char *s);
+void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 guint32 cpu_noise(void);
 

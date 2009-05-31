@@ -278,13 +278,9 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 
 	/* Set the NFC normalized name. */
 	{	
-		char *name;
-
-		name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
+		char *name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
 		sf->name_nfc = atom_str_get(name);
-		if (name != filename) {
-			G_FREE_NULL(name);
-		}
+		G_FREE_NULL(name);
 	}
 
 	/*
@@ -763,15 +759,12 @@ get_relative_path(const char *base_dir, const char *pathname)
 	if (s) {
 		s = skip_dir_separators(s);
 		if ('\0' != s[0]) {
-			char *normalized, *nfc_str;
+			char *nfc_str;
 
-			normalized = normalize_dir_separators(s);
-			nfc_str = filename_to_utf8_normalized(normalized, UNI_NORM_NETWORK);
+			nfc_str = filename_to_utf8_normalized(s, UNI_NORM_NETWORK);
+			normalize_dir_separators(nfc_str);
 			relative_path = atom_str_get(nfc_str);
-			if (nfc_str != normalized) {
-				G_FREE_NULL(nfc_str);
-			}
-			HFREE_NULL(normalized);
+			G_FREE_NULL(nfc_str);
 		}
 	}
 	return relative_path;
