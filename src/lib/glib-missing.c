@@ -303,11 +303,11 @@ gm_mem_set_safe_vtable(void)
 		return;
 
 #if GLIB_CHECK_VERSION(2,0,0)
-	vtable.malloc = malloc;
+	vtable.malloc = real_malloc;
 	vtable.realloc = safe_realloc;
 	vtable.free = safe_free;
 #else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = malloc;
+	vtable.gmvt_malloc = real_malloc;
 	vtable.gmvt_realloc = safe_realloc;
 	vtable.gmvt_free = safe_free;
 #endif	/* GLib >= 2.0.0 */
