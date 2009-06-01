@@ -1107,6 +1107,8 @@
 
 # p2pads dot com; MOV; pr0n spam; hosted by Easy Online Solutions
 8.17.0.0/23
+# Wired 2000 Corporation, Inc., hosted by Easy Online Solutions
+99.192.140.0/28
 
 # MOV pr0n spam; torrentvideos dot com; Yourbrain Media Inc.
 216.169.106.242
