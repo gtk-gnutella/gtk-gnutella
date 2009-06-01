@@ -70,11 +70,20 @@
 # hosted by WV FIBER LLC
 66.186.194.0/24
 
-# Media Sentry
+# MediaSentry
 66.250.46.0/24
 66.250.47.0/25
 209.133.121.0/24
 209.133.122.0/24
+# MediaSentry at Abovenet Communications, Inc
+# Same as JunGroup? Trailer and pr0n spam (AVI/MOV/MPG); LimeWire
+#209.249.47.209
+#209.249.47.196
+209.249.0.0/16
+# Spamming ranges from Abovenet; they host MediaSentry and possibly others
+# most of them use giFT; they upload huge rar or zip files which contain
+# nothing but lame insults.
+64.124.0.0/16
 
 # ServerBeach (Peer 1 network)
 64.34.160.0/19
@@ -745,11 +754,6 @@
 
 # Spamming subnets from Cogent Communications
 216.28.31.0/24
-
-# Spamming ranges from Abovenet; they host MediaSentry and possibly others
-# most of them use giFT; they upload huge rar or zip files which contain
-# nothing but lame insults.
-64.124.0.0/16
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
