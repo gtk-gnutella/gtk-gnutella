@@ -262,6 +262,9 @@ dump_packet_from(struct dump *dump, const struct gnutella_node *node)
 {
 	struct dump_header dh;	
 
+	if (!dump_initialize(dump))
+		return;
+
 	dump_header_set(&dh, node);
 	dump_append(dump, dh.data, sizeof dh.data);
 	dump_append(dump, node->header, sizeof node->header);
@@ -284,6 +287,9 @@ dump_packet_from_to(struct dump *dump,
 	g_assert(to != NULL);
 	g_assert(mb != NULL);
 	g_assert(pmsg_read_base(mb) == pmsg_start(mb));
+
+	if (!dump_initialize(dump))
+		return;
 
 	/*
 	 * This is only for Gnutella packets, leave DHT messages out.
@@ -319,17 +325,11 @@ dump_packet_from_to(struct dump *dump,
 void
 dump_rx_packet(const struct gnutella_node *node)
 {
-	if (!GNET_PROPERTY(dump_received_gnutella_packets)) {
-		if (dump_rx.initialized) {
-			dump_disable(&dump_rx);
-		}
-		return;
+	if (GNET_PROPERTY(dump_received_gnutella_packets)) {
+		dump_packet_from(&dump_rx, node);
+	} else if (dump_rx.initialized) {
+		dump_disable(&dump_rx);
 	}
-
-	if (!dump_rx.initialized && !dump_initialize(&dump_rx))
-		return;
-
-	dump_packet_from(&dump_rx, node);
 }
 
 /**
@@ -341,21 +341,15 @@ dump_tx_tcp_packet(
 	const struct gnutella_node *from, const struct gnutella_node *to,
 	const pmsg_t *mb)
 {
-	if (!GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
-		if (dump_tx.initialized) {
-			dump_disable(&dump_tx);
-		}
-		return;
+	if (GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
+		g_assert(to != NULL);
+		g_assert(mb != NULL);
+		g_assert(!NODE_IS_UDP(to));
+
+		dump_packet_from_to(&dump_tx, from, to, mb);
+	} else if (dump_tx.initialized) {
+		dump_disable(&dump_tx);
 	}
-
-	if (!dump_tx.initialized && !dump_initialize(&dump_tx))
-		return;
-
-	g_assert(to != NULL);
-	g_assert(mb != NULL);
-	g_assert(!NODE_IS_UDP(to));
-
-	dump_packet_from_to(&dump_tx, from, to, mb);
 }
 
 /**
@@ -364,30 +358,25 @@ dump_tx_tcp_packet(
 void
 dump_tx_udp_packet(const gnet_host_t *to, const pmsg_t *mb)
 {
-	struct gnutella_node udp;
+	if (GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
+		struct gnutella_node udp;
 
-	if (!GNET_PROPERTY(dump_transmitted_gnutella_packets)) {
-		if (dump_tx.initialized) {
-			dump_disable(&dump_tx);
-		}
-		return;
+		g_assert(to != NULL);
+		g_assert(mb != NULL);
+
+		/*
+		 * Fill only the fields which will be perused by
+		 * dump_packet_from_to().
+		 */
+
+		udp.peermode = NODE_P_UDP;
+		udp.addr = gnet_host_get_addr(to);
+		udp.port = gnet_host_get_port(to);
+
+		dump_packet_from_to(&dump_tx, NULL, &udp, mb);
+	} else if (dump_tx.initialized) {
+		dump_disable(&dump_tx);
 	}
-
-	if (!dump_tx.initialized && !dump_initialize(&dump_tx))
-		return;
-
-	g_assert(to != NULL);
-	g_assert(mb != NULL);
-
-	/*
-	 * Fill only the fields which will be perused by dump_packet_from_to().
-	 */
-
-	udp.peermode = NODE_P_UDP;
-	udp.addr = gnet_host_get_addr(to);
-	udp.port = gnet_host_get_port(to);
-
-	dump_packet_from_to(&dump_tx, NULL, &udp, mb);
 }
 
 /**
