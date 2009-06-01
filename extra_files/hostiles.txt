@@ -1499,7 +1499,9 @@
 #67.215.234.216/29
 67.215.224.0/19
 #216.45.58.106:25121; bcfeeedbcbddbadaabbcecbddaeabdab
-216.45.58.0/24
+#216.45.58.0/24
+#216.45.49.0/24
+216.45.48.0/20
 # peertracking dot com; fake AVI pr0n; ASF with URL redirect
 #67.228.193.80/29
 # Hosting Services, Inc. 
