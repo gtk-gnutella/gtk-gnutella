@@ -482,7 +482,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
   
 	g_assert(size > 0);	
 	buf	= g_strdup_vprintf(fmt, args);
-	len = clamp_strncpy(dst, size, buf, len);
+	len = clamp_strcpy(dst, size, buf);
 	G_FREE_NULL(buf);
 	return len;
 }
