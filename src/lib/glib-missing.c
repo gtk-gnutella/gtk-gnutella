@@ -254,7 +254,7 @@ g_mem_is_system_malloc(void)
 /**
  * Safe reallocation routine during final memory cleanup.
  */
-static void *
+static inline void *
 safe_realloc(void *p, size_t len)
 {
 	if (NULL == p) {
@@ -271,7 +271,7 @@ safe_realloc(void *p, size_t len)
 /**
  * Safe free routine during final memory cleanup.
  */
-static void
+static inline void
 safe_free(void *unused_p)
 {
 	(void) unused_p;
@@ -294,10 +294,9 @@ safe_free(void *unused_p)
 void
 gm_mem_set_safe_vtable(void)
 {
-	static GMemVTable vtable;
-
 #if defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
 		defined(REMAP_ZALLOC)
+	static GMemVTable vtable;
 
 	if (g_mem_is_system_malloc())
 		return;
@@ -483,9 +482,9 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
   
 	g_assert(size > 0);	
 	buf	= g_strdup_vprintf(fmt, args);
-	len = g_strlcpy(dst, buf, size);
+	len = clamp_strncpy(dst, size, buf, len);
 	G_FREE_NULL(buf);
-	return MIN((size - 1), len);
+	return len;
 }
 #endif	/* HAS_VSNPRINTF */
 
