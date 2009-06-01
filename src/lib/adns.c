@@ -431,7 +431,6 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		struct adns_reverse_reply *reply = &ans->reply.reverse;
 		const char *host;
 
-
 		if (common_dbg > 1) {
 			g_message("adns_gethostbyname: Resolving \"%s\" ...",
 					host_addr_to_string(query->addr));
@@ -439,7 +438,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 
 		reply->addr = query->addr;
 		host = host_addr_to_name(query->addr);
-		g_strlcpy(reply->hostname, host ? host : "", sizeof reply->hostname);
+		clamp_strcpy(reply->hostname, sizeof reply->hostname, host ? host : "");
 	} else {
 		const struct adns_query *query = &req->query.by_addr;
 		struct adns_reply *reply = &ans->reply.by_addr;
@@ -450,7 +449,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 			g_message("adns_gethostbyname: Resolving \"%s\" ...",
 				query->hostname);
 		}
-		g_strlcpy(reply->hostname, query->hostname, sizeof reply->hostname);
+		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
 		sl_addr = name_to_host_addr(query->hostname, query->net);
 		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
@@ -976,8 +975,8 @@ adns_resolve(const char *hostname, enum net_type net,
 	reply->hostname[0] = '\0';
 	reply->addrs[0] = zero_host_addr;
 
-	hostname_len = g_strlcpy(query->hostname, hostname, sizeof query->hostname);
-	if (hostname_len >= sizeof query->hostname) {
+	hostname_len = clamp_strcpy(query->hostname, sizeof query->hostname, hostname);
+	if ('\0' != hostname[hostname_len]) {
 		/* truncation detected */
 		adns_invoke_user_callback(&ans);
 		return FALSE; /* synchronous */
@@ -991,7 +990,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	}
 
 	ascii_strlower(query->hostname, hostname);
-	g_strlcpy(reply->hostname, query->hostname, sizeof reply->hostname);
+	clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 	
 	if (
 		adns_cache_lookup(adns_cache, tm_time(), query->hostname,
