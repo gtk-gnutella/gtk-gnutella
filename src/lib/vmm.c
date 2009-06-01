@@ -2559,37 +2559,7 @@ set_vmm_debug(guint32 level)
 void
 vmm_malloc_inited(void)
 {
-	struct {
-		unsigned non_default:1;
-		unsigned vmm_invalidate_free_pages:1;
-		unsigned vmm_protect_free_pages:1;
-	} settings = { FALSE, FALSE, FALSE };
-
 	safe_to_malloc = TRUE;
-
-	/*
-	 * Log VMM configuration.
-	 */
-
-#ifdef VMM_INVALIDATE_FREE_PAGES
-	settings.non_default = TRUE;
-	settings.vmm_invalidate_free_pages = TRUE;
-#endif
-#ifdef VMM_PROTECT_FREE_PAGES
-	settings.non_default = TRUE;
-	settings.vmm_protect_free_pages = TRUE;
-#endif
-
-	if (settings.non_default) {
-#if 0
-		/* This is FAR too verbose and printed too early */
-		g_message("VMM settings: %s%s",
-			settings.vmm_invalidate_free_pages ?
-				"VMM_INVALIDATE_FREE_PAGES" : "",
-			settings.vmm_protect_free_pages ?
-				"VMM_PROTECT_FREE_PAGES" : "");
-#endif
-	}
 }
 
 /**
@@ -2727,7 +2697,34 @@ vm_setup:
 void
 vmm_post_init(void)
 {
+	struct {
+		unsigned non_default:1;
+		unsigned vmm_invalidate_free_pages:1;
+		unsigned vmm_protect_free_pages:1;
+	} settings = { FALSE, FALSE, FALSE };
+
 	extern gboolean debugging(guint32 t);
+
+	/*
+	 * Log VMM configuration.
+	 */
+
+#ifdef VMM_INVALIDATE_FREE_PAGES
+	settings.non_default = TRUE;
+	settings.vmm_invalidate_free_pages = TRUE;
+#endif
+#ifdef VMM_PROTECT_FREE_PAGES
+	settings.non_default = TRUE;
+	settings.vmm_protect_free_pages = TRUE;
+#endif
+
+	if (settings.non_default) {
+		g_message("VMM settings: %s%s",
+			settings.vmm_invalidate_free_pages ?
+				"VMM_INVALIDATE_FREE_PAGES" : "",
+			settings.vmm_protect_free_pages ?
+				"VMM_PROTECT_FREE_PAGES" : "");
+	}
 
 	if (debugging(0) || vmm_debugging(0)) {
 		g_message("VMM using %lu bytes for the page cache",
