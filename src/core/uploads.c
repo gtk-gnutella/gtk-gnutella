@@ -2059,8 +2059,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		if (faked) {
 			char name[1024];
 
-			name[0] = '!';
-			g_strlcpy(&name[1], user_agent, sizeof name - 1);
+			concat_strings(name, sizeof name, "!", user_agent, (void *) 0);
 			u->user_agent = atom_str_get(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);
