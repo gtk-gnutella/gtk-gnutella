@@ -137,19 +137,20 @@ send_pproxy_error_v(
 	extra[0] = '\0';
 
 	/*
-	 * If `ext' is not null, we have extra header information to propagate.
+	 * If `ext' is not NULL, we have extra header information to propagate.
 	 */
 
 	if (ext) {
-		size_t slen = g_strlcpy(extra, ext, sizeof extra);
+		size_t extlen = clamp_strcpy(extra, sizeof extra, ext);
 
-		if (slen < sizeof extra) {
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = extra;
-		} else
+		if ('\0' != ext[extlen]) {
 			g_warning("send_pproxy_error_v: "
 				"ignoring too large extra header (%lu bytes)",
-				(unsigned long) slen);
+				(unsigned long) strlen(ext));
+		} else {
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt++].he_msg = extra;
+		}
 	}
 
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
