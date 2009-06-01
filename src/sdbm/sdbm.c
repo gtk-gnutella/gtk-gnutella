@@ -18,6 +18,7 @@
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/file.h"
+#include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -26,11 +27,11 @@ const datum nullitem = {0, 0};
 /*
  * forward
  */
-static gboolean getdbit (DBM *, long);
-static gboolean setdbit (DBM *, long);
-static gboolean getpage (DBM *, long);
-static datum getnext (DBM *);
-static gboolean makroom (DBM *, long, size_t);
+static gboolean getdbit(DBM *, long);
+static gboolean setdbit(DBM *, long);
+static gboolean getpage(DBM *, long);
+static datum getnext(DBM *);
+static gboolean makroom(DBM *, long, size_t);
 
 static inline int
 bad(const datum item)
