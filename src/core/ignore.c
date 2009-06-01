@@ -100,18 +100,17 @@ open_read_stamp(const char *file, time_t *stamp)
 	struct stat buf;
 
 	path = make_pathname(settings_config_dir(), file);
-	g_return_val_if_fail(NULL != path, NULL);
-
 	if (-1 == stat(path, &buf)) {
-		if (stamp)
+		if (stamp) {
 			*stamp = tm_time();
+		}
 		HFREE_NULL(path);
 		return NULL;
 	}
 
-	if (stamp)
+	if (stamp) {
 		*stamp = buf.st_mtime;
-
+	}
 	f = file_fopen(path, "r");
 
 	HFREE_NULL(path);
@@ -128,7 +127,6 @@ open_append(const char *file)
 	char *path;
 
 	path = make_pathname(settings_config_dir(), file);
-	g_return_val_if_fail(NULL != path, NULL);
 
 	f = file_fopen(path, "a");
 

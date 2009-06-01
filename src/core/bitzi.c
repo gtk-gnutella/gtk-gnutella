@@ -957,9 +957,6 @@ bitzi_load_cache(void)
 	oldpath = make_pathname(settings_config_dir(), "bitzi.xml.orig");
   	path = make_pathname(settings_config_dir(), "bitzi.xml");
 
-	g_assert(NULL != path);
-	g_assert(NULL != oldpath);
-
 	if (rename(path, oldpath)) {
 		g_warning("bitzi_init: failed to rename %s to %s (%s)",
 				path, oldpath, g_strerror(errno));

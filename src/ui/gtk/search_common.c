@@ -1567,8 +1567,6 @@ search_gui_real_store_searches(void)
 	search_store_xml();
 
 	path = make_pathname(settings_gui_config_dir(), search_file);
-	g_return_if_fail(NULL != path);
-
     if (file_exists(path)) {
 		char *path_old;
 
