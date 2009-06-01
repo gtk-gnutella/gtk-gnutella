@@ -1247,7 +1247,7 @@ prop_get_string(prop_set_t *ps, property_t prop, char *t, size_t size)
 			target[0] = '\0';
 			target = NULL;
 		} else {
-			g_strlcpy(target, s, size);
+			clamp_strcpy(target, size, s);
 		}
 	}
 
@@ -1355,7 +1355,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			gboolean val;
 
 			prop_get_boolean(ps, prop, &val, 0, 1);
-			g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof s);
+			clamp_strcpy(s, sizeof s, val ? "TRUE" : "FALSE");
 		}
 		break;
 	case PROP_TYPE_MULTICHOICE:
@@ -1414,13 +1414,13 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		uint64_to_string_buf(p->data.timestamp.def[0], s, sizeof s);
 		break;
 	case PROP_TYPE_STRING:
-		g_strlcpy(s, *p->data.string.def ? *p->data.string.def : "", sizeof s);
+		clamp_strcpy(s, sizeof s, *p->data.string.def ? *p->data.string.def : "");
 		break;
 	case PROP_TYPE_IP:
-		g_strlcpy(s, "", sizeof s);
+		clamp_strcpy(s, sizeof s, "");
 		break;
 	case PROP_TYPE_BOOLEAN:
-		g_strlcpy(s, p->data.boolean.def[0] ? "TRUE" : "FALSE", sizeof s);
+		clamp_strcpy(s, sizeof s, p->data.boolean.def[0] ? "TRUE" : "FALSE");
 		break;
 	case PROP_TYPE_MULTICHOICE:
 		{
