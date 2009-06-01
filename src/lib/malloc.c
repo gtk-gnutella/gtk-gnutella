@@ -1017,12 +1017,10 @@ install_malloc_periodic(void)
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 #endif	/* MALLOC_PERIODIC */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(MALLOC_VTABLE)
-
 /**
  * Calls real malloc(), no tracking.
  */
-static void *
+void *
 real_malloc(size_t size)
 {
 	void *o;
@@ -1068,6 +1066,7 @@ real_malloc(size_t size)
 	return o;
 }
 
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(MALLOC_VTABLE)
 /**
  * Calls real free(), no tracking.
  * Block must have been allocated via real_malloc().

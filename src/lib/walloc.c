@@ -380,21 +380,6 @@ wdestroy(void)
 {
 	size_t i;
 
-#if defined(USE_HALLOC) && !defined(TRACK_MALLOC)
-	/*
-	 * We cannot do this currently for GLib 2.0 because g_malloc() is
-	 * mapped to halloc() and a g_warning() or other GLib functions may
-	 * use g_malloc().
-	 *
-	 * Same thing for GTK1+ where we remap g_malloc() to halloc() the hard
-	 * way -- we'll have to find a way to clean this up if we want to spot
-	 * leaks.
-	 */
-
-	if (!g_mem_is_system_malloc())
-		return;
-#endif	/* USE_HALLOC */
-
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
 			zdestroy(wzone[i]);

@@ -334,6 +334,8 @@ void malloc_init(const char *argv0);
 void malloc_init_vtable(void);
 void malloc_close(void);
 
+void *real_malloc(size_t size);
+
 #endif /* _malloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */

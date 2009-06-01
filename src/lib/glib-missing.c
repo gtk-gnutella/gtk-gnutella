@@ -243,9 +243,79 @@ g_mem_set_vtable(GMemVTable *vtable)
 gboolean
 g_mem_is_system_malloc(void)
 {
-	return !gm_vtable.gmvt_malloc;
+	return NULL == gm_vtable.gmvt_malloc ||
+		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+			cast_pointer_to_func(real_malloc) ||
+		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+			cast_pointer_to_func(malloc);
 }
 #endif	/* USE_GLIB1 */
+
+/**
+ * Safe reallocation routine during final memory cleanup.
+ */
+static void *
+safe_realloc(void *p, size_t len)
+{
+	if (NULL == p) {
+		return malloc(len);
+	} else if (0 == len) {
+		/* NOTHING */
+	} else {
+		g_error("no realloc() allowed during final memory cleanup");
+	}
+
+	return NULL;
+}
+
+/**
+ * Safe free routine during final memory cleanup.
+ */
+static void
+safe_free(void *unused_p)
+{
+	(void) unused_p;
+	/* NOTHING */
+}
+
+/**
+ * Install safe memory vtable for final memory cleanup.
+ *
+ * When the memory vtable has been customized, redirecting g_malloc() to
+ * some other routine like halloc(), we can't easily perform final shutdown
+ * of the zalloc() and walloc() memory allocators because any call to
+ * log something still present could allocate memory and reenter code that
+ * is using the data structures being cleaned up.
+ *
+ * At this time though, we don't really care about freeing allocated memory
+ * since we're about to exit, but we want to be able to allocate new one
+ * safely.
+ */
+void
+gm_mem_set_safe_vtable(void)
+{
+	static GMemVTable vtable;
+
+#if defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+		defined(REMAP_ZALLOC)
+
+	if (g_mem_is_system_malloc())
+		return;
+
+#if GLIB_CHECK_VERSION(2,0,0)
+	vtable.malloc = malloc;
+	vtable.realloc = safe_realloc;
+	vtable.free = safe_free;
+#else	/* GLib < 2.0.0 */
+	vtable.gmvt_malloc = malloc;
+	vtable.gmvt_realloc = safe_realloc;
+	vtable.gmvt_free = safe_free;
+#endif	/* GLib >= 2.0.0 */
+
+	g_mem_set_vtable(&vtable);
+
+#endif	/* USE_HALLOC || TRACK_MALLOC || TRACK_ZALLOC || REMAP_ZALLOC */
+}
 
 #ifndef TRACK_MALLOC
 /**

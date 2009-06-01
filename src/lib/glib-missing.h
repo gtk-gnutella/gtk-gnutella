@@ -62,6 +62,8 @@ typedef struct GMemVTable {
  * Public interface.
  */
 
+void gm_mem_set_safe_vtable(void);
+
 gboolean gm_slist_is_looping(const GSList *slist);
 GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data);
 
