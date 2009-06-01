@@ -732,15 +732,12 @@ html_load_file(struct html_output *output, int fd)
 		perror("open");
 		goto error;
 	}
-	close(fd);
-	fd = -1;
+	fd_close(&fd, FALSE);
 
 	ret = html_load_memory(output, array_init(p, size));
 
 error:
-	if (fd >= 0) {
-		close(fd);
-	}
+	fd_close(&fd, TRUE);
 	if (MAP_FAILED != p) {
 		vmm_munmap(p, size);
 	}

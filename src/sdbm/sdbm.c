@@ -342,8 +342,8 @@ sdbm_close(DBM *db)
 		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
 #endif
 		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
-		file_close(&db->dirf);
-		file_close(&db->pagf);
+		fd_close(&db->dirf, TRUE);
+		fd_close(&db->pagf, TRUE);
 		if (common_stats)
 			log_sdbmstats(db);
 		G_FREE_NULL(db->name);

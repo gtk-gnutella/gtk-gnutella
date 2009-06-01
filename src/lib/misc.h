@@ -443,8 +443,14 @@ void close_file_descriptors(const int first_fd);
 int reserve_standard_file_descriptors(void);
 gboolean compat_is_superuser(void);
 int compat_daemonize(const char *directory);
+
 void set_close_on_exec(int fd);
+void fd_set_nonblocking(int fd);
+int fd_close(int *fd_ptr, gboolean);
+
 void compat_fadvise_sequential(int fd, off_t offset, off_t size);
+void compat_fadvise_noreuse(int fd, off_t offset, off_t size);
+void compat_fadvise_dontneed(int fd, off_t offset, off_t size);
 void *compat_memmem(const void *data, size_t data_size,
 		const void *pattern, size_t pattern_size);
 

@@ -59,13 +59,13 @@ RCSID("$Id$")
 
 static struct bgtask *move_daemon;
 
-#define MOVED_MAGIC	0x00c0b100
+enum moved_magic_t { MOVED_MAGIC = 0x0ac0b103 };
 
 /**
  * Moving daemon context.
  */
 struct moved {
-	int magic;				/**< Magic number */
+	enum moved_magic_t magic;	/**< Magic number */
 	struct download *d;		/**< Download for which we're moving file */
 	char *buffer;			/**< Large buffer, where data is read */
 	char *target;			/**< Target file name, in case an error occurs */
@@ -152,14 +152,8 @@ d_free(gpointer ctx)
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	if (md->rd != -1) {
-		close(md->rd);
-		md->rd = -1;
-	}
-	if (md->wd != -1) {
-		close(md->wd);
-		md->wd = -1;
-	}
+	fd_close(&md->rd, TRUE);
+	fd_close(&md->wd, TRUE);
 	HFREE_NULL(md->buffer);
 	md->magic = 0;
 	wfree(md, sizeof(*md));
@@ -196,9 +190,9 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
 
 	md->d = we->d;
-	md->rd = file_open(download_pathname(d), O_RDONLY, 0);
 
-	if (md->rd == -1) {
+	md->rd = file_open(download_pathname(d), O_RDONLY, 0);
+	if (md->rd < 0) {
 		md->error = errno;
 		goto abort_read;
 	}
@@ -226,14 +220,15 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 		goto abort_read;
 
 	md->wd = file_create(md->target, O_WRONLY | O_TRUNC, buf.st_mode);
-
-	if (md->wd == -1)
+	if (md->wd < 0)
 		goto abort_read;
 
 	md->start = tm_time();
 	md->size = download_filesize(d);
 	md->copied = 0;
 	md->error = 0;
+
+	compat_fadvise_sequential(md->rd, 0, 0);
 
 	if (GNET_PROPERTY(dbg) > 1)
 		g_message("Moving \"%s\" to \"%s\"",
@@ -243,10 +238,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 abort_read:
 	md->error = errno;
-	if (md->rd != -1) {
-		close(md->rd);
-		md->rd = -1;
-	}
+	fd_close(&md->rd, TRUE);
 	g_warning("can't copy \"%s\" to \"%s\"", download_pathname(d), we->dest);
 	return;
 }
@@ -266,20 +258,17 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 	bg_task_signal(h, BG_SIG_TERM, NULL);
 
-	if (md->rd == -1) {			/* Did not start properly */
+	if (md->rd < 0) {			/* Did not start properly */
 		g_assert(md->error);
 		goto finish;
 	}
 
-	close(md->rd);
-	md->rd = -1;
-
-	if (-1 == close(md->wd)) {
+	fd_close(&md->rd, TRUE);
+	if (fd_close(&md->wd, TRUE)) {
 		md->error = errno;
 		g_warning("error whilst closing copy target \"%s\": %s",
 			md->target, g_strerror(errno));
 	}
-	md->wd = -1;
 
 	/*
 	 * If copying went well, get rid of the source file.
@@ -359,7 +348,7 @@ d_step_copy(struct bgtask *h, gpointer u, int ticks)
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	if (md->rd == -1)			/* Could not open the file */
+	if (md->rd < 0)				/* Could not open the file */
 		return BGR_DONE;		/* Computation done */
 
 	if (md->size == 0)			/* Empty file */

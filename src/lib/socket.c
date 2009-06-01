@@ -28,7 +28,7 @@
 RCSID("$Id$")
 
 #include "lib/socket.h"
-#include "lib/file.h"
+#include "lib/misc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -46,7 +46,7 @@ socket_set_nonblocking(int fd)
 }
 #else
 {
-	file_set_nonblocking(fd);
+	fd_set_nonblocking(fd);
 }
 #endif
 

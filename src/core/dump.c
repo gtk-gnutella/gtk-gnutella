@@ -193,7 +193,7 @@ dump_initialize(struct dump *dump)
 		return FALSE;
 	}
 
-	file_set_nonblocking(dump->fd);
+	fd_set_nonblocking(dump->fd);
 
 	dump->slist = slist_new();
 	dump->fill = 0;
@@ -393,7 +393,8 @@ dump_tx_udp_packet(const gnet_host_t *to, const pmsg_t *mb)
 /**
  * Initialize traffic dumping.
  */
-void dump_init(void)
+void
+dump_init(void)
 {
 	/* Nothing to do, initialized on the fly */
 }
@@ -401,7 +402,8 @@ void dump_init(void)
 /**
  * Close traffic dumping.
  */
-void dump_close(void)
+void
+dump_close(void)
 {
 	if (dump_rx.initialized)
 		dump_disable(&dump_rx);

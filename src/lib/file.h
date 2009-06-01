@@ -71,8 +71,5 @@ int file_create_missing(const char *path, int flags, int mode);
 FILE *file_fopen(const char *path, const char *mode);
 FILE *file_fopen_missing(const char *path, const char *mode);
 
-void file_set_nonblocking(int fd);
-void file_close(int *);
-
 #endif /* _file_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -4304,15 +4304,54 @@ compat_daemonize(const char *directory)
 	return 0;
 }
 
-void
-compat_fadvise_sequential(int fd, off_t offset, off_t size)
+/**
+ * See posix_fadvise(2).
+ *
+ * @param fd A valid file descriptor of a regular file. 
+ * @param offset Start of range.
+ * @param size Size of range. Zero means up to end of file but see note below.
+ * @param hint One of the POSIX_FADVISE_* values. These CANNOT be combined.
+ */
+static void
+compat_fadvise(int fd, off_t offset, off_t size, int hint)
 {
 	g_return_if_fail(fd >= 0);
 	g_return_if_fail(offset >= 0);
 	g_return_if_fail(size >= 0);
+	(void) hint;
 
 #ifdef HAS_POSIX_FADVISE
-	posix_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
+	if (0 == size) {
+		/**
+ 		 * NOTE: Buggy Linux kernels don't handle zero correctly.
+		 */
+		size = OFF_T_MAX;
+	}
+	posix_fadvise(fd, offset, size, hint);
+#endif	/* HAS_POSIX_FADVISE */
+}
+
+void
+compat_fadvise_sequential(int fd, off_t offset, off_t size)
+{
+#ifdef HAS_POSIX_FADVISE
+	compat_fadvise(fd, offset, size, POSIX_FADV_SEQUENTIAL);
+#endif	/* HAS_POSIX_FADVISE */
+}
+
+void
+compat_fadvise_noreuse(int fd, off_t offset, off_t size)
+{
+#ifdef HAS_POSIX_FADVISE
+	compat_fadvise(fd, offset, size, POSIX_FADV_NOREUSE);
+#endif	/* HAS_POSIX_FADVISE */
+}
+
+void
+compat_fadvise_dontneed(int fd, off_t offset, off_t size)
+{
+#ifdef HAS_POSIX_FADVISE
+	compat_fadvise(fd, offset, size, POSIX_FADV_DONTNEED);
 #endif	/* HAS_POSIX_FADVISE */
 }
 
@@ -4538,6 +4577,45 @@ get_non_stdio_fd(int fd)
 		errno = saved_errno;
 	}
 	return fd;
+}
+
+void
+fd_set_nonblocking(int fd)
+{
+	int ret, flags;
+
+	ret = fcntl(fd, F_GETFL, 0);
+	flags = ret | VAL_O_NONBLOCK;
+	if (flags != ret)
+		fcntl(fd, F_SETFL, flags);
+}
+
+/**
+ * Closes the file and sets the descriptor to -1. Does nothing if
+ * the descriptor is already -1.
+ *
+ * @param fd_ptr Must point to a non-negative file descriptor or -1.
+ * @param clear_cache If TRUE posix_fadvise() is called with
+ *		  POSIX_FADV_DONTNEED. This should only be used for regular
+ *		  files.
+ */
+int
+fd_close(int *fd_ptr, gboolean clear_cache)
+{
+	int ret;
+
+	g_assert(fd_ptr);
+	g_assert(*fd_ptr >= -1);
+
+	if (*fd_ptr < 0)
+		return 0;
+
+	if (clear_cache) {
+		compat_fadvise_dontneed(*fd_ptr, 0, 0);
+	}
+	ret = close(*fd_ptr);
+	*fd_ptr = -1;
+	return ret;
 }
 
 /**

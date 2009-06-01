@@ -343,7 +343,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		 * We keep the empty PID file around. Otherwise,
 		 * there's a race-condition without fcntl() locking.
 		 */
-		close(fd);
+		fd_close(&fd, TRUE);
 	} else {
 		/* Keep the fd open, otherwise the lock is lost */
 		*fd_ptr = fd;
@@ -356,7 +356,7 @@ failed:
 	if (GNET_PROPERTY(lockfile_debug)) {
 		g_message("file \"%s\" NOT LOCKED", file);
 	}
-	close(fd);
+	fd_close(&fd, TRUE);
 	errno = EEXIST;
 	if (fd_ptr) {
 		*fd_ptr = -1;
@@ -495,9 +495,7 @@ settings_ensure_unique_save_file_path(void)
 				dirlockfile, &fd);
 
 	if (0 == ret) {
-		if (save_file_path_lock >= 0) {
-			close(save_file_path_lock);
-		}
+		fd_close(&save_file_path_lock, TRUE);
 		save_file_path_lock = fd;
 	}
 

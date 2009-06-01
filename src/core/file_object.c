@@ -330,8 +330,7 @@ file_object_free(struct file_object * const fo)
 		file_object_remove(fo);
 	}
 
-	close(fo->fd);
-	fo->fd = -1;
+	fd_close(&fo->fd, FALSE);
 	atom_str_free_null(&fo->pathname);
 	fo->magic = 0;
 	wfree(fo, sizeof *fo);
