@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "bh_download.h"
 #include "downloads.h"
 #include "bsched.h"
+#include "dump.h"
 #include "gnet_stats.h"
 #include "rx_inflate.h"
 
@@ -183,6 +184,7 @@ browse_data_process(struct browse_ctx *bc)
 	n = node_browse_prepare(
 		&bc->host, bc->vendor, &bc->header, bc->data, bc->size);
 
+	dump_rx_packet(n);
 	gnet_stats_count_received_header(n);
 	gnet_stats_count_received_payload(n);
 
