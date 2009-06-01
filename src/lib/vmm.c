@@ -1125,15 +1125,74 @@ iobuffer_readline(struct iobuffer *iob, int fd)
 }
 
 /**
+ * @return	A negative value on failure. If zero is returned, check pm->resize
+ *			and try again.
+ */
+static int
+pmap_load_data(struct pmap *pm)
+{
+	struct iobuffer iob;
+	char buf[4096];
+	int fd, ret = -1;
+
+	/*
+	 * This is a low-level routine, do not use stdio at all as it could
+	 * allocate memory and re-enter the VMM layer.  Likewise, do not
+	 * allocate any memory, excepted for the pmap where entries are stored.
+	 */
+
+	fd = open("/proc/self/maps", O_RDONLY);
+	if (fd < 0) {
+		if (vmm_debugging(0)) {
+			g_warning("VMM cannot open /proc/self/maps: %s", g_strerror(errno));
+		}
+		goto failure;
+	}
+
+	pm->count = 0;
+	iobuffer_init(&iob, buf, sizeof buf);
+
+	while (!pm->resized) {
+		const char *line;
+
+		line = iobuffer_readline(&iob, fd);
+		if (NULL == line) {
+			if (iob.error) {
+				if (vmm_debugging(0)) {
+					g_warning("VMM error reading /proc/self/maps: %s",
+							g_strerror(errno));
+				}
+				goto failure;
+			}
+			if (iob.toobig) {
+				if (vmm_debugging(0)) {
+					g_warning("VMM too long a line in /proc/self/maps output");
+				}
+				goto failure;
+			}
+			break;
+		}
+		if (!pmap_parse_and_add(pm, line)) {
+			if (vmm_debugging(0)) {
+				g_warning("VMM error parsing \"%s\"", buf);
+			}
+			goto failure;
+		}
+	}
+	ret = 0;
+
+failure:
+	fd_close(&fd, FALSE);
+	return ret;
+}
+
+/**
  * Load the process's memory map from /proc/self/maps into the supplied map.
  */
 static void
 pmap_load(struct pmap *pm)
 {
 	static int failed;
-	int fd;
-	struct iobuffer iob;
-	char buf[4096];
 	unsigned attempt = 0;
 
 	if (failed)
@@ -1146,77 +1205,33 @@ pmap_load(struct pmap *pm)
 			(unsigned long) pm->generation + 1);
 	}
 
-retry:
-
-	attempt++;
-	pm->loading = TRUE;
-	pm->resized = FALSE;
-
-	/*
-	 * This is a low-level routine, do not use stdio at all as it could
-	 * allocate memory and re-enter the VMM layer.  Likewise, do not
-	 * allocate any memory, excepted for the pmap where entries are stored.
-	 */
-
-	fd = open("/proc/self/maps", O_RDONLY);
-	if (fd < 0) {
-		failed = TRUE;
-		if (vmm_debugging(0))
-			g_warning("VMM cannot open /proc/self/maps: %s", g_strerror(errno));
-		goto done;
-	}
-
-	pm->count = 0;
-	iobuffer_init(&iob, buf, sizeof buf);
-
 	for (;;) {
-		const char *line;
+		int ret;
 
-		line = iobuffer_readline(&iob, fd);
-		if (NULL == line) {
-			if (iob.error) {
-				if (vmm_debugging(0)) {
-					g_warning("VMM error reading /proc/self/maps: %s",
-							g_strerror(errno));
-				}
-				failed = TRUE;
-			}
-			if (iob.toobig) {
-				if (vmm_debugging(0)) {
-					g_warning("VMM too long a line in /proc/self/maps output");
-				}
-				failed = TRUE;
-			}
-			break;
-		}
-		if (!pmap_parse_and_add(pm, line)) {
-			if (vmm_debugging(0)) {
-				g_warning("VMM error parsing \"%s\"", buf);
-			}
+		pm->loading = TRUE;
+		pm->resized = FALSE;
+
+		ret = pmap_load_data(pm);
+		if (ret < 0) {
 			failed = TRUE;
 			break;
 		}
+		if (!pm->resized)
+			break;
 
-		if (pm->resized) {
-			close(fd);
-			if (attempt < 10) {
-				if (vmm_debugging(0)) {
-					g_warning("VMM kernel pmap resized during loading "
-						"attempt #%u, retrying", attempt);
-				}
-				goto retry;
-			} else {
-				/* Unconditional warning -- something may break afterwards */
-				g_warning("VMM unable to reload kernel pmap after %u attempts",
+		if (++attempt > 10) {
+			/* Unconditional warning -- something may break afterwards */
+			g_warning("VMM unable to reload kernel pmap after %u attempts",
 					attempt);
-				break;
-			}
+			break;
+		}
+
+		if (vmm_debugging(0)) {
+			g_warning("VMM kernel pmap resized during loading attempt #%u"
+				", retrying", attempt);
 		}
 	}
 
-	close(fd);
-
-done:
 	pm->loading = FALSE;
 
 	if (!failed)
