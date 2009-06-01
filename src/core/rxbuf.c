@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "lib/override.h"		/* Must be the last header included */
 
 static pool_t *rxpool;
+static size_t rxbuf_pagesize;
 
 /**
  * Put RX buffer back to its pool.
@@ -94,18 +95,18 @@ rxbuf_new(void)
 	 * embedding the pdata_t header at the beginning of the buffer.
 	 */
 
-	return pdata_allocb_ext(phys, compat_pagesize(), rxbuf_data_free, NULL);
+	return pdata_allocb_ext(phys, rxbuf_pagesize, rxbuf_data_free, NULL);
 }
 
 /**
- * Wrapper over g_malloc().
+ * Wrapper over vmm_alloc().
  */
 static gpointer
 rxbuf_page_alloc(size_t size)
 {
 	gpointer p;
 
-	g_assert(size == compat_pagesize());
+	g_assert(size == rxbuf_pagesize);
 
 	p = vmm_alloc(size);
 
@@ -117,16 +118,26 @@ rxbuf_page_alloc(size_t size)
 }
 
 /**
- * Wrapper over free().
+ * Wrapper over vmm_free().
  */
 static void
-rxbuf_page_free(gpointer p)
+rxbuf_page_free(gpointer p, gboolean fragment)
 {
 	if (GNET_PROPERTY(rxbuf_debug) > 2)
-		g_message("RXBUF freeing %uK buffer at 0x%lx",
-			(unsigned) compat_pagesize() / 1024, (unsigned long) p);
+		g_message("RXBUF freeing %uK buffer at 0x%lx%s",
+			(unsigned) rxbuf_pagesize / 1024, (unsigned long) p,
+			fragment ? " (fragment)" : "");
 
-	vmm_free(p, compat_pagesize());
+	vmm_free(p, rxbuf_pagesize);
+}
+
+/**
+ * Check whether buffer is a memory fragment.
+ */
+static gboolean
+rxbuf_page_is_fragment(gpointer p)
+{
+	return vmm_is_fragment(p, rxbuf_pagesize);
 }
 
 /**
@@ -135,8 +146,9 @@ rxbuf_page_free(gpointer p)
 void
 rxbuf_init(void)
 {
-	rxpool = pool_create("RX buffers",
-		compat_pagesize(), rxbuf_page_alloc, rxbuf_page_free);
+	rxbuf_pagesize = compat_pagesize();
+	rxpool = pool_create("RX buffers", rxbuf_pagesize,
+		rxbuf_page_alloc, rxbuf_page_free, rxbuf_page_is_fragment);
 }
 
 /**

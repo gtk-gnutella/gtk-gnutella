@@ -49,6 +49,11 @@
  * count the amount of allocations done between two heartbeats, looking for
  * how many allocation requests there are until a release happens.
  *
+ * To keep memory fragmentation low, any buffer which can be flagged as
+ * a memory fragment is released at pfree() time, regardless of the allocation
+ * rate of the pool.  The deallocation routine is told whether something is
+ * released because it was identified explicitly as a fragment.
+ *
  * @author Raphael Manfredi
  * @date 2005
  * @date 2009
@@ -60,6 +65,7 @@ RCSID("$Id$")
 
 #include "cq.h"
 #include "hashlist.h"
+#include "misc.h"
 #include "palloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -83,6 +89,7 @@ struct pool {
 	cevent_t *heartbeat_ev;	/**< Monitoring of pool level */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
+	pool_frag_t	is_frag;	/**< Fragment checking routing */
 	unsigned allocated;		/**< Amount of allocated buffers */
 	unsigned held;			/**< Amount of available buffers */
 	unsigned slow_ema;		/**< Slow EMA of pool usage (n = 31) */
@@ -235,10 +242,11 @@ pool_install_heartbeat(pool_t *p)
  * @param size		size of blocks held in the pool
  * @param alloc		allocation routine to get a new block
  * @param dealloc	deallocation routine to free an unused block
+ * @param is_frag	routine to check for memory fragments
  */
 pool_t *
 pool_create(const char *name,
-	size_t size, pool_alloc_t alloc, pool_free_t dealloc)
+	size_t size, pool_alloc_t alloc, pool_free_t dealloc, pool_frag_t is_frag)
 {
 	pool_t *p;
 
@@ -248,6 +256,7 @@ pool_create(const char *name,
 	p->size = size;
 	p->alloc = alloc;
 	p->dealloc = dealloc;
+	p->is_frag = is_frag;
 
 	pool_install_heartbeat(p);
 
@@ -283,7 +292,7 @@ pool_free(pool_t *p)
 	 */
 
 	for (sl = p->buffers; sl; sl = g_slist_next(sl)) {
-		p->dealloc(sl->data);
+		p->dealloc(sl->data, FALSE);
 	}
 
 	g_slist_free(p->buffers);
@@ -310,7 +319,7 @@ palloc(pool_t *p)
 	if (p->buffers) {
 		gpointer obj;
 
-		g_assert(p->held > 0);
+		g_assert(uint_is_positive(p->held));
 
 		obj = p->buffers->data;
 		p->buffers = g_slist_remove(p->buffers, obj);
@@ -347,11 +356,23 @@ pfree(pool_t *p, gpointer obj)
 	p->alloc_reqs = 0;
 
 	/*
-	 * Keep the buffer in the pool.
+	 * Keep the buffer in the pool, unless it is a fragment.
 	 */
 
-	p->buffers = g_slist_prepend(p->buffers, obj);
-	p->held++;
+	if (p->is_frag(obj)) {
+		g_assert(uint_is_positive(p->allocated));
+
+		if (palloc_debug > 1) {
+			g_message("PGC pool \"%s\": buffer 0x%lx is a fragment",
+				p->name, (unsigned long) obj);
+		}
+
+		p->dealloc(obj, TRUE);
+		p->allocated--;
+	} else {
+		p->buffers = g_slist_prepend(p->buffers, obj);
+		p->held++;
+	}
 }
 
 /**
@@ -361,6 +382,21 @@ void
 set_palloc_debug(guint32 level)
 {
 	palloc_debug = level;
+}
+
+/**
+ * Reclaim buffer.
+ */
+static void
+pool_reclaim(pool_t *p, gpointer obj)
+{
+	g_assert(uint_is_positive(p->allocated));
+	g_assert(uint_is_positive(p->held));
+
+	p->buffers = g_slist_remove(p->buffers, obj);
+	p->dealloc(obj, FALSE);
+	p->allocated--;
+	p->held--;
 }
 
 /**
@@ -460,10 +496,7 @@ pool_reclaim_garbage(pool_t *p)
 		g_assert(sl != NULL);
 
 		obj = sl->data;
-		p->buffers = g_slist_remove(p->buffers, obj);
-		p->dealloc(obj);
-		p->allocated--;
-		p->held--;
+		pool_reclaim(p, obj);
 	}
 
 	/*

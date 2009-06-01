@@ -42,7 +42,8 @@
 #include "common.h"
 
 typedef gpointer (*pool_alloc_t)(size_t len);
-typedef void (*pool_free_t)(gpointer addr);
+typedef void (*pool_free_t)(gpointer addr, gboolean fragment);
+typedef gboolean (*pool_frag_t)(gpointer addr);
 
 typedef struct pool pool_t;
 
@@ -51,7 +52,7 @@ typedef struct pool pool_t;
  */
 
 pool_t *pool_create(const char *name,
-	size_t size, pool_alloc_t alloc, pool_free_t dealloc);
+	size_t size, pool_alloc_t alloc, pool_free_t dealloc, pool_frag_t is_frag);
 void pool_free(pool_t *pool);
 
 gpointer palloc(pool_t *pool);
