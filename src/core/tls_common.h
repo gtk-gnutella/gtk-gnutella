@@ -58,6 +58,7 @@ void tls_wio_link(struct gnutella_socket *);
 
 gboolean tls_enabled(void);
 void tls_global_init(void);
+void tls_global_close(void);
 const char *tls_version_string(void);
 
 struct array;

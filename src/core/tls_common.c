@@ -501,6 +501,12 @@ tls_global_init(void)
 	header_features_add(FEATURES_UPLOADS, f.name, f.major, f.minor);
 }
 
+void
+tls_global_close(void)
+{
+	gnutls_global_deinit();
+}
+
 static ssize_t
 tls_write_intern(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
@@ -951,6 +957,12 @@ tls_wio_link(struct gnutella_socket *s)
 
 void
 tls_global_init(void)
+{
+	/* Nothing to do */
+}
+
+void
+tls_global_close(void)
 {
 	/* Nothing to do */
 }

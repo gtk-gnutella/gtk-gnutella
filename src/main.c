@@ -538,6 +538,7 @@ gtk_gnutella_exit(int exit_code)
 	dbus_util_close();  /* After adns_close() to avoid strange crashes */
 	ipp_cache_close();
 	dump_close();
+	tls_global_close();
 	file_object_close();
 	settings_close();	/* Must come after hcache_close() */
 	misc_close();
