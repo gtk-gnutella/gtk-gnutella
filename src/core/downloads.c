@@ -3724,8 +3724,10 @@ download_switchable(struct download *d, const header_t *header)
 		return FALSE;
 
 	buf = header_get(header, "Content-Length");
-	len = parse_uint64(buf, NULL, 10, &error);
+	if (!buf)
+		return FALSE;
 
+	len = parse_uint64(buf, NULL, 10, &error);
 	if (error || len != 0)
 		return FALSE;			/* XXX would require we set sinking up */
 
