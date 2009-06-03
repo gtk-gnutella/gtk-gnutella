@@ -1663,6 +1663,27 @@ done:
 	return added;
 }
 
+/*
+ * If there's only one reference to this node, attempt to move
+ * it around if it can serve memory compaction.
+ *
+ * @return pointer to moved node
+ */
+static knode_t *
+move_node(struct kbucket *kb, knode_t *kn)
+{
+	if (1 == knode_refcnt(kn)) {
+		knode_t *moved = wmove(kn, sizeof *kn);
+		if (moved != kn) {
+			g_hash_table_remove(kb->nodes->all, moved->id);
+			g_hash_table_insert(kb->nodes->all, moved->id, moved);
+			return moved;
+		}
+	}
+
+	return kn;
+}
+
 /**
  * Promote most recently seen "pending" node to the good list in the k-bucket.
  */
@@ -1718,6 +1739,13 @@ promote_pending_node(struct kbucket *kb)
 
 			hash_list_remove(kb->nodes->pending, selected);
 			list_update_stats(KNODE_PENDING, -1);
+
+			/*
+			 * If there's only one reference to this node, attempt to move
+			 * it around if it can serve memory compaction.
+			 */
+
+			selected = move_node(kb, selected);
 
 			/*
 			 * Picked up node is the most recently seen pending node (at the
@@ -1977,6 +2005,11 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 		}
 	}
 
+	/*
+	 * Take this opportunity to move the node around if interesting.
+	 */
+
+	tkn = move_node(kb, tkn);
 	hash_list_append(hl, tkn);
 	list_update_stats(new, +1);
 
