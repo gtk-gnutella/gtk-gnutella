@@ -96,6 +96,16 @@ knode_check(const knode_t *kn)
 }
 
 /**
+ * @return amount of references to Kademlia node.
+ */
+static inline int
+knode_refcnt(const knode_t *kn)
+{
+	knode_check(kn);
+	return kn->refcnt;
+}
+
+/**
  * Add one reference to a Kademlia node.
  * @return the argument
  */
