@@ -78,6 +78,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
+#include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -579,31 +580,6 @@ is_action_url_spam(const char * const data, size_t size)
 	return FALSE;
 }
 
-static gboolean
-has_dupe_spam(const gnet_results_set_t *rs)
-{
-	GSList *sl;
-	guint dupes = 0;
-
-	for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
-		gnet_record_t *r1, *r2;
-
-		if (!g_slist_next(sl))
-			break;
-		r1 = sl->data;
-		r2 = g_slist_next(sl)->data;
-		if (
-			r1->file_index == r2->file_index &&
-			r1->sha1 == r2->sha1 &&
-			r1->size == r2->size
-		) {
-			dupes++;
-		}
-	}
-
-	return dupes > 4;	/* Tolerate a few dupes for now */
-}
-
 /**
  * Normalizes characters from an URL (partially or completely) encoded
  * string.
@@ -669,13 +645,15 @@ is_evil_filename(const char *filename)
 			break;
 		p = endptr;
 	}
-	
+
 	for (;;) {
 		if (
-			0 == memcmp(win, "/", 2) ||
-			0 == memcmp(win, "/.", 3) ||
-			0 == memcmp(win, "/..", 4) ||
-			0 == memcmp(win, "/../", 4)
+			'/' == win[0] && (
+				0 == memcmp(win, "/", 2) ||
+				0 == memcmp(win, "/.", 3) ||
+				0 == memcmp(win, "/..", 4) ||
+				0 == memcmp(win, "/../", 4)
+			)
 		) {
 			return TRUE;
 		}
@@ -690,6 +668,113 @@ is_evil_filename(const char *filename)
 		win[3] = url_normalize_char(p, &endptr);
 	}
 	return FALSE;
+}
+
+static void
+search_results_identify_dupes(gnet_results_set_t *rs)
+{
+	GHashTable *ht = g_hash_table_new(pointer_hash_func, NULL);
+	gnet_record_t *record;
+	GSList *sl;
+
+	/* Look for identical file index */
+	GM_SLIST_FOREACH(rs->records, sl) {
+		const void *key;
+
+		record = sl->data;
+		key = ulong_to_pointer(record->file_index);
+		if (g_hash_table_lookup(ht, key)) {
+			rs->status |= ST_DUP_SPAM;
+			set_flags(record->flags, SR_SPAM);
+		} else {
+			gm_hash_table_insert_const(ht, key, record);
+		}
+	}
+
+	/* Look for identical SHA-1 */
+	GM_SLIST_FOREACH(rs->records, sl) {
+		const void *key;
+
+		record = sl->data;
+		key = record->sha1;
+		if (NULL == key)
+			continue;
+
+		if (g_hash_table_lookup(ht, key)) {
+			rs->status |= ST_DUP_SPAM;
+			set_flags(record->flags, SR_SPAM);
+		} else {
+			gm_hash_table_insert_const(ht, key, record);
+		}
+	}
+
+	g_hash_table_destroy(ht);
+}
+
+static void
+search_results_identify_spam(gnet_results_set_t *rs)
+{
+	const GSList *sl;
+
+	if (
+		!is_vendor_acceptable(rs->vcode) ||
+		(T_LIME == rs->vcode.u32 && !(ST_HAS_CT & rs->status))
+	) {	
+		/*
+		 * If there are no timestamps, this is most-likely not from LimeWire.
+		 * A proper vendor code is mandatory.
+		 */
+		rs->status |= ST_FAKE_SPAM;
+	}
+
+	GM_SLIST_FOREACH(rs->records, sl) {
+		gnet_record_t *record = sl->data;
+
+		if (SR_SPAM & record->flags) {
+			/*
+			 * Avoid costly check if already marked as spam.
+			 */
+		} else if ((guint32)-1 == record->file_index) {
+			/*
+			 * Some spammers get this wrong but some version of LimeWire
+			 * start counting at zero despite this being a special wildcard
+			 */
+			set_flags(record->flags, SR_SPAM);
+		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
+			rs->status |= ST_URN_SPAM;
+			set_flags(record->flags, SR_SPAM);
+		} else if (spam_check_filename_and_size(record->name, record->size)) {
+			rs->status |= ST_NAME_SPAM;
+			set_flags(record->flags, SR_SPAM);
+		} else if (
+			record->xml &&
+			is_action_url_spam(record->xml, strlen(record->xml))
+		) {
+			rs->status |= ST_URL_SPAM;
+			set_flags(record->flags, SR_SPAM);
+		} else if (is_evil_filename(record->name)) {
+			rs->status |= ST_EVIL;
+			set_flags(record->flags, SR_IGNORED);
+		}
+	}
+
+	/*
+	 * Avoid costly checks if already marked as spam.
+	 */
+	if (!(ST_SPAM & rs->status)) {
+		search_results_identify_dupes(rs);
+	}
+
+	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM)) & rs->status) {
+		/*
+		 * Spam other than listed URNs is never sent by innocent peers,
+		 * thus mark all records of the set as spam.
+		 */
+		GM_SLIST_FOREACH(rs->records, sl) {
+			gnet_record_t *record = sl->data;
+			set_flags(record->flags, SR_SPAM);
+		}
+	}
 }
 
 static hash_list_t *oob_reply_acks;
@@ -1084,17 +1169,11 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					 */
 					rc = rs->records ? rs->records->data : NULL; 
 					if (rc && !rc->xml && paylen > 0) {
-						size_t len;
 						char buf[4096];
 
-						len = MIN(paylen, sizeof buf - 1);
-						memcpy(buf, ext_payload(e), len);
-						buf[len] = '\0';
+						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
-							if (is_action_url_spam(buf, len)) {
-								rs->status |= ST_URL_SPAM;
-							}
 						}
 					}
 				}
@@ -1383,23 +1462,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc->name = atom_str_get(filename);
 
 		/*
-		 * Some spammers get this wrong but some version of LimeWire
-		 * start counting at zero despite this being a special wildcard
-		 */
-		if ((guint32)-1 == rc->file_index) {
-			set_flags(rc->flags, SR_SPAM);
-		}
-
-		if (is_evil_filename(rc->name)) {
-			if (GNET_PROPERTY(search_debug)) {
-				g_message("get_results_set(): ignoring evil filename \"%s\"",
-					rc->name);
-			}
-			rs->status |= ST_EVIL;
-			set_flags(rc->flags, SR_IGNORED);
-		}
-
-		/*
 		 * If we have a tag, parse it for extensions.
 		 */
 
@@ -1459,10 +1521,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						huge_sha1_extract32(ext_payload(e),
 								paylen, &sha1_digest, &n->header)
 					) {
-						if (spam_sha1_check(&sha1_digest)) {
-							rs->status |= ST_URN_SPAM;
-							set_flags(rc->flags, SR_SPAM);
-						}
 						multiple_sha1 |= NULL != rc->sha1;
 						atom_sha1_change(&rc->sha1, &sha1_digest);
 					} else {
@@ -1507,20 +1565,10 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							is_strcaseprefix(payload, "bitprint:")
 						)
 					) {
-						char *buf;
+						char *buf = h_strndup(payload, paylen);
 
 						has_hash = TRUE;
-
-						/* Must NUL-terminate the payload first */
-						buf = walloc(paylen + 1);
-						memcpy(buf, payload, paylen);
-						buf[paylen] = '\0';
-
 						if (urn_get_sha1_no_prefix(buf, &sha1_digest)) {
-							if (spam_sha1_check(&sha1_digest)) {
-								rs->status |= ST_URN_SPAM;
-								set_flags(rc->flags, SR_SPAM);
-							}
 							if (huge_improbable_sha1(sha1_digest.data,
 									sizeof sha1_digest.data)
 							) {
@@ -1538,7 +1586,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							}
 							sha1_errors++;
 						}
-						wfree(buf, paylen + 1);
+						HFREE_NULL(buf);
 					}
 					break;
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
@@ -1547,10 +1595,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						has_hash = TRUE;
 						if (GGEP_OK == ggept_h_tth_extract(e, &tth_digest)) {
 							atom_tth_change(&rc->tth, &tth_digest);
-						}
-						if (spam_sha1_check(&sha1_digest)) {
-							rs->status |= ST_URN_SPAM;
-							set_flags(rc->flags, SR_SPAM);
 						}
 						if (huge_improbable_sha1(sha1_digest.data,
 								sizeof sha1_digest.data)
@@ -1626,29 +1670,20 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 				case EXT_T_GGEP_LIME_XML:
 					paylen = ext_paylen(e);
 					if (!rc->xml && paylen > 0) {
-						size_t len;
 						char buf[4096];
 
-						len = MIN((size_t) paylen, sizeof buf - 1);
-						memcpy(buf, ext_payload(e), len);
-						buf[len] = '\0';
+						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
-							if (is_action_url_spam(buf, len)) {
-								rs->status |= ST_URL_SPAM;
-							}
 						}
 					}
 					break;
 				case EXT_T_GGEP_PATH:		/* Path */
 					paylen = ext_paylen(e);
 					if (!rc->path && paylen > 0) {
-						size_t len;
 						char buf[1024];
 
-						len = MIN((size_t) paylen, sizeof buf - 1);
-						memcpy(buf, ext_payload(e), len);
-						buf[len] = '\0';
+						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
 						rc->path = atom_str_get(buf);
 					}
 					break;
@@ -1740,17 +1775,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					gnet_host_vec_free(&hvec);
 				}
 			}
-		}
-
-		/*
-		 * Check the filename only if the record is not already marked as spam.
-		 */
-		if (
-			0 == (SR_SPAM & rc->flags) &&
-			spam_check_filename_and_size(rc->name, rc->size)
-		) {
-			rs->status |= ST_NAME_SPAM;
-			set_flags(rc->flags, SR_SPAM);
 		}
 
 		rs->records = g_slist_prepend(rs->records, rc);
@@ -1925,33 +1949,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		}
 	}
 
-	if (
-		!is_vendor_acceptable(rs->vcode) ||
-		(T_LIME == rs->vcode.u32 && !(ST_HAS_CT & rs->status))
-	) {	
-		/*
-		 * If there are no timestamps, this is most-likely not from LimeWire.
-		 * A proper vendor code is mandatory.
-		 */
-		rs->status |= ST_FAKE_SPAM;
-	}
-
-	if (has_dupe_spam(rs)) {
-		rs->status |= ST_DUP_SPAM;
-	}
-
-	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM)) & rs->status) {
-		GSList *sl;
-
-		/*
-		 * Spam other than listed URNs is never sent by innocent peers,
-		 * thus mark all records of the set as spam.
-		 */
-		for (sl = rs->records; NULL != sl; sl = g_slist_next(sl)) {
-			gnet_record_t *record = sl->data;
-			set_flags(record->flags, SR_SPAM);
-		}
-	}
+	search_results_identify_spam(rs);
 
 	return rs;
 
