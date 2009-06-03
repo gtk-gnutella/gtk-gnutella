@@ -207,6 +207,21 @@ wfree(gpointer ptr, size_t size)
 }
 
 /**
+ * Move block around if that can serve memory compaction.
+ * @return new location for block.
+ */
+void *
+wmove(void *ptr, size_t size)
+{
+	size_t idx = wzone_index(zalloc_round(size));
+	zone_t *zone = wzone[idx];
+
+	g_assert(zone != NULL);
+
+	return zmove(zone, ptr);
+}
+
+/**
  * Reallocate a block allocated via walloc().
  *
  * @param old		old block address (may be NULL)

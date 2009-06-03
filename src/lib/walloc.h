@@ -99,6 +99,13 @@ wrealloc(gpointer p, size_t o, size_t n)
 	(void) o;
 	return g_realloc(p, n);
 }
+
+static inline void *
+wmove(void p, size_t n)
+{
+	(void) n;
+	return p;
+}
 #endif	/* GLib >= 2.10 */
 
 #else	/* !REMAP_ZALLOC */
@@ -108,6 +115,7 @@ gpointer walloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void wfree(gpointer ptr, size_t size);
 gpointer wrealloc(gpointer old, size_t old_size, size_t new_size)
 			WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;
 
 /* Don't define both an inline routine and a macro... */
 #ifndef TRACK_ZALLOC
