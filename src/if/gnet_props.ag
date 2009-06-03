@@ -4109,4 +4109,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "shutdown_debug";
+	desc = "Debug level for final shutdown.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

@@ -275,7 +275,9 @@ debugging(guint t)
 		GNET_PROPERTY(udp_debug) > t ||
 		GNET_PROPERTY(upload_debug) > t ||
 		GNET_PROPERTY(url_debug) > t ||
+		GNET_PROPERTY(vmm_debug) > t ||
 		GNET_PROPERTY(vmsg_debug) > t ||
+		GNET_PROPERTY(zalloc_debug) > t ||
 
 		/* Above line left blank for easy "!}sort" under vi */
 		0;
@@ -392,7 +394,12 @@ gtk_gnutella_exit(int exit_code)
 
 	exiting = TRUE;
 
-#define DO(fn) 	do { exit_step = #fn; fn(); } while (0)
+#define DO(fn) 	do {					\
+	exit_step = #fn;					\
+	if (GNET_PROPERTY(shutdown_debug))	\
+		g_message("SHUTDOWN calling %s", exit_step);	\
+	fn();								\
+} while (0)
 
 	DO(shell_close);
 	DO(file_info_store_if_dirty);
@@ -428,25 +435,23 @@ gtk_gnutella_exit(int exit_code)
 	if (from_atexit)
 		return;
 
-#undef DO
-
 	if (!running_topless) {
-		settings_gui_save_if_dirty();
-		main_gui_shutdown();
+		DO(settings_gui_save_if_dirty);
+		DO(main_gui_shutdown);
 
 		if (debugging(0) || signal_received || shutdown_requested)
 			g_message("GUI shutdown completed");
 	}
 
-	cq_halt();				/* No more callbacks, with everything shutdown */
-	hcache_shutdown();		/* Save host caches to disk */
-	settings_shutdown();
-	oob_shutdown();			/* No longer deliver outstanding OOB hits */
-	socket_shutdown();
-	bsched_shutdown();
+	DO(cq_halt);			/* No more callbacks, with everything shutdown */
+	DO(hcache_shutdown);	/* Save host caches to disk */
+	DO(settings_shutdown);
+	DO(oob_shutdown);		/* No longer deliver outstanding OOB hits */
+	DO(socket_shutdown);
+	DO(bsched_shutdown);
 
 	if (!running_topless) {
-		settings_gui_shutdown();
+		DO(settings_gui_shutdown);
 	}
 
 	/*
@@ -492,70 +497,70 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_message("running final shutdown sequence...");
 
-	search_shutdown();		/* Disable now, since we can get queries above */
+	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
-	bitzi_close();
-	ntp_close();
-	gdht_close();
-	sq_close();
-	dh_close();
-	dq_close();
-	hsep_close();
-	file_info_close();
-	ext_close();
-	share_close();
-	node_close();
-	udp_close();
-	routing_close();	/* After node_close() */
-	bsched_close();
-	dmesh_close();
-	host_close();
-	hcache_close();		/* After host_close() */
-	bogons_close();		/* Idem, since host_close() can touch the cache */
-	tx_collect();		/* Prevent spurious leak notifications */
-	rx_collect();		/* Idem */
-	hostiles_close();
-	spam_close();
-	gip_close();
-	ban_close();
-	inet_close();
-	whitelist_close();
-	features_close();
-	clock_close();
-	vmsg_close();
-	watcher_close();
-	tsync_close();
-	word_vec_close();
-	pattern_close();
-	pmsg_close();
-	version_close();
-	ignore_close();
-	bg_close();
-	eval_close();
-	iso3166_close();
+	DO(bitzi_close);
+	DO(ntp_close);
+	DO(gdht_close);
+	DO(sq_close);
+	DO(dh_close);
+	DO(dq_close);
+	DO(hsep_close);
+	DO(file_info_close);
+	DO(ext_close);
+	DO(share_close);
+	DO(node_close);
+	DO(udp_close);
+	DO(routing_close);	/* After node_close() */
+	DO(bsched_close);
+	DO(dmesh_close);
+	DO(host_close);
+	DO(hcache_close);	/* After host_close() */
+	DO(bogons_close);	/* Idem, since host_close() can touch the cache */
+	DO(tx_collect);		/* Prevent spurious leak notifications */
+	DO(rx_collect);		/* Idem */
+	DO(hostiles_close);
+	DO(spam_close);
+	DO(gip_close);
+	DO(ban_close);
+	DO(inet_close);
+	DO(whitelist_close);
+	DO(features_close);
+	DO(clock_close);
+	DO(vmsg_close);
+	DO(watcher_close);
+	DO(tsync_close);
+	DO(word_vec_close);
+	DO(pattern_close);
+	DO(pmsg_close);
+	DO(version_close);
+	DO(ignore_close);
+	DO(bg_close);
+	DO(eval_close);
+	DO(iso3166_close);
 	atom_str_free_null(&start_rfc822_date);
-	adns_close();
-	dbus_util_close();  /* After adns_close() to avoid strange crashes */
-	ipp_cache_close();
-	dump_close();
-	tls_global_close();
-	file_object_close();
-	settings_close();	/* Must come after hcache_close() */
-	misc_close();
-	inputevt_close();
-	locale_close();
-	cq_close();
+	DO(adns_close);
+	DO(dbus_util_close);  /* After adns_close() to avoid strange crashes */
+	DO(ipp_cache_close);
+	DO(dump_close);
+	DO(tls_global_close);
+	DO(file_object_close);
+	DO(settings_close);	/* Must come after hcache_close() */
+	DO(misc_close);
+	DO(inputevt_close);
+	DO(locale_close);
+	DO(cq_close);
 
 	/*
 	 * Memory shutdown must come last.
 	 */
 
 	gm_mem_set_safe_vtable();
-	vmm_pre_close();
-	atoms_close();
-	wdestroy();
-	zclose();
-	malloc_close();
+	DO(vmm_pre_close);
+	DO(atoms_close);
+	DO(wdestroy);
+	DO(zclose);
+	DO(malloc_close);
 
 	if (debugging(0) || signal_received || shutdown_requested) {
 		g_message("gtk-gnutella shut down cleanly.");
@@ -565,6 +570,9 @@ gtk_gnutella_exit(int exit_code)
 	}
 	hdestroy();
 	exit(exit_code);
+
+#undef DO
+
 }
 
 static void

@@ -401,6 +401,7 @@ extern const guint32  gnet_property_variable_palloc_debug;
 extern const guint32  gnet_property_variable_rxbuf_debug;
 extern const gboolean gnet_property_variable_zalloc_always_gc;
 extern const guint32  gnet_property_variable_vmm_debug;
+extern const guint32  gnet_property_variable_shutdown_debug;
 
 
 prop_set_t *gnet_prop_init(void);

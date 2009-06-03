@@ -812,6 +812,8 @@ gboolean gnet_property_variable_zalloc_always_gc     = TRUE;
 static const gboolean gnet_property_variable_zalloc_always_gc_default = TRUE;
 guint32  gnet_property_variable_vmm_debug     = 0;
 static const guint32  gnet_property_variable_vmm_debug_default = 0;
+guint32  gnet_property_variable_shutdown_debug     = 0;
+static const guint32  gnet_property_variable_shutdown_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -7553,6 +7555,26 @@ gnet_prop_init(void) {
     gnet_property->props[352].data.guint32.choices = NULL;
     gnet_property->props[352].data.guint32.max   = 20;
     gnet_property->props[352].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SHUTDOWN_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[353].name = "shutdown_debug";
+    gnet_property->props[353].desc = _("Debug level for final shutdown.");
+    gnet_property->props[353].ev_changed = event_new("shutdown_debug_changed");
+    gnet_property->props[353].save = TRUE;
+    gnet_property->props[353].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[353].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[353].data.guint32.def   = (void *) &gnet_property_variable_shutdown_debug_default;
+    gnet_property->props[353].data.guint32.value = (void *) &gnet_property_variable_shutdown_debug;
+    gnet_property->props[353].data.guint32.choices = NULL;
+    gnet_property->props[353].data.guint32.max   = 20;
+    gnet_property->props[353].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
