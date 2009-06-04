@@ -158,6 +158,7 @@ static const struct {
 	{ "ra",			MIME_TYPE_AUDIO_REALAUDIO },
 	{ "rar",		MIME_TYPE_APPLICATION_RAR },
 	{ "rdf",		MIME_TYPE_APPLICATION_RDF },
+	{ "rmi",		MIME_TYPE_AUDIO_MIDI },
 	{ "roff",		MIME_TYPE_APPLICATION_TROFF },
 	{ "rss",		MIME_TYPE_APPLICATION_RSS },
 	{ "rtf",		MIME_TYPE_TEXT_RTF },
