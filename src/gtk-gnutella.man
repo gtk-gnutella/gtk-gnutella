@@ -80,11 +80,10 @@ respectively stdout to some files. A typical use would look like this:
 Redirecting these log messages also works without 
 .B "\-\-daemonize."
 Of course, log files can become large and you might want to archive
-them.  Therefore, you can sent 
+them.  Therefore, you can send
 .I gtk\-gnutella
-a SIGHUP signal. 
-.I gtk\-gnutella 
-will catch the signal and reopen these log files.
+a SIGHUP signal after renaming the logfiles, which will be
+caught and handled to recreate new log files.
 .TP
 .B "\-\-no\-xshm"
 Disable MIT shared memory extension, when running with the X graphical
