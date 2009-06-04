@@ -1141,6 +1141,12 @@ pmap_load_data(struct pmap *pm)
 	 * allocate any memory, excepted for the pmap where entries are stored.
 	 */
 
+	/*
+	 * Dirty the pages associated with buf to avoid that the kernel has extend
+	 * the stack which may modify mappings while reading from /proc.
+	 */
+	memset(buf, 0, sizeof buf);
+
 	fd = open("/proc/self/maps", O_RDONLY);
 	if (fd < 0) {
 		if (vmm_debugging(0)) {
