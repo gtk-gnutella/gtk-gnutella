@@ -1112,6 +1112,7 @@
 99.192.139.16/28
 99.192.140.0/28
 99.192.141.16/28
+99.192.142.48/28
 74.206.160.0/19
 
 # MOV pr0n spam; torrentvideos dot com; Yourbrain Media Inc.
