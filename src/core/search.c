@@ -740,6 +740,9 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			 * start counting at zero despite this being a special wildcard
 			 */
 			set_flags(record->flags, SR_SPAM);
+		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
+			rs->status |= ST_FAKE_SPAM;
+			set_flags(record->flags, SR_SPAM);
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
 			rs->status |= ST_URN_SPAM;
 			set_flags(record->flags, SR_SPAM);
