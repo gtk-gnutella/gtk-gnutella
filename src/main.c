@@ -937,6 +937,7 @@ enum main_arg {
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_version,
+	main_arg_compile_info,
 
 	/* Passed through for Gtk+/GDK/GLib */
 	main_arg_class,
@@ -989,6 +990,7 @@ static struct {
 	OPTION(topless,			NONE, "Disable the graphical user-interface."),
 #endif	/* USE_TOPLESS */
 	OPTION(version,			NONE, "Show version information."),
+	OPTION(compile_info,	NONE, NULL /* FIXME: Document when stable */),
 
 	/* These are handled by Gtk+/GDK/GLib */
 	OPTION(class,				TEXT, NULL),
@@ -1252,6 +1254,107 @@ parse_arguments(int argc, char **argv)
 	}
 }
 
+static void
+handle_version_argument(void)
+{
+	printf("%s\n", version_build_string());
+
+#ifndef OFFICIAL_BUILD
+	printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
+#endif
+
+	printf("GLib %u.%u.%u",
+			glib_major_version, glib_minor_version, glib_micro_version);
+	if (
+			GLIB_MAJOR_VERSION != glib_major_version ||
+			GLIB_MINOR_VERSION != glib_minor_version ||
+			GLIB_MICRO_VERSION != glib_micro_version
+	   ) {
+		printf(" (compiled against %u.%u.%u)",
+				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+	}
+	printf("\n");
+
+#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
+	printf("Gtk+ %u.%u.%u",
+			gtk_major_version, gtk_minor_version, gtk_micro_version);
+	if (
+			GTK_MAJOR_VERSION != gtk_major_version ||
+			GTK_MINOR_VERSION != gtk_minor_version ||
+			GTK_MICRO_VERSION != gtk_micro_version
+	   ) {
+		printf(" (compiled against %u.%u.%u)",
+				GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+	}
+	printf("\n");
+#endif	/* Gtk+ */
+
+	if (tls_version_string()) {
+		printf("%s\n", tls_version_string());
+	}
+	exit(EXIT_SUCCESS);
+}
+
+static void
+handle_compile_info_argument(void)
+{
+	/*
+	 * The output should be easily parseable, not look beautiful.
+	 */
+
+	/*
+	 * If you want quoted paths, you have to escape embedded quotes!
+	 */
+	printf("user-interface=%s\n", GTA_INTERFACE);
+	printf("bindir=%s\n", BIN);
+	printf("datadir=%s\n", PRIVLIB_EXP);
+	printf("localedir=%s\n", LOCALE_EXP);
+
+#if !defined(OFFICIAL_BUILD) && defined(PACKAGE_SOURCE_DIR)
+	printf("sourcedir=%s\n", PACKAGE_SOURCE_DIR);
+#endif	/* !OFFICIAL_BUILD  && PACKAGE_SOURCE_DIR */
+
+	/*
+	 * Maybe the following should rather be printed like this:
+	 *
+	 * features=ipv6,dbus,gnutls,...
+	 */
+#ifdef ENABLE_NLS
+	printf("nls=enabled\n");
+#else
+	printf("nls=disabled\n");
+#endif	/* ENABLE_NLS */
+
+#ifdef HAS_DBUS
+	printf("dbus=enabled\n");
+#else
+	printf("dbus=disabled\n");
+#endif	/* HAS_DBUS */
+
+#ifdef HAS_GNUTLS
+	printf("gnutls=enabled\n");
+#else
+	printf("gnutls=disabled\n");
+#endif	/* HAS_GNUTLS */
+
+#ifdef HAS_SOCKER_GET
+	printf("socker=enabled\n");
+#else
+	printf("socker=disabled\n");
+#endif	/* HAS_SOCKER_GET */
+
+#ifdef HAS_IPV6
+	printf("ipv6=enabled\n");
+#else
+	printf("ipv6=disabled\n");
+#endif	/* HAS_IPV6 */
+
+	printf("largefile-support=%s\n",
+		MAX_INT_VAL(off_t) > MAX_INT_VAL(guint32) ? "enabled" : "disabled");
+
+	exit(EXIT_SUCCESS);
+}
+
 /* Handle certain arguments as soon as possible */
 static void
 handle_arguments_asap(void)
@@ -1267,42 +1370,11 @@ handle_arguments_asap(void)
 #endif	/* USE_TOPLESS */
 
 	if (options[main_arg_version].used) {
-		printf("%s\n", version_build_string());
+		handle_version_argument();
+	}
 
-#ifndef OFFICIAL_BUILD
-		printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
-#endif
-
-		printf("GLib %u.%u.%u",
-			glib_major_version, glib_minor_version, glib_micro_version);
-		if (
-			GLIB_MAJOR_VERSION != glib_major_version ||
-			GLIB_MINOR_VERSION != glib_minor_version ||
-			GLIB_MICRO_VERSION != glib_micro_version
-		) {
-			printf(" (compiled against %u.%u.%u)",
-				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
-		}
-		printf("\n");
-
-#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
-		printf("Gtk+ %u.%u.%u",
-			gtk_major_version, gtk_minor_version, gtk_micro_version);
-		if (
-			GTK_MAJOR_VERSION != gtk_major_version ||
-			GTK_MINOR_VERSION != gtk_minor_version ||
-			GTK_MICRO_VERSION != gtk_micro_version
-		) {
-			printf(" (compiled against %u.%u.%u)",
-				GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-		}
-		printf("\n");
-#endif	/* Gtk+ */
-
-		if (tls_version_string()) {
-			printf("%s\n", tls_version_string());
-		}
-		exit(EXIT_SUCCESS);
+	if (options[main_arg_compile_info].used) {
+		handle_compile_info_argument();
 	}
 }
 
