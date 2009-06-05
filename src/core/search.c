@@ -715,15 +715,10 @@ static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
 	const GSList *sl;
+	guint8 has_ct = FALSE, has_tth = FALSE, has_xml = FALSE;
 
-	if (
-		!is_vendor_acceptable(rs->vcode) ||
-		(T_LIME == rs->vcode.u32 && !(ST_HAS_CT & rs->status))
-	) {	
-		/*
-		 * If there are no timestamps, this is most-likely not from LimeWire.
-		 * A proper vendor code is mandatory.
-		 */
+	if (!is_vendor_acceptable(rs->vcode)) {
+		/* A proper vendor code is mandatory */
 		rs->status |= ST_FAKE_SPAM;
 	}
 
@@ -759,6 +754,18 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			rs->status |= ST_EVIL;
 			set_flags(record->flags, SR_IGNORED);
 		}
+
+		has_tth |= NULL != record->tth;
+		has_xml |= NULL != record->xml;
+		has_ct  |= (time_t)-1 != record->create_time;
+	}
+
+	if (T_LIME == rs->vcode.u32 && !(has_tth || has_xml || has_ct)) {
+		/*
+		 * If there are no timestamps, this is most-likely not from LimeWire.
+		 * Cabos frequently fails to add timestamps for unknown reasons.
+		 */
+		rs->status |= ST_FAKE_SPAM;
 	}
 
 	/*
@@ -1700,7 +1707,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 							0x45185160 != stamp &&
 							0x45186D80 != stamp
 						) {
-							rs->status |= ST_HAS_CT;
 							rc->create_time = stamp;
 						} else {
 							if (
