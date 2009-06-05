@@ -775,7 +775,9 @@ size_saturate_add(size_t a, size_t b)
 static inline size_t
 size_saturate_mult(size_t a, size_t b)
 {
-	if (G_UNLIKELY(0 != a && SIZE_MAX / a < b))
+	if (0 == a)
+		return 0;
+	if (G_UNLIKELY(SIZE_MAX / a < b))
 		return SIZE_MAX;
 	return a * b;
 }
@@ -840,7 +842,7 @@ guint32_is_positive(guint32 v)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline size_t
+static inline guint32
 guint32_saturate_add(guint32 a, guint32 b)
 {
 	guint32 ret = a + b;
