@@ -568,7 +568,7 @@ search_gui_close_search(search_t *search)
  *		 explicitely.
  */
 gboolean
-search_gui_new_search(const gchar *query, flag_t flags, search_t **search)
+search_gui_new_search(const gchar *query, guint32 flags, search_t **search)
 {
     guint32 timeout;
 	gboolean ret;
@@ -2623,7 +2623,7 @@ search_gui_query_free(struct query **query_ptr)
  *			should be created, an initialized "struct query" is returned.
  */
 struct query *
-search_gui_handle_query(const gchar *query_str, flag_t flags,
+search_gui_handle_query(const gchar *query_str, guint32 flags,
 	const gchar **error_str)
 {
 	gboolean parse;
@@ -2714,7 +2714,7 @@ search_gui_filter_new(search_t *sch, GList *rules)
 gboolean
 search_gui_new_search_full(const gchar *query_str,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
-	gint sort_col, gint sort_order, flag_t flags, search_t **search_ptr)
+	gint sort_col, gint sort_order, guint32 flags, search_t **search_ptr)
 {
 	static const search_t zero_search;
 	gboolean is_only_search;

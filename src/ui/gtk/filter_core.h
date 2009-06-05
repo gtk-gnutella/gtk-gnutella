@@ -44,7 +44,7 @@ typedef struct filter {
     struct search *search;
     gboolean visited;
     gint32 refcount;
-    flag_t flags;
+    guint32 flags;
     guint32 match_count;
     guint32 fail_count;
 } filter_t;
@@ -108,7 +108,7 @@ typedef struct filter_result {
  */
 typedef struct rule {
     enum rule_type type;	            /**< type of rule, see above */
-    flag_t flags;
+    guint32 flags;
     guint32 match_count;
     guint32 fail_count;
     filter_t *target;

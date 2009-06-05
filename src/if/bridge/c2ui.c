@@ -129,7 +129,7 @@ gcu_gtk_main_flush(void)
 
 /**	search interface functions (CORE -> UI) */
 gboolean
-gcu_search_gui_new_search(const gchar *query, flag_t flags)
+gcu_search_gui_new_search(const gchar *query, guint32 flags)
 {
 	if (!running_topless) {
 		return search_gui_new_search(query, flags, NULL);

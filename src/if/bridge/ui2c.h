@@ -220,7 +220,7 @@ gboolean guc_search_is_passive(gnet_search_t);
 
 enum search_new_result guc_search_new(gnet_search_t *ptr, const char *query,
 	time_t create_time, guint lifetime,
-	guint32 reissue_timeout, flag_t flags);
+	guint32 reissue_timeout, guint32 flags);
 gboolean guc_search_browse(gnet_search_t,
 	const char *hostname, host_addr_t addr, guint16 port,
 	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);

@@ -36,7 +36,7 @@
 
 struct search;
 
-gboolean search_gui_new_search(const gchar *, flag_t flags, 
+gboolean search_gui_new_search(const gchar *, guint32 flags, 
 			struct search **search);
 
 #endif /* GUI_SOURCES */

@@ -138,13 +138,6 @@ skip_dir_separators(const char *s)
 #define CONST_STRLEN(x) (sizeof(x) - 1)
 
 /*
- * Set/clear binary flags
- */
-typedef guint16 flag_t;
-#define set_flags(r,f) (r |= (f))
-#define clear_flags(r,f) (r &= ~(f))
-
-/*
  * Macros to determine the maximum buffer size required to hold a
  * NUL-terminated string.
  */

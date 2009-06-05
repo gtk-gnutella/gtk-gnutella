@@ -45,12 +45,12 @@ void search_gui_shutdown(void);
 
 const GList *search_gui_get_searches(void);
 
-gboolean search_gui_new_search(const char *query, flag_t flags,
+gboolean search_gui_new_search(const char *query, guint32 flags,
 			struct search **);
 
 gboolean search_gui_new_search_full(const char *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
-	int sort_col, int sort_order, flag_t flags, struct search **);
+	int sort_col, int sort_order, guint32 flags, struct search **);
 
 gboolean search_gui_new_browse_host(
 	const char *hostname, struct host_addr addr, guint16 port,

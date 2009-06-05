@@ -747,7 +747,7 @@ guc_search_is_frozen(gnet_search_t sh)
 
 enum search_new_result
 guc_search_new(gnet_search_t *ptr, const char *query,
-	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
+	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)
 {
 	return search_new(ptr, query,
 				create_time, lifetime, reissue_timeout, flags);

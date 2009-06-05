@@ -127,7 +127,7 @@ const char *search_gui_get_route(const struct results_set *);
 const char *search_gui_get_filename_extension(const char *filename_utf8);
 void search_gui_set_sort_defaults(void);
 
-struct query *search_gui_handle_query(const char *, flag_t flags,
+struct query *search_gui_handle_query(const char *, guint32 flags,
 						const char **error_str);
 void search_gui_query_free(struct query **query_ptr);
 void search_gui_filter_new(search_t *, GList *rules);

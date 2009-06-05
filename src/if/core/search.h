@@ -120,7 +120,7 @@ typedef struct gnet_results_set {
 	guint32 num_recs;
 	guint32 status;				/**< Parsed status bits from trailer */
 
-    flag_t  flags;
+    guint32 flags;
 	guint16 port;
 	guint16 country;			/**< Country code -- encoded ISO3166 */
 	guint8 hops;
@@ -155,7 +155,7 @@ typedef struct gnet_record {
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
 	guint32 file_index;			/**< Index for GET command */
-    flag_t  flags;
+    guint32 flags;
 } gnet_record_t;
 
 /**
@@ -192,7 +192,7 @@ enum search_new_result {
 #ifdef CORE_SOURCES
 
 enum search_new_result search_new(gnet_search_t *ptr, const char *,
-			time_t create_time, guint lifetime, guint32 timeout, flag_t flags);
+			time_t create_time, guint lifetime, guint32 timeout, guint32 flags);
 void search_close(gnet_search_t);
 
 void search_start(gnet_search_t);

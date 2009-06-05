@@ -62,7 +62,7 @@ void gcu_gui_update_files_scanned(void);
 gint gcu_gtk_main_flush(void);
 
 /** search interface functions */
-gboolean gcu_search_gui_new_search(const gchar *query, flag_t flags);
+gboolean gcu_search_gui_new_search(const gchar *query, guint32 flags);
 
 /* statusbar interface functions */
 void gcu_statusbar_warning(const gchar *message);

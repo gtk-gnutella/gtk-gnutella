@@ -617,7 +617,7 @@ search_retrieve_xml(void)
 					break;
 				}
                 rule->target = new_target;
-                set_flags(rule->flags, RULE_FLAG_VALID);
+                rule->flags |= RULE_FLAG_VALID;
 
                 /*
                  * We circumvent the shadows, so we must do refcounting
@@ -1201,11 +1201,11 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 		}
         active = 0 != v;
     }
-    if (active)
-        set_flags(filter->flags, FILTER_FLAG_ACTIVE);
-    else
-        clear_flags(filter->flags, FILTER_FLAG_ACTIVE);
-
+    if (active) {
+        filter->flags |= FILTER_FLAG_ACTIVE;
+	} else {
+        filter->flags &= ~FILTER_FLAG_ACTIVE;
+	}
     buf = STRTRACK(xml_get_string(xmlnode, TAG_FILTER_UID));
     g_assert(buf);
     dest = parse_target(buf, &error);
@@ -1276,7 +1276,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_text_rule(match, type, case_sensitive, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1345,7 +1345,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_ip_rule(addr, mask, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1409,7 +1409,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_size_rule(lower, upper, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1448,7 +1448,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_jump_rule(target,flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1505,7 +1505,7 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_sha1_rule(sha1, filename, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1585,7 +1585,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_flag_rule(stable, busy, push, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",
@@ -1652,7 +1652,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_state_rule(display, download, target, flags);
-    clear_flags(rule->flags, RULE_FLAG_VALID);
+    rule->flags &= ~RULE_FLAG_VALID;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
         g_message("added to filter \"%s\" rule with target %p",

@@ -685,7 +685,7 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 		key = ulong_to_pointer(record->file_index);
 		if (g_hash_table_lookup(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else {
 			gm_hash_table_insert_const(ht, key, record);
 		}
@@ -702,7 +702,7 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 
 		if (g_hash_table_lookup(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else {
 			gm_hash_table_insert_const(ht, key, record);
 		}
@@ -734,25 +734,25 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			 * Some spammers get this wrong but some version of LimeWire
 			 * start counting at zero despite this being a special wildcard
 			 */
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
 			rs->status |= ST_FAKE_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
 			rs->status |= ST_URN_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else if (spam_check_filename_and_size(record->name, record->size)) {
 			rs->status |= ST_NAME_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else if (
 			record->xml &&
 			is_action_url_spam(record->xml, strlen(record->xml))
 		) {
 			rs->status |= ST_URL_SPAM;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		} else if (is_evil_filename(record->name)) {
 			rs->status |= ST_EVIL;
-			set_flags(record->flags, SR_IGNORED);
+			record->flags |= SR_IGNORED;
 		}
 
 		has_tth |= NULL != record->tth;
@@ -782,7 +782,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		 */
 		GM_SLIST_FOREACH(rs->records, sl) {
 			gnet_record_t *record = sl->data;
-			set_flags(record->flags, SR_SPAM);
+			record->flags |= SR_SPAM;
 		}
 	}
 }
@@ -2857,9 +2857,9 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 		sf = shared_file_by_sha1(rc->sha1);
 		if (sf && SHARE_REBUILDING != sf) {
 			if (shared_file_is_partial(sf)) {
-				set_flags(rc->flags, SR_PARTIAL);
+				rc->flags |= SR_PARTIAL;
 			} else {
-				set_flags(rc->flags, SR_SHARED);
+				rc->flags |= SR_SHARED;
 			}
 		} else {
 			enum ignore_val reason;
@@ -2871,10 +2871,10 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 				case IGNORE_SHA1:
 				case IGNORE_NAMESIZE:
 				case IGNORE_LIBRARY:
-					set_flags(rc->flags, SR_OWNED);
+					rc->flags |= SR_OWNED;
 					break;
 				case IGNORE_SPAM:
-					set_flags(rc->flags, SR_SPAM);
+					rc->flags |= SR_SPAM;
 					break;
 				case IGNORE_OURSELVES:
 				case IGNORE_HOSTILE:
@@ -2887,10 +2887,10 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 				case SEARCH_IGN_DISPLAY_AS_IS:
 					break;
 				case SEARCH_IGN_NO_DISPLAY:
-					set_flags(rc->flags, SR_DONT_SHOW);
+					rc->flags |= SR_DONT_SHOW;
 					break;
 				default:
-					set_flags(rc->flags, SR_IGNORED);
+					rc->flags |= SR_IGNORED;
 				}
 			}
 		}
@@ -2938,7 +2938,7 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 				flags);
 
 			search_free_proxies(rs);
-			set_flags(rc->flags, SR_DOWNLOADED);
+			rc->flags |= SR_DOWNLOADED;
 
 			/*
 			 * If there are alternate sources for this download in the query
@@ -3503,7 +3503,7 @@ search_set_create_time(gnet_search_t sh, time_t t)
  */
 enum search_new_result
 search_new(gnet_search_t *ptr, const char *query,
-	time_t create_time, guint lifetime, guint32 reissue_timeout, flag_t flags)
+	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)
 {
 	const char *endptr;
 	search_ctrl_t *sch;
@@ -4030,9 +4030,9 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	}
 
 	if (shared_file_is_partial(sf)) {
-   		set_flags(rc->flags, SR_PARTIAL);
+   		rc->flags |= SR_PARTIAL;
 	} else {
-		set_flags(rc->flags, SR_SHARED);
+		rc->flags |= SR_SHARED;
 	}
 	rc->file_index = shared_file_index(sf);
 	rc->size = shared_file_size(sf);

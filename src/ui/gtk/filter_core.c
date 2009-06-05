@@ -333,15 +333,16 @@ shadow_commit(shadow_t *shadow)
     /*
      * Free memory for all removed rules
      */
-    for (f = shadow->removed; f != NULL; f = f->next)
+    for (f = shadow->removed; f != NULL; f = f->next) {
         filter_free_rule(f->data);
-
+	}
     /*
      * Remove the SHADOW flag from all new rules.
      */
-    for (f = shadow->added; f != NULL; f = f->next)
-        clear_flags(((rule_t*) f->data)->flags, RULE_FLAG_SHADOW);
-
+    for (f = shadow->added; f != NULL; f = f->next) {
+        rule_t *r = f->data;
+		r->flags &= ~RULE_FLAG_SHADOW;
+	}
     /*
      * We also free the memory of the filter->ruleset GList.
      * We don't need them anymore.
@@ -537,7 +538,7 @@ filter_new_text_rule(const gchar *match, gint type,
     r->target                = target;
     r->u.text.case_sensitive = case_sensitive;
     r->u.text.type           = type;
-    set_flags(r->flags, RULE_FLAG_VALID);
+    r->flags |= RULE_FLAG_VALID;
 
     buf = r->u.text.case_sensitive
 		? g_strdup(match)
@@ -614,7 +615,7 @@ filter_new_ip_rule(const host_addr_t addr, guint8 cidr,
 	r->u.ip.cidr  = cidr;
     r->target     = target;
     r->flags      = flags;
-    set_flags(r->flags, RULE_FLAG_VALID);
+    r->flags |= RULE_FLAG_VALID;
 
     return r;
 }
@@ -643,7 +644,7 @@ filter_new_size_rule(filesize_t lower, filesize_t upper,
 
   	f->target = target;
     f->flags  = flags;
-    set_flags(f->flags, RULE_FLAG_VALID);
+    f->flags |= RULE_FLAG_VALID;
 
     return f;
 }
@@ -664,7 +665,7 @@ filter_new_jump_rule(filter_t *target, guint16 flags)
 
   	f->target = target;
     f->flags  = flags;
-    set_flags(f->flags, RULE_FLAG_VALID);
+    f->flags |= RULE_FLAG_VALID;
 
     return f;
 }
@@ -689,7 +690,7 @@ filter_new_sha1_rule(const struct sha1 *sha1, const gchar *filename,
     f->u.sha1.hash = sha1 != NULL ? g_memdup(sha1, SHA1_RAW_SIZE) : NULL;
     f->u.sha1.filename = g_strdup(filename ? filename : "");
     f->flags = flags;
-    set_flags(f->flags, RULE_FLAG_VALID);
+    f->flags |= RULE_FLAG_VALID;
 
     return f;
 }
@@ -713,7 +714,7 @@ filter_new_flag_rule(enum rule_flag_action stable, enum rule_flag_action busy,
     f->u.flag.push = push;
   	f->target = target;
     f->flags  = flags;
-    set_flags(f->flags, RULE_FLAG_VALID);
+    f->flags |= RULE_FLAG_VALID;
 
     return f;
 }
@@ -736,7 +737,7 @@ filter_new_state_rule(enum filter_prop_state display,
     f->u.state.download = download;
   	f->target = target;
     f->flags  = flags;
-    set_flags(f->flags, RULE_FLAG_VALID);
+    f->flags |= RULE_FLAG_VALID;
 
     return f;
 }
@@ -859,7 +860,7 @@ filter_apply_changes(void)
      */
     for (iter = filters_added; iter != NULL; iter = g_list_next(iter)) {
 		filter_t *f = iter->data;
-        clear_flags(f->flags, FILTER_FLAG_SHADOW);
+        f->flags &= ~FILTER_FLAG_SHADOW;
 	}
 
     g_list_free(filters_added);
@@ -1240,7 +1241,7 @@ filter_new(const gchar *name)
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;
-    set_flags(f->flags, FILTER_FLAG_ACTIVE);
+    f->flags |= FILTER_FLAG_ACTIVE;
 
     return f;
 }
@@ -1270,7 +1271,7 @@ filter_add_to_session(filter_t *f)
          * Since the filter is new and not yet used for filtering
          * we set the FILTER_FLAG_SHADOW flag.
          */
-        set_flags(f->flags, FILTER_FLAG_SHADOW);
+        f->flags |= FILTER_FLAG_SHADOW;
     }
 
     filters_current = g_list_append(filters_current, f);
@@ -1300,7 +1301,7 @@ filter_new_for_search(struct search *s)
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;
-    set_flags(f->flags, FILTER_FLAG_ACTIVE);
+    f->flags |= FILTER_FLAG_ACTIVE;
 
     /*
      * Add filter to current and session lists
@@ -1558,7 +1559,7 @@ filter_append_rule_to_session(filter_t *f, rule_t * const r)
     /*
      * The rule is added to a session, so we set the shadow flag.
      */
-    set_flags(r->flags, RULE_FLAG_SHADOW);
+    r->flags |= RULE_FLAG_SHADOW;
 
     /*
      * Create a new shadow if necessary.
@@ -1913,7 +1914,7 @@ filter_replace_rule_in_session(filter_t *f,
      * as added.
      */
     shadow->added = g_list_append(shadow->added, new_rule);
-    set_flags(new_rule->flags, RULE_FLAG_SHADOW);
+    new_rule->flags |= RULE_FLAG_SHADOW;
 
     /*
      * And we also need to increase the refcount on the new rule's
@@ -2521,7 +2522,7 @@ filter_preset_init(const char *name, const char *regexp, filesize_t minsize)
 	}
 
 	filter_add_to_session(filter);
-	set_flags(filter->flags, FILTER_FLAG_PRESET);
+	filter->flags |= FILTER_FLAG_PRESET;
 }
 
 /**
@@ -2555,7 +2556,7 @@ filters_add(const char *name, unsigned flags)
 	filter_t *filter;
 
     filter = filter_new(lazy_ui_string_to_utf8(name));
-	set_flags(filter->flags, flags);
+	filter->flags |= flags;
     filters = g_list_append(filters, filter);
 	return filter;
 }
@@ -2650,9 +2651,9 @@ filter_set_enabled(filter_t *filter, gboolean active)
         shadow = shadow_new(filter);
 
     if (active) {
-        set_flags(shadow->flags, FILTER_FLAG_ACTIVE);
+        shadow->flags |= FILTER_FLAG_ACTIVE;
     } else {
-        clear_flags(shadow->flags, FILTER_FLAG_ACTIVE);
+		shadow->flags &= ~FILTER_FLAG_ACTIVE;
     }
 
     filter_gui_filter_set_enabled(work_filter, active);

@@ -104,7 +104,7 @@ typedef struct record {
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
 	guint32 file_index;			/**< Index for GET command */
-    flag_t  flags;              /**< same flags as in gnet_record_t */
+    guint32 flags;              /**< same flags as in gnet_record_t */
 } record_t;
 
 static inline void
