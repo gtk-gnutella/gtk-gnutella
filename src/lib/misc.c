@@ -116,34 +116,13 @@ strlcat(char *dst, const char *src, size_t dst_size)
 }
 #endif /* HAS_STRLCAT */
 
-/**
- * Concatenates a variable number of NUL-terminated strings into ``dst''.
- *
- * The resulting string will be NUL-terminated unless ``size'' is zero. The
- * returned value is the length of the resulting string if ``dst'' had been
- * large enough. If the returned value is equal to or greater than ``size''
- * the string is truncated. If ``size'' is zero, ``dst'' may be NULL to
- * calculate the resulting string length.
- *
- * The list of strings must be terminated by a NULL pointer. The first
- * list element may be NULL in which case zero is returned.
- *
- * @param dst the destination buffer.
- * @param size the number of bytes ``dst'' can hold.
- * @param s the first source string or NULL.
- *
- * @return the sum of the lengths of all passed strings.
- */
 size_t
-concat_strings(char *dst, size_t size, const char *s, ...)
+concat_strings_v(char *dst, size_t size, const char *s, va_list ap)
 {
-	va_list ap;
 	char *p = dst;
 	size_t ret = 0;
 
 	g_assert(0 == size || NULL != dst);
-
-	va_start(ap, s);
 
 	if (size > 0) {
 		if (!s)
@@ -168,9 +147,37 @@ concat_strings(char *dst, size_t size, const char *s, ...)
 		s = va_arg(ap, const char *);
 	}
 
-	va_end(ap);
-
 	g_assert(ret < SIZE_MAX);
+	return ret;
+}
+
+/**
+ * Concatenates a variable number of NUL-terminated strings into ``dst''.
+ *
+ * The resulting string will be NUL-terminated unless ``size'' is zero. The
+ * returned value is the length of the resulting string if ``dst'' had been
+ * large enough. If the returned value is equal to or greater than ``size''
+ * the string is truncated. If ``size'' is zero, ``dst'' may be NULL to
+ * calculate the resulting string length.
+ *
+ * The list of strings must be terminated by a (void *) 0. The first
+ * list element may be NULL in which case zero is returned.
+ *
+ * @param dst the destination buffer.
+ * @param size the number of bytes ``dst'' can hold.
+ * @param s the first source string or NULL.
+ *
+ * @return the sum of the lengths of all passed strings.
+ */
+size_t
+concat_strings(char *dst, size_t size, const char *s, ...)
+{
+	va_list ap;
+	size_t ret;
+
+	va_start(ap, s);
+	ret = concat_strings_v(dst, size, s, ap);
+	va_end(ap);
 	return ret;
 }
 
@@ -178,7 +185,7 @@ concat_strings(char *dst, size_t size, const char *s, ...)
  * Concatenates a variable number of NUL-terminated strings into buffer
  * which will be allocated using walloc().
  *
- * The list of strings must be terminated by a NULL pointer. The first
+ * The list of strings must be terminated by a (void *) 0. The first
  * list element may be NULL in which case 1 is returned.
  *
  * @param dst_ptr if not NULL, it will point to the allocated buffer.
@@ -192,35 +199,23 @@ size_t
 w_concat_strings(char **dst_ptr, const char *first, ...)
 {
 	va_list ap;
-	const char *s;
-	size_t size;
+	size_t len;
 
 	va_start(ap, first);
-	for (s = first, size = 1; NULL != s; /* NOTHING */) {
-		size = size_saturate_add(size, strlen(s));
-		s = va_arg(ap, const char *);
-	}
+	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
-	g_assert(size < SIZE_MAX);
-
 	if (dst_ptr) {
-		char *p;
-		size_t n, len = size - 1;
+		size_t ret;
 
-		*dst_ptr = p = walloc(size);
+		*dst_ptr = walloc(len + 1);
 		va_start(ap, first);
-		for (s = first; NULL != s; p += n, len -= n) {
-			n = g_strlcpy(p, s, len + 1);
-			s = va_arg(ap, const char *);
-			g_assert(n <= len);
-		}
+		ret = concat_strings_v(*dst_ptr, len + 1, first, ap);
 		va_end(ap);
-		*p = '\0';
-		g_assert(0 == len);
+		g_assert(ret == len);
 	}
 
-	return size;
+	return 1 + len;
 }
 
 #ifndef TRACK_MALLOC
@@ -345,38 +340,26 @@ h_strfreev(char **str_array)
  * Concatenates all of the given strings into one long string.
  *
  * @attention
- * The argument list must end with NULL.
+ * The argument list must end with (void *) 0.
  */
 char *
-h_strconcat(const char *str1, ...)
+h_strconcat(const char *first, ...)
 {
 	va_list ap;
-	const char *s;
-	size_t size;
-	char *result;
-	size_t pos;
+	size_t len, ret;
+	char *dst;
 
-	va_start(ap, str1);
-	for (s = str1, size = 1; NULL != s; /* NOTHING */) {
-		size = size_saturate_add(size, strlen(s));
-		s = va_arg(ap, const char *);
-	}
+	va_start(ap, first);
+	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
-	g_assert(size < SIZE_MAX);
-
-	result = halloc(size);
-
-	va_start(ap, str1);
-	for (s = str1, pos = 0; NULL != s; /* NOTHING */) {
-		pos += strcpy_len(&result[pos], s);
-		s = va_arg(ap, const char *);
-	}
+	dst = halloc(len + 1);
+	va_start(ap, first);
+	ret = concat_strings_v(dst, len + 1, first, ap);
 	va_end(ap);
+	g_assert(ret == len);
 
-	g_assert(pos + 1 == size);
-
-	return result;
+	return dst;
 }
 
 /**
