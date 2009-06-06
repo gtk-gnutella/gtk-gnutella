@@ -86,6 +86,7 @@ RCSID("$Id$")
 #include "lib/magnet.h"
 #include "lib/sbool.h"
 #include "lib/tm.h"
+#include "lib/vector.h"
 #include "lib/vendors.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -791,7 +792,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		search_results_identify_dupes(rs);
 	}
 
-	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM)) & rs->status) {
+	if ((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status) {
 		/*
 		 * Spam other than listed URNs is never sent by innocent peers,
 		 * thus mark all records of the set as spam.
@@ -4041,7 +4042,8 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 */
 
 		if (hcnt) {
-			rc->alt_locs = gnet_host_vec_create(hvec, hcnt);
+			vector_t vec = vector_create(hvec, sizeof hvec[0], G_N_ELEMENTS(hvec));
+			rc->alt_locs = gnet_host_vec_from_vector(&vec);
 		}
 	}
 
