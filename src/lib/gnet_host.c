@@ -312,6 +312,7 @@ gnet_host_vec_create(gnet_host_t *hvec, int hcnt)
 				poke_be32(&dest[0], host_addr_ipv4(addr));
 				poke_le16(&dest[4], port);
 			}
+			break;
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
 				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
