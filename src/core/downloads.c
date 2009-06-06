@@ -2513,6 +2513,13 @@ download_get_sha1(const struct download *d)
 	}
 }
 
+static inline const struct tth *
+download_get_tth(const struct download *d)
+{
+	download_check(d);
+	return d->file_info->tth;
+}
+
 static inline void
 server_sha1_count_inc(struct dl_server *server, struct download *d)
 {
@@ -12246,6 +12253,7 @@ download_build_magnet(const struct download *d)
 	if (dl_url) {
 		struct magnet_resource *magnet;
 		const struct sha1 *sha1;
+		const struct tth *tth;
 		const char *parq_id;
 	
 		magnet = magnet_resource_new();
@@ -12259,6 +12267,10 @@ download_build_magnet(const struct download *d)
 		if (sha1 && d->uri) {
 			/* Don't set for N2R URLs, the SHA-1 can be derived from it */
 			magnet_set_sha1(magnet, sha1);
+		}
+		tth = download_get_tth(d);
+		if (tth) {
+			magnet_set_tth(magnet, tth);
 		}
 		if (fi->file_size_known && fi->size) {
 			magnet_set_filesize(magnet, fi->size);
