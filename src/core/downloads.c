@@ -13722,7 +13722,8 @@ download_build_url(const struct download *d)
 		char uri[128];
 
 		concat_strings(uri, sizeof uri,
-			"/uri-res/N2R?urn:sha1:", sha1_base32(download_get_sha1(d)),
+			"/uri-res/N2R?",
+			bitprint_to_urn_string(download_get_sha1(d), download_get_tth(d)),
 			(void *) 0);
 		url = download_url_for_uri(d, uri);
 	} else {
