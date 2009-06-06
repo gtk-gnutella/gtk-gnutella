@@ -1629,10 +1629,7 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_SPAM;
 	} else if (ST_HOSTILE & rs->status) {
 		return GUI_COLOR_HOSTILE;
-	} else if (
-		(SR_SPAM & rc->flags) ||
-		((ST_SPAM & rs->status) && !(ST_BROWSE & rs->status))
-	) {
+	} else if ((ST_SPAM & rs->status) && !(ST_BROWSE & rs->status)) {
 		return GUI_COLOR_MAYBE_SPAM;
 	} else if (rs->status & ST_UNREQUESTED) {
 		return GUI_COLOR_UNREQUESTED;
