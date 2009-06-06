@@ -63,17 +63,20 @@ struct sequence_iterator {
 		list_iter_t *li;
 		slist_iter_t *sli;
 		hash_list_iter_t *hli;
+		vector_iter_t *veci;
 	} u;
 	enum sequence_direction direction;
 };
 
-static inline void sequence_iter_check(const sequence_iter_t *si)
+static inline void
+sequence_iter_check(const sequence_iter_t *si)
 {
 	g_assert(si != NULL);
 	g_assert(SEQUENCE_ITER_MAGIC == si->magic);
 }
 
-static inline void sequence_check(const sequence_t *s)
+static inline void
+sequence_check(const sequence_t *s)
 {
 	g_assert(s != NULL);
 	g_assert(SEQUENCE_MAGIC == s->magic);
@@ -151,6 +154,21 @@ sequence_create_from_hash_list(hash_list_t *hl)
 }
 
 /**
+ * Create a sequence out of an existing vector_t.
+ * Use sequence_release() to discard the sequence encapsulation.
+ */
+sequence_t *
+sequence_create_from_vector(vector_t *vec)
+{
+	sequence_t *s;
+
+	g_assert(vec != NULL);
+
+	s = walloc(sizeof *s);
+	return sequence_fill_from_vector(s, vec);
+}
+
+/**
  * Fill sequence object with GSList.
  */
 sequence_t *
@@ -217,6 +235,20 @@ sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl)
 }
 
 /**
+ * Fill sequence object with vector_t.
+ */
+sequence_t *
+sequence_fill_from_vector(sequence_t *s, vector_t *vec)
+{
+	g_assert(vec != NULL);
+
+	s->magic = SEQUENCE_MAGIC;
+	s->type = SEQUENCE_VECTOR;
+	s->u.vec = vec;
+	return s;
+}
+
+/**
  * Is the sequence empty?
  */
 gboolean
@@ -235,6 +267,8 @@ sequence_is_empty(const sequence_t *s)
 		return 0 == slist_length(s->u.sl);
 	case SEQUENCE_HLIST:
 		return 0 == hash_list_length(s->u.hl);
+	case SEQUENCE_VECTOR:
+		return 0 == vector_length(s->u.vec);
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -261,6 +295,8 @@ sequence_implementation(const sequence_t *s)
 		return s->u.sl;
 	case SEQUENCE_HLIST:
 		return s->u.hl;
+	case SEQUENCE_VECTOR:
+		return s->u.vec;
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -312,6 +348,9 @@ sequence_destroy(sequence_t *s)
 	case SEQUENCE_HLIST:
 		hash_list_free(&s->u.hl);
 		break;
+	case SEQUENCE_VECTOR:
+		vector_free(&s->u.vec);
+		break;
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -352,6 +391,9 @@ sequence_forward_iterator(const sequence_t *s)
 	case SEQUENCE_HLIST:
 		si->u.hli = hash_list_iterator(s->u.hl);
 		break;
+	case SEQUENCE_VECTOR:
+		si->u.veci = vector_iterator(s->u.vec);
+		break;
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -382,6 +424,8 @@ sequence_iter_has_next(const sequence_iter_t *si)
 		return slist_iter_has_next(si->u.sli);
 	case SEQUENCE_HLIST:
 		return hash_list_iter_has_next(si->u.hli);
+	case SEQUENCE_VECTOR:
+		return vector_iter_has_next(si->u.veci);
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -415,6 +459,8 @@ sequence_iter_next(sequence_iter_t *si)
 		return slist_iter_next(si->u.sli);
 	case SEQUENCE_HLIST:
 		return hash_list_iter_next(si->u.hli);
+	case SEQUENCE_VECTOR:
+		return vector_iter_next(si->u.veci);
 	case SEQUENCE_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -445,6 +491,9 @@ sequence_iterator_release(sequence_iter_t **iter_ptr)
 			break;
 		case SEQUENCE_HLIST:
 			hash_list_iter_release(&si->u.hli);
+			break;
+		case SEQUENCE_VECTOR:
+			vector_iter_release(&si->u.veci);
 			break;
 		case SEQUENCE_MAXTYPE:
 			g_assert_not_reached();

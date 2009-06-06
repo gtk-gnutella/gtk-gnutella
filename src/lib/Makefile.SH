@@ -154,6 +154,7 @@ LSRC = \
 	url_factory.c \
 	urn.c \
 	utf8.c \
+	vector.c \
 	vendors.c \
 	vmm.c \
 	walloc.c \
@@ -234,6 +235,7 @@ LOBJ = \
 	url_factory.o \
 	urn.o \
 	utf8.o \
+	vector.o \
 	vendors.o \
 	vmm.o \
 	walloc.o \

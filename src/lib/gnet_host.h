@@ -44,6 +44,7 @@
 
 #include "hashlist.h"
 #include "host_addr.h"
+#include "vector.h"
 
 /**
  * A Gnutella host.
@@ -133,7 +134,7 @@ gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
 	host_addr_t addr;
 	guint16 port;
 
-	g_assert(i < (guint) gnet_host_vec_count(hvec));
+	g_assert(i < UNSIGNED(gnet_host_vec_count(hvec)));
 
 	if (i < hvec->n_ipv4) {
 		addr = host_addr_peek_ipv4(hvec->hvec_v4[i].data);
@@ -152,9 +153,9 @@ gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
 void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
-gnet_host_vec_t *gnet_host_vec_create(gnet_host_t *, int hcnt);
-gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *sl);
-gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *hl);
+gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *);
+gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *);
+gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
 
 #endif /* _gnet_host_h_ */
 

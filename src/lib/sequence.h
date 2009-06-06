@@ -41,6 +41,7 @@
 #include "list.h"
 #include "slist.h"
 #include "hashlist.h"
+#include "vector.h"
 
 /**
  * Allowed sequence types.
@@ -51,6 +52,7 @@ enum sequence_type {
 	SEQUENCE_LIST,				/**< list_t */
 	SEQUENCE_SLIST,				/**< slist_t */
 	SEQUENCE_HLIST,				/**< hash_list_t */
+	SEQUENCE_VECTOR,			/**< vector_t */
 
 	SEQUENCE_MAXTYPE
 };
@@ -70,6 +72,7 @@ struct sequence {
 		list_t *l;
 		slist_t *sl;
 		hash_list_t *hl;
+		vector_t *vec;
 	} u;
 };
 
@@ -80,32 +83,34 @@ typedef struct sequence_iterator sequence_iter_t;
  * Creation interface.
  */
 
-sequence_t *sequence_create_from_gslist(GSList *gsl);
-sequence_t *sequence_create_from_glist(GList *gl);
-sequence_t *sequence_create_from_list(list_t *l);
-sequence_t *sequence_create_from_slist(slist_t *sl);
-sequence_t *sequence_create_from_hash_list(hash_list_t *hl);
+sequence_t *sequence_create_from_gslist(GSList *);
+sequence_t *sequence_create_from_glist(GList *);
+sequence_t *sequence_create_from_list(list_t *);
+sequence_t *sequence_create_from_slist(slist_t *);
+sequence_t *sequence_create_from_hash_list(hash_list_t *);
+sequence_t *sequence_create_from_vector(vector_t *);
 
-sequence_t *sequence_fill_from_gslist(sequence_t *s, GSList *gsl);
-sequence_t *sequence_fill_from_glist(sequence_t *s, GList *gl);
-sequence_t *sequence_fill_from_list(sequence_t *s, list_t *l);
-sequence_t *sequence_fill_from_slist(sequence_t *s, slist_t *sl);
-sequence_t *sequence_fill_from_hash_list(sequence_t *s, hash_list_t *hl);
+sequence_t *sequence_fill_from_gslist(sequence_t *, GSList *);
+sequence_t *sequence_fill_from_glist(sequence_t *, GList *);
+sequence_t *sequence_fill_from_list(sequence_t *, list_t *);
+sequence_t *sequence_fill_from_slist(sequence_t *, slist_t *);
+sequence_t *sequence_fill_from_hash_list(sequence_t *, hash_list_t *);
+sequence_t *sequence_fill_from_vector(sequence_t *, vector_t *);
 
 /**
  * Public sequence interface.
  */
 
-gpointer sequence_implementation(const sequence_t *s);
-gpointer sequence_release(sequence_t *s);
-void sequence_destroy(sequence_t *s);
+gpointer sequence_implementation(const sequence_t *);
+gpointer sequence_release(sequence_t *);
+void sequence_destroy(sequence_t *);
 
-gboolean sequence_is_empty(const sequence_t *s);
+gboolean sequence_is_empty(const sequence_t *);
 
-sequence_iter_t *sequence_forward_iterator(const sequence_t *s);
-gboolean sequence_iter_has_next(const sequence_iter_t *si);
-gpointer sequence_iter_next(sequence_iter_t *si);
-void sequence_iterator_release(sequence_iter_t **iter_ptr);
+sequence_iter_t *sequence_forward_iterator(const sequence_t *);
+gboolean sequence_iter_has_next(const sequence_iter_t *);
+gpointer sequence_iter_next(sequence_iter_t *);
+void sequence_iterator_release(sequence_iter_t **);
 
 #endif	/* _sequence_h_ */
 
