@@ -129,12 +129,7 @@ gnet_host_new(const host_addr_t addr, guint16 port)
 gnet_host_t *
 gnet_host_dup(const gnet_host_t *h)
 {
-	gnet_host_t *nh;
-
-	nh = walloc(sizeof *nh);
-	*nh = *h;				/* struct copy */
-
-	return nh;
+	return wcopy(h, sizeof *h);
 }
 
 /**
@@ -185,9 +180,8 @@ gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 	g_assert(vec_ptr != NULL);
 
 	if (*vec_ptr) {
-		gnet_host_vec_t *vec;
+		gnet_host_vec_t *vec = *vec_ptr;
 	
-		vec = *vec_ptr;
 		WFREE_NULL(vec->hvec_v4, vec->n_ipv4 * sizeof vec->hvec_v4[0]);
 		WFREE_NULL(vec->hvec_v6, vec->n_ipv6 * sizeof vec->hvec_v6[0]);
 		wfree(vec, sizeof *vec);
@@ -219,11 +213,11 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
 	vec_copy = wcopy(vec, sizeof *vec);
 	if (vec->n_ipv4 > 0) {
 		vec_copy->hvec_v4 = wcopy(vec->hvec_v4,
-								vec->n_ipv4 * sizeof *vec->hvec_v4);
+								vec->n_ipv4 * sizeof vec->hvec_v4[0]);
 	}
 	if (vec->n_ipv6 > 0) {
 		vec_copy->hvec_v6 = wcopy(vec->hvec_v6,
-								vec->n_ipv6 * sizeof *vec->hvec_v6);
+								vec->n_ipv6 * sizeof vec->hvec_v6[0]);
 	}
 	return vec_copy;
 }
@@ -239,32 +233,28 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
 		if (vec->n_ipv4 < 255) {
-			char *dest;
 			size_t size, old_size;
+			char *dest;
 			
-			old_size = vec->n_ipv4 * sizeof *vec->hvec_v4;
-			vec->n_ipv4++;	
-			size = vec->n_ipv4 * sizeof *vec->hvec_v4;
-			vec->hvec_v4 = vec->hvec_v4
-								? wrealloc(vec->hvec_v4, old_size, size)
-								: walloc(size);
-			dest = cast_to_gpointer(&vec->hvec_v4[vec->n_ipv4 - 1]);
+			old_size = vec->n_ipv4 * sizeof vec->hvec_v4[0];
+			size = old_size + sizeof vec->hvec_v4[0];
+			vec->hvec_v4 = wrealloc(vec->hvec_v4, old_size, size);
+
+			dest = cast_to_gpointer(&vec->hvec_v4[vec->n_ipv4++]);
 			poke_be32(&dest[0], host_addr_ipv4(addr));
 			poke_le16(&dest[4], port);
 		}
 		break;
 	case NET_TYPE_IPV6:
 		if (vec->n_ipv6 < 255) {
-			char *dest;
 			size_t size, old_size;
+			char *dest;
 			
-			old_size = vec->n_ipv6 * sizeof *vec->hvec_v6;
-			vec->n_ipv6++;	
-			size = vec->n_ipv6 * sizeof *vec->hvec_v6;
-			vec->hvec_v6 = vec->hvec_v6
-								? wrealloc(vec->hvec_v6, old_size, size)
-								: walloc(size);
-			dest = cast_to_gpointer(&vec->hvec_v6[vec->n_ipv6 - 1]);
+			old_size = vec->n_ipv6 * sizeof vec->hvec_v6[0];
+			size = old_size + sizeof vec->hvec_v6[0];
+			vec->hvec_v6 = wrealloc(vec->hvec_v6, old_size, size);
+
+			dest = cast_to_gpointer(&vec->hvec_v6[vec->n_ipv6++]);
 			memcpy(dest, host_addr_ipv6(&addr), 16);
 			poke_le16(&dest[16], port);
 		}
@@ -302,10 +292,10 @@ gnet_host_vec_create(gnet_host_t *hvec, int hcnt)
 	vec->n_ipv6 = MIN(n_ipv6, 255);
 
 	if (vec->n_ipv4 > 0) {
-		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof *vec->hvec_v4);
+		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof vec->hvec_v4[0]);
 	}
 	if (vec->n_ipv6 > 0) {
-		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof *vec->hvec_v6);
+		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof vec->hvec_v6[0]);
 	}
 
 	n_ipv4 = 0;
@@ -378,10 +368,10 @@ gnet_host_vec_from_sequence(sequence_t *s)
 	vec->n_ipv6 = MIN(n_ipv6, 255);
 
 	if (vec->n_ipv4 > 0) {
-		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof *vec->hvec_v4);
+		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof vec->hvec_v4[0]);
 	}
 	if (vec->n_ipv6 > 0) {
-		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof *vec->hvec_v6);
+		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof vec->hvec_v6[0]);
 	}
 
 	n_ipv4 = 0;
@@ -400,6 +390,7 @@ gnet_host_vec_from_sequence(sequence_t *s)
 				poke_be32(&dest[0], host_addr_ipv4(addr));
 				poke_le16(&dest[4], port);
 			}
+			break;
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
 				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
