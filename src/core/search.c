@@ -715,16 +715,25 @@ search_results_identify_dupes(gnet_results_set_t *rs)
 	g_hash_table_destroy(ht);
 }
 
+static gboolean
+is_odd_guid(const struct guid *guid)
+{
+	size_t i = G_N_ELEMENTS(guid->v);
+	
+	do {
+		unsigned char c = guid->v[--i];
+
+		if (c < 0xaaU || (c & 0x0f) < 0x0aU)
+			return FALSE;
+	} while (i > 0);
+	return TRUE;
+}
+
 static void
 search_results_identify_spam(gnet_results_set_t *rs)
 {
 	const GSList *sl;
 	guint8 has_ct = FALSE, has_tth = FALSE, has_xml = FALSE;
-
-	if (!is_vendor_acceptable(rs->vcode)) {
-		/* A proper vendor code is mandatory */
-		rs->status |= ST_FAKE_SPAM;
-	}
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *record = sl->data;
@@ -764,18 +773,21 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		has_ct  |= (time_t)-1 != record->create_time;
 	}
 
-	if (T_LIME == rs->vcode.u32 && !(has_tth || has_xml || has_ct)) {
+	if (!is_vendor_acceptable(rs->vcode)) {
+		/* A proper vendor code is mandatory */
+		rs->status |= ST_FAKE_SPAM;
+	} else if (T_LIME == rs->vcode.u32 && !(has_tth || has_xml || has_ct)) {
 		/*
 		 * If there are no timestamps, this is most-likely not from LimeWire.
 		 * Cabos frequently fails to add timestamps for unknown reasons.
 		 */
 		rs->status |= ST_FAKE_SPAM;
-	}
-
-	/*
-	 * Avoid costly checks if already marked as spam.
-	 */
-	if (!(ST_SPAM & rs->status)) {
+	} else if (is_odd_guid(rs->guid)) {
+		rs->status |= ST_FAKE_SPAM;
+	} else if (!(ST_SPAM & rs->status)) {
+		/*
+		 * Avoid costly checks if already marked as spam.
+		 */
 		search_results_identify_dupes(rs);
 	}
 
