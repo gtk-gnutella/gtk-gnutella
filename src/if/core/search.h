@@ -137,7 +137,8 @@ enum {
 	SR_SPAM			= (1 << 3),
 	SR_SHARED		= (1 << 4),
 	SR_OWNED		= (1 << 5),
-	SR_PARTIAL		= (1 << 6)
+	SR_PARTIAL		= (1 << 6),
+	SR_ATOMIZED		= (1 << 7)	/* Set if filename is an atom */
 };
 
 /**
@@ -145,7 +146,7 @@ enum {
  * as identified by the parent results_set structure that contains this hit.
  */
 typedef struct gnet_record {
-	const char  *name;			/**< File name */
+	const char  *filename;		/**< File name (see SR_ATOMIZED!) */
 	const struct sha1 *sha1;	/**< SHA1 URN (binary form, atom) */
 	const struct tth *tth;		/**< TTH URN (binary form, atom) */
 	const char  *tag;			/**< Optional tag data string (atom) */

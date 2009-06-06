@@ -1072,18 +1072,18 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
 	}
    	rc->flags = r->flags;
    	rc->create_time = r->create_time;
-	rc->name = atom_str_get(r->name);
+	rc->name = atom_str_get(r->filename);
 	
 	{
 		const gchar *utf8_name, *name;
 		gchar *to_free;
 
 		if (r->path) {
-			to_free = make_pathname(r->path, r->name);
+			to_free = make_pathname(r->path, r->filename);
 			name = to_free;
 		} else {
 			to_free = NULL;
-			name = r->name;
+			name = r->filename;
 		}
 		if (ST_LOCAL & rs->status) {
 			utf8_name = name;

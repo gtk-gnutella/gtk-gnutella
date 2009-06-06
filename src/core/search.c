@@ -492,7 +492,11 @@ static void
 search_free_record(gnet_record_t *rc)
 {
 	g_assert(rc);
-	atom_str_free_null(&rc->name);
+
+	if (!(SR_ATOMIZED & rc->flags)) {
+		rc->filename = NULL;
+	}
+	atom_str_free_null(&rc->filename);
 	atom_str_free_null(&rc->tag);
 	atom_str_free_null(&rc->xml);
 	atom_str_free_null(&rc->path);
@@ -741,7 +745,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
 			rs->status |= ST_URN_SPAM;
 			record->flags |= SR_SPAM;
-		} else if (spam_check_filename_and_size(record->name, record->size)) {
+		} else if (spam_check_filename_and_size(record->filename, record->size)) {
 			rs->status |= ST_NAME_SPAM;
 			record->flags |= SR_SPAM;
 		} else if (
@@ -750,7 +754,7 @@ search_results_identify_spam(gnet_results_set_t *rs)
 		) {
 			rs->status |= ST_URL_SPAM;
 			record->flags |= SR_SPAM;
-		} else if (is_evil_filename(record->name)) {
+		} else if (is_evil_filename(record->filename)) {
 			rs->status |= ST_EVIL;
 			record->flags |= SR_IGNORED;
 		}
@@ -1469,7 +1473,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		rc = search_record_new();
 		rc->file_index = idx;
 		rc->size = size;
-		rc->name = atom_str_get(filename);
+		rc->filename = filename;
 
 		/*
 		 * If we have a tag, parse it for extensions.
@@ -2814,7 +2818,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 		addr = gnet_host_get_addr(&host);
 		port = gnet_host_get_port(&host);
 		if (host_is_valid(addr, port)) {
-			download_auto_new(rc->name,
+			download_auto_new(rc->filename,
 				rc->size,
 				addr,
 				port,
@@ -2864,7 +2868,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 		} else {
 			enum ignore_val reason;
 
-			reason = ignore_is_requested(rc->name, rc->size, rc->sha1);
+			reason = ignore_is_requested(rc->filename, rc->size, rc->sha1);
 			switch (reason) {
 				case IGNORE_FALSE:
 					break;
@@ -2924,7 +2928,7 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
 			flags |= (rs->status & ST_TLS) ? SOCK_F_TLS : 0;
 			
-			download_auto_new(rc->name,
+			download_auto_new(rc->filename,
 				rc->size,
 				rs->addr,
 				rs->port,
@@ -4036,7 +4040,10 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	}
 	rc->file_index = shared_file_index(sf);
 	rc->size = shared_file_size(sf);
-	rc->name = atom_str_get(shared_file_name_nfc(sf));
+
+	rc->filename = atom_str_get(shared_file_name_nfc(sf));
+	rc->flags |= SR_ATOMIZED;
+
 	if (shared_file_relative_path(sf)) {
 		rc->path = atom_str_get(shared_file_relative_path(sf));
 	}
