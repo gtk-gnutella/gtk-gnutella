@@ -42,23 +42,6 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-/**
- * Number of seconds between each connection attempt to a whitelisted node.
- */
-#define WHITELIST_RETRY_DELAY 30
-
-/**
- * Number of seconds between checking the whitelist file for updates.
- */
-#define WHITELIST_CHECK_INTERVAL 60
-
-struct whitelist {
-    time_t last_try;
-    host_addr_t addr;
-    guint16 port;
-    guint8 bits;
-};
-
 gboolean whitelist_check(const host_addr_t addr);
 void whitelist_init(void);
 void whitelist_close(void);

@@ -53,6 +53,23 @@ RCSID("$Id$")
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+/**
+ * Number of seconds between each connection attempt to a whitelisted node.
+ */
+#define WHITELIST_RETRY_DELAY 30
+
+/**
+ * Number of seconds between checking the whitelist file for updates.
+ */
+#define WHITELIST_CHECK_INTERVAL 60
+
+struct whitelist {
+    time_t last_try;
+    host_addr_t addr;
+    guint16 port;
+    guint8 bits;
+};
+
 static GSList *sl_whitelist;
 
 static const char whitelist_file[] = "whitelist";
