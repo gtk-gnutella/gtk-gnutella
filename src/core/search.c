@@ -738,6 +738,9 @@ search_results_identify_spam(gnet_results_set_t *rs)
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *record = sl->data;
+		unsigned n_alt;
+
+		n_alt = record->alt_locs ? gnet_host_vec_count(record->alt_locs) : 0;
 
 		if (SR_SPAM & record->flags) {
 			/*
@@ -750,6 +753,9 @@ search_results_identify_spam(gnet_results_set_t *rs)
 			 */
 			record->flags |= SR_SPAM;
 		} else if (!record->file_index && T_GTKG == rs->vcode.u32) {
+			rs->status |= ST_FAKE_SPAM;
+			record->flags |= SR_SPAM;
+		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			rs->status |= ST_FAKE_SPAM;
 			record->flags |= SR_SPAM;
 		} else if (record->sha1 && spam_sha1_check(record->sha1)) {
@@ -1664,10 +1670,6 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					ret = ggept_alt_extract(e, &hvec);
 					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
-						if (gnet_host_vec_count(hvec) > 16) {
-							/* Known limits: LIME: 10, GTKG: 15, BEAR: >10? */
-							rs->status |= ST_ALT_SPAM;
-						}
 					} else {
 						alt_errors++;
 						if (GNET_PROPERTY(search_debug) > 3) {
