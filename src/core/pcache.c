@@ -300,17 +300,18 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ggep_stream_end(&gs);
 		}
 
-		if (meta->flags & PONG_META_HAS_GUE)	/* GUESS support */
+		if (meta->flags & PONG_META_HAS_GUE) {	/* GUESS support */
 			ggep_stream_pack(&gs, GGEP_NAME(GUE),
 				cast_to_gpointer(&meta->guess), 1, 0);
+		}
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
 			gboolean ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(UP), 0) &&
 			ggep_stream_write(&gs, &meta->version_up, 1) &&
-			ggep_stream_write(&gs, &meta->up_slots, 1) &&
 			ggep_stream_write(&gs, &meta->leaf_slots, 1) &&
+			ggep_stream_write(&gs, &meta->up_slots, 1) &&
 			ggep_stream_end(&gs);
 		}
 
@@ -668,8 +669,8 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 
 	if (GNET_PROPERTY(current_peermode) == NODE_P_ULTRA) {
 		local_meta.flags |= PONG_META_HAS_UP;
-		local_meta.up_slots = MIN(node_missing(), 255);
 		local_meta.leaf_slots = MIN(node_leaves_missing(), 255);
+		local_meta.up_slots = MIN(node_missing(), 255);
 	}
 
 	if ((flags & PING_F_IP)) {
@@ -1789,8 +1790,8 @@ pong_extract_metadata(struct gnutella_node *n)
 				payload = ext_payload(e);
 				ALLOCATE(UP);
 				meta->version_up = payload[0];
-				meta->up_slots = payload[1];
-				meta->leaf_slots = payload[2];
+				meta->leaf_slots = payload[1];
+				meta->up_slots = payload[2];
 			}
 			break;
 		case EXT_T_GGEP_VC:
