@@ -1393,7 +1393,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
         if (GNET_PROPERTY(search_debug) > 1) {
             g_message("dropping %s query hit from hostile IP %s",
-                NODE_IS_UDP(n) ? "UDP" : "TCP", host_addr_to_string(rs->addr));
+                NODE_IS_UDP(n) ? "UDP" : "TCP",
+				host_addr_to_string(NODE_IS_UDP(n) ? n->addr : rs->addr));
         }
 		rs->status |= ST_HOSTILE;
 	}
@@ -2104,11 +2105,15 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	 * servent thinks it has, which we know from its previous query hits
 	 * with hops=0. If we never got a query hit from that servent, check
 	 * against last IP we saw in pong.
+	 *
+	 * FIXME: The IPv4 address might dynamic and the IPv6 address might
+	 *        be stable or vice-versa.
 	 */
 
 	if (
 		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
 		!host_addr_equal(n->addr, rs->addr) &&	/* Not socket's address */
+		host_addr_is_routable(n->addr) &&	/* Not LAN or loopback */
 		host_addr_is_routable(rs->addr)
 	) {
 		if (
