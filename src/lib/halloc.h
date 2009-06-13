@@ -42,7 +42,7 @@
  * Under TRACK_MALLOC control, these routines are remapped to malloc()/free().
  */
 
-#ifdef TRACK_MALLOC
+#ifndef TRACK_MALLOC
 void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
