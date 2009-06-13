@@ -101,7 +101,7 @@ wrealloc(gpointer p, size_t o, size_t n)
 }
 
 static inline void *
-wmove(void p, size_t n)
+wmove(void *p, size_t n)
 {
 	(void) n;
 	return p;
