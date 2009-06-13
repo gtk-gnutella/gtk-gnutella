@@ -1022,6 +1022,16 @@ static void recursive_sf_unref(gpointer o)
 	shared_file_unref(&sf);
 }
 
+/**
+ * Encapsulation of hfree() in case TRACK_MALLOC is defined and hfree() is
+ * really a macro, not a function.
+ */
+static void
+do_hfree(void *p)
+{
+	hfree(p);
+}
+
 static void
 recursive_scan_free(struct recursive_scan **ctx_ptr)
 {
@@ -1040,7 +1050,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		recursive_scan_closedir(ctx);
 
 		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
-		slist_free_all(&ctx->sub_dirs, hfree);
+		slist_free_all(&ctx->sub_dirs, do_hfree);
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 
 		atom_str_free_null(&ctx->base_dir);

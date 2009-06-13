@@ -39,34 +39,10 @@
 #include "common.h"
 
 /*
- * Under REMAP_ZALLOC control, these routines are remapped to malloc/free.
- * Under TRACK_MALLOC control, these routines are also remapped.
+ * Under TRACK_MALLOC control, these routines are remapped to malloc()/free().
  */
 
-#if defined(USE_DMALLOC) && !defined(REMAP_ZALLOC)
-#define REMAP_ZALLOC
-#endif
-
-#if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC)
-
-static inline void *halloc(size_t n)	{ return g_malloc(n); }
-static inline void *halloc0(size_t n)	{ return g_malloc0(n); }
-static inline void hfree(void *p)		{ return g_free(p); }
-
-static inline void *
-hrealloc(void *p, size_t n)
-{
-	return g_realloc(p, n);
-}
-
-static inline void *
-hcopy(const void *p, size_t size)
-{
-	return g_memdup(p, size);
-}
-
-#else	/* !REMAP_ZALLOC && !TRACK_MALLOC */
-
+#ifdef TRACK_MALLOC
 void *halloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *halloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void hfree(void *ptr);
@@ -79,8 +55,7 @@ hcopy(const void *p, size_t size)
 	memcpy(cp, p, size);
 	return cp;
 }
-
-#endif	/* REMAP_ZALLOC || TRACK_MALLOC */
+#endif	/* TRACK_MALLOC */
 
 void halloc_init(gboolean replace_malloc);
 void hdestroy(void);

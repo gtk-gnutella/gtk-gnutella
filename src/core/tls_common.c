@@ -469,7 +469,9 @@ tls_global_init(void)
 	};
 	char *cert_file, *key_file;
 
+#ifndef TRACK_MALLOC
 	gnutls_global_set_mem_functions(halloc, halloc, NULL, hrealloc, hfree);
+#endif
 	if (gnutls_global_init()) {
 		g_error("gnutls_global_init() failed");
 	}

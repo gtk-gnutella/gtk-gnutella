@@ -74,8 +74,10 @@
 #define strndup(s,n)	strndup_track((s), (n), _WHERE_, __LINE__)
 
 #define halloc(s)		malloc_track((s), _WHERE_, __LINE__)
+#define halloc0(s)		malloc0_track((s), _WHERE_, __LINE__)
 #define hfree(s)		free_track((s), _WHERE_, __LINE__)
 #define hrealloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
+#define hcopy(p,s)		memdup_track((p), (s), _WHERE_, __LINE__)
 
 #define g_malloc(s)		malloc_track((s), _WHERE_, __LINE__)
 #define g_malloc0(s)	malloc0_track((s), _WHERE_, __LINE__)
