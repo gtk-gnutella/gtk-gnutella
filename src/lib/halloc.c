@@ -392,7 +392,7 @@ halloc_init_vtable(void)
 
 #else	/* !USE_HALLOC */
 
-static void
+static inline void
 halloc_init_vtable(void)
 {
 }

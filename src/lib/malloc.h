@@ -87,7 +87,7 @@
 #define g_memdup(p,s)	memdup_track((p), (s), _WHERE_, __LINE__)
 #define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
-#define h_strdup(s)		strdup_track(s,(n),_WHERE_,__LINE__)
+#define h_strdup(s)		strdup_track(s,_WHERE_,__LINE__)
 #define h_strndup(s,n)	strndup_track(s,(n),_WHERE_,__LINE__)
 #define h_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
 #define h_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)

@@ -92,18 +92,6 @@ struct zone_gc {
 #define ZGC_SCAN_ALL	(1 << 0)	/**< Scan all subzones at next run */
 
 /**
- * Global zone garbage collector state.
- */
-static struct {
-	unsigned subzone_freed;			/**< Amount of subzones freed this run */
-	gboolean running;				/**< Garbage collector is running */
-} zgc_context;
-
-#define ZGC_SUBZONE_MINLIFE		5	/**< Do not free too recent subzone */
-#define ZGC_SUBZONE_FREEMAX		64	/**< Max # of subzones freed in a run */
-#define ZGC_SUBZONE_OVERBASE	48	/**< Initial base when CPU overloaded */
-
-/**
  * @struct zone
  *
  * Zone structure.
@@ -130,7 +118,6 @@ struct zone {				/* Zone descriptor */
 static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
 static guint32 zalloc_debug;		/**< Debug level */
 static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
-static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
 
@@ -186,6 +173,11 @@ zfree(zone_t *zone, void *ptr)
 	g_free(ptr);
 }
 
+void
+zgc(gboolean overloaded)
+{
+	(void) overloaded;
+}
 #else	/* !REMAP_ZALLOC */
 
 static char **zn_extend(zone_t *);
@@ -459,7 +451,7 @@ subzone_free_arena(struct subzone *sz)
 /*
  * Is subzone held in a standalone virtual memory fragment?
  */
-static gboolean
+static inline gboolean
 subzone_is_fragment(const struct subzone *sz)
 {
 	return vmm_is_fragment(sz->sz_base, sz->sz_size);
@@ -700,8 +692,10 @@ zcreate(size_t size, unsigned hint)
 
 	zn_create(zone, size, hint);
 
+#ifndef REMAP_ZALLOC
 	if (zalloc_always_gc)
 		zgc_allocate(zone);
+#endif
 
 	return zone;
 }
@@ -734,8 +728,10 @@ zdestroy(zone_t *zone)
 #endif
 	}
 
+#ifndef REMAP_ZALLOC
 	if (zone->zn_gc)
 		zgc_dispose(zone);
+#endif
 
 	zn_free_additional_subzones(zone);
 	subzone_free_arena(&zone->zn_arena);
@@ -817,7 +813,11 @@ zmove(zone_t *zone, void *p)
 	if (NULL == zone->zn_gc)
 		return p;
 
+#ifdef REMAP_ZALLOC
+	return p;
+#else
 	return zgc_zmove(zone, p);
+#endif
 }
 
 
@@ -892,11 +892,27 @@ set_zalloc_always_gc(gboolean val)
 	zalloc_always_gc = val;
 }
 
+#ifndef REMAP_ZALLOC
+
 /***
  *** Garbage collector
  ***/
 
 #define ZN_OVERSIZE_THRESH	90
+
+/**
+ * Global zone garbage collector state.
+ */
+static struct {
+	unsigned subzone_freed;			/**< Amount of subzones freed this run */
+	gboolean running;				/**< Garbage collector is running */
+} zgc_context;
+
+#define ZGC_SUBZONE_MINLIFE		5	/**< Do not free too recent subzone */
+#define ZGC_SUBZONE_FREEMAX		64	/**< Max # of subzones freed in a run */
+#define ZGC_SUBZONE_OVERBASE	48	/**< Initial base when CPU overloaded */
+
+static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 
 /**
  * Compare two subzinfo based on base address -- qsort() callback.
@@ -1952,6 +1968,7 @@ zgc(gboolean overloaded)
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
+#endif	/* !REMAP_ZALLOC */
 
 /**
  * Initialize zone allocator.

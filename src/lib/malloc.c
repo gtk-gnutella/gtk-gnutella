@@ -1168,7 +1168,7 @@ real_strdup(const char *s)
 }
 #endif	/* TRACK_MALLOC || TRACK_ZALLOC */
 
-#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+#ifdef MALLOC_VTABLE
 /**
  * Calls real realloc(), no tracking.
  */
@@ -1196,7 +1196,7 @@ real_realloc(void *p, size_t size)
 			b = hash_table_lookup(blocks, p);
 #endif
 
-#if defined(TRACK_MALLOC) || defined(MALLOC_SAFE)
+#if defined(TRACK_MALLOC) && defined(MALLOC_SAFE)
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 		size_t len = real_malloc_safe_size(size);
 
@@ -1216,9 +1216,9 @@ real_realloc(void *p, size_t size)
 			n = rmh->arena;
 			block_write_trailer(n, size);
 		}
-#else	/* !TRACK_MALLOC && !MALLOC_SAFE */
+#else	/* !(TRACK_MALLOC && MALLOC_SAFE) */
 		n = realloc(p, size);
-#endif	/* TRACK_MALLOC || MALLOC_SAFE */
+#endif	/* TRACK_MALLOC && MALLOC_SAFE */
 
 #ifdef TRACK_MALLOC
 		if (b != NULL) {
@@ -1246,7 +1246,7 @@ real_realloc(void *p, size_t size)
 		return n;
 	}
 }
-#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
+#endif	/* MALLOC_VTABLE */
 
 #ifdef TRACK_MALLOC
 /**
