@@ -1620,7 +1620,7 @@ save_file_path_changed(property_t prop)
 	}
 	
 	G_FREE_NULL(old_path);
-	old_path = path;
+	old_path = NOT_LEAKING(path);
 	return FALSE;
 }
 
