@@ -468,7 +468,7 @@ st_search(
 	guint random_offset;  /* Randomizer for search returns */
 
 	search = UNICODE_CANONIZE(search_term);
-	if (GNET_PROPERTY(search_debug) && 0 != strcmp(search, search_term)) {
+	if (GNET_PROPERTY(search_debug) > 4 && 0 != strcmp(search, search_term)) {
 		g_message(" Original search term: \"%s\"", search_term);
 		g_message("Canonical search term: \"%s\"", search);
 	}
