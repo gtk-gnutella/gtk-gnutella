@@ -1425,6 +1425,8 @@
 216.25.240.0/20
 89.18.160.0/24
 65.182.105.0/24
+# WMA/ASF spam; pretends to be LimeWire; probably PeerMatrix
+65.182.96.0/24
 
 # Barton Media network
 # Stabu iela 59/16, Riga, Latvia
