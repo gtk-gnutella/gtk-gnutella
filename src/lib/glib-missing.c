@@ -51,271 +51,6 @@ RCSID("$Id$")
 
 #include "override.h"		/* Must be the last header included */
 
-#if defined(USE_GLIB1) && \
-	(defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
-		defined(REMAP_ZALLOC))
-
-static GMemVTable gm_vtable;
-
-#define GM_VTABLE_METHOD(method, params) \
-	(gm_vtable.gmvt_ ## method \
-	 ? (gm_vtable.gmvt_ ## method params) \
-	 : (method params))
-
-#undef malloc
-static inline ALWAYS_INLINE gpointer
-gm_malloc(gulong size)
-{
-	return GM_VTABLE_METHOD(malloc, (size));
-}
-
-#undef calloc
-static inline ALWAYS_INLINE gpointer
-gm_malloc0(gulong size)
-{
-	return GM_VTABLE_METHOD(calloc, (1, size));
-}
-
-#undef realloc
-static inline ALWAYS_INLINE gpointer
-gm_realloc(gpointer p, gulong size)
-{
-	return GM_VTABLE_METHOD(realloc, (p, size));
-}
-
-#undef free
-static inline ALWAYS_INLINE void
-gm_free(gpointer p)
-{
-	return GM_VTABLE_METHOD(free, (p));
-}
-
-#define try_malloc malloc
-static inline ALWAYS_INLINE gpointer
-gm_try_malloc(gulong size)
-{
-	return GM_VTABLE_METHOD(try_malloc, (size));
-}
-#undef try_malloc
-
-#define try_realloc realloc
-static inline ALWAYS_INLINE gpointer
-gm_try_realloc(gpointer p, gulong size)
-{
-	return GM_VTABLE_METHOD(try_realloc, (p, size));
-}
-#undef try_realloc
-
-/***
- *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
- *** with GTK1.  Fortunately, glib1.x placed the allocation routines in
- *** a dedicated mem.o file, so we may safely redefine them here.
- ***
- *** NOTE: This a hack and does not work on some platforms.
- ***/
-
-#undef g_malloc
-gpointer
-g_malloc(gulong size)
-{
-	gpointer p;
-
-	if (size == 0)
-		return NULL;
-
-	p = gm_malloc(size);
-
-	if (p)
-		return p;
-
-	g_error("allocation of %lu bytes failed", size);
-	return NULL;
-}
-
-#undef g_malloc0
-gpointer
-g_malloc0(gulong size)
-{
-	gpointer p;
-
-	if (size == 0)
-		return NULL;
-
-	p = gm_malloc(size);
-
-	if (p) {
-		memset(p, 0, size);
-		return p;
-	}
-
-	g_error("allocation of %lu bytes failed", size);
-	return NULL;
-}
-
-#undef g_realloc
-gpointer
-g_realloc(gpointer p, gulong size)
-{
-	gpointer n;
-
-	if (size == 0) {
-		gm_free(p);
-		return NULL;
-	}
-
-	n = gm_realloc(p, size);
-
-	if (n)
-		return n;
-
-	g_error("re-allocation of %lu bytes failed", size);
-	return NULL;
-}
-
-#undef g_free
-void
-g_free(gpointer p)
-{
-	gm_free(p);
-}
-
-#undef g_try_malloc
-gpointer
-g_try_malloc(gulong size)
-{
-	return size > 0 ? gm_try_malloc(size) : NULL;
-}
-
-#undef g_try_realloc
-gpointer
-g_try_realloc(gpointer p, gulong size)
-{
-	return size > 0 ? gm_try_realloc(p, size) : NULL;
-}
-
-/**
- * Emulates a calloc().
- */
-static gpointer
-emulate_calloc(gsize n, gsize m)
-{
-	gpointer p;
-
-	if (n > 0 && m > 0 && m < ((size_t) -1) / n) {
-		size_t size = n * m;
-		p = gm_malloc(size);
-		memset(p, 0, size);
-	} else {
-		p = NULL;
-	}
-	return p;
-}
-
-/**
- * Sets the GMemVTable to use for memory allocation.
- * This function must be called before using any other GLib functions.
- *
- * The vtable only needs to provide malloc(), realloc(), and free() functions;
- * GLib can provide default implementations of the others.
- * The malloc() and realloc() implementations should return NULL on failure, 
- */
-void
-g_mem_set_vtable(GMemVTable *vtable)
-{
-	gm_vtable.gmvt_malloc = vtable->gmvt_malloc;
-	gm_vtable.gmvt_realloc = vtable->gmvt_realloc;
-	gm_vtable.gmvt_free = vtable->gmvt_free;
-
-	gm_vtable.gmvt_calloc = vtable->gmvt_calloc
-		? vtable->gmvt_calloc
-		: emulate_calloc;
-	gm_vtable.gmvt_try_malloc = vtable->gmvt_try_malloc
-		? vtable->gmvt_try_malloc
-		: vtable->gmvt_malloc;
-	gm_vtable.gmvt_try_realloc = vtable->gmvt_try_realloc
-		? vtable->gmvt_try_realloc
-		: vtable->gmvt_realloc;
-}
-
-/**
- * Are we using system's malloc?
- */
-gboolean
-g_mem_is_system_malloc(void)
-{
-	return NULL == gm_vtable.gmvt_malloc ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
-			cast_pointer_to_func(real_malloc) ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
-			cast_pointer_to_func(malloc);
-}
-#endif	/* USE_GLIB1 */
-
-/**
- * Safe reallocation routine during final memory cleanup.
- */
-static inline void *
-safe_realloc(void *p, size_t len)
-{
-	if (NULL == p) {
-		return malloc(len);
-	} else if (0 == len) {
-		/* NOTHING */
-	} else {
-		g_error("no realloc() allowed during final memory cleanup");
-	}
-
-	return NULL;
-}
-
-/**
- * Safe free routine during final memory cleanup.
- */
-static inline void
-safe_free(void *unused_p)
-{
-	(void) unused_p;
-	/* NOTHING */
-}
-
-/**
- * Install safe memory vtable for final memory cleanup.
- *
- * When the memory vtable has been customized, redirecting g_malloc() to
- * some other routine like halloc(), we can't easily perform final shutdown
- * of the zalloc() and walloc() memory allocators because any call to
- * log something still present could allocate memory and reenter code that
- * is using the data structures being cleaned up.
- *
- * At this time though, we don't really care about freeing allocated memory
- * since we're about to exit, but we want to be able to allocate new one
- * safely.
- */
-void
-gm_mem_set_safe_vtable(void)
-{
-#if defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
-		defined(REMAP_ZALLOC)
-	static GMemVTable vtable;
-
-	if (g_mem_is_system_malloc())
-		return;
-
-#if GLIB_CHECK_VERSION(2,0,0)
-	vtable.malloc = real_malloc;
-	vtable.realloc = safe_realloc;
-	vtable.free = safe_free;
-#else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = real_malloc;
-	vtable.gmvt_realloc = safe_realloc;
-	vtable.gmvt_free = safe_free;
-#endif	/* GLib >= 2.0.0 */
-
-	g_mem_set_vtable(&vtable);
-
-#endif	/* USE_HALLOC || TRACK_MALLOC || TRACK_ZALLOC || REMAP_ZALLOC */
-}
-
 #ifndef TRACK_MALLOC
 /**
  * Insert `item' after `lnk' in list `list'.
@@ -1000,5 +735,275 @@ g_list_sort_with_data(
 		compare_func, user_data);
 }
 #endif	/* USE_GLIB1 */
+
+/***
+ *** This set of routines must be kept at the tail of the file because they
+ *** undefine malloc, g_malloc, etc... which are possibly set up by override.h.
+ ***/
+
+#if defined(USE_GLIB1) && \
+	(defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+		defined(REMAP_ZALLOC))
+
+static GMemVTable gm_vtable;
+
+#define GM_VTABLE_METHOD(method, params) \
+	(gm_vtable.gmvt_ ## method \
+	 ? (gm_vtable.gmvt_ ## method params) \
+	 : (method params))
+
+#undef malloc
+static inline ALWAYS_INLINE gpointer
+gm_malloc(gulong size)
+{
+	return GM_VTABLE_METHOD(malloc, (size));
+}
+
+#undef calloc
+static inline ALWAYS_INLINE gpointer
+gm_malloc0(gulong size)
+{
+	return GM_VTABLE_METHOD(calloc, (1, size));
+}
+
+#undef realloc
+static inline ALWAYS_INLINE gpointer
+gm_realloc(gpointer p, gulong size)
+{
+	return GM_VTABLE_METHOD(realloc, (p, size));
+}
+
+#undef free
+static inline ALWAYS_INLINE void
+gm_free(gpointer p)
+{
+	return GM_VTABLE_METHOD(free, (p));
+}
+
+#define try_malloc malloc
+static inline ALWAYS_INLINE gpointer
+gm_try_malloc(gulong size)
+{
+	return GM_VTABLE_METHOD(try_malloc, (size));
+}
+#undef try_malloc
+
+#define try_realloc realloc
+static inline ALWAYS_INLINE gpointer
+gm_try_realloc(gpointer p, gulong size)
+{
+	return GM_VTABLE_METHOD(try_realloc, (p, size));
+}
+#undef try_realloc
+
+/***
+ *** Remap g_malloc() and friends to be able to emulate g_mem_set_vtable()
+ *** with GTK1.  Fortunately, glib1.x placed the allocation routines in
+ *** a dedicated mem.o file, so we may safely redefine them here.
+ ***
+ *** NOTE: This a hack and does not work on some platforms.
+ ***/
+
+#undef g_malloc
+gpointer
+g_malloc(gulong size)
+{
+	gpointer p;
+
+	if (size == 0)
+		return NULL;
+
+	p = gm_malloc(size);
+
+	if (p)
+		return p;
+
+	g_error("allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+#undef g_malloc0
+gpointer
+g_malloc0(gulong size)
+{
+	gpointer p;
+
+	if (size == 0)
+		return NULL;
+
+	p = gm_malloc(size);
+
+	if (p) {
+		memset(p, 0, size);
+		return p;
+	}
+
+	g_error("allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+#undef g_realloc
+gpointer
+g_realloc(gpointer p, gulong size)
+{
+	gpointer n;
+
+	if (size == 0) {
+		gm_free(p);
+		return NULL;
+	}
+
+	n = gm_realloc(p, size);
+
+	if (n)
+		return n;
+
+	g_error("re-allocation of %lu bytes failed", size);
+	return NULL;
+}
+
+#undef g_free
+void
+g_free(gpointer p)
+{
+	gm_free(p);
+}
+
+#undef g_try_malloc
+gpointer
+g_try_malloc(gulong size)
+{
+	return size > 0 ? gm_try_malloc(size) : NULL;
+}
+
+#undef g_try_realloc
+gpointer
+g_try_realloc(gpointer p, gulong size)
+{
+	return size > 0 ? gm_try_realloc(p, size) : NULL;
+}
+
+/**
+ * Emulates a calloc().
+ */
+static gpointer
+emulate_calloc(gsize n, gsize m)
+{
+	gpointer p;
+
+	if (n > 0 && m > 0 && m < ((size_t) -1) / n) {
+		size_t size = n * m;
+		p = gm_malloc(size);
+		memset(p, 0, size);
+	} else {
+		p = NULL;
+	}
+	return p;
+}
+
+/**
+ * Sets the GMemVTable to use for memory allocation.
+ * This function must be called before using any other GLib functions.
+ *
+ * The vtable only needs to provide malloc(), realloc(), and free() functions;
+ * GLib can provide default implementations of the others.
+ * The malloc() and realloc() implementations should return NULL on failure, 
+ */
+void
+g_mem_set_vtable(GMemVTable *vtable)
+{
+	gm_vtable.gmvt_malloc = vtable->gmvt_malloc;
+	gm_vtable.gmvt_realloc = vtable->gmvt_realloc;
+	gm_vtable.gmvt_free = vtable->gmvt_free;
+
+	gm_vtable.gmvt_calloc = vtable->gmvt_calloc
+		? vtable->gmvt_calloc
+		: emulate_calloc;
+	gm_vtable.gmvt_try_malloc = vtable->gmvt_try_malloc
+		? vtable->gmvt_try_malloc
+		: vtable->gmvt_malloc;
+	gm_vtable.gmvt_try_realloc = vtable->gmvt_try_realloc
+		? vtable->gmvt_try_realloc
+		: vtable->gmvt_realloc;
+}
+
+/**
+ * Are we using system's malloc?
+ */
+gboolean
+g_mem_is_system_malloc(void)
+{
+	return NULL == gm_vtable.gmvt_malloc ||
+		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+			cast_pointer_to_func(real_malloc) ||
+		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+			cast_pointer_to_func(malloc);
+}
+#endif	/* USE_GLIB1 */
+
+/**
+ * Safe reallocation routine during final memory cleanup.
+ */
+static inline void *
+safe_realloc(void *p, size_t len)
+{
+	if (NULL == p) {
+		return malloc(len);
+	} else if (0 == len) {
+		/* NOTHING */
+	} else {
+		g_error("no realloc() allowed during final memory cleanup");
+	}
+
+	return NULL;
+}
+
+/**
+ * Safe free routine during final memory cleanup.
+ */
+static inline void
+safe_free(void *unused_p)
+{
+	(void) unused_p;
+	/* NOTHING */
+}
+
+/**
+ * Install safe memory vtable for final memory cleanup.
+ *
+ * When the memory vtable has been customized, redirecting g_malloc() to
+ * some other routine like halloc(), we can't easily perform final shutdown
+ * of the zalloc() and walloc() memory allocators because any call to
+ * log something still present could allocate memory and reenter code that
+ * is using the data structures being cleaned up.
+ *
+ * At this time though, we don't really care about freeing allocated memory
+ * since we're about to exit, but we want to be able to allocate new one
+ * safely.
+ */
+void
+gm_mem_set_safe_vtable(void)
+{
+#if defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+		defined(REMAP_ZALLOC)
+	static GMemVTable vtable;
+
+	if (g_mem_is_system_malloc())
+		return;
+
+#if GLIB_CHECK_VERSION(2,0,0)
+	vtable.malloc = real_malloc;
+	vtable.realloc = safe_realloc;
+	vtable.free = safe_free;
+#else	/* GLib < 2.0.0 */
+	vtable.gmvt_malloc = real_malloc;
+	vtable.gmvt_realloc = safe_realloc;
+	vtable.gmvt_free = safe_free;
+#endif	/* GLib >= 2.0.0 */
+
+	g_mem_set_vtable(&vtable);
+
+#endif	/* USE_HALLOC || TRACK_MALLOC || TRACK_ZALLOC || REMAP_ZALLOC */
+}
 
 /* vi: set ts=4 sw=4 cindent: */
