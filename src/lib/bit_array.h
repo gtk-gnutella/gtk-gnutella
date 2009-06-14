@@ -41,9 +41,9 @@
 
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
- * <bitstring.h> could be used for better efficiency. So far, the following
- * implementation does not eliminate loop overhead by handling all bits
- * of a "guchar" at once where possible.
+ * <bitstring.h> could be used for better efficiency.
+ * The following implementation tries to eliminate loop overhead by handling
+ * all bits of a "char" at once, where possible.
  */
 
 typedef unsigned long bit_array_t;
@@ -238,11 +238,6 @@ bit_array_first_clear(const bit_array_t *base, size_t from, size_t to)
 
 	g_assert(from <= to);
 
-	for (i = from; i <= to; i++) {
-		if (!bit_array_get(base, i))
-			return i;
-	}
-
 	for (i = from; i <= to; /* NOTHING */) {
 		if (0 == (i & BIT_ARRAY_BITMASK)) {
 			size_t n = (to - i) >> BIT_ARRAY_BITSHIFT;
@@ -261,6 +256,7 @@ bit_array_first_clear(const bit_array_t *base, size_t from, size_t to)
 					}
 					i += BIT_ARRAY_BITSIZE;
 				}
+				continue;
 			}
 		}
 		if (!bit_array_get(base, i))
