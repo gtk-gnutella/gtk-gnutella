@@ -2172,14 +2172,17 @@ lk_msg_dropped(gpointer obj, knode_t *kn, pmsg_t *unused_mb)
 	nl->msg_dropped++;
 	nl->udp_drops++;
 
+	if (map_remove(nl->queried, kn->id))
+		knode_refcnt_dec(kn);
+	if (map_remove(nl->pending, kn->id))
+		knode_refcnt_dec(kn);
+
 	if (!(nl->flags & NL_F_SENDING)) {
-		if (map_remove(nl->queried, kn->id))	/* Did not send the message */
-			knode_refcnt_dec(kn);
-		if (map_remove(nl->pending, kn->id))
-			knode_refcnt_dec(kn);
 		lookup_shortlist_add(nl, kn);
 	} else {
 		nl->flags |= NL_F_UDP_DROP;			/* Caller must stop sending */
+
+		/* Will not be removed from the shortlist if dropped synchronously */
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_message("DHT LOOKUP[%s] synchronous UDP drop",
