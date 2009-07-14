@@ -75,6 +75,11 @@ sha1_feed_string(SHA1Context *ctx, const char *s)
 
 /**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
+ *
+ * @attention
+ * This is a slow operation, and the routine even sleeps for 250 ms, so it
+ * must be called only when a truly random seed is required, ideally only
+ * during initialization.
  */
 void
 entropy_collect(struct sha1 *digest)
@@ -120,15 +125,12 @@ entropy_collect(struct sha1 *digest)
 		 * Compute the SHA1 of the output (either ps or /dev/urandom).
 		 */
 
-		SHA1Input(&ctx, f, sizeof *f);		/* Initial state */
-
 		for (;;) {
 			guint8 data[1024];
 			int r;
 			int len = is_pipe ? sizeof(data) : 128;
 
 			r = fread(data, 1, len, f);
-			SHA1Input(&ctx, f, sizeof *f);	/* Changes as we read */
 			if (r)
 				SHA1Input(&ctx, data, r);
 			if (r < len || !is_pipe)		/* Read once from /dev/urandom */
