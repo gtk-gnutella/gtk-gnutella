@@ -1101,9 +1101,9 @@ upload_likely_from_browser(const header_t *header)
 
 	buf = header_get(header, "Accept");
 	if (buf) {
-		if (strtok_has(buf, ",", "text/html"))
+		if (strtok_has(buf, ",;", "text/html"))
 			return TRUE;
-		if (strtok_has(buf, ",", "text/*"))
+		if (strtok_has(buf, ",;", "text/*"))
 			return TRUE;
 	}
 
@@ -4082,11 +4082,10 @@ upload_request_special(struct upload *u, const header_t *header)
 		if (buf) {
 			if (strtok_has(buf, ",", "application/x-gnutella-packets")) {
 				flags |= BH_F_QHITS;
-			} else if (strtok_has(buf, ",", "text/html")) {
-				flags |= BH_F_HTML;
 			} else if (
-				strtok_has(buf, ",", "*/*") ||
-				strtok_has(buf, ",", "text/*")
+				strtok_has(buf, ",;", "*/*") ||
+				strtok_has(buf, ",;", "text/html") ||
+				strtok_has(buf, ",;", "text/*")
 			) {
 				flags |= BH_F_HTML;	/* A browser probably */
 			} else {
