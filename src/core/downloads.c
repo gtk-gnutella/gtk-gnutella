@@ -13945,7 +13945,7 @@ download_thex_done(struct download *d)
 		cancel_all = TRUE;
 		goto finish;
 	}
-	file_info_got_tigertree(fi, leaves, num_leaves);
+	file_info_got_tigertree(fi, leaves, num_leaves, TRUE);
 	cancel_all = TRUE;
 
 finish:

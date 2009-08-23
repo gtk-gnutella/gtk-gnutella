@@ -802,7 +802,7 @@ fi_tigertree_free(fileinfo_t *fi)
 
 void
 file_info_got_tigertree(fileinfo_t *fi,
-	const struct tth *leaves, size_t num_leaves)
+	const struct tth *leaves, size_t num_leaves, gboolean mark_dirty)
 {
 	filesize_t num_blocks;
 
@@ -823,7 +823,8 @@ file_info_got_tigertree(fileinfo_t *fi,
 		num_blocks = (num_blocks + 1) / 2;
 		fi->tigertree.slice_size *= 2;
 	}
-	fi->dirty = TRUE;
+	if (mark_dirty)
+		fi->dirty = TRUE;
 }
 
 /**
@@ -1755,7 +1756,8 @@ G_STMT_START {				\
 				
 				STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 				leaves = (const struct tth *) &tmp[0];
-				file_info_got_tigertree(fi, leaves, tmpguint / TTH_RAW_SIZE);
+				file_info_got_tigertree(fi,
+					leaves, tmpguint / TTH_RAW_SIZE, FALSE);
 			} else {
 				g_warning("bad length %d for TIGERTREE in fileinfo v%u "
 					"for \"%s\"",
@@ -3044,9 +3046,10 @@ file_info_retrieve(void)
 			 * in the common "fileinfo" file. Therefore, it MUST be fetched
 			 * from "dfi".
 			 */
+
 			if (dfi && dfi->tigertree.leaves && NULL == fi->tigertree.leaves) {
 				file_info_got_tigertree(fi,
-					dfi->tigertree.leaves, dfi->tigertree.num_leaves);
+					dfi->tigertree.leaves, dfi->tigertree.num_leaves, FALSE);
 			}
 
 			if (dfi) {
