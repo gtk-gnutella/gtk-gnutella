@@ -709,8 +709,12 @@ pmap_extend(struct pmap *pm)
 		narray = alloc_pages(nsize, FALSE);
 
 		if (pm->pages != old_pages) {
-			if (vmm_debugging(0))
-				g_warning("VMM already recursed to pmap_extend(), ignoring");
+			if (vmm_debugging(0)) {
+				g_warning("VMM already recursed to pmap_extend(), "
+					"pmap is now %lu KiB",
+					(unsigned long) (kernel_pagesize * pm->pages) / 1024);
+			}
+			g_assert(kernel_pagesize * pm->pages >= nsize);
 			if (narray != NULL)
 				free_pages(narray, nsize, FALSE);
 			return;
@@ -913,12 +917,14 @@ pmap_insert_region(struct pmap *pm,
 	if (idx > 0) {
 		struct vm_fragment *prev = &pm->array[idx - 1];
 
+		g_assert(ptr_cmp(vmf_end(prev), start) <= 0); /* No overlap with prev */
+
 		if (vmf_is_foreign(prev) == foreign && vmf_end(prev) == start) {
 			vmf_set_end(prev, end, foreign);
 
 			/*
 			 * If we're now bumping into the next chunk, we need to coalesce
-			 * it with the previous one and get rid of its entry.
+			 * it with the previous one and get rid of that "next" entry.
 			 */
 			
 			if (idx < pm->count) {
@@ -926,12 +932,7 @@ pmap_insert_region(struct pmap *pm,
 
 				if (vmf_is_foreign(next) == foreign && next->start == end) {
 					vmf_set_end(prev, vmf_end(next), foreign);
-
-					pm->count--;
-					if (idx < pm->count) {
-						memmove(&pm->array[idx], &pm->array[idx+1],
-							sizeof(pm->array[0]) * (pm->count - idx));
-					}
+					goto remove_idx_entry;
 				}
 			}
 			return;
@@ -941,8 +942,24 @@ pmap_insert_region(struct pmap *pm,
 	if (idx < pm->count) {
 		struct vm_fragment *next = &pm->array[idx];
 
+		g_assert(ptr_cmp(end, next->start) <= 0);	/* No overlap with next */
+
 		if (vmf_is_foreign(next) == foreign && next->start == end) {
 			next->start = start;
+
+			/*
+			 * If we're now bumping into the previous chunk, we need to
+			 * coalesce it with the next one and get rid of the "next" entry.
+			 */
+			
+			if (idx > 0) {
+				struct vm_fragment *prev = &pm->array[idx - 1];
+
+				if (vmf_is_foreign(prev) == foreign && vmf_end(prev) == start) {
+					vmf_set_end(prev, vmf_end(next), foreign);
+					goto remove_idx_entry;
+				}
+			}
 			return;
 		}
 
@@ -958,6 +975,20 @@ pmap_insert_region(struct pmap *pm,
 	vmf = &pm->array[idx];
 	vmf->start = start;
 	vmf_set_end(vmf, end, foreign);
+
+	return;
+
+remove_idx_entry:
+	/*
+	 * Get rid of the entry at ``idx'' in the array.
+	 * We need to shift data back by one slot unless the last entry is removed.
+	 */
+
+	pm->count--;
+	if (idx < pm->count) {
+		memmove(&pm->array[idx], &pm->array[idx+1],
+			sizeof(pm->array[0]) * (pm->count - idx));
+	}
 }
 
 /**
