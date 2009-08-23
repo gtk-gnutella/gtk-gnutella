@@ -3470,6 +3470,7 @@ parq_upload_request(struct upload *u)
 
 		puq->by_addr->uploading--;
 		puq->has_slot = FALSE;
+		parq_upload_unfreeze_all(puq);	/* Allow others to compete */
 	}
 
 	/*
