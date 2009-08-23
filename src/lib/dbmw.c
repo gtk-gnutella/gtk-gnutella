@@ -523,7 +523,17 @@ flush_dirty(gpointer key, gpointer value, gpointer data)
 
 /**
  * Synchronize dirty values.
- * @return amount of values flush plus amount of sdbm pages flushes, -1 if
+ *
+ * The ``which'' argument is a bitfield indicating the set of things to
+ * synchronize:
+ *
+ * DBMW_SYNC_CACHE requests that dirty values from the local DBMW cache
+ * be flushed to the DB map layer immediately.
+ *
+ * DBMW_SYNC_MAP requests that the DB map layer be flushed, if it is backed
+ * by disk data.
+ *
+ * @return amount of value flushes plus amount of sdbm page flushes, -1 if
  * an error occurred.
  */
 ssize_t
