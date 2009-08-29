@@ -801,7 +801,8 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 }
 
 /**
- * Add a new fragment at the tail of pmap (must be added in order).
+ * Add a new fragment at the tail of pmap (must be added in order), coalescing
+ * fragments of the same foreign type.
  */
 static void
 pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
@@ -823,7 +824,19 @@ pmap_add(struct pmap *pm, const void *start, const void *end, gboolean foreign)
 
 	if (pm->count > 0) {
 		vmf = &pm->array[pm->count - 1];
-		g_assert(ptr_cmp(start, vmf->end) >= 0);
+		g_assert(ptr_cmp(start, vmf_end(vmf)) >= 0);
+	}
+
+	/*
+	 * Attempt coalescing.
+	 */
+
+	if (pm->count > 0) {
+		vmf = &pm->array[pm->count - 1];
+		if (vmf_is_foreign(vmf) == foreign && vmf_end(vmf) == start) {
+			vmf_set_end(vmf, end, foreign);
+			return;
+		}
 	}
 
 	/*
@@ -932,7 +945,18 @@ pmap_insert_region(struct pmap *pm,
 
 				if (vmf_is_foreign(next) == foreign && next->start == end) {
 					vmf_set_end(prev, vmf_end(next), foreign);
-					goto remove_idx_entry;
+
+					/*
+					 * Get rid of the entry at ``idx'' in the array.
+					 * We need to shift data back by one slot unless we remove
+					 * the last entry.
+					 */
+
+					pm->count--;
+					if (idx < pm->count) {
+						memmove(&pm->array[idx], &pm->array[idx+1],
+							sizeof(pm->array[0]) * (pm->count - idx));
+					}
 				}
 			}
 			return;
@@ -946,20 +970,6 @@ pmap_insert_region(struct pmap *pm,
 
 		if (vmf_is_foreign(next) == foreign && next->start == end) {
 			next->start = start;
-
-			/*
-			 * If we're now bumping into the previous chunk, we need to
-			 * coalesce it with the next one and get rid of the "next" entry.
-			 */
-			
-			if (idx > 0) {
-				struct vm_fragment *prev = &pm->array[idx - 1];
-
-				if (vmf_is_foreign(prev) == foreign && vmf_end(prev) == start) {
-					vmf_set_end(prev, vmf_end(next), foreign);
-					goto remove_idx_entry;
-				}
-			}
 			return;
 		}
 
@@ -975,20 +985,6 @@ pmap_insert_region(struct pmap *pm,
 	vmf = &pm->array[idx];
 	vmf->start = start;
 	vmf_set_end(vmf, end, foreign);
-
-	return;
-
-remove_idx_entry:
-	/*
-	 * Get rid of the entry at ``idx'' in the array.
-	 * We need to shift data back by one slot unless the last entry is removed.
-	 */
-
-	pm->count--;
-	if (idx < pm->count) {
-		memmove(&pm->array[idx], &pm->array[idx+1],
-			sizeof(pm->array[0]) * (pm->count - idx));
-	}
 }
 
 /**
