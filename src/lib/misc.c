@@ -522,6 +522,33 @@ is_strcaseprefix(const char *str, const char *prefix)
 }
 
 /**
+ * Check whether ``suffix'' is the end of ``str''.
+ *
+ * @param str		a NUL-terminated string
+ * @param len		length of ``str'', 0 means compute it
+ * @param suffix	the suffix to look for (NUL-terminated string)
+ */
+gboolean
+is_strsuffix(const char *str, size_t len, const char *suffix)
+{
+	size_t slen;
+	size_t flen;
+
+	g_assert(NULL != str);
+	g_assert(NULL != suffix);
+
+	slen = 0 == len ? strlen(str) : len;
+	flen = strlen(suffix);
+
+	if (slen < flen) {
+		return FALSE;
+	} else {
+		const char *p = str + (slen - flen);
+		return 0 == strcmp(p, suffix);
+	}
+}
+
+/**
  * Check for file existence.
  */
 gboolean
