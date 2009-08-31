@@ -123,6 +123,7 @@ void download_maybe_finished(struct download *d);
 gboolean download_handle_http(const char *url);
 gboolean download_is_stalled(struct download *);
 gboolean download_is_alive(const struct download *);
+gboolean download_is_completed_filename(const char *name);
 
 gboolean download_remove(struct download *d);
 void download_abort(struct download *d);

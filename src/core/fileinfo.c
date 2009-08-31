@@ -1610,6 +1610,15 @@ G_STMT_START {				\
 	}
 
 	if (!file_info_get_trailer(fd, &trailer, &sb, pathname)) {
+		/*
+		 * Silently ignore completed download files that would still lie
+		 * in the directory where incomplete files are stored and which would
+		 * therefore have been renamed as .OK or .BAD.
+		 */
+
+		if (download_is_completed_filename(pathname))
+			goto eof;
+
 		BAILOUT("could not find trailer");
 		/* NOT REACHED */
 	}

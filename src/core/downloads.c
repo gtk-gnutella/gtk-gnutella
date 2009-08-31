@@ -14713,6 +14713,28 @@ download_slow_timer(time_t now)
 }
 
 /*
+ * Is the filename that of a completed download?
+ */
+gboolean
+download_is_completed_filename(const char *name)
+{
+	static const char *ext[] = { DL_OK_EXT, DL_BAD_EXT, DL_UNKN_EXT };
+	unsigned i;
+	size_t namelen;
+
+	g_assert(name != NULL);
+
+	namelen = strlen(name);
+
+	for (i = 0; i < G_N_ELEMENTS(ext); i++) {
+		if (is_strsuffix(name, namelen, ext[i]))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * Local Variables:
  * tab-width:4
  * End:
