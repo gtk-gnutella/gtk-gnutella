@@ -71,6 +71,7 @@ gboolean hcache_add_valid(
 gboolean hcache_node_is_bad(const host_addr_t addr);
 
 void hcache_prune(hcache_type_t type);
+void hcache_purge(const host_addr_t addr, guint16 port);
 
 guint hcache_size(host_type_t type);
 gboolean hcache_is_low(host_type_t type);

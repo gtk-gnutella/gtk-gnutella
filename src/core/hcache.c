@@ -770,6 +770,9 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	return TRUE;
 }
 
+/**
+ * Add host to the proper cache.
+ */
 gboolean
 hcache_add(hcache_type_t type,
 	const host_addr_t addr, guint16 port, const char *what)
@@ -838,6 +841,29 @@ hcache_remove(gnet_host_t *h)
     hc = caches[hce->type];
 
     hcache_unlink_host(hc, h);
+}
+
+/**
+ * Purge host from fresh/valid caches.
+ */
+void
+hcache_purge(const host_addr_t addr, guint16 port)
+{
+	hostcache_entry_t *hce;
+	gnet_host_t *host;
+
+	if (hcache_ht_get(addr, port, &host, &hce)) {
+		switch (hce->type) {
+		case HCACHE_FRESH_ANY:
+		case HCACHE_VALID_ANY:
+		case HCACHE_FRESH_ULTRA:
+		case HCACHE_VALID_ULTRA:
+			hcache_remove(host);
+			return;
+		default:
+			break;
+		}
+	}
 }
 
 /**

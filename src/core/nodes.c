@@ -5118,12 +5118,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
 	}
 
-	/*
-	 * X-Try and X-Try-Ultrapeers -- normally only sent on 503, but some
-	 * servents always send such lines during the connection process.
-	 */
-
-	extract_header_pongs(head, n);
 
 	/*
 	 * Check that everything is OK so far for an outgoing connection: if
@@ -5132,6 +5126,23 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	if (!incoming && !analyse_status(n, NULL))
 		return;				/* node_remove() has freed s->getline */
+
+	/*
+	 * Decline handshakes from closed P2P networks politely.
+	 */
+	
+	field = header_get(head, "X-Auth-Challenge");
+	if (field) {
+		static const char msg[] = N_("Not a network member");
+		if (GNET_PROPERTY(node_debug)) {
+			g_warning("rejecting authentication challenge from %s <%s>",
+				node_addr(n), node_vendor(n));
+		}
+		hcache_purge(n->addr, n->port);	/* Remove from fresh/valid caches */
+		node_send_error(n, 403, "%s", msg);
+		node_remove(n, "%s", _(msg));
+		return;
+	}
 
 	/*
 	 * Vendor-specific banning.
@@ -5150,6 +5161,17 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			return;
 		}
 	}
+
+	/*
+	 * X-Try and X-Try-Ultrapeers -- normally only sent on 503, but some
+	 * servents always send such lines during the connection process.
+	 *
+	 * We no longer collect header pongs from banned vendors or closed
+	 * networks such as Foxy, so we perform the extraction after checking
+	 * for the presence of an X-Auth-Challenge header.
+	 */
+
+	extract_header_pongs(head, n);
 
 	/*
 	 * Enforce our connection count here.
