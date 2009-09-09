@@ -2725,12 +2725,6 @@ node_host_is_connected(const host_addr_t addr, guint16 port)
  * We stick to strict formatting rules: no line of more than 76 chars.
  *
  * @return a pointer to static data.
- *
- * @bug
- * XXX Refactoring note: there is a need for generic header formatting
- * routines, and especially the dumping routing, which could be taught
- * basic formatting and splitting so that very long lines are dumped using
- * continuations. --RAM, 10/01/2002
  */
 static const char *
 formatted_connection_pongs(const char *field, host_type_t htype, int num)
@@ -3889,6 +3883,59 @@ node_set_current_peermode(node_peer_t mode)
 	old_mode = mode;
 }
 
+/**
+ * Parse an IP:port header.
+ *
+ * This routine is very similar to string_to_host_addr_port() but has two
+ * important differences: it skips leading ASCII spaces and a missing port
+ * defaults to GTA_PORT.
+ *
+ * @param str			the header string to parse
+ * @param endptr		written with address of first unparsed character
+ * @param addr_ptr		where the parsed address is returned.
+ * @param port_ptr		where the parsed port is returned
+ *
+ * @return TRUE if parsed correctly, FALSE on errors.
+ */
+static gboolean
+parse_ip_port(const char *str, const char **endptr,
+	host_addr_t *addr_ptr, guint16 *port_ptr)
+{
+	const char *s = str;
+	host_addr_t addr;
+	guint16 port;
+	gboolean ret = FALSE;
+
+	s = skip_ascii_spaces(s);
+	if (!string_to_host_addr(s, &s, &addr) || !is_host_addr(addr))
+		goto done;
+
+	if (':' == s[0]) {
+		guint32 u;
+		int error;
+
+		s++;
+		u = parse_uint32(s, &s, 10, &error);
+		port = (error || u < 1024 || u > 65535) ? 0 : u;
+	} else {
+		port = GTA_PORT;
+	}
+
+	if (0 == port)
+		goto done;
+
+	if (addr_ptr)
+		*addr_ptr = addr;
+	if (port_ptr)
+		*port_ptr = port;
+
+done:
+	if (endptr)
+		*endptr = s;
+
+	return ret;
+}
+
 static guint
 feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
 {
@@ -3904,23 +3951,7 @@ feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
 		if (',' == s[0])
 			s++;
 
-		s = skip_ascii_spaces(s);
-		string_to_host_addr(s, &s, &addr);
-		if (!is_host_addr(addr))
-			continue;
-
-		if (':' == s[0]) {
-			guint32 u;
-			int error;
-
-			s++;
-			u = parse_uint32(s, &s, 10, &error);
-			port = (error || u < 1024 || u > 65535) ? 0 : u;
-		} else {
-			port = GTA_PORT;
-		}
-
-		if (!port)
+		if (!parse_ip_port(s, &s, &addr, &port))
 			continue;
 
 		hcache_add_caught(type, addr, port, name);
@@ -3928,6 +3959,42 @@ feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
 	}
 
 	return n;
+}
+
+/**
+ * Compute node's Gnutella address and port based on the supplied
+ * handshake headers.
+ *
+ * The n->gnet_addr and n->gnet_port fields are updated if we are able
+ * to get the information out of the headers.
+ *
+ * @return TRUE if we were able to intuit an address.
+ */
+static gboolean
+node_intuit_address(struct gnutella_node *n,  header_t *header)
+{
+	static const char *fields[] = {
+		"Node",
+		"Node-IPv6",
+		"Listen-Ip",
+		"X-My-Address",
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(fields); i++) {
+		const char *val = header_get(header, fields[i]);
+		host_addr_t addr;
+		guint16 port;
+
+		if (parse_ip_port(val, NULL, &addr, &port)) {
+			n->gnet_port = port;
+			if (host_address_is_usable(addr))
+				n->gnet_addr = addr;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 /**
@@ -4954,9 +5021,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	/* Node -- remote node Gnet IP/port information */
 
 	if (incoming) {
-		host_addr_t addr;
-		guint16 port;
-
 		/*
 		 * We parse only for incoming connections.  Even though the remote
 		 * node may reply with such a header to our outgoing connections,
@@ -4964,13 +5028,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 * to spend time parsing it.
 		 */
 
-		field = header_get(head, "Node");
-		if (!field) field = header_get(head, "X-My-Address");
-		if (!field) field = header_get(head, "Listen-Ip");
-
-		if (field && string_to_host_addr_port(field, NULL, &addr, &port)) {
+		if (node_intuit_address(n, head)) {
 			if (n->attrs & NODE_A_ULTRA) {
-				pcache_pong_fake(n, addr, port);	/* Might have free slots */
+				/* Might have free slots */
+				pcache_pong_fake(n, n->gnet_addr, n->gnet_port);
 			}
 
 			/*
@@ -4980,12 +5041,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 *		--RAM, 18/03/2002.
 			 */
 
-			n->gnet_port = port;
-			if (host_addr_equal(addr, n->addr)) {
+			if (host_addr_equal(n->gnet_addr, n->addr)) {
                 node_ht_connected_nodes_remove(n->gnet_addr, n->gnet_port);
 
-				n->gnet_addr = addr;			/* Signals: we know the port */
-				n->gnet_pong_addr = addr;		/* Cannot lie about its IP */
+				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
 
                 node_ht_connected_nodes_add(n->gnet_addr, n->gnet_port);
@@ -5138,7 +5197,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			g_warning("rejecting authentication challenge from %s <%s>",
 				node_addr(n), node_vendor(n));
 		}
-		hcache_purge(n->addr, n->port);	/* Remove from fresh/valid caches */
+		/* Remove from fresh/valid caches */
+		hcache_purge(n->gnet_addr, n->gnet_port);
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", _(msg));
 		return;
