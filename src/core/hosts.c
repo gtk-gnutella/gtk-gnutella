@@ -278,7 +278,7 @@ host_address_is_usable(const host_addr_t addr)
  * Check whether host is connectible.
  *
  * i.e. that it has a valid port and that its IP address is not private
- * not bogus.
+ * nor bogus.
  */
 gboolean
 host_is_valid(const host_addr_t addr, guint16 port)
