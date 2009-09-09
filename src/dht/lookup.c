@@ -2419,15 +2419,16 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		 * we get improvements from the others.
 		 */
 
-		if (0 == nl->rpc_latest_pending)
+		if (0 == nl->rpc_latest_pending) {
 			lookup_completed(nl);
+		} else {
+			/*
+			 * Flag lookup as completed, in case we time-out the lookup during
+			 * the final wait for the last RPCs.
+			 */
 
-		/*
-		 * Flag lookup as completed, in case we time-out the lookup during
-		 * the final wait for the last RPCs.
-		 */
-
-		nl->flags |= NL_F_COMPLETED;	/* For lookup_expired() to check */
+			nl->flags |= NL_F_COMPLETED;	/* For lookup_expired() to check */
+		}
 		return FALSE;					/* Do not iterate */
 	}
 
