@@ -3986,7 +3986,7 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
 		host_addr_t addr;
 		guint16 port;
 
-		if (parse_ip_port(val, NULL, &addr, &port)) {
+		if (val != NULL && parse_ip_port(val, NULL, &addr, &port)) {
 			n->gnet_port = port;
 			if (host_address_is_usable(addr))
 				n->gnet_addr = addr;
