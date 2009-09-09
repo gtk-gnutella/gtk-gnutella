@@ -89,7 +89,7 @@ RCSID("$Id$")
 #define ROOTS_SYNC_PERIOD	60000		/**< Flush DB every minute */
 
 #define ROOTKEYS_DB_CACHE_SIZE	512		/**< Cached amount of root keys */
-#define CONTACT_DB_CACHE_SIZE	2048	/**< Cached amount of contacts */
+#define CONTACT_DB_CACHE_SIZE	4096	/**< Cached amount of contacts */
 #define CONTACT_MAP_CACHE_SIZE	128		/**< Amount of SDBM pages to cache */
 
 /**
