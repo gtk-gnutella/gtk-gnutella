@@ -5191,6 +5191,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 	
 	field = header_get(head, "X-Auth-Challenge");
+	if (NULL == field)
+		field = header_get(head, "FP-Auth-Challenge");	/* BearShare */
+
 	if (field) {
 		static const char msg[] = N_("Not a network member");
 		if (GNET_PROPERTY(node_debug)) {
