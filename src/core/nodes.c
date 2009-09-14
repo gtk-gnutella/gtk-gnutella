@@ -3929,6 +3929,8 @@ parse_ip_port(const char *str, const char **endptr,
 	if (port_ptr)
 		*port_ptr = port;
 
+	ret = TRUE;
+	
 done:
 	if (endptr)
 		*endptr = s;
@@ -3960,6 +3962,33 @@ feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
 
 	return n;
 }
+
+static void
+purge_host_cache_from_hub_list(const char *s)
+{
+	g_assert(s);
+    
+    for (; NULL != s; s = strchr(s, ',')) {
+        host_addr_t addr;;
+        guint16 port = 0;
+        
+        if (',' == s[0])
+            s++;
+        
+		if (!parse_ip_port(s, &s, &addr, &port))
+			continue;    
+
+		if (GNET_PROPERTY(node_debug)) {
+			g_message("Purging %s:%u from hostcache...",
+				host_addr_to_string(addr), port);
+		}
+		
+		hcache_purge(addr, port);
+    }
+    
+    return;
+}
+
 
 /**
  * Compute node's Gnutella address and port based on the supplied
@@ -4002,11 +4031,12 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
  * pong cache. If ``gnet'' is TRUE, the header names without a leading
  * "X-" are checked as variants as well.
  *
- * @param header a valid header_t.
- * @param sender the host_type_t of the sender, if unknown use HOST_ANY.
- * @param gnet should be set to TRUE if the headers come from a Gnutella
- *			handshake.
- * @param peer the peer address who sent the headers.
+ * @param header	a valid header_t.
+ * @param sender	the host_type_t of the sender, if unknown use HOST_ANY.
+ * @param gnet		should be set to TRUE if the headers come from a
+					Gnutella handshake.
+ * @param peer		the peer address who sent the headers.
+ * @param vendor	the vendor who sent the headers, for error logging
  *
  * @return the amount of valid peer addresses we parsed.
  *
@@ -4021,7 +4051,8 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
  */
 guint
 feed_host_cache_from_headers(header_t *header,
-	host_type_t sender, gboolean gnet, const host_addr_t peer)
+	host_type_t sender, gboolean gnet, const host_addr_t peer,
+	const char *vendor)
 {
 	static const struct {
 		const char *name;	/* Name of the header */
@@ -4074,8 +4105,8 @@ feed_host_cache_from_headers(header_t *header,
 					g_message("peer %s sent %u pong%s in %s header",
 						host_addr_to_string(peer), r, 1 == r ? "" : "s", name);
 				else
-					g_message("peer %s sent an unparseable %s header",
-						host_addr_to_string(peer), name);
+					g_message("peer %s <%s> sent unparseable %s header: \"%s\"",
+						host_addr_to_string(peer), vendor, name, val);
 			}
 		}
 		if (!gnet)
@@ -4095,7 +4126,7 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 {
 	feed_host_cache_from_headers(header,
 		NODE_P_ULTRA == n->peermode ? HOST_ULTRA : HOST_ANY,
-		TRUE, n->addr);
+		TRUE, n->addr, node_vendor(n));
 }
 
 /**
@@ -5182,9 +5213,33 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Check that everything is OK so far for an outgoing connection: if
 	 * they did not reply with 200, then there's no need for us to reply back.
 	 */
+	
+	if (!incoming) {
+		if (!analyse_status(n, NULL)) {
+	 		/*
+			 * Make sure that we do not put private network 'hub' nodes in the
+			 * host cache.  If the node replied with X-Try-Hubs, which is a
+			 * non-Gnutella network, make sure we record the node's IP:port
+			 * in the alien cache as well, to prevent further connection
+			 * attempts to that host.
+			 */
 
-	if (!incoming && !analyse_status(n, NULL))
-		return;				/* node_remove() has freed s->getline */
+			field = header_get(head, "X-Try-Hubs");
+			if (field) {
+				if (GNET_PROPERTY(node_debug)) {
+					g_warning("rejecting private network host suggestions "
+						"from %s <%s>", node_addr(n), node_vendor(n));
+				}
+            
+				/* Remove node and suggestions from fresh/valid caches */
+				hcache_purge(n->gnet_addr, n->gnet_port);
+				purge_host_cache_from_hub_list(field);
+				hcache_add(HCACHE_ALIEN,
+					n->gnet_addr, n->gnet_port, "alien hub");
+			}
+        }
+        return;                /* node_remove() has freed s->getline */
+    }
 
 	/*
 	 * Decline handshakes from closed P2P networks politely.
@@ -5202,6 +5257,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 		/* Remove from fresh/valid caches */
 		hcache_purge(n->gnet_addr, n->gnet_port);
+		hcache_add(HCACHE_ALIEN, n->gnet_addr, n->gnet_port, "alien network");
 		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", _(msg));
 		return;

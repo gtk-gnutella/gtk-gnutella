@@ -608,7 +608,8 @@ void node_update_udp_socket(void);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
 
 guint feed_host_cache_from_headers(header_t *headers,
-	host_type_t sender, gboolean gnet, const host_addr_t peer);
+	host_type_t sender, gboolean gnet, const host_addr_t peer,
+	const char *vendor);
 
 gnutella_node_t *node_browse_prepare(
 	gnet_host_t *host, const char *vendor, gnutella_header_t *header,

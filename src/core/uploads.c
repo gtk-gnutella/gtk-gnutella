@@ -4281,14 +4281,15 @@ upload_request(struct upload *u, header_t *header)
 	 *		- Check for illegal characters (like NUL)
 	 */
 
-	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr);
+	upload_request_handle_user_agent(u, header);
+	extract_fw_node_info(u, header);
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, u->addr,
+		upload_vendor_str(u));
 	
 	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
 		tls_cache_insert(u->addr, u->socket->port);
 	}
 
-	upload_request_handle_user_agent(u, header);
-	extract_fw_node_info(u, header);
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,

@@ -9853,16 +9853,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		check_push_proxies(d, header);
 	}
 
-	feed_host_cache_from_headers(header, HOST_ANY, FALSE, download_addr(d));
-
-	/*
-	 * If we get an X-Hostname header, we know the remote end is not
-	 * firewalled, and we get its DNS name: even if its IP changes, we'll
-	 * be able to recontact it.
-	 */
-
-	check_xhostname(d, header);
-
 	/*
 	 * Extract Server: header string, if present, and store it unless
 	 * we already have it.
@@ -9871,6 +9861,17 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (download_get_server_name(d, header)) {
 		fi_src_info_changed(d);
 	}
+
+	feed_host_cache_from_headers(header, HOST_ANY, FALSE, download_addr(d),
+		download_vendor_str(d));
+
+	/*
+	 * If we get an X-Hostname header, we know the remote end is not
+	 * firewalled, and we get its DNS name: even if its IP changes, we'll
+	 * be able to recontact it.
+	 */
+
+	check_xhostname(d, header);
 	node_check_remote_ip_header(download_addr(d), header);
 
 	/*
@@ -12985,7 +12986,7 @@ download_move_error(struct download *d)
 	file_info_strip_binary(fi);
 
 	if (NULL == dest || -1 == rename(fi->pathname, dest)) {
-		g_message("Could not rename \"%s\" as \"%s\": %s",
+		g_warning("Could not rename \"%s\" as \"%s\": %s",
 			fi->pathname, dest, g_strerror(errno));
 		download_set_status(d, GTA_DL_DONE);
 	} else {
