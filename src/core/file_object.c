@@ -106,12 +106,12 @@ static GHashTable *ht_file_objects_rdwr;	/* read+write-able file objects */
 enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
 struct file_object {
+	enum file_object_magic magic;
 	const char *pathname;	/* atom */
 	int ref_count;
 	int fd;
 	int accmode;	/* O_RDONLY, O_WRONLY, O_RDWR */
 	int removed;
-	enum file_object_magic magic;
 };
 
 /**
@@ -253,8 +253,19 @@ file_object_find(const char * const pathname, int accmode)
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
 	fo = g_hash_table_lookup(file_object_mode_get_table(O_RDWR), pathname);
-	if (!fo && O_RDWR != accmode) {
-		fo = g_hash_table_lookup(file_object_mode_get_table(accmode), pathname);
+
+	/*
+	 * We need to find a more specific file object if looking for O_WRONLY
+	 * or O_RDONLY ones.
+	 */
+
+	if (O_RDWR != accmode) {
+		struct file_object *xfo;
+		xfo = g_hash_table_lookup(file_object_mode_get_table(accmode), pathname);
+		if (xfo != NULL) {
+			g_assert(xfo->accmode == accmode);
+			fo = xfo;
+		}
 	}
 
 	if (fo) {
