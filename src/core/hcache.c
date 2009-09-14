@@ -503,6 +503,7 @@ hcache_slots_max(hcache_type_t type)
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
+	case HCACHE_ALIEN:
 		return GNET_PROPERTY(max_bad_hosts_cached);
 	case HCACHE_NONE:
 	case HCACHE_MAX:
@@ -539,6 +540,7 @@ hcache_slots_left(hcache_type_t type)
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
+	case HCACHE_ALIEN:
 		current = hash_list_length(caches[type]->hostlist);
 		break;
 	case HCACHE_NONE:
@@ -613,10 +615,19 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		return FALSE;
     }
 
-	if (node_host_is_connected(addr, port)) {
-        stats[HCACHE_ALREADY_CONNECTED]++;
-		return FALSE;			/* Connected to that host? */
-    }
+	switch (type) {
+	case HCACHE_FRESH_ANY:
+	case HCACHE_FRESH_ULTRA:
+	case HCACHE_VALID_ANY:
+	case HCACHE_VALID_ULTRA:
+		if (node_host_is_connected(addr, port)) {
+			stats[HCACHE_ALREADY_CONNECTED]++;
+			return FALSE;			/* Connected to that host? */
+		}
+		break;
+	default:
+		break;
+	}
 
 	hc = caches[type];
     g_assert(hc->type == type);
@@ -664,6 +675,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		case HCACHE_TIMEOUT:
 		case HCACHE_BUSY:
 		case HCACHE_UNSTABLE:
+		case HCACHE_ALIEN:
 			/*
 			 * Move host to the proper cache, if not already in one of the
 			 * "bad" caches.
@@ -673,6 +685,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 			case HCACHE_TIMEOUT:
 			case HCACHE_BUSY:
 			case HCACHE_UNSTABLE:
+			case HCACHE_ALIEN:
 				return TRUE;
 			default:
 				break;				/* Move it */
@@ -1488,6 +1501,11 @@ hcache_init(void)
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.unstable");
     caches[HCACHE_UNSTABLE]->addr_only = TRUE;
+
+    caches[HCACHE_ALIEN] = hcache_alloc(
+        HCACHE_ALIEN,
+        PROP_HOSTS_IN_BAD_CATCHER,
+        "hosts.alien");
 }
 
 /**
@@ -1559,7 +1577,8 @@ hcache_close(void)
         HCACHE_VALID_ULTRA,
         HCACHE_TIMEOUT,
         HCACHE_BUSY,
-        HCACHE_UNSTABLE
+        HCACHE_UNSTABLE,
+        HCACHE_ALIEN
     };
 	guint i;
 

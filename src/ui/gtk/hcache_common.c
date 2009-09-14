@@ -46,6 +46,7 @@ get_hcache_name(hcache_type_t type)
 	case HCACHE_TIMEOUT:     return _("Timeout");
 	case HCACHE_BUSY:        return _("Busy");
 	case HCACHE_UNSTABLE:    return _("Unstable");
+	case HCACHE_ALIEN:       return _("Alien");
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;

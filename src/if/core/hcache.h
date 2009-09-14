@@ -45,7 +45,8 @@ typedef enum {
                                gave us a timeout during connection. */
     HCACHE_BUSY,          /**< We put in this list all the Gnet nodes which
                                gave us a 503 (busy) during connection. */
-    HCACHE_UNSTABLE,
+    HCACHE_UNSTABLE,      /**< Unstable IPs */
+    HCACHE_ALIEN,         /**< Alien networks (protected by auth challenges) */
 	HCACHE_NONE,
     HCACHE_MAX
 } hcache_type_t;
