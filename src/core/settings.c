@@ -1189,6 +1189,7 @@ max_bad_hosts_cached_changed(property_t prop)
     hcache_prune(HCACHE_BUSY);
     hcache_prune(HCACHE_TIMEOUT);
     hcache_prune(HCACHE_UNSTABLE);
+    hcache_prune(HCACHE_ALIEN);
 
     return FALSE;
 }
