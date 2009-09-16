@@ -181,12 +181,14 @@ stop_mass_update(hostcache_t *hc)
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
+        case HCACHE_ALIEN:
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 hash_list_length(caches[HCACHE_TIMEOUT]->hostlist) +
                 hash_list_length(caches[HCACHE_UNSTABLE]->hostlist) +
-                hash_list_length(caches[HCACHE_BUSY]->hostlist));
-            break;
-        default:
+                hash_list_length(caches[HCACHE_BUSY]->hostlist) +
+                hash_list_length(caches[HCACHE_ALIEN]->hostlist));
+                break;
+            default:
             g_error("stop_mass_update: unknown cache type: %d", hc->type);
         }
     }
