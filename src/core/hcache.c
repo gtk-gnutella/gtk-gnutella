@@ -187,8 +187,9 @@ stop_mass_update(hostcache_t *hc)
                 hash_list_length(caches[HCACHE_UNSTABLE]->hostlist) +
                 hash_list_length(caches[HCACHE_BUSY]->hostlist) +
                 hash_list_length(caches[HCACHE_ALIEN]->hostlist));
-                break;
-            default:
+            break;
+		case HCACHE_NONE:
+		case HCACHE_MAX:
             g_error("stop_mass_update: unknown cache type: %d", hc->type);
         }
     }
