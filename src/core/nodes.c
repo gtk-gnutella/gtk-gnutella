@@ -5237,8 +5237,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				hcache_add(HCACHE_ALIEN,
 					n->gnet_addr, n->gnet_port, "alien hub");
 			}
+        	return;                /* node_remove() has freed s->getline */
         }
-        return;                /* node_remove() has freed s->getline */
     }
 
 	/*
