@@ -148,6 +148,7 @@ static struct pmap kernel_pmap;
 static struct pmap local_pmap;
 
 static gboolean safe_to_malloc;		/**< True when malloc() was inited */
+static gboolean stop_freeing;		/**< No longer release memory */
 static guint32 vmm_debug;			/**< Debug level */
 static const void *initial_brk;		/**< Startup position of the heap */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
@@ -615,6 +616,9 @@ alloc_pages(size_t size, gboolean update_pmap)
 static void
 free_pages_intern(void *p, size_t size, gboolean update_pmap)
 {
+	if (G_UNLIKELY(stop_freeing))
+		goto update;		/* Don't mess up with indentation below */
+
 #if defined(HAS_MMAP)
 	{
 		int ret;
@@ -632,6 +636,7 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 
+update:
 	if (update_pmap)
 		pmap_remove(vmm_pmap(), p, size);
 }
@@ -2349,6 +2354,10 @@ vmm_invalidate_pages(void *p, size_t size)
 {
 	RUNTIME_ASSERT(p);
 	RUNTIME_ASSERT(size_is_positive(size));
+
+	if (G_UNLIKELY(stop_freeing))
+		return;
+
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_NONE);
 #endif	/* VMM_PROTECT_FREE_PAGES */
@@ -2921,6 +2930,20 @@ void
 vmm_pre_close(void)
 {
 	safe_to_malloc = FALSE;		/* Turn logging off */
+}
+
+/**
+ * Signal that we should stop freeing memory pages.
+ *
+ * This is mostly useful during final cleanup when halloc() replaces malloc()
+ * because some parts of the cleanup code in glib or libc expect to be able
+ * to access memory that has been freed and do not like us invalidating the
+ * addresses.
+ */
+void
+vmm_stop_freeing(void)
+{
+	stop_freeing = TRUE;
 }
 
 /***

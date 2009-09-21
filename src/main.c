@@ -558,6 +558,9 @@ gtk_gnutella_exit(int exit_code)
 	gm_mem_set_safe_vtable();
 	DO(vmm_pre_close);
 	DO(atoms_close);
+#ifdef USE_HALLOC
+	DO(vmm_stop_freeing);
+#endif
 	DO(wdestroy);
 	DO(zclose);
 	DO(malloc_close);
