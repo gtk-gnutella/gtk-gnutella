@@ -251,6 +251,7 @@ static gnutella_node_t *node_udp_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
 static gboolean node_remove_useless_leaf(gboolean *is_gtkg);
 static gboolean node_remove_useless_ultra(gboolean *is_gtkg);
+static gboolean node_remove_uncompressed_ultra(gboolean *is_gtkg);
 
 /***
  *** Callbacks
@@ -4429,6 +4430,13 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				(void) node_remove_useless_ultra(NULL);
 
 			if (
+				GNET_PROPERTY(node_ultra_count) >= ultra_max &&
+				(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				(void) node_remove_uncompressed_ultra(NULL);
+			}
+
+			if (
 				handshaking &&
 				GNET_PROPERTY(node_ultra_count) >= ultra_max
 			) {
@@ -4907,18 +4915,38 @@ node_query_routing_header(struct gnutella_node *n)
 }
 
 /**
+ * Is node authentic?
+ */
+static gboolean
+node_is_authentic(const char *vendor, const header_t *head)
+{
+	if (vendor) {
+		if (is_strcaseprefix(vendor, "limewire/")) {
+			return !header_get(head, "Bye-Packet") &&
+				header_get(head, "Vendor-Message");
+		}
+	}
+
+	return TRUE;
+}
+
+/**
  * Extract User-Agent information out of the header.
  */
 static void
-node_extract_user_agent(struct gnutella_node *n, header_t *head)
+node_extract_user_agent(struct gnutella_node *n, const header_t *head)
 {
 	const char *field;
 
 	field = header_get(head, "User-Agent");
 	if (field) {
 		const char *token = header_get(head, "X-Token");
-		if (!version_check(field, token, n->addr))
+		if (
+			!version_check(field, token, n->addr) ||
+			!node_is_authentic(field, head)
+		) {
 			n->flags |= NODE_F_FAKE_NAME;
+		}
         node_set_vendor(n, field);
 	}
 
@@ -7924,6 +7952,11 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		 * any querying via hops-flow or lack of QRT.
 		 */
 
+		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
+			worst = n;
+			continue;
+		}
+
 		if (n->gnet_files_count == 0)
 			target = n->connect_date;
 
@@ -8008,6 +8041,11 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		 * basis).
 		 */
 
+		if ((n->flags & (NODE_F_GTKG|NODE_F_FAKE_NAME)) == NODE_F_FAKE_NAME) {
+			worst = n;
+			continue;
+		}
+
 		if (n->flags & NODE_F_PROXIED)		/* Firewalled node */
 			target = n->connect_date;
 
@@ -8045,6 +8083,53 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 	return TRUE;
 }
 
+/**
+ * Close an uncompressed connection to an ultrapeer to make room for an
+ * ultrapeer which can support compression.
+ *
+ * @param is_gtkg	if non-NULL, returns whether the node removed is a GTKG
+ *
+ * @return TRUE if we were able to remove one connection.
+ */
+static gboolean
+node_remove_uncompressed_ultra(gboolean *is_gtkg)
+{
+	GSList *sl;
+	struct gnutella_node *drop = NULL;
+
+	/*
+	 * Only operate when we're an ultra node ourselves.
+	 */
+	
+	if (GNET_PROPERTY(current_peermode) != NODE_P_ULTRA)
+		return FALSE;
+
+    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+		
+		if (!NODE_IS_ESTABLISHED(n))
+			continue;
+				
+		/* Don't kick whitelisted nodes. */
+		if (whitelist_check(n->addr))
+			continue;
+
+		if (!(n->attrs & NODE_A_CAN_INFLATE)) {
+			drop = n;
+			break;
+		}
+	}
+	
+	if (drop == NULL) 
+		return FALSE;
+	
+	if (is_gtkg != NULL)
+		*is_gtkg = node_is_gtkg(drop);
+
+	node_bye_if_writable(drop, 202, "Making room for another ultra node");
+
+	return TRUE;
+}
 
 /**
  * Removes the node with the worst stats, considering the number of
