@@ -39,8 +39,11 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
+_EXE = $_exe
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JCPPFLAGS = $cppflags
+JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
+LIBS = $libs
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -51,8 +54,8 @@ SED = $sed
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-SOURCES =   \$(SRC)
-OBJECTS =   \$(OBJ)
+SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)
+OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)
 GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
@@ -81,12 +84,14 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	big.c \
 	hash.c \
 	lru.c \
 	pair.c \
 	sdbm.c
 
 OBJ = \
+	big.o \
 	hash.o \
 	lru.o \
 	pair.o \
@@ -123,6 +128,57 @@ depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
+
+DBA_SRC = \
+	dba.c \
+	util.c
+
+DBU_SRC = \
+	dbu.c \
+	util.c
+
+DBA_OBJ = \
+	dba.o \
+	util.o 
+
+DBU_OBJ = \
+	dbu.o \
+	util.o 
+
+LIBS = -L. -lsdbm -L../lib -lshared -lglib
+
+dbu: libsdbm.a
+
+.FORCE:
+
+../lib/libshared.a: .FORCE
+	@echo "Checking "libshared.a" in "../lib"..."
+	cd ../lib; $(MAKE) libshared.a
+	@echo "Continuing in $(CURRENT)..."
+
+dbu:  ../lib/libshared.a
+
+all:: dba
+
+local_realclean::
+	$(RM) dba
+
+dba:  $(DBA_OBJ)
+	$(RM) $@
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@  $(DBA_OBJ) $(JLDFLAGS) $(LIBS)
+
+all:: dbu
+
+local_realclean::
+	$(RM) dbu
+
+dbu:  $(DBU_OBJ)
+	$(RM) $@
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@  $(DBU_OBJ) $(JLDFLAGS) $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
