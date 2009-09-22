@@ -4,6 +4,11 @@
  * Least Recently Used (LRU) page cache.
  * author: Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * status: public domain.
+ *
+ * @ingroup sdbm
+ * @file
+ * @author Raphael Manfredi
+ * @date 2009
  */
 
 #include "common.h"
@@ -375,6 +380,7 @@ getidx(DBM *db, long num)
 	} else {
 		void *last = hash_list_tail(cache->used);
 		long oldnum;
+		gboolean had_ioerr = booleanize(db->flags & DBM_IOERR);
 
 		hash_list_moveto_head(cache->used, last);
 		n = pointer_to_int(last);
@@ -389,8 +395,54 @@ getidx(DBM *db, long num)
 		oldnum = cache->numpag[n];
 
 		if (cache->dirty[n] && !writebuf(db, oldnum, n)) {
-			g_warning("sdbm: \"%s\": discarding dirty page #%ld",
-				sdbm_name(db), oldnum);
+			hash_list_iter_t *iter;
+			void *item;
+			gboolean found = FALSE;
+
+			/*
+			 * Cannot flush dirty page now, probably because we ran out of
+			 * disk space.  Look through the cache whether we can reuse a
+			 * non-dirty page instead, which would let us keep the dirty
+			 * page a little longer in the cache, in the hope it can then
+			 * be properly flushed later.
+			 */
+
+			iter = hash_list_iterator_tail(cache->used);
+
+			while (NULL != (item = hash_list_iter_previous(iter))) {
+				long i = pointer_to_int(item);
+
+				g_assert(i >= 0 && i < cache->pages);
+
+				if (!cache->dirty[i]) {
+					found = TRUE;	/* OK, reuse cache slot #i then */
+					n = i;
+					oldnum = cache->numpag[i];
+					break;
+				}
+			}
+
+			hash_list_iter_release(&iter);
+
+			if (found) {
+				g_assert(item != NULL);
+				hash_list_moveto_head(cache->used, item);
+
+				/*
+				 * Clear error condition if we had none prior to the flush
+				 * attempt, since we can do without it for now.
+				 */
+
+				if (!had_ioerr)
+					sdbm_clearerr(db);
+
+				g_warning("sdbm: \"%s\": "
+					"reusing cache slot used by clean page #%ld instead",
+					sdbm_name(db), oldnum);
+			} else {
+				g_warning("sdbm: \"%s\": discarding dirty page #%ld",
+					sdbm_name(db), oldnum);
+			}
 		}
 
 		g_hash_table_remove(cache->pagnum, ulong_to_pointer(oldnum));
