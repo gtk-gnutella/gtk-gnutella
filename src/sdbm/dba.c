@@ -2,9 +2,9 @@
  * dba	dbm analysis/recovery
  */
 
-#include <stdio.h>
-#include <sys/file.h>
 #include "common.h"
+#include "casts.h"
+
 #include "sdbm.h"
 
 char *progname;
@@ -20,8 +20,9 @@ main(int argc, char **argv)
 	int pagf;
 
 	progname = argv[0];
+	(void) argc;
 
-	if (p = argv[1]) {
+	if ((p = argv[1])) {
 		name = (char *) malloc((n = strlen(p)) + 5);
 		if (!name)
 		    oops("cannot get memory");
@@ -40,14 +41,71 @@ main(int argc, char **argv)
 	return 0;
 }
 
+extern int okpage(char *pag);
+
+static inline unsigned short
+offset(unsigned short off)
+{
+	return off & 0x7fff;
+}
+
+static inline gboolean
+is_big(unsigned short off)
+{
+	return booleanize(off & 0x8000);
+}
+
+int
+pagestat(char *pag)
+{
+	register unsigned n;
+	register int pfree;
+	register unsigned short *ino = (unsigned short *) pag;
+
+	if (!(n = ino[0]))
+		printf("no entries.\n");
+	else {
+		unsigned i;
+		int keysize = 0, valsize = 0;
+		unsigned off = DBM_PBLKSIZ;
+		gboolean has_big_value = FALSE;
+		gboolean has_big_key = FALSE;
+
+		for (i = 1; i < n; i+= 2) {
+			unsigned short koff = offset(ino[i]);
+			unsigned short voff = offset(ino[i+1]);
+			keysize += off - koff;
+			valsize += koff - voff;
+			off = voff;
+
+			if (is_big(ino[i]))
+				has_big_key = TRUE;
+			if (is_big(ino[i+1]))
+				has_big_value = TRUE;
+		}
+
+		pfree = offset(ino[n]) - (n + 1) * sizeof(short);
+
+		printf(
+			"%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s%s%s\n",
+		       n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
+			   keysize, valsize, pfree,
+			   (DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
+					" (LOW)" : "",
+				has_big_key ? " (LKEY)" : "",
+				has_big_value ? " (LVAL)" : "");
+	}
+	return n / 2;
+}
+
 void
 sdump(int pagf)
 {
-	register b;
-	register n = 0;
-	register t = 0;
-	register o = 0;
-	register e;
+	int b;
+	int n = 0;
+	int t = 0;
+	int o = 0;
+	int e;
 	char pag[DBM_PBLKSIZ];
 
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
@@ -70,33 +128,3 @@ sdump(int pagf)
 		oops("read failed: block %d", n);
 }
 
-int
-pagestat(char *pag)
-{
-	register n;
-	register free;
-	register short *ino = (short *) pag;
-
-	if (!(n = ino[0]))
-		printf("no entries.\n");
-	else {
-		int i;
-		int keysize = 0, valsize = 0;
-		int off = DBM_PBLKSIZ;
-
-		for (i = 1; i < n; i+= 2) {
-			keysize += off - ino[i];
-			valsize += ino[i] - ino[i+1];
-			off = ino[i+1];
-		}
-
-		free = ino[n] - (n + 1) * sizeof(short);
-
-		printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s\n",
-		       n / 2, ((DBM_PBLKSIZ - free) * 100) / DBM_PBLKSIZ,
-			   keysize, valsize, free,
-			   (DBM_PBLKSIZ - free) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
-					" (LOW)" : "");
-	}
-	return n / 2;
-}

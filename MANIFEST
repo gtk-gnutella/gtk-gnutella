@@ -742,6 +742,8 @@ src/sdbm/Makefile.SH
 src/sdbm/README
 src/sdbm/README.too
 src/sdbm/biblio
+src/sdbm/big.c
+src/sdbm/big.h
 src/sdbm/dba.c
 src/sdbm/dbd.c
 src/sdbm/dbe.1

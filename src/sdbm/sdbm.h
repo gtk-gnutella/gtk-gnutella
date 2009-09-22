@@ -14,6 +14,7 @@
 #define DBM_SPLTMAX	10			/* maximum allowed splits for an insertion */
 #define DBM_DIRFEXT	".dir"
 #define DBM_PAGFEXT	".pag"
+#define DBM_DATFEXT	".dat"		/* for large keys or values */
 
 typedef struct DBM DBM;
 
@@ -41,6 +42,7 @@ void sdbm_close(DBM *);
 datum sdbm_fetch(DBM *, datum);
 int sdbm_delete(DBM *, datum);
 int sdbm_store(DBM *, datum, datum, int);
+int sdbm_replace(DBM *, datum, datum, gboolean *);
 datum sdbm_firstkey(DBM *);
 datum sdbm_nextkey(DBM *);
 datum sdbm_value(DBM *);
@@ -50,13 +52,14 @@ int sdbm_exists(DBM *, datum);
 /*
  * other
  */
-DBM *sdbm_prep(const char *, const char *, int, int);
+DBM *sdbm_prep(const char *, const char *, const char *, int, int);
 long sdbm_hash(const char *, size_t);
 gboolean sdbm_rdonly(DBM *);
 gboolean sdbm_error(DBM *);
 void sdbm_clearerr(DBM *);
 int sdbm_dirfno(DBM *);
 int sdbm_pagfno(DBM *);
+int sdbm_datfno(DBM *);
 gboolean sdbm_is_storable(size_t, size_t);
 void sdbm_set_name(DBM *, const char *);
 const char *sdbm_name(DBM *);

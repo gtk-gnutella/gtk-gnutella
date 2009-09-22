@@ -1,7 +1,7 @@
 .\" $Id: sdbm.3,v 1.2 90/12/13 13:00:57 oz Exp $
 .TH SDBM 3 "1 March 1990"
 .SH NAME
-sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_fetch, sdbm_store, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno \- data base subroutines
+sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_fetch, sdbm_store, sdbm_replace, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno, sdbm_datfno \- data base subroutines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -15,11 +15,13 @@ typedef struct {
 datum nullitem = { NULL, 0 };
 .sp
 \s-1DBM\s0 *sdbm_open(char *file, int flags, int mode)
-\s-1DBM\s0 *sdbm_prep(char *dirname, char *pagname, int flags, int mode)
+\s-1DBM\s0 *sdbm_prep(char *dirname, char *pagname, char *datname,
+        int flags, int mode)
 void sdbm_close(\s-1DBM\s0 *db)
 .sp
 datum sdbm_fetch(\s-1DBM\s0 *db, key)
 int sdbm_store(\s-1DBM\s0 *db, datum key, datum val, int flags)
+int sdbm_replace(\s-1DBM\s0 *db, datum key, datum val, gboolean *existed)
 int sdbm_delete(\s-1DBM\s0 *db, datum key)
 int sdbm_exists(\s-1DBM\s0 *db, datum key)
 .sp
@@ -44,6 +46,8 @@ gboolean sdbm_error(\s-1DBM\s0 *db)
 sdbm_clearerr(\s-1DBM\s0 *db)
 int sdbm_dirfno(\s-1DBM\s0 *db)
 int sdbm_pagfno(\s-1DBM\s0 *db)
+int sdbm_datfno(\s-1DBM\s0 *db)
+.sp
 gboolean sdbm_is_storable(size_t key, size_t value)
 .ft R
 .fi
@@ -54,6 +58,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_close "" "\fLsdbm_close\fR \(em close \fLsdbm\fR routine"
 .IX sdbm_fetch "" "\fLsdbm_fetch\fR \(em fetch \fLsdbm\fR database data"
 .IX sdbm_store "" "\fLsdbm_store\fR \(em add data to \fLsdbm\fR database"
+.IX sdbm_replace "" "\fLsdbm_replace\fR \(em replace data in \fLsdbm\fR database"
 .IX sdbm_delete "" "\fLsdbm_delete\fR \(em remove data from \fLsdbm\fR database"
 .IX sdbm_exists "" "\fLsdbm_exists\fR \(em test \fLsdbm\fR key existence"
 .IX sdbm_firstkey "" "\fLsdbm_firstkey\fR \(em start iterator on \fLsdbm\fR database"
@@ -65,7 +70,8 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_error "" "\fLsdbm_error\fR \(em return \fLsdbm\fR database error condition"
 .IX sdbm_clearerr "" "\fLsdbm_clearerr\fR \(em clear \fLsdbm\fR database error condition"
 .IX sdbm_dirfno "" "\fLsdbm_dirfno\fR \(em return \fLsdbm\fR database bitmap file descriptor"
-.IX sdbm_pagfno "" "\fLsdbm_pagfno\fR \(em return \fLsdbm\fR database data file descriptor"
+.IX sdbm_pagfno "" "\fLsdbm_pagfno\fR \(em return \fLsdbm\fR database page file descriptor"
+.IX sdbm_datfno "" "\fLsdbm_datfno\fR \(em return \fLsdbm\fR database data file descriptor"
 .IX "database functions \(em \fLsdbm\fR"  sdbm_open  ""  \fLsdbm_open\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_prep  ""  \fLsdbm_prep\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_close  ""  \fLsdbm_close\fP
@@ -81,13 +87,16 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_clearerr  ""  \fLsdbm_clearerr\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_dirfno  ""  \fLsdbm_dirfno\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_pagfno  ""  \fLsdbm_pagfno\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_datfno  ""  \fLsdbm_datfno\fP
 .LP
 This package allows an application to maintain a mapping of <key,value> pairs
 in disk files.  This is not to be considered a real database system, but is
 still useful in many simple applications built around fast retrieval of a data
 value from a key.  This implementation uses an external hashing scheme,
 called Dynamic Hashing, as described by Per-Aake Larson in BIT 18 (1978) pp.
-184-201.  Retrieval of any item usually requires a single disk access.
+184-201.  Retrieval of any item usually requires a single disk access, unless
+some keys or values are large enough to be stored via indirections, in which
+case more disk accesses are required.
 The application interface is compatible with the
 .IR ndbm (3)
 library.
@@ -104,6 +113,13 @@ file contains a bitmap representing a forest of binary hash trees, the leaves
 of which indicate data pages in the
 .B \.pag
 file.
+When facing large keys or values that would not otherwise fit in one page,
+a third file (carrying the
+.B \.dat
+extension) is created to store the large data, with indirection pointers
+left in the
+.B \.pag
+file to be able to access the underlying data.
 .LP
 The application interface uses the
 .B datum
@@ -140,13 +156,19 @@ from the only routines that do not require it, namely
 .BR sdbm_open (\|)
 or
 .BR sdbm_prep (\|).
-Either of these will open or create the two necessary files.  The
+Either of these will open or create the two or three necessary files.  The
 difference is that the latter allows explicitly naming the bitmap and data
 files whereas
 .BR sdbm_open (\|)
 will take a base file name and call
 .BR sdbm_prep (\|)
-with the default extensions.
+with the default extensions.  Furthermore, giving a
+.B NULL
+pointer for
+.B datname
+in
+.BR sdbm_prep (\|)
+will disable support for large keys and values.
 The
 .I flags
 and
@@ -175,6 +197,14 @@ which will not change an existing entry with the same key, or
 .BR \s-1DBM_REPLACE\s0 ,
 which will replace an existing entry with the same key.
 Keys are unique within the database.
+.LP
+To replace a possibly existing key and know whether the key existed or was
+actually created, use
+.BR sdbm_replace (\|)
+and the parameter
+.B existed
+will be set upon return to indicate whether the key existed already,
+provided the call is not returning -1.
 .LP
 To delete a key and its associated value use the
 .BR sdbm_delete (\|)
@@ -213,7 +243,10 @@ The following functions are also defined in the header file:
 returns true if the database has been opened read\-only.
 .IP
 .BR sdbm_error (\|)
-returns true if an I/O error has occurred.
+returns true if an I/O error has occurred.  After an I/O error, the database
+is put in read-only mode until
+.BR sdbm_clearerr (\|)
+has been called, to prevent cascading errors.
 .IP
 .BR sdbm_clearerr (\|)
 allows you to clear the error flag if you think you know what the error
@@ -223,7 +256,11 @@ was and insist on ignoring it.
 returns the file descriptor associated with the bitmap file.
 .IP
 .BR sdbm_pagfno (\|)
-returns the file descriptor associated with the data file.
+returns the file descriptor associated with the page file.
+.IP
+.BR sdbm_datfno (\|)
+returns the file descriptor associated with the data file (large keys and
+values), or -1 if the file was not opened yet because it was not needed so far.
 .IP
 .BR sdbm_name (\|)
 returns the database name previous set using
@@ -326,7 +363,17 @@ extensions)
 .SH BUGS
 The sum of key and value data sizes must not exceed
 .B \s-1PAIRMAX\s0
-(1008 bytes).
+(1008 bytes) if large key/value support was disabled by calling
+.BR sdbm_prep (\|)
+with a
+.B NULL
+value for
+.BR datname .
+Otherwise, with large key/value support enabled, the sum of key and value
+data sizes cannot exceed 250 KiB currently, but the real limit can be
+lower depending on the respective sizes of keys and values. Use
+.BR sdbm_is_storable (\|)
+to be sure.
 .LP
 The sum of the key and value data sizes where several keys hash to the
 same value must fit within one bitmap page.
@@ -365,6 +412,8 @@ and
 functions are unique to this package.
 .LP
 The
+.BR sdbm_datfno (\|)
+.BR sdbm_replace (\|),
 .BR sdbm_deletekey (\|),
 .BR sdbm_value (\|),
 .BR sdbm_is_storable (\|),
@@ -378,3 +427,9 @@ and
 functions are additions made by Raphael Manfredi for
 .B gtk-gnutella
 but anyone is welcome reusing these extensions.
+.LP
+Support for large keys and values was added by Raphael Manfredi in a way
+that is backward compatible (i.e. databases not requiring this feature
+should see no difference).  When activated (as needed), a third file is
+created to store the larger keys and values, ending with the extension
+.BR \.dat .

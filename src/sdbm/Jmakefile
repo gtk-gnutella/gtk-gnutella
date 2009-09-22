@@ -28,6 +28,7 @@
 ;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
 
 SRC = \
+	big.c \
 	hash.c \
 	lru.c \
 	pair.c \
@@ -50,3 +51,28 @@ DPFLAGS = $(CFLAGS)
 NormalLibraryTarget(sdbm, $(SRC), $(OBJ))
 DependTarget()
 
+DBA_SRC = \
+	dba.c \
+	util.c
+
+DBU_SRC = \
+	dbu.c \
+	util.c
+
+DBA_OBJ = \
+|expand f!$(DBA_SRC)!
+	!f:\.c=.o \
+-expand \\
+
+DBU_OBJ = \
+|expand f!$(DBU_SRC)!
+	!f:\.c=.o \
+-expand \\
+
+LIBS = -L. -lsdbm -L../lib -lshared -lglib
+
+dbu: libsdbm.a
+RemoteTargetDependency(dbu, ../lib, libshared.a)
+
+NormalProgramTarget(dba, $(DBA_SRC), $(DBA_OBJ))
+NormalProgramTarget(dbu, $(DBU_SRC), $(DBU_OBJ))

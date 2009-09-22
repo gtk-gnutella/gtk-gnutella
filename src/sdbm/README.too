@@ -104,3 +104,29 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   - amount of LRU page write cache hits (when LRU write-back is activated)
 * Optimized seepair() slightly.
 
+
+Tue Sep 22 22:27:36 CEST 2009
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Optimized sdbm_store(DBM_REPLACE) when the new value being written has the
+  same size as the old value: the new value is written in-place without having
+  to update anything else on the page.
+* Enforce errno = 0 on sdbm_delete() for a non-existing key.
+* Optimized sdbm_deletekey() to prevent reading the key.
+* Added sdbm_replace() to update a possibly existing key and get to know
+  whether the key existed or whether it was created.
+* Whenever an I/O error occurs, put the database in read-only mode by denying
+  further updates until they call sdbm_clearerr().
+* In the advent of an I/O error during page splits, undo the operation and
+  restore a consistent disk image, as if the last (incomplete) split had never
+  been attempted.
+* Smarter LRU page eviction in case we get an I/O error when flushing a dirty
+  page: try to see whether we can reuse a slot from a clean page instead, to
+  defer the time when we have no other choice but to raise an I/O error.
+* Adapted dbu so that it can compile with the new sdbm library and can properly
+  initialize the memory layer from gtk-gnutella's library, on which this
+  version of sdbm relies.
+* Added support for large keys and values, offloaded to an extra .dat file.
+  The sum of key and value data cannot exceed 250 KiB, currently.  Large keys
+  should be avoided if possible because they slow down lookups.

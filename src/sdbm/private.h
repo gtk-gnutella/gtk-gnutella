@@ -4,6 +4,8 @@
  * author: Raphael Manfredi <Raphael_Manfredi@pobox.com>
  */
 
+struct DBMBIG;
+
 struct DBM {
 	char *name;		/* database name, for logging */
 	char *pagbuf;	/* page file block buffer (size: DBM_PBLKSIZ) */
@@ -33,9 +35,14 @@ struct DBM {
 	unsigned long dirbno_hit;	/* stats: amount of read avoided on dirbno */
 	unsigned long dirwrite;		/* stats: amount of dir write requests */
 	unsigned long dirwdelayed;	/* stats: amount of deferred dir writes */
+	unsigned long repl_stores;	/* stats: amount of DBM_REPLACE stores */
+	unsigned long repl_inplace;	/* stats: amount of DBM_REPLACE done inplace */
 #ifdef LRU
 	guint8 is_volatile;			/* whether consistency of database matters */
 	guint8 dirbuf_dirty;		/* whether dirbuf needs flushing to disk */
+#endif
+#ifdef BIGDATA
+	struct DBMBIG *big;
 #endif
 };
 

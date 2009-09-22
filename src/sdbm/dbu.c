@@ -1,18 +1,13 @@
-#include <stdio.h>
-#include <sys/file.h>
-#ifdef SDBM
+/*
+ * dbu	crude dbm utility
+ */
+
+#include "common.h"
+
 #include "sdbm.h"
-#else
-#include <ndbm.h>
-#endif
-#include <string.h>
+#include "lib/vmm.h"
+#include "lib/halloc.h"
 
-#ifdef BSD42
-#define strchr	index
-#endif
-
-extern int	getopt();
-extern char	*strchr();
 extern void	oops();
 
 char *progname;
@@ -38,24 +33,23 @@ typedef struct {
 } cmd;
 
 static cmd cmds[] = {
-
-	"fetch", DLOOK, 	O_RDONLY,
-	"get", DLOOK,		O_RDONLY,
-	"look", DLOOK,		O_RDONLY,
-	"add", DINSERT,		O_RDWR,
-	"insert", DINSERT,	O_RDWR,
-	"store", DINSERT,	O_RDWR,
-	"delete", DDELETE,	O_RDWR,
-	"remove", DDELETE,	O_RDWR,
-	"dump", DCAT,		O_RDONLY,
-	"list", DCAT, 		O_RDONLY,
-	"cat", DCAT,		O_RDONLY,
-	"creat", DCREAT,	O_RDWR | O_CREAT | O_TRUNC,
-	"new", DCREAT,		O_RDWR | O_CREAT | O_TRUNC,
-	"build", DBUILD,	O_RDWR | O_CREAT,
-	"squash", DPRESS,	O_RDWR,
-	"compact", DPRESS,	O_RDWR,
-	"compress", DPRESS,	O_RDWR
+	{ "fetch",		DLOOK, 		O_RDONLY },
+	{ "get",		DLOOK,		O_RDONLY },
+	{ "look",		DLOOK,		O_RDONLY },
+	{ "add",		DINSERT,	O_RDWR },
+	{ "insert",		DINSERT,	O_RDWR },
+	{ "store",		DINSERT,	O_RDWR },
+	{ "delete",		DDELETE,	O_RDWR },
+	{ "remove",		DDELETE,	O_RDWR },
+	{ "dump",		DCAT,		O_RDONLY },
+	{ "list",		DCAT, 		O_RDONLY },
+	{ "cat",		DCAT,		O_RDONLY },
+	{ "creat",		DCREAT,		O_RDWR | O_CREAT | O_TRUNC },
+	{ "new",		DCREAT,		O_RDWR | O_CREAT | O_TRUNC },
+	{ "build",		DBUILD,		O_RDWR | O_CREAT },
+	{ "squash",		DPRESS,		O_RDWR },
+	{ "compact",	DPRESS,		O_RDWR },
+	{ "compress",	DPRESS,		O_RDWR },
 };
 
 #define CTABSIZ (sizeof (cmds)/sizeof (cmd))
@@ -70,6 +64,10 @@ main(int argc, char **argv)
 	register cmd *act;
 	extern int optind;
 	extern char *optarg;
+
+	/* Initialize memory allocation routines used by the sdbm library */
+	vmm_init(&c);
+	halloc_init(FALSE);
 
 	progname = argv[0];
 
@@ -108,7 +106,7 @@ doit(register cmd *act, char *file)
 	extern long time();
 #endif
 
-	if ((db = dbm_open(file, act->flags, 0644)) == NULL)
+	if ((db = sdbm_open(file, act->flags, 0644)) == NULL)
 		oops("cannot open: %s", file);
 
 	if ((line = (char *) malloc(LINEMAX)) == NULL)
@@ -122,7 +120,7 @@ doit(register cmd *act, char *file)
 			line[n] = 0;
 			key.dptr = line;
 			key.dsize = n;
-			val = dbm_fetch(db, key);
+			val = sdbm_fetch(db, key);
 			if (val.dptr != NULL) {
 				prdatum(stdout, val);
 				putchar('\n');
@@ -140,22 +138,23 @@ doit(register cmd *act, char *file)
 			line[n] = 0;
 			key.dptr = line;
 			key.dsize = n;
-			if (dbm_delete(db, key) == -1) {
+			if (sdbm_delete(db, key) == -1) {
 				prdatum(stderr, key);
 				fprintf(stderr, ": not found.\n");
 			}
 		}
 		break;
 	case DCAT:
-		for (key = dbm_firstkey(db); key.dptr != 0; 
-		     key = dbm_nextkey(db)) {
+		for (key = sdbm_firstkey(db); key.dptr != 0; 
+		     key = sdbm_nextkey(db)) {
 			prdatum(stdout, key);
 			putchar('\t');
-			prdatum(stdout, dbm_fetch(db, key));
+			prdatum(stdout, sdbm_fetch(db, key));
 			putchar('\n');
 		}
 		break;
 	case DBUILD:
+	case DCREAT:
 #ifdef TIME
 		start = time(0);
 #endif
@@ -172,7 +171,7 @@ doit(register cmd *act, char *file)
 			else
 				oops("bad input; %s", line);
 	
-			if (dbm_store(db, key, val, DBM_REPLACE) < 0) {
+			if (sdbm_store(db, key, val, DBM_REPLACE) < 0) {
 				prdatum(stderr, key);
 				fprintf(stderr, ": ");
 				oops("store: %s", "failed");
@@ -184,11 +183,9 @@ doit(register cmd *act, char *file)
 		break;
 	case DPRESS:
 		break;
-	case DCREAT:
-		break;
 	}
 
-	dbm_close(db);
+	sdbm_close(db);
 }
 
 static void

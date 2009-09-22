@@ -24,11 +24,11 @@ int
 okpage(char *pag)
 {
 	register unsigned n;
-	register int off;
-	register short *ino = (short *) pag;
+	register unsigned off;
+	register unsigned short *ino = (unsigned short *) pag;
 	int ino_end;
 
-	if ((n = ino[0]) > DBM_PBLKSIZ / sizeof(short))
+	if ((n = ino[0]) > DBM_PBLKSIZ / sizeof(unsigned short))
 		return 0;
 
 	if (!n)
@@ -41,11 +41,13 @@ okpage(char *pag)
 
 	off = DBM_PBLKSIZ;
 	for (ino++; n; ino += 2) {
-		if (ino[0] > off || ino[1] > off || ino[1] > ino[0])
+		unsigned short koff = ino[0] & 0x7fff;
+		unsigned short voff = ino[1] & 0x7fff;
+		if (koff > off || voff > off || voff > koff)
 			return 0;
-		if (ino[0] < ino_end || ino[1] < ino_end)
+		if (koff < ino_end || voff < ino_end)
 			return 0;
-		off = ino[1];
+		off = voff;
 		n -= 2;
 	}
 

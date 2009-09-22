@@ -13,6 +13,7 @@
 #define SEEDUPS			/* always detect duplicates */
 #define LRU				/* use LRU cache for pages */
 #define LRU_PAGES	64	/* default amount of pages in LRU cache */
+#define BIGDATA			/* can store large keys/values */
 
 /*
  * misc

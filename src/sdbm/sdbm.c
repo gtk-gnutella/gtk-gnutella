@@ -13,11 +13,13 @@
 #include "tune.h"
 #include "pair.h"
 #include "lru.h"
+#include "big.h"
 #include "private.h"
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
 #include "lib/file.h"
+#include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -36,7 +38,12 @@ static gboolean makroom(DBM *, long, size_t);
 static inline int
 bad(const datum item)
 {
+#ifdef BIGDATA
+	return NULL == item.dptr ||
+		(item.dsize > DBM_PAIRMAX && bigkey_length(item.dsize) > DBM_PAIRMAX);
+#else
 	return NULL == item.dptr || item.dsize > DBM_PAIRMAX;
+#endif
 }
 
 static inline int
@@ -56,33 +63,105 @@ static const long masks[] = {
 	001777777777L, 003777777777L, 007777777777L, 017777777777L
 };
 
+/**
+ * Can the key/value pair of the given size fit, and how much room do we
+ * need for it in the page?
+ *
+ * @return FALSE if it will not fit, TRUE if it fits with the required
+ * page size filled in ``needed'', if not NULL.
+ */
+static gboolean
+sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
+{
+#ifdef BIGDATA
+	if (key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size) {
+		if (needed != NULL)
+			*needed = key_size + value_size;
+		return TRUE;
+	} else {
+		size_t kl;
+		size_t vl;
+
+		/*
+		 * Large keys are sub-optimal because key comparison involves extra
+		 * I/O operations, so it's best to attempt to inline keys as much
+		 * as possible.
+		 */
+
+		vl = bigval_length(value_size);
+
+		if (vl >= DBM_PAIRMAX)		/* Cannot store by indirection anyway */
+			return FALSE;
+
+		if (key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= vl) {
+			if (needed != NULL)
+				*needed = key_size + vl;
+			return TRUE;
+		}
+
+		/*
+		 * No choice but to try to store the key via indirection as well.
+		 */
+
+		kl = bigkey_length(key_size);
+
+		if (needed != NULL)
+			*needed = kl + vl;
+		return kl <= DBM_PAIRMAX && DBM_PAIRMAX - kl >= vl;
+	}
+#else	/* !BIGDATA */
+	if (needed != NULL)
+		*needed = key_size + value_size;
+	return key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size;
+#endif
+}
+
+/**
+ * Will a key/value pair of given size fit in the database?
+ */
+gboolean
+sdbm_is_storable(size_t key_size, size_t value_size)
+{
+	return sdbm_storage_needs(key_size, value_size, NULL);
+}
+
 DBM *
 sdbm_open(const char *file, int flags, int mode)
 {
 	DBM *db = NULL;
 	char *dirname = NULL;
 	char *pagname = NULL;
+	char *datname = NULL;
 
 	if (file == NULL || '\0' == file[0]) {
 		errno = EINVAL;
 		goto finish;
 	}
-	dirname = g_strconcat(file, DBM_DIRFEXT, (void *) 0);
+	dirname = h_strconcat(file, DBM_DIRFEXT, (void *) 0);
 	if (NULL == dirname) {
 		errno = ENOMEM;
 		goto finish;
 	}
-	pagname = g_strconcat(file, DBM_PAGFEXT, (void *) 0);
+	pagname = h_strconcat(file, DBM_PAGFEXT, (void *) 0);
 	if (NULL == pagname) {
 		errno = ENOMEM;
 		goto finish;
 	}
 
-	db = sdbm_prep(dirname, pagname, flags, mode);
+#ifdef BIGDATA
+	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
+	if (NULL == pagname) {
+		errno = ENOMEM;
+		goto finish;
+	}
+#endif
+
+	db = sdbm_prep(dirname, pagname, datname, flags, mode);
 
 finish:
-	G_FREE_NULL(pagname);
-	G_FREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(dirname);
+	HFREE_NULL(datname);
 	return db;
 }
 
@@ -105,8 +184,8 @@ sdbm_alloc(void)
 void
 sdbm_set_name(DBM *db, const char *name)
 {
-	G_FREE_NULL(db->name);
-	db->name = g_strdup(name);
+	HFREE_NULL(db->name);
+	db->name = h_strdup(name);
 }
 
 /**
@@ -120,7 +199,8 @@ sdbm_name(DBM *db)
 }
 
 DBM *
-sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
+sdbm_prep(const char *dirname, const char *pagname,
+	const char *datname, int flags, int mode)
 {
 	DBM *db;
 	struct stat dstat;
@@ -187,8 +267,7 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 				db->maxbno = dstat.st_size * BYTESIZ;
 
 				memset(db->dirbuf, 0, DBM_DBLKSIZ);
-
-				return db;		/* Success */
+				goto success;
 			}
 		}
 	}
@@ -196,6 +275,17 @@ sdbm_prep(const char *dirname, const char *pagname, int flags, int mode)
 error:
 	sdbm_close(db);
 	return NULL;
+
+success:
+
+#ifdef BIGDATA
+	if (datname != NULL)
+		db->big = big_alloc(datname, flags, mode);
+#else
+	(void) datname;
+#endif
+
+	return db;
 }
 
 static void
@@ -211,6 +301,9 @@ log_sdbmstats(DBM *db)
 	g_message("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
 		db->dirfetch, 1 == db->dirfetch ? "" : "s");
+	g_message("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
+		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
+		db->repl_stores, 1 == db->repl_stores ? "" : "s");
 }
 
 /**
@@ -322,11 +415,22 @@ flush_dirbuf(DBM *db)
 	w = compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(db->dirbno));
 
 #ifdef LRU
-	if (DBM_DBLKSIZ == w)
+	if (DBM_DBLKSIZ == w) {
 		db->dirbuf_dirty = FALSE;
+		return TRUE;
+	}
 #endif
 
-	return DBM_DBLKSIZ == w;
+	if (w != DBM_DBLKSIZ) {
+		g_warning("sdbm: \"%s\": cannot flush dir block #%ld: %s",
+			sdbm_name(db), db->dirbno,
+			-1 == w ? g_strerror(errno) : "partial write");
+
+		ioerr(db);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 void
@@ -345,9 +449,12 @@ sdbm_close(DBM *db)
 		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
 		fd_close(&db->dirf, TRUE);
 		fd_close(&db->pagf, TRUE);
+#ifdef BIGDATA
+		big_free(db);
+#endif
 		if (common_stats)
 			log_sdbmstats(db);
-		G_FREE_NULL(db->name);
+		HFREE_NULL(db->name);
 		wfree(db, sizeof *db);
 	}
 }
@@ -360,7 +467,7 @@ sdbm_fetch(DBM *db, datum key)
 		return nullitem;
 	}
 	if (getpage(db, exhash(key)))
-		return getpair(db->pagbuf, key);
+		return getpair(db, db->pagbuf, key);
 
 	ioerr(db);
 	return nullitem;
@@ -374,7 +481,7 @@ sdbm_exists(DBM *db, datum key)
 		return -1;
 	}
 	if (getpage(db, exhash(key)))
-		return exipair(db->pagbuf, key);
+		return exipair(db, db->pagbuf, key);
 
 	ioerr(db);
 	return -1;
@@ -387,16 +494,22 @@ sdbm_delete(DBM *db, datum key)
 		errno = EINVAL;
 		return -1;
 	}
-	if (sdbm_rdonly(db)) {
+	if (db->flags & DBM_RDONLY) {
 		errno = EPERM;
+		return -1;
+	}
+	if (db->flags & DBM_IOERR) {
+		errno = EIO;
 		return -1;
 	}
 	if (!getpage(db, exhash(key))) {
 		ioerr(db);
 		return -1;
 	}
-	if (!delpair(db->pagbuf, key))
+	if (!delpair(db, db->pagbuf, key)) {
+		errno = 0;
 		return -1;
+	}
 
 	/*
 	 * update the page file
@@ -408,8 +521,8 @@ sdbm_delete(DBM *db, datum key)
 	return 0;
 }
 
-int
-sdbm_store(DBM *db, datum key, datum val, int flags)
+static int
+storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 {
 	size_t need;
 	long hash;
@@ -422,8 +535,12 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 		errno = EINVAL;
 		return -1;
 	}
-	if (sdbm_rdonly(db)) {
+	if (db->flags & DBM_RDONLY) {
 		errno = EPERM;
+		return -1;
+	}
+	if (db->flags & DBM_IOERR) {
+		errno = EIO;
 		return -1;
 	}
 
@@ -431,11 +548,10 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	 * is the pair too big (or too small) for this database ?
 	 */
 
-	if (!sdbm_is_storable(key.dsize, val.dsize)) {
+	if (!sdbm_storage_needs(key.dsize, val.dsize, &need)) {
 		errno = EINVAL;
 		return -1;
 	}
-	need = key.dsize + val.dsize;
 
 	hash = exhash(key);
 	if (!getpage(db, hash)) {
@@ -444,14 +560,42 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	}
 
 	/*
-	 * if we need to replace, delete the key/data pair
-	 * first. If it is not there, ignore.
+	 * If we need to replace, fetch the information about the key first.
+	 * If it is not there, ignore.
 	 */
 
-	if (flags == DBM_REPLACE)
-		delpair(db->pagbuf, key);
+	if (flags == DBM_REPLACE) {
+		size_t valsize;
+		int idx;
+		gboolean big;
+		gboolean found;
+
+		/*
+		 * If key exists and the data is replaceable in situ, do it.
+		 * Otherwise we'll remove the existing pair first and insert the
+		 * new one later.
+		 */
+
+		found = infopair(db, db->pagbuf, key, &valsize, &idx, &big);
+
+		if (existed != NULL)
+			*existed = found;
+
+		if (found) {
+			db->repl_stores++;
+			if (replaceable(val.dsize, valsize, big)) {
+				db->repl_inplace++;
+				if (0 != replpair(db, db->pagbuf, idx, val))
+					return -1;
+				goto inserted;
+			} else {
+				if (!delipair(db, db->pagbuf, idx))
+					return -1;
+			}
+		}
+	}
 #ifdef SEEDUPS
-	else if (duppair(db->pagbuf, key))
+	else if (duppair(db, db->pagbuf, key))
 		return 1;
 #endif
 
@@ -469,9 +613,14 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	/*
 	 * we have enough room or split is successful. insert the key,
 	 * and update the page file.
+	 *
+	 * NOTE: the operation cannot fail unless big data is involved.
 	 */
 
-	putpair(db->pagbuf, key, val);
+	if (!putpair(db, db->pagbuf, key, val))
+		return -1;
+
+inserted:
 
 	/*
 	 * After a split, we force a physical flush of the page even if they
@@ -490,6 +639,18 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	return 0;		/* Success */
 }
 
+int
+sdbm_store(DBM *db, datum key, datum val, int flags)
+{
+	return storepair(db, key, val, flags, NULL);
+}
+
+int
+sdbm_replace(DBM *db, datum key, datum val, gboolean *existed)
+{
+	return storepair(db, key, val, DBM_REPLACE, existed);
+}
+
 /*
  * makroom - make room by splitting the overfull page
  * this routine will attempt to make room for DBM_SPLTMAX times before
@@ -499,17 +660,30 @@ static gboolean
 makroom(DBM *db, long int hash, size_t need)
 {
 	long newp;
-	short twin[DBM_PBLKSIZ / sizeof(short)];
+	char twin[DBM_PBLKSIZ];
+	char cur[DBM_PBLKSIZ];
 	char *pag = db->pagbuf;
+	long curbno;
 	char *New = (char *) twin;
 	int smax = DBM_SPLTMAX;
 
 	do {
+		gboolean fits;		/* Can we fit new pair in the split page? */
+
+		/*
+		 * Copy the page we're about to split.  In case there is an error
+		 * flushing the new page to disk, we'll be able to undo the split
+		 * operation and restore the database to a consistent disk image.
+		 */
+
+		memcpy(cur, pag, DBM_PBLKSIZ);
+		curbno = db->pagbno;
+
 		/*
 		 * split the current page
 		 */
 
-		splpage(pag, New, db->hmask + 1);
+		splpage(cur, pag, New, db->hmask + 1);
 
 		/*
 		 * address of the new page
@@ -552,24 +726,46 @@ makroom(DBM *db, long int hash, size_t need)
 				oldtail += DBM_PBLKSIZ;
 			}
 		}
-#endif
+#endif	/* DOSISH || WIN32 */
+
 		if (hash & (db->hmask + 1)) {
+			/*
+			 * Incoming pair is located in the new page, which we are going
+			 * to make the "current" page.  Flush the previous current page,
+			 * if necessary (which has already been split).
+			 */
+
 #ifdef LRU
-			if (!force_flush_pagbuf(db, !db->is_volatile))
-				return FALSE;
+			if (!force_flush_pagbuf(db, !db->is_volatile)) {
+				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				goto aborted;
+			}
 
 			readbuf(db, newp);		/* Get new page from LRU cache */
 			pag = db->pagbuf;		/* Must refresh pointer to current page */
 #else
-			if (!flush_pagbuf(db))
-				return FALSE;
+			if (!flush_pagbuf(db)) {
+				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				goto aborted;
+			}
 #endif
+
+			/*
+			 * The new page (on which the incoming pair is supposed to be
+			 * inserted) is now made the "current" page.  It is still held
+			 * only in RAM at this stage.
+			 */
+
 			db->pagbno = newp;
 			memcpy(pag, New, DBM_PBLKSIZ);
 		}
 #ifdef LRU
 		else if (db->is_volatile) {
 			/*
+			 * Incoming pair is located in the old page, and we need to
+			 * persist the new page, which is no longer needed for the
+			 * insertion.
+			 *
 			 * Since DB is volatile, there is no pressure to write it to disk
 			 * immediately.  Since this page may be of interest soon, let's
 			 * cache it instead.  It will be written to disk immediately
@@ -577,8 +773,10 @@ makroom(DBM *db, long int hash, size_t need)
 			 * volatile.
 			 */
 
-			if (!cachepag(db, New, newp))
-				return FALSE;
+			if (!cachepag(db, New, newp)) {
+				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+				goto aborted;
+			}
 		}
 #endif
 		else if (
@@ -587,46 +785,132 @@ makroom(DBM *db, long int hash, size_t need)
 		) {
 			g_warning("sdbm: \"%s\": cannot flush new page #%lu: %s",
 				sdbm_name(db), newp, g_strerror(errno));
-			return FALSE;
+			ioerr(db);
+			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+			goto aborted;
 		}
-
-		if (!setdbit(db, db->curbit))
-			return FALSE;
 
 		/*
 		 * see if we have enough room now
 		 */
 
-		if (fitpair(pag, need))
+		fits = fitpair(pag, need);
+
+		/*
+		 * If the incoming pair still does not fit in the current page,
+		 * we'll have to iterate once more.
+		 *
+		 * Before we do, we attempt to flush the current page to disk to
+		 * make sure the disk image remains consistent.  If there is an error
+		 * doing so, we're still able to restore the DB to the state it was
+		 * in before we attempted the split.
+		 */
+
+		if (!fits) {
+#ifdef LRU
+			if (!force_flush_pagbuf(db, !db->is_volatile))
+				goto restore;
+#else
+			if (!flush_pagbuf(db))
+				goto restore;
+#endif
+		}
+
+		/*
+		 * OK, the .pag is in a consistent state, we can update the index.
+		 *
+		 * FIXME:
+		 * If that operation fails, we are not going to leave the DB in a
+		 * consistent state because the page was split but the .dir forest
+		 * bitmap was not, so we're losing all the values split to the new page.
+		 * However, this should be infrequent because the default 4 KiB page
+		 * size for the bitmap only requires additional disk space after the
+		 * DB has reached 32 MiB.
+		 */
+
+		if (!setdbit(db, db->curbit))
+			return FALSE;
+
+		if (fits)
 			return TRUE;
 
 		/*
-		 * try again... update curbit and hmask as getpage would have
+		 * Try again... update curbit and hmask as getpage() would have
 		 * done. because of our update of the current page, we do not
-		 * need to read in anything. BUT we have to write the current
-		 * [deferred] page out, as the window of failure is too great.
+		 * need to read in anything.
 		 */
 
 		db->curbit = 2 * db->curbit + ((hash & (db->hmask + 1)) ? 2 : 1);
 		db->hmask |= db->hmask + 1;
-
-#ifdef LRU
-		if (!force_flush_pagbuf(db, !db->is_volatile))
-			return FALSE;
-#else
-		if (!flush_pagbuf(db))
-			return FALSE;
-#endif
 	} while (--smax);
 
 	/*
-	 * if we are here, this is real bad news. After DBM_SPLTMAX splits,
+	 * If we are here, this is real bad news. After DBM_SPLTMAX splits,
 	 * we still cannot fit the key. say goodnight.
 	 */
 
 	g_warning("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
 		sdbm_name(db), DBM_SPLTMAX);
 
+	return FALSE;
+
+restore:
+	/*
+	 * We could not flush the current page after a split, undo the operation.
+	 */
+
+	if (db->pagbno != curbno) {
+		gboolean failed = FALSE;
+
+		/*
+		 * We have already written the old split page to disk, so we need to
+		 * refresh that image and restore the original unsplit page on disk.
+		 *
+		 * The new page never made it to the disk since there was an error.
+		 */
+
+#ifdef LRU
+		readbuf(db, curbno);	/* Get old page from LRU cache */
+		pag = db->pagbuf;		/* Must refresh pointer to current page */
+#endif
+
+		db->pagbno = curbno;
+		memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+
+#ifdef LRU
+		if (!force_flush_pagbuf(db, !db->is_volatile))
+			failed = TRUE;
+#else
+		if (!flush_pagbuf(db))
+			failed = TRUE;
+#endif
+
+		if (failed) {
+			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
+				sdbm_name(db), curbno, g_strerror(errno));
+		}
+	} else {
+		/*
+		 * We already flushed the new page and we need to zero it back on disk.
+		 *
+		 * The split old page never made it to the disk since we came here on
+		 * flushing error.
+		 */
+
+		memset(New, 0, DBM_PBLKSIZ);
+		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
+			g_warning("sdbm: \"%s\": cannot zero-back new split page #%lu: %s",
+				sdbm_name(db), newp, g_strerror(errno));
+			ioerr(db);
+		}
+
+		memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
+	}
+
+	/* FALL THROUGH */
+
+aborted:
+	g_warning("sdbm: \"%s\": aborted page split operation", sdbm_name(db));
 	return FALSE;
 }
 
@@ -706,13 +990,8 @@ fetch_dirbuf(DBM *db, long dirb)
 		ssize_t got;
 
 #ifdef LRU
-		if (db->dirbuf_dirty) {
-			if (!flush_dirbuf(db)) {
-				g_warning("sdbm: \"%s\": could not flush dir page #%ld: %s",
-					sdbm_name(db), db->dirbno, g_strerror(errno));
-				return FALSE;
-			}
-		}
+		if (db->dirbuf_dirty && !flush_dirbuf(db))
+			return FALSE;
 #endif
 
 		db->dirread++;
@@ -720,6 +999,7 @@ fetch_dirbuf(DBM *db, long dirb)
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
 				sdbm_name(db), dirb, g_strerror(errno));
+			ioerr(db);
 			return FALSE;
 		}
 
@@ -804,7 +1084,7 @@ getnext(DBM *db)
 
 	while (db->blkptr != -1) {
 		db->keyptr++;
-		key = getnkey(db->pagbuf, db->keyptr);
+		key = getnkey(db, db->pagbuf, db->keyptr);
 		if (key.dptr != NULL)
 			return key;
 
@@ -835,14 +1115,16 @@ getnext(DBM *db)
 int
 sdbm_deletekey(DBM *db)
 {
-	datum key;
-
 	if (db == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
-	if (sdbm_rdonly(db)) {
+	if (db->flags & DBM_RDONLY) {
 		errno = EPERM;
+		return -1;
+	}
+	if (db->flags & DBM_IOERR) {
+		errno = EIO;
 		return -1;
 	}
 
@@ -853,13 +1135,7 @@ sdbm_deletekey(DBM *db)
 		return -1;
 	}
 
-	key = getnkey(db->pagbuf, db->keyptr);
-	if (NULL == key.dptr) {
-		errno = ENOENT;
-		return -1;
-	}
-
-	if (!delpair(db->pagbuf, key))
+	if (!delnpair(db, db->pagbuf, db->keyptr))
 		return -1;
 
 	db->keyptr--;
@@ -895,7 +1171,7 @@ sdbm_value(DBM *db)
 		return nullitem;
 	}
 
-	val = getnval(db->pagbuf, db->keyptr);
+	val = getnval(db, db->pagbuf, db->keyptr);
 	if (NULL == val.dptr) {
 		errno = ENOENT;
 		return nullitem;
@@ -914,23 +1190,28 @@ sdbm_value(DBM *db)
 ssize_t
 sdbm_sync(DBM *db)
 {
+	ssize_t npag = 0;
+
 #ifdef LRU
-	{
-		ssize_t npag;
+	npag = flush_dirtypag(db);
+	if (-1 == npag)
+		return -1;
 
-		npag = flush_dirtypag(db);
-		if (-1 == npag)
+	if (db->dirbuf_dirty) {
+		if (!flush_dirbuf(db))
 			return -1;
-
-		if (db->dirbuf_dirty)
-			return flush_dirbuf(db) ? npag + 1 : -1;
-
-		return npag;
+		npag++;
 	}
 #else
 	(void) db;
-	return 0;
+#endif	/* LRU */
+
+#ifdef BIGDATA
+	if (big_sync(db))
+		npag++;
 #endif
+
+	return npag;
 }
 
 /**
@@ -1014,10 +1295,15 @@ sdbm_pagfno(DBM *db)
 	return db->pagf;
 }
 
-gboolean
-sdbm_is_storable(size_t key_size, size_t value_size)
+int
+sdbm_datfno(DBM *db)
 {
-	return key_size <= DBM_PAIRMAX && DBM_PAIRMAX - key_size >= value_size;
+#ifdef BIGDATA
+	return big_datfno(db);
+#else
+	(void) db;
+	return -1;
+#endif
 }
 
 /* vi: set ts=4 sw=4 cindent: */
