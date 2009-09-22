@@ -434,18 +434,8 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 			dval.dptr = deconstify_gpointer(value.data);
 			dval.dsize = value.len;
 
-			/*
-			 * To avoid running an "exists" before, we attempt insertion
-			 * with DBM_INSERT first, which will fail with a return code of 1
-			 * if the value already exists.
-			 */
-
 			errno = dm->error = 0;
-			ret = sdbm_store(dm->u.s.sdbm, dkey, dval, DBM_INSERT);
-			if (1 == ret) {
-				existed = TRUE;
-				ret = sdbm_store(dm->u.s.sdbm, dkey, dval, DBM_REPLACE);
-			}
+			ret = sdbm_replace(dm->u.s.sdbm, dkey, dval, &existed);
 			if (0 != ret) {
 				dm->ioerr = 0 != sdbm_error(dm->u.s.sdbm);
 				dm->error = errno;
