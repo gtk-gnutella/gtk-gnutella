@@ -2761,8 +2761,6 @@ vmm_post_init(void)
 		unsigned vmm_protect_free_pages:1;
 	} settings = { FALSE, FALSE, FALSE };
 
-	extern gboolean debugging(guint32 t);
-
 	/*
 	 * Log VMM configuration.
 	 */
@@ -2784,7 +2782,7 @@ vmm_post_init(void)
 				"VMM_PROTECT_FREE_PAGES" : "");
 	}
 
-	if (debugging(0) || vmm_debugging(0)) {
+	if (vmm_debugging(0)) {
 		g_message("VMM using %lu bytes for the page cache",
 			(unsigned long) sizeof page_cache);
 		g_message("VMM kernel grows virtual memory by %s addresses",
