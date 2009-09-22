@@ -191,7 +191,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	md->d = we->d;
 
-	md->rd = file_open(download_pathname(d), O_RDONLY, 0);
+	md->rd = file_absolute_open(download_pathname(d), O_RDONLY, 0);
 	if (md->rd < 0) {
 		md->error = errno;
 		goto abort_read;

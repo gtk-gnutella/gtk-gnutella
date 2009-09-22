@@ -335,12 +335,13 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
  * case no error is logged for ENOENT.
  */
 static int
-do_open(const char *path, int flags, int mode, gboolean missing)
+do_open(const char *path, int flags, int mode,
+	gboolean missing, gboolean absolute)
 {
 	const char *what;
 	int fd;
 
-	if (!is_absolute_path(path)) {
+	if (absolute && !is_absolute_path(path)) {
 		errno = EPERM;
 		return -1;
 	}
@@ -407,43 +408,57 @@ do_open(const char *path, int flags, int mode, gboolean missing)
 /**
  * Open file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
+ *
+ * This is a perfect replacement for the open() system call, with logging
+ * on errors.
  */
 int
 file_open(const char *path, int flags, int mode)
 {
-	return do_open(path, flags, mode, FALSE);
+	return do_open(path, flags, mode, FALSE, FALSE);
 }
 
 /**
- * Open file, returning file descriptor or -1 on error with errno set.
+ * Open file given with absolute pathname.
+ * Returns file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning.
+ */
+int
+file_absolute_open(const char *path, int flags, int mode)
+{
+	return do_open(path, flags, mode, FALSE, TRUE);
+}
+
+/**
+ * Open absolute file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning, unless the file is missing, in which
  * case nothing is logged.
  */
 int
 file_open_missing(const char *path, int flags)
 {
-	return do_open(path, flags, 0, TRUE);
+	return do_open(path, flags, 0, TRUE, TRUE);
 }
 
 /**
- * Create file, returning file descriptor or -1 on error with errno set.
+ * Create absolute file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
  */
 int
 file_create(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, FALSE);
+	return do_open(path, flags | O_CREAT, mode, FALSE, TRUE);
 }
 
 /**
- * Create file, returning file descriptor or -1 on error with errno set.
+ * Create absolute file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning, unless the error is ENOENT which means
  * the directory does not exist.
  */
 int
 file_create_missing(const char *path, int flags, int mode)
 {
-	return do_open(path, flags | O_CREAT, mode, TRUE);
+	return do_open(path, flags | O_CREAT, mode, TRUE, TRUE);
 }
 
 /**

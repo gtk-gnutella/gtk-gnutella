@@ -65,6 +65,7 @@ void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 
 int file_open(const char *path, int flags, int mode);
+int file_absolute_open(const char *path, int flags, int mode);
 int file_open_missing(const char *path, int flags);
 int file_create(const char *path, int flags, int mode);
 int file_create_missing(const char *path, int flags, int mode);

@@ -378,7 +378,7 @@ verify_next_file(struct verify *ctx)
 			if (NULL == ctx->file) {
 				int fd;
 
-				fd = file_open(item->pathname, O_RDONLY, 0);
+				fd = file_absolute_open(item->pathname, O_RDONLY, 0);
 				if (fd >= 0) {
 					ctx->file = file_object_new(fd, item->pathname, O_RDONLY);
 				}

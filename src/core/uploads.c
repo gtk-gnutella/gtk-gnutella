@@ -3722,7 +3722,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		} else {
 			flags = O_RDWR;
 		}
-		fd = file_open(shared_file_path(u->sf), flags, 0);
+		fd = file_absolute_open(shared_file_path(u->sf), flags, 0);
 		if (fd >= 0) {
 			u->file = file_object_new(fd, shared_file_path(u->sf), flags);
 		}
