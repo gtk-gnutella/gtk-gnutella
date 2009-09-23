@@ -3299,7 +3299,8 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port)
 
 	s = socket_alloc();
 
-	socket_alloc_buffer(s);
+	s->buf_size = SOCK_LBUFSZ;		/* Larger buffer to allow big payloads */
+	s->buf = halloc(s->buf_size);
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = fd;

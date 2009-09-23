@@ -26,7 +26,8 @@
 #ifndef _if_core_sockets_h_
 #define _if_core_sockets_h_
 
-#define SOCK_BUFSZ	4096
+#define SOCK_BUFSZ	4096		/**< Buffer size for connected sockets */
+#define SOCK_LBUFSZ	32768		/**< Buffer size for datagram sockets */
 
 /***
  *** Proxy protocols
