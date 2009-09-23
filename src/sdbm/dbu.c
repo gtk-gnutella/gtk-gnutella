@@ -149,7 +149,7 @@ doit(register cmd *act, char *file)
 		     key = sdbm_nextkey(db)) {
 			prdatum(stdout, key);
 			putchar('\t');
-			prdatum(stdout, sdbm_fetch(db, key));
+			prdatum(stdout, sdbm_value(db));
 			putchar('\n');
 		}
 		break;
