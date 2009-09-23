@@ -1,24 +1,23 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
+and which are not already implemented in SVN.
 
-0.96:	
-	* Area-specific logging
+0.97:	
+	* Full DHT publishing
+
+0.97.1:
+	* Area-specific logging?
+	* Disk space monitoring
 	* Firewalled to firewalled transfers (when LimeWire publishes specs)
-	* Tigertree support 					(JA: started)
-	* HTTP chunked / unknown filesize support		(JA: started)
-	* GUI: Add / remove of gwebcaches
 	* Keep track of long uptime ultrapeers
-	* PARQ: Update to 1.1 (to be specified)
 	* PARQ: PFS aware
 	* PARQ: Tigertree aware
-	* PARQ: 'Rotating' queue by filename
-	* Meta data support
-
-After this release we should start with the gui <-> core/lib seperation.
+	* PARQ: 'Rotating' queue by filename?
+	* Meta data support (locally)
 
 Possible other changes
-	* Smaller memory footprint by using sqlite for:
-	  - PARQ
-	  - Host cache
+	* Smaller memory footprint by using sdbm for:
+	  - PARQ?
+	  - Host cache?
 
-- Jeroen
+-- Raphael
 
