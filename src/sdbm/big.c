@@ -1188,6 +1188,8 @@ bigval_put(DBM *db, char *bval, size_t blen, const char *val, size_t vlen)
 int
 big_datfno(DBM *db)
 {
+	STATIC_ASSERT(BIG_BLKSIZE == DBM_BBLKSIZ);
+
 	return db->big->fd;
 }
 

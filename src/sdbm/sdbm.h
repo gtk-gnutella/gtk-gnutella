@@ -10,6 +10,7 @@
 
 #define DBM_DBLKSIZ 4096		/* size of a page within ".dir" files */
 #define DBM_PBLKSIZ 1024		/* size of a page within ".pag" files */
+#define DBM_BBLKSIZ 1024		/* size of a page within ".dat" files */
 #define DBM_PAIRMAX 1008		/* arbitrary on DBM_PBLKSIZ-N */
 #define DBM_SPLTMAX	10			/* maximum allowed splits for an insertion */
 #define DBM_DIRFEXT	".dir"

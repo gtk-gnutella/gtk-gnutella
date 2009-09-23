@@ -10,20 +10,23 @@
 char *progname;
 extern void oops();
 void sdump(int);
+void bdump(int);
 
 int
 main(int argc, char **argv)
 {
-	int n;
 	char *p;
-	char *name;
-	int pagf;
 
 	progname = argv[0];
 	(void) argc;
 
 	if ((p = argv[1])) {
-		name = (char *) malloc((n = strlen(p)) + 5);
+		int pagf;
+		int datf;
+		char *name;
+		int n;
+
+		name = (char *) malloc((n = strlen(p)) + sizeof(DBM_PAGFEXT));
 		if (!name)
 		    oops("cannot get memory");
 
@@ -34,6 +37,17 @@ main(int argc, char **argv)
 			oops("cannot open %s.", name);
 
 		sdump(pagf);
+		free(name);
+
+		name = (char *) malloc(n + sizeof(DBM_DATFEXT));
+		if (!name)
+		    oops("cannot get memory");
+
+		strcpy(name, p);
+		strcpy(name + n, DBM_DATFEXT);
+
+		if ((datf = open(name, O_RDONLY)) >= 0)
+			bdump(datf);
 	}
 	else
 		oops("usage: %s dbname", progname);
@@ -126,5 +140,53 @@ sdump(int pagf)
 		printf("%d pages (%d holes):  %d entries\n", n, o, t);
 	else
 		oops("read failed: block %d", n);
+}
+
+int
+bits_set(int v)
+{
+	int count = 0;
+
+	while (v != 0) {
+		if (v & 0x1)
+			count++;
+		v >>= 1;
+	}
+
+	return count;
+}
+
+void
+bdump(int datf)
+{
+	int i;
+	unsigned char dat[DBM_BBLKSIZ];
+	int set[256];
+	struct stat buf;
+	unsigned long b;
+	unsigned long used = 0;
+	unsigned long total;
+
+	for (i = 0; i < 256; i++)
+		set[i] = bits_set(i);
+
+	if (-1 == fstat(datf, &buf))
+		return;
+
+	for (b = 0; b < buf.st_size; b += DBM_BBLKSIZ * DBM_BBLKSIZ * 8) {
+		if ((off_t) -1 == lseek(datf, b, SEEK_SET))
+			oops("seek failed: offset %lu", b);
+		if (-1 == read(datf, dat, sizeof dat))
+			oops("read failed: offset %lu", b);
+		for (i = 0; i < DBM_BBLKSIZ; i++)
+			used += set[dat[i]];
+	}
+
+	total = buf.st_size / DBM_BBLKSIZ;
+	if (buf.st_size % DBM_BBLKSIZ)
+		total++;
+
+	printf("%lu blocks used / %lu total (%.2f%% used)\n",
+		used, total, used * 100.0 / total);
 }
 
