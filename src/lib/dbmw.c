@@ -320,11 +320,11 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 		dw->ioerr = TRUE;
 		dw->error = errno;
 		g_warning("DBMW \"%s\" I/O error whilst %s dirty entry: %s",
-			value->absent ? "deleting" : "flushing", dw->name,
+			dw->name, value->absent ? "deleting" : "flushing",
 			dbmap_strerror(dw->dm));
 	} else {
 		g_warning("DBMW \"%s\" error whilst %s dirty entry: %s",
-			value->absent ? "deleting" : "flushing", dw->name,
+			dw->name, value->absent ? "deleting" : "flushing",
 			dbmap_strerror(dw->dm));
 	}
 
