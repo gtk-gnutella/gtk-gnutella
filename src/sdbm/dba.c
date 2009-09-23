@@ -70,11 +70,12 @@ is_big(unsigned short off)
 }
 
 int
-pagestat(char *pag)
+pagestat(char *pag, int *large_keys, int *large_values)
 {
 	register unsigned n;
 	register int pfree;
 	register unsigned short *ino = (unsigned short *) pag;
+	int lk = 0, lv = 0;
 
 	if (!(n = ino[0]))
 		printf("no entries.\n");
@@ -82,8 +83,6 @@ pagestat(char *pag)
 		unsigned i;
 		int keysize = 0, valsize = 0;
 		unsigned off = DBM_PBLKSIZ;
-		gboolean has_big_value = FALSE;
-		gboolean has_big_key = FALSE;
 
 		for (i = 1; i < n; i+= 2) {
 			unsigned short koff = offset(ino[i]);
@@ -92,10 +91,8 @@ pagestat(char *pag)
 			valsize += koff - voff;
 			off = voff;
 
-			if (is_big(ino[i]))
-				has_big_key = TRUE;
-			if (is_big(ino[i+1]))
-				has_big_value = TRUE;
+			if (is_big(ino[i]))		lk++;
+			if (is_big(ino[i+1]))	lv++;
 		}
 
 		pfree = offset(ino[n]) - (n + 1) * sizeof(short);
@@ -106,9 +103,13 @@ pagestat(char *pag)
 			   keysize, valsize, pfree,
 			   (DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
 					" (LOW)" : "",
-				has_big_key ? " (LKEY)" : "",
-				has_big_value ? " (LVAL)" : "");
+				lk ? " (LKEY)" : "",
+				lv ? " (LVAL)" : "");
 	}
+	if (large_keys)
+		*large_keys = lk;
+	if (large_values)
+		*large_values = lv;
 	return n / 2;
 }
 
@@ -119,26 +120,36 @@ sdump(int pagf)
 	int n = 0;
 	int t = 0;
 	int o = 0;
+	int tlk = 0;
+	int tlv = 0;
 	int e;
 	char pag[DBM_PBLKSIZ];
 
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
+		int lk, lv;
 		printf("#%d: ", n);
 		if (!okpage(pag))
 			printf("bad\n");
 		else {
 			printf("ok. ");
-			if (!(e = pagestat(pag)))
+			if (!(e = pagestat(pag, &lk, &lv))) {
 			    o++;
-			else
+			} else {
 			    t += e;
+				tlk += lk;
+				tlv += lv;
+			}
 		}
 		n++;
 	}
 
-	if (b == 0)
+	if (b == 0) {
 		printf("%d pages (%d holes):  %d entries\n", n, o, t);
-	else
+		if (tlk || tlv)
+			printf("%d large key%s, %d large value%s\n",
+				tlk, 1 == tlk ? "" : "s",
+				tlv, 1 == tlv ? "" : "s");
+	} else
 		oops("read failed: block %d", n);
 }
 
