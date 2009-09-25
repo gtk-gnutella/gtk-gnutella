@@ -207,7 +207,8 @@ skip_ascii_non_spaces(const char *s)
  * Skips over all characters which are ASCII alphanumerical characters
  * starting at ``s''.
  *
- * @return a pointer to the first space or NUL character starting from s.
+ * @return a pointer to the first non-alphanumerical or NUL character
+ * starting from s.
  */
 static inline WARN_UNUSED_RESULT char *
 skip_ascii_alnum(const char *s)
