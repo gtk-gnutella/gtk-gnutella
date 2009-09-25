@@ -184,7 +184,7 @@ bdump(int datf)
 	if (-1 == fstat(datf, &buf))
 		return;
 
-	for (b = 0; b < buf.st_size; b += DBM_BBLKSIZ * DBM_BBLKSIZ * 8) {
+	for (b = 0; b < UNSIGNED(buf.st_size); b += DBM_BBLKSIZ * DBM_BBLKSIZ * 8) {
 		if ((off_t) -1 == lseek(datf, b, SEEK_SET))
 			oops("seek failed: offset %lu", b);
 		if (-1 == read(datf, dat, sizeof dat))

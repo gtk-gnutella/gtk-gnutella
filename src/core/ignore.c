@@ -49,6 +49,8 @@ RCSID("$Id$")
 #include "lib/base32.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/parse.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 
 #include "if/gnet_property_priv.h"

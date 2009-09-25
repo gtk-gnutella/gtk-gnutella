@@ -53,8 +53,11 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "atoms.h"				/* For binary_hash */
 #include "host_addr.h"
-#include "misc.h"
+#include "concat.h"
 #include "endian.h"
+#include "glib-missing.h"		/* For g_strlcpy() */
+#include "parse.h"
+#include "stringify.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */

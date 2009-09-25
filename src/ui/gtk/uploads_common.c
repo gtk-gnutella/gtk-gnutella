@@ -38,10 +38,11 @@ RCSID("$Id$")
 #include "if/core/uploads.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/concat.h"
 #include "lib/host_addr.h"
-#include "lib/misc.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/tm.h"
+#include "lib/stringify.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define IO_STALLED	60	/**< If nothing exchanged after that many secs */

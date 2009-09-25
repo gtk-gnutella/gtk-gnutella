@@ -21,9 +21,11 @@
 #include "lib/bit_array.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
-#include "lib/misc.h"
+#include "lib/pow2.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -620,14 +622,8 @@ fetch_bitbuf(DBM *db, long num)
 	if (bno != dbg->bitbno) {
 		ssize_t got;
 
-		if (dbg->bitbuf_dirty) {
-			if (!flush_bitbuf(db)) {
-				g_warning("sdbm: \"%s\": could not flush bitmap block #%ld: %s",
-					sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
-					g_strerror(errno));
-				return FALSE;
-			}
-		}
+		if (dbg->bitbuf_dirty && !flush_bitbuf(db))
+			return FALSE;
 
 		dbg->bitread++;
 		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));

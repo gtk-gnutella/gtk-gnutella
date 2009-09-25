@@ -40,7 +40,7 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "atoms.h"
 #include "iso3166.h"
-#include "misc.h"
+#include "parse.h"
 
 #include "override.h"       /* Must be the last header included */
 
@@ -315,9 +315,9 @@ static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];
 static iso3166_entry_t *iso3166_countries[NUM_CODES];
 
 /**
- * Decodes a valid 2-letter country code into an integer.
+ * Decodes a valid country code into a 2-letter country string.
  *
- * @return NULL integer isn't a validly encoded country code. If the country
+ * @return NULL if integer isn't a validly encoded country code. If the country
  *		   is valid, a string pointing two the 2-letter code is returned. The
  *		   string is in a static buffer.
  */

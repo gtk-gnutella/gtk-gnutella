@@ -47,9 +47,11 @@ RCSID("$Id$")
 #include "if/core/settings.h"
 
 #include "lib/array.h"
+#include "lib/concat.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
-#include "lib/misc.h"
+#include "lib/path.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */

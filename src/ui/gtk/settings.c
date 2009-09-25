@@ -54,8 +54,10 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/concat.h"
 #include "lib/prop.h"
 #include "lib/glib-missing.h"
+#include "lib/stringify.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 

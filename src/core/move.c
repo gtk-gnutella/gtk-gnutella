@@ -43,10 +43,13 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/compat_misc.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
-#include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"

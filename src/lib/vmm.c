@@ -52,8 +52,12 @@ RCSID("$Id$")
 
 #include "ascii.h"
 #include "cq.h"
-#include "misc.h"
+#include "fd.h"
+#include "parse.h"
+#include "pow2.h"
+#include "stringify.h"
 #include "tm.h"
+#include "unsigned.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -686,6 +690,8 @@ pmap_extend(struct pmap *pm)
 	size_t osize;
 	void *oarray;
 
+retry:
+
 	osize = kernel_pagesize * pm->pages;
 	nsize = osize + kernel_pagesize;
 
@@ -711,7 +717,7 @@ pmap_extend(struct pmap *pm)
 	{
 		size_t old_pages = pm->pages;
 
-		narray = alloc_pages(nsize, FALSE);
+		narray = alloc_pages(nsize, FALSE);		/* May recurse here */
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
@@ -722,7 +728,19 @@ pmap_extend(struct pmap *pm)
 			g_assert(kernel_pagesize * pm->pages >= nsize);
 			if (narray != NULL)
 				free_pages(narray, nsize, FALSE);
-			return;
+
+			/*
+			 * If after recursion we're left with a full pmap. we need to
+			 * retry another extension.
+			 */
+
+			if (pm->count != pm->size)
+				return;
+
+			if (vmm_debugging(0))
+				g_warning("VMM however pmap is still full, extending again...");
+			
+			goto retry;
 		}
 
 		if (NULL == narray)

@@ -91,6 +91,7 @@ RCSID("$Id$")
 #include "lib/aging.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
+#include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/dbus_util.h"
 #include "lib/file.h"
@@ -103,9 +104,13 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/header.h"
 #include "lib/listener.h"
+#include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/strtok.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
@@ -3970,7 +3975,7 @@ purge_host_cache_from_hub_list(const char *s)
 	g_assert(s);
     
     for (; NULL != s; s = strchr(s, ',')) {
-        host_addr_t addr;;
+        host_addr_t addr;
         guint16 port = 0;
         
         if (',' == s[0])

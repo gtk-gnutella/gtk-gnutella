@@ -59,6 +59,8 @@
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/url.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

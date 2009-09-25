@@ -52,7 +52,6 @@
 
 #include "common.h"
 
-#include "compat_sleep_ms.h"
 #include "fs_free_space.h"
 #include "tm.h"
 #include "vmm.h"
@@ -65,38 +64,6 @@
 typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
-
-/**
- * Needs to be defined if we are not using Glib 2
- */
-#ifndef USE_GLIB2
-
-#ifndef HAS_STRLCPY
-size_t strlcpy(char *dst, const char *src, size_t dst_size);
-#endif /* HAS_STRLCPY */
-
-#ifndef HAS_STRLCAT
-size_t strlcat(char *dst, const char *src, size_t dst_size);
-#endif /* HAS_STRLCAT */
-
-#define g_string_printf g_string_sprintf
-#define g_strlcpy strlcpy
-#define g_strlcat strlcat
-#endif
-
-size_t concat_strings(char *dst, size_t size,
-	const char *s, ...) G_GNUC_NULL_TERMINATED;
-size_t w_concat_strings(char **dst,
-	const char *first, ...) G_GNUC_NULL_TERMINATED;
-
-#ifndef TRACK_MALLOC
-char *h_strdup(const char *str);
-char *h_strndup(const char *str, size_t n);
-char *h_strjoinv(const char *separator, char **str_array);
-void h_strfreev(char **str_array);
-char *h_strconcat(const char *str1, ...) G_GNUC_NULL_TERMINATED;
-char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
-#endif	/* !TRACK_MALLOC */
 
 /**
  * Converts an integer to a single hexadecimal ASCII digit. The are no checks,
@@ -138,68 +105,10 @@ skip_dir_separators(const char *s)
 #define CONST_STRLEN(x) (sizeof(x) - 1)
 
 /*
- * Macros to determine the maximum buffer size required to hold a
- * NUL-terminated string.
- */
-#define UINT8_HEX_BUFLEN	(sizeof "FF")
-#define UINT8_DEC_BUFLEN	(sizeof "255")
-#define UINT16_HEX_BUFLEN	(sizeof "01234")
-#define UINT16_DEC_BUFLEN	(sizeof "65535")
-#define UINT32_HEX_BUFLEN	(sizeof "012345678")
-#define UINT32_DEC_BUFLEN	(sizeof "4294967295")
-#define UINT64_HEX_BUFLEN	(sizeof "0123456789ABCDEF")
-#define UINT64_DEC_BUFLEN	(sizeof "18446744073709551615")
-#define IPV4_ADDR_BUFLEN	(sizeof "255.255.255.255")
-#define IPV6_ADDR_BUFLEN \
-	  (sizeof "0001:0203:0405:0607:0809:1011:255.255.255.255")
-#define TIMESTAMP_BUF_LEN	(sizeof "9999-12-31 23:59:61")
-#define OFF_T_DEC_BUFLEN	(sizeof(off_t) * CHAR_BIT) /* very roughly */
-#define TIME_T_DEC_BUFLEN	(sizeof(time_t) * CHAR_BIT) /* very roughly */
-#define SIZE_T_DEC_BUFLEN	(sizeof(size_t) * CHAR_BIT) /* very roughly */
-#define POINTER_BUFLEN		(sizeof(unsigned long) * CHAR_BIT) /* very roughly */
-
-#define HOST_ADDR_BUFLEN	(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
-#define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
-
-gboolean parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr);
-const char *ipv6_to_string(const guint8 *ipv6);
-size_t ipv6_to_string_buf(const guint8 *ipv6, char *dst, size_t size);
-
-/*
  * Network related string routines
  */
-guint32  string_to_ip(const char *);
-gboolean string_to_ip_strict(const char *s, guint32 *addr, const char **ep);
-gboolean string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask);
-gboolean string_to_ip_port(const char *str, guint32 *ip, guint16 *port);
-const char *ip_to_string(guint32);
-size_t ipv4_to_string_buf(guint32 ip, char *buf, size_t size);
-const char *hostname_port_to_string(const char *hostname, guint16 port);
 const char *local_hostname(void);
 #define port_is_valid(port) (port != 0)
-
-/*
- * Date string conversions
- */
-const char *timestamp_to_string(time_t date);
-const char *timestamp_utc_to_string(time_t date);
-const char *timestamp_rfc822_to_string(time_t date);
-const char *timestamp_rfc822_to_string2(time_t date);
-const char *timestamp_rfc1123_to_string(time_t date);
-
-size_t timestamp_to_string_buf(time_t date, char *dst, size_t size);
-size_t timestamp_utc_to_string_buf(time_t date, char *dst, size_t size);
-size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
-
-short_string_t timestamp_get_string(time_t date);
-
-/*
- * Time string conversions
- */
-const char *short_time(time_delta_t s);
-const char *short_time_ascii(time_delta_t t);
-const char *short_uptime(time_delta_t s);
-const char *compact_time(time_delta_t t);
 
 /*
  * Size string conversions
@@ -281,14 +190,12 @@ size_t bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size);
 /*
  * Tests
  */
-gboolean is_absolute_path(const char *pathname);
 gboolean is_directory(const char *pathname);
 gboolean is_regular(const char *pathname);
 gboolean is_symlink(const char *pathname);
 int is_same_file(const char *, const char *);
 gboolean file_exists(const char *pathname);
 gboolean file_does_not_exist(const char *pathname);
-guint32 next_pow2(guint32 n);
 
 /**
  * Tries to extrace the file mode from a struct dirent. Not all systems
@@ -319,26 +226,6 @@ dir_entry_mode(const struct dirent *dir_entry)
 	return 0;
 }
 
-#define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
-
-/**
- * Checks whether the given value is a power of 2.
- *
- * @param value a 32-bit integer
- * @return TRUE if ``value'' is a power of 2. Otherwise FALSE.
- */
-static inline G_GNUC_CONST gboolean
-is_pow2(guint32 value)
-#ifdef HAS_BUILTIN_POPCOUNT
-{
-	return 1 == __builtin_popcount(value);
-}
-#else /* !HAS_BUILTIN_POPCOUNT */
-{
-	return IS_POWER_OF_2(value);
-}
-#endif /* HAS_BUILTIN_POPCOUNT */
-
 /*
  * Random numbers
  */
@@ -363,18 +250,10 @@ void dump_hex(FILE *, const char *, gconstpointer, int);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
 gboolean is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
-size_t filename_shrink(const char *filename, char *buf, size_t size);
-char *unique_filename(const char *path, const char *file, const char *ext,
-		gboolean (*name_is_uniq)(const char *pathname));
-char *hex_escape(const char *name, gboolean strict);
-char *control_escape(const char *s);
-const char *lazy_string_to_printf_escape(const char *src);
 int highest_bit_set(guint32 n) G_GNUC_CONST;
 size_t common_leading_bits(
 	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits);
 float force_range(float value, float min, float max);
-char *absolute_pathname(const char *file);
-char *make_pathname(const char *dir, const char *file);
 char *short_filename(char *fullname);
 char *data_hex_str(const char *data, size_t len);
 
@@ -387,43 +266,7 @@ char *data_hex_str(const char *data, size_t len);
 #endif /* S_IROTH && S_IXOTH */
 
 int create_directory(const char *dir, mode_t mode);
-int compat_mkdir(const char *path, mode_t mode);
-gboolean filepath_exists(const char *dir, const char *file);
-const char * filepath_basename(const char *pathname);
-char *filepath_directory(const char *pathname);
 
-guint16 parse_uint16(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-guint32 parse_uint32(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-guint64 parse_uint64(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-
-unsigned parse_uint(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-unsigned long parse_ulong(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-size_t parse_size(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1, 4));
-const void *parse_pointer(const char *, char const **, int *)
-	NON_NULL_PARAM((1, 3));
-
-size_t int32_to_string_buf(gint32 v, char *dst, size_t size);
-size_t uint32_to_string_buf(guint32 v, char *dst, size_t size);
-size_t uint64_to_string_buf(guint64 v, char *dst, size_t size);
-size_t off_t_to_string_buf(off_t v, char *dst, size_t size);
-size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
-size_t size_t_to_string_buf(size_t v, char *dst, size_t size);
-size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
-const char *uint32_to_string(guint32);
-const char *uint64_to_string(guint64);
-const char *uint64_to_string2(guint64);
-const char *off_t_to_string(off_t);
-const char *time_t_to_string(time_t);
-const char *size_t_to_string(size_t);
-const char *pointer_to_string(const void *);
-const char *filesize_to_string(filesize_t);
-const char *filesize_to_string2(filesize_t);
 int parse_major_minor(const char *src, char const **endptr,
 	guint *major, guint *minor);
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
@@ -432,23 +275,6 @@ gboolean is_strsuffix(const char *str, size_t len, const char *suffix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
 guint32 html_decode_entity(const char *src, const char **endptr);
 int canonize_path(char *dst, const char *path);
-guint compat_max_fd(void);
-void close_file_descriptors(const int first_fd);
-int reserve_standard_file_descriptors(void);
-gboolean compat_is_superuser(void);
-int compat_daemonize(const char *directory);
-
-void set_close_on_exec(int fd);
-void fd_set_nonblocking(int fd);
-int fd_close(int *fd_ptr, gboolean);
-
-void compat_fadvise_sequential(int fd, off_t offset, off_t size);
-void compat_fadvise_noreuse(int fd, off_t offset, off_t size);
-void compat_fadvise_dontneed(int fd, off_t offset, off_t size);
-void *compat_memmem(const void *data, size_t data_size,
-		const void *pattern, size_t pattern_size);
-
-int get_non_stdio_fd(int fd);
 
 typedef void (*signal_handler_t)(int signo);
 signal_handler_t set_signal(int signo, signal_handler_t handler);
@@ -720,132 +546,6 @@ guint filesize_per_1000(filesize_t size, filesize_t part);
 guint filesize_per_10000(filesize_t size, filesize_t part);
 
 /*
- * NOTE: ssize_t is NOT the signed variant of size_t and casting values blindly
- * to ssize_t may cause integer overflows.  Larger values, especially SIZE_MAX
- * (size_t)-1 may be the result of errors or wrap arounds during calculations.
- * Therefore in places where memory objects larger than half of the address
- * space are unreasonable, the following two functions are useful to check for
- * such conditions.
- */
-
-/*
- * Check whether a signed representation of size would be non-negative.
- * @return TRUE if size is equal to zero or larger and smaller than
- *         SIZE_MAX / 2.
- */
-static inline gboolean
-size_is_non_negative(size_t size)
-{
-	return size <= SIZE_MAX / 2;
-}
-
-/**
- * Check whether a signed representation of size would be strictly positive.
- * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.
- */
-static inline gboolean
-size_is_positive(size_t size)
-{
-	return size_is_non_negative(size - 1);
-}
-
-/*
- * Calculate the sum of a and b but saturate towards SIZE_MAX.
- * @return SIZE_MAX if a + b > SIZE_MAX, otherwise a + b.
- */
-static inline size_t
-size_saturate_add(size_t a, size_t b)
-{
-	size_t ret = a + b;
-	if (G_UNLIKELY(ret < a))
-		return SIZE_MAX;
-	return ret;
-}
-
-/*
- * Calculate the product of a and b but saturate towards SIZE_MAX.
- * @return SIZE_MAX if a * b > SIZE_MAX, otherwise a * b.
- */
-static inline size_t
-size_saturate_mult(size_t a, size_t b)
-{
-	if (0 == a)
-		return 0;
-	if (G_UNLIKELY(SIZE_MAX / a < b))
-		return SIZE_MAX;
-	return a * b;
-}
-
-/*
- * Calculate the difference between a and b but saturate towards zero.
- * @return zero if a < b, otherwise a - b.
- */
-static inline size_t
-size_saturate_sub(size_t a, size_t b)
-{
-	if (G_UNLIKELY(a < b))
-		return 0;
-	return a - b;
-}
-
-/**
- * Check whether a signed representation of unsigned int would be non-negative.
- * @return TRUE if size is greater than or equal to zero, yet smaller than the
- * maximum positive quantity that can be represented.
- */
-static inline gboolean
-uint_is_non_negative(unsigned v)
-{
-	return v <= MAX_INT_VAL(unsigned) / 2;
-}
-
-/**
- * Check whether a signed representation of value would be strictly positive.
- * @return TRUE if size is stricly larger than zero, yet smaller than the
- * maximum positive quantity that can be represented.
- */
-static inline gboolean
-uint_is_positive(unsigned v)
-{
-	return uint_is_non_negative(v - 1);
-}
-
-/**
- * Check whether a signed representation of value would be non-negative.
- * @return TRUE if size is greater than or equal to zero, yet smaller than the
- * maximum positive quantity that can be represented.
- */
-static inline gboolean
-guint32_is_non_negative(guint32 v)
-{
-	return v <= MAX_INT_VAL(guint32) / 2;
-}
-
-/**
- * Check whether a signed representation of value would be strictly positive.
- * @return TRUE if size is stricly larger than zero, yet smaller than the
- * maximum positive quantity that can be represented.
- */
-static inline gboolean
-guint32_is_positive(guint32 v)
-{
-	return guint32_is_non_negative(v - 1);
-}
-
-/*
- * Calculate the sum of a and b but saturate towards the maximum value.
- * @return maximum if a + b > maximum, otherwise a + b.
- */
-static inline guint32
-guint32_saturate_add(guint32 a, guint32 b)
-{
-	guint32 ret = a + b;
-	if (G_UNLIKELY(ret < a))
-		return MAX_INT_VAL(guint32);
-	return ret;
-}
-
-/*
  * CIDR split of IP range.
  */
 
@@ -929,6 +629,55 @@ print_number(char *dst, size_t size, unsigned long value)
 			break;
 	}
 	return p;
+}
+
+/**
+ * Converts an integer to a single decimal ASCII digit. The are no checks,
+ * this is just a convenience function.
+ *
+ * @param x An integer between 0 and 9.
+ * @return The ASCII character corresponding to the decimal digit [0-9].
+ */
+static inline guchar
+dec_digit(guchar x)
+{
+	static const char dec_alphabet[] = "0123456789";
+	return dec_alphabet[x % 10];
+}
+
+/**
+ * Copies "src_len" chars from "src" to "dst" reversing their order.
+ * The resulting string is always NUL-terminated unless "size" is zero.
+ * If "size" is not larger than "src_len", the resulting string will
+ * be truncated. NUL chars copied from "src" are not treated as string
+ * terminations.
+ *
+ * @param dst The destination buffer.
+ * @param size The size of the destination buffer.
+ * @param src The source buffer.
+ * @param src_len The size of the source buffer.
+ *
+ * @return The resulting length of string not counting the termating NUL.
+ *         Note that NULs that might have been copied from "src" are
+ *         included in this count. Thus strlen(dst) would return a lower
+ *         value in this case. 
+ */
+static inline size_t
+reverse_strlcpy(char * const dst, size_t size,
+	const char *src, size_t src_len)
+{
+	char *p = dst;
+	
+	if (size-- > 0) {
+		const char *q = &src[src_len], *end = &dst[MIN(src_len, size)];
+
+		while (p != end) {
+			*p++ = *--q;
+		}
+		*p = '\0';
+	}
+
+	return p - dst;
 }
 
 #endif /* _misc_h_ */

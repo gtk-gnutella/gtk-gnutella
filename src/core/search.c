@@ -75,6 +75,8 @@ RCSID("$Id$")
 #include "lib/array.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
+#include "lib/compat_misc.h"
+#include "lib/concat.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"

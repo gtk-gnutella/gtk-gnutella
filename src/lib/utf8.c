@@ -66,9 +66,11 @@ RCSID("$Id$")
 
 #include "utf8.h"
 #include "ascii.h"
+#include "concat.h"
+#include "misc.h"
 #include "debug.h"
 #include "glib-missing.h"
-#include "misc.h"
+#include "stringify.h"
 #include "override.h"		/* Must be the last header included */
 
 /**

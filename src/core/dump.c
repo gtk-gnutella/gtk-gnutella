@@ -43,7 +43,9 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "settings.h"
 
+#include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/path.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
 #include "lib/halloc.h"

@@ -99,21 +99,27 @@
 #include "lib/adns.h"
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/compat_misc.h"
+#include "lib/compat_sleep_ms.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
 #include "lib/crc.h"
 #include "lib/debug.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
+#include "lib/fd.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iso3166.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
 #include "lib/palloc.h"
+#include "lib/parse.h"
 #include "lib/patricia.h"
 #include "lib/pattern.h"
+#include "lib/pow2.h"
 #include "lib/socket.h"
+#include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
 #include "lib/tiger.h"
@@ -435,6 +441,27 @@ gtk_gnutella_exit(int exit_code)
 	if (from_atexit)
 		return;
 
+#ifdef USE_HALLOC
+	/*
+	 * When halloc() is replacing malloc(), we need to make sure no memory
+	 * allocated through halloc() is going to get invalidated because some
+	 * GTK callbacks seem to access freed memory.
+	 *
+	 * Also, later on when we finally cleanup all the allocated memory, we may
+	 * run into similar problems with glib if we don't take this precaution.
+	 *
+	 * Therefore, before starting the final shutdown routines, prevent any
+	 * freeing.  We don't care much as we're now going to exit() anyway.
+	 *
+	 * Note that only the actual freeing is suppressed, but all internal
+	 * data structures are still updated, meaning memory leak detection will
+	 * still work correctly.
+	 */
+
+	if (halloc_replaces_malloc())
+		DO(vmm_stop_freeing);
+#endif
+
 	if (!running_topless) {
 		DO(settings_gui_save_if_dirty);
 		DO(main_gui_shutdown);
@@ -558,9 +585,6 @@ gtk_gnutella_exit(int exit_code)
 	gm_mem_set_safe_vtable();
 	DO(vmm_pre_close);
 	DO(atoms_close);
-#ifdef USE_HALLOC
-	DO(vmm_stop_freeing);
-#endif
 	DO(wdestroy);
 	DO(zclose);
 	DO(malloc_close);

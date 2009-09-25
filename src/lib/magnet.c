@@ -41,13 +41,17 @@ RCSID("$Id$")
 
 #include "ascii.h"
 #include "atoms.h"
+#include "concat.h"
 #include "glib-missing.h"
 #include "gnet_host.h"
 #include "magnet.h"
+#include "parse.h"
 #include "sequence.h"
+#include "stringify.h"
 #include "tm.h"
 #include "url.h"
 #include "urn.h"
+#include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 

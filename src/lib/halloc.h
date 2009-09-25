@@ -55,10 +55,18 @@ hcopy(const void *p, size_t size)
 	memcpy(cp, p, size);
 	return cp;
 }
-#endif	/* TRACK_MALLOC */
+
+char *h_strdup(const char *str);
+char *h_strndup(const char *str, size_t n);
+char *h_strjoinv(const char *separator, char **str_array);
+void h_strfreev(char **str_array);
+char *h_strconcat(const char *str1, ...) G_GNUC_NULL_TERMINATED;
+char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
+#endif	/* !TRACK_MALLOC */
 
 void halloc_init(gboolean replace_malloc);
 void hdestroy(void);
+gboolean halloc_replaces_malloc(void);
 
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);

@@ -52,6 +52,7 @@ RCSID("$Id$")
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/path.h"
 #include "lib/sorted_array.h"
 #include "lib/watcher.h"
 

@@ -51,10 +51,15 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/concat.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/header.h"
+#include "lib/parse.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"

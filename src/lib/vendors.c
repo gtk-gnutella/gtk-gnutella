@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "vendors.h"
 #include "ascii.h"
 #include "endian.h"
+#include "glib-missing.h"	/* For g_strlcpy() */
 #include "misc.h"
 #include "override.h"	/* Must be the last header included */
 

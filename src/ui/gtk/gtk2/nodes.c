@@ -52,8 +52,10 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/concat.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/stringify.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

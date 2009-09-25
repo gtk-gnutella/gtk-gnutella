@@ -47,7 +47,7 @@ RCSID("$Id$")
 #include "lib/dbmap.h"
 #include "lib/dbmw.h"
 #include "lib/halloc.h"
-#include "lib/misc.h"
+#include "lib/path.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static const mode_t STORAGE_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */

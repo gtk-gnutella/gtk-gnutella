@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "pmsg.h"
 #include "bstr.h"
 #include "hashlist.h"
+#include "stringify.h"
 #include "zalloc.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */

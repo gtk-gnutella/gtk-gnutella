@@ -18,6 +18,7 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
@@ -526,7 +527,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 {
 	size_t need;
 	long hash;
-	gboolean need_split;
+	gboolean need_split = FALSE;
 
 	if (0 == val.dsize) {
 		val.dptr = "";

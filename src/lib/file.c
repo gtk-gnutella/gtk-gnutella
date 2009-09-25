@@ -39,8 +39,10 @@ RCSID("$Id$")
 
 #include "file.h"
 #include "debug.h"
+#include "fd.h"
 #include "halloc.h"
-#include "misc.h"
+#include "path.h"
+#include "timestamp.h"
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 

@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/gnet_host.h"
 #include "lib/misc.h"
+#include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

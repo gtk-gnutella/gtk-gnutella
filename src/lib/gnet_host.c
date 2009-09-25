@@ -55,7 +55,7 @@
 RCSID("$Id$")
 
 #include "gnet_host.h"
-#include "misc.h"
+#include "stringify.h"
 #include "sequence.h"
 #include "walloc.h"
 

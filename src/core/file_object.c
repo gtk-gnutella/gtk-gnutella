@@ -92,9 +92,10 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/compat_pio.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/iovec.h"
-#include "lib/misc.h"
+#include "lib/path.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"       /* Must be the last header included */

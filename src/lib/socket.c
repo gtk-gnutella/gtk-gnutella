@@ -27,10 +27,10 @@
 
 RCSID("$Id$")
 
-#include "lib/socket.h"
-#include "lib/misc.h"
+#include "socket.h"
+#include "fd.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 /**
  *  Sets a socket to non-blocking behaviour

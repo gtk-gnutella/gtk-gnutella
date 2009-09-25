@@ -94,6 +94,24 @@ GList *g_list_sort_with_data(
 #define gm_hash_table_remove	g_hash_table_remove
 #endif
 
+/**
+ * Needs to be defined if we are not using Glib 2
+ */
+#ifndef USE_GLIB2
+
+#ifndef HAS_STRLCPY
+size_t strlcpy(char *dst, const char *src, size_t dst_size);
+#endif /* HAS_STRLCPY */
+
+#ifndef HAS_STRLCAT
+size_t strlcat(char *dst, const char *src, size_t dst_size);
+#endif /* HAS_STRLCAT */
+
+#define g_string_printf g_string_sprintf
+#define g_strlcpy strlcpy
+#define g_strlcat strlcat
+#endif
+
 char *gm_string_finalize(GString *gs);
 
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
@@ -103,9 +121,6 @@ size_t gm_snprintf(char *str, size_t n,
 void gm_savemain(int argc, char **argv, char **env);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
-char *gm_sanitize_filename(const char *filename,
-	gboolean no_spaces, gboolean no_evil);
-char *gm_beautify_filename(const char *filename);
 
 static inline void
 gm_hash_table_insert_const(GHashTable *ht,

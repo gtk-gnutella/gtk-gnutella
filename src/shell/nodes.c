@@ -34,6 +34,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/stringify.h"
 #include "lib/options.h"
 #include "lib/tm.h"
 

@@ -64,11 +64,13 @@ RCSID("$Id$")
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
+#include "lib/concat.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/parse.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 

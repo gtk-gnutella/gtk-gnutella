@@ -86,9 +86,11 @@ RCSID("$Id$")
 #include "lib/dbmw.h"
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
-#include "lib/misc.h"
+#include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */

@@ -53,6 +53,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 

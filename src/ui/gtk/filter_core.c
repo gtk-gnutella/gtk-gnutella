@@ -50,6 +50,9 @@ RCSID("$Id$")
 #include "if/core/search.h"
 
 #include "lib/atoms.h"
+#include "lib/glib-missing.h"
+#include "lib/parse.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"

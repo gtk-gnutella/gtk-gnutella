@@ -41,7 +41,8 @@ RCSID("$Id$")
 #include "zalloc.h"
 #include "hashtable.h"
 #include "glib-missing.h"	/* For g_mem_is_system_malloc() */
-#include "misc.h"
+#include "stringify.h"
+#include "unsigned.h"
 #include "tm.h"
 #include "vmm.h"
 

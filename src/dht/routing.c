@@ -90,6 +90,8 @@ RCSID("$Id$")
 #include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/stats.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 

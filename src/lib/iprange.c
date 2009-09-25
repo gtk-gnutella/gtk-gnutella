@@ -42,7 +42,7 @@ RCSID("$Id$")
 
 #include "host_addr.h"
 #include "iprange.h"
-#include "misc.h"
+#include "parse.h"
 #include "sorted_array.h"
 #include "walloc.h"
 

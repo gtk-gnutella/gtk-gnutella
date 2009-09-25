@@ -46,9 +46,9 @@ RCSID("$Id$")
 
 #include "lib/cq.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
-#include "lib/misc.h"			/* For size_saturate_add() */
 #include "lib/halloc.h"
 #include "lib/pmsg.h"
+#include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"

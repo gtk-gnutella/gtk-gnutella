@@ -60,6 +60,7 @@ RCSID("$Id$")
 #include "lib/aging.h"
 #include "lib/ascii.h"
 #include "lib/bit_array.h"
+#include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
@@ -67,7 +68,10 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/parse.h"
 #include "lib/stats.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/override.h"			/* Must be the last header included */

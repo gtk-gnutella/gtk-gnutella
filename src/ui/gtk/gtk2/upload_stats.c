@@ -70,6 +70,8 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

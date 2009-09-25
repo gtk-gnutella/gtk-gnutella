@@ -63,6 +63,9 @@
 #include "lib/getdate.h"	/* date2time() */
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/parse.h"
+#include "lib/path.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"

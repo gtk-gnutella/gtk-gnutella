@@ -37,9 +37,11 @@ RCSID("$Id$")
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/concat.h"
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
-#include "lib/misc.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
 
 #include "lib/override.h"		/* Must be the last header included */

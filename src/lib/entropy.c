@@ -40,6 +40,8 @@
 RCSID("$Id$")
 
 #include "entropy.h"
+#include "compat_misc.h"
+#include "compat_sleep_ms.h"
 #include "eval.h"
 #include "misc.h"
 #include "sha1.h"

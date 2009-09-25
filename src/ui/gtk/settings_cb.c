@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/glib-missing.h"	/* For g_strlcpy() */
 #include "lib/override.h"		/* Must be the last header included */
 
 /*

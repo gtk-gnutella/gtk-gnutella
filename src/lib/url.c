@@ -41,8 +41,9 @@ RCSID("$Id$")
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "parse.h"
+#include "path.h"
 #include "url.h"
-#include "misc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 

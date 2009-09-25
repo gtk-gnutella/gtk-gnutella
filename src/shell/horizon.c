@@ -35,7 +35,7 @@ RCSID("$Id$")
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
-#include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"

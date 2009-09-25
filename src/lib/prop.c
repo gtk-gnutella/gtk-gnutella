@@ -28,14 +28,18 @@
 RCSID("$Id$")
 
 #include "ascii.h"
+#include "concat.h"
 #include "getdate.h"
 #include "prop.h"
 #include "debug.h"
 #include "file.h"
-#include "halloc.h"
-#include "misc.h"
-#include "sha1.h"
 #include "glib-missing.h"
+#include "halloc.h"
+#include "parse.h"
+#include "path.h"
+#include "sha1.h"
+#include "stringify.h"
+#include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */

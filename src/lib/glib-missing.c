@@ -46,10 +46,56 @@ RCSID("$Id$")
 #include "glib-missing.h"
 #include "ascii.h"
 #include "iovec.h"
-#include "misc.h"
+#include "unsigned.h"
 #include "utf8.h"
 
 #include "override.h"		/* Must be the last header included */
+
+#if !defined(HAS_STRLCPY) && !defined(USE_GLIB2)
+size_t
+strlcpy(char *dst, const char *src, size_t dst_size)
+{
+	char *d = dst;
+	const char *s = src;
+
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size--) {
+		size_t i = 0;
+
+		while (i < dst_size) {
+			if (!(*d++ = *s++))
+				return i;
+			i++;
+		}
+		dst[dst_size] = '\0';
+	}
+ 	while (*s)
+		s++;
+	return s - src;
+}
+#endif /* HAS_STRLCPY */
+
+#if !defined(HAS_STRLCAT) && !defined(USE_GLIB2)
+size_t
+strlcat(char *dst, const char *src, size_t dst_size)
+{
+	size_t n;
+	
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	n = strlen(dst);	
+	if (n < dst_size) {
+		dst_size -= n;
+	} else if (dst_size > 0) {
+		dst[dst_size - 1] = '\0';
+		dst_size = 0;
+	}
+	return n += g_strlcpy(&dst[n], src, dst_size);
+}
+#endif /* HAS_STRLCAT */
 
 #ifndef TRACK_MALLOC
 /**
@@ -425,147 +471,6 @@ g_string_append_len(GString *gs, const char *val, gssize len)
 	return gs;
 }
 #endif	/* USE_GLIB1 */
-
-/**
- * Creates a valid and sanitized filename from the supplied string. For most
- * Unix-like platforms anything goes but for security reasons, shell meta
- * characters are replaced by harmless characters.
- *
- * @param filename the suggested filename.
- * @param no_spaces if TRUE, spaces are replaced with underscores.
- * @param no_evil if TRUE, "evil" characters are replaced with underscores.
- *
- * @returns a newly allocated string or ``filename'' if it was a valid filename
- *		    already.
- */
-char *
-gm_sanitize_filename(const char *filename,
-		gboolean no_spaces, gboolean no_evil)
-{
-	const char *s;
-	char *q;
-
-	g_assert(filename);
-
-	/* Make sure the filename isn't too long */
-	if (strlen(filename) >= FILENAME_MAXBYTES) {
-		q = g_malloc(FILENAME_MAXBYTES);
-		filename_shrink(filename, q, FILENAME_MAXBYTES);
-		s = q;
-	} else {
-		s = filename;
-		q = NULL;
-	}
-
-	/* Replace shell meta characters and likely problematic characters */
-	{
-		static const char evil[] = "$&*\\`:;()'\"<>?|~\177";
-		size_t i;
-		guchar c;
-		
-		for (i = 0; '\0' != (c = s[i]); i++) {
-			if (
-				c < 32
-				|| is_ascii_cntrl(c)
-				|| G_DIR_SEPARATOR == c
-				|| '/' == c 
-				|| (0 == i && ('.' == c || '-' == c))
-				|| (no_spaces && is_ascii_space(c))
-				|| (no_evil && NULL != strchr(evil, c))
-		   ) {
-				if (!q)
-					q = g_strdup(s);
-				q[i] = '_';
-			}
-		}
-	}
-
-	return q ? q : deconstify_gchar(s);
-}
-
-/**
- * Make filename prettier, by removing leading "_", making sure the filename
- * does not start with "-" or ".", and stripping consecutive "_" or "_" that
- * surround a punctuation character.
- *
- * Finally, ensure the filename is not completely empty, as this is
- * awkward to manipulate from a shell.
- *
- * @param filename	the filename to beautify
- *
- * @returns a newly allocated string holding the beautified filename, even if
- * it is a mere copy of the original.
- */
-char *
-gm_beautify_filename(const char *filename)
-{
-	const char *s;
-	char *q;
-	guchar c;
-	size_t len;
-	size_t j = 0;
-	static const char punct[] = "_-+=.,<>{}[]";	/* 1st MUST be '_' */
-	static const char strip[] = "_-.";
-	static const char empty[] = "{empty}";
-
-	g_assert(filename);
-
-	s = filename;
-	len = strlen(filename);
-	q = g_malloc(len + 1);		/* Trailing NUL */
-
-	while ((c = *s++)) {
-		guchar d;
-
-		/* Beautified filename cannot start with stripped characters */
-		if (j == 0) {
-			if (NULL == strchr(strip, c))
-				q[j++] = c;
-			continue;
-		}
-
-		g_assert(j > 0);
-
-		d = q[j - 1];		/* Last char we've kept in beautified name */
-
-		/* A "_" followed by a punctuation character, strip the "_" */
-		if (d == '_' && NULL != strchr(punct, c)) {
-			q[j - 1] = c;
-			continue;
-		}
-
-		/* A punctuation character followed by "_", ignore that "_" */
-		if (NULL != strchr(&punct[1], d) && c == '_')
-			continue;
-
-		q[j++] = c;
-	}
-
-	g_assert(j <= len);
-	q[j] = '\0';
-
-	/* Ensure we have no empty name */
-	if (j == 0) {
-		G_FREE_NULL(q);
-		return g_strdup(empty);
-	}
-
-	/*
-	 * If there was an extension following stripped chars (e.g. "_.ext"),
-	 * then the filename kept will become "ext" (we assume a valid extension
-	 * cannot contain "escaped" chars).  In which case we will prepend the
-	 * string "{empty}." to it.
-	 */
-
-	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
-		char *r = g_strconcat(empty, ".", q, (void *) 0);
-		G_FREE_NULL(q);
-
-		return r;
-	}
-
-	return q;
-}
 
 /**
  * Frees the GString context but keeps the string data itself and returns

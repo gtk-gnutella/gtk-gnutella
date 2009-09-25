@@ -55,9 +55,10 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/array.h"
+#include "lib/concat.h"
 #include "lib/gnet_host.h"
+#include "lib/stringify.h"
 #include "lib/tigertree.h"
-#include "lib/misc.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */

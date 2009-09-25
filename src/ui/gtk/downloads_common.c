@@ -47,8 +47,11 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 
 #include "lib/atoms.h"
+#include "lib/concat.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/url_factory.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"

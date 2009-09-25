@@ -30,7 +30,9 @@ RCSID("$Id$")
 #include "cmd.h"
 
 #include "lib/ascii.h"
+#include "lib/parse.h"
 #include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/file.h"
 
 #include "lib/override.h"		/* Must be the last header included */

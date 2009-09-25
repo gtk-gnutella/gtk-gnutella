@@ -45,6 +45,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/bg.h"
+#include "lib/compat_misc.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/file.h"

@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/pmsg.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 #include "lib/override.h"		/* Must be the last header included */

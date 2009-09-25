@@ -27,7 +27,7 @@
 #define _if_core_fileinfo_h_
 
 #include "common.h"
-
+#include "lib/path.h"
 #include "if/core/downloads.h"	/* For gnet_srt_t */
 
 struct shared_file;

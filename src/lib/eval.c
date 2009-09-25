@@ -46,7 +46,8 @@ RCSID("$Id$")
 #include "atoms.h"
 #include "debug.h"
 #include "glib-missing.h"
-#include "misc.h"			/* For g_strlcpy() */
+#include "path.h"
+#include "unsigned.h"
 
 #include "override.h"		/* Must be the last header included */
 

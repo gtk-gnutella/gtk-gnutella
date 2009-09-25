@@ -65,7 +65,7 @@ RCSID("$Id$")
 
 #include "cq.h"
 #include "hashlist.h"
-#include "misc.h"
+#include "unsigned.h"
 #include "palloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */

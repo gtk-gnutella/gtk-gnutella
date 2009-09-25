@@ -41,7 +41,7 @@ RCSID("$Id: wordvec.c 11437 2006-08-05 00:24:20Z cbiere $")
 
 #include "ascii.h"
 #include "endian.h"
-#include "misc.h"
+#include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */

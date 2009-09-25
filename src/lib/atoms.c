@@ -79,6 +79,7 @@ typedef enum {
 #endif	/* ATOMS_HAVE_MAGIC */
 
 
+#include "stringify.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "walloc.h"

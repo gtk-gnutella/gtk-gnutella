@@ -60,6 +60,8 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/url.h"
 #include "lib/urn.h"

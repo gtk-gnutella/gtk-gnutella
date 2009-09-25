@@ -36,6 +36,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/stringify.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /**

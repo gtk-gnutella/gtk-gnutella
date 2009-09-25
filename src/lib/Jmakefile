@@ -38,8 +38,10 @@ LSRC = \
 	bg.c \
 	bstr.c \
 	cobs.c \
+	compat_misc.c \
 	compat_pio.c \
 	compat_sleep_ms.c \
+	concat.c \
 	cq.c \
 	crash.c \
 	crc.c \
@@ -51,8 +53,10 @@ LSRC = \
 	eval.c \
 	event.c \
 	fast_assert.c \
+	fd.c \
 	fifo.c \
 	file.c \
+	filename.c \
 	fragcheck.c \
 	fs_free_space.c \
 	getdate.c \
@@ -78,10 +82,13 @@ LSRC = \
 	misc.c \
 	options.c \
 	pagetable.c \
+	parse.c \
 	palloc.c \
+	path.c \
 	patricia.c \
 	pattern.c \
 	pmsg.c \
+	pow2.c \
 	prop.c \
 	sequence.c \
 	sha1.c \
@@ -89,10 +96,12 @@ LSRC = \
 	socket.c \
 	sorted_array.c \
 	stats.c \
+	stringify.c \
 	strtok.c \
 	tea.c \
 	tiger.c \
 	tigertree.c \
+	timestamp.c \
 	tm.c \
 	url.c \
 	url_factory.c \

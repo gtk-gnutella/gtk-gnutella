@@ -38,6 +38,7 @@
 RCSID("$Id$")
 
 #include "ascii.h"
+#include "fd.h"
 #include "html.h"
 #include "html_entities.h"
 #include "misc.h"

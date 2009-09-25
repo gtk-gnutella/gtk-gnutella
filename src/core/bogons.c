@@ -45,6 +45,8 @@ RCSID("$Id$")
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/iprange.h"
+#include "lib/parse.h"
+#include "lib/path.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 

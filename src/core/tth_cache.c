@@ -54,9 +54,11 @@ RCSID("$Id$")
 #include "tth_cache.h"
 
 #include "lib/atoms.h"
+#include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
-#include "lib/misc.h"
+#include "lib/path.h"
+#include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/walloc.h"
 

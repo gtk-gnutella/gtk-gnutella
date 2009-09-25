@@ -49,9 +49,12 @@ RCSID("$Id$")
 #include "halloc.h"
 #include "hashtable.h"
 #include "pagetable.h"
+#include "concat.h"
 #include "misc.h"
 #include "malloc.h"
 #include "walloc.h"
+#include "unsigned.h"
+#include "vmm.h"
 
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
@@ -400,6 +403,7 @@ halloc_init_vtable(void)
 #endif	/* USE_HALLOC */
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
+static gboolean replacing_malloc;
 
 void
 halloc_init(gboolean replace_malloc)
@@ -408,6 +412,7 @@ halloc_init(gboolean replace_malloc)
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
+	replacing_malloc = replace_malloc;
 
 	use_page_table = (size_t)-1 == (guint32)-1 && compat_pagesize() == 4096;
 	page_threshold = compat_pagesize() - sizeof(union align);
@@ -421,6 +426,15 @@ halloc_init(gboolean replace_malloc)
 	if (replace_malloc)
 		halloc_init_vtable();
 }
+
+/**
+ * Did they request that halloc() be a malloc() replacement?
+ */
+gboolean
+halloc_replaces_malloc(void)
+{
+	return replacing_malloc;
+}
 #else	/* REMAP_ZALLOC || TRACK_MALLOC */
 
 void
@@ -429,6 +443,12 @@ halloc_init(gboolean unused_replace_malloc)
 	(void) unused_replace_malloc;
 
 	/* EMPTY */
+}
+
+gboolean
+halloc_replaces_malloc(void)
+{
+	return FALSE;
 }
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
@@ -444,5 +464,252 @@ halloc_chunks_allocated(void)
 {
 	return chunks_allocated;
 }
+
+#ifndef TRACK_MALLOC
+/**
+ * A clone of strdup() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ *
+ * @return a pointer to the new string.
+ */
+char *
+h_strdup(const char *str)
+{
+	return str ? hcopy(str, 1 + strlen(str)) : NULL;
+}
+
+/**
+ * A clone of strndup() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * @param str		the string to duplicate a part of (can be NULL)
+ * @param n			the maximum number of characters to copy from string
+ *
+ * @return a pointer to the new string.
+ */
+char *
+h_strndup(const char *str, size_t n)
+{
+	if (str != NULL) {
+		size_t len = clamp_strlen(str, n);
+		char *result = halloc(len + 1);
+		
+		/* Not hcopy() because we shouldn't even read the nth byte of src. */
+		memcpy(result, str, len);
+		result[len] = '\0';
+
+		return result;
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * A clone of g_strjoinv() which uses halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * Joins a number of strings together to form one long string, with the
+ * optional separator inserted between each of them.
+ *
+ * @param separator		string to insert between each strings, or NULL
+ * @param str_array		a NULL-terminated array of strings to join
+ *
+ * @return a newly allocated string joining all the strings from the array,
+ * with the separator between them.
+ */
+char *
+h_strjoinv(const char *separator, char **str_array)
+{
+	const char *sep = separator;
+	char *result;
+
+	g_assert(str_array != NULL);
+
+	if (NULL == sep)
+		sep = "";
+
+	if (str_array[0] != NULL) {
+		size_t seplen = strlen(sep);
+		size_t i, len, pos;
+
+		len = size_saturate_add(1, strlen(str_array[0]));
+		for (i = 1; str_array[i] != NULL; i++) {
+			len = size_saturate_add(len, seplen);
+			len = size_saturate_add(len, strlen(str_array[i]));
+		}
+
+		g_assert(len < SIZE_MAX);
+
+		result = halloc(len);
+		pos = strcpy_len(result, str_array[0]);
+
+		/* We can freely add to pos, we know it cannot saturate now */
+
+		for (i = 1; str_array[i] != NULL; i++) {
+			pos += strcpy_len(&result[pos], sep);
+			pos += strcpy_len(&result[pos], str_array[i]);
+		}
+
+		g_assert(pos + 1 == len);
+	} else {
+		result = h_strdup("");
+	}
+
+	return result;
+}
+
+/**
+ * A clone of g_strfreev().
+ *
+ * Frees (via hfree()) a NULL-terminated array of strings, and the array itself.
+ * If called on a NULL value, does nothing.
+ */
+void
+h_strfreev(char **str_array)
+{
+	if (str_array != NULL) {
+		size_t i;
+
+		for (i = 0; str_array[i] != NULL; i++) {
+			hfree(str_array[i]);
+		}
+
+		hfree(str_array);
+	}
+}
+
+/**
+ * A clone of g_strconcat() using halloc().
+ * The resulting string must be freed via hfree().
+ *
+ * Concatenates all of the given strings into one long string.
+ *
+ * @attention
+ * The argument list must end with (void *) 0.
+ */
+char *
+h_strconcat(const char *first, ...)
+{
+	va_list ap;
+	size_t len, ret;
+	char *dst;
+
+	va_start(ap, first);
+	len = concat_strings_v(NULL, 0, first, ap);
+	va_end(ap);
+
+	dst = halloc(len + 1);
+	va_start(ap, first);
+	ret = concat_strings_v(dst, len + 1, first, ap);
+	va_end(ap);
+	g_assert(ret == len);
+
+	return dst;
+}
+
+/**
+ * Calculate the size of the buffer required to hold the string
+ * resulting from vnsprintf().
+ * 
+ * @param format The printf format string.
+ * @param ap The argument list.
+ *
+ * @return The size of the buffer required to hold the resulting
+ *         string including the terminating NUL.
+ */
+static size_t
+vprintf_get_size(const char *format, va_list ap)
+{
+	char *buf;
+	size_t size;
+	int ret;
+
+	/**
+	 * NOTE: ISO C99 ensures that vsnprintf(NULL, 0, ...) calculates the size
+	 * of the required buffer but older vsnprintf() return an unspecified value
+	 * less than 1 (one) if size is zero. That could be zero which is also
+	 * returned for an empty string, so don't try that. Older vsnprintf()
+	 * may silently truncate the string if the buffer is insufficient but
+	 * don't return the required size.
+	 */
+
+	size = 1024;
+	buf = walloc(size);
+
+	for (;;) {
+		va_list ap2;
+		size_t old_size;
+
+		VA_COPY(ap2, ap);
+		ret = vsnprintf(buf, size, format, ap2);
+		va_end(ap2);
+
+		if (ret < 0) {
+			/* Keep trying */
+		} else if (UNSIGNED(ret) > size) {
+			/* Assume conforming C99 vsnprintf() */
+			break;
+		} else if (size - ret > 1) {
+			/* Only trust this if there's more than 1 byte left. */
+			break;
+		}
+
+		/* Since vsnprintf() returns an int, INT_MAX is the limit */
+		g_assert(size < UNSIGNED(INT_MAX));
+
+		old_size = size;
+		size = size_saturate_mult(size, 2);
+
+		buf = wrealloc(buf, old_size, size);
+	}
+
+	WFREE_NULL(buf, size);
+	return ret < 0 ? (size_t)-1 : size_saturate_add(ret, 1);
+}
+
+/**
+ * A clone of g_strdup_vprintf() using halloc().
+ * The resulting string must be freed by hfree().
+ */
+static char *
+h_strdup_vprintf(const char *format, va_list ap)
+{
+	va_list ap2;
+	char *buf;
+	size_t size;
+	int ret;
+
+	VA_COPY(ap2, ap);
+	size = vprintf_get_size(format, ap2);
+	va_end(ap2);
+
+	buf = halloc(size);
+	ret = vsnprintf(buf, size, format, ap);
+	va_end(ap);
+
+	g_assert(UNSIGNED(ret) == size - 1);
+
+	return buf;
+}
+
+/**
+ * A clone of g_strdup_printf(), using halloc().
+ * The resulting string must be freed by hfree().
+ */
+char *
+h_strdup_printf(const char *format, ...)
+{
+	char *buf;
+	va_list args;
+
+	va_start(args, format);
+	buf = h_strdup_vprintf(format, args);
+	va_end(args);
+
+	return buf;
+}
+#endif /* !TRACK_MALLOC */
 
 /* vi: set ts=4 sw=4 cindent: */

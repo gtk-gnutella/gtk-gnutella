@@ -55,6 +55,7 @@ RCSID("$Id$")
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/concat.h"
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"

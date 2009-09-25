@@ -53,6 +53,9 @@ RCSID("$Id$")
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/parse.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */

@@ -31,6 +31,9 @@ RCSID("$Id$")
 
 #include "core/downloads.h"
 
+#include "lib/parse.h"
+#include "lib/stringify.h"
+
 #include "if/bridge/ui2c.h"
 
 #include "if/gnet_property.h"

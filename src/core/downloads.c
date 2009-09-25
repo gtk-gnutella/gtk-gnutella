@@ -84,9 +84,11 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/concat.h"
 #include "lib/dbus_util.h"
 #include "lib/endian.h"
 #include "lib/file.h"
+#include "lib/filename.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -96,7 +98,9 @@
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/palloc.h"
+#include "lib/parse.h"
 #include "lib/strtok.h"
+#include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -6134,10 +6138,10 @@ create_download(
 		char *s;
 		char *b;
 		
-		b = s = gm_sanitize_filename(file, FALSE, FALSE);
+		b = s = filename_sanitize(file, FALSE, FALSE);
 
 		if (GNET_PROPERTY(beautify_filenames))
-			b = gm_beautify_filename(s);
+			b = filename_beautify(s);
 
 		/* An empty filename would create a corrupt download entry */
     	file_name = atom_str_get('\0' != b[0] ? b : "noname");

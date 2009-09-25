@@ -54,6 +54,7 @@ SED = $sed
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+GLIB_LDFLAGS =  $glibldflags
 SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)
 OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)
 GLIB_CFLAGS =  $glibcflags
@@ -145,7 +146,7 @@ DBU_OBJ = \
 	dbu.o \
 	util.o 
 
-LIBS = -L. -lsdbm -L../lib -lshared -lglib
+LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS)
 
 dbu: libsdbm.a
 

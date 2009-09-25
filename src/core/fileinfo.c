@@ -63,14 +63,20 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/base32.h"
+#include "lib/concat.h"
 #include "lib/endian.h"
+#include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/filename.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
+#include "lib/parse.h"
+#include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -3182,12 +3188,12 @@ file_info_retrieve(void)
 				char *s;
 				char *b;
 
-				b = s = gm_sanitize_filename(value,
+				b = s = filename_sanitize(value,
 						GNET_PROPERTY(convert_spaces),
 						GNET_PROPERTY(convert_evil_chars));
 
 				if (GNET_PROPERTY(beautify_filenames))
-					b = gm_beautify_filename(s);
+					b = filename_beautify(s);
 
 				filename = atom_str_get(b);
 				if (s != value) {
@@ -3231,10 +3237,10 @@ file_info_retrieve(void)
 				char *s;
 				char *b;
 
-				b = s = gm_sanitize_filename(value, FALSE, FALSE);
+				b = s = filename_sanitize(value, FALSE, FALSE);
 
 				if (GNET_PROPERTY(beautify_filenames))
-					b = gm_beautify_filename(s);
+					b = filename_beautify(s);
 
 				/* The alias is only temporarily added to fi->alias, the list
 				 * of aliases has to be re-constructed with fi_alias()
@@ -3421,7 +3427,7 @@ char *
 file_info_unique_filename(const char *path, const char *file,
 	const char *ext)
 {
-	return unique_filename(path, file, ext, file_info_name_is_uniq);
+	return filename_unique(path, file, ext, file_info_name_is_uniq);
 }
 	
 /**
@@ -3441,7 +3447,7 @@ file_info_new_outname(const char *dir, const char *name)
 	g_return_val_if_fail(name, NULL);
 	g_return_val_if_fail(is_absolute_path(dir), NULL);
 
-	b = s = gm_sanitize_filename(name,
+	b = s = filename_sanitize(name,
 			GNET_PROPERTY(convert_spaces),
 			GNET_PROPERTY(convert_evil_chars));
 
@@ -3449,7 +3455,7 @@ file_info_new_outname(const char *dir, const char *name)
 		filename = s;
 
 	if (GNET_PROPERTY(beautify_filenames))
-		filename = b = gm_beautify_filename(s);
+		filename = b = filename_beautify(s);
 
 	if ('\0' == filename[0]) {
 		/* Don't allow empty names */
@@ -6550,7 +6556,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 		char *directory, *name;
 	   
 		directory = filepath_directory(fi->pathname);
-		name = gm_sanitize_filename(filename, FALSE, FALSE);
+		name = filename_sanitize(filename, FALSE, FALSE);
 
 		if (0 == strcmp(filepath_basename(fi->pathname), name)) {
 			pathname = NULL;

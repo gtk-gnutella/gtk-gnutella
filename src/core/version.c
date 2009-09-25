@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "lib/ascii.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
+#include "lib/parse.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */

@@ -96,6 +96,7 @@ struct inputevt_array {
 #endif	/* */
 
 #include "inputevt.h"
+#include "fd.h"
 #include "misc.h"
 #include "walloc.h"
 #include "tm.h"

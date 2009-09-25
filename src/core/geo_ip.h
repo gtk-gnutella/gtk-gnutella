@@ -42,6 +42,7 @@
 guint16 gip_country(const host_addr_t addr);
 void gip_init(void);
 void gip_close(void);
+time_t gip_mtime(void);
 
 #endif /* _core_geo_ip_h_ */
 

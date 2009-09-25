@@ -69,7 +69,7 @@ RCSID("$Id$")
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/misc.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 

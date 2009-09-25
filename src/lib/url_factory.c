@@ -38,7 +38,10 @@
 RCSID("$Id$")
 
 #include "url_factory.h"
+#include "concat.h"
+#include "path.h"
 #include "misc.h"
+#include "stringify.h"
 #include "url.h"
 
 #include "override.h"		/* Must be the last header included */

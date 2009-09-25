@@ -69,8 +69,9 @@ RCSID("$Id$")
 #include "gtk/upload_stats.h"
 #include "gtk/upload_stats_cb.h"
 
-#include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/stringify.h"
+#include "lib/timestamp.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 

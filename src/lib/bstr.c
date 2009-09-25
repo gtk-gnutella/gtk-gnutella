@@ -42,7 +42,8 @@ RCSID("$Id$")
 #include "endian.h"
 #include "glib-missing.h"
 #include "host_addr.h"
-#include "misc.h"
+#include "stringify.h"
+#include "unsigned.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 

@@ -81,7 +81,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 16436 2009-04-07 19:13:35Z rmanfredi $
+# $X-Id: Jmakefile 16918 2009-06-06 20:41:03Z cbiere $
 
 LSRC = \
 	adns.c \
@@ -94,8 +94,10 @@ LSRC = \
 	bg.c \
 	bstr.c \
 	cobs.c \
+	compat_misc.c \
 	compat_pio.c \
 	compat_sleep_ms.c \
+	concat.c \
 	cq.c \
 	crash.c \
 	crc.c \
@@ -107,8 +109,10 @@ LSRC = \
 	eval.c \
 	event.c \
 	fast_assert.c \
+	fd.c \
 	fifo.c \
 	file.c \
+	filename.c \
 	fragcheck.c \
 	fs_free_space.c \
 	getdate.c \
@@ -134,10 +138,13 @@ LSRC = \
 	misc.c \
 	options.c \
 	pagetable.c \
+	parse.c \
 	palloc.c \
+	path.c \
 	patricia.c \
 	pattern.c \
 	pmsg.c \
+	pow2.c \
 	prop.c \
 	sequence.c \
 	sha1.c \
@@ -145,10 +152,12 @@ LSRC = \
 	socket.c \
 	sorted_array.c \
 	stats.c \
+	stringify.c \
 	strtok.c \
 	tea.c \
 	tiger.c \
 	tigertree.c \
+	timestamp.c \
 	tm.c \
 	url.c \
 	url_factory.c \
@@ -175,8 +184,10 @@ LOBJ = \
 	bg.o \
 	bstr.o \
 	cobs.o \
+	compat_misc.o \
 	compat_pio.o \
 	compat_sleep_ms.o \
+	concat.o \
 	cq.o \
 	crash.o \
 	crc.o \
@@ -188,8 +199,10 @@ LOBJ = \
 	eval.o \
 	event.o \
 	fast_assert.o \
+	fd.o \
 	fifo.o \
 	file.o \
+	filename.o \
 	fragcheck.o \
 	fs_free_space.o \
 	getdate.o \
@@ -215,10 +228,13 @@ LOBJ = \
 	misc.o \
 	options.o \
 	pagetable.o \
+	parse.o \
 	palloc.o \
+	path.o \
 	patricia.o \
 	pattern.o \
 	pmsg.o \
+	pow2.o \
 	prop.o \
 	sequence.o \
 	sha1.o \
@@ -226,10 +242,12 @@ LOBJ = \
 	socket.o \
 	sorted_array.o \
 	stats.o \
+	stringify.o \
 	strtok.o \
 	tea.o \
 	tiger.o \
 	tigertree.o \
+	timestamp.o \
 	tm.o \
 	url.o \
 	url_factory.o \

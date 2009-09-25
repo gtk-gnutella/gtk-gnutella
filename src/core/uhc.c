@@ -53,7 +53,7 @@ RCSID("$Id$")
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
-#include "lib/misc.h"
+#include "lib/parse.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"

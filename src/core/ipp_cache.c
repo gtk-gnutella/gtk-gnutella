@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/endian.h"
 #include "lib/host_addr.h"
+#include "lib/timestamp.h"
 
 #include "hosts.h"
 #include "settings.h"

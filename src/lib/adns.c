@@ -40,6 +40,7 @@ RCSID("$Id$")
 #include "adns.h"
 #include "atoms.h"
 #include "debug.h"
+#include "fd.h"
 #include "inputevt.h"
 #include "ascii.h"
 #include "glib-missing.h"

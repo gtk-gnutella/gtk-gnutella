@@ -38,10 +38,12 @@
 RCSID("$Id$")
 
 #include "glib-missing.h"
-#include "misc.h"
+#include "pow2.h"
+#include "unsigned.h"
 #include "halloc.h"
 #include "walloc.h"
 #include "zalloc.h"
+#include "vmm.h"
 
 #include "override.h"		/* Must be the last header included */
 

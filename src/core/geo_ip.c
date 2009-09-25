@@ -46,6 +46,8 @@ RCSID("$Id$")
 #include "lib/halloc.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"
+#include "lib/parse.h"
+#include "lib/path.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -58,6 +60,7 @@ static const char gip_file[] = "geo-ip.txt";
 static const char gip_what[] = "Geographic IP mappings";
 
 static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
+static time_t geo_mtime;			/**< Modification time of loaded file */
 
 /**
  * Context used during ip_range_split() calls.
@@ -118,8 +121,14 @@ gip_load(FILE *f)
 	guint16 code;
 	int c;
 	struct range_context ctx;
+	struct stat buf;
 
 	geo_db = iprange_new();
+	if (-1 == fstat(fileno(f), &buf)) {
+		g_warning("cannot stat %s: %s", gip_file, g_strerror(errno));
+	} else {
+		geo_mtime = buf.st_mtime;
+	}
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -143,7 +152,7 @@ gip_load(FILE *f)
 		 *
 		 *    15.0.0.0 - 15.130.191.255 fr
 		 *
-		 * So we don't have to parse the two IP addresses, and compute
+		 * So we just have to parse the two IP addresses, then compute
 		 * all the ranges they cover in order to insert them into
 		 * the IP database.
 		 */
@@ -349,6 +358,15 @@ gip_country(const host_addr_t ha)
 			return (GPOINTER_TO_UINT(code) >> 1) - 1;
 	}
 	return ISO3166_INVALID;
+}
+
+/**
+ * Returns the modification time of the loaded geo_ip file.
+ */
+time_t
+gip_mtime(void)
+{
+	return geo_mtime;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

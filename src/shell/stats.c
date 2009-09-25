@@ -30,6 +30,7 @@ RCSID("$Id$")
 #include "cmd.h"
 #include "core/gnet_stats.h"
 
+#include "lib/stringify.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 enum shell_reply

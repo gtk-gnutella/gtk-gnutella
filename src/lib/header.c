@@ -42,6 +42,7 @@ RCSID("$Id$")
 #include "ascii.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "unsigned.h"
 #include "misc.h"
 #include "walloc.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */

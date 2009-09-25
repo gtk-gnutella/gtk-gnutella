@@ -56,7 +56,9 @@ RCSID("$Id$")
 #include "lib/array.h"
 #include "lib/header.h"
 #include "lib/gnet_host.h"
-#include "lib/misc.h"
+#include "lib/concat.h"
+#include "lib/unsigned.h"
+#include "lib/stringify.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
 
