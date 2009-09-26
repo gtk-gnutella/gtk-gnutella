@@ -86,6 +86,7 @@ RCSID("$Id$")
 #include "bh_upload.h"
 #include "ipp_cache.h"
 #include "dump.h"
+#include "ctl.h"
 
 #include "lib/adns.h"
 #include "lib/aging.h"
@@ -6502,7 +6503,22 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		return;
 	}
 
-	if (incoming) {				/* Welcome the incoming node */
+	if (incoming) {
+		/*
+		 * Welcome the incoming node
+		 */
+
+		if (ctl_limit(n->addr, CTL_D_GNUTELLA)) {
+			if (ctl_limit(n->addr, CTL_D_NORMAL)) {
+				node_send_error(n, 409, "Reserved slot");
+			} else if (!ctl_limit(n->addr, CTL_D_STEALTH)) {
+				node_send_error(n, 403, "Limiting connections from %s",
+					gip_country_name(n->addr));
+			}
+			node_remove(n, _("Limited connection"));
+			return;
+		}
+
 		/*
 		 * We need to read the remote headers then send ours before we can
 		 * operate any data transfer (3-way handshaking).
@@ -7205,7 +7221,18 @@ node_udp_process(struct gnutella_socket *s)
 
 	/*
 	 * Continuing here only with Gnutella traffic.
-	 *
+	 */
+
+	if (ctl_limit(s->addr, CTL_D_UDP)) {
+		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2)
+			g_warning("CTL UDP got %s from %s [%s] -- dropped",
+				gmsg_infostr_full(s->buf, s->pos), node_addr(n),
+				gip_country_cc(s->addr));
+		gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return;
+	}
+
+	/*
 	 * If payload is deflated, inflate it before processing.
 	 */
 

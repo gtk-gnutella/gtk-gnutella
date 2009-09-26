@@ -39,10 +39,15 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-guint16 gip_country(const host_addr_t addr);
 void gip_init(void);
 void gip_close(void);
 time_t gip_mtime(void);
+
+guint16 gip_country(const host_addr_t addr);
+guint16 gip_country_safe(const host_addr_t ha);
+
+const char *gip_country_cc(const host_addr_t ha);
+const char *gip_country_name(const host_addr_t ha);
 
 #endif /* _core_geo_ip_h_ */
 

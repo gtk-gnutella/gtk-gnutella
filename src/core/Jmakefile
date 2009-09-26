@@ -36,6 +36,7 @@ SRC = \
 	bogons.c \
 	bsched.c \
 	clock.c \
+	ctl.c \
 	dh.c \
 	dime.c \
 	dmesh.c \

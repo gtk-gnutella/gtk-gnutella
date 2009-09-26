@@ -316,6 +316,7 @@ ignore_reason_to_string(enum ignore_val reason)
 	switch (reason) {
 	case IGNORE_OURSELVES:	return "Points to ourselves";
 	case IGNORE_HOSTILE:	return "Hostile IP";
+	case IGNORE_LIMIT:		return "Country limit";
 	case IGNORE_SHA1:		return "SHA1";
 	case IGNORE_SPAM:		return "Known Spam";
 	case IGNORE_LIBRARY:	return "Already Owned";

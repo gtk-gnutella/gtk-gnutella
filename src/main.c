@@ -42,6 +42,7 @@
 #include "core/bitzi.h"
 #include "core/bogons.h"
 #include "core/bsched.h"
+#include "core/ctl.h"
 #include "core/clock.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
@@ -551,6 +552,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(gip_close);
 	DO(ban_close);
 	DO(inet_close);
+	DO(ctl_close);
 	DO(whitelist_close);
 	DO(features_close);
 	DO(clock_close);
@@ -1549,6 +1551,7 @@ main(int argc, char **argv)
 	vmsg_init();
 	tsync_init();
 	watcher_init();
+	ctl_init();
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */

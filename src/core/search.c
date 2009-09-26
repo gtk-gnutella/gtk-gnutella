@@ -68,6 +68,7 @@ RCSID("$Id$")
 #include "sq.h"
 #include "version.h"
 #include "vmsg.h"
+#include "ctl.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -2904,6 +2905,7 @@ search_results_set_flag_records(gnet_results_set_t *rs)
 					break;
 				case IGNORE_OURSELVES:
 				case IGNORE_HOSTILE:
+				case IGNORE_LIMIT:
 					/* These are for manual use and never returned */
 					g_assert_not_reached();
 					break;
@@ -3053,6 +3055,7 @@ search_results(gnutella_node_t *n, int *results)
 	GSList *sl;
 	gboolean drop_it = FALSE;
 	gboolean forward_it = TRUE;
+	gboolean dispatch_it = TRUE;
 	GSList *selected_searches = NULL;
 	guint32 max_items;
 
@@ -3114,6 +3117,14 @@ search_results(gnutella_node_t *n, int *results)
 		update_neighbour_info(n, rs);
 
 	/*
+	 * Apply country limits to determine whether we should dispatch
+	 * the hits to the various selected searches.
+	 */
+
+	if (selected_searches != NULL && ctl_limit(rs->addr, CTL_D_QHITS))
+		dispatch_it = FALSE;
+
+	/*
 	 * Let dynamic querying know about the result count, in case
 	 * there is a dynamic query opened for this.
 	 *
@@ -3165,10 +3176,15 @@ search_results(gnutella_node_t *n, int *results)
 		}
 
 		/*
-		 * Look for records that match entries in the download queue.
+		 * If we're not going to dispatch the query hit, then we must act
+		 * as if we had not received it in the first place, so do not attempt
+		 * to collect alternate locations from it for downloading.
 		 */
 
-		search_results_set_auto_download(rs);
+		if (dispatch_it) {
+			/* Look for records that match entries in the download queue */
+			search_results_set_auto_download(rs);
+		}
 
 		/*
 		 * Look for records whose SHA1 matches files we own and add
@@ -3183,7 +3199,7 @@ search_results(gnutella_node_t *n, int *results)
 	 * Dispatch the results to the selected searches.
 	 */
 
-	if (selected_searches != NULL) {
+	if (dispatch_it && selected_searches != NULL) {
 		search_results_set_flag_records(rs);
 		search_fire_got_results(selected_searches, rs);
 	}
@@ -4871,7 +4887,7 @@ search_request_preprocess(struct gnutella_node *n)
 	 */
 
 	skip_file_search = search_len <= 1 || (
-		search_len < 5 &&
+		search_len < 3 &&
 		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
     if (0 == exv_sha1cnt && skip_file_search) {
@@ -5108,6 +5124,18 @@ search_request_preprocess(struct gnutella_node *n)
 
 				goto drop;
 			}
+		}
+	} else if (1 == gnutella_header_get_hops(&n->header)) {
+		/*
+		 * Query comes from one of our neighbours.
+		 *
+		 * We can be connected to an hostile address if we reloaded a newer
+		 * hostiles file but were already connected to that node, for instance.
+		 */
+
+		if (hostiles_check(n->addr)) {
+			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+			goto drop;		/* Drop the message! */
 		}
 	}
 
@@ -5352,6 +5380,38 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gnutella_header_get_hops(&n->header) > (GNET_PROPERTY(max_ttl) / 2));
 
 	oob = 0 != (flags & QUERY_F_OOB_REPLY);
+
+	/*
+	 * Check limits.
+	 */
+
+	if (oob) {
+		host_addr_t addr;
+		guint16 port;
+
+		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
+			&addr, &port);
+
+		if (ctl_limit(addr, CTL_D_QUERY)) {
+			if (GNET_PROPERTY(ctl_debug) > 3) {
+				g_message("CTL ignoring OOB query to be answered at %s [%s]",
+					host_addr_to_string(addr), gip_country_cc(addr));
+			}
+			goto finish;
+		}
+	} else if (1 == gnutella_header_get_hops(&n->header)) {
+		/*
+		 * Query comes from one of our neighbours.
+		 */
+
+		if (ctl_limit(n->addr, CTL_D_QUERY)) {
+			if (GNET_PROPERTY(ctl_debug) > 3) {
+				g_message("CTL ignoring neighbour query from %s [%s] <%s>",
+					node_addr(n), gip_country_cc(n->addr), node_vendor(n));
+			}
+			goto finish;
+		}
+	}
 
 	/*
 	 * If the query does not have an OOB mark, comes from a leaf node and

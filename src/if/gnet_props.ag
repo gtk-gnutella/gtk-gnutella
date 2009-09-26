@@ -4120,4 +4120,33 @@ prop = {
     };
 };
 
+prop = {
+    name = "country_limits";
+    desc = "Country preferences";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+	name = "ctl_debug";
+	desc = "Debug level for country limits.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "log_dropped_gnutella";
+	desc = "Whether to log dropped Gnutella messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

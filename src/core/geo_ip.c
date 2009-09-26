@@ -48,6 +48,7 @@ RCSID("$Id$")
 #include "lib/iso3166.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -358,6 +359,37 @@ gip_country(const host_addr_t ha)
 			return (GPOINTER_TO_UINT(code) >> 1) - 1;
 	}
 	return ISO3166_INVALID;
+}
+
+/**
+ * Same as gip_country() only returns ISO3166_INVALID if the geo_ip file
+ * is too ancient: the risk of having a wrong mapping is too high.
+ */
+guint16
+gip_country_safe(const host_addr_t ha)
+{
+	if (tm_time() - geo_mtime > 15552000)		/* ~6 months */
+		return ISO3166_INVALID;
+
+	return gip_country(ha);
+}
+
+/**
+ * Convenience routine to return the full contry name of an address.
+ */
+const char *
+gip_country_name(const host_addr_t ha)
+{
+	return iso3166_country_name(gip_country(ha));
+}
+
+/**
+ * Convenience routine to return the contry code of an address.
+ */
+const char *
+gip_country_cc(const host_addr_t ha)
+{
+	return iso3166_country_cc(gip_country(ha));
 }
 
 /**

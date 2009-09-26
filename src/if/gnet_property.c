@@ -814,6 +814,12 @@ guint32  gnet_property_variable_vmm_debug     = 0;
 static const guint32  gnet_property_variable_vmm_debug_default = 0;
 guint32  gnet_property_variable_shutdown_debug     = 0;
 static const guint32  gnet_property_variable_shutdown_debug_default = 0;
+char   *gnet_property_variable_country_limits     = "";
+static const char   *gnet_property_variable_country_limits_default = "";
+guint32  gnet_property_variable_ctl_debug     = 0;
+static const guint32  gnet_property_variable_ctl_debug_default = 0;
+gboolean gnet_property_variable_log_dropped_gnutella     = FALSE;
+static const gboolean gnet_property_variable_log_dropped_gnutella_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -7575,6 +7581,64 @@ gnet_prop_init(void) {
     gnet_property->props[353].data.guint32.choices = NULL;
     gnet_property->props[353].data.guint32.max   = 20;
     gnet_property->props[353].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_COUNTRY_LIMITS:
+     *
+     * General data:
+     */
+    gnet_property->props[354].name = "country_limits";
+    gnet_property->props[354].desc = _("Country preferences");
+    gnet_property->props[354].ev_changed = event_new("country_limits_changed");
+    gnet_property->props[354].save = TRUE;
+    gnet_property->props[354].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[354].type               = PROP_TYPE_STRING;
+    gnet_property->props[354].data.string.def    = (void *) &gnet_property_variable_country_limits_default;
+    gnet_property->props[354].data.string.value  = (void *) &gnet_property_variable_country_limits;
+    if (gnet_property->props[354].data.string.def) {
+        *gnet_property->props[354].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[354].data.string.def));
+    }
+
+
+    /*
+     * PROP_CTL_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[355].name = "ctl_debug";
+    gnet_property->props[355].desc = _("Debug level for country limits.");
+    gnet_property->props[355].ev_changed = event_new("ctl_debug_changed");
+    gnet_property->props[355].save = TRUE;
+    gnet_property->props[355].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[355].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[355].data.guint32.def   = (void *) &gnet_property_variable_ctl_debug_default;
+    gnet_property->props[355].data.guint32.value = (void *) &gnet_property_variable_ctl_debug;
+    gnet_property->props[355].data.guint32.choices = NULL;
+    gnet_property->props[355].data.guint32.max   = 20;
+    gnet_property->props[355].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_LOG_DROPPED_GNUTELLA:
+     *
+     * General data:
+     */
+    gnet_property->props[356].name = "log_dropped_gnutella";
+    gnet_property->props[356].desc = _("Whether to log dropped Gnutella messages");
+    gnet_property->props[356].ev_changed = event_new("log_dropped_gnutella_changed");
+    gnet_property->props[356].save = TRUE;
+    gnet_property->props[356].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[356].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[356].data.boolean.def   = (void *) &gnet_property_variable_log_dropped_gnutella_default;
+    gnet_property->props[356].data.boolean.value = (void *) &gnet_property_variable_log_dropped_gnutella;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

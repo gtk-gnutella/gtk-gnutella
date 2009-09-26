@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "verify_tth.h"
 #include "version.h"
 #include "gnet_stats.h"
+#include "ctl.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1904,7 +1905,7 @@ upload_remove(struct upload *u, const char *reason, ...)
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
  *
  * @note The parameter "msg" is passed to gettext(). Do not pass already
- *       translated strings because it's send as HTTP response message.
+ *       translated strings because it's sent as an HTTP response message.
  */
 static void
 upload_error_remove(struct upload *u, int code, const char *msg, ...)
@@ -3225,6 +3226,17 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		return -1;
 	}
 
+	if (ctl_limit(u->socket->addr, CTL_D_BROWSE)) {
+		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
+			send_upload_error(u, 403, "Browse Host Disabled");
+		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
+			send_upload_error(u, 404, "Limiting connections from %s",
+				gip_country_name(u->socket->addr));
+		}
+		upload_remove(u, _("Limited connection"));
+		return -1;
+	}
+
 	/*
 	 * If we are advertising our hostname in query hits and they are not
 	 * addressing our host directly, then redirect them to that.
@@ -4281,6 +4293,21 @@ upload_request(struct upload *u, header_t *header)
 
 	u->last_was_error = FALSE;
 
+	/*
+	 * Check limits.
+	 */
+
+	if (ctl_limit(u->socket->addr, CTL_D_INCOMING)) {
+		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
+			send_upload_error(u, 403, "Unauthorized");
+		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
+			send_upload_error(u, 403, "Limiting connections from %s",
+				gip_country_name(u->socket->addr));
+		}
+		upload_remove(u, _("Limited connection"));
+		return;
+	}
+
 	/* @todo TODO: Parse the HTTP request properly:
 	 *		- Check for illegal characters (like NUL)
 	 */
@@ -4293,7 +4320,6 @@ upload_request(struct upload *u, header_t *header)
 	if (u->push && header_get_feature("tls", header, NULL, NULL)) {
 		tls_cache_insert(u->addr, u->socket->port);
 	}
-
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,

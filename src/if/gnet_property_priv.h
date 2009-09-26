@@ -402,6 +402,9 @@ extern const guint32  gnet_property_variable_rxbuf_debug;
 extern const gboolean gnet_property_variable_zalloc_always_gc;
 extern const guint32  gnet_property_variable_vmm_debug;
 extern const guint32  gnet_property_variable_shutdown_debug;
+extern const char   *gnet_property_variable_country_limits;
+extern const guint32  gnet_property_variable_ctl_debug;
+extern const gboolean gnet_property_variable_log_dropped_gnutella;
 
 
 prop_set_t *gnet_prop_init(void);

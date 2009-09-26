@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "settings.h"
 #include "hosts.h"
 #include "ipp_cache.h"
+#include "ctl.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -881,6 +882,11 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 
 	if (hostiles_check(addr)) {
 		reason = "hostile address";
+		goto rejected;
+	}
+
+	if (ctl_limit(addr, CTL_D_MESH)) {
+		reason = "country limit";
 		goto rejected;
 	}
 

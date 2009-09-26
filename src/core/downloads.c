@@ -72,6 +72,7 @@
 #include "ipp_cache.h"
 #include "gdht.h"
 #include "bh_upload.h"
+#include "ctl.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -4412,7 +4413,6 @@ download_send_head_ping(struct download *d)
 	if (delta_time(now, d->head_ping_sent) < delay)
 		return;
 
-
 	if (d->always_push) {
 		/*
 		 * Requires a PUSH: send the HEAD Ping to all the HTTP proxies.
@@ -4745,6 +4745,8 @@ download_ignore_requested(struct download *d)
 			reason = IGNORE_OURSELVES;
 		} else if (hostiles_check(download_addr(d))) {
 			reason = IGNORE_HOSTILE;
+		} else if (ctl_limit(download_addr(d), CTL_D_OUTGOING)) {
+			reason = IGNORE_LIMIT;
 		}
 	}
 
@@ -4770,6 +4772,7 @@ download_ignore_requested(struct download *d)
 		switch (reason) {
 		case IGNORE_HOSTILE:
 		case IGNORE_OURSELVES:
+		case IGNORE_LIMIT:
 			break;
 		case IGNORE_SHA1:
 		case IGNORE_SPAM:
@@ -12067,9 +12070,31 @@ download_push_ack(struct gnutella_socket *s)
 	}
 
 	/*
+	 * Ensure we can accept the incoming connection to perform an outgoing
+	 * HTTP request, eventually.
+	 */
+
+	if (hostiles_check(s->addr)) {
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
+			g_warning("discarding GIV string \"%s\" from hostile %s",
+				giv, host_addr_to_string(s->addr));
+		}
+		goto discard;
+	}
+
+	if (ctl_limit(s->addr, CTL_D_OUTGOING)) {
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(ctl_debug)) {
+			g_warning("CTL discarding GIV string \"%s\" from %s [%s]",
+				giv, host_addr_to_string(s->addr), gip_country_cc(s->addr));
+		}
+		goto discard;
+	}
+
+	/*
 	 * To find out which download this is, we have to parse the incoming
 	 * GIV request, which is stored in "s->getline".
 	 */
+
 	if (!parse_giv(giv, hex_guid, sizeof hex_guid)) {
 		g_warning("malformed GIV string \"%s\" from %s",
 			giv, host_addr_to_string(s->addr));

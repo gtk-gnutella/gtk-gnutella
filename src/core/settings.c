@@ -54,6 +54,7 @@
 #include "upload_stats.h"
 #include "routing.h"			/* For gnet_reset_guid() */
 #include "ipp_cache.h"
+#include "ctl.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1646,6 +1647,17 @@ shared_dirs_paths_changed(property_t prop)
 }
 
 static gboolean
+country_limits_changed(property_t prop)
+{
+    char *limits;
+
+	limits = gnet_prop_get_string(prop, NULL, 0);
+	ctl_parse(GNET_PROPERTY(ancient_version) ? NULL : limits);
+    G_FREE_NULL(limits);
+    return FALSE;
+}
+
+static gboolean
 local_netmasks_string_changed(property_t prop)
 {
     char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -2189,6 +2201,11 @@ static prop_map_t property_map[] = {
     {
         PROP_LOCAL_NETMASKS_STRING,
         local_netmasks_string_changed,
+        TRUE
+    },
+    {
+        PROP_COUNTRY_LIMITS,
+        country_limits_changed,
         TRUE
     },
     {

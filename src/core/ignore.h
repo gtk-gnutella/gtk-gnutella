@@ -48,6 +48,7 @@ enum ignore_val {
 	IGNORE_LIBRARY,			/**< Ignore because SHA1 present in library */
 	IGNORE_HOSTILE,			/**< Ignore because IP address is hostile */
 	IGNORE_OURSELVES,		/**< Ignore because IP:port points to ourselves */
+	IGNORE_LIMIT,			/**< Ignore because of country limits */
 	IGNORE_SPAM				/**< Ignore because SHA1 is known spam */
 };
 

@@ -92,6 +92,7 @@ SRC = \
 	bogons.c \
 	bsched.c \
 	clock.c \
+	ctl.c \
 	dh.c \
 	dime.c \
 	dmesh.c \
@@ -180,6 +181,7 @@ OBJ = \
 	bogons.o \
 	bsched.o \
 	clock.o \
+	ctl.o \
 	dh.o \
 	dime.o \
 	dmesh.o \

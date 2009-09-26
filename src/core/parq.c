@@ -52,6 +52,9 @@ RCSID("$Id$")
 #include "sockets.h"
 #include "gnet_stats.h"
 #include "hosts.h"
+#include "hostiles.h"
+#include "geo_ip.h"
+#include "ctl.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1043,7 +1046,7 @@ parq_download_add_header(
 /**
  * PARQ enabled servers send a 'QUEUE' command when the lifetime of the download
  * (upload from the servers point of view) is about to expire, or if the
- * download has retrieved an download slot (upload slot from the servers point
+ * download has retrieved a download slot (upload slot from the servers point
  * of view). This function looksup the ID associated with the QUEUE command
  * and prepares the download to continue.
  */
@@ -1070,6 +1073,27 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_message("----Got QUEUE from %s:\n", host_addr_to_string(s->addr));
 		dump_string(stderr, queue, getline_length(s->getline), "----");
+	}
+
+	/*
+	 * Ensure we can accept the incoming connection to perform an outgoing
+	 * HTTP request, eventually.
+	 */
+
+	if (hostiles_check(s->addr)) {
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(socket_debug)) {
+			g_warning("discarding GIV string \"%s\" from hostile %s",
+				queue, host_addr_to_string(s->addr));
+		}
+		goto ignore;
+	}
+
+	if (ctl_limit(s->addr, CTL_D_OUTGOING)) {
+		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(ctl_debug)) {
+			g_warning("CTL discarding QUEUE string \"%s\" from %s [%s]",
+				queue, host_addr_to_string(s->addr), gip_country_cc(s->addr));
+		}
+		goto ignore;
 	}
 
 	id = is_strprefix(queue, "QUEUE ");

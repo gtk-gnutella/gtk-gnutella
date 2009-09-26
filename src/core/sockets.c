@@ -63,6 +63,8 @@ RCSID("$Id$")
 #include "settings.h"
 #include "ipp_cache.h"
 #include "gnet_stats.h"
+#include "geo_ip.h"
+#include "ctl.h"
 
 #include "shell/shell.h"
 
@@ -181,6 +183,28 @@ socket_ipv6_trt_map(const host_addr_t addr)
 		return ret;
 	}
 	return addr;
+}
+
+/**
+ * Stringify a socket connection type.
+ */
+static const char *
+socket_type_to_string(enum socket_type type)
+{
+	switch (type) {
+	case SOCK_TYPE_UNKNOWN:		return "unknown";
+	case SOCK_TYPE_CONTROL:		return "Gnet";
+	case SOCK_TYPE_DOWNLOAD:	return "HTTP-download";
+	case SOCK_TYPE_UPLOAD:		return "HTTP-upload";
+	case SOCK_TYPE_HTTP:		return "HTTP";
+	case SOCK_TYPE_SHELL:		return "shell";
+	case SOCK_TYPE_CONNBACK:	return "Gnet-connect-back";
+	case SOCK_TYPE_PPROXY:		return "HTTP-push-proxy";
+	case SOCK_TYPE_DESTROYING:	return "(destroying)";
+	case SOCK_TYPE_UDP:			return "UDP";
+	}
+
+	return "?";
 }
 
 /**
@@ -2158,12 +2182,24 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 		t->addr = socket_addr_get_addr(&addr);
 		t->port = socket_addr_get_port(&addr);
 		if (!is_host_addr(t->addr)) {
-			g_warning("Incoming TCP connection from unidentifiable source");
+			g_warning("incoming TCP connection from unidentifiable source");
 			socket_free_null(&t);
 			return;
 		}
-		g_warning("Had to use getpeername() after accept(): peer=%s",
+		g_warning("had to use getpeername() after accept(): peer=%s",
 			host_addr_port_to_string(t->addr, t->port));
+	}
+
+	if (
+		(t->flags & SOCK_F_TCP) &&
+		ctl_limit(t->addr, CTL_S_ANY_TCP | CTL_D_STEALTH)
+	) {
+		if (GNET_PROPERTY(ctl_debug) > 2) {
+			g_message("CTL closing incoming TCP connection from %s [%s]",
+				host_addr_port_to_string(t->addr, t->port),
+				gip_country_cc(t->addr));
+		}
+		socket_free_null(&t);
 	}
 
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
@@ -2395,9 +2431,11 @@ socket_udp_accept(struct gnutella_socket *s)
 
 		settings_addr_changed(dst_addr, s->addr);
 
-		/* Show the destination address only when it differs from
+		/*
+		 * Show the destination address only when it differs from
 		 * the last seen or if the debug level is higher than 1.
 		 */
+
 		if (
 			GNET_PROPERTY(socket_debug) > 1 ||
 			!host_addr_equal(last_addr, dst_addr)
@@ -2614,6 +2652,52 @@ socket_set_quickack(struct gnutella_socket *s, int on)
  */
 
 /**
+ * Verify that connection can be made to an addr.
+ * @return 0 if OK.
+ */
+static int
+socket_connection_allowed(const host_addr_t addr, enum socket_type type)
+{
+	unsigned flag = 0;
+
+	if (hostiles_check(addr)) {
+		if (GNET_PROPERTY(socket_debug)) {
+			g_warning("not connecting [%s] to hostile host %s",
+				socket_type_to_string(type), host_addr_to_string(addr));
+		}
+		errno = EPERM;
+		return -1;
+	}
+
+	switch (type) {
+	case SOCK_TYPE_DOWNLOAD:	flag = CTL_D_OUTGOING; break;
+	case SOCK_TYPE_HTTP:		flag = CTL_D_OUTGOING; break;
+	case SOCK_TYPE_CONTROL:		flag = CTL_D_GNUTELLA; break;
+	case SOCK_TYPE_UPLOAD:		flag = CTL_D_INCOMING; break;
+	case SOCK_TYPE_CONNBACK:
+		flag = ctl_limit(addr, CTL_D_STEALTH) ? CTL_D_GNUTELLA : 0;
+		break;
+	default:
+		g_warning("socket_connect_prepare(): unexpected type \"%s\"",
+			socket_type_to_string(type));
+		flag = CTL_D_OUTGOING;
+		break;
+	}
+
+	if (ctl_limit(addr, flag)) {
+		if (GNET_PROPERTY(socket_debug) || GNET_PROPERTY(ctl_debug)) {
+			g_warning("CTL not connecting [%s] to host %s [%s]",
+				socket_type_to_string(type), host_addr_to_string(addr),
+				gip_country_cc(addr));
+		}
+		errno = EPERM;
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
  * Called to prepare the creation of the socket connection.
  *
  * @returns non-zero in case of failure, zero on success.
@@ -2630,11 +2714,10 @@ socket_connect_prepare(struct gnutella_socket *s,
 	/* Filter out flags which we cannot accept */
 	flags &= (SOCK_F_TLS | SOCK_F_FORCE);
 
-	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(addr)) {
-		g_warning("Not connecting to hostile host %s",
-			host_addr_to_string(addr));
-		errno = EPERM;
-		return -1;
+	if (!(s->flags & SOCK_F_FORCE) && is_host_addr(addr)) {
+		if (0 != socket_connection_allowed(addr, type))
+			return -1;
+		flags |= SOCK_F_PREPARED;
 	}
 
 	if (0 == (SOCK_F_TLS & flags) && tls_cache_lookup(addr, port)) {
@@ -2735,11 +2818,15 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 	/*
 	 * Allow forced connections to an hostile host.
+	 *
+	 * If SOCK_F_PREPARED is set, then we've already checked for hostiles
+	 * in socket_connect_prepare(), where we already knew the address, and
+	 * there's no need to redo it now.
 	 */
 
-	if (!(s->flags & SOCK_F_FORCE) && hostiles_check(ha)) {
-		g_warning("Not connecting to hostile host %s", host_addr_to_string(ha));
-		goto failure;	/* Not connecting to hostile host */
+	if (!(s->flags & (SOCK_F_FORCE | SOCK_F_PREPARED))) {
+		if (0 != socket_connection_allowed(ha, s->type))
+			goto failure;	/* Not connecting to hostile host */
 	}
 
 	s->addr = ha;

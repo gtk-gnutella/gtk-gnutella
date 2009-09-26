@@ -312,6 +312,8 @@ src/core/bsched.c
 src/core/bsched.h
 src/core/clock.c
 src/core/clock.h
+src/core/ctl.c
+src/core/ctl.h
 src/core/dh.c
 src/core/dh.h
 src/core/dime.c
