@@ -359,8 +359,11 @@ iso3166_encode_cc(const char *cc)
 		int error;
 
 		code = parse_uint16(cc, NULL, 36, &error);
-        g_assert(code < G_N_ELEMENTS(iso3166_countries));
-        g_assert(0 == error);
+
+		if (code >= G_N_ELEMENTS(iso3166_countries))
+			return ISO3166_INVALID;
+
+		g_assert(0 == error);
 
 		if (NULL != iso3166_countries[code]) {
         	d = iso3166_decode_cc(code);
