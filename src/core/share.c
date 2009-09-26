@@ -50,7 +50,6 @@ RCSID("$Id$")
 #include "ggep_type.h"
 #include "gnet_stats.h"
 #include "guid.h"
-#include "hostiles.h"
 #include "qhit.h"
 #include "oob.h"
 #include "oob_proxy.h"
