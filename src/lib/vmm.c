@@ -469,9 +469,12 @@ pmap_insert_foreign(struct pmap *pm, const void *start, size_t size)
 
 /**
  * Allocate a new chunk of anonymous memory.
+ *
+ * @param size		amount of bytes we want
+ * @param hole		if non-NULL, identified VM hole of at least size bytes.
  */
 static void *
-vmm_mmap_anonymous(size_t size)
+vmm_mmap_anonymous(size_t size, const void *hole)
 #if defined(HAS_MMAP)
 {
 	static int flags, failed, fd = -1;
@@ -480,10 +483,11 @@ vmm_mmap_anonymous(size_t size)
 	if (failed)
 		return NULL;
 
-	hint = deconstify_gpointer(vmm_find_hole(size));
+	hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
 
 	if (hint != NULL && vmm_debugging(8)) {
-		g_message("VMM hinting 0x%lx for new %luKiB region",
+		g_message("VMM hinting %s0x%lx for new %luKiB region",
+			NULL == hole ? "" : "supplied ",
 			(unsigned long) hint, (unsigned long) (size / 1024));
 	}
 
@@ -541,6 +545,7 @@ vmm_mmap_anonymous(size_t size)
 {
 	void *p;
 
+	(void) hole;
 	size = round_pagesize_fast(size);
 #if defined(HAS_POSIX_MEMALIGN)
 	if (posix_memalign(&p, kernel_pagesize, size)) {
@@ -575,19 +580,20 @@ pmap_insert(struct pmap *pm, const void *start, size_t size)
  *
  * @param size			the amount of bytes to allocate.
  * @param update_pmap	whether our VMM pmap should be updated
+ * @param hole			if non-NULL, identified VM hole of size bytes at least
  *
  * @return On success a pointer to the allocated chunk is returned. On
  *		   failure NULL is returned.
  */
 static void *
-alloc_pages(size_t size, gboolean update_pmap)
+alloc_pages(size_t size, gboolean update_pmap, const void *hole)
 {
 	void *p;
 	size_t generation = kernel_pmap.generation;
 
 	RUNTIME_ASSERT(kernel_pagesize > 0);
 
-	p = vmm_mmap_anonymous(size);
+	p = vmm_mmap_anonymous(size, hole);
 	return_value_unless(NULL != p, NULL);
 	
 	if (page_start(p) != p) {
@@ -668,7 +674,7 @@ pmap_allocate(struct pmap *pm)
 	g_assert(NULL == pm->array);
 	g_assert(0 == pm->pages);
 
-	pm->array = alloc_pages(kernel_pagesize, FALSE);
+	pm->array = alloc_pages(kernel_pagesize, FALSE, NULL);
 	pm->pages = 1;
 	pm->count = 0;
 	pm->size = kernel_pagesize / sizeof pm->array[0];
@@ -717,7 +723,7 @@ retry:
 	{
 		size_t old_pages = pm->pages;
 
-		narray = alloc_pages(nsize, FALSE);		/* May recurse here */
+		narray = alloc_pages(nsize, FALSE, NULL);	/* May recurse here */
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
@@ -1982,11 +1988,15 @@ found:
 /**
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
+ * @param n			number of pages we want
+ * @param hole_ptr	variable where first hole we found is written to
+ *
  * @return a pointer to the start of the memory region, NULL if we were
- * unable to find that amount of contiguous memory.
+ * unable to find that amount of contiguous memory.  In any case, ``hole_ptr''
+ * is written with the first suitable hole we identified in the VM space.
  */
 static void *
-page_cache_find_pages(size_t n)
+page_cache_find_pages(size_t n, const void **hole_ptr)
 {
 	void *p;
 	size_t len;
@@ -1994,6 +2004,7 @@ page_cache_find_pages(size_t n)
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
+	g_assert(hole_ptr != NULL);
 
 	/*
 	 * Before using pages from the cache, look where the first hole is
@@ -2020,6 +2031,8 @@ page_cache_find_pages(size_t n)
 		g_message("VMM lowest hole of %lu page%s at 0x%lx",
 			(unsigned long) n, n == 1 ? "" : "s", (unsigned long) hole);
 	}
+
+	*hole_ptr = hole;
 
 	if (n >= VMM_CACHE_LINES) {
 		/*
@@ -2395,6 +2408,7 @@ vmm_alloc(size_t size)
 {
 	size_t n;
 	void *p;
+	const void *hole;
 
 	RUNTIME_ASSERT(size_is_positive(size));
 	
@@ -2406,13 +2420,13 @@ vmm_alloc(size_t size)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
+	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		return p;
 	}
 
-	p = alloc_pages(size, TRUE);
+	p = alloc_pages(size, TRUE, hole);
 	if (NULL == p)
 		g_error("cannot allocate %lu bytes: out of virtual memmory",
 			(unsigned long) size);
@@ -2428,6 +2442,7 @@ vmm_alloc0(size_t size)
 {
 	size_t n;
 	void *p;
+	const void *hole;
 
 	RUNTIME_ASSERT(size_is_positive(size));
 
@@ -2439,14 +2454,14 @@ vmm_alloc0(size_t size)
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n);
+	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
 		return p;
 	}
 
-	p = alloc_pages(size, TRUE);
+	p = alloc_pages(size, TRUE, hole);
 	if (NULL == p)
 		g_error("cannot allocate %lu bytes: out of virtual memmory",
 			(unsigned long) size);
@@ -2583,7 +2598,7 @@ prot_strdup(const char *s)
 
 	n = strlen(s) + 1;
 	size = round_pagesize_fast(n);
-	p = alloc_pages(size, FALSE);
+	p = alloc_pages(size, FALSE, NULL);
 	if (p) {
 		memcpy(p, s, n);
 		mprotect(p, size, PROT_READ);
@@ -2602,7 +2617,7 @@ vmm_trap_page(void)
 	static const void *trap_page;
 
 	if (NULL == trap_page) {
-		void *p = alloc_pages(kernel_pagesize, FALSE);
+		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		RUNTIME_ASSERT(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
@@ -2929,8 +2944,8 @@ vmm_init(const void *sp)
 	 */
 
 	{
-		void *p = alloc_pages(kernel_pagesize, FALSE);
-		void *q = alloc_pages(kernel_pagesize, FALSE);
+		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
+		void *q = alloc_pages(kernel_pagesize, FALSE, NULL);
 
 		kernel_mapaddr_increasing = ptr_cmp(q, p) > 0;
 
