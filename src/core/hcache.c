@@ -58,6 +58,7 @@ RCSID("$Id$")
 #include "nodes.h"
 #include "pcache.h"
 #include "settings.h"
+#include "ctl.h"
 
 #include "lib/ascii.h"
 #include "lib/file.h"
@@ -805,6 +806,9 @@ gboolean
 hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
 	const char *what)
 {
+	if (ctl_limit(addr, CTL_D_CACHE))
+		return FALSE;
+
     switch (type) {
     case HOST_ANY:
     	return hcache_add(HCACHE_FRESH_ANY, addr, port, what);
@@ -825,6 +829,9 @@ gboolean
 hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
 	const char *what)
 {
+	if (ctl_limit(addr, CTL_D_CACHE))
+		return FALSE;
+
     switch (type) {
     case HOST_ANY:
     	return hcache_add(HCACHE_VALID_ANY, addr, port, what);
