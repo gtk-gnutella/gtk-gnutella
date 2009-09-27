@@ -1318,7 +1318,9 @@ keys_offload(const knode_t *kn)
 	gboolean debug;
 
 	knode_check(kn);
-	g_return_if_fail(!(kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING)));
+
+	if (kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING))
+		return;
 
 	if (
 		!dht_bootstrapped() ||				/* Not bootstrapped */
