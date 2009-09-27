@@ -339,6 +339,7 @@ ctl_warn(const struct ctl_string *s, const struct ctl_tok *at, const char *msg)
 }
 
 static GHashTable *ctl_by_country;		/**< Options per country */
+static unsigned ctl_all_flags;			/**< Set of flags used */
 
 /**
  * Parse a single country held in the token.
@@ -479,8 +480,10 @@ ctl_parse_list_entry(struct ctl_string *s)
 
 	GM_SLIST_FOREACH(countries, sl) {
 		unsigned code = pointer_to_uint(sl->data);
+
 		g_hash_table_replace(ctl_by_country,
 			uint_to_pointer(code), uint_to_pointer(flags));
+		ctl_all_flags |= flags;
 
 		if (GNET_PROPERTY(ctl_debug)) {
 			g_message("CTL %s => '%s' (%s)",
@@ -538,6 +541,7 @@ static void
 ctl_reset(void)
 {
 	g_hash_table_foreach_remove(ctl_by_country, ctl_true, NULL);
+	ctl_all_flags = 0;
 }
 
 /**
@@ -546,19 +550,22 @@ ctl_reset(void)
 void
 ctl_parse(const char *s)
 {
-	struct ctl_string str;
-
 	ctl_reset();
 
-	if (s == NULL)
-		return;
+	if (s != NULL) {
+		struct ctl_string str;
 
-	str.str = s;
-	str.p = s;
-	str.unread = NULL;
+		str.str = s;
+		str.p = s;
+		str.unread = NULL;
 
-	ctl_parse_list(&str);
-	ctl_token_free_null(&str.unread);
+		ctl_parse_list(&str);
+		ctl_token_free_null(&str.unread);
+	}
+
+	if (GNET_PROPERTY(ctl_debug)) {
+		g_message("CTL full option set is '%s'", ctl_flags2str(ctl_all_flags));
+	}
 }
 
 /**
@@ -570,7 +577,16 @@ ctl_limit(const host_addr_t ha, unsigned flags)
 	guint16 code;
 	unsigned cflags;
 
+	/*
+	 * Early optimization to avoid paying the price of gip_country_safe():
+	 * If no flags are given, or the set of flags requested is not a subset
+	 * of all the flags ever specified for all countries, we can return.
+	 */
+
 	if (0 == flags)
+		return FALSE;
+
+	if ((flags & ctl_all_flags) != flags)
 		return FALSE;
 
 	code = gip_country_safe(ha);
