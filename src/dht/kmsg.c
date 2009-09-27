@@ -49,6 +49,7 @@ RCSID("$Id$")
 #include "core/gnet_stats.h"
 #include "core/hosts.h"
 #include "core/hostiles.h"
+#include "core/inet.h"
 #include "core/gmsg.h"
 #include "core/udp.h"
 #include "core/nodes.h"
@@ -1077,6 +1078,12 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
 	if (GNET_PROPERTY(dht_debug > 3))
 		g_message("DHT node %s looking for %s",
 			knode_to_string(kn), kuid_to_hex_string(id));
+
+	/*
+	 * Signal that we got an unsolicited UDP message.
+	 */
+
+	inet_udp_got_unsolicited_incoming();
 
 	g_assert(len == KUID_RAW_SIZE);
 
