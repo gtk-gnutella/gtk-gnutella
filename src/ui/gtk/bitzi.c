@@ -44,6 +44,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 #include "if/core/bitzi.h"    	/* bitzi_data_t */
 
+#include "lib/stringify.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
