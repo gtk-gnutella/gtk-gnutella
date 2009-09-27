@@ -393,6 +393,7 @@ typedef enum {
     PROP_COUNTRY_LIMITS,
     PROP_CTL_DEBUG,
     PROP_LOG_DROPPED_GNUTELLA,
+    PROP_WHITELIST_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
