@@ -70,18 +70,19 @@ is_big(unsigned short off)
 }
 
 int
-pagestat(char *pag, int *large_keys, int *large_values)
+pagestat(char *pag,
+	unsigned *ksize, unsigned *vsize, int *large_keys, int *large_values)
 {
 	register unsigned n;
 	register int pfree;
 	register unsigned short *ino = (unsigned short *) pag;
 	int lk = 0, lv = 0;
+	int keysize = 0, valsize = 0;
 
 	if (!(n = ino[0]))
 		printf("no entries.\n");
 	else {
 		unsigned i;
-		int keysize = 0, valsize = 0;
 		unsigned off = DBM_PBLKSIZ;
 
 		for (i = 1; i < n; i+= 2) {
@@ -106,10 +107,10 @@ pagestat(char *pag, int *large_keys, int *large_values)
 				lk ? " (LKEY)" : "",
 				lv ? " (LVAL)" : "");
 	}
-	if (large_keys)
-		*large_keys = lk;
-	if (large_values)
-		*large_values = lv;
+	if (large_keys)		*large_keys = lk;
+	if (large_values)	*large_values = lv;
+	if (ksize)			*ksize = keysize;
+	if (vsize)			*vsize = valsize;
 	return n / 2;
 }
 
@@ -123,21 +124,25 @@ sdump(int pagf)
 	int tlk = 0;
 	int tlv = 0;
 	int e;
+	unsigned ksize = 0, vsize = 0;
 	char pag[DBM_PBLKSIZ];
 
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
+		unsigned ks, vs;
 		printf("#%d: ", n);
 		if (!okpage(pag))
 			printf("bad\n");
 		else {
 			printf("ok. ");
-			if (!(e = pagestat(pag, &lk, &lv))) {
+			if (!(e = pagestat(pag, &ks, &vs, &lk, &lv))) {
 			    o++;
 			} else {
 			    t += e;
 				tlk += lk;
 				tlv += lv;
+				ksize += ks;
+				vsize += vs;
 			}
 		}
 		n++;
@@ -145,6 +150,7 @@ sdump(int pagf)
 
 	if (b == 0) {
 		printf("%d pages (%d holes):  %d entries\n", n, o, t);
+		printf("keys: %u bytes, values: %u bytes\n", ksize, vsize);
 		if (tlk || tlv)
 			printf("%d large key%s, %d large value%s\n",
 				tlk, 1 == tlk ? "" : "s",
