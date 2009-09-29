@@ -848,8 +848,8 @@ adns_init(void)
 
 	set_close_on_exec(adns_query_fd);
 	set_close_on_exec(fd_reply[0]);
-	socket_set_nonblocking(adns_query_fd);
-	socket_set_nonblocking(fd_reply[0]);
+	fd_set_nonblocking(adns_query_fd);
+	fd_set_nonblocking(fd_reply[0]);
 	
 	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
 							adns_reply_callback, NULL);
