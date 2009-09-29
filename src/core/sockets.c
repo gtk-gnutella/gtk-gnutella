@@ -2200,6 +2200,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 				gip_country_cc(t->addr));
 		}
 		socket_free_null(&t);
+		return;
 	}
 
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
