@@ -376,15 +376,20 @@ ctl_parse_countries(struct ctl_string *s)
 
 		switch (tok->type) {
 		case CTL_TOK_COMMA:
+			ctl_token_free_null(&tok);
 			continue;
 		case CTL_TOK_RBRACE:
+			ctl_token_free_null(&tok);
 			goto out;
 		case CTL_TOK_ID:
 			sl = g_slist_concat(sl, ctl_parse_country(s, tok));
+			ctl_token_free_null(&tok);
 			break;
 		case CTL_TOK_EOF:
 		default:
-			ctl_error(s, tok, "country or '}'"); goto out;
+			ctl_error(s, tok, "country or '}'");
+			ctl_token_free_null(&tok);
+			goto out;
 		}
 	}
 
@@ -400,13 +405,16 @@ static char *
 ctl_parse_options(struct ctl_string *s)
 {
 	struct ctl_tok *tok = ctl_next_token(s);
+	char *opt = NULL;
 
 	if (CTL_TOK_ID != tok->type) {
 		ctl_error(s, tok, "country options");
-		return NULL;
+	} else {
+		opt = h_strdup(tok->val.s);
 	}
 
-	return h_strdup(tok->val.s);
+	ctl_token_free_null(&tok);
+	return opt;
 }
 
 /**
@@ -493,6 +501,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	}
 
 out:
+	g_slist_free(countries);
 	HFREE_NULL(opt);
 	ctl_token_free_null(&tok);
 
