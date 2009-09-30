@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <errno.h>
 #include "common.h"
 #ifdef SDBM
 #include "sdbm.h"
@@ -7,14 +5,17 @@
 #include "ndbm.h"
 #endif
 
-void
-oops(register char *s1, register char *s2)
+G_GNUC_PRINTF(1, 2) void
+oops(char *fmt, ...)
 {
+	va_list args;
 	extern char *progname;
 
 	if (progname)
 		fprintf(stderr, "%s: ", progname);
-	fprintf(stderr, s1, s2);
+
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
 	fprintf(stderr, " (%s)", strerror(errno));
 	fprintf(stderr, "\n");
 	exit(1);

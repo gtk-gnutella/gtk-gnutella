@@ -8,7 +8,7 @@
 #include "sdbm.h"
 
 char *progname;
-extern void oops();
+extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 void sdump(int);
 void bdump(int);
 

@@ -8,7 +8,7 @@
 #include "lib/vmm.h"
 #include "lib/halloc.h"
 
-extern void	oops();
+extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 char *progname;
 
