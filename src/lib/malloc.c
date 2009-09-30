@@ -43,11 +43,15 @@
 
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
+#include "concat.h"		/* For concat_strings() */
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "hashtable.h"
-#include "misc.h"		/* For concat_strings() */
+#include "parse.h"		/* For parse_pointer() */
+#include "path.h"		/* For filepath_basename() */
 #include "tm.h"			/* For tm_time() */
+#include "stringify.h"	/* For uint64_to_string() and short_time() */
+#include "unsigned.h"	/* For size_is_non_negative() */
 #include "glib-missing.h"
 
 /*
