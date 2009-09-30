@@ -626,8 +626,14 @@ alloc_pages(size_t size, gboolean update_pmap, const void *hole)
 static void
 free_pages_intern(void *p, size_t size, gboolean update_pmap)
 {
+	/*
+	 * If ``stop_freeing'' was set, do not even bother updating the pmap:
+	 * Our pages are not freed physically, they must remain in the pmap as
+	 * allocated zones.
+	 */
+
 	if (G_UNLIKELY(stop_freeing))
-		goto update;		/* Don't mess up with indentation below */
+		return;
 
 #if defined(HAS_MMAP)
 	{
@@ -646,7 +652,6 @@ free_pages_intern(void *p, size_t size, gboolean update_pmap)
 #error "Neither mmap(), posix_memalign() nor memalign() available"
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 
-update:
 	if (update_pmap)
 		pmap_remove(vmm_pmap(), p, size);
 }
@@ -663,6 +668,50 @@ free_pages(void *p, size_t size, gboolean update_pmap)
 	}
 
 	free_pages_intern(p, size, update_pmap);
+}
+
+/**
+ * Lookup address within the pmap.
+ *
+ * If ``low_ptr'' is non-NULL, it is written with the index where insertion
+ * of a new item should happen (in which case the returned value must be NULL).
+ *
+ * @return found fragment if address lies within the fragment, NULL if
+ * no fragment containing the address was found.
+ */
+static struct vm_fragment *
+pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
+{
+	size_t low = 0, high = pm->count - 1;
+	struct vm_fragment *item;
+
+	/* Binary search */
+
+	for (;;) {
+		size_t mid;
+
+		if (low > high || high > SIZE_MAX / 2) {
+			item = NULL;		/* Not found */
+			break;
+		}
+
+		mid = low + (high - low) / 2;
+
+		g_assert(mid < pm->count);
+
+		item = &pm->array[mid];
+		if (ptr_cmp(p, vmf_end(item)) >= 0)
+			low = mid + 1;
+		else if (ptr_cmp(p, item->start) < 0)
+			high = mid - 1;
+		else
+			break;	/* Found */
+	}
+
+	if (low_ptr != NULL)
+		*low_ptr = low;
+
+	return item;
 }
 
 /**
@@ -695,11 +744,13 @@ pmap_extend(struct pmap *pm)
 	size_t nsize;
 	size_t osize;
 	void *oarray;
+	size_t old_generation;
 
 retry:
 
 	osize = kernel_pagesize * pm->pages;
 	nsize = osize + kernel_pagesize;
+	old_generation = vmm_pmap()->generation;
 
 	if (vmm_debugging(0)) {
 		g_message("VMM extending %s%s pmap from %lu KiB to %lu KiB",
@@ -778,55 +829,19 @@ retry:
 		struct pmap *vpm = vmm_pmap();
 
 		if (!vpm->loading) {
-			pmap_insert(vpm, narray, nsize);
+			if (vpm->generation == old_generation) {
+				pmap_insert(vpm, narray, nsize);
+			} else {
+				if (vmm_debugging(0)) {
+					g_message("VMM kernel pmap reloaded during extension");
+				}
+				/* New pages must be there! */
+				g_assert(NULL != pmap_lookup(vpm, narray, NULL));
+			}
 		} else {
 			vpm->resized = TRUE;
 		}
 	}
-}
-
-/**
- * Lookup address within the pmap.
- *
- * If ``low_ptr'' is non-NULL, it is written with the index where insertion
- * of a new item should happen (in which case the returned value must be NULL).
- *
- * @return found fragment if address lies within the fragment, NULL if
- * no fragment containing the address was found.
- */
-static struct vm_fragment *
-pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
-{
-	size_t low = 0, high = pm->count - 1;
-	struct vm_fragment *item;
-
-	/* Binary search */
-
-	for (;;) {
-		size_t mid;
-
-		if (low > high || high > SIZE_MAX / 2) {
-			item = NULL;		/* Not found */
-			break;
-		}
-
-		mid = low + (high - low) / 2;
-
-		g_assert(mid < pm->count);
-
-		item = &pm->array[mid];
-		if (ptr_cmp(p, vmf_end(item)) >= 0)
-			low = mid + 1;
-		else if (ptr_cmp(p, item->start) < 0)
-			high = mid - 1;
-		else
-			break;	/* Found */
-	}
-
-	if (low_ptr != NULL)
-		*low_ptr = low;
-
-	return item;
 }
 
 /**
@@ -1519,6 +1534,15 @@ free_pages_forced(void *p, size_t size, gboolean fragment)
 	 */
 
 	free_pages_intern(p, size, FALSE);
+
+	/*
+	 * If ``stop_freeing'' was set, do not even bother updating the pmap:
+	 * Our pages are not freed physically, they must remain in the pmap as
+	 * allocated zones.
+	 */
+
+	if (G_UNLIKELY(stop_freeing))
+		return;
 
 	/*
 	 * If we're freeing a fragment, we can remove it from the list of known
@@ -2975,6 +2999,9 @@ void
 vmm_stop_freeing(void)
 {
 	stop_freeing = TRUE;
+
+	if (vmm_debugging(0))
+		g_message("VMM will no longer release freed pages");
 }
 
 /***
