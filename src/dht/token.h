@@ -66,7 +66,7 @@ void token_generate(token_t *tok, const knode_t *kn);
 gboolean token_is_valid(const token_t *tok, const knode_t *kn);
 
 sec_token_t *token_alloc(guint8 length);
-void token_free(sec_token_t *token);
+void token_free(sec_token_t *token, gboolean freedata);
 
 #endif /* _dht_token_h_ */
 

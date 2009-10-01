@@ -194,9 +194,9 @@ token_alloc(guint8 length)
  * Free security token.
  */
 void
-token_free(sec_token_t *token)
+token_free(sec_token_t *token, gboolean freedata)
 {
-	if (token->v)
+	if (token->v && freedata)
 		wfree(token->v, token->length);
 
 	wfree(token, sizeof *token);

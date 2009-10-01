@@ -309,9 +309,9 @@ lookup_parallelism_mode_to_string(enum parallelism mode)
  * Free a lookup token.
  */
 static void
-lookup_token_free(lookup_token_t *ltok)
+lookup_token_free(lookup_token_t *ltok, gboolean freedata)
 {
-	token_free(ltok->token);
+	token_free(ltok->token, freedata);
 	wfree(ltok, sizeof *ltok);
 }
 
@@ -326,7 +326,7 @@ free_token(gpointer unused_key, gpointer value, gpointer unused_u)
 	(void) unused_key;
 	(void) unused_u;
 
-	lookup_token_free(ltok);
+	lookup_token_free(ltok, TRUE);
 }
 
 /**
@@ -450,10 +450,10 @@ lookup_create_results(nlookup_t *nl)
 
 		rc = &rs->path[i++];
 		rc->kn = knode_refcnt_inc(kn);
-		rc->token = ltok->token->v;		/* Becomes owner of that data */
+		rc->token = ltok->token->v;		/* Becomes owner of token data */
 		rc->token_len = ltok->token->length;
 
-		wfree(ltok, sizeof *ltok);		/* Not lookup_token_free()! */
+		lookup_token_free(ltok, FALSE);	/* Data copied, do not free them */
 		map_remove(nl->tokens, kn->id);
 	}
 
@@ -2154,7 +2154,7 @@ bad:
 			 reason, bstr_error(bs));
 
 	if (token)
-		token_free(token);
+		token_free(token, TRUE);
 	bstr_free(&bs);
 	return FALSE;
 }
