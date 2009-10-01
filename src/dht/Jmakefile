@@ -39,6 +39,7 @@ SRC = \
 	roots.c \
 	routing.c \
 	rpc.c \
+	tcache.c \
 	token.c \
 	storage.c \
 	ulq.c \
