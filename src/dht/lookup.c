@@ -3000,7 +3000,7 @@ lookup_token(const knode_t *kn,
 
 	knode_check(kn);
 
-	nl = lookup_create(kn->id, LOOKUP_NODE, err, arg);
+	nl = lookup_create(kn->id, LOOKUP_STORE, err, arg);
 	nl->amount = 1;
 	nl->u.fn.ok = ok;
 	nl->mode = LOOKUP_STRICT;
