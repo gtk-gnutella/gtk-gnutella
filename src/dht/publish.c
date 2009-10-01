@@ -145,6 +145,7 @@ RCSID("$Id$")
 #include "knode.h"
 #include "kuid.h"
 #include "revent.h"
+#include "tcache.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
@@ -1538,6 +1539,21 @@ publish_subcache(const kuid_t *key,
 }
 
 /**
+ * Record security token for an offloading publish.
+ */
+static void
+publish_offload_set_token(publish_t *pb, guint8 token_len, const void *token)
+{
+	publish_check(pb);
+	g_assert(PUBLISH_OFFLOAD == pb->type);
+
+	if (token_len != 0) {
+		pb->target.o.toklen = token_len;
+		pb->target.o.token = wcopy(token, token_len);
+	}
+}
+
+/**
  * Got the token for the node.
  */
 static void
@@ -1552,11 +1568,7 @@ pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	g_assert(1 == rs->path_len);
 
 	rc = rs->path;
-	if (rc->token_len) {
-		pb->target.o.token = walloc(rc->token_len);
-		pb->target.o.toklen = rc->token_len;
-		memcpy(pb->target.o.token, rc->token, rc->token_len);
-	}
+	publish_offload_set_token(pb, rc->token_len, rc->token);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		tm_t now;
@@ -1625,10 +1637,11 @@ pb_token_lookup_stats(const kuid_t *kuid,
 publish_t *
 publish_offload(const knode_t *kn, GSList *keys)
 {
-	nlookup_t *nl;
 	publish_t *pb;
 	slist_t *skeys;
 	GSList *sl;
+	guint8 toklen;
+	const void *token;
 
 	knode_check(kn);
 	g_assert(keys != NULL);
@@ -1650,15 +1663,33 @@ publish_offload(const knode_t *kn, GSList *keys)
 	/*
 	 * Before starting to iterate, we need to fetch the security token
 	 * from the node.
+	 *
+	 * If we are lucky enough to know the security token of that node from
+	 * the token cache, there's no need to issue a FIND_NODE to look for
+	 * the token,
 	 */
 
-	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_message("DHT PUBLISH[%s] getting security token for %s",
-			revent_id_to_string(pb->pid), knode_to_string(kn));
-	}
+	if (tcache_get(kn->id, &toklen, &token)) {
+		if (GNET_PROPERTY(dht_publish_debug) > 1) {
+			g_message("DHT PUBLISH[%s] got %u-byte cached security token "
+				"for %s",
+				revent_id_to_string(pb->pid), toklen, knode_to_string(kn));
+		}
 
-	nl = lookup_token(kn, pb_token_found, pb_token_error, pb);
-	lookup_ctrl_stats(nl, pb_token_lookup_stats);
+		publish_offload_set_token(pb, toklen, token);
+		/* Need to start iterating asynchronously */
+		pb->delay_ev = cq_insert(callout_queue, 1, publish_delay_expired, pb);
+	} else {
+		nlookup_t *nl;
+
+		if (GNET_PROPERTY(dht_publish_debug) > 1) {
+			g_message("DHT PUBLISH[%s] requesting security token for %s",
+				revent_id_to_string(pb->pid), knode_to_string(kn));
+		}
+
+		nl = lookup_token(kn, pb_token_found, pb_token_error, pb);
+		lookup_ctrl_stats(nl, pb_token_lookup_stats);
+	}
 
 	return pb;
 }
