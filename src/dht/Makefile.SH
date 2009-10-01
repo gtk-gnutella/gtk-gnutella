@@ -92,6 +92,7 @@ SRC = \
 	roots.c \
 	routing.c \
 	rpc.c \
+	tcache.c \
 	token.c \
 	storage.c \
 	ulq.c \
@@ -109,6 +110,7 @@ OBJ = \
 	roots.o \
 	routing.o \
 	rpc.o \
+	tcache.o \
 	token.o \
 	storage.o \
 	ulq.o \
