@@ -107,7 +107,7 @@ enum ulqitem_magic {
  */
 struct ulq_item {
 	enum ulqitem_magic magic;
-	lookup_type_t type;				/**< Type of lookup (NODE or VALUE) */
+	lookup_type_t type;				/**< Type of lookup (STORE or VALUE) */
 	const kuid_t *kuid;				/**< KUID to look for (atom) */
 	struct ulq *uq;					/**< The queue where item lies */
 	union {
@@ -131,7 +131,7 @@ struct ulq_item {
 enum ulq_qtype {
 	ULQ_PROX = 0,					/**< Push proxy lookups */
 	ULQ_ALOC,						/**< Alt-loc lookups */
-	ULQ_NODE,						/**< Node lookups (for publishing) */
+	ULQ_STORE,						/**< Node lookups (for publishing) */
 
 	ULQ_QUEUE_COUNT					/**< Amount of queues */
 };
@@ -269,7 +269,7 @@ ulq_error_cb(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	struct ulq_item *ui = arg;
 
 	ulq_item_check(ui);
-	g_assert(LOOKUP_VALUE == ui->type || LOOKUP_NODE == ui->type);
+	g_assert(LOOKUP_VALUE == ui->type || LOOKUP_STORE == ui->type);
 	g_assert(ui->kuid == kuid);		/* Atoms */
 
 	(*ui->err)(ui->kuid, error, ui->arg);
@@ -301,7 +301,7 @@ ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	struct ulq_item *ui = arg;
 
 	ulq_item_check(ui);
-	g_assert(LOOKUP_NODE == ui->type);
+	g_assert(LOOKUP_STORE == ui->type);
 	g_assert(ui->kuid == kuid);		/* Atoms */
 
 	(*ui->u.fn.ok)(ui->kuid, rs, ui->arg);
@@ -421,10 +421,12 @@ ulq_launch(struct ulq *uq)
 		nl = lookup_find_value(ui->kuid, ui->u.fv.vtype,
 			ulq_value_found_cb, ulq_error_cb, ui);
 		goto initialized;
-	case LOOKUP_NODE:
-		nl = lookup_find_node(ui->kuid, ulq_node_found_cb, ulq_error_cb, ui);
+	case LOOKUP_STORE:
+		nl = lookup_store_nodes(ui->kuid, ulq_node_found_cb, ulq_error_cb, ui);
 		goto initialized;
+		break;
 	case LOOKUP_REFRESH:
+	case LOOKUP_NODE:
 		break;
 	}
 	nl = NULL;
@@ -654,12 +656,13 @@ static struct ulq *
 ulq_get(lookup_type_t ltype, dht_value_type_t vtype)
 {
 	switch (ltype) {
-	case LOOKUP_NODE:
-		return ulq[ULQ_NODE];
+	case LOOKUP_STORE:
+		return ulq[ULQ_STORE];
 		break;
 	case LOOKUP_VALUE:
 		break;
 	case LOOKUP_REFRESH:
+	case LOOKUP_NODE:
 		g_assert_not_reached();
 	}
 
@@ -695,13 +698,13 @@ ulq_putq(struct ulq *uq, struct ulq_item *ui)
 }
 
 /**
- * Enqueue node lookup.
+ * Enqueue store roots lookup.
  *
  * This is meant to be used only via user store operations, and is not to be
  * directly invoked by user code.
  */
 void
-ulq_find_node(const kuid_t *kuid,
+ulq_find_store_roots(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
 {
 	struct ulq_item *ui;
@@ -710,9 +713,9 @@ ulq_find_node(const kuid_t *kuid,
 	g_assert(ok);
 	g_assert(error);
 
-	uq = ulq_get(LOOKUP_NODE, DHT_VT_BINARY);
+	uq = ulq_get(LOOKUP_STORE, DHT_VT_BINARY);
 
-	ui = allocate_ulq_item(LOOKUP_NODE,  kuid, error, arg);
+	ui = allocate_ulq_item(LOOKUP_STORE,  kuid, error, arg);
 	ui->u.fn.ok = ok;
 
 	ulq_putq(uq, ui);
@@ -778,7 +781,7 @@ ulq_init(void)
 
 	ulq[ULQ_PROX] = ulq_init_queue("PROX", 60);
 	ulq[ULQ_ALOC] = ulq_init_queue("ALOC", 20);
-	ulq[ULQ_NODE] = ulq_init_queue("NODE", 20);
+	ulq[ULQ_STORE] = ulq_init_queue("STORE", 20);
 
 	sched.runq = slist_new();
 
