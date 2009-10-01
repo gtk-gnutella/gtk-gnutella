@@ -973,6 +973,25 @@ zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 }
 
 /**
+ * Check whether address falls within the subzone boundaries.
+ */
+static inline gboolean
+zgc_within_subzone(const struct subzinfo *szi, const void *p)
+{
+	struct subzone *sz;
+
+	g_assert(szi != NULL);
+	g_assert(szi->szi_sz != NULL);
+
+	sz = szi->szi_sz;
+
+	g_assert(sz->sz_base == szi->szi_base);
+	g_assert(ptr_diff(szi->szi_end, szi->szi_base) == sz->sz_size);
+
+	return ptr_cmp(p, szi->szi_base) >= 0 && ptr_cmp(p, szi->szi_end) < 0;
+}
+
+/**
  * Add a new subzone in the garbage collection structure, where ``blk'' is
  * the first free block in the subzone.
  *
@@ -1017,6 +1036,8 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	szi->szi_free_cnt = zone->zn_hint;
 	szi->szi_free = blk;
 	szi->szi_sz = sz;
+
+	g_assert(zgc_within_subzone(szi, blk));
 
 	if (addr_grows_upwards) {
 		if (zg->zg_free > low)
@@ -1334,7 +1355,7 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 
 	szi = zgc_find_subzone(zg, blk, NULL);
 	g_assert(szi != NULL);
-	g_assert(blk >= (char **) szi->szi_base && blk < (char **) szi->szi_end);
+	g_assert(zgc_within_subzone(szi, blk));
 
 	/*
 	 * Whether we are going to free up the subzone or not, we put the block
@@ -1342,6 +1363,8 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 	 * to free up the first subzone if it is the only one remaining, so we
 	 * don't want to lose the freed block should the subzone be kept.
 	 */
+
+	g_assert(NULL == szi->szi_free || zgc_within_subzone(szi, szi->szi_free));
 
 	*blk = (char *) szi->szi_free;		/* Precede old head */
 	szi->szi_free = blk;
@@ -1723,10 +1746,14 @@ zgc_zalloc(zone_t *zone)
 	goto extended;
 
 found:
+	g_assert(zgc_within_subzone(szi, blk));
+
 	szi->szi_free = (char **) *blk;
 	szi->szi_free_cnt--;
-	/* FALL THROUGH */
 
+	g_assert(0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free));
+
+	/* FALL THROUGH */
 extended:
 	zone->zn_cnt++;
 	return zprepare(zone, blk);
@@ -1804,9 +1831,12 @@ found:
 	 */
 
 	g_assert(uint_is_positive(nszi->szi_free_cnt));
+	g_assert(zgc_within_subzone(nszi, blk));
 
 	nszi->szi_free = (char **) *blk;
 	nszi->szi_free_cnt--;
+
+	g_assert(!nszi->szi_free_cnt || zgc_within_subzone(nszi, nszi->szi_free));
 
 	/*
 	 * Also copy possible overhead (which is already included in the zone's
