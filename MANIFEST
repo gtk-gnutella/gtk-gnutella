@@ -501,6 +501,8 @@ src/dht/rpc.c
 src/dht/rpc.h
 src/dht/storage.c
 src/dht/storage.h
+src/dht/tcache.c
+src/dht/tcache.h
 src/dht/token.c
 src/dht/token.h
 src/dht/ulq.c

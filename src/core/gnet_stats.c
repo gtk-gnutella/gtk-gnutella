@@ -221,6 +221,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_cached_roots_misses",
 	"dht_cached_roots_kball_lookups",
 	"dht_cached_roots_contact_refreshed",
+	"dht_cached_tokens_held",
+	"dht_cached_tokens_hits",
 	"dht_fetch_local_hits",
 	"dht_fetch_local_cached_hits",
 	"dht_returned_expanded_values",

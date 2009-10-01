@@ -205,6 +205,8 @@ general_type_str(gint value)
 		N_("DHT cached roots misses"),
 		N_("DHT cached roots lookups within k-ball"),
 		N_("DHT cached roots contact address refreshed"),
+		N_("DHT cached security tokens held"),
+		N_("DHT cached security tokens hits"),
 		N_("DHT local hits on value lookups"),
 		N_("DHT local hits returning values from cached keys"),
 		N_("DHT returned expanded values"),

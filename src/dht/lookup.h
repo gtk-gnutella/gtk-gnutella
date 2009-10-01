@@ -36,10 +36,21 @@
 #ifndef _dht_lookup_h_
 #define _dht_lookup_h_
 
+#include "common.h"
+
 #include "if/dht/lookup.h"
 
 #include "knode.h"
 #include "values.h"
+#include "token.h"
+
+/**
+ * A security token, as gathered during node lookups.
+ */
+typedef struct lookup_token {
+	time_t retrieved;			/**< Retrieval time */
+	sec_token_t *token;			/**< The security token */
+} lookup_token_t;
 
 struct nlookup;
 typedef struct nlookup nlookup_t;
@@ -50,6 +61,7 @@ typedef struct nlookup nlookup_t;
 typedef enum {
 	LOOKUP_NODE = 1,			/**< Node lookup */
 	LOOKUP_VALUE,				/**< Value lookup */
+	LOOKUP_STORE,				/**< Node lookup before s STORE */
 	LOOKUP_REFRESH				/**< Refresh lookup */
 } lookup_type_t;
 
@@ -118,6 +130,8 @@ nlookup_t *lookup_bucket_refresh(const kuid_t *kuid,
 nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
 nlookup_t *lookup_find_node(const kuid_t *kuid,
+	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+nlookup_t *lookup_store_nodes(const kuid_t *kuid,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
 nlookup_t *lookup_token(const knode_t *kn,
 	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);

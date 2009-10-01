@@ -47,6 +47,7 @@ RCSID("$Id$")
 #include "token.h"
 #include "revent.h"
 #include "publish.h"
+#include "tcache.h"
 
 #include "if/dht/kademlia.h"
 #include "if/gnet_property_priv.h"
@@ -280,6 +281,7 @@ lookup_type_to_string(lookup_type_t type)
 	switch (type) {
 	case LOOKUP_VALUE:		what = "value"; break;
 	case LOOKUP_NODE:		what = "node"; break;
+	case LOOKUP_STORE:		what = "store"; break;
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	}
 
@@ -304,17 +306,27 @@ lookup_parallelism_mode_to_string(enum parallelism mode)
 }
 
 /**
- * Map iterator callback to free tokens.
+ * Free a lookup token.
+ */
+static void
+lookup_token_free(lookup_token_t *ltok)
+{
+	token_free(ltok->token);
+	wfree(ltok, sizeof *ltok);
+}
+
+/**
+ * Map iterator callback to free lookup tokens.
  */
 static void
 free_token(gpointer unused_key, gpointer value, gpointer unused_u)
 {
-	sec_token_t *token = value;
+	lookup_token_t *ltok = value;
 
 	(void) unused_key;
 	(void) unused_u;
 
-	token_free(token);
+	lookup_token_free(ltok);
 }
 
 /**
@@ -430,18 +442,18 @@ lookup_create_results(nlookup_t *nl)
 
 	while (patricia_iter_has_next(iter)) {
 		knode_t *kn = patricia_iter_next_value(iter);
-		sec_token_t *token = map_lookup(nl->tokens, kn->id);
+		lookup_token_t *ltok = map_lookup(nl->tokens, kn->id);
 		lookup_rc_t *rc;
 
 		g_assert(i < len);
-		g_assert(token);
+		g_assert(ltok != NULL);		/* Tokens collected during lookup */
 
 		rc = &rs->path[i++];
 		rc->kn = knode_refcnt_inc(kn);
-		rc->token = token->v;
-		rc->token_len = token->length;
+		rc->token = ltok->token->v;		/* Becomes owner of that data */
+		rc->token_len = ltok->token->length;
 
-		wfree(token, sizeof *token);
+		wfree(ltok, sizeof *ltok);		/* Not lookup_token_free()! */
 		map_remove(nl->tokens, kn->id);
 	}
 
@@ -653,20 +665,38 @@ lookup_terminate(nlookup_t *nl)
 
 	lookup_final_stats(nl);
 
-	if (LOOKUP_NODE == nl->type) {
-		size_t path_len = patricia_count(nl->path);
-		if (path_len > 0 && nl->u.fn.ok) {
-			lookup_rs_t *rs = lookup_create_results(nl);
-			(*nl->u.fn.ok)(nl->kuid, rs, nl->arg);
-			lookup_free_results(rs);
-		} else if (nl->err) {
-			(*nl->err)(nl->kuid,
-				0 == path_len ? LOOKUP_E_EMPTY_PATH :
-				path_len < UNSIGNED(nl->amount) ? LOOKUP_E_PARTIAL :
-				LOOKUP_E_OK, nl->arg);
+	switch (nl->type) {
+	case LOOKUP_STORE:
+		/*
+		 * Store lookups are initiated by the publishing layer, and since
+		 * that must be done periodically for a very stable set of kuids,
+		 * and fairly frequently due to the Kademlia parameters set up by
+		 * LimeWire nodes, we can optimize a little bit by caching the
+		 * collected security tokens to reuse in the next run.
+		 */
+
+		tcache_record(nl->tokens);
+		/* FALL THROUGH */
+	case LOOKUP_NODE:
+		{
+			size_t path_len = patricia_count(nl->path);
+			if (path_len > 0 && nl->u.fn.ok) {
+				lookup_rs_t *rs = lookup_create_results(nl);
+				(*nl->u.fn.ok)(nl->kuid, rs, nl->arg);
+				lookup_free_results(rs);
+			} else if (nl->err) {
+				(*nl->err)(nl->kuid,
+					0 == path_len ? LOOKUP_E_EMPTY_PATH :
+					path_len < UNSIGNED(nl->amount) ? LOOKUP_E_PARTIAL :
+					LOOKUP_E_OK, nl->arg);
+			}
 		}
-	} else
+		break;
+	case LOOKUP_REFRESH:		/* Handled through lookup_abort() above */
+	case LOOKUP_VALUE:			/* Ends through a dedicated path */
 		g_assert_not_reached();
+		break;
+	}
 
 	lookup_free(nl, TRUE);
 }
@@ -782,7 +812,7 @@ lookup_value_terminate(nlookup_t *nl,
 
 	if (!local && patricia_count(nl->path) > 0) {
 		knode_t *closest = patricia_closest(nl->path, nl->kuid);
-		sec_token_t *token = map_lookup(nl->tokens, closest->id);
+		lookup_token_t *ltok = map_lookup(nl->tokens, closest->id);
 		lookup_rc_t rc;
 
 		if (
@@ -796,8 +826,8 @@ lookup_value_terminate(nlookup_t *nl,
 		}
 
 		rc.kn = closest;
-		rc.token = token ? token->v : NULL;
-		rc.token_len = token ? token->length : 0;
+		rc.token = ltok ? ltok->token->v : NULL;
+		rc.token_len = ltok ? ltok->token->length : 0;
 
 		publish_cache(nl->kuid, &rc, vvec, vcnt);
 	}
@@ -813,7 +843,7 @@ lookup_value_terminate(nlookup_t *nl,
 
 	lookup_free_value_results(rs);
 
-	/**
+	/*
 	 * Value lookups augment the ball with the nodes that returned a value,
 	 * so we use that instead for a more accurate subspace computation.
 	 * Also we want to cache the nodes we found during this lookup, including
@@ -2095,9 +2125,15 @@ lookup_handle_reply(
 	g_assert(!patricia_contains(nl->shortlist, kn->id));
 
 	patricia_insert(nl->path, kn->id, knode_refcnt_inc(kn));
-	if (token)
-		map_insert(nl->tokens, kn->id, token);
 	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
+
+	if (token) {
+		lookup_token_t *ltok = walloc(sizeof *ltok);
+
+		ltok->retrieved = tm_time();
+		ltok->token = token;
+		map_insert(nl->tokens, kn->id, ltok);
+	}
 
 	bstr_free(&bs);
 	return TRUE;
@@ -2304,6 +2340,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		}
 		/* FALL THROUGH */
 	case LOOKUP_NODE:
+	case LOOKUP_STORE:
 	case LOOKUP_REFRESH:
 		if (function != KDA_MSG_FIND_NODE_RESPONSE) {
 			nl->rpc_bad++;
@@ -2540,6 +2577,7 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 
 	switch (nl->type) {
 	case LOOKUP_NODE:
+	case LOOKUP_STORE:
 	case LOOKUP_REFRESH:
 		revent_find_node(kn, nl->kuid, nl->lid, &lookup_ops, nl->hops);
 		return;
@@ -2898,6 +2936,39 @@ lookup_find_node(
 	g_assert(kuid);
 
 	nl = lookup_create(kuid, LOOKUP_NODE, error, arg);
+	nl->amount = KDA_K;
+	nl->u.fn.ok = ok;
+	nl->mode = LOOKUP_LOOSE;
+
+	if (!lookup_load_shortlist(nl)) {
+		lookup_free(nl, TRUE);
+		return NULL;
+	}
+
+	lookup_iterate(nl);
+	return nl;
+}
+
+/**
+ * Launch a node lookup to get suitable nodes to store a value.
+ *
+ * @param kuid		the KUID of the node we're looking for
+ * @param cb_ok		callback to invoke when results are available
+ * @param cb_err	callback to invoke on error
+ * @param arg		additional user data to propagate to callbacks
+ *
+ * @return opaque pointer to the created lookup, NULL on failure (routing
+ * table empty).
+ */
+nlookup_t *
+lookup_store_nodes(
+	const kuid_t *kuid, lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
+{
+	nlookup_t *nl;
+
+	g_assert(kuid);
+
+	nl = lookup_create(kuid, LOOKUP_STORE, error, arg);
 	nl->amount = KDA_K;
 	nl->u.fn.ok = ok;
 	nl->mode = LOOKUP_LOOSE;

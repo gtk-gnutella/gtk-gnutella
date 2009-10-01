@@ -71,6 +71,7 @@ RCSID("$Id$")
 #include "kmsg.h"
 #include "publish.h"
 #include "roots.h"
+#include "tcache.h"
 
 #include "core/settings.h"
 #include "core/gnet_stats.h"
@@ -236,6 +237,7 @@ enum bootsteps {
 	BOOT_MAX_VALUE
 };
 
+static gboolean initialized;		/**< Whether dht_init() was called */
 static gboolean bootstrapping;		/**< Whether we are bootstrapping */
 static enum bootsteps boot_status;	/**< Booting status */
 
@@ -1144,11 +1146,25 @@ dht_attempt_bootstrap(void)
 
 /**
  * Runtime (re)-initialization of the DHT.
+ * If UDP or the DHT is not enabled, do nothing.
  */
 void
 dht_initialize(gboolean post_init)
 {
 	size_t i;
+
+	if (!initialized)
+		return;				/* dht_init() not called yet */
+
+	if (!dht_enabled()) {
+		/* UDP or DHT not both enabled */
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT will not initialize: UDP %s, DHT %s",
+				GNET_PROPERTY(enable_udp) ? "on" : "off",
+				GNET_PROPERTY(enable_dht) ? "on" : "off");
+		}
+		return;
+	}
 
 	if (GNET_PROPERTY(dht_debug))
 		g_message("DHT initializing (%s init)",
@@ -1190,6 +1206,7 @@ dht_initialize(gboolean post_init)
 	values_init();
 	publish_init();
 	roots_init();
+	tcache_init();
 
 	if (post_init)
 		dht_attempt_bootstrap();
@@ -1212,6 +1229,7 @@ dht_reset_kuid(void)
 void
 dht_init(void)
 {
+	initialized = TRUE;
 	boot_status = BOOT_NONE;
 
 	/*
@@ -3317,6 +3335,7 @@ dht_close(void)
 	 * the RPC and lookups, which rely on the routing table.
 	 */
 
+	tcache_close();
 	roots_close();
 	publish_close();
 	values_close();
