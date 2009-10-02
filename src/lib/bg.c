@@ -810,9 +810,8 @@ bg_task_ticks_used(struct bgtask *bt, int used)
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_RUNNING);
 	g_assert(used >= 0);
-	g_assert(used <= bt->ticks);
 
-	bt->ticks_used = used;
+	bt->ticks_used = MIN(used, bt->ticks);
 
 	if (used == 0)
 		bt->flags |= TASK_F_NOTICK;			/* Won't update tick info */
