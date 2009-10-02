@@ -234,11 +234,11 @@ big_open(DBMBIG *dbg)
 	struct datfile *file;
 	struct stat buf;
 
-	g_assert(dbg->file != NULL);
 	g_assert(-1 == dbg->fd);
+	g_assert(dbg->file != NULL);
 
 	file = dbg->file;
-	dbg->fd = file_open(file->datname, file->flags, file->mode);
+	dbg->fd = file_open(file->datname, file->flags | O_CREAT, file->mode);
 
 	if (-1 == dbg->fd)
 		return -1;
@@ -346,7 +346,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 				"could not read %lu bytes starting at data block #%u: %s",
 				sdbm_name(db), (unsigned long) toread, bno, g_strerror(errno));
 
-			ioerr(db);
+			ioerr(db, FALSE);
 			return -1;
 		}
 
@@ -539,7 +539,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 				"could not write %lu bytes starting at data block #%u: %s",
 				sdbm_name(db), (unsigned long) towrite, bno, g_strerror(errno));
 
-			ioerr(db);
+			ioerr(db, TRUE);
 			return -1;
 		}
 
@@ -602,7 +602,7 @@ flush_bitbuf(DBM *db)
 		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
 		-1 == w ? g_strerror(errno) : "partial write");
 
-	ioerr(db);
+	ioerr(db, TRUE);
 	return FALSE;
 }
 
@@ -630,7 +630,7 @@ fetch_bitbuf(DBM *db, long num)
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %s",
 				sdbm_name(db), num, g_strerror(errno));
-			ioerr(db);
+			ioerr(db, FALSE);
 			return FALSE;
 		}
 
@@ -713,6 +713,12 @@ ffree(DBM *db, size_t bno)
 	size_t i;
 
 	STATIC_ASSERT(IS_POWER_OF_2(BIG_BITCOUNT));
+
+	if (-1 == dbg->fd && -1 == big_open(dbg)) {
+		g_warning("sdbm: \"%s\": cannot free block #%ld",
+			sdbm_name(db), (long) bno);
+		return;
+	}
 
 	/*
 	 * Block number must be positive, and we cannot free a bitmap block.
@@ -1204,6 +1210,72 @@ big_sync(DBM *db)
 
 	if (dbg->bitbuf_dirty && !flush_bitbuf(db))
 		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Shrink .dat file on disk to remove needlessly allocated blocks.
+ *
+ * @return TRUE if we were able to successfully shrink the file.
+ */
+gboolean
+big_shrink(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+	long i;
+	filesize_t offset = 0;
+
+	if (-1 == dbg->fd) {
+		struct stat buf;
+
+		/*
+		 * We do not want to call big_open() unless the .dat file already
+		 * exists because that would create it and it was not needed so far.
+		 */
+
+		if (NULL == dbg->file)
+			return FALSE;
+
+		if (-1 == stat(dbg->file->datname, &buf))
+			return ENOENT == errno;			/* OK if .dat file is missing */
+
+		if (0 == buf.st_size)
+			return -1 != unlink(dbg->file->datname);
+
+		if (-1 == big_open(dbg))
+			return FALSE;
+	}
+
+	g_assert(dbg->fd != -1);
+
+	/*
+	 * Loop through all the currently existing bitmaps, starting from the last
+	 * one, looking for the last set bit indicating the last used page.
+	 */
+
+	for (i = dbg->bitmaps - 1; i >= 0; i--) {
+		size_t bno;
+
+		if (!fetch_bitbuf(db, i))
+			return FALSE;
+
+		bno = bit_array_last_set(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
+
+		if ((size_t) -1 == bno) {
+			g_warning("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",
+				sdbm_name(db), i);
+		} else if (bno != 0) {
+			bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));
+			offset = OFF_DAT(bno + 1);
+			break;
+		}
+	}
+
+	if (-1 == ftruncate(dbg->fd, offset))
+		return FALSE;
+
+	dbg->bitmaps = i + 1;	/* Possibly reduced the amount of bitmaps */
 
 	return TRUE;
 }

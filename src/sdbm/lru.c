@@ -361,6 +361,8 @@ dirtypag(DBM *db, gboolean force)
 
 /**
  * Get a new index in the cache, and update LRU data structures.
+ *
+ * @return -1 on error, or the allocated cache index.
  */
 static int
 getidx(DBM *db, long num)
@@ -380,7 +382,7 @@ getidx(DBM *db, long num)
 	} else {
 		void *last = hash_list_tail(cache->used);
 		long oldnum;
-		gboolean had_ioerr = booleanize(db->flags & DBM_IOERR);
+		gboolean had_ioerr = booleanize(db->flags & DBM_IOERR_W);
 
 		hash_list_moveto_head(cache->used, last);
 		n = pointer_to_int(last);
@@ -434,14 +436,15 @@ getidx(DBM *db, long num)
 				 */
 
 				if (!had_ioerr)
-					sdbm_clearerr(db);
+					db->flags &= ~DBM_IOERR_W;
 
 				g_warning("sdbm: \"%s\": "
 					"reusing cache slot used by clean page #%ld instead",
 					sdbm_name(db), oldnum);
 			} else {
-				g_warning("sdbm: \"%s\": discarding dirty page #%ld",
+				g_warning("sdbm: \"%s\": cannot discard dirty page #%ld",
 					sdbm_name(db), oldnum);
+				return -1;
 			}
 		}
 
@@ -463,13 +466,67 @@ getidx(DBM *db, long num)
 }
 
 /**
+ * Get the address in the cache of a given page number.
+ * @return page address if found, NULL if not cached.
+ */
+char *
+lru_cached_page(DBM *db, long num)
+{
+	struct lru_cache *cache = db->cache;
+	void *key, *value;
+
+	g_assert(num >= 0);
+
+	if (
+		cache != NULL &&
+		g_hash_table_lookup_extended(cache->pagnum,
+			ulong_to_pointer(num), &key, &value)
+	) {
+		long idx = pointer_to_int(value);
+
+		g_assert(idx >= 0 && idx < cache->pages);
+		g_assert(cache->numpag[idx] == num);
+
+		return cache->arena + OFF_PAG(idx);
+	}
+
+	return NULL;
+}
+
+/**
+ * Discard any pending data for cached pages whose block number is greater
+ * or equal than the given base block number.
+ */
+void
+lru_discard(DBM *db, long bno)
+{
+	struct lru_cache *cache = db->cache;
+	int n;
+	long pages = MIN(cache->pages, cache->next);
+
+	for (n = 0; n < pages; n++) {
+		long num = cache->numpag[n];
+
+		if (num >= bno) {
+			void *base = cache->arena + OFF_PAG(n);
+			cache->dirty[n] = FALSE;
+			memset(base, 0, DBM_PBLKSIZ);
+		}
+	}
+}
+
+/**
  * Get a suitable buffer in the cache to read a page and set db->pagbuf
  * accordingly.
- * @return TRUE if page was already held in the cache, FALSE when it needs
- * to be loaded.
+ *
+ * The '`loaded'' parameter, if non-NULL, is set to TRUE if page was already
+ * held in the cache, FALSE when it needs to be loaded.
+ *
+ * @return TRUE if OK, FALSE if we could not allocate a suitable buffer, leaving
+ * the old db->pagbuf intact.
  */
 gboolean
-readbuf(DBM *db, long num)
+readbuf(DBM *db, long num, gboolean *loaded)
 {
 	struct lru_cache *cache = db->cache;
 	void *key, *value;
@@ -489,12 +546,18 @@ readbuf(DBM *db, long num)
 		cache->rhits++;
 	} else {
 		idx = getidx(db, num);
+		if (-1 == idx)
+			return FALSE;	/* Do not update db->pagbuf */
+
 		good_page = FALSE;
 		cache->rmisses++;
 	}
 
 	db->pagbuf = cache->arena + OFF_PAG(idx);
-	return good_page;
+	if (loaded != NULL)
+		*loaded = good_page;
+
+	return TRUE;
 }
 
 /**
@@ -514,6 +577,9 @@ cachepag(DBM *db, char *pag, long num)
 		char *cpag;
 
 		idx = getidx(db, num);
+		if (-1 == idx)
+			return FALSE;
+
 		cpag = cache->arena + OFF_PAG(idx);
 		memmove(cpag, pag, DBM_PBLKSIZ);
 		cache->dirty[idx] = TRUE;
@@ -546,7 +612,7 @@ flushpag(DBM *db, char *pag, long num)
 		else
 			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
-		ioerr(db);
+		ioerr(db, TRUE);
 		return FALSE;
 	}
 

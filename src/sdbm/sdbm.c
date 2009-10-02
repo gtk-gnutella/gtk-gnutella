@@ -335,9 +335,18 @@ fetch_pagbuf(DBM *db, long pagnum)
 		ssize_t got;
 
 #ifdef LRU
-		if (readbuf(db, pagnum)) {
-			db->pagbno = pagnum;
-			return TRUE;
+		{
+			gboolean loaded;
+
+			if (!readbuf(db, pagnum, &loaded)) {
+				db->pagbno = -1;
+				return FALSE;
+			}
+
+			if (loaded) {
+				db->pagbno = pagnum;
+				return TRUE;
+			}
 		}
 #endif
 
@@ -350,7 +359,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
 				sdbm_name(db), pagnum, g_strerror(errno));
-			ioerr(db);
+			ioerr(db, FALSE);
 			db->pagbno = -1;
 			return FALSE;
 		}
@@ -427,7 +436,7 @@ flush_dirbuf(DBM *db)
 			sdbm_name(db), db->dirbno,
 			-1 == w ? g_strerror(errno) : "partial write");
 
-		ioerr(db);
+		ioerr(db, TRUE);
 		return FALSE;
 	}
 
@@ -470,7 +479,7 @@ sdbm_fetch(DBM *db, datum key)
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
 
-	ioerr(db);
+	ioerr(db, FALSE);
 	return nullitem;
 }
 
@@ -484,7 +493,7 @@ sdbm_exists(DBM *db, datum key)
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
 
-	ioerr(db);
+	ioerr(db, FALSE);
 	return -1;
 }
 
@@ -499,12 +508,12 @@ sdbm_delete(DBM *db, datum key)
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR) {
+	if (db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
 	if (!getpage(db, exhash(key))) {
-		ioerr(db);
+		ioerr(db, FALSE);
 		return -1;
 	}
 	if (!delpair(db, db->pagbuf, key)) {
@@ -540,7 +549,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR) {
+	if (db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
@@ -556,7 +565,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 
 	hash = exhash(key);
 	if (!getpage(db, hash)) {
-		ioerr(db);
+		ioerr(db, FALSE);
 		return -1;
 	}
 
@@ -606,10 +615,8 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 
 	need_split = !fitpair(db->pagbuf, need);
 
-	if (need_split && !makroom(db, hash, need)) {
-		ioerr(db);
+	if (need_split && !makroom(db, hash, need))
 		return -1;
-	}
 
 	/*
 	 * we have enough room or split is successful. insert the key,
@@ -742,14 +749,21 @@ makroom(DBM *db, long int hash, size_t need)
 				goto aborted;
 			}
 
-			readbuf(db, newp);		/* Get new page from LRU cache */
+			/* Get new page address from LRU cache */
+			if (!readbuf(db, newp, NULL)) {
+				/*
+				 * Cannot happen: we have at least one clean page, the page
+				 * we just successfully flushed above.
+				 */
+				g_assert_not_reached();
+			}
 			pag = db->pagbuf;		/* Must refresh pointer to current page */
 #else
 			if (!flush_pagbuf(db)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 				goto aborted;
 			}
-#endif
+#endif	/* LRU */
 
 			/*
 			 * The new page (on which the incoming pair is supposed to be
@@ -779,14 +793,14 @@ makroom(DBM *db, long int hash, size_t need)
 				goto aborted;
 			}
 		}
-#endif
+#endif	/* LRU */
 		else if (
 			db->pagwrite++,
 			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
 		) {
 			g_warning("sdbm: \"%s\": cannot flush new page #%lu: %s",
 				sdbm_name(db), newp, g_strerror(errno));
-			ioerr(db);
+			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 			goto aborted;
 		}
@@ -871,7 +885,12 @@ restore:
 		 */
 
 #ifdef LRU
-		readbuf(db, curbno);	/* Get old page from LRU cache */
+		/* Get old page address from LRU cache */
+		if (!readbuf(db, curbno, NULL)) {
+			db->pagbno = -1;
+			failed = TRUE;
+			goto failed;
+		}
 		pag = db->pagbuf;		/* Must refresh pointer to current page */
 #endif
 
@@ -886,6 +905,7 @@ restore:
 			failed = TRUE;
 #endif
 
+	failed:
 		if (failed) {
 			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
 				sdbm_name(db), curbno, g_strerror(errno));
@@ -902,7 +922,7 @@ restore:
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
 			g_warning("sdbm: \"%s\": cannot zero-back new split page #%lu: %s",
 				sdbm_name(db), newp, g_strerror(errno));
-			ioerr(db);
+			ioerr(db, TRUE);
 		}
 
 		memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
@@ -1000,7 +1020,7 @@ fetch_dirbuf(DBM *db, long dirb)
 		if (got < 0) {
 			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
 				sdbm_name(db), dirb, g_strerror(errno));
-			ioerr(db);
+			ioerr(db, FALSE);
 			return FALSE;
 		}
 
@@ -1124,7 +1144,7 @@ sdbm_deletekey(DBM *db)
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR) {
+	if (db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
@@ -1216,6 +1236,84 @@ sdbm_sync(DBM *db)
 }
 
 /**
+ * Shrink .pag (and .dat files) on disk to remove needlessly allocated blocks.
+ *
+ * @return TRUE if we were able to successfully shrink the files.
+ */
+gboolean
+sdbm_shrink(DBM *db)
+{
+	unsigned truncate_bno = 0;
+	long bno = 0;
+	filesize_t paglen;
+	struct stat buf;
+	filesize_t offset;
+
+	if (-1 == fstat(db->pagf, &buf))
+		return FALSE;
+
+	/*
+	 * Look how many full pages we need in the .pag file by remembering the
+	 * page block number after the last non-empty page we saw.
+	 */
+
+	paglen = buf.st_size;
+
+	while ((offset = OFF_PAG(bno)) < paglen) {
+		unsigned short count;
+		int r;
+
+#ifdef LRU
+		{
+			const char *pag = lru_cached_page(db, bno);
+			const unsigned short *ino = (const unsigned short *) pag;
+
+			if (ino != NULL) {
+				count = ino[0];
+				goto computed;
+			}
+
+			/* Page not cached, have to read it */
+			/* FALLTHROUGH */
+		}
+#endif
+
+		if (db->pagbno == bno) {
+			const unsigned short *ino = (const unsigned short *) db->pagbuf;
+			count = ino[0];
+			goto computed;
+		}
+
+		r = compat_pread(db->pagf, &count, sizeof count, offset);
+		if (-1 == r || r != sizeof count)
+			return FALSE;
+
+	computed:
+		if (count != 0)
+			truncate_bno = bno + 1;		/* Block # after non-empty page */
+
+		bno++;
+	}
+
+	offset = OFF_PAG(truncate_bno);
+
+	if (offset < paglen) {
+		if (-1 == ftruncate(db->pagf, offset))
+			return FALSE;
+#ifdef LRU
+		lru_discard(db, truncate_bno);
+#endif
+	}
+
+#ifdef BIGDATA
+	if (!big_shrink(db))
+		return FALSE;
+#endif
+
+	return TRUE;
+}
+
+/**
  * Set the LRU cache size.
  */
 int
@@ -1275,13 +1373,13 @@ sdbm_rdonly(DBM *db)
 gboolean
 sdbm_error(DBM *db)
 {
-	return 0 != (db->flags & DBM_IOERR);
+	return 0 != (db->flags & (DBM_IOERR | DBM_IOERR_W));
 }
 
 void
 sdbm_clearerr(DBM *db)
 {
-	db->flags &= ~DBM_IOERR;
+	db->flags &= ~(DBM_IOERR | DBM_IOERR_W);
 }
 
 int

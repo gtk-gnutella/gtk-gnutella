@@ -23,6 +23,7 @@ static char *usage = "%s [-R] cat | look |... dbmname";
 #define DBUILD	5
 #define DPRESS	6
 #define DCREAT	7
+#define DSHRINK	8
 
 #define LINEMAX	8192
 
@@ -50,6 +51,8 @@ static cmd cmds[] = {
 	{ "squash",		DPRESS,		O_RDWR },
 	{ "compact",	DPRESS,		O_RDWR },
 	{ "compress",	DPRESS,		O_RDWR },
+	{ "shrink",		DSHRINK,	O_RDWR },
+	{ "truncate",	DSHRINK,	O_RDWR },
 };
 
 #define CTABSIZ (sizeof (cmds)/sizeof (cmd))
@@ -130,8 +133,6 @@ doit(register cmd *act, char *file)
 			fprintf(stderr, ": not found.\n");
 		}
 		break;
-	case DINSERT:
-		break;
 	case DDELETE:
 		while (fgets(line, LINEMAX, stdin) != NULL) {
 			n = strlen(line) - 1;
@@ -155,6 +156,7 @@ doit(register cmd *act, char *file)
 		break;
 	case DBUILD:
 	case DCREAT:
+	case DINSERT:
 #ifdef TIME
 		start = time(0);
 #endif
@@ -182,6 +184,10 @@ doit(register cmd *act, char *file)
 #endif
 		break;
 	case DPRESS:
+		break;
+	case DSHRINK:
+		if (!sdbm_shrink(db))
+			oops("shrink: %s", "failed");
 		break;
 	}
 

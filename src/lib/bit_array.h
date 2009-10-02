@@ -267,6 +267,54 @@ bit_array_first_clear(const bit_array_t *base, size_t from, size_t to)
 	return (size_t) -1;
 }
 
+/**
+ * Peforms a linear scan for the last set bit of the given bit array.
+ *
+ * @param base The base address of the bit array.
+ * @param from The first bit.
+ * @param to The last bit, must be equal or above "from".
+ * @return (size_t) -1, if no set bit was found. On success the
+ *        index of the last set bit is returned.
+ */
+static inline size_t
+bit_array_last_set(const bit_array_t *base, size_t from, size_t to)
+{
+	size_t i;
+
+	g_assert(from <= to);
+
+	for (i = to; i >= from; /* NOTHING */) {
+		if (BIT_ARRAY_BITMASK == (i & BIT_ARRAY_BITMASK)) {
+			size_t n = (i - from) >> BIT_ARRAY_BITSHIFT;
+
+			if (n != 0) {
+				size_t j = i >> BIT_ARRAY_BITSHIFT;
+
+				while (n-- > 0) {
+					if (base[j--] != 0) {
+						bit_array_t value = base[j + 1];
+						bit_array_t mask = 1UL << (BIT_ARRAY_BITSIZE - 1);
+						while (mask != 0) {
+							if (value & mask)
+								return i;
+							mask >>= 1;
+							i--;
+						}
+						g_assert_not_reached();
+					}
+					i -= BIT_ARRAY_BITSIZE;
+				}
+				continue;
+			}
+		}
+		if (bit_array_get(base, i))
+			return i;
+		i--;
+	}
+
+	return (size_t) -1;
+}
+
 #undef BIT_ARRAY_BIT
 #undef BIT_ARRAY_BITSIZE
 #undef BIT_ARRAY_BITMASK

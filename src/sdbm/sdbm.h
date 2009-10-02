@@ -20,7 +20,8 @@
 typedef struct DBM DBM;
 
 #define DBM_RDONLY	0x1			/* data base open read-only */
-#define DBM_IOERR	0x2			/* data base I/O error */
+#define DBM_IOERR	0x2			/* data base I/O error (any) */
+#define DBM_IOERR_W	0x4			/* data base write I/O error */
 
 typedef struct {
 	char *dptr;
@@ -68,6 +69,7 @@ ssize_t sdbm_sync(DBM *);
 int sdbm_set_cache(DBM *db, long pages);
 int sdbm_set_wdelay(DBM *db, gboolean on);
 int sdbm_set_volatile(DBM *db, gboolean yes);
+gboolean sdbm_shrink(DBM *db);
 
 #endif /* _sdbm_h_ */
 

@@ -130,3 +130,12 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added support for large keys and values, offloaded to an extra .dat file.
   The sum of key and value data cannot exceed 250 KiB, currently.  Large keys
   should be avoided if possible because they slow down lookups.
+
+
+Fri Oct  2 19:18:47 CEST 2009
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Only turn database read-only after a write I/O error occurs.
+* Added sdbm_shrink() to truncate files if trailing parts are empty.
+* Added the "truncate" (aka "shrink") command to dbu and made "insert" work.

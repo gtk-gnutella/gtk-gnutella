@@ -59,9 +59,11 @@ OFF_DIR(unsigned long off)
 }
 
 static inline void
-ioerr(DBM *db)
+ioerr(DBM *db, gboolean on_write)
 {
 	db->flags |= DBM_IOERR;
+	if (on_write)
+		db->flags |= DBM_IOERR_W;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
