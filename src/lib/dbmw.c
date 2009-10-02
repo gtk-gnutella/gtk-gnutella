@@ -569,6 +569,17 @@ dbmw_sync(dbmw_t *dw, int which)
 }
 
 /**
+ * Attempt to shrink DB size.
+ *
+ * @return TRUE if successful (not implying that anything was actually shrunk).
+ */
+gboolean
+dbmw_shrink(dbmw_t *dw)
+{
+	return dbmap_shrink(dw->dm);
+}
+
+/**
  * Write data to disk immediately.
  */
 static void

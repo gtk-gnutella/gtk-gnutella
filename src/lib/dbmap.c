@@ -1150,6 +1150,27 @@ dbmap_sync(dbmap_t *dm)
 }
 
 /**
+ * Attempt to shrink the database.
+ * @return TRUE if no error occurred.
+ */
+gboolean
+dbmap_shrink(dbmap_t *dm)
+{
+	dbmap_check(dm);
+
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return TRUE;
+	case DBMAP_SDBM:
+		return sdbm_shrink(dm->u.s.sdbm);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
  * Set SDBM cache size, in amount of pages (must be >= 1).
  * @return 0 if OK, -1 on errors with errno set.
  */

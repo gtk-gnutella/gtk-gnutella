@@ -945,6 +945,16 @@ roots_init_rootinfo(void)
 		g_message("DHT ROOTS first allocated contact DB-key will be %s",
 			uint64_to_string(contactid));
 	}
+
+	if (!dbmw_shrink(db_rootdata)) {
+		if (GNET_PROPERTY(dht_roots_debug))
+			g_warning("DHT ROOTS unable to shrink %s", db_rootdata_what);
+	}
+
+	if (!dbmw_shrink(db_contact)) {
+		if (GNET_PROPERTY(dht_roots_debug))
+			g_warning("DHT ROOTS unable to shrink %s", db_contact_what);
+	}
 }
 
 /**
