@@ -7969,8 +7969,8 @@ node_remove_useless_leaf(gboolean *is_gtkg)
 		time_t target = (time_t) -1;
 		time_delta_t diff;
 
-		if (!NODE_IS_ESTABLISHED(n))
-			continue;
+        if (n->status != GTA_NODE_CONNECTED)
+            continue;
 
 		if (!NODE_IS_LEAF(n))
 			continue;
@@ -8056,8 +8056,8 @@ node_remove_useless_ultra(gboolean *is_gtkg)
 		time_t target = (time_t) -1;
 		int diff;
 
-		if (!NODE_IS_ESTABLISHED(n))
-			continue;
+        if (n->status != GTA_NODE_CONNECTED)
+            continue;
 
 		if (!NODE_IS_ULTRA(n))
 			continue;
@@ -8139,9 +8139,9 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 		
-		if (!NODE_IS_ESTABLISHED(n))
-			continue;
-				
+        if (n->status != GTA_NODE_CONNECTED)
+            continue;
+
 		/* Don't kick whitelisted nodes. */
 		if (whitelist_check(n->addr))
 			continue;
