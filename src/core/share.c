@@ -147,7 +147,6 @@ static struct recursive_scan *recursive_scan_context;
  * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
  * shared_file if we have one.
  */
-
 static GTree *sha1_to_share;
 
 /**
@@ -967,7 +966,8 @@ struct recursive_scan {
 	slist_t *base_dirs;			/* list of string atoms */
 	slist_t *sub_dirs;			/* list of g_malloc()ed strings */
 	slist_t *shared_files;		/* list of struct shared_file */
-	int ticks;
+	int idx;					/* iterating index */
+	int ticks;					/* ticks used */
 };
 
 static inline void
@@ -1158,176 +1158,6 @@ shared_file_sort_by_name(const void *f1, const void *f2)
 	return 0 != ret ? ret : strcmp((*sf1)->name_nfc, (*sf2)->name_nfc);
 }
 
-/**
- * NOTE: This step is a rather big atomic block. Ideally, it should be broken
- * down in smaller steps to avoid temporary unresponsiveness. However, compared
- * to the time it takes to scan files, especially on slower disks, this
- * finishing step is neglible even for thousands of shared files.
- */
-static void
-recursive_scan_finish(struct recursive_scan *ctx)
-{
-	GSList *sl;
-	time_delta_t elapsed;
-	size_t i;
-
-	recursive_scan_check(ctx);
-
-	/*
-	 * Done scanning for the files. Now process them.
-	 */
-
-	elapsed = delta_time(tm_time_exact(),
-				GNET_PROPERTY(library_rescan_started));
-	elapsed = MAX(0, elapsed);
-	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
-	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
-
-	reinit_sha1_table();
-	share_free();
-
-	g_assert(file_basenames == NULL);
-	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
-
-	g_assert(search_table);
-	st_create(search_table);
-
-	files_scanned = slist_length(ctx->shared_files);
-	bytes_scanned = 0;
-
-	g_assert(shared_files == NULL);
-
-	while (slist_length(ctx->shared_files) > 0) {
-		struct shared_file *sf = slist_shift(ctx->shared_files);
-
-		shared_file_check(sf);
-		bytes_scanned += sf->file_size;
-		st_insert_item(search_table, sf->name_canonic, sf);
-		shared_files = g_slist_prepend(shared_files, sf);
-		upload_stats_enforce_local_filename(sf);
-	}
-
-	/* Compact the search table */
-	st_compact(search_table);
-
-	file_table = halloc0((files_scanned + 1) * sizeof file_table[0]);
-
-	/*
-	 * We over-allocate the file_table by one entry so that even when they
-	 * don't share anything, the `file_table' pointer is not NULL.
-	 * This will prevent us giving back "rebuilding library" when we should
-	 * actually return "not found" for user download requests.
-	 *		--RAM, 23/10/2002
-	 */
-	
-	i = 0;
-	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
-		struct shared_file *sf = sl->data;
-
-		shared_file_check(sf);
-		g_assert(!(SHARE_F_INDEXED & sf->flags));
-		file_table[i++] = sf;
-	}
-
-	/* Sort file list by modification time to get a relatively stable index */
-	qsort(file_table, files_scanned, sizeof file_table[0],
-		shared_file_sort_by_mtime);
-
-	/*
-	 * In order to quickly locate files based on indicies, build a table
-	 * of all shared files.  This table is only accessible via shared_file().
-	 * NB: file indicies start at 1, but indexing in table start at 0.
-	 *		--RAM, 08/10/2001
-	 */
-
-	for (i = 0; i < files_scanned; i++) {
-		struct shared_file *sf;
-		guint val;
-
-		/* FIXME: Must be handled in the background */
-
-	   	sf = file_table[i];
-		if (!sf)
-			continue;
-
-		/* Set file_index based on new sort order */
-		sf->file_index = i + 1;
-		sf->flags |= SHARE_F_INDEXED;
-		shared_file_check(sf);
-
-		/* We must not change the file index after request_sha1() */
-		if (!request_sha1(sf)) {
-			file_table[i] = NULL;
-			continue;
-		}
-
-		/*
-		 * In order to transparently handle files requested with the wrong
-		 * indices, for older servents that would not know how to handle a
-		 * return code of "301 Moved" with a Location header, we keep track
-		 * of individual basenames of files, recording the index of each file.
-		 * As soon as there is a clash, we revoke the entry by storing
-		 * FILENAME_CLASH instead, which cannot be a valid index.
-		 *		--RAM, 06/06/2002
-		 */
-
-		val = GPOINTER_TO_UINT(
-			g_hash_table_lookup(file_basenames, sf->name_nfc));
-
-		/*
-		 * The following works because 0 cannot be a valid file index.
-		 */
-
-		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
-			GUINT_TO_POINTER(val));
-		sf->flags |= SHARE_F_BASENAME;
-	}
-
-	sorted_file_table = hcopy(file_table,
-							(files_scanned + 1) * sizeof file_table[0]);
-	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
-		shared_file_sort_by_name);
-
-	/* Set the sort index used for sorted file listings */
-	for (i = 0; i < files_scanned; i++) {
-		struct shared_file *sf;
-
-	   	sf = sorted_file_table[i];
-		if (!sf)
-			continue;
-		shared_file_check(sf);
-		sf->sort_index = i + 1;
-	}
-
-	gcu_gui_update_files_scanned();		/* Final view */
-
-	/*
-	 * Query routing table update.
-	 */
-
-	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, tm_time_exact());
-
-	qrp_prepare_computation();
-
-	i = 0;
-	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
-		struct shared_file *sf = sl->data;
-
-		/* FIXME: Must be handled in the background */
-		shared_file_check(sf);
-		qrp_add_file(sf);
-	}
-
-	qrp_finalize_computation();
-
-	elapsed = delta_time(tm_time(), GNET_PROPERTY(qrp_indexing_started));
-	elapsed = MAX(0, elapsed);
-	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
-
-	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
-}
-
 static void
 recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 {
@@ -1511,18 +1341,290 @@ recursive_scan_step_compute(struct bgtask *bt, void *data, int ticks)
 	struct recursive_scan *ctx = data;
 
 	recursive_scan_check(ctx);
-	(void) bt;
 
 	ctx->ticks = 0;
 	do {
 		if (recursive_scan_next_dir(ctx)) {
-			recursive_scan_finish(ctx);
-			return BGR_DONE;
+			bg_task_ticks_used(bt, ctx->ticks);
+			return BGR_NEXT;
 		}
 		ctx->ticks++;
 	} while (ctx->ticks < ticks);
 
 	return BGR_MORE;
+}
+
+static bgret_t
+recursive_scan_step_compute_done(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	reinit_sha1_table();
+	share_free();
+
+	g_assert(file_basenames == NULL);
+	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
+
+	g_assert(search_table);
+	st_create(search_table);
+
+	files_scanned = slist_length(ctx->shared_files);
+	bytes_scanned = 0;
+
+	g_assert(shared_files == NULL);
+
+	bg_task_ticks_used(bt, 0);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	ctx->ticks = 0;
+
+	while (slist_length(ctx->shared_files) > 0) {
+		struct shared_file *sf;
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
+
+		sf = slist_shift(ctx->shared_files);
+		shared_file_check(sf);
+		bytes_scanned += sf->file_size;
+		st_insert_item(search_table, sf->name_canonic, sf);
+		shared_files = g_slist_prepend(shared_files, sf);
+		upload_stats_enforce_local_filename(sf);
+	}
+
+	/* Compact the search table */
+	st_compact(search_table);
+	ctx->ticks += 5;
+
+	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	GSList *sl;
+	int i;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	file_table = halloc0((files_scanned + 1) * sizeof file_table[0]);
+
+	/*
+	 * We over-allocate the file_table by one entry so that even when they
+	 * don't share anything, the `file_table' pointer is not NULL.
+	 * This will prevent us giving back "rebuilding library" when we should
+	 * actually return "not found" for user download requests.
+	 *		--RAM, 23/10/2002
+	 */
+	
+	for (i = 0, sl = shared_files; sl; sl = g_slist_next(sl)) {
+		struct shared_file *sf = sl->data;
+
+		shared_file_check(sf);
+		g_assert(!(SHARE_F_INDEXED & sf->flags));
+		file_table[i++] = sf;
+	}
+
+	/* Sort file list by modification time to get a relatively stable index */
+	qsort(file_table, files_scanned, sizeof file_table[0],
+		shared_file_sort_by_mtime);
+
+	bg_task_ticks_used(bt, i / 10);
+	ctx->idx = 0;				/* Prepares next step */
+
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_request_sha1(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	/*
+	 * In order to quickly locate files based on indicies, build a table
+	 * of all shared files.  This table is only accessible via shared_file().
+	 * NB: file indicies start at 1, but indexing in table start at 0.
+	 *		--RAM, 08/10/2001
+	 */
+
+	ctx->ticks = 0;
+
+	for (/* empty */; UNSIGNED(ctx->idx) < files_scanned; ctx->idx++) {
+		struct shared_file *sf;
+		guint val;
+		int i = ctx->idx;
+
+	   	sf = file_table[i];
+		if (!sf)
+			continue;
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
+
+		/* Set file_index based on new sort order */
+		sf->file_index = i + 1;
+		sf->flags |= SHARE_F_INDEXED;
+		shared_file_check(sf);
+
+		/* We must not change the file index after request_sha1() */
+		if (!request_sha1(sf)) {
+			file_table[i] = NULL;
+			continue;
+		}
+
+		/*
+		 * In order to transparently handle files requested with the wrong
+		 * indices, for older servents that would not know how to handle a
+		 * return code of "301 Moved" with a Location header, we keep track
+		 * of individual basenames of files, recording the index of each file.
+		 * As soon as there is a clash, we revoke the entry by storing
+		 * FILENAME_CLASH instead, which cannot be a valid index.
+		 *		--RAM, 06/06/2002
+		 */
+
+		val = GPOINTER_TO_UINT(
+			g_hash_table_lookup(file_basenames, sf->name_nfc));
+
+		/*
+		 * The following works because 0 cannot be a valid file index.
+		 */
+
+		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
+		g_hash_table_insert(file_basenames, deconstify_gchar(sf->name_nfc),
+			GUINT_TO_POINTER(val));
+		sf->flags |= SHARE_F_BASENAME;
+	}
+
+	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_update_scan_timing(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	time_delta_t elapsed;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	elapsed = delta_time(tm_time_exact(),
+				GNET_PROPERTY(library_rescan_started));
+	elapsed = MAX(0, elapsed);
+	gnet_prop_set_timestamp_val(PROP_LIBRARY_RESCAN_FINISHED, tm_time());
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_DURATION, elapsed);
+
+	bg_task_ticks_used(bt, 0);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	int i;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	sorted_file_table = hcopy(file_table,
+							(files_scanned + 1) * sizeof file_table[0]);
+	qsort(sorted_file_table, files_scanned, sizeof sorted_file_table[0],
+		shared_file_sort_by_name);
+
+	/* Set the sort index used for sorted file listings */
+	for (i = 0; UNSIGNED(i) < files_scanned; i++) {
+		struct shared_file *sf;
+
+	   	sf = sorted_file_table[i];
+		if (!sf)
+			continue;
+		shared_file_check(sf);
+		sf->sort_index = i + 1;
+	}
+
+	gcu_gui_update_files_scanned();		/* Final view */
+
+	bg_task_ticks_used(bt, files_scanned / 10);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+	(void) ticks;
+
+	gnet_prop_set_timestamp_val(PROP_QRP_INDEXING_STARTED, tm_time_exact());
+	qrp_prepare_computation();
+	ctx->idx = 0;
+
+	bg_task_ticks_used(bt, 0);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+
+	recursive_scan_check(ctx);
+
+	ctx->ticks = 0;
+
+	for (/* empty */; UNSIGNED(ctx->idx) < files_scanned; ctx->idx++) {
+		struct shared_file *sf = sorted_file_table[ctx->idx];
+
+		if (!sf)
+			continue;
+
+		if (ctx->ticks++ >= ticks)
+			return BGR_MORE;
+
+		shared_file_check(sf);
+		qrp_add_file(sf);
+	}
+
+	bg_task_ticks_used(bt, ctx->ticks);
+	return BGR_NEXT;
+}
+
+static bgret_t
+recursive_scan_step_finalize(struct bgtask *bt, void *data, int ticks)
+{
+	struct recursive_scan *ctx = data;
+	time_delta_t elapsed;
+
+	recursive_scan_check(ctx);
+	(void) bt;
+	(void) ticks;
+
+	qrp_finalize_computation();
+
+	elapsed = delta_time(tm_time(), GNET_PROPERTY(qrp_indexing_started));
+	elapsed = MAX(0, elapsed);
+	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_DURATION, elapsed);
+
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
+	return BGR_DONE;
 }
 
 static void
@@ -1531,10 +1633,21 @@ recursive_scan_create_task(struct recursive_scan *ctx)
 	recursive_scan_check(ctx);
 
 	if (NULL == ctx->task) {
-		static const bgstep_cb_t step[] = { recursive_scan_step_compute };
+		static const bgstep_cb_t steps[] = {
+			recursive_scan_step_compute,
+			recursive_scan_step_compute_done,
+			recursive_scan_step_build_search_table,
+			recursive_scan_step_build_file_table,
+			recursive_scan_step_request_sha1,
+			recursive_scan_step_update_scan_timing,
+			recursive_scan_step_build_sorted_table,
+			recursive_scan_step_prepare_qrp,
+			recursive_scan_step_update_qrp,
+			recursive_scan_step_finalize,
+		};
 
 		ctx->task = bg_task_create("recursive scan",
-							step, G_N_ELEMENTS(step),
+							steps, G_N_ELEMENTS(steps),
 			  				ctx, recursive_scan_context_free,
 							NULL, NULL);
 	}
