@@ -57,42 +57,24 @@ static cmd cmds[] = {
 
 #define CTABSIZ (sizeof (cmds)/sizeof (cmd))
 
-static cmd *parse();
-static void badk(), doit(), prdatum();
-
-int
-main(int argc, char **argv)
+static void
+prdatum(FILE *stream, datum d)
 {
-	int c;
-	register cmd *act;
-	extern int optind;
-	extern char *optarg;
+	register int c;
+	register char *p = d.dptr;
+	register int n = d.dsize;
 
-	/* Initialize memory allocation routines used by the sdbm library */
-	vmm_init(&c);
-	halloc_init(FALSE);
-
-	progname = argv[0];
-
-	while ((c = getopt(argc, argv, "R")) != EOF)
-		switch (c) {
-		case 'R':	       /* raw processing  */
-			rflag++;
-			break;
-
-		default:
-			oops("usage: %s", usage);
-			break;
+	while (n--) {
+		c = *p++ & 0377;
+		if (c & 0200) {
+			fprintf(stream, "M-");
+			c &= 0177;
 		}
-
-	if ((argc -= optind) < 2)
-		oops("usage: %s", usage);
-
-	if ((act = parse(argv[optind])) == NULL)
-		badk(argv[optind]);
-	optind++;
-	doit(act, argv[optind]);
-	return 0;
+		if (c == 0177 || c < ' ') 
+			fprintf(stream, "^%c", (c == 0177) ? '?' : c + '@');
+		else
+			putc(c, stream);
+	}
 }
 
 static void
@@ -222,24 +204,38 @@ parse(register char *str)
 	return NULL;
 }
 
-static void
-prdatum(FILE *stream, datum d)
+int
+main(int argc, char **argv)
 {
-	register int c;
-	register char *p = d.dptr;
-	register int n = d.dsize;
+	int c;
+	register cmd *act;
+	extern int optind;
+	extern char *optarg;
 
-	while (n--) {
-		c = *p++ & 0377;
-		if (c & 0200) {
-			fprintf(stream, "M-");
-			c &= 0177;
+	/* Initialize memory allocation routines used by the sdbm library */
+	vmm_init(&c);
+	halloc_init(FALSE);
+
+	progname = argv[0];
+
+	while ((c = getopt(argc, argv, "R")) != EOF)
+		switch (c) {
+		case 'R':	       /* raw processing  */
+			rflag++;
+			break;
+
+		default:
+			oops("usage: %s", usage);
+			break;
 		}
-		if (c == 0177 || c < ' ') 
-			fprintf(stream, "^%c", (c == 0177) ? '?' : c + '@');
-		else
-			putc(c, stream);
-	}
-}
 
+	if ((argc -= optind) < 2)
+		oops("usage: %s", usage);
+
+	if ((act = parse(argv[optind])) == NULL)
+		badk(argv[optind]);
+	optind++;
+	doit(act, argv[optind]);
+	return 0;
+}
 
