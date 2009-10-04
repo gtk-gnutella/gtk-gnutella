@@ -404,7 +404,7 @@ host_addr_hash(host_addr_t ha)
 		return ha.net;
 	}
 	g_assert_not_reached();
-	return -1;
+	return (guint32) -1;
 }
 
 /**
