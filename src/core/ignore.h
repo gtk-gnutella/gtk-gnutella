@@ -62,7 +62,6 @@ const char *ignore_reason_to_string(enum ignore_val);
 void ignore_add_filesize(const char *file, filesize_t size);
 void ignore_add_sha1(const char *file, const struct sha1 *sha1);
 const char *ignore_sha1_filename(const struct sha1 *sha1);
-void ignore_timer(time_t unused_now);
 
 #endif	/* _core_ignore_h_ */
 

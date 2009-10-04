@@ -169,7 +169,6 @@ static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 static tm_t start_time;
 
-void gtk_gnutella_exit(int n);
 static int reopen_log_files(void);
 static gboolean stderr_disabled;
 

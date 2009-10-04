@@ -82,7 +82,6 @@ extern const char *version_string;
 extern const char *version_short_string;
 
 const char *version_build_string(void);
-const char *version_get_string(void);
 guint8 version_get_code(void);
 
 #endif	/* _core_version_h_ */
