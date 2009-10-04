@@ -140,6 +140,9 @@ log_bigstats(DBM *db)
 {
 	DBMBIG *dbg = db->big;
 
+	if (-1 == dbg->fd)
+		return;				/* The .dat file was never used */
+
 	g_message("sdbm: \"%s\" bitmap reads = %lu, bitmap writes = %lu "
 		"(deferred %lu)",
 		sdbm_name(db), dbg->bitread, dbg->bitwrite, dbg->bitwdelayed);
