@@ -1806,7 +1806,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (
 		NULL != oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header)) ||	
-		(flags_valid && !(flags && QUERY_F_OOB_REPLY))
+		(flags_valid && !(flags & QUERY_F_OOB_REPLY))
 	)
 		dq->flags |= DQ_F_ROUTING_HITS;
 
