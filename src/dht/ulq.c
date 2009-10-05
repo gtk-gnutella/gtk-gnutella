@@ -330,7 +330,7 @@ ulq_lookup_stats(const kuid_t *kuid,
 	 * correct the read values later on by the same amount.
 	 */
 
-	if (ls->elapsed) {
+	if (ls->elapsed > 0.0) {
 		avg = (ls->bw_incoming << ULQ_EMA_SHIFT) / ls->elapsed;
 		sched.bw_in_ema += (avg >> 4) - (sched.bw_in_ema >> 4);
 

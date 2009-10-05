@@ -141,8 +141,9 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 
 			for (l = sx->data; l; l = g_slist_next(l)) {
 				double *vp = (double *) l->data;
+				double delta = *vp - val;
 
-				if (*vp == val) {
+				if (ABS(delta) < 1e-56) {
 					sx->data = g_slist_remove(sx->data, vp);
 					wfree(vp, sizeof(*vp));
 					break;

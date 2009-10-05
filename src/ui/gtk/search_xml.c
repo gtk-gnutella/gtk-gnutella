@@ -278,8 +278,10 @@ parse_target(const gchar *buf, gint *error)
 	 * machine doesn't use 32-bit wide pointers. Older versions used
 	 * the pointer casted to an integer type as target ID.
 	 */
-	if (0 == *error && 4 == sizeof(gpointer) && v > (~(guint32) 0)) {
-		*error = ERANGE;
+	if (4 == sizeof(gpointer)) {
+		if (0 == *error && v > (~(guint32) 0)) {
+			*error = ERANGE;
+		}
 	}
 	if (0 != *error) {
 		g_message("buf=\"%s\"", buf);

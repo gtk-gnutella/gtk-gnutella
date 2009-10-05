@@ -872,7 +872,7 @@ bg_task_ended(struct bgtask *bt)
 	 * The following makes sure we pickup a new item at the next iteration.
 	 */
 
-	bt->tick_cost = 0;					/* Will restart at 1 tick next time */
+	bt->tick_cost = 0.0;			/* Will restart at 1 tick next time */
 	bt->seqno = 0;
 	bt->step = 0;
 
@@ -938,8 +938,7 @@ bg_sched_timer(gboolean overloaded)
 		 * than DELTA_FACTOR.
 		 */
 
-		if (bt->tick_cost) {
-			g_assert(bt->tick_cost > 0);
+		if (bt->tick_cost > 0.0) {
 			g_assert(bt->prev_ticks >= 0);
 			g_assert(bt->prev_ticks <= INT_MAX / DELTA_FACTOR);
 
@@ -1050,7 +1049,7 @@ bg_sched_timer(gboolean overloaded)
 			else {
 				bt->seqno = 0;
 				bt->step++;
-				bt->tick_cost = 0;	/* Don't know cost of this new step */
+				bt->tick_cost = 0.0;	/* Don't know cost of this new step */
 			}
 			break;
 		case BGR_MORE:

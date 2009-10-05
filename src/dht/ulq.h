@@ -46,9 +46,6 @@
 void ulq_init(void);
 void ulq_close(void);
 
-void ulq_find_store_roots(const kuid_t *kuid,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
-
 #endif /* _dht_ulq_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

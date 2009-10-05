@@ -4923,7 +4923,7 @@ fi_find_aggressive_candidate(
 			!DOWNLOAD_IS_ACTIVE(fc->download) ||
 			missing_coverage > longest_missing_coverage ||
 			(
-				missing_coverage == longest_missing_coverage &&
+				longest_missing_coverage - missing_coverage < 1e-56 &&
 				download_speed_avg(d) > download_speed_avg(fc->download)
 			);
 

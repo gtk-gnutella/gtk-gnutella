@@ -111,7 +111,11 @@ compare_ul_norm(GtkCList *clist, const void * ptr1, const void * ptr2)
 	const GtkCListRow *r1 = ptr1, *r2 = ptr2;
 	const struct ul_stats *us1 = r1->data, *us2 = r2->data;
 	int ret;
-	ret = CMP(us1->norm, us2->norm);
+	double delta = us1->norm - us2->norm;
+	if (ABS(delta) < 1e-56)
+		ret = 0;
+	else
+		ret = us1->norm < us2->norm ? -1 : +1;
 	return ret ? ret : compare_ul_complete(clist, ptr1, ptr2);
 }
 

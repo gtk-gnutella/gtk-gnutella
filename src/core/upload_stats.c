@@ -87,7 +87,7 @@ ul_stats_eq(gconstpointer p, gconstpointer q)
 	const struct ul_stats *a = p, *b = q;
 
 	/* pathname is an atom */
-	return a->pathname == b->pathname && b->size == b->size;
+	return a->pathname == b->pathname && a->size == b->size;
 }
 
 static guint

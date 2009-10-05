@@ -29,7 +29,6 @@
 #include "if/core/uploads.h"
 #include "if/ui/gtk/upload_stats.h"
 
-void upload_stats_gui_init(void);
 void upload_stats_gui_shutdown(void);
 
 #endif /* _gtk_uploads_stats_h_ */

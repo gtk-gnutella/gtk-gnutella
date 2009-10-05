@@ -2358,7 +2358,7 @@ qrp_send_patch(struct gnutella_node *n,
 
 	g_assert(seqsize >= 1 && seqsize <= 255);
 	g_assert(seqno >= 1 && seqno <= seqsize);
-	g_assert(len >= 0 && len <= INT_MAX);
+	g_assert(len >= 0 && len < INT_MAX);
 
 	/*
 	 * Compute the overall message length.

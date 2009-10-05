@@ -66,37 +66,6 @@ typedef enum {
 } lookup_type_t;
 
 /**
- * Node lookup result record.
- */
-typedef struct lookup_rc {
-	knode_t *kn;				/**< A Kademlia node */
-	void *token;				/**< The security token (NULL if none) */
-	guint8 token_len;			/**< Length of security token */
-} lookup_rc_t;
-
-/**
- * Node lookup result set.
- *
- * NB: path can contain more than the k-closest nodes, but the first k entries
- * are the k-closest.  It can also contain less than k items, if we were
- * unable to find closer nodes.
- */
-typedef struct lookup_result {
-	lookup_rc_t *path;			/**< Lookup path, closest node first */
-	size_t path_len;			/**< Amount of entries in lookup path */
-} lookup_rs_t;
-
-/**
- * Node lookup callback invoked when OK.
- *
- * @param kuid		the KUID that was looked for
- * @param rs		the result set
- * @param arg		additional callback opaque argument
- */
-typedef void (*lookup_cb_ok_t)(
-	const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg);
-
-/**
  * Lookup statistics.
  */
 struct lookup_stats {

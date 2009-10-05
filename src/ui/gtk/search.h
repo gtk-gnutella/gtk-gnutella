@@ -27,7 +27,7 @@
 #define _gtk_search_h_
 
 #include "gui.h"
-
+#include "if/ui/gtk/search.h"
 
 struct bitzi_data;
 struct filter;
@@ -44,9 +44,6 @@ void search_gui_init(void);
 void search_gui_shutdown(void);
 
 const GList *search_gui_get_searches(void);
-
-gboolean search_gui_new_search(const char *query, guint32 flags,
-			struct search **);
 
 gboolean search_gui_new_search_full(const char *query,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,

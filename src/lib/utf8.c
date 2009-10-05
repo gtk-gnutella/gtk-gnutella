@@ -102,7 +102,6 @@ void utf8_regression_checks(void);
 size_t utf8_decompose_nfd(const char *in, char *out, size_t size);
 size_t utf8_decompose_nfkd(const char *in, char *out, size_t size);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
-size_t utf32_to_utf8(const guint32 *in, char *out, size_t size);
 size_t utf32_strlen(const guint32 *s);
 
 /**

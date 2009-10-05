@@ -6,6 +6,7 @@
 #define bigkey_eq sdbm__bigkey_eq
 #define big_alloc sdbm__big_alloc
 #define big_free sdbm__big_free
+#define big_shrink sdbm__big_shrink
 #define big_length sdbm__big_length
 #define bigkey_head sdbm__bigkey_head
 #define bigkey_tail sdbm__bigkey_tail
@@ -29,11 +30,11 @@ int big_replace(DBM *, char *, const char *, size_t);
 void big_free(DBM *);
 int big_datfno(DBM *);
 gboolean big_sync(DBM *);
+gboolean big_shrink(DBM *);
 gboolean bigkey_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigval_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigkey_free(DBM *, const char *, size_t);
 gboolean bigval_free(DBM *, const char *, size_t);
-gboolean big_shrink(DBM *);
 
 /**
  * Amount of bytes saved for the head and tail of a key.
