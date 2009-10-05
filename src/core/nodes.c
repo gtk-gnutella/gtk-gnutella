@@ -5476,13 +5476,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	{
 		guint major, minor;
 
- 		header_get_feature("hsep", head, &major, &minor);
-
- 		if (major == HSEP_VERSION_MAJOR && minor <= HSEP_VERSION_MINOR) {
-			n->attrs |= NODE_A_CAN_HSEP;
-			hsep_connection_init(n, major & 0xff, minor & 0xff);
-			/* first HSEP message will be sent on next hsep_timer() call */
-		}
+        /* Ensure hsep feature is present for major version zero. */
+ 		if(header_get_feature("hsep", head, &major, &minor)) {
+			if (major == HSEP_VERSION_MAJOR && minor <= HSEP_VERSION_MINOR) {
+				n->attrs |= NODE_A_CAN_HSEP;
+				hsep_connection_init(n, major & 0xff, minor & 0xff);
+				/* first HSEP message will be sent on next hsep_timer() call */
+			}
+ 		}
 	}
 
 	/*
