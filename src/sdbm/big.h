@@ -33,6 +33,7 @@ gboolean bigkey_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigval_put(DBM *, char *, size_t, const char *, size_t);
 gboolean bigkey_free(DBM *, const char *, size_t);
 gboolean bigval_free(DBM *, const char *, size_t);
+gboolean big_shrink(DBM *);
 
 /**
  * Amount of bytes saved for the head and tail of a key.
