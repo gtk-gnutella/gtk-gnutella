@@ -108,6 +108,7 @@ struct dmesh_entry {
 #define MIN_PFSP_PCT	10			/**< 10%, min available data for PFSP */
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
+#define EXPIRE_DELAY	600			/**< 10 minutes after last update */
 
 static const char dmesh_file[] = "dmesh";
 static cqueue_t *dmesh_cq;			/**< Download mesh callout queue */
@@ -822,6 +823,21 @@ dmesh_count(const struct sha1 *sha1)
 	g_assert(sha1);
 
 	dm = g_hash_table_lookup(mesh, sha1);
+
+	/*
+	 * If we have an entry and the last update was done more than
+	 * EXPIRE_DELAY seconds ago, attempt to expire old entries, and
+	 * dispose of the record if none remain.
+	 */
+
+	if (NULL != dm && delta_time(tm_time(), dm->last_update) > EXPIRE_DELAY) {
+		dm_expire(dm);
+
+		if (list_length(dm->entries) == 0) {
+			dmesh_dispose(sha1);
+			dm = NULL;
+		}
+	}
 
 	return dm ? list_length(dm->entries) : 0;
 }
