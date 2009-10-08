@@ -502,8 +502,6 @@ search_retrieve_xml(void)
 	gchar *path = NULL;
 	gchar *path_orig = NULL;
 
-	LIBXML_TEST_VERSION
-
 	/*
 	 * We can't use routines from file.c here because libxml2 only defines
 	 * interfaces for parsing a path or memory, but not for parsing a FILE
