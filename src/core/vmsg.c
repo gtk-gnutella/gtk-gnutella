@@ -2331,7 +2331,7 @@ handle_head_ping(struct gnutella_node *n,
 		urn_get_sha1(&payload[1], &sha1)
 	) {
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(sha1));
+			g_message("HEAD Ping for %s%s", urn_prefix, sha1_to_string(&sha1));
 		}
 	} else {
 		if (GNET_PROPERTY(vmsg_debug)) {

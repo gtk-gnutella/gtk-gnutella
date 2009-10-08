@@ -947,7 +947,7 @@ sha1_base32(const struct sha1 *sha1)
 }
 
 const char *
-sha1_to_string(const struct sha1 sha1)
+sha1_to_string(const struct sha1 *sha1)
 {
 	static char digest_b32[SHA1_BASE32_SIZE + 1];
 	return sha1_to_base32_buf(&sha1, digest_b32, sizeof digest_b32);
@@ -977,6 +977,10 @@ sha1_to_urn_string_buf(const struct sha1 *sha1, char *dst, size_t size)
 	return CONST_STRLEN(prefix) + SHA1_BASE32_SIZE + 1;
 }
 
+/**
+ * Generates an "urn:sha1:" URN pointing to the given SHA-1.
+ * @return pointer to static data
+ */
 const char *
 sha1_to_urn_string(const struct sha1 *sha1)
 {
@@ -987,6 +991,11 @@ sha1_to_urn_string(const struct sha1 *sha1)
 	return buf;
 }
 
+/**
+ * Generates an "urn:bitprint:" URN if both SHA-1 and TTH are supplied, or
+ * an "urn:sha1" if the TTH is missing (NULL pointer).
+ * @return pointer to static data
+ */
 const char *
 bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 {
