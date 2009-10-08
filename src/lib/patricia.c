@@ -2336,7 +2336,7 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 }
 
 /**
- * Same as atricia_metric_iterator() but the initial key is not copied.
+ * Same as patricia_metric_iterator() but the initial key is not copied.
  * It must therefore remain allocated until the iterator is released, which
  * is usually the case when the iteration is done within a single routine.
  */
