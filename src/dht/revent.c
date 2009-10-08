@@ -318,7 +318,7 @@ revent_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (*ops->debug > 4)
 			g_message("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
-				revent_id_to_string(pmi->rid), ops->name,
+				ops->name, revent_id_to_string(pmi->rid),
 				kmsg_infostr(pmsg_start(mb)), 
 				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
 	} else {
