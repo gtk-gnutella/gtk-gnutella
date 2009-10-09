@@ -73,6 +73,7 @@ RCSID("$Id$")
 #include "tcache.h"
 #include "lookup.h"
 #include "storage.h"
+#include "token.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/dht/kuid.h"
@@ -82,12 +83,17 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/map.h"
 #include "lib/dbmw.h"
+#include "lib/misc.h"
+#include "lib/tm.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define TOK_DB_CACHE_SIZE	4096	/**< Cached amount of tokens */
 #define TOK_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
-#define TOK_LIFE	3600			/**< Cached token lifetime in seconds */
+#define TOK_LIFE			(5*3600)	/**< Cached token lifetime in seconds */
+
+static time_delta_t token_life;		/**< Lifetime of our cached tokens */
 
 /**
  * DBM wrapper to associate a target KUID with the set of KDA_K dbkeys.
@@ -128,12 +134,13 @@ get_tokdata(const kuid_t *id)
 }
 
 /**
- * Delete rootdata from database.
+ * Delete known-to-be existing token data for specified KUID from database.
  */
 static void
 delete_tokdata(const kuid_t *id)
 {
 	dbmw_delete(db_tokdata, id);
+	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, -1);
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 2)
 		g_message("DHT TCACHE security token from %s reclaimed",
@@ -215,6 +222,13 @@ record_token(gpointer key, gpointer value, gpointer unused_u)
 	td.length = ltok->token->length;
 	td.token = td.length ? wcopy(ltok->token->v, td.length) : NULL;
 
+	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
+		static char buf[80];
+		bin_to_hex_buf(td.token, td.length, buf, sizeof buf);
+		g_message("DHT TCACHE adding security token for %s: %u-byte \"%s\"",
+			kuid_to_hex_string(id), td.length, buf);
+	}
+
 	/*
 	 * Data is put in the DBMW cache and the dynamically allocated token
 	 * will be freed via free_tokdata() when the cached entry is released.
@@ -243,13 +257,15 @@ tcache_record(map_t *tokens)
  * @param id		the KUID for which we'd like the security token
  * @param len_ptr	where the length of the security token is written
  * @param tok_ptr	where the address of the security token is written
+ * @param time_ptr	where the last update time of token is writen
  *
  * @return TRUE if we found a token, with len_ptr and tok_ptr filled with
  * the information about the length and the token pointer.  Information is
  * returned from a static memory buffer so it must be perused immediately.
  */
 gboolean
-tcache_get(const kuid_t *id, guint8 *len_ptr, const void **tok_ptr)
+tcache_get(const kuid_t *id,
+	guint8 *len_ptr, const void **tok_ptr, time_t *time_ptr)
 {
 	struct tokdata *td;
 
@@ -262,15 +278,38 @@ tcache_get(const kuid_t *id, guint8 *len_ptr, const void **tok_ptr)
 
 	if (delta_time(tm_time(), td->last_update) > TOK_LIFE) {
 		delete_tokdata(id);
-		gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, -1);
 		return FALSE;
 	}
 
 	if (len_ptr != NULL)	*len_ptr = td->length;
 	if (tok_ptr != NULL)	*tok_ptr = td->token;
+	if (time_ptr != NULL)	*time_ptr = td->last_update;
+
+	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
+		static char buf[80];
+		bin_to_hex_buf(td->token, td->length, buf, sizeof buf);
+		g_message("DHT TCACHE security token for %s is %u-byte \"%s\" (%s)",
+			kuid_to_hex_string(id), td->length, buf,
+			compact_time(delta_time(tm_time(), td->last_update)));
+	}
 
 	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HITS, 1);
 
+	return TRUE;
+}
+
+/**
+ * Remove cached token for specified KUID.
+ *
+ * @return TRUE if entry existed
+ */
+gboolean
+tcache_remove(const kuid_t *id)
+{
+	if (!dbmw_exists(db_tokdata, id))
+		return FALSE;
+
+	delete_tokdata(id);
 	return TRUE;
 }
 
@@ -287,6 +326,12 @@ tcache_init(void)
 		TOK_DB_CACHE_SIZE, sha1_hash, sha1_eq);
 
 	dbmw_set_map_cache(db_tokdata, TOK_MAP_CACHE_SIZE);
+
+	token_life = MIN(TOK_LIFE, token_lifetime());
+
+	if (GNET_PROPERTY(dht_tcache_debug))
+		g_message("DHT cached token lifetime set to %u secs",
+			(unsigned) token_life);
 }
 
 /**

@@ -29,6 +29,8 @@
 #include "lib/host_addr.h"
 #include "lib/gnet_host.h"
 
+#include "if/gnet_property_priv.h"
+
 typedef enum {
 	DHT_MODE_INACTIVE = 0x0,		/**< DHT capable, but not in DHT */
 	DHT_MODE_ACTIVE = 0x1,			/**< Active DHT node */
@@ -48,7 +50,6 @@ void dht_initialize(gboolean post_init);
 void dht_reset_kuid(void);
 gboolean dht_seeded(void);
 gboolean dht_bootstrapped(void);
-gboolean dht_enabled(void);
 void dht_ipp_extract(
 	const struct gnutella_node *n, const char *payload, int paylen);
 int dht_fill_random(gnet_host_t *hvec, int hcnt);
@@ -57,6 +58,15 @@ void dht_route_store_if_dirty(void);
 void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
 void dht_attempt_bootstrap(void);
 void dht_update_size_estimate(void);
+
+/**
+ * Is the DHT enabled?
+ */
+static inline gboolean
+dht_enabled(void)
+{
+	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht);
+}
 
 #endif /* _if_dht_dht_h */
 

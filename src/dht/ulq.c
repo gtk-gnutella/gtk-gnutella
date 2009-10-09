@@ -435,6 +435,7 @@ ulq_launch(struct ulq *uq)
 initialized:
 
 	if (nl) {
+		ulq_item_check(ui);
 		slist_append(uq->launched, ui);
 		uq->running++;
 		uq->scheduled++;

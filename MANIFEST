@@ -395,8 +395,12 @@ src/core/parq.c
 src/core/parq.h
 src/core/pcache.c
 src/core/pcache.h
+src/core/pdht.c
+src/core/pdht.h
 src/core/pproxy.c
 src/core/pproxy.h
+src/core/publisher.c
+src/core/publisher.h
 src/core/qhit.c
 src/core/qhit.h
 src/core/qrp.c
@@ -547,6 +551,7 @@ src/if/dht/kmsg.h
 src/if/dht/knode.h
 src/if/dht/kuid.h
 src/if/dht/lookup.h
+src/if/dht/publish.h
 src/if/dht/value.h
 src/if/gnet_property.c
 src/if/gnet_property.h

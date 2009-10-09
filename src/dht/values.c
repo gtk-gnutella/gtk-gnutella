@@ -72,6 +72,7 @@ RCSID("$Id$")
 #include "storage.h"
 #include "acct.h"
 #include "keys.h"
+#include "kmsg.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -320,6 +321,43 @@ dht_store_error_to_string(guint16 errnum)
 }
 
 /**
+ * A DHT value.
+ */
+struct dht_value {
+	const knode_t *creator;	/**< The creator of the value */
+	kuid_t *id;				/**< The key of the value (atom) */
+	dht_value_type_t type;	/**< Type of values */
+	guint8 major;			/**< Value's major version */
+	guint8 minor;			/**< Value's minor version */
+	guint16 length;			/**< Length of value */
+	gconstpointer data;		/**< The actual data value */
+};
+
+const kuid_t *
+dht_value_key(const dht_value_t *v)
+{
+	return v->id;
+}
+
+const knode_t *
+dht_value_creator(const dht_value_t *v)
+{
+	return v->creator;
+}
+
+dht_value_type_t
+dht_value_type(const dht_value_t *v)
+{
+	return v->type;
+}
+
+guint16
+dht_value_length(const dht_value_t *v)
+{
+	return v->length;
+}
+
+/**
  * Create a DHT value.
  *
  * @param creator		the creator of the value
@@ -332,7 +370,7 @@ dht_store_error_to_string(guint16 errnum)
  */
 dht_value_t *
 dht_value_make(const knode_t *creator,
-	kuid_t *primary_key, dht_value_type_t type,
+	const kuid_t *primary_key, dht_value_type_t type,
 	guint8 major, guint8 minor, gpointer data, guint16 length)
 {
 	dht_value_t *v;
@@ -515,6 +553,108 @@ dht_value_to_string(const dht_value_t *v)
 		knode);
 
 	return buf;
+}
+
+/**
+ * Serialize a DHT value.
+ */
+void
+dht_value_serialize(pmsg_t *mb, const dht_value_t *v)
+{
+	/* DHT value header */
+	kmsg_serialize_contact(mb, v->creator);
+	pmsg_write(mb, v->id, KUID_RAW_SIZE);
+	pmsg_write_be32(mb, v->type);
+	pmsg_write_u8(mb, v->major);
+	pmsg_write_u8(mb, v->minor);
+	pmsg_write_be16(mb, v->length);
+
+	/* DHT value data */
+	if (v->length)
+		pmsg_write(mb, v->data, v->length);
+}
+
+/**
+ * Deserialize a DHT value.
+ *
+ * @return the deserialized DHT value, or NULL if an error occurred.
+ */
+dht_value_t *
+dht_value_deserialize(bstr_t *bs)
+{
+	dht_value_t *dv;
+	kuid_t id;
+	knode_t *creator;
+	guint8 major, minor;
+	guint16 length;
+	gpointer data = NULL;
+	guint32 type;
+
+	creator = kmsg_deserialize_contact(bs);
+	if (!creator)
+		return NULL;
+
+	bstr_read(bs, id.v, KUID_RAW_SIZE);
+	bstr_read_be32(bs, &type);
+	bstr_read_u8(bs, &major);
+	bstr_read_u8(bs, &minor);
+	bstr_read_be16(bs, &length);
+
+	if (bstr_has_error(bs))
+		goto error;
+
+	if (length && length <= DHT_VALUE_MAX_LEN) {
+		data = walloc(length);
+		bstr_read(bs, data, length);
+	} else {
+		bstr_skip(bs, length);
+	}
+
+	if (bstr_has_error(bs))
+		goto error;
+
+	dv = dht_value_make(creator, &id, type, major, minor, data, length);
+	knode_free(creator);
+	return dv;
+
+error:
+	knode_free(creator);
+	if (data)
+		wfree(data, length);
+	return NULL;
+}
+
+/**
+ * qsort() callback to compare two DHT values on a length basis.
+ */
+int
+dht_value_cmp(const void *a, const void *b)
+{
+	const dht_value_t * const *pa = a;
+	const dht_value_t * const *pb = b;
+	const dht_value_t *va = *pa;
+	const dht_value_t *vb = *pb;
+
+	return va->length == vb->length ? 0 :
+		va->length < vb->length ? -1 : +1;
+}
+
+/**
+ * Fill lookup result record with value.
+ *
+ * @attention
+ * The filled record becomes the owner of the value data.
+ */
+void
+dht_value_fill_record(const dht_value_t *v, lookup_val_rc_t *rc)
+{
+	rc->data = v->data;
+	rc->length = (size_t) v->length;
+	rc->addr = v->creator->addr;
+	rc->type = v->type;
+	rc->port = v->creator->port;
+	rc->major = v->major;
+	rc->minor = v->minor;
 }
 
 /**

@@ -27,7 +27,7 @@
  * @ingroup dht
  * @file
  *
- * Storage of keys/values.
+ * Persistent and volatile on-disk storage, with possible memory fallback.
  *
  * @author Raphael Manfredi
  * @date 2008

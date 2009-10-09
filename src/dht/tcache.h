@@ -46,7 +46,8 @@
 void tcache_init(void);
 void tcache_close(void);
 void tcache_record(map_t *tokens);
-gboolean tcache_get(const kuid_t *id, guint8 *len_ptr, const void **tok_ptr);
+gboolean tcache_get(const kuid_t *id, guint8 *, const void **, time_t *);
+gboolean tcache_remove(const kuid_t *id);
 
 #endif /* _dht_tcache_h_ */
 

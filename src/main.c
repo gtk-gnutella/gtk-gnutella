@@ -57,6 +57,7 @@
 #include "core/fileinfo.h"
 #include "core/file_object.h"
 #include "core/gdht.h"
+#include "core/pdht.h"
 #include "core/geo_ip.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
@@ -78,6 +79,7 @@
 #include "core/parq.h"
 #include "core/pcache.h"
 #include "core/pproxy.h"
+#include "core/publisher.h"
 #include "core/routing.h"
 #include "core/rx.h"
 #include "core/search.h"
@@ -531,6 +533,8 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(bitzi_close);
 	DO(ntp_close);
+	DO(publisher_close);
+	DO(pdht_close);
 	DO(gdht_close);
 	DO(sq_close);
 	DO(dh_close);
@@ -1609,6 +1613,8 @@ main(int argc, char **argv)
 	bitzi_init();
 	sq_init();
 	gdht_init();
+	pdht_init();
+	publisher_init();
 	file_info_init_post();
 
 	kmsg_init();			/* DHT */

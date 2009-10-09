@@ -78,6 +78,8 @@ typedef struct knode {
 #define KNODE_F_PCONTACT	(1 << 5)	/**< Patched contact address */
 #define KNODE_F_CACHED		(1 << 6)	/**< Node comes from root cache */
 
+knode_t *get_our_knode(void);
+
 void knode_free(knode_t *kn);
 unsigned int knode_hash(gconstpointer key);
 int knode_eq(gconstpointer a, gconstpointer b);

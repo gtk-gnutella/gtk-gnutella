@@ -133,7 +133,9 @@ SRC = \
 	oob_proxy.c \
 	parq.c \
 	pcache.c \
+	pdht.c \
 	pproxy.c \
+	publisher.c \
 	qhit.c \
 	qrp.c \
 	routing.c \
@@ -222,7 +224,9 @@ OBJ = \
 	oob_proxy.o \
 	parq.o \
 	pcache.o \
+	pdht.o \
 	pproxy.o \
+	publisher.o \
 	qhit.o \
 	qrp.o \
 	routing.o \

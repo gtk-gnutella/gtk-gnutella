@@ -57,6 +57,7 @@ RCSID("$Id$")
 #include "settings.h"
 #include "hosts.h"
 #include "upload_stats.h"
+#include "publisher.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1753,6 +1754,7 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 	 * put into the tree again. This might happen if a SHA-1 calculation
 	 * from a previous rescan finishes after newly initiated rescan.
 	 */
+
 	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
 		struct shared_file *current;
 		gpointer key;
@@ -1773,7 +1775,13 @@ shared_file_set_sha1(struct shared_file *sf, const struct sha1 *sha1)
 					shared_file_path(current));
 			}
 		} else {
+			/*
+			 * New SHA-1 known for this file entry.
+			 * Record in the set of shared SHA-1s and publish to the DHT.
+			 */
+		
 			g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+			publisher_add(sf->sha1);
 		}
 	}
 }

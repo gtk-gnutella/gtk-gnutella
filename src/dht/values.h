@@ -37,6 +37,10 @@
 #define _dht_values_h_
 
 #include "if/dht/value.h"
+#include "if/dht/lookup.h"
+
+#include "lib/pmsg.h"
+#include "lib/bstr.h"
 
 /*
  * Public interface.
@@ -51,6 +55,11 @@ guint16 values_store(const knode_t *kn, const dht_value_t *v, gboolean token);
 dht_value_t *values_get(guint64 dbkey, dht_value_type_t type);
 void values_reclaim_expired(void);
 gboolean values_has_expired(guint64 dbkey, time_t now, time_t *expire);
+
+void dht_value_serialize(pmsg_t *mb, const dht_value_t *v);
+dht_value_t *dht_value_deserialize(bstr_t *bs);
+int dht_value_cmp(const void *a, const void *b);
+void dht_value_fill_record(const dht_value_t *v, lookup_val_rc_t *rc);
 
 #endif /* _dht_values_h_ */
 

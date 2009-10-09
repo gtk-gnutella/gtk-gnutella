@@ -818,7 +818,7 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 		if (v == NULL)
 			continue;
 
-		g_assert(kuid_eq(v->id, id));
+		g_assert(kuid_eq(dht_value_key(v), id));
 
 		*vvec++ = v;
 		vcnt--;
@@ -895,7 +895,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		if (v == NULL)
 			continue;
 
-		g_assert(kuid_eq(v->id, id));
+		g_assert(kuid_eq(dht_value_key(v), id));
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
 			g_message("DHT FETCH key %s via secondary key %s has matching %s",
@@ -937,7 +937,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 		if (v == NULL)
 			continue;
 
-		g_assert(kuid_eq(v->id, id));
+		g_assert(kuid_eq(dht_value_key(v), id));
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
 			g_message("DHT FETCH key %s has matching %s",

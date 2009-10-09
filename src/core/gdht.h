@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Gnutella DHT interface.
+ * Gnutella DHT "get" interface.
  *
  * @author Raphael Manfredi
  * @date 2008
@@ -37,8 +37,8 @@
 #define _core_gdht_h_
 
 #include "if/core/fileinfo.h"
-
-struct guid;
+#include "if/core/guid.h"
+#include "if/dht/kuid.h"
 
 /*
  * Public interface.
@@ -48,8 +48,10 @@ void gdht_init(void);
 void gdht_close(void);
 
 void gdht_find_sha1(const fileinfo_t *fi);
-void gdht_find_guid(const struct guid *guid,
-		const host_addr_t addr, guint16 port);
+void gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port);
+
+const kuid_t *gdht_kuid_from_guid(const guid_t *guid);
+const kuid_t *gdht_kuid_from_sha1(const sha1_t *sha1);
 
 #endif	/* _core_gdht_h_ */
 

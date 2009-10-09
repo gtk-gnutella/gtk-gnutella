@@ -66,6 +66,7 @@ GSList *kmsg_build_store(
 	
 void kmsg_send_mb(knode_t *kn, pmsg_t *mb);
 
+void kmsg_serialize_contact(pmsg_t *mb, const knode_t *kn);
 knode_t *kmsg_deserialize_contact(bstr_t *bs);
 dht_value_t *kmsg_deserialize_dht_value(bstr_t *bs);
 

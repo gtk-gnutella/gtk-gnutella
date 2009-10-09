@@ -180,7 +180,7 @@ struct nlookup {
 	 * XXX -- hack alert!
 	 *
 	 * Leave these fields here, or gtk-gnutella crashes quickly with a
-	 * corrupted free list.  Why? (it crashes even the fields are otherwise
+	 * corrupted free list.  Why? (it crashes even if the fields are otherwise
 	 * unused, so it has to do with the structure size and is probably NOT
 	 * related to the code here but something elsewhere).
 	 *
@@ -514,15 +514,8 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 		dht_value_t *v = vvec[i];
 		lookup_val_rc_t *rc = &rs->records[i];
 
-		rc->data = v->data;
-		rc->length = (size_t) v->length;
-		rc->addr = v->creator->addr;
-		rc->type = v->type;
-		rc->port = v->creator->port;
-		rc->major = v->major;
-		rc->minor = v->minor;
-
-		dht_value_free(v, FALSE);	/* Data now pointed at by record */
+		dht_value_fill_record(v, rc);
+		dht_value_free(v, FALSE);		/* Data now pointed at by record */
 	}
 
 	return rs;
@@ -984,7 +977,7 @@ lookup_value_create(nlookup_t *nl, float load,
 
 	for (i = 0; i < fv->vcnt; i++) {
 		dht_value_t *v = fv->vvec[i];
-		map_insert(fv->seen, v->creator->id, v);
+		map_insert(fv->seen, dht_value_creator(v)->id, v);
 	}
 
 	g_assert(lookup_is_fetching(nl));
@@ -1072,10 +1065,10 @@ lookup_value_append(nlookup_t *nl, float load,
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
 
-		if (!map_contains(fv->seen, v->creator->id)) {
+		if (!map_contains(fv->seen, dht_value_creator(v)->id)) {
 			g_assert(fv->vcnt < fv->vsize);
 			fv->vvec[fv->vcnt++] = v;
-			map_insert(fv->seen, v->creator->id, v);
+			map_insert(fv->seen, dht_value_creator(v)->id, v);
 		} else {
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
 				g_message("DHT LOOKUP[%s] ignoring duplicate %s",
@@ -1333,7 +1326,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		vvec = walloc(expanded * sizeof vvec[0]);
 
 	for (i = 0; i < expanded; i++) {
-		dht_value_t *v = kmsg_deserialize_dht_value(bs);
+		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
 			gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
@@ -1342,14 +1335,14 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 			goto bad;
 		}
 
-		if (type != DHT_VT_ANY && type != v->type) {
+		if (type != DHT_VT_ANY && type != dht_value_type(v)) {
 			if (GNET_PROPERTY(dht_lookup_debug))
 				g_warning("DHT LOOKUP[%s] "
 					"requested type %s but got %s value %d/%u from %s",
 					revent_id_to_string(nl->lid),
 					dht_value_type_to_string(type),
-					dht_value_type_to_string2(v->type), i + 1, expanded,
-					knode_to_string(kn));
+					dht_value_type_to_string2(dht_value_type(v)),
+					i + 1, expanded, knode_to_string(kn));
 
 			dht_value_free(v, TRUE);
 			continue;
@@ -1540,13 +1533,6 @@ lookup_value_not_found(nlookup_t *nl)
 	lookup_check(nl);
 	g_assert(LOOKUP_VALUE == nl->type);
 
-	/*
-	 * Nevertheless, cache the closest nodes we were able to locate, so that
-	 * next time we look for the value, we can converge faster, hopefully.
-	 */
-
-	roots_record(nl->path, nl->kuid);
-
 	if (patricia_contains(nl->path, nl->kuid))
 		lookup_abort(nl, LOOKUP_E_NOT_FOUND);
 	else if (nl->rpc_replies < MIN(KDA_ALPHA, nl->initial_contactable))
@@ -1577,6 +1563,19 @@ lookup_completed(nlookup_t *nl)
 	}
 
 	dht_update_subspace_size_estimate(nl->path, nl->kuid, nl->amount);
+
+	/*
+	 * We cache the found nodes so that subsequent lookups for a similar
+	 * key can converge faster, hopefully.  For STORE lookups, this will
+	 * include nodes we may not have contacted (those for which we had a
+	 * cached security token).
+	 *
+	 * We do not cache results from a refresh lookup because these are stopped
+	 * on a path-size basis, not on a convergence basis.
+	 */
+
+	if (nl->type != LOOKUP_REFRESH)
+		roots_record(nl->path, nl->kuid);
 
 	/*
 	 * All done -- value was not found if it was a value lookup, otherwise
@@ -2133,6 +2132,14 @@ lookup_handle_reply(
 		ltok->retrieved = tm_time();
 		ltok->token = token;
 		map_insert(nl->tokens, kn->id, ltok);
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 4) {
+			static char buf[80];
+			bin_to_hex_buf(token->v, token->length, buf, sizeof buf);
+			g_message("DHT LOOKUP[%s] collected %u-byte token \"%s\" for %s",
+				revent_id_to_string(nl->lid),
+				token->length, buf, knode_to_string(kn));
+		}
 	}
 
 	bstr_free(&bs);
@@ -2627,6 +2634,23 @@ lookup_delay(nlookup_t *nl)
 }
 
 /**
+ * Request asynchronous start of the lookup, used to make sure callbacks
+ * are never called before we return from a lookup creation in case we
+ * have to abort immediately at the first iteration.
+ */
+static void
+lookup_async_iterate(nlookup_t *nl)
+{
+	lookup_check(nl);
+
+	g_assert(nl->delay_ev == NULL);
+	g_assert(!(nl->flags & NL_F_DELAYED));
+
+	nl->flags |= NL_F_DELAYED;
+	nl->delay_ev = cq_insert(callout_queue, 1, lookup_delay_expired, nl);
+}
+
+/**
  * Iterate the lookup, once we have determined we must send more probes.
  */
 static void
@@ -2640,16 +2664,21 @@ lookup_iterate(nlookup_t *nl)
 
 	lookup_check(nl);
 
+	if (!dht_enabled()) {
+		lookup_cancel(nl, TRUE);
+		return;
+	}
+
 	/*
 	 * If we were delayed in another "thread" of replies, this call is about
 	 * to be rescheduled once the delay is expired.
 	 */
 
 	if (nl->flags & NL_F_DELAYED) {
-		if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 			g_message("DHT LOOKUP[%s] not iterating yet (delayed)",
 				revent_id_to_string(nl->lid));
-
+		}
 		return;
 	}
 
@@ -2833,6 +2862,91 @@ lookup_load_shortlist(nlookup_t *nl)
 }
 
 /**
+ * Iterator callback to remove nodes from the shortlist if their token is known.
+ */
+static gboolean
+remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
+{
+	map_t *tokens = u;
+	kuid_t *id = key;
+
+	(void) keybits;
+	(void) value;
+
+	return map_contains(tokens, id);
+}
+
+/**
+ * Move to the lookup path the nodes in the shortlist for which we have
+ * a valid (cached) security token already.
+ *
+ * This is an optimization when looking for STORE roots because we do not have
+ * to recontact these nodes.  To make sure we do at least contact some of them,
+ * we skip the KDA_ALPHA first nodes in the shortlist (those closest to the
+ * STORE key).
+ */
+static void
+lookup_load_path(nlookup_t *nl)
+{
+	unsigned skip = 0;
+	patricia_iter_t *iter;
+
+	lookup_check(nl);
+	g_assert(0 == map_count(nl->tokens));
+
+	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
+
+	while (patricia_iter_has_next(iter)) {
+		knode_t *kn;
+		guint8 toklen;
+		const void *token;
+		time_t last_update;
+
+		if (skip++ < KDA_ALPHA)
+			continue;			/* Too close to the key, must be queried */
+
+		kn = patricia_iter_next_value(iter);
+
+		if (tcache_get(kn->id, &toklen, &token, &last_update)) {
+			lookup_token_t *ltok = walloc(sizeof *ltok);
+			sec_token_t *tok = token_alloc(toklen);
+
+			ltok->retrieved = last_update;
+			ltok->token = tok;
+			if (toklen) {
+				memcpy(tok->v, token, toklen);
+			}
+
+			/*
+			 * Since we're going to remove the node from the shortlist,
+			 * there's no need to alter the reference count when adding
+			 * to the path.
+			 */
+
+			map_insert(nl->tokens, kn->id, ltok);
+			patricia_insert(nl->path, kn->id, kn);
+			map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
+		}
+	}
+
+	patricia_iterator_release(&iter);
+
+	/*
+	 * Now that we finished iterating over the shortlist, remove the nodes
+	 * for which we are reusing a cached token.
+	 *
+	 * We're not touching the "ball" since it contains nodes that are either
+	 * in the shortlist or in the path, and we're just moving nodes from the
+	 * shortlist to the path.
+	 */
+
+	patricia_foreach_remove(nl->shortlist, remove_from_shortlist, nl->tokens);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		log_patricia_dump(nl, nl->path, "pre-loaded path", 2);
+}
+
+/**
  * Create a KUID lookup.
  *
  * @param kuid		the KUID we're looking for
@@ -2945,7 +3059,7 @@ lookup_find_node(
 		return NULL;
 	}
 
-	lookup_iterate(nl);
+	lookup_async_iterate(nl);
 	return nl;
 }
 
@@ -2978,7 +3092,8 @@ lookup_store_nodes(
 		return NULL;
 	}
 
-	lookup_iterate(nl);
+	lookup_load_path(nl);	/* Optimize thanks to security token cache */
+	lookup_async_iterate(nl);
 	return nl;
 }
 
@@ -3013,7 +3128,7 @@ lookup_token(const knode_t *kn,
 	nl->closest = kn;
 	nl->initial_contactable = 1;
 
-	lookup_iterate(nl);
+	lookup_async_iterate(nl);
 	return nl;
 }
 
@@ -3131,7 +3246,7 @@ lookup_bucket_refresh(
 		return NULL;
 	}
 
-	lookup_iterate(nl);
+	lookup_async_iterate(nl);
 	return nl;
 }
 
@@ -3232,7 +3347,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 		goto bad;
 	}
 
-	v = kmsg_deserialize_dht_value(bs);
+	v = dht_value_deserialize(bs);
 	if (NULL == v) {
 		reason = "cannot parse DHT value";
 		goto bad;
@@ -3242,12 +3357,13 @@ lookup_value_handle_reply(nlookup_t *nl,
 	 * Check that we got the type of value we were looking for.
 	 */
 
-	if (type != DHT_VT_ANY && type != v->type) {
+	if (type != DHT_VT_ANY && type != dht_value_type(v)) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT LOOKUP[%s] "
 				"requested type %s but got %s value from %s",
 				revent_id_to_string(nl->lid), dht_value_type_to_string(type),
-				dht_value_type_to_string2(v->type), knode_to_string(kn));
+				dht_value_type_to_string2(dht_value_type(v)),
+				knode_to_string(kn));
 
 		dht_value_free(v, TRUE);
 		reason = "unexpected DHT value type";
@@ -3258,7 +3374,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 	 * Check that we got a value for the proper key.
 	 */
 
-	if (!kuid_eq(nl->kuid, v->id)) {
+	if (!kuid_eq(nl->kuid, dht_value_key(v))) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT LOOKUP[%s] "
 				"requested \"%s\" %s but got %s from %s",
@@ -3532,6 +3648,11 @@ lookup_value_iterate(nlookup_t *nl)
 	struct seckeys *sk;
 
 	lookup_value_check(nl);
+
+	if (!dht_enabled()) {
+		lookup_cancel(nl, TRUE);
+		return;
+	}
 
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);

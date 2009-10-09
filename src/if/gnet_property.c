@@ -824,6 +824,17 @@ guint32  gnet_property_variable_whitelist_debug     = 0;
 static const guint32  gnet_property_variable_whitelist_debug_default = 0;
 guint32  gnet_property_variable_dht_tcache_debug     = 0;
 static const guint32  gnet_property_variable_dht_tcache_debug_default = 0;
+guint32  gnet_property_variable_publisher_debug     = 0;
+static const guint32  gnet_property_variable_publisher_debug_default = 0;
+guint32  gnet_property_variable_dht_trace     = SOCK_TRACE_NONE;
+static const guint32  gnet_property_variable_dht_trace_default = SOCK_TRACE_NONE;
+prop_def_choice_t gnet_property_variable_dht_trace_choices[] = { 
+    {N_("none"), SOCK_TRACE_NONE},
+    {N_("input only"), SOCK_TRACE_IN},
+    {N_("output only"), SOCK_TRACE_OUT},
+    {N_("input & output"), SOCK_TRACE_BOTH},
+    {NULL, 0}
+};
 
 static prop_set_t *gnet_property;
 
@@ -7683,6 +7694,46 @@ gnet_prop_init(void) {
     gnet_property->props[358].data.guint32.choices = NULL;
     gnet_property->props[358].data.guint32.max   = 20;
     gnet_property->props[358].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_PUBLISHER_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[359].name = "publisher_debug";
+    gnet_property->props[359].desc = _("Debug level for DHT publishing from Gnutella.");
+    gnet_property->props[359].ev_changed = event_new("publisher_debug_changed");
+    gnet_property->props[359].save = TRUE;
+    gnet_property->props[359].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[359].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[359].data.guint32.def   = (void *) &gnet_property_variable_publisher_debug_default;
+    gnet_property->props[359].data.guint32.value = (void *) &gnet_property_variable_publisher_debug;
+    gnet_property->props[359].data.guint32.choices = NULL;
+    gnet_property->props[359].data.guint32.max   = 20;
+    gnet_property->props[359].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_DHT_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[360].name = "dht_trace";
+    gnet_property->props[360].desc = _("Defines which DHT messages should be traced.");
+    gnet_property->props[360].ev_changed = event_new("dht_trace_changed");
+    gnet_property->props[360].save = TRUE;
+    gnet_property->props[360].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[360].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[360].data.guint32.def   = (void *) &gnet_property_variable_dht_trace_default;
+    gnet_property->props[360].data.guint32.value = (void *) &gnet_property_variable_dht_trace;
+    gnet_property->props[360].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[360].data.guint32.min   = 0x00000000;
+    gnet_property->props[360].data.guint32.choices = (void *) &gnet_property_variable_dht_trace_choices;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

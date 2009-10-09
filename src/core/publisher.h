@@ -24,35 +24,29 @@
  */
 
 /**
- * @ingroup dht
+ * @ingroup core
  * @file
  *
- * Kademlia value publishing.
+ * Shared file DHT publisher.
  *
  * @author Raphael Manfredi
  * @date 2009
  */
 
-#ifndef _dht_publish_h_
-#define _dht_publish_h_
+#ifndef _core_publisher_h_
+#define _core_publisher_h_
 
-#include "if/dht/publish.h"
-
-#include "values.h"
-#include "lookup.h"
+#include "lib/misc.h"		/* For sha1_t */
 
 /*
  * Public interface.
  */
 
-void publish_init(void);
-void publish_close(void);
+void publisher_init(void);
+void publisher_close(void);
 
-publish_t *publish_cache(const kuid_t *key,
-	lookup_rc_t *target, dht_value_t **vvec, int vcnt);
-publish_t *publish_offload(const knode_t *kn, GSList *keys);
-void publish_cancel(publish_t *pb);
+void publisher_add(const sha1_t *sha1);
 
-#endif	/* _dht_publish_h_ */
+#endif	/* _core_publisher_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

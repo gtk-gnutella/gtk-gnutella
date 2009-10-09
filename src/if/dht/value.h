@@ -41,7 +41,7 @@
 typedef enum {
 	DHT_VT_BINARY	= 0x00000000,
 	DHT_VT_ALOC		= FOURCC_NATIVE('A','L','O','C'),	/**< Gnutella alt-loc */
-	DHT_VT_BTAL		= FOURCC_NATIVE('B','T','A','L'),	/**< Bittorrent alt-loc */
+	DHT_VT_BTAL		= FOURCC_NATIVE('B','T','A','L'),	/**< Bittorrent */
 	DHT_VT_GTKG		= FOURCC_NATIVE('G','T','K','G'),
 	DHT_VT_LIME		= FOURCC_NATIVE('L','I','M','E'),
 	DHT_VT_PROX		= FOURCC_NATIVE('P','R','O','X'),
@@ -101,27 +101,22 @@ typedef enum {
 #define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
 #define STORE_SC_EXPIRED		14U	/**< Value has already expired */
 
-/**
- * A DHT value.
- */
-typedef struct {
-	const knode_t *creator;	/**< The creator of the value */
-	kuid_t *id;				/**< The key of the value (atom) */
-	dht_value_type_t type;	/**< Type of values */
-	guint8 major;			/**< Value's major version */
-	guint8 minor;			/**< Value's minor version */
-	guint16 length;			/**< Length of value */
-	gconstpointer data;		/**< The actual data value */
-} dht_value_t;
+struct dht_value;
+typedef struct dht_value dht_value_t;
 
 /*
  * Public interface.
  */
 
+const kuid_t *dht_value_key(const dht_value_t *v);
+const knode_t *dht_value_creator(const dht_value_t *v);
+guint16 dht_value_length(const dht_value_t *v);
+dht_value_type_t dht_value_type(const dht_value_t *v);
+
 const char *dht_store_error_to_string(guint16 errnum);
 
 dht_value_t *dht_value_make(const knode_t *creator,
-	kuid_t *primary_key, dht_value_type_t type,
+	const kuid_t *primary_key, dht_value_type_t type,
 	guint8 major, guint8 minor, gpointer data, guint16 length);
 dht_value_t *dht_value_clone(const dht_value_t *v);
 void dht_value_free(dht_value_t *v, gboolean free_data);

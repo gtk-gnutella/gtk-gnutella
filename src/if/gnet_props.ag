@@ -4171,4 +4171,40 @@ prop = {
     };
 };
 
+prop = {
+	name = "publisher_debug";
+	desc = "Debug level for DHT publishing from Gnutella.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "dht_trace";
+    desc = "Defines which DHT messages should be traced.";
+    type = multichoice;
+    data = {
+        default = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "none";
+        value = SOCK_TRACE_NONE;
+    };
+    choice = {
+        name = "input only";
+        value = SOCK_TRACE_IN;
+    };
+    choice = {
+        name = "output only";
+        value = SOCK_TRACE_OUT;
+    };
+    choice = {
+        name = "input & output";
+        value = SOCK_TRACE_BOTH;
+    };
+};
+
 /* vi: set ts=4: */

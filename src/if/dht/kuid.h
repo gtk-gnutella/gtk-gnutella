@@ -50,6 +50,8 @@ kuid_copy(kuid_t *dest, const kuid_t *other)
  * Public interface.
  */
 
+gboolean kuid_eq(const kuid_t *k1, const kuid_t *k2);
+
 const char *kuid_to_string(const kuid_t *kuid);
 const char *kuid_to_hex_string(const kuid_t *kuid);
 const char *kuid_to_hex_string2(const kuid_t *kuid);

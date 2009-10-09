@@ -146,6 +146,7 @@ RCSID("$Id$")
 #include "kuid.h"
 #include "revent.h"
 #include "tcache.h"
+#include "routing.h"		/* For get_our_kuid() */
 
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
@@ -157,6 +158,7 @@ RCSID("$Id$")
 #include "lib/patricia.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -165,8 +167,10 @@ RCSID("$Id$")
 #define PB_MAX_UDP_DROPS	10		/* Threshold to abort publishing */
 #define PB_MAX_MSG_RETRY	3		/* Max # of timeouts per message */
 #define PB_MAX_TIMEOUTS		7		/* Max # of timeouts per publish */
+#define PB_MAX_FULL			3		/* Terminate after so many "key full" */
 
 #define PB_OFFLOAD_MAX_LIFETIME		600000	/* 10 minutes, in ms */
+#define PB_VALUE_MAX_LIFETIME		240000	/* 4 minutes, in ms */
 
 /**
  * Table keeping track of all the publish objects that we have created
@@ -230,6 +234,16 @@ struct publish {
 			slist_t *keys;		/**< List of keys to offload (KUID atoms) */
 			publish_t *child;	/**< Subordinate publish request */
 		} o;
+		struct {				/**< For PUBLISH_VALUE */
+			knode_t **nodes;	/**< Sorted array of nodes (closest first) */
+			sec_token_t *tokens;	/**< Sorted array of security tokens */
+			dht_value_t *value;	/**< Value to publish */
+			publish_cb_t cb;	/**< Completion callback */
+			gpointer arg;		/**< Additional callback argument */
+			unsigned roots;		/**< Amount of roots in node array */
+			unsigned idx;		/**< Current node index we're publishing to */
+			unsigned full;		/**< Nodes that reported key being full */
+		} v;
 	} target;					/**< STORE targets */
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
 	cevent_t *delay_ev;			/**< Delay event for retries */
@@ -287,6 +301,30 @@ publish_type_to_string(publish_type_t type)
 	}
 
 	return what;
+}
+
+static const char *publish_errstr[] = {
+	"OK",								/**< PUBLISH_E_OK */
+	"Publish cancelled",				/**< PUBLISH_E_CANCELLED */
+	"Outgoing UDP traffic clogged",		/**< PUBLISH_E_UDP_CLOGGED */
+	"Publish expired",					/**< PUBLISH_E_EXPIRED */
+	"Published value is too popular",	/**< PUBLISH_E_POPULAR */
+	"Getting STORE reply errors",		/**< PUBLISH_E_ERROR */
+	"Got no STORE acknowledgement",		/**< PUBLISH_E_NONE */
+};
+
+/**
+ * @return human-readable error string for publish error.
+ */
+const char *
+publish_strerror(publish_error_t error)
+{
+	STATIC_ASSERT(G_N_ELEMENTS(publish_errstr) == PUBLISH_E_MAX);
+
+	if (UNSIGNED(error) >= G_N_ELEMENTS(publish_errstr))
+		return "Invalid publish error code";
+
+	return publish_errstr[error];
 }
 
 /**
@@ -349,13 +387,27 @@ publish_free(publish_t *pb, gboolean can_remove)
 		pmsg_free_null(&pb->target.c.pending);
 		break;
 	case PUBLISH_VALUE:
-		/* XXX */
+		{
+			unsigned i;
+			unsigned count = pb->target.v.roots;
+
+			for (i = 0; i < count; i++) {
+				knode_t *kn = pb->target.v.nodes[i];
+				sec_token_t *tok = &pb->target.v.tokens[i];
+
+				knode_free(kn);
+				WFREE_NULL(tok->v, tok->length);
+			}
+
+			WFREE_NULL(pb->target.v.nodes, count * sizeof(knode_t *));
+			WFREE_NULL(pb->target.v.tokens, count * sizeof(sec_token_t));
+			dht_value_free(pb->target.v.value, TRUE);
+		}
 		break;
 	case PUBLISH_OFFLOAD:
 		knode_free(pb->target.o.kn);
 		slist_free_all(&pb->target.o.keys, free_kuid_atom);
-		if (pb->target.o.token)
-			WFREE_NULL(pb->target.o.token, pb->target.o.toklen);
+		WFREE_NULL(pb->target.o.token, pb->target.o.toklen);
 		break;
 	}
 
@@ -388,19 +440,24 @@ publish_final_stats(publish_t *pb)
  * Terminate the publishing.
  */
 static void
-publish_terminate(publish_t *pb)
+publish_terminate(publish_t *pb, publish_error_t code)
 {
 	publish_check(pb);
 
-	if (GNET_PROPERTY(dht_publish_debug) > 1)
+	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		g_message("DHT PUBLISH[%s] %s "
-			"terminating %s %spublish of %d/%d item%s for %s",
+			"terminating %s %spublish %s %d/%d %s%s for %s: %s",
 			revent_id_to_string(pb->pid),
 			pb->published == pb->cnt ? "OK" : "ERROR",
 			publish_type_to_string(pb->type),
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
-			pb->published, pb->cnt, 1 == pb->cnt ? "" : "s",
-			pb->key ? kuid_to_hex_string(pb->key) : "<no key>");
+			PUBLISH_VALUE == pb->type ? "to" : "of",
+			pb->published, pb->cnt,
+			PUBLISH_VALUE == pb->type ? "root" : "item",
+			1 == pb->cnt ? "" : "s",
+			pb->key ? kuid_to_hex_string(pb->key) : "<no key>",
+			publish_strerror(code));
+	}
 
 	/*
 	 * Update statistics.
@@ -418,7 +475,12 @@ publish_terminate(publish_t *pb)
 		}
 		break;
 	case PUBLISH_VALUE:
-		/* XXX */
+		if (pb->published == pb->cnt) {
+			gnet_stats_count_general(GNR_DHT_PUBLISHING_SUCCESSFUL, 1);
+		} else if (pb->published > 0) {
+			gnet_stats_count_general(
+				GNR_DHT_PUBLISHING_PARTIALLY_SUCCESSFUL, 1);
+		}
 		break;
 	case PUBLISH_OFFLOAD:
 		/* Cancel any subordinate pending request */
@@ -449,8 +511,16 @@ publish_terminate(publish_t *pb)
 			break;
 		case PUBLISH_VALUE:
 		case PUBLISH_OFFLOAD:
-			break;
+			g_assert_not_reached();
 		}
+	}
+
+	/*
+	 * Invoke value publishing callbacks.
+	 */
+
+	if (PUBLISH_VALUE == pb->type) {
+		(*pb->target.v.cb)(pb->target.v.arg, code, pb->published);
 	}
 
 	publish_free(pb, TRUE);
@@ -484,14 +554,23 @@ publish_cancel(publish_t *pb)
 			publish_cancel(pb->target.o.child);
 	}
 
+	/*
+	 * Invoke value publishing callbacks.
+	 */
+
+	if (PUBLISH_VALUE == pb->type) {
+		(*pb->target.v.cb)(pb->target.v.arg,
+			PUBLISH_E_CANCELLED, pb->published);
+	}
+
 	publish_free(pb, TRUE);
 }
 
 /**
- * Expiration timeout.
+ * Expiration timeout on caching requesst.
  */
 static void
-publish_expired(cqueue_t *unused_cq, gpointer obj)
+publish_cache_expired(cqueue_t *unused_cq, gpointer obj)
 {
 	publish_t *pb = obj;
 
@@ -500,7 +579,7 @@ publish_expired(cqueue_t *unused_cq, gpointer obj)
 
 	pb->expire_ev = NULL;
 
-	if (GNET_PROPERTY(dht_publish_debug) > 1)
+	if (GNET_PROPERTY(dht_publish_debug))
 		g_message("DHT PUBLISH[%s] %s%s publish of %d value%s for %s expired",
 			revent_id_to_string(pb->pid),
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
@@ -508,7 +587,7 @@ publish_expired(cqueue_t *unused_cq, gpointer obj)
 			pb->cnt, 1 == pb->cnt ? "" : "s",
 			kuid_to_hex_string(pb->key));
 
-	publish_terminate(pb);
+	publish_terminate(pb, PUBLISH_E_EXPIRED);
 }
 
 /**
@@ -524,13 +603,36 @@ publish_offload_expired(cqueue_t *unused_cq, gpointer obj)
 
 	pb->expire_ev = NULL;
 
-	if (GNET_PROPERTY(dht_publish_debug) > 1)
+	if (GNET_PROPERTY(dht_publish_debug))
 		g_message("DHT PUBLISH[%s] %s publish of %d key%s to %s expired",
 			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
 			pb->cnt, 1 == pb->cnt ? "" : "s",
 			knode_to_string(pb->target.o.kn));
 
-	publish_terminate(pb);
+	publish_terminate(pb, PUBLISH_E_EXPIRED);
+}
+
+/**
+ * Expiration timeout for STORE.
+ */
+static void
+publish_store_expired(cqueue_t *unused_cq, gpointer obj)
+{
+	publish_t *pb = obj;
+
+	(void) unused_cq;
+	publish_check(pb);
+
+	pb->expire_ev = NULL;
+
+	if (GNET_PROPERTY(dht_publish_debug))
+		g_message("DHT PUBLISH[%s] %s publish of %s expired: "
+			"published to %d/%d root%s",
+			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
+			dht_value_to_string(pb->target.v.value),
+			pb->published, pb->cnt, 1 == pb->cnt ? "" : "s");
+
+	publish_terminate(pb, PUBLISH_E_EXPIRED);
 }
 
 /**
@@ -556,9 +658,12 @@ log_status(publish_t *pb)
 		pb->msg_dropped);
 	g_message("DHT PUBLISH[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		revent_id_to_string(pb->pid), pb->bw_incoming, pb->bw_outgoing);
-	g_message("DHT PUBLISH[%s] published %d/%d item%s (%d error%s)",
+	g_message("DHT PUBLISH[%s] published %s%d/%d %s%s (%d error%s)",
 		revent_id_to_string(pb->pid), 
-		pb->published, pb->cnt, 1 == pb->cnt ? "" : "s",
+		PUBLISH_VALUE == pb->type ? "to " : "",
+		pb->published, pb->cnt,
+		PUBLISH_VALUE == pb->type ? "root" : "item",
+		1 == pb->cnt ? "" : "s",
 		pb->errors, 1 == pb->errors ? "" : "s");
 }
 
@@ -650,14 +755,41 @@ publish_delay(publish_t *pb)
 }
 
 /**
+ * Request asynchronous start of the publish, used to make sure callbacks
+ * are never called before we return from a publish creation in case we
+ * have to abort immediately at the first iteration.
+ */
+static void
+publish_async_iterate(publish_t *pb)
+{
+	publish_check(pb);
+
+	g_assert(pb->delay_ev == NULL);
+	g_assert(!(pb->flags & PB_F_DELAYED));
+
+	pb->flags |= PB_F_DELAYED;
+	pb->delay_ev = cq_insert(callout_queue, 1, publish_delay_expired, pb);
+}
+
+/**
  * Handle STORE acknowledgement from node.
+ *
+ * This is common processing code for all types of publishing requests and
+ * does not make any usage of specific items from pb->target.
+ *
+ * @param pb		the publish object
+ * @param kn		node sending the reply
+ * @param payload	payload of the RPC reply
+ * @param len		length of the reply
+ * @param mb		if non-NULL, the STORE message we sent
+ * @param code_ptr	where status code is written back, if non-NULL
  *
  * @return TRUE if OK, FALSE if there is a fatal condition on the node that
  * means we have to stop publishing there.
  */
 static gboolean
 publish_handle_reply(publish_t *pb, const knode_t *kn,
-	const char *payload, size_t len, pmsg_t *mb)
+	const char *payload, size_t len, pmsg_t *mb, guint16 *code_ptr)
 {
 	guint8 published;
 	const kuid_t *id;
@@ -669,8 +801,15 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 	publish_check(pb);
 	knode_check(kn);
 
-	published = values_held(mb);	/* How many values were published */
-	id = first_creator_kuid(mb);	/* Secondary key of first value published */
+	if (mb != NULL) {
+		g_assert(PUBLISH_CACHE == pb->type);
+		published = values_held(mb);	/* # of values we published */
+		id = first_creator_kuid(mb);	/* Secondary key of first value */
+	} else {
+		g_assert(PUBLISH_VALUE == pb->type);
+		published = 1;
+		id = get_our_kuid();
+	}
 
 	/*
 	 * Parse payload to extract value.
@@ -736,6 +875,9 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 			}
 		}
 
+		if (code_ptr != NULL)
+			*code_ptr = status.code;
+
 		/*
 		 * As a sanity check, make sure the first status matches the first
 		 * secondary key we published in the RPC.  If not, something is
@@ -761,7 +903,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 
 			pb->published++;
 		} else {
-			if (GNET_PROPERTY(dht_publish_debug) > 3) {
+			if (GNET_PROPERTY(dht_publish_debug)) {
 				char msg[80];
 				clamp_strncpy(msg, sizeof msg,
 					status.description, status.length);
@@ -786,8 +928,10 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 			switch (status.code) {
 			case STORE_SC_FULL:
 			case STORE_SC_FULL_LOADED:
-			case STORE_SC_BAD_TOKEN:
 			case STORE_SC_EXHAUSTED:
+				goto abort_publishing;
+			case STORE_SC_BAD_TOKEN:
+				tcache_remove(kn->id);
 				goto abort_publishing;
 			default:
 				break;
@@ -825,6 +969,9 @@ bad_status:
 	 * A status code was badly formed.
 	 */
 
+	if (code_ptr != NULL)
+		*code_ptr = STORE_SC_ERROR;
+
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_publish_debug))
 		g_warning("DHT PUBLISH[%s] improper STORE_RESPONSE status code #%u "
 			"from %s: %s%s%s",
@@ -850,6 +997,7 @@ bad:
 	/* FALL THROUGH */
 
 abort_publishing:
+
 	/*
 	 * Something is wrong: either the remote host is returning us error
 	 * conditions that show we cannot continue publishing, or we get
@@ -857,7 +1005,7 @@ abort_publishing:
 	 */
 
 	bstr_free(&bs);
-	return FALSE;		/* Cannot continue */
+	return FALSE;		/* Cannot continue publishing to that node */
 }
 
 /***
@@ -892,17 +1040,14 @@ static void
 pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 {
 	publish_t *pb = obj;
-	pmsg_t *mbp;
 
 	publish_check(pb);
-	g_assert(pb->target.c.pending != NULL);
 	(void) unused_kn;
 
 	/*
 	 * Message was not sent and dropped by the queue.
 	 */
 
-	mbp = pb->target.c.pending;
 	pb->msg_dropped++;
 	pb->udp_drops++;
 
@@ -910,8 +1055,15 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 	 * Move current pending message back at the front of the queue.
 	 */
 
-	pb->target.c.pending = NULL;
-	slist_prepend(pb->target.c.messages, mbp);
+	if (PUBLISH_CACHE == pb->type) {
+		pmsg_t *mbp;
+
+		g_assert(pb->target.c.pending != NULL);
+
+		mbp = pb->target.c.pending;
+		pb->target.c.pending = NULL;
+		slist_prepend(pb->target.c.messages, mbp);
+	}
 
 	/*
 	 * Flag with PB_F_UDP_DROP if we are dropping synchronoustly so that caller
@@ -963,20 +1115,27 @@ pb_rpc_cancelled(gpointer obj, guint32 unused_udata)
 	 */
 
 	if (!(pb->flags & PB_F_SENDING)) {
-		if (pb->udp_drops >= PB_MAX_UDP_DROPS) {
+		if (PUBLISH_CACHE == pb->type && pb->udp_drops >= PB_MAX_UDP_DROPS) {
 			if (GNET_PROPERTY(dht_publish_debug)) {
 				g_message("DHT PUBLISH[%s] terminating after %d UDP drops",
 					revent_id_to_string(pb->pid), pb->udp_drops);
 			}
-			publish_terminate(pb);
-		} else {
-			publish_delay(pb);	/* Delay iteration to let UDP queue flush */
+			publish_terminate(pb, PUBLISH_E_UDP_CLOGGED);
+			return;
 		}
+
+		/*
+		 * Either it's a cache publishing with less that the max amount of
+		 * UDP drops, or it's a value publishing, where we want to try until
+		 * we fully publish or we expire.
+		 */
+
+		publish_delay(pb);	/* Delay iteration to let UDP queue flush */
 	}
 }
 
 static void
-pb_handling_rpc(gpointer obj, enum dht_rpc_ret type,
+pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	const knode_t *unused_kn, guint32 unused_udata)
 {
 	publish_t *pb = obj;
@@ -985,6 +1144,7 @@ pb_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	(void) unused_udata;
 	(void) unused_kn;
 
+	g_assert(PUBLISH_CACHE == pb->type);
 	g_assert(pb->rpc_pending > 0);
 	g_assert(pb->target.c.pending != NULL);
 
@@ -1026,14 +1186,17 @@ pb_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 }
 
 static gboolean
-pb_handle_reply(gpointer obj, const knode_t *kn,
+pb_cache_handle_reply(gpointer obj, const knode_t *kn,
 	kda_msg_t function, const char *payload, size_t len, guint32 udata)
 {
 	publish_t *pb = obj;
 	guint32 hop = udata;
 
 	publish_check(pb);
+	g_assert(PUBLISH_CACHE == pb->type);
 	g_assert(pb->target.c.pending != NULL);
+
+	pb->bw_incoming += len + KDA_HEADER_SIZE;	/* The hell with header ext */
 
 	/*
 	 * If reply comes for an earlier hop, it means we timed-out the RPC before
@@ -1060,7 +1223,6 @@ pb_handle_reply(gpointer obj, const knode_t *kn,
 	 */
 
 	pb->target.c.timeouts = 0;
-	pb->bw_incoming += len + KDA_HEADER_SIZE;	/* The hell with header ext */
 
 	if (function != KDA_MSG_STORE_RESPONSE) {
 		if (GNET_PROPERTY(dht_publish_debug))
@@ -1079,12 +1241,15 @@ pb_handle_reply(gpointer obj, const knode_t *kn,
 	g_assert(KDA_MSG_STORE_RESPONSE == function);
 
 	pb->rpc_replies++;
-	if (!publish_handle_reply(pb, kn, payload, len, pb->target.c.pending)) {
+	if (
+		!publish_handle_reply(pb, kn, payload, len,
+			pb->target.c.pending, NULL)
+	) {
 		if (GNET_PROPERTY(dht_publish_debug) > 1)
 			g_warning("DHT PUBLISH[%s] terminating due to STORE reply errors",
 				revent_id_to_string(pb->pid));
 
-		publish_terminate(pb);
+		publish_terminate(pb, PUBLISH_E_ERROR);
 		return FALSE;
 	}
 
@@ -1092,6 +1257,108 @@ pb_handle_reply(gpointer obj, const knode_t *kn,
 
 iterate:
 	pmsg_free_null(&pb->target.c.pending);
+
+	return TRUE;	/* Iterate */
+}
+
+static void
+pb_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
+	const knode_t *kn, guint32 unused_udata)
+{
+	publish_t *pb = obj;
+
+	publish_check(pb);
+	(void) unused_udata;
+
+	g_assert(PUBLISH_VALUE == pb->type);
+	g_assert(pb->rpc_pending > 0);
+
+	if (GNET_PROPERTY(dht_publish_debug) > 3)
+		log_status(pb);
+
+	pb->rpc_pending--;
+	pb->target.v.idx++;		/* Timeout or not, move to next node */
+
+	/*
+	 * On timeout, we invalidate the token cache for the node because
+	 * it might discard STORE requests coming with an invalid token.
+	 * And if the node is gone, then when it comes back its token will
+	 * be different anyway.
+	 */
+
+	if (type == DHT_RPC_TIMEOUT) {
+		tcache_remove(kn->id);
+	}
+}
+
+static gboolean
+pb_value_handle_reply(gpointer obj, const knode_t *kn,
+	kda_msg_t function, const char *payload, size_t len, guint32 udata)
+{
+	publish_t *pb = obj;
+	guint32 hop = udata;
+	guint16 code;
+
+	publish_check(pb);
+	g_assert(PUBLISH_VALUE == pb->type);
+
+	pb->bw_incoming += len + KDA_HEADER_SIZE;	/* The hell with header ext */
+
+	/*
+	 * If reply comes for an earlier hop, it means we timed-out the RPC before
+	 * the reply could come back.
+	 *
+	 * For now, let's ignore these late RPC replies.
+	 */
+
+	if (pb->hops != hop) {
+		if (GNET_PROPERTY(dht_publish_debug) > 3)
+			g_message("DHT PUBLISH[%s] at hop %u, "
+				"ignoring late RPC reply from hop %u",
+				revent_id_to_string(pb->pid), pb->hops, hop);
+
+		return FALSE;	/* Do not iterate */
+	}
+
+	/*
+	 * We got a reply from the remote node for the latest hop.
+	 * Ensure it is of the correct type.
+	 */
+
+	if (function != KDA_MSG_STORE_RESPONSE) {
+		if (GNET_PROPERTY(dht_publish_debug))
+			g_warning("DHT PUBLISH[%s] hop %u got unexpected %s reply from %s",
+				revent_id_to_string(pb->pid), hop, kmsg_name(function),
+				knode_to_string(kn));
+
+		pb->rpc_bad++;
+		return TRUE;	/* Iterate */
+	}
+
+	/*
+	 * We got a store reply message.
+	 */
+
+	g_assert(KDA_MSG_STORE_RESPONSE == function);
+
+	pb->rpc_replies++;
+	publish_handle_reply(pb, kn, payload, len, NULL, &code);
+
+	switch (code) {
+	case STORE_SC_FULL:
+	case STORE_SC_FULL_LOADED:
+		if (++pb->target.v.full >= PB_MAX_FULL) {
+			if (GNET_PROPERTY(dht_publish_debug)) {
+				g_warning("DHT PUBLISH[%s] terminating due to key being full",
+					revent_id_to_string(pb->pid));
+			}
+			publish_terminate(pb, PUBLISH_E_POPULAR);
+			return FALSE;
+		}
+		break;
+	default:
+		break;
+	}
 
 	return TRUE;	/* Iterate */
 }
@@ -1115,14 +1382,30 @@ static struct revent_ops publish_cache_ops = {
 	"at hop ",				/* udata is the iteration count */
 	GNET_PROPERTY_PTR(dht_publish_debug),	/* debug */
 	publish_is_alive,						/* is_alive */
-	/* message free routine callbacks */
+	/* message free routine callbacks (shared by cache and value publishes) */
 	pb_freeing_msg,				/* freeing_msg */
 	pb_msg_sent,				/* msg_sent */
 	pb_msg_dropped,				/* msg_dropped */
 	pb_rpc_cancelled,			/* rpc_cancelled */
 	/* RPC callbacks */
-	pb_handling_rpc,			/* handling_rpc */
-	pb_handle_reply,			/* handle_reply */
+	pb_cache_handling_rpc,		/* handling_rpc */
+	pb_cache_handle_reply,		/* handle_reply */
+	pb_iterate,					/* iterate */
+};
+
+static struct revent_ops publish_value_ops = {
+	"PUBLISH",				/* name */
+	"at hop ",				/* udata is the iteration count */
+	GNET_PROPERTY_PTR(dht_publish_debug),	/* debug */
+	publish_is_alive,						/* is_alive */
+	/* message free routine callbacks (shared by cache and value publishes) */
+	pb_freeing_msg,				/* freeing_msg */
+	pb_msg_sent,				/* msg_sent */
+	pb_msg_dropped,				/* msg_dropped */
+	pb_rpc_cancelled,			/* rpc_cancelled */
+	/* RPC callbacks */
+	pb_value_handling_rpc,		/* handling_rpc */
+	pb_value_handle_reply,		/* handle_reply */
 	pb_iterate,					/* iterate */
 };
 
@@ -1156,7 +1439,6 @@ publish_cache_send(publish_t *pb, pmsg_t *mb)
 			pb->target.c.timeouts + 1,
 			kuid_to_hex_string(first_creator_kuid(mb)),
 			held, 1 == held ? "" : "s");
-			
 	}
 
 	revent_store(pb->target.c.kn, mb, pb->pid, &publish_cache_ops, pb->hops);
@@ -1180,7 +1462,7 @@ publish_cache_iterate(publish_t *pb)
 	 */
 
 	if (0 == slist_length(pb->target.c.messages)) {
-		publish_terminate(pb);
+		publish_terminate(pb, PUBLISH_E_OK);
 		return;
 	}
 
@@ -1291,7 +1573,7 @@ publish_offload_iterate(publish_t *pb)
 		int valcnt;
 
 		if (0 == slist_length(pb->target.o.keys)) {
-			publish_terminate(pb);
+			publish_terminate(pb, PUBLISH_E_OK);
 			return;
 		}
 
@@ -1333,12 +1615,116 @@ publish_offload_iterate(publish_t *pb)
 }
 
 /**
+ * Send specified message to target.
+ */
+static void
+publish_value_send(publish_t *pb, knode_t *kn, pmsg_t *mb)
+{
+	publish_check(pb);
+	knode_check(kn);
+	g_assert(PUBLISH_VALUE == pb->type);
+
+	/*
+	 * In order to detect synchronous UDP drops, we set the PB_F_SENDING
+	 * and later chech whether PB_F_UDP_DROP was set upon return from
+	 * the sending routine.
+	 */
+
+	pb->flags |= PB_F_SENDING;		/* To detect synchronous UDP drops */
+	pb->hops++;
+	pb->msg_pending++;
+	pb->rpc_pending++;
+
+	if (GNET_PROPERTY(dht_publish_debug) > 3) {
+		g_message("DHT PUBLISH[%s] hop %u sending STORE (%d bytes) "
+			"to node #%u/%u: %s",
+			revent_id_to_string(pb->pid), pb->hops, pmsg_size(mb),
+			pb->target.v.idx + 1, pb->target.v.roots, knode_to_string(kn));
+	}
+
+	revent_store(kn, mb, pb->pid, &publish_value_ops, pb->hops);
+
+	pb->flags &= ~PB_F_SENDING;
+}
+
+/**
+ * Main iteration control for value publishing.
+ */
+static void
+publish_value_iterate(publish_t *pb)
+{
+	pmsg_t *mb;
+	knode_t *kn;
+	sec_token_t *tok;
+	GSList *sl;
+
+	publish_check(pb);
+	g_assert(PUBLISH_VALUE == pb->type);
+
+	/*
+	 * If we have no more messages to send, we're done.
+	 */
+
+	if (
+		pb->target.v.idx >= pb->target.v.roots ||	/* No more nodes */
+		pb->published >= pb->cnt					/* Reached count target */
+	) {
+		publish_terminate(pb, pb->published ? PUBLISH_E_OK : PUBLISH_E_NONE);
+		return;
+	}
+
+	/*
+	 * Build message to send to next node.
+	 */
+
+	tok = &pb->target.v.tokens[pb->target.v.idx];
+	kn = pb->target.v.nodes[pb->target.v.idx];
+
+	if (GNET_PROPERTY(dht_publish_debug) > 4) {
+		static char buf[80];
+		bin_to_hex_buf(tok->v, tok->length, buf, sizeof buf);
+		g_message("DHT PUBLISH[%s] at root %u/%u, "
+			"using %u-byte token \"%s\" for %s",
+			revent_id_to_string(pb->pid), pb->target.v.idx + 1,
+			pb->target.v.roots, tok->length, buf, knode_to_string(kn));
+	}
+
+	sl = kmsg_build_store(tok->v, tok->length, &pb->target.v.value, 1);
+
+	g_assert(sl != NULL);
+	g_assert(g_slist_length(sl) == 1);
+
+	mb = sl->data;
+	g_slist_free(sl);
+
+	/*
+	 * Send message to node.
+	 */
+
+	pb->flags &= ~PB_F_UDP_DROP;		/* To detect synchronous drops */
+	publish_value_send(pb, kn, mb);
+	pmsg_free(mb);
+
+	/*
+	 * If we got hit by synchronous dropping, delay further iteration.
+	 */
+
+	if (pb->flags & PB_F_UDP_DROP)
+		publish_delay(pb);
+}
+
+/**
  * Main iteration control for publishing.
  */
 static void
 publish_iterate(publish_t *pb)
 {
 	publish_check(pb);
+
+	if (!dht_enabled()) {
+		publish_cancel(pb);
+		return;
+	}
 
 	/*
 	 * If a delay was requested, schedule us back in the future.
@@ -1355,8 +1741,8 @@ publish_iterate(publish_t *pb)
 		publish_cache_iterate(pb);
 		return;
 	case PUBLISH_VALUE:
-		/* XXX */
-		break;
+		publish_value_iterate(pb);
+		return;
 	case PUBLISH_OFFLOAD:
 		publish_offload_iterate(pb);
 		return;
@@ -1389,9 +1775,12 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 
 	switch (type) {
 	case PUBLISH_CACHE:
+		pb->expire_ev = cq_insert(callout_queue,
+			PB_MAX_LIFETIME, publish_cache_expired, pb);
+		break;
 	case PUBLISH_VALUE:
 		pb->expire_ev = cq_insert(callout_queue,
-			PB_MAX_LIFETIME, publish_expired, pb);
+			PB_VALUE_MAX_LIFETIME, publish_store_expired, pb);
 		break;
 	case PUBLISH_OFFLOAD:
 		pb->expire_ev = cq_insert(callout_queue,
@@ -1401,9 +1790,11 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		g_message("DHT PUBLISH[%s] "
-			"starting %s publishing of %d item%s for %s",
+			"starting %s publishing %s %d %s%s for %s",
 			revent_id_to_string(pb->pid), publish_type_to_string(pb->type),
-			cnt, 1 == cnt ? "" : "s", kuid_to_hex_string(pb->key));
+			PUBLISH_VALUE == pb->type ? "to" : "of",
+			cnt, PUBLISH_VALUE == pb->type ? "root" : "item",
+			1 == cnt ? "" : "s", kuid_to_hex_string(pb->key));
 	}
 
 	g_hash_table_insert(publishes, &pb->pid, pb);
@@ -1440,7 +1831,7 @@ publish_cache_internal(const kuid_t *key,
 	{
 		int i;
 		for (i = 0; i < vcnt; i++)
-			g_assert(kuid_eq(key, vvec[i]->id));
+			g_assert(kuid_eq(key, dht_value_key(vvec[i])));
 	}
 	g_assert(target != NULL);
 	g_assert(vvec != NULL);
@@ -1514,7 +1905,7 @@ publish_cache(const kuid_t *key,
 	pb = publish_cache_internal(key, target, vvec, vcnt);
 	pb->target.c.cb = NULL;
 
-	publish_iterate(pb);		/* Send first message */
+	publish_async_iterate(pb);
 	return pb;
 }
 
@@ -1534,7 +1925,7 @@ publish_subcache(const kuid_t *key,
 	pb->target.c.arg = arg;
 	pb->flags |= PB_F_SUBORDINATE;
 
-	publish_iterate(pb);		/* Send first message */
+	publish_async_iterate(pb);
 	return pb;
 }
 
@@ -1669,7 +2060,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 	 * the token,
 	 */
 
-	if (tcache_get(kn->id, &toklen, &token)) {
+	if (tcache_get(kn->id, &toklen, &token, NULL)) {
 		if (GNET_PROPERTY(dht_publish_debug) > 1) {
 			g_message("DHT PUBLISH[%s] got %u-byte cached security token "
 				"for %s",
@@ -1691,6 +2082,114 @@ publish_offload(const knode_t *kn, GSList *keys)
 		lookup_ctrl_stats(nl, pb_token_lookup_stats);
 	}
 
+	return pb;
+}
+
+/**
+ * Check whether value should also be published locally.
+ */
+static void
+publish_self(const publish_t *pb)
+{
+	knode_t *closest;
+
+	publish_check(pb);
+	g_assert(PUBLISH_VALUE == pb->type);
+	g_assert(pb->target.v.roots >= 1);
+
+	/*
+	 * We have to publish locally if the key falls within our k-ball or if
+	 * our node is closer to the key than the closest node we could find.
+	 */
+
+	closest = pb->target.v.nodes[0];
+
+	if (
+		-1 == kuid_cmp3(pb->key, get_our_kuid(), closest->id) ||
+		keys_within_kball(pb->key)
+	) {
+		knode_t *ourselves = get_our_knode();
+		guint16 status;
+
+		if (GNET_PROPERTY(dht_publish_debug)) {
+			g_message("DHT PUBLISH[%s] locally publishing %s",
+				revent_id_to_string(pb->pid),
+				dht_value_to_string(pb->target.v.value));
+		}
+
+		status = values_store(ourselves, pb->target.v.value, TRUE);
+
+		if (status != STORE_SC_OK) {
+			if (GNET_PROPERTY(dht_publish_debug)) {
+				g_warning("DHT PUBLISH[%s] local publishing failed: %s",
+					revent_id_to_string(pb->pid),
+					dht_store_error_to_string(status));
+			}
+		}
+	}
+}
+
+/**
+ * Create a new value publishing request at the identified k-closest neighbours.
+ *
+ * @param value		the DHT value to publish (becomes owner of pointer)
+ * @param rs		result set from a lookup_store_nodes() on the key
+ * @param cb		callback to invoke when done
+ * @param arg		additional callback argument
+ */
+publish_t *
+publish_value(dht_value_t *value, const lookup_rs_t *rs,
+	publish_cb_t cb, gpointer arg)
+{
+	publish_t *pb;
+	knode_t **nodes;
+	sec_token_t *tokens;
+	size_t i;
+
+	g_assert(size_is_positive(rs->path_len));
+
+	/*
+	 * Copy over the data from the result set, as it is going to be cleaned
+	 * up as soon as we return.
+	 *
+	 * Note that the ``nodes'' array is an array of pointers, because we
+	 * simply add a refcount to the existing knode_t pointers in the results,
+	 * whereas the ``tokens'' node is an expanded array of structures.
+	 */
+
+	nodes = walloc(rs->path_len * sizeof *nodes);
+	tokens = walloc(rs->path_len * sizeof *tokens);
+
+	for (i = 0; i < rs->path_len; i++) {
+		lookup_rc_t *rc = &rs->path[i];
+		sec_token_t *tok;
+
+		nodes[i] = knode_refcnt_inc(rc->kn);
+		tok = &tokens[i];
+		tok->length = rc->token_len;
+		tok->v = tok->length ? wcopy(rc->token, tok->length) : NULL;
+	}
+
+	/*
+	 * Even though we may have more than KDA_K items in the lookup path,
+	 * we're going to publish to KDA_K at most (if we have that many hosts
+	 * in the path).  This max count is going to be in pb->cnt.
+	 */
+
+	gnet_stats_count_general(GNR_DHT_PUBLISHING_ATTEMPTS, 1);
+
+	pb = publish_create(dht_value_key(value),
+			PUBLISH_VALUE, MIN(rs->path_len, KDA_K));
+
+	pb->target.v.roots = (unsigned) rs->path_len;
+	pb->target.v.nodes = nodes;
+	pb->target.v.tokens = tokens;
+	pb->target.v.value = value;
+	pb->target.v.cb = cb;
+	pb->target.v.arg = arg;
+
+	publish_self(pb);
+	publish_async_iterate(pb);
 	return pb;
 }
 

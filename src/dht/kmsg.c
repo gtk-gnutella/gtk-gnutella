@@ -180,7 +180,7 @@ kmsg_handle(knode_t *kn,
 	if (GNET_PROPERTY(dht_debug > 1)) {
 		g_message("DHT got %s from %s",
 			kmsg_infostr(header), knode_to_string(kn));
-		if (len && GNET_PROPERTY(dht_debug > 19))
+		if (len && (GNET_PROPERTY(dht_trace) & SOCK_TRACE_IN))
 			dump_hex(stderr, "UDP payload", payload, len);
 		
 	}
@@ -322,7 +322,7 @@ serialize_size_estimate(pmsg_t *mb)
 /**
  * Serialize a contact to message block.
  */
-static void
+void
 kmsg_serialize_contact(pmsg_t *mb, const knode_t *kn)
 {
 	pmsg_write_be32(mb, kn->vcode.u32);
@@ -374,75 +374,6 @@ kmsg_deserialize_contact(bstr_t *bs)
 		return NULL;
 
 	return knode_new(&kuid, 0, addr, port, vcode, major, minor);
-}
-
-/**
- * Serialize a DHT value.
- */
-static void
-serialize_dht_value(pmsg_t *mb, const dht_value_t *v)
-{
-	/* DHT value header */
-	kmsg_serialize_contact(mb, v->creator);
-	pmsg_write(mb, v->id, KUID_RAW_SIZE);
-	pmsg_write_be32(mb, v->type);
-	pmsg_write_u8(mb, v->major);
-	pmsg_write_u8(mb, v->minor);
-	pmsg_write_be16(mb, v->length);
-
-	/* DHT value data */
-	if (v->length)
-		pmsg_write(mb, v->data, v->length);
-}
-
-/**
- * Deserialize a DHT value.
- *
- * @return the deserialized DHT value, or NULL if an error occurred.
- */
-dht_value_t *
-kmsg_deserialize_dht_value(bstr_t *bs)
-{
-	dht_value_t *dv;
-	kuid_t id;
-	knode_t *creator;
-	guint8 major, minor;
-	guint16 length;
-	gpointer data = NULL;
-	guint32 type;
-
-	creator = kmsg_deserialize_contact(bs);
-	if (!creator)
-		return NULL;
-
-	bstr_read(bs, id.v, KUID_RAW_SIZE);
-	bstr_read_be32(bs, &type);
-	bstr_read_u8(bs, &major);
-	bstr_read_u8(bs, &minor);
-	bstr_read_be16(bs, &length);
-
-	if (bstr_has_error(bs))
-		goto error;
-
-	if (length && length <= DHT_VALUE_MAX_LEN) {
-		data = walloc(length);
-		bstr_read(bs, data, length);
-	} else {
-		bstr_skip(bs, length);
-	}
-
-	if (bstr_has_error(bs))
-		goto error;
-
-	dv = dht_value_make(creator, &id, type, major, minor, data, length);
-	knode_free(creator);
-	return dv;
-
-error:
-	knode_free(creator);
-	if (data)
-		wfree(data, length);
-	return NULL;
 }
 
 /**
@@ -573,21 +504,6 @@ k_send_find_node_response(
 }
 
 /**
- * qsort() callback to compare two DHT values on a length basis.
- */
-static int
-dht_value_cmp(const void *a, const void *b)
-{
-	const dht_value_t * const *pa = a;
-	const dht_value_t * const *pb = b;
-	const dht_value_t *va = *pa;
-	const dht_value_t *vb = *pb;
-
-	return va->length == vb->length ? 0 :
-		va->length < vb->length ? -1 : +1;
-}
-
-/**
  * Send back response to find_value(id).
  *
  * @param n			where to send the response to
@@ -664,7 +580,7 @@ k_send_find_value_response(
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
 		dht_value_t *v = vvec[i];
-		size_t value_size = DHT_VALUE_HEADER_SIZE + v->length;
+		size_t value_size = DHT_VALUE_HEADER_SIZE + dht_value_length(v);
 
 		g_assert((size_t) pmsg_available(mb) >= secondary_size);
 
@@ -678,9 +594,9 @@ k_send_find_value_response(
 		}
 
 		/* That's the specs and the 61 above depends on the following... */
-		g_assert(NET_TYPE_IPV4 == host_addr_net(v->creator->addr));
+		g_assert(NET_TYPE_IPV4 == host_addr_net(dht_value_creator(v)->addr));
 
-		serialize_dht_value(mb, v);
+		dht_value_serialize(mb, v);
 		values++;
 
 		if (GNET_PROPERTY(dht_debug) > 4)
@@ -707,7 +623,7 @@ k_send_find_value_response(
 		pmsg_write_u8(mb, remain);
 		for (/* empty */; i < vlen; i++) {
 			dht_value_t *v = vvec[i];
-			pmsg_write(mb, v->creator->id, KUID_RAW_SIZE);
+			pmsg_write(mb, dht_value_creator(v)->id, KUID_RAW_SIZE);
 			secondaries++;
 
 			if (GNET_PROPERTY(dht_debug) > 4)
@@ -815,8 +731,8 @@ k_send_store_response(
 			break;
 
 		/* Serialize status */
-		pmsg_write(mb, vec[i]->id->v, KUID_RAW_SIZE);
-		pmsg_write(mb, vec[i]->creator->id->v, KUID_RAW_SIZE);
+		pmsg_write(mb, dht_value_key(vec[i])->v, KUID_RAW_SIZE);
+		pmsg_write(mb, dht_value_creator(vec[i])->id->v, KUID_RAW_SIZE);
 		pmsg_write_be16(mb, status[i]);
 		pmsg_write_be16(mb, 0);		/* Aren't we verbose enough already? */
 	}
@@ -1210,7 +1126,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	vec = walloc(values * sizeof *vec);
 
 	for (i = 0; i < values; i++) {
-		dht_value_t *v = kmsg_deserialize_dht_value(bs);
+		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
 			gm_snprintf(msg, sizeof msg,
@@ -1230,8 +1146,11 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 		 * need to bother.
 		 */
 
-		if ((kn->flags & KNODE_F_PCONTACT) && kuid_eq(kn->id, v->creator->id)) {
-			knode_t *cn = deconstify_gpointer(v->creator);
+		if (
+			(kn->flags & KNODE_F_PCONTACT) &&
+			kuid_eq(kn->id, dht_value_creator(v)->id)
+		) {
+			knode_t *cn = deconstify_gpointer(dht_value_creator(v));
 
 			if (GNET_PROPERTY(dht_storage_debug))
 				g_warning(
@@ -1534,7 +1453,7 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 		int len = pmsg_size(mb);
 		g_message("DHT sending %s (%d bytes) to %s, RTT=%u",
 			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn), kn->rtt);
-		if (GNET_PROPERTY(dht_debug) > 19)
+		if (GNET_PROPERTY(dht_trace) & SOCK_TRACE_OUT)
 			dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
 	}
 
@@ -1695,7 +1614,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
-		size_t value_size = DHT_VALUE_HEADER_SIZE + v->length;
+		size_t value_size = DHT_VALUE_HEADER_SIZE + dht_value_length(v);
 
 		/*
 		 * If value does not fit in message, flush the current one.
@@ -1752,7 +1671,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 
 		g_assert(UNSIGNED(pmsg_available(mb)) >= value_size);
 
-		serialize_dht_value(mb, v);
+		dht_value_serialize(mb, v);
 		vheld++;
 	}
 

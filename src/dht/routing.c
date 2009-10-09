@@ -77,6 +77,7 @@ RCSID("$Id$")
 #include "core/gnet_stats.h"
 #include "core/guid.h"
 #include "core/nodes.h"
+#include "core/sockets.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -93,6 +94,7 @@ RCSID("$Id$")
 #include "lib/stats.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
+#include "lib/vendors.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -421,15 +423,6 @@ dht_seeded(void)
 }
 
 /**
- * Is the DHT enabled?
- */
-gboolean
-dht_enabled(void)
-{
-	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht);
-}
-
-/**
  * Compute the hash list storing nodes with a given status.
  */
 static inline hash_list_t *
@@ -587,6 +580,22 @@ kuid_t *
 get_our_kuid(void)
 {
 	return our_kuid;
+}
+
+/**
+ * Get our Kademlia node, with an IPv4 listening address.
+ */
+knode_t *
+get_our_knode(void)
+{
+	vendor_code_t gtkg;
+
+	gtkg.u32 = T_GTKG;
+
+	return knode_new(our_kuid,
+		GNET_PROPERTY(is_udp_firewalled) ? KDA_MSG_F_FIREWALLED : 0,
+		listen_addr(), socket_listen_port(), gtkg,
+		KDA_VERSION_MAJOR, KDA_VERSION_MINOR);
 }
 
 /*

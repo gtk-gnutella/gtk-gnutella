@@ -407,6 +407,8 @@ extern const guint32  gnet_property_variable_ctl_debug;
 extern const gboolean gnet_property_variable_log_dropped_gnutella;
 extern const guint32  gnet_property_variable_whitelist_debug;
 extern const guint32  gnet_property_variable_dht_tcache_debug;
+extern const guint32  gnet_property_variable_publisher_debug;
+extern const guint32  gnet_property_variable_dht_trace;
 
 
 prop_set_t *gnet_prop_init(void);

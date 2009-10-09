@@ -27,7 +27,7 @@
  * @ingroup core
  * @file
  *
- * Gnutella DHT interface.
+ * Gnutella DHT "get" interface.
  *
  * @author Raphael Manfredi
  * @date 2008
@@ -116,8 +116,8 @@ guid_lookup_check(const struct guid_lookup *glk)
  *
  * @return KUID atom for SHA1 lookup: KUID = SHA1.
  */
-static kuid_t *
-kuid_from_sha1(const sha1_t *sha1)
+const kuid_t *
+gdht_kuid_from_sha1(const sha1_t *sha1)
 {
 	return kuid_get_atom((const kuid_t *) sha1);	/* Identity */
 }
@@ -127,8 +127,8 @@ kuid_from_sha1(const sha1_t *sha1)
  *
  * @return KUID atom for GUID lookup: KUID = SHA1(GUID).
  */
-static const kuid_t *
-kuid_from_guid(const struct guid *guid)
+const kuid_t *
+gdht_kuid_from_guid(const guid_t *guid)
 {
 	SHA1Context ctx;
 	struct sha1 digest;
@@ -457,7 +457,7 @@ gdht_find_sha1(const fileinfo_t *fi)
 
 	slk = walloc(sizeof *slk);
 	slk->magic = SHA1_LOOKUP_MAGIC;
-	slk->id = kuid_from_sha1(fi->sha1);
+	slk->id = gdht_kuid_from_sha1(fi->sha1);
 	slk->fi_guid = atom_guid_get(fi->guid);
 
 	/*
@@ -712,7 +712,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
  * Launch a GUID lookup in the DHT to collect push proxies for a server.
  */
 void
-gdht_find_guid(const struct guid *guid, const host_addr_t addr, guint16 port)
+gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
 {
 	struct guid_lookup *glk;
 
@@ -722,7 +722,7 @@ gdht_find_guid(const struct guid *guid, const host_addr_t addr, guint16 port)
 
 	glk = walloc(sizeof *glk);
 	glk->magic = GUID_LOOKUP_MAGIC;
-	glk->id = kuid_from_guid(guid);
+	glk->id = gdht_kuid_from_guid(guid);
 	glk->guid = atom_guid_get(guid);
 	glk->addr = addr;
 	glk->port = port;
@@ -799,9 +799,11 @@ gdht_close(void)
 {
 	g_hash_table_foreach(sha1_lookups, free_sha1_lookups_kv, NULL);
 	g_hash_table_destroy(sha1_lookups);
+	sha1_lookups = NULL;
 
 	g_hash_table_foreach(guid_lookups, free_guid_lookups_kv, NULL);
 	g_hash_table_destroy(guid_lookups);
+	guid_lookups = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
