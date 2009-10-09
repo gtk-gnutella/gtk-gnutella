@@ -237,6 +237,7 @@ general_type_str(gint value)
 		N_("DHT publishing attempts"),
 		N_("DHT publishing ended successfully"),
 		N_("DHT publishing partially completed"),
+		N_("DHT value republishing occurring too late (after expiry)"),
 		N_("DHT alt-loc lookups issued"),
 		N_("DHT push-proxy lookups issued"),
 		N_("DHT successful alt-loc lookups"),

@@ -48,9 +48,11 @@ RCSID("$Id$")
 #include "share.h"
 #include "pdht.h"
 #include "dmesh.h"
+#include "gnet_stats.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
+#include "if/core/net_stats.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -188,11 +190,16 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 			delay = MAX(delay, PUBLISH_SAFETY);
 
 			if (pe->last_publish && roots > 0) {
+				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+
 				if (GNET_PROPERTY(publisher_debug) > 2) {
 					g_message("PUBLISHER SHA-1 %s was republished "
 						"after %d secs", sha1_to_string(pe->sha1),
-						(int) delta_time(tm_time(), pe->last_publish));
+						(int) elapsed);
 				}
+
+				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+					gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
 			}
 
 			if (GNET_PROPERTY(publisher_debug) > 3) {
