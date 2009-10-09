@@ -404,6 +404,7 @@ halloc_init_vtable(void)
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 static gboolean replacing_malloc;
+static gboolean halloc_is_compiled = TRUE;
 
 void
 halloc_init(gboolean replace_malloc)
@@ -437,6 +438,8 @@ halloc_replaces_malloc(void)
 }
 #else	/* REMAP_ZALLOC || TRACK_MALLOC */
 
+static gboolean halloc_is_compiled = FALSE;
+
 void
 halloc_init(gboolean unused_replace_malloc)
 {
@@ -452,6 +455,12 @@ halloc_replaces_malloc(void)
 }
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
+
+gboolean
+halloc_is_available(void)
+{
+	return halloc_is_compiled;
+}
 
 size_t
 halloc_bytes_allocated(void)

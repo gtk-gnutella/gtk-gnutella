@@ -67,6 +67,7 @@ char *h_strdup_printf(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void halloc_init(gboolean replace_malloc);
 void hdestroy(void);
 gboolean halloc_replaces_malloc(void);
+gboolean halloc_is_available(void);
 
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
