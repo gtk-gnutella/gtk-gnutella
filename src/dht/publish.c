@@ -2126,6 +2126,8 @@ publish_self(const publish_t *pb)
 					dht_store_error_to_string(status));
 			}
 		}
+
+		knode_free(ourselves);
 	}
 }
 
