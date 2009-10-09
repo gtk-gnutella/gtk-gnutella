@@ -51,10 +51,19 @@ RCSID("$Id$")
 
 #define T_KEYS				2		/* Amount of keys we manage */
 #define T_FW_PORT			65535	/* Port used for firewalled nodes */
-#define T_REFRESH_PERIOD_MS	(31*60*1000)	/* 31 minutes in ms */
+#define T_REFRESH_PERIOD_MS	(181*60*1000)	/* 3 hours + 1 minute in ms */
 
 static tea_key_t keys[T_KEYS];		/**< Rotating set of keys */
 static cevent_t *rotate_ev;			/**< Rotate event */
+
+/**
+ * @return lifetime in seconds of the security tokens we generate.
+ */
+time_delta_t
+token_lifetime(void)
+{
+	return T_REFRESH_PERIOD_MS / 1000 * T_KEYS;
+}
 
 /**
  * Create a 4-byte security token from host address and port.

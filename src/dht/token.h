@@ -37,6 +37,7 @@
 #define _dht_token_h_
 
 #include "knode.h"
+#include "lib/tm.h"				/* For time_delta_t */
 
 #define TOKEN_RAW_SIZE		4
 
@@ -61,6 +62,8 @@ typedef struct sec_token {
 
 void token_init(void);
 void token_close(void);
+
+time_delta_t token_lifetime(void);
 
 void token_generate(token_t *tok, const knode_t *kn);
 gboolean token_is_valid(const token_t *tok, const knode_t *kn);
