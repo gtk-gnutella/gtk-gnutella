@@ -238,6 +238,24 @@ storage_open(const char *name, const char *base,
 }
 
 /**
+ * Synchronize a DBMW database, flushing its SDBM cache.
+ */
+void
+storage_sync(dbmw_t *dw)
+{
+	ssize_t n;
+
+	n = dbmw_sync(dw, DBMW_SYNC_MAP);
+	if (-1 == n) {
+		g_warning("DHT could not synchronize DBMW \"%s\": %s",
+			dbmw_name(dw), g_strerror(errno));
+	} else if (n && GNET_PROPERTY(dht_debug) > 1) {
+		g_message("DHT flushed %u SDBM page%s in DBMW \"%s\"",
+			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dw));
+	}
+}
+
+/**
  * Close DM map, keeping the SDBM file around.
  *
  * If the map was held in memory, it is serialized to disk.

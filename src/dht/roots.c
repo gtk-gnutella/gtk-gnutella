@@ -882,24 +882,6 @@ remove_orphan(gpointer key, gpointer u_value, size_t u_len, gpointer data)
 }
 
 /**
- * Synchronize a DBMW database, flushing the SDBM cache.
- */
-static void
-roots_sync_db(dbmw_t *dm)
-{
-	ssize_t n;
-
-	n = dbmw_sync(dm, DBMW_SYNC_MAP);
-	if (-1 == n) {
-		g_warning("DHT ROOTS could not synchronize DBMW \"%s\": %s",
-			dbmw_name(dm), g_strerror(errno));
-	} else if (n && GNET_PROPERTY(dht_roots_debug) > 1) {
-		g_message("DHT ROOTS flushed %u SDBM page%s in DBMW \"%s\"",
-			(unsigned) n, 1 == n ? "" : "s", dbmw_name(dm));
-	}
-}
-
-/**
  * Periodic DB synchronization.
  */
 static gboolean
@@ -907,8 +889,9 @@ roots_sync(gpointer unused_obj)
 {
 	(void) unused_obj;
 
-	roots_sync_db(db_rootdata);
-	roots_sync_db(db_contact);
+	storage_sync(db_rootdata);
+	storage_sync(db_contact);
+
 	return TRUE;
 }
 

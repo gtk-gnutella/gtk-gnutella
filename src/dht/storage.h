@@ -53,6 +53,7 @@ dbmw_t *storage_open(const char *name, const char *base,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
 
+void storage_sync(dbmw_t *dw);
 void storage_close(dbmw_t *dw, const char *base);
 void storage_delete(dbmw_t *dw);
 
