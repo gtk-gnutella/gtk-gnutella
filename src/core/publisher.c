@@ -58,8 +58,10 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -171,9 +173,21 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 	publisher_check(pe);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PUBLISHER SHA-1 %s published to %u node%s: %s",
-			sha1_to_string(pe->sha1), roots, 1 == roots ? "" : "s",
-			pdht_strerror(code));
+		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
+		char after[80];
+
+		after[0] = '\0';
+		if (pe->last_publish) {
+			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+			gm_snprintf(after, sizeof after, " after %d secs", (int) elapsed);
+		}
+
+		g_message("PUBLISHER SHA-1 %s \"%s\" %spublished to %u node%s%s: %s"
+			" (took %s)", sha1_to_string(pe->sha1),
+			(sf && sf != SHARE_REBUILDING) ? shared_file_name_canonic(sf) : "",
+			pe->last_publish ? "re" : "",
+			roots, 1 == roots ? "" : "s", after, pdht_strerror(code),
+			compact_time(delta_time(tm_time(), pe->last_enqueued)));
 	}
 
 	switch (code) {
@@ -191,12 +205,6 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 
 			if (pe->last_publish && roots > 0) {
 				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
-
-				if (GNET_PROPERTY(publisher_debug) > 2) {
-					g_message("PUBLISHER SHA-1 %s was republished "
-						"after %d secs", sha1_to_string(pe->sha1),
-						(int) elapsed);
-				}
 
 				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
 					gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
