@@ -1298,6 +1298,7 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 	publish_t *pb = obj;
 	guint32 hop = udata;
 	guint16 code;
+	gboolean can_iterate = TRUE;
 
 	publish_check(pb);
 	g_assert(PUBLISH_VALUE == pb->type);
@@ -1308,20 +1309,23 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 	 * If reply comes for an earlier hop, it means we timed-out the RPC before
 	 * the reply could come back.
 	 *
-	 * For now, let's ignore these late RPC replies.
+	 * We're not going to iterate if we get a late reply, but still we
+	 * want to process the message to see whether the value was published
+	 * or not.
 	 */
 
 	if (pb->hops != hop) {
-		if (GNET_PROPERTY(dht_publish_debug) > 3)
+		if (GNET_PROPERTY(dht_publish_debug)) {
 			g_message("DHT PUBLISH[%s] at hop %u, "
-				"ignoring late RPC reply from hop %u",
-				revent_id_to_string(pb->pid), pb->hops, hop);
-
-		return FALSE;	/* Do not iterate */
+				"got late STORE RPC reply from hop %u by %s",
+				revent_id_to_string(pb->pid), pb->hops, hop,
+				knode_to_string(kn));
+		}
+		can_iterate = FALSE;	/* Do not iterate */
 	}
 
 	/*
-	 * We got a reply from the remote node for the latest hop.
+	 * We got a reply from the remote node.
 	 * Ensure it is of the correct type.
 	 */
 
@@ -1332,7 +1336,7 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 				knode_to_string(kn));
 
 		pb->rpc_bad++;
-		return TRUE;	/* Iterate */
+		return can_iterate;
 	}
 
 	/*
@@ -1340,6 +1344,12 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 	 */
 
 	g_assert(KDA_MSG_STORE_RESPONSE == function);
+
+	/*
+	 * We count the amount of replies because, regardless of whether we got
+	 * a successful status or an error back, we must not attempt to store
+	 * values beyond the k-closest alive nodes.
+	 */
 
 	pb->rpc_replies++;
 	publish_handle_reply(pb, kn, payload, len, NULL, &code);
@@ -1353,14 +1363,14 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 					revent_id_to_string(pb->pid));
 			}
 			publish_terminate(pb, PUBLISH_E_POPULAR);
-			return FALSE;
+			return FALSE;		/* Do not iterate, publish was terminated */
 		}
 		break;
 	default:
 		break;
 	}
 
-	return TRUE;	/* Iterate */
+	return can_iterate;
 }
 
 static void
@@ -1667,9 +1677,9 @@ publish_value_iterate(publish_t *pb)
 
 	if (
 		pb->target.v.idx >= pb->target.v.roots ||	/* No more nodes */
-		pb->published >= pb->cnt					/* Reached count target */
+		pb->rpc_replies >= pb->cnt					/* Reached count target */
 	) {
-		publish_terminate(pb, pb->published ? PUBLISH_E_OK : PUBLISH_E_NONE);
+		publish_terminate(pb, pb->rpc_replies ? PUBLISH_E_OK : PUBLISH_E_NONE);
 		return;
 	}
 
@@ -2091,23 +2101,25 @@ publish_offload(const knode_t *kn, GSList *keys)
 static void
 publish_self(const publish_t *pb)
 {
-	knode_t *closest;
+	knode_t *kth_node;
+	unsigned idx;
 
 	publish_check(pb);
 	g_assert(PUBLISH_VALUE == pb->type);
 	g_assert(pb->target.v.roots >= 1);
 
 	/*
-	 * We have to publish locally if the key falls within our k-ball or if
-	 * our node is closer to the key than the closest node we could find.
+	 * We have to publish locally if our node is closer to the key than the
+	 * KDA_K-th  node in the STORE set.
 	 */
 
-	closest = pb->target.v.nodes[0];
+	idx = MIN(pb->target.v.roots, KDA_K) - 1;
 
-	if (
-		-1 == kuid_cmp3(pb->key, get_our_kuid(), closest->id) ||
-		keys_within_kball(pb->key)
-	) {
+	g_assert(uint_is_non_negative(idx) && idx < pb->target.v.roots);
+
+	kth_node = pb->target.v.nodes[idx];
+
+	if (-1 == kuid_cmp3(pb->key, get_our_kuid(), kth_node->id)) {
 		knode_t *ourselves = get_our_knode();
 		guint16 status;
 
