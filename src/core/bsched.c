@@ -2482,7 +2482,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 	 * period, forget it: allow a full period at the nominal new settings.
 	 */
 
-	/* Forllowing is the overused "EMA" */
+	/* Following is the overused "EMA" */
 	correction = bs->bw_ema - bs->bw_stolen_ema - theoric;
 	correction = MAX(correction, overused);
 
