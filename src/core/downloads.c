@@ -6505,9 +6505,22 @@ download_auto_new(const char *file_name,
 	 */
 
 	if (was_orphan && 0 != fi->refcount) {
-		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
+		gboolean from_qhit;
+
+		/*
+		 * If the GUID is blank then we're most certainly not processing
+		 * a query hit.  We were an orphan, meaning there was no download
+		 * running, and this is not the path for DHT seeding, so it can only
+		 * come from an upload, seeding us via an X-Alt line.
+		 */
+
+		from_qhit = !guid_is_blank(guid);
+		gnet_stats_count_general(from_qhit ?
+			GNR_QHIT_SEEDING_OF_ORPHAN : GNR_UPLOAD_SEEDING_OF_ORPHAN, +1);
+
 		if (GNET_PROPERTY(download_debug))
-			g_message("QHIT seeding of orphan \"%s\" with %s:%u", file_name,
+			g_message("%s seeding of orphan \"%s\" with %s:%u",
+				from_qhit ? "QHIT" : "UPLOAD", file_name,
 				hostname ? hostname : host_addr_to_string(addr), port);
 	}
 }
