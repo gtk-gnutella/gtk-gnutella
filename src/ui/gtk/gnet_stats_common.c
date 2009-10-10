@@ -190,6 +190,7 @@ general_type_str(gint value)
 		N_("DHT routing table promoted pending nodes"),
 		N_("DHT routing table pinged promoted nodes"),
 		N_("DHT completed bucket refreshes"),
+		N_("DHT forced bucket refreshes"),
 		N_("DHT denied non-splitable bucket refresh"),
 		N_("DHT initiated bucket alive checks"),
 		N_("DHT alive pings sent to good nodes"),

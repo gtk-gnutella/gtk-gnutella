@@ -206,6 +206,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_routing_promoted_pending_nodes",
 	"dht_routing_pinged_promoted_nodes",
 	"dht_completed_bucket_refresh",
+	"dht_forced_bucket_refresh",
 	"dht_denied_unsplitable_bucket_refresh",
 	"dht_bucket_alive_check",
 	"dht_alive_pings_to_good_nodes",

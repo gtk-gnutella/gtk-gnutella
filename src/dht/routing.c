@@ -912,7 +912,7 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
  * Issue a bucket refresh, if needed.
  */
 static void
-dht_bucket_refresh(struct kbucket *kb)
+dht_bucket_refresh(struct kbucket *kb, gboolean forced)
 {
 	kuid_t id;
 
@@ -924,8 +924,9 @@ dht_bucket_refresh(struct kbucket *kb)
 
 	if (boot_status != BOOT_COMPLETED) {
 		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT not fully bootstrapped, denying refresh of %s "
+			g_warning("DHT not fully bootstrapped, denying %srefresh of %s "
 				"(good: %u, stale: %u, pending: %u)",
+				forced ? "forced " : "",
 				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
 				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
 		return;
@@ -941,19 +942,26 @@ dht_bucket_refresh(struct kbucket *kb)
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
 		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
 		if (GNET_PROPERTY(dht_debug))
-			g_message("DHT denying refresh of non-splitable full %s "
+			g_message("DHT denying %srefresh of non-splitable full %s "
 				"(good: %u, stale: %u, pending: %u)",
+				forced ? "forced " : "",
 				kbucket_to_string(kb), list_count(kb, KNODE_GOOD),
 				list_count(kb, KNODE_STALE), list_count(kb, KNODE_PENDING));
 		return;
 	}
 
-	if (GNET_PROPERTY(dht_debug))
-		g_message("DHT initiating refresh of %ssplitable %s "
+	if (GNET_PROPERTY(dht_debug)) {
+		g_message("DHT initiating %srefresh of %ssplitable %s "
 			"(good: %u, stale: %u, pending: %u)",
+			forced ? "forced " : "",
 			is_splitable(kb) ? "" : "non-", kbucket_to_string(kb),
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 			list_count(kb, KNODE_PENDING));
+	}
+
+	if (forced) {
+		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_REFRESH, 1);
+	}
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -972,9 +980,12 @@ dht_bucket_refresh(struct kbucket *kb)
 	 * We're more aggressive for our k-bucket because we do not want to
 	 * end the lookup when we have k items in our path: we really want
 	 * to find the closest node we can.
+	 *
+	 * Likewise for forced refreshes, we want to converge to the random KUID
+	 * in order to hopefully fill the bucket, somehow.
 	 */
 
-	if (kb->ours)
+	if (kb->ours || forced)
 		(void) lookup_find_node(&id, NULL, bucket_refresh_status, kb);
 	else
 		(void) lookup_bucket_refresh(&id, bucket_refresh_status, kb);
@@ -2311,12 +2322,27 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 
 	install_alive_check(kb);
 
-	if (GNET_PROPERTY(dht_debug))
+	if (GNET_PROPERTY(dht_debug)) {
 		g_message("DHT starting alive check on %s "
 			"(good: %u, stale: %u, pending: %u)",
 			kbucket_to_string(kb),
 			list_count(kb, KNODE_GOOD), list_count(kb, KNODE_STALE),
 			list_count(kb, KNODE_PENDING));
+	}
+
+	/*
+	 * If there are less than half the maximum amount of good nodes in the
+	 * bucket, force a bucket refresh.
+	 */
+
+	if (list_count(kb, KNODE_GOOD) < K_BUCKET_GOOD / 2) {
+		if (GNET_PROPERTY(dht_debug)) {
+			g_message("DHT forcing refresh of %s %s",
+				0 == list_count(kb, KNODE_GOOD) ? "empty" : "depleted",
+				kbucket_to_string(kb));
+		}
+		dht_bucket_refresh(kb, TRUE);
+	}
 
 	/*
 	 * Ping only the good contacts from which we haven't heard since the
@@ -2377,7 +2403,7 @@ bucket_refresh(cqueue_t *unused_cq, gpointer obj)
 	kb->nodes->last_lookup = tm_time();
 	install_bucket_refresh(kb);
 
-	dht_bucket_refresh(kb);
+	dht_bucket_refresh(kb, FALSE);
 }
 
 /**
