@@ -329,7 +329,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_warning("PDHT ALOC cannot construct DHT value for %s \"%s\"",
 				shared_file_is_partial(sf) ? "partial" : "shared",
-				shared_file_name_canonic(sf));
+				shared_file_name_nfc(sf));
 		}
 
 		wfree(value, DHT_VALUE_MAX_LEN);
@@ -372,7 +372,7 @@ pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 		g_message("PDHT ALOC found %lu publish root%s for %s \"%s\"",
 			(unsigned long) roots, 1 == roots ? "" : "s",
 			shared_file_is_partial(sf) ? "partial" : "shared",
-			shared_file_name_canonic(sf));
+			shared_file_name_nfc(sf));
 	}
 
 	/*
@@ -388,7 +388,7 @@ pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_warning("PDHT ALOC cannot publish %s \"%s\": no longer shared",
 				shared_file_is_partial(sf) ? "partial" : "shared",
-				shared_file_name_canonic(sf));
+				shared_file_name_nfc(sf));
 		}
 
 		pdht_publish_error(pp, PDHT_E_NOT_SHARED);
@@ -427,7 +427,7 @@ pdht_aloc_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_message("PDHT ALOC publish roots lookup failed for %s \"%s\": %s",
 			shared_file_is_partial(paloc->sf) ? "partial" : "shared",
-			shared_file_name_canonic(paloc->sf), lookup_strerror(error));
+			shared_file_name_nfc(paloc->sf), lookup_strerror(error));
 	}
 
 	switch (error) {
@@ -540,7 +540,7 @@ error:
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_warning("PDHT will not publish ALOC for %s \"%s\": %s",
 			shared_file_is_partial(sf) ? "partial" : "shared",
-			shared_file_name_canonic(sf), error);
+			shared_file_name_nfc(sf), error);
 	}
 
 	/*

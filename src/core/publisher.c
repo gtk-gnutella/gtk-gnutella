@@ -175,19 +175,23 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
 		char after[80];
+		const char *late = "";
 
 		after[0] = '\0';
 		if (pe->last_publish) {
 			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
-			gm_snprintf(after, sizeof after, " after %d secs", (int) elapsed);
+			gm_snprintf(after, sizeof after,
+				" after %s", compact_time(elapsed));
+			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+				late = "late, ";
 		}
 
 		g_message("PUBLISHER SHA-1 %s \"%s\" %spublished to %u node%s%s: %s"
-			" (took %s)", sha1_to_string(pe->sha1),
-			(sf && sf != SHARE_REBUILDING) ? shared_file_name_canonic(sf) : "",
+			" (%stook %s)", sha1_to_string(pe->sha1),
+			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
 			roots, 1 == roots ? "" : "s", after, pdht_strerror(code),
-			compact_time(delta_time(tm_time(), pe->last_enqueued)));
+			late, compact_time(delta_time(tm_time(), pe->last_enqueued)));
 	}
 
 	switch (code) {
@@ -296,8 +300,9 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (dmesh_count(pe->sha1) > PUBLISH_DMESH_MAX) {
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER SHA-1 %s has %d download mesh entries, "
-				"skipped", sha1_to_string(pe->sha1), dmesh_count(pe->sha1));
+			g_message("PUBLISHER SHA-1 %s \"%s\" has %d download mesh entries,"
+				" skipped", sha1_to_string(pe->sha1),
+				shared_file_name_nfc(sf), dmesh_count(pe->sha1));
 		}
 		publisher_retry(pe, PUBLISH_POPULAR);
 		return;
