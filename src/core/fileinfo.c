@@ -59,6 +59,7 @@ RCSID("$Id$")
 #include "namesize.h"
 #include "http.h"					/* For http_range_t */
 #include "gdht.h"
+#include "publisher.h"
 
 #include "lib/atoms.h"
 #include "lib/ascii.h"
@@ -146,6 +147,7 @@ static const char file_info_file[] = "fileinfo";
 static const char file_info_what[] = "the fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/**< Set by file_info_retrieve() */
+static gboolean can_publish_partial_sha1;
 
 #define	FILE_INFO_MAGIC32 0xD1BB1ED0U
 #define	FILE_INFO_MAGIC64 0X91E63640U
@@ -1447,7 +1449,7 @@ file_info_shared_sha1(const struct sha1 *sha1)
 		if (FI_F_SEEDING & fi->flags)
 			goto share;
 
-		if (fi->done > 0 && fi->size >= GNET_PROPERTY(pfsp_minimum_filesize))
+		if (fi->done >= GNET_PROPERTY(pfsp_minimum_filesize))
 			goto share;
 	}
 	return NULL;
@@ -2245,6 +2247,7 @@ void
 file_info_close_pre(void)
 {
 	src_remove_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED);
+	can_publish_partial_sha1 = FALSE;
 }
 
 /**
@@ -2605,6 +2608,8 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (NULL == xfi) {
 		fi->sha1 = atom_sha1_get(sha1);
 		gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
+		if (can_publish_partial_sha1)
+			publisher_add(fi->sha1);
 		return TRUE;
 	}
 
@@ -2656,6 +2661,9 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 		g_assert(0 == fi->done);
 		file_info_reparent_all(fi, xfi);	/* All `fi' replaced by `xfi' */
 	}
+
+	if (can_publish_partial_sha1)
+		publisher_add(sha1);
 
 	return TRUE;
 }
@@ -3129,6 +3137,10 @@ file_info_retrieve(void)
 
 			file_info_merge_adjacent(fi);
 			file_info_hash_insert(fi);
+
+			if (can_publish_partial_sha1 && fi->sha1 != NULL) {
+				publisher_add(fi->sha1);
+			}
 
 			/*
 			 * We could not add the aliases immediately because the file
@@ -3827,6 +3839,17 @@ file_info_get(const char *file, const char *path, filesize_t size,
 	}
 
 	file_info_hash_insert(fi);
+
+	/*
+	 * Now that the fileinfo has been inserted in the proper hash table,
+	 * we can let the DHT publisher know about it.  Partial files will not
+	 * be published when PFSP is disabled, but since that can happen at
+	 * runtime, it is up to the publisher to check.
+	 */
+
+	if (can_publish_partial_sha1 && fi->sha1 != NULL) {
+		publisher_add(fi->sha1);
+	}
 
 finish:
 	atom_str_free_null(&pathname);
@@ -5052,12 +5075,12 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 		 * to advertise ourselves as soon as possible.
 		 */
 
-		if (fi->size >= GNET_PROPERTY(pfsp_minimum_filesize))
+		if (fi->done >= GNET_PROPERTY(pfsp_minimum_filesize))
 			chunksize = GNET_PROPERTY(dl_minchunksize);
 		else {
 			filesize_t missing;
 		   
-			missing = GNET_PROPERTY(pfsp_minimum_filesize) - fi->size;
+			missing = GNET_PROPERTY(pfsp_minimum_filesize) - fi->done;
 			chunksize = MAX(chunksize, missing);
 			chunksize = MIN(chunksize, GNET_PROPERTY(dl_maxchunksize));
 		}
@@ -5916,6 +5939,30 @@ file_info_slow_timer(void)
 }
 
 /**
+ * Hash table iterator to publish into the DHT.
+ */
+static void
+fi_dht_publish(gpointer unused_key, gpointer value, gpointer unused_udata)
+{
+    fileinfo_t *fi = value;
+
+	(void) unused_key;
+	(void) unused_udata;
+
+	if (fi->sha1 != NULL)
+		publisher_add(fi->sha1);
+}
+
+/**
+ * Publish all known SHA-1 to the DHT.
+ */
+static void
+fi_publish_all(void)
+{
+	g_hash_table_foreach(fi_by_outname, fi_dht_publish, NULL);
+}
+
+/**
  * Kill all downloads associated with a fi and remove the fi itself.
  *
  * Will return FALSE if download could not be removed because it was still in
@@ -6629,16 +6676,29 @@ file_info_init(void)
 
 /**
  * Finish initialization of fileinfo handling. This post initialization is
- * needed to avoid circular dependencies during the init phase. The listener
- * we set up here is set up in download_init, but that must be called after
- * file_info_init.
+ * needed to avoid circular dependencies during the init phase.
  */
 void
 file_info_init_post(void)
 {
-	/* subscribe to src events on available range updates */
+	/*
+	 * The listener we set up here is set up in download_init, but that must
+	 * be called after file_info_init() to subscribe to src events on available
+	 * range updates
+	 */
+
 	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED,
 		FREQ_SECS, 0);
+
+	/*
+	 * Signal that so late in the initialization path, it is now possible
+	 * to record new fileinfo SHA-1 for publishing (when PFSP is enabled).
+	 * Then attempt publishing of already retrieved files.
+	 *
+	 */
+
+	can_publish_partial_sha1 = TRUE;
+	fi_publish_all();
 }
 
 /*

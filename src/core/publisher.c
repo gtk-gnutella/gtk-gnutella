@@ -49,7 +49,9 @@ RCSID("$Id$")
 #include "pdht.h"
 #include "dmesh.h"
 #include "gnet_stats.h"
+#include "fileinfo.h"
 
+#include "if/dht/dht.h"
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
 #include "if/core/net_stats.h"
@@ -169,65 +171,27 @@ static void
 publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 {
 	struct publisher_entry *pe = arg;
+	int delay;
 	
 	publisher_check(pe);
 
-	if (GNET_PROPERTY(publisher_debug) > 1) {
-		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
-		char after[80];
-		const char *late = "";
-
-		after[0] = '\0';
-		if (pe->last_publish) {
-			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
-			gm_snprintf(after, sizeof after,
-				" after %s", compact_time(elapsed));
-			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
-				late = "late, ";
-		}
-
-		g_message("PUBLISHER SHA-1 %s \"%s\" %spublished to %u node%s%s: %s"
-			" (%stook %s)", sha1_to_string(pe->sha1),
-			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
-			pe->last_publish ? "re" : "",
-			roots, 1 == roots ? "" : "s", after, pdht_strerror(code),
-			late, compact_time(delta_time(tm_time(), pe->last_enqueued)));
-	}
+	/*
+	 * Compute retry delay.
+	 */
 
 	switch (code) {
 	case PDHT_E_OK:
-		{
-			int delay;
+		/*
+		 * If we were not able to publish to KDA_K nodes, decrease the
+		 * delay before republishing.
+		 */
 
-			/*
-			 * If we were not able to publish to KDA_K nodes, decrease the
-			 * delay before republishing.
-			 */
-
-			delay = DHT_VALUE_ALOC_EXPIRE * roots / KDA_K - PUBLISH_SAFETY;
-			delay = MAX(delay, PUBLISH_SAFETY);
-
-			if (pe->last_publish && roots > 0) {
-				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
-
-				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
-					gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
-			}
-
-			if (GNET_PROPERTY(publisher_debug) > 3) {
-				g_message("PUBLISHER SHA-1 %s will be republished "
-					"in %d seconds", sha1_to_string(pe->sha1), delay);
-			}
-
-			if (roots > 0) {
-				pe->last_publish = tm_time();
-			}
-			publisher_retry(pe, delay);
-		}
-		return;
+		delay = DHT_VALUE_ALOC_EXPIRE * roots / KDA_K - PUBLISH_SAFETY;
+		delay = MAX(delay, PUBLISH_SAFETY);
+		break;
 	case PDHT_E_POPULAR:
-		publisher_retry(pe, PUBLISH_POPULAR);
-		return;
+		delay = PUBLISH_POPULAR;
+		break;
 	case PDHT_E_NOT_SHARED:
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_message("PUBLISHER SHA-1 %s is no longer shared",
@@ -245,13 +209,57 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 	case PDHT_E_CANCELLED:
 	case PDHT_E_GGEP:
 	case PDHT_E_NONE:
-		publisher_retry(pe, PUBLISH_BUSY);
-		return;
-	case PDHT_E_MAX:
+		delay = PUBLISH_BUSY;
 		break;
+	case PDHT_E_MAX:
+		g_assert_not_reached();
 	}
 
-	g_assert_not_reached();
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
+		char retry[80];
+		char after[80];
+		const char *late = "";
+
+		after[0] = '\0';
+		if (pe->last_publish) {
+			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+			gm_snprintf(after, sizeof after,
+				" after %s", compact_time(elapsed));
+			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+				late = "late, ";
+		}
+
+		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
+
+		g_message("PUBLISHER SHA-1 %s %s\"%s\" %spublished to %u node%s%s: %s"
+			" (%stook %s, retry in %s)", sha1_to_string(pe->sha1),
+			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
+				"partial " : "",
+			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
+			pe->last_publish ? "re" : "",
+			roots, 1 == roots ? "" : "s", after, pdht_strerror(code),
+			late, compact_time(delta_time(tm_time(), pe->last_enqueued)),
+			retry);
+	}
+
+	/*
+	 * Update stats on publishing success.
+	 */
+
+	if (PDHT_E_OK == code) {
+		if (pe->last_publish && roots > 0) {
+			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+
+			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
+		}
+		if (roots > 0) {
+			pe->last_publish = tm_time();
+		}
+	}
+
+	publisher_retry(pe, delay);
 }
 
 /**
@@ -286,8 +294,10 @@ publisher_handle(struct publisher_entry *pe)
 
 	if (
 		SHARE_REBUILDING == sf ||
-		!sha1_hash_available(sf) ||
-		!sha1_hash_is_uptodate(sf)
+		(
+			!shared_file_is_partial(sf) &&
+			(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
+		)
 	) {
 		publisher_retry(pe, PUBLISH_BUSY);
 		return;
@@ -306,6 +316,32 @@ publisher_handle(struct publisher_entry *pe)
 		}
 		publisher_retry(pe, PUBLISH_POPULAR);
 		return;
+	}
+
+	/*
+	 * If the DHT is not enabled, postpone processing.
+	 */
+
+	if (!dht_enabled()) {
+		publisher_retry(pe, PUBLISH_BUSY);
+		return;
+	}
+
+	/*
+	 * If this is a partial file for which we have less than the minimum
+	 * for PFSP sharing, or if PFSP has been disabled, skip it.
+	 */
+
+	if (shared_file_is_partial(sf)) {
+		fileinfo_t *fi = shared_file_fileinfo(sf);
+
+		if (
+			!GNET_PROPERTY(pfsp_server) ||
+			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
+		) {
+			publisher_retry(pe, PUBLISH_BUSY);
+			return;
+		}
 	}
 
 	/*
@@ -331,6 +367,8 @@ void
 publisher_add(const sha1_t *sha1)
 {
 	struct publisher_entry *pe;
+
+	g_assert(sha1 != NULL);
 
 	/*
 	 * If already known, ignore silently.

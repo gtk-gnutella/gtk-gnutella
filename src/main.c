@@ -1615,7 +1615,6 @@ main(int argc, char **argv)
 	gdht_init();
 	pdht_init();
 	publisher_init();
-	file_info_init_post();
 
 	kmsg_init();			/* DHT */
 	dht_init();
@@ -1624,7 +1623,7 @@ main(int argc, char **argv)
 		main_gui_init();
 	}
 	node_post_init();
-
+	file_info_init_post();
 	download_restore_state();
 	ntp_init();
 
