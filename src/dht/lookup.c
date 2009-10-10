@@ -2134,7 +2134,7 @@ lookup_handle_reply(
 		map_insert(nl->tokens, kn->id, ltok);
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 4) {
-			static char buf[80];
+			char buf[80];
 			bin_to_hex_buf(token->v, token->length, buf, sizeof buf);
 			g_message("DHT LOOKUP[%s] collected %u-byte token \"%s\" for %s",
 				revent_id_to_string(nl->lid),

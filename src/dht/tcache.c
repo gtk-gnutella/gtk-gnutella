@@ -223,7 +223,7 @@ record_token(gpointer key, gpointer value, gpointer unused_u)
 	td.token = td.length ? wcopy(ltok->token->v, td.length) : NULL;
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
-		static char buf[80];
+		char buf[80];
 		bin_to_hex_buf(td.token, td.length, buf, sizeof buf);
 		g_message("DHT TCACHE adding security token for %s: %u-byte \"%s\"",
 			kuid_to_hex_string(id), td.length, buf);
@@ -286,7 +286,7 @@ tcache_get(const kuid_t *id,
 	if (time_ptr != NULL)	*time_ptr = td->last_update;
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
-		static char buf[80];
+		char buf[80];
 		bin_to_hex_buf(td->token, td->length, buf, sizeof buf);
 		g_message("DHT TCACHE security token for %s is %u-byte \"%s\" (%s)",
 			kuid_to_hex_string(id), td->length, buf,

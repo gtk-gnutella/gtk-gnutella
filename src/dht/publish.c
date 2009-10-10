@@ -1681,7 +1681,7 @@ publish_value_iterate(publish_t *pb)
 	kn = pb->target.v.nodes[pb->target.v.idx];
 
 	if (GNET_PROPERTY(dht_publish_debug) > 4) {
-		static char buf[80];
+		char buf[80];
 		bin_to_hex_buf(tok->v, tok->length, buf, sizeof buf);
 		g_message("DHT PUBLISH[%s] at root %u/%u, "
 			"using %u-byte token \"%s\" for %s",
