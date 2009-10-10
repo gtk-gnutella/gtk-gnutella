@@ -51,6 +51,8 @@ RCSID("$Id$")
 #include "gnet_stats.h"
 #include "fileinfo.h"
 
+#include "dht/storage.h"
+
 #include "if/dht/dht.h"
 #include "if/dht/kademlia.h"
 #include "if/dht/value.h"
@@ -60,6 +62,7 @@ RCSID("$Id$")
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/dbmw.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
@@ -73,10 +76,13 @@ RCSID("$Id$")
 #define PUBLISH_BUSY		600		/**< Retry after 10 minutes */
 #define PUBLISH_DMESH_MAX	5		/**< File popularity by dmesh entry count */
 
+#define PUBLISH_DB_CACHE_SIZE	128		/**< Amount of data to keep cached */
+#define PUBLISH_SYNC_PERIOD		60000	/**< Flush DB every minute */
+
 typedef enum { PUBLISHER_MAGIC = 0x7592fb8fU } publisher_magic_t;
 
 /**
- * A to-be-published entry.
+ * A to-be-published entry, kept in core.
  */
 struct publisher_entry {
 	publisher_magic_t magic;
@@ -95,12 +101,66 @@ publisher_check(const struct publisher_entry *pe)
 
 static GHashTable *publisher_sha1;	/** Known entries by SHA1 */
 
-static void publisher_handle(struct publisher_entry *pe);
-
 /**
  * Private callout queue used to trigger republish events.
  */
 static cqueue_t *publish_cq;
+
+/**
+ * DBM wrapper to associate a SHA1 with publish timing information.
+ */
+static dbmw_t *db_pubdata;
+static char db_pubdata_base[] = "dht_published";
+static char db_pubdata_what[] = "DHT published SHA-1 information";
+
+/**
+ * Publish scheduling information kept in persistent storage.
+ *
+ * When the ``expiration'' field is zero, it means we do not care whether
+ * the data for this SHA-1 expires in the DHT.
+ */
+struct pubdata {
+	time_t next_enqueue;		/**< When file should be enqueued again */
+	time_t expiration;			/**< Expiration date of published information */
+};
+
+static void publisher_handle(struct publisher_entry *pe);
+
+/**
+ *  Get pubdata from database.
+ */
+static struct pubdata *
+get_pubdata(const sha1_t *sha1)
+{
+	struct pubdata *pd;
+
+	pd = dbmw_read(db_pubdata, sha1, NULL);
+
+	if (NULL == pd && dbmw_has_ioerr(db_pubdata)) {
+		g_warning("DBMW \"%s\" I/O error, bad things could happen...",
+			dbmw_name(db_pubdata));
+	}
+
+	return pd;
+}
+
+/**
+ * Delete pubdata from database.
+ */
+static void
+delete_pubdata(const sha1_t *sha1)
+{
+	dbmw_delete(db_pubdata, sha1);
+
+	if (GNET_PROPERTY(publisher_debug) > 2) {
+		shared_file_t *sf = shared_file_by_sha1(sha1);
+		g_message("PUBLISHER SHA-1 %s %s\"%s\" reclaimed",
+			sha1_to_string(sha1),
+			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
+				"partial " : "",
+			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "");
+	}
+}
 
 /**
  * Allocate new publisher entry.
@@ -125,8 +185,10 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
 {
 	publisher_check(pe);
 
-	if (do_remove)
+	if (do_remove) {
 		g_hash_table_remove(publisher_sha1, pe->sha1);
+		delete_pubdata(pe->sha1);
+	}
 
 	atom_sha1_free_null(&pe->sha1);
 	cq_cancel(publish_cq, &pe->publish_ev);
@@ -157,12 +219,42 @@ handle_entry(cqueue_t *unused_cq, gpointer obj)
 static void
 publisher_retry(struct publisher_entry *pe, int delay)
 {
+	struct pubdata *pd;
+
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
-	
+	g_assert(delay > 0);
+
+	pd = get_pubdata(pe->sha1);
+	if (pd != NULL) {
+		pd->next_enqueue = time_advance(tm_time(), UNSIGNED(delay));
+		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+	}
+
 	pe->publish_ev = cq_insert(publish_cq, delay * 1000, handle_entry, pe);
 }
 
+/**
+ * Hold publishing for some delay, for data we do not want to republish
+ * in the short term (data deemed to be popular).  It therefore does not
+ * matter if this already published data expires in the DHT.
+ */
+static void
+publisher_hold(struct publisher_entry *pe, int delay)
+{
+	struct pubdata *pd;
+
+	publisher_check(pe);
+
+	pd = get_pubdata(pe->sha1);
+	if (pd != NULL) {
+		pd->expiration = 0;		/* Signals: do not care any more */
+		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+	}
+
+	publisher_retry(pe, delay);
+}
+ 
 /**
  * Publishing callback invoked when asynchronous publication is completed,
  * or ended with an error.
@@ -171,9 +263,12 @@ static void
 publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 {
 	struct publisher_entry *pe = arg;
+	struct pubdata *pd;
 	int delay;
 	
 	publisher_check(pe);
+
+	pd = get_pubdata(pe->sha1);
 
 	/*
 	 * Compute retry delay.
@@ -224,10 +319,16 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		after[0] = '\0';
 		if (pe->last_publish) {
 			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+
 			gm_snprintf(after, sizeof after,
 				" after %s", compact_time(elapsed));
-			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
-				late = "late, ";
+
+			if (pd != NULL) {
+				if (pd->expiration && delta_time(tm_time(), pd->expiration) > 0)
+					late = "late, ";
+			} else {
+				late = "no data, ";
+			}
 		}
 
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
@@ -238,9 +339,8 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			roots, 1 == roots ? "" : "s", after, pdht_strerror(code),
-			late, compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			retry);
+			roots, 1 == roots ? "" : "s", after, pdht_strerror(code), late,
+			compact_time(delta_time(tm_time(), pe->last_enqueued)), retry);
 	}
 
 	/*
@@ -249,17 +349,34 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 
 	if (PDHT_E_OK == code) {
 		if (pe->last_publish && roots > 0) {
-			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+			gboolean expired = FALSE;
 
-			if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+			if (pd != NULL) {
+				if (delta_time(tm_time(), pd->expiration) > 0)
+					expired = TRUE;
+			} else {
+				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+					expired = TRUE;
+			}
+
+			if (expired)
 				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
 		}
 		if (roots > 0) {
 			pe->last_publish = tm_time();
+			if (pd != NULL) {
+				pd->expiration =
+					time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
+				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+			}
 		}
 	}
 
-	publisher_retry(pe, delay);
+	if (PDHT_E_POPULAR == code)
+		publisher_hold(pe, delay);
+	else
+		publisher_retry(pe, delay);
 }
 
 /**
@@ -329,7 +446,7 @@ publisher_handle(struct publisher_entry *pe)
 				shared_file_name_nfc(sf),
 				alt_locs, 1 == alt_locs ? "y" : "ies");
 		}
-		publisher_retry(pe, PUBLISH_POPULAR);
+		publisher_hold(pe, PUBLISH_POPULAR);
 		return;
 	}
 
@@ -338,7 +455,7 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	if (!dht_enabled()) {
-		publisher_retry(pe, PUBLISH_BUSY);
+		publisher_hold(pe, PUBLISH_BUSY);
 		return;
 	}
 
@@ -354,8 +471,37 @@ publisher_handle(struct publisher_entry *pe)
 			!GNET_PROPERTY(pfsp_server) ||
 			fi->done < GNET_PROPERTY(pfsp_minimum_filesize)
 		) {
-			publisher_retry(pe, PUBLISH_BUSY);
+			publisher_hold(pe, PUBLISH_BUSY);
 			return;
+		}
+	}
+
+	/*
+	 * Check whether it is time to process the entry, in case we're
+	 * restarting quickly after a shutdown.
+	 */
+
+	if (0 == pe->last_publish) {
+		struct pubdata *pd = get_pubdata(pe->sha1);
+
+		if (pd != NULL) {
+			time_t now = tm_time();
+			time_delta_t enqueue = delta_time(pd->next_enqueue, now);
+			time_delta_t expire = delta_time(pd->expiration, now);
+
+			if (enqueue > 0 && (0 == pd->expiration || expire > 0)) {
+				int delay = MIN(enqueue, PUBLISH_POPULAR);
+				if (pd->expiration != 0)
+					delay = MIN(delay, expire);
+
+				if (GNET_PROPERTY(publisher_debug) > 1) {
+					g_message("PUBLISHER SHA-1 %s delayed by %s",
+						sha1_to_string(pe->sha1), compact_time(enqueue));
+				}
+
+				publisher_retry(pe, delay);
+				return;
+			}
 		}
 	}
 
@@ -382,6 +528,7 @@ void
 publisher_add(const sha1_t *sha1)
 {
 	struct publisher_entry *pe;
+	struct pubdata *pd;
 
 	g_assert(sha1 != NULL);
 
@@ -391,6 +538,38 @@ publisher_add(const sha1_t *sha1)
 
 	if (g_hash_table_lookup(publisher_sha1, sha1))
 		return;
+
+	/*
+	 * Create persistent publishing data if none known already.
+	 */
+
+	pd = get_pubdata(sha1);
+	if (NULL == pd) {
+		struct pubdata new_pd;
+
+		new_pd.next_enqueue = 0;
+		new_pd.expiration = 0;
+
+		dbmw_write(db_pubdata, sha1, &new_pd, sizeof new_pd);
+
+		if (GNET_PROPERTY(publisher_debug) > 2) {
+			g_message("PUBLISHER allocating new SHA-1 %s",
+				sha1_to_string(sha1));
+		}
+	} else {
+		if (GNET_PROPERTY(publisher_debug) > 2) {
+			time_delta_t enqueue = delta_time(pd->next_enqueue, tm_time());
+			time_delta_t expires = delta_time(pd->expiration, tm_time());
+
+			g_message("PUBLISHER existing SHA-1 %s, next enqueue %s%s, %s%s",
+				sha1_to_string(sha1),
+				enqueue > 0 ? "in " : "",
+				enqueue > 0 ? compact_time(enqueue) : "now",
+				pd->expiration ?
+					(expires > 0 ? "expires in " : "expired") : "not published",
+				expires > 0 ? short_time_ascii(expires) : "");
+		}
+	}
 
 	/*
 	 * New entry will be processed immediately.
@@ -403,6 +582,55 @@ publisher_add(const sha1_t *sha1)
 }
 
 /**
+ * Serialization routine for pubdata.
+ */
+static void
+serialize_pubdata(pmsg_t *mb, gconstpointer data)
+{
+	const struct pubdata *pd = data;
+
+	pmsg_write_time(mb, pd->next_enqueue);
+	pmsg_write_time(mb, pd->expiration);
+}
+
+/**
+ * Deserialization routine for pubdata.
+ */
+static gboolean
+deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
+{
+	struct pubdata *pd = valptr;
+
+	g_assert(sizeof *pd == len);
+
+	bstr_read_time(bs, &pd->next_enqueue);
+	bstr_read_time(bs, &pd->expiration);
+
+	if (bstr_has_error(bs))
+		return FALSE;
+	else if (bstr_unread_size(bs)) {
+		/* Something is wrong, we're not deserializing the right data */
+		g_warning("DHT deserialization of pubdata: has %lu unread bytes",
+			(gulong) bstr_unread_size(bs));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Periodic DB synchronization.
+ */
+static gboolean
+publisher_sync(gpointer unused_obj)
+{
+	(void) unused_obj;
+
+	storage_sync(db_pubdata);
+	return TRUE;
+}
+
+/**
  * Initialize the DHT publisher.
  */
 void
@@ -410,6 +638,13 @@ publisher_init(void)
 {
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
 	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+
+	db_pubdata = storage_open(db_pubdata_what, db_pubdata_base,
+		SHA1_RAW_SIZE, sizeof(struct pubdata), 0,
+		serialize_pubdata, deserialize_pubdata, NULL,
+		PUBLISH_DB_CACHE_SIZE, sha1_hash, sha1_eq);
+
+	cq_periodic_add(publish_cq, PUBLISH_SYNC_PERIOD, publisher_sync, NULL);
 }
 
 /**
@@ -435,6 +670,9 @@ publisher_close(void)
 	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
 	g_hash_table_destroy(publisher_sha1);
 	publisher_sha1 = NULL;
+
+	storage_close(db_pubdata, db_pubdata_base);
+	db_pubdata = NULL;
 
 	cq_free_null(&publish_cq);
 }
