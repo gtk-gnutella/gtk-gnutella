@@ -45,6 +45,8 @@ RCSID("$Id$")
 #include "hostiles.h"
 #include "downloads.h"
 #include "gnet_stats.h"
+#include "settings.h"
+#include "ipp_cache.h"
 
 #include "if/core/guid.h"
 #include "if/dht/lookup.h"
@@ -406,6 +408,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 	struct sha1_lookup *slk = arg;
 	fileinfo_t *fi;
 	size_t i;
+	gboolean seen_foreign = FALSE;
 
 	g_assert(rs);
 	sha1_lookup_check(slk);
@@ -415,8 +418,6 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 		g_message("DHT ALOC lookup for %s returned %lu value%s",
 			kuid_to_string(kuid), (gulong) rs->count,
 			1 == rs->count ? "" : "s");
-
-	gnet_stats_count_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS, 1);
 
 	fi = file_info_by_guid(slk->fi_guid);
 
@@ -437,7 +438,21 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
+		if (is_my_address_and_port(rc->addr, rc->port))
+			continue;
+		if (local_addr_cache_lookup(rc->addr, rc->port))
+			continue;
+		seen_foreign = TRUE;		/* ALOC not published by ourselves */
 		gdht_handle_aloc(rc, fi);
+	}
+
+	/*
+	 * Since we can publish partial SHA-1 ourselves, we can only count
+	 * a success when we had one entry not published by ourselves.
+	 */
+
+	if (seen_foreign) {
+		gnet_stats_count_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS, 1);
 	}
 
 cleanup:
