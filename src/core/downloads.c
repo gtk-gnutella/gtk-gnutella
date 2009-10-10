@@ -6520,7 +6520,8 @@ download_auto_new(const char *file_name,
 
 		if (GNET_PROPERTY(download_debug))
 			g_message("%s seeding of orphan \"%s\" with %s:%u",
-				from_qhit ? "QHIT" : "UPLOAD", file_name,
+				from_qhit ? "QHIT" : "UPLOAD",
+				filepath_basename(fi->pathname),
 				hostname ? hostname : host_addr_to_string(addr), port);
 	}
 }
