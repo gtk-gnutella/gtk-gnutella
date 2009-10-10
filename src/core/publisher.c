@@ -269,6 +269,8 @@ static void
 publisher_handle(struct publisher_entry *pe)
 {
 	shared_file_t *sf;
+	gboolean is_partial = FALSE;
+	int alt_locs;
 
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
@@ -288,16 +290,20 @@ publisher_handle(struct publisher_entry *pe)
 		return;
 	}
 
+	if (sf == SHARE_REBUILDING) {
+		publisher_retry(pe, PUBLISH_BUSY);
+		return;
+	}
+
+	is_partial = shared_file_is_partial(sf);
+
 	/*
 	 * If rebuilding the library or the SHA1 is not available, wait.
 	 */
 
 	if (
-		SHARE_REBUILDING == sf ||
-		(
-			!shared_file_is_partial(sf) &&
-			(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
-		)
+		!is_partial &&
+		(!sha1_hash_available(sf) || !sha1_hash_is_uptodate(sf))
 	) {
 		publisher_retry(pe, PUBLISH_BUSY);
 		return;
@@ -306,13 +312,22 @@ publisher_handle(struct publisher_entry *pe)
 	/*
 	 * If we are dealing with a file for which we know enough alternate
 	 * locations, assume it is popular and do not publish it yet.
+	 *
+	 * We do not publish the SHA-1 of a partial file for which we know
+	 * of at least two alternate locations because the purpose of us publishing
+	 * these partial SHA-1s is to attract other PFSP-aware hosts and
+	 * recreate a mesh.
 	 */
 
-	if (dmesh_count(pe->sha1) > PUBLISH_DMESH_MAX) {
+	alt_locs = dmesh_count(pe->sha1);
+
+	if (alt_locs > (is_partial ? 1 : PUBLISH_DMESH_MAX)) {
 		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER SHA-1 %s \"%s\" has %d download mesh entries,"
-				" skipped", sha1_to_string(pe->sha1),
-				shared_file_name_nfc(sf), dmesh_count(pe->sha1));
+			g_message("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
+				"entr%s, skipped", sha1_to_string(pe->sha1),
+				is_partial ? "partial " : "",
+				shared_file_name_nfc(sf),
+				alt_locs, 1 == alt_locs ? "y" : "ies");
 		}
 		publisher_retry(pe, PUBLISH_POPULAR);
 		return;
