@@ -376,12 +376,11 @@ share_special_load(const struct special_file *sp)
 	}
 	if (shared_file_set_names(sf, sp->file)) {
 		shared_file_free(&sf);
-		return NULL;
+	} else {
+		sf->mime_type = sp->type;
 	}
-	sf->mime_type = sp->type;
 
 	fclose(f);
-
 	return sf;
 }
 
