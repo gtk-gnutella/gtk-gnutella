@@ -268,6 +268,11 @@ shared_file_free(shared_file_t **sf_ptr)
 	}
 }
 
+/**
+ * Set canonic, NFC and NFKC normalized names.
+ *
+ * @return whether an error occurred
+ */
 static gboolean
 shared_file_set_names(shared_file_t *sf, const char *filename)
 {
