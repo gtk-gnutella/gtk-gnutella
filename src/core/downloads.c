@@ -6507,7 +6507,8 @@ download_auto_new(const char *file_name,
 	if (was_orphan && 0 != fi->refcount) {
 		gnet_stats_count_general(GNR_SEEDING_OF_ORPHAN, 1);
 		if (GNET_PROPERTY(download_debug))
-			g_message("QHIT seeding of orphan \"%s\"", file_name);
+			g_message("QHIT seeding of orphan \"%s\" with %s:%u", file_name,
+				hostname ? hostname : host_addr_to_string(addr), port);
 	}
 }
 
@@ -6542,7 +6543,8 @@ download_dht_auto_new(const char *file_name,
 	if (was_orphan && 0 != fi->refcount) {
 		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(download_debug))
-			g_message("DHT seeding of orphan \"%s\"", file_name);
+			g_message("DHT seeding of orphan \"%s\" with %s:%u", file_name,
+				hostname ? hostname : host_addr_to_string(addr), port);
 	}
 }
 
