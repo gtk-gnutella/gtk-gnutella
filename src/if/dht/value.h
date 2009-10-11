@@ -100,6 +100,7 @@ typedef enum {
 #define STORE_SC_DATA_MISMATCH	12U /**< Replicated data is different */
 #define STORE_SC_BAD_TOKEN		13U /**< Invalid security token */
 #define STORE_SC_EXPIRED		14U	/**< Value has already expired */
+#define STORE_SC_DB_IO			15U	/**< Database I/O error */
 
 struct dht_value;
 typedef struct dht_value dht_value_t;

@@ -306,6 +306,7 @@ static const char * const store_errstr[] = {
 	"Replicated data is different",			/**< STORE_SC_DATA_MISMATCH */
 	"Invalid security token",				/**< STORE_SC_BAD_TOKEN */
 	"Value has already expired",			/**< STORE_SC_EXPIRED */
+	"Database I/O error",					/**< STORE_SC_DB_IO */
 };
 
 /**
@@ -1408,7 +1409,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		vd = get_valuedata(dbkey);
 
 		if (NULL == vd)
-			return STORE_SC_ERROR;		/* I/O error or corrupted DB */
+			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
 
 		/*
 		 * If one the following assertions fails, then it means our data
