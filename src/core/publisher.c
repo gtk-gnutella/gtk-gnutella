@@ -265,10 +265,30 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
 	int delay;
+	gboolean expired = FALSE;
 	
 	publisher_check(pe);
 
 	pd = get_pubdata(pe->sha1);
+
+	/*
+	 * Update stats on publishing success.
+	 */
+
+	if (PDHT_E_OK == code) {
+		if (pe->last_publish && roots > 0) {
+			if (pd != NULL) {
+				if (pd->expiration && delta_time(tm_time(), pd->expiration) > 0)
+					expired = TRUE;
+			} else {
+				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
+				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
+					expired = TRUE;
+			}
+			if (expired)
+				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
+		}
+	}
 
 	/*
 	 * Compute retry delay.
@@ -288,12 +308,6 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		delay = PUBLISH_POPULAR;
 		break;
 	case PDHT_E_NOT_SHARED:
-		if (GNET_PROPERTY(publisher_debug)) {
-			g_message("PUBLISHER SHA-1 %s is no longer shared",
-				sha1_to_string(pe->sha1));
-		}
-		publisher_entry_free(pe, TRUE);
-		return;
 	case PDHT_E_LOOKUP_EXPIRED:
 	case PDHT_E_LOOKUP:
 	case PDHT_E_UDP_CLOGGED:
@@ -310,6 +324,10 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		g_assert_not_reached();
 	}
 
+	/*
+	 * Logging.
+	 */
+
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		shared_file_t *sf = shared_file_by_sha1(pe->sha1);
 		char retry[80];
@@ -324,7 +342,7 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 				" after %s", compact_time(elapsed));
 
 			if (pd != NULL) {
-				if (pd->expiration && delta_time(tm_time(), pd->expiration) > 0)
+				if (expired)
 					late = "late, ";
 			} else {
 				late = "no data, ";
@@ -344,34 +362,25 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 	}
 
 	/*
-	 * Update stats on publishing success.
+	 * Update last publishing time and remember expiration time.
 	 */
 
-	if (PDHT_E_OK == code) {
-		if (pe->last_publish && roots > 0) {
-			gboolean expired = FALSE;
-
-			if (pd != NULL) {
-				if (delta_time(tm_time(), pd->expiration) > 0)
-					expired = TRUE;
-			} else {
-				time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
-				if (elapsed > DHT_VALUE_ALOC_EXPIRE)
-					expired = TRUE;
-			}
-
-			if (expired)
-				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
-		}
-		if (roots > 0) {
-			pe->last_publish = tm_time();
-			if (pd != NULL) {
-				pd->expiration =
-					time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
-				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
-			}
+	if (PDHT_E_OK == code && roots > 0) {
+		pe->last_publish = tm_time();
+		if (pd != NULL) {
+			pd->expiration =
+				time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
+			dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
 		}
 	}
+
+	/*
+	 * If entry was deemed popular, we're going to delay its republishing
+	 * by a larger amount of time and any data we published already about
+	 * it will surely expire.  Since this is our decision, we do not want
+	 * to be told that republishing, if it occurs later, was done later than
+	 * required.  Hence call publisher_hold() to mark that we don't care.
+	 */
 
 	if (PDHT_E_POPULAR == code)
 		publisher_hold(pe, delay);
@@ -399,6 +408,18 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	if (NULL == sf) {
+		/*
+		 * If a partial file has lees than the minimum amount of data for PFSP,
+		 * shared_file_by_sha1() will return NULL, hence we need to explicitly
+		 * check for existence through file_info_by_sha1().
+		 */
+
+		if (file_info_by_sha1(pe->sha1)) {
+			/* Waiting for more data to be able to share, or PFSP disabled */
+			publisher_retry(pe, PUBLISH_BUSY);
+			return;
+		}
+
 		if (GNET_PROPERTY(publisher_debug)) {
 			g_message("PUBLISHER SHA-1 %s is no longer shared",
 				sha1_to_string(pe->sha1));
@@ -406,6 +427,10 @@ publisher_handle(struct publisher_entry *pe)
 		publisher_entry_free(pe, TRUE);
 		return;
 	}
+
+	/*
+	 * Wait when rebuilding the library.
+	 */
 
 	if (sf == SHARE_REBUILDING) {
 		publisher_retry(pe, PUBLISH_BUSY);
@@ -415,7 +440,7 @@ publisher_handle(struct publisher_entry *pe)
 	is_partial = shared_file_is_partial(sf);
 
 	/*
-	 * If rebuilding the library or the SHA1 is not available, wait.
+	 * If the SHA1 is not available, wait.
 	 */
 
 	if (
