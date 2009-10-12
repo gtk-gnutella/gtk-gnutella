@@ -243,7 +243,7 @@ serialize_valuedata(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for valuedata.
  */
-static gboolean
+static void
 deserialize_valuedata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct valuedata *vd = valptr;
@@ -274,17 +274,6 @@ deserialize_valuedata(bstr_t *bs, gpointer valptr, size_t len)
 	bstr_read_be32(bs, &vd->s_elapsed_publish);
 	bstr_read_be32(bs, &vd->s_elapsed_replicat);
 	bstr_read_be32(bs, &vd->n_requests);
-
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of valuedata: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 /**

@@ -252,6 +252,15 @@ bstr_has_error(const bstr_t *bs)
 }
 
 /**
+ * Check whether the stream was fully deserialized with no error.
+ */
+gboolean
+bstr_ended(const bstr_t *bs)
+{
+	return bs->ok && bs->end == bs->rptr;
+}
+
+/**
  * Report error string.
  */
 const char *

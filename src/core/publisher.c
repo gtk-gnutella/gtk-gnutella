@@ -621,7 +621,7 @@ serialize_pubdata(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for pubdata.
  */
-static gboolean
+static void
 deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct pubdata *pd = valptr;
@@ -630,17 +630,6 @@ deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
 
 	bstr_read_time(bs, &pd->next_enqueue);
 	bstr_read_time(bs, &pd->expiration);
-
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of pubdata: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 /**

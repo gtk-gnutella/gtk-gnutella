@@ -59,9 +59,9 @@ typedef void (*dbmw_serialize_t)(pmsg_t *mb, gconstpointer data);
  * @param valptr	where deserialization should be done
  * @param len		length of arena at valptr, for assertions
  *
- * @return TRUE if value was deserialized correctly.
+ * It returns nothing: errors are diagnosed by looking at ``bs'' afterwards.
  */
-typedef gboolean (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
+typedef void (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
 
 /**
  * Free routine for values, to reclaim data allocated during deserialization

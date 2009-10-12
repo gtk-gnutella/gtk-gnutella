@@ -580,6 +580,33 @@ dbmw_shrink(dbmw_t *dw)
 }
 
 /**
+ * Wrapper to the user-supplied deserialization routine for values.
+ *
+ * @param dw		the DBM wrapper object
+ * @param bs		the initialized binary stream from which we're reading
+ * @param valptr	where deserialization should be done
+ * @param len		length of arena at valptr, for assertions
+ *
+ * @return TRUE if deserialization was OK.
+ */
+static gboolean
+dbmw_deserialize(const dbmw_t *dw, bstr_t *bs, gpointer valptr, size_t len)
+{
+	(*dw->unpack)(bs, valptr, len);
+
+	if (bstr_has_error(bs))
+		return FALSE;
+	else if (bstr_unread_size(bs)) {
+		/* Something is wrong, we're not deserializing the right data? */
+		g_warning("DBMW \"%s\" deserialization has %lu trailing unread bytes",
+			dbmw_name(dw), (gulong) bstr_unread_size(bs));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Write data to disk immediately.
  */
 static void
@@ -738,7 +765,7 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
-		if (!(*dw->unpack)(dw->bs, entry->data, dw->value_size)) {
+		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
 			g_warning("DBMW \"%s\" deserialization error: %s",
 				dw->name, bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
@@ -1005,7 +1032,7 @@ dbmw_foreach_common(gboolean removing,
 
 			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
 
-			if (!(*dw->unpack)(dw->bs, data, len)) {
+			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
 				g_warning("DBMW \"%s\" deserialization error: %s",
 					dw->name, bstr_error(dw->bs));
 				/* Not calling value free routine on deserialization failures */

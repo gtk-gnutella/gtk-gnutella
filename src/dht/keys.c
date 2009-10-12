@@ -989,7 +989,7 @@ serialize_keydata(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for keydata.
  */
-static gboolean
+static void
 deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct keydata *kd = valptr;
@@ -1006,17 +1006,6 @@ deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
 		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
 		bstr_read(bs, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
 	}
-
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of keydata: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 static void

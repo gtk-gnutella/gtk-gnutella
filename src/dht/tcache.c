@@ -163,7 +163,7 @@ serialize_tokdata(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for rootdata.
  */
-static gboolean
+static void
 deserialize_tokdata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct tokdata *td = valptr;
@@ -179,17 +179,6 @@ deserialize_tokdata(bstr_t *bs, gpointer valptr, size_t len)
 	} else {
 		td->token = NULL;
 	}
-
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of tokdata: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 /**

@@ -673,7 +673,7 @@ serialize_rootdata(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for rootdata.
  */
-static gboolean
+static void
 deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct rootdata *rd = valptr;
@@ -688,17 +688,6 @@ deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
 	for (i = 0; i < rd->count; i++) {
 		bstr_read_be64(bs, &rd->dbkeys[i]);
 	}
-
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of rootdata: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 /**
@@ -720,7 +709,7 @@ serialize_contact(pmsg_t *mb, gconstpointer data)
 /**
  * Deserialization routine for contacts.
  */
-static gboolean
+static void
 deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 {
 	struct contact *c = valptr;
@@ -737,18 +726,15 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
 	bstr_read_u8(bs, &c->major);
 	bstr_read_u8(bs, &c->minor);
 
-	if (bstr_has_error(bs))
-		return FALSE;
-	else if (bstr_unread_size(bs)) {
-		/* Something is wrong, we're not deserializing the right data */
-		g_warning("DHT deserialization of contact: has %lu unread bytes",
-			(gulong) bstr_unread_size(bs));
-		return FALSE;
+	/*
+	 * Only create the KUID atom if there was no error in the deserialization
+	 * since the value free callbacks are not invoked by the DBMW layer when
+	 * there is a deserialization error.
+	 */
+
+	if (bstr_ended(bs)) {
+		c->id = kuid_get_atom(&id);
 	}
-
-	c->id = kuid_get_atom(&id);
-
-	return TRUE;
 }
 
 /**

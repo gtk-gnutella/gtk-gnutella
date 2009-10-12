@@ -65,6 +65,7 @@ gboolean bstr_has_error(const bstr_t *);
 void bstr_clear_error(bstr_t *);
 void bstr_free(bstr_t **);
 const char *bstr_error(const bstr_t *);
+gboolean bstr_ended(const bstr_t *bs);
 
 size_t bstr_unread_size(const bstr_t *);
 const void *bstr_read_base(const bstr_t *);
