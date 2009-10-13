@@ -48,6 +48,7 @@ RCSID("$Id$")
 
 #include "lib/array.h"
 #include "lib/concat.h"
+#include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/path.h"

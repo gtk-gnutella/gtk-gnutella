@@ -50,6 +50,7 @@ RCSID("$Id$")
 #include "if/bridge/ui2c.h"
 
 #include "lib/ascii.h"
+#include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"

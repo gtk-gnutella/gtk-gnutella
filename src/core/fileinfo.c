@@ -74,6 +74,7 @@ RCSID("$Id$")
 #include "lib/idtable.h"
 #include "lib/magnet.h"
 #include "lib/parse.h"
+#include "lib/path.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -3428,7 +3429,7 @@ static gboolean
 file_info_name_is_uniq(const char *pathname)
 {
 	return NULL == g_hash_table_lookup(fi_by_outname, pathname) &&
-	   	file_does_not_exist(pathname);
+	   	path_does_not_exist(pathname);
 }
 
 /**

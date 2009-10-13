@@ -79,7 +79,7 @@ make_pathname(const char *dir, const char *file)
 char *
 absolute_pathname(const char *file)
 {
-	g_assert(file);
+	g_assert(file != NULL);
 	
 	if (is_absolute_path(file)) {
 		return h_strdup(file);
@@ -91,6 +91,18 @@ absolute_pathname(const char *file)
 		ret = getcwd(buf, sizeof buf);
 		return ret ? make_pathname(ret, file) : NULL;
 	}
+}
+
+/**
+ * Check that given path does not exist.
+ */
+gboolean
+path_does_not_exist(const char *pathname)
+{
+	struct stat st;
+
+	g_assert(pathname != NULL);
+	return stat(pathname, &st) && ENOENT == errno;
 }
 
 /**

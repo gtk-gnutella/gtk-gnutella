@@ -104,7 +104,7 @@ unique_pathname(const char *path, const char *filename,
 	char *pathname;
 	
 	if (!name_is_uniq) {
-		name_is_uniq = file_does_not_exist;
+		name_is_uniq = path_does_not_exist;
 	}
 	pathname = make_pathname(path, filename);
 	if (!(*name_is_uniq)(pathname)) {

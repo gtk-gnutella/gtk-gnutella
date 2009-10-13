@@ -157,30 +157,6 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 }
 
 /**
- * Check for file existence.
- */
-gboolean
-file_exists(const char *pathname)
-{
-  	struct stat st;
-
-    g_assert(pathname);
-    return 0 == stat(pathname, &st);
-}
-
-/**
- * Check for file non-existence.
- */
-gboolean
-file_does_not_exist(const char *pathname)
-{
-  	struct stat st;
-
-    g_assert(pathname);
-	return stat(pathname, &st) && ENOENT == errno;
-}
-
-/**
  * @returns local host name, as pointer to static data.
  */
 const char *

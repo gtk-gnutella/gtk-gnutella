@@ -60,6 +60,18 @@ static const char empty_str[] = "";
 static reclaim_fd_t reclaim_fd = NULL;
 
 /**
+ * Check for file existence.
+ */
+gboolean
+file_exists(const char *pathname)
+{
+  	struct stat st;
+
+    g_assert(pathname);
+    return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
+}
+
+/**
  * Register fd reclaiming callback.
  * Use NULL to unregister it.
  */

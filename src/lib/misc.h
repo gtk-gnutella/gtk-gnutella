@@ -194,8 +194,6 @@ gboolean is_directory(const char *pathname);
 gboolean is_regular(const char *pathname);
 gboolean is_symlink(const char *pathname);
 int is_same_file(const char *, const char *);
-gboolean file_exists(const char *pathname);
-gboolean file_does_not_exist(const char *pathname);
 
 /**
  * Tries to extrace the file mode from a struct dirent. Not all systems

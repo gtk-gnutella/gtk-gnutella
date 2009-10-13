@@ -63,6 +63,7 @@ RCSID("$Id$")
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/dbmw.h"
+#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
@@ -408,14 +409,17 @@ publisher_handle(struct publisher_entry *pe)
 	 */
 
 	if (NULL == sf) {
+		fileinfo_t *fi = file_info_by_sha1(pe->sha1);
+
 		/*
 		 * If a partial file has lees than the minimum amount of data for PFSP,
 		 * shared_file_by_sha1() will return NULL, hence we need to explicitly
-		 * check for existence through file_info_by_sha1().
+		 * check for existence through file_info_by_sha1() and that the file
+		 * still exists.
 		 */
 
-		if (file_info_by_sha1(pe->sha1)) {
-			/* Waiting for more data to be able to share, or PFSP disabled */
+		if (fi != NULL && file_exists(fi->pathname)) {
+			/* Waiting for more data to be able to share, or PFSP re-enabled */
 			publisher_retry(pe, PUBLISH_BUSY);
 			return;
 		}
