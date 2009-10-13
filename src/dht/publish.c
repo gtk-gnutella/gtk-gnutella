@@ -2099,7 +2099,7 @@ publish_offload(const knode_t *kn, GSList *keys)
  * Check whether value should also be published locally.
  */
 static void
-publish_self(const publish_t *pb)
+publish_self(publish_t *pb)
 {
 	knode_t *kth_node;
 	unsigned idx;
@@ -2130,12 +2130,20 @@ publish_self(const publish_t *pb)
 		}
 
 		status = values_store(ourselves, pb->target.v.value, TRUE);
+		gnet_stats_count_general(GNR_DHT_PUBLISHING_TO_SELF, 1);
 
 		if (status != STORE_SC_OK) {
 			if (GNET_PROPERTY(dht_publish_debug)) {
 				g_warning("DHT PUBLISH[%s] local publishing failed: %s",
 					revent_id_to_string(pb->pid),
 					dht_store_error_to_string(status));
+			}
+			switch (status) {
+			case STORE_SC_FULL:
+			case STORE_SC_FULL_LOADED:
+				pb->target.v.full++;
+			default:
+				break;
 			}
 		}
 
