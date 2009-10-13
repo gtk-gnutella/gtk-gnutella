@@ -1844,6 +1844,91 @@ lookup_fix_contact(nlookup_t *nl, const knode_t *kn, const knode_t *an)
 }
 
 /**
+ * Iterator callback to remove nodes from the shortlist if their token is known.
+ */
+static gboolean
+remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
+{
+	map_t *tokens = u;
+	kuid_t *id = key;
+
+	(void) keybits;
+	(void) value;
+
+	return map_contains(tokens, id);
+}
+
+/**
+ * Move to the lookup path all the nodes from the shortlist for which we have
+ * a valid (cached) security token already.
+ *
+ * This is an optimization when looking for STORE roots because we do not have
+ * to recontact these nodes.  To make sure we do at least contact one of the
+ * closest node to the key, we do not load the path until after we got our
+ * first valid RPC reply to a FIND_NODE.
+ */
+static void
+lookup_load_path(nlookup_t *nl)
+{
+	patricia_iter_t *iter;
+
+	lookup_check(nl);
+	g_assert(LOOKUP_STORE == nl->type);
+
+	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
+
+	while (patricia_iter_has_next(iter)) {
+		knode_t *kn;
+		guint8 toklen;
+		const void *token;
+		time_t last_update;
+
+		kn = patricia_iter_next_value(iter);
+
+		/*
+		 * See whether we have a valid unexpired security token in cache.
+		 */
+
+		if (tcache_get(kn->id, &toklen, &token, &last_update)) {
+			lookup_token_t *ltok = walloc(sizeof *ltok);
+			sec_token_t *tok = token_alloc(toklen);
+
+			ltok->retrieved = last_update;
+			ltok->token = tok;
+			if (toklen) {
+				memcpy(tok->v, token, toklen);
+			}
+
+			/*
+			 * Since we're going to remove the node from the shortlist,
+			 * there's no need to alter the reference count when adding
+			 * to the path.
+			 */
+
+			map_insert(nl->tokens, kn->id, ltok);
+			patricia_insert(nl->path, kn->id, kn);
+			map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
+		}
+	}
+
+	patricia_iterator_release(&iter);
+
+	/*
+	 * Now that we finished iterating over the shortlist, remove the nodes
+	 * for which we are reusing a cached token.
+	 *
+	 * We're not touching the "ball" since it contains nodes that are either
+	 * in the shortlist or in the path, and we're just moving nodes from the
+	 * shortlist to the path.
+	 */
+
+	patricia_foreach_remove(nl->shortlist, remove_from_shortlist, nl->tokens);
+
+	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+		log_patricia_dump(nl, nl->path, "pre-loaded path", 2);
+}
+
+/**
  * Got a FIND_NODE RPC reply from node.
  *
  * @param nl		current lookup
@@ -2140,6 +2225,23 @@ lookup_handle_reply(
 				revent_id_to_string(nl->lid),
 				token->length, buf, knode_to_string(kn));
 		}
+	}
+
+	/*
+	 * For STORE lookups, if we got our first valid RPC reply then we now have
+	 * hopefully queried the node closest to the key.
+	 *
+	 * We can therefore pre-load the path with all the nodes in our shortlist
+	 * for which we have a security token cached: we are not going to contact
+	 * these nodes.
+	 */
+
+	if (LOOKUP_STORE == nl->type && 1 == map_count(nl->tokens)) {
+		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+			g_message("DHT LOOKUP[%s] got first RPC reply, loading STORE path",
+				revent_id_to_string(nl->lid));
+		}
+		lookup_load_path(nl);
 	}
 
 	bstr_free(&bs);
@@ -2862,91 +2964,6 @@ lookup_load_shortlist(nlookup_t *nl)
 }
 
 /**
- * Iterator callback to remove nodes from the shortlist if their token is known.
- */
-static gboolean
-remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
-{
-	map_t *tokens = u;
-	kuid_t *id = key;
-
-	(void) keybits;
-	(void) value;
-
-	return map_contains(tokens, id);
-}
-
-/**
- * Move to the lookup path the nodes in the shortlist for which we have
- * a valid (cached) security token already.
- *
- * This is an optimization when looking for STORE roots because we do not have
- * to recontact these nodes.  To make sure we do at least contact some of them,
- * we skip the KDA_ALPHA first nodes in the shortlist (those closest to the
- * STORE key).
- */
-static void
-lookup_load_path(nlookup_t *nl)
-{
-	unsigned skip = 0;
-	patricia_iter_t *iter;
-
-	lookup_check(nl);
-	g_assert(0 == map_count(nl->tokens));
-
-	iter = patricia_metric_iterator_lazy(nl->shortlist, nl->kuid, TRUE);
-
-	while (patricia_iter_has_next(iter)) {
-		knode_t *kn;
-		guint8 toklen;
-		const void *token;
-		time_t last_update;
-
-		if (skip++ < KDA_ALPHA)
-			continue;			/* Too close to the key, must be queried */
-
-		kn = patricia_iter_next_value(iter);
-
-		if (tcache_get(kn->id, &toklen, &token, &last_update)) {
-			lookup_token_t *ltok = walloc(sizeof *ltok);
-			sec_token_t *tok = token_alloc(toklen);
-
-			ltok->retrieved = last_update;
-			ltok->token = tok;
-			if (toklen) {
-				memcpy(tok->v, token, toklen);
-			}
-
-			/*
-			 * Since we're going to remove the node from the shortlist,
-			 * there's no need to alter the reference count when adding
-			 * to the path.
-			 */
-
-			map_insert(nl->tokens, kn->id, ltok);
-			patricia_insert(nl->path, kn->id, kn);
-			map_insert(nl->queried, kn->id, knode_refcnt_inc(kn));
-		}
-	}
-
-	patricia_iterator_release(&iter);
-
-	/*
-	 * Now that we finished iterating over the shortlist, remove the nodes
-	 * for which we are reusing a cached token.
-	 *
-	 * We're not touching the "ball" since it contains nodes that are either
-	 * in the shortlist or in the path, and we're just moving nodes from the
-	 * shortlist to the path.
-	 */
-
-	patricia_foreach_remove(nl->shortlist, remove_from_shortlist, nl->tokens);
-
-	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		log_patricia_dump(nl, nl->path, "pre-loaded path", 2);
-}
-
-/**
  * Create a KUID lookup.
  *
  * @param kuid		the KUID we're looking for
@@ -3092,7 +3109,6 @@ lookup_store_nodes(
 		return NULL;
 	}
 
-	lookup_load_path(nl);	/* Optimize thanks to security token cache */
 	lookup_async_iterate(nl);
 	return nl;
 }
