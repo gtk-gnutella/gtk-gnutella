@@ -218,13 +218,6 @@ FILE_INFO_FINISHED(const fileinfo_t *fi)
 		&& FILE_INFO_COMPLETE(fi);
 }
 
-static inline gboolean
-FILE_INFO_COMPLETE_AFTER(const fileinfo_t *fi, filesize_t off)
-{
-	file_info_check(fi);
-	return fi->file_size_known && off >= fi->size - fi->done;
-}
-
 typedef void (*fi_listener_t) (gnet_fi_t);
 typedef void (*src_listener_t) (gnet_src_t);
 
