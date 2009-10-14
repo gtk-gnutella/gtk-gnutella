@@ -78,6 +78,7 @@ cqueue_t *cq_make(const char *name, cq_time_t now, int period);
 cqueue_t *cq_submake(const char *name, cqueue_t *parent, int period);
 void cq_free_null(cqueue_t **cq_ptr);
 cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg);
+cq_time_t cq_remaining(cqueue_t *cq, const cevent_t *ev);
 void cq_expire(cqueue_t *cq, cevent_t *ev);
 void cq_cancel(cqueue_t *cq, cevent_t **handle_ptr);
 void cq_resched(cqueue_t *cq, cevent_t *handle, int delay);

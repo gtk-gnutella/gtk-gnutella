@@ -441,6 +441,21 @@ cq_resched(cqueue_t *cq, cevent_t *ev, int delay)
 }
 
 /**
+ * What is the remaining (virtual) time until a given event expires?
+ */
+cq_time_t
+cq_remaining(cqueue_t *cq, const cevent_t *ev)
+{
+	cqueue_check(cq);
+	cevent_check(ev);
+
+	if (ev->ce_time <= cq->cq_time)
+		return 0;
+
+	return ev->ce_time - cq->cq_time;
+}
+
+/**
  * Expire timeout by removing it out of the queue and firing its callback.
  */
 void
