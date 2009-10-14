@@ -117,7 +117,6 @@ knode_refcnt_inc(const knode_t *kn)
 	knode_t *knm = deconstify_gpointer(kn);
 
 	knode_check(kn);
-	g_assert(kn->refcnt > 0);
 
 	knm->refcnt++;
 	return knm;

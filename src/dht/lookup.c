@@ -283,6 +283,7 @@ lookup_type_to_string(lookup_type_t type)
 	case LOOKUP_NODE:		what = "node"; break;
 	case LOOKUP_STORE:		what = "store"; break;
 	case LOOKUP_REFRESH:	what = "refresh"; break;
+	case LOOKUP_TOKEN:		what = "token"; break;
 	}
 
 	return what;
@@ -434,6 +435,8 @@ lookup_create_results(nlookup_t *nl)
 	lookup_check(nl);
 
 	rs = walloc(sizeof *rs);
+	rs->magic = LOOKUP_RESULT_MAGIC;
+	rs->refcnt = 1;
 	len = patricia_count(nl->path);
 	rs->path = walloc(len * sizeof(lookup_rc_t));
 	rs->path_len = len;
@@ -459,6 +462,32 @@ lookup_create_results(nlookup_t *nl)
 
 	patricia_iterator_release(&iter);
 
+	lookup_result_check(rs);
+	return rs;
+}
+
+/**
+ * @return lookup results path length
+ */
+size_t
+lookup_result_path_length(const lookup_rs_t *rs)
+{
+	lookup_result_check(rs);
+	return rs->path_len;
+}
+
+/**
+ * Add one reference to a lookup result set.
+ * @return the argument
+ */
+const lookup_rs_t *
+lookup_result_refcnt_inc(const lookup_rs_t *rs)
+{
+	lookup_rs_t *rsm = deconstify_gpointer(rs);
+
+	lookup_result_check(rs);
+
+	rsm->refcnt++;
 	return rs;
 }
 
@@ -466,12 +495,13 @@ lookup_create_results(nlookup_t *nl)
  * Free node lookup results.
  */
 static void
-lookup_free_results(const lookup_rs_t *results)
+lookup_free_results(lookup_rs_t *rs)
 {
-	lookup_rs_t *rs = deconstify_gpointer(results);
 	size_t i;
 
 	g_assert(rs);
+	g_assert(LOOKUP_RESULT_MAGIC == rs->magic);
+	g_assert(0 == rs->refcnt);
 
 	for (i = 0; i < rs->path_len; i++) {
 		lookup_rc_t *rc = &rs->path[i];
@@ -484,6 +514,23 @@ lookup_free_results(const lookup_rs_t *results)
 
 	wfree(rs->path, rs->path_len * sizeof(lookup_rc_t));
 	wfree(rs, sizeof *rs);
+}
+
+/**
+ * Remove one reference count to results, freeing them when nobody uses
+ * the structure.
+ */
+void
+lookup_result_free(const lookup_rs_t *rs)
+{
+	lookup_rs_t *rsm = deconstify_gpointer(rs);
+
+	lookup_result_check(rs);
+
+	if (--rsm->refcnt)
+		return;
+
+	lookup_free_results(rsm);
 }
 
 /**
@@ -659,6 +706,7 @@ lookup_terminate(nlookup_t *nl)
 	lookup_final_stats(nl);
 
 	switch (nl->type) {
+	case LOOKUP_TOKEN:
 	case LOOKUP_STORE:
 		/*
 		 * Store lookups are initiated by the publishing layer, and since
@@ -676,7 +724,7 @@ lookup_terminate(nlookup_t *nl)
 			if (path_len > 0 && nl->u.fn.ok) {
 				lookup_rs_t *rs = lookup_create_results(nl);
 				(*nl->u.fn.ok)(nl->kuid, rs, nl->arg);
-				lookup_free_results(rs);
+				lookup_result_free(rs);	/* Allow them to take a reference */
 			} else if (nl->err) {
 				(*nl->err)(nl->kuid,
 					0 == path_len ? LOOKUP_E_EMPTY_PATH :
@@ -1571,11 +1619,21 @@ lookup_completed(nlookup_t *nl)
 	 * cached security token).
 	 *
 	 * We do not cache results from a refresh lookup because these are stopped
-	 * on a path-size basis, not on a convergence basis.
+	 * on a path-size basis, not on a convergence basis.  Likewise, token
+	 * lookups only contain one node because we're constraining the algorithm
+	 * so results should not be cached.
 	 */
 
-	if (nl->type != LOOKUP_REFRESH)
+	switch (nl->type) {
+	case LOOKUP_REFRESH:
+	case LOOKUP_TOKEN:
+		break;
+	case LOOKUP_STORE:
+	case LOOKUP_NODE:
+	case LOOKUP_VALUE:
 		roots_record(nl->path, nl->kuid);
+		break;
+	}
 
 	/*
 	 * All done -- value was not found if it was a value lookup, otherwise
@@ -1623,12 +1681,22 @@ lookup_expired(cqueue_t *unused_cq, gpointer obj)
 	 * amount of closest nodes.
 	 */
 
-	if (LOOKUP_NODE != nl->type || 0 == patricia_count(nl->path)) {
+	switch (nl->type) {
+	case LOOKUP_NODE:
+	case LOOKUP_STORE:
+	case LOOKUP_TOKEN:
+		if (0 == patricia_count(nl->path))
+			lookup_abort(nl, LOOKUP_E_EXPIRED);
+		else
+			lookup_terminate(nl);
+		return;
+	case LOOKUP_VALUE:
+	case LOOKUP_REFRESH:
 		lookup_abort(nl, LOOKUP_E_EXPIRED);
 		return;
 	}
 
-	lookup_terminate(nl);
+	g_assert_not_reached();
 }
 
 /**
@@ -2450,6 +2518,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 		/* FALL THROUGH */
 	case LOOKUP_NODE:
 	case LOOKUP_STORE:
+	case LOOKUP_TOKEN:
 	case LOOKUP_REFRESH:
 		if (function != KDA_MSG_FIND_NODE_RESPONSE) {
 			nl->rpc_bad++;
@@ -2687,6 +2756,7 @@ lookup_send(nlookup_t *nl, knode_t *kn)
 	switch (nl->type) {
 	case LOOKUP_NODE:
 	case LOOKUP_STORE:
+	case LOOKUP_TOKEN:
 	case LOOKUP_REFRESH:
 		revent_find_node(kn, nl->kuid, nl->lid, &lookup_ops, nl->hops);
 		return;
@@ -3131,7 +3201,7 @@ lookup_token(const knode_t *kn,
 
 	knode_check(kn);
 
-	nl = lookup_create(kn->id, LOOKUP_STORE, err, arg);
+	nl = lookup_create(kn->id, LOOKUP_TOKEN, err, arg);
 	nl->amount = 1;
 	nl->u.fn.ok = ok;
 	nl->mode = LOOKUP_STRICT;
@@ -3170,24 +3240,51 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 		int vcnt = 0;
 		float load;
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 1)
-			g_message("DHT LOOKUP[%s] key %s found locally, getting %s values",
-				revent_id_to_string(nl->lid), kuid_to_string(nl->kuid),
-				dht_value_type_to_string(nl->u.fv.vtype));
-
 		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
 			vvec, G_N_ELEMENTS(vvec), &load, NULL);
+
+		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+			g_message("DHT LOOKUP[%s] key %s found locally, with %d %s value%s",
+				revent_id_to_string(nl->lid), kuid_to_string(nl->kuid),
+				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
+				1 == vcnt ? "" : "s");
+		}
+
+		/*
+		 * If the only values we find are our own locally published values,
+		 * then we already aware of the information mentionned there, whatever
+		 * it is we are looking for, and therefore need to perform a full
+		 * lookup within the DHT.
+		 */
+
+		if (
+			1 == vcnt &&
+			kuid_eq(get_our_kuid(), dht_value_creator(vvec[0])->id)
+		) {
+			if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+				g_message("DHT LOOKUP[%s] single value found is ours, ignoring",
+					revent_id_to_string(nl->lid));
+			}
+			dht_value_free(vvec[0], TRUE);
+			goto lookup;
+		}
 
 		if (vcnt) {
 			lookup_value_terminate(nl,
 				load, vvec, vcnt, G_N_ELEMENTS(vvec), TRUE);
-		} else {
-			/* Key is here but not holding the type of data they want */
-			lookup_abort(nl, LOOKUP_E_NOT_FOUND);
+			return;
 		}
-	} else {
-		lookup_iterate(nl);		/* Key not held here, look for it on the net */
+
+		/*
+		 * Key is here but not holding the type of data they want, look for
+		 * it within the network.
+		 */
+
+		/* FALL THROUGH */
 	}
+
+lookup:
+	lookup_iterate(nl);		/* Look for it on the net */
 }
 
 /**

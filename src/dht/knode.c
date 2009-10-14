@@ -344,6 +344,7 @@ knode_dispose(knode_t *kn)
 	 */
 
 	if (kn->status != KNODE_UNKNOWN) {
+		kn->refcnt++;		/* Revitalize for knode_to_string() assertions */
 		g_error("attempting to free node still held in routing table: %s",
 			knode_to_string(kn));
 		g_assert_not_reached();

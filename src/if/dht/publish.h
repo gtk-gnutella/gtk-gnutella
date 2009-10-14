@@ -58,22 +58,36 @@ typedef enum {
 typedef struct publish publish_t;
 
 /**
+ * The information structure supplied to the value publishing callback.
+ */
+typedef struct publish_info {
+	const lookup_rs_t *rs;		/**< The set of STORE roots used */
+	const guint16 *status;		/**< Array of STORE status per node in path */
+	unsigned published;			/**< # of nodes where publishing was done */
+	unsigned candidates;		/**< # of nodes where STORE was possible */
+} publish_info_t;
+
+/**
  * Value publishing callback.
  *
  * @param arg			user-supplied callback argument
  * @param code			status code for publish operation
- * @param published		amount of nodes where value was successfully published
+ * @param info			publishing information
  */
 typedef void (*publish_cb_t)(gpointer arg,
-	publish_error_t code, unsigned published);
+	publish_error_t code, const publish_info_t *info);
 
 /*
  * Public interface.
  */
 
 const char *publish_strerror(publish_error_t error);
+void publish_cancel(publish_t *pb, gboolean callback);
 
 publish_t *publish_value(dht_value_t *value, const lookup_rs_t *rs,
+	publish_cb_t cb, gpointer arg);
+publish_t *publish_value_background(dht_value_t *value,
+	const lookup_rs_t *rs, const guint16 *status,
 	publish_cb_t cb, gpointer arg);
 
 #endif	/* _if_dht_publish_h_ */

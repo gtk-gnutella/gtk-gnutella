@@ -73,7 +73,7 @@ RCSID("$Id$")
 
 #define PUBLISHER_CALLOUT	10000	/**< Heartbeat every 10 seconds */
 #define PUBLISH_SAFETY		(5*60)	/**< Safety before expiration: 5 min */
-#define PUBLISH_POPULAR		7200	/**< 2 hour delay for popular files */
+#define PUBLISH_POPULAR		10800	/**< 3 hours of delay for popular files */
 #define PUBLISH_BUSY		600		/**< Retry after 10 minutes */
 #define PUBLISH_DMESH_MAX	5		/**< File popularity by dmesh entry count */
 
@@ -91,6 +91,8 @@ struct publisher_entry {
 	cevent_t *publish_ev;		/**< Republish event */
 	time_t last_enqueued;		/**< When file was last enqueued */
 	time_t last_publish;		/**< When file was last published */
+	time_t last_delayed;		/**< When republish event was set */
+	guint8 backgrounded;		/**< Whether PDHT is continuing publishing */
 };
 
 static inline void
@@ -191,6 +193,9 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
 		delete_pubdata(pe->sha1);
 	}
 
+	if (pe->backgrounded)
+		pdht_cancel_file(pe->sha1, FALSE);
+
 	atom_sha1_free_null(&pe->sha1);
 	cq_cancel(publish_cq, &pe->publish_ev);
 	wfree(pe, sizeof *pe);
@@ -233,6 +238,7 @@ publisher_retry(struct publisher_entry *pe, int delay)
 	}
 
 	pe->publish_ev = cq_insert(publish_cq, delay * 1000, handle_entry, pe);
+	pe->last_delayed = tm_time();
 }
 
 /**
@@ -259,21 +265,27 @@ publisher_hold(struct publisher_entry *pe, int delay)
 /**
  * Publishing callback invoked when asynchronous publication is completed,
  * or ended with an error.
+ *
+ * @return TRUE if we accept the publishing, FALSE otherwise to get the
+ * publishing layer to continue attempts to failed STORE roots and report
+ * on progress using the same callback.
  */
-static void
-publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
+static gboolean
+publisher_done(gpointer arg, pdht_error_t code,
+	unsigned roots, unsigned all_roots, unsigned path_len, gboolean can_bg)
 {
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
 	int delay;
 	gboolean expired = FALSE;
-	
+	gboolean accepted = TRUE;
+
 	publisher_check(pe);
 
 	pd = get_pubdata(pe->sha1);
 
 	/*
-	 * Update stats on publishing success.
+	 * Update stats on republishing before value expiration.
 	 */
 
 	if (PDHT_E_OK == code) {
@@ -302,7 +314,7 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		 * delay before republishing.
 		 */
 
-		delay = DHT_VALUE_ALOC_EXPIRE * roots / KDA_K - PUBLISH_SAFETY;
+		delay = DHT_VALUE_ALOC_EXPIRE * all_roots / KDA_K - PUBLISH_SAFETY;
 		delay = MAX(delay, PUBLISH_SAFETY);
 		break;
 	case PDHT_E_POPULAR:
@@ -323,6 +335,24 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		break;
 	case PDHT_E_MAX:
 		g_assert_not_reached();
+	}
+
+	/*
+	 * For a backgrounded entry publishing, we need to adjust the computed
+	 * delay with the time that was elapsed
+	 */
+
+	g_assert(!pe->backgrounded == !(pe->publish_ev != NULL));
+
+	if (pe->backgrounded) {
+		time_delta_t elapsed = delta_time(tm_time(), pe->last_delayed);
+		g_assert(pe->last_delayed > 0);
+		cq_cancel(publish_cq, &pe->publish_ev);
+		if (delay > elapsed) {
+			delay -= elapsed;
+		} else {
+			delay = 1;
+		}
 	}
 
 	/*
@@ -352,34 +382,40 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 
 		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
 
-		g_message("PUBLISHER SHA-1 %s %s\"%s\" %spublished to %u node%s%s: %s"
-			" (%stook %s, retry in %s)", sha1_to_string(pe->sha1),
+		g_message("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
+			" (%stook %s, total %u node%s, retry in %s, %s bg)",
+			sha1_to_string(pe->sha1),
+			pe->backgrounded ? "[bg] " : "",
 			(sf && sf != SHARE_REBUILDING && shared_file_is_partial(sf)) ?
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
 			roots, 1 == roots ? "" : "s", after, pdht_strerror(code), late,
-			compact_time(delta_time(tm_time(), pe->last_enqueued)), retry);
+			compact_time(delta_time(tm_time(), pe->last_enqueued)),
+			all_roots, 1 == all_roots ? "" : "s", retry, can_bg ? "can" : "no");
 	}
 
 	/*
 	 * Update last publishing time and remember expiration time.
 	 */
 
-	if (PDHT_E_OK == code && roots > 0) {
-		pe->last_publish = tm_time();
-		if (pd != NULL) {
-			pd->expiration =
-				time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
-			dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+	if (PDHT_E_OK == code) {
+		if (roots > 0) {
+			pe->last_publish = tm_time();
+			if (pd != NULL) {
+				pd->expiration =
+					time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
+				dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+			}
 		}
+		accepted = all_roots == path_len || !can_bg;
 	}
 
 	/*
 	 * If entry was deemed popular, we're going to delay its republishing
 	 * by a larger amount of time and any data we published already about
 	 * it will surely expire.  Since this is our decision, we do not want
-	 * to be told that republishing, if it occurs later, was done later than
+	 * to be told that republishing, if it occurs again, was done later than
 	 * required.  Hence call publisher_hold() to mark that we don't care.
 	 */
 
@@ -387,6 +423,10 @@ publisher_done(gpointer arg, pdht_error_t code, unsigned roots)
 		publisher_hold(pe, delay);
 	else
 		publisher_retry(pe, delay);
+
+	pe->backgrounded = !accepted;
+
+	return accepted;
 }
 
 /**
@@ -532,6 +572,15 @@ publisher_handle(struct publisher_entry *pe)
 				return;
 			}
 		}
+	}
+
+	/*
+	 * Cancel possible remaining backgrounded publishing.
+	 */
+
+	if (pe->backgrounded) {
+		pdht_cancel_file(pe->sha1, FALSE);
+		pe->backgrounded = FALSE;
 	}
 
 	/*

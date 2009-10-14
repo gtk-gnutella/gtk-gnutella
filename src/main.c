@@ -427,6 +427,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(http_close);
 	DO(uhc_close);
 	DO(move_close);
+	DO(publisher_close);
+	DO(pdht_close);
 	DO(dht_close);
 	DO(ipp_cache_save_all);
 
@@ -533,8 +535,6 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(bitzi_close);
 	DO(ntp_close);
-	DO(publisher_close);
-	DO(pdht_close);
 	DO(gdht_close);
 	DO(sq_close);
 	DO(dh_close);

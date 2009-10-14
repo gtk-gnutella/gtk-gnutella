@@ -45,6 +45,7 @@ RCSID("$Id$")
 #include "sockets.h"			/* For socket_listen_port() */
 #include "tls_common.h"			/* For tls_enabled() */
 
+#include "if/dht/kademlia.h"
 #include "if/dht/lookup.h"
 #include "if/dht/knode.h"
 #include "if/dht/value.h"
@@ -62,10 +63,13 @@ RCSID("$Id$")
 #define PDHT_ALOC_MAJOR		0	/**< We generate v0.1 "ALOC" values */
 #define PDHT_ALOC_MINOR		1
 
+#define PDHT_BG_PERIOD		60000	/**< 1 minute, in ms */
+#define PDHT_BG_MAX_RUNS	3		/**< Max amount of background attempts */
+
 /**
- * Hash table holding all the pending publishes by KUID.
+ * Hash table holding all the pending file publishes by SHA1.
  */
-static GHashTable *aloc_publishes;		/* KUID -> pdht_publish_t */
+static GHashTable *aloc_publishes;		/* SHA1 -> pdht_publish_t */
 
 typedef enum { PDHT_PUBLISH_MAGIC = 0x680182c5U } pdht_magic_t;
 
@@ -77,6 +81,23 @@ typedef enum {
 } pdht_type_t;
 
 /**
+ * Background context.
+ *
+ * Background publishing is created when a STORE request is issued and
+ * there are nodes which reported non-specific error conditions that do
+ * not enable us to know why the STORE attempt failed.
+ */
+struct pdht_bg {
+	guint16 *status;			/**< Consolidated STORE statuses */
+	const lookup_rs_t *rs;		/**< STORE lookup path */
+	cevent_t *ev;				/**< Scheduling for background store */
+	unsigned published;			/**< Consolidated amount of publishes */
+	unsigned candidates;			/**< Initial amount of STORE roots */
+	int delay;					/**< Background delay used last iteration */
+	int runs;					/**< Completed background runs */
+};
+
+/**
  * Publishing context.
  */
 typedef struct pdht_publish {
@@ -85,12 +106,16 @@ typedef struct pdht_publish {
 	pdht_cb_t cb;				/**< Callback to invoke when finished */
 	gpointer arg;				/**< Callback argument */
 	const kuid_t *id;			/**< Publishing key (atom) */
+	publish_t *pb;				/**< The publishing request */
+	dht_value_t *value;			/**< The value being published */
+	struct pdht_bg *bg;			/**< For backgrounded STORE requests */
 	union {
 		struct pdht_aloc {			/**< Context for ALOC publishing */
 			const sha1_t *sha1;		/**< SHA1 of the file being published */
 			shared_file_t *sf;		/**< Published file entry, for logs */
 		} aloc;
 	} u;
+	guint32 flags;				/**< Operating flags */
 } pdht_publish_t;
 
 static inline void
@@ -99,6 +124,14 @@ pdht_publish_check(const pdht_publish_t *pp)
 	g_assert(pp != NULL);
 	g_assert(PDHT_PUBLISH_MAGIC == pp->magic);
 }
+
+/**
+ * Operating flags for publishing context.
+ */
+#define PDHT_F_CANCELLING	(1U << 0)	/**< Explicitly cancelling */
+#define PDHT_F_BACKGROUND	(1U << 1)	/**< Background publishing */
+
+static void pdht_bg_publish(cqueue_t *unused_cq, gpointer obj);
 
 /**
  * English version of the publish type.
@@ -116,20 +149,65 @@ pdht_type_to_string(pdht_type_t type)
 }
 
 /**
+ * Allocate a background publishing context.
+ */
+static struct pdht_bg *
+pdht_bg_alloc(const lookup_rs_t *rs, const guint16 *status,
+	unsigned published, unsigned candidates)
+{
+	struct pdht_bg *pbg;
+
+	pbg = walloc0(sizeof *pbg);
+	pbg->rs = lookup_result_refcnt_inc(rs);
+	pbg->published = published;
+	pbg->candidates = candidates;
+	pbg->status = wcopy(status,
+		lookup_result_path_length(rs) * sizeof *pbg->status);
+
+	return pbg;
+}
+
+/**
+ * Free background publishing context and nullify pointer.
+ */
+static void
+pdht_bg_free_null(struct pdht_bg **pbg_ptr)
+{
+	struct pdht_bg *pbg = *pbg_ptr;
+
+	if (pbg != NULL) {
+		cq_cancel(callout_queue, &pbg->ev);
+		WFREE_NULL(pbg->status,
+			lookup_result_path_length(pbg->rs) * sizeof *pbg->status);
+		lookup_result_free(pbg->rs);
+		*pbg_ptr = NULL;
+	}
+}
+
+/**
  * Free publishing context.
  */
 static void
 pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 {
-	GHashTable *ht = NULL;
-
 	pdht_publish_check(pp);
+
+	if (do_remove && pp->pb != NULL) {
+		publish_cancel(pp->pb, FALSE);
+		pp->pb = NULL;
+	}
+
+	if (pp->value != NULL)
+		dht_value_free(pp->value, TRUE);
+
+	pdht_bg_free_null(&pp->bg);
 
 	switch (pp->type) {
 	case PDHT_T_ALOC:
+		if (do_remove)
+			g_hash_table_remove(aloc_publishes, pp->u.aloc.sha1);
 		atom_sha1_free(pp->u.aloc.sha1);
 		shared_file_unref(&pp->u.aloc.sf);
-		ht = aloc_publishes;
 		break;
 	case PDHT_T_PROX:
 		/* XXX */
@@ -137,9 +215,6 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 	case PDHT_T_MAX:
 		g_assert_not_reached();
 	}
-
-	if (do_remove)
-		g_hash_table_remove(ht, pp->id);
 
 	kuid_atom_free(pp->id);
 	wfree(pp, sizeof *pp);
@@ -189,7 +264,7 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
 			pdht_strerror(code));
 	}
 
-	(*pp->cb)(pp->arg, code, 0);
+	(*pp->cb)(pp->arg, code, 0, 0, 0, FALSE);
 	pdht_free_publish(pp, pp->id != NULL);
 }
 
@@ -197,12 +272,18 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
  * Callback when publish_value() is done.
  */
 static void
-pdht_publish_done(gpointer arg, publish_error_t code, unsigned published)
+pdht_publish_done(gpointer arg,
+	publish_error_t code, const publish_info_t *info)
 {
 	pdht_publish_t *pp = arg;
 	pdht_error_t status;
+	unsigned published = info->published;
+	unsigned candidates = info->candidates;
+	gboolean can_bg = TRUE;
 
 	pdht_publish_check(pp);
+
+	pp->pb = NULL;
 
 	switch (code) {
 	case PUBLISH_E_OK:			status = PDHT_E_OK; break;
@@ -217,14 +298,149 @@ pdht_publish_done(gpointer arg, publish_error_t code, unsigned published)
 		break;
 	}
 
-	if (GNET_PROPERTY(publisher_debug) > 1) {
-		g_message("PDHT ending %s publish for %s (%u publish%s): %s",
-			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
-			published, 1 == published ? "" : "es", publish_strerror(code));
+	/*
+	 * If after our max background publishing attempts we did not manage
+	 * to store the data to any of the nodes, and provided we had KDA_K
+	 * candidates at the beginning and more than KDA_K/2 candidates in our last
+	 * run, it is safe to assume that the file is popular enough and that
+	 * the real cause for getting generic errors is that the key is full in
+	 * all the k-closest nodes.
+	 */
+
+	if (
+		PUBLISH_E_OK == code &&
+		pp->bg != NULL && pp->bg->runs >= PDHT_BG_MAX_RUNS
+	) {
+		unsigned roots = pp->bg->candidates;	/* Initial amount of roots */
+		if (roots == KDA_K && info->candidates >= KDA_K/2) {
+			if (GNET_PROPERTY(publisher_debug) > 1) {
+				g_message("PDHT assuming %s %s is a popular key",
+					pdht_type_to_string(pp->type), kuid_to_string(pp->id));
+			}
+			status = PDHT_E_POPULAR;
+		}
 	}
 
-	(*pp->cb)(pp->arg, status, published);
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT ending %s%s publish for %s (%u publish%s): %s",
+			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
+			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
+			info->published, 1 == info->published ? "" : "es",
+			publish_strerror(code));
+	}
+
+	/*
+	 * Consolidate the total amount of nodes to which publishing was done.
+	 */
+
+	if (pp->bg != NULL) {
+		published += pp->bg->published;
+		pp->bg->published = published;
+		candidates = pp->bg->candidates;	/* Initial amount of STORE roots */
+	}
+
+	/*
+	 * If the publishing layer published to all the candidate roots it could
+	 * find, then there's no need continuing to background STORES.
+	 */
+
+	if (info->published >= info->candidates) {
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			g_message("PDHT no more nodes to background publish %s for %s",
+				pdht_type_to_string(pp->type), kuid_to_string(pp->id));
+		}
+		can_bg = FALSE;		/* Published to all available k-closest roots */
+	} else if (pp->bg != NULL && pp->bg->runs >= PDHT_BG_MAX_RUNS) {
+		if (GNET_PROPERTY(publisher_debug) > 1) {
+			g_message("PDHT reached max background %s publish attempts for %s",
+				pdht_type_to_string(pp->type), kuid_to_string(pp->id));
+		}
+		can_bg = FALSE;		/* Reached max amount of retries */
+	}
+
+	/*
+	 * If the upper layer accepts the publishing, then we're done.
+	 */
+
+	if (
+		(*pp->cb)(pp->arg, status,
+			info->published, published, candidates, can_bg)
+	) {
+		if (pp->flags & PDHT_F_CANCELLING)
+			return;
+		goto terminate;
+	}
+
+	/*
+	 * Upper layer wants us to continue publishing in the background,
+	 * calling back after each subsequent iteration to report on progress.
+	 *
+	 * The background attempt is delayed for a while, and each time we
+	 * actually schedule it in the future, we double the period.
+	 */
+
+	if (!can_bg)
+		goto terminate;		/* Cannot continue background STORE */
+
+	if (pp->bg != NULL) {
+		g_assert(pp->bg->runs < PDHT_BG_MAX_RUNS);	/* Checked above */
+		pp->bg->delay *= 2;
+		memcpy(pp->bg->status, info->status,
+			lookup_result_path_length(info->rs) * sizeof *info->status);
+	} else {
+		pp->flags |= PDHT_F_BACKGROUND;
+		pp->bg = pdht_bg_alloc(info->rs, info->status,
+			published, info->candidates);
+		pp->bg->delay = PDHT_BG_PERIOD;
+	}
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT will start background %s publish for %s in %d secs",
+			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
+			pp->bg->delay / 1000);
+	}
+
+	pp->bg->ev = cq_insert(callout_queue, pp->bg->delay, pdht_bg_publish, pp);
+	return;
+
+terminate:
 	pdht_free_publish(pp, TRUE);
+}
+
+/**
+ * Callout queue callback to launch a background publish.
+ */
+static void
+pdht_bg_publish(cqueue_t *unused_cq, gpointer obj)
+{
+	pdht_publish_t *pp = obj;
+
+	(void) unused_cq;
+
+	pdht_publish_check(pp);
+	g_assert(pp->bg != NULL);
+	g_assert(NULL == pp->pb);
+
+	pp->bg->ev = NULL;
+	pp->bg->runs++;
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		g_message("PDHT starting background %s publish for %s (run #%d)",
+			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
+			pp->bg->runs);
+	}
+
+	switch (pp->type) {
+	case PDHT_T_ALOC:
+		pp->pb = publish_value_background(dht_value_clone(pp->value),
+			pp->bg->rs, pp->bg->status, pdht_publish_done, pp);
+		break;
+	case PDHT_T_PROX:
+		/* XXX */
+		break;
+	case PDHT_T_MAX:
+		g_assert_not_reached();
+	}
 }
 
 /**
@@ -368,7 +584,7 @@ pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	sf = paloc->sf;
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
-		size_t roots = rs->path_len;
+		size_t roots = lookup_result_path_length(rs);
 		g_message("PDHT ALOC found %lu publish root%s for %s \"%s\"",
 			(unsigned long) roots, 1 == roots ? "" : "s",
 			shared_file_is_partial(sf) ? "partial" : "shared",
@@ -408,7 +624,8 @@ pdht_aloc_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	 * Step #3: issue the STORE on each of the k identified nodes.
 	 */
 
-	publish_value(value, rs, pdht_publish_done, pp);
+	pp->value = dht_value_clone(value);
+	pp->pb = publish_value(value, rs, pdht_publish_done, pp);
 }
 
 /**
@@ -513,13 +730,13 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg)
 	pp->id = gdht_kuid_from_sha1(sha1);
 	paloc->sha1 = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup(aloc_publishes, pp->id)) {
+	if (g_hash_table_lookup(aloc_publishes, sha1)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	gm_hash_table_insert_const(aloc_publishes, pp->id, pp);
+	gm_hash_table_insert_const(aloc_publishes, paloc->sha1, pp);
 
 	/*
 	 * Publishing will occur in three steps:
@@ -548,6 +765,48 @@ error:
 	 */
 
 	pdht_publish_error_async(pp, code);
+}
+
+/**
+ * Cancel a file publishing.
+ *
+ * @param sha1		the SHA1 of the file
+ * @param callabck	whether callbacks need to be invoked
+ */
+void
+pdht_cancel_file(const sha1_t *sha1, gboolean callback)
+{
+	pdht_publish_t *pp;
+
+	pp = g_hash_table_lookup(aloc_publishes, sha1);
+
+	if (NULL == pp)
+		return;
+
+	pdht_publish_check(pp);
+
+	if (GNET_PROPERTY(publisher_debug) > 1) {
+		shared_file_t *sf = pp->u.aloc.sf;
+		g_warning("PDHT cancelling ALOC for %s \"%s\" (%s callback): %s",
+			shared_file_is_partial(sf) ? "partial" : "shared",
+			shared_file_name_nfc(sf),
+			callback ? "with" : "no", sha1_to_string(sha1));
+	}
+
+	/*
+	 * By setting PDHT_F_CANCELLING we avoid the publish callback from
+	 * freeing the publishing object, since we are going to do that
+	 * ourselves once we return from the publish_cancel() call.
+	 */
+
+	pp->flags |= PDHT_F_CANCELLING;
+
+	if (pp->pb != NULL) {
+		publish_cancel(pp->pb, callback);
+		pp->pb = NULL;
+	}
+
+	pdht_free_publish(pp, TRUE);
 }
 
 /**

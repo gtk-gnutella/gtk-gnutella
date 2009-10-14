@@ -99,26 +99,7 @@ typedef void (*lookup_cbv_ok_t)(
 typedef void (*lookup_cb_err_t)(
 	const kuid_t *kuid, lookup_error_t error, gpointer arg);
 
-/**
- * Node lookup result record.
- */
-typedef struct lookup_rc {
-	knode_t *kn;				/**< A Kademlia node */
-	void *token;				/**< The security token (NULL if none) */
-	guint8 token_len;			/**< Length of security token */
-} lookup_rc_t;
-
-/**
- * Node lookup result set.
- *
- * NB: path can contain more than the k-closest nodes, but the first k entries
- * are the k-closest.  It can also contain less than k items, if we were
- * unable to find closer nodes.
- */
-typedef struct lookup_result {
-	lookup_rc_t *path;			/**< Lookup path, closest node first */
-	size_t path_len;			/**< Amount of entries in lookup path */
-} lookup_rs_t;
+typedef struct lookup_result lookup_rs_t;
 
 /**
  * Node lookup callback invoked when OK.
@@ -133,6 +114,10 @@ typedef void (*lookup_cb_ok_t)(
 /*
  * Public interface.
  */
+
+const lookup_rs_t *lookup_result_refcnt_inc(const lookup_rs_t *rs);
+size_t lookup_result_path_length(const lookup_rs_t *rs);
+void lookup_result_free(const lookup_rs_t *rs);
 
 const char *lookup_strerror(lookup_error_t error);
 void ulq_find_store_roots(const kuid_t *kuid,

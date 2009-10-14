@@ -427,6 +427,7 @@ ulq_launch(struct ulq *uq)
 		break;
 	case LOOKUP_REFRESH:
 	case LOOKUP_NODE:
+	case LOOKUP_TOKEN:
 		break;
 	}
 	nl = NULL;
@@ -664,6 +665,7 @@ ulq_get(lookup_type_t ltype, dht_value_type_t vtype)
 		break;
 	case LOOKUP_REFRESH:
 	case LOOKUP_NODE:
+	case LOOKUP_TOKEN:
 		g_assert_not_reached();
 	}
 

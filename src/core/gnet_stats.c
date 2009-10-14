@@ -257,6 +257,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 	"dht_publishing_partially_successful",
 	"dht_republished_late",
 	"dht_publishing_to_self",
+	"dht_publishing_bg_attempts",
+	"dht_publishing_bg_successful",
 	"dht_alt_loc_lookups",
 	"dht_push_proxy_lookups",
 	"dht_successful_alt_loc_lookups",

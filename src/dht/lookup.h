@@ -62,6 +62,7 @@ typedef enum {
 	LOOKUP_NODE = 1,			/**< Node lookup */
 	LOOKUP_VALUE,				/**< Value lookup */
 	LOOKUP_STORE,				/**< Node lookup before s STORE */
+	LOOKUP_TOKEN,				/**< Security token lookup */
 	LOOKUP_REFRESH				/**< Refresh lookup */
 } lookup_type_t;
 
@@ -86,6 +87,41 @@ struct lookup_stats {
  */
 typedef void (*lookup_cb_stats_t)(
 	const kuid_t *kuid, const struct lookup_stats *ls, gpointer arg);
+
+/**
+ * Node lookup result record.
+ */
+typedef struct lookup_rc {
+	knode_t *kn;				/**< A Kademlia node */
+	void *token;				/**< The security token (NULL if none) */
+	guint8 token_len;			/**< Length of security token */
+} lookup_rc_t;
+
+typedef enum {
+	LOOKUP_RESULT_MAGIC = 0x5f46d447U
+} lookup_rs_magic_t;
+
+/**
+ * Node lookup result set.
+ *
+ * NB: path can contain more than the k-closest nodes, but the first k entries
+ * are the k-closest.  It can also contain less than k items, if we were
+ * unable to find closer nodes.
+ */
+struct lookup_result {
+	lookup_rs_magic_t magic;	/**< Magic number */
+	int refcnt;					/**< Reference count */
+	lookup_rc_t *path;			/**< Lookup path, closest node first */
+	size_t path_len;			/**< Amount of entries in lookup path */
+};
+
+static inline void
+lookup_result_check(const lookup_rs_t *rs)
+{
+	g_assert(rs != NULL);
+	g_assert(LOOKUP_RESULT_MAGIC == rs->magic);
+	g_assert(rs->refcnt > 0);
+}
 
 /*
  * Public interface.

@@ -65,19 +65,29 @@ typedef enum {
  *
  * @param arg		user-supplied callback argument
  * @param code		status code of the operation
- * @param roots		number of roots to which the file was published
+ * @param roots		number of roots to which the file was published this time
+ * @param all_roots	total number of roots to which the file was published
+ * @param path_len	total number of roots to which the file could be published
+ * @param can_bg	whether background publishing can be attempted
+ *
+ * @return TRUE if receiver is OK with the publishing, FALSE to request further
+ * background attempts to publish to more nodes.
  */
-typedef void (*pdht_cb_t)(gpointer arg, pdht_error_t code, unsigned roots);
+typedef gboolean (*pdht_cb_t)(gpointer arg, pdht_error_t code,
+	unsigned roots, unsigned all_roots, unsigned path_len, gboolean can_bg);
 
 /*
  * Public interface.
  */
+
+struct sha1;
 
 void pdht_init(void);
 void pdht_close(void);
 
 void pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg);
 const char *pdht_strerror(pdht_error_t code);
+void pdht_cancel_file(const struct sha1 *sha1, gboolean callback);
 
 #endif	/* _core_pdht_h_ */
 
