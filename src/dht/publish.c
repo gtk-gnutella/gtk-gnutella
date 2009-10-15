@@ -453,11 +453,12 @@ publish_terminate(publish_t *pb, publish_error_t code)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		g_message("DHT PUBLISH[%s] %s "
-			"terminating %s %spublish %s %d/%d %s%s for %s: %s",
+			"terminating %s %s%spublish %s %d/%d %s%s for %s: %s",
 			revent_id_to_string(pb->pid),
 			pb->published == pb->cnt ? "OK" : "ERROR",
 			publish_type_to_string(pb->type),
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
+			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 			PUBLISH_VALUE == pb->type ? "to" : "of",
 			pb->published, pb->cnt,
 			PUBLISH_VALUE == pb->type ? "root" : "item",
@@ -488,9 +489,30 @@ publish_terminate(publish_t *pb, publish_error_t code)
 			} else {
 				gnet_stats_count_general(GNR_DHT_PUBLISHING_SUCCESSFUL, 1);
 			}
-		} else if (pb->published > 0 && !(pb->flags & PB_F_BACKGROUND)) {
-			gnet_stats_count_general(
-				GNR_DHT_PUBLISHING_PARTIALLY_SUCCESSFUL, 1);
+		} else if (pb->published > 0) {
+			if (pb->flags & PB_F_BACKGROUND) {
+				gnet_stats_count_general(GNR_DHT_PUBLISHING_BG_IMPROVEMENTS, 1);
+			} else {
+				gnet_stats_count_general(
+					GNR_DHT_PUBLISHING_PARTIALLY_SUCCESSFUL, 1);
+			}
+		}
+
+		/*
+		 * For initial STORE requests, we need to flag all the nodes in the
+		 * path which we did not consider, so that subsequent background
+		 * attempts, if any, do not try to STORE in these nodes which were
+		 * outside the set of k-closest neighbours at the time of the initial
+		 * publish.
+		 */
+
+		if (!(pb->flags & PB_F_BACKGROUND)) {
+			size_t max = pb->target.v.rs->path_len;
+			size_t i;
+
+			for (i = pb->target.v.idx; i < max; i++) {
+				pb->target.v.status[i] = STORE_SC_TIMEOUT;	/* non-retryable */
+			}
 		}
 		break;
 	case PUBLISH_OFFLOAD:
@@ -549,10 +571,11 @@ publish_cancel(publish_t *pb, gboolean callback)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		g_message("DHT PUBLISH[%s] %s "
-			"cancelling %s%s publish of %d/%d item%s for %s",
+			"cancelling %s%s%s publish of %d/%d item%s for %s",
 			revent_id_to_string(pb->pid),
 			pb->published == pb->cnt ? "OK" : "ERROR",
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
+			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 			publish_type_to_string(pb->type),
 			pb->published, pb->cnt, 1 == pb->cnt ? "" : "s",
 			kuid_to_hex_string(pb->key));
@@ -591,9 +614,10 @@ publish_cache_expired(cqueue_t *unused_cq, gpointer obj)
 	pb->expire_ev = NULL;
 
 	if (GNET_PROPERTY(dht_publish_debug))
-		g_message("DHT PUBLISH[%s] %s%s publish of %d value%s for %s expired",
+		g_message("DHT PUBLISH[%s] %s%s%s publish of %d value%s for %s expired",
 			revent_id_to_string(pb->pid),
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
+			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 			publish_type_to_string(pb->type),
 			pb->cnt, 1 == pb->cnt ? "" : "s",
 			kuid_to_hex_string(pb->key));
@@ -658,9 +682,10 @@ log_status(publish_t *pb)
 
 	tm_now_exact(&now);
 	g_message("DHT PUBLISH[%s] "
-		"%s%s publish status for %s at hop %u after %f secs",
+		"%s%s%s publish status for %s at hop %u after %f secs",
 		revent_id_to_string(pb->pid),
 		(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
+		(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 		publish_type_to_string(pb->type),
 		kuid_to_hex_string(pb->key), pb->hops,
 		tm_elapsed_f(&now, &pb->start));
@@ -893,6 +918,12 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 			}
 		}
 
+		/*
+		 * NB: status code propagation is only meant to be used when
+		 * processing a STORE publishing, since we know we're sending one
+		 * value only and expect one single item in the acknowledgement.
+		 */
+
 		if (code_ptr != NULL)
 			*code_ptr = status.code;
 
@@ -1120,7 +1151,14 @@ publish_value_candidates(const lookup_rs_t *rs, const guint16 *status)
 	size_t i;
 	size_t result = 0;
 
+	/*
+	 * During the initial STORE, we took care of marking all the trailing
+	 * nodes in the path with the non-retryable status STORE_SC_TIMEOUT so
+	 * that we do not attempt to contact new nodes during subsequent requests.
+	 */
+
 	count = rs->path_len;
+
 	for (i = 0; i < count; i++) {
 		if (publish_status_retryable(status[i]))
 			result++;
@@ -2392,6 +2430,7 @@ publish_value_background(dht_value_t *value,
 	pb->target.v.status = wcopy(status,
 		rs->path_len * sizeof *pb->target.v.status);
 	pb->flags |= PB_F_BACKGROUND;
+	pb->target.v.idx = publish_value_next_unstored(pb, 0);
 
 	/*
 	 * Contrary to a regular publish, we do not attempt to republish locally
