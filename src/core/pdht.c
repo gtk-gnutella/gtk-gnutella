@@ -312,7 +312,10 @@ pdht_publish_done(gpointer arg,
 		pp->bg != NULL && pp->bg->runs >= PDHT_BG_MAX_RUNS
 	) {
 		unsigned roots = pp->bg->candidates;	/* Initial amount of roots */
-		if (roots == KDA_K && info->candidates >= KDA_K/2) {
+		if (
+			KDA_K == roots && info->candidates >= KDA_K/2 &&
+			0 == info->published
+		) {
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				g_message("PDHT assuming %s %s is a popular key",
 					pdht_type_to_string(pp->type), kuid_to_string(pp->id));
