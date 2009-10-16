@@ -38,6 +38,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "nodes_common.h"
 #include "settings.h"
 

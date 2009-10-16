@@ -40,6 +40,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "ban.h"
 #include "bh_upload.h"
 #include "bsched.h"

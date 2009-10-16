@@ -40,6 +40,8 @@ RCSID("$Id$")
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
+#include "gtk-gnutella.h"
+
 #include "filter_core.h"
 #include "search_xml.h"
 #include "settings.h"

@@ -41,6 +41,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "guid.h"
 #include "lib/misc.h"
 #include "lib/endian.h"

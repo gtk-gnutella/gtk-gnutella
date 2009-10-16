@@ -27,6 +27,7 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
 #include "cmd.h"
 
 #include "core/nodes.h"

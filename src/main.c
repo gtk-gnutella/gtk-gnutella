@@ -35,6 +35,7 @@
 
 #include "common.h"
 #include "revision.h"
+#include "gtk-gnutella.h"
 
 #include <libxml/xmlversion.h>		/* For LIBXML_TEST_VERSION */
 #include <libxml/xmlmemory.h>		/* For xmlMemSetup() */

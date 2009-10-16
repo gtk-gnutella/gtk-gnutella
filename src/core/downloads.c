@@ -35,6 +35,8 @@
 
 #include "common.h"
 
+#include "gtk-gnutella.h"
+
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"

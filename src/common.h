@@ -38,29 +38,6 @@
 
 #include "config.h"
 
-/*
- * Constants
- */
-
-#define GTA_PRODUCT_NAME "gtk-gnutella"	/**< Normally "gtk-gnutella" */
-#define GTA_VERSION 0				/**< major version */
-#define GTA_SUBVERSION 96			/**< minor version */
-#define GTA_PATCHLEVEL 7			/**< patch level or teeny version */
-#define GTA_REVISION "unstable"		/**< unstable, beta, stable */
-#define GTA_REVCHAR "u"				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2009-10-10"	/**< ISO 8601 format YYYY-MM-DD */
-#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
-
-#if defined(USE_GTK1)
-#define GTA_INTERFACE "GTK1"
-#elif defined(USE_GTK2)
-#define GTA_INTERFACE "GTK2"
-#elif defined(USE_TOPLESS)
-#define GTA_INTERFACE "Topless"
-#else
-#error "Expected Gtk+ 1.2, Gtk+ 2.x or headless as user-interface."
-#endif
-
 #ifndef HAS_LIBXML2
 #error "You need libxml2 (http://www.xmlsoft.org/) to compile gtk-gnutella"
 #endif
@@ -578,19 +555,7 @@ G_STMT_START {			\
 #define STATIC_ASSERT(x) \
 	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
 
-#if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
-#define GTA_VERSION_NUMBER \
-	STRINGIFY(GTA_VERSION) "." \
-	STRINGIFY(GTA_SUBVERSION) "." \
-	STRINGIFY(GTA_PATCHLEVEL) GTA_REVCHAR
-#else
-#define GTA_VERSION_NUMBER \
-	STRINGIFY(GTA_VERSION) "." STRINGIFY(GTA_SUBVERSION) GTA_REVCHAR
-#endif
-
-#define GTA_PORT			6346	/**< Default "standard" port */
 #define MAX_HOSTLEN			256		/**< Max length for FQDN host */
-#define GTA_BUILD					"$Revision$"
 
 /* The next two defines came from huge.h --- Emile */
 #define SHA1_BASE16_SIZE 	40		/**< 160 bits in base16 representation */

@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "gnutella.h"
 #include "downloads.h"
 #include "uploads.h"		/* For upload_is_enabled() */

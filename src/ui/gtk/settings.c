@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "columns.h"
 #include "downloads_common.h"
 #include "filter.h"

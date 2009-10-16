@@ -39,6 +39,7 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
 #include "statusbar.h"
 
 #include "lib/glib-missing.h"

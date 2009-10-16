@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "version.h"
 #include "token.h"
 #include "settings.h"

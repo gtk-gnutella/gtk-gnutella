@@ -42,6 +42,8 @@ RCSID("$Id$")
 #include <pwd.h>
 #endif /* I_PWD */
 
+#include "gtk-gnutella.h"
+
 #include "notebooks.h"
 #include "main.h"
 #include "misc.h"

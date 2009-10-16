@@ -27,6 +27,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "ascii.h"
 #include "concat.h"
 #include "getdate.h"

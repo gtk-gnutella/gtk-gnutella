@@ -37,6 +37,8 @@
 
 RCSID("$Id$")
 
+#include "gtk-gnutella.h"
+
 #include "bsched.h"
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
 #include "ggep.h"
