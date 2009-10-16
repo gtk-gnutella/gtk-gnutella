@@ -276,7 +276,7 @@ publisher_done(gpointer arg, pdht_error_t code,
 {
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
-	int delay;
+	int delay = PUBLISH_BUSY;
 	gboolean expired = FALSE;
 	gboolean accepted = TRUE;
 
